@@ -97,7 +97,7 @@ void
 update_xmlns(dtd_parser *p, dtd_element *e, int natts, sgml_attribute *atts)
 { dtd_attr_list *al;
   int nschr = p->dtd->charfunc->func[CF_NS]; /* : */
-       
+
   for(al=e->attributes; al; al=al->next)
   { dtd_attr *a = al->attribute;
     const ichar *name = a->name->name;
@@ -123,7 +123,7 @@ update_xmlns(dtd_parser *p, dtd_element *e, int natts, sgml_attribute *atts)
 xmlns_resolve()
     Convert a symbol as returned by the XML level-1.0 parser to its namespace
     tuple {url}localname.  This function is not used internally, but provided
-    for use from the call-back functions of the parser.  
+    for use from the call-back functions of the parser.
 
     It exploits the stack of namespace-environments managed by the parser
     itself (see update_xmlns())
@@ -195,11 +195,11 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
     ichar *o = buf;
     const ichar *s;
     xmlns *ns;
-  
+
     for(s=id->name; *s; s++)
     { if ( *s == nschr )		/* explicit namespace */
       { dtd_symbol *n;
-  
+
 	*o = '\0';
 	*local = s+1;
 	n = dtd_add_symbol(dtd, buf);
@@ -220,9 +220,9 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
       }
       *o++ = *s;
     }
-  
+
     *local = id->name;
-  
+
     if ( (ns = xmlns_find(p->environments, NULL)) )
     { if ( ns->url->name[0] )
 	*url = ns->url->name;

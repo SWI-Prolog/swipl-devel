@@ -71,17 +71,17 @@ ws_create_colour(Colour c, DisplayObj d)
 
     if ( XAllocColor(display, r->colour_map, &exact) )
     { XColor *color = alloc(sizeof(XColor));
-      
+
       *color = exact;
       return registerXrefObject(c, d, (XtPointer) color);
     }
   }
 
-  if ( allocNearestColour(display, r->colour_map, r->depth, 
+  if ( allocNearestColour(display, r->colour_map, r->depth,
 			  get(d, NAME_visualType, EAV),
 			  &exact) )
   { XColor *color = alloc(sizeof(XColor));
-      
+
     *color = exact;
     assign(c, red,   toInt(exact.red));
     assign(c, green, toInt(exact.green));

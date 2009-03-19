@@ -264,7 +264,7 @@ typedef struct
 #define var_buffer	  (_PL_rd->vt._var_buffer)
 
 static void
-init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD) 
+init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
 { memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
 
   initBuffer(&var_name_buffer);
@@ -473,7 +473,7 @@ reportReadError(ReadData rd)
     fail;
 
   printMessage(ATOM_error, PL_TERM, rd->exception);
-  
+
   if ( rd->on_error == ATOM_dec10 )
     succeed;
 
@@ -506,7 +506,7 @@ clearBuffer(ReadData _PL_rd)
 
   _PL_rd->posp = rdbase;
   _PL_rd->posi = 0;
-}      
+}
 
 
 static void
@@ -717,7 +717,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
   bool dotseen = FALSE;
   IOPOS pbuf;					/* comment start */
   IOPOS *pos;
-  
+
   clearBuffer(_PL_rd);				/* clear input buffer */
   source_line_no = -1;
 
@@ -1019,7 +1019,7 @@ raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
 
   if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
   { ttybuf tab;
-    
+
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab);
     s = raw_read2(_PL_rd PASS_LD);
@@ -1084,7 +1084,7 @@ static Variable
 isVarAtom(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
     return &baseBuffer(&var_buffer, variable)[w>>7];
-  
+
   return NULL;
 }
 
@@ -1102,7 +1102,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 	       return v;
 	     })
   }
-       
+
   nv = entriesBuffer(&var_buffer, variable);
   next.name      = save_var_name(name, len, _PL_rd);
   next.namelen   = len;
@@ -1237,7 +1237,7 @@ skipSpaces(cucharp in)
 
     if ( !PlBlankW(chr) )
       return (ucharp)in;
-  }  
+  }
 
   return (ucharp)in;
 }
@@ -1253,7 +1253,7 @@ SkipIdCont(unsigned char *in)
 
     if ( !PlIdContW(chr) )
       return in;
-  }  
+  }
 
   return in;
 }
@@ -1271,7 +1271,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
       return in;
     if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
-  }  
+  }
 
   return in;
 }
@@ -1305,12 +1305,12 @@ scan_decimal(cucharp *sp, Number n)
 
   for(c = *s; isDigit(c); c = *++s)
   { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
-    { 
+    {
 #ifdef O_GMP
       n->value.i = (int64_t)t;
       n->type = V_INTEGER;
       promoteToMPZNumber(n);
-      
+
       for(c = *s; isDigit(c); c = *++s)
       { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
 	mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
@@ -1334,7 +1334,7 @@ scan_decimal(cucharp *sp, Number n)
 #endif
     } else
       t = t * 10 + c - '0';
-  }  
+  }
 
   *sp = s;
 
@@ -1392,7 +1392,7 @@ scan_number(cucharp *s, int b, Number n)
     { q++;
       t = t * b + d;
     }
-  }  
+  }
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1581,7 +1581,7 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
     *end = in;
 
   return TRUE;
-}  
+}
 
 
 static void
@@ -1631,7 +1631,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     switch(in[1])
     { case '\'':			/* 0'<char> */
       { int chr;
-	
+
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0, NULL);
 	} else
@@ -1806,7 +1806,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
   }
 
   switch(_PL_char_types[c])
-  { case LC:	
+  { case LC:
     lower:
 		{ PL_chars_t txt;
 
@@ -1814,7 +1814,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
-		  
+
 		functor:
 		  txt.text.t    = (char *)start;
 		  txt.length    = rdhere-start;
@@ -1986,7 +1986,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #endif
-    default:	
+    default:
     		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
 		}
@@ -2169,7 +2169,7 @@ remainder of the values.
 	realloca(side, sizeof(*side), side_n+1); \
 	side[side_n++] = in_op; \
 	side_p = (side_n == 1 ? 0 : side_p+1);
-	
+
 #define Modify(cpri) \
 	if ( side_p >= 0 && cpri > side[side_p].right_pri ) \
 	{ term_t tmp; \
@@ -2234,7 +2234,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 		    		PL_TERM, args[1].tpos);
     } else
     { long s, e;
-      
+
       if ( op->kind == OP_PREFIX )
       { s = fs;
 	e = get_int_arg(args[0].tpos, 2 PASS_LD);
@@ -2251,7 +2251,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 		    PL_LONG, fe,
 		    PL_LIST, 1, PL_TERM, args[0].tpos);
     }
-    
+
     return r;
   }
 
@@ -2365,7 +2365,7 @@ complex_term(const char *stop, term_t term, term_t positions,
       pin = PL_new_term_ref();
     else
       pin = 0;
-  
+
     if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
     { if ( !(token = get_token(rmo == 1, _PL_rd)) )
 	fail;
@@ -2401,7 +2401,7 @@ complex_term(const char *stop, term_t term, term_t positions,
 
       if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
-	
+
 	PushOp();
 
 	continue;
@@ -2424,8 +2424,8 @@ complex_term(const char *stop, term_t term, term_t positions,
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
 	{ Reduce(in_op.left_pri);
-	  PushOp();	
-	
+	  PushOp();
+
 	  continue;
 	}
       }
@@ -2674,7 +2674,7 @@ term is to be written.
 		readValHandle(tmp, argp++, _PL_rd PASS_LD);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));
-		
+
 		token = get_token(must_be_op, _PL_rd);
 
 		switch(token->value.character)
@@ -2853,7 +2853,7 @@ pl_raw_read2(term_t from, term_t term)
     top++;
   *top = EOS;
   s = skipSpaces(s);
-  
+
   txt.text.t    = (char*)s;
   txt.length    = top-s;
   txt.storage   = PL_CHARS_HEAP;
@@ -2967,7 +2967,7 @@ PRED_IMPL("read_clause", 2, read_clause, 0)
 }
 
 
-static const opt_spec read_term_options[] = 
+static const opt_spec read_term_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_variables,         OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
@@ -3020,7 +3020,7 @@ retry:
   if ( mname )
   { rd.module = lookupModule(mname);
     rd.flags  = rd.module->flags;
-  } 
+  }
 
   if ( charescapes != -1 )
   { if ( charescapes )
@@ -3095,7 +3095,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
     stream->encoding = ENC_UTF8;
     PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
     Sflush(stream);
-    
+
     txt.text.t = s;
     txt.length = bufsize;
     txt.storage = PL_CHARS_HEAP;
@@ -3157,7 +3157,7 @@ PL_chars_to_term(const char *s, term_t t)
   int rval;
   IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
   source_location oldsrc = LD->read_source;
-    
+
   init_read_data(&rd, stream PASS_LD);
   PL_put_variable(t);
   if ( !(rval = read_term(t, &rd PASS_LD)) && rd.has_exception )

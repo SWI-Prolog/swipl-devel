@@ -440,7 +440,7 @@ for one matching the input (which is broken  in lines).  When a match is
 found, the action part is translated into a message:
 
 	* The functor is the selector on this class
-	
+
 	* The arguments are arguments to the message.  Arguments of the
 	form digit:type are replaced by the n-th register of the regular
 	expression converted to the indicated type.
@@ -458,7 +458,7 @@ input(P, Input:string) :->
 	maplist(map_pattern_arg(Regex, Input), Args, NArgs),
 	Message =.. [send, P, Selector | NArgs],
 	Message.
-	
+
 pattern(_,
 	'^ftp> $',
 	prompt).

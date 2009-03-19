@@ -8,7 +8,7 @@
 */
 
 :- module(pce_host,
-	  [ 
+	  [
 	  ]).
 :- require([ absolute_file_name/3
 	   ]).
@@ -55,7 +55,7 @@ find_pce_home(PceHome) :-
 	absolute_file_name('$XPCEHOME',
 			   [ file_type(directory),
 			     access(exists)
-			   ], PceHome), !.		   
+			   ], PceHome), !.
 
 
 		 /*******************************

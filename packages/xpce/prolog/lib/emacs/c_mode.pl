@@ -92,7 +92,7 @@ indent_line(E, Times:[int]) :->
 
 backward_skip_statement(TB, Here, Start) :-
 	get(TB, skip_comment, Here, 0, H1),
-	(   (	H1 == 0   
+	(   (	H1 == 0
 	    ;	get(TB, character, H1, C1),
 		memberchk(C1, "{;}")
 	    ),
@@ -213,8 +213,8 @@ add_prototype(E) :->
 	forall(get(@emacs_makeproto, read_line, 100, Prototype),
 	       send(Fragment, insert, @default, Prototype)),
 	send(E, caret, End).
-	
-	
+
+
 		 /*******************************
 		 *	    GDB SUPPORT		*
 		 *******************************/

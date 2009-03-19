@@ -14,7 +14,7 @@ static status
 initialiseDisplayManager(DisplayManager dm)
 { assign(dm, members, newObject(ClassChain, 0));
   assign(dm, current, newObject(ClassChain, 0));
-  
+
   protectObject(dm);
 
   succeed;

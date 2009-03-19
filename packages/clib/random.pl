@@ -31,7 +31,7 @@
 %   version.  It is really very good.  It is straightforward to make a
 %   version which yields 15-bit random integers using only integer
 %   arithmetic.
- 
+
 :- module(random,
 	  [ random/1,			% -float
 	    random/3,			% +Low, +High, -Random
@@ -65,7 +65,7 @@ translation of a C-version for YAP based on the orginal source.
 %%	random(-R:float) is det.
 %
 %	Binds R to a new random number in [0.0,1.0).
-%	
+%
 %	@see setrand/1, getrand/1.
 
 %%	setrand(+State:state(A,B,C)) is det.
@@ -73,7 +73,7 @@ translation of a C-version for YAP based on the orginal source.
 %
 %	Query/set the state of the  random  library.   A,  B  and  C are
 %	integers in the range 1..30,000.
-%	
+%
 %	@see random/1.
 
 
@@ -88,7 +88,7 @@ translation of a C-version for YAP based on the orginal source.
 %	Binds R to a random integer in [L,U).  When L and U are integers
 %	(note that U will *never* be generated), or to a random floating
 %	number in [L,U) otherwise.
-%	
+%
 %	@bug	The state is only 48-bits.  This is insufficient for
 %		generating uniformely distributed integers in a very
 %		large domain.
@@ -105,16 +105,16 @@ random(L, U, R) :-
 %%	randset(+K:int, +N:int, -S:list(int)) is det.
 %
 %	S is a sorted list of K integers in the range 1..N.
-%	
+%
 %	@see randseq/3.
 
- 
+
 randset(K, N, S) :-
 	K >= 0,
 	K =< N,
 	randset(K, N, [], S).
- 
- 
+
+
 randset(0, _, S, S) :- !.
 randset(K, N, Si, So) :-
 	random(X),
@@ -125,13 +125,13 @@ randset(K, N, Si, So) :-
 randset(K, N, Si, So) :-
 	M is N-1,
 	randset(K, M, Si, So).
- 
- 
+
+
 %%	randseq(+K:int, +N:int, -S:list(int)) is det.
 %
 %	S is a list of K integers in the range 1..N. The order is
 %	random.
-%	
+%
 %	@see randset/3.
 
 
@@ -139,7 +139,7 @@ randseq(K, N, S) :-
 	randseq(K, N, L, []),
 	keysort(L, R),
 	strip_keys(R, S).
- 
+
 randseq(0, _, S, S) :- !.
 randseq(K, N, [Y-N|Si], So) :-
 	random(X),
@@ -151,8 +151,8 @@ randseq(K, N, [Y-N|Si], So) :-
 randseq(K, N, Si, So) :-
 	M is N-1,
 	randseq(K, M, Si, So).
- 
- 
+
+
 strip_keys([], []) :- !.
 strip_keys([_-K|L], [K|S]) :-
 	strip_keys(L, S).

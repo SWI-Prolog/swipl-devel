@@ -68,7 +68,7 @@ This module defines a number of commonly used global objects.
 		 /*******************************
 		 *    HANDLES AND CONNECTIONS	*
 		 *******************************/
-					    
+
 :- pce_global(@north, handle(x + w/2, y,       link, north)).
 :- pce_global(@south, handle(x + w/2, y + h,   link, south)).
 :- pce_global(@east,  handle(x + w,   y + h/2, link, east)).

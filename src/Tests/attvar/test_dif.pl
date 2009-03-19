@@ -73,4 +73,4 @@ test_dif :-
 		   assert(failed(N))
 	       )),
 	\+ failed(_).
-	
+

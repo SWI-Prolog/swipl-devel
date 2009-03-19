@@ -75,7 +75,7 @@ mycore(intptr_t size)			/* similar to sbrk() */
   }
 
   top = top + size;
-  
+
   return mem;
 }
 

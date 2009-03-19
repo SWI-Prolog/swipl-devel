@@ -44,7 +44,7 @@ The textimage object understands the following method:
 The textimage extracts information from the underlying text object using
 a pointer to a function that returns information on a specific character
 and its attributes:
-    
+
     void (*fetch)(Any context, TextChar chr)
 
 Each textimage contains the bitmap  image  and  an  array  of  text_line
@@ -132,7 +132,7 @@ unalloc_screen(TextScreen s)
   if ( s->lines != NULL )
   { for(i=0; i<s->allocated; i++)
       unalloc_textline(&s->lines[i]);
-  
+
     unalloc(s->allocated * sizeof(struct text_line), s->lines);
     s->lines = NULL;
   }
@@ -266,7 +266,7 @@ loadTextImage(TextImage ti, IOSTREAM *fd, ClassDef def)
 static status
 cloneTextImage(TextImage ti, TextImage clone)
 { clonePceSlots(ti, clone);
-  
+
   return reinitTextImage(clone);
 }
 
@@ -285,7 +285,7 @@ update_insert(int v, int w, int a)
     if ( w + a < v ) return v - a;
     if ( w > v ) return v;
     return w;
-  }      
+  }
 }
 
 
@@ -396,7 +396,7 @@ fill_dimensions_line(TextLine l)
       case CHAR_ASCII:
 	if ( tc->font != f )
 	{ f = tc->font;
-      
+
 	  assert(f);
 	  a = valInt(getAscentFont(f));
 	  d = valInt(getDescentFont(f));
@@ -406,7 +406,7 @@ fill_dimensions_line(TextLine l)
         break;
     }
   }
-  
+
   l->base = ascent;
   l->h = ascent + descent;
 }
@@ -422,7 +422,7 @@ do_fill_line(TextImage ti, TextLine l, long index)
 { short last_break = -1;
   int last_is_space = FALSE;
   TextChar tc;
-  int x, i, left_margin, right_margin;  
+  int x, i, left_margin, right_margin;
   long start;
 
   l->ends_because = 0;
@@ -500,7 +500,7 @@ do_fill_line(TextImage ti, TextLine l, long index)
         last_is_space = FALSE;
 	break;
     }
-    
+
     if ( x >= right_margin )
     { l->ends_because |= END_WRAP;
 
@@ -572,7 +572,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
     }
     return ti->map->lines[line+1].start;
   }
-  
+
   if ( l->y != y )
   { l->y = y;
     l->changed = 0;
@@ -581,7 +581,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
   } else
   { static struct text_line tmp;
     long idx;
-    
+
     if ( !tmp.chars )
     { tmp.chars = alloc(80 * sizeof(struct text_char));
       tmp.allocated = 80;
@@ -591,7 +591,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
     l->start        = tmp.start;
     l->end          = tmp.end;
     l->ends_because = tmp.ends_because;
-    
+
     if ( l->h != tmp.h || l->base != tmp.base )
     { l->changed = 0;
       copy_line_attributes(&tmp, l);
@@ -616,7 +616,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
       if ( i < tmp.length )
       { l->changed = i;
 	copy_line_chars(&tmp, i, l);
-      } 
+      }
       if ( tmp.length < l->length )
 	l->changed = tmp.length;
       l->length = tmp.length;
@@ -628,7 +628,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
 	  l->chars[l->length].x = tmp.w;
 	l->w = tmp.w;
 	l->changed = l->length-1;
-      } 
+      }
 
       return idx;
     }
@@ -643,7 +643,7 @@ updateMapTextImage(TextImage ti)
     int line;
     short y = TXT_Y_MARGIN;
     long index = valInt(ti->start);
-  
+
     DEBUG(NAME_text, Cprintf("Updating map from %d to %d ",
 			     ti->change_start, ti->change_end));
 
@@ -678,7 +678,7 @@ updateMapTextImage(TextImage ti)
       	eof_in_window = ON;
     }
   }
-  
+
   succeed;
 }
 
@@ -830,7 +830,7 @@ ascent_and_descent_image(Image im, int *ascent, int *descent)
     *ascent = valInt(im->hot_spot->y);
   else
     *ascent = valInt(im->size->h);
-  
+
   if ( descent )
     *descent = valInt(im->size->h) - *ascent;
 }
@@ -884,7 +884,7 @@ Paint a line from index `from' to index `to'.
 static void
 paint_attributes(TextImage ti, TextLine l, int from, int to, Colour c)
 { unsigned char atts = l->chars[from].attributes;
-  
+
   if ( atts & TXT_UNDERLINED )
   { t_underline(l->chars[from].x, l->y + l->h - 1,
 		l->chars[to].x - l->chars[from].x, c);
@@ -947,7 +947,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 	  r_fill(x, l->y, tx-x, l->h, bg);
 	}
 	paint_graphical(ti, a,
-			l->chars[e].value.graphical, 
+			l->chars[e].value.graphical,
 			l->chars[e].x,
 			l->y + l->base);
         e++;
@@ -961,7 +961,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 	}
 	r_colour(c);
 	paint_image(ti, a,
-		    l->chars[e].value.image, 
+		    l->chars[e].value.image,
 		    l->chars[e].x,
 		    l->y + l->base);
 	e++;
@@ -1001,7 +1001,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 	     l->chars[e].value.c == '\t' ||
 	     l->chars[e].value.c == '\n' )
 	  break;
-	
+
 	PutBuf(l->chars[e].value.c);
       }
     }
@@ -1022,7 +1022,7 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
       } else
       { int x  = l->chars[s].x;
 	int tx = l->chars[e].x;
-	
+
 	if ( tx > rmargin ) tx = rmargin;
 	r_fill(x, l->y, tx-x, l->h, bg);
       }
@@ -1055,21 +1055,21 @@ paint_area(TextImage ti, Area a, int x, int y, int w, int h)
   { TextLine ml = line_from_y(ti, y);
     int line = ml - &ti->map->lines[ti->map->skip];
     int ly = 0;
-  
+
     for(line = 0; line < ti->map->length && ml->y < y+h; line++, ml++)
     { if ( ml->y + ml->h > y )
       { int f, t;
 
 	if ( ml->y + ml->h > ti->h - TXT_Y_MARGIN )
 	  break;
-  
+
 	f = char_from_x(ml, x);
 	t = char_from_x(ml, x+w);
-  
+
 	paint_line(ti, a, ml, f, t+1);	/* TBD: get correct boundaries */
 	ly = ml->y + ml->h;
       }
-    }  
+    }
 
     if ( y + h > ly )
       r_clear(p, ly, ti->w-2*p, y+h-ly);
@@ -1164,10 +1164,10 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
 
   ComputeGraphical(ti);
   skip = ti->map->skip;
-  
+
   for(line=0; line < ti->map->length; line++)
   { TextLine l = &ti->map->lines[skip + line];
-  
+
 					/* binary search? */
     if ( index >= l->start && index < l->end )
     { if ( x )
@@ -1179,7 +1179,7 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
 	  else
 	  { TextChar ch = l->chars;
 	    TextChar lc = &l->chars[l->length];
-	
+
 					/* binary search! */
 	    while(ch < lc && ch->index < li)
 	      ch++;
@@ -1187,7 +1187,7 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
 	    li = ch - l->chars;
 	  }
 	}
-      
+
 	*x = li + 1;
       }
       if ( y )
@@ -1195,7 +1195,7 @@ get_xy_pos(TextImage ti, Int pos, int *x, int *y)
       succeed;
     }
   }
-  
+
   fail;
 }
 
@@ -1208,7 +1208,7 @@ get_character_box_textimage(TextImage ti, int index,
   if ( get_xy_pos(ti, toInt(index), &cx, &cy) )
   { TextLine l  = &ti->map->lines[cy-1+ti->map->skip];
     TextChar tc = &l->chars[cx-1];
-    
+
     *x = tc->x; *y = l->y, *w = tc[1].x - tc->x; *h = l->h; *b = l->base;
 
     succeed;
@@ -1243,7 +1243,7 @@ get_index_text_image(TextImage ti, int x, int y)
 
   for(line=0; line < ti->map->length; line++)
   { TextLine l = &ti->map->lines[line + skip];
-  
+
     if ( y >= l->y && y < l->y + l->h )
     { int i;
 
@@ -1253,11 +1253,11 @@ get_index_text_image(TextImage ti, int x, int y)
       for(i = 0; i < l->length; i++)
         if ( l->chars[i+1].x > x )
 	  return l->start + l->chars[i].index; /* bsearch()! */
-      
+
       return l->start + l->length - 1;
     }
   }
-  
+
   return valInt(ti->end) - 1;
 }
 
@@ -1277,7 +1277,7 @@ getLineTextImage(TextImage ti, Int pos)
   if ( get_xy_pos(ti, pos, NULL, &cy) )
     answer(toInt(cy));
 
-  fail;  
+  fail;
 }
 
 		/********************************
@@ -1299,7 +1299,7 @@ Int
 getIndexTextImage(TextImage ti, EventObj ev)
 { Int X, Y;
   int x, y;
-  
+
   get_xy_event(ev, ti, ON, &X, &Y);
   x = valInt(X);
   y = valInt(Y);
@@ -1328,10 +1328,10 @@ updatePointedTextImage(TextImage ti, EventObj ev, long *where)
 	else if ( subGraphical(ti->pointed, sw->keyboard_focus) )
 	  keyboardFocusWindow(sw, NIL);
       }
-    }	     
+    }
 
     gr = NIL;
-    
+
   } else
   { get_xy_event(ev, ti, ON, &x, &y);
     if ( (tl = line_from_y(ti, valInt(y))) &&
@@ -1480,7 +1480,7 @@ RedrawAreaTextImage(TextImage ti, Area a)
   if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
        sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
   { Elevation z = ti->elevation;
-    
+
     if ( z && notNil(z) )
     { r_3d_box(bx, by, bw, bh, 0, z, FALSE);
     } else
@@ -1518,7 +1518,7 @@ computeTextImage(TextImage ti)
 	  ty = cy;
 	break;
       }
-	
+
       if ( ml->changed >= 0 )
       { int cx;
 
@@ -1562,7 +1562,7 @@ computeTextImage(TextImage ti)
 status
 startTextImage(TextImage ti, Int start, Int skip)
 { TextScreen map = ti->map;
-  
+
   if ( isDefault(skip) )
     skip = ZERO;
   if ( isDefault(start) )
@@ -1578,7 +1578,7 @@ startTextImage(TextImage ti, Int start, Int skip)
       short y = TXT_Y_MARGIN;
 
       map->skip = valInt(skip);
-      
+
       for( ; sl < el; sl++ )
       { map->lines[sl].y = y;
 	if ( sl >= map->skip )
@@ -1624,7 +1624,7 @@ copy_line_chars(TextLine from, int start, TextLine to)
   ensure_chars_line(to, end);
 
   for( ; start < end; start++ )
-    to->chars[start] = from->chars[start];    
+    to->chars[start] = from->chars[start];
 }
 
 
@@ -1639,7 +1639,7 @@ static long
 paragraph_start(TextImage ti, long int pos)
 { int eof;
   long index;
-  
+
   index = (*ti->scan)(ti->text, pos-1, -1, TEXT_SCAN_FOR, EL, &eof);
 
   return eof ? index : index + 1;
@@ -1738,7 +1738,7 @@ centerTextImage(TextImage ti, Int position, Int screen_line)
 
     return startTextImage(ti, ZERO, ZERO); /* best we can do */
   }
-  
+
 }
 
 
@@ -1747,7 +1747,7 @@ getStartTextImage(TextImage ti, Int line)
 { int ln = isDefault(line) ? 1 : valInt(line);
   TextScreen map = ti->map;
   static struct text_line tl;		/* reusable dummy line */
-  
+
   ComputeGraphical(ti);
 
   if ( ln >= 0 )
@@ -1973,7 +1973,7 @@ make_pline_map(TextImage ti, PLine lines, int *size)
       succeed;
     }
   }
-      
+
   fail;
 }
 
@@ -2006,7 +2006,7 @@ backwards_filled_line(TextImage ti, TextLine l, long here, int lines)
 	idx = do_fill_line(ti, l, idx);
 
       succeed;
-    } else 
+    } else
     { lines -= i;
       here = idx0;
     }
@@ -2041,7 +2041,7 @@ backwards_filled_line_from_dy(TextImage ti, TextLine l, long here, int dy)
       }
 
       succeed;
-    } else 
+    } else
     { dy -= sy;
       here = idx0;
     }
@@ -2073,7 +2073,7 @@ ensure_enough_visible(TextImage ti, long here)
 
     if ( l->ends_because & END_EOF )
     { long end = l->start + l->length;
-      
+
       backwards_filled_line_from_dy(ti, l, end, minv);
       return l->start;
     }
@@ -2096,7 +2096,7 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
 
       if ( h>wh )
       { int yt = ((h-wh) * valInt(amount))/1000;
-	
+
 	for(l=0; l<count; l++)
 	{ if ( lines[l].y >= yt )
 	    break;
@@ -2116,7 +2116,7 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
       { int n = valInt(amount);
 	TextLine l = tmpLine();
 	idx = valInt(ti->start);
-  
+
 	for( ; n-- > 0; )
 	{ idx = do_fill_line(ti, l, idx);
 	  if ( l->ends_because & END_EOF )
@@ -2125,7 +2125,7 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
       } else				/* scrolling up */
       { int n = valInt(amount);
 	TextLine l = tmpLine();
-  
+
 	backwards_filled_line(ti, l, valInt(ti->start), n);
 	idx = l->start;
       }
@@ -2134,7 +2134,7 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
       TextLine l = tmpLine();
 
       idx = valInt(ti->start);
-  
+
       if ( dir == NAME_forwards )
       { for( ; dy > 0 ; )
 	{ long next = do_fill_line(ti, l, idx);
@@ -2341,14 +2341,14 @@ ensureVisibleTextImage(TextImage ti, Int caret)
     if ( here >= valInt(ti->end) && ti->eof_in_window == OFF )
     { TextLine l = tmpLine();
       long next;
-  
+
       next = do_fill_line(ti, l, valInt(ti->end));
       if ( here < next || l->ends_because & END_EOF ) /* shift one at most */
       { TextLine last = &ti->map->lines[ti->map->length-1];
 	int yt = last->y + last->h + l->h;
 	int yshift = yt - (ti->h - 2*TXT_Y_MARGIN);
 	int f;
-  
+
 	for(f=ti->map->skip; f<ti->map->length; f++)
 	{ if ( ti->map->lines[f].y >= yshift )
 	    return startTextImage(ti, toInt(ti->map->lines[f].start), ZERO);

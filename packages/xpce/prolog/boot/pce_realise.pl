@@ -70,7 +70,7 @@ pce_extended_class(_).
 
 
 %%	pce_begin_class_definition(+ClassName, +Meta, +Super, +Summary)
-%	
+%
 %	Dummy to allow cross-referencing and other tools to locate
 %	class-definitions after term-expansion.
 
@@ -90,7 +90,7 @@ check_loaded_class(ClassName) :-
 	get(@classes, member, ClassName, _), !,
 	pce_realise_class(ClassName).
 check_loaded_class(_).
-		
+
 
 		 /*******************************
 		 *	  REALISE-CLASS		*
@@ -187,7 +187,7 @@ create_class(ClassName, MetaClassName, SuperName, Class) :-
 
 
 %%	attach_variables(+VariableList, +Class)
-%	
+%
 %	Attach the instance variables.  Error checking is done by the
 %	XPCE kernel.
 
@@ -198,7 +198,7 @@ attach_variables([V|T], Class) :-
 	attach_variables(T, Class).
 
 %%	attach_class_variables(+ClassVarList, +Class)
-%	
+%
 %	Attach the class variables
 
 attach_class_variables([], _).
@@ -230,7 +230,7 @@ classvar_default(List, Default) :-
 	;   throw(error(type_error(class_variable_default, List), _))
 	).
 classvar_default(Default, Default).
-		 
+
 
 run_directives([], _).
 run_directives(Directives, Class) :-
@@ -241,7 +241,7 @@ run_directives([]).
 run_directives([H|T]) :-
 	H,
 	run_directives(T).
-	
+
 delete_prolog_methods(Class) :-
 	get(Class, name, ClassName),
 	(   pce_lazy_send_method(Selector, ClassName, _Binder1),
@@ -345,7 +345,7 @@ pce_bind_send(Id, Types, Doc, Loc, Group, ClassName, Selector) :-
 	pce_method_implementation(Id, Message),
 	send(Class, send_method,
 	     send_method(Selector, Types, Message, Doc, Loc, Group)).
-	
+
 pce_bind_get(Id, RType, Types, Doc, Loc, Group, ClassName, Selector) :-
 	get(@pce, convert, ClassName, class, Class),
 	pce_method_implementation(Id, Message),

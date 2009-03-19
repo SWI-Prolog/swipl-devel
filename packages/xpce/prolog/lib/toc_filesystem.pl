@@ -84,14 +84,14 @@ update(F) :->
 	    new(SubDirNames, chain),
 	    new(SubFileNames, chain),
 	    send(Dir, scan, SubFileNames, SubDirNames, Regex),
-    
+
 	    get(F?sons, map, @arg1?name, Labels), % delete removed ones
 	    send(Labels, subtract, SubFileNames),
 	    send(Labels, subtract, SubDirNames),
 	    send(F?sons, for_all,
 		 if(message(Labels, member, @arg1?name),
 		    message(@arg1, delete_tree))),
-		 
+
 	    (   send(SubDirNames, empty),
 		send(SubFileNames, empty)
 	    ->  true
@@ -102,7 +102,7 @@ update(F) :->
 	;   send(F, delete_tree)
 	).
 
-		
+
 ensure_dir(F, SubDir:name) :->
 	"Ensure we have a subdirectory with this name"::
 	(   get(F?sons, find, @arg1?name == SubDir, Node)
@@ -250,7 +250,7 @@ auto_refresh(FB, Interval:int*) :->
 		 new(T, timer(Interval, message(FB, refresh)))),
 	    send(T, status, repeat)
 	).
-	
+
 kill_timer(FB) :->
 	"Kill timer if we have one"::
 	(   get(FB, slot, refresh_timer, Timer),

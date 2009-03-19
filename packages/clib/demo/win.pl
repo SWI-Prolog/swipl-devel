@@ -89,11 +89,11 @@ dispatch_fd(Client) :-
 	    retractall(client(Client, _))
 	;   flush_output(Write)
 	).
-	
+
 		 /*******************************
 		 *		CLIENT		*
 		 *******************************/
-	
+
 client :-
 	client(3000).
 client(Port) :-

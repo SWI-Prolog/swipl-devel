@@ -91,7 +91,7 @@ read_comments(_, Comments0, In, Comments) :-
 	structured_comments(Comments0, Comments, Tail),
 	read_comments(In, Term1, Comments1),
 	read_comments(Term1, Comments1, In, Tail).
-	
+
 structured_comments([], T, T).
 structured_comments([H|Comments], [H|T0], T) :-
 	is_structured_comment(H, _), !,
@@ -121,7 +121,7 @@ read_comments(In, Term, Comments) :-
 %
 %	True if Comment is a structured comment that should use Prefixes
 %	to extract the plain text using indented_lines/3.
-%	
+%
 %	@tbd	=|%% SWI begin|= and =|%% SICStus begin|= are used by chr.
 %		We need a more general mechanism to block some comments.
 
@@ -190,7 +190,7 @@ blank_or_percents -->
 	blank_or_percents.
 blank_or_percents -->
 	"".
-	
+
 contains(String) -->
 	...,
 	String, !.
@@ -206,10 +206,10 @@ contains(String) -->
 %	@param Source	Prolog source to be documented
 %	@param Doc	the name of the file documenting Source.
 %	@param Options	Option list:
-%			
+%
 %			* format(-Format)
 %			Output format.  One of =html= or =latex=
-%	
+%
 %	@error	permission_error(overwrite, Source)
 
 doc_file_name(Source, Doc, Options) :-
@@ -227,20 +227,20 @@ doc_file_name(Source, Doc, Options) :-
 %	True if Comment is the  comment   describing  object. Comment is
 %	returned as a string object  containing   the  original from the
 %	source-code.  Object is one of
-%	
+%
 %		* Name/Arity
 %		Predicate indicator
-%		
+%
 %		* Name//Arity
 %		DCG rule indicator.  Same as Name/Arity+2
-%		
+%
 %		* module(Module)
 %		Comment appearing in Module.
-%		
+%
 %	If Object is  unbound  and  multiple   objects  share  the  same
 %	description, Object is unified with a   list  of terms described
 %	above.
-%	
+%
 %	@param Summary	First sentence.  Normalised spacing.
 %	@param Comment	Comment string from the source-code (untranslated)
 
@@ -291,13 +291,13 @@ prolog:predicate_summary(PI, Summary) :-
 %
 %	Processes comments returned by read_term/3 using the =comments=
 %	option.  It creates clauses of the form
-%	
+%
 %		* '$mode'(Head, Det)
 %		* '$pldoc'(Id, Pos, Summary, Comment)
 %		* '$pldoc_link'(Id0, Id)
-%	
-%	where Id is one of 
-%	
+%
+%	where Id is one of
+%
 %		* module(Title)
 %		Generated from /** <module> Title */
 %		* Name/Arity

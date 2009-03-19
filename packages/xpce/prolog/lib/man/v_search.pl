@@ -91,8 +91,8 @@ timeout(I) :->
 	send(I?display, busy_cursor),
 	ignore(send(Msg, forward, Selection)),
 	send(I?display, busy_cursor, @nil).
-	
-	
+
+
 typed(I, Id:event_id) :->
 	send(I, slot, last_typed, @pce?mclock),
 	send(I, send_super, typed, Id),
@@ -238,7 +238,7 @@ show_cards(IV, Cards:chain) :->
 	get(IV, member, hitlist, Browser),
 	get(Cards, map, ?(@prolog, object_from_id, @arg1), Objects),
 	send(Browser, members, Objects).
-	    
+
 
 object_from_id(Id, Obj) :-
 	atom_codes(Id, Chars),
@@ -398,7 +398,7 @@ simple_search(word(W)) -->
 simple_search(prefix(W)) -->
 	[ W ],
 	{ \+ singleton(_, W) }.
-	
+
 infix(and)  --> [and].
 infix(or)   --> [or].
 
@@ -406,7 +406,7 @@ infix(or)   --> [or].
 		 /*******************************
 		 *	     AND DO IT		*
 		 *******************************/
-      
+
 execute_search(word(W), DB, Result) :-
 	get(DB, member, W, Result).
 execute_search(prefix(W), DB, Result) :-

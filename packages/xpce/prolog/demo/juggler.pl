@@ -63,7 +63,7 @@ make_juggler_popup(P) :-
 		  , menu_item(speed, message(J, set_speed), @default, @on)
 		  , menu_item(quit,  message(J, free))
 		  ]).
-	       
+
 
 initialise(F) :->
 	"Create a juggler-window"::
@@ -86,9 +86,9 @@ initialise(F) :->
 	send(T, start),
   	get(F, class_variable_value, speed, Speed),
 	send(F, speed, Speed),
-	
+
 	send(F, open).
-	
+
 unlink(F) :->
 	send(F?timer, stop),
 	send(F, send_super, unlink).

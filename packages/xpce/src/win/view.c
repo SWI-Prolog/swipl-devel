@@ -190,7 +190,7 @@ static char *T_selection[] =
         { "mark=[int]", "caret=[int]",
 	  "status=[{active,inactive,highlight}]"
 	};
-static char *T_scrollTo[] = 
+static char *T_scrollTo[] =
 	{ "index=[int]", "screenline=[int]" };
 
 /* Instance Variables */

@@ -27,7 +27,7 @@
 CPointer
 CtoCPointer(void *ptr)
 { CPointer p = answerObjectv(ClassCPointer, 0, NULL);
-  
+
   p->pointer = ptr;
 
   return p;
@@ -95,7 +95,7 @@ static getdecl get_cPointer[] =
 #define rc_cPointer NULL
 /*
 static classvardecl rc_cPointer[] =
-{ 
+{
 };
 */
 

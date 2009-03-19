@@ -619,7 +619,7 @@ default_font(Draw, Font:font) :->
 	    send(Icon, paint_proto)
 	;   true
 	).
-	
+
 
 		/********************************
 		*        FINDING PARTS		*
@@ -809,4 +809,4 @@ quit(Draw) :->
 	;   true
 	).
 
-:- pce_end_class.	
+:- pce_end_class.

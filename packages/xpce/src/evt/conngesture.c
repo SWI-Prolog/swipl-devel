@@ -190,7 +190,7 @@ indicateConnectGesture(ConnectGesture g, Graphical gr, EventObj ev,
     if ( gr->name == NAME_unused )
       DeviceGraphical(gr, NIL);
   }
-   
+
   succeed;
 }
 
@@ -216,13 +216,13 @@ indicateHandleConnectGesture(ConnectGesture g,
       succeed;
     }
   }
-  
+
   bm = newObject(ClassBitmap, g->mark, EAV);
   centerGraphical((Graphical) bm, pos);
   send(dev, NAME_display, bm, EAV);
   assign(bm, name, NAME_used);
   appendChain(ch, bm);
-  
+
   succeed;
 }
 

@@ -126,7 +126,7 @@ print_canvas(Canvas) :-			% Unix/PostScript
 	send(PsFile, remove),
 	send(PsFile, done),
 	send(Canvas, report, status, 'Sent to printer').
-	
+
 
 print_command(Canvas, Command:name) :<-
 	"Get name of the printer"::
@@ -201,4 +201,4 @@ save_postscript(Canvas, File:file=[file], Directory:directory=[directory]) :->
 	send(Canvas, report, status, 'Saved PostScript to %s', PsFile).
 
 :- pce_end_class(print_graphics).
-	  
+

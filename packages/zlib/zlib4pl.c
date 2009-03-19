@@ -338,7 +338,7 @@ gz_skip_footer(z_context *ctx)
     }
     if ( size != ctx->zstate.total_out )
     { char msg[256];
-      
+
       Ssprintf(msg, "Size mismatch (%ld != %ld)", size, ctx->zstate.total_out);
       Sseterr(ctx->zstream, SIO_FERR, msg);
       return -1;
@@ -374,7 +374,7 @@ zread(void *handle, char *buf, size_t size)
   DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
   ctx->zstate.next_out  = (Bytef*)buf;
   ctx->zstate.avail_out = (long)size;
-  
+
   if ( ctx->initialized == FALSE )
   { Bytef *p;
 
@@ -395,7 +395,7 @@ zread(void *handle, char *buf, size_t size)
       DEBUG(1, Sdprintf("Skipped gzip header (%d bytes)\n", m));
       ctx->zstate.next_in = p;
       ctx->zstate.avail_in -= m;
-      
+
 					/* init without header */
       switch(inflateInit2(&ctx->zstate, -MAX_WBITS))
       { case Z_OK:
@@ -442,7 +442,7 @@ zread(void *handle, char *buf, size_t size)
       memmove(ctx->stream->buffer, ctx->zstate.next_in, avail);
       ctx->stream->bufp   = ctx->stream->buffer;
       ctx->stream->limitp = ctx->stream->bufp + avail;
-      
+
       return 0;			/* EOF */
     } else
     { DEBUG(1, Sdprintf("GZIP CRC/length error\n"));
@@ -454,7 +454,7 @@ zread(void *handle, char *buf, size_t size)
   { case Z_OK:
     case Z_STREAM_END:
     { long n = (long)(size - ctx->zstate.avail_out);
-      
+
       if ( ctx->format == F_GZIP && n > 0 )
 	ctx->crc = crc32(ctx->crc, (Bytef*)buf, n);
 
@@ -515,14 +515,14 @@ zwrite4(void *handle, char *buf, size_t size, int flush)
     { case Z_OK:
       case Z_STREAM_END:
       { size_t n = sizeof(buffer) - ctx->zstate.avail_out;
-  
+
 	DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
 			  rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
 			  n, ctx->zstate.avail_in));
-  
+
 	if ( Sfwrite(buffer, 1, n, ctx->stream) != n )
 	  return -1;
-  
+
 	break;
       }
       case Z_BUF_ERROR:
@@ -588,7 +588,7 @@ zclose(void *handle)
 
   switch(rc)
   { case Z_OK:
-      DEBUG(1, Sdprintf("%s(): Z_OK\n", 
+      DEBUG(1, Sdprintf("%s(): Z_OK\n",
 		        (ctx->stream->flags & SIO_INPUT) ? "inflateEnd"
 							 : "deflateEnd"));
       if ( ctx->close_parent )
@@ -598,7 +598,7 @@ zclose(void *handle)
       } else
       { free_zcontext(ctx);
 	return 0;
-      } 
+      }
     case Z_STREAM_ERROR:		/* inconsistent state */
     case Z_DATA_ERROR:			/* premature end */
     default:
@@ -655,7 +655,7 @@ pl_zopen(term_t org, term_t new, term_t options)
 
     if ( name == ATOM_format )
     { atom_t a;
-      
+
       if ( !get_atom_ex(arg, &a) )
 	return FALSE;
       if ( a == ATOM_gzip )
@@ -719,7 +719,7 @@ pl_zopen(term_t org, term_t new, term_t options)
   { ctx->close_parent = FALSE;
     Sclose(s2);
     return instantiation_error();
-  }    
+  }
 }
 
 

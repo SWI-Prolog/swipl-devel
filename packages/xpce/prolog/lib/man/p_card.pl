@@ -189,7 +189,7 @@ variable(modified,	bool,		get,	"Indicate has changed").
 variable(current_id,	number,		both,	"Numeric id for next card").
 
 initialise(M, Space:man_space, Name:name) :->
-	"Create from space and name"::	      
+	"Create from space and name"::
 	(   get(Space?modules, member, Name, _)
 	->  send(@display, inform, 'Module %s already exists', Name)
 	;   send(M, slot, name,     Name),

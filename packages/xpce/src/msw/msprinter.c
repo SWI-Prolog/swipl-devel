@@ -145,12 +145,12 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
 
   resetDataWinPrinter(prt);
 
-  psd->lStructSize = sizeof(PAGESETUPDLG); 
+  psd->lStructSize = sizeof(PAGESETUPDLG);
   psd->hwndOwner = hwnd;
 /*
-  psd->hDevMode; 
-  psd->hDevNames; 
-  psd->Flags; 
+  psd->hDevMode;
+  psd->hDevNames;
+  psd->Flags;
 */
 #ifdef USE_PRINTDLG
   psd->Flags = (PD_ALLPAGES|
@@ -165,33 +165,33 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
     psd->Flags |= PD_NOPAGENUMS;
 
 /* Keep them here are reminder
-  psd->hDC; 
-  psd->Flags; 
-  psd->nFromPage; 
-  psd->nToPage; 
-  psd->nMinPage; 
-  psd->nMaxPage; 
-  psd->nCopies; 
-  psd->hInstance; 
-  psd->lCustData; 
-  psd->lpfnPrintHook; 
-  psd->lpfnSetupHook; 
-  psd->lpPrintTemplateName; 
-  psd->lpSetupTemplateName; 
-  psd->hPrintTemplate; 
-  psd->hSetupTemplate; 
+  psd->hDC;
+  psd->Flags;
+  psd->nFromPage;
+  psd->nToPage;
+  psd->nMinPage;
+  psd->nMaxPage;
+  psd->nCopies;
+  psd->hInstance;
+  psd->lCustData;
+  psd->lpfnPrintHook;
+  psd->lpfnSetupHook;
+  psd->lpPrintTemplateName;
+  psd->lpSetupTemplateName;
+  psd->hPrintTemplate;
+  psd->hSetupTemplate;
 */
   psd->nCopies = 1;
 #else
-/* 
-  psd->ptPaperSize; 
-  psd->rtMinMargin; 
-  psd->rtMargin; 
-  psd->hInstance; 
-  psd->lCustData; 
-  psd->lpfnPageSetupHook; 
-  psd->lpfnPagePaintHook; 
-  psd->lpPageSetupTemplateName; 
+/*
+  psd->ptPaperSize;
+  psd->rtMinMargin;
+  psd->rtMargin;
+  psd->hInstance;
+  psd->lCustData;
+  psd->lpfnPageSetupHook;
+  psd->lpfnPagePaintHook;
+  psd->lpPageSetupTemplateName;
   psd->hPageSetupTemplate;
 */
 #endif
@@ -229,7 +229,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
 
   if ( psd->hDevNames )			/* debugging */
   { DEVNAMES *names = GlobalLock(psd->hDevNames);
-    
+
     if ( names->wDriverOffset )
       DEBUG(NAME_print,
 	    Cprintf("driver=%s\n", (char *)names+names->wDriverOffset));
@@ -422,12 +422,12 @@ resolutionWinPrinter(WinPrinter prt, Any resolution)
 
       ReleaseDC(NULL, shdc);
 
-      DEBUG(NAME_print, 
+      DEBUG(NAME_print,
 	    Cprintf("Resolution = %d x %d, Screen = %d x %d\n",
 		    rx, ry, srx, sry));
 
       SetWindowOrgEx(hdc, ox, oy, NULL);
-	
+
       if ( isDefault(resolution) )
       { SetViewportOrgEx(hdc, 0, 0, NULL);
 	SetWindowExtEx(hdc, srx, sry, NULL);
@@ -439,13 +439,13 @@ resolutionWinPrinter(WinPrinter prt, Any resolution)
 	if ( isInteger(resolution) )
 	{ int pw = GetDeviceCaps(hdc, PHYSICALWIDTH);
 	  int ph = GetDeviceCaps(hdc, PHYSICALHEIGHT);
-	  
+
 	  h = valInt(resolution);
 	  w = (h*pw)/ph;
-  
+
 	} else
 	{ Size sz = resolution;
-  
+
 	  h = valInt(sz->h);
 	  w = valInt(sz->w);
 	}
@@ -489,7 +489,7 @@ viewportWinPrinter(WinPrinter prt, Area vp)
     int y = valInt(vp->y);
     int w = valInt(vp->w);
     int h = valInt(vp->h);
-    
+
     SetViewportOrgEx(hdc, x, y, NULL);
     SetViewportExtEx(hdc, w, h, NULL);
 
@@ -509,7 +509,7 @@ windowWinPrinter(WinPrinter prt, Area ww)
     int y = valInt(ww->y);
     int w = valInt(ww->w);
     int h = valInt(ww->h);
-    
+
     SetWindowOrgEx(hdc, x, y, NULL);
     SetWindowExtEx(hdc, w, h, NULL);
 
@@ -592,7 +592,7 @@ static mapmode map[] =
   { MM_TEXT,	    NAME_text },
   { MM_TWIPS,	    NAME_twips },
   { -1,		    NULL }
-}; 
+};
 
 
 static int
@@ -746,7 +746,7 @@ static vardecl var_winprinter[] =
      NAME_dimension, "Origin for drawing"),
   IV(NAME_device, "[name|file]", IV_BOTH,
      NAME_output, "Default output device"),
-  IV(NAME_wsRef, "alien:PRINTDLG *", IV_GET, 
+  IV(NAME_wsRef, "alien:PRINTDLG *", IV_GET,
      NAME_internal, "Associated Windows data")
 };
 
@@ -789,7 +789,7 @@ static getdecl get_winprinter[] =
 #define rc_winprinter NULL
 /*
 static classvardecl rc_winprinter[] =
-{ 
+{
 };
 */
 

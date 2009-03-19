@@ -53,7 +53,7 @@ Packing however is a lot simpler then parsing.
 %	generated boundary. The  generated  boundary   consists  of  the
 %	current  time  in  seconds  since  the    epoch  and  10  random
 %	hexadecimal numbers.
-%	
+%
 %	@bug	Does not validate that the boundary is unique.
 
 mime_pack(Inputs, OutputStream, Boundary) :-
@@ -68,7 +68,7 @@ pack_list([H|T], Out, Boundary) :-
 	format(Out, '\r\n', []),
 	pack_list(T, Out, Boundary).
 
-pack(X, _Out) :- 
+pack(X, _Out) :-
 	var(X), !,
 	throw(error(instantiation_error, _)).
 pack(Name=Value, Out) :- !,

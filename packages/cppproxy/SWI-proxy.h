@@ -53,7 +53,7 @@ typedef enum
 		 *******************************/
 
 class PlException : public string
-{ 
+{
 public:
   PlException() : string() {}
   PlException(string &s)
@@ -115,7 +115,7 @@ class PlProxy
   int     qnest;
 
   void initvars()
-  { ios = NULL; 
+  { ios = NULL;
     debuglevel = 0;
     qnest = -1;				/* no query in progress */
   }

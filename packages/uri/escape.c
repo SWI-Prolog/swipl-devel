@@ -201,7 +201,7 @@ decode_chars(size_t len, char *s, term_t out, int plustoo)
       return -1;			/* non-ASCII input */
     if ( c == '%' )
     { int v1, v2;
-      
+
       if ( (v1=dehex(*++q)) >= 0 && (v2=dehex(*++q)) >= 0 )
       { *o++ = (v1<<4)|v2;
       } else

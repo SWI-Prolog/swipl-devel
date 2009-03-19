@@ -57,12 +57,12 @@
 %		* expand_foreach(+Bool)
 %		Apply each(Container, Pred, Object) on the members of
 %		Container
-%		
+%
 %		* namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
-%	
+%
 %	@see	Use process_rdf/3 for processing large documents in
 %		_|call-back|_ style.
 
@@ -86,7 +86,7 @@ load_rdf(File, Triples, Options0) :-
 		     rdf_end_file(Cleanup)),
 	exit_ns_collect(NSList),
 	post_process(Options, Triples0, Triples).
-	
+
 entity_options([], [], []).
 entity_options([H|T0], Entities, Rest) :-
 	(   H = entity(_,_)
@@ -149,35 +149,35 @@ member_attribute(A) :-
 		 *******************************/
 
 %%	process_rdf(+Input, :OnObject, +Options)
-%	
+%
 %	Process RDF from Input. Input is either an atom or a term of the
 %	format stream(Handle). For each   encountered  description, call
 %	OnObject(+Triples) to handle the  triples   resulting  from  the
 %	description. Defined Options are:
-%	
+%
 %		* base_uri(+URI)
 %		Determines the reference URI.
-%		
+%
 %		* db(DB)
 %		When loading from a stream, the source is taken from
 %		this option or -if non-existent- from base_uri.
-%		
+%
 %		* lang(LanguageID)
 %		Set initial language (as xml:lang)
-%		
+%
 %		* convert_typed_literal(:Convertor)
 %		Call Convertor(+Type, +Content, -RDFObject) to create
 %		a triple rdf(S, P, RDFObject) instead of rdf(S, P,
 %		literal(type(Type, Content)).
-%		
+%
 %		*  namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
-%		
+%
 %		* entity(Name, Value)
 %		Overrule entity values found in the file
-%		
+%
 %		* embedded(Boolean)
 %		If =true=, do not give warnings if rdf:RDF is embedded
 %		in other XML data.
@@ -275,7 +275,7 @@ on_begin(Tag, Attr, Parser) :-
 	).
 
 %%	on_xmlns(+NS, +URL, +Parser)
-%	
+%
 %	Build up the list of   encountered xmlns:NS=URL declarations. We
 %	use  destructive  assignment  here   as    an   alternative   to
 %	assert/retract, ensuring thread-safety and better performance.
@@ -314,7 +314,7 @@ modify_state1(xml:lang = Lang, Options0, Options) :- !,
 modify_state1(_, Options, Options).
 
 %%	remove_fragment(+URI, -WithoutFragment)
-%	
+%
 %	When handling xml:base, we must delete the possible fragment.
 
 remove_fragment(URI, Plain) :-
@@ -330,7 +330,7 @@ set_option(Opt, Options0, [Opt|Options]) :-
 
 
 %%	meta_options(+OptionsIn, -OptionsOut)
-%	
+%
 %	Do module qualification for options that are module sensitive.
 
 :- module_transparent
@@ -405,7 +405,7 @@ unparse_xml(element(Name, Attr, Content)) -->
 	;   ">",
 	    unparse_xml(Content)
 	).
-	
+
 attributes([]) -->
 	[].
 attributes([H|T]) -->

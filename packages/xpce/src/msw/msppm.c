@@ -121,7 +121,7 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 
   switch(encoding)
   { int x, y;
-    
+
     case PNM_ASCII:
     { switch(fmt)
       { case PNM_PBM:
@@ -131,10 +131,10 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int value = getNum(fd);
-  
+
 	      if ( value < 0 || value > 1 )
 		goto errout;
-  
+
 	      SetPixel(hdc, x, y, value ? on : off);
 	    }
 	  }
@@ -144,16 +144,16 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int g = getNum(fd);
-  
+
 	      if ( g < 0 || g > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
-  
+
 	      SetPixel(hdc, x, y, RGB(g, g, g));
 	    }
 	  }
-	      
+
 	  break;
 	}
 	case PNM_PPM:
@@ -162,22 +162,22 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	    { int r = getNum(fd);
 	      int g = getNum(fd);
 	      int b = getNum(fd);
-  
+
 	      if ( r < 0 || r > scale ||
 		   g < 0 || g > scale ||
 		   b < 0 || b > scale )
 		goto errout;
-  
+
 	      if ( scale != 255 )
 	      { r = rescale(r, scale, 255);
 		g = rescale(g, scale, 255);
 		b = rescale(b, scale, 255);
 	      }
-  
+
 	      SetPixel(hdc, x, y, RGB(r, g, b));
 	    }
 	  }
-  
+
 	  break;
 	}
 	break;
@@ -191,14 +191,14 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	  int bit = 0;
 	  COLORREF on = RGB(0, 0, 0);
 	  COLORREF off = RGB(255, 255, 255);
-	  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( !bit )
 	      { byte = Sgetc(fd);
 		bit = 8;
 	      }
-  
+
 	      bit--;
 	      SetPixel(hdc, x, y, (byte & (1<<bit)) ? on : off);
 	    }
@@ -210,16 +210,16 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { unsigned int g;
-  
+
 	      if ( Sfeof(fd) || (g=Sgetc(fd)) > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
-  
+
 	      SetPixel(hdc, x, y, RGB(g, g, g));
 	    }
 	  }
-	      
+
 	  break;
 	}
 	case PNM_PPM:
@@ -232,17 +232,17 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 		   (g=Sgetc(fd)) > scale ||
 		   (b=Sgetc(fd)) > scale )
 		goto errout;
-  
+
 	      if ( scale != 255 )
 	      { r = rescale(r, scale, 255);
 		g = rescale(g, scale, 255);
 		b = rescale(b, scale, 255);
 	      }
-  
+
 	      SetPixel(hdc, x, y, RGB(r, g, b));
 	    }
 	  }
-  
+
 	  break;
 	}
 	break;
@@ -263,21 +263,21 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	      { SetPixel(hdc, x, y, cpixel);
 	      } else
 	      { unsigned int g;
-  
+
 		if ( (g=Sgetc(fd)) > scale ||
 		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 		rlen &= 0xff;
 		if ( scale != 255 )
 		  g = rescale(g, scale, 255);
-  
+
 		cpixel = RGB(g, g, g);
 		SetPixel(hdc, x, y, cpixel);
 		rlen--;
 	      }
 	    }
 	  }
-	      
+
 	  break;
 	}
 	case PNM_PPM:
@@ -287,7 +287,7 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 	      { SetPixel(hdc, x, y, cpixel);
 	      } else
 	      { unsigned int r, g, b;
-  
+
 		if ( (r=Sgetc(fd)) > scale ||
 		     (g=Sgetc(fd)) > scale ||
 		     (b=Sgetc(fd)) > scale ||
@@ -300,15 +300,15 @@ read_ppm_file(IOSTREAM *fd, Name *kind)
 		  g = rescale(g, scale, 255);
 		  b = rescale(b, scale, 255);
 		}
-  
+
 		cpixel = RGB(r, g, b);
-  
+
 		SetPixel(hdc, x, y, cpixel);
 		rlen--;
 	      }
 	    }
 	  }
-  
+
 	  break;
 	}
       }
@@ -406,7 +406,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  BYTE r = GetRValue(c);
 	  BYTE g = GetGValue(c);
 	  BYTE b = GetBValue(c);
-	  
+
 	  if ( r != g || r != b )
 	  { fmt = PNM_PPM;
 	    break;
@@ -429,7 +429,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
     Sfprintf(fd, "%d %d\n", width, height);
 
   file_col = 0;
-    
+
   switch(encode)
   { case PNM_ASCII:
     { switch(fmt)
@@ -447,10 +447,10 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  { for(x=0; x<width; x++)
 	    { COLORREF c = GetPixel(hdc, x, y);
 	      unsigned int r = GetRValue(c);
-  
+
 	      if ( scale != 255 )
 		r = rescale(r, BRIGHT, scale);
-  
+
 	      if ( putNum(r, fd) < 0 )
 		return -1;
 	    }
@@ -464,13 +464,13 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      unsigned int r = GetRValue(c);
 	      unsigned int g = GetGValue(c);
 	      unsigned int b = GetBValue(c);
-	      
+
 	      if ( scale != 255 )
 	      { r = rescale(r, BRIGHT, scale);
 		g = rescale(r, BRIGHT, scale);
 		b = rescale(r, BRIGHT, scale);
 	      }
-  
+
 	      if ( putNum(r, fd) < 0 ||
 		   putNum(g, fd) < 0 ||
 		   putNum(b, fd) < 0 )
@@ -489,7 +489,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
       { case PNM_PBM:
 	{ int byte = 0;
 	  int bit = 7;
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( !GetPixel(hdc, x, y) )
@@ -508,7 +508,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      byte = 0;
 	    }
 	  }
-  
+
 	  if ( bit != 7 )
 	  { if ( Sputc(byte, fd) == EOF )
 	      return -1;
@@ -520,10 +520,10 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  { for(x=0; x<width; x++)
 	    { COLORREF c = GetPixel(hdc, x, y);
 	      unsigned int r = GetRValue(c);
-  
+
 	      if ( scale != 255 )
 		r = rescale(r, BRIGHT, scale);
-  
+
 	      if ( Sputc(r, fd) == EOF )
 		return -1;
 	    }
@@ -537,20 +537,20 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      unsigned int r = GetRValue(c);
 	      unsigned int g = GetGValue(c);
 	      unsigned int b = GetBValue(c);
-	      
+
 	      if ( scale != 255 )
 	      { r = rescale(r, BRIGHT, scale);
 		g = rescale(r, BRIGHT, scale);
 		b = rescale(r, BRIGHT, scale);
 	      }
-  
+
 	      if ( Sputc(r, fd) == EOF ||
 		   Sputc(g, fd) == EOF ||
 		   Sputc(b, fd) == EOF )
 		return -1;
 	    }
 	  }
-  
+
 	  break;
 	}
       }
@@ -596,7 +596,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 		rlen++;
 	      else
 	      { unsigned int r, g, b;
-  
+
 		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
@@ -611,7 +611,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 		  g = rescale(r, BRIGHT, scale);
 		  b = rescale(r, BRIGHT, scale);
 		}
-  
+
 		if ( Sputc(r, fd) == EOF ||
 		     Sputc(g, fd) == EOF ||
 		     Sputc(b, fd) == EOF )
@@ -621,7 +621,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  }
 	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
-  
+
 	  break;
 	}
       }

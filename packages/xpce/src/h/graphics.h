@@ -131,7 +131,7 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
 NewClass(graphical)
   ABSTRACT_GRAPHICAL
 End;
-  
+
 NewClass(device)
   ABSTRACT_DEVICE
 End;
@@ -155,7 +155,7 @@ End;
 
 NewClass(dialog_group)
   ABSTRACT_DIALOG_GROUP
-End;  
+End;
 
 NewClass(tab)
   ABSTRACT_DIALOG_GROUP
@@ -432,7 +432,7 @@ End;
   Point	     item_offset;		/* Offset of first item */ \
   Size	     item_size;			/* Size of each item */ \
   Area	     label_area;		/* Area for the label */
-  
+
 #define PULLRIGHT_GAP 3			/* gap between item and => in popup */
 
 NewClass(menu)
@@ -501,7 +501,7 @@ NewClass(scrollbar)
   Name		unit;			/* Unit to scroll */
   Int		offset;			/* offset of down from bubble-start */
   Bool		auto_hide;		/* if @on, hide automatically */
-End;  
+End;
 
 #define SCROLL_PAGE_PROM 900		/* Scroll one page */
 
@@ -785,7 +785,7 @@ NewClass(displayobj)
   Int		busy_locks;		/* Lock count of ->busy_cursor */
   WsRef		ws_ref;			/* Window System Reference */
 End;
-  
+
 
 NewClass(display_manager)
   ABSTRACT_VISUAL
@@ -793,7 +793,7 @@ NewClass(display_manager)
   Chain		current;		/* Stack for current display */
   Bool		test_queue;		/* Test queue during redraw */
 End;
-  
+
 
 NewClass(application)
   ABSTRACT_VISUAL
@@ -1111,7 +1111,7 @@ GLOBAL  Chain grabbedWindows;		/* @grabbed_windows */
 #define CHECKBOX_SELECTED	0x1	/* item is selected */
 #define CHECKBOX_ACTIVE		0x2	/* item is active */
 #define CHECKBOX_MULTIPLE	0x4	/* more than one may be selected */
-		 
+
 #define MBX_INFORM		0x1	/* infomational message */
 #define MBX_CONFIRM		0x2	/* confirm action */
 #define MBX_ERROR		0x4	/* error message */

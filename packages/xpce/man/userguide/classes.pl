@@ -43,7 +43,7 @@ do_process(In, Out) :-
 	),
 	make_diagrams('figs/class'),
 	no_summary.
-	    
+
 :- dynamic
 	diagram/3.			% LineNo, file, classes
 

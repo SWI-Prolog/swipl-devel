@@ -158,7 +158,7 @@ static getdecl get_host_data[] =
 #define rc_host_data NULL
 /*
 static classvardecl rc_host_data[] =
-{ 
+{
 };
 */
 

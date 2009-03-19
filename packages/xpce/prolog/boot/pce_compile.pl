@@ -84,7 +84,7 @@ pce_begin_class(TermDef, Super, Doc) :-
 	strip_module(TermDef, Module, TD),
 	asserta(pce_compile:load_module(Module)),
 	pce_begin_class_(TD, Super, Doc).
-	
+
 
 pce_begin_class_(TermDef, Super, Doc) :-
 	TermDef =.. [ClassName|TermArgs],
@@ -189,7 +189,7 @@ pce_end_class :-
 	).
 
 %	push_compile_operators.
-%	Push the current 
+%	Push the current
 
 push_compile_operators :-
 	push_operators(
@@ -204,7 +204,7 @@ push_compile_operators :-
 
 pop_compile_operators :-
 	pop_operators.
-	
+
 
 %	current_class(-Class)
 %	Class for which we are currently compiling.
@@ -263,7 +263,7 @@ pce_term_expansion(Term, _) :-
 	),
 	pce_error(context_error(Term, nomethod, clause)),
 	fail.
-	
+
 is_string([]).
 is_string([H|T]) :-
 	between(0, 255, H),
@@ -377,7 +377,7 @@ pce_ifhostproperty(need_extern_declaration,
 	feedback(expand_send(ClassName, Selector)))).
 
 
-pce_ifhostproperty(need_extern_declaration, 
+pce_ifhostproperty(need_extern_declaration,
 (do_expand((Head :<- DocBody),			% Prolog get
 	[ (PlHead :- Body)
 	, pce_compile:lazy_method(Selector, ClassName, get,
@@ -425,7 +425,7 @@ pce_ifhostproperty(need_extern_declaration, [
 	add_plus_term(NN, M, T))]).
 
 
-pce_ifhostproperty(string, 
+pce_ifhostproperty(string,
 (extract_documentation((DocText::Body), Str, Body) :- !,
 	(   string(DocText)
 	->  Str = DocText
@@ -649,7 +649,7 @@ lazy_send_method(Head, Types, Doc, Loc, Group,
 	get(@pce, convert, ClassName, class, Class),
 	send(Class, send_method,
 	     send_method(Selector, Types, Message, Doc, Loc, Group)).
-	
+
 lazy_get_method(RType, Head, Types, Doc, Loc, Group,
 		ClassName, Selector) :-
 	pce_get_method_message(Head, Message),
@@ -667,7 +667,7 @@ lazy_get_method(RType, Head, Types, Doc, Loc, Group,
 %
 %	Get the default value for an argument.
 
-default(@default, resource(Obj, Name), Value) :- !, 
+default(@default, resource(Obj, Name), Value) :- !,
 	(   get(Obj, resource_value, Name, Value)
 	->  true
 	;   pce_error(get_resource_failed(Name, Obj)),

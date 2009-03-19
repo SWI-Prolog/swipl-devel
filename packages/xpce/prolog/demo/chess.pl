@@ -191,8 +191,8 @@ program.
 	1 ?- test_square(rook, black, white, Image),
 	     get(Image, colour, Colour),
 	     get(Image, piece, Piece).
-	Colour = black, Piece = rook, Image = @773336/image 
-	
+	Colour = black, Piece = rook, Image = @773336/image
+
 	test_square(Piece, Colour, SquareColour, Image) :-
 		(object(@p) -> true ; send(new(@p, picture), open)),
 		square_image(Piece, Colour, SquareColour, Image),
@@ -231,9 +231,9 @@ attributes:
 	The class name for an  obtainer  is  `?'\index{?  (obtainer)}.
 	The PCE/Prolog interface defines   `?'  as an  infix operator,
 	which allows us to write
-	
+
 		\line{Receiver?Selector}
-	
+
 	for  obtainers that  do   not  require  arguments.   When  the
 	get_method  is  invoked,  it will   process the arguments  and
 	evaluate the   obtainer object, returning  the   result of the
@@ -325,7 +325,7 @@ We may now issue various requests to the board:
 	2 ?- get(@cb, member, e2, Bitmap),
 	     get(Bitmap, square_colour, SquareColour),
 	     get(Bitmap, piece, Piece).
-	SquareColour = black, Bitmap = @802111/bitmap, Piece = empty 
+	SquareColour = black, Bitmap = @802111/bitmap, Piece = empty
 
 The predicates  put_piece/4  and move/3  below complete  the primitive
 layer.  put_piece/4 allows  us  to put  pieces of  any  colour  at any
@@ -404,7 +404,7 @@ In this section we will make it  possible to move  a piece.  Graphical
 objects are  made  sensitive  to  mouse  operations by adding  a  {\em
 recogniser} object to them.  PCE predefines various recogniser objects
 handling both  simple  events  such as a  depressed  key  and  complex
-operations  such as connecting two graphical objects. 
+operations  such as connecting two graphical objects.
 
 In our case   the standard  move-gestures won't work    as they   move
 arbitrary graphicals to arbitrary positions.   We want to move  pieces
@@ -521,7 +521,7 @@ attach_recognisers(Board) :-
 	send(Board?graphicals, for_all,
 	     message(@arg1, recogniser, @move_piece_gesture)).
 
-	
+
 		/********************************
 		*    CHESS PROCESS INTERFACE	*
 		********************************/
@@ -571,7 +571,7 @@ user_move(Board, Piece, FromLocation, ToLocation) :-
 	->  true
 	;   send(Board, report, error, 'No chess process')
 	).
-	     
+
 
 chess_move_name(_Piece, F, T, Move) :-
 	chess_coordinate(F, CF),

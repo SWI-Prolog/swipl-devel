@@ -30,7 +30,7 @@
 */
 
 :- module(qp_foreign,
-	  [ load_foreign_files/0,		% 
+	  [ load_foreign_files/0,		%
 	    load_foreign_files/2,		% +Files, +Libs
 	    load_foreign_files/3,		% +Object, +Files, +Libs
 	    make_shared_object/3,		% +Object, +Files, +Libs
@@ -68,7 +68,7 @@ Predicates:
 
 	* make_foreign_wrapper_file(+Files)
 	Generate wrapper for all declared object files in OutBase.c.
-	
+
 Example:
 
 	==
@@ -155,7 +155,7 @@ get_foreign_head(Spec, Func, Head) :-
 	;   Head = Spec,
 	    call(foreign(Func, c, Head))
 	).
-	
+
 
 check_head(Head) :-
 	functor(Head, _, Arity),
@@ -173,7 +173,7 @@ check_head(Head) :-
 	    fail
 	;   true
 	).
-	
+
 valid_type(integer).
 valid_type(float).
 valid_type(single).
@@ -198,7 +198,7 @@ make_C_header(Out, WrapName, ArgN) :-
 	format(Out, ')~n{ ', []).
 
 %%	make_C_decls(+Stream, +PrologHead)
-%      
+%
 %	Writes the C variable declarations.  If the return value is
 %	used a variable named `rval' is created.  For each input parameter
 %	a C variable named i<argname> is created; for each output variable
@@ -384,7 +384,7 @@ foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 	predicate_property(Head, transparent).
 
 %%	make_C_file_header(+Stream)
-%	
+%
 %	Output the generic header declarations needed and some comments
 
 make_C_file_header(Out) :-
@@ -439,7 +439,7 @@ make_shared_object(LinkBase, OFiles, Libs) :-
 	make_foreign_wrapper_file(OFiles, LinkBase),
 	file_name_extension(LinkBase, c, CFile),
 	build_shared_object(LinkBase, [CFile|OFiles], Libs).
-	
+
 %%	make_foreign_wrapper_file(+OutFile) is det.
 %%	make_foreign_wrapper_file(+Files, +OutFile) is det.
 %
@@ -474,7 +474,7 @@ build_shared_object(Object, Files, Libs) :-
 	atomic_list_concat(Input, ' ', InputAtom),
 	sformat(Command, 'plld -shared -o ~w ~w', [SharedObject, InputAtom]),
 	shell(Command).
-	
+
 
 		 /*******************************
 		 *	       UTIL		*

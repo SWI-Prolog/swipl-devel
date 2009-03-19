@@ -102,9 +102,9 @@ my_abort(void)
 	     MB_OK|MB_TASKMODAL);
 }
 
-  
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Define mclock/1 to query time since Prolog was started in milliseconds. 
+Define mclock/1 to query time since Prolog was started in milliseconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct _timeb epoch;
@@ -112,7 +112,7 @@ static struct _timeb epoch;
 void
 initMClock()
 { _ftime(&epoch);
-} 
+}
 
 
 int64_t

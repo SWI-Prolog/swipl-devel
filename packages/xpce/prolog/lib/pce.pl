@@ -117,7 +117,7 @@ set_version :-
 	send(@prolog, system, PlId).
 
 :- initialization set_version.
-   
+
 get_pce_version :-
 	(   current_prolog_flag(xpce_version, _)
 	->  true

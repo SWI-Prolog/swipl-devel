@@ -55,7 +55,7 @@ on_exit(OnExitFunction f, char *s)
   c->context = s;
   c->next = OnExitList;
   OnExitList = c;
-  
+
   if ( !initialised )
   { atexit(do_exit_list);
     initialised = TRUE;
@@ -69,7 +69,7 @@ hostAction(int action, ...)
   int rval = PCE_SUCCEED;
 
   va_start(args, action);
-  
+
   switch(action)
   { case HOST_ONEXIT:
 #if HAVE_on_exit
@@ -163,7 +163,7 @@ main(int argc, char* argv[])
   { fprintf(stderr, "Sorry, failed to initialise XPCE\n");
     exit(1);
   }
-  
+
   if ( !pceInitApplication(argc, argv) )
   { fprintf(stderr, "Failed to run pceInitApplication()\n");
     exit(1);

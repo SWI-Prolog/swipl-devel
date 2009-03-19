@@ -125,21 +125,21 @@ strip_module(Spec, Term, _) :-
 strip_module(Term, Term, Module) :-
 	pce_sys:qp_module(Module, succeed).	% pass to C
 
-%   [PURPOSE].  Together with the C program "itf-quintus.c" this module 
+%   [PURPOSE].  Together with the C program "itf-quintus.c" this module
 %   implements the interface between Quintus Prolog and PCE-3.
 
 %   [OBJECTIVES].  Some predicates defined in this module are called millions
 %   of times.  We have attempted to make them as efficient as possible
-%   without sacrificing readability and conceptual clarity.  It is thought 
-%   significant performance gains can only be achieved by writing all 
-%   predicates in a language close to the hardware (i.e. C or assembler).  
+%   without sacrificing readability and conceptual clarity.  It is thought
+%   significant performance gains can only be achieved by writing all
+%   predicates in a language close to the hardware (i.e. C or assembler).
 %   Given the non-optimised implementation of PCE's virtual machine, which
-%   the predicates defined in this module call, this appears to be a waste of 
+%   the predicates defined in this module call, this appears to be a waste of
 %   time.
 
 %   [REQUIRED READING].  The following documents are relevant:
 %	- PCE-3 Programmers Manual [C1.3].
-%	  Describes the predicates available in PCE/Prolog from the 
+%	  Describes the predicates available in PCE/Prolog from the
 %         programmers point of view.  This module implements these
 %	  predicates.
 %	- Interfacing PCE-3 to a Host Language via C [C1.2].
@@ -175,9 +175,9 @@ strip_module(Term, Term, Module) :-
 
 %   [TERMINOLOGY].  Some terms used in this document are peculiar to PCE.
 %   The term "assoc" refers to a PCE object name as an atom.  For
-%   example, in @hello, "hello" is an assoc with the object @hello 
+%   example, in @hello, "hello" is an assoc with the object @hello
 %   represents.  The term "ref" refers to a PCE object as an integer,
-%   e.g. in @123456 "123456" is a ref.  If an object has an assoc it does not 
+%   e.g. in @123456 "123456" is a ref.  If an object has an assoc it does not
 %   have a reference and vice versa as far as this module is concerned.
 
 
@@ -508,11 +508,11 @@ pce_term_to_vector(N, Term, Vector) :-
 %
 %   succeeds when @p is a point object, binding X and Y.
 %
-%   [IDEA].  We could remove the cut in the first clause such that 
-%   alternative descriptions are generated.  Perhaps it is useful to get rid 
-%   of the distinction between get/3.. and get_object/3... and the 
-%   distinction between PCE strings and PCE names.  In the latter case, if 
-%   we also define the object description of a string to be the text it 
+%   [IDEA].  We could remove the cut in the first clause such that
+%   alternative descriptions are generated.  Perhaps it is useful to get rid
+%   of the distinction between get/3.. and get_object/3... and the
+%   distinction between PCE strings and PCE names.  In the latter case, if
+%   we also define the object description of a string to be the text it
 %   contains, this program:
 %
 %	new(@ch, chain(string(hello), world)),
@@ -520,10 +520,10 @@ pce_term_to_vector(N, Term, Vector) :-
 %	atom(H),
 %	write(H), nl.
 %
-%   would write/1 'hello'.  Given the current definition in PCE-3 the cut is 
+%   would write/1 'hello'.  Given the current definition in PCE-3 the cut is
 %   necessary, to prevent this.
 %
-%   Those who have seen the source code for the PCE/Prolog interface in C, 
+%   Those who have seen the source code for the PCE/Prolog interface in C,
 %   may appreciate pce_unify/2.
 
 pce_unify(Result, Result) :- !.
@@ -540,7 +540,7 @@ pce_unify(Result, Value) :-
 %   pce_unify(+Type, +Int, +Atom, +Float, -Value)
 %
 %   Unifies Value with one the other arguments depending on Type.
- 
+
 pce_unify(atom,    _, A, _, A).
 pce_unify(default, _, _, _, @default).
 pce_unify(float,   _, _, F, F).
@@ -557,7 +557,7 @@ pce_unify(ref,     R, _, _, Value) :- pce_unify(@R, Value).
 %   Unifies Value with one the other arguments depending on Type.
 %   The difference with pce_unify/6 is that object names are expanded
 %   to object descriptions first.
- 
+
 pce_unify_object(atom,    _, A, _, A).
 pce_unify_object(default, _, _, _, @default).
 pce_unify_object(float,   _, _, F, F).

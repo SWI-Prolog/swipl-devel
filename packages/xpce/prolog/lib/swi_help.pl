@@ -230,7 +230,7 @@ fill_menu_bar(F) :->
 		    menu_item('SWI-Prolog Download (on www) ...',
 			      message(F, open_url, pl_download),
 			      end_group := @on),
-		    
+
 		    menu_item('XPCE (GUI) Manual ...',
 			      message(@prolog, manpce)),
 		    menu_item('XPCE User Guide (on www) ...',
@@ -386,7 +386,7 @@ setup_isearch(V) :->
 				message(@receiver, focus_function, @nil)),
 			    message(@receiver, send_class, '_isearch',
 				    @arg1)))).
-	
+
 
 displayed_ranges(V, Displayed:prolog) :->
 	send(V, slot, displayed_ranges, Displayed),
@@ -490,7 +490,7 @@ mark_titles(TB, From, To) :-
 	->  mark_titles(TB, Idx, To)
 	;   true
 	).
-	
+
 		 /*******************************
 		 *     CROSS-REFERENCE LINKS	*
 		 *******************************/
@@ -655,7 +655,7 @@ line_index(Stream, LineNo) :-
 %
 %	Find the character range for the given help topic, which is of
 %	the form
-%	
+%
 %		* name/arity
 %		* function()
 %		* n.m..
@@ -953,8 +953,8 @@ source(File, Line) -->			% XPCE method
 	  get(Location, file_name, File),
 	  get(Location, line_no, Line)
 	}.
-	
-	
+
+
 		 /*******************************
 		 *       TABLE-OF-CONTENTS	*
 		 *******************************/
@@ -1032,7 +1032,7 @@ function_in_section(Section, Func) :-
 
 subsection(Sec, Sub) :-
 	append(Sec, [_], Sub).
-	
+
 select_range(PT, Ranges:prolog) :->
 	"Select selections in range"::
 	(   Ranges == []
@@ -1044,7 +1044,7 @@ select_range(PT, Ranges:prolog) :->
 	    get(PT, selection, Nodes),
 	    send(PT, normalise, Nodes, y)
 	).
-	    
+
 in_range(F-T, Node, How) :-
 	get(Node, start, S),
 	get(Node, end, E),
@@ -1099,7 +1099,7 @@ select_range(N, Ranges:prolog) :->
 	;   true
 	).
 
-:- pce_end_class(pui_section_node). 
+:- pce_end_class(pui_section_node).
 
 
 :- pce_begin_class(pui_predicate_node, toc_file,

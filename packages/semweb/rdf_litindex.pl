@@ -45,7 +45,7 @@
 
 /** <module> Search literals
 This module finds literals of the RDF database based on stemming and
-being flexible to ordering of tokens.  
+being flexible to ordering of tokens.
 */
 
 :- dynamic
@@ -66,15 +66,15 @@ setting(index(default)).		% Use a thread for incremental updates
 %%	rdf_set_literal_index_option(+Options:list)
 %
 %	Set options for the literal package.  Currently defined options
-%	
+%
 %		* verbose(Bool)
 %		If =true=, print progress messages while building the
 %		index tables.
-%		
+%
 %		* index_threads(+Count)
 %		Number of threads to use for initial indexing of
 %		literals
-%		
+%
 %		* index(+How)
 %		How to deal with indexing new literals.  How is one of
 %		=self= (execute in the same thread), thread(N) (execute
@@ -116,7 +116,7 @@ check_option(Option) :-
 %
 %	Find literals in the RDF database matching Spec.  Spec is defined
 %	as:
-%	
+%
 %	==
 %	Spec ::= and(Spec,Spec)
 %	Spec ::= or(Spec,Spec)
@@ -129,12 +129,12 @@ check_option(Option) :-
 %	Spec ::= le(Low)		% Numerical less-equal
 %	Spec ::= Token
 %	==
-%	
+%
 %	sounds(Like) and stem(Like) both map to  a disjunction. First we
 %	compile the spec to normal form:   a disjunction of conjunctions
 %	on elementary tokens. Then we execute   all the conjunctions and
 %	generate the union using ordered-set algorithms.
-%	
+%
 %	@tbd Exploit ordering of numbers and allow for > N, < N, etc.
 
 rdf_find_literals(Spec, Literals) :-
@@ -145,7 +145,7 @@ rdf_find_literals(Spec, Literals) :-
 	sort(Set0, Literals).
 
 %%	rdf_token_expansions(+Spec, -Extensions)
-%	
+%
 %	Determine which extensions of  a   token  contribute  to finding
 %	literals.
 
@@ -179,14 +179,14 @@ join_expansions_by_tag([H|T0], Tag, T, [V0|VT]) :-
 	untag(H, Tag, V0), !,
 	join_expansions_by_tag(T0, Tag, T, VT).
 join_expansions_by_tag(L, _, L, []).
-	
+
 lookup(false, _, [], []) :- !.
 lookup(or(H0,T0), Map, [CH|CT], [H|T]) :- !,
 	lookup(H0, Map, CH, H),
 	lookup(T0, Map, CT, T).
 lookup(H0, Map, [C], [H]) :-
 	lookup1(H0, Map, C, H).
-	
+
 lookup1(Conj, Map, Cond, Literals) :-
 	phrase(conj_to_list(Conj), List),
 	rdf_find_literal_map(Map, List, Literals),
@@ -216,7 +216,7 @@ conj_to_cond(_) -->
 
 
 %%	compile_spec(+Spec, -Compiled)
-%	
+%
 %	Compile a specification as above into disjunctive normal form
 
 compile_spec(Spec, DNF) :-
@@ -305,7 +305,7 @@ untag(le(H,Y),	      le(H),	    Y).
 
 
 %%	nnf(+Formula, -NNF)
-%	
+%
 %	Rewrite to Negative Normal Form, meaning negations only appear
 %	around literals.
 
@@ -321,7 +321,7 @@ nnf(A, A).
 
 
 %%	dnf(+NNF, -DNF)
-%	
+%
 %	Convert a formula in NNF to Disjunctive Normal Form (DNF)
 
 dnf(or(A0,B0), or(A, B)) :- !,
@@ -347,7 +347,7 @@ dnf1(DNF, DNF).
 		 *******************************/
 
 %%	token_index(-Map)
-%	
+%
 %	Get the index of tokens. If  not   present,  create one from the
 %	current database. Once created, the map is kept up-to-date using
 %	a monitor hook.
@@ -410,7 +410,7 @@ create_index_threads(N, Q, [Id|T]) :-
 	N2 is N - 1,
 	create_index_threads(N2, Q, T).
 create_index_threads(_, _, []) :- !.
-	       
+
 index_worker(Queue) :-
 	repeat,
 	    thread_get_message(Queue, Msg),
@@ -423,7 +423,7 @@ work(Literal) :-
 
 
 %	clean_token_index
-%	
+%
 %	Clean after a reset.
 
 clean_token_index :-
@@ -435,7 +435,7 @@ clean_token_index :-
 		 *******************************/
 
 %	create_update_literal_thread(+Threads)
-%	
+%
 %	Setup literal monitoring using threads.  While loading databases
 %	through rdf_attach_db/2 from  rdf_persistency.pl,   most  of the
 %	time is spent updating the literal token database. While loading
@@ -487,7 +487,7 @@ monitor_literal(transaction(end, reset)) :-
 	rdf_monitor(monitor_literal, [+old_literal]).
 
 %%	register_literal(+Literal)
-%	
+%
 %	Associate the tokens of a literal with the literal itself.
 
 register_literal(Literal) :-
@@ -513,7 +513,7 @@ add_tokens([H|T], Literal, Map) :-
 
 
 %%	unregister_literal(+Literal)
-%	
+%
 %	Literal is removed from the database.   As we abstract from lang
 %	and type qualifiers we first have to  check this is the last one
 %	that is destroyed.
@@ -534,7 +534,7 @@ del_tokens([H|T], Literal, Map) :-
 
 
 %%	rdf_tokenize_literal(+Literal, -Tokens) is semidet.
-%	
+%
 %	Tokenize a literal. We make  this   hookable  as tokenization is
 %	generally domain dependent.
 
@@ -567,7 +567,7 @@ select_tokens([H|T0], T) :-
 
 
 %	no_index_token/1
-%	
+%
 %	Tokens we do not wish to index,   as  they creat huge amounts of
 %	data with little or no value.  Is   there  a more general way to
 %	describe this? Experience shows that simply  word count is not a
@@ -584,7 +584,7 @@ no_index_token(the).
 
 
 %%	text_of(+LiteralArg, -Text)
-%	
+%
 %	Get the textual  or  (integer)   numerical  information  from  a
 %	literal value.
 
@@ -625,7 +625,7 @@ stem([Token|T], Map) :-
 	;   true
 	),
 	stem(T, Map).
-	       
+
 
 add_stem(Token, Map) :-
 	porter_stem(Token, Stem),
@@ -663,7 +663,7 @@ metaphone([Token|T], Map) :-
 	;   true
 	),
 	metaphone(T, Map).
-	       
+
 
 add_metaphone(Token, Map) :-
 	double_metaphone(Token, SoundEx),

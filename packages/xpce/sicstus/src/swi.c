@@ -118,7 +118,7 @@ PL_new_functor(atom_t name, int arity)
   n->arity = arity;
   n->next = functor_table[k];
   functor_table[k] = n;
-  
+
   return n;
 }
 
@@ -230,7 +230,7 @@ PL_get_chars(term_t t, char **s, unsigned flags)
     r = tmp;
   } else if ( (flags & CVT_FLOAT) && SP_is_float(t) )
   { double d;
-    
+
     SP_get_float(t, &d);
     sprintf(tmp, "%g", d);
     r = tmp;
@@ -241,7 +241,7 @@ PL_get_chars(term_t t, char **s, unsigned flags)
     r = tmp;
   } else
     return FALSE;
-    
+
   if ( flags & BUF_MALLOC )
   { *s = SP_malloc(strlen(r)+1);
 
@@ -323,7 +323,7 @@ PL_get_functor(term_t t, functor_t *f)
 
   if ( SP_get_functor(t, &name, &arity) )
   { *f = PL_new_functor(name, arity);
-  
+
     return TRUE;
   }
 
@@ -338,7 +338,7 @@ PL_get_head(term_t l, term_t h)
   term_t t = SP_new_term_ref();
   rval = SP_get_list(l, h, t);
   SP_reset_term_refs(t);
-  
+
   return rval;
 }
 
@@ -350,7 +350,7 @@ PL_get_tail(term_t l, term_t t)
   term_t h = SP_new_term_ref();
   rval = SP_get_list(l, h, t);
   SP_reset_term_refs(h);
-  
+
   return rval;
 }
 
@@ -585,7 +585,7 @@ int
 PL_unify_list(term_t l, term_t h, term_t t)
 { if ( SP_is_variable(l) )
   { term_t tmp = SP_new_term_ref();
-  
+
     SP_put_list(tmp);
     SP_unify(l, tmp);
 
@@ -676,7 +676,7 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
 
       for(n=1; n<=arity; n++)
       {	_PL_get_arg(n, t, tmp);
-	
+
 	rval = unify_termVP(tmp, &argsRec);
 	if ( !rval )
 	  goto failout;
@@ -796,7 +796,7 @@ PL_pred3(atom_t name, int arity, module_t module)
   n->predicate = SP_pred(name, arity, module);
   n->next = predicate_table[k];
   predicate_table[k] = n;
-  
+
   return n;
 }
 
@@ -998,7 +998,7 @@ PL_recorded(record_t record, term_t t)
 
   if ( !bbget )
     bbget = SP_predicate("bb_get", 2, "user");
-  
+
   SP_put_integer(k, (long)record);
   SP_put_atom(m, ATOM_record);
   SP_cons_functor(k, ATOM_module, 2, m, k);
@@ -1015,7 +1015,7 @@ PL_erase(record_t record)
 
   if ( !bbdel )
     bbdel = SP_predicate("bb_delete", 2, "user");
-  
+
   SP_put_variable(t);
   SP_put_integer(k, (long)record);
   SP_put_atom(m, ATOM_record);
@@ -1062,7 +1062,7 @@ open_stream(term_t t, IOSTREAM *s, SP_stream **spstream)
   SP_put_address(scode, *spstream);
   if ( !stream_code )
     stream_code = SP_predicate("stream_code", 2, "user");
-  
+
   switch(SP_query(stream_code, t, scode))
   { case SP_SUCCESS:
       return TRUE;
@@ -1095,7 +1095,7 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Complicated, but complete except for the   context  precedence, which is
-ignored. 
+ignored.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FUNCT(n, a) PL_new_functor(PL_new_atom(n), a)

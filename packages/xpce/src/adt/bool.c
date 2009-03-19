@@ -60,7 +60,7 @@ getNegateBool(Bool b)
 #define var_bool NULL
 /*
 static vardecl var_bool[] =
-{ 
+{
 };
 */
 
@@ -87,7 +87,7 @@ static getdecl get_bool[] =
 #define rc_bool NULL
 /*
 static classvardecl rc_bool[] =
-{ 
+{
 };
 */
 

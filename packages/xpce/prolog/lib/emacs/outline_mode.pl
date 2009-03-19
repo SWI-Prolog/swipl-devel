@@ -42,9 +42,9 @@
 	  close_all_outlines	       = button(outline)
 	],
 					% SYNTAX TABLE
-	[ 
+	[
 	]).
-		 
+
 variable(outlined,	bool := @off,	get,	"Is in outline mode?").
 variable(outline_regex_list, [chain],	send,	"Associated regexes").
 

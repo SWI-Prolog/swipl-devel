@@ -203,7 +203,7 @@ typedef struct _token
   int	prelines;			/* HTML stuff */
   int	postlines;			/* HTML stuff */
   char *context;			/* additional context info */
-  union 
+  union
   { char *string;			/* related text */
     Command cmd;			/* related TeX command */
     Environment env;			/* related TeX environment */
@@ -245,21 +245,21 @@ static char char_type[] = {
 /* EOF */
    EF,
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-   EF, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, 
+   EF, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-   SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, 
+   SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
-   SP, PU, PU, PU, MM, SC, TD, PU, PU, PU, PU, PU, PU, PU, PU, PU, 
+   SP, PU, PU, PU, MM, SC, TD, PU, PU, PU, PU, PU, PU, PU, PU, PU,
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
-   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, PU, PU, PU, PU, PU, PU, 
+   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, PU, PU, PU, PU, PU, PU,
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-   PU, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, 
+   PU, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC,
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
-   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, PU, CM, PU, PU, UC, 
+   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, PU, CM, PU, PU, UC,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-   PU, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
+   PU, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, BG, PU, EG, NB, SP, 
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, BG, PU, EG, NB, SP,
 			  /* 128-255 */
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
@@ -413,7 +413,7 @@ myfgets(char *buf, int size, Input fd)
 
   for(;;)
   { int	c = mygetc(fd);
-    
+
     if ( c == EOF )
     { if ( s == buf )
 	return NULL;
@@ -454,7 +454,7 @@ stringHashValue(const char *t, int buckets)
 
   while(*t)
   { unsigned int c = *t++;
-    
+
     c -= 'a';
     value ^= c << (shift & 0xf);
     shift ^= c;
@@ -656,14 +656,14 @@ parseEnvSpec(const char *fname, int line, char *s)
   char tmp;
   EnvDescr e;
   cmd_arg args[MAXCMDARGS];		/* argument-list */
-  
+
   while(isalnum(*s))
     s++;
   tmp = *s;
   *s = EOS;
   e = newEnvironment(f);
   *s = tmp;
-  
+
   if ( *s == '*' )			/* \begin{figure*} */
   { e->flags |= CMD_MODIFY;
     s++;
@@ -783,7 +783,7 @@ parseCmdSpecs(const char *fname)
 
   while(fgets(line, sizeof(line), fd))
     parseCommandSpec(fname, ++l, line);
-  
+
   closeInput(fd);
 
   return TRUE;
@@ -830,7 +830,7 @@ getArgument(Input fd, int flags, char *buf, int size)
   if ( isbegingroup(c) )		/* { */
   { int nesting = 1; char *s = buf;
     int prev = c;
-    
+
     for(;;)
     { c = getc(fd);
 
@@ -1055,7 +1055,7 @@ env_verbatim(Environment e, Input fd, CallBack func, void *ctx)
 
   sprintf(end, "\\end{%s}", e->environment->name);
   el = strlen(end);
-  
+
   for(;;)
   { if ( --left == 0 )
       error(ERR_VERBATIM_TOO_LONG, texfile(), texline());
@@ -1273,7 +1273,7 @@ parseMath(Input fd, CallBack func, void *ctx)
     if ( c != '$' )
       error(ERR_BAD_MATH_ENV_CLOSURE, texfile(), texline());
   }
-  
+
   t.value.string = buf;
   (*func)(&t, ctx);
 }
@@ -1289,13 +1289,13 @@ parseTeX(Input fd, CallBack func, void *ctx)
   { switch(CharType(c))
     { case SP:				/* blank space */
       { int lines = 0;
-  
+
 	do
 	{ if ( c == '\n' )
 	    lines++;
 	  c = getc(fd);
 	} while(isspace(c));
-  
+
 	if ( lines >= 2 )
 	{ t.type = TOK_PAR;
 	  t.value.string = NULL;
@@ -1317,7 +1317,7 @@ parseTeX(Input fd, CallBack func, void *ctx)
       }
       case BG:
       { char buf[2];
-	
+
 	buf[0] = c;
 	buf[1] = EOS;
 
@@ -1330,7 +1330,7 @@ parseTeX(Input fd, CallBack func, void *ctx)
       }
       case EG:
       { char buf[2];
-	
+
 	buf[0] = c;
 	buf[1] = EOS;
 
@@ -1466,7 +1466,7 @@ output(PPContext pp, const char *fmt, ...)
   if ( pp->verbatim )
   { for(;;s++)
     { int c;
-  
+
       switch((c = *s))
       { case EOS:
 	  return;
@@ -1510,7 +1510,7 @@ output(PPContext pp, const char *fmt, ...)
   } else
   { for(;;s++)
     { int c;
-  
+
       switch((c = *s))
       { case EOS:
 	  return;
@@ -1845,7 +1845,7 @@ pl_put_tex_token(term_t term)
   atom_t atom;
   functor_t f;
   static int last_is_word = FALSE;
-  
+
   t.type = -1;
 
   if ( PL_get_atom(term, &atom) )
@@ -1865,7 +1865,7 @@ pl_put_tex_token(term_t term)
     { if ( last_is_word )		/* regenerate the space tokens */
       { t.type = TOK_SPACE;
 	t.value.string = " ";
-	
+
 	put_token(&t, &ppctx);
       } else
 	last_is_word = TRUE;
@@ -2100,7 +2100,7 @@ build_list(Token t, void *context)
   { if ( (ctx->prev_type0 == TOK_SPACE || ctx->prev_type0 == TOK_LINE) &&
 	 (ctx->prev_type1 != TOK_WORD || t->type != TOK_WORD) )
     { atom_t a = (ctx->prev_type0 == TOK_SPACE ? ATOM_space : ATOM_nl);
-    
+
       PL_unify_list(ctx->list, ctx->head, ctx->list);
       PL_unify_atom(ctx->head, a);
     }
@@ -2156,7 +2156,7 @@ build_list(Token t, void *context)
     { Command g       = t->value.cmd;
       term_t alist    = PL_new_term_ref();
       term_t modified = (g->flags & CMD_MODIFY ? ATOM_star : ATOM_minus);
-      
+
       if ( g->command->flags & CMD_MODIFY )
       { PL_unify_term(ctx->head,
 		      PL_FUNCTOR, FUNCTOR_cmd3,
@@ -2352,7 +2352,7 @@ pl_tex_tell(term_t file)
 
   if ( PL_get_chars(file, &name, CVT_ALL) )
   { FILE *fd = (streq(name, "-") ? stdout : fopen(name, "w"));
-    
+
     if ( fd )
     { ppctx.envnesting   = 0;		/* seperate predicate? */
       ppctx.last_type    = TOK_EOF;
@@ -2443,7 +2443,7 @@ static void
 output_n(PPContext pp, const char *s, int l)
 { if ( l > 0 )
   { char buf[l+1];
-	  
+
     memcpy(buf, s, l);
     buf[l] = EOS;
     output(pp, "%s", buf);
@@ -2475,7 +2475,7 @@ output_html(PPContext pp, const char *s)
 	break;
     }
   }
-    
+
   output_n(pp, from, s-from);
 }
 
@@ -2512,7 +2512,7 @@ put_html_token(Token t, void *ctx)
       pp->verbatim = VERB_VERBATIM;
       output(pp, "%s", t->value.string);
       pp->verbatim = VERB_NORMAL;
-      
+
       break;
     }
     case TOK_SPACE:
@@ -2628,7 +2628,7 @@ pl_put_html_token(term_t term)
     { if ( last_is_word )		/* regenerate the space tokens */
       { t.type = TOK_SPACE;
 	t.value.string = " ";
-	
+
 	put_html_token(&t, &ppctx);
       } else
 	last_is_word = TRUE;
@@ -2640,7 +2640,7 @@ pl_put_html_token(term_t term)
   { if ( last_is_word )		/* regenerate the space tokens */
     { t.type = TOK_SPACE;
       t.value.string = " ";
-	
+
       put_html_token(&t, &ppctx);
     } else
       last_is_word = TRUE;

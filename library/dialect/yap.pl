@@ -158,7 +158,7 @@ push_yap_file_extension :-
 %%	gc
 %
 %	Garbage collect.
-%	
+%
 %	@compat yap
 
 gc :-
@@ -167,19 +167,19 @@ gc :-
 %%	depth_bound_call(:Goal, :Limit)
 %
 %	Equivalent to call_with_depth_limit(Goal, Limit, _Reached)
-%	
+%
 %	@compat yap
 
 :- module_transparent
 	depth_bound_call/2.
 
-depth_bound_call(G, L) :- 
+depth_bound_call(G, L) :-
 	call_with_depth_limit(G, L, _).
 
 %%	system(+Command)
 %
 %	Equivalent to shell(Command).
-%	
+%
 %	@compat yap
 
 system(Command) :-
@@ -188,7 +188,7 @@ system(Command) :-
 %%	exists(+File)
 %
 %	Equivalent to exists_file(File).
-%	
+%
 %	@compat yap
 
 exists(File) :-
@@ -200,7 +200,7 @@ exists(File) :-
 %	compile_predicates/1 to achieve this. The   emulation  is a mere
 %	alias for assert/1, as  immediate   compilation  would  prohibit
 %	further calls to this predicate.
-%	
+%
 %	@compat yap
 %	@deprecated Use assert/1 and compile_predicates/1 after
 %	completing the predicate definition.
@@ -223,7 +223,7 @@ source.
 %%	yap_flag(+Key, +Value) is det.
 %
 %	Map some YAP flags to SWI-Prolog.  Supported flags:
-%	
+%
 %	    * write_strings: Bool
 %	    If =on=, writes strings as "..." instead of a list of
 %	    integers.  In SWI-Prolog this only affects write routines
@@ -232,7 +232,7 @@ source.
 yap_flag(write_strings, OnOff) :- !,
 	map_bool(OnOff, Bool),
 	set_prolog_flag(write_strings, Bool).
-yap_flag(Flag, Value) :- 
+yap_flag(Flag, Value) :-
 	fixme_true(yap_flag(Flag, Value)).
 
 map_bool(on, true) :- !.

@@ -45,7 +45,7 @@ do_ctors(func_ptr *p)
 
 install_t
 install()
-{ 
+{
 #if defined(GCC_DTORS)
   do_ctors(__CTOR_LIST__);
 #endif

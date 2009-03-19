@@ -69,7 +69,7 @@ menu('&Debug',
        '&Edit exceptions ...' = user:prolog_ide(open_exceptions(@on)),
        '&Threads monitor ...' = user:prolog_ide(thread_monitor),
        'Debug &messages ...'  = user:prolog_ide(debug_monitor),
-       'Cross &referencer ...'= user:prolog_ide(xref),			     
+       'Cross &referencer ...'= user:prolog_ide(xref),
        --,
        '&Graphical debugger' = user:guitracer
      ],
@@ -96,8 +96,8 @@ menu('&Help',
      ],
      [ before_menu(-)
      ]).
-    
- 
+
+
 init_win_menus :-
 	(   menu(Menu, Items, Options),
 	    (	memberchk(before_item(Before), Options)
@@ -121,7 +121,7 @@ init_win_menus :-
 	    fail
 	;   insert_associated_file
 	).
-		   
+
 insert_associated_file :-
 	current_prolog_flag(associated_file, File),
 	file_base_name(File, Base),
@@ -142,14 +142,14 @@ insert_associated_file.
 
 edit_new(File) :-
 	call(edit(file(File))).		% avoid autoloading
-	
+
 www_open(Id) :-
 	Spec =.. [Id, '.'],
 	call(expand_url_path(Spec, URL)),
 	print_message(informational, opening_url(URL)),
 	call(www_open_url(URL)),	% avoid autoloading
 	print_message(informational, opened_url(URL)).
-	
+
 html_open(Spec) :-
 	absolute_file_name(Spec, [access(read)], Path),
 	call(win_shell(open, Path)).

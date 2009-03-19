@@ -32,7 +32,7 @@
 #include <unistd.h>
 #endif
 
-/* (AA)	isqrt(a).  Returns the square root of a as an integer.  The 
+/* (AA)	isqrt(a).  Returns the square root of a as an integer.  The
 	algorithm only uses bit-shifts (multiplication by a power of 2) and
 	3.5 integer multiplications on average.
  */
@@ -246,7 +246,7 @@ status
 streq_ignore_case(char *s1, char *s2)
 { while( tolower(*s1) == tolower(*s2) && *s2 )
    s1++, s2++;
-  
+
   return *s1 == EOS && *s2 == EOS;
 }
 
@@ -353,7 +353,7 @@ characterName(Any chr)
 	buf[l+1] = EOS;
       }
   }
-  
+
   return WCToName(buf, wcslen(buf));
 }
 
@@ -416,13 +416,13 @@ vwritef(char *fm, va_list args)
 void
 writef(char *fm, ...)
 { va_list args;
-  
+
   va_start(args, fm);
   vwritef(fm, args);
   va_end(args);
 }
 
-  
+
 #define NOT_SET INT_MAX
 #define Put(c) if ( !(*out)(closure, c) ) return FALSE;
 #define PutString(s) do { const char *_s=(s); \
@@ -773,7 +773,7 @@ scanstr(char *str, char *fmt, Any *r)
 	  s++;
 	} else
 	  length = 0;
-	
+
 	switch(*s)			/* conversion char */
     	{ case 'u':
 	    if ( !supress )
@@ -824,7 +824,7 @@ scanstr(char *str, char *fmt, Any *r)
 	    if ( !supress )
 	    { types[argn] = T_CHAR;
 	      ptrs[argn]  = (void *)alloca(sizeof(char));
-	      argn++; 
+	      argn++;
 	    }
 	    s++;
 	    continue;
@@ -1065,7 +1065,7 @@ static struct timeval epoch;
 void
 initMClock()
 { gettimeofday(&epoch, NULL);
-} 
+}
 
 
 unsigned long
@@ -1086,7 +1086,7 @@ static struct _timeb epoch;
 void
 initMClock()
 { _ftime(&epoch);
-} 
+}
 
 
 unsigned long
@@ -1201,7 +1201,7 @@ at_pce_exit(atexit_function f, int flags)
       { h->next = NULL;
 	atexit_tail->next = h;
 	atexit_tail = h;
-      }    
+      }
     }
   }
 }

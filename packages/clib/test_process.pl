@@ -29,7 +29,7 @@ test(null_input, Codes == []) :-
 	read_stream_to_codes(Out, Codes),
 	close(Out).
 test(null_output, true) :-
-	process_create(path(sh), 
+	process_create(path(sh),
 		       ['-c', 'echo THIS IS AN ERROR'],
 		       [stdout(null)]).
 test(null_error, true) :-

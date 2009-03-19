@@ -40,7 +40,7 @@ Case regimes supported are:
 	sensitive*		Identifiers are casesensitive
 	upper			Identifiers are mapped to upper-case
 	lower			Identifiers are mapped to lower-case
-	  
+
 white-space regimes are:
 
 	accept			Don't change

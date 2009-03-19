@@ -42,7 +42,7 @@ PRED_IMPL("shell", 2, shell, 0)
 
     return PL_unify_integer(A2, rval);
   }
-    
+
   fail;
 }
 
@@ -115,7 +115,7 @@ pl_sleep(term_t time)
 
   if ( PL_get_float_ex(time, &t) )
     return Pause(t);
-  
+
   fail;
 }
 

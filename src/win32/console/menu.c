@@ -83,7 +83,7 @@ lookupMenuLabel(const TCHAR *label)
   llen = _tcslen(label);
   menuids[nmenus] = rlc_malloc((llen+1)*sizeof(TCHAR));
   _tcsncpy(menuids[nmenus], label, llen+1);
-  
+
   return nmenus++ + IDM_USER;
 }
 
@@ -109,7 +109,7 @@ insertMenu(HMENU in, const TCHAR *label, const TCHAR *before)
       AppendMenu(in, MF_SEPARATOR, 0, NULL);
     else
     { UINT id = lookupMenuLabel(label);
-      
+
       AppendMenu(in, MF_STRING, id, label);
     }
   } else
@@ -199,7 +199,7 @@ rlc_add_menu_bar(HWND cwin)
 /*append_builtin(edit, IDM_CUT);*/
   append_builtin(edit, IDM_COPY);
   append_builtin(edit, IDM_PASTE);
-  
+
   append_builtin(settings, IDM_FONT);
 
   append_builtin(run,  IDM_BREAK);
@@ -233,7 +233,7 @@ rlc_menu_action(rlc_console c, menu_data *data)
 
   if ( !data || !data->magic == MEN_MAGIC )
     return;
-  
+
   if ( data->menu )			/* rlc_insert_menu_item() */
   { HMENU popup;
 
@@ -264,7 +264,7 @@ rlc_menu_action(rlc_console c, menu_data *data)
       info.hSubMenu = CreatePopupMenu();
       info.dwTypeData = (TCHAR *)data->label;
       info.cch = (int)_tcslen(data->label);
-      
+
       InsertMenuItem(mb, bid, TRUE, &info);
 					/* force redraw; not automatic! */
       DrawMenuBar(hwnd);

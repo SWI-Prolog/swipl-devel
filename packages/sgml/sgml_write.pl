@@ -70,10 +70,10 @@ stage.
 %%	xml_write(+Stream, +Data, +Options) is det.
 %%	sgml_write(+Stream, +Data, +Options) is det.
 %%	html_write(+Stream, +Data, +Options) is det.
-%	
+%
 %	Write a term as created by the SGML/XML parser to a stream in
 %	SGML or XML format.  Options:
-%	
+%
 %		* dtd(DTD)
 %		The DTD.  This is needed for SGML documents that contain
 %		elements with content model EMPTY.  Characters which may
@@ -96,35 +96,35 @@ stage.
 %		The public identifier to be written in the <!DOCTYPE> line.
 %
 %		* system(SysId)
-%		The system identifier to be written in the <!DOCTYPE> line. 
-%		
+%		The system identifier to be written in the <!DOCTYPE> line.
+%
 %		* header(Bool)
 %		If Bool is 'false', do not emit the <xml ...> header
 %		line.  (xml_write/3 only)
-%		
+%
 %		* nsmap(Map:list(Id=URI))
 %		When emitting embedded XML, assume these namespaces
 %		are already defined from the environment.  (xml_write/3
 %		only).
-%		
+%
 %		* indent(Indent)
 %		Indentation of the document (for embedding)
-%	
+%
 %		* layout(Bool)
 %		Emit/do not emit layout characters to make output
 %		readable.
-%	
+%
 %		* net(Bool)
 %		Use/do not use Null End Tags.
 %		For XML, this applies only to empty elements, so you get
-%		
+%
 %		==
 %		    <foo/>	(default, net(true))
 %		    <foo></foo>	(net(false))
 %		==
-%		
+%
 %		For SGML, this applies to empty elements, so you get
-%		
+%
 %		==
 %		    <foo>	(if foo is declared to be EMPTY in the DTD)
 %		    <foo></foo>	(default, net(false))
@@ -132,7 +132,7 @@ stage.
 %		==
 %
 %		and also to elements with character content not containing /
-%		
+%
 %		==
 %		    <b>xxx</b>	(default, net(false))
 %		    <b/xxx/	(net(true)).
@@ -229,7 +229,7 @@ update_state(Option, _) :-
 	domain_error(xml_write_option, Option).
 
 %	emit_xml_encoding(+Stream, +Options)
-%	
+%
 %	Emit the XML fileheader with   encoding information. Setting the
 %	right encoding on the output stream  must be done before calling
 %	xml_write/3.
@@ -248,7 +248,7 @@ emit_xml_encoding(_, _).
 
 
 %%	emit_doctype(+Options, +Data, +Stream)
-%	
+%
 %	Emit the document-type declaration.
 %	There is a problem with the first clause if we are emitting SGML:
 %	the SGML DTDs for HTML up to HTML 4 *do not allow* any 'version'
@@ -291,7 +291,7 @@ write_doctype(Out, DocType, PubId, SysId) :-
 
 
 %%	emit(+Element, +Out, +State, +Options)
-%	
+%
 %	Emit a single element
 
 emit([], _, _) :- !.
@@ -399,7 +399,7 @@ emit_name(Term, Out, _) :-
 	write(Out, Term).
 
 %%	update_nsmap(+Attributes, !State)
-%	
+%
 %	Modify the nsmap of State to reflect modifications due to xmlns
 %	arguments.
 
@@ -425,7 +425,7 @@ set_nsmap(NS, URI, Map, [NS=URI|Map]).
 
 
 %%	content(+Content, +Out, +Element, +State, +Options)
-%	
+%
 %	Emit the content part of a structure  as well as the termination
 %	for the content. For empty content   we have three versions: XML
 %	style '/>', SGML declared EMPTY element (nothing) or normal SGML
@@ -535,7 +535,7 @@ write_element_content([H|T], Out, State) :-
 		 *******************************/
 
 %%	add_missing_namespaces(+DOM0, +NsMap, -DOM)
-%	
+%
 %	Add xmlns:NS=URI definitions to the toplevel element(s) to
 %	deal with missing namespaces.
 
@@ -575,7 +575,7 @@ default_ns(URI, NS) :-
 	rdf_db:ns(NS, URI).
 
 %%	missing_namespaces(+DOM, +NSMap, -Missing)
-%	
+%
 %	Return a list of URIs appearing in DOM that are not covered
 %	by xmlns definitions.
 
@@ -689,7 +689,7 @@ emit_indent(Indent, Out) :-
 	format(Out, '~N', []),
 	write_n(Tabs, '\t', Out),
 	write_n(Spaces, ' ', Out).
-	
+
 write_n(N, Char, Out) :-
 	(   N > 0
 	->  put_char(Out, Char),
@@ -697,7 +697,7 @@ write_n(N, Char, Out) :-
 	    write_n(N2, Char, Out)
 	;   true
 	).
-	
+
 inc_indent(State) :-
 	inc_indent(State, 2).
 
@@ -713,7 +713,7 @@ inc_indent(State, Inc) :-
 		 *******************************/
 
 %%	empty_element(+State, +Element)
-%	
+%
 %	True if Element is declared  with   EMPTY  content in the (SGML)
 %	DTD.
 
@@ -721,9 +721,9 @@ empty_element(State, Element) :-
 	get_state(State, dtd, DTD),
 	DTD \== (-),
 	dtd_property(DTD, element(Element, _, empty)).
-	
+
 %%	dtd_character_entities(+DTD, -Map)
-%	
+%
 %	Return an assoc mapping character entities   to their name. Note
 %	that the entity representation is a bit dubious. Entities should
 %	allow for a wide-character version and avoid the &#..; trick.

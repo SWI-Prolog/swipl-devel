@@ -168,7 +168,7 @@ has_specifier(Subs) :-
 
 
 %%	apply_tile_layout(+Tile, +Layout)
-%	
+%
 %	Apply a previously saved layout description, sending ->width
 %	or ->height messages to resizeable tiles.
 
@@ -304,6 +304,6 @@ frame_3(_F) :->
 	send(new(myframe3), open).
 
 :- pce_end_class(mydialog).
-	     
+
 
 

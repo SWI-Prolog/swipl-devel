@@ -45,13 +45,13 @@
 
 void
 resetDispatch()
-{ 
+{
 }
 
 
 static void
 is_pending(XtPointer ctx, int *source, XtInputId *id)
-{ 
+{
 }
 
 static void
@@ -74,7 +74,7 @@ ws_dispatch(Int FD, Any timeout)
   XtInputId iid = 0;
   status rval = SUCCEED;
   int ofd = dispatch_fd;
-  int fd = (isDefault(FD) ? dispatch_fd : 
+  int fd = (isDefault(FD) ? dispatch_fd :
 	    isNil(FD)	  ? -1
 	    		  : valInt(FD));
 
@@ -100,7 +100,7 @@ ws_dispatch(Int FD, Any timeout)
 
       to.tv_sec  = (long)v;
       to.tv_usec = (long)(v * 1000000.0) % 1000000;
-    }			 
+    }
 
     FD_ZERO(&readfds);
     if ( fd >= 0 )
@@ -195,7 +195,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
   int dx, dy;
   Window child;
   int root_is_display;
-  
+
   if ( isDefault(root) )
     root = d;
 
@@ -218,7 +218,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
 					/* TEST STUFF */
 	  ({ Window rr, cr;
 	    int rx, ry, wx, wy, mask;
-	    
+
 	    if ( XQueryPointer(r->display_xref, atts.root, &rr, &cr,
 			       &rx, &ry, &wx, &wy, &mask) )
 	    { Cprintf("XTranslateCoordinates --> %d\nXQueryPointer --> %d\n",
@@ -237,7 +237,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
 	if ( (w=widgetFrame(fr)) && child == XtWindow(w) )
 	  answer(fr);
       }
-      
+
       XTranslateCoordinates(r->display_xref, src_w, child,
 			    valInt(ev->x), valInt(ev->y),
 			    &dx, &dy, &child);
@@ -316,6 +316,6 @@ key_waiting(DisplayObj d)
 int
 ws_wait_for_key(int maxwait)
 { msleep(maxwait);
-  
+
   return key_waiting(CurrentDisplay(NIL));
 }

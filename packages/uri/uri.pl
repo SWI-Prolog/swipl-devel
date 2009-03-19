@@ -64,7 +64,7 @@
 %%	parse_uri(+URI, -Parts, +Options) is det.
 %
 %	Parse a URI into its components.  Parts is a term uri/7:
-%	
+%
 %	    1. Schema (atom)
 %	    2. userInfo (atom)
 %	    3. hostname (atom)
@@ -74,10 +74,10 @@
 %	    7. fragment (atom)
 %
 %	Options include:
-%	
+%
 %	    * normalize(+Bool)
 %	    Normalise the URI
-%	    
+%
 %	    * base(+BaseURI)
 %	    Decompose, relative to Base.
 
@@ -90,7 +90,7 @@
 %	Translate between URI and IRI. Notably   the  base and normalize
 %	options can be used to translate between a local URL to a global
 %	IRI as needed for -for example- RDF.  E.g.,
-%	
+%
 %	==
 %	?- uri_iri(cow, IRI, [base('http://example.com/ns/animals/')]).
 %	IRI = 'http://example.com/ns/animals/cow'.

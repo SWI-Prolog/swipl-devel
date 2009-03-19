@@ -85,7 +85,7 @@ emacs_tag(Name, File, LineNo) :-
 	send(@emacs_tag_line_regex, match, String, Start),
 	get(@emacs_tag_line_regex, register_value, String, 1, LNS),
 	get(@pce, convert, LNS, int, LineNo).
-	    
+
 
 emacs_complete_tag(Name, Goal) :-
 	tag_string(String), !,
@@ -128,7 +128,7 @@ emacs_init_tags(Dir) :-
 	send(directory(Dir), exists), !,
 	atom_concat(Dir, '/TAGS', TagFile),
 	emacs_init_tags(TagFile).
-	
+
 
 load_tags(File) :-
 	new(F, file(File)),

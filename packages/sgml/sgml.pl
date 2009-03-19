@@ -93,7 +93,7 @@ init :-
 
 :- initialization
 	init.
-	
+
 
 		 /*******************************
 		 *	   DTD HANDLING		*
@@ -137,9 +137,9 @@ dtd(Type, DTD) :-
 	asserta(current_dtd(Type, DTD)).
 
 %%	load_dtd(+DTD, +DtdFile, +Options)
-%	
+%
 %	Load file into a DTD.  Defined options are:
-%	
+%
 %		* dialect(+Dialect)
 %		Dialect to use (xml, xmlns, sgml)
 %
@@ -167,7 +167,7 @@ dtd_option(dialect(_)).
 
 
 %%	destroy_dtds
-%	
+%
 %	Destroy  DTDs  cached  by  this  thread   as  they  will  become
 %	unreachable anyway.
 
@@ -314,8 +314,8 @@ def_entity(DTD, Name, Value) :-
 	xml_quote_attribute(Value, QValue),
 	format(Stream, '<!ENTITY ~w "~w">~n', [Name, QValue]),
 	close(Stream).
-	
-	
+
+
 		 /*******************************
 		 *	     UTILITIES		*
 		 *******************************/
@@ -341,7 +341,7 @@ load_html_file(File, Term) :-
 
 %	xml_quote_attribute(+In, -Quoted)
 %	xml_quote_cdata(+In, -Quoted)
-%	
+%
 %	Backward  compatibility  for  versions  that  allow  to  specify
 %	encoding. All characters that cannot fit the encoding are mapped
 %	to XML character entities (&#dd;).  Using   ASCII  is the safest
@@ -362,7 +362,7 @@ xml_name(In) :-
 		 *******************************/
 
 %	xml_is_dome(@Term)
-%	
+%
 %	True  if  term  statisfies   the    structure   as  returned  by
 %	load_structure/3 and friends.
 

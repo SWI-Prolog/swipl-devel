@@ -102,7 +102,7 @@ expand_maplist(Callable0, Lists, Goal) :-
 	    append(Tails, Argv, IttArgs),
 	    NextIterate =.. [AuxName|IttArgs],
 	    NextClause = (NextHead :- NextGoal, NextIterate),
-	    
+
 	    (	predicate_property(NextGoal, transparent)
 	    ->	compile_aux_clauses([ (:- module_transparent(Module:AuxName/AuxArity)),
 				      BaseClause,
@@ -144,7 +144,7 @@ expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 	nonvar(NT),
 	catch('$translate_rule'((pseudo_nt --> NT), Rule),
 	      error(Pat,ImplDep),
-	      ( \+ harmless_dcgexception(Pat), 
+	      ( \+ harmless_dcgexception(Pat),
 		throw(error(Pat,ImplDep))
 	      )),
 	Rule = (pseudo_nt(Xs0c,Xsc) :- NewGoal0),
@@ -163,7 +163,7 @@ expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 %%	qcall_instantiated(@Term) is semidet.
 %
 %	True if Term is instantiated sufficiently to call it.
-%	
+%
 %	@tbd	Shouldn't this be callable straight away?
 
 qcall_instantiated(Var) :-
@@ -201,4 +201,4 @@ contains_illegal_dcgnt(NT) :-
 user:goal_expansion(GoalIn, GoalOut) :-
 	\+ current_prolog_flag(xref, true),
 	expand_apply(GoalIn, GoalOut).
-	
+

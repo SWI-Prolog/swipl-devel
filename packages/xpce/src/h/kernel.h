@@ -584,7 +584,7 @@ test, conversion and computation macro's are provided.
 				g; \
 				delCodeReference(o); } while(0)
 
-				
+
 
 		/********************************
 		*            CONSTANTS		*
@@ -662,7 +662,7 @@ test, conversion and computation macro's are provided.
 
 #define ABSTRACT_FUNCTION  \
   ABSTRACT_CODE
-  
+
 #define ABSTRACT_BINARY_EXPRESSION \
   ABSTRACT_FUNCTION \
   Expression	left;			/* Left-hand side */ \
@@ -1008,7 +1008,7 @@ NewClass(constraint)
   Relation	relation;		/* relation they have */
   Name		locked;			/* locked fro further messages? */
 End;
- 
+
 NewClass(date)
   union
   { time_t	date;			/* Unix view of time */
@@ -1226,7 +1226,7 @@ NewClass(size)
 End;
 
 #define ABSTRACT_SHEET \
-  Chain		attributes;		/* list of attributes */  
+  Chain		attributes;		/* list of attributes */
 
 NewClass(sheet)
   ABSTRACT_SHEET
@@ -1369,7 +1369,7 @@ NewClass(equal)				/* == */
   Any		left;
   Any		right;
 End;
-  
+
 NewClass(non_equal)			/* \== */
   ABSTRACT_CODE
   Any		left;
@@ -1697,7 +1697,7 @@ extern char *T_report[];		/* ->report: kind, format, args... */
       if ( isObject(val) ) delCodeReference(val); \
     } \
   }
-	
+
 #define for_vector(v, val, code) \
   { int _iv, _sizev = valInt((v)->size); \
     for(_iv = 0; _iv < _sizev; _iv++) \

@@ -218,7 +218,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	      return (char *) NULL;
 	    }
 	  }
-	  
+
 	  continue;
 	}
       case ANY:
@@ -296,7 +296,7 @@ match_pattern(matchcode *p, char *str)
 	  if ( match_pattern(p+1, (char *)s) )
 	    succeed;
 	  p += *p;
-	  continue;	  
+	  continue;
       default:						/* character */
 	  if ( c == *s ||
 	       (!truePrologFlag(PLFLAG_FILE_CASE) && c == makeLower(*s)) )
@@ -425,17 +425,17 @@ expand(const char *pattern, GlobInfo info)
 
     for(;;)
     { int c;
-  
+
       switch( (c=*s++) )
       { case EOS:
 	  if ( s > pat )		/* something left and expanded */
 	  { un_escape(prefix, pat, s);
-	  
+
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
 	    { char path[MAXPATHLEN];
 	      size_t plen;
-  
+
 	      strcpy(path, expand_entry(info, info->start));
 	      plen = strlen(path);
 	      if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
@@ -464,10 +464,10 @@ expand(const char *pattern, GlobInfo info)
       }
       break;
     }
-    
+
     for( tail=s; *tail && !IS_DIR_SEPARATOR(*tail); tail++ )
       ;
-  
+
 /*  By now, head points to the start of the path holding meta characters,
     while tail points to the tail:
 
@@ -477,13 +477,13 @@ expand(const char *pattern, GlobInfo info)
 */
     un_escape(prefix, pat, head);
     un_escape(patbuf, head, tail);
-  
+
     if ( !compilePattern(patbuf, &cbuf) )		/* syntax error */
       fail;
     dot = (patbuf[0] == '.');			/* do dots as well */
-  
+
     end = info->end;
-  
+
     for(; info->start < end; info->start++)
     { DIR *d;
       struct dirent *e;
@@ -493,7 +493,7 @@ expand(const char *pattern, GlobInfo info)
 
       strcpy(path, current);
       strcat(path, prefix);
-      
+
       if ( (d=opendir(path[0] ? OsPath(path, tmp) : ".")) )
       { size_t plen = strlen(path);
 
@@ -508,7 +508,7 @@ expand(const char *pattern, GlobInfo info)
 	  if ( (dot || e->d_name[0] != '.') &&
 	       matchPattern(e->d_name, &cbuf) )
 	  { char newp[MAXPATHLEN];
-  
+
 	    strcpy(newp, path);
 	    strcpy(&newp[plen], e->d_name);
 /*	    if ( !tail[0] || ExistsDirectory(newp) )
@@ -537,7 +537,7 @@ compareBagEntries(const void *a1, const void *a2)
 
   s1 = expand_str(info, i1);
   s2 = expand_str(info, i2);
-  
+
   if ( truePrologFlag(PLFLAG_FILE_CASE) )
     return mbscoll(s1, s2);
   else
@@ -549,7 +549,7 @@ static void
 sort_expand(GlobInfo info)
 { int *ip = &fetchBuffer(&info->files, info->start, int);
   int is = info->end - info->start;
-  
+
   LD->glob_info = info;
   qsort(ip, is, sizeof(int), compareBagEntries);
 }

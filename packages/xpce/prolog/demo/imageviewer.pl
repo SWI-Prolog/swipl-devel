@@ -233,4 +233,4 @@ charset(Set) -->
 
 charset2([]) --> "]", !.
 charset2([H|T]) --> [H], charset2(T).
-	
+

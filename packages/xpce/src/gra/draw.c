@@ -58,7 +58,7 @@ void
 r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 { int h = valInt(e->height);
   int up = !(flags & DRAW_3D_DOWN);
-  
+
   if ( h < 0 )
   { up = !up;
     h = -h;
@@ -79,7 +79,7 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
       { isegment s;
 	int dx, dy;
 	const edge *e;
-  
+
 	if ( i == n-1 )
 	  p2 = pts;			/* closing line */
 
@@ -87,7 +87,7 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 	s.y1 = p1->y;
 	s.x2 = p2->x;
 	s.y2 = p2->y;
-  
+
 	dx = s.x2 - s.x1;
 	dy = s.y2 - s.y1;
 
@@ -111,7 +111,7 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
 	}
       }
     }
-    
+
     r_3d_segments(nlight, light, e, TRUE);
     r_3d_segments(ndark,  dark,  e, FALSE);
   }

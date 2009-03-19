@@ -25,6 +25,6 @@ main(int argc, char**argv)
         tai_pack(x,&t);
 	fwrite(x,TAI_PACK,1,stdout);
       }
-      
+
   exit(0);
 }

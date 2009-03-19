@@ -45,7 +45,7 @@
 %
 %	Create a PCE socket and interpret incomming lines as Prolog goals.
 %	The argument is:
-%	
+%
 %		# Atom
 %		Unix-domain socket.  Atom is used as filename
 %		# Integer

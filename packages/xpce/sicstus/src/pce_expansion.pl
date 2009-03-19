@@ -46,7 +46,7 @@ pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
 		 *******************************/
 
 %	push_compile_operators.
-%	Push the current 
+%	Push the current
 
 push_compile_operators :-
 	push_operators(
@@ -108,7 +108,7 @@ do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	pce_error(context_error((Head :- Body), nomethod, clause)),
 	fail.
 
-	
+
 is_string([]).
 is_string([H|T]) :-
 	integer(H),
@@ -493,13 +493,13 @@ convert_meta(I, Arity, G0, M, T, C, G) :-
 	arg(A, G,  GA),
 	convert_meta(A, Arity, G0, M, T, C, G).
 
-meta(','(:, :)).	
-meta(;(:, :)).	
-meta(->(:, :)).	
-meta(\+(:)).	
-meta(not(:)).	
-meta(forall(:, :)).	
-meta(call(:)).	
+meta(','(:, :)).
+meta(;(:, :)).
+meta(->(:, :)).
+meta(\+(:)).
+meta(not(:)).
+meta(forall(:, :)).
+meta(call(:)).
 
 %	use_template_class_attributes(+Template)
 %
@@ -539,7 +539,7 @@ use_template_send_method(Template, pce_principal:Clause) :-
 	    IClassMsg =.. Args1,
 	    concat('T-', Id, Tid)
 	).
-	  
+
 use_template_get_methods(Template, Clauses) :-
 	findall(C, use_template_get_method(Template, C), Clauses).
 
@@ -630,7 +630,7 @@ pop_class :-
 pop_class :-
 	pce_error(no_class_to_end),
 	fail.
-	
+
 		 /*******************************
 		 *	     ATTRIBUTES		*
 		 *******************************/
@@ -666,7 +666,7 @@ class_source(ClassName) :-
 	add_attribute(ClassName, directive,
 		      send(@class, source, Term)).
 class_source(_).
-	
+
 
 		 /*******************************
 		 *	     RECORDING		*
@@ -855,7 +855,7 @@ head_arg(Var, Var, any) :-
 head_arg(Arg:Type, Arg, Type).
 head_arg(Arg:Name=Type, Arg, Name=Type).
 
-	
+
 		 /*******************************
 		 *	  PUBLIC METHODS	*
 		 *******************************/

@@ -28,7 +28,7 @@
 		 *	    SCROLLBAR		*
 		 *******************************/
 
-typedef struct 
+typedef struct
 { Name		which;			/* up, left, down, right */
   int		status;			/* up/down */
   char *	imgname;		/* name of the image */
@@ -173,7 +173,7 @@ init_button_colours()
 
   if ( !done )
   { init_sb_thumb_colours();
-    
+
     button_colours[1] = thumb_colours[0]; /* just look at it !? */
     button_colours[0] = thumb_colours[1];
     button_colours[2] = thumb_colours[2];
@@ -245,7 +245,7 @@ ws_draw_button_face(DialogItem di, int x, int y, int w, int h,
 
   init_button_colours();
   r_thickness(1);
-    
+
   if ( defb )
     r_box(x-1, y-1, w+2, h+2, 0, NIL);
 

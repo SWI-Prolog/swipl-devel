@@ -41,7 +41,7 @@
 :- noprofile((forall/2, apply/2)).
 
 %%	forall(+Condition, +Action)
-%	
+%
 %	True if Action if true for all variable bindings for which Condition
 %	if true.
 
@@ -51,7 +51,7 @@ forall(Cond, Action) :-
 %%	apply(:Goal, +ExtraArgs) is nondet.
 %
 %	Extend Goal with arguments from ExtraArgs and call it.
-%	
+%
 %	@deprecated	Almost all usage can be replaced by call/N.
 
 apply(M:Goal, Extra) :-

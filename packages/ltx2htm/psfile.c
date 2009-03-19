@@ -60,7 +60,7 @@ pl_get_ps_parameters(term_t file, term_t iseps, term_t bb)
       else
 	PL_unify_atom_chars(iseps, "ps");
     }
-    
+
     do
     { double a1, a2, a3, a4;
 

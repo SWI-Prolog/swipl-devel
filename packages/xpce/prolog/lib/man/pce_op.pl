@@ -57,7 +57,7 @@
 Obj->>Sel :-
 	strip_module(Sel, M, Msg),
 	action(Obj, [Msg], M).
-	
+
 action(A, _, _) :-
 	var(A), !,
 	throw(error(instantiation_error, (->>)/2)).

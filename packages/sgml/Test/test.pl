@@ -159,5 +159,5 @@ compare_attributes(A1, A2) :-
 	sort(A2, L2),
 	L1 == L2.
 
-	    
-	
+
+

@@ -85,7 +85,7 @@ attachCacheDisplay(DisplayObj d)
 
   if ( isDefault(sz) )
     sz = getSizeDisplay(d);
-    
+
   send(d, NAME_cache, newObject(ClassImage, DEFAULT, sz->w, sz->h,
 				NAME_pixmap, EAV), EAV);
 
@@ -135,7 +135,7 @@ static status
 foregroundDisplay(DisplayObj d, Colour c)
 { assign(d, foreground, c);
   ws_foreground_display(d, c);
-  
+
   succeed;
 }
 
@@ -144,7 +144,7 @@ static status
 backgroundDisplay(DisplayObj d, Colour c)
 { assign(d, background, c);
   ws_background_display(d, c);
-  
+
   succeed;
 }
 
@@ -231,7 +231,7 @@ static Int
 getConnectionFdDisplay(DisplayObj d)
 { if ( ws_opened_display(d) )
     answer(ws_display_connection_number(d));
-    
+
   fail;
 }
 
@@ -403,7 +403,7 @@ getMonitorDisplay(DisplayObj d, Any obj)
 
     for_cell(cell, d->monitors)
     { Monitor mon = cell->value;
-      
+
       if ( pointInArea(mon->area, pt) )
 	return mon;
     }
@@ -415,11 +415,11 @@ getMonitorDisplay(DisplayObj d, Any obj)
 
     for_cell(cell, d->monitors)
     { Monitor mon = cell->value;
-      
+
       copyArea(tmp, a);
       if ( intersectionArea(tmp, mon->area) )
       { int val = valInt(tmp->w)*valInt(tmp->h);
-	
+
 	if ( val < 0 )
 	  val = -val;
 	if ( val > overlap )
@@ -493,7 +493,7 @@ getSelectionDisplay(DisplayObj d, Name which, Name target, Type type)
   if ( isDefault(which) )  which  = NAME_primary;
   if ( isDefault(target) ) target = NAME_text;
   if ( isDefault(type) )   type   = nameToType(NAME_string);
-  
+
   if ( (sel = ws_get_selection(d, which, target)) )
     answer(checkType(sel, type, NIL));
 
@@ -699,7 +699,7 @@ create_confirmer(DisplayObj d)
   send(p, NAME_pen, toInt(3), EAV);
   send(p, NAME_create, EAV);
   send(get(p, NAME_frame, EAV), NAME_border, ONE, EAV);
-  
+
   send(p, NAME_recogniser,
           newObject(ClassHandler, NAME_button,
 		    newObject(ClassMessage,
@@ -711,7 +711,7 @@ create_confirmer(DisplayObj d)
   attributeObject(d, NAME_confirmer, p);
   attributeObject(p, NAME_helpText, h);
   attributeObject(p, NAME_messageText, m);
-  
+
   succeed;
 }
 
@@ -746,7 +746,7 @@ display_help(DisplayObj d, StringObj hlp, Name msg)
   TRY( p        = getAttributeObject(d, NAME_confirmer) );
   TRY( hlp_text = getAttributeObject(p, NAME_helpText));
   TRY( msg_text = getAttributeObject(p, NAME_messageText));
-  
+
   send(hlp_text, NAME_string, hlp, EAV);
   send(msg_text, NAME_string, msg, EAV);
   send(p, NAME_compute, EAV);
@@ -877,7 +877,7 @@ busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events)
 
   if ( notNil(c) )
   { assign(d, busy_locks, add(d->busy_locks, ONE));
-    
+
     if ( d->busy_locks == ONE )
     { Cell cell;
 
@@ -983,7 +983,7 @@ loadFontFamilyDisplay(DisplayObj d, Name fam)
     return errorPce(d, NAME_noFontsInFamily, fam);
 
   succeed;
-} 
+}
 
 
 static status
@@ -1068,7 +1068,7 @@ getFontAliasDisplay(DisplayObj d, Name name)
     answer(f);
 
   makeBuiltinFonts();
-       
+
   answer(getMemberHashTable(d->font_table, name));
 }
 
@@ -1379,7 +1379,7 @@ makeClassDisplay(Class class)
 
   succeed;
 }
-  
+
 
 #define PFONT(n, p, x) { n, p, XNAME(x) }
 #define ENDFONTLIST    { NULL, 0, NULL }
@@ -1538,7 +1538,7 @@ default_font_list(Name fam, FontDef defs)
   char *s = buf;
 
   *s++ = '[';
-  
+
   while(defs->style)
   {
     if ( defs->xname )
@@ -1565,7 +1565,7 @@ default_font_list(Name fam, FontDef defs)
 
   return save_string(buf);
 }
-	    
+
 
 static void
 attach_fonts(Class class, char *res, Name fam, FontDef defs)

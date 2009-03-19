@@ -45,7 +45,7 @@ convert(FILE *in, FILE *out)
 	  { fprintf(stderr, "Failed to parse %s (found = %d)\n", line, found);
 	    exit(1);
 	  }
-	  
+
 	  glyphs[glyph].width  = right - left;
 	  glyphs[glyph].height = ascent + descent;
 	  glyphs[glyph].hot_x  = -left;
@@ -128,7 +128,7 @@ convert(FILE *in, FILE *out)
 #endif
       fflush(out);
       return;
-    }      
+    }
   }
 }
 

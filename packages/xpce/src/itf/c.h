@@ -178,7 +178,7 @@ __pce_export XPCE_status XPCE_defgetmethodv(XPCE_Object class,
 					    XPCE_Function implementation,
 					    int argc,
 					    const XPCE_Object types[]);
- 
+
 __pce_export XPCE_status XPCE_store(XPCE_Object in,
 				    XPCE_Variable var,
 				    XPCE_Object value);

@@ -24,14 +24,14 @@
 
 #include <SWI-Prolog.h>
 #include <string.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include "clib.h"
 #include "form.h"
 
 static int
 isinteger(const char *s, long *val, size_t len)
 { char *e;
-  
+
   if ( len == (size_t)-1 )
     len = strlen(s);
   if ( len == 0 )

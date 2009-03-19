@@ -234,7 +234,7 @@ get(Receiver, M:Selector, A1, A2, A3, A4, A5, Answer) :-
 	get_implementation/4.
 
 %%	send_implementation(+Id, +Message, +Object)
-%	
+%
 %	Method-bodies are compiled into clauses for this predicate. Id
 %	is a unique identifier for the implementation, Message is a
 %	compound whose functor is the method name and whose arguments
@@ -260,7 +260,7 @@ send_implementation(trace(Id), Args, Obj) :-
 
 
 %%	get_implementation(+Id, +Message, +Object, -Return)
-%	
+%
 %	As send_implementation/3, but for get-methods.
 
 get_implementation(true, _Args, _Obj, _Rval).

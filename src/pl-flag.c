@@ -109,7 +109,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
 	goto out;
       break;
     case FLG_FLOAT:
-    { 
+    {
 #ifdef DOUBLE_ALIGNMENT
       double v;
       doublecpy(&v, &f->value.f);

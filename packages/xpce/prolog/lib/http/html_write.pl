@@ -68,7 +68,7 @@ directly, but this is generally not very satisfactory:
 
 This module tries to remedy these problems.   The idea is to translate a
 Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
-generation. 
+generation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 page(Content) -->
@@ -185,7 +185,7 @@ do_expand(Term, M) -->
 	html(Contents, M),
 	html_end(Env).
 
-	
+
 html_begin(Env) -->
 	{ Env =.. [Name|Attributes]
 	},
@@ -282,7 +282,7 @@ html_quoted_attribute(Text) -->
 	[ Quoted ].
 html_quoted_attribute(Text) -->
 	[ Text ].
-	
+
 quote_att_chars([], []).
 quote_att_chars([H0|T0], [H|T]) :-
 	quote_att_char(H0, H),

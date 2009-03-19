@@ -80,7 +80,7 @@ xpce_file_header(ClassName) :-
 
 xpce_file_footer(ClassName) :-
 	output('#endif /*!_PCE_%s_H*/\n', ClassName?upcase).
-	
+
 
 generate_as(ClassName) :-
 	get(@pce, convert, ClassName, class, Class),
@@ -161,7 +161,7 @@ constructor_iarg(ArgNames, Arg) :-
 constructor_oarg(ArgNames, Arg) :-
 	nth1(Arg, ArgNames, Name),
 	output(', %s', Name).
-	    
+
 argument_range(Types, Low, High) :-
 	get(Types, size, Size),
 	(   Size == 0
@@ -182,7 +182,7 @@ argument_range(Types, Low, High) :-
 	    )
 	).
 
-	    
+
 		 /*******************************
 		 *	      OUTPUT		*
 		 *******************************/

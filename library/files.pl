@@ -42,7 +42,7 @@
 %	access_file/2 it is merely a Quintus compatibility predicate
 %	and should be in quintus.pl.  We will leave it here for compatibility
 %	reasons.
-%	
+%
 %	@deprecated Use access_file/2.
 
 can_open_file(File, read) :- !,
@@ -68,7 +68,7 @@ path_dir_name(File, Dir) :-
 %%	chdir(+Dir) is det.
 %
 %	Change Working Directory.
-%	
+%
 %	@deprecated	Use using working_directory/2.
 
 chdir(Dir) :-

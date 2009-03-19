@@ -24,7 +24,7 @@ Status:
 
 	# Tested
 	Only very partially
-	
+
 	# Restrictions
 		+ No context module handling
 
@@ -108,7 +108,7 @@ typedef SP_term_ref			   PL_fid_t;
 #define	PL_INTEGER  SP_TYPE_INTEGER
 #define	PL_FLOAT    SP_TYPE_FLOAT
 #define	PL_ATOM	    SP_TYPE_ATOM
-#define	PL_TERM	    SP_TYPE_COMPOUND 
+#define	PL_TERM	    SP_TYPE_COMPOUND
 #define PL_POINTER  6			/* switch will warn on problems */
 #define PL_CHARS    7
 #define PL_FUNCTOR  8

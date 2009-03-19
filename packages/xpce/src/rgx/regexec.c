@@ -2,20 +2,20 @@
  * re_*exec and friends - match REs
  *
  * Copyright (c) 1998, 1999 Henry Spencer.  All rights reserved.
- * 
+ *
  * Development of this software was funded, in part, by Cray Research Inc.,
  * UUNET Communications Services Inc., Sun Microsystems Inc., and Scriptics
  * Corporation, none of whom are responsible for the results.  The author
- * thanks all of them. 
- * 
+ * thanks all of them.
+ *
  * Redistribution and use in source and binary forms -- with or without
  * modification -- are permitted for any purpose, provided that
  * redistributions in source form retain this entire copyright notice and
  * indicate the origin and nature of any modifications.
- * 
+ *
  * I'd appreciate being given credit for this package in the documentation
  * of software which uses it, but that is not a requirement.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
  * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
@@ -692,7 +692,7 @@ chr *end;			/* end of same */
 
 /*
  - cdissect - determine subexpression matches (with complications)
- * The retry memory stores the offset of the trial midpoint from begin, 
+ * The retry memory stores the offset of the trial midpoint from begin,
  * plus 1 so that 0 uniquely means "clean slate".
  ^ static int cdissect(struct vars *, struct subre *, chr *, chr *);
  */
@@ -741,7 +741,7 @@ chr *end;			/* end of same */
 
 /*
  - ccondissect - concatenation subexpression matches (with complications)
- * The retry memory stores the offset of the trial midpoint from begin, 
+ * The retry memory stores the offset of the trial midpoint from begin,
  * plus 1 so that 0 uniquely means "clean slate".
  ^ static int ccondissect(struct vars *, struct subre *, chr *, chr *);
  */
@@ -795,7 +795,7 @@ chr *end;			/* end of same */
 		er = cdissect(v, t->left, begin, mid);
 		if (er == REG_OKAY &&
 				longest(v, d2, mid, end, (int *)NULL) == end &&
-				(er = cdissect(v, t->right, mid, end)) == 
+				(er = cdissect(v, t->right, mid, end)) ==
 								REG_OKAY)
 			break;			/* NOTE BREAK OUT */
 		if (er != REG_OKAY && er != REG_NOMATCH) {
@@ -835,7 +835,7 @@ chr *end;			/* end of same */
 
 /*
  - crevdissect - determine backref shortest-first subexpression matches
- * The retry memory stores the offset of the trial midpoint from begin, 
+ * The retry memory stores the offset of the trial midpoint from begin,
  * plus 1 so that 0 uniquely means "clean slate".
  ^ static int crevdissect(struct vars *, struct subre *, chr *, chr *);
  */
@@ -888,7 +888,7 @@ chr *end;			/* end of same */
 		er = cdissect(v, t->left, begin, mid);
 		if (er == REG_OKAY &&
 				longest(v, d2, mid, end, (int *)NULL) == end &&
-				(er = cdissect(v, t->right, mid, end)) == 
+				(er = cdissect(v, t->right, mid, end)) ==
 								REG_OKAY)
 			break;			/* NOTE BREAK OUT */
 		if (er != REG_OKAY && er != REG_NOMATCH) {
@@ -985,7 +985,7 @@ chr *end;			/* end of same */
 		} else
 		{ if ( cmp(v, paren, p, len) != 0)
 		    break;
-		}				
+		}
 		i++;
 	}
 	MDEBUG(("cbackref found %d\n", i));

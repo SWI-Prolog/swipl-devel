@@ -34,31 +34,31 @@
 	  ]).
 
 :- use_module(library(socket)).
- 
+
 %%	prolog_server(?Port, +Options)
-%	
+%
 %	Create a TCP/IP based server  on  the   given  Port,  so you can
 %	telnet into Prolog and run an  interactive session. This library
 %	is intended to provide access for   debugging  and management of
 %	embedded servers.
-%	
+%
 %	Currently defined options are:
-%	
+%
 %		* allow(IP)
 %		Allow access from IP, a term of the format ip(A,B,C,D).
 %		Multiple of such terms can exist and access is granted
 %		if the peer IP address unifies to one of them.  If no
 %		allow option is provided access is only granted from
 %		ip(127,0,0,1) (localhost).
-%	
+%
 %	For example:
-%	
+%
 %		==
 %		?- prolog_server(4000, []).
 %
 %		% telnet localhost 4000
 %		Welcome to the SWI-Prolog server on thread 3
-%		
+%
 %		1 ?-
 %		==
 %
@@ -76,7 +76,7 @@ prolog_server(Port, Options) :-
 	thread_create(server_loop(ServerSocket, Options), _,
 		      [ alias(prolog_server)
 		      ]).
- 
+
 server_loop(ServerSocket, Options) :-
 	tcp_accept(ServerSocket, Slave, Peer),
 	tcp_open_socket(Slave, InStream, OutStream),
@@ -87,7 +87,7 @@ server_loop(ServerSocket, Options) :-
 		      [ alias(Alias)
 		      ]),
 	server_loop(ServerSocket, Options).
- 
+
 service_client(InStream, OutStream, Peer, Options) :-
 	allow(Peer, Options), !,
 	thread_self(Id),

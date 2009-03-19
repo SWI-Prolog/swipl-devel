@@ -120,36 +120,36 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %%	http_reply(+Data, +Out:stream, +HdrExtra) is det.
 %
 %	Data is one of
-%	
+%
 %		* html(HTML)
 %		HTML tokens as produced by html//1 from html_write.pl
-%		
+%
 %		* file(+MimeType, +FileName)
 %		Reply content of FileName using MimeType
-%		
+%
 %		* file(+MimeType, +FileName, +Range)
 %		Reply partial content of FileName with given MimeType
-%		
+%
 %		* tmp_file(+MimeType, +FileName)
 %		Same as =file=, but do not include modification time
-%		
+%
 %		* stream(+In, +Len)
 %		Reply content of stream.
-%		
+%
 %		* cgi_stream(+In, +Len)
 %		Reply content of stream, which should start with an
 %		HTTP header, followed by a blank line.  This is the
 %		typical output from a CGI script.
-%		
+%
 %		* Status
 %		HTTP status report and defined by http_status_reply/3.
-%		
+%
 %	@param HdrExtra provides additional reply-header fields, encoded
 %	       as Name(Value). It can also contain a field
 %	       content_length(-Len) to _retrieve_ the
 %	       value of the Content-length header that is replied.
-%		
-%	@tbd	Complete documentation	
+%
+%	@tbd	Complete documentation
 
 http_reply(What, Out) :-
 	http_reply(What, Out, [connection(close)], _).
@@ -381,7 +381,7 @@ html_message_lines([Fmt|T]) --> !,
 	html_message_lines(T).
 
 %%	http_join_headers(+Default, +Header, -Out)
-%	
+%
 %	Append headers from Default to Header if they are not
 %	already part of it.
 
@@ -396,7 +396,7 @@ http_join_headers([H|T], Hdr0, [H|Hdr]) :-
 
 
 %%	http_update_encoding(+HeaderIn, -Encoding, -HeaderOut)
-%	
+%
 %	Allow for rewrite of the  header,   adjusting  the  encoding. We
 %	distinguish three options. If  the   user  announces  `text', we
 %	always use UTF-8 encoding. If   the user announces charset=utf-8
@@ -451,7 +451,7 @@ join_connection(Keep1, Keep2, Connection) :-
 
 
 %%	connection(+Header, -Connection)
-%	
+%
 %	Extract the desired connection from a header.
 
 connection(Header, Close) :-
@@ -474,7 +474,7 @@ connection(Header, Close) :-
 %	=if_possible=, chunked encoding is  used   whenever  the  client
 %	allows for it, which is  interpreted   as  the client supporting
 %	HTTP 1.1 or higher.
-%	
+%
 %	Chunked encoding is more space efficient   and allows the client
 %	to start processing partial results. The drawback is that errors
 %	lead to incomplete pages instead of  a nicely formatted complete
@@ -505,7 +505,7 @@ join_transfer(_, _, none).
 
 
 %%	transfer(+Header, -Connection)
-%	
+%
 %	Extract the desired connection from a header.
 
 transfer(Header, Transfer) :-
@@ -519,7 +519,7 @@ transfer(Header, Transfer) :-
 
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)
-%	
+%
 %	Determine hom much bytes are required to represent the data from
 %	stream In using the given encoding.  Fails if the data cannot be
 %	represented with the given encoding.
@@ -550,37 +550,37 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	Send data on behalf on an HTTP   POST request. This predicate is
 %	normally called by http_post/4 from   http_client.pl to send the
 %	POST data to the server.  Data is one of:
-%	
+%
 %	  * html(+Tokens)
 %	  Result of html//1 from html_write.pl
-%	  
+%
 %	  * file(+File)
 %	  Send contents of a file. Mime-type is determined by
 %	  file_mime_type/2.
-%	  
+%
 %	  * file(+Type, +File)
 %	  Send file with content of indicated mime-type.
-%	  
+%
 %	  * codes(+Codes)
 %	  As string(text/plain, Codes).
-%	  
+%
 %	  * codes(+Type, +Codes)
 %	  Send Codes using the indicated MIME-type.
-%	  
+%
 %	  * cgi_stream(+Stream, +Len)
 %	  Read the input from Stream which, like CGI data starts with a partial
 %	  HTTP header. The fields of this header are merged with the provided
 %	  HdrExtra fields. The first Len characters of Stream are used.
-%	  
+%
 %	  * form(+ListOfParameter)
 %	  Send data of the MIME type application/x-www-form-urlencoded as
 % 	  produced by browsers issuing a POST request from an HTML form.
 %	  ListOfParameter is a list of Name=Value or Name(Value).
-%	  
+%
 %	  * form_data(+ListOfData)
 %	  Send data of the MIME type multipart/form-data.  ListOfData is the same
 %	  as for the List alternative described below.
-%	  
+%
 %	  * List
 %	  If the argument is a plain list, it is sent using the MIME type
 %	  multipart/mixed and packed using mime_pack/3. See mime_pack/3
@@ -679,21 +679,21 @@ post_header(html(Tokens), HdrExtra) -->
 	header_fields(HdrExtra, Len),
 	content_length(html(Tokens), Len),
 	content_type(text/html),
-	"\r\n". 
+	"\r\n".
 post_header(file(Type, File), HdrExtra) -->
 	header_fields(HdrExtra, Len),
 	content_length(file(File), Len),
 	content_type(Type),
-	"\r\n". 
+	"\r\n".
 post_header(cgi_data(Size), HdrExtra) -->
 	header_fields(HdrExtra, Len),
 	content_length(Size, Len),
-	"\r\n". 
+	"\r\n".
 post_header(codes(Type, Codes), HdrExtra) -->
 	header_fields(HdrExtra, Len),
 	content_length(ascii_string(Codes), Len),
 	content_type(Type),
-	"\r\n". 
+	"\r\n".
 
 
 		 /*******************************
@@ -708,7 +708,7 @@ post_header(codes(Type, Codes), HdrExtra) -->
 http_reply_header(Out, What, HdrExtra) :-
 	phrase(reply_header(What, HdrExtra, _Code), String), !,
 	format(Out, '~s', [String]).
-	
+
 
 reply_header(string(String), HdrExtra, Code) -->
 	reply_header(string(text/plain, String), HdrExtra, Code).
@@ -835,7 +835,7 @@ status_number(partial_content,	   206).
 status_number(moved,		   301).
 status_number(moved_temporary,	   302).
 status_number(see_other,	   303).
-status_number(not_modified,	   304). 
+status_number(not_modified,	   304).
 status_number(not_found,	   404).
 status_number(forbidden,	   403).
 status_number(authorise,	   401).
@@ -859,7 +859,7 @@ status_comment(moved_temporary) -->
 	"Moved Temporary".
 status_comment(see_other) -->
 	"See Other".
-status_comment(not_modified) --> 
+status_comment(not_modified) -->
 	"Not Modified".
 status_comment(not_found) -->
 	"Not Found".
@@ -886,10 +886,10 @@ date(Time) -->
 	;   rfc_date(Time)
 	),
 	"\r\n".
-	
+
 modified(file(File)) --> !,
 	{ time_file(File, Time)
-	}, 
+	},
 	modified(Time).
 modified(Time) -->
 	"Last-modified: ",
@@ -904,7 +904,7 @@ modified(Time) -->
 %
 %	Emit the content-length field and (optionally) the content-range
 %	field.
-%	
+%
 %	@param Len Number of bytes specified
 
 content_length(file(File, bytes(From, To)), Len) --> !,
@@ -966,7 +966,7 @@ ctype(Type) --> !,
 	"Content-Type: ",
 	atom(Type).
 
-charset(Var) --> 
+charset(Var) -->
 	{ var(Var) }, !.
 charset(utf8) --> !,
 	"; charset=UTF-8".
@@ -1067,7 +1067,7 @@ header_fields([H|T], CLen) -->
 %	Convert between prolog_name and HttpName.  Field names are,
 %	aoording to RFC 2616, considered tokens and covered by the
 %	following definition:
-%	
+%
 %	==
 %	token          = 1*<any CHAR except CTLs or separators>
 %       separators     = "(" | ")" | "<" | ">" | "@"
@@ -1138,18 +1138,18 @@ now -->
 	rfc_date(Time).
 
 %%	rfc_date(+Time)// is det.
-%	
+%
 %	Write time according to RFC1123 specification as required by the
-%	RFC2616 HTTP protocol specs. 
+%	RFC2616 HTTP protocol specs.
 
 rfc_date(Time, String, Tail) :-
 	stamp_date_time(Time, Date, 'UTC'),
 	format_time(codes(String, Tail),
 		    '%a, %d %b %Y %H:%M:%S GMT',
 		    Date, posix).
-	
+
 %%	http_timestamp(+Time:timestamp, -Text:atom) is det.
-%	
+%
 %	Generate a description of a Time in HTTP format (RFC1123)
 
 http_timestamp(Time, Atom) :-
@@ -1275,7 +1275,7 @@ cookie_options([]) -->
 %	cookie  options  use  the  syntax   <name>=<value>,  except  for
 %	=secure=.  M$  decided  to  extend  this  to  include  at  least
 %	=httponly= (only the Gods know what it means).
-%	
+%
 %	@param	Option	Term of the form Name=Value
 %	@bug	Incorrectly accepts options without = for M$ compatibility.
 
@@ -1302,7 +1302,7 @@ chars_to_semicolon([]) -->
 %%	range(-Range)// is semidet.
 %
 %	Process the range header value. Range is currently defined as:
-%	
+%
 %	    * bytes(From, To)
 %	    Where From is an integer and To is either an integer or
 %	    the atom =end=.
@@ -1325,10 +1325,10 @@ range(bytes(From, To)) -->
 %	remainder  of  the  header  and    parse  it.  After  successful
 %	completion, Reply contains the following fields, followed by the
 %	fields produced by http_read_header/2.
-%	
+%
 %	    * http_version(Major-Minor)
 %	    * status(StatusCode, Comment)
-%	    
+%
 %	StatusCode is one of the values provided by status_number//1.
 
 reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->

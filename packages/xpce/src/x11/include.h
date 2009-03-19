@@ -87,7 +87,7 @@ error XPCE cannot be build for X version 10.  Sorry.
 		 *	      IMAGES		*
 		 *******************************/
 
-typedef enum 
+typedef enum
 { IMG_OK,				/* Image loaded fine */
   IMG_UNRECOGNISED,			/* Routine didn't recognise it */
   IMG_NOMEM,				/* Not enough memory */
@@ -196,7 +196,7 @@ struct draw_context
   GC		opGC;			/* Logical area operations */
   GC		shadowGC;		/* Paint shadows */
   GC		reliefGC;		/* Paint opposite of shadow */
-  
+
   int		pen;			/* Current pen */
   int		depth;			/* #bits per pixel */
   Name		dash;			/* Current dash pattern */

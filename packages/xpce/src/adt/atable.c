@@ -157,7 +157,7 @@ getMembersATable(Atable t)
 { int n, size = valInt(t->tables->size);
   Chain rval = answerObject(ClassChain, EAV);
 
-  for(n=0; n<size; n++)	
+  for(n=0; n<size; n++)
     if ( notNil(t->tables->elements[n]) )
     { HashTable ht = t->tables->elements[n];
 
@@ -175,7 +175,7 @@ getMembersATable(Atable t)
 
       answer(rval);
     }
-  
+
   fail;
 }
 
@@ -189,7 +189,7 @@ best_hashtable(Atable t, Vector v, HashTable *ht, Any *val)
   { errorPce(t, NAME_badVectorSize, v, t->names->size);
     fail;
   }
-  
+
   for(n=0; n<size; n++)
   { if ( notDefault(v->elements[n]) )
     { Name kind = t->keys->elements[n];
@@ -352,7 +352,7 @@ static getdecl get_atable[] =
 #define rc_atable NULL
 /*
 static classvardecl rc_atable[] =
-{ 
+{
 };
 */
 

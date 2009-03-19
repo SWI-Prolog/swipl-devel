@@ -123,7 +123,7 @@ static getdecl get_handlerGroup[] =
 #define rc_handlerGroup NULL
 /*
 static classvardecl rc_handlerGroup[] =
-{ 
+{
 };
 */
 

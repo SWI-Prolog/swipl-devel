@@ -51,7 +51,7 @@ clear :-
 	;   true
 	),
 	retractall(map(_,_)).
-	
+
 mk(N) :-
 	clear,
 	rdf_new_literal_map(Map),

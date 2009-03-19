@@ -331,11 +331,11 @@ geometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
 
   { int fw = valInt(getExFont(lb->font));
     int fh = valInt(getHeightFont(lb->font));
-    
+
     assign(lb->size, w, toInt((iw - 2 * TXT_X_MARGIN)/fw));
     assign(lb->size, h, toInt((valInt(h) - 2 * TXT_Y_MARGIN)/fh));
   }
-  
+
   ix = (sw < 0 ? -sw : 0);
   if ( getShowLabelListBrowser(lb) == ON )
   { send(lb->label_text, NAME_set, ZERO, ZERO, w, EAV);
@@ -518,7 +518,7 @@ seek_list_browser(Any obj, long int index)
     current_item = item;
 
     compute_current(lb);
-  }  
+  }
 
   current_index = index;
 }
@@ -531,7 +531,7 @@ scan_list_browser(Any obj, long int from, int dir,
   int item = from / BROWSER_LINE_WIDTH;
 
   assert(dir > 0 && how == TEXT_SCAN_FOR && category == EL);
-  
+
   *eof = (isNil(lb->dict) ||
 	  ((item + 1 >= valInt(lb->dict->members->size)) ? TRUE : FALSE));
 
@@ -655,7 +655,7 @@ computeListBrowser(ListBrowser lb)
     requestComputeGraphical(lb->scroll_bar, DEFAULT); /* TBD: where to put? */
     return computeDevice(lb);
   }
-  
+
   succeed;
 }
 
@@ -698,7 +698,7 @@ getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
     if ( name->size > LINESIZE ||
 	 name->iswide != common->iswide ) /* TBD */
       continue;
-      
+
     if ( ign_case == OFF )
     { if ( str_prefix(name, &pref->data) )
       { if ( !hit++ )
@@ -716,7 +716,7 @@ getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
       }
     }
   }
-  
+
   answer(StringToString(common));
 }
 
@@ -736,7 +736,7 @@ extendPrefixListBrowser(ListBrowser lb)
     assign(lb, search_string, ext);
     executeSearchListBrowser(lb);
   }
-  
+
   succeed;
 }
 
@@ -820,7 +820,7 @@ backwardDeleteCharListBrowser(ListBrowser lb)
 
   if ( notNil(ss) )
   { int size = valInt(getSizeCharArray(ss));
-    
+
     if ( size > 1 )
     { deleteString(ss, toInt(size-1), DEFAULT);
       return executeSearchListBrowser(lb);
@@ -849,7 +849,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
       return errorPce(lb, NAME_noCharacter);
   } else
     c = valInt(chr);
-    
+
   { LocalString(s, c <= 0xff ? FALSE : TRUE, valInt(times));
     int i;
 
@@ -879,7 +879,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
       fail;
     }
   }
-  
+
   succeed;
 }
 
@@ -930,7 +930,7 @@ selectBrowserGesture()
 
   if ( !g )
     g = globalObject(NAME_browserSelectGesture, ClassBrowserSelectGesture, EAV);
-  
+
   return g;
 }
 
@@ -969,7 +969,7 @@ eventListBrowser(ListBrowser lb, EventObj ev)
     } else
       return postEvent(ev, (Graphical)lb, selectBrowserGesture());
   }
-  
+
   fail;
 }
 
@@ -1108,7 +1108,7 @@ deselectListBrowser(ListBrowser lb, DictItem di)
   { assign(lb, selection, NIL);
     ChangeItemListBrowser(lb, di);
   }
-  
+
   succeed;
 }
 
@@ -1127,7 +1127,7 @@ selectListBrowser(ListBrowser lb, DictItem di)
     assign(lb, selection, di);
     ChangeItemListBrowser(lb, di);
   }
-  
+
   succeed;
 }
 
@@ -1141,7 +1141,7 @@ clearSelectionListBrowser(ListBrowser lb)
       deselectListBrowser(lb, ch->head->value);
   } else if ( notNil(lb->selection) )
     deselectListBrowser(lb, lb->selection);
-  
+
   succeed;
 }
 
@@ -1158,7 +1158,7 @@ selectionListBrowser(ListBrowser lb, Any obj)
       sendv(lb, NAME_select, 1, (Any *)&cell->value);
   } else if ( notNil(obj) )
     selectListBrowser(lb, obj);
-    
+
   succeed;
 }
 
@@ -1201,7 +1201,7 @@ normaliseListBrowser(ListBrowser lb, DictItem di)
     return scrollDownListBrowser(lb, ONE);
   if ( here == last+1 )
     return scrollUpListBrowser(lb, ONE);
-  
+
   return scrollToListBrowser(lb,
 			toInt(here - valInt(getLinesTextImage(lb->image))/2));
 }
@@ -1355,7 +1355,7 @@ nextLineListBrowser(ListBrowser lb, Int lines)
 	oldcaret = caret;
       } else
 	caret = start;
-	
+
       caret += times;
       caret = valInt(normalise_index(lb, toInt(caret)));
       di   = getNth0Chain(lb->dict->members, toInt(caret));
@@ -1394,7 +1394,7 @@ previousLineListBrowser(ListBrowser lb, Int lines)
     lines = toInt(-1);
   else
     lines = neg(lines);
-  
+
   return nextLineListBrowser(lb, lines);
 }
 
@@ -1431,7 +1431,7 @@ fontListBrowser(ListBrowser lb, FontObj font)
     setGraphical(lb, DEFAULT, DEFAULT, lb->size->w, lb->size->h);
     return ChangedListBrowser(lb);
   }
-  
+
   succeed;
 }
 
@@ -1441,7 +1441,7 @@ styleListBrowser(ListBrowser lb, Name name, Style style)
 { valueSheet(lb->styles, name, style);
   ChangedListBrowser(lb);
 
-  succeed;    
+  succeed;
 }
 
 
@@ -1482,7 +1482,7 @@ multipleSelectionListBrowser(ListBrowser lb, Bool val)
     }
     assign(lb, multiple_selection, val);
   }
-  
+
   succeed;
 }
 
@@ -1560,7 +1560,7 @@ ChangedListBrowser(ListBrowser lb)
 static status
 tabStopsListBrowser(ListBrowser lb, Vector v)
 { return tabStopsTextImage(lb->image, v);
-  
+
   succeed;
 }
 
@@ -1568,7 +1568,7 @@ tabStopsListBrowser(ListBrowser lb, Vector v)
 status
 backgroundListBrowser(ListBrowser lb, Any bg)
 { return backgroundTextImage(lb->image, bg);
-  
+
   succeed;
 }
 					/* avoid capture by device */

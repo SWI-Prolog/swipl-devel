@@ -60,7 +60,7 @@ initialise(M) :->
 	send(M, append, B),
 	send(M, fill_tool_dialog, D),
 	send(M, refresh).
-	     
+
 fill_tool_dialog(_M, D:tool_dialog) :->
 	send(D, append, new(File, popup(file))),
 	send_list(File, append,
@@ -179,7 +179,7 @@ append_topic(B, Topic:prolog) :->
 		       string('%s\t%s', Atom, State),
 		       prolog(Topic),
 		       State)).
-	
+
 update_item(_B, DI:dict_item) :->
 	"Update state of item"::
 	get(DI, object, Topic),
@@ -223,7 +223,7 @@ disable(B, DI:dict_item) :->
 	get(DI, object, Topic),
 	nodebug(Topic),
 	send(B, update_item, DI).
-	
+
 enable(B, DI:dict_item) :->
 	get(DI, object, Topic),
 	debug(Topic),
@@ -255,7 +255,7 @@ prolog:debug_print_hook(Topic, Format, Arguments) :-
 debug_message(Topic, Format, Arguments) :-
 	forall(view_window(V),
 	       send(V, debug_message, Topic, Format, Arguments)).
-	
+
 
 :- pce_begin_class(prolog_debug_view, view,
 		   "SHow debug messages").

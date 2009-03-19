@@ -140,7 +140,7 @@ typedef struct _TransientFrameRec
   ShellPart 			shell;
   WMShellPart			wm;
   VendorShellPart		vendor;
-  TransientShellPart		transient;	
+  TransientShellPart		transient;
   TransientFramePart		transient_frame;
 } TransientFrameRec;
 

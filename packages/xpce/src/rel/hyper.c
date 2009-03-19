@@ -31,12 +31,12 @@ initialiseHyper(Hyper h, Any from, Any to, Name fname, Name bname)
 { Any av[2];
 
   initialiseProgramObject(h);
-  
+
   if ( isDefault(fname) )
     fname = NAME_hypered;
   if ( isDefault(bname) )
     bname = fname;
-  
+
   assign(h, from, from);
   assign(h, to, to);
   assign(h, forward_name, fname);
@@ -91,7 +91,7 @@ SaveRelationHyper(Hyper h, FileObj f)
 static status
 loadHyper(Hyper h, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(h, fd, def));
-  
+
   if ( restoreVersion >= 13 )
   { attachHyperObject(h->from, h, h->to);
     attachHyperObject(h->to, h, h->from);
@@ -143,7 +143,7 @@ static senddecl send_hyper[] =
 #define get_hyper NULL
 /*
 static getdecl get_hyper[] =
-{ 
+{
 };
 */
 
@@ -152,7 +152,7 @@ static getdecl get_hyper[] =
 #define rc_hyper NULL
 /*
 static classvardecl rc_hyper[] =
-{ 
+{
 };
 */
 
@@ -209,7 +209,7 @@ unlinkToChainHyper(Hyper h)
 #define var_chain_hyper NULL
 /*
 static vardecl var_chain_hyper[] =
-{ 
+{
 };
 */
 
@@ -227,7 +227,7 @@ static senddecl send_chain_hyper[] =
 #define get_chain_hyper NULL
 /*
 static getdecl get_chain_hyper[] =
-{ 
+{
 };
 */
 
@@ -236,7 +236,7 @@ static getdecl get_chain_hyper[] =
 #define rc_chain_hyper NULL
 /*
 static classvardecl rc_chain_hyper[] =
-{ 
+{
 };
 */
 

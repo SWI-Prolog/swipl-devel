@@ -62,7 +62,7 @@ test_graph(Triples) :-
 	load_rdf(Tmp, ReadTriples),
 	delete_file(Tmp),
 	compare_triples(Triples, ReadTriples, _).
-	
+
 
 		 /*******************************
 		 *	     COMPARING		*

@@ -34,7 +34,7 @@ the derived tables, which is done by the program mkvmi.c.
 	}
 
 Within the scope of this file,   the following virtual machine variables
-are available. 
+are available.
 
 	* FR
 	Current environment frame
@@ -44,7 +44,7 @@ are available.
 
 	* BFR
 	Backtrack frame: current choicepoint
-	
+
 	* PC
 	Program Counter
 
@@ -162,13 +162,13 @@ VMI(D_BREAK, 0, 0, ())
   }
 #if VMCODE_IS_ADDRESS
   { void *c = (void *)replacedBreak(PC-1);
-    
+
     goto *c;
   }
 #else
   thiscode = replacedBreak(PC-1);
   goto resumebreak;
-#endif      
+#endif
 #endif /*O_DEBUGGER*/
 }
 
@@ -206,7 +206,7 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
     NEXT_INSTRUCTION;
   }
   CLAUSE_FAILED;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -262,7 +262,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
     NEXT_INSTRUCTION;
 
   CLAUSE_FAILED;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -296,7 +296,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
     for(i=0; i<WORDS_PER_INT64; i++)
     { if ( *vk++ != (word)*PC++ )
 	CLAUSE_FAILED;
-    }  
+    }
     NEXT_INSTRUCTION;
   }
 
@@ -341,7 +341,7 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   }
 
   CLAUSE_FAILED;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -350,7 +350,7 @@ They are both implemented using the generic  code for indirects, but the
 decompiler must be able to recognise  the   instruction  which is why we
 have two instructions.
 
-TBD:	Deal with multiple identical instructions 
+TBD:	Deal with multiple identical instructions
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
@@ -433,7 +433,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
       } else
       { *ARGP = *k;
       }
-  
+
       ARGP++;
       NEXT_INSTRUCTION;
     } else
@@ -535,7 +535,7 @@ VMI(H_LIST, 0, 0, ())
   *aTop++ = (Word)((intptr_t)(ARGP + 1)|umode);
 
   VMI_GOTO(H_RLIST);
-} 
+}
 
 
 VMI(H_RLIST, 0, 0, ())
@@ -642,7 +642,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
   }
 
   NEXT_INSTRUCTION;
-} 
+}
 
 
 		 /*******************************
@@ -688,7 +688,7 @@ VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
   cpInt64Data(p, vp);
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
   NEXT_INSTRUCTION;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -698,13 +698,13 @@ B_INT64: 64-bit (int64_t) in the body.  See H_INT64
 VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 { Word p = allocGlobal(2+WORDS_PER_INT64);
   size_t i;
-	
+
   *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
   for(i=0; i<WORDS_PER_INT64; i++)
     *p++ = (word)*PC++;
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-  
+
   NEXT_INSTRUCTION;
 }
 
@@ -722,7 +722,7 @@ VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   cpDoubleData(p, PC);
   *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   NEXT_INSTRUCTION;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -757,7 +757,7 @@ ARGP is pointing into the term on the global stack we are creating.
 VMI(B_ARGVAR, 0, 1, (CA1_VAR))
 { Word k;
 
-  deRef2(varFrameP(FR, *PC++), k);	
+  deRef2(varFrameP(FR, *PC++), k);
   if ( isVar(*k) )
   { if ( ARGP < k )
     { setVar(*ARGP);
@@ -814,7 +814,7 @@ B_UNIFY_VAR, B_UNIFY_EXIT: Unification in the body. We compile A = Term
 into one of the following:
 
     Normal:			    A is firstvar:
-	B_UNIFY_VAR <A>			B_UNIFY_FIRSTVAR <A>	
+	B_UNIFY_VAR <A>			B_UNIFY_FIRSTVAR <A>
 	<head unify instructions>	<body unify instructions>
 	B_UNIFY_EXIT			B_UNIFY_EXIT
 
@@ -834,7 +834,7 @@ VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_VAR))
 
 VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
-  
+
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { Word k = ARGP;
@@ -889,7 +889,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif  
+#endif
 
   setVar(*v1);
   *v2 = makeRefL(v1);
@@ -910,7 +910,7 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     *ARGP++ = linkVal(v2);
     goto debug_equals2;
   }
-#endif  
+#endif
 
   *v1 = linkVal(v2);
 
@@ -963,7 +963,7 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif  
+#endif
 
   *v1 = c;
   NEXT_INSTRUCTION;
@@ -977,7 +977,7 @@ B_UNIFY_VC: Unify a variable (not first) with a constant in the body.
 VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 { Word k = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
-  
+
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { ARGP = argFrameP(lTop, 0);
@@ -985,7 +985,7 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
     *ARGP++ = c;
     goto debug_equals2;
   }
-#endif  
+#endif
 
   deRef(k);
   if ( *k == c )
@@ -1180,7 +1180,7 @@ backtrack without showing the fail ports explicitely.
 
 VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
- 
+
   if ( LD->alerted )
   {
 #if O_DEBUGGER
@@ -1221,7 +1221,7 @@ VMI(I_CONTEXT, 0, 1, (CA1_MODULE))
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALL forms the normal  code  generated   by  the  compiler for calling
 predicates. The arguments are already written   in the frame starting at
-`lTop'. 
+`lTop'.
 
 The task of I_CALL is to  save  necessary  information  in  the  current
 frame,  fill  the next frame and initialise the machine registers.  Then
@@ -1277,7 +1277,7 @@ retry_continue:
 #ifdef O_DEBUGLOCAL
 { Word ap = argFrameP(FR, DEF->functor->arity);
   int n;
-  
+
   for(n=50; --n; )
     *ap++ = (word)(((char*)ATOM_nil) + 1);
 }
@@ -1317,12 +1317,12 @@ retry_continue:
 
 #ifdef O_LIMIT_DEPTH
     { uintptr_t depth = levelFrame(FR);
-    
+
       if ( depth > depth_reached )
 	depth_reached = depth;
       if ( depth > depth_limit )
       { DEBUG(2, Sdprintf("depth-limit\n"));
-    
+
 	if ( debugstatus.debugging )
 	  newChoice(CHP_DEBUG, FR PASS_LD);
 	FRAME_FAILED;
@@ -1354,7 +1354,7 @@ retry_continue:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_DEPART: implies it is the last subclause   of  the clause. This is the
-entry point for last call optimisation. 
+entry point for last call optimisation.
 
 (*) Handling undefined predicates here is very tricky because we need to
 destroy de clause pointer before   leaveDefinition() to get asynchronous
@@ -1442,7 +1442,7 @@ Leave the clause:
   - update reference of current clause
     If there are no alternatives left and BFR  <=  frame  we  will
     never  return  at  this clause and can decrease the reference count.
-    If BFR > frame the backtrack frame is a child of  this  frame, 
+    If BFR > frame the backtrack frame is a child of  this  frame,
     so  this frame can become active again and we might need to continue
     this clause.
 
@@ -1478,7 +1478,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
-  
+
       switch( action )
       { case ACTION_RETRY:
 	  goto retry;
@@ -1486,7 +1486,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 	  discardChoicesAfter(FR PASS_LD);
 	  FRAME_FAILED;
       }
-  
+
       if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
 	BFR = BFR->parent;
     }
@@ -1539,7 +1539,7 @@ VMI(I_EXITFACT, 0, 0, ())
 #ifdef O_ATTVAR
     if ( LD->alerted & ALERT_WAKEUP )
     { LD->alerted &= ~ALERT_WAKEUP;
-  
+
       if ( *valTermRef(LD->attvar.head) )
       { PC = SUPERVISOR(exit);
 	goto wakeup;
@@ -1600,7 +1600,7 @@ provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CUT, VIF_BREAK, 0, ())
-{ 
+{
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { Choice ch;
@@ -1772,7 +1772,7 @@ c_cut:
   { LocalFrame fr2;
 
     DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
-    for(fr2 = ch->frame;    
+    for(fr2 = ch->frame;
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
     { discardFrame(fr2, FINISH_CUT PASS_LD);
@@ -1913,7 +1913,7 @@ VMI(S_VIRGIN, 0, 0, ())
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
   { FR->predicate = DEF;
-    if ( FR->prof_node ) 
+    if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
     goto retry_continue;
   }
@@ -2053,7 +2053,7 @@ VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF))
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_ALLCLAUSES: Simply try the clauses one-by-one. This works for all code
 and is the ultimate fallback of the indexing code.  The supervisor code
-is 
+is
 
 	S_ALLCLAUSES
 	S_NEXTCLAUSE
@@ -2102,7 +2102,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
 
         break;
       }
-    }  
+    }
   }
 
   PC--;
@@ -2228,7 +2228,7 @@ A_INT64: Push int64_t following PC
 VMI(A_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 { Number n = allocArithStack(PASS_LD1);
   Word p = &n->value.w[0];
-	
+
   cpInt64Data(p, PC);
   n->type    = V_INTEGER;
   NEXT_INSTRUCTION;
@@ -2474,14 +2474,14 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
   if ( tagex(*np) == (TAG_INTEGER|STG_INLINE) )
   { intptr_t v = valInt(*np);
     int64_t r = v+add;			/* tagged ints never overflow */
-    
+
     *rp = makeNum(r);
     NEXT_INSTRUCTION;
   } else
   { number n;
     fid_t fid;
     int rc;
-  
+
     fid = PL_open_foreign_frame();
     rc = valueExpression(wordToTermRef(np), &n PASS_LD);
     PL_close_foreign_frame(fid);
@@ -2523,7 +2523,7 @@ BEGIN_SHAREDVARS
   Number n1, n2;
   int cmp;
   int rc;
-  
+
 #define CMP_FAST(op) \
   n1 = argvArithStack(2 PASS_LD); \
   n2 = n1 + 1; \
@@ -2906,7 +2906,7 @@ VMI(I_FOPENNDET, 0, 0, ())
   context.context = 0L;
   context.engine  = LD;
   context.control = FRG_FIRST_CALL;
-  
+
 foreign_redo:
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   ch = newChoice(CHP_JUMP, FR PASS_LD);
@@ -3108,7 +3108,7 @@ on the frame and call the 1-st argument. See also I_CATCH.
 
 I_EXITCLEANUP  is  at  the  end  of   call_cleanup/3.  If  there  is  no
 choice-point created this is the final exit. If this frame has no parent
-(it is the entry of PL_next_solution()), 
+(it is the entry of PL_next_solution()),
 
 call_cleanup(:Goal, -Reason, :Cleanup) is tranalated into
    0 i_enter
@@ -3407,7 +3407,7 @@ VMI(B_EXIT, 0, 0, ())
 
     BODY_FAILED;
   }
-  
+
   if ( raw_unify_ptrs(argFrameP(blockfr, 2), rval PASS_LD) )
   { for( ; ; FR = FR->parent )
     { SECURE(assert(FR > blockfr));
@@ -3508,7 +3508,7 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
   NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the goal */
   a = stripModule(a, &module PASS_LD);
-  
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
@@ -3543,7 +3543,7 @@ atom is referenced by the goal-term anyway.
       arity   = arityFunctor(functor);
     } else
     { Clause cl;
-      
+
       a = &goal;			/* we're going to overwrite */
       deRef(a);
       DEBUG(1, { term_t g = a - (Word)lBase;
@@ -3563,7 +3563,7 @@ atom is referenced by the goal-term anyway.
       NFR->parent	  = FR;
       NFR->programPointer = PC;
 #ifdef O_PROFILE
-      NFR->prof_node      = FR->prof_node;	    
+      NFR->prof_node      = FR->prof_node;
 #endif
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = ~0L;
@@ -3626,12 +3626,12 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   { int i, shift = arity - 1;
 
     a = argFrameP(NFR, 1);	/* pointer to 1-st arg */
-    
+
     if ( shift > 0 )
     { for(i=callargs-1; i>=0; i--)
       { if ( isRef(a[i]) )
 	{ Word a1 = unRef(a[i]);
-      
+
 	  if ( a1 >= a && a1 < a+arity )
 	    a[i+shift] = makeRef(a1+shift);
 	  else
@@ -3643,7 +3643,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
     { for(i=0; i < callargs; i++)
       { if ( isRef(a[i]) )
 	{ Word a1 = unRef(a[i]);
-	  
+
 	  if ( a1 >= a && a1 < a+arity )
 	    a[i+shift] = makeRef(a1+shift);
 	  else
@@ -3692,5 +3692,5 @@ continue as with a normal call.
     setContextModule(NFR, module);
 
   goto normal_call;
-}  
+}
 END_SHAREDVARS

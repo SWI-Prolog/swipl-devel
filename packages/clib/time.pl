@@ -47,15 +47,15 @@
 
 %%	alarm(+Time, :Callable, -Id) is det.
 %%	alarm(+Time, :Callable, -Id, +Options) is det.
-%	
+%
 %	Set up an alarm to be signaled Time seconds from now. If the
 %	alarm expires, Callable is called asynchronously. Callable can
 %	be used to raise an exception using throw/1 to abort some
 %	execution.
-%	
+%
 %	Options is a list of Name(Value) options.  Currently defined
 %	options are:
-%	
+%
 %		* remove(Bool)
 %		If =true= (default =false=), remove the alarm-event (as
 %		remove_alarm/1) after it has been fired.
@@ -67,16 +67,16 @@
 %
 %	Install an alarm allocated using alarm/4 with the install(false)
 %	option.
-%	
+%
 %	@deprecated	With the introduction of setup_call_cleanup/3,
 %			this predicate is probable no longer needed.
 
 %%	remove_alarm(+Id) is det.
-%	
+%
 %	Remove an alarm.  If it has not yet been fired, it never will.
 
 %%	current_alarm(?Time, :Goal, ?Id, ?Status) is nondet.
-%	
+%
 %	Enumerate the alarms in the schedule.  Time is the absolute time
 %	the event is scheduled for (see also get_time/1). Goal is the
 %	goal to execute, Id is the identifier and Status is the
@@ -88,7 +88,7 @@
    load_foreign_library(foreign(time)).
 
 %%	call_with_time_limit(+Time, :Goal) is det.
-%	
+%
 %	Call Goal, while watching out for   a (wall-time) limit. If this
 %	limit  is  exceeded,  the   exception  =time_limit_exceeded=  is
 %	raised. Goal is called as in once/1.
@@ -102,7 +102,7 @@ call_with_time_limit(Time, Goal) :-
 			   remove_alarm_notrace(Id)).
 call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
-		     
+
 time_limit_exceeded(_Time) :-
 	throw(time_limit_exceeded).
 

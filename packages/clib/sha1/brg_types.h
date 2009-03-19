@@ -86,7 +86,7 @@ extern "C" {
 #    define BRG_UI64
 #    define li_64(h) 0x##h##ull
      typedef unsigned __int64 uint_64t;
-#  elif defined( _MSC_VER ) 
+#  elif defined( _MSC_VER )
 #    define BRG_UI64
 #    define li_64(h) 0x##h##ui64
      typedef unsigned __int64 uint_64t;
@@ -164,15 +164,15 @@ extern "C" {
     faster operations on longer variables to be used.  In all these
     defines 'size' must be a power of 2 and >= 8
 
-    dec_unit_type(size,x)       declares a variable 'x' of length 
+    dec_unit_type(size,x)       declares a variable 'x' of length
                                 'size' bits
 
-    dec_bufr_type(size,bsize,x) declares a buffer 'x' of length 'bsize' 
+    dec_bufr_type(size,bsize,x) declares a buffer 'x' of length 'bsize'
                                 bytes defined as an array of variables
-                                each of 'size' bits (bsize must be a 
+                                each of 'size' bits (bsize must be a
                                 multiple of size / 8)
 
-    ptr_cast(x,size)            casts a pointer to a pointer to a 
+    ptr_cast(x,size)            casts a pointer to a pointer to a
                                 varaiable of length 'size' bits
 */
 

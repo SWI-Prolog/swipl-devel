@@ -129,7 +129,7 @@ post_event(V, Ev:event) :->
 	->  true
 	;   send_super(V, post_event, Ev)
 	).
-	
+
 :- pce_group(edit).
 
 edit(V, Val:[bool]) :->
@@ -152,7 +152,7 @@ stop_at(V) :->
 	;   send(V, report, error, 'No source'),
 	    fail
 	).
-	
+
 delete_selected_stop(V) :->
 	"Deleted selected stop"::
 	get(V, selected_fragment, F),

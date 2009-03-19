@@ -78,7 +78,7 @@ abs(A, B) :-
 %	align_graphicals(+Gr, +Grs)
 %
 %	Align Gr with Grs
-%	
+%
 
 align_graphical(Gr, Grs) :-
 	align_requests(Gr, Grs, Requests),
@@ -129,8 +129,8 @@ combine_request(R0, Request) :-
 	    ignore(best_request(NRY, Request)),
 	    nonvar(Request)
 	).
-	
-	
+
+
 split_requests([], [], [], []).
 split_requests([R|T], RXY, RX, RY) :-
 	(   xy_request(R)
@@ -241,7 +241,7 @@ alignment(align_y, Gr1, Gr2, Request) :-
 	handicap(Displacement, Max, Correct, Handicap),
 	Request = request(_, Gr2, _, How, _, Handicap, _, Displacement).
 
-	
+
 x_displacement(Gr1, Gr2, center_x, Displacement) :-
 	get(Gr1, center_x, C1),
 	get(Gr2, center_x, C2),
@@ -263,7 +263,7 @@ x_displacement(Gr1, Gr2, right_of, Displacement) :-
 	get(Gr2, left_side, L2),
 	Displacement is R1 - L2.
 
-	
+
 y_displacement(Gr1, Gr2, center_y, Displacement) :-
 	get(Gr1?center, y, C1),
 	get(Gr2?center, y, C2),
@@ -284,7 +284,7 @@ y_displacement(Gr1, Gr2, above, Displacement) :-
 	get(Gr1, bottom_side, V1),
 	get(Gr2, top_side, V2),
 	Displacement is V1 - V2.
-	
+
 
 max_attribute([Obj?Att], Value) :- !,
 	get(Obj, Att, Value).
@@ -309,7 +309,7 @@ close_handle(Gr1, Gr2, t(D, DX, DY)) :-
 	object(Pos1, point(X1, Y1)),
 	DX is X1 - X2,
 	DY is Y1 - Y2.
-	
+
 		/********************************
 		*        SIZE ADJUSTMENT	*
 		********************************/
@@ -341,7 +341,7 @@ adjust_request(Gr, Gr2, Request) :-
 	;   h_adjust_dimension(Gr, Gr2, H2, HH),
 	    Request = request(_, Gr2, _, height, _, HH, _, H2)
 	).
-	
+
 
 w_adjust_dimension(Line, @nil, 0, 0) :- !,	% almost vertical line
 	send(Line, instance_of, line),
@@ -359,7 +359,7 @@ w_adjust_dimension(Gr, Gr2, W2, Ha) :-
 	adjust_correct_handicap(class,        Gr, Gr2, H2, H3),
 	adjust_correct_handicap(distance,     Gr, Gr2, H3, Ha).
 
-	
+
 h_adjust_dimension(Line, @nil, 0, 0) :- !,
 	send(Line, instance_of, line),
 	get(Line, start, Start),
@@ -375,7 +375,7 @@ h_adjust_dimension(Gr, Gr2, H2, Ha) :-
 	adjust_correct_handicap(center_x,     Gr, Gr2, Ha1, Ha2),
 	adjust_correct_handicap(class,        Gr, Gr2, Ha2, Ha3),
 	adjust_correct_handicap(distance,     Gr, Gr2, Ha3, Ha).
-	
+
 adjust_correct_handicap(connected(WH), Gr1, Gr2, H0, H) :-
 	get(Gr1, connections, Gr2, Chain), !,
 	chain_list(Chain, Cs),
@@ -432,7 +432,7 @@ portray_request(R) :-
 	describe_request(R, D),
 	\+ \+ (ignore(X = -), ignore(Y = -),
 	       format('~t~8|~2f: ~p (~w,~w)~n', [H, D, X, Y])).
-	
+
 
 		 /*******************************
 		 *	 PATH/LINE POINTS	*
@@ -477,7 +477,7 @@ align_path_vector(_, v(DX, DY), v(0, DY)) :-
 	abs(DX)*10 < abs(DY), !.
 align_path_vector(_, v(DX, DY), v(DX, 0)) :-
 	abs(DY)*10 < abs(DX), !.
-	
+
 align_path_vector([],  _, _, V, V) :- !.
 align_path_vector([_], _, _, V, V) :- !.
 align_path_vector([P1,P2|T], V0, H, _, V) :-
@@ -487,7 +487,7 @@ align_path_vector([P1,P2|T], V0, H, _, V) :-
 	align_path_vector([P2|T], V0, D, Vb, V).
 align_path_vector([_|T], V0, H, V1, V) :-
 	align_path_vector(T, V0, H, V1, V).
-	
+
 
 make_vector(point(X0,Y0), point(X1,Y1), v(DX, DY)) :-
 	DX is X1-X0,
@@ -522,7 +522,7 @@ align_to_path_point([P0|T], PR, D, _, P) :-
 	align_to_path_point(T, PR, H, P0, P).
 align_to_path_point([_|T], PR, D, P0, P) :-
 	align_to_path_point(T, PR, D, P0, P).
-	
+
 distance_points(point(X0,Y0), point(X1,Y1), D) :-
 	D is sqrt((X1-X0)*(X1-X0) + (Y1-Y0)*(Y1-Y0)).
 

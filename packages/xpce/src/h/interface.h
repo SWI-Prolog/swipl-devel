@@ -157,7 +157,7 @@ typedef union
 #define PCE_INTEGER	1
 #define PCE_NAME	2
 #define PCE_REFERENCE	3
-#define PCE_ASSOC	4 
+#define PCE_ASSOC	4
 #define PCE_REAL	5
 #define PCE_HOSTDATA	6
 

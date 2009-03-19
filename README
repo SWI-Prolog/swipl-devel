@@ -10,7 +10,7 @@ AUTHOR
 	University of Amsterdam		VU University Amsterdam
 	Kruislaan 419			De Boelelaan 1081a
 	1098 VA  Amsterdam		1081 HV Amsterdam
-			The Netherlands			
+			The Netherlands
 			E-mail: jan@swi-prolog.org
 
 A list of contributors can be found at
@@ -60,7 +60,7 @@ The packages are labeled as follows:
   clib	      I Process management and TCP/IP sockets
   clpqr	      I Constraints over floats and rational numbers
   cpp	      I C++ wrapper for foreign-language interface
-  cppproxy    e C++ based socket object exchange	
+  cppproxy    e C++ based socket object exchange
   C-sicstus   f Package for SICStus to emulate SWI foreign interface
   db	      N Interface to BerkeleyDB 3.0 or higher
   http	      I HTTP server and client library
@@ -121,7 +121,7 @@ SWI-Prolog depends on these libraries:
 	Provides large (unbounded) integers and rational numbers.  Some
 	of this is used by the constraint libraries.  SWI-Prolog can be
 	built without, but it is strongly recommended to get libgmp.
-	
+
 	* libreadline (http://www.gnu.org/software/bash/bash.html)
 	Provides line-editing, including Prolog-specific completion.
 	Optional, but you'll like it for interactive usage.
@@ -174,7 +174,7 @@ Now proceed as follows
 	* Compile the system
 
 		nmake /f Makefile.mak
-	
+
 	* Install the system
 
 		nmake /f Makefile.mak install

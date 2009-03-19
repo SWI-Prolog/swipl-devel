@@ -226,7 +226,7 @@ strcasecmp(const char *s1, const char *s2)
 #else
   while(*s1 && makeLower(*s1) == makeLower(*s2))
     s1++, s2++;
-  
+
   return makeLower(*s1) - makeLower(*s2);
 #endif
 }
@@ -255,14 +255,14 @@ stripostfix(const char *s, const char *e)
     return strcasecmp(&s[ls-le], e) == 0;
 
   return FALSE;
-} 
+}
 
 
 		 /*******************************
 		 *	MULTIBYTE STRINGS	*
 		 *******************************/
 
-typedef struct 
+typedef struct
 { wchar_t *wcp;
   int	   len;
   int	   malloced;

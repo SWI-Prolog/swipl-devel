@@ -50,7 +50,7 @@ Get the declarations of the HTTP package using
 :- multifile http:location/3.
 :- dynamic   http:location/3.
 
- 
+
 		 /*******************************
 		 *	     HTML-WRITE		*
 		 *******************************/

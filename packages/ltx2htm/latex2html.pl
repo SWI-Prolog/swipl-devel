@@ -58,7 +58,7 @@ version('0.98').			% for SWI-Prolog 5.6.18
 
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
                "http://www.w3.org/TR/html4/strict.dtd">\n\n').
-:- dynamic			
+:- dynamic
 	html_output_dir/1,		% output relative to this dir
 	tex_file_base/1,		% Basename of the main file
 	html_file_base/1,		% Basename of main output file
@@ -211,7 +211,7 @@ run_latex2html(TeXFile) :-
 	collect_labels(HtmlDocument, Base),
 	write_html(HtmlDocument),
 	close_output.
-	
+
 
 latex2html(Spec) :-
 	welcome,
@@ -342,7 +342,7 @@ translate_2('\n', Mode, Mode, [html('<BR>')]) :-
 	Mode = group(Atts),
 	memberchk(obeylines, Atts), !.
 translate_2(verb(_, Text), Mode, Mode, #code(Text)).	% \verbX...X
-translate_2([Atom], Mode, Mode, nospace(Atom)) :-	% {foo} 
+translate_2([Atom], Mode, Mode, nospace(Atom)) :-	% {foo}
 	atomic(Atom).
 translate_2(Group, Mode, Mode, HTML) :-			% {...}
 	Group = [_|_],
@@ -384,7 +384,7 @@ translate_cmd(Cmd, Mode, Mode, []) :-
 	format(user_error,
 	       'Failed to translate \\~w in mode "~w"~n', [Name, Mode]),
 	format(user_error, 'Term: "~p"~n', [Cmd]),
-	true.	
+	true.
 
 translate_environment(Env, Mode, Mode, HTML) :-
 	translate_env(Env, Mode, Mode, HTML0),
@@ -549,7 +549,7 @@ language_map(table,	'Table').
 	       'Post-processing macro #~p could not be expanded~n',
 	       [Macro]),
 	gtrace, fail.
-	 
+
 add_td([], []).
 add_td([H|T0], [html('<TD>'), H, html('</TD>')|T]) :-
 	add_td(T0, T).
@@ -788,9 +788,9 @@ list_command(thebibliography, _, html('<DL class="bib">'), html('</DL>')).
 %
 %	Translate the item-list of a list-environment into a nested list,
 %	where each first element is the item command, and the others are
-%	the tokens of the item.  
+%	the tokens of the item.
 
-items([], []).	
+items([], []).
 items([Cmd|More], [[Cmd|ItemTokens]|Items]) :-
 	functor(Cmd, \, _),
 	arg(1, Cmd, TexCmd),
@@ -823,9 +823,9 @@ item_commands(List, [], List) :-
 item_commands([H|T0], [H|T1], T2) :-
 	item_commands(T0, T1, T2).
 item_commands([], [], []).
-	
+
 %	translate_items(+ItemTokens, +List, -HTMLTokens)
-%	
+%
 %	Translate the TeX tokens for a list-item.  List is passed as context,
 %	to ensure proper translation.
 
@@ -858,7 +858,7 @@ prolog_function(\(renewcommand, [{Name}, [], {Expanded}])) :-
 	declare_command(Name, 0, Expanded).
 prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
 	declare_command(Name, Args, Expanded).
-	
+
 
 		 /*******************************
 		 *	      COMMANDS		*
@@ -962,7 +962,7 @@ cmd(label({Label}), #label(Label, [], Tag)) :-	% \label and \xyzref
 	label_tag(Label, Tag).
 cmd(ref({RefName}), #lref(ref, RefName, ref(RefName))).
 cmd(pageref({RefName}), #lref(ref, RefName, ref(RefName))).
-	
+
 cmd(secref({Label}), HTML) :-
 	translate_reference(section, sec, Label, HTML).
 cmd('Secref'({Label}), HTML) :-
@@ -1037,7 +1037,7 @@ cmd(bibitem([TeXCite], {Key}),			% \bibitem
       html('<DD class="bib">') ]) :-
 	translate(TeXCite, normal, Cite),
 	assert(cite(Key, Cite)).
-cmd(bibitem([], {Key}), 
+cmd(bibitem([], {Key}),
     [ html('<DT class="bib">'), #label(Key, #strong(Cite)),
       html('<DD class="bib">') ]) :-
 	flag(cite, N, N+1),
@@ -1472,7 +1472,7 @@ capitalise([H|T0], [H|T], down) :-
 	capitalise(T0, T, down).
 capitalise([H|T0], [H|T], down) :-
 	capitalise(T0, T, up).
-	
+
 
 		 /*******************************
 		 *	       SECTION		*
@@ -1519,7 +1519,7 @@ find_label([\(label, [{RawLabel}])|_], Label) :-
 	->  sub_atom(RawLabel, _, A, 0, Label)
 	;   Label = RawLabel
 	).
-	
+
 %	translate_section(+Level, +Modify, +TitleTokens, -HTML[, +File])
 
 translate_section(Level, Mod, TexTitle, HTML) :-
@@ -1690,7 +1690,7 @@ add_to_index(Term) :-
 	add_to_index(Term, Tag).
 
 %%	add_to_index(+Term, +Tag)
-%	
+%
 %	Add Term to the index using the href Tag. If Tag is of the
 %	format +Tag, it is the primary index for the term, normally
 %	a pointer to the definition of Term.
@@ -1742,7 +1742,7 @@ index_html([SortKey|T0], CL0, [Sep, TermHTML|TH]) :-
 	setof(Term, Tag^index(SortKey, Term, Tag), Terms),
 	index_terms(Terms, TermHTML),
 	index_html(T0, CL, TH).
-	
+
 index_terms([], []).
 index_terms([Term0|T0], [ html('<DT>'),
 			 HtmlTerm,
@@ -1764,10 +1764,10 @@ index_href(+(_), []) :- !.
 index_href(Tag:Label, [' ', #lref(idx, Label, Tag)]) :- !.
 index_href(Tag, [' ', #lref(sec, RefName, Tag)]) :-
 	format(string(RefName), 'sec:~w', Tag).
-	
+
 add_separator(Term, CL, CL, []) :-
 	atom_codes(Term, [CL|_]), !.
-add_separator(Term, _, CL, [ html('<DT>'), 
+add_separator(Term, _, CL, [ html('<DT>'),
 			     #strong(Char),
 			     html('<DD>')
 			   ]) :-
@@ -1800,7 +1800,7 @@ node_header([#head([#title(#thetitle),
 			  body_link(next)
 		      ])
 	    ]).
-	
+
 node_header(_, []) :-
 	onefile(true), !.
 node_header(SectionTag,
@@ -1828,7 +1828,7 @@ node_header(SectionTag,
 node_header(_, HTML) :-
 	node_header(HTML).
 
-	
+
 node_footer(Tag, tableofcontents(section(Tag))).
 
 
@@ -1937,7 +1937,7 @@ table_frame(Fmt, Body, TableAttributes, Fmt2, Body2) :-
 	clean_body(Body, Body1),
 	h_table_frame(Body1, HFr, Body2),
 	table_frame(VFr, HFr, TableAttributes).
-	
+
 v_table_frame([0'||Fmt0], VFr, Fmt) :- !,
 	(   append(Fmt, [0'|], Fmt0)
 	->  VFr = vsides		% |cols|
@@ -1974,7 +1974,7 @@ table_frame(vsides, hsides, box) :- !.
 table_frame(X, Y, border) :-
 	format(user_error,
 	       'Cannot combine ~w and ~w for table border~n', [X, Y]).
-	       
+
 
 table_columns(Fmt, Ncols, Cols) :-
 	table_columns(Fmt, 0, Ncols, Cols).
@@ -2250,7 +2250,7 @@ arityspec(A) -->
 	 enumerated_arities(A).
 
 enumerated_arities([H|T]) -->
-	 integer(H), 
+	 integer(H),
 	 (   ","
 	 ->  enumerated_arities(T)
 	 ;   {T = []}
@@ -2284,12 +2284,12 @@ declare_command(Name, ArgCAtom, Expanded) :-
 make_cmd_spec(Name, ArgC, Spec) :-
 	make_cmd_arg_spec(ArgC, ArgSpec),
 	atomic_list_concat([Name|ArgSpec], Spec).
-	
+
 make_cmd_arg_spec(0, []).
 make_cmd_arg_spec(N, ['{-}'|T]) :-
 	NN is N - 1,
 	make_cmd_arg_spec(NN, T).
-      
+
 cmd_parms(N, N, _, []) :- !.
 cmd_parms(N, A, Head, [A0|AT]) :-
 	I is N + 1,
@@ -2423,15 +2423,15 @@ gs_command(Options, Cmd) :-
 	aformat(Cmd,
 		'~w -q -dNOPAUSE -sDEVICE=~w ~w -r~w -sOutputFile=~w',
 		[GS, Dev, SCmd, Res, Tmp]).
-	
-	
+
+
 get_option(List, Term) :-
 	memberchk(Term, List), !.
 get_option(_, Term) :-
 	functor(Term, Name, _),
 	option(Name, Def), !,
 	arg(1, Term, Def).
-	
+
 aformat(Atom, Fmt, Args) :-
 	sformat(Str, Fmt, Args),
 	string_to_atom(Str, Atom).
@@ -2683,7 +2683,7 @@ write_html(tell(Base)) :- !,
 write_html(H) :-
 	put_html_token(H), !.
 write_html(_).
-	
+
 nl_html :-
 	write_html(verb('\n')).
 
@@ -2719,22 +2719,22 @@ translate_ref(summary, Anchor, summary) :-
 
 cmd_layout('<P>',    2, 0).
 cmd_layout('<DL>',   2, 1).
-cmd_layout('</DL>',  1, 2). 
+cmd_layout('</DL>',  1, 2).
 cmd_layout(DD,   0, 1) :- is_begin('DD', DD).
-cmd_layout('<H1>',   2, 0). 
-cmd_layout('<H2>',   2, 0). 
-cmd_layout('<H3>',   2, 0). 
-cmd_layout('<H4>',   2, 0). 
-cmd_layout('<H5>',   2, 0). 
-cmd_layout('<H6>',   2, 0). 
-cmd_layout('</H1>',  0, 2). 
-cmd_layout('</H2>',  0, 2). 
-cmd_layout('</H3>',  0, 2). 
-cmd_layout('</H4>',  0, 2). 
-cmd_layout('</H5>',  0, 2). 
-cmd_layout('</H6>',  0, 2). 
-cmd_layout('<HR>',   1, 1). 
-cmd_layout('<BR>',   0, 1). 
+cmd_layout('<H1>',   2, 0).
+cmd_layout('<H2>',   2, 0).
+cmd_layout('<H3>',   2, 0).
+cmd_layout('<H4>',   2, 0).
+cmd_layout('<H5>',   2, 0).
+cmd_layout('<H6>',   2, 0).
+cmd_layout('</H1>',  0, 2).
+cmd_layout('</H2>',  0, 2).
+cmd_layout('</H3>',  0, 2).
+cmd_layout('</H4>',  0, 2).
+cmd_layout('</H5>',  0, 2).
+cmd_layout('</H6>',  0, 2).
+cmd_layout('<HR>',   1, 1).
+cmd_layout('<BR>',   0, 1).
 cmd_layout(DIV,      1, 0) :- is_begin('DIV', DIV).
 cmd_layout('</DIV>', 0, 1).
 cmd_layout('<LI>', 	 1, 0).
@@ -2744,28 +2744,28 @@ cmd_layout('<DD>', 	 1, 0).
 cmd_layout('</DD>', 	 0, 1).
 cmd_layout('<UL>', 	 1, 1).
 cmd_layout('</UL>', 	 1, 1).
-cmd_layout('<TR>',       1, 0). 
-cmd_layout('</TR>',      0, 1). 
-cmd_layout('<TBODY>',    1, 1). 
-cmd_layout('<THEAD>',    1, 1). 
-cmd_layout('</TABLE>',   0, 2). 
-cmd_layout('<LISTING>',	 2, 0). 
-cmd_layout('</LISTING>', 0, 2). 
+cmd_layout('<TR>',       1, 0).
+cmd_layout('</TR>',      0, 1).
+cmd_layout('<TBODY>',    1, 1).
+cmd_layout('<THEAD>',    1, 1).
+cmd_layout('</TABLE>',   0, 2).
+cmd_layout('<LISTING>',	 2, 0).
+cmd_layout('</LISTING>', 0, 2).
 cmd_layout(PRE,	 2, 0) :- is_begin('PRE', PRE).
-cmd_layout('</PRE>', 	 0, 2). 
-cmd_layout('<XMP>',	 2, 0). 
-cmd_layout('</XMP>', 	 0, 2). 
-cmd_layout('<HEAD>',	 1, 1). 
-cmd_layout('</HEAD>',	 1, 1). 
-cmd_layout('<CENTER>',	 1, 1). 
-cmd_layout('</CENTER>',	 1, 1). 
-cmd_layout('<BODY>',	 2, 1). 
-cmd_layout('</BODY>',	 1, 1). 
-cmd_layout('</HEAD>',	 0, 1). 
-cmd_layout('<HTML>',	 0, 1). 
-cmd_layout('</HTML>',	 1, 1). 
-cmd_layout('<BLOCKQUOTE>',	1, 0). 
-cmd_layout('</BLOCKQUOTE>',	0, 1). 
+cmd_layout('</PRE>', 	 0, 2).
+cmd_layout('<XMP>',	 2, 0).
+cmd_layout('</XMP>', 	 0, 2).
+cmd_layout('<HEAD>',	 1, 1).
+cmd_layout('</HEAD>',	 1, 1).
+cmd_layout('<CENTER>',	 1, 1).
+cmd_layout('</CENTER>',	 1, 1).
+cmd_layout('<BODY>',	 2, 1).
+cmd_layout('</BODY>',	 1, 1).
+cmd_layout('</HEAD>',	 0, 1).
+cmd_layout('<HTML>',	 0, 1).
+cmd_layout('</HTML>',	 1, 1).
+cmd_layout('<BLOCKQUOTE>',	1, 0).
+cmd_layout('</BLOCKQUOTE>',	0, 1).
 cmd_layout(Cmd,		 	1, 1) :-
 	concat('<TABLE', _, Cmd).
 

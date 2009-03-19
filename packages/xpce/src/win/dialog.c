@@ -64,7 +64,7 @@ displayDialog(Dialog d, Graphical item, Point pos)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -132,7 +132,7 @@ setDialog(Dialog d, Int x, Int y, Int w, Int h)
 				NAME_both
 			      };
   int given;
-  
+
   for(given = 0; given < 4; given++)
   { if ( given_names[given] == d->size_given )
       break;
@@ -188,7 +188,7 @@ static Graphical
 getMemberDialog(Dialog d, Any obj)
 { if ( isName(obj) )
     return getMemberDevice((Device) d, (Name) obj);
-  
+
   if ( ((Graphical)obj)->device == (Device) d )
     answer(obj);
 
@@ -257,7 +257,7 @@ static status
 applyDialog(Dialog d, Bool always)
 { DialogItem di;
   Graphical defb;
-  
+
   for_chain(d->graphicals, di, send(di, NAME_apply, always, EAV));
   if ( (defb = get(d, NAME_defaultButton, EAV)) )
     send(defb, NAME_active, OFF, EAV);
@@ -270,7 +270,7 @@ static status
 restoreDialog(Dialog d)
 { DialogItem di;
   Graphical defb;
-  
+
   for_chain(d->graphicals, di, send(di, NAME_restore, EAV));
   if ( (defb = get(d, NAME_defaultButton, EAV)) )
     send(defb, NAME_active, OFF, EAV);
@@ -288,7 +288,7 @@ modifiedItemDialog(Dialog d, Graphical gr, Bool m)
     if ( send(b, NAME_isApply, EAV) )
       succeed;
   }
-    
+
   fail;
 }
 

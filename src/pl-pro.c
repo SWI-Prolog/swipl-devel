@@ -144,9 +144,9 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
     fail;
   }
-  
+
   proc = lookupProcedure(fd, module);
-  
+
   { int arity = arityFunctor(fd);
     term_t args = PL_new_term_refs(arity);
     qid_t qid;
@@ -169,11 +169,11 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Abort and toplevel. At the  moment,   prologToplevel()  sets a longjmp()
 context and pl_abort() jumps to this   context and resets the SWI-Prolog
-engine. 
+engine.
 
 Using the multi-threaded version, this is   not  acceptable. Each thread
 needs such a context, but worse  is   that  we cannot properly reset the
-reference count and ensure locks are all in a sane state. 
+reference count and ensure locks are all in a sane state.
 
 A cleaner solution is to  map  an   abort  onto  a Prolog exception. The
 exception-handling   code   should    ensure     proper    handling   of
@@ -206,7 +206,7 @@ pl_throw_abort()
     PL_throw(ex);			/* use longjmp() to ensure */
 
     PL_close_foreign_frame(fid);	/* should not be reached */
-    fail;				
+    fail;
   }
 }
 
@@ -301,7 +301,7 @@ prologToplevel(volatile atom_t goal)
   if ( setjmp(abort_context) != 0 )
   { if ( LD->current_signal )
       unblockSignal(LD->current_signal);
-    
+
     aborted = TRUE;
   } else
 #endif
@@ -330,7 +330,7 @@ prologToplevel(volatile atom_t goal)
     rval = PL_next_solution(qid);
     if ( !rval && (except = PL_exception(qid)) )
     { atom_t a;
-      
+
       tracemode(FALSE, NULL);
       debugmode(DBG_OFF, NULL);
       setPrologFlagMask(PLFLAG_LASTCALL);
@@ -513,9 +513,9 @@ last_arg:
     { if ( isBString(*p) )
       { size_t sz, len;
 	char *s;
-  
+
 	s = getCharsString(*p, &sz);
-  
+
 	if ( sz != (len=strlen(s)) )
 	{ if ( sz < len )
 	    printk("String has inconsistent length: 0x%x", *p);
@@ -530,12 +530,12 @@ last_arg:
 	pl_wchar_t *s;
 
 	s = getCharsWString(*p, &sz);
-  
+
 	if ( sz != (len=wcslen(s)) )
 	{ if ( sz < len )
 	    printk("String has inconsistent length: 0x%x", *p);
 	  else if ( s[sz] )
-	    printk("String not followed by NUL-char: 0x%x", *p);	
+	    printk("String not followed by NUL-char: 0x%x", *p);
 	}
       }
       return key + *addressIndirect(*p);
@@ -576,7 +576,7 @@ last_arg:
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
-      
+
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
@@ -587,7 +587,7 @@ last_arg:
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive);
-	
+
     p = &f->arguments[n];
     goto last_arg;
   }

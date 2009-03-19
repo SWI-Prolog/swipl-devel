@@ -52,7 +52,7 @@ things:
     tipc_zone/1, and
 
     * It registered three listeners: tipc_node/2, tipc_cluster/2, and
-    tipc_zone/2. 
+    tipc_zone/2.
 
 A broadcast/1 or broadcast_request/1 that is not  directed to one of the
 six listeners above, behaves as usual and is confined to the instance of
@@ -71,19 +71,19 @@ An example of three separate processes cooperating on the same Node:
 
 ==
 Process A:
-   
+
    ?- listen(number(X), between(1, 5, X)).
    true.
 
    ?-
 
 Process B:
-   
+
    ?- listen(number(X), between(7, 9, X)).
    true.
 
    ?-
-   
+
 Process C:
 
    ?- findall(X, broadcast_request(tipc_node(number(X))), Xs).
@@ -156,14 +156,14 @@ and subtle differences that must be taken into consideration:
     until a satisfactory reply is received. The remaining potential
     replies are not evaluated. This is not so when TIPC is involved.
 
-    * A TIPC broadcast/1 is completely asynchronous. 
+    * A TIPC broadcast/1 is completely asynchronous.
 
     * A  TIPC broadcast_request/1 is partially synchronous. A
     broadcast_request/1 is sent, then the sender balks for a period of
     time (default: 250 ms) while the replies are collected. Any reply
     that is received after this period is silently discarded. An
     optional second argument is provided so that a sender may specify
-    more (or less) time for replies. 
+    more (or less) time for replies.
 
     * Replies are collected using findall/3, then the list of replies
     is presented to the user as a choice-point, using member/2. If a
@@ -245,11 +245,11 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 
 %%  try_finally(?Setup, +Cleanup) is multi.
 %  Succeeds nondeterministically if Setup succeeds.
-%  It executes Cleanup under one of three conditions: 
-%     * backtracking on failure into try_finally/2, 
+%  It executes Cleanup under one of three conditions:
+%     * backtracking on failure into try_finally/2,
 %     * An uncaught exception is thrown subsequent to
-%     Setup, but before choice-points are cut, or 
-%     * Cut (!) of choice-points. 
+%     Setup, but before choice-points are cut, or
+%     * Cut (!) of choice-points.
 %
 %     try_finally/2 is used to protect a   fixed  resource (e.g. socket,
 %     mutex, stream, etc.) against leakage  under adverse circumstances.
@@ -281,7 +281,7 @@ ld_dispatch(_S, Term, _From) :-
 
 tipc_listener_daemon :-
 	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
-	
+
 	tipc_setopt(S, importance(medium)),
 	tipc_setopt(S, dest_droppable(true)),  % discard if not deliverable
 

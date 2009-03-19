@@ -86,7 +86,7 @@ room_buf(charbuf *b, size_t room)
     b->end = b->bufp + used;
   }
 
-  return TRUE;    
+  return TRUE;
 }
 
 
@@ -178,11 +178,11 @@ do_quote(term_t in, term_t quoted, char **map, int maxchr)
   if ( inA )
   { for(s = (unsigned char*)inA ; len-- > 0; s++ )
     { int c = *s;
-      
+
       if ( map[c] )
       { if ( !add_str_buf(&buffer, map[c]) )
 	  return FALSE;
-	
+
 	changes++;
       } else if ( c > maxchr )
       { char buf[10];
@@ -190,7 +190,7 @@ do_quote(term_t in, term_t quoted, char **map, int maxchr)
 	sprintf(buf, "&#%d;", c);
 	if ( !add_str_buf(&buffer, buf) )
 	  return FALSE;
-	
+
 	changes++;
       } else
       { add_char_buf(&buffer, c);
@@ -204,11 +204,11 @@ do_quote(term_t in, term_t quoted, char **map, int maxchr)
   } else
   { for( ; len-- > 0; inW++ )
     { int c = *inW;
-      
+
       if ( c <= 0xff && map[c] )
       { if ( !add_str_bufW(&buffer, map[c]) )
 	  return FALSE;
-	
+
 	changes++;
       } else if ( c > maxchr )
       { char buf[10];
@@ -216,13 +216,13 @@ do_quote(term_t in, term_t quoted, char **map, int maxchr)
 	sprintf(buf, "&#%d;", c);
 	if ( !add_str_bufW(&buffer, buf) )
 	  return FALSE;
-	
+
 	changes++;
       }else
       { add_char_bufW(&buffer, c);
       }
     }
-	 
+
     if ( changes > 0 )
       rc = PL_unify_wchars(quoted, PL_ATOM,
 			   used_buf(&buffer)/sizeof(wchar_t),
@@ -230,7 +230,7 @@ do_quote(term_t in, term_t quoted, char **map, int maxchr)
     else
       rc = PL_unify(in, quoted);
   }
-  
+
   free_buf(&buffer);
 
   return rc;
@@ -345,7 +345,7 @@ xml_name(term_t in, term_t encoding)
     c = ins[0] & 0xff;
     if ( c > maxchr )
       return FALSE;
-    
+
     if ( !(map->class[c] & CH_NMSTART) )
       return FALSE;
     for(i=1; i<len; i++)
@@ -360,7 +360,7 @@ xml_name(term_t in, term_t encoding)
   if ( PL_get_wchars(in, &len, &inW, CVT_ATOMIC) )
   { if ( len == 0 )
       return FALSE;
-  
+
     if ( inW[0] > maxchr )
       return FALSE;
 
@@ -369,7 +369,7 @@ xml_name(term_t in, term_t encoding)
       return FALSE;
     if ( inW[0] > 0xff && !iswalpha(inW[0]) )
       return FALSE;
-	 
+
     for(i=1; i<len; i++)
     { int c = inW[i];
 

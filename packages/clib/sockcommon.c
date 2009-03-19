@@ -84,7 +84,7 @@ tcp_control(void *handle, int action, void *arg)
     }
     case SIO_LASTERROR:
     { const char *s;
-      
+
       if ( (s=nbio_last_error(socket)) )
       { const char **sp = arg;
 	*sp = s;
@@ -129,7 +129,7 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
   handle = (void *)(long)socket;
-  
+
   in  = Snew(handle, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF,  &readFunctions);
   in->encoding = ENC_OCTET;
   if ( !PL_open_stream(Read, in) )
@@ -156,7 +156,7 @@ pl_listen(term_t Sock, term_t BackLog)
   if ( !tcp_get_socket(Sock, &socket) )
     return FALSE;
 
-  if ( !PL_get_integer(BackLog, &backlog) ) 
+  if ( !PL_get_integer(BackLog, &backlog) )
     return pl_error(NULL, 0, NULL, ERR_ARGTYPE, -1, BackLog, "integer");
 
   if ( nbio_listen(socket, backlog) < 0 )

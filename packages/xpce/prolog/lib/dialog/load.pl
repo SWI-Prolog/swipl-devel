@@ -201,7 +201,7 @@ random_position(Obj, point(PX, PY)) :-
 
 
 add_model_item(Model, Item) :-
-	object_name(Item, Name), 
+	object_name(Item, Name),
 	random_position(Model, Pos),
 	send(Model, display, new(Object, msg_object(Name)), Pos),
 	send(Object, ui_object, Item).

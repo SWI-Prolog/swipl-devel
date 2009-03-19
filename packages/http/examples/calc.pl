@@ -53,7 +53,7 @@ reply('/calc', Request) :-
 	Formula =.. [Op, Formula0, Val],
 	http_session_assert(formula(Formula)),
 	page(Formula).
-	
+
 
 page(Formula) :-
 	reply_page('HTTP Session DEMO',

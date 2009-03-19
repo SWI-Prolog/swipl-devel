@@ -601,7 +601,7 @@ initClassDefs()
 
   numberTreeClass(ClassObject, 0);
 }
-  
+
 
 		 /*******************************
 		 *	      TYPES		*
@@ -625,5 +625,5 @@ initTypeAliases(void)
 
   for(; alias->alias; alias++)
     defineType(alias->alias, alias->description);
-}  
+}
 

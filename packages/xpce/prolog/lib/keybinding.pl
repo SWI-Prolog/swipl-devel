@@ -219,4 +219,4 @@ reserved_binding(keyboard_quit,		'Abort current sequence').
 reserved_binding(prefix,		'Prefix for multikey command').
 reserved_binding(digit_argument,	'Construct numeric argument').
 reserved_binding(universal_argument,	'Start numeric argument').
-	
+

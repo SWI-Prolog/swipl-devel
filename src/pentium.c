@@ -62,7 +62,7 @@ CPU_MHz()
 	{ /*printf("%f MHz CPU\n", mhz);*/
 	  break;
 	}
-      }    
+      }
 
       fclose(fp);
     }
@@ -152,7 +152,7 @@ prof_reset()
   int i;
 
   END_PROF();
-  
+
   for(i=0; i<MAXPROF; i++, pr++)
     memset(pr, 0, sizeof(*pr));
 }

@@ -48,7 +48,7 @@ loaded Prolog program.
 */
 
 %%	check
-%	
+%
 %	Run all consistency checks defined in this library
 
 check :-
@@ -63,19 +63,19 @@ check :-
 	list_autoload.
 
 %%	list_undefined
-%	
+%
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
 %	referencing tool.
-%	
+%
 %	@see gxref/0 provides a graphical cross-referencer.
 
 list_undefined :-
 	list_undefined(informational).
 
 list_undefined(Level) :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
+	'$style_check'(Old, Old),
+	style_check(+dollar),
 	call_cleanup(list_undefined_(Level), '$style_check'(_, Old)).
 
 list_undefined_(Level) :-
@@ -97,17 +97,17 @@ list_undefined_(Level) :-
 	).
 
 undefined_predicate(Module:Head) :-
-	predicate_property(Module:Head, undefined), 
+	predicate_property(Module:Head, undefined),
 	\+ predicate_property(Module:Head, imported_from(_)).
 
 
 %%	find_references(+Heads, -HeadRefs:list) is det.
-%	
+%
 %	Find references to the given  predicates.   For  speedup we only
 %	look for references from the  same   module.  This  isn't really
 %	correct, but as Module:Head  is  at   the  moment  only  handled
 %	through meta-calls, it isn't too bad either.
-%	
+%
 %	@param HeadRefs List of Head-Refs
 
 find_references([], []).
@@ -136,19 +136,19 @@ referenced(Term, Module, Ref) :-
 	'$xr_member'(Ref, Term).
 
 %%	list_autoload
-%	
+%
 %	Show predicates that need be linked via the autoload mechanism
 
 list_autoload :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
+	'$style_check'(Old, Old),
+	style_check(+dollar),
 	current_prolog_flag(autoload, OldAutoLoad),
 	set_prolog_flag(autoload, false),
-	call_cleanup(list_autoload_, 
+	call_cleanup(list_autoload_,
 		     (	 set_prolog_flag(autoload, OldAutoLoad),
 			 '$style_check'(_, Old)
 		     )).
-	
+
 list_autoload_ :-
 	(   setof(Lib-Pred, autoload_predicate(Module, Lib, Pred), Pairs),
 	    print_message(informational,
@@ -158,9 +158,9 @@ list_autoload_ :-
 	).
 
 autoload_predicate(Module, Library, Name/Arity) :-
-	predicate_property(Module:Head, undefined), 
-	(   \+ predicate_property(Module:Head, imported_from(_)), 
-	    functor(Head, Name, Arity), 
+	predicate_property(Module:Head, undefined),
+	(   \+ predicate_property(Module:Head, imported_from(_)),
+	    functor(Head, Name, Arity),
 	    '$find_library'(Module, Name, Arity, _LoadModule, Library),
 	    referenced(Module:Head, Module, _)
 	->  true
@@ -168,14 +168,14 @@ autoload_predicate(Module, Library, Name/Arity) :-
 
 
 %%	list_redefined
-%	
+%
 %	Show redefined system predicates
 
 list_redefined :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
+	'$style_check'(Old, Old),
+	style_check(+dollar),
 	call_cleanup(list_redefined_, '$style_check'(_, Old)).
-	
+
 list_redefined_ :-
 	current_module(Module),
 	Module \== system,
@@ -309,7 +309,7 @@ short_filename(Path, Spec) :-
 	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
 	keysort(Keyed, [_-Spec|_]).
 short_filename(Path, Path).
-	
+
 aliased_path(Path, Len-Spec) :-
 	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
 	member(Alias, Aliases),

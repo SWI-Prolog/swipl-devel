@@ -146,7 +146,7 @@ test(s_list, true) :-			% S_NEXTCLAUSE must mark args of next
 	length(_List, N),		% clause (broken in 5.7.0)
 	garbage_collect,
 	N == 4, !.
-test(s_fredo, true) :-	
+test(s_fredo, true) :-
 	A = a(1,2,3,4,5,6),
 	arg(_I, A, N),
 	garbage_collect,
@@ -190,5 +190,5 @@ test(usercall, A == Ok) :-
 	test,
 	retract(v(A)),
 	atom_concat(abcd, efgh, Ok).
-		
+
 :- end_tests(agc).

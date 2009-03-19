@@ -67,7 +67,7 @@ the same paradigm. The module can
 	latex_for_file/3.
 
 	* Generate LaTeX from a Wiki file using latex_for_wiki_file/3
-	
+
 	* Generate LaTeX for a single predicate or a list of predicates
 	for embedding in a document using latex_for_predicates/3.
 
@@ -88,34 +88,34 @@ current_options([]).
 %
 %	Process one or  more  objects,  writing   the  LaTeX  output  to
 %	OutFile.  Spec is one of:
-%	
+%
 %		* Name/Arity
 %		Generate documentation for predicate
-%		
+%
 %		* Name//Arity
 %		Generate documentation for DCG rule
-%		
+%
 %		* File
 %		If File is a prolog file (as defined by
 %		prolog_file_type/2), process using latex_for_file/3,
 %		otherwise process using latex_for_wiki_file/3.
-%		
+%
 %	Typically Spec is either a  list  of   filenames  or  a  list of
 %	predicate indicators.   Defined options are:
-%	
+%
 %		* stand_alone(+Bool)
 %		If =true= (default), create a document that can be run
 %		through LaTeX.  If =false=, produce a document to be
 %		included in another LaTeX document.
-%		
+%
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
-%		
+%
 %		* section_level(+Level)
 %		Outermost section level produced. Level is the
 %		name of a LaTeX section command.  Default is =section=.
-%		
+%
 %		* summary(+File)
 %		Write summary declarations to the named File.
 
@@ -369,9 +369,9 @@ latex(dd(_, Content)) -->
 	latex(Content).
 latex(dd(Content)) -->
 	latex(Content).
-latex(dt(class=term, \term(Term, Bindings))) --> 
+latex(dt(class=term, \term(Term, Bindings))) -->
 	termitem(Term, Bindings).
-latex(dt(Content)) --> 
+latex(dt(Content)) -->
 	latex(cmd(item(opt(Content)))).
 latex(table(Attrs, Content)) -->
 	latex_table(Attrs, Content).
@@ -462,7 +462,7 @@ url_chars(L, [], L).
 %	opt(Arg) it is written as  [Arg],   Otherwise  it  is written as
 %	{Arg}. Note that opt([]) is omitted. I think no LaTeX command is
 %	designed to handle an empty optional argument special.
-%	
+%
 %	During processing the arguments it asserts fragile/0 to allow is
 %	taking care of LaTeX fragile   constructs  (i.e. constructs that
 %	are not allows inside {...}).
@@ -471,7 +471,7 @@ latex_arguments(List, Out, Tail) :-
 	asserta(fragile, Ref),
 	call_cleanup(fragile_list(List, Out, Tail),
 		     erase(Ref)).
-	
+
 fragile_list([]) --> [].
 fragile_list([opt([])|T]) --> !,
 	fragile_list(T).
@@ -505,7 +505,7 @@ latex_arg(H) -->
 	latex(cmd(Name)).
 latex_arg(H) -->
 	latex(H).
-	
+
 attribute(Att, Attrs) :-
 	is_list(Attrs), !,
 	option(Att, Attrs).
@@ -553,7 +553,7 @@ summed_string_len([_|T], L0, L) :-
 %
 %	Emit a LaTeX section,  keeping  track   of  the  desired highest
 %	section level.
-%	
+%
 %	@param Level	Desired level, relative to the base-level.  Must
 %			be a non-negative integer.
 
@@ -813,7 +813,7 @@ object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
-	
+
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -828,7 +828,7 @@ need_mode(Mode, Stack, Stack) -->
 need_mode(Mode, Stack, Rest) -->
 	{ memberchk(Mode, Stack)
 	}, !,
-	pop_mode(Mode, Stack, Rest).	
+	pop_mode(Mode, Stack, Rest).
 need_mode(Mode, Stack, [Mode|Stack]) --> !,
 	latex(cmd(begin(Mode))).
 
@@ -843,10 +843,10 @@ pop_mode(Mode, [H|Rest0], Rest) -->
 %%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the \predicate{}{}{} header.
-%	
+%
 %	@param Modes	List as returned by process_modes/5.
 %	@param Class	One of =privdef= or =pubdef=.
-%	
+%
 %	@tbd	Determinism
 
 pred_dt(Modes, Class, Options) -->
@@ -908,7 +908,7 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 %
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
-%	
+%
 %	@tbd Support determinism in operators
 
 pred_head(//(Head), Options) --> !,
@@ -937,7 +937,7 @@ pred_head(Head, Options) -->			% Plain terms
 	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
-	latex(cmd(predicate(opt(Atts), 
+	latex(cmd(predicate(opt(Atts),
 			    Functor, Arity, \pred_args(Args, 1)))).
 
 %%	pred_attributes(+Options, -Attributes) is det.
@@ -1003,7 +1003,7 @@ argtype(Term) -->
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element as produced by doc_wiki.pl.
-%	
+%
 %	@tbd	Properly merge with pred_head//1
 
 term(Term, Bindings) -->
@@ -1082,7 +1082,7 @@ latex_table(_Attrs, Content) -->
 	latex(cmd(end(tabular))),
 	latex(cmd(end(quote))).
 %	latex(cmd(end(table))).
-	
+
 max_columns([], C, C).
 max_columns([tr(List)|T], C0, C) :-
 	length(List, C1),
@@ -1162,7 +1162,7 @@ summary_line(Obj, _Options) -->
 	->  latex(cmd(oppredsummary(Name, Arity, Ass, Pri, Tokens)))
 	;   latex(cmd(predicatesummary(Name, Arity, Tokens)))
 	).
-	
+
 
 		 /*******************************
 		 *	    PRINT TOKENS	*
@@ -1381,7 +1381,7 @@ ws --> [].
 
 string([]) --> [].
 string([H|T]) --> [H], string(T).
-	
+
 eol([],[]).
 
 

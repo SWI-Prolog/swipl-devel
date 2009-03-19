@@ -50,7 +50,7 @@ by Double Precision, Inc, part of the maildrop system.
 Parsing MIME messages is accomplished  using   a  single predicate. This
 predicate parses the input  and  returns   a  complex  term  holding the
 various MIME message  parts.  The  mime   message  is  encoded  into the
-following structure: 
+following structure:
 
 	mime(Attributes, Data, SubMimeList)
 
@@ -167,7 +167,7 @@ mime_unify(term_t result, struct rfc2045 *rfc, const char *buffer)
 { term_t data = PL_new_term_ref();
   term_t subs = PL_new_term_ref();
   term_t atts = PL_new_term_ref();
-  
+
   if ( !PL_unify_term(result,
 		      PL_FUNCTOR, FUNCTOR_mime3,
 		        PL_TERM, atts,
@@ -188,7 +188,7 @@ mime_unify(term_t result, struct rfc2045 *rfc, const char *buffer)
     const char *desc = rfc2045_content_description(rfc);
     const char *lang = rfc2045_content_language(rfc);
     const char *md5  = rfc2045_content_md5(rfc);
-    
+
     rfc2045_mimeinfo(rfc, &type, &enc, &cset);
     rfc2045_dispositioninfo(rfc, &disp, &name, &fnam);
 
@@ -266,7 +266,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 
 	if ( !(buf = malloc(allocated)) )
 	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
-    
+
 	for( done=0; (c=Sgetcode(stream)) != EOF; )
 	{ if ( done >= allocated )
 	  { allocated *= 2;
@@ -291,10 +291,10 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	PL_get_arg(2, from, arg);
 	if ( !PL_get_long(arg, &size) || size < 0 )
 	  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "natural");
-	
+
 	if ( !(buf = malloc(size)) )
 	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "allocate", "memory", 0);
-    
+
 	for( done=0; (c=Sgetcode(stream)) != EOF && done < size; )
 	  buf[done++] = c;
 

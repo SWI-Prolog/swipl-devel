@@ -35,7 +35,7 @@
 
 
 %	stress(+Times, +Threads, +URLOrAlias)
-%	
+%
 %	Typical use: stress(1000, 3, 1): run the test 1000 times with
 %	3 client threads on the /xml test from demo_body.pl and verify
 %	the parsed result.
@@ -59,7 +59,7 @@ wait_done(N) :-
 	put(Result), flush,
 	N1 is N - 1,
 	wait_done(N1).
-	
+
 stress(0, _) :- !.
 stress(N, URL) :-
 	thread_send_message(pool, stress_url(URL)),
@@ -92,7 +92,7 @@ create_pool(Name, N) :-
 	findall(Id, (between(1, N, _),
 		     thread_create(worker(Name), Id, [])), Threads),
 	assert(pool(Name, Threads)).
-	
+
 
 delete_pool(Name) :-
 	pool(Name, Threads),

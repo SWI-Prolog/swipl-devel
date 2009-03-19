@@ -83,4 +83,4 @@ check(I, N, _) :-
 check(I, N, [I|T]) :- !,
 	NI is I + 1,
 	check(NI, N, T).
-	
+

@@ -69,12 +69,12 @@ code_type/2.
 */
 
 %%	string_without(+End, -Codes)// is det.
-%	
+%
 %	Take as many tokens from the input  until the next token appears
 %	in End. End itself is left on the  input. Typical use is to read
 %	upto a defined delimiter such  as   a  newline or other reserved
 %	character.
-%	
+%
 %	@see string//1.
 
 string_without(Not, [C|T]) -->
@@ -86,11 +86,11 @@ string_without(_, []) -->
 	[].
 
 %%	string(-Codes)// is nondet.
-%	
+%
 %	Take as few as possible tokens from the input, taking one more
 %	each time on backtracking. This code is normally followed by a
 %	test for a delimiter.  E.g.
-%	
+%
 %	==
 %	upto_colon(Atom) -->
 %		string(Codes), ":", !,
@@ -104,7 +104,7 @@ string([H|T]) -->
 	string(T).
 
 %%	blanks// is det.
-%	
+%
 %	Skip zero or more white-space characters.
 
 blanks -->
@@ -117,7 +117,7 @@ blanks -->
 %
 %	Take next =space= character from input. Space characters include
 %	newline.
-%	
+%
 %	@see white//0
 
 blank -->
@@ -161,9 +161,9 @@ blanks_to_nl -->
 	eos.
 
 %%	whites// is det.
-%	
+%
 %	Skip white space _inside_ a line.
-%	
+%
 %	@see blanks//0 also skips newlines.
 
 whites -->
@@ -285,7 +285,7 @@ number(N) -->
 
 sign(0'-) --> "-".
 sign(0'+) --> "+".
-	
+
 dot --> ".".
 
 exp --> "e".
@@ -355,7 +355,7 @@ eos([], []).
 		 *******************************/
 
 %%	atom(+Atom)// is det.
-%	
+%
 %	Generate codes of Atom.  Current implementation uses write/1,
 %	dealing with any Prolog term.
 

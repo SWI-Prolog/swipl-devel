@@ -39,7 +39,7 @@ initialiseBrowserSelectGesture(BrowserSelectGesture g)
 		    NAME_left,
 		    newObject(ClassModifier, DEFAULT, DEFAULT, NAME_up, EAV));
   assign(g, scrolling, OFF);
-  
+
   succeed;
 }
 
@@ -212,7 +212,7 @@ static senddecl send_browser_select_gesture[] =
 #define get_browser_select_gesture NULL
 /*
 static getdecl get_browser_select_gesture[] =
-{ 
+{
 };
 */
 

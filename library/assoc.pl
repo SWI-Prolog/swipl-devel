@@ -126,7 +126,7 @@ assoc_to_values(t, List, List).
 %
 %	True if Key-Value is an association in Assoc. Enumerates keys in
 %	ascending order.
-%	
+%
 %	@see get_assoc/3.
 
 gen_assoc(Key, t(_,_,_,L,_), Val) :-

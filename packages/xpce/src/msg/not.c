@@ -74,7 +74,7 @@ static senddecl send_not[] =
 #define get_not NULL
 /*
 static getdecl get_not[] =
-{ 
+{
 };
 */
 
@@ -83,7 +83,7 @@ static getdecl get_not[] =
 #define rc_not NULL
 /*
 static classvardecl rc_not[] =
-{ 
+{
 };
 */
 

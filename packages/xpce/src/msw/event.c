@@ -31,7 +31,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
 { DisplayObj d = getDisplayEvent(ev);
   Int ex, ey;
   POINT pt;
-    
+
   if ( isDefault(root) )
     root = d;
 

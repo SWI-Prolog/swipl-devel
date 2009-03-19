@@ -63,7 +63,7 @@ LastModifiedFile(const char *file)
     return (time_t)-1;
 
   return buf.st_mtime;
-}  
+}
 
 
 /** static int64_t SizeFile(const char *path)
@@ -101,7 +101,7 @@ AccessFile(const char *path, int mode)
 #ifdef HAVE_ACCESS
   int m = 0;
 
-  if ( mode == ACCESS_EXIST ) 
+  if ( mode == ACCESS_EXIST )
     m = F_OK;
   else
   { if ( mode & ACCESS_READ    ) m |= R_OK;
@@ -120,7 +120,7 @@ AccessFile(const char *path, int mode)
 
 int
 ExistsFile(const char *path)
-{ 
+{
 #ifdef O_XOS
   return _xos_exists(path, _XOS_FILE);
 #else
@@ -294,7 +294,7 @@ RenameFile(const char *old, const char *new)
 { int rval;
 
   unlink(osnew);
-  if ( (rval = link(osold, osnew)) == 0 
+  if ( (rval = link(osold, osnew)) == 0
        && (rval = unlink(osold)) != 0)
     unlink(osnew);
 
@@ -381,7 +381,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
 					   : PL_Q_PASS_EXCEPTION);
 
     PL_put_term(av+0, n);
-    
+
     if ( flags & PL_FILE_EXIST )
       add_option(options, FUNCTOR_access1, ATOM_exist);
     if ( flags & PL_FILE_READ )
@@ -395,7 +395,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
 
     if ( !PL_call_predicate(NULL, cflags, pred, av) )
       return FALSE;
-    
+
     return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
   }
 
@@ -411,7 +411,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
   { if ( !(name = ExpandOneFile(name, tmp)) )
       return FALSE;
   }
-  
+
   if ( !(flags & PL_FILE_NOERRORS) )
   { atom_t op = 0;
 
@@ -424,7 +424,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
 
     if ( op )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_file, op, n);
-		    
+
     if ( (flags & PL_FILE_EXIST) && !AccessFile(name, ACCESS_EXIST) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
   }
@@ -438,7 +438,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
   { if ( !(name = OsPath(name, ospath)) )
       return FALSE;
   }
-    
+
   *namep = buffer_string(name, BUF_RING);
   return TRUE;
 }
@@ -501,7 +501,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
 
   if ( m == ATOM_none )
     return TRUE;
-  
+
   if      ( m == ATOM_write || m == ATOM_append )
     md = ACCESS_WRITE;
   else if ( m == ATOM_read )
@@ -560,7 +560,7 @@ PRED_IMPL("exists_file", 1, exists_file, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
-  
+
   return ExistsFile(n);
 }
 
@@ -571,7 +571,7 @@ PRED_IMPL("exists_directory", 1, exists_directory, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
-  
+
   return ExistsDirectory(n);
 }
 
@@ -653,7 +653,7 @@ PRED_IMPL("delete_file", 1, delete_file, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
-  
+
   if ( RemoveFile(n) )
     return TRUE;
 
@@ -668,7 +668,7 @@ PRED_IMPL("delete_directory", 1, delete_directory, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
-  
+
   if ( rmdir(n) == 0 )
     return TRUE;
   else
@@ -683,7 +683,7 @@ PRED_IMPL("make_directory", 1, make_directory, 0)
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
-  
+
   if ( mkdir(n, 0777) == 0 )
     return TRUE;
   else
@@ -813,7 +813,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
   if ( !PL_is_variable(full) )
   { if ( PL_get_chars(full, &f, CVT_ALL|CVT_EXCEPTION|REP_FN) )
     { char *s = f + strlen(f);		/* ?base, ?ext, +full */
-  
+
       while(*s != '.' && *s != '/' && s > f)
 	s--;
       if ( *s == '.' )
@@ -832,7 +832,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
 	  return name_too_long();
 	strncpy(buf, f, s-f);
 	buf[s-f] = EOS;
-  
+
 	return PL_unify_chars(base, PL_ATOM|REP_FN, -1, buf);
       }
       if ( PL_unify_atom_chars(ext, "") &&
@@ -920,7 +920,7 @@ PRED_IMPL("mark_executable", 1, mark_executable, 0)
 
 void
 initFiles(void)
-{ 
+{
 }
 
 

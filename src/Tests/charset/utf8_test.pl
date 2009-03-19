@@ -106,7 +106,7 @@ catch_messages(Goal, Messages) :-
 	       Ref),
 	Goal,
 	collect_messages(Messages, Ref).
-	
+
 catch_message(Msg) :-
 	nb_getval(messages, L0),
 	duplicate_term(Msg, Copy),

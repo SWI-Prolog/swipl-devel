@@ -413,7 +413,7 @@ waitRequest(plsocket *s)
 
   for(;;)
   { MSG msg;
-  
+
     if ( PL_handle_signals() < 0 )
     { DEBUG(1, Sdprintf("[%d]: Exception\n", PL_thread_self()));
       return FALSE;
@@ -457,7 +457,7 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
 
   for(;;)
   { MSG msg;
-  
+
     if ( PL_handle_signals() < 0 )
     { DEBUG(1, Sdprintf("[%d]: Exception\n", PL_thread_self()));
       return -1;
@@ -482,7 +482,7 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-nbio_select() selects using a set of socket streams. 
+nbio_select() selects using a set of socket streams.
 
 NOTE: The Windows versions uses our   nbio_sock_t abstraction, while the
 other version uses  the  raw  Unix   file  descriptors  referencing  the
@@ -545,7 +545,7 @@ nbio_select(int n,
     { DEBUG(1, Sdprintf("[%d]: Exception\n", PL_thread_self()));
       return -1;
     }
-    
+
     for(ready=0, i=0, s=sockets; i<n; i++, s++)
     { if ( *s && (*s)->done )
       { ready++;
@@ -606,7 +606,7 @@ placeRequest(plsocket *s, nbio_request request)
 		    PL_thread_self(), s->thread,
 		    request_name(request), (int)s->socket));
 
-  return TRUE; 
+  return TRUE;
 }
 
 static int
@@ -630,7 +630,7 @@ doRequest(plsocket *s)
 		     (struct sockaddr*)&s->rdata.connect.addr,
 		     (int)s->rdata.connect.addrlen) )
 	{ s->error = WSAGetLastError();
-	  
+
 	  switch(s->error)
 	  { case WSAEWOULDBLOCK:
 	    case WSAEINVAL:
@@ -665,7 +665,7 @@ doRequest(plsocket *s)
 
 	if ( slave == SOCKET_ERROR )
 	{ s->error = WSAGetLastError();
-	  
+
 	  DEBUG(2, Sdprintf("Accept(%d): %s\n",
 			    (int)s->socket, WinSockError(s->error)));
 
@@ -775,7 +775,7 @@ doRequest(plsocket *s)
 	  doneRequest(s);
 	} else
 	  s->error = 0;
-	  
+
 	s->rdata.write.written += n;
 	if ( s->rdata.write.written >= s->rdata.write.size )
 	{ s->rdata.write.bytes = (int)s->rdata.write.written;
@@ -811,7 +811,7 @@ doRequest(plsocket *s)
 	  doneRequest(s);
 	} else
 	  s->error = 0;
-	  
+
 	s->rdata.sendto.bytes = n;
 	doneRequest(s);
       }
@@ -855,14 +855,14 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     if ( evt&FD_CLOSE )
     { DEBUG(1,
 	    { char *nm = event_name(evt);
-	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n", 
+	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n",
 		       (int)sock, nm, err ? WinSockError(err) : "none");
 	      free(nm);
 	    });
     } else
     { DEBUG(3,
 	    { char *nm = event_name(evt);
-	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n", 
+	      Sdprintf("WM_SOCKET on %d: ev=(%s); err=%s\n",
 		       (int)sock, nm, err ? WinSockError(err) : "none");
 	      free(nm);
 	    });
@@ -1046,7 +1046,7 @@ wait_socket(plsocket *s)
       FD_SET(fd, &rfds);
       tv.tv_sec = 0;
       tv.tv_usec = 250000;
-      
+
       select(fd+1, &rfds, NULL, NULL, &tv);
       return TRUE;
     } else
@@ -1099,7 +1099,7 @@ int
 nbio_select(int n,
 	    fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
-{ return select(n, readfds, writefds, exceptfds, timeout); 
+{ return select(n, readfds, writefds, exceptfds, timeout);
 }
 
 #endif /*__WINDOWS__*/
@@ -1264,7 +1264,7 @@ allocSocket(SOCKET socket)
   UNLOCK();
 
   assert(i<socks_allocated);
-  
+
   memset(p, 0, sizeof(*p));
   p->id     = (int)i;			/* place in the array */
   p->socket = socket;
@@ -1341,7 +1341,7 @@ WinSockError(unsigned long eno)
   static HMODULE netmsg = 0;
   static int netmsg_loaded = FALSE;
   unsigned long flags = (FORMAT_MESSAGE_FROM_SYSTEM|
-			 FORMAT_MESSAGE_IGNORE_INSERTS); 
+			 FORMAT_MESSAGE_IGNORE_INSERTS);
 
   if ( !netmsg_loaded )
   { netmsg_loaded = TRUE;
@@ -1349,7 +1349,7 @@ WinSockError(unsigned long eno)
     if ( !netmsg )
       Sdprintf("failed to load netmsg.dll\n");
     else
-      Sdprintf("Loaded netmsg.dll as %p\n", netmsg); 
+      Sdprintf("Loaded netmsg.dll as %p\n", netmsg);
   }
 
   if ( netmsg )
@@ -1571,7 +1571,7 @@ nbio_init(const char *module)
   UNLOCK();
   return TRUE;
 }
-	
+
 
 int
 nbio_cleanup(void)
@@ -1596,7 +1596,7 @@ nbio_sock_t
 nbio_socket(int domain, int type, int protocol)
 { SOCKET sock;
   plsocket *s;
-	
+
   assert(initialised);
 
   if ( (sock = socket(domain, type , protocol)) < 0)
@@ -1714,7 +1714,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
     }
     case TCP_DISPATCH:
     { int val = va_arg(args, int);
-      
+
       if ( val )
 	set(s, SOCK_DISPATCH);
       else
@@ -1758,12 +1758,12 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 int
 nbio_get_flags(nbio_sock_t socket)
 { plsocket *s;
-  
+
   if ( !(s = nbio_to_plsocket(socket)) )
     return -1;
 
   return s->flags;
-} 
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1776,7 +1776,7 @@ nbio_get_port(term_t Port, int *port)
 
   if ( PL_get_atom_chars(Port, &name) )
   { struct servent *service;
-    
+
     if ( !(service = getservbyname(name, "tcp")) )
       return pl_error(NULL, 0, NULL, ERR_EXISTENCE, "service", Port);
 
@@ -1800,7 +1800,7 @@ or the name of a registered port (e.g. 'smtp').
 int
 nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
 { int		  port;
-	
+
   addr->sin_family = AF_INET;
   addr->sin_addr.s_addr = INADDR_ANY;
 
@@ -1915,10 +1915,10 @@ nbio_connect(nbio_sock_t socket,
 	     const struct sockaddr *serv_addr,
 	     size_t addrlen)
 { plsocket *s;
-       
+
   if ( !(s = nbio_to_plsocket(socket)) )
     return -1;
-  
+
 #ifdef __WINDOWS__
   if ( connect(s->socket, serv_addr, (int)addrlen) )
   { s->error = WSAGetLastError();
@@ -1960,7 +1960,7 @@ nbio_sock_t
 nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
 { SOCKET slave;
   plsocket *m, *s;
-	
+
   if ( !(m = nbio_to_plsocket(master)) )
     return -1;
 
@@ -2013,7 +2013,7 @@ nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
   }
 
 #endif /*__WINDOWS__*/
-  
+
   s = allocSocket(slave);
   s->flags |= SOCK_ACCEPT;
 #ifndef __WINDOWS__
@@ -2364,14 +2364,14 @@ nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
   n = sendto(s->socket, buf, (int)bufSize, flags, to, tolen);
   if ( n < 0 )
   { int error = WSAGetLastError();
-    
+
     if ( error == WSAEWOULDBLOCK )
       goto wouldblock;
 
     DEBUG(1, Sdprintf("[%d]: sendto(%d, %d bytes): %s\n",
 		      PL_thread_self(), s->socket, (int)bufSize,
 		      WinSockError(error)));
-    
+
     s->error = error;
     return -1;
   } else

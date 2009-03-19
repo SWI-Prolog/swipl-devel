@@ -203,7 +203,7 @@ restore_settings(state(Fd, Style, Esc)) :-
 	close(Fd).
 
 %	emacs_push_op(+Prec, +Type, :Name)
-%	
+%
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
@@ -217,7 +217,7 @@ emacs_push_op(P, T, N0) :-
 	debug(emacs, ':- ~w.', [op(P,T,N)]).
 
 %	syntax_error(+Error)
-%	
+%
 %	Print syntax errors if the debugging topic emacs is active.
 
 syntax_error(E) :-
@@ -228,7 +228,7 @@ syntax_error(E) :-
 	fail.
 
 %	fix_operators(+Term, +Src)
-%	
+%
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
@@ -257,7 +257,7 @@ process_directive(Directive, _) :-
 	erase(Ref).
 
 %	process_use_module(+Imports, +Src)
-%	
+%
 %	Get the exported operators from the referenced files.
 
 process_use_module([], _).
@@ -286,7 +286,7 @@ colourise(TB, Fd) :-
 	->  colourise_term(Term, TB, TermPos)
 	;   show_syntax_error(TB, Error)
 	).
-	
+
 show_syntax_error(TB, Pos:_Message) :-
 	get(TB, scan, Pos, line, 0, start, BOL),
 	get(TB, scan, Pos, line, 0, end, EOL),
@@ -374,7 +374,7 @@ colourise_clause_head(Head, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %	colourise_extern_head(+Head, +Module, +TB, +Pos)
-%	
+%
 %	Colourise the head specified as Module:Head. Normally used for
 %	adding clauses to multifile predicates in other modules.
 
@@ -391,7 +391,7 @@ colour_method_head(SGHead, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %	functor_position(+Term, -FunctorPos, -ArgPosList)
-%	
+%
 %	Get the position of a functor   and  its argument. Unfortunately
 %	this goes wrong for lists, who have two `functor-positions'.
 
@@ -402,7 +402,7 @@ functor_position(Pos, Pos, []).
 
 
 %	colourise_directive(+Body, +TB, +Pos)
-%	
+%
 %	Colourise the body of a directive.
 
 colourise_directive(Body, TB, Pos) :-
@@ -410,7 +410,7 @@ colourise_directive(Body, TB, Pos) :-
 
 
 %	colourise_body(+Body, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_goal/3.
 
 colourise_body(Body, TB, Pos) :-
@@ -421,7 +421,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 	colourise_goals(Body, Origin, TB, Pos).
 
 %	colourise_method_body(+MethodBody, +TB, +Pos)
-%	
+%
 %	Colourise the optional "comment":: as pce(comment) and proceed
 %	with the body.
 
@@ -460,7 +460,7 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 	colourise_subgoals(T, NN, Body, Origin, TB).
 
 %	colourise_dcg(+Body, +Head, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_dcg_goal/3.
 
 colourise_dcg(Body, Head, TB, Pos) :-
@@ -516,7 +516,7 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 
 
 %	colourise_goal(+Goal, +Origin, +TB, +Pos)
-%	
+%
 %	Colourise access to a single goal.
 
 					% Deal with list as goal (consult)
@@ -554,7 +554,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	colourise_goal_args(Goal, TB, Pos).
 
 %	colourise_goal_args(+Goal, +TB, +Pos)
-%	
+%
 %	Colourise the arguments to a goal. This predicate deals with
 %	meta- and database-access predicates.
 
@@ -576,13 +576,13 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
 
 %	meta_args(+Goal, -ArgSpec)
-%	
+%
 %	Return a copy of Goal, where each meta-argument is an integer
 %	representing the number of extra arguments. The non-meta
 %	arguments are unbound variables.
-%	
+%
 %	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
-%	
+%
 %	NOTE: this could be cached if performance becomes an issue.
 
 meta_args(Goal, VarGoal) :-
@@ -602,7 +602,7 @@ instantiate_meta([H|T]) :-
 	instantiate_meta(T).
 
 %	expand_meta(+MetaSpec, +Goal, -Expanded)
-%	
+%
 %	Add extra arguments to the goal if the meta-specifier is an
 %	integer (see above).
 
@@ -620,7 +620,7 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 	Expanded =.. List.
 
 %	colourise_db(+Arg, +TB, +Pos)
-%	
+%
 %	Colourise database modification calls (assert/1, retract/1 and
 %	friends.
 
@@ -679,7 +679,7 @@ colourise_directory(Spec, TB, Pos) :-
 
 %	colourise_class(ClassName, TB, Pos)
 %
-%	Colourise an XPCE class.  
+%	Colourise an XPCE class.
 
 colourise_class(ClassName, TB, Pos) :-
 	classify_class(TB, ClassName, Classification),
@@ -707,7 +707,7 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom),
 	arg(1, Pos, From),
-	get(TB, character, From, 39), !, 	
+	get(TB, character, From, 39), !,
 	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
@@ -718,7 +718,7 @@ colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
-	
+
 colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 	specified_item(How, H, TB, HP),
 	colourise_list_args(TP, Tail, T, TB, How).
@@ -728,7 +728,7 @@ colourise_list_args([], TP, T, TB, How) :-
 
 
 %	colourise_exports(+List, +TB, +Pos)
-%	
+%
 %	Colourise the module export-list (or any other list holding
 %	terms of the form Name/Arity referring to predicates).
 
@@ -749,7 +749,7 @@ colourise_exports2(_, _, _).
 
 
 %	colourise_imports(+List, +File, +TB, +Pos)
-%	
+%
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
@@ -771,7 +771,7 @@ colourise_imports(except(Except), File, Public, TB,
 	colour_item(keyword(except), TB, FF-FT),
 	colourise_imports(Except, File, Public, TB, LP).
 colourise_imports(_, _, _, TB, Pos) :-
-	colour_item(type_error(list), TB, Pos).	
+	colour_item(type_error(list), TB, Pos).
 
 colourise_imports2([G0|GT], File, Public, TB, [P0|PT]) :- !,
 	colourise_import(G0, File, TB, P0),
@@ -792,7 +792,7 @@ colourise_import(PI, _, TB, Pos) :-
 
 
 %	colourise_declarations(+Term, +TB, +Pos)
-%	
+%
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
@@ -836,12 +836,12 @@ colour_item(Class, TB, Pos) :-
 	L is T - F,
 	make_fragment(Class, TB, F, L, Name).
 colour_item(_, _, _).
-	
+
 colour_item(Class, TB, F, T) :-
 	colour_item(Class, TB, F-T).
 
 %	make_fragment(+Class, +TB, +From, +Len, +StyleName)
-%	
+%
 %	Actually create the fragment.
 
 make_fragment(goal(Class, Goal), TB, F, L, Style) :-
@@ -890,7 +890,7 @@ body_compiled((_;_)).
 body_compiled(\+_).
 
 %	goal_classification(+TB, +Goal, +Origin, -Class)
-%	
+%
 %	Classify Goal appearing in TB and called from a clause with head
 %	Origin.  For directives Origin is [].
 
@@ -907,7 +907,7 @@ goal_classification(_TB, Goal, _, Class) :-
 goal_classification(_TB, _Goal, _, undefined).
 
 %	goal_classification(+Goal, -Class)
-%	
+%
 %	Multifile hookable classification for non-local goals.
 
 goal_classification(Goal, built_in) :-
@@ -921,7 +921,7 @@ goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, send_super, A),
 	A >= 2, !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
-	functor(SS, get_super, A), 
+	functor(SS, get_super, A),
 	A >= 3, !.
 
 classify_head(TB, Goal, exported) :-
@@ -1403,7 +1403,7 @@ popup(_GF, Popup:popup) :<-
 	      make_prolog_mode_goal_popup).
 
 %	make_prolog_mode_goal_popup(-Popup)
-%	
+%
 %	Create the popup and define actions for handling the right-menu
 %	on goals.
 
@@ -1478,7 +1478,7 @@ has_source(F) :->
 	), !.
 
 %	->edit
-%	
+%
 %	Find the predicate and invoke ->find_definition on the
 %	@emacs_mode, which is the mode object of the current editor.
 
@@ -1489,7 +1489,7 @@ edit(F, NewWindow:[bool]) :->
 
 
 %	->listing
-%	
+%
 %	List the predicate in an XPCE buffer
 
 listing(F) :->
@@ -1541,7 +1541,7 @@ identify(F) :->
 	send(TB, report, status, Report).
 
 %	identify_pred(+XrefClass, +Fragment, -Summary)
-%	
+%
 %	Generate an identifying description for the predicate.
 
 identify_pred(Term, _, Summary) :-
@@ -1764,7 +1764,7 @@ classify_class(_, Name, user(File)) :-
 classify_class(_, Name, user) :-
 	get(@classes, member, Name, _), !.
 classify_class(_, _, undefined).
-	
+
 :- pce_end_class(emacs_class_fragment).
 
 
@@ -1846,4 +1846,4 @@ identify_fragment(Class, _, Summary) :-
 	term_to_atom(Class, Summary).
 
 :- pce_end_class(emacs_prolog_fragment).
-		   
+

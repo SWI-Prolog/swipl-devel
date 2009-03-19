@@ -147,4 +147,4 @@ element(head,  [title, meta*], []).
 element(body,  [],	       []).
 element(title, [#cdata],       []).
 
-:- emacs_end_mode. 
+:- emacs_end_mode.

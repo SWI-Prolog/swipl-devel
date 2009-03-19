@@ -45,7 +45,7 @@ main(int argc, char **argv)
   program = argv[0];
   argv++;
   argc--;
-  
+
   while(argc > 0 && argv[0][0] == '-')
   { if ( streq(argv[0], "-xml") )
     { dialect = DL_XML;
@@ -63,7 +63,7 @@ main(int argc, char **argv)
 
   if ( argc == 1 )
   { int wl = mbstowcs(NULL, argv[0], 0);
-    
+
     if ( wl > 0 )
     { wchar_t *ws = malloc((wl+1)*sizeof(wchar_t));
       dtd *dtd;

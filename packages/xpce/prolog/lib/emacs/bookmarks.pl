@@ -273,7 +273,7 @@ bookmarks_file(BM, Access:[{read,write}], File:name) :<-
 	    get(F, absolute_path, File),
 	    send(BM, slot, file, File)		% use the absolute path
 	).
-	    
+
 :- pce_end_class(emacs_bookmark_editor).
 
 :- pce_begin_class(emacs_bookmark_window, toc_window).
@@ -359,7 +359,7 @@ append(F, BM:emacs_bookmark, Sort:[bool]) :->
 	    ;	true
 	    )
 	).
-	
+
 sort(F) :->
 	"Sort the nodes"::
 	send(F, sort_sons, ?(@arg1, compare, @arg2)).
@@ -372,7 +372,7 @@ compare(F, N:toc_node, Diff:{smaller,equal,larger}) :<-
 	    get(T0?string, compare, T1?string, Diff)
 	;   Diff = smaller
 	).
-		
+
 sub_directory(@nil, File, SubPath) :- !,
 	(   has_drives
 	->  new(Re, regex('[a-zA-Z]:'))

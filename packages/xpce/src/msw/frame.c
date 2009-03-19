@@ -166,7 +166,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 	for_cell(cell, fr->members)
 	{ HWND subhwnd = getHwndWindow(cell->value);
-	  
+
 	  if ( subhwnd )
 	    PceWhDeleteWindow(subhwnd);
 	}
@@ -190,7 +190,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       RECT rect;
       COLORREF rgb = (COLORREF) getXrefObject(fr->background, fr->display);
       HBRUSH hbrush;
-      
+
       rgb = GetNearestColor(hdc, rgb);
       hbrush = CreateSolidBrush(rgb);
       GetClipBox(hdc, &rect);
@@ -250,7 +250,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	    id = toInt(Control('I') + META_OFFSET);
 	  break;
       }
-      
+
       if ( notNil(id) && keyboard_event_frame(fr, id) )
 	return 0;
 
@@ -352,7 +352,7 @@ static status
 keyboard_event_frame(FrameObj fr, Any id)
 { PceWindow sw;
   POINT pt;
-  
+
   if ( id == toInt(8) )			/* should be conditional!!!! */
     id = toInt(127);
   if ( id == toInt(8+META_OFFSET) )
@@ -469,7 +469,7 @@ ws_create_frame(FrameObj fr)
     if ( fr->border != ZERO )
       style |= WS_BORDER;
   }
-    
+
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
 
   current_frame = fr;
@@ -479,7 +479,7 @@ ws_create_frame(FrameObj fr)
 		     style,
 		     x, y, w, h,
 		     NULL, NULL, PceHInstance, NULL);
-		     
+
   if ( !ref )
     return errorPce(fr, NAME_xOpen, fr->display);
 
@@ -496,7 +496,7 @@ ws_realise_frame(FrameObj fr)
 
   for_cell(cell, fr->members)
   { PceWindow sw = cell->value;
-    
+
     ShowWindow(getHwndWindow(sw), SW_SHOW);
   }
 }
@@ -515,7 +515,7 @@ ws_place_frame(FrameObj fr)
   int dh = valInt(getHeightDisplay(fr->display));
   int fw = valInt(fr->area->w);
   int fh = valInt(fr->area->h);
-  
+
   if ( !placed++ )
   { last_x = rand() % (dw-fw-2*PLACE_MARGIN);
     last_y = rand() % (dh-fh-2*PLACE_MARGIN);
@@ -639,7 +639,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	  break;
       }
   }
-  
+
   if ( f && ok )
   { SetWindowPos(f->hwnd,
 		 HWND_TOP,		/* ignored */
@@ -711,7 +711,7 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 	ZSetCursor(LoadCursor(NULL, IDC_ARROW));
 
       r->hbusy_cursor = NULL;
-      
+
     } else
     { if ( isDefault(c) )
 	c = getResourceValueObject(fr, NAME_busyCursor);
@@ -794,7 +794,7 @@ ws_image_of_frame(FrameObj fr)
     if ( rect.top < 0 )  rect.top  = 0;
     if ( rect.bottom > valInt(size->h) ) rect.bottom = valInt(size->h);
     if ( rect.right >  valInt(size->w) ) rect.right  = valInt(size->w);
-    
+
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
 

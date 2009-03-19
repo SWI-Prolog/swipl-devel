@@ -19,7 +19,7 @@
 %
 %	Pipe text In through command Command and put the output of command
 %	in Out.
-%	
+%
 %	Example:
 %
 %		?- pipe_through_command(tr('a-z', 'A-Z'), hello, X)
@@ -57,4 +57,4 @@ read_input(-1, _, []) :- !.
 read_input(C, In, [C|T]) :-
 	get_code(In, C1),
 	read_input(C1, In, T).
-	
+

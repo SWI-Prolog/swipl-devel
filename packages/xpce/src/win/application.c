@@ -96,7 +96,7 @@ getMemberApplication(Application app, Name name)
     if ( fr->name == name )
       answer(fr);
   }
-  
+
   fail;
 }
 
@@ -196,7 +196,7 @@ static getdecl get_application[] =
 #define rc_application NULL
 /*
 static classvardecl rc_application[] =
-{ 
+{
 };
 */
 

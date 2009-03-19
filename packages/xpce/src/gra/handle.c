@@ -150,7 +150,7 @@ static getdecl get_handle[] =
 #define rc_handle NULL
 /*
 static classvardecl rc_handle[] =
-{ 
+{
 };
 */
 

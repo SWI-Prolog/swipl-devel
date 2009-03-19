@@ -18,7 +18,7 @@
 # Note:   When comparing block names, casing, whitespace, hyphens,
 #         and underbars are ignored.
 #         For example, "Latin Extended-A" and "latin extended a" are equivalent.
-#         For more information on the comparison of property values, 
+#         For more information on the comparison of property values,
 #            see UCD.html.
 #
 #  All code points not explicitly listed for Block
@@ -32,7 +32,7 @@
 	  ]).
 
 %	unicode_block(?BlockName, ?Start, ?End)
-%	
+%
 %	Provides the names of the  basic   unicode  blocks. Derived from
 %	UNICODE 4.1.0 from www.unicode.org
 

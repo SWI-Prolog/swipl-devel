@@ -71,7 +71,7 @@ user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 %
 %	Map the abstract action of the gui-tracer into actions for the
 %	low-level tracer.  Runs in the debugged thread.
-%	
+%
 %	@tbd	The argument frame is not used.  Delete?
 
 map_action(creep, _, continue) :-
@@ -119,7 +119,7 @@ traceall :-
 
 intercept(Port, Frame, CHP, Action) :-
 	send_tracer(current_break(@nil)),
-	debug('*** do_intercept(~w, ~w, ~w, _) ...~n', [Port, Frame, CHP]), 
+	debug('*** do_intercept(~w, ~w, ~w, _) ...~n', [Port, Frame, CHP]),
 	do_intercept(Port, Frame, CHP, Action0),
 	fix_action(Port, Action0, Action),
 	debug('*** ---> Action = ~w~n', [Action]),
@@ -260,7 +260,7 @@ do_intercept(cut_exit(PC), Frame, CHP, Action) :-
 %
 %	Show current location from StartFrame.  Must be called in the
 %	context of the debugged thread.
-%	
+%
 %	@param Up	Skip bottom Up frames.  Use to show call port
 %			in the parent frame.
 
@@ -295,12 +295,12 @@ show(StartFrame, CHP, Up, Port, Style) :-
 %
 %	Find the parent frame Up levels above StartFrame. Must be called
 %	in the context of the debugged thread.
-%	
+%
 %	@param PC	PC in parent frame
 %	@param Frame	Parent frame
 
 find_frame(N, Start, _, PC, Frame) :-
-	N > 0, 
+	N > 0,
 	debug('Frame = ~w; ', [Start]),
 	prolog_frame_attribute(Start, pc, PC0),
 	prolog_frame_attribute(Start, parent, Frame0), !,
@@ -325,7 +325,7 @@ find_frame2(N, F0, _, F, PC) :-
 %%	attribute(+Attributes, ?Att, +Default) is semidet.
 %
 %	Attribute parsing
-%	
+%
 %	@bug	Merge with option library.
 
 attribute(Attributes, Att) :-
@@ -352,7 +352,7 @@ tracer_gui(_, GUI) :-
 %
 %	Show given Prolog Frame in GUI-tracer, updating information as
 %	provided by Attributes.  Defined attributes:
-%	
+%
 %		* pc(PC)
 %		* choice(CHP)
 %		* port(Port)
@@ -423,9 +423,9 @@ show_source(_, _).
 
 
 %%	subgoal_position(+Clause, +PortOrPC, -File, -CharA, -CharZ) is det.
-% 
+%
 %	Character  range  CharA..CharZ  in  File   is  the  location  to
-%	highlight for the given clause at the given location. 
+%	highlight for the given clause at the given location.
 
 subgoal_position(ClauseRef, unify, File, CharA, CharZ) :- !,
 	pce_clause_info(ClauseRef, File, TPos, _),
@@ -494,7 +494,7 @@ find_subgoal([1|T], brace_term_position(_,_,Pos), SPos) :-
 %	on behalf of in_debug_thread/2 started by   the  debugger gui to
 %	get additional information  on  the   state  of  our (debugging)
 %	thread.
-%	
+%
 %	@tbd	Synchronise with send_pce/1 and in_debug_thread/2.
 
 action(Action) :-
@@ -528,7 +528,7 @@ action(Action) :-
 %	call_with_time_limit/2. Here we  print  the   message  and  keep
 %	waiting. Note that this causes the  system   to  be lost for the
 %	application.
-%	
+%
 %	@tbd	Allow passing the error to the application
 %	@tbd	Deal with similar signals in other part of the tracing
 %		code.
@@ -578,7 +578,7 @@ show_stack(Frame, Attributes) :-
 show_stack(_, _).
 
 %%	stack_info(+Frame, -CallFrames, -ChoiceFrames, +Attributes) is det.
-% 
+%
 %	Find the callstack and choicepoints that must be made visible in
 %	the stack window. Must  run  in   the  context  of  the debugged
 %	thread.
@@ -633,7 +633,7 @@ choice_frames(Max, CHP, Range, Seen, [frame(Frame, choice)|Frames]) :-
 choice_frames(_, _, _, _, []).
 
 %	earlier_choice(+Here, -Visible)
-%	
+%
 %	Return earliers choices on backgtracking.
 
 earlier_choice(CHP, CHP).
@@ -642,7 +642,7 @@ earlier_choice(CHP, Next) :-
 	earlier_choice(Parent, Next).
 
 %	visible_choice(+CHP)
-%	
+%
 %	A visible choice is a choice-point that realises a real choice
 %	and is created by a visible frame.
 

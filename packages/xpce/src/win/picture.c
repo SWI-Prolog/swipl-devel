@@ -48,7 +48,7 @@ static char *T_initialise[] =
 #define var_picture NULL
 /*
 vardecl var_picture[] =
-{ 
+{
 };
 */
 
@@ -64,7 +64,7 @@ static senddecl send_picture[] =
 #define get_picture NULL
 /*
 static getdecl get_picture[] =
-{ 
+{
 };
 */
 

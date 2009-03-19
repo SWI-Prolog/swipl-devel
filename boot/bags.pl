@@ -60,7 +60,7 @@
 %       duplicates.   Equivalent  to bagof, using the existence operator
 %       (^) on all free variables of Goal.  Succeeds with Bag  =  []  if
 %       Goal fails immediately.
-%       
+%
 %	The  findall/4  variation  is  a    difference-list  version  of
 %	findall/3.
 
@@ -71,11 +71,11 @@ findall(Templ, Goal, List, Tail) :-
 	setup_call_cleanup('$new_findall_bag'(Bag),
 			       fa_loop(Templ, Goal, Bag, List, Tail),
 			       '$destroy_findall_bag'(Bag)).
-			       
+
 fa_loop(Templ, Goal, Bag, List, Tail) :-
 	\+ (Goal, \+ '$add_findall_bag'(Bag, Templ)),
 	'$collect_findall_bag'(Bag, List, Tail).
-	
+
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %
 %       Implements Clocksin and  Melish's  bagof/3  predicate.   Bag  is

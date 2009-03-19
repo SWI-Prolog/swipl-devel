@@ -228,10 +228,10 @@ addInt64(CompileInfo info, int64_t v)
   }
 
   addBuffer(&info->code, i, uchar);
-  
+
   while( --i >= 0 )
   { int b = (int)(v>>(i*8)) & 0xff;
-    
+
     addBuffer(&info->code, b, uchar);
   }
 }
@@ -310,7 +310,7 @@ addFunctor(CompileInfo info, functor_t f)
   } else
   { if ( info->external )
     { FunctorDef fd = valueFunctor(f);
-  
+
       addOpCode(info, PL_TYPE_EXT_COMPOUND);
       addSizeInt(info, fd->arity);
       addAtomValue(info, fd->name);
@@ -414,7 +414,7 @@ right_recursion:
 	    assert(0);
 	}
       }
-      
+
       return;
     }
     case TAG_STRING:
@@ -426,7 +426,7 @@ right_recursion:
       info->size += n+2;
       addOpCode(info, PL_TYPE_STRING);
       addChars(info, l, (const char *)(f+1)); /* +1 to skip header */
-      
+
       return;
     }
     case TAG_FLOAT:
@@ -463,7 +463,7 @@ right_recursion:
 	assert(valInt(f->definition) == (intptr_t)info->size); /* overflow test */
       }
 #endif
-      
+
       info->size += arity+1;
       addFunctor(info, functor);
       DEBUG(9, if ( GD->io_initialised )
@@ -538,9 +538,9 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
       setVar(**p);
   }
   discardBuffer(&info.vars);
-  
+
   unvisit(PASS_LD1);
-  
+
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
   record->gsize = (unsigned int)info.size; /* only 28-bit */
@@ -607,7 +607,7 @@ PL_record_external(term_t t, size_t *len)
       v = valInt(*p);
     else
       v = valBignum(*p);
-    
+
     first |= (REC_INT|REC_GROUND);
     addOpCode(&info, first);
     addInt64(&info, v);
@@ -651,7 +651,7 @@ PL_record_external(term_t t, size_t *len)
   if ( info.nvars > 0 )
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
-  
+
   rec = allocHeap(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
@@ -742,7 +742,7 @@ fetchSizeInt(CopyInfo b)
 
   do
   { uint d = *b->data++;
-    
+
     end = !(d & 0x80);
     r = (r<<7)|(d&0x7f);
   } while(!end);
@@ -834,7 +834,7 @@ right_recursion:
       {	setVar(*p);
 	b->vars[n] = p;
       }
-      
+
       return;
     }
     case PL_REC_ALLOCVAR:
@@ -1024,7 +1024,7 @@ skipLong(CopyInfo b)
 
 static void
 scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
-{ 
+{
 right_recursion:
 
   switch( fetchOpCode(b) )
@@ -1257,7 +1257,7 @@ unref_cont:
 	fetchAtom((CopyInfo)info, &name);	/* TBD: optimise */
 	if ( name != fd->name )
 	  fail;
-	
+
 	p = f->arguments;
 	for(; --arity > 0; p++)
 	{ if ( !se_record(p, info PASS_LD) )
@@ -1266,7 +1266,7 @@ unref_cont:
         goto right_recursion;
       } else if ( stag == PL_TYPE_CONS )
       { Functor f = valueTerm(w);
-	
+
 	if ( f->definition == FUNCTOR_dot2 )
 	{ p = f->arguments;
 	  if ( !se_record(p, info PASS_LD) )
@@ -1298,7 +1298,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   DEBUG(3, Sdprintf("structuralEqualArg1OfRecord() of ");
 	   PL_write_term(Serror, t, 1200, PL_WRT_ATTVAR_WRITE);
 	   Sdprintf("\n"));
-  
+
   info.base = info.data = dataRecord(r);
   info.nvars = 0;
   INITCOPYVARS(info, r->nvars);
@@ -1404,7 +1404,7 @@ PL_recorded_external(const char *rec, term_t t)
   if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
   { if ( m & REC_INT )
     { int64_t v = fetchInt64(&b);
-      
+
       return PL_unify_int64(t, v);
     } else
     { atom_t a;
@@ -1429,7 +1429,7 @@ PL_recorded_external(const char *rec, term_t t)
   assert(b.gstore == gTop);
 
   SECURE(checkData(valTermRef(t)));
-  
+
   return TRUE;
 }
 
@@ -1641,7 +1641,7 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
     }
     case FRG_CUTTED:
     { record = ForeignContextPtr(h);
-      
+
       if ( record )
       { rl = record->list;
 
@@ -1711,14 +1711,14 @@ pl_erase(term_t ref)
   if ( isClause(record) )
   { Clause clause = (Clause) record;
     Definition def = getProcDefinition(clause->procedure);
-  
+
     if ( !true(def, DYNAMIC) )
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 
     return retractClauseDefinition(def, clause PASS_LD);
   }
-  
+
   LOCK();
   if ( isRecordRef(record) )
   {
@@ -1780,7 +1780,7 @@ right_recursion:
 
   if ( isAttVar(*t) )
   { Word p = valPAttVar(*t);
-    
+
     assert(onStackArea(global, p));
     t = p;
     goto right_recursion;

@@ -28,7 +28,7 @@
 Number
 CtoNumber(long i)
 { Number n = answerObject(ClassNumber, ZERO, EAV);
-  
+
   n->value = i;
   answer(n);
 }
@@ -43,7 +43,7 @@ valArg(Any i)
     return n->value;
   }
 }
-  
+
 
 static status
 initialiseNumber(Number n, Any i)
@@ -343,7 +343,7 @@ static getdecl get_number[] =
 #define rc_number NULL
 /*
 static classvardecl rc_number[] =
-{ 
+{
 };
 */
 

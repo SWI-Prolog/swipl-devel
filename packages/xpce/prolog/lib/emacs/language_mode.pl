@@ -136,7 +136,7 @@ comment_lines(TB, S0, End, Comment) :-
 	->  comment_lines(TB, S2, End1, Comment)
 	;   true
 	).
-	
+
 
 fill_comment_paragraph(M, Justify:justify=[bool|int], From:[int]) :->
 	"Fill paragraph in (line) comment"::
@@ -192,7 +192,7 @@ fill_comment(M,
 	send(M, caret, CaretF?start),
 	free(EndF),
 	free(CaretF).
-	
+
 uncomment(_M, _Re, _LeadCol, Here, EndF) :-
 	get(EndF, start, End),
 	Here >= End, !.
@@ -231,7 +231,7 @@ insert_comment_block(E) :->
 
 insert_section_header(E) :->
 	"Insert Prolog/C section header"::
-	send(E, insert, 
+	send(E, insert,
 '		 /*******************************
 		 *               C		*
 		 *******************************/
@@ -422,7 +422,7 @@ indent_expression_line(E, Brackets:[name], Base:[int]) :->
 	    ),
 	    send(E, align_line, Col), !.
 
-		
+
 %	->indent_comment_line
 %
 

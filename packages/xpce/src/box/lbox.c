@@ -121,7 +121,7 @@ computeLBox(LBox lb)
 
     cy -= isep;				/* correct for last */
     cy += valInt(lb->top_sep);
-    
+
     if ( valInt(lb->area->h) != cy )
     { CHANGING_GRAPHICAL(lb,
       { assign(lb->area, h, toInt(cy));
@@ -144,7 +144,7 @@ getItemWidthLBox(LBox lb)
 
   if ( iw < 0 )
     iw = 0;
-  
+
   answer(toInt(iw));
 }
 
@@ -208,7 +208,7 @@ getNewItemLBox(LBox lb)
 
 /* Type declaractions */
 
-static char *T_append[] = 
+static char *T_append[] =
 	{ "label=[graphical]", "item=[graphical]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };

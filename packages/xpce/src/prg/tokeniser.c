@@ -69,7 +69,7 @@ cloneTokeniser(Tokeniser t, Tokeniser clone)
   assign(clone, source, NIL);
   clone->access = A_NONE;
   clone->line = clone->caret = 0;
-  
+
   succeed;
 }
 
@@ -291,7 +291,7 @@ getTokenTokeniser(Tokeniser t)
 
     answer(token);
   }
-    
+
   if ( isNil(t->source) )
   { errorPce(t, NAME_notOpen);
     fail;
@@ -352,11 +352,11 @@ getTokenTokeniser(Tokeniser t)
       { send(t, NAME_syntaxError, CtoName("End of file in string"), EAV);
 	fail;
       }
-	
+
       if ( tisstringescape(s, open, c) )
       { if ( c == open )		/* escape as double "" or '' */
 	{ int c2 = GETC(t);
-	  
+
 	  if ( c2 == open )
 	  { *q++ = c;
 	    continue;
@@ -365,7 +365,7 @@ getTokenTokeniser(Tokeniser t)
 	    *q = EOS;
 	    answer(CtoString(buf));
 	  }
-	} else	
+	} else
 	{ int c2;
 
 	  if ( IsEof(c2 = GETC(t)) )
@@ -406,7 +406,7 @@ getTokenTokeniser(Tokeniser t)
 
       c = GETC(t);
     } while ( tisdigit(s, c) );
-    
+
     if ( c == '.' )
     { int c2 = GETC(t);
 
@@ -448,7 +448,7 @@ getTokenTokeniser(Tokeniser t)
     { char *e;
       long f = strtol(buf, &e, 10);
       if ( e != q )
-      { DEBUG(NAME_tokeniser, 
+      { DEBUG(NAME_tokeniser,
 	      Cprintf("Num = '%s' (%ld), e = %d, q = %d\n",
 		      buf, f, e-buf, q-buf));
 	send(t, NAME_syntaxError, CtoName("Illegal number"), EAV);
@@ -467,7 +467,7 @@ getTokenTokeniser(Tokeniser t)
       }
       answer(CtoReal(f));
     }
-  } 
+  }
 
 nonum:
   if ( tisalnum(s, c) )		/* atom */
@@ -493,7 +493,7 @@ nonum:
 
     if ( isNil(t->symbols) || !getMemberHashTable(t->symbols, symb) )
       answer(symb);
-    
+
     do
     { symbol = symb;
       c = GETC(t);
@@ -509,7 +509,7 @@ nonum:
     answer(symbol);
   }
 }
-	  
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -578,7 +578,7 @@ static getdecl get_tokeniser[] =
 #define rc_tokeniser NULL
 /*
 static classvardecl rc_tokeniser[] =
-{ 
+{
 };
 */
 

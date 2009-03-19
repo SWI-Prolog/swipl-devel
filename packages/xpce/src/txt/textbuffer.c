@@ -149,7 +149,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   assign(tb, editors, newObject(ClassChain, EAV));
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
-  
+
   str_cphdr(&tb->buffer, str_nl(NULL));
   tb->tb_bufferA = pceMalloc(tb->allocated);
 
@@ -174,18 +174,18 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
       const charA *f = Address(tb, 0);
       const charA *e = &f[i];
       charW *t = w;
-  
+
       while(f<e)
 	*t++ = *f++;
-  
+
       pceFree(tb->tb_bufferA);
       tb->tb_bufferW = w;
       tb->buffer.iswide = TRUE;
       tb->tb_bufferW[i++] = chr;
-  
+
       for(; i<end; i++)
       { chr = Sgetcode(fd);
-  
+
 	tb->tb_bufferW[i] = chr;
       }
     }
@@ -201,7 +201,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   }
 
   tb->changed_start = tb->size;
-  tb->changed_end = 0;  
+  tb->changed_end = 0;
   CmodifiedTextBuffer(tb, OFF);
   assign(tb, generation, ZERO);
 
@@ -438,7 +438,7 @@ status
 CmodifiedTextBuffer(TextBuffer tb, Bool val)
 { if ( tb->modified != val )
     sendv(tb, NAME_modified, 1, (Any *) &val);
-  
+
   if ( val == ON )
     tb->generation = toInt(valInt(tb->generation)+1);
 
@@ -493,7 +493,7 @@ transposeTextBuffer(TextBuffer tb, Int f1, Int t1, Int f2, Int t2)
 status
 downcaseTextBuffer(TextBuffer tb, Int from, Int len)
 { downcase_textbuffer(tb, valInt(from), valInt(len));
-  
+
   return changedTextBuffer(tb);
 }
 
@@ -501,7 +501,7 @@ downcaseTextBuffer(TextBuffer tb, Int from, Int len)
 status
 upcaseTextBuffer(TextBuffer tb, Int from, Int len)
 { upcase_textbuffer(tb, valInt(from), valInt(len));
-  
+
   return changedTextBuffer(tb);
 }
 
@@ -509,7 +509,7 @@ upcaseTextBuffer(TextBuffer tb, Int from, Int len)
 status
 capitaliseTextBuffer(TextBuffer tb, Int from, Int len)
 { capitalise_textbuffer(tb, valInt(from), valInt(len));
-  
+
   return changedTextBuffer(tb);
 }
 
@@ -522,7 +522,7 @@ getScanTextBuffer(TextBuffer tb, Int from, Name unit, Int amount, Name az)
     az = (valInt(amount) >= 0 ? NAME_end : NAME_start);
 
   return toInt(scan_textbuffer(tb,
-  			       valInt(from), 
+  			       valInt(from),
   			       unit,
   			       valInt(amount),
   			       az == NAME_start ? 'a' : 'z'));
@@ -629,7 +629,7 @@ getFindTextBuffer(TextBuffer tb, Int from, StringObj str,
   int result;
   int ec, wm;
 
-  if ( isDefault(times) ) 
+  if ( isDefault(times) )
     times = ONE;
   az = (isDefault(start) ? (valInt(times) >= 0 ? 'z' : 'a')
 			 : start == NAME_start ? 'a' : 'z');
@@ -680,7 +680,7 @@ getFindTextBuffer(TextBuffer tb, Int from, StringObj str,
 	    a) a series of alnum characters
 	    b) a quoted string
 	    c) a string with matching brackets at its start end end
-	    d) case a), immediately followed by case c).	       
+	    d) case a), immediately followed by case c).
 
     Negative amount scans backwards.  The returned index is in the range
     [0, size).
@@ -755,12 +755,12 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 { int here;
   int size = tb->size;
   SyntaxTable syntax = tb->syntax;
-  
+
   DEBUG(NAME_scan, Cprintf("scan_textbuffer(%s, %d, %s, %d, %c)\n",
 			   pp(tb), from, pp(unit), amount, az));
 
   here = from;
-  
+
   if ( unit == NAME_character )
   { here = from + amount;	/* 'az' does not count (no separator) */
     return NormaliseIndex(tb, here);
@@ -793,7 +793,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	}
 	return here == 0 ? here : here+1;
       }
-    } 	   
+    }
   } else if ( unit == NAME_line )
   { if ( az == 'a' )		/* return first char of line */
     { if ( amount <= 0 )
@@ -820,7 +820,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	  if ( here >= size || amount == 0 )
 	    return here > size ? size : here;
 	  here++;
-	} 
+	}
       } else
       { for( ; ; amount++ )
 	{ while( here > 0 && !tisendsline(syntax, fetch(here)) )
@@ -829,7 +829,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	    return here < 0 ? 0 : here;
 	  here--;
 	}
-      }             
+      }
     }
   } else if ( unit == NAME_sentence )
   { if ( az == 'z' )
@@ -966,14 +966,14 @@ getMatchingQuoteTextBuffer(TextBuffer tb, Int idx, Name direction)
 	     (c2=fetch(i-1)) != c &&
 	     tisstringescape(syntax, c, c2) )
 	  continue;
-	  
+
 	answer(toInt(i));
       }
     }
   } else /* if ( direction == NAME_backward ) */
   { for(i--; i>=0; i--)
     { int c2 = fetch(i);
-      
+
       if ( c2 == c )
       { if ( i == 0 )
 	  answer(toInt(i));
@@ -1011,7 +1011,7 @@ scan_syntax_textbuffer(TextBuffer tb,
   SyntaxTable syntax = tb->syntax;	/* syntax-table */
   int state = SST_PLAIN;		/* initial/current state */
   int tokenstart = from;
-  
+
   for(; here < to; here++)
   { int c = fetch(here);
 
@@ -1074,7 +1074,7 @@ scan_syntax_textbuffer(TextBuffer tb,
 
       for( here += 4; here < to; here++ )
       { int c = fetch(here - 1);
-	  
+
 	if ( tiscommentend2(syntax, c) )
 	{ c = fetch(here - 2);
 	  if ( tiscommentend1(syntax, c) )
@@ -1126,7 +1126,7 @@ getScanSyntaxTextBuffer(TextBuffer tb, Int f, Int t)
   }
 
   answer(answerObject(ClassTuple, class, toInt(start), EAV));
-} 
+}
 
 
 static status
@@ -1182,7 +1182,7 @@ getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
   stack[0] = c;
 
   if ( tisopenbrace(syntax, c) )
-    ic = 1; 
+    ic = 1;
   else if ( tisclosebrace(syntax, c) )
     ic = -1;
   else
@@ -1220,7 +1220,7 @@ getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
     if ( depth == 0 )
       answer(toInt(i));
   }
-  
+
   fail;
 }
 
@@ -1264,7 +1264,7 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
 { long pos = valInt(where);
   long end = (isDefault(to) ? tb->size : valInt(to));
   int fwd = (end >= pos);
-    
+
   pos = NormaliseIndex(tb, pos);
   end = NormaliseIndex(tb, end);
 
@@ -1292,7 +1292,7 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
 	   tiscommentstart2(tb->syntax, fetch(pos+1)) )
       { for( pos += 4; pos < end; pos++ )
 	{ int c = fetch(pos - 1);
-	  
+
 	  if ( tiscommentend2(tb->syntax, c) )
 	  { c = fetch(pos - 2);
 	    if ( tiscommentend1(tb->syntax, c) )
@@ -1448,7 +1448,7 @@ getLineNumberTextBuffer(TextBuffer tb, Int i)
 
   answer(toInt(count_lines_textbuffer(tb, 0, e) + 1));
 }
-  
+
 
 int
 find_textbuffer(TextBuffer tb, int here, String str,
@@ -1583,7 +1583,7 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
   }
 
 
-  for(;;)				
+  for(;;)
   { 					/* copy string of non-blanks */
     for( ; here < to && !tislayout(tb->syntax, fetch(here)); here++ )
       col++;
@@ -1603,9 +1603,9 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
 	else
           store_textbuffer(tb, here, '\n');
 	return here+1;
-      }        
+      }
     }
-    
+
     if ( here >= to )
       return here;
 
@@ -1708,7 +1708,7 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Counting lines and finding lines.  This   is  in  some applications done
 quite often on long buffers and  therefore   we  have  written this at a
-rather low level. 
+rather low level.
 
 count_lines_textbuffer()       finds the number of newlines in a region.
 start_of_line_n_textbuffer()   finds the character index of the nth-1 line.
@@ -1818,7 +1818,7 @@ fetch_textbuffer(TextBuffer tb, int where)
 
   return istbA(tb) ? (wint_t)tb->tb_bufferA[idx] : (wint_t)tb->tb_bufferW[idx];
 }
-  
+
 
 static status
 store_textbuffer(TextBuffer tb, int where, wint_t c)
@@ -1836,7 +1836,7 @@ store_textbuffer(TextBuffer tb, int where, wint_t c)
     old = tb->tb_bufferA[idx];
   else
     old = tb->tb_bufferW[idx];
-    
+
   if ( old == c )
     succeed;
   if ( tisendsline(tb->syntax, old) )
@@ -1870,7 +1870,7 @@ change_textbuffer(TextBuffer tb, int where, String s)
     promoteTextBuffer(tb);
 
   register_change_textbuffer(tb, where, s->size);
-  
+
   if ( istbA(tb) )
   { for( w=where, n=0; n < s->size; n++, w++ )
     { long i = Index(tb, w);
@@ -1961,7 +1961,7 @@ downcase_textbuffer(TextBuffer tb, int from, int len)
     if ( iswupper((c=fetch(from))) )
       store_textbuffer(tb, from, towlower(c));
   }
-      
+
   succeed;
 }
 
@@ -1974,7 +1974,7 @@ upcase_textbuffer(TextBuffer tb, int from, int len)
     if ( iswlower((c=fetch(from))) )
       store_textbuffer(tb, from, towupper(c));
   }
-      
+
   succeed;
 }
 
@@ -1997,7 +1997,7 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 
     b = c;
   }
-      
+
   succeed;
 }
 
@@ -2052,7 +2052,7 @@ save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
 
   succeed;
 }
-  
+
 
 status
 str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
@@ -2067,13 +2067,13 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
     len = 0;
   else if ( start + len > tb->size )
     len = tb->size - start;
-  
+
   if ( start < tb->gap_start && start+len > tb->gap_start )
     room(tb, start + len, 1);
-  
+
   str_cphdr(s, &tb->buffer);
   s->size = len;
-  
+
   if ( start < tb->gap_start )
     idx = start;
   else
@@ -2130,7 +2130,7 @@ static status
 demoteTextBuffer(TextBuffer tb)
 { if ( !istbA(tb) )
   { if ( fits_iso_latin_1(tb->tb_bufferW, tb->gap_start) &&
-	 fits_iso_latin_1(tb->tb_bufferW+tb->gap_end, 
+	 fits_iso_latin_1(tb->tb_bufferW+tb->gap_end,
 			  tb->allocated - tb->gap_end) )
     { charA *s = pceMalloc(tb->allocated * sizeof(charA));
       const charW *f = tb->tb_bufferW;
@@ -2182,7 +2182,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
   room(tb, where, size);		/* always enough */
   where = tb->gap_start;		/* normalised */
   start_change(tb, tb->gap_start);
-  
+
   if ( istbA(tb) )
   { for(;;)
     { int c = Sgetcode(fd);
@@ -2209,7 +2209,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
       tb->size++;
     }
   }
-    
+
 done:
   if ( Sferror(fd) )
   { tb->gap_start = where;		/* forget about it */
@@ -2256,7 +2256,7 @@ done:
 
   shift_fragments(tb, where, grow);
   CmodifiedTextBuffer(tb, ON);
-    
+
   succeed;
 }
 
@@ -2305,7 +2305,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
     tb->gap_start += s->size;
     tb->size += s->size;
   }
-  end_change(tb, tb->gap_start);  
+  end_change(tb, tb->gap_start);
 
   for(here=where; here<where+grow; here++)
   { if ( tisendsline(tb->syntax, fetch(here)) )
@@ -2333,7 +2333,7 @@ clear_textbuffer(TextBuffer tb)
 
   if ( tb->tb_bufferA != NULL )
     pceFree(tb->tb_bufferA);
-  
+
   start_change(tb, 0);
   end_change(tb, tb->size);
 
@@ -2344,7 +2344,7 @@ clear_textbuffer(TextBuffer tb)
 
   tb->gap_start = 0;
   tb->gap_end = tb->allocated;
-  
+
   while( notNil(tb->first_fragment) )		/* destroy fragments */
     freeObject(tb->first_fragment);
   CmodifiedTextBuffer(tb, ON);
@@ -2497,7 +2497,7 @@ room(TextBuffer tb, int where, int grow)
     tb->tb_bufferA = pceRealloc(tb->tb_bufferA,
 				istbA(tb) ? s : s*sizeof(charW));
     tb->allocated = s;
-    
+
     memmove(Address(tb, tb->gap_end + shift),
 	    Address(tb, tb->gap_end),
 	    istbA(tb) ? ag : ag*sizeof(charW));
@@ -2517,7 +2517,7 @@ room(TextBuffer tb, int where, int grow)
     memmove(Address(tb, tb->gap_start),
 	    Address(tb, tb->gap_end),
 	    istbA(tb) ? move : sizeof(charW) * move);
-  }    
+  }
   tb->gap_start += shift;			/* move the gap pointers */
   tb->gap_end += shift;
 

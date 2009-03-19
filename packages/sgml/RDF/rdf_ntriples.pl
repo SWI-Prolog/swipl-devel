@@ -40,7 +40,7 @@ where
 
 
 %	load_rdf_ntriples(+Source, -Triples)
-%	
+%
 %	Load a file or stream to a list of rdf(S,P,O) triples.
 
 load_rdf_ntriples(File, Triples) :-
@@ -48,7 +48,7 @@ load_rdf_ntriples(File, Triples) :-
 	call_cleanup(stream_to_triples(In, Triples), Close).
 
 %	open_nt_file(+Input, -Stream, -Close)
-%	
+%
 %	Open Input, returning Stream and a goal to cleanup Stream if it
 %	was opened.
 
@@ -64,7 +64,7 @@ open_nt_file(Spec, Stream, close(Stream)) :-
 
 
 %	rdf_ntriple_part(+Type, -Value, <DCG>)
-%	
+%
 %	Parse one of the fields of  an   ntriple.  This  is used for the
 %	SWI-Prolog Sesame (www.openrdf.org) implementation   to  realise
 %	/servlets/removeStatements. I do not think   public  use of this
@@ -79,7 +79,7 @@ rdf_ntriple_part(object, Object) -->
 
 
 %	stream_to_triples(+Stream, -ListOfTriples)
-%	
+%
 %	Read Stream, returning all its triples
 
 stream_to_triples(In, Triples) :-
@@ -143,11 +143,11 @@ literal(Literal) -->
 	lang_string(Literal), !.
 literal(Literal) -->
 	xml_string(Literal).
-	
+
 
 %	name_start(-Code)
 %	name_codes(-ListfCodes)
-%	
+%
 %	Parse identifier names
 
 name_start(C) -->
@@ -165,7 +165,7 @@ name_codes([]) -->
 
 
 %	escaped_uri_codes(-CodeList)
-%	
+%
 %	Decode string holding %xx escaped characters.
 
 escaped_uri_codes([]) -->
@@ -192,7 +192,7 @@ escaped_uri_codes([C|T]) -->
 
 
 %	lang_string()
-%	
+%
 %	Process a language string
 
 lang_string(String) -->
@@ -208,7 +208,7 @@ lang_string(String) -->
 	;   "^^"
 	->  uniref(Type),
 	    { String = literal(type(Type, Atom))
-	    }	
+	    }
 	;   { String = literal(Atom)
 	    }
 	).
@@ -219,7 +219,7 @@ langsep -->
 	"@".
 
 %	xml_string(String)
-%	
+%
 %	Handle xml"..."
 
 xml_string(xml(String)) -->
@@ -256,19 +256,19 @@ string_char(C) -->
 	}.
 string_char(C) -->
 	[C].
-	
+
 '4xdigits'(C) -->
 	[C0,C1,C2,C3],
 	{ code_type(C0, xdigit(V0)),
 	  code_type(C1, xdigit(V1)),
 	  code_type(C2, xdigit(V2)),
 	  code_type(C3, xdigit(V3)),
-	  
+
 	  C is V0<<12 + V1<<8 + V2<<4 + V3
 	}.
 
 %	language(-Lang)
-%	
+%
 %	Return xml:lang language identifier.
 
 language(Lang) -->
@@ -302,7 +302,7 @@ ws -->
 	}.
 
 end_of_input([], []).
-	
+
 
 wss -->
 	ws, !,

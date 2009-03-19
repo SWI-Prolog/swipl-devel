@@ -395,7 +395,7 @@ spell(F) :->
 	send(P, free),
 	get(F?errors?dict?members, size, Errors),
 	send(F, report, done, 'Spelling done. %d Errors', Errors).
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark all occurrences of an error.  First, the error is appended to the
@@ -560,14 +560,14 @@ ispell_utterance(F, Line:string) :->
 	(   get(Line, size, 1)
 	->  true
 	;   send(Corrections, clear)
-	),	
+	),
 	(   send(Line, prefix, '& ')
 	->  send(Line, strip),
 	    (   get(Line, index, ':', _)
 	    ->  Re = @re_word_ispell_3
 	    ;   Re = @re_word_ispell_4
 	    ),
-	    send(Re, for_all, Line, 
+	    send(Re, for_all, Line,
 		 message(Corrections, append,
 			 ?(@arg1, register_value, @arg2, 1)))
 	;   send(Line, prefix, '#'),
@@ -643,7 +643,7 @@ next(F) :->
 	get(F, errors, Browser),
 	get(Browser, member, Word, DI),
 	get(DI, object, Errors),
-	
+
 	get(Errors, index, F1, IF1),
 	send(Errors, delete, F1),
 	send(F1, free),

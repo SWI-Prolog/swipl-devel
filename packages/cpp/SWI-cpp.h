@@ -32,8 +32,8 @@
 #endif
 
 #ifdef __BORLANDC__
-#define __inline inline 
-#endif 
+#define __inline inline
+#endif
 
 #ifdef _MSC_VER			/* MSVC doesn't know throw doesn't return */
 #define PL_THROWN(value)	return value;
@@ -100,7 +100,7 @@ public:
   PlTerm(term_t t)
   { ref = t;
   }
-  
+
 					/* C --> PlTerm */
   PlTerm(const char *text)
   { ref = PL_new_term_ref();
@@ -240,7 +240,7 @@ public:
 class PlCompound : public PlTerm
 {
 public:
-  
+
   PlCompound(const char *text);
   PlCompound(const char *functor, const PlTermv &args);
 };
@@ -260,7 +260,7 @@ public:
 
 
 class PlCodeList : public PlTerm
-{ 
+{
 public:
 
   PlCodeList(const char *text) : PlTerm()
@@ -356,7 +356,7 @@ public:
 class PlTail : public PlTerm
 {
 public:
-  
+
   PlTail(const PlTerm &l)
   { if ( PL_is_variable(l.ref) || PL_is_list(l.ref) )
       ref = PL_copy_term_ref(l.ref);
@@ -400,7 +400,7 @@ public:
 class PlRegister
 {
 public:
-  
+
   PlRegister(const char *module, const char *name, int arity,
 	    foreign_t (f)(term_t t0, int a, control_t ctx))
   { PL_register_foreign_in_module(module, name, arity, (void *)f, PL_FA_VARARGS);
@@ -455,7 +455,7 @@ public:
 
   PlQuery(const char *name, const PlTermv &av)
   { predicate_t p = PL_predicate(name, av.size, "user");
-    
+
     qid = PL_open_query((module_t)0, PL_Q_CATCH_EXCEPTION, p, av.a0);
   }
   PlQuery(const char *module, const char *name, const PlTermv &av)
@@ -463,7 +463,7 @@ public:
     atom_t na = PL_new_atom(name);
     module_t m = PL_new_module(ma);
     predicate_t p = PL_pred(PL_new_functor(na, av.size), m);
-    
+
     PL_unregister_atom(ma);
     PL_unregister_atom(na);
 
@@ -531,7 +531,7 @@ __inline PlTerm::operator char *(void) const
 
 __inline PlTerm::operator long(void) const
 { long v;
-  
+
   if ( PL_get_long(ref, &v) )
     return v;
 
@@ -541,7 +541,7 @@ __inline PlTerm::operator long(void) const
 
 __inline PlTerm::operator int(void) const
 { int v;
-  
+
   if ( PL_get_integer(ref, &v) )
     return v;
 
@@ -551,7 +551,7 @@ __inline PlTerm::operator int(void) const
 
 __inline PlTerm::operator double(void) const
 { double v;
-  
+
   if ( PL_get_float(ref, &v) )
     return v;
 
@@ -561,7 +561,7 @@ __inline PlTerm::operator double(void) const
 
 __inline PlTerm::operator PlAtom(void) const
 { atom_t v;
-  
+
   if ( PL_get_atom(ref, &v) )
     return PlAtom(v);
 
@@ -606,7 +606,7 @@ __inline int
 PlTerm::arity()
 { atom_t name;
   int arity;
-  
+
   if ( PL_get_name_arity(ref, &name, &arity) )
     return arity;
 
@@ -619,7 +619,7 @@ __inline const char *
 PlTerm::name()
 { atom_t name;
   int arity;
-  
+
   if ( PL_get_name_arity(ref, &name, &arity) )
     return PL_atom_chars(name);
 
@@ -697,7 +697,7 @@ __inline int PlTerm::operator ==(const char *s)
 
   if ( PL_get_chars(ref, &s0, CVT_ALL) )
     return strcmp(s0, s) == 0;
-  
+
   throw PlTypeError("text", ref);
   PL_THROWN(0);
 }
@@ -708,7 +708,7 @@ __inline int PlTerm::operator ==(const PlAtom &a)
 
   if ( PL_get_atom(ref, &v) )
     return v == a.handle;
-  
+
   throw PlTypeError("atom", ref);
   PL_THROWN(0);
 }
@@ -938,15 +938,15 @@ public:
                                                     PL_FA_NONDETERMINISTIC | PL_FA_VARARGS); \
 	static foreign_t pl_ ## name ## __ ## arity(PlTermv _av, foreign_t handle)
 
-#define A1  _av[0]        
-#define A2  _av[1]        
-#define A3  _av[2]        
-#define A4  _av[3]        
-#define A5  _av[4]        
-#define A6  _av[5]        
-#define A7  _av[6]        
-#define A8  _av[7]        
-#define A9  _av[8]        
-#define A10 _av[9]        
+#define A1  _av[0]
+#define A2  _av[1]
+#define A3  _av[2]
+#define A4  _av[3]
+#define A5  _av[4]
+#define A6  _av[5]
+#define A7  _av[6]
+#define A8  _av[7]
+#define A9  _av[8]
+#define A10 _av[9]
 
 #endif /*_SWI_CPP_H*/

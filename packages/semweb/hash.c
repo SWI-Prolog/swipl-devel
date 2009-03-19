@@ -81,7 +81,7 @@ add_ptr_hash(ptr_hash *hash, void *value)
   node->value = value;
   node->next = hash->chains[key];
   hash->chains[key] = node;
-  
+
   return TRUE;
 }
 

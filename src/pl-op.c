@@ -43,7 +43,7 @@ Proposal:
 	  the global operator table.
 
 To find the  current  definition  of   some  operator,  first  check the
-thread's table, then the module-table and finally the global table. 
+thread's table, then the module-table and finally the global table.
 
 current_op/3 gets difficult.  TBD.
 
@@ -193,7 +193,7 @@ out:
   if ( op->priority[kind] > 0 )
   { *type     = op->type[kind];
     *priority = op->priority[kind];
-    
+
     DEBUG(5,
 	  Sdprintf("currentOperator(%s) --> %s %d\n",
 		   PL_atom_chars(name),
@@ -202,7 +202,7 @@ out:
 
     succeed;
   }
-    
+
   fail;
 }
 
@@ -325,7 +325,7 @@ pl_op(term_t pri, term_t type, term_t name)
   }
 
   succeed;
-}    
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -345,7 +345,7 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
   { if ( op->name == name && op->type == type )
       return;				/* got this one already */
   }
-  
+
   new.name = name;
   new.type = type;
   new.priority = priority;
@@ -371,7 +371,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 	if ( op->priority[kind] < 0 ||
 	     op->type[kind] != type )
 	  continue;
-	
+
 	if ( !priority ||
 	     op->priority[kind] == priority ||
 	     op->priority[kind] == 0 )
@@ -382,7 +382,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 	for(kind = OP_PREFIX; kind <= OP_POSTFIX; kind++)
 	{ if ( op->priority[kind] < 0 )
 	    continue;
-	  
+
 	  if ( !priority ||
 	     op->priority[kind] == priority ||
 	     op->priority[kind] == 0 )
@@ -391,7 +391,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
       }
     }
   }
-  
+
   freeTableEnum(e);
 }
 
@@ -432,7 +432,7 @@ current_op(Module m, int inherit,
       }
       if ( m->operators )
 	addOpsFromTable(m->operators, nm, p, t, b);
-	
+
       if ( inherit && m != MODULE_user )
 	addOpsFromTable(MODULE_user->operators, nm, p, t, b);
 

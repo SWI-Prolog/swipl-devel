@@ -30,7 +30,7 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Demo using the threaded HTTP library with SSL.  
+Demo using the threaded HTTP library with SSL.
 
 URL:	https://localhost:1443/env
 

@@ -82,6 +82,6 @@
 %%	read_line(+In:stream, -Line:codes) is det.
 %
 %	Read next input line from In and return it as a list of codes.
-%	
+%
 %	  * Nice item
 %	  * Item 2

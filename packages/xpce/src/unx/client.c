@@ -98,14 +98,14 @@ char *address;
 
     a.sin_family = AF_INET;
     a.sin_port   = htons(port);
- 
+
     if ( !(hp = gethostbyname(host)) )
       return -1;
     memcpy(&a.sin_addr, hp->h_addr, hp->h_length);
 
     if ( (id = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
       return id;
-  
+
     return connect(id, addr, len) ? -1 : id;
   } else
   { struct sockaddr_un a;
@@ -120,7 +120,7 @@ char *address;
     if ( (id = socket(PF_UNIX, SOCK_STREAM, 0)) < 0 )
       return id;
     len += sizeof(a.sun_family);
-  
+
     return connect(id, addr, len) ? -1 : id;
   }
 }
@@ -195,7 +195,7 @@ int f1, t1, f2, t2, block;
 	  var = argv[0]; \
 	  SHIFT; \
 	}
-	  
+
 
 int
 main(argc, argv)
@@ -209,7 +209,7 @@ char **argv;
 
   program = argv[0];
   SHIFT;
-  
+
   if ( argc == 0 )
     usage();
   address = argv[0];
@@ -235,7 +235,7 @@ char **argv;
       }
     }
   }
-  
+
   if ( (id = connectPce(address)) < 0 )
   { if ( !quiet )
       perror("connect");

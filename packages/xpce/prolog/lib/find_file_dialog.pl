@@ -126,7 +126,7 @@ layout(D, Size:[size]) :->
 	get(D, member, files, Files),
 	get(D, width, DW),
 	get(D?border, width, BW),
-	get(D?gap, width, GW), 
+	get(D?gap, width, GW),
 	BrW is (DW-2*BW-GW)//2,
 	send(SubDirs, do_set, BW, @default, BrW),
 	send(Files, do_set, BW+BrW+GW, @default, BrW),
@@ -145,7 +145,7 @@ right_to_left([H|T], D, GW, Right) :-
 	send(Item, x, IX),
 	RX is IX - GW,
 	right_to_left(T, D, GW, RX).
-       
+
 
 make_transient(D) :->
 	"Make transient to current object"::
@@ -395,7 +395,7 @@ prompt_name(D, For:name, Name:name) :<-
 	get(D2, confirm_centered, D?frame?area?center, Name),
 	send(D2, destroy),
 	Name \== ''.
-	
+
 delete_dir(D, Name:name) :->
 	"Delete named directory"::
 	send(D?display, confirm, 'Delete directory "%s"?', Name),
@@ -503,14 +503,14 @@ enter(FI) :->
 
 
 %	->filter(Filter)
-%	
+%
 %	Defines file-selection filter.  The argument is either single
 %	or a chain to specify alternatives.  Singles are either a plain
 %	atom denoting the extension, or a tuple(Label, Ext), where Ext
 %	is a single atom or a chain of atoms.
-%	
+%
 %	For example:
-%	
+%
 %	    ->filter: pl		% *.pl files
 %	    ->filter: chain(pl,qlf)	% *.pl or *.qlf files
 %	    ->filter: tuple(prolog, chain(pl,qlf))

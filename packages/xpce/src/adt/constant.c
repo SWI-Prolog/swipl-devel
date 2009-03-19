@@ -42,7 +42,7 @@ mkconstant(Class class, Constant c, Name name, const char *summary)
 { initHeaderObj(c, class);
   setProtectedObj(c);
   clearCreatingObj(c);
-  
+
   assign(c, name,    name);
   assign(c, summary, staticCtoString(summary));
 

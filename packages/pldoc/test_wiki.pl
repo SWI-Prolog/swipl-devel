@@ -47,7 +47,7 @@ missing_tags([H|T0], Outer) -->
 missing_tags([H|T], Outer) -->
 	H,
 	missing_tags(T, Outer).
-	
+
 in_tag([], [], _) --> !,
 	[].
 in_tag(L, L, Tag) -->

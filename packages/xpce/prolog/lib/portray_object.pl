@@ -47,7 +47,7 @@ portray mechanism of your Prolog. In that case:
 portray(Object) :-
 	object(Object), !,
 	portray_object(Object).
-==		
+==
 
 Sometimes the use of  object  references  can   be  a  new  nuisance, in
 particular while writing and debugging PCE   programs.  Suppose you have
@@ -84,7 +84,7 @@ portrayed. You can make private extensions to these rules if you like.
 %
 %	==
 %	portray_class(constraint(A, B, C), _, constraint(A, B, p/C)).
-%	==	
+%	==
 %
 %	Which should not touch the first two   arguments  (A and B), but
 %	portrays C recursively.
@@ -126,10 +126,10 @@ portray_class(click_gesture(A, B, C, D, E, F),
 portray_class(handle(A,B,C,D), handle(p/A, p/B, C, D)).
 portray_class(quote_function(X), quote_function(p/X)).
 portray_class(Term, NewTerm) :-
-	functor(Term, Functor, _), 
+	functor(Term, Functor, _),
 	vararg_class(Functor), !,
-	Term =.. [Functor|Arguments], 
-	maplist(tag_p, Arguments, NewArguments), 
+	Term =.. [Functor|Arguments],
+	maplist(tag_p, Arguments, NewArguments),
 	NewTerm =.. [Functor|NewArguments].
 portray_class(A, A).
 
@@ -173,7 +173,7 @@ global_object(@off).
 %	Prints the result of portray_object/2 on the display.
 
 portray_object(Object) :-
-	portray_object(Object, Term), 
+	portray_object(Object, Term),
 	print(Term), nl, !.
 
 
@@ -191,13 +191,13 @@ portray_object(@Object, @Object, _) :-
 portray_object(Obj, '<recursive>'(Obj), Done) :-
 	memberchk(Obj, Done), !.
 portray_object(@Object, Term, Done) :-
-	object(@Object, Description), 
-	portray_class(Description, Result), 
+	object(@Object, Description),
+	portray_class(Description, Result),
 	portray_description(Result, Term, [@Object|Done]), !.
 portray_object(Term, Term, _).
 
 portray_description(Result, Term, Done) :-
-	Result =.. Arguments, 
+	Result =.. Arguments,
 	maplist(portray_argument(Done), Arguments, List), !,
 	Term =.. List.
 portray_description(Term, Term, _).

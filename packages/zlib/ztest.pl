@@ -29,7 +29,7 @@ test(gunzip,
 	call_cleanup(read_stream_to_codes(ZIn, Codes0), close(ZIn)),
 	read_file_to_codes('ztest.pl', Codes1),
 	Codes0 == Codes1.
-	
+
 %	gzip: Can gunzip read our compressed file
 
 test(gzip,
@@ -133,7 +133,7 @@ test(big) :-
 	       (   Max is 10**I,
 		   big(_, Max))).
 
-big(Port, N):- 
+big(Port, N):-
 	tcp_socket(SockFd),
 	tcp_setopt(SockFd, reuseaddr),
 	tcp_bind(SockFd, Port),
@@ -153,7 +153,7 @@ big(Port, N):-
 	tcp_close_socket(SockFd),
 	thread_join(Client, Status),
 	assertion(Status == true).
-	
+
 send_data(I, N, ZOut) :-
 	I =< N, !,
 	format(ZOut, '~d.~n', [I]),
@@ -170,7 +170,7 @@ client_test(Port, N) :-
 	get_data(ZIn, N),
 	close(ZIn),
 	close(Out).
-	
+
 get_data(ZIn, _) :-
 	debugging(data), !,
 	between(0, inf, X),

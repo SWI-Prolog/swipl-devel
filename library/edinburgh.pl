@@ -53,7 +53,7 @@ Standard Prolog.
 %%	display(+Stream, +Term) is det.
 %
 %	Write a term, ignoring operators.
-%	
+%
 %	@deprecated	New code must use write_term/3 using the option
 %			ignore_ops(true).
 
@@ -100,7 +100,7 @@ nodebug :- set_prolog_flag(debug, false).
 %	=true=, causing file operations to   raise an exception. Setting
 %	it to =false=  activates  the  old   Edinburgh  mode  of  silent
 %	failure.
-%	
+%
 %	@deprecated	New code should use catch/3 to handle file errors
 %			silently
 

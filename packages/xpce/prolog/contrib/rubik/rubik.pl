@@ -718,7 +718,7 @@ adjust3(C1,L5,C4):-
 adjust3draw_corners(Cube,ResList,ResCube):-
 	turn_cube(Cube,N,Cube1), % rotate the cube and focus on the left side.
 	draw(Cube1,b/Turns,Cube2), % rotate the backside of the cube.
-Cube2 
+Cube2
   = cube(A1, _,C1,
           _, U, _,
           _, _, _,

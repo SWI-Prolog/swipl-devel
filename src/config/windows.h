@@ -238,7 +238,7 @@ typedef int mode_t;
 #undef HAVE_GETPAGESIZE
 
 /* Define if you have the getpwnam function.  */
-#undef HAVE_GETPWNAM 
+#undef HAVE_GETPWNAM
 
 /* Define if you have the getrlimit function.  */
 #undef HAVE_GETRLIMIT
@@ -332,7 +332,7 @@ typedef int mode_t;
 /* #undef HAVE_NDIR_H */
 
 /* Define if you have the <pwd.h> header file.  */
-#undef HAVE_PWD_H 
+#undef HAVE_PWD_H
 
 /* Define if you have the <string.h> header file.  */
 #define HAVE_STRING_H 1
@@ -350,7 +350,7 @@ typedef int mode_t;
 #undef HAVE_SYS_PARAM_H
 
 /* Define if you have the <sys/resource.h> header file.  */
-#undef HAVE_SYS_RESOURCE_H 
+#undef HAVE_SYS_RESOURCE_H
 
 /* Define if you have the <sys/select.h> header file.  */
 /* #undef HAVE_SYS_SELECT_H */

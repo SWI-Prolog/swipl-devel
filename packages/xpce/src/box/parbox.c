@@ -64,7 +64,7 @@ appendParBox(ParBox pb, HBox hb)
 static status
 clearParBox(ParBox pb)
 { clearVector(pb->content);
-  
+
   return clearDevice((Device)pb, NAME_erase);
 }
 
@@ -106,7 +106,7 @@ cdataParBox(ParBox pb, StringObj cdata,
   { while( end > here && iswspace(str_fetch(text, end-1)) )
       end--;
   }
-  
+
   while( here < end )
   { if ( iswspace(str_fetch(text, here)) )
     { while( here<end && iswspace(str_fetch(text, here)) )
@@ -247,7 +247,7 @@ RedrawAreaParBox(ParBox pb, Area a)
     while(here <= valInt(getHighIndexVector(pb->content)) && y < zy)
     { parcell *pc;
       int i;
-  
+
       l.x = 0;
       l.y = y;
       l.w = w;
@@ -261,12 +261,12 @@ RedrawAreaParBox(ParBox pb, Area a)
 	continue;
       }
       justify_line(&l, pb->alignment);
-      
+
       y += l.ascent;			/* the baseline */
-      
+
       for(i=0, pc = l.hbox; i<l.size; i++, pc++)
 	drawHBox(pc->box, pc->x, y, pc->w);
-  
+
       y += l.descent;
     }
 
@@ -301,7 +301,7 @@ getLocateEventParBox(ParBox pb, EventObj ev)
     for(; here <= hi; here = h2)
     { parcell *pc;
       int i;
-  
+
       l.x = 0;
       l.y = y;
       l.w = w;
@@ -332,7 +332,7 @@ getLocateEventParBox(ParBox pb, EventObj ev)
 	continue;
       }
       justify_line(&l, pb->alignment);
-      
+
       for(i=0, pc = l.hbox; i<l.size; i++, pc++)
       { if ( pc->flags & PC_ALIGNED_GR )
 	  continue;			/* check? */
@@ -389,7 +389,7 @@ getBoxAreaParBox(ParBox pb, Any target, Device relto)
   { long h2;
     parcell *pc;
     int i;
-    
+
     l.x = 0;
     l.y = y;
     l.w = w;
@@ -406,11 +406,11 @@ getBoxAreaParBox(ParBox pb, Any target, Device relto)
 
 	  if ( pc->flags & PC_ALIGNED_GR )
 	  { Graphical gr = ((GrBox)pc->box)->graphical;
-  
+
 	    a = getCopyArea(gr->area);
 	  } else
 	  { justify_line(&l, pb->alignment);
-	  
+
 	    a = answerObject(ClassArea,
 			     toInt(pc->x), toInt(y),
 			     toInt(pc->w), toInt(l.ascent+l.descent), EAV);
@@ -463,7 +463,7 @@ for_parbox(ParBox, Function, Closure)
     returned, or zero if the end of the search is reached.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static long for_device_parbox(Device dev, 
+static long for_device_parbox(Device dev,
 			      long (*f)(ParBox pb, HBox hb, long index, void *closure),
 			      void *closure);
 
@@ -497,7 +497,7 @@ for_parbox(ParBox pb,
 
 
 static long
-for_device_parbox(Device dev, 
+for_device_parbox(Device dev,
 		  long (*f)(ParBox pb, HBox hb, long index, void *closure),
 		  void *closure)
 { Cell cell;
@@ -616,7 +616,7 @@ getNaturalWidthParBox(ParBox pb, Int maxwidth)
       }
     }
   }
-  
+
   requestComputeGraphical(pb, DEFAULT);
 
   answer(toInt(mw-lm));
@@ -659,7 +659,7 @@ y_extend_shape(parshape *s)		/* deepest shape-graphical */
   { if ( s->right[i].end_y > y )
       y = s->right[i].end_y;
   }
-  
+
   return y;
 }
 
@@ -798,14 +798,14 @@ justify_line(parline *line, Name alignment)
       { c->w = sp->size;
 	sp++;
       }
-      
+
       c->x = cx;
       if ( !(c->flags & PC_ALIGNED_GR) )
 	cx += c->w;
       if ( cx > line->maxx )
 	line->maxx = cx;
     }
-  } 
+  }
 }
 
 
@@ -859,7 +859,7 @@ fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)
 { int cx, ex;
   HBox *content = (HBox *)pb->content->elements-1;
   int hi = valInt(getHighIndexVector(pb->content));
-  int last_break_index = here; 
+  int last_break_index = here;
   parcell *last_break = NULL;
   parcell *pc = line->hbox, *epc = pc+line->size;
   int blank = TRUE;			/* only emitted blank space */
@@ -1027,7 +1027,7 @@ compute_ascent_descent_line(parline *l)
   int descent = 0;
   int i;
   parcell *pc;
-  
+
   for(i=0, pc = l->hbox; i < l->size; i++, pc++)
   { HBox hb = pc->box;
 
@@ -1067,7 +1067,7 @@ PlaceGrBox(ParBox pb, GrBox grb, parline *l, Int x, Int y, Int w)
       { ascent = (l->ascent - l->descent)/2 + h/2;
 	descent = h-ascent;
       }
-  
+
       if ( grb->ascent  != toInt(ascent) ||
 	   grb->descent != toInt(descent) )
       { assign(grb, ascent,  toInt(ascent));
@@ -1075,7 +1075,7 @@ PlaceGrBox(ParBox pb, GrBox grb, parline *l, Int x, Int y, Int w)
 	DEBUG(NAME_parbox, Cprintf("    --> Size changed\n"));
 	fail;				/* modified */
       }
-    }    
+    }
   }
 
   succeed;
@@ -1111,7 +1111,7 @@ PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)
 		     y,
 		     valInt(grb->ascent)+valInt(grb->descent),
 		     grx);
-  } 
+  }
 }
 
 
@@ -1158,7 +1158,7 @@ computeParBox(ParBox pb)
 	  justify_line(&l, pb->alignment);
 
 	  for(i=0, pc = l.hbox; i<l.size; i++, pc++)
-	  { if ( (pc->flags & PC_GRMASK) == PC_GRAPHICAL ) 
+	  { if ( (pc->flags & PC_GRMASK) == PC_GRAPHICAL )
 	    { GrBox grb = (GrBox)pc->box;
 
 	      if ( !PlaceGrBox(pb, grb,
@@ -1195,7 +1195,7 @@ computeParBox(ParBox pb)
 	}
       }
     }
-    
+
     ax = valInt(pb->offset->x) + lm;
     aw = mw-lm;				/* valInt(pb->offset->x) + mw - ax */
 
@@ -1204,7 +1204,7 @@ computeParBox(ParBox pb)
     if ( toInt(y)  != pb->area->h ||
 	 toInt(aw) != pb->area->w ||
 	 toInt(ax) != pb->area->x )
-    { DEBUG(NAME_parbox, 
+    { DEBUG(NAME_parbox,
 	    Cprintf("computeParBox(%s) --> x,w,h = %d,%d,%d\n",
 		    pp(pb), ax, aw, y));
       CHANGING_GRAPHICAL(pb,
@@ -1214,7 +1214,7 @@ computeParBox(ParBox pb)
 	changedEntireImageGraphical(pb);
       });
     } else
-    { DEBUG(NAME_parbox, 
+    { DEBUG(NAME_parbox,
 	    Cprintf("computeParBox(%s) --> no change\n", pp(pb)));
     }
 
@@ -1329,7 +1329,7 @@ lineWidthParBox(ParBox pb, Int w)
 
   if ( pb->line_width != w )
   { assign(pb, line_width, w);
-    
+
     requestComputeGraphical(pb, NAME_lineWidth);
   }
 
@@ -1350,7 +1350,7 @@ autoCropParBox(ParBox pb, Bool crop)
 
 /* Type declarations */
 
-static char *T_initialise[] = 
+static char *T_initialise[] =
 	{ "width=[int]",
 	  "alignment=[{left,center,right,justify}]"
 	};
@@ -1358,7 +1358,7 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_boxArea[] =
 	{ "for=hbox|1..", "relative_to=[device]" };
-static char *T_cdata[] = 
+static char *T_cdata[] =
 	{ "cdata=string", "style=[style]", "space=[hbox]",
 	  "ignore_blanks=[{none,leading,trailing,both}]" };
 
@@ -1368,7 +1368,7 @@ static char *T_cdata[] =
 static vardecl var_parbox[] =
 { SV(NAME_lineWidth, "int", IV_GET|IV_STORE,
      lineWidthParBox, NAME_area, "Maximum width of a textline"),
-  IV(NAME_content, "vector", IV_GET, 
+  IV(NAME_content, "vector", IV_GET,
      NAME_content, "Contained hbox objects"),
   SV(NAME_alignment, "{left,right,center,justify}", IV_GET|IV_STORE,
      alignmentParBox, NAME_layout, "Alignment of text in box"),

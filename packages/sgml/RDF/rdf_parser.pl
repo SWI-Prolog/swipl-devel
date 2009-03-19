@@ -150,7 +150,7 @@ description(Type, About, BagID, Properties, Options) ::=
 		\propertyElts(PropElts, Options)),
 	{ append(PropAttrs, PropElts, Properties)
 	}.
-		
+
 propAttrs([], _) ::=
 	[], !.
 propAttrs([H|T], Options) ::=
@@ -274,10 +274,10 @@ aboutResourceEmptyElt(node(URI), _Options) ::=
 	\nodeIDAttr(URI).
 
 %%	literal_value(+In, -Value, +Options)
-%	
+%
 %	Create the literal value for rdf:parseType="Literal" attributes.
 %	The content is the Prolog XML DOM tree for the literal.
-%	
+%
 %	@tbd	Note that the specs demand a canonical textual representation
 %		of the XML data as a Unicode string.  For now the user can
 %		achieve this using the convert_typed_literal hook.
@@ -285,7 +285,7 @@ aboutResourceEmptyElt(node(URI), _Options) ::=
 literal_value(Value, literal(type(rdf:'XMLLiteral', Value)), _).
 
 %%	mkliteral(+Atom, -Object, +Options)
-%	
+%
 %	Translate attribute value Atom into an RDF object using the
 %	lang(Lang) option from Options.
 
@@ -298,7 +298,7 @@ mkliteral(Text, literal(Val), Options) :-
 	).
 
 %%	typed_literal(+Type, +Content, -Literal, +Options)
-%	
+%
 %	Handle a literal attribute with rdf:datatype=Type qualifier. NB:
 %	possibly  it  is  faster  to  use  a  global  variable  for  the
 %	conversion hook.
@@ -314,7 +314,7 @@ typed_literal(Type, Content, literal(Object), Options) :-
 	).
 typed_literal(Type, [Text], literal(type(Type, Text)), _Options) :- !.
 typed_literal(Type, Content, literal(type(Type, Content)), _Options).
-	
+
 
 idAboutAttr(id(Id), Options) ::=
 	\idAttr(Id, Options), !.
@@ -435,7 +435,7 @@ make_globalid(In, Options, Id) :-
 
 
 %%	canonical_uri(+In, +Base, -Absolute)
-%	
+%
 %	Make the URI absolute and decode special sequences. For the last
 %	clause, which is the correct order?
 
@@ -591,7 +591,7 @@ do_attrs(C, L) :-
 	rewrite(C, L).
 
 %	\noMoreAttrs
-%	
+%
 %	Check attribute-list is empty.  Reserved xml: attributes are
 %	excluded from this test.
 
@@ -603,13 +603,13 @@ noMoreAttrs ::=
 	].
 
 %%	modify_state(+Element0, +Options0, -Element, -Options)
-%	
+%
 %	If Element0 contains xml:base = Base, strip it from the
 %	attributes list and update base_uri(_) in the Options
-%	
+%
 %	It Element0 contains xml:lang = Lang, strip it from the
 %	attributes list and update lang(_) in the Options
-%	
+%
 %	Remove all xmlns=_, xmlns:_=_ and xml:_=_.  Only succeed
 %	if something changed.
 
@@ -665,14 +665,14 @@ xml_attr(xml:_).
 
 
 %%	remove_fragment(+URI, -WithoutFragment)
-%	
+%
 %	When handling xml:base, we must delete the possible fragment.
 
 remove_fragment(URI, Plain) :-
 	sub_atom(URI, B, _, _, #), !,
 	sub_atom(URI, 0, B, _, Plain).
 remove_fragment(URI, URI).
-	
+
 
 		 /*******************************
 		 *     HELP PCE-EMACS A BIT	*

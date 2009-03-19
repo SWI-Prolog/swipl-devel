@@ -117,7 +117,7 @@ debug_topic(Topic) :-
 	).
 
 %%	list_debug_topics is det.
-%	
+%
 %	List currently known debug topics and their setting.
 
 list_debug_topics :-
@@ -155,7 +155,7 @@ print_debug(_, Format, Args) :-
 		 *******************************/
 
 %%	assertion(:Goal) is det.
-%	
+%
 %	Acts similar to C assert() macro.  It has no effect of Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
@@ -171,11 +171,11 @@ assertion(G) :-
 assertion_failed.
 
 %%	assume(:Goal) is det.
-%	
+%
 %	Acts similar to C assert() macro.  It has no effect of Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
-%	
+%
 %	@deprecated	Use assertion/1 in new code.
 
 		 /*******************************

@@ -96,7 +96,7 @@ prolog_source_files(Dir) -->
 	prolog_source_files(Members).
 prolog_source_files(_) -->
 	[].
-	
+
 
 %%	apply_hotfix(HotfixDir, File) is det.
 %
@@ -130,7 +130,7 @@ apply_hotfix(HotfixDir, File) :-
 	HotfixTime =\= Time, !,
 	load_hotfix(File, Loaded).
 apply_hotfix(_, _).
-	
+
 
 %%	ensure_dirsep(+Dir, -DirSlash) is det.
 
@@ -144,7 +144,7 @@ ensure_dirsep(Dir0, Dir) :-
 %%	load_hotfix(+HotfixFile, +Loaded) is det.
 %
 %	Reload the HotfixFile, pretending we are reloading Loaded.
-%	
+%
 %	@see	make:reload_file/1
 
 load_hotfix(File, Loaded) :-
@@ -185,6 +185,6 @@ file_module(File, Module) :-
 
 file_module_guarded(File, Module) :-
 	prolog_open_source(File, In),
-	call_cleanup(prolog_read_source_term(In, _, Expanded, []), _, 
+	call_cleanup(prolog_read_source_term(In, _, Expanded, []), _,
 		     prolog_close_source(In)),
 	Expanded = (:- module(Module, _)).

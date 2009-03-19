@@ -228,7 +228,7 @@ input(S, Input:string) :->
 		)
 	    )
 	).
-	    
+
 
 dispatch(S, Input:string) :->
 	"Hand complete input for dispatching"::
@@ -251,7 +251,7 @@ dispatch(S, Input:string) :->
 	;   close(In),			% exception or failure
 	    free(S)
 	).
-	
+
 wrapper_error(Error) :-
 	(   debugging(connection)
 	->  print_message(error, Error)

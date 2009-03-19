@@ -76,7 +76,7 @@ createPopupWindow(DisplayObj d)
   send(getTileFrame(frame), NAME_border, ZERO, EAV);
 
   appendChain(windows, sw);
-  
+
   return sw;
 }
 
@@ -281,7 +281,7 @@ keyPopup(PopupObj p, Name key)
 
   for_cell(cell, p->members)
   { MenuItem mi = cell->value;
-    
+
     if ( (mi->accelerator == key && mi->active == ON) ||
 	 (notNil(mi->popup) && keyPopup(mi->popup, key)) )
     { assign(p, selected_item, mi);
@@ -323,7 +323,7 @@ executePopup(PopupObj p, Any context)
 
       if ( instanceOfObject(p->selected_item, ClassMenuItem) )
       { MenuItem mi = p->selected_item;
-    
+
 	BUSY(if ( p->multiple_selection == ON )
 	     { toggleMenu((Menu) p, mi);
 	       if ( isDefault(mi->message) )
@@ -369,7 +369,7 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
 
     previewMenu((Menu) p, mi);
     pos = tempObject(ClassPoint, toInt(rx), toInt(iy), EAV);
-	    
+
     assign(p, pullright, mi->popup);
     assign(p->pullright, default_item, NIL); /* Initialy do not select */
     send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, EAV);
@@ -401,7 +401,7 @@ inPullRigthPopup(PopupObj p, MenuItem mi, EventObj ev)
   get_xy_event(ev, p, ON, &ex, &ey);
   if ( valInt(ex) >= rx )
     succeed;
-  
+
   fail;
 }
 
@@ -445,7 +445,7 @@ kbdSelectPopup(PopupObj p, MenuItem mi)
 
 static status
 typedPopup(PopupObj p, Any id)
-{ int prev;				
+{ int prev;
 
   if ( id == toInt(13) )			/* RETURN ... */
   { return kbdSelectPopup(p, p->preview);
@@ -478,7 +478,7 @@ typedPopup(PopupObj p, Any id)
 
     send(p, NAME_alert, EAV);
   }
-  
+
   fail;
 }
 
@@ -709,7 +709,7 @@ static senddecl send_popup[] =
 #define get_popup NULL
 /*
 static getdecl get_popup[] =
-{ 
+{
 };
 */
 

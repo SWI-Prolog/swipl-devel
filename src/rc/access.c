@@ -155,7 +155,7 @@ make_file_tag_def()
     d->offset  = offsetof(rc_member, size);
     d++;
     d->tag     = NULL;
-  } 
+  }
 
   return file_tag_def;
 }
@@ -182,9 +182,9 @@ decode_member_header(RcArchive rca, const char *p0, RcMember mbr)
 	return (char *)p1;
       } else
       { p += mbr->size;
-	
+
 	return html_find_close_tag(p, "file");
-      }      
+      }
     } else
       return html_find_close_tag(p, "file");
   }
@@ -218,14 +218,14 @@ decode_member_header(RcArchive rca, RcMember mbr)
 	  return FALSE;			/* error. restart? */
 	} else
 	{ fseek(rca->fd, mbr->size, SEEK_CUR);
-	  
+
 	  return html_fd_find_close_tag(rca->fd, "file");
-	}      
+	}
       } else
 	return html_fd_find_close_tag(rca->fd, "file");
     }
   }
-  
+
   return FALSE;
 }
 
@@ -290,7 +290,7 @@ find_archive_dimensions(RcArchive rca)
     { rc_errno = RCE_NOARCHIVE;
       return FALSE;
     }
-    
+
     if ( (s = html_find_tag(end, rc_end, "foot")) )
     { rc_size len = contentlength(s);
 
@@ -402,7 +402,7 @@ scan_archive(RcArchive rca)
 
     return TRUE;
   }
-  
+
   return FALSE;
 }
 
@@ -418,7 +418,7 @@ scan_archive(RcArchive rca)
 
     return TRUE;
   }
-  
+
   return FALSE;
 }
 
@@ -477,11 +477,11 @@ attach_archive(RcArchive rca)
 
   if ( (fsize = GetFileSize(rca->hfile, NULL)) == (DWORD)~0L )
     goto errio;
-    
+
   rca->map_size = fsize;
   rca->size     = rca->map_size;
   rca->offset   = 0;
-      
+
   rca->hmap = CreateFileMapping(rca->hfile,
 				NULL,
 				PAGE_READONLY,
@@ -495,7 +495,7 @@ attach_archive(RcArchive rca)
 				 FILE_MAP_READ,
 				 0L, 0L, /* offset */
 				 0L);	/* size (0=all) */
-				  
+
   if ( !rca->map_start )
       goto errio;
 
@@ -571,13 +571,13 @@ rc_open(RcArchive rca, const char *name, const char *rcclass, int flags)
       o->data   = NULL;
     } else
       rc_errno = RCE_ERRNO;
-      
+
     return o;
   }
 
   return NULL;
 }
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function returns an int (0), so it can be used from Sclose() without
 problems.  Pointed by Tamas Laufer.
@@ -668,7 +668,7 @@ rc_read(RcObject o, void *buf, size_t bytes)
       o->offset += n;
     else if ( n < 0 )
       rc_errno = RCE_ERRNO;
-    
+
     return n;
   }
 #endif
@@ -686,7 +686,7 @@ rc_write(RcObject o, void *buf, size_t bytes)
 
   if ( o->offset + bytes > m->allocated )
   { rc_size size = m->allocated;
-    
+
     if ( size == 0 )
       size = 1024;
 

@@ -369,7 +369,7 @@ propose_formal_parameter_names(C, Names:vector) :<-
 			    @arg1?propose_formal_parameter_name)))
 	;   true
 	).
-		 
+
 
 :- pce_global(@msg_connection_gesture, make_msg_connection_gesture).
 :- initialization free(@msg_connection_gesture).
@@ -1044,7 +1044,7 @@ value(P, Value:'any|function') :<-
 	    ;   Value = V
 	    )
 	).
-	
+
 simulate(P, Value:'any|function') :<-
 	"Associated object (simulation)"::
 	invert(P, get(P, value, Value)).
@@ -1112,7 +1112,7 @@ value(P, Value:'any|function') :<-
 		fail
 	    )
 	).
-	
+
 simulate(P, Value:'any|function') :<-
 	"Associated object (simulation)"::
 	invert(P, get(P, value, Value)).
@@ -1233,7 +1233,7 @@ add_port(O, Type:port_type, Name:[name], Where:[point]) :->
 	"Add port of indicated type"::
 	port_class(Type, Class),
 	(   Name \== @default,
-	    get(O?graphicals, find, 
+	    get(O?graphicals, find,
 		and(message(@arg1, instance_of, Class),
 		    @arg1?name == Name),
 		Port)
@@ -1529,7 +1529,7 @@ preview_drop(O, Obj:any*, Pos:[point]) :->
 		     'Drop adds %s port "%s"', Type, Obj?name)
 	    )
 	).
-	
+
 
 drop(O, Obj:any, Pos:point) :->
 	"Create port from XPCE meta-object"::
@@ -1545,7 +1545,7 @@ drop(O, Obj:any, Pos:point) :->
 	    )
 	;   fail
 	).
-	
+
 
 :- pce_end_class.
 
@@ -1726,7 +1726,7 @@ sourcefile(P, DefName:name) :<-
 	    )
 	;   DefName = 'scratch.pl'
 	).
-	
+
 
 edit(P) :->
 	"Edit/create associated sourcefile"::
@@ -1859,7 +1859,7 @@ preview_drop(P, Obj:any, Pos:[point]) :->
 		     Obj?proto, Obj?name)
 	    )
 	).
-	
+
 
 postscript_as(E) :->
 	"Write PostScript to file"::

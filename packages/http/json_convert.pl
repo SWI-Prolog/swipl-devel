@@ -108,7 +108,7 @@ simplifies debugging this rather complicated process.
 	though this may be unsafe.  If the Prolog term is known to be
 	non-ground and JSON @null is a sensible mapping, we can also use
 	this simple snipit to deal with that fact.
-	
+
 	==
 		term_variables(Term, Vars),
 		maplist(=(@null), Vars).
@@ -131,7 +131,7 @@ simplifies debugging this rather complicated process.
 %
 %	Declare a JSON object.  The declaration takes the same format as
 %	using in record/1 from library(record).  E.g.
-%	
+%
 %	==
 %	?- json_object
 %		point(x:int, y:int, z:int=0).
@@ -145,7 +145,7 @@ json_object(Declaration) :-
 %
 %	Compiles a :- json_object directive into Clauses. Clauses are of
 %	the form:
-%	
+%
 %	==
 %	json_object_to_pairs(Term, Module, Pairs) :-
 %		<type-checks on Term>,
@@ -210,14 +210,14 @@ record_to_json_clause(Constructor, Module, Types, Names, Extra) -->
 	},
 	[ (json_convert:(Head :- Body)) ].
 
-	      
+
 %%	type_checks(+Types, -VarsIn, -VarsOut, -Goal, +Module) is det.
 %
 %	Goal is a body-term  that  validates   Vars  satisfy  Types.  In
 %	addition to the types accepted by   must_be/2,  it accepts =any=
 %	and Name/Arity. The latter demands  a   json_object  term of the
 %	given Name and Arity.
-%	
+%
 %	@tbd	Compile list(Type) specification.  Currently Type is
 %		handled like =any=
 
@@ -242,7 +242,7 @@ type_check(Type, V, V, _, Goal) :-
 %	JSON is the JSON boolean for Prolog. It is a flexible the Prolog
 %	notation for thruth-value, accepting one of  =true=, =on= or =1=
 %	for @true and one of =false=, =fail=, =off= or =0= for @false.
-%	
+%
 %	@error	instantiation_error if Prolog is unbound.
 
 prolog_bool_to_json(Var, _) :-
@@ -256,7 +256,7 @@ prolog_bool_to_json(on, @(true)).
 prolog_bool_to_json(off, @(false)).
 prolog_bool_to_json(1, @(false)).
 prolog_bool_to_json(@(True), True) :-
-	prolog_bool_to_json(True, True). 
+	prolog_bool_to_json(True, True).
 
 
 %%	type_goal(+Type, +Var, -BodyTerm) is det.
@@ -315,7 +315,7 @@ current_clause(Constructor, Module, Types, Names, Extra) -->
 	  Head =.. [current_json_object, Term, Module, Fields]
 	},
 	[ json_convert:Head ].
-	
+
 extra_fields([], []).
 extra_fields([Name=Value|T0], [f(Name, oneof([Value]), Value)|T]) :-
 	extra_fields(T0, T).
@@ -336,7 +336,7 @@ defaults([Arg=Default|T0], [Default|TD], [Arg|TA]) :- !,
 	defaults(T0, TD, TA).
 defaults([Arg|T0], [_|TD], [Arg|TA]) :-
 	defaults(T0, TD, TA).
-	
+
 
 %%	types(+ArgsSpecs, -Defaults, -Args)
 %
@@ -363,7 +363,7 @@ types([Name|T0], [Name|TN], [any|TT]) :-
 %	=boolean=, commonly used thruth-values in   Prolog are converted
 %	to JSON booleans. Boolean  translation   accepts  one of =true=,
 %	=on=, =1=, @true, =false=, =fail=, =off= or =0=, @false.
-%	
+%
 %	@error	type_error(json_term, X)
 %	@error	instantiation_error
 
@@ -425,7 +425,7 @@ clear_cache :-
 %	assumption that, although the order of   fields in JSON terms is
 %	irrelevant and can therefore vary  a lot, practical applications
 %	will normally generate the JSON objects in a consistent order.
-%	
+%
 %	If a field in a json_object is declared of type =boolean=, @true
 %	and @false are  translated  to  =true=   or  =false=,  the  most
 %	commonly used Prolog representation for truth-values.
@@ -469,7 +469,7 @@ json_object_to_prolog(json(Pairs), Term, Module) :-
 %
 %	Convert a Name=Value set into a Prolog application term based on
 %	json_object/1 declarations.
-%	
+%
 %	@tbd	Ignore extra pairs if term is partially given?
 
 pairs_to_term(Pairs, Term, Module) :-
@@ -485,7 +485,7 @@ pairs_to_term(Pairs, Term, Module) :-
 	    asserta(created_rules_for_pairs(M, PairArgs)),
 	    json_to_prolog_rule(M, Pairs, Term), !
 	).
-	
+
 pairs_args([], []).
 pairs_args([Name=_Value|T0], [Name=_|T]) :-
 	pairs_args(T0, T).
@@ -494,7 +494,7 @@ pairs_args([Name=_Value|T0], [Name=_|T]) :-
 %
 %	Create a new rule for dealing with Pairs, a Name=Value list of a
 %	particular order.  Here is an example rule:
-%	
+%
 %	==
 %	json_to_prolog_rule([x=X, y=Y], point(X,Y)) :-
 %		integer(X),

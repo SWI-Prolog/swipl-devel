@@ -45,7 +45,7 @@ static FontObj
 getFontTBox(TBox tb)
 { if ( notDefault(tb->style->font) )
     answer(tb->style->font);
-  
+
   answer(getClassVariableValueObject(tb, NAME_font));
 }
 

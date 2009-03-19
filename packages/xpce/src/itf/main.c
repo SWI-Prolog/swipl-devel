@@ -36,7 +36,7 @@ main(int argc, char* argv[])
   { Cprintf("Sorry, failed to initialise XPCE\n");
     exit(1);
   }
-  
+
   if ( !pceInitApplication(argc, argv) )
   { Cprintf("Failed to run pceInitApplication()\n");
     exit(1);

@@ -88,7 +88,7 @@ load_library_index :-
 	    read_index(Index, Dir),
 	fail.
 load_library_index.
-	
+
 read_index(Index, Dir) :-
 	seeing(Old), see(Index),
 	repeat,
@@ -108,7 +108,7 @@ assert_index(Term, Dir) :-
 	format(user_error,
 	       '[WARNING: Illegal term in INDEX.pl of directory ~w: ~w]~n',
 	       [Dir, Term]).
-	
+
 
 		/********************************
 		*       CREATE INDEX.pl		*
@@ -161,4 +161,4 @@ index_header(Fd):-
 	format(Fd, '    Purpose: Provide index for require/1~n', []),
 	format(Fd, '*/~n~n', []).
 
-	
+

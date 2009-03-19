@@ -65,7 +65,7 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 %%	wiki_codes_to_dom(+String, +Args, -DOM) is det.
 %
 %	Translate a plain text into a DOM term.
-%	
+%
 %	@param String	Plain text.  Either a string or a list of codes.
 
 wiki_codes_to_dom(Codes, Args, DOM) :-
@@ -88,7 +88,7 @@ wiki_structure(Lines, _, [\tags(Tags)]) :-
 wiki_structure(Lines, BI, [P1|PL]) :-
 	take_block(Lines, BI, P1, RestLines),
 	wiki_structure(RestLines, BI, PL).
-	
+
 %%	take_block(+Lines, +BaseIndent, ?Block, -RestLines) is semidet.
 %
 %	Take a block-structure from the input.  Defined block elements
@@ -140,7 +140,7 @@ take_block([Verb|Lines], _, Verb, Lines).
 %	Create a list-item. Naturally this should produce a single item,
 %	but DL lists produce two items, so   we create the list of items
 %	as a difference list.
-%	
+%
 %	@tbd	Pass base-indent
 
 list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
@@ -385,7 +385,7 @@ tags(Lines, Tags) :-
 %
 %	Create a list Order-tag(Tag,Tokens) for   each @tag encountered.
 %	Order is the desired position as defined by tag_order/2.
-%	
+%
 %	@tbd Tag content is  often  poorly   aligned.  We  now  find the
 %	alignment of subsequent lines  and  assume   the  first  line is
 %	alligned with the remaining lines.
@@ -403,7 +403,7 @@ collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
 
 %%	tag_name(+String, -Tag:atom, -Order:int) is semidet.
 %
-%	If String denotes a know tag-name, 
+%	If String denotes a know tag-name,
 
 tag_name(w(Name), Tag, Order) :-
 	(   renamed_tag(Name, Tag),
@@ -453,10 +453,10 @@ tag_order(tbd,	      12).
 %%	combine_tags(+Tags:list(tag(Key, Value)), -Tags:list) is det.
 %
 %	Creates the final tag-list.  Tags is a list of
-%	
+%
 %		* \params(list(param(Name, Descr)))
 %		* \tag(Name, list(Descr))
-%	
+%
 %	Descr is a list of tokens.
 
 combine_tags([], []).
@@ -676,7 +676,7 @@ nv_pair(Option) -->
 %
 %	True if we can find a link to a file or URL. Links are described
 %	as one of:
-%	
+%
 %	    $ filename :
 %	    A filename defined using autolink_file/2 or
 %	    autolink_extension/2
@@ -720,7 +720,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	  option(label(Label), Options, Ref)
 	}.
 wiki_link(a(href(Ref), Label), Options) -->
-	[<], 
+	[<],
 	(   { option(relative(true), Options),
 	      Parts = Rest
 	    }
@@ -887,7 +887,7 @@ autolink_file('ChangeLog', wiki).
 %	Processes   /**   <section>   comments.   Header   is   a   term
 %	\section(Type, Title), where  Title  is   an  atom  holding  the
 %	section title and Type is an atom holding the text between <>.
-%	
+%
 %	@param Lines	List of Indent-Codes.
 %	@param Header	DOM term of the format \section(Type, Title),
 %			where Type is an atom from <type> and Title is
@@ -981,7 +981,7 @@ word([]) -->
 %	substracted from the indentation of the verbatim lines.
 %
 %	Verbatim environment is delimited as
-%	
+%
 %	==
 %		...,
 %		verbatim(Lines, Pre, Rest)
@@ -1106,7 +1106,7 @@ split_lines(Prefixes, [Indent-L1|Ls]) -->
 %%	end_of_comment// is det.
 %
 %	Succeeds if we hit the end of the comment.
-%	
+%
 %	@bug	%*/ will be seen as the end of the comment.
 
 end_of_comment -->
@@ -1154,7 +1154,7 @@ string_update_linepos([H|T], I0, I) :-
 %%	update_linepos(+Code, +Pos0, -Pos) is det.
 %
 %	Update line-position after adding Code.
-%	
+%
 %	@tbd	Currently assumes tab-width of 8.
 
 update_linepos(0'\t, I0, I) :- !,
@@ -1256,7 +1256,7 @@ ws -->
 	[].
 
 %	space// is det
-%	
+%
 %	True if then next code is layout.
 
 space -->

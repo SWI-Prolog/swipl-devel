@@ -78,7 +78,7 @@ resetVisual(VisualObj v)
 
   if ( ch != FAIL )
   { Cell cell;
-    
+
     for_cell(cell, ch)
       send(cell->value, NAME_reset, EAV);
 
@@ -147,7 +147,7 @@ status
 reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
 { VisualObj super;
   status rval = FAIL;
-  
+
   if ( (super = getv(v, NAME_reportTo, 0, NULL)) )
   { ArgVector(av, argc + 2);
 
@@ -196,7 +196,7 @@ alertReporteeVisual(Any v)
 #define var_visual NULL
 /*
 vardecl var_visual[] =
-{ 
+{
 };
 */
 
@@ -235,7 +235,7 @@ static getdecl get_visual[] =
 #define rc_visual NULL
 /*
 static classvardecl rc_visual[] =
-{ 
+{
 };
 */
 

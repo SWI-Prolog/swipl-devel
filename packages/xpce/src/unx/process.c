@@ -226,7 +226,7 @@ child_changed(int sig)
 { Any rstat = NIL;
   Any sel   = NIL;
   Process p = NIL;
-		
+
 #ifdef UNION_WAIT
 #define wait_t union wait
 #else
@@ -238,7 +238,7 @@ child_changed(int sig)
 
   for_chain(ProcessChain, p,
 	    { int pid = valInt(p->pid);
-	      
+
 	      if ( pid == info->si_pid )
 	      { switch( info->si_code )
 		{ case CLD_EXITED:
@@ -592,7 +592,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 
 #ifdef TIOCSCTTY
 	ioctl(0, TIOCSCTTY, NULL);
-#endif        
+#endif
 
 	argv = (char **)alloca(sizeof(char *) *
 			       (valInt(p->arguments->size) + 2));
@@ -679,7 +679,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	assign(p, status, NAME_running);
       }
     }
-    
+
     inputStream((Stream)p, DEFAULT);
   }
 
@@ -897,7 +897,7 @@ static getdecl get_process[] =
 #define rc_process NULL
 /*
 static classvardecl rc_process[] =
-{ 
+{
 };
 */
 
@@ -1026,7 +1026,7 @@ copyTty(Process p, char *pty, int fd)
   { errorPce(p, NAME_ioctlGet, CtoName("/dev/tty"), OsError());
     init = FALSE;
   }
-  
+
   if ( !init )
 #endif
 #ifndef ECHOCTL
@@ -1065,7 +1065,7 @@ copyTty(Process p, char *pty, int fd)
 #ifdef VLNEXT
     buf.c_cc[VLNEXT]   = Control('V');
 #endif
-  } 
+  }
 
 #ifndef TCSETS
 #ifdef TCSETATTR

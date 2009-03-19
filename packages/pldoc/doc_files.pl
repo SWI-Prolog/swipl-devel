@@ -54,37 +54,37 @@ useful for printing or distribution.
 %%	doc_save(+FileOrDir, +Options)
 %
 %	Save documentation for FileOrDir to file(s).  Options include
-%	
+%
 %		* format(+Format)
 %		Currently only supports =html=.
-%		
+%
 %		* doc_root(+Dir)
 %		Save output to the given directory.  Default is to save
 %		the documentation files in the same directory as the
 %		sources.
-%		
+%
 %		* man_server(+RootURL)
 %		Root of a manual server used for references to built-in
 %		predicates. Default is
 %		=|http://gollem.science.uva.nl/SWI-Prolog/pldoc/|=
-%		
+%
 %		* index_file(+Base)
 %		Filename for directory indices.  Default is =index=.
-%		
+%
 %		* if(Condition)
 %		What to do with files in a directory.  =loaded= (default)
 %		only documents files loaded into the Prolog image.  =true=
 %		documents all files.
-%		
+%
 %		* recursive(+Bool)
 %		If =true=, recurse into subdirectories.
-%		
+%
 %		* css(+Mode)
 %		If =copy=, copy the CSS file to created directories.
 %		Using =inline=, include the CSS file into the created
 %		files.
-%		
-%	@tbd	Copy CSS files, inline CSS files	
+%
+%	@tbd	Copy CSS files, inline CSS files
 
 doc_save(Spec, Options) :-
 	doc_target(Spec, Target, Options),
@@ -114,15 +114,15 @@ generate(directory(Dir, IndexFile, Members), Options) :-
 		     close(Out)),
 	generate(Members, Options).
 
-	
+
 %%	doc_target(+Spec, -Target) is semidet.
 %
 %	Generate a structure describing what to document in what files.
 %	This structure is a term:
-%	
+%
 %		* file(PlFile, DocFile)
 %		Document PlFile in DocFile
-%		
+%
 %		* directory(Dir, IndexFile, Members)
 %		Document Dir in IndexFile.  Memmbers is a list of
 %		documentation structures.
@@ -146,10 +146,10 @@ doc_target(FileOrDir, directory(Dir, Index, Members), Options) :-
 		    doc_target(File, Member, Options)
 		),
 		Members).
-	
-			   
+
+
 %%	file_map(+DocStruct, -List)
-%	
+%
 %	Create a list of file(PlFile, DocFile) for files that need to
 %	be documented.
 
@@ -216,7 +216,7 @@ ensure_slash(DirName, WithSlash) :-
 	;   atom_concat(DirName, /, WithSlash)
 	).
 
-			
+
 %%	ensure_dir(+Directory, +Options) is det.
 %
 %	Create Directory as mkdir -p.  May generate file errors.
@@ -233,7 +233,7 @@ ensure_dir(Directory, Options) :-
 %%	prolog_file_in_dir(+Dir, -File, +Options) is nondet.
 %
 %	File is a file in Dir that must be documented.  Options:
-%	
+%
 %		* recursive(+Bool)
 %		If =true=, also generate subdirectories
 
@@ -254,7 +254,7 @@ prolog_file_in_dir(Dir, SubDir, Options) :-
 	expand_file_name(Pattern, Matches),
 	member(SubDir, Matches),
 	exists_directory(SubDir).
-	    
+
 %%	blocked(+File) is semidet.
 %
 %	True if File is blocked from documentation.

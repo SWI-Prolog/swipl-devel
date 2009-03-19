@@ -103,7 +103,7 @@ arm(W, For:[name|code], Target:graphical) :<-
 	;   send(@display, arm_object, @nil),
 	    fail
 	).
-	
+
 :- pce_end_class(arm).
 
 

@@ -44,11 +44,11 @@ getEnvironmentSizeProcess(Process p)
 
   for_cell(cell, p->environment->attributes)
   { Attribute a = cell->value;
-    
+
     size += valInt(getSizeCharArray(a->name)) +
 	    valInt(getSizeCharArray(a->value)) + 2;
   }
-  
+
   return size+1;
 }
 
@@ -74,7 +74,7 @@ createWin32EnvriomentBlock(Process p)
 
     for_cell(cell, p->environment->attributes)
     { Attribute a = cell->value;
-      
+
       s = strcpyskip(s, toCharp(a->name));
       *s++ = '=';
       s = strcpyskip(s, toCharp(a->value));
@@ -142,7 +142,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
     processinfo = alloc(sizeof(*processinfo));
     memset(&startinfo, 0, sizeof(startinfo));
     memset(processinfo, 0, sizeof(*processinfo));
-    
+
     startinfo.cb	  = sizeof(startinfo);
     startinfo.dwFlags     = STARTF_USESTDHANDLES;
     startinfo.hStdInput   = wrfd[0];

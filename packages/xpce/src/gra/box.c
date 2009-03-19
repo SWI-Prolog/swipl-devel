@@ -103,7 +103,7 @@ static senddecl send_box[] =
 #define get_box NULL
 /*
 static getdecl get_box[] =
-{ 
+{
 };
 */
 
@@ -112,7 +112,7 @@ static getdecl get_box[] =
 #define rc_box NULL
 /*
 static classvardecl rc_box[] =
-{ 
+{
 };
 */
 

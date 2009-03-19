@@ -31,10 +31,10 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This module implements the when/2 co-routine.
-%	
+%
 %%	when(+Condition, :Goal)
 %
-%		Condition should be one of 
+%		Condition should be one of
 %			?=(X,Y)
 %%			nonvar(X)
 %%			ground(X)
@@ -48,7 +48,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % History:
-% 
+%
 %	Apr 9, 2004
 %	* JW: Supressed debugging this module
 %	* JW: Made when/2 module-aware.
@@ -126,7 +126,7 @@ trigger_determined(X,Y,Goal) :-
 		put_attr(Det,when,det(trigger_determined(X,Y,Goal))),
 		suspend_list(Unifier,wake_det(Det))
 	).
-	
+
 trigger_determined(_,_,Goal) :-
 	call(Goal).
 
@@ -177,7 +177,7 @@ attr_unify_hook(List,Other) :-
 		call_list(List),
 		call_list(List2)
 	;
-		call_list(List) 
+		call_list(List)
 	).
 
 call_list([]).

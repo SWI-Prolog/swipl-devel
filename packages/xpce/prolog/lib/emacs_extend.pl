@@ -84,7 +84,7 @@ special_mode(annotate).
 
 
 %%	declare_emacs_mode(+ModeName, +FileSpec, +ListOfPatterns)
-%	
+%
 %	Sames as declare_emacs_mode/2.  `ListOfPatterns' is a list of
 %	regular expressions that will automatically start this mode.
 
@@ -169,7 +169,7 @@ bind(button(Button, Func), Selector, Module, _, MM) :-
 bind(A+B, Selector, Module, KB, MM) :-
 	bind(A, Selector, Module, KB, MM),
 	bind(B, Selector, Module, KB, MM).
-	
+
 syntax(Char = Term, ST) :-
 	Term =.. TermArgs,
 	Msg =.. [syntax, Char | TermArgs],

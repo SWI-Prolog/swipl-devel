@@ -189,7 +189,7 @@ foot :-
 	emit([ '</body>\n',
 	       '</html>\n'
 	     ]).
-	     
+
 
 pre(Text) :-
 	sgml_quote(Text, Quoted),
@@ -221,7 +221,7 @@ all_alnum([]).
 all_alnum([H|T]) :-
 	char_type(H, csymf),
 	all_alnum(T).
-	    
+
 sgml_quote_chars(L, ['"'|T]) :-
 	sgml_quote2(L, T, ['"']).
 
@@ -232,11 +232,11 @@ sgml_quote2([H|T0], List, Rest) :-
 sgml_quote2([H|T0], [H|T], Rest) :-
 	sgml_quote2(T0, T, Rest).
 
-sgml_quote_char('<', [&, l, t, ;|T], T).	
-sgml_quote_char('>', [&, g, t, ;|T], T).	
-sgml_quote_char('&', [&, a, m, p, ;|T], T).	
-sgml_quote_char('"', [&, q, u, o, t, ;|T], T).	
-%sgml_quote_char('\'', [&, a, p, o, s, ;|T], T).	
+sgml_quote_char('<', [&, l, t, ;|T], T).
+sgml_quote_char('>', [&, g, t, ;|T], T).
+sgml_quote_char('&', [&, a, m, p, ;|T], T).
+sgml_quote_char('"', [&, q, u, o, t, ;|T], T).
+%sgml_quote_char('\'', [&, a, p, o, s, ;|T], T).
 
 sgml_quote(Text, Quoted) :-
 	atom_chars(Text, Chars),
@@ -348,7 +348,7 @@ save_request(Text, Id) :-
 	    format(Fd, '~w~n', [Text]),
 	    close(Fd),
 	    atomic_list_concat([Date, /, N], Id).
-	    
+
 request_dir(BaseDir, Date) :-
 	get_time(Time),
 	convert_time(Time, Y, M, D, _, _, _, _),

@@ -117,17 +117,17 @@ encoding.
 %	flags to ensure  with  proper   multi-threaded  behaviour  where
 %	setting an option is local to the   thread and new threads start
 %	with the options from the parent thread.  Defined options are:
-%	
+%
 %		* dialect(Dialect)
 %		One of =html= (default) or =xhtml=.
-%		
+%
 %		* doctype(+DocType)
 %		Set the =|<|DOCTYPE|= DocType =|>|= line for page//1 and
 %		page//2.
-%		
+%
 %		* content_type(+ContentType)
 %		Set the =|Content-type|= for reply_html_page/2
-%		
+%
 %	Note  that  the  doctype  is  covered    by  two  prolog  flags:
 %	=html_doctype= for the html dialect  and =xhtml_doctype= for the
 %	xhtml dialect. Dialect muct be switched before doctype.
@@ -202,7 +202,7 @@ init_options :-
 	    fail
 	;   true
 	).
-	
+
 :- initialization
 	init_options.
 
@@ -395,7 +395,7 @@ check_non_empty(_, _, _).
 %	exceptional  cases.  Normal  applications    use   html//1.  The
 %	following two fragments are identical, where we prefer the first
 %	as it is more concise and less error-prone.
-%	
+%
 %	==
 %		html(table(border=1, \table_content))
 %	==
@@ -454,18 +454,18 @@ xhtml_empty(Env, Attributes) -->
 %	(http://www.w3.org/2006/07/SWD/RDFa/syntax/), embedding RDF   in
 %	(x)html provides a typical  usage  scenario   where  we  want to
 %	publish the required namespaces in the header. We can define:
-%	
+%
 %	==
 %	rdf_ns(Id) -->
 %		{ rdf_global_id(Id:'', Value) },
 %		xhtml_ns(Id, Value).
 %	==
-%	
+%
 %	After which we can use rdf_ns//1 as  a normal rule in html//1 to
 %	publish namespaces from library(semweb/rdf_db).   Note that this
 %	macro only has effect if  the  dialect   is  set  to =xhtml=. In
 %	=html= mode it is silently ignored.
-%	
+%
 %	The required =xmlns= receiver  is   installed  by  html_begin//1
 %	using the =html= tag and thus is   present  in any document that
 %	opens the outer =html= environment through this library.
@@ -602,11 +602,11 @@ search_parameter(Term) -->
 %	appearing in the document  structure   is  normally quoted using
 %	these rules. I.e. the following emits  properly quoted bold text
 %	regardless of the content of Text:
-%	
+%
 %	==
 %		html(b(Text))
 %	==
-%	
+%
 %	@tbd	Assumes UTF-8 encoding of the output.
 
 html_quoted(Text) -->
@@ -619,7 +619,7 @@ html_quoted(Text) -->
 %	included in double-quotes.  Note   that  -like  html_quoted//1-,
 %	attributed   values   printed   through   html//1   are   quoted
 %	atomatically.
-%	
+%
 %	@tbd	Assumes UTF-8 encoding of the output.
 
 html_quoted_attribute(Text) -->
@@ -638,10 +638,10 @@ html_quoted_attribute(Text) -->
 %	by mainman/1 from  print_html/1   or  html_print_length/2. These
 %	commands are called in the calling   context of the html_post//2
 %	call.
-%	
+%
 %	A typical usage scenario is to  get   required  CSS links in the
 %	document head in a reusable fashion. First, we define css//1 as:
-%	
+%
 %	==
 %	css(URL) -->
 %		html_post(css,
@@ -650,10 +650,10 @@ html_quoted_attribute(Text) -->
 %				 href(URL)
 %			       ])).
 %	==
-%	
+%
 %	Next we insert the _unique_ CSS links, in the pagehead using the
 %	following call to reply_html_page/2:
-%	
+%
 %	==
 %		reply_html_page([ title(...),
 %				  \html_receive(css)
@@ -670,7 +670,7 @@ html_post(Id, Content) -->
 %	Receive posted HTML tokens. Unique   sequences  of tokens posted
 %	with  html_post//2  are  inserted   at    the   location   where
 %	html_receive//1 appears.
-%	
+%
 %	@see	The local predicate sorted_html//1 handles the output of
 %		html_receive//1.
 %	@see	html_receive//2 allows for post-processing the posted
@@ -685,7 +685,7 @@ html_receive(Id) -->
 %	called to process all messages posted to the channal at the time
 %	output is generated. Handler is a   grammar  rule that is called
 %	with three extra arguments.
-%	
+%
 %	    1. A list of Module:Term, of posted terms.  Module is the
 %	       contest module of html_post and Term is the unmodified
 %	       term.  Members are in the order posted and may contain
@@ -693,10 +693,10 @@ html_receive(Id) -->
 %	    2. DCG input list.  The final output must be produced by a
 %	       call to html//1.
 %	    3. DCG output list.
-%	    
+%
 %	Typically, Handler collects the posted   terms,  creating a term
 %	suitable for html//1 and finally calls html//1.
-    
+
 html_receive(Id, Handler) -->
 	{ strip_module(Handler, M, P) },
 	[ mailbox(Id, accept(M:P, _)) ].
@@ -745,7 +745,7 @@ mail_handlers([post(Module,HTML)|T0], H, [Module:HTML|T]) :- !,
 	mail_handlers(T0, H, T).
 mail_handlers([H|T0], [H|T], C) :-
 	mail_handlers(T0, T, C).
-	
+
 extend_args(Term, Extra, NewTerm) :-
 	Term =.. [Name|Args],
 	append(Args, [Extra], NewArgs),
@@ -755,7 +755,7 @@ extend_args(Term, Extra, NewTerm) :-
 %
 %	Default  handlers  for  html_receive//1.  It  sorts  the  posted
 %	objects to create a unique list.
-%	
+%
 %	@bug	Elements can differ just on the module.  Ideally we
 %		should phrase all members, sort the list of list of
 %		tokens and emit the result.  Can we do better?
@@ -769,7 +769,7 @@ sorted_html(List) -->
 %	Handler for html_receive(head). Unlike  sorted_html//1, it calls
 %	a user hook  html_write:html_head_expansion/2   to  process  the
 %	collected head material into a term suitable for html//1.
-%	
+%
 %	@tbd  This  has  been  added    to   facilate  html_head.pl,  an
 %	experimental  library  for  dealing  with   css  and  javascript
 %	resources. It feels a bit like a hack, but for now I do not know
@@ -829,14 +829,14 @@ post_close(_) -->
 %	Define required newlines before and after   tags.  This table is
 %	rather incomplete. New rules can  be   added  to  this multifile
 %	predicate.
-%	
+%
 %	@param Tag	Name of the tag
 %	@param Open	Tuple M-N, where M is the number of lines before
 %			the tag and N after.
 %	@param Close	Either as Open, or the atom - (minus) to imit the
 %			close-tag or =empty= to indicate the element has
 %			no content model.
-%			
+%
 % 	@tbd	Complete table
 
 :- multifile
@@ -903,7 +903,7 @@ layout(div,	   1-0,	0-1).
 %
 %		* nl(N)
 %		Use at minimum N newlines here.
-%		
+%
 %		* mailbox(Id, Box)
 %		Repositioned tokens (see html_post//2 and
 %		html_receive//2)
@@ -958,7 +958,7 @@ write_nl(N, Out) :-
 %	Determine the content length of  a   token  list  produced using
 %	html//1. Here is an example on  how   this  is used to output an
 %	HTML compatible to HTTP:
-%	
+%
 %	==
 %		phrase(html(DOM), Tokens),
 %		html_print_length(Tokens, Len),
@@ -1121,7 +1121,7 @@ attr_value_colour(List, classify) :-
 	is_list(List), !.
 attr_value_colour(_, error).
 
-location_id(ID, classify) :- 
+location_id(ID, classify) :-
 	var(ID), !.
 location_id(ID, Class) :-
 	current_predicate(http_dispatch:http_location_by_id/2),
@@ -1159,7 +1159,7 @@ emacs_prolog_colours:identify(http_no_location_for_id(ID), Summary) :-
 
 
 %	prolog:called_by(+Goal, -Called)
-%	
+%
 %	Hook into library(pce_prolog_xref).  Called is a list of callable
 %	or callable+N to indicate (DCG) arglist extension.
 
@@ -1202,7 +1202,7 @@ called_by(M:Term, _) --> !,
 	->  called_by(Term, M)
 	;   []
 	).
-called_by(Term, M) --> 
+called_by(Term, M) -->
 	{ compound(Term), !,
 	  Term =.. [_|Args]
 	},

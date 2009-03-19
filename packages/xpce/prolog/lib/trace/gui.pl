@@ -75,7 +75,7 @@ register_directories :-
 			       HlpFile)
 	->  pce_help_file(pltracer, HlpFile)
 	).
-	    
+
 :- initialization register_directories.
 
 version('2.0').
@@ -113,7 +113,7 @@ prolog_tracer(Thread, Ref, Create) :-
 %%	break_level(-Level)
 %
 %	Current break-level.
-%	
+%
 %	@bug	Breaks only work in the main thread. We need to change I/O
 %		handling and where the break-level is stored to fix
 %		this.
@@ -129,7 +129,7 @@ break_level(1).
 %%	get_tracer(+Thread, +Term, -Reply) is semidet.
 %
 %	Send messages to the XPCE tracer window.
-%	
+%
 %	@param Thread: calling thread.
 
 send_tracer(Term) :-
@@ -174,7 +174,7 @@ get_tracer(Thread, Term, Result) :-
 %
 %	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
 %	meanwhile, allow the XPCE thread to call in_debug_thread/1.
-%	
+%
 %	@bug	XPCE thread does not _need_ to be =main=.
 
 send_pce(Goal) :-
@@ -314,7 +314,7 @@ initialise(F, Level:int, Thread0:'int|name') :->
 	send(S, name, stack),
 	ignore(send(F, frame_finished, 0)),	% FR_WATCHED issue
 	asserta(gui(Thread, Level, F)).
- 
+
 unlink(F) :->
 	retractall(gui(_, _, F)),
 	clear_clause_info_cache,	% safety first
@@ -593,7 +593,7 @@ nostop_or_spy(F) :->
 	;   send(F, report, warning,
 		 'No selected break or current spy-point')
 	).
-	    
+
 browse(_F) :->
 	"Provides overview for edit/spy/break"::
 	prolog_ide(open_navigator).
@@ -731,7 +731,7 @@ key_name(C, A) :-
 	char_code(A, C).
 
 initialise(D) :->
-	send_super(D, initialise),	
+	send_super(D, initialise),
 	send(D, pen, 0),
 	send(D, gap, size(0,0)),
 	get(D, frame, Frame),
@@ -757,7 +757,7 @@ make_message(Action,  D, message(D, return, Action)).
 
 typed(D, Id:event_id, Delegate:[bool]) :->
 	"Handle typing"::
-	(   get(D, find, @default, 
+	(   get(D, find, @default,
 		and(message(@arg1, has_get_method, keys),
 		    message(@arg1?keys, member, Id)),
 		Button)
@@ -938,7 +938,7 @@ value(F, Value:prolog) :<-
 	get(View, prolog_frame, Frame), Frame \== @nil,
 	get(F, argn, ArgN),
 	prolog_frame_attribute(F, Frame, argument(ArgN), Value).
-	
+
 :- pce_end_class(prolog_frame_var_fragment).
 
 

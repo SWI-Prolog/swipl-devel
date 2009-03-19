@@ -270,7 +270,7 @@ search_string_regex(Regex re, String s)
 
   if ( !ensure_compiled_regex(re, RE_SEARCH) )
     fail;
-  
+
   rc = re_execW(re->compiled, IDX2PTR(0), s->size,
 		re_fetch_string, s,
 		NULL,
@@ -300,7 +300,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
     closure = s;
   } else if ( instanceOfObject(obj, ClassTextBuffer) )
   { TextBuffer tb = obj;
-    
+
     len = tb->size;
     fetch = re_fetch_textbuffer;
     closure = tb;
@@ -313,7 +313,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
     closure = frag;
   } else
     fail;
-   
+
   if ( isDefault(end) )
   { to = len;
   } else
@@ -436,7 +436,7 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 { if ( search_regex(re, obj, start, end, RE_MATCH) )
     answer(toInt(re->registers[0].rm_eo -
 		 re->registers[0].rm_so));
-   
+
   fail;
 }
 
@@ -532,7 +532,7 @@ registerValueRegex(Regex re, Any obj, CharArray value, Int which)
       if ( re->registers[i].rm_eo >= start )
 	re->registers[i].rm_eo += shift;
     }
-    
+
     succeed;
   }
 
@@ -564,12 +564,12 @@ replaceRegex(Regex re, Any obj, CharArray value)
 	continue;
       } else
 	errorPce(re, NAME_noRegexRegister, reg, 0);
-    } 
+    }
     str_store(buf, o, c);
     o++;
   }
   buf->size = o;
-  
+
   repl = StringToScratchCharArray(buf);
   rval = registerValueRegex(re, obj, repl, ZERO);
   doneScratchCharArray(repl);
@@ -804,7 +804,7 @@ static getdecl get_regex[] =
 #define rc_regex NULL
 /*
 static classvardecl rc_regex[] =
-{ 
+{
 };
 */
 

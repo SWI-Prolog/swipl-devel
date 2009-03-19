@@ -674,7 +674,7 @@ testset(regex).				% Regular expression matches
 testset(type).				% Check type logic
 
 %	testdir(Dir)
-%	
+%
 %	Enumerate directories holding tests.
 
 :- multifile
@@ -739,7 +739,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 test_failed(R, Except) :-
 	clause(Head, _, R),
 	functor(Head, Name, 1),

@@ -113,7 +113,7 @@ action(slow_read, In, Out) :-
 action(quit, _In, Out) :-
 	close_stream_pool,
 	tcp_send(Out, quitted).
-	
+
 
 		 /*******************************
 		 *	    CLIENT SIDE		*
@@ -275,7 +275,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 test_failed(R, Except) :-
 	clause(Head, _, R),
 	functor(Head, Name, 1),

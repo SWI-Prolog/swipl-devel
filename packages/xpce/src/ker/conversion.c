@@ -101,7 +101,7 @@ Real
 toReal(Any obj)
 { if ( instanceOfObject(obj, ClassReal) )
     return obj;
-  
+
   return getConvertReal(ClassReal, obj);
 }
 
@@ -120,7 +120,7 @@ toBool(Any obj)
     else if ( i == ONE )
       return ON;
   }
-  
+
   if ( toString(obj, &s) && isstrA(&s) )
   { if       ( streq_ignore_case((char *)s.s_textA, "@on") ||
 	       streq_ignore_case((char *)s.s_textA, "true") ||
@@ -434,7 +434,7 @@ expandFunction(Any obj)
 { while ( isFunction(obj) )
   { Function f = (Function) obj;
     Any rval = getExecuteFunction(f);
-    
+
     if ( rval == FAIL )
     { DEBUG(NAME_obtain, Cprintf("Function: %s\n", pp(f)));
       fail;

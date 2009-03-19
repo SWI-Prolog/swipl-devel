@@ -81,7 +81,7 @@ confirm(Ref) :-				% ask
 	new(D, dialog),
 	send(D, kind, transient),
 	send(D, append,
-	     label(message, 
+	     label(message,
 		   string('PCE: new: object %s/%s already exists.',
 			  Ref, Object?'_class_name'))),
 	send(D, append,
@@ -98,5 +98,5 @@ confirm(Ref) :-				% ask
 	get(D, confirm_centered, Answer),
 	send(D, destroy),
 	Answer \== error.
-	     
-	
+
+

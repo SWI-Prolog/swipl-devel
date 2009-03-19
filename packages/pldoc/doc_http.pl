@@ -86,7 +86,7 @@ http:location(pldoc_resource, Path, []) :-
 %	server is started in a seperate   thread.  Options are handed to
 %	http_server/2.  In  addition,   the    following   options   are
 %	recognised:
-%	
+%
 %		* allow(HostOrIP)
 %		Allow connections from HostOrIP.  If HostOrIP is an atom
 %		it is matched to the hostname.  It if starts with a .,
@@ -96,14 +96,14 @@ http:location(pldoc_resource, Path, []) :-
 %
 %		* deny(HostOrIP)
 %		See allow(HostOrIP).
-%		
+%
 %		* edit(Bool)
 %		Allow editing from localhost connections? Default:
 %		=true=.
-%		
+%
 %	The predicate doc_server/1 is defined as below, which provides a
 %	good default for development.
-%	
+%
 %	==
 %	doc_server(Port) :-
 %		doc_server(Port,
@@ -111,7 +111,7 @@ http:location(pldoc_resource, Path, []) :-
 %			     allow(localhost)
 %			   ]).
 %	==
-%	
+%
 %	@see	doc_browser/1
 
 doc_server(Port) :-
@@ -145,7 +145,7 @@ doc_server(Port, Options) :-
 %	be embedded into another  Prolog  HTTP   server.  If  we are not
 %	started from doc_server/2, we  return  the   port  of  a running
 %	HTTP server.
-%	
+%
 %	@tbd	Trap destruction of the server.
 %	@error	existence_error(http_server, pldoc)
 
@@ -230,7 +230,7 @@ prepare_editor.
 
 
 %%	pldoc_root(+Request)
-%	
+%
 %	Reply using the index-page  of   the  Prolog  working directory.
 %	There are various options for the   start directory. For example
 %	we could also use the file or   directory of the file that would
@@ -381,13 +381,13 @@ file('favicon.ico',   'favicon.ico').
 
 
 %%	pldoc_doc(+Request)
-%	
+%
 %	Handler for /doc/Path
-%	
+%
 %	Reply documentation of a file. Path is  the absolute path of the
 %	file for which to return the  documentation. Extension is either
 %	none, the Prolog extension or the HTML extension.
-%	
+%
 %	Note that we reply  with  pldoc.css   if  the  file  basename is
 %	pldoc.css to allow for a relative link from any directory.
 
@@ -410,7 +410,7 @@ documentation(Path, Request) :-
 	http_reply_file(pldoc(Base), [], Request).
 documentation(Path, Request) :-
 	Index = '/index.html',
-	sub_atom(Path, _, _, 0, Index), 
+	sub_atom(Path, _, _, 0, Index),
 	atom_concat(Dir, Index, Path),
 	exists_directory(Dir), !,		% Directory index
 	(   allowed_directory(Dir)

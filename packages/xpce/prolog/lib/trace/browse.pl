@@ -292,7 +292,7 @@ module_of_path(Path, Module) :-
 	read(Fd, Term),
 	close(Fd),
 	Term = (:- module(Module, _Public)).
-			  
+
 hidden_entity(module(_)).
 
 file_expansion_entity(Path, entity(module(Module), Line)) :-
@@ -371,7 +371,7 @@ identify(TF) :->
 
 make_sb_file_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit)),
@@ -434,7 +434,7 @@ status(TE, Status:{open,close}) :<-
 
 make_source_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit),
@@ -521,7 +521,7 @@ identify_behaviour(var, Name, Class, TE) :-
 	send(TE, report, status, 'XPCE instance variable %s-%s', Class, Name).
 identify_behaviour(cvar, Name, Class, TE) :-
 	send(TE, report, status, 'XPCE class variable %s.%s', Class, Name).
-	
+
 :- pce_group(popup).
 
 :- free(@sb_xpce_behaviour_popup).
@@ -530,7 +530,7 @@ identify_behaviour(cvar, Name, Class, TE) :-
 
 make_sb_xpce_behaviour_popup(P) :-
 	new(P, popup(predicate_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, open),
@@ -577,7 +577,7 @@ expand(CF) :->
 	    fail
 	;   true
 	).
-		
+
 make_class_toc_enter(xpce_class_local_predicate(Class,Head), Class, Key, TE) :-
 	make_file_toc_entry(predicate(Head), Key, TE), !.
 make_class_toc_enter(Term, Class, _Key, TE) :-
@@ -612,7 +612,7 @@ identify(CF) :->
 
 make_sb_xpce_class_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit),
@@ -804,7 +804,7 @@ expand(P) :->
 	    fail
 	;   true
 	).
-	
+
 predicate_location(K, Called, Line) :-
 	x_browse_info(K, entity(predicate(Called), Line)), !.
 predicate_location(K, Called, Line) :-
@@ -883,7 +883,7 @@ trace(P, Val:[bool]) :->
 
 make_prolog_predicate_popup(P) :-
 	new(P, popup(predicate_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, open),
@@ -963,4 +963,4 @@ load_info(failed(Spec),
 			   Path).
 load_info(done(_Level, file(_, Path), _, _, _, _),
 	  Path, true).
-	
+

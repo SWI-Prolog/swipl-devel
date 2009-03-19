@@ -34,7 +34,7 @@
 	    prolog_open_source/2,	% +Source, -Stream
 	    prolog_close_source/1,	% +Stream
 	    prolog_canonical_source/2,	% +Spec, -Id
-	    
+
 	    file_name_on_path/2,	% +File, -PathSpec
 	    file_alias_path/2		% ?Alias, ?Dir
 	  ]).
@@ -79,7 +79,7 @@ users of the library are:
 %
 %	Read a term from a Prolog source-file.  Options is a option list
 %	as normally provided to read_term/3.
-%	
+%
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term
 
@@ -148,14 +148,14 @@ public_operators([H|T]) :- !,
 		 *******************************/
 
 %%	prolog_open_source(+CanonicalId:atomic, -Stream:stream) is det.
-%	
+%
 %	Open     source     with     given     canonical     id     (see
 %	prolog_canonical_source/2)  and  remove  the  #!  line  if  any.
 %	Streams  opened  using  this  predicate  must  be  closed  using
 %	prolog_close_source/1. Typically using the skeleton below. Using
 %	this   skeleton,   operator   and    style-check   options   are
 %	automatically restored to the values before opening the source.
-%	
+%
 %	==
 %	process_source(Src) :-
 %		prolog_open_source(Src, In),
@@ -193,7 +193,7 @@ prolog_close_source(In) :-
 
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is det.
-%	
+%
 %	Given a user-specification of a source,   generate  a unique and
 %	indexable  identifier  for   it.   For    files   we   use   the
 %	prolog_canonical absolute filename.
@@ -215,7 +215,7 @@ prolog_canonical_source(Source, Src) :-
 
 
 %%	file_name_on_path(+File:atom, -OnPath) is det.
-%	
+%
 %	True if OnPath a description of File   based  on the file search
 %	path. This performs the inverse of absolute_file_name/3.
 
@@ -231,9 +231,9 @@ file_name_on_path(Path, ShortId) :-
 	;   ShortId = Path
 	).
 
-	
+
 %%	file_alias_path(-Alias, ?Dir) is nondet.
-%	
+%
 %	True if file Alias points to Dir.  Multiple solutions are
 %	generated with the longest directory first.
 

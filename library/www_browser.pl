@@ -43,7 +43,7 @@
 %
 %	On Unix life is a bit harder as there is no established standard
 %	to figure out which browser to open.  We try:
-%	
+%
 %		* The start-program `open' (Mac and some Unix systems).
 %		* Prolog flag `browser'
 %		* Variable BROWSER
@@ -76,7 +76,7 @@ www_open_url(Spec) :-			% something we know
 %	Open a page using  a  browser.   Preferably  we  use an existing
 %	browser to to the job. Currently   only supports browsers with a
 %	netscape compatible remote interface.
-%	
+%
 %	@see http://www.mozilla.org/unix/remote.html
 
 www_open_url(Browser, URL) :-
@@ -91,7 +91,7 @@ www_open_url(Browser, URL) :-
 %
 %	Execute netscape remote command using =|-remote|=. Create the
 %	remote command using format/3 from Format and Args.
-%	
+%
 %	@bug	At least firefox gives always 0 exit code on -remote,
 %		so we must check the error message.  Grrrr.
 
@@ -105,7 +105,7 @@ netscape_remote(Browser, Fmt, Args) :-
 	->  !, fail
 	;   true
 	).
-	
+
 
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
@@ -127,7 +127,7 @@ known_browser(opera,     -).
 
 
 %%	has_command(+Command)
-%	
+%
 %	Succeeds if Command is in  $PATH.   Works  for Unix systems. For
 %	Windows we have to test for executable extensions.
 

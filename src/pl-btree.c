@@ -50,7 +50,7 @@ PRED_IMPL("$btree_find_node", 4, btree_find_node, 0)
 
   k = valTermRef(A1);
   t = valTermRef(A2);
-  
+
   deRef(k);
   deRef(t);
 
@@ -61,7 +61,7 @@ PRED_IMPL("$btree_find_node", 4, btree_find_node, 0)
   arity = arityFunctor(fd);
   if ( arity < 3 )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
-  
+
   for(;;)
   { Word a = &f->arguments[0];
     Word n;

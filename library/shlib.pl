@@ -111,7 +111,7 @@ base(Path, Base) :-
 base(Path, Base) :-
 	Path =.. [_,Arg],
 	base(Arg, Base).
-	
+
 entry(_, Function, Function) :-
 	Function \= default(_), !.
 entry(Spec, default(FuncBase), Function) :-
@@ -194,7 +194,7 @@ do_unload(LibFile, DefUninstall) :-
 	),
 	abolish_foreign(LibFile),
 	close_shared_object(Handle).
-	    
+
 abolish_foreign(LibFile) :-
 	(   retract(foreign_predicate(LibFile, Module:Head)),
 	    functor(Head, Name, Arity),
@@ -274,7 +274,7 @@ unload_all_foreign_libraries :-
 	       unload_foreign(File)).
 
 %%	unload_foreign(+File)
-%	
+%
 %	Unload the given foreign file and all `spontaneous' foreign
 %	predicates created afterwards. Handling these spontaneous
 %	predicates is a bit hard, as we do not know who created them and

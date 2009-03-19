@@ -98,7 +98,7 @@ posixValueDate(Date d, Real r)
 
   if ( diff < -1.0 || diff > 1.0 )
     return errorPce(d, NAME_intRange);
-  
+
   d->unix_date = v;
 
   succeed;
@@ -129,7 +129,7 @@ convert_XML(const char *in)
       case '+':
       case '-':
       { int dh, dm;
-	
+
 	if ( sscanf(in+1, "%d:%d", &dh, &dm) == 2 )
 	{ diff = 60*dh+dm;
 	  if ( in[0] == '-' )
@@ -220,7 +220,7 @@ convertDate(Date d, CharArray s)
     d->unix_date = t;
     succeed;
   }
-  
+
   return errorPce(d, NAME_notSupportedForChar16);
 }
 
@@ -341,11 +341,11 @@ getWeekDayDate(Date d)
   answer(toInt(tm->tm_wday));
 }
 
-static char * dayName[] = 
+static char * dayName[] =
   { "Sunday", "Monday", "Tuesday", "Wednesday",
     "Thursday", "Friday", "Saturday"
   };
-static char * shortDayName[] = 
+static char * shortDayName[] =
   { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
   };
 static char * monthName[] =
@@ -358,7 +358,7 @@ static char * shortMonthName[] =
     "Jun",	"Jul",	"Aug",	"Sep",	"Oct",
     "Nov",	"Dec"
   };
-			  
+
 
 static Name
 getDayNameDate(Date d, Bool shrt)
@@ -437,7 +437,7 @@ getCompareDate(Date d1, Date d2)
 static Int
 getDifferenceDate(Date d1, Date d2, Name units)
 { long t = isDefault(d2) ? 0 : d2->unix_date;
-  
+
   if ( isDefault(units) )
     units = NAME_second;
 
@@ -602,7 +602,7 @@ static getdecl doget_date[] =
 #define rc_date NULL
 /*
 static classvardecl rc_date[] =
-{ 
+{
 };
 */
 

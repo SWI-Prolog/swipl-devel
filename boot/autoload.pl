@@ -148,7 +148,7 @@ indexed_directory(Dir) :-
 		********************************/
 
 %%	reload_library_index
-%	
+%
 %	Reload the index on the next call
 
 reload_library_index :-
@@ -158,7 +158,7 @@ reload_library_index :-
 
 
 %%	load_library_index(?Name, ?Arity) is det.
-%	
+%
 %	Try to find Name/Arity  in  the   library.  If  the predicate is
 %	there, we are happy. If not, we  check whether the set of loaded
 %	libraries has changed and if so we reload the index.
@@ -214,7 +214,7 @@ assert_index(index(Name, Arity, Module, File), Dir) :- !,
 assert_index(Term, Dir) :-
 	print_message(error, illegal_autoload_index(Dir, Term)),
 	fail.
-	
+
 
 		/********************************
 		*       CREATE INDEX.pl		*
@@ -237,7 +237,7 @@ make_library_index2(Dir) :-
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
-	
+
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
 	access_file(AbsIndex, write), !,
@@ -269,7 +269,7 @@ expand_index_file_patterns(Patterns, Files) :-
 files_from_patterns([]) -->
 	[].
 files_from_patterns([P0|PT]) -->
-	{ expand_file_name(P0, Files) 
+	{ expand_file_name(P0, Files)
 	},
 	Files,
 	files_from_patterns(PT).
@@ -289,7 +289,7 @@ library_index_out_of_date(Index, Files) :-
 
 do_make_library_index(Index, Files) :-
 	setup_call_cleanup((   '$style_check'(OldStyle, OldStyle),
-			       style_check(-dollar), 
+			       style_check(-dollar),
 			       open(Index, write, Fd)
 			   ),
 			   (   index_header(Fd),
@@ -339,7 +339,7 @@ index_header(Fd):-
 %%	autoload(+Options) is det.
 %
 %	Force all necessary autoloading to be done _now_.  Options:
-%	
+%
 %	    * verbose(+Boolean)
 %	    If =true=, report on the files loaded.
 
@@ -348,8 +348,8 @@ autoload :-
 
 autoload(Options) :-
 	al_option(Options, verbose/true, Verbose),
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
+	'$style_check'(Old, Old),
+	style_check(+dollar),
 	current_prolog_flag(autoload, OldAutoLoad),
 	current_prolog_flag(verbose_autoload, OldVerbose),
 	set_prolog_flag(autoload, false),
@@ -366,16 +366,16 @@ autoload(Options) :-
 	    autoload(Verbose)		% recurse for possible new
 					% unresolved links
 	).
-	
+
 defined_predicates([]).
 defined_predicates([H|T]) :-
 	'$define_predicate'(H),
 	defined_predicates(T).
 
 needs_autoloading(Module:Head) :-
-	predicate_property(Module:Head, undefined), 
-	\+ predicate_property(Module:Head, imported_from(_)), 
-	functor(Head, Functor, Arity), 
+	predicate_property(Module:Head, undefined),
+	\+ predicate_property(Module:Head, imported_from(_)),
+	functor(Head, Functor, Arity),
 	'$in_library'(Functor, Arity, _).
 
 al_option(Options, Name/Default, Value) :-

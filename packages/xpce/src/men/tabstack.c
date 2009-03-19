@@ -199,7 +199,7 @@ layoutDialogTabStack(TabStack ts, Size s)
       send(cell->value, NAME_layoutDialog, EAV);
       assign(gr, displayed, old);
     }
-    
+
     initHeaderObj(&a, ClassArea);
     a.x = a.y = a.w = a.h = ZERO;
     for_cell(cell, ts->graphicals)

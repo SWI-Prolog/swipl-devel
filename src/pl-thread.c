@@ -401,7 +401,7 @@ enableThreads(int enable)
 	 GD->statistics.threads_finished == 1 ) /* I am alone :-( */
     { GD->thread.enabled = FALSE;
     } else
-    { GET_LD 
+    { GET_LD
       term_t key = PL_new_term_ref();
 
       PL_put_atom(key, ATOM_threads);
@@ -490,7 +490,7 @@ free_prolog_thread(void *data)
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowledge = (info->status == PL_THREAD_CANCELED);
   UNLOCK();
-  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n", 
+  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
 		    info-threads, info->status));
 
 #if O_DEBUGGER
@@ -498,7 +498,7 @@ free_prolog_thread(void *data)
 #endif
   run_thread_exit_hooks(ld);
   cleanupLocalDefinitions(ld);
-  
+
   DEBUG(2, Sdprintf("Destroying data\n"));
   ld->magic = 0;
   if ( ld->stacks.global.base )		/* otherwise assume they are not */
@@ -581,7 +581,7 @@ initPrologThreads()
 void
 cleanupThreads()
 { /*TLD_free(PL_ldata);*/		/* this causes crashes */
-  
+
   if ( queueTable )
   { destroyHTable(queueTable);		/* removes shared queues */
     queueTable = NULL;
@@ -650,7 +650,7 @@ exitPrologThreads()
   	  if ( t->tid )
 	  { int rc;
 	    int oldstat = t->status;
-	    
+
 	    t->status = PL_THREAD_CANCELED;
 	    if ( (rc=pthread_cancel(t->tid)) == 0 )
 	    { canceled++;
@@ -798,7 +798,7 @@ PL_get_thread_id_ex(term_t t, int *idp)
 
   if ( !get_thread(t, &info, TRUE) )
     return FALSE;
-  
+
   *idp = info->pl_tid;
 
   return TRUE;
@@ -879,7 +879,7 @@ const char *
 threadName(int id)
 { PL_thread_info_t *info;
   char tmp[16];
-    
+
   if ( id == 0 )
     id = PL_thread_self();
   if ( id < 0 )
@@ -917,7 +917,7 @@ system_thread_id(PL_thread_info_t *info)
 
 static void
 set_system_thread_id(PL_thread_info_t *info)
-{ 
+{
   info->tid = pthread_self();
   info->has_tid = TRUE;
 #ifdef HAVE_GETTID_SYSCALL
@@ -934,7 +934,7 @@ set_system_thread_id(PL_thread_info_t *info)
 }
 
 
-static const opt_spec make_thread_options[] = 
+static const opt_spec make_thread_options[] =
 { { ATOM_local,		OPT_LONG|OPT_INF },
   { ATOM_global,	OPT_LONG|OPT_INF },
   { ATOM_trail,	        OPT_LONG|OPT_INF },
@@ -959,7 +959,7 @@ start_thread(void *closure)
 
   if ( !initialise_thread(info, TRUE) )
     return (void *)FALSE;
-    
+
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
@@ -970,21 +970,21 @@ start_thread(void *closure)
 
   { GET_LD
     pthread_cleanup_push(free_prolog_thread, info->thread_data);
-  
+
     LOCK();
     info->status = PL_THREAD_RUNNING;
     UNLOCK();
-  
+
     goal = PL_new_term_ref();
     PL_put_atom(goal, ATOM_dthread_init);
-  
+
     rval = callProlog(MODULE_system, goal, PL_Q_CATCH_EXCEPTION, &ex);
-  
+
     if ( rval )
     { PL_recorded(info->goal, goal);
       rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
     }
-  
+
     if ( !rval && info->detached )
     { if ( ex )
       { printMessage(ATOM_warning,
@@ -997,9 +997,9 @@ start_thread(void *closure)
 		     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
 		       PL_TERM, goal,
 		       PL_ATOM, ATOM_fail);
-      } 
+      }
     }
-  
+
     LOCK();
     if ( rval )
     { info->status = PL_THREAD_SUCCEEDED;
@@ -1010,9 +1010,9 @@ start_thread(void *closure)
       } else
       { info->status = PL_THREAD_FAILED;
       }
-    }    
+    }
     UNLOCK();
-  
+
     pthread_cleanup_pop(1);
   }
 
@@ -1067,7 +1067,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, at_exit);
   }
-  if ( !PL_is_variable(id) && 
+  if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
   { free_thread_info(info);
     return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
@@ -1160,7 +1160,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     else
       return FALSE;
   }
-  
+
   *info = &threads[i];
 
   return TRUE;
@@ -1293,9 +1293,9 @@ pl_thread_join(term_t thread, term_t retcode)
       return PL_error("thread_join", 2, ThError(rc),
 		      ERR_SYSCALL, "pthread_join");
   }
-  
+
   rval = unify_thread_status(retcode, info, FALSE);
-   
+
   free_thread_info(info);
 
   return rval;
@@ -1406,7 +1406,7 @@ get_prop_def(term_t t, atom_t expected, const tprop *list, const tprop **def)
 { GET_LD
   functor_t f;
 
-  if ( PL_get_functor(t, &f) ) 
+  if ( PL_get_functor(t, &f) )
   { const tprop *p = list;
 
     for( ; p->functor; p++ )
@@ -1516,31 +1516,31 @@ enumerate:
 
     if ( !state->enum_properties )
       PL_get_arg(1, property, arg);
-  
+
     for(;;)
     { PL_thread_info_t *info = &threads[state->tid];
-      
+
       if ( (*state->p->function)(info, arg PASS_LD) )
       { if ( state->enum_properties )
 	  PL_unify_term(property, PL_FUNCTOR, state->p->functor,
 				    PL_TERM, arg);
 	if ( state->enum_threads )
 	  unify_thread_id(thread, info);
-  
+
 	if ( advance_state(state) )
 	{ if ( state == &statebuf )
 	  { tprop_enum *copy = allocHeap(sizeof(*copy));
-  
+
 	    *copy = *state;
 	    state = copy;
 	  }
-  
+
 	  ForeignRedoPtr(state);
 	}
 
 	succeed;
       }
-      
+
       if ( !advance_state(state) )
       { if ( state != &statebuf )
 	  freeHeap(state, sizeof(*state));
@@ -1681,7 +1681,7 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Newly pushed hooks are executed  after   all  currently registered hooks
-have finished. 
+have finished.
 
 Q: What to do with exceptions?
 Q: Should we limit the passes?
@@ -1696,7 +1696,7 @@ run_exit_hooks(at_exit_goal *eg, int free)
 
   for( ; eg; eg = next)
   { next = eg->next;
-  
+
     switch(eg->type)
     { case EXIT_PROLOG:
 	PL_recorded(eg->goal.prolog.goal, goal);
@@ -1711,7 +1711,7 @@ run_exit_hooks(at_exit_goal *eg, int free)
       default:
 	assert(0);
     }
-      
+
     if ( free )
       freeHeap(eg, sizeof(*eg));
   }
@@ -1784,7 +1784,7 @@ pl_thread_signal(term_t thread, term_t goal)
   { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
     UNLOCK();
     fail;
-  }       
+  }
 
   sg = allocHeap(sizeof(*sg));
   sg->next = NULL;
@@ -1831,7 +1831,7 @@ executeThreadSignals(int sig)
   { term_t goal = PL_new_term_ref();
     term_t ex;
     int rval;
-      
+
     next = sg->next;
     PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
@@ -1931,7 +1931,7 @@ The resulting implementation suffers from the following problems:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-static int 
+static int
 win32_cond_init(win32_cond_t *cv)
 { cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
   cv->events[BROADCAST] = CreateEvent(NULL, TRUE,  FALSE, NULL);
@@ -1950,7 +1950,7 @@ win32_cond_destroy(win32_cond_t *cv)
 }
 
 
-static int 
+static int
 win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex)
 { int rc, last;
@@ -1989,7 +1989,7 @@ win32_cond_wait(win32_cond_t *cv,
 }
 
 
-static int 
+static int
 win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 { if ( cv->waiters > 0 )
     SetEvent(cv->events[SIGNAL]);
@@ -1998,7 +1998,7 @@ win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 }
 
 
-static int 
+static int
 win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
 { if ( cv->waiters > 0 )
     SetEvent(cv->events[BROADCAST]);
@@ -2071,7 +2071,7 @@ queue_message(message_queue *queue, term_t msg)
   msgp->next    = NULL;
   msgp->message = compileTermToHeap(msg, R_NOLOCK);
   msgp->key     = getIndexOfTerm(msg);
-  
+
   simpleMutexLock(&queue->mutex);
 
   if ( queue->max_size > 0 && queue->size >= queue->max_size )
@@ -2083,7 +2083,7 @@ queue_message(message_queue *queue, term_t msg)
 	{ Sdprintf("Forced exit from queue_message()\n");
 	  exit(1);
 	}
-	
+
 	if ( PL_handle_signals() < 0 )	/* thread-signal */
 	{ rval = FALSE;
 	  free_thread_message(msgp);
@@ -2094,7 +2094,7 @@ queue_message(message_queue *queue, term_t msg)
     }
 
     queue->wait_for_drain--;
-  }  
+  }
 
   msgp->sequence_id = ++queue->sequence_next;
   if ( !queue->head )
@@ -2298,7 +2298,7 @@ get_message(message_queue *queue, term_t msg)
       { Sdprintf("Forced exit from get_message()\n");
 	exit(1);
       }
-      
+
       if ( PL_handle_signals() < 0 )	/* thread-signal */
       { queue->waiting--;
 	queue->waiting_var -= isvar;
@@ -2349,7 +2349,7 @@ peek_message(message_queue *queue, term_t msg)
 
     PL_rewind_foreign_frame(fid);
   }
-     
+
 out:
   simpleMutexUnlock(&queue->mutex);
   fail;
@@ -2372,7 +2372,7 @@ destroy_message_queue(message_queue *queue)
     freeRecord(msgp->message);
     freeHeap(msgp, sizeof(*msgp));
   }
-  
+
   simpleMutexDelete(&queue->mutex);
   cv_destroy(&queue->cond_var);
   if ( queue->max_size > 0 )
@@ -2458,7 +2458,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   { queueTable = newHTable(16);
     queueTable->free_symbol = free_queue_symbol;
   }
-  
+
   if ( PL_get_atom(queue, &name) )
   { if ( (s = lookupHTable(queueTable, (void *)name)) ||
 	 (s = lookupHTable(threadTable, (void *)name)) )
@@ -2563,7 +2563,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 }
 
 
-static const opt_spec message_queue_options[] = 
+static const opt_spec message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { ATOM_max_size,	OPT_NATLONG },
   { NULL_ATOM,		0 }
@@ -2706,7 +2706,7 @@ free_qstate(qprop_enum *state)
 }
 
 
-static 
+static
 PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   term_t queue = A1;
@@ -2792,21 +2792,21 @@ enumerate:
 	}
 	if ( state->e )
 	  unify_queue(queue, state->q);
-  
+
 	if ( advance_qstate(state) )
 	{ if ( state == &statebuf )
 	  { qprop_enum *copy = allocHeap(sizeof(*copy));
-  
+
 	    *copy = *state;
 	    state = copy;
 	  }
-  
+
 	  ForeignRedoPtr(state);
 	}
 
 	succeed;
       }
-      
+
       if ( !advance_qstate(state) )
       { if ( state != &statebuf )
 	  free_qstate(state);
@@ -2828,10 +2828,10 @@ static
 PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
 { PRED_LD
   message_queue *q;
-  
+
   if ( !get_message_queue__LD(A1, &q PASS_LD) )
     fail;
-  
+
   return get_message(q, A2);
 }
 
@@ -2840,10 +2840,10 @@ static
 PRED_IMPL("thread_peek_message", 2, thread_peek_message_2, 0)
 { PRED_LD
   message_queue *q;
-  
+
   if ( !get_message_queue__LD(A1, &q PASS_LD) )
     fail;
-  
+
   return peek_message(q, A2);
 }
 
@@ -2899,14 +2899,14 @@ error:
 
 int
 recursiveMutexInit(recursiveMutex *m)
-{ 
+{
 #ifdef RECURSIVE_MUTEXES
   pthread_mutexattr_t *attr = NULL;
   int rc;
-  
+
   if ( (rc=recursive_attr(&attr)) )
     return rc;
-  
+
   return pthread_mutex_init(m, attr);
 
 #else /*RECURSIVE_MUTEXES*/
@@ -3129,7 +3129,7 @@ PRED_IMPL("mutex_create", 1, mutex_create1, 0)
 }
 
 
-static const opt_spec mutex_options[] = 
+static const opt_spec mutex_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { NULL_ATOM,		0 }
 };
@@ -3308,7 +3308,7 @@ pl_mutex_unlock_all()
   e = newTableEnum(GD->thread.mutexTable);
   while( (s = advanceTableEnum(e)) )
   { pl_mutex *m = s->value;
-    
+
     if ( m->owner == tid )
     { m->count = 0;
       m->owner = 0;
@@ -3332,7 +3332,7 @@ pl_mutex_destroy(term_t mutex)
   LOCK();
   if ( m->owner )
   { char msg[100];
-    
+
     UNLOCK();
     Ssprintf(msg, "Owned by thread %d", m->owner); /* TBD: named threads */
     return PL_error("mutex_destroy", 1, msg,
@@ -3368,7 +3368,7 @@ mutex_status_property(pl_mutex *m, term_t prop ARG_LD)
   { int owner = m->owner;
     int count = m->count;
     term_t owner_term = PL_new_term_ref();
-    
+
     return (PL_unify_term(prop, PL_FUNCTOR, FUNCTOR_locked2,
 			    PL_TERM, owner_term,
 			    PL_INT, count) &&
@@ -3511,21 +3511,21 @@ enumerate:
 	}
 	if ( state->e )
 	  unify_mutex(mutex, state->m);
-  
+
 	if ( advance_mstate(state) )
 	{ if ( state == &statebuf )
 	  { mprop_enum *copy = allocHeap(sizeof(*copy));
-  
+
 	    *copy = *state;
 	    state = copy;
 	  }
-  
+
 	  ForeignRedoPtr(state);
 	}
 
 	succeed;
       }
-      
+
       if ( !advance_mstate(state) )
       { if ( state != &statebuf )
 	  free_mstate__LD(state PASS_LD);
@@ -3579,7 +3579,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
     info->cancel = attr->cancel;
   }
-  
+
   info->goal       = NULL;
   info->module     = MODULE_user;
   info->detached   = TRUE;		/* C-side should join me */
@@ -3660,7 +3660,7 @@ attachConsole()
 static PL_engine_t
 PL_current_engine(void)
 { GET_LD
- 
+
   return LD;
 }
 
@@ -3692,7 +3692,7 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
     if ( new )
     { if ( new == PL_ENGINE_MAIN )
 	new = &PL_local_data;
-  
+
       if ( new->magic != LD_MAGIC )
       { UNLOCK();
 	return PL_ENGINE_INVAL;
@@ -3702,17 +3702,17 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
 	return PL_ENGINE_INUSE;
       }
     }
-  
+
     if ( current )
       detach_engine(current);
-  
+
     if ( new )
     { TLD_set(PL_ldata, new);
       new->thread.info->tid = pthread_self();
-      
+
       set_system_thread_id(new->thread.info);
     }
-  
+
     UNLOCK();
   }
 
@@ -3748,7 +3748,7 @@ PL_destroy_engine(PL_engine_t e)
   { rc = PL_thread_destroy_engine();
   } else
   { PL_engine_t current;
-    
+
     if ( PL_set_engine(e, &current) == PL_ENGINE_SET )
     { rc = PL_thread_destroy_engine();
       PL_set_engine(current, NULL);
@@ -3969,7 +3969,7 @@ open_procps_entry(procps_entry *e, int tid)
 	e->fd = fd;
 	e->offset = (bp-buffer)+4;
 	e->usecoount = 1;
-	
+
 	return e;
       }
     }
@@ -4022,7 +4022,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 					/* most likely does not need reuse */
     if ( info->status != PL_THREAD_RUNNING )
       close_procps_entry(e);
-    
+
     for(s=buffer, i=0; i<nth; i++, s++)
     { while(*s != ' ')
 	s++;
@@ -4112,7 +4112,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
   if ( info->thread_data == LD )
   { if ( which == CPU_USER )
       SyncUserCPU(0);
-    else 
+    else
       SyncSystemCPU(0);
   } else
   { struct sigaction old;
@@ -4316,16 +4316,16 @@ print_trace(int depth)
   char **strings;
   size_t i;
   int self = PL_thread_self();
-     
+
   size = backtrace(array, depth);
   strings = backtrace_symbols(array, size);
-     
+
   Sdprintf("[%d] C-stack:\n", self);
-  
+
   for(i = 0; i < size; i++)
   { Sdprintf("\t[%d:%d] %s\n", self, i, strings[i]);
   }
-       
+
   free(strings);
 }
 #endif /*HAVE_EXECINFO_H*/
@@ -4362,7 +4362,7 @@ doThreadLocalData(int sig)
   if ( LD->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
   { DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
 		      info->pl_tid));
-    
+
     info->status = PL_THREAD_SUSPENDED;
     sem_post(sem_mark_ptr);
     wait_resume(info);
@@ -4494,7 +4494,7 @@ markAtomsThreads(void)
   if ( queueTable )
   { Symbol s;
     TableEnum e = newTableEnum(queueTable);
-    
+
     while((s=advanceTableEnum(e)))
     { markAtomsMessageQueue(s->value);
     }
@@ -4544,7 +4544,7 @@ localiseDefinition(Definition def)
   local->definition.clauses = NULL;
   local->hash_info = NULL;
   createSupervisor(local);
-  
+
   if ( !def->definition.local ||
        id >= def->definition.local->size )
   { int newsize = def->definition.local ? def->definition.local->size : 1;
@@ -4555,7 +4555,7 @@ localiseDefinition(Definition def)
     do
     { newsize *= 2;
     } while ( newsize <= id );
-     
+
     bytes = offsetof(struct local_definitions, thread[newsize]);
     new = allocHeap(bytes);
     new->size = newsize;
@@ -4589,7 +4589,7 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
   for( ; ch; ch = next)
   { Definition local, def = ch->definition;
     next = ch->next;
-    
+
     assert(true(def, P_THREAD_LOCAL));
     LOCKDEF(def);
     local = def->definition.local->thread[id];

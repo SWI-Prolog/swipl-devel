@@ -88,7 +88,7 @@ static senddecl send_if[] =
 #define get_if NULL
 /*
 static getdecl get_if[] =
-{ 
+{
 };
 */
 
@@ -97,7 +97,7 @@ static getdecl get_if[] =
 #define rc_if NULL
 /*
 static classvardecl rc_if[] =
-{ 
+{
 };
 */
 

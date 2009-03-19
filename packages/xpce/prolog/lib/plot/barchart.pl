@@ -55,7 +55,7 @@ bar-charts.  The classes defines are:
 	Class bar_group is a subclass of bar_stack, defining a group of
 	related bars. A typical usage for such bars is showing the
 	values of various parameters `last year' and `now'.
-	
+
 	# Class bar_chart
 	A subclass of class plotter for showing curves.  It displays
 	an X- or Y-axis and a base-line for the bars.  Bars, bar stacks
@@ -73,9 +73,9 @@ Packages used:
 
 	# library(library(plotter))
 	Generic curve plotting device
-	
+
 	# library(library(axis))
-	Generic X/Y axis defining coordinate translations 
+	Generic X/Y axis defining coordinate translations
 
 	# library(library(hyper))
 	using partof_hyper for dependency relations between bars and
@@ -213,7 +213,7 @@ value_format(B, Fmt:name) :<-
 	->  true
 	;   Fmt = '%g'
 	).
-	    
+
 plotter(@nil, _) :- !,
 	fail.
 plotter(Plotter, Plotter) :-
@@ -242,7 +242,7 @@ compute(B) :->
 %	    ignore(send(B, send_hyper, label, update_position))
 	;   true
 	).
-	
+
 
 :- free(@bar_recogniser).
 :- pce_global(@bar_recogniser, new(bar_drag_gesture)).
@@ -315,7 +315,7 @@ compute(BS) :->
 	send(BS, place_bars),
 	send_super(BS, compute).
 %	ignore(send(BS, send_hyper, label, update_position)).
-	
+
 place_bars(BS) :->
 	get_chain(BS, graphicals, Grs),
 	place_stacked_bars(Grs, 0).
@@ -331,7 +331,7 @@ place_stacked_bars([B|T], XY) :-
 	get(B, SelWH, WH),
 	NewXY is XY + WH,
 	place_stacked_bars(T, NewXY).
-	    
+
 
 append(BS, Bar:bar) :->
 	"Append a bar"::
@@ -609,7 +609,7 @@ initialise(BC,
 	send(L, name, bar_base).
 
 determine_format(Low, High, '%d') :-
-	Low  =:= integer(Low), 
+	Low  =:= integer(Low),
 	High =:= integer(High),
 	High - Low > 10.
 determine_format(Low, High, Format) :-
@@ -655,7 +655,7 @@ pixel_range(BC, Dir:{x,y}, Range:tuple) :<-
 	    ),
 	    new(Range, tuple(Min, Max))
 	).
-	    
+
 
 :- pce_group(contents).
 

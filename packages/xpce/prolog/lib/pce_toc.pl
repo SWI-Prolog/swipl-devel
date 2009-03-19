@@ -332,7 +332,7 @@ selection(TC, Selection:'any|graphical|chain*') :->
 	;   get(TC, node_image, Selection, Gr)
 	->  send_super(TC, selection, Gr)
 	).
-	    
+
 node(TC, From:any, Node:toc_node) :<-
 	"Get node from node or ID"::
 	(   send(From, instance_of, toc_node)
@@ -351,7 +351,7 @@ node_image(TC, From:any, Gr:graphical) :<-
 	).
 
 :- pce_end_class(toc_tree).
-	  
+
 
 :- pce_begin_class(toc_node, node,
 		   "Node for the table-of-contents package").
@@ -499,7 +499,7 @@ make_toc_drag_and_drop_recogniser(G) :-
 	new(G, drag_and_drop_gesture(left, '', @default,
 				     @arg1?drop_target)),
 	send(G, condition, @event?window?drag_and_drop == @on).
-	
+
 make_toc_node_format(F) :-
 	new(F, format(vertical, 1, @on)),
 	send(F, row_sep, 5).

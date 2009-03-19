@@ -99,10 +99,10 @@ stringHashValue(String s)
 
   if ( isstrW(s) )
     size *= sizeof(charW);
-    
+
   while(--size >= 0)
   { unsigned int c = *t++;
-    
+
     c -= 'a';
     value ^= c << shift;
     shift += 3;
@@ -145,7 +145,7 @@ rehashNames(void)
 
   names = 0;
   for(n=old_buckets, nm=old_table; n-- > 0; nm++)
-    if ( *nm ) 
+    if ( *nm )
       insertName(*nm);
 
   DEBUG((Name)NAME_name, Cprintf("done\n"));
@@ -191,7 +191,7 @@ deleteName(Name name)
       i = name_table;
   }
   assert(*i);
-  
+
   *i = NULL;				/* R1 */
   j = i;
 
@@ -311,7 +311,7 @@ checkNames(int prt)
 status
 initialiseName(Name n, CharArray value)
 { initialiseCharArray((CharArray) n, value);
-  
+
   if ( inBoot )
     return registerName(n);
   else
@@ -623,7 +623,7 @@ GetBenchName(Name name, Int count)
   int n;
 
   str_eq_failed = 0;
-  
+
   for(;;)
   { for(n=0; n<buckets; n++)
     { Name nm;
@@ -654,7 +654,7 @@ static char *T_syntax[] =
 #define var_name NULL
 /*
 vardecl var_name[] =
-{ 
+{
 };
 */
 
@@ -703,7 +703,7 @@ static getdecl get_name[] =
 #define rc_name NULL
 /*
 static classvardecl rc_name[] =
-{ 
+{
 };
 */
 

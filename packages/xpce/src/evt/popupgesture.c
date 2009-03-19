@@ -33,7 +33,7 @@ initialisePopupGesture(PopupGesture g, PopupObj popup,
 
   initialiseGesture((Gesture) g, button, modifier);
   assign(g, popup, popup);
-   
+
   succeed;
 }
 
@@ -85,10 +85,10 @@ static status
 eventPopupGesture(PopupGesture g, EventObj ev)
 { if ( g->status == NAME_active && isUpEvent(ev) )
   { PceWindow sw;
-    
+
     if ( !(sw = getWindowGraphical(ev->receiver)) )
       sw = ev->window;
-    
+
     if ( notNil(g->current) && g->current->displayed == OFF )
     { send(g->current, NAME_open, ev->receiver,
 	   getAreaPositionEvent(ev, DEFAULT), EAV);
@@ -113,7 +113,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
     succeed;
   } else if ( notNil(g->current) && g->current->displayed == ON )
     return postEvent(ev, (Graphical) g->current, DEFAULT);
-      
+
   if ( eventGesture(g, ev) )
     succeed;
 
@@ -126,7 +126,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
     if ( send(g->current, NAME_key, key, EAV) )
     { Any context = g->context;
       PopupObj current = g->current;
-      
+
       assign(g, context, NIL);
       assign(g, current, NIL);
 
@@ -194,7 +194,7 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
 
   if ( notNil(current) )
   { postEvent(ev, (Graphical) current, DEFAULT);
-  
+
     if ( current->displayed == OFF )	/* for stayup */
     { PceWindow sw;
 
@@ -260,7 +260,7 @@ static senddecl send_popupGesture[] =
 #define get_popupGesture NULL
 /*
 static getdecl get_popupGesture[] =
-{ 
+{
 };
 */
 
@@ -301,4 +301,4 @@ popupGesture()
 
   return (Recogniser) GESTURE_popup;
 }
-  
+

@@ -95,7 +95,7 @@ translate(Term0, Term, Command) :-
 
 translate_args(N, N, _, _, true) :- !.
 translate_args(I0, Arity, T0, T1, (C0,C)) :-
-	I is I0 + 1, 
+	I is I0 + 1,
 	arg(I, T0, A0),
 	arg(I, T1, A1),
 	translate(A0, A1, C0),

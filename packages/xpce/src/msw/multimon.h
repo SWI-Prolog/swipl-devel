@@ -113,7 +113,7 @@ typedef struct {
     BOOL     (WINAPI* g_pfnGetMonitorInfo)(HMONITOR, LPMONITORINFO);
     BOOL     (WINAPI* g_pfnEnumDisplayMonitors)(HDC, LPCRECT,
               MONITORENUMPROC, LPARAM);
-    BOOL     (WINAPI *g_pfnEnumDisplayDevices)(LPVOID, int, 
+    BOOL     (WINAPI *g_pfnEnumDisplayDevices)(LPVOID, int,
               DISPLAY_DEVICE *,DWORD);
 
     BOOL InitMultipleMonitorStubs(void)
@@ -281,7 +281,7 @@ typedef struct {
     BOOL WINAPI
     xEnumDisplayMonitors(
         HDC hdc,
-        LPCRECT lprcIntersect, 
+        LPCRECT lprcIntersect,
         MONITORENUMPROC lpfnEnumProc,
         LPARAM lData)
     {
@@ -290,7 +290,7 @@ typedef struct {
         if (InitMultipleMonitorStubs())
             return g_pfnEnumDisplayMonitors(hdc, lprcIntersect, lpfnEnumProc,
                                            lData);
-    
+
         if (!lpfnEnumProc)
             return FALSE;
 
@@ -333,13 +333,13 @@ typedef struct {
     }
 
     BOOL WINAPI
-    xEnumDisplayDevices(LPVOID lpReserved, int iDeviceNum, 
+    xEnumDisplayDevices(LPVOID lpReserved, int iDeviceNum,
 DISPLAY_DEVICE * pDisplayDevice, DWORD dwFlags)
     {
         if (InitMultipleMonitorStubs())
             return g_pfnEnumDisplayDevices(lpReserved, iDeviceNum,
                                            pDisplayDevice, dwFlags);
-    
+
         return FALSE;
     }
 

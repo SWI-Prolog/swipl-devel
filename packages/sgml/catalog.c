@@ -241,7 +241,7 @@ init_catalog()
 int
 register_catalog_file(const ichar *file, catalog_location where)
 { int rc;
-  
+
   init_catalog();
 
   LOCK();
@@ -514,7 +514,7 @@ load_one_catalogue(catalog_file * file)
 
     To look up a parameter entity:
     f = find_in_catalogue(CAT_PENTITY, name, pubid, sysid, ci);
-    The name may begin with a % but need not; if it doesn't    
+    The name may begin with a % but need not; if it doesn't
     a % will be prefixed for the search.
     If it cannot otherwise be found ${name}.pen will be returned.
 

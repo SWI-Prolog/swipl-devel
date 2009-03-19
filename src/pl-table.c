@@ -125,7 +125,7 @@ initTables()
 
   if ( !done )
   { done = TRUE;
-    
+
     HASHSTAT(PL_on_halt(exitTables, NULL));
   }
 }
@@ -223,7 +223,7 @@ addHTable(Table ht, void *name, void *value)
 
   DEBUG(1, checkHTable(ht));
   return s;
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -330,7 +330,7 @@ copyHTable(Table org)
     }
     *q = NULL;
   }
-#ifdef O_PLMT  
+#ifdef O_PLMT
   if ( org->mutex )
   { ht->mutex = allocHeap(sizeof(simpleMutex));
     simpleMutexInit(ht->mutex);

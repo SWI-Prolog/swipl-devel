@@ -335,7 +335,7 @@ toggle_select(C, Shape:graphical) :->
 	"(Un)select a shape"::
 	send(Shape, toggle_selected),
 	send(C, update_attribute_editor).
-	
+
 select_all(C) :->
 	"Select all displayed objects"::
 	send(C, selection, C?graphicals).
@@ -390,7 +390,7 @@ import_frame(C) :->
 	send(D, append,
 	     label(prompt, 'Please left-click inside PCE frame to import')),
 	send(D, append, button(cancel, message(D, return, @nil))),
-	send(Display, inspect_handler, 
+	send(Display, inspect_handler,
 	     new(G, handler(ms_left_up, message(D, return, @arg1?frame)))),
 	get(D, confirm, Frame),
 	send(Display?inspect_handlers, delete, G),
@@ -484,7 +484,7 @@ clean_clipboard_connections(Gr, CB, Done) :-
 	send(AllConnections, for_all,
 	     message(@prolog, clean_clipboard_connections,
 		     ?(@arg1, opposite, Gr), CB, Done)).
-	
+
 
 paste(Canvas, At:[point]) :->
 	"Paste @draw_clipboard"::
@@ -657,7 +657,7 @@ See also ->unlink in this class and 'draw_attribute_editor ->quit'.
 edit_selection(Canvas) :->
 	"Start attribute editor on selection"::
 	get(Canvas, attribute_editor, Editor),
-	(    Editor == @nil    
+	(    Editor == @nil
 	->   send(Canvas, slot, attribute_editor,
 		  new(A, draw_attribute_editor(Canvas))),
 	     send(A, open)
@@ -696,7 +696,7 @@ clear(Canvas, Confirm:[bool]) :->
 	send(Canvas, slot, modified, @off),
 	send(Canvas?undo_buffer, clear),
 	send(Canvas, update_attribute_editor).
-	
+
 
 		/********************************
 		*           ALIGNMENT		*
@@ -732,7 +732,7 @@ align_graphical(Canvas, Gr:graphical) :->
 	chain_list(G0, L0),
 	auto_adjust(resize, Gr, L0),
 	align_graphical(Gr, L0).
-	
+
 
 auto_align(Canvas, Gr:graphical, How:{create,resize,move}) :->
 	"Align graphical if auto_align_mode is @on"::
@@ -758,7 +758,7 @@ auto_adjust(How, Gr, L0) :-
 	\+ send(Gr, instance_of, text),
 	adjust_graphical(Gr, L0), !.
 auto_adjust(_, _, _).
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Distribute spaces between graphicals evenly.
@@ -823,7 +823,7 @@ distribute([H|T], V0, Sel, N, Sep) :-
 	V1 is V0+Me,
 	NN is N + 1,
 	distribute(T, V1, Sel, NN, Sep).
-	
+
 
 	      /********************************
 	      *           LOAD/SAVE	      *
@@ -1158,7 +1158,7 @@ windows_metafile(Canvas, File:[file], Format:[{emf,wmf,aldus}]) :->
 	;   TheFile = File
 	),
 	send(Canvas, generate_metafile, TheFile, Fmt).
-	
+
 
 generate_metafile(Canvas, File:file, Format:{emf,wmf,aldus}) :->
 	"Write document to file as meta-file"::
@@ -1240,7 +1240,7 @@ print_canvas(Canvas) :-
 	send(PsFile, remove),
 	send(PsFile, done),
 	send(Canvas, report, status, 'Sent to printer `%s''', Printer).
-	
+
 
 default_printer(Canvas, Printer:name) :<-
 	"Get name of the printer"::

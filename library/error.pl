@@ -88,11 +88,11 @@ representation_error(Reason) :-
 %	=integer=, =nonneg=, =positive_integer=, =negative_integer=,
 %	=nonvar=, =number=, =oneof=, =list=, =list_or_partial_list=,
 %	=symbol=, =var=, =rational= and =string=.
-%	
+%
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
 %	types.
-%	
+%
 %	| boolean | one of =true= or =false= |
 %	| chars | Proper list of 1-character atoms |
 %	| codes | Proper list of Unicode character codes |
@@ -182,7 +182,7 @@ has_type(impossible, _) :-	instantiation_error(_).
 has_type(any, _).
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
-has_type(between(L,U), X) :- (   integer(L) 
+has_type(between(L,U), X) :- (   integer(L)
 			     ->  integer(X), between(L,U,X)
 			     ;   number(X), X >= L, X =< U
 			     ).

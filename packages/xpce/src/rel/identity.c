@@ -52,7 +52,7 @@ forwardsIdentity(Identity id, Any from, Any to)
   rval = send(to, id->to, value, EAV);
   if ( isObject(value) )
     doneObject(value);
-  
+
   return rval;
 }
 
@@ -66,7 +66,7 @@ backwardsIdentity(Identity id, Any from, Any to)
   rval = send(from, id->from, value, EAV);
   if ( isObject(value) )
     doneObject(value);
-  
+
   return rval;
 }
 
@@ -111,7 +111,7 @@ static senddecl send_identity[] =
 #define get_identity NULL
 /*
 static getdecl get_identity[] =
-{ 
+{
 };
 */
 
@@ -120,7 +120,7 @@ static getdecl get_identity[] =
 #define rc_identity NULL
 /*
 static classvardecl rc_identity[] =
-{ 
+{
 };
 */
 

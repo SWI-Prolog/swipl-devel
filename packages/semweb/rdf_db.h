@@ -134,7 +134,7 @@ typedef struct graph
   unsigned	    md5 : 1;		/* do/don't record MD5 */
   md5_byte_t 	    digest[16];		/* MD5 digest */
 #endif
-} graph;  
+} graph;
 
 
 typedef struct literal

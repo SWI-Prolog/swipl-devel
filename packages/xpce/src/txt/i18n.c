@@ -43,7 +43,7 @@ Only for wide-character arrays we work with sizes.
 
 	* MB
 	CTYPE Locale defined translation
-	
+
 	* UTF-8
 	Well known UTF-8 encoding of UNICODE
 
@@ -140,7 +140,7 @@ stringToUTF8(String str)
     { roomBuffer(out, 2);		/* max bytes per UTF-8 < 256 */
 
       out->bufp = utf8_put_char(out->bufp, *s);
-    } 
+    }
   } else
   { cwchar *s = str->s_textW;
     cwchar *e = &s[str->size];
@@ -150,7 +150,7 @@ stringToUTF8(String str)
     { roomBuffer(out, 6);		/* max bytes per UTF-8 */
 
       out->bufp = utf8_put_char(out->bufp, *s);
-    } 
+    }
   }
 
   addByte(out, 0);
@@ -201,7 +201,7 @@ stringToMB(String str)
       if ( (rc=wcrtomb(out->bufp, *s, &mbs)) == (size_t)-1 )
 	return NULL;
       out->bufp += rc;
-    } 
+    }
   }
 
   roomBuffer(out, MB_LEN_MAX+1);	/* add restore state + 0-byte */
@@ -352,7 +352,7 @@ UTF8ToName(const char *utf8)
       pceFree(as);
 
     return nm;
-  }      
+  }
 }
 
 
@@ -444,7 +444,7 @@ FNToName(const char *name)
 
   if ( !rc )				/* Illegal Multibyte; use plain */
     rc = CtoName(name);
-  
+
   return rc;
 }
 

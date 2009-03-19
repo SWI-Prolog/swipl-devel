@@ -144,7 +144,7 @@ edit_mode(MB, Val:bool) :->
 	       ->  send(Item, active, Val)
 	       ;   true
 	       )).
-	
+
 
 selected(MB, Obj:object*) :->
 	"Set the selection"::

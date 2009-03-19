@@ -34,16 +34,16 @@
 #include <malloc.h>
 #endif
 
-typedef struct 
+typedef struct
 { int allocated;
   int size;
   ichar *data;
 } icharbuf;
 
-typedef struct 
+typedef struct
 { int allocated;
   int size;
-  union 
+  union
   { wchar_t *w;				/* UCS */
   } data;
   wchar_t localbuf[256];		/* Initial local store */

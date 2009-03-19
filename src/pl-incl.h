@@ -396,7 +396,7 @@ them.  Descriptions:
 	use malloc() for allocating the stack as the local and global
 	stack need to be apart by this amount.  Also, an interrupt
 	skips this amount of stack.
-	
+
 	* MAXVARIABLES
 	Maximum number of variables in a clause.  May be increased
 	further, but the global local stacks need to be separated
@@ -656,7 +656,7 @@ typedef uintptr_t PL_fid_t;		/* external foreign context-id */
 
 typedef enum
 { V_INTEGER,				/* integer (64-bit) value */
-#ifdef O_GMP    
+#ifdef O_GMP
   V_MPZ,				/* mpz_t */
   V_MPQ,				/* mpq_t */
 #endif
@@ -940,7 +940,7 @@ assume
   sizeof(*to) * n == sizeof(*double)
   	with n == 1 or n == 2.
 
-We assume the compiler will optimise this properly. 
+We assume the compiler will optimise this properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define cpDoubleData(to, from) \
@@ -1217,7 +1217,7 @@ struct localFrame
 		/*	FR_MARKED  Marked by GC */
 		/*	FR_WATCHED Watched by the debugger */
 		/*	FR_CATCHED Catched exception here */
-};  
+};
 
 
 typedef enum
@@ -1232,7 +1232,7 @@ typedef enum
 { ABORT_NORMAL,				/* normal abort */
   ABORT_FATAL				/* abort on fatal error */
 } abort_type;
-   
+
 typedef enum
 { DBG_OFF = 0,				/* no debugging */
   DBG_ON,				/* switch on in current environment */
@@ -1553,8 +1553,8 @@ Note that the local stack is always _above_ the global stack.
 #define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)
 #define RestoreLocalPtr(s, ptr) (ptr) = (void *) valTermRef(s)
 #else
-#define SaveLocalPtr(s, ptr)	
-#define RestoreLocalPtr(s, ptr) 
+#define SaveLocalPtr(s, ptr)
+#define RestoreLocalPtr(s, ptr)
 #endif
 
 #define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))

@@ -19,7 +19,7 @@ initialiseResizeOutlineGesture(ResizeOutlineGesture g, Name button,
 				       g->button, g->modifier, 0));
 
   send(g->outline, NAME_texture, getResourceValueObject(g, NAME_texture), 0);
-  
+
   succeed;
 }
 

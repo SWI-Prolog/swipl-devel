@@ -91,7 +91,7 @@ initialisePce(Pce pce)
 
 #ifdef __APPLE__
  { extern int IAmAGlobalFunctionToMakeMeLoad(void);
-  
+
    (void)IAmAGlobalFunctionToMakeMeLoad();
  }
 #endif
@@ -242,7 +242,7 @@ getOsErrorPce(Pce pce)
 static Chain
 getUnresolvedTypesPce(Pce pce)
 { Chain ch = answerObject(ClassChain, EAV);
-  
+
   for_hash_table(TypeTable, s,
 	         { Type t = s->value;
 		   if ( t->kind == NAME_class )
@@ -257,7 +257,7 @@ getUnresolvedTypesPce(Pce pce)
 		     }
 		   }
 		 });
-  
+
   answer(ch);
 }
 #endif /*O_RUNTIME*/
@@ -502,7 +502,7 @@ exceptionPce(Pce pce, Name kind, ...)
   for(; (argv[argc] = va_arg(args, Any)) != NULL; argc++)
     assert(argc <= VA_PCE_MAX_ARGS);
   va_end(args);
-  
+
   return exceptionPcev(pce, kind, argc, argv);
 }
 
@@ -778,7 +778,7 @@ _emu_gethostname(char *buf, int len)
   return sysinfo(SI_HOSTNAME, buf, len) > 0 ? 0 : -1;
 #else
   char *s;
-  
+
   if ( (s = getenv("HOSTNAME")) != NULL )
     strcpy(buf, s);
   else
@@ -814,7 +814,7 @@ getUserPce(Pce pce)
 
 static Any
 getUserInfoPce(Pce pce, Name what, Name user)
-{ 
+{
 #if HAVE_PWD_H
   struct passwd *pwd;
 
@@ -842,7 +842,7 @@ getUserInfoPce(Pce pce, Name what, Name user)
 #endif /*HAVE_PWD_H*/
 
   fail;
-} 
+}
 
 
 Name
@@ -860,7 +860,7 @@ getHostnamePce(Pce pce)
 
 static Int
 getPidPce(Pce pce)
-{ 
+{
 #ifdef HAVE_GETPID
   answer(toInt(getpid()));
 #else
@@ -916,7 +916,7 @@ confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
 
     if ( Cgetline(line, sizeof(line)) )
     { char *s = line;
-      
+
       while( *s && isblank(*s) )
 	s++;
 
@@ -934,7 +934,7 @@ confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
 
     break;
   }
-  
+
   hostAction(HOST_HALT);
   exit(1);
   fail;					/* fool compiler */
@@ -1063,10 +1063,10 @@ static status
 diePce(Pce pce, Int rval)
 { static int dying = FALSE;
   int rv = isDefault(rval) ? 0 : valInt(rval);
-    
+
   if ( !dying++ )			/* avoid loops */
   { callExitMessagesPce(rv, pce);
-    
+
     hostAction(HOST_HALT, rv);
 					/* should not get here */
     killAllProcesses(rv);		/* should be done by above */
@@ -1544,7 +1544,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 	      initialiseObject,		/* Initialisation function */
 	      0);
 
-  ClassChain = 
+  ClassChain =
     bootClass(NAME_chain,
 	      NAME_object,
 	      sizeof(struct chain),
@@ -1661,7 +1661,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 	      2, "any", "any");
 
   DEBUG_BOOT(Cprintf("Initialised boot classes\n"));
-  
+
   classTable		= globalObject(NAME_classes,       ClassHashTable, EAV);
 #ifndef O_RUNTIME
   PCEdebugSubjects	= globalObject(NAME_DebugSubjects, ClassChain, EAV);

@@ -62,12 +62,12 @@ _directive_.  Here is a simple example declaration and some calls.
 %	Define access predicates for a compound-term. RecordDef is of
 %	the form <constructor>(<argument>, ...), where each argument
 %	is of the form:
-%	
+%
 %	  * <name>[:<type>][=<default>]
 %
 %	Used a directive, =|:- record Constructor(Arg, ...)|= is expanded
 %	info the following predicates:
-%	
+%
 %	  * <constructor>_<name>(Record, Value)
 %	  * default_<constructor>(-Record)
 %	  * is_<constructor>(@Term)
@@ -121,24 +121,24 @@ compile_record(RecordDef) -->
 	set_field_predicates(Names, 1, Arity, Types, Constructor),
 	make_predicate(Constructor),
 	is_predicate(Constructor, Types).
-	
+
 
 %%	make_predicate(+Constructor)// is det.
 %
 %	Creates the make_<constructor>(+Fields, -Record) predicate. This
 %	looks like this:
-%	
+%
 %	==
 %	make_<constructor>(Fields, Record) :-
 %		make_<constructor>(Fields, Record, [])
-%		
+%
 %	make_<constructor>(Fields, Record, RestFields) :-
 %		default_<constructor>(Record0),
 %		set_<constructor>_fields(Fields, Record0, Record, RestFields).
-%		
+%
 %	set_<constructor>_fields(Fields, Record0, Record) :-
 %		set_<constructor>_fields(Fields, Record0, Record, []).
-%		
+%
 %	set_<constructor>_fields([], Record, Record, []).
 %	set_<constructor>_fields([H|T], Record0, Record, RestFields) :-
 %		(   set_<constructor>_field(H, Record0, Record1)
@@ -146,7 +146,7 @@ compile_record(RecordDef) -->
 %		;   RestFields = [H|RF],
 %		    set_<constructor>_fields(T, Record0, Record, RF)
 %		).
-%		
+%
 %	set_<constructor>_field(<name1>(Value), Record0, Record).
 %	...
 %	==
@@ -192,7 +192,7 @@ is_predicate(Constructor, Types) -->
 	->  [ Head2 ]
 	;   [ (Head2 :- Body) ]
 	).
-	      
+
 type_checks([], [], true).
 type_checks([any|T], [_|Vars], Body) :-
 	type_checks(T, Vars, Body).
@@ -237,7 +237,7 @@ access_predicates([Name|NT], I, Arity, Constructor) -->
 	},
 	[Clause],
 	access_predicates(NT, I2, Arity, Constructor).
-	
+
 
 %%	set_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
 %
@@ -277,7 +277,7 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 %%	set_field_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
 %
 %	Create the clauses
-%	
+%
 %		* set_<constructor>_field(<name>(Value), Old, New)
 
 set_field_predicates([], _, _, _, _) -->
@@ -319,7 +319,7 @@ defaults([Arg=Default|T0], [Default|TD], [Arg|TA]) :- !,
 	defaults(T0, TD, TA).
 defaults([Arg|T0], [_|TD], [Arg|TA]) :-
 	defaults(T0, TD, TA).
-	
+
 
 %%	types(+ArgsSpecs, -Defaults, -Args)
 %
@@ -332,7 +332,7 @@ types([Name:Type|T0], [Name|TN], [Type|TT]) :- !,
 types([Name|T0], [Name|TN], [any|TT]) :-
 	must_be(atom, Name),
 	types(T0, TN, TT).
-	
+
 
 		 /*******************************
 		 *	      EXPANSION		*

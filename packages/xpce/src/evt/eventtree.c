@@ -46,7 +46,7 @@ rootEventTree(EventTreeObj t, EventNodeObj n)
 
   assign(t, root,   n);
   assign(n, parent, t);
-  
+
   addNodeEventTree(t, n);
 
   succeed;
@@ -100,7 +100,7 @@ static getdecl get_eventTree[] =
 #define rc_eventTree NULL
 /*
 static classvardecl rc_eventTree[] =
-{ 
+{
 };
 */
 

@@ -63,7 +63,7 @@ browser argument.  This browser should understand the methods
 	<-members	Get current set of members
 	->append	Add a member
 	->delete	Delete a member
-	
+
 See class list_browser for intended  behaviour   of  these methods.  The
 library(pce_graphical_browser) provides a graphical browser  that can be
 used with this class.  See the  test_arrows/0   demo/test  at the end of
@@ -154,7 +154,7 @@ apply(SE, Always:[bool]) :->
 	;   true
 	).
 
-	
+
 :- pce_group(edit).
 
 remove(SE) :->
@@ -192,7 +192,7 @@ check_duplicate(SE, Item:any) :->
 	).
 
 remove_item(SE, Item:'dict_item|any') :->
-	"Called by ->remove to delete the items from the browser":: 
+	"Called by ->remove to delete the items from the browser"::
 	get(SE, browser, Browser),
 	send(Browser, delete, Item).
 
@@ -205,7 +205,7 @@ edit_selection(SE, Sel:any) :->
 	),
 	get(SE, single_item, One),
 	send(One, selection, Value).
-	
+
 
 :- pce_group(selection).
 

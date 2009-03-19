@@ -86,7 +86,7 @@ below. Please study the source for more complicated operations.
 
 	* selected(Node [, Boolean])
 	  selected(From, To, [, Boolean])
-	Select (highlight) a node or link.  Default is to select the 
+	Select (highlight) a node or link.  Default is to select the
 	object,  Using @off for Boolean the object is deselected.
 
 	* selection(Node)
@@ -209,7 +209,7 @@ make_grapher(G) :-
 	send(G, wait).
 
 %%	grapher(+MessageOrList)
-%	
+%
 %	Send a message or list of messages to the grapher.  Leaves a
 %	choicepoint which undos the modifications if we backtrack into
 %	it.
@@ -566,7 +566,7 @@ prompt_step(G, Reply:{forward,fast_forward,abort}) :<-
 	     new(FF, button(fast_forward, message(D, return, fast_forward)))),
 	send(D, append,
 	     new(L, button(layout, message(G, layout, @on)))),
-	send(D, append, 
+	send(D, append,
 	     new(A, button(abort, message(D, return, abort)))),
 	send(F,  label, image(resource(forward))),
 	send(FF, label, image(resource(fast_forward))),
@@ -754,7 +754,7 @@ selected(N, Val:bool) :->
 
 :- pce_global(@graph_node_recogniser, make_graph_node_recogniser).
 :- pce_global(@graph_node_popup, make_graph_node_popup).
-	      
+
 make_graph_node_recogniser(G) :-
 	new(C, move_gesture(left)),
 	new(P, popup_gesture(@receiver?popup)),
@@ -877,7 +877,7 @@ from_node(C, N:graph_node) :<-
 	get(C, from, Img),
 	Img \== @nil,
 	get(Img, device, N).
-	
+
 to_node(C, N:graph_node) :<-
 	"Graph-node at `to' side"::
 	get(C, to, Img),

@@ -145,7 +145,7 @@ skip_over(const char *s, int c)
 static char *
 strndup(const char *in, size_t len)
 { char *s = malloc(len+1);
-  
+
   strncpy(s, in, len);
   s[len] = '\0';
 
@@ -160,10 +160,10 @@ load_vmis(const char *file)
   if ( fd )
   { char buf[1024];
     int line = 0;
-  
+
     while(fgets(buf, sizeof(buf), fd))
     { line++;
-  
+
       if ( strncmp(buf, "VMI(", 4) == 0 )
       { const char *s1 = skip_ws(buf+4);
 	const char *e1 = skip_id(s1);
@@ -184,7 +184,7 @@ load_vmis(const char *file)
 	vmi_list[vmi_count].flags = strndup(s2, e2-s2);
 	vmi_list[vmi_count].argc  = strndup(s3, e3-s3);
 	vmi_list[vmi_count].args  = strndup(s4, e4-s4);
-  
+
 	add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
 	add_synopsis(s3, e3-s3);
 	add_synopsis(s4, e4-s4);
@@ -284,9 +284,9 @@ emit_code_table(const char *to)
 	    vmi_list[i].name,
 	    vmi_list[i].flags,
 	    vmi_list[i].argc,
-	    vmi_list[i].args[0] ? vmi_list[i].args : "0"); 
+	    vmi_list[i].args[0] ? vmi_list[i].args : "0");
   }
-  
+
   fprintf(out, "  { NULL, 0, 0, 0, {0} }\n");
   fprintf(out, "};\n");
   fclose(out);
@@ -360,7 +360,7 @@ emit_code_defs(const char *to)
 int
 main(int argc, char **argv)
 { program = argv[0];
-  
+
   argc--;
   argv++;
 

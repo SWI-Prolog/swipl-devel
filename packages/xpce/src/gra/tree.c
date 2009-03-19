@@ -48,7 +48,7 @@ initialiseTree(Tree t, Node node)
   assign(t, collapsedHandlers,	newObject(ClassChain, EAV));
 
   obtainClassVariablesObject(t);
-    
+
   if ( !div_h_2 )
   { div_h_2 = newObject(ClassDivide, NAME_h, TWO, EAV);
     protectObject(div_h_2);
@@ -92,7 +92,7 @@ rootTree(Tree t, Node root, Bool relink)
   { if ( notNil(t->root) )
     { if ( relink == ON )
       { Node oldroot = t->root;
-	
+
 	addCodeReference(oldroot);
 	displayTree(t, root);
 	assign(t, root, root);
@@ -191,7 +191,7 @@ RedrawAreaNode(Node node, Image cimg, Image eimg)
     Cell cell;
 
     r_line(lx, fy, lx, ty);
-    
+
     for_cell(cell, node->sons)
       RedrawAreaNode(cell->value, cimg, eimg);
   }
@@ -226,7 +226,7 @@ RedrawAreaTree(Tree t, Area area)
 	r_dash(proto->texture);
 	if ( notDefault(proto->colour) )
 	  old = r_colour(proto->colour);
-    
+
 	RedrawAreaNode(t->displayRoot, cimg, eimg);
 	if ( old )
 	  r_colour(old);
@@ -245,7 +245,7 @@ RedrawAreaTree(Tree t, Area area)
   }
 
   RedrawAreaGraphical(t, area);	/* selection and orther generic stuff*/
-  
+
   if ( obg )
     r_background(obg);
 
@@ -374,7 +374,7 @@ displayTree(Tree t, Node n)
     for_cell(cell, n->sons)
       displayTree(t, cell->value);
   }
-  
+
   succeed;
 }
 
@@ -402,7 +402,7 @@ linkGapTree(Tree t, Int i)
 
   succeed;
 }
-  
+
 
 static status
 computeBoundingBoxFigureTree(Tree t)
@@ -468,7 +468,7 @@ computeTree(Tree t)
 static status
 layoutTree(Tree t)
 { int ex;
-  
+
   if ( isNil(t->displayRoot) )
     succeed;
 
@@ -590,7 +590,7 @@ static status
 forAllTree(Tree t, Code msg)
 { if ( notNil(t->root) )
     return forAllNode(t->root, msg);
-  
+
   succeed;
 }
 
@@ -599,7 +599,7 @@ static status
 forSomeTree(Tree t, Code msg)
 { if ( notNil(t->root) )
     return forSomeNode(t->root, msg);
-  
+
   succeed;
 }
 

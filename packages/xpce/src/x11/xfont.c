@@ -125,11 +125,11 @@ ws_destroy_font(FontObj f, DisplayObj d)
 
   if ( xref )
   { /*DisplayWsXref r = d->ws_ref;*/
-    /* TBD: cannot find the free function!? */ 
+    /* TBD: cannot find the free function!? */
 
     unregisterXrefObject(f, d);
     unalloc(sizeof(*xref), xref);
-  }  
+  }
 }
 
 
@@ -152,7 +152,7 @@ ws_create_font(FontObj f, DisplayObj d)
 
   if ( !instanceOfObject(f->x_name, ClassCharArray) )
     fail;
-  
+
   set = XCreateFontSet(r->display_xref, strName(f->x_name),
 		       &missing, &nmissing, &def_string);
   if ( !set )
@@ -167,7 +167,7 @@ ws_create_font(FontObj f, DisplayObj d)
   DEBUG(NAME_font,
 	if ( nmissing > 0 )
 	{ int i;
-	  
+
 	  Cprintf("Missing charsets for %s:\n", strName(f->x_name));
 	  for(i=0; i<nmissing; i++)
 	    Cprintf("\t%s\n", missing[i]);
@@ -190,7 +190,7 @@ ws_destroy_font(FontObj f, DisplayObj d)
 
     unregisterXrefObject(f, d);
     unalloc(sizeof(*xref), xref);
-  }  
+  }
 }
 
 
@@ -289,7 +289,7 @@ ws_create_font(FontObj f, DisplayObj d)
   if ( (info = XLoadQueryFont(r->display_xref, strName(f->x_name))) == NULL )
     return replaceFont(f, d);
   iswide = (info->min_byte1 != 0 || info->max_byte1 != 0);
-  
+
   xref = alloc(sizeof(*xref));
   xref->info    = info;
   xref->widths  = make_font_char_widths(info);

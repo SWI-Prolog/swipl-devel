@@ -48,7 +48,7 @@ parms(test, [ user(jan) | Options ]) :-
 	->  Options = []
 	;   Options = [password(Pass)]
 	).
-	
+
 
 set_db(DSN, Options) :-
 	retractall(parms(_,_)),
@@ -78,7 +78,7 @@ types we test this too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	type(SqlType, PlType=Values, [AltType=Map, ...], Options)
-%	
+%
 %	Define a test-set.  The first argument is the SQL type to test.
 %	PlType is the default Prolog type with a set of values.  AltType
 %	is an alternative type that can be used to exchange values and
@@ -99,7 +99,7 @@ type(bigint,
      []).
 type(float,
      float   = [-1.0, 0.0, 42.0, 3.2747, '$null$' ],
-     [ 
+     [
      ],
      []).
 type(decimal(10,2),
@@ -153,7 +153,7 @@ type(varchar(2000),				% can we access as integers?
 	      Long,
 	      '$null$'
 	    ],
-     [ 
+     [
      ],
      [ \+ dbms_name('MySQL')
      ]) :-
@@ -249,7 +249,7 @@ db_type(Type,         Type, Comment) :-
 	sformat(Comment, 'Type ~w', [Type]).
 
 %	applicable(+Options, +Type)
-%	
+%
 %	See whether we can run this test on this connection.
 
 applicable([], _) :- !.
@@ -264,7 +264,7 @@ applicable(_, _).
 
 
 %	read_test_alt_types([Type=Map, ...], Table, Values)
-%	
+%
 %	Try to read the table using alternative Prolog types and check
 %	the results.
 
@@ -278,7 +278,7 @@ read_test_alt_type(Type, Map, Table, Values) :-
 	maplist(Map, Values, AltValues),
 	read_values(Table, Type, ReadValues),
 	compare_sets(AltValues, ReadValues).
-	
+
 %	write_test_alt_types([Type=Map, ...], Table, Values)
 %
 
@@ -297,7 +297,7 @@ write_test_alt_type(Type, Map, SqlType, Table) :-
 	compare_sets(NativeValues, ReadValues).
 
 %	insert_values(+Table, +OdbcType, +PlType, +Values)
-%	
+%
 %	Insert Prolog values into the table
 
 insert_values(Table, SqlType, PlType, Values) :-
@@ -528,7 +528,7 @@ fetch(Statement, Options) :-
 	;   writeln(Row),
 	    fetch(Statement, Options)
 	).
-	
+
 
 		 /*******************************
 		 *	       META		*

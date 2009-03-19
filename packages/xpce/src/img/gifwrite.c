@@ -2,11 +2,11 @@
  * xvgifwr.c  -  handles writing of GIF files.  based on flgife.c and
  *               flgifc.c from the FBM Library, by Michael Maudlin
  *
- * Contains: 
+ * Contains:
  *   WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap,
  *	      numcols, colorstyle, comment)
  *
- * Note: slightly brain-damaged, in that it'll only write non-interlaced 
+ * Note: slightly brain-damaged, in that it'll only write non-interlaced
  *       GIF files (in the interests of speed, or something)
  *
  * Modified by Jan Wielemaker for integration in XPCE:
@@ -39,7 +39,7 @@
  *	James A. Woods          (decvax!ihnp4!ames!jaw)
  *	Joe Orost               (decvax!vax135!petsd!joe)
  *****************************************************************/
- 
+
 
 #include <h/kernel.h>
 #undef min
@@ -179,7 +179,7 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
 
   Interlace = 0;
   Background = 0;
-  Transparent = 0;  
+  Transparent = 0;
 					/* clear global colormap */
   for (i=0; i<256; i++) { pc2nc[i] = r1[i] = g1[i] = b1[i] = 0; }
 
@@ -189,7 +189,7 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
   for (i=0; i<numcols; i++) {
     /* see if color #i is already used */
     for (j=0; j<i; j++) {
-      if (rmap[i] == rmap[j] && gmap[i] == gmap[j] && 
+      if (rmap[i] == rmap[j] && gmap[i] == gmap[j] &&
 	  bmap[i] == bmap[j]) break;
     }
 
@@ -235,14 +235,14 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
   /* figure out 'BitsPerPixel' */
   for (i=1; i<8; i++)
     if ( (1<<i) >= nc) break;
-  
+
   BitsPerPixel = i;
   ColorMapSize = 1 << BitsPerPixel;
-	
+
   RWidth  = Width  = w;
   RHeight = Height = h;
   LeftOfs = TopOfs = 0;
-	
+
   CountDown = w * h;    /* # of pixels we'll be doing */
 
   if (BitsPerPixel <= 1) InitCodeSize = 2;
@@ -261,7 +261,7 @@ static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
   i = 0x80;	                 /* Yes, there is a color map */
   i |= (8-1)<<4;                 /* OR in the color resolution (hardwired 8) */
   i |= (BitsPerPixel - 1);       /* OR in the # of bits per pixel */
-  fputc(i,fp);          
+  fputc(i,fp);
 
   fputc(Background, fp);         /* background color */
 
@@ -370,7 +370,7 @@ static void xvbcopy(src, dst, len)
    */
 
   if (src==dst || len<=0) return;    /* nothin' to do */
-  
+
   if (src<dst && src+len>dst) {  /* do a backward copy */
     src = src + len - 1;
     dst = dst + len - 1;
@@ -382,7 +382,7 @@ static void xvbcopy(src, dst, len)
     for ( ; len>0; len--, src++, dst++) *dst = *src;
   }
 }
-    
+
 
 
 static void xvbzero(s, len)
@@ -462,7 +462,7 @@ static long int out_count = 0;           /* # of codes output (for debugging) */
 /*
  * compress stdin to stdout
  *
- * Algorithm:  use open addressing double hashing (no chaining) on the 
+ * Algorithm:  use open addressing double hashing (no chaining) on the
  * prefix code / next character combination.  We do a variant of Knuth's
  * algorithm D (vol. 3, sec. 6.4) along with G. Knott's relatively-prime
  * secondary probe.  Here, the modular division first probe is gives way
@@ -542,7 +542,7 @@ int   len;
   cl_hash( (count_int) hsize_reg);            /* clear hash table */
 
   output(ClearCode);
-    
+
   while (len) {
     c = pc2nc[*data++];  len--;
     in_count++;
@@ -571,7 +571,7 @@ probe:
       continue;
     }
 
-    if ( (long)HashTabOf (i) >= 0 ) 
+    if ( (long)HashTabOf (i) >= 0 )
       goto probe;
 
 nomatch:
@@ -626,7 +626,7 @@ int code;
     cur_accum |= ((long)code << cur_bits);
   else
     cur_accum = code;
-	
+
   cur_bits += n_bits;
 
   while( cur_bits >= 8 ) {
@@ -654,7 +654,7 @@ int code;
 	maxcode = MAXCODE(n_bits);
     }
   }
-	
+
   if( code == EOFCode ) {
     /* At EOF, write the rest of the buffer */
     while( cur_bits > 0 ) {
@@ -664,11 +664,11 @@ int code;
     }
 
     flush_char();
-	
+
     fflush( g_outfile );
 
 #ifdef FOO
-    if( ferror( g_outfile ) ) 
+    if( ferror( g_outfile ) )
       FatalError("unable to write GIF file");
 #endif
   }
@@ -754,7 +754,7 @@ static void char_out(c)
 int c;
 {
   accum[ a_count++ ] = c;
-  if( a_count >= 254 ) 
+  if( a_count >= 254 )
     flush_char();
 }
 
@@ -768,7 +768,7 @@ static void flush_char()
     fwrite(accum, (size_t) 1, (size_t) a_count, g_outfile );
     a_count = 0;
   }
-}	
+}
 
 
 #define CONV24_FAST 0
@@ -798,7 +798,7 @@ static byte *Conv24to8(pic24,w,h,NC,rm,gm,bm)
 {
   /* returns pointer to new 8-bit-per-pixel image (w*h) if successful, or
      NULL if unsuccessful */
-  
+
   int   i;
   byte *pic8;
   int nc = *NC;
@@ -814,26 +814,26 @@ static byte *Conv24to8(pic24,w,h,NC,rm,gm,bm)
 
   if (nc<=0) nc = 255;  /* 'nc == 0' breaks code */
 
-  if ((found=quick_check(pic24, w,h, pic8, rm,gm,bm, nc))) { 
+  if ((found=quick_check(pic24, w,h, pic8, rm,gm,bm, nc))) {
     *NC = found;
-    return pic8;   
+    return pic8;
   }
 
   switch (conv24) {
   case CONV24_FAST:
     i = quick_quant(pic24, w, h, pic8, rm, gm, bm, nc);
     break;
-    
+
   case CONV24_BEST:
     i = ppm_quant(pic24, w, h, pic8, rm, gm, bm, nc);
     break;
-    
+
   case CONV24_SLOW:
   default:
     i = slow_quant(pic24, w, h, pic8, rm, gm, bm, nc);
     break;
   }
-  
+
   if (i) { free(pic8);  pic8 = NULL; }
   return pic8;
 }
@@ -857,10 +857,10 @@ static int quick_check(pic24, w,h, pic8, rmap,gmap,bmap, maxcol)
   if (maxcol>256) maxcol = 256;
 
   /* put the first color in the table by hand */
-  nc = 0;  mid = 0;  
+  nc = 0;  mid = 0;
 
   for (i=w*h,p=pic24; i; i--) {
-    col  = (((u_long) *p++) << 16);  
+    col  = (((u_long) *p++) << 16);
     col += (((u_long) *p++) << 8);
     col +=  *p++;
 
@@ -887,7 +887,7 @@ static int quick_check(pic24, w,h, pic8, rmap,gmap,bmap, maxcol)
      pic24 into colormap offsets into 'colors' */
 
   for (i=w*h,p=pic24, pix=pic8; i; i--,pix++) {
-    col  = (((u_long) *p++) << 16);  
+    col  = (((u_long) *p++) << 16);
     col += (((u_long) *p++) << 8);
     col +=  *p++;
 
@@ -908,7 +908,7 @@ static int quick_check(pic24, w,h, pic8, rmap,gmap,bmap, maxcol)
 
   /* and load up the 'desired colormap' */
   for (i=0; i<nc; i++) {
-    rmap[i] =  colors[i]>>16;  
+    rmap[i] =  colors[i]>>16;
     gmap[i] = (colors[i]>>8) & 0xff;
     bmap[i] =  colors[i]     & 0xff;
   }
@@ -926,7 +926,7 @@ static int quick_quant(p24,w,h, p8, rmap,gmap,bmap, nc)
 {
   /* called after 'pic8' has been alloced, pWIDE,pHIGH set up, mono/1-bit
      checked already */
-  
+
 /* up to 256 colors:     3 bits R, 3 bits G, 2 bits B  (RRRGGGBB) */
 #define RMASK      0xe0
 #define RSHIFT        0
@@ -954,7 +954,7 @@ static int quick_quant(p24,w,h, p8, rmap,gmap,bmap, nc)
     gmap[i] = (((i<<GSHIFT) & GMASK) * 255 + GMASK/2) / GMASK;
     bmap[i] = (((i<<BSHIFT) & BMASK) * 255 + BMASK/2) / BMASK;
   }
-  
+
 
   thisline = (int *) malloc(pwide3 * sizeof(int));
   nextline = (int *) malloc(pwide3 * sizeof(int));
@@ -964,40 +964,40 @@ static int quick_quant(p24,w,h, p8, rmap,gmap,bmap, nc)
     Cprintf("GIFwrite: unable to allocate memory in quick_quant()\n");
     return(1);
   }
-  
+
   /* get first line of picture */
   for (j=pwide3, tmpptr=nextline; j; j--) *tmpptr++ = (int) *p24++;
-  
+
   for (i=0; i<h; i++) {
     tmpptr = thisline;  thisline = nextline;  nextline = tmpptr;   /* swap */
-    
+
 /*    if ((i&0x3f) == 0) WaitCursor(); */
 
     if (i!=imax)   /* get next line */
       for (j=pwide3, tmpptr=nextline; j; j--)
 	*tmpptr++ = (int) *p24++;
-    
+
     for (j=0, thisptr=thisline, nextptr=nextline; j<w; j++,pp++) {
       r1 = *thisptr++;  g1 = *thisptr++;  b1 = *thisptr++;
-      RANGE(r1,0,255);  RANGE(g1,0,255);  RANGE(b1,0,255);  
-      
+      RANGE(r1,0,255);  RANGE(g1,0,255);  RANGE(b1,0,255);
+
       /* choose actual pixel value */
-      val = (((r1&RMASK)>>RSHIFT) | ((g1&GMASK)>>GSHIFT) | 
+      val = (((r1&RMASK)>>RSHIFT) | ((g1&GMASK)>>GSHIFT) |
 	     ((b1&BMASK)>>BSHIFT));
       *pp = val;
-      
+
       /* compute color errors */
       r1 -= rmap[val];
       g1 -= gmap[val];
       b1 -= bmap[val];
-      
+
       /* Add fractions of errors to adjacent pixels */
       if (j!=jmax) {  /* adjust RIGHT pixel */
 	thisptr[0] += (r1*7) / 16;
 	thisptr[1] += (g1*7) / 16;
 	thisptr[2] += (b1*7) / 16;
       }
-      
+
       if (i!=imax) {	/* do BOTTOM pixel */
 	nextptr[0] += (r1*5) / 16;
 	nextptr[1] += (g1*5) / 16;
@@ -1018,7 +1018,7 @@ static int quick_quant(p24,w,h, p8, rmap,gmap,bmap, nc)
       }
     }
   }
-  
+
   free(thisline);
   free(nextline);
   return 0;
@@ -1031,7 +1031,7 @@ static int quick_quant(p24,w,h, p8, rmap,gmap,bmap, nc)
 #undef BMASK
 #undef BSHIFT
 }
-      
+
 
 
 
@@ -1083,7 +1083,7 @@ typedef struct { pixval r, g, b; } pixel;
 
 /* Luminance macro. */
 
-/* 
+/*
  * #define PPM_LUMIN(p) \
  *   ( 0.299 * PPM_GETR(p) + 0.587 * PPM_GETG(p) + 0.114 * PPM_GETB(p) )
  */
@@ -1172,7 +1172,7 @@ static int ppm_quant(pic24, cols, rows, pic8, rmap, gmap, bmap, newcolors)
    */
 
 /*  WaitCursor(); */
-  
+
   pixels = (pixel **) malloc(rows * sizeof(pixel *));
   if (!pixels) FatalError("couldn't allocate 'pixels' array");
   for (row=0; row<rows; row++) {
@@ -1185,7 +1185,7 @@ static int ppm_quant(pic24, cols, rows, pic8, rmap, gmap, bmap, newcolors)
       pP->b = *pic24++;
     }
   }
-    
+
 
   /*
    *  attempt to make a histogram of the colors, unclustered.
@@ -1198,7 +1198,7 @@ static int ppm_quant(pic24, cols, rows, pic8, rmap, gmap, bmap, newcolors)
   for ( ; ; ) {
     chv = ppm_computechist(pixels, cols, rows, MAXCOLORS, &colors);
     if (chv != (chist_vec) 0) break;
-    
+
     newmaxval = maxval / 2;
 
     for (row=0; row<rows; ++row)
@@ -1320,7 +1320,7 @@ static chist_vec mediancut( chv, colors, sum, maxval, newcolors )
   int boxes;
 
   bv = (box_vector) malloc(sizeof(struct box) * newcolors);
-  colormap = (chist_vec) 
+  colormap = (chist_vec)
              malloc(sizeof(struct chist_item) * newcolors );
 
   if (!bv || !colormap) FatalError("unable to malloc in mediancut()");
@@ -1408,7 +1408,7 @@ static chist_vec mediancut( chv, colors, sum, maxval, newcolors )
       else if (gl >= bl)
 	qsort((char*) &(chv[indx]), (size_t) clrs, sizeof(struct chist_item),
 	      greencompare );
-      else 
+      else
 	qsort((char*) &(chv[indx]), (size_t) clrs, sizeof(struct chist_item),
 	      bluecompare );
     }
@@ -1435,7 +1435,7 @@ static chist_vec mediancut( chv, colors, sum, maxval, newcolors )
     ++boxes;
     qsort((char*) bv, (size_t) boxes, sizeof(struct box), sumcompare);
   }  /* while (boxes ... */
-  
+
   /*
    ** Ok, we've got enough boxes.  Now choose a representative color for
    ** each box.  There are a number of possible ways to make this choice.
@@ -1446,7 +1446,7 @@ static chist_vec mediancut( chv, colors, sum, maxval, newcolors )
    ** method is used by switching the commenting on the REP_ defines at
    ** the beginning of this source file.
    */
-  
+
   for (bi=0; bi<boxes; bi++) {
     /* REP_AVERAGE_PIXELS version */
     register int indx = bv[bi].index;
@@ -1476,7 +1476,7 @@ static chist_vec mediancut( chv, colors, sum, maxval, newcolors )
 static int redcompare(p1, p2)
      const void *p1, *p2;
 {
-  return (int) PPM_GETR( ((chist_vec)p1)->color ) - 
+  return (int) PPM_GETR( ((chist_vec)p1)->color ) -
          (int) PPM_GETR( ((chist_vec)p2)->color );
 }
 
@@ -1484,7 +1484,7 @@ static int redcompare(p1, p2)
 static int greencompare(p1, p2)
      const void *p1, *p2;
 {
-  return (int) PPM_GETG( ((chist_vec)p1)->color ) - 
+  return (int) PPM_GETG( ((chist_vec)p1)->color ) -
          (int) PPM_GETG( ((chist_vec)p2)->color );
 }
 
@@ -1492,7 +1492,7 @@ static int greencompare(p1, p2)
 static int bluecompare(p1, p2)
      const void *p1, *p2;
 {
-  return (int) PPM_GETB( ((chist_vec)p1)->color ) - 
+  return (int) PPM_GETB( ((chist_vec)p1)->color ) -
          (int) PPM_GETB( ((chist_vec)p2)->color );
 }
 
@@ -1506,7 +1506,7 @@ static int sumcompare(p1, p2)
 
 
 /****************************************************************************/
-static chist_vec 
+static chist_vec
   ppm_computechist(pixels, cols, rows, maxcolors, colorsP)
      pixel** pixels;
      int cols, rows, maxcolors;
@@ -1525,7 +1525,7 @@ static chist_vec
 
 
 /****************************************************************************/
-static chash_table ppm_computechash(pixels, cols, rows, 
+static chash_table ppm_computechash(pixels, cols, rows,
 					    maxcolors, colorsP )
      pixel** pixels;
      int cols, rows, maxcolors;
@@ -1546,14 +1546,14 @@ static chash_table ppm_computechash(pixels, cols, rows,
 
       for (chl = cht[hash]; chl != (chist_list) 0; chl = chl->next)
 	if (PPM_EQUAL(chl->ch.color, *pP)) break;
-      
+
       if (chl != (chist_list) 0) ++(chl->ch.value);
       else {
 	if ((*colorsP)++ > maxcolors) {
 	  ppm_freechash(cht);
 	  return (chash_table) 0;
 	}
-	
+
 	chl = (chist_list) malloc(sizeof(struct chist_list_item));
 	if (!chl) FatalError("ran out of memory computing hash table");
 
@@ -1563,7 +1563,7 @@ static chash_table ppm_computechash(pixels, cols, rows,
 	cht[hash] = chl;
       }
     }
-  
+
   return cht;
 }
 
@@ -1801,7 +1801,7 @@ static boxptr find_biggest_color_pop (boxlist, numboxes)
   register int i;
   register long maxc = 0;
   boxptr which = NULL;
-  
+
   for (i = 0, boxp = boxlist; i < numboxes; i++, boxp++) {
     if (boxp->colorcount > maxc && boxp->volume > 0) {
       which = boxp;
@@ -1820,7 +1820,7 @@ static boxptr find_biggest_volume (boxlist, numboxes)
   register int i;
   register INT32 maxv = 0;
   boxptr which = NULL;
-  
+
   for (i = 0, boxp = boxlist; i < numboxes; i++, boxp++) {
     if (boxp->volume > maxv) {
       which = boxp;
@@ -1840,11 +1840,11 @@ static void update_box (boxp)
   int c0min,c0max,c1min,c1max,c2min,c2max;
   INT32 dist0,dist1,dist2;
   long ccount;
-  
+
   c0min = boxp->c0min;  c0max = boxp->c0max;
   c1min = boxp->c1min;  c1max = boxp->c1max;
   c2min = boxp->c2min;  c2max = boxp->c2max;
-  
+
   if (c0max > c0min)
     for (c0 = c0min; c0 <= c0max; c0++)
       for (c1 = c1min; c1 <= c1max; c1++) {
@@ -1916,7 +1916,7 @@ static void update_box (boxp)
   dist1 = ((c1max - c1min) << C1_SHIFT) * C1_SCALE;
   dist2 = ((c2max - c2min) << C2_SHIFT) * C2_SCALE;
   boxp->volume = dist0*dist0 + dist1*dist1 + dist2*dist2;
-  
+
   ccount = 0;
   for (c0 = c0min; c0 <= c0max; c0++)
     for (c1 = c1min; c1 <= c1max; c1++) {
@@ -2002,11 +2002,11 @@ static void compute_color (boxp, icolor)
   long c0total = 0;
   long c1total = 0;
   long c2total = 0;
-  
+
   c0min = boxp->c0min;  c0max = boxp->c0max;
   c1min = boxp->c1min;  c1max = boxp->c1max;
   c2min = boxp->c2min;  c2max = boxp->c2max;
-  
+
   for (c0 = c0min; c0 <= c0max; c0++)
     for (c1 = c1min; c1 <= c1max; c1++) {
       histp = & histogram[c0][c1][c2min];
@@ -2019,7 +2019,7 @@ static void compute_color (boxp, icolor)
 	}
       }
     }
-  
+
   sl_colormap[0][icolor] = (JSAMPLE) ((c0total + (total>>1)) / total);
   sl_colormap[1][icolor] = (JSAMPLE) ((c1total + (total>>1)) / total);
   sl_colormap[2][icolor] = (JSAMPLE) ((c2total + (total>>1)) / total);
@@ -2192,12 +2192,12 @@ static void find_best_colors (minc0, minc1, minc2, numcolors,
   bptr = bestdist;
   for (i = BOX_C0_ELEMS*BOX_C1_ELEMS*BOX_C2_ELEMS-1; i >= 0; i--)
     *bptr++ = 0x7FFFFFFFL;
-  
+
   /* Nominal steps between cell centers ("x" in Thomas article) */
 #define STEP_C0  ((1 << C0_SHIFT) * C0_SCALE)
 #define STEP_C1  ((1 << C1_SHIFT) * C1_SCALE)
 #define STEP_C2  ((1 << C2_SHIFT) * C2_SCALE)
-  
+
   for (i = 0; i < numcolors; i++) {
     icolor = colorlist[i];
     /* Compute (square of) distance from minc0/c1/c2 to this color */
@@ -2263,7 +2263,7 @@ static void fill_inverse_cmap (c0, c1, c2)
   minc0 = (c0 << BOX_C0_SHIFT) + ((1 << C0_SHIFT) >> 1);
   minc1 = (c1 << BOX_C1_SHIFT) + ((1 << C1_SHIFT) >> 1);
   minc2 = (c2 << BOX_C2_SHIFT) + ((1 << C2_SHIFT) >> 1);
-  
+
   numcolors = find_nearby_colors(minc0, minc1, minc2, colorlist);
 
   /* Determine the actually nearest colors. */

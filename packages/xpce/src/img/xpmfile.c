@@ -18,7 +18,7 @@ XpmReadStreamToData(IOSTREAM *fd, char ***data)
   int allocated = 0;
 
   if ( !readXPMHeader(fd) )
-    
-  
+
+
 
 }

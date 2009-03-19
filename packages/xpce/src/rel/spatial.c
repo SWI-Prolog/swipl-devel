@@ -201,7 +201,7 @@ static senddecl send_spatial[] =
 #define get_spatial NULL
 /*
 static getdecl get_spatial[] =
-{ 
+{
 };
 */
 
@@ -210,7 +210,7 @@ static getdecl get_spatial[] =
 #define rc_spatial NULL
 /*
 static classvardecl rc_spatial[] =
-{ 
+{
 };
 */
 

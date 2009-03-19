@@ -42,11 +42,11 @@
 	loaded/1.
 
 %	unicode_derived_core_property(+File, ?Code, ?Prop)
-%	
-%	
+%
+%
 
 unicode_derived_core_property(Code, Prop) :-
-	unicode_property('DerivedCoreProperties.txt', Code, Prop).	
+	unicode_property('DerivedCoreProperties.txt', Code, Prop).
 
 unicode_property(File, Code, Prop) :-
 	loaded(File), !,
@@ -75,7 +75,7 @@ process_line(Line, File) :-
 	phrase(line(Codes, Class), Line),
 	forall(member(C, Codes),
 	       assert(derived_property(File, C, Class))).
-	
+
 
 
 line([], -) -->
@@ -89,12 +89,12 @@ line(Codes, Class) -->
 	    { numlist(First, Last, Codes) }
 	;   { Codes = [First] }
 	),
-	ws, ";", ws, 
+	ws, ";", ws,
 	class(Class),
 	ws,
 	"#",
 	skip_rest.
-	      
+
 class(Class) -->
 	identifier(Id),
 	{ downcase_atom(Id, Class) }.

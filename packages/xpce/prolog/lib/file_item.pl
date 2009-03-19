@@ -109,7 +109,7 @@ completions(FI, Tuple:tuple, Matches:chain) :<-
 	send(directory(DirName), scan, Matches, Matches, Re),
 	send(Matches, delete_all, '.'),
 	send(Matches, delete_all, '..').
-	
+
 
 split_completion(_FI, Value, Tuple:tuple) :<-
 	"Split the current entry"::
@@ -124,7 +124,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
  	    )
 	;   true
 	),
-	
+
 	(   send(S, suffix, /)
 	->  get(S, value, Path),
 	    BaseName = ''
@@ -198,7 +198,7 @@ clean_file_name(Def, Clean) :-
 	send(regex(//), for_all, Clean,
 	     message(@arg1, replace, @arg2, '/')).
 clean_file_name(Def, Def).
-	
+
 
 browse(FI) :->
 	"Run finder to fill with value"::
@@ -226,7 +226,7 @@ completions(_FI, Tuple:tuple, Matches:chain) :<-
 	get(Tuple, first, DirName),
 	get(Tuple, second, FileName),
 	get(directory(DirName), directories, string('^%s', FileName), Matches).
-	
+
 
 check_existence(_FI, Name:name) :->
 	"Check existence of directory"::

@@ -76,7 +76,7 @@ term_expansion((:- if(G)), []) :-
 term_expansion((:- else), []) :-
 	(   retract(user:include_code(X))
 	->  (   X == true
-	    ->  X2 = false 
+	    ->  X2 = false
 	    ;   X2 = true
 	    ),
 	    asserta(user:include_code(X2))
@@ -88,7 +88,7 @@ term_expansion((:- endif), []) :-
 term_expansion(_, []) :-
 	user:include_code(X), !,
 	X == false.
-	    
+
 
 		 /*******************************
 		 *	      SYNTAX		*
@@ -150,7 +150,7 @@ syntax(latin-1) :-
 	atom_codes(A, [247]),
 	atom_to_term(A, T, []),
 	atom_codes(T, [247]).
-	
+
 
 		 /*******************************
 		 *	       WRITE		*
@@ -232,7 +232,7 @@ occurs_check(simple-2) :-
 	unify_with_occurs_check(_A, _B).
 occurs_check(attvar-1) :-		% test wakeup
 	freeze(X, X = Y),
-	unify_with_occurs_check(X, a), 
+	unify_with_occurs_check(X, a),
 	Y == a.
 occurs_check(attvar-2) :-		% test occurs-check
 	freeze(A, true),
@@ -370,7 +370,7 @@ arithmetic(truncate-1) :-
 	1 is truncate(1.9),
 	-1 is truncate(-1.1),
 	-1 is truncate(-1.9).
-:- if(current_prolog_flag(bounded, false)). 
+:- if(current_prolog_flag(bounded, false)).
 arithmetic(floor-2) :-
 	A is floor(9223372036854775808.000000),
 	A == 9223372036854775808.
@@ -538,7 +538,7 @@ gmp(abs-1) :-
 	abs(A) =:= 9223372036854775808.
 gmp(sign-1) :-
 	-1 =:= sign(-5 rdiv 3),
-	0 =:= sign(0 rdiv 1), 
+	0 =:= sign(0 rdiv 1),
 	1 =:= sign(2 rdiv 7),
 	fac(60, X),
 	-1 =:= sign(-X),
@@ -598,7 +598,7 @@ gmp(arith-1) :-
 	Y is B * A * B * A * B * A,
 	integer(Y),
 	R is X / Y,
-	R == A. 
+	R == A.
 gmp(pow-1) :-
 	A is 10**50, integer(A).
 gmp(pow-2) :-
@@ -930,7 +930,7 @@ depth_limit(depth-2) :-
 depth_limit(depth-3) :-
 	call_with_depth_limit(dl_det(10), 9, depth_limit_exceeded).
 depth_limit(ndet-1) :-
-	findall(X, 
+	findall(X,
 		call_with_depth_limit(dl_ndet(5), 10, X),
 		L),
 	L = [5, depth_limit_exceeded].
@@ -1332,7 +1332,7 @@ record(erase-2) :-
 		 *******************************/
 
 %	compiler
-%	
+%
 %	This suite tests whether all data-types can be compiled properly
 %	and handled by the decompiler.
 
@@ -1620,7 +1620,7 @@ string_overflow(StringList) :-
 string_overflow2([H|T]) :-		% Causes PL_throw() overflow
 	format(string(H), '~txx~1000000|', []),
 	string_overflow2(T).
-		
+
 
 resource(stack-1) :-
 	catch(local_overflow, E, true),
@@ -1716,7 +1716,7 @@ intoverflow(syntax-2) :-
 	name(X, Chars),
 	float(X),
 	X =:= Float.
-	
+
 
 		 /*******************************
 		 *	ATTRIBUTED VARIABLES	*
@@ -2024,12 +2024,12 @@ term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
-	term_hash(hello(world), 2391568). 
+	term_hash(hello(world), 2391568).
 term_hash(compound-2) :-
 	X = x(a),
-	term_hash(hello(X, X), 4126440). 
+	term_hash(hello(X, X), 4126440).
 term_hash(compound-3) :-
-	term_hash(hello(x(a), x(a)), 4126440). 
+	term_hash(hello(x(a), x(a)), 4126440).
 
 
 		 /*******************************
@@ -2459,7 +2459,7 @@ thread(status-1) :-
 thread(create_error-1) :-
 	catch(thread_create(true, _, [local(a)]), E, true),
 	E = error(domain_error(thread_option, local(a)), _).
-	
+
 
 		 /*******************************
 		 *	 MUTEX HANDLING		*
@@ -2624,7 +2624,7 @@ testset(mutex) :-
 testset(resource).
 
 %	unicode_file_locale/0
-%	
+%
 %	True if out filesystem can   handle Unicode filenames. Difficult
 %	to have a good test.
 
@@ -2638,7 +2638,7 @@ unicode_file_locale :-
 	).
 
 %	wide_character_types
-%	
+%
 %	True if the  character  classification   routines  work  on wide
 %	characters. Hard to say when this is  the case. On some machines
 %	the wide character versions always work,  on others only for the
@@ -2648,7 +2648,7 @@ wide_character_types :-
 	current_prolog_flag(encoding, utf8), !.
 
 %	testdir(Dir)
-%	
+%
 %	Enumerate directories holding tests.
 
 testdir('Tests/core').
@@ -2716,7 +2716,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 nth_clause_head(Head, R) :-
 	nth_clause(Head, _N, R),
 	clause(Head, _, R).
@@ -2758,7 +2758,7 @@ blocked(Reason) :-
 
 
 %	error(+Exception, +Expected)
-%	
+%
 %	Check whether the correct exception  is thrown, disregarding the
 %	2nd context argument.
 

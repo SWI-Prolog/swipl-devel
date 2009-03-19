@@ -104,7 +104,7 @@ makeClassSourceLocation(Class class)
 	    "Get absolute path-name of source file",
 	    getPathSourceLocation);
   getMethod(class, NAME_convert, DEFAULT, "source_location",
-	    1, "char_array|file", 
+	    1, "char_array|file",
 	    "Convert `file', `path-name' and `path-name:line-no'",
 	    getConvertSourceLocation);
 

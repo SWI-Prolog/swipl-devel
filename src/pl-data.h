@@ -65,7 +65,7 @@ Storage places:
 -------------------------------------------------------------
 Var		0      -                 00
 Integer		1      G-       01       00
-Float		2      G        01 
+Float		2      G        01
 Atom		3      S              00
 String		4      G        01
 List		5      G        01
@@ -101,7 +101,7 @@ Indirect data
 	  is only INTEGER, STRING or FLOAT
 
 	* Using value: size in words of the object * 4
-	
+
 	* String uses the low-order 2 bits for specifying the amount of
 	  padding bytes (0-3, 0 means 4).
 

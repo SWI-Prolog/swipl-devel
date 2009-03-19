@@ -79,7 +79,7 @@ sha_options(term_t options, optval *result)
 
       if ( aname == ATOM_algorithm )
       { atom_t a_algorithm;
-	
+
 	result->algorithm_term = a;
 	if ( !PL_get_atom(a, &a_algorithm) )
 	  return pl_error(NULL, 0, NULL, ERR_TYPE, a, "algorithm");
@@ -125,7 +125,7 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
   if ( !sha_options(options, &opts) )
     return FALSE;
 
-  if ( !PL_get_nchars(from, &datalen, &data, 
+  if ( !PL_get_nchars(from, &datalen, &data,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     return FALSE;
 
@@ -148,10 +148,10 @@ pl_hmac_sha(term_t key, term_t data, term_t mac, term_t options)
   optval opts;
   unsigned char digest[SHA2_MAX_DIGEST_SIZE];
 
-  if ( !PL_get_nchars(key, &keylen, &skey, 
+  if ( !PL_get_nchars(key, &keylen, &skey,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     return FALSE;
-  if ( !PL_get_nchars(data, &datalen, &sdata, 
+  if ( !PL_get_nchars(data, &datalen, &sdata,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     return FALSE;
 

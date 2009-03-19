@@ -72,7 +72,7 @@ translated in this fashion.
 %%	r_open
 %
 %	Open a new R session. Same as r_open( [] ).
-%	
+%
 r_open :-
      r_open( [] ).
 
@@ -83,15 +83,15 @@ r_open :-
 %   Open a new R session with optional list of arguments. Opts should be
 %   a list of the following
 %
-%       * alias(Alias) 
+%       * alias(Alias)
 %	Name for the session. If absent or  a variable an opaque term is
-%	generated. 
-%       
+%	generated.
+%
 %       * assert(A)
 %	Assert token. By default session  opened   last  is  the default
 %	session (see default_r_session/1). Using A =   =z= will push the
 %	session to the bottom of the pile.
-%              
+%
 %	* at_r_halt(RHAction)
 %	R slaves often halt when they   encounter  an error. This option
 %	provides a handle to changing the  behaviour of the session when
@@ -101,7 +101,7 @@ r_open :-
 %	roll-back all the commands sent so far. At `restart' the session
 %	is restarted with same name  and   options,  but  history is not
 %	replayed.
-%             
+%
 %       * copy(CopyTo,CopyWhat)
 %	Records interaction with R to a   file/stream.  CopyTo should be
 %	one   of   =null=,   stream(Stream),   OpenStream,   AtomicFile,
@@ -110,15 +110,15 @@ r_open :-
 %	one of =both=, =in=, =out= or =none=.   In  all cases apart from
 %	when CopyTo is =null=, error stream is copied to CopyTo. Default
 %	is no recording (CopyTo = =null=).
-%            
+%
 %       * ssh(Host)
 %       * ssh(Host,Dir)
 %       Run R on Host with start directory Dir. Dir defaults to /tmp.
-%            
-%       * rbin(Rbin) 
+%
+%       * rbin(Rbin)
 %       R executable location. Default is 'R'.
-%            
-%       * with(With) 
+%
+%       * with(With)
 %	With is in [environ,restore,save]. The   default behaviour is to
 %	start the R executable  is   started  with  flags =|--no-environ
 %	--no-restore --no-save|=. For each With value  found in Opts the
@@ -138,7 +138,7 @@ r_close :-
                fail_term( no_default_open_r_session_could_be_found_to_close )
      ).
 
-%%   r_close(+R)  
+%%   r_close(+R)
 %
 %         Close the named R session.
 %
@@ -149,22 +149,22 @@ r_close( All ) :-
                        r_close_session( Alias, Streams, Data ) ), _All ).
      % write( closed_all(All) ), nl.
 r_close( Alias ) :-
-     ( retract( r_session(Alias,Streams,Data) ) -> 
+     ( retract( r_session(Alias,Streams,Data) ) ->
           r_close_session( Alias, Streams, Data )
           ;
           fail_term( no_open_r_session_could_be_found_to_close_at:Alias )
      ).
 
-%%   r_in(+Rcmd) 
+%%   r_in(+Rcmd)
 %
-%         Push Rcmd to the default R session. Output and Errors  will be 
+%         Push Rcmd to the default R session. Output and Errors  will be
 %         printed to the terminal.
 %
 r_in( This ) :-
      default_r_session( R ),
      r_in( R, This, _ ).
 
-%%   r_in(+R,+Rcmd) 
+%%   r_in(+R,+Rcmd)
 %
 %         As r_in/1 but for session R.
 %
@@ -234,7 +234,7 @@ r_err( R, RCmd, RoLns, ReLns ) :-
      replace_variables( Rplc ),
      call( HCall ).
 
-%%   r_print(+X) 
+%%   r_print(+X)
 %
 %         A shortcut for r_in( print(X) ).
 %
@@ -242,7 +242,7 @@ r_print( This ) :-
      default_r_session( R ),
      r_print( R, This ).
 
-%%   r_print(+R,+X) 
+%%   r_print(+R,+X)
 %
 %         As r_print/1 but for named session R.
 %
@@ -332,11 +332,11 @@ r_flush_onto( R, RinStreamS, OntoS ) :-
      ( is_list(RinStreamS) -> OntoS = Ontos; Ontos=[OntoS] ).
 
 %%   current_r_session(?R)
-%         True if R is the name of current R session. 
+%         True if R is the name of current R session.
 %         Can be used to enumerate all open sessions.
 %
 current_r_session( R ) :-
-     var( R ), 
+     var( R ),
      !,
      r_session( R, _Session, _Data ).
 current_r_session( R ) :-
@@ -353,12 +353,12 @@ current_r_session( R ) :-
 current_r_session( Alias, R, Data ) :-
      r_session( Alias, R, Data ).
 
-%% default_r_session(?R) 
-%    
+%% default_r_session(?R)
+%
 %         True if R is the default session.
 %
 default_r_session( R ) :-
-     ( var(R) -> 
+     ( var(R) ->
           ( r_session(R,_Cp1,_Wh1) ->
                true
                ;
@@ -384,12 +384,12 @@ r_streams_data( error,  r(_,_,Re), Re ).
 
 %% r_session_data(+DId,+Data,-Datum)
 %
-%         True if Data is a structure representing 
-%         R session associated data and Datum is its 
+%         True if Data is a structure representing
+%         R session associated data and Datum is its
 %         data item corresponding to data identifier
-%         DId. DId should be in 
+%         DId. DId should be in
 %         [copy_to,copy_this,at_r_halt,opts].
-%  
+%
 r_session_data( copy_to, rsdata(Copy,_,_,_), Copy ).
 r_session_data( copy_this, rsdata(_,This,_,_), This ).
 r_session_data( at_r_halt, rsdata(_,_,RHalt,_), RHalt ).
@@ -411,7 +411,7 @@ r_history :-
 %
 %         H unifies to the history list of the Rcmds fed into the default
 %         session. Most recent command appears at the head of the list.
-% 
+%
 r_history( History ) :-
      default_r_session( R ),
      r_session_history( R, History ).
@@ -433,9 +433,9 @@ r_session_version( 0:0:1 ).
 %%% Section: Auxiliary predicates
 
 % Rcv == true iff r_open_1/3 is called from recovery.
-% 
+%
 r_open_1( Opts, Alias, Rcv ) :-
-     ( memberchk(rbin(RBin),Opts)-> 
+     ( memberchk(rbin(RBin),Opts)->
           ( options_have_ssh(Opts,Host,Dir) ->
                atoms_concat( ['ssh ', Host,' "cd ',Dir,'; ',RBin], RPfx ),
                RPsf = '"'
@@ -443,12 +443,12 @@ r_open_1( Opts, Alias, Rcv ) :-
                RPfx = RBin,
                RPsf = ''
           )
-          ; 
+          ;
           ( options_have_ssh(Opts,Host,Dir) ->
                atoms_concat( ['ssh ', Host,' "cd ',Dir,'; R '], RPfx ),
                RPsf = '"'
                ;
-               ( shell('sh -c "which R &> /dev/null"  ') -> 
+               ( shell('sh -c "which R &> /dev/null"  ') ->
                     RPfx = 'R',
                     RPsf = ''
                     ;
@@ -465,10 +465,10 @@ r_open_1( Opts, Alias, Rcv ) :-
      r_open_opt_copy( Opts, CpOn, CpWh, Rcv ),
      r_open_opt_at_r_halt( Opts, RHalt ),
      ( memberchk(alias(Alias),Opts) ->
-          ( var(Alias) -> 
+          ( var(Alias) ->
                r_session_skolem( Alias, 1 )
                ;
-               ( r_session(Alias,_,_) -> 
+               ( r_session(Alias,_,_) ->
                     fail_term( 'Session already exists for alias':Alias )
                     ;
                     true
@@ -478,7 +478,7 @@ r_open_1( Opts, Alias, Rcv ) :-
           r_session_skolem( Alias, 1 )
      ),
      RData = rsdata(CpOn,CpWh,RHalt,Opts),
-     ( memberchk(assert(Assert),Opts) -> 
+     ( memberchk(assert(Assert),Opts) ->
           ( Assert == a ->
                asserta( r_session(Alias,R,RData) )
                ;
@@ -576,7 +576,7 @@ replace_variables( [arp(R,Pv,Rv)|T] ) :-
 r_input_streams_list( Rins ) :-
      ( select(output,Rins,NoInpIns) -> true; NoInpIns=Rins ),
      ( select(error,NoInpIns,NoErrIns) -> true; NoErrIns=NoInpIns ),
-     ( NoErrIns = [] -> 
+     ( NoErrIns = [] ->
           true
           ;
           ( (memberchk(input,NoErrIns);memberchk(error,NoErrIns)) ->
@@ -599,7 +599,7 @@ r_input_normative( (A;B), R, I, This, Rplc, OutI ) :-
 
 r_input_normative( Obj<-Call, R, I, This, Rplc, NxI ) :-
      !,
-     ( var(Obj) -> 
+     ( var(Obj) ->
           Rplc = [arp(R,Obj,ThisObj)],
           number_codes( I, ICs ),
           append( "pl_Rv_", ICs, RvCs ),
@@ -648,7 +648,7 @@ r_input_normative( PrvThis, This ) :-
                     number_codes( PrvThis, ThisCs ),
                     atom_codes( This, ThisCs )
                     ;
-                    This = PrvThis 
+                    This = PrvThis
                )
           )
      ).
@@ -674,7 +674,7 @@ r_halted( Lines, R, Halted, HCall ) :-
 r_halted( _, _R, false, true ).
 
 r_halted_recovery( [], R, Which ) :-
-     ( var(Which) -> 
+     ( var(Which) ->
           fail_term( internal_error_in_recovering_from_halt(R) )
           ;
           true
@@ -687,7 +687,7 @@ r_halted_recovery( [rs(AliasH,StreamsH,DataH)|T], R, Which ) :-
           assertz(r_session(AliasH,StreamsH,DataH))
      ),
      r_halted_recovery( T, R, Which ).
-     
+
 r_halted_recovery_action( restart, Alias, _Streams, Data, true ) :-
      write( user_error, 'at_r_halt(restart): restarting r_session ':Alias ), nl( user_error ),
      r_session_data( opts, Data, Opts ),
@@ -718,7 +718,7 @@ r_halted_restart_copy( CopyTo ) :-
      ((atomic(CopyTo),File=CopyTo);CopyTo=once(File)),
      File \== user,      % you never known
      !,
-     open( File, read, Dummy ), 
+     open( File, read, Dummy ),
      stream_property( Dummy, file_name(Full) ),
      close( Dummy ),
      ( stream_property(OpenStream,file_name(Full)) ->
@@ -733,7 +733,7 @@ r_halted_recovery_rollback( [], _Alias ).
 r_halted_recovery_rollback( [H|T], Alias ) :-
      r_in( Alias, H, _Halted ),
      r_halted_recovery_rollback( T, Alias ).
-     
+
 
 r_record_history( true, _Alias, _This ).
 r_record_history( false, Alias, This ) :-
@@ -745,7 +745,7 @@ r_record_history( false, _, _ ). % fold with true if assumption is correct
 
 r_read_lines_1( eof, _TermLine, _Ro, Lines ) :- !, Lines = [].
 r_read_lines_1( end_of_file, _TermLine, _Ro, Lines ) :- !, Lines = [].
-r_read_lines_1( [255], _TermLine, _Ro, Lines ) :- !, Lines = []. 
+r_read_lines_1( [255], _TermLine, _Ro, Lines ) :- !, Lines = [].
      % yap idiosyncrasy
 r_read_lines_1( TermLine, TermLine, _Ro, Lines ) :- !, Lines = [].
 r_read_lines_1( Line, TermLine, Ro, [Line|Lines] ) :-
@@ -765,13 +765,13 @@ r_read_list( [PreH|T], List ) :-
      delete_leading( PreH, 0' , H ),
      ( H = [0'[|Hrm] ->
           break_list_on( Hrm, 0'], _, Hprv ),
-          delete_leading( Hprv, 0' , Hproper ) 
+          delete_leading( Hprv, 0' , Hproper )
           ;
           Hproper = H
      ),
      r_read_list_line( Hproper, List, ConTail ),
      r_read_list( T, ConTail ).
-     
+
 r_read_list_line( [], List, List ).
 r_read_list_line( [0' |RRead], List, ConTail ) :-
      !,
@@ -836,14 +836,14 @@ r_open_opt_copy( Opts, CpTerm, What, Rcv ) :-
                     open( Cp, Mode, CpStream ),
                     CpTerm = stream(CpStream)
                     ;
-                    ( Cp = once(CpFile) -> 
+                    ( Cp = once(CpFile) ->
                          ( Rcv==true -> Mode = append; Mode = write ),
                          open( CpFile, Mode, CpStream ),
                          CpTerm = stream(CpStream)
                          ;
                          ( Cp = many(CpFile) ->
                               CpTerm = file(CpFile)
-                              ; 
+                              ;
                               fail_term( 'I cannot decipher 1st argument of copy/2 option':Cp )
                          )
                     )
@@ -900,7 +900,7 @@ r_opt_exec_no( [H|T], Ws, Exec ) :-
 r_opt_with_concat( [], _Ws, Exec, Exec ).
 r_opt_with_concat( [H|T], Ws, Pfx, Exec ) :-
      ( memberchk(H,Ws) ->
-          Nxt = Pfx 
+          Nxt = Pfx
           ;
           atom_concat( ' --no-', H, NoH ),
           atom_concat( Pfx, NoH, Nxt )
@@ -1001,9 +1001,9 @@ r_process_was_successful( Ri, Ro, Re ) :-
 % break_list_on( +List, +Element, ?LeftPartition, ?RightPartition ).
 % Element does not appear in either the end of LeftPartition,
 % or as first element of RightPartition.
-% Only finds first partition so Element should be ground 
+% Only finds first partition so Element should be ground
 % | ?- break_list_on( L, El, [a], [c,b,d,b,e] ).
-%  = [a,El,c,b,d,b,e] ? ; no 
+%  = [a,El,c,b,d,b,e] ? ; no
 %
 break_list_on( [X|Xs], X, [], Xs ) :-
 	!.
@@ -1055,6 +1055,6 @@ r_streams_set( Ri, Ro, Re ) :-
      set_stream( Re, buffer(false) ), set_stream( Re, close_on_abort(true) ).
 
 r_process( Exec, Ri, Ro, Re ) :-
-     Streams = [stdin(pipe(Ri)),stdout(pipe(Ro)),stderr(pipe(Re))], 
+     Streams = [stdin(pipe(Ri)),stdout(pipe(Ro)),stderr(pipe(Re))],
      process_create( '/bin/sh', ['-c',Exec], Streams ).
 

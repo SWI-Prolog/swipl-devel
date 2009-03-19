@@ -167,7 +167,7 @@ mirrorPoint(Point p, Point q)
 { Int mx = ZERO, my = ZERO;
 
   if ( notDefault(q) )
-  { mx = q->x; 
+  { mx = q->x;
     my = q->y;
   }
 
@@ -183,7 +183,7 @@ getPlusPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
   plusPoint(p, p2);
-  
+
   answer(p);
 }
 
@@ -193,7 +193,7 @@ getMinusPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
   minusPoint(p, p2);
-  
+
   answer(p);
 }
 
@@ -203,7 +203,7 @@ getMirrorPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
   mirrorPoint(p, p2);
-  
+
   answer(p);
 }
 
@@ -271,7 +271,7 @@ static getdecl get_point[] =
 #define rc_point NULL
 /*
 static classvardecl rc_point[] =
-{ 
+{
 };
 */
 

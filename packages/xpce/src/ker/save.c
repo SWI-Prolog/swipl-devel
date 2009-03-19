@@ -48,7 +48,7 @@ Binary saved state of PCE object (collection). File format:
 		    {'s' <object>}		(= support objects)
 		    {'n' <from> <slot> <to>}	(= nil-references)
 		    {'r' <from> <slot> {'R' <to>} 'x'} (= reference-chains)
-		    'x' 
+		    'x'
 
 <magic>		::= <string>			(= SAVEMAGIC)
 <version>	::= <word>			(= SAVEVERSION)
@@ -88,7 +88,7 @@ Binary saved state of PCE object (collection). File format:
 		  | 'g' <Object>		(GetMethod-list)
 		  | 'r' <Object>		(Recogniser-list)
 		  | 'h' <Object>		(Hyper-list)
-		    
+
 <object_name>	::= 'N' <string>		(name as reference)
 		  | 'I' <word>			(integer as reference)
 <abtract>	::= <slot>
@@ -180,7 +180,7 @@ saveNilRefs(FileObj f)
 		     if ( onDFlag(var, D_CLONE_REFCHAIN) )
 		     { Cell cell;
 		       Chain ch = to;
-		       
+
 		       storeCharFile(f, 'r');
 		       storeIntFile(f, storeClass(classOfObject(inst), f));
 		       storeIdObject(inst, isSavedObject(inst), f);
@@ -244,8 +244,8 @@ saveInFileObject(Any obj, FileObj file)
 				 objects_saved, classes_saved));
   freeHashTable(saveTable);
   freeHashTable(saveClassTable);
-    
-  
+
+
   return result ? SUCCEED : FAIL;
 }
 
@@ -257,9 +257,9 @@ storeObject(Any obj, FileObj file)
 
   if ( isInteger(obj) )
   { storeCharFile(file, 'I');
-    storeIntFile(file, obj); 
+    storeIntFile(file, obj);
     succeed;
-  } 
+  }
 
   assert(isObject(obj));
 
@@ -405,7 +405,7 @@ storeSlotObject(Instance inst, Variable var, FileObj file)
       saveNilRefTable = createHashTable(toInt(32), NAME_none);
     appendHashTable(saveNilRefTable, inst, var);
     storeObject(NIL, file);
-  } 
+  }
 
   succeed;
 }
@@ -414,7 +414,7 @@ storeSlotObject(Instance inst, Variable var, FileObj file)
 status
 storeSlotsObject(Any obj, FileObj file)
 { Class class = classOfObject(obj);
-  
+
   for_vector(class->instance_variables, Variable var,
 	     storeSlotObject(obj, var, file));
 
@@ -541,10 +541,10 @@ loadDouble(IOSTREAM *fd)
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
   { int c = Sgetc(fd);
-    
+
     cl[double_byte_order[i]] = c;
   }
-  
+
   return f;
 }
 
@@ -602,7 +602,7 @@ loadName(IOSTREAM *fd)
 
     return name;
   }
-  
+
   return NULL;
 }
 
@@ -632,7 +632,7 @@ loadNilRef(IOSTREAM * fd)
     return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r1);
   if ( !t )
     return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r2);
-    
+
   if ( def->offset[offset] >= 0 )
   { DEBUG(NAME_save, Cprintf("Restoring (nil)ref %s-%s --> %s\n",
 			     pp(f), pp(def->name[offset]), pp(t)));
@@ -656,7 +656,7 @@ loadReferenceChain(IOSTREAM *fd)
     return errorPce(LoadFile, NAME_noSavedClassDef, classid);
   if ( !f )
     return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r1);
-    
+
   if ( def->offset[offset] >= 0 )
   { Chain ch = newObject(ClassChain, EAV);
     int c;
@@ -902,12 +902,12 @@ loadObject(IOSTREAM *fd)
 		  fail;
 		}
 		return r;
-	      }		
+	      }
     case 'D': { Name classname = loadName(fd);
 		Type t         = nameToType(classname);
 		Any sref       = loadObject(fd);
 		Any rval;
-		
+
 		if ( !isClassType(t) )
 		{ errorPce(t, NAME_notClassType);
 		  return NIL;
@@ -954,7 +954,7 @@ loadObject(IOSTREAM *fd)
 		  else
 		    loadSlotsObject(obj, fd, def);
 		  updateFlagsObject(obj);
-		
+
 		  if ( SAVEVERSION != restoreVersion || PCEdebugging )
 		    TRY(checkConvertedObject(obj, def));
 
@@ -1004,7 +1004,7 @@ loadObject(IOSTREAM *fd)
 
 	  fail;
 	}
-    
+
     default:  { long index;
 
 		index = Stell(fd) - 1;
@@ -1052,7 +1052,7 @@ restoreClass(IOSTREAM *fd)
     errorPce(LoadFile, NAME_loadNoClass, name);
   def->slots = slots;
   appendHashTable(savedClassTable, classid, def);
-  
+
   for( i = 0; i<slots; i++ )
   { Name name = loadName(fd);
 
@@ -1084,7 +1084,7 @@ definedSlotClassDef(ClassDef def, Name slot)
 static int
 offsetVariable(Class class, Name name)
 { Variable var;
-  
+
   if ( (var = getInstanceVariableClass(class, name)) &&
        var->type->kind != NAME_alien )
     return valInt(var->offset);

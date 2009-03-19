@@ -39,4 +39,4 @@ term_expansion(new_declaration(Name/Arity),
 term_expansion((:- Directive), []) :-
 	current_predicate('$directive'/1),
 	'$directive'(Directive).
-	
+

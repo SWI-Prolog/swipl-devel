@@ -15,7 +15,7 @@ postscript(Data) :-
 	  send(D, append,
 	       button(cancel, message(D, destroy))),
 	  send(D, open).
-	  
+
 print_postscript(printer, Address, Data) :- !,
 	  new(F, file),
 	  send(F, open, write),

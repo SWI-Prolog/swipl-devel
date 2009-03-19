@@ -88,7 +88,7 @@ font(DI, Font) :-
 	get(DI, style, @default),
 	get(DI, image, Browser),
 	get(Browser, font, Font).
-	
+
 
 :- pce_end_class.
 

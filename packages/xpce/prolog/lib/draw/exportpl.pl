@@ -104,7 +104,7 @@ class_map(+, +(left, right), []).
 class_map(-, -(left, right), []).
 class_map(/, /(left, right), []).
 class_map(*, *(left, right), []).
-	  
+
 no_position(line).
 no_position(path).
 
@@ -438,4 +438,4 @@ putn(N, Fd, C) :-
 	put(Fd, C),
 	NN is N - 1,
 	putn(NN, Fd, C).
-	
+

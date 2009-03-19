@@ -65,7 +65,7 @@ noguitracer :-
 noguitracer.
 
 %	gtrace/0
-%	
+%
 %	Like trace/0, but uses the graphical tracer.
 
 :- '$hide'(gtrace/0).			% don't trace it
@@ -75,7 +75,7 @@ gtrace :-
 	trace.
 
 %%	gspy(+Spec)
-%	
+%
 %	Like spy/1, but uses the graphical tracer.
 
 gspy(Predicate) :-
@@ -83,7 +83,7 @@ gspy(Predicate) :-
 	spy(Predicate).
 
 %	gdebug
-%	
+%
 %	Like debug/0, but uses the graphical tracer.
 
 gdebug :-

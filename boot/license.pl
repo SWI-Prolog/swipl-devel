@@ -34,7 +34,7 @@
 	    license/2,			% +LicenseId, +ModuleId
 	    eval_license/0		% Eval current situation
 	  ]).
-	    
+
 :- dynamic
 	licensed/2.			% +Id, +Module
 
@@ -107,7 +107,7 @@ license(gpl_compatible, gpl,
 	[ comment('Other GPL and not LGPL compatible license')
 	]).
 
-	
+
 %	license(+License, [+ModuleId])
 %
 %	Register the current file under the given license restriction.
@@ -145,7 +145,7 @@ report_gpl :-
 gpled(Module) :-
 	licensed(X, Module),
 	license(X, gpl, _).
-	
+
 report_proprietary :-
 	(   setof(Module, proprietary(Module, L), Modules),
 	    print_message(informational, license(proprierary(L), Modules)),
@@ -159,7 +159,7 @@ proprietary(Module, L) :-
 	C \== gpl,
 	C \== lgpl.
 
-		  
+
 		 /*******************************
 		 *	       MESSAGES		*
 		 *******************************/

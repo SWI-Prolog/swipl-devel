@@ -52,13 +52,13 @@ str_pad(String s)			/* only 8-bit strings */
 { if ( isstrA(s) )
   { int from = s->size;
     int len  = str_allocsize(s);
-    
+
     while(from < len)
       s->s_textA[from++] = '\0';
   } else
   { int from = s->size;
     int len  = str_allocsize(s)/sizeof(charW);
-    
+
     while(from < len)
       s->s_textW[from++] = '\0';
   }
@@ -220,7 +220,7 @@ str_iswide(String s)
   }
 
   fail;
-} 
+}
 
 
 
@@ -334,11 +334,11 @@ str_cmp(String s1, String s2)
     { charW *d1 = s1->s_textW;
       charW *d2 = s2->s_textW;
       int d;
-  
+
       while(n-- > 0)
 	if ( (d = (*d1++ - *d2++)) )
 	  return d;
-  
+
       return s1->size - s2->size;
     }
   } else				/* inconsistent encoding */
@@ -366,21 +366,21 @@ str_icase_cmp(String s1, String s2)
     { charA *d1 = s1->s_textA;
       charA *d2 = s2->s_textA;
       int d;
-  
+
       for(; n-- > 0; d1++, d2++)
 	if ( (d = (tolower(*d1) - tolower(*d2))) )
 	  return d;
-  
+
       return s1->size - s2->size;
     } else
     { charW *d1 = s1->s_textW;
       charW *d2 = s2->s_textW;
       int d;
-  
+
       for(; n-- > 0; d1++, d2++)
 	if ( (d = (towlower(*d1) - towlower(*d2))) )
 	  return d;
-  
+
       return s1->size - s2->size;
     }
   } else
@@ -403,7 +403,7 @@ int
 str_eq(String s1, String s2)
 { if ( s1->size == s2->size )
     return str_cmp(s1, s2) == 0;
-		     
+
   return FALSE;
 }
 
@@ -412,7 +412,7 @@ int
 str_icase_eq(String s1, String s2)
 { if ( s1->size == s2->size )
     return str_icase_cmp(s1, s2) == 0;
-		     
+
   return FALSE;
 }
 
@@ -440,7 +440,7 @@ str_prefix_offset(String s1, unsigned int offset, String s2)
     }
 
     return TRUE;
-  } 
+  }
 
   return FALSE;
 }
@@ -478,7 +478,7 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
     }
 
     return TRUE;
-  } 
+  }
 
   return FALSE;
 }
@@ -511,7 +511,7 @@ str_suffix(String s1, String s2)	/* s2 is suffix of s1 */
     }
 
     return TRUE;
-  } 
+  }
 
   return FALSE;
 }
@@ -546,7 +546,7 @@ str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
     }
 
     return TRUE;
-  } 
+  }
 
   return FALSE;
 }
@@ -559,7 +559,7 @@ str_sub(String s1, String s2)		/* s2 is substring of s1 */
   if ( s2->size <= s1->size )
   { int n = 0;
     int m = s1->size - s2->size;
-    
+
     if ( isstrA(s1) )
     { for(; n <= m; n++)
       { charA *d1 = &s1->s_textA[n];
@@ -586,7 +586,7 @@ str_sub(String s1, String s2)		/* s2 is substring of s1 */
 	return TRUE;
       next16:;
       }
-    } 
+    }
   }
 
   return FALSE;
@@ -600,7 +600,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
   if ( s2->size <= s1->size )
   { int n = 0;
     int m = s1->size - s2->size;
-    
+
     if ( isstrA(s1) )
     { for(; n <= m; n++)
       { charA *d1 = &s1->s_textA[n];
@@ -629,7 +629,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
 	return TRUE;
       next16:;
       }
-    } 
+    }
   }
 
   return FALSE;
@@ -642,13 +642,13 @@ str_next_index(String s, int from, wint_t chr)
 
   if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
-    
+
     for(i=from; i<n; i++, d++)
       if ( *d == chr )
 	return i;
   } else
   { charW *d = &s->s_textW[from];
-    
+
     for(i=from; i<n; i++, d++)
       if ( (wint_t)*d == chr )
 	return i;
@@ -664,13 +664,13 @@ str_next_rindex(String s, int from, wint_t chr)
 
   if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
-    
+
     for(i=from; i >= 0; i--, d--)
       if ( *d == chr )
 	return i;
   } else
   { charW *d = &s->s_textW[from];
-    
+
     for(i=from; i >= 0; i--, d--)
       if ( (wint_t)*d == chr )
 	return i;
@@ -683,13 +683,13 @@ str_next_rindex(String s, int from, wint_t chr)
 int
 str_index(String s, wint_t chr)
 { return str_next_index(s, 0, chr);
-} 
+}
 
 
 int
 str_rindex(String s, wint_t chr)
 { return str_next_rindex(s, s->size, chr);
-} 
+}
 
 /* count chr in [from,to) */
 
@@ -699,13 +699,13 @@ str_count_chr(String s, int from, int to, wint_t chr)
 
   if ( isstrA(s) )
   { charA *d = &s->s_textA[from];
-    
+
     for(i=from; i<to; i++, d++)
       if ( *d == chr )
 	count++;
   } else
   { charW *d = &s->s_textW[from];
-    
+
     for(i=from; i<to; i++, d++)
       if ( (wint_t)*d == chr )
 	count++;
@@ -827,7 +827,7 @@ str_strip(String s)
   { charA *f = s->s_textA;
     charA *t = s->s_textA;
     charA *e = &s->s_textA[size];
-    
+
     while( f < e && iswspace(*f) )	/* ISO-Latin-1 */
       f++;
 
@@ -844,7 +844,7 @@ str_strip(String s)
   { charW *f = s->s_textW;
     charW *t = s->s_textW;
     charW *e = &s->s_textW[size];
-    
+
     while( f < e && iswspace(*f) )
       f++;
 
@@ -884,7 +884,7 @@ str_common_length(String s1, String s2)
 
   return i;
 }
-      
+
 
 int
 str_icase_common_length(String s1, String s2)
@@ -909,7 +909,7 @@ str_icase_common_length(String s1, String s2)
 
   return i;
 }
-      
+
 
 		 /*******************************
 		 *	 TEMPORARY STRINGS	*
@@ -952,10 +952,10 @@ str_tmp_put(tmp_string *tmp, wint_t c)
       const charA *f = tmp->buffer;
       const charA *e = &f[s->size];
       charW *t = new;
-      
+
       while(f<e)
 	*t++ = *f++;
-      
+
       if ( s->s_textA != tmp->buffer )
 	pceFree(s->s_textA);
       s->s_textW = new;
@@ -968,14 +968,14 @@ str_tmp_put(tmp_string *tmp, wint_t c)
 
       if ( isstrA(s) )
       { s->s_textA = pceMalloc(len);
-	
+
 	memcpy(s->s_textA, tmp->buffer, sizeof(tmp->buffer));
       } else
       { s->s_textW = pceMalloc(len*sizeof(charW));
 
 	memcpy(s->s_textA, tmp->buffer, sizeof(tmp->buffer));
       }
-	   
+
       tmp->allocated = len;
     } else
     { tmp->allocated *= 2;

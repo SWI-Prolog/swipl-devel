@@ -222,7 +222,7 @@ compile-time
 
 #define LOCKMODULE(module)   countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module) countingMutexUnlock((module)->mutex)
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data

@@ -88,7 +88,7 @@ PL_save_text(PL_chars_t *text, int flags)
 
     addMultipleBuffer(b, text->text.t, bl, char);
     text->text.t = baseBuffer(b, char);
-    
+
     text->storage = PL_CHARS_RING;
   }
 }
@@ -176,11 +176,11 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     encodings[0] = ENC_ISO_LATIN_1;
     encodings[1] = ENC_WCHAR;
     encodings[2] = ENC_UNKNOWN;
-    
+
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;
       IOSTREAM *fd;
-    
+
       r = text->buf;
       size = sizeof(text->buf);
       fd = Sopenmem(&r, &size, "w");
@@ -234,7 +234,7 @@ error:
       expected = ATOM_atomic;
     else
       expected = ATOM_atom;
-    
+
     return PL_error(NULL, 0, NULL, ERR_TYPE, expected, l);
   }
 
@@ -272,7 +272,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
       int rval = _PL_unify_atomic(term, a);
-      
+
       PL_unregister_atom(a);
       return rval;
     }
@@ -295,7 +295,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
       { GET_LD
 	term_t l = PL_new_term_ref();
 	Word p0, p;
-      
+
 	switch(text->encoding)
 	{ case ENC_ISO_LATIN_1:
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
@@ -316,7 +316,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  case ENC_WCHAR:
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
-  
+
 	    p0 = p = allocGlobal(text->length*3);
 	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
@@ -362,7 +362,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      n -= rc;
 	      s += rc;
 	    }
-	    
+
 	    p0 = p = allocGlobal(len*3);
 	    memset(&mbs, 0, sizeof(mbs));
 	    n = text->length;
@@ -377,7 +377,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 		*p++ = codeToAtom(wc);
 	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
 	      p++;
-	      
+
 	      s += rc;
 	      n -= rc;
 	    }
@@ -442,7 +442,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     rc = PL_unify_text(term, 0, &sub, type);
 
     PL_free_text(&sub);
-    
+
     return rc;
   }
 }
@@ -470,7 +470,7 @@ PL_promote_text(PL_chars_t *text)
 
       PL_free(text->text.t);
       text->text.w = new;
-      
+
       text->encoding = ENC_WCHAR;
     } else if ( text->storage == PL_CHARS_LOCAL &&
 	        (text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
@@ -524,7 +524,7 @@ PL_demote_text(PL_chars_t *text)
 
       PL_free(text->text.t);
       text->text.t = new;
-      
+
       text->encoding = ENC_ISO_LATIN_1;
     } else if ( text->storage == PL_CHARS_LOCAL )
     { pl_wchar_t buf[sizeof(text->buf)/sizeof(pl_wchar_t)];
@@ -613,7 +613,7 @@ utf8tobuffer(wchar_t c, Buffer buf)
   { char b[6];
     char *e = b;
     const char *s;
-    
+
     e = utf8_put_char(e, c);
     for(s=b; s<e; s++)
       addBuffer(buf, *s, char);
@@ -629,7 +629,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 
   if ( text->encoding != target )
   { Buffer b = findBuffer(BUF_RING);
-    
+
     switch(text->encoding)
     { case ENC_ISO_LATIN_1:
       { const unsigned char *s = (const unsigned char*)text->text.t;
@@ -670,7 +670,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 	    addBuffer(b, 0, char);
 	  } else /* if ( target == ENC_MB ) */
 	  { mbstate_t mbs;
-	    
+
 	    memset(&mbs, 0, sizeof(mbs));
 	    for( ; w<e; w++)
 	    { if ( !wctobuffer(*w, &mbs, b) )
@@ -704,7 +704,7 @@ rep_error:
 
     sprintf(msg,
 	    "Cannot represent char U%04x using %s encoding",
-	    norep, 
+	    norep,
 	    target == ENC_ISO_LATIN_1 ? "ISO Latin-1" : "current locale");
 
     return PL_error(NULL, 0, msg, ERR_REPRESENTATION, ATOM_encoding);
@@ -723,7 +723,7 @@ PL_canonise_text(PL_chars_t *text)
       case ENC_WCHAR:
       { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
 	const pl_wchar_t *e = &w[text->length];
-      
+
 	for(; w<e; w++)
 	{ if ( *w > 0xff )
 	    return FALSE;
@@ -1025,7 +1025,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
       return ifeq;
     else
       return *s > *q ? 1 : -1;
-  }  
+  }
 }
 
 

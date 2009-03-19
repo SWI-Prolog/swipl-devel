@@ -40,7 +40,7 @@ typedef struct lbox     *LBox;
 
 #ifdef GLOBALS_HERE
 #undef GLOBAL
-#define GLOBAL 
+#define GLOBAL
 #endif
 
 GLOBAL Class ClassHBox;

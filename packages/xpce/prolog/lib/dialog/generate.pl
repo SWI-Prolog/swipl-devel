@@ -145,7 +145,7 @@ generate_unique_variable_names([Part|Parts], Done, [NewPart|NewParts]) :-
 		generate_unique_variable_names(Parts, [Part|Done], NewParts)
 	    )
 	).
-	    
+
 varname('$aref'(Name) := _, Name).
 
 set_varname('$aref'(Old) := Value, Var, '$aref'(Var) := Value) :-
@@ -205,7 +205,7 @@ alignment(I1, I2, below(I1, I2)) :- get(I2, below, I1).
 alignment(I1, I2, above(I1, I2)) :- get(I2, above, I1).
 alignment(I1, I2, left(I1, I2))  :- get(I2, left,  I1).
 alignment(I1, I2, right(I1, I2)) :- get(I2, right, I1).
-	
+
 pair(I1, I2, [I1|L]) :-
 	member(I2, L).
 pair(I1, I2, [_|T]) :-
@@ -270,7 +270,7 @@ behaviour_object(O, O) :-
 	O = @Ref,
 	atom(Ref),
 	\+ send(O, instance_of, graphical).
-	
+
 source_attribute(Dialog, behaviour, Behaviour) :-
 	get_chain(Dialog, graphicals, Grs),
 	findall(Ref := Dyns,
@@ -337,7 +337,7 @@ port_message(Port, Message) :-
 	->  true
 	;   Message =.. [and|Messages]	% order?
 	).
-	
+
 
 activation_message(C, Message) :-
 	get(C, to, CallPort),
@@ -399,7 +399,7 @@ activation_arguments(C, Args) :-
 	    append(PositionArgs, NamedArgs, Args)
 	;   Args = []
 	).
-	
+
 argument_list([], [], []).
 argument_list([N := A|T], PosArgs, [N := A|R]) :-
 	atom(N), !,
@@ -527,7 +527,7 @@ new_term(Object, Term) :-
 	).
 new_term(Object, Term) :-
 	portray_object(Object, Term).
-	
+
 %	new_term(+Class, +Args, -Term)
 %	Create a term that can be handed as an argument to create an
 %	instance of the class.
@@ -539,7 +539,7 @@ new_term(Class, Args, Term) :-
 	->  Term = new(Class)
 	;   Term =.. [Class|NonDef]
 	).
-	
+
 code_class(message).
 code_class(and).
 
@@ -716,7 +716,7 @@ prolog_variable_name(GrName, VarName) :-
 	;   true
 	),
 	get(Str2, value, VarName).
-	
+
 proto(Object, Proto) :-
 	send(Object, has_get_method, proto), !,
 	get(Object, proto, Proto).

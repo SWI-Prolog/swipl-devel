@@ -172,7 +172,7 @@ free_node(AVL_TREE tree, AVLtree *rootp)
     (*tree->free)(tree->client_data, root, sizeofnode(tree->isize));
   else
     free(root);
-  
+
   *rootp = NULL_TREE;
 }				/* free_node */
 
@@ -497,7 +497,7 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void *data, int *found,
       *found = TRUE;
     if ( data && data != (*rootp)->data )
     { if ( found )
-	memcpy(data, (*rootp)->data, tree->isize); 
+	memcpy(data, (*rootp)->data, tree->isize);
       else
 	memswap(data, (*rootp)->data, tree->isize);
     }
@@ -531,7 +531,7 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void *data, int *found,
 	return HEIGHT_CHANGED;	/* we just shortened the "dir" subtree */
 
       case IS_TREE:
-	decrease = avl_delete(tree, 
+	decrease = avl_delete(tree,
 			      &((*rootp)->subtree[RIGHT]),
 			      (*rootp)->data, NULL,
 			      avl_min);
@@ -598,7 +598,7 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void *data, int *found,
 */
 static void
 avl_walk(AVLtree tree, void (*action)(void *data,
-				      SIBLING_ORDER order, 
+				      SIBLING_ORDER order,
 				      NODE type,
 				      int level,
 				      int balance),
@@ -694,7 +694,7 @@ avlfindfirst(AVL_TREE tree, void *data, avl_enum *e)
 
   e->tree    = tree;
   e->current = 0;
-  
+
   for(;;)
   { int diff;
 
@@ -705,7 +705,7 @@ avlfindfirst(AVL_TREE tree, void *data, avl_enum *e)
 
     if ( diff < 0 )
     { push_node(e, node);
-	
+
       if ( node->subtree[LEFT] )
       { node = node->subtree[LEFT];
       } else
@@ -745,7 +745,7 @@ avlfindnext(avl_enum *e)
   }
 
   n = current_node(e);
-  
+
   return n ? n->data : NULL;
 }
 
@@ -828,7 +828,7 @@ avlfree(AVL_TREE tree)
 PUBLIC void
 avlwalk(AVL_TREE tree,
 	void (*action)(void *data,
-		       SIBLING_ORDER order, 
+		       SIBLING_ORDER order,
 		       NODE type,
 		       int level,
 		       int balance),

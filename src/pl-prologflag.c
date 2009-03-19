@@ -94,7 +94,7 @@ following arguments are to be provided:
 static int
 indexOfBoolMask(uintptr_t mask)
 { int i=1;
-  
+
   if ( !mask )
     return -1;
 
@@ -130,7 +130,7 @@ setPrologFlag(const char *name, int flags, ...)
     f->flags = flags;
     addHTable(GD->prolog_flag.table, (void *)an, f);
   }
-  
+
   va_start(args, flags);
   switch(type)
   { case FT_BOOL:
@@ -182,7 +182,7 @@ setPrologFlag(const char *name, int flags, ...)
     }
     case FT_TERM:
     { term_t t = va_arg(args, term_t);
-      
+
       f->value.t = PL_record(t);
       break;
     }
@@ -355,7 +355,7 @@ set_prolog_flag_unlocked(term_t key, term_t value)
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
 
-#ifdef O_PLMT    
+#ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
     { prolog_flag *f2 = allocHeap(sizeof(*f2));
 
@@ -478,7 +478,7 @@ set_prolog_flag_unlocked(term_t key, term_t value)
       if ( k == ATOM_float_format )
       { PL_register_atom(a);		/* so it will never be lost! */
 	LD->float_format = PL_atom_chars(a);
-      } 
+      }
       break;
     }
     case FT_INTEGER:
@@ -678,7 +678,7 @@ pl_prolog_flag5(term_t key, term_t value,
 	  else
 	    e->scope = ATOM_global;
 	}
-	  
+
 	if ( e->scope == ATOM_local )
 	  e->table_enum = newTableEnum(LD->prolog_flag.table);
 	else
@@ -736,7 +736,7 @@ pl_prolog_flag5(term_t key, term_t value,
       break;
   }
   UNLOCK();
-  
+
   freeTableEnum(e->table_enum);
   freeHeap(e, sizeof(*e));
 
@@ -765,7 +765,7 @@ void
 initPrologFlagTable()
 { if ( !GD->prolog_flag.table )
   { initPrologThreads();	/* may be called before PL_initialise() */
-  
+
     GD->prolog_flag.table = newHTable(32);
   }
 }

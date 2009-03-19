@@ -127,7 +127,7 @@ delete(Line ln, size_t from, size_t len)
 
   _tcsncpy(&ln->data[from], &ln->data[from+len], ln->size - (from+len));
   ln->size -= len;
-} 
+}
 
 
 		 /*******************************
@@ -232,7 +232,7 @@ forward_word(Line ln, int chr)
 static void
 backward_delete_word(Line ln, int chr)
 { size_t from = back_word(ln, ln->point);
-  
+
   memmove(&ln->data[from], &ln->data[ln->point],
 	  (ln->size - ln->point)*sizeof(TCHAR));
   ln->size -= ln->point - from;
@@ -244,7 +244,7 @@ backward_delete_word(Line ln, int chr)
 static void
 forward_delete_word(Line ln, int chr)
 { size_t to = forw_word(ln, ln->point);
-  
+
   memmove(&ln->data[ln->point], &ln->data[to], (ln->size - to)*sizeof(TCHAR));
   ln->size -= to - ln->point;
   changed(ln, ln->point);
@@ -258,7 +258,7 @@ transpose_chars(Line ln, int chr)
     ln->data[ln->point-1] = ln->data[ln->point];
     ln->data[ln->point] = c0;
     changed(ln, ln->point-1);
-  } 
+  }
 }
 
 
@@ -291,7 +291,7 @@ empty_line(Line ln, int chr)
 static void
 enter(Line ln, int chr)
 { ln->point = ln->size;
-#ifdef DOS_CRNL  
+#ifdef DOS_CRNL
   make_room(ln, 2);
   ln->data[ln->point++] = '\r';
   ln->data[ln->point++] = '\n';
@@ -325,7 +325,7 @@ delete_character_or_eof(Line ln, int chr)
 
 static void
 undefined(Line ln, int chr)
-{ 
+{
 }
 
 
@@ -442,7 +442,7 @@ complete(Line ln, int chr)
       }
       data->call_type = COMPLETE_CLOSE;
       (*data->function)(data);
-       
+
       delete(ln, data->replace_from, patlen);
       ln->point = data->replace_from;
       make_room(ln, ncommon);
@@ -487,7 +487,7 @@ list_completions(Line ln, int chr)
 
 	if ( nmatches > COMPLETE_MAX_MATCHES )
 	{ TCHAR *msg = _T("\r\n! Too many matches\r\n");
-	  
+
 	  while(*msg)
 	    rlc_putchar(ln->console, *msg++);
 	  ln->reprompt = TRUE;
@@ -511,7 +511,7 @@ list_completions(Line ln, int chr)
 	{ len++;
 	  rlc_putchar(ln->console, *s++);
 	}
-	
+
 	rlc_free(buf[n++]);
 
 	if ( n % cols == 0 )
@@ -552,7 +552,7 @@ update_display(Line ln)
 { if ( ln->reprompt )
   { const TCHAR *prompt = rlc_prompt(ln->console, NULL);
     const TCHAR *s = prompt;
-      
+
     rlc_putchar(ln->console, '\r');
     while(*s)
       rlc_putchar(ln->console, *s++);
@@ -646,7 +646,7 @@ init_dispatch_table()
       dispatch_table[n] = insert_self;
     for(n=0; n<256; n++)
       dispatch_meta[n] = undefined;
-      
+
     bind_actions();
 
     done = TRUE;
@@ -704,7 +704,7 @@ int
 rlc_bind(int chr, const char *fname)
 { if ( chr >= 0 && chr <= 256 )
   { Action a = actions;
-    
+
     for( ; a->name; a++ )
     { if ( strcmp(a->name, fname) == 0 )
       { if ( chr > META_OFFSET )

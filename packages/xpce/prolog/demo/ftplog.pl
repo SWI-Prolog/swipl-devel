@@ -207,7 +207,7 @@ following designs are possible:
 
 	send(SortBy, append, menu_item(name, SortByName)),
 	send(SortBy, append, menu_item(times, SortByTimes)).
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Rebuild the browser's contents collecting all   transfers  with the same
 value for `Field'.  Each  browser  entry   consists  of  two fields: the
@@ -243,7 +243,7 @@ update(Browser, Field, Sheet) :-
 		 new(DI, dict_item(Value, @default, chain(Sheet))))
 	),
 	send(DI, label, string('%d\t%s', DI?object?size, Value)).
-			
+
 		 /*******************************
 		 *	    SHOW RECORD		*
 		 *******************************/
@@ -313,7 +313,7 @@ open(Frame, DI) :-
 			    @arg1?file,
 			    @arg1?user))),
 	send(Browser, open).
-		     
+
 
 		 /*******************************
 		 *	       LOADING		*

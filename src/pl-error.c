@@ -250,7 +250,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       term_t actual = PL_new_term_ref();
 
       put_name_arity(actual, f);
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_type_error2,
 		      PL_ATOM, ATOM_evaluable,
@@ -279,7 +279,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_OCCURS_CHECK:
     { Word p1  = va_arg(args, Word);
       Word p2  = va_arg(args, Word);
-      
+
       PL_unify_term(formal,
 			PL_FUNCTOR, FUNCTOR_occurs_check2,
 			  PL_TERM, wordToTermRef(p1),
@@ -347,7 +347,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_STREAM_OP:
     { atom_t action = va_arg(args, atom_t);
       term_t stream = va_arg(args, term_t);
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_io_error2,
 		      PL_ATOM, action,
@@ -543,7 +543,7 @@ tostr(char *buf, const char *fmt, ...)
   va_start(args, fmt);
   Svsprintf(buf, fmt, args);
   va_end(args);
-  
+
   return buf;
 }
 
@@ -707,7 +707,7 @@ PL_unify_list_ex(term_t l, term_t h, term_t t)
 
   if ( PL_get_nil(l) )
     fail;
-  
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
@@ -731,7 +731,7 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
 
   if ( PL_get_nil(l) )
     fail;
-  
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 

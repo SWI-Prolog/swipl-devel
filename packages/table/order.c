@@ -63,7 +63,7 @@ static atom_t ATOM_copy;
 static void
 standard_table(atom_t name, void (*func)(OrdTable))
 { OrdTable t = malloc(sizeof(ordtable));
-  
+
   if ( t )
   { exact_table(t);
     t->name = name;
@@ -358,7 +358,7 @@ pl_new_order_table(term_t name, term_t options)
     goto err1;
 
   register_table(t);
-  
+
   PL_succeed;
 }
 
@@ -439,7 +439,7 @@ compare_strings_(const char *s1, const char **S2, size_t n, OrdTable ot)
 
   for(;;)
   { int o1, o2;
-    
+
     if ( s1 == e1 )
     { *S2 = s2;
       return 0;				/* equal */

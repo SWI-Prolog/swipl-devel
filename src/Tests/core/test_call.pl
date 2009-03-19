@@ -134,11 +134,11 @@ verum :-
 			      cleanup(set_prolog_flag(autoload, true))
 			    ]).
 
-known(t) :- 
+known(t) :-
 	this_should_not_be_defined(V),
 	call(V).
 
-test(unknown, error(existence_error(procedure, 
+test(unknown, error(existence_error(procedure,
 				    _:this_should_not_be_defined/1))) :-
 	known(t).
 
@@ -154,52 +154,52 @@ test(unknown, error(existence_error(procedure,
 test(true, X == 42) :-
 	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
-     
+
 test(true_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
 	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
-     
+
 test(cut, X == 42) :-
 	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
-     
+
 test(cut_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
 	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
-     
+
 test(fail, X == 42) :-
 	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
-     
+
 test(fail2, X =@= [42,_]) :-
 	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
-     
+
 test(fail_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
 	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
-     
+
 test(fail_debug2, [ true(X =@= [42,_]),
 		    setup(debug),
 		    cleanup(nodebug)
 		  ]) :-
 	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
-     
+
 test(error, [X,E] == [42,error(x)]) :-
 	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
-     
+
 test(error_debug, [ true([X,E] == [42,error(x)]),
 		    setup(debug),
 		    cleanup(nodebug)
@@ -207,7 +207,7 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
-     
+
 test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
 	(   setup_call_catcher_cleanup(member(X,[a,b]), assert(v(X)),
 				   Exit, assert(v(Exit))),

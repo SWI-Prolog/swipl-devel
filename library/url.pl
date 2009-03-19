@@ -38,7 +38,7 @@
 	    http_location/2,		% ?Parts, ?Location
 	    www_form_encode/2,		% Value <-> Encoded
 	    parse_url_search/2,		% Form-data <-> Form fields
-	    
+
 	    url_iri/2,			% ?URL, ?IRI
 
 	    file_name_to_url/2,		% ?FileName, ?URL
@@ -71,9 +71,9 @@ of the standard encountered in practical use.
 		 *******************************/
 
 %%	global_url(+URL, +Base, -Global) is det.
-%	
+%
 %	Translate a possibly relative URL  into   an  absolute  one.
-%	
+%
 %	@error syntax_error(illegal_url) if URL is not legal.
 
 global_url(URL, BaseURL, Global) :-
@@ -97,7 +97,7 @@ global_url(URL, BaseURL, Global) :-
 	).
 
 %%	is_absolute_url(+URL)
-%	
+%
 %	True if URL is an absolute URL. That  is, a URL that starts with
 %	a protocol identifier.
 
@@ -124,12 +124,12 @@ is_absolute_url(URL) :-
 %	parse_url/2, but only deals with the   location  part of an HTTP
 %	URL. That is, the path, search   and fragment specifiers. In the
 %	HTTP protocol, the first line of a message is
-%	
+%
 %	    ==
 %	    <Action> <Location> HTTP/<version>
 %	    ==
-%	    
-%	@param Location	Atom or list of character codes.    
+%
+%	@param Location	Atom or list of character codes.
 
 http_location(Parts, Location) :-	% Parts --> Location
 	nonvar(Parts), !,
@@ -208,35 +208,35 @@ catomic(A, In, Out) :-
 
 %%	csearch(+Attributes)//
 
-csearch(A)--> 
+csearch(A)-->
 	(   { memberchk(search(Parameters), A) }
 	->  csearch(Parameters, "?")
 	;   []
 	).
 
-csearch([], _) --> 
+csearch([], _) -->
 	[].
-csearch([Parameter|Parameters], Sep) --> !, 
-	Sep, 
-	cparam(Parameter), 
-	csearch(Parameters, "&"). 
+csearch([Parameter|Parameters], Sep) --> !,
+	Sep,
+	cparam(Parameter),
+	csearch(Parameters, "&").
 
-cparam(Name=Value) --> !, 
-	cname(Name), 
-	"=", 
-	cvalue(Value). 
+cparam(Name=Value) --> !,
+	cname(Name),
+	"=",
+	cvalue(Value).
 cparam(NameValue) -->			% allow to feed Name(Value)
 	{ compound(NameValue), !,
 	  NameValue =.. [Name,Value]
 	},
-	cname(Name), 
-	"=", 
-	cvalue(Value). 
-cparam(Name)--> 
-	cname(Name). 
-	
+	cname(Name),
+	"=",
+	cvalue(Value).
+cparam(Name)-->
+	cname(Name).
 
-cname(Atom) --> 
+
+cname(Atom) -->
 	{ atom_codes(Atom, Codes) },
 	www_encode(Codes, "").
 
@@ -264,8 +264,8 @@ cfragment(A) -->
 	www_encode(Codes, "").
 cfragment(_) -->
 	"".
-	
-		
+
+
 		 /*******************************
 		 *	      PARSING		*
 		 *******************************/
@@ -276,7 +276,7 @@ cfragment(_) -->
 %	Construct or analyse a URL. URL is an   atom  holding a URL or a
 %	variable. Parts is a list of   components.  Each component is of
 %	the format Name(Value). Defined components are:
-%	
+%
 %	    * protocol(Protocol)
 %	    The used protocol. This is, after  the optional =|url:|=, an
 %	    identifier separated from the remainder of  the URL using :.
@@ -284,22 +284,22 @@ cfragment(_) -->
 %	    specified and the URL can be parsed  as a valid HTTP url. In
 %	    addition to the RFC-1738  specified   protocols,  the =file=
 %	    protocol is supported as well.
-%	    
+%
 %	    * host(Host)
 %	    Host-name or IP-address on which   the  resource is located.
 %	    Supported by all network-based protocols.
-%	    
+%
 %	    * port(Port)
 %	    Integer port-number to access on   the \arg{Host}. This only
 %	    appears if the port is  explicitly   specified  in  the URL.
 %	    Implicit default ports (e.g.  80   for  HTTP)  do \emph{not}
 %	    appear in the part-list.
-%	    
+%
 %	    * path(Path)
 %	    (File-) path addressed by the URL. This is supported for the
 %	    =ftp=, =http= and =file= protocols. If  no path appears, the
 %	    library generates the path =|/|=.
-%	    
+%
 %	    * search(ListOfNameValue)
 %	    Search-specification of HTTP URL. This is the part after the
 %	    =|?|=, normally used to transfer data   from HTML forms that
@@ -307,16 +307,16 @@ cfragment(_) -->
 %	    www-form-encoded list of Name=Value pairs. This is mapped to
 %	    a list of Prolog Name=Value  terms   with  decoded names and
 %	    values.
-%	    
+%
 %	    * fragment(Fragment)
 %	    Fragment specification of HTTP URL. This   is the part after
 %	    the =|#|= character.
-%	    
+%
 %	The example below illustrates the all this for an HTTP URL.
-%	
+%
 %	    ==
 %	    ?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21#x', P).
-%	    
+%
 %	    P = [ protocol(http),
 %		  host('swi.psy.uva.nl'),
 %		  fragment(x),
@@ -325,7 +325,7 @@ cfragment(_) -->
 %		  path('/message.cgi')
 %	        ]
 %	    ==
-%	    
+%
 %	By instantiating the parts-list this predicate   can  be used to
 %	create a URL.
 
@@ -338,7 +338,7 @@ parse_url(URL, Attributes) :-
 	atom_codes(URL, Codes).
 
 parse_url(URL, BaseURL, Attributes) :-
-	nonvar(URL), !, 
+	nonvar(URL), !,
 	atom_codes(URL, Codes),
 	(   phrase(absolute_url, Codes, _)
 	->  phrase(url(Attributes), Codes)
@@ -355,19 +355,19 @@ parse_url(URL, BaseURL, Attributes) :-
 	    append(BaseA3, [path(Path)|URIA1], Attributes)
 	).
 parse_url(URL, BaseURL, Attributes) :-
-	parse_url(BaseURL, BaseAttributes), 
-	memberchk(path(BasePath), BaseAttributes), 
+	parse_url(BaseURL, BaseAttributes),
+	memberchk(path(BasePath), BaseAttributes),
 	(   memberchk(path(LocalPath), Attributes)
 	->  globalise_path(LocalPath, BasePath, Path)
 	;   Path = BasePath
-	), 	 
-	append([path(Path)|Attributes], BaseAttributes, GlobalAttributes), 
-	phrase(curl(GlobalAttributes), Chars), 
+	),
+	append([path(Path)|Attributes], BaseAttributes, GlobalAttributes),
+	phrase(curl(GlobalAttributes), Chars),
 	atom_codes(URL, Chars).
 
-	
+
 %%	globalise_path(+LocalPath, +RelativeTo, -FullPath) is det.
-%	
+%
 %	The first clause deals with the  standard URL /... global paths.
 %	The second with file://drive:path on MS-Windows.   This is a bit
 %	of a cludge, but unfortunately common practice is -especially on
@@ -419,7 +419,7 @@ digits(L) -->
 	digits(L, []).
 
 digits([C|T0], T) -->
-	digit(C), !, 
+	digit(C), !,
 	digits(T0, T).
 digits(T, T) -->
 	[].
@@ -464,7 +464,7 @@ http_location([path(Path)|P2]) -->
 	fragment(P3, []).
 
 %%	schema(-Atom)//
-%	
+%
 %	Schema  is  case-insensitive  and  the    canonical  version  is
 %	lowercase.
 %
@@ -482,7 +482,7 @@ schema_chars([H|T]) -->
 	schema_chars(T).
 schema_chars([]) -->
 	[].
-	
+
 schema_char(H) -->
 	[C],
 	{ C < 128,
@@ -530,7 +530,7 @@ authority(Parts, Tail) -->
 authority([host(Host)|T0], Tail) -->
 	host(Host),
 	port(T0, Tail).
-	
+
 user_info_chars([H|T]) -->
 	user_info_char(H), !,
 	user_info_chars(T).
@@ -539,7 +539,7 @@ user_info_chars([]) -->
 
 user_info_char(_) --> "@", !, {fail}.
 user_info_char(C) --> pchar(C).
-	
+
 %host(Host) --> ip_literal(Host), !.		% TBD: IP6 addresses
 host(Host) --> ip4_address(Host), !.
 host(Host) --> reg_name(Host).
@@ -650,7 +650,7 @@ segment_nz_nc_char(C) --> pchar(C).
 
 
 %%	query(-Parts, ?Tail)// is det.
-%	
+%
 %	Extract &Name=Value, ...
 
 query([search(Params)|T], T) -->
@@ -659,17 +659,17 @@ query([search(Params)|T], T) -->
 query(T,T) -->
 	[].
 
-search([Parameter|Parameters])--> 
-	parameter(Parameter), !,  
+search([Parameter|Parameters])-->
+	parameter(Parameter), !,
 	(   search_sep
         ->  search(Parameters)
         ;   { Parameters = [] }
-        ). 
-search([]) --> 
+        ).
+search([]) -->
 	[].
 
-parameter(Param)--> !, 
-	search_chars(NameS), 
+parameter(Param)--> !,
+	search_chars(NameS),
 	{ atom_codes(Name, NameS)
 	},
 	(   "="
@@ -682,7 +682,7 @@ parameter(Param)--> !,
         ).
 
 search_chars([C|T]) -->
-	search_char(C), !, 
+	search_char(C), !,
 	search_chars(T).
 search_chars([]) -->
 	[].
@@ -692,7 +692,7 @@ search_char(_) --> "=", !, { fail }.
 search_char(C) --> fragment_char(C).
 
 search_value_chars([C|T]) -->
-	search_value_char(C), !, 
+	search_value_char(C), !,
 	search_value_chars(T).
 search_value_chars([]) -->
 	[].
@@ -703,8 +703,8 @@ search_value_char(C) --> fragment_char(C).
 %%	search_sep// is semidet.
 %
 %	Matches a search-parameter separator.  Traditonally, this is the
-%	&-char, but these days there are `newstyle' ;-char separators. 
-%	
+%	&-char, but these days there are `newstyle' ;-char separators.
+%
 %	@see http://perldoc.perl.org/CGI.html
 %	@tbd This should be configurable
 
@@ -713,7 +713,7 @@ search_sep --> ";".
 
 
 %%	fragment(-Fragment, ?Tail)//
-%	
+%
 %	Extract the fragment (after the =#=)
 
 fragment([fragment(Fragment)|T], T) -->
@@ -731,7 +731,7 @@ fragment_chars([]) -->
 
 
 %%	fragment_char(-Char)
-%	
+%
 %	Find a fragment character.
 
 fragment_char(C)   --> pchar(C), !.
@@ -746,9 +746,9 @@ fragment_char(0']) --> "]", !.
 		 *******************************/
 
 %%	pchar(-Code)//
-%	
+%
 %	unreserved|pct_encoded|sub_delim|":"|"@"
-%	
+%
 %	Performs UTF-8 decoding of percent encoded strings.
 
 pchar(0' ) --> "+", !.			%' ?
@@ -763,7 +763,7 @@ pchar(C) -->
 	percent_coded(C).
 
 %%	lwalpha(-C)//
-%	
+%
 %	Demand alpha, return as lowercase
 
 lwalpha(H) -->
@@ -785,7 +785,7 @@ drive_letter(C) -->
 		 *******************************/
 
 %%	sub_delim(?Code)
-%	
+%
 %	Sub-delimiters
 
 sub_delim(0'!).
@@ -802,7 +802,7 @@ sub_delim(0'=).
 
 
 %%	unreserved(+C)
-%	
+%
 %	Characters that can be represented without procent escaping
 %	RFC 3986, section 2.3
 
@@ -939,8 +939,8 @@ utf8_cont([]) -->
 %
 %	Query and set the encoding for URLs.  The default is =utf8=.
 %	The only other defined value is =iso_latin_1=.
-%	
-%	@tbd	Having a global flag is highly inconvenient, but a 
+%
+%	@tbd	Having a global flag is highly inconvenient, but a
 %		work-around for old sites using ISO Latin 1 encoding.
 
 :- set_prolog_flag(url_encoding, utf8).
@@ -960,7 +960,7 @@ set_url_encoding(Old, New) :-
 
 %%	url_iri(+Encoded, -Decoded) is det.
 %%	url_iri(-Encoded, +Decoded) is det.
-%	
+%
 %	Convert between a URL, encoding in US-ASCII   and an IRI. An IRI
 %	is a fully expanded Unicode string.   Unicode  strings are first
 %	encoded into UTF-8, after which %-encoding takes place.
@@ -1010,7 +1010,7 @@ parse_url_search(Codes, Fields) :-
 	phrase(search(Fields), Codes).
 parse_url_search(Codes, Fields) :-
 	phrase(csearch(Fields, ""), Codes).
-	
+
 
 		 /*******************************
 		 *	    FILE URLs		*
@@ -1020,7 +1020,7 @@ parse_url_search(Codes, Fields) :-
 %%	file_name_to_url(-File, +URL) is semidet.
 %
 %	Translate between a filename and a file:// URL.
-%	
+%
 %	@tbd	Current implementation does not deal with paths that
 %		need special encoding.
 

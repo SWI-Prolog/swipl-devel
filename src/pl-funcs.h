@@ -288,7 +288,7 @@ COMMON(void) 		pushOutputContext(void);
 COMMON(void) 		popOutputContext(void);
 COMMON(IOENC)		atom_to_encoding(atom_t a);
 COMMON(atom_t)		encoding_to_atom(IOENC enc);
-COMMON(int)		setupOutputRedirect(term_t to, 
+COMMON(int)		setupOutputRedirect(term_t to,
 					    redir_context *ctx,
 					    int redir);
 COMMON(int)		closeOutputRedirect(redir_context *ctx);
@@ -727,7 +727,7 @@ COMMON(word) 		pl_qlf_assert_clause(term_t ref, term_t saveclass);
 
 COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);
 COMMON(int64_t)		wicGetNum(IOSTREAM *fd);
-COMMON(void)		wicPutStringW(const pl_wchar_t *w, size_t len, 
+COMMON(void)		wicPutStringW(const pl_wchar_t *w, size_t len,
 				      IOSTREAM *fd);
 COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 					 pl_wchar_t *buf, size_t bufsize);

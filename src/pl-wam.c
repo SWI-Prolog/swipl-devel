@@ -67,7 +67,7 @@ count(code c, Code PC)
   { case CA1_VAR:
     case CA1_CHP:
     { int v = (int)*PC;
-      
+
       v -= ARGOFFSET/sizeof(word);
       assert(v>=0);
       if ( v >= MAXVAR )
@@ -99,14 +99,14 @@ countHeader()
   for(m=0; m<(31+amax*8); m++)
     Sputc('=', Scurout);
   Sfprintf(Scurout, "\n");
-}  
+}
 
 
 static int
 cmpcounts(const void *p1, const void *p2)
 { const count_info *c1 = p1;
   const count_info *c2 = p2;
-  
+
   return c2->times - c1->times;
 }
 
@@ -183,7 +183,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 
 	  if ( FR->predicate->codes )
 	  { int offset = PC - FR->predicate->codes;
-	    
+
 	    if ( offset >= 0 && offset < (int)FR->predicate->codes[-1] )
 	      relto = FR->predicate->codes;
 	  } else if ( FR->clause )
@@ -383,7 +383,7 @@ PL_open_signal_foreign_frame()
 void
 PL_close_foreign_frame(fid_t id)
 { GET_LD
-  
+
   close_foreign_frame(id PASS_LD);
 }
 
@@ -469,7 +469,7 @@ discardForeignFrame(LocalFrame fr ARG_LD)
 
   context.context = (word)fr->clause;
   context.control = FRG_CUTTED;
-  context.engine  = LD; 
+  context.engine  = LD;
 
   fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
@@ -494,7 +494,7 @@ static int
 unify_finished(term_t catcher, enum finished reason)
 { GET_LD
 
-  static atom_t reasons[] = 
+  static atom_t reasons[] =
   { ATOM_exit,
     ATOM_fail,
     ATOM_cut,
@@ -540,7 +540,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       term_t ex;
       int rval;
       LocalFrame esave = environment_frame;
-      
+
       blockGC(PASS_LD1);
       environment_frame = fr;		/* ensure proper parent for the handler */
       if ( reason == FINISH_EXCEPT )
@@ -564,7 +564,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       if ( !rval && ex )
 	PL_raise_exception(ex);
     }
-    
+
     PL_close_foreign_frame(cid);
   }
 }
@@ -1012,18 +1012,18 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       qid_t qid;
       term_t av;
       int debug, trace, rc;
-  
+
       LD->exception.in_hook++;
       blockGC(PASS_LD1);
       fid = PL_open_foreign_frame();
       av = PL_new_term_refs(4);
-  
+
       PL_put_term(av+0, exception_bin);
       PL_put_frame(av+2, fr);
       if ( catcher )
 	catcher = parentFrame(catcher);
       PL_put_frame(av+3, catcher);
-  
+
       exception_term = 0;
       setVar(*valTermRef(exception_bin));
       wake = saveWakeup(PASS_LD1);
@@ -1045,7 +1045,7 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       { PL_put_term(exception_bin, av+0);
 	exception_term = exception_bin;
       }
-      
+
       PL_close_foreign_frame(fid);
       unblockGC(PASS_LD1);
       LD->exception.in_hook--;
@@ -1068,7 +1068,7 @@ isSimpleGoal(Word g)
     specified term (see I_USERCALL0) or we can call it directly.  The
     choice is based on optimisation.  Compilation is slower, but almost
     required to deal with really complicated cases.
- 
+
     TBD: use CONTROL_F
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1141,11 +1141,11 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 	  *ARGS = *p;
       }
     }
-  }    
+  }
   ARGS = argFrameP(from, 0);
   ARGD = argFrameP(to, 0);
   while( ARGS < ARGE )			/* now copy them */
-    *ARGD++ = *ARGS++;  
+    *ARGD++ = *ARGS++;
 }
 
 		/********************************
@@ -1265,7 +1265,7 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
   { LocalFrame fr2;
 
     DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(BFR)));
-    for(fr2 = BFR->frame;    
+    for(fr2 = BFR->frame;
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
     { discardFrame(fr2, FINISH_CUT PASS_LD);
@@ -1276,7 +1276,7 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
 
   DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
   LD->mark_bar = BFR->mark.globaltop;
-} 
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1747,7 +1747,7 @@ variables used in the B_THROW instruction.
 
     AR_CLEANUP();
 
-    if ( LD->current_signal ) 
+    if ( LD->current_signal )
     { unblockSignal(LD->current_signal);
       LD->current_signal = 0;	/* TBD: saved? */
     }
@@ -1891,13 +1891,13 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
       NEXT_INSTRUCTION;
     } else if ( ch->type == CHP_CLAUSE )
     { ClauseRef next;
-      
+
       ARGP = argFrameP(FR, 0);
       if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
 	FRAME_FAILED;			/* should not happen */
       PC = CL->clause->codes;
       umode = uread;
-  
+
       if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
       { if ( next )
 	{ ch->value.clause = next;
@@ -1908,14 +1908,14 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	  lTop = addPointer(ch, sizeof(*ch));
 	  NEXT_INSTRUCTION;
 	}
-  
+
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
       } else
       { BFR = ch->parent;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
-	
+
 	if ( next )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	  ch->value.clause = next;
@@ -1925,7 +1925,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	NEXT_INSTRUCTION;
       }
     }
-  }  
+  }
 }
 
 

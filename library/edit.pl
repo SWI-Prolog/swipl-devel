@@ -69,10 +69,10 @@ edit(Spec) :-
 	do_edit_source(Location).
 
 %%	edit
-%	
+%
 %	Edit associated or script file.  This is the Prolog file opened
 %	by double-clicking or the file loaded using
-%	
+%
 %	==
 %	% pl -s file.pl
 %	==
@@ -206,13 +206,13 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 		 *******************************/
 
 %%	do_edit_source(+Location)
-%	
+%
 %	Actually call the editor to edit Location, a list of Name(Value)
 %	that contains file(File) and may contain line(Line). First the
 %	multifile hook edit_source/1 is called. If this fails the system
 %	checks for XPCE and the prolog-flag editor. If the latter is
 %	built_in or pce_emacs, it will start PceEmacs.
-%	
+%
 %	Finally, it will get the editor to use from the prolog-flag
 %	editor and use edit_command/2 to determine how this editor
 %	should be called.
@@ -274,7 +274,7 @@ pceemacs(pce_emacs).
 pceemacs(built_in).
 
 %%	editor(-Editor)
-%	
+%
 %	Determine the external editor to run.
 
 editor(Editor) :-			% $EDITOR
@@ -400,7 +400,7 @@ list_pairs([H|T], N0, N) :-
 list_pair(Pair, N) :-
 	print_message(help, edit(target(Pair, N))).
 
-	
+
 read_number(Max, X) :-
 	Max < 10, !,
 	get_single_char(C),
@@ -480,7 +480,7 @@ short_filename(Path, Spec) :-
 	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
 	keysort(Keyed, [_-Spec|_]).
 short_filename(Path, Path).
-	
+
 aliased_path(Path, Len-Spec) :-
 	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
 	member(Alias, Aliases),

@@ -31,7 +31,7 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Version History:
-    
+
     2003/07/14   fixed pp_list_elements/3 so it can handle open-ended lists
                           David Reitter, reitter at mle.media.mit.edu
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -131,7 +131,7 @@ dec_depth(Ctx, Ctx) :-
 	context(Ctx, max_depth, inf), !.
 dec_depth(ctx(I,D,P,MD0), ctx(I,D,P,MD)) :-
 	MD is MD0 - 1.
-	
+
 
 		 /*******************************
 		 *	        PP		*
@@ -253,7 +253,7 @@ pp(Term, Ctx, Options) :-		% compound
 	    pp_compound_args(Args, NCtx, Options),
 	    write(Out, ')')
 	).
-	    
+
 
 pp_list_elements(_, Ctx, Options) :-
 	context(Ctx, max_depth, 0), !,
@@ -309,7 +309,7 @@ match_op(yfx,	2, infix,   P, P, R) :- R is P - 1.
 
 
 %	indent(+Out, +Indent)
-%	
+%
 %	Newline and indent to the indicated column.
 
 indent(Out, Indent) :-
@@ -318,22 +318,22 @@ indent(Out, Indent) :-
 	Spaces is Indent mod 8,
 	forall(between(1, Tabs, _), put(Out, 9)),
 	tab(Out, Spaces).
-	
+
 
 %	print_width(+Term, +Context, +Options, -W)
-%	
+%
 %	Width required when printing `normally' left-to-right.
 
 print_width(Term, Ctx, Options, W) :-
 	open_null_stream(Out),
 	pprint(Out, Term, Ctx, Options),
 %	line_position(Out, W),
-	character_count(Out, W),	
+	character_count(Out, W),
 	close(Out).
 
 
 %	pprint(+Term, +Context, +Options)
-%	
+%
 %	The bottom-line print-routine.
 
 pprint(Term, Ctx, Options) :-

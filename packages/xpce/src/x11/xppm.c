@@ -179,7 +179,7 @@ colourPixel(Display *disp, int depth, Colormap cmap,
       nfailed++;
     }
   }
-  
+
   addTable(t, direct, c.pixel);
 
   DEBUG(NAME_ppm, Cprintf("PNM: Colour %d %d %d on pixel %d\n",
@@ -290,70 +290,70 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 
   switch(encoding)
   { int x, y;
-    
+
     case PNM_ASCII:
     { switch(fmt)
       { case PNM_PBM:
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int value = getNum(fd);
-  
+
 	      if ( value < 0 || value > 1 )
 		goto errout;
-  
+
 	      XPutPixel(img, x, y, value);
 	    }
 	  }
 	  break;
 	case PNM_PGM:
 	{ Table t = newTable(64);
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int g = getNum(fd);
 	      unsigned long pixel;
-  
+
 	      if ( g < 0 || g > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
-  
+
 	      pixel = colourPixel(disp, depth, cmap, t, g, g, g);
 	      XPutPixel(img, x, y, pixel);
 	    }
 	  }
 	  freeTable(t);
-	      
+
 	  break;
 	}
 	case PNM_PPM:
 	{ Table t = newTable(64);
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int r = getNum(fd);
 	      int g = getNum(fd);
 	      int b = getNum(fd);
 	      unsigned long pixel;
-  
+
 	      if ( r < 0 || r > scale ||
 		   g < 0 || g > scale ||
 		   b < 0 || b > scale )
 		goto errout;
-  
+
 	      if ( scale != 255 )
 	      { r = rescale(r, scale, 255);
 		g = rescale(g, scale, 255);
 		b = rescale(b, scale, 255);
 	      }
-  
+
 	      pixel = colourPixel(disp, depth, cmap, t, r, g, b);
-  
+
 	      XPutPixel(img, x, y, pixel);
 	    }
 	  }
 	  freeTable(t);
-  
+
 	  break;
 	}
 	break;
@@ -365,14 +365,14 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
       { case PNM_PBM:
 	{ int byte = 0;
 	  int bit = 0;
-	
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( !bit )
 	      { byte = Sgetc(fd);
 		bit = 8;
 	      }
-  
+
 	      bit--;
 	      XPutPixel(img, x, y, (byte & (1<<bit)) ? 1 : 0);
 	    }
@@ -382,52 +382,52 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 	}
 	case PNM_PGM:
 	{ Table t = newTable(64);
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int g;
 	      unsigned long pixel;
-  
+
 	      if ( Sfeof(fd) || (g=Sgetc(fd)) > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
-  
+
 	      pixel = colourPixel(disp, depth, cmap, t, g, g, g);
 	      XPutPixel(img, x, y, pixel);
 	    }
 	  }
 	  freeTable(t);
-	      
+
 	  break;
 	}
 	case PNM_PPM:
 	{ Table t = newTable(64);
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { int r, g, b;
 	      unsigned long pixel;
-  
+
 	      if ( Sfeof(fd) ||
 		   (r=Sgetc(fd)) > scale ||
 		   (g=Sgetc(fd)) > scale ||
 		   (b=Sgetc(fd)) > scale )
 		goto errout;
-  
+
 	      if ( scale != 255 )
 	      { r = rescale(r, scale, 255);
 		g = rescale(g, scale, 255);
 		b = rescale(b, scale, 255);
 	      }
-  
+
 	      pixel = colourPixel(disp, depth, cmap, t, r, g, b);
-  
+
 	      XPutPixel(img, x, y, pixel);
 	    }
 	  }
 	  freeTable(t);
-  
+
 	  break;
 	}
 	break;
@@ -441,7 +441,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
       switch(fmt)
       { case PNM_PGM:
 	{ Table t = newTable(64);
-  
+
 	  DEBUG(NAME_pnm, Cprintf("Reading runlength encoded graymap\n"));
 
 	  for(y=0; y<height; y++)
@@ -450,14 +450,14 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 	      { XPutPixel(img, x, y, cpixel);
 	      } else
 	      { int g;
-  
+
 		if ( (g=Sgetc(fd)) > scale ||
 		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 		rlen &= 0xff;
 		if ( scale != 255 )
 		  g = rescale(g, scale, 255);
-  
+
 		cpixel = colourPixel(disp, depth, cmap, t, g, g, g);
 		XPutPixel(img, x, y, cpixel);
 		rlen--;
@@ -465,19 +465,19 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 	    }
 	  }
 	  freeTable(t);
-	      
+
 	  break;
 	}
 	case PNM_PPM:
 	{ Table t = newTable(64);
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( rlen-- > 0 )
 	      { XPutPixel(img, x, y, cpixel);
 	      } else
 	      { int r, g, b;
-  
+
 		if ( (r=Sgetc(fd)) > scale ||
 		     (g=Sgetc(fd)) > scale ||
 		     (b=Sgetc(fd)) > scale ||
@@ -490,16 +490,16 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 		  g = rescale(g, scale, 255);
 		  b = rescale(b, scale, 255);
 		}
-  
+
 		cpixel = colourPixel(disp, depth, cmap, t, r, g, b);
-  
+
 		XPutPixel(img, x, y, cpixel);
 		rlen--;
 	      }
 	    }
 	  }
 	  freeTable(t);
-  
+
 	  break;
 	}
       }
@@ -600,7 +600,7 @@ makeXPixelInfo(XPixelInfo *info, XImage *img, Display *disp, Colormap cmap)
   { XColor *cdata = info->cinfo;
     int entries	= 1<<img->depth;
     int i;
-    
+
     for(i=0; i<entries; i++)
       cdata[i].pixel = i;
 
@@ -640,14 +640,14 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
     else
       fmt = PNM_PPM;
   }
-  
+
   if ( fmt == PNM_PBM && encode == PNM_RUNLEN )
     encode = PNM_RAWBITS;		/* no use to runlen encode a bitmap */
 
   if ( img->format != XYBitmap )
   { info.cinfo = cdata;
     makeXPixelInfo(&info, img, disp, cmap);
-  } 
+  }
 
   Sfprintf(fd, "P%c\n", fmt + encode + '0');
   Sfprintf(fd, "# Creator: XPCE version %s\n",
@@ -658,7 +658,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
     Sfprintf(fd, "%d\n", scale);
 
   file_col = 0;
-    
+
   switch(encode)
   { case PNM_ASCII:
     { switch(fmt)
@@ -670,7 +670,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	      if ( img->format != XYBitmap )
 	      { XColor *c;
 		int r;
-  
+
 		c = pixelToColor(img, pixel, &info);
 		r = intensityXColor(c);
 		pixel = r < 32768 ? 1 : 0;
@@ -687,11 +687,11 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r;
-  
+
 	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = intensityXColor(c);
 	      r = rescale(r, BRIGHT, scale);
-  
+
 	      if ( putNum(r, fd) < 0 )
 		return -1;
 	    }
@@ -703,12 +703,12 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r, g, b;
-  
+
 	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = rescale(c->red,   BRIGHT, scale);
 	      g = rescale(c->green, BRIGHT, scale);
 	      b = rescale(c->blue,  BRIGHT, scale);
-  
+
 	      if ( putNum(r, fd) < 0 ||
 		   putNum(g, fd) < 0 ||
 		   putNum(b, fd) < 0 )
@@ -727,7 +727,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
       { case PNM_PBM:
 	{ int byte = 0;
 	  int bit = 7;
-  
+
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { unsigned long pixel = XGetPixel(img, x, y);
@@ -735,7 +735,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	      if ( img->format != XYBitmap )
 	      { XColor *c;
 		int r;
-  
+
 		c = pixelToColor(img, pixel, &info);
 		r = intensityXColor(c);
 		pixel = r < 32768 ? 1 : 0;
@@ -757,7 +757,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	      byte = 0;
 	    }
 	  }
-  
+
 	  if ( bit != 7 )
 	  { if ( Sputc(byte, fd) == EOF )
 	      return -1;
@@ -769,11 +769,11 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r;
-  
+
 	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = intensityXColor(c);
 	      r = rescale(r, BRIGHT, scale);
-  
+
 	      if ( Sputc(r, fd) == EOF )
 		return -1;
 	    }
@@ -785,19 +785,19 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r, g, b;
-  
+
 	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = rescale(c->red,   BRIGHT, scale);
 	      g = rescale(c->green, BRIGHT, scale);
 	      b = rescale(c->blue,  BRIGHT, scale);
-  
+
 	      if ( Sputc(r, fd) == EOF ||
 		   Sputc(g, fd) == EOF ||
 		   Sputc(b, fd) == EOF )
 		return -1;
 	    }
 	  }
-  
+
 	  break;
 	}
       }
@@ -845,7 +845,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	      else
 	      { XColor *c;
 		unsigned int r, g, b;
-  
+
 		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
@@ -854,7 +854,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 		r = rescale(c->red,   BRIGHT, scale);
 		g = rescale(c->green, BRIGHT, scale);
 		b = rescale(c->blue,  BRIGHT, scale);
-  
+
 		if ( Sputc(r, fd) == EOF ||
 		     Sputc(g, fd) == EOF ||
 		     Sputc(b, fd) == EOF )
@@ -864,7 +864,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  }
 	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
-  
+
 	  break;
 	}
       }

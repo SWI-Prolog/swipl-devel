@@ -65,7 +65,7 @@ threads :-
 	format('~*t~60|~n', "-").
 
 %%	join_threads
-%	
+%
 %	Join all terminated threads.
 
 join_threads :-
@@ -80,7 +80,7 @@ rip_thread(_Status, Id) :-
 rip_thread(Status, Id) :-
 	print_message(informational, join_thread(Id, Status)),
 	thread_join(Id, _).
-	
+
 %%	interactor
 %
 %	Run a Prolog toplevel in another thread with a new console window.
@@ -155,10 +155,10 @@ detach_console(Id) :-
 		 /*******************************
 		 *	    DEBUGGING		*
 		 *******************************/
-		
+
 %%	tspy(:Spec) is det.
 %%	tspy(:Spec, +ThreadId) is det.
-%	
+%
 %	Trap the graphical debugger on reaching Spec in the specified or
 %	any thread.
 
@@ -173,7 +173,7 @@ tspy(Spec, ThreadID) :-
 
 %%	tdebug is det.
 %%	tdebug(+Thread) is det.
-%	
+%
 %	Enable debug-mode, trapping the graphical debugger on reaching
 %	spy-points or errors.
 
@@ -186,7 +186,7 @@ tdebug(ThreadID) :-
 
 %%	tnodebug is det.
 %%	tnodebug(+Thread) is det.
-%	
+%
 %	Disable debug-mode in all threads or the specified Thread.
 
 tnodebug :-
@@ -202,12 +202,12 @@ tnodebug(ThreadID) :-
 		 *******************************/
 
 %%	tprofile(+Thread) is det.
-%	
+%
 %	Profile the operation of Thread until the user hits a key.
 
 tprofile(Thread) :-
 	init_pce,
-	thread_signal(Thread, 
+	thread_signal(Thread,
 		      (	  reset_profiler,
 			  profiler(_, true)
 		      )),
@@ -244,7 +244,7 @@ user:message_hook(trace_mode(on), _, Lines) :-
 	\+ current_prolog_flag(gui_tracer, true),
 	catch(attach_console, _, fail),
 	print_message_lines(user_error, '% ', Lines).
-	
+
 :- multifile
 	prolog:message/3.
 

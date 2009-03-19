@@ -25,7 +25,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module binds the  SWI-Prolog  terminal   I/O  to  the  GNU readline
 library. Existence of this  this  library   is  detected  by  configure.
-Binding is achieved by rebinding the read function of the Sinput stream. 
+Binding is achieved by rebinding the read function of the Sinput stream.
 
 This  module  only  depends  on  the  public  interface  as  defined  by
 SWI-Prolog.h and SWI-Stream.h
@@ -280,7 +280,7 @@ prepare_signals()
   for(s=signals; s->signo != -1; s++)
   { struct sigaction new;
 
-    memset(&new, 0, sizeof(new));	
+    memset(&new, 0, sizeof(new));
     new.sa_handler = rl_sighandler;
     sigaction(s->signo, &new, &s->old_state);
   }
@@ -399,12 +399,12 @@ Sread_readline(void *handle, char *buf, size_t size)
 #endif
 
   PL_write_prompt(ttymode == PL_NOTTY);
-  
+
   switch( ttymode )
   { case PL_RAWTTY:			/* get_single_char/1 */
 #ifdef O_RLC
     { int chr = getkey();
-      
+
       if ( chr == 04 || chr == 26 )
 	return 0;			/* EOF */
 
@@ -450,7 +450,7 @@ Sread_readline(void *handle, char *buf, size_t size)
       { char *oldp = my_prompt;
 
 	my_prompt = prompt ? store_string(prompt) : (char *)NULL;
-  
+
 	if ( sig_at_level == in_readline )
 	{ sig_at_level = -1;
 	  reset_readline();
@@ -458,7 +458,7 @@ Sread_readline(void *handle, char *buf, size_t size)
 
 	if ( in_readline++ )
 	{ int state = rl_readline_state;
-  
+
 	  rl_clear_pending_input();
 	  rl_discard_argument();
 	  rl_deprep_terminal();
@@ -478,7 +478,7 @@ Sread_readline(void *handle, char *buf, size_t size)
 
       if ( line )
       { size_t l = strlen(line);
-	  
+
 	if ( l >= size )
 	{ PL_warning("Input line too long");	/* must be tested! */
 	  l = size-1;
@@ -527,7 +527,7 @@ prolog_complete(int ignore, int key)
 static char *
 atom_generator(const char *prefix, int state)
 { char *s = PL_atom_generator(prefix, state);
-  
+
   if ( s )
     return strcpy(PL_malloc(1 + strlen(s)), s);
 
@@ -554,7 +554,7 @@ prolog_completion(const char *text, int start, int end)
 
 install_t
 PL_install_readline()
-{ 
+{
 #ifndef __WINDOWS__
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )
     return;

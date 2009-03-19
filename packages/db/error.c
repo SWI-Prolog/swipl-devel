@@ -43,7 +43,7 @@ pl_error(plerrorid id, ...)
   switch(id)
   { case ERR_ERRNO:
     { int err = va_arg(args, int);
-      
+
       msg = strerror(err);
 
       switch(err)
@@ -143,7 +143,7 @@ pl_error(plerrorid id, ...)
 
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "package", 2,
 		      PL_CHARS, pkg,
@@ -157,7 +157,7 @@ pl_error(plerrorid id, ...)
 
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "package", 2,
 		      PL_CHARS, pkg,

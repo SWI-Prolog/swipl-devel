@@ -88,7 +88,7 @@ is_ordset3([H2|T], H) :-
 
 
 %%	ord_empty(List)
-%	
+%
 %	True if List is the empty ordered set.  Not part of Quintus
 
 ord_empty([]).
@@ -122,7 +122,7 @@ ord_intersect__(>, H1, T1,  _H2, T2) :-
 
 
 %%	ord_disjoint(+Set1, +Set2)
-%	
+%
 %	True if Set1 and Set2 have no common elements
 
 ord_disjoint(Set1, Set2) :-
@@ -130,9 +130,9 @@ ord_disjoint(Set1, Set2) :-
 
 
 %%	ord_intersect(+Set1, +Set2, -Intersection)
-%	
+%
 %	Intersection  holds  the  common  elements  of  Set1  and  Set2.
-%	
+%
 %	@deprecated Use ord_intersection/3
 
 ord_intersect(Set1, Set2, Intersection) :-
@@ -140,7 +140,7 @@ ord_intersect(Set1, Set2, Intersection) :-
 
 
 %%	ord_intersection(+Set1, +Set2, -Intersection)
-%	
+%
 %	Intersection holds the common elements of Set1 and Set2.
 
 ord_intersection(Set1, Set2, Intersection) :-
@@ -152,7 +152,7 @@ ord_intersection(Set1, Set2, Intersection) :-
 %	Intersection  and  difference   between    two   ordered   sets.
 %	Intersection is the intersection between   Set1  and Set2, while
 %	Difference is Set2\Set1.
-%	
+%
 %	@see ord_intersection/3 and ord_subtract/3.
 
 ord_intersection([], L, [], L) :- !.
@@ -178,7 +178,7 @@ ord_add_element(Set1, Element, Set2) :-
 
 
 %%	ord_del_element(+Set, +Element, -NewSet)
-%	
+%
 %	Delete an element from an ordered set
 
 ord_del_element(Set, Element, NewSet) :-
@@ -186,7 +186,7 @@ ord_del_element(Set, Element, NewSet) :-
 
 
 %%	ord_memberchk(+Element, +Set)
-%	
+%
 %	Check membership. This could stop comparing   we have passed the
 %	right value, saving scanning  (on  average)   half  the  list if
 %	Element is not in Set. Probably the built-in memberchk/2 will be
@@ -226,7 +226,7 @@ ord_subtract(InOSet, NotInOSet, Diff) :-
 %	True if Union is the  union  of   all  elements  in the superset
 %	SetOfSets. Each member of SetOfSets must  be an ordered set, the
 %	sets need not be ordered in any way.
-%	
+%
 %	@author Copied from YAP, probably originally by Richard O'Keefe.
 
 ord_union([], []).
@@ -237,8 +237,8 @@ ord_union([Set|Sets], Union) :-
 ord_union_all(N, Sets0, Union, Sets) :-
 	(   N =:= 1
 	->  Sets0 = [Union|Sets]
-	;   N =:= 2  
-	->  Sets0 = [Set1,Set2|Sets], 
+	;   N =:= 2
+	->  Sets0 = [Set1,Set2|Sets],
 	    ord_union(Set1,Set2,Union)
 	;   A is N>>1,
 	    Z is N-A,
@@ -257,7 +257,7 @@ ord_union(Set1, Set2, Union) :-
 
 
 %%	ord_union(+Set1, +Set2, -Union,	-New)
-%	
+%
 %	True if Union iff ord_union(Set1, Set2, Union) and
 %	ord_subtract(Set2, Set1, New).
 

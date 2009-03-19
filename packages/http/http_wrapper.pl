@@ -63,12 +63,12 @@
 %	encoding.
 %
 %	Options:
-%	
+%
 %		* request(-Request)
 %		Return the full request to the caller
 %		* peer(+Peer)
 %		IP address of client
-%		
+%
 %	@param Close	Unified to one of =close=, =|Keep-Alife|= or
 %			spawned(ThreadId).
 
@@ -101,7 +101,7 @@ status(Id, state0(Thread, CPU, Id)) :-
 %
 %	Internal  use  only.  Helper  for    wrapping  the  handler  for
 %	http_spawn/2.
-%	
+%
 %	@see http_spawned/1, http_spawn/2.
 
 http_wrap_spawned(Goal, Request, Close) :-
@@ -135,13 +135,13 @@ http_spawned(ThreadId) :-
 %
 %	The wrapper has completed. Finish the  CGI output. We have three
 %	cases:
-%	
+%
 %	    * The wrapper delegated the request to a new thread
 %	    * The wrapper succeeded
 %	    * The wrapper threw an error, non-200 status reply
 %	    (e.g., =not_modified=, =moved=) or a request to reply with
 %	    the content of a file.
-%	    
+%
 %	@error socket I/O errors.
 
 cgi_close(_, _, _, Close) :-
@@ -171,7 +171,7 @@ cgi_finish(CGI, Close, Bytes) :-
 %	Send status replies and  reply   files.  The =current_output= no
 %	longer points to the CGI stream, but   simply to the socket that
 %	connects us to the client.
-%	
+%
 %	@param	State0 is start-status as returned by status/1.  Used to
 %		find CPU usage, etc.
 
@@ -180,7 +180,7 @@ send_error(Out, State0, Error, Close) :-
 	catch(http_reply(Reply, Out,
 			 [ content_length(CLen)
 			 | HdrExtra
-			 ], 
+			 ],
 			 Code),
 	      E, true),
 	(   var(E)
@@ -214,7 +214,7 @@ http_done(Code, Status, Bytes, state0(_Thread, CPU0, Id)) :-
 %	Run Goal with output redirected to   Output. Unifies Status with
 %	=ok=, the error from catch/3  or a term error(goal_failed(Goal),
 %	_).
-%	
+%
 %	@param Request	The HTTP request read or '-' for a continuation
 %			using http_spawn/2.
 
@@ -244,11 +244,11 @@ call_handler(Goal, Id, Request0) :-
 %%	thread_cputime(-CPU) is det.
 %
 %	CPU is the CPU time used by the calling thread.
-%	
+%
 %	@tbd	This does not work on MacOS X!
 
 :- if(current_prolog_flag(threads, true)).
-thread_cputime(CPU) :- 
+thread_cputime(CPU) :-
 	thread_self(Me),
 	thread_statistics(Me, cputime, CPU).
 :- else.
@@ -295,7 +295,7 @@ cgi_hook(close, _).
 %	This API provides an alternative for writing the header field as
 %	a CGI header. Header has the  format Name(Value), as produced by
 %	http_read_header/2.
-%	
+%
 %	@deprecated	Use CGI lines instead
 
 http_send_header(Header) :-
@@ -305,7 +305,7 @@ http_send_header(Header) :-
 
 
 %%	expand_request(+Request0, -Request)
-%	
+%
 %	Allow  for  general   rewrites   of    a   request   by  calling
 %	http:request_expansion/2.
 
@@ -317,7 +317,7 @@ expand_request(R, R).
 
 
 %%	extend_request(+Options, +RequestIn, -Request)
-%	
+%
 %	Merge options in the request.
 
 extend_request([], R, R).
@@ -335,7 +335,7 @@ request_option(pool(_,_,_,_)).
 
 
 %%	http_current_request(-Request) is semidet.
-%	
+%
 %	Returns  the  HTTP  request  currently  being  processed.  Fails
 %	silently if there is no current  request. This typically happens
 %	if a goal is run outside the HTTP server context.
@@ -347,7 +347,7 @@ http_current_request(Request) :-
 
 
 %%	http_relative_path(+AbsPath, -RelPath) is det.
-%	
+%
 %	Convert an absolute path (without host, fragment or search) into
 %	a path relative to the current page.   This  call is intended to
 %	create reusable components returning relative   paths for easier

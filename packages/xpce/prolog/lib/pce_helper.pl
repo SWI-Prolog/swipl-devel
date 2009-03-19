@@ -291,7 +291,7 @@ class_variable(jump_style,	      style, when(@colour_display,
 							underline := @on),
 						  style(underline := @on))).
 class_variable(keyword_style,	      style, style(font := bold)).
-						    
+
 
 initialise(E, Data:[file|text_buffer]) :->
 	"Create hyper-text editor for help-system"::
@@ -382,7 +382,7 @@ compute(E) :->
 open(E) :->
 	"Create a frame for the editor"::
 	send(hlp_frame(E), open).
-	
+
 
 		 /*******************************
 		 *	    SPLIT VIEW		*
@@ -868,7 +868,7 @@ fragment(E, Cond:[code], Fragment:fragment) :<-
 	send(Fragments, sort, ?(@arg1?length, compare, @arg2?length)),
 	get(Fragments, head, Fragment).
 
-	
+
 assign_label(E) :->
 	"Edit/assign label to fragment below caret"::
 	get(E, fragment, Fragment),
@@ -880,7 +880,7 @@ assign_label(E) :->
 	send(Fragment, label, Label),
 	send(E, modified, @on),
 	send(E, report, status, 'Label assigned').
-		 
+
 
 		 /*******************************
 		 *	      LOAD/SAVE		*
@@ -901,7 +901,7 @@ load(E, File:file) :->
 	;   true
 	),
 	send(E?text_buffer, file, File).
-	
+
 
 save_if_modified(E) :->
 	"Save to current file if modified"::
@@ -931,7 +931,7 @@ save(E, File:[file]) :->
 	    send(E, report, status, 'Saved in %N', TheFile),
 	    send(E, modified, @off)
 	).
-	
+
 
 insert_file(E) :->
 	"Insert file at point"::
@@ -1009,11 +1009,11 @@ initialise(F, Data:'[file|hlp_buffer|hlp_editor]') :->
 		    menu_item(assign_label, CanEdit),
 		    menu_item(make_button, CanEdit),
 		    menu_item(delete_fragment, end_group := @on, CanEdit),
-		    
+
 		    menu_item(make_table_of_contents, CanEdit),
 		    menu_item(make_local_table_of_contents, CanEdit),
 		    menu_item(collect_keywords, end_group := @on, CanEdit),
-		    
+
 		    menu_item(what_fragments, end_group := @on),
 
 		    menu_item(save, CanEdit),

@@ -184,7 +184,7 @@ gensym(Id, Unique) :-
 	asserta(gensym_counter(Id, UniqueId)),
 	concat(Id, UniqueId, Unique).
 
-		    
+
 		 /*******************************
 		 *	       LISTS		*
 		 *******************************/
@@ -200,7 +200,7 @@ flatten_(Var, Tl, [Var|Tl]) :-
 	var(Var), !.
 flatten_([], Tl, Tl) :- !.
 flatten_([Hd|Tl], Tail, List) :-
-	flatten_(Hd, FlatHeadTail, List), 
+	flatten_(Hd, FlatHeadTail, List),
 	flatten_(Tl, Tail, FlatHeadTail).
 flatten_(Atom, Tl, [Atom|Tl]).
 
@@ -214,7 +214,7 @@ list_to_set(List, Set) :-
 list_to_set_([], R) :-
 	close_list(R).
 list_to_set_([H|T], R) :-
-	memberchk(H, R), !, 
+	memberchk(H, R), !,
 	list_to_set_(T, R).
 
 close_list([]) :- !.
@@ -242,7 +242,7 @@ subtract([H|T], D, [H|R]) :-
 
 subset([], _) :- !.
 subset([E|R], Set) :-
-	memberchk(E, Set), 
+	memberchk(E, Set),
 	subset(R, Set).
 
 %	maplist(+Goal, +List1, ?List2)
@@ -254,7 +254,7 @@ maplist(Goal, List1, List2) :-
 
 maplist2([], [], _).
 maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
-	call(Goal, Elem1, Elem2), 
+	call(Goal, Elem1, Elem2),
 	maplist2(Tail1, Tail2, Goal).
 
 %	sublist(:Goal, +List1, ?List2)
@@ -263,8 +263,8 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 
 sublist(_, [], []) :- !.
 sublist(Goal, [H|T], Sub) :-
-	call(Goal, H), !, 
-	Sub = [H|R], 
+	call(Goal, H), !,
+	Sub = [H|R],
 	sublist(Goal, T, R).
 sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
@@ -280,7 +280,7 @@ maplist(Goal, List) :-
 
 maplist2([], _).
 maplist2([Elem|Tail], Goal) :-
-	call(Goal, Elem), 
+	call(Goal, Elem),
 	maplist2(Tail, Goal).
 
 %	call(+Goal, +Arg ...)
@@ -380,7 +380,7 @@ absolute_file_name(_, Options, _) :-
 	memberchk(file_errors(fail), Options), !.
 absolute_file_name(Spec, _, _) :-
 	raise_exception(error(existence_error(source_sink, Spec), _)).
-		      
+
 extensions(Options, Exts) :-
 	member(extensions(Exts), Options), !.
 extensions(Options, Exts) :-
@@ -468,7 +468,7 @@ file_name_extension(Base, DotExt, Path) :-
 	file_name_extension2(Base, Ext, Path).
 file_name_extension(Base, Ext, Path) :-
 	file_name_extension2(Base, Ext, Path).
-	
+
 file_name_extension2(Base, Ext, Path) :-	% -, -, +
 	nonvar(Path), !,
 	(   atom_chars(Path, PC),
@@ -515,7 +515,7 @@ unix(Term) :-
 % term_to_atom(-Term, +Atom)
 %
 % If Term may be a variable, if Atom is an atom.
- 
+
 term_to_atom(Term, Atom) :-
         ( var(Term) ->
                 atom_to_term(Atom, Term)
@@ -530,10 +530,10 @@ term_to_atom(Term, Atom) :-
 %
 % Convert an atom to a term, possibly saving original variable names.
 % Fails if 1st argument is not an atom.
- 
+
 atom_to_term(Atom, Term) :-
         atom_to_term(Atom, Term, _).
- 
+
 atom_to_term(Atom, Term, Bindings) :-
         ( Atom == '' ->
                 Term = Atom,
@@ -541,7 +541,7 @@ atom_to_term(Atom, Term, Bindings) :-
         ; atom(Atom) ->
                 atom_to_term_1(Atom, Term, Bindings)
         ).
- 
+
 atom_to_term_1(Atom, Term, Bindings) :-
 	open_atom(Atom, StreamCode),
 	stream_code(Stream, StreamCode),
@@ -573,7 +573,7 @@ foreign_resource(sp_compat,
 		   pl_open_atom
 		 ]).
 :- load_foreign_resource(sp_compat).
-	
+
 concat(A, B, C) :-
 	concat(A, B, C, 1).
 atomic_list_concat(L, S, A) :-
@@ -605,7 +605,7 @@ swi_:locate_resource(Module, Name, Class, Mode, File) :-
 	    user:resource(Name, Class, Spec)
 	),
 	absolute_file_name(Spec, [access(Access)], File).
-	
+
 mode_to_access(Mode, read) :-
 	atom_chars(Mode, [0'r|_]), !.
 mode_to_access(Mode, write) :-

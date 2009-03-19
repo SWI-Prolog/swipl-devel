@@ -376,12 +376,12 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	    ;	print_message(help, query(confirm)),
 		fail
 	    ).
-	    
+
 :- dynamic
 	user:portray/1.
 :- multifile
 	user:portray/1.
-	
+
 
 		 /*******************************
 		 *	 FILE_SEARCH_PATH	*
@@ -466,7 +466,7 @@ expand_file_search_path(Spec, Expanded) :-
 
 %%	absolute_file_name(+Term, +Args, -AbsoluteFile) is nondet.
 %%	absolute_file_name(+Term, -AbsoluteFile, +Args) is nondet.
-%	
+%
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
 %	and  has  re-appeared  in  SICStus  3.9.0,  where  they  changed
@@ -583,7 +583,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$absolute_file_name'(Extended, FullName).
 
 %	'$relative_to'(+Condition, +Default, -Dir)
-%	
+%
 %	Determine the directory to work from.  This can be specified
 %	explicitely using one or more relative_to(FileOrDir) options
 %	or implicitely relative to the working directory or current
@@ -633,10 +633,10 @@ user:prolog_file_type(Ext,	executable) :-
 '$search_message'(_).
 
 
-	
+
 %	'$file_condition'(+Condition, +Path)
 %
-%	Verify Path satisfies Condition. 
+%	Verify Path satisfies Condition.
 
 '$file_condition'([], _) :- !.
 '$file_condition'([H|T], File) :- !,
@@ -660,7 +660,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$ensure_extensions'(Exts, File, Fs),
 	'$list_to_set'(Fs, FsSet),
 	'$member'(FileEx, FsSet).
-	
+
 '$ensure_extensions'([], _, []).
 '$ensure_extensions'([E|E0], F, [FE|E1]) :-
 	file_name_extension(F, E, FE),
@@ -668,7 +668,7 @@ user:prolog_file_type(Ext,	executable) :-
 
 '$list_to_set'([], []).
 '$list_to_set'([H|T], R) :-
-	memberchk(H, T), !, 
+	memberchk(H, T), !,
 	'$list_to_set'(T, R).
 '$list_to_set'([H|T], [H|R]) :-
 	'$list_to_set'(T, R).
@@ -745,7 +745,7 @@ preprocessor(Old, New) :-
 	Enc \== default,
 	set_stream(Stream, encoding(Enc)).
 '$set_encoding'(_, _).
-	
+
 
 %%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
 
@@ -844,7 +844,7 @@ preprocessor(Old, New) :-
 	load_files(:, +).
 
 %	ensure_loaded(+File|+ListOfFiles)
-%	
+%
 %	Load specified files, provided they where not loaded before. If the
 %	file is a module file import the public predicates into the context
 %	module.
@@ -853,7 +853,7 @@ ensure_loaded(Files) :-
 	load_files(Files, [if(not_loaded)]).
 
 %	use_module(+File|+ListOfFiles)
-%	
+%
 %	Very similar to ensure_loaded/1, but insists on the loaded file to
 %	be a module file. If the file is already imported, but the public
 %	predicates are not yet imported into the context module, then do
@@ -865,7 +865,7 @@ use_module(Files) :-
 			  ]).
 
 %	use_module(+File, +ImportList)
-%	
+%
 %	As use_module/1, but takes only one file argument and imports only
 %	the specified predicates rather than all public predicates.
 
@@ -924,10 +924,10 @@ consult(List) :-
 	).
 
 %%	load_files(:File, +Options)
-%	
+%
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
-%	
+%
 %	`Options' is a list of additional options.  Defined values are
 %
 %	    verbose		Print statistics on user channel
@@ -991,7 +991,7 @@ load_files(Module:Files, Options) :-
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
-%	
+%
 %	If the user-specification specified a prolog file, do not
 %	replace this with a .qlf file.
 
@@ -1023,7 +1023,7 @@ load_files(Module:Files, Options) :-
 '$load_file'(File, Module, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
- 
+
 	(   memberchk(stream(FromStream), Options)
 	->  true
 	;   absolute_file_name(File,
@@ -1032,7 +1032,7 @@ load_files(Module:Files, Options) :-
 			       ],
 			       FullFile)
 	),
-	    
+
 	'$get_option'(imports(Import), Options, all),
 	'$get_option'(reexport(Reexport), Options, false),
 	current_prolog_flag(verbose_load, DefVerbose),
@@ -1165,7 +1165,7 @@ load_files(Module:Files, Options) :-
 	),
 	'$assert_load_context_module'(Id, OldModule),
 
-	
+
 	'$save_lex_state'(LexState),
 	'$open_source'(Absolute, In,
 		       '$load_file'(In, Id, LM, Options),
@@ -1218,9 +1218,9 @@ load_files(Module:Files, Options) :-
 	).
 
 %%	'$load_context_module'(+File, -Module)
-%	
+%
 %	Record the module a file was loaded from (see make/0)
-%	
+%
 %	@tbd	Should also know which predicates are imported!
 
 :- dynamic
@@ -1276,10 +1276,10 @@ load_files(Module:Files, Options) :-
 %%	'$load_module'(+Module, +Public, +Stream, +File, +Options)
 %
 %	Options processed:
-%	
+%
 %		* redefine_module(Action)
 %		Action is one of =true=, =false= or =ask=.
-%		
+%
 %	Redefining a module by loading another file must be more subtle.
 %	Verify the compatibility of the interface could be one example.
 
@@ -1401,7 +1401,7 @@ load_files(Module:Files, Options) :-
 	'$list_to_conj'(T, Rest).
 
 %%	'$import_ops'(+Target, +Source)
-%	
+%
 %	Import the operators export from Source into the module table of
 %	Target.
 
@@ -1415,7 +1415,7 @@ load_files(Module:Files, Options) :-
 
 
 %%	'$export_list'(+Declarations, +Module, -Ops)
-%	
+%
 %	Handle the export list of the module declaration for Module
 %	associated to File.
 
@@ -1460,7 +1460,7 @@ load_files(Module:Files, Options) :-
 		  fail
 	      )), !.
 
-	      
+
 '$consult_stream2'(In, File) :-
 	repeat,
 	    '$read_clause'(In, Clause),
@@ -1556,7 +1556,7 @@ load_files(Module:Files, Options) :-
 	->  true
 	;   print_message(error, mixed_directive(Goal))
 	).
-	
+
 '$common_goal_type'((A,B), Type) :- !,
 	'$common_goal_type'(A, Type),
 	'$common_goal_type'(B, Type).
@@ -1721,7 +1721,7 @@ compile_aux_clauses(Clauses) :-
 '$if_expansion'((:- else), []) :-
 	(   retract('$include_code'(X))
 	->  (   X == true
-	    ->  X2 = false 
+	    ->  X2 = false
 	    ;   X == false
 	    ->	X2 = true
 	    ;	X2 = X
@@ -2052,7 +2052,7 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 
 
 %	'$extend'(+Head, +Extra1, +Extra2, -NewHead)
-%	
+%
 %	Extend Head with two more arguments (on behalf DCG compilation).
 %	The solution below is one option. Using   =..  and append is the
 %	alternative. In the current version (5.3.2), the =.. is actually
@@ -2191,7 +2191,7 @@ saved state.
 	'$reverse'(List1, [Head|List2], List3).
 
 '$delete'([], _, []) :- !.
-'$delete'([Elem|Tail], Elem, Result) :- !, 
+'$delete'([Elem|Tail], Elem, Result) :- !,
 	'$delete'(Tail, Elem, Result).
 '$delete'([Head|Tail], Elem, [Head|Rest]) :-
 	'$delete'(Tail, Elem, Rest).

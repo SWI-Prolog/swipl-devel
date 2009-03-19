@@ -205,7 +205,7 @@ static getdecl get_programObject[] =
 #define rc_programObject NULL
 /*
 static classvardecl rc_programObject[] =
-{ 
+{
 };
 */
 

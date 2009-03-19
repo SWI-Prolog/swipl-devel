@@ -124,7 +124,7 @@ cursor(G, Gr:graphical, Cursor:cursor) :<-
 		send(Gr, pointer, HotSpot),
 		send(G?offset, copy, HotSpot)
 	    ;   get(G, offset, HotSpot)
-	    ),  
+	    ),
 	    new(BM, image(@nil, W, H)),
 	    send(BM, draw_in, Gr, point(0,0)),
 	    send(BM, or, image('cross.bm'), point(HotSpot?x-8, HotSpot?y-8)),
@@ -208,7 +208,7 @@ target(G, Source:any, Ev:event*, Gr:graphical*) :->
 	;   true
 	),
 	send(G, slot, target, Target).
-		
+
 container_with_send_method(Obj, Method, Obj) :-
 	send(Obj, has_send_method, Method).
 container_with_send_method(Obj, Method, Container) :-
@@ -260,7 +260,7 @@ forward(G, Target, Src, Pos) :-
 	    )
 	;   true
 	).
-	     
+
 forward(G, Target, Src) :-
 	(   catch(send(message(@arg1, drop, @arg2),
 		       forward_receiver, G, Target, Src), E, true)
@@ -276,11 +276,11 @@ forward(G, Target, Src) :-
 
 
 %	<-select_command: Commands:chain --> Cmd:name
-%	
+%
 %	This method is to support menu selection of a command often
 %	associated with right-dragging instead of left-dragging. It
 %	is called from the ->drop at the receiving graphical:
-%	
+%
 %%		drop(Me, Obj:any) :->
 %			(   send(@event, is_a, ms_right_up)
 %			->  get(@receiver, select_command,
@@ -294,7 +294,7 @@ select_command(G, Commands:chain, Cmd:name) :<-
 	send(@display, busy_cursor, @nil),
 	new(P, popup(command)),
 	send(P, members, Commands),
-	send_list(P, append, 
+	send_list(P, append,
 		  [ gap,
 		    cancel
 		  ]),

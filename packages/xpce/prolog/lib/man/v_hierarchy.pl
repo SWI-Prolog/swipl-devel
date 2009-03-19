@@ -162,7 +162,7 @@ make_popup(Creator, P) :-
 	),
 	send(P, append, gap),
 	send(P, append, prune).
-		    
+
 popup(_CH, Id:class, Popup:popup) :<-
 	"Provide appropriate popup"::
 	(   get(Id, creator, built_in)
@@ -175,7 +175,7 @@ source(CH) :->
 	get(CH?tree?selection, head, Node),
 	get(Node, identifier, Class),
 	send(CH, request_source, Class).
-	
+
 prune(CH) :->
 	"Delete from the hierarchy"::
 	get(CH?tree?selection, head, Node),

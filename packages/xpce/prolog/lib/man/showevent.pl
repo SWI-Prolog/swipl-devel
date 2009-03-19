@@ -194,7 +194,7 @@ add_node(W, Parent:event_node, Son:event_node) :->
 
 special(control).
 special(printable).
-special(meta).	
+special(meta).
 
 show(W, Ev:event) :->
 	"Show indicated event-id"::
@@ -229,7 +229,7 @@ find(W, EvNode, Node) :-
 	    send_class(ParentNode, node, collapsed(@off)),
 	    get(W, node, EvNode, Node)
 	).
-	
+
 :- pce_end_class.
 
 :- pce_begin_class(event_list, browser).

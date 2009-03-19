@@ -12,11 +12,11 @@ universe :-
 		    cdata('big', @bold_style),
 		    cdata('!')
 		  ]).
-		  
+
 :- pce_global(@bold_style,   new(style(font := bold))).
 :- pce_global(@normal_style, new(style(font := normal))).
 :- pce_global(@br,	     new(hbox(rubber := rubber(linebreak := force)))).
 :- pce_global(@parskip,	     new(hbox(ascent := 10))).
 :- pce_global(@section_skip, new(hbox(descent := 20))).
 
-	     
+

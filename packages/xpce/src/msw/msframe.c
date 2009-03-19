@@ -57,7 +57,7 @@ static const TCHAR *
 WinFrameClass()
 { static WNDCLASS wndClass;
   static const TCHAR *cname = NULL;
-  
+
   if ( !cname )
   { TCHAR buf[50];
 
@@ -237,7 +237,7 @@ do_frame_wnd_proc(FrameObj fr,
 
 	for_cell(cell, fr->members)
 	{ HWND subhwnd = getHwndWindow(cell->value);
-	  
+
 	  if ( subhwnd )
 	    PceWhDeleteWindow(subhwnd);
 	}
@@ -245,7 +245,7 @@ do_frame_wnd_proc(FrameObj fr,
 	PceWhDeleteWindow(hwnd);
       }
 
- 
+
       if ( wParam )			/* show on */
       { for_cell(cell, fr->members)
 	{ extern void unlink_changes_data_window(PceWindow sw);
@@ -314,7 +314,7 @@ do_frame_wnd_proc(FrameObj fr,
       RECT rect;
       COLORREF rgb = (COLORREF) getXrefObject(fr->background, fr->display);
       HBRUSH hbrush;
-      
+
       rgb = GetNearestColor(hdc, rgb);
       hbrush = ZCreateSolidBrush(rgb);
       GetClipBox(hdc, &rect);
@@ -336,7 +336,7 @@ do_frame_wnd_proc(FrameObj fr,
 	return 0;
       } else
         goto win_default;
-      
+
 #ifdef WM_MOUSEWHEEL			/* distributed as key-event */
     case WM_MOUSEWHEEL:
       DEBUG(NAME_wheel, Cprintf("Got WM_MOUSEWHEEL on %s\n", pp(fr)));
@@ -381,7 +381,7 @@ do_frame_wnd_proc(FrameObj fr,
     { HWND hwnd = getHwndFrame(fr);
 
       DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
-				 pp(fr), hwnd)); 
+				 pp(fr), hwnd));
       if ( hwnd )
       { DragAcceptFiles(hwnd, FALSE);
 	setHwndFrame(fr, 0);
@@ -429,7 +429,7 @@ do_frame_wnd_proc(FrameObj fr,
     AnswerMark mark;
     status rval = FALSE;
     markAnswerStack(mark);
-  
+
     if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
     { if ( message != WM_WINENTER && message != WM_WINEXIT )
 	PceEventInWindow(hwnd);
@@ -644,7 +644,7 @@ ws_uncreate_frame(FrameObj fr)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: transients are a bit complicated. I'd   like to have a window with
 just a title and a close-button. The  below appears to achieve that. The
-icon_image must be set to @nil. 
+icon_image must be set to @nil.
 
 If we are a transient window we must set the parent handle. This ensures
 we stay on top of the parent.
@@ -654,7 +654,7 @@ status
 ws_create_frame(FrameObj fr)
 { HWND ref;
   HWND owner = NULL;
-  DWORD style = WS_CLIPCHILDREN; 
+  DWORD style = WS_CLIPCHILDREN;
   DWORD exstyle = 0;
   RECT rect;
   int w, h;
@@ -689,7 +689,7 @@ ws_create_frame(FrameObj fr)
     { style &= ~(WS_MAXIMIZEBOX|WS_MINIMIZEBOX|WS_SIZEBOX);
     }
   }
-    
+
   if ( fr->sensitive == OFF )
     style |= WS_DISABLED;
 
@@ -713,7 +713,7 @@ ws_create_frame(FrameObj fr)
   if ( h < 5 )
     h = 5;
 
-  DEBUG(NAME_frame, Cprintf("Creating %s area(%d,%d,%d,%d)\n", 
+  DEBUG(NAME_frame, Cprintf("Creating %s area(%d,%d,%d,%d)\n",
 			    pp(fr), rect.left, rect.top, w, h));
 
   current_frame = fr;
@@ -727,7 +727,7 @@ ws_create_frame(FrameObj fr)
 		       NULL,		/* menu */
 		       PceHInstance,
 		       NULL);		/* Creation data */
-		     
+
   if ( !ref )
     return errorPce(fr, NAME_xOpen, fr->display);
 
@@ -750,7 +750,7 @@ ws_realise_frame(FrameObj fr)
 
   for_cell(cell, fr->members)
   { PceWindow sw = cell->value;
-    
+
     ShowWindow(getHwndWindow(sw), SW_SHOW);
   }
 }
@@ -790,7 +790,7 @@ ws_place_frame(FrameObj fr)
 
   ws_frame_border(fr, &xborder, &yborder, &ycap);
   yborder += ycap;
-  
+
   if ( !placed++ )
   { last_x = rand() % (mw-fw-2*PLACE_MARGIN);
     last_y = rand() % (mh-fh-2*PLACE_MARGIN);
@@ -996,7 +996,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
       ok++;
       break;
   }
-  
+
   if ( f && ok )
   { int mw = (w < MIN_VISIBLE ? MIN_VISIBLE : w);
 
@@ -1008,7 +1008,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
       x = MIN_VISIBLE-mw;
     if ( x > dw-MIN_VISIBLE )		/* right of the screen */
       x = dw - MIN_VISIBLE;
-    
+
     SetWindowPos(f->hwnd,
 		 HWND_TOP,	   /* ignored */
 		 dx+x, dy+y, w, h, /* Specifies outer area (with border) */
@@ -1036,7 +1036,7 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph, Monitor mon)
     Area a = fr->area;
     RECT rect;
     int w, h;
-    
+
     rect.left   = valInt(fr->area->x);
     rect.top    = valInt(fr->area->y);
     if ( notDefault(mon) )
@@ -1309,7 +1309,7 @@ ws_image_of_frame(FrameObj fr)
     if ( rect.top < 0 )  rect.top  = 0;
     if ( rect.bottom > valInt(size->h) ) rect.bottom = valInt(size->h);
     if ( rect.right >  valInt(size->w) ) rect.right  = valInt(size->w);
-    
+
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
 

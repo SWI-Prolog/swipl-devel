@@ -106,7 +106,7 @@ print_name(P, PN:name) :<-
 	->  atomic_list_concat([Module, :, Name, /, TheArity], PN)
 	;   atomic_list_concat([Name, /, TheArity], PN)
 	).
-	
+
 hidden_module(system, _).
 hidden_module(user, _).
 hidden_module(M, H) :-
@@ -130,11 +130,11 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	).
 
 %	<-source:
-%	
+%
 %	Get the source-location for this predicate. If not available and
 %	the autoload argument is not @off, try to autoload the predicate
 %	and try again.
-%	
+%
 %	TBD: Deal with multiple solutions
 
 source(P, Autoload:[bool], Loc:source_location) :<-
@@ -154,7 +154,7 @@ source(P, Autoload:[bool], Loc:source_location) :<-
 	->  new(Loc, source_location(File, Line))
 	;   new(Loc, source_location(File))
 	).
-	
+
 
 edit(P) :->
 	"Edit the predicate"::
@@ -201,7 +201,7 @@ summary(P, Summary:string) :<-
 	    ),
 	    summary(M:Name/Arity, Summary)
 	).
-	        
+
 :- multifile
 	prolog:predicate_summary/2.
 
@@ -209,4 +209,4 @@ summary(PI, Summary) :-
 	prolog:predicate_summary(PI, Summary).
 
 :- pce_end_class(prolog_predicate).
-	  
+

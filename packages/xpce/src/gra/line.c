@@ -138,7 +138,7 @@ computeLine(Line ln)
     int pen = valInt(ln->pen);
     int x, y, w, h;
     Area a = ln->area;
-  
+
     if ( x1 < x2 )
     { x = x1;
       w = x2-x1;
@@ -153,7 +153,7 @@ computeLine(Line ln)
     { y = y2;
       h = y1-y2;
     }
-  
+
     if ( pen ==	1 )
     { w++;
       h++;
@@ -267,19 +267,19 @@ geometryLine(Line ln, Int x, Int y, Int w, Int h)
   { dy = sub(y, ln->area->y);
     assign(ln, start_y, add(ln->start_y, dy));
     assign(ln, end_y, add(ln->end_y, dy));
-  } 
-    
+  }
+
   CHANGING_GRAPHICAL(ln,
 		     if ( needcompute )
 		       requestComputeGraphical(ln, DEFAULT);
 		     else
 		     { Area a = ln->area;
-		       
+
 		       assign(a, x, add(a->x, dx));
 		       assign(a, y, add(a->y, dy));
 		       changedEntireImageGraphical(ln);
 		     });
-		       
+
   succeed;
 }
 
@@ -357,7 +357,7 @@ resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
     x2 = ox + rfloat((float) (valInt(ln->end_x)-ox)   * xf);
     y1 = oy + rfloat((float) (valInt(ln->start_y)-oy) * yf);
     y2 = oy + rfloat((float) (valInt(ln->end_y)-oy)   * yf);
-    
+
     assign(ln, start_x, toInt(x1));
     assign(ln, start_y, toInt(y1));
     assign(ln, end_x,   toInt(x2));
@@ -365,7 +365,7 @@ resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
 
     return requestComputeGraphical(ln, DEFAULT);
   }
-  
+
   succeed;
 }
 
@@ -375,7 +375,7 @@ int distanceLineToPoint()
 
 Calculate the distance between the infinite   extended line through (x1,
 y1) and (x2, y2) to  the  point  (px,   py)  or,  if  extended is 0, the
-distance to the line-segment between the two points. 
+distance to the line-segment between the two points.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -435,7 +435,7 @@ distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py,
       }
     }
   }
-  
+
   a = ((float)(y2 - y1)) / ((float)(x2 - x1));
 
   if ( !extended )
@@ -481,7 +481,7 @@ inEventAreaLine(Line ln, Int x, Int y)
 			  valInt(x), valInt(y), FALSE);
   if ( d < evtol )
     succeed;
-  
+
   fail;
 }
 
@@ -709,7 +709,7 @@ ClassDecl(line_decls,
           5, line_termnames,
           "$Rev$");
 
-  
+
 status
 makeClassLine(Class class)
 { declareClass(class, &line_decls);

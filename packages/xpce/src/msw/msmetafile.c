@@ -128,7 +128,7 @@ storeWinMF(WinMF mf, FileObj file)
 
   if ( isNil(mf->file) && mf->hmf )
   { UINT size;
-    
+
     if ( (size = GetEnhMetaFileBits(mf->hmf, 0, NULL)) )
     { LPBYTE data = pceMalloc(size);
       GetEnhMetaFileBits(mf->hmf, size, data);
@@ -219,7 +219,7 @@ getDimensionsWinMF(WinMF mf)
 
   if ( (hdrsize = GetEnhMetaFileHeader(mf->hmf, 0, NULL)) )
   { ENHMETAHEADER *hdr = alloca(hdrsize);
-    
+
     GetEnhMetaFileHeader(mf->hmf, hdrsize, hdr);
     set_area_from_rectl(mf->area, &hdr->rclBounds);
     if ( hdr->nDescription )
@@ -229,7 +229,7 @@ getDimensionsWinMF(WinMF mf)
       str_set_n_ascii(&str, hdr->nDescription, s);
       assign(mf, summary, StringToString(&str));
     }
-    
+
     succeed;
   }
 
@@ -643,7 +643,7 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,
       closeFile(file);
       fail;
     }
-    
+
     buf = pceMalloc(uiSize);
     GetMetaFileBitsEx(ghmf, uiSize, buf);
     if ( Sfwrite(buf, sizeof(char), uiSize, file->fd) != uiSize )
@@ -677,7 +677,7 @@ convert_enh_metafile(WinMF mf, HDC hdc)
   int omap = SetMapMode(hdc, fnMapMode);
   HMETAFILE hmf;
 					/* get old format bits */
-    
+
   if ( !(len = GetWinMetaFileBits(mf->hmf, 0, NULL, fnMapMode, hdc)) )
   { errorPce(mf, NAME_winMetafile,
 	     CtoName("GetWinMetaFileBits"), APIError());
@@ -840,9 +840,9 @@ static char *T_save[] =
 /* Instance Variables */
 
 static vardecl var_winmf[] =
-{ IV(NAME_file, "file*", IV_GET, 
+{ IV(NAME_file, "file*", IV_GET,
      NAME_storage, "Associated physical file"),
-  IV(NAME_summary, "string*", IV_BOTH, 
+  IV(NAME_summary, "string*", IV_BOTH,
      NAME_manual, "Description associated with the file"), /* TBD:group */
   IV(NAME_handle, "alien:HENHMETAFILE", IV_NONE,
      NAME_storage, "Handle to the Win32 metafile"),
@@ -868,7 +868,7 @@ static senddecl send_winmf[] =
 #define get_winmf NULL
 /*
 static getdecl get_winmf[] =
-{ 
+{
 };
 */
 

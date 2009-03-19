@@ -82,7 +82,7 @@ system_module :-
 
 %%	lock_predicate(+PredInd)
 %
-%	Transform a predicate into a system predicate. 
+%	Transform a predicate into a system predicate.
 
 lock_predicate(PredInd) :-
 	'$set_predicate_attribute'(PredInd, system, 1).

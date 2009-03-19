@@ -18,7 +18,7 @@ main(int argc, char **argv)
     fprintf(stderr,"utcnow: fatal: unable to init leapsecs\n");
     exit(111);
   }
-    
+
   taia_now(&now);
   x[taia_fmtfrac(x,&now)] = 0;
 

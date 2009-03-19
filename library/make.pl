@@ -40,7 +40,7 @@
 */
 
 %%	make
-%	
+%
 %	Reload all source files that have been changed since they were
 %	loaded.  After loading make/0 runs list_undefined/0 to quickly
 %	scan for undefined predicates.
@@ -89,4 +89,4 @@ reload_file(File) :-
 	;   Modules = [First|_Rest],
 	    consult(First:File)
 	).
-	
+

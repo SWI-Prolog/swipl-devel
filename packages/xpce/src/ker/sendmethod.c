@@ -53,7 +53,7 @@ static char *T_send[] =
 #define var_sendMethod NULL
 /*
 vardecl var_sendMethod[] =
-{ 
+{
 };
 */
 
@@ -69,7 +69,7 @@ static senddecl send_sendMethod[] =
 #define get_sendMethod NULL
 /*
 static getdecl get_sendMethod[] =
-{ 
+{
 };
 */
 
@@ -78,7 +78,7 @@ static getdecl get_sendMethod[] =
 #define rc_sendMethod NULL
 /*
 static classvardecl rc_sendMethod[] =
-{ 
+{
 };
 */
 

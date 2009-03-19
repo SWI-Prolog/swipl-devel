@@ -117,7 +117,7 @@ put_query(term_t t, UriUriA *uri)
 	{ PL_put_atom_chars(qel, qe->key);
 	  PL_unify(head, qel);
 	}
-      }      
+      }
       PL_unify_nil(tail);
     } else
     { return FALSE;			/* TBD: exception */
@@ -177,7 +177,7 @@ parse_uri_options(UriParserStateA *state, UriUriA *uri, term_t options)
     if ( base && !is_abs )
     { UriUriA buri = { {0} };
       UriUriA absuri = { {0} };
-      
+
       state->uri = &buri;
       if ( uriParseUriA(state, base) != URI_SUCCESS)
       { uriFreeUriMembersA(&buri);
@@ -217,7 +217,7 @@ get_uri(term_t text, UriParserStateA *state, UriUriA *uri, term_t options)
   { uriFreeUriMembersA(uri);
     return syntax_error(text, "uri");
   }
-  
+
   if ( !parse_uri_options(state, uri, options) )
     return FALSE;
 

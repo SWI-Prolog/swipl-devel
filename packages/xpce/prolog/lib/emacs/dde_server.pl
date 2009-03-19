@@ -35,7 +35,7 @@
 	  ]).
 
 %	start_emacs_dde_server
-%	
+%
 %	If there is no DDE server, register it as PceEmacs using the
 %	topic `control'.
 
@@ -73,4 +73,4 @@ win_register_emacs :-
 	current_prolog_flag(argv, [Me|_]),
 	shell_register_dde('prolog.type', edit,
 			   'PceEmacs', control, 'edit %1', Me).
-	
+

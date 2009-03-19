@@ -156,7 +156,7 @@ static Fragment
 getFragmentTextMargin(TextMargin m, EventObj ev)
 { position pos;
   Int ex, ey;
-  
+
   get_xy_event(ev, m, ON, &ex, &ey);
   pos.x = valInt(ex);
   pos.y = valInt(ey);
@@ -192,7 +192,7 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
   int gh = valInt(m->gap->h);
   Style s;
   int skip = ti->map->skip;
-  
+
   for( h=0; notNil(fragment) && line < lines; line++ )
   { TextLine tl = &ti->map->lines[line + skip];
 
@@ -210,7 +210,7 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
     for( ; notNil(fragment) && fragment->start < tl->end
 	 ; fragment = fragment->next )
     { Image icon;
-    
+
       if ( notNil(s = fragment_style(m, fragment)) && notNil(icon = s->icon) )
       { int aw = valInt(icon->size->w);
 
@@ -259,7 +259,7 @@ eventTextMargin(TextMargin m, EventObj ev)
 
     succeed;
   }
-  
+
   fail;
 }
 

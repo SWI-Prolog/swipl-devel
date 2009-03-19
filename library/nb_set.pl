@@ -53,14 +53,14 @@ nb_setarg/3. See the SWI-Prolog manual for details.
 		 *******************************/
 
 %%	empty_nb_set(-Set)
-%	
+%
 %	Create an empty non-backtrackable set.
 
 empty_nb_set(nb_set(t)).
 
 %%	add_nb_set(+Key, !Set) is det.
 %%	add_nb_set(+Key, !Set, ?New) is semidet.
-%	
+%
 %	Insert an element into the set. If the element is already in the
 %	set, nothing happens. New is =true= if   Key  was added as a new
 %	element to the set and =false= otherwise.
@@ -82,7 +82,7 @@ add_nb_set(Key, Set, New) :-
 
 
 %%	nb_set_to_list(+Set, -List)
-%	
+%
 %	Get the elements of a an nb_set. List is sorted to the standard
 %	order of terms.
 
@@ -98,7 +98,7 @@ nb_set_to_list(t(Val, Left, Right)) -->
 
 
 %%	gen_nb_set(+Set, -Key)
-%	
+%
 %	Enumerate the members of a set in the standard order of terms.
 
 gen_nb_set(nb_set(Tree), Key) :-
@@ -111,7 +111,7 @@ gen_set(t(Val, Left, Right), Key) :-
 	).
 
 %%	size_nb_set(+Set, -Size)
-%	
+%
 %	Unify Size with the number of elements in the set
 
 size_nb_set(nb_set(Tree), Size) :-

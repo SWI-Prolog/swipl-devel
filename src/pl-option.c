@@ -68,7 +68,7 @@ scan_options(term_t options, int flags, atom_t optype,
   while ( PL_get_list(list, head, list) )
   { atom_t name;
     int arity;
-    
+
     if ( PL_get_name_arity(head, &name, &arity) )
     { if ( name == ATOM_equals && arity == 2 )
       { PL_get_arg(1, head, tmp);
@@ -156,13 +156,13 @@ scan_options(term_t options, int flags, atom_t optype,
 	break;
       }
     }
-    
+
     if ( !s->name && (flags & OPT_ALL) )
       goto itemerror;
   }
 
   if ( !PL_get_nil(list) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
-  
+
   succeed;
 }

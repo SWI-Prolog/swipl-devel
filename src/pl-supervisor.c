@@ -31,7 +31,7 @@
 static Code
 allocCodes(size_t n)
 { Code codes = allocHeap(sizeof(code)*(n+1));
-  
+
   *codes++ = (code)n;
 
   return codes;
@@ -85,7 +85,7 @@ static int prof_foreign_index = (I_HIGHEST+20);
 int
 createForeignSupervisor(Definition def, Func f)
 { assert(true(def, FOREIGN));
-  
+
   if ( false(def, P_VARARG) )
   { if ( def->functor->arity > MAX_FLI_ARGS )
       sysError("Too many arguments to foreign function %s (>%d)", \
@@ -94,7 +94,7 @@ createForeignSupervisor(Definition def, Func f)
 
   if ( false(def, NONDETERMINISTIC) )
   { Code codes = allocCodes(4);
-    
+
     codes[0] = encode(I_FOPEN);
     if ( true(def, P_VARARG) )
       codes[1] = encode(I_FCALLDETVA);
@@ -106,7 +106,7 @@ createForeignSupervisor(Definition def, Func f)
     def->codes = codes;
   } else
   { Code codes = allocCodes(5);
-    
+
     codes[0] = encode(I_FOPENNDET);
     if ( true(def, P_VARARG) )
       codes[1] = encode(I_FCALLNDETVA);
@@ -158,14 +158,14 @@ singleClauseSupervisor(Definition def)
 { if ( def->number_of_clauses == 1 )
   { ClauseRef cref;
     Code codes = allocCodes(2);
-  
+
     getClauses(def, &cref);
     DEBUG(1, Sdprintf("Single clause supervisor for %s\n",
 		      predicateName(def)));
-  
+
     codes[0] = encode(S_TRUSTME);
     codes[1] = (code)cref;
-  
+
     return codes;
   }
 
@@ -176,7 +176,7 @@ singleClauseSupervisor(Definition def)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 createListSuperVisor() creates a supervisor for predicates that have two
 clauses (possibly swapped):
-	
+
 	pred([], ....)
 	pred([H|T], ...)
 
@@ -266,7 +266,7 @@ chainMetaPredicateSupervisor(Definition def, Code post)
     initBuffer(&buf);
     for(i=0; i < def->functor->arity; i++)
     { int ma = MA_INFO(def, i);
-      
+
       if ( ma <= 10 )			/* 0..9 or : */
       { addBuffer(&buf, encode(S_MQUAL), code);
 	addBuffer(&buf, VAROFFSET(i), code);

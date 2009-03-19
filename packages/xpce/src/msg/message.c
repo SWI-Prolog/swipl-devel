@@ -209,7 +209,7 @@ static getdecl get_message[] =
 #define rc_message NULL
 /*
 static classvardecl rc_message[] =
-{ 
+{
 };
 */
 

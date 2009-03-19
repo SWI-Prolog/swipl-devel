@@ -166,7 +166,7 @@ delete_pce_common :-
 	->  delete_file(Path)
 	;   true
 	).
-	
+
 
 		 /*******************************
 		 *	 PRECOMPILED PARTS	*

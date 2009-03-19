@@ -56,7 +56,7 @@ These predicates are documented in the source-distribution of the package
 
 :- initialization
    load_foreign_library(foreign(socket), install_socket).
-	
+
 		 /*******************************
 		 *	   COMPATIBILITY	*
 		 *******************************/

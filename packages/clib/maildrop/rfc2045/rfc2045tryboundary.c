@@ -60,7 +60,7 @@ static	size_t	i, j;
 					boundary_chk_buf+2,
 					boundary_chk_val_len) == 0)
 					boundary_chk_flag=1;
-					
+
 			boundary_chk_buflen=0;
 			j=i+1;
 		}

@@ -121,10 +121,10 @@ getConvertPixmap(Class class, Any obj)
     if ( instanceOfObject(pm, ClassPixmap) )
       answer(pm);
   }
-  
+
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
-    
+
     ComputeGraphical(gr);
     if ( (pm = newObject(ClassPixmap, NIL,
 			  DEFAULT, DEFAULT, /* fg, bg */
@@ -169,7 +169,7 @@ getReplacementColourPixmap(PixmapObj pm)
     c = newObject(ClassColour, CtoName(buf), EAV);
   } else
     c = BLACK_COLOUR;
-    
+
   errorPce(pm, NAME_replacedByColour, c);
   attributeObject(pm, NAME_replacementColour, c);
 
@@ -198,7 +198,7 @@ static char *T_lookup[] =
 #define var_pixmap NULL
 /*
 vardecl var_pixmap[] =
-{ 
+{
 };
 */
 

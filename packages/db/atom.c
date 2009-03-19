@@ -38,7 +38,7 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: this function comes from SWI-Prolog   itself. We could also extend
-the SWI-Prolog interface to provide this value. 
+the SWI-Prolog interface to provide this value.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -48,7 +48,7 @@ unboundStringHashValue(const char *t, unsigned int len)
 
   while(len-- != 0)
   { unsigned int c = *t++;
-    
+
     c -= 'a';
     value ^= c << (shift & 0xf);
     shift ^= c;
@@ -125,7 +125,7 @@ db_atom_id(dbh *db, atom_t a, atomid_t *id, int flags)
 	   k2.size == sizeof(hash) &&
 	   *((plhash_t *)k2.data) == hash )
       { idx++;
-	
+
 	if ( equal_dbt(&v, &av) )
 	{ cursor->c_close(cursor);
 	  *id = (idx<<16) | hash;
@@ -176,7 +176,7 @@ pl_atom_from_db(dbh *db, atomid_t id, atom_t *a)
   unsigned long kv  = id & 0xffff;
   int rval;
   DBT k, v;
-  
+
   memset(&v, 0, sizeof(v));
   memset(&k, 0, sizeof(k));
   k.size = sizeof(kv);
@@ -206,7 +206,7 @@ pl_atom_from_db(dbh *db, atomid_t id, atom_t *a)
 	  return db_status(rval);
 	}
       }
-      
+
       *a = PL_new_atom_nchars(v.size, v.data);
       cursor->c_close(cursor);
       return TRUE;

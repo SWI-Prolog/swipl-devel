@@ -318,7 +318,7 @@ make_create_proto_recogniser(R) :-
 	new(R, click_gesture(left, '', single,
 			     message(@prolog, create_prototype, Canvas, Pos),
 			     Canvas?(mode) == draw_proto)).
-	
+
 
 create_prototype(Canvas, Pos) :-
 	send(Canvas, keyboard_focus, @nil), % ensure closing open text
@@ -377,7 +377,7 @@ initiate(G, Ev:event) :->
 	send(Canvas, open_undo_group),
 	send(Canvas, undo_action, message(Object, cut)),
 	send(Canvas, display, Object).
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Drag is easy.  The only non-standard thing it does is  to disallow the
@@ -621,7 +621,7 @@ terminate(G, Ev:event) :->
 initialise(G) :->
 	send_super(G, initialise,
 		   left, c, single, message(G, execute, @event)).
-		   
+
 
 execute(G, Ev:event) :->
 	get(Ev, receiver, Bezier),
@@ -788,7 +788,7 @@ terminate_path(G) :->
 	;   true
 	),
 	send(Canvas, close_undo_group).
-	
+
 cancel(G) :->
 	send(G, terminate_path).
 
@@ -875,7 +875,7 @@ make_draw_edit_path_gesture(G) :-
 	new(Path, @event?receiver),
 	new(Editable, if(message(Path, has_get_method, editable),
 			 Path?editable == @on)),
-	    
+
 	send(C1, condition, and(Editable,
 				?(Path, point, @event, 3))),
 	send(G, append,
@@ -885,7 +885,7 @@ make_draw_edit_path_gesture(G) :-
 					     @receiver?device),
 					   ?(@receiver, segment, @event))))),
 	send(C2, condition, Editable).
-	     
+
 
 
 
@@ -957,7 +957,7 @@ make_draw_compound_draw_text_recogniser(G) :-
 	new(K, handler(obtain_keyboard_focus,
 		       message(@receiver, start_text, @event))),
 	new(G, handler_group(R, K)).
-				
+
 make_draw_text_paste_recogniser(G) :-
 	new(G, click_gesture(middle, '', single,
 			     message(@receiver, paste))),
@@ -1046,7 +1046,7 @@ terminate(G, Ev:event) :->
 	ignore(send(G, drag, Ev)),
 	get(G, outline, Outline),
 	send(Outline, device, @nil),
-	get(Outline?area?position, difference, G?origin, Offset),	
+	get(Outline?area?position, difference, G?origin, Offset),
 	get(Ev, window, Canvas),
 	send(Canvas, open_undo_group),
 	get(G, selection, Selection),
@@ -1324,7 +1324,7 @@ initialise(G, B:[button_name], M:[modifier]) :->
 
 verify(_G, Ev:event) :->
 	"Verify canvas is in connect_create-mode"::
-	get(Ev?receiver?device, mode, draw_cconnect).	
+	get(Ev?receiver?device, mode, draw_cconnect).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

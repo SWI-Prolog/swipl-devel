@@ -225,7 +225,7 @@ make_editor_recogniser(G) :-
 				  Selection \== Obj,
 				  not(message(Selection, man_related,
 					      see_also, Obj)))))
-		    
+
 		  ])),
 
 	send(G, append, click_gesture(left, '', double,
@@ -284,7 +284,7 @@ selection(E, Objects:'chain|object') :->
 	    send(Sheet, for_all,
 		 message(E, display_group, @arg1?name, @arg1?value))
 	;   send(E, display_cluster, chain(Objects))
-	),	    
+	),
 	send(E, mark_jumpable),
 	send(E, mark_search),
 	send(E, keyboard_focus, E?editor).
@@ -429,7 +429,7 @@ mark_search_pattern(E, Pattern:regex) :->
 	send(Pattern, for_all, TB,
 	     message(E, mark_search_hit, Pattern)).
 
-	     
+
 mark_search_hit(E, Pattern:regex) :->
 	get(E, text_buffer, TB),
 	get(Pattern, register_start, Start),
@@ -605,7 +605,7 @@ jump_fragment_from_caret(E, Frag:fragment) :<-
 	;   send(E, report, warning, 'Not in a jump fragment'),
 	    fail
 	).
-	
+
 
 jump_previous(E, _Arg:[int]) :->
 	"Jump back to previous card"::
@@ -638,7 +638,7 @@ relate_from_caret(E, _Arg:[int]) :->
 	    )
 	;   send(E, report, warning, 'Text is read-only')
 	).
-		 
+
 
 		/********************************
 		*             SAVING		*
@@ -730,5 +730,5 @@ equal(@nil, @nil) :- !.
 equal(_, @nil) :- !, fail.
 equal(@nil, _) :- !, fail.
 equal(S1, S2) :- send(S1, equal, S2).
-	    
+
 :- pce_end_class.

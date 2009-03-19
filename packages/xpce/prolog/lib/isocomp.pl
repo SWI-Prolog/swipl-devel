@@ -260,9 +260,9 @@ body('$argv'(_), term_position(_,_,FF,FT0,_)) :-
 body(Goal, _) :-
 	load_goal(Goal).
 body(_, _).
-	
+
 meta_body(_, _, _, []) :-  !.
-meta_body(N, Meta, Templ, [P|T]) :- 
+meta_body(N, Meta, Templ, [P|T]) :-
 	(   arg(N, Templ, :)
 	->  arg(N, Meta, A),
 	    body(A, P)
@@ -288,7 +288,7 @@ dcg_body(Meta, term_position(_,_,_,_,ArgPos)) :-
 dcg_body(_, _).
 
 dcg_meta_body(_, _, _, []) :-  !.
-dcg_meta_body(N, Meta, Templ, [P|T]) :- 
+dcg_meta_body(N, Meta, Templ, [P|T]) :-
 	(   arg(N, Templ, :)
 	->  arg(N, Meta, A),
 	    dcg_body(A, P)
@@ -480,7 +480,7 @@ undo_operator(op(P, T, [H|R]), M, [OH|OT]) :- !,
         undo_operator(op(P, T, R), M, OT).
 undo_operator(op(_, _, []), _, []) :- !.
 undo_operator(op(_P, T, N), _, op(0, T, N)).
-        
+
 same_op_type(T, OT) :-
         op_type(T, Type),
         op_type(OT, Type).
@@ -637,7 +637,7 @@ event(V, Ev:event) :->
 	->  true
 	;   send_super(V, event, Ev)
 	).
-		
+
 on_fragment(V, Ev:event) :->
 	"Test if we are on a fragment"::
 	get(V, fragment, Ev, _Fragment).
@@ -696,7 +696,7 @@ fill_dialog(F) :->
 				resource(undo),
 				undo)
 		  ]).
-			    
+
 :- pce_group(fragment).
 
 fragment(F, Fragment:fragment) :->

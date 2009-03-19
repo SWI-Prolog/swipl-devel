@@ -107,7 +107,7 @@ discardInputSocket(SOCKET sock)
 
 static status
 handleInputSocket(Socket s)
-{ 
+{
 #if 0					/* sockets are non-blocking now */
   u_long avail;
 
@@ -120,7 +120,7 @@ handleInputSocket(Socket s)
       fail;
 
   }
-  
+
   succeed;
 #else
   return handleInputStream((Stream)s);
@@ -190,7 +190,7 @@ do_socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_PROCESS_INPUT:
     { Process p = (Process) wParam;
       int avail = (int) lParam;
-      
+
       DEBUG(NAME_process, Cprintf("Received WM_PROCESS_INPUT %s %d\n",
 				  pp(p), avail));
       handleInputStream((Stream)p);
@@ -218,7 +218,7 @@ do_socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
 #endif /*USE_RLC_FUNCTIONS*/
   }
-  
+
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
@@ -495,7 +495,7 @@ process_thread(void *context)
   int peekok = FALSE;
   DWORD status;
   PROCESS_INFORMATION *pi = p->ws_ref;
-      
+
   DEBUG(NAME_thread, Cprintf("%s: Starting process input thread\n", pp(p)));
 
   while( pi && p->rdfd > 0 && !onFlag(p, F_FREED|F_FREEING) &&
@@ -512,7 +512,7 @@ process_thread(void *context)
     { if ( GetExitCodeProcess(pi->hProcess, &status) )
       { if ( status == STILL_ACTIVE )
 	{ Sleep(100);			/* skip timeslice */
-	  continue;	
+	  continue;
 	} else
 	{ break;
 	}
@@ -523,7 +523,7 @@ process_thread(void *context)
     }
 
     DEBUG(NAME_thread, Cprintf("."));
-  }  
+  }
 
   if ( !peekok )
   { DEBUG(NAME_thread,
@@ -558,7 +558,7 @@ ws_read_process(Process p, char *buffer, int size, Real timeout)
   { DWORD avail;
     int peekok;
     long endtime;
-      
+
     if ( isDefault(timeout) )
       endtime = 0;
     else

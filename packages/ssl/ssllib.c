@@ -373,7 +373,7 @@ ssl_config_free( void *            ctx
                , long  argl
                , void *argp
                )
-{   
+{
     PL_SSL *config = NULL;
 
     ssl_deb(1, "calling ssl_config_free()\n");
@@ -526,7 +526,7 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
 {
     SSL    * ssl    = NULL;
     PL_SSL * config = NULL;
-    
+
     /*
      * Get our config data
      */
@@ -821,7 +821,7 @@ ssl_config(PL_SSL *config)
                                  , ssl_cb_pem_passwd
                                  ) ;
     ssl_deb(1, "password handler installed\n");
-   
+
     if (config->pl_ssl_cert_required) {
         if (config->pl_ssl_certf == NULL ||
             config->pl_ssl_keyf  == NULL) {
@@ -847,7 +847,7 @@ ssl_config(PL_SSL *config)
         }
         ssl_deb(1, "certificate installed successfully\n");
     }
-    
+
     (void) SSL_CTX_set_verify( config->pl_ssl_ctx
                              , (config->pl_ssl_peer_cert_required)
                                ? SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT
@@ -928,7 +928,7 @@ nbio_fd() returns the corresponding file/socket descriptor.
 
 Probably this is fine, surely  for   Unix.  Nevertheless,  a much better
 solution would be to wrap the nbio_* functions into an SSL BIO. See "man
-BIO_new", etc. 
+BIO_new", etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PL_SSL_INSTANCE *
@@ -1005,10 +1005,10 @@ ssl_ssl(PL_SSL *config, int sock_inst)
 	            /* success */
 	            ssl_deb(1, "established ssl client side\n");
 	            return instance;
-	            
+
 	         case SSL_SOCK_RETRY:
 	            continue;
-	            
+
 	         case SSL_SOCK_ERROR:
 	            if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_READ)
 	            {
@@ -1331,7 +1331,7 @@ ssl_thread_setup(void)
   { lock_count[i]=0;
     pthread_mutex_init(&(lock_cs[i]), NULL);
   }
-			       
+
 #ifndef __WINDOWS__
   CRYPTO_set_id_callback(pthreads_thread_id);
 #endif

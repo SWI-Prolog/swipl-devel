@@ -105,13 +105,13 @@ popSegStack(segstack *stack, void *data)
       { stack->last = chunk->previous;
 	stack->last->next = NULL;
 	PL_free(chunk);
-      
+
 	chunk = stack->last;
 	stack->base = chunk->data;
 	stack->max  = addPointer(chunk, CHUNKSIZE);
 	stack->top  = chunk->top;
 	goto again;
-      } 
+      }
 #if 0
         else
       { PL_free(chunk);

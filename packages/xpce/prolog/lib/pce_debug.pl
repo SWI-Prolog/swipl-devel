@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(pce_debug, 
+:- module(pce_debug,
 	[ debugpce/0
 	, debugpce/1
 	, nodebugpce/0
@@ -68,7 +68,7 @@ nodebugpce :-
 
 %%   debugpce(+Subject) is det.
 %%   nodebugpce(+Subject) is det.
-%   
+%
 %   Start/stop printing debugging messages on `Subject'. System maintenance
 %   usage only.
 
@@ -191,7 +191,7 @@ check_redefined_methods :-
 	maplist(report_redefined_method, GL),
 	SL == [],
 	GL == [].
-	
+
 redefined_send_method(method(Class, Sel, B0, B1)) :-
 	pce_principal:pce_lazy_send_method(Sel, Class, B1),
 	(   pce_principal:pce_lazy_send_method(Sel, Class, B0)
@@ -296,7 +296,7 @@ pcerefer(Obj) :-
 	    free(Found)
 	;   true
 	).
-	
+
 
 pcerefer(From, Obj) :-
 	get(Obj, references, Refs),

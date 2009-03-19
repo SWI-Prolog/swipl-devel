@@ -62,21 +62,21 @@ than compensated for by using block reads based on read_pending_input/3.
 %	are reclaimed by the  garbage  collector,   while  the  list  is
 %	extended on demand.  Here  is  a   very  simple  definition  for
 %	searching a string in a file:
-%	
+%
 %	==
 %	... --> []|[_],... .
-%	
+%
 %	file_contains(File, Pattern) :-
 %		phrase_from_file((..., Pattern, ...), File).
-%	
+%
 %	match_count(File, Pattern, Count) :-
 %		findall(x, file_contains(File, Pattern), Xs),
 %		length(Xs, Count).
 %	==
-%	
+%
 %	This can be called as (note that   the  pattern must be a string
 %	(code list)):
-%	
+%
 %	==
 %	?- match_count('pure_input.pl', "file", Count).
 %	==
@@ -124,11 +124,11 @@ qphrase_stream(QGrammar, In, BuffserSize) :-
 %	ends  in  a  delayed  goal.  List   can  be  unified  completely
 %	transparent to a (partial)  list   and  processed  transparently
 %	using DCGs, but please be aware that a lazy list is not the same
-%	as a materialized list in all respects. 
-%	
+%	as a materialized list in all respects.
+%
 %	Typically, this predicate is used as   a building block for more
 %	high level safe predicates such as phrase_from_file/2.
-%	
+%
 %	@tbd	Enhance of lazy list throughout the system.
 
 stream_to_lazy_list(Stream, List) :-

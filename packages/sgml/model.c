@@ -107,7 +107,7 @@ visit(dtd_state *state, visited *visited)
   { if ( visited->states[i] == state )
       return FALSE;
   }
-      
+
   if ( visited->size >= MAX_VISITED )
   { fprintf(stderr, "Reached MAX_VISITED!\n");
     return FALSE;
@@ -262,7 +262,7 @@ do_find_omitted_path(dtd_state *state, dtd_element *e,
 }
 
 
-int 
+int
 find_omitted_path(dtd_state *state, dtd_element *e, dtd_element **path)
 { int pl = 0;
   visited visited;
@@ -314,13 +314,13 @@ static transition *
 state_transitions(dtd_state *state)
 { if ( !state->transitions && state->expander )
   { expander *ex = state->expander;
-    
+
     switch(ex->type)
     { case EX_AND:
       { dtd_model_list *left = ex->kind.and.set;
 
 	if ( !left )			/* empty AND (should not happen) */
-	{ link(state, ex->target, NULL); 
+	{ link(state, ex->target, NULL);
 	} else if ( !left->next )	/* only one left */
 	{ translate_model(left->model, state, ex->target);
 	} else
@@ -378,7 +378,7 @@ translate_one(dtd_model *m, dtd_state *from, dtd_state *to)
 
       ex->target = to;
       ex->type   = EX_AND;
-      
+
       for( sub = m->content.group; sub; sub = sub->next )
 	add_model_list(&ex->kind.and.set, sub);
 
@@ -436,7 +436,7 @@ make_state_engine(dtd_element *e)
     { if ( def->content )
       { def->initial_state = new_dtd_state();
 	def->final_state   = new_dtd_state();
-    
+
 	translate_model(def->content, def->initial_state, def->final_state);
       } else if ( def->type == C_CDATA || def->type == C_RCDATA )
       { def->initial_state = new_dtd_state();
@@ -450,7 +450,7 @@ make_state_engine(dtd_element *e)
 
     return def->initial_state;
   }
-  
+
   return NULL;
 }
 
@@ -492,7 +492,7 @@ free_expander(expander *e, visited *visited)
 static void
 do_free_state_engine(dtd_state *state, visited *visited)
 { transition *t, *next;
-  
+
   for(t=state->transitions; t; t=next)
   { next = t->next;
 

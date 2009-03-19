@@ -33,10 +33,10 @@ Where `Subject' is
 
 	* Atom
 	The subject is a resource
-	
+
 	* each(URI)
 	URI is the URI of an RDF Bag
-	
+
 	* prefix(Pattern)
 	Pattern is the prefix of a fully qualified Subject URI
 
@@ -147,7 +147,7 @@ li(V, N, Id) -->
 	{ atom_concat('_', N, Nid)
 	},
 	rdf(Id, rdf:Nid, V).
-	
+
 container_id(_, Id) :-
 	nonvar(Id), !.
 container_id(Type, Id) :-
@@ -216,12 +216,12 @@ properties([H0|T0], N, Bag0, Bag, Subject) -->
 	properties(T0, NN, Bag1, Bag, Subject).
 
 %%	property(Property, N, NN, Subject)// is det.
-%	
+%
 %	Generate triples for {Subject,  Pred,   Object}.  Also generates
 %	triples for Object if necessary.
-%	
+%
 %	@param Property	One of
-%	
+%
 %		* Pred = Object
 %		Used for normal statements
 %		* id(Id, Pred = Object)
@@ -257,7 +257,7 @@ property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	statement(Subject, Pred, Object, Id, BagH, BagT).
 
 %%	statement(+Subject, +Pred, +Object, +Id, +BagH, -BagT)
-%	
+%
 %	Add a statement to the model. If nonvar(Id), we reinify the
 %	statement using the given Id.
 
@@ -283,16 +283,16 @@ statement_id(Id) :-
 	make_id('__Statement', Id).
 
 %%	li_pred(+Pred, -Pred, +Nth, -NextNth)
-%	
+%
 %	Transform rdf:li predicates into _1, _2, etc.
 
 li_pred(rdf:li, rdf:Pred, N, NN) :- !,
 	NN is N + 1,
 	atom_concat('_', N, Pred).
 li_pred(Pred, Pred, N, N).
-	
+
 %%	collection(+Elems, -Id)
-%	
+%
 %	Handle the elements of a collection and return the identifier
 %	for the whole collection in Id.
 
@@ -356,7 +356,7 @@ shared_description(Term, Subject) :-
 	;   N1 = 1
 	),
 	assert(shared_nodes(N1)).
-	    
+
 
 assert_shared_description(Term, Subject) :-
 	term_hash(Term, Hash),
@@ -379,7 +379,7 @@ rdf_start_file(Options, Cleanup) :-
 	add_cleanup(C1, C2, Cleanup).
 
 %%	rdf_end_file(:Cleanup) is det.
-%	
+%
 %	Cleanup reaching the end of an RDF file.
 
 rdf_end_file(Cleanup) :-

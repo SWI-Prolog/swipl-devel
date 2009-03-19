@@ -47,7 +47,7 @@ error_exception(_).
 		 *******************************/
 
 :- ['lib/pce'].
-%:- [library(pce_manual)].	
+%:- [library(pce_manual)].
 
 
 		 /*******************************

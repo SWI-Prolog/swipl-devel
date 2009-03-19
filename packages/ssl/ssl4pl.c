@@ -80,7 +80,7 @@ type_error(term_t val, const char *type)
 		  PL_FUNCTOR, FUNCTOR_type_error2,
 		    PL_TERM, val,
 		    PL_CHARS, type,
-		  PL_VARIABLE); 
+		  PL_VARIABLE);
 
   return PL_raise_exception(ex);
 }
@@ -286,7 +286,7 @@ pl_pem_passwd_hook(PL_SSL *config, char *buf, int size)
   predicate_t pred = (predicate_t) config->pl_ssl_cb_pem_passwd_data;
   char *passwd = NULL;
   size_t len;
-    
+
   /*
    * hook(+SSL, -Passwd)
    */
@@ -316,7 +316,7 @@ pl_cert_verify_hook(PL_SSL *config,
   term_t av = PL_new_term_refs(3);
   predicate_t pred = (predicate_t) config->pl_ssl_cb_cert_verify_data;
   int val;
-    
+
   assert(pred);
 
   /*
@@ -388,7 +388,7 @@ pl_ssl_init(term_t config, term_t role, term_t options)
   int r;
   term_t tail = PL_copy_term_ref(options);
   term_t head = PL_new_term_ref();
-  
+
   if ( !get_atom_ex(role, &a) )
     return FALSE;
   if ( a == ATOM_server )
@@ -440,35 +440,35 @@ pl_ssl_init(term_t config, term_t role, term_t options)
 
       if ( !get_bool_arg(1, head, &val) )
 	return FALSE;
-      
+
       ssl_set_cert(conf, val);
     } else if ( name == ATOM_peer_cert && arity == 1 )
     { int val;
 
       if ( !get_bool_arg(1, head, &val) )
 	return FALSE;
-      
+
       ssl_set_peer_cert(conf, val);
     } else if ( name == ATOM_cacert_file && arity == 1 )
     { char *file;
 
       if ( !get_file_arg(1, head, &file) )
 	return FALSE;
-      
+
       ssl_set_cacert(conf, file);
     } else if ( name == ATOM_certificate_file && arity == 1 )
     { char *file;
 
       if ( !get_file_arg(1, head, &file) )
 	return FALSE;
-      
+
       ssl_set_certf(conf, file);
     } else if ( name == ATOM_key_file && arity == 1 )
     { char *file;
 
       if ( !get_file_arg(1, head, &file) )
 	return FALSE;
-      
+
       ssl_set_keyf(conf, file);
     } else if ( name == ATOM_pem_password_hook && arity == 1 )
     { predicate_t hook;
@@ -510,7 +510,7 @@ pl_ssl_accept(term_t config, term_t sock_inst, term_t peer)
 
   if ( (si = ssl_accept(conf, &sa_client, &client_len)) < 0 )
     return FALSE;			/* TBD: error */
-  
+
   if ( PL_unify_integer(sock_inst, si) &&
        tcp_unify_ip(peer, &sa_client.sin_addr) )
     return TRUE;
@@ -523,7 +523,7 @@ pl_ssl_accept(term_t config, term_t sock_inst, term_t peer)
 static int
 pl_ssl_close(PL_SSL_INSTANCE *instance)
 { assert(instance->close_needed > 0);
-  
+
   if ( --instance->close_needed == 0 )
     return ssl_close(instance);
 
@@ -601,7 +601,7 @@ pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
   { Sclose(i);
     return FALSE;
   }
-  
+
   if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
     return FALSE;
   instance->close_needed++;

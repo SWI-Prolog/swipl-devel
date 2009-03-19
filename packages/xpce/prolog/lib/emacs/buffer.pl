@@ -155,7 +155,7 @@ determine_initial_mode(B) :->
 
 
 %	content_from_mode(+Buffer, -Mode)
-%	
+%
 %	Search Buffer with the patterns from @emacs_content_mode_list
 
 content_from_mode(B, Mode) :-
@@ -390,7 +390,7 @@ check_auto_save(B) :->
 	->  send(B, auto_save)
 	;   true
 	).
-	
+
 
 auto_save_file(B, F:file) :<-
 	get(B, file, File), File \== @nil,
@@ -617,7 +617,7 @@ properties(Buffer, V:view) :<-
 		 /*******************************
 		 *	      MODE		*
 		 *******************************/
-	
+
 mode(B, Mode:name) :->
 	"Switch to named mode"::
 	(   get(B, mode, Mode)
@@ -631,7 +631,7 @@ mode(B, Mode:name) :->
 		 *       LANGUAGE SUPPORT	*
 		 *******************************/
 
-%	emacs_buffer<-name_and_arity returns the name and arity if the 
+%	emacs_buffer<-name_and_arity returns the name and arity if the
 %	caret is in the functor of the term.  If the arity cannot be
 %	determines, arity is returned as @default.
 
@@ -674,5 +674,5 @@ count_args(TB, Here, NAT, A0, A) :-
 	).
 
 :- pce_end_class.
-	
-	
+
+

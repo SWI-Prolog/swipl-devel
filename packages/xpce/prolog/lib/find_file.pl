@@ -70,7 +70,7 @@ See <-file below for all optios.
 :- pce_global(@finder, new(finder)).
 
 %	register_file_dialog
-%	
+%
 %	If the display doesn't implement <-win_file_name we register the
 %	autoload class find_file_dialog to do the job ourselves.
 
@@ -136,7 +136,7 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	send(D, destroy).
 
 %%	mode(+Exists, -Mode)
-%	
+%
 %	Map old boolean mode to new named mode.
 
 mode(@on,     open).
@@ -146,7 +146,7 @@ mode(save,    save).
 mode(open,    open).
 
 %%	win_filter(+Spec, -Filter)
-%	
+%
 %	Map abstract filter to a filter for `display<-win_file_name'.
 %	See find_file_dialog for details.
 
@@ -186,14 +186,14 @@ to_pattern(Chain, Pattern) :-
 	chain_list(Chain, List),
 	maplist(to_pattern, List, Patterns),
 	atomic_list_concat(Patterns, ';', Pattern).
-	
+
 %%	file_type(?Extension, ?Type) is nondet.
 %
 %	Allow the user to add rules to this predicate, showing proper
 %	names to the user rather than patterns.  The collection here
 %	is rather arbitrary ...  Maybe we should read the registery
 %	for defined filetypes ...
-%	
+%
 %	@tbd	Merge with MIME-type library
 
 :- multifile

@@ -49,7 +49,7 @@ additional argument with options. Currently only one option is defined:
 
     * priority(+Integer)
     If two rules match, take the one with highest priority.  Using
-    priorities is needed because we want to be able to overrule 
+    priorities is needed because we want to be able to overrule
     paths, but we do not want to become dependent on clause ordering.
 
 Here is an example that binds =|/login|=  to login/1. The user can reuse
@@ -88,7 +88,7 @@ http:location(root, Root, []) :-
 %
 %	Path is the HTTP location for the abstract specification Spec.
 %	Options:
-%	
+%
 %	    * relative_to(Base)
 %	    Path is made relative to Base.  Default is to generate
 %	    absolute URLs.
@@ -132,7 +132,7 @@ expand_location(Spec, _Base, Path, Options) :-
 %	condition search, we demand a single  expansion for an alias. An
 %	ambiguous alias results in a printed   warning.  A lacking alias
 %	results in an exception.
-%	
+%
 %	@error	existence_error(http_alias, Alias)
 
 http_location_path(Alias, Path) :-
@@ -186,7 +186,7 @@ relative_to(Base, Local, Path) :-
 	append(BaseDir, LocalSegments, Segments0),
 	clean_segments(Segments0, Segments),
 	path_segments(Path, Segments).
-	
+
 path_segments(Path, Segments) :-
 	atomic_list_concat(Segments, /, Path).
 
@@ -217,7 +217,7 @@ empty_segment('.').
 %%	path_list(+Spec, -List) is det.
 %
 %	Translate seg1/seg2/... into [seg1,seg2,...].
-%	
+%
 %	@error	instantiation_error
 %	@error	type_error(atomic, X)
 

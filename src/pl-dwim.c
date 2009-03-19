@@ -106,7 +106,7 @@ subWord(const char *s, char *store)
     }
     *store++ = *s++;
   }
-}    
+}
 
 static bool
 subwordsTransposed(const char *s1, const char *s2)
@@ -144,7 +144,7 @@ dwimMatch(const char *str1, const char *str2)
 
   if (abs(l1-l2) > 5)				/* speed up a bit */
     fail;
-  
+
   if ( l1 == 0 && l2 == 0 )			return ATOM_equal;
   if ( cl + l1 < 3 || cl + l2 < 3 )
     fail;
@@ -173,7 +173,7 @@ pl_dwim_match(term_t a1, term_t a2, term_t mm)
        (type = dwimMatch(s1, s2)) &&
        PL_unify_atom(mm, type) )
     succeed;
-    
+
   fail;
 }
 
@@ -202,7 +202,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
     fail;
   if ( !PL_get_functor(head, &fdef) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
-  	
+
   if ( ForeignControl(h) == FRG_FIRST_CALL )
     e = newTableEnum(module->procedures);
   else

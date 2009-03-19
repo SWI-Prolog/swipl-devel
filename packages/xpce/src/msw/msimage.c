@@ -98,7 +98,7 @@ ws_destroy_image(Image image)
     if ( r->icon )
       DestroyIcon(r->icon);
     unalloc(sizeof(ws_image), image->ws_ref);
-    
+
     image->ws_ref = NULL;
   }
 
@@ -194,7 +194,7 @@ read_bitmap_info(Image img, IOSTREAM *fd)
 { BITMAPINFOHEADER bmih;
   int rgbquads;
   BITMAPINFO *bmi;
-  
+
   if ( Sfread(&bmih, sizeof(bmih), 1, fd) != 1 )
   { checkErrorSourceSink(img->file, fd);
     return NULL;
@@ -226,7 +226,7 @@ register_colours(BITMAPINFO *bmi)
 
   if ( ncolors )
   { DisplayObj d = CurrentDisplay(NIL);
-    RGBQUAD *colours = (RGBQUAD *)((LPSTR)bmi + (WORD)(bmi->bmiHeader.biSize)); 
+    RGBQUAD *colours = (RGBQUAD *)((LPSTR)bmi + (WORD)(bmi->bmiHeader.biSize));
     int i;
 
     for(i=0; i<ncolors; i++, colours++)
@@ -290,7 +290,7 @@ ws_load_windows_bmp_file(Image image, IOSTREAM *fd)
 
     return checkErrorSourceSink(image->file, fd);
   }
-  
+
   attach_dib_image(image, bmi, aBitmapBits);
   succeed;
 }
@@ -320,7 +320,7 @@ typedef struct
   DWORD	dwImageOffset;        /* where in the file is this image */
 } ICONDIRENTRY, *LPICONDIRENTRY;
 
-typedef struct 
+typedef struct
 { WORD  	idReserved;   /* Reserved */
   WORD  	idType;       /* resource type (1 for icons) */
   WORD  	idCount;      /* how many images? */
@@ -402,7 +402,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
   Sseek(fd, res_offset, SIO_SEEK_SET);
   if ( Sfread(iimg, 1, res_size, fd) != res_size )
     goto error;
-  
+
   hi=CreateIconFromResource((LPBYTE)iimg, res_size, TRUE, 0x00030000);
 
 #else /*LOAD_ICO_FROM_STREAM*/
@@ -438,7 +438,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 					  toInt(info.yHotspot), EAV));
 
       if ( info.hbmColor && GetObject(info.hbmColor, sizeof(bm), &bm) )
-      { HBITMAP copy = CopyImage(info.hbmColor, IMAGE_BITMAP, 
+      { HBITMAP copy = CopyImage(info.hbmColor, IMAGE_BITMAP,
 				 0, 0, LR_COPYRETURNORG);
 	if ( !copy )
 	{ copy = info.hbmColor;
@@ -453,7 +453,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 	registerXrefObject(image, image->display, copy);
       } else
 	iscolor = FALSE;
-      
+
       if ( GetObject(info.hbmMask, sizeof(bm), &bm) )
       { Image mask;
 	HBITMAP copy;
@@ -471,7 +471,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 	  assign(image, depth, ONE);
 	  assign(image->size, w, toInt(w));
 	  assign(image->size, h, toInt(h));
-	  
+
 	  sobm = ZSelectObject(shdc, info.hbmMask); /* source */
 	  dobm = ZSelectObject(dhdc, bimg);         /* dest */
 	  BitBlt(dhdc, 0, 0, w, h, shdc, 0, h, SRCCOPY);
@@ -497,7 +497,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 	  succeed;
 	}
 
-	copy = CopyImage(info.hbmMask, IMAGE_BITMAP, 
+	copy = CopyImage(info.hbmMask, IMAGE_BITMAP,
 				 0, 0, LR_COPYRETURNORG);
 	if ( !copy )
 	{ copy = info.hbmMask;
@@ -522,7 +522,7 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 	DestroyIcon(hi);
       else
       { static int warned = FALSE;
-      
+
 	if ( !warned++ )
 	  Cprintf("Warning: could not copy icon images\n");
       }
@@ -563,7 +563,7 @@ readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
   if ( (size = Ssize(fd)) > 0 )
   { int malloced;
     char *buffer;
-    
+
     if ( size < 10000 )
     { buffer = (char *)alloca(size+1);
       malloced = FALSE;
@@ -624,7 +624,7 @@ ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
   openDisplay(d);
 
   memset(atts, 0, as);
-  
+
 					/* Step 1: hot-stop handling */
   if ( xpminfo->valuemask & XpmHotspot )
   { assign(image, hot_spot, newObject(ClassPoint,
@@ -696,7 +696,7 @@ of that, and left the code for later.  This is the XPMTODIB.
     lp->palNumEntries = pentries;
 
     if ( !(hpal = CreatePalette(lp)) )
-      Cprintf("%s: failed to create colour palette\n", pp(image));	
+      Cprintf("%s: failed to create colour palette\n", pp(image));
 
     pceFree(lp);
   }
@@ -705,7 +705,7 @@ of that, and left the code for later.  This is the XPMTODIB.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Final step. Convert the XpmImage into a Windows bitmap. First select our
 palette, so we can be sure the  proper   colours  will be in the devices
-palette. 
+palette.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   hdc = GetDC(NULL);
@@ -794,7 +794,7 @@ register the colours.
 
   { int w, h;
     unsigned char *data;
-    
+
     if ( (data = read_bitmap_data(fd, &w, &h)) )
     { ws_create_image_from_x11_data(image, data, w, h);
       pceFree(data);
@@ -962,7 +962,7 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     else if ( fmt == NAME_pgm )	pnm_fmt = PNM_PGM;
     else if ( fmt == NAME_ppm )	pnm_fmt = PNM_PPM;
     else fail;
-    
+
     if ( (bm = getXrefObject(image, d)) )
     { IOSTREAM *fd;
 
@@ -1084,7 +1084,7 @@ ws_open_image(Image image, DisplayObj d)
 
   if ( (r=image->ws_ref) && r->data )
   { bm = windows_bitmap_from_bits(image);
-    if ( bm ) 
+    if ( bm )
     { registerXrefObject(image, d, (void *) bm);
 
       succeed;
@@ -1119,7 +1119,7 @@ ws_open_image(Image image, DisplayObj d)
 	assign(image, background, d->background);
       if ( isDefault(image->foreground) )
 	assign(image, foreground, d->foreground);
-      
+
       bm = ZCreateCompatibleBitmap(hdc, w, h);
       GetObject(bm, sizeof(BITMAP), &bitmap);
       assign(image, depth, toInt(bitmap.bmPlanes * bitmap.bmBitsPixel));
@@ -1142,7 +1142,7 @@ ws_open_image(Image image, DisplayObj d)
       succeed;
     }
   }
-  
+
   fail;
 }
 
@@ -1175,7 +1175,7 @@ ws_resize_image(Image image, Int w, Int h)
 	int minh = min(valInt(h), valInt(image->size->h));
 
 	BitBlt(hdcdst, 0, 0, minw, minh, hdcsrc, 0, 0, SRCCOPY);
-      
+
 	ZSelectObject(hdcsrc, osbm);
 	ZSelectObject(hdcdst, odbm);
 	DeleteDC(hdcsrc);
@@ -1217,14 +1217,14 @@ ws_scale_image(Image image, int w, int h)
 	hpal = getPaletteColourMap(d->colour_map);
       else
 	hpal = NULL;
-    
+
       if ( hpal )
       { ohpalsrc = SelectPalette(hdcsrc, hpal, FALSE);
 	RealizePalette(hdcsrc);
 	ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
 	RealizePalette(hdcdst);
       }
-      
+
       osbm = ZSelectObject(hdcsrc, sbm);
        dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
       odbm = ZSelectObject(hdcdst, dbm);
@@ -1234,7 +1234,7 @@ ws_scale_image(Image image, int w, int h)
 		 hdcsrc,
 		 0, 0, valInt(image->size->w), valInt(image->size->h),
 		 SRCCOPY);
-      
+
       ZSelectObject(hdcsrc, osbm);
       ZSelectObject(hdcdst, odbm);
 
@@ -1327,7 +1327,7 @@ ws_scale_image(Image image, int w, int h)
       { ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
 	RealizePalette(hdcdst);
       }
-      
+
       { unsigned int *xindex, *yindex;
 	unsigned int  x, y, xsrc, ysrc;
 
@@ -1359,7 +1359,7 @@ ws_scale_image(Image image, int w, int h)
         pceFree(xindex);
 	pceFree(yindex);
       }
-      
+
       ZSelectObject(hdcsrc, osbm);
       ZSelectObject(hdcdst, odbm);
 
@@ -1554,7 +1554,7 @@ hence the -1 applied to the w and h here.
 	       hdcsrc,
 	       0, 0,
 	       SRCCOPY);
-      
+
 	xform.eM11 = 1.0;
 	xform.eM12 = 0.0;
 	xform.eM21 = 0.0;
@@ -1641,7 +1641,7 @@ ws_prepare_image_mask(Image image)
 
       obm  = ZSelectObject(hdc, bm);
       omsk = ZSelectObject(mhdc, msk);
-    
+
       oldbg = SetBkColor(hdc, RGB(0,0,0));
       oldfg = SetTextColor(hdc, RGB(255,255,255));
       BitBlt(hdc, 0, 0, w, h, mhdc, 0, 0, SRCAND);
@@ -1788,7 +1788,7 @@ mirror_byte(unsigned int b)
     if ( b & 0x01L )
       copy |= 0x01L;
   }
-    
+
   return copy;
 }
 
@@ -1874,7 +1874,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
     DEBUG(NAME_cursor, Cprintf("Got %d bytes image from %s\n",
 			       bytes, pp(im)));
   }
-		   
+
   for(y=0; y<h; y++)
   { c = cbits + y*((w+15)/16);
     d = dbits + y*((dw+15)/16);
@@ -1938,7 +1938,7 @@ ws_icon_from_image(Image img)
     int freemask = FALSE;
     Image image, imask;
     HICON icon;
-  
+
 #ifdef O_SCALE_ICON
     if ( valInt(img->size->w) != iw || valInt(img->size->h) != ih )
       image = get(img, NAME_scale,
@@ -1947,7 +1947,7 @@ ws_icon_from_image(Image img)
     else
 #endif
       image = img;
-  
+
     if ( notNil(image->mask) )
     { if ( image->mask->kind == NAME_pixmap )
       { imask = getMonochromeImage(image->mask);
@@ -1956,11 +1956,11 @@ ws_icon_from_image(Image img)
 	imask = image->mask;
     } else
       imask = black_mask(iw, ih);
-  
+
     if ( isNil(image->display) )
       assign(image, display, CurrentDisplay(NIL));
     assign(imask, display, image->display);
-  
+
 #if 1
   { ICONINFO iinfo;
 
@@ -1983,21 +1983,21 @@ ws_icon_from_image(Image img)
     GetObject(hmsk, sizeof(msk), &msk);
     bmbits  = pceMalloc(ih * bm.bmWidthBytes);
     mskbits = pceMalloc(ih * msk.bmWidthBytes);
-  
+
     GetBitmapBits(hbm,  ih * bm.bmWidthBytes,  bmbits);
     GetBitmapBits(hmsk, ih * msk.bmWidthBytes, mskbits);
-     
+
     icon = CreateIcon(PceHInstance,
 		      iw, ih,
 		      (BYTE)bm.bmPlanes, (BYTE)bm.bmBitsPixel,
 		      mskbits,
 		      bmbits);
-  
+
     pceFree(bmbits);
     pceFree(mskbits);
   }
 #endif
-  
+
     if ( image != img )
       freeObject(image);
     if ( freemask )
@@ -2043,28 +2043,28 @@ Win32 predefined images.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct system_image window_images[] =
-{ { "win_btncorners",	OBM_BTNCORNERS },	
+{ { "win_btncorners",	OBM_BTNCORNERS },
   { "win_btsize", 	OBM_BTSIZE },
-  { "win_check",	OBM_CHECK },	
-  { "win_checkboxes",	OBM_CHECKBOXES },	
-  { "win_close",	OBM_CLOSE },	
-  { "win_combo",	OBM_COMBO },	
-  { "win_dnarrow",	OBM_DNARROW },	
-  { "win_dnarrowd",	OBM_DNARROWD },	
-  { "win_dnarrowi",	OBM_DNARROWI },	
-  { "win_lfarrow",	OBM_LFARROW },	
-  { "win_lfarrowd",	OBM_LFARROWD },	
-  { "win_lfarrowi",	OBM_LFARROWI },	
-  { "win_mnarrow",	OBM_MNARROW },	
+  { "win_check",	OBM_CHECK },
+  { "win_checkboxes",	OBM_CHECKBOXES },
+  { "win_close",	OBM_CLOSE },
+  { "win_combo",	OBM_COMBO },
+  { "win_dnarrow",	OBM_DNARROW },
+  { "win_dnarrowd",	OBM_DNARROWD },
+  { "win_dnarrowi",	OBM_DNARROWI },
+  { "win_lfarrow",	OBM_LFARROW },
+  { "win_lfarrowd",	OBM_LFARROWD },
+  { "win_lfarrowi",	OBM_LFARROWI },
+  { "win_mnarrow",	OBM_MNARROW },
 /* Not supported in NT 4.0
-  { "win_old_close",	OBM_OLD_CLOSE },	
-  { "win_old_dnarrow",	OBM_OLD_DNARROW },	
-  { "win_old_lfarrow",	OBM_OLD_LFARROW },	
-  { "win_old_reduce",	OBM_OLD_REDUCE },	
+  { "win_old_close",	OBM_OLD_CLOSE },
+  { "win_old_dnarrow",	OBM_OLD_DNARROW },
+  { "win_old_lfarrow",	OBM_OLD_LFARROW },
+  { "win_old_reduce",	OBM_OLD_REDUCE },
   { "win_old_restore",	OBM_OLD_RESTORE },
   { "win_old_rgarrow",	OBM_OLD_RGARROW },
   { "win_old_uparrow",	OBM_OLD_UPARROW },
-  { "win_old_zoom",	OBM_OLD_ZOOM }, 
+  { "win_old_zoom",	OBM_OLD_ZOOM },
 */
   { "win_reduce",	OBM_REDUCE },
   { "win_reduced",	OBM_REDUCED },
@@ -2076,7 +2076,7 @@ static struct system_image window_images[] =
   { "win_size",		OBM_SIZE },
   { "win_uparrow",	OBM_UPARROW },
   { "win_uparrowd",	OBM_UPARROWD },
-  { "win_uparrowi",	OBM_UPARROWI },	
+  { "win_uparrowi",	OBM_UPARROWI },
   { "win_zoom",		OBM_ZOOM },
   { "win_zoomd",	OBM_ZOOMD },
   { NULL,		0 }

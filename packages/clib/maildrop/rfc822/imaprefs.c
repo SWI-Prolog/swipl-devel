@@ -475,7 +475,7 @@ struct imap_refmsg *rfc822_threadgetroot(struct imap_refmsgtable *mt)
 }
 
 /*
-** 
+**
 **       (3) Prune dummy messages from the thread tree.  Traverse each
 **        thread under the root, and for each message:
 */

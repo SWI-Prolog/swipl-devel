@@ -53,7 +53,7 @@ process is cached to achieve optimal performance.
 %
 %	True if Request contains the   information to continue according
 %	to Type. Type identifies the required authentication technique:
-%	
+%
 %		* basic(+PasswordFile)
 %		Use HTTP =Basic= authetication and verify the password
 %		from PasswordFile. PasswordFile is a file holding
@@ -62,23 +62,23 @@ process is cached to achieve optimal performance.
 %		separated fields. The first field is the username and
 %		the second the password _hash_.  Password hashes are
 %		validated using crypt/2.
-%		
+%
 %	Successful authorization is  cached  for   60  seconds  to avoid
 %	overhead of decoding and lookup of the user and password data.
-%	
+%
 %	http_authenticate/3 just validates the  header. If authorization
 %	is not provided the browser must   be challenged, in response to
 %	which it normally opens a   user-password dialogue. Example code
 %	realising this is below. The exception   causes the HTTP wrapper
 %	code to generate an HTTP 401 reply.
-%	
+%
 %	==
 %	(   http_authenticate(basic(passwd), Request, Fields)
 %	->  true
 %	;   throw(http_reply(authorise(basic, Realm)))
 %	).
 %	==
-%	
+%
 %	@tbd	Should we also cache failures to reduce the risc of
 %		DoS attacks?
 
@@ -107,7 +107,7 @@ user_and_passwd(Text, Method, User, Password) :-
 	phrase(authorization(Method, Cookie), Codes),
 	phrase(base64(UserPwd), Cookie),
 	phrase(ident(User, Password), UserPwd).
-	
+
 authorization(Method, Cookie) -->
 	nonblanks(MethodChars),
 	{ atom_codes(Method, MethodChars)
@@ -192,7 +192,7 @@ read_passwd_file(Line, Fd, Path) :-
 	),
 	read_line_to_codes(Fd, Line2),
 	read_passwd_file(Line2, Fd, Path).
-	
+
 
 password_line(User, Hash) -->
 	string(UserCodes),

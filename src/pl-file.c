@@ -199,7 +199,7 @@ unaliasStream(IOSTREAM *s, atom_t name)
       if ( (symb=lookupHTable(streamContext, s)) )
       { stream_context *ctx = symb->value;
 	alias **a;
-      
+
 	for(a = &ctx->alias_head; *a; a = &(*a)->next)
 	{ if ( (*a)->name == name )
 	  { alias *tmp = *a;
@@ -415,7 +415,7 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
 	LOCK();
 	symb = lookupHTable(streamContext, p);
 	UNLOCK();
-	
+
 	if ( !symb )
 	  goto noent;
       }
@@ -446,10 +446,10 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
       { stream = LD->IO.streams[n];
       } else
 	stream = symb->value;
-	
+
       if ( !(flags & SH_UNLOCKED) )
 	UNLOCK();
-      
+
       if ( stream )
       { if ( (flags & SH_UNLOCKED) )
 	{ if ( stream->magic == SIO_MAGIC )
@@ -466,7 +466,7 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
 
     goto noent;
   }
-      
+
   if ( flags & SH_ERRORS )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
@@ -505,7 +505,7 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   { rval = PL_unify_atom(t, ctx->alias_head->name);
   } else
   { term_t a = PL_new_term_ref();
-    
+
     PL_put_pointer(a, s);
     PL_cons_functor(a, FUNCTOR_dstream1, a);
 
@@ -577,7 +577,7 @@ getOutputStream(term_t t, IOSTREAM **stream)
 
   if ( !PL_get_stream_handle(t, &s) )
     return FALSE;
-  
+
   if ( !(s->flags &SIO_OUTPUT) )
   { releaseStream(s);
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
@@ -675,7 +675,7 @@ reportStreamError(IOSTREAM *s)
 	  op = ATOM_read;
       } else
 	op = ATOM_write;
-  
+
       if ( s->message )
       { msg = s->message;
       } else
@@ -685,7 +685,7 @@ reportStreamError(IOSTREAM *s)
       }
 
       PL_error(NULL, 0, msg, ERR_STREAM_OP, op, stream);
-      
+
       if ( (s->flags & SIO_CLEARERR) )
 	Sseterr(s, SIO_FERR, NULL);
 
@@ -699,7 +699,7 @@ reportStreamError(IOSTREAM *s)
       Sseterr(s, SIO_WARN, NULL);
     }
   }
-  
+
   return TRUE;
 }
 
@@ -974,7 +974,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     } else
     { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_output, to);
     }
-    
+
     ctx->is_stream = FALSE;
     ctx->data = ctx->buffer;
     ctx->size = sizeof(ctx->buffer);
@@ -1020,7 +1020,7 @@ closeOutputRedirect(redir_context *ctx)
     } else
     { diff = tail = 0;
     }
- 
+
     rval = PL_unify_wchars_diff(out, tail, ctx->out_format,
 				ctx->size/sizeof(wchar_t),
 				(wchar_t*)ctx->data);
@@ -1114,7 +1114,7 @@ Sgetcode_intr(IOSTREAM *s, int signals)
   do
   { Sclearerr(s);
     c = Sgetcode(s);
-  } while ( c == -1 && 
+  } while ( c == -1 &&
 	    errno == EINTR &&
 	    (!signals || PL_handle_signals() >= 0)
 	  );
@@ -1131,12 +1131,12 @@ getSingleChar(IOSTREAM *stream, int signals)
 { GET_LD
   int c;
   ttybuf buf;
-    
+
   debugstatus.suspendTrace++;
   Slock(stream);
   Sflush(stream);
   PushTty(stream, &buf, TTY_RAW);	/* just donot prompt */
-  
+
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
   { int c2;
 
@@ -1312,17 +1312,17 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
       if ( aname == ATOM_alias )	/* alias(name) */
       { atom_t alias;
 	int i;
-  
+
 	if ( !PL_get_atom_ex(a, &alias) )
 	  goto error;
-	
+
 	if ( (i=standardStreamIndexFromName(alias)) >= 0 )
 	{ LD->IO.streams[i] = s;
 	  if ( i == 0 )
 	    LD->prompt.next = TRUE;	/* changed standard input: prompt! */
 	  goto ok;
 	}
-  
+
 	LOCK();
 	aliasStream(s, alias);
 	UNLOCK();
@@ -1351,7 +1351,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	goto ok;
       } else if ( aname == ATOM_buffer_size )
       { int size;
-	
+
 	if ( !PL_get_integer_ex(a, &size) )
 	  goto error;
 	if ( size < 1 )
@@ -1418,7 +1418,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
       } else if ( aname == ATOM_timeout )
       { double f;
 	atom_t v;
-	
+
 	if ( PL_get_atom(a, &v) && v == ATOM_infinite )
 	{ s->timeout = -1;
 	  goto ok;
@@ -1525,7 +1525,7 @@ int
 tellString(char **s, size_t *size, IOENC enc)
 { GET_LD
   IOSTREAM *stream;
-  
+
   stream = Sopenmem(s, size, "w");
   stream->encoding = enc;
   pushOutputContext();
@@ -1667,7 +1667,7 @@ PRED_IMPL("wait_for_input", 3, wait_for_input, 0)
   { if ( !PL_get_float(timeout, &time) )
       return PL_error("wait_for_input", 3, NULL,
 		      ERR_TYPE, ATOM_float, timeout);
-  
+
     if ( time >= 0.0 )
     { t.tv_sec  = (int)time;
       t.tv_usec = ((int)(time * 1000000) % 1000000);
@@ -1796,7 +1796,7 @@ skip_cr(IOSTREAM *s)
 }
 
 
-static 
+static
 PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 { PRED_LD
   IOSTREAM *s;
@@ -1832,16 +1832,16 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	if ( !allocList(n, &ctx) )
 	  return FALSE;
-    
+
 	for(i=0; i<n; i++)
 	{ int c = buf[i]&0xff;
-    
+
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
 
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
-    
+
 	  addSmallIntList(&ctx, c);
 	}
 	if ( s->position )
@@ -1868,13 +1868,13 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	{ Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
 	  goto failure;
 	}
-	
+
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
 			  count, n, es-us));
 
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
-    
+
 	for(us=buf,i=0; i<count; i++)
 	{ wchar_t c;
 
@@ -1883,7 +1883,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	    continue;
     	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
-    
+
 	  addSmallIntList(&ctx, c);
 	}
 	if ( s->position )
@@ -1891,7 +1891,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	re_buffer(s, us, es-us);
         break;
-      } 
+      }
       case ENC_UTF8:
       { const char *us = buf;
 	const char *es = buf+n;
@@ -1899,7 +1899,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	while(us<es)
 	{ const char *ec = us + UTF8_FBN(us[0]) + 1;
-	  
+
 	  if ( ec <= es )
 	  { count++;
 	    us=ec;
@@ -1909,10 +1909,10 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
 			  count, n, es-us));
-	
+
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
-    
+
 	for(us=buf,i=0; i<count; i++)
 	{ int c;
 
@@ -1921,7 +1921,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	    continue;
     	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
-    
+
 	  addSmallIntList(&ctx, c);
 	}
 	if ( s->position )
@@ -1938,7 +1938,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
-    
+
 	for(i=0; i<count; us+=2, i++)
 	{ int c;
 
@@ -1948,12 +1948,12 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 	    c = ((us[1]&0xff)<<8)+(us[0]&0xff);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
-    
+
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
-    
+
 	  addSmallIntList(&ctx, c);
-	}	
+	}
 
 	done = count*2;
 	if ( s->position )
@@ -1968,15 +1968,15 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
-    
+
 	for(i=0; i<count; i++)
 	{ int c = ws[i];
-    
+
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
-    
+
 	  addSmallIntList(&ctx, c);
 	}
 
@@ -1994,7 +1994,7 @@ PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
 
     if ( !unifyDiffList(A2, A3, &ctx) )
       goto failure;
-    
+
     releaseStream(s);
     return TRUE;
 
@@ -2014,19 +2014,19 @@ static foreign_t
 put_byte(term_t stream, term_t byte ARG_LD)
 { IOSTREAM *s;
   int c;
-  
+
   if ( !PL_get_integer(byte, &c) || c < 0 || c > 255 )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_byte, byte);
   if ( !getOutputStream(stream, &s) )
     return FALSE;
 
   Sputc(c, s);
-  
+
   return streamStatus(s);
 }
 
 
-static 
+static
 PRED_IMPL("put_byte", 2, put_byte2, 0)
 { PRED_LD
 
@@ -2034,7 +2034,7 @@ PRED_IMPL("put_byte", 2, put_byte2, 0)
 }
 
 
-static 
+static
 PRED_IMPL("put_byte", 1, put_byte1, 0)
 { PRED_LD
 
@@ -2053,12 +2053,12 @@ put_code(term_t stream, term_t chr ARG_LD)
     return FALSE;
 
   Sputcode(c, s);
-  
+
   return streamStatus(s);
 }
 
 
-static 
+static
 PRED_IMPL("put_code", 2, put_code2, 0)
 { PRED_LD
 
@@ -2066,7 +2066,7 @@ PRED_IMPL("put_code", 2, put_code2, 0)
 }
 
 
-static 
+static
 PRED_IMPL("put_code", 1, put_code1, 0)
 { PRED_LD
 
@@ -2074,7 +2074,7 @@ PRED_IMPL("put_code", 1, put_code1, 0)
 }
 
 
-static 
+static
 PRED_IMPL("put", 2, put2, 0)
 { PRED_LD
 
@@ -2082,7 +2082,7 @@ PRED_IMPL("put", 2, put2, 0)
 }
 
 
-static 
+static
 PRED_IMPL("put", 1, put1, 0)
 { PRED_LD
 
@@ -2116,7 +2116,7 @@ get_nonblank(term_t in, term_t chr ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("get", 1, get1, 0)
 { PRED_LD
 
@@ -2124,7 +2124,7 @@ PRED_IMPL("get", 1, get1, 0)
 }
 
 
-static 
+static
 PRED_IMPL("get", 2, get2, 0)
 { PRED_LD
 
@@ -2142,7 +2142,7 @@ skip(term_t in, term_t chr ARG_LD)
     return FALSE;
   if ( !getInputStream(in, &s) )
     return FALSE;
-  
+
   while((r=Sgetcode(s)) != c && r != EOF )
     ;
 
@@ -2150,7 +2150,7 @@ skip(term_t in, term_t chr ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("skip", 1, skip1, 0)
 { PRED_LD
 
@@ -2158,7 +2158,7 @@ PRED_IMPL("skip", 1, skip1, 0)
 }
 
 
-static 
+static
 PRED_IMPL("skip", 2, skip2, 0)
 { PRED_LD
 
@@ -2166,7 +2166,7 @@ PRED_IMPL("skip", 2, skip2, 0)
 }
 
 
-static 
+static
 PRED_IMPL("get_single_char", 1, get_single_char, 0)
 { GET_LD
   IOSTREAM *s = getStream(Suser_input);
@@ -2203,7 +2203,7 @@ get_byte2(term_t in, term_t chr ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("get_byte", 2, get_byte2, 0)
 { PRED_LD
 
@@ -2211,7 +2211,7 @@ PRED_IMPL("get_byte", 2, get_byte2, 0)
 }
 
 
-static 
+static
 PRED_IMPL("get_byte", 1, get_byte1, 0)
 { PRED_LD
 
@@ -2240,14 +2240,14 @@ get_code2(term_t in, term_t chr ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("get_code", 2, get_code2, 0)
 { PRED_LD
   return get_code2(A1, A2 PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("get_code", 1, get_code1, 0)
 { PRED_LD
   return get_code2(0, A1 PASS_LD);
@@ -2275,21 +2275,21 @@ get_char2(term_t in, term_t chr ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("get_char", 2, get_char2, 0)
 { PRED_LD
   return get_char2(A1, A2 PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("get_char", 1, get_char1, 0)
 { PRED_LD
   return get_char2(0, A1 PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("ttyflush", 0, ttyflush, 0)
 { PRED_LD
   IOSTREAM *s = getStream(Suser_output);
@@ -2300,19 +2300,19 @@ PRED_IMPL("ttyflush", 0, ttyflush, 0)
 }
 
 
-static 
+static
 PRED_IMPL("protocol", 1, protocol, 0)
 { return openProtocol(A1, FALSE);
 }
 
 
-static 
+static
 PRED_IMPL("protocola", 1, protocola, 0)
 { return openProtocol(A1, TRUE);
 }
 
 
-static 
+static
 PRED_IMPL("protocolling", 1, protocolling, 0)
 { PRED_LD
   IOSTREAM *s;
@@ -2330,7 +2330,7 @@ PRED_IMPL("protocolling", 1, protocolling, 0)
 }
 
 
-static 
+static
 PRED_IMPL("prompt", 2, prompt, 0)
 { PRED_LD
   atom_t a;
@@ -2366,7 +2366,7 @@ prompt1(atom_t prompt)
 }
 
 
-static 
+static
 PRED_IMPL("prompt1", 1, prompt1, 0)
 { GET_LD
   atom_t a;
@@ -2414,7 +2414,7 @@ tab(term_t out, term_t spaces)
   { if ( Sputcode(' ', s) < 0 )
       break;
   }
-  
+
   return streamStatus(s);
 }
 
@@ -2437,7 +2437,7 @@ PRED_IMPL("tab", 1, tab1, 0)
 static struct encname
 { IOENC  code;
   atom_t name;
-} encoding_names[] = 
+} encoding_names[] =
 { { ENC_UNKNOWN,     ATOM_unknown },
   { ENC_OCTET,       ATOM_octet },
   { ENC_ASCII,       ATOM_ascii },
@@ -2456,7 +2456,7 @@ atom_to_encoding(atom_t a)
 { struct encname *en;
 
   for(en=encoding_names; en->name; en++)
-  { if ( en->name == a ) 
+  { if ( en->name == a )
       return en->code;
   }
 
@@ -2501,7 +2501,7 @@ fn_to_atom(const char *fn)
 
   a = textToAtom(&text);
   PL_free_text(&text);
-  
+
   return a;
 }
 
@@ -2510,7 +2510,7 @@ fn_to_atom(const char *fn)
 		*       STREAM BASED I/O        *
 		*********************************/
 
-static const opt_spec open4_options[] = 
+static const opt_spec open4_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_reposition,     OPT_BOOL },
   { ATOM_alias,	         OPT_ATOM },
@@ -2617,7 +2617,7 @@ openStream(term_t file, term_t mode, term_t options)
       return NULL;
     }
     setFileNameStream(s, fn_to_atom(path));
-  } 
+  }
 #ifdef HAVE_POPEN
   else if ( PL_is_functor(file, FUNCTOR_pipe1) )
   { term_t a = PL_new_term_ref();
@@ -2949,7 +2949,7 @@ PRED_IMPL("close", 1, close, PL_FA_ISO)
 }
 
 
-static const opt_spec close2_options[] = 
+static const opt_spec close2_options[] =
 { { ATOM_force,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -2977,7 +2977,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
   { Sflush(s);
     Sclose(s);
   }
-  
+
   return TRUE;
 }
 
@@ -3040,7 +3040,7 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
   stream_context *ctx = getStreamContext(s);
   int i;
-  
+
   if ( PL_get_atom(prop, &name) )
   { alias *a;
 
@@ -3048,7 +3048,7 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
     { if ( a->name == name )
 	return TRUE;
     }
-    
+
     if ( (i=standardStreamIndexFromName(name)) >= 0 &&
 	 i < 6 &&
 	 s == LD->IO.streams[i] )
@@ -3143,7 +3143,7 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 #endif
   } else
     val = ATOM_false;
-  
+
   return PL_unify_atom(prop, val);
 }
 
@@ -3173,7 +3173,7 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_ISATTY) ) 
+{ if ( (s->flags & SIO_ISATTY) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3182,7 +3182,7 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ if ( (s->flags & SIO_BOM) ) 
+{ if ( (s->flags & SIO_BOM) )
     return PL_unify_bool_ex(prop, TRUE);
 
   return FALSE;
@@ -3191,7 +3191,7 @@ stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 static int
 stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
-{ switch ( s->newline ) 
+{ switch ( s->newline )
   { case SIO_NL_POSIX:
     case SIO_NL_DETECT:
       return PL_unify_atom(prop, ATOM_posix);
@@ -3243,7 +3243,7 @@ static int
 stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( (s->flags & SIO_NBUF) )
     return FALSE;
-    
+
   return PL_unify_integer(prop, s->bufsize);
 }
 
@@ -3252,7 +3252,7 @@ static int
 stream_timeout_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->timeout == -1 )
     return PL_unify_atom(prop, ATOM_infinite);
-  
+
   return PL_unify_float(prop, (double)s->timeout/1000.0);
 }
 
@@ -3328,7 +3328,7 @@ PRED_IMPL("stream_property", 2, stream_property,
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       a1 = PL_new_term_ref();
-      
+
       if ( PL_is_variable(stream) )	/* generate */
       {	const sprop *p = sprop_list;
 	int fixed = FALSE;
@@ -3352,7 +3352,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 	pe->s = NULL;
 	pe->p = p;
 	pe->fixed_p = fixed;
-	
+
 	break;
       }
 
@@ -3409,7 +3409,7 @@ PRED_IMPL("stream_property", 2, stream_property,
     case FRG_REDO:
     { pe = CTX_PTR;
       a1 = PL_new_term_ref();
-      
+
       break;
     }
     case FRG_CUTTED:
@@ -3434,7 +3434,7 @@ PRED_IMPL("stream_property", 2, stream_property,
   for(;;)
   { if ( pe->s )				/* given stream */
     { fid_t fid2;
-  
+
       if ( PL_is_variable(stream) )
       { if ( !PL_unify_stream(stream, pe->s) )
 	  goto enum_e;
@@ -3475,7 +3475,7 @@ PRED_IMPL("stream_property", 2, stream_property,
       PL_close_foreign_frame(fid2);
       pe->s = NULL;
     }
-  
+
   enum_e:
     if ( pe->e )
     { Symbol symb;
@@ -3488,7 +3488,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 	    pe->p = sprop_list;
 	  break;
 	}
-      } 
+      }
     }
 
     if ( !pe->s )
@@ -3502,7 +3502,7 @@ PRED_IMPL("stream_property", 2, stream_property,
 }
 
 
-static 
+static
 PRED_IMPL("is_stream", 1, is_stream, 0)
 { GET_LD
   IOSTREAM *s;
@@ -3606,7 +3606,7 @@ PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
        !PL_get_arg(2, pos, a) ||
        !PL_get_long(a, &lineno) ||
        !PL_get_arg(3, pos, a) ||
-       !PL_get_long(a, &linepos) || 
+       !PL_get_long(a, &linepos) ||
        !PL_get_arg(4, pos, a) ||
        !PL_get_int64(a, &byteno) )
   { releaseStream(s);
@@ -3653,7 +3653,7 @@ PRED_IMPL("seek", 4, seek, 0)
     whence = SIO_SEEK_END;
   else
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_seek_method, method);
-  
+
   if ( !PL_get_int64(offset, &off) )
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
@@ -3796,7 +3796,7 @@ PRED_IMPL("source_location", 2, source_location, 0)
        PL_unify_atom(A1, source_file_name) &&
        PL_unify_integer(A2, source_line_no) )
     return TRUE;
-  
+
   return FALSE;
 }
 
@@ -3813,7 +3813,7 @@ at_end_of_stream(term_t stream ARG_LD)
 	       ATOM_end_of_stream, ATOM_stream, stream);
       rval = FALSE;
     }
-    
+
     if ( rval && Sferror(s) )		/* due to error */
       return streamStatus(s);
     else
@@ -3866,42 +3866,42 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("peek_byte", 2, peek_byte2, 0)
 { PRED_LD
   return peek(A1, A2, PL_BYTE PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("peek_byte", 1, peek_byte1, 0)
 { PRED_LD
   return peek(0, A1, PL_BYTE PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("peek_code", 2, peek_code2, 0)
 { PRED_LD
   return peek(A1, A2, PL_CODE PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("peek_code", 1, peek_code1, 0)
 { PRED_LD
   return peek(0, A1, PL_CODE PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("peek_char", 2, peek_char2, 0)
 { PRED_LD
   return peek(A1, A2, PL_CHAR PASS_LD);
 }
 
 
-static 
+static
 PRED_IMPL("peek_char", 1, peek_char1, 0)
 { PRED_LD
   return peek(0, A1, PL_CHAR PASS_LD);
@@ -3955,7 +3955,7 @@ closeWrappedIO(void *handle)
     rval = (*wio->wrapped_functions->close)(wio->wrapped_handle);
   else
     rval = 0;
-  
+
   wio->wrapped_stream->functions = wio->wrapped_functions;
   wio->wrapped_stream->handle = wio->wrapped_handle;
   PL_free(wio);
@@ -4083,7 +4083,7 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
 
     if ( !PL_get_int64_ex(len, &n) )
       return FALSE;
-    
+
     while ( n-- > 0 && (c = Sgetcode(i)) != EOF )
     { if ( (++count % 4096) == 0 && PL_handle_signals() < 0 )
       { releaseStream(i);

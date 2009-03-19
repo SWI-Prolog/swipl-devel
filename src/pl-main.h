@@ -39,7 +39,7 @@ typedef struct
   bool notty;				/* use tty? */
   char *arch;				/* machine/OS we are using */
   char *home;				/* systems home directory */
-} pl_defaults_t; 
+} pl_defaults_t;
 
 typedef struct
 { intptr_t		localSize;		/* size of local stack */

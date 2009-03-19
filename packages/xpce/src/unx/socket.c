@@ -91,7 +91,7 @@ typedef struct
   char  *description;
 } wsock_err;
 
-static wsock_err wsock_err_list[] = 
+static wsock_err wsock_err_list[] =
 { { WSAEACCES, "Permission denied" },
   { WSAEADDRINUSE, "Address already in use" },
   { WSAEADDRNOTAVAIL, "Cannot assign requested address" },
@@ -185,7 +185,7 @@ setupSockets(void)
 { static int initialised = 0;
 
   if ( !initialised )
-  { 
+  {
 #ifdef HAVE_WINSOCK
     WSADATA data;
 #ifdef USE_WINSOCK2
@@ -247,7 +247,7 @@ static void
 registerSocket(Socket s)		/* do not influence GC */
 { unsigned long flags = s->flags;
   unsigned long refs  = s->references;
-  
+
   appendChain(SocketChain, s);
   s->flags      = flags;
   s->references = refs;
@@ -258,7 +258,7 @@ static void
 unregisterSocket(Socket s)
 { unsigned long flags = s->flags;
   unsigned long refs  = s->references;
-  
+
   addCodeReference(s);			/* avoid drop-out */
   deleteChain(SocketChain, s);
 
@@ -362,7 +362,7 @@ static status
 createSocket(Socket s)
 { if ( SocketHandle(s) == INVALID_SOCKET )
   { int domain;
-   
+
     closeSocket(s);
 
     if ( s->domain == NAME_unix )
@@ -377,7 +377,7 @@ createSocket(Socket s)
 
 #ifdef HAVE_WINSOCK
   { SOCKET mss;
-    
+
     if ( (mss=socket(domain, SOCK_STREAM, 0)) == INVALID_SOCKET )
       return errorPce(s, NAME_socket, NAME_create, SockError());
 
@@ -401,7 +401,7 @@ unix_address_socket(Socket s, struct sockaddr_un *address, unsigned int *len)
 
   if ( !name )
     fail;
-  
+
   path = strName(name);
   address->sun_family = PF_UNIX;
   *len = strlen(path)+1;
@@ -435,7 +435,7 @@ inet_address_socket(Socket s, struct sockaddr_in *address, int *len)
 
     if ( !(hp = gethostbyname(strName(hostname))) )
       return errorPce(s, NAME_noHost, hostname);
-	 
+
     address->sin_port = htons((unsigned short)valInt(port));
     memcpy(&address->sin_addr, hp->h_addr, hp->h_length);
   } else if ( isInteger(s->address) )	/* server */
@@ -505,7 +505,7 @@ bindSocket(Socket s, Bool reuse)
 
   succeed;
 }
-  
+
 
 status
 acceptSocket(Socket s)
@@ -520,7 +520,7 @@ acceptSocket(Socket s)
 
     if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
       errorPce(s, NAME_socket, NAME_accept, SockError());
- 
+
     client_address = s->address;
   } else /*if ( s->domain == NAME_inet )*/
 #endif
@@ -533,21 +533,21 @@ acceptSocket(Socket s)
 
     if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
       errorPce(s, NAME_socket, NAME_accept, SockError());
- 
+
     { struct hostent *hp;
 
       if ( (hp = gethostbyaddr((char *)&address.sin_addr,
 			       sizeof(address.sin_addr),
 			       AF_INET)) )
 	client_address = newObject(ClassTuple,
-				   CtoName(hp->h_name), 
+				   CtoName(hp->h_name),
 				   toInt(address.sin_port),
 				   EAV);
       else
 	client_address = NIL;
     }
   }
-  
+
   if ( !(s2 = get(s, NAME_clone, EAV)) )
     return errorPce(s, NAME_failedToClone);
 
@@ -659,7 +659,7 @@ connectSocket(Socket s)
 
 static Any
 getPeerNameSocket(Socket s)
-{ 
+{
 #ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un *address;
@@ -691,7 +691,7 @@ getPeerNameSocket(Socket s)
     { errorPce(s, NAME_socket, NAME_peerName, SockError());
       fail;
     }
-    
+
     port = address.sin_port;
     addr = htonl(address.sin_addr.s_addr); /* TBD */
     sprintf(aname, "%d.%d.%d.%d",
@@ -743,7 +743,7 @@ closeSocket(Socket s)
 
   assign(s, status, NAME_idle);
   unregisterSocket(s);
-  
+
   succeed;
 }
 
@@ -811,7 +811,7 @@ static getdecl get_socket[] =
 #define rc_socket NULL
 /*
 static classvardecl rc_socket[] =
-{ 
+{
 };
 */
 

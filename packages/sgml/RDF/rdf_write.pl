@@ -109,7 +109,7 @@ rdf_write_header(Out, Triples) :-
 	;   true
 	),
 	format(Out, '>~n', []).
-	
+
 
 xml_encoding(Out, Enc, Encoding) :-
 	stream_property(Out, encoding(Enc)),
@@ -179,7 +179,7 @@ resources([rdf(S,P,O)|T]) -->
 	[S,P],
 	object_resources(O),
 	resources(T).
-	
+
 object_resources(Atom) -->
 	{ atom(Atom) }, !,
 	[ Atom ].
@@ -372,7 +372,7 @@ save_attributes(Triples, DefNS, Out, NodeIDs, Element, Indent, Anon) :-
 	).
 
 %	split_attributes(+Triples, -HeadAttrs, -BodyAttr)
-%	
+%
 %	Split attribute (Name=Value) list into attributes for the head
 %	and body. Attributes can only be in the head if they are literal
 %	and appear only one time in the attribute list.
@@ -383,7 +383,7 @@ split_attributes(Triples, HeadAttr, BodyAttr) :-
 	append(Dupls, Rest, BodyAttr).
 
 %	duplicate_attributes(+Attrs, -Duplicates, -Singles)
-%	
+%
 %	Extract attributes that appear more than onces as we cannot
 %	dublicate an attribute in the head according to the XML rules.
 
@@ -424,7 +424,7 @@ in_tag_attribute(rdf(_,P,literal(Text))) :-
 	Len < 60,
 	\+ is_bag_li_predicate(P).
 
-       
+
 %	save_attributes(+List, +DefNS, +TagOrBody, +Out, +NodeIDs, +Indent, +Anon)
 %
 %	Save a list of attributes.
@@ -542,7 +542,7 @@ rdf_save_list(ListTriples, Out, List, NodeIDs, DefNS, Indent, Anon) :-
 %%	rdf_p_id(+Resource, +DefNS, -NSLocal)
 %
 %	As rdf_id/3 for predicate names.  Maps _:<N> to rdf:li.
-%	
+%
 %	@tbd	Ensure we are talking about an rdf:Bag
 
 rdf_p_id(LI, _, 'rdf:li') :-
@@ -561,7 +561,7 @@ is_bag_li_predicate(Pred) :-
 
 
 %%	rdf_id(+Resource, +DefNS, -NSLocal)
-%	
+%
 %	Generate a NS:Local name for Resource given the indicated
 %	default namespace.  This call is used for elements.
 
@@ -595,12 +595,12 @@ rdf_att_id(Id, _, Id).
 
 
 %%	rdf_value(+Resource, -Text, +Encoding)
-%	
+%
 %	According  to  "6.4  RDF  URI  References"  of  the  RDF  Syntax
 %	specification, a URI reference is  UNICODE string not containing
 %	control sequences, represented as  UTF-8   and  then  as escaped
 %	US-ASCII.
-%	
+%
 %	NOTE: the to_be_described/1 trick  ensures   entity  rewrite  in
 %	resources that start with 'http://t-d-b.org?'. This   is  a of a
 %	hack to save the artchive data   in  the MultimediaN project. We

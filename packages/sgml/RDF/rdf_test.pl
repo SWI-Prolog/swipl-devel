@@ -37,7 +37,7 @@ user:file_search_path(foreign, ..).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Test file for the SWI-Prolog RDF parser.  Toplevel predicates:
 
-	# test/0		
+	# test/0
 	Run all tests from the `suite' directory and validate the
 	the result if the correct result is stored in a .ok file.
 
@@ -47,7 +47,7 @@ Test file for the SWI-Prolog RDF parser.  Toplevel predicates:
 
 	# passed(N)
 	Parse suite/t<N>.rdf and save the result in suite/t<N>.ok
-	
+
 The intention is to write  tests,  use   suite/1  to  make sure they are
 parsed correctly and then run passed/1 to   save  the correct answer, so
 running test/0 can validate all results.

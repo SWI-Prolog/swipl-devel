@@ -66,12 +66,12 @@ g_restore()
   { errorPce(NAME_gRestore, NAME_nestMisMatch);
     return;
   }
-  
+
   r_thickness(gs->thickness);
   r_dash(gs->texture);
   r_colour(gs->foreground);
   r_background(gs->background);
-  
+
   statelist = gs->savedstate;
   unalloc(sizeof(struct graphics_state), gs);
 }

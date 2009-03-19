@@ -82,7 +82,7 @@ displayError(Error e, int argc, Any *argv)
   { string s;
 
     str_writefv(&s, (CharArray) e->format, argc, argv);
-	
+
     if ( e->kind == NAME_inform || e->kind == NAME_status )
       Cprintf("[PCE: ");
     else
@@ -106,7 +106,7 @@ displayError(Error e, int argc, Any *argv)
 #endif
     Cprintf("]\n");
   }
-  
+
   succeed;
 }
 
@@ -177,7 +177,7 @@ static getdecl get_error[] =
 #define rc_error NULL
 /*
 static classvardecl rc_error[] =
-{ 
+{
 };
 */
 

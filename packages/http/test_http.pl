@@ -39,7 +39,7 @@ test(gollem_chunked, true(Codes == Ref)) :-
      read_stream_to_codes(In, Codes),
      close(In),
      chunked_data(Ref).
-     
+
 :- end_tests(http_open).
 
 :- begin_tests(http_get).

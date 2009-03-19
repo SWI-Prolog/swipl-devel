@@ -114,7 +114,7 @@ findHome(const char *symbols, int argc, const char **argv)
   char envbuf[MAXPATHLEN];
   char plp[MAXPATHLEN];
   const char *val;
-  
+
   if ( (val=longopt("home", argc, argv)) )
   { if ( (home=PrologPath(val, plp, sizeof(plp))) )
       return store_string(home);
@@ -261,7 +261,7 @@ setupGNUEmacsInferiorMode()
     val = TRUE;
   } else
   { val = FALSE;
-  } 
+  }
 
   PL_set_prolog_flag("emacs_inferior_process", PL_BOOL|FF_READONLY, val);
 }
@@ -278,11 +278,11 @@ initPaths(int argc, const char **argv)
     if ( !(symbols = findExecutable(argv[0], plp1)) ||
 	 !(symbols = DeRefLink(symbols, plp)) )
       symbols = argv[0];
-  
+
     DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
-  
+
     systemDefaults.home	       = findHome(symbols, argc, argv);
-  
+
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
     symbols = findExecutable(NULL, plp);
@@ -438,7 +438,7 @@ static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { int argc = argc0;
 
-  
+
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
@@ -506,7 +506,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'A':
 	case 'H':
         { uintptr_t size = memarea_limit(&s[1]);
-	  
+
 	  if ( size == MEMAREA_INVALID_SIZE )
 	    return -1;
 
@@ -572,7 +572,7 @@ openResourceDB(int argc, char **argv)
   int n;
 
   if ( !GD->bootsession )
-  { 
+  {
 #ifdef __WINDOWS__
     if ( GD->paths.module &&
 	 !streq(GD->paths.module, GD->paths.executable) &&
@@ -582,7 +582,7 @@ openResourceDB(int argc, char **argv)
     if ( (rc = rc_open_archive(GD->paths.executable, flags)) )
       return rc;
   }
-  
+
   for(n=0; n<argc-1; n++)
   { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
     { if ( argv[n][1] == '-' )
@@ -590,12 +590,12 @@ openResourceDB(int argc, char **argv)
       if ( GD->bootsession )
       { if ( argv[n][1] == 'o' )
 	{ xfile = argv[n+1];
-	  break; 
+	  break;
 	}
       } else
       { if ( argv[n][1] == 'x' )
 	{ xfile = argv[n+1];
-	  break; 
+	  break;
 	}
       }
     }
@@ -840,7 +840,7 @@ PL_initialise(int argc, char **argv)
   GD->cmdline._c_argc = -1;
   DEBUG(1,
   { int i;
-    
+
     Sdprintf("argv =");
     for(i=0; i<argc; i++)
       Sdprintf(" %s", argv[i]);
@@ -930,7 +930,7 @@ properly on Linux. Don't bother with it.
     { PL_halt(1);
     }
     if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
-    { 
+    {
 #ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
 #else
@@ -1075,7 +1075,7 @@ runtime_vars(int format)
   char version[20];
 
   if ( systemDefaults.home )
-  { 
+  {
 #ifdef O_XOS
     if ( format == FMT_CMD )
     { _xos_os_filename(systemDefaults.home, base, MAXPATHLEN);
@@ -1384,7 +1384,7 @@ vfatalError(const char *fm, va_list args)
   Ssprintf(msg, "[FATAL ERROR:\n\t");
   Svsprintf(&msg[strlen(msg)], fm, args);
   Ssprintf(&msg[strlen(msg)], "]");
-  
+
   PlMessage(msg);
 #else
   Sfprintf(Serror, "[FATAL ERROR:\n\t");
@@ -1422,7 +1422,7 @@ vwarning(const char *fm, va_list args)
       term_t head = PL_new_term_ref();
 
       Svsprintf(message, fm, args);
-      
+
       for(;;)
       { char *eol = strchr(s, '\n');
 

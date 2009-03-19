@@ -119,7 +119,7 @@ show_note(_, Note:graphical) :->
 	send(W, focus, W, C, @nil, @nil),
 	get(@event, position, @display, Pos),
 	send(W, open, Pos, @on).
-	
+
 :- dynamic
 	showing/1.		% actually we should use the frame for this
 

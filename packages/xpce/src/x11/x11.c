@@ -53,7 +53,7 @@ status
 ws_show_console(Name how)
 { fail;
 }
- 
+
 
 status
 ws_console_label(CharArray label)

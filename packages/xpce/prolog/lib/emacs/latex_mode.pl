@@ -198,7 +198,7 @@ open_document(M, Style:'{article,report,book,letter}|name') :->
 
 insert_section_header(E) :->
 	"Insert LaTeX section header"::
-	send(E, insert, 
+	send(E, insert,
 '		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %               C		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -355,4 +355,4 @@ make_command(M, Cmd:'latex_command_name|name') :->
 	"Insert a \\command sequence with completion"::
 	send(M, format, '\\\\%s', Cmd).
 
-:- emacs_end_mode. 
+:- emacs_end_mode.

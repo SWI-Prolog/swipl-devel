@@ -73,7 +73,7 @@ merge_choices([C0|CT], Call, T) :-
 	merge_choices(CT, Call, T).
 merge_choices([C0|CT], Call, [C0|T]) :-
 	merge_choices(CT, Call, T).
-	
+
 %%	level_tag_frames(+Frames, -TaggedFrames) is det.
 %
 %	Tag each frame with its recursion level.  Must run in the context
@@ -90,7 +90,7 @@ frame_level(frame(F, _), L) :-
 %%	assign_y(+TaggedFrames, +Y0, +FrameHeight, -Rows) is det.
 %
 %	Combine all frames (tagged with level) of the same level.
-%	
+%
 %	@param Rows	List of Y-ListOfFrames
 
 assign_y([], _, _, []).
@@ -261,7 +261,7 @@ up(B, Times:[int]) :->
 	;   step(N, B, parent, V, V2)
 	),
 	send(V2, select, @on).
-	
+
 
 step(0, _, _, V, V) :- !.
 step(N, B, child, V, V2) :-

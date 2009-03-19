@@ -57,7 +57,7 @@ typedef short int		code_int;	/* was int */
 typedef long int		count_int;
 typedef unsigned char pixval;
 
-static int 
+static int
 ReadColorMap(IOSTREAM *fd, int number,
 	     GIFAllocColorTable at, GIFAllocColor ac, void *closure);
 static int DoExtension(IOSTREAM *fd, int label,
@@ -276,7 +276,7 @@ GIFReadFD(IOSTREAM *fd,
 }
 
 
-static int 
+static int
 ReadColorMap(IOSTREAM *fd, int number,
 	     GIFAllocColorTable at, GIFAllocColor ac, void *closure)
 { int i;
@@ -285,11 +285,11 @@ ReadColorMap(IOSTREAM *fd, int number,
 
   if ( (rval=(*at)(number, closure)) != GIF_OK )
     return rval;
-  
+
   for (i = 0; i < number; ++i)
   { if (!ReadOK(fd, rgb, sizeof(rgb)))
       return GIF_INVALID;
-    
+
     rval = (*ac)(i, rgb[0], rgb[1], rgb[2], closure);
 
     if ( rval != GIF_OK )
@@ -300,7 +300,7 @@ ReadColorMap(IOSTREAM *fd, int number,
 }
 
 
-static int 
+static int
 DoExtension(IOSTREAM * fd, int label, GIFDoExtension doext, void *cl)
 {
   static char buf[256];
@@ -349,7 +349,7 @@ DoExtension(IOSTREAM * fd, int label, GIFDoExtension doext, void *cl)
 
 static int ZeroDataBlock = FALSE;
 
-static int 
+static int
 GetDataBlock(IOSTREAM * fd, UCHAR * buf)
 {
   UCHAR count;
@@ -369,7 +369,7 @@ GetDataBlock(IOSTREAM * fd, UCHAR * buf)
   return count;
 }
 
-static int 
+static int
 GetCode(IOSTREAM * fd, int code_size, int flag)
 {
   static UCHAR buf[280];
@@ -416,7 +416,7 @@ GetCode(IOSTREAM * fd, int code_size, int flag)
   return ret;
 }
 
-static int 
+static int
 LZWReadByte(IOSTREAM * fd, int flag, int input_code_size)
 {
   static int fresh = FALSE;
@@ -561,14 +561,14 @@ ReadImage(IOSTREAM *fd,
   { return GIF_INVALID;
   }
   while ((color = LZWReadByte(fd, FALSE, c)) >= 0)
-  { 
+  {
     curidx = (long) xpos + (long) ypos *(long) width; /* optimize */
 
     bigMemBuf[curidx] = color;
 
     ++xpos;
     if (xpos == width)
-    { 
+    {
       xpos = 0;
       if ( interlace )
       {

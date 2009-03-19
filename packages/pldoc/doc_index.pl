@@ -158,7 +158,7 @@ file_indices([], _) -->
 file_indices([H|T], Options) -->
 	file_index(H, Options),
 	file_indices(T, Options).
-	
+
 %%	file_index(+File, +Options)// is det.
 %
 %	Create an index for File.
@@ -217,7 +217,7 @@ doc_file_href(File, HREF, _) :-
 %
 %	Create a /doc HREF from Path.  There   are  some nasty things we
 %	should take care of.
-%	
+%
 %		* Windows paths may start with =|L:|= (mapped to =|/L:|=)
 %		* Paths may contain spaces and other weird stuff
 
@@ -248,7 +248,7 @@ object_summaries(Objects, Section, Options) -->
 	  keysort(Tagged, Ordered)
 	},
 	obj_summaries(Ordered, Section, Options).
-	
+
 obj_summaries([], _, _) -->
 	[].
 obj_summaries([_Tag-H|T], Section, Options) -->
@@ -268,7 +268,7 @@ tag_pub_priv([H|T0], [Tag-H|T], Options) :-
 %
 %	Create a summary for Object.  Summary consists of a link to
 %	the Object and a summary text as a table-row.
-%	
+%
 %	@tbd	Hacky interface.  Do we demand Summary to be in Wiki?
 
 object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
@@ -302,7 +302,7 @@ object_summary(_, _, _) -->
 		 /*******************************
 		 *	    NAVIGATION		*
 		 *******************************/
-	       
+
 %%	doc_links(+Directory, +Options)// is det.
 %
 %	Provide overview links and search facilities.
@@ -354,7 +354,7 @@ source_dir_menu(Dir) -->
 		    select(name(dir),
 			   \source_dirs(Dirs, Dir))
 		  ])).
-	     
+
 source_dirs([], _) -->
 	[].
 source_dirs([H|T], WD) -->
@@ -367,7 +367,7 @@ source_dirs([H|T], WD) -->
 	  format(string(Call), 'document.location=\'~w\';', [HREF])
 	},
 	html(option([onClick(Call)|Attrs], H)),
-	source_dirs(T, WD).	
+	source_dirs(T, WD).
 
 %%	source_directory(+Dir) is semidet.
 %%	source_directory(-Dir) is det.

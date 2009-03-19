@@ -82,7 +82,7 @@ get_short_ex(term_t t, short *p)
     return type_error(t, "integer");
   if ( v < SHRT_MIN || v > SHRT_MAX )
     return domain_error(t, "short integer");
-  
+
   *p = (short)v;
 
   return TRUE;
@@ -138,7 +138,7 @@ p_getrand(term_t state)
 }
 
 
-install_t 
+install_t
 install_random()
 { FUNCTOR_rand3 = PL_new_functor(PL_new_atom("rand"), 3);
 

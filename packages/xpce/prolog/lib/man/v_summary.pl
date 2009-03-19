@@ -54,7 +54,7 @@ variable(displayed_attribute, name, get,
 :- pce_autoload(drag_and_drop_dict_item_gesture, library(dragdict)).
 :- pce_global(@man_drag_and_drop_objects,
 	      make_man_drag_and_drop_objects).
-	
+
 make_man_drag_and_drop_objects(G) :-
 	new(G, drag_and_drop_dict_item_gesture),
 	send(G, get_source, @arg1?object).

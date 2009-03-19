@@ -152,7 +152,7 @@
 /*#define HAVE_TMPNAM 1*/
 
 /* Define if you have the on_exit function.  */
-#undef HAVE_ON_EXIT 
+#undef HAVE_ON_EXIT
 
 /* Define if you have the atexit function.  */
 #define HAVE_ATEXIT 1

@@ -49,18 +49,18 @@ RedrawAreaTextCursor(TextCursor c, Area a)
   if ( c->style == NAME_arrow )
   { int cx = x+w/2;			/* TBD: consider r_caret()! */
     ipoint pts[3];
-    
+
     r_thickness(1);
     r_dash(NAME_none);
     r_line(cx, y, cx, y+h-1);
-    
+
     pts[0].x = x;
     pts[0].y = y+h;
     pts[1].x = x + w;
     pts[1].y = y+h;
     pts[2].x = cx;
     pts[2].y = y + h - (h+2)/3;
-    
+
     r_fillpattern(c->active == ON ? BLACK_IMAGE : GREY50_IMAGE,
 		  NAME_foreground);
     r_fill_polygon(pts, 3);
@@ -83,7 +83,7 @@ RedrawAreaTextCursor(TextCursor c, Area a)
       pts[i].x = x;   pts[i].y = cy;  i++;
       pts[i].x = cx;  pts[i].y = y+h; i++;
       pts[i].x = x+w; pts[i].y = cy;  i++;
-      
+
       r_fillpattern(GREY50_IMAGE, NAME_foreground);
       r_fill_polygon(pts, i);
     }
@@ -175,7 +175,7 @@ imageTextCursor(TextCursor c, Image image, Point hot)
 	assign(c, hot_spot, hot);
 	assign(c, style,    NAME_image);
 	changedEntireImageGraphical(c));
-  
+
   succeed;
 }
 
@@ -217,7 +217,7 @@ static senddecl send_textCursor[] =
 #define get_textCursor NULL
 /*
 static getdecl get_textCursor[] =
-{ 
+{
 };
 */
 

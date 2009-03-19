@@ -58,7 +58,7 @@ create_threads(N, G, [Id|T]) :-
 	thread_create(G, Id, []),
 	N2 is N - 1,
 	create_threads(N2, G, T).
-	
+
 wait([]).
 wait([H|T]) :-
 	thread_join(H, Result),
@@ -152,7 +152,7 @@ random_actions(N) :-
 %%	do(+Operation, +Subject, +Predicate, +Object, +Graph) is det.
 %
 %	Execute an operation on Graph.
-%	
+%
 %	@tbd	Test update
 
 do(1, S, P, O, G) :-

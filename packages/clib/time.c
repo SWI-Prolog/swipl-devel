@@ -60,7 +60,7 @@ with winmm.lib
 
 #include <windows.h>
 #include <sys/timeb.h>
-#if (_MSC_VER < 1400) 
+#if (_MSC_VER < 1400)
 typedef DWORD DWORD_PTR;
 #endif
 
@@ -131,10 +131,10 @@ print_trace (void)
   size_t size;
   char **strings;
   size_t i;
-     
+
   size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
-     
+
 #ifdef _REENTRANT
   Sdprintf("on_alarm() Prolog-context [thread %d]:\n", PL_thread_self());
 #else
@@ -143,12 +143,12 @@ print_trace (void)
   PL_action(PL_ACTION_BACKTRACE, 3);
 
   Sdprintf("on_alarm() C-context:\n");
-  
+
   for(i = 0; i < size; i++)
   { if ( !strstr(strings[i], "checkData") )
       Sdprintf("\t[%d] %s\n", i, strings[i]);
   }
-       
+
   free(strings);
 }
 #endif /*BACKTRACE*/
@@ -168,7 +168,7 @@ The module contains three implementations:
 
 	* Windows
 	The Windows versions is based on multimedia timer objects.
-	
+
 	* Unix setitimer (single threaded)
 	This implementation uses setitimer() and SIGALRM.  Whenever
 	something is changed, re_schedule() is called to set the
@@ -388,7 +388,7 @@ callEvent(Event ev)
 { term_t goal = PL_new_term_ref();
 
   ev->flags |= EV_DONE;
-    
+
   PL_recorded(ev->goal, goal);
   PL_call_predicate(ev->module,
 		    PL_Q_PASS_EXCEPTION,
@@ -400,7 +400,7 @@ callEvent(Event ev)
 
 static void
 cleanupHandler()
-{ 
+{
 #ifndef __WINDOWS__
   struct itimerval v;
 
@@ -495,7 +495,7 @@ installEvent(Event ev)
 
     return TRUE;
   }
-    
+
   return ERR_RESOURCE;
 }
 
@@ -684,7 +684,7 @@ re_schedule()
 { struct itimerval v;
   Event ev;
   schedule *sched = TheSchedule();
-  
+
   for(ev=sched->first; ev; ev = ev->next)
   { struct timeval now;
     struct timeval left;
@@ -706,7 +706,7 @@ re_schedule()
 
       callEvent(ev);		/* Time has passed.  What about exceptions? */
 
-      continue;		
+      continue;
     }
 
     sched->scheduled = ev;	/* This is the scheduled one */
@@ -852,7 +852,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   struct timeval tv;
   module_t m = NULL;
   unsigned long flags = 0L;
-    
+
   if ( options )
   { term_t tail = PL_copy_term_ref(options);
     term_t head = PL_new_term_ref();
@@ -892,7 +892,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   if ( !PL_get_float(time, &t) )
     return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
 		    time, "number");
-		    
+
   gettimeofday(&tv, NULL);
   tv.tv_usec += (long)((t-floor(t))*1000000);
   tv.tv_sec  += (long)t;
@@ -993,7 +993,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
       s = ATOM_next;
     else
       s = ATOM_scheduled;
-    
+
     if ( !PL_unify_atom(status, s) )
       goto nomatch;
 
@@ -1010,7 +1010,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
     if ( !unify_timer(id, ev) )
       goto nomatch;
-      
+
     PL_discard_foreign_frame(fid);
 
     PL_put_float(av+0, at);		/* time */

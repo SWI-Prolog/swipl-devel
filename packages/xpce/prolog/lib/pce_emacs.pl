@@ -60,7 +60,7 @@ extended in Prolog.
 */
 
 %%	start_emacs is det.
-%	
+%
 %	Create PceEmacs, but no buffers nor windows.
 
 start_emacs :-
@@ -69,7 +69,7 @@ start_emacs :-
 
 
 %	register_emacs/0
-%	
+%
 %	If the user has not specified a specific editor and has started
 %	PceEmacs, make it the default editor.
 
@@ -81,7 +81,7 @@ register_emacs :-
 
 
 %%	emacs_server is det.
-%	
+%
 %	Create a PceEmacs, ready to run as an unattended background
 %	server.
 
@@ -91,19 +91,19 @@ emacs_server :-
 	send(@pce, console_label, 'PceEmacs Server').
 
 %%	emacs is det.
-%	
+%
 %	Create PceEmacs and open the *scratch* buffer.
 
 emacs :-
 	start_emacs,
 	new(Scratch, emacs_buffer(@nil, '*scratch*')),
 	send(Scratch, open).
-	
+
 %%	emacs(+Location) is det.
-%	
+%
 %	Create PceEmacs and edit Location. If   Location  is of the type
 %	File:Line, edit File at the given Line
-%	
+%
 %	@param Location	place to edit.  Either a file or File:Line term.
 
 emacs(File:Line) :-
@@ -116,7 +116,7 @@ emacs(File) :-
 	send(@emacs, goto_source_location, source_location(File)).
 
 %%	emacs_toplevel is det.
-%	
+%
 %	Prepare to run PceEmacs as a stand-alone executable.
 
 emacs_toplevel :-

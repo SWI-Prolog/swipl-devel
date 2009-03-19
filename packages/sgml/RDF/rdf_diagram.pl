@@ -35,7 +35,7 @@ tool to show RDF from simple RDF files.
 		 *******************************/
 
 %	rdf_diagram_from_file(+File)
-%	
+%
 %	Show the triples from File in a window.
 
 rdf_diagram_from_file(File) :-
@@ -103,7 +103,7 @@ append(D, Triple:prolog) :->
 	    ignore(send(D, report, error,
 			'Failed to display triple: %s', Atom))
 	).
-	
+
 triples(D, Triples:prolog) :->
 	"Show disgram from Prolog triples"::
 	send(D, clear),
@@ -178,7 +178,7 @@ copy_location(_D, Obj:graphical, From:rdf_diagram, Subst:prolog) :->
 	    )
 	;   true
 	).
-	
+
 find(D, Name, _Subst, Obj) :-
 	get(D, member, Name, Obj).
 find(D, Name, Subst, Obj) :-
@@ -233,7 +233,7 @@ initialise(F, Ref:name) :->
 	"Create visualisation"::
 	send_super(F, initialise),
 	send(F, name, Ref).
-	
+
 connect(F, Pred:name, Object:graphical) :->
         new(_C, rdf_connection(F, Object, Pred, F)).
 
@@ -251,7 +251,7 @@ make_rdf_any_recogniser(G) :-
 popup(_F, Popup:popup) :<-
 	"Create popup menu"::
 	Popup = @rdf_any_popup.
-	
+
 make_rdf_any_popup(Popup) :-
 	new(Popup, popup),
 	Gr = @arg1,
@@ -328,7 +328,7 @@ terminate(G, Ev:event) :->
 	ignore(send(G, drag, Ev)),
 	get(G, outline, Outline),
 	send(Outline, device, @nil),
-	get(Outline?area?position, difference, G?origin, Offset),	
+	get(Outline?area?position, difference, G?origin, Offset),
 	get(G, network, Network),
 	send(Network, for_all, message(@arg1, relative_move, Offset)),
 	send(G, network, @nil).
@@ -374,7 +374,7 @@ event(F, Ev:event) :->
 
 identify(L) :->
 	send(L, report, status, '%s', L?resource).
-	     
+
 :- pce_end_class.
 
 
@@ -476,7 +476,7 @@ is_type(rdf(_, Pred, _)) :-		% our parser
 	atom_concat(NS, type, Pred), !.
 
 %	local_name(+Resource, -Label)
-%	
+%
 %	Return easy readable local name
 
 local_name(Resource, Local) :-
@@ -489,4 +489,4 @@ local_name(Resource, Local) :-
 	file_base_name(Resource, Local),
 	Local \== ''.
 local_name(Resource, Resource).
-	
+

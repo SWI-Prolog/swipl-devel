@@ -83,7 +83,7 @@ RedrawAreaFigure(Figure f, Area area)
     obg = r_background(bg);
   else
     obg = NULL;
-  
+
   RedrawAreaDevice((Device) f, area);
 
   if ( obg )
@@ -152,7 +152,7 @@ statusFigure(Figure f, Name stat)
   } else
   { for_cell(cell, f->graphicals)
     { Graphical gr = cell->value;
-    
+
       DisplayedGraphical(gr, gr->name == stat ? ON : OFF);
     }
     assign(f, status, stat);
@@ -183,7 +183,7 @@ nextStatusFigure(Figure f)
 	gr2 = (Graphical) f->graphicals->head->value;
 
       return statusFigure(f, gr2->name);
-    }      
+    }
   }
 
   fail;
@@ -200,7 +200,7 @@ backgroundFigure(Figure f, Image bg)
 								 isNil(bg) ? DEFAULT : bg));
 		       changedEntireImageGraphical(f));
   }
-  
+
   succeed;
 }
 
@@ -210,7 +210,7 @@ clipAreaFigure(Device f, Area a)
 { assign(f, badBoundingBox, ON);
   assign(f, clip_area, a);
   requestComputeDevice(f, DEFAULT);
-  
+
   succeed;
 }
 
@@ -337,7 +337,7 @@ makeClassFigure(Class class)
 	     "slot=name", "value=any",
 	     "Translate old shadow into elevation",
 	     convertOldSlotFigure);
-	
+
   getMethod(class, NAME_clipArea, NAME_scroll, "area", 0,
 	    "Clip area associated with figure",
 	    getClipAreaFigure);

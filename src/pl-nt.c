@@ -78,7 +78,7 @@ PlMessage(const char *fm, ...)
 { va_list(args);
 
   va_start(args, fm);
-  
+
   if ( hasConsole() )
   { Sfprintf(Serror, "SWI-Prolog: ");
     Svfprintf(Serror, fm, args);
@@ -159,12 +159,12 @@ Pause(double t)
 					 QS_ALLINPUT);
       if ( rc == WAIT_OBJECT_0+1 )
       { MSG msg;
-	
+
 	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
 	{ TranslateMessage(&msg);
 	  DispatchMessage(&msg);
 	}
-	
+
 	if ( PL_handle_signals() < 0 )
 	{ CloseHandle(h);
 	  return FALSE;
@@ -186,7 +186,7 @@ Pause(double t)
     }
     if ( msecs > 0 )
       Sleep(msecs);
-    
+
     return TRUE;
   }
 }
@@ -342,7 +342,7 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
   wcmd = PL_malloc((len+1)*sizeof(wchar_t));
   memcpy(wcmd, cmd, len*sizeof(wchar_t));
   wcmd[len] = 0;
-  
+
   rval = CreateProcessW(NULL,		/* app */
 			wcmd,
 			NULL, NULL,	/* security */
@@ -361,7 +361,7 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
     succeed;
   } else
   { term_t tmp = PL_new_term_ref();
-      
+
     PL_unify_wchars(tmp, PL_ATOM, len, cmd);
     return PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
   }
@@ -452,7 +452,7 @@ typedef struct
   const char *message;
 } shell_error;
 
-static const shell_error se_errors[] = 
+static const shell_error se_errors[] =
 { { 0 ,                     "Out of memory or resources" },
   { ERROR_FILE_NOT_FOUND,   "File not found" },
   { ERROR_PATH_NOT_FOUND,   "path not found" },
@@ -465,12 +465,12 @@ static const shell_error se_errors[] =
   { SE_ERR_DLLNOTFOUND,	    "DLL not found" },
   { SE_ERR_FNF,		    "File not found (FNF)" },
   { SE_ERR_NOASSOC, 	    "No association" },
-  { SE_ERR_OOM,		    "Not enough memory" }, 
+  { SE_ERR_OOM,		    "Not enough memory" },
   { SE_ERR_PNF,		    "Path not found (PNF)" },
   { SE_ERR_SHARE,	    "Sharing violation" },
   { 0,			    NULL }
 };
- 
+
 
 static int
 win_shell(term_t op, term_t file, term_t how)
@@ -483,7 +483,7 @@ win_shell(term_t op, term_t file, term_t how)
        !PL_get_wchars(file, &lf, &f, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
        !get_showCmd(how, &h) )
     fail;
-       
+
   instance = ShellExecuteW(NULL, o, f, NULL, NULL, h);
 
   if ( (intptr_t)instance <= 32 )
@@ -600,7 +600,7 @@ dlsym(void *handle, char *symbol)
   { dlmsg = "No Error";
     return addr;
   }
-  
+
   dlmsg = WinError();
   return NULL;
 }
@@ -666,7 +666,7 @@ static const folderid folderids[] =
 static int
 unify_csidl_path(term_t t, int csidl)
 { wchar_t buf[MAX_PATH];
-	      
+
   if ( SHGetSpecialFolderPathW(0, buf, csidl, FALSE) )
   { wchar_t *p;
 
@@ -797,7 +797,7 @@ reg_open_key(const wchar_t *which, int create)
 #define MAXREGSTRLEN 1024
 
 static
-PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0) 
+PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
@@ -866,7 +866,7 @@ setStacksFromKey(HKEY key)
 							ERROR_SUCCESS &&
 	 type == REG_DWORD )
     { DWORD v = *((DWORD *)data);
-      
+
       *rd->address = (int)v;
     }
   }
@@ -899,7 +899,7 @@ getDefaultsFromRegistry()
 BeginPredDefs(win)
   PRED_DEF("win_shell", 2, win_shell2, 0)
   PRED_DEF("win_shell", 3, win_shell3, 0)
-  PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0) 
+  PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0)
   PRED_DEF("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
 EndPredDefs
 

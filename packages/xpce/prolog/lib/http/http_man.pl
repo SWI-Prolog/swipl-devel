@@ -88,7 +88,7 @@ request(HTTPD, Request:sheet) :->
 
 log(connect(Peer)) :- !,
 	(   send(Peer, instance_of, tuple)
-	->  send(@pce, format, 'New connection from %s:%s\n', 
+	->  send(@pce, format, 'New connection from %s:%s\n',
 		 Peer?first, Peer?second)
 	;   send(@pce, format, 'New connection from %s\n', Peer)
 	).
@@ -229,7 +229,7 @@ description(Obj) -->
 	  get(String, value, HTML)
 	},
 	[HTML].
-	
+
 
 classtable(Class) -->
 	html_begin(table(border(2),
@@ -338,7 +338,7 @@ group(Group, Members) -->
 	html([ \group_header(Group),
 	       dl(\behaviour_clusters(List))
 	     ]).
-	       
+
 
 group_header(Group) -->
 	{ group_summary(Group, Summary), !,
@@ -361,7 +361,7 @@ behaviour_clusters([H|T]) -->
 	       dd(\description(First))
 	     ]),
 	behaviour_clusters(T).
-	
+
 headlines([]) -->
 	[].
 headlines([H]) --> !,
@@ -384,7 +384,7 @@ reply('/inherit', Form, HTTPD) :-
 	get(Form, value, class, Class),
 	make_diagram([Class], Dia),
 	send(HTTPD, reply, Dia).
-	
+
 
 :- dynamic
 	saved_diagram/2.
@@ -446,7 +446,7 @@ classhierarchy(Root, Cookie) -->
 				      gen_subclass, hierarchy_class_name,
 				      Cookie)
 		    ])
-	     ]).	       
+	     ]).
 
 hierarchy_class_name(Name) -->
 	{ www_form_encode(Name, Encoded),
@@ -472,7 +472,7 @@ reply('/man', Form, HTTPD) :-
 	    man_search:object_from_id(Id, Object)
 	),
 	send(HTTPD, reply_html, pce_http_man:objpage(Object)).
-	
+
 objpage(Object) -->
 	page([title('XPCE Manual')],
 	     [\objdoc(Object)
@@ -540,7 +540,7 @@ headline(V) -->
 	     ]).
 headline(V) -->
 	objref(V).
-	       
+
 contextclass(SM) -->
 	{ get(SM, context, Class),
 	  send(Class, instance_of, class)
@@ -565,7 +565,7 @@ argv(Method) -->
 	  get(Argv, size, Size)
 	},
 	argv(1, Size, Argv).
-	
+
 argv(I, AC, V) -->
 	{ I =< AC, !,
 	  get(V, element, I, Type)
@@ -748,7 +748,7 @@ search_result(Id) -->
 		    td(Summary)
 		  ])
 	     ]).
-	
+
 
 search_index(Index) :-
 	object(Index), !.
@@ -773,7 +773,7 @@ about -->
 	page([ title('About the XPCE Web manual')
 	     ],
 	     [ h3('About the XPCE Web manual'),
-	       
+
 	       p(\['The XPCE Web-manual is based on the built-in XPCE online ',
 		   'manual started using the <b>manpce/0</b> predicate.']),
 	       p(\['This manual can be read from the main XPCE site or installed ',
@@ -800,7 +800,7 @@ top -->
 		   font(size(-1), em(\info))
 		 ])
 	     ]).
-		       
+
 
 link(URL, Name) -->
 	html([ '[', a([ href(URL), target(description) ], Name), ']' ]).
@@ -912,7 +912,7 @@ type_vector(T) -->
 	[ '...' ].
 type_vector(_) -->
 	[].
-       
+
 type_supers(T) -->
 	{ get(T, supers, Supers), Supers \== @nil,
 	  chain_list(Supers, L)

@@ -127,7 +127,7 @@ json_write_indent(term_t stream, term_t indent, term_t tab)
 
   if ( PL_get_stream_handle(stream, &out) )
   { int rc = TRUE;
-    
+
     if ( !out->position || out->position->linepos > 0 )
     { TRYPUTC('\n', out);
     }

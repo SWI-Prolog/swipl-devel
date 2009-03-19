@@ -83,7 +83,7 @@ typedef struct ar_context
 #define GMP_LEAK_CHECK(g) g
 #else
 #define GMP_LEAK_CHECK(g)
-#endif 
+#endif
 
 #define AR_CTX	ar_context __PL_ar_ctx = {0};
 #define AR_BEGIN() \

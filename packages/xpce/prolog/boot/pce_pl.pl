@@ -57,7 +57,7 @@ property(register_source_locations).	% register the source locations
 property(string).			% Supports string datatype
 property(runtime) :-
 	get(@(pce), is_runtime_system, @(on)).
-	
+
 
 		 /*******************************
 		 *	     ERRORS		*
@@ -125,7 +125,7 @@ init_pce :-
 
 %	We must declare this here as boot/english/pce_messages.pl is
 %	not yet loaded.
-%	
+%
 %	Right now the message is not printed from here but directly from
 %	pl/src/interface.c.
 

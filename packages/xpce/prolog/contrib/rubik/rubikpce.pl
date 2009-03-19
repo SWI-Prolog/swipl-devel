@@ -126,7 +126,7 @@ timer_action(Frame):-
 	    (retract(do_pause(Frame))->stop_timer(Frame);true),
 	    send_cube(Frame,Step),
 	    refresh(Frame)
-	  );(	
+	  );(
 	    assert(steplist(Frame,Steps)),
 	    display_cube(Frame,Step)
 	  )
@@ -447,7 +447,7 @@ simple_pos2draw(3/FromCol,3/ToCol,u/1,Steps):-
 	Steps is FromCol - ToCol.
 simple_pos2draw(3/FromCol,3/ToCol,u/ -1,Steps):-
 	Steps is ToCol - FromCol.
-	
+
 % turn_pos(+Pos,+N,?RotPos) will rotate the cube from 0 to 3 times clockwise.
 turn_pos(Pos,0,Pos).
 turn_pos(Pos,1,RotPos):-

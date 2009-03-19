@@ -34,7 +34,7 @@ typedef struct
   int	calls;				/* # calls */
   char *name;				/* id name */
 } prof_record;
-  
+
 extern ticks		pentium_clock(void);
 extern void		prof_report(void);
 extern void		reset_profile();
@@ -59,7 +59,7 @@ extern ticks		prof_ticks;
 #define START_PROF(Id, Name) \
 	prof_current = &prof_data[Id]; \
 	prof_current->name = Name; \
-	prof_ticks = pentium_clock(); 
+	prof_ticks = pentium_clock();
 #define END_PROF() \
 	if ( prof_current ) \
 	{ ticks t = pentium_clock() - prof_ticks; \
@@ -87,5 +87,5 @@ extern ticks		prof_ticks;
 #define END_PROF()
 
 #endif /*O_PROF_PENTIUM*/
-	
+
 #endif /*PROF_H_INCLUDED*/

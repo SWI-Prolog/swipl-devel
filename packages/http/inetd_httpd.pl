@@ -39,7 +39,7 @@
 	server_loop(:, +).
 
 %%	http_server(:Goal, +Options)
-%	
+%
 %	Start the server from inetd. This is really easy as user_input
 %	is connected to the HTTP input and user_output is the place to
 %	write our reply to.

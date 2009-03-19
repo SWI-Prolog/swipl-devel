@@ -141,7 +141,7 @@ initialise(E, Type:name, Key:name) :->
 	send(E, value, type, Type),
 	send(E, value, key, Key).
 
-	
+
 parse_attribute(E, TB:text_buffer, Here:number) :->
 	"Parse attribute-value pair"::
 	send(@bibtex_att_regex, match, TB, Here),

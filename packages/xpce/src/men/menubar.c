@@ -152,7 +152,7 @@ static status
 showPopupMenuBar(MenuBar mb, PopupObj p)
 { Button b = getButtonMenuBar(mb, p);
   Point pos = tempObject(ClassPoint, b->area->x, mb->area->h, EAV);
-  
+
   if ( notNil(mb->current) && mb->current->displayed == ON )
     send(mb->current, NAME_close, EAV);
   currentMenuBar(mb, p);
@@ -231,7 +231,7 @@ keyMenuBar(MenuBar mb, Name key)
 					/* show popup if matching key */
   for_cell(cell, mb->buttons)
   { Button b = cell->value;
-    
+
     if ( b->active == ON && b->accelerator == key )
     { PceWindow sw = getWindowGraphical((Graphical)mb);
 
@@ -341,13 +341,13 @@ eventMenuBar(MenuBar mb, EventObj ev)
       } else
       { /*PceWindow sw = ev->window;*/
 	PceWindow sw = getWindowGraphical((Graphical)mb);
-      
+
 	postEvent(ev, (Graphical)current, DEFAULT);
 
 	if ( mb->current->displayed == OFF )
 	{ grabPointerWindow(sw, OFF);
 	  focusWindow(sw, NIL, NIL, NIL, NIL);
-  
+
 	  if ( notNil(mb->current->selected_item) )
 	  { assign(mb, current, NIL);
 	    send(current, NAME_execute, mb, EAV);
@@ -425,11 +425,11 @@ geometryMenuBar(MenuBar mb, Int x, Int y, Int w, Int h)
     { cx += extragap;
       extragap = 0;
     }
-	
+
     assign(b->area, x, toInt(cx));
     cx += valInt(b->area->w) + gap;
   }
-    
+
   if ( cx )
     cx -= gap;
 
@@ -492,7 +492,7 @@ appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
     send(p, NAME_format, getSlotObject(mb, NAME_format), EAV);
     requestComputeGraphical(mb, DEFAULT);
   }
-  
+
   succeed;
 }
 
@@ -531,7 +531,7 @@ activeMemberMenuBar(MenuBar mb, PopupObj p, Bool val)
 	assign(p, active, val);
         changedMenuBarButton(mb, p));
   }
-  
+
   succeed;
 }
 

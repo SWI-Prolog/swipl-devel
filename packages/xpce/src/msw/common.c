@@ -174,7 +174,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   { setLastEventTime((ulong) GetTickCount());
 
     return answerObject(ClassEvent,
-			id, 
+			id,
 			window,
 			x, y,
 			buttons,

@@ -139,7 +139,7 @@ typedef struct
   DWORD		console_thread_id;	/* I/O thread id */
   DWORD		application_thread_id;
   HWND		kill_window;		/* window in app thread for destroy */
-  
+
   user_data	values[MAX_USER_VALUES]; /* associated user data */
 } rlc_data, *RlcData;
 

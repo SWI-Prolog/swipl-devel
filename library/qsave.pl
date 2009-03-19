@@ -323,7 +323,7 @@ save_module(M, SaveClass) :-
 	;   '$qlf_end_part',
 	    feedback('~n', [])
 	).
-	
+
 pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
 	    strip_module(Head, M, _).
 pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
@@ -332,7 +332,7 @@ pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)
 	attrib_name(Attrib, AttName, Val),
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).
-	
+
 attrib_name(dynamic,	   dynamic,	  1).
 attrib_name(volatile,	   volatile,	  1).
 attrib_name(thread_local,  thread_local,  1).
@@ -360,7 +360,7 @@ save_attributes(P) :-
 	    fail
 	;   true
 	).
-	    
+
 %	Save status of the unknown flag
 
 save_unknown(M) :-
@@ -424,7 +424,7 @@ save_imports :-
 	    '$add_directive_wic'(qsave:restore_import(M, I, F/A)),
 	    fail
 	;   true
-	).	    
+	).
 
 %%	restore_import(+TargetModule, +SourceModule, +PI) is det.
 %
@@ -574,7 +574,7 @@ option(List, Name/_Default, Value, Rest) :- % goal(Goal)
 	Term =.. [Name, Value],
 	select(Term, List, Rest), !.
 option(List, _Name/Default, Default, List).
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Option checking and exception generation.  This should be in a library!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -625,7 +625,7 @@ check_type(ground, V) :-
 	ground(V).
 check_type(bool, true).
 check_type(bool, false).
-	
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/

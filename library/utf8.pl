@@ -34,16 +34,16 @@
 	  ]).
 
 %%	utf8_codes(?Codes)// is det.
-%	
+%
 %	DCG translating between  a  Unicode   code-list  and  its  UTF-8
 %	encoded  byte-string.  The  DCG  works   two  ways.  Encoding  a
 %	code-list to a UTF-8 byte string is achieved using
-%	
+%
 %		phrase(utf8_codes(Codes), UTF8)
-%		
+%
 %	The  algorithm  is  a  close  copy    of  the  C-algorithm  used
 %	internally and defined in src/pl-utf8.c
-%	
+%
 %	NOTE: in many  cases  you  can   avoid  this  library  and leave
 %	encoding and decoding to I/O streams. If   only part of the data
 %	is to be encoded the  encoding  of   a  stream  can  be switched
@@ -126,7 +126,7 @@ utf8_code(C) -->
 	    },
 	    [C0,C1,C2,C3,C4,C5]
 	).
-	     
+
 utf8_cont(Val, Shift) -->
 	[C],
 	{ C/\0xc0 =:= 0x80,

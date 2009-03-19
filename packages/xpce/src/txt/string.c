@@ -141,10 +141,10 @@ promoteString(StringObj s)
     str_inithdr(&ws, TRUE);
     ws.size = s->data.size;
     str_alloc(&ws);
-    
+
     for(t=ws.s_textW; f<e;)
       *t++ = *f++;
-    
+
     s->data = ws;
   }
 }
@@ -184,7 +184,7 @@ getCopyString(StringObj s)
 
 static StringObj
 convertString(Class class, Any obj)
-{ if ( instanceOfObject(obj, ClassString) ) 
+{ if ( instanceOfObject(obj, ClassString) )
     answer((StringObj) obj);
   else if ( instanceOfObject(obj, ClassCharArray) )
     answer(answerObject(ClassString, name_procent_s, obj, EAV));
@@ -627,7 +627,7 @@ getSubString(StringObj n, Int start, Int end)
     s.s_textA = &n->data.s_textA[x];
   else
     s.s_textW = &n->data.s_textW[x];
-  
+
   answer(StringToString(&s));
 }
 
@@ -658,7 +658,7 @@ static char *T_ensureSuffix[] =
 #define var_string NULL
 /*
 vardecl var_string[] =
-{ 
+{
 };
 */
 
@@ -719,7 +719,7 @@ static getdecl get_string[] =
 #define rc_string NULL
 /*
 static classvardecl rc_string[] =
-{ 
+{
 };
 */
 

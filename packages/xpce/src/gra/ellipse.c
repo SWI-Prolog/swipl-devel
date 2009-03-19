@@ -95,7 +95,7 @@ static senddecl send_ellipse[] =
 #define get_ellipse NULL
 /*
 static getdecl get_ellipse[] =
-{ 
+{
 };
 */
 

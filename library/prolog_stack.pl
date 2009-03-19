@@ -52,14 +52,14 @@ subject to change.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace)
-%	
+%
 %	Return a Prolog structure representing a backtrace from the
 %	current location.  The backtrace is a list of frames.  Each
 %	frame is represented as one of
-%	
+%
 %		* frame(Level, Clause, PC)
 %		* frame(Level, foreign(Name/Arity), foreign)
-%	
+%
 %	MaxDepth defines the maximum number of frames returned.
 
 get_prolog_backtrace(MaxDepth, Stack) :-
@@ -96,7 +96,7 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
-%	
+%
 %	Print a stacktrace in human readable form.
 
 print_prolog_backtrace(Stream, Backtrace) :-
@@ -158,7 +158,7 @@ clause_predicate_name(Clause, PredName) :-
 
 
 %%	backtrace(+MaxDepth)
-%	
+%
 %	Get and print a stacktrace to the user_error stream.
 
 backtrace(MaxDepth) :-

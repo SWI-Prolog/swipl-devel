@@ -98,7 +98,7 @@ static char *T_keyAany_valueAany[] =
 #define var_chainTable NULL
 /*
 static vardecl var_chainTable[] =
-{ 
+{
 };
 */
 
@@ -120,7 +120,7 @@ static senddecl send_chainTable[] =
 #define get_chainTable NULL
 /*
 static getdecl get_chainTable[] =
-{ 
+{
 };
 */
 
@@ -129,7 +129,7 @@ static getdecl get_chainTable[] =
 #define rc_chainTable NULL
 /*
 static classvardecl rc_chainTable[] =
-{ 
+{
 };
 */
 

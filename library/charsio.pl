@@ -42,7 +42,7 @@
 	    with_output_to_chars/2,	% :Goal, -Codes
 	    with_output_to_chars/3,	% :Goal, -Codes, ?Tail
 	    with_output_to_chars/4	% :Goal, -Stream, -Codes, ?Tail
-	  ]). 
+	  ]).
 :- use_module(library(error)).
 
 :- meta_predicate
@@ -94,7 +94,7 @@ write_to_chars(Term, Codes, Tail) :-
 %%	atom_to_chars(+Atom, -Codes) is det.
 %
 %	Convert Atom into a list of character codes.
-%	
+%
 %	@deprecated	Use ISO atom_codes/2.
 
 atom_to_chars(Atom, Codes) :-
@@ -110,7 +110,7 @@ atom_to_chars(Atom, Codes, Tail) :-
 %%	number_to_chars(+Number, -Codes) is det.
 %
 %	Convert Atom into a list of character codes.
-%	
+%
 %	@deprecated	Use ISO number_codes/2.
 
 number_to_chars(Number, Codes) :-
@@ -127,7 +127,7 @@ number_to_chars(Number, Codes, Tail) :-
 %%	read_from_chars(+Codes, -Term) is det.
 %
 %	Read Codes into Term.
-%	
+%
 %	@compat	The SWI-Prolog version does not require Codes to end
 %		in a full-stop.
 
@@ -138,7 +138,7 @@ read_from_chars(List, Term) :-
 %%	open_chars_stream(+Codes, -Stream) is det.
 %
 %	Open Codes as an input stream.
-%	
+%
 %	@bug	Depends on autoloading library(memfile).  As many
 %		applications do not need this predicate we do not
 %		wat to make the entire library dependent on autoloading.

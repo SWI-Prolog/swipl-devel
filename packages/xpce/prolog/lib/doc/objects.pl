@@ -58,7 +58,7 @@ For example:
 :- pce_global(@hfill_rubber,	new(rubber(3, 100))).
 :- pce_global(@hfill,		new(hbox(rubber := @hfill_rubber))).
 :- pce_global(@quote_margin,	new(hbox(0, 0, 0, rubber(3, 100, 0)))).
-:- pce_global(@quote_rubber,	new(rubber(3, 800, 0))).	  
+:- pce_global(@quote_rubber,	new(rubber(3, 800, 0))).
 :- pce_global(@nbsp,		new(tbox(' '))).
 :- pce_global(@symbol_style,	new(style(font := symbol))).
 

@@ -142,7 +142,7 @@ table_of_cell(TableCell cell)
 
   if ( isNil(tab) )
     fail;
-  
+
   answer(tab);
 }
 
@@ -157,7 +157,7 @@ getRowTable(Table tab, Any y, Bool create)
 
     if ( isNil(row) )
       row = FAIL;
-  
+
     if ( !row && create == ON )
     { elementVector(tab->rows, y, (row=newObject(ClassTableRow, EAV)));
       assign(row, table, tab);
@@ -178,13 +178,13 @@ getColumnTable(Table tab, Any x, Bool create)
 
     if ( isNil(col) )
       col = FAIL;
-  
+
     if ( !col && create == ON )
     { elementVector(tab->columns, x, (col=newObject(ClassTableColumn, EAV)));
       assign(col, table, tab);
       assign(col, index, x);
     }
-  
+
     return col;
   }
 
@@ -264,7 +264,7 @@ getColumnRangeTable(Table tab)
 { int cmin, cmax;
 
   table_column_range(tab, &cmin, &cmax);
-  
+
   answer(answerObject(ClassTuple, toInt(cmin), toInt(cmax), EAV));
 }
 
@@ -274,7 +274,7 @@ getRowRangeTable(Table tab)
 { int rmin, rmax;
 
   table_row_range(tab, &rmin, &rmax);
-  
+
   answer(answerObject(ClassTuple, toInt(rmin), toInt(rmax), EAV));
 }
 
@@ -358,7 +358,7 @@ this to the incremental  garbage  collector,   but  graphicals  use many
 cyclic structures, which are  not  handled   correctly  by  the  garbage
 collector.  For now we will destroy them if they are not locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
- 
+
 static status
 removeCellImageTable(Table tab, TableCell cell, Bool keep)
 { Graphical gr = cell->image;
@@ -381,10 +381,10 @@ deleteCellTable(Table tab, TableCell cell, Bool keep)
     int x, y;
 
     removeCellImageTable(tab, cell, keep);
-  
+
     for(y=valInt(cell->row); y<ty; y++)
     { TableRow row = getRowTable(tab, toInt(y), OFF);
-      
+
       if ( row )
       { for(x=valInt(cell->column); x<tx; x++)
 	  elementVector((Vector)row, toInt(x), NIL);
@@ -558,7 +558,7 @@ deleteRowsTable(Table tab, Int from, Int to, Bool keep)
   if ( f == rmin && t == rmax )		/* full delete */
   { for(y=rmin; y<=rmax; y++)
     { TableRow r = getRowTable(tab, toInt(y), OFF);
-  
+
       if ( r )
       { for_vector_i(r, TableCell cell, i,
 		 { if ( i == valInt(cell->column) &&
@@ -571,11 +571,11 @@ deleteRowsTable(Table tab, Int from, Int to, Bool keep)
 	assign(r, table, NIL);
 	freeObject(r);
       }
-    }  
-  
+    }
+
     clearVector(tab->rows);
     setPoint(tab->current, ONE, ONE);
-  
+
     changedTable(tab);
 
     return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
@@ -617,7 +617,7 @@ insertRowTable(Table tab, Int at, TableRow newrow)
     assign(newrow, table, tab);
     assign(newrow, index, at);
     indexTableRow(newrow, at);
-    
+
     for_vector(newrow, TableCell cell,
 	       if ( notNil(cell) )
 	       { assign(cell, layout_manager, tab);
@@ -635,9 +635,9 @@ insertRowTable(Table tab, Int at, TableRow newrow)
 		      cell->column == toInt(i) &&
 		      valInt(cell->row) < here )
 		 { int x;
-  
+
 		   assign(cell, row_span, inc(cell->row_span));
-  
+
 		   for(x = i; x < i + valInt(cell->col_span); x++)
 		     cellTableRow(newrow, toInt(x), cell);
 		 });
@@ -776,7 +776,7 @@ sortRowsTable(Table tab, Code cmp, Int from, Int to)
   }
 
   send(rows, NAME_sort, cmp, toInt(ymin), toInt(ymax), EAV);
-  
+
   for(y=ymin; y<=ymax; y++)		/* correct row-offsets */
   { TableRow r = getRowTable(tab, toInt(y), OFF);
 
@@ -790,7 +790,7 @@ sortRowsTable(Table tab, Code cmp, Int from, Int to)
 		 });
     }
   }
-  
+
   changedTable(tab);
   return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
 }
@@ -874,7 +874,7 @@ getCellFromPositionTable(Table tab, Any pos, Bool onborder)
     fail;
 
   ComputeLayoutManager(tab);		/* make sure it is up-to-date */
-  
+
   x = valInt(pt->x);
   y = valInt(pt->y);
 
@@ -898,7 +898,7 @@ getCellFromPositionTable(Table tab, Any pos, Bool onborder)
 
 				      if ( cx-tx < x && cx+cw+tx >= x )
 				      { TableCell c;
-  
+
 					c = getCellTableRow(row, col->index);
 					if ( c )
 					  answer(c);
@@ -946,7 +946,7 @@ getCellsInRegionTable(Table tab, Area reg)
 	  appendChain(rval, cell);
       }
     }
-  } 
+  }
 
   answer(rval);
 }
@@ -1103,7 +1103,7 @@ cell_stretchability(TableCell cell, Name which, stretch *s)
       s->ideal = valInt(cell->image->area->w) + 2*px;
     else
       s->ideal = valInt(cell->image->area->h) + 2*py;
-      
+
     s->minimum = s->ideal;
     s->maximum = INT_MAX;
     s->stretch = 100;
@@ -1139,7 +1139,7 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   int width;
   int maxshrink = 0;
   int maxstretch = 0;
-  
+
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
 
@@ -1175,7 +1175,7 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
 	  Cprintf("\tcol %d: %d-%d+%d\n",
 		  i, s->ideal, s->shrink, s->stretch);
 	});
-	  
+
   sum_stretches(stretches, nslices, &tmp[0]);
   tmp[1] = *into;
   join_stretches(tmp, 2, &joined);
@@ -1217,7 +1217,7 @@ stretchedSliceTable(Table tab, TableSlice slice, Int width)
 { assign(slice, width, width);
 
   succeed;
-} 
+}
 
 
 static void
@@ -1389,7 +1389,7 @@ computeTable(Table tab)
 
     if ( tab->changed == ON )
     { Device dev = tab->device;
-  
+
       if ( notNil(dev) && tab->border != ZERO )
       { unionNormalisedArea(&a, tab->area);
 	DEBUG(NAME_table, Cprintf("Changed %d %d %d %d\n",
@@ -1397,7 +1397,7 @@ computeTable(Table tab)
 				    valInt(a.w), valInt(a.h)));
 	changedImageGraphical(dev, a.x, a.y, a.w, a.h);
       }
-  
+
       assign(tab, changed, OFF);
     }
 
@@ -1449,7 +1449,7 @@ placeCellsTable(Table tab)
 	    }
 	  }
 	}
-      }    
+      }
     }
   }
 
@@ -1612,7 +1612,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
 
     if ( mw > d.w ) mw = d.w;		/* clip the image */
     if ( mh > d.h ) mh = d.h;
-      
+
     DEBUG(NAME_noteMark,
 	  Cprintf("%s: note_mark %s at %d,%d, size %dx%d\n",
 		  pp(cell), pp(cell->note_mark), d.x+d.w-mw, d.y, mw, mh));
@@ -1644,7 +1644,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
       }
     }
   }
-  
+
   if ( sides != BOX_SIDES && sides != NOSIDES )
   { if ( sides & BSIDES )
     { int rmin, rmax;
@@ -1688,7 +1688,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
     case BSIDES:
     { int rowspacing = valInt(tab->cell_spacing->h);
       int colspacing = valInt(tab->cell_spacing->w);
-      
+
       r_hline(d.x-colspacing/2,
 	      d.y+d.h+(rowspacing-b)/2,
 	      d.w+colspacing,
@@ -1713,7 +1713,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
 }
 
 
-static status 
+static status
 RedrawRulesTable(Table tab, Area a)
 { int b = valInt(tab->border);
 
@@ -1738,7 +1738,7 @@ RedrawBackgroundTableCell(TableCell cell)
 }
 
 
-static status 
+static status
 RedrawBackgroundTable(Table tab, Area a)
 { for_displayed_cells_table(tab, cell,
 			    RedrawBackgroundTableCell(cell), ;);
@@ -1755,7 +1755,7 @@ redrawBackgroundTable(Table tab, Area a)
 
   succeed;
 }
-		      
+
 
 static status
 redrawForegroundTable(Table tab, Area a)
@@ -1767,7 +1767,7 @@ redrawForegroundTable(Table tab, Area a)
   succeed;
 }
 
-		      
+
 		 /*******************************
 		 *	    ATTRIBUTES		*
 		 *******************************/
@@ -1898,7 +1898,7 @@ static vardecl var_table[] =
      NAME_internal, "A change has been made affecting the layout")
 };
 
-  
+
 /* Send Methods */
 
 static senddecl send_table[] =

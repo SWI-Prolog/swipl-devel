@@ -82,7 +82,7 @@ insert_process_input(B, Input:string) :->
 	    send(B, insert_process_input, string(''))
 	;   send(B, send_super, insert_process_input, Input)
 	).
-	    
+
 gdb_command(B, CmdLine:string) :->
 	(   send(@gdb_fullname_regex, match, CmdLine),
 	    send(B, show_match, @gdb_fullname_regex, CmdLine)

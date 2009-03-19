@@ -77,7 +77,7 @@ initialiseVariable(Variable var, Name name, Type type, Name access,
 	 includesType(type, TypeDefault) )
       initialValueVariable(var, DEFAULT);
   }
-  
+
   succeed;
 }
 
@@ -86,7 +86,7 @@ static status
 typeVariable(Variable var, Type type)
 { assign(var, type, type);
   clearDFlag(var, D_CLONE|D_SAVE);
-  
+
   if ( type->kind == NAME_alien )
   { setDFlag(var, D_CLONE_ALIEN|D_ALIEN);
     var->alloc_value = NULL;
@@ -329,7 +329,7 @@ getGroupVariable(Variable v)
     for( class = class->super_class; notNil(class); class = class->super_class)
     { Vector vector = class->instance_variables;
       int n;
-      
+
       for(n=0; n<valInt(vector->size); n++)
       { Variable var = vector->elements[n];
 
@@ -366,7 +366,7 @@ getContextNameVariable(Variable v)
 
     answer(class->name);
   }
-  
+
   answer(CtoName("???"));
 }
 
@@ -385,7 +385,7 @@ getManIdVariable(Variable v)
     nm = buf;
   else
     nm = pceMalloc(sizeof(wchar_t)*len);
-  
+
   o = nm;
   *o++ = 'V';
   *o++ = '.';
@@ -424,7 +424,7 @@ getManSummaryVariable(Variable v)
     appendTextBuffer(tb, (CharArray)class->name, ONE);
     CAppendTextBuffer(tb, " ");
   }
-  
+
   appendTextBuffer(tb, (CharArray)getAccessArrowVariable(v), ONE);
   appendTextBuffer(tb, (CharArray)v->name, ONE);
   CAppendTextBuffer(tb, ": ");
@@ -457,13 +457,13 @@ getPrintNameVariable(Variable var)
     nm = buf;
   else
     nm = pceMalloc(sizeof(wchar_t)*len);
-  
+
   o = nm;
   wcscpy(o, nameToWC(ctx, &len)); o += len;
   *o++ = ' ';
   wcscpy(o, nameToWC(getAccessArrowVariable(var), &len)); o += len;
   wcscpy(o, nameToWC(var->name, &len)); o += len;
-  
+
   rc = WCToName(nm, o-nm);
   if ( nm != buf )
     pceFree(nm);
@@ -563,7 +563,7 @@ static getdecl get_variable[] =
 #define rc_variable NULL
 /*
 static classvardecl rc_variable[] =
-{ 
+{
 };
 */
 

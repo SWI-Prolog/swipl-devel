@@ -14,7 +14,7 @@ ping :-
 ping_loop(S) :-
 	tipc_receive(S, Data, From, [as(codes)]),
 %	format('from: ~w data: ~s~n', [From, Data]),
-	tipc_send(S, Data, From, []),	
+	tipc_send(S, Data, From, []),
 	ping_loop(S).
 
 
@@ -25,11 +25,11 @@ test :-
 	tipc_send(S, "now is the time for all  good men...aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", name(18888,17,0), []),
 	tipc_receive(S, Data, From, [as(codes)]),   % From, will be his port-id. Use it from now on
 	forall(between(1,1000000, _X),
-	       (  
+	       (
     	       tipc_send(S, Data, From, []),
 	       tipc_receive(S, Data, From, [as(codes)])
 	       )),
-	      
+
 	tipc_close_socket(S).
 
 test :-
@@ -57,7 +57,7 @@ dispatch(Accept, In, Out) :-
 	tipc_open_socket(Socket, In, Out),
 	(   loopback(In, Out);
 	writeln('dispatch exiting...')).
-	
+
 loopback(In, Out) :-
 	catch(\+at_end_of_stream(In), Error, (writeln(Error), fail)),
 	read_pending_input(In, Codes, []),
@@ -90,9 +90,9 @@ start_server :-
 server_mcast(Lower, Upper) :-
 	tipc_socket(S, rdm),
 	tipc_bind(S,name_seq(20001, Lower, Upper), scope(zone)),
-	
-	call_cleanup(forall(repeat, 
-	      (	  
+
+	call_cleanup(forall(repeat,
+	      (
 	      tipc_receive(S, Data, From, [as(codes)]),
 	      thread_self(Self),
 	      format('thread: ~w rcvd: ~s from: ~w~n', [Self, Data, From])
@@ -133,7 +133,7 @@ bind_server(name_seq(Service, Lower, Upper), _Timeout) :-
 	tipc_get_name(S, PortId),
 	thread_self(Myself),
 	format('~w: ~w~n', [Myself, PortId]),
-	
+
 	tipc_listen(S, 5),
 	tipc_open_socket(S, AcceptFd, _),
 	tipc_accept(AcceptFd, S1, From),
@@ -141,11 +141,11 @@ bind_server(name_seq(Service, Lower, Upper), _Timeout) :-
 	format('~w: connected and waiting for data~n', [Myself]),
 	\+at_end_of_stream(In),
 	read_pending_input(In, Data, []),
-	
+
 	format('~w: received: "~s" from: ~w~n', [Myself, Data, From]),
 	format(Out, 'goodbye from ~w', [Myself]),
-	
-	close(In), 
+
+	close(In),
 	close(Out),
 	tipc_close_socket(S).
 
@@ -154,10 +154,10 @@ new_server(_Alias, NameSeq, Timeout) :-
 
 start_subscription_servers :-
 	new_server(server1, name_seq(20002, 6, 53), 20),
-	new_server(server2, name_seq(20002, 3, 5), 25), 
-	new_server(server3, name_seq(20002, 54, 55), 30), 
+	new_server(server2, name_seq(20002, 3, 5), 25),
+	new_server(server3, name_seq(20002, 54, 55), 30),
  	new_server(server4, name_seq(20002, 56,60), 35),
-	
+
 	format('now use "tipc-config -nt=20002" to see the name table~n').
 
 
@@ -197,7 +197,7 @@ subscribe_demo :-
 
 % TIPC quicksort by Rosenwald, from Keysey, from Bratko, (with
 % apologies to Hoare!)
-% 
+%
 % A really good example of how NOT to do this sort of thing. It does
 % however, have the advantage of creating lots of worker
 % processes, allowing us to observe TIPC's distribution of client
@@ -216,7 +216,7 @@ quicksort([Pivot | More], Sorted) :-
 	append(SortedSmalls, [Pivot | SortedBigs], Sorted).
 /*
 * This is the same algorithm, decomposed into a multi-server
-* parallel form. 
+* parallel form.
 *
 * CAUTION: This is a toy application that can be broken quite easily.
 */
@@ -227,7 +227,7 @@ tipc_quicksort([], []) :- !.
 tipc_quicksort(Data, Sorted) :-
 %	tipc_service_exists(name(20003,23,0)),
 	tipc_socket(S, stream),
-	catch(tipc_connect(S, name(20003,23,0)), Err, 
+	catch(tipc_connect(S, name(20003,23,0)), Err,
 	      (writeln(Err), tipc_close_socket(S), !, fail)),
 	tipc_open_socket(S, In, Out),
 	print(Out, term(Data)),    % output a readable term
@@ -241,13 +241,13 @@ tipc_quicksort(_, _) :-
 /*
 */
 
-		       
+
 start_quicksort_server :-
 	tipc_service_exists(name(20003,23,0)),
 	format('service already exists~n'), !.
 
-start_quicksort_server :-  
-	forall(between(1,16, _), 
+start_quicksort_server :-
+	forall(between(1,16, _),
 	       thread_create(tipc_quicksort_server, _, [detached(true)])),
 	format('do a "tipc-config -nt=20003", and you will see 16 servers bound to name(20003,23,0)~n').
 
@@ -258,23 +258,23 @@ tipc_quicksort_server :-
 	tipc_open_socket(S, AcceptFd, _),
 	call_cleanup(dispatch(AcceptFd),    % doesn't exit, except on error
 		tipc_close_socket(S)).
-	
+
 dispatch(AcceptFd) :-
        tipc_accept(AcceptFd, S1, _Peer),
        tipc_qs_daemon(S1),
        dispatch(AcceptFd).
-	     
+
 
 tipc_qs_daemon(S1) :-
 	tipc_open_socket(S1, In, Out),
 	read(In, [Pivot | Data]),
 	close(In),
-	
+
 	partition(lesser(Pivot), Data, Smalls, Bigs),
-	
+
 	tipc_quicksort(Smalls, SortedSmalls),
 	tipc_quicksort(Bigs, SortedBigs),
-	
+
 	append(SortedSmalls, [Pivot | SortedBigs], Sorted),
 	print(Out, term(Sorted)),
 	close(Out).
@@ -291,14 +291,14 @@ server_half(S) :-
 child_half(S1) :-
 	tipc_get_name(S1, PortId),
 	tipc_close_socket(S1),
-	
+
 	tipc_socket(S, rdm),
 	tipc_send(S, "hello", PortId, []),
 	tipc_receive(S, Data, From, [as(codes)]),
 	format('child_received: ~s from: ~w~n', [Data, From]),
         tipc_close_socket(S),
 	halt.
-	
+
 two_way_fork_demo(ExitStatus) :-
 	tipc_socket(S, rdm),
 	fork(Pid),

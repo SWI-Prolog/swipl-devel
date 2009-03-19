@@ -37,11 +37,11 @@
 
 
 %%	ensure_x_server(+Display, +Depth)
-%	
+%
 %	Ensure the existence of a graphics environment for XPCE.  This
 %	library uses the `head-less' server Xvfb if there is no X-server
 %	in the environment.
-%	
+%
 %	Currently this library deals with Windows (where no explicit
 %	server is required) and Xfree using the Xfree socket naming
 %	conventions.  Please send platform-specific code to
@@ -51,7 +51,7 @@ ensure_x_server(_Display, _) :-
 	current_prolog_flag(windows, true), !. % we have a display
 ensure_x_server(_Display, _) :-
         getenv('DISPLAY', _), !.	       % Existing X11 display
-ensure_x_server(Display, _) :-			
+ensure_x_server(Display, _) :-
         atom_concat('/tmp/.X11-unix/X', Display, Socket),
 	catch(open(Socket, read, In), _, fail),
 	close(In),

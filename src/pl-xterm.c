@@ -51,7 +51,7 @@ portability problems for users of   the  single-threaded version.
 #endif
 #include <termios.h>
 #include <signal.h>
- 
+
 typedef struct
 { int fd;				/* associated file */
   int pid;				/* PID of xterm */
@@ -115,7 +115,7 @@ Xterm_close(void *handle)
       kill(xt->pid, SIGKILL);
     freeHeap(xt, sizeof(*xt));
   }
-  
+
   return 0;
 }
 
@@ -177,15 +177,15 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   }
 #endif
 
-  grantpt(master);                             
+  grantpt(master);
   unlockpt(master);
   slavename = ptsname(master);
   slave = open(slavename, O_RDWR);
 #ifdef HAVE_SYS_STROPTS_H
-  ioctl(slave, I_PUSH, "ptem"); 
+  ioctl(slave, I_PUSH, "ptem");
   ioctl(slave, I_PUSH, "ldterm");
 #endif
- 
+
   if ( tcgetattr(slave, &termio) )
     perror("tcgetattr");
   termio.c_lflag &= ~ECHO;
@@ -193,11 +193,11 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   termio.c_cc[VERASE] = 8;
   if ( tcsetattr(slave, TCSANOW, &termio) )
     perror("tcsetattr");
- 
+
   if ( (pid = fork()) == 0 )
   { char arg[64];
     char *cc;
-    
+
 
     signal(SIGINT, SIG_IGN);		/* Don't stop on user interaction */
 					/* from toplevel */
@@ -225,7 +225,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   DEBUG(1, Sdprintf("%s: Erase = %d\n", slavename, termio.c_cc[VERASE]));
   if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
     perror("tcsetattr");
- 
+
   xt = allocHeap(sizeof(*xt));
   xt->pid   = pid;
   xt->fd    = slave;
@@ -243,7 +243,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
 
   succeed;
 }
- 
+
 #else /*HAVE_GRANTPT*/
 
 foreign_t

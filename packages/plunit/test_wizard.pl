@@ -54,12 +54,12 @@ make_test(Query0, Module, (test(Name, Options) :- Query)) :-
 	pred_name(Query, Name),
 	setting(max_time(Max)),
 	test_result(Module:Query, Max, Options).
-	
+
 %%	find_test_module(+QuerySpec, ?Module, -Query).
 %
 %	Find module to test from a query. Note that it is very common
 %	for toplevel usage to rely on SWI-Prolog's DWIM.
-%	
+%
 %	@tbd	What if multiple modules match?  We can select the
 %		local one or ask the user.
 
@@ -83,7 +83,7 @@ pred_name(Callable, Name) :-
 %%	test_result(+Callable, +Maxtime, -Result) is det.
 %
 %	Try running goal and get meaningful results.  Results are:
-%	
+%
 %		* true(Templ == Var)
 %		* fail
 %		* all(Templ == Bindings)
@@ -175,7 +175,7 @@ user:message_hook(toplevel_goal(Goal0, Bindings), _Level, _Lines) :-
 						   ignore_ops(true)
 						 ]]), close(Out)),
 	fail.
-	
+
 clean_goal(Var, _) :-
 	var(Var), !, fail.
 clean_goal(user:Goal, Goal) :- !.
@@ -206,6 +206,6 @@ open_query_log(Out) :-
 	           correct queries issued in this directory.  It is used by the\n   \
 		   test wizard to generate unit tests.\n\
 		*/~n~n', []).
-	
-	
-	
+
+
+

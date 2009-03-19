@@ -72,7 +72,7 @@ Paxos is a three-phase protocol:
    1: A coordinator first prepares the quorum for a new proposal by
    broadcasting a proposed term. The quorum responds by returning the
    last known line number for that functor/arity combination that is
-   recorded in their respective ledgers. 
+   recorded in their respective ledgers.
 
    2: The coordinator selects the highest line number it receives,
    increments it by one, and then asks the quorum to finally accept the
@@ -91,14 +91,14 @@ Paxos is a three-phase protocol:
    broadcasting the agreement to the quorum in the form of a
    =|paxos_changed(Term)|= event. This is the only event that should be
    of interest to user programs.
-   
+
 For practical reasons, we rely on the partially synchronous behavior
 (e.g. limited upper time bound for replies) of broadcast_request/1 over
 TIPC to ensure Progress. Perhaps more importantly, we rely on the fact
 that the TIPC broadcast listener state machine guarantees the atomicity
 of broadcast_request/1 at the process level, thus obviating the need for
 external mutual exclusion mechanisms.
-   
+
 _|Note that this algorithm does not guarantee the rightness of the value
 proposed. It only guarantees that if successful, the value proposed is
 identical for all attentive members of the quorum.|_
@@ -113,7 +113,7 @@ identical for all attentive members of the quorum.|_
 % A Muller c-element is a logic block used in asynchronous logic. Its
 % output assumes the value of its input iff all of its inputs are
 % identical. Otherwise, the output retains its original value.
-% 
+%
 
 c_element([New | More], _Old, New) :-
 	forall(member(N, More), N == New), !.
@@ -133,7 +133,7 @@ tipc_paxos_init :-
 %
 
 tipc_paxos_prepare(K-Term) :-
-	recorded(Term, paxons_ledger(K, _Term)), 
+	recorded(Term, paxons_ledger(K, _Term)),
 	!.
 
 tipc_paxos_prepare(0-Term) :-
@@ -150,7 +150,7 @@ tipc_paxos_accept(_, nack).
 
 
 tipc_paxos_retrieve(K-Term) :-
-	recorded(Term, paxons_ledger(K, Term)), 
+	recorded(Term, paxons_ledger(K, Term)),
 	!.
 
 %
@@ -171,11 +171,11 @@ max_gets(5).
 % useful to wait  some  random  period  of   time,  and  then  retry  the
 % transaction. By specifying a retry count of zero, tipc_paxos_set/2 will
 % succeed iff the first ballot succeeds.
-% 
+%
 % On success, tipc_paxos_set/1 will also broadcast the term
-% =|paxos_changed(Term)|=, to the quorum. 
-% 
-% @param Term is a compound  that   may  have  unbound variables. 
+% =|paxos_changed(Term)|=, to the quorum.
+%
+% @param Term is a compound  that   may  have  unbound variables.
 % @param Retries (optional) is a non-negative integer  specifying the
 % number of retries that will be performed before a set is abandoned.
 %
@@ -202,13 +202,13 @@ tipc_paxos_set(Term, Retries) :-
 % An implied tipc_paxos_set/1 follows. This predicate succeeds if a term with
 % the same functor and arity exists in the Paxon's ledger, and fails
 % otherwise.
-% 
+%
 % @param Term is a compound.  Any   unbound  variables  are unified with
 % those provided in the ledger entry.
-% 
+%
 
 tipc_paxos_get(Term) :-
-	recorded(Term, paxons_ledger(_K, Term)), 
+	recorded(Term, paxons_ledger(_K, Term)),
 	!.
 
 tipc_paxos_get(Term) :-
@@ -223,9 +223,9 @@ tipc_paxos_get(Term) :-
 % declares that Term is to be automatically replicated to the quorum
 % each time it becomes grounded. It uses the behavior afforded by
 % when/2.
-% 
+%
 % @param Term is an ungrounded Term
-% 
+%
 
 tipc_paxos_replicate(X) :-
 	when(ground(X), tipc_paxos_set(X)).
@@ -238,21 +238,21 @@ tipc_paxos_replicate(X) :-
 % execution.
 %
 %  @param Term is a compound, identical to that used for
-%  tipc_paxos_get/1. 
-%  @param Goal is one of: 
+%  tipc_paxos_get/1.
+%  @param Goal is one of:
 %   * a callable atom or term, or
 %   * the atom =ignore=, which causes monitoring for Term to be
 %   discontinued.
-% 
+%
 
 tipc_paxos_on_change(Term, ignore) :-
-	unlisten(tipc_paxos, paxos_changed(Term)), 
+	unlisten(tipc_paxos, paxos_changed(Term)),
 	!.
 
 tipc_paxos_on_change(Term, Goal) :-
 	compound(Term),
 	callable(Goal),
-	listen(tipc_paxos, paxos_changed(Term), 
+	listen(tipc_paxos, paxos_changed(Term),
 	       thread_create(Goal, _, [detached(true)])).
 
 :- initialization

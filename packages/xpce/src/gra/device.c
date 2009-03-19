@@ -71,7 +71,7 @@ unlinkDevice(Device dev)
 
     for_chain(dev->graphicals, gr, DeviceGraphical(gr, NIL));
   }
-  
+
   return unlinkGraphical((Graphical) dev);
 }
 
@@ -192,7 +192,7 @@ updatePointedDevice(Device dev, EventObj ev)
       generateEventGraphical(gr, exit);
     }
   }
-  
+
 					/* See which graphicals are entered */
   for_cell(cell, dev->graphicals)
   { register Graphical gr = cell->value;
@@ -213,7 +213,7 @@ updatePointedDevice(Device dev, EventObj ev)
       }
     }
   }
-    
+
 					/* Update the ->pointed chain */
   for( cell = dev->pointed->head, n = an-1; n >= 0; n--, cell = cell->next )
   { if ( isNil(cell) )			/* Chain is out; extend it */
@@ -224,7 +224,7 @@ updatePointedDevice(Device dev, EventObj ev)
 
     cellValueChain(dev->pointed, PointerToInt(cell), active[n]);
   }
-  
+
   while( notNil(cell) )			/* Remove the tail of the chain */
   { c2 = cell->next;
     deleteChain(dev->pointed, cell->value);
@@ -324,7 +324,7 @@ eventDevice(Any obj, EventObj ev)
     int done = FALSE;
 
     updatePointedDevice(dev, ev);
-  
+
     for_chain(dev->pointed, gr,
 	      if ( !done && postEvent(ev, gr, DEFAULT) )
 	        done = TRUE);
@@ -425,7 +425,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
       { if ( isNil(first) &&
 	     qadSendv(cell->value, NAME_WantsKeyboardFocus, 0, NULL) )
 	  first = cell->value;
-  
+
 	if ( direction == NAME_backwards )
 	{ if ( cell->value == gr )
 	  { if ( notNil(last) )
@@ -435,13 +435,13 @@ advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
 	      last = cell->value;
 	  }
 	}
-  
+
 	if ( cell->value == gr )
 	  skip = FALSE;
-  
+
 	continue;
       }
-	
+
       if ( send(cell->value, NAME_WantsKeyboardFocus, EAV) )
       { if ( direction == NAME_forwards )
 	  return keyboardFocusWindow(sw, cell->value);
@@ -449,7 +449,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
 	  last = cell->value;
       }
     }
-    
+
     if ( last && direction == NAME_backwards )
       return keyboardFocusWindow(sw, last);
   }
@@ -530,7 +530,7 @@ computeGraphicalsDevice(Device dev)
 
   succeed;
 }
-   
+
 
 status
 computeLayoutDevice(Device dev)
@@ -767,7 +767,7 @@ status
 displayDevice(Any Dev, Any Gr, Point pos)
 { Device dev = Dev;
   Graphical gr = Gr;
-    
+
   if ( notDefault(pos) )
   { Variable var;
 
@@ -847,7 +847,7 @@ eraseDevice(Device dev, Graphical gr)
 status
 displayedGraphicalDevice(Device dev, Graphical gr, Bool val)
 { Bool old = gr->displayed;
-  
+
   if ( onFlag(gr, F_SOLID) )
   { clearFlag(gr, F_SOLID);
     changedEntireImageGraphical(gr);
@@ -1010,7 +1010,7 @@ formatDevice(Device dev, Any obj, Any arg)
 
   if ( isNil(obj) || instanceOfObject(obj, ClassFormat) )
   { assign(dev, format, obj);
-  } else 
+  } else
   { if ( isNil(dev->format) )
       assign(dev, format, newObject(ClassFormat, EAV));
 
@@ -1063,7 +1063,7 @@ computeFormatDevice(Device dev)
     { cw[c] = 0;
       cf[c] = 'l';
     }
-    
+
     if ( notNil(l->adjustment) )
     { for(c=0; c < cols; c++)
       { Name format = (Name) getElementVector(l->adjustment, toInt(c+1));
@@ -1309,8 +1309,8 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 
   while( x < 0 ) { TRY(shift_x_matrix(m, max_x, max_y)); x++; }
   while( y < 0 ) { TRY(shift_y_matrix(m, max_x, max_y)); y++; }
-  while( x >= *max_x ) TRY(expand_x_matrix(m, max_x, max_y)); 
-  while( y >= *max_y ) TRY(expand_y_matrix(m, max_x, max_y)); 
+  while( x >= *max_x ) TRY(expand_x_matrix(m, max_x, max_y));
+  while( y >= *max_y ) TRY(expand_y_matrix(m, max_x, max_y));
 
   m->units[x][y].item = i;
   m->units[x][y].alignment = get(i, NAME_alignment, EAV);
@@ -1368,12 +1368,12 @@ stretchColumns(Matrix m, Size gap, Size bb, Size border)
     }
 
     distribute_stretches(s, m->cols, twidth);
-    
+
     for(sp=s, x=0; x<m->cols; x++, sp++)
     { for(y=0; y<m->rows; y++)
       { if ( m->units[x][y].alignment == NAME_column )
 	  m->units[x][0].right = sp->size - m->units[x][0].left;
-      } 
+      }
     }
   }
 }
@@ -1457,7 +1457,7 @@ stretchRows(Matrix m, int bbh)
     { if ( !(sp->shrink == 0 &&
 	     sp->size < m->units[x][y].depth + m->units[x][y].height) )
 	m->units[x][y].depth = sp->size - m->units[x][y].height;
-    } 
+    }
 
     sp++;
   }
@@ -1552,7 +1552,7 @@ retry:
   if ( !PlacedTable )
     PlacedTable = createHashTable(toInt(32), NAME_none);
   else
-    clearHashTable(PlacedTable);	
+    clearHashTable(PlacedTable);
 
   for_cell(cell, d->graphicals)
   { if ( !IsPlaced(cell->value) &&
@@ -1645,7 +1645,7 @@ retry:
 	  int ry = (reference ? valInt(reference->y) : 0);
 	  Int hs = get(gr, NAME_horStretch, EAV);
 	  Int vs = get(gr, NAME_verStretch, EAV);
-	
+
 	  if ( !hs ) hs = ZERO;
 	  if ( !vs ) vs = ZERO;
 
@@ -1672,7 +1672,7 @@ retry:
 
     for(x=0; x<max_x; x++)		/* Determine unit width */
     { int r = 0, l = 0;
-  
+
       for(y=0; y<max_y; y++)
       { if ( m.units[x][y].alignment == NAME_column )
 	{ if ( m.units[x][y].right > r ) r = m.units[x][y].right;
@@ -1689,7 +1689,7 @@ retry:
     }
     stretchColumns(&m, gap, bb, border);
     determineXColumns(&m, gap, bb, border);
-    
+
 
   { int gaph = valInt(gap->h);
 
@@ -1718,7 +1718,7 @@ retry:
     { int px = valInt(border->w);
       int lx = px;			/* x for left aligned items */
       int gapw = valInt(gap->w);
-      
+
       if ( m.units[0][y].depth == 0 && m.units[0][y].height == 0 )
       { DEBUG(NAME_layout, Cprintf("Skipping empty row %d\n", y+1));
 	continue;			/* empty row (not displayed) */
@@ -1733,7 +1733,7 @@ retry:
 	  int ix, iy = py + m.units[x][y].height;
 	  Int iw = DEFAULT;
 	  Int ih = DEFAULT;
-	  
+
 	  DEBUG(NAME_layout,
 		Cprintf("Placing %s at %d,%d\n", pp(gr), x+1,y+1));
 
@@ -1790,14 +1790,14 @@ retry:
 	px += m.units[x][y].left + m.units[x][y].right + gapw;
       }
 
-      py += m.units[0][y].depth + m.units[0][y].height + gaph; 
+      py += m.units[0][y].depth + m.units[0][y].height + gaph;
       DEBUG(NAME_layout, Cprintf("Moving to row %d at %d\n",
 				 y+1, py));
     }
   }
 
     ComputeGraphical(d);		/* recompute bounding-box */
-    
+
     for(y = 0; y < max_y; y++)
     { if ( notDefault(bb) )
       { px = valInt(bb->w);		/* px: right-side of bb */
@@ -1811,7 +1811,7 @@ retry:
 	} else
 	{ px = valInt(d->area->x) - valInt(d->offset->x) +
 	       valInt(d->area->w)/* + valInt(border->w)*/;
-	} 
+	}
       }
 
       for(x = max_x-1; x >= 0; x--)
@@ -1848,7 +1848,7 @@ retry:
 		}
 	      }
 	    }
-	    
+
 	    tw = valInt(getRightSideGraphical(gr)) - valInt(grl->area->x);
 
 	    if ( m.units[x][y].alignment == NAME_right )
@@ -1882,7 +1882,7 @@ retry:
       }
     }
   }
-  
+
   free_matrix_columns(&m, max_x);
 
   if ( hasSendMethodObject(d, NAME_assignAccelerators) )
@@ -1894,7 +1894,7 @@ retry:
 	 isNil(sw->keyboard_focus) )
       send(d, NAME_advance, NIL, EAV);
   }
-      
+
   succeed;
 }
 
@@ -1941,7 +1941,7 @@ static status
 convertLoadedObjectDevice(Device dev, Int ov, Int cv)
 { if ( isNil(dev->recompute) )
     assign(dev, recompute, newObject(ClassChain, EAV));
-    
+
   succeed;
 }
 
@@ -2046,7 +2046,7 @@ forSomeDevice(Device dev, Name name, Code msg)
     if ( isDefault(name) || gr->name == name )
       forwardReceiverCode(msg, dev, gr, EAV);
   }
-  
+
   succeed;
 }
 
@@ -2061,7 +2061,7 @@ forAllDevice(Device dev, Name name, Code msg)
     if ( isDefault(name) || gr->name == name )
       TRY(forwardReceiverCode(msg, dev, gr, EAV));
   }
-  
+
   succeed;
 }
 
@@ -2264,7 +2264,7 @@ static char *T_resize[] =
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
 static char *T_advance[] =
-	{ "from=[graphical]*", 
+	{ "from=[graphical]*",
 	  "propagate=[bool]",
 	  "direction=[{forwards,backwards}]"
 	};
@@ -2399,7 +2399,7 @@ static getdecl get_device[] =
 #define rc_device NULL
 /*
 static classvardecl rc_device[] =
-{ 
+{
 };
 */
 

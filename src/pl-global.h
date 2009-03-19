@@ -90,7 +90,7 @@ struct PL_global_data
 
 #ifdef HAVE_SIGNAL
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#endif  
+#endif
 #ifdef O_LOGICAL_UPDATE
   uintptr_t generation;		/* generation of the database */
 #endif
@@ -203,7 +203,7 @@ struct PL_global_data
   { Table	table;			/* flag key --> flag */
   } flags;
 
-  struct 
+  struct
   { Table	table;			/* global (read-only) features */
   } prolog_flag;
 
@@ -478,7 +478,7 @@ struct PL_local_data
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;
-    
+
     PL_dispatch_hook_t _dispatch_events; /* PL_dispatch_hook() */
 
     buffer	_discardable_buffer;	/* PL_*() character buffers */
@@ -530,7 +530,7 @@ struct PL_local_data
 #ifdef O_SHIFT_STACKS
   pl_shift_status_t	shift_status;	/* Stack shifter status */
 #endif
-  
+
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
 
 #ifdef O_PLMT

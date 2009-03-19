@@ -100,7 +100,7 @@ user of this module must provide two   definitions:
 	the address of the global engine structure.  With engines, it
 	can use pthread_getspecific() (POSIX), TlsGetValue (Windows) or
 	some compiler provided extension for thread-local variables.
-	
+
 LD always points to the  engine,  but   retrieving  it  everywhere  in a
 function can be costly. GET_LD and  PRED_LD create an automatic variable
 __PL_ld pointing to the engine.  LOCAL_LD   points  there. Time critical

@@ -123,7 +123,7 @@ ws_store_image(Image image, FileObj file)
 
     if ( isNil(d) )
       d = CurrentDisplay(image);
-    
+
     r = d->ws_ref;
 
     Sputc('P', file->fd);
@@ -376,16 +376,16 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 #ifdef HAVE_LIBJPEG
     XImage *i;
     int dofree = FALSE;
-      
+
     if ( !(i=getXImageImage(image)) )
     { if ( (i=getXImageImageFromScreen(image)) )
 	dofree = TRUE;
     }
-  
+
     if ( i )
     { status rval;
       IOSTREAM *fd;
-    
+
       if ( !(fd=Sopen_object(into, "wbr")) )
 	fail;
 
@@ -411,12 +411,12 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 #ifdef O_GIFWRITE
     XImage *i, *msk=NULL;
     int dofree = FALSE;
-      
+
     if ( !(i=getXImageImage(image)) )
     { if ( (i=getXImageImageFromScreen(image)) )
 	dofree = TRUE;
     }
-  
+
     if ( i )
     { status rval;
       IOSTREAM *fd;
@@ -455,12 +455,12 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     else if ( fmt == NAME_pgm )	pnm_fmt = PNM_PGM;
     else if ( fmt == NAME_ppm )	pnm_fmt = PNM_PPM;
     else fail;
-    
+
     if ( !(i=getXImageImage(image)) )
     { if ( (i=getXImageImageFromScreen(image)) )
 	dofree = TRUE;
     }
-  
+
     if ( i )
     { IOSTREAM *fd;
       status rval;
@@ -487,7 +487,7 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     } else
       fail;
   }
-  
+
   succeed;
 }
 
@@ -560,10 +560,10 @@ ws_open_image(Image image, DisplayObj d)
 
     succeed;
   }
-    
+
   if ( pixmap != 0 )
     return registerXrefObject(image, d, (XtPointer) pixmap);
-  
+
   fail;
 }
 
@@ -640,7 +640,7 @@ MakeXImage(Display *dpy, XImage *oimage, int w, int h)
   char *data;
   int bytes_per_line = ROUNDUP((w * oimage->bits_per_pixel + 7)/8,
 			       oimage->bitmap_pad/8);
-    
+
   DEBUG(NAME_image,
 	if ( oimage->depth != oimage->bits_per_pixel )
 	  Cprintf("depth = %d, bits_per_pixel = %d\n",
@@ -651,7 +651,7 @@ MakeXImage(Display *dpy, XImage *oimage, int w, int h)
   if ( data == NULL )
     return NULL;
   memset(data, 0, bytes_per_line * h);
-    
+
   /* create the XImage */
   I = XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
 		   oimage->depth, oimage->format,
@@ -660,7 +660,7 @@ MakeXImage(Display *dpy, XImage *oimage, int w, int h)
 		   oimage->bitmap_pad, bytes_per_line);
   if ( I == NULL )
     return NULL;
-    
+
   return I;
 }
 
@@ -841,10 +841,10 @@ RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
 					/* make a new image */
   if ( !(nimage = MakeXImage(dsp, oimage, w, h)) )
     return NULL;
-    
+
   byte_w_in  = oimage->bytes_per_line;
   byte_w_out = nimage->bytes_per_line;
-    
+
   /* vertical distance from centre */
   dj = 0.5-(float)h/2;
 
@@ -860,7 +860,7 @@ RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
   } else
   { xl=(float)w/2 + (dj+(float)oh/(2*cosa)) / tan(angle)-2;
     xr=(float)w/2 + (dj-(float)oh/(2*cosa)) / tan(angle)+2;
-	
+
     xinc=1./tan(angle);
   }
 
@@ -871,14 +871,14 @@ RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
   { /* no point re-calculating these every pass */
     float di=(float)((xl<0)?0:(int)xl)+0.5-(float)w/2;
     int byte_out=(h-j-1)*byte_w_out;
-	
+
     /* loop through meaningful columns */
     for(i=((xl<0)?0:(int)xl); i<((xr>=w)?w:(int)xr); i++)
-    {	    
-      /* rotate coordinates */ 
+    {
+      /* rotate coordinates */
       it=(float)ow/2 + ( di*cosa + dj*sina);
       jt=(float)oh/2 - (-di*sina + dj*cosa);
-	    
+
       /* set pixel if required */
       if ( it>=0 && it<ow && jt>=0 && jt<oh )
       { if ( oimage->depth == 1 )	/* monochrome */
@@ -941,7 +941,7 @@ ws_rotate_image(Image image, float angle)	/* 0.0<angle<360.0 */
 	bg = getPixelColour(image->background, d);
       else
       { DisplayWsXref r = d->ws_ref;
-	
+
 	bg = r->pixmap_context->background_pixel;
       }
     } else
@@ -1082,7 +1082,7 @@ loadXliImage(Image image, FileObj file, Int bright)
   opts.screen  = DefaultScreen(d);
   opts.visual  = DefaultVisual(d, opts.screen);
   opts.bright  = (isDefault(bright) ? 100 : valInt(bright));
-  
+
   if ( (im = XliLoadXImage(strName(file->name), &opts)) )
   { setSize(image->size, toInt(im->width), toInt(im->height));
     assign(image, depth, toInt(im->depth));

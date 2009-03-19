@@ -67,7 +67,7 @@ static senddecl send_recogniser[] =
 #define get_recogniser NULL
 /*
 static getdecl get_recogniser[] =
-{ 
+{
 };
 */
 
@@ -76,7 +76,7 @@ static getdecl get_recogniser[] =
 #define rc_recogniser NULL
 /*
 static classvardecl rc_recogniser[] =
-{ 
+{
 };
 */
 

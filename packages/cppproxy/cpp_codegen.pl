@@ -40,9 +40,9 @@
 :- use_module(library(lists)).
 
 %	cpp_server_code(+File, +Options)
-%	
+%
 %	Write source-code for the server to File,  Defined options
-%	
+%
 %		* server_name
 %		C++ classname used for the server.
 
@@ -97,7 +97,7 @@ gen_footer(Out, Options) :-
 		  ])
 	;   true
 	).
-	
+
 gen_include(Out, _Options) :-
 	output_state(Out, State),
 	utter(State, '#include "SWI-proxy.h"~n~n').
@@ -105,7 +105,7 @@ gen_include(Out, _Options) :-
 gen_server_class(Out, DetFunctions, NonDetFunctions, Options) :-
 	output_state(Out, State),
 	option(server_class(Name), Options, 'MyProxy'),
-	utter(State, 
+	utter(State,
 	      [ 'class ~w : public PlProxy~n'+[Name],
 		begin
 	      ]),
@@ -113,7 +113,7 @@ gen_server_class(Out, DetFunctions, NonDetFunctions, Options) :-
 	append(DetFunctions, NonDetFunctions, AllFunctions),
 	gen_send_functions(AllFunctions, State, Options),
 	gen_receive_functions(AllFunctions, State, Options),
-	utter(State, 
+	utter(State,
 	      [ label(public),
 		'~w(const char *host, int port) : PlProxy(host, port) {}'
 			+[Name],
@@ -123,9 +123,9 @@ gen_server_class(Out, DetFunctions, NonDetFunctions, Options) :-
 	utter(State,
 	      [ end_class
 	      ]).
-	
+
 %	server_functions(-Functions, +Options)
-%	
+%
 %	Find the callable functions and their attributes. Options may be
 %	used to generate only the functions from certain modules.
 
@@ -151,7 +151,7 @@ nondet_function(f(_, _, Attributes)) :-
 	memberchk(zero_or_more, Attributes).
 
 %	gen_friends(+Functions, +State, +Options)
-%	
+%
 %	For each non-deterministic query we generate a class. This class
 %	must be a friend to access the our data conversion functions.
 
@@ -168,7 +168,7 @@ gen_friend(F, State, _Options) :-
 
 
 %	gen_server_functions(+Functions, +State, +Options)
-%	
+%
 %	Generate the proxy functions for all predicates with either one
 %	or zero_or_one solutions.
 
@@ -215,7 +215,7 @@ gen_server_function(State, Function, _Options) :-
 	utter(State,
 	      [ end
 	      ]).
-	
+
 function_name(f(_Module, Goal, Attributes), FName) :-
 	functor(Goal, PName, _Arity),
 	option(as(FName), Attributes, PName).
@@ -249,7 +249,7 @@ io_type(Type, Type, InOut, InOut) :-
 	InOut \== error.
 
 %	cpp_type(+RawType, +Module, -PrologType, -CppType)
-%	
+%
 %	RawType is the raw argument type as specified with cpp_callable
 %	in Module.  PrologType is the primitive Prolog type and CppType
 %	is the C++ type to use for the argument.
@@ -327,7 +327,7 @@ gen_send_functions(Functions, State, _Options) :-
 		   gen_send_function(State, Module, Type)),
 	    utter(State, [nl, nl])
 	).
-	
+
 gen_send_function(State, Module, Type) :-
 	current_type(Module:Type, [PrologType]),
 	functor(PrologType, TermName, Arity),
@@ -398,7 +398,7 @@ to_call_arg(a(Name,_,_,_), Name).
 
 
 %	compound_types(+Goals, +InOut, -Types)
-%	
+%
 %	Returns the in-  our  out-types   that  require  compound access
 %	functions used by all  Goals  for   which  we  will  generate an
 %	interface function.
@@ -415,7 +415,7 @@ compound_types(Goals, InOut, Types) :-
 
 io_term(in,  +Type, Type).
 io_term(out, -Type, Type).
-		    
+
 
 		 /*******************************
 		 *	    QUERY CLASSES	*
@@ -487,9 +487,9 @@ gen_query_class(State, Function, Options) :-
 
 		end_class
 	      ]).
-		
 
-	
+
+
 		 /*******************************
 		 *	      OUTPUT		*
 		 *******************************/
@@ -574,7 +574,7 @@ pop(State) :-
 		 *******************************/
 
 %	clean_name(+Raw, -Cleaned)
-%	
+%
 %	Turn Raw into a name  suitable  as   a  C  symbol by turning all
 %	invalid characters into _.
 

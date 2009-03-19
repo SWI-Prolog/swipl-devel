@@ -18,7 +18,7 @@ LoadColourNames()
 { if ( !ColourNames )
   { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), 0);
     ColourNames = globalObject(NAME_colourNames, ClassHashTable, 0);
-    
+
     if ( send(f, NAME_open, NAME_read, 0) )
     { char line[256];
       int r, g, b;
@@ -46,7 +46,7 @@ LoadColourNames()
 	    rgb = RGB(r, g, b);
 	    appendHashTable(ColourNames, cname, toInt(rgb));
 	    DEBUG(NAME_colour, Cprintf("%s --> 0x%lx\n",
-				       pp(cname), (long) rgb)); 
+				       pp(cname), (long) rgb));
 	    break;
 	  }
 	}

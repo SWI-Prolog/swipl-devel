@@ -42,7 +42,7 @@
 %
 %	Merge the ordered sets Set1 and  Set2   into  a  new ordered set
 %	without duplicates.
-%	
+%
 %	@depricated	Use ord_union/3 from library(ordsets)
 
 merge_set([], L, L) :- !.
@@ -68,9 +68,9 @@ merge([H1|T1], [H2|T2], [H|R]) :-
 	).
 
 :- module_transparent
-	predsort/3, 
-	predsort/5, 
-	predmerge/4, 
+	predsort/3,
+	predsort/5,
+	predmerge/4,
 	predmerge/7.
 
 
@@ -82,20 +82,20 @@ merge([H1|T1], [H2|T2], [H|R]) :-
 %	 used, the result is the same as sort/2. See also keysort/2.
 
 predsort(P, L, R) :-
-	length(L, N), 
-	predsort(P, N, L, _, R1), !, 
+	length(L, N),
+	predsort(P, N, L, _, R1), !,
 	R = R1.
 
-predsort(P, 2, [X1, X2|L], L, R) :- !, 
+predsort(P, 2, [X1, X2|L], L, R) :- !,
 	call(P, Delta, X1, X2),
 	sort2(Delta, X1, X2, R).
 predsort(_, 1, [X|L], L, [X]) :- !.
 predsort(_, 0, L, L, []) :- !.
 predsort(P, N, L1, L3, R) :-
-	N1 is N // 2, 
-	plus(N1, N2, N), 
-	predsort(P, N1, L1, L2, R1), 
-	predsort(P, N2, L2, L3, R2), 
+	N1 is N // 2,
+	plus(N1, N2, N),
+	predsort(P, N1, L1, L2, R1),
+	predsort(P, N2, L2, L3, R2),
 	predmerge(P, R1, R2, R).
 
 sort2(<, X1, X2, [X1, X2]).
@@ -118,7 +118,7 @@ predmerge(<, P, H1, H2, T1, T2, [H1|R]) :-
 %%	locale_sort(+List, -Sorted) is det.
 %
 %	Sort a list of atoms using the current locale.
-%	
+%
 %	@param List	List of atoms
 %	@param Sorted	Sorted atoms.
 

@@ -87,7 +87,7 @@ static getdecl get_when[] =
 #define rc_when NULL
 /*
 static classvardecl rc_when[] =
-{ 
+{
 };
 */
 

@@ -50,7 +50,7 @@ user:term_expansion((:- pop_compile_operators), _) :-
 before(pce('prolog/lib/man'),
        [ before(v_visual, pce_op)	% do v_viual before pce_op
        ]).
-	
+
 order(Dir, Files0, Files) :-
 	before(Dir, Ordering), !,
 	order2(Ordering, Files0, Files).

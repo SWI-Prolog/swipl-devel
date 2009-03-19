@@ -33,7 +33,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file generates pl-atom.i[ch] and   pl-funct.i[ch] from ATOMS. Older
 versions used an awk program for this,   but  to simplify portability to
-Windows this is now converted into a little C program. 
+Windows this is now converted into a little C program.
 
 The program must be called in  the   source  directory  or with a single
 argument that specifies the source directory.
@@ -104,7 +104,7 @@ main(int argc, char **argv)
 	continue;
     }
   }
-  
+
   fclose(in);
   fclose(aic);
   fclose(aih);

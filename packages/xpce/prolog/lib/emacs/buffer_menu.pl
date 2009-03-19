@@ -110,7 +110,7 @@ typed(B, Ev:event, Delegate:[bool]) :->
 	->  send(B, kill_selection)
 	;   send_super(B, typed, Ev, Delegate)
 	).
-	
+
 kill_selection(B) :->
 	get(B, selection, DI),
 	send(DI?object, kill).

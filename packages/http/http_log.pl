@@ -80,7 +80,7 @@ http_message(request_finished(Id, Code, Status, CPU, Bytes)) :- !,
 	log_stream/1.
 
 %%	http_log_stream(-Stream) is semidet.
-%	
+%
 %	Returns handle to open logfile. Fails if no logfile is open and
 %	none is defined.
 
@@ -112,14 +112,14 @@ http_log_stream(_) :-
 %	a term server(Reason, Time).  to  the   logfile.  This  call  is
 %	intended for cooperation with the Unix logrotate facility
 %	using the following schema:
-%	
+%
 %	    * Move logfile (the HTTP server keeps writing to the moved
 %	    file)
 %	    * Inform the server using an HTTP request that calls
 %	    http_log_close/1
 %	    * Compress the moved logfile
-%	    
-%	@author Suggested by Jacco van Ossenbruggen    
+%
+%	@author Suggested by Jacco van Ossenbruggen
 
 http_log_close(Reason) :-
 	with_mutex(http_log, close_log(Reason)).
@@ -150,7 +150,7 @@ http_log(Format, Args) :-
 %%	log_started(+Request, +Id, +Stream) is det.
 %
 %	Write log message that Request was started to Stream.
-%	
+%
 %	@param	Filled with sequence identifier for the request
 
 log_started(Request, Id, Stream) :-
@@ -162,7 +162,7 @@ log_started(Request, Id, Stream) :-
 	       [HDate, Id, Now, LogRequest]).
 
 %%	log_request(+Request, -Log)
-%	
+%
 %	Remove passwords from the request to avoid sending them to the
 %	logfiles.
 
@@ -212,7 +212,7 @@ nolog(referer(R)) :-
 %%	log_completed(+Code, +Status, +Bytes, +Id, +CPU, +Stream) is det.
 %
 %	Write log message to Stream from a call_cleanup/3 call.
-%	
+%
 %	@param Status	2nd argument of call_cleanup/3
 %	@param Id	Term identifying the completed request
 %	@param CPU0	CPU time at time of entrance
@@ -235,7 +235,7 @@ log_completed(_,_,_,_,_,_).
 %	log_check_deleted/6 will open a  new   one.  This  provides some
 %	support for cleaning up the logfile   without  shutting down the
 %	server.
-%	
+%
 %	@see logrotate(1) to manage logfiles on Unix systems.
 
 log_check_deleted(Stream) :-

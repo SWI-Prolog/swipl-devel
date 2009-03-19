@@ -49,12 +49,12 @@ eventHandler(Handler h, EventObj ev)
     } else
     { Graphical gr = ev->receiver;
 
-      if ( insideRegion(h->region, gr->area, 
+      if ( insideRegion(h->region, gr->area,
 		       	getAreaPositionEvent(ev, gr)) == SUCCEED )
       { if ( notNil(h->message) )
 	  return forwardReceiverCodev(h->message, getMasterEvent(ev),
 				      1, (Any *)&ev);
-	
+
 	succeed;
       }
     }
@@ -98,7 +98,7 @@ static senddecl send_handler[] =
 #define get_handler NULL
 /*
 static getdecl get_handler[] =
-{ 
+{
 };
 */
 
@@ -107,7 +107,7 @@ static getdecl get_handler[] =
 #define rc_handler NULL
 /*
 static classvardecl rc_handler[] =
-{ 
+{
 };
 */
 

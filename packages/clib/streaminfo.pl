@@ -42,19 +42,19 @@
 %	streams. It has been  added  to   diagnose  leaking  streams  in
 %	web-servers. For example,  on  linux   systems  we  can  examine
 %	process file-descriptors using
-%	
+%
 %	==
 %	% ls -l /proc/<pid>/fd
 %	==
-%	
+%
 %	If now (say) descriptor 15 is open   where  it should not be, we
 %	can this command to find the associated Prolog streams and print
 %	as mush as possible information about the stream.
-%	
+%
 %	==
 %	?- stream_info(15).
 %	==
-%	
+%
 %	@param	Stream	A stream-handle, alias name or (integer) system
 %		file handle.
 

@@ -35,11 +35,11 @@ test(sha1, [true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
 		      129, 37, 147, 40, 120])]) :-
 	sha_hash(foobar, Hash, []).
 test(sha1, [true(Hash=[136, 67, 215, 249, 36, 22, 33, 29,
-		      233, 235, 185, 99, 255, 76, 226, 
+		      233, 235, 185, 99, 255, 76, 226,
 		      129, 37, 147, 40, 120])]) :-
 	sha_hash(foobar, Hash, [algorithm(sha1)]).
 test(sha256, [true(Hash=[195, 171, 143, 241, 55, 32, 232, 173,
-			144, 71, 221, 57, 70, 107, 60, 137, 
+			144, 71, 221, 57, 70, 107, 60, 137,
 			116, 229, 146, 194, 250, 56, 61, 74,
 			57, 96, 113, 76, 174, 240, 196, 242])]) :-
 	sha_hash(foobar, Hash, [algorithm(sha256)]).
@@ -83,7 +83,7 @@ hash_to_ascii([B1,B2,B3,B4|T]) -->
 	;   " ",
 	    hash_to_ascii(T)
 	).
-	      
+
 hex_byte(Byte) -->
 	{ High is (Byte>>4) /\ 0xf,
 	  Low  is Byte /\ 0xf
@@ -95,7 +95,7 @@ hex(Digit) -->
 	{ code_type(Code, xdigit(Digit))
 	},
 	[Code].
-	  
+
 test(sha1, [true(Atom='2fd4e1c6 7a2d28fc ed849ee1 bb76e739 1b93eb12')]) :-
 	sha_hash("The quick brown fox jumps over the lazy dog", Hash, [algorithm(sha1)]),
 	hash_to_atom(Hash, Atom).

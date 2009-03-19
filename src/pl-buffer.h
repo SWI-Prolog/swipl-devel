@@ -51,7 +51,7 @@ void	growBuffer(Buffer b, size_t minfree);
  	  *((type *)(b)->top) = obj; \
           (b)->top += sizeof(type); \
 	} while(0)
-  
+
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
 	{ size_t _tms = (times); \
@@ -64,7 +64,7 @@ void	growBuffer(Buffer b, size_t minfree);
 	    *_d++ = *_s++; \
 	  (b)->top = (char *)_d; \
 	} while(0)
-  
+
 #define baseBuffer(b, type)	 ((type *) (b)->base)
 #define topBuffer(b, type)       ((type *) (b)->top)
 #define inBuffer(b, addr)        ((char *) (addr) >= (b)->base && \

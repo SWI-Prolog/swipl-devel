@@ -68,7 +68,7 @@ unlinkVar(Var v)
 
   if ( isObject(v->value) )
     delCodeReference(v->value);
-  
+
 
   succeed;
 }
@@ -90,7 +90,7 @@ valueVar(Var v, Any value)
     if ( isObject(value) )
       addCodeReference(value);
   }
-  
+
   succeed;
 }
 */
@@ -152,7 +152,7 @@ static getdecl get_var[] =
 #define rc_var NULL
 /*
 static classvardecl rc_var[] =
-{ 
+{
 };
 */
 
@@ -328,7 +328,7 @@ popVarEnvironment(void)
 
   if ( ev->extension )
     unalloc(sizeofVarExtension(ev->extension->allocated), ev->extension);
-  
+
   varEnvironment = ev->parent;
 }
 

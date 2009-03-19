@@ -156,7 +156,7 @@ initialization(Goal) :-
 
 %%	thread_initialization(:Goal)
 %
-%	Run Goal now and everytime a new thread is created. 
+%	Run Goal now and everytime a new thread is created.
 
 thread_initialization(Goal) :-
 	assert('$at_thread_initialization'(Goal)),
@@ -234,7 +234,7 @@ path_sep -->
 		 *******************************/
 
 %%	set_associated_file
-%	
+%
 %	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %	the extension registered for associated files, set the Prolog
 %	flag associated_file, switch to the directory holding the file
@@ -288,7 +288,7 @@ start_pldoc.
 
 
 %%	load_associated_file
-%	
+%
 %	Load  the  file-name  set  by   set_associated_file/0  from  the
 %	commandline arguments. Note the expand(false) to avoid expanding
 %	special characters in the filename.
@@ -347,8 +347,8 @@ initialise_prolog :-
 	start_pldoc,
 	'$load_script_file',
 	load_associated_file,
-	'$option'(goal, GoalAtom, GoalAtom), 
-	term_to_atom(Goal, GoalAtom), 
+	'$option'(goal, GoalAtom, GoalAtom),
+	term_to_atom(Goal, GoalAtom),
 	(   Goal == '$welcome'
 	->  flag('$banner_goal', TheGoal, TheGoal)
 	;   TheGoal = Goal
@@ -356,17 +356,17 @@ initialise_prolog :-
 	ignore(user:TheGoal).
 
 '$abort' :-
-	see(user), 
-	tell(user), 
-	flag('$break_level', _, 0), 
+	see(user),
+	tell(user),
+	flag('$break_level', _, 0),
 	flag('$compilation_level', _, 0),
 	'$calleventhook'(abort),
 	print_message(informational, '$aborted'),
 	'$toplevel'.
 
 '$break' :-
-	flag('$break_level', Old, Old+1), 
-	flag('$break_level', New, New), 
+	flag('$break_level', Old, Old+1),
+	flag('$break_level', New, New),
 	print_message(informational, break(enter(New))),
 	'$runtoplevel',
 	print_message(informational, break(exit(New))),
@@ -386,7 +386,7 @@ initialise_prolog :-
 %	crashing in a loop?
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom, TopLevelAtom), 
+	'$option'(toplevel, TopLevelAtom, TopLevelAtom),
 	catch(term_to_atom(TopLevel, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
@@ -407,10 +407,10 @@ initialise_prolog :-
 		*********************************/
 
 prolog :-
-	flag('$tracing', _, off), 
-	flag('$break_level', BreakLev, BreakLev), 
-	repeat, 
-	    (   '$module'(TypeIn, TypeIn), 
+	flag('$tracing', _, off),
+	flag('$break_level', BreakLev, BreakLev),
+	repeat,
+	    (   '$module'(TypeIn, TypeIn),
 		(   stream_property(user_input, tty(true))
 		->  '$system_prompt'(TypeIn, BreakLev, Prompt),
 		    prompt(Old, '|    ')
@@ -454,8 +454,8 @@ read_query(Prompt, Goal, Bindings) :-
 	'$save_history'(Line).
 read_query(Prompt, Goal, Bindings) :-
 	seeing(Old), see(user_input),
-	(   read_history(h, '!h', 
-			 [trace, end_of_file], 
+	(   read_history(h, '!h',
+			 [trace, end_of_file],
 			 Prompt, Goal, Bindings)
 	->  see(Old)
 	;   see(Old),
@@ -473,7 +473,7 @@ clean_history_prompt_chars([], []).
 clean_history_prompt_chars(['%', !|T], T) :- !.
 clean_history_prompt_chars([H|T0], [H|T]) :-
 	clean_history_prompt_chars(T0, T).
- 
+
 delete_leading_blanks([' '|T0], T) :- !,
 	delete_leading_blanks(T0, T).
 delete_leading_blanks(L, L).
@@ -522,7 +522,7 @@ set_default_history :-
 	;    '$substitute'("%d", [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
-	
+
 '$substitute'(From, T, Old, New) :-
 	phrase(subst_chars(T), T0),
 	'$append'(Pre, S0, Old),
@@ -530,7 +530,7 @@ set_default_history :-
 	'$append'(Pre, T0, S1),
 	'$append'(S1, Post, New), !.
 '$substitute'(_, _, Old, Old).
-	
+
 subst_chars([]) -->
 	[].
 subst_chars([H|T]) -->
@@ -555,17 +555,17 @@ subst_chars([H|T]) -->
 '$execute'(end_of_file, _) :- !,
 	print_message(query, query(eof)).
 '$execute'(Goal, Bindings) :-
-	'$module'(TypeIn, TypeIn), 
+	'$module'(TypeIn, TypeIn),
 	expand_goal(Goal, Expanded),
-	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !, 
+	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !,
 	'$execute_goal'(Corrected, Bindings).
 '$execute'(_, _) :-
-	notrace, 
+	notrace,
 	print_message(query, query(no)),
 	fail.
 
 '$execute_goal'(trace, []) :-
-	trace, 
+	trace,
 	print_message(query, query(yes)), !,
 	fail.
 '$execute_goal'(Goal, Bindings) :-
@@ -583,12 +583,12 @@ subst_chars([H|T]) -->
 	     fail
 	).
 '$execute_goal2'(_, _) :-
-	notrace, 
+	notrace,
 	print_message(query, query(no)),
 	fail.
 
 %%	write_bindings(+Bindings, +Deterministic)
-%	
+%
 %	Write   bindings   resulting   from   a     query.    The   flag
 %	prompt_alternatives_on determines whether the   user is prompted
 %	for alternatives. =groundness= gives   the  classical behaviour,
@@ -667,7 +667,7 @@ omit_meta_qualifiers(G, _, G).
 
 
 %%	bind_vars(+Bindings)
-%	
+%
 %	Bind variables to '$VAR'(Name), so they are printed by the names
 %	used in the query. Note that by   binding  in the reverse order,
 %	variables bound to one another come out in the natural order.
@@ -681,7 +681,7 @@ bind_vars([Name=Var|T]) :-
 	).
 
 %%	filter_bindings(+Bindings0, -Bindings)
-%	
+%
 %	Remove bindings that must not be printed.
 
 filter_bindings([], []).

@@ -415,7 +415,7 @@ void xdnd_set_actions (DndClass * dnd, Window window, Atom * actions, char **des
     xdnd_xfree (s);
 }
 
-/* returns 1 on error or no actions, otherwise result must be free'd 
+/* returns 1 on error or no actions, otherwise result must be free'd
    xdnd_get_actions (window, &actions, &descriptions);
    free (actions); free (descriptions); */
 int xdnd_get_actions (DndClass * dnd, Window window, Atom ** actions, char ***descriptions)
@@ -1068,7 +1068,7 @@ int xdnd_handle_drop_events (DndClass * dnd, XEvent * xevent)
 	    int error;
 	    dnd_debug1 ("  property is Xdnd_NON_PROTOCOL_ATOM - getting selection");
 	    error = xdnd_get_selection (dnd, dnd->dragger_window, xevent->xselection.property, xevent->xany.window);
-/* error is not actually used, i think future versions of the protocol maybe should return 
+/* error is not actually used, i think future versions of the protocol maybe should return
    an error status to the calling window with the XdndFinished client message */
 	    if (dnd_version_at_least (dnd->dragging_version, 2))
 		xdnd_send_finished (dnd, dnd->dragger_window, dnd->dropper_window, error);

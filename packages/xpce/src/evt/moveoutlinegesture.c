@@ -18,8 +18,8 @@ initialiseMoveOutlineGesture(MoveOutlineGesture g,
   send(g->outline, NAME_texture, getResourceValueObject(g, NAME_texture), 0);
   send(g->outline, NAME_recogniser,
        newObject(ClassMoveGesture, g->button, g->modifier, 0), 0);
-  
-  
+
+
   succeed;
 }
 

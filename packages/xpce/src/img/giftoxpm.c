@@ -63,7 +63,7 @@ static int
 alloc_color(int index, int r, int g, int b, void *closure)
 { XpmImage *img = closure;
   XpmColor *c;
-  
+
   if ( index < 0 || index >= (int)img->ncolors )
     return GIF_INVALID;
   c = &img->colorTable[index];

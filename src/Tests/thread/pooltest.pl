@@ -22,7 +22,7 @@ join_threads([]).
 join_threads([H|T]) :-
 	thread_join(H, exited(done)),
 	join_threads(T).
-	
+
 
 create_pool(N, Threads) :-
 	message_queue_create(queue),   % create the queue

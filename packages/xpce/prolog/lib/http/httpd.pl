@@ -78,7 +78,7 @@ accepted(S) :->
 	(   send(@pce, debugging_subject, httpd),
 	    get(S, peer_name, Peer)
 	->  (   send(Peer, instance_of, tuple)
-	    ->	send(@pce, format, 'New connection from %s:%s\n', 
+	    ->	send(@pce, format, 'New connection from %s:%s\n',
 		     Peer?first, Peer?second)
 	    ;	send(@pce, format, 'New connection from %s\n', Peer)
 	    )
@@ -347,7 +347,7 @@ pp_request(S) :->
 		 message(@pce, format, '\t%s: %s\n', @arg1?name, @arg1?value))
 	;   true
 	).
-	    
+
 :- pce_end_class(httpd).
 
 
@@ -461,7 +461,7 @@ html_write:expand(@Ref) -->
 	  )
 	},
 	expand_object(@Ref), !.
-	
+
 expand_object(Object) -->
 	{ send(Object, instance_of, char_array), !,
 	  get(Object, value, Name)
@@ -558,5 +558,5 @@ area(Gr, Dev, [shape(rect), coords(Coords)]) :-
 	GrR is GrX + W,
 	GrB is GrY + H,
 	atomic_list_concat([GrX, GrY, GrR, GrB], ',', Coords).
-	
-	
+
+

@@ -74,7 +74,7 @@
 	    length/2,			% ?List, ?Length
 	    numbervars/3,		% +Term, +Start, -End
 	    nb_setval/2			% +Var, +Value
-	  ]).	
+	  ]).
 
 		/********************************
 		*           DEBUGGER            *
@@ -324,7 +324,7 @@ trace_ports(Head, Ports) :-
 		 *******************************/
 
 %	rational(+Rat, -M, -N)
-%	
+%
 %	Get parts of a rational number.
 
 rational(Rat, M, N) :-
@@ -399,7 +399,7 @@ prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 		 *******************************/
 
 %%	stream_position_data(?Field, +Pos, ?Date)
-%	
+%
 %	Extract values from stream position objects. '$stream_position' is
 %	of the format '$stream_position'(Byte, Char, Line, LinePos)
 
@@ -501,7 +501,7 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
-predicate_property(Pred, Property) :-		
+predicate_property(Pred, Property) :-
 	Pred = M:_,
 	M == system, !,				% do not autoload into system
 	'$c_current_predicate'(_, Pred),
@@ -568,7 +568,7 @@ system_undefined(system:window_title/2).
 %
 %	Provide information on individual clauses.  Defined properties
 %	are:
-%	
+%
 %	    * line_count(-Line)
 %	    Line from which the clause is loaded.
 %	    * file(-File)
@@ -610,7 +610,7 @@ recorded(Key, Value) :-
 %
 %	Tag given predicates as undefined, so they will be included
 %	into a saved state through the autoloader.
-%	
+%
 %	@see autoload/0.
 
 require(M:List) :-
@@ -643,7 +643,7 @@ current_module(Module) :-
 %
 %	True if Property is a property of Module.  Defined properties
 %	are:
-%	
+%
 %	    * file(File)
 %	    Module is loaded from File.
 %	    * line_count(Count)
@@ -819,7 +819,7 @@ current_signal(Name, Id, Handler) :-
 %	Open a shared object or DLL file. Flags  is a list of flags. The
 %	following flags are recognised. Note   however  that these flags
 %	may have no affect on the target platform.
-%	
+%
 %	    * =now=
 %	    Resolve all symbols in the file now instead of lazily.
 %	    * =global=
@@ -901,7 +901,7 @@ arithmetic_function(Module:Term) :-
 	'$arithmetic_function'(Module:Head, 0).
 
 %%	default_module(+Me, -Super) is nondet.
-%	
+%
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
 
 default_module(Me, Me).
@@ -946,7 +946,7 @@ length3([_|List], N, N0) :-
 :- '$iso'((numbervars/3)).
 
 %	numbervars(+Term, +StartIndex, -EndIndex)
-%	
+%
 %	Number all unbound variables in Term   using  '$VAR'(N), where the
 %	first N is StartIndex and EndIndex is  unified to the index that
 %	will be given to the next variable.
@@ -960,7 +960,7 @@ numbervars(Term, From, To) :-
 		 *******************************/
 
 %	nb_setval(+Name, +Value)
-%	
+%
 %	Bind the non-backtrackable variable Name with a copy of Value
 
 nb_setval(Name, Value) :-

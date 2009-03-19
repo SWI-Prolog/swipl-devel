@@ -75,7 +75,7 @@ pce_ifhostproperty(prolog(swi),
 		 *******************************/
 
 %	push_compile_operators.
-%	
+%
 %	Push operator definitions  that  are   specific  to  XPCE  class
 %	definitions.
 
@@ -148,7 +148,7 @@ do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	pce_error(context_error((Head :- Body), nomethod, clause)),
 	fail.
 
-	
+
 is_string(0) :- !, fail.		% catch variables
 is_string([]).
 is_string([H|T]) :-
@@ -507,15 +507,15 @@ convert_meta(I, Arity, G0, M, T, C, G) :-
 	convert_meta(A, Arity, G0, M, T, C, G).
 
 meta(','(:, :)).			% TBD: synchronise with boot/init.pl
-meta(;(:, :)).	
-meta(->(:, :)).	
-meta(*->(:, :)).	
-meta(\+(:)).	
-meta(not(:)).	
+meta(;(:, :)).
+meta(->(:, :)).
+meta(*->(:, :)).
+meta(\+(:)).
+meta(not(:)).
 meta(call(:)).
 meta(once(:)).
 meta(ignore(:)).
-meta(forall(:, :)).	
+meta(forall(:, :)).
 meta(findall(-, :, -)).
 meta(bagof(-, :, -)).
 meta(setof(-, :, -)).
@@ -562,7 +562,7 @@ use_template_send_method(Template, pce_principal:Clause) :-
 	    IClassMsg =.. Args1,
 	    atom_concat('T-', Id, Tid)
 	).
-	  
+
 use_template_get_methods(Template, Clauses) :-
 	findall(C, use_template_get_method(Template, C), Clauses).
 
@@ -616,7 +616,7 @@ isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 		 *******************************/
 
 %%	can_define_class(+Name, +Super)
-%	
+%
 %	Check whether we can define Name as   a  subclass of Super. This
 %	cannot be done of Name  is  a   builtin  class  or it is already
 %	defined at another location.
@@ -680,7 +680,7 @@ pop_class :-
 pop_class :-
 	pce_error(no_class_to_end),
 	fail.
-	
+
 		 /*******************************
 		 *	     ATTRIBUTES		*
 		 *******************************/
@@ -713,7 +713,7 @@ class_source(ClassName) :-
 	add_attribute(ClassName, directive,
 		      send(@class, source, Term)).
 class_source(_).
-	
+
 
 		 /*******************************
 		 *	     RECORDING		*
@@ -923,7 +923,7 @@ head_arg(Var, Var, any) :-
 head_arg(Arg:Type, Arg, Type).
 head_arg(Arg:Name=Type, Arg, Name=Type).
 
-	
+
 		 /*******************************
 		 *	  PUBLIC METHODS	*
 		 *******************************/

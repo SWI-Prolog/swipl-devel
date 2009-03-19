@@ -57,7 +57,7 @@ subscribe(V,NMod,SMod,Goal) :-
 		put_attr(V,clp_events,[entry(NMod,SMod,Goal)|List])
 	;
 	        put_attr(V,clp_events,[entry(NMod,SMod,Goal)])
-	).	
+	).
 
 unsubscribe(V,SMod) :-
 	( get_attr(V,clp_events,List) ->
@@ -75,13 +75,13 @@ notify_list([entry(Mod,_,Goal)|Rest],NMod) :-
 		true
 	),
 	notify_list(Rest,NMod).
-	
+
 unsubscribe_list([],_,_).
 unsubscribe_list([Entry|Rest],SMod,List) :-
 	Entry = entry(_,Mod,_),
 	( Mod == SMod ->
 		List = Rest
-	;	
+	;
 		List = [Entry|Tail],
 		unsubscribe_list(Rest,SMod,Tail)
 	).

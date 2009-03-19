@@ -117,7 +117,7 @@ static vardecl var_layoutmgr[] =
   SV(NAME_requestCompute, "any*", IV_GET|IV_STORE, requestComputeLayoutManager,
      NAME_compute, "Indicates layout needs to be recomputed")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_layoutmgr[] =
@@ -142,7 +142,7 @@ static senddecl send_layoutmgr[] =
 #define get_layoutmgr NULL
 /*
 static getdecl get_layoutmgr[] =
-{ 
+{
 };
 */
 

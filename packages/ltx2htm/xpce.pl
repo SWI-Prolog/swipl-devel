@@ -130,8 +130,8 @@ cmd(nameof({Names}), #embrace("{}", #code(Names))).
 cmd(setupfancyplain, []).
 
 env(tabularlp(_, Tokens), HTML) :-
-	translate_table('|l|p{3in}|', Tokens, HTML).	      
-	      
+	translate_table('|l|p{3in}|', Tokens, HTML).
+
 canonise_glossitem(In, Out) :-
 	downcase_atom(In, In1),
 	atom_codes(In1, Chars0),

@@ -64,7 +64,7 @@ sonEventNode(EventNodeObj n, EventNodeObj son)
   appendChain(n->sons, son);
   son->parent = n;
   addNodeEventTree(getTreeEventNode(n), son);
-  
+
   succeed;
 }
 
@@ -136,7 +136,7 @@ static getdecl get_eventNode[] =
 #define rc_eventNode NULL
 /*
 static classvardecl rc_eventNode[] =
-{ 
+{
 };
 */
 

@@ -79,13 +79,13 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	debug(clause_info, 'got names~n', []), !.
 
 %%	unify_term(+T1, +T2)
-%	
+%
 %	Unify the two terms, where T2 is created by writing the term and
 %	reading it back in, but  be   aware  that  rounding problems may
 %	cause floating point numbers not to  unify. Also, if the initial
 %	term has a string object, it is written   as "..." and read as a
 %	code-list. We compensate for that.
-%	
+%
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
 
@@ -146,11 +146,11 @@ read(Line, Handle, Module, Clause, TermPos, VarNames) :-
 	read(Handle, Module, Clause, TermPos, VarNames).
 
 %%	read(+Stream, +Module, -Clause, -TermPos, -VarNames)
-%	
+%
 %	Read clause from Stream at current position with unknown syntax.
 %	It returns the term read  at  that   position,  as  well  as the
 %	subterm position info and variable names.
-%	
+%
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
 
@@ -177,14 +177,14 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	;   set_stream_position(Handle, Here),
 	    fail
 	).
-	
+
 
 %%	make_varnames(+ReadClause, +Offsets, +Names, -Term) is det.
-%	
+%
 %	Create a Term varnames(...) where each argument contains the name
 %	of the variable at that offset.  If the read Clause is a DCG rule,
 %	name the two last arguments <DCG_list> and <DCG_tail>
-%	
+%
 %	@param Offsets	List of Offset=Var
 %	@param Names	List of Name=Var
 %
@@ -220,17 +220,17 @@ find_varname(Var, [_|T], Name) :-
 	find_varname(Var, T, Name).
 
 %%	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
-%	
+%
 %	What you read isn't always what goes into the database. The task
 %	of this predicate is to establish  the relation between the term
 %	read from the file and the result from decompiling the clause.
-%	
+%
 %	This really must be  more  flexible,   dealing  with  much  more
 %	complex source-translations, falling back to  a heuristic method
 %	locating as much as possible.
 
 unify_clause(Read, Read, TermPos, TermPos) :- !.
-					% XPCE send-methods 
+					% XPCE send-methods
 unify_clause(:->(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 					% XPCE get-methods
@@ -298,10 +298,10 @@ expand_failed(E, Read) :-
 	fail.
 
 %%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
-%	
+%
 %	Deal with translations implied by the compiler.  For example,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
-%	
+%
 %	Pos0 and Pos still include the term-position of the head.
 
 unify_body(B, B, Pos, Pos) :-
@@ -310,7 +310,7 @@ unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
 	ubody(R, D, BP0, BP).
-	   
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Some remarks.
 
@@ -373,7 +373,7 @@ ubody(A1==B1, B2==A2,			% const == Var --> Var == const
 ubody(A is B - C, A is B + C2, Pos, Pos) :-
 	integer(C),
 	C2 =:= -C, !.
-      
+
 ubody_list([], [], [], []).
 ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
 	ubody(G0, G, PA0, PA),
@@ -470,7 +470,7 @@ pce_unify_head_arg(A:_, A).
 %	on an isolated method.
 %
 %	TermPos0 is the term-position term of the whole clause!
-%	
+%
 %	Further, please note that the body of the method-clauses reside
 %	in another module than pce_principal, and therefore the body
 %	starts with an I_CONTEXT call. This implies we need a
@@ -635,7 +635,7 @@ clause_name(_, '<meta-call>').
 		 /*******************************
 		 *        LOW-LEVEL STUFF	*
 		 *******************************/
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These predicates communicate about lines.  We   should  consider using a
 line-cache for this for speed.

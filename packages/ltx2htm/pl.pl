@@ -174,7 +174,7 @@ cmd(dcg(A, {RawName}, {'0'}, {_}),
 	add_to_index(RefName, +RefName).
 cmd(dcg(A, {RawName}, {Arity}, {Args}),
     #defitem(pubdef, Content)) :-
-	pred_tag(A, Content, 
+	pred_tag(A, Content,
 		 [ #label(RefName,
 			  [ #strong(Name), #embrace(#var(+Args))
 			  ]),
@@ -496,7 +496,7 @@ ws --> [].
 
 string([]) --> [].
 string([H|T]) --> [H], string(T).
-	
+
 eol([],[]).
 
 
@@ -510,7 +510,7 @@ clean_name(X, X) :-
 clean_name(L, Out) :-
 	maplist(clean_name, L, L2),
 	atomic_list_concat(L2, Out).
-	
+
 predicate_refname(Symbol, Arity, Ref) :-
 	symbol_name(Symbol, Name), !,
 	atomic_list_concat([Name, /, Arity], Ref).

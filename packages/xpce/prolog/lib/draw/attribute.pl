@@ -207,9 +207,9 @@ fill_dialog(A) :->
 	send(D, append, Y, right),
 	send(D, append, W, right),
 	send(D, append, H, right),
-	
+
 	send(D, append, button(quit, message(A, quit))).
-	
+
 
 		/********************************
 		*             MENU'S		*

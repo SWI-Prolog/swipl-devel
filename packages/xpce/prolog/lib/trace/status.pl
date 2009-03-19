@@ -121,7 +121,7 @@ initialise(D) :->
 unlink(D) :->
 	retractall(debug_status_window(D)),
 	send_super(D, unlink).
-	
+
 layout(D, Size:[size]) :->
 	"Fix layout"::
 	send_super(D, layout, Size),

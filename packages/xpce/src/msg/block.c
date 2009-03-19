@@ -51,7 +51,7 @@ initialiseBlockv(Block b, int argc, Any *argv)
 static Int
 getArityBlock(Block b)
 { int n = (isNil(b->parameters) ? 0 : valInt(getArityVector(b->parameters)));
-  
+
   n += valInt(getArityChain(b->members));
 
   answer(toInt(n));
@@ -64,7 +64,7 @@ getArgBlock(Block b, Int n)
     answer(getArgChain(b->members, n));
   else
   { int s = valInt(getArityVector(b->parameters));
-    
+
     if ( valInt(n) <= s )
       answer(getArgVector(b->parameters, n));
     else
@@ -110,7 +110,7 @@ static getdecl get_block[] =
 #define rc_block NULL
 /*
 static classvardecl rc_block[] =
-{ 
+{
 };
 */
 

@@ -219,7 +219,7 @@ realiseClassType(Type t)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 specialisedType()
 
-	t1 is more specialised than t2.  E.g 
+	t1 is more specialised than t2.  E.g
 
 	specialisedType(box, graphical) --> true
 	specialisedType(0..4, int)      --> true
@@ -359,7 +359,7 @@ value_set_type(Type t, Any ctx, Chain *set)
     }
   } else if ( t->kind == NAME_valueSet )
   { Chain ch2;
-    
+
     if ( isFunction(t->context) )
     { if ( !(ch2 = getForwardReceiverFunctionv(t->context, ctx, 1, &ctx)) ||
 	   !instanceOfObject(ch2, ClassChain) )
@@ -452,7 +452,7 @@ skipf:
 	goto out;
     }
   }
-  
+
 out:
   translate_type_nesting--;
   return rval;
@@ -497,7 +497,7 @@ classType(const Type t, const Any val, const Any ctx)
     else
       fail;
   }
-      
+
   return instanceOfObject(val, t->context);
 }
 
@@ -591,7 +591,7 @@ intRangeType(const Type t, const Any val, const Any ctx)
     if ( i >= valInt(tp->first) && i <= valInt(tp->second) )
       succeed;
   }
-  
+
   fail;
 }
 
@@ -606,7 +606,7 @@ realRangeType(const Type t, const Any val, const Any ctx)
 	 (isNil(high) || valReal(r) <= valReal(high)) )
       succeed;
   }
-  
+
   fail;
 }
 
@@ -846,7 +846,7 @@ convertValueSetType(const Type t, const Any val, const Any ctx)
 static Any
 getNameOfType(const Type t, const Any val, const Any ctx)
 { Name name = getClassType(TypeName, val, ctx);
-  
+
   if ( name != FAIL && nameOfType(t, (Any)name, ctx) )
     return (Any) name;
 
@@ -857,7 +857,7 @@ getNameOfType(const Type t, const Any val, const Any ctx)
 static Any
 getIntRangeType(const Type t, const Any val, const Any ctx)
 { Int i = (Int) getIntType(t, val, ctx);
-  
+
   if ( i != FAIL && intRangeType(t, (Any)i, ctx) )
     return (Any) i;
 
@@ -868,7 +868,7 @@ getIntRangeType(const Type t, const Any val, const Any ctx)
 static Any
 getRealRangeType(const Type t, const Any val, const Any ctx)
 { Real r = getConvertReal(ClassReal, val);
-  
+
   if ( r != FAIL && realRangeType(t, r, ctx) )
     return r;
 
@@ -1041,7 +1041,7 @@ static getdecl get_type[] =
 #define rc_type NULL
 /*
 static classvardecl rc_type[] =
-{ 
+{
 };
 */
 
@@ -1143,7 +1143,7 @@ init_string(StrPart s, String t)
   } else
   { wcscpy(s->text, t->s_textW);
   }
-      
+
   s->start = s->text;
   s->end = &s->text[t->size - 1];
   strip_string(s);
@@ -1223,7 +1223,7 @@ name_of_type(StrPart str)
 
     return type;
   }
-  
+
   fail;
 }
 
@@ -1288,7 +1288,7 @@ real_range_type(StrPart str)
   if ( e0 > str->start )
     l = CtoReal(low);
   assign(type, context, newObject(ClassTuple, l, h, EAV));
-  
+
   return type;
 }
 
@@ -1416,7 +1416,7 @@ nameToType(Name name)
 
     if ( (st = nameToType(sn)) )
     { Type t2 = getCopyType(st, name);
-      
+
       vectorType(t2, ON);
       return t2;
     }
@@ -1513,7 +1513,7 @@ struct built_in_type
   { &TypeAtomic,    NAME_atomic,    NAME_atomic,    NIL },
   { NULL,	    NAME_none,	    NAME_none,      NIL }
 };
-    
+
 
 static void
 bootType(Name name, Class *classp, Type *typep)
@@ -1538,7 +1538,7 @@ initTypes(void)
   ClassObject	    = typeClass(NAME_object);
   ClassConstant	    = typeClass(NAME_constant);
   ClassBool	    = typeClass(NAME_bool);
-  
+
   ((Constant)NIL)->class = ((Constant)DEFAULT)->class = ClassConstant;
   ON->class              = OFF->class                 = ClassBool;
 
@@ -1588,7 +1588,7 @@ defined in the host-language.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pceIncludesType(t, super)
 
-	super is more specialised than t.  E.g 
+	super is more specialised than t.  E.g
 
 	pceIncludesType(graphical, box) --> true
 	pceIncludesType(int, 0..4)      --> true
@@ -1615,7 +1615,7 @@ pceIncludesHostDataType(PceType t, PceClass cl)
       if ( isAClass(cl, t->context) )
 	succeed;
   }
-  
+
   if ( notNil(t->supers) )
   { Cell cell;
 
@@ -1635,7 +1635,7 @@ pceCheckType(PceGoal g, PceType t, PceObject val)
 
   if ( validateType(t, val, g->receiver) )
     return val;
-  
+
   if ( (rval = getTranslateType(t, val, g->receiver)) )
     return rval;
 
@@ -1675,7 +1675,7 @@ pceCheckNameType(PceType t, const char *s)
 	else
 	  fail;
       }
-      
+
       rval = isAClass(ClassName, t->context);
       break;
     }
@@ -1700,10 +1700,10 @@ pceCheckNameType(PceType t, const char *s)
     case TV_VALUESET:
     case TV_NAMEOF:
     { Chain ch = getValueSetType(t, NIL);
-      
+
       if ( ch )
       { Cell cell;
-	
+
 	for_cell(cell, ch)
 	{ if ( isName(cell->value) && streq(s, strName(cell->value)) )
 	    succeed;
@@ -1727,7 +1727,7 @@ pceCheckNameType(PceType t, const char *s)
       return sysPce("%s: Invalid type.  Kind is %s, validate = %d",
 		    pp(t), pp(t->kind), t->validate_function);
   }
-  
+
   if ( rval )
     return rval;
 

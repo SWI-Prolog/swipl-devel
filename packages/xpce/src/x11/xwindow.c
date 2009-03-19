@@ -58,7 +58,7 @@ status
 ws_created_window(PceWindow sw)
 { if ( widgetWindow(sw) != NULL )
     succeed;
-    
+
   fail;
 }
 
@@ -94,7 +94,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
     int pen = valInt(sw->pen);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Actually, it appears Xt is ignoring the geometry parameters.  Hence, 
+Actually, it appears Xt is ignoring the geometry parameters.  Hence,
 ws_realise_frame() sends ->geometry to all windows.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -144,13 +144,13 @@ ws_realise_frame() sends ->geometry to all windows.
 void
 ws_manage_window(PceWindow sw)
 { XtManageChild(widgetWindow(sw));
-} 
+}
 
 
 void
 ws_unmanage_window(PceWindow sw)
 { XtUnmanageChild(widgetWindow(sw));
-} 
+}
 
 
 		 /*******************************
@@ -283,7 +283,7 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 		rewindAnswerStack(mark, NIL);
 	      });
   pceMTUnlock(LOCK_PCE);
-}		  
+}
 
 
 static void
@@ -526,7 +526,7 @@ ws_window_background(PceWindow sw, Any c)
 
       XtSetArg(args[i], XtNbackgroundPixmap, pm);			i++;
     }
-      
+
     XtSetValues(w, args, i);
   }
 }

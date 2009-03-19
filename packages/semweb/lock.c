@@ -68,7 +68,7 @@ emulation used in SWI-Prolog. We have   deleted the broadcast facilities
 of the CVs as this is not used in this code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int 
+static int
 win32_cond_init(win32_cond_t *cv)
 { cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
   cv->waiters = 0;
@@ -86,7 +86,7 @@ win32_cond_destroy(win32_cond_t *cv)
 
 #define WAIT_INTR (-1)
 
-static int 
+static int
 win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex)
 { int rc;
@@ -121,7 +121,7 @@ win32_cond_wait(win32_cond_t *cv,
 }
 
 
-static int 
+static int
 win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 { if ( cv->waiters > 0 )
     SetEvent(cv->events[SIGNAL]);
@@ -151,7 +151,7 @@ rdlock(rwlock *lock)
 
     return TRUE;
   }
-  
+
   lock->waiting_readers++;
 
   for(;;)
@@ -184,7 +184,7 @@ wrlock(rwlock *lock, int allow_readers)
   }
 
   EnterCriticalSection(&lock->mutex);
-  
+
   if ( lock->writer == -1 && lock->readers == 0 )
   { ok:
 
@@ -221,14 +221,14 @@ wrlock(rwlock *lock, int allow_readers)
     } else
     { assert(0);			/* TBD: OS errors */
     }
-  }     
+  }
 }
 
 
 int
 lockout_readers(rwlock *lock)
 { EnterCriticalSection(&lock->mutex);
-  
+
   if ( lock->readers == 0 )
   { ok:
 
@@ -294,7 +294,7 @@ unlock(rwlock *lock, int rd)
     waiting = (lock->waiting_upgrade ? UPGRADE :
 	       lock->waiting_writers ? WRITE :
 	       lock->waiting_readers ? READ : NONE);
-  
+
     switch(waiting)
     { case UPGRADE:
 	win32_cond_signal(&lock->upcondvar);
@@ -327,7 +327,7 @@ lock_misc(rwlock *lock)
 int
 unlock_misc(rwlock *lock)
 { LeaveCriticalSection(&lock->misc_mutex);
-  
+
   return TRUE;
 }
 
@@ -374,7 +374,7 @@ destroy_lock(rwlock *lock)
 
   free(lock->read_by_thread);
 
-  return TRUE;  
+  return TRUE;
 }
 
 #else /*__WINDOWS__*/
@@ -406,7 +406,7 @@ rdlock(rwlock *lock)
 
     return TRUE;
   }
-  
+
   lock->waiting_readers++;
 
   for(;;)
@@ -450,7 +450,7 @@ wrlock(rwlock *lock, int allow_readers)
   }
 
   pthread_mutex_lock(&lock->mutex);
-  
+
   if ( lock->writer == -1 && lock->readers == 0 )
   { ok:
 
@@ -492,14 +492,14 @@ wrlock(rwlock *lock, int allow_readers)
     } else
     { assert(0);			/* TBD: OS errors */
     }
-  }     
+  }
 }
 
 
 int
 lockout_readers(rwlock *lock)
 { pthread_mutex_lock(&lock->mutex);
-  
+
   if ( lock->readers == 0 )
   { ok:
 
@@ -569,7 +569,7 @@ unlock(rwlock *lock, int rd)		/* TRUE: read lock */
 	       lock->waiting_writers ? WRITE :
 	       lock->waiting_readers ? READ : NONE);
     pthread_mutex_unlock(&lock->mutex);
-  
+
     switch(waiting)
     { case UPGRADE:
 	pthread_cond_signal(&lock->upcondvar);
@@ -586,7 +586,7 @@ unlock(rwlock *lock, int rd)		/* TRUE: read lock */
   } else
   { pthread_mutex_unlock(&lock->mutex);
   }
-  
+
   return TRUE;
 }
 
@@ -720,7 +720,7 @@ reallow_readers(rwlock *lock)
 
 int
 destroy_lock(rwlock *lock)
-{ return TRUE;  
+{ return TRUE;
 }
 
 #endif /*_REENTRANT*/

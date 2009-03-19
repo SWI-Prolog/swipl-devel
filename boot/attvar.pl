@@ -44,7 +44,7 @@ in pl-attvar.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	'$wakeup'(+List)
-%	
+%
 %	Called from the kernel if assignments have been made to
 %	attributed variables.
 
@@ -60,11 +60,11 @@ call_all_attr_uhooks(att(Module, AttVal, Rest), Value) :-
 
 
 %	uhook(+AttributeName, +AttributeValue, +Value)
-%	
+%
 %	Run the unify hook for attributed named AttributeName after
 %	assigning an attvar with attribute AttributeValue the value
 %	Value.
-%	
+%
 %	This predicate deals with reserved attribute names to avoid
 %	the meta-call overhead.
 
@@ -81,7 +81,7 @@ uhook(Module, AttVal, Value) :-
 
 
 %	unfreeze(+ConjunctionOrGoal)
-%	
+%
 %	Handle  unfreezing  of  conjunctions.  As  meta-calling  control
 %	structures is slower than meta-interpreting them   we do this in
 %	Prolog. Another advantage is that   having unfreeze/1 in between
@@ -96,7 +96,7 @@ unfreeze(Goal) :-
 	Goal.
 
 %	freeze(@Var, :Goal)
-%	
+%
 %	Suspend execution of Goal until Var is unbound.
 
 :- meta_predicate
@@ -108,7 +108,7 @@ freeze(_, Goal) :-
 	Goal.
 
 %	frozen(@Var, -Goals)
-%	
+%
 %	Unify Goals with the goals frozen on Var or true if no
 %	goals are grozen on Var.
 
@@ -127,7 +127,7 @@ make_conjunction(G, G).
 		 *******************************/
 
 %	portray_attvar(@Var)
-%	
+%
 %	Called from write_term/3 using the option attributes(portray) or
 %	when the prolog flag write_attributes   equals portray. Its task
 %	is the write the attributes in a human readable format.
@@ -178,7 +178,7 @@ portray_attr(Name, Value, Var) :-
 %	fail. If the solver is too  weak   however  it  will succeed and
 %	residual attributed variables holding the conflicting constraint
 %	form a witness of this problem.
-%	
+%
 %	@bug	In the current implementation attributed variables may
 %		be garbage collected and will not appear in Vars.
 

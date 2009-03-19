@@ -19,7 +19,7 @@ xmalloc(size_t bytes)
   { MessageBox(NULL, "Not enough memory", "Error", MB_OK);
     exit(1);
   }
-  
+
   return mem;
 }
 
@@ -32,6 +32,6 @@ xrealloc(void *mem, size_t bytes)
   { MessageBox(NULL, "Not enough memory", "Error", MB_OK);
     exit(1);
   }
-  
+
   return newmem;
 }

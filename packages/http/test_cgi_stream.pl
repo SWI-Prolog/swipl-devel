@@ -94,7 +94,7 @@ http_read_mf(TmpF, Header, Data) :-
 	http_read_reply_header(In, Header),
 	http_read_data(Header, Data, to(atom)),
 	close(In).
-      
+
 
 cat(TmpF) :-
 	open(TmpF, read, In),

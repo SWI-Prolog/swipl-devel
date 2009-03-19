@@ -96,7 +96,7 @@ _lookupModule(atom_t name)
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
   PL_register_atom(name);
-  
+
   return m;
 }
 
@@ -108,7 +108,7 @@ lookupModule(atom_t name)
   LOCK();
   m = _lookupModule(name);
   UNLOCK();
-  
+
   return m;
 }
 
@@ -116,7 +116,7 @@ lookupModule(atom_t name)
 Module
 isCurrentModule(atom_t name)
 { Symbol s;
-  
+
   if ( (s = lookupHTable(GD->tables.modules, (void*)name)) )
     return (Module) s->value;
 
@@ -150,7 +150,7 @@ isSuperModule(Module s, Module m)	/* s is a super-module of m */
 next:
   if ( m == s )
     succeed;
-  
+
   for(c=m->supers; c; c=c->next)
   { if ( c->next )
     { if ( isSuperModule(s, c->value) )
@@ -458,7 +458,7 @@ PRED_IMPL("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
     succeed;
 
   fail;
-}  
+}
 
 
 word
@@ -613,7 +613,7 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
     return PL_error("module", 2, msg, ERR_PERMISSION,
 		    ATOM_redefine, ATOM_module, obj);
   }
-	    
+
   if ( module->file != sf )
   { module->file = sf;
     sf->module_count++;		/* current determinism in $current_module/2 */
@@ -642,7 +642,7 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
 	    })
   clearHTable(module->public);
   UNLOCK();
-  
+
   if ( rdef )
   { PL_unify_nil(rtail);
 
@@ -795,7 +795,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
     return FALSE;
   if ( !(module = isCurrentModule(mname)) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_module, A1);
-  
+
   e = newTableEnum(module->public);
 
   while( (symb = advanceTableEnum(e)) )
@@ -814,7 +814,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
       }
     }
   }
-  
+
   freeTableEnum(e);
   return PL_unify_nil(tail);
 }
@@ -901,14 +901,14 @@ pl_import(term_t pred)
     }
 
     if ( old->definition->module == destination )
-      return warning("Cannot import %s into module %s: name clash", 
-		     procedureName(proc), 
+      return warning("Cannot import %s into module %s: name clash",
+		     procedureName(proc),
 		     stringAtom(destination->name) );
 
     if ( old->definition->module != source )
-    { warning("Cannot import %s into module %s: already imported from %s", 
-	      procedureName(proc), 
-	      stringAtom(destination->name), 
+    { warning("Cannot import %s into module %s: already imported from %s",
+	      procedureName(proc),
+	      stringAtom(destination->name),
 	      stringAtom(old->definition->module->name) );
       fail;
     }
@@ -920,16 +920,16 @@ pl_import(term_t pred)
   }
 
   if ( !isPublicModule(source, proc) )
-  { warning("import/1: %s is not declared public (still imported)", 
+  { warning("import/1: %s is not declared public (still imported)",
 	    procedureName(proc));
   }
-  
+
   { Procedure nproc = (Procedure)  allocHeap(sizeof(struct procedure));
-  
+
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
     set(proc->definition, P_SHARED);
-  
+
     LOCKMODULE(destination);
     addHTable(destination->procedures,
 	      (void *)proc->definition->functor->functor, nproc);

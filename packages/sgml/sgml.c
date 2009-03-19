@@ -95,10 +95,10 @@ print_word(dtd_parser * p, char c,     /* preceding character */
 static void
 wprint_escaped(FILE *f, const wchar_t *s, int len)
 { const wchar_t *e = &s[len];
-  
+
   while ( s < e )
   { wint_t x = *s++;
-      
+
     if (x >= ' ')
     { if (x == '\\')			/* \ --> \\ */
 	wputc(x, f);
@@ -352,7 +352,7 @@ mb2wc(const char *s)
 
     return ws;
   }
-  
+
   perror("mbstowcs");
   exit(1);
 }

@@ -77,7 +77,7 @@ form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 
 	  if ( h1 < 0 || h2 < 0 )
 	    return (size_t)-1;
-	  
+
 	  if ( ++written < outlen )
 	    *out++ = h1<<4|h2;
 	} else
@@ -346,7 +346,7 @@ get_raw_form_data(size_t *lenp)
       *lenp = strlen(s);
     return s;
   }
-    
+
   return NULL;
 }
 

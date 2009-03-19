@@ -40,7 +40,7 @@ the footprint and  eliminates  installation   and  maintenance  problems
 involved in adopting large `can-do-everything' external libraries.
 
 We believe it  deals  correctly  with   the  Western  languages,  Greek,
-Cyrillic and other languages with similar handling of diacritics. 
+Cyrillic and other languages with similar handling of diacritics.
 
 
 UPPERCASE
@@ -60,15 +60,15 @@ uppercase version for sorting.
 		 *******************************/
 
 %	write_unicode_collate_map(+File, +Options)
-%	
+%
 %	Options supported are:
-%	
+%
 %		# first_codepage [0]
 %		Code page to start
-%		
+%
 %		# last_codepage [127]
 %		Code page to end.
-%		
+%
 %		# case(UpperOrLower)
 %		Canonise to upper (default) or lower case.
 
@@ -95,7 +95,7 @@ write_codepage(Out, CP, Map) :-
 
 cp_name(CP, CPN) :-
 	sformat(CPN, 'ucp0x~|~`0t~16r~2+', [CP]).
-	       
+
 map_entries([], _, _).
 map_entries([H|T], I, Out) :-
 	(   I == 0
@@ -171,7 +171,7 @@ write_footer(Out, Options) :-
 		sort_pointA(int code)\n\
 		{ return ucp0x00[code&0xff];\n\
 		}\n\n', []).
-	
+
 
 		 /*******************************
 		 *	       TABLES		*
@@ -185,7 +185,7 @@ gen_tables(Tables, Options) :-
 table(CP, Map, Options) :-
 	option(first_codepage(First), Options, 0),
 	option(last_codepage(Last), Options, 127),
-	between(First, Last, CP),	
+	between(First, Last, CP),
 	findall(M, char(CP, M, Options), Map),	% now
 	non_empty_map(CP, Map, Options).
 
@@ -197,7 +197,7 @@ char(CP, Value, Options) :-
 	;   format('Failed on ~d~n', [Code]),
 	    Value is Code<<8
 	).
-	
+
 char_to_code(Code, Value, Options) :-
 	memberchk(case(lower), Options), !,
 	(   utolower(Code, Lower),
@@ -239,7 +239,7 @@ non_empty_map(CP, Map, Options) :-
 
 empty_map([], _, _, _).
 empty_map([H|T], I, CP, Add) :-
-	H =:= ((CP*256+I)<<8) + Add, 
+	H =:= ((CP*256+I)<<8) + Add,
 	I2 is I + 1,
 	empty_map(T, I2, CP, Add).
 

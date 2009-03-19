@@ -109,7 +109,7 @@ modified(M, Value:[bool]) :->
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Attach   a new prototype. 
+Attach   a new prototype.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 proto(M, Proto:proto='graphical|link*', Mode:'mode=name',
@@ -212,7 +212,7 @@ create_proto(M, Graphicals:chain, How:{as_is,virgin}) :->
 	),
 	mode_and_cursor_from_proto(How, Proto, Mode, Cursor),
 	send(M, proto, Proto, Mode, Cursor, user_proto := @on).
-	
+
 clone_proto(_, Connection, Clone) :-
 	send(Connection, instance_of, connection), !,
 	get(Connection, link, Link),
@@ -358,7 +358,7 @@ load(M, File:[file]) :->
 	;   send(M, report, error,
 		 'File contains old or no PceDraw prototypes')
 	).
-	
+
 :- pce_end_class.
 
 

@@ -431,7 +431,7 @@ get_exe(term_t exe, p_options *info)
 
     for(i=1; i<=arity; i++)
     { PL_get_arg(i, exe, arg);
-  
+
       if ( !PL_get_chars(arg, &info->argv[i],
 			 CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
 	return FALSE;
@@ -545,14 +545,14 @@ Sclose_process(void *handle)
 
     rc = (*Sfilefunctions.close)((void*)(uintptr_t)fd);
     pc->open_mask &= ~(1<<which);
-    
+
     DEBUG(Sdprintf("Closing fd[%d]; mask = 0x%x\n", which, pc->open_mask));
 
     if ( !pc->open_mask )
     { int rcw = wait_for_process(pc);
 
       return rcw ? 0 : -1;
-    }    
+    }
 
     return rc;
   }
@@ -766,11 +766,11 @@ win_command_line(term_t t, int arity, const wchar_t *exe, wchar_t **cline)
 
       cmdlen += av[i].len+(av[i].quote?2:0)+1;
     }
-    
+
     cmdline = PL_malloc(cmdlen*sizeof(wchar_t));
     for( o=cmdline,i=0; i<=arity; )
     { wchar_t *s = av[i].text;
-	  
+
       if ( av[i].quote )
 	*o++ = av[i].quote;
       wcsncpy(o, s, av[i].len);
@@ -850,8 +850,8 @@ find_process_from_pid(DWORD pid, const char *pred)
   }
 
   UNLOCK();
-  
-  if ( pred ) 
+
+  if ( pred )
   { term_t ex = PL_new_term_ref();
 
     PL_put_integer(ex, pid);
@@ -927,7 +927,7 @@ wait_for_pid(pid_t pid, term_t code, wait_options *opts)
 
     unregister_process(pid);
 
-    return PL_unify_term(code, 
+    return PL_unify_term(code,
 			 PL_FUNCTOR, FUNCTOR_exit1,
 			   PL_LONG, rc);
   } else
@@ -944,7 +944,7 @@ wait_for_process(process_context *pc)
   rc = wait_process_handle(pc->handle, &prc, INFINITE);
   CloseHandle(pc->handle);
   PL_free(pc);
-  
+
   return rc;
 }
 
@@ -1138,7 +1138,7 @@ do_create_process(p_options *info)
 	s = open_process_pipe(pc, 2, info->streams[2].fd[0]);
 	PL_unify_stream(info->streams[2].term, s);
       }
-      
+
       return TRUE;
     } else if ( info->pipes > 0 )
     { IOSTREAM *s;
@@ -1249,7 +1249,7 @@ wait_for_process(process_context *pc)
 { for(;;)
   { int status;
     pid_t p2;
-    
+
     if ( (p2=waitpid(pc->pid, &status, 0)) == pc->pid )
     { PL_free(pc);
       return TRUE;
@@ -1287,7 +1287,7 @@ wait_success(atom_t name, pid_t pid)
 		        PL_VARIABLE);
 	return PL_raise_exception(ex);
       }
-    } 
+    }
 
     if ( p2 == -1 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -1313,7 +1313,7 @@ do_create_process(p_options *info)
 	exit(1);
       }
     }
-    
+
 					/* stdin */
     switch( info->streams[0].type )
     { case std_pipe:
@@ -1419,7 +1419,7 @@ do_create_process(p_options *info)
 
     if ( info->pid )
       return PL_unify_integer(info->pid, pid);
-    
+
     return wait_success(info->exe_name, pid);
   }
 }
@@ -1473,7 +1473,7 @@ get_pid(term_t pid, pid_t *p)
     return type_error(pid, "integer");
   if ( n < 0 )
     return domain_error(pid, "not_less_than_zero");
-  
+
   *p = n;
   return TRUE;
 }
@@ -1489,7 +1489,7 @@ process_wait(term_t pid, term_t code, term_t options)
 
   if ( !get_pid(pid, &p) )
     return FALSE;
-  
+
   memset(&opts, 0, sizeof(opts));
   while(PL_get_list(tail, head, tail))
   { atom_t name;
@@ -1547,7 +1547,7 @@ process_kill(term_t pid, term_t signal)
 
   if ( kill(p, sig) == 0 )
     return TRUE;
-  
+
   switch(errno)
   { case EPERM:
       return pl_error("process_kill", 2, NULL, ERR_PERMISSION,
@@ -1568,7 +1568,7 @@ process_kill(term_t pid, term_t signal)
 
 install_t
 install_process()
-{ 
+{
 #ifdef __WINDOWS__
   win_init();
 #endif

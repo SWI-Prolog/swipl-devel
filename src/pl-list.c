@@ -57,13 +57,13 @@ pl_length(term_t list, term_t l)
 
   if ( PL_is_variable(l) )
   { intptr_t n;
-  
+
     if ( (n=lengthList(list, FALSE)) >= 0 )
       return PL_unify_integer(l, n);
 
     fail;			/* both variables: generate in Prolog */
   }
-  
+
 				/* large integer; we cannot represent anyway */
   if ( PL_is_integer(l) )
   { number i;
@@ -78,7 +78,7 @@ pl_length(term_t list, term_t l)
   }
 
   return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, l);
-}  
+}
 
 
 static
@@ -93,7 +93,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
     { PL_close_foreign_frame(fid);
       fail;
     }
-      
+
     if ( PL_unify(A1, h) )
     { term_t ex = 0;
 
@@ -210,7 +210,7 @@ nat_sort(list data, int remove_dups, int compare_keys)
   remove_dups = !remove_dups;		/* 0 -> do, 1 -> don't */
   while ((p = data) != NIL)
   { /* pick up a run from the front of data, setting */
-    /* p = (pointer to beginning of run), data = (rest of data) */ 
+    /* p = (pointer to beginning of run), data = (rest of data) */
     if ((q = p->next) != NIL)
     { compare(c, p, q);
 
@@ -231,7 +231,7 @@ nat_sort(list data, int remove_dups, int compare_keys)
 	if (c > 0)
 	  break;
 	if (c == remove_dups)
-	{ s = r->next;		
+	{ s = r->next;
 	  FREE(r);
 	  r = s;
 	} else

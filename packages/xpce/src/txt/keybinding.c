@@ -54,7 +54,7 @@ initialiseKeyBinding(KeyBinding kb, Name name, int argc, KeyBinding *argv)
 
   if ( notDefault(name) && argc == 0 )
     initPredefinedKeyBinding(kb);
-    
+
   succeed;
 }
 
@@ -88,10 +88,10 @@ static status
 receiverKeyBinding(KeyBinding kb, Any receiver)
 { if ( getHyperedObject(kb, NAME_receiver, DEFAULT) != receiver )
     freeHypersObject(kb, NAME_receiver, DEFAULT);
-  
+
   if ( notNil(receiver) )
     newObject(ClassHyper, kb, receiver, NAME_receiver, NAME_keyBinding, EAV);
-  
+
   succeed;
 }
 
@@ -239,7 +239,7 @@ cuaKeyAsPrefixKeyBinding(KeyBinding kb, EventObj ev, Graphical receiver)
 { if ( hasSendMethodObject(receiver, NAME_cuaKeyAsPrefix) &&
        send(receiver, NAME_cuaKeyAsPrefix, ev, EAV) )
     succeed;
-    
+
   fail;
 }
 
@@ -255,7 +255,7 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
   status rval = FAIL;
   EventObj ev = id;
   int clearstatus = (notDefault(kb->argument) || kb->prefix != NAME_);
-        
+
   if ( notDefault(receiver) )
   { if ( receiver != crec )
       resetKeyBinding(kb, receiver);
@@ -268,7 +268,7 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
   DEBUG(NAME_keyBinding, writef("%O: Key = %s\n", kb, key));
   if ( instanceOfObject(id, ClassEvent) )
     id = ((EventObj)id)->id;
-    
+
   if ( kb->status == NAME_quotedInsert )
   { cmd = NAME_insertQuoted;
     reset |= RESET_STATUS;
@@ -364,7 +364,7 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
 	rval = SUCCEED;
       } else if ( cmd == NAME_quotedInsert )
       { assign(kb, status, NAME_quotedInsert );
-      } else 
+      } else
       { reset |= (RESET_ARGUMENT|RESET_COLUMN);
       }
 
@@ -614,7 +614,7 @@ initInsertKeyBinding(KeyBinding kb)
 
   succeed;
 }
-  
+
 
 static status
 initArgumentKeyBinding(KeyBinding kb)

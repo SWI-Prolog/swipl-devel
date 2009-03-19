@@ -116,17 +116,17 @@ correct_margs(A, Arity, MHead, GoalIn, GoalOut, M, Bindings) :-
 
 
 %%	correct_literal(:Goal, +Bindings, +DWIMs, -Corrected) is semidet.
-% 
+%
 %	Correct a single literal.  DWIMs is a list of heads that can
 %	replace the head in Goal.
 
 correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
-	strip_module(Goal, _, G1), 
-	strip_module(Dwim, DM, G2), 
-	functor(G1, _, Arity), 
+	strip_module(Goal, _, G1),
+	strip_module(Dwim, DM, G2),
+	functor(G1, _, Arity),
 	functor(G2, Name, Arity), !,	% same arity: we can replace arguments
-	G1 =.. [_|Arguments], 
-	G2 =.. [Name|Arguments], 
+	G1 =.. [_|Arguments],
+	G2 =.. [Name|Arguments],
 	'$module'(TypeIn, TypeIn),
 	(   '$prefix_module'(DM, TypeIn, G2, ConfirmGoal),
 	    goal_name(ConfirmGoal, Bindings, String),
@@ -135,8 +135,8 @@ correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
 	;   DwimGoal = Goal
 	).
 correct_literal(Goal, Bindings, Dwims, NewGoal) :-
-	strip_module(Goal, _, G1), 
-	functor(G1, _, Arity), 
+	strip_module(Goal, _, G1),
+	functor(G1, _, Arity),
 	include_arity(Dwims, Arity, [Dwim]), !,
 	correct_literal(Goal, Bindings, [Dwim], NewGoal).
 correct_literal(Goal, _, Dwims, _) :-
@@ -145,7 +145,7 @@ correct_literal(Goal, _, Dwims, _) :-
 
 include_arity([], _, []).
 include_arity([H|T0], Arity, [H|T]) :-
-	strip_module(H, _, G), 
+	strip_module(H, _, G),
 	functor(G, _, Arity), !,
 	include_arity(T0, Arity, T).
 include_arity([_|T0], Arity, T)	:-
@@ -153,7 +153,7 @@ include_arity([_|T0], Arity, T)	:-
 
 
 %	goal_name(+Goal, +Bindings, -Name)
-%	
+%
 %	Transform Goal into a readable format by binding its variables.
 
 goal_name(Goal, Bindings, String) :-
@@ -180,7 +180,7 @@ bind_vars([Name=Var|T]) :-
 %	with arbitrary arity. `Do What I   Mean'  correction is done. If
 %	the requested module is `user' predicates residing in any module
 %	will be considered matching.
-%	
+%
 %	@error	existence_error(procedure, Spec) if no matching predicate
 %		can be found.
 
@@ -201,7 +201,7 @@ bind_vars([Name=Var|T]) :-
 	List \== [], !.
 '$find_predicate'(Spec, _) :-
 	existence_error(Spec).
-	
+
 find_predicate(Module, Name, Arity, VList) :-
 	findall(Head, find_predicate_(Module, Name, Arity, Head), VList),
 	VList \== [], !.
@@ -218,7 +218,7 @@ unqualify_if_context(C, C2:X, X) :-
 unqualify_if_context(_, X, X) :- !.
 
 %%	pack(+PIs, +Module, +Arity, +Context, -Packs)
-%	
+%
 %	Pack the list of heads into packets, consisting of the corrected
 %	specification and a list of heads satisfying this specification.
 
@@ -237,7 +237,7 @@ pack_(_, _, _, _, Rest, [], Rest).
 
 pack_name(_:Name/_, M, A,   Name) :-
 	var(M), var(A), !.
-pack_name(M:Name/_, _, A, M:Name) :- 
+pack_name(M:Name/_, _, A, M:Name) :-
 	var(A), !.
 pack_name(_:PI, M, _, PI)   :-
 	var(M), !.
@@ -254,7 +254,7 @@ find_sim_pred(M, Name, Arity, Module:DName/Arity) :-
 	'$dwim_predicate'(Module:Name, Term),
 	functor(Term, DName, DArity),
 	sim_arity(Arity, DArity).
-	
+
 sim_module(M, Module) :-
 	var(M), !,
 	current_module(Module).
@@ -268,7 +268,7 @@ sim_arity(A, _) :- var(A), !.
 sim_arity(A, D) :- abs(A-D) < 2.
 
 %%	name_arity(+Spec, -Name, -Arity)
-%	
+%
 %	Obtain the name and arity of a predicate specification. Warn if
 %	this is not a legal specification.
 
@@ -304,14 +304,14 @@ map_pi_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 
 %%	principal_predicates(:Heads, +Context, -Principals)
-%	
+%
 %	Get the principal predicate list from a list of heads (e.g., the
 %	module in which the predicate is defined).
 
 principal_predicates(Heads, M, Principals) :-
 	find_definitions(Heads, M, Heads2),
 	'$list_to_set'(Heads2, Principals).
-	
+
 find_definitions([], _, []).
 find_definitions([H0|T0], M, [H|T]) :-
 	find_definition(H0, M, H),
@@ -330,10 +330,10 @@ find_definition(Head, M, Def) :-
 
 
 %%	dwim_predicate(:Head, -NewHead) is nondet.
-%	
+%
 %	Find a head that is in a `Do What I Mean' sence the same as `Head'.
 %	backtracking produces more such predicates.  If searches for:
-%	
+%
 %	    * predicates with a simlar name in an import module
 %	    * predicates in a similar module with the same name
 %	    * predicates in any module with the same name

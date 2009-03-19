@@ -52,7 +52,7 @@ forwards void initSignals(void);
 #undef I
 #define I TAGEX_INDIRECT
 
-const unsigned int tagtypeex[] = 
+const unsigned int tagtypeex[] =
 {
 	    /* var     attvar  int    float   atom   string    term     ref */
 /* static */	0,	0,	0,	0,	0,	0,	0,	0,
@@ -84,9 +84,9 @@ setupProlog(void)
     initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  if ( !initPrologStacks(GD->options.localSize, 
-			 GD->options.globalSize, 
-			 GD->options.trailSize, 
+  if ( !initPrologStacks(GD->options.localSize,
+			 GD->options.globalSize,
+			 GD->options.trailSize,
 			 GD->options.argumentSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
   initPrologLocalData();
@@ -185,7 +185,7 @@ static struct signame
 { int 	      sig;
   const char *name;
   int	      flags;
-} signames[] = 
+} signames[] =
 {
 #ifdef SIGHUP
   { SIGHUP,	"hup",    0},
@@ -316,7 +316,7 @@ PL_get_signum_ex(term_t sig, int *n)
   int i = -1;
 
   if ( PL_get_integer(sig, &i) )
-  { 
+  {
   } else if ( PL_get_chars(sig, &s, CVT_ATOM) )
   { i = signal_index(s);
   } else
@@ -458,7 +458,7 @@ dispatch_signal(int sig, int sync, Code PC)
     { predname = NULL;
       arity    = 0;
     }
-      
+
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
     if ( !sync )
       unblockGC(PASS_LD1);
@@ -517,7 +517,7 @@ set_sighandler(int sig, handler_t func)
 #else
   return signal(sig, func);
 #endif
-} 
+}
 
 #ifdef HAVE_SIGINFO_H
 #include <siginfo.h>
@@ -527,7 +527,7 @@ set_sighandler(int sig, handler_t func)
 #if defined(O_SEGV_HANDLING) && defined(O_DYNAMIC_STACKS)
 static handler_t
 set_stack_guard_handler(int sig, void *func)
-{ 
+{
 #ifdef HAVE_SIGACTION
   struct sigaction old;
   struct sigaction new;
@@ -597,7 +597,7 @@ static void
 sig_exception_handler(int sig)
 { if ( LD && LD->pending_exception )
   { record_t ex = LD->pending_exception;
-	  
+
     LD->pending_exception = 0;
 
     PL_put_variable(exception_bin);
@@ -627,7 +627,7 @@ gc_handler(int sig)
 static void
 initSignals(void)
 { struct signame *sn = signames;
-  
+
 #ifdef SIGPIPE
   set_sighandler(SIGPIPE, SIG_IGN);
 #endif
@@ -657,7 +657,7 @@ initSignals(void)
 void
 cleanupSignals(void)
 { struct signame *sn = signames;
-  
+
   for( ; sn->name; sn++)
     unprepareSignal(sn->sig);
 }
@@ -695,7 +695,7 @@ listBlocked()
   int i;
 
   sigprocmask(SIG_BLOCK, NULL, &current);
-  
+
   Sdprintf("Blocked: ");
   for(i=1; i<32; i++)
   { if ( sigismember(&current, i) )
@@ -731,7 +731,7 @@ unblockSignals(sigset_t *old)
   { sigset_t set;
 
     allSignalMask(&set);
-  
+
     sigprocmask(SIG_UNBLOCK, &set, NULL);
     DEBUG(1, Sdprintf("UnBlocked all signals\n"));
   }
@@ -885,7 +885,7 @@ get_meta_arg(term_t arg, term_t m, term_t t)
 
 
 static int
-get_module(term_t t, Module *m) 
+get_module(term_t t, Module *m)
 { atom_t a;
 
   if ( !PL_get_atom_ex(t, &a) )
@@ -940,7 +940,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   { TRY(PL_unify_term(old,
 		      PL_FUNCTOR, FUNCTOR_foreign_function1,
 		      PL_POINTER, sh->handler));
-  }    
+  }
 
   if ( PL_compare(old, new) == 0 &&
        PL_compare(mold, mnew) == 0 )
@@ -961,7 +961,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
       if ( !get_module(mnew, &m) )
 	return FALSE;
       pred = lookupProcedure(PL_new_functor(a, 1), m);
-      
+
       sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
       sh->handler = NULL;
@@ -1345,7 +1345,7 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t minlocal    = 2*SIZEOF_VOIDP K;
   intptr_t mintrail    = 2*SIZEOF_VOIDP K;
   intptr_t minargument = 1*SIZEOF_VOIDP K;
-  
+
   size_alignment = getpagesize();
   while(size_alignment < 4*SIZEOF_VOIDP K)
     size_alignment *= 2;
@@ -1412,7 +1412,7 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 #ifdef O_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
 #endif
-  
+
   succeed;
 }
 
@@ -1868,7 +1868,7 @@ trimStacks(ARG1_LD)
 
   for(te = tTop; --te >= tBase; )
   { Word p = te->address;
-    
+
     if ( isTrailVal(p) )
       continue;
 

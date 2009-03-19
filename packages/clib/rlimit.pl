@@ -36,7 +36,7 @@
 %	rlimit(+Limit, -Old, +New)
 %
 %	Query and set POSIX resource limits.  Provided resources are:
-%	
+%
 %		cpu		CPU time (seconds)
 %		fsize		file-size (bytes)
 %		data		size of data-segment (bytes)

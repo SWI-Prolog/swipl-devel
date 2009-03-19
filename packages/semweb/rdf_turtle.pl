@@ -59,18 +59,18 @@ by the above document at october 17, 2004.
 */
 
 %%	rdf_load_turtle(+Input, -Triples, +Options)
-%	
+%
 %	Read a stream or file into a set of triples of the format
-%	
+%
 %		rdf(Subject, Predicate, Object)
-%		
+%
 %	The representation is consistent with the SWI-Prolog RDF/XML
 %	and ntriples parsers.  Provided options are:
-%	
+%
 %		* base_uri(+BaseURI)
 %		Initial base URI.  Defaults to file://<file> for loading
 %		files.
-%		
+%
 %		* anon_prefix(+Prefix)
 %		Blank nodes are generated as <Prefix>1, <Prefix>2, etc.
 %		If Prefix is not an atom blank nodes are generated as
@@ -215,7 +215,7 @@ triples(State, Triples) -->
 	;   { Triples \== T }		% [ p o ; ... ] .
 	->  { T = [] }
 	).
-	
+
 subject(State, Subject, T, T) -->
 	resource(State, Subject), !.
 subject(State, Subject, T0, T) -->
@@ -299,7 +299,7 @@ resource(State, BaseURI) -->
 	[ : ], !,
 	{ arg(1, State, BaseURI)
 	}.
-	
+
 
 uri(State, URI) -->
 	[ relative_uri(Rel)
@@ -400,7 +400,7 @@ syntax_error(State, Error) -->
 		 *******************************/
 
 %%	turtle_tokens(+In, -List)
-%	
+%
 %	Read a statement from a turtle file, returning the contents as a
 %	list of tokens.
 
@@ -488,7 +488,7 @@ turtle_token(Punct, In, C, P) :-
 	get_code(In, C).
 
 %%	turtle_number(+Char0, +In, -CharNext, -Value)
-%	
+%
 %	Value is Type:CodeList
 
 turtle_number(0'-, In, CN, numeric(T, [0'-|Codes])) :- !,
@@ -501,7 +501,7 @@ turtle_number(C0, In, CN, Value) :-
 	turtle_number_nn(C0, In, CN, Value).
 
 turtle_number_nn(C, In, CN, numeric(Type, Codes)) :-
-	turtle_integer_codes(C, In, CN0, Codes, T0), 	% [0-9]+ 
+	turtle_integer_codes(C, In, CN0, Codes, T0), 	% [0-9]+
 	(   CN0 == 0'.
 	->  T0 = [CN0|T1],
 	    get_code(In, C1),

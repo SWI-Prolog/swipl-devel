@@ -23,7 +23,7 @@ find.
 		 /*******************************
 		 *	 CLASS PASSWD_ITEM	*
 		 *******************************/
-	    
+
 :- pce_begin_class(password_item, text_item, "text-item for entering a passwd").
 
 variable(shadow,	text_item,	get, "The real (invisible) item").
@@ -65,7 +65,7 @@ update(I) :->
 	make_star_string(Size, Stars),
 	send_super(I, selection, Stars),
 	send(I, caret, Caret).
-	    
+
 
 selection(I, Passwd:string) :<-
 	get(I, shadow, Shadow),

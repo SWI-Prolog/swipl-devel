@@ -33,7 +33,7 @@ ws_create_font(FontObj f, DisplayObj d)
   lfont.lfPitchAndFamily |= (f->family == NAME_helvetica ? FF_SWISS :
 			     f->family == NAME_times     ? FF_ROMAN :
 			     				   FF_MODERN);
-  
+
   if ( !(wsf->hfont = CreateFontIndirect(&lfont)) )
   { int stock;
 

@@ -86,7 +86,7 @@ tcp_get_socket(term_t Socket, int *id)
     if ( PL_get_integer(a, id) )
       return TRUE;
   }
-  
+
   if ( PL_get_stream_handle(Socket, &s) )
   { socket = (int)(intptr_t)s->handle;
 
@@ -137,7 +137,7 @@ pl_setopt(term_t Socket, term_t opt)
 { int socket;
   atom_t a;
   int arity;
-       
+
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
 
@@ -186,7 +186,7 @@ pl_setopt(term_t Socket, term_t opt)
       return FALSE;
     }
   }
-       
+
 not_implemented:
   return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "socket_option");
 }
@@ -274,7 +274,7 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t options)
   if ( !tcp_get_socket(Socket, &socket) ||
        !nbio_get_sockaddr(From, &sockaddr) )
     return FALSE;
-  
+
   if ( (n=nbio_recvfrom(socket, buf, sizeof(buf), flags,
 			(struct sockaddr*)&sockaddr, &alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
@@ -353,7 +353,7 @@ pl_connect(term_t Socket, term_t Address)
   if ( !tcp_get_socket(Socket, &sock) ||
        !nbio_get_sockaddr(Address, &sockaddr) )
     return FALSE;
-  
+
   if ( nbio_connect(sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) == 0 )
     return TRUE;
 
@@ -365,7 +365,7 @@ static foreign_t
 pl_bind(term_t Socket, term_t Address)
 { struct sockaddr_in sockaddr;
   int socket;
-       
+
   memset(&sockaddr, 0, sizeof(sockaddr));
 
   if ( !tcp_get_socket(Socket, &socket) ||
@@ -423,7 +423,7 @@ pl_gethostname(term_t name)
 
     if ( gethostname(buf, sizeof(buf)) == 0 )
     { struct hostent *he;
-      
+
       if ( (he = gethostbyname(buf)) )
 	hname = PL_new_atom(he->h_name);
       else
@@ -544,7 +544,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
   { if ( !PL_get_float(timeout, &time) )
       return pl_error("tcp_select", 3, NULL,
 		      ERR_TYPE, timeout, "number");
-  
+
     if ( time >= 0.0 )
     { t.tv_sec  = (int)time;
       t.tv_usec = ((int)(time * 1000000) % 1000000);
@@ -618,7 +618,7 @@ install_socket()
   ATOM_codes	      =	PL_new_atom("codes");
 
   FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
-  
+
 #ifdef O_DEBUG
   PL_register_foreign_in_module("user", "tcp_debug", 1, pl_debug, 0);
 #endif

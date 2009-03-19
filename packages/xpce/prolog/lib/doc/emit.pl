@@ -93,7 +93,7 @@ emit([@Ref|T], PB, Mode) :- !,
 emit([H|T], PB, Mode) :-
 	print_message(warning, doc(failed(emit(H)))),
 	emit(T, PB, Mode).
-	
+
 blank_mode(leading,  none) :- !.
 blank_mode(both,     trailing) :- !.
 blank_mode(Mode,     Mode).
@@ -137,7 +137,7 @@ append_pre_atom(H, PB, Mode) :-
 	    append_pre_atom(H1, PB, Mode)
 	;   send(PB, append, tbox(H, Style))
 	).
-	
+
 
 %	Paragraphs
 
@@ -145,13 +145,13 @@ action(par, PB, Mode) :-		% \par
 	action(parskip, PB, Mode),
 	action(parindent, PB, Mode).
 action(parskip, PB, Mode) :-		% \parskip
-	send(PB, instance_of, parbox), 
+	send(PB, instance_of, parbox),
 	get(Mode, parsep, ParSep),
 	send(PB, append, @br),
 	send(PB, append, ParSep),
 	send(PB, append, @br).
 action(parindent, PB, Mode) :-		% \parindent
-	send(PB, instance_of, parbox), 
+	send(PB, instance_of, parbox),
 	get(Mode, parindent, ParIndent),
 	send(PB, append, ParIndent).
 
@@ -334,7 +334,7 @@ action(thead(_Options, Content), Table, Mode) :-
 	send(Clone, set_font, weight, bold),
 	emit(Content, Table, Clone),
 	send(Table, def_alignment, DefAlign).
-	
+
 %	footnotes
 
 action(footnote(Text), PB, Mode) :-

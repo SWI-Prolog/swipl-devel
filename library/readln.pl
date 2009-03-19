@@ -127,7 +127,7 @@ rl_readln(P, EOF, StopChars, WordChars, Case) :-
 	rl_blanks(L, LL), !,
 	rl_words(P, LL,[], options(WordChars, Case)), !.
 
-rl_initread(S, EOF, StopChars) :- 
+rl_initread(S, EOF, StopChars) :-
 	get0(K),
 	rl_readrest(K, S, EOF, StopChars).
 
@@ -195,7 +195,7 @@ rl_basic_num(N, [N|R], R) :-
 rl_blank(X) :-
 	code_type(X, space).
 
-rl_lc(X, X1, _, Case) :-	
+rl_lc(X, X1, _, Case) :-
 	code_type(X, upper), !,
 	rl_fix_case(Case, X, X1).
 rl_lc(X, X, _, _) :-

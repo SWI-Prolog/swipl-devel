@@ -186,7 +186,7 @@ selection(TI, Value:any) :<-
 		fail
 	    )
 	).
-	    
+
 
 is_complete(_TI, Name:name, Type:type) :->
 	"Test whether Name satisfies type"::

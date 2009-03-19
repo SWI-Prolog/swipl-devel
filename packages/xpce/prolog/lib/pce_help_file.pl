@@ -79,7 +79,7 @@ pce_help_file(Id, FileName) :-
 	asserta(resource(Id, help, Path)).
 
 %%	pce_help(+DataBaseId, +Label)
-%	
+%
 %	Start @helper/helper on the help module `DataBaseId', searching
 %	for a fragment with label `Label'.  Normally invoked through the
 %	send directly.

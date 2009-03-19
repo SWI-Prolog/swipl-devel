@@ -76,7 +76,7 @@ getForwardReceiverFunctionv(Function f, Any receiver,
 
     return rval;
   } else
-    return getForwardFunctionv(f, argc, argv);  
+    return getForwardFunctionv(f, argc, argv);
 }
 
 
@@ -94,7 +94,7 @@ getForwardFunction(Function f, ...)
   for(argc=0; (argv[argc] = va_arg(args, Any)) != NULL; argc++)
     assert(argc <= VA_PCE_MAX_ARGS);
   va_end(args);
-  
+
   return getForwardFunctionv(f, argc, argv);
 }
 
@@ -109,14 +109,14 @@ getForwardReceiverFunction(Function f, Any receiver, ...)
   for(argc=0; (argv[argc] = va_arg(args, Any)) != NULL; argc++)
     assert(argc <= VA_PCE_MAX_ARGS);
   va_end(args);
-  
+
   return getForwardReceiverFunctionv(f, receiver, argc, argv);
 }
 
 static Any
 getNoExecuteFunction(Function f)
 { errorPce(f, NAME_cannotExecute);
-  
+
   fail;
 }
 
@@ -167,7 +167,7 @@ static char *T_sendSuper[] =
 #define var_function NULL
 /*
 vardecl var_function[] =
-{ 
+{
 };
 */
 
@@ -244,7 +244,7 @@ static getdecl get_function[] =
 #define rc_function NULL
 /*
 static classvardecl rc_function[] =
-{ 
+{
 };
 */
 

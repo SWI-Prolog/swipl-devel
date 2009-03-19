@@ -89,18 +89,18 @@ otherwise during startup of the application.
 %	the   behaviour   depends   on    the     =wait=    option    of
 %	thread_create_in_pool/4  and  the  =backlog=   option  described
 %	below.  Options are passed to thread_create/3, except for
-%	
+%
 %	    * backlog(+MaxBackLog)
 %	    Maximum number of requests that can be suspended.  Default
 %	    is =infinite=.  Otherwise it must be a non-negative integer.
 %	    Using backlog(0) will never delay thread creation for this
 %	    pool.
-%	    
+%
 %	The pooling mechanism does _not_   interact  with the =detached=
 %	state of a thread. Threads can   be  created both =detached= and
 %	normal and must be joined using   thread_join/2  if they are not
 %	detached.
-%	
+%
 %	@bug	The thread creation option =at_exit= is reserved for
 %		internal use by this library.
 
@@ -113,7 +113,7 @@ thread_pool_create(Name, Size, Options) :-
 %%	thread_pool_destroy(+Name) is det.
 %
 %	Destroy the thread pool named Name.
-%	
+%
 %	@error	existence_error(thread_pool, Name).
 
 thread_pool_destroy(Name) :-
@@ -141,7 +141,7 @@ current_thread_pool(Name) :-
 %
 %	True if Property is a property of thread pool Name. Defined
 %	properties are:
-%	
+%
 %	    * options(Options)
 %	    Thread creation options for this pool
 %	    * free(Size)
@@ -172,12 +172,12 @@ thread_pool_property(Name, Property) :-
 %	Create  a  thread  in  Pool.  Options  overrule  default  thread
 %	creation options associated  to  the   pool.  In  addition,  the
 %	following option is defined:
-%	
+%
 %	    * wait(+Boolean)
 %	    If =true= (default) and the pool is full, wait until a
 %	    member of the pool completes.  If =false=, throw a
 %	    resource_error.
-%	    
+%
 %	@error	resource_error(threads_in_pool(Pool)) is raised if wait
 %		is =false= or the backlog limit has been reached.
 
@@ -224,7 +224,7 @@ create_pool_manager :-
 		 /*******************************
 		 *	  MANAGER LOGIC		*
 		 *******************************/
-	
+
 %%	manage_thread_pool(+State)
 
 manage_thread_pool(State0) :-
@@ -299,7 +299,7 @@ diff_list_length(List, Tail, Size) :-
 %
 %	Deal with create requests and  completion   messages  on a given
 %	pool.  There are two messages:
-%	
+%
 %	    * create(PoolName, Goal, ForThread, Wait, Options)
 %	    Create a new thread on behalve of ForThread.  There are
 %	    two cases:
@@ -384,7 +384,7 @@ wait_reply(Value) :-
 	->  fail
 	;   throw(Reply)
 	).
-	
+
 
 		 /*******************************
 		 *	      MESSAGES		*

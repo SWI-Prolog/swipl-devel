@@ -128,7 +128,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 			  '[^\n]*:<?->?\\s*$'	% clause head
 			])
 	]).
-		 
+
 class_variable(varmark_style, style*,
 	       style(background := honeydew,
 		     underline := @on)).
@@ -208,7 +208,7 @@ indent_line(E) :->
 	;   send(E, indent_clause_line)
 	;   send(E, align_line, 8)
 	).
-	
+
 
 beginning_of_clause(E, Start:int, BOP:int) :<-
 	"Find start of predicate"::
@@ -266,7 +266,7 @@ indent_if_then_else(E) :->
 	;   get(E, column, OpenPos, OpenCol),
 	    send(E, align_line, OpenCol)
 	).
-	
+
 
 indent_clause_line(E) :->
 	"Indent current line according to clause"::
@@ -588,7 +588,7 @@ consult_region(M, From:[int], To:[int]) :->
 	consult(user:TmpNam),
 	send(M, report, status, 'Region consulted'),
 	send(File, remove).
-	
+
 
 consult_selection(M) :->
 	"Consult selected text"::
@@ -662,7 +662,7 @@ spy(M) :->
 	->  term_to_atom(Feedback, Atom),
 	    send(M, report, status,
 		 'Placed spy-point on "%s"', Atom)
-	;   send(M, report, warning, 
+	;   send(M, report, warning,
 		 'Can''t find anything to spy from caret location')
 	).
 
@@ -695,7 +695,7 @@ trace(M) :->
 	->  term_to_atom(Feedback, Atom),
 	    send(M, report, status,
 		 'Placed trace-point on "%s"', Atom)
-	;   send(M, report, warning, 
+	;   send(M, report, warning,
 		 'Can''t find anything to trace from caret location')
 	).
 
@@ -726,11 +726,11 @@ prolog_debug_spec(M, Head, Spec) :-
 	->  Spec = (Module:Name/Arity)
 	;   Spec = Name/Arity
 	).
-	    
+
 		 /*******************************
 		 *	       DROP		*
 		 *******************************/
-	
+
 preview_drop(M, Obj:object*) :->
 	"Preview the upcomming drop action"::
 	(   Obj == @nil
@@ -939,7 +939,7 @@ unmark_singletons(M, P) :-
 		message(@arg1, free))).
 
 %	->mark_singletons: Term, Singletons, Pos
-%	
+%
 %	Mark singleton variables in Term, where Singletons is a list of
 %	singleton variables returned from read_term/3 and Pos is the
 %	subterm-position returned.
@@ -1037,7 +1037,7 @@ prepare_replace_singletons(M) :-
 		 *******************************/
 
 %	<-prolog_term
-%	
+%
 %	Read a Prolog term from the buffer. If From is specified, this
 %	is taken to be the start of the clause rather than using
 %	<-beginning_of_clause from <-caret. If Silent is @off, error
@@ -1083,7 +1083,7 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	    )
 	;   true
 	).
-	
+
 new_caret_position(M, NewCaret:int) :->
 	"Mark variables around caret"::
 	send_super(M, new_caret_position, NewCaret),
@@ -1157,7 +1157,7 @@ unmark_variables(M) :->
 	).
 
 %	find_variable(+TermPos, +Clause, +Caret, -Var)
-%	
+%
 %	Find the variable around the caret and return it in Var. If the
 %	caret is not on a variable, fail.
 
@@ -1181,7 +1181,7 @@ list_pos([_|PT], TP, [_|ET],  P,  E) :-
 	list_pos(PT, TP, ET, P, E).
 
 %	subterm_position(+Term, +Clause, +TermPos, -Pos)
-%	
+%
 %	Find all positions at which Term appears in Clause.
 
 subterm_position(Search, Term, Pos, Pos) :-
@@ -1317,7 +1317,7 @@ at_start_of_predicate(M, Start:[int]) :->
 	->  \+ get(M, name_and_arity, P1, tuple(Name, Arity))
 	;   true
 	).
-	    
+
 
 backward_predicate(M, P0:int, BPred:int) :<-
 	"Find start of this/previous predicate"::

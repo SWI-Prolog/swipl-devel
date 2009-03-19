@@ -83,7 +83,7 @@ insideRegion(RegionObj r, Area a, Point p)
 
   if ((h >= 0 && (py < y || py > y+h)) || (h < 0 && (py < y+h || py > y)))
     fail;
-  
+
   succeed;
 }
 
@@ -92,11 +92,11 @@ static Area
 getAreaRegion(RegionObj r, Area a)
 { Int x=a->x, y=a->y, w=a->w, h=a->h;
 
-  answer(answerObject(ClassArea, 
-    getValueExpression(r->x, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
-    getValueExpression(r->y, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
-    getValueExpression(r->w, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
-    getValueExpression(r->h, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
+  answer(answerObject(ClassArea,
+    getValueExpression(r->x, VarX, x, VarW, w, VarY, y, VarH, h, EAV),
+    getValueExpression(r->y, VarX, x, VarW, w, VarY, y, VarH, h, EAV),
+    getValueExpression(r->w, VarX, x, VarW, w, VarY, y, VarH, h, EAV),
+    getValueExpression(r->h, VarX, x, VarW, w, VarY, y, VarH, h, EAV),
     EAV));
 }
 
@@ -153,7 +153,7 @@ static getdecl get_region[] =
 #define rc_region NULL
 /*
 static classvardecl rc_region[] =
-{ 
+{
 };
 */
 

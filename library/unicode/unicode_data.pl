@@ -58,7 +58,7 @@ file_search_path/2).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	unicode_property(?Code, ?Property)
-%	
+%
 %	Logical predicate relating code  points   to  properties.  It is
 %	optimised for asking a single  property   of  a  known code, but
 %	works with any instantiation.
@@ -107,7 +107,7 @@ table(Handle) :-
 			   Path,
 			   [ access(read)
 			   ]),
-	new_table(Path, 
+	new_table(Path,
 		  [ code(hexadecimal, [sorted, unique]),
 		    name(atom, [downcase]),		    		% 1
 		    general_category(atom), 				% 2
@@ -128,4 +128,4 @@ table(Handle) :-
 		  ],
 		  Handle),
 	assert(handle(Handle)).
-		  
+

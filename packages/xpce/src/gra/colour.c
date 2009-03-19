@@ -219,7 +219,7 @@ getConvertColour(Class class, Name name)
       dgs = 2;
     else if ( l == 13 )
       dgs = 4;
-    
+
     if ( dgs )
     { s++;				/* skip # */
       r = take_hex(s, dgs); s+= dgs;
@@ -231,7 +231,7 @@ getConvertColour(Class class, Name name)
 	{ r = r*256 + r;
 	  g = g*256 + g;
 	  b = b*256 + b;
-	} 
+	}
 
 	answer(answerObject(ClassColour, name,
 			    toInt(r), toInt(g), toInt(b), EAV));
@@ -242,7 +242,7 @@ getConvertColour(Class class, Name name)
   }
 
   answer(answerObject(ClassColour, name, EAV));
-}  
+}
 
 
 static status
@@ -300,7 +300,7 @@ get_hsv_colour(Colour c, float *h, float *s, float *v)
 { if ( isDefault(c->red) )
   { TRY(getXrefObject(c, CurrentDisplay(NIL)));
   }
-  
+
   RGBToHSV((float)valInt(c->red)/65535.0,
 	   (float)valInt(c->green)/65535.0,
 	   (float)valInt(c->blue)/65535.0,
@@ -376,7 +376,7 @@ getHiliteColour(Colour c, Real h)
 
   if ( isDefault(c->green) )		/* realise the colour */
     getXrefObject(c, CurrentDisplay(NIL));
-  
+
   r = valInt(c->red);
   g = valInt(c->green);
   b = valInt(c->blue);
@@ -384,7 +384,7 @@ getHiliteColour(Colour c, Real h)
   r = r + (int)((float)(65535 - r) * hf);
   g = g + (int)((float)(65535 - g) * hf);
   b = b + (int)((float)(65535 - b) * hf);
-  
+
   return associateColour(c, toInt(r), toInt(g), toInt(b));
 }
 
@@ -400,7 +400,7 @@ getReduceColour(Colour c, Real re)
 
   if ( isDefault(c->green) )		/* realise the colour */
     getXrefObject(c, CurrentDisplay(NIL));
-  
+
   r = valInt(c->red);
   g = valInt(c->green);
   b = valInt(c->blue);
@@ -419,11 +419,11 @@ getIntensityColour(Colour c)
 
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
-  
+
   r = valInt(c->red);
   g = valInt(c->green);
   b = valInt(c->blue);
-  
+
   answer(toInt((r*20 + g*32 + b*18)/(20+32+18)));
 }
 

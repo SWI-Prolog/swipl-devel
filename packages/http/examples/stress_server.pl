@@ -115,7 +115,7 @@ wait(Time, N) :-
 		   format('~D~n', [I]),
 		   flush_output
 	       )).
-	
+
 %%	spawn(+Request)
 %
 %	Run requests under /spawn/ in their own thread.

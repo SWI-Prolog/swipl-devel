@@ -36,7 +36,7 @@ initialiseResizeOutlineGesture(ResizeOutlineGesture g, Name button,
 
   send(g->outline, NAME_texture,
        getClassVariableValueObject(g, NAME_texture), EAV);
-  
+
   succeed;
 }
 
@@ -139,7 +139,7 @@ static senddecl send_resizeOutlineGesture[] =
 #define get_resizeOutlineGesture NULL
 /*
 static getdecl get_resizeOutlineGesture[] =
-{ 
+{
 };
 */
 

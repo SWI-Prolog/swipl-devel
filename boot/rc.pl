@@ -44,7 +44,7 @@
 	user:resource/3.
 :- multifile
 	user:resource/3.
-	
+
 %%	open_resource(:Name, ?Class, -Handle) is det.
 %%	open_resource(:Name, ?Class, +Mode, -Handle) is det.
 %

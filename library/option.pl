@@ -83,7 +83,7 @@ action(Data, Attributes) :-
 %
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
@@ -103,7 +103,7 @@ option(Opt, _, Default) :-
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention. Fails silently
 %	if the option does not appear in OptionList.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-			% make option processing stead-fast
@@ -224,11 +224,11 @@ canonise_options2([H|T0], [H|T]) :- !,
 %	Perform meta-expansion on options that are module-sensitive.
 %	Whether an option name is module sensitive is determined by
 %	calling call(IsMeta, Name).  Here is an example:
-%	
+%
 %	==
 %		meta_options(is_meta, OptionsIn, Options),
 %		...
-%	
+%
 %	is_meta(callback).
 %	==
 

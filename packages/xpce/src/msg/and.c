@@ -105,7 +105,7 @@ static getdecl get_and[] =
 #define rc_and NULL
 /*
 static classvardecl rc_and[] =
-{ 
+{
 };
 */
 

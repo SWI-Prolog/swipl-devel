@@ -59,7 +59,7 @@ points_arc(Arc a, int *sx, int *sy, int *ex, int *ey)
   int cy = valInt(a->position->y);
   float start = valReal(a->start_angle);
   float size = valReal(a->size_angle);
-  
+
 
   if ( sx )
     *sx = cx + rfloat((float) valInt(a->size->w) * COS(start));
@@ -140,7 +140,7 @@ RedrawAreaArc(Arc a, Area area)
     { av[2] = toInt(sx-(sy-cy));
       av[3] = toInt(sy+(sx-cx));
     }
-      
+
     if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
     { assign(a->first_arrow, displayed, ON);
       ComputeGraphical(a->first_arrow);
@@ -334,7 +334,7 @@ setArc(Arc a, Int x, Int y, Int radius, float start, float size)
     setReal(a->size_angle, size);
     changed++;
   }
-  
+
   if ( changed )
     requestComputeGraphical(a, DEFAULT);
 

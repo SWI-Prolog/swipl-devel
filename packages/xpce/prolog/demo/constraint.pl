@@ -68,9 +68,9 @@ constraint_demo :-
 	send_list([S1, S2], drag, @on),
 	send_list([S1, S2], message, message(@receiver, update_constraints)),
 	send(D, append, button(quit, message(D, destroy))),
-	
+
 	new(_, constraint(S1, B1, identity(selection, center_x))),
 	new(_, constraint(S2, B2, identity(selection, center_y))),
 
 	send(D, open).
-	
+

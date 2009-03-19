@@ -65,7 +65,7 @@ PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
 			   PL_INT64, counts.marked_cont,
 			   PL_INT64, counts.c_scanned,
 			   PL_INT64, counts.vm_scanned);
-		       
+
   memset(&counts, 0, sizeof(counts));
 
   return rc;
@@ -151,7 +151,7 @@ static inline void
 clear_frame_var(walk_state *state, Code PC ARG_LD)
 { if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
-    DEBUG(3, Sdprintf("Clear var %d at %d\n", 
+    DEBUG(3, Sdprintf("Clear var %d at %d\n",
 		      PC[0]-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_SECURE
     { Word vp = varFrameP(fr, PC[0]);
@@ -162,7 +162,7 @@ clear_frame_var(walk_state *state, Code PC ARG_LD)
 		 PC[0]-VAROFFSET(0),
 		 (PC-state->c0)-1);
       }
-    } 
+    }
 #else
     setVar(varFrame(fr, PC[0]));
 #endif
@@ -282,7 +282,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
 
 					/* variable access */
-	
+
       case B_UNIFY_VAR:			/* Var = Term */
 	mark_frame_var(state, PC[0] PASS_LD);
         state->adepth = NO_ADEPTH;
@@ -547,7 +547,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
 			levelFrame(fr), predicateName(fr->predicate),
 			PC-state.c0));
-	
+
       walk_and_mark(&state, PC, I_EXIT PASS_LD);
     }
 

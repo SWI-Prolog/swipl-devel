@@ -49,7 +49,7 @@ prolog:on_menu(Label) :-
 	      print_message(error, Error)).
 
 %	win_has_menu
-%	
+%
 %	Test whether the system provides the menu interface
 
 win_has_menu :-

@@ -77,46 +77,46 @@ write_index(Request) :-
 %	Register Pred as  a  handler  for   HTTP  requests.  Path  is is
 %	specification as provided by  http_path.pl.   Pred  is either an
 %	atom or one of the following reserved terms:
-%	
+%
 %		* reply_file(+File, +FileOptions)
 %		Reply contents of File using the given options.
 %		FileOptions include:
-%			
+%
 %			* mime_type(+Type)
 %			Mime-type specified with File.
-%			
+%
 %			* cache(+Boolean)
 %			If =false=, do not pass and process
 %			last_modification time.
 %
 %	Options is a list containing the following options:
-%	
+%
 %		* authentication(+Type)
 %		Demand authentication.  Authentication methods are
 %		pluggable.  The library http_authenticate.pl provides
 %		a plugin for user/password based =Basic= HTTP
 %		authentication.
-%		
+%
 %		* chunked
 %		Use =|Transfer-encoding: chunked|= if the client
 %		allows for it.
-%		
+%
 %		* id(+Term)
 %		Identifier of the handler.  The default identifier is
 %		the predicate name.  Used by http_location_by_id/2.
-%		
+%
 %		* priority(+Integer)
 %		If two handlers handle the same path, the one with the
 %		highest priority is used.  If equal, the last registered
 %		is used.  Please be aware that the order of clauses in
 %		multifile predicates can change due to reloading files.
 %		The default priority is 0 (zero).
-%		
+%
 %		* prefix
 %		Call Pred on any location that is a specialisation of
 %		Path.  If multiple handlers match, the one with the
 %		longest path is used.
-%		
+%
 %		* spawn(+SpawnOptions)
 %		Run the handler in a seperate thread.  If SpawnOptions
 %		is an atom, it is interpreted as a thread pool name
@@ -124,11 +124,11 @@ write_index(Request) :-
 %		are passed to http_spawn/2 and from there to
 %		thread_create/3.  These options are typically used to
 %		set the stack limits.
-%		
+%
 %		* time_limit(+Spec)
 %		One of =infinite=, =default= or a positive number
 %		(seconds)
-%		
+%
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
 %	proper update through make/0 when the specification is modified.
@@ -214,7 +214,7 @@ compile_handler(Path, Pred, Options0,
 %%	check_path(+PathSpec) is det.
 %
 %	Validate the given path specification.  We want one of
-%	
+%
 %		* AbsoluteLocation
 %		* Alias(Relative)
 %
@@ -286,7 +286,7 @@ http_current_handler(Path, M:C, Options) :-
 %	setting/2)  http:prefix  is  active,  Location  is  the  handler
 %	location prefixed with the prefix setting.   Handler  IDs can be
 %	specified in two ways:
-%	
+%
 %	    * id(ID)
 %	    If this appears in the option list of the handler, this
 %	    it is used and takes preference over using the predicate.
@@ -372,7 +372,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 %	done by the multifile   predicate  http_dispatch:authenticate/3.
 %	The  library  http_authenticate.pl  provides  an  implementation
 %	thereof.
-%	
+%
 %	@error	permission_error(http_location, access, Location)
 
 :- multifile
@@ -393,15 +393,15 @@ authentication([_|Options], Request, Fields) :-
 %%	find_handler(+Path, -Action, -Options) is det.
 %
 %	Find the handler to call from Path.  Rules:
-%	
+%
 %		* If there is a matching handler, use this.
 %		* If there are multiple prefix(Path) handlers, use the
 %		  longest.
-%		  
+%
 %	If there is a handler for =|/dir/|=   and  the requested path is
 %	=|/dir|=, find_handler/3 throws a  http_reply exception, causing
 %	the wrapper to generate a 301 (Moved Permanently) reply.
-%		  
+%
 %	@error	existence_error(http_location, Location)
 %	@throw	http_reply(moved(Dir))
 %	@tbd	Introduce automatic redirection to indexes here?
@@ -506,15 +506,15 @@ extend(G0, Extra, G) :-
 %%	http_reply_file(+FileSpec, +Options, +Request) is det.
 %
 %	Options is a list of
-%	
+%
 %		* cache(+Boolean)
 %		If =true= (default), handle If-modified-since and send
 %		modification time.
-%		
+%
 %		* mime_type(+Type)
 %		Overrule mime-type guessing from the filename as
 %		provided by file_mime_type/2.
-%		
+%
 %	If caching is not disabled,  it   processed  the request headers
 %	=|If-modified-since|= and =Range=.
 %
@@ -555,9 +555,9 @@ http_reply_file(File, Options, Request) :-
 %
 %	Compile paths into  a  tree.  The   treee  is  multi-rooted  and
 %	represented as a list of nodes, where each node has the form:
-%	
+%
 %		node(PathOrPrefix, Action, Options, Children)
-%		
+%
 %	The tree is a potentially complicated structure. It is cached in
 %	a global variable. Note that this   cache is per-thread, so each
 %	worker thread holds a copy of  the   tree.  If handler facts are
@@ -601,7 +601,7 @@ insert_prefix(Prefix, Tree, [Prefix-[]|Tree]).
 %%	prefix_options(+PrefixTree, +DefOptions, -OptionTree)
 %
 %	Generate the option-tree for all prefix declarations.
-%	
+%
 %	@tbd	What to do if there are more?
 
 prefix_options([], _, []).
@@ -618,7 +618,7 @@ prefix_options([P-C|T0], DefOptions,
 %	Add the plain paths.
 
 add_paths_tree(OPTree, Tree) :-
-	findall(path(Path, Action, Options), 
+	findall(path(Path, Action, Options),
 		plain_path(Path, Action, Options),
 		Triples),
 	add_paths_tree(Triples, OPTree, Tree).

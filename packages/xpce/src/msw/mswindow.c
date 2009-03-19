@@ -64,7 +64,7 @@ WinWindowClass()
 
 HPALETTE
 window_palette(PceWindow sw)
-{ FrameObj fr = getFrameWindow(sw, DEFAULT); 
+{ FrameObj fr = getFrameWindow(sw, DEFAULT);
 
   if ( fr )
     return frame_palette(fr);
@@ -76,7 +76,7 @@ window_palette(PceWindow sw)
 static FrameObj
 getExistingFrameWindow(PceWindow sw)
 { PceWindow root = (PceWindow) getRootGraphical((Graphical) sw);
-  
+
   if ( instanceOfObject(root, ClassWindow) &&
        instanceOfObject(root->frame, ClassFrame) )
     answer(root->frame);
@@ -97,7 +97,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
 		pp(sw), hwnd, message, wParam, lParam));
 
-  if ( !sw ) 
+  if ( !sw )
     return DefWindowProc(hwnd, message, wParam, lParam);
   wsw = sw->ws_ref;
 
@@ -131,9 +131,9 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 			namlen = DragQueryFileW(hdrop, i, buf, MAXPATHLEN);
 			appendChain(files, WCToName(buf, namlen));
 		      }
-			  
+
 		      DragFinish(hdrop);		/* reclaims memory */
-	
+
 		      send(sw, NAME_dropFiles, files, pos, EAV);
 		      RedrawDisplayManager(TheDisplayManager());
 		      rewindAnswerStack(mark, NIL);
@@ -148,7 +148,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       int h = HIWORD(lParam);
       Area a = sw->area;
       Int ow = a->w, oh = a->h;
-      
+
       if ( notNil(sw->device) )		/* subwindow */
       { int p2 = valInt(sw->pen) * 2;
 
@@ -224,7 +224,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       EndPaint(hwnd, &ps);
     } else
     { iarea a;
-      
+
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_redraw,
 			Cprintf("%s (0x%04x) received WM_PAINT (%s clear)\n",
@@ -256,14 +256,14 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 	DEBUG(NAME_window,
 	      Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
-		      pp(sw), hwnd)); 
+		      pp(sw), hwnd));
 
 	if ( wsw->drop )
 	  DragAcceptFiles(hwnd, FALSE);
 	PceWhDeleteWindow(hwnd);
 	setHwndWindow(sw, 0);
 	assocObjectToHWND(hwnd, NIL);
-	
+
 	if ( oproc )			/* refining alien window */
 					/* see winHandleWindow() below */
 	{
@@ -281,7 +281,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return DefWindowProc(hwnd, message, wParam, lParam);
     }
 
- 
+
     case WM_SETCURSOR:
     { WsWindow w;
       WsFrame wfr;
@@ -314,7 +314,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     AnswerMark mark;
     status rval = FALSE;
     FrameObj bfr;
-  
+
     if ( sw->sensitive == OFF )
       goto cascade;
 
@@ -344,10 +344,10 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 		  if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
 		  { WsWindow w = sw->ws_ref;
-  
+
 		    if ( message != WM_WINENTER && message != WM_WINEXIT )
 		      PceEventInWindow(hwnd);
-  
+
 		    addCodeReference(ev);
 		    if ( isDownEvent(ev) && !w->capture )
 		      SetCapture(hwnd);
@@ -470,7 +470,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
     wsw->drop = TRUE;
     DragAcceptFiles(hwnd, TRUE);
   };
-		     
+
   if ( notDefault(parent) )		/* make a sub-window */
     send(sw, NAME_displayed, ON, EAV);
 
@@ -551,7 +551,7 @@ ws_invalidate_window(PceWindow sw, Area a)
       rect.right  = rect.left    + valInt(a->w);
       rect.top    = valInt(a->y) + valInt(sw->scroll_offset->y);
       rect.bottom = rect.top     + valInt(a->h);
-  
+
       InvalidateRect(hwnd, &rect, clear);
     }
   } else
@@ -585,7 +585,7 @@ ws_delayed_redraw_window(PceWindow sw)
 {
 #ifdef _REENTRANT
   HWND hwnd;
-  
+
   if ( (hwnd = getHwndWindow(sw)) )
   { DWORD owner = GetWindowThreadProcessId(hwnd, NULL);
     DWORD me = GetCurrentThreadId();
@@ -630,7 +630,7 @@ ws_redraw_window(PceWindow sw, IArea a, int clear)
     }
   } else
   { DEBUG(NAME_redraw, Cprintf("ws_redraw_window(%s): invisible\n", pp(sw)));
-  } 
+  }
 }
 
 
@@ -661,7 +661,7 @@ ws_flash_area_window(PceWindow sw, int x, int y, int w, int h, int msecs)
     rect.right  = rect.left + w;
     rect.top    = y + valInt(sw->scroll_offset->y);
     rect.bottom = rect.top  + h;
-    
+
     invert_window = TRUE;
     InvalidateRect(hwnd, &rect, FALSE);
     UpdateWindow(hwnd);
@@ -728,7 +728,7 @@ void
 ws_ungrab_all(void)
 { if ( grabbedWindows )
     clearChain(grabbedWindows);
-  
+
   ReleaseCapture();
 }
 
@@ -842,7 +842,7 @@ winHandleWindow(PceWindow sw, Int handle)
 { HWND hwnd = (HWND)valInt(handle);
   WsWindow w;
   RECT rect;
-  
+
   while( notNil(sw->decoration) )
     sw = sw->decoration;
 

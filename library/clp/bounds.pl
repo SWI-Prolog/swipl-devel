@@ -101,25 +101,25 @@
 % exported predicates
 X #>= Y :-
 	parse_expression(X,RX),
-	parse_expression(Y,RY), 
+	parse_expression(Y,RY),
 	geq(RX,RY,yes).
-X #=< Y :- 
+X #=< Y :-
 	parse_expression(X,RX),
 	parse_expression(Y,RY),
 	leq(RX,RY,yes).
 X #= Y :-
 	parse_expression(X,RX),
-	parse_expression(Y,RX). 
+	parse_expression(Y,RX).
 X #\= Y :-
 	parse_expression(X,RX),
-	parse_expression(Y,RY), 
+	parse_expression(Y,RY),
 	neq(RX,RY,yes).
 X #> Y :-
 	Z #= Y + 1,
 	X #>= Z.
 X #< Y :-
 	Y #> X.
-X in L .. U :- 
+X in L .. U :-
 	( is_list(X) ->
 		domains(X,L,U)
 	;
@@ -143,7 +143,7 @@ L #/\ R :-
 L #\/ R :-
 	reify(L,BL),
 	reify(R,BR),
-	myor(BL,BR,1).	
+	myor(BL,BR,1).
 L #\ R :-
 	reify(L,BL),
 	reify(R,BR),
@@ -349,17 +349,17 @@ find_ff([V|Vs],CM,FF) :-
 ff_lt(X,Y) :-
 	bounds(X,LX,UX),
 	bounds(Y,LY,UY),
-	UX - LX < UY - LY.	
+	UX - LX < UY - LY.
 
 min_lt(X,Y) :-
 	bounds(X,LX,_),
 	bounds(Y,LY,_),
-	LX < LY.	
+	LX < LY.
 
 max_gt(X,Y) :-
 	bounds(X,_,UX),
 	bounds(Y,_,UY),
-	UX > UY.	
+	UX > UY.
 
 bounds(X,L,U) :-
 	( var(X) ->
@@ -367,7 +367,7 @@ bounds(X,L,U) :-
 	;
 		X = L,
 		X = U
-	).	
+	).
 
 delete_eq([],_,[]).
 delete_eq([X|Xs],Y,List) :-
@@ -477,7 +477,7 @@ geq(X,Y,New) :-
 	; nonvar(X) ->
 		( nonvar(Y) ->
 			X >= Y
-		; 
+		;
 			get(Y,YL,YU,Exp) ->
 			NYU is min(X,YU),
 			put(Y,YL,NYU,Exp)
@@ -495,10 +495,10 @@ geq(X,Y,New) :-
 		; XU == YL ->
 			X = Y
 		; member(leq(Z,State),ExpX),
-	          Y == Z -> 
+	          Y == Z ->
 			set_passive(State),
-			X = Y	
-		; 
+			X = Y
+		;
 			( New == yes ->
 				active_state(State),
 				put(Y,YL,YU,[leq(X,State)|ExpY]),
@@ -516,7 +516,7 @@ geq(X,Y,New) :-
 			)
 		)
 	).
-		
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 neq(X,Y,New) :-
 	X \== Y,
@@ -541,7 +541,7 @@ neq(X,Y,New) :-
 					put(Y,L,U,[neq(X,State)|Exp])
 				;
 					true
-				)	
+				)
 			)
 		)
 	; nonvar(Y) ->
@@ -586,7 +586,7 @@ myplus(X,Y,Z,New) :-
 			put(Z,NZL,NZU,ZExp1),
 			( get(Y,YL2,YU2,YExp2) ->
 				NYL is max(YL,NZL-X),
-				NYU is min(YU,NZU-X),	
+				NYU is min(YU,NZU-X),
 				put(Y,NYL,NYU,YExp2)
 			;
 				Z is X + Y
@@ -670,7 +670,7 @@ div(X,Y,Z) :-
 		max_inf(Z)
 	; X < 0 ->
 		min_inf(Z)
-	).	
+	).
 
 mytimes(X,Y,Z,New) :-
 	( nonvar(X) ->
@@ -701,7 +701,7 @@ mytimes(X,Y,Z,New) :-
 				put(Y,NYL,NYU,YExp2)
 			;
 				Z is X * Y
-			)		
+			)
 		)
 	; nonvar(Y) ->
 		mytimes(Y,X,Z,New)
@@ -711,7 +711,7 @@ mytimes(X,Y,Z,New) :-
 		min_divide(Z,Z,YL,YU,TNXL),
 		max_divide(Z,Z,YL,YU,TNXU),
 		NXL is max(XL,ceiling(TNXL)),
-		NXU is min(XU,floor(TNXU)),		
+		NXU is min(XU,floor(TNXU)),
 		( New == yes ->
 			YExp1 = [mytimes(X,Z)|YExp],
 			put(Y,YL,YU,YExp1),
@@ -753,37 +753,37 @@ mytimes(X,Y,Z,New) :-
 			NYL is max(YL2,ceiling(TYL)),
 			max_divide(ZL,ZU,XL,XU,TYU),
 			NYU is min(YU2,floor(TYU)),
-			put(Y,NYL,NYU,YExp2)	
+			put(Y,NYL,NYU,YExp2)
 		;
 			NYL = Y,
 			NYU = Y
 		),
 		( get(Z,ZL2,ZU2,ZExp2) ->
-			min_times(NXL,NXU,NYL,NYU,TZL),	
+			min_times(NXL,NXU,NYL,NYU,TZL),
 			NZL is max(ZL2,TZL),
-			max_times(NXL,NXU,NYL,NYU,TZU),	
+			max_times(NXL,NXU,NYL,NYU,TZU),
 			NZU is min(ZU2,TZU),
 			put(Z,NZL,NZU,ZExp2)
 		;
 
 			true
-		)	
+		)
 	).
 
 max_times(L1,U1,L2,U2,Max) :-
-	Max is max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).	
+	Max is max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 min_times(L1,U1,L2,U2,Min) :-
-	Min is min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).	
+	Min is min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
 max_divide(L1,U1,L2,U2,Max) :-
 	( L2 =< 0 , U2 >= 0 ->
 		max_inf(Max)
 	;
 		Max is max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
-	).	
+	).
 min_divide(L1,U1,L2,U2,Min) :-
 	( L2 =< 0 , U2 >= 0 ->
 		min_inf(Min)
-	;	
+	;
 		Min is min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
 	).
 
@@ -803,7 +803,7 @@ mydiv(X,Y,Z,New) :-
 			( nonvar(Z) ->
 				% TODO: cover this
 				true
-			;	
+			;
 				get(Z,ZL,ZU,ZExp),
 				( YL =< 0, YU >= 0 ->
 					NZL is max(-abs(X),ZL),
@@ -895,7 +895,7 @@ mymax(X,Y,Z,New) :-
 		( nonvar(Y) ->
 			Z is max(X,Y)
 		; nonvar(Z) ->
-			( Z == X ->		
+			( Z == X ->
 				geq(X,Y,yes)
 			; Z > X ->
 				Y = Z
@@ -912,9 +912,9 @@ mymax(X,Y,Z,New) :-
 			; X < ZL ->
 				Y = Z
 			;
-				( New == yes -> 
-					put(Y,YL,YU,[mymax(X,Z)|YExp]) 
-				; 
+				( New == yes ->
+					put(Y,YL,YU,[mymax(X,Z)|YExp])
+				;
 					true
 				),
 				NZL is max(ZL,X),
@@ -999,7 +999,7 @@ mymax(X,Y,Z,New) :-
 					mymax(Y,X,Z,no)
 				)
 			)
-		; 
+		;
 			mymax(X,Y,Z,no)
 		)
 	).
@@ -1009,7 +1009,7 @@ mymin(X,Y,Z,New) :-
 		( nonvar(Y) ->
 			Z is min(X,Y)
 		; nonvar(Z) ->
-			( Z == X ->		
+			( Z == X ->
 				leq(X,Y,yes)
 			; Z < X ->
 				Y = Z
@@ -1026,9 +1026,9 @@ mymin(X,Y,Z,New) :-
 			; X > ZU ->
 				Y = Z
 			;
-				( New == yes -> 
-					put(Y,YL,YU,[mymin(X,Z)|YExp]) 
-				; 
+				( New == yes ->
+					put(Y,YL,YU,[mymin(X,Z)|YExp])
+				;
 					true
 				),
 				NZL is max(ZL,YL),
@@ -1113,7 +1113,7 @@ mymin(X,Y,Z,New) :-
 					mymin(Y,X,Z,no)
 				)
 			)
-		; 
+		;
 			mymin(X,Y,Z,no)
 		)
 	).
@@ -1170,7 +1170,7 @@ myabs(X,Y,New) :-
 					( UX < NLY ->
 						NUX is min((-NLY),UX)
 					;
-						NUX is min(NUY,UX)	
+						NUX is min(NUY,UX)
 					)
 				),
 				put(X,NLX,NUX,ExpX2)
@@ -1306,7 +1306,7 @@ mymod(X,Y,Z,New) :- % Z is X mod Y
 			true
 		)
 	).
-			
+
 no_overlap(XL,XU,YL,YU,NYL,NYU) :-
 	( XL =< YL ->
 		NYL is XU + 1,
@@ -1386,7 +1386,7 @@ reified_geq(X,Y,B) :-
 			)
 		)
 	; B == 1 ->
-		X #>= Y	
+		X #>= Y
 	; B == 0 ->
 		X #< Y
 	).
@@ -1428,7 +1428,7 @@ check_lt(X,Y) :-
 			UX < LY
 		)
 	).
-			
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 reified_eq(X,Y,B) :-
 	( var(B) ->
@@ -1479,7 +1479,7 @@ reified_eq(X,Y,B) :-
 	; B == 0 ->
 		X #\= Y
 	).
-		
+
 
 check_eq(X,Y) :-
 	X == Y.
@@ -1635,7 +1635,7 @@ put(X,L,U,Exp) :-
 	L =< U,
 	( L == U ->
 		X = L,
-		trigger_exps(Exp,X) 
+		trigger_exps(Exp,X)
 	;
 		( get_attr(X,bounds,Attr) ->
 			put_attr(X,bounds,bounds(L,U,Exp)),
@@ -1647,7 +1647,7 @@ put(X,L,U,Exp) :-
 				trigger_exps(Exp,X),
 				notify(X,bounds)
 			)
-		; 
+		;
 			%format('\t~w in ~w .. ~w\n',[X,L,U]),
 			put_attr(X,bounds,bounds(L,U,Exp)),
 			notify(X,bounds)
@@ -1677,7 +1677,7 @@ attr_unify_hook(bounds(L,U,Exp),Other) :-
 		NU is min(U,OU),
 		append(Exp,OExp,NExp),
 		check_neqs(NExp,Other),
-		put(Other,NL,NU,NExp)	
+		put(Other,NL,NU,NExp)
 	; % nonvar(Other) ->
 		Other >= L,
 		Other =< U,
@@ -1692,7 +1692,7 @@ check_neqs([E|Es],X) :-
 	;
 		check_neqs(Es,X)
 	).
-		
+
 
 trigger_exps([],_).
 trigger_exps([E|Es],X) :-

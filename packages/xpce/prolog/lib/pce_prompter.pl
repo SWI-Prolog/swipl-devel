@@ -222,7 +222,7 @@ read_prompter(P, Label:Type = Value) :-
 	;   send(DI, report, warning, 'No selection for %s', Label),
 	    fail
 	).
-	
+
 
 canonise(DI, A, B) :-
 	send(DI, instance_of, text_item), !,

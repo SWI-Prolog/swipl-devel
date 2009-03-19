@@ -65,7 +65,7 @@ the DEC-10 Prolog library (LISTRO.PL). Contributed by Richard O'Keefe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %%	member(?Elem, ?List)
-%	
+%
 %	True if Elem is a member of List
 
 member(X, [X|_]).
@@ -73,7 +73,7 @@ member(X, [_|T]) :-
 	member(X, T).
 
 %%	append(?List1, ?List2, ?List1AndList2)
-%	
+%
 %	List1AndList2 is the concatination of List1 and List2
 
 append([], L, L).
@@ -84,7 +84,7 @@ append([H|T], L, [H|R]) :-
 %
 %	Concatenate a list of lists.  Is  true   if  Lists  is a list of
 %	lists, and List is the concatenation of these lists.
-%	
+%
 %	@param	ListOfLists must be a list of -possibly- partial lists
 
 append(ListOfLists, List) :-
@@ -117,7 +117,7 @@ selectchk(Elem, List, Rest) :-
 
 
 %%	nextto(?X, ?Y, ?List)
-%	
+%
 %	True of Y follows X in List.
 
 nextto(X, Y, [X,Y|_]).
@@ -130,7 +130,7 @@ nextto(X, Y, [_|Zs]) :-
 %	List2.
 
 delete([], _, []) :- !.
-delete([Elem|Tail], Elem, Result) :- !, 
+delete([Elem|Tail], Elem, Result) :- !,
 	delete(Tail, Elem, Result).
 delete([Head|Tail], Elem, [Head|Rest]) :-
 	delete(Tail, Elem, Rest).
@@ -188,7 +188,7 @@ nth1(Index, List, Elem) :-
 %%	last(?List, ?Last)
 %
 %	Succeeds if `Last' unifies with the last element of `List'.
-%	
+%
 %	@compat	There is no de-facto standard for the argument order of
 %		last/2.  Be careful when porting code or use
 %		append(_, [Last], List) as a portable alternative.
@@ -215,7 +215,7 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
 
 
 %%	permutation(?Xs, ?Ys) is nondet.
-%	
+%
 %	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
 %	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
 %	and Ys together.
@@ -231,14 +231,14 @@ permutation([X|Xs], Ys1, [_|Bound]) :-
 %%	flatten(+List1, ?List2) is det.
 %
 %	Is true it List2 is a non nested version of List1.
-%	
+%
 %	@deprecated	Ending up needing flatten/3 often indicates,
 %			like append/3 for appending two lists, a bad
 %			design.  Efficient code that generates lists
 %			from generated small lists must use difference
 %			lists, often possible through grammar rules for
 %			optimal readability.
-%	@see append/2		
+%	@see append/2
 
 flatten(List, FlatList) :-
 	flatten(List, [], FlatList0), !,
@@ -248,12 +248,12 @@ flatten(Var, Tl, [Var|Tl]) :-
 	var(Var), !.
 flatten([], Tl, Tl) :- !.
 flatten([Hd|Tl], Tail, List) :- !,
-	flatten(Hd, FlatHeadTail, List), 
+	flatten(Hd, FlatHeadTail, List),
 	flatten(Tl, Tail, FlatHeadTail).
 flatten(NonList, Tl, [NonList|Tl]).
 
 %%	sumlist(+List, -Sum) is det.
-%	
+%
 %	Sum is the result of adding all numbers in List.
 
 sumlist(Xs, Sum) :-
@@ -292,9 +292,9 @@ min_list([H|T], Min0, Min) :-
 
 
 %%	numlist(+Low, +High, -List) is semidet.
-%	
+%
 %	List is a list [Low, Low+1, ... High].  Fails if High < Low.
-%	
+%
 %	@error type_error(integer, Low)
 %	@error type_error(integer, High)
 
@@ -316,13 +316,13 @@ numlist_(L, U, [L|Ns]) :-
 		*********************************/
 
 %%	is_set(@Set) is det.
-%	
+%
 %	True if Set is a proper list without duplicates.
 
 is_set(0) :- !, fail.		% catch variables
 is_set([]) :- !.
 is_set([H|T]) :-
-	memberchk(H, T), !, 
+	memberchk(H, T), !,
 	fail.
 is_set([_|T]) :-
 	is_set(T).
@@ -340,7 +340,7 @@ list_to_set(List, Set) :-
 list_to_set_([], R) :-
 	close_list(R).
 list_to_set_([H|T], R) :-
-	memberchk(H, R), !, 
+	memberchk(H, R), !,
 	list_to_set_(T, R).
 
 close_list([]) :- !.
@@ -354,32 +354,32 @@ close_list([_|T]) :-
 
 intersection([], _, []) :- !.
 intersection([X|T], L, Intersect) :-
-	memberchk(X, L), !, 
-	Intersect = [X|R], 
+	memberchk(X, L), !,
+	Intersect = [X|R],
 	intersection(T, L, R).
 intersection([_|T], L, R) :-
 	intersection(T, L, R).
 
 
 %%	union(+Set1, +Set2, -Set3) is det.
-%	
+%
 %	True if Set3 unifies with the union of Set1 and Set2
 
 union([], L, L) :- !.
 union([H|T], L, R) :-
-	memberchk(H, L), !, 
+	memberchk(H, L), !,
 	union(T, L, R).
 union([H|T], L, [H|R]) :-
 	union(T, L, R).
 
 
 %%	subset(+SubSet, +Set) is det.
-%	
+%
 %	True if all elements of SubSet belong to Set as well.
 
 subset([], _) :- !.
 subset([E|R], Set) :-
-	memberchk(E, Set), 
+	memberchk(E, Set),
 	subset(R, Set).
 
 

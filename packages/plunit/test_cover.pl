@@ -90,11 +90,11 @@ return(error(E)) :-
 %
 %	Run Goal as once/1. Unify Result with   one of =true=, =fail= or
 %	error(Error).
-%	
+%
 %	@param	Succeeded Ordered set of succeeded clauses
 %	@param	Failed	  Ordered set of clauses that are entered but
 %			  never succeeded.
-		
+
 covered_clauses(Goal, Result, Succeeded, Failed) :-
 	asserta(user:prolog_trace_interception(Port, Frame, _, continue) :-
 			prolog_cover:assert_cover(Port, Frame), Ref),
@@ -127,7 +127,7 @@ port_mask([H|T], Mask) :-
 	Mask is M0 \/ Bit.
 
 %%	assert_cover(+Port, +Frame) is det.
-%	
+%
 %	Assert coverage of the current clause. We monitor two ports: the
 %	_unify_ port to see which  clauses   we  entered, and the _exit_
 %	port to see which completed successfully.

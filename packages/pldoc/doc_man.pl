@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc_man,
-	  [ clean_man_index/0,		% 
+	  [ clean_man_index/0,		%
 	    index_man_directory/2,	% +DirSpec, +Options
 	    index_man_file/2,		% +Class, +FileSpec
 					% HTML generation
@@ -101,10 +101,10 @@ index_manual :-
 %%	index_man_directory(Dir, +Options) is det
 %
 %	Index  the  HTML  directory   Dir.    Options are:
-%	
+%
 %		* class(Class)
 %		Define category of the found objects.
-%		
+%
 %	Remaining Options are passed to absolute_file_name/3.
 
 index_man_directory(Spec, Options) :-
@@ -200,13 +200,13 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	dom_section(Doc, Nr, Title),
 	nb_getval(pldoc_index_class, Class),
 	assert(man_index(section(Level, Nr, File), Title, File, Class, Offset)).
-	
+
 %%	dom_section(+HeaderDOM, -NR, -Title) is semidet.
 %
 %	NR is the section number (e.g. 1.1, 1.23) and Title is the title
 %	from a section header. The  first   clauses  processes the style
 %	information from latex2html, emitting sections as:
-%	
+%
 %	==
 %	<HN> <A name="sec:nr"><span class='sec-nr'>NR</span>|_|
 %			      <span class='sec-title'>Title</span>
@@ -276,7 +276,7 @@ summary([CDATA|T], Done) -->
 	;   string(Codes),
 	    summary(T, Done)
 	).
-	
+
 string([]) -->
 	[].
 string([H|T]) -->
@@ -322,7 +322,7 @@ cdata(_) -->
 %
 %	load the desription of the  object   matching  Obj from the HTML
 %	sources and return the DT/DD pair in DOM.
-%	
+%
 %	@tbd	Nondet?
 
 load_man_object(Obj, ParentSection, Path, DOM) :-
@@ -481,19 +481,19 @@ object_spec(Atom, PI) :-
 %	Produce a Prolog manual page for  Obj.   The  page consists of a
 %	link to the section-file and  a   search  field, followed by the
 %	predicate description.  Obj is one of:
-%	
+%
 %	    * Name/Arity
 %	    Predicate indicator: display documentation of the predicate
 
 %	    * section(Level, Number, File)
 %	    Display a section of the manual
-%	
+%
 %	Options:
-%	
+%
 %		* no_manual(Action)
 %		If Action = =fail=, fail instead of displaying a
 %		not-found message.
-%		
+%
 %		* links(Bool)
 %		If =true= (default), include links to the parent object;
 %		if =false=, just emit the manual material.
@@ -570,23 +570,23 @@ dom_element(Name, Attrs, Content, Path) -->
 %
 %	Rewrite Ref0 from the HTML reference manual format to the server
 %	format. Reformatted:
-%	
+%
 %		$ File#Name/Arity :
 %		Local reference using the manual presentation
 %		=|/man?predicate=PI|=.
-%		
+%
 %		$ File#sec:NR :
 %		Rewrite to =|section(Level, NT, FilePath)|=
-%		
+%
 %		$ File#flag:Name :
 %		Rewrite to =|section(Level, NT, FilePath)#flag:Name|=
-%		
+%
 %	@param Class	Class of the <A>.  Supported classes are
-%	
+%
 %		| sec  | Link to a section     |
 %		| pred | Link to a predicate   |
 %		| flag | link to a Prolog flag |
-%		
+%
 %	@param Ref0	Initial reference from the =a= element
 %	@param Path	Currently loaded file
 %	@param ManRef	PlDoc server reference
@@ -623,7 +623,7 @@ rewrite_ref(flag, Ref0, Path, Ref) :-
 	format(string(Ref), '~w#~w', [Ref1, Fragment]).
 
 %%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
-%	
+%
 %	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
 
 atom_to_pi(Atom, Name/Arity) :-
@@ -672,7 +672,7 @@ man_parent(_) -->
 %%	section_link(+Obj, +Options)// is det.
 %
 %	Create link to a section.  Options recognised:
-%	
+%
 %		* secref_style(+Style)
 %		One of =number=, =title= or =number_title=.
 
@@ -772,7 +772,7 @@ pldoc_package(Request) :-
 	;   memberchk(path(Path), Request),
 	    existence_error(http_location, Path)
 	).
-	
+
 %%	pldoc_refman(+Request)
 %
 %	HTTP handler for PlDoc Reference Manual access.  Accepts
@@ -804,7 +804,7 @@ pldoc_refman(Request) :-
 prolog:doc_object_summary(Obj, Class, File, Summary) :-
 	index_manual,
 	man_index(Obj, Summary, File, Class, _Offset).
-	
+
 prolog:doc_object_page(Obj, Options) -->
 	man_page(Obj, [no_manual(fail)|Options]).
 

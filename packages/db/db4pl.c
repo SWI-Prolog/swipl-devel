@@ -153,7 +153,7 @@ static db_list *dbs;			/* open DB's */
 static void
 register_db(dbh *db)
 { db_list *l = calloc(1, sizeof(*l));
-  
+
   l->db = db;
   l->next = dbs;
   dbs = l;
@@ -233,7 +233,7 @@ get_dbt(term_t t, dtype type, DBT *dbt)
   switch(type)
   { case D_TERM:
     { size_t len;
-  
+
       dbt->data = PL_record_external(t, &len);
       dbt->size = len;
       return TRUE;
@@ -507,7 +507,7 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
     flags = DB_CREATE;
   else
     return pl_error(ERR_DOMAIN, "io_mode", mode);
-  
+
   dbh = calloc(1, sizeof(*dbh));
   dbh->magic = DBH_MAGIC;
   NOSIG(rval=db_create(&dbh->db, db_env, 0));
@@ -519,7 +519,7 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
   if ( !db_type(options, &type) ||
        !db_options(options, dbh, &subdb) )
     return FALSE;
-  
+
 #ifdef DB41
   if ( opt_transactions )
     flags |= DB_AUTO_COMMIT;
@@ -630,20 +630,20 @@ begin_transaction()
   { int rval;
     DB_TXN *pid, *tid;
     transaction *t;
-  
+
     if ( transaction_stack )
       pid = transaction_stack->tid;
     else
       pid = NULL;
-  
+
     if ( (rval=db_env->txn_begin(db_env, pid, &tid, 0)) )
       return db_status(rval);
-  
+
     t = malloc(sizeof(*t));
     t->parent = transaction_stack;
     t->tid = tid;
     transaction_stack = t;
-  
+
     return TRUE;
   }
 
@@ -659,7 +659,7 @@ commit_transaction()
   if ( (t=transaction_stack) )
   { DB_TXN *tid = t->tid;
     int rval;
-    
+
     transaction_stack = t->parent;
     free(t);
 
@@ -680,7 +680,7 @@ abort_transaction()
   if ( (t=transaction_stack) )
   { DB_TXN *tid = t->tid;
     int rval;
-    
+
     transaction_stack = t->parent;
     free(t);
 
@@ -711,7 +711,7 @@ pl_db_transaction(term_t goal)
 
   if ( !call1 )
     call1 = PL_predicate("call", 1, "user");
-  
+
   NOSIG(rval=begin_transaction());
   if ( !rval )
     return FALSE;
@@ -842,7 +842,7 @@ pl_db_getall(term_t handle, term_t key, term_t value)
 
 	NOSIG(cursor->c_close(cursor);
 	      free_dbt(&k, db->key_type));
-	
+
 	if ( rval <= 0 )		/* normal failure */
 	{ return PL_unify_nil(tail);
 	} else				/* error failure */
@@ -1141,7 +1141,7 @@ static int
 get_server(term_t options, server_info *info)
 { term_t l = PL_copy_term_ref(options);
   term_t h = PL_new_term_ref();
-  
+
   while( PL_get_list(l, h, l) )
   { atom_t name;
     int arity;
@@ -1168,7 +1168,7 @@ get_server(term_t options, server_info *info)
 
 	  if ( PL_get_name_arity(h, &name, &arity) && arity == 1 )
 	  { PL_get_arg(1, h, a);
-	    
+
 	    if ( name == ATOM_server_timeout )
 	    { if ( !get_long_ex(a, &info->sv_timeout) )
 		return FALSE;
@@ -1248,7 +1248,7 @@ pl_db_init(term_t option_list)
     { long v;
 
       PL_get_arg(1, head, a);
-      
+
       if ( name == ATOM_mp_mmapsize )	/* mp_mmapsize */
       { if ( !get_size_ex(a, &v) )
 	  return FALSE;
@@ -1345,7 +1345,7 @@ pl_db_atom(term_t handle, term_t atom, term_t id)
   atom_t a;
   long lv;
   atomid_t aid;
-    
+
   if ( !get_db(handle, &db) )
     return FALSE;
 

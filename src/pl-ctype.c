@@ -270,7 +270,7 @@ unify_char_type(term_t type, const char_type *ct, int context, int how)
   else /*if ( ct->arity == 1 )*/
   { if ( PL_unify_functor(type, PL_new_functor(ct->name, 1)) )
     { term_t a = PL_new_term_ref();
-      
+
       _PL_get_arg(1, type, a);
 
       if ( ct->ctx_type == CTX_CHAR )
@@ -400,7 +400,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       { if ( rval < 0 ||
 	     !unify_char_type(class, gen->class, rval, how) )
 	  goto next;
-	     
+
       } else if ( gen->do_enum & ENUM_CLASS )
       { if ( !unify_char_type(class, gen->class, rval, how) )
 	  goto next;
@@ -566,7 +566,7 @@ modify_case_atom(term_t in, term_t out, int down)
 	  { tout.text.t[i] = (char)c;
 	  }
 	}
-      } 
+      }
     } else
     { if ( down )
       { for(i=0; i<tin.length; i++)
@@ -782,28 +782,28 @@ EndPredDefs
 
 const char _PL_char_types[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
-   SP, SO, DQ, SY, SY, SO, SY, SQ, PU, PU, SY, SY, PU, SY, SY, SY, 
+   SP, SO, DQ, SY, SY, SO, SY, SQ, PU, PU, SY, SY, PU, SY, SY, SY,
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
-   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, SY, SO, SY, SY, SY, SY, 
+   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, SY, SO, SY, SY, SY, SY,
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-   SY, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, 
+   SY, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC,
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
-   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, PU, SY, PU, SY, UC, 
+   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, PU, SY, PU, SY, UC,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-   SY, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
+   SY, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, PU, PU, PU, SY, CT, 
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, PU, PU, PU, SY, CT,
 			  /* 128-159 (C1 controls) */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 			  /* 160-255 (G1 graphics) */
 			  /* ISO Latin 1 is assumed */
    SP, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,
-   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,   
+   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC,
    UC, UC, UC, UC, UC, UC, UC, SO, UC, UC, UC, UC, UC, UC, UC, LC,
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,

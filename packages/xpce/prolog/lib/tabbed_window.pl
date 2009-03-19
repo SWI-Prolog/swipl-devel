@@ -77,7 +77,7 @@ resize(W, Tab:[tab]) :->
 		 message(@arg1, size, size(Width,TabH)))
 	;   send(Tab, size, size(Width,TabH))
 	).
-    
+
 layout_dialog(W, _Gap:[size], _Size:[size], _Border:[size]) :->
 	"Overrule to deal with nested tabbed windows"::
 	new(S0, size(0,0)),
@@ -97,7 +97,7 @@ on_top(W, Name:name) :->
 :- pce_group(members).
 
 %	->append: Window, Label, [Expose]
-%	
+%
 %	Append a new tab using Window with the given tab label.
 %
 %	The call to ->'_compute_desired_size' should be properly delayed
@@ -133,7 +133,7 @@ members(W, Windows:chain) :<-
 		    message(Windows, append, @arg1?to)))
 	;   true
 	).
-	
+
 clear(W) :->
 	"Remove all member tabs"::
 	get_super(W, member, tab_stack, TS),
@@ -201,7 +201,7 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 :- pce_group(resize).
 
 %	->size
-%	
+%
 %	This method must update the size of  the window. For some, to me
 %	unknown,  reason  this  does  not    work  correctly  when  done
 %	immediately.  Possibly  this  has  something   to  do  with  X11
@@ -301,7 +301,7 @@ untab(Tab, W:window) :<-
 	send(Tab, delete_hypers, window),
 	free(Tab),
 	get(W, unlock, _).
-	
+
 untab(Tab) :->
 	"Turn the window into a toplevel window"::
 	get(Tab, rank, Rank),
@@ -313,7 +313,7 @@ untab(Tab) :->
 	new(_, partof_hyper(TabbedWindow, Window, toplevel, tab)).
 
 %	->close_other_tabs
-%	
+%
 %	Close all tabs but be. To work   around scheduled resize for the
 %	subwindows we first indicate we are about to close the tabs. See
 %	also ->size.

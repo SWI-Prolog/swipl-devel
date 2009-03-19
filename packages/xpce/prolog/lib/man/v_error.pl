@@ -48,7 +48,7 @@ initialise(EB, Manual:man_manual) :->
 
 	get(Manual, module, errors, @on, Module),
 	send(EB, slot, errors, Module),
-	
+
 	new(B, man_summary_browser(man_summary, size(100, 15))),
 	send(B?image, tab_stops, vector(15, 220, 280)),
 	send(B, name, browser),
@@ -57,7 +57,7 @@ initialise(EB, Manual:man_manual) :->
 	send(EB, append, B),
 	send(Dialog, below, B),
 	send(EB, fill, ''),
-	
+
 	send(EB, open).
 
 
@@ -85,7 +85,7 @@ dialog(D) :-
 	send(D, append, button(quit,  message(EB, quit))),
 
 	send(D, default_button, apply).
-	
+
 
 
 		/********************************

@@ -74,7 +74,7 @@ mkswitch(List, Indent) :-
 	mkswitch(High, NextIndent),
 	indent(Indent),
 	format('}~n').
-	       
+
 end(List, Max) :-
 	last(List, Last),
 	(   Last = _-Max

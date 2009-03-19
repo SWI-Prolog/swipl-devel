@@ -46,7 +46,7 @@
 %
 %	Translate a message Term into message lines. The produced lines
 %	is a list of
-%	
+%
 %	    * nl
 %	    Emit a newline
 %	    * Fmt-Args
@@ -216,7 +216,7 @@ swi_message(limit_exceeded(Limit, MaxVal)) -->
 	[ 'Exceeded ~w limit (~w)'-[Limit, MaxVal] ].
 swi_message(goal_failed(Goal)) -->
 	[ 'goal unexpectedly failed: ~p'-[Goal] ].
-swi_message(shared_object(_Action, Message)) --> % Message = dlerror() 
+swi_message(shared_object(_Action, Message)) --> % Message = dlerror()
 	[ '~w'-[Message] ].
 swi_message(system_error(Error)) -->
 	[ 'error in system call: ~w'-[Error]
@@ -386,7 +386,7 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
-	[ 'Undefined procedure: ~p'-[Pred], nl, 
+	[ 'Undefined procedure: ~p'-[Pred], nl,
 	  '    However, there are definitions for:', nl
 	],
 	dwim_message(Alternatives).
@@ -410,7 +410,7 @@ used_search([]) -->
 used_search([Alias=Expanded|T]) -->
 	[ '        file_search_path(~p, ~p)'-[Alias, Expanded], nl ],
 	used_search(T).
-	
+
 load_file(file(Spec, _Path)) -->
 	(   {atomic(Spec)}
 	->  [ '~w'-[Spec] ]
@@ -641,7 +641,7 @@ residuals([G|Gs]) -->
 	    residuals(Gs)
 	;   [ '~q'-[G] ]
 	).
-	
+
 bind_res_sep(_, []) --> !,
 	[].
 bind_res_sep([], _) --> !,
@@ -666,16 +666,16 @@ prolog_message(no_action(Char)) -->
 	[ 'Unknown action: ~c (h for help)'-[Char], nl ].
 
 prolog_message(history(help(Show, Help))) -->
-	[ 'History Commands:', nl, 
-	  '    !!.              Repeat last query', nl, 
-	  '    !nr.             Repeat query numbered <nr>', nl, 
-	  '    !str.            Repeat last query starting with <str>', nl, 
-	  '    !?str.           Repeat last query holding <str>', nl, 
-	  '    ^old^new.        Substitute <old> into <new> of last query', nl, 
-	  '    !nr^old^new.     Substitute in query numbered <nr>', nl, 
-	  '    !str^old^new.    Substitute in query starting with <str>', nl, 
-	  '    !?str^old^new.   Substitute in query holding <str>', nl, 
-	  '    ~w.~21|Show history list'-[Show], nl, 
+	[ 'History Commands:', nl,
+	  '    !!.              Repeat last query', nl,
+	  '    !nr.             Repeat query numbered <nr>', nl,
+	  '    !str.            Repeat last query starting with <str>', nl,
+	  '    !?str.           Repeat last query holding <str>', nl,
+	  '    ^old^new.        Substitute <old> into <new> of last query', nl,
+	  '    !nr^old^new.     Substitute in query numbered <nr>', nl,
+	  '    !str^old^new.    Substitute in query starting with <str>', nl,
+	  '    !?str^old^new.   Substitute in query holding <str>', nl,
+	  '    ~w.~21|Show history list'-[Show], nl,
 	  '    ~w.~21|Show this list'-[Help], nl, nl
 	].
 prolog_message(history(no_event)) -->
@@ -813,7 +813,7 @@ frame_flags(Frame) -->
 	  )
 	},
 	[ '~w~w '-[T, S] ].
-	  
+
 port(Port) -->
 	{ port_name(Port, Name)
 	}, !,
@@ -909,7 +909,7 @@ print_system_message(_, Level, Lines) :-
 	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
-	
+
 prefix(error,	      'ERROR: ~w:~d:~n',   '\t', '', 0.5, user_error).
 prefix(warning,	      'Warning: ~w:~d:~n', '\t', '', 0,   user_error).
 
@@ -999,13 +999,13 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 	printed/2.
 
 %	print_once(Message, Level)
-%	
+%
 %	True for messages that must be printed only once.
 
 print_once(compatibility(_), _).
 
 %	must_print(+Level, +Message)
-%	
+%
 %	True if the message must be printed.
 
 must_print(Level, Message) :-
@@ -1014,4 +1014,4 @@ must_print(Level, Message) :-
 	\+ printed(Message, Level),
 	assert(printed(Message, Level)).
 must_print(_, _).
-	
+

@@ -49,7 +49,7 @@ needs to be classified as
 	May start an identifier.
 
 	# id_continue (csym)
-	May be used anywhere in identifier 
+	May be used anywhere in identifier
 
 	# uppercase
 	We need this to be able to distinquish variables from non-variables.
@@ -81,12 +81,12 @@ main :-
 		 *******************************/
 
 %	write_unicode_collate_map(+File, +Options)
-%	
+%
 %	Options supported are:
-%	
+%
 %		# first_codepage [0]
 %		Code page to start
-%		
+%
 %		# last_codepage [255]
 %		Code page to end.
 
@@ -114,7 +114,7 @@ write_codepage(Out, CP, Map) :-
 
 cp_name(CP, CPN) :-
 	sformat(CPN, 'ucp0x~|~`0t~16r~2+', [CP]).
-	       
+
 map_entries([], _, _).
 map_entries([H|T], I, Out) :-
 	(   I == 0
@@ -190,14 +190,14 @@ write_footer(Out, _Options) :-
 %		uflagsA(int code)\n\
 %		{ return ucp0x00[code&0xff];\n\
 %		}\n\n', []).
-	
+
 
 		 /*******************************
 		 *	       TABLES		*
 		 *******************************/
 
 %	gen_tables(-Tables, +Options)
-%	
+%
 %	Table is of  the  format  below,   where  CodePage  is  the page
 %	(0..255) for 16-bit Unicode and  ValueList   are  the values for
 %	each character.
@@ -210,7 +210,7 @@ gen_tables(Tables, Options) :-
 table(CP, Map, Options) :-
 	option(first_codepage(First), Options, 0),
 	option(last_codepage(Last), Options, 255),
-	between(First, Last, CP),	
+	between(First, Last, CP),
 	findall(M, char(CP, M, Options), Map0),
 	flat_map(Map0, Map).
 

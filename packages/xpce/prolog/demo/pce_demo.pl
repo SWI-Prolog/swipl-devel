@@ -62,7 +62,7 @@ pcedemo :-
 
 	send(B, open_message, message(O, execute)),
 	send(B, style, title, style(font := font(helvetica, bold, 14))),
-	
+
 	send(B, open).
 
 
@@ -126,9 +126,9 @@ locate_file(Base, File) :-
 		*             DEMO'S		*
 		********************************/
 
-demo('PceDraw',				% Name              
-     'Drawing tool',			% Summary           
-     library(pcedraw),			% Sources           
+demo('PceDraw',				% Name
+     'Drawing tool',			% Summary
+     library(pcedraw),			% Sources
      pcedraw).				% Toplevel predicate
 
 demo('Ispell',
@@ -207,8 +207,8 @@ demo('Kangaroo',
      demo(kangaroo),
      kangaroo).
 
-demo('Juggler',					  
-     'Annimation of a juggling creature',	  
-     demo(juggler),			  
-     juggle_demo).				  
+demo('Juggler',
+     'Annimation of a juggling creature',
+     demo(juggler),
+     juggle_demo).
 

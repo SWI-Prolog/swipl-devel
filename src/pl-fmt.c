@@ -76,7 +76,7 @@ update_column(int col, int c)
     case '\b':	return (col <= 0 ? 0 : col - 1);
     default:	return col + 1;
   }
-}   
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -216,7 +216,7 @@ pl_format_predicate(term_t chr, term_t descr)
 
   if ( !format_predicates )
     format_predicates = newHTable(8);
-  
+
   if ( (s = lookupHTable(format_predicates, (void *)(intptr_t)c)) )
     s->value = proc;
   else
@@ -254,7 +254,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
     { ForeignRedoPtr(e);
     }
-    
+
     PL_rewind_foreign_frame(fid);
   }
 
@@ -287,7 +287,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
 
     PL_put_term(argv, args);
   }
-  
+
   startCritical;
   switch(fmt.storage)			/* format can to call-back! */
   { case PL_CHARS_RING:
@@ -480,7 +480,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  NEED_ARG;
 		  if ( !valueExpression(argv, &n PASS_LD) )
 		  { char f[2];
-		    
+
 		    f[0] = c;
 		    f[1] = EOS;
 		    FMT_ARG(f, argv);
@@ -506,7 +506,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  if ( !valueExpression(argv, &i PASS_LD) ||
 		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
-		    
+
 		    f[0] = c;
 		    f[1] = EOS;
 		    FMT_ARG(f, argv);
@@ -520,7 +520,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  } else
 		  { if ( arg < 1 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
-		      
+
 		      PL_put_integer(r, arg);
 		      Sunlock(fd);
 		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
@@ -529,7 +529,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
 		  }
 		  clearNumber(&i);
-		  outstring0(&state, baseBuffer(&b, char));			
+		  outstring0(&state, baseBuffer(&b, char));
 		  discardBuffer(&b);
 		  here++;
 		  break;
@@ -556,7 +556,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  char *str;
 
 	      case 'k':			/* write_canonical */
-		  f = pl_write_canonical; 
+		  f = pl_write_canonical;
 	          goto pl_common;
 	      case 'p':			/* print */
 		  f = pl_print;
@@ -846,7 +846,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 { switch(i->type)
   { case V_INTEGER:
     { int64_t n = i->value.i;
-      char buf[100]; 
+      char buf[100];
       char *tmp, *end, *s;
       int before = (div == 0);
       int digits = 0;
@@ -880,7 +880,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	  n /= radix;
 	}
 	if ( negative )
-	  *--s = '-';  
+	  *--s = '-';
       }
 
       addMultipleBuffer(out, s, end-s, char);
@@ -957,7 +957,7 @@ formatFloat(int how, int arg, Number f, Buffer out)
     arg = 6;
 
   switch(f->type)
-  { 
+  {
 #ifdef O_GMP
     mpf_t mpf;
     case V_MPZ:
@@ -969,7 +969,7 @@ formatFloat(int how, int arg, Number f, Buffer out)
       int size;
       int written;
       int fbits;
-      
+
       switch(how)
       { case 'f':
 	case 'g':
@@ -985,10 +985,10 @@ formatFloat(int how, int arg, Number f, Buffer out)
 	default:
 	  fbits = 4*arg;
       }
-      
+
       mpf_init2(mpf, fbits);
       mpf_set_q(mpf, f->value.mpq);
-      
+
     print:
       Ssprintf(tmp, "%%.%dF%c", arg, how);
       size = 0;

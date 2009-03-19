@@ -298,7 +298,7 @@ initialise(D, Img:image) :->
 	send(D, send_super, initialise),
 	send(D, format, @imgbrowser_icon_format),
 	send(D, display, bitmap(Img)).
-	
+
 image(D, Img:image) :<-
 	"Fetch the image"::
 	get(D, member, bitmap, BM),
@@ -339,7 +339,7 @@ adjust_selected(D, Sel:'image|chain*') :->
 	;   send(BM, pen, 0),
 	    send(BM, colour, @default)
 	).
-	       
+
 selected(D) :->
 	"Test of object is selected"::
 	get(D, member, bitmap, BM),

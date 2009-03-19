@@ -182,7 +182,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 test_failed(R, Except) :-
 	clause(ClHead, _, R),
 	plain_head(ClHead, Head),

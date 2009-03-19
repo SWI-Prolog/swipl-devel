@@ -13,5 +13,5 @@ db :-
 	new(@db, db(database, db)),
 	get(@db, member, part1, @on, Part),
 	send(@pce, format, 'Part %s\n', Part).
-	
-	
+
+

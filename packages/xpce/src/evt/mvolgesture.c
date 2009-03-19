@@ -35,7 +35,7 @@ initialiseMoveOutlineGesture(MoveOutlineGesture g,
        getClassVariableValueObject(g, NAME_texture), EAV);
   send(g->outline, NAME_recogniser,
        newObject(ClassMoveGesture, g->button, g->modifier, EAV), EAV);
-  
+
   succeed;
 }
 
@@ -114,7 +114,7 @@ static senddecl send_moveOutlineGesture[] =
 #define get_moveOutlineGesture NULL
 /*
 static getdecl get_moveOutlineGesture[] =
-{ 
+{
 };
 */
 

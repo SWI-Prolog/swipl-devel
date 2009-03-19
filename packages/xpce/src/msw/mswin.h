@@ -26,7 +26,7 @@
 #define MSWIN_H_INCLUDED
 
 typedef enum
-{ WINUNKNOWN,  
+{ WINUNKNOWN,
   WIN32S,
   WIN95,
   WIN98,

@@ -14,7 +14,7 @@
 %           product of the sizes of the operands.
 %
 %           I have tried to make all the predicates as efficient as
-%           possible with respect to first argument indexing, and tail 
+%           possible with respect to first argument indexing, and tail
 %           clause determinacy.
 %
 %           These routines are provided as is, with no guarantees.
@@ -122,7 +122,7 @@ diff3(>,  H1, T1, _H2, T2, Diff) :-
     diff21(T2, H1, T1, Diff).
 
 
-%% oset_dunion(+SetofSets, -DUnion)    
+%% oset_dunion(+SetofSets, -DUnion)
 %   distributed union
 
 oset_dunion([], []).
@@ -135,7 +135,7 @@ oset_dunion([H|T], DUnion0, DUnion) :-
     oset_dunion(T, DUnion1, DUnion).
 
 
-%% oset_dint(+SetofSets, -DInt)    
+%% oset_dint(+SetofSets, -DInt)
 %   distributed intersection
 
 oset_dint([], []).
@@ -166,21 +166,21 @@ happ([S|Ss], H, [[H|S],S|Rest]) :-
 
 
 
-%% oset_addel(+Set, +El, -Add)  
+%% oset_addel(+Set, +El, -Add)
 %   ordered set element addition
 
-oset_addel([], El, [El]). 
+oset_addel([], El, [El]).
 oset_addel([H|T], El, Add) :-
     compare(Order, H, El),
     addel(Order, H, T, El, Add).
 
 addel(<, H, T,  El, [H|Add]) :-
     oset_addel(T, El, Add).
-addel(=, H, T, _El, [H|T]). 
+addel(=, H, T, _El, [H|T]).
 addel(>, H, T,  El, [El,H|T]).
 
 
-%% oset_delel(+Set, +El, -Del)  
+%% oset_delel(+Set, +El, -Del)
 %   ordered set element deletion
 
 oset_delel([], _El, []).

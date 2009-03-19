@@ -35,7 +35,7 @@
 
 %%   side_pattern(+SideA, +SideB, -Pattern)
 %
-%   Pattern is the bit if SideA on area A corresponds to SideB on area B.  
+%   Pattern is the bit if SideA on area A corresponds to SideB on area B.
 
 side_pattern(top,    top,    2'1).
 side_pattern(top,    center, 2'10).

@@ -39,7 +39,7 @@ fontName(Name family, Name style, Int points)
   av[2] = points;
 
   str_writefv(&s, (CharArray)CtoTempString("%s_%s_%d"), 3, av);
-  
+
   rc = StringToName(&s);
   str_unalloc(&s);
 
@@ -121,7 +121,7 @@ replaceFont(FontObj f, DisplayObj d)
 
   if ( !(nofont = getClassVariableValueObject(d, NAME_noFont)) )
     errorPce(f, NAME_noDefaultFont);
-  
+
   if ( !(wsref = getXrefObject(nofont, d)) )
     fail;
 

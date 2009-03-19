@@ -123,7 +123,7 @@ test_pe(N, BF, Enc, Tmp) :-
 	    ),
 	    fail
 	).
-	    
+
 max_char(ascii, 127).
 max_char(octet, 255).
 max_char(text, 0xfffff).		% Only if Locale is UTF-8!  How to test?

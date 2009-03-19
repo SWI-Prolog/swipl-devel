@@ -50,7 +50,7 @@ fontviewer :-
 	     button(quit, message(FontViewer, destroy))),
 	send(D, append, new(ChartMenu, menu(unicode_chart, cycle)), right),
 	fill_chart_menu(ChartMenu),
-	
+
 	new(OpenMsg, message(@prolog, show_font,
 			     P,
 			     B?selection?object,

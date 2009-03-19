@@ -37,7 +37,7 @@ rehashTable(Table t, int aton)
 { ASymbol *old   = t->symbols;
   int oldentries = t->allocated;
   int n;
-  
+
   t->allocated *= 2;
   t->mask = t->allocated - 1;
   t->symbols    = malloc(t->allocated * sizeof(ASymbol));
@@ -46,7 +46,7 @@ rehashTable(Table t, int aton)
   for(n=0; n<oldentries; n++)
   { ASymbol s = old[n];
     ASymbol n;
-    
+
     for( ; s; s = n )
     { int k;
 
@@ -56,7 +56,7 @@ rehashTable(Table t, int aton)
 	k = AtomKey(t, s->atom);
       else
 	k = NameKey(t, s->name);
-      
+
       s->next = t->symbols[k];
       t->symbols[k] = s;
     }
@@ -73,12 +73,12 @@ atomToName(Atom a)
   size_t len;
   const char *textA;
   const wchar_t *textW;
-  
+
   for( ; s; s = s->next )
   { if ( s->atom == a )
       return s->name;
   }
-       
+
   PL_register_atom(a);
   if ( (textA = PL_atom_nchars(a, &len)) )
   { name = cToPceName_nA(textA, len);
@@ -114,7 +114,7 @@ CachedNameToAtom(PceName name)
   { if ( s->name == name )
       return s->atom;
   }
-       
+
   if ( (textA = pceCharArrayToCA(name, &len)) )
   { a = PL_new_atom_nchars(len, textA);
   } else if ( (textW = pceCharArrayToCW(name, &len)) )

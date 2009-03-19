@@ -56,7 +56,7 @@ static atom_t ATOM_all;
 
 static atom_t ATOM_socket_type;
 static atom_t ATOM_dgram;
-static atom_t ATOM_rdm;	
+static atom_t ATOM_rdm;
 static atom_t ATOM_seqpacket;
 static atom_t ATOM_stream;
 
@@ -99,7 +99,7 @@ tipc_get_socket(term_t Socket, int *id)
     if ( PL_get_integer(a, id) )
       return TRUE;
   }
-  
+
   if ( PL_get_stream_handle(Socket, &s) )
   { socket = (int)(intptr_t)s->handle;
 
@@ -130,10 +130,10 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
 { term_t a = PL_new_term_ref();
   sockaddr->family = AF_TIPC;
 
-  do 
+  do
   {
   if ( PL_is_functor(tipc, FUNCTOR_port_id) )
-  { 
+  {
     int ref, node;
 
     PL_get_arg(1, tipc, a);
@@ -152,7 +152,7 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
   }
 
   if ( PL_is_functor(tipc, FUNCTOR_name) )
-  { 
+  {
     int arg1, arg2, arg3;
 
     PL_get_arg(1, tipc, a);
@@ -174,11 +174,11 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
 
     return TRUE;
 
-  } 
+  }
 
   if ( PL_is_functor(tipc, FUNCTOR_name_seq) ||
        PL_is_functor(tipc, FUNCTOR_mcast))
-  { 
+  {
     int arg1, arg2, arg3;
 
     PL_get_arg(1, tipc, a);
@@ -249,7 +249,7 @@ tipc_setopt(nbio_sock_t socket, tipc_option opt, ...)
 	rc = -1;
       } else
 	rc = 0;
-	
+
       break;
     }
     case NB_TIPC_SRC_DROPPABLE:
@@ -264,19 +264,19 @@ tipc_setopt(nbio_sock_t socket, tipc_option opt, ...)
 	rc = -1;
       } else
 	rc = 0;
-	 
+
       break;
     }
     case NB_TIPC_CONN_TIMEOUT:
     { int val = va_arg(args, int);
-      
+
       if ( setsockopt(plsocket_handle(s), SOL_TIPC, TIPC_CONN_TIMEOUT,
 		      (const void *) &val, sizeof(val)) == -1 )
       { nbio_error(h_errno, TCP_HERRNO);
 	rc = -1;
       } else
 	rc = 0;
-	
+
       break;
     }
     default:
@@ -295,7 +295,7 @@ pl_tipc_setopt(term_t Socket, term_t opt)
 { int socket;
   atom_t a;
   int arity;
-       
+
   if ( !tipc_get_socket(Socket, &socket) )
     return FALSE;
 
@@ -319,11 +319,11 @@ pl_tipc_setopt(term_t Socket, term_t opt)
 	  ival = TIPC_CRITICAL_IMPORTANCE;
 	else
 	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a1, "low, medium, high, or critical");
-	
+
 	return((tipc_setopt(socket, NB_TIPC_IMPORTANCE, ival) == 0) ? TRUE : FALSE);
       }
     }
-    
+
     if ( ((a == ATOM_dest_droppable) ||
 	  (a == ATOM_src_droppable)) && arity == 1 )
     { int val;
@@ -346,7 +346,7 @@ pl_tipc_setopt(term_t Socket, term_t opt)
       if (PL_get_arg(1, opt, a1))
       { if(!PL_get_float(a1, &val) || val < 0)
 	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a1, "float");
-	
+
         ival = val * 1000;  // time is in milliseconds
 
 	return((tipc_setopt(socket, NB_TIPC_CONN_TIMEOUT, ival) == 0) ? TRUE : FALSE);
@@ -371,7 +371,7 @@ pl_tipc_setopt(term_t Socket, term_t opt)
       if ( rc == -2 )
   	return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "socket_option");
 
-    } 
+    }
 
     if ( a == ATOM_nonblock && arity == 0 )
       return((nbio_setopt(socket, TCP_NONBLOCK) == 0) ? TRUE : FALSE );
@@ -419,7 +419,7 @@ pl_tipc_get_name(term_t Socket, term_t t)
     return FALSE;
 
   fd = nbio_fd(socket);
-  
+
   if ( getsockname(fd, (struct sockaddr *) &addr, &alen) )
     return nbio_error(errno, TCP_ERRNO);
   else
@@ -453,7 +453,7 @@ pl_tipc_receive(term_t Socket, term_t Data, term_t From, term_t options)
       int arity;
 
       if ( PL_get_name_arity(head, &name, &arity) )
-      { 
+      {
 	if ( name == ATOM_as && arity == 1)
 	{ atom_t a;
 
@@ -485,7 +485,7 @@ pl_tipc_receive(term_t Socket, term_t Data, term_t From, term_t options)
 
   if ( !tipc_get_socket(Socket, &socket))
     return FALSE;
-  
+
   if ( (n=nbio_recvfrom(socket, buf, sizeof(buf), flags,
 			(struct sockaddr*)&sockaddr, &alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
@@ -550,7 +550,7 @@ tipc_socket(term_t socket, term_t opt)
 
   if ( PL_get_name_arity(opt, &a, &arity) && arity == 0)
     { int type;
-	
+
     if ( a == ATOM_dgram )
       type = SOCK_DGRAM;
     else if ( a == ATOM_rdm )
@@ -563,7 +563,7 @@ tipc_socket(term_t socket, term_t opt)
       return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "rdm, dgram, seqpacket, or stream");
 
       return create_tipc_socket(socket, type);
-    } 
+    }
     else return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, opt, "atom");
 
   return FALSE;
@@ -598,7 +598,7 @@ pl_tipc_connect(term_t Socket, term_t Address)
   if ( !tipc_get_socket(Socket, &sock) ||
        !nbio_get_tipc_sockaddr(Address, &sockaddr) )
     return FALSE;
-  
+
   if ( nbio_connect(sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) == 0 )
     return TRUE;
 
@@ -613,7 +613,7 @@ pl_tipc_bind(term_t Socket, term_t Address, term_t opt)
   int socket;
   atom_t a;
   int arity;
-  
+
   memset(&sockaddr, 0, sizeof(sockaddr));
 
   if ( !tipc_get_socket(Socket, &socket) ||
@@ -667,7 +667,7 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
   char *handle;
   size_t handle_len;
   SOCKET fd;
-  
+
   memset(&subscr, 0, sizeof(subscr));
   memset(&sockaddr, 0, sizeof(sockaddr));
 
@@ -678,7 +678,7 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
   if(sockaddr.addrtype != TIPC_ADDR_NAMESEQ)
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, Address, "name_seq/3");
 
-  if( !PL_get_integer(timeout, &time)) 
+  if( !PL_get_integer(timeout, &time))
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, timeout, "integer");
 
   if( !PL_get_integer(filter, &filt))
@@ -690,12 +690,12 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
   memcpy(&subscr.seq, &sockaddr.addr.nameseq, sizeof(subscr.seq));
   subscr.timeout = (unsigned) time;
   subscr.filter = (unsigned) filt;
-  memcpy(&subscr.usr_handle, handle, 
-	 (handle_len < sizeof(subscr.usr_handle)) ? handle_len 
+  memcpy(&subscr.usr_handle, handle,
+	 (handle_len < sizeof(subscr.usr_handle)) ? handle_len
 	 					  : sizeof(subscr.usr_handle));
 
   fd = nbio_fd(socket);
-  
+
   if ( (send(fd, &subscr, sizeof(subscr), 0)) != sizeof(subscr) )
     return nbio_error(errno, TCP_ERRNO);
   else
@@ -707,25 +707,25 @@ install_t
 install_tipc()
 { nbio_init("tipc");
 
-  ATOM_scope	       = PL_new_atom("scope");	
-  ATOM_no_scope	       = PL_new_atom("no_scope");	
+  ATOM_scope	       = PL_new_atom("scope");
+  ATOM_no_scope	       = PL_new_atom("no_scope");
   ATOM_node	       = PL_new_atom("node");
-  ATOM_cluster	       = PL_new_atom("cluster");	
+  ATOM_cluster	       = PL_new_atom("cluster");
   ATOM_zone	       = PL_new_atom("zone");
   ATOM_all	       = PL_new_atom("all");
 
-  ATOM_importance      = PL_new_atom("importance");		
-  ATOM_low	       = PL_new_atom("low");			
-  ATOM_medium	       = PL_new_atom("medium");		
-  ATOM_high	       = PL_new_atom("high");		
-  ATOM_critical	       = PL_new_atom("critical");		
-  ATOM_src_droppable   = PL_new_atom("src_droppable");	
-  ATOM_dest_droppable  = PL_new_atom("dest_droppable");	
-  ATOM_conn_timeout    = PL_new_atom("conn_timeout");	
+  ATOM_importance      = PL_new_atom("importance");
+  ATOM_low	       = PL_new_atom("low");
+  ATOM_medium	       = PL_new_atom("medium");
+  ATOM_high	       = PL_new_atom("high");
+  ATOM_critical	       = PL_new_atom("critical");
+  ATOM_src_droppable   = PL_new_atom("src_droppable");
+  ATOM_dest_droppable  = PL_new_atom("dest_droppable");
+  ATOM_conn_timeout    = PL_new_atom("conn_timeout");
 
   ATOM_socket_type     = PL_new_atom("socket_type");
   ATOM_dgram	       = PL_new_atom("dgram");
-  ATOM_rdm	       = PL_new_atom("rdm");	
+  ATOM_rdm	       = PL_new_atom("rdm");
   ATOM_seqpacket       = PL_new_atom("seqpacket");
   ATOM_stream	       = PL_new_atom("stream");
 

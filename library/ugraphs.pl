@@ -1,5 +1,5 @@
 %   $Id$
-%   
+%
 %   File   : GRAPHS.PL
 %   Author : R.A.O'Keefe
 %   Updated: 20 March 1984
@@ -38,7 +38,7 @@ vertices_edges_to_ugraph/3.
 Adapted to support some of  the   functionality  of  the SICStus ugraphs
 library by Vitor Santos Costa.
 
-Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker. 
+Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker.
 
 As the original code was distributed in  the public domain and YAP under
 the  Perl  artistic  license  the  code  can  be  used  with  SWI-Prolog
@@ -64,7 +64,7 @@ code linked to SWI-Prolog
 
 
 /*
- 
+
 :- public
 	p_to_s_graph/2,
 	s_to_p_graph/2, % edges
@@ -110,21 +110,21 @@ code linked to SWI-Prolog
 		warshall(+, +, +, -).
 
 */
- 
- 
+
+
 %%	vertices(+S_Graph, -Vertices) is det.
-%   
+%
 %	Strips off the  neighbours  lists   of  an  S-representation  to
 %	produce  a  list  of  the  vertices  of  the  graph.  (It  is  a
 %	characteristic of S-representations that *every* vertex appears,
 %	even if it has no  neighbours.).   Vertices  is  in the standard
 %	order of terms.
- 
+
 vertices([], []) :- !.
 vertices([Vertex-_|Graph], [Vertex|Vertices]) :-
 	vertices(Graph, Vertices).
 
- 
+
 %%	vertices_edges_to_ugraph(+Vertices, +Edges, -UGraph) is det.
 %
 %	Create a UGraph from Vertices and edges.   Given  a graph with a
@@ -132,15 +132,15 @@ vertices([Vertex-_|Graph], [Vertex|Vertices]) :-
 %	corresponding S-representation. Note that   the vertices without
 %	edges will appear in Vertices but not  in Edges. Moreover, it is
 %	sufficient for a vertice to appear in Edges.
-%	
+%
 %	==
 %	?- vertices_edges_to_ugraph([],[1-3,2-4,4-5,1-5], L).
 %	L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
 %	==
-%	
+%
 %	In this case all  vertices  are   defined  implicitly.  The next
 %	example shows three unconnected vertices:
-%	
+%
 %	==
 %	?- vertices_edges_to_ugraph([6,7,8],[1-3,2-4,4-5,1-5], L).
 %	L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[], 6-[], 7-[], 8-[]]
@@ -157,7 +157,7 @@ vertices_edges_to_ugraph(Vertices, Edges, Graph) :-
 add_vertices(Graph, Vertices, NewGraph) :-
 	msort(Vertices, V1),
 	add_vertices_to_s_graph(V1, Graph, NewGraph).
-	
+
 add_vertices_to_s_graph(L, [], NL) :- !,
 	add_empty_vertices(L, NL).
 add_vertices_to_s_graph([], L, L) :- !.
@@ -180,15 +180,15 @@ add_empty_vertices([V|G], [V-[]|NG]) :-
 %
 %	Unify NewGraph with a new graph obtained by deleting the list of
 %	Vertices and all the edges that start from  or go to a vertex in
-%	Vertices to the Graph. Example: 
-%	
+%	Vertices to the Graph. Example:
+%
 %	==
 %	?- del_vertices([2,1],
 %			[1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[2,6],8-[]],
 %			NL).
 %	NL = [3-[],4-[5],5-[],6-[],7-[6],8-[]]
 %	==
-%	
+%
 %	@compat Upto 5.6.48 the argument order was (+Vertices, +Graph,
 %	-NewGraph). Both YAP and SWI-Prolog have changed the argument
 %	order for compatibility with recent SICStus as well as
@@ -204,7 +204,7 @@ del_vertices(Graph, Vertices, NewGraph) :-
 del_vertices(G, [], V1, NG) :- !,
 	del_remaining_edges_for_vertices(G, V1, NG).
 del_vertices([], _, _, []).
-del_vertices([V-Edges|G], [V0|Vs], V1, NG) :-  
+del_vertices([V-Edges|G], [V0|Vs], V1, NG) :-
 	compare(Res, V, V0),
 	split_on_del_vertices(Res, V,Edges, [V0|Vs], NVs, V1, NG, NGr),
 	del_vertices(G, NVs, V1, NGr).
@@ -225,7 +225,7 @@ add_edges(Graph, Edges, NewGraph) :-
 	ugraph_union(Graph, G1, NewGraph).
 
 %%	ugraph_union(+Set1, +Set2, ?Union)
-%   
+%
 %	Is true when Union is the union of Set1 and Set2. This code is a
 %	copy of set union
 
@@ -248,7 +248,7 @@ del_edges(Graph, Edges, NewGraph) :-
 	graph_subtract(Graph, G1, NewGraph).
 
 %%	graph_subtract(+Set1, +Set2, ?Difference)
-%	
+%
 % 	Is based on ord_subtract
 
 graph_subtract(Set1, [], Set1) :- !.
@@ -267,7 +267,7 @@ graph_subtract(>, Head1, Tail1, _,     Tail2, Difference) :-
 
 
 
-edges(Graph, Edges) :- 
+edges(Graph, Edges) :-
 	s_to_p_graph(Graph, Edges).
 
 p_to_s_graph(P_Graph, S_Graph) :-
@@ -275,46 +275,46 @@ p_to_s_graph(P_Graph, S_Graph) :-
 	p_to_s_vertices(EdgeSet, VertexBag),
 	sort(VertexBag, VertexSet),
 	p_to_s_group(VertexSet, EdgeSet, S_Graph).
- 
- 
+
+
 p_to_s_vertices([], []).
 p_to_s_vertices([A-Z|Edges], [A,Z|Vertices]) :-
 	p_to_s_vertices(Edges, Vertices).
- 
- 
+
+
 p_to_s_group([], _, []).
 p_to_s_group([Vertex|Vertices], EdgeSet, [Vertex-Neibs|G]) :-
 	p_to_s_group(EdgeSet, Vertex, Neibs, RestEdges),
 	p_to_s_group(Vertices, RestEdges, G).
- 
- 
+
+
 p_to_s_group([V1-X|Edges], V2, [X|Neibs], RestEdges) :- V1 == V2, !,
 	p_to_s_group(Edges, V2, Neibs, RestEdges).
 p_to_s_group(Edges, _, [], Edges).
- 
- 
- 
+
+
+
 s_to_p_graph([], []) :- !.
 s_to_p_graph([Vertex-Neibs|G], P_Graph) :-
 	s_to_p_graph(Neibs, Vertex, P_Graph, Rest_P_Graph),
 	s_to_p_graph(G, Rest_P_Graph).
- 
- 
+
+
 s_to_p_graph([], _, P_Graph, P_Graph) :- !.
 s_to_p_graph([Neib|Neibs], Vertex, [Vertex-Neib|P], Rest_P) :-
 	s_to_p_graph(Neibs, Vertex, P, Rest_P).
- 
- 
+
+
 transitive_closure(Graph, Closure) :-
 	warshall(Graph, Graph, Closure).
- 
+
 warshall([], Closure, Closure) :- !.
 warshall([V-_|G], E, Closure) :-
 	memberchk(V-Y, E),	%  Y := E(v)
 	warshall(E, V, Y, NewE),
 	warshall(G, NewE, Closure).
- 
- 
+
+
 warshall([X-Neibs|G], V, Y, [X-NewNeibs|NewG]) :-
 	memberchk(V, Neibs),
 	!,
@@ -323,37 +323,37 @@ warshall([X-Neibs|G], V, Y, [X-NewNeibs|NewG]) :-
 warshall([X-Neibs|G], V, Y, [X-Neibs|NewG]) :- !,
 	warshall(G, V, Y, NewG).
 warshall([], _, _, []).
- 
- 
- 
+
+
+
 transpose(S_Graph, Transpose) :-
 	s_transpose(S_Graph, Base, Base, Transpose).
- 
+
 s_transpose([], [], Base, Base) :- !.
 s_transpose([Vertex-Neibs|Graph], [Vertex-[]|RestBase], Base, Transpose) :-
 	s_transpose(Graph, RestBase, Base, SoFar),
 	transpose_s(SoFar, Neibs, Vertex, Transpose).
- 
+
 transpose_s([Neib-Trans|SoFar], [Neib|Neibs], Vertex,
 		[Neib-[Vertex|Trans]|Transpose]) :- !,
 	transpose_s(SoFar, Neibs, Vertex, Transpose).
 transpose_s([Head|SoFar], Neibs, Vertex, [Head|Transpose]) :- !,
 	transpose_s(SoFar, Neibs, Vertex, Transpose).
 transpose_s([], [], _, []).
- 
- 
+
+
 %%	compose(G1, G2, Composition)
-%   
+%
 %	Calculates the composition of two S-form  graphs, which need not
 %	have the same set of vertices.
- 
+
 compose(G1, G2, Composition) :-
 	vertices(G1, V1),
 	vertices(G2, V2),
 	ord_union(V1, V2, V),
 	compose(V, G1, G2, Composition).
- 
- 
+
+
 compose([], _, _, []) :- !.
 compose([Vertex|Vertices], [Vertex-Neibs|G1], G2,
 	[Vertex-Comp|Composition]) :- !,
@@ -361,14 +361,14 @@ compose([Vertex|Vertices], [Vertex-Neibs|G1], G2,
 	compose(Vertices, G1, G2, Composition).
 compose([Vertex|Vertices], G1, G2, [Vertex-[]|Composition]) :-
 	compose(Vertices, G1, G2, Composition).
- 
- 
+
+
 compose1([V1|Vs1], [V2-N2|G2], SoFar, Comp) :-
 	compare(Rel, V1, V2), !,
 	compose1(Rel, V1, Vs1, V2, N2, G2, SoFar, Comp).
 compose1(_, _, Comp, Comp).
- 
- 
+
+
 compose1(<, _, Vs1, V2, N2, G2, SoFar, Comp) :- !,
 	compose1(Vs1, [V2-N2|G2], SoFar, Comp).
 compose1(>, V1, Vs1, _, _, G2, SoFar, Comp) :- !,
@@ -376,20 +376,20 @@ compose1(>, V1, Vs1, _, _, G2, SoFar, Comp) :- !,
 compose1(=, V1, Vs1, V1, N2, G2, SoFar, Comp) :-
 	ord_union(N2, SoFar, Next),
 	compose1(Vs1, G2, Next, Comp).
- 
+
 %%	top_sort(+Graph, -Sorted) is semidet.
 %%	top_sort(+Graph, -Sorted, ?Tail) is semidet.
 %
 %	Sorted is a  topological  sorted  list   of  nodes  in  Graph. A
 %	toplogical sort is possible  if  the   graph  is  connected  and
 %	acyclic. In the example we show   how  topological sorting works
-%	for a linear graph: 
-%	
+%	for a linear graph:
+%
 %	==
 %	?- top_sort([1-[2], 2-[3], 3-[]], L).
 %	L = [1, 2, 3]
 %	==
-%	
+%
 %	The  predicate  top_sort/3  is  a  difference  list  version  of
 %	top_sort/2.
 
@@ -398,25 +398,25 @@ top_sort(Graph, Sorted) :-
 	count_edges(Graph, Vertices, Counts0, Counts1),
 	select_zeros(Counts1, Vertices, Zeros),
 	top_sort(Zeros, Sorted, Graph, Vertices, Counts1).
- 
+
 top_sort(Graph, Sorted0, Sorted) :-
 	vertices_and_zeros(Graph, Vertices, Counts0),
 	count_edges(Graph, Vertices, Counts0, Counts1),
 	select_zeros(Counts1, Vertices, Zeros),
 	top_sort(Zeros, Sorted, Sorted0, Graph, Vertices, Counts1).
- 
- 
+
+
 vertices_and_zeros([], [], []) :- !.
 vertices_and_zeros([Vertex-_|Graph], [Vertex|Vertices], [0|Zeros]) :-
 	vertices_and_zeros(Graph, Vertices, Zeros).
- 
- 
+
+
 count_edges([], _, Counts, Counts) :- !.
 count_edges([_-Neibs|Graph], Vertices, Counts0, Counts2) :-
 	incr_list(Neibs, Vertices, Counts0, Counts1),
 	count_edges(Graph, Vertices, Counts1, Counts2).
- 
- 
+
+
 incr_list([], _, Counts, Counts) :- !.
 incr_list([V1|Neibs], [V2|Vertices], [M|Counts0], [N|Counts1]) :-
 	V1 == V2, !,
@@ -424,37 +424,37 @@ incr_list([V1|Neibs], [V2|Vertices], [M|Counts0], [N|Counts1]) :-
 	incr_list(Neibs, Vertices, Counts0, Counts1).
 incr_list(Neibs, [_|Vertices], [N|Counts0], [N|Counts1]) :-
 	incr_list(Neibs, Vertices, Counts0, Counts1).
- 
- 
+
+
 select_zeros([], [], []) :- !.
 select_zeros([0|Counts], [Vertex|Vertices], [Vertex|Zeros]) :- !,
 	select_zeros(Counts, Vertices, Zeros).
 select_zeros([_|Counts], [_|Vertices], Zeros) :-
 	select_zeros(Counts, Vertices, Zeros).
- 
- 
- 
+
+
+
 top_sort([], [], Graph, _, Counts) :- !,
 	vertices_and_zeros(Graph, _, Counts).
 top_sort([Zero|Zeros], [Zero|Sorted], Graph, Vertices, Counts1) :-
 	graph_memberchk(Zero-Neibs, Graph),
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zeros, NewZeros),
 	top_sort(NewZeros, Sorted, Graph, Vertices, Counts2).
- 
+
 top_sort([], Sorted0, Sorted0, Graph, _, Counts) :- !,
 	vertices_and_zeros(Graph, _, Counts).
 top_sort([Zero|Zeros], [Zero|Sorted], Sorted0, Graph, Vertices, Counts1) :-
 	graph_memberchk(Zero-Neibs, Graph),
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zeros, NewZeros),
 	top_sort(NewZeros, Sorted, Sorted0, Graph, Vertices, Counts2).
- 
+
 graph_memberchk(Element1-Edges, [Element2-Edges2|_]) :-
 	Element1 == Element2, !,
 	Edges = Edges2.
 graph_memberchk(Element, [_|Rest]) :-
         graph_memberchk(Element, Rest).
 
- 
+
 decr_list([], _, Counts, Counts, Zeros, Zeros) :- !.
 decr_list([V1|Neibs], [V2|Vertices], [1|Counts1], [0|Counts2], Zi, Zo) :-
 	V1 == V2, !,
@@ -465,19 +465,19 @@ decr_list([V1|Neibs], [V2|Vertices], [N|Counts1], [M|Counts2], Zi, Zo) :-
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zi, Zo).
 decr_list(Neibs, [_|Vertices], [N|Counts1], [N|Counts2], Zi, Zo) :-
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zi, Zo).
- 
- 
+
+
 %%	neighbors(+Vertex, +Graph, -Neigbours) is det.
 %%	neighbours(+Vertex, +Graph, -Neigbours) is det.
-%	
+%
 %	Neigbours is a sorted list of the neighbours of Vertex in Graph.
- 
+
 neighbors(Vertex, Graph, Neig) :-
 	neighbours(Vertex, Graph, Neig).
 
 neighbours(V,[V0-Neig|_],Neig) :-
 	V == V0, !.
-neighbours(V,[_|G],Neig) :- 
+neighbours(V,[_|G],Neig) :-
 	neighbours(V,G,Neig).
 
 

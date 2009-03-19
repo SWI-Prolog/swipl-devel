@@ -105,7 +105,7 @@ save_reload(Encoding) :-
 	delete_file(File).
 
 %	convert_typed(+Type, +Content, -Object)
-%	
+%
 %	Convert to type(Type, PrologValue), providing the inverse of
 %	the default RDF as produced by rdf_db.pl
 
@@ -219,7 +219,7 @@ lang(1) :-
 		lang(en, 'John'),
 		lang(en, ''),
 		'Johannes'
-	      ]. 
+	      ].
 lang(2) :-
 	lang_data,
 	findall(X, rdf(x, a, literal(lang(nl, X))), Xs),
@@ -242,10 +242,10 @@ lang(save_db) :-
 	save_reload_db,
 	X = lang(_,_),
 	findall(X, rdf(x, a, literal(X)), Xs),
-	(   Xs =@= [ lang(nl, 'Jan'), 
+	(   Xs =@= [ lang(nl, 'Jan'),
 		     lang(en, 'John'),
 		     lang(en, ''),
-		     lang(_, 'Johannes') 
+		     lang(_, 'Johannes')
 		   ]
 	->  true
 	;   format(user_error, 'Xs = ~w~n', [Xs]),
@@ -259,7 +259,7 @@ lang(save) :-
 		     [ lang(nl, 'Jan'),
 		       lang(en, 'John'),
 		       lang(en, ''),
-		       'Johannes' 
+		       'Johannes'
 		     ])
 	->  true
 	;   format(user_error, 'Xs = ~q~n', [Xs]),
@@ -585,7 +585,7 @@ prefix(7) :- tprefix(p2, bbbb).
 prefix(8) :- tprefix(p2, bbbbb).
 prefix(9) :- tprefix(p2, 'Bbbbb').
 prefix(10) :- tprefix(p2, 'BBBBB').
-				
+
 prefix(like-1) :-
 	mkprefix_db(_),
 	findall(L, rdf(_,_,literal(like('a*b'), L)), Ls),
@@ -842,7 +842,7 @@ testset(duplicates).
 testset(source).
 
 %	testdir(Dir)
-%	
+%
 %	Enumerate directories holding tests.
 
 testdir('Tests').
@@ -907,7 +907,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 test_failed(R, Except) :-
 	clause(Head, _, R),
 	functor(Head, Name, 1),

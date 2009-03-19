@@ -79,7 +79,7 @@ cToPceStringA(Name assoc, const char *s, size_t len, int translate)
     str = pceNew(assoc, ClassString, 1, &c);
   else
   { Any av[2];
-    
+
     av[0] = name_procent_s;
     av[1] = c;
     str = pceNew(assoc, ClassString, 2, av);
@@ -103,7 +103,7 @@ cToPceStringW(Name assoc, const wchar_t *s, size_t len, int translate)
     str = pceNew(assoc, ClassString, 1, &c);
   else
   { Any av[2];
-    
+
     av[0] = name_procent_s;
     av[1] = c;
     str = pceNew(assoc, ClassString, 2, av);
@@ -149,7 +149,7 @@ cToPceName_nW(const wchar_t *text, size_t len)
 Any
 cToPcePointer(void *ptr)
 { CPointer p = answerObjectv(ClassCPointer, 0, NULL);
-  
+
   p->pointer = ptr;
 
   return p;
@@ -275,7 +275,7 @@ pceInstanceOf(Any obj, Any classspec)
 
   if ( (class = checkType(classspec, TypeClass, NIL)) )
     return instanceOfObject(obj, class);
-    
+
   errorPce(CtoName(pp(classspec)), NAME_unexpectedType, TypeClass);
   fail;
 }
@@ -393,7 +393,7 @@ pceToC(Any obj, PceCValue *rval)
     }
     { rval->real = valReal(obj);
       return PCE_REAL;
-    }    
+    }
   } else
   { rval->integer = PointerToCInt(obj);
     return PCE_REFERENCE;
@@ -455,17 +455,17 @@ convert_trace_flags(PceMethod m, int *flags)
 { static struct dflagmap
   { int internal;
     int external;
-  } staticmap[] = 
+  } staticmap[] =
   { { D_TRACE_ENTER, PCE_METHOD_INFO_TRACE_ENTER },
-    { D_TRACE_EXIT,  PCE_METHOD_INFO_TRACE_EXIT },  
+    { D_TRACE_EXIT,  PCE_METHOD_INFO_TRACE_EXIT },
     { D_TRACE_FAIL,  PCE_METHOD_INFO_TRACE_FAIL },
     { D_BREAK_ENTER, PCE_METHOD_INFO_BREAK_ENTER },
-    { D_BREAK_EXIT,  PCE_METHOD_INFO_BREAK_EXIT },  
+    { D_BREAK_EXIT,  PCE_METHOD_INFO_BREAK_EXIT },
     { D_BREAK_FAIL,  PCE_METHOD_INFO_BREAK_FAIL },
     { 0, 0 }
   };
   struct dflagmap *map = staticmap;
-  
+
   for( ; map->internal; map++ )
   { if ( onDFlag(m, map->internal) )
       *flags |= map->external;
@@ -481,14 +481,14 @@ pceGetMethodInfo(PceMethod m, pce_method_info *info)
     info->handle = p->pointer;
     if ( DebuggingProgramObject(m, D_TRACE|D_BREAK) )
       convert_trace_flags(m, &info->flags);
-  
+
     if ( !(m->flags & PCE_METHOD_INFO_HANDLE_ONLY) )
     { info->name    = m->name;
       info->context = ((Class)m->context)->name;
       info->argc    = valInt(m->types->size);
       info->types   = (PceType*)m->types->elements;
     }
-  
+
     succeed;
   }
 
@@ -502,7 +502,7 @@ pceGetMethodInfo(PceMethod m, pce_method_info *info)
 
 PceITFSymbol
 getITFSymbolName(Name name)
-{ if ( onFlag(name, F_ITFNAME) )	
+{ if ( onFlag(name, F_ITFNAME) )
     return getMemberHashTable(NameToITFTable, name);
   else
   { PceITFSymbol symbol = newSymbol(NULL, name);
@@ -728,7 +728,7 @@ pce_malloc(size_t bytes)
 
   if ( !(mem = malloc(bytes)) )
     outOfMemory();
-  
+
   return mem;
 }
 

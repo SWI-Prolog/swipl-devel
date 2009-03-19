@@ -122,15 +122,15 @@ extracting module doc_wiki.pl into HTML+CSS.
 %%	doc_for_file(+File, +Options) is det
 %
 %	Write documentation for File as HTML.  Options:
-%	
+%
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
-%	
+%
 %		* edit(Bool)
 %		If =true=, provide edit buttons. Default, these buttons
 %		are suppressed.
-%		
+%
 %	@param File	Prolog file specification.
 %	@param Out	Output stream
 
@@ -156,20 +156,20 @@ prolog_file(FileSpec, Options) -->
 	     | \objects(Objects, FileOptions)
 	     ]),
 	undocumented(Objects, FileOptions).
-	  
+
 %%	doc_file_objects(+FileSpec, -File, -Objects, -FileOptions, +Options) is det.
 %
 %	Extracts  relevant  information  for  FileSpec  from  the  PlDoc
 %	database.  FileOptions contains:
-%	
+%
 %		* file(Title:string, Comment:string)
 %		* module(Module:atom)
 %		* public(Public:list(predicate_indicator)
-%	
+%
 %	Objects contains
-%	
+%
 %		* doc(PI:predicate_indicator, File:Line, Comment)
-%		
+%
 %	@param FileSpec File specification as used for load_files/2.
 %	@param File	Prolog canonical filename
 
@@ -326,7 +326,7 @@ edit_button(File, Options) -->
 	{ option(edit(true), Options), !,
 	  option(button_height(H), Options, 24)
 	},
-	html(a([ onClick('HTTPrequest(\'' + 
+	html(a([ onClick('HTTPrequest(\'' +
 			 location_by_id(pldoc_edit) + [file(File)] +
 			 '\')'),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
@@ -362,7 +362,7 @@ zoom_button(Base, Options) -->
 		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
-	
+
 
 %%	source_button(+File, +Options)// is det.
 %
@@ -383,7 +383,7 @@ source_button(File, Options) -->
 		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
-	
+
 
 %%	objects(+Objects:list, +Options)// is det.
 %
@@ -431,7 +431,7 @@ object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
-	
+
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -446,7 +446,7 @@ need_mode(Mode, Stack, Stack) -->
 need_mode(Mode, Stack, Rest) -->
 	{ memberchk(Mode, Stack)
 	}, !,
-	pop_mode(Mode, Stack, Rest).	
+	pop_mode(Mode, Stack, Rest).
 need_mode(Mode, Stack, [Mode|Stack]) --> !,
 	html_begin(Mode).
 
@@ -482,11 +482,11 @@ undocumented_predicates([], _) -->
 undocumented_predicates([H|T], Options) -->
 	undocumented_pred(H, Options),
 	undocumented_predicates(T, Options).
-		
+
 undocumented_pred(Name/Arity, Options) -->
 	{ functor(Head, Name, Arity) },
 	html(dt(class=undoc, \pred_mode(Head, [], _, Options))).
-		
+
 select_undocumented([], _, _, []).
 select_undocumented([PI|T0], M, Objs, [PI|T]) :-
 	is_pi(PI),
@@ -603,7 +603,7 @@ print_html_head(Out) :-
 %%	tags(+Tags)// is det.
 %
 %	Emit the @tag tags of a description. Tags is produced by tags/3.
-%	
+%
 %	@see combine_tags/2.
 
 tags(Tags) -->
@@ -685,7 +685,7 @@ make_section(section, Title, h1(class=section, Title)).
 %%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the predicate header.
-%	
+%
 %	@param Modes	List as returned by process_modes/5.
 
 pred_dt(Modes, Class, Options) -->
@@ -753,7 +753,7 @@ pred_edit_button(_, Options) -->
 pred_edit_button(PI0, Options0) -->
 	{ canonise_predref(PI0, PI, Options0, Options) },
 	pred_edit_button2(PI, Options).
-	
+
 pred_edit_button2(Name/Arity, Options) -->
 	{ functor(Head, Name, Arity),
 	  option(module(M), Options, _),
@@ -952,7 +952,7 @@ pred_det(Det) -->
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element as produced by doc_wiki.pl.
-%	
+%
 %	@tbd	Properly merge with pred_head//1
 
 term(Atom, []) -->
@@ -966,7 +966,7 @@ term(Term, Bindings) -->
 term(Term, Bindings) -->
 	{ bind_vars(Term, Bindings) },
 	argtype(Term).
-	
+
 
 		 /*******************************
 		 *	       PREDREF		*
@@ -978,7 +978,7 @@ term(Term, Bindings) -->
 %	Create a reference to a predicate. The reference consists of the
 %	relative path to the  file  using   the  predicate  indicator as
 %	anchor.
-%	
+%
 %	Current file must  be  available   through  the  global variable
 %	=pldoc_file=. If this variable not  set   it  creates  a link to
 %	/doc/<file>#anchor.  Such links only work in the online browser.
@@ -1039,16 +1039,16 @@ manref(Name/Arity, HREF, Options) :-
 	),
 	http_location_by_id(pldoc_man, ManHandler),
 	format(string(HREF), '~w?predicate=~w', [ManHandler, EncId]).
-	
+
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
 %
 %	Create reference.  Prefer:
-%	
+%
 %		1. Local definition
 %		2. If from package and documented: package documentation
 %		3. From any file
-%	
+%
 %	@bug	Should analyse import list to find where the predicate
 %		comes from.
 
@@ -1078,7 +1078,7 @@ relative_file(Head, RelFile) :-
 	b_getval(pldoc_file, CurrentFile), CurrentFile \== [],
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
-	
+
 %%	pred_source_href(+Pred:predicate_indicator, +Module, -HREF) is semidet.
 %
 %	HREF is a URL to show the predicate source in its file.
@@ -1114,7 +1114,7 @@ object_ref(Obj, Options) -->
 	{ object_href(Obj, HREF, Options)
 	},
 	html(a(href(HREF), \object_link(Obj, Options))).
-	
+
 %%	object_href(+Object, -HREF) is det.
 %%	object_href(+Object, -HREF, +Options) is det.
 %
@@ -1226,7 +1226,7 @@ in_file(Module, Head, File) :-
 %%	relative_file_name(+Path:atom, +RelTo:atom, -RelPath:atom) is det.
 %
 %	Create a relative path from an absolute one.
-%	
+%
 %	@tbd	move to library?
 
 relative_file_name(Path, RelTo, RelPath) :-
@@ -1252,23 +1252,23 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 %      Create a link to another filename if   the file exists. Called by
 %      \file(File) terms in the DOM term generated by wiki.pl. Supported
 %      options are:
-%      
+%
 %          * label(+Label)
 %          Label to use for the link to the file.
-%          
+%
 %          * absolute_path(+Path)
 %          Absolute location of the referenced file.
-%          
+%
 %          * href(+HREF)
 %          Explicitely provided link; overrule link computation.
-%          
+%
 %          * map_extension(+Pairs)
 %          Map the final extension if OldExt-NewExt is in Pairs.
-%          
+%
 %          * files(+Map)
 %          List of file(Name, Link) that specifies that we must
 %	   user Link for the given physical file Name.
-%	   
+%
 %	@tbd	Translation of files to HREFS is a mess.  How to relate
 %		these elegantly?
 
@@ -1303,7 +1303,7 @@ file_href(File, HREF, Options) :-
 %%	map_extension(+HREFIn, -HREFOut, Options) is det.
 %
 %	Replace extension using the option
-%	
+%
 %	    * map_extension(+Pairs)
 
 map_extension(HREF0, HREF, Options) :-
@@ -1312,7 +1312,7 @@ map_extension(HREF0, HREF, Options) :-
 	memberchk(Old-New, Map), !,
 	file_name_extension(Base, New, HREF).
 map_extension(HREF, HREF, _).
-	
+
 
 file_href_real(File, HREF, Options) :-
 	(   option(absolute_path(Path), Options)
@@ -1401,7 +1401,7 @@ image_attribute(border(_)).
 %
 %	Inline description for a predicate as produced by the text below
 %	from wiki processing.
-%	
+%
 %	==
 %		* [[member/2]]
 %		* [[append/3]]

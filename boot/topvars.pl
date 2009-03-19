@@ -123,7 +123,7 @@ assert_bindings([Binding|Tail]) :-
 	;   true
 	),
 	assert_bindings(Tail).
-	  
+
 toplevel_var(Var, Binding) :-
 	recorded('$topvar', Var=Binding).
 

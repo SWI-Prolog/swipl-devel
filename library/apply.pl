@@ -64,10 +64,10 @@ members of a list.
 
 
 %%	include(:Goal, +List1, ?List2) is det.
-%	
+%
 %	Filter elements for which Goal succeed.   True if List2 contains
 %	those elements Xi of List1 for which call(Goal, Xi) succeeds.
-%	
+%
 %	@see	Older versions of SWI-Prolog had sublist/3 with the same
 %		arguments and semantics.
 
@@ -84,7 +84,7 @@ include_([X1|Xs1], P, Included) :-
 
 
 %%	exclude(:Goal, +List1, ?List2) is det.
-%	
+%
 %	Filter elements for which Goal fails.  True if List2 contains
 %	those elements Xi of List1 for which call(Goal, Xi) fails.
 
@@ -142,8 +142,8 @@ partition_(>, H, Pred, T, L, E, [H|G]) :- !,
 	partition_(T, Pred, L, E, G).
 partition_(Diff, _, _, _, _, _, _) :-
 	must_be(oneof([<.=,>]), Diff).
-	
-	
+
+
 		 /*******************************
 		 *	    MAPLIST/2...	*
 		 *******************************/
@@ -159,7 +159,7 @@ maplist(Goal, List) :-
 
 maplist_([], _).
 maplist_([Elem|Tail], Goal) :-
-	call(Goal, Elem), 
+	call(Goal, Elem),
 	maplist_(Tail, Goal).
 
 %%	maplist(:Goal, ?List1, ?List2)
@@ -172,7 +172,7 @@ maplist(Goal, List1, List2) :-
 
 maplist_([], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
-	call(Goal, Elem1, Elem2), 
+	call(Goal, Elem1, Elem2),
 	maplist_(Tail1, Tail2, Goal).
 
 %%	maplist(:Goal, ?List1, ?List2, ?List3)
@@ -185,7 +185,7 @@ maplist(Goal, List1, List2, List3) :-
 
 maplist_([], [], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
-	call(Goal, Elem1, Elem2, Elem3), 
+	call(Goal, Elem1, Elem2, Elem3),
 	maplist_(Tail1, Tail2, Tail3, Goal).
 
 
@@ -199,5 +199,5 @@ maplist(Goal, List1, List2, List3, List4) :-
 
 maplist_([], [], [], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
-	call(Goal, Elem1, Elem2, Elem3, Elem4), 
+	call(Goal, Elem1, Elem2, Elem3, Elem4),
 	maplist_(Tail1, Tail2, Tail3, Tail4, Goal).

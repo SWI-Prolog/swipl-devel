@@ -37,7 +37,7 @@
 */
 
 %%	map_exception_to_http_status(+Exception, -Reply, -HdrExtra)
-%	
+%
 %	Map certain defined  exceptions  to   special  reply  codes. The
 %	http(not_modified)   provides   backward     compatibility    to
 %	http_reply(not_modified).
@@ -82,7 +82,7 @@ map_exception_to_http_status(E,
 
 resource_error(error(resource_error(_), _)).
 
-%%	keep_alive(+Reply) is semidet.	
+%%	keep_alive(+Reply) is semidet.
 %
 %	If true for Reply, the default is to keep the connection open.
 

@@ -43,7 +43,7 @@ trees. This library adds  non-backtrackable   destructive  update  to RB
 trees which allows us to fill RB trees in a failure driven loop.
 
 This module builds on top of the   rbtrees.pl  and used code copied from
-library written by Vitor Santos Costa. 
+library written by Vitor Santos Costa.
 
 @author	Jan Wielemaker
 */
@@ -69,7 +69,7 @@ nb_rb_insert(Tree, Key0, Val0) :-
 
 insert(Tree0,Key,Val,Nil,Tree, Flag) :-
 	insert2(Tree0,Key,Val,Nil,TreeI,Flag),
-	(   Flag == shared 
+	(   Flag == shared
 	->  Tree = Tree0
 	;   fix_root(TreeI,Tree)
 	).
@@ -82,7 +82,7 @@ fix_root(red(L,K,V,R),black(L,K,V,R)).
 
 
 %
-% Cormen et al present the algorithm as 
+% Cormen et al present the algorithm as
 % (1) standard tree insertion;
 % (2) from the viewpoint of the newly inserted node:
 %     partially fix the tree;

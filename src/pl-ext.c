@@ -343,7 +343,7 @@ rememberExtensions(const char *module, const PL_extension *e)
   cell->extensions = dupExtensions(e);
   cell->next = NULL;
   cell->module = dupStr(module);
-  
+
   if ( ext_tail )
   { ext_tail->next = cell;
     ext_tail = cell;
@@ -498,10 +498,10 @@ initBuildIns(void)
   LOOKUPPROC(dwakeup1);
 #endif
 #ifdef O_CALL_RESIDUE
-  PROCEDURE_call_residue_vars2  = 
+  PROCEDURE_call_residue_vars2  =
 	PL_predicate("call_residue_vars", 2, "$attvar");
 #endif
-  PROCEDURE_exception_hook4  = 
+  PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);

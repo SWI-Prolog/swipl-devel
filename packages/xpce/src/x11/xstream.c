@@ -197,7 +197,7 @@ ws_read_stream_data(Stream s, void *data, int len, Real timeout)
   { errno = EINVAL;
     return -1;
   }
-  
+
   if ( notDefault(timeout) )
   { fd_set readfds;
     struct timeval to;

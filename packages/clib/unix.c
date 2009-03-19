@@ -29,7 +29,7 @@
 #include <SWI-Stream.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>   
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -123,7 +123,7 @@ pl_exec(term_t cmd)
     free_argv(argc);
     return pl_error("exec", 1, NULL, ERR_ERRNO, errno, "execute", "command", cmd);
   }
-  
+
   return pl_error("exec", 1, NULL, ERR_ARGTYPE, 1, cmd, "compound");
 }
 
@@ -219,7 +219,7 @@ pl_dup(term_t from, term_t to)
   if ( !get_stream_no(from, &f, &fn) ||
        !get_stream_no(to, &t, &tn) )
     goto out;
-  
+
   if ( dup2(fn, tn) < 0 )
   { pl_error("dup", 2, NULL, ERR_ERRNO, errno, "dup", "stream", from);
     goto out;
@@ -249,7 +249,7 @@ pl_environ(term_t l)
 
   for(e = environ; *e; e++)
   { char *s = strchr(*e, '=');
-    
+
     if ( !s )
       s = *e + strlen(*e);
 
@@ -265,10 +265,10 @@ pl_environ(term_t l)
 	   !PL_unify(t2, nt) )
 	return FALSE;
     }
-  }  
-  
+  }
+
   return PL_unify_nil(t);
-} 
+}
 
 
 		 /*******************************
@@ -292,7 +292,7 @@ write_null(void *handle, char *buf, size_t count)
   } else if ( error_file )
   { error_fd = open(PL_atom_chars(error_file), O_WRONLY|O_CREAT|O_TRUNC, 0644);
     return write_null(handle, buf, count);
-  } 
+  }
 
   return count;
 }
@@ -323,7 +323,7 @@ static void
 close_underlying_fd(IOSTREAM *s)
 { if ( s )
   { int fd;
-  
+
     if ( (fd = Sfileno(s)) >= 0 )
       close(fd);
 

@@ -51,7 +51,7 @@ commands. The command key is by default passed as `Mod2'.
 #endif
 
 static unsigned int MetaMask = DefMetaMask;	/* Key-mask for meta */
-  
+
 
 		 /*******************************
 		 *       X11 APP CONTEXT	*
@@ -69,7 +69,7 @@ x_error_handler(Display *display, XErrorEvent *error)
     if ( error->request_code == X_SetInputFocus &&
 	 error->error_code == BadMatch )
       return 0;
-	 
+
     XGetErrorText(display, error->error_code, msg, 1024);
     sprintf(buf, "%d", error->request_code);
     XGetErrorDatabaseText(display, "XRequest", buf,
@@ -81,7 +81,7 @@ x_error_handler(Display *display, XErrorEvent *error)
     Cprintf("Resource id in failed request:  0x%x\n",
 	    (unsigned int) error->resourceid);
     Cprintf("Serial number of failed request: %ld\n", error->serial);
-    
+
     errorPce(NIL, NAME_xError);
   }
 
@@ -101,7 +101,7 @@ extern XtAppContext _XtDefaultAppContext(void);
 (*) XInitThreads() must  be  called  if   multiple  thread  access  Xlib
 functions concurrently. Given the  current  locking,   I  think  this is
 cannot happen as we lock the central  XPCE   lock  both if we receive an
-event and if we send a message from Prolog. 
+event and if we send a message from Prolog.
 
 Nevertheless, XPCE uses this  flag  to   prepare  for  more fine-grained
 locking. It turns out the X11 version  distributed with MacOSX has a but
@@ -131,7 +131,7 @@ pceXtAppContext(void * ctx)
     { ThePceXtAppContext = ctx;
       XSetErrorHandler(x_error_handler);
     } else
-    { 
+    {
 #if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
       if ( XPCE_mt == TRUE )
       { if ( use_x_init_threads )
@@ -344,7 +344,7 @@ postscriptXImage(XImage *im, XImage *mask,
   { if ( !direct )
     { for(x = fx; x < w8; x++)
       { int pixval;
-	
+
 	if ( mask && XGetPixel(mask, x, y) == 0L )
 	  pixval = psbright;
 	else
@@ -359,7 +359,7 @@ postscriptXImage(XImage *im, XImage *mask,
       int r_bright = im->red_mask   >> r_shift;
       int g_bright = im->green_mask >> g_shift;
       int b_bright = im->blue_mask  >> b_shift;
-      
+
       DEBUG(NAME_image, Cprintf("Line %03d", y));
       for(x = fx; x < w8; x++)
       { unsigned long pixel;
@@ -380,26 +380,26 @@ postscriptXImage(XImage *im, XImage *mask,
 	  g = (pixel & im->green_mask) >> g_shift;
 	  b = (pixel & im->blue_mask)  >> b_shift;
 	  DEBUG(NAME_image, Cprintf(" %x/%x/%x", r, g, b));
-  
+
 	  if ( depth == 1 )
 	  { if ( r+g+b > (r_bright+g_bright+b_bright)/2 )
 	      pixval = 1;
 	    else
 	      pixval = 0;
-  
+
 	    put_value(&stat, pixval);
 	  } else
 	  { r = rescale(r, r_bright, psbright);
 	    g = rescale(g, g_bright, psbright);
 	    b = rescale(b, b_bright, psbright);
-  
+
 	    if ( iscolor )
 	    { put_value(&stat, r);
 	      put_value(&stat, g);
 	      put_value(&stat, b);
 	    } else
 	    { pixval = (x < w ? INTENSITY(r, g, b) : psbright);
-	    
+
 	      put_value(&stat, pixval);
 	    }
 	  }
@@ -447,13 +447,13 @@ x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)
 
   if ( instanceOfObject(fg, ClassColour) )
   { unsigned long pixel = getPixelColour(fg, d);
-	
+
     values.foreground = pixel;
     values.fill_style = FillSolid;
     mask	      = (GCForeground|GCFillStyle);
   } else
   { Pixmap pm   = (Pixmap) getXrefObject(fg, d);
-    
+
     values.tile       = pm;
     values.fill_style = FillTiled;
     mask	      = (GCTile|GCFillStyle);
@@ -489,7 +489,7 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
 
   if ( (colors = alloc(entries * sizeof(XColor))) )
   { int i, j;
-      
+
     for(i=0; i<entries; i++)
       colors[i].pixel = i;
 
@@ -525,7 +525,7 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
       }
 
       assert(cb);
-      
+
       DEBUG(NAME_colour, Cprintf("Mapped colour %d %d %d --> %d %d %d\n",
 				 c->red, c->green, c->blue,
 				 cb->red, cb->green, cb->blue));
@@ -539,7 +539,7 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
 	DEBUG(NAME_colour, Cprintf("Can't allocate, trying another one\n"));
       }
     }
-  } 
+  }
 
   fail;
 }
@@ -629,7 +629,7 @@ getICWindow(Any obj)
       return wsfr->ic;
     }
 
-    ic = XCreateIC(d->im, 
+    ic = XCreateIC(d->im,
 		   XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
 		   XNClientWindow, xwin,
 		   NULL);
@@ -707,10 +707,10 @@ keycode_to_name(Any sw, XEvent *event)
 
     if ( count == 1 )
     { int c = wbuf[0];
-      
+
       if ( event->xkey.state & MetaMask )	/* meta depressed */
 	c += META_OFFSET;
-      
+
       return toInt(c);
     }
 
@@ -741,20 +741,20 @@ keycode_to_name(Any sw, XEvent *event)
 
     if ( count == 1 )
     { int c = buf[0] & 0xff;
-      
+
       if ( event->xkey.state & MetaMask )	/* meta depressed */
 	c += META_OFFSET;
-      
+
       return toInt(c);
     }
-    
+
     if ( count > 1 )			/* see above */
     { char *e;
       int c;
 
       if ( (e = utf8_get_char(buf, &c)) && e-buf == count )
       { DEBUG(NAME_event, Cprintf("\t-->UTF-8 sequence for %d\n", c));
-	
+
 	if ( event->xkey.state & MetaMask )	/* meta depressed */
 	  c += META_OFFSET;
 
@@ -994,11 +994,11 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
   setLastEventTime(time);
 
   ev = answerObject(ClassEvent,
-		    name, 
+		    name,
 		    window,
 		    toInt(x), toInt(y),
 		    state_to_buttons(state, name),
-		    EAV);		   
+		    EAV);
   if ( ctx_name )
     attributeObject(ev, ctx_name, ctx);
 
@@ -1011,7 +1011,7 @@ typedef struct
   unsigned int mask;
 } modmask;
 
-static const modmask modmasks[] = 
+static const modmask modmasks[] =
 { { "mod1", Mod1Mask },
   { "mod2", Mod2Mask },
   { "mod3", Mod3Mask },
@@ -1032,7 +1032,7 @@ metaModifierDisplay(DisplayObj d, Name name)
       succeed;
     }
   }
-  
+
   fail;
 }
 

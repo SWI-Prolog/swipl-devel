@@ -140,7 +140,7 @@ destroy_memory_file(memfile *m)
   free(m);
 
   return TRUE;
-} 
+}
 
 
 static foreign_t
@@ -174,7 +174,7 @@ alreadyOpen(term_t handle, const char *op)
 static struct encname
 { IOENC  code;
   atom_t *name;
-} encoding_names[] = 
+} encoding_names[] =
 { { ENC_UNKNOWN,     &ATOM_unknown },
   { ENC_OCTET,       &ATOM_octet },
   { ENC_ASCII,       &ATOM_ascii },
@@ -193,7 +193,7 @@ atom_to_encoding(atom_t a)
 { struct encname *en;
 
   for(en=encoding_names; en->name; en++)
-  { if ( *en->name == a ) 
+  { if ( *en->name == a )
       return en->code;
   }
 
@@ -254,7 +254,7 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
 	    return FALSE;
 	} else if ( name == ATOM_free_on_close )
 	{ if ( !PL_get_bool(arg, &free_on_close) )
-	    return pl_error("open_memory_file", 4, NULL, ERR_TYPE, 
+	    return pl_error("open_memory_file", 4, NULL, ERR_TYPE,
 			    arg, "boolean");
 	}
       } else
@@ -421,7 +421,7 @@ memory_file_to_text(term_t handle, term_t atom, term_t encoding, int flags)
 
   if ( get_memfile(handle, &m) )
   { IOENC enc;
-  
+
     if ( encoding )
     { if ( !get_encoding(encoding, &enc) )
 	return FALSE;

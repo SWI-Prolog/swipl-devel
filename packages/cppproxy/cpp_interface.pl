@@ -47,12 +47,12 @@
 	current_cpp_callable(:).
 
 %	:- cpp_callable Goal1, Goal2, ...
-%	
+%
 %	Declare Goal1, ... to  be  callable   from  C++.  Callable goals
 %	consist of a head, specifying the argument types and optional an
 %	" = Options", where  Options  is   a  list  of  options. Defined
 %	options are:
-%	
+%
 %		* one
 %		Predicate always succeeds.  This is the default.  Such
 %		predicates are mapped to void C++ functions.
@@ -62,7 +62,7 @@
 %
 %		* zero_or_more
 %		Predicate is non-deterministic.
-%		
+%
 %		* as(Name)
 %		Name to give to the C++ function or Query class.
 

@@ -88,7 +88,7 @@ test_clause(a_is, target) :- a(A), A is 1+1, target.
 % cross-referencer quiet.
 
 target.					% the thing we are normally looking for
-a.					% auxiliary preds 
+a.					% auxiliary preds
 b.
 c.
 a(_).					% auxiliary preds that accesses a variable,

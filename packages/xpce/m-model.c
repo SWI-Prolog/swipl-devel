@@ -50,7 +50,7 @@ char *argv[];
   int stack_up = (sub() > buf);
   char *decl[MAX_DECL];
   int ndecl = 0;
-  
+
 
 #ifdef VERBOSE
   printf("Memory layout:\n\n");
@@ -60,7 +60,7 @@ char *argv[];
   printf("\tmalloc() at 0x%x\n", malloc(10));
   printf("\tC-Stack grows %sward\n", stack_up ? "Up" : "Down");
 #endif
-	 
+
   if      ( (gva & 0xf0000000L) == 0x80000000L )
     decl[ndecl++] = "POINTER_OFFSET=0x80000000L";
   else if ( (gva & 0xf0000000L) == 0x40000000L )
@@ -71,7 +71,7 @@ char *argv[];
     decl[ndecl++] = "POINTER_OFFSET=0x10000000L";
   else if ( (gva & 0xf0000000L) )
     printf("ERROR: Cannot determine POINTER_OFFSET\n");
-  
+
   if      ( (gta & 0xf0000000L) == 0x80000000L )
     decl[ndecl++] = "TEXT_OFFSET=0x80000000L";
   else if ( (gta & 0xf0000000L) == 0x40000000L )
@@ -82,7 +82,7 @@ char *argv[];
     decl[ndecl++] = "TEXT_OFFSET=0x10000000L";
   else if ( (gta & 0xf0000000L) )
     printf("ERROR: Cannot determine TEXT_OFFSET\n");
-  
+
   if ( stack_up )
     decl[ndecl++] = "STACK_DIRECTION=1";
   else

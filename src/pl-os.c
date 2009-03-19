@@ -138,8 +138,8 @@ initOs(void)
 #if OS2
   { DATETIME i;
     DosGetDateTime((PDATETIME)&i);
-    initial_time = (i.hours * 3600.0) 
-                   + (i.minutes * 60.0) 
+    initial_time = (i.hours * 3600.0)
+                   + (i.minutes * 60.0)
 		   + i.seconds
 		   + (i.hundredths / 100.0);
   }
@@ -260,8 +260,8 @@ CpuTime(cputime_kind which)
   DATETIME i;
 
   DosGetDateTime((PDATETIME)&i);
-  return (((i.hours * 3600) 
-                 + (i.minutes * 60) 
+  return (((i.hours * 3600)
+                 + (i.minutes * 60)
 		 + i.seconds
 	         + (i.hundredths / 100.0)) - initial_time);
 #else
@@ -340,7 +340,7 @@ CpuCount()
   if ( fd )
   { char buf[256];
     int count = 0;
-    
+
     while(fgets(buf, sizeof(buf)-1, fd))
     { char *vp;
 
@@ -459,7 +459,7 @@ FreeMemory(void)
 
 	# srandom()/random()
 	Not portable, not MT-Safe but much better distribution
-	
+
 	# drand48() and friends
 	Depreciated according to Linux manpage, suggested by Solaris
 	manpage.
@@ -506,7 +506,7 @@ _PL_Random(void)
 #ifdef HAVE_RANDOM
 #if SIZEOF_VOIDP == 4
   { uint64_t l = random();
-    
+
     l ^= (uint64_t)random()<<32;
 
     return l;
@@ -516,7 +516,7 @@ _PL_Random(void)
 #endif
 #else
   { uint64_t l = rand();			/* 0<n<2^15-1 */
-  
+
     l ^= rand()<<15;
     l ^= rand()<<30;
     l ^= rand()<<45;
@@ -616,7 +616,7 @@ TemporaryFile(const char *id)
 
   tf->name = PL_new_atom(temp);		/* locked: ok! */
   tf->next = NULL;
-  
+
   startCritical;
   if ( !tmpfile_tail )
   { tmpfile_head = tmpfile_tail = tf;
@@ -631,7 +631,7 @@ TemporaryFile(const char *id)
 
 void
 RemoveTemporaryFiles(void)
-{ TempFile tf, tf2;  
+{ TempFile tf, tf2;
 
   startCritical;
   for(tf = tmpfile_head; tf; tf = tf2)
@@ -662,7 +662,7 @@ getpagesize()
 #include <a.out.h>
 int
 getpagesize()
-{  
+{
 #ifdef EXEC_PAGESIZE
   return EXEC_PAGESIZE;
 #else
@@ -721,7 +721,7 @@ OsPath(const char *plpath, char *path)
   *p = EOS;
 
   return path;
-} 
+}
 #endif /* O_HPFS */
 
 #ifdef __unix__
@@ -775,7 +775,7 @@ OsPath(const char *p, char *buf)
     Return the basic file name for a file having path `path'.
 
     char *DirName(const char *path, char *dir)
-    
+
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -800,7 +800,7 @@ forwards char   *canoniseDir(char *);
 
 static void
 initExpand(void)
-{ 
+{
 #ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
@@ -873,7 +873,7 @@ registerParentDirs(const char *path)
     { if ( streq(d->name, dirname) )
 	return;
     }
-	
+
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
     { CanonicalDir dn   = malloc(sizeof(*dn));
 
@@ -928,7 +928,7 @@ verify_entry(CanonicalDir d)
 
     free(d);
   }
-    
+
   return FALSE;
 }
 
@@ -1046,7 +1046,7 @@ canoniseFileName(char *path)
       ;
     if ( *s == '/' )
     { in = out = s+1;
-      start = in-1; 
+      start = in-1;
     }
   }
 #endif
@@ -1109,7 +1109,7 @@ static char *
 utf8_strlwr(char *s)
 { char tmp[MAXPATHLEN];
   char *o, *i;
-  
+
   strcpy(tmp, s);
   for(i=tmp, o=s; *i; )
   { int c;
@@ -1165,7 +1165,7 @@ takeWord(const char **string, char *wrd, int maxlen)
     *q++ = *s++;
   }
   *q = EOS;
-  
+
   *string = s;
   return wrd;
 }
@@ -1222,11 +1222,11 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	  remove_string(GD->os.fred);
 	if ( GD->os.fredshome )
 	  remove_string(GD->os.fredshome);
-	
+
 	GD->os.fred = store_string(user);
 	value = GD->os.fredshome = store_string(pwent->pw_dir);
       }
-    }	  
+    }
 #else
     { if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED, "user_info");
@@ -1316,7 +1316,7 @@ ExpandFile(const char *pattern, char **vector)
 
   if ( !expandVars(pattern, expanded, sizeof(expanded)) )
     return -1;
-  
+
   vector[matches++] = store_string(expanded);
 
   return matches;
@@ -1333,7 +1333,7 @@ ExpandOneFile(const char *spec, char *file)
       return NULL;
     case 0:
     { term_t tmp = PL_new_term_ref();
-      
+
       PL_put_atom_chars(tmp, spec);
       PL_error(NULL, 0, "no match", ERR_EXISTENCE, ATOM_file, tmp);
 
@@ -1346,7 +1346,7 @@ ExpandOneFile(const char *spec, char *file)
     default:
     { term_t tmp = PL_new_term_ref();
       int n;
-      
+
       for(n=0; n<size; n++)
 	remove_string(vector[n]);
       PL_put_atom_chars(tmp, spec);
@@ -1427,7 +1427,7 @@ AbsoluteFile(const char *spec, char *path)
 { char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
-  
+
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = ExpandOneFile(buf, tmp)) )
       return (char *) NULL;
@@ -1459,7 +1459,7 @@ AbsoluteFile(const char *spec, char *path)
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
-  
+
   strcpy(path, CWDdir);
   if ( file[0] != EOS )
     strcpy(&path[CWDlen], file);
@@ -1514,7 +1514,7 @@ to be implemented directly.  What about other Unixes?
     CWDlen = strlen(buf);
     buf[CWDlen++] = '/';
     buf[CWDlen] = EOS;
-    
+
     if ( CWDdir )
       remove_string(CWDdir);
     CWDdir = store_string(buf);
@@ -1555,7 +1555,7 @@ DirName(const char *f, char *dir)
       strncpy(dir, f, base-f);
     dir[base-f] = EOS;
   }
-  
+
   return dir;
 }
 
@@ -1702,8 +1702,8 @@ ResetTty()
   { GD->os.iofunctions       = *Sinput->functions;
     GD->os.iofunctions.read  = Sread_terminal;
 
-    Sinput->functions  = 
-    Soutput->functions = 
+    Sinput->functions  =
+    Soutput->functions =
     Serror->functions  = &GD->os.iofunctions;
   }
   LD->prompt.next = TRUE;
@@ -1734,7 +1734,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-#ifdef HAVE_TCSETATTR 
+#ifdef HAVE_TCSETATTR
   if ( tcgetattr(fd, &buf->tab) )	/* save the old one */
     fail;
 #else
@@ -1847,8 +1847,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 	sysError("Unknown PushTty() mode: %d", mode);
 	/*NOTREACHED*/
       }
-  
-  
+
+
   ioctl(fd, TIOCSETP,  &tio);
   ioctl(fd, TIOCSTART, NULL);
 
@@ -1907,7 +1907,7 @@ requested via getenv/2 from Prolog. Functions
 
     int Setenv(name, value)
          char *name, *value;
-	
+
     Set the OS environment variable with name `name'.   If  it  exists
     its  value  is  changed, otherwise a new entry in the environment is
     created.  The return value is a pointer to the old value, or NULL if
@@ -1958,7 +1958,7 @@ Getenv(const char *name, char *buf, size_t len)
 
 int
 Setenv(char *name, char *value)
-{ 
+{
 #ifdef HAVE_SETENV
   if ( setenv(name, value, TRUE) != 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
@@ -2049,13 +2049,13 @@ growEnviron(char **e, int amount)
   filled += amount;
   if ( filled + 1 > size )
   { char **env, **e1, **e2;
-  
+
     size += 32;
     env = (char **)realloc(e, size * sizeof(char *));
     for ( e1=e, e2=env; *e1; *e2++ = *e1++ )
       ;
     *e2 = (char *) NULL;
-    
+
     return env;
   }
 
@@ -2091,7 +2091,7 @@ setEntry(char **e, char *name, char *value)
   strcpy(&e[0][l], value);
 }
 
-  
+
 char *
 Setenv(char *name, char *value)
 { char **e;
@@ -2157,7 +2157,7 @@ Unsetenv(char *name)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 According to the autoconf docs HAVE_SYS_WAIT_H   is set if sys/wait.h is
 defined *and* is POSIX.1 compliant,  which   implies  it uses int status
-argument to wait() 
+argument to wait()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_SYS_WAIT_H
@@ -2216,7 +2216,7 @@ System(char *cmd)
 #endif /* SIGTSTP */
 
     for(;;)
-    { 
+    {
 #ifdef HAVE_WAITPID
       n = waitpid(pid, &status, 0);
 #else
@@ -2231,7 +2231,7 @@ System(char *cmd)
 
     if ( n == -1 )
     { term_t tmp = PL_new_term_ref();
-      
+
       PL_put_atom_chars(tmp, cmd);
       PL_error("shell", 2, MSG_ERRNO, ERR_SHELL_FAILED, tmp);
 
@@ -2242,7 +2242,7 @@ System(char *cmd)
     } else if (WIFSIGNALED(status))
     { term_t tmp = PL_new_term_ref();
       int sig = WTERMSIG(status);
-      
+
       PL_put_atom_chars(tmp, cmd);
       PL_error("shell", 2, NULL, ERR_SHELL_SIGNALLED, tmp, sig);
       rval = 1;
@@ -2451,7 +2451,7 @@ Which(const char *program, char *fullname)
        strchr(program, '/') )
   { if ( (e = okToExec(program)) != NULL )
     { strcpy(fullname, e);
-      
+
       return fullname;
     }
 
@@ -2568,7 +2568,7 @@ Pause(double time)
   { timeout.tv_sec = (long)time;
     timeout.tv_usec = (long)(time * 1000000) % 1000000;
     select(32, NULL, NULL, NULL, &timeout);
-    
+
     return TRUE;
   } else
   { int rc;

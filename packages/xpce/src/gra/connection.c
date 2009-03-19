@@ -52,13 +52,13 @@ initialiseConnection(Connection c, Graphical from, Graphical to,
   }
 
   copyLine((Line) c, link->line);
-  
+
   assign(c, link,        link);
   assign(c, from_handle, isDefault(from_handle) ? (Name) NIL : from_handle);
   assign(c, to_handle,   isDefault(to_handle)   ? (Name) NIL : to_handle);
   assign(c, fixed_from,  isDefault(from_handle) ? OFF : ON);
   assign(c, fixed_to,    isDefault(to_handle)   ? OFF : ON);
-  
+
   return relateConnection(c, from, to);
 }
 
@@ -405,7 +405,7 @@ eventConnection(Connection c, EventObj ev)
     Cell cell;
 
     TRY( recognisers = getAllRecognisersGraphical(c->link->line, OFF) );
-  
+
     for_cell(cell, recognisers)
       if ( qadSendv(cell->value, NAME_event, 1, (Any*)&ev) )
 	succeed;
@@ -484,7 +484,7 @@ static getdecl get_connection[] =
 #define rc_connection NULL
 /*
 static classvardecl rc_connection[] =
-{ 
+{
 };
 */
 

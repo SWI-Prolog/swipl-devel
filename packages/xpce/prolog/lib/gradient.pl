@@ -148,7 +148,7 @@ update(G) :->
 	get(G, length, Len),
 	get(G, orientation, Orientation),
 	fill_gradient(0, Len, Orientation, G, F, T).
-	
+
 hsv(Colour, hsv(H, S, V)) :-
 	get(Colour, hue, H),
 	get(Colour, saturnation, S),
@@ -168,5 +168,5 @@ fill_gradient(Y, Height, Orientation, Image, F, T) :-
 	),
 	Y2 is Y + 1,
 	fill_gradient(Y2, Height, Orientation, Image, F, T).
-	
+
 :- pce_end_class(gradient).

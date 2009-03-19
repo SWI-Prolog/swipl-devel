@@ -56,7 +56,7 @@ kindOperator(Operator o, Name kind)
     lp = p-1, rp = p;
   else /* if ( kind == NAME_yfx ) */
     lp = p, rp = p-1;
-    
+
   assign(o, left_priority, toInt(lp));
   assign(o, right_priority, toInt(rp));
 
@@ -124,7 +124,7 @@ static getdecl get_operator[] =
 #define rc_operator NULL
 /*
 static classvardecl rc_operator[] =
-{ 
+{
 };
 */
 

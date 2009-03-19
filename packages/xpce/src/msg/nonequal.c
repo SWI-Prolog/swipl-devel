@@ -79,7 +79,7 @@ static senddecl send_nonEqual[] =
 #define get_nonEqual NULL
 /*
 static getdecl get_nonEqual[] =
-{ 
+{
 };
 */
 
@@ -88,7 +88,7 @@ static getdecl get_nonEqual[] =
 #define rc_nonEqual NULL
 /*
 static classvardecl rc_nonEqual[] =
-{ 
+{
 };
 */
 

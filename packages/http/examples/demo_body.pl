@@ -44,7 +44,7 @@ reply(_) :-
 	fail.
 
 %	/quit
-%	
+%
 %	Explicitely close the connection
 
 reply(Request) :-
@@ -54,7 +54,7 @@ reply(Request) :-
 	format('Bye Bye~n').
 
 %	/xpce?class=box
-%	
+%
 %	Make XPCE reply with a graphics image. The demo-body pce_reply/1
 %	is called embedded in a  message  to   XPCE  to  force  the XPCE
 %	incremental garbage collector to reclaim   objects created while
@@ -66,7 +66,7 @@ reply(Request) :-
 	send(@prolog, call, demo_body:pce_reply(Request)).
 
 %	/env
-%	
+%
 %	Reply with the output of printenv (Unix systems only).
 
 reply(Request) :-
@@ -86,7 +86,7 @@ reply(Request) :-
 
 %	/upload
 %	/upload_reply
-%	
+%
 %	Provide a form for uploading a file, and deal with the resulting
 %	upload.  Contributed by Nicos Angelopoulos.
 
@@ -113,7 +113,7 @@ reply(Request) :-
         format('</html>~n', []).
 
 %	/xml
-%	
+%
 %	Return a simple formatted XML message.
 
 reply(Request) :-
@@ -135,7 +135,7 @@ This is the first demo of the web-server serving an XML message
 ', []).
 
 %	/foreign
-%	
+%
 %	Test emitting text using UTF-8 encoding
 
 reply(Request) :-
@@ -154,7 +154,7 @@ reply(Request) :-
 
 
 %	/work
-%	
+%
 %	Do a lot of work and then say 'ok'. Can be used to test
 %	concurrent access using the multi-threaded server.
 
@@ -167,7 +167,7 @@ reply(Request) :-
 	format('ok~n').
 
 %	/error
-%	
+%
 %	Produce an error.  Load http_error to see the effect.
 
 reply(Request) :-
@@ -177,7 +177,7 @@ reply(Request) :-
 	format('A = ~w~n', [A]).
 
 %	... Otherwise
-%	
+%
 %	Print the request itself.
 
 reply(Request) :-
@@ -207,6 +207,6 @@ pce_reply(Request) :-
 	send(Box, radius, 20),
 	send(Box, fill_pattern, colour(skyblue)),
 	reply_image(Box, []).
-	
-	
+
+
 

@@ -94,14 +94,14 @@ session_option(route, atom).
 %%	http_set_session_options(+Options) is det.
 %
 %	Set options for the session library.  Provided options are:
-%	
+%
 %		* timeout(+Seconds)
 %		Session timeout in seconds.  Default is 600 (10 min).
-%		
+%
 %		* cookie(+Cookiekname)
 %		Name to use for the cookie to identify the session.
 %		Default =swipl_session=.
-%		
+%
 %		* path(+Path)
 %		Path to which the cookie is associated.  Default is
 %		=|/|=.	Cookies are only sent if the HTTP request path
@@ -129,9 +129,9 @@ http_session_option(Option) :-
 	assert(session_setting(Option)).
 
 %%	http_session_id(-SessionId) is det.
-%	
+%
 %	True if SessionId is an identifier for the current session.
-%	
+%
 %	@param SessionId is an atom.
 %	@error existence_error(http_session, _)
 %	@see   http_in_session/1 for a version that fails if there is
@@ -154,7 +154,7 @@ http_session_id(SessionID) :-
 %	without any global variables. This variable  can be set from the
 %	commandline to fake running a goal   from the commandline in the
 %	context of a session.
-%	
+%
 %	@see http_session_id/1
 
 http_in_session(SessionID) :-
@@ -169,9 +169,9 @@ http_in_session(SessionID) :-
 	),
 	ID \== no_session,
 	SessionID = ID.
-	
+
 %%	http_session(+RequestIn, -RequestOut, -SessionID) is semidet.
-%	
+%
 %	Maintain the notion of a  session   using  a client-side cookie.
 %	This must be called first when handling a request that wishes to
 %	do session management, after which the possibly modified request
@@ -220,7 +220,7 @@ peer(Request, Peer) :-
 	).
 
 %%	open_session(+SessionID, +Peer)
-%	
+%
 %	Open a new session.  Uses broadcast/1 with the term
 %	http_session(begin(SessionID, Peer)).
 
@@ -232,7 +232,7 @@ open_session(SessionID, Peer) :-
 
 
 %%	valid_session_id(+SessionID, +Peer)
-%	
+%
 %	Check if this sessionID is known. If so, check the idle time and
 %	update the last_used for this session.
 
@@ -294,7 +294,7 @@ http_session_retractall(Data) :-
 	retractall(session_data(SessionId, Data)).
 
 %	http_session_data(?Data) is nondet.
-%	
+%
 %	True if Data is associated using http_session_assert/1 to the
 %	current HTTP session.
 
@@ -308,13 +308,13 @@ http_session_data(Data) :-
 		 *******************************/
 
 %%	http_current_session(?SessionID, ?Data) is nondet.
-%	
+%
 %	Enumerate the current sessions and   associated data.  There are
 %	two _Pseudo_ data elements:
-%	
+%
 %		* idle(Seconds)
 %		Session has been idle for Seconds.
-%		
+%
 %		* peer(Peer)
 %		Peer of the connection.
 
@@ -353,7 +353,7 @@ close_session(SessionId) :-
 	).
 
 %	http_gc_sessions/0
-%	
+%
 %	Delete dead sessions. When  should  we   be  calling  this? This
 %	assumes that updated sessions are at the end of the clause list,
 %	so we can break  as  soon   as  we  encounter  a no-yet-timedout
@@ -380,7 +380,7 @@ http_gc_sessions.
 		 *******************************/
 
 %%	gen_cookie(-Cookie) is det.
-%	
+%
 %	Generate a random cookie that  can  be   used  by  a  browser to
 %	identify  the  current  session.  The   cookie  has  the  format
 %	XXXX-XXXX-XXXX-XXXX[.<route>], where XXXX are random hexadecimal

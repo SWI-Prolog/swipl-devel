@@ -197,7 +197,7 @@ apply(SE, Always:[bool]) :->
 	;   true
 	).
 
-	
+
 		 /*******************************
 		 *	       SLIDERS		*
 		 *******************************/
@@ -383,7 +383,7 @@ make_colour_name_list(N) :-
 	new(N, chain),
 	send(@colour_names, for_all, message(N, append, @arg1)),
 	send(N, sort).			% ???
-	
+
 make_rgb_table(DB) :-
 	new(DB, hash_table),
 	send(@colour_names, for_all,
@@ -438,7 +438,7 @@ standardise_colour_name(Colour, XName) :-
 	get(@rgb_table, member, RGB, XName), !.
 standardise_colour_name(Colour, Name) :-
 	get(Colour, name, Name).
-	
+
 
 :- pce_end_class.
 

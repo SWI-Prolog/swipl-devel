@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(quintus, 
+:- module(quintus,
 	[ unix/1,
 %	  file_exists/1,
 
@@ -179,7 +179,7 @@ sign(X, V) :-	  V is sign(X).
 		 *******************************/
 
 %%	genarg(?Index, +Term, ?Arg) is nondet.
-%	
+%
 %	Generalised version of ISO arg/3.  SWI-Prolog's arg/3 is already
 %	genarg/3.
 
@@ -194,7 +194,7 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 %%	prolog_flag(?Flag, ?Value) is nondet.
 %
 %	Same as ISO current_prolog_flag/2.  Maps =version=.
-%	
+%
 %	@bug	Should map relevant Quintus flag identifiers.
 
 prolog_flag(version, Version) :- !,
@@ -213,7 +213,7 @@ prolog_flag(Flag, Value) :-
 		 *******************************/
 
 %	Here used to be a definition of Quintus statistics/2 in traditional
-%	SWI-Prolog statistics/2.  The current built-in emulates Quintus 
+%	SWI-Prolog statistics/2.  The current built-in emulates Quintus
 %	almost completely.
 
 
@@ -239,14 +239,14 @@ date(Date) :-
 %
 %	Same as SWI-Prolog =|style_check(-Style)|=.   The Quintus option
 %	=single_var= is mapped to =singleton=.
-%	
+%
 %	@see style_check/1.
 
 q_style_option(single_var, singleton) :- !.
 q_style_option(Option, Option).
 
 no_style_check(QOption) :-
-	q_style_option(QOption, SWIOption), 
+	q_style_option(QOption, SWIOption),
 	style_check(-SWIOption).
 
 
@@ -326,7 +326,7 @@ skip_line(Stream) :-
 %
 %	Compile   files.   SWI-Prolog   doesn't    distinguish   between
 %	compilation and consult.
-%	
+%
 %	@see load_files/2.
 
 :- meta_predicate

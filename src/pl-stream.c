@@ -43,7 +43,7 @@ MT:
 
 Multithreading is supported through  Slock()   and  Sunlock(). These are
 recursive locks. If a stream handle  might   be  known to another thread
-locking is required. 
+locking is required.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef MD
@@ -282,16 +282,16 @@ print_trace(void)
   size_t size;
   char **strings;
   size_t i;
-     
+
   size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
-     
+
   printf(" Stack:");
   for(i = 1; i < size; i++)
   { printf("\n\t[%ld] %s", (long)i, strings[i]);
   }
   printf("\n");
-       
+
   free(strings);
 }
 #endif /*DEBUG_IO_LOCKS*/
@@ -369,7 +369,7 @@ Sunlock(IOSTREAM *s)
 		 *******************************/
 
 /* return values: -1: error, else #bytes written */
-			 
+
 static ssize_t
 S__flushbuf(IOSTREAM *s)
 { char *from, *to;
@@ -421,7 +421,7 @@ S__flushbufc(int c, IOSTREAM *s)
   } else
   { if ( s->flags & SIO_NBUF )
     { char chr = (char)c;
-    
+
       if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
       { S__seterror(s);
 	c = -1;
@@ -462,7 +462,7 @@ S__fillbuf(IOSTREAM *s)
     { fd_set wait;
       struct timeval time;
       int rc;
-      
+
       time.tv_sec  = s->timeout / 1000;
       time.tv_usec = (s->timeout % 1000) * 1000;
       FD_ZERO(&wait);
@@ -474,7 +474,7 @@ S__fillbuf(IOSTREAM *s)
 
       for(;;)
       { rc = select(fd+1, &wait, NULL, NULL, &time);
-	
+
 	if ( rc < 0 && errno == EINTR )
 	{ if ( PL_handle_signals() < 0 )
 	  { errno = EPLEXCEPTION;
@@ -732,7 +732,7 @@ reperror(int c, IOSTREAM *s)
     { if ( put_byte(*q, s) < 0 )
 	return -1;
     }
-	
+
     return c;
   }
 
@@ -790,7 +790,7 @@ put_code(int c, IOSTREAM *s)
     case ENC_UTF8:
     { char buf[6];
       char *p, *end;
-      
+
       if ( c < 128 )
 	goto simple;
 
@@ -823,7 +823,7 @@ put_code(int c, IOSTREAM *s)
       { if ( put_byte(*q++, s) < 0 )
 	  return -1;
       }
-      
+
       break;
     }
     case ENC_UNKNOWN:
@@ -967,7 +967,7 @@ retry:
 	code = UTF8_FBV(c,extra);
 	for( ; extra > 0; extra-- )
 	{ int c2 = get_byte(s);
-	  
+
 	  if ( !ISUTF8_CB(c2) )
 	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 continuation");
 	    c = UTF8_MALFORMED_REPLACEMENT;
@@ -1017,7 +1017,7 @@ retry:
 	    goto out;
 	  } else
 	  { Sseterr(s, SIO_WARN, "EOF in UCS character");
-	    c = UTF8_MALFORMED_REPLACEMENT; 
+	    c = UTF8_MALFORMED_REPLACEMENT;
 	    goto out;
 	  }
 	}
@@ -1220,16 +1220,16 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
 
       if ( (c = Sgetc(s)) == EOF )
 	break;
-      
+
       *buf++ = c & 0xff;
     }
-  } else 
+  } else
   { while(chars > 0)
     { int c;
 
       if ( s->bufp < s->limitp )
       { size_t avail = s->limitp - s->bufp;
-	
+
 	if ( chars <= avail )
 	{ memcpy(buf, s->bufp, chars);
 	  s->bufp += chars;
@@ -1241,7 +1241,7 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
 	  s->bufp += avail;
 	}
       }
-      
+
       if ( (c = S__fillbuf(s)) == EOF )
 	break;
 
@@ -1249,7 +1249,7 @@ Sfread(void *data, size_t size, size_t elms, IOSTREAM *s)
       chars--;
     }
   }
-  
+
   return (size*elms - chars)/size;
 }
 
@@ -1263,7 +1263,7 @@ Sfwrite(const void *data, size_t size, size_t elms, IOSTREAM *s)
   { if ( Sputc(*buf++, s) < 0 )
       break;
   }
-  
+
   return (size*elms - chars)/size;
 }
 
@@ -1398,7 +1398,7 @@ Sfeof(IOSTREAM *s)
   s->bufp--;
   return FALSE;
 }
-    
+
 
 static int
 S__seterror(IOSTREAM *s)
@@ -1409,11 +1409,11 @@ S__seterror(IOSTREAM *s)
   { char *msg;
 
     if ( (*s->functions->control)(s->handle,
-				  SIO_LASTERROR, 
+				  SIO_LASTERROR,
 				  (void *)&msg) == 0 )
     { Sseterr(s, SIO_FERR, msg);
       return 0;
-    } 
+    }
   }
 
   s->flags |= SIO_FERR;
@@ -1425,7 +1425,7 @@ int
 Sferror(IOSTREAM *s)
 { return (s->flags & SIO_FERR) != 0;
 }
-    
+
 
 int
 Sfpasteof(IOSTREAM *s)
@@ -1481,7 +1481,7 @@ Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
 
   if ( s->functions->control )
   { if ( (*s->functions->control)(s->handle,
-				  SIO_SETENCODING, 
+				  SIO_SETENCODING,
 				  (void *)&enc) != 0 )
       return -1;
   }
@@ -1584,7 +1584,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
     if ( now != -1 )
     { int64_t newpos;
       char *nbufp = (char *)-1;
-    
+
       if ( whence == SIO_SEEK_CUR )
       { nbufp = s->bufp + pos;
 	newpos = now + pos;
@@ -1610,7 +1610,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   }
 
   Sflush(s);
-    
+
   s->bufp   = s->buffer;
   if ( (s->flags & SIO_INPUT) )
     s->limitp = s->buffer;
@@ -1619,7 +1619,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   { pos += Stell64(s);
     whence = SIO_SEEK_SET;
   }
-  
+
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
   else if ( pos <= LONG_MAX )
@@ -1629,7 +1629,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
     S__seterror(s);
     return -1;
   }
-  
+
   if ( pos < 0 )
   { S__seterror(s);
     return -1;
@@ -2172,7 +2172,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   s.buffer    = buf;
   s.flags     = SIO_FBUF|SIO_OUTPUT;
   s.encoding  = ENC_ISO_LATIN_1;
-  
+
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
 
@@ -2259,7 +2259,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  continue;
 	}
       }
-	
+
       if ( *fm != '[' && *fm != c )
 	while(isblank(c))
 	  c = GET(s);
@@ -2412,13 +2412,13 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	      { float *fp = va_arg(args, float *);
 		*fp = v;
 		break;
-	      }	
+	      }
 	      case SZ_LONG:
 	      { double *fp = va_arg(args, double *);
 		*fp = v;
 		break;
 	      }
-	    }  
+	    }
 	    done++;
 	  }
 
@@ -2428,7 +2428,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	case 's':
 	  if ( !supress )
 	  { char *sp = va_arg(args, char *);
-	    
+
 	    while(!isblank(c) && field_width-- != 0)
 	    { *sp++ = c;
 	      c = GET(s);
@@ -2448,7 +2448,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  continue;
 	case '[':
 	{ char set[256];
-	  
+
 	  memset(set, 0, sizeof(set));
 	  fm++;
 	  if ( *fm == ']' )
@@ -2459,7 +2459,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	  while(*fm != ']')
 	  { if ( *fm == '-' )
-	      
+
 	  }
 	}
       }
@@ -2492,7 +2492,7 @@ Link two streams in a pipeline,  where   filter  filters data for stream
 `parent'. If parent is an output steam we have
 
 	application --> filter --> parent -->
-	  
+
 If parent is an input stream we have
 
 	--> parent --> filter --> application
@@ -2791,7 +2791,7 @@ Sopen_file(const char *path, const char *how)
     return NULL;
 
   if ( lock )
-  { 
+  {
 #ifdef FCNTL_LOCKS
     struct flock buf;
 
@@ -3061,7 +3061,7 @@ Sread_memfile(void *handle, char *buf, size_t size)
     else
       size = mf->size - mf->here;
   }
-  
+
   memcpy(buf, &(*mf->buffer)[mf->here], size);
   mf->here += size;
 
@@ -3104,7 +3104,7 @@ Sclose_memfile(void *handle)
   { free(mf);
     return 0;
   }
-	 
+
   errno = EINVAL;			/* not opened */
   return -1;
 }
@@ -3405,7 +3405,7 @@ Sreset(void)
   if ( (s=Serror) && s->magic == SIO_MAGIC )
   { s->bufp = s->buffer;
   }
-} 
+}
 
 
 void

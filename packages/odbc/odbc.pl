@@ -69,14 +69,14 @@
    load_foreign_library(foreign(odbc4pl)).
 
 %	odbc_query(+Connection, +SQL, -Row)
-%	
+%
 %	Run query without options.
 
 odbc_query(Connection, SQL, Row) :-
 	odbc_query(Connection, SQL, Row, []).
 
 %	odbc_query(+Connection, +SQL)
-%	
+%
 %	Execute SQL-statement that does not produce a result
 
 odbc_query(Connection, SQL) :-
@@ -101,7 +101,7 @@ odbc_prepare(Connection, SQL, Parameters, Statement) :-
 		 *******************************/
 
 %	odbc_current_table(-Table, -Facet)
-%	
+%
 %	Enumerate the existing tables.
 
 odbc_current_table(Connection, Table) :-
@@ -164,7 +164,7 @@ column_facet(type(Type), T) :-
 	sql_type(TypeName, T, Type).
 
 %	sql_type(+TypeName, +Row, -Type)
-%	
+%
 %	Create a canonical Prolog representation for the type.  This
 %	is very incomplete code.
 
@@ -229,7 +229,7 @@ searchable_arg(4, true).
 
 
 %	odbc_data_source(?DSN, ?Description)
-%	
+%
 %	Enumerate the available data-sources
 
 odbc_data_source(DSN, Description) :-
@@ -244,7 +244,7 @@ odbc_data_source(DSN, Description) :-
 odbc_statistics(Key) :-
 	statistics_key(Key),
 	'$odbc_statistics'(Key).
-	
+
 statistics_key(statements(_Created, _Freed)).
 
 

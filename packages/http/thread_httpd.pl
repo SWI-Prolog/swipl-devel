@@ -36,7 +36,7 @@
 	    http_current_worker/2,	% ?Port, ?ThreadID
 	    http_stop_server/2,		% +Port, +Options
 	    http_spawn/2,		% :Goal, +Options
-	    
+
 	    http_requeue/1,		% +Request
 	    http_close_connection/1	% +Request
 	  ]).
@@ -81,10 +81,10 @@ for details.
 	open_client_hook/5.
 
 %%	http_server(:Goal, +Options) is det.
-%	
+%
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
-%	
+%
 %	| port(?Port)	     | - 	| Port to listen to |
 %	| workers(N)	     | 2 	| Define the number of worker threads |
 %	| timeout(S)	     | infinite	| Drop connections after inactivity   |
@@ -153,7 +153,7 @@ assert_port_options([Opt|T], Port) :- !,
 
 
 %%	http_current_server(:Goal, ?Port) is nondet.
-%	
+%
 %	True if Goal is the goal of a server at Port.
 
 http_current_server(Goal, Port) :-
@@ -162,7 +162,7 @@ http_current_server(Goal, Port) :-
 
 %%	http_workers(+Port, -Workers) is det.
 %%	http_workers(+Port, +Workers:int) is det.
-%	
+%
 %	Query or set the number of workers  for the server at this port.
 %	The number of workers is dynamically   modified. Setting it to 1
 %	(one) can be used to profile the worker using tprofile/1.
@@ -180,7 +180,7 @@ http_workers(Port, _) :-
 
 
 %%	http_current_worker(?Port, ?ThreadID) is nondet.
-%	
+%
 %	True if ThreadID is the identifier   of  a Prolog thread serving
 %	Port. This predicate is  motivated  to   allow  for  the  use of
 %	arbitrary interaction with the worker thread for development and
@@ -237,7 +237,7 @@ close_server_socket(Options) :-
 %
 %	Stop the indicated  HTTP  server   gracefully.  First  stops all
 %	workers, then stops the server.
-%	
+%
 %	@tbd	Realise non-graceful stop
 
 http_stop_server(Port, _Options) :-
@@ -260,7 +260,7 @@ connect(Address) :-
 		 *******************************/
 
 %%	create_workers(+Options)
-%	
+%
 %	Create the pool of HTTP worker-threads. Each worker has the
 %	alias http_worker_N.
 
@@ -309,10 +309,10 @@ resize_pool(Queue, Size) :-
 
 
 %%	http_worker(+Options)
-%	
+%
 %	Run HTTP worker main loop. Workers   simply  wait until they are
-%	passed an accepted socket to process  a client. 
-%	
+%	passed an accepted socket to process  a client.
+%
 %	If the message quit(Sender) is read   from the queue, the worker
 %	stops.
 
@@ -345,7 +345,7 @@ http_worker(Options) :-
 		  fail
 	      )
 	  ).
-	
+
 
 %%	open_client(+Message, +Queue, -Goal, -In, -Out,
 %%		    +Options, -ClientOptions) is semidet.
@@ -417,7 +417,7 @@ done_worker :-
 
 
 %	thread_httpd:message_level(+Exception, -Level)
-%	
+%
 %	Determine the message stream used for  exceptions that may occur
 %	during server_loop/5. Being multifile, clauses   can be added by
 %	the   application   to   refine   error   handling.   See   also
@@ -463,7 +463,7 @@ requeue_keep(protocol(_)).
 
 
 %%	http_process(Message, Queue, +Options)
-%	
+%
 %	Handle a single client message on the given stream.
 
 http_process(Goal, In, Out, Options) :-
@@ -494,7 +494,7 @@ http_close_connection(Request) :-
 	close_connection(Peer, In, Out).
 
 %%	close_connection(+Peer, +In, +Out)
-%	
+%
 %	Closes the connection from the server to the client.  Errors are
 %	currently silently ignored.
 
@@ -510,7 +510,7 @@ close_connection(Peer, In, Out) :-
 %	current request using Goal. The original   thread returns to the
 %	worker pool for processing new requests.   Options are passed to
 %	thread_create/3, except for:
-%	
+%
 %	    * pool(+Pool)
 %	    Interfaces to library(thread_pool), starting the thread
 %	    on the given pool.

@@ -213,7 +213,7 @@ find_dl_entry(term_t h)
     PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_shared_object_handle, h);
     return NULL;
   }
-  
+
   PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_shared_object_handle, h);
 
   return NULL;
@@ -224,7 +224,7 @@ static
 PRED_IMPL("close_shared_object", 1, close_shared_object, 0)
 { DlEntry e = find_dl_entry(A1);
 
-  if ( e && e->dlhandle) 
+  if ( e && e->dlhandle)
   { if ( !under_valgrind() )
       dlclose(e->dlhandle);
     e->dlhandle = NULL;
@@ -252,11 +252,11 @@ PRED_IMPL("call_shared_object_function", 2, call_shared_object_function,
   if ( !e || !e->dlhandle ||
        !PL_get_chars_ex(A2, &fname, CVT_ALL) )
     fail;
-  
+
 #ifdef LD_SYMBOL_PREFIX			/* first try plain anyway */
   if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
   { char symname[MAXSYMBOLLEN+1];
-    
+
     if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
       return PL_error(NULL, 0,
 		      "Symbol too long",

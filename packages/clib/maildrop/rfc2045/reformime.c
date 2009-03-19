@@ -841,7 +841,7 @@ FILE	*fp;
 			if (err)	break;
 		}
 	} while (i < argc);
-		
+
 	printf("Mime-Version:1.0\n"
 		"Content-Type: multipart/digest; boundary=\"%s\"\n\n%s",
 			boundarybuf, RFC2045MIMEMSG);

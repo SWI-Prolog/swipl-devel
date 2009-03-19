@@ -63,7 +63,7 @@ initialise(Emacs, Buffers:dict) :->
 	new(@emacs_mark_list, emacs_bookmark_editor),
 	ignore(send(Emacs, server_start)),
 	ignore(send(Emacs, load_user_init_file)).
-	
+
 unlink(Emacs) :->
 	(   get(Emacs, exit_message, Msg),
 	    send(@pce?exit_messages, delete, Msg)
@@ -86,7 +86,7 @@ show_buffer_menu(Emacs) :->
 	->  send(Menu, expose)
 	;   send(emacs_buffer_menu(Emacs), open)
 	).
-	    
+
 
 selection(Emacs, B:emacs_buffer*) :->
 	"Select emacs buffer"::
@@ -187,7 +187,7 @@ save_some_buffers(BM, Confirm:[bool]) :->
 	;   send(@pce, report, status, 'No buffers need saving')
 	).
 
-	
+
 check_saved_at_exit(BM) :->
 	"Check for unsaved buffers when called from exit"::
 	send(BM, save_some_buffers, @on),
@@ -296,7 +296,7 @@ server_start(Emacs, Force:[bool]) :->
 	    ),
 	    ignore(send(@emacs_server, listen))
 	).
-	
+
 
 :- pce_group(customise).
 
@@ -334,4 +334,4 @@ load_user_init_file(_Emacs) :->
 	).
 
 :- pce_end_class(emacs).
-	  
+

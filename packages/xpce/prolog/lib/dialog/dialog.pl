@@ -32,7 +32,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Toplevel file of the  XPCE/Prolog  dialog   window  editor.   This  file
 defines the XPCE class dia_editor (subclass  of class frame), from which
-you may create an instances and open them.  
+you may create an instances and open them.
 
 The dialog editor is normally started through  the file dialog.pl in the
 standard XPCE library directory.
@@ -80,7 +80,7 @@ initialise_paths :-
 	pce_help_file(dialog, pce_help('dialog.hlp')),
 	pce_image_directory(library('dialog/bitmaps')),
 	assert(paths_initialised).
-	
+
 
 		 /*******************************
 		 *	  PROTO TEMPLATE	*
@@ -146,7 +146,7 @@ edit_attributes(DI) :->
 	    send(Ed, open),
 	    send(Ed, expose)
 	).
-	
+
 att_to_pce(Atom, Atom) :-
 	atom(Atom), !.
 att_to_pce(Term, tuple(Att, Cond)) :-
@@ -231,7 +231,7 @@ displayed(DI, Val:bool) :->
 	send(DI, send_super, displayed, Val),
 	update_indicator_position(DI).
 
-	
+
 device(DI, Dev:device*) :->
 	"Handle ref-indicator"::
 	send(DI, send_super, device, Dev),
@@ -264,7 +264,7 @@ ref_indicator(DI, Ind:graphical*) :->
 	    update_indicator_position(DI, Ind)
 	;   true
 	).
-		 
+
 		 /*******************************
 		 *    ASSOCIATED POPUP MENU	*
 		 *******************************/
@@ -284,7 +284,7 @@ popup_items(B, Items:chain) :<-
 	->  get(P, members, Items)
 	;   new(Items, chain)
 	).
-	    
+
 clear_popup(B) :->
 	(   get(B, popup, P), P \== @nil
 	->  send(P, clear)
@@ -500,7 +500,7 @@ drop(D, DI:graphical, Pos:point) :->
 	    ;   true
 	    )
 	).
-	    
+
 
 preview_drop(D, DI:graphical*, Pos:[point]) :->
 	(   DI == @nil			% stop the preview
@@ -528,7 +528,7 @@ preview_drop(D, DI:graphical*, Pos:[point]) :->
 :- free(@dia_dialog_recogniser).
 
 make_dia_dialog_recogniser(G) :-
-	D = @receiver, 
+	D = @receiver,
 	new(NoRunMode, @arg1?receiver?(mode) \== run), % @arg1 is the event
 	new(G, handler_group(new(C, click_gesture(left, '', single,
 						  message(D, make_current))),
@@ -729,7 +729,7 @@ catch_all(D, Selector:name, Args:any ...) :->
 
 
 :- pce_end_class.
-	
+
 
 		 /*******************************
 		 *	      SOURCE		*
@@ -841,7 +841,7 @@ count_items(I, N) :-
 	count_items(I2, N2),
 	N is N2 + 1.
 count_items(_I, 1).
-	
+
 :- pce_end_class.
 
 
@@ -1024,7 +1024,7 @@ deleted_target(DE, D:dia_target_dialog) :->
 	    get(D, name, Name),
 	    send(B, delete, Name)
 	).
-		
+
 
 target(DE, Name:[name], D:dia_target_dialog) :<-
 	(   Name == @default
@@ -1075,7 +1075,7 @@ save(DE) :->
 	    send(DE, report, status, 'Saved in %s', file(File)?base_name)
 	;   send(DE, save_as)		% ask file first
 	).
-	    
+
 
 save_all(DE, File:[file]) :->
 	"Save group of dialogs, so they stay together"::
@@ -1086,12 +1086,12 @@ save_all(DE, File:[file]) :->
 	),
 	get(DE, member, browser, B),
 	new(Ch, chain),
-	send(B?dict?members, for_all, 
+	send(B?dict?members, for_all,
 	     message(DE, add_target, Ch, @arg1?key)),
 	send(Ch, save_in_file, TheFile),
 	send(Ch, done),
 	send(DE, report, status, 'Saved in %s', TheFile?base_name).
-				      
+
 
 add_target(DE, Ch:chain, TargetName:name) :->
 	"Add target to chain (part of ->save_all"::

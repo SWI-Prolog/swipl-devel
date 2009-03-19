@@ -78,7 +78,7 @@ main :-
 	    run_main(M, Av)
 	;   run_main(M, [])
 	).
-	
+
 %%	run_main(+Module, +Args)
 %
 %	Run the main routine, guarding for exceptions and failure of the
@@ -102,4 +102,4 @@ run_main(Module, Av) :-
 
 interrupt(_Sig) :-
 	halt(1).
-		  
+

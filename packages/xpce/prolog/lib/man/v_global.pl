@@ -48,7 +48,7 @@ initialise(OB, Manual:man_manual) :->
 
 	get(Manual, module, objects, @on, Module),
 	send(OB, slot, objects, Module),
-	
+
 	new(B, man_summary_browser(man_summary, size(70, 15))),
 	send(B?image, tab_stops, vector(20, 200)),
 	send(B, name, browser),
@@ -57,7 +57,7 @@ initialise(OB, Manual:man_manual) :->
 	send(OB, append, B),
 	send(Dialog, below, B),
 	send(OB, fill, ''),
-	
+
 	send(OB, open).
 
 

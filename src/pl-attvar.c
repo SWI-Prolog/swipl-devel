@@ -50,7 +50,7 @@ vName(Word adr)
     Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
 
   return name;
-} 
+}
 #endif
 
 
@@ -90,7 +90,7 @@ registerWakeup(Word name, Word value ARG_LD)
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
-    
+
     assert(isVar(*head));
     TrailAssignment(head);		/* See (*) */
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
@@ -110,7 +110,7 @@ registerWakeup(Word name, Word value ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 assignAttVar(Word var, Word value)		(var := value)
-	
+
 Assign  value  to  the  given  attributed    variable,   adding  a  term
 wake(Attribute, Value, Tail) to the global variable resembling the goals
 that should be awoken.
@@ -225,7 +225,7 @@ find_attr(Word av, atom_t name, Word *vp ARG_LD)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isNil(*l) )
     { *vp = l;
       fail;
@@ -294,7 +294,7 @@ get_attr(term_t list, atom_t name, term_t value)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
@@ -435,7 +435,7 @@ restore_exception(Word p ARG_LD)
 
 static void
 restore_wakeup(Word p ARG_LD)
-{ 
+{
 
   *valTermRef(LD->attvar.head) = p[0];
   *valTermRef(LD->attvar.tail) = p[1];
@@ -510,7 +510,7 @@ PRED_IMPL("get_attr", 3, get_attr3, 0) /* +Var, +Name, -Value */
     fail;
   if ( !PL_get_attr(A1, al) )
     fail;
-  
+
   return get_attr(al, name, A3);
 }
 
@@ -530,7 +530,7 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   if ( isVar(*vp) && !onStackArea(global, vp) )
   { Word p = allocGlobal(1);		/* attribute values should be on */
 					/* the global stack! */
-    
+
     setVar(*p);
     *vp = makeRefG(p);
     Trail(vp);
@@ -683,7 +683,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $new_choice_point(-Chp) is det.
 
-Unify Chp with a reference to a new choicepoint. 
+Unify Chp with a reference to a new choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
@@ -743,14 +743,14 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isNil(*l) )
     { fail;
     } else if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
       DEBUG(1, Sdprintf("\tterm at %p\n", f));
-      
+
       if ( (Word)f >= ch->mark.globaltop )
 	succeed;
 
@@ -813,7 +813,7 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 retry:
   if ( !PL_get_intptr_ex(A1, &off) )
     fail;
-  
+
   ch = (Choice)((Word)lBase+off);
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
@@ -843,7 +843,7 @@ retry:
       }
     }
   }
-  
+
   scan_trail(FALSE);
   endCritical;
 

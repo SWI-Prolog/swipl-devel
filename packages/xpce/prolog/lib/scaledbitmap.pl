@@ -46,7 +46,7 @@ horizontal stretching.
 
 variable(original,    image,	     get, "Preserved original image").
 variable(scale,	      [real|size],   get, "Scale-factor/area").
-variable(keep_aspect, bool := @on,   get, "Keep aspect ratio").  
+variable(keep_aspect, bool := @on,   get, "Keep aspect ratio").
 
 initialise(BM, Img:image, Spec:[real|size]) :->
 	"Create from image and scaling factor"::
@@ -62,7 +62,7 @@ image(BM, Img:image) :->
 	send(BM, apply_scale).
 image(BM, Img:image) :<-
 	get(BM, original, Img).
-	
+
 
 
 apply_scale(BM) :->

@@ -60,7 +60,7 @@ ws_synchronise_display(DisplayObj d)
   XFlush(r->display_xref);
   XSync(r->display_xref, False);
 
-  
+
   for(i=1000; (XtAppPending(pceXtAppContext(NULL)) & XtIMAll) && --i > 0; )
     XtAppProcessEvent(pceXtAppContext(NULL), XtIMAll);
 
@@ -107,7 +107,7 @@ ws_get_visual_type_display(DisplayObj d)
     Visual *v = XDefaultVisual(r->display_xref,
 			       DefaultScreen(r->display_xref));
     int vclass = v->class;
-  
+
     switch(vclass)
     { case StaticGray:	return NAME_staticGrey;
       case GrayScale:	return NAME_greyScale;
@@ -248,7 +248,7 @@ ws_open_display(DisplayObj d)
     }
 #endif
   }
-  
+
   { Arg args[5];
     Cardinal n = 0;
 
@@ -341,7 +341,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
 
   values.foreground = values.background;
   ctx->clearGC	    = XCreateGC(display, drawable, GCALL, &values);
-  
+
   values.foreground = black;
   ctx->shadowGC	    = XCreateGC(display, drawable, GCALL, &values);
   values.foreground = white;
@@ -379,7 +379,7 @@ ws_init_graphics_display(DisplayObj d)
 					   NAME_pixmap);
 
   }
-  
+
   succeed;
 }
 
@@ -492,7 +492,7 @@ ws_init_monitors_display(DisplayObj d)
        XineramaIsActive(r->display_xref) &&
        (screens = XineramaQueryScreens(r->display_xref, &count)) )
   { int i;
-    
+
     assign(d, monitors, newObject(ClassChain, EAV));
     for(i=0; i<count; i++)
     { appendChain(d->monitors,
@@ -574,7 +574,7 @@ nameToSelectionAtom(DisplayObj d, Name name)
 { if ( name == NAME_primary )	return XA_PRIMARY;
   if ( name == NAME_secondary ) return XA_SECONDARY;
   if ( name == NAME_string )	return XA_STRING;
-  
+
   return DisplayAtom(d, getv(name, NAME_upcase, 0, NULL));
 }
 
@@ -587,7 +587,7 @@ atomToSelectionName(DisplayObj d, Atom a)
 
   { Name xname = CtoName(DisplayAtomToString(d, a));
     Name lname = getv(xname, NAME_downcase, 0, NULL);
-    
+
     return CtoKeyword(strName(lname));
   }
 
@@ -664,7 +664,7 @@ collect_selection_display(Widget w, XtPointer xtp,
       } else
       { charW *bufW = pceRealloc(bufA, l*sizeof(charW));
 	charW *out = bufW;
-	
+
 	for(in = value; in<end; )
 	{ in = utf8_get_uchar(in, &chr);
 
@@ -827,11 +827,11 @@ convert_selection_display(Widget w,
       { int data = str_datasize(s);
 	char *buf = XtMalloc(data);
 	int fmt = (isstrA(s) ? sizeof(charA) : sizeof(charW)) * 8;
-	
+
 	DEBUG(NAME_selection,
 	      Cprintf("returning XA_STRING, %d characters format = %d\n",
 		      data, fmt));
-	
+
 	memcpy(buf, s->s_text, data);
 	*value = buf;
 	*len = data;
@@ -854,7 +854,7 @@ loose_selection_widget(Widget w, Atom *selection)
   DEBUG(NAME_selection,
 	Cprintf("%s: Loosing %s selection",
 		pp(d), pp(atomToSelectionName(d, *selection))));
-    
+
   if ( d )
     looseSelectionDisplay(d, atomToSelectionName(d, *selection));
 }
@@ -995,7 +995,7 @@ ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
 		   toInt(width), toInt(height), NAME_pixmap, EAV);
   im = XGetImage(r->display_xref, atts.root,
 		 x, y, width, height, AllPlanes, ZPixmap);
-    
+
   if ( i && im )
   { setXImageImage(i, im);
     assign(i, depth, toInt(im->depth));

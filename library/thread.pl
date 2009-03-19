@@ -77,37 +77,37 @@ following consequences:
 */
 
 %%	concurrent(+N, :Goals, Options) is semidet.
-%	
+%
 %	Run Goals in parallel using N   threads.  This call blocks until
 %	all work has been done.  The   Goals  must  be independent. They
 %	should not communicate using shared  variables   or  any form of
 %	global data. All Goals must be thread-safe.
-%	
+%
 %	Execution succeeds if all goals  have   succeeded.  If  one goal
 %	fails or throws an exception,  other   workers  are abandoned as
 %	soon as possible and the entire   computation fails or re-throws
 %	the exception. Note that if  multiple   goals  fail  or raise an
 %	error it is not defined which error or failure is reported.
-%	
+%
 %	On successful completion, variable bindings   are returned. Note
 %	however that threads have independent   stacks and therefore the
 %	goal is copied to the worker  thread   and  the result is copied
 %	back to the caller of concurrent/3.
-%	
+%
 %	Choosing the right number of threads is not always obvious. Here
 %	are some scenarios:
-%	
+%
 %	  * If the goals are CPU intensive and normally all succeeding,
 %	  typically the number of CPUs is the optimal number of
 %	  threads.  Less does not use all CPUs, more wastes time in
 %	  context switches and also uses more memory.
-%	  
+%
 %	  * If the tasks are I/O bound the number of threads is
 %	  typically higher than the number of CPUs.
-%	  
+%
 %	  * If one or more of the goals may fail or produce an errors,
 %	  using a higher number of threads may find this earlier.
-%	
+%
 %	@param N Number of worker-threads to create. Using 1, no threads
 %	       are created.  If N is larger than the number of Goals we
 %	       create exactly as many threads as there are Goals.
@@ -161,7 +161,7 @@ submit_goals([H|T], I, M, Queue, [Vars|VT]) :-
 %%	concur_wait(+N, +Done:queue, +VT:compound, -Result, -Exitted) is semidet.
 %
 %	Wait for completion, failure or error.
-%	
+%
 %	@param	Exited  List of thread-ids with threads that completed before
 %			all work was done.
 
@@ -195,7 +195,7 @@ create_workers(N, Queue, Done, [Id|Ids], Options) :-
 	N2 is N - 1,
 	create_workers(N2, Queue, Done, Ids, Options).
 create_workers(_, _, _, [], _).
-	
+
 
 %%	worker(+WorkQueue, +DoneQueue) is det.
 %
@@ -250,18 +250,18 @@ join_all([Id|T]) :-
 %	answer. In a typical scenario, solving any of the goals in Goals
 %	is satisfactory for the application to  continue. As soon as one
 %	of the tried alternatives is  successful,   all  the others are
-%	killed and first_solution/3 succeeds.  
-%	
+%	killed and first_solution/3 succeeds.
+%
 %	For example, if it is unclear whether   it is better to search a
 %	graph breadth-first or depth-first we can use:
-%	
+%
 %	==
 %	search_graph(Grap, Path) :-
 %		 first_solution(Path, [ breadth_first(Graph, Path),
 %				        depth_first(Graph, Path)
 %				      ]).
 %	==
-%	
+%
 %	Options include thread stack-sizes passed   to thread_create, as
 %	well as the options =on_fail= and   =on_error= that specify what
 %	to do if a  solver  fails  or   triggers  an  error.  By default
@@ -275,7 +275,7 @@ join_all([Id|T]) :-
 %		the failure.  If =continue=, keep waiting.
 %		* on_error(Action)
 %		As above, re-throwing the error if an error appears.
-%		
+%
 %	@bug	first_solution/3 cannot deal with non-determinism.  There
 %		is no obvious way to fit non-determinism into it.  If multiple
 %		solutions are needed wrap the solvers in findall/3.
@@ -293,7 +293,7 @@ first_solution(X, M:List, Options) :-
 	;   Result = error(_, Error)
 	->  throw(Error)
 	).
-	
+
 create_solvers([], _, _, _, [], _).
 create_solvers([H|T], M, X, Done, [Id|IDs], Options) :-
 	thread_create(solve(M:H, X, Done), Id, Options),
@@ -326,7 +326,7 @@ wait_for_one(JobCount, Queue, Result, Options) :-
 	    )
 	).
 
-	
+
 %%	thread_options(+Options, -ThreadOptions, -RestOptions) is det.
 %
 %	Split the option  list  over   thread(-size)  options  and other

@@ -63,7 +63,7 @@ compute_label(LabelBox lb, int *w, int *h, int *y)
     else
       *w += 5;
   }
-    
+
   if ( notDefault(lb->label_width) && *w < valInt(lb->label_width) )
     *w = valInt(lb->label_width);
 
@@ -79,7 +79,7 @@ compute_label(LabelBox lb, int *w, int *h, int *y)
 	if ( (pt = get(gr, NAME_reference, EAV)) )
 	{ int ry = valInt(pt->y);
 	  int af = valInt(getAscentFont(lb->label_font));
-	
+
 	  if ( ry > af )
 	    *y = ry-af;
 
@@ -139,14 +139,14 @@ computeLabelBox(LabelBox lb)
     border = (isDefault(lb->border) ? lb->gap : lb->border);
     compute_label(lb, &lw, &lh, NULL);
     computeGraphicalsDevice((Device) lb);
-    
+
     if ( isDefault(lb->size) )		/* implicit size */
     { Cell cell;
 
       clearArea(a);
       for_cell(cell, lb->graphicals)
       { Graphical gr = cell->value;
-	
+
 	unionNormalisedArea(a, gr->area);
       }
       relativeMoveArea(a, lb->offset);

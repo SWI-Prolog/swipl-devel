@@ -36,7 +36,7 @@
 	prolog_edit:locate/3,		% +Partial, -FullSpec, -Location
 	prolog_edit:locate/2,
 	prolog_edit:select_location/3.
-	  
+
 
 		 /*******************************
 		 *      FINDING LOCATIONS	*
@@ -94,7 +94,7 @@ source(Object, [file(Path)|T]) :-
 	->  T = [line(Line)]
 	;   T = []
 	).
-	     
+
 receiver_class(Object, Class) :-
 	object(Object), !,
 	get(Object, class_name, Class).
@@ -110,7 +110,7 @@ method_source(ClassName, get(Selector), [file(File),line(Line)]) :-
 	pce_principal:pce_lazy_get_method(Selector, ClassName, Binder),
 	arg(4, Binder, source_location(File, Line)),
 	\+ get(@classes, member, ClassName, _).
-					   
+
 
 		 /*******************************
 		 *	       SELECT		*

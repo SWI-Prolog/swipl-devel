@@ -110,12 +110,12 @@ write_pipe(pipe *pipe, char *buf, int size)
   { if ( pipe->in + size <= pipe->size )
     { memcpy(pipe->buf+pipe->in, buf, size);
       pipe->in += size;
-      
+
       SetEvent(pipe->event);
       LeaveCriticalSection(&pipe->mutex);
 
       return size;
-    } 
+    }
 
     if ( pipe->out > 0 )
     { memmove(pipe->buf, pipe->buf+pipe->out, pipe->in - pipe->out);
@@ -130,7 +130,7 @@ write_pipe(pipe *pipe, char *buf, int size)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Non-blocking read from our pipe.  
+Non-blocking read from our pipe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -142,7 +142,7 @@ read_pipe(pipe *pipe, char *buf, int size)
 retry:
   EnterCriticalSection(&pipe->mutex);
   avail = pipe->in - pipe->out;
-  
+
   if ( avail > 0 )
   { if ( size < avail )
       avail = size;

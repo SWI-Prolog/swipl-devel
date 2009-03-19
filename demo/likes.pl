@@ -3,7 +3,7 @@
 %% Please load this file into SWI-Prolog
 %%
 %% Sam's likes and dislikes in food
-%% 
+%%
 %% Considering the following will give some practice
 %% in thinking about backtracking.
 %% ?- likes(sam,dahl).

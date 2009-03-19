@@ -65,7 +65,7 @@ is  trivial  to  add  support  for  other  material  in  the  head.  See
 html_include//1.
 
 For usage in HTML generation,  there   is  the DCG rule html_requires//1
-that demands named resources  in  the   HTML  head.  
+that demands named resources  in  the   HTML  head.
 
 ---++ About resource ordering
 
@@ -102,18 +102,18 @@ command recognises the names of HTML resources.
 %	specifies an HTTP location or  a   term  Alias(Sub).  This works
 %	similar to absolute_file_name/2.  See   http:location_path/2  for
 %	details.  Recognised properties are:
-%	
+%
 %		* requires(+Requirements)
 %		Other required script and css files.  If this is a plain
 %		file name, it is interpreted relative to the declared
 %		resource.  Requirements can be a list, which is equivalent
 %		to multiple requires properties.
-%		
+%
 %		* virtual(+Bool)
 %		If =true= (default =false=), do not include About itself,
 %		but only its dependencies.  This allows for defining an
 %		alias for one or more resources.
-%		
+%
 %		* aggregate(+List)
 %		States that About is an aggregate of the resources in
 %		List.
@@ -169,7 +169,7 @@ require_commands([R|T0], TR, [R|T]) :- !,
 %	html_head_expansion/2. We are guaranteed we   will  only get one
 %	call that is passed a flat   list  of requested requirements. We
 %	have three jobs:
-%	
+%
 %	    1. Figure out all indirect requirements
 %	    2. See whether we can use any `aggregate' resources
 %	    3. Put required resources before their requiree.
@@ -179,7 +179,7 @@ html_insert_resource(Required) -->
 	  debug(html(script), 'Requirements: ~q~nFinal: ~q', [Required, Paths])
 	},
 	html_include(Paths).
-	
+
 requirements(Required, Paths) :-
 	phrase(requires(Required), List),
 	sort(List, Paths0),		% remove duplicates
@@ -288,7 +288,7 @@ requires(Spec, Base, Virtual) -->
 	requires_from_properties(Properties, File).
 
 
-requires_from_properties([], _) --> 
+requires_from_properties([], _) -->
 	[].
 requires_from_properties([H|T], Base) -->
 	requires_from_property(H, Base),
@@ -303,7 +303,7 @@ requires_from_property(_, _) -->
 % %	order_html_resources(+Requirements, +AggregatedBy, -Ordered) is det.
 %
 %	Establish a proper order for the   collected (sorted and unique)
-%	list of Requirements. 
+%	list of Requirements.
 
 order_html_resources(Requirements, AggregatedBy, Ordered) :-
 	requirements_graph(Requirements, AggregatedBy, Graph),
@@ -346,10 +346,10 @@ req_edges([H|T], AggregatedBy, R) -->
 	;   [H-R]
 	),
 	req_edges(T, AggregatedBy, R).
-	
+
 
 %%	connect_graph(+Graph, -Connected) is det.
-%	
+%
 %	Turn Graph into a connected graph   by putting a shared starting
 %	point before all vertices.
 
@@ -358,12 +358,12 @@ connect_graph(Graph, Start, [Start-Vertices|Graph]) :-
 	vertices(Graph, Vertices),
 	Vertices = [First|_],
 	before(First, Start).
-	
+
 %%	before(+Term, -Before) is det.
 %
 %	Unify Before to a term that comes   before  Term in the standard
 %	order of terms.
-%	
+%
 %	@error instantiation_error if Term is unbound.
 
 before(X, _) :-
@@ -415,7 +415,7 @@ uncached_same_about(Spec, About) :-
 %	resource specifications are defined by http_absolute_location/3.
 
 same_resource(R, R) :- !.
-same_resource(R1, R2) :- 
+same_resource(R1, R2) :-
 	resource_base_name(R1, B),
 	resource_base_name(R2, B),
 	http_absolute_location(R1, Path, []),
@@ -448,7 +448,7 @@ uncached_resource_base_name(Compound, Base) :-
 %	Extend this to support more  header   material.  Do not use this
 %	predicate directly. html_requires//1 is the  public interface to
 %	include HTML resources.
-%	
+%
 %	@param	HTTP location or list of these.
 
 html_include([]) --> !.

@@ -184,7 +184,7 @@ r(char * s, vars *vs)
 
 */
 
-static void 
+static void
 step1ab(vars *vs)
 {  if (vs->b[vs->k] == 's')
    {  if (ends("\04" "sses", vs)) vs->k -= 2; else
@@ -209,7 +209,7 @@ step1ab(vars *vs)
 
 /* step1c() turns terminal y to i when there is another vowel in the stem. */
 
-static void 
+static void
 step1c(vars *vs)
 { if (ends("\01" "y", vs) && vowelinstem(vs))
     vs->b[vs->k] = 'i';
@@ -337,9 +337,9 @@ static void step5(vars *vs)
 
 static int
 stem(char * p, int i, int j)
-{ vars vs; 
+{ vars vs;
 
-  vs.b = p; vs.k = j; vs.k0 = i; 
+  vs.b = p; vs.k = j; vs.k0 = i;
   if ( vs.k <= vs.k0+1) return vs.k; /*-DEPARTURE-*/
 
    /* With this line, strings of length 1 or 2 don't go through the
@@ -393,7 +393,7 @@ pl_stem(term_t t_in, term_t t_stem)
 
   end = stem(s, 0, (int)(len - 1));
   s[end + 1] = '\0';
-  
+
   rc = PL_unify_atom_chars(t_stem, s);
   if ( s != plain && s != buf )
     PL_free(s);
@@ -652,7 +652,7 @@ unify_stem(const char *s, size_t len, toktype type, void *closure)
 					/* downcase */
     for(q=buf, i=0; i++ < l; q++)
       *q = tolower(*q);
-    
+
     end = stem(buf, 0, l-1);
     buf[++end] = '\0';
 

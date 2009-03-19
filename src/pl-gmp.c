@@ -220,14 +220,14 @@ globalMPZ(mpz_t mpz)
 
   p = allocGlobal(wsz+3);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  
+
 
   *p++     = m;
   p[wsz]   = 0L;			/* pad out */
   p[wsz+1] = m;
   *p++     = (word)mpz->_mp_size;
   memcpy(p, mpz->_mp_d, size);
-  
+
   return r;
 }
 
@@ -334,7 +334,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
     size = -size;
   } else
     neg = FALSE;
-  
+
   limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
   wsize = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
@@ -388,7 +388,7 @@ skipMPZOnCharp(const char *data)
 
 static void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
-{ 
+{
 #if SIZEOF_LONG == 8
   mpz_init_set_si(mpz, (long)i);
 #else
@@ -615,7 +615,7 @@ put_mpz(mpz_t mpz)
     return consInt(v);
   } else if ( mpz_to_int64(mpz, &v) )
   { GET_LD
-    
+
 #if SIZEOF_LONG < SIZEOF_VOIDP
     return makeNum(v);
 #else
@@ -654,7 +654,7 @@ put_number__LD(Number n ARG_LD)
 	  fail;
 
 	p = allocGlobal(3);
-	
+
 	p[0] = FUNCTOR_rdiv2;
 	p[1] = num;
 	p[2] = den;
@@ -715,7 +715,7 @@ PL_unify_number(term_t t, Number n)
 
       if ( !(w=put_number(n)) )
 	fail;
-      
+
       return _PL_unify_atomic(t, w);
     }
 #endif
@@ -904,7 +904,7 @@ int
 PL_get_mpz(term_t t, mpz_t mpz)
 { GET_LD
   Word p = valTermRef(t);
-  
+
   deRef(p);
   if ( isInteger(*p) )
   { number n;
@@ -935,7 +935,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
 { if ( PL_is_rational(t) )
   { GET_LD
     number n;
-    
+
     if ( valueExpression(t, &n PASS_LD) )
     { switch(n.type)
       { case V_INTEGER:
@@ -957,7 +957,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
 	  ;
       }
       clearNumber(&n);
-    }	 
+    }
   }
 
   return FALSE;

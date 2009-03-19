@@ -2,7 +2,7 @@
 %
 % This file contains some predicates that are defined in BIM-prolog and
 % not in SWI-prolog (or at least not with the same meaning).
-% In case a predicate has a different meaning in SWI-prolog 
+% In case a predicate has a different meaning in SWI-prolog
 % and in proLog by BIM renaming is done.
 % Remark that some predicates are only partially covered, feel free to add.
 %
@@ -19,15 +19,15 @@
 %	  - Added module-declaration
 %	  - Mapped writeClause/2 onto portray_clause/1
 %	  - deleted the my... (SWI-Prolog can redefine predicates)
-%   
+%
 % modified by Henk Vandecasteel:
 %
 %         - Added some missing predicates in the module-declaration.
 %         - Index/2 of proLog by BIM is transformed to index/1.
 %         - Fixed some bugs in the record-database-predicates.
-%         
+%
 % modified by Jan Wielemaker at Aug 10, 2006
-% 
+%
 %	  - Fixed module header
 %	  - Keep erase/1 and recorded/3 local as they break applications
 
@@ -61,12 +61,12 @@
 
 
 % please/2 has no meaning in SWI-prolog (can't we map most actions to
-% other things (JW?). (Maybe, but it would not be very useful as please/2 
+% other things (JW?). (Maybe, but it would not be very useful as please/2
 % is usually called on-line. (HV) )
 
 please(_, _).
 
-cputime(Time):- 
+cputime(Time):-
 	statistics(cputime, Time).
 
 % include/1 does not exist in SWI-prolog.
@@ -84,7 +84,7 @@ reconsult(X):-
 
 % erase/1 both exist in SWI-prolog and proLog by BIM.
 
-erase(Key):- 
+erase(Key):-
 	system:recorded(Key, _, Reference),
 	system:erase(Reference).
 erase(_).
@@ -94,12 +94,12 @@ rerecord(Key, Value):-
 	system:recorded(Key, _,Reference),!,
 	system:erase(Reference),
 	recorda(Key, Value).
-rerecord(Key, Value):-	
+rerecord(Key, Value):-
 	recorda(Key, Value).
 
 
 
-% the record-database with two keys of proLog by BIM is implemented with 
+% the record-database with two keys of proLog by BIM is implemented with
 % assert and retract.
 
 erase_all(Key):- !,
@@ -111,7 +111,7 @@ record(Key1, Key2, Value):-
         assert(data__(Key1, Key2, Value)).
 
 
-% recorded/3 has a different meaning in SWI-prolog. 
+% recorded/3 has a different meaning in SWI-prolog.
 
 :- dynamic data__/3.
 
@@ -156,29 +156,29 @@ instantiateOther(Index, ONr, Nr):-
 	instantiateOther(Index, NNr, Nr).
 
 
-index(Pred/Nr, (Index1, Index2, Index3)):- 
-	functor(Term, Pred, Nr), 
+index(Pred/Nr, (Index1, Index2, Index3)):-
+	functor(Term, Pred, Nr),
 	arg(Index1, Term, 1),
 	arg(Index2, Term, 1),
 	arg(Index3, Term, 1),
 	instantiateOther(Term, 0, Nr).
 index(Pred/Nr, (Index1, Index2)):-
-	functor(Term, Pred, Nr), 
+	functor(Term, Pred, Nr),
 	arg(Index1, Term, 1),
 	arg(Index2, Term, 1),
 	instantiateOther(Term, 0, Nr).
 index(Pred/Nr, Index):-
-	functor(Term, Pred, Nr), 
+	functor(Term, Pred, Nr),
 	arg(Index, Term, 1),
 	instantiateOther(Term, 0, Nr).
-	
 
 
-predicate_type(reconsult(_), builtin). 
+
+predicate_type(reconsult(_), builtin).
 predicate_type(Head, builtin):-
 	predicate_property(Head, built_in).
 
-predicate_type(_, user). 
+predicate_type(_, user).
 
 vread(Term, Variables):-
 	read_term(Term, [variable_names(Variables)]).

@@ -133,7 +133,7 @@ show_help(Title, Ranges) :-
 	write_ranges_to_file(Ranges, TmpFile),
 	prolog:show_help_hook(Title, TmpFile).
 show_help(_, Ranges) :-
-	clause(running_under_emacs_interface, _), 
+	clause(running_under_emacs_interface, _),
 	running_under_emacs_interface, !,
 	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
@@ -217,7 +217,7 @@ set_overstrike_feature :-
 	set_prolog_flag(write_help_with_overstrike, true).
 set_overstrike_feature :-
 	set_prolog_flag(write_help_with_overstrike, false).
-	
+
 :- initialization set_overstrike_feature.
 
 %%	line_start(Line, Start) is det.

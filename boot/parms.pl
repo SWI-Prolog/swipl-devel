@@ -77,7 +77,7 @@ cached_library_directory(CacheName, Goal, Dir) :-
 cached_library_directory(CacheName, _, _) :-
 	asserta(library_directory_cache(CacheName, [])),
 	fail.
-		
+
 '$default_editor'(notepad) :-
 	current_prolog_flag(windows, true), !.
 '$default_editor'(vi).

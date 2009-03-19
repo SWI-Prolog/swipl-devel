@@ -126,19 +126,19 @@ assignField(Instance instance, Any *field, Any value)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-			  CREATING OBJECTS	
+			  CREATING OBJECTS
 
 PCE objects are created by  C-functions.  Some   objects  are  used as a
 temporary argument to a  method   (e.g.  send(@box, move, point(30,30)).
 Others are created as an `end-point' object (e.g. new(@box, box(50,50)))
 and yet others are  stored  as  an   attribute  to  other  objects (e.g.
 send(@sheet, size, size(50,50))).
- 
+
 To deal with this problem, the following schemas may be used:
 
 (1)	someFunction()
 	{ Any obj = globalObject(Name, Class, ....);
-	
+
 	  .....
 	}
 
@@ -148,7 +148,7 @@ does not have a reference.
 
 (2)	someFunction(me)
 	{ assign(me, field, newObject(....));
-	
+
 	  .....
 	}
 
@@ -159,7 +159,7 @@ until it is detached from its last object.
 
 (3)	someFunction()
 	{ .....
-	  
+
 	  answer( answerObject(...) );
 	}
 
@@ -176,9 +176,9 @@ created from the host language.
 
 (4)	someFunction()
 	{ Any obj = tempObject(....);
-	
+
 	  .....
-	  
+
 	  considerPreserveObject(obj);
 	}
 
@@ -209,7 +209,7 @@ hasClassVariableVariable(Variable v, Class class)
 	succeed;
     }
   }
-  
+
   fail;
 }
 
@@ -432,7 +432,7 @@ static status
 makeTempObject(Any obj)
 { if ( isObject(obj) )
     addCodeReference(obj);
-  
+
   succeed;
 }
 
@@ -817,7 +817,7 @@ inspectObject(Any obj, Bool val)
   } else
   { clearFlag(obj, F_INSPECT);
   }
-  
+
   succeed;
 }
 
@@ -853,7 +853,7 @@ Any obj;
 Class super;
 { if ( isObject(obj) )
   { Class class = classOfObject(obj);
-    
+
     return class == super || (class->tree_index >= super->tree_index &&
 			      class->tree_index <  super->neighbour_index);
   }
@@ -935,14 +935,14 @@ deleteConstraintObject(Any obj, Constraint c)
 static status
 sendMethodObject(Any obj, Method m)
 { Chain ch = getAllSendMethodsObject(obj, ON);
-  
+
   return prependChain(ch, m);
 }
 
 static status
 getMethodObject(Any obj, Method m)
 { Chain ch = getAllGetMethodsObject(obj, ON);
-  
+
   return prependChain(ch, m);
 }
 
@@ -950,7 +950,7 @@ getMethodObject(Any obj, Method m)
 status
 attachHyperObject(Any obj, Hyper h, Any to)
 { Chain ch = getAllHypersObject(obj, ON);
-  
+
   return addChain(ch, h);
 }
 
@@ -968,7 +968,7 @@ deleteHyperObject(Any obj, Hyper h)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -1237,7 +1237,7 @@ static Chain
 getFindAllSendMethodsObject(Any obj, Code cond)
 { Chain ch = answerObject(ClassChain, EAV);
   static HashTable done = NULL;
-  
+
   if ( !done )
     done = createHashTable(toInt(32), NAME_none);
 
@@ -1446,7 +1446,7 @@ clonePceSlots(Any org, Any Clone)
 	     { addCloneField(clone, D_CLONE_REFCHAIN,
 			     &clone->slots[i], me->slots[i]);
 	     });
-	   
+
   succeed;
 }
 
@@ -1537,7 +1537,7 @@ getClone2Object(Any obj)
 
 Int
 getArityObject(Any obj)
-{ Class class = classOfObject(obj);  
+{ Class class = classOfObject(obj);
 
   if ( isNil(class->term_names) )
     fail;
@@ -1674,7 +1674,7 @@ sendSuperObject(Any obj, Name selector, int argc, const Any argv[])
 { if ( obj == RECEIVER->value )
   { Class current = RECEIVER_CLASS->value;
     status rval;
-    
+
     RECEIVER_CLASS->value = current->super_class;
     if ( notNil(RECEIVER_CLASS->value) )
       rval = vm_send(obj, selector, RECEIVER_CLASS->value, argc, argv);
@@ -1695,7 +1695,7 @@ getGetSuperObject(Any obj, Name selector, int argc, const Any argv[])
 { if ( obj == RECEIVER->value )
   { Class current = RECEIVER_CLASS->value;
     Any rval;
-    
+
     RECEIVER_CLASS->value = current->super_class;
     rval = vm_get(obj, selector, RECEIVER_CLASS->value, argc, argv);
     RECEIVER_CLASS->value = current;
@@ -1713,7 +1713,7 @@ sendClassObject(Any obj, Name selector, int argc, Any *argv)
 { if ( obj == RECEIVER->value )
   { Class current = RECEIVER_CLASS->value;
     status rval;
-    
+
     RECEIVER_CLASS->value = classOfObject(obj);
     rval = vm_send(obj, selector, RECEIVER_CLASS->value, argc, argv);
     RECEIVER_CLASS->value = current;
@@ -1731,7 +1731,7 @@ getGetClassObject(Any obj, Name selector, int argc, Any *argv)
 { if ( obj == RECEIVER->value )
   { Class current = RECEIVER_CLASS->value;
     Any rval;
-    
+
     RECEIVER_CLASS->value = classOfObject(obj);
     rval = vm_get(obj, selector, RECEIVER_CLASS->value, argc, argv);
     RECEIVER_CLASS->value = current;
@@ -1776,7 +1776,7 @@ sendVectorObject(Any obj, int argc, Any *argv)
   { int argn = args+valInt(v->size)-shift;
     ArgVector(av, argn);
     int i, n;
-    
+
     for(i=0; i<args; i++)
       av[i] = argv[i];
     for(n=shift; n<valInt(v->size); n++)
@@ -1828,7 +1828,7 @@ getVectorObject(Any obj, int argc, Any *argv)
   { int argn = args+valInt(v->size)-shift;
     ArgVector(av, argn);
     int i, n;
-    
+
     for(i=0; i<args; i++)
       av[i] = argv[i];
     for(n=shift; n<valInt(v->size); n++)
@@ -1869,7 +1869,7 @@ sendSuperVectorObject(Any obj, int argc, Any *argv)
   { int argn = args+valInt(v->size)-shift;
     ArgVector(av, argn);
     int i, n;
-    
+
     for(i=0; i<args; i++)
       av[i] = argv[i];
     for(n=shift; n<valInt(v->size); n++)
@@ -1892,7 +1892,7 @@ sendHyperObject(Any obj, Name hname, Name selector, int argc, Any *argv)
 
   if ( (ch = getAllHypersObject(obj, OFF)) )
   { Hyper h;
-    
+
     for_chain(ch, h,
 	      { if ( h->from == obj )
 		{ if ( (hname == h->forward_name || isDefault(hname)) &&
@@ -1917,7 +1917,7 @@ getHyperObject(Any obj, Name hname, Name selector, int argc, Any *argv)
   if ( (ch = getAllHypersObject(obj, OFF)) )
   { Hyper h;
     Any rval;
-    
+
     for_chain(ch, h,
 	      { if ( h->from == obj )
 		{ if ( (hname == h->forward_name || isDefault(hname)) &&
@@ -2026,7 +2026,7 @@ _changedObject(Any obj, va_list args)
 
     changedLevel--;
   }
-  
+
   succeed;
 }
 
@@ -2036,14 +2036,14 @@ changedObject(Any obj, ...)
 { va_list args;
   status rval;
 
-  if ( onFlag(obj, F_INSPECT) ) 
+  if ( onFlag(obj, F_INSPECT) )
   { va_start(args, obj);
     rval = _changedObject(obj, args);
     va_end(args);
 
     return rval;
   } else
-    succeed;  
+    succeed;
 }
 
 
@@ -2071,7 +2071,7 @@ changedFieldObject(Any obj, Any *field)
 	changedLevel--;
       }
     }
-  }  
+  }
 
   succeed;
 }
@@ -2084,7 +2084,7 @@ Any
 getClassVariableValueObject(Any obj, Name name)
 { if ( !isObject(obj) )
     fail;
-  
+
   answer(getClassVariableValueClass(classOfObject(obj), name));
 }
 
@@ -2212,7 +2212,7 @@ checkExtensonsObject(Any obj, Bool recursive, HashTable done, int errs)
 
   if ( onFlag(obj, F_CONSTRAINT|F_ATTRIBUTE|F_SENDMETHOD|F_GETMETHOD|
 	           F_HYPER|F_RECOGNISER) )
-  { CheckExt(F_CONSTRAINT, getAllConstraintsObject, NAME_allConstraints); 
+  { CheckExt(F_CONSTRAINT, getAllConstraintsObject, NAME_allConstraints);
     CheckExt(F_ATTRIBUTE,  getAllAttributesObject,  NAME_allAttributes);
     CheckExt(F_SENDMETHOD, getAllSendMethodsObject, NAME_allSendMethods);
     CheckExt(F_GETMETHOD,  getAllGetMethodsObject,  NAME_allGetMethods);
@@ -2231,7 +2231,7 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
   Class class;
   int slots;
   int i;
-  
+
   if ( recursive == ON )
   { if ( getMemberHashTable(done, obj) )
       return errs;
@@ -2391,9 +2391,9 @@ CheckObject(Any obj, Bool recursive)
 { HashTable done = NIL;
   int errs;
 
-  if ( isDefault(recursive) ) 
+  if ( isDefault(recursive) )
     recursive = ON;
-  
+
   if ( recursive == ON )
   { checkNames(TRUE);
     done = createHashTable(toInt(200), NAME_none);
@@ -2416,7 +2416,7 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
   Class class;
   int slots;
   int i;
-  
+
   if ( !isProperObject(obj) )
   { errorPce(CtoName(pp(obj)), NAME_noProperObject);
     fail;
@@ -2489,7 +2489,7 @@ static status
 forSlotReferenceObject(Any obj, Code msg, Bool recursive)
 { HashTable done = NULL;
 
-  if ( isDefault(recursive) ) 
+  if ( isDefault(recursive) )
     recursive = ON;
   if ( recursive == ON )
     done = createHashTable(toInt(200), NAME_none);
@@ -2548,7 +2548,7 @@ errorObjectv(Any obj, Error e, int argc, Any *argv)
 	}
       }
     }
-  
+
     sendv(e, NAME_display, argc+1, av);
   }
 
@@ -2560,7 +2560,7 @@ static Any
 getReportToObject(Any obj)
 { if ( notNil(EVENT->value) )		/* associate to @event?receiver */
     answer(getReceiverEvent(EVENT->value));
-  
+
   fail;
 }
 
@@ -2694,7 +2694,7 @@ static char *T_relayed_invocation[] =
 #define var_object NULL
 /*
 vardecl var_object[] =
-{ 
+{
 };
 */
 
@@ -2906,7 +2906,7 @@ static getdecl get_object[] =
 #define rc_object NULL
 /*
 static classvardecl rc_object[] =
-{ 
+{
 };
 */
 

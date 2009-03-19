@@ -82,7 +82,7 @@ static senddecl send_assoc[] =
 #define get_assoc NULL
 /*
 static getdecl get_assoc[] =
-{ 
+{
 };
 */
 
@@ -91,7 +91,7 @@ static getdecl get_assoc[] =
 #define rc_assoc NULL
 /*
 static classvardecl rc_assoc[] =
-{ 
+{
 };
 */
 

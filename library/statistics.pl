@@ -52,22 +52,22 @@
 time(Goal0) :-
 	expand_goal(Goal0, Goal),
 	get_time(OldWall),
-	statistics(cputime, OldTime), 
-	statistics(inferences, OldInferences), 
+	statistics(cputime, OldTime),
+	statistics(inferences, OldInferences),
 	(   catch(Goal, E, true)
 	->  Result = yes
 	;   Result = no
 	),
-	statistics(inferences, NewInferences), 
-	statistics(cputime, NewTime), 
+	statistics(inferences, NewInferences),
+	statistics(cputime, NewTime),
 	get_time(NewWall),
-	UsedTime is NewTime - OldTime, 
-	UsedInf  is NewInferences - OldInferences - 3, 
+	UsedTime is NewTime - OldTime,
+	UsedInf  is NewInferences - OldInferences - 3,
 	Wall     is NewWall - OldWall,
 	(   UsedTime =:= 0
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
-	), 
+	),
 	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)),
 	(   nonvar(E)
 	->  throw(E)
@@ -91,7 +91,7 @@ Later we will add a proper textual report-generator.
 	prolog:show_profile_hook/2.
 
 %%	profile(:Goal, +ShowStyle, +TopN)
-%	
+%
 %	Run Goal under the execution profiler and show the top TopN
 %	goals using ShowStyle.
 
@@ -124,7 +124,7 @@ show_profile_(How, N) :-
 	sort_on(How, SortKey),
 	findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
 	keysort(Nodes, Sorted),
-	reverse(Sorted, HighFirst), 
+	reverse(Sorted, HighFirst),
 	format('~61t~69|~n'),
 	format('Total time: ~2f seconds~n', [Time]),
 	format('~61t~69|~n'),
@@ -160,9 +160,9 @@ show_plain(Node, Stat, Key) :-
 		 *******************************/
 
 %%	prof_statistics(-Node) is det.
-%	
+%
 %	Get overall statistics
-%	
+%
 %	@param Node	term of the format prof(Ticks, Account, Time, Nodes)
 
 prof_statistics(prof(Ticks, Account, Time, Nodes)) :-
@@ -234,7 +234,7 @@ value(Name, Data, Value) :-
 	arg(Arg, Data, Value).
 
 %%	predicate_label(+Head, -Label)
-%	
+%
 %	Create a human-readable label for the given head
 
 predicate_label(M:H, Label) :- !,
@@ -253,7 +253,7 @@ hidden_module(M, H) :-
 	predicate_property(system:H, imported_from(M)).
 
 %%	predicate_name(+Head, -Name)
-%	
+%
 %	Return the (module-free) name of the predicate for sorting
 %	purposes.
 

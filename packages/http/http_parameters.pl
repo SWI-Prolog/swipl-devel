@@ -46,14 +46,14 @@
 
 %%	http_parameters(+Request, ?Parms) is det.
 %%	http_parameters(+Request, ?Parms, +Options) is det.
-%	
+%
 %	Get HTTP GET  or  POST   form-data,  applying  type  validation,
 %	default values, etc.  Provided options are:
-%	
+%
 %		* attribute_declarations(:Goal)
 %		Causes the declarations for an attributed named A to be
 %		fetched using call(Goal, A, Declarations).
-%		
+%
 %		* form_data(-Data)
 %		Return the data read from the GET por POST request as a
 %		list Name = Value.  All data, including name/value pairs
@@ -88,7 +88,7 @@ http_parms(Request, Params, DeclGoal, Data) :-
 	fill_parameters(Params, Data, DeclGoal).
 
 %%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
-%	
+%
 %	Fill values from the parameter list
 
 fill_parameters([], _, _).
@@ -133,7 +133,7 @@ fill_param_list([_|Form], Name, VT, Options) :-
 %%	check_type(+Options, +FieldName, +ValueIn, -ValueOut) is det.
 %
 %	Validate an HTTP form value.
-%	
+%
 %	@param Option		list as provided with the parameter
 %	@param FieldName	Name of the HTTP field (for better message)
 %	@param ValueIn		Atom value as received from HTTP layer
@@ -147,14 +147,14 @@ check_type([H|T], Field, Value0, Value) :-
 	;   check_type2(H, Value0)
 	->  check_type(T, Field, Value0, Value)
 	;   format(string(Msg), 'HTTP parameter ~w', [Field]),
-	    throw(error(type_error(H, Value0), 
+	    throw(error(type_error(H, Value0),
 			context(_, Msg)))
 	).
 
 %%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
 %
 %	HTTP parameter type-check for types that need converting.
-%	
+%
 %	@error	syntax_error
 
 check_type3(number, Atom, Number) :-

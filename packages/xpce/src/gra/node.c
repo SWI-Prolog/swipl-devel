@@ -51,7 +51,7 @@ initialiseNode(Node n, Graphical gr)
   assign(n, computed,  NIL);
   assign(n, collapsed, OFF);
   assign(n, displayed, ON);
-  
+
   succeed;
 }
 
@@ -155,7 +155,7 @@ computeLevelNode(Node n, Int l, Bool force)
   }
 
   succeed;
-} 
+}
 
 
 static Int
@@ -185,9 +185,9 @@ getComputeSizeNode(Node n, Int l)
       sons_size += valInt(n->tree->neighbourGap);
     sons_size += valInt(getComputeSizeNode(cell->value, nextLevel));
   }
-  
+
   assign(n, sons_size, toInt(sons_size));
-  
+
   if ( n->tree->direction == NAME_list )
   { if ( notNil(n->sons->head) )
       answer(add(add(n->sons_size, n->my_size), n->tree->neighbourGap));
@@ -320,7 +320,7 @@ updateDisplayedNode(Node n)
 
   if ( notNil(n->image) && n->image->displayed != n->displayed )
     DisplayedGraphical(n->image, n->displayed);
-  
+
   for_cell(cell, n->sons)
     updateDisplayedNode(cell->value);
 
@@ -347,7 +347,7 @@ moveAfterNode(Node n, Node n2)
 
   if ( isDefault(n2) || isNil(n2) )
   { Node parent = getHeadChain(n->parents);
-    
+
     if ( isObject(parent) )
     { status rval;
 
@@ -476,7 +476,7 @@ imageNode(Node n, Graphical gr)		/* change image of node */
     send(gr, NAME_handle, n->tree->sonHandle, EAV);
     send(gr, NAME_handle, n->tree->parentHandle, EAV);
     relateImagesNode(n);
-    
+
     requestComputeTree(n->tree);
   }
 
@@ -497,7 +497,7 @@ delete_tree_node(Node n)
 
   if ( isParentNode(n, tree->root) == SUCCEED )
     succeed;				/* has some other path */
-  
+
   for_cell_save(cell, c, n->sons)
   { Node son = cell->value;
 
@@ -554,7 +554,7 @@ swapTreeNode(Node n, Node n2)
   { parent = cell->value;
     swapChain(parent->sons, n, n2);
   }
-  
+
   swap_parents(n, n2, intersection);
   swap_parents(n2, n, intersection);
 
@@ -669,7 +669,7 @@ unrelate_node(Node n, Node n2)
 
   return rval;
 }
-  
+
 
 static status
 unrelateNode(Node n, Node n2)
@@ -801,7 +801,7 @@ collapsedNode(Node n, Bool val)
 	   n == n->tree->displayRoot && isNil(n->collapsed) )
 	update = TRUE;
 
-      assign(n, collapsed, val);  
+      assign(n, collapsed, val);
 
       if ( update )
       { updateDisplayedTree(n->tree);
@@ -812,7 +812,7 @@ collapsedNode(Node n, Bool val)
 	changedEntireImageGraphical(n->tree);
     }
   }
-  
+
   succeed;
 }
 
@@ -1050,7 +1050,7 @@ static getdecl get_node[] =
 #define rc_node NULL
 /*
 static classvardecl rc_node[] =
-{ 
+{
 };
 */
 

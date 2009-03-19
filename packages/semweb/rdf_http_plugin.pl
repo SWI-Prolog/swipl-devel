@@ -69,7 +69,7 @@ rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 %	Guess the file format. We first try the official mime-types, but
 %	as it is  quite  likely  many   web-servers  do  not  have these
 %	registered, we use the filename extension as a backup.
-%	
+%
 %	@bug	The turtle parser only parses a subset of n3.
 
 guess_format('text/rdf+xml',	      _, xml).

@@ -46,7 +46,7 @@ should comply to the GPL.
 Parsing MIME messages is accomplished  using   a  single predicate. This
 predicate parses the input  and  returns   a  complex  term  holding the
 various MIME message  parts.  The  mime   message  is  encoded  into the
-following structure: 
+following structure:
 
 	mime(Attributes, Data, SubMimeList)
 

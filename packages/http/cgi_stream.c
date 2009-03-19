@@ -172,7 +172,7 @@ free_cgi_context(cgi_context *ctx)
 }
 
 
-static int 
+static int
 grow_data_buffer(cgi_context *ctx, size_t size)
 { size_t newsize;
 
@@ -210,7 +210,7 @@ static IOFUNCTIONS cgi_functions;
 static int
 get_cgi_stream(term_t t, IOSTREAM **sp, cgi_context **ctx)
 { IOSTREAM *s;
-  
+
   if ( !PL_get_stream_handle(t, &s) )
     return FALSE;
   if ( s->functions != &cgi_functions )
@@ -240,7 +240,7 @@ static foreign_t
 is_cgi_stream(term_t cgi)
 { IOSTREAM *s;
   int rc;
-  
+
   if ( !PL_get_stream_handle(cgi, &s) )
     return FALSE;
   rc = (s->functions == &cgi_functions);
@@ -266,7 +266,7 @@ cgi_property(term_t cgi, term_t prop)
   { rc = type_error(prop, "cgi_property");
     goto out;
   }
-  
+
   PL_get_arg(1, prop, arg);
   if ( name == ATOM_request )
   { if ( ctx->request )
@@ -359,7 +359,7 @@ cgi_set(term_t cgi, term_t prop)
   { rc = type_error(prop, "cgi_property");
     goto out;
   }
-  
+
   PL_get_arg(1, prop, arg);
   if ( name == ATOM_request )
   { rc = set_term(&ctx->request, arg);
@@ -384,7 +384,7 @@ cgi_set(term_t cgi, term_t prop)
   } else
   { rc = existence_error(prop, "cgi_property");
   }
-  
+
 out:
   PL_release_stream(s);
   return rc;
@@ -435,16 +435,16 @@ call_hook(cgi_context *ctx, atom_t event)
 
   if ( !rc )
   { term_t ex;
-    
+
     if ( (ex = PL_exception(qid)) )
     { Sset_exception(ctx->cgi_stream, ex);
-      
+
     } else
     { char buf[256];
       Ssprintf(buf, "CGI Hook %s failed", PL_atom_chars(event));
 
       Sseterr(ctx->cgi_stream, SIO_WARN, buf);
-    }    
+    }
 
     PL_cut_query(qid);
     PL_close_foreign_frame(fid);
@@ -473,7 +473,7 @@ start_chunked_encoding(cgi_context *ctx)
   }
 
   return FALSE;
-} 
+}
 
 
 static size_t
@@ -503,7 +503,7 @@ static ssize_t				/* encode */
 cgi_chunked_write(cgi_context *ctx, char *buf, size_t size)
 { if ( Sfprintf(ctx->stream, "%x\r\n", size) < 0 )
     return -1;
-  if ( size > 0 && 
+  if ( size > 0 &&
        Sfwrite(buf, sizeof(char), size, ctx->stream) != size )
     return -1;
   if ( Sfprintf(ctx->stream, "\r\n") < 0 )
@@ -531,7 +531,7 @@ cgi_write(void *handle, char *buf, size_t size)
   } else
   { size_t osize = ctx->datasize;
     size_t dstart;
-  
+
     if ( osize+size > ctx->dataallocated )
     { if ( grow_data_buffer(ctx, osize+size) < 0 )
 	return -1;			/* no memory */
@@ -552,7 +552,7 @@ cgi_write(void *handle, char *buf, size_t size)
       ctx->cgi_stream->flags &= ~(SIO_FBUF|SIO_LBUF|SIO_NBUF);
       ctx->cgi_stream->flags |= SIO_FBUF;
     }
-    
+
     return size;
   }
 }
@@ -711,7 +711,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
     return TRUE;
   } else
   { return instantiation_error();
-  }    
+  }
 }
 
 

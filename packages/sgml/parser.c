@@ -602,20 +602,20 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
       { dtd_symbol *id;
 	dtd_entity *e;
 	const ichar *eval;
-	
+
 	if ( !(in = itake_name(dtd, in+1, &id)) )
 	{ in = estart;
 	  goto recover;
 	}
 	if ( isee_func(dtd, in, CF_ERC) || *in == '\n' )
 	  in++;
-  
+
 	if ( !(e = id->entity) && !(e=dtd->default_entity) )
 	{ gripe(ERC_EXISTENCE, L"entity", id->name);
 	  in = estart;
 	  goto recover;
 	}
-  
+
 	if ( !(eval = entity_value(p, e, NULL)) )
 	{ gripe(ERC_NO_VALUE, e->name->name);
 	  in = estart;
@@ -675,7 +675,7 @@ find_element(dtd *dtd, dtd_symbol *id)
   e->undefined = TRUE;
   e->name = id;
   id->element = e;
-  
+
   e->next = dtd->elements;
   dtd->elements = e;
 
@@ -686,7 +686,7 @@ find_element(dtd *dtd, dtd_symbol *id)
 static dtd_edef *
 new_element_definition(dtd *dtd)
 { dtd_edef *def = sgml_calloc(1, sizeof(*def));
-  
+
   STAT(edefs_created++);
 
   return def;
@@ -757,7 +757,7 @@ free_attribute_list(dtd_attr_list *l)
 
     free_attribute(l->attribute);
     sgml_free(l);
-  } 
+  }
 }
 
 
@@ -1196,7 +1196,7 @@ free_dtd(dtd *dtd)
 
     if ( dtd->doctype )
       sgml_free(dtd->doctype);
-  
+
     free_entity_list(dtd->entities);
     free_entity_list(dtd->pentities);
     free_notations(dtd->notations);
@@ -1206,7 +1206,7 @@ free_dtd(dtd *dtd)
     sgml_free(dtd->charfunc);
     sgml_free(dtd->charclass);
     dtd->magic = 0;
-  
+
     sgml_free(dtd);
   }
 }
@@ -1238,17 +1238,17 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       case DL_XMLNS:
       { const ichar **el;
 	dtd_parser p;
-  
+
 	dtd->case_sensitive = TRUE;
 	dtd->encoding = SGML_ENC_UTF8;
 	dtd->space_mode = SP_PRESERVE;
 	dtd->shorttag = FALSE;
-  
+
 	memset(&p, 0, sizeof(p));
 	p.dtd = dtd;
 	for(el = xml_entities; *el; el++)
 	  process_entity_declaration(&p, *el);
-  
+
 	break;
       }
     }
@@ -1456,7 +1456,7 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
 	  e->content = EC_NDATA;
 	} else
 	  return gripe(ERC_SYNTAX_ERROR, L"Bad datatype declaration", decl);
-  
+
 	if ( (s=itake_name(dtd, decl, &nname)) ) /* what is this? */
 	{ decl = s;
 	} else
@@ -1476,7 +1476,7 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
     e->next = dtd->entities;
     dtd->entities = e;
   }
-  
+
   if ( isdef )
     dtd->default_entity = e;
 
@@ -1639,7 +1639,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
 
   for(p=&sr->map; *p; p = &(*p)->next)
     ;
-  
+
   m = sgml_calloc(1, sizeof(*m));
   m->from = istrdup(from);
   m->len  = (int)istrlen(from);
@@ -1662,7 +1662,7 @@ def_shortref(dtd_parser *p, dtd_symbol *name)
     if ( r->name == name )
       return r;
   }
-  
+
   sr = sgml_calloc(1, sizeof(*sr));
   sr->name = name;
   *pr = sr;
@@ -1733,7 +1733,7 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
 
   if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, L"Map expected", decl);
-  
+
   return TRUE;
 }
 
@@ -1767,7 +1767,7 @@ find_map(dtd *dtd, dtd_symbol *name)
       return sr;
     }
   }
-       
+
   return NULL;
 }
 
@@ -2018,7 +2018,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       }
       decl = s;
       add_submodel(m, sub);
-      
+
       if ( (s = isee_func(dtd, decl, CF_OR)) )
       { decl = s;
 	mt = MT_OR;
@@ -2064,7 +2064,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
     }
   } else
     m->cardinality = MC_ONE;
-    
+
   if ( m->type == MT_UNDEF )		/* simplify (e+), etc. */
   { dtd_model *sub = m->content.group;
     modelcard card;
@@ -2078,7 +2078,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
     { m->type = MT_OR;
       goto out;
     }
-      
+
     *m = *sub;
     m->cardinality = card;
     sgml_free(sub);
@@ -2111,7 +2111,7 @@ process_model(dtd *dtd, dtd_edef *e, const ichar *decl)
   { e->type = C_ANY;
     return s;
   }
-  
+
   e->type = C_PCDATA;
   if ( !(e->content = make_model(dtd, decl, &decl)) )
     return FALSE;
@@ -2203,7 +2203,7 @@ itake_el_or_model_element_list(dtd *dtd, const ichar *decl, dtd_symbol **names, 
 
     if ( (model = make_model(dtd, decl, &s)) )
     { namelist nl;
-      
+
       nl.list = names;
       nl.size = 0;
       for_elements_in_model(model, add_list_element, &nl);
@@ -2287,7 +2287,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
 
     decl = s;
   }
-      
+
 					/* content model */
   if ( !(decl=process_model(dtd, def, decl)) )
     return FALSE;
@@ -2297,7 +2297,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   { dtd_symbol *ng[MAXNAMEGROUP];
     int ns;
     dtd_element_list **l;
-    
+
     if ( decl[0] == '-' )
       l = &def->excluded;
     else
@@ -2326,7 +2326,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
 static void
 add_name_list(dtd_name_list **nl, dtd_symbol *s)
 { dtd_name_list *n = sgml_calloc(1, sizeof(*n));
-  
+
   n->value = s;
 
   for( ; *nl; nl = &(*nl)->next )
@@ -2535,7 +2535,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
     { ichar buf[MAXSTRINGLEN];
       ichar *start; int len;
       const ichar *end;
-      
+
       if ( !(end=itake_string(dtd, decl, &start, &len)) )
       { end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf)/sizeof(ichar));
 	start = buf;
@@ -2754,13 +2754,13 @@ initiated by pushing the element `e'.
 static int
 pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
 { sgml_environment *env, *parent;
-  
+
   for(env = p->environments; env != to; env=parent)
   { dtd_element *e = env->element;
 
     validate_completeness(env);
     parent = env->parent;
-	
+
     if ( e->structure && !e->structure->omit_close )
       gripe(ERC_OMITTED_CLOSE, e->name->name);
 
@@ -2779,7 +2779,7 @@ pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
   }
   p->environments = to;
   p->map = to->map;
-  
+
   return TRUE;
 }
 
@@ -2842,7 +2842,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 		   if ( p->on_begin_element )
 		   { sgml_attribute atts[MAXATTRIBUTES];
 		     int natts = 0;
-		     
+
 		     if ( !(p->flags & SGML_PARSER_NODEFS) )
 		       natts = add_default_attributes(p, f, natts, atts);
 
@@ -2900,7 +2900,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
       case IE_NORMAL:
 	for(; env; env=env->parent)
 	{ dtd_state *new;
-    
+
 	  if ( (new = make_dtd_transition(env->state, e)) )
 	  { env->state = new;
 	    pop_to(p, env, e);
@@ -2910,7 +2910,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 	  { dtd_element *oe[MAXOMITTED]; /* omitted open */
 	    int olen;
 	    int i;
-    
+
 	    if ( (olen=find_omitted_path(env->state, e, oe)) > 0 )
 	    { pop_to(p, env, e);
 	      WITH_CLASS(p, EV_OMITTED,
@@ -2962,7 +2962,7 @@ close_element(dtd_parser *p, dtd_element *e, int conref)
 	if ( !(conref && env == p->environments) )
 	  validate_completeness(env);
 	parent = env->parent;
-	
+
 	p->first = FALSE;
 	if ( p->on_end_element )
 	  (*p->on_end_element)(p, env->element);
@@ -2988,7 +2988,7 @@ static int
 close_current_element(dtd_parser *p)
 { if ( p->environments )
   { dtd_element *e = p->environments->element;
-    
+
     emit_cdata(p, TRUE);
     return close_element(p, e, FALSE);
   }
@@ -3209,7 +3209,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 
 passed:
   att->value.textW  = istrdup(buf);	/* TBD: more validation */
-  att->value.number = (long)istrlen(buf); 
+  att->value.number = (long)istrlen(buf);
   return end;
 }
 
@@ -3289,7 +3289,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
     { *argc = attn;
       return decl;
     }
-    
+
   next:
     ;
   }
@@ -3475,7 +3475,7 @@ process_end_element(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   dtd_symbol *id;
   const ichar *s;
-  
+
   emit_cdata(p, TRUE);
   if ( (s=itake_name(dtd, decl, &id)) && *s == '\0' )
     return close_element(p, find_element(dtd, id), FALSE);
@@ -3719,7 +3719,7 @@ set_encoding(dtd_parser *p, const ichar *enc)
     { *o++ = (char)*i++;
     } else
     { goto error;
-    }    
+    }
   }
   *o = '\0';
 
@@ -3849,7 +3849,7 @@ process_declaration(dtd_parser *p, const ichar *decl)
 	process_doctype(p, s, decl-1);
     } else
     { s = iskip_layout(dtd, decl);
-  
+
       if ( *s )
 	gripe(ERC_SYNTAX_ERROR, L"Invalid declaration", s);
     }
@@ -3897,7 +3897,7 @@ set_mode_dtd_parser(dtd_parser *p, data_mode m)
 dtd_parser *
 new_dtd_parser(dtd *dtd)
 { dtd_parser *p = sgml_calloc(1, sizeof(*p));
-  
+
   if ( !dtd )
     dtd = new_dtd(NULL);
   dtd->references++;
@@ -3920,7 +3920,7 @@ new_dtd_parser(dtd *dtd)
 static dtd_parser *
 clone_dtd_parser(dtd_parser *p)
 { dtd_parser *clone = sgml_calloc(1, sizeof(*p));
-  
+
   *clone = *p;
   clone->dtd->references++;
   clone->environments =	NULL;
@@ -3951,7 +3951,7 @@ free_dtd_parser(dtd_parser *p)
 static int
 process_chars(dtd_parser *p, input_type in, const ichar *name, const ichar *s)
 { locbuf old;
-  
+
   push_location(p, &old);
   set_src_dtd_parser(p, in, name);
   empty_icharbuf(p->buffer);		/* dubious */
@@ -3987,7 +3987,7 @@ process_include(dtd_parser *p, const ichar *entity_name)
       return process_chars(p, IN_ENTITY, entity_name, text);
     }
   }
-  
+
   return gripe(ERC_EXISTENCE, L"parameter entity", entity_name);
 }
 
@@ -4064,7 +4064,7 @@ pop_marked_section(dtd_parser *p)
     sgml_free(m);
     p->mark_state = (p->marked ? p->marked->type : MS_INCLUDE);
   }
-} 
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4136,7 +4136,7 @@ emit_cdata(dtd_parser *p, int last)
   ocharbuf *cdata = p->cdata;
   int offset = 0;
   int size = cdata->size;
-  
+
   if ( size == 0 )
     return TRUE;			/* empty or done */
 
@@ -4157,7 +4157,7 @@ emit_cdata(dtd_parser *p, int last)
 	    size--;
 	    c = fetch_ocharbuf(cdata, offset);
 	  }
-	  
+
 	  if ( HasClass(dtd, c, CH_RS) )
 	  { inc_location(&p->startloc, c);
 	    offset++;
@@ -4185,7 +4185,7 @@ emit_cdata(dtd_parser *p, int last)
 	if ( p->environments->space_mode == SP_DEFAULT )
 	{ int o = 0;
 	  int i;
-  
+
 	  for(i=0; i<size; i++)
 	  { wint_t c = fetch_ocharbuf(cdata, offset+i);
 
@@ -4270,7 +4270,7 @@ emit_cdata(dtd_parser *p, int last)
   } else if ( p->environments )
   { sgml_environment *env = p->environments;
     dtd_state *new;
-    
+
 				/* If an element is not in the DTD we must */
 				/* assume mixed content and emit spaces */
 
@@ -4282,7 +4282,7 @@ emit_cdata(dtd_parser *p, int last)
     { cb_cdata(p, cdata, offset, size);
     }
   }
-  
+
   pop_location(p, &locsafe);
 
   empty_cdata(p);
@@ -4398,7 +4398,7 @@ process_entity(dtd_parser *p, const ichar *name)
 	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	    p->blank_cdata = FALSE;
 	  }
-	    
+
 	  add_ocharbuf(p->cdata, chr);
 	  return TRUE;
 	}
@@ -4654,7 +4654,7 @@ add_cdata(dtd_parser *p, int chr)
     }
 
     add_ocharbuf(buf, chr);
-  
+
     if ( p->map &&
 	 chr <= 0xff && p->map->ends[chr] &&
 	 match_shortref(p) )
@@ -4688,7 +4688,7 @@ add_verbatim_cdata(dtd_parser *p, int chr)
     if ( chr == '\n' && buf->size > 0 &&
 	 fetch_ocharbuf(buf, buf->size-1) == '\r' )
       buf->size--;
-  
+
     add_ocharbuf(buf, chr);
   }
 }
@@ -4725,7 +4725,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
   const ichar *f = dtd->charfunc->func;
   int line = p->location.line;
   int lpos = p->location.linepos;
-    
+
   p->location.charpos++;		/* TBD: actually `bytepos' */
 
 #ifdef UTF8
@@ -4778,7 +4778,7 @@ reprocess:
 	  return;
 	}
       }
-      
+
       if ( p->marked && f[CF_DSC] == chr ) /* ] in marked section */
       { empty_icharbuf(p->buffer);
 	p->state = S_EMSC1;
@@ -4953,7 +4953,7 @@ reprocess:
       }
 
       return;
-    }    
+    }
     case S_ENT:				/* &entity; */
     { if ( HasClass(dtd, (wint_t)chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
@@ -4966,7 +4966,7 @@ reprocess:
       { WITH_PARSER(p, process_entity(p, p->buffer->data));
       }
       empty_icharbuf(p->buffer);
-      
+
       if ( chr == CR )
 	p->state = S_ENTCR;
       else if ( f[CF_ERC] != chr && chr != '\n' )
@@ -5266,7 +5266,7 @@ sgml_process_stream(dtd_parser *p, FILE *fd, unsigned flags)
 
   for(;;)
   { int p2 = getc(fd);
-    
+
     if ( p2 == EOF )
     { putchar_dtd_parser(p, p0);
       if ( p1 != LF )
@@ -5283,7 +5283,7 @@ sgml_process_stream(dtd_parser *p, FILE *fd, unsigned flags)
     putchar_dtd_parser(p, p0);
     p0 = p1;
     p1 = p2;
-  } 
+  }
 }
 
 
@@ -5448,7 +5448,7 @@ gripe(dtd_error_id e, ...)
 	error.argv[0] = buf;
       } else
 	error.argv[0] = m;
-      
+
       error.severity = (e == ERC_SYNTAX_WARNING ? ERS_WARNING : ERS_ERROR);
       e = ERC_SYNTAX_ERROR;
       break;
@@ -5483,7 +5483,7 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_OMITTED_CLOSE:
-    { const wchar_t *element = va_arg(args, const wchar_t *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *);
 
       swprintf(buf, 1024, L"Inserted omitted end-tag for \"%ls\"", element);
       error.argv[0] = buf;
@@ -5492,7 +5492,7 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_OMITTED_OPEN:
-    { const wchar_t *element = va_arg(args, const wchar_t *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *);
 
       swprintf(buf, 1024, L"Inserted omitted start-tag for \"%ls\"", element);
       error.argv[0] = buf;
@@ -5501,7 +5501,7 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_NOT_OPEN:
-    { const wchar_t *element = va_arg(args, const wchar_t *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *);
 
       swprintf(buf, 1024, L"Ignored end-tag for \"%ls\" which is not open",
 	       element);
@@ -5511,7 +5511,7 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_NOT_ALLOWED:
-    { const wchar_t *element = va_arg(args, const wchar_t *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *);
 
       swprintf(buf, 1024, L"Element \"%ls\" not allowed here", element);
       error.argv[0] = buf;
@@ -5520,14 +5520,14 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_NOT_ALLOWED_PCDATA:
-    { const ocharbuf *cdata = va_arg(args, const ocharbuf *); 
+    { const ocharbuf *cdata = va_arg(args, const ocharbuf *);
 
-      swprintf(buf, 1024, L"#PCDATA (\"%ls\") not allowed here", 
+      swprintf(buf, 1024, L"#PCDATA (\"%ls\") not allowed here",
 	       str_summary(cdata->data.w, 25));
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
-      break;      
+      break;
     }
     case ERC_NO_ATTRIBUTE:
     { const wchar_t *elem = va_arg(args, wchar_t *); /* element */
@@ -5569,7 +5569,7 @@ gripe(dtd_error_id e, ...)
 	      doctype, file);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
-      
+
       e = ERC_VALIDATE;
       break;
     }
@@ -5583,7 +5583,7 @@ gripe(dtd_error_id e, ...)
 
       break;
     }
-  } 
+  }
 
   error.id      = e;
   format_message(&error);
