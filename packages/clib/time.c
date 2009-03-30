@@ -486,7 +486,7 @@ installEvent(Event ev)
   rval = timeSetEvent((int)(ev->time*1000),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
-		      (DWORD)ev,
+		      (DWORD_PTR)ev,
 		      TIME_ONESHOT);
 
   if ( rval )
