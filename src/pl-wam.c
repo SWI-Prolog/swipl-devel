@@ -760,7 +760,12 @@ m_qualify_argument(LocalFrame fr, Word k ARG_LD)
 
       deRef2(p2, ap);
       if ( is_qualified(ap PASS_LD) )
+      { Word a1 = argTermP(*p, 0);
+	deRef(a1);
+	if (! isAtom(*a1))
+	  break;
 	p = ap;
+      }
       else
 	break;
     }
