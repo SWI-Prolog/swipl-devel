@@ -73,7 +73,7 @@ before thread_at_exit/1 is reached.
     \termitem{detached}{Bool}
 If \const{false} (default), the thread can be waited for using
 thread_join/2. thread_join/2 must be called on this thread to reclaim
-the all resources associated to the thread. If \const{true}, the system
+all resources associated with the thread. If \const{true}, the system
 will reclaim all associated resources automatically after the thread
 finishes. Please note that thread identifiers are freed for reuse after
 a detached thread finishes or a normal thread has been joined.
@@ -81,7 +81,7 @@ See also thread_join/2 and thread_detach/1.
 
 If a detached thread dies due to failure or exception of the initial
 goal the thread prints a message using print_message/2.  If such
-termination is considered normal the code must be wrapped using
+termination is considered normal, the code must be wrapped using
 ignore/1 and/or catch/3 to ensure successful completion.
 
     \termitem{global}{K-Bytes}
@@ -723,7 +723,7 @@ execution profiler.
 \label{sec:mtunbound}
 
 (SWI-)Prolog threads are rather heavyweight objects, notably on 32-bit
-systems because each thread uses a considerable amount of \emph{virtual}
+systems, because every thread uses a considerable amount of \emph{virtual}
 address space. SWI-Prolog threads claim the stack \emph{limit} in
 virtual address space for each of the runtime stacks, while on 32-bit
 systems this resource is generally limited somewhere between 1GB and 3.5

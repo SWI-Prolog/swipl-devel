@@ -275,7 +275,7 @@ The load_files/2 predicate can be hooked to load other data or data from
 other objects than files.  See prolog_load_file/2 for a description and
 \pllib{http_load} for an example.
 
-    \predicate{consult}{1}{+File}
+    \predicate{consult}{1}{:File}
 Read \arg{File} as a Prolog source file. \arg{File} may be a list of
 files, in which case all members are consulted in turn. \arg{File} may
 start with the Unix shell special sequences \file{~}, \file{~<user>}
@@ -465,21 +465,21 @@ file \const{user} or a string), unify \arg{File} with an absolute path to
 the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
 
-    \predicate{at_initialization}{1}{+Goal}
+    \predicate{at_initialization}{1}{:Goal}
 Register \arg{Goal} to be run when the system initialises.
 Initialisation takes place after reloading a .qlf (formerly .wic) file
 as well as after reloading a saved-state.  The hooks are run in the
 order they were registered.  A warning message is issued if \arg{Goal}
 fails, but execution continues.  See also at_halt/1
 
-    \predicate{at_halt}{1}{+Goal}
+    \predicate{at_halt}{1}{:Goal}
 Register \arg{Goal} to be run from PL_cleanup(), which is called when
 the system halts. The hooks are run in the reverse order they were
 registered (FIFO). Success or failure executing a hook is ignored. If
 the hook raises an exception this is printed using print_message/2. An
 attempt to call halt/[0,1] from a hook is ignored.
 
-    \predicate{initialization}{1}{+Goal}
+    \predicate{initialization}{1}{:Goal}
 Call \arg{Goal} and register it using at_initialization/1.  Directives
 that do other things than creating clauses, records, flags or setting
 predicate attributes should normally be written using this tag to
@@ -736,7 +736,7 @@ will load the file. When no extension is specified, it will load the
 \fileext{qlf} file when present and the \fileext{pl} file otherwise.
 
 \begin{description}
-    \predicate{qcompile}{1}{+File}
+    \predicate{qcompile}{1}{:File}
 Takes a single file specification like consult/1 (i.e., accepts
 constructs like \file{library(LibFile)} and, in addition to the normal
 compilation, creates a \emph{Quick Load File} from \arg{File}. The
@@ -972,7 +972,7 @@ recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 
 \section{Comparison and Unification of Terms}	\label{sec:compare}
 
-Although unification is mostly done implicitely while matching the
+Although unification is mostly done implicitly while matching the
 head of a predicate, it is also provided by the predicate =/2.
 
 \begin{description}
@@ -1176,7 +1176,7 @@ one_character_atoms(As) :-
 Always fail.  The predicate fail/0 is translated into a single virtual
 machine instruction.
     \predicate{false}{0}{}
-Same as fail, but the name has a more declarative conotation.
+Same as fail, but the name has a more declarative connotation.
     \predicate[ISO]{true}{0}{}
 Always succeed. The predicate true/0 is translated into a single virtual
 machine instruction.
@@ -1200,25 +1200,25 @@ condition.%
 \exam{t4 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
 \end{tabular}\end{center}
 
-\infixop[ISO]{,}{+Goal1}{+Goal2}
+\infixop[ISO]{,}{:Goal1}{:Goal2}
 Conjunction.  True if both `Goal1' and `Goal2' can be proved.  It is
 defined as (this definition does not lead to a loop as the second comma
 is handled by the compiler):
 \begin{code}
 Goal1, Goal2 :- Goal1, Goal2.
 \end{code}
-\infixop[ISO]{;}{+Goal1}{+Goal2}
+\infixop[ISO]{;}{:Goal1}{:Goal2}
 The `or' predicate is defined as:
 \begin{code}
 Goal1 ; _Goal2 :- Goal1.
 _Goal1 ; Goal2 :- Goal2.
 \end{code}
 
-\infixop{|}{+Goal1}{+Goal2}
+\infixop{|}{:Goal1}{:Goal2}
 Equivalent to \predref{;}{2}.  Retained for compatibility only.  New code
 should use \predref{;}{2}.
 
-\infixop[ISO]{->}{+Condition}{+Action}
+\infixop[ISO]{->}{:Condition}{:Action}
 If-then and If-Then-Else. The \predref{->}{2} construct commits to
 the choices made at its left-hand side, destroying choice-points created
 inside the clause (by \predref{;}{2}), or by goals called by
@@ -1238,7 +1238,7 @@ Please note that (If \verb$->$ Then) acts as (If \verb$->$ Then ;
 fails. This unusual semantics is part of the ISO and all de-facto Prolog
 standards.
 
-\infixop{*->}{+Condition}{+Action ; +Else}
+\infixop{*->}{:Condition}{:Action ; :Else}
 This construct implements the so-called `soft-cut'. The control is
 defined as follows: If \arg{Condition} succeeds at least once, the
 semantics is the same as (\arg{Condition}, \arg{Action}). If
@@ -1253,7 +1253,7 @@ The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
 	\bug{The decompiler implemented by clause/2 returns this
 	     construct as a normal conjunction too.}
 
-\prefixop[ISO]{\+}{+Goal}
+\prefixop[ISO]{\+}{:Goal}
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
 indicate negation in Prolog).
@@ -1269,11 +1269,11 @@ involves actually searching the database at runtime for the predicate,
 while for normal calls this search is done at compile time.
 
 \begin{description}
-    \predicate[ISO]{call}{1}{+Goal}
+    \predicate[ISO]{call}{1}{:Goal}
 Invoke \arg{Goal} as a goal. Note that clauses may have variables as
 subclauses, which is identical to call/1.
 
-    \predicate{call}{2}{+Goal, +ExtraArg1, \ldots}		% 2..
+    \predicate{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
 will call plus/3, binding \arg{X} to 3.
@@ -1283,8 +1283,8 @@ redefinition as a predicate has no effect.  The predicates call/[2-6]
 are defined as true predicates, so they can be handled by interpreted
 code.
 
-    \predicate{apply}{2}{+Term, +List}
-Append the members of \arg{List} to the arguments of \arg{Term} and call
+    \predicate{apply}{2}{:Goal, +List}
+Append the members of \arg{List} to the arguments of \arg{Goal} and call
 the resulting term. For example: \exam{apply(plus(1), [2, X])} will
 call \exam{plus(1, 2, X)}. apply/2 is incorporated in the virtual
 machine of SWI-Prolog. This implies that the overhead can be compared to
@@ -1292,11 +1292,11 @@ the overhead of call/1. New code should use call/[2..] if the length of
 \arg{List} is fixed, which is more widely supported and faster because
 there is no need to build and examine the argument list.
 
-    \predicate{not}{1}{+Goal}
+    \predicate{not}{1}{:Goal}
 True if \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
 
-    \predicate[ISO]{once}{1}{+Goal}
+    \predicate[ISO]{once}{1}{:Goal}
 Defined as:
 \begin{code}
 once(Goal) :-
@@ -1311,7 +1311,7 @@ are identical:
 2) a :- b, c -> d.
 \end{code}
 
-    \predicate{ignore}{1}{+Goal}
+    \predicate{ignore}{1}{:Goal}
 Calls \arg{Goal} as once/1, but succeeds, regardless of whether
 \arg{Goal} succeeded or not. Defined as:
 
@@ -1321,7 +1321,7 @@ ignore(Goal) :-
 ignore(_).
 \end{code}
 
-    \predicate{call_with_depth_limit}{3}{+Goal, +Limit, -Result}
+    \predicate{call_with_depth_limit}{3}{:Goal, +Limit, -Result}
 If \arg{Goal} can be proven without recursion deeper than \arg{Limit}
 levels, call_with_depth_limit/3 succeeds, binding \arg{Result} to the
 deepest recursion level used during the proof.  Otherwise, \arg{Result}
@@ -1389,7 +1389,7 @@ by reading all terms into a list, close the file and call member/2.
 Without setup_call_cleanup/3 there is no way to gain control if the
 choice-point left by repeat is removed by a cut or an exception.
 
-setup_call_cleanup/2 can also be used to test determinism of a goal,
+setup_call_cleanup/3 can also be used to test determinism of a goal,
 providing a portable alternative to deterministic/1:
 
 \begin{code}
@@ -1433,7 +1433,7 @@ This is provided
 for compatibility with a number of other Prolog implementations only.  Do
 not use call_cleanup/2, if you perform side-effects prior to calling,
 that will be undone by \arg{Cleanup}.  Instead, use
-setup_call_cleanup/3 with an appropriate first argument perform those
+setup_call_cleanup/3 with an appropriate first argument to perform those
 side-effects.
 
     \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
@@ -1799,7 +1799,7 @@ and throw/1 is the possibility to execute global cuts.  New code
 should use catch/3 and throw/1 to deal with exceptions.
 
 \begin{description}
-    \predicate{block}{3}{+Label, +Goal, -ExitValue}
+    \predicate{block}{3}{+Label, :Goal, -ExitValue}
 Execute \arg{Goal} in a \jargon{block}.  \arg{Label} is the name of the
 block.  \arg{Label} is normally an atom, but the system imposes
 no type constraints and may even be a variable.  \arg{ExitValue}
@@ -2109,7 +2109,7 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-    \prefixop{dynamic}{+PredicateIndicator, \ldots}
+    \prefixop{dynamic}{:PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
@@ -2133,12 +2133,12 @@ of the program execution.%
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
-    \prefixop{multifile}{+PredicateIndicator, \ldots}
+    \prefixop{multifile}{:PredicateIndicator, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
 
-    \prefixop{discontiguous}{+PredicateIndicator, \ldots}
+    \prefixop{discontiguous}{:PredicateIndicator, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
 
@@ -2279,7 +2279,7 @@ transparent, just like interpreted code.
 
     \termitem{iso}{}
 Is true if the predicate is covered by the ISO standard (ISO/IEC
-1321l-l).
+13211-1).
 
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
@@ -3465,7 +3465,7 @@ Unify \arg{Comments} with a list of \arg{Position}-\arg{Comment}, where
 \arg{Position} is a stream-position object (see stream_position_data/3)
 indicating the start of a comment and \arg{Comment} is a string-object
 containing the text including delimiters of a comment.  It returns all
-comments from where the read_term/2 call started upto the end of the
+comments from where the read_term/2 call started up to the end of the
 term read.
 
     \termitem{double_quotes}{Bool}
@@ -6189,7 +6189,7 @@ is continued without asking for further information.  Examples:
 \end{center}
 
 The predicate debugging/0 shows all currently defined trace-points.
-    \predicate{notrace}{1}{+Goal}
+    \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
 The current implementation cuts the choice-points of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
@@ -6360,7 +6360,7 @@ core		& Same as memory \\
 
     \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
-    \predicate{time}{1}{+Goal}
+    \predicate{time}{1}{:Goal}
 Execute \arg{Goal} just like once/1 (i.e., leaving no choice points),
 but print used time, number of logical inferences and the average
 number of \arg{lips} (logical inferences per second).  Note that

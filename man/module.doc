@@ -12,10 +12,10 @@ mainstream Prolog systems, such as SICStus, Ciao and YAP.
 This chapter motivates and describes the SWI-Prolog module system.
 Novices can start using the module system after reading
 \secref{defmodule} and \secref{import}. The primitives defined in these
-sections suffices for basic usage until one needs to export predicates
+sections suffice for basic usage until one needs to export predicates
 that call or manage other predicates dynamically (e.g., use call/1,
 assert/1, etc.). Such predicates are called \jargon{meta predicates} and
-discussed in \secref{metapred}. \Secref{overrule} to \secref{moduleop}
+are discussed in \secref{metapred}. \Secref{overrule} to \secref{moduleop}
 describe more advanced issues. Starting with \secref{importmodule}, we
 discuss more low-level aspects of the SWI-Prolog module systems that
 are used to implement the visible module system, and can be used to
@@ -41,7 +41,7 @@ a module without breaking the overall application.
 Explicit dependencies can also be used by the development environment.
 The SWI-Prolog library \pllib{prolog_xref} can be used to analyse
 completeness and consistency of modules. This library is used by the
-builtin editor PceEmacs for syntax highlighting, jump-to-definition,
+built-in editor PceEmacs for syntax highlighting, jump-to-definition,
 etc.
 
 
@@ -72,7 +72,7 @@ filename extension, but this naming is not enforced. Modules are
 organised in a single and flat namespace and therefore module names must
 be chosen with some care to avoid conflicts. As we will see, typical
 applications of the module system rarely use the name of a module
-explicitely in the source text.
+explicitly in the source text.
 
 \begin{description}
     \directive{module}{2}{+Module, +PublicList}
@@ -96,7 +96,7 @@ locally defined predicate, although its implementation remains part of
 the module in which it has been defined.
 
 Importing the predicates from another module is achieved using the
-directives use_module/1 or use_module/2. Note that both predicates take
+directives use_module/1 or use_module/2. Note that both directives take
 \arg{file name(s)} as arguments. I.e., modules are imported based on
 their file name rather than their module name.
 
@@ -106,7 +106,7 @@ Load the file(s) specified with \arg{File} just like ensure_loaded/1.
 The files must all be module files. All exported predicates from the
 loaded files are imported into the module from which this predicate is
 called. This predicate is equivalent to ensure_loaded/1, except that it
-raises an error if \arg{File} is not a module file. 
+raises an error if \arg{File} is not a module file.
 
     \predicate{use_module}{2}{+File, +ImportList}
 Load \arg{File}, which must be a module file and import the predicates
@@ -154,14 +154,14 @@ a predicate local to this module. In other words, we do not wish to
 provide this \functor{:}{2} wrapper by hand. The meta_predicate/1
 directive tells the compiler that certain arguments are terms that will
 be used to lookup a predicate and thus need to be wrapped (qualified)
-with <module>:<term>, unless it is already wrapped.
+with <module>:<term>, unless they are already wrapped.
 
 In the example below, we use this to define maplist/3 inside a module.
 The argument `2' in the meta_predicate declaration means that the
 argument is module sensitive and refers to a predicate with an arity
 that is two more than the term that is passed in. The compiler only
 distinguishes the values 0..9 and \chr{:}, which denote module-sensitive
-arguments from \chr{+}, \chr{-} and \chr{?} which denotes
+arguments, from \chr{+}, \chr{-} and \chr{?} which denotes
 \jargon{modes}. The values 0..9 are used by the
 \jargon{cross-referencer} and syntax highlighting. Note that the
 helper-predicate maplist_/3 does not need to be declared as a
@@ -193,12 +193,12 @@ Define the predicates referenced by the comma-separated list \arg{Head}
 as \jargon{meta-predicates}. Each argument of each head is a
 \jargon{meta argument specifier}. Defined specifiers are given below.
 Only 0..9 and \chr{:} are interpreted; the mode declarations \chr{+},
-\chr{-} and \chr{?} are not distinguished.
+\chr{-} and \chr{?} are ignored.
 
     \begin{description}
         \termitem{0..9}{}
 The argument is a term that is used to reference a predicate
-with the $N$ more arguments than the given argument term.  For
+with $N$ more arguments than the given argument term.  For
 example: \exam{call(0)} or \exam{maplist(1, +)}.
         \termitem{:}{}
 The argument is module sensitive, but does not directly refer
@@ -244,27 +244,27 @@ Module=42, Term = test
 
 The meta_predicate/1 declaration is the portable mechanism for defining
 meta-predicates and replaces the old SWI-Prolog specific mechanism
-provided by de deprecated predicates module_transparent/1,
+provided by the deprecated predicates module_transparent/1,
 context_module/1 and strip_module/3.  See also \secref{modulecompat}.
 \end{description}
 
 
 \section{Overruling Module Boundaries}       \label{sec:overrule}
 
-The module system described sofar is sufficient to distribute programs
+The module system described so far is sufficient to distribute programs
 over multiple modules. There are however cases in which we would like to
 be able to overrule this schema and explicitly call a predicate in some
 module or assert explicitly into some module. Calling in a particular
 module is useful for debugging from the user's top-level or to access
 multiple implementations of the same interface that reside in multiple
-modules. Accessing the same interface from multiple cannot be achieved
+modules. Accessing the same interface from multiple modules cannot be achieved
 using importing because importing a predicate with the same name and
-arity from two modules results in name conflict. Asserting in a
+arity from two modules results in a name conflict. Asserting in a
 different module can be used to create models dynamically in a new
 module. See \secref{dynamic-modules}.
 
 Direct addressing of modules is achieved using a \functor{:}{2}
-explicitely in a program and rely on the module qualification mechanism
+explicitly in a program and rely on the module qualification mechanism
 described in \secref{metapred}.  Here are a few examples:
 
 \begin{code}
@@ -293,7 +293,7 @@ with which the interactive toplevel interacts:
     \predicate{module}{1}{+Module}
 The call \exam{module(\arg{Module})} may be used to switch the default
 working module for the interactive top-level (see prolog/0).  This may
-be used to when debugging a module. The example below lists the clauses
+be used when debugging a module. The example below lists the clauses
 of {file_of_label}/2 in the module \const{tex}.
 
 \begin{code}
@@ -311,7 +311,7 @@ tex: 2 ?- listing(file_of_label/2).
 \label{sec:reexport}
 
 The predicates in this section are intended to create new modules from
-the content of other modules. Below is an example is to define a
+the content of other modules. Below is an example to define a
 \emph{composite} module.  The example exports all public predicates
 of \const{module_1}, \const{module_2} and \const{module_3}, pred/1
 from \const{module_4}, all predicates from \const{module_5} except
@@ -352,7 +352,7 @@ table behaves as if it is copied from the module \const{user} (see
 module/2 directive as shown below. Such operator declarations are
 visible inside the module and importing such a module makes the
 operators visible in the target module. Exporting operators is typically
-used by modules that implements sub-languages such as chr (see
+used by modules that implement sub-languages such as chr (see
 \chapref{chr}).  The example below is copied from the library
 \pllib{clpfd}.
 
@@ -376,7 +376,7 @@ used by modules that implements sub-languages such as chr (see
 \label{sec:importmodule}
 
 Until now we discussed the public module interface that is, at least to
-some extend, portable between Prolog implementation with a module system
+some extent, portable between Prolog implementation with a module system
 that is derived from Quintus Prolog. The remainder of this chapter
 describes the underlying mechanisms that can be used to emulate other
 module systems or implement other code-reuse mechanisms.
@@ -386,7 +386,7 @@ defined predicates, SWI-Prolog modules can also call predicates from its
 \jargon{import modules}. Each module has a (possibly empty) list of
 import modules. In the default setup, each new module has a single
 import module, called \const{user}. Module \const{user} imports from
-\const{system} where all builtin predicates reside.  These special
+\const{system} where all built-in predicates reside.  These special
 modules are described in more detail in \secref{resmodules}.
 
 The list of import modules can be manipulated and queried using the
@@ -411,7 +411,7 @@ Fails silently if \arg{Import} is not in the list.
 
 One usage scenario of import modules is to define a module that is a
 copy of another, but where one or more predicates have an alternative
-definition.  
+definition.
 
 
 \section{Reserved Modules and using the `user' module}
@@ -430,7 +430,7 @@ can use all predicates imported into \const{user} without explicitly
 importing them. If an application loads all modules from the
 \const{user} module using use_module/1, one achieves a scoping system
 similar to the C-language, where every module can access all exported
-predicates without any special precautions.  
+predicates without any special precautions.
 
 
 \section{An alternative import/export interface}
@@ -463,9 +463,9 @@ created modules.  See also export/1 and export_list/2.
 \section{Dynamic Modules}               \label{sec:dynamic-modules}
 
 So far, we discussed modules that were created by loading a
-module-file.  These modules have been introduced on facilitate the
+module-file.  These modules have been introduced to facilitate the
 development of large applications.  The modules are fully defined at
-load-time of the application and normally will not change during 
+load-time of the application and normally will not change during
 execution.  Having the notion of a set of predicates as a
 self-contained world can be attractive for other purposes as well.
 For example, assume an application that can reason about multiple
@@ -486,7 +486,7 @@ These calls create a module called `world_a' and make the call
 `world_a:consistent' succeed. Undefined predicates will not raise an
 exception for this module (see \prologflag{unknown}).
 
-Import and export from dynamically created world can be achieved using
+Import and export from a dynamically created world can be achieved using
 import/1 and export/1 or specifying the import module as described in
 \secref{importmodule}.
 
@@ -499,12 +499,12 @@ import/1 and export/1 or specifying the import module as described in
 \section{Transparent predicates: definition and context module}
 \label{sec:ctxmodule}
 
-The qualification of arguments with their module described in
-\secref{metapred} is realised using \jargon{transparent} predicates.
-Direct use of this underlying mechanism is now deprecated, but its
-understanding may still contributed to understanding modules in
-SWI-Prolog, while in some respects the transparent mechanism is
-more powerful than the meta-predicate mechanism.
+The qualification of module sensitive arguments
+described in \secref{metapred} is realised using \jargon{transparent}
+predicates.  It is now deprecated to use this mechanism
+directly. However, studying the underlying mechanism helps to
+understand SWI-Prolog's modules.  In some respect, the transparent
+mechanism is more powerful than meta-predicate declarations.
 
 Each predicate of the program is assigned a module, called its
 \jargon{definition module}. The definition module of a predicate is
@@ -512,14 +512,14 @@ always the module in which the predicate was originally defined. Each
 active goal in the Prolog system has a \jargon{context module} assigned
 to it.
 
-The context module is used to find predicates from a Prolog term. By
+The context module is used to find predicates for a Prolog term. By
 default, the context module is the definition module of the predicate
 running the goal. For transparent predicates however, this is the
 context module of the goal is inherited from the parent goal. Below, we
-implement maplist/3 using the transparent mechanism. The code more
+implement maplist/3 using the transparent mechanism. The code of
 maplist/3 and maplist_/3 is the same as in \secref{metapred}, but now we
-must both the main predicate and the helper as transparent to avoid
-changing the context module when calling the helper. 
+must declare both the main predicate and the helper as transparent to avoid
+changing the context module when calling the helper.
 
 \begin{code}
 :- module(maplist, maplist/3).
@@ -539,18 +539,19 @@ maplist_([H0|T0], [H|T], Goal) :-
 
 Note that \emph{any} call that translates terms into predicates is
 subject to the transparent mechanism, not just the terms passed to
-module-sensitive arguments. For example, consider the code below that
-counts the number of unique atoms returned as binding for a variable.
-Defined using \exam{:- meta_predicate count_atom_results(-,0,-).}, this
-works as expected. If we define count_atom_results/3 as transparent,
+module-sensitive arguments. For example, the module below
+counts the number of unique atoms returned as bindings for a variable.
+It works as expected.  If we use the directive
+\exam{:- module_transparent count_atom_results/3.} instead,
 atom_result/2 is called wrongly in the module \emph{calling}
-count_atom_results/3. This can be solved using strip_module/3 to create
-a qualified goal and a non-transparent helper predicate that is defined
-in the same module. 
+count_atom_results/3. This can be solved using strip_module/3 to
+create a qualified goal and a non-transparent helper predicate that is
+defined in the same module.
 
 \begin{code}
 :- module(count_atom_results,
 	  count_atom_results/3).
+:- meta_predicate count_atom_results(-,0,-).
 
 count_atom_results(A, Goal, Count) :-
 	setof(A, atom_result(A, Goal), As), !,
@@ -578,7 +579,7 @@ context_module/1 itself is, of course, transparent.
 Used in module transparent or meta-predicates to extract the referenced
 module and plain term. If \arg{Term} is a module-qualified term, i.e.\
 of the format \arg{Module}:\arg{Plain}, \arg{Module} and \arg{Plain}
-are unified to these values.  Otherwise \arg{Plain} is unified to
+are unified to these values.  Otherwise, \arg{Plain} is unified to
 \arg{Term} and \arg{Module} to the context module.
 \end{description}
 
@@ -605,14 +606,14 @@ are:
 	\termitem{line_count}{-Line}
 	True if \arg{Module} was loaded from the N-th line of file.
 	\termitem{exports}{-ListOfPredicateIndicators}
-	True if \arg{Module} exports the givven predicates. Predicate
+	True if \arg{Module} exports the given predicates. Predicate
 	indicators are in canonical form (i.e., always using Name/Arity
 	and never the DCG form Name//Arity). Future versions may also
 	use the DCG form and include public operators. See also
 	predicate_property/2.
     \end{description}
 \end{description}
- 
+
 
 \section{Compatibility of the Module System}	\label{sec:modulecompat}
 
@@ -627,7 +628,7 @@ The support for the meta_predicate/1 mechanism however is considerably
 different. On most systems, the \emph{caller} of a meta-predicate is
 compiled differently to provide the required <module>:<term>
 qualification. This implies that the meta-declaration must be available
-to the the compiler when compiling code that calls a meta-predicate. In
+to the compiler when compiling code that calls a meta-predicate. In
 practice, this implies that other systems pose the following
 restrictions on meta-predicates:
 
@@ -655,7 +656,7 @@ If a module does not define a predicate, it is searched for in the
 \jargon{import modules}. By default, the import module of any
 user-defined module is the \const{user} module. In turn, the
 \const{user} module imports from the module \const{system} that provides
-all built-in predicates.  The auto-import hierarchy can be changed 
+all built-in predicates.  The auto-import hierarchy can be changed
 using add_import_module/3 and delete_import_module/2.
 
 This mechanisms can be used to realise a simple object oriented system
@@ -665,10 +666,11 @@ or hierarchical module system.
 Operator declarations are local to a module and may be exported. In
 Quintus and SICStus all operators are global.  YAP and Ciao also use
 local operators.  SWI-Prolog provides global operator declarations
-from within a module using the following construct:
+from within a module by explicitly qualifying the operator name with
+the \const{user} module.
 
 \begin{code}
-:- op(precedence, type, user:(name)).
+:- op(precedence, type, user:(operatorname)).
 \end{code}
 \end{itemize}
 
