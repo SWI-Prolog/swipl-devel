@@ -1829,10 +1829,15 @@ parse_init([V|Vs], P) --> [init_propagator(V, P)], parse_init(Vs, P).
 
 trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 
-neq(A, B) :-
-        make_propagator(pneq(A, B), Prop),
-        init_propagator(A, Prop), init_propagator(B, Prop),
+neq(A, B) :- propagator_init_trigger(pneq(A, B)).
+
+propagator_init_trigger(P) :-
+        make_propagator(P, Prop),
+        term_variables(P, Vs),
+        maplist(prop_init(Prop), Vs),
         trigger_once(Prop).
+
+prop_init(Prop, V) :-init_propagator(V, Prop).
 
 geq(A, B) :-
         (   fd_get(A, AD, APs) ->
@@ -1840,10 +1845,7 @@ geq(A, B) :-
             (   fd_get(B, BD, _) ->
                 domain_supremum(BD, BS),
                 (   AI cis_geq BS -> true
-                ;   make_propagator(pgeq(A,B), Prop),
-                    init_propagator(A, Prop),
-                    init_propagator(B, Prop),
-                    trigger_once(Prop)
+                ;   propagator_init_trigger(pgeq(A,B))
                 )
             ;   domain_remove_smaller_than(AD, B, AD1),
                 fd_put(A, AD1, APs),
@@ -1897,9 +1899,7 @@ clpfd_geq_(X, Y) :-
         ).
 
 var_leq_var_plus_const(X, Y, C) :-
-        make_propagator(x_leq_y_plus_c(X,Y,C), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_once(Prop).
+        propagator_init_trigger(x_leq_y_plus_c(X,Y,C)).
 
 %% ?X #=< ?Y
 %
@@ -2149,9 +2149,7 @@ X #\= Y :-
 
 absdiff_neq_const(X, Y, C) :-
         (   C >= 0 ->
-            make_propagator(absdiff_neq(X,Y,C), Prop),
-            init_propagator(X, Prop), init_propagator(Y, Prop),
-            trigger_once(Prop)
+            propagator_init_trigger(absdiff_neq(X,Y,C))
         ;   constrain_to_integer(X), constrain_to_integer(Y)
         ).
 
@@ -2159,9 +2157,7 @@ absdiff_neq_const(X, Y, C) :-
 
 x_neq_y_plus_z(X, Y, Z) :-
         (   Z == 0 -> neq(X, Y)
-        ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
-            init_propagator(X, Prop), init_propagator(Y, Prop),
-            init_propagator(Z, Prop), trigger_once(Prop)
+        ;   propagator_init_trigger(x_neq_y_plus_z(X,Y,Z))
         ).
 
 % X is distinct from the number N. This is used internally, and does
@@ -2223,7 +2219,10 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 %
 % P implies Q.
 
-L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
+L #==> R   :-
+        reify(L, BL),
+        reify(R, BR),
+        propagator_init_trigger(pimpl(BL,BR)).
 
 %% ?P #<== ?Q
 %
@@ -2251,15 +2250,7 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 L #\/ R :-
         reify(L, X),
         reify(R, Y),
-        make_propagator(reified_or(X,Y,1), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop),
-        do_queue.
-
-myimpl(X, Y) :-
-        make_propagator(pimpl(X,Y), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop).
+        propagator_init_trigger(reified_or(X,Y,1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2351,55 +2342,34 @@ reify(Expr, B) :-
         ;   Expr = (V in Drep) ->
             drep_to_domain(Drep, Dom),
             fd_variable(V),
-            make_propagator(reified_in(V,Dom,B), Prop),
-            init_propagator(V, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
+            propagator_init_trigger(reified_in(V,Dom,B))
         ;   Expr = finite_domain(V) ->
             fd_variable(V),
-            make_propagator(reified_fd(V,B), Prop),
-            init_propagator(V, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
+            propagator_init_trigger(reified_fd(V,B))
         ;   Expr = (L #>= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
+            propagator_init_trigger(reified_geq(LD,LR,RD,RR,B))
         ;   Expr = (L #> R)  -> reify(L #>= (R+1), B)
         ;   Expr = (L #=< R) -> reify(R #>= L, B)
         ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
         ;   Expr = (L #= R)  ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_eq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
+            propagator_init_trigger(reified_eq(LD,LR,RD,RR,B))
         ;   Expr = (L #\= R) ->
             parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_neq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
+            propagator_init_trigger(reified_neq(LD,LR,RD,RR,B))
         ;   Expr = (L #==> R) -> reify((#\ L) #\/ R, B)
         ;   Expr = (L #<== R) -> reify(R #==> L, B)
         ;   Expr = (L #<==> R) -> reify((L #==> R) #/\ (R #==> L), B)
         ;   Expr = (L #/\ R) ->
             reify(L, LR), reify(R, RR),
-            make_propagator(reified_and(LR,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            propagator_init_trigger(reified_and(LR,RR,B))
         ;   Expr = (L #\/ R) ->
             reify(L, LR), reify(R, RR),
-            make_propagator(reified_or(LR,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
+            propagator_init_trigger(reified_or(LR,RR,B))
         ;   Expr = (#\ Q) ->
             reify(Q, QR),
-            make_propagator(reified_not(QR,B), Prop),
-            init_propagator(QR, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
+            propagator_init_trigger(reified_not(QR,B))
         ;   domain_error(clpfd_reifiable_expression, Expr)
         ).
 
@@ -4093,10 +4063,7 @@ zcompare(Order, A, B) :-
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
-            make_propagator(pzcompare(Order, A, B), Prop),
-            init_propagator(A, Prop),
-            init_propagator(B, Prop),
-            trigger_once(Prop)
+            propagator_init_trigger(pzcompare(Order, A, B))
         ).
 
 zcompare_(=, A, B) :- A #= B.
