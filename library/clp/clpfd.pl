@@ -1720,10 +1720,6 @@ fetch_propagator(Prop) :-
         ;   Prop = P
         ).
 
-:- thread_initialization((make_queue,
-                          nb_setval('$clpfd_current_propagator', []),
-                          nb_setval('$clpfd_queue_status', enabled))).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Parsing a CLP(FD) expression has two important side-effects: First,
    it constrains the variables occurring in the expression to
@@ -1747,48 +1743,89 @@ power_var_num(P, X, N) :-
             N is L + R
         ).
 
-parse_clpfd(Expr, Result) :-
-        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
-        ;   var(Expr) ->
-            constrain_to_integer(Expr),
-            Result = Expr
-        ;   integer(Expr) -> Result = Expr
-        ;   Expr = (L + R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            myplus(RL, RR, Result)
-        ;   power_var_num(Expr, Var, N) -> Var^N #= Result
-        ;   Expr = (L * R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mytimes(RL, RR, Result)
-        ;   Expr = (L - R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mytimes(-1, RR, RRR),
-            myplus(RL, RRR, Result)
-        ;   Expr = (- E) ->
-            parse_clpfd(E, RE),
-            mytimes(-1, RE, Result)
-        ;   Expr = max(L, R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mymax(RL, RR, Result)
-        ;   Expr = min(L,R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mymin(RL, RR, Result)
-        ;   Expr = L mod R ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            RR #\= 0,
-            mymod(RL, RR, Result)
-        ;   Expr = abs(E) ->
-            parse_clpfd(E, RE),
-            myabs(RE, Result),
-            Result #>= 0
-        ;   Expr = (L / R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR), RR #\= 0,
-            mydiv(RL, RR, Result)
-        ;   Expr = (L ^ R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            myexp(RL, RR, Result)
-        ;   domain_error(clpfd_expression, Expr)
-        ).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Given expression E, we obtain the finite domain variable R by
+   interpreting a simple committed-choice language that is a list of
+   conditions and bodies. In conditions, g(Goal) means literally Goal,
+   and m(Match) means that E can be decomposed as stated. The
+   variables are to be understood as the result of parsing the
+   subexpressions recursively. In the body, g(Goal) means again Goal,
+   and p(Propagator) means to attach and trigger once a propagator.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+parse_clpfd(E, R,
+            [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
+             g(var(E))         -> [g(constrain_to_integer(E)), g(E = R)],
+             g(integer(E))     -> [g(R = E)],
+             m(A+B)            -> [p(pplus(A, B, R))],
+             % power_var_num/3 must occur before */2 to be useful
+             g(power_var_num(E, V, N)) -> [p(pexp(V, N, R))],
+             m(A*B)            -> [p(ptimes(A, B, R))],
+             m(A-B)            -> [p(pplus(R,B,A))],
+             m(-A)             -> [p(ptimes(-1,A,R))],
+             m(max(A,B))       -> [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
+             m(min(A,B))       -> [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
+             m(mod(A,B))       -> [g(B #\= 0), p(pmod(A, B, R))],
+             m(abs(A))         -> [g(R #>= 0), p(pabs(A, R))],
+             m(A/B)            -> [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A^B)            -> [p(pexp(A, B, R))],
+             g(true)           -> [g(domain_error(clpfd_expression, E))]
+            ]).
+
+% Here, we compile the committed choice language to a single
+% predicate, parse_clpfd/2.
+
+make_parse_clpfd :-
+        parse_clpfd_clauses(Clauses0),
+        maplist(defaulty_clause, Clauses0, Clauses),
+        maplist(assertz, Clauses).
+
+defaulty_clause(Head :- Goals, clpfd:Head :- Body) :-
+        list_goal(Goals, Body).
+
+parse_clpfd_clauses(Clauses) :-
+        parse_clpfd(E, R, Matchers),
+        maplist(parse_matcher(E, R), Matchers, Clauses).
+
+parse_matcher(E, R, Matcher, Clause) :-
+        Matcher = (Condition0 -> Goals0),
+        phrase(parse_condition(Condition0, E, Head), Condition, Rest),
+        phrase(parse_goals(Goals0), Rest),
+        Clause = (parse_clpfd(Head, R) :- Condition).
+
+parse_condition(g(Goal), E, E) --> [Goal, !].
+parse_condition(m(Match), _, Match0) -->
+        { copy_term(Match, Match0) },
+        [!],
+        { term_variables(Match0, Vs0),
+          term_variables(Match, Vs)
+        },
+        parse_match_variables(Vs0, Vs).
+
+parse_match_variables([], []) --> [].
+parse_match_variables([V0|Vs0], [V|Vs]) -->
+        [parse_clpfd(V0, V)],
+        parse_match_variables(Vs0, Vs).
+
+parse_goals([]) --> [].
+parse_goals([G|Gs]) --> parse_goal(G), parse_goals(Gs).
+
+parse_goal(g(Goal)) --> [Goal].
+parse_goal(p(Prop)) -->
+        [make_propagator(Prop, P)],
+        { term_variables(Prop, Vs) },
+        parse_init(Vs, P),
+        [trigger_once(P)].
+
+parse_init([], _)     --> [].
+parse_init([V|Vs], P) --> [init_propagator(V, P)], parse_init(Vs, P).
+
+%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%   clpfd:parse_clpfd_clauses(Clauses), maplist(portray_clause, Clauses).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 
@@ -1818,48 +1855,6 @@ geq(A, B) :-
             do_queue
         ;   A >= B
         ).
-
-myplus(X, Y, Z) :-
-        make_propagator(pplus(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mytimes(X, Y, Z) :-
-        make_propagator(ptimes(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mydiv(X, Y, Z) :-
-        make_propagator(pdiv(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-myexp(X, Y, Z) :-
-        make_propagator(pexp(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-myabs(X, Y) :-
-        make_propagator(pabs(X,Y), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop), trigger_once(Prop).
-
-mymod(X, M, K) :-
-        make_propagator(pmod(X,M,K), Prop),
-        init_propagator(X, Prop), init_propagator(M, Prop),
-        init_propagator(K, Prop), trigger_once(Prop).
-
-mymax(X, Y, Z) :-
-        X #=< Z, Y #=< Z,
-        make_propagator(pmax(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mymin(X, Y, Z) :-
-        X #>= Z, Y #>= Z,
-        make_propagator(pmin(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Naive parsing of inequalities and disequalities can result in a lot
@@ -1892,11 +1887,11 @@ clpfd_geq_(X, Y) :-
         ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
             C1 is - C,
             var_leq_var_plus_const(Y, X1, C1)
-        ;   nonvar(Y), Y = Z+One, One == 1, integer(Z) ->
-            Y1 is Z + 1,
+        ;   nonvar(Y), Y = Z+A, integer(A), integer(Z) ->
+            Y1 is Z + A,
             clpfd_geq_(X, Y1)
-        ;   integer(X), nonvar(Y), Y = Z+One, One == 1 ->
-            X1 is X - 1,
+        ;   integer(X), nonvar(Y), Y = Z+A, integer(A) ->
+            X1 is X - A,
             clpfd_geq_(X1, Z)
         ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY)
         ).
@@ -2234,7 +2229,7 @@ L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
 %
 % Q implies P.
 
-L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
+L #<== R   :- R #==> L.
 
 %% ?P #/\ ?Q
 %
@@ -2253,30 +2248,18 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 % Sum = 233168.
 % ==
 
-L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
-
-myor(X, Y, Z) :-
-        make_propagator(por(X,Y,Z), Prop),
+L #\/ R :-
+        reify(L, X),
+        reify(R, Y),
+        make_propagator(reified_or(X,Y,1), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop),
-        trigger_prop(Prop).
+        trigger_prop(Prop),
+        do_queue.
 
 myimpl(X, Y) :-
         make_propagator(pimpl(X,Y), Prop),
         init_propagator(X, Prop), init_propagator(Y, Prop),
         trigger_prop(Prop).
-
-my_reified_div(X, Y, D, Z) :-
-        make_propagator(reified_div(X,Y,D,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_once(Prop).
-
-my_reified_mod(X, Y, D, Z) :-
-        make_propagator(reified_mod(X,Y,D,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2286,53 +2269,79 @@ my_reified_mod(X, Y, D, Z) :-
    but not the operands, except for requiring that they be integers.
    In contrast to parse_clpfd/2, the result of an expression can now
    also be undefined, in which case the constraint cannot hold.
+   Therefore, the committed-choice language is extended by an element
+   d(D) that states D is 1 iff all subexpressions are defined.
+
+   TODO: When an implication becomes entailed, created auxiliary
+   constraints should ideally be killed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-parse_reified_clpfd(Expr, Result, Defined) :-
-        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
-        ;   var(Expr) ->
-            constrain_to_integer(Expr),
-            Result = Expr, Defined = 1
-        ;   integer(Expr) -> Result = Expr, Defined = 1
-        ;   Expr = (L + R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            myplus(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (L * R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mytimes(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (L - R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mytimes(-1, RR, RRR),
-            myplus(RL, RRR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (- E) ->
-            parse_reified_clpfd(E, RE, Defined),
-            mytimes(-1, RE, Result)
-        ;   Expr = max(L, R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymax(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = min(L,R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymin(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = L mod R ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined1,
-            my_reified_mod(RL, RR, Defined2, Result),
-            Defined1 #/\ Defined2 #<==> Defined
-        ;   Expr = abs(E) ->
-            parse_reified_clpfd(E, RE, Defined),
-            myabs(RE, Result),
-            Result #>= 0
-        ;   Expr = (L / R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined1,
-            my_reified_div(RL, RR, Defined2, Result),
-            Defined1 #/\ Defined2 #<==> Defined
-        ;   Expr = (L ^ R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined,
-            myexp(RL, RR, Result)
-        ;   domain_error(clpfd_expression, Expr)
+parse_reified(E, R, D,
+              [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
+               g(var(E))     -> [g(constrain_to_integer(E)), g(R = E), g(D=1)],
+               g(integer(E)) -> [g(R=E), g(D=1)],
+               m(A+B)        -> [d(D), p(pplus(A,B,R))],
+               m(A*B)        -> [d(D), p(ptimes(A,B,R))],
+               m(A-B)        -> [d(D), p(pplus(R,B,A))],
+               m(-A)         -> [d(D), p(ptimes(-1,A,R))],
+               m(max(A,B))   -> [d(D), g(R#>=A), g(R#>=B), p(pmax(A,B,R))],
+               m(min(A,B))   -> [d(D), g(A#=<R), g(B#=<R), p(pmin(A,B,R))],
+               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), g(D1#/\D2#<==>D)],
+               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R))],
+               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), g(D1#/\D2#<==>D)],
+               m(A^B)        -> [d(D), p(pexp(A,B,R))],
+               g(true)       -> [g(domain_error(clpfd_expression, E))]]
+             ).
+
+% Again, we compile this to a predicate, parse_reified_clpfd/3.
+
+make_parse_reified :-
+        parse_reified_clauses(Clauses0),
+        maplist(defaulty_clause, Clauses0, Clauses),
+        maplist(assertz, Clauses).
+
+parse_reified_clauses(Clauses) :-
+        parse_reified(E, R, D, Matchers),
+        maplist(parse_reified(E, R, D), Matchers, Clauses).
+
+parse_reified(E, R, D, Matcher, Clause) :-
+        Matcher = (Condition0 -> Goals0),
+        phrase(reified_condition(Condition0, E, Head, Ds), Condition, Rest),
+        phrase(reified_goals(Goals0, Ds), Rest),
+        Clause = (parse_reified_clpfd(Head, R, D) :- Condition).
+
+reified_condition(g(Goal), E, E, []) --> [Goal, !].
+reified_condition(m(Match), _, Match0, Ds) -->
+        { copy_term(Match, Match0) },
+        [!],
+        { term_variables(Match0, Vs0),
+          term_variables(Match, Vs)
+        },
+        reified_variables(Vs0, Vs, Ds).
+
+reified_variables([], [], []) --> [].
+reified_variables([V0|Vs0], [V|Vs], [D|Ds]) -->
+        [parse_reified_clpfd(V0, V, D)],
+        reified_variables(Vs0, Vs, Ds).
+
+reified_goals([], _) --> [].
+reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
+
+reified_goal(d(D), Ds) -->
+        (   { Ds = [X] } -> [D=X]
+        ;   { Ds = [X,Y] } -> [X#/\Y #<==>D]
+        ;   { domain_error(one_or_two_element_list, Ds) }
         ).
+reified_goal(g(Goal), _) --> [Goal].
+reified_goal(p(Prop), _) -->
+        [make_propagator(Prop, P)],
+        { term_variables(Prop, Vs) },
+        parse_init(Vs, P),
+        [trigger_once(P)].
+
+%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%   clpfd:parse_reified_clauses(Cs), maplist(portray_clause, Cs).
+
 
 reify(Expr, B) :-
         B in 0..1,
@@ -3773,20 +3782,14 @@ run_propagator(reified_and(X,Y,B), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_or(X,Y,B), MState) :-
-        (   var(B) ->
-            (   nonvar(X) ->
-                (   X =:= 1 -> B = 1
-                ;   X =:= 0 -> B = Y
-                )
-            ;   nonvar(Y) -> run_propagator(reified_or(Y,X,B), MState)
-            ;   true
+        (   nonvar(X) ->
+            kill(MState),
+            (   X =:= 1 -> B = 1
+            ;   B = Y
             )
-        ;   B =:= 0 -> kill(MState), X = 0, Y = 0
-        ;   B =:= 1 ->
-            (   X == 0 -> Y = 1
-            ;   Y == 0 -> X = 1
-            ;   true
-            )
+        ;   nonvar(Y) -> run_propagator(reified_or(Y,X,B), MState)
+        ;   B == 0 -> kill(MState), X = 0, Y = 0
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3808,17 +3811,6 @@ run_propagator(pimpl(X, Y), MState) :-
             (   Y =:= 0 -> kill(MState), X = 0
             ;   kill(MState)
             )
-        ;   true
-        ).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-run_propagator(por(X, Y, Z), MState) :-
-        (   nonvar(X) ->
-            (   X =:= 0 -> Y = Z
-            ;   X =:= 1 -> Z = 1
-            )
-        ;   nonvar(Y) -> run_propagator(por(Y,X,Z), MState)
         ;   true
         ).
 
@@ -4350,7 +4342,6 @@ attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(por(X,Y,Z), X #\/ Y #<==> Z).
 attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
@@ -4400,4 +4391,10 @@ unfold_product([C|Cs], [V|Vs], P0, P) :-
        format("--- Compile SWI-Prolog with the GMP library for unbounded integer arithmetic.\n\n")
    ;   true
    ).
+
+:- thread_initialization((make_queue,
+                          nb_setval('$clpfd_current_propagator', []),
+                          nb_setval('$clpfd_queue_status', enabled),
+                          make_parse_clpfd,
+                          make_parse_reified)).
 
