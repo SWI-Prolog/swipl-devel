@@ -654,6 +654,8 @@ omit_qualifier(M:G0, _, M:G) :-
 omit_qualifier(G0, TypeIn, G) :-
 	omit_meta_qualifiers(G0, TypeIn, G).
 
+omit_meta_qualifiers(V, _, V) :-
+	var(V), !.
 omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :- !,
 	omit_qualifier(QA, TypeIn, A),
 	omit_qualifier(QB, TypeIn, B).
