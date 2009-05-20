@@ -1868,7 +1868,112 @@ geq(A, B) :-
    only extremal values are of interest in inequalities. Introducing
    auxiliary variables should be avoided when possible, and
    specialised propagators should be used for common constraints.
+
+   We again use a simple committed-choice language for matching
+   special cases of constraints. m_c(M,C) means that M matches and C
+   holds. Two things are important: First, although the actual
+   constraint functors (#\=2, #=/2 etc.) are used in the description,
+   they must expand to the respective auxiliary predicates
+   (match_expand/2) because the actual constraints are subject to goal
+   expansion. Second, when specialised constraints (like scalar
+   product) post simpler constraints on their own, these simpler
+   versions must be handled separately and must occur before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+match_expand(#>=, clpfd_geq_).
+match_expand(#=, clpfd_equal_).
+match_expand(#\=, clpfd_neq).
+
+symmetric(#=).
+symmetric(#\=).
+
+matches([
+         m(var(X) #>= var(Y)-integer(C))       -> [p(x_leq_y_plus_c(Y, X, C))],
+         m(var(X) #>= var(Y)+integer(C))       -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
+         m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), g(clpfd_geq_(X, I))],
+         m(var(X) + integer(C) #>= var(Y))     -> [p(x_leq_y_plus_c(Y, X, C))],
+         m(var(X) - integer(C) #>= var(Y))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C))],
+         m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
+         m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
+         m(abs(any(X)) #>= integer(I))         -> [g((I>0 -> I1 is -I, parse_clpfd(X, RX), RX in inf..I1 \/ I..sup; true))],
+         m(integer(I) #>= abs(any(X)))         -> [g(I>=0), g(I1 is -I), g(parse_clpfd(X, RX)), g(RX in I1..I)],
+         m(any(X) #>= any(Y))                  -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(geq(RX, RY))],
+
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
+         m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
+         m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
+         m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
+         m(var(X) #= -var(Z))       -> [p(ptimes(-1, Z, X))],
+         m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+         [g((   Cs = [] -> S =:= 0
+            ;   Cs = [C|CsRest],
+                gcd(CsRest, C, GCD),
+                S mod GCD =:= 0,
+                scalar_product(Cs, Vs, #=, S)
+            ))],
+         m(var(X) #= any(Y))       -> [g(parse_clpfd(Y,X))],
+         m(any(X) #= any(Y))       -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RX))],
+
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
+         m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
+         m(var(X) #\= var(Y) + var(Z))        -> [g(x_neq_y_plus_z(X, Y, Z))],
+         m(var(X) #\= var(Y) - var(Z))        -> [g(x_neq_y_plus_z(Y, X, Z))],
+         m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
+         m(integer(X) #\= abs(var(Y)-var(Z))) -> [g(absdiff_neq_const(Y, Z, X))],
+         m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+          [g(scalar_product(Cs, Vs, #\=, S))],
+         m(any(X) #\= any(Y)) -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(neq(RX, RY))]
+        ]).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   We again compile the committed-choice matching language to the
+   intended auxiliary predicates. We now must take care not to
+   unintentionally unify a variable with a complex term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_matches :-
+        matches(Ms),
+        phrase(matchers(Ms), Clauses0),
+        maplist(defaulty_clause, Clauses0, Clauses),
+        maplist(assertz, Clauses).
+
+matchers([]) --> [].
+matchers([Condition->Goals|Ms]) -->
+        matcher(Condition, Goals),
+        matchers(Ms).
+
+matcher(m(M), Gs) --> matcher(m_c(M,true), Gs).
+matcher(m_c(Matcher,Cond), Gs) -->
+        [Head :- Goals0],
+        { Matcher =.. [F,A,B],
+          match_expand(F, Expand),
+          Head =.. [Expand,X,Y],
+          phrase((match(A, X), match(B, Y)), Goals0, [Cond,!|Goals1]),
+          phrase(parse_goals(Gs), Goals1) },
+        (   { symmetric(F) } ->
+            { Head1 =.. [Expand,Y,X] },
+            [Head1 :- Goals0]
+        ;   []
+        ).
+
+match(any(A), T)     --> [A = T].
+match(var(V), T)     --> [v_or_i(T), V = T].
+match(integer(I), T) --> [integer(T), I = T].
+match(-X, T)         --> [nonvar(T), T = -A], match(X, A).
+match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
+match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
+match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
+match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 %% ?X #>= ?Y
 %
@@ -1877,29 +1982,6 @@ geq(A, B) :-
 X #>= Y :- clpfd_geq(X, Y).
 
 clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
-
-clpfd_geq_(X, Y) :-
-        (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
-            var_leq_var_plus_const(Y1, X, C)
-        ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
-            C1 is -C,
-            var_leq_var_plus_const(Y1, X, C1)
-        ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
-            var_leq_var_plus_const(Y, X1, C)
-        ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
-            C1 is - C,
-            var_leq_var_plus_const(Y, X1, C1)
-        ;   nonvar(Y), Y = Z+A, integer(A), integer(Z) ->
-            Y1 is Z + A,
-            clpfd_geq_(X, Y1)
-        ;   integer(X), nonvar(Y), Y = Z+A, integer(A) ->
-            X1 is X - A,
-            clpfd_geq_(X1, Z)
-        ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY)
-        ).
-
-var_leq_var_plus_const(X, Y, C) :-
-        propagator_init_trigger(x_leq_y_plus_c(X,Y,C)).
 
 %% ?X #=< ?Y
 %
@@ -1912,6 +1994,8 @@ X #=< Y :- Y #>= X.
 % X equals Y.
 
 X #= Y :- clpfd_equal(X, Y).
+
+clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X), reinforce(Y).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
@@ -1967,6 +2051,8 @@ user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
 linsum(-A, S0, S)  --> mulsum(A, -1, S0, S).
@@ -1987,11 +2073,6 @@ v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
         % omit constraints that scalar_product posts
-        \+ ( v_or_i(Left), v_or_i(Right) ),
-        \+ ( nonvar(Left), Left = A+B, maplist(v_or_i, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A+B, maplist(v_or_i, [A,B,Left]) ),
-        \+ ( nonvar(Left), Left = A*B, maplist(v_or_i, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A*B, maplist(v_or_i, [A,B,Left]) ),
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
@@ -2021,20 +2102,6 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
             filter_linsum(Cs0, Vs0, Cs, Vs)
         ;   Cs = [C0|Cs1], Vs = [V0|Vs1],
             filter_linsum(Cs0, Vs0, Cs1, Vs1)
-        ).
-
-clpfd_equal(X, Y)  :-
-        (   left_right_linsum_const(X, Y, Cs, Vs, S) ->
-            (   Cs = [] -> S =:= 0
-            ;   Cs = [C|CsRest],
-                gcd(CsRest, C, GCD),
-                S mod GCD =:= 0,
-                scalar_product(Cs, Vs, #=, S)
-            )
-        ;   (   v_or_i(Y) -> parse_clpfd(X, Y), reinforce(Y)
-            ;   v_or_i(X) -> parse_clpfd(Y, X), reinforce(X)
-            ;   parse_clpfd(X, RX), parse_clpfd(Y, RX), reinforce(RX)
-            )
         ).
 
 gcd([], G, G).
@@ -2084,66 +2151,7 @@ integer_kroot(L, U, N, K, R) :-
 %
 % X is not Y.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Some expressions are handled by special propagators, and we want to
-   recognise all their variations. A fact match(Expr, Call) describes
-   which specialised predicate can be applied for Expr.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-match(var(X) #\= integer(Y), neq_num(X, Y)).
-match(var(X) #\= var(Y) + var(Z), x_neq_y_plus_z(X, Y, Z)).
-match(var(X) #\= var(Y) - var(Z), x_neq_y_plus_z(Y, X, Z)).
-match(integer(X) #\= abs(var(Y)-var(Z)), absdiff_neq_const(Y, Z, X)).
-
-left_right_matcher(X, Y, M) :-
-        findall(Term-Pred, match(Term,Pred), TPs),
-        matcher(TPs, X, Y, M).
-
-matcher([], _, _, false).
-matcher([Term-Pred|TPs], X, Y, Matchers) :-
-        (   Term = (Left #\= Right) ->
-            Matchers = (Cond1 ->  Pred; Cond2 -> Pred ; Rest),
-            condition(Left, Right, X, Y, Cond1),
-            condition(Right, Left, X, Y, Cond2),
-            matcher(TPs, X, Y, Rest)
-        ;   domain_error(matcher_expression, Term)
-        ).
-
-condition(Left, Right, X, Y, Cond) :-
-        phrase((conditions(Left,X),conditions(Right,Y)), Cs),
-        list_goal(Cs, Cond).
-
-conditions(var(V), T)     --> [v_or_i(T), V = T].
-conditions(integer(I), T) --> [integer(T), I = T].
-conditions(X+Y, T)        -->
-        [nonvar(T), T = A + B],
-        conditions(X, A),
-        conditions(Y, B).
-conditions(X-Y, T)        -->
-        [nonvar(T), T = A - B],
-        conditions(X, A),
-        conditions(Y, B).
-conditions(abs(X), T)     -->
-        [nonvar(T), T = abs(A)],
-        conditions(X, A).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-X #\= Y :-
-        (
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% matcher for specialised propagators, generated with:
-        %%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
-        %%   clpfd:left_right_matcher(X, Y, M).
-          ((v_or_i(X), M1481=X), integer(Y)), M1483=Y->neq_num(M1481, M1483); ((integer(X), M1483=X), v_or_i(Y)), M1481=Y->neq_num(M1481, M1483); ((((((v_or_i(X), M1459=X), nonvar(Y)), Y=M1674+M1675), v_or_i(M1674)), M1464=M1674), v_or_i(M1675)), M1466=M1675->x_neq_y_plus_z(M1459, M1464, M1466); ((((((nonvar(X), X=M1756+M1757), v_or_i(M1756)), M1464=M1756), v_or_i(M1757)), M1466=M1757), v_or_i(Y)), M1459=Y->x_neq_y_plus_z(M1459, M1464, M1466); ((((((v_or_i(X), M1437=X), nonvar(Y)), Y=M1872-M1873), v_or_i(M1872)), M1442=M1872), v_or_i(M1873)), M1444=M1873->x_neq_y_plus_z(M1442, M1437, M1444); ((((((nonvar(X), X=M1954-M1955), v_or_i(M1954)), M1442=M1954), v_or_i(M1955)), M1444=M1955), v_or_i(Y)), M1437=Y->x_neq_y_plus_z(M1442, M1437, M1444); ((((((((integer(X), M1413=X), nonvar(Y)), Y=abs(M2070)), nonvar(M2070)), M2070=M2083-M2084), v_or_i(M2083)), M1420=M2083), v_or_i(M2084)), M1422=M2084->absdiff_neq_const(M1420, M1422, M1413); ((((((((nonvar(X), X=abs(M2171)), nonvar(M2171)), M2171=M2184-M2185), v_or_i(M2184)), M1420=M2184), v_or_i(M2185)), M1422=M2185), integer(Y)), M1413=Y->absdiff_neq_const(M1420, M1422, M1413)
-        %% end of generated code
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
-            scalar_product(Cs, Vs, #\=, S)
-        ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
-        ),
-        do_queue.
+X #\= Y :- clpfd_neq(X, Y), do_queue.
 
 % abs(X-Y) #\= C
 
@@ -4363,5 +4371,6 @@ unfold_product([C|Cs], [V|Vs], P0, P) :-
                           nb_setval('$clpfd_current_propagator', []),
                           nb_setval('$clpfd_queue_status', enabled),
                           make_parse_clpfd,
-                          make_parse_reified)).
+                          make_parse_reified,
+                          make_matches)).
 
