@@ -2072,7 +2072,6 @@ v_or_i(V) :- var(V), !.
 v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
-        % omit constraints that scalar_product posts
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
