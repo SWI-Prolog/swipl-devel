@@ -1895,7 +1895,7 @@ matches([
          m(var(X) - integer(C) #>= var(Y))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C))],
          m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
-         m(abs(any(X)) #>= integer(I))         -> [g((I>0 -> I1 is -I, parse_clpfd(X, RX), RX in inf..I1 \/ I..sup; true))],
+         m(abs(any(X)) #>= integer(I))         -> [g(parse_clpfd(X, RX)), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
          m(integer(I) #>= abs(any(X)))         -> [g(I>=0), g(I1 is -I), g(parse_clpfd(X, RX)), g(RX in I1..I)],
          m(any(X) #>= any(Y))                  -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(geq(RX, RY))],
 
