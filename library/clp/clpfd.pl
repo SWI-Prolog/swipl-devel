@@ -1905,7 +1905,8 @@ matches([
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
-               ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)))],
+               ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)
+               ))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
          m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), g(clpfd_geq_(X, I))],
          m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
@@ -1954,8 +1955,19 @@ matches([
 make_matches :-
         matches(Ms),
         phrase(matchers(Ms), Clauses0),
+        findall(F, (member(M->_, Ms), arg(1, M, M1), functor(M1, F, _)), Fs0),
+        sort(Fs0, Fs1),
+        maplist(match_expand, Fs1, Fs),
+        maplist(prevent_cyclic_argument, Fs),
         maplist(defaulty_clause, Clauses0, Clauses),
         maplist(assertz, Clauses).
+
+prevent_cyclic_argument(F) :-
+        Head =.. [F,X,Y],
+        assertz(Head :- (   cyclic_term(X) -> domain_error(clpfd_expression, X)
+                        ;   cyclic_term(Y) -> domain_error(clpfd_expression, Y)
+                        ;   false
+                        )).
 
 matchers([]) --> [].
 matchers([Condition->Goals|Ms]) -->
@@ -2086,7 +2098,6 @@ v_or_i(V) :- var(V), !.
 v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
-        \+ cyclic_term(Left-Right),
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
