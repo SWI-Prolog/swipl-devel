@@ -1891,9 +1891,10 @@ symmetric(#\=).
 
 matches([
          m(var(X) - var(Y) #>= integer(C))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
-         m(-var(X) + var(Y) #>= integer(C))    -> [g(clpfd_geq_(Y-X, C))],
          m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
-            [g((   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
+            [g((   Cs = [1], Vs = [A] -> geq(A, Const)
+               ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
+               ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
                ;   Cs = [1,-1], Vs = [A,B] -> clpfd_geq_(A-B, Const)
                ;   Cs = [-1,1], Vs = [A,B] -> clpfd_geq_(B-A, Const)
                ;   Cs = [-1,-1], Vs = [A,B] ->
@@ -2079,6 +2080,7 @@ v_or_i(V) :- var(V), !.
 v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
+        \+ cyclic_term(Left-Right),
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
