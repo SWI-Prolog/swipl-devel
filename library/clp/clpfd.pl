@@ -1890,13 +1890,18 @@ symmetric(#=).
 symmetric(#\=).
 
 matches([
+         m(var(X) - var(Y) #>= integer(C))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
+         m(-var(X) + var(Y) #>= integer(C))    -> [g(clpfd_geq_(Y-X, C))],
+         m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
+            [g((   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
+               ;   Cs = [1,-1], Vs = [A,B] -> clpfd_geq_(A-B, Const)
+               ;   Cs = [-1,1], Vs = [A,B] -> clpfd_geq_(B-A, Const)
+               ;   Cs = [-1,-1], Vs = [A,B] ->
+                   A+B #= S, Const1 is -Const, geq(Const1, S)
+               ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
          m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), g(clpfd_geq_(X, I))],
          m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
-         m(var(X) #>= var(Y)+integer(C))       -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
-         m(var(X) #>= var(Y)-integer(C))       -> [p(x_leq_y_plus_c(Y, X, C))],
-         m(var(X) + integer(C) #>= var(Y))     -> [p(x_leq_y_plus_c(Y, X, C))],
-         m(var(X) - integer(C) #>= var(Y))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
          m(abs(any(X)) #>= integer(I))         -> [g(parse_clpfd(X, RX)), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
          m(integer(I) #>= abs(any(X)))         -> [g(parse_clpfd(X, RX)), g(I>=0), g(I1 is -I), g(RX in I1..I)],
          m(any(X) #>= any(Y))                  -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(geq(RX, RY))],
@@ -1910,12 +1915,12 @@ matches([
          m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
          m(var(X) #= -var(Z))       -> [p(ptimes(-1, Z, X))],
          m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
-         [g((   Cs = [] -> S =:= 0
-            ;   Cs = [C|CsRest],
-                gcd(CsRest, C, GCD),
-                S mod GCD =:= 0,
-                scalar_product(Cs, Vs, #=, S)
-            ))],
+            [g((   Cs = [] -> S =:= 0
+               ;   Cs = [C|CsRest],
+                   gcd(CsRest, C, GCD),
+                   S mod GCD =:= 0,
+                   scalar_product(Cs, Vs, #=, S)
+               ))],
          m(var(X) #= any(Y))       -> [g(parse_clpfd(Y,X))],
          m(any(X) #= any(Y))       -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RX))],
 
@@ -1929,7 +1934,7 @@ matches([
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(var(Y)-var(Z))) -> [g(absdiff_neq_const(Y, Z, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
-          [g(scalar_product(Cs, Vs, #\=, S))],
+            [g(scalar_product(Cs, Vs, #\=, S))],
          m(any(X) #\= any(Y)) -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(neq(RX, RY))]
         ]).
 
