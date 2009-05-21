@@ -1895,8 +1895,14 @@ matches([
             [g((   Cs = [1], Vs = [A] -> geq(A, Const)
                ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
                ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
-               ;   Cs = [1,-1], Vs = [A,B] -> clpfd_geq_(A-B, Const)
-               ;   Cs = [-1,1], Vs = [A,B] -> clpfd_geq_(B-A, Const)
+               ;   Cs = [1,-1], Vs = [A,B] ->
+                   (   Const =:= 0 -> geq(A, B)
+                   ;   clpfd_geq_(A-B, Const)
+                   )
+               ;   Cs = [-1,1], Vs = [A,B] ->
+                   (   Const =:= 0 -> geq(B, A)
+                   ;   clpfd_geq_(B-A, Const)
+                   )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
                ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)))],
