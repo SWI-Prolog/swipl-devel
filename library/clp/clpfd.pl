@@ -1454,7 +1454,9 @@ fds_sespsize([V|Vs], S0, S) :-
 optimise(Vars, Options, Whats) :-
         Whats = [What|WhatsRest],
         Extremum = extremum(none),
-        (   store_extremum(Vars, Options, What, Extremum)
+        (   catch(store_extremum(Vars, Options, What, Extremum),
+                  time_limit_exceeded,
+                  false)
         ;   Extremum = extremum(n(Val)),
             arg(1, What, Expr),
             append(WhatsRest, Options, Options1),
