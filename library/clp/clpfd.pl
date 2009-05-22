@@ -3740,8 +3740,8 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, geq(X, Y)
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
