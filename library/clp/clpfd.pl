@@ -3870,14 +3870,14 @@ run_propagator(reified_not(X,Y), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pimpl(X, Y, Ps), MState) :-
         (   nonvar(X) ->
-            (   X =:= 1 -> kill(MState), Y = 1
-            ;   kill(MState),
-                maplist(kill_entailed, Ps)
+            kill(MState),
+            (   X =:= 1 -> Y = 1
+            ;   maplist(kill_entailed, Ps)
             )
         ;   nonvar(Y) ->
-            (   Y =:= 0 -> kill(MState), X = 0
-            ;   kill(MState),
-                maplist(kill_entailed, Ps)
+            kill(MState),
+            (   Y =:= 0 -> X = 0
+            ;   maplist(kill_entailed, Ps)
             )
         ;   true
         ).
