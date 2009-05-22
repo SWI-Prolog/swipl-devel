@@ -1834,14 +1834,20 @@ trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 neq(A, B) :- propagator_init_trigger(pneq(A, B)).
 
 propagator_init_trigger(P) -->
+        { term_variables(P, Vs) },
+        propagator_init_trigger(Vs, P).
+
+propagator_init_trigger(Vs, P) -->
         [p(Prop)],
         { make_propagator(P, Prop),
-          term_variables(P, Vs),
           maplist(prop_init(Prop), Vs),
           trigger_once(Prop) }.
 
 propagator_init_trigger(P) :-
         phrase(propagator_init_trigger(P), _).
+
+propagator_init_trigger(Vs, P) :-
+        phrase(propagator_init_trigger(Vs, P), _).
 
 prop_init(Prop, V) :-init_propagator(V, Prop).
 
@@ -2270,10 +2276,7 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
 L #==> R   :-
         phrase((reify(L, BL),reify(R, BR)), Ps),
-        make_propagator(pimpl(BL,BR,Ps), Prop),
-        init_propagator(BL, Prop),
-        init_propagator(BR, Prop),
-        trigger_once(Prop).
+        propagator_init_trigger([BL,BR], pimpl(BL,BR,Ps)).
 
 %% ?P #<== ?Q
 %
@@ -2424,9 +2427,11 @@ reify_(finite_domain(V), B) --> !,
         propagator_init_trigger(reified_fd(V,B)).
 reify_(L #>= R, B) --> !,
         [a(B)],
-        parse_reified_clpfd(L, LR, LD),
-        parse_reified_clpfd(R, RR, RD),
-        propagator_init_trigger(reified_geq(LD,LR,RD,RR,B)).
+        { phrase(parse_reified_clpfd(L, LR, LD), Ps1),
+          phrase(parse_reified_clpfd(R, RR, RD), Ps2),
+          append(Ps1, Ps2, Ps) },
+        Ps,
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)).
 reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
 reify_(L #=< R, B) --> !, reify_(R #>= L, B).
 reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
@@ -2451,13 +2456,9 @@ reify_(L #/\ R, B)   --> !,
 reify_(L #\/ R, B) --> !,
         [a(B)],
         { reify(L, LR, Ps1),
-          reify(R, RR, Ps2),
-          make_propagator(reified_or(LR,Ps1,RR,Ps2,B), Prop),
-          init_propagator(LR, Prop),
-          init_propagator(RR, Prop),
-          init_propagator(B, Prop),
-          trigger_once(Prop) },
-        [p(Prop)], Ps1, Ps2.
+          reify(R, RR, Ps2) },
+        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
+        Ps1, Ps2.
 reify_(#\ Q, B) --> !,
         [a(B)],
         reify(Q, QR),
@@ -2734,6 +2735,10 @@ trigger_prop(Propagator) :-
         ).
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
+
+kill(State, Ps) :-
+        kill(State),
+        maplist(kill_entailed, Ps).
 
 kill_entailed(p(Prop)) :-
         arg(2, Prop, State),
@@ -3734,7 +3739,7 @@ run_propagator(reified_mod(X,Y,D,Z), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
+run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
         (   DX == 0 -> kill(MState), B = 0
         ;   DY == 0 -> kill(MState), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, geq(X, Y)
@@ -3745,21 +3750,21 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
                         kill(MState),
                         (   X >= Y -> B = 1 ; B = 0 )
                     ;   fd_get(Y, _, YL, YU, _),
-                        (   n(X) cis_geq YU -> kill(MState), B = 1
-                        ;   n(X) cis_lt YL -> kill(MState), B = 0
+                        (   n(X) cis_geq YU -> kill(MState, Ps), B = 1
+                        ;   n(X) cis_lt YL -> kill(MState, Ps), B = 0
                         ;   true
                         )
                     )
                 ;   nonvar(Y) ->
                     fd_get(X, _, XL, XU, _),
-                    (   XL cis_geq n(Y) -> kill(MState), B = 1
-                    ;   XU cis_lt n(Y) -> kill(MState), B = 0
+                    (   XL cis_geq n(Y) -> kill(MState, Ps), B = 1
+                    ;   XU cis_lt n(Y) -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_geq YU -> kill(MState), B = 1
-                    ;   XU cis_lt YL -> kill(MState), B = 0
+                    (   XL cis_geq YU -> kill(MState, Ps), B = 1
+                    ;   XU cis_lt YL -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 )
@@ -4405,7 +4410,7 @@ attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
 attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
-attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
+attribute_goal_(reified_geq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
