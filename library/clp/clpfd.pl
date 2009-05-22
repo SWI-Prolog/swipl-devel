@@ -2427,9 +2427,8 @@ reify_(finite_domain(V), B) --> !,
         propagator_init_trigger(reified_fd(V,B)).
 reify_(L #>= R, B) --> !,
         [a(B)],
-        { phrase(parse_reified_clpfd(L, LR, LD), Ps1),
-          phrase(parse_reified_clpfd(R, RR, RD), Ps2),
-          append(Ps1, Ps2, Ps) },
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
         propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)).
 reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
