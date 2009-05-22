@@ -2442,9 +2442,14 @@ reify_(L #/\ R, B)   --> !,
         reify(R, RR),
         propagator_init_trigger(reified_and(LR,RR,B)).
 reify_(L #\/ R, B) --> !,
-        reify(L, LR),
-        reify(R, RR),
-        propagator_init_trigger(reified_or(LR,[],RR,[],B)).
+        { reify(L, LR, Ps1),
+          reify(R, RR, Ps2),
+          make_propagator(reified_or(LR,Ps1,RR,Ps2,B), Prop),
+          init_propagator(LR, Prop),
+          init_propagator(RR, Prop),
+          trigger_once(Prop),
+          arg(2, Prop, State) },
+        [State], Ps1, Ps2.
 reify_(#\ Q, B) --> !,
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)).
