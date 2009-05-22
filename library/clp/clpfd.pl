@@ -1791,9 +1791,9 @@ parse_clpfd_clauses(Clauses) :-
 
 parse_matcher(E, R, Matcher, Clause) :-
         Matcher = (Condition0 -> Goals0),
-        phrase(parse_condition(Condition0, E, Head), Condition, Rest),
-        phrase(parse_goals(Goals0), Rest),
-        Clause = (parse_clpfd(Head, R) :- Condition).
+        phrase((parse_condition(Condition0, E, Head),
+                parse_goals(Goals0)), Goals),
+        Clause = (parse_clpfd(Head, R) :- Goals).
 
 parse_condition(g(Goal), E, E) --> [Goal, !].
 parse_condition(m(Match), _, Match0) -->
@@ -2072,8 +2072,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(expr_conds(X0, X), Conds, Rest),
-        phrase(expr_conds(Y0, Y), Rest),
+        phrase((expr_conds(X0, X),expr_conds(Y0, Y)), Conds),
         list_goal(Conds, Cond),
         Geq = (   Cond -> X >= Y
               ;   clpfd:clpfd_geq(X0, Y0)
@@ -2303,9 +2302,12 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 % ==
 
 L #\/ R :-
-        reify(L, X),
-        reify(R, Y),
-        propagator_init_trigger(reified_or(X,Y,1)).
+        reify(L, X, Ps1),
+        reify(R, Y, Ps2),
+        make_propagator(reified_or(X,Ps1,Y,Ps2,1), Prop),
+        init_propagator(X, Prop),
+        init_propagator(Y, Prop),
+        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2442,7 +2444,7 @@ reify_(L #/\ R, B)   --> !,
 reify_(L #\/ R, B) --> !,
         reify(L, LR),
         reify(R, RR),
-        propagator_init_trigger(reified_or(LR,RR,B)).
+        propagator_init_trigger(reified_or(LR,[],RR,[],B)).
 reify_(#\ Q, B) --> !,
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)).
@@ -3826,13 +3828,13 @@ run_propagator(reified_and(X,Y,B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_or(X,Y,B), MState) :-
+run_propagator(reified_or(X,Ps1,Y,Ps2,B), MState) :-
         (   nonvar(X) ->
             kill(MState),
-            (   X =:= 1 -> B = 1
+            (   X =:= 1 -> maplist(kill, Ps2), B = 1
             ;   B = Y
             )
-        ;   nonvar(Y) -> run_propagator(reified_or(Y,X,B), MState)
+        ;   nonvar(Y) -> run_propagator(reified_or(Y,Ps2,X,Ps1,B), MState)
         ;   B == 0 -> kill(MState), X = 0, Y = 0
         ;   true
         ).
@@ -4387,7 +4389,7 @@ attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
-attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
+attribute_goal_(reified_or(X, _, Y, _, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y, _), X #==> Y).
 
