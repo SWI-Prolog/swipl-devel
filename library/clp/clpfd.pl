@@ -1834,9 +1834,8 @@ trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 neq(A, B) :- propagator_init_trigger(pneq(A, B)).
 
 propagator_init_trigger(P) -->
-        [State],
+        [p(Prop)],
         { make_propagator(P, Prop),
-          arg(2, Prop, State),
           term_variables(P, Vs),
           maplist(prop_init(Prop), Vs),
           trigger_once(Prop) }.
@@ -2263,8 +2262,6 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
    %?- X + 1 #= Y #==> Z, Z #= 1.
    %@ Z = 1,
    %@ X in inf..sup,
-   %@ _G3582 in inf..sup,
-   %@ _G3594 in 0..1,
    %@ Y in inf..sup.
 
    We cannot use propagator_init_trigger/1 here because the states of
@@ -2318,34 +2315,38 @@ L #\/ R :-
    In contrast to parse_clpfd/2, the result of an expression can now
    also be undefined, in which case the constraint cannot hold.
    Therefore, the committed-choice language is extended by an element
-   d(D) that states D is 1 iff all subexpressions are defined.
+   d(D) that states D is 1 iff all subexpressions are defined. a(V)
+   means that V is an auxiliary variable that was introduced while
+   parsing a compound expression.
 
-   When an implication becomes entailed, created auxiliary constraints
-   are killed. TODO: Auxiliary constraints should also be killed when
-   a subexpression becomes undefined.
+   When a constraint becomes entailed, created auxiliary constraints
+   are killed, and the "clpfd" attribute is removed from auxiliary
+   variables. TODO: This should also happen when a subexpression
+   becomes undefined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified(E, R, D,
               [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
                g(var(E))     -> [g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) -> [g(R=E), g(D=1)],
-               m(A+B)        -> [d(D), p(pplus(A,B,R))],
-               m(A*B)        -> [d(D), p(ptimes(A,B,R))],
-               m(A-B)        -> [d(D), p(pplus(R,B,A))],
-               m(-A)         -> [d(D), p(ptimes(-1,A,R))],
-               m(max(A,B))   -> [d(D), g(R#>=A), g(R#>=B), p(pmax(A,B,R))],
-               m(min(A,B))   -> [d(D), g(A#=<R), g(B#=<R), p(pmin(A,B,R))],
-               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), g(D1#/\D2#<==>D)],
-               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R))],
-               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), g(D1#/\D2#<==>D)],
-               m(A^B)        -> [d(D), p(pexp(A,B,R))],
+               m(A+B)        -> [d(D), p(pplus(A,B,R)), a(R)],
+               m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(R)],
+               m(A-B)        -> [d(D), p(pplus(R,B,A)), a(R)],
+               m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
+               m(max(A,B))   -> [d(D), g(R#>=A), g(R#>=B), p(pmax(A,B,R)), a(R)],
+               m(min(A,B))   -> [d(D), g(A#=<R), g(B#=<R), p(pmin(A,B,R)), a(R)],
+               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
+               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
+               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
+               m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
 
 % Again, we compile this to a predicate, parse_reified_clpfd//3. This
-% time, it is a DCG that describes the list of auxiliary propagators
-% for the given expression, in addition to relating it to its reified
-% (Boolean) finite domain variable and its Boolean definedness.
+% time, it is a DCG that describes the list of pairs of auxiliary
+% variables and propagators for the given expression, in addition to
+% relating it to its reified (Boolean) finite domain variable and its
+% Boolean definedness.
 
 make_parse_reified :-
         parse_reified_clauses(Clauses0),
@@ -2362,9 +2363,9 @@ parse_reified_clauses(Clauses) :-
 
 parse_reified(E, R, D, Matcher, Clause) :-
         Matcher = (Condition0 -> Goals0),
-        phrase(reified_condition(Condition0, E, Head, Ds), Condition, Rest),
-        phrase(reified_goals(Goals0, Ds), Rest),
-        Clause = (parse_reified_clpfd(Head, R, D) --> Condition).
+        phrase((reified_condition(Condition0, E, Head, Ds),
+                reified_goals(Goals0, Ds)), Goals),
+        Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
 reified_condition(m(Match), _, Match0, Ds) -->
@@ -2390,12 +2391,12 @@ reified_goal(d(D), Ds) -->
         ).
 reified_goal(g(Goal), _) --> [{Goal}].
 reified_goal(p(Prop), _) -->
-        [{make_propagator(Prop, P),
-          arg(2, P, State)}],
-        [[State]],
+        [{make_propagator(Prop, P)},
+         [p(P)]],
         { term_variables(Prop, Vs) },
         parse_init_dcg(Vs, P),
         [{trigger_once(P)}].
+reified_goal(a(V), _) --> [[a(V)]].
 
 parse_init_dcg([], _)     --> [].
 parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
@@ -2414,12 +2415,15 @@ reify_(E, _) -->
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), !, E = B }.
 reify_(V in Drep, B) --> !,
+        [a(B)],
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)).
 reify_(finite_domain(V), B) --> !,
+        [a(B)],
         { fd_variable(V) },
         propagator_init_trigger(reified_fd(V,B)).
 reify_(L #>= R, B) --> !,
+        [a(B)],
         parse_reified_clpfd(L, LR, LD),
         parse_reified_clpfd(R, RR, RD),
         propagator_init_trigger(reified_geq(LD,LR,RD,RR,B)).
@@ -2427,10 +2431,12 @@ reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
 reify_(L #=< R, B) --> !, reify_(R #>= L, B).
 reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
 reify_(L #= R, B)  --> !,
+        [a(B)],
         parse_reified_clpfd(L, LR, LD),
         parse_reified_clpfd(R, RR, RD),
         propagator_init_trigger(reified_eq(LD,LR,RD,RR,B)).
 reify_(L #\= R, B) --> !,
+        [a(B)],
         parse_reified_clpfd(L, LR, LD),
         parse_reified_clpfd(R, RR, RD),
         propagator_init_trigger(reified_neq(LD,LR,RD,RR,B)).
@@ -2438,19 +2444,21 @@ reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
 reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   --> !,
+        [a(B)],
         reify(L, LR),
         reify(R, RR),
         propagator_init_trigger(reified_and(LR,RR,B)).
 reify_(L #\/ R, B) --> !,
+        [a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2),
           make_propagator(reified_or(LR,Ps1,RR,Ps2,B), Prop),
           init_propagator(LR, Prop),
           init_propagator(RR, Prop),
-          trigger_once(Prop),
-          arg(2, Prop, State) },
-        [State], Ps1, Ps2.
+          trigger_once(Prop) },
+        [p(Prop)], Ps1, Ps2.
 reify_(#\ Q, B) --> !,
+        [a(B)],
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)).
 reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
@@ -2725,6 +2733,12 @@ trigger_prop(Propagator) :-
         ).
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
+
+kill_entailed(p(Prop)) :-
+        arg(2, Prop, State),
+        kill(State).
+kill_entailed(a(V)) :-
+        del_attr(V, clpfd).
 
 no_reactivation(rel_tuple(_,_)).
 %no_reactivation(scalar_product(_,_,_,_)).
@@ -3836,7 +3850,7 @@ run_propagator(reified_and(X,Y,B), MState) :-
 run_propagator(reified_or(X,Ps1,Y,Ps2,B), MState) :-
         (   nonvar(X) ->
             kill(MState),
-            (   X =:= 1 -> maplist(kill, Ps2), B = 1
+            (   X =:= 1 -> maplist(kill_entailed, Ps2), B = 1
             ;   B = Y
             )
         ;   nonvar(Y) -> run_propagator(reified_or(Y,Ps2,X,Ps1,B), MState)
@@ -3858,12 +3872,12 @@ run_propagator(pimpl(X, Y, Ps), MState) :-
         (   nonvar(X) ->
             (   X =:= 1 -> kill(MState), Y = 1
             ;   kill(MState),
-                maplist(kill, Ps)
+                maplist(kill_entailed, Ps)
             )
         ;   nonvar(Y) ->
             (   Y =:= 0 -> kill(MState), X = 0
             ;   kill(MState),
-                maplist(kill, Ps)
+                maplist(kill_entailed, Ps)
             )
         ;   true
         ).
