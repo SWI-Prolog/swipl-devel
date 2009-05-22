@@ -2455,6 +2455,7 @@ reify_(L #\/ R, B) --> !,
           make_propagator(reified_or(LR,Ps1,RR,Ps2,B), Prop),
           init_propagator(LR, Prop),
           init_propagator(RR, Prop),
+          init_propagator(B, Prop),
           trigger_once(Prop) },
         [p(Prop)], Ps1, Ps2.
 reify_(#\ Q, B) --> !,
