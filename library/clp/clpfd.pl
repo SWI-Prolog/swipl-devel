@@ -2341,9 +2341,9 @@ parse_reified(E, R, D,
                m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
                m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
                m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
-               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
+               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), p(reified_and(D1,D2,D)), a(R)],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
-               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
+               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), p(reified_and(D1,D2,D)), a(R)],
                m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2392,7 +2392,11 @@ reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
 
 reified_goal(d(D), Ds) -->
         (   { Ds = [X] } -> [{D=X}]
-        ;   { Ds = [X,Y] } -> [{(X==1, Y==1 -> D = 1 ; X#/\Y #<==>D)}]
+        ;   { Ds = [X,Y] } ->
+            [( {X==1, Y==1} -> {D = 1}
+             ; propagator_init_trigger(reified_and(X, Y, D))
+             )
+            ]
         ;   { domain_error(one_or_two_element_list, Ds) }
         ).
 reified_goal(g(Goal), _) --> [{Goal}].
