@@ -2368,7 +2368,7 @@ parse_reified(E, R, D, Matcher, Clause) :-
         Matcher = (Condition0 -> Goals0),
         phrase((reified_condition(Condition0, E, Head, Ds),
                 reified_goals(Goals0, Ds)), Goals),
-        Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
+        Clause = (parse_reified_clpfd(Head, R, D) --> [[a(D)]|Goals]).
 
 reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
 reified_condition(m(Match), _, Match0, Ds) -->
