@@ -2338,9 +2338,9 @@ parse_reified(E, R, D,
                m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
                m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
                m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
-               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
+               m(A mod B)    -> [d(D1), a(D2), p(reified_mod(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
-               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
+               m(A/B)        -> [d(D1), a(D2), p(reified_div(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
                m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2459,14 +2459,14 @@ reify_(L #/\ R, B)   -->
         [a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
-        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
-        Ps1, Ps2.
+        Ps1, Ps2,
+        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)).
 reify_(L #\/ R, B) -->
         [a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
-        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
-        Ps1, Ps2.
+        Ps1, Ps2,
+        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)).
 reify_(#\ Q, B) -->
         [a(B)],
         reify(Q, QR),
