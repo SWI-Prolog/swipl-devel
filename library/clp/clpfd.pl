@@ -2339,8 +2339,8 @@ parse_reified(E, R, D,
                m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(R)],
                m(A-B)        -> [d(D), p(pplus(R,B,A)), a(R)],
                m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
-               m(max(A,B))   -> [d(D), g(R#>=A), g(R#>=B), p(pmax(A,B,R)), a(R)],
-               m(min(A,B))   -> [d(D), g(A#=<R), g(B#=<R), p(pmin(A,B,R)), a(R)],
+               m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
+               m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
                m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
                m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), g(D1#/\D2#<==>D), a(R)],
@@ -2442,9 +2442,10 @@ reify_(L #=< R, B) --> reify__(R #>= L, B).
 reify_(L #< R, B)  --> reify__(R #>= (L+1), B).
 reify_(L #= R, B)  -->
         [a(B)],
-        parse_reified_clpfd(L, LR, LD),
-        parse_reified_clpfd(R, RR, RD),
-        propagator_init_trigger(reified_eq(LD,LR,RD,RR,B)).
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
+        Ps,
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)).
 reify_(L #\= R, B) -->
         [a(B)],
         parse_reified_clpfd(L, LR, LD),
@@ -3779,9 +3780,9 @@ run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+run_propagator(reified_eq(DX,X,DY,Y,Ps,B), MState) :-
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, X = Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
@@ -3794,7 +3795,7 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
                         ;   kill(MState), B = 0
                         )
                     )
-                ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
+                ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,Ps,B), MState)
                 ;   X == Y -> kill(MState), B = 1
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
@@ -4413,7 +4414,7 @@ attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
 attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
 attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
-attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
+attribute_goal_(reified_eq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
