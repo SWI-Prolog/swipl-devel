@@ -46,7 +46,7 @@
    No artificial limits (using GMP)
    ---------------------------------
 
-   ?- N is 2**66, X #\= N.
+   ?- N is 2^66, X #\= N.
    %@ N = 73786976294838206464,
    %@ X in inf..73786976294838206463\/73786976294838206465..sup.
 
@@ -2167,14 +2167,14 @@ integer_kth_root(N, K, R) :-
         ).
 
 integer_kroot(L, U, N, K, R) :-
-        (   L =:= U -> N =:= L**K, R = L
+        (   L =:= U -> N =:= L^K, R = L
         ;   L + 1 =:= U ->
-            (   L**K =:= N -> R = L
-            ;   U**K =:= N -> R = U
+            (   L^K =:= N -> R = L
+            ;   U^K =:= N -> R = U
             ;   fail
             )
         ;   Mid is (L + U)//2,
-            (   Mid**K > N ->
+            (   Mid^K > N ->
                 integer_kroot(L, Mid, N, K, R)
             ;   integer_kroot(Mid, U, N, K, R)
             )
@@ -3612,7 +3612,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ;   nonvar(X), nonvar(Y) ->
             ( Y >= 0 -> true ; X =:= -1 ),
             kill(MState),
-            Z is X**Y
+            Z is X^Y
         ;   nonvar(Z), nonvar(Y) ->
             integer_kth_root(Z, Y, R),
             kill(MState),
@@ -3634,10 +3634,10 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   neq_num(Z, 0)
                 ),
                 (   XL = n(NXL), NXL >= 0 ->
-                    NZL is NXL ** Y,
+                    NZL is NXL ^ Y,
                     domain_remove_smaller_than(ZD, NZL, ZD1),
                     (   XU = n(NXU) ->
-                        NZU is NXU ** Y,
+                        NZU is NXU ^ Y,
                         domain_remove_greater_than(ZD1, NZU, ZD2)
                     ;   ZD2 = ZD1
                     ),
