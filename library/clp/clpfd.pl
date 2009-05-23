@@ -1928,6 +1928,9 @@ matches([
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
+         m_c(var(X) #= var(Y)+any(A), Y==X) -> [g(parse_clpfd(A, 0))],
+         m_c(var(X) #= any(A)+var(Y), Y==X) -> [g(parse_clpfd(A, 0))],
+         m_c(var(X) #= var(Y)-any(A), Y==X) -> [g(parse_clpfd(A, 0))],
          m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
          m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
          m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
