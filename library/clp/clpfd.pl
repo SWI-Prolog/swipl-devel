@@ -2344,13 +2344,13 @@ parse_reified(E, R, D,
                m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
                m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
                m(A mod B)    ->
-                  [d(D1), a(D2), l([p(P)]), a(R),
+                  [d(D1), a(D2), l(p(P)), a(R),
                    g(make_propagator(pmod(X,Y,Z), P)),
                    p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
                    p(reified_and(D1,[],D2,[],D))],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
                m(A/B)        ->
-                  [d(D1), a(D2), l([p(P)]), a(R),
+                  [d(D1), a(D2), l(p(P)), a(R),
                    g(make_propagator(pdiv(X,Y,Z), P)),
                    p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
                    p(reified_and(D1,[],D2,[],D))],
@@ -2418,7 +2418,7 @@ reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
 reified_goal(a(V), _) --> [[a(V)]].
-reified_goal(l(L), _) --> [L].
+reified_goal(l(L), _) --> [[L]].
 
 parse_init_dcg([], _)     --> [].
 parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
