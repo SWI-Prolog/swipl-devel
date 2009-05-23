@@ -2338,9 +2338,9 @@ parse_reified(E, R, D,
                m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
                m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
                m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
-               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), p(reified_and(D1,D2,D)), a(R)],
+               m(A mod B)    -> [d(D1), p(reified_mod(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
-               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), p(reified_and(D1,D2,D)), a(R)],
+               m(A/B)        -> [d(D1), p(reified_div(A,B,D2,R)), p(reified_and(D1,[],D2,[],D)), a(R)],
                m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2390,7 +2390,7 @@ reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
 reified_goal(d(D), Ds) -->
         (   { Ds = [X] } -> [{D=X}]
         ;   { Ds = [X,Y] } ->
-            { phrase(reified_goal(p(reified_and(X,Y,D)), _), Gs),
+            { phrase(reified_goal(p(reified_and(X,[],Y,[],D)), _), Gs),
               list_goal(Gs, Goal) },
             [( {X==1, Y==1} -> {D = 1} ; Goal )]
         ;   { domain_error(one_or_two_element_list, Ds) }
@@ -2457,9 +2457,10 @@ reify_(L #<== R, B)  --> reify__(R #==> L, B).
 reify_(L #<==> R, B) --> reify__((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   -->
         [a(B)],
-        reify(L, LR),
-        reify(R, RR),
-        propagator_init_trigger(reified_and(LR,RR,B)).
+        { reify(L, LR, Ps1),
+          reify(R, RR, Ps2) },
+        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
+        Ps1, Ps2.
 reify_(L #\/ R, B) -->
         [a(B)],
         { reify(L, LR, Ps1),
@@ -3841,13 +3842,13 @@ run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
         ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_and(X,Y,B), MState) :-
+run_propagator(reified_and(X,Ps1,Y,Ps2,B), MState) :-
         (   var(B) ->
             (   nonvar(X) ->
-                (   X =:= 0 -> B = 0
+                (   X =:= 0 -> kill(MState, Ps2), B = 0
                 ;   X =:= 1 -> B = Y
                 )
-            ;   nonvar(Y) -> run_propagator(reified_and(Y,X,B), MState)
+            ;   nonvar(Y) -> run_propagator(reified_and(Y,Ps2,X,Ps1,B), MState)
             ;   true
             )
         ;   B =:= 0 ->
@@ -4419,7 +4420,7 @@ attribute_goal_(reified_eq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
+attribute_goal_(reified_and(X,_,Y,_,B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, _, Y, _, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y, _), X #==> Y).
