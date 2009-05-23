@@ -3846,7 +3846,7 @@ run_propagator(reified_and(X,Ps1,Y,Ps2,B), MState) :-
         (   var(B) ->
             (   nonvar(X) ->
                 (   X =:= 0 -> kill(MState, Ps2), B = 0
-                ;   X =:= 1 -> B = Y
+                ;   X =:= 1 -> kill(MState), B = Y
                 )
             ;   nonvar(Y) -> run_propagator(reified_and(Y,Ps2,X,Ps1,B), MState)
             ;   true
