@@ -2327,8 +2327,8 @@ L #\/ R :-
 
    When a constraint becomes entailed, created auxiliary constraints
    are killed, and the "clpfd" attribute is removed from auxiliary
-   variables. TODO: This should also happen when a subexpression
-   becomes undefined.
+   variables. This also happens when a subexpression becomes
+   undefined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified(E, R, D,
@@ -2349,10 +2349,10 @@ parse_reified(E, R, D,
              ).
 
 % Again, we compile this to a predicate, parse_reified_clpfd//3. This
-% time, it is a DCG that describes the list of pairs of auxiliary
-% variables and propagators for the given expression, in addition to
-% relating it to its reified (Boolean) finite domain variable and its
-% Boolean definedness.
+% time, it is a DCG that describes the list of auxiliary variables and
+% propagators for the given expression, in addition to relating it to
+% its reified (Boolean) finite domain variable and its Boolean
+% definedness.
 
 make_parse_reified :-
         parse_reified_clauses(Clauses0),
@@ -2448,9 +2448,10 @@ reify_(L #= R, B)  -->
         propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)).
 reify_(L #\= R, B) -->
         [a(B)],
-        parse_reified_clpfd(L, LR, LD),
-        parse_reified_clpfd(R, RR, RD),
-        propagator_init_trigger(reified_neq(LD,LR,RD,RR,B)).
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
+        Ps,
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)).
 reify_(L #==> R, B)  --> reify__((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> reify__(R #==> L, B).
 reify_(L #<==> R, B) --> reify__((L #==> R) #/\ (R #==> L), B).
@@ -3810,9 +3811,9 @@ run_propagator(reified_eq(DX,X,DY,Y,Ps,B), MState) :-
         ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
@@ -3825,12 +3826,12 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
                         ;   B = 1
                         )
                     )
-                ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
+                ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,Ps,B), MState)
                 ;   X == Y -> B = 0
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> kill(MState), B = 1
-                    ;   YL cis_gt XU -> kill(MState), B = 1
+                    (   XL cis_gt YU -> kill(MState, Ps), B = 1
+                    ;   YL cis_gt XU -> kill(MState, Ps), B = 1
                     ;   true
                     )
                 )
@@ -4413,7 +4414,7 @@ attribute_goal_(pzcompare(O,A,B), zcompare(O,A,B)).
 attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
 attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
-attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
+attribute_goal_(reified_neq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #\= Y) #<==> B).
 attribute_goal_(reified_eq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #= Y) #<==> B).
 attribute_goal_(reified_geq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #>= Y) #<==> B).
 attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
