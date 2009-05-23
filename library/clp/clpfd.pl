@@ -2392,7 +2392,7 @@ reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
 
 reified_goal(d(D), Ds) -->
         (   { Ds = [X] } -> [{D=X}]
-        ;   { Ds = [X,Y] } -> [{X#/\Y #<==>D}]
+        ;   { Ds = [X,Y] } -> [{(X==1, Y==1 -> D = 1 ; X#/\Y #<==>D)}]
         ;   { domain_error(one_or_two_element_list, Ds) }
         ).
 reified_goal(g(Goal), _) --> [{Goal}].
