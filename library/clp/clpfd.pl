@@ -2307,10 +2307,7 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 L #\/ R :-
         reify(L, X, Ps1),
         reify(R, Y, Ps2),
-        make_propagator(reified_or(X,Ps1,Y,Ps2,1), Prop),
-        init_propagator(X, Prop),
-        init_propagator(Y, Prop),
-        trigger_once(Prop).
+        propagator_init_trigger([X,Y], reified_or(X,Ps1,Y,Ps2,1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2393,10 +2390,9 @@ reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
 reified_goal(d(D), Ds) -->
         (   { Ds = [X] } -> [{D=X}]
         ;   { Ds = [X,Y] } ->
-            [( {X==1, Y==1} -> {D = 1}
-             ; propagator_init_trigger(reified_and(X, Y, D))
-             )
-            ]
+            { phrase(reified_goal(p(reified_and(X,Y,D)), _), Gs),
+              list_goal(Gs, Goal) },
+            [( {X==1, Y==1} -> {D = 1} ; Goal )]
         ;   { domain_error(one_or_two_element_list, Ds) }
         ).
 reified_goal(g(Goal), _) --> [{Goal}].
