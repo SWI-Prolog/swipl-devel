@@ -1883,13 +1883,15 @@ geq(A, B) :-
 
    We again use a simple committed-choice language for matching
    special cases of constraints. m_c(M,C) means that M matches and C
-   holds. Two things are important: First, although the actual
-   constraint functors (#\=2, #=/2 etc.) are used in the description,
-   they must expand to the respective auxiliary predicates
-   (match_expand/2) because the actual constraints are subject to goal
-   expansion. Second, when specialised constraints (like scalar
-   product) post simpler constraints on their own, these simpler
-   versions must be handled separately and must occur before.
+   holds. d(X, Y) means decomposition, i.e., g(parse_clpfd(X, Y)).
+
+   Two things are important: First, although the actual constraint
+   functors (#\=2, #=/2 etc.) are used in the description, they must
+   expand to the respective auxiliary predicates (match_expand/2)
+   because the actual constraints are subject to goal expansion.
+   Second, when specialised constraints (like scalar product) post
+   simpler constraints on their own, these simpler versions must be
+   handled separately and must occur before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 match_expand(#>=, clpfd_geq_).
@@ -1920,17 +1922,17 @@ matches([
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
          m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), g(clpfd_geq_(X, I))],
          m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
-         m(abs(any(X)) #>= integer(I))         -> [g(parse_clpfd(X, RX)), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
-         m(integer(I) #>= abs(any(X)))         -> [g(parse_clpfd(X, RX)), g(I>=0), g(I1 is -I), g(RX in I1..I)],
-         m(any(X) #>= any(Y))                  -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(geq(RX, RY))],
+         m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
+         m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
+         m(any(X) #>= any(Y))                  -> [d(X, RX), d(Y, RY), g(geq(RX, RY))],
 
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
-         m_c(var(X) #= var(Y)+any(A), Y==X) -> [g(parse_clpfd(A, 0))],
-         m_c(var(X) #= any(A)+var(Y), Y==X) -> [g(parse_clpfd(A, 0))],
-         m_c(var(X) #= var(Y)-any(A), Y==X) -> [g(parse_clpfd(A, 0))],
+         m_c(var(X) #= var(Y)+any(A), Y==X) -> [d(A, 0)],
+         m_c(var(X) #= any(A)+var(Y), Y==X) -> [d(A, 0)],
+         m_c(var(X) #= var(Y)-any(A), Y==X) -> [d(A, 0)],
          m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
          m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
          m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
@@ -1942,8 +1944,8 @@ matches([
                    S mod GCD =:= 0,
                    scalar_product(Cs, Vs, #=, S)
                ))],
-         m(var(X) #= any(Y))       -> [g(parse_clpfd(Y,X))],
-         m(any(X) #= any(Y))       -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RX))],
+         m(var(X) #= any(Y))       -> [d(Y,X)],
+         m(any(X) #= any(Y))       -> [d(X, RX), d(Y, RX)],
 
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1953,10 +1955,10 @@ matches([
          m(var(X) #\= var(Y) + var(Z))        -> [g(x_neq_y_plus_z(X, Y, Z))],
          m(var(X) #\= var(Y) - var(Z))        -> [g(x_neq_y_plus_z(Y, X, Z))],
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
-         m(integer(X) #\= abs(any(Y)-any(Z))) -> [g(parse_clpfd(Y, Y1)), g(parse_clpfd(Z, Z1)), g(absdiff_neq_const(Y1, Z1, X))],
+         m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), g(absdiff_neq_const(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
             [g(scalar_product(Cs, Vs, #\=, S))],
-         m(any(X) #\= any(Y)) -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(neq(RX, RY))]
+         m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
         ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1994,7 +1996,7 @@ matcher(m_c(Matcher,Cond), Gs) -->
           match_expand(F, Expand),
           Head =.. [Expand,X,Y],
           phrase((match(A, X), match(B, Y)), Goals0, [Cond,!|Goals1]),
-          phrase(parse_goals(Gs), Goals1) },
+          phrase(match_goals(Gs), Goals1) },
         (   { symmetric(F) } ->
             { Head1 =.. [Expand,Y,X] },
             [Head1 :- Goals0]
@@ -2009,6 +2011,18 @@ match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
 match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
 match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
 match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
+
+match_goals([])     --> [].
+match_goals([G|Gs]) --> match_goal(G), match_goals(Gs).
+
+match_goal(d(X,Y))  --> [parse_clpfd(X, Y)].
+match_goal(g(Goal)) --> [Goal].
+match_goal(p(Prop)) -->
+        [make_propagator(Prop, P)],
+        { term_variables(Prop, Vs) },
+        parse_init(Vs, P),
+        [trigger_once(P)].
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
