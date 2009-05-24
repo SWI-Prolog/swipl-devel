@@ -3845,7 +3845,8 @@ run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
                         (   X =\= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   B = 1
+                        ;   kill(MState, Ps),
+                            B = 1
                         )
                     )
                 ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,Ps,B), MState)
