@@ -3815,15 +3815,15 @@ run_propagator(reified_eq(DX,X,DY,Y,Ps,B), MState) :-
                         (   X =:= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   kill(MState), B = 0
+                        ;   kill(MState, Ps), B = 0
                         )
                     )
                 ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,Ps,B), MState)
                 ;   X == Y -> kill(MState), B = 1
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> kill(MState), B = 0
-                    ;   YL cis_gt XU -> kill(MState), B = 0
+                    (   XL cis_gt YU -> kill(MState, Ps), B = 0
+                    ;   YL cis_gt XU -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 )
