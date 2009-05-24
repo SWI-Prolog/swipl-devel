@@ -1916,7 +1916,6 @@ matches([
                ;   Cs = [-1,1], Vs = [A,B] ->
                    (   Const =:= 0 -> geq(B, A)
                    ;   C1 is -Const,
-                       writeln(A-B-C1),
                        propagator_init_trigger(x_leq_y_plus_c(A, B, C1))
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
