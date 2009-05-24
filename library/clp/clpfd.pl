@@ -1959,7 +1959,7 @@ matches([
          m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(X1, Y1, Z1))],
          m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(Y1, X1, Z1))],
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
-         m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), g(absdiff_neq_const(Y1, Z1, X))],
+         m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
             [g(scalar_product(Cs, Vs, #\=, S))],
          m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
@@ -2209,20 +2209,10 @@ integer_kroot(L, U, N, K, R) :-
 
 X #\= Y :- clpfd_neq(X, Y), do_queue.
 
-% abs(X-Y) #\= C
-
-absdiff_neq_const(X, Y, C) :-
-        (   C >= 0 ->
-            propagator_init_trigger(absdiff_neq(X,Y,C))
-        ;   constrain_to_integer(X), constrain_to_integer(Y)
-        ).
-
 % X #\= Y + Z
 
 x_neq_y_plus_z(X, Y, Z) :-
-        (   Z == 0 -> neq(X, Y)
-        ;   propagator_init_trigger(x_neq_y_plus_z(X,Y,Z))
-        ).
+        propagator_init_trigger(x_neq_y_plus_z(X,Y,Z)).
 
 % X is distinct from the number N. This is used internally, and does
 % not reinforce other constraints.
@@ -3124,6 +3114,7 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
+        ;   C < 0 -> kill(MState)
         ;   true
         ).
 
@@ -3139,6 +3130,7 @@ run_propagator(absdiff_geq(X,Y,C), MState) :-
             kill(MState),
             P1 is Y - C, P2 is Y + C,
             X in inf..P1 \/ P2..sup
+        ;   C =< 0 -> kill(MState)
         ;   true
         ).
 
@@ -3155,8 +3147,10 @@ run_propagator(x_neq_y_plus_z(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             (   nonvar(Z) ->
                 kill(MState), YZ is Y + Z, neq_num(X, YZ)
+            ;   Y =:= 0 -> kill(MState), neq(X, Z)
             ;   true
             )
+        ;   Z == 0 -> kill(MState), neq(X, Y)
         ;   true
         ).
 
