@@ -2344,16 +2344,14 @@ parse_reified(E, R, D,
                m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
                m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
                m(A mod B)    ->
-                  [d(D1), a(D2), l(p(P)), a(R),
-                   g(make_propagator(pmod(X,Y,Z), P)),
+                  [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
                    p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D))],
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(R)],
                m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
                m(A/B)        ->
-                  [d(D1), a(D2), l(p(P)), a(R),
-                   g(make_propagator(pdiv(X,Y,Z), P)),
+                  [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
                    p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D))],
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(R)],
                m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
@@ -2410,14 +2408,14 @@ reified_goal(d(D), Ds) -->
         ).
 reified_goal(g(Goal), _) --> [{Goal}].
 reified_goal(p(Vs, Prop), _) -->
-        [{make_propagator(Prop, P)},
-         [p(P)]],
+        [{make_propagator(Prop, P)}],
         parse_init_dcg(Vs, P),
-        [{trigger_once(P)}].
+        [{trigger_once(P)}],
+        [( { arg(2, P, S), S == dead } -> [] ; [p(P)])].
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
-reified_goal(a(V), _) --> [[a(V)]].
+reified_goal(a(V), _) --> [( {var(V)} -> [a(V)] ; [])].
 reified_goal(l(L), _) --> [[L]].
 
 parse_init_dcg([], _)     --> [].
