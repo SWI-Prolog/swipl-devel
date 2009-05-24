@@ -1953,7 +1953,7 @@ matches([
          m(var(X) #\= var(Y) + var(Z))        -> [g(x_neq_y_plus_z(X, Y, Z))],
          m(var(X) #\= var(Y) - var(Z))        -> [g(x_neq_y_plus_z(Y, X, Z))],
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
-         m(integer(X) #\= abs(var(Y)-var(Z))) -> [g(absdiff_neq_const(Y, Z, X))],
+         m(integer(X) #\= abs(any(Y)-any(Z))) -> [g(parse_clpfd(Y, Y1)), g(parse_clpfd(Z, Z1)), g(absdiff_neq_const(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
             [g(scalar_product(Cs, Vs, #\=, S))],
          m(any(X) #\= any(Y)) -> [g(parse_clpfd(X, RX)), g(parse_clpfd(Y, RY)), g(neq(RX, RY))]
