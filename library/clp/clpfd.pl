@@ -1925,6 +1925,7 @@ matches([
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
          m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), r(X, I)],
          m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), r(I, Z)],
+         m(abs(any(X)-any(Y)) #>= integer(I))  -> [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
          m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
          m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
          m(any(X) #>= any(Y))                  -> [d(X, RX), d(Y, RY), g(geq(RX, RY))],
@@ -3115,14 +3116,29 @@ run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
 % abs(X-Y) #\= C
 run_propagator(absdiff_neq(X,Y,C), MState) :-
         (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
-            ;   kill(MState),
-                V1 is X - C, neq_num(Y, V1),
+            kill(MState),
+            (   nonvar(Y) -> abs(X - Y) =\= C
+            ;   V1 is X - C, neq_num(Y, V1),
                 V2 is C + X, neq_num(Y, V2)
             )
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
+        ;   true
+        ).
+
+% abs(X-Y) #>= C
+run_propagator(absdiff_geq(X,Y,C), MState) :-
+        (   nonvar(X) ->
+            kill(MState),
+            (   nonvar(Y) -> abs(X-Y) >= C
+            ;   P1 is X - C, P2 is X + C,
+                Y in inf..P1 \/ P2..sup
+            )
+        ;   nonvar(Y) ->
+            kill(MState),
+            P1 is Y - C, P2 is Y + C,
+            X in inf..P1 \/ P2..sup
         ;   true
         ).
 
@@ -4423,6 +4439,7 @@ attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
 attribute_goal_(pneq(A,B), A #\= B).
 attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
 attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
+attribute_goal_(absdiff_geq(X,Y,C), abs(X-Y) #>= C).
 attribute_goal_(x_neq_y_plus_z(X,Y,Z), X #\= Y + Z).
 attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
 attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
