@@ -3105,7 +3105,8 @@ run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
 
 % abs(X-Y) #\= C
 run_propagator(absdiff_neq(X,Y,C), MState) :-
-        (   nonvar(X) ->
+        (   C < 0 -> kill(MState)
+        ;   nonvar(X) ->
             kill(MState),
             (   nonvar(Y) -> abs(X - Y) =\= C
             ;   V1 is X - C, neq_num(Y, V1),
@@ -3114,13 +3115,13 @@ run_propagator(absdiff_neq(X,Y,C), MState) :-
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
-        ;   C < 0 -> kill(MState)
         ;   true
         ).
 
 % abs(X-Y) #>= C
 run_propagator(absdiff_geq(X,Y,C), MState) :-
-        (   nonvar(X) ->
+        (   C =< 0 -> kill(MState)
+        ;   nonvar(X) ->
             kill(MState),
             (   nonvar(Y) -> abs(X-Y) >= C
             ;   P1 is X - C, P2 is X + C,
@@ -3130,7 +3131,6 @@ run_propagator(absdiff_geq(X,Y,C), MState) :-
             kill(MState),
             P1 is Y - C, P2 is Y + C,
             X in inf..P1 \/ P2..sup
-        ;   C =< 0 -> kill(MState)
         ;   true
         ).
 
