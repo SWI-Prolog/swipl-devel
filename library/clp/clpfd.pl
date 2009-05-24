@@ -1956,8 +1956,8 @@ matches([
 
          m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
          m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
-         m(var(X) #\= var(Y) + var(Z))        -> [g(x_neq_y_plus_z(X, Y, Z))],
-         m(var(X) #\= var(Y) - var(Z))        -> [g(x_neq_y_plus_z(Y, X, Z))],
+         m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(X1, Y1, Z1))],
+         m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(Y1, X1, Z1))],
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), g(absdiff_neq_const(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
