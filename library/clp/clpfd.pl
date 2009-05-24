@@ -4435,15 +4435,25 @@ attribute_goal_(pzcompare(O,A,B), zcompare(O,A,B)).
 attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
         domain_to_drep(D, Drep).
 attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
-attribute_goal_(reified_neq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #\= Y) #<==> B).
-attribute_goal_(reified_eq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #= Y) #<==> B).
-attribute_goal_(reified_geq(DX,X,DY,Y,_,B), (DX #/\ DY #/\ X #>= Y) #<==> B).
+attribute_goal_(reified_neq(DX,X,DY,Y,_,B), G) :-
+        conjunction(DX, DY, X#\=Y, B, G).
+attribute_goal_(reified_eq(DX,X,DY,Y,_,B), G) :-
+        conjunction(DX, DY, X #= Y, B, G).
+attribute_goal_(reified_geq(DX,X,DY,Y,_,B), G) :-
+        conjunction(DX, DY, X #>= Y, B, G).
 attribute_goal_(reified_div(X,Y,D,_,Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_mod(X,Y,D,_,Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
 attribute_goal_(reified_and(X,_,Y,_,B), X #/\ Y #<==> B).
 attribute_goal_(reified_or(X, _, Y, _, B), X #\/ Y #<==> B).
 attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
 attribute_goal_(pimpl(X, Y, _), X #==> Y).
+
+conjunction(A, B, C, D, G) :-
+        (   A == 1, B == 1 -> G = (C #<==> D)
+        ;   A == 1 -> G = ((B #/\ C) #<==> D)
+        ;   B == 1 -> G = ((A #/\ C) #<==> D)
+        ;   G = ((A #/\ B #/\ C) #<==> D)
+        ).
 
 coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
 
