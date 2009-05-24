@@ -1883,7 +1883,8 @@ geq(A, B) :-
 
    We again use a simple committed-choice language for matching
    special cases of constraints. m_c(M,C) means that M matches and C
-   holds. d(X, Y) means decomposition, i.e., g(parse_clpfd(X, Y)).
+   holds. d(X, Y) means decomposition, i.e., it is short for
+   g(parse_clpfd(X, Y)). r(X, Y) means to rematch with X and Y.
 
    Two things are important: First, although the actual constraint
    functors (#\=2, #=/2 etc.) are used in the description, they must
@@ -1902,26 +1903,29 @@ symmetric(#=).
 symmetric(#\=).
 
 matches([
-         m(var(X) - var(Y) #>= integer(C))     -> [g(C1 is -C), p(x_leq_y_plus_c(Y, X, C1))],
+         m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
             [g((   Cs = [1], Vs = [A] -> geq(A, Const)
                ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
                ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
                ;   Cs = [1,-1], Vs = [A,B] ->
                    (   Const =:= 0 -> geq(A, B)
-                   ;   clpfd_geq_(A-B, Const)
+                   ;   C1 is -Const,
+                       propagator_init_trigger(x_leq_y_plus_c(B, A, C1))
                    )
                ;   Cs = [-1,1], Vs = [A,B] ->
                    (   Const =:= 0 -> geq(B, A)
-                   ;   clpfd_geq_(B-A, Const)
+                   ;   C1 is -Const,
+                       writeln(A-B-C1),
+                       propagator_init_trigger(x_leq_y_plus_c(A, B, C1))
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
                ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)
                ))],
-         m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), g(clpfd_geq_(C, Z))],
-         m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), g(clpfd_geq_(X, I))],
-         m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), g(clpfd_geq_(I, Z))],
+         m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
+         m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), r(X, I)],
+         m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), r(I, Z)],
          m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
          m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
          m(any(X) #>= any(Y))                  -> [d(X, RX), d(Y, RY), g(geq(RX, RY))],
@@ -1996,7 +2000,7 @@ matcher(m_c(Matcher,Cond), Gs) -->
           match_expand(F, Expand),
           Head =.. [Expand,X,Y],
           phrase((match(A, X), match(B, Y)), Goals0, [Cond,!|Goals1]),
-          phrase(match_goals(Gs), Goals1) },
+          phrase(match_goals(Gs, Expand), Goals1) },
         (   { symmetric(F) } ->
             { Head1 =.. [Expand,Y,X] },
             [Head1 :- Goals0]
@@ -2012,12 +2016,13 @@ match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
 match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
 match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
 
-match_goals([])     --> [].
-match_goals([G|Gs]) --> match_goal(G), match_goals(Gs).
+match_goals([], _)     --> [].
+match_goals([G|Gs], F) --> match_goal(G, F), match_goals(Gs, F).
 
-match_goal(d(X,Y))  --> [parse_clpfd(X, Y)].
-match_goal(g(Goal)) --> [Goal].
-match_goal(p(Prop)) -->
+match_goal(r(X,Y), F)  --> { G =.. [F,X,Y] }, [G].
+match_goal(d(X,Y), _)  --> [parse_clpfd(X, Y)].
+match_goal(g(Goal), _) --> [Goal].
+match_goal(p(Prop), _) -->
         [make_propagator(Prop, P)],
         { term_variables(Prop, Vs) },
         parse_init(Vs, P),
