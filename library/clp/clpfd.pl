@@ -3612,8 +3612,8 @@ run_propagator(pmax(X,Y,Z), MState) :-
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
             fd_get(Y, YD, YInf, YSup, _),
-            (   YInf cis_gt YSup -> Z = Y
-            ;   YSup cis_lt XInf -> Z = X
+            (   YInf cis_gt YSup -> kill(MState), Z = Y
+            ;   YSup cis_lt XInf -> kill(MState), Z = X
             ;   n(M) cis max(XSup, YSup) ->
                 domain_remove_greater_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
@@ -3647,8 +3647,8 @@ run_propagator(pmin(X,Y,Z), MState) :-
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
             fd_get(Y, YD, YInf, YSup, _),
-            (   YSup cis_lt YInf -> Z = Y
-            ;   YInf cis_gt XSup -> Z = X
+            (   YSup cis_lt YInf -> kill(MState), Z = Y
+            ;   YInf cis_gt XSup -> kill(MState), Z = X
             ;   n(M) cis min(XInf, YInf) ->
                 domain_remove_smaller_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
@@ -3773,7 +3773,7 @@ run_propagator(reified_fd(V,B), MState) :-
 
 run_propagator(reified_div(X,Y,D,Skel,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), skeleton([X,Y,Z], Skel)
+        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
         ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
         ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
             kill(MState),
@@ -3783,7 +3783,7 @@ run_propagator(reified_div(X,Y,D,Skel,Z), MState) :-
 
 run_propagator(reified_mod(X,Y,D,Skel,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), skeleton([X,Y,Z], Skel)
+        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
         ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
         ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
             kill(MState),
