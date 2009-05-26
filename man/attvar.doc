@@ -313,9 +313,9 @@ initial value other than \const{[]} prior to backtrackable assignment.
     \predicate{nb_getval}{2}{+Name, -Value}
 The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
 compatibility and symmetry.  As most scenarios will use a particular
-global variable either using non-backtracable or backtrackable
+global variable either using non-backtrackable or backtrackable
 assignment, using nb_getval/2 can be used to document that the 
-variable is used non-backtracable.
+variable is used non-backtrackable.
 
     \predicate{nb_linkval}{2}{+Name, +Value}
 Associates the term \arg{Value} with the atom \arg{Name} without copying
