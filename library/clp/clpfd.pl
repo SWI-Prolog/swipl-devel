@@ -2437,63 +2437,61 @@ reify(E, B) :- reify(E, B, _).
 
 reify(Expr, B, Ps) :- phrase(reify(Expr, B), Ps).
 
-reify(E, B) --> { B in 0..1 }, reify__(E, B).
-
-reify__(E, B) --> reify_(E, B0), !, { B = B0 }.
-reify__(E, _) --> { domain_error(clpfd_reifiable_expression, E) }.
+reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
 reify_(E, _) -->
         { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), !, E = B }.
-reify_(V in Drep, B) -->
+reify_(V in Drep, B) --> !,
         [a(B)],
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)).
-reify_(finite_domain(V), B) -->
+reify_(finite_domain(V), B) --> !,
         [a(B)],
         { fd_variable(V) },
         propagator_init_trigger(reified_fd(V,B)).
-reify_(L #>= R, B) -->
+reify_(L #>= R, B) --> !,
         [a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
         propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)).
-reify_(L #> R, B)  --> reify__(L #>= (R+1), B).
-reify_(L #=< R, B) --> reify__(R #>= L, B).
-reify_(L #< R, B)  --> reify__(R #>= (L+1), B).
-reify_(L #= R, B)  -->
+reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
+reify_(L #=< R, B) --> !, reify_(R #>= L, B).
+reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
+reify_(L #= R, B)  --> !,
         [a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
         propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)).
-reify_(L #\= R, B) -->
+reify_(L #\= R, B) --> !,
         [a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
         propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)).
-reify_(L #==> R, B)  --> reify__((#\ L) #\/ R, B).
-reify_(L #<== R, B)  --> reify__(R #==> L, B).
-reify_(L #<==> R, B) --> reify__((L #==> R) #/\ (R #==> L), B).
-reify_(L #/\ R, B)   -->
+reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
+reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
+reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #/\ R, B)   --> !,
         [a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
         Ps1, Ps2,
         propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)).
-reify_(L #\/ R, B) -->
+reify_(L #\/ R, B) --> !,
         [a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
         Ps1, Ps2,
         propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)).
-reify_(#\ Q, B) -->
+reify_(#\ Q, B) --> !,
         [a(B)],
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)).
+reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
 
 % Match variables to created skeleton.
 
