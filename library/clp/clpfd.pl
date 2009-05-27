@@ -2494,16 +2494,13 @@ reify_(#\ Q, B) --> !,
 reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
 
 a(X,Y,B) -->
-        (   { nonvar(X) } ->
-            a(Y, B)
-        ;   { nonvar(Y) } ->
-            a(X, B)
+        (   { nonvar(X) } -> a(Y, B)
+        ;   { nonvar(Y) } -> a(X, B)
         ;   [a(X,Y,B)]
         ).
 
 a(X, B) -->
-        (   { var(X) } ->
-            [a(X, B)]
+        (   { var(X) } -> [a(X, B)]
         ;   a(B)
         ).
 
