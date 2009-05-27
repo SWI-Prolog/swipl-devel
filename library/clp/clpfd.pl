@@ -2330,8 +2330,9 @@ L #\/ R :-
    Therefore, the committed-choice language is extended by an element
    d(D) that states D is 1 iff all subexpressions are defined. a(V)
    means that V is an auxiliary variable that was introduced while
-   parsing a compound expression. l(L) means the literal L occurs in
-   the described list.
+   parsing a compound expression. a(X,V) means V is auxiliary unless
+   it is ==/2 X, and a(X,Y,V) means V is auxiliary unless it is ==/2 X
+   or Y. l(L) means the literal L occurs in the described list.
 
    When a constraint becomes entailed or subexpressions become
    undefined, created auxiliary constraints are killed, and the
@@ -2346,22 +2347,22 @@ parse_reified(E, R, D,
               [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
                g(var(E))     -> [g(constrain_to_integer(E)), g(R = E), g(D=1)],
                g(integer(E)) -> [g(R=E), g(D=1)],
-               m(A+B)        -> [d(D), p(pplus(A,B,R)), a(R)],
-               m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(R)],
-               m(A-B)        -> [d(D), p(pplus(R,B,A)), a(R)],
+               m(A+B)        -> [d(D), p(pplus(A,B,R)), a(A,B,R)],
+               m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(A,B,R)],
+               m(A-B)        -> [d(D), p(pplus(R,B,A)), a(A,B,R)],
                m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
-               m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(R)],
-               m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(R)],
+               m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
+               m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
                m(A mod B)    ->
                   [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
                    p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D)), a(D2), a(R)],
-               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(R)],
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
+               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
                m(A/B)        ->
                   [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
                    p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
-                   p(reified_and(D1,[],D2,[],D)), a(D2), a(R)],
-               m(A^B)        -> [d(D), p(pexp(A,B,R)), a(R)],
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
+               m(A^B)        -> [d(D), p(pexp(A,B,R)), a(A,B,R)],
                g(true)       -> [g(domain_error(clpfd_expression, E))]]
              ).
 
@@ -2424,8 +2425,10 @@ reified_goal(p(Vs, Prop), _) -->
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
-reified_goal(a(V), _) --> [( {var(V)} -> [a(V)] ; [])].
-reified_goal(l(L), _) --> [[L]].
+reified_goal(a(V), _)     --> [a(V)].
+reified_goal(a(X,V), _)   --> [a(X,V)].
+reified_goal(a(X,Y,V), _) --> [a(X,Y,V)].
+reified_goal(l(L), _)     --> [[L]].
 
 parse_init_dcg([], _)     --> [].
 parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
@@ -2444,54 +2447,73 @@ reify_(E, _) -->
 reify_(E, B) --> { var(E), !, E = B }.
 reify_(E, B) --> { integer(E), !, E = B }.
 reify_(V in Drep, B) --> !,
-        %[a(B)],
         { drep_to_domain(Drep, Dom), fd_variable(V) },
-        propagator_init_trigger(reified_in(V,Dom,B)).
+        propagator_init_trigger(reified_in(V,Dom,B)),
+        a(B).
 reify_(finite_domain(V), B) --> !,
-        %[a(B)],
         { fd_variable(V) },
-        propagator_init_trigger(reified_fd(V,B)).
+        propagator_init_trigger(reified_fd(V,B)),
+        a(B).
 reify_(L #>= R, B) --> !,
-        %[a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)).
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
+        a(B).
 reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
 reify_(L #=< R, B) --> !, reify_(R #>= L, B).
 reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
 reify_(L #= R, B)  --> !,
-        %[a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)).
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
+        a(B).
 reify_(L #\= R, B) --> !,
-        %[a(B)],
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
         Ps,
-        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)).
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
+        a(B).
 reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
 reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
 reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   --> !,
-        %[a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
         Ps1, Ps2,
-        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)).
+        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
+        a(L,R,B).
 reify_(L #\/ R, B) --> !,
-        %[a(B)],
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
         Ps1, Ps2,
-        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)).
+        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
+        a(L,R,B).
 reify_(#\ Q, B) --> !,
-        %[a(B)],
         reify(Q, QR),
-        propagator_init_trigger(reified_not(QR,B)).
+        propagator_init_trigger(reified_not(QR,B)),
+        a(B).
 reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
+
+a(X,Y,B) -->
+        (   { nonvar(X) } ->
+            a(Y, B)
+        ;   { nonvar(Y) } ->
+            a(X, B)
+        ;   [a(X,Y,B)]
+        ).
+
+a(X, B) -->
+        (   { var(X) } ->
+            [a(X, B)]
+        ;   a(B)
+        ).
+
+a(B) -->
+        (   { var(B) } -> [a(B)]
+        ;   []
+        ).
 
 % Match variables to created skeleton.
 
@@ -2778,6 +2800,15 @@ kill_entailed(p(Prop)) :-
         kill(State).
 kill_entailed(a(V)) :-
         del_attr(V, clpfd).
+kill_entailed(a(X,B)) :-
+        (   X == B -> true
+        ;   del_attr(B, clpfd)
+        ).
+kill_entailed(a(X,Y,B)) :-
+        (   X == B -> true
+        ;   Y == B -> true
+        ;   del_attr(B, clpfd)
+        ).
 
 no_reactivation(rel_tuple(_,_)).
 %no_reactivation(scalar_product(_,_,_,_)).
