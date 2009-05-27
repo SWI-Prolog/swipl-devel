@@ -2439,10 +2439,6 @@ reify(Expr, B, Ps) :- phrase(reify(Expr, B), Ps).
 
 reify(E, B) --> { B in 0..1 }, reify_(E, B).
 
-:- op(500, fx, *).
-
-*(_) --> [].
-
 reify_(E, _) -->
         { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
 reify_(E, B) --> { var(E), !, E = B }.
@@ -2484,13 +2480,13 @@ reify_(L #/\ R, B)   --> !,
           reify(R, RR, Ps2) },
         Ps1, Ps2,
         propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
-        *a(L,R,B).
+        a(LR, RR, B).
 reify_(L #\/ R, B) --> !,
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
         Ps1, Ps2,
         propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
-        *a(L,R,B).
+        a(LR, RR, B).
 reify_(#\ Q, B) --> !,
         reify(Q, QR),
         propagator_init_trigger(reified_not(QR,B)),
