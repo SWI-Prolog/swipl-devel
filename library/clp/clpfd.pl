@@ -1934,9 +1934,6 @@ matches([
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
-         m_c(var(X) #= var(Y)+any(A), Y==X) -> [d(A, 0)],
-         m_c(var(X) #= any(A)+var(Y), Y==X) -> [d(A, 0)],
-         m_c(var(X) #= var(Y)-any(A), Y==X) -> [d(A, 0)],
          m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
          m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
          m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
@@ -3289,6 +3286,7 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
 run_propagator(pplus(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   X =:= 0 -> kill(MState), Y = Z
+            ;   Y == Z -> kill(MState), X =:= 0
             ;   nonvar(Y) -> kill(MState), Z is X + Y
             ;   nonvar(Z) -> kill(MState), Y is Z - X
             ;   fd_get(Z, ZD, ZPs),
@@ -3322,6 +3320,8 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 )
             )
         ;   (   X == Y -> kill(MState), 2*X #= Z
+            ;   X == Z -> kill(MState), Y = 0
+            ;   Y == Z -> kill(MState), X = 0
             ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
