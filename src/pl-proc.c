@@ -1405,8 +1405,8 @@ pl_garbage_collect_clauses(void)
 
     DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
 
-    PL_LOCK(L_THREAD);
     LOCK();
+    PL_LOCK(L_THREAD);
     blockSignals(&set);
 
 					/* sanity-check */
@@ -1457,8 +1457,8 @@ pl_garbage_collect_clauses(void)
 #endif
 
     unblockSignals(&set);
-    UNLOCK();
     PL_UNLOCK(L_THREAD);
+    UNLOCK();
   }
 
 
@@ -2814,8 +2814,8 @@ startConsult(SourceFile f)
     sigset_t set;
     ClauseRef garbage = NULL;
 
-    PL_LOCK(L_THREAD);
     LOCK();
+    PL_LOCK(L_THREAD);
     blockSignals(&set);
 
     GD->procedures.active_marked = 0;
@@ -2880,8 +2880,8 @@ startConsult(SourceFile f)
 #endif
 
     unblockSignals(&set);
-    UNLOCK();
     PL_UNLOCK(L_THREAD);
+    UNLOCK();
 
     if ( garbage )
       freeClauseList(garbage);
