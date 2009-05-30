@@ -3668,6 +3668,7 @@ PRED_IMPL("seek", 4, seek, 0)
       else
 	PL_error("seek", 4, OsError(), ERR_PERMISSION,
 		 ATOM_reposition, ATOM_stream, stream);
+      Sclearerr(s);
       releaseStream(s);
       return FALSE;
     }
