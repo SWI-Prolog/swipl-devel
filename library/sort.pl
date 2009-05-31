@@ -31,41 +31,10 @@
 
 :- module(sort,
 	[ predsort/3,			% :Compare, +List, -Sorted
-	  merge/3,			% +List1, +List2, -Union
-	  merge_set/3,			% +Set1, +Set2, -Union
 	  locale_sort/2			% +ListOfAtoms, -Sorted
 	]).
 
 :- set_prolog_flag(generate_debug_info, false).
-
-%%	merge_set(+Set1, +Set2, -Set3)
-%
-%	Merge the ordered sets Set1 and  Set2   into  a  new ordered set
-%	without duplicates.
-%
-%	@depricated	Use ord_union/3 from library(ordsets)
-
-merge_set([], L, L) :- !.
-merge_set(L, [], L) :- !.
-merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 @< H2, !, merge_set(T1, [H2|T2], R).
-merge_set([H1|T1], [H2|T2], [H2|R]) :- H1 @> H2, !, merge_set([H1|T1], T2, R).
-merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 == H2,    merge_set(T1, T2, R).
-
-
-%%	merge(+List1, +List2, -List3)
-%
-%	Merge the ordered sets List1 and List2 into a new ordered  list.
-%	Duplicates are not removed and their order is maintained.
-
-merge([], L, L) :- !.
-merge(L, [], L) :- !.
-merge([H1|T1], [H2|T2], [H|R]) :-
-	(   H1 @=< H2
-	->  H = H1,
-	    merge(T1, [H2|T2], R)
-	;   H = H2,
-	    merge([H1|T1], T2, R)
-	).
 
 :- module_transparent
 	predsort/3,

@@ -319,8 +319,6 @@ suggest predicates from a keyword.
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
-\predicatesummary{merge}{3}{Merge two sorted lists}
-\predicatesummary{merge_set}{3}{Merge two sorted sets}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_queue_create}{1}{Create queue for thread communication}
 \predicatesummary{message_queue_create}{2}{Create queue for thread communication}

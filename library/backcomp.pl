@@ -66,7 +66,9 @@
 	    current_module/2,		% ?Module, ?File
 	    export_list/2,		% +Module, -Exports
 	    setup_and_call_cleanup/3,	% :Setup, :Goal, :Cleanup
-	    setup_and_call_cleanup/4	% :Setup, :Goal, ?Catcher, :Cleanup
+	    setup_and_call_cleanup/4,	% :Setup, :Goal, ?Catcher, :Cleanup
+	    merge/3,			% +List1, +List2, -Union
+	    merge_set/3			% +Set1, +Set2, -Union
 	  ]).
 
 /** <module> Backward compatibility
@@ -398,6 +400,7 @@ export_list(Module, List) :-
 %%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
 %
 %	Call Cleanup once after Goal is finished.
+%
 %	@deprecated Use setup_call_cleanup/3.
 
 :- module_transparent setup_and_call_cleanup/3, setup_and_call_cleanup/4.
@@ -409,7 +412,42 @@ setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 %
 %	Call Cleanup once after Goal is finished, with Catcher
 %       unified to the reason
+%
 %	@deprecated Use setup_call_cleanup/3.
 
 setup_and_call_cleanup(Setup, Goal, Catcher, Cleanup) :-
 	setup_call_catcher_cleanup(Setup, Goal, Catcher,Cleanup).
+
+%%	merge_set(+Set1, +Set2, -Set3)
+%
+%	Merge the ordered sets Set1 and  Set2   into  a  new ordered set
+%	without duplicates.
+%
+%	@deprecated	New code should use ord_union/3 from
+%			library(ordsets)
+
+merge_set([], L, L) :- !.
+merge_set(L, [], L) :- !.
+merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 @< H2, !, merge_set(T1, [H2|T2], R).
+merge_set([H1|T1], [H2|T2], [H2|R]) :- H1 @> H2, !, merge_set([H1|T1], T2, R).
+merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 == H2,    merge_set(T1, T2, R).
+
+
+%%	merge(+List1, +List2, -List3)
+%
+%	Merge the ordered sets List1 and List2 into a new ordered  list.
+%	Duplicates are not removed and their order is maintained.
+%
+%	@deprecated	The name of this predicate is far too general for
+%			a rather specific function.
+
+merge([], L, L) :- !.
+merge(L, [], L) :- !.
+merge([H1|T1], [H2|T2], [H|R]) :-
+	(   H1 @=< H2
+	->  H = H1,
+	    merge(T1, [H2|T2], R)
+	;   H = H2,
+	    merge([H1|T1], T2, R)
+	).
+

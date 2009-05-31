@@ -4892,18 +4892,6 @@ call must unify \arg{Delta} with one of \const{<}, \const{>} or
 the same as sort/2.  See also keysort/2.%
 	\footnote{Please note that the semantics have changed between
 		  3.1.1 and 3.1.2}
-
-    \predicate{merge}{3}{+List1, +List2, -List3}
-\arg{List1} and \arg{List2} are lists, sorted to the standard order of
-terms (see \secref{compare}).  \arg{List3} will be unified with an
-ordered list holding both the elements of \arg{List1} and \arg{List2}.
-Duplicates are {\bf not} removed.
-
-    \predicate{merge_set}{3}{+Set1, +Set2, -Set3}
-\arg{Set1} and \arg{Set2} are lists without duplicates, sorted to the
-standard order of terms.  \arg{Set3} is unified with an ordered
-list without duplicates holding the union of the elements of \arg{Set1}
-and \arg{Set2}.
 \end{description}
 
 
