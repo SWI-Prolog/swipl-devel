@@ -31,7 +31,7 @@
 
 :- module(base64,
 	  [ base64/2,			% ?PlainText, ?Encoded
-	    base64/3			% ?PlainText
+	    base64//1			% ?PlainText
 	  ]).
 
 /** <module> Base64 encoding and decoding
