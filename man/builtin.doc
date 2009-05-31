@@ -5877,11 +5877,14 @@ directory.
 Remove \arg{File} from the file system.
 
     \predicate{rename_file}{2}{+File1, +File2}
-Rename \arg{File1} into \arg{File2}. Currently files cannot be moved
-across devices.
+Rename \arg{File1} into \arg{File2}. The semantics is compatible to the
+POSIX semantics of the rename() system call as far as the operating
+system allows. if \arg{File2} exists, the operation succeeds (except for
+possible permission errors) and is \jargon{atomic} (meaning there is no
+window where \arg{File2} does not exist).
 
     \predicate{size_file}{2}{+File, -Size}
-Unify \arg{Size} with the size of \arg{File} in characters.
+Unify \arg{Size} with the size of \arg{File} in bytes.
 
     \predicate{time_file}{2}{+File, -Time}
 Unify the last modification time of \arg{File} with \arg{Time}.

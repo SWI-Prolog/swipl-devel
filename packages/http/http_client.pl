@@ -64,7 +64,8 @@ connect(Parts, Read, Write, _) :-
 	memberchk(socket(Read, Write), Parts), !.
 connect(Parts, Read, Write, Options) :-
 	address(Parts, Address, Options),
-	with_mutex(http_client_connect, connect2(Address, Read, Write, Options)).
+	with_mutex(http_client_connect,
+		   connect2(Address, Read, Write, Options)).
 
 connect2(Address, In, Out, _) :-
 	thread_self(Self),
@@ -138,7 +139,7 @@ port(Parts, 80) :-
 		 *	        GET		*
 		 *******************************/
 
-%%	http_get(+URL, -Data, +Options)
+%%	http_get(+URL, -Data, +Options) is det.
 %
 %	Get data from an HTTP server.
 
