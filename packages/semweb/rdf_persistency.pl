@@ -469,7 +469,7 @@ stop_monitor :-
 %
 %	Handle an rdf_monitor/2 callback to  deal with persistency. Note
 %	that the monitor calls that come   from rdf_db.pl that deal with
-%	database changes are synchronised. They   do come from different
+%	database changes are serialized.  They   do  come from different
 %	threads though.
 
 monitor(Msg) :-
@@ -573,7 +573,8 @@ monitor_transaction(reset, begin(L)) :-
 	       monitor_transaction(unload(DB), begin(L))).
 monitor_transaction(reset, end(L)) :-
 	forall(blocked_db(DB, unload),
-	       monitor_transaction(unload(DB), end(L))).
+	       monitor_transaction(unload(DB), end(L))),
+	retractall(current_transaction_id(_,_)).
 
 
 %%	check_nested(+Level) is semidet.
@@ -623,30 +624,29 @@ next_transaction_id(DB, Id) :-
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, Id) :-
 	db_files(DB, _, Journal),
-	catch(open_db(Journal, read, In, []),
-	      error(existence_error(_,_),_),
-	      fail), !,
-	call_cleanup(iterative_expand(In, Last), close(In)),
+	exists_file(Journal), !,
+	size_file(Journal, Size),
+	open_db(Journal, read, In, []),
+	call_cleanup(iterative_expand(In, Size, Last), close(In)),
 	Id is Last + 1,
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, 1) :-
 	assert(current_transaction_id(DB, 1)).
 
-iterative_expand(In, Last) :-
-	between(10, 62, Step),		% 62 is big enough and safer than infinite
-	    Offset is -(1<<Step),
-	    catch(seek(In, Offset, eof, _), E, true),
-	    (	var(E)
-	    ->	skip(In, 10)		% records are line-based
-	    ;	seek(In, 0, bof, _), !,
-		WholeFile = true
-	    ),
-	    read(In, T0),
-	    last_transaction_id(T0, In, 0, Last),
-	    (	WholeFile == true	% we scanned the whole file
-	    ;   Last > 0		% we found a transaction
-	    ), !.
-iterative_expand(_, 0).
+iterative_expand(_, 0, 0) :- !.
+iterative_expand(In, Size, Last) :-	% Scan growing sections from the end
+	Max is floor(log(Size)/log(2)),
+	between(10, Max, Step),
+	Offset is -(1<<Step),
+	seek(In, Offset, eof, _),
+	skip(In, 10),			% records are line-based
+	read(In, T0),
+	last_transaction_id(T0, In, 0, Last),
+	Last > 0, !.
+iterative_expand(In, _, Last) :-	% Scan the whole file
+	seek(In, 0, bof, _),
+	read(In, T0),
+	last_transaction_id(T0, In, 0, Last).
 
 last_transaction_id(end_of_file, _, Last, Last) :- !.
 last_transaction_id(end(Id, _, _), In, _, Last) :-
@@ -1072,9 +1072,9 @@ message(restore(true, Action)) --> !,
 	silent_message(Action).
 message(restore(brief, Action)) --> !,
 	brief_message(Action).
-message(restore(_, source(DB))) -->
+message(restore(_, source(DB, Nth, Total))) -->
 	{ file_base_name(DB, Base) },
-	[ 'Restoring ~w ... '-[Base], flush ].
+	[ 'Restoring ~w ... (~D of ~D graphs) '-[Base, Nth, Total], flush ].
 message(restore(_, snapshot(_))) -->
 	[ at_same_line, '(snapshot) '-[], flush ].
 message(restore(_, journal(_))) -->
