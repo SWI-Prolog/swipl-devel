@@ -2089,10 +2089,10 @@ expr_conds(A0^B0, A^B)           -->
 
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(expr_conds(X0, X), CsX),
-        phrase(expr_conds(Y0, Y), CsY),
-        list_goal(CsX, CondX),
-        list_goal(CsY, CondY),
+        phrase(clpfd:expr_conds(X0, X), CsX),
+        phrase(clpfd:expr_conds(Y0, Y), CsY),
+        clpfd:list_goal(CsX, CondX),
+        clpfd:list_goal(CsY, CondY),
         Equal = (   CondY ->
                     (   var(X) -> X is Y
                     ;   CondX -> X =:= Y
@@ -2102,8 +2102,8 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase((expr_conds(X0, X),expr_conds(Y0, Y)), Conds),
-        list_goal(Conds, Cond),
+        phrase(clpfd:(expr_conds(X0, X),expr_conds(Y0, Y)), Conds),
+        clpfd:list_goal(Conds, Cond),
         Geq = (   Cond -> X >= Y
               ;   clpfd:clpfd_geq(X0, Y0)
               ).
