@@ -63,7 +63,7 @@
 %		remove_alarm/1) after it has been fired.
 %		* install(Bool)
 %		If =false= (default =true=) do not install the alarm.
-%		It must be installed seperately using install_alarm/1.
+%		It must be installed separately using install_alarm/1.
 
 %%	install_alarm(+Id) is det.
 %
@@ -71,7 +71,7 @@
 %	option.
 %
 %	@deprecated	With the introduction of setup_call_cleanup/3,
-%			this predicate is probable no longer needed.
+%			this predicate is probably no longer needed.
 
 %%	remove_alarm(+Id) is det.
 %
