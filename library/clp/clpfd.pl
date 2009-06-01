@@ -4446,76 +4446,77 @@ attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
         ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
               arg(4, P, S), S == processed } -> []
-        ;   { attribute_goal_(P, G) } ->
+        ;   { phrase(attribute_goal_(P), Gs) } ->
             { del_attr(State, clpfd_aux), State = processed },
-            [clpfd:G]
+            with_clpfd(Gs)
         ;   [P] % possibly user-defined constraint
         ),
         attributes_goals(As).
 
-attribute_goal_(presidual(Goal), Goal).
-attribute_goal_(pgeq(A,B), A #>= B).
-attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
-attribute_goal_(pneq(A,B), A #\= B).
-attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
-attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
-attribute_goal_(absdiff_geq(X,Y,C), abs(X-Y) #>= C).
-attribute_goal_(x_neq_y_plus_z(X,Y,Z), X #\= Y + Z).
-attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
-attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
-attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
-attribute_goal_(pabs(X,Y), Y #= abs(X)).
-attribute_goal_(pmod(X,M,K), X mod M #= K).
-attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
-attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
-attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
-        Cs = [FC|Cs1], Vs = [FV|Vs1],
-        coeff_var_term(FC, FV, T0),
-        unfold_product(Cs1, Vs1, T0, Left),
-        Goal =.. [Op,Left,C].
-attribute_goal_(pdifferent(Left, Right, X, Shared), all_different(Vs)) :-
-        append(Left, [X|Right], Vs0),
-        msort(Vs0, Vs),
-        Shared = processed.
-attribute_goal_(pdistinct(Left, Right, X, Shared), all_distinct(Vs)) :-
-        append(Left, [X|Right], Vs0),
-        msort(Vs0, Vs),
-        Shared = processed.
-attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
-        append(Left, [Var-D|Right], VDs),
-        pair_up(Vs, Ds, VDs).
-attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
-attribute_goal_(pzcompare(O,A,B), zcompare(O,A,B)).
-% reified constraints
-attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
-        domain_to_drep(D, Drep).
-attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
-attribute_goal_(reified_neq(DX,X,DY,Y,_,B), G) :-
-        conjunction(DX, DY, X#\=Y, B, G).
-attribute_goal_(reified_eq(DX,X,DY,Y,_,B), G) :-
-        conjunction(DX, DY, X #= Y, B, G).
-attribute_goal_(reified_geq(DX,X,DY,Y,_,B), G) :-
-        conjunction(DX, DY, X #>= Y, B, G).
-attribute_goal_(reified_div(X,Y,D,_,Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(reified_mod(X,Y,D,_,Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(reified_and(X,_,Y,_,B), X #/\ Y #<==> B).
-attribute_goal_(reified_or(X, _, Y, _, B), X #\/ Y #<==> B).
-attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
-attribute_goal_(pimpl(X, Y, _), X #==> Y).
+with_clpfd([])     --> [].
+with_clpfd([G|Gs]) --> [clpfd:G], with_clpfd(Gs).
 
-conjunction(A, B, C, D, G) :-
-        (   A == 1, B == 1 -> G = (C #<==> D)
-        ;   A == 1 -> G = ((B #/\ C) #<==> D)
-        ;   B == 1 -> G = ((A #/\ C) #<==> D)
-        ;   G = ((A #/\ B #/\ C) #<==> D)
+attribute_goal_(presidual(Goal))       --> [Goal].
+attribute_goal_(pgeq(A,B))             --> [A #>= B].
+attribute_goal_(pplus(X,Y,Z))          --> [X + Y #= Z].
+attribute_goal_(pneq(A,B))             --> [A #\= B].
+attribute_goal_(ptimes(X,Y,Z))         --> [X*Y #= Z].
+attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(X-Y) #\= C].
+attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(X-Y) #>= C].
+attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [X #\= Y + Z].
+attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [X #=< Y + C].
+attribute_goal_(pdiv(X,Y,Z))           --> [X/Y #= Z].
+attribute_goal_(pexp(X,Y,Z))           --> [X^Y #= Z].
+attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
+attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
+attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
+attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
+attribute_goal_(scalar_product([FC|Cs],[FV|Vs],Op,C))-->
+        [Goal],
+        { coeff_var_term(FC, FV, T0),
+          fold_product(Cs, Vs, T0, Left),
+          Goal =.. [Op,Left,C] }.
+attribute_goal_(pdifferent(Left, Right, X, processed)) -->
+        [all_different(Vs)],
+        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(pdistinct(Left, Right, X, processed)) -->
+        [all_distinct(Vs)],
+        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(pserialized(Var,D,Left,Right)) -->
+        [serialized(Vs, Ds)],
+        { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
+attribute_goal_(rel_tuple(mutable(Rel,_), Tuple)) --> [tuples_in([Tuple], Rel)].
+attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
+% reified constraints
+attribute_goal_(reified_in(V, D, B)) -->
+        [V in Drep #<==> B],
+        { domain_to_drep(D, Drep) }.
+attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
+attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
+attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
+attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X #>= Y, B).
+attribute_goal_(reified_div(X,Y,D,_,Z)) -->
+        [D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1].
+attribute_goal_(reified_mod(X,Y,D,_,Z)) -->
+        [D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1].
+attribute_goal_(reified_and(X,_,Y,_,B))    --> [X #/\ Y #<==> B].
+attribute_goal_(reified_or(X, _, Y, _, B)) --> [X #\/ Y #<==> B].
+attribute_goal_(reified_not(X, Y))         --> [#\ X #<==> Y].
+attribute_goal_(pimpl(X, Y, _))            --> [X #==> Y].
+
+conjunction(A, B, G, D) -->
+        (   { A == 1, B == 1 } -> [G #<==> D]
+        ;   { A == 1 } -> [(B #/\ G) #<==> D]
+        ;   { B == 1 } -> [(A #/\ G) #<==> D]
+        ;   [(A #/\ B #/\ G) #<==> D]
         ).
 
 coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
 
-unfold_product([], [], P, P).
-unfold_product([C|Cs], [V|Vs], P0, P) :-
+fold_product([], [], P, P).
+fold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
-        unfold_product(Cs, Vs, P0 + T, P).
+        fold_product(Cs, Vs, P0 + T, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
