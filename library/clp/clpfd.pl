@@ -127,6 +127,7 @@
                  ]).
 
 
+:- use_module(library(apply)).
 :- use_module(library(error)).
 
 :- op(700, xfx, cis).
@@ -1777,6 +1778,8 @@ parse_clpfd(E, R,
 % Here, we compile the committed choice language to a single
 % predicate, parse_clpfd/2.
 
+:- dynamic parse_clpfd/2.
+
 make_parse_clpfd :-
         parse_clpfd_clauses(Clauses0),
         maplist(goals_goal, Clauses0, Clauses),
@@ -1894,6 +1897,8 @@ geq(A, B) :-
    simpler constraints on their own, these simpler versions must be
    handled separately and must occur before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- dynamic clpfd_geq_/2, clpfd_equal_/2, clpfd_neq/2.
 
 match_expand(#>=, clpfd_geq_).
 match_expand(#=, clpfd_equal_).
@@ -2368,6 +2373,8 @@ parse_reified(E, R, D,
 % propagators for the given expression, in addition to relating it to
 % its reified (Boolean) finite domain variable and its Boolean
 % definedness.
+
+:- dynamic parse_reified_clpfd//3.
 
 make_parse_reified :-
         parse_reified_clauses(Clauses0),
@@ -4471,7 +4478,7 @@ attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
 attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
 attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
 attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
-attribute_goal_(scalar_product([FC|Cs],[FV|Vs],Op,C))-->
+attribute_goal_(scalar_product([FC|Cs],[FV|Vs],Op,C)) -->
         [Goal],
         { coeff_var_term(FC, FV, T0),
           fold_product(Cs, Vs, T0, Left),
