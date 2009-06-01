@@ -129,6 +129,7 @@
 
 :- use_module(library(apply)).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
