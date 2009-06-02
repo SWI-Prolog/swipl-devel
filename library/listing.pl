@@ -95,10 +95,9 @@ list_clauserefs(Ref) :-
 	clause(Head, Body, Ref),
 	portray_clause((Head :- Body)).
 
-%%	list_predicates(:Preds:list(pi), +Spec) is det.
+%%	list_predicates(:Preds:list(pi), :Spec) is det.
 
-list_predicates(PIs, X) :-
-	context_module(Context),
+list_predicates(PIs, Context:X) :-
 	member(PI, PIs),
 	pi_to_head(PI, Pred),
 	unify_args(Pred, X),
