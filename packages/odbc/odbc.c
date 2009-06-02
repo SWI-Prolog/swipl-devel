@@ -173,6 +173,7 @@ static functor_t FUNCTOR_odbc_statement1; /* $odbc_statement(Id) */
 static functor_t FUNCTOR_odbc_connection1;
 static functor_t FUNCTOR_user1;
 static functor_t FUNCTOR_password1;
+static functor_t FUNCTOR_driver_string1;
 static functor_t FUNCTOR_alias1;
 static functor_t FUNCTOR_mars1;
 static functor_t FUNCTOR_open1;
@@ -1190,6 +1191,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    const char *dsource;			/* odbc data source */
    char *uid = NULL;			/* user id */
    char *pwd = NULL;			/* password */
+   char *driver_string = NULL;			/* driver_string */
    atom_t alias = 0;			/* alias-name */
    int mars = 0;			/* mars-value */
    atom_t open = 0;			/* open next connection */
@@ -1215,6 +1217,9 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_alias1) )
      { if ( !get_atom_arg_ex(1, head, &alias) )
+	 return FALSE;
+     } else if ( PL_is_functor(head, FUNCTOR_driver_string1) )
+     { if ( !get_text_arg_ex(1, head, &driver_string) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_mars1) )
      { if ( !get_bool_arg_ex(1, head, &mars) )
@@ -1278,9 +1283,29 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    }
 
    /* Connect to a data source. */
-   rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
-                         (SQLCHAR *)uid,     SQL_NTS,
-                         (SQLCHAR *)pwd,     SQL_NTS);
+   if ( driver_string != NULL )
+   { if ( uid != NULL )
+     { return context_error(options, "Option incompatible with driver_string",
+			    "user");
+     } else if ( pwd != NULL )
+     { return context_error(options, "Option incompatible with driver_string",
+			    "password");
+     } else
+     { SQLCHAR connection_out[1025];	/* completed driver string */
+       SQLSMALLINT connection_out_len;
+
+       rc = SQLDriverConnect(hdbc,
+                             NULL, /* window handle */
+                             (SQLCHAR *)driver_string, SQL_NTS,
+                             connection_out, 1024,
+                             &connection_out_len,
+                             SQL_DRIVER_NOPROMPT);
+     }
+   } else
+   { rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
+                           (SQLCHAR *)uid,     SQL_NTS,
+                           (SQLCHAR *)pwd,     SQL_NTS);
+   }
    if ( rc == SQL_ERROR )
      return odbc_report(henv, hdbc, NULL, rc);
    if ( rc != SQL_SUCCESS && !silent && !odbc_report(henv, hdbc, NULL, rc) )
@@ -3282,6 +3307,7 @@ install_odbc4pl()
    FUNCTOR_odbc_connection1	 = MKFUNCTOR("$odbc_connection", 1);
    FUNCTOR_user1		 = MKFUNCTOR("user", 1);
    FUNCTOR_password1		 = MKFUNCTOR("password", 1);
+   FUNCTOR_driver_string1		 = MKFUNCTOR("driver_string", 1);
    FUNCTOR_alias1		 = MKFUNCTOR("alias", 1);
    FUNCTOR_mars1		 = MKFUNCTOR("mars", 1);
    FUNCTOR_open1		 = MKFUNCTOR("open", 1);

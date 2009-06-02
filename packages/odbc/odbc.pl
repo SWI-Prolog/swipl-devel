@@ -32,6 +32,7 @@
 
 :- module(odbc,
 	  [ odbc_connect/3,		% +DSN, -Conn, +Options
+	    odbc_diver_connect/3,	% +DriverString, -Conn, +Options
 	    odbc_disconnect/1,		% +Conn
 	    odbc_current_connection/2,	% ?Conn, -DSN
 	    odbc_set_connection/2,	% +Conn, +Option
@@ -68,14 +69,31 @@
 :- initialization
    load_foreign_library(foreign(odbc4pl)).
 
-%	odbc_query(+Connection, +SQL, -Row)
+%%	odbc_diver_connect(+DriverString, -Connection, +Options) is det.
+%
+%	Connects to a database using SQLDriverConnect(). This API allows
+%	for driver-specific additional options.   DriverString is passed
+%	without  checking.  Options  should  *not*  include  =user=  and
+%	=password=.
+%
+%	Whenever possible, applications should   use  odbc_connect/3. If
+%	you need this predicate,  please   check  the  documentation for
+%	SQLDriverConnect() and the documentation of your driver.
+%
+%	@tbd	Add facilities to deal with prompted completion of the
+%		driver options.
+
+odbc_diver_connect(DriverString, Connection, Options) :-
+	odbc_connect(-, Connection, [driver_string(DriverString)|Options]).
+
+%%	odbc_query(+Connection, +SQL, -Row)
 %
 %	Run query without options.
 
 odbc_query(Connection, SQL, Row) :-
 	odbc_query(Connection, SQL, Row, []).
 
-%	odbc_query(+Connection, +SQL)
+%%	odbc_query(+Connection, +SQL)
 %
 %	Execute SQL-statement that does not produce a result
 
@@ -100,7 +118,7 @@ odbc_prepare(Connection, SQL, Parameters, Statement) :-
 		 *	    SCHEMA STUFF	*
 		 *******************************/
 
-%	odbc_current_table(-Table, -Facet)
+%%	odbc_current_table(-Table, -Facet)
 %
 %	Enumerate the existing tables.
 
@@ -141,7 +159,7 @@ table_column(Connection, Table, Column, Tuple) :-
 	    arg(4, Tuple, Column)
 	).
 
-%	odbc_table_column(+Connection, +Table, ?Column, -Facet)
+%%	odbc_table_column(+Connection, +Table, ?Column, -Facet)
 
 odbc_table_column(Connection, Table, Column, Facet) :-
 	table_column(Connection, Table, Column, Tuple),
@@ -163,7 +181,7 @@ column_facet(type(Type), T) :-
 	arg(6, T, TypeName),
 	sql_type(TypeName, T, Type).
 
-%	sql_type(+TypeName, +Row, -Type)
+%%	sql_type(+TypeName, +Row, -Type)
 %
 %	Create a canonical Prolog representation for the type.  This
 %	is very incomplete code.
@@ -186,7 +204,7 @@ sql_type(varchar, T, varchar(Len)) :- !,
 sql_type(TypeName, _T, Type) :-
 	downcase_atom(TypeName, Type).
 
-%	odbc_type(+Connection, +TypeSpec, ?Facet).
+%%	odbc_type(+Connection, +TypeSpec, ?Facet).
 
 odbc_type(Connection, TypeSpec, Facet) :-
 	odbc_types(Connection, TypeSpec, Row),
@@ -228,7 +246,7 @@ searchable_arg(2, all_except_like).
 searchable_arg(4, true).
 
 
-%	odbc_data_source(?DSN, ?Description)
+%%	odbc_data_source(?DSN, ?Description)
 %
 %	Enumerate the available data-sources
 

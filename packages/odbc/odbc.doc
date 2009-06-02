@@ -30,7 +30,7 @@ standard for \jargon{Open DataBase Connectivity}.  These days there are
 ODBC managers from multiple vendors for many platforms as well as
 drivers for most databases, making it an attractive target for a Prolog
 database connection.
- 
+
 The database interface is envisioned to consist of two layers. The first
 layer is an encapsulation of the core functionality of ODBC.  This layer
 makes it possible to run SQL queries.  The second layer exploits the
@@ -103,10 +103,10 @@ opened.
 
     \termitem{mars}{+Bool}
 If \const{true}, use Microsoft SQL server 2005 \jargon{mars} mode.
-This is support for multiple concurrent statements on a connection without 
-requiring the dynamic cursor (which incurs an astounding 20-50x slowdown 
-of query execution!!). MARS is a new feature in SQL2k5 apparently, and 
-only works if you use the native driver. For the non-native driver, 
+This is support for multiple concurrent statements on a connection without
+requiring the dynamic cursor (which incurs an astounding 20-50x slowdown
+of query execution!!). MARS is a new feature in SQL2k5 apparently, and
+only works if you use the native driver. For the non-native driver,
 specifying that it is enabled will have absolutely no effect.
 \end{description}
 
@@ -125,6 +125,18 @@ open_wordnet :-
 		       open(once)
 		     ]).
 \end{code}
+
+\predicate{odbc_diver_connect}{3}{+DriverString, -Connection, +Options}
+Connects to a database using SQLDriverConnect(). This API allows for
+driver-specific additional options. DriverString is passed without
+checking. Options should \emph{not} include \const{user} and
+\const{password}.
+
+Whenever possible, applications should use odbc_connect/3. If you need
+this predicate, please check the documentation for SQLDriverConnect()
+and the documentation of your driver.%
+\bug{Facilities to deal with prompted completion of the
+     driver options are not yet implemented.}
 
 \predicate{odbc_disconnect}{1}{+Connection}
 Close the given \arg{Connection}.  This destroys the connection alias
@@ -220,7 +232,7 @@ connections before calling this predicate. \arg{DSN} is the name
 of the data source as required by odbc_connect/3. \arg{Description} is
 the name of the driver.  The driver name may be used to tailor the
 SQL statements used on the database.  Unfortunately this name depends
-on the local installing details and is therefore not universally 
+on the local installing details and is therefore not universally
 useful.
 \end{description}
 
@@ -362,7 +374,7 @@ The current implementation is incomplete. It does not allow arguments of
 \term{row}{\ldots} to be instantiated. Plain instantiation can always
 be avoided using a proper SELECT statement. Potentially useful however
 would be the translation of compound terms, especially to translate
-date/time/timestamp structures to a format for use by the application. 
+date/time/timestamp structures to a format for use by the application.
 \end{quote}
 
     \termitem{wide_column_threshold}{+Length}
@@ -444,7 +456,7 @@ result-set to be fetched using odbc_fetch/3.
 
     \predicate{odbc_execute}{3}{+Statement, +ParameterValues, -RowOrAffected}
 Execute a statement prepared with odbc_prepare/4 with the given
-\arg{ParameterValues} and return the rows or number of affected rows 
+\arg{ParameterValues} and return the rows or number of affected rows
 as odbc_query/4. This predicate may return type_error exceptions if the
 provided parameter values cannot be converted to the declared types.
 
@@ -470,7 +482,7 @@ same_age(X, Y) :-
 \end{code}
 
     \predicate{odbc_execute}{2}{+Statement, +ParameterValues}
-Like odbc_query/2, this predicate is meant to execute simple SQL 
+Like odbc_query/2, this predicate is meant to execute simple SQL
 statements without interest in the result.
 
     \predicate{odbc_free_statement}{1}{+Statement}
@@ -499,7 +511,7 @@ to deal with and about as fast.
     \predicate{odbc_fetch}{3}{+Statement, -Row, +Option}
 Fetch a row from the result-set of \arg{Statement}.  \arg{Statement}
 must be created with odbc_prepare/5 using the option \term{fetch}{fetch}
-and be executed using odbc_execute/2.  \arg{Row} is unified to the 
+and be executed using odbc_execute/2.  \arg{Row} is unified to the
 fetched row or the atom \const{end_of_file}%
 	\footnote{This atom was selected to emphasise the similarity
 		  to read.}
@@ -509,7 +521,7 @@ one of:
 
     \begin{description}
 	\termitem{next}{}
-Fetch the next row.  
+Fetch the next row.
 	\termitem{prior}{}
 Fetch the result-set going backwards.
 	\termitem{first}{}
@@ -553,7 +565,7 @@ fetch(Statement, Options) :-
 	    fetch(Statement, Options)
 	).
 \end{code}
-    
+
     \predicate{odbc_close_statement}{+Statement}
 Closes the given statement (without freeing it).  This must be used
 if not the whole result-set is retrieved using odbc_fetch/3.
@@ -576,7 +588,7 @@ End the currently open transaction if there is one.  Using \arg{Action}
 \end{description}
 
 The ODBC documentation has many comments on transaction management and
-its interaction with database cursors.  
+its interaction with database cursors.
 
 
 \subsection{Accessing the database dictionary}
@@ -584,7 +596,7 @@ its interaction with database cursors.
 With this interface we do not envision the use of Prolog as a database
 manager.  Nevertheless, elementary access to the structure of a database
 is required, for example to validate a database satisfies the
-assumptions made by the application.  
+assumptions made by the application.
 
 \begin{description}
     \predicate{odbc_current_table}{2}{+Connection, -Table}
@@ -650,7 +662,7 @@ When available, suffix for literal representation.
     \termitem{create_params}{CreateParams}
 When available, arguments needed to create the type.
     \termitem{nullable}{Bool}
-Whether the type can be \const{NULL}.  May be \const{unknown} 
+Whether the type can be \const{NULL}.  May be \const{unknown}
     \termitem{case_sensitive}{Bool}
 Whether values for this type are case-sensitive.
     \termitem{searchable}{Searchable}
@@ -797,20 +809,20 @@ delivered with an ODBC compatible interface. This implies you get the
 portability benefits of ODBC without paying the configuration and
 performance price. Currently this interface is, according to the
 \url[PHP]{http://www.php.net} documentation on this subject, provided by
-Adabas D, IBM DB2, Solid, and Sybase SQL Anywhere. 
+Adabas D, IBM DB2, Solid, and Sybase SQL Anywhere.
 
 
 \subsubsection{Using unixODBC}
 
 The SWI-Prolog ODBC interface was developed using
 \url[unixODBC]{http://www.unixodbc.org} and \url[MySQL]{http://www.mysql.com} on
-\url[SuSE Linux]{http://www.suse.com}.  
+\url[SuSE Linux]{http://www.suse.com}.
 
 
 \subsubsection{Using Microsoft ODBC}
 
 On MS-Windows, the ODBC interface is a standard package, linked against
-\file{odbc32.lib}.  
+\file{odbc32.lib}.
 
 
 \subsection{Remaining issues}
