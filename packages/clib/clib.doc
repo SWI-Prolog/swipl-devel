@@ -986,7 +986,7 @@ using the timeout option of read_term/3.
 The \pllib{rlimit} library provides an interface to the POSIX
 getrlimit()/setrlimit() API that control the maximum resource-usage
 of a process or group of processes.  This call is especially useful
-for server such as CGI scripts and inetd-controlled servers to avoid
+for servers such as CGI scripts and inetd-controlled servers to avoid
 an uncontrolled script claiming too much resources.
 
 \begin{description}
