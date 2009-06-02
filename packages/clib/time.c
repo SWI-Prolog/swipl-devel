@@ -287,7 +287,7 @@ static schedule the_schedule;		/* the schedule */
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
 
-static int uninstallEvent(Event ev);
+static int removeEvent(Event ev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the event, maintaining a time-sorted list of scheduled events.
@@ -359,7 +359,7 @@ insertEvent(Event ev)
 
 
 static void
-freeEvent(Event ev)
+unlinkEvent(Event ev)
 { schedule *sched = TheSchedule();
 
   if ( sched->scheduled == ev )
@@ -372,6 +372,12 @@ freeEvent(Event ev)
 
   if ( ev->next )
     ev->next->previous = ev->previous;
+}
+
+
+static void
+freeEvent(Event ev)
+{ unlinkEvent(ev);
 
   if ( ev->goal )
     PL_erase(ev->goal);
@@ -432,7 +438,7 @@ cleanup()
 
   for(ev=sched->first; ev; ev = next)
   { next = ev->next;
-    uninstallEvent(ev);
+    removeEvent(ev);
   }
 
   cleanupHandler();
@@ -501,7 +507,7 @@ installEvent(Event ev)
 
 
 static int
-uninstallEvent(Event ev)
+removeEvent(Event ev)
 { LOCK();
 
   if ( TheSchedule()->scheduled == ev )
@@ -665,7 +671,7 @@ installEvent(Event ev)
 
 
 static int
-uninstallEvent(Event ev)
+removeEvent(Event ev)
 { LOCK();
   if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
@@ -767,7 +773,7 @@ installEvent(Event ev)
 
 
 static int
-uninstallEvent(Event ev)
+removeEvent(Event ev)
 { if ( TheSchedule()->scheduled == ev )
   { ev->flags |= EV_DONE;
     re_schedule();
@@ -955,7 +961,7 @@ remove_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  return uninstallEvent(ev);
+  return removeEvent(ev);
 }
 
 
