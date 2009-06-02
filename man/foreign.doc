@@ -50,7 +50,7 @@ which attaches the extensions calls Prolog and the SWI-Prolog kernel
 distributed as a C-library are linked together to form a new executable.
 Using \jargon{dynamic linking}, the extensions are linked to a shared
 library (\fileext{so} file on most Unix systems) or dynamic-link library
-(\fileext{DLL} file on Microsoft platforms) and loaded into the 
+(\fileext{DLL} file on Microsoft platforms) and loaded into the
 running Prolog process.%
     \footnote{The system also contains code to load \fileext{o} files
               directly for some operating systems, notably Unix systems
@@ -221,7 +221,7 @@ using the Prolog flag \prologflag{arch}.
 \file{.../pl/include/SWI-Prolog.h}      & Include file \\
 \file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
 \file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{.../pl/include/stub.c}            & Extension stub 
+\file{.../pl/include/stub.c}            & Extension stub
 \end{tabular}
 \end{center}
 
@@ -381,7 +381,7 @@ the runtime stacks. On other machines Prolog will reallocate the stacks
 and update all pointers to them. To do so, Prolog needs to know which
 data is referenced by C-code. As all Prolog data known by C is
 referenced through term references (\ctype{term_t}), Prolog has all
-information necessary to perform its memory management without 
+information necessary to perform its memory management without
 special precautions from the C-programmer.
 
 
@@ -955,7 +955,7 @@ characters.
     \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
 				   pl_wchar_t **s, unsigned flags}
 Wide-character version of PL_get_chars().  The \arg{flags} argument
-is the same as for PL_get_chars().  
+is the same as for PL_get_chars().
 
     \cfunction{int}{PL_unify_wchars}{term_t t, int type,
 				     size_t len,
@@ -1137,12 +1137,12 @@ To create the term \exam{animal(gnu, 50)}, use:
   term_t a2 = PL_new_term_ref();
   term_t t  = PL_new_term_ref();
   functor_t animal2;
-  
+
   /* animal2 is a constant that may be bound to a global
      variable and re-used
   */
   animal2 = PL_new_functor(PL_new_atom("animal"), 2);
-  
+
   PL_put_atom_chars(a1, "gnu");
   PL_put_integer(a2, 50);
   PL_cons_functor(t, animal2, a1, a2);
@@ -1196,7 +1196,7 @@ the {\tt PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
 foreign_t
 pl_hostname(term_t name)
 { char buf[100];
-  
+
   if ( gethostname(buf, sizeof(buf)) )
   { term_t tmp = PL_new_term_ref();
 
@@ -1214,7 +1214,7 @@ Using PL_unify_atom_chars(), this becomes:
 foreign_t
 pl_hostname(term_t name)
 { char buf[100];
-  
+
   if ( gethostname(buf, sizeof(buf)) )
     return PL_unify_atom_chars(name, buf);
 
@@ -1229,7 +1229,7 @@ Unify two Prolog terms and return non-zero on success.
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
 
-    \cfunction{int}{PL_unify_chars}{term_t ?t, int flags, 
+    \cfunction{int}{PL_unify_chars}{term_t ?t, int flags,
 				    size_t len,
 				    const char *chars}
 New function to deal with unification of \ctype{char*} with various
@@ -1515,7 +1515,7 @@ type is registered.
 
 The type \ctype{PL_blob_t} represents a structure with the layout
 displayed above. The structure contains additional fields at the
-\ldots for internal bookkeeping as well as future extension. 
+\ldots for internal bookkeeping as well as future extension.
 
 \begin{code}
 typedef struct PL_blob_t
@@ -1638,7 +1638,7 @@ PL_put_atom_nchars().
 				 PL_blob_t **type}
 If \arg{t} holds a blob or atom get the data and type and return
 \const{TRUE}.  Otherwise return \const{FALSE}.  Each result pointer
-may be \const{NULL}, in which case the requested information is 
+may be \const{NULL}, in which case the requested information is
 ignored.
 
     \cfunction{void *}{PL_blob_data}{atom_t a,
@@ -1690,7 +1690,7 @@ next_prime(term_t n, term_t prime)
   mpz_init(mpz);
   if ( PL_get_mpz(n, mpz) )
   { mpz_nextprime(mpz, mpz);
-    
+
     rc = PL_unify_mpz(prime, mpz);
   } else
     rc = FALSE;
@@ -1914,14 +1914,14 @@ count_atoms()
   term_t a2    = PL_new_term_ref();
   functor_t s2 = PL_new_functor(PL_new_atom("statistics"), 2);
   int atoms;
-  
+
   PL_put_atom_chars(a1, "atoms");
   PL_cons_functor(goal, s2, a1, a2);
   PL_call(goal, NULL);         /* call it in current module */
-  
+
   PL_get_integer(a2, &atoms);
   PL_discard_foreign_frame(fid);
-  
+
   return atoms;
 }
 \end{code}
@@ -2069,7 +2069,7 @@ pl_hello(term_t to)
 \end{code}
     \cfunction{int}{PL_throw}{term_t exception}
 Similar to PL_raise_exception(), but returns using the C longjmp()
-function to the innermost PL_next_solution().  
+function to the innermost PL_next_solution().
 
     \cfunction{term_t}{PL_exception}{qid_t qid}
 If PL_next_solution() fails, this can be due to normal failure of the
@@ -2078,10 +2078,14 @@ function returns a handle to the exception term if an exception was
 raised, or 0 if the Prolog goal simply failed.%
     \footnote{This interface differs in two ways from Quintus.  The
 	      calling predicates simply signal failure if an exception
-	      was raised, and a term referenced is returned, rather 
+	      was raised, and a term referenced is returned, rather
 	      passed and filled with the error term.   Exceptions
 	      can only be handled using the PL_next_solution() interface,
-	      as a handle to the query is required}.
+	      as a handle to the query is required.}
+    \footnote{The scoping of the returned exception is poorly defined.
+	      This API will be reconsidered.  Applications using this
+	      API must process the term immediately and not touch it
+	      afterwards.}
 \end{description}
 
 
@@ -2331,7 +2335,7 @@ are listed in \tabref{action}.
 \const{PL_ACTION_HALT}      & Halt Prolog execution. This action should be
                               called rather than Unix exit() to give Prolog
                               the opportunity to clean up. This call does
-                              not return. The argument (an int) is the 
+                              not return. The argument (an int) is the
 			      exit code. See halt/1. \\
 \const{PL_ACTION_ABORT}     & Generate a Prolog abort (abort/0).
 			      This call does not return.
@@ -2470,10 +2474,10 @@ be defined of type \ctype{void*}.  Here is an example:
 static foreign_t
 atom_checksum(term_t a0, int arity, void* context)
 { char *s;
-  
+
   if ( PL_get_atom_chars(a0, &s) )
   { int sum;
-    
+
     for(sum=0; *s; s++)
       sum += *s&0xff;
 
@@ -2494,7 +2498,7 @@ install()
 Same as PL_register_foreign_in_module(), passing \const{NULL} for the
 \arg{module}.
 
-    \cfunction{void}{PL_register_extensions_in_module}{const char *module, 
+    \cfunction{void}{PL_register_extensions_in_module}{const char *module,
 						       PL_extension *e}
 Register a series of predicates from an array of definitions of the type
 \ctype{PL_extension} in the given \arg{module}. If \arg{module} is
@@ -2735,7 +2739,7 @@ pl_bitvector_union(term_t t1, term_t t2, term_t u)
        get_bitvector(t2, &l2, &s2) )
   { int l = max(l1, l2);
     unsigned char *s3 = alloca(l);
-    
+
     if ( s3 )
     { int n;
       int ml = min(l1, l2);
@@ -2812,7 +2816,7 @@ interpreted by PL_toplevel().
 \begin{code}
 int
 main(int argc, char **argv)
-{ 
+{
 #ifdef READLINE	/* Remove if you don't want readline */
   PL_initialise_hook(install_readline);
 #endif
@@ -2968,7 +2972,7 @@ is done using
 \begin{code}
 sh configure --disable-segv-handling
 \end{code}
- 
+
 The resulting Prolog executable is about 10\% slower than the normal
 executable, but behaves much more reliable in complicated embedded
 situations.  In addition, as the process no longer handles segmentation
@@ -3210,7 +3214,7 @@ The following indicates the usage of the application:
 Executables embedding SWI-Prolog should be able to find the `home'
 directory of the development environment unless a self-contained
 saved-state has been added to the executable (see qsave_program/[1,2]
-and \secref{plld}). 
+and \secref{plld}).
 
 If Prolog starts up, it will try to locate the development environment.
 To do so, it will try the following steps until one succeeds.
@@ -3303,7 +3307,7 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 Yes
 2 ?- lowercase('Hello World!', L).
 
-L = 'hello world!' 
+L = 'hello world!'
 
 Yes
 \end{code}
