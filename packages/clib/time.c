@@ -294,7 +294,7 @@ Allocate the event, maintaining a time-sorted list of scheduled events.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Event
-allocEvent(struct timeval *at)
+allocEvent()
 { Event ev = malloc(sizeof(*ev));
 
   if ( !ev )
@@ -303,11 +303,28 @@ allocEvent(struct timeval *at)
   }
 
   memset(ev, 0, sizeof(*ev));
-  ev->at = *at;
   ev->magic = EV_MAGIC;
 
   return ev;
 }
+
+
+static void
+setTimeEvent(Event ev, double t)
+{ struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  tv.tv_usec += (long)((t-floor(t))*1000000);
+  tv.tv_sec  += (long)t;
+  if ( tv.tv_usec >= 1000000 )
+  { tv.tv_usec -= 1000000;
+    tv.tv_sec++;
+  }
+
+  ev->at = tv;
+  ev->time = t;
+}
+
 
 
 static int
@@ -955,9 +972,9 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
     tv.tv_sec++;
   }
 
-  if ( !(ev = allocEvent(&tv)) )
+  if ( !(ev = allocEvent()) )
     return FALSE;
-  ev->time = t;
+  setTimeEvent(ev, t);
   if ( !unify_timer(id, ev) )
   { freeEvent(ev);			/* not linked: no need to lock */
     return FALSE;
@@ -995,6 +1012,27 @@ install_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
+  if ( (rc=installEvent(ev)) != TRUE )
+    return alarm_error(alarm, rc);
+
+  return TRUE;
+}
+
+
+static foreign_t
+install_alarm2(term_t alarm, term_t time)
+{ Event ev = NULL;
+  double t;
+  int rc;
+
+  if ( !get_timer(alarm, &ev) )
+    return FALSE;
+
+  if ( !PL_get_float(time, &t) )
+    return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
+		    time, "number");
+
+  setTimeEvent(ev, t);
   if ( (rc=installEvent(ev)) != TRUE )
     return alarm_error(alarm, rc);
 
@@ -1125,6 +1163,7 @@ install()
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
   PL_register_foreign("uninstall_alarm",1, uninstall_alarm,0);
   PL_register_foreign("install_alarm",  1, install_alarm,  0);
+  PL_register_foreign("install_alarm",  2, install_alarm2, 0);
   PL_register_foreign("remove_alarm_notrace",1, remove_alarm,   PL_FA_NOTRACE);
   PL_register_foreign("current_alarms", 5, current_alarms, 0);
 #ifdef O_DEBUG
