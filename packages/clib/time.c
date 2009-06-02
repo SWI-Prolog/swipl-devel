@@ -507,6 +507,26 @@ installEvent(Event ev)
 
 
 static int
+uninstallEvent(Event ev)
+{ LOCK();
+
+  if ( TheSchedule()->scheduled == ev )
+    ev->flags = EV_DONE;
+
+  if ( ev->mmid )
+  { timeKillEvent(ev->mmid);
+    ev->mmid = 0;
+  }
+
+  ev->flags &= ~(EV_DONE|EV_FIRED);
+
+  UNLOCK();
+
+  return TRUE;
+}
+
+
+static int
 removeEvent(Event ev)
 { LOCK();
 
@@ -671,6 +691,21 @@ installEvent(Event ev)
 
 
 static int
+uninstallEvent(Event ev)
+{ LOCK();
+  if ( TheSchedule()->scheduled == ev )
+    ev->flags |= EV_DONE;
+  unlinkEvent(ev);
+  pthread_cond_signal(&cond);
+  ev->flags &= ~(EV_FIRED|EV_DONE);
+  UNLOCK();
+
+
+  return TRUE;
+}
+
+
+static int
 removeEvent(Event ev)
 { LOCK();
   if ( TheSchedule()->scheduled == ev )
@@ -769,6 +804,19 @@ installEvent(Event ev)
     re_schedule();
 
   return rc;
+}
+
+
+static int
+uninstallEvent(Event ev)
+{ if ( TheSchedule()->scheduled == ev )
+  { ev->flags |= EV_DONE;
+    re_schedule();
+  }
+
+  ev->flags &= ~(EV_DONE|EV_FIRED);
+
+  return TRUE;
 }
 
 
@@ -955,6 +1003,17 @@ install_alarm(term_t alarm)
 
 
 static foreign_t
+uninstall_alarm(term_t alarm)
+{ Event ev = NULL;
+
+  if ( !get_timer(alarm, &ev) )
+    return FALSE;
+
+  return uninstallEvent(ev);
+}
+
+
+static foreign_t
 remove_alarm(term_t alarm)
 { Event ev = NULL;
 
@@ -1064,6 +1123,7 @@ install()
   PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
   PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
+  PL_register_foreign("uninstall_alarm",1, uninstall_alarm,0);
   PL_register_foreign("install_alarm",  1, install_alarm,  0);
   PL_register_foreign("remove_alarm_notrace",1, remove_alarm,   PL_FA_NOTRACE);
   PL_register_foreign("current_alarms", 5, current_alarms, 0);
