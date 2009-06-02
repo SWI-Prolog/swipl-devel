@@ -1005,7 +1005,10 @@ start_thread(void *closure)
     { info->status = PL_THREAD_SUCCEEDED;
     } else
     { if ( ex )
-      { info->return_value = PL_record(ex);
+      { if ( info->detached )
+	  info->return_value = 0;
+	else
+	  info->return_value = PL_record(ex);
 	info->status = PL_THREAD_EXCEPTION;
       } else
       { info->status = PL_THREAD_FAILED;
