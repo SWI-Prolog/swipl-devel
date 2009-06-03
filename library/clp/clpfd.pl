@@ -4558,11 +4558,11 @@ fold_product([C|Cs], [V|Vs], P0, P) :-
 %         list_to_domain(L2, D2),
 %         domain_subdomain(D1, D2).
 
-:- (   current_prolog_flag(bounded, true) ->
-       format("\n--- WARNING: Using CLP(FD) with bounded arithmetic may yield wrong results.\n"),
-       format("--- Compile SWI-Prolog with the GMP library for unbounded integer arithmetic.\n\n")
-   ;   true
-   ).
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            format("\nWARNING: Using CLP(FD) with bounded arithmetic may yield wrong results.\n")
+        ;   true
+        ).
 
 :- thread_initialization((make_queue,
                           nb_setval('$clpfd_current_propagator', []),
@@ -4571,3 +4571,4 @@ fold_product([C|Cs], [V|Vs], P0, P) :-
                           make_parse_reified,
                           make_matches)).
 
+:- initialization(warn_if_bounded_arithmetic).
