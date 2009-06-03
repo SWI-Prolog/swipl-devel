@@ -2102,7 +2102,7 @@ user:goal_expansion(X0 #= Y0, Equal) :-
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(clpfd:(expr_conds(X0, X),expr_conds(Y0, Y)), Conds),
+        phrase((clpfd:expr_conds(X0, X),clpfd:expr_conds(Y0, Y)), Conds),
         clpfd:list_goal(Conds, Cond),
         Geq = (   Cond -> X >= Y
               ;   clpfd:clpfd_geq(X0, Y0)
