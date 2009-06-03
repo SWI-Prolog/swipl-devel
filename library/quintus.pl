@@ -287,12 +287,13 @@ simple(X) :-
 current_stream(Object, Mode, Stream) :-
 	stream_property(Stream, mode(FullMode)),
 	stream_mode(FullMode, Mode),
-	(   stream_property(Stream, file_name(Object))
+	(   stream_property(Stream, file_name(Object0))
 	->  true
-	;   stream_property(Stream, file_no(Object))
+	;   stream_property(Stream, file_no(Object0))
 	->  true
-	;   Object = []
-	).
+	;   Object0 = []
+	),
+	Object = Object0.
 
 stream_mode(read,   read).
 stream_mode(write,  write).
