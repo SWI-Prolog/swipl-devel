@@ -126,7 +126,7 @@ open_wordnet :-
 		     ]).
 \end{code}
 
-\predicate{odbc_diver_connect}{3}{+DriverString, -Connection, +Options}
+\predicate{odbc_driver_connect}{3}{+DriverString, -Connection, +Options}
 Connects to a database using SQLDriverConnect(). This API allows for
 driver-specific additional options. DriverString is passed without
 checking. Options should \emph{not} include \const{user} and

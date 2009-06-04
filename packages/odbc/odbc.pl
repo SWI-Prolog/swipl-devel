@@ -32,7 +32,7 @@
 
 :- module(odbc,
 	  [ odbc_connect/3,		% +DSN, -Conn, +Options
-	    odbc_diver_connect/3,	% +DriverString, -Conn, +Options
+	    odbc_driver_connect/3,	% +DriverString, -Conn, +Options
 	    odbc_disconnect/1,		% +Conn
 	    odbc_current_connection/2,	% ?Conn, -DSN
 	    odbc_set_connection/2,	% +Conn, +Option
@@ -69,7 +69,7 @@
 :- initialization
    load_foreign_library(foreign(odbc4pl)).
 
-%%	odbc_diver_connect(+DriverString, -Connection, +Options) is det.
+% %	odbc_driver_connect(+DriverString, -Connection, +Options) is det.
 %
 %	Connects to a database using SQLDriverConnect(). This API allows
 %	for driver-specific additional options.   DriverString is passed
@@ -83,7 +83,7 @@
 %	@tbd	Add facilities to deal with prompted completion of the
 %		driver options.
 
-odbc_diver_connect(DriverString, Connection, Options) :-
+odbc_driver_connect(DriverString, Connection, Options) :-
 	odbc_connect(-, Connection, [driver_string(DriverString)|Options]).
 
 %%	odbc_query(+Connection, +SQL, -Row)
