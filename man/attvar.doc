@@ -121,7 +121,7 @@ in this module and \arg{VarValue} is the new value of the variable.
 Normally this predicate fails to veto binding the variable to
 \arg{VarValue}, forcing backtracking to undo the binding.  If
 \arg{VarValue} is another attributed variable the hook often combines
-the two attribute and associates the combined attribute with 
+the two attribute and associates the combined attribute with
 \arg{VarValue} using put_attr/3.
 
     \predicate{attr_portray_hook}{2}{+AttValue, +Var}
@@ -156,7 +156,7 @@ Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
     \predicate{copy_term}{3}{+Term, -Copy, -Gs}
 Create a regular term \arg{Copy} as a copy of \arg{Term} (without
 any attributes), and a list \arg{Gs} of goals that represents the attributes.
-The goal maplist(call,\arg{Gs}) recreates the attributes for \{Copy}.
+The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
 The nonterminal attribute_goals//1, as defined in the modules the
 attributes stem from, is used to convert attributes to lists of goals.
 
@@ -314,7 +314,7 @@ initial value other than \const{[]} prior to backtrackable assignment.
 The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
 compatibility and symmetry.  As most scenarios will use a particular
 global variable either using non-backtrackable or backtrackable
-assignment, using nb_getval/2 can be used to document that the 
+assignment, using nb_getval/2 can be used to document that the
 variable is used non-backtrackable.
 
     \predicate{nb_linkval}{2}{+Name, +Value}
