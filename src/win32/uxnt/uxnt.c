@@ -647,7 +647,11 @@ _xos_rename(const char *old, const char *new)
        !_xos_os_filenameW(new, osnew, PATH_MAX) )
     return -1;
 
-  return _wrename(osold, osnew);
+  if ( MoveFileEx(osold, osnew, MOVEFILE_REPLACE_EXISTING) )
+    return 0;
+
+  errno = EPERM;
+  return -1;				/* TBD: map error codes */
 }
 
 
@@ -824,6 +828,7 @@ _xos_getcwd(char *buf, size_t len)
 
   return NULL;
 }
+
 
 		 /*******************************
 		 *	    ENVIRONMENT		*
