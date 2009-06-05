@@ -86,7 +86,7 @@ access, loading and saving of settings.
 :- multifile
 	current_setting/6.		% Name, Module, Type, Default, Comment, Source
 
-:- module_transparent
+:- meta_predicate
 	setting(:, +, +, +),
 	setting(:, ?),
 	set_setting(:, +),
