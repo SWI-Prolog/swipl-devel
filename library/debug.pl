@@ -41,6 +41,8 @@
 	  ]).
 
 :- meta_predicate(assertion(:)).
+/*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic

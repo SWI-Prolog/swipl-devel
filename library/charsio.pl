@@ -44,6 +44,7 @@
 	    with_output_to_chars/4	% :Goal, -Stream, -Codes, ?Tail
 	  ]).
 :- use_module(library(error)).
+/* :- use_module(library(memfile)). */	% see open_chars_stream/2
 
 :- meta_predicate
 	with_output_to_chars(0, -),
@@ -141,7 +142,8 @@ read_from_chars(List, Term) :-
 %
 %	@bug	Depends on autoloading library(memfile).  As many
 %		applications do not need this predicate we do not
-%		wat to make the entire library dependent on autoloading.
+%		want to make the entire library dependent on
+%		autoloading.
 
 open_chars_stream(Codes, Stream) :-
 	new_memory_file(MF),
