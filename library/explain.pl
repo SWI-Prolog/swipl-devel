@@ -35,6 +35,7 @@
 	  ]).
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 /** <module> Describe Prolog Terms
 

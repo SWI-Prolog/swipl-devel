@@ -41,6 +41,7 @@
 :- use_module(library(pairs)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 :- meta_predicate
 	foreach(0,0),
