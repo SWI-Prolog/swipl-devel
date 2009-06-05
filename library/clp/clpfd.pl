@@ -130,6 +130,7 @@
 :- use_module(library(apply)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(pairs)).
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
@@ -1779,14 +1780,11 @@ parse_clpfd(E, R,
 % Here, we compile the committed choice language to a single
 % predicate, parse_clpfd/2.
 
-:- dynamic parse_clpfd/2.
-
-make_parse_clpfd :-
+make_parse_clpfd(Clauses) :-
         parse_clpfd_clauses(Clauses0),
-        maplist(goals_goal, Clauses0, Clauses),
-        maplist(assertz, Clauses).
+        maplist(goals_goal, Clauses0, Clauses).
 
-goals_goal(Head :- Goals, clpfd:Head :- Body) :-
+goals_goal(Head :- Goals, Head :- Body) :-
         list_goal(Goals, Body).
 
 parse_clpfd_clauses(Clauses) :-
@@ -1899,8 +1897,6 @@ geq(A, B) :-
    handled separately and must occur before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- dynamic clpfd_geq_/2, clpfd_equal_/2, clpfd_neq/2.
-
 match_expand(#>=, clpfd_geq_).
 match_expand(#=, clpfd_equal_).
 match_expand(#\=, clpfd_neq).
@@ -1974,22 +1970,34 @@ matches([
    unintentionally unify a variable with a complex term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-make_matches :-
+make_matches(Clauses) :-
         matches(Ms),
         findall(F, (member(M->_, Ms), arg(1, M, M1), functor(M1, F, _)), Fs0),
         sort(Fs0, Fs),
-        maplist(prevent_cyclic_argument, Fs),
+        maplist(prevent_cyclic_argument, Fs, PrevCyclicClauses),
         phrase(matchers(Ms), Clauses0),
-        maplist(goals_goal, Clauses0, Clauses),
-        maplist(assertz, Clauses).
+        maplist(goals_goal, Clauses0, MatcherClauses),
+        append(PrevCyclicClauses, MatcherClauses, Clauses1),
+        sort_by_predicate(Clauses1, Clauses).
 
-prevent_cyclic_argument(F0) :-
+sort_by_predicate(Clauses, ByPred) :-
+        map_list_to_pairs(predname, Clauses, Keyed),
+        keysort(Keyed, KeyedByPred),
+        pairs_values(KeyedByPred, ByPred).
+
+predname((H:-_), Key)   :- !, predname(H, Key).
+predname(M:H, M:Key)    :- !, predname(H, Key).
+predname(H, Name/Arity) :- !, functor(H, Name, Arity).
+
+prevent_cyclic_argument(F0, Clause) :-
         match_expand(F0, F),
         Head =.. [F,X,Y],
-        assertz(Head :- (   cyclic_term(X) -> domain_error(clpfd_expression, X)
-                        ;   cyclic_term(Y) -> domain_error(clpfd_expression, Y)
-                        ;   false
-                        )).
+        Clause = (Head :- (   cyclic_term(X) ->
+                              domain_error(clpfd_expression, X)
+                          ;   cyclic_term(Y) ->
+                              domain_error(clpfd_expression, Y)
+                          ;   false
+                          )).
 
 matchers([]) --> [].
 matchers([Condition->Goals|Ms]) -->
@@ -2375,16 +2383,13 @@ parse_reified(E, R, D,
 % its reified (Boolean) finite domain variable and its Boolean
 % definedness.
 
-:- dynamic parse_reified_clpfd//3.
-
-make_parse_reified :-
+make_parse_reified(Clauses) :-
         parse_reified_clauses(Clauses0),
-        maplist(goals_goal_dcg, Clauses0, Clauses),
-        maplist(assertz, Clauses).
+        maplist(goals_goal_dcg, Clauses0, Clauses).
 
 goals_goal_dcg(Head --> Goals, Clause) :-
         list_goal(Goals, Body),
-        expand_term(clpfd:Head --> Body, Clause).
+        expand_term(Head --> Body, Clause).
 
 parse_reified_clauses(Clauses) :-
         parse_reified(E, R, D, Matchers),
@@ -4558,17 +4563,48 @@ fold_product([C|Cs], [V|Vs], P0, P) :-
 %         list_to_domain(L2, D2),
 %         domain_subdomain(D1, D2).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Generated predicates
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+term_expansion(make_parse_clpfd, Clauses)   :- make_parse_clpfd(Clauses).
+term_expansion(make_parse_reified, Clauses) :- make_parse_reified(Clauses).
+term_expansion(make_matches, Clauses)       :- make_matches(Clauses).
+
+make_parse_clpfd.
+make_parse_reified.
+make_matches.
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Global variables
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_clpfd_var('$clpfd_queue') :-
+        make_queue.
+make_clpfd_var('$clpfd_current_propagator') :-
+        nb_setval('$clpfd_current_propagator', []).
+make_clpfd_var('$clpfd_queue_status') :-
+        nb_setval('$clpfd_queue_status', enabled).
+
+:- multifile user:exception/3.
+
+user:exception(undefined_global_variable, Name, retry) :-
+        make_clpfd_var(Name), !.
+
 warn_if_bounded_arithmetic :-
         (   current_prolog_flag(bounded, true) ->
-            format("\nWARNING: Using CLP(FD) with bounded arithmetic may yield wrong results.\n")
+            print_message(warning, clpfd(bounded))
         ;   true
         ).
 
-:- thread_initialization((make_queue,
-                          nb_setval('$clpfd_current_propagator', []),
-                          nb_setval('$clpfd_queue_status', enabled),
-                          make_parse_clpfd,
-                          make_parse_reified,
-                          make_matches)).
-
 :- initialization(warn_if_bounded_arithmetic).
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(clpfd(bounded)) -->
+        ['Using CLP(FD) with bounded arithmetic may yield wrong results.'-[]].
