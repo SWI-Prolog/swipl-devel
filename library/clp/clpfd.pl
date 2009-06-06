@@ -3930,20 +3930,14 @@ run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(reified_and(X,Ps1,Y,Ps2,B), MState) :-
-        (   var(B) ->
-            (   nonvar(X) ->
-                (   X =:= 0 -> kill(MState, Ps2), B = 0
-                ;   X =:= 1 -> kill(MState), B = Y
-                )
-            ;   nonvar(Y) -> run_propagator(reified_and(Y,Ps2,X,Ps1,B), MState)
-            ;   true
+        (   nonvar(X) ->
+            kill(MState),
+            (   X =:= 0 -> maplist(kill_entailed, Ps2), B = 0
+            ;   B = Y
             )
-        ;   B =:= 0 ->
-            (   X == 1 -> kill(MState), Y = 0
-            ;   Y == 1 -> kill(MState), X = 0
-            ;   true
-            )
-        ;   B =:= 1 -> kill(MState), X = 1, Y = 1
+        ;   nonvar(Y) -> run_propagator(reified_and(Y,Ps2,X,Ps1,B), MState)
+        ;   B == 1 -> kill(MState), X = 1, Y = 1
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
