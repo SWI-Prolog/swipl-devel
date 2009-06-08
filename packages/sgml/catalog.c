@@ -310,7 +310,7 @@ cs_streql(ichar const *a, ichar const *b)
 
 static int
 scan_overflow(size_t buflen)
-{ gripe(ERC_REPRESENTATION, L"token length");
+{ gripe(NULL, ERC_REPRESENTATION, L"token length");
 
   return EOF;
 }
@@ -439,7 +439,7 @@ load_one_catalogue(catalog_file * file)
   int override = 0;
 
   if ( !src )
-  { gripe(ERC_NO_CATALOGUE, file->file);
+  { gripe(NULL, ERC_NO_CATALOGUE, file->file);
     return;
   }
 
@@ -635,7 +635,7 @@ find_in_catalogue(int kind,
     return 0;
 
   if ( istrlen(name)+4+1 > penlen )
-  { gripe(ERC_REPRESENTATION, L"entity name");
+  { gripe(NULL, ERC_REPRESENTATION, L"entity name");
     return NULL;
   }
 

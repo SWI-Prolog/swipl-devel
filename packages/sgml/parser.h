@@ -221,7 +221,7 @@ typedef struct _dtd_parser
 #include "xmlns.h"
 #endif
 
-extern int		gripe(dtd_error_id e, ...);
+extern int		gripe(dtd_parser *p, dtd_error_id e, ...);
 
 #define SGML_SUB_DOCUMENT	0x1
 
