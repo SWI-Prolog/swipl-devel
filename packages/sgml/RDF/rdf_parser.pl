@@ -142,7 +142,7 @@ description(description, About, BagID, Properties, Options) ::=
 	{ !, append(PropAttrs, PropElts, Properties)
 	}.
 description(Type, About, BagID, Properties, Options) ::=
-	element(Type,
+	element(\uri(Type, Options),
 		\attrs([ \?idAboutAttr(About, Options),
 			 \?bagIdAttr(BagID, Options)
 		       | \propAttrs(PropAttrs, Options)
@@ -394,14 +394,20 @@ typeAttr(Type, Options) ::=
 	\rdf_or_unqualified(datatype) = \uri(Type, Options).
 
 uri(URI, Options) ::=
-	A,
-	{   memberchk(base_uri(Base), Options),
-	    Base \== []
-	->  canonical_uri(A, Base, URI)
-	;   sub_atom(A, 0, _, _, #)
-	->  sub_atom(A, 1, _, 0, URI)
-	;   url_iri(A, URI)
+	T,
+	{   make_atom(T, A),
+	    (	memberchk(base_uri(Base), Options),
+		Base \== []
+	    ->  canonical_uri(A, Base, URI)
+	    ;   sub_atom(A, 0, _, _, #)
+	    ->  sub_atom(A, 1, _, 0, URI)
+	    ;   url_iri(A, URI)
+	    )
 	}.
+
+make_atom(NS:L, A) :- !,
+	atom_concat(NS, L, A).
+make_atom(A, A).
 
 globalid(Id, Options) ::=
 	A,

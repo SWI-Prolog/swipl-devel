@@ -106,9 +106,8 @@ triples(description(description, IdAbout, BagId, Props), Subject) --> !,
 	{ description_id(IdAbout, Subject)
 	},
 	properties(Props, BagId, Subject).
-triples(description(Type, IdAbout, BagId, Props), Subject) -->
-	{ description_id(IdAbout, Subject),
-	  name_to_type_uri(Type, TypeURI)
+triples(description(TypeURI, IdAbout, BagId, Props), Subject) -->
+	{ description_id(IdAbout, Subject)
 	},
 	properties([ rdf:type = TypeURI
 		   | Props
@@ -119,10 +118,6 @@ triples(unparsed(Data), Id) -->
 	},
 	[].
 
-
-name_to_type_uri(NS:Local, URI) :- !,
-	atom_concat(NS, Local, URI).
-name_to_type_uri(URI, URI).
 
 		 /*******************************
 		 *	    CONTAINERS		*
