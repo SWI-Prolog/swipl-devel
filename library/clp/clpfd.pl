@@ -3257,8 +3257,9 @@ run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
                 P mod C =:= 0,
                 V is P // C
             ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
             ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
+            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
+            ;   Cs == [-1,-1] -> kill(MState), Vs = [A,B], Q is -P, A + B #= Q
             ;   P =:= 0, Cs == [1,1,-1] ->
                 kill(MState), Vs = [A,B,C], A + B #= C
             ;   P =:= 0, Cs == [1,-1,1] ->
