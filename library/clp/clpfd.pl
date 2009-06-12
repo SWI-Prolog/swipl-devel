@@ -1925,8 +1925,6 @@ matches([
                ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)
                ))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
-         m(any(X) #>= integer(Y)+integer(Z))   -> [g(I is Y+Z), r(X, I)],
-         m(integer(X)+integer(Y) #>= any(Z))   -> [g(I is X+Y), r(I, Z)],
          m(abs(any(X)-any(Y)) #>= integer(I))  -> [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
          m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
          m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
@@ -2101,18 +2099,20 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         phrase(clpfd:expr_conds(Y0, Y), CsY),
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
-        Equal = (   CondY ->
-                    (   var(X) -> X is Y
-                    ;   CondX -> X =:= Y
-                    ;   clpfd:clpfd_equal(X0, Y0)
-                    )
+        Equal = (   (CondX,CondY) -> X =:= Y
+                ;   CondX -> T is X, clpfd:clpfd_equal(T, Y0)
+                ;   CondY -> T is Y, clpfd:clpfd_equal(X0, T)
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase((clpfd:expr_conds(X0, X),clpfd:expr_conds(Y0, Y)), Conds),
-        clpfd:list_goal(Conds, Cond),
-        Geq = (   Cond -> X >= Y
+        phrase(clpfd:expr_conds(X0, X), CsX),
+        phrase(clpfd:expr_conds(Y0, Y), CsY),
+        clpfd:list_goal(CsX, CondX),
+        clpfd:list_goal(CsY, CondY),
+        Geq = (   (CondX,CondY) -> X >= Y
+              ;   CondX -> T is X, clpfd:clpfd_geq(T, Y0)
+              ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
               ).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
