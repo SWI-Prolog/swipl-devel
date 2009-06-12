@@ -111,8 +111,8 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  prolog_navigator	       = button(browse) + key('\\C-c\\C-n')
 	],
 					% SYNTAX TABLE
-	[ $    = symbol,
-	  @    = symbol,
+	[ ($)  = symbol,
+	  (@)  = symbol,
 %	  '"'  = string_quote('"'),
 %	  '''' = string_quote(''''),
 	  '%'  = comment_start,
