@@ -1540,15 +1540,11 @@ vars_plusterm([], T, T).
 vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
 
 scalar_product(Cs, Vs, Op, C) :-
-        make_propagator(scalar_product(Cs,Vs,Op,C), Prop),
-        vs_propagator(Vs, Prop),
-        trigger_prop(Prop),
-        do_queue.
-
-vs_propagator([], _).
-vs_propagator([V|Vs], Prop) :-
-        init_propagator(V, Prop),
-        vs_propagator(Vs, Prop).
+        (   Op == (#=)  -> Prop = scalar_product_eq(Cs,Vs,C)
+        ;   Op == (#\=) -> Prop = scalar_product_neq(Cs,Vs,C)
+        ;   domain_error(scalar_product_relation, Op)
+        ),
+        propagator_init_trigger(Vs, Prop).
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
@@ -2865,9 +2861,10 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
+constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
-constraint_wake(scalar_product, bounds).
+constraint_wake(scalar_product_eq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 
@@ -3231,66 +3228,52 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             )
         ).
 
-run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
+run_propagator(scalar_product_neq(Cs0,Vs0,P0), MState) :-
         coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
         P is P0 - I,
-        (   Op == (#\=) ->
-            (   Vs = [] -> kill(MState), P =\= 0
-            ;   P =:= 0, Cs = [1,1,-1] ->
-                kill(MState), Vs = [A,B,C],
-                x_neq_y_plus_z(C, A, B)
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B],
-                x_neq_y_plus_z(A, B, P)
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B],
-                x_neq_y_plus_z(B, A, P)
-            ;   Vs = [V], Cs = [C] ->
-                kill(MState),
-                (   C =:= 1 -> neq_num(V, P)
-                ;   C*V #\= P
-                )
+        (   Vs = [] -> kill(MState), P =\= 0
+        ;   P =:= 0, Cs = [1,1,-1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(C, A, B)
+        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(A, B, P)
+        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(B, A, P)
+        ;   Vs = [V], Cs = [C] ->
+            kill(MState),
+            (   C =:= 1 -> neq_num(V, P)
+            ;   C*V #\= P
+            )
+        ;   true
+        ).
+
+run_propagator(scalar_product_eq(Cs0,Vs0,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Vs = [] -> kill(MState), P =:= 0
+        ;   Vs = [V], Cs = [C] -> kill(MState), P mod C =:= 0, V is P // C
+        ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
+        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
+        ;   Cs == [-1,-1] -> kill(MState), Vs = [A,B], P1 is -P, A + B #= P1
+        ;   P =:= 0, Cs == [1,1,-1] -> kill(MState), Vs = [A,B,C], A + B #= C
+        ;   P =:= 0, Cs == [1,-1,1] -> kill(MState), Vs = [A,B,C], A + C #= B
+        ;   P =:= 0, Cs == [-1,1,1] -> kill(MState), Vs = [A,B,C], B + C #= A
+        ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
+            % nl, writeln(Infs-Sups-Inf-Sup),
+            D1 is P - Inf,
+            D2 is Sup - P,
+            disable_queue,
+            (   Infs == [], Sups == [] ->
+                between(Inf, Sup, P),
+                remove_dist_upper_lower(Cs, Vs, D1, D2)
+            ;   Sups = [] -> P =< Sup, remove_dist_lower(Infs, D2)
+            ;   Infs = [] -> Inf =< P, remove_dist_upper(Sups, D1)
+            ;   Sups = [_], Infs = [_] ->
+                remove_lower(Sups, D2),
+                remove_upper(Infs, D1)
+            ;   Infs = [_] -> remove_upper(Infs, D1)
+            ;   Sups = [_] -> remove_lower(Sups, D2)
             ;   true
-            )
-        ;   Op == (#=) ->
-            (   Vs = [] -> kill(MState), P =:= 0
-            ;   Vs = [V], Cs = [C] ->
-                kill(MState),
-                P mod C =:= 0,
-                V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
-            ;   Cs == [-1,-1] -> kill(MState), Vs = [A,B], Q is -P, A + B #= Q
-            ;   P =:= 0, Cs == [1,1,-1] ->
-                kill(MState), Vs = [A,B,C], A + B #= C
-            ;   P =:= 0, Cs == [1,-1,1] ->
-                kill(MState), Vs = [A,B,C], A + C #= B
-            ;   P =:= 0, Cs == [-1,1,1] ->
-                kill(MState), Vs = [A,B,C], B + C #= A
-            ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
-                % nl, write(Infs-Sups-Inf-Sup), nl,
-                D1 is P - Inf,
-                D2 is Sup - P,
-                disable_queue,
-                (   Infs == [], Sups == [] ->
-                    between(Inf, Sup, P),
-                    remove_dist_upper_lower(Cs, Vs, D1, D2)
-                ;   Sups = [] ->
-                    P =< Sup,
-                    remove_dist_lower(Infs, D2)
-                ;   Infs = [] ->
-                    Inf =< P,
-                    remove_dist_upper(Sups, D1)
-                ;   Sups = [_], Infs = [_] ->
-                    remove_lower(Sups, D2),
-                    remove_upper(Infs, D1)
-                ;   Infs = [_] ->
-                    remove_upper(Infs, D1)
-                ;   Sups = [_] ->
-                    remove_lower(Sups, D2)
-                ;   true
-                ),
-                enable_queue
-            )
+            ),
+            enable_queue
         ).
 
 % X + Y = Z
@@ -4479,11 +4462,12 @@ attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
 attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
 attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
 attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
-attribute_goal_(scalar_product([FC|Cs],[FV|Vs],Op,C)) -->
-        [Goal],
-        { coeff_var_term(FC, FV, T0),
-          fold_product(Cs, Vs, T0, Left),
-          Goal =.. [Op,Left,C] }.
+attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
+        [Left #\= C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
+        [Left #= C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
 attribute_goal_(pdifferent(Left, Right, X, processed)) -->
         [all_different(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
