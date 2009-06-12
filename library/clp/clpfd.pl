@@ -1905,7 +1905,6 @@ symmetric(#=).
 symmetric(#\=).
 
 matches([
-         m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
             [g((   Cs = [1], Vs = [A] -> geq(A, Const)
                ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
@@ -1924,6 +1923,7 @@ matches([
                    A+B #= S, Const1 is -Const, geq(Const1, S)
                ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)
                ))],
+         m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
          m(abs(any(X)-any(Y)) #>= integer(I))  -> [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
          m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
