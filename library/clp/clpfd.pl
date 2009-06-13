@@ -1949,12 +1949,12 @@ matches([
 
          m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
          m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
-         m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(X1, Y1, Z1))],
-         m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(Y1, X1, Z1))],
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
             [g(scalar_product(Cs, Vs, #\=, S))],
+         m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(X1, Y1, Z1))],
+         m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), g(x_neq_y_plus_z(Y1, X1, Z1))],
          m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
         ]).
 
@@ -3232,15 +3232,19 @@ run_propagator(scalar_product_neq(Cs0,Vs0,P0), MState) :-
         coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
         P is P0 - I,
         (   Vs = [] -> kill(MState), P =\= 0
-        ;   P =:= 0, Cs = [1,1,-1] ->
-            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(C, A, B)
-        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(A, B, P)
-        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(B, A, P)
         ;   Vs = [V], Cs = [C] ->
             kill(MState),
             (   C =:= 1 -> neq_num(V, P)
             ;   C*V #\= P
             )
+        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(A, B, P)
+        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(B, A, P)
+        ;   P =:= 0, Cs = [1,1,-1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(C, A, B)
+        ;   P =:= 0, Cs = [1,-1,1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(B, A, C)
+        ;   P =:= 0, Cs = [-1,1,1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(A, B, C)
         ;   true
         ).
 
