@@ -142,8 +142,8 @@ skip_over(const char *s, int c)
 }
 
 
-static char *
-strndup(const char *in, size_t len)
+static char *				/* not always around */
+my_strndup(const char *in, size_t len)
 { char *s = malloc(len+1);
 
   strncpy(s, in, len);
@@ -180,10 +180,10 @@ load_vmis(const char *file)
 	} else
 	  e4--;				/* backspace over ) */
 
-	vmi_list[vmi_count].name  = strndup(s1, e1-s1);
-	vmi_list[vmi_count].flags = strndup(s2, e2-s2);
-	vmi_list[vmi_count].argc  = strndup(s3, e3-s3);
-	vmi_list[vmi_count].args  = strndup(s4, e4-s4);
+	vmi_list[vmi_count].name  = my_strndup(s1, e1-s1);
+	vmi_list[vmi_count].flags = my_strndup(s2, e2-s2);
+	vmi_list[vmi_count].argc  = my_strndup(s3, e3-s3);
+	vmi_list[vmi_count].args  = my_strndup(s4, e4-s4);
 
 	add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
 	add_synopsis(s3, e3-s3);
