@@ -1525,6 +1525,8 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
+  while(size_alignment < 4*SIZEOF_VOIDP K)
+    size_alignment *= 2;
 
   local    = max(local,    minlocal + STACK_SIGNAL);
   global   = max(global,   minglobal + STACK_SIGNAL);
