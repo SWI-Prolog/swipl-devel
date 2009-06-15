@@ -3108,9 +3108,22 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     default:
     { number n;
       unsigned char *q;
+      AR_CTX;
 
-      if ( s && str_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-	return PL_unify_number(atom, &n);
+      AR_BEGIN();
+
+      if ( s && str_number((unsigned char *)s, &q, &n, FALSE) )
+      { if ( *q == EOS )
+        { int rc = PL_unify_number(atom, &n);
+          clearNumber(&n);
+          AR_END();
+          return rc;
+        }
+        clearNumber(&n);
+      }
+
+      AR_END();
+
       if ( how == X_AUTO )
 	goto case_atom;
       else
@@ -3203,6 +3216,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 static
 PRED_IMPL("atom_number", 2, atom_number, 0)
 { PRED_LD
+  AR_CTX
   char *s;
   size_t len;
 
@@ -3210,10 +3224,26 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   { number n;
     unsigned char *q;
 
-    if ( str_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-      return PL_unify_number(A2, &n);
+    AR_BEGIN();
+
+    if ( str_number((unsigned char *)s, &q, &n, FALSE) )
+    { if ( *q == EOS )
+      { int rc = PL_unify_number(A2, &n);
+        clearNumber(&n);
+
+        AR_END();
+        return rc;
+      }
+      else
+      { clearNumber(&n);
+        AR_END();
+        return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+      }
+    }
     else
+    { AR_END();
       return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+    }
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
   { return PL_unify_atom_nchars(A1, len, s);
   }
