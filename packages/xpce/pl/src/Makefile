@@ -114,11 +114,19 @@ $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
 		fi
 
 sopce$(XPCESO):
-		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		if [ "x$$LD_RUN_PATH" = "x" ]; then \
+		    LD_RUN_PATH="$(libdir)"; \
+		else \
+		    LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		fi; \
 		export LD_RUN_PATH; \
 		$(PLLD) -shared $(SOITF) $(LDFLAGS) -L$(XLIB) -L$(LIBDIR) -lXPCE -o $(XPCESO);
 axpce$(XPCESO):
-		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		if [ "x$$LD_RUN_PATH" = "x" ]; then \
+		    LD_RUN_PATH="$(libdir)"; \
+		else \
+		    LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		fi; \
 		export LD_RUN_PATH; \
 		$(PLLD) -shared $(LDFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
 		-lXPCE $(GCCLIB) -L$(XLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
