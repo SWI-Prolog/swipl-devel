@@ -521,7 +521,7 @@ static const char *abbred_weekday[] =
 { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 static const char *weekday[] =
 { "Sunday", "Monday", "Tuesday", "Wednesday",
-  "Thursday", "Friday", "Satuerday" };
+  "Thursday", "Friday", "Saturday" };
 static const char *abbred_month[] =
 { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
