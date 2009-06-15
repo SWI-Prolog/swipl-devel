@@ -120,7 +120,7 @@ test(sha512, [true(Atom='cf83e135 7eefb8bd f1542850 d66d8007 d620e405 0b5715dc 8
 :- end_tests(wiki_sha).
 
 
-:- begin_tests(rfc2202).
+:- begin_tests(rfc2202, [condition(current_prolog_flag(bounded, false))]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 HMAC SHA-1 from http://www.ipa.go.jp/security/rfc/RFC2202EN.html
