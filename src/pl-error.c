@@ -46,6 +46,31 @@ put_name_arity(term_t t, functor_t f)
 }
 
 
+static void
+rewrite_callable(atom_t *expected, term_t actual)
+{ term_t a = 0;
+  int loops = 0;
+
+  while ( PL_is_functor(actual, FUNCTOR_colon2) )
+  { if ( !a )
+     a = PL_new_term_ref();
+
+    PL_get_arg(1, actual, a);
+    if ( !PL_is_atom(a) )
+    { *expected = ATOM_atom;
+      PL_put_term(actual, a);
+      return;
+    } else
+    { PL_get_arg(2, actual, a);
+      PL_put_term(actual, a);
+    }
+
+    if ( ++loops > 100 && !PL_is_acyclic(actual) )
+      break;
+  }
+}
+
+
 int
 PL_error(const char *pred, int arity, const char *msg, int id, ...)
 { Definition caller;
@@ -102,6 +127,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { atom_t expected = va_arg(args, atom_t);
       term_t actual   = va_arg(args, term_t);
 
+      if ( expected == ATOM_callable )
+	rewrite_callable(&expected, actual);
       if ( PL_is_variable(actual) && expected != ATOM_variable )
 	goto err_instantiation;
 
