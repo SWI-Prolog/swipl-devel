@@ -284,6 +284,7 @@ parms.h:	Makefile
 
 gitversion::
 		@$(srcdir)/mkversion.sh
+version.h:	gitversion
 pl-version.o:	version.h
 
 $(OBJ):		parms.h $(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h
