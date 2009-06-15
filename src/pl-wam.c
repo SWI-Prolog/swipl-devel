@@ -1067,27 +1067,6 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 
 #endif /*O_CATCHTHROW*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-isSimpleGoal(Word g)
-    Determines whether we need to compile a call (as call/1) to the
-    specified term (see I_USERCALL0) or we can call it directly.  The
-    choice is based on optimisation.  Compilation is slower, but almost
-    required to deal with really complicated cases.
-
-    TBD: use CONTROL_F
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static bool
-isSimpleGoal(Word a ARG_LD)		/* a is dereferenced and compound */
-{ functor_t f = functorTerm(*a);
-
-  if ( f == FUNCTOR_comma2 ||
-       f == FUNCTOR_semicolon2 ||
-       f == FUNCTOR_bar2 )
-    fail;
-
-  succeed;
-}
 
 		 /*******************************
 		 *	  TAIL-RECURSION	*

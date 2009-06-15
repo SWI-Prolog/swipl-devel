@@ -3533,14 +3533,20 @@ atom is referenced by the goal-term anyway.
     arity   = 0;
     args    = NULL;
   } else if ( isTerm(goal) )
-  { if ( isSimpleGoal(a PASS_LD)
+  { FunctorDef fd;
+
+    functor = functorTerm(goal);
+    if ( functor == FUNCTOR_colon2 )
+      goto call_type_error;
+
+    fd = valueFunctor(functor);
+    if ( false(fd, CONTROL_F)
 #if O_DEBUG
 	 || GD->bootsession || !GD->initialised
 #endif
        )
     { args    = argTermP(goal, 0);
-      functor = functorTerm(goal);
-      arity   = arityFunctor(functor);
+      arity   = fd->arity;
     } else
     { Clause cl;
 
@@ -3580,6 +3586,7 @@ atom is referenced by the goal-term anyway.
   } else
   { fid_t fid;
 
+  call_type_error:
     lTop = (LocalFrame)argFrameP(NFR, 1);
     fid = PL_open_foreign_frame();
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
