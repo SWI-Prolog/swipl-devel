@@ -31,7 +31,7 @@
 
 :- module(rdf_turtle,
 	  [ rdf_load_turtle/3,		% +Input, -Triples, +Options
-	    rdf_process_turtle/3	% +Input, :ObObject, +Options
+	    rdf_process_turtle/3	% +Input, :OnObject, +Options
 	  ]).
 :- use_module(library(assoc)).
 :- use_module(library(option)).
