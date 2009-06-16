@@ -65,7 +65,7 @@
 \predicatesummary{max_list}{2}{Largest number in a list}
 \predicatesummary{member}{2}{Element is member of a list}
 \predicatesummary{min_list}{2}{Smallest number in a list}
-\predicatesummary{nextto}{3}{Y follows X in List} 
+\predicatesummary{nextto}{3}{Y follows X in List}
 \predicatesummary{nth0}{3}{N-th element of a list (0-based)}
 \predicatesummary{nth1}{3}{N-th element of a list (1-based)}
 \predicatesummary{numlist}{3}{Create list of integers in interval}
@@ -74,7 +74,7 @@
 \predicatesummary{select}{3}{Select element of a list}
 \predicatesummary{selectchk}{3}{Semi-deterministic selection from a list}
 \predicatesummary{subset}{2}{Check subset relation for unordered sets}
-\predicatesummary{subtract}{3}{Delete elements that do not satisfy condition}
+\predicatesummary{subtract}{3}{Delete elements from unordered sets}
 \predicatesummary{sumlist}{2}{Add all numbers in a list}
 \predicatesummary{union}{3}{Union of two sets}
 \end{summarylist}
@@ -203,7 +203,7 @@ This library is only available on Windows systems.
 \predicatesummary{minimize}{1}{Minimizes an expression}
 \predicatesummary{maximize}{1}{Maximizes an expression}
 \predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
-\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}    
+\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}
 \predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
 \predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}

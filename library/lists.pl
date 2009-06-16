@@ -331,7 +331,10 @@ is_set([_|T]) :-
 %%	list_to_set(+List, ?Set) is det.
 %
 %	True when Set has the same element   as  List in the same order.
-%	The left-most copy of the duplicate is retained.
+%	The left-most copy of the duplicate  is retained. The complexity
+%	of this operation is |List|^2.
+%
+%	@see sort/2.
 
 list_to_set(List, Set) :-
 	list_to_set_(List, Set0),
@@ -350,7 +353,10 @@ close_list([_|T]) :-
 
 %%	intersection(+Set1, +Set2, -Set3) is det.
 %
-%	True if Set3 unifies with the intersection of Set1 and Set2
+%	True if Set3 unifies with the intersection of Set1 and Set2.
+%	The complexity of this predicate is |Set1|*|Set2|
+%
+%	@see ord_intersection/3.
 
 intersection([], _, []) :- !.
 intersection([X|T], L, Intersect) :-
@@ -363,7 +369,10 @@ intersection([_|T], L, R) :-
 
 %%	union(+Set1, +Set2, -Set3) is det.
 %
-%	True if Set3 unifies with the union of Set1 and Set2
+%	True if Set3 unifies with the union of Set1 and Set2.
+%	The complexity of this predicate is |Set1|*|Set2|
+%
+%	@see ord_union/3.
 
 union([], L, L) :- !.
 union([H|T], L, R) :-
@@ -375,7 +384,10 @@ union([H|T], L, [H|R]) :-
 
 %%	subset(+SubSet, +Set) is det.
 %
-%	True if all elements of SubSet belong to Set as well.
+%	True if all elements of SubSet belong to Set as well. Membership
+%	test is based on memberchk/2.  The complexity is |SubSet|*|Set|.
+%
+%	@see ord_subset/2.
 
 subset([], _) :- !.
 subset([E|R], Set) :-
@@ -385,8 +397,11 @@ subset([E|R], Set) :-
 
 %%	subtract(+Set, +Delete, -Result) is det.
 %
-%	Delete all elements from `Set' that occur in `Delete' (a set) and
-%	unify the result with `Result'.
+%	Delete all elements from `Set' that   occur  in `Delete' (a set)
+%	and unify the  result  with  `Result'.   Deletion  is  based  on
+%	unification using memberchk/2. The complexity is |Delete|*|Set|.
+%
+%	@see ord_subtract/3.
 
 subtract([], _, []) :- !.
 subtract([E|T], D, R) :-
