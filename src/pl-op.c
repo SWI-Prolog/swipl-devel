@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -414,22 +414,34 @@ current_op(Module m, int inherit,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { atom_t a, nm = NULL_ATOM;		/* any name */
-      int p = 0;			/* any priority */
-      int t = 0;			/* any type */
+    { atom_t a, nm;			/* NULL_ATOM: any name */
+      int p;				/* 0: any priority */
+      int t;				/* 0: any type */
+
+      if ( PL_is_variable(name) )
+	nm = NULL_ATOM;
+      else if ( !PL_get_atom_ex(name, &nm) )
+	return FALSE;
+
+      if ( PL_is_variable(prec) )
+	p = 0;
+      else if ( !PL_get_integer_ex(prec, &p) )
+	return FALSE;
+
+      if ( PL_is_variable(type) )
+	t = 0;
+      else if ( PL_get_atom_ex(type, &a) )
+      { if ( !(t = atomToOperatorType(a)) )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_operator_specifier, type);
+      } else
+	return FALSE;
 
       e = allocHeap(sizeof(*e));
       b = &e->buffer;
       initBuffer(b);
       e->index = 0;
 
-      PL_get_atom(name, &nm);
-      PL_get_integer(prec, &p);
-      if ( PL_get_atom(type, &a) )
-      { if ( !(t = atomToOperatorType(a)) )
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_operator_specifier, type);
-      }
       if ( m->operators )
 	addOpsFromTable(m->operators, nm, p, t, b);
 
