@@ -3669,7 +3669,17 @@ Now scan the argument vector of the goal and fill the arguments  of  the
 frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   if ( arity > 0 )
-  { ARGP = argFrameP(NFR, 0);
+  { if ( arity > MAXARITY )
+    { fid_t fid;
+
+      lTop = (LocalFrame)argFrameP(NFR, 1);
+      fid = PL_open_foreign_frame();
+      PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_arity);
+      PL_close_foreign_frame(fid);
+      goto b_throw;
+    }
+
+    ARGP = argFrameP(NFR, 0);
 
     for(; arity-- > 0; ARGP++, args++)
       *ARGP = linkVal(args);
