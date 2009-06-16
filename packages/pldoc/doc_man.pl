@@ -413,12 +413,9 @@ resolve_section(section(Level, No, Spec),
 	absolute_file_name(Spec, Path,
 			   [ access(read)
 			   ]),
-	(   (   var(Level)
-	    ;   var(Path)
-	    )
-	->  index_manual,
-	    ignore(man_index(section(Level, No, Path), _, _, _, _))
-	;   true
+	(   man_index(section(Level, No, Path), _, _, _, _)
+	->  true
+	;   existence_error(manual_file, Spec)
 	).
 
 %%	parent_section(+Section, +Parent) is det.
