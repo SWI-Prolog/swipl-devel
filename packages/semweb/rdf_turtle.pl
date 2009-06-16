@@ -49,7 +49,8 @@ This module implements the Turtle  language   for  representing  the RDF
 triple model as defined by Dave Beckett  from the Institute for Learning
 and Research Technology University of Bristol in the document:
 
-	* http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/
+	* http://www.w3.org/TeamSubmission/turtle/
+	* http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/ (original)
 
 The current parser handles all positive   and negative examples provided
 by the above document at october 17, 2004.
@@ -258,7 +259,7 @@ object(State, Object, T, T) -->
 object(_, literal(type(Type, N)), T, T) -->
 	[ numeric(Tp, Codes) ], !,
 	{ numeric_url(Tp, Type),
-	  atom_codes(N, Codes)
+	  normalise_number(Tp, Codes, N)
 	}.
 object(State, Object, T, T) -->
 	resource(State, Object), !.
@@ -266,6 +267,17 @@ object(State, Object, T0, T) -->
 	blank(State, Object, T0, T), !.
 object(State, _, _, _) -->
 	syntax_error(State, expected_object).
+
+%%	normalise_number(+Type, +Codes:list, -Literal:atom) is det.
+%
+%	Turtle normalisation of numbers. Currently  only implemented for
+%	integers. This ensures that 0001 is parsed as "1"^^xsd:integer.
+
+normalise_number(integer, Codes, N) :- !,
+	number_codes(I, Codes),
+	atom_number(N, I).
+normalise_number(_, Codes, N) :-
+	atom_codes(N, Codes).
 
 term_expansion(numeric_url(I, Local),
 	       numeric_url(I, URI)) :-
