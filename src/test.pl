@@ -820,9 +820,8 @@ meta(call-11) :-
 	forall(A, true),
 	flag(a, 3, Old).
 meta(call-12) :-
-	context_module(M),
 	catch(call(1), E, true),
-	error(E, type_error(callable, M:1)).
+	error(E, type_error(callable, _)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
@@ -2763,7 +2762,7 @@ blocked(Reason) :-
 %	2nd context argument.
 
 error(error(Ex, _Ctx), Expected) :-
-	Ex =@= Expected, !.
+	subsumes_chk(Expected, Ex), !.
 error(error(Ex, _Ctx), Expected) :-
 	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
 	fail.
