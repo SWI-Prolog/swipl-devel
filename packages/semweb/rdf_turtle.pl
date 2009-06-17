@@ -781,6 +781,7 @@ assert_triples([rdf(S,P,O)|T], Location) :-
 	assert_triples(T, Location).
 
 rdf_db:rdf_file_type(ttl, turtle).
+rdf_db:rdf_file_type(n3,  turtle).	% not really, but good enough
 
 
 		 /*******************************
