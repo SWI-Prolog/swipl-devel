@@ -78,10 +78,10 @@ by the above document at october 17, 2004.
 %		node(1), node(2), ...
 
 rdf_load_turtle(In, Triples, Options) :-
-	open_input(In, Stream),
+	open_input(In, Stream, Close),
 	init_state(In, Stream, Options, State),
 	call_cleanup(phrase(turtle_file(State, Stream), Triples),
-		     close(Stream)).
+		     Close).
 
 
 %%	rdf_process_turtle(+Input, :OnObject, +Options) is det.
@@ -90,10 +90,10 @@ rdf_load_turtle(In, Triples, Options) :-
 %	of triples.  Options is the same as for rdf_load_turtle/3.
 
 rdf_process_turtle(In, OnObject, Options) :-
-	strip_module(OnObject, M, G),
-	open_input(In, Stream),
+	open_input(In, Stream, Close),
 	init_state(In, Stream, Options, State),
-	process_stream(State, Stream, M:G).
+	call_cleanup(process_stream(State, Stream, OnObject),
+		     Close).
 
 
 process_stream(State, In, OnObject) :-
@@ -116,20 +116,29 @@ process_stream(State, In, OnObject) :-
 	).
 
 
-%%	open_input(+Input, -Stream) is det.
+%%	open_input(+Input, -Stream, -Close) is det.
 %
 %	Open given input.
 %
+%	@param  Close goal to undo the open action
 %	@tbd	Synchronize with input handling of rdf_db.pl.
 %	@error	existence_error, permission_error
 
-open_input(stream(Stream), Stream) :- !.
-open_input(Stream, Stream) :-
-	is_stream(Stream), !.
-open_input(URL, Stream) :-
+open_input(stream(Stream), Stream, true) :- !,
+	stream_property(Stream, encoding(Old)),
+	(   Old == utf8
+	->  Close = true
+	;   set_stream(Stream, encoding(utf8)),
+	    Close = set_stream(Stream, encoding(Old))
+	).
+open_input(Stream, Stream, Close) :-
+	is_stream(Stream), !,
+	open_input(stream(Stream), Stream, Close).
+open_input(URL, Stream, close(Stream)) :-
 	sub_atom(URL, 0, _, _, 'http://'), !,
-	http_open(URL, Stream, []).
-open_input(File, Stream) :-
+	http_open(URL, Stream, []),
+	set_stream(Stream, encoding(utf8)).
+open_input(File, Stream, close(Stream)) :-
 	absolute_file_name(File, Path,
 			   [ access(read),
 			     extensions([ttl, ''])
@@ -631,7 +640,10 @@ language(C0, In, C, [C0|Codes]) :-
 	code_type(C0, lower),
 	get_code(In, C1),
 	lwr_word(C1, In, C2, Codes, Tail),
-	sub_langs(C2, In, C, Tail, []).
+	sub_langs(C2, In, C, Tail, []), !.
+language(_, In, _, _) :-
+	line_count(In, LineNo),
+	syntax_error(In, LineNo, language_specifier).
 
 lwr_word(C0, In, C, [C0|T0], T) :-
 	code_type(C0, lower), !,
