@@ -317,12 +317,12 @@ find_definitions([H0|T0], M, [H|T]) :-
 	find_definition(H0, M, H),
 	find_definitions(T0, M, T).
 
-find_definition(Head, M, Def) :-
+find_definition(Head, _, Def) :-
 	strip_module(Head, _, Plain),
 	callable(Plain),
-	(   functor(Plain, Name, Arity),
-	    current_predicate(system:Name/Arity)
-	->  Def = M:Plain
+	functor(Plain, Name, Arity),
+	(   current_predicate(system:Name/Arity)
+	->  Def = system:Plain
 	;   predicate_property(Head, imported_from(Module))
 	->  Def = Module:Plain
 	;   Def = Head
