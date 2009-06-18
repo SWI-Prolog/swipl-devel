@@ -415,8 +415,18 @@ resolve_section(section(Level, No, Spec),
 			   ]),
 	(   man_index(section(Level, No, Path), _, _, _, _)
 	->  true
-	;   existence_error(manual_file, Spec)
+	;   path_allowed(Path)
+	->  true
+	;   permission_error(read, manual_file, Spec)
 	).
+
+path_allowed(Path) :-			% allow all files from swi/doc
+	absolute_file_name(swi(doc), Parent,
+			   [ access(read),
+			     file_type(directory)
+			   ]),
+	sub_atom(Path, 0, _, _, Parent).
+
 
 %%	parent_section(+Section, +Parent) is det.
 %
