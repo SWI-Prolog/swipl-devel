@@ -1636,6 +1636,7 @@ rdf_db(Subject, Pred, Object, DB) :-
 rdf_save_subject(Out, Subject, BaseURI, Atts, Indent, Options) :-
 	rdf_equal(rdf:type, RdfType),
 	select(RdfType=Type, Atts, Atts1),
+	\+ rdf_is_bnode(Type),
 	rdf_id(Type, BaseURI, TypeId),
 	xml_is_name(TypeId), !,
 	format(Out, '~*|<', [Indent]),
