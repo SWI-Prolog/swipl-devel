@@ -1471,18 +1471,17 @@ optimise(Vars, Options, Whats) :-
         ).
 
 store_extremum(Vars, Options, What, Extremum) :-
-        duplicate_term(Vars-What, Vars1-What1),
-        once(labeling(Options, Vars1)),
+        catch((labeling(Options, Vars), throw(w(What))), w(What1), true),
         functor(What, Direction, _),
         maplist(arg(1), [What,What1], [Expr,Expr1]),
         optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
 
 optimise(Direction, Options, Vars, Expr0, Expr, Extremum) :-
-        Val0 is Expr0,
-        nb_setarg(1, Extremum, n(Val0)),
-        duplicate_term(Vars-Expr, Vars1-Expr1),
-        tighten(Direction, Expr1, Val0),
-        once(labeling(Options, Vars1)),
+        must_be(ground, Expr0),
+        nb_setarg(1, Extremum, n(Expr0)),
+        catch((tighten(Direction, Expr, Expr0),
+               labeling(Options, Vars),
+               throw(v(Expr))), v(Expr1), true),
         optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
 
 tighten(min, E, V) :- E #< V.
