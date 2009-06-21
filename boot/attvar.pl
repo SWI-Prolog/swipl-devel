@@ -256,7 +256,7 @@ att_term_residuals(att(Module,Value,As), V) -->
 	;   % temporarily reinstate this attribute for attribute_goals//1
 	    { put_attr(V, Module, Value) },
 	    (	{ Module == freeze }
-	    ->	[freeze(V, Value)]
+	    ->	frozen_residuals(Value, V)
 	    ;	{ current_predicate(Module:attribute_goals/3) }
 	    ->	{ phrase(Module:attribute_goals(V), Goals) },
 		dlist(Goals)
@@ -275,3 +275,18 @@ dlist([L|Ls]) --> [L], dlist(Ls).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)	--> [A].
+
+%%	frozen_residuals(+FreezeAttr, +Var)// is det.
+%
+%	Instantiate  a  freeze  goal  for  each    member  of  the  $and
+%	conjunction. Note that we cannot  map   this  into a conjunction
+%	because freeze(X, a),  freeze(X,  !)   wrould  create  freeze(X,
+%	(a,!)),  which  is  fundamentally  different.  We  could  create
+%	freeze(X,  (call(a),  call(!)))  or  preform  a  more  eleborate
+%	analysis to validate the semantics are not changed.
+
+frozen_residuals('$and'(X,Y), V) --> !,
+	frozen_residuals(X, V),
+	frozen_residuals(Y, V).
+frozen_residuals(X, V) -->
+	[ freeze(V, X) ].
