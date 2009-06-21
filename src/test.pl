@@ -1967,7 +1967,7 @@ copy_term(av-4) :-
 	X = ok,
 	Done == true,
 	get_attr(Y, freeze, Att),
-	Att = (user:true, user:(D2=true)),
+	Att = '$and'(user:true, user:(D2=true)),
 	var(D2),
 	Y = ok,
 	D2  == true.

@@ -34,7 +34,8 @@ unification is wrong you won't get as far as running this test :-)
 */
 
 test_attvar :-
-	run_tests([ attvar
+	run_tests([ attvar,
+		    freeze
 		  ]).
 
 :- begin_tests(attvar).
@@ -44,3 +45,14 @@ test(s_list, L=="hello") :-		% Verify wakeup on S_LIST
 	append(X, [], L).
 
 :- end_tests(attvar).
+
+:- begin_tests(freeze).
+
+test(freeze_and, true) :-
+	freeze(X, true),
+	freeze(Y, true),
+	X=Y,
+	freeze(X, true),
+	X=a.
+
+:- end_tests(freeze).

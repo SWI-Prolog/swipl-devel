@@ -647,7 +647,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
       if ( find_attr(v, ATOM_freeze, &vp PASS_LD) )
       { Word gc = allocGlobal(3);		/* 3 cells global */
 
-	gc[0] = FUNCTOR_comma2;
+	gc[0] = FUNCTOR_dand2;
 	gc[1] = linkVal(vp);
 	gc[2] = goal;
 

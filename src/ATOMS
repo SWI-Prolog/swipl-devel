@@ -9,6 +9,7 @@
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -121,6 +122,7 @@ A cut_call		"cut_call"
 A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
+A dand			"$and"
 A date			"date"
 A db_reference		"db_reference"
 A dc_call_prolog	"$c_call_prolog"
@@ -195,8 +197,8 @@ A exit			"exit"
 A exited		"exited"
 A exp			"exp"
 A export		"export"
-A exports		"exports"
 A exported		"exported"
+A exports		"exports"
 A expression		"expression"
 A externals		"externals"
 A fact			"fact"
@@ -659,6 +661,7 @@ F cputime		0
 F curl			1
 F cut_call		1
 F cut_exit		1
+F dand			2
 F date			9
 F dcall			1
 F dcut			1
