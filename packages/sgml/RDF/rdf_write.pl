@@ -325,6 +325,7 @@ rdf_write_subject(_, Subject, _, _, _) :-
 rdf_write_subject(Triples, Out, Subject, NodeIDs, DefNS, Indent, Anon) :-
 	rdf_equal(rdf:type, RdfType),
 	select(rdf(_, RdfType,Type), Triples, Triples1),
+	\+ rdf_is_bnode(Type),
 	rdf_id(Type, DefNS, TypeId),
 	xml_is_name(TypeId), !,
 	format(Out, '~*|<', [Indent]),
