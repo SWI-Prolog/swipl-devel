@@ -1948,9 +1948,9 @@ matches([
 
          m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
          m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
-         m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(var(X) #\= var(Y) + var(Z))        -> [p(x_neq_y_plus_z(X, Y, Z))],
          m(var(X) #\= var(Y) - var(Z))        -> [p(x_neq_y_plus_z(Y, X, Z))],
+         m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
             [g(scalar_product(Cs, Vs, #\=, S))],
@@ -2097,8 +2097,14 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
         Equal = (   (CondX,CondY) -> X =:= Y
-                ;   CondX -> T is X, clpfd:clpfd_equal(T, Y0)
-                ;   CondY -> T is Y, clpfd:clpfd_equal(X0, T)
+                ;   CondX ->
+                    (   var(Y) -> Y is X
+                    ;   T is X, clpfd:clpfd_equal(T, Y0)
+                    )
+                ;   CondY ->
+                    (   var(X) -> X is Y
+                    ;   T is Y, clpfd:clpfd_equal(X0, T)
+                    )
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
