@@ -189,6 +189,7 @@ static functor_t FUNCTOR_graph1;
 static functor_t FUNCTOR_indexed8;
 
 static functor_t FUNCTOR_exact1;
+static functor_t FUNCTOR_plain1;
 static functor_t FUNCTOR_substring1;
 static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
@@ -223,6 +224,7 @@ static functor_t FUNCTOR_end1;
 
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
+static atom_t	ATOM_plain;
 static atom_t	ATOM_prefix;
 static atom_t	ATOM_substring;
 static atom_t	ATOM_word;
@@ -2395,7 +2397,8 @@ match_object(triple *t, triple *p, unsigned flags)
 
       switch( plit->objtype )
       { case OBJ_STRING:
-	  if ( (flags & MATCH_QUAL) )
+	  if ( (flags & MATCH_QUAL) ||
+	       p->match == STR_MATCH_PLAIN )
 	  { if ( tlit->qualifier != plit->qualifier )
 	      return FALSE;
 	  } else
@@ -2408,7 +2411,7 @@ match_object(triple *t, triple *p, unsigned flags)
 	    return FALSE;
 	  if ( plit->value.string )
 	  { if ( tlit->value.string != plit->value.string )
-	    { if ( p->match )
+	    { if ( p->match >= STR_MATCH_EXACT )
 	      { return match_atoms(p->match,
 				   plit->value.string, tlit->value.string);
 	      } else
@@ -3717,6 +3720,8 @@ get_partial_triple(rdf_db *db,
       PL_get_arg(1, object, a);
       if ( PL_is_functor(a, FUNCTOR_exact1) )
 	t->match = STR_MATCH_EXACT;
+      if ( PL_is_functor(a, FUNCTOR_plain1) )
+	t->match = STR_MATCH_PLAIN;
       else if ( PL_is_functor(a, FUNCTOR_substring1) )
 	t->match = STR_MATCH_SUBSTRING;
       else if ( PL_is_functor(a, FUNCTOR_word1) )
@@ -6379,6 +6384,7 @@ install_rdf_db()
   MKFUNCTOR(graph, 1);
   MKFUNCTOR(indexed, 8);
   MKFUNCTOR(exact, 1);
+  MKFUNCTOR(plain, 1);
   MKFUNCTOR(substring, 1);
   MKFUNCTOR(word, 1);
   MKFUNCTOR(prefix, 1);
@@ -6414,6 +6420,7 @@ install_rdf_db()
 
   ATOM_user	     = PL_new_atom("user");
   ATOM_exact	     = PL_new_atom("exact");
+  ATOM_plain	     = PL_new_atom("plain");
   ATOM_prefix	     = PL_new_atom("prefix");
   ATOM_like	     = PL_new_atom("like");
   ATOM_substring     = PL_new_atom("substring");
