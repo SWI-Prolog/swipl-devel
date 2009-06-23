@@ -1384,10 +1384,11 @@ term_in_stream(Term, In) :-
 	).
 \end{code}
 
-Note that it is impossible to implement this predicate in Prolog other than
-by reading all terms into a list, close the file and call member/2.
-Without setup_call_cleanup/3 there is no way to gain control if the
-choice-point left by repeat is removed by a cut or an exception.
+Note that it is impossible to implement this predicate in Prolog.  The
+closest approximation would be to read all terms into a list, close
+the file and call member/2.  Without setup_call_cleanup/3 there is no
+way to gain control if the choice-point left by repeat is removed by a
+cut or an exception.
 
 setup_call_cleanup/3 can also be used to test determinism of a goal,
 providing a portable alternative to deterministic/1:
