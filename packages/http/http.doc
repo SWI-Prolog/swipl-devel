@@ -510,9 +510,9 @@ locations over multiple predicates. This has several advantages:
     \item It makes a distinction between failure of the predicate
     and undefined locations, giving a server error on failure and
     a 404 existence error on undefined locations.
-    
+
     \item It is much easier to put a spy-point on specific locations
-    or find the code implementing a location.  In addition, the 
+    or find the code implementing a location.  In addition, the
     edit/1 interface is extended to deal with locations.  This
     allows for \verb$?- edit('/path1/path2').$ to open an editor
     on the implementation of the HTTP location \verb$/path1/path2$.
@@ -638,16 +638,25 @@ Reply a file.  The argument order is defined to allow using the
 predicate as a closure for http_handler/3.  Options include:
 
     \begin{description}
-	\termitem{cache}{+Boolean}    
+	\termitem{cache}{+Boolean}
 If \const{true} (default), handle If-modified-since and send
 modification time.
-	\termitem{mime_type}{+Type}    
+	\termitem{mime_type}{+Type}
 Overrule mime-type guessing from the filename as provided by
 file_mime_type/
+	\termitem{unsafe}{+Boolean}
+If \const{false} (default), validate that \arg{FileSpec} does not
+contain references to parent directories. If \arg{FileSpec} is an atom,
+it is also not allowed to be an absolute filename. E.g., specifications
+such as \exam{www('../../etc/passwd')} are not allowed.
+
+This check is by default enabled (i.e., \const{false}) and must be
+disabled explicitely if you wish to serve files outside the root of
+an alias or outside the working directory of the server.
     \end{description}
 
 Below is an example. Note that the file argument can be a specification
-for absolute_file_name/3 that is searched over application libraries 
+for absolute_file_name/3 that is searched over application libraries
 defined using file_search_path/2.
 
 \begin{code}
@@ -740,7 +749,7 @@ to Type. Type identifies the required authentication technique:
 	the second the password _hash_.  Password hashes are
 	validated using crypt/2.
     \end{description}
-	
+
 Successful authorization is  cached  for   60  seconds  to avoid
 overhead of decoding and lookup of the user and password data.
 
@@ -826,7 +835,7 @@ Convert value to a float. Integers are transformed into float.  Throws a
 type-error otherwise.
 
     \termitem{between}{+Low, +High}
-Convert value to a number and if either \arg{Low} or \arg{High} is a 
+Convert value to a number and if either \arg{Low} or \arg{High} is a
 float, force value to be a float.  Then check that the value is in the
 given range, which includes the boundaries.
 \end{description}
@@ -962,7 +971,7 @@ Here is an example:
 ?- http_read_request(user, X).
 |: GET /mydb?class=person HTTP/1.0
 |: Host: gollem
-|: 
+|:
 X = [ input(user),
       method(get),
       search([ class = person
@@ -1046,7 +1055,7 @@ server in simple applications in a fairly controlled environment.
 In this setup the Unix \program{inetd} user-daemon is used to initialise
 a server for each connection.  This approach is especially suitable for
 servers that have a limited startup-time.  In this setup a crashing
-client does not influence other requests.  
+client does not influence other requests.
 
 This server is very hard to debug as the server is not connected to the
 user environment.  It provides a robust implementation for servers that
@@ -1075,7 +1084,7 @@ multiple clients using a pool of \jargon{worker-threads}.  This realises
 a popular server design, also seen in Java Tomcat and Microsoft .NET.
 As a single persistent server process maintains communication to all
 clients startup time is not an important issue and the server can
-easily maintain state-information for all clients.  
+easily maintain state-information for all clients.
 
 In addition to the functionality provided by the other (XPCE and
 inetd) servers, the threaded server can also be used to realise an
@@ -1407,7 +1416,7 @@ http_wrapper/5:
     \predicate{http_wrapper}{5}{:Goal, +In, +Out, -Connection, +Options}
 Handle an HTTP request where \arg{In} is an input stream from the
 client, \arg{Out} is an output stream to the client and \arg{Goal}
-defines the goal realising the body.  \arg{Connection} is unified to 
+defines the goal realising the body.  \arg{Connection} is unified to
 \const{'Keep-alive'} if both ends of the connection want to continue the
 connection or \const{close} if either side wishes to close the
 connection.
@@ -1471,7 +1480,7 @@ unifies \arg{RelPath} to \arg{AbsPath}.
 The library \pllib{http/http_error.pl} defines a hook that decorates
 uncaught exceptions with a stack-trace. This will generate a \emph{500
 internal server error} document with a stack-trace. To enable this
-feature, simply load this library.  Please do note that providing 
+feature, simply load this library.  Please do note that providing
 error information to the user simplifies the job of a hacker trying
 to compromise your server.  It is therefore not recommended to load
 this file by default.

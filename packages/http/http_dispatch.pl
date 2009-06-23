@@ -515,6 +515,12 @@ extend(G0, Extra, G) :-
 %		Overrule mime-type guessing from the filename as
 %		provided by file_mime_type/2.
 %
+%		* unsafe(+Boolean)
+%		If =false= (default), validate that FileSpec does not
+%		contain references to parent directories.  E.g.,
+%		specifications such as =|www('../../etc/passwd')|= are
+%		not allowed.
+%
 %	If caching is not disabled,  it   processed  the request headers
 %	=|If-modified-since|= and =Range=.
 %
@@ -522,6 +528,7 @@ extend(G0, Extra, G) :-
 %	@throws http_reply(file(MimeType, Path))
 
 http_reply_file(File, Options, Request) :-
+	check_file_safeness(File, Options),
 	absolute_file_name(File, Path,
 			   [ access(read)
 			   ]),
@@ -545,6 +552,48 @@ http_reply_file(File, Options, Request) :-
 	;   Type = text/plain		% fallback type
 	),
 	throw(http_reply(Reply)).
+
+%%	check_file_safeness(+FileSpec, +Options) is det.
+%
+%	True if FileSpec is considered _safe_.  If   it  is  an atom, it
+%	cannot  be  absolute  and  cannot   have  references  to  parent
+%	directories. If it is of the   form  alias(Sub), than Sub cannot
+%	have references to parent directories.
+%
+%	@error instantiation_error
+%	@error permission_error(read, file, FileSpec)
+
+check_file_safeness(File, _) :-
+	var(File), !,
+	instantiation_error(File).
+check_file_safeness(_, Options) :-
+	option(unsafe(true), Options, false), !.
+check_file_safeness(File, _) :-
+	check_file_safeness(File).
+
+check_file_safeness(File) :-
+	compound(File),
+	functor(File, _, 1), !,
+	arg(1, File, Name),
+	safe_name(Name, File).
+check_file_safeness(Name) :-
+	(   is_absolute_file_name(Name)
+	->  permission_error(read, file, Name)
+	;   true
+	),
+	safe_name(Name, Name).
+
+safe_name(Name, _) :-
+	must_be(atom, Name),
+	\+ unsafe_name(Name), !.
+safe_name(_, Spec) :-
+	permission_error(read, file, Spec).
+
+unsafe_name(Name) :- Name == '..'.
+unsafe_name(Name) :- sub_atom(Name, 0, _, _, '../').
+unsafe_name(Name) :- sub_atom(Name, _, _, _, '/../').
+unsafe_name(Name) :- sub_atom(Name, _, _, 0, '/..').
+
 
 
 		 /*******************************
