@@ -280,6 +280,19 @@ status_reply(see_other(To),Out,HdrExtra, Code) :- !,
         phrase(reply_header(see_other(To, HTML), HdrExtra, Code), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
+status_reply(bad_request(ErrorTerm), Out, HdrExtra, Code) :- !,
+	'$messages':translate_message(ErrorTerm, Lines, []),
+	phrase(page([ title('400 Bad Request')
+		    ],
+		    [ h1('Bad Request'),
+		      p(\html_message_lines(Lines)),
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(status(bad_request, HTML),
+			    HdrExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 status_reply(not_found(URL), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
@@ -836,6 +849,7 @@ status_number(moved,		   301).
 status_number(moved_temporary,	   302).
 status_number(see_other,	   303).
 status_number(not_modified,	   304).
+status_number(bad_request,	   400).
 status_number(not_found,	   404).
 status_number(forbidden,	   403).
 status_number(authorise,	   401).
@@ -861,6 +875,8 @@ status_comment(see_other) -->
 	"See Other".
 status_comment(not_modified) -->
 	"Not Modified".
+status_comment(bad_request) -->
+	"Bad Request".
 status_comment(not_found) -->
 	"Not Found".
 status_comment(forbidden) -->

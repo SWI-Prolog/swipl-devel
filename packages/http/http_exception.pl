@@ -77,10 +77,16 @@ map_exception_to_http_status(E,
 	      [connection(close)]) :-
 	resource_error(E), !.
 map_exception_to_http_status(E,
+	      bad_request(E),
+	      [connection(close)]) :-
+	bad_request_error(E), !.
+map_exception_to_http_status(E,
 	      server_error(E),
 	      [connection(close)]).
 
 resource_error(error(resource_error(_), _)).
+
+bad_request_error(error(domain_error(http_request, _), _)).
 
 %%	keep_alive(+Reply) is semidet.
 %
