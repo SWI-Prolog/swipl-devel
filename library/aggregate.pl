@@ -404,9 +404,9 @@ state0(sum,   0, _).
 
 %%	state1(+Op, +First, -State, -Finish)
 
-state1(bag, X, [X|L], L).
-state1(set, X, [X|L], L).
-state1(_,   X, X,     _).
+state1(bag, X, L, [X|L]) :- !.
+state1(set, X, L, [X|L]) :- !.
+state1(_,   X, X, _).
 
 
 		 /*******************************
