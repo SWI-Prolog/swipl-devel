@@ -1595,11 +1595,20 @@ Atomic data is quoted using html_quoted//1.
 
     \item [\arg{Fmt} - \arg{Args}]
 \arg{Fmt} and \arg{Args} are used as format-specification and argument
-list to sformat/3. The result is quoted and added to the output list.
+list to format/3. The result is quoted and added to the output list.
 
     \item [\bsl\arg{List}]
 Escape sequence to add atoms directly to the output list.  This can be
-used to embed external HTML code.
+used to embed external HTML code or emit script output.  \arg{List} is
+a list of the following terms:
+
+    \begin{itemlist}
+	\item [\arg{Fmt} - \arg{Args}]
+    \arg{Fmt} and \arg{Args} are used as format-specification and argument
+    list to format/3. The result is added to the output list.
+	\item [\arg{Atomic}]
+    Atomic values are added directly to the output list.
+    \end{itemlist}
 
     \item [\bsl\arg{Term}]
 Invoke the non-terminal \arg{Term} in the calling module.  This is the

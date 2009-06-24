@@ -322,10 +322,10 @@ do_expand(Fmt-Args, _) --> !,
 	{ format(string(String), Fmt, Args)
 	},
 	html_quoted(String).
-do_expand(\List, _) -->
+do_expand(\List, Module) -->
 	{ is_list(List)
 	}, !,
-	List.
+	raw(List, Module).
 do_expand(\Term, Module, In, Rest) :- !,
 	call(Module:Term, In, Rest).
 do_expand(Module:Term, _) --> !,
@@ -385,6 +385,27 @@ check_non_empty(_, Tag, Term) :-
 	layout(Tag, _, empty), !,
 	print_message(warning, format('Using empty element with content: ~p', [Term])).
 check_non_empty(_, _, _).
+
+%%	raw(+List, +Modules)// is det.
+%
+%	Emit unquoted (raw) output used for scripts, etc.
+
+raw([], _) -->
+	[].
+raw([H|T], Module) -->
+	raw_element(H, Module),
+	raw(T, Module).
+
+raw_element(Var, _) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
+raw_element(Fmt-Args, _) --> !,
+	{ format(string(S), Fmt, Args) },
+	[S].
+raw_element(Value, _) -->
+	{ must_be(atomic, Value) },
+	[Value].
 
 
 %%	html_begin(+Env)// is det.
