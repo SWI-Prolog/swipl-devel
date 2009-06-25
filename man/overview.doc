@@ -22,10 +22,10 @@ Please visit http://www.swi-prolog.org for details.
 
 For help, use ?- help(Topic). or ?- apropos(Word).
 
-1 ?- 
+1 ?-
 \end{code}
 
-After starting Prolog, one normally loads a program into it using 
+After starting Prolog, one normally loads a program into it using
 consult/1, which --- for historical reasons --- may be abbreviated by
 putting the name of the program file between square brackets.  The
 following goal loads the file \file{likes.pl} containing clauses for
@@ -36,7 +36,7 @@ the predicates \nopredref{likes}{2}:
 % likes compiled, 0.00 sec, 596 bytes.
 
 Yes
-?- 
+?-
 \end{code}
 
 After this point, Unix and Windows users unite, so if you are using
@@ -51,7 +51,7 @@ important new things are available to the user:
     \item A folder (called {\em directory} in the remainder of this
 	  document) called \file{pl} containing the executables,
 	  libraries, etc. of the system.  No files are installed
-	  outside this directory.  
+	  outside this directory.
     \item A program \program{plwin.exe}, providing a window for interaction
           with Prolog. The program \program{plcon.exe} is a version of
 	  SWI-Prolog that runs in a DOS-box.
@@ -62,7 +62,7 @@ important new things are available to the user:
 	  file.
 \end{itemize}
 
-The normal way to start with the \file{likes.pl} file mentioned in 
+The normal way to start with the \file{likes.pl} file mentioned in
 \secref{startunix} is by simply double-clicking this file in the Windows
 explorer.
 
@@ -180,7 +180,7 @@ The full set of command-line options is given below:
 \begin{description}
     \cmdlineoptionitem{--help}{}
 When given as the only option, it summarises the most important options.
-Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.  
+Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.
 
     \cmdlineoptionitem{--version}{}
 When given as the only option, it summarises the version and the
@@ -212,7 +212,7 @@ compatible format.
 This option is available only in \program{plwin.exe} and is used for the
 start-menu item. If causes \program{plwin} to start in the folder
 \verb$...\My Documents\Prolog$ or local equivalent thereof (see
-win_folder/2).  The \file{Prolog} subdirectory is created if it 
+win_folder/2).  The \file{Prolog} subdirectory is created if it
 does not exist.
 
     \cmdlineoptionitem{--quiet}{}
@@ -233,7 +233,7 @@ following example specifies 64 Mbytes local stack.
 A maximum is useful to stop buggy programs from claiming all memory
 resources. \cmdlineoption{-L0} sets the limit to the highest possible
 value.%
-	\footnote{On 64-bit systems there is no relevant limit and 
+	\footnote{On 64-bit systems there is no relevant limit and
 		  \cmdlineoption{-L0} is interpreted as 1Gb.  It is
 		  possible to ask for larger stack-sizes such as
 		  \cmdlineoption{-L32g}}
@@ -250,7 +250,7 @@ because trail-stack overflows are not often caused by program bugs. See
 
     \cmdlineoptionitem*{-A}{size[kmg]}
 Give argument stack limit (1 Mbytes default). The argument stack limits
-the maximum nesting of terms that can be compiled and executed. 
+the maximum nesting of terms that can be compiled and executed.
 SWI-Prolog does `last-argument optimisation' to avoid many deeply nested
 structure using this stack. Enlarging this limit is only necessary in
 extreme cases. See \cmdlineoption{-L} for more details.
@@ -282,7 +282,7 @@ Use \arg{file} as initialisation file instead of the default
 stops SWI-Prolog from searching for a startup file.  This option
 can be used as an alternative to \argoption{-s}{file} that stops
 Prolog from loading the personal initialisation file. See also
-\secref{initfile}. 
+\secref{initfile}.
 
     \cmdlineoptionitem{-F}{script}
 Selects a startup-script from the SWI-Prolog home directory. The
@@ -516,7 +516,7 @@ Example:
 \begin{code}
 1 ?- maplist(plus(1), "hello", X).
 
-X = [105,102,109,109,112] 
+X = [105,102,109,109,112]
 
 Yes
 2 ?- format('~s~n', [$X]).
@@ -527,7 +527,7 @@ Yes
 \end{code}
     \caption{Reusing top-level bindings}
     \label{fig:topevelvars}
-\end{figure} 
+\end{figure}
 
 Note that variables may be set by executing \predref{=}{2}:
 
@@ -607,9 +607,9 @@ option \cmdlineoption{-tty} is active. Tracer options:
 
 \begin{description}
     \traceoption{+}{Spy}{
-Set a spy point (see spy/1) on the current predicate.} 
+Set a spy point (see spy/1) on the current predicate.}
     \traceoption{-}{No spy}{
-Remove the spy point (see nospy/1) from the current predicate.} 
+Remove the spy point (see nospy/1) from the current predicate.}
     \traceoption{/}{Find}{
 Search for a port.  After the `/', the user can enter a line
 to specify the port to search for.  This line consists of a set of
@@ -630,52 +630,52 @@ name equal to that atom matches.  Examples:
     \traceoption{.}{Repeat find}{
 Repeat the last find command (see `/').}
     \traceoption{A}{Alternatives}{
-Show all goals that have alternatives.} 
+Show all goals that have alternatives.}
     \traceoption{C}{Context}{
 Toggle `Show Context'. If \const{on}, the context module of the goal is
 displayed between square brackets (see \secref{modules}).
-Default is \const{off}.} 
+Default is \const{off}.}
     \traceoption{L}{Listing}{
-List the current predicate with listing/1.} 
+List the current predicate with listing/1.}
     \traceoption{a}{Abort}{
-Abort Prolog execution (see abort/0).} 
+Abort Prolog execution (see abort/0).}
     \traceoption{b}{Break}{
-Enter a Prolog break environment (see break/0).} 
+Enter a Prolog break environment (see break/0).}
     \traceoption{c}{Creep}{
-Continue execution, stop at next port. (Also return, space).} 
+Continue execution, stop at next port. (Also return, space).}
     \traceoption{d}{Display}{
 Set the \term{max_depth}{Depth} option of
 \prologflag{debugger_print_options}, limiting the depth to which terms are
 printed.  See also the \const{w} and \const{p} options.}
     \traceoption{e}{Exit}{
-Terminate Prolog (see halt/0).} 
+Terminate Prolog (see halt/0).}
     \traceoption{f}{Fail}{
-Force failure of the current goal.} 
+Force failure of the current goal.}
     \traceoption{g}{Goals}{
 Show the list of parent goals (the execution stack). Note that due to tail
-recursion optimization a number of parent goals might not exist any more.} 
+recursion optimization a number of parent goals might not exist any more.}
     \traceoption{h}{Help}{
-Show available options (also `?').} 
+Show available options (also `?').}
     \traceoption{i}{Ignore}{
-Ignore the current goal, pretending it succeeded.} 
+Ignore the current goal, pretending it succeeded.}
     \traceoption{l}{Leap}{
-Continue execution, stop at next spy point.} 
+Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
-Continue execution in `no debug' mode.} 
+Continue execution in `no debug' mode.}
     \traceoption{p}{Print}{
 Set the Prolog flag \prologflag{debugger_print_options} to
 \texttt{[quoted(true), portray(true), max_depth(10), priority(699)]}. This is the
 default.}
     \traceoption{r}{Retry}{
 Undo all actions (except for database and i/o actions) back to the call
-port of the current goal and resume execution at the call port.} 
+port of the current goal and resume execution at the call port.}
     \traceoption{s}{Skip}{
 Continue execution, stop at the next port of {\bf this} goal (thus skipping
-all calls to children of this goal).} 
+all calls to children of this goal).}
     \traceoption{u}{Up}{
 Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
-is useful to stop tracing a failure driven loop.} 
+is useful to stop tracing a failure driven loop.}
     \traceoption{w}{Write}{
 Set the Prolog flag \prologflag{debugger_print_options} to
 \exam{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
@@ -762,7 +762,7 @@ to receive the following argument-list:
 \end{quote}
 
 Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
-stop Prolog from looking for a personal initialisation file.  
+stop Prolog from looking for a personal initialisation file.
 
 Here is a simple script doing expression evaluation:
 
@@ -847,7 +847,7 @@ go(Args) :-
 	...
 \end{code}
 
-On Windows systems, similar behaviour can be achieved by creating a 
+On Windows systems, similar behaviour can be achieved by creating a
 shortcut to Prolog, passing the proper options or writing a \fileext{bat}
 file.
 
@@ -1067,7 +1067,7 @@ the tracer.  Normally controlled using the `C' option of the tracer.
     \prologflagitem{dialect}{atom}{r}
 Fixed to \const{swi}.  The code below is a reliable and portable way to
 detect SWI-Prolog.
-	
+
 \begin{code}
 is_dialect(swi) :-
 	catch(current_prolog_flag(dialect, swi), _, fail).
@@ -1213,7 +1213,7 @@ require 1 word storage.  Larger integers are represented as `indirect data'
 and require significantly more space.
 
     \prologflagitem{max_threads}{integer}{r}
-Provided on multi-threaded versions to indicate the maximum number of 
+Provided on multi-threaded versions to indicate the maximum number of
 Prolog threads supported.  Currently (version 5.6.27) the limit is 100.
 
     \prologflagitem{min_integer}{integer}{r}
@@ -1285,7 +1285,7 @@ or the running executable.  See also resource/3.
     \prologflagitem{report_error}{bool}{rw}
 If \const{true}, print error messages, otherwise suppress them. May
 be changed. See also the \prologflag{debug_on_error} Prolog flag.
-Default is \const{true}, except for the runtime version. 
+Default is \const{true}, except for the runtime version.
 
     \prologflagitem{runtime}{bool}{r}
 If present and \const{true}, SWI-Prolog is compiled with -DO_RUNTIME,
@@ -1438,12 +1438,15 @@ Available and set to \const{true} if the XPCE graphics system is loaded.
 Available and set to the version of the loaded XPCE system.
 \end{description}
 
-    \predicate[ISO]{set_prolog_flag}{2}{+Key, +Value}
+    \predicate[ISO]{set_prolog_flag}{2}{:Key, +Value}
 Define a new Prolog flag or change its value.  \arg{Key} is an atom.
 If the flag is a system-defined flag that is not marked
 \jargon{changeable} above, an attempt to modify the flag yields a
 \except{permission_error}.  If the provided \arg{Value} does not
 match the type of the flag, a \except{type_error} is raised.
+
+Some flags (e.g., \prologflag{unknown}) are maintained on a per-module
+basis. The addressed module is determined by the \arg{Key} argument.
 
 In addition to ISO, SWI-Prolog allows for user-defined Prolog flags. The
 type of the flag is determined from the initial value and cannot be
@@ -1502,7 +1505,7 @@ control-predicates to higher-level libraries.
     \item [prolog:help_hook/1]
 Hook in help/0, help/1 and apropos/1 to extend the help-system.
     \item [resource/3]
-Defines a new resource (not really a hook, but similar) (SWI).    
+Defines a new resource (not really a hook, but similar) (SWI).
     \item [exception/3]
 Old attempt to a generic hook mechanism.  Handles undefined predicates (SWI).
     \item [attr_unify_hook/2]
@@ -1525,16 +1528,16 @@ silently. The current_prolog_flag/2 \prologflag{verbose_autoload} is provided
 to get verbose loading. The Prolog flag \prologflag{autoload} can be used to
 enable/disable the entire auto load system.
 
-The auto-loader only works if the unknown flag (see unknown/2) is set to
-\const{trace} (default).  A more appropriate interaction with this flag
-should be considered.
+The auto-loader only works if the \prologflag{unknown} flag (see
+unknown/2) is set to \const{error} (default). A more appropriate
+interaction with this flag should be considered.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
 with use_module/2 and only the trapped undefined predicate will be imported
 to the module where the undefined predicate was called.  Each library
 directory must hold a file \file{INDEX.pl} that contains an index to all
-library files in the directory.  This file consists of lines of the 
+library files in the directory.  This file consists of lines of the
 following format:
 
 \begin{code}
@@ -1575,7 +1578,7 @@ the following search schema is followed:
 Create an index for this directory.  The index is written to the file
 'INDEX.pl' in the specified directory.  Fails with a warning if the
 directory does not exist or is write protected.
-    
+
     \predicate{make_library_index}{2}{+Directory, +ListOfPatterns}
 Normally used in \file{MKINDEX.pl}, this predicate creates \file{INDEX.pl}
 for \arg{Directory}, indexing all files that match one of the file-patterns
@@ -1756,7 +1759,7 @@ sequence of \const{ID_Continue} codes. Such sequences are handled as a
 single token in SWI-Prolog. The token is a \emph{variable} iff it starts
 with an uppercase character or an underscore (\chr{_}). Otherwise it is
 an atom.  Note that many languages do not have the notion of
-character-case.  In such languages variables \emph{must} be written as 
+character-case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
     \item [White space]
@@ -2020,7 +2023,7 @@ The local-, global- and trail-stack are limited to 128 Mbytes on 32 bit
 processors, or more generally to $\pow{2}{\mbox{bits-per-long} - 5}$
 bytes.
 
-The PrologScript facility described in \secref{plscript} provides a 
+The PrologScript facility described in \secref{plscript} provides a
 mechanism for specifying options with the load-file.  On Windows the
 default stack-sizes are controlled using the Windows \idx{registry}
 on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
@@ -2053,10 +2056,10 @@ Option & Default & Area name & Description \\
 \cmdlineoption{-T} & 32M & \bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
-                       point of creation or the garbage collector 
+                       point of creation or the garbage collector
                        determines they are nor needed any longer. \\
 \cmdlineoption{-A} & 1M & \bf argument stack & The argument stack is used to
-                       store one of the intermediate code interpreter's 
+                       store one of the intermediate code interpreter's
                        registers. The amount of space needed on this
                        stack is determined entirely by the depth in
                        which terms are nested in the clauses that
@@ -2065,7 +2068,7 @@ Option & Default & Area name & Description \\
 
 		       In addition, this stack is used by some built-in
 		       predicates to handle cyclic terms.  Its default
-		       size limit is proportional to the global stack 
+		       size limit is proportional to the global stack
 		       limit such that it will never overflow. \\
 \hline
 \end{tabular}
@@ -2104,7 +2107,7 @@ SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
 its derivatives however normally limit the number of newlines in an atom
 or string to 5 to improve error detection and recovery.  This can be
 switched off with style_check/1.
-   
+
 The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On
 64-bit machines this is virtually unlimited.  See also \secref{atomgc}.
 
@@ -2145,7 +2148,7 @@ floats, 64 bit IEEE on most machines.
 
 The boot compiler (see \cmdlineoption{-b} option) does not support the module
 system.  As large parts of the system are written in Prolog itself
-we need some way to avoid name clashes with the user's predicates, 
+we need some way to avoid name clashes with the user's predicates,
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
 predicates, database keys, etc.\ that should be hidden from the user
 start with a dollar (\chr{\$}) sign (see style_check/1).
