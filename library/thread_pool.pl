@@ -318,12 +318,18 @@ update_pool(create(Name, Goal, For, _, MyOptions),
 	(   option(at_exit(_), ThreadOptions)
 	->  reply_error(For, permission_error(specify, option, at_axit)),
 	    Members = Members0
-	;   thread_create(Goal, Id,
-			  [ at_exit(thread_send_message(Me, exitted(Name, Id)))
-			  | ThreadOptions
-			  ]),
-	    Members = [Id|Members0],
-	    reply(For, Id)
+	;   Exit = thread_send_message(Me, exitted(Name, Id)),
+	    catch(thread_create(Goal, Id,
+				[ at_exit(Exit)
+				| ThreadOptions
+				]),
+		  E, true),
+	    (	var(E)
+	    ->	Members = [Id|Members0],
+		reply(For, Id)
+	    ;	reply_error(For, E),
+		Members = Members0
+	    )
 	).
 update_pool(Create,
 	    tpool(Options, 0, Size, WP, WPT0, Members),
