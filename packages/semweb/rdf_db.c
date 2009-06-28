@@ -3720,7 +3720,7 @@ get_partial_triple(rdf_db *db,
       PL_get_arg(1, object, a);
       if ( PL_is_functor(a, FUNCTOR_exact1) )
 	t->match = STR_MATCH_EXACT;
-      if ( PL_is_functor(a, FUNCTOR_plain1) )
+      else if ( PL_is_functor(a, FUNCTOR_plain1) )
 	t->match = STR_MATCH_PLAIN;
       else if ( PL_is_functor(a, FUNCTOR_substring1) )
 	t->match = STR_MATCH_SUBSTRING;
