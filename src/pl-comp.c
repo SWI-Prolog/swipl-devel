@@ -2285,12 +2285,23 @@ PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 }
 
 
+static int
+mustBeVar(term_t t ARG_LD)
+{ if ( !PL_is_variable(t) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, t);
+
+  succeed;
+}
+
+
 static
 PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause = assert_term(A1, CL_END, NULL PASS_LD);
+  Clause clause;
 
-  if (clause == (Clause)NULL)
+  if ( !mustBeVar(A2 PASS_LD) )
+    fail;
+  if ( !(clause = assert_term(A1, CL_END, NULL PASS_LD)) )
     fail;
 
   return PL_unify_pointer(A2, clause);
@@ -2300,9 +2311,11 @@ PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 static
 PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause = assert_term(A1, CL_START, NULL PASS_LD);
+  Clause clause;
 
-  if (clause == (Clause)NULL)
+  if ( !mustBeVar(A2 PASS_LD) )
+    fail;
+  if ( !(clause = assert_term(A1, CL_START, NULL PASS_LD)) )
     fail;
 
   return PL_unify_pointer(A2, clause);
