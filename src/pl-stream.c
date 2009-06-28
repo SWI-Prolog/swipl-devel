@@ -331,8 +331,8 @@ StryLock(IOSTREAM *s)
 }
 
 
-static int
-S__unlock(IOSTREAM *s)
+int
+Sunlock(IOSTREAM *s)
 { int rval = 0;
 
 #ifdef DEBUG_IO_LOCKS
@@ -351,15 +351,7 @@ S__unlock(IOSTREAM *s)
   { assert(0);
   }
 
-  return rval;
-}
-
-
-int
-Sunlock(IOSTREAM *s)
-{ int rval = S__unlock(s);
   SUNLOCK(s);
-
   return rval;
 }
 
@@ -1753,8 +1745,9 @@ Sclose(IOSTREAM *s)
   { S__seterror(s);
     rval = -1;
   }
+
   while(s->locks > 0)			/* remove buffer-locks */
-  { int rc = S__unlock(s);
+  { int rc = Sunlock(s);
 
     if ( rval == 0 )
       rval = rc;
@@ -1762,7 +1755,6 @@ Sclose(IOSTREAM *s)
   if ( rval < 0 )
     reportStreamError(s);
   run_close_hooks(s);			/* deletes Prolog registration */
-
   SUNLOCK(s);
 
 #ifdef O_PLMT
