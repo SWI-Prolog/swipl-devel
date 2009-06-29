@@ -347,6 +347,7 @@ static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks(PL_local_data_t *ld);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
+static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
@@ -2248,6 +2249,20 @@ get_message(message_queue *queue, term_t msg)
   { thread_message *msgp = queue->head;
     thread_message *prev = NULL;
 
+    if ( queue->destroyed )
+    { term_t t = PL_new_term_ref();
+
+      unify_queue(t, queue);
+      simpleMutexUnlock(&queue->mutex);
+      if ( !queue->waiting )
+      { DEBUG(1, Sdprintf("%d: destroying queue\n", PL_thread_self()));
+	destroy_message_queue(queue);	/* delayed destruction */
+	PL_free(queue);
+      }
+      rval = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+      goto out_no_unlock;
+    }
+
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
@@ -2294,7 +2309,8 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR || !queue->head )
+    while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR ||
+	   !(queue->head || queue->destroyed) )
     { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
       if ( !LD )			/* needed for clean exit */
@@ -2316,6 +2332,7 @@ get_message(message_queue *queue, term_t msg)
 out:
 
   simpleMutexUnlock(&queue->mutex);
+out_no_unlock:
   pthread_cleanup_pop(0);
 
   return rval;
@@ -2605,27 +2622,36 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   message_queue *q;
   Symbol s;
 
+					/* find and remove from table */
   LOCK();
   if ( !get_message_queue_unlocked__LD(A1, &q PASS_LD) )
   { UNLOCK();
     fail;
   }
 
-					/* only heuristic!  How to do */
-					/* proper locking? */
-  if ( q->waiting )
-  { PL_error("message_queue_destroy", 1, "Has waiting threads", ERR_PERMISSION,
-	     ATOM_message_queue, ATOM_destroy, A1);
+  s = lookupHTable(queueTable, (void *)q->id);
+  assert(s);
+  deleteSymbolHTable(queueTable, s);
+  UNLOCK();
+
+  simpleMutexLock(&q->mutex);
+  if ( q->destroyed )
+  { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+    simpleMutexUnlock(&q->mutex);
     UNLOCK();
     fail;
   }
+  q->destroyed = TRUE;
 
-  s = lookupHTable(queueTable, (void *)q->id);
-  assert(s);
-  destroy_message_queue(q);
-  deleteSymbolHTable(queueTable, s);
-  PL_free(q);
-  UNLOCK();
+  if ( q->waiting )			/* leave destruction to waiters */
+  { DEBUG(1, Sdprintf("%d: broadcasting destroy queue\n", PL_thread_self()));
+    cv_broadcast(&q->cond_var);
+    simpleMutexUnlock(&q->mutex);
+  } else				/* do it myself */
+  { simpleMutexUnlock(&q->mutex);
+    destroy_message_queue(q);
+    PL_free(q);
+  }
 
   succeed;
 }

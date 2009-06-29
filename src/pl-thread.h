@@ -98,6 +98,7 @@ typedef struct message_queue
   int		       wait_for_drain;	/* A thread is waiting for write */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
+  int		       destroyed;	/* Thread is being destroyed */
 } message_queue;
 
 typedef struct pl_mutex
