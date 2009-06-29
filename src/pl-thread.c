@@ -2332,7 +2332,7 @@ get_message(message_queue *queue, term_t msg)
 out:
 
   simpleMutexUnlock(&queue->mutex);
-out_no_unlock:
+out_no_unlock:;
   pthread_cleanup_pop(0);
 
   return rval;
