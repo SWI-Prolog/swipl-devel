@@ -49,6 +49,7 @@
 :- use_module(library(debug)).
 :- use_module(library(socket)).
 :- use_module(library(broadcast)).
+:- use_module(library(lists)).
 
 /** <module> HTTP Session management
 
@@ -259,7 +260,14 @@ valid_session_id(SessionID, Peer) :-
 	set_last_used(SessionID, Now).
 
 get_last_used(SessionID, Last) :-
+	atom(SessionID), !,
 	with_mutex(http_session, last_used(SessionID, Last)).
+get_last_used(SessionID, Last) :-
+	with_mutex(http_session,
+		   findall(SessionID-Last,
+			   last_used(SessionID, Last),
+			   Pairs)),
+	member(SessionID-Last, Pairs).
 
 set_last_used(SessionID, Now) :-
 	with_mutex(http_session,
