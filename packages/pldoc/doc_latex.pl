@@ -984,7 +984,10 @@ pred_arg(Term, I) -->
 pred_arg(Arg:Type, _) --> !,
 	latex([\argname(Arg), :, \argtype(Type)]).
 pred_arg(Arg, _) -->
+	{ atom(Arg) }, !,
 	argname(Arg).
+pred_arg(Arg, _) -->
+	argtype(Arg).			% arbitrary term
 
 argname('$VAR'(Name)) --> !,
 	latex(Name).
