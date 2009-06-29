@@ -54,20 +54,22 @@
 
 This library defines session management based   on HTTP cookies. Session
 management is enabled simply by  loading   this  module.  Details can be
-modified using http_set_session_options/1.
-
-If sessions are enabled, http_session_id/1  produces the current session
-and http_session_assert/1 and friends maintain   data about the session.
-If the session is reclaimed, all associated data is reclaimed too.
+modified using http_set_session_options/1.  If   sessions  are  enabled,
+http_session_id/1 produces the current session and http_session_assert/1
+and  friends  maintain  data  about  the  session.  If  the  session  is
+reclaimed, all associated data is reclaimed too.
 
 Begin and end of sessions can be monitored using library(broadcast). The
 broadcasted messages are:
 
     * http_session(begin(SessionID, Peer))
+    Broadcasted if a session is started
     * http_session(end(SessionId, Peer))
+    Broadcasted if a session is ended. See http_close_session/1.
 
-I.e. the following  calls  end_session(SessionId)   whenever  a  session
-terminates. Please note that sessions ends are not scheduled. Creating a
+For example, the  following  calls   end_session(SessionId)  whenever  a
+session terminates. Please note that sessions  ends are not scheduled to
+happen at the actual timeout moment of  the session. Instead, creating a
 new session scans the  active  list   for  timed-out  sessions. This may
 change in future versions of this library.
 
@@ -339,7 +341,7 @@ http_current_session(SessionID, Data) :-
 		 *	    GC SESSIONS		*
 		 *******************************/
 
-%%	http_close_session(+SessionID)
+%%	http_close_session(+SessionID) is det.
 %
 %	Closes an HTTP session. This predicate   can  be called from any
 %	thread to terminate a session.  It uses the broadcast/1 service
@@ -361,9 +363,14 @@ http_current_session(SessionID, Data) :-
 %		thread_signal(ThreadID, throw(session_closed)).
 %	==
 %
-%	@see listen/2 for acting upon closed sessions
+%	Succeed without any effect if  SessionID   does  not refer to an
+%	active session.
+%
+%	@error	type_error(atom, SessionID)
+%	@see	listen/2 for acting upon closed sessions
 
 http_close_session(SessionId) :-
+	must_be(atom, SessionId),
 	(   current_session(SessionId, Peer),
 	    (	b_setval(http_session_id, SessionId),
 		broadcast(http_session(end(SessionId, Peer))),

@@ -1,6 +1,6 @@
 ################################################################
 # SWI-Prolog `HTTP' package
-# Author:    Jan Wielemaker. wielemak@science.uva.nl
+# Author:    Jan Wielemaker. J.Wielemaker@cs.vu.nl
 # Copyright: GPL (see COPYING or www.gnu.org
 ################################################################
 
@@ -55,7 +55,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		json.pl http_json.pl json_convert.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
-EXAMPLEEXE=	demo_inetd		
+EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 SOLIBS=		http_stream.@SO@ json.@SO@
 
@@ -111,7 +111,8 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex
+SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
+		httpsession.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -138,6 +139,9 @@ httppath.tex:	http_path.pl
 htmlhead.tex:	html_head.pl
 		$(PLTOTEX) --subsection 'library(http/html_head)'
 
+httpsession.tex: http_session.pl
+		$(PLTOTEX) --subsection 'library(http/http_session)'
+
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
 
@@ -154,4 +158,4 @@ clean:
 
 distclean:	clean
 		rm -f $(SOLIBS) config.cache config.status Makefile
-		
+

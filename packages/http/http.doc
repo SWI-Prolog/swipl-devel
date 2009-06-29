@@ -667,64 +667,7 @@ defined using file_search_path/2.
 \end{description}
 
 
-\subsection{HTTP Session management}			\label{sec:session}
-
-The library \pllib{http/http_session.pl} provides cookie-based session
-management.  The library installs a session-id cookie using the hook
-http:request_expansion/2.  It allows querying the session and provides
-a simple assert/retract based store to store information related to a
-session.  Note that session management only works with the threaded
-and XPCE based server frameworks as the inetd based server starts a
-server for each request.
-
-The examples contain the file \file{calc.pl}, which realises a simple
-calculator with internal state.
-
-
-\begin{description}
-    \predicate{http_set_session_options}{1}{+Options}
-Set options for the session manager.  Defined options are:
-    \begin{description}
-	\termitem{timeout}{+Seconds}
-Max idle time of a session.  Session cookies are deleted if no request
-is received within the specified time.   The value `0' disables timeout
-handling.
-	\termitem{cookie}{+Atom}
-Name of the cookie to use for session management.  The default is
-\const{swipl_session}.
-	\termitem{path}{+Atom}
-Path with which to associate the session management.  Default is
-\const{/}, associating it with the entire server.
-    \end{description}
-
-    \predicate{http_session_id}{1}{-Id}
-Returns an identifier for the current session.  The identifier is an
-atom.
-
-    \predicate{http_current_session}{2}{?Id, ?Data}
-Enumerate sessions and associated data. All sessions have the
-\arg{Data} item \term{idle}{Seconds}, describing the current idle-time
-of the session. Other data elements are added by the user using
-http_session_assert/1 and friends.
-
-    \predicate{http_session_asserta}{1}{+Term}
-Associate \arg{Term} with the current session, before any other
-associated term.
-
-    \predicate{http_session_assert}{1}{+Term}
-Associate \arg{Term} with the current session, after any other associated
-term.
-
-    \predicate{http_session_retract}{1}{?Term}
-Non-deterministically retract terms associated with the current session.
-
-    \predicate{http_session_retractall}{1}{+Term}
-Retract all matching terms from associated with the current session.
-
-    \predicate{http_session_data}{1}{?Term}
-Enumerate all associated terms that unify with \arg{Term}.
-\end{description}
-
+\input{httpsession.tex}
 
 \subsection{HTTP Authentication}
 \label{sec:auth}
