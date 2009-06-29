@@ -2497,7 +2497,8 @@ unlocked_message_queue_create(term_t queue, long max_size)
 
   q = PL_malloc(sizeof(*q));
   init_message_queue(q, max_size);
-  q->id    = id;
+  q->type = QTYPE_QUEUE;
+  q->id = id;
   addHTable(queueTable, (void *)id, q);
 
   if ( unify_queue(queue, q) )
@@ -2626,6 +2627,13 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   LOCK();
   if ( !get_message_queue_unlocked__LD(A1, &q PASS_LD) )
   { UNLOCK();
+    fail;
+  }
+
+  if ( q->type == QTYPE_THREAD )
+  { PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
+	     ATOM_message_queue, ATOM_destroy, A1);
+    UNLOCK();
     fail;
   }
 

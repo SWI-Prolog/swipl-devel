@@ -80,6 +80,9 @@ typedef struct _PL_thread_info_t
   ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
 } PL_thread_info_t;
 
+#define QTYPE_THREAD	0
+#define QTYPE_QUEUE	1
+
 typedef struct message_queue
 { simpleMutex	       mutex;		/* Message queue mutex */
 #ifdef __WINDOWS__
@@ -95,10 +98,11 @@ typedef struct message_queue
   word		       id;		/* Id of the queue */
   long		       size;		/* # terms in queue */
   long		       max_size;	/* Max # terms in queue */
-  int		       wait_for_drain;	/* A thread is waiting for write */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
-  int		       destroyed;	/* Thread is being destroyed */
+  unsigned	wait_for_drain : 1;	/* A thread is waiting for write */
+  unsigned	destroyed : 1;		/* Thread is being destroyed */
+  unsigned	type : 2;		/* QTYPE_* */
 } message_queue;
 
 typedef struct pl_mutex

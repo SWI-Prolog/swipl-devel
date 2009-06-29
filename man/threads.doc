@@ -14,7 +14,7 @@ Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
 shared heap provides fast communication and thread creation is
 relatively cheap.%
-    \footnote{On an dual AMD-Athlon 1600, SWI-Prolog 5.1.0 
+    \footnote{On an dual AMD-Athlon 1600, SWI-Prolog 5.1.0
 	      creates and joins 4,957 threads per second elapsed time.}
 
     \item[Interactive applications]
@@ -212,7 +212,7 @@ also \secref{thutil}, describing more high-level primitives.
 \begin{description}
     \predicate{thread_property}{2}{?Id, ?Property}
 True if thread \arg{Id} has \arg{Property}.  Either or both arguments
-may be unbound, enumerating all relations on backtracking. 
+may be unbound, enumerating all relations on backtracking.
 Calling thread_property/2 does not influence any thread.  See also
 thread_join/2.  For threads that have an alias-name, this name is
 returned in \arg{Id} instead of the numerical thread identifier.
@@ -344,19 +344,16 @@ Same as \term{message_queue_create}{Alias}, but according to the
 ISO draft on Prolog threads.
 	\termitem{max_size}{+Size}
 Maximum number of terms in the queue.  If this number is reached,
-thread_send_message/2 will suspend until the queue is drained. 
+thread_send_message/2 will suspend until the queue is drained.
 The option can be used if the source, sending messages to the
 queue, is faster than the drain, consuming the messages.
     \end{description}
 
     \predicate{message_queue_destroy}{1}{+Queue}
-Destroy a message queue created with message_queue_create/1.  It is
-\emph{not} allowed to destroy the queue of a thread.  Neither is it
-allowed to destroy a queue other threads are waiting for.%
-	\bug{None of these constraints are properly enforced by the
-	     system in the current implementation.  It is therefore
-	     advised not to delete queues unless you are absolutely
-	     sure it is safe.}
+Destroy a message queue created with message_queue_create/1. A
+permission error is raised if \arg{Queue} refers to (the default queue
+of) a thread. Other threads are waiting for \arg{Queue} using
+thread_get_message/2 receive an existence error.
 
     \predicate{thread_get_message}{2}{+Queue, ?Term}
 As thread_get_message/1, operating on a given queue. It is allowed (but
@@ -390,7 +387,7 @@ additional synchronisation.
 
 \begin{code}
 %	create_workers(+Id, +N)
-%	
+%
 %	Create a pool with given Id and number of workers.
 
 create_workers(Id, N) :-
@@ -408,7 +405,7 @@ do_work(Id) :-
 	fail.
 
 %	work(+Id, +Goal)
-%	
+%
 %	Post work to be done by the pool
 
 work(Id, Goal) :-
@@ -951,7 +948,7 @@ XPCE event dispatching runs in the background, while the foreground
 thread is used for Prolog.
 
 \paragraph{XPCE in the foreground}
-Using XPCE in the foreground simplifies debugging of the UI and 
+Using XPCE in the foreground simplifies debugging of the UI and
 generally provides the most comfortable development environment.
 The GUI creates new threads using thread_create/3 and, after
 work in the thread is completed, the sub-thread signals the
