@@ -36,6 +36,7 @@
 	    http_session_id/1,		% -SessionId
 	    http_in_session/1,		% -SessionId
 	    http_current_session/2,	% ?SessionId, ?Data
+	    http_close_session/1,	% +SessionId
 
 	    http_session_asserta/1,	% +Data
 	    http_session_assert/1,	% +Data
@@ -245,11 +246,11 @@ valid_session_id(SessionID, Peer) :-
 	    Idle is Now - Last,
 	    (	Idle =< Timeout
 	    ->  true
-	    ;   close_session(SessionID),
+	    ;   http_close_session(SessionID),
 		fail
 	    )
 	;   Peer \== SessionPeer
-	->  close_session(SessionID),
+	->  http_close_session(SessionID),
 	    fail
 	;   true
 	),
@@ -338,14 +339,38 @@ http_current_session(SessionID, Data) :-
 		 *	    GC SESSIONS		*
 		 *******************************/
 
-%%	close_session(+SessionID)
+%%	http_close_session(+SessionID)
 %
-%	Closes an HTTP session.   Broadcasts http_session(end(SessionId,
-%	Peer)).
+%	Closes an HTTP session. This predicate   can  be called from any
+%	thread to terminate a session.  It uses the broadcast/1 service
+%	with the message below.
+%
+%		http_session(end(SessionId, Peer))
+%
+%	The broadcast is done *before* the session data is destroyed and
+%	the listen-handlers are executed in context  of the session that
+%	is being closed. Here  is  an   example  that  destroys a Prolog
+%	thread that is associated to a thread:
+%
+%	==
+%	:- listen(http_session(end(SessionId, _Peer)),
+%		  kill_session_thread(SessionID)).
+%
+%	kill_session_thread(SessionID) :-
+%		http_session_data(thread(ThreadID)),
+%		thread_signal(ThreadID, throw(session_closed)).
+%	==
+%
+%	@see listen/2 for acting upon closed sessions
 
-close_session(SessionId) :-
-	(   retract(current_session(SessionId, Peer)),
-	    broadcast(http_session(end(SessionId, Peer))),
+http_close_session(SessionId) :-
+	(   current_session(SessionId, Peer),
+	    (	b_setval(http_session_id, SessionId),
+		broadcast(http_session(end(SessionId, Peer))),
+		fail
+	    ;	true
+	    ),
+	    retractall(current_session(SessionId, _)),
 	    retractall(last_used(SessionId, _)),
 	    retractall(session_data(SessionId, _)),
 	    fail
@@ -366,7 +391,7 @@ http_gc_sessions :-
 	(   last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    (	Idle > Timeout
-	    ->	close_session(SessionID),
+	    ->	http_close_session(SessionID),
 		fail
 	    ;	!
 	    )
