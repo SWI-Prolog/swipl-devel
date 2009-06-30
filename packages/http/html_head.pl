@@ -300,7 +300,7 @@ requires_from_property(_, _) -->
 	[].
 
 
-% %	order_html_resources(+Requirements, +AggregatedBy, -Ordered) is det.
+%%	order_html_resources(+Requirements, +AggregatedBy, -Ordered) is det.
 %
 %	Establish a proper order for the   collected (sorted and unique)
 %	list of Requirements.
@@ -348,7 +348,7 @@ req_edges([H|T], AggregatedBy, R) -->
 	req_edges(T, AggregatedBy, R).
 
 
-%%	connect_graph(+Graph, -Connected) is det.
+%%	connect_graph(+Graph, -Start, -Connected) is det.
 %
 %	Turn Graph into a connected graph   by putting a shared starting
 %	point before all vertices.
