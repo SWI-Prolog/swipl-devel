@@ -262,7 +262,8 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %
 
 try_finally(Setup, Cleanup) :-
-	setup_call_cleanup(Setup, (true; fail), Cleanup).
+	setup_call_cleanup(Setup, ( Solution = yes ; Solution = no ), Cleanup),
+	Solution = yes.
 
 ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_get_name(S, Name),

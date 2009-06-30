@@ -515,7 +515,8 @@ tipc_service_exists(Address, Timeout) :-
 %
 
 try_finally(Setup, Cleanup) :-
-	setup_call_cleanup(Setup, (true; fail), Cleanup).
+	setup_call_cleanup(Setup, ( Solution = yes ; Solution = no ), Cleanup),
+	Solution = yes.
 
 tipc_service_probe(Address) :-
 	tipc_address(Address, name_seq(Type, Lower, Upper)),
