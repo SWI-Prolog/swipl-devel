@@ -31,7 +31,8 @@
 */
 
 test_db :-
-	run_tests([ assert2
+	run_tests([ assert2,
+		    dynamic
 		  ]).
 
 :- begin_tests(assert2).
@@ -44,3 +45,13 @@ test(bound, error(_)) :-
 
 :- end_tests(assert2).
 
+:- begin_tests(dynamic).
+
+test(make_dynamic, [true, cleanup(abolish(Name, 1))]) :-
+	gensym(somepred, Name),
+	Term =.. [Name, a],
+	catch(Term, _, true),
+	assertz(Term),
+	Term.
+
+:- end_tests(dynamic).

@@ -2193,6 +2193,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
       set(def, AUTOINDEX);
     }
   ok:
+    freeCodesDefinition(def);		/* reset to S_VIRGIN */
     set(def, DYNAMIC);
     if ( SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS);
@@ -2205,6 +2206,7 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 	registerDirtyDefinition(def);
       def->references = 0;
     }
+    freeCodesDefinition(def);		/* reset to S_VIRGIN */
 
     detachMutexAndUnlock(def);
   }
