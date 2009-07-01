@@ -456,8 +456,10 @@ find_handler([node(Path, Action, Options, _)|_], Path, Action, Options) :- !.
 find_handler([_|Tree], Path, Action, Options) :-
 	find_handler(Tree, Path, Action, Options).
 
-path_info(0, _, Options, Options) :- !.
-path_info(After, Path, Options, [path_info(PathInfo)|Options]) :-
+path_info(0, _, Options,
+	  [prefix(true)|Options]) :- !.
+path_info(After, Path, Options,
+	  [path_info(PathInfo),prefix(true)|Options]) :-
 	sub_atom(Path, _, After, 0, PathInfo).
 
 
