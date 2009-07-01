@@ -200,43 +200,69 @@ current_generation(0).
 
 compile_handler(prefix(Path), Pred, Options,
 		http_dispatch:handler(Path, Pred, true, Options)) :- !,
-	check_path(Path),
-	print_message(warning, http_dispatch(prefix(Path))).
+	check_path(Path, Path1),
+	print_message(warning, http_dispatch(prefix(Path1))).
 compile_handler(Path, Pred, Options0,
-		http_dispatch:handler(Path, Pred, IsPrefix, Options)) :-
-	check_path(Path),
+		http_dispatch:handler(Path1, Pred, IsPrefix, Options)) :-
+	check_path(Path, Path1),
 	(   select(prefix, Options0, Options)
 	->  IsPrefix = true
 	;   IsPrefix = false,
 	    Options = Options0
 	).
 
-%%	check_path(+PathSpec) is det.
+%%	check_path(+PathSpecIn, -PathSpecOut) is det.
 %
 %	Validate the given path specification.  We want one of
 %
 %		* AbsoluteLocation
 %		* Alias(Relative)
 %
+%	Similar  to  absolute_file_name/3,  Relative  can    be  a  term
+%	_|Component/Component/...|_
+%
 %	@error	domain_error, type_error
 %	@see	http_absolute_location/3
 
-check_path(Path) :-
+check_path(Path, Path) :-
 	atom(Path), !,
 	(   sub_atom(Path, 0, _, _, /)
 	->  true
 	;   domain_error(absolute_http_location, Path)
 	).
-check_path(Alias) :-
+check_path(Alias, AliasOut) :-
 	compound(Alias),
-	Alias =.. [_Name, Relative], !,
-	must_be(atom, Relative),
-	(   sub_atom(Relative, 0, _, _, /)
+	Alias =.. [Name, Relative], !,
+	to_atom(Relative, Local),
+	(   sub_atom(Local, 0, _, _, /)
 	->  domain_error(relative_location, Relative)
-	;   true
+	;   AliasOut =.. [Name, Local]
 	).
-check_path(PathSpec) :-
+check_path(PathSpec, _) :-
 	type_error(path_or_alias, PathSpec).
+
+to_atom(Atom, Atom) :-
+	atom(Atom), !.
+to_atom(Path, Atom) :-
+	phrase(path_to_list(Path), Components), !,
+	atomic_list_concat(Components, '/', Atom).
+to_atom(Path, _) :-
+	ground(Path), !,
+	type_error(relative_location, Path).
+to_atom(Path, _) :-
+	instantiation_error(Path).
+
+path_to_list(Var) -->
+	{ var(Var), !,
+	  fail
+	}.
+path_to_list(A/B) -->
+	path_to_list(A),
+	path_to_list(B).
+path_to_list(Atom) -->
+	{ atom(Atom) },
+	[Atom].
+
 
 
 %%	http_dispatch(Request) is det.
