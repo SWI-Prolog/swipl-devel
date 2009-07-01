@@ -400,6 +400,8 @@ raw_element(Var, _) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
 	}.
+raw_element(\Term, Module, In, Rest) :- !,
+	call(Module:Term, In, Rest).
 raw_element(Fmt-Args, _) --> !,
 	{ format(string(S), Fmt, Args) },
 	[S].
