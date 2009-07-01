@@ -991,9 +991,9 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 }
 
 
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
 		 /*******************************
-		 *	    HASH-TERM		*
+		 *	    TERM-HASH		*
 		 *******************************/
 
 static bool
@@ -1132,7 +1132,7 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
   succeed;
 }
 
-#endif /*O_HASHTERM*/
+#endif /*O_TERMHASH*/
 
 
 		/********************************
@@ -4749,7 +4749,7 @@ BeginPredDefs(prims)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
   PRED_DEF("term_hash", 2, term_hash, 0)
   PRED_DEF("term_hash", 4, term_hash4, 0)
 #endif

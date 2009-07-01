@@ -409,7 +409,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   } else
   { a->name = (char *)s;
   }
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
   a->hash_value = v0;
 #endif
 #ifdef O_ATOMGC
@@ -889,7 +889,7 @@ registerBuiltinAtoms()
 #ifdef O_ATOMGC
     a->references = 0;
 #endif
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
     a->hash_value = v0;
 #endif
     a->next       = atomTable[v];

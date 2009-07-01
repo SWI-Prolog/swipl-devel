@@ -128,7 +128,7 @@ handy for it someone wants to add a data type to the system.
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
-#define O_HASHTERM		1
+#define O_TERMHASH		1
 #define O_LIMIT_DEPTH		1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
@@ -978,7 +978,7 @@ Structure declarations that must be shared across multiple files.
 struct atom
 { Atom		next;		/* next in chain */
   word		atom;		/* as appearing on the global stack */
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
   unsigned int  hash_value;	/* hash-key value */
 #endif
 #ifdef O_ATOMGC
