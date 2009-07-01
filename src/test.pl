@@ -1993,7 +1993,7 @@ copy_term(nat-2) :-			% cyclic term
 
 
 		 /*******************************
-		 *	     HASH-TERM		*
+		 *	     TERM-HASH		*
 		 *******************************/
 
 %	NOTE: these numbers are for 32-bit platforms. Different value of
@@ -2002,7 +2002,7 @@ copy_term(nat-2) :-			% cyclic term
 %	bit platforms?  For now the test is disabled on 64-bit machines.
 
 term_hash(simple-1) :-
-	term_hash(aap, 8246445).
+	term_hash(aap, 9270206).
 term_hash(simple-2) :-			% small int
 	term_hash(42, X),
 	memberchk(X, [ 12280004,	% little endian
@@ -2023,12 +2023,12 @@ term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
-	term_hash(hello(world), 2391568).
+	term_hash(hello(world), 12599352).
 term_hash(compound-2) :-
 	X = x(a),
-	term_hash(hello(X, X), 4126440).
+	term_hash(hello(X, X), 5826661).
 term_hash(compound-3) :-
-	term_hash(hello(x(a), x(a)), 4126440).
+	term_hash(hello(x(a), x(a)), 5826661).
 
 
 		 /*******************************

@@ -999,22 +999,21 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 static bool
 termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 { for(;;)
-  { if ( depth == 0 )
-      succeed;
-
-    switch(tag(term))
+  { switch(tag(term))
     { case TAG_VAR:
       case TAG_ATTVAR:
 	fail;
       case TAG_ATOM:
-	*hval += atomValue(term)->hash_value;
+      { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
+				   sizeof(unsigned int), *hval);
         succeed;
+      }
       case TAG_STRING:
       { size_t len;
 	char *s;
 
 	s = getCharsString(term, &len);
-	*hval += MurmurHashAligned2(s, len, MURMUR_SEED);
+	*hval = MurmurHashAligned2(s, len, *hval);
 
         succeed;
       }
@@ -1022,7 +1021,8 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 	if ( storage(term) == STG_INLINE )
 	{ int64_t v = valInt(term);
 
-	  *hval += MurmurHashAligned2(&v, sizeof(v), MURMUR_SEED);
+	  *hval = MurmurHashAligned2(&v, sizeof(v), *hval);
+
 	  succeed;
 	}
       /*FALLTHROUGH*/
@@ -1030,43 +1030,46 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 	{ Word p = addressIndirect(term);
 	  size_t n = wsizeofInd(*p);
 
-	  *hval += MurmurHashAligned2(p+1, n*sizeof(word), MURMUR_SEED);
+	  *hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
+
 	  succeed;
 	}
       case TAG_COMPOUND:
       { Functor t = valueTerm(term);
-	functor_t f = t->definition;
 	FunctorDef fd;
 	int arity;
-	Word a;
-	int rc = TRUE;
+	Word p;
+	unsigned int atom_hashvalue;
 
 	if ( visited(t PASS_LD) )
-	{ *hval = ~(*hval);
+	{ *hval = MurmurHashAligned2(hval, sizeof(*hval), *hval);
 	  succeed;
 	}
 
-	fd    = valueFunctor(f);
+	fd = valueFunctor(t->definition);
 	arity = fd->arity;
-	a     = t->arguments;
 
-	*hval += atomValue(fd->name)->hash_value + arity;
-	for(; arity-- > 0; a++)
-	{ Word a2;
+	atom_hashvalue = atomValue(fd->name)->hash_value + arity;
+	*hval = MurmurHashAligned2(&atom_hashvalue,
+				   sizeof(atom_hashvalue),
+				   *hval);
 
-	  deRef2(a, a2);
-	  if ( !termHashValue(*a2, depth-1, hval PASS_LD) )
-	  { rc = FALSE;
-	    break;
+	if ( --depth != 0 )
+	{ for(p = t->arguments; arity-- > 0; p++)
+	  { if ( !termHashValue(*p, depth, hval PASS_LD) )
+	    { popVisited(PASS_LD1);
+	      fail;
+	    }
 	  }
 	}
-        popVisited(PASS_LD1);
 
-        return rc;
+	popVisited(PASS_LD1);
+	succeed;
       }
       case TAG_REFERENCE:
-	term = *unRef(term);
-        continue;
+      { term = *unRef(term);
+	continue;
+      }
       default:
 	assert(0);
     }
@@ -1074,16 +1077,15 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 }
 
 
-/* hash_term(+Term, -HashKey) */
+/* term_hash(+Term, -HashKey) */
 
 static
 PRED_IMPL("term_hash", 2, term_hash, 0)
 { PRED_LD
   Word p = valTermRef(A1);
-  unsigned int hraw = 0L;
+  unsigned int hraw = MURMUR_SEED;
   int rc;
 
-  deRef(p);
   initvisited(PASS_LD1);
   rc = termHashValue(*p, -1, &hraw PASS_LD);
   assert(empty_visited(PASS_LD1));
@@ -1097,16 +1099,16 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
   succeed;
 }
 
-/* hash_term(+Term, +Depth, +Range, -HashKey) */
+/* term_hash(+Term, +Depth, +Range, -HashKey) */
 
 static
 PRED_IMPL("term_hash", 4, term_hash4, 0)
 { PRED_LD
   Word p = valTermRef(A1);
-  unsigned int hraw = 0L;
+  unsigned int hraw = MURMUR_SEED;
   long depth;
   int range;
-  int rc;
+  int rc = TRUE;
 
   if ( !PL_get_long_ex(A2, &depth) )
     fail;
@@ -1118,10 +1120,11 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
   if ( range < 1 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, A2);
 
-  deRef(p);
-  initvisited(PASS_LD1);
-  rc = termHashValue(*p, depth, &hraw PASS_LD);
-  assert(empty_visited(PASS_LD1));
+  if ( depth != 0 )
+  { initvisited(PASS_LD1);
+    rc = termHashValue(*p, depth, &hraw PASS_LD);
+    assert(empty_visited(PASS_LD1));
+  }
 
   if ( rc )
   { hraw = hraw % range;
