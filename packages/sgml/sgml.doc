@@ -26,7 +26,7 @@ Markup languages are an increasingly important method for
 data-representation and exchange. This article documents the package
 \pllib{sgml}, a foreign library for SWI-Prolog to parse SGML
 and XML documents, returning information on both the document and the
-document's DTD. The parser is designed to be small, fast and flexible. 
+document's DTD. The parser is designed to be small, fast and flexible.
 \end{abstract}
 
 \pagebreak
@@ -56,17 +56,17 @@ The parser described in this document is small (less than 100 kBytes
 executable on a Pentium), fast (between 2 and 5 times faster than SP),
 provides access to the DTD, and provides flexible input handling.
 
-The document output is equal to the output produced by \jargon{xml2pl}, 
+The document output is equal to the output produced by \jargon{xml2pl},
 an SP interface to SWI-Prolog written by Anjo Anjewierden.
 
 
 \section{Bluffer's Guide}
 
-This package allows you to parse SGML, XML and HTML data into a Prolog 
-data structure. The high-level interface defined in \pllib{sgml} 
+This package allows you to parse SGML, XML and HTML data into a Prolog
+data structure. The high-level interface defined in \pllib{sgml}
 provides access at the file-level, while the low-level interface defined
-in the foreign module works with Prolog streams. Please use the source 
-of \file{sgml.pl} as a starting point for dealing with data from 
+in the foreign module works with Prolog streams. Please use the source
+of \file{sgml.pl} as a starting point for dealing with data from
 other sources than files, such as SWI-Prolog resources, network-sockets,
 character strings, \emph{etc.} The first example below loads an HTML file.
 
@@ -123,9 +123,9 @@ This is called `omitted-tag' handling.
 ].
 \end{code}
 
-The document is represented as a list, each element being an atom to 
+The document is represented as a list, each element being an atom to
 represent \const{CDATA} or a term \term{element}{Name, Attributes, Content}.
-Entities (e.g. \verb$&lt;$) are expanded and included in the 
+Entities (e.g. \verb$&lt;$) are expanded and included in the
 atom representing the element content or attribute value.%
     \footnote{Up to SWI-Prolog 5.4.x, Prolog could not represent
 	      \jargon{wide} characters and entities that did not fit in
@@ -141,23 +141,24 @@ self-contained files in SGML, HTML, or XML into a structured term. They
 are based on load_structure/3.
 
 \begin{description}
-    \predicate{load_sgml_file}{2}{+File, -ListOfContent}
-Same as \term{load_structure}{File, ListOfContent, [dialect(sgml)]}.
+    \predicate{load_sgml_file}{2}{+Source, -ListOfContent}
+Same as \term{load_structure}{Source, ListOfContent, [dialect(sgml)]}.
 
-    \predicate{load_xml_file}{2}{+File, -ListOfContent}
-Same as \term{load_structure(File, ListOfContent, [dialect(xml)]}.
+    \predicate{load_xml_file}{2}{+Source, -ListOfContent}
+Same as \term{load_structure(Source, ListOfContent, [dialect(xml)]}.
 
-    \predicate{load_html_file}{2}{+File, -Content}
-Load \arg{File} and parse as HTML. Implemented as below. Note that
-load_html_file/2 re-uses a cached DTD object as defined by dtd/2. As DTD
-objects may be corrupted while loading errornous documents sharing is
-undesirable if the documents are not known to be correct. See dtd/2 for
-details.
+    \predicate{load_html_file}{2}{+Source, -Content}
+Load \arg{Source} and parse as HTML. \arg{Source} is either the
+name of a file or term \term{stream}{Handle}. Implemented as
+below. Note that load_html_file/2 re-uses a cached DTD object as defined
+by dtd/2. As DTD objects may be corrupted while loading errornous
+documents sharing is undesirable if the documents are not known to be
+correct. See dtd/2 for details.
 
 \begin{code}
-load_html_file(File, Term) :-
+load_html_file(Source, Term) :-
         dtd(html, DTD),
-        load_structure(File, Term,
+        load_structure(Source, Term,
                        [ dtd(DTD),
                          dialect(sgml),
 			 shorttag(false)
@@ -171,8 +172,8 @@ load_html_file(File, Term) :-
 \subsection{Loading Structured Documents}
 
 SGML or XML files are loaded through the common predicate
-load_structure/3. This is a predicate with many options. For 
-simplicity a number of commonly used shorthands are provided: 
+load_structure/3. This is a predicate with many options. For
+simplicity a number of commonly used shorthands are provided:
 load_sgml_file/2, load_xml_file/2, and
 load_html_file/2.
 
@@ -184,18 +185,18 @@ Parse \arg{Source} and return the resulting structure in
 options controlling the conversion process.
 
 A proper XML document contains only a single toplevel element whose name
-matches the document type. Nevertheless, a list is returned for 
+matches the document type. Nevertheless, a list is returned for
 consistency with the representation of element content. The <aref/
 ListOfContent/ consists of the following types:
 
 \begin{description}
     \termitem{\arg{Atom}}{}
-Atoms are used to represent \const{CDATA}. Note 
+Atoms are used to represent \const{CDATA}. Note
 this is possible in SWI-Prolog, as there is no length-limit on atoms and
 atom garbage collection is provided.
 
     \termitem{element}{Name, ListAttributes, ListOfContent}
-\arg{Name} is the name of the element. Using SGML, which is 
+\arg{Name} is the name of the element. Using SGML, which is
 case-insensitive, all element names are returned as lowercase atoms.
 
 \arg{ListOfAttributes} is a list of \arg{Name}=\arg{Value} pairs for
@@ -209,31 +210,31 @@ integers is supported. \arg{ListOfContent} defines the content for the
 element.
 
     \termitem{sdata}{Text}
-If an entity with declared content-type \const{SDATA} is encountered, this 
+If an entity with declared content-type \const{SDATA} is encountered, this
 term is returned holding the data in \arg{Text}.
 
     \termitem{ndata}{Text}
-If an entity with declared content-type \const{NDATA} is encountered, this 
+If an entity with declared content-type \const{NDATA} is encountered, this
 term is returned holding the data in \arg{Text}.
     \termitem{pi}{Text}
 If a processing instruction is encountered (\verb$<?...?>$), <aref/
 Text/ holds the text of the processing instruction. Please note that the
-\verb$<?xml ...?>$ instruction is handled internally. 
+\verb$<?xml ...?>$ instruction is handled internally.
 \end{description}
 
 
-The \arg{Options} list controls the conversion process. Currently 
+The \arg{Options} list controls the conversion process. Currently
 defined options are:
 
 \begin{description}
     \termitem{dtd}{?DTD}
 Reference to a DTD object. If specified, the \verb$<!DOCTYPE ...>$
-declaration is ignored and the document is parsed and validated against 
+declaration is ignored and the document is parsed and validated against
 the provided DTD. If provided as a variable, the created DTD is
 returned. See \secref{implicitdtd}.
 
     \termitem{dialect}{+Dialect}
-Specify the parsing dialect. Supported are \const{sgml} (default), \const{xml} 
+Specify the parsing dialect. Supported are \const{sgml} (default), \const{xml}
 and \const{xmlns}. See \secref{xml} for details on the differences.
 
     \termitem{shorttag}{+Bool}
@@ -272,14 +273,14 @@ Defines (overwrites) an entity definition.  At the moment, only
 entity options are allowed.
 
     \termitem{file}{+Name}
-Sets the name of the file on which errors are reported. Sets the 
+Sets the name of the file on which errors are reported. Sets the
 linenumber to 1.
 
     \termitem{line}{+Line}
 Sets the starting line-number for reporting errors.
 
     \termitem{max_errors}{+Max}
-Sets the maximum number of errors. If this number is reached, an 
+Sets the maximum number of errors. If this number is reached, an
 exception of the format below is raised. The default is 50.  Using
 \term{max_errors}{-1} makes the parser continue, no matter how many
 errors it encounters.
@@ -303,26 +304,26 @@ modes are:
     \termitem{space}{sgml}
 In SGML, newlines at the start and end of an element are removed.<fn>In
 addition, newlines at the end of lines containing only markup should be
-deleted. This is not yet implemented.</fn> This is the default mode for 
-the SGML dialect. 
+deleted. This is not yet implemented.</fn> This is the default mode for
+the SGML dialect.
 
     \termitem{space}{preserve}
 White space is passed literally to the application. This mode leaves all
 white space handling to the application. This is the default mode for
-the XML dialect. 
+the XML dialect.
 
     \termitem{space}{default}
-In addition to \const{sgml} space-mode, all consequtive white-space is 
-reduced to a single space-character. This mode canonises all white 
-space. 
+In addition to \const{sgml} space-mode, all consequtive white-space is
+reduced to a single space-character. This mode canonises all white
+space.
 
     \termitem{space}{remove}
-In addition to \const{default}, all leading and trailing white-space is 
-removed from \const{CDATA} objects. If, as a result, the \const{CDATA} 
-becomes empty, nothing is passed to the application. This mode is 
-especially handy for processing `data-oriented' documents, such as RDF. 
-It is not suitable for normal text documents. Consider the HTML 
-fragment below. When processed in this mode, the spaces between the 
+In addition to \const{default}, all leading and trailing white-space is
+removed from \const{CDATA} objects. If, as a result, the \const{CDATA}
+becomes empty, nothing is passed to the application. This mode is
+especially handy for processing `data-oriented' documents, such as RDF.
+It is not suitable for normal text documents. Consider the HTML
+fragment below. When processed in this mode, the spaces between the
 three modified words are lost.  This mode is not part of any standard;
 XML 1.0 allows only \const{default} and \const{preserve}.
 
@@ -333,9 +334,9 @@ Consider adjacent <b>bold</b> <ul>and</ul> <it>italic</it> words.
 
 \subsection{XML documents}		\label{sec:xml}
 
-The parser can operate in two modes: \const{sgml} mode and \const{xml} mode, as 
-defined by the \term{dialect}{Dialect} option. Regardless of this 
-option, if the first line of the document reads as below, the parser is 
+The parser can operate in two modes: \const{sgml} mode and \const{xml} mode, as
+defined by the \term{dialect}{Dialect} option. Regardless of this
+option, if the first line of the document reads as below, the parser is
 switched automatically into XML mode.
 
 \begin{code}
@@ -346,21 +347,21 @@ Currently switching to XML mode implies:
 
 \begin{itemlist}
    \item [XML empty elements]
-The construct \verb$<element [attribute...] />$ is recognised as 
-an empty element. 
+The construct \verb$<element [attribute...] />$ is recognised as
+an empty element.
 
    \item [Predefined entities]
 The following entitities are predefined: \const{lt} (\verb$<$), \const{gt}
-(\verb$>$), \const{amp} (\verb$&$), \const{apos} (\verb$'$) 
-and \const{quot} (\verb$"$). 
+(\verb$>$), \const{amp} (\verb$&$), \const{apos} (\verb$'$)
+and \const{quot} (\verb$"$).
 
    \item [Case sensitivity]
-In XML mode, names are treated case-sensitive, except for the DTD 
-reserved names (i.e. \exam{ELEMENT}, \emph{etc.}). 
+In XML mode, names are treated case-sensitive, except for the DTD
+reserved names (i.e. \exam{ELEMENT}, \emph{etc.}).
 
    \item [Character classes]
 In XML mode, underscores (\verb$_$) and colon (\verb$:$) are
-allowed in names. 
+allowed in names.
 
    \item [White-space handling]
 White space mode is set to \const{preserve}. In addition to setting
@@ -378,28 +379,28 @@ preserves space, regardless of the default processing mode.
 
 \subsubsection{XML Namespaces}		\label{sec:xmlns}
 
-Using the \jargon{dialect} \const{xmlns}, the parser will interpret XML 
-namespaces. In this case, the names of elements are returned as a term 
+Using the \jargon{dialect} \const{xmlns}, the parser will interpret XML
+namespaces. In this case, the names of elements are returned as a term
 of the format
 
 \begin{quote}
-\arg{URL}\const{:}\arg{LocalName} 
+\arg{URL}\const{:}\arg{LocalName}
 \end{quote}
 
-If an identifier has no namespace and there is no default namespace it 
-is returned as a simple atom. If an identifier has a namespace but this 
-namespace is undeclared, the namespace name rather than the related URL 
+If an identifier has no namespace and there is no default namespace it
+is returned as a simple atom. If an identifier has a namespace but this
+namespace is undeclared, the namespace name rather than the related URL
 is returned.
 
 Attributes declaring namespaces ({\tt xmlns:<ns>=<url>}) are reported
 as if \const{xmlns} were not a defined resource.
 
 In many cases, getting attribute-names as <xmp>\arg{url}:\arg{name}</xmp>
-is not desirable. Such terms are hard to unify and sometimes multiple 
-URLs may be mapped to the same identifier. This may happen due to poor 
-version management, poor standardisation or because the the application 
-doesn't care too much about versions. This package defines two 
-call-backs that can be set using set_sgml_parser/2 to deal 
+is not desirable. Such terms are hard to unify and sometimes multiple
+URLs may be mapped to the same identifier. This may happen due to poor
+version management, poor standardisation or because the the application
+doesn't care too much about versions. This package defines two
+call-backs that can be set using set_sgml_parser/2 to deal
 with this problem.
 
 The call-back \const{xmlns} is called as XML namespaces are noticed.
@@ -438,7 +439,7 @@ predicates for handling the DTD.
 
 \begin{description}
     \predicate{new_dtd}{2}{+DocType, -DTD}
-Creates an empty DTD for the named \arg{DocType}. The returned 
+Creates an empty DTD for the named \arg{DocType}. The returned
 DTD-reference is an opaque term that can be used in the other predicates
 of this package.
 
@@ -468,7 +469,7 @@ Define the DTD dialect. Default is \const{sgml}. Using \const{xml} or
 
     \predicate{dtd}{2}{+DocType, -DTD}
 Find the DTD representing the indicated \jargon{doctype}. This predicate
-uses a cache of DTD objects. If a doctype has no associated dtd, it 
+uses a cache of DTD objects. If a doctype has no associated dtd, it
 searches for a file using the file search path \exam{dtd} using the call:
 
 \begin{code}
@@ -488,15 +489,15 @@ parse multiple documents should be restricted to situations where the
 documents processed are known to be error-free.
 
     \predicate{dtd_property}{2}{+DTD, ?Property}
-This predicate is used to examine the content of a DTD. Property is one 
+This predicate is used to examine the content of a DTD. Property is one
 of:
 
 \begin{description}
     \termitem{doctype}{DocType}
-An atom representing the document-type defined by this DTD. 
+An atom representing the document-type defined by this DTD.
 
     \termitem{elements}{ListOfElements}
-A list of atoms representing the names of the elements in this DTD. 
+A list of atoms representing the names of the elements in this DTD.
 
     \termitem{element}{Name, Omit, Content}
 The DTD contains an element with the given name. \arg{Omit} is a term of
@@ -508,7 +509,7 @@ form:
 
     \begin{description}
         \termitem{empty}{}
-The element has no content. 
+The element has no content.
 
 	\termitem{cdata}{}
 The element contains non-parsed character data.  All data up to the
@@ -524,30 +525,30 @@ any order.
 	\termitem{\#pcdata}{}
 The element contains parsed character data .
 
-	\termitem{\arg{element}} An element with this name. 
+	\termitem{\arg{element}} An element with this name.
 
  	\termitem{*}{SubModel}
-0 or more appearances. 
+0 or more appearances.
 
 	\termitem{?}{SubModel}
-0 or one appearance. 
+0 or one appearance.
 
 	\termitem{+}{SubModel}
-1 or more appearances. 
+1 or more appearances.
 
 	\termitem{,}{SubModel1, SubModel2}
-\arg{SubModel1} followed by \arg{SubModel2}. 
+\arg{SubModel1} followed by \arg{SubModel2}.
 
 	\termitem{\&}{SubModel1, SubModel2}
-\arg{SubModel1} and \arg{SubModel2} in any order. 
+\arg{SubModel1} and \arg{SubModel2} in any order.
 
 	\termitem{\chr{|}}{SubModel1, SubModel2}
-\arg{SubModel1} or \arg{SubModel2}. 
+\arg{SubModel1} or \arg{SubModel2}.
 \end{description}
 
     \termitem{attributes}{Element, ListOfAttributes}
-\arg{ListOfAttributes} is a list of atoms representing the attributes 
-of the element \arg{Element}. 
+\arg{ListOfAttributes} is a list of atoms representing the attributes
+of the element \arg{Element}.
 
     \termitem{attribute}{Element, Attribute, Type, Default}
 Query an element. \arg{Type} is one of \const{cdata}, \const{entity},
@@ -555,34 +556,34 @@ Query an element. \arg{Type} is one of \const{cdata}, \const{entity},
 \const{notation}, \const{number} or \const{nutoken}. For DTD types that
 allow for a list, the notation \term{list}{Type} is used. Finally, the
 DTD construct \verb$(a|b|...)$ is mapped to the term
-\term{nameof}{ListOfValues}. 
+\term{nameof}{ListOfValues}.
 
 \arg{Default} describes the sgml default. It is one \const{required},
 \const{current}, \const{conref} or \const{implied}. If a real default is
-present, it is one of \term{default}{Value} or \term{fixed}{Value}. 
+present, it is one of \term{default}{Value} or \term{fixed}{Value}.
 
     \termitem{entities}{ListOfEntities}
-\arg{ListOfEntities} is a list of atoms representing the names of the 
-defined entities. 
+\arg{ListOfEntities} is a list of atoms representing the names of the
+defined entities.
 
     \termitem{entity}{Name, Value}
-\arg{Name} is the name of an entity with given value. Value is one of 
+\arg{Name} is the name of an entity with given value. Value is one of
 \begin{description}
 
     \termitem{\arg{Atom}}{}
-If the value is atomic, it represents the literal value of the entity. 
+If the value is atomic, it represents the literal value of the entity.
 
     \termitem{system}{Url}
-\arg{Url} is the URL of the system external entity. 
+\arg{Url} is the URL of the system external entity.
 
     \termitem{public}{Id, Url}
-For external public entities, \arg{Id} is the identifier. If an URL is 
-provided this is returned in \arg{Url}. Otherwise this argument is 
-unbound. 
+For external public entities, \arg{Id} is the identifier. If an URL is
+provided this is returned in \arg{Url}. Otherwise this argument is
+unbound.
 \end{description}
 
     \termitem{notations}{ListOfNotations}
-Returns a list holding the names of all \const{NOTATION} declarations. 
+Returns a list holding the names of all \const{NOTATION} declarations.
 
     \termitem{notation}{Name, Decl}
 Unify \arg{Decl} with a list if \term{system}{+File} and/or
@@ -592,11 +593,11 @@ Unify \arg{Decl} with a list if \term{system}{+File} and/or
 
 \subsubsection{The DOCTYPE declaration}
 
-As this parser allows for processing partial documents and process the 
+As this parser allows for processing partial documents and process the
 DTD separately, the DOCTYPE declaration plays a special role.
 
-If a document has no DOCTYPE declaraction, the parser returns a list 
-holding all elements and CDATA found. If the document has a DOCTYPE 
+If a document has no DOCTYPE declaraction, the parser returns a list
+holding all elements and CDATA found. If the document has a DOCTYPE
 declaraction, the parser will open the element defined in the DOCTYPE as
 soon as the first real data is encountered.
 
@@ -632,47 +633,47 @@ elements_in_xml_document(File, Elements) :-
 
 \begin{description}
     \predicate{new_sgml_parser}{2}{-Parser, +Options}
-Creates a new parser. A parser can be used one or multiple times for 
-parsing documents or parts thereof. It may be bound to a DTD or the DTD 
-may be left implicit, in which case it is created from the document 
+Creates a new parser. A parser can be used one or multiple times for
+parsing documents or parts thereof. It may be bound to a DTD or the DTD
+may be left implicit, in which case it is created from the document
 prologue or parsing is performed without a DTD. Options:
 \begin{description}
     \termitem{dtd}{?DTD}
-If specified with an initialised DTD, this DTD is used for parsing the 
-document, regardless of the document prologue. If specified using as a 
-variable, a reference to the created DTD is returned. This DTD may be 
-created from the document prologue or build implicitely from the 
-document's content. 
+If specified with an initialised DTD, this DTD is used for parsing the
+document, regardless of the document prologue. If specified using as a
+variable, a reference to the created DTD is returned. This DTD may be
+created from the document prologue or build implicitely from the
+document's content.
 \end{description}
 
     \predicate{free_sgml_parser}{1}{+Parser}
-Destroy all resources related to the parser. This does not destroy the 
+Destroy all resources related to the parser. This does not destroy the
 DTD if the parser was created using the \term{dtd}{DTD} option.
 
     \predicate{set_sgml_parser}{2}{+Parser, +Option}
-Sets attributes to the parser. Currently defined attributes: 
+Sets attributes to the parser. Currently defined attributes:
 
 \begin{description}
     \termitem{file}{File}
-Sets the file for reporting errors and warnings. Sets the line to 1. 
+Sets the file for reporting errors and warnings. Sets the line to 1.
     \termitem{line}{Line}
-Sets the current line. Useful if the stream is not at the start of the 
-(file) object for generating proper line-numbers. 
+Sets the current line. Useful if the stream is not at the start of the
+(file) object for generating proper line-numbers.
     \termitem{charpos}{Offset}
 Sets the current character location.  See also the \term{file}{File}
 option.
     \termitem{dialect}{Dialect}
-Set the markup dialect. Known dialects: 
+Set the markup dialect. Known dialects:
 \begin{description}
 
     \termitem{sgml}{}
-The default dialect is to process as SGML. This implies markup is 
-case-insensitive and standard SGML abbreviation is allowed (abreviated 
-attributes and omitted tags). 
+The default dialect is to process as SGML. This implies markup is
+case-insensitive and standard SGML abbreviation is allowed (abreviated
+attributes and omitted tags).
 
     \termitem{xml}{}
 This dialect is selected automatically if the processing instruction
-\verb$<?xml ...>$ is encountered. See \secref{xml} for details. 
+\verb$<?xml ...>$ is encountered. See \secref{xml} for details.
 
     \termitem{xmlns}{}
 Process file as XML file with namespace support. See \secref{xmlns} for
@@ -715,20 +716,20 @@ sgml_parse/2.
 \end{description}
 
     \predicate{get_sgml_parser}{2}{+Parser, -Option}
-Retrieve infomation on the current status of the parser. Notably useful 
-if the parser is used in the call-back mode. Currently defined options: 
+Retrieve infomation on the current status of the parser. Notably useful
+if the parser is used in the call-back mode. Currently defined options:
 
 \begin{description}
     \termitem{file}{-File}
-Current file-name. Note that this may be different from the provided 
-file if an external entity is being loaded. 
+Current file-name. Note that this may be different from the provided
+file if an external entity is being loaded.
 
     \termitem{line}{-Line}
-Line-offset from where the parser started its processing in the file-object. 
+Line-offset from where the parser started its processing in the file-object.
 
     \termitem{charpos}{-CharPos}
-Offset from where the parser started its processing in the file-object. 
-See \secref{indexaccess}. 
+Offset from where the parser started its processing in the file-object.
+See \secref{indexaccess}.
 
     \termitem{charpos}{-Start, -End}
 Character offsets of the start and end of the source processed causing the
@@ -736,8 +737,8 @@ current call-back. Used in \program{PceEmacs} to for colouring
 text in SGML and XML modes.
 
     \termitem{source}{-Stream}
-Prolog stream being processed. May be used in the \const{on_begin}, \emph{etc.} 
-callbacks from sgml_parse/2. 
+Prolog stream being processed. May be used in the \const{on_begin}, \emph{etc.}
+callbacks from sgml_parse/2.
 
     \termitem{dialect}{-Dialect}
 Return the current dialect used by the parser (\const{sgml}, \const{xml} or \const{xmlns}).
@@ -822,8 +823,8 @@ Input is a stream. A full description of the option-list is below.
 
 \begin{description}
     \termitem{document}{+Term}
-A variable that will be unified with a list describing the content of 
-the document (see load_structure/2). 
+A variable that will be unified with a list describing the content of
+the document (see load_structure/2).
     \termitem{source}{+Stream}
 An input stream that is read.  This option <em/must/ be given.
     \termitem{content_length}{+Characters}
@@ -840,7 +841,7 @@ Default.  Parse everything upto the end of the input.
 The parser stops after reading the first element. Using
 \term{source}{Stream}, this implies reading is stopped as soon
 as the element is complete, and another call may be issued on the same
-stream to read the next element. 
+stream to read the next element.
 
 	\termitem{content}{}
 The value \const{content} is like \const{element} but assumes the
@@ -860,9 +861,9 @@ all open elements.
     \end{description}
 
     \termitem{max_errors}{+MaxErrors}
-Set the maximum number of errors. If this number is exceeded further 
-writes to the stream will yield an I/O error exception. Printing of 
-errors is suppressed after reaching this value. The default is 100. 
+Set the maximum number of errors. If this number is exceeded further
+writes to the stream will yield an I/O error exception. Printing of
+errors is suppressed after reaching this value. The default is 100.
     \termitem{syntax_errors}{+ErrorMode}
 Defines how syntax errors are handled.
     \begin{description}
@@ -876,27 +877,27 @@ Defines how syntax errors are handled.
 	\const{informational}.
     \end{description}
     \termitem{call}{+Event, :PredicateName}
-Issue call-backs on the specified events. \arg{PredicateName} is the 
-name of the predicate to call on this event, possibly prefixed with a 
+Issue call-backs on the specified events. \arg{PredicateName} is the
+name of the predicate to call on this event, possibly prefixed with a
 module identifier.  If the handler throws an exception, parsing is stopped
 and sgml_parse/2 re-throws the exception. The defined events are:
 \begin{description}
     \termitem{begin}{}
-An open-tag has been parsed. The named handler is called with three 
-arguments: \term{\arg{Handler}}{+Tag, +Attributes, +Parser}. 
+An open-tag has been parsed. The named handler is called with three
+arguments: \term{\arg{Handler}}{+Tag, +Attributes, +Parser}.
     \termitem{end}{}
-A close-tag has been parsed. The named handler is called with two 
-arguments: \term{\arg{Handler}}{+Tag, +Parser}. 
+A close-tag has been parsed. The named handler is called with two
+arguments: \term{\arg{Handler}}{+Tag, +Parser}.
 
     \termitem{cdata}{}
 CDATA has been parsed. The named handler is called with two arguments:
 \term{Handler}{+CDATA, +Parser}, where CDATA is an atom
-representing the data. 
+representing the data.
 
     \termitem{pi}{}
-A processing instruction has been parsed. The named handler is called 
+A processing instruction has been parsed. The named handler is called
 with two arguments: \term{\arg{Handler}}{+Text, +Parser}, where
-\arg{Text} is the text of the processing instruction. 
+\arg{Text} is the text of the processing instruction.
 
     \termitem{decl}{}
 A declaration (\verb$<!...>$) has been read. The named handler is
@@ -918,33 +919,33 @@ If this option is present, errors and warnings are not reported using
 print_message/3
 
     \termitem{xmlns}{}
-When parsing an in \const{xmlns} mode, a new namespace declaraction is 
-pushed on the environment. The named handler is called with three 
+When parsing an in \const{xmlns} mode, a new namespace declaraction is
+pushed on the environment. The named handler is called with three
 arguments: \term{\arg{Handler}}{+NameSpace, +URL, +Parser}.
-See \secref{xmlns} for details. 
+See \secref{xmlns} for details.
 
     \termitem{urlns}{}
-When parsing an in \const{xmlns} mode, this predicate can be used to map a 
-url into either a canonical URL for this namespace or another internal 
-identifier. See \secref{xmlns} for details. 
+When parsing an in \const{xmlns} mode, this predicate can be used to map a
+url into either a canonical URL for this namespace or another internal
+identifier. See \secref{xmlns} for details.
 \end{description}
 \end{description}
 \end{description}
 
 \subsubsection{Partial Parsing}
 
-In some cases, part of a document needs to be parsed. One option is to 
-use load_structure/2 or one of its variations and extract 
-the desired elements from the returned structure. This is a clean 
-solution, especially on small and medium-sized documents. It however is 
-unsuitable for parsing really big documents. Such documents can only be 
+In some cases, part of a document needs to be parsed. One option is to
+use load_structure/2 or one of its variations and extract
+the desired elements from the returned structure. This is a clean
+solution, especially on small and medium-sized documents. It however is
+unsuitable for parsing really big documents. Such documents can only be
 handled with the call-back output interface realised by the
 \term{call}{Event, Action} option of sgml_parse/2.
 Event-driven processing is not very natural in Prolog.
 
 The SGML2PL library allows for a mixed approach. Consider the case where
 we want to process all descriptions from RDF elements in a document. The
-code below calls <xmp>process_rdf_description(Element)</xmp> on each element 
+code below calls <xmp>process_rdf_description(Element)</xmp> on each element
 that is directly inside an RDF element.
 
 \begin{code}
@@ -994,26 +995,26 @@ set_sgml_parser/2 or, for XML, based on the \const{encoding}
 attribute of the XML header.  The parser reads from SWI-Prolog streams,
 which also provide encoding handling.  Therefore, there are two modes
 for parsing.  If the SWI-Prolog stream has encoding \const{octet} (which
-is the default for binary streams), the decoder of the SGML parser will 
+is the default for binary streams), the decoder of the SGML parser will
 be used and positions reported by the parser are octet offsets in the
 stream.  In other cases, the Prolog stream decoder is used and offsets
 are character code counts.
 
 \section{Processing Indexed Files}		\label{sec:indexaccess}
 
-In some cases applications wish to process small portions of large 
-SGML, XML or RDF files. For example, the \emph{OpenDirectory} project 
-by Netscape has produced a 90MB RDF file representing the main index. 
-The parser described here can process this document as a unit, but 
-loading takes 85 seconds on a Pentium-II 450 and the resulting term 
-requires about 70MB global stack. One option is to process the entire 
-document and output it as a Prolog fact-base of RDF triplets, but in 
-many cases this is undesirable. Another example is a large SGML file 
-containing online documentation. The application normally wishes to 
-provide only small portions at a time to the user. Loading the entire 
+In some cases applications wish to process small portions of large
+SGML, XML or RDF files. For example, the \emph{OpenDirectory} project
+by Netscape has produced a 90MB RDF file representing the main index.
+The parser described here can process this document as a unit, but
+loading takes 85 seconds on a Pentium-II 450 and the resulting term
+requires about 70MB global stack. One option is to process the entire
+document and output it as a Prolog fact-base of RDF triplets, but in
+many cases this is undesirable. Another example is a large SGML file
+containing online documentation. The application normally wishes to
+provide only small portions at a time to the user. Loading the entire
 document into memory is then undesirable.
 
-Using the \term{parse}{element} option, we open a file, seek 
+Using the \term{parse}{element} option, we open a file, seek
 (using <pref builtin>seek/4) to the position of the element and
 read the desired element.
 
@@ -1059,12 +1060,12 @@ rdf_element(Id, Term) :-
 
 \section{External entities}
 
-While processing an SGML document the document may refer to external 
-data. This occurs in three places: external parameter entities, normal 
-external entities and the \const{DOCTYPE} declaration. The current version 
-of this tool deals rather primitively with external data. External 
-entities can only be loaded from a file and the mapping between the 
-entity names and the file is done using a \jargon{catalog} file in a 
+While processing an SGML document the document may refer to external
+data. This occurs in three places: external parameter entities, normal
+external entities and the \const{DOCTYPE} declaration. The current version
+of this tool deals rather primitively with external data. External
+entities can only be loaded from a file and the mapping between the
+entity names and the file is done using a \jargon{catalog} file in a
 format compatible with that used by James Clark's SP Parser,
 based on the SGML Open (now OASIS) specification.
 
@@ -1075,23 +1076,23 @@ sgml_register_catalog_file/2 or the environment variable
 \begin{description}
     \predicate{sgml_register_catalog_file}{2}{+File, +Location}
 Register the indicated \arg{File} as a catalog file. \arg{Location} is
-either \const{start} or \const{end} and defines whether the catalog is 
+either \const{start} or \const{end} and defines whether the catalog is
 considered first or last. This predicate has no effect if \arg{File} is
 already part of the catalog.
 
-If no files are registered using this predicate, the first query on the 
+If no files are registered using this predicate, the first query on the
 catalog examines \env{SGML_CATALOG_FILES} and fills the catalog with
-all files in this path. 
+all files in this path.
 \end{description}
 
 Two types of lines are used by this package.
 
 \begin{quote}
 \const{DOCTYPE} \arg{doctype} \arg{file} \\
-\const{PUBLIC} \exam{"}\arg{Id}\exam{"} \arg{file} 
+\const{PUBLIC} \exam{"}\arg{Id}\exam{"} \arg{file}
 \end{quote}
 
-The specified \arg{file} path is taken relative to the location of the 
+The specified \arg{file} path is taken relative to the location of the
 catolog file. For the \const{DOCTYPE} declaraction, \pllib{sgml} first
 makes an attempt to resolve the \const{SYSTEM} or \const{PUBLIC}
 identifier. If this fails it tries to resolve the \arg{doctype} using
@@ -1102,8 +1103,8 @@ where system identifiers must be Universal Resource Indicators, not
 local file names. Simple uses of relative URIs will work correctly under
 UNIX and Windows.
 
-In the future we will design a call-back mechanism for locating and 
-processing external entities, so Prolog-based file-location and Prolog 
+In the future we will design a call-back mechanism for locating and
+processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
 
 \section{Writing markup}
@@ -1149,14 +1150,14 @@ elements are written using increasing indentation. This introduces
 (depending on the mode and defined whitespace handling) CDATA sequences
 with only layout between elements when read back in.  If \const{false}, no
 layout characters are added.  As this mode does not need to analyse the
-document it is faster and guarantees correct output when read back. 
-Unfortunately the output is hardly human readable and causes problems 
+document it is faster and guarantees correct output when read back.
+Unfortunately the output is hardly human readable and causes problems
 with many editors.
     \termitem{indent}{Integer}
 Set the initial element indentation.  It more than zero, the indent
 is written before the document.
     \termitem{nsmap}{Map}
-Set the initial namespace map.  \arg{Map} is a list of 
+Set the initial namespace map.  \arg{Map} is a list of
 \arg{Name} = \arg{URI}.  This option, together with \const{header} and
 \const{ident} is added to use xml_write/3 to generate XML
 that is embedded in a larger XML document.
@@ -1197,7 +1198,7 @@ values are \const{ascii}, \const{iso_latin_1}, \const{utf8} and
 \const{unicode}. Versions with two arguments are provided for backward
 compatibility, making the safe \const{ascii} encoding assumption.
 
-\begin{description}  
+\begin{description}
     \predicate{xml_quote_attribute}{3}{+In, -Quoted, +Encoding}
 Map the characters that may not appear in XML attributes to entities.
 Currently these are \verb$<>&"$.%
@@ -1238,8 +1239,8 @@ Known missing SGML features include
 
 \begin{itemlist}
     \item [NOTATION on entities]
-Though notation is parsed, notation attributes on external entity 
-declarations are not handed to the user. 
+Though notation is parsed, notation attributes on external entity
+declarations are not handed to the user.
     \item [NOTATION attributes]
 SGML notations may have attributes, declared using
 \verb$<!ATTLIST #NOTATION name attributes>$. Those data attributes
@@ -1261,8 +1262,8 @@ Empty start tags (\verb$<>$), unclosed start tags
 (\verb$<a<b</verb>) and unclosed end tags (<verb></a<b$) are not
 supported.
     \item [SGML declaration]
-The `SGML declaration' is fixed, though most of the parameters are 
-handled through indirections in the implementation. 
+The `SGML declaration' is fixed, though most of the parameters are
+handled through indirections in the implementation.
     \item [The DATATAG feature]
 It is regarded as superseeded by SHORTREF, which is supported.
 (SP does not support it either.)
@@ -1276,7 +1277,7 @@ one DTD at the same time.  It is not supported.
 \end{itemlist}
 
 
-In XML mode the parser recognises SGML constructs that are not allowed 
+In XML mode the parser recognises SGML constructs that are not allowed
 in XML. Also various extensions of XML over SGML are not yet realised.
 In particular, XInclude is not implemented because the designers of
 XInclude can't make up their minds whether to base it on elements or
@@ -1305,7 +1306,7 @@ refers to the SWI-Prolog `home-directory'.
 
 \section{Acknowledgements}
 
-The Prolog representation for parsed documents is based on the 
+The Prolog representation for parsed documents is based on the
 SWI-Prolog interface to SP by Anjo Anjewierden.
 
 Richard O'Keefe has put a lot of effort testing and providing bug
