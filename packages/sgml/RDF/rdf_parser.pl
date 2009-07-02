@@ -195,6 +195,8 @@ propertyElt(Id, Name, Value, Options0) ::=
 	{ modify_state(E0, Options0, E, Options), !,
 	  rewrite(\propertyElt(Id, Name, Value, Options), E)
 	}.
+propertyElt(Id, Name, Value, Options) ::=
+	\literalPropertyElt(Id, Name, Value, Options), !.
 					% 5.14 emptyPropertyElt
 propertyElt(Id, Name, Value, Options) ::=
 	element(Name, A, \all_ws),
@@ -225,14 +227,6 @@ propertyElt(Id, Name, collection(Elements), Options) ::=
 		\nodeElementList(Elements, Options)).
 propertyElt(Id, Name, Literal, Options) ::=
 	element(Name,
-		\attrs([ \typeAttr(Type, Options),
-			 \?idAttr(Id, Options)
-		       ]),
-		Content),
-	{ typed_literal(Type, Content, Literal, Options)
-	}.
-propertyElt(Id, Name, Literal, Options) ::=
-	element(Name,
 		\attrs([ \?idAttr(Id, Options)
 		       ]),
 		[ Value ]),
@@ -249,6 +243,15 @@ propertyElt(Id, Name, unparsed(Value), Options) ::=
 		\attrs([ \?idAttr(Id, Options)
 		       ]),
 		Value).
+
+literalPropertyElt(Id, Name, Literal, Options) ::=
+	element(Name,
+		\attrs([ \typeAttr(Type, Options),
+			 \?idAttr(Id, Options)
+		       ]),
+		Content),
+	{ typed_literal(Type, Content, Literal, Options)
+	}.
 
 emptyPropertyElt(Id, Literal, Options) ::=
 	\attrs([ \?idAttr(Id, Options),
@@ -312,6 +315,7 @@ typed_literal(Type, Content, literal(Object), Options) :-
 	    )
 	;   Object = error(cannot_convert(Type, Content), _)
 	).
+typed_literal(Type, [], literal(type(Type, '')), _Options) :- !.
 typed_literal(Type, [Text], literal(type(Type, Text)), _Options) :- !.
 typed_literal(Type, Content, literal(type(Type, Content)), _Options).
 
