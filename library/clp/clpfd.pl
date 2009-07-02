@@ -2059,7 +2059,7 @@ X #=< Y :- Y #>= X.
 
 X #= Y :- clpfd_equal(X, Y).
 
-clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X), reinforce(Y).
+clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
