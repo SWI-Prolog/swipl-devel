@@ -1996,11 +1996,6 @@ copy_term(nat-2) :-			% cyclic term
 		 *	     TERM-HASH		*
 		 *******************************/
 
-%	NOTE: these numbers are for 32-bit platforms. Different value of
-%	max_tagged_integer is main reason why the result is different on
-%	64-bit platforms. What to do? Use the   32-bit  limit also on 64
-%	bit platforms?  For now the test is disabled on 64-bit machines.
-
 term_hash(simple-1) :-
 	term_hash(aap, 9270206).
 term_hash(simple-2) :-			% small int
