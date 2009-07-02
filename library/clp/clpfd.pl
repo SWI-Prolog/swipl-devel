@@ -2007,7 +2007,7 @@ matcher(m_c(Matcher,Cond), Gs) -->
           Head =.. [Expand,X,Y],
           phrase((match(A, X), match(B, Y)), Goals0, [Cond,!|Goals1]),
           phrase(match_goals(Gs, Expand), Goals1) },
-        (   { symmetric(F) } ->
+        (   { symmetric(F), \+ (subsumes_chk(A, B), subsumes_chk(B, A)) } ->
             { Head1 =.. [Expand,Y,X] },
             [Head1 :- Goals0]
         ;   []
