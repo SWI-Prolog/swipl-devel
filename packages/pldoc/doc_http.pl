@@ -289,15 +289,31 @@ pldoc_file(Request) :-
 
 %%	pldoc_edit(+Request)
 %
-%	Handler for /edit?file=REF, starting the   SWI-Prolog  editor on
-%	File.
+%	HTTP handler that starts the user's   default editor on the host
+%	running the server. This  handler  can   only  accessed  if  the
+%	browser connection originates from  =localhost=.   The  call can
+%	edit files using the =file=  attribute   or  a predicate if both
+%	=name= and =arity= is given and optionally =module=.
 
 pldoc_edit(Request) :-
 	http_parameters(Request,
-			[ file(File,     [optional(true)]),
-			  module(Module, [optional(true)]),
-			  name(Name,     [optional(true)]),
-			  arity(Arity,   [integer, optional(true)])
+			[ file(File,
+			       [ optional(true),
+				 description('Name of the file to edit')
+			       ]),
+			  name(Name,
+			       [ optional(true),
+				 description('Name of a Prolog predicate to edit')
+			       ]),
+			  arity(Arity,
+				[ integer,
+				  optional(true),
+				  description('Arity of a Prolog predicate to edit')
+				]),
+			  module(Module,
+				 [ optional(true),
+				   description('Name of a Prolog module to search for predicate')
+				 ])
 			]),
 	(   atom(File)
 	->  Edit = file(File)
@@ -524,22 +540,29 @@ pldoc_object(Request) :-
 
 %%	pldoc_search(+Request)
 %
-%	Handler for /search?for=String, searching for String.
+%	Search the collected PlDoc comments and Prolog manual.
 
 pldoc_search(Request) :-
 	http_parameters(Request,
-			[ for(For, [length > 1]),
+			[ for(For,
+			      [ length > 1,
+				description('String to search for')
+			      ]),
 			  in(In,
 			     [ oneof([all,app,man]),
-			       default(all)
+			       default(all),
+			       description('Search everying, application only or manual only')
 			     ]),
 			  match(Match,
 				[ oneof([name,summary]),
-				  default(summary)
+				  default(summary),
+				  description('Match only the name or also the summary')
 				]),
-			  resultFormat(Format, [ oneof(long,summary),
-						 default(summary)
-					       ])
+			  resultFormat(Format,
+				       [ oneof(long,summary),
+					 default(summary),
+					 description('Return full documentation or summary-lines')
+				       ])
 			]),
 	edit_options(Request, EditOptions),
 	format(string(Title), 'Prolog search -- ~w', [For]),
