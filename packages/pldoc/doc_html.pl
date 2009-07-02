@@ -537,7 +537,10 @@ is_pi(_//_).
 %%	object_page(+Obj, +Options)// is det.
 %
 %	Generate an HTML page describing Obj.  The top presents the file
-%	the object is documented in and a search-form.
+%	the object is documented in and a search-form.  Options:
+%
+%	    * header(+Boolean)
+%	    Show the navigation and search header.
 
 object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
@@ -545,14 +548,20 @@ object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
 	},
 	html([ \html_requires(pldoc),
-	       div(class(navhdr),
-		   [ div(class(jump),
-			  a(href(location_by_id(pldoc_doc)+File), File)),
-		     div(class(search), \search_form(Options)),
-		     br(clear(right))
-		   ]),
+	       \object_page_header(File, Options),
 	       \objects([Obj], Options)
 	     ]).
+
+object_page_header(File, Options) -->
+	{ option(header(true), Options, true) }, !,
+	html(div(class(navhdr),
+		 [ div(class(jump),
+		       a(href(location_by_id(pldoc_doc)+File), File)),
+		   div(class(search), \search_form(Options)),
+		   br(clear(right))
+		 ])).
+object_page_header(_, _) --> [].
+
 
 
 		 /*******************************
