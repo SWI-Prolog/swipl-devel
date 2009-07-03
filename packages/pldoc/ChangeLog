@@ -1,3 +1,18 @@
+[Jul 2 2009]
+
+ * ADDED: Public API to generate help on a predicate without the page header
+   
+[Jun 18 2009]
+
+ * FIXED: Allow serving the manual again.
+   
+[Jun 16 2009]
+
+ * FIXED: Bug#404: PlDoc local file inclusion vulnerability
+   
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.

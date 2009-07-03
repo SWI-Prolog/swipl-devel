@@ -1,3 +1,6 @@
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Dec 22 2008]
 
  * ADDED: C++ registration	for non-deterministic predicates.  Willem Robert van Hage.

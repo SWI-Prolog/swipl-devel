@@ -9,6 +9,118 @@
 
 
 ============================
+VERSION 5.7.11 July 03, 2009
+============================
+
+ * ENHANCED: term_hash: take the order of arguments in compound terms into account
+ * MODIFIED: The hash-value of terms is supposed to be stable over
+   SWI-Prolog versions to allow storing datastructures on file that reply on
+   the hash.  This change obviously breaks compatibility here.  If you have
+   such a database you will have to rebuild it.
+   
+ * FIXED: Reset supervisor of an undefined predicate that is set to dynamic. Mikami Kana.
+   
+ * FIXED: Properly prevent message_queue_destroy/1 from destroying the default queue of a thread.
+   
+ * ADDED: Allow message_queue_destroy/1 on queues that are being waited for
+   
+ * CHANGED: assert/2 issues representation error instead of type error
+   Affected case:
+   
+   ?- retractall(a), asserta(a,R), retractall(a),  asserta(a,R).
+   
+   This cannot be a type error, since the following query would have to
+   fail.
+   
+   ?- retractall(a), asserta(a,R1), retractall(a),  asserta(a,R2), R1 = R2.
+   
+ * FIXED: Stream locking issue.  Keri Harris.
+   
+ * ENHANCED: Test whether 2nd argument of assert/2 and friends is unbound. Günter Kniesel.
+   
+ * FIXED: thread_create_in_pool/4: manager thread died if thread could not be created.
+   
+ * FIXED: aggregate/3 when combining max or min with a bag operator.  Mike Elston.
+   
+ * CLEANUP: Better reporting of multiple frozen goals on the same variable.
+   
+ * FIXED: Freezing multiple goals on the same variable used ,/2 instead of $and/2. This can lead to an exception Undefined procedure: $attvar: $and/2. Mike Elston.
+   
+ * FIXED: Setting spy, trace, etc. on system predicates
+   
+ * DOC: Fixes and cleanup
+   
+ * FIXED: Ulrich Item#486: meta-calls that exceed max_arity now raise a representation error instead of crashing.
+   
+ * FIXED: Ulrich Item#510: current_op/3 compliant error generation.
+   
+ * FIXED: Enhanced error terms for callable (call/1, etc).
+   
+ * CLEANUP: Underlying code for call/1
+   
+ * FIXED: memory-leak in atom_number/2 and number_chars/2 when producing GMP numbers.  Keri Harris.
+   
+ * FIXED: Typo in day-name of format_time/4.  Keri Harris.
+   
+ * BUILD: Fix for parallel make.  Keri Harris.
+   
+ * PORT: Make stack size alignment on 64-bit Windows comparable to Linux. Keri Harris.
+   
+ * PORT: Avoid conflict on strndup().  Mary Ellen Foster
+   
+ * ENHANCED: CLP(FD): extended partial evaluation in automatic goal expansion
+   
+ * CLEANUP: module_transparent --> meta_predicate.  Paulo Moura.
+   
+ * CLEANUP: clpfd: lazy initialization of global variables and create derived predicates using term_expansion/2.
+   
+ * CLEANUP: Some more module issues (Paulo moura).
+   
+ * CLEANUP: Add explicit import of library(apply) to some library modules.
+   
+ * FIXED: Windows: rename_file/2 now uses MoveFileEx to be more POSIX compliant
+   
+ * FIXED: Steadfastness of current_stream/3.  Eckard Brauer.
+   
+ * FIXED: Bug#397: Listing of user-predicates are incorrectly prefixed with user: Holger Kanwischer,
+   
+ * FIXED: Possible crash if a detached thread terminates on an exception.  Matt Lilley.
+   The reason is the ill defined scoping of the exception as returned by
+   PL_exception().  It is destroyed by printMessage() in start_thread().
+   This problem is resolved, but in general the scoping of PL_exception
+   needs to be reconsidered.  I tried adding a PL_copy_term_ref() in
+   PL_exception(), but this causes other problems.
+   
+   Possibly it is better to have the calling environment allocate the term
+   handle and have
+   
+   	int PL_get_exception(Qid, ex)
+   
+ * MODIFIED: Moved merge/3 and merge_set/3 to library(backcomp).  Should not affect running code.
+   
+ * FIXED: Clear stream error status after a failing seek/4
+   
+ * FIXED: Possible deadlock in multithreaded consult.  With patch from Keri Harris.
+   
+ * MODIFIED: meta argument dereferencing only for atom prefix Item#494
+   Do not reduce X:a:b to a:b.  I.e., only dereference <atom>:
+   
+ * ENHANCED: CLP(FD): Recognise abs(X-Y) #>= C
+   
+ * ENHANCED: CLP(FD): Delete auxiliary constraints in entailed disjunctions.
+   
+ * ENHANCED: CLP(FD): Kill auxiliary constraints in entailed implications.
+   
+ * FIXED: toplevel meta qualifiers Item#490
+   
+ * ENHANCED: CLP(FD): Recognise linear inequalities.
+   
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
+   
+ * FIXED: Assertion error on A is B +/- constant if B is a rational number. Keri Harris.
+   
+ * CLEANUP: Various Win64 64/32-bit conversions (non fatal)
+============================
 VERSION 5.7.8 March 13, 2009
 ============================
 

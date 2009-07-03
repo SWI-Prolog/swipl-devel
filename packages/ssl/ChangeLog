@@ -1,3 +1,7 @@
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
+   
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf

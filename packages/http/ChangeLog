@@ -1,3 +1,27 @@
+[Jul 1 2009]
+
+ * ADDED: Allow \-escape inside html(\List).
+   
+ * ADDED: Return the fact that a handler is a prefix handler in http_current_handler/3.
+   
+ * ADDED: Allow for http_handler(root(find/concept), ...).  I.e., allow for component/component without quotes,
+   
+[Jun 29 2009]
+
+ * FIXED: http_currect_session(-, ?) did not generate (all) sessions.
+   
+ * ADDED: http_close_session/1
+   
+[Jun 23 2009]
+
+ * MODIFIED: Added option unsafe(Bool) to http_reply_file/3.  This option is by default false, which causes this predicate to refuse serving files with an absolute path, a path outside the working directory or, if an alias(Path) is used, outside the root of the alias.
+   If you want to serve such files, you must provide unsafe(true) explicitely.
+   
+ * ADDED: Reply with 400 Bad Request on illegal HTTP requests
+   
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * FIXED: Avoid race condition in session management.  Jacco van Ossenbruggen.

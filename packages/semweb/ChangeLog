@@ -1,3 +1,34 @@
+[Jun 28 2009]
+
+ * FIXED: RDF literal matches (literal(exact(string), X))
+   
+[Jun 22 2009]
+
+ * ADDED: Efficient SPARQL compliant literal matching to RDF-DB
+   
+[Jun 19 2009]
+
+ * FIXED: Semweb: writing RDF/XML should not use bnodes as typed nodes.  Chris Mungall.
+   
+[Jun 17 2009]
+
+ * FIXED: Turtle UTF-8 handling
+   
+ * FIXED: rdf_load/2: Do not record a file as loaded before completion.
+   
+ * ADDED: Semweb: Register turtle parser for .n3 files
+   
+[Jun 16 2009]
+
+ * FIXED: Pass Turtle test-case #10.
+   
+[May 31 2009]
+
+ * FIXED: RDF Transaction logging in persistency layer.  Jacco van Ossenbruggen.
+   
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
