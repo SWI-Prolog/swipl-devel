@@ -642,7 +642,14 @@ WriteNumber(Number n, write_options *options)
       else
 	buf = PL_malloc(sz);
 
-      mpz_get_str(buf, 10, n->value.mpz);
+      /* mpz_get_str() can perform large intermediate allocations :-( */
+      EXCEPTION_GUARDED({ LD->gmp.persistent++;
+			  mpz_get_str(buf, 10, n->value.mpz);
+			  LD->gmp.persistent--;
+			},
+			{ LD->gmp.persistent--;
+			  rc = PL_rethrow();
+			})
       rc = PutToken(buf, options->out);
       if ( buf != tmp )
 	PL_free(buf);
