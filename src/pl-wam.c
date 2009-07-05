@@ -1823,7 +1823,7 @@ retry:					MARK(RETRY);
     }
   }
   Sdprintf("[Could not find retry-point]\n");
-  pl_abort(ABORT_NORMAL);		/* dubious */
+  abortProlog(ABORT_THROW);		/* dubious */
 
 do_retry:
   if ( rframe0 != rframe )

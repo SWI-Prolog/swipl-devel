@@ -637,7 +637,7 @@ outOfStack(void *stack, stack_overflow_action how)
       updateAlerted(LD);
       Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
 
-      pl_abort(ABORT_FATAL);
+      abortProlog(ABORT_THROW);
       assert(0);
       fail;
     case STACK_OVERFLOW_THROW:

@@ -289,7 +289,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
   }
 
   startCritical;
-  switch(fmt.storage)			/* format can to call-back! */
+  switch(fmt.storage)			/* format can do call-back! */
   { case PL_CHARS_RING:
     case PL_CHARS_STACK:
       PL_save_text(&fmt, BUF_MALLOC);
@@ -300,7 +300,8 @@ format_impl(IOSTREAM *out, term_t format, term_t Args)
 
   rval = do_format(out, &fmt, argc, argv);
   PL_free_text(&fmt);
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   return rval;
 }

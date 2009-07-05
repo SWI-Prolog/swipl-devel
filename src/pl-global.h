@@ -326,7 +326,7 @@ struct PL_local_data
   int		current_signal;		/* Currently handled signal */
   int		sync_signal;		/* Current signal is synchronous */
   int		critical;		/* heap is being modified */
-  int		aborted;		/* thread asked for abort */
+  abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
 #ifdef O_PLMT

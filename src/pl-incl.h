@@ -916,8 +916,8 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define startCritical (void)(LD->critical++)
-#define endCritical   if ( --(LD->critical) == 0 && LD->aborted ) \
-			endCritical__LD(PASS_LD1)
+#define endCritical   ((--(LD->critical) == 0 && LD->aborted) \
+				? endCritical__LD(PASS_LD1) : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1229,8 +1229,10 @@ typedef enum
 } choice_type;
 
 typedef enum
-{ ABORT_NORMAL,				/* normal abort */
-  ABORT_FATAL				/* abort on fatal error */
+{ ABORT_NONE = 0,			/* not in abort-state */
+  ABORT_RAISE,				/* Raise exception */
+  ABORT_THROW,				/* Throw exception */
+  ABORT_FATAL				/* Total reset on fatal error */
 } abort_type;
 
 typedef enum

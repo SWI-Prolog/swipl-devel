@@ -1355,7 +1355,7 @@ action:
 
   switch(getSingleChar(Sinput, FALSE))
   { case 'a':
-      pl_abort(ABORT_FATAL);
+      abortProlog(ABORT_FATAL);
       break;
     case EOF:
       Sfprintf(Serror, "EOF: exit\n");
@@ -1370,7 +1370,7 @@ action:
       goto action;
   }
 
-  pl_abort(ABORT_FATAL);
+  abortProlog(ABORT_FATAL);
   PL_halt(3);
   PL_fail;
 }

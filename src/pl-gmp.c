@@ -76,7 +76,7 @@ mp_alloc(size_t bytes)
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
   { gmp_too_big();
-    pl_abort(ABORT_FATAL);
+    abortProlog(ABORT_THROW);
     return NULL;			/* make compiler happy */
   }
 
@@ -110,7 +110,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
   if ( TOO_BIG_GMP(newsize) ||
        !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
   { gmp_too_big();
-    pl_abort(ABORT_FATAL);
+    abortProlog(ABORT_THROW);
     return NULL;			/* make compiler happy */
   }
 

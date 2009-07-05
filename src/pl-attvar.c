@@ -838,14 +838,16 @@ retry:
       } else
       { gTop = gend;
 	scan_trail(FALSE);
-	endCritical;
+	if ( !endCritical )
+	  return FALSE;
 	goto grow;
       }
     }
   }
 
   scan_trail(FALSE);
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   if ( list == tailp )
   { gTop = gend;

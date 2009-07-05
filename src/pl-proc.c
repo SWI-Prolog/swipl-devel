@@ -867,7 +867,8 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
   { UNLOCKDEF(def);
-    endCritical;
+    if ( !endCritical )
+      return FALSE;
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, proc);
   } else				/* normal Prolog procedure */
@@ -877,14 +878,11 @@ abolishProcedure(Procedure proc, Module module)
     { if ( def->references == 0 )
       { resetProcedure(proc, FALSE);
 	gcClausesDefinitionAndUnlock(def);
-	endCritical;
-	succeed;
+	return endCritical;
       } else				/* dynamic --> static */
       { UNLOCKDYNDEF(def);		/* release private lock */
 	setDynamicProcedure(proc, FALSE);
-	endCritical;
-
-	succeed;
+	return endCritical;
       }
     } else if ( true(def, NEEDSCLAUSEGC) )
     { registerDirtyDefinition(def);
@@ -893,9 +891,7 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, FALSE);
   }
   UNLOCKDEF(def);
-  endCritical;
-
-  succeed;
+  return endCritical;
 }
 
 
@@ -952,7 +948,7 @@ clause-chain. The clause itself is not  deleted,   this  task is left to
 retractClauseDefinition().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 unlinkClause(Definition def, Clause clause ARG_LD)
 { ClauseRef prev = NULL;
   ClauseRef c;
@@ -982,7 +978,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
     }
   }
 
-  endCritical;
+  return endCritical;
 }
 
 
@@ -993,7 +989,9 @@ the definition is always referenced.
 
 bool
 retractClauseDefinition(Definition def, Clause clause ARG_LD)
-{ LOCKDYNDEF(def);
+{ int rc;
+
+  LOCKDYNDEF(def);
   assert(true(def, DYNAMIC));
   if ( true(clause, ERASED) )
   { UNLOCKDYNDEF(def);
@@ -1023,7 +1021,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
-  unlinkClause(def, clause PASS_LD);
+  rc = unlinkClause(def, clause PASS_LD);
   UNLOCKDYNDEF(def);
 
 					/* as we do a call-back, we cannot */
@@ -1036,7 +1034,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 
   freeClause(clause PASS_LD);
 
-  succeed;
+  return rc;
 }
 
 
@@ -1858,11 +1856,11 @@ PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       { retractClauseDefinition(getProcDefinition(proc), cref->clause PASS_LD);
 	if ( !next )
 	{ leaveDefinition(def);
-	  endCritical;
-	  succeed;
+	  return endCritical;
 	}
 
-	endCritical;
+	if ( !endCritical )
+	  fail;
 	ForeignRedoPtr(next);
       }
 
@@ -1916,9 +1914,9 @@ pl_retractall(term_t head)
   fid = PL_open_foreign_frame();
 
   if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
-  { endCritical;
+  { int rc = endCritical;
     leaveDefinition(def);
-    succeed;
+    return rc;
   }
 
   while( cref )
@@ -1929,17 +1927,14 @@ pl_retractall(term_t head)
 
     if ( !next )
     { leaveDefinition(def);
-      endCritical;
-      succeed;
+      return endCritical;
     }
 
 
     cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
-  endCritical;
   leaveDefinition(def);
-
-  succeed;
+  return endCritical;
 }
 
 		/********************************

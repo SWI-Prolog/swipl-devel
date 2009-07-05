@@ -875,7 +875,7 @@ eval_expression(term_t t, Number r, int recursion ARG_LD)
       backTrace(NULL, 10);
       Sfprintf(Serror, "]\n");
 #endif
-      pl_abort(ABORT_NORMAL);
+      rval = abortProlog(ABORT_RAISE);
     }
 #else /*HAVE___TRY*/
     LD->in_arithmetic--;
@@ -2920,7 +2920,7 @@ PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
     }
   }
   rc = registerFunction(f, index);
-  endCritical;
+  if ( !endCritical ) rc = FALSE;
 
   return rc;
 }

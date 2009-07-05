@@ -461,7 +461,7 @@ out:
   unblockGC(PASS_LD1);
   restoreWakeup(wake PASS_LD);
   if ( action == ACTION_ABORT )
-    pl_abort(ABORT_NORMAL);
+    abortProlog(ABORT_RAISE);
 
   return action;
 }
@@ -1273,6 +1273,7 @@ static void
 interruptHandler(int sig)
 { int c;
   int safe;
+  abort_type at = ABORT_RAISE;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
@@ -1313,7 +1314,8 @@ again:
   if ( safe )
   { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
   } else
-  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
+  { at = ABORT_THROW;
+    Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
     Sflush(Sdout);
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
@@ -1322,7 +1324,7 @@ again:
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
-    		pl_abort(ABORT_NORMAL);
+		abortProlog(at);
 		break;
     case 'b':	Sfputs("break\n", Sdout);
 		unblockSignal(sig);	/* into pl_break() itself */

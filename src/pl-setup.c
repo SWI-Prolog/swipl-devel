@@ -68,7 +68,7 @@ setupProlog(void)
 { DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
-  LD->aborted = FALSE;
+  LD->aborted = ABORT_NONE;
   LD->pending_signals = 0;
 
   startCritical;
@@ -858,10 +858,12 @@ out:
 }
 
 
-void
+int
 endCritical__LD(ARG1_LD)
 { if ( LD->aborted )
-    pl_abort(ABORT_NORMAL);
+    return abortProlog(ABORT_THROW);
+
+  return TRUE;
 }
 
 

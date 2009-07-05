@@ -696,7 +696,8 @@ ground(Word p ARG_LD)
   startCritical;
   rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
   assert(rc1 == rc2);
   return rc1;
 }
@@ -753,7 +754,8 @@ non_attributed(Word p ARG_LD)
   startCritical;
   rc1 = ph_non_attributed(p, ph_mark PASS_LD);  /* mark functors */
   rc2 = ph_non_attributed(p, ph_unmark PASS_LD);  /* unmark the very same functors */
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
   assert(rc1 == rc2);
   return rc1;
 }
@@ -926,7 +928,8 @@ is_acyclic(Word p ARG_LD)
   startCritical;
   rc1 = ph1_is_acyclic(p PASS_LD);
   ph2_is_acyclic(p PASS_LD);
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   return rc1;
 }
@@ -2279,7 +2282,8 @@ term_variables_to_termv(term_t t, term_t *vp ARG_LD)
   initvisited(PASS_LD1);
   n = term_variables_loop(valTermRef(t), v0, 0 PASS_LD);
   unvisit(PASS_LD1);
-  endCritical;
+  if ( !endCritical )
+    return -1;
 
   *vp = v0;
   return n;
@@ -2294,7 +2298,9 @@ term_variables(term_t t, term_t vars, term_t tail ARG_LD)
   term_t v0;
   int i, n;
 
-  n = term_variables_to_termv(t, &v0 PASS_LD);
+  if ( (n = term_variables_to_termv(t, &v0 PASS_LD)) < 0 )
+    return FALSE;
+
   for(i=0; i<n; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
@@ -2387,7 +2393,8 @@ subsumes(term_t general, term_t specific ARG_LD)
       }
     }
     unvisit(PASS_LD1);
-    endCritical;
+    if ( !endCritical )
+      return FALSE;
     return rc;
   }
 
@@ -2483,7 +2490,8 @@ pl_e_free_variables(term_t t, term_t vars)
   initvisited(PASS_LD1);
   n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
   unvisit(PASS_LD1);
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
   { for(i=0; i<n; i++)

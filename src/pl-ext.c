@@ -169,7 +169,6 @@ static const PL_extension foreigns[] = {
   FRG("fail",			0, pl_fail,		      ISO),
   FRG("true",			0, pl_true,		      ISO),
   FRG("$fail",			0, pl_fail,		  NOTRACE),
-  FRG("abort",			0, pl_abort,			0),
 
   FRG("trace",			0, pl_trace,		  NOTRACE),
   FRG("notrace",		0, pl_notrace,		  NOTRACE),
@@ -420,6 +419,7 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(pro);
 DECL_PLIST(read);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
@@ -453,6 +453,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(pro);
   REG_PLIST(read);
   REG_PLIST(thread);
   REG_PLIST(profile);

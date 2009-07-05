@@ -510,7 +510,7 @@ COMMON(word) 		pl_break(void);
 COMMON(word) 		pl_break1(term_t goal);
 COMMON(word) 		pl_notrace1(term_t goal);
 COMMON(int) 		callProlog(Module module, term_t goal, int flags, term_t *ex);
-COMMON(word) 		pl_abort(abort_type type);
+COMMON(int) 		abortProlog(abort_type type);
 COMMON(bool) 		prologToplevel(atom_t toplevel);
 COMMON(word) 		pl_metacut(void);
 COMMON(int)  		trap_gdb(void);
@@ -622,7 +622,7 @@ COMMON(void) 		install_rl(void);
 
 /* pl-setup.c */
 COMMON(void) 		setupProlog(void);
-COMMON(void)		endCritical__LD(ARG1_LD);
+COMMON(int)		endCritical__LD(ARG1_LD);
 COMMON(handler_t) 	set_sighandler(int sig, handler_t func);
 COMMON(void) 		blockSignals(sigset_t *mask);
 COMMON(void) 		allSignalMask(sigset_t *set);
