@@ -125,6 +125,24 @@ tipc_unify_socket(term_t Socket, int id)
 #define tcp_get_socket(t, p) tipc_get_socket(t, p)
 #include "sockcommon.c"
 
+int
+get_uint(term_t term, unsigned *value)
+{ int64_t v0;
+
+  if ( !PL_get_int64(term, &v0))
+    return FALSE;
+
+#if 0
+	/* tipc users are somewhat cavalier about using -1 in place of 4294967295U */
+  if(v0 < -1 || v0 > UINT_MAX)
+	return FALSE;
+#endif
+
+  *value = (unsigned) v0 & 0xffffffff; 
+
+  return TRUE;
+}
+
 static int
 nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
 { term_t a = PL_new_term_ref();
@@ -134,14 +152,14 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
   {
   if ( PL_is_functor(tipc, FUNCTOR_port_id) )
   {
-    int ref, node;
+    unsigned ref, node;
 
     PL_get_arg(1, tipc, a);
-    if ( !PL_get_integer(a, &ref) )
+    if ( !get_uint(a, &ref) )
       break;
 
     PL_get_arg(2, tipc, a);
-    if ( !PL_get_integer(a, &node) )
+    if ( !get_uint(a, &node) )
       break;
 
     sockaddr->addrtype     = TIPC_ADDR_ID;
@@ -153,18 +171,18 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
 
   if ( PL_is_functor(tipc, FUNCTOR_name) )
   {
-    int arg1, arg2, arg3;
+    unsigned arg1, arg2, arg3;
 
     PL_get_arg(1, tipc, a);
-    if ( !PL_get_integer(a, &arg1) )
+    if ( !get_uint(a, &arg1) )
       break;
 
     PL_get_arg(2, tipc, a);
-    if ( !PL_get_integer(a, &arg2) )
+    if ( !get_uint(a, &arg2) )
       break;
 
     PL_get_arg(3, tipc, a);
-    if ( !PL_get_integer(a, &arg3) )
+    if ( !get_uint(a, &arg3) )
       break;
 
     sockaddr->addrtype                = TIPC_ADDR_NAME;
@@ -179,18 +197,18 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
   if ( PL_is_functor(tipc, FUNCTOR_name_seq) ||
        PL_is_functor(tipc, FUNCTOR_mcast))
   {
-    int arg1, arg2, arg3;
+    unsigned arg1, arg2, arg3;
 
     PL_get_arg(1, tipc, a);
-    if ( !PL_get_integer(a, &arg1) )
+    if ( !get_uint(a, &arg1) )
       break;
 
     PL_get_arg(2, tipc, a);
-    if ( !PL_get_integer(a, &arg2) )
+    if ( !get_uint(a, &arg2) )
       break;
 
     PL_get_arg(3, tipc, a);
-    if ( !PL_get_integer(a, &arg3) )
+    if ( !get_uint(a, &arg3) )
       break;
 
     sockaddr->addrtype           = TIPC_ADDR_NAMESEQ;
@@ -663,7 +681,7 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
 { struct sockaddr_tipc sockaddr;
   struct tipc_subscr subscr;
   int socket;
-  int time, filt;
+  unsigned time, filt;
   char *handle;
   size_t handle_len;
   SOCKET fd;
@@ -678,18 +696,18 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
   if(sockaddr.addrtype != TIPC_ADDR_NAMESEQ)
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, Address, "name_seq/3");
 
-  if( !PL_get_integer(timeout, &time))
+  if( !get_uint(timeout, &time)) 
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, timeout, "integer");
 
-  if( !PL_get_integer(filter, &filt))
+  if( !get_uint(filter, &filt))
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, filter, "integer");
 
   if ( !PL_get_nchars(usr_handle, &handle_len, &handle, CVT_ALL|CVT_EXCEPTION) )
     return FALSE;
 
   memcpy(&subscr.seq, &sockaddr.addr.nameseq, sizeof(subscr.seq));
-  subscr.timeout = (unsigned) time;
-  subscr.filter = (unsigned) filt;
+  subscr.timeout = time;
+  subscr.filter = filt;
   memcpy(&subscr.usr_handle, handle,
 	 (handle_len < sizeof(subscr.usr_handle)) ? handle_len
 	 					  : sizeof(subscr.usr_handle));
