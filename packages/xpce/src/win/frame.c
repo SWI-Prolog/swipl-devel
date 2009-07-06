@@ -473,7 +473,10 @@ fitFrame(FrameObj fr)
 
   if ( fr->fitting == ON ||
        !(t = getTileFrame(fr)) )
-    fail;
+  { setFrame(fr, DEFAULT, DEFAULT,
+	     toInt(100), toInt(100), DEFAULT);
+    succeed;
+  }
 
   assign(fr, fitting, ON);
   enforceTile(t, OFF);

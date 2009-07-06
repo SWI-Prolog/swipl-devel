@@ -36,6 +36,7 @@ static void	xEventFrame(Widget, FrameObj, XEvent *);
 static void	expose_frame(Widget w, FrameObj fr, Region xregion);
 static void	destroyFrame(Widget, FrameObj, XtPointer);
 static status   updateAreaFrame(FrameObj fr, Int border);
+static int	ws_group_frame(FrameObj fr);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
 			       fr->members->head->value )
@@ -257,6 +258,7 @@ ws_realise_frame(FrameObj fr)
 
 
   ws_frame_background(fr, fr->background); /* Why is this necessary? */
+  ws_group_frame(fr);
 }
 
 
@@ -348,6 +350,40 @@ ws_attach_wm_prototols_frame(FrameObj fr)
   succeed;
 }
 
+
+		 /*******************************
+		 *	    WINDOW GROUP	*
+		 *******************************/
+
+static int
+ws_group_frame(FrameObj fr)
+{ FrameObj leader;
+  Widget w = widgetFrame(fr);
+  DisplayWsXref r = fr->display->ws_ref;
+
+  if ( w &&
+       notNil(fr->application) &&
+       notNil((leader=fr->application->leader)) &&
+       fr != leader )
+  { if ( createdFrame(leader) ||
+	 send(leader, NAME_create, EAV) )
+    { Widget lw = widgetFrame(leader);
+      XWMHints hints;
+
+      memset(&hints, 0, sizeof(hints));
+      hints.flags = WindowGroupHint;
+      hints.window_group = XtWindow(lw);
+      XSetWMHints(r->display_xref, XtWindow(w), &hints);
+      DEBUG(NAME_leader,
+	    Cprintf("Set WindowGroupHint of %s to %s (Xwindow=0x%x)\n",
+		    pp(fr), pp(leader), (unsigned int) hints.window_group));
+
+      succeed;
+    }
+  }
+
+  fail;
+}
 
 #ifdef O_XDND
 		 /*******************************

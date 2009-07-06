@@ -55,6 +55,7 @@ variable(exit_message,	message,get, "Registered exit message").
 
 initialise(Emacs, Buffers:dict) :->
 	send(Emacs, send_super, initialise, emacs),
+	send(Emacs, leader, frame('PceEmacs')),
 	send(Emacs, kind, service),
 	send(Emacs, slot, buffer_list, Buffers),
 	new(Msg, message(Emacs, check_saved_at_exit)),

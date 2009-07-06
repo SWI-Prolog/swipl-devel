@@ -798,6 +798,7 @@ End;
 NewClass(application)
   ABSTRACT_VISUAL
   Name		name;			/* name of the application */
+  FrameObj	leader;			/* Leader of the app */
   Chain		members;		/* its member frames */
   Name		kind;			/* {user,service} */
   Chain		modal;			/* Stack of modal frames */
