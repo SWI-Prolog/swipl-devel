@@ -1348,9 +1348,11 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t mintrail    = 2*SIZEOF_VOIDP K;
   intptr_t minargument = 1*SIZEOF_VOIDP K;
 
-  size_alignment = getpagesize();
-  while(size_alignment < 4*SIZEOF_VOIDP K)
-    size_alignment *= 2;
+  if ( !size_alignment )
+  { size_alignment = getpagesize();
+    while(size_alignment < 4*SIZEOF_VOIDP K)
+      size_alignment *= 2;
+  }
 
 #ifndef HAVE_MAP_ANON
   PL_LOCK(L_MISC);
@@ -1525,10 +1527,12 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   intptr_t mintrail    = 2*SIZEOF_VOIDP K;
   intptr_t minargument = 1*SIZEOF_VOIDP K;
 
-  GetSystemInfo(&info);
-  size_alignment = info.dwPageSize;
-  while(size_alignment < 4*SIZEOF_VOIDP K)
-    size_alignment *= 2;
+  if ( !size_alignment )
+  { GetSystemInfo(&info);
+    size_alignment = info.dwPageSize;
+    while(size_alignment < 4*SIZEOF_VOIDP K)
+      size_alignment *= 2;
+  }
 
   local    = max(local,    minlocal + STACK_SIGNAL);
   global   = max(global,   minglobal + STACK_SIGNAL);
