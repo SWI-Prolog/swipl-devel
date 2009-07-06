@@ -33,6 +33,7 @@
 test_arith :-
 	run_tests([ rem,
 		    mod,
+		    shift,
 		    errors,
 		    ar_builtin
 		  ]).
@@ -82,6 +83,13 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 	R is -3 mod (10^50).
 
 :- end_tests(mod).
+
+:- begin_tests(shift).
+
+test(shift_right_large, X == 0) :-
+	X is 5>>64.
+
+:- end_tests(shift).
 
 :- begin_tests(errors).
 

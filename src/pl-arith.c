@@ -1327,7 +1327,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 
   switch(n1->type)
   { case V_INTEGER:
-      if ( dir < 0 )
+      if ( dir < 0 )			/* shift left (<<) */
       {
 #ifdef O_GMP				/* msb() is 0..63 */
 	if ( msb64(n1->value.i) + shift >= (int)(sizeof(int64_t)*8-1) )
@@ -1338,7 +1338,10 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	{ r->value.i = n1->value.i << shift;
 	}
       } else
-      { r->value.i = n1->value.i >> shift;
+      { if ( shift >= (long)sizeof(int64_t)*8 )
+	  r->value.i = 0;
+	else
+	  r->value.i = n1->value.i >> shift;
       }
       r->type = V_INTEGER;
       succeed;
