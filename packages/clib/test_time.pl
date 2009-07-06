@@ -1,5 +1,5 @@
 :- module(test_time,
-	  [ test/0,
+	  [ test_time/0,
 	    list_alarms/0
 	  ]).
 
@@ -11,8 +11,14 @@
 dbg :-
 	time:time_debug(1).
 
-test :-
-	bg(4).
+test_time :-
+	bg(4),
+	flood_test.
+
+
+		 /*******************************
+		 *     MULTI-THREAD TIMEOUT	*
+		 *******************************/
 
 bg(N) :-
 	findall(Id, (between(1, N, _),
@@ -61,6 +67,41 @@ r(N, E) :-
 w(N) :-
 	alarm(N, writeln(hello), Id),
 	writeln(Id).
+
+
+		 /*******************************
+		 *	     FLOODING		*
+		 *******************************/
+
+:- dynamic
+	x/1.
+
+flood_test :-
+	retractall(x(_)),
+	forall(between(1, 100, X),
+	       alarm(1, got(X), _,
+		     [ remove(true)
+		     ])),
+	get_time(Now),
+	repeat,
+	   get_time(End),
+	   End - Now > 2, !,
+        (   forall(between(1, 100, X), x(X))
+	->  retractall(x(_))
+	;   forall(between(1, 100, X),
+		   (   x(X)
+		   ->  true
+		   ;   format('Failed: ~D~n', [X])
+		   ))
+	).
+
+got(X) :-
+	assert(x(X)).
+
+
+		 /*******************************
+		 *	      DEBUG		*
+		 *******************************/
 
 list_alarms :-
 	(   current_alarm(At, Callable, Id, Status),

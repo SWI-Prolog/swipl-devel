@@ -586,26 +586,53 @@ alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
+  DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
 
   for(;;)
   { Event ev = nextEvent(sched);
+    struct timeval now;
+    int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
+    char *signalled = alloca(mt);
+
+    memset(signalled, 0, mt);
+    gettimeofday(&now, NULL);
+
+    for(; ev; ev = ev->next)
+    { struct timeval left;
+
+      left.tv_sec  = ev->at.tv_sec  - now.tv_sec;
+      left.tv_usec = ev->at.tv_usec - now.tv_usec;
+      if ( left.tv_usec < 0 )
+      { left.tv_sec--;
+	left.tv_usec += 1000000;
+      }
+
+      if ( left.tv_sec < 0 ||
+	   (left.tv_sec == 0 && left.tv_usec == 0) )
+      { if ( !signalled[ev->pl_thread_id] )
+	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d (= %ld) ...\n",
+			  (long)left.tv_sec,
+			  ev->pl_thread_id, (long)ev->thread_id));
+	  signalled[ev->pl_thread_id] = TRUE;
+	  pthread_kill(ev->thread_id, SIGALRM);
+	}
+      } else
+	break;
+    }
 
     if ( ev )
     { struct timespec timeout;
-      int rc;
-
       timeout.tv_sec  = ev->at.tv_sec;
       timeout.tv_nsec = ev->at.tv_usec*1000;
+      int rc;
 
       DEBUG(1, Sdprintf("Waiting ...\n"));
       rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
 
       switch( rc )
       { case ETIMEDOUT:
-	  DEBUG(1, Sdprintf("Signalling %d (= %d) ...\n",
-			    ev->pl_thread_id, ev->thread_id));
-	  sched->scheduled = ev;
-	  ev->flags |= EV_FIRED;
+	  DEBUG(1, Sdprintf("Signalling %d (= %ld) ...\n",
+			    ev->pl_thread_id, (long)ev->thread_id));
 	  pthread_kill(ev->thread_id, SIGALRM);
 	  break;
 	case 0:
@@ -615,8 +642,10 @@ alarm_loop(void * closure)
 	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
       }
     } else
-    { int rc = pthread_cond_wait(&cond, &mutex);
+    { int rc;
 
+      DEBUG(1, Sdprintf("No waiting events\n"));
+      rc = pthread_cond_wait(&cond, &mutex);
       if ( rc == EINTR )
 	continue;
     }
@@ -631,42 +660,63 @@ on_alarm(int sig)
 { Event ev;
   schedule *sched = TheSchedule();
   pthread_t self = pthread_self();
-  term_t goal = 0;
-  module_t module = NULL;
 
-  DEBUG(1, Sdprintf("Signal received in %d (= %d)\n",
-		    PL_thread_self(), self));
+  DEBUG(1, Sdprintf("Signal received in %d (= %ld)\n",
+		    PL_thread_self(), (long)self));
 #ifdef BACKTRACE
   DEBUG(10, print_trace());
 #endif
 
-  LOCK();
-  for(ev = sched->first; ev; ev=ev->next)
-  { assert(ev->magic == EV_MAGIC);
+  for(;;)
+  { struct timeval now;
+    term_t goal = 0;
+    module_t module = NULL;
 
-    if ( (ev->flags & EV_FIRED) &&
-	 pthread_equal(self, ev->thread_id) )
-    { ev->flags &= ~EV_FIRED;
+    gettimeofday(&now, NULL);
 
-      DEBUG(1, Sdprintf("Calling event\n"));
-      ev->flags |= EV_DONE;
-      module = ev->module;
-      goal = PL_new_term_ref();
-      PL_recorded(ev->goal, goal);
+    LOCK();
+    for(ev = sched->first; ev; ev=ev->next)
+    { struct timeval left;
 
-      if ( ev->flags & EV_REMOVE )
-	freeEvent(ev);
-      break;
+      assert(ev->magic == EV_MAGIC);
+
+      if ( (ev->flags & (EV_DONE|EV_FIRED)) ||
+	   !pthread_equal(self, ev->thread_id) )
+	continue;
+
+      left.tv_sec  = ev->at.tv_sec - now.tv_sec;
+      left.tv_usec = ev->at.tv_usec - now.tv_usec;
+      if ( left.tv_usec < 0 )
+      { left.tv_sec--;
+	left.tv_usec += 1000000;
+      }
+
+      if ( left.tv_sec < 0 ||
+	   (left.tv_sec == 0 && left.tv_usec == 0) )
+      { DEBUG(1, Sdprintf("Calling event\n"));
+	ev->flags |= EV_DONE;
+	module = ev->module;
+	goal = PL_new_term_ref();
+	PL_recorded(ev->goal, goal);
+
+	if ( ev->flags & EV_REMOVE )
+	  freeEvent(ev);
+	break;
+      }
     }
-  }
-  UNLOCK();
+    UNLOCK();
 
-  if ( goal )
-  { PL_call_predicate(module,
-		      PL_Q_PASS_EXCEPTION,
-		      PREDICATE_call1,
-		      goal);
+    if ( goal )
+    { PL_call_predicate(module,
+			PL_Q_PASS_EXCEPTION,
+			PREDICATE_call1,
+			goal);
+    } else
+      break;
   }
+
+  DEBUG(1, Sdprintf("Processed pending events; signalling scheduler\n"));
+  pthread_cond_signal(&cond);
 }
 
 
