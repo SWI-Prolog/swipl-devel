@@ -997,6 +997,33 @@ esac
 dnl XftNameUnparse() is not available in all versions
 if test "$ac_xft" = true; then
     AC_CHECK_FUNCS(XftNameUnparse)
+else
+cat << _EOM_
+*****************************************************************
+* ERROR: Could not load/find library -lXft.			*
+* Please install the freetype libraries and rerun configure.	*
+* The primary source for the freetype system is:		*
+*								*
+*	http://www.freetype.org/				*
+*								*
+* NOTE: On Unix systems, you typically need to install		*
+*								*
+*	pkg-config						*
+*	freetype development packages				*
+*	fontconfig development packages				*
+*								*
+* If all is installed properly, pkg-config should output 	*
+* something like this (the details may vary):			*
+*								*
+*	% pkg-config --libs xft					*
+*	-lXft -lXrender -lfontconfig -lfreetype -lz -lX11	*
+*								*
+* Examine packages/xpce/src/config.log for details		*
+* Linux users: check README.debian for dependencies		*
+* (note that the exact package names vary between distributions)*
+*****************************************************************
+_EOM_
+exit 1
 fi
 
 
