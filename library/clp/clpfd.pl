@@ -4442,6 +4442,7 @@ attribute_goals(X) -->
         attributes_goals(Ps).
 
 clpfd_aux:attribute_goals(_) --> [].
+clpfd_aux:attr_unify_hook(_,_) :- fail.
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
