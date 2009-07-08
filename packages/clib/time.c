@@ -52,6 +52,11 @@
 #include <pthread.h>
 #endif
 
+typedef enum
+{ TIME_ABS,
+  TIME_REL
+} time_abs_rel;
+
 #ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The __WINDOWS__ port uses the multimedia timers.   This  module must be linked
@@ -219,7 +224,6 @@ typedef struct event
   struct event  *previous;		/* idem */
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
-  double	 time;			/* Specified time */
   struct timeval at;			/* Time to deliver */
 #ifdef SHARED_TABLE
   pthread_t	 thread_id;		/* Thread to call in */
@@ -310,6 +314,18 @@ allocEvent()
 
 
 static void
+setTimeEventAbs(Event ev, double t)
+{ struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  tv.tv_usec = (long)((t-floor(t))*1000000);
+  tv.tv_sec  = (long)t;
+
+  ev->at = tv;
+}
+
+
+static void
 setTimeEvent(Event ev, double t)
 { struct timeval tv;
 
@@ -322,7 +338,6 @@ setTimeEvent(Event ev, double t)
   }
 
   ev->at = tv;
-  ev->time = t;
 }
 
 
@@ -495,6 +510,22 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 }
 
 
+static long
+getTimeRelMillis(Event ev)
+{ struct timeval tv;
+  long   dsec, dusec;
+
+  gettimeofday(&tv, NULL);
+  dsec  = ev->at.tv_sec - tv.tv_sec;
+  dusec = ev->at.tv_usec - tv.tv_usec;
+  if ( dusec < 0 )
+  { dusec += 1000000;
+    dsec --;
+  }
+  return 1000*dsec + dusec/1000;
+}
+
+
 static int
 installEvent(Event ev)
 { MMRESULT rval;
@@ -506,7 +537,7 @@ installEvent(Event ev)
   if ( rc != TRUE )
     return rc;
 
-  rval = timeSetEvent((int)(ev->time*1000),
+  rval = timeSetEvent(getTimeRelMillis(ev)),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)ev,
@@ -967,10 +998,10 @@ pl_get_bool_ex(term_t arg, int *val)
 
 
 static foreign_t
-alarm4(term_t time, term_t callable, term_t id, term_t options)
+alarm4_gen(time_abs_rel abs_rel, term_t time, term_t callable,
+	   term_t id, term_t options)
 { Event ev;
   double t;
-  struct timeval tv;
   module_t m = NULL;
   unsigned long flags = 0L;
 
@@ -1014,17 +1045,15 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
     return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
 		    time, "number");
 
-  gettimeofday(&tv, NULL);
-  tv.tv_usec += (long)((t-floor(t))*1000000);
-  tv.tv_sec  += (long)t;
-  if ( tv.tv_usec >= 1000000 )
-  { tv.tv_usec -= 1000000;
-    tv.tv_sec++;
-  }
 
   if ( !(ev = allocEvent()) )
     return FALSE;
-  setTimeEvent(ev, t);
+
+  if (abs_rel==TIME_REL)
+	  setTimeEvent(ev, t);
+  else
+	  setTimeEventAbs(ev,t);
+
   if ( !unify_timer(id, ev) )
   { freeEvent(ev);			/* not linked: no need to lock */
     return FALSE;
@@ -1049,10 +1078,24 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 
 
 static foreign_t
-alarm3(term_t time, term_t callable, term_t id)
-{ return alarm4(time, callable, id, 0);
+alarm4_abs(term_t time, term_t callable, term_t id, term_t options)
+{ return alarm4_gen(TIME_ABS,time,callable,id,options);
 }
 
+static foreign_t
+alarm4_rel(term_t time, term_t callable, term_t id, term_t options)
+{ return alarm4_gen(TIME_REL,time,callable,id,options);
+}
+
+static foreign_t
+alarm3_abs(term_t time, term_t callable, term_t id)
+{ return alarm4_gen(TIME_ABS,time, callable, id, 0);
+}
+
+static foreign_t
+alarm3_rel(term_t time, term_t callable, term_t id)
+{ return alarm4_gen(TIME_REL,time, callable, id, 0);
+}
 
 static foreign_t
 install_alarm(term_t alarm)
@@ -1208,8 +1251,10 @@ install()
 
   PREDICATE_call1 = PL_predicate("call", 1, "user");
 
-  PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
-  PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm_at",       4, alarm4_abs,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm",          4, alarm4_rel,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm_at",       3, alarm3_abs,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm",          3, alarm3_rel,     PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
   PL_register_foreign("uninstall_alarm",1, uninstall_alarm,0);
   PL_register_foreign("install_alarm",  1, install_alarm,  0);

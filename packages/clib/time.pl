@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2009, University of Amsterdam
 
@@ -32,6 +32,7 @@
 :- module(time,
 	  [ alarm/3,			% +Time, :Callable, -Id
 	    alarm/4,			% +Time, :Callable, -Id, +Options
+	    alarm_at/4,		% +Time, :Callable, -Id, +Options
 	    remove_alarm/1,		% +Id
 	    install_alarm/1,		% +Id
 	    install_alarm/2,		% +Id, +Time
@@ -45,7 +46,8 @@
 :- meta_predicate
 	call_with_time_limit(+, 0),
 	alarm(+, 0, -),
-	alarm(+, 0, -, +).
+	alarm(+, 0, -, +),
+	alarm_at(+, 0, -, +).
 
 %%	alarm(+Time, :Callable, -Id) is det.
 %%	alarm(+Time, :Callable, -Id, +Options) is det.
@@ -64,6 +66,12 @@
 %		* install(Bool)
 %		If =false= (default =true=) do not install the alarm.
 %		It must be installed separately using install_alarm/1.
+
+%%	alarm_at(+Time, :Callable, -Id, +Options) is det
+%
+%	As alarm/4, but schedule the alarm at an absolute point in time.
+%
+%	@see date_time_stamp/2.
 
 %%	install_alarm(+Id) is det.
 %

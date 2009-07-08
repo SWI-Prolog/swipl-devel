@@ -945,6 +945,11 @@ scheduled for execution.   It must be started later using install_alarm/1.
     \predicate{alarm}{3}{+Time, :Callable, -Id}
 Same as \term{alarm}{Time, Callable, Id, []}.
 
+    \predicate{alarm_at}{4}{+Time, :Callable, -Id, +Options}
+as alarm/3, but \arg{Time} is the specification of an absolute point in
+time. Absolute times are specified in seconds after the Jan 1, 1970
+epoch.  See also date_time_stamp/2.
+
     \predicate{install_alarm}{1}{+Id}
 Activate an alarm allocated using alarm/4 with the option
 \term{install}{false} or stopped using uninstall_alarm/1.
