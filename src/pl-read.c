@@ -701,11 +701,13 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 
 static void
 setErrorLocation(IOPOS *pos, ReadData _PL_rd)
-{ GET_LD
+{ if ( pos )
+  { GET_LD
 
-  source_char_no = pos->charno;
-  source_line_pos = pos->linepos;
-  source_line_no = pos->lineno;
+    source_char_no = pos->charno;
+    source_line_pos = pos->linepos;
+    source_line_no = pos->lineno;
+  }
   rb.here = rb.base+1;			/* see rawSyntaxError() */
 }
 
