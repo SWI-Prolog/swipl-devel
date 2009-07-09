@@ -2470,7 +2470,7 @@ reify_(finite_domain(V), B) --> !,
 reify_(L #>= R, B) --> !,
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
-        Ps,
+	list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
         a(B).
 reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
@@ -2479,13 +2479,13 @@ reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
 reify_(L #= R, B)  --> !,
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
-        Ps,
+        list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
         a(B).
 reify_(L #\= R, B) --> !,
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
-        Ps,
+        list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
         a(B).
 reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
@@ -2494,13 +2494,13 @@ reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
 reify_(L #/\ R, B)   --> !,
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
-        Ps1, Ps2,
+        list(Ps1), list(Ps2),
         propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
         a(LR, RR, B).
 reify_(L #\/ R, B) --> !,
         { reify(L, LR, Ps1),
           reify(R, RR, Ps2) },
-        Ps1, Ps2,
+        list(Ps1), list(Ps2),
         propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
         a(LR, RR, B).
 reify_(#\ Q, B) --> !,
@@ -2508,6 +2508,9 @@ reify_(#\ Q, B) --> !,
         propagator_init_trigger(reified_not(QR,B)),
         a(B).
 reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
 
 a(X,Y,B) -->
         (   { nonvar(X) } -> a(Y, B)
