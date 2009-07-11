@@ -2237,11 +2237,14 @@ get_message(message_queue *queue, term_t msg)
   int rval = TRUE;
   fid_t fid = PL_open_foreign_frame();
   uint64_t seen = 0;
+  int signalled;
 
   QSTAT(getmsg);
 
   ctx.queue = queue;
   ctx.isvar = isvar;
+retry:
+  signalled = FALSE;
   pthread_cleanup_push(cleanup_get_message, (void *)&ctx);
   simpleMutexLock(&queue->mutex);
 
@@ -2318,10 +2321,10 @@ get_message(message_queue *queue, term_t msg)
 	exit(1);
       }
 
-      if ( PL_handle_signals() < 0 )	/* thread-signal */
+      if ( LD->pending_signals )	/* thread-signal */
       { queue->waiting--;
 	queue->waiting_var -= isvar;
-	rval = FALSE;
+	signalled = TRUE;
 	goto out;
       }
     }
@@ -2334,6 +2337,13 @@ out:
   simpleMutexUnlock(&queue->mutex);
 out_no_unlock:;
   pthread_cleanup_pop(0);
+
+  if ( signalled )			/* execute signal handlers without */
+  { if ( PL_handle_signals() < 0 )	/* locking the queue */
+      return FALSE;
+    else
+      goto retry;
+  }
 
   return rval;
 }
