@@ -217,7 +217,7 @@ csearch(A)-->
 csearch([], _) -->
 	[].
 csearch([Parameter|Parameters], Sep) --> !,
-	Sep,
+	codes(Sep),
 	cparam(Parameter),
 	csearch(Parameters, "&").
 
@@ -235,6 +235,8 @@ cparam(NameValue) -->			% allow to feed Name(Value)
 cparam(Name)-->
 	cname(Name).
 
+codes([]) --> [].
+codes([H|T]) --> [H], codes(T).
 
 cname(Atom) -->
 	{ atom_codes(Atom, Codes) },
@@ -251,6 +253,8 @@ cvalue(Value) -->
 	},
 	www_encode(Codes, "").
 cvalue(Codes) -->
+	{ must_be(codes, Codes)
+	},
 	www_encode(Codes, "").
 
 
@@ -1009,6 +1013,7 @@ parse_url_search(Codes, Fields) :-
 	is_list(Codes), !,
 	phrase(search(Fields), Codes).
 parse_url_search(Codes, Fields) :-
+	must_be(list, Fields),
 	phrase(csearch(Fields, ""), Codes).
 
 
