@@ -4085,7 +4085,8 @@ enumerate([N|Ns], I, H0, H, R0, R, F0, F) :-
 
 maximum_matching(FL0, FR0, FR, Hash0, RevHash, M) :-
         (   select(S, FL0, FL1),
-            augmenting_path(l(S), [], [], FR0, FR1, Hash0, RevHash, Path) ->
+            empty_assoc(E),
+            augmenting_path(l(S), E, E, FR0, FR1, Hash0, RevHash, Path) ->
             adjust_alternate_1(Path, Hash0, Hash1),
             maximum_matching(FL1, FR1, FR, Hash1, RevHash, M)
         ;   FL0 = [],       % all variables covered
@@ -4096,19 +4097,21 @@ maximum_matching(FL0, FR0, FR, Hash0, RevHash, M) :-
 augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
         get_assoc(N, HashArcs, Arcs),
         gen_assoc(To, Arcs, 0),
-        \+ memberchk(To, RV),
-        augmenting_path(r(To), [N|LV], RV, RF0, RF, HashArcs, RevHash, Ps).
+        \+ get_assoc(To, RV, _),
+        put_assoc(N, LV, visited, LV1),
+        augmenting_path(r(To), LV1, RV, RF0, RF, HashArcs, RevHash, Ps).
 augmenting_path(r(N), LV, RV, RF0, RF, Arcs, RevArcs, Ps) :-
         (   memberchk(N, RF0) ->
             delete(RF0, N, RF),
             Ps = []
         ;   get_assoc(N, RevArcs, Fs),
             member(A, Fs),
-            \+ memberchk(A, LV),
+            \+ get_assoc(A, LV, _),
             get_assoc(A, Arcs, As),
             get_assoc(N, As, 1),
             Ps = [arc(A,N)|Ps1],
-            augmenting_path(l(A), LV, [N|RV], RF0, RF, Arcs, RevArcs, Ps1)
+            put_assoc(N, RV, visited, RV1),
+            augmenting_path(l(A), LV, RV1, RF0, RF, Arcs, RevArcs, Ps1)
         ).
 
 
@@ -4210,9 +4213,9 @@ dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
 
 dfs_used_l([], _, _, _, Vis, Vis, Hash, Hash).
 dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
-    	get_assoc(V, Hash0, Tos0),
-	put_assoc(From, Tos0, 1, Tos1),
-	put_assoc(V, Hash0, Tos1, Hash1),
+        get_assoc(V, Hash0, Tos0),
+        put_assoc(From, Tos0, 1, Tos1),
+        put_assoc(V, Hash0, Tos1, Hash1),
         (   memberchk(l(V), Vis0) ->
             dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
         ;   get_assoc(V, G0L, Tos),
@@ -4223,8 +4226,8 @@ dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
 dfs_used_r([], _, _, _, Vis, Vis, Hash, Hash).
 dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         get_assoc(From, Hash0, Tos0),
-	put_assoc(V, Tos0, 1, Tos1),
-	put_assoc(From, Hash0, Tos1, Hash1),
+        put_assoc(V, Tos0, 1, Tos1),
+        put_assoc(From, Hash0, Tos1, Hash1),
         (   memberchk(r(V), Vis0) ->
             dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
         ;   (   get_assoc(V, G0R, Tos) ->
