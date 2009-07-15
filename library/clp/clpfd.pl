@@ -4172,6 +4172,9 @@ g_g0([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
 regin(Vars) :-
         remove_ground(Vars, []),
         difference_arcs(Vars, Hash, RevHash, FreeLeft0, FreeRight0),
+        length(FreeRight0, LFR),
+        length(FreeLeft0, LFL),
+        LFL =< LFR,
         maximum_matching(FreeLeft0, FreeRight0, FreeRight1, Hash, RevHash, M),
         g_g0(M, G0L, G0R),
         empty_assoc(E),
