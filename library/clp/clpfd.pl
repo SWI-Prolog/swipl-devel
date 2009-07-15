@@ -131,6 +131,8 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
+:- use_module(library(record)).
+
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
@@ -2470,7 +2472,7 @@ reify_(finite_domain(V), B) --> !,
 reify_(L #>= R, B) --> !,
         { phrase((parse_reified_clpfd(L, LR, LD),
                   parse_reified_clpfd(R, RR, RD)), Ps) },
-	list(Ps),
+        list(Ps),
         propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
         a(B).
 reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
@@ -2509,8 +2511,8 @@ reify_(#\ Q, B) --> !,
         a(B).
 reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
 
-list([]) --> [].
-list([H|T]) --> [H], list(T).
+list([])     --> [].
+list([L|Ls]) --> [L], list(Ls).
 
 a(X,Y,B) -->
         (   { nonvar(X) } -> a(Y, B)
@@ -3064,6 +3066,9 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             %),
             true
         ).
+
+run_propagator(regin(Ls), _MState) :-
+        regin(Ls).
 
 run_propagator(check_distinct(Left,Right,X), _) :-
         \+ list_contains(Left, X),
@@ -4009,6 +4014,351 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Regin's algorithm for constraints of difference
+
+regin_attach(Ls) :-
+         must_be(list, Ls),
+         make_propagator(regin(Ls), Prop),
+         regin_attach(Ls, Prop),
+         trigger_prop(Prop),
+         do_queue.
+
+regin_attach([], _).
+regin_attach([X|Xs], Prop) :-
+        (   var(X) ->
+            init_propagator(X, Prop)
+        ;   true
+        ),
+        regin_attach(Xs, Prop).
+
+append_to_key(Key, Assoc0, Elem, Assoc) :-
+        (   get_assoc(Key, Assoc0, Elems) ->
+            put_assoc(Key, Assoc0, [Elem|Elems], Assoc)
+        ;   put_assoc(Key, Assoc0, [Elem], Assoc)
+        ).
+
+difference_arcs(Vars, Hash, RevHash, FreeLeft, FreeRight) :-
+        empty_assoc(E),
+        difference_arcs(Vars, 0, E, Hash, E, RevHash, FreeLeft, [], FreeRight0),
+        sort(FreeRight0, FreeRight). % remove duplicates
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Structures used: The variables are represented by integers
+   0,1,2,..., the values represent themselves. To represent the
+   matching in the bipartite graph: "Hash" is an association list,
+   associating to each variable another association list: Its keys are
+   the variable's domain elements, and the value is either 0 or 1,
+   denoting whether the edge is part of the matching. RevHash is an
+   association list, associating with each domain element a list of
+   variables whose domain contains the value. Instead of a list, it
+   would make sense to also let it be an association list and maintain
+   (reverse) edge information.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
+
+domain_to_list(split(_, Left, Right)) -->
+        domain_to_list(Left), domain_to_list(Right).
+domain_to_list(empty)                 --> [].
+domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
+
+
+difference_arcs([], _, Hash, Hash, RevHash, RevHash, [], FR, FR).
+difference_arcs([V|Vs], N0, Hash0, Hash, RevHash0, RevHash, FL, FR0, FR) :-
+        N1 is N0 + 1,
+        (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
+            enumerate(Ns, N0, Hash0, Hash1, RevHash0, RevHash1, FR0, FR1),
+            FL = [N0|FLRest],
+            difference_arcs(Vs, N1, Hash1, Hash, RevHash1, RevHash, FLRest, FR1, FR)
+        ;   difference_arcs(Vs, N1, Hash0, Hash, RevHash0, RevHash, FL, FR0, FR)
+        ).
+
+enumerate([], _, H, H, R, R, F, F).
+enumerate([N|Ns], I, H0, H, R0, R, F0, F) :-
+        (   get_assoc(I, H0, As) -> true
+        ;   empty_assoc(As)
+        ),
+        put_assoc(N, As, 0, As1),
+        put_assoc(I, H0, As1, H1),
+        append_to_key(N, R0, I, R1),
+        enumerate(Ns, I, H1, H, R1, R, [N|F0], F).
+
+maximum_matching(FL0, FR0, FR, Hash0, RevHash, M) :-
+        (   select(S, FL0, FL1),
+            augmenting_path(l(S), [], [], FR0, FR1, Hash0, RevHash, Path) ->
+            adjust_alternate_1(Path, Hash0, Hash1),
+            maximum_matching(FL1, FR1, FR, Hash1, RevHash, M)
+        ;   FL0 = [],       % all variables covered
+            FR = FR0,
+            M = Hash0
+        ).
+
+augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
+        get_assoc(N, HashArcs, Arcs),
+        gen_assoc(To, Arcs, 0),
+        \+ memberchk(To, RV),
+        augmenting_path(r(To), [N|LV], RV, RF0, RF, HashArcs, RevHash, Ps).
+augmenting_path(r(N), LV, RV, RF0, RF, Arcs, RevArcs, Ps) :-
+        (   memberchk(N, RF0) ->
+            delete(RF0, N, RF),
+            Ps = []
+        ;   get_assoc(N, RevArcs, Fs),
+            member(A, Fs),
+            \+ memberchk(A, LV),
+            get_assoc(A, Arcs, As),
+            get_assoc(N, As, 1),
+            Ps = [arc(A,N)|Ps1],
+            augmenting_path(l(A), LV, [N|RV], RF0, RF, Arcs, RevArcs, Ps1)
+        ).
+
+
+adjust_alternate_1([arc(A,B)|Arcs], Hash0, Hash) :-
+        get_assoc(A, Hash0, As),
+        put_assoc(B, As, 1, As1),
+        put_assoc(A, Hash0, As1, Hash1),
+        adjust_alternate_0(Arcs, Hash1, Hash).
+
+adjust_alternate_0([], Hash, Hash).
+adjust_alternate_0([arc(A,B)|Arcs], Hash0, Hash) :-
+        get_assoc(A, Hash0, As),
+        put_assoc(B, As, 0, As1),
+        put_assoc(A, Hash0, As1, Hash1),
+        adjust_alternate_1(Arcs, Hash1, Hash).
+
+remove_ground([], _).
+remove_ground([V|Vs], Left) :-
+        (   var(V) ->
+            \+ list_contains(Vs, V),
+            remove_ground(Vs, [V|Left])
+        ;   remove_ground_(Vs, V),
+            remove_ground_(Left, V),
+            remove_ground(Vs, Left)
+        ).
+
+remove_ground_([], _).
+remove_ground_([V|Vs], R) :-
+        neq_num(V, R),
+        remove_ground_(Vs, R).
+
+% Instead of applying Berge's property directly, we can translate the
+% problem in such a way, that we have to search for the so-called
+% strongly connected components of the graph.
+
+g_g0(Hash, G0L, G0R) :-
+        assoc_to_list(Hash, List),
+        empty_assoc(E),
+        g_g0(List, E, G0L, E, G0R).
+
+g_g0([], G0L, G0L, G0R, G0R).
+g_g0([From-To|Rest], G0L0, G0L, G0R0, G0R) :-
+        assoc_to_list(To, Tos),
+        g_g0(Tos, From, G0L0, G0L1, G0R0, G0R1),
+        g_g0(Rest, G0L1, G0L, G0R1, G0R).
+
+g_g0([], _, G0L, G0L, G0R, G0R).
+g_g0([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
+        (   Val =:= 1 ->
+            append_to_key(From, G0L0, To, G0L1),
+            g_g0(Rest, From, G0L1, G0L, G0R0, G0R)
+        ;   append_to_key(To, G0R0, From, G0R1),
+            g_g0(Rest, From, G0L0, G0L, G0R1, G0R)
+        ).
+
+:- record regin(index, stack, vlowlink, vindex, g0l, g0r).
+
+regin(Vars) :-
+        remove_ground(Vars, []),
+        difference_arcs(Vars, Hash, RevHash, FreeLeft0, FreeRight0),
+        maximum_matching(FreeLeft0, FreeRight0, FreeRight1, Hash, RevHash, M),
+        g_g0(M, G0L, G0R),
+        empty_assoc(E),
+        make_regin([index(0),stack([]),vlowlink(E),vindex(E),g0l(G0L),g0r(G0R)], Regin0),
+        phrase(scc(FreeLeft0, FreeRight0), [Regin0], [Regin]),
+        regin_vlowlink(Regin, Roots),
+        dfs_used(FreeRight1, G0L, G0R, [], Hash, Used),
+        findall(A, unused_arc(Used, M, Roots, A), UAs),
+        disable_queue,
+        regin_remove(UAs, Vars),
+        enable_queue.
+
+
+regin_remove([], _).
+regin_remove([From-To|Rest], Vars) :-
+        nth0(From, Vars, V),
+        neq_num(V, To),
+        regin_remove(Rest, Vars).
+
+unused_arc(Hash, M, Roots, From-To) :-
+        gen_assoc(From, Hash, Tos),
+        gen_assoc(To, Tos, 0),
+        get_assoc(From, M, MTos),
+        get_assoc(To, MTos, 0),
+        get_assoc(l(From), Roots, RL),
+        get_assoc(r(To), Roots, RR),
+        RL =\= RR.
+
+dfs_used([], _, _, _, Hash, Hash).
+dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
+        (   memberchk(r(V), Vis0) ->
+            dfs_used(Vs, G0L, G0R, Vis0, Hash0, Hash)
+        ;   (   get_assoc(V, G0R, Tos) ->
+                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash1),
+                dfs_used(Vs, G0L, G0R, Vis1, Hash1, Hash)
+            ;   dfs_used(Vs, G0L, G0R, [r(V)|Vis0], Hash0, Hash)
+            )
+        ).
+
+dfs_used_l([], _, _, _, Vis, Vis, Hash, Hash).
+dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
+    	get_assoc(V, Hash0, Tos0),
+	put_assoc(From, Tos0, 1, Tos1),
+	put_assoc(V, Hash0, Tos1, Hash1),
+        (   memberchk(l(V), Vis0) ->
+            dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
+        ;   get_assoc(V, G0L, Tos),
+            dfs_used_r(Tos, V, G0L, G0R, [l(V)|Vis0], Vis1, Hash1, Hash2),
+            dfs_used_l(Vs, From, G0L, G0R, Vis1, Vis, Hash2, Hash)
+        ).
+
+dfs_used_r([], _, _, _, Vis, Vis, Hash, Hash).
+dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
+        get_assoc(From, Hash0, Tos0),
+	put_assoc(V, Tos0, 1, Tos1),
+	put_assoc(From, Hash0, Tos1, Hash1),
+        (   memberchk(r(V), Vis0) ->
+            dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
+        ;   (   get_assoc(V, G0R, Tos) ->
+                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash1, Hash2),
+                dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash2, Hash)
+            ;   dfs_used_r(Vs, From, G0L, G0R, [r(V)|Vis0], Vis, Hash1, Hash)
+            )
+        ).
+
+
+scc([], Right)     --> scc_(Right).
+scc([V|Vs], Right) -->
+        (   vindex_defined(l(V)) -> scc(Vs, Right)
+        ;   scc(l(V)), scc(Vs, Right)
+        ).
+
+vindex_defined(V) -->
+        state(S),
+        { regin_vindex(S, I),
+          get_assoc(V, I, _) }.
+
+vindex_is_index(V) -->
+        state(S0, S),
+        { regin_index(S0, Index),
+          regin_vindex(S0, VI0),
+          put_assoc(V, VI0, Index, VI1),
+          set_vindex_of_regin(VI1, S0, S) }.
+
+vlowlink_is_index(V) -->
+        state(S0, S),
+        { regin_index(S0, Index),
+          regin_vlowlink(S0, VL0),
+          put_assoc(V, VL0, Index, VL1),
+          set_vlowlink_of_regin(VL1, S0, S) }.
+
+index_plus_one -->
+        state(S0, S),
+        { regin_index(S0, I),
+          I1 is I+1,
+          set_index_of_regin(I1, S0, S) }.
+
+s_push(V)  -->
+        state(S0, S),
+        { regin_stack(S0, Stack),
+          set_stack_of_regin([V|Stack], S0, S) }.
+
+successors(r(V), Tos) -->
+        state(S),
+        { regin_g0r(S, G0R),
+          (   get_assoc(V, G0R, Tos) ->  true ; Tos = [] ) }.
+successors(l(V), Tos) -->
+        state(S),
+        { regin_g0l(S, G0L),
+          (   get_assoc(V, G0L, Tos) -> true ; Tos = [] ) }.
+
+vlowlink_min_lowlink(V, VP) -->
+        state(S0, S),
+        { regin_vlowlink(S0, LL0),
+          get_assoc(V, LL0, VL),
+          get_assoc(VP, LL0, VPL),
+          VL1 is min(VL, VPL),
+          put_assoc(V, LL0, VL1, LL1),
+          set_vlowlink_of_regin(LL1, S0, S) }.
+
+vlowlink_min_index(V, VP) -->
+        state(S0, S),
+        { regin_vlowlink(S0, LL0),
+          regin_vindex(S0, I),
+          get_assoc(V, LL0, VL),
+          get_assoc(VP, I, VPI),
+          VL1 is min(VL, VPI),
+          put_assoc(V, LL0, VL1, LL1),
+          set_vlowlink_of_regin(LL1, S0, S) }.
+
+scc_([])     --> [].
+scc_([V|Vs]) -->
+        (   vindex_defined(r(V)) -> scc_(Vs)
+        ;   scc(r(V)), scc_(Vs)
+        ).
+
+
+scc(V) -->
+        vindex_is_index(V),
+        vlowlink_is_index(V),
+        index_plus_one,
+        s_push(V),
+        successors(V, Tos),
+        each_edge(Tos, V),
+        state(S0),
+        (   { regin_vlowlink(S0, LL),
+              regin_vindex(S0, I),
+              get_assoc(V, I, VI),
+              get_assoc(V, LL, VI) } -> pop_stack_to(V, VI)
+        ;   []
+        ).
+
+pop_stack_to(V, N) -->
+        state(S0, S1),
+        { regin_stack(S0, [First|Stack]) },
+        { set_stack_of_regin(Stack, S0, S1) },
+        (   { First == V } -> []
+        ;   state(S1, S),
+            { regin_vlowlink(S1, VL),
+              put_assoc(First, VL, N, VL1),
+              set_vlowlink_of_regin(VL1, S1, S)
+            },
+            pop_stack_to(V, N)
+        ).
+
+each_edge([], _) --> [].
+each_edge([VP0|VPs], V) -->
+        v0_v(V, VP0, VP),
+        (   vindex_defined(VP) ->
+            (   v_in_stack(VP) ->
+                vlowlink_min_index(V, VP)
+            ;   []
+            )
+        ;   scc(VP),
+            vlowlink_min_lowlink(V, VP)
+        ),
+        each_edge(VPs, V).
+
+state(S), [S] --> [S].
+
+state(S0, S), [S] --> [S0].
+
+v_in_stack(V) -->
+        state(S),
+        { regin_stack(S, Stack),
+          memberchk(V, Stack) }.
+
+v0_v(l(_), V, r(V)) --> [].
+v0_v(r(_), V, l(V)) --> [].
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent all_distinct/1 constraint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -4017,11 +4367,13 @@ max_divide(L1,U1,L2,U2,Max) :-
 %
 % Like all_different/1, with stronger propagation.
 
-%all_distinct(Ls) :- all_different(Ls).
-all_distinct(Ls) :-
-        must_be(list, Ls),
-        all_distinct(Ls, [], _),
-        do_queue.
+all_distinct(Ls) :- regin_attach(Ls).
+
+% all_distinct(Ls) :- all_different(Ls).
+% all_distinct(Ls) :-
+%         must_be(list, Ls),
+%         all_distinct(Ls, [], _),
+%         do_queue.
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, MState) :-
@@ -4445,7 +4797,7 @@ attribute_goals(X) -->
         attributes_goals(Ps).
 
 clpfd_aux:attribute_goals(_) --> [].
-clpfd_aux:attr_unify_hook(_,_) :- fail.
+clpfd_aux:attr_unify_hook(_,_) :- false.
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
@@ -4489,6 +4841,7 @@ attribute_goal_(pdifferent(Left, Right, X, processed)) -->
 attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         [all_distinct(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(regin(Vs)) --> [all_distinct(Vs)].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
@@ -4527,20 +4880,6 @@ fold_product([C|Cs], [V|Vs], P0, P) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-%    Testing
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-% domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
-
-% domain_to_list(split(_, Left, Right)) -->
-%         domain_to_list(Left), domain_to_list(Right).
-% domain_to_list(empty)                 --> [].
-% domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, dlist(Ns).
-
-% dlist([])     --> [].
-% dlist([L|Ls]) --> [L], dlist(Ls).
 
 % %?- test_intersection([1,2,3,4,5], [1,5], I).
 
