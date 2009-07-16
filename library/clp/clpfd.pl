@@ -4039,15 +4039,19 @@ append_to_key(Key, Assoc0, Elem, Assoc) :-
 
 difference_arcs(Vars, Hash, RevHash, FreeLeft, FreeRight) :-
         empty_assoc(E),
-        difference_arcs(Vars, 0, E, Hash, E, RevHash, FreeLeft, [], FreeRight0),
+        length(Vars, L),
+        length(Hs, L),
+        maplist(=(E), Hs),
+        Hash =.. [hash|Hs],
+        difference_arcs(Vars, 1, Hash, E, RevHash, FreeLeft, [], FreeRight0),
         sort(FreeRight0, FreeRight). % remove duplicates
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Structures used: The variables are represented by integers
    0,1,2,..., the values represent themselves. To represent the
-   matching in the bipartite graph: "Hash" is an association list,
-   associating to each variable another association list: Its keys are
-   the variable's domain elements, and the value is either 0 or 1,
+   matching in the bipartite graph: "Hash" is a term hash(...), where
+   the i-th argument is an association list for variable i: Its keys
+   are the variable's domain elements, and the value is either 0 or 1,
    denoting whether the edge is part of the matching. RevHash is an
    association list, associating with each domain element a list of
    variables whose domain contains the value. Instead of a list, it
@@ -4063,39 +4067,36 @@ domain_to_list(empty)                 --> [].
 domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
 
-difference_arcs([], _, Hash, Hash, RevHash, RevHash, [], FR, FR).
-difference_arcs([V|Vs], N0, Hash0, Hash, RevHash0, RevHash, FL, FR0, FR) :-
+difference_arcs([], _, _, RevHash, RevHash, [], FR, FR).
+difference_arcs([V|Vs], N0, Hash, RevHash0, RevHash, FL, FR0, FR) :-
         N1 is N0 + 1,
         (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
-            enumerate(Ns, N0, Hash0, Hash1, RevHash0, RevHash1, FR0, FR1),
+            enumerate(Ns, N0, Hash, RevHash0, RevHash1, FR0, FR1),
             FL = [N0|FLRest],
-            difference_arcs(Vs, N1, Hash1, Hash, RevHash1, RevHash, FLRest, FR1, FR)
-        ;   difference_arcs(Vs, N1, Hash0, Hash, RevHash0, RevHash, FL, FR0, FR)
+            difference_arcs(Vs, N1, Hash, RevHash1, RevHash, FLRest, FR1, FR)
+        ;   difference_arcs(Vs, N1, Hash, RevHash0, RevHash, FL, FR0, FR)
         ).
 
-enumerate([], _, H, H, R, R, F, F).
-enumerate([N|Ns], I, H0, H, R0, R, F0, F) :-
-        (   get_assoc(I, H0, As) -> true
-        ;   empty_assoc(As)
-        ),
+enumerate([], _, _, R, R, F, F).
+enumerate([N|Ns], I, H, R0, R, F0, F) :-
+        arg(I, H, As),
         put_assoc(N, As, 0, As1),
-        put_assoc(I, H0, As1, H1),
+        setarg(I, H, As1),
         append_to_key(N, R0, I, R1),
-        enumerate(Ns, I, H1, H, R1, R, [N|F0], F).
+        enumerate(Ns, I, H, R1, R, [N|F0], F).
 
-maximum_matching(FL0, FR0, FR, Hash0, RevHash, M) :-
+maximum_matching(FL0, FR0, FR, Hash0, RevHash) :-
         (   select(S, FL0, FL1),
             empty_assoc(E),
             augmenting_path(l(S), E, E, FR0, FR1, Hash0, RevHash, Path) ->
-            adjust_alternate_1(Path, Hash0, Hash1),
-            maximum_matching(FL1, FR1, FR, Hash1, RevHash, M)
+            adjust_alternate_1(Path, Hash0),
+            maximum_matching(FL1, FR1, FR, Hash0, RevHash)
         ;   FL0 = [],       % all variables covered
-            FR = FR0,
-            M = Hash0
+            FR = FR0
         ).
 
 augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
-        get_assoc(N, HashArcs, Arcs),
+        arg(N, HashArcs, Arcs),
         gen_assoc(To, Arcs, 0),
         \+ get_assoc(To, RV, _),
         put_assoc(N, LV, visited, LV1),
@@ -4107,7 +4108,7 @@ augmenting_path(r(N), LV, RV, RF0, RF, Arcs, RevArcs, Ps) :-
         ;   get_assoc(N, RevArcs, Fs),
             member(A, Fs),
             \+ get_assoc(A, LV, _),
-            get_assoc(A, Arcs, As),
+            arg(A, Arcs, As),
             get_assoc(N, As, 1),
             Ps = [arc(A,N)|Ps1],
             put_assoc(N, RV, visited, RV1),
@@ -4115,18 +4116,18 @@ augmenting_path(r(N), LV, RV, RF0, RF, Arcs, RevArcs, Ps) :-
         ).
 
 
-adjust_alternate_1([arc(A,B)|Arcs], Hash0, Hash) :-
-        get_assoc(A, Hash0, As),
+adjust_alternate_1([arc(A,B)|Arcs], Hash) :-
+        arg(A, Hash, As),
         put_assoc(B, As, 1, As1),
-        put_assoc(A, Hash0, As1, Hash1),
-        adjust_alternate_0(Arcs, Hash1, Hash).
+        setarg(A, Hash, As1),
+        adjust_alternate_0(Arcs, Hash).
 
-adjust_alternate_0([], Hash, Hash).
-adjust_alternate_0([arc(A,B)|Arcs], Hash0, Hash) :-
-        get_assoc(A, Hash0, As),
+adjust_alternate_0([], _).
+adjust_alternate_0([arc(A,B)|Arcs], Hash) :-
+        arg(A, Hash, As),
         put_assoc(B, As, 0, As1),
-        put_assoc(A, Hash0, As1, Hash1),
-        adjust_alternate_1(Arcs, Hash1, Hash).
+        setarg(A, Hash, As1),
+        adjust_alternate_1(Arcs, Hash).
 
 remove_ground([], _).
 remove_ground([V|Vs], Left) :-
@@ -4148,23 +4149,24 @@ remove_ground_([V|Vs], R) :-
 % strongly connected components of the graph.
 
 g_g0(Hash, G0L, G0R) :-
-        assoc_to_list(Hash, List),
+        Hash =.. [_|List],
         empty_assoc(E),
-        g_g0(List, E, G0L, E, G0R).
-
-g_g0([], G0L, G0L, G0R, G0R).
-g_g0([From-To|Rest], G0L0, G0L, G0R0, G0R) :-
-        assoc_to_list(To, Tos),
-        g_g0(Tos, From, G0L0, G0L1, G0R0, G0R1),
-        g_g0(Rest, G0L1, G0L, G0R1, G0R).
+        g_g0(List, 1, E, G0L, E, G0R).
 
 g_g0([], _, G0L, G0L, G0R, G0R).
-g_g0([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
+g_g0([To|Rest], From, G0L0, G0L, G0R0, G0R) :-
+        assoc_to_list(To, Tos),
+        g_g0_(Tos, From, G0L0, G0L1, G0R0, G0R1),
+        From1 is From + 1,
+        g_g0(Rest, From1, G0L1, G0L, G0R1, G0R).
+
+g_g0_([], _, G0L, G0L, G0R, G0R).
+g_g0_([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
         (   Val =:= 1 ->
             append_to_key(From, G0L0, To, G0L1),
-            g_g0(Rest, From, G0L1, G0L, G0R0, G0R)
+            g_g0_(Rest, From, G0L1, G0L, G0R0, G0R)
         ;   append_to_key(To, G0R0, From, G0R1),
-            g_g0(Rest, From, G0L0, G0L, G0R1, G0R)
+            g_g0_(Rest, From, G0L0, G0L, G0R1, G0R)
         ).
 
 :- record regin(index, stack, vlowlink, vindex, g0l, g0r).
@@ -4175,14 +4177,15 @@ regin(Vars) :-
         length(FreeRight0, LFR),
         length(FreeLeft0, LFL),
         LFL =< LFR,
-        maximum_matching(FreeLeft0, FreeRight0, FreeRight1, Hash, RevHash, M),
-        g_g0(M, G0L, G0R),
+        maximum_matching(FreeLeft0, FreeRight0, FreeRight1, Hash, RevHash),
+        g_g0(Hash, G0L, G0R),
         empty_assoc(E),
         make_regin([index(0),stack([]),vlowlink(E),vindex(E),g0l(G0L),g0r(G0R)], Regin0),
         phrase(scc(FreeLeft0, FreeRight0), [Regin0], [Regin]),
         regin_vlowlink(Regin, Roots),
+        duplicate_term(Hash, Used),
         dfs_used(FreeRight1, G0L, G0R, [], Hash, Used),
-        findall(A, unused_arc(Used, M, Roots, A), UAs),
+        findall(A, unused_arc(Used, Hash, Roots, A), UAs),
         disable_queue,
         regin_remove(UAs, Vars),
         enable_queue.
@@ -4190,53 +4193,53 @@ regin(Vars) :-
 
 regin_remove([], _).
 regin_remove([From-To|Rest], Vars) :-
-        nth0(From, Vars, V),
+        nth1(From, Vars, V),
         neq_num(V, To),
         regin_remove(Rest, Vars).
 
 unused_arc(Hash, M, Roots, From-To) :-
-        gen_assoc(From, Hash, Tos),
+        arg(From, Hash, Tos),
         gen_assoc(To, Tos, 0),
-        get_assoc(From, M, MTos),
+        arg(From, M, MTos),
         get_assoc(To, MTos, 0),
         get_assoc(l(From), Roots, RL),
         get_assoc(r(To), Roots, RR),
         RL =\= RR.
 
-dfs_used([], _, _, _, Hash, Hash).
+dfs_used([], _, _, _, _, _).
 dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
         (   memberchk(r(V), Vis0) ->
             dfs_used(Vs, G0L, G0R, Vis0, Hash0, Hash)
         ;   (   get_assoc(V, G0R, Tos) ->
-                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash1),
-                dfs_used(Vs, G0L, G0R, Vis1, Hash1, Hash)
+                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
+                dfs_used(Vs, G0L, G0R, Vis1, Hash0, Hash)
             ;   dfs_used(Vs, G0L, G0R, [r(V)|Vis0], Hash0, Hash)
             )
         ).
 
-dfs_used_l([], _, _, _, Vis, Vis, Hash, Hash).
+dfs_used_l([], _, _, _, Vis, Vis, _, _).
 dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
-        get_assoc(V, Hash0, Tos0),
+        arg(V, Hash0, Tos0),
         put_assoc(From, Tos0, 1, Tos1),
-        put_assoc(V, Hash0, Tos1, Hash1),
+        setarg(V, Hash0, Tos1),
         (   memberchk(l(V), Vis0) ->
-            dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
+            dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
         ;   get_assoc(V, G0L, Tos),
-            dfs_used_r(Tos, V, G0L, G0R, [l(V)|Vis0], Vis1, Hash1, Hash2),
-            dfs_used_l(Vs, From, G0L, G0R, Vis1, Vis, Hash2, Hash)
+            dfs_used_r(Tos, V, G0L, G0R, [l(V)|Vis0], Vis1, Hash0, Hash),
+            dfs_used_l(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
         ).
 
-dfs_used_r([], _, _, _, Vis, Vis, Hash, Hash).
+dfs_used_r([], _, _, _, Vis, Vis, _, _).
 dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
-        get_assoc(From, Hash0, Tos0),
+        arg(From, Hash0, Tos0),
         put_assoc(V, Tos0, 1, Tos1),
-        put_assoc(From, Hash0, Tos1, Hash1),
+        setarg(From, Hash0, Tos1),
         (   memberchk(r(V), Vis0) ->
-            dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash1, Hash)
+            dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
         ;   (   get_assoc(V, G0R, Tos) ->
-                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash1, Hash2),
-                dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash2, Hash)
-            ;   dfs_used_r(Vs, From, G0L, G0R, [r(V)|Vis0], Vis, Hash1, Hash)
+                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
+                dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
+            ;   dfs_used_r(Vs, From, G0L, G0R, [r(V)|Vis0], Vis, Hash0, Hash)
             )
         ).
 
