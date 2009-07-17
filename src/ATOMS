@@ -70,6 +70,7 @@ A buffer		"buffer"
 A buffer_size		"buffer_size"
 A built_in_procedure	"built_in_procedure"
 A busy			"busy"
+A bw_xor		"><"
 A byte			"byte"
 A call			"call"
 A callable		"callable"
@@ -643,6 +644,7 @@ F break			3
 F buffer		1
 F buffer_size		1
 F busy			2
+F bw_xor		2
 F call			1
 F callpred		2
 F catch			3

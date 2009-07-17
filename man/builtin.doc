@@ -4240,7 +4240,7 @@ before changing operators.
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
             \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
 600 & xfy & \op{:} \\
-500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
+500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor}, \op{><} \\
 500 & fx & \op{?} \\
 400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
@@ -4669,6 +4669,9 @@ Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
 
     \infixop[ISO]{/\}{+IntExpr}{+IntExpr}
 Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
+
+    \infixop[ISO-rev]{><}{+IntExpr}{+IntExpr}
+Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 
     \infixop{xor}{+IntExpr}{+IntExpr}
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
