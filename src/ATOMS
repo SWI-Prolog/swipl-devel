@@ -182,6 +182,7 @@ A eof_action		"eof_action"
 A eof_code		"eof_code"
 A equal			"equal"
 A equals		"="
+A epsilon		"epsilon"
 A erase			"erase"
 A erased		"erased"
 A error			"error"
@@ -689,6 +690,7 @@ F encoding		1
 F end_of_stream		1
 F eof_action		1
 F equals		2
+F epsilon		0
 F erased		1
 F error			2
 F eval			1

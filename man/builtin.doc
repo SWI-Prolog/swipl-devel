@@ -9,7 +9,7 @@ There is no complete agreement on mode indicators in the Prolog
 community.  We use the following definitions:%
 	\footnote{These definitions are taken from PlDoc.  The current
 		  manual has only one mode declaration per predicate and
-		  therefore predicates with mode (+,-) and (-,+) are 
+		  therefore predicates with mode (+,-) and (-,+) are
 		  described as (?,?).  The \chr{@}-mode is often replaced
 		  by \chr{+}.}
 
@@ -45,7 +45,7 @@ refer to a grammar rule. For all non-negative arity, <name>//<arity> is
 the same as <name>/<arity+2>, regardless on whether or not the
 referenced predicate is defined or can be used as a grammar rule.
 The //-notation can be used in all places that traditionally allow
-for a predicate indicator, e.g.\ the module declaration, spy/1, 
+for a predicate indicator, e.g.\ the module declaration, spy/1,
 and dynamic/1.
 
 
@@ -74,7 +74,7 @@ Alternatively, characters may be represented as
 hiding encoding problems from the programmer as well as providing much
 easier debugging.
     \item [byte]
-Bytes are used for accessing binary-streams. 
+Bytes are used for accessing binary-streams.
 \end{itemlist}
 
 The current version of SWI-Prolog does not provide support for
@@ -202,7 +202,7 @@ file.
 
     \termitem{encoding}{Encoding}
 Specify the way characters are encoded in the file.  Default is taken
-from the Prolog flag \prologflag{encoding}.  See \secref{encoding} for 
+from the Prolog flag \prologflag{encoding}.  See \secref{encoding} for
 details.
 
     \termitem{expand}{Bool}
@@ -304,7 +304,7 @@ call consult/1.
 
 With the semantics, we hope to get as closely possible to the clear
 semantics without the presence of a module system.  Applications using
-modules should consider using use_module/[1,2].  
+modules should consider using use_module/[1,2].
 
 Equivalent to load_files(Files, [if(not_loaded)]).%
 	\footnote{On older versions the condition used to be
@@ -678,7 +678,7 @@ garbage_collect_clauses/0.
 \begin{description}
     \predicate{garbage_collect_clauses}{0}{}
 Cleanup all \jargon{dirty} predicates, where dirty predicates are
-defined to be predicates that have both old and new definitions due 
+defined to be predicates that have both old and new definitions due
 to reloading a source file while the predicate was active.  Of course,
 predicates that are active using garbage_collect_clauses/0 cannot
 be reclaimed and remain \jargon{dirty}.  Predicate are -like atoms-
@@ -702,7 +702,7 @@ What does that mean? Unfortunately it does \emph{not} mean we can
 the recursive predicate $P$.  We `fix' $P$ and reload.  The already
 running goals for $P$ continue to run the old definition, but new
 recursive calls will use the new definition!  Many similar cases
-can be constructed with dependent predicates.  
+can be constructed with dependent predicates.
 
 It provides some basic security for reloading files in multi-threaded
 applications during development.  In the above scenarios the system
@@ -757,7 +757,7 @@ Conditional execution or optimisation may test the predicate
 compiling/0.
 
 Source references (source_file/2) in the Quick Load File refer to
-the Prolog source file from which the compiled code originates. 
+the Prolog source file from which the compiled code originates.
 \end{description}
 
 
@@ -846,7 +846,7 @@ Windows.
 See the default user preferences file \file{dotfiles/dotplrc} for examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
-Determines how \arg{Editor} is to be invoked using shell/1.  
+Determines how \arg{Editor} is to be invoked using shell/1.
 \arg{Editor} is the determined editor (see edit_source/1), without
 the full path specification, and without possible (exe) extension.
 \arg{Command} is an atom describing the command.  The pattern
@@ -1000,17 +1000,17 @@ so called ``standard order''. This order is defined as follows:
           < \arg{Compound Terms}$%
 	\footnote{Strings might be considered atoms in future versions. See
 		  also \secref{strings}}
-    \item Variables are sorted by address.  Attaching attributes 
+    \item Variables are sorted by address.  Attaching attributes
           (see \secref{attvar}) does not affect the ordering.
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
     	  as floats. If the comparison is equal, the float is considered
 	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
-	  all floating point numbers precede all integers. 
-    \item \arg{Compound} terms are first checked on their arity, then 
+	  all floating point numbers precede all integers.
+    \item \arg{Compound} terms are first checked on their arity, then
           on their functor-name (alphabetically) and finally recursively
-	  on their arguments, leftmost argument first. 
+	  on their arguments, leftmost argument first.
 \end{enumerate}
 
 
@@ -1050,7 +1050,7 @@ This section describes special purpose variations on Prolog unification.
 The predicate unify_with_occurs_check/2 provides sound unification and
 is part of the ISO standard. The predicates subsumes/2 and
 subsumes_chk/2 define `one-sided-unification' and are found in many
-Prolog systems.  Finally, unifiable/3 is a `what-if' version of 
+Prolog systems.  Finally, unifiable/3 is a `what-if' version of
 unification that is often used as a building block in constraint
 reasoners.
 
@@ -1277,7 +1277,7 @@ subclauses, which is identical to call/1.
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
 will call plus/3, binding \arg{X} to 3.
- 
+
 The call/[2..] construct is handled by the compiler, which implies that
 redefinition as a predicate has no effect.  The predicates call/[2-6]
 are defined as true predicates, so they can be handled by interpreted
@@ -1425,7 +1425,7 @@ by the execution of a cut (or other pruning of the search tree such as
 if-then-else).
 
     \termitem{exception}{Exception}
-\arg{Goal} raised the given \arg{Exception}.    
+\arg{Goal} raised the given \arg{Exception}.
 \end{description}
 
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}
@@ -1893,7 +1893,7 @@ database. As facts and clauses asserted using assert/1 or one of its
 derivatives become part of the program these predicates compile the term
 given to them. retract/1 and retractall/1 have to unify a term and
 therefore have to decompile the program. For these reasons the
-assert/retract mechanism is expensive. On the other hand, once compiled, 
+assert/retract mechanism is expensive. On the other hand, once compiled,
 queries to the database are faster than querying the recorded database
 discussed below.  See also dynamic/1.
 
@@ -1902,7 +1902,7 @@ The second way of storing arbitrary terms in the database is using the
 \arg{key}. A key can be an atom, small integer or term. In the last case
 only the functor and arity determine the key. Each key has a chain of
 terms associated with it. New terms can be added either at the head or
-at the tail of this chain.  
+at the tail of this chain.
 
 The third mechanism is a special purpose one. It associates an integer
 or atom with a key, which is an atom, integer or term. Each key can only
@@ -2033,7 +2033,7 @@ generating unique integer counters.%
 Traditionally, Prolog systems used the \jargon{immediate update view}:
 new clauses became visible to predicates backtracking over dynamic
 predicates immediately and retracted clauses became invisible
-immediately.  
+immediately.
 
 Starting with SWI-Prolog 3.3.0 we adhere the \jargon{logical update
 view}, where backtrackable predicates that enter the definition of a
@@ -2097,11 +2097,11 @@ This section describes directives which manipulate attributes of
 predicate definitions.  The functors dynamic/1, multifile/1 and
 discontiguous/1 are operators of priority 1150 (see op/3), which
 implies the list of predicates they involve can just be a comma
-separated list: 
+separated list:
 
 \begin{code}
 :- dynamic
-        foo/0, 
+        foo/0,
         baz/2.
 \end{code}
 
@@ -2293,7 +2293,7 @@ predicate.  This property is set using multifile/1.
 
     \termitem{meta_predicate}{Head}
 If the predicate is declared as a meta-predicate using meta_predicate/1,
-Unify \arg{Head} with the head-pattern.  The head-pattern is a 
+Unify \arg{Head} with the head-pattern.  The head-pattern is a
 compound term with the same name and arity as the predicate where each
 argument of the term is a meta predicate specifier.  See meta_predicate/1
 for details.
@@ -2335,7 +2335,7 @@ by qsave_program/[1,2].  This property is set using volatile/1.
 \end{description}
 
     \predicate{dwim_predicate}{2}{+Term, -Dwim}
-`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term, 
+`Do What I Mean' (`dwim') support predicate. \arg{Term} is a term,
 which name and arity are used as a predicate specification.  \arg{Dwim}
 is instantiated with the most general term built from \arg{Name} and the
 arity of a defined predicate that matches the predicate specified by
@@ -2370,7 +2370,7 @@ finds the 2nd clause of member/2:
 ?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
 
 Ref = 160088
-Head = system : member(G575, [G578|G579]) 
+Head = system : member(G575, [G578|G579])
 Body = member(G575, G579)
 \end{code}
     \predicate{clause_property}{2}{+ClauseRef, -Property}
@@ -2503,7 +2503,7 @@ released. Please note that fcntl() locks are {\em advisory} and
 therefore only other applications using the same advisory locks
 honour your lock. As there are many issues around locking in Unix,
 especially related to NFS (network file system), please study the
-fcntl() manual page before trusting your locks! 
+fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
 \end{description}
@@ -2544,10 +2544,10 @@ terminal is made the current input or output.
     \predicate[ISO]{close}{2}{+Stream, +Options}
 Provides \term{close}{Stream, [force(true)]} as the only option.  Called
 this way, any resource error (such as write-errors while flushing the
-output buffer) are ignored.  
+output buffer) are ignored.
 
     \predicate[ISO]{stream_property}{2}{?Stream, ?StreamProperty}
-ISO compatible predicate for querying status of open I/O streams.  
+ISO compatible predicate for querying status of open I/O streams.
 \arg{StreamProperty} is one of:
 
 \begin{description}
@@ -2557,7 +2557,7 @@ Otherwise unify \arg{Atom} with the first alias of the stream.%
 	\bug{Backtracking does not give other aliases.}
 
     \termitem{buffer}{Buffering}
-SWI-Prolog extension to query the buffering mode of this stream. 
+SWI-Prolog extension to query the buffering mode of this stream.
 \arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
 See also open/4.
 
@@ -2760,7 +2760,7 @@ form
 
     \termitem{record_position}{Bool}
 Do/do not record the line-count and line-position (see line_count/2
-and line_position/2). 
+and line_position/2).
 
     \termitem{representation_errors}{Mode}
 Change the behaviour when writing characters to the stream that cannot
@@ -2796,7 +2796,7 @@ server for creating an interactive session to Prolog.
 
 \subsection{Edinburgh-style I/O}	\label{sec:edinburghIO}
 
-The package for implicit input and output destination is (almost) 
+The package for implicit input and output destination is (almost)
 compatible with Edinburgh DEC-10 and C-Prolog. The reading and writing
 predicates refer to resp. the \emph{current} input- and output stream.
 Initially these streams are connected to the terminal. The current
@@ -2831,13 +2831,13 @@ Prolog's standard I/O repertoire.
 
 \begin{code}
 getwd(Wd) :-
-        seeing(Old), see(pipe(pwd)), 
-        collect_wd(String), 
-        seen, see(Old), 
+        seeing(Old), see(pipe(pwd)),
+        collect_wd(String),
+        seen, see(Old),
         atom_codes(Wd, String).
 
 collect_wd([C|R]) :-
-        get0(C), C \== -1, !, 
+        get0(C), C \== -1, !,
         collect_wd(R).
 collect_wd([]).
 \end{code}
@@ -2975,14 +2975,14 @@ Create a string-object as defined in \secref{strings}.
 
     \termitem{codes}{-Codes}
 Create a list of character codes from the emitted characters, similar to
-atom_codes/2. 
+atom_codes/2.
 
     \termitem{codes}{-Codes, -Tail}
 Create a list of character codes as a difference-list.
 
     \termitem{chars}{-Chars}
 Create a list of one-character-atoms codes from the emitted characters,
-similar to atom_chars/2. 
+similar to atom_chars/2.
 
     \termitem{chars}{-Chars, -Tail}
 Create a list of one-character-atoms as a difference-list.
@@ -3234,7 +3234,7 @@ Copy data all (remaining) data from stream \arg{StreamIn} to
 Read input pending in the input buffer of \arg{StreamIn} and return
 it in the difference list \arg{Codes}-\arg{Tail}. I.e.\ the
 available characters codes are used to create the list \arg{Codes}
-ending in the tail \arg{Tail}.  This predicate is intended for 
+ending in the tail \arg{Tail}.  This predicate is intended for
 efficient unbuffered copying and filtering of input coming from
 network connections or devices.
 
@@ -3408,7 +3408,7 @@ operator declarations are identical.
 Write \arg{Term} to \arg{Stream}, inserting quotes.
 
     \predicate{print}{1}{+Term}
-Prints \arg{Term} on the current output stream similar to write/1, 
+Prints \arg{Term} on the current output stream similar to write/1,
 but for each (sub)term of \arg{Term} first the dynamic predicate
 portray/1 is called.  If this predicate succeeds \arg{print} assumes the
 (sub)term has been written.  This allows for user defined term writing.
@@ -3425,7 +3425,7 @@ portray succeeds print/1 assumes the term has been written.
 
     \predicate[ISO]{read}{1}{-Term}
 Read the next Prolog term from the current input stream and unify it
-with \arg{Term}.  On a syntax error read/1 displays an error message, 
+with \arg{Term}.  On a syntax error read/1 displays an error message,
 attempts to skip the erroneous term and fails.  On reaching end-of-file
 \arg{Term} is unified with the atom \const{end_of_file}.
 
@@ -3453,7 +3453,7 @@ always reported using exception-handling (see catch/3). Options:
 \begin{description}
     \termitem{backquoted_string}{Bool}
 If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
-\secref{strings}).  The default depends on the Prolog flag 
+\secref{strings}).  The default depends on the Prolog flag
 \prologflag{backquoted_string}.
 
     \termitem{character_escapes}{Bool}
@@ -3645,7 +3645,7 @@ variable, \const{bind} which causes it to thread it as a normal
 variable and assign the next \verb|'$VAR'|(N) term to it or (default)
 \const{error} which raises the a \const{type_error} exception.%
 	\footnote{This behaviour was decided after a long discussion
-		  between David Reitter, Richard O'Keefe, Bart Demoen 
+		  between David Reitter, Richard O'Keefe, Bart Demoen
 		  and Tom Schrijvers.}
 
 	\termitem{singletons}{+Bool}
@@ -3688,7 +3688,7 @@ attributed copied.  The implementation of copy_term/2 can deal with
 infinite trees (cyclic terms). As pure Prolog cannot distinguish a
 ground term from another ground term with exactly the same structure,
 ground sub-terms are \emph{shared} between \arg{In} and \arg{Out}.
-Sharing ground terms does affect setarg/3.  SWI-Prolog provides 
+Sharing ground terms does affect setarg/3.  SWI-Prolog provides
 duplicate_term/2 to create a true copy of a term.
 \end{description}
 
@@ -4167,7 +4167,7 @@ Operators are defined to improve the readability of source-code.
 For example, without operators, to write \exam{2*3+4*5} one would have
 to write \exam{+(*(2,3),*(4,5))}.  In Prolog, a number of operators have
 been predefined. All operators, except for the comma (,) can be
-redefined by the user.  
+redefined by the user.
 
 \index{operator,and modules}%
 Some care has to be taken before defining new operators. Defining too
@@ -4236,8 +4236,8 @@ before changing operators.
 1000 & xfy & \op{,} \\
 900 & fy & \op{\+} \\
 900 & fx & \op{~} \\
-700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==}, 
-            \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>}, 
+700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==},
+            \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
             \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
 600 & xfy & \op{:} \\
 500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
@@ -4361,7 +4361,7 @@ True if \arg{Number} has successfully been unified with the number
 \arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
 represented using an integer (i.e, the value is integer and within the
 range that can be described by Prolog's integer representation), \arg{
-Expr} is unified with the integer value. 
+Expr} is unified with the integer value.
 
 Note that normally, is/2 should be used with unbound left operand.  If
 equality is to be tested, =:=/2 should be used.  For example:
@@ -4493,7 +4493,7 @@ functions:
                   a floating point.
 \end{tabular}\end{center}
 
-For systems using bounded integer arithmetic (default is unbounded, 
+For systems using bounded integer arithmetic (default is unbounded,
 see \secref{artypes} for details), integer operations that would cause
 overflow automatically convert to floating point arithmetic.
 
@@ -4557,7 +4557,7 @@ return value is in the original type.  For example, max(2.5, 3) compares
 the two values after converting to float, but returns the integer 3.
 
     \predicate{min}{2}{+Expr1, +Expr2}
-Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}. See 
+Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}. See
 max/2 for a description of type-handling.
 
     \predicate{.}{2}{+Int, []}
@@ -4589,16 +4589,16 @@ Same as round/1 (backward compatibility).
 
     \predicate[ISO]{float}{1}{+Expr}
 Translate the result to a floating point number.  Normally, Prolog will
-use integers whenever possible.  When used around the 2nd argument of 
+use integers whenever possible.  When used around the 2nd argument of
 is/2, the result will be returned as a floating point number.  In other
 contexts, the operation has no effect.
 
     \predicate{rational}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer.  The function
 returns the input on integers and rational numbers.  For floating point
-numbers, the returned rational number \emph{exactly} represents the 
+numbers, the returned rational number \emph{exactly} represents the
 float.  As floats cannot exactly represent all decimal numbers the
-results may be surprising.  In the examples below, doubles can 
+results may be surprising.  In the examples below, doubles can
 represent 0.25 and the result is as expected, in contrast to the
 result of \term{rational}{0.1}.  The function rationalize/1 remedies
 this.  See \secref{rational} for more information on rational number
@@ -4720,6 +4720,9 @@ Same as **/2.  (backward compatibility).
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
 Evaluates to the mathematical constant $e$ (2.71828\ldots).
+    \predicate{epsilon}{0}{}
+Evaluates to the the difference between the float 1.0 and
+the first larger floating point number.
 
     \predicate{cputime}{0}{}
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
@@ -4739,7 +4742,7 @@ ECLiPSe and is under consideration for YAP.}
 
 The functions below are not covered by the standard.  The msb/1 function
 is compatible with hProlog. The others are private extensions that improve
-handling of ---unbounded--- integers as bit-vectors.  
+handling of ---unbounded--- integers as bit-vectors.
 
 \begin{description}
     \predicate{msb}{1}{+IntExpr}
@@ -4783,7 +4786,7 @@ unbound variable at call time and should be instantiated to an integer
 or floating point number. The other arguments are the parameters. This
 predicate is module sensitive and will declare the arithmetic function
 only for the context module, unless declared from module \const{user}.
-Example: 
+Example:
 
 \begin{code}
 1 ?- [user].
@@ -4913,7 +4916,7 @@ As findall/3, but returns the result as the difference-list
 
 \begin{code}
 findall(Templ, Goal, Bag) :-
-	findall(Templ, Goal, Bag, []) 
+	findall(Templ, Goal, Bag, [])
 \end{code}
 
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
@@ -4992,7 +4995,7 @@ Formatted write.  \arg{Format} is an atom whose characters will be printed.
 \arg{Format} may contain certain special character sequences which specify
 certain formatting and substitution actions.  \arg{Arguments} then provides
 all the terms required to be output.
-        
+
 Escape sequences to generate a single special character:
 
 \begin{center}
@@ -5040,7 +5043,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
                 $N$ is a decimal number with at least one digit.
                 The item must be an atom, integer, float or string. \\
 \hline
-\end{tabular} 
+\end{tabular}
 \end{center}
     \predicate{swritef}{3}{-String, +Format, +Arguments}
 Equivalent to writef/2, but ``writes'' the result on \arg{String} instead
@@ -5074,7 +5077,7 @@ representing a positive decimal number, a sequence \exam{`<character>},
 representing the character code value of the character (only useful
 for \fmtseq{~t}) or a asterisk (\chr{*}), in when the numeric argument
 is taken from the next argument of the argument list, which should be a
-positive integer. 
+positive integer.
 
 Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
 and \chr{G}) accept an arithmetic expression as argument. This is
@@ -5255,7 +5258,7 @@ dos_newline(N) :-
 
 The following predicates form a simple access mechanism to the Unix termcap
 library to provide terminal independent I/O for screen terminals. These
-predicates are only available on Unix machines.  The SWI-Prolog Windows 
+predicates are only available on Unix machines.  The SWI-Prolog Windows
 consoles accepts the ANSI escape sequences.
 
 \begin{description}
@@ -5267,7 +5270,7 @@ the expected result, and is one of \const{string}, \const{number} or
 an integer and bool results as the atom \const{on} or \const{off}.  If
 an option cannot be found this predicate fails silently.  The
 results are only computed once. Successive queries on the same
-capability are fast. 
+capability are fast.
     \predicate{tty_goto}{2}{+X, +Y}
 Goto position \mbox{(\arg{X}, \arg{Y})} on the screen.  Note that the predicates
 line_count/2 and line_position/2 will not have a well defined
@@ -5626,7 +5629,7 @@ The full month name according to the current locale.  Use
 format_time/4 for POSIX locale.
     \fmtchar{c}
 The  preferred  date  and  time  representation  for the current
-locale. 
+locale.
     \fmtchar{C}
 The century number ({year}/100) as a 2-digit integer.
     \fmtchar{d}
@@ -5818,7 +5821,7 @@ win_insert_menu('&Application', '&Help')
 Add an item to the named \arg{Pulldown} menu. \arg{Label} and
 \arg{Before} are handled as in win_insert_menu/2, but the label \chr{-}
 inserts a \jargon{separator}.  \arg{Goal} is called if the user selects
-the item.  
+the item.
 \end{description}
 
 
@@ -6007,7 +6010,7 @@ system halts, it will automatically remove all created temporary files.
 should limit themselves to alphanumerical characters.
 
 Because it is possible to guess the generated filename, attackers may
-create the filesystem entry as a link and possibly create a security 
+create the filesystem entry as a link and possibly create a security
 issue.  This call must be replaced with a new predicate that combines
 generating the filename and creating the file, based on mkstemp() or
 tmpfile().
@@ -6027,7 +6030,7 @@ Unify \arg{Old} with an absolute path to the current working directory
 and change working directory to \arg{New}.  Use the pattern
 \term{working_directory}{CWD, CWD} to get the current directory.  See
 also absolute_file_name/2 and chdir/1.%
-	\bug{Some of the file-I/O predicates use local filenames.  
+	\bug{Some of the file-I/O predicates use local filenames.
 	     Changing directory while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3}
 Note that the working directory is shared between all threads.
@@ -6088,7 +6091,7 @@ typing the end-of-file character (typically control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the
-result of a query.  These hooks are used by the top-level variable 
+result of a query.  These hooks are used by the top-level variable
 expansion mechanism described in \secref{topvars}.
 
 \begin{description}
@@ -6211,7 +6214,7 @@ one of \arg{+Name}, \arg{-Name}, \arg{?Name} or a list of these.
 \arg{+Name} enables leashing on that port, \arg{-Name} disables it and
 \arg{?Name} succeeds or fails according to the current setting.
 Recognised ports are: \const{call}, \const{redo}, \const{exit}, \const{fail} and
-\const{unify}. The special shorthand \const{all} refers to all ports, 
+\const{unify}. The special shorthand \const{all} refers to all ports,
 \const{full} refers to all ports except for the unify port (default).
 \const{half} refers to the \const{call}, \const{redo} and \const{fail}
 port.
@@ -6227,7 +6230,7 @@ and \const{fail}. If the \prologflag{unknown} flag is set to
 \const{warning}, unknown/2 reports the value as \const{trace}.
 
     \predicate{style_check}{1}{+Spec}
-Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>}, 
+Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>},
 \mbox{\tt -<option>}, \mbox{\tt ?(<option>)}%
 	\footnote{In older versions `\const{?}' was a prefix operator.
 		  Inversions after 5.5.13, explicit brackets are needed.}
@@ -6259,7 +6262,7 @@ Name & Default & Description \\
                         than 5 lines. \\
 \const{dollar}     & off & Accept dollar as a lower case character, thus
                         avoiding the need for quoting atoms with dollar signs.
-                        System maintenance use only. \\         
+                        System maintenance use only. \\
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
 \const{string}     & off & Backward compatibility.  See the Prolog flag
@@ -6437,7 +6440,7 @@ Exchange' or DDE protocol.%
         \footnote{This interface is contributed by Don Dwiggins.}
 A Windows DDE conversation is a form of interprocess communication
 based on sending reserved window-events between the communicating
-processes.  
+processes.
 
 See also \secref{DLL} for loading Windows DLL's into SWI-Prolog.
 

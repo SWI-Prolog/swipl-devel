@@ -2839,6 +2839,15 @@ ar_e(Number r)
 
 
 static int
+ar_epsilon(Number r)
+{ r->value.f = DBL_EPSILON;
+
+  r->type = V_FLOAT;
+  succeed;
+}
+
+
+static int
 ar_cputime(Number r)
 { r->value.f = CpuTime(CPU_USER);
 
@@ -3094,6 +3103,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_doublestar2,	ar_pow),
   ADD(FUNCTOR_pi0,		ar_pi),
   ADD(FUNCTOR_e0,		ar_e),
+  ADD(FUNCTOR_epsilon0,		ar_epsilon),
 
   ADD(FUNCTOR_cputime0,		ar_cputime),
   ADD(FUNCTOR_msb1,		ar_msb),

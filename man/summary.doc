@@ -655,6 +655,7 @@ suggest predicates from a keyword.
 \functionsummary{cos}{1}{Cosine}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{e}{0}{Mathematical constant}
+\functionsummary{epsilon}{0}{Floating point precision}
 \functionsummary{eval}{1}{Evaluate term as expression}
 \functionsummary{exp}{1}{Exponent (base $e$)}
 \functionsummary{float}{1}{Explicitly convert to float}
