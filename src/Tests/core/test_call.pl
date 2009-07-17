@@ -209,8 +209,11 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 	retract(v(X)).
 
 test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
-	(   setup_call_catcher_cleanup(member(X,[a,b]), assert(v(X)),
-				   Exit, assert(v(Exit))),
+	(   setup_call_catcher_cleanup(true,
+				       (member(X,[a,b]),
+					assert(v(X))),
+				       Exit,
+				       assert(v(Exit))),
 	    fail
 	;   findall(V, retract(v(V)), Vs)
 	).
