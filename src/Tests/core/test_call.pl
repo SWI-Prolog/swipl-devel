@@ -218,4 +218,13 @@ test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
 	;   findall(V, retract(v(V)), Vs)
 	).
 
+test(cleanup, error(instantiation_error)) :-
+	a(X),
+	setup_call_cleanup(true, true, X).
+
+test(cleanup, true) :-
+	setup_call_cleanup(X=true, true, X).
+
+a(_).
+
 :- end_tests(setup_call_cleanup).

@@ -249,8 +249,17 @@ catch(_Goal, _Catcher, _Recover) :-
 %	Call Cleanup once after Goal is finished (deterministic success, failure,
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
-setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
+setup_call_catcher_cleanup(Setup, _Goal, _Catcher, Cleanup) :-
 	Setup, !,
+	Cleanup = M:Goal,
+	(   atom(M),
+	    callable(Goal)		% Hmmm...  Must be plain callable/1
+	->  true
+	;   (   var(M) ; var(Goal)
+	    ->	throw(error(instantiation_error, _))
+	    ;	throw(error(type_error(callable, Cleanup), _))
+	    )
+	),
 	'$call_cleanup'.
 
 setup_call_cleanup(Setup, Goal, Cleanup) :-
