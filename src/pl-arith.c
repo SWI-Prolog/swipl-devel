@@ -1384,6 +1384,63 @@ ar_shift_right(Number n1, Number n2, Number r)
 }
 
 
+static int
+ar_gcd(Number n1, Number n2, Number r)
+{ if ( !toIntegerNumber(n1, 0) )
+    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( !toIntegerNumber(n2, 0) )
+    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+
+  same_type_numbers(n1, n2);
+  switch(n1->type)
+  { case V_INTEGER:
+    { int64_t a = n1->value.i;
+      int64_t b = n2->value.i;
+      int64_t t;
+
+      if ( a < 0 )
+      { a = -a;
+	if ( a < 0 )
+	{ promote:
+#ifdef O_GMP
+	  promoteToMPZNumber(n1);
+	  promoteToMPZNumber(n2);
+	  goto case_gmp;
+#else
+	  return PL_error("gcd", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#endif
+	}
+      }
+      if ( b < 0 )
+      { b = -b;
+	if ( b < 0 )
+	  goto promote;
+      }
+      while(b != 0)
+      { t = b;
+	b = a % b;
+	a = t;
+      }
+      r->type = V_INTEGER;
+      r->value.i = a;
+      break;
+    }
+#ifdef O_GMP
+    case V_MPZ:
+    case_gmp:
+      r->type = V_MPZ;
+      mpz_init(r->value.mpz);
+      mpz_gcd(r->value.mpz, n1->value.mpz, n2->value.mpz);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  succeed;
+}
+
+
 /* Unary functions requiring double argument */
 
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
@@ -3067,6 +3124,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_mod2,		ar_mod),
   ADD(FUNCTOR_rem2,		ar_rem),
   ADD(FUNCTOR_div2,		ar_div),
+  ADD(FUNCTOR_gcd2,		ar_gcd),
   ADD(FUNCTOR_sign1,		ar_sign),
 
   ADD(FUNCTOR_and2,		ar_conjunct),

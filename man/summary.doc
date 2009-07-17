@@ -662,6 +662,7 @@ suggest predicates from a keyword.
 \functionsummary{float_fractional_part}{1}{Fractional part of a float}
 \functionsummary{float_integer_part}{1}{Integer part of a float}
 \functionsummary{floor}{1}{Largest integer below argument}
+\functionsummary{gcd}{2}{Greatest common divisor}
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}

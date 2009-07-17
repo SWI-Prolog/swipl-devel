@@ -4543,6 +4543,9 @@ Rational number division. This function is only available if
 SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
+    \infixop[ISO]{gcd}{+IntExpr1}{+IntExpr2}
+Result is the greatest common divisor of \arg{IntExpr1}, \arg{IntExpr2}.
+
     \predicate[ISO]{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
 

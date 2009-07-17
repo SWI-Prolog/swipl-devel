@@ -33,6 +33,7 @@
 test_arith :-
 	run_tests([ rem,
 		    mod,
+		    gcd,
 		    shift,
 		    errors,
 		    ar_builtin
@@ -90,6 +91,15 @@ test(shift_right_large, X == 0) :-
 	X is 5>>64.
 
 :- end_tests(shift).
+
+:- begin_tests(gcd).
+
+test(gcd, X == 4) :-
+	X is gcd(100, 24).
+test(gcd, X == 4) :-
+	X is gcd(24, 100).		% seems to be some argument ordering
+
+:- end_tests(gcd).
 
 :- begin_tests(errors).
 
