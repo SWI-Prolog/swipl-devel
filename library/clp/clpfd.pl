@@ -2178,14 +2178,8 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
 
 gcd([], G, G).
 gcd([N|Ns], G0, G) :-
-        gcd_(N, G0, G1),
+        G1 is gcd(N, G0),
         gcd(Ns, G1, G).
-
-gcd_(A, B, G) :-
-        (   B =:= 0 -> G = A
-        ;   R is A mod B,
-            gcd_(B, R, G)
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    k-th root of N, if N is a k-th power.
