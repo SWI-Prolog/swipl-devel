@@ -1506,7 +1506,8 @@ all_different([X|Right], Left, State) :-
             make_propagator(pdifferent(Left,Right,X,State), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
-        ;   exclude_fire(Left, Right, X)
+        ;   must_be(integer, X),
+            exclude_fire(Left, Right, X)
         ),
         all_different(Right, [X|Left], State).
 
