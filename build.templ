@@ -10,42 +10,42 @@
 # $PREFIX/lib/pl-<version> and create symlinks from  $PREFIX/bin for the
 # main  programs.  Users  can  always  use  older  versions  by  running
 # $PREFIX/lib/pl-<version>/bin/<arch>/pl
+#
+# If you change PREFIX such that the system  is installed in a place for
+# which you have no write access, set  SUDO   to  the command to run the
+# remainder of the commandline as privilaged   user. E.g., if you change
+# PREFIX to /usr/local/bin you typically must change SUDO to "sudo"
 
 PREFIX=$HOME
+SUDO=
+#SUDO="sudo"
 
 # [EDIT] Version of make  to  use.  This   must  be  GNU-make.  On  many
 # proprietary Unix systems this is installed   as  'gmake'. On most open
-# systems make is GNU-make.
-# In you have multi-core hardware you  can   use  'make -j' to build the
-# system faster using all your cores (experimental).
+# systems make is GNU-make. In you have  multi-core hardware you can use
+# 'make  -j'  to  build  the  system    faster   using  all  your  cores
+# (experimental (BROKEN; please help debugging)).
 
 MAKE=make
 # MAKE='make -j'
 
 # [EDIT] Compiler and options.
-# 
+#
 #	CC:	 Which C-compiler to use
 #	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
 # 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
 # 	CIFLAGS: Include-path such as "-I/opt/include"
 # 	LDFLAGS: Link flags such as "-L/opt/lib"
 #
-# Leaving an option blank leaves the choice to configure
+# Leaving an option blank leaves the  choice to configure. The commented
+# values below enable much better C-level debugging with almost the same
+# performance on GCC based systems (the default is to compile using -O3)
 
 # export CC=
-# export COFLAGS=
+# export COFLAGS="-O2 -g -fno-strict-aliasing"
 # export CMFLAGS=
 # export CIFLAGS=
-# export LDFLAGS=
-
-# [EDIT] Packages to configure.  Leaving it blank compiles all packages.
-# export PKG=
-
-# [EDIT] Packages to skip.  Leaving it blank compiles all packages.
-# export DISABLE_PKGS="jpl ssl odbc"
-
-# [EDIT] Where to find the jar for Junit 3.8.  Needed to test jpl
-# export JUNIT=/opt/local/share/java/junit.jar
+# export LDFLAGS="-O2 -g"
 
 # [EDIT] On MacOS you need this to get some libraries from Darwinports
 # export LIBRARY_PATH=/opt/local/lib
@@ -56,6 +56,26 @@ MAKE=make
 # export LDFLAGS=-L/opt/csw/lib
 
 export CFLAGS="$CMFLAGS $CIFLAGS"
+
+################################################################
+# Package (add-ons) selection
+################################################################
+
+# [EDIT] Packages to configure. Leaving it   blank  compiles all default
+# packages. The final set of packages is
+#
+#	${PKG-<default>} + $EXTRA_PKGS - $DISABLE_PKGS
+
+# export PKG=
+
+# [EDIT] Packages to skip.  Leaving it blank compiles all packages.
+# export DISABLE_PKGS="jpl ssl odbc"
+
+# [EDIT] Packages to add.
+# export EXTRA_PKGS="db ltx2htm"
+
+# [EDIT] Where to find the jar for Junit 3.8.  Needed to test jpl
+# export JUNIT=/opt/local/share/java/junit.jar
 
 ################################################################
 # No edit should be needed below this line
@@ -75,5 +95,5 @@ if [ "$makeonly" = false ]; then
 fi
 
 $MAKE 2>&1 | tee make.out
-$MAKE install 2>&1 | tee make-install.out
+$SUDO $MAKE install 2>&1 | tee make-install.out
 
