@@ -71,3 +71,15 @@ The provided build.templ works fine for Debian and Ubuntu. Copy it to
 in your own $HOME/bin directory.  Then run
 
 	./build
+
+--------------------------
+Building the documentation
+--------------------------
+
+If you want to build the documentation from source you also need the
+following packages:
+
+	sudo apt-get install \
+		texlive-latex-base \
+		texlive-latex-recommended \
+		texlive-fonts-recommended
