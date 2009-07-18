@@ -2867,6 +2867,7 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
+constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
@@ -3059,6 +3060,14 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             %;   true
             %),
             true
+        ).
+
+run_propagator(pexclude(Left,Right,X), _) :-
+        (   ground(X) ->
+            disable_queue,
+            exclude_fire(Left, Right, X),
+            enable_queue
+        ;   true
         ).
 
 run_propagator(regin(Ls), _MState) :-
@@ -4013,17 +4022,20 @@ max_divide(L1,U1,L2,U2,Max) :-
 regin_attach(Ls) :-
          must_be(list, Ls),
          make_propagator(regin(Ls), Prop),
-         regin_attach(Ls, Prop),
+         regin_attach(Ls, Prop, []),
          trigger_prop(Prop),
          do_queue.
 
-regin_attach([], _).
-regin_attach([X|Xs], Prop) :-
+regin_attach([], _, _).
+regin_attach([X|Xs], Prop, Right) :-
         (   var(X) ->
-            init_propagator(X, Prop)
-        ;   true
+            init_propagator(X, Prop),
+            make_propagator(pexclude(Xs,Right,X), P1),
+            init_propagator(X, P1),
+            trigger_prop(P1)
+        ;   exclude_fire(Xs, Right, X)
         ),
-        regin_attach(Xs, Prop).
+        regin_attach(Xs, Prop, [X|Right]).
 
 append_to_key(Key, Assoc0, Elem, Assoc) :-
         (   get_assoc(Key, Assoc0, Elems) ->
@@ -4127,19 +4139,9 @@ adjust_alternate_0([arc(A,B)|Arcs], Hash) :-
         adjust_alternate_1(Arcs, Hash).
 
 remove_ground([], _).
-remove_ground([V|Vs], Left) :-
-        (   var(V) ->
-            \+ list_contains(Vs, V),
-            remove_ground(Vs, [V|Left])
-        ;   remove_ground_(Vs, V),
-            remove_ground_(Left, V),
-            remove_ground(Vs, Left)
-        ).
-
-remove_ground_([], _).
-remove_ground_([V|Vs], R) :-
+remove_ground([V|Vs], R) :-
         neq_num(V, R),
-        remove_ground_(Vs, R).
+        remove_ground(Vs, R).
 
 % Instead of applying Berge's property directly, we can translate the
 % problem in such a way, that we have to search for the so-called
@@ -4169,7 +4171,6 @@ g_g0_([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
 :- record regin(index, stack, vlowlink, vindex, g0l, g0r).
 
 regin(Vars) :-
-        remove_ground(Vars, []),
         difference_arcs(Vars, Hash, RevHash, FreeLeft0, FreeRight0),
         length(FreeRight0, LFR),
         length(FreeLeft0, LFL),
@@ -4397,17 +4398,8 @@ all_distinct([X|Right], Left, MState) :-
         all_distinct(Right, [X|Left], MState).
 
 exclude_fire(Left, Right, E) :-
-        exclude_list(Left, E),
-        exclude_list(Right, E).
-
-exclude_list([], _).
-exclude_list([V|Vs], Val) :-
-        (   fd_get(V, VD, VPs) ->
-            domain_remove(VD, Val, VD1),
-            fd_put(V, VD1, VPs)
-        ;   V =\= Val
-        ),
-        exclude_list(Vs, Val).
+        remove_ground(Left, E),
+        remove_ground(Right, E).
 
 list_contains([X|Xs], Y) :-
         (   X == Y -> true
@@ -4847,7 +4839,8 @@ attribute_goal_(pdifferent(Left, Right, X, processed)) -->
 attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         [all_distinct(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(regin(Vs)) --> [all_distinct(Vs)].
+attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
+attribute_goal_(pexclude(_,_,_)) --> [].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
