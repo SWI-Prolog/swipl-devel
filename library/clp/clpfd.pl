@@ -4082,8 +4082,7 @@ enumerate([N|Ns], I, H, R0, R, F0, F) :-
 maximum_matching([], FR, FR, _, _) :- !.
 maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
         empty_assoc(E),
-        augmenting_path(l(FL), E, E, FR0, FR1, Hash0, RevHash, Path),
-        !,
+        once(augmenting_path(l(FL), E, E, FR0, FR1, Hash0, RevHash, Path)),
         adjust_alternate_1(Path, Hash0),
         maximum_matching(FLs, FR1, FR, Hash0, RevHash).
 
