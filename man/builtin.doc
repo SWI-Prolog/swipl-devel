@@ -537,9 +537,24 @@ feature should not be used. See also expand_term/2, goal_expansion/2 and
 expand_goal/2.
 
     \predicate{expand_term}{2}{+Term1, -Term2}
-This predicate is normally called by the compiler to perform preprocessing.
-First it calls term_expansion/2.  If this predicate fails it performs
-a grammar-rule translation.  If this fails it returns the first argument.
+This predicate is normally called by the compiler on terms read from the
+input to perform preprocessing.  It consists of three steps, where each
+step processes the output of the previous step.
+
+    \begin{enumerate}
+        \item Test conditional compilation directives and translate
+	all input to \verb$[]$ if we are in a `false-branch' of the
+	conditional compilation.  See \secref{conditionalcompilation}.
+
+	\item Call term_expansion/2.  This predicate is first tried in
+	the module that is being compiled and then in the module
+	\const{user}.
+
+	\item Call DGC expansion (dcg_translate_rule/2)
+
+	\item Call expand_goal/2 on each body-term that appears in
+	the output of the previous steps.
+    \end{enumerate}
 
     \predicate{goal_expansion}{2}{+Goal1, -Goal2}
 Like term_expansion/2, goal_expansion/2 provides for macro-expansion

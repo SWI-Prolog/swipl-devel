@@ -42,8 +42,19 @@ as they are read from a file before they are processed by the compiler.
 The toplevel is expand_term/2.  This uses three other translators:
 
 	* Conditional compilation
-	* Goal expansion
+	* term_expansion/2 rules provided by the user
 	* DCG expansion
+
+Note that this ordering implies  that conditional compilation directives
+cannot be generated  by  term_expansion/2   rules:  they  must literally
+appear in the source-code.
+
+Term-expansion may choose to overrule DCG   expansion.  If the result of
+term-expansion is a DCG rule, the rule  is subject to translation into a
+predicate.
+
+Next, the result is  passed  to   expand_bodies/2,  which  performs goal
+expansion.
 */
 
 :- dynamic
@@ -61,17 +72,20 @@ The toplevel is expand_term/2.  This uses three other translators:
 expand_term(Var, Expanded) :-
 	var(Var), !,
 	Expanded = Var.
+expand_term(Term, []) :-
+	cond_compilation(Term, X),
+	X == [], !.
 expand_term(Term, Expanded) :-		% local term-expansion
 	'$term_expansion_module'(Module),
 	Module:term_expansion(Term, Expanded0), !,
-	expand_bodies(Expanded0, Expanded).
-expand_term(Head --> Body, Expanded) :-
+	expand_terms(expand_term_2, Expanded0, Expanded).
+expand_term(Term0, Term) :-
+	expand_term_2(Term0, Term).
+
+expand_term_2(Head --> Body, Expanded) :-
 	dcg_translate_rule(Head --> Body, Expanded0), !,
 	expand_bodies(Expanded0, Expanded).
-expand_term(Term, []) :-
-	'$if_expansion'(Term, X),
-	X == [], !.
-expand_term(Term0, Term) :-
+expand_term_2(Term0, Term) :-
 	expand_bodies(Term0, Term).
 
 %%	expand_bodies(+Term, -Out) is det.
@@ -81,25 +95,37 @@ expand_term(Term0, Term) :-
 
 expand_bodies(Terms, Out) :-
 	'$goal_expansion_module'(_), !,
-	expand_bodies_2(Terms, Out).
+	expand_terms(expand_body, Terms, Out).
 expand_bodies(Terms, Terms).
 
+expand_body((Head :- Body), (Head :- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body, ExpandedBody).
+expand_body((:- Body), (:- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body, ExpandedBody).
+expand_body(Head, Head).
 
-expand_bodies_2(X, X) :-
+
+%%	expand_terms(:Closure, +In, -Out)
+%
+%	Loop over two constructs that  can   be  added by term-expansion
+%	rules in order to  run  the   next  phase.  Term_expansion/2 can
+%	return a list and terms may be preceeded with a source-location.
+
+:- meta_predicate
+	expand_terms(2, +, -).
+
+expand_terms(_, X, X) :-
 	var(X), !.
-expand_bodies_2([H0|T0], [H|T]) :- !,
-	expand_bodies_2(H0, H),
-	expand_bodies_2(T0, T).
-expand_bodies_2('$source_location'(File, Line):Clause0,
-		  '$source_location'(File, Line):Clause) :- !,
-	expand_bodies_2(Clause0, Clause).
-expand_bodies_2((Head :- Body), (Head :- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody).
-expand_bodies_2((:- Body), (:- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody).
-expand_bodies_2(Head, Head).
+expand_terms(C, [H0|T0], [H|T]) :- !,
+	expand_terms(C, H0, H),
+	expand_terms(C, T0, T).
+expand_terms(C, '$source_location'(File, Line):Clause0,
+		'$source_location'(File, Line):Clause) :- !,
+	expand_terms(C, Clause0, Clause).
+expand_terms(C, Term0, Term) :-
+	call(C, Term0, Term).
 
 
 		 /*******************************
@@ -221,7 +247,7 @@ expand_goal(A, B) :-
 	X == true.
 '$including'.
 
-'$if_expansion'((:- if(G)), []) :-
+cond_compilation((:- if(G)), []) :-
 	(   '$including'
 	->  (   catch('$eval_if'(G), E, (print_message(error, E), fail))
 	    ->  asserta('$include_code'(true))
@@ -229,7 +255,7 @@ expand_goal(A, B) :-
 	    )
 	;   asserta('$include_code'(else_false))
 	).
-'$if_expansion'((:- elif(G)), []) :-
+cond_compilation((:- elif(G)), []) :-
 	(   retract('$include_code'(Old))
 	->  (   Old == true
 	    ->  asserta('$include_code'(else_false))
@@ -240,7 +266,7 @@ expand_goal(A, B) :-
 	    )
 	;    throw(error(context_error(no_if), _))
 	).
-'$if_expansion'((:- else), []) :-
+cond_compilation((:- else), []) :-
 	(   retract('$include_code'(X))
 	->  (   X == true
 	    ->  X2 = false
@@ -251,11 +277,11 @@ expand_goal(A, B) :-
 	    asserta('$include_code'(X2))
 	;   throw(error(context_error(no_if), _))
 	).
-'$if_expansion'(end_of_file, end_of_file) :- !. % TBD: Check completeness
-'$if_expansion'((:- endif), []) :-
+cond_compilation(end_of_file, end_of_file) :- !. % TBD: Check completeness
+cond_compilation((:- endif), []) :-
 	retract('$include_code'(_)), !.
 
-'$if_expansion'(_, []) :-
+cond_compilation(_, []) :-
 	\+ '$including'.
 
 '$eval_if'(G) :-
