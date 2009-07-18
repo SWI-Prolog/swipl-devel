@@ -227,6 +227,7 @@
 \Slimplies
 \backslash
 \bsl
+\Sxor
 
 % These are hacks to get the index right
 
