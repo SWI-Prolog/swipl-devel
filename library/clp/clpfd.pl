@@ -4079,16 +4079,20 @@ enumerate([N|Ns], I, H, R0, R, F0, F) :-
         append_to_key(N, R0, I, R1),
         enumerate(Ns, I, H, R1, R, [N|F0], F).
 
-maximum_matching(FL0, FR0, FR, Hash0, RevHash) :-
-        (   select(S, FL0, FL1),
-            empty_assoc(E),
-            augmenting_path(l(S), E, E, FR0, FR1, Hash0, RevHash, Path) ->
-            adjust_alternate_1(Path, Hash0),
-            maximum_matching(FL1, FR1, FR, Hash0, RevHash)
-        ;   FL0 = [],       % all variables covered
-            FR = FR0
-        ).
+maximum_matching([], FR, FR, _, _) :- !.
+maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
+        empty_assoc(E),
+        augmenting_path(l(FL), E, E, FR0, FR1, Hash0, RevHash, Path),
+        !,
+        adjust_alternate_1(Path, Hash0),
+        maximum_matching(FLs, FR1, FR, Hash0, RevHash).
 
+augmenting_path(l(N), _, RV, RF0, RF, HashArcs, _, [arc(N,To)]) :-
+        arg(N, HashArcs, Arcs),
+        select(To, RF0, RF),
+        \+ get_assoc(To, RV, _),
+        get_assoc(To, Arcs, 0),
+        !.
 augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
         arg(N, HashArcs, Arcs),
         gen_assoc(To, Arcs, 0),
