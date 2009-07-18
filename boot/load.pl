@@ -29,7 +29,21 @@
     the GNU General Public License.
 */
 
-:- consult([ license,
+
+% Load the rest of the system as modules, so we can write a bit more
+% readable code.  First we need to load term-expansion, etc. because
+% this gives us DCGs.  Then we need to replace the dummy clauses for
+% '$expand_term'/2 and '$expand_goal'/2 with links to the real thing.
+
+:- consult([ expand
+	   ]).
+
+:- abolish('$expand_goal'/2),
+   asserta(('$expand_goal'(In, Out) :- expand_goal(In, Out))),
+   abolish('$expand_term'/2),
+   asserta(('$expand_term'(In, Out) :- expand_term(In, Out))).
+
+:- consult([ license,			% requires DCG
 	     syspred,
 	     messages,
 	     toplevel,

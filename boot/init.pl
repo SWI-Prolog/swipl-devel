@@ -1144,7 +1144,7 @@ load_files(Module:Files, Options) :-
 '$print_message'(_Level, _Term).
 
 '$print_message_fail'(E) :-
-	print_message(error, E),
+	'$print_message'(error, E),
 	fail.
 
 %%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
@@ -1473,12 +1473,12 @@ load_files(Module:Files, Options) :-
 '$consult_stream2'(In, File) :-
 	repeat,
 	    '$read_clause'(In, Clause),
-	    expand_term(Clause, Expanded),
+	    '$expand_term'(Clause, Expanded),
 	    '$store_clause'(Expanded, File),
 	    Clause == end_of_file, !.
 
 '$consult_clause'(Clause, File) :-
-	catch((expand_term(Clause, Expanded),
+	catch(('$expand_term'(Clause, Expanded),
 	       '$store_clause'(Expanded, File)),
 	       E,
 	       '$print_message_fail'(E)).
@@ -1488,7 +1488,7 @@ load_files(Module:Files, Options) :-
 %	Execute the argument of :- or ?- while loading a file.
 
 '$execute_directive'(Goal, F) :-
-	expand_goal(Goal, Goal1),
+	'$expand_goal'(Goal, Goal1),
 	'$execute_directive_2'(Goal1, F).
 
 '$execute_directive_2'(include(File), F) :- !,
@@ -1597,30 +1597,6 @@ load_files(Module:Files, Options) :-
 		*        TERM EXPANSION         *
 		*********************************/
 
-:- user:dynamic(term_expansion/2).
-:- user:multifile(term_expansion/2).
-:- user:dynamic(goal_expansion/2).
-:- user:multifile(goal_expansion/2).
-
-expand_term(Var, Expanded) :-
-	var(Var), !,
-	Expanded = Var.
-expand_term(Term, Expanded) :-		% local term-expansion
-	'$term_expansion_module'(Module),
-	Module:term_expansion(Term, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
-expand_term(Head --> Body, Expanded) :-
-	'$translate_rule'(Head --> Body, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
-expand_term(Term, []) :-
-	'$if_expansion'(Term, X),
-	X == [], !.
-expand_term(Term0, Term) :-
-	'$goal_expansion_module'(_), !,
-	'$expand_clauses'(Term0, Term).
-expand_term(Term, Term).
-
-
 '$store_clause'([], _) :- !.
 '$store_clause'([C|T], F) :- !,
 	'$store_clause'(C, F),
@@ -1697,61 +1673,6 @@ compile_aux_clauses(Clauses) :-
 
 
 		 /*******************************
-		 *	:- IF ... :- ENDIF	*
-		 *******************************/
-
-:- thread_local
-	'$include_code'/1.
-
-'$including' :-
-	'$include_code'(X), !,
-	X == true.
-'$including'.
-
-'$if_expansion'((:- if(G)), []) :-
-	(   '$including'
-	->  (   catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;   asserta('$include_code'(false))
-	    )
-	;   asserta('$include_code'(else_false))
-	).
-'$if_expansion'((:- elif(G)), []) :-
-	(   retract('$include_code'(Old))
-	->  (   Old == true
-	    ->  asserta('$include_code'(else_false))
-	    ;   Old == false,
-		catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;	asserta('$include_code'(Old))
-	    )
-	;    throw(error(context_error(no_if), _))
-	).
-'$if_expansion'((:- else), []) :-
-	(   retract('$include_code'(X))
-	->  (   X == true
-	    ->  X2 = false
-	    ;   X == false
-	    ->	X2 = true
-	    ;	X2 = X
-	    ),
-	    asserta('$include_code'(X2))
-	;   throw(error(context_error(no_if), _))
-	).
-'$if_expansion'(end_of_file, end_of_file) :- !. % TBD: Check completeness
-'$if_expansion'((:- endif), []) :-
-	retract('$include_code'(_)), !.
-
-'$if_expansion'(_, []) :-
-	\+ '$including'.
-
-'$eval_if'(G) :-
-	expand_goal(G, G2),
-	'$set_source_module'(Module, Module),
-	Module:G2.
-
-
-		 /*******************************
 		 *	       READING		*
 		 *******************************/
 
@@ -1781,7 +1702,7 @@ compile_aux_clauses(Clauses) :-
 
 '$singleton_option'(M, [singletons(warning)|T],T) :-
 	M:'$style_check'(Old, Old),
-	Old /\ 2'0000010 =\= 0, !.	% See style_check/1
+	Old /\ 0b0000010 =\= 0, !.	% See style_check/1
 '$singleton_option'(_, T, T).
 
 
@@ -1796,339 +1717,19 @@ compile_aux_clauses(Clauses) :-
 :- dynamic
 	'$foreign_registered'/2.
 
-
 		 /*******************************
-		 *   GOAL_EXPANSION/2 SUPPORT	*
+		 *   TEMPORARY TERM EXPANSION	*
 		 *******************************/
 
-'$expand_clauses'(X, X) :-
-	var(X), !.
-'$expand_clauses'([H0|T0], [H|T]) :- !,
-	'$expand_clauses'(H0, H),
-	'$expand_clauses'(T0, T).
-'$expand_clauses'('$source_location'(File, Line):Clause0,
-		  '$source_location'(File, Line):Clause) :- !,
-	'$expand_clauses'(Clause0, Clause).
-'$expand_clauses'((Head :- Body), (Head :- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'((:- Body), (:- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'(Head, Head).
+% Provide temporary definitions for the boot-loader.  These are replaced
+% by the real thing in load.pl
 
-expand_goal(A, B) :-
-        '$do_expand_body'(A, B0),
-	'$tidy_body'(B0, B).
+:- dynamic
+	'$expand_goal'/2,
+	'$expand_term'/2.
 
-'$do_expand_body'(G, G) :-
-        var(G), !.
-'$do_expand_body'((A,B), (EA,EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A;B), (EA;EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A->B), (EA->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A*->B), (EA*->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((\+A), (\+EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(A, B) :-
-        '$goal_expansion_module'(M),
-        M:goal_expansion(A, B0),
-	B0 \== A, !,			% avoid a loop
-	'$do_expand_body'(B0, B).
-'$do_expand_body'(not(A), not(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(call(A), call(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(once(A), once(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(ignore(A), ignore(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(initialization(A), initialization(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(catch(A, E, B), catch(EA, E, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, B), call_cleanup(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, R, B), call_cleanup(EA, R, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(forall(A, B), forall(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(findall(V, G, B), findall(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(findall(V, G, B, T), findall(V, EG, B, T)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(bagof(V, G, B), bagof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(setof(V, G, B), setof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(V^G, V^EG) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(M:G, M:EG) :-
-	atom(M), !,
-	(   M == system			% or should we define this:
-	->  EG = G			% system:goal_expansion(X,X)
-	;   '$set_source_module'(Old, M),
-	    call_cleanup('$do_expand_body'(G, EG),
-			 '$set_source_module'(_, Old))
-	).
-'$do_expand_body'(A, A).
-
-%	Delete extraneous true's that result from goal_expansion(..., true)
-%
-%	Is the really necessary?  Should we only do it if -O is effective?
-
-'$tidy_body'(A, A) :-
-	current_prolog_flag(optimise, false), !.
-'$tidy_body'(A, A) :-
-        var(A), !.
-'$tidy_body'((A,B), (A, TB)) :-
-        var(A), !,
-        '$tidy_body'(B, TB).
-'$tidy_body'((A,B), (TA, B)) :-
-        var(B), !,
-        '$tidy_body'(A, TA).
-'$tidy_body'(((A,B),C), R) :- !,
-	'$tidy_body'((A,B,C), R).
-'$tidy_body'((true,A), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,true), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,B), (TA, TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A;B), (TA; TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A->B), (TA->TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'(A, A).
-
-
-		/********************************
-		*        GRAMMAR RULES          *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The DCG compiler. The original code was copied from C-Prolog and written
-by Fernando Pereira, EDCAAD, Edinburgh,  1984.   Since  then many people
-have modified and extended this code. It's a nice mess now and it should
-be redone from scratch. I won't be doing   this  before I get a complete
-spec explaining all an implementor needs to   know  about DCG. I'm a too
-basic user of this facility myself (though   I  learned some tricks from
-people reporting bugs :-)
-
-The original version contained  '$t_tidy'/2  to   convert  ((a,b),  c)  to
-(a,(b,c)), but as the  SWI-Prolog  compiler   doesn't  really  care (the
-resulting code is simply the same), I've removed that.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-'$translate_rule'(((LP,MNT)-->RP),(H:-B)) :- !,
-	( var(LP) -> throw(error(instantiation_error,_)) ; true ),
-	'$extend'(LP, S0, SR, H),
-	'$t_body'(RP, S0, S1, B0),
-	'$t_body'(MNT, SR, S1,M),
-	'$body_optimized'((B0,M),B1,S0),
-	'$body_optimized'(B1,B,SR).
-'$translate_rule'((LP-->RP), (H:-B)):-
-	'$extend'(LP, S0, S, H),
-	'$t_body'(RP, S0, S, B0),
-	'$body_optimized'(B0,B,S0).
-
-'$body_optimized'(B0,B,S0) :-
-	(   B0 = (S00=X, B),		% map a(H,T) :- H = [a,b|T], b(T)
-	    S00 == S0
-	->  S0 = X			% into a([a,b|T0]) :- b(T0, T).
-	;   B0 = (S00=X),		% map a(H,T) :- H = [a,b|T]
-	    S00 == S0
-	->  S0 = X,			% into a([a,b|T], T)
-	    B = true
-	;   B0 = B
-	).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On the DCG Translation of {}
-
-	a --> x, {y}.
-
-There are two options.  In traditional systems we see:
-
-	a(A, B) :- x(A, B), y.
-
-And in modern system we see:
-
-	a(A, B) :- x(A, C), y, B=C.
-
-
-Martin Sondergaard's grammar was breaking down on
-=================================================
-
-s --> v, star0, {write('You can not do that')}.
-star0 --> [].
-star0 --> [_], star0.
-
-meaning to write a  message  for  any   sentence  starting  with  a `v',
-skipping the remainder. With delayed binding  this causes a large number
-of messages as star0 only eats one token on backtracing.
-
-You can fix this using remaining as below rather then star0.
-
-remaining --> [_], !, remaining.
-remaining --> [].
-
-
-Without delayed unification of the tail we get the following trouble
-====================================================================
-(comment from Richard O'Keefe)
-
-Suppose I have
-
-    p --> [a], !, {fail}. p --> [].
-
-That is, p//0 is suppose to match the empty  string as long as it is not
-followed by a. Now consider
-
-    p([a], [a])
-
-If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S1], !, fail, S = S1.
-
-then it will work *correctly*, and the call  p([a], [a]) will fail as it
-is supposed to. If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S], !, fail.
-
-then the call p([a], [a]) will succeed, which is quite definitely wrong.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-'$t_body'(Var, S, SR, phrase(Var, S, SR)) :-
-	var(Var), !.
-'$t_body'([], S, SR, S=SR) :- !.		% inline lists
-'$t_body'(List, S, SR, C) :-
-	(   List = [_|_]
-	->  !,
-	    (   is_list(List)
-	    ->  '$append'(List, SR, OL),
-		C = (S = OL)
-	    ;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
-	    )
-	;   string(List)
-	->  !,
-	    string_to_list(List, Codes),
-	    '$append'(Codes, SR, OL),
-	    C = (S = OL)
-	).
-'$t_body'(!, S, S, !) :- !.
-'$t_body'({}, S, S, true) :- !.
-'$t_body'({T}, S, SR, (T, SR = S)) :- !.		% (*)
-%'$t_body'({T}, S, S, T) :- !.			% (*)
-'$t_body'((T, R), S, SR, (Tt, Rt)) :- !,
-	'$t_body'(T, S, SR1, Tt),
-	'$t_body'(R, SR1, SR, Rt).
-'$t_body'((T;R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((T|R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((C->T), S, SR, (Ct->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((C*->T), S, SR, (Ct*->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((\+ C), S, S, (\+ Ct)) :- !,
-	'$t_body'(C, S, _, Ct).
-'$t_body'(T, S, SR, Tt) :-
-	'$extend'(T, S, SR, Tt).
-
-
-'$t_fill'(S, SR, S1, T, (T, SR=S)) :-
-	S1 == S, !.
-'$t_fill'(_S, SR, SR, T, T).
-
-
-%	'$extend'(+Head, +Extra1, +Extra2, -NewHead)
-%
-%	Extend Head with two more arguments (on behalf DCG compilation).
-%	The solution below is one option. Using   =..  and append is the
-%	alternative. In the current version (5.3.2), the =.. is actually
-%	slightly faster, but it creates less garbage.
-
-:- dynamic  '$extend_cache'/4.
-:- volatile '$extend_cache'/4.
-
-'$dcg_reserved'([]).
-'$dcg_reserved'([_|_]).
-'$dcg_reserved'({_}).
-'$dcg_reserved'({}).
-'$dcg_reserved'(!).
-'$dcg_reserved'((\+_)).
-'$dcg_reserved'((_,_)).
-'$dcg_reserved'((_;_)).
-'$dcg_reserved'((_|_)).
-'$dcg_reserved'((_->_)).
-'$dcg_reserved'((_*->_)).
-'$dcg_reserved'((_-->_)).
-
-'$extend'(V, _, _, _) :-
-	var(V), !,
-	throw(error(instantiation_error,_)).
-'$extend'(M:OldT, A1, A2, M:NewT) :- !,
-	'$extend'(OldT, A1, A2, NewT).
-'$extend'(OldT, A1, A2, NewT) :-
-	'$extend_cache'(OldT, A1, A2, NewT), !.
-'$extend'(OldT, A1, A2, NewT) :-
-	( callable(OldT) -> true ; throw(error(type_error(callable,OldT),_)) ),
-	( '$dcg_reserved'(OldT) -> throw(error(permission_error(define,dcg_nonterminal,OldT),_)) ; true ),
-	functor(OldT, Name, Arity),
-	functor(CopT, Name, Arity),
-	NewArity is Arity+2,
-	functor(NewT, Name, NewArity),
-	'$copy_args'(1, Arity, CopT, NewT),
-	A1Pos is Arity+1,
-	A2Pos is Arity+2,
-	arg(A1Pos, NewT, A1C),
-	arg(A2Pos, NewT, A2C),
-	assert('$extend_cache'(CopT, A1C, A2C, NewT)),
-	OldT = CopT,
-	A1C = A1,
-	A2C = A2.
-
-'$copy_args'(I, Arity, Old, New) :-
-	I =< Arity, !,
-	arg(I, Old, A),
-	arg(I, New, A),
-	I2 is I + 1,
-	'$copy_args'(I2, Arity, Old, New).
-'$copy_args'(_, _, _, _).
-
-:- meta_predicate
-	phrase(2, ?),
-	phrase(2, ?, ?).
-:- noprofile((phrase/2,
-	      phrase/3)).
-
-phrase(RuleSet, Input) :-
-	phrase(RuleSet, Input, []).
-phrase(RuleSet, Input, Rest) :-
-	strip_module(RuleSet, M, Plain),
-	( var(Plain) -> throw(error(instantiation_error,_)) ; true ),
-	'$t_body'(Plain, S0, S, Body),
-	Input = S0, Rest = S,
-	M:Body.
+'$expand_goal'(In, In).
+'$expand_term'(In, In).
 
 
 		/********************************

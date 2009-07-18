@@ -570,6 +570,11 @@ the argument clauses into static predicates, associating the predicates
 with the current file but avoid changing the notion of current predicate
 and therefore discontiguous warnings.
 
+    \predicate{dcg_translate_rule}{2}{+In, -Out}
+This predicate performs the translation of a term \exam{Head-->Body}
+into a normal Prolog clause.  Normally this functionality should be
+accessed using expand_term/2.
+
     \predicate{preprocessor}{2}{-Old, +New}
 Read the input file via an external process that acts as preprocessor. A
 preprocessor is specified as an atom. The first occurrence of the string

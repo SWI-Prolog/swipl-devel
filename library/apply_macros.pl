@@ -142,7 +142,7 @@ expand_apply(phrase(NT,Xs), NTXsNil) :-
 expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
 	Goal = phrase(NT,Xs0,Xs),
 	nonvar(NT),
-	catch('$translate_rule'((pseudo_nt --> NT), Rule),
+	catch(dcg_translate_rule((pseudo_nt --> NT), Rule),
 	      error(Pat,ImplDep),
 	      ( \+ harmless_dcgexception(Pat),
 		throw(error(Pat,ImplDep))

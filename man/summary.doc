@@ -161,6 +161,7 @@ suggest predicates from a keyword.
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
+\predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
