@@ -35,7 +35,8 @@
 % this gives us DCGs.  Then we need to replace the dummy clauses for
 % '$expand_term'/2 and '$expand_goal'/2 with links to the real thing.
 
-:- consult([ expand
+:- consult([ expand,
+	     dcg
 	   ]).
 
 :- abolish('$expand_goal'/2),
