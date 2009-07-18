@@ -34,10 +34,29 @@
 	    expand_goal/2
 	  ]).
 
-:- user:dynamic(term_expansion/2).
-:- user:multifile(term_expansion/2).
-:- user:dynamic(goal_expansion/2).
-:- user:multifile(goal_expansion/2).
+/** <module> Prolog source-code transformation
+
+This module specifies, together with dcg.pl, the transformation of terms
+as they are read from a file before they are processed by the compiler.
+
+The toplevel is expand_term/2.  This uses three other translators:
+
+	* Conditional compilation
+	* Goal expansion
+	* DCG expansion
+*/
+
+:- dynamic
+	user:term_expansion/2,
+	user:goal_expansion/2.
+:- multifile
+	user:term_expansion/2,
+	user:goal_expansion/2.
+
+%%	expand_term(+Input, -Output) is det.
+%
+%	This predicate is used to translate terms  as they are read from
+%	a source-file before they are added to the Prolog database.
 
 expand_term(Var, Expanded) :-
 	var(Var), !,
@@ -45,38 +64,52 @@ expand_term(Var, Expanded) :-
 expand_term(Term, Expanded) :-		% local term-expansion
 	'$term_expansion_module'(Module),
 	Module:term_expansion(Term, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
+	expand_bodies(Expanded0, Expanded).
 expand_term(Head --> Body, Expanded) :-
 	dcg_translate_rule(Head --> Body, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
+	expand_bodies(Expanded0, Expanded).
 expand_term(Term, []) :-
 	'$if_expansion'(Term, X),
 	X == [], !.
 expand_term(Term0, Term) :-
+	expand_bodies(Term0, Term).
+
+%%	expand_bodies(+Term, -Out) is det.
+%
+%	Find the body terms in Term and give them to expand_goal/2 for
+%	further processing.
+
+expand_bodies(Terms, Out) :-
 	'$goal_expansion_module'(_), !,
-	'$expand_clauses'(Term0, Term).
-expand_term(Term, Term).
+	expand_bodies_2(Terms, Out).
+expand_bodies(Terms, Terms).
+
+
+expand_bodies_2(X, X) :-
+	var(X), !.
+expand_bodies_2([H0|T0], [H|T]) :- !,
+	expand_bodies_2(H0, H),
+	expand_bodies_2(T0, T).
+expand_bodies_2('$source_location'(File, Line):Clause0,
+		  '$source_location'(File, Line):Clause) :- !,
+	expand_bodies_2(Clause0, Clause).
+expand_bodies_2((Head :- Body), (Head :- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body, ExpandedBody).
+expand_bodies_2((:- Body), (:- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body, ExpandedBody).
+expand_bodies_2(Head, Head).
 
 
 		 /*******************************
 		 *   GOAL_EXPANSION/2 SUPPORT	*
 		 *******************************/
 
-'$expand_clauses'(X, X) :-
-	var(X), !.
-'$expand_clauses'([H0|T0], [H|T]) :- !,
-	'$expand_clauses'(H0, H),
-	'$expand_clauses'(T0, T).
-'$expand_clauses'('$source_location'(File, Line):Clause0,
-		  '$source_location'(File, Line):Clause) :- !,
-	'$expand_clauses'(Clause0, Clause).
-'$expand_clauses'((Head :- Body), (Head :- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'((:- Body), (:- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'(Head, Head).
+%%	expand_goal(+BodyTerm, -Out) is det.
+%
+%	Perform   macro-expansion   on    body     terms    by   calling
+%	goal_expansion/2.
 
 expand_goal(A, B) :-
         '$do_expand_body'(A, B0),
