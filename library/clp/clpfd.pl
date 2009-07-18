@@ -1242,34 +1242,34 @@ label(Vars, Selection, Order, Choice, Consistency) :-
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
             ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
                 label(RVars, Selection, Order, Choice, Consistency)
-            ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
+            ;   choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
             )
         ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
-choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(step, Order, Var, Vars, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
             label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
             do_queue,
-            label([Var|Vars], Selection, Order, step, Consistency)
+            label(Vars0, Selection, Order, step, Consistency)
         ).
-choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(enum, Order, Var, Vars, _, Selection, Consistency) :-
         fd_get(Var, Dom0, _),
         domain_direction_element(Dom0, Order, Var),
         label(Vars, Selection, Order, enum, Consistency).
-choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(bisect, Order, Var, _, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ).
 
 override(What, Prev, Value, Options, Result) :-
@@ -4017,7 +4017,7 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Regin's algorithm for constraints of difference
+% Régin's algorithm for constraints of difference
 
 regin_attach(Ls) :-
          must_be(list, Ls),
