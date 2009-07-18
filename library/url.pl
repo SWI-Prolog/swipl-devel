@@ -275,7 +275,6 @@ cfragment(_) -->
 		 *******************************/
 
 %%	parse_url(+URL, -Attributes) is det.
-%%	parse_url(+URL, +BaseURL, -Attributes) is det.
 %
 %	Construct or analyse a URL. URL is an   atom  holding a URL or a
 %	variable. Parts is a list of   components.  Each component is of
@@ -340,6 +339,11 @@ parse_url(URL, Attributes) :-
 parse_url(URL, Attributes) :-
 	phrase(curl(Attributes), Codes), !,
 	atom_codes(URL, Codes).
+
+%%	parse_url(+URL, +BaseURL, -Attributes) is det.
+%
+%	Similar to parse_url/2 for relative URLs.  If URL is relative,
+%	it is resolved using the absolute URL BaseURL.
 
 parse_url(URL, BaseURL, Attributes) :-
 	nonvar(URL), !,

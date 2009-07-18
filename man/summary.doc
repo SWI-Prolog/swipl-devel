@@ -640,6 +640,7 @@ suggest predicates from a keyword.
 \opfuncsummary{//}{2}{yfx}{400}{Integer division}
 \opfuncsummary{/\}{2}{yfx}{500}{Bitwise and}
 \opfuncsummary{<<}{2}{yfx}{400}{Bitwise left shift}
+\opfuncsummary{><}{2}{yfx}{400}{Bitwise exclusive or}
 \opfuncsummary{>>}{2}{yfx}{400}{Bitwise right shift}
 \functionsummary{.}{2}{List of one character: character code}
 \opfuncsummary{\}{1}{fx}{500}{Bitwise negation}
