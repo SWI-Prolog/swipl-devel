@@ -5,7 +5,7 @@
 # from the topdirectory
 #
 # If you want to build for multiple architectures, do:
-# 
+#
 #	% mkdir myarch
 #	% cd myarch
 #	% ../src/configure [options]
@@ -18,13 +18,15 @@ mtoptions="--enable-mt"
 
 usage()
 { cat << _EOM_
-Usage: configure option ... 
+Usage: configure option ...
 
 Options:
 
-  --with-world:		Build all (default packages)
+  --with-world		Build all (default packages)
   --without-<package>	Exclude package.  Notably --without-jpl excludes
 			often troublesome building of the JPL interface.
+  --link		Install using symbolic links to the development
+			tree.  This option is intended for developers.
 
 This toplevel configure  and  Makefile  ony   deal  with  very  standard
 installations. More complicated cases should check INSTALL.notes and use
@@ -35,6 +37,13 @@ _EOM_
 while [ "$1" != "" ]; do
   case "$1" in
     --with-world)	TARGET=world
+			shift
+			;;
+    --without-*)	pkg=`echo $1 | sed 's/--without-//'`
+			DISABLE_PKGS="$DISABLE_PKGS $pkg"
+			shift
+			;;
+    --link)		TARGET="ln-$TARGET"
 			shift
 			;;
     --help)		usage

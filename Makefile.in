@@ -55,6 +55,7 @@ distclean::
 ################################################################
 
 world:	lite .pkg-config packages
+ln-world: world
 
 .pkg-config:
 	cd packages && ./configure $(CONFIG_OPTIONS)
@@ -71,4 +72,14 @@ install-world::
 	else \
 	    echo "WARNING: No documentation.  See README.doc"; \
 	fi
+
+install-ln-world::
+	cd $(BUILDARCH) && $(MAKE) ln-install
+	cd packages && $(MAKE) ln-install
+	@if [ -d man/Manual ]; then \
+	    cd packages && $(MAKE) html-install; \
+	else \
+	    echo "WARNING: No documentation.  See README.doc"; \
+	fi
+
 

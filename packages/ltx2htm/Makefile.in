@@ -54,6 +54,11 @@ install:	tex.@SO@
 	mkdir -p $(DESTDIR)$(LIBDIR)/icons
 	for f in icons/*.gif; do $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR)/icons; done
 
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' \
+			 INSTALL_PROGRAM='../ln-install' \
+			 install
+
 tex.@SO@:		$(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
@@ -71,6 +76,8 @@ pdf:	$(DOC).tex
 $(DOC).tex:	$(DOC).doc
 	./doc2tex $< > $@
 
+html-install::
+
 ################################################################
 # Cleanup
 ################################################################
@@ -81,7 +88,7 @@ clean::
 
 distclean: clean
 	rm -f Makefile latex2html
-	rm -f config.cache config.log config.status config.h 
+	rm -f config.cache config.log config.status config.h
 
 uninstall::
 	rm -r $(LIBDIR)

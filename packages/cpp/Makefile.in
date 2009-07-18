@@ -27,11 +27,16 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-all:		
+all:
 		@echo "Nothing to do for this package"
 
-install::	
+install::
 		$(INSTALL_DATA) SWI-cpp.h $(DESTDIR)$(PLBASE)/include
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' \
+			 INSTALL_PROGRAM='../ln-install' \
+			 install
 
 rpm-install:	install
 

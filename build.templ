@@ -78,6 +78,14 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 # export JUNIT=/opt/local/share/java/junit.jar
 
 ################################################################
+# Misc stuff
+################################################################
+
+# [EDIT] Extra options to pass to the toplevel configure.
+
+# EXTRACFG="--link"
+
+################################################################
 # No edit should be needed below this line
 ################################################################
 
@@ -91,7 +99,7 @@ case "$1" in
 esac
 
 if [ "$makeonly" = false ]; then
-  ./configure --prefix=$PREFIX --with-world 2>&1 | tee configure.out
+  ./configure --prefix=$PREFIX --with-world  $EXTRACFG 2>&1 | tee configure.out
 fi
 
 $MAKE 2>&1 | tee make.out
