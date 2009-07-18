@@ -1497,6 +1497,7 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
+        maplist(fd_variable, Ls),
         all_different(Ls, [], _),
         do_queue.
 
@@ -1506,8 +1507,7 @@ all_different([X|Right], Left, State) :-
             make_propagator(pdifferent(Left,Right,X,State), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
-        ;   must_be(integer, X),
-            exclude_fire(Left, Right, X)
+        ;   exclude_fire(Left, Right, X)
         ),
         all_different(Right, [X|Left], State).
 
@@ -4022,6 +4022,7 @@ max_divide(L1,U1,L2,U2,Max) :-
 
 regin_attach(Ls) :-
          must_be(list, Ls),
+         maplist(fd_variable, Ls),
          make_propagator(regin(Ls), Prop),
          regin_attach(Ls, Prop, []),
          trigger_prop(Prop),
@@ -4034,8 +4035,7 @@ regin_attach([X|Xs], Prop, Right) :-
             make_propagator(pexclude(Xs,Right,X), P1),
             init_propagator(X, P1),
             trigger_prop(P1)
-        ;   must_be(integer, X),
-            exclude_fire(Xs, Right, X)
+        ;   exclude_fire(Xs, Right, X)
         ),
         regin_attach(Xs, Prop, [X|Right]).
 
