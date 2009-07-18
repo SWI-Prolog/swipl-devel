@@ -4033,7 +4033,8 @@ regin_attach([X|Xs], Prop, Right) :-
             make_propagator(pexclude(Xs,Right,X), P1),
             init_propagator(X, P1),
             trigger_prop(P1)
-        ;   exclude_fire(Xs, Right, X)
+        ;   must_be(integer, X),
+            exclude_fire(Xs, Right, X)
         ),
         regin_attach(Xs, Prop, [X|Right]).
 
