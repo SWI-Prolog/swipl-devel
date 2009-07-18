@@ -48,7 +48,7 @@ spec explaining all an implementor needs to   know  about DCG. I'm a too
 basic user of this facility myself (though   I  learned some tricks from
 people reporting bugs :-)
 
-The original version contained  '$t_tidy'/2  to   convert  ((a,b),  c)  to
+The original version contained '$t_tidy'/2  to   convert  ((a,b),  c) to
 (a,(b,c)), but as the  SWI-Prolog  compiler   doesn't  really  care (the
 resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
