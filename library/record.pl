@@ -63,7 +63,7 @@ _directive_.  Here is a simple example declaration and some calls.
 
 error:has_type(record(M:Name), X) :-
 	current_record(Name, M, _, X, IsX), !,
-	call(IsX).
+	call(M:IsX).
 
 %%	record(+RecordDef)
 %
@@ -253,6 +253,10 @@ defined_type(Type, Var, error:Body) :-
 	clause(error:has_type(Type, Var), Body).
 
 
+clean_body(M:(A0,B0), G) :- !,
+	clean_body(M:A0, A),
+	clean_body(M:B0, B),
+	clean_body((A,B), G).
 clean_body((A0,true), A) :- !,
 	clean_body(A0, A).
 clean_body((true,A0), A) :- !,
