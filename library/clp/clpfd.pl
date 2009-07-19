@@ -1242,34 +1242,34 @@ label(Vars, Selection, Order, Choice, Consistency) :-
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
             ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
                 label(RVars, Selection, Order, Choice, Consistency)
-            ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
+            ;   choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
             )
         ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
-choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(step, Order, Var, Vars, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
             label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
             do_queue,
-            label([Var|Vars], Selection, Order, step, Consistency)
+            label(Vars0, Selection, Order, step, Consistency)
         ).
-choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(enum, Order, Var, Vars, _, Selection, Consistency) :-
         fd_get(Var, Dom0, _),
         domain_direction_element(Dom0, Order, Var),
         label(Vars, Selection, Order, enum, Consistency).
-choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(bisect, Order, Var, _, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ).
 
 override(What, Prev, Value, Options, Result) :-
@@ -1497,6 +1497,7 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
+        maplist(fd_variable, Ls),
         all_different(Ls, [], _),
         do_queue.
 
@@ -2178,14 +2179,8 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
 
 gcd([], G, G).
 gcd([N|Ns], G0, G) :-
-        gcd_(N, G0, G1),
+        G1 is gcd(N, G0),
         gcd(Ns, G1, G).
-
-gcd_(A, B, G) :-
-        (   B =:= 0 -> G = A
-        ;   R is A mod B,
-            gcd_(B, R, G)
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    k-th root of N, if N is a k-th power.
@@ -2873,6 +2868,7 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
+constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
@@ -3065,6 +3061,14 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             %;   true
             %),
             true
+        ).
+
+run_propagator(pexclude(Left,Right,X), _) :-
+        (   ground(X) ->
+            disable_queue,
+            exclude_fire(Left, Right, X),
+            enable_queue
+        ;   true
         ).
 
 run_propagator(regin(Ls), _MState) :-
@@ -4014,22 +4018,26 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Regin's algorithm for constraints of difference
+% Régin's algorithm for constraints of difference
 
 regin_attach(Ls) :-
          must_be(list, Ls),
+         maplist(fd_variable, Ls),
          make_propagator(regin(Ls), Prop),
-         regin_attach(Ls, Prop),
+         regin_attach(Ls, Prop, []),
          trigger_prop(Prop),
          do_queue.
 
-regin_attach([], _).
-regin_attach([X|Xs], Prop) :-
+regin_attach([], _, _).
+regin_attach([X|Xs], Prop, Right) :-
         (   var(X) ->
-            init_propagator(X, Prop)
-        ;   true
+            init_propagator(X, Prop),
+            make_propagator(pexclude(Xs,Right,X), P1),
+            init_propagator(X, P1),
+            trigger_prop(P1)
+        ;   exclude_fire(Xs, Right, X)
         ),
-        regin_attach(Xs, Prop).
+        regin_attach(Xs, Prop, [X|Right]).
 
 append_to_key(Key, Assoc0, Elem, Assoc) :-
         (   get_assoc(Key, Assoc0, Elems) ->
@@ -4085,16 +4093,19 @@ enumerate([N|Ns], I, H, R0, R, F0, F) :-
         append_to_key(N, R0, I, R1),
         enumerate(Ns, I, H, R1, R, [N|F0], F).
 
-maximum_matching(FL0, FR0, FR, Hash0, RevHash) :-
-        (   select(S, FL0, FL1),
-            empty_assoc(E),
-            augmenting_path(l(S), E, E, FR0, FR1, Hash0, RevHash, Path) ->
-            adjust_alternate_1(Path, Hash0),
-            maximum_matching(FL1, FR1, FR, Hash0, RevHash)
-        ;   FL0 = [],       % all variables covered
-            FR = FR0
-        ).
+maximum_matching([], FR, FR, _, _) :- !.
+maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
+        empty_assoc(E),
+        once(augmenting_path(l(FL), E, E, FR0, FR1, Hash0, RevHash, Path)),
+        adjust_alternate_1(Path, Hash0),
+        maximum_matching(FLs, FR1, FR, Hash0, RevHash).
 
+augmenting_path(l(N), _, RV, RF0, RF, HashArcs, _, [arc(N,To)]) :-
+        arg(N, HashArcs, Arcs),
+        select(To, RF0, RF),
+        \+ get_assoc(To, RV, _),
+        get_assoc(To, Arcs, 0),
+        !.
 augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
         arg(N, HashArcs, Arcs),
         gen_assoc(To, Arcs, 0),
@@ -4130,19 +4141,9 @@ adjust_alternate_0([arc(A,B)|Arcs], Hash) :-
         adjust_alternate_1(Arcs, Hash).
 
 remove_ground([], _).
-remove_ground([V|Vs], Left) :-
-        (   var(V) ->
-            \+ list_contains(Vs, V),
-            remove_ground(Vs, [V|Left])
-        ;   remove_ground_(Vs, V),
-            remove_ground_(Left, V),
-            remove_ground(Vs, Left)
-        ).
-
-remove_ground_([], _).
-remove_ground_([V|Vs], R) :-
+remove_ground([V|Vs], R) :-
         neq_num(V, R),
-        remove_ground_(Vs, R).
+        remove_ground(Vs, R).
 
 % Instead of applying Berge's property directly, we can translate the
 % problem in such a way, that we have to search for the so-called
@@ -4172,7 +4173,6 @@ g_g0_([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
 :- record regin(index, stack, vlowlink, vindex, g0l, g0r).
 
 regin(Vars) :-
-        remove_ground(Vars, []),
         difference_arcs(Vars, Hash, RevHash, FreeLeft0, FreeRight0),
         length(FreeRight0, LFR),
         length(FreeLeft0, LFL),
@@ -4400,17 +4400,8 @@ all_distinct([X|Right], Left, MState) :-
         all_distinct(Right, [X|Left], MState).
 
 exclude_fire(Left, Right, E) :-
-        exclude_list(Left, E),
-        exclude_list(Right, E).
-
-exclude_list([], _).
-exclude_list([V|Vs], Val) :-
-        (   fd_get(V, VD, VPs) ->
-            domain_remove(VD, Val, VD1),
-            fd_put(V, VD1, VPs)
-        ;   V =\= Val
-        ),
-        exclude_list(Vs, Val).
+        remove_ground(Left, E),
+        remove_ground(Right, E).
 
 list_contains([X|Xs], Y) :-
         (   X == Y -> true
@@ -4850,7 +4841,8 @@ attribute_goal_(pdifferent(Left, Right, X, processed)) -->
 attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         [all_distinct(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(regin(Vs)) --> [all_distinct(Vs)].
+attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
+attribute_goal_(pexclude(_,_,_)) --> [].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
