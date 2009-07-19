@@ -10,16 +10,16 @@
 #		The Netherlands
 #
 # Public targets:
-# 
+#
 #	* make			Simply makes all programs in the current tree
 #	* make install		Installs the libraries and public executables
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
 #
 # Copyright (C) University of Amsterdam
-# 
+#
 # Copyright policy:
-#	
+#
 #	* LGPL (see file COPYING or http://www.gnu.org/)
 ################################################################
 
@@ -69,7 +69,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
-	../boot/bags.pl ../boot/apply.pl \
+	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
 	../boot/writef.pl ../boot/history.pl \
 	../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
@@ -94,7 +94,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
-COMMON=	
+COMMON=
 DIALECT=yap.pl hprolog.pl
 YAP=	README.TXT
 ISO=	iso_predicates.pl
@@ -177,19 +177,19 @@ pl-stream.obj:	popen.c
 vmi:		pl-vmi.c mkvmi.exe
 		mkvmi.exe
 		echo "ok" > vmi
-		
+
 pl-funct.ih:	ATOMS defatom.exe
 		defatom.exe
 
 pl-atom.ih:	ATOMS defatom.exe
-		defatom.exe 
+		defatom.exe
 
 defatom.exe:	defatom.obj
 		$(LD) /out:$@ /subsystem:console defatom.obj $(LIBS)
-		
+
 mkvmi.exe:	mkvmi.obj
 		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
-		
+
 $(PLLD):	plld.obj
 		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
 
@@ -213,7 +213,7 @@ check:
 install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo html-install 
+		xpce_packages install-dotfiles install-demo html-install
 !ENDIF
 
 install-arch:	idirs iprog
@@ -271,7 +271,7 @@ $(IDIRS):
 
 idirs:		$(IDIRS)
 
-iboot:		
+iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
@@ -304,7 +304,7 @@ iunicode::
 		chdir $(PLHOME)\library\unicode & \
 		  for %f in ($(UNICODE)) do copy %f "$(PLBASE)\library\unicode"
 
-iinclude:       
+iinclude:
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"

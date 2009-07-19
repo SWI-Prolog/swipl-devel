@@ -14,7 +14,7 @@
 # Non-Linux systems.
 #
 # Public targets:
-# 
+#
 #	* make			Simply makes all programs in the current tree
 #	* make install		Installs the libraries and public executables
 #	* make install-version  Installs pl as pl-x.y.z in public directory
@@ -25,9 +25,9 @@
 #	* make check		Run some tests
 #
 # Copyright (C) University of Amsterdam, all rights reserved
-# 
+#
 # Copyright policy:
-#	
+#
 #	* LGPL (see file COPYING or http://www.swi-prolog.org/)
 ################################################################
 
@@ -131,7 +131,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
-	../boot/bags.pl ../boot/apply.pl \
+	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
 	../boot/writef.pl ../boot/history.pl ../boot/attvar.pl \
 	../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
