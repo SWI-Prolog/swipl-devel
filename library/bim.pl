@@ -40,7 +40,7 @@
 %	 erase/1,			% BIM-compatible erase/1
 	 rerecord/2,
 	 erase_all/1,
-	 record/3,
+	 (record)/3,
 %	 recorded/3,			% BIM-compatible recorded/3
 	 inttoatom/2,
 	 atomconcat/3,
