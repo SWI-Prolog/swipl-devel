@@ -298,9 +298,21 @@ swi_extra(_) -->
 		 *	  NORMAL MESSAGES	*
 		 *******************************/
 
-prolog_message(initialization_exception(Goal, E)) -->
+prolog_message(initialization_error(_, E, File:Line)) --> !,
+	[ '~w:~d: '-[File, Line],
+	  'Initialization goal raised exception:', nl
+	],
+	translate_message(E).
+prolog_message(initialization_error(Goal, E, _)) -->
 	[ 'Initialization goal ~p raised exception:'-[Goal], nl ],
 	translate_message(E).
+prolog_message(initialization_failure(_Goal, File:Line)) --> !,
+	[ '~w:~d: '-[File, Line],
+	  'Initialization goal failed'-[]
+	].
+prolog_message(initialization_failure(Goal, _)) -->
+	[ 'Initialization goal failed: ~p'-[Goal]
+	].
 prolog_message(initialization_exception(E)) -->
 	[ 'Prolog initialisation failed:', nl ],
 	translate_message(E).
@@ -854,6 +866,17 @@ prolog_message(abnormal_thread_completion(Goal, fail)) -->
 	[ 'Thread running "~p" died due to failure'-[Goal] ].
 prolog_message(threads_not_died(Count)) -->
 	[ '~D threads wouldn\'t die'-[Count] ].
+
+		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+%	see initialization/1
+
+init_where(-) -->
+	[].
+init_where(Path:Line) -->
+	[ '~w:~d: '-[Path, Line] ].
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*

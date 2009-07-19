@@ -115,26 +115,46 @@
 	at_initialization(0),
 	initialization(0).
 :- dynamic
-	'$at_initialization'/1.
+	'$at_initialization'/2.
 
 %%	at_initialization(:Goal)
 %
 %	Runs Goal after loading a saved state.
 
 at_initialization(Goal) :-
-	assert('$at_initialization'(Goal)).
+	initialization_context(Ctx),
+	assert('$at_initialization'(Goal, Ctx)).
 
 '$run_at_initialization' :-
-	(   '$at_initialization'(Goal),
-	    (   catch(Goal, E,
-		      print_message(error, initialization_exception(Goal, E)))
+	'$run_at_initialization'(_).
+'$run_at_initialization'(File) :-
+	(   '$at_initialization'(Goal, Ctx),
+	    init_in_context(File, Ctx),
+	    (   catch(Goal, E, initialization_error(E, Goal, Ctx))
 	    ->  fail
-	    ;   print_message(warning, goal_failed(at_initialization, Goal)),
+	    ;   initialization_failure(Goal, Ctx),
 		fail
 	    )
 	;   true
 	),
 	'$thread_init'.
+
+init_in_context(File, _) :-
+	var(File), !.
+init_in_context(File, File:_Line).
+
+initialization_context(Ctx) :-
+	(   source_location(File, Line)
+	->  Ctx = File:Line
+	;   Ctx = (-)
+	).
+
+initialization_error(E, Goal, Ctx) :-
+	print_message(error, initialization_error(Goal, E, Ctx)).
+
+initialization_failure(Goal, Ctx) :-
+	print_message(warning, initialization_failure(Goal, Ctx)).
+
 
 %%	initialization(+Goal)
 %
