@@ -180,7 +180,7 @@ join_expansions_by_tag([H|T0], Tag, T, [V0|VT]) :-
 	join_expansions_by_tag(T0, Tag, T, VT).
 join_expansions_by_tag(L, _, L, []).
 
-lookup(false, _, [], []) :- !.
+lookup(@(false), _, [], []) :- !.
 lookup(or(H0,T0), Map, [CH|CT], [H|T]) :- !,
 	lookup(H0, Map, CH, H),
 	lookup(T0, Map, CT, T).
@@ -188,16 +188,19 @@ lookup(H0, Map, [C], [H]) :-
 	lookup1(H0, Map, C, H).
 
 lookup1(Conj, Map, Cond, Literals) :-
-	phrase(conj_to_list(Conj), List),
+	phrase(conj_to_list(Conj), List), !,
 	rdf_find_literal_map(Map, List, Literals),
 	(   Literals \== []
 	->  phrase(conj_to_cond(Conj), Cond)
 	;   Cond = []
 	).
+lookup1(_, _, _, []).
 
 conj_to_list(and(A,B)) --> !,
 	conj_to_list(A),
 	conj_to_list(B).
+conj_to_list(@false) --> !,
+	{fail}.
 conj_to_list(Tagged) -->
 	{ untag(Tagged, L) }, !,
 	[L].
@@ -246,12 +249,14 @@ expand_fuzzy(case(String), Or) :- !,
 	token_index(Map),
 	rdf_keys_in_literal_map(Map, case(String), Tokens),
 	list_to_or(Tokens, case(String), Or).
-expand_fuzzy(or(A0, B0), or(A,B)) :- !,
+expand_fuzzy(or(A0, B0), E) :- !,
 	expand_fuzzy(A0, A),
-	expand_fuzzy(B0, B).
-expand_fuzzy(and(A0, B0), and(A,B)) :- !,
+	expand_fuzzy(B0, B),
+	simplify(or(A,B), E).
+expand_fuzzy(and(A0, B0), E) :- !,
 	expand_fuzzy(A0, A),
-	expand_fuzzy(B0, B).
+	expand_fuzzy(B0, B),
+	simplify(and(A,B), E).
 expand_fuzzy(not(A0), not(A)) :- !,
 	expand_fuzzy(A0, A).
 expand_fuzzy(between(Low, High), Or) :- !,
@@ -271,8 +276,17 @@ expand_fuzzy(Token, Token) :-
 expand_fuzzy(Token, _) :-
 	throw(error(type_error(Token, boolean_expression), _)).
 
+simplify(Expr0, Expr) :-
+	simple(Expr0, Expr), !.
+simplify(Expr, Expr).
 
-list_to_or([], _, false) :- !.
+simple(and(@(false), _), @(false)).
+simple(and(_, @(false)), @(false)).
+simple(or(@(false), X), X).
+simple(or(X, @(false)), X).
+
+
+list_to_or([], _, @(false)) :- !.
 list_to_or([X], How, One) :- !,
 	tag(How, X, One).
 list_to_or([H0|T0], How, or(H, T)) :-
