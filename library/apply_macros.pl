@@ -39,10 +39,10 @@
 
 This module defines goal_expansion/2 rules to   deal with commonly used,
 but fundamentally slow meta-predicates. Notable   maplist/2... defines a
-useful set of predicates, but its exection is considerable slower than a
-traditional Prolog loop. Using this library   calls  to maplist/2... are
+useful set of predicates, but its  execution is considerable slower than
+a traditional Prolog loop. Using this  library calls to maplist/2... are
 translated into an call  to  a   generated  auxilary  predicate  that is
-compiled using compile_aux_clauses/1.  Currently this module supports:
+compiled using compile_aux_clauses/1. Currently this module supports:
 
 	* maplist/2..
 	* forall/2
@@ -137,9 +137,13 @@ expand_apply(Maplist, Goal) :-
 expand_apply(forall(Cond, Action), \+((Cond, \+(Action)))).
 expand_apply(once(Goal), (Goal->true;fail)).
 expand_apply(ignore(Goal), (Goal->true;true)).
-expand_apply(phrase(NT,Xs), NTXsNil) :-
+expand_apply(Phrase, Expanded) :-
+	expand_phrase(Phrase, Expanded), !.
+
+
+expand_phrase(phrase(NT,Xs), NTXsNil) :- !,
 	expand_apply(phrase(NT,Xs,[]), NTXsNil).
-expand_apply(phrase(NT,Xs0,Xs), NewGoal) :-
+expand_phrase(Goal, NewGoal) :-
 	Goal = phrase(NT,Xs0,Xs),
 	nonvar(NT),
 	catch(dcg_translate_rule((pseudo_nt --> NT), Rule),

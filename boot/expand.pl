@@ -76,11 +76,16 @@ expand_term(Term, []) :-
 	cond_compilation(Term, X),
 	X == [], !.
 expand_term(Term, Expanded) :-		% local term-expansion
-	'$term_expansion_module'(Module),
-	Module:term_expansion(Term, Expanded0), !,
-	expand_terms(expand_term_2, Expanded0, Expanded).
-expand_term(Term0, Term) :-
-	expand_term_2(Term0, Term).
+	'$def_modules'(term_expansion/2, MList),
+	call_term_expansion(MList, Term, Term2),
+	expand_term_2(Term2, Expanded).
+
+call_term_expansion([], Term, Term).
+call_term_expansion([M|T], Term0, Term) :-
+	(   M:term_expansion(Term0, Term1)
+	->  expand_terms(call_term_expansion(T), Term1, Term)
+	;   call_term_expansion(T, Term0, Term)
+	).
 
 expand_term_2(Head --> Body, Expanded) :-
 	dcg_translate_rule(Head --> Body, Expanded0), !,
@@ -94,17 +99,18 @@ expand_term_2(Term0, Term) :-
 %	further processing.
 
 expand_bodies(Terms, Out) :-
-	'$goal_expansion_module'(_), !,
-	expand_terms(expand_body, Terms, Out).
+	'$def_modules'(goal_expansion/2, MList),
+	MList \== [], !,
+	expand_terms(expand_body(MList), Terms, Out).
 expand_bodies(Terms, Terms).
 
-expand_body((Head :- Body), (Head :- ExpandedBody)) :-
+expand_body(MList, (Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody).
-expand_body((:- Body), (:- ExpandedBody)) :-
+	expand_goal(Body, ExpandedBody, MList).
+expand_body(MList, (:- Body), (:- ExpandedBody)) :-
 	nonvar(Body), !,
-	expand_goal(Body, ExpandedBody).
-expand_body(Head, Head).
+	expand_goal(Body, ExpandedBody, MList).
+expand_body(_, Head, Head).
 
 
 %%	expand_terms(:Closure, +In, -Out)
@@ -138,102 +144,151 @@ expand_terms(C, Term0, Term) :-
 %	goal_expansion/2.
 
 expand_goal(A, B) :-
-        '$do_expand_body'(A, B0),
-	'$tidy_body'(B0, B).
+	'$def_modules'(goal_expansion/2, MList),
+	(   expand_goal(A, B, MList)
+	->  A \== B
+	), !.
+expand_goal(A, A).
 
-'$do_expand_body'(G, G) :-
+expand_goal(G0, G, MList) :-
+	'$set_source_module'(M, M),
+	expand_goal(G0, G, M, MList).
+
+expand_goal(G, G, _, _) :-
         var(G), !.
-'$do_expand_body'((A,B), (EA,EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A;B), (EA;EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A->B), (EA->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A*->B), (EA*->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((\+A), (\+EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(A, B) :-
-        '$goal_expansion_module'(M),
-        M:goal_expansion(A, B0),
-	B0 \== A, !,			% avoid a loop
-	'$do_expand_body'(B0, B).
-'$do_expand_body'(not(A), not(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(call(A), call(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(once(A), once(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(ignore(A), ignore(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(initialization(A), initialization(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(catch(A, E, B), catch(EA, E, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, B), call_cleanup(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, R, B), call_cleanup(EA, R, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(forall(A, B), forall(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(findall(V, G, B), findall(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(findall(V, G, B, T), findall(V, EG, B, T)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(bagof(V, G, B), bagof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(setof(V, G, B), setof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(V^G, V^EG) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(M:G, M:EG) :-
+expand_goal(G0, G, M, MList) :-
+	call_goal_expansion(MList, G0, G1), !,
+	expand_goal(G1, G, M, MList).
+expand_goal((A,B), Conj, M, MList) :- !,
+        expand_goal(A, EA, M, MList),
+        expand_goal(B, EB, M, MList),
+	simplify((EA, EB), Conj).
+expand_goal((A;B), Or, M, MList) :- !,
+        expand_goal(A, EA, M, MList),
+        expand_goal(B, EB, M, MList),
+	simplify((EA;EB), Or).
+expand_goal((A->B;C), ITE, M, MList) :- !,
+        expand_goal(A, EA, M, MList),
+        expand_goal(B, EB, M, MList),
+        expand_goal(C, EC, M, MList),
+	simplify((EA->EB;EC), ITE).
+expand_goal((A->B), (EA->EB), M, MList) :- !,
+        expand_goal(A, EA, M, MList),
+        expand_goal(B, EB, M, MList).
+expand_goal((A*->B), (EA*->EB), M, MList) :- !,
+        expand_goal(A, EA, M, MList),
+        expand_goal(B, EB, M, MList).
+expand_goal((\+A), (\+EA), M, MList) :- !,
+        expand_goal(A, EA, M, MList).
+expand_goal(V^G, V^EG, M, MList) :- !,
+        expand_goal(G, EG, M, MList).
+expand_goal(M:G, M:EG, _M, _MList) :-
 	atom(M), !,
-	(   M == system			% or should we define this:
-	->  EG = G			% system:goal_expansion(X,X)
-	;   '$set_source_module'(Old, M),
-	    call_cleanup('$do_expand_body'(G, EG),
-			 '$set_source_module'(_, Old))
-	).
-'$do_expand_body'(A, A).
+	'$def_modules'(M:goal_expansion/2, MList),
+	setup_call_cleanup('$set_source_module'(Old, M),
+			   '$expand':expand_goal(G, EG, M, MList),
+			   '$set_source_module'(_, Old)).
+expand_goal(G0, G, M, MList) :-
+	functor(G0, N, A),
+	(   default_module(M, M2),
+	    current_predicate(M2:N/A)
+	->  true
+	),
+	'$get_predicate_attribute'(M2:G0, meta_predicate, Head),
+	has_meta_arg(Head),
+	expand_meta(Head, G0, G, M, MList),
+	G0 \== G, !.
+expand_goal(A, A, _, _).
 
-%	Delete extraneous true's that result from goal_expansion(..., true)
+expand_meta(Spec, G0, G, M, MList) :-
+	functor(Spec, _, Arity),
+	functor(G0, Name, Arity),
+	functor(G, Name, Arity),
+	expand_meta(1, Arity, Spec, G0, G, M, MList).
+
+expand_meta(I, Arity, Spec, G0, G, M, MList) :-
+	I =< Arity, !,
+	arg(I, Spec, Meta),
+	arg(I, G0, A0),
+	arg(I, G, A),
+	expand_meta_arg(Meta, A0, A, M, MList),
+	I2 is I + 1,
+	expand_meta(I2, Arity, Spec, G0, G, M, MList).
+expand_meta(_, _, _, _, _, _, _).
+
+expand_meta_arg(0, A0, A, M, MList) :- !,
+	expand_goal(A0, A, M, MList).
+expand_meta_arg(_, A, A, _, _).
+
+has_meta_arg(Head) :-
+	arg(_, Head, Arg),
+	Arg == 0, !.
+
+%%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
 %
-%	Is the really necessary?  Should we only do it if -O is effective?
+%	Succeeds  if  the   context   has    a   module   that   defines
+%	goal_expansion/2 this rule succeeds and  Goal   is  not equal to
+%	Goal0. Note that the translator is   called  recursively until a
+%	fixed-point is reached.
 
-'$tidy_body'(A, A) :-
+call_goal_expansion(MList, G0, G) :-
+	'$member'(M, MList),
+	 M:goal_expansion(G0, G),
+	 G0 \== G, !.
+
+
+		 /*******************************
+		 *    SIMPLIFICATION ROUTINES	*
+		 *******************************/
+
+%%	simplify(+ControlIn, -ControlOut) is det.
+%
+%	Try to simplify control structure.
+%
+%	@tbd	Much more analysis
+%	@tbd	Turn this into a separate module
+
+simplify(Control, Control) :-
 	current_prolog_flag(optimise, false), !.
-'$tidy_body'(A, A) :-
-        var(A), !.
-'$tidy_body'((A,B), (A, TB)) :-
-        var(A), !,
-        '$tidy_body'(B, TB).
-'$tidy_body'((A,B), (TA, B)) :-
-        var(B), !,
-        '$tidy_body'(A, TA).
-'$tidy_body'(((A,B),C), R) :- !,
-	'$tidy_body'((A,B,C), R).
-'$tidy_body'((true,A), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,true), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,B), (TA, TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A;B), (TA; TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A->B), (TA->TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'(A, A).
+simplify(Control, Simple) :-
+	simple(Control, Simple), !.
+simplify(Control, Control).
+
+simple((X, Y), Conj) :-
+	(   true(X)
+	->  Conj = Y
+	;   false(X)
+	->  Conj = fail
+	;   true(Y)
+	->  Conj = X
+	).
+simple((I->T;E), ITE) :-
+	(   true(I)
+	->  ITE = T
+	;   false(I)
+	->  ITE = E
+	).
+simple((X;Y), Or) :-
+	false(X),
+	Or = Y.
+
+true(X) :-
+	nonvar(X),
+	eval_true(X).
+
+false(X) :-
+	nonvar(X),
+	eval_false(X).
+
+%%	eval_true(+Goal) is semidet.
+%%	eval_false(+Goal) is semidet.
+
+eval_true(true).
+eval_true(otherwise).
+
+eval_false(fail).
+eval_false(false).
+
 
 		 /*******************************
 		 *	:- IF ... :- ENDIF	*

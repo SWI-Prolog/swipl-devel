@@ -67,7 +67,6 @@
 	    format/1,
 	    garbage_collect/0,
 	    arithmetic_function/1,
-	    default_module/2,
 	    absolute_file_name/2,
 	    require/1,
 	    call_with_depth_limit/3,
@@ -899,16 +898,6 @@ arithmetic_function(Module:Term) :-
 	PredArity is Arity + 1,
 	functor(Head, Name, PredArity),
 	'$arithmetic_function'(Module:Head, 0).
-
-%%	default_module(+Me, -Super) is nondet.
-%
-%	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
-
-default_module(Me, Me).
-default_module(Me, Super) :-
-	import_module(Me, S),
-	default_module(S, Super).
-
 
 		 /*******************************
 		 *	 LIST MANIPULATION	*

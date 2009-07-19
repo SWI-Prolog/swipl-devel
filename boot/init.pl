@@ -282,6 +282,15 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 '$prefix_module'(Module, Module, Head, Head) :- !.
 '$prefix_module'(Module, _, Head, Module:Head).
 
+%%	default_module(+Me, -Super) is nondet.
+%
+%	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
+
+default_module(Me, Me).
+default_module(Me, Super) :-
+	import_module(Me, S),
+	default_module(S, Super).
+
 
 		/********************************
 		*      TRACE AND EXCEPTIONS     *

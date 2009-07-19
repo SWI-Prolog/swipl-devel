@@ -524,65 +524,65 @@ pl_set_prolog_hook(term_t module, term_t old, term_t new)
 #endif
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Find the module in which to call   term_expansion/2. This is the current
-source-module and module user, provide term_expansion/2 is defined. Note
-this predicate does not generate modules for which there is a definition
-that has no clauses. The predicate would fail anyhow.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+static int
+find_modules_with_def(Module m, functor_t fdef,
+		      term_t h, term_t t,
+		      int l ARG_LD)
+{ Procedure proc;
+  ListCell c;
 
-static word
-expansion_module(term_t name, functor_t func, control_t h ARG_LD)
-{ Module m;
-  Procedure proc;
+  DEBUG(9, Sdprintf("Trying %s\n", PL_atom_chars(m->name)));
 
-  switch(ForeignControl(h))
-  { case FRG_FIRST_CALL:
-      m = LD->modules.source;
-      break;
-    case FRG_REDO:
-      m = MODULE_user;
-      break;
-    default:
-      succeed;
+  if ( l < 0 )
+  { sysError("OOPS loop in default modules???\n");
+    fail;
   }
 
-  while(1)
-  { if ( (proc = isCurrentProcedure(func, m)) &&
-	 proc->definition->definition.clauses &&
-	 PL_unify_atom(name, m->name) )
-    { if ( m == MODULE_user )
-	PL_succeed;
-      else
-	ForeignRedoInt(1);
-    } else
-    { if ( m == MODULE_user )
-	PL_fail;
-      m = MODULE_user;
-    }
+  if ( (proc = isCurrentProcedure(fdef, m)) &&
+       proc->definition->definition.clauses )
+  { if ( !(PL_unify_list(t, h, t) &&
+	   PL_unify_atom(h, m->name)) )
+      fail;
   }
 
-  PL_fail;				/* should not get here */
+  for(c = m->supers; c; c=c->next)
+  { Module s = c->value;
+
+    if ( !find_modules_with_def(s, fdef, h, t, l-1 PASS_LD) )
+      fail;
+  }
+
+  succeed;
 }
 
 
+/** '$def_modules'(:PI, -Modules) is det.
+
+Modules is unified with a list of modules   that define PI and appear in
+the import modules of the original module.  Search starts in the current
+source module if PI is not qualified.  Only   modules  in which PI has a
+real definition are returned  (i.e.,  _not_   modules  where  PI is only
+defined as dynamic or multifile.
+
+@see	boot/expand.pl uses this to find relevant modules that define
+	term_expansion/2 and/or goal_expansion/2 definitions.
+*/
+
 static
-PRED_IMPL("$term_expansion_module", 1, term_expansion_module,
-	  PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
 { PRED_LD
+  Module m = LD->modules.source;
+  functor_t fdef;
+  term_t head = PL_new_term_ref();
+  term_t tail = PL_copy_term_ref(A2);
 
-  return expansion_module(A1, FUNCTOR_term_expansion2,
-			  PL__ctx PASS_LD);
-}
+  if ( !get_functor(A1, &fdef, &m, 0, GF_PROCEDURE) )
+    fail;
 
+  if ( !find_modules_with_def(m, fdef, head, tail, 100 PASS_LD) )
+    fail;
 
-static
-PRED_IMPL("$goal_expansion_module", 1, goal_expansion_module,
-	  PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-
-  return expansion_module(A1, FUNCTOR_goal_expansion2,
-			  PL__ctx PASS_LD);
+  return PL_unify_nil(tail);
 }
 
 
@@ -944,12 +944,9 @@ pl_import(term_t pred)
 		 *******************************/
 
 BeginPredDefs(module)
-  PRED_DEF("$term_expansion_module", 1, term_expansion_module,
-	   PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$goal_expansion_module", 1, goal_expansion_module,
-	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("import_module", 2, import_module,
 	   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
   PRED_DEF("$declare_module", 4, declare_module, 0)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
