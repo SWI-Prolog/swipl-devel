@@ -31,6 +31,7 @@
 
 :- module((record),
 	  [ (record)/1,			% +Record
+	    current_record/2,		% ?Name, ?Term
 	    op(1150, fx, record)
 	  ]).
 :- use_module(library(error)).
@@ -57,6 +58,13 @@ _directive_.  Here is a simple example declaration and some calls.
 @author Richard O'Keefe
 */
 
+:- multifile
+	error:has_type/2.
+
+error:has_type(record(M:Name), X) :-
+	current_record(Name, M, _, X, IsX), !,
+	call(IsX).
+
 %%	record(+RecordDef)
 %
 %	Define access predicates for a compound-term. RecordDef is of
@@ -79,6 +87,7 @@ _directive_.  Here is a simple example declaration and some calls.
 %	  * set_<constructor>_fields(+Fields, +Record0, -Record).
 %	  * set_<constructor>_fields(+Fields, +Record0, -Record, -RestFields).
 %	  * set_<constructor>_field(+Field, +Record0, -Record).
+%	  * user:current_record(:<constructor>)
 
 record(Record) :-
 	throw(error(context_error(nodirective, record(Record)), _)).
@@ -94,7 +103,7 @@ compile_records(Spec, Clauses) :-
 
 compile_records(Var) -->
 	{ var(Var), !,
-	  type_error(record_declaration, Var)
+	  instantiation_error(Var)
 	}.
 compile_records((A,B)) -->
 	compile_record(A),
@@ -120,7 +129,31 @@ compile_record(RecordDef) -->
 	set_predicates(Names, 1, Arity, Types, Constructor),
 	set_field_predicates(Names, 1, Arity, Types, Constructor),
 	make_predicate(Constructor),
-	is_predicate(Constructor, Types).
+	is_predicate(Constructor, Types),
+	current_clause(RecordDef).
+
+:- meta_predicate
+	current_record(:).
+:- multifile
+	current_record/5.		% Name, Module, Term, X, IsX
+
+%%	current_record(?Name, :Term)
+%
+%	True if Name is the  name  of   a  record  defined in the module
+%	associated with Term  and  Term   is  the  user-provided  record
+%	declaration.
+
+current_record(Name, M:Term) :-
+	current_record(Name, M, Term, _, _).
+
+current_clause(RecordDef) -->
+	{ prolog_load_context(module, M),
+	  functor(RecordDef, Name, _),
+	  atom_concat(is_, Name, IsName),
+	  IsX =.. [IsName, X]
+	},
+	[ (record):current_record(Name, M, RecordDef, X, IsX)
+	].
 
 
 %%	make_predicate(+Constructor)// is det.
@@ -205,9 +238,19 @@ type_checks([Type|T], [V|Vars], (Goal, Body)) :-
 %	Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
-	Type \= list(_),
-	clause(error:has_type(Type, Var), Body), !.
-type_goal(Type, Var, is_of_type(Type, Var)).
+	defined_type(Type, Var, Body), !.
+type_goal(record(Record), Var, Body) :- !,
+	atom_concat(is_, Record, Pred),
+	Body =.. [Pred,Var].
+type_goal(Record, Var, Body) :-
+	atom(Record), !,
+	atom_concat(is_, Record, Pred),
+	Body =.. [Pred,Var].
+type_goal(Type, _, _) :-
+	domain_error(type, Type).
+
+defined_type(Type, Var, error:Body) :-
+	clause(error:has_type(Type, Var), Body).
 
 
 clean_body((A0,true), A) :- !,
@@ -262,16 +305,26 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 	  ->  Clause = Head,
 	      SetClause = (SetHead :- setarg(I, Term, Value)),
 	      NBSetClause = (NBSetHead :- nb_setarg(I, Term, Value))
-	  ;   Clause = (Head :- must_be(Type, Value)),
-	      SetClause = (SetHead :- must_be(Type, Value),
+	  ;   type_check(Type, Value, MustBe),
+	      Clause = (Head :- MustBe),
+	      SetClause = (SetHead :- MustBe,
 				      setarg(I, Term, Value)),
-	      NBSetClause = (NBSetHead :- must_be(Type, Value),
+	      NBSetClause = (NBSetHead :- MustBe,
 				          nb_setarg(I, Term, Value))
 	  ),
 	  I2 is I + 1
 	},
 	[ Clause, SetClause, NBSetClause ],
 	set_predicates(NT, I2, Arity, TT, Constructor).
+
+type_check(Type, Value, must_be(Type, Value)) :-
+	defined_type(Type, Value, _), !.
+type_check(record(Spec), Value, must_be(record(M:Name), Value)) :- !,
+	prolog_load_context(module, C),
+	strip_module(C:Spec, M, Name).
+type_check(Atom, Value, Check) :-
+	atom(Atom), !,
+	type_check(record(Atom), Value, Check).
 
 
 %%	set_field_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
@@ -292,7 +345,8 @@ set_field_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 	  SetFieldHead =.. [FieldPredName, NameTerm, Old, New],
 	  (   Type == any
 	  ->  SetField = SetFieldHead
-	  ;   SetField = (SetFieldHead :- must_be(Type, Value))
+	  ;   type_check(Type, Value, MustBe),
+	      SetField = (SetFieldHead :- MustBe)
 	  ),
 	  I2 is I + 1
 	},
