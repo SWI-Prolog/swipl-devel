@@ -569,15 +569,19 @@ goal_expansion/2 is called on \arg{Goal} using rules from module
 \arg{Module} followed by \const{user}.
 
 Only goals appearing in the body of clauses when reading a source-file
-are expanded using this mechanism, and only if they appear literally in the
-clause, or as an argument to the meta-predicates not/1, call/1, once/1,
-ignore/1, findall/3, bagof/3, setof/3 or forall/2. A real predicate
-definition is required to deal with dynamically constructed calls.
+are expanded using this mechanism, and only if they appear literally in
+the clause, or as an argument to a defined meta-predicate that is
+annotated using `0' (see meta_predicate/1). Other cases need a real
+predicate definition.
 
     \predicate{expand_goal}{2}{+Goal1, -Goal2}
 This predicate is normally called by the compiler to perform
-preprocessing. First it calls goal_expansion/2. If this fails it returns
-the first argument.
+preprocessing using goal_expansion/2.  The predicate computes a
+fixed-point by applying transformations until there are no more
+changes.  If optimisation is enabled (see \cmdlineoption{-O} and
+\prologflag{optimise}), expand_goal/2 simplifies the result by
+removing unneeded calls to true/0 and fail/0 as well as unreachable
+branches.
 
     \predicate{compile_aux_clauses}{1}{+Clauses}
 Compile clauses on behalf of goal_expansion/2.  This predicate compiled
