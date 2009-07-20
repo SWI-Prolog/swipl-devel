@@ -6472,7 +6472,7 @@ A Windows DDE conversation is a form of interprocess communication
 based on sending reserved window-events between the communicating
 processes.
 
-See also \secref{DLL} for loading Windows DLL's into SWI-Prolog.
+See also \secref{shlib} for loading Windows DLL's into SWI-Prolog.
 
 
 \subsection{DDE client interface}

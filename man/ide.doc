@@ -22,7 +22,7 @@ project.  If you are doing exercises for a Prolog course you'll normally
 use one file for each exercise.  If you have a small project you'll work
 work with one directory holding a couple of files and some files to
 link it all together.  Even bigger projects will be organised in
-sub-projects each using their own directory.	
+sub-projects each using their own directory.
 
 \subsection{File Names and Locations}
 
@@ -88,7 +88,7 @@ and readable specifications.
 Suppose you have extensive library packages on graph-algorithms,
 set-operations and GUI-primitives. These sub-projects are likely
 candidates for re-use in future projects. A good choice is to create a
-directory with sub-directories for each of these sub-projects.  
+directory with sub-directories for each of these sub-projects.
 
 Next, there are three options.  One is to add the sub-projects to the
 directory-hierarchy of the current project. Another is to use a
@@ -276,7 +276,7 @@ Please select item to edit:
   1 chat:country/10	 '/staff/jan/lib/prolog/chat/countr.pl':16
   2 chat:country/1       '/staff/jan/lib/prolog/chat/world0.pl':72
 
-Your choice? 
+Your choice?
 \end{code}
 
 
@@ -338,7 +338,7 @@ beginners.%
 
 At the basis, PceEmacs maps keyboard sequences to methods defined on the
 extended \class{editor} object. Some frequently used commands are, with
-their key-binding, presented in the menu-bar above each editor window. 
+their key-binding, presented in the menu-bar above each editor window.
 A complete overview of the bindings for the current \jargon{mode} is
 provided through \menu{Help/Show key bindings}{Control-h Control-b}.
 
@@ -435,7 +435,7 @@ practice, this system allows for very fast entering code with nice and
 readable identifiers (or other difficult long words).
 
     \item [Open (a file)]
-Is called \menu{File/Find file}{Control-x Control-f}.  By default the 
+Is called \menu{File/Find file}{Control-x Control-f}.  By default the
 file is loaded into the current window. If you want to keep this window,
 Hit \key{Alt-s} or click the little icon at the bottom-left to make the
 window \jargon{sticky}.
@@ -483,7 +483,7 @@ further down the file than the actual error-location.}
 After a short pause (2 seconds), PceEmacs opens the edit-buffer and
 reads it as a whole, creating an index of defined, called, dynamic,
 imported and exported predicates.  After completing this, it re-reads
-the file and colours all clauses and calls with valid syntax.  
+the file and colours all clauses and calls with valid syntax.
 
     \item [After typing \key{Control-l Control-l}]
 The \key{Control-l} commands re-centers the window (scrolls the window
@@ -602,7 +602,7 @@ debugger. The window-based debugger requires XPCE installed. It operates
 based on the prolog_trace_interception/4 hook and other low-level
 functionality described in \chapref{hack}.
 
-Window-based tracing provides much better overview due to the eminent 
+Window-based tracing provides much better overview due to the eminent
 relation to your source-code, a clear list of named variables and their
 bindings as well as a graphical overview of the call and choice-point
 stack. There are some drawbacks though. Using a textual trace on the
@@ -697,7 +697,7 @@ of predicates and their callers.
 \end{description}
 
 
-\section{Summary of the iDE}		\label{sec:idesummary}
+\section{Summary of the IDE}		\label{sec:idesummary}
 
 The SWI-Prolog development environment consists of a number of
 interrelated but not (yet) integrated tools.  Here is a list of the most
