@@ -4041,8 +4041,10 @@ regin_attach([X|Xs], Prop, Right) :-
 
 append_to_key(Key, Assoc0, Elem, Assoc) :-
         (   get_assoc(Key, Assoc0, Elems) ->
-            put_assoc(Key, Assoc0, [Elem|Elems], Assoc)
-        ;   put_assoc(Key, Assoc0, [Elem], Assoc)
+            Elems = ls(Es),
+            setarg(1, Elems, [Elem|Es]),
+            Assoc = Assoc0
+        ;   put_assoc(Key, Assoc0, ls([Elem]), Assoc)
         ).
 
 difference_arcs(Vars, Hash, RevHash, FreeLeft, FreeRight) :-
@@ -4115,7 +4117,7 @@ augmenting_path_to_length(Level, Levels0, NLs0, NLs, FR, Hash0, RevHash, Right, 
                             gen_assoc(To, Arcs, m(0)),
                             \+ get_assoc(r(To), NLs0, _)), Tos0)
         ;   findall(l(A), (member(r(V), Vs),
-                            get_assoc(V, RevHash, Fs),
+                            get_assoc(V, RevHash, ls(Fs)),
                             member(A, Fs),
                             \+ get_assoc(l(A), NLs0, _),
                             arg(A, Hash0, As),
@@ -4147,7 +4149,7 @@ augmenting_path(l(N), Level0, Levels, HashArcs, RevHash, Path0, Path) :-
         ).
 augmenting_path(r(N), Level0, Levels, Arcs, RevArcs, Path0, Path) :-
         Level1 is Level0 - 1,
-        get_assoc(N, RevArcs, Fs),
+        get_assoc(N, RevArcs, ls(Fs)),
         member(A, Fs),
         get_assoc(l(A), Levels, Level1),
         arg(A, Arcs, As),
@@ -4230,15 +4232,15 @@ unused_arc(Hash, M, Roots, From-To) :-
         gen_assoc(To, Tos, m(0)),
         arg(From, M, MTos),
         get_assoc(To, MTos, m(0)),
-        get_assoc(l(From), Roots, RL),
-        get_assoc(r(To), Roots, RR),
+        get_assoc(l(From), Roots, ll(RL)),
+        get_assoc(r(To), Roots, ll(RR)),
         RL =\= RR.
 
 dfs_used([], _, _, _, _, _).
 dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
         (   memberchk(r(V), Vis0) ->
             dfs_used(Vs, G0L, G0R, Vis0, Hash0, Hash)
-        ;   (   get_assoc(V, G0R, Tos) ->
+        ;   (   get_assoc(V, G0R, ls(Tos)) ->
                 dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
                 dfs_used(Vs, G0L, G0R, Vis1, Hash0, Hash)
             ;   dfs_used(Vs, G0L, G0R, [r(V)|Vis0], Hash0, Hash)
@@ -4252,7 +4254,7 @@ dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         setarg(1, M, 1),
         (   memberchk(l(V), Vis0) ->
             dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   get_assoc(V, G0L, Tos),
+        ;   get_assoc(V, G0L, ls(Tos)),
             dfs_used_r(Tos, V, G0L, G0R, [l(V)|Vis0], Vis1, Hash0, Hash),
             dfs_used_l(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
         ).
@@ -4264,7 +4266,7 @@ dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         setarg(1, M, 1),
         (   memberchk(r(V), Vis0) ->
             dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   (   get_assoc(V, G0R, Tos) ->
+        ;   (   get_assoc(V, G0R, ls(Tos)) ->
                 dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
                 dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
             ;   dfs_used_r(Vs, From, G0L, G0R, [r(V)|Vis0], Vis, Hash0, Hash)
@@ -4287,14 +4289,14 @@ vindex_is_index(V) -->
         state(S0, S),
         { regin_index(S0, Index),
           regin_vindex(S0, VI0),
-          put_assoc(V, VI0, Index, VI1),
+          put_assoc(V, VI0, vi(Index), VI1),
           set_vindex_of_regin(VI1, S0, S) }.
 
 vlowlink_is_index(V) -->
         state(S0, S),
         { regin_index(S0, Index),
           regin_vlowlink(S0, VL0),
-          put_assoc(V, VL0, Index, VL1),
+          put_assoc(V, VL0, ll(Index), VL1),
           set_vlowlink_of_regin(VL1, S0, S) }.
 
 index_plus_one -->
@@ -4311,30 +4313,30 @@ s_push(V)  -->
 successors(r(V), Tos) -->
         state(S),
         { regin_g0r(S, G0R),
-          (   get_assoc(V, G0R, Tos) ->  true ; Tos = [] ) }.
+          (   get_assoc(V, G0R, ls(Tos)) ->  true ; Tos = [] ) }.
 successors(l(V), Tos) -->
         state(S),
         { regin_g0l(S, G0L),
-          (   get_assoc(V, G0L, Tos) -> true ; Tos = [] ) }.
+          (   get_assoc(V, G0L, ls(Tos)) -> true ; Tos = [] ) }.
 
 vlowlink_min_lowlink(V, VP) -->
-        state(S0, S),
+        state(S0),
         { regin_vlowlink(S0, LL0),
           get_assoc(V, LL0, VL),
           get_assoc(VP, LL0, VPL),
-          VL1 is min(VL, VPL),
-          put_assoc(V, LL0, VL1, LL1),
-          set_vlowlink_of_regin(LL1, S0, S) }.
+          VL = ll(IVL), VPL = ll(IVPL),
+          VL1 is min(IVL, IVPL),
+          setarg(1, VL, VL1) }.
 
 vlowlink_min_index(V, VP) -->
-        state(S0, S),
+        state(S0),
         { regin_vlowlink(S0, LL0),
           regin_vindex(S0, I),
           get_assoc(V, LL0, VL),
           get_assoc(VP, I, VPI),
-          VL1 is min(VL, VPI),
-          put_assoc(V, LL0, VL1, LL1),
-          set_vlowlink_of_regin(LL1, S0, S) }.
+          VL = ll(IVL), VPI = vi(IVPI),
+          VL1 is min(IVL, IVPI),
+          setarg(1, VL, VL1) }.
 
 scc_([])     --> [].
 scc_([V|Vs]) -->
@@ -4353,8 +4355,8 @@ scc(V) -->
         state(S0),
         (   { regin_vlowlink(S0, LL),
               regin_vindex(S0, I),
-              get_assoc(V, I, VI),
-              get_assoc(V, LL, VI) } -> pop_stack_to(V, VI)
+              get_assoc(V, I, vi(VI)),
+              get_assoc(V, LL, ll(VI)) } -> pop_stack_to(V, VI)
         ;   []
         ).
 
@@ -4363,11 +4365,10 @@ pop_stack_to(V, N) -->
         { regin_stack(S0, [First|Stack]) },
         { set_stack_of_regin(Stack, S0, S1) },
         (   { First == V } -> []
-        ;   state(S1, S),
+        ;   state(S1),
             { regin_vlowlink(S1, VL),
-              put_assoc(First, VL, N, VL1),
-              set_vlowlink_of_regin(VL1, S1, S)
-            },
+              get_assoc(First, VL, VL1),
+              setarg(1, VL1, N) },
             pop_stack_to(V, N)
         ).
 
