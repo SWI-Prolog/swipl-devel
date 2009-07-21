@@ -4119,9 +4119,9 @@ augmenting_path_to_length(Level, Levels0, NLs0, NLs, FR, Hash0, RevHash, Right, 
         ;   findall(l(A), (member(r(V), Vs),
                             get_assoc(V, RevHash, ls(Fs)),
                             member(A, Fs),
-                            \+ get_assoc(l(A), NLs0, _),
                             arg(A, Hash0, As),
-                            get_assoc(V, As, m(1))), Tos0)
+                            get_assoc(V, As, m(1)),
+                            \+ get_assoc(l(A), NLs0, _)), Tos0)
         ),
         sort(Tos0, Tos),        % remove duplicates
         Tos = [_|_],
