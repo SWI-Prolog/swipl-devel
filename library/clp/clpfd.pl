@@ -4059,9 +4059,9 @@ difference_arcs(Vars, Hash, RevHash, FreeLeft, FreeRight) :-
    0,1,2,..., the values represent themselves. To represent the
    matching in the bipartite graph: "Hash" is a term hash(...), where
    the i-th argument is an association list for variable i: Its keys
-   are the variable's domain elements, and the value is either 0 or 1,
-   denoting whether the edge is part of the matching. RevHash is an
-   association list, associating with each domain element a list of
+   are the variable's domain elements, and the value is either m(0) or
+   m(1), denoting whether the edge is part of the matching. RevHash is
+   an association list, associating with each domain element a list of
    variables whose domain contains the value. Instead of a list, it
    would make sense to also let it be an association list and maintain
    (reverse) edge information.
@@ -4088,48 +4088,47 @@ difference_arcs([V|Vs], N0, Hash, RevHash0, RevHash, FL, FR0, FR) :-
 enumerate([], _, _, R, R, F, F).
 enumerate([N|Ns], I, H, R0, R, F0, F) :-
         arg(I, H, As),
-        put_assoc(N, As, 0, As1),
+        put_assoc(N, As, m(0), As1),
         setarg(I, H, As1),
         append_to_key(N, R0, I, R1),
         enumerate(Ns, I, H, R1, R, [N|F0], F).
+
 
 maximum_matching([], FR, FR, _, _) :- !.
 maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
         empty_assoc(E),
         put_assoc(0, E, [l(FL)], Levels),
-        put_assoc(l(FL), E, 0, NodesLevels),
-        augmenting_path_length(1, Levels, NodesLevels, FR0, Hash0, RevHash, 0, Length),
-        length(Path, Length),
-        once(augmenting_path(l(FL), E, E, FR0, FR1, Hash0, RevHash, Path)),
+        put_assoc(l(FL), E, 0, NodesLevels0),
+        augmenting_path_to_length(1, Levels, NodesLevels0, NodesLevels, FR0, Hash0, RevHash, To, 0, Length),
+        once(augmenting_path(r(To), Length, NodesLevels, Hash0, RevHash, [], Path)),
+        delete(FR0, To, FR1),
         adjust_alternate_1(Path, Hash0),
         maximum_matching(FLs, FR1, FR, Hash0, RevHash).
 
-augmenting_path_length(Level, Levels0, NLs, FR, Hash0, RevHash, Length0, Length) :-
+augmenting_path_to_length(Level, Levels0, NLs0, NLs, FR, Hash0, RevHash, Right, Length0, Length) :-
         Previous is Level - 1,
         get_assoc(Previous, Levels0, Vs),
         Length1 is Length0 + 1,
         (   Level mod 2 =:= 1 ->
             findall(r(To), (member(l(V), Vs),
                             arg(V, Hash0, Arcs),
-                            gen_assoc(To, Arcs, 0),
-                            \+ get_assoc(r(To), NLs, _)), Tos0)
+                            gen_assoc(To, Arcs, m(0)),
+                            \+ get_assoc(r(To), NLs0, _)), Tos0)
         ;   findall(l(A), (member(r(V), Vs),
                             get_assoc(V, RevHash, Fs),
                             member(A, Fs),
-                            \+ get_assoc(l(A), NLs, _),
+                            \+ get_assoc(l(A), NLs0, _),
                             arg(A, Hash0, As),
-                            get_assoc(V, As, 1)), Tos0)
+                            get_assoc(V, As, m(1))), Tos0)
         ),
         sort(Tos0, Tos),        % remove duplicates
         Tos = [_|_],
-        (   Level mod 2 =:= 1,
-            member(Free, FR),
-            memberchk(r(Free), Tos) ->
-            Length = Length1
-        ;   all_level(Tos, Level, NLs, NLs1),
+        (   Level mod 2 =:= 1, member(Free, FR), memberchk(r(Free), Tos) ->
+            Length = Length1, Right = Free, NLs = NLs0
+        ;   all_level(Tos, Level, NLs0, NLs1),
             put_assoc(Level, Levels0, Tos, Levels1),
             Level1 is Level + 1,
-            augmenting_path_length(Level1, Levels1, NLs1, FR, Hash0, RevHash, Length1, Length)
+            augmenting_path_to_length(Level1, Levels1, NLs1, NLs, FR, Hash0, RevHash, Right, Length1, Length)
         ).
 
 all_level([], _, NLs, NLs).
@@ -4138,38 +4137,35 @@ all_level([V|Vs], Level, NLs0, NLs) :-
         all_level(Vs, Level, NLs1, NLs).
 
 
-augmenting_path(l(N), LV, RV, RF0, RF, HashArcs, RevHash, [arc(N,To)|Ps]) :-
-        arg(N, HashArcs, Arcs),
-        gen_assoc(To, Arcs, 0),
-        \+ get_assoc(To, RV, _),
-        put_assoc(N, LV, visited, LV1),
-        augmenting_path(r(To), LV1, RV, RF0, RF, HashArcs, RevHash, Ps).
-augmenting_path(r(N), LV, RV, RF0, RF, Arcs, RevArcs, Ps) :-
-        (   Ps = [] ->
-            memberchk(N, RF0),
-            delete(RF0, N, RF)
-        ;   Ps = [arc(A,N)|Ps1],
-            get_assoc(N, RevArcs, Fs),
-            member(A, Fs),
-            \+ get_assoc(A, LV, _),
-            arg(A, Arcs, As),
-            get_assoc(N, As, 1),
-            put_assoc(N, RV, visited, RV1),
-            augmenting_path(l(A), LV, RV1, RF0, RF, Arcs, RevArcs, Ps1)
+augmenting_path(l(N), Level0, Levels, HashArcs, RevHash, Path0, Path) :-
+        (   Level0 =:= 0 -> Path0 = Path
+        ;   Level1 is Level0 - 1,
+            arg(N, HashArcs, Arcs),
+            gen_assoc(To, Arcs, m(1)),
+            get_assoc(r(To), Levels, Level1),
+            augmenting_path(r(To), Level1, Levels, HashArcs, RevHash, [arc(N,To)|Path0], Path)
         ).
+augmenting_path(r(N), Level0, Levels, Arcs, RevArcs, Path0, Path) :-
+        Level1 is Level0 - 1,
+        get_assoc(N, RevArcs, Fs),
+        member(A, Fs),
+        get_assoc(l(A), Levels, Level1),
+        arg(A, Arcs, As),
+        get_assoc(N, As, m(0)),
+        augmenting_path(l(A), Level1, Levels, Arcs, RevArcs, [arc(A,N)|Path0], Path).
 
 
 adjust_alternate_1([arc(A,B)|Arcs], Hash) :-
         arg(A, Hash, As),
-        put_assoc(B, As, 1, As1),
-        setarg(A, Hash, As1),
+        get_assoc(B, As, M),
+        setarg(1, M, 1),
         adjust_alternate_0(Arcs, Hash).
 
 adjust_alternate_0([], _).
 adjust_alternate_0([arc(A,B)|Arcs], Hash) :-
         arg(A, Hash, As),
-        put_assoc(B, As, 0, As1),
-        setarg(A, Hash, As1),
+        get_assoc(B, As, M),
+        setarg(1, M, 0),
         adjust_alternate_1(Arcs, Hash).
 
 remove_ground([], _).
@@ -4195,7 +4191,7 @@ g_g0([To|Rest], From, G0L0, G0L, G0R0, G0R) :-
 
 g_g0_([], _, G0L, G0L, G0R, G0R).
 g_g0_([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
-        (   Val =:= 1 ->
+        (   Val = m(1) ->
             append_to_key(From, G0L0, To, G0L1),
             g_g0_(Rest, From, G0L1, G0L, G0R0, G0R)
         ;   append_to_key(To, G0R0, From, G0R1),
@@ -4231,9 +4227,9 @@ regin_remove([From-To|Rest], Vars) :-
 
 unused_arc(Hash, M, Roots, From-To) :-
         arg(From, Hash, Tos),
-        gen_assoc(To, Tos, 0),
+        gen_assoc(To, Tos, m(0)),
         arg(From, M, MTos),
-        get_assoc(To, MTos, 0),
+        get_assoc(To, MTos, m(0)),
         get_assoc(l(From), Roots, RL),
         get_assoc(r(To), Roots, RR),
         RL =\= RR.
@@ -4252,8 +4248,8 @@ dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
 dfs_used_l([], _, _, _, Vis, Vis, _, _).
 dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         arg(V, Hash0, Tos0),
-        put_assoc(From, Tos0, 1, Tos1),
-        setarg(V, Hash0, Tos1),
+        get_assoc(From, Tos0, M),
+        setarg(1, M, 1),
         (   memberchk(l(V), Vis0) ->
             dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
         ;   get_assoc(V, G0L, Tos),
@@ -4264,8 +4260,8 @@ dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
 dfs_used_r([], _, _, _, Vis, Vis, _, _).
 dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         arg(From, Hash0, Tos0),
-        put_assoc(V, Tos0, 1, Tos1),
-        setarg(From, Hash0, Tos1),
+        get_assoc(V, Tos0, M),
+        setarg(1, M, 1),
         (   memberchk(r(V), Vis0) ->
             dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
         ;   (   get_assoc(V, G0R, Tos) ->
