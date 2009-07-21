@@ -4143,9 +4143,10 @@ augmenting_path(l(N), Level0, Levels, HashArcs, RevHash, Path0, Path) :-
         (   Level0 =:= 0 -> Path0 = Path
         ;   Level1 is Level0 - 1,
             arg(N, HashArcs, Arcs),
-            gen_assoc(To, Arcs, m(1)),
+            gen_assoc(To, Arcs, M),
+            M = m(1),
             get_assoc(r(To), Levels, Level1),
-            augmenting_path(r(To), Level1, Levels, HashArcs, RevHash, [arc(N,To)|Path0], Path)
+            augmenting_path(r(To), Level1, Levels, HashArcs, RevHash, [M|Path0], Path)
         ).
 augmenting_path(r(N), Level0, Levels, Arcs, RevArcs, Path0, Path) :-
         Level1 is Level0 - 1,
@@ -4153,20 +4154,17 @@ augmenting_path(r(N), Level0, Levels, Arcs, RevArcs, Path0, Path) :-
         member(A, Fs),
         get_assoc(l(A), Levels, Level1),
         arg(A, Arcs, As),
-        get_assoc(N, As, m(0)),
-        augmenting_path(l(A), Level1, Levels, Arcs, RevArcs, [arc(A,N)|Path0], Path).
+        get_assoc(N, As, M),
+        M = m(0),
+        augmenting_path(l(A), Level1, Levels, Arcs, RevArcs, [M|Path0], Path).
 
 
-adjust_alternate_1([arc(A,B)|Arcs], Hash) :-
-        arg(A, Hash, As),
-        get_assoc(B, As, M),
+adjust_alternate_1([M|Arcs], Hash) :-
         setarg(1, M, 1),
         adjust_alternate_0(Arcs, Hash).
 
 adjust_alternate_0([], _).
-adjust_alternate_0([arc(A,B)|Arcs], Hash) :-
-        arg(A, Hash, As),
-        get_assoc(B, As, M),
+adjust_alternate_0([M|Arcs], Hash) :-
         setarg(1, M, 0),
         adjust_alternate_1(Arcs, Hash).
 
