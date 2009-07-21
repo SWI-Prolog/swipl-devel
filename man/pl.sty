@@ -136,11 +136,6 @@
 %	Predicate   descriptions.   Must   appear   in   a   description
 %	environment.
 
-\newcommand{\directive}[3]{%
-	\ifthenelse{\equal{#2}{0}}{%
-	    \defentry{:- #1}}{%
-	    \defentry{:- #1({\it #3})}}%
-	\index{#1/#2}\ignorespaces}
 \newcommand{\resitem}[1]{%
 	\defentry{#1}%
 	\index{#1}\ignorespaces}
@@ -156,6 +151,17 @@
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2\predatt{#1}}}{%
 	    \defentry{#2({\it #4})\predatt{#1}}}%
+	\index{#2/#3}\ignorespaces}
+\def\directive{\@ifnextchar[{\@attdirective}{\@directive}}
+\def\@directive#1#2#3{%
+	\ifthenelse{\equal{#2}{0}}{%
+	    \defentry{:- #1}}{%
+	    \defentry{:- #1({\it #3})}}%
+	\index{#1/#2}\ignorespaces}
+\def\@attdirective[#1]#2#3#4{%
+	\ifthenelse{\equal{#3}{0}}{%
+	    \defentry{:- #2\predatt{#1}}}{%
+	    \defentry{:- #2({\it #4})\predatt{#1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%

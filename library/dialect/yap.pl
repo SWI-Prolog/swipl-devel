@@ -111,8 +111,6 @@ yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
 yap_expansion(style_check(Style),
 	      yap_style_check(Style)).
-yap_expansion(initialization(Goal),
-	      yap_initialization(Goal)).
 
 
 		 /*******************************
@@ -264,30 +262,6 @@ yap_style_check(all) :- !,
 			   ]).
 yap_style_check(Style) :-
 	fixme_true(yap_style_check(Style)).
-
-
-%%	yap_initialization(:Goal) is det.
-%
-%	Register a goal to be ran `after preparing the Prolog text
-%	for execution'.  Currently we interpret this as at the end
-%	of the file.
-
-:- dynamic
-	yap_init_goal/2.		% +File, :Goal
-
-yap_initialization(Goal) :-
-	prolog_load_context(file, File),
-	assert(yap_init_goal(File, Goal)).
-
-user:message_hook(load_file(done(_Level,
-				 file(_File, Absolute),
-				 _Action,
-				 _LM,
-				 _TimeUsed,
-				 _HeapUsed)),
-		  _Kind, _Lines) :-
-	retract(yap_init_goal(Absolute, Goal)),
-	system:initialization(Goal).
 
 
 		 /*******************************

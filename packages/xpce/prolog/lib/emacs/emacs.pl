@@ -54,7 +54,7 @@ user:file_search_path(emacs_user_library,
 		 *           PROLOG		*
 		 *******************************/
 
-:- initialization new(@loading_emacs, object).
+:- new(@loading_emacs, object).
 					% SWI-Prolog extensions
 pce_ifhostproperty(prolog(swi),
 		   (:- ensure_loaded(user:library('emacs/swi_prolog')))).

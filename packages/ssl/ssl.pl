@@ -37,8 +37,7 @@
 	    ssl_exit/1			% +Config
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(ssl4pl)).
+:- use_foreign_library(foreign(ssl4pl)).
 
 ssl_open(Config, In, Out) :-
 	ssl_open(Config, -, In, Out).

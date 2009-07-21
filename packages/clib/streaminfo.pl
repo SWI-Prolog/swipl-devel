@@ -31,8 +31,7 @@
 	  [ stream_info/1		% +Stream
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(streaminfo)).
+:- use_foreign_library(foreign(streaminfo)).
 
 %%	stream_info(+Stream) is det.
 %

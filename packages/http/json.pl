@@ -43,8 +43,7 @@
 :- use_module(library(error)).
 :- use_module(library(option)).
 
-:- initialization
-   load_foreign_library(foreign(json)).
+:- use_foreign_library(foreign(json)).
 
 /** <module> Reading and writing JSON serialization
 

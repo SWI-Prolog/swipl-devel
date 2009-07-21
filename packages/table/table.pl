@@ -50,4 +50,4 @@
 	    sub_string/3
 	  ]).
 
-:- initialization load_foreign_library(foreign(table)).
+:- use_foreign_library(foreign(table)).

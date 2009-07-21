@@ -272,6 +272,75 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
 
 
+		 /*******************************
+		 *	 INITIALIZATION		*
+		 *******************************/
+
+:- meta_predicate
+	initialization(0, +).
+
+:- dynamic
+	'$init_goal'/3.
+
+%%	initialization(:Goal, +When)
+%
+%	Register Goal to be executed if a saved state is restored. In
+%	addition, the goal is executed depending on When:
+%
+%	    * now
+%	    Execute immediately
+%	    * after_load
+%	    Execute after loading the file in which it appears
+%	    * restore
+%	    Do not execute immediately, but only when restoring the
+%	    state.
+
+initialization(Goal, When) :-
+	'$initialization_context'(Ctx),
+	(   When == now
+	->  Goal,
+	    assert('$init_goal'(-, Goal, Ctx))
+	;   When == after_load
+	->  (   Ctx = File:_Line
+	    ->	assert('$init_goal'(File, Goal, Ctx))
+	    ;	throw(error(context_error(nodirective,
+					  initialization(Goal, after_load)),
+			    _))
+	    )
+	;   When == restore
+	->  assert('$init_goal'(-, Goal, Ctx))
+	;   (   var(When)
+	    ->	throw(error(instantiation_error, _))
+	    ;	atom(When)
+	    ->	throw(error(domain_error(initialization_type, When), _))
+	    ;   throw(error(type_error(atom, When), _))
+	    )
+	).
+
+
+'$run_initialization'(File) :-
+	(   '$init_goal'(File, Goal, Ctx),
+	    (   catch(Goal, E, '$initialization_error'(E, Goal, Ctx))
+	    ->  fail
+	    ;   '$initialization_failure'(Goal, Ctx),
+		fail
+	    )
+	;   true
+	).
+
+'$initialization_context'(Ctx) :-
+	(   source_location(File, Line)
+	->  Ctx = File:Line
+	;   Ctx = (-)
+	).
+
+'$initialization_error'(E, Goal, Ctx) :-
+	print_message(error, initialization_error(Goal, E, Ctx)).
+
+'$initialization_failure'(Goal, Ctx) :-
+	print_message(warning, initialization_failure(Goal, Ctx)).
+
+
 		/********************************
 		*            MODULES            *
 		*********************************/
@@ -834,6 +903,7 @@ preprocessor(Old, New) :-
 :- dynamic
 	'$derived_source_db'/3.		% Loaded, DerivedFrom, Time
 
+'$register_derived_source'(_, '-') :- !.
 '$register_derived_source'(Loaded, DerivedFrom) :-
 	retractall('$derived_source_db'(Loaded, _, _)),
 	time_file(DerivedFrom, Time),
@@ -955,7 +1025,7 @@ consult(List) :-
 load_files(Files) :-
 	load_files(Files, []).
 load_files(Module:Files, Options) :-
-        with_mutex('$load', '$load_files'(Files, Module, Options)).
+        '$load_files'(Files, Module, Options).
 
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	memberchk(stream(_), Options), !,
@@ -1035,13 +1105,19 @@ load_files(Module:Files, Options) :-
 	'$spec_extension'(Arg, Ext).
 
 
+%%	'$load_file'(+Spec, +ContextModule, +Options) is det.
+%
+%	Load the file Spec  into   ContextModule  controlled by Options.
+%	This wrapper deals with two cases  before proceeding to the real
+%	loader:
+%
+%	    * User hooks based on prolog_load_file/2
+%	    * The file is already loaded.
+
 '$load_file'(File, Module, Options) :-
 	\+ memberchk(stream(_), Options),
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
-	statistics(heapused, OldHeap),
-	statistics(cputime, OldTime),
-
 	(   memberchk(stream(FromStream), Options)
 	->  true
 	;   absolute_file_name(File,
@@ -1051,101 +1127,148 @@ load_files(Module:Files, Options) :-
 			       FullFile)
 	),
 
-	'$get_option'(imports(Import), Options, all),
-	'$get_option'(reexport(Reexport), Options, false),
-	current_prolog_flag(verbose_load, DefVerbose),
-	'$negate'(DefVerbose, DefSilent),
-	'$get_option'(silent(Silent), Options, DefSilent),
-	'$negate'(Silent, Verbose),
-	set_prolog_flag(verbose_load, Verbose),
 	'$get_option'(if(If), Options, true),
-	'$get_option'(autoload(Autoload), Options, false),
-	'$get_option'(derived_from(DerivedFrom), Options, -),
-
-	current_prolog_flag(generate_debug_info, DebugInfo),
-
-	(   Autoload == false
-	->  flag('$autoloading', AutoLevel, AutoLevel)
-	;   flag('$autoloading', AutoLevel, AutoLevel+1)
-	),
 
 	(   var(FromStream),
 	    '$noload'(If, FullFile)
 	->  (   '$current_module'(LoadModule, FullFile)
-	    ->  '$import_list'(Module, LoadModule, Import, Reexport)
+	    ->  '$import_from_loaded_module'(LoadModule, Module, Options)
 	    ;   (   Module == user
 		->  true
 		;   '$load_file'(File, Module, [if(true)|Options])
 		)
 	    )
-	;   (   nonvar(FromStream)
-	    ->	Absolute = File
-	    ;   '$qlf_file'(File, FullFile, Absolute)
-	    ),
+	;   with_mutex('$load',
+		       '$do_load_file'(File, FullFile, Module, Options)),
+	    '$run_initialization'(FullFile)
+	).
 
-	    flag('$compilation_level', Level, Level),
-	    (   Silent == false,
-		(   flag('$autoloading', 0, 0)
-		;   current_prolog_flag(verbose_autoload, true)
-		)
-	    ->	MessageLevel = informational
-	    ;	MessageLevel = silent
-	    ),
 
-	    '$print_message'(silent /*MessageLevel*/,
-			     load_file(start(Level,
-					     file(File, Absolute)))),
-	    (   nonvar(FromStream),
-		(   '$get_option'(format(qlf), Options, source)
-		->  set_stream(FromStream, file_name(Absolute)),
-		    '$qload_stream'(FromStream, Module, Action, LM, Options)
-		;   '$consult_file'(stream(Absolute, FromStream),
-				    Module, Action, LM, Options)
-		)
-	    ->	true
-	    ;   var(FromStream),
-		'$consult_goal'(Absolute, Goal),
-		call(Goal, Absolute, Module, Action, LM, Options)
-	    ->  true
-	    ;   print_message(error, load_file(failed(File))),
-		fail
-	    ),
 
-	    (	atom(LM)
-	    ->  '$import_list'(Module, LM, Import, Reexport)
-	    ;	true
-	    ),
 
-	    (	Level == 0
-	    ->	garbage_collect_clauses
-	    ;	true
-	    ),
+%%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%
+%	Perform the actual loading. This process is guarded by the mutex
+%	=|$load|=
 
-	    (	DerivedFrom \== -
-	    ->	'$register_derived_source'(Absolute, DerivedFrom)
-	    ;	true
-	    ),
+'$do_load_file'(File, FullFile, Module, Options) :-
+	statistics(heapused, OldHeap),
+	statistics(cputime, OldTime),
 
-	    statistics(heapused, Heap),
-	    statistics(cputime, Time),
-	    HeapUsed is Heap - OldHeap,
-	    TimeUsed is Time - OldTime,
+	'$set_verbose_load'(Options, OldVerbose),
+	'$update_autoload_level'(Options, OldAutoLevel),
+	'$get_option'(derived_from(DerivedFrom), Options, -),
 
-	    '$print_message'(MessageLevel,
-			     load_file(done(Level,
-					    file(File, Absolute),
-					    Action,
-					    LM,
-					    TimeUsed,
-					    HeapUsed)))
+	current_prolog_flag(generate_debug_info, DebugInfo),
+
+	(   memberchk(stream(FromStream), Options)
+	->  Absolute = File
+	;   '$qlf_file'(File, FullFile, Absolute)
 	),
-	flag('$autoloading', _, AutoLevel),
-	set_prolog_flag(verbose_load, DefVerbose),
+
+	flag('$compilation_level', Level, Level),
+	'$load_message_level'(MessageLevel),
+
+	'$print_message'(silent /*MessageLevel*/,
+			 load_file(start(Level,
+					 file(File, Absolute)))),
+	(   nonvar(FromStream),
+	    (   '$get_option'(format(qlf), Options, source)
+	    ->  set_stream(FromStream, file_name(Absolute)),
+		'$qload_stream'(FromStream, Module, Action, LM, Options)
+	    ;   '$consult_file'(stream(Absolute, FromStream),
+				Module, Action, LM, Options)
+	    )
+	->  true
+	;   var(FromStream),
+	    '$consult_goal'(Absolute, Goal),
+	    call(Goal, Absolute, Module, Action, LM, Options)
+	->  true
+	;   print_message(error, load_file(failed(File))),
+	    fail
+	),
+
+	'$import_from_loaded_module'(LM, Module, Options),
+
+	(   Level == 0
+	->  garbage_collect_clauses
+	;   true
+	),
+
+	'$register_derived_source'(Absolute, DerivedFrom),
+
+	statistics(heapused, Heap),
+	statistics(cputime, Time),
+	HeapUsed is Heap - OldHeap,
+	TimeUsed is Time - OldTime,
+
+	'$print_message'(MessageLevel,
+			 load_file(done(Level,
+					file(File, Absolute),
+					Action,
+					LM,
+					TimeUsed,
+					HeapUsed))),
+	flag('$autoloading', _, OldAutoLevel),
+	set_prolog_flag(verbose_load, OldVerbose),
 	set_prolog_flag(generate_debug_info, DebugInfo).
 
 
+%%	'$import_from_loaded_module'(LoadedModule, Module, Options) is det.
+%
+% 	Import public predicates from LoadedModule into Module
+
+'$import_from_loaded_module'(LoadedModule, _, _) :-
+	var(LoadedModule), !.		% loaded file was not a module file
+'$import_from_loaded_module'(LoadedModule, Module, Options) :-
+	'$get_option'(imports(Import), Options, all),
+	'$get_option'(reexport(Reexport), Options, false),
+	'$import_list'(Module, LoadedModule, Import, Reexport).
+
+
+%%	'$set_verbose_load'(+Options, -Old) is det.
+%
+%	Set the =verbose_load= flag according to   Options and unify Old
+%	with the old value.
+
+'$set_verbose_load'(Options, Old) :-
+	current_prolog_flag(verbose_load, Old),
+	'$negate'(Old, DefSilent),
+	'$get_option'(silent(Silent), Options, DefSilent),
+	'$negate'(Silent, Verbose),
+	set_prolog_flag(verbose_load, Verbose).
+
 '$negate'(false, true).
 '$negate'(true,  false).
+
+%%	'$update_autoload_level'(+Options, -OldLevel)
+%
+%	Update the $autoloading flag and return the old value.
+
+'$update_autoload_level'(Options, AutoLevel) :-
+	'$get_option'(autoload(Autoload), Options, false),
+	(   Autoload == false
+	->  flag('$autoloading', AutoLevel, AutoLevel)
+	;   flag('$autoloading', AutoLevel, AutoLevel+1)
+	).
+
+%%	'$load_message_level'(-MessageLevel) is det.
+%
+%	Compute the verbosity-level for loading this file.
+
+'$load_message_level'(MessageLevel) :-
+	(   current_prolog_flag(verbose_load, true),
+	    (   flag('$autoloading', 0, 0)
+	    ;   current_prolog_flag(verbose_autoload, true)
+	    )
+	->  MessageLevel = informational
+	;   MessageLevel = silent
+	).
+
+%%	'$print_message'(+Level, +Term) is det.
+%
+%	As print_message/2, but deal with  the   fact  that  the message
+%	system might not yet be loaded.
 
 '$print_message'(Level, Term) :-
 	'$current_module'('$messages', _), !,

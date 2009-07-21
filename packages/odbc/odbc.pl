@@ -66,8 +66,7 @@
 :- use_module(library(shlib)).
 :- use_module(library(lists)).
 
-:- initialization
-   load_foreign_library(foreign(odbc4pl)).
+:- use_foreign_library(foreign(odbc4pl)).
 
 % %	odbc_driver_connect(+DriverString, -Connection, +Options) is det.
 %

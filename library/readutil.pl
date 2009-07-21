@@ -73,8 +73,7 @@ link_foreign :-
 			     read_stream_to_codes/3
 			   ]).
 
-:- initialization
-   link_foreign.
+:- initialization(link_foreign, now).
 
 
 		 /*******************************

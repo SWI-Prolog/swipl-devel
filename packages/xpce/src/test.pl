@@ -37,9 +37,9 @@ available test sets. The public goals are:
 
 % Load XPCE from the development environment
 
-:- initialization op(200, fy,  user:(@)).
-:- initialization op(250, yfx, user:(?)).
-:- initialization op(990, xfx, user:(:=)).
+:- op(200, fy,  user:(@)).
+:- op(250, yfx, user:(?)).
+:- op(990, xfx, user:(:=)).
 
 user:file_search_path(foreign, '.').
 user:file_search_path(pce, '..').

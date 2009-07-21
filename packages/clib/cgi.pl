@@ -34,5 +34,4 @@
 	  ]).
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(cgi), install_cgi).
+:- use_foreign_library(foreign(cgi), install_cgi).

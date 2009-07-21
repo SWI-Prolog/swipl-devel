@@ -465,13 +465,6 @@ file \const{user} or a string), unify \arg{File} with an absolute path to
 the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
 
-    \predicate{at_initialization}{1}{:Goal}
-Register \arg{Goal} to be run when the system initialises.
-Initialisation takes place after reloading a .qlf (formerly .wic) file
-as well as after reloading a saved-state.  The hooks are run in the
-order they were registered.  A warning message is issued if \arg{Goal}
-fails, but execution continues.  See also at_halt/1
-
     \predicate{at_halt}{1}{:Goal}
 Register \arg{Goal} to be run from PL_cleanup(), which is called when
 the system halts. The hooks are run in the reverse order they were
@@ -479,12 +472,49 @@ registered (FIFO). Success or failure executing a hook is ignored. If
 the hook raises an exception this is printed using print_message/2. An
 attempt to call halt/[0,1] from a hook is ignored.
 
-    \predicate{initialization}{1}{:Goal}
-Call \arg{Goal} and register it using at_initialization/1.  Directives
-that do other things than creating clauses, records, flags or setting
-predicate attributes should normally be written using this tag to
-ensure the initialisation is executed when a saved system starts.
-See also qsave_program/[1,2].
+    \directive[ISO]{initialization}{1}{:Goal}
+Call \arg{Goal} \emph{after} loading the source-file in which this
+directive appears has been completed. In addition, \arg{Goal} is
+executed if a saved-state created using qsave_program/1 is restored.
+
+The ISO standard only allows for using \exam{:- Term} if \arg{Term} is a
+\emph{directive}. This means that arbitrary goals can only be called
+from a directive by means of the initialization/1 directive. SWI-Prolog
+does not enforce this rule.
+
+The initialization/1 directive must be used to do program initialization
+in saved-states (see qsave_program/1). A saved state contains the
+predicates, Prolog flags and operators present at the moment the state
+was created.  Other resources (records, foreign resources, etc.) must
+be recreated using initialization/1 directives or from the entry-goal
+of the saved-state.
+
+Upto SWI-Prolog 5.7.11, \arg{Goal} was executed immediately rather than
+after loading the program-text in which the directive appears as
+dictated by the ISO standard. In many cases the exact moment of
+execution is irrelevant, but there are exceptions. For example,
+load_foreign_library/1 must be executed immediately to make the loaded
+foreign predicates available for exporting. SWI-Prolog now provides the
+directive use_foreign_library/1 to ensure immediate loading as well as
+loading after restoring a saved state. If the system encounters a
+directive \exam{:- initialization(load_foreign_library(...))}, it will
+load the foreign library immediately and issue a warning to update your
+code. This behaviour can be extended by providing clauses for the
+multifile hook predicate \term{prolog:initialize_now}{Term, Advice},
+where \arg{Advice} is an atom that gives advice how to resolve the
+compatibility issue.
+
+    \predicate{initialization}{2}{:Goal, +When}
+Similar to initialization/1, but allows for specifying when \arg{Goal}
+is executed while loading the program-text:
+
+    \begin{description}
+	\termitem{now}{} Execute \arg{Goal} immediately.
+	\termitem{after_load}{} Execute \arg{Goal} after loading
+	program-text.  This is the same as initialization/1.
+	\termitem{restore}{} Do not execute \arg{Goal} while loading
+	the program, but \emph{only} when restoring a state.
+    \end{description}
 
     \predicate{compiling}{0}{}
 True if the system is compiling source files with the \cmdlineoption{-c}
@@ -6472,7 +6502,7 @@ A Windows DDE conversation is a form of interprocess communication
 based on sending reserved window-events between the communicating
 processes.
 
-See also \secref{DLL} for loading Windows DLL's into SWI-Prolog.
+See also \secref{shlib} for loading Windows DLL's into SWI-Prolog.
 
 
 \subsection{DDE client interface}

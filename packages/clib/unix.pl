@@ -48,5 +48,4 @@ These predicates are documented in the source-distribution of the package
 	http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- initialization
-   load_foreign_library(foreign(unix), install_unix).
+:- use_foreign_library(foreign(unix), install_unix).
