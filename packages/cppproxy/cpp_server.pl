@@ -47,8 +47,7 @@
 		 *	  BASIC READ/WRITE	*
 		 *******************************/
 
-:- initialization
-   load_foreign_library(foreign(serialize)).
+:- use_foreign_library(foreign(serialize)).
 
 
 		 /*******************************

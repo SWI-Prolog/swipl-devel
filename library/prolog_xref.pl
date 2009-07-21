@@ -612,6 +612,7 @@ xref_meta(\+(G),		[G]).
 xref_meta(ignore(G),		[G]).
 xref_meta(once(G),		[G]).
 xref_meta(initialization(G),	[G]).
+xref_meta(initialization(G,_),	[G]).
 xref_meta(retract(Rule),	[G]) :- head_of(Rule, G).
 xref_meta(clause(G, _),		[G]).
 xref_meta(clause(G, _, _),	[G]).

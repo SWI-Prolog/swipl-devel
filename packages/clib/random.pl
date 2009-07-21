@@ -41,8 +41,7 @@
 	    setrand/1			% +State
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(random)).
+:- use_foreign_library(foreign(random)).
 
 /** <module> Random numbers
 

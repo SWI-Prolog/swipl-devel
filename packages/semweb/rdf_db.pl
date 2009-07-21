@@ -131,8 +131,7 @@
 :- use_module(library(debug)).
 :- use_module(rdf_cache).
 
-:- initialization
-   load_foreign_library(foreign(rdf_db)).
+:- use_foreign_library(foreign(rdf_db)).
 
 :- multifile
 	ns/2,

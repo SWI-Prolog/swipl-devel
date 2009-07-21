@@ -102,7 +102,7 @@ pce_home(_) :-
 	halt(1).
 
 '$load_pce' :-
-	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
+	current_predicate(user:'$pce_init'/1), !,
 	init_pce.
 '$load_pce' :-
 	current_prolog_flag(open_shared_object, true),
@@ -114,6 +114,8 @@ pce_home(_) :-
 	),
 	init_pce.
 
+init_pce :-
+	current_prolog_flag(xpce, true), !.
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)

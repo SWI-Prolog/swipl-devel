@@ -73,10 +73,7 @@ sgml_register_catalog_file(File, Location) :-
 	prolog_to_os_filename(File, OsFile),
 	'_sgml_register_catalog_file'(OsFile, Location).
 
-load_foreign :-
-	current_predicate(_, _:sgml_parse(_,_)), !.
-load_foreign :-
-	load_foreign_library(foreign(sgml2pl)).
+:- use_foreign_library(foreign(sgml2pl)).
 
 register_catalog(Base) :-
 	absolute_file_name(dtd(Base),
@@ -87,12 +84,8 @@ register_catalog(Base) :-
 			       SocFile),
 	sgml_register_catalog_file(SocFile, end).
 
-init :-
-	load_foreign,
-	ignore(register_catalog('HTML4')).
-
 :- initialization
-	init.
+	ignore(register_catalog('HTML4')).
 
 
 		 /*******************************

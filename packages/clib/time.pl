@@ -94,8 +94,7 @@
 %	been fired, =next= if the event is the next to be executed and
 %	=scheduled= otherwise.
 
-:- initialization
-   load_foreign_library(foreign(time)).
+:- use_foreign_library(foreign(time)).
 
 %%	call_with_time_limit(+Time, :Goal) is det.
 %

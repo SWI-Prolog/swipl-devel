@@ -255,5 +255,4 @@ tipc_paxos_on_change(Term, Goal) :-
 	listen(tipc_paxos, paxos_changed(Term),
 	       thread_create(Goal, _, [detached(true)])).
 
-:- initialization
-        tipc_paxos_init.
+:- tipc_paxos_init.

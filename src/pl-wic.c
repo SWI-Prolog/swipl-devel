@@ -1132,6 +1132,29 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 
 
 static bool
+runInitialization(SourceFile sf)
+{ int rc = FALSE;
+
+  if ( sf )
+  { GET_LD
+    fid_t fid = PL_open_foreign_frame();
+    term_t name = PL_new_term_ref();
+    static predicate_t pred = NULL;
+
+    if ( !pred )
+      pred = PL_predicate("$run_initialization", 1, "system");
+
+    PL_put_atom(name, sf->name);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+
+    PL_discard_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+
+static bool
 loadImport(IOSTREAM *fd, int skip ARG_LD)
 { Procedure proc = (Procedure) loadXR(fd);
 
@@ -1298,7 +1321,8 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { LD->modules.source = om;
+      { runInitialization(currentSource);
+	LD->modules.source = om;
 	currentSource  = of;
 	debugstatus.styleCheck = stchk;
 	systemMode(debugstatus.styleCheck & DOLLAR_STYLE);

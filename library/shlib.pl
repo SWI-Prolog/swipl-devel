@@ -249,9 +249,9 @@ load_foreign_library(LibFile, _, _) :-
 %%	use_foreign_library(+FileSpec) is det.
 %%	use_foreign_library(+FileSpec, +Entry:atom) is det.
 %
-%	Load and install a foreign library as load_foreign_library/1,2
-%	and register the installation using at_initialization/1.  This
-%	is similar to using:
+%	Load and install a foreign   library as load_foreign_library/1,2
+%	and register the installation using   initialization/2  with the
+%	option =now=. This is similar to using:
 %
 %	  ==
 %	  :- initialization(load_foreign_library(foreign(mylib))).
@@ -264,13 +264,10 @@ load_foreign_library(LibFile, _, _) :-
 %	remainder of the file uses functionality of the C-library.
 
 use_foreign_library(FileSpec) :-
-	load_foreign_library(FileSpec),
-	at_initialization(load_foreign_library(FileSpec)).
+	initialization(load_foreign_library(FileSpec), now).
 
 use_foreign_library(FileSpec, Entry) :-
-	load_foreign_library(FileSpec, Entry),
-	at_initialization(load_foreign_library(FileSpec, Entry)).
-
+	initialization(load_foreign_library(FileSpec, Entry), now).
 
 %%	unload_foreign_library(+FileSpec) is det.
 %%	unload_foreign_library(+FileSpec, +Exit:atom) is det.

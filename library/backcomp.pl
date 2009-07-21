@@ -36,6 +36,7 @@
 	    '$argv'/1,
 	    '$strip_module'/3,
 	    '$declare_module'/3,
+	    at_initialization/1,	% :Goal
 	    displayq/1,
 	    displayq/2,
 	    sformat/2,			% -String, +Fmt
@@ -279,6 +280,18 @@ sublist(Goal, [_|T], R) :-
 '$declare_module'(Module, File, Line) :-
 	'$declare_module'(Module, File, Line, false).
 
+
+%%	at_initialization(:Goal) is det.
+%
+%	Register goal only to be run if a saved state is restored.
+%
+%	@deprecated Use initialization(Goal, restore)
+
+:- meta_predicate
+	at_initialization(0).
+
+at_initialization(Goal) :-
+	initialization(Goal, restore).
 
 %%	convert_time(+Stamp, -String)
 %

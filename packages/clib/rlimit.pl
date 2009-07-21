@@ -47,6 +47,5 @@
 %		nproc		number of processes
 %		nofile		number of open files
 
-:- initialization
-	load_foreign_library(foreign(rlimit)).
+:- use_foreign_library(foreign(rlimit)).
 

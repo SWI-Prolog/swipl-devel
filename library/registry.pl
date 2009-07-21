@@ -51,8 +51,7 @@ dlldemo directory.
 	    shell_register_prolog/1	% +Extension
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(plregtry)).	% load plregtry.ddl
+:- use_foreign_library(foreign(plregtry)).	% load plregtry.ddl
 
 		 /*******************************
 		 *	 REGISTER PROLOG	*
