@@ -4212,7 +4212,7 @@ regin(Vars) :-
         phrase(scc(FreeLeft0, FreeRight0), [Regin0], [Regin]),
         regin_vlowlink(Regin, Roots),
         duplicate_term(Hash, Used),
-        dfs_used(FreeRight1, G0L, G0R, [], Hash, Used),
+        dfs_used(FreeRight1, G0L, G0R, E, Hash, Used),
         findall(A, unused_arc(Used, Hash, Roots, A), UAs),
         disable_queue,
         regin_remove(UAs, Vars),
@@ -4236,12 +4236,13 @@ unused_arc(Hash, M, Roots, From-To) :-
 
 dfs_used([], _, _, _, _, _).
 dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
-        (   memberchk(r(V), Vis0) ->
+        (   get_assoc(r(V), Vis0, _) ->
             dfs_used(Vs, G0L, G0R, Vis0, Hash0, Hash)
-        ;   (   get_assoc(V, G0R, ls(Tos)) ->
-                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
-                dfs_used(Vs, G0L, G0R, Vis1, Hash0, Hash)
-            ;   dfs_used(Vs, G0L, G0R, [r(V)|Vis0], Hash0, Hash)
+        ;   put_assoc(r(V), Vis0, visited, Vis1),
+            (   get_assoc(V, G0R, ls(Tos)) ->
+                dfs_used_l(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
+                dfs_used(Vs, G0L, G0R, Vis2, Hash0, Hash)
+            ;   dfs_used(Vs, G0L, G0R, Vis1, Hash0, Hash)
             )
         ).
 
@@ -4250,11 +4251,12 @@ dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         arg(V, Hash0, Tos0),
         get_assoc(From, Tos0, M),
         setarg(1, M, 1),
-        (   memberchk(l(V), Vis0) ->
+        (   get_assoc(l(V), Vis0, _) ->
             dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   get_assoc(V, G0L, ls(Tos)),
-            dfs_used_r(Tos, V, G0L, G0R, [l(V)|Vis0], Vis1, Hash0, Hash),
-            dfs_used_l(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
+        ;   put_assoc(l(V), Vis0, visited, Vis1),
+            get_assoc(V, G0L, ls(Tos)),
+            dfs_used_r(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
+            dfs_used_l(Vs, From, G0L, G0R, Vis2, Vis, Hash0, Hash)
         ).
 
 dfs_used_r([], _, _, _, Vis, Vis, _, _).
@@ -4262,12 +4264,13 @@ dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
         arg(From, Hash0, Tos0),
         get_assoc(V, Tos0, M),
         setarg(1, M, 1),
-        (   memberchk(r(V), Vis0) ->
+        (   get_assoc(r(V), Vis0, _) ->
             dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   (   get_assoc(V, G0R, ls(Tos)) ->
-                dfs_used_l(Tos, V, G0L, G0R, [r(V)|Vis0], Vis1, Hash0, Hash),
-                dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
-            ;   dfs_used_r(Vs, From, G0L, G0R, [r(V)|Vis0], Vis, Hash0, Hash)
+        ;   put_assoc(r(V), Vis0, visited, Vis1),
+            (   get_assoc(V, G0R, ls(Tos)) ->
+                dfs_used_l(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
+                dfs_used_r(Vs, From, G0L, G0R, Vis2, Vis, Hash0, Hash)
+            ;   dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
             )
         ).
 
