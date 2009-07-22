@@ -35,9 +35,9 @@ static status	lazyBindingClass(Class class, Name which, Bool val);
 
 #define CLASS_PCE_SLOTS 42
 
-#define InstanceSize(c)	((int)(long) &((Instance) NULL)->slots[valInt((c)->slots)])
+#define InstanceSize(c)	((int)(intptr_t) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
-      ((sizeof(struct c) - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any))
+      ((sizeof(struct c) - ((intptr_t) &((Instance) NULL)->slots[0])) / sizeof(Any))
 
 static void
 resetSlotsClass(Class class, Name name)
@@ -405,7 +405,7 @@ _bootClass(Name name, Name super_name,
   assign(cl, realised, ON);
   assign(cl, super_class, super);
   assign(cl, instance_size, toInt(size));
-  assign(cl, slots, toInt((size - ((int) &((Instance) NULL)->slots[0]))
+  assign(cl, slots, toInt((size - ((intptr_t) &((Instance) NULL)->slots[0]))
 			   / sizeof(Any)));
 
   { int i;
