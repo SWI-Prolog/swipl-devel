@@ -76,7 +76,7 @@ register_directories :-
 	->  pce_help_file(pltracer, HlpFile)
 	).
 
-:- initialization register_directories.
+:- register_directories.
 
 version('2.0').
 
