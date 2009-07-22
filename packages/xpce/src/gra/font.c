@@ -138,9 +138,7 @@ static int XopenNesting = 0;
 
 static status
 XopenFont(FontObj f, DisplayObj d)
-{ status rc;
-
-  if ( isDefault(d) )
+{ if ( isDefault(d) )
     d = CurrentDisplay(f);
 
   makeBuiltinFonts();

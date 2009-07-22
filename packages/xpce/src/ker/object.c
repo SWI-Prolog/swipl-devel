@@ -195,7 +195,7 @@ follows:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #undef offset
-#define offset(t, f) ((int)(&((struct t *)0)->f))
+#define offset(t, f) ((uintptr_t)(&((struct t *)0)->f))
 
 static status
 hasClassVariableVariable(Variable v, Class class)
