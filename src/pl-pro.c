@@ -109,7 +109,7 @@ word
 pl_notrace1(term_t goal)
 { bool rval;
 
-  intptr_t	     skipSave  = debugstatus.skiplevel;
+  uintptr_t  skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
 
   rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
@@ -466,7 +466,8 @@ last_arg:
 #ifdef O_ATTVAR
       if ( !isAttVar(*p2) )
 #endif
-         printk("Reference to higher address");
+	if ( !gc_status.blocked )
+	  printk("Reference to higher address");
     }
     if ( p2 == p )
       printk("Reference to same address");
