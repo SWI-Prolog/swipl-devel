@@ -43,8 +43,7 @@
 	  ]).
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(uri)).
+:- use_foreign_library(foreign(uri)).
 
 /** <module> URI/URL handling library
 

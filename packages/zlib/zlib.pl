@@ -46,8 +46,7 @@ For details, see http://www.swi-prolog.org/packages/zlib.html
 %
 %	Prepare compressed I/O on Stream.
 
-:- initialization
-   load_foreign_library(foreign(zlib4pl)).
+:- use_foreign_library(foreign(zlib4pl)).
 
 %%	gzopen(+File, +Mode, -Stream) is det.
 %%	gzopen(+File, +Mode, -Stream, +Options) is det.

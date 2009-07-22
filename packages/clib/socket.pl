@@ -54,8 +54,7 @@ These predicates are documented in the source-distribution of the package
 `clib'.  See also the SWI-Prolog home-page at http://www.swi-prolog.org
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- initialization
-   load_foreign_library(foreign(socket), install_socket).
+:- use_foreign_library(foreign(socket), install_socket).
 
 		 /*******************************
 		 *	   COMPATIBILITY	*

@@ -30,19 +30,18 @@
 */
 
 :- module('$toplevel',
-	[ '$initialise'/0		% start Prolog (does not return)
-	, '$toplevel'/0			% Prolog top-level (re-entrant)
-	, '$abort'/0 			% restart after an abort
-	, '$break'/0 			% live in a break
-	, '$compile'/0 			% `-c' toplevel
-	, '$welcome'/0			% banner
-	, prolog/0 			% user toplevel predicate
-	, '$set_prompt'/1			% set the main prompt
-	, at_initialization/1		% goals to run at initialization
-	, (initialization)/1		% initialization goal (directive)
-	, '$thread_init'/0		% initialise thread
-	, (thread_initialization)/1	% thread initialization goal
-	]).
+	  [ '$initialise'/0,		% start Prolog (does not return)
+	    '$toplevel'/0,		% Prolog top-level (re-entrant)
+	    '$abort'/0,			% restart after an abort
+	    '$break'/0,			% live in a break
+	    '$compile'/0,		% `-c' toplevel
+	    '$welcome'/0,		% banner
+	    prolog/0, 			% user toplevel predicate
+	    '$set_prompt'/1,		% set the main prompt
+	    (initialization)/1,		% initialization goal (directive)
+	    '$thread_init'/0,		% initialise thread
+	    (thread_initialization)/1	% thread initialization goal
+	    ]).
 
 
 		/********************************
@@ -112,57 +111,43 @@
 		 *******************************/
 
 :- meta_predicate
-	at_initialization(0),
 	initialization(0).
-:- dynamic
-	'$at_initialization'/2.
 
-%%	at_initialization(:Goal)
+:- '$iso'((initialization)/1).
+
+%%	initialization(:Goal)
 %
-%	Runs Goal after loading a saved state.
-
-at_initialization(Goal) :-
-	initialization_context(Ctx),
-	assert('$at_initialization'(Goal, Ctx)).
-
-'$run_at_initialization' :-
-	'$run_at_initialization'(_).
-'$run_at_initialization'(File) :-
-	(   '$at_initialization'(Goal, Ctx),
-	    init_in_context(File, Ctx),
-	    (   catch(Goal, E, initialization_error(E, Goal, Ctx))
-	    ->  fail
-	    ;   initialization_failure(Goal, Ctx),
-		fail
-	    )
-	;   true
-	),
-	'$thread_init'.
-
-init_in_context(File, _) :-
-	var(File), !.
-init_in_context(File, File:_Line).
-
-initialization_context(Ctx) :-
-	(   source_location(File, Line)
-	->  Ctx = File:Line
-	;   Ctx = (-)
-	).
-
-initialization_error(E, Goal, Ctx) :-
-	print_message(error, initialization_error(Goal, E, Ctx)).
-
-initialization_failure(Goal, Ctx) :-
-	print_message(warning, initialization_failure(Goal, Ctx)).
-
-
-%%	initialization(+Goal)
+%	Runs Goal after loading the file in which this directive
+%	appears as well as after restoring a saved state.
 %
-%	Runs `Goal' immediately and after loading a saved state.
+%	@see initialization/2
 
 initialization(Goal) :-
-	at_initialization(Goal),
-	call(Goal).
+	Goal = _:G,
+	prolog:initialize_now(G, Use), !,
+	print_message(warning, initialize_now(G, Use)),
+	initialization(Goal, now).
+initialization(Goal) :-
+	initialization(Goal, after_load).
+
+:- multifile
+	prolog:initialization_now/2,
+	prolog:message//1.
+
+prolog:initialize_now(load_foreign_library(_),
+		      'use :- use_foreign_library/1 instead').
+prolog:initialize_now(load_foreign_library(_,_),
+		      'use :- use_foreign_library/2 instead').
+
+prolog:message(initialize_now(Goal, Use)) -->
+	[ 'Initialization goal ~p will be executed'-[Goal],nl,
+	  'immediately for backward compatibility reasons', nl,
+	  '~w'-[Use]
+	].
+
+'$run_initialization' :-
+	'$run_initialization'(_),
+	'$thread_init'.
 
 
 		 /*******************************
@@ -358,7 +343,7 @@ initialise_prolog :-
 	set_prolog_flag(prompt_alternatives_on, determinism),
 	set_prolog_flag(toplevel_extra_white_line, true),
 	'$set_debugger_print_options'(print),
-	'$run_at_initialization',
+	'$run_initialization',
 	'$load_system_init_file',
 	'$load_gnu_emacs_interface',
 	'$option'(init_file, OsFile, OsFile),
@@ -416,7 +401,7 @@ initialise_prolog :-
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
-	'$run_at_initialization',
+	'$run_initialization',
 	'$load_system_init_file',
 	'$set_file_search_paths',
 	catch('$compile_wic', E, (print_message(error, E), halt(1))).

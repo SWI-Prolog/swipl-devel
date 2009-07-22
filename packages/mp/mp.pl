@@ -54,15 +54,7 @@
 	, mp_compound/1
 	]).
 
-load_mp :-
-	current_predicate(_, user:mp_term(_,_,_,_)), !.
-load_mp :-
-	getenv('PLLD', true), !.
-load_mp :-
-	load_foreign_library(user:foreign(mp), mp_install).
-
-:- initialization
-	load_mp.
+:- use_foreign_library(user:foreign(mp), mp_install).
 
 :- style_check(+dollar).
 :- style_check(+string).

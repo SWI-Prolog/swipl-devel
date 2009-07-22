@@ -35,8 +35,7 @@
 	  ]).
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(sha4pl)).
+:- use_foreign_library(foreign(sha4pl)).
 
 %%	sha_hash(+Data, -Hash, +Options) is det
 %

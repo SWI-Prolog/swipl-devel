@@ -2209,9 +2209,8 @@ timeout(pipe-1) :-
 
 :- dynamic
 	testfile/1.
-:- initialization
-	prolog_load_context(file, File),
-	assert(testfile(File)).
+:- prolog_load_context(file, File),
+   assert(testfile(File)).
 
 root(Root) :-
 	(   current_prolog_flag(windows, true)

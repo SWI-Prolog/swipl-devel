@@ -36,5 +36,4 @@
 	    atom_to_stem_list/2		% +Raw, -ListOfStems
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(porter_stem)).
+:- use_foreign_library(foreign(porter_stem)).

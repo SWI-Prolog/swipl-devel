@@ -75,7 +75,6 @@ suggest predicates from a keyword.
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
 \predicatesummary{at_halt}{1}{Register goal to run at halt/1}
-\predicatesummary{at_initialization}{1}{Register goal to run at start-up}
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
@@ -287,6 +286,7 @@ suggest predicates from a keyword.
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
+\predicatesummary{initialization}{2}{Initialization directive}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
@@ -467,6 +467,7 @@ suggest predicates from a keyword.
 \predicatesummary{redefine_system_predicate}{1}{Abolish system definition}
 \predicatesummary{reexport}{1}{Load files and re-export the imported predicates}
 \predicatesummary{reexport}{2}{Load predicates from a file and re-export it}
+\predicatesummary{reload_foreign_libraries}{0}{Reload DLLs/shared objects}
 \predicatesummary{reload_library_index}{0}{Force reloading the autoload index}
 \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
@@ -589,8 +590,11 @@ suggest predicates from a keyword.
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
+\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}
 \predicatesummary{upcase_atom}{2}{Convert atom to upper-case}
+\predicatesummary{use_foreign_library}{1}{Load DLL/shared object (directive)}
+\predicatesummary{use_foreign_library}{2}{Load DLL/shared object (directive)}
 \predicatesummary{use_module}{1}{Import a module}
 \predicatesummary{use_module}{2}{Import predicates from a module}
 \predicatesummary{var}{1}{Type check for unbound variable}
@@ -625,7 +629,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeq}{2}{Write term, insert quotes on stream}
 \end{summarylist}
 
-\input{lib/summary.tex}
+\input{lib/libsummary.tex}
 
 \pagebreak
 \section{Arithmetic Functions}		\label{sec:funcsummary}

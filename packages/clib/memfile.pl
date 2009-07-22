@@ -42,4 +42,4 @@
 	    memory_file_to_codes/3,	% +Handle, -CodeList, +Encoding
 	    utf8_position_memory_file/3 % +Handle, -Here, -Size
 	  ]).
-:- initialization(load_foreign_library(foreign(memfile))).
+:- use_foreign_library(foreign(memfile)).

@@ -203,8 +203,7 @@ init_options :-
 	;   true
 	).
 
-:- initialization
-	init_options.
+:- init_options.
 
 %%	xml_header(-Header)
 %

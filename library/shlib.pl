@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,14 +35,74 @@
 	    unload_foreign_library/1,	% +LibFile
 	    unload_foreign_library/2,	% +LibFile, +UninstallFunc
 	    current_foreign_library/2,	% ?LibFile, ?Public
-	    reload_foreign_libraries/0
+	    reload_foreign_libraries/0,
+					% Directives
+	    use_foreign_library/1,	% :LibFile
+	    use_foreign_library/2	% :LibFile, +InstallFunc
 	  ]).
 :- use_module(library(lists), [reverse/2]).
 :- set_prolog_flag(generate_debug_info, false).
 
-:- module_transparent
-	load_foreign_library/1,
-	load_foreign_library/2.
+/** <module> Utility library for loading foreign objects (DLLs, shared objects)
+
+This   section   discusses   the   functionality   of   the   (autoload)
+library(shlib), providing an interface to   manage  shared libraries. We
+describe the procedure for using a foreign  resource (DLL in Windows and
+shared object in Unix) called =mylib=.
+
+First, one must  assemble  the  resource   and  make  it  compatible  to
+SWI-Prolog. The details for this  vary   between  platforms. The plld(1)
+utility can be used to deal with this in a portable manner.  The typical
+commandline is:
+
+	==
+	plld -o mylib file.{c,o,cc,C} ...
+	==
+
+Make  sure  that  one  of   the    files   provides  a  global  function
+=|install_mylib()|=  that  initialises  the  module    using   calls  to
+PL_register_foreign(). Here is a  simple   example  file  mylib.c, which
+creates a Windows MessageBox:
+
+    ==
+    #include <windows.h>
+    #include <SWI-Prolog.h>
+
+    static foreign_t
+    pl_say_hello(term_t to)
+    { char *a;
+
+      if ( PL_get_atom_chars(to, &a) )
+      { MessageBox(NULL, a, "DLL test", MB_OK|MB_TASKMODAL);
+
+	PL_succeed;
+      }
+
+      PL_fail;
+    }
+
+    install_t
+    install_mylib()
+    { PL_register_foreign("say_hello", 1, pl_say_hello, 0);
+    }
+    ==
+
+Now write a file mylib.pl:
+
+    ==
+    :- module(mylib, [ say_hello/1 ]).
+    :- use_foreign_library(foreign(mylib)).
+    ==
+
+The file mylib.pl can be loaded as a normal Prolog file and provides the
+predicate defined in C.
+*/
+
+:- meta_predicate
+	load_foreign_library(:),
+	load_foreign_library(:, +),
+	use_foreign_library(:),
+	use_foreign_library(:, +).
 
 :- dynamic
 	loading/1,			% Lib
@@ -128,15 +188,31 @@ entry(_, default(Function), Function).
 %
 %	Load a _|shared object|_  or  _DLL_.   After  loading  the Entry
 %	function is called without arguments. The default entry function
-%	is composed from =install_=, followed by the file base-name.
+%	is composed from =install_=,  followed   by  the file base-name.
+%	E.g.,    the    load-call    below      calls    the    function
+%	=|install_mylib()|=. If the platform   prefixes extern functions
+%	with =_=, this prefix is added before calling.
+%
+%	  ==
+%	  	...
+%	  	load_foreign_library(foreign(mylib)),
+%	  	...
+%	  ==
+%
+%	@param	FileSpec is a specification for absolute_file_name/3.  If searching
+%		the file fails, the plain name is passed to the OS to try the default
+%		method of the OS for locating foreign objects.  The default definition
+%		of file_search_path/2 searches <prolog home>/lib/<arch> on Unix and
+%		<prolog home>/bin on Windows.
+%
+%	@see	use_foreign_library/1,2 are intended for use in directives.
 
 load_foreign_library(Library) :-
 	load_foreign_library(Library, default(install)).
 
-load_foreign_library(LibFileSpec, Entry) :-
-	strip_module(LibFileSpec, Module, LibFile),
+load_foreign_library(Module:LibFile, Entry) :-
 	with_mutex('$foreign',
-		   shlib:load_foreign_library(LibFile, Module, Entry)).
+		   load_foreign_library(LibFile, Module, Entry)).
 
 load_foreign_library(LibFile, _Module, _) :-
 	current_library(LibFile, _, _, _, _), !.
@@ -169,6 +245,29 @@ load_foreign_library(LibFile, _, _) :-
 	    throw(E)
 	;   throw(error(existence_error(foreign_library, LibFile), _))
 	).
+
+%%	use_foreign_library(+FileSpec) is det.
+%%	use_foreign_library(+FileSpec, +Entry:atom) is det.
+%
+%	Load and install a foreign   library as load_foreign_library/1,2
+%	and register the installation using   initialization/2  with the
+%	option =now=. This is similar to using:
+%
+%	  ==
+%	  :- initialization(load_foreign_library(foreign(mylib))).
+%	  ==
+%
+%	but using the initialization/1 wrapper causes  the library to be
+%	loaded _after_ loading of  the  file   in  which  it  appears is
+%	completed,  while  use_foreign_library/1  loads    the   library
+%	_immediately_. I.e. the  difference  is   only  relevant  if the
+%	remainder of the file uses functionality of the C-library.
+
+use_foreign_library(FileSpec) :-
+	initialization(load_foreign_library(FileSpec), now).
+
+use_foreign_library(FileSpec, Entry) :-
+	initialization(load_foreign_library(FileSpec, Entry), now).
 
 %%	unload_foreign_library(+FileSpec) is det.
 %%	unload_foreign_library(+FileSpec, +Exit:atom) is det.

@@ -54,8 +54,7 @@
 
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(tipc), install_tipc).
+:- use_foreign_library(foreign(tipc)).
 
 /** <module> TIPC Sockets
 

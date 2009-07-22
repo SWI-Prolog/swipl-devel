@@ -40,8 +40,7 @@
 	    is_cgi_stream/1		% +Stream
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(http_stream)).
+:- use_foreign_library(foreign(http_stream)).
 
 /** <module> HTTP Streams
 

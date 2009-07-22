@@ -87,8 +87,10 @@ load the appropriate library at startup.
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
 
+\input{lib/shlib}
 
-\section{Dynamic Linking of shared libraries}	\label{sec:dynstatic}
+\subsection{Low-level operations on shared libraries}
+\label{sec:sharedobj}
 
 The interface defined in this section allows the user to load shared
 libraries (\fileext{so} files on most Unix systems, \fileext{dll} files
@@ -130,84 +132,7 @@ PL_register_foreign().
 \end{description}
 
 
-\section{Using the library shlib for \fileext{DLL} and \fileext{so} files}
-                                                         \label{sec:DLL}
-                                                         \label{sec:shlib}
-
-This section discusses the functionality of the (autoload) library
-\file{shlib.pl}, providing an interface to shared libraries.   This
-library can only be used if the Prolog flag \prologflag{open_shared_object} is
-enabled.
-
-\begin{description}
-    \predicate{load_foreign_library}{2}{+Lib, +Entry}
-Search for the given foreign library and link it to the current
-SWI-Prolog instance.  The library may be specified with or without the
-extension.  First, absolute_file_name/3 is used to locate the file.  If
-this succeeds, the full path is passed to the low-level function to open
-the library.  Otherwise, the plain library name is passed, exploiting
-the operating-system defined search mechanism for the shared library.
-The file_search_path/2 alias mechanism defines the alias \const{foreign},
-which refers to the directories \file{<plhome>/lib/<arch>} and
-\file{<plhome>/lib}, in this order.
-
-If the library can be loaded, the function called \arg{Entry} will be
-called without arguments. The return value of the function is ignored.
-
-The \arg{Entry} function will normally call PL_register_foreign() to
-declare functions in the library as foreign predicates.
-    \predicate{load_foreign_library}{1}{+Lib}
-Equivalent to load_foreign_library/2. For the entry-point, this function
-first identifies the `base-name' of the library, which is defined to be
-the file-name with path nor extension.  It will then try the entry-point
-\mbox{\const{install-}<base>}.  On failure it will try to function
-install().  Otherwise no install function will be called.
-    \predicate{unload_foreign_library}{1}{+Lib}
-If the foreign library defines the function uninstall_<base>() or
-uninstall(), this function will be called without arguments and its
-return value is ignored. Next, abolish/2 is used to remove all known
-foreign predicates defined in the library. Finally the library itself is
-detached from the process.
-    \predicate{current_foreign_library}{2}{-Lib, -Predicates}
-Query the currently loaded foreign libraries and their predicates.  {\em
-Predicates} is a list with elements of the form {\em Module:Head},
-indicating the predicates installed with PL_register_foreign() when
-the entry-point of the library was called.
-\end{description}
-
-\Figref{msgbox} connects a Windows message-box using a foreign
-function.  This example was tested using Windows~NT and Microsoft Visual
-C++ 2.0.
-
-\begin{figure}[h]
-\begin{code}
-#include <windows.h>
-#include <SWI-Prolog.h>
-
-static foreign_t
-pl_say_hello(term_t to)
-{ char *a;
-
-  if ( PL_get_atom_chars(to, &a) )
-  { MessageBox(NULL, a, "DLL test", MB_OK|MB_TASKMODAL);
-
-    PL_succeed;
-  }
-
-  PL_fail;
-}
-
-install_t
-install()
-{ PL_register_foreign("say_hello", 1, pl_say_hello, 0);
-}
-\end{code}
-    \caption{MessageBox() example in Windows~NT}
-    \label{fig:msgbox}
-\end{figure}
-
-
-\subsection{Static Linking}                             \label{sec:staticl}
+\subsection{Static Linking} \label{sec:staticl}
 
 Below is an outline of the files structure required for statically
 linking SWI-Prolog with foreign extensions. \file{\ldots/pl} refers to
