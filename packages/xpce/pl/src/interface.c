@@ -2041,9 +2041,10 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 		rval = PL_unify(ret, av+3);
 	    }
 	  } else
-	    rval = PL_call_predicate(MODULE_user,
+	  { rval = PL_call_predicate(MODULE_user,
 				     DebugMode|PL_Q_PASS_EXCEPTION,
 				     PREDICATE_send_implementation, av);
+	  }
 	  if ( prof_node )
 	    PL_prof_exit(prof_node);
 
