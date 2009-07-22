@@ -796,7 +796,7 @@ dv-lib:		dv-home
 		    fi; \
 		    echo done; \
 		done
-		$(PLBUILD) -t halt \
+		$(PLBUILD) -f none -t halt \
 			-g "make_library_index('$(DESTDIR)$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DESTDIR)$(DVHOME)/prolog/lib
 		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DESTDIR)$(DVHOME)/prolog/lib/trace

@@ -14,7 +14,7 @@ all:	checkwd INDEX.pl $(QLF)
 clean:
 	rm -f $(QLF)
 
-checkwd:	
+checkwd:
 		@pwd > .pwd%
 		@if cmp -s .pwd% .pwd; then rm .pwd%; else mv .pwd% .pwd; fi
 
@@ -53,10 +53,10 @@ emacs/prolog_mode.qlf:	.pwd emacs/prolog_mode.pl emacs/prolog_colour.pl \
 
 
 INDEX.pl:	.
-	$(PL) -g "make_library_index('.')" -t halt
+	$(PL) -f none -g "make_library_index('.')" -t halt
 
-.pl.qlf:	
+.pl.qlf:
 	@echo '****************'
 	@echo '* QLF compilation of $*'
 	@echo '****************'
-	$(PL) -O -g "qcompile('$*')" -t halt -- -nopce
+	$(PL) -f none -O -g "qcompile('$*')" -t halt -- -nopce

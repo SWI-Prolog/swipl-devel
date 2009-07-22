@@ -2,8 +2,8 @@
 # Makefile for preparing/moving/installing the binary distribution of
 # SWI-Prolog and/or XPCE
 #
-# Author: Jan Wielemaker, SWI, University of Amsterdam
-# E-mail: jan@swi.psy.uva.nl
+# Author: Jan Wielemaker
+# E-mail: jan@swi-prolog.org
 #
 # Targets
 #	make		(Re)makes SWI-Prolog startup file and XPCE
@@ -53,9 +53,9 @@ BOOTPLS=	boot/apply.pl boot/autoload.pl \
 all:		$(STARTUP) xpce-qlfs
 
 $(STARTUP):	$(BOOTPLS)
-		$(BPL) -O -o $@ -b boot/init.pl
+		$(BPL) -f none -O -o $@ -b boot/init.pl
 
-xpce-qlfs:	
+xpce-qlfs:
 		@PLBASE=$(PWD); \
 		if [ -d xpce ]; then \
 		   echo $(MAKE) PL=$$PLBASE/$(BPL); \
@@ -81,6 +81,6 @@ install:	all
 		    done; \
 		fi
 
-		
+
 clean:
 		rm -f `find xpce/prolog -name '*.qlf' -print`
