@@ -2298,6 +2298,8 @@ checkStacks(LocalFrame frame, Choice choice)
   if ( !choice )
     choice = LD->choicepoints;
 
+  assert(scan_global(FALSE));
+
   local_frames = 0;
   choice_count = 0;
 
