@@ -1785,31 +1785,38 @@ prolog_frame_attribute(term_t frame, term_t what,
 }
 
 
-word
-pl_prolog_frame_attribute(term_t frame, term_t what,
-			  term_t value)
-{ return prolog_frame_attribute(frame, what, value);
+/** prolog_frame_attribute(+Frame, +Key, -Value) is semidet.
+
+*/
+
+static
+PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+{ return prolog_frame_attribute(A1, A2, A3);
 }
 
 		 /*******************************
 		 *	 CHOICEPOINT STACK	*
 		 *******************************/
 
-foreign_t
-pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
+/** prolog_choice_attribute(+Choice, +Key, -Value) is semidet.
+
+*/
+
+static
+PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 { Choice ch = NULL;
   atom_t key;
 
-  if ( !PL_get_choice(choice, &ch) ||
-       !PL_get_atom_ex(what, &key) )
+  if ( !PL_get_choice(A1, &ch) ||
+       !PL_get_atom_ex(A2, &key) )
     fail;
 
   if ( key == ATOM_parent )
   { if ( ch->parent )
-      return PL_unify_choice(value, ch->parent);
+      return PL_unify_choice(A3, ch->parent);
     fail;
   } else if ( key == ATOM_frame )
-  { return PL_unify_frame(value, ch->frame);
+  { return PL_unify_frame(A3, ch->frame);
   } else if ( key == ATOM_type )
   { static const atom_t types[] =
     { ATOM_jump,
@@ -1821,9 +1828,9 @@ pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
       ATOM_none
     };
 
-    return PL_unify_atom(value, types[ch->type]);
+    return PL_unify_atom(A3, types[ch->type]);
   } else
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, what);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 
 }
 
@@ -1931,3 +1938,12 @@ callEventHook(int ev, ...)
 }
 
 #endif /*O_DEBUGGER*/
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(trace)
+  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+  PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
+EndPredDefs

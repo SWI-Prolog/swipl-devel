@@ -184,8 +184,6 @@ static const PL_extension foreigns[] = {
 #endif /* COUNTING */
 
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	0),
-  FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	0),
-  FRG("prolog_choice_attribute",3, pl_prolog_choice_attribute,	0),
   FRG("prolog_skip_level",	2, pl_skip_level,	  NOTRACE),
 
   FRG("dwim_match",		3, pl_dwim_match,		0),
@@ -419,6 +417,7 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(trace);
 DECL_PLIST(pro);
 DECL_PLIST(read);
 DECL_PLIST(thread);
@@ -453,6 +452,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(trace);
   REG_PLIST(pro);
   REG_PLIST(read);
   REG_PLIST(thread);
