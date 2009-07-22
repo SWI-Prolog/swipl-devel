@@ -1582,9 +1582,9 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
-word
-pl_prolog_frame_attribute(term_t frame, term_t what,
-			  term_t value)
+static word
+prolog_frame_attribute(term_t frame, term_t what,
+		       term_t value)
 { LocalFrame fr;
   atom_t key;
   int arity;
@@ -1624,7 +1624,12 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
    deRef(p);
    if ( isVar(*p) )
-   { *p = makeRef(argFrameP(fr, argn-1));
+   { Word argp = argFrameP(fr, argn-1);
+
+     if ( gc_status.blocked )
+       return unify_ptrs(p, argp PASS_LD); /* unsafe: allow loosing var identity */
+     else
+       *p = makeRef(argp);		/* safe: preserve identity */
      Trail(p);
      succeed;
    }
@@ -1696,7 +1701,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       { Word a;
 
 	deRef2(argv+n, a);
-	if ( isVar(*a) && onStack(local, a) && !gc_status.blocked )
+	if ( isVar(*a) && onStack(local, a) && gc_status.blocked )
 	{ *a = makeRef(argp);
 	  Trail(a);
 	} else
@@ -1779,6 +1784,12 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   return PL_unify(value, result);
 }
 
+
+word
+pl_prolog_frame_attribute(term_t frame, term_t what,
+			  term_t value)
+{ return prolog_frame_attribute(frame, what, value);
+}
 
 		 /*******************************
 		 *	 CHOICEPOINT STACK	*
