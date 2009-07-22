@@ -1698,24 +1698,28 @@ remove_lower([C*X|CXs], Min) :-
    new ones, until fixpoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-% % LIFO queue
-% make_queue :- nb_setval('$propagator_queue',[]).
-
-% push_queue(E) :-
-%         b_getval('$propagator_queue',Q),
-%         b_setval('$propagator_queue',[E|Q]).
-% pop_queue(E) :-
-%         b_getval('$propagator_queue',[E|Q]),
-%         b_setval('$propagator_queue',Q).
-
-
 % FIFO queue
-make_queue :- nb_setval('$clpfd_queue', Q-Q).
-push_queue(E) :-
-        b_getval('$clpfd_queue', H-[E|T]), b_setval('$clpfd_queue', H-T).
+
+make_queue :- nb_setval('$clpfd_queue', fast_slow(Q-Q, L-L)).
+
+push_fast_queue(E) :-
+        b_getval('$clpfd_queue', fast_slow(H-[E|T], L)),
+        b_setval('$clpfd_queue', fast_slow(H-T, L)).
+
+push_slow_queue(E) :-
+        b_getval('$clpfd_queue', fast_slow(L, H-[E|T])),
+        b_setval('$clpfd_queue', fast_slow(L, H-T)).
+
 pop_queue(E) :-
-        b_getval('$clpfd_queue', H-T),
-        nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
+        b_getval('$clpfd_queue', fast_slow(H-T, I-U)),
+        (   nonvar(H) ->
+            H = [E|NH],
+            b_setval('$clpfd_queue', fast_slow(NH-T, I-U))
+        ;   nonvar(I) ->
+            I = [E|NI],
+            b_setval('$clpfd_queue', fast_slow(H-T, NI-U))
+        ;   false
+        ).
 
 fetch_propagator(Prop) :-
         pop_queue(P),
@@ -2796,7 +2800,10 @@ trigger_prop(Propagator) :-
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             put_attr(State, clpfd_aux, queued),
-            push_queue(Propagator)
+            (   arg(1, Propagator, C), functor(C, F, _), global_constraint(F) ->
+                push_slow_queue(Propagator)
+            ;   push_fast_queue(Propagator)
+            )
         ).
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
@@ -2875,6 +2882,10 @@ constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
+
+global_constraint(regin).
+%global_constraint(rel_tuple).
+%global_constraint(scalar_product_eq).
 
 insert_propagator(Prop, Ps0, Ps) :-
         Ps0 = fd_props(Gs,Bs,Os),
@@ -4096,6 +4107,11 @@ enumerate([N|Ns], I, H, R0, R, F0, F) :-
         enumerate(Ns, I, H, R1, R, [N|F0], F).
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Strategy: Breadth-first search until we find a free right vertex in
+   the value graph, then find an augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 maximum_matching([], FR, FR, _, _) :- !.
 maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
         empty_assoc(E),
@@ -4234,6 +4250,10 @@ unused_arc(Hash, M, Roots, From-To) :-
         get_assoc(r(To), Roots, ll(RR)),
         RL =\= RR.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Mark used edges.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 dfs_used([], _, _, _, _, _).
 dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
         (   get_assoc(r(V), Vis0, _) ->
@@ -4274,6 +4294,9 @@ dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
             )
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Tarjan's strongly connected components algorithm.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc([], Right)     --> scc_(Right).
 scc([V|Vs], Right) -->
