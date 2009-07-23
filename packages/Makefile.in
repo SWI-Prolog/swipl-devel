@@ -86,7 +86,7 @@ install::
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
 	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	$(bindir)/$(PL) -f none -g make -t halt
+	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
@@ -114,7 +114,7 @@ ln-install::
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
 	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	$(bindir)/$(PL) -f none -g make -t halt
+	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 configure::
 	@echo "**********************"
