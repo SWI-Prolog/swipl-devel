@@ -14,6 +14,7 @@ libreadline5-dev
 autoconf
 make
 sed
+curl
 
 List of packages needed to compile additional SWI Prolog packages on
 Debian 4.0 stable (Etch):
@@ -60,7 +61,7 @@ sudo apt-get install \
 	binutils coreutils gcc grep libc6-dev libncursesw5-dev \
 	libgmp3-dev \
 	libreadline5-dev \
-	make sed autoconf \
+	make sed autoconf curl \
 	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
 	libxpm-dev libxt-dev pkg-config \
 	libssl-dev \
