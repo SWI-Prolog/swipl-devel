@@ -141,6 +141,7 @@ Section "Base system (required)"
   File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
+  File pl\library\portray_text.pl
   File pl\library\vm.pl
   File pl\library\check.pl
   File pl\library\checklast.pl
@@ -269,7 +270,7 @@ Section "Demo files"
 SectionEnd
 
 Section "C/C++ Interface"
-  SectionIn 1 3 
+  SectionIn 1 3
   SetOutPath $INSTDIR\lib
   File pl\lib\libpl.lib
   File pl\lib\plterm.lib
@@ -660,7 +661,7 @@ Function .onInit
 
   ;Extract InstallOptions files
   ;$PLUGINSDIR will automatically be removed when the installer closes
-  
+
   InitPluginsDir
   File /oname=$PLUGINSDIR\options.ini "options.ini"
 
@@ -712,14 +713,14 @@ Function SetCustom
   StrCmp ${EXT} "" 0 HasExt
     StrCpy ${EXT} "pl"
   HasExt:
-  WriteINIStr $PLUGINSDIR\options.ini "Field 4" "State" ${EXT}  
+  WriteINIStr $PLUGINSDIR\options.ini "Field 4" "State" ${EXT}
 
 # Startmenu program group
   ReadRegStr ${GRP} HKLM ${REGKEY} group
   StrCmp ${GRP} "" 0 HasGroup
     StrCpy ${GRP} "SWI-Prolog"
   HasGroup:
-  WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}  
+  WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}
 
 # Start the dialog
   Push ${TEMP1}
