@@ -37,8 +37,7 @@
 	    assert_static/1,		% :Term
 	    source/0,
 	    yap_flag/2,			% +Flag, +Value
-	    yap_style_check/1,		% +Style
-	    yap_initialization/1	% :Goal
+	    yap_style_check/1		% +Style
 	  ]).
 
 /** <module> YAP Compatibility module
