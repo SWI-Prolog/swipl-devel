@@ -9,6 +9,123 @@
 
 
 ============================
+VERSION 5.7.12 July 23, 2009
+============================
+
+ * ADDED: Library(portray_text), providing a portray routine for strings.
+   
+ * CLEANUP: Start using new API for some predicates in pl-trace.c
+   
+ * FIXED: Data-corruption in prolog_frame_attribute/3 for attributes goal and argument.  Causes crashes in the graphical tracer if the tracer traps GC. Thanks to a program provided by Floris Linnebank.
+   
+ * MODIFIED: Make initialization/1 ISO compliant
+   This patch is a modest cleanup to the implementation of '$load_file'/3
+   from init.pl and provides an ISO compatible implementation of
+   initialization/1. This executes the argument goal *after* loading the
+   file rather than when encountering the directive. Often this makes no
+   difference, but notably load_foreign_library/1 is an exception.
+   Therefore we added use_foreign_library/1,2 that act as a directive and
+   provides proper integration with saved-states automatically.  Loading
+   code using initialization(load_foreign_library(...)) will load the
+   library immediately and issue a warning.
+   
+   See initialization/1,2 for details and further hints for dealing with
+   possible compatibility problems.
+   
+ * ADDED: use_foreign_library/1,2 and fixed documentation issues
+   
+ * EHANCED: initialization and friends to keep track of the origin of the directive, so we can give better error messages.  This also prepares for compliant timing of the call.
+   
+ * ENHANCED: library(record).  Accept other records as types and provide current_record/2.
+   
+ * MODIFIED: Implementation of expand_goal/2.  Notably deal with user-metapredicate declarations.
+   
+ * MODIFIED: Interaction of the different phases in expand_term/2.  Please consult the manual-page for expand_term/2 for details.
+   
+ * CLEANUP: Move DCG translation into a separate module
+   
+ * CLEANUP: Extract term/goal expansion from init.pl
+   
+ * DOC: Fix some small issues
+   
+ * CLEANUP: Extended .gitignore files
+   
+ * FIXED: Type-checking of the cleanup handler of setup_call_cleanup/3
+   
+ * FIXED: Force determinism of Setup in setup_call_cleanup/3 and friends.
+   
+ * ADDED: ISO-rev proposal function gcd/2.
+   
+ * ADDED: Bitwise XOR as ><, compatible with the ISO-core revision
+   
+ * ADDED: function epsilon/0 according to core proposal
+   
+ * ENHANCED: CLP(FD): all_distinct/1 now uses Régin's filtering algorithm
+   To test the constraint, use for example:
+   
+      :- use_module(library(clpfd)).
+   
+      test_constraints(_, [])     --> [].
+      test_constraints(X, [_|Vs]) --> test_constraints(X, Vs).
+      test_constraints(X, [V|Vs]) --> [X #\= V], test_constraints(X, Vs).
+   
+      all_constraints([], _)      --> [].
+      all_constraints([V|Vs], Ns) -->
+              test_constraints(V, Ns),
+              all_constraints(Vs, Ns).
+   
+      test_all_distinct :-
+              length(Vs, LVs),
+              MaxLCs is LVs^2,
+              between(1, MaxLCs, LCs),
+              length(Cs, LCs),
+              numlist(1, LVs, Ns),
+              portray_clause(LVs-LCs),
+              phrase(all_constraints(Vs,Ns), Cs),
+              Vs ins 1..LVs,
+              maplist(call, Cs),
+              findall(Vs, (label(Vs),all_distinct(Vs)), L1),
+              findall(Vs, (all_distinct(Vs),label(Vs)), L2),
+              (   L1 == L2 -> false
+              ;   portray_clause(failed-Vs-Cs-L1-L2),
+                  false
+              ).
+   
+ * ENHANCED: thread_get_message/2 runs signal handlers without locking the queue. Reported by Samer Abdallah.
+   
+ * FIXED: Crash in atom_to_term(+,-,-) if the input contains a non-terminated block comment (/*...*/). This may lead to DoS attacks on services because atom_to_term/3 is often used to convert external input to a Prolog term.  Except for DoS, there is NO security risc.
+   
+ * FIXED: Bug#408: Arithmetic shift (>>) on integers with shift-value > 63.
+   
+ * FIXED: Possible raise-condition in initialising stack size alignments.  Keri Harris.
+   
+ * ENHANCED: More synchronous and therefore less dangerous handling of Control-C/abort.  This should fix (amoung others) Ulrich's Item#512
+   commit 16d5e3c1e12cc7ec51dc7fdff0d52460b1a6beec
+   Author: Jan Wielemaker <J.Wielemaker@uva.nl>
+   Date:   Sun Jul 5 21:01:41 2009 +0200
+   
+       Handle return-value of endCritical
+   
+   commit 7fbe436639b3e9ec605e7a9fe48f28ca9d3402c0
+   Author: Jan Wielemaker <J.Wielemaker@uva.nl>
+   Date:   Sun Jul 5 11:40:20 2009 +0200
+   
+       Start clean handling of EndCritical
+   
+   commit 022a42cc04c0cc4a05af45d4625dad038271bb5d
+   Author: Jan Wielemaker <J.Wielemaker@uva.nl>
+   Date:   Sun Jul 5 11:26:10 2009 +0200
+   
+       More cleanup of abort code
+   
+   commit 0f804ef4de45033fc0b69d6822030a686158d66d
+   Author: Jan Wielemaker <J.Wielemaker@uva.nl>
+   Date:   Sun Jul 5 11:13:08 2009 +0200
+   
+       Split abort-style in three types
+   
+ * FIXED: Item#516: printing very large GMP numbers.  This caused allocations inside GMP that are signalled as a global stack overflow.   Unfortunately, the printing appears non-interruptable, so it isn't really clear whether we cgained much.
+============================
 VERSION 5.7.11 July 03, 2009
 ============================
 

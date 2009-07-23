@@ -1,3 +1,6 @@
+[Jul 18 2009]
+
+ * BUILD: Supported way to install using links instead of copying (developers)
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.

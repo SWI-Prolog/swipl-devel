@@ -1,3 +1,18 @@
+[Jul 21 2009]
+
+ * MODIFIED: Make initialization/1 ISO compliant
+   This patch is a modest cleanup to the implementation of '$load_file'/3
+   from init.pl and provides an ISO compatible implementation of
+   initialization/1. This executes the argument goal *after* loading the
+   file rather than when encountering the directive. Often this makes no
+   difference, but notably load_foreign_library/1 is an exception.
+   Therefore we added use_foreign_library/1,2 that act as a directive and
+   provides proper integration with saved-states automatically.  Loading
+   code using initialization(load_foreign_library(...)) will load the
+   library immediately and issue a warning.
+   
+   See initialization/1,2 for details and further hints for dealing with
+   possible compatibility problems.
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
