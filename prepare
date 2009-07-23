@@ -1,16 +1,16 @@
 #!/bin/sh
 # ./prepare
-# 
+#
 # Prepare sources obtained from GIT for   compilation. Runs GNU autoconf
 # to generate all configure  files   and  optionally downloads generated
 # documentation  files.  On  first  run  the  desired  handling  of  the
 # documentation is stored in the  file   .doc-action.  This  file can be
 # deleted to make this script ask again.
-# 
+#
 # This script must be run each time after updating your version from the
 # master repository. It is  normally  executed   from  configure  in the
 # toplevel directory.
-# 
+#
 # On Windows installations, this script may be run from the MsysGit bash
 # shell to initialise the submodules and download the documentation.
 
@@ -212,7 +212,7 @@ _EOM_
     ;;
   out-of-date)
     cat << _EOM_
-WARNING: "Documentation version ($docversion) does not match version ($version)"
+WARNING: Documentation version ($docversion) does not match version ($version)
 _EOM_
     ;;
 esac
