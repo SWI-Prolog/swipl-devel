@@ -16,8 +16,8 @@
 # 1 and 2.  Version 3 is result of joint effort from Anjo Anjewierden and
 # Jan Wielemaker.  Versions 4 to 6 are written by Jan Wielemaker.
 #
-# Addresses:	Jan Wielemaker:		wielemak@science.uva.nl
-#		Anjo Anjewierden:	anjo@science.uva.nl
+# Addresses:	Jan Wielemaker:		J.Wielemaker@uva.nl
+#		Anjo Anjewierden:	A.A.Anjewierden@gw.utwente.nl
 #
 # 		Human-Computer Studies
 #		University of Amsterdam
@@ -30,7 +30,7 @@
 # XPCE is licenced under the LGPL. See the file COPYING or
 # http://www.swi-prolog.org/license.html
 #
-# Copyright (C) 1993-2005, University of Amsterdam
+# Copyright (C) 1993-2009, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -726,7 +726,8 @@ rpm-link::
 # Prolog to the XPCE build-tree. Such installations enable development
 # of xpce considerably using the normal IDE tools.
 
-ln-install:	link-dev-tree dv-link dv-qlf-clean dv-qlf manindex ln-classindex
+ln-install:	$(INSTALL) link-dev-tree dv-link dv-qlf-clean \
+		dv-qlf manindex ln-classindex
 
 link-dev-tree::
 		rm -f $(DESTDIR)$(PLBASE)/xpce
