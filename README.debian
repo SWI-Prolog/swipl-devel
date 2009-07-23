@@ -11,6 +11,7 @@ libc6-dev
 libgmp3-dev
 libncursesw5-dev
 libreadline5-dev
+autoconf
 make
 sed
 
@@ -59,7 +60,7 @@ sudo apt-get install \
 	binutils coreutils gcc grep libc6-dev libncursesw5-dev \
 	libgmp3-dev \
 	libreadline5-dev \
-	make sed \
+	make sed autoconf \
 	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
 	libxpm-dev libxt-dev pkg-config \
 	libssl-dev \
