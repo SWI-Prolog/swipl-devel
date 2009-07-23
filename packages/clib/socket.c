@@ -570,7 +570,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
 
   switch(ret)
   { case -1:
-      return pl_error("tcp_select", 3, ERR_ERRNO, errno, "select", "streams", Streams);
+      return pl_error("tcp_select", 3, NULL, ERR_ERRNO, errno, "select", "streams", Streams);
 
     case 0: /* Timeout */
       break;

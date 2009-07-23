@@ -381,7 +381,7 @@ pl_current_module(term_t module, term_t file, control_t h)
   TableEnum e = NULL;
   Symbol symb;
   atom_t name;
-  SourceFile sf;
+  SourceFile sf = NULL;
 
   if ( ForeignControl(h) == FRG_CUTTED )
   { e = ForeignContextPtr(h);
