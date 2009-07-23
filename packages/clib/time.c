@@ -948,6 +948,7 @@ alarm_error(term_t alarm, int err)
 		      alarm, "install", "alarm");
     default:
       assert(0);
+      return FALSE;
   }
 }
 
