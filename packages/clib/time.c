@@ -537,7 +537,7 @@ installEvent(Event ev)
   if ( rc != TRUE )
     return rc;
 
-  rval = timeSetEvent(getTimeRelMillis(ev)),
+  rval = timeSetEvent(getTimeRelMillis(ev),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD_PTR)ev,
