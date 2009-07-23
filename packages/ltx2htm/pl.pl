@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -183,17 +183,23 @@ cmd(dcg(A, {RawName}, {Arity}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {'0'}, {_}),
-    #defitem(pubdef, #label(RefName,
-			    [ ':- ', #strong(Name)
-			    ]))) :- !,
+cmd(directive(A, {RawName}, {'0'}, {_}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 [ #label(RefName,
+			  [ ':- ', #strong(Name)
+			  ])
+		 ]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, 0]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {Arity}, {Args}),
-    #defitem(pubdef, #label(RefName,
-			    [ ':- ', #strong(Name), #embrace(#var(Args))
-			    ]))) :-
+cmd(directive(A, {RawName}, {Arity}, {Args}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 [ #label(RefName,
+			  [ ':- ', #strong(Name), #embrace(#var(Args))
+			  ])
+		 ]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
