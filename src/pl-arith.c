@@ -2708,7 +2708,7 @@ seed_from_dev(const char *dev ARG_LD)
 #ifdef S_ISCHR
   int fd;
 
-  if ( (fd=open("/dev/random", O_RDONLY)) )
+  if ( (fd=open("/dev/urandom", O_RDONLY)) )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 && S_ISCHR(buf.st_mode) )
