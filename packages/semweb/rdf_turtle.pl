@@ -296,29 +296,33 @@ numeric_url(integer, xsd:integer).
 numeric_url(decimal, xsd:decimal).
 numeric_url(double,  xsd:double).
 
-resource(State, URI) -->
-	uri(State, URI), !.
-resource(State, URI) -->
+resource(State, IRI) -->
+	iri(State, IRI), !.
+resource(State, IRI) -->
 	[ :(Name) ], !,
 	{ arg(1, State, Base),
-	  atom_concat(Base, Name, URI)
+	  atom_concat(Base, Name, URI),
+	  url_iri(URI, IRI)
 	}.
-resource(State, URI) -->
+resource(State, IRI) -->
 	[ name(Prefix), : ], !,
 	{ arg(2, State, Map),
-	  get_assoc(Prefix, Map, URI)
+	  get_assoc(Prefix, Map, URI),
+	  url_iri(URI, IRI)
 	}.
-resource(State, URI) -->
+resource(State, IRI) -->
 	[ Prefix:Name ], !,
 	{ arg(2, State, Map),
 	  (   get_assoc(Prefix, Map, Base)
-	  ->  atom_concat(Base, Name, URI)
+	  ->  atom_concat(Base, Name, URI),
+	      url_iri(URI, IRI)
 	  ;   throw(error(existence_error(prefix, Prefix), _))
 	  )
 	}.
-resource(State, BaseURI) -->
+resource(State, IRI) -->
 	[ : ], !,
-	{ arg(1, State, BaseURI)
+	{ arg(1, State, BaseURI),
+	  url_iri(BaseURI, IRI)
 	}.
 
 
@@ -331,6 +335,11 @@ uri(State, URI) -->
 	  ;   global_url(Rel, Base, URI)
 	  )
 	}.
+
+iri(State, IRI) -->
+	uri(State, URI),
+	{ url_iri(URI, IRI) }.
+
 
 blank(State, Resource, T, T) -->
 	[ nodeId(NodeId) ], !,
