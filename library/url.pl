@@ -108,7 +108,7 @@ is_absolute_url(URL) :-
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'ftp://'), !.
 is_absolute_url(URL) :-
-	sub_atom(URL, 0, _, _, 'file:'), !.
+	sub_atom(URL, 0, _, _, 'file://'), !.
 is_absolute_url(URL) :-
 	atom_codes(URL, Codes),
 	phrase(absolute_url, Codes, _), !.
