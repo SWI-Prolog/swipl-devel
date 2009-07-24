@@ -1218,12 +1218,12 @@ load_files(Module:Files, Options) :-
 %
 % 	Import public predicates from LoadedModule into Module
 
-'$import_from_loaded_module'(LoadedModule, _, _) :-
-	var(LoadedModule), !.		% loaded file was not a module file
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
+	atom(LoadedModule), !,
 	'$get_option'(imports(Import), Options, all),
 	'$get_option'(reexport(Reexport), Options, false),
 	'$import_list'(Module, LoadedModule, Import, Reexport).
+'$import_from_loaded_module'(_, _, _).
 
 
 %%	'$set_verbose_load'(+Options, -Old) is det.
