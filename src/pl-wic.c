@@ -1321,7 +1321,8 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { runInitialization(currentSource);
+      { if ( !GD->bootsession )
+	  runInitialization(currentSource);
 	LD->modules.source = om;
 	currentSource  = of;
 	debugstatus.styleCheck = stchk;
@@ -2522,6 +2523,12 @@ pl_qlf_close()
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $qlf_load(:Stream, -ModuleOut)
+
+Load QLF data from Stream.
+
+@param	ModuleOut is unified to an atom holding the name of the
+	loaded module or the integer 0 if the loaded object is
+	not a module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
