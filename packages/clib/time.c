@@ -771,8 +771,10 @@ installEvent(Event ev)
     pthread_attr_setstacksize(&attr, 1024);
 
     if ( (rc=pthread_create(&scheduler, &attr, alarm_loop, NULL)) )
+    { UNLOCK();
       return pl_error("alarm", 4, "Failed to start schedule thread",
 		      ERR_ERRNO, rc);
+    }
     pthread_attr_destroy(&attr);
 
     DEBUG(1, Sdprintf("Started scheduler thread\n"));
