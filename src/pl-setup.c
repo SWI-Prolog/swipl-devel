@@ -1435,9 +1435,12 @@ freeStacks(ARG1_LD)
   alen  = limitStack(argument);
   gllen = limitStack(global) + limitStack(local);
 
-  munmap(tBase, tlen);
-  munmap(aBase, alen);
-  munmap(gBase, gllen);
+  lBase = NULL;				/* otherwise we can get a race */
+					/* with updateAlerted() */
+  munmap(tBase, tlen);  tBase = NULL;
+  munmap(aBase, alen);  aBase = NULL;
+  munmap(gBase, gllen); gBase = NULL;
+
 #undef LD
 #define LD GLOBAL_LD
 }
