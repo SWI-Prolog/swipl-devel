@@ -4109,16 +4109,15 @@ enumerate([N|Ns], V, NumVar0, NumVar) :-
 
 clear_level(V) :- del_attr(V, level).
 
-maximum_matching([], _, _).
-maximum_matching([FL|FLs], Ls, Rs) :-
-        maplist(clear_level, Ls),
-        maplist(clear_level, Rs),
+maximum_matching([]).
+maximum_matching([FL|FLs]) :-
         level_var(0, FL),
-        augmenting_path_to_length(1, [FL], To, 0, Length),
+        augmenting_path_to_length(1, [[FL]], Levels, To, Length),
         once(augmenting_path(r(To), Length, [], Path)),
+        maplist(maplist(clear_level), Levels),
         del_attr(To, free),
         adjust_alternate_1(Path),
-        maximum_matching(FLs, Ls, Rs).
+        maximum_matching(FLs).
 
 reachables_right([]) --> [].
 reachables_right([V|Vs]) -->
@@ -4151,18 +4150,19 @@ reachables_left_([flow_from(F,From)|Es]) -->
         ),
         reachables_left_(Es).
 
-augmenting_path_to_length(Level, Vs, Right, Length0, Length) :-
-        Length1 is Length0 + 1,
+augmenting_path_to_length(Level, Levels0, Levels, Right, Length) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
         (   Level mod 2 =:= 1 ->
             phrase(reachables_right(Vs), Tos)
         ;   phrase(reachables_left(Vs), Tos)
         ),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
-            Length = Length1, Right = Free
+            Length = Level, Right = Free, Levels = Levels1
         ;   maplist(level_var(Level), Tos),
             Level1 is Level + 1,
-            augmenting_path_to_length(Level1, Tos, Right, Length1, Length)
+            augmenting_path_to_length(Level1, Levels1, Levels, Right, Length)
         ).
 
 level_var(L, V) :- put_attr(V, level, L).
@@ -4230,7 +4230,7 @@ regin(Vars) :-
         length(FreeRight0, LFR),
         LFL =< LFR,
         maplist(put_free, FreeRight0),
-        maximum_matching(FreeLeft, FreeLeft, FreeRight0),
+        maximum_matching(FreeLeft),
         sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
         phrase(scc(FreeLeft, FreeRight0), [0-[]], _),
@@ -4247,7 +4247,8 @@ regin_clear_attributes(V) :-
             maplist(clear_edge, Es)
         ;   true
         ),
-        maplist(del_attr(V), [level,index,visited,in_stack,lowlink]),
+        % level and in_stack are already cleared
+        maplist(del_attr(V), [index,visited,lowlink]),
         (   get_attr(V, g0_edges, Es1) ->
             del_attr(V, g0_edges),
             maplist(clear_edge, Es1)
