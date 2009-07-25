@@ -4053,6 +4053,8 @@ regin_attach([X|Xs], Prop, Right) :-
    For each integer of the union of domains, an attributed variable is
    introduced, to benefit from constant-time access. Attributes are:
 
+   value ... integer corresponding to the node
+   free  ... whether this (right) node is still free
    edges ... [flow_from(F,From)] and [flow_to(F,To)] where F has an
              attribute "flow" that is either 0 or 1 and an attribute "used"
              if it is part of a maximum matching
@@ -4222,7 +4224,9 @@ g_g0_(V, flow_to(F,To)) :-
 
 put_free(F) :- put_attr(F, free, true).
 
-free_node(F) :- get_attr(F, free, true).
+free_node(F) :-
+        get_attr(F, free, true),
+        del_attr(F, free).
 
 regin(Vars) :-
         difference_arcs(Vars, FreeLeft, FreeRight0),
@@ -4245,7 +4249,7 @@ regin_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
             del_attr(V, edges),
             % level and in_stack are already cleared
-            maplist(del_attr(V), [index,visited,lowlink]),
+            maplist(del_attr(V), [index,lowlink,value,visited]),
             maplist(clear_edge, Es)
         ;   true
         ),
