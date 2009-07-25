@@ -4247,11 +4247,7 @@ regin_clear_attributes(V) :-
             maplist(clear_edge, Es)
         ;   true
         ),
-        del_attr(V, level),
-        del_attr(V, index),
-        del_attr(V, visited),
-        del_attr(V, in_stack),
-        del_attr(V, lowlink),
+        maplist(del_attr(V), [level,index,visited,in_stack,lowlink]),
         (   get_attr(V, g0_edges, Es1) ->
             del_attr(V, g0_edges),
             maplist(clear_edge, Es1)
