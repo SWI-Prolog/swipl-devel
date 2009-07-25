@@ -4244,11 +4244,11 @@ regin(Vars) :-
 regin_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
             del_attr(V, edges),
+            % level and in_stack are already cleared
+            maplist(del_attr(V), [index,visited,lowlink]),
             maplist(clear_edge, Es)
         ;   true
         ),
-        % level and in_stack are already cleared
-        maplist(del_attr(V), [index,visited,lowlink]),
         (   get_attr(V, g0_edges, Es1) ->
             del_attr(V, g0_edges),
             maplist(clear_edge, Es1)
