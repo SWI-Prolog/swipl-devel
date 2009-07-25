@@ -131,7 +131,6 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
-:- use_module(library(record)).
 
 
 :- op(700, xfx, cis).
@@ -4050,35 +4049,24 @@ regin_attach([X|Xs], Prop, Right) :-
         ),
         regin_attach(Xs, Prop, [X|Right]).
 
-append_to_key(Key, Assoc0, Elem, Assoc) :-
-        (   get_assoc(Key, Assoc0, Elems) ->
-            Elems = ls(Es),
-            setarg(1, Elems, [Elem|Es]),
-            Assoc = Assoc0
-        ;   put_assoc(Key, Assoc0, ls([Elem]), Assoc)
-        ).
-
-difference_arcs(Vars, Hash, RevHash, FreeLeft, FreeRight) :-
-        empty_assoc(E),
-        length(Vars, L),
-        length(Hs, L),
-        maplist(=(E), Hs),
-        Hash =.. [hash|Hs],
-        difference_arcs(Vars, 1, Hash, E, RevHash, FreeLeft, [], FreeRight0),
-        sort(FreeRight0, FreeRight). % remove duplicates
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Structures used: The variables are represented by integers
-   0,1,2,..., the values represent themselves. To represent the
-   matching in the bipartite graph: "Hash" is a term hash(...), where
-   the i-th argument is an association list for variable i: Its keys
-   are the variable's domain elements, and the value is either m(0) or
-   m(1), denoting whether the edge is part of the matching. RevHash is
-   an association list, associating with each domain element a list of
-   variables whose domain contains the value. Instead of a list, it
-   would make sense to also let it be an association list and maintain
-   (reverse) edge information.
+   For each integer of the union of domains, an attributed variable is
+   introduced, to benefit from constant-time access. Attributes are:
+
+   edges ... [flow_from(F,From)] and [flow_to(F,To)] where F has an
+             attribute "flow" that is either 0 or 1 and an attribute "used"
+             if it is part of a maximum matching
+   level ... level in breadth-first search
+   g0_edges ... [flow_to(F,To)] as above
+   visited ... true if node was visited in DFS
+   index, in_stack, lowlink ... used in Tarjan's SCC algorithm
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+difference_arcs(Vars, FreeLeft, FreeRight) :-
+        empty_assoc(E),
+        difference_arcs(Vars, FreeLeft, E, NumVar),
+        assoc_to_list(NumVar, LsNumVar),
+        pairs_values(LsNumVar, FreeRight).
 
 domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
 
@@ -4087,24 +4075,31 @@ domain_to_list(split(_, Left, Right)) -->
 domain_to_list(empty)                 --> [].
 domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
-
-difference_arcs([], _, _, RevHash, RevHash, [], FR, FR).
-difference_arcs([V|Vs], N0, Hash, RevHash0, RevHash, FL, FR0, FR) :-
-        N1 is N0 + 1,
+difference_arcs([], [], NumVar, NumVar).
+difference_arcs([V|Vs], FL0, NumVar0, NumVar) :-
         (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
-            enumerate(Ns, N0, Hash, RevHash0, RevHash1, FR0, FR1),
-            FL = [N0|FLRest],
-            difference_arcs(Vs, N1, Hash, RevHash1, RevHash, FLRest, FR1, FR)
-        ;   difference_arcs(Vs, N1, Hash, RevHash0, RevHash, FL, FR0, FR)
+            FL0 = [V|FL],
+            enumerate(Ns, V, NumVar0, NumVar1),
+            difference_arcs(Vs, FL, NumVar1, NumVar)
+        ;   difference_arcs(Vs, FL0, NumVar0, NumVar)
         ).
 
-enumerate([], _, _, R, R, F, F).
-enumerate([N|Ns], I, H, R0, R, F0, F) :-
-        arg(I, H, As),
-        put_assoc(N, As, m(0), As1),
-        setarg(I, H, As1),
-        append_to_key(N, R0, I, R1),
-        enumerate(Ns, I, H, R1, R, [N|F0], F).
+enumerate([], _, NumVar, NumVar).
+enumerate([N|Ns], V, NumVar0, NumVar) :-
+        put_attr(F, flow, 0),
+        (   get_assoc(N, NumVar0, Y) ->
+            get_attr(Y, edges, Es),
+            put_attr(Y, edges, [flow_from(F,V)|Es]),
+            NumVar0 = NumVar1
+        ;   put_assoc(N, NumVar0, Y, NumVar1),
+            put_attr(Y, value, N),
+            put_attr(Y, edges, [flow_from(F,V)])
+        ),
+        (   get_attr(V, edges, Es1) ->
+            put_attr(V, edges, [flow_to(F,Y)|Es1])
+        ;   put_attr(V, edges, [flow_to(F,Y)])
+        ),
+        enumerate(Ns, V, NumVar1, NumVar).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4112,77 +4107,93 @@ enumerate([N|Ns], I, H, R0, R, F0, F) :-
    the value graph, then find an augmenting path in reverse.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-maximum_matching([], FR, FR, _, _) :- !.
-maximum_matching([FL|FLs], FR0, FR, Hash0, RevHash) :-
-        empty_assoc(E),
-        put_assoc(0, E, [l(FL)], Levels),
-        put_assoc(l(FL), E, 0, NodesLevels0),
-        augmenting_path_to_length(1, Levels, NodesLevels0, NodesLevels, FR0, Hash0, RevHash, To, 0, Length),
-        once(augmenting_path(r(To), Length, NodesLevels, Hash0, RevHash, [], Path)),
-        delete(FR0, To, FR1),
-        adjust_alternate_1(Path, Hash0),
-        maximum_matching(FLs, FR1, FR, Hash0, RevHash).
+clear_level(V) :- del_attr(V, level).
 
-augmenting_path_to_length(Level, Levels0, NLs0, NLs, FR, Hash0, RevHash, Right, Length0, Length) :-
-        Previous is Level - 1,
-        get_assoc(Previous, Levels0, Vs),
+maximum_matching([], _, _).
+maximum_matching([FL|FLs], Ls, Rs) :-
+        maplist(clear_level, Ls),
+        maplist(clear_level, Rs),
+        level_var(0, FL),
+        augmenting_path_to_length(1, [FL], To, 0, Length),
+        once(augmenting_path(r(To), Length, [], Path)),
+        del_attr(To, free),
+        adjust_alternate_1(Path),
+        maximum_matching(FLs, Ls, Rs).
+
+reachables_right([]) --> [].
+reachables_right([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_right_(Es),
+        reachables_right(Vs).
+
+reachables_right_([]) --> [].
+reachables_right_([flow_to(F,To)|Es]) -->
+        (   { get_attr(F, flow, 0),
+              \+ get_attr(To, level, _) } ->
+            [To]
+        ;   []
+        ),
+        reachables_right_(Es).
+
+
+reachables_left([]) --> [].
+reachables_left([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_left_(Es),
+        reachables_left(Vs).
+
+reachables_left_([]) --> [].
+reachables_left_([flow_from(F,From)|Es]) -->
+        (   { get_attr(F, flow, 1),
+              \+ get_attr(From, level, _) } ->
+            [From]
+        ;   []
+        ),
+        reachables_left_(Es).
+
+augmenting_path_to_length(Level, Vs, Right, Length0, Length) :-
         Length1 is Length0 + 1,
         (   Level mod 2 =:= 1 ->
-            findall(r(To), (member(l(V), Vs),
-                            arg(V, Hash0, Arcs),
-                            gen_assoc(To, Arcs, m(0)),
-                            \+ get_assoc(r(To), NLs0, _)), Tos0)
-        ;   findall(l(A), (member(r(V), Vs),
-                            get_assoc(V, RevHash, ls(Fs)),
-                            member(A, Fs),
-                            arg(A, Hash0, As),
-                            get_assoc(V, As, m(1)),
-                            \+ get_assoc(l(A), NLs0, _)), Tos0)
+            phrase(reachables_right(Vs), Tos)
+        ;   phrase(reachables_left(Vs), Tos)
         ),
-        sort(Tos0, Tos),        % remove duplicates
         Tos = [_|_],
-        (   Level mod 2 =:= 1, member(Free, FR), memberchk(r(Free), Tos) ->
-            Length = Length1, Right = Free, NLs = NLs0
-        ;   all_level(Tos, Level, NLs0, NLs1),
-            put_assoc(Level, Levels0, Tos, Levels1),
+        (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
+            Length = Length1, Right = Free
+        ;   maplist(level_var(Level), Tos),
             Level1 is Level + 1,
-            augmenting_path_to_length(Level1, Levels1, NLs1, NLs, FR, Hash0, RevHash, Right, Length1, Length)
+            augmenting_path_to_length(Level1, Tos, Right, Length1, Length)
         ).
 
-all_level([], _, NLs, NLs).
-all_level([V|Vs], Level, NLs0, NLs) :-
-        put_assoc(V, NLs0, Level, NLs1),
-        all_level(Vs, Level, NLs1, NLs).
+level_var(L, V) :- put_attr(V, level, L).
 
 
-augmenting_path(l(N), Level0, Levels, HashArcs, RevHash, Path0, Path) :-
+augmenting_path(l(N), Level0, Path0, Path) :-
         (   Level0 =:= 0 -> Path0 = Path
         ;   Level1 is Level0 - 1,
-            arg(N, HashArcs, Arcs),
-            gen_assoc(To, Arcs, M),
-            M = m(1),
-            get_assoc(r(To), Levels, Level1),
-            augmenting_path(r(To), Level1, Levels, HashArcs, RevHash, [M|Path0], Path)
+            get_attr(N, edges, Es),
+            member(flow_to(F, To), Es),
+            get_attr(F, flow, 1),
+            get_attr(To, level, Level1),
+            augmenting_path(r(To), Level1, [F|Path0], Path)
         ).
-augmenting_path(r(N), Level0, Levels, Arcs, RevArcs, Path0, Path) :-
+augmenting_path(r(N), Level0, Path0, Path) :-
         Level1 is Level0 - 1,
-        get_assoc(N, RevArcs, ls(Fs)),
-        member(A, Fs),
-        get_assoc(l(A), Levels, Level1),
-        arg(A, Arcs, As),
-        get_assoc(N, As, M),
-        M = m(0),
-        augmenting_path(l(A), Level1, Levels, Arcs, RevArcs, [M|Path0], Path).
+        get_attr(N, edges, Es),
+        member(flow_from(F, From), Es),
+        get_attr(From, level, Level1),
+        get_attr(F, flow, 0),
+        augmenting_path(l(From), Level1, [F|Path0], Path).
 
 
-adjust_alternate_1([M|Arcs], Hash) :-
-        setarg(1, M, 1),
-        adjust_alternate_0(Arcs, Hash).
+adjust_alternate_1([A|Arcs]) :-
+        put_attr(A, flow, 1),
+        adjust_alternate_0(Arcs).
 
-adjust_alternate_0([], _).
-adjust_alternate_0([M|Arcs], Hash) :-
-        setarg(1, M, 0),
-        adjust_alternate_1(Arcs, Hash).
+adjust_alternate_0([]).
+adjust_alternate_0([A|Arcs]) :-
+        put_attr(A, flow, 0),
+        adjust_alternate_1(Arcs).
 
 remove_ground([], _).
 remove_ground([V|Vs], R) :-
@@ -4193,181 +4204,157 @@ remove_ground([V|Vs], R) :-
 % problem in such a way, that we have to search for the so-called
 % strongly connected components of the graph.
 
-g_g0(Hash, G0L, G0R) :-
-        Hash =.. [_|List],
-        empty_assoc(E),
-        g_g0(List, 1, E, G0L, E, G0R).
+g_g0(V) :-
+        get_attr(V, edges, Es),
+        maplist(g_g0_(V), Es).
 
-g_g0([], _, G0L, G0L, G0R, G0R).
-g_g0([To|Rest], From, G0L0, G0L, G0R0, G0R) :-
-        assoc_to_list(To, Tos),
-        g_g0_(Tos, From, G0L0, G0L1, G0R0, G0R1),
-        From1 is From + 1,
-        g_g0(Rest, From1, G0L1, G0L, G0R1, G0R).
-
-g_g0_([], _, G0L, G0L, G0R, G0R).
-g_g0_([To-Val|Rest], From, G0L0, G0L, G0R0, G0R) :-
-        (   Val = m(1) ->
-            append_to_key(From, G0L0, To, G0L1),
-            g_g0_(Rest, From, G0L1, G0L, G0R0, G0R)
-        ;   append_to_key(To, G0R0, From, G0R1),
-            g_g0_(Rest, From, G0L0, G0L, G0R1, G0R)
+g_g0_(V, flow_to(F,To)) :-
+        (   get_attr(F, flow, 1) ->
+            (   get_attr(V, g0_edges, Es) ->
+                put_attr(V, g0_edges, [flow_to(F,To)|Es])
+            ;   put_attr(V, g0_edges, [flow_to(F,To)])
+            )
+        ;   (   get_attr(To, g0_edges, Es1) ->
+                put_attr(To, g0_edges, [flow_to(F,V)|Es1])
+            ;   put_attr(To, g0_edges, [flow_to(F,V)])
+            )
         ).
 
-:- record regin(index, stack, vlowlink, vindex, g0l, g0r).
+put_free(F) :- put_attr(F, free, true).
+
+free_node(F) :- get_attr(F, free, true).
 
 regin(Vars) :-
-        difference_arcs(Vars, Hash, RevHash, FreeLeft0, FreeRight0),
+        difference_arcs(Vars, FreeLeft, FreeRight0),
+        length(FreeLeft, LFL),
         length(FreeRight0, LFR),
-        length(FreeLeft0, LFL),
         LFL =< LFR,
-        maximum_matching(FreeLeft0, FreeRight0, FreeRight1, Hash, RevHash),
-        g_g0(Hash, G0L, G0R),
-        empty_assoc(E),
-        make_regin([index(0),stack([]),vlowlink(E),vindex(E),g0l(G0L),g0r(G0R)], Regin0),
-        phrase(scc(FreeLeft0, FreeRight0), [Regin0], [Regin]),
-        regin_vlowlink(Regin, Roots),
-        duplicate_term(Hash, Used),
-        dfs_used(FreeRight1, G0L, G0R, E, Hash, Used),
-        findall(A, unused_arc(Used, Hash, Roots, A), UAs),
+        maplist(put_free, FreeRight0),
+        maximum_matching(FreeLeft, FreeLeft, FreeRight0),
+        sublist(free_node, FreeRight0, FreeRight),
+        maplist(g_g0, FreeLeft),
+        phrase(scc(FreeLeft, FreeRight0), [0-[]], _),
+        maplist(dfs_used, FreeRight),
+        phrase(regin_goals(FreeLeft), Gs),
+        maplist(regin_clear_attributes, FreeLeft),
         disable_queue,
-        regin_remove(UAs, Vars),
+        maplist(call, Gs),
         enable_queue.
 
+regin_clear_attributes(V) :-
+        (   get_attr(V, edges, Es) ->
+            del_attr(V, edges),
+            maplist(clear_edge, Es)
+        ;   true
+        ),
+        del_attr(V, level),
+        del_attr(V, index),
+        del_attr(V, visited),
+        del_attr(V, in_stack),
+        del_attr(V, lowlink),
+        (   get_attr(V, g0_edges, Es1) ->
+            del_attr(V, g0_edges),
+            maplist(clear_edge, Es1)
+        ;   true
+        ).
 
-regin_remove([], _).
-regin_remove([From-To|Rest], Vars) :-
-        nth1(From, Vars, V),
-        neq_num(V, To),
-        regin_remove(Rest, Vars).
 
-unused_arc(Hash, M, Roots, From-To) :-
-        arg(From, Hash, Tos),
-        gen_assoc(To, Tos, m(0)),
-        arg(From, M, MTos),
-        get_assoc(To, MTos, m(0)),
-        get_assoc(l(From), Roots, ll(RL)),
-        get_assoc(r(To), Roots, ll(RR)),
-        RL =\= RR.
+clear_edge(flow_to(F, To)) :-
+        del_attr(F, flow),
+        del_attr(F, used),
+        regin_clear_attributes(To).
+clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
+
+
+regin_goals([]) --> [].
+regin_goals([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        regin_edges(Es, V),
+        regin_goals(Vs).
+
+regin_edges([], _) --> [].
+regin_edges([flow_to(F,To)|Es], V) -->
+        (   { get_attr(F, flow, 0),
+              \+ get_attr(F, used, true),
+              get_attr(V, lowlink, L1),
+              get_attr(To, lowlink, L2),
+              L1 =\= L2 } ->
+            { get_attr(To, value, N) },
+            [neq_num(V, N)]
+        ;   []
+        ),
+        regin_edges(Es, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Mark used edges.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-dfs_used([], _, _, _, _, _).
-dfs_used([V|Vs], G0L, G0R, Vis0, Hash0, Hash) :-
-        (   get_assoc(r(V), Vis0, _) ->
-            dfs_used(Vs, G0L, G0R, Vis0, Hash0, Hash)
-        ;   put_assoc(r(V), Vis0, visited, Vis1),
-            (   get_assoc(V, G0R, ls(Tos)) ->
-                dfs_used_l(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
-                dfs_used(Vs, G0L, G0R, Vis2, Hash0, Hash)
-            ;   dfs_used(Vs, G0L, G0R, Vis1, Hash0, Hash)
+dfs_used(V) :-
+        (   get_attr(V, visited, true) -> true
+        ;   put_attr(V, visited, true),
+            (   get_attr(V, g0_edges, Es) ->
+                dfs_used_edges(Es)
+            ;   true
             )
         ).
 
-dfs_used_l([], _, _, _, Vis, Vis, _, _).
-dfs_used_l([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
-        arg(V, Hash0, Tos0),
-        get_assoc(From, Tos0, M),
-        setarg(1, M, 1),
-        (   get_assoc(l(V), Vis0, _) ->
-            dfs_used_l(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   put_assoc(l(V), Vis0, visited, Vis1),
-            get_assoc(V, G0L, ls(Tos)),
-            dfs_used_r(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
-            dfs_used_l(Vs, From, G0L, G0R, Vis2, Vis, Hash0, Hash)
-        ).
-
-dfs_used_r([], _, _, _, Vis, Vis, _, _).
-dfs_used_r([V|Vs], From, G0L, G0R, Vis0, Vis, Hash0, Hash) :-
-        arg(From, Hash0, Tos0),
-        get_assoc(V, Tos0, M),
-        setarg(1, M, 1),
-        (   get_assoc(r(V), Vis0, _) ->
-            dfs_used_r(Vs, From, G0L, G0R, Vis0, Vis, Hash0, Hash)
-        ;   put_assoc(r(V), Vis0, visited, Vis1),
-            (   get_assoc(V, G0R, ls(Tos)) ->
-                dfs_used_l(Tos, V, G0L, G0R, Vis1, Vis2, Hash0, Hash),
-                dfs_used_r(Vs, From, G0L, G0R, Vis2, Vis, Hash0, Hash)
-            ;   dfs_used_r(Vs, From, G0L, G0R, Vis1, Vis, Hash0, Hash)
-            )
-        ).
+dfs_used_edges([]).
+dfs_used_edges([flow_to(F,To)|Es]) :-
+        put_attr(F, used, true),
+        dfs_used(To),
+        dfs_used_edges(Es).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Tarjan's strongly connected components algorithm.
+
+   DCGs are used to implicitly pass around the global index and stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc([], Right)     --> scc_(Right).
 scc([V|Vs], Right) -->
-        (   vindex_defined(l(V)) -> scc(Vs, Right)
-        ;   scc(l(V)), scc(Vs, Right)
+        (   { get_attr(V, index, _) } -> scc(Vs, Right)
+        ;   scc(V), scc(Vs, Right)
         ).
-
-vindex_defined(V) -->
-        state(S),
-        { regin_vindex(S, I),
-          get_assoc(V, I, _) }.
-
-vindex_is_index(V) -->
-        state(S0, S),
-        { regin_index(S0, Index),
-          regin_vindex(S0, VI0),
-          put_assoc(V, VI0, vi(Index), VI1),
-          set_vindex_of_regin(VI1, S0, S) }.
-
-vlowlink_is_index(V) -->
-        state(S0, S),
-        { regin_index(S0, Index),
-          regin_vlowlink(S0, VL0),
-          put_assoc(V, VL0, ll(Index), VL1),
-          set_vlowlink_of_regin(VL1, S0, S) }.
-
-index_plus_one -->
-        state(S0, S),
-        { regin_index(S0, I),
-          I1 is I+1,
-          set_index_of_regin(I1, S0, S) }.
-
-s_push(V)  -->
-        state(S0, S),
-        { regin_stack(S0, Stack),
-          set_stack_of_regin([V|Stack], S0, S) }.
-
-successors(r(V), Tos) -->
-        state(S),
-        { regin_g0r(S, G0R),
-          (   get_assoc(V, G0R, ls(Tos)) ->  true ; Tos = [] ) }.
-successors(l(V), Tos) -->
-        state(S),
-        { regin_g0l(S, G0L),
-          (   get_assoc(V, G0L, ls(Tos)) -> true ; Tos = [] ) }.
-
-vlowlink_min_lowlink(V, VP) -->
-        state(S0),
-        { regin_vlowlink(S0, LL0),
-          get_assoc(V, LL0, VL),
-          get_assoc(VP, LL0, VPL),
-          VL = ll(IVL), VPL = ll(IVPL),
-          VL1 is min(IVL, IVPL),
-          setarg(1, VL, VL1) }.
-
-vlowlink_min_index(V, VP) -->
-        state(S0),
-        { regin_vlowlink(S0, LL0),
-          regin_vindex(S0, I),
-          get_assoc(V, LL0, VL),
-          get_assoc(VP, I, VPI),
-          VL = ll(IVL), VPI = vi(IVPI),
-          VL1 is min(IVL, IVPI),
-          setarg(1, VL, VL1) }.
 
 scc_([])     --> [].
 scc_([V|Vs]) -->
-        (   vindex_defined(r(V)) -> scc_(Vs)
-        ;   scc(r(V)), scc_(Vs)
+        (   { get_attr(V, index, _) } -> scc_(Vs)
+        ;   scc(V), scc_(Vs)
         ).
 
+vindex_is_index(V) -->
+        state(Index-_),
+        { put_attr(V, index, Index) }.
+
+vlowlink_is_index(V) -->
+        state(Index-_),
+        { put_attr(V, lowlink, Index) }.
+
+index_plus_one -->
+        state(I-S, I1-S),
+        { I1 is I+1 }.
+
+s_push(V)  -->
+        state(I-Stack, I-[V|Stack]),
+        { put_attr(V, in_stack, true) }.
+
+successors(V, Tos) -->
+        { (  get_attr(V, g0_edges, Tos0) ->
+             maplist(arg(2), Tos0, Tos)
+          ;   Tos = []
+          ) }.
+
+vlowlink_min_lowlink(V, VP) -->
+        { get_attr(V, lowlink, VL),
+          get_attr(VP, lowlink, VPL),
+          VL1 is min(VL, VPL),
+          put_attr(V, lowlink, VL1) }.
+
+vlowlink_min_index(V, VP) -->
+        { get_attr(V, lowlink, VL),
+          get_attr(VP, lowlink, VPI),
+          VL1 is min(VL, VPI),
+          put_attr(V, lowlink, VL1) }.
 
 scc(V) -->
         vindex_is_index(V),
@@ -4376,30 +4363,22 @@ scc(V) -->
         s_push(V),
         successors(V, Tos),
         each_edge(Tos, V),
-        state(S0),
-        (   { regin_vlowlink(S0, LL),
-              regin_vindex(S0, I),
-              get_assoc(V, I, vi(VI)),
-              get_assoc(V, LL, ll(VI)) } -> pop_stack_to(V, VI)
+        (   { get_attr(V, index, VI),
+              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
         ;   []
         ).
 
 pop_stack_to(V, N) -->
-        state(S0, S1),
-        { regin_stack(S0, [First|Stack]) },
-        { set_stack_of_regin(Stack, S0, S1) },
+        state(I-[First|Stack], I-Stack),
+        { del_attr(First, in_stack) },
         (   { First == V } -> []
-        ;   state(S1),
-            { regin_vlowlink(S1, VL),
-              get_assoc(First, VL, VL1),
-              setarg(1, VL1, N) },
+        ;   { put_attr(First, lowlink, N) },
             pop_stack_to(V, N)
         ).
 
 each_edge([], _) --> [].
-each_edge([VP0|VPs], V) -->
-        v0_v(V, VP0, VP),
-        (   vindex_defined(VP) ->
+each_edge([VP|VPs], V) -->
+        (   { get_attr(VP, index, _) } ->
             (   v_in_stack(VP) ->
                 vlowlink_min_index(V, VP)
             ;   []
@@ -4413,13 +4392,7 @@ state(S), [S] --> [S].
 
 state(S0, S), [S] --> [S0].
 
-v_in_stack(V) -->
-        state(S),
-        { regin_stack(S, Stack),
-          memberchk(V, Stack) }.
-
-v0_v(l(_), V, r(V)) --> [].
-v0_v(r(_), V, l(V)) --> [].
+v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent all_distinct/1 constraint.
