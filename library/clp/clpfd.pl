@@ -69,7 +69,7 @@
    CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
 
    You can implement this algorithm without any knowledge of Prolog or
-   this library. Just write an efficient C function that, given a set
+   this library. Just write an efficient predicate that, given a set
    of variables and their list of domain elements, uses the described
    algorithm to compute the set of arcs that can be safely removed
    from the value graph.
