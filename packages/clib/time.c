@@ -49,6 +49,12 @@
 #include <errno.h>
 #include <assert.h>
 
+#ifdef SIGUSR2
+#define SIG_TIME SIGUSR2
+#else
+#define SIG_TIME SIGALRM
+#endif
+
 #ifdef _REENTRANT
 #ifdef O_SAFE
 #define __USE_GNU
@@ -179,14 +185,14 @@ The module contains three implementations:
 	The Windows versions is based on multimedia timer objects.
 
 	* Unix setitimer (single threaded)
-	This implementation uses setitimer() and SIGALRM.  Whenever
+	This implementation uses setitimer() and SIG_TIME.  Whenever
 	something is changed, re_schedule() is called to set the
 	alarm clock for the next wakeup.
 
 	* Unix scheduler thread
 	This implementation uses a table shared between all threads and
 	a thread that waits for the next signal to be send using
-	pthread_cond_timedwait().  The signal SIGALRM is then delivered
+	pthread_cond_timedwait().  The signal SIG_TIME is then delivered
 	using pthread_kill() to the scheduled thread.
 
 This module keeps a double-linked  list   of  `scheduled events' that is
@@ -463,7 +469,7 @@ cleanupHandler()
 
   if ( signal_function_set )
   { signal_function_set = FALSE;
-    PL_signal(SIGALRM, signal_function);
+    PL_signal(SIG_TIME, signal_function);
   }
 }
 
@@ -471,7 +477,7 @@ cleanupHandler()
 static void
 installHandler()
 { if ( !signal_function_set )
-  { signal_function = PL_signal(SIGALRM|PL_SIGSYNC, on_alarm);
+  { signal_function = PL_signal(SIG_TIME|PL_SIGSYNC, on_alarm);
     signal_function_set = TRUE;
   }
 }
@@ -520,7 +526,7 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 { Event ev = (Event)dwuser;
 
   ev->flags |= EV_FIRED;
-  PL_w32thread_raise(ev->tid, SIGALRM);
+  PL_w32thread_raise(ev->tid, SIG_TIME);
 }
 
 
@@ -659,7 +665,7 @@ alarm_loop(void * closure)
 			  (long)left.tv_sec,
 			  ev->pl_thread_id, (long)ev->thread_id));
 	  signalled[ev->pl_thread_id] = TRUE;
-	  pthread_kill(ev->thread_id, SIGALRM);
+	  pthread_kill(ev->thread_id, SIG_TIME);
 	}
       } else
 	break;
@@ -679,7 +685,7 @@ alarm_loop(void * closure)
       { case ETIMEDOUT:
 	  DEBUG(1, Sdprintf("Signalling %d (= %ld) ...\n",
 			    ev->pl_thread_id, (long)ev->thread_id));
-	  pthread_kill(ev->thread_id, SIGALRM);
+	  pthread_kill(ev->thread_id, SIG_TIME);
 	  break;
 	case 0:
 	  continue;
