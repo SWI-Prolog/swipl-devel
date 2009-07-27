@@ -2787,6 +2787,27 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 }
 
 
+static bool
+clearInitialization(SourceFile sf)
+{ GET_LD
+  int rc = FALSE;
+
+  fid_t fid = PL_open_foreign_frame();
+  term_t name = PL_new_term_ref();
+  static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("$clear_initialization", 1, "system");
+
+  PL_put_atom(name, sf->name);
+  rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+
+  PL_discard_foreign_frame(fid);
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startConsult(SourceFile sf)
 
@@ -2810,6 +2831,8 @@ startConsult(SourceFile f)
   { ListCell cell, next;
     sigset_t set;
     ClauseRef garbage = NULL;
+
+    clearInitialization(f);
 
     LOCK();
     PL_LOCK(L_THREAD);

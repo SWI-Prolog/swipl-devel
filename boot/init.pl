@@ -340,6 +340,15 @@ initialization(Goal, When) :-
 '$initialization_failure'(Goal, Ctx) :-
 	print_message(warning, initialization_failure(Goal, Ctx)).
 
+%%	'$clear_initialization'(+File) is det.
+%
+%	removes all initialization goals that are registered from File.
+%
+%	@see Called from startConsult() in pl-proc.c
+
+'$clear_initialization'(File) :-
+	retractall('$init_goal'(_, _, File:_)).
+
 
 		/********************************
 		*            MODULES            *
