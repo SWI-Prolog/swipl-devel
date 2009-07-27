@@ -1119,7 +1119,7 @@ load_files(Module:Files, Options) :-
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
 	(   memberchk(stream(FromStream), Options)
-	->  true
+	->  FullFile = File
 	;   absolute_file_name(File,
 			       [ file_type(prolog),
 				 access(read)
