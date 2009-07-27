@@ -96,7 +96,7 @@
 
 :- use_foreign_library(foreign(time)).
 
-%%	call_with_time_limit(+Time, :Goal) is det.
+%%	call_with_time_limit(+Time, :Goal) is semidet.
 %
 %	Call Goal, while watching out for   a (wall-time) limit. If this
 %	limit  is  exceeded,  the   exception  =time_limit_exceeded=  is
@@ -106,11 +106,16 @@
 
 call_with_time_limit(Time, Goal) :-
 	Time > 0, !,
-	setup_call_cleanup(alarm(Time, time_limit_exceeded(Time), Id),
-			   once(Goal),
+	setup_call_cleanup(alarm(Time, time_limit_exceeded(Time),
+				 Id, [install(false)]),
+			   run_alarm_goal(Id, Goal),
 			   remove_alarm_notrace(Id)).
 call_with_time_limit(_Time, _Goal) :-
 	throw(time_limit_exceeded).
+
+run_alarm_goal(AlarmID, Goal) :-
+	install_alarm(AlarmID),
+	Goal, !.
 
 time_limit_exceeded(_Time) :-
 	throw(time_limit_exceeded).
