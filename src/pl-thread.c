@@ -4215,12 +4215,11 @@ other threads. This function is  called from pl_garbage_collect_atoms(),
 which already has locked the L_ATOM and L_THREAD mutexes.
 
 We set up a semaphore and  signal   all  the  other threads. Each thread
-receiving a the SIG_MARKATOMS signal calls markAtomsOnStacks() and posts
+receiving a the SIG_FORALL signal   calls  markAtomsOnStacks() and posts
 the semaphore. The latter performs its  job with certain heuristics, but
 must ensure it doesn't  forget  any  atoms   (a  few  too  many  is ok).
-Basically this signal handler can run whenever  necessary, as intptr_t as as
-the thread is not in a GC,  which   makes  it impossible to traverse the
-stacks.
+Basically this signal handler can run whenever necessary, as long as the
+thread is not in a GC, which makes it impossible to traverse the stacks.
 
 Special attention is required  for   stack-creation  and destruction. We
 should not be missing threads that  are   about  to be created or signal
@@ -4235,7 +4234,7 @@ refer to new atoms by creating them, in which case the thread will block
 or by executing an instruction that refers to the atom. In this case the
 atom is locked by the instruction anyway.
 
-[__WINDOWS__]  The  windows  case  is  entirely    different  as  we  have  no
+[__WINDOWS__] The windows case  is  entirely   different  as  we have no
 asynchronous signals. Fortunately we  can   suspend  and resume threads.
 This makes the code a lot easier as   you can see below. Problem is that
 only one processor is doing the  job,   where  atom-gc  is a distributed
