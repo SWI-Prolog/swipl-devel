@@ -683,10 +683,6 @@ alarm_loop(void * closure)
 
       switch( rc )
       { case ETIMEDOUT:
-	  DEBUG(1, Sdprintf("Signalling %d (= %ld) ...\n",
-			    ev->pl_thread_id, (long)ev->thread_id));
-	  pthread_kill(ev->thread_id, SIG_TIME);
-	  break;
 	case 0:
 	  continue;
 	case EINTR:
