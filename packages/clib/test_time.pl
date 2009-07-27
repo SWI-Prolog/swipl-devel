@@ -4,6 +4,7 @@
 	  ]).
 
 :- use_module(library(debug)).
+:- use_module(library(plunit)).
 
 :- asserta(file_search_path(foreign, '.')).
 :- [time].
@@ -12,8 +13,17 @@ dbg :-
 	time:time_debug(1).
 
 test_time :-
-	bg(4),
+	run_tests([ time
+		  ]).
+
+:- begin_tests(time).
+
+test(bg) :-
+	bg(4).
+test(flood) :-
 	flood_test.
+
+:- end_tests(time).
 
 
 		 /*******************************
