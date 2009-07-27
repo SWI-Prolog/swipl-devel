@@ -629,6 +629,8 @@ nextEvent(schedule *sched)
 static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
+  int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
+  char *signalled = alloca(mt);
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
   DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
@@ -636,8 +638,6 @@ alarm_loop(void * closure)
   for(;;)
   { Event ev = nextEvent(sched);
     struct timeval now;
-    int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
-    char *signalled = alloca(mt);
 
     memset(signalled, 0, mt);
     gettimeofday(&now, NULL);
