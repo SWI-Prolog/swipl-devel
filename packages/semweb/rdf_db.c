@@ -1049,7 +1049,7 @@ static int
 byte_size_bitmatrix(int w, int h)
 { int wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
 
-  return (int)(long)&((bitmatrix*)NULL)->bits[wsize];
+  return (int)(intptr_t)&((bitmatrix*)NULL)->bits[wsize];
 }
 
 
