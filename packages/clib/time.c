@@ -30,6 +30,7 @@
 */
 
 #define O_DEBUG 1			/* provides time:time_debug(+Level) */
+//#define O_SAFE 1			/* extra safety checks */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -49,6 +50,9 @@
 #include <assert.h>
 
 #ifdef _REENTRANT
+#ifdef O_SAFE
+#define __USE_GNU
+#endif
 #include <pthread.h>
 #endif
 
@@ -245,13 +249,23 @@ typedef struct
 } schedule;
 
 #ifdef SHARED_TABLE
+#if defined(O_SAFE) && defined(PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP)
+#define CHECK_LOCK_RC
+static pthread_mutex_t mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+#else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static pthread_cond_t cond   = PTHREAD_COND_INITIALIZER;
 static int scheduler_running = FALSE;	/* is scheduler running? */
 static pthread_t scheduler;		/* thread id of scheduler */
 
-#define LOCK()   pthread_mutex_lock(&mutex);
-#define UNLOCK() pthread_mutex_unlock(&mutex);
+#ifdef CHECK_LOCK_RC
+#define LOCK()   {int rc = pthread_mutex_lock(&mutex); assert(rc==0);}
+#define UNLOCK() {int rc = pthread_mutex_unlock(&mutex); assert(rc==0);}
+#else
+#define LOCK()   pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#endif
 #else
 #define LOCK()   (void)0
 #define UNLOCK() (void)0
@@ -657,6 +671,7 @@ alarm_loop(void * closure)
       timeout.tv_nsec = ev->at.tv_usec*1000;
       int rc;
 
+    retry_timed_wait:
       DEBUG(1, Sdprintf("Waiting ...\n"));
       rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
 
@@ -667,18 +682,28 @@ alarm_loop(void * closure)
 	  pthread_kill(ev->thread_id, SIGALRM);
 	  break;
 	case 0:
-	case EINTR:
 	  continue;
+	case EINTR:
+	  goto retry_timed_wait;
 	default:
 	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
+	  assert(0);
       }
     } else
     { int rc;
 
+    retry_wait:
       DEBUG(1, Sdprintf("No waiting events\n"));
       rc = pthread_cond_wait(&cond, &mutex);
-      if ( rc == EINTR )
-	continue;
+      switch(rc)
+      { case EINTR:
+	  goto retry_wait;
+	case 0:
+	  continue;
+	default:
+	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
+	  assert(0);
+      }
     }
   }
 
@@ -755,36 +780,36 @@ static int
 installEvent(Event ev)
 { int rc;
 
-  LOCK();
-
   ev->thread_id = pthread_self();
 #ifdef O_DEBUG
   ev->pl_thread_id = PL_thread_self();
 #endif
 
+  LOCK();
   if ( !scheduler_running )
   { pthread_attr_t attr;
-    int rc;
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_attr_setstacksize(&attr, 1024);
+    pthread_attr_setstacksize(&attr, 8192);
+    rc = pthread_create(&scheduler, &attr, alarm_loop, NULL);
+    pthread_attr_destroy(&attr);
 
-    if ( (rc=pthread_create(&scheduler, &attr, alarm_loop, NULL)) )
+    if ( rc != 0 )
     { UNLOCK();
       return pl_error("alarm", 4, "Failed to start schedule thread",
 		      ERR_ERRNO, rc);
     }
-    pthread_attr_destroy(&attr);
 
     DEBUG(1, Sdprintf("Started scheduler thread\n"));
     scheduler_running = TRUE;
   }
 
-  if ( (rc=insertEvent(ev)) == TRUE )
-    pthread_cond_signal(&cond);
-
+  rc = insertEvent(ev);
   UNLOCK();
+
+  if ( rc )
+    pthread_cond_signal(&cond);
 
   return rc;
 }
@@ -796,10 +821,10 @@ uninstallEvent(Event ev)
   if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
   unlinkEvent(ev);
-  pthread_cond_signal(&cond);
   ev->flags &= ~(EV_FIRED|EV_DONE);
   UNLOCK();
 
+  pthread_cond_signal(&cond);
 
   return TRUE;
 }
@@ -811,8 +836,9 @@ removeEvent(Event ev)
   if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
   freeEvent(ev);
-  pthread_cond_signal(&cond);
   UNLOCK();
+
+  pthread_cond_signal(&cond);
 
   return TRUE;
 }
