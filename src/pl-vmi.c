@@ -3103,26 +3103,33 @@ END_SHAREDVARS
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CALLCLEANUP: Part of call_cleanup(:Goal, :Cleanup).  Simply set a flag
-on the frame and call the 1-st argument. See also I_CATCH.
+I_CALLCLEANUP: Part of setup_call_catcher_cleanup(:Setup, :Goal,
+?Catcher, :Cleanup). Simply set a flag on the frame and call the 1-st
+argument. See also I_CATCH.
 
 I_EXITCLEANUP  is  at  the  end  of   call_cleanup/3.  If  there  is  no
 choice-point created this is the final exit. If this frame has no parent
 (it is the entry of PL_next_solution()),
 
-call_cleanup(:Goal, -Reason, :Cleanup) is tranalated into
-   0 i_enter
-   1 i_callcleanup
-   2 i_exitcleanup
-   3 i_exit
+setup_call_catcher_cleanup(:Setup :Goal, -Reason, :Cleanup)
+is tranalated into
+
+  i_enter
+  <setup>
+  i_callcleanup
+  i_exitcleanup
+  i_exit
 
 We set FR_WATCHED to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLCLEANUP, 0, 0, ())
-{ newChoice(CHP_CATCH, FR PASS_LD);
+{ if ( !mustBeCallable(consTermRef(argFrameP(FR, 3)) PASS_LD) )
+    goto b_throw;
+
+  newChoice(CHP_CATCH, FR PASS_LD);
   set(FR, FR_WATCHED);
-				/* = B_VAR1 */
+  				/* = B_VAR1 */
   *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
 
   VMI_GOTO(I_USERCALL0);

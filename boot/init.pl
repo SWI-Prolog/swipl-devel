@@ -251,15 +251,6 @@ catch(_Goal, _Catcher, _Recover) :-
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, Cleanup) :-
 	Setup, !,
-	Cleanup = M:Goal,
-	(   atom(M),
-	    callable(Goal)		% Hmmm...  Must be plain callable/1
-	->  true
-	;   (   var(M) ; var(Goal)
-	    ->	throw(error(instantiation_error, _))
-	    ;	throw(error(type_error(callable, Cleanup), _))
-	    )
-	),
 	'$call_cleanup'.
 
 setup_call_cleanup(Setup, Goal, Cleanup) :-

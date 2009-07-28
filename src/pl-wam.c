@@ -590,6 +590,38 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 #endif
 }
 
+
+static int
+mustBeCallable(term_t call ARG_LD)
+{ Word p = valTermRef(call);
+  Word ap;
+
+  deRef(p);
+  if ( isVar(*p) )
+  { instantiation_error:
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  }
+  if ( !hasFunctor(*p, FUNCTOR_colon2) )
+  { type_error:
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, call);
+  }
+  ap = argTermP(*p, 0);
+  deRef(ap);
+  if ( isVar(*ap) )
+    goto instantiation_error;
+  if ( !isAtom(*ap) )
+    goto type_error;
+  ap = argTermP(*p, 1);
+  deRef(ap);
+  if ( isVar(*ap) )
+    goto instantiation_error;
+  if ( !(isTerm(*ap) || isTextAtom(*ap)) )
+    goto type_error;
+
+  succeed;
+}
+
+
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
