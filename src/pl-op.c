@@ -247,6 +247,9 @@ priorityOperator(Module m, atom_t name)
   return result;
 }
 
+#undef LD
+#define LD LOCAL_LD
+
 		 /*******************************
 		 *	  PROLOG BINDING	*
 		 *******************************/
@@ -283,13 +286,18 @@ Define an operator from Prolog (op/3). The  current version is fully ISO
 compliant for all exception cases.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_op(term_t pri, term_t type, term_t name)
-{ atom_t nm;
+static
+PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+  atom_t nm;
   atom_t tp;
   int t;
   int p;
   Module m = MODULE_parse;
+
+  term_t pri = A1;
+  term_t type = A2;
+  term_t name = A3;
 
   PL_strip_module(name, &m, name);
 
@@ -326,9 +334,6 @@ pl_op(term_t pri, term_t type, term_t name)
 
   succeed;
 }
-
-#undef LD
-#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 current_op is a bit hard with   the distributed operator tables (thread,
@@ -635,6 +640,7 @@ PRED_IMPL("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
 		 *******************************/
 
 BeginPredDefs(op)
+  PRED_DEF("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   PRED_DEF("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
   PRED_DEF("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   PRED_DEF("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
