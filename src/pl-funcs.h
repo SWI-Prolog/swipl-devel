@@ -432,8 +432,6 @@ COMMON(word) 		pl_local_op(term_t prec, term_t type, term_t name,
 			    control_t h);
 COMMON(word) 		pl_op(term_t priority, term_t type, term_t name);
 COMMON(void) 		initOperators(void);
-COMMON(word) 		pl_builtin_op(term_t prec, term_t type, term_t name,
-			      control_t h);
 
 /* pl-os.c */
 COMMON(bool) 		initOs(void);

@@ -513,6 +513,8 @@ pl_local_op(term_t prec, term_t type, term_t name, control_t h)
   return current_op(m, FALSE, prec, type, name, h);
 }
 
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *     INITIALISE OPERATORS	*
@@ -597,18 +599,19 @@ Examine  built-in  operators  (functions  as    current_op/3).  Used  by
 qsave_program to find out which operator declarations to save.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
-{ int i;
+static
+PRED_IMPL("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  int i;
   const opdef *op;
   fid_t fid;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       i = 0;
       break;
     case FRG_REDO:
-      i = (int)ForeignContextInt(h);
+      i = (int)CTX_INT;
       break;
     case FRG_CUTTED:
     default:
@@ -617,11 +620,20 @@ pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
 
   fid = PL_open_foreign_frame();
   for( op = &operators[i]; op->name; op++ )
-  { if ( PL_unify_atom(name, op->name) &&
-	 PL_unify_integer(prec, op->priority) &&
-	 PL_unify_atom(type, operatorTypeToAtom(op->type)) )
+  { if ( PL_unify_atom(A3, op->name) &&
+	 PL_unify_integer(A1, op->priority) &&
+	 PL_unify_atom(A2, operatorTypeToAtom(op->type)) )
       ForeignRedoInt(i+1);
     PL_rewind_foreign_frame(fid);
   }
+
   fail;
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(op)
+  PRED_DEF("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
+EndPredDefs
