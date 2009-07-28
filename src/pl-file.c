@@ -1380,6 +1380,22 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	}
 
 	goto ok;
+      } else if ( aname == ATOM_type ) /* type(Type) */
+      { atom_t type;
+
+	if ( !PL_get_atom_ex(a, &type) )
+	  return FALSE;
+	if ( type == ATOM_text )
+	{ s->flags |= SIO_TEXT;
+	} else if ( type == ATOM_binary )
+	{ s->flags &= ~SIO_TEXT;
+	} else
+	{ PL_error("set_stream", 2, NULL, ERR_DOMAIN,
+		   ATOM_type, a);
+	  goto error;
+	}
+
+	goto ok;
       } else if ( aname == ATOM_close_on_abort ) /* close_on_abort(Bool) */
       { int close;
 

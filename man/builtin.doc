@@ -2812,6 +2812,10 @@ form
     \term{error}{\term{timeout_error}{read, Stream}, _}
 \end{quote}
 
+    \termitem{type}{Type}
+Set the type of the stream to one of \const{text} or \const{binary}.
+See also open/4 and the \const{encoding} property of streams.
+
     \termitem{record_position}{Bool}
 Do/do not record the line-count and line-position (see line_count/2
 and line_position/2).
