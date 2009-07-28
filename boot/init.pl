@@ -249,7 +249,7 @@ catch(_Goal, _Catcher, _Recover) :-
 %	Call Cleanup once after Goal is finished (deterministic success, failure,
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
-setup_call_catcher_cleanup(Setup, _Goal, _Catcher, Cleanup) :-
+setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
 	'$sig_atomic'(Setup),
 	'$call_cleanup'.
 
