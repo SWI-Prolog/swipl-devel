@@ -525,6 +525,13 @@ system is not in a state where we can do garbage collection.
 As a consequence the cleanup-handler  of   call_cleanup()  runs  with GC
 disables and so do the callEventHook()  hooks.   The  latter is merely a
 developers issue. Cleanup seems reasonable too.
+
+(**) In addition, we must protect ourselves  from signals to ensure that
+the    cleanup    handler    runs      without     being    interrupted.
+startCritical/endCritical may be a bit of an overkill here.
+
+TBD: also the setup-handler of setup_call  needs to be protected against
+interrupts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -550,13 +557,17 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 	exception_term = 0;
 	*valTermRef(exception_bin) = 0;
+	startCritical;			/* See (**) */
 	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+	endCritical;
 	if ( rval || !ex )
 	{ *valTermRef(exception_bin) = *valTermRef(pending);
 	  exception_term = exception_bin;
 	}
       } else
-      { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      { startCritical;			/*  See (**) */
+	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+	endCritical;
       }
       environment_frame = esave;
       unblockGC(PASS_LD1);
