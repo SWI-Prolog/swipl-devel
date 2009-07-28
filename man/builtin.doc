@@ -4277,7 +4277,7 @@ although all operators can be redefined by the user, this is strongly
 discouraged as it often leads to syntax errors or even different
 semantic interpretations when loading system libraries.  It is adviced
 to keep operators local to modules and load the system modules you need
-before changing operators.
+before changing operators.  See also \secref{moduleop}.
 
 \begin{table}
 \begin{center}

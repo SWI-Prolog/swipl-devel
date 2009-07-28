@@ -348,12 +348,16 @@ declaration.
 
 Operators (\secref{operators}) are local to modules, where the initial
 table behaves as if it is copied from the module \const{user} (see
-\secref{resmodules}). In addition, operators can be declared in the
-module/2 directive as shown below. Such operator declarations are
+\secref{resmodules}).  A specific operator can be disabled inside a
+module using \exam{:- op(0, Type, Name)}.  Inheritance from the public
+table can be restored using \exam{:- op(-1, Type, Name)}.
+
+In addition to using the op/3 directive, operators can be declared in
+the module/2 directive as shown below. Such operator declarations are
 visible inside the module and importing such a module makes the
 operators visible in the target module. Exporting operators is typically
 used by modules that implement sub-languages such as chr (see
-\chapref{chr}).  The example below is copied from the library
+\chapref{chr}). The example below is copied from the library
 \pllib{clpfd}.
 
 \begin{code}

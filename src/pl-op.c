@@ -136,6 +136,9 @@ defOperator(Module m, atom_t name, int type, int priority)
 
   if ( (s = lookupHTable(m->operators, (void *)name)) )
   { op = s->value;
+  } else if ( priority < 0 )
+  { UNLOCK();				/* already inherited: do not change */
+    return;
   } else
   { op = allocHeap(sizeof(*op));
 
@@ -148,7 +151,7 @@ defOperator(Module m, atom_t name, int type, int priority)
   }
 
   op->priority[t] = priority;
-  op->type[t]     = (priority > 0 ? type : 0);
+  op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
   if ( !s )
   { PL_register_atom(name);
     addHTable(m->operators, (void *)name, op);
@@ -301,11 +304,11 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
 
   PL_strip_module(name, &m, name);
 
-  if ( !PL_get_atom(type, &tp) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, type);
-  if ( !PL_get_integer(pri, &p) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, pri);
-  if ( p < 0 || p > OP_MAXPRIORITY )
+  if ( !PL_get_atom_ex(type, &tp) )
+    fail;
+  if ( !PL_get_integer_ex(pri, &p) )
+    fail;
+  if ( !((p >= 0 && p <= OP_MAXPRIORITY) || (p == -1 && m != MODULE_user)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_priority, pri);
   if ( !(t = atomToOperatorType(tp)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_specifier, type);
