@@ -327,6 +327,8 @@ pl_op(term_t pri, term_t type, term_t name)
   succeed;
 }
 
+#undef LD
+#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 current_op is a bit hard with   the distributed operator tables (thread,
@@ -405,7 +407,7 @@ typedef struct
 static word
 current_op(Module m, int inherit,
 	   term_t prec, term_t type, term_t name,
-	   control_t h)
+	   control_t h ARG_LD)
 { op_enum *e;
   Buffer b;
   int mx;
@@ -491,30 +493,28 @@ current_op(Module m, int inherit,
   fail;
 }
 
+static
+PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+  Module m = MODULE_parse;
 
-word
-pl_current_op(term_t prec, term_t type, term_t name, control_t h)
-{ Module m = MODULE_parse;
+  if ( CTX_CNTRL != FRG_CUTTED )
+    PL_strip_module(A3, &m, A3);
 
-  if ( name )				/* FRG_CUTTED: no name! */
-    PL_strip_module(name, &m, name);
-
-  return current_op(m, TRUE, prec, type, name, h);
+  return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
 }
 
+static
+PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module m = MODULE_user;
 
-word
-pl_local_op(term_t prec, term_t type, term_t name, control_t h)
-{ Module m = MODULE_user;
+  if ( CTX_CNTRL != FRG_CUTTED )
+    PL_strip_module(A3, &m, A3);
 
-  if ( name )				/* FRG_CUTTED: no name! */
-    PL_strip_module(name, &m, name);
-
-  return current_op(m, FALSE, prec, type, name, h);
+  return current_op(m, FALSE, A1, A2, A3, PL__ctx PASS_LD);
 }
 
-#undef LD
-#define LD LOCAL_LD
 
 		 /*******************************
 		 *     INITIALISE OPERATORS	*
@@ -635,5 +635,7 @@ PRED_IMPL("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
 		 *******************************/
 
 BeginPredDefs(op)
+  PRED_DEF("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
+  PRED_DEF("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   PRED_DEF("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
 EndPredDefs

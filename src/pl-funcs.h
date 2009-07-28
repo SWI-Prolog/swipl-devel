@@ -426,10 +426,6 @@ COMMON(word) 		pl_set_prolog_hook(term_t module, term_t old, term_t new);
 COMMON(int) 		currentOperator(Module m, atom_t name, int kind,
 				int *type, int *priority);
 COMMON(int) 		priorityOperator(Module m, atom_t atom);
-COMMON(word) 		pl_current_op(term_t prec, term_t type, term_t name,
-			      control_t h);
-COMMON(word) 		pl_local_op(term_t prec, term_t type, term_t name,
-			    control_t h);
 COMMON(word) 		pl_op(term_t priority, term_t type, term_t name);
 COMMON(void) 		initOperators(void);
 
