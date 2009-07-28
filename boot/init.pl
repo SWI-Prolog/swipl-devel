@@ -250,7 +250,7 @@ catch(_Goal, _Catcher, _Recover) :-
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, Cleanup) :-
-	Setup, !,
+	'$sig_atomic'(Setup),
 	'$call_cleanup'.
 
 setup_call_cleanup(Setup, Goal, Cleanup) :-

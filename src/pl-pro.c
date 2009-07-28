@@ -120,6 +120,36 @@ pl_notrace1(term_t goal)
   return rval;
 }
 
+#undef LD
+#define LD LOCAL_LD
+
+/** '$sig_atomic'(:Goal) is semidet.
+
+Execute Goal as once/1 while blocking signals.
+
+@see setup_call_catcher_cleanup/4 in boot/init.pl
+@see callCleanupHandler() uses the same mechanism to protect the cleanup
+*/
+
+static
+PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t ex;
+  int rval;
+
+  startCritical;
+  rval = callProlog(NULL, A1, PL_Q_CATCH_EXCEPTION, &ex);
+  if ( !endCritical )
+    fail;				/* aborted */
+
+  if ( !rval && ex )
+    return PL_raise_exception(ex);
+
+  return rval;
+}
+
+#undef LD
+#define LD GLOBAL_LD
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -625,4 +655,5 @@ checkData(Word p)
 
 BeginPredDefs(pro)
   PRED_DEF("abort", 0, abort, 0)
+  PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
 EndPredDefs
