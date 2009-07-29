@@ -1478,8 +1478,6 @@ load_files(Module:Files, Options) :-
 	throw(error(type_error(import_specifier, Import))).
 
 
-:- op(700, xfx, user:as).		% TBD: kernel table
-
 '$import_except'([], List, List).
 '$import_except'([H as N|T], List0, List) :- !,
 	'$import_as'(H, N, List0, List1),

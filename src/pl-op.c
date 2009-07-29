@@ -612,6 +612,7 @@ static const opdef operators[] = {
   OP(ATOM_initialization,OP_FX,	       1150), 	/* initialization */
   OP(ATOM_thread_initialization,OP_FX, 1150), 	/* thread_initialization */
   OP(ATOM_is,		OP_XFX,		700),	/* is */
+  OP(ATOM_as,		OP_XFX,		700),	/* as */
   OP(ATOM_mod,		OP_YFX,		400),	/* mod */
   OP(ATOM_rem,		OP_YFX,		400),	/* rem */
   OP(ATOM_module_transparent,OP_FX,    1150),	/* module_transparent */
