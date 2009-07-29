@@ -323,6 +323,17 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   term_t name = A3;
 
   PL_strip_module(name, &m, name);
+  if ( m == MODULE_system )
+  { term_t t = PL_new_term_ref();
+    term_t a = PL_new_term_ref();
+
+    PL_put_atom(a, m->name);
+    PL_cons_functor(t, FUNCTOR_colon2, a, name);
+
+    return PL_error(NULL, 0, "system operators are protected",
+		    ERR_PERMISSION, ATOM_redefine, ATOM_operator,
+		    t);
+  }
 
   if ( !PL_get_atom_ex(type, &tp) )
     fail;
