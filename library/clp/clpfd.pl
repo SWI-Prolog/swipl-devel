@@ -116,6 +116,7 @@
                   indomain/1,
                   lex_chain/1,
                   serialized/2,
+                  global_cardinality/2,
                   element/3,
                   zcompare/3,
                   chain/2,
@@ -2874,6 +2875,7 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
+constraint_wake(pgcc, ground).
 constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
@@ -3087,6 +3089,14 @@ run_propagator(regin(Ls), _MState) :-
 run_propagator(check_distinct(Left,Right,X), _) :-
         \+ list_contains(Left, X),
         \+ list_contains(Right, X).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pgcc(X, Left, Right, Pairs), _) :-
+        (   ground(X) ->
+            gcc_check(X, Left, Right, Pairs)
+        ;   true
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pneq(A, B), MState) :-
@@ -4605,6 +4615,94 @@ twolist(N, I, [N,I]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%    global_cardinality(+Vs, +Pairs)
+%
+%     Vs is a list of finite domain variables, Pairs is a list of
+%     Key-Num pairs, where Key is an integer and Num is a finite
+%     domain variable. The constraint holds iff each V in Vs is equal
+%     to some key, and for each Key-Num pair in Pairs, the number of
+%     occurrences of Key in Vs is Num.
+
+global_cardinality(Xs, Pairs) :-
+        must_be(list, Xs),
+        maplist(fd_variable, Xs),
+        must_be(list, Pairs),
+        maplist(gcc_pair, Pairs),
+        pairs_keys_values(Pairs, Keys, Nums),
+        length(Xs, L),
+        Nums ins 0..L,
+        list_to_domain(Keys, Dom),
+        domain_to_drep(Dom, Drep),
+        Xs ins Drep,
+        (   ground(Pairs) ->
+            gcc_ground(Xs, Pairs, [])
+        ;   gcc_reify(Pairs, Xs)
+        ).
+
+% Specialised version for ground Pairs.
+% TODO: Use arc-consistent filtering in this case.
+
+gcc_ground([], _, _).
+gcc_ground([X|Xs], Pairs, Left) :-
+        (   var(X) ->
+            make_propagator(pgcc(X,Left,Xs,Pairs), Prop),
+            init_propagator(X, Prop),
+            trigger_once(Prop)
+        ;   gcc_check(X, Xs, Left, Pairs)
+        ),
+        gcc_ground(Xs, Pairs, [X|Left]).
+
+gcc_check(X, Left, Right, Pairs) :-
+        memberchk(X-Num, Pairs),
+        count_num(Left, X, Vs1, 1, Num1),
+        count_num(Right, X, Vs2, Num1, Current),
+        Current =< Num,
+        (   Current =:= Num ->
+            all_neq(Vs1, X),
+            all_neq(Vs2, X)
+        ;   true
+        ).
+
+all_neq([], _).
+all_neq([X|Xs], C) :-
+        neq_num(X, C),
+        all_neq(Xs, C).
+
+count_num([], _, [], N, N).
+count_num([X|Xs], C, Vs, N0, N) :-
+        (   integer(X) ->
+            (   X =:= C -> N1 is N0 + 1
+            ;   N1 = N0
+            ),
+            Vs1 = Vs
+        ;   N1 = N0,
+            Vs = [X|Vs1]
+        ),
+        count_num(Xs, C, Vs1, N1, N).
+
+gcc_reify([], _).
+gcc_reify([Key-Val|Pairs], Vs) :-
+        eq_key_bs(Vs, Key, Bs),
+        fd_dom(Val, Dom),
+        Sum in Dom,
+        sum(Bs, #=, Sum),
+        gcc_reify(Pairs, Vs).
+
+eq_key_bs([], _, []).
+eq_key_bs([X|Xs], K, [B|Bs]) :-
+	X #= K #<==> B,
+        eq_key_bs(Xs, K, Bs).
+
+
+gcc_pair(Pair) :-
+        (   Pair = Key-Val ->
+            must_be(integer, Key),
+            fd_variable(Val)
+        ;   domain_error(gcc_pair, Pair)
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% zcompare(?Order, ?A, ?B)
 %
 % Analogous to compare/3, with finite domain variables A and B.
@@ -4870,6 +4968,9 @@ attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
 attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_)) --> [].
+attribute_goal_(pgcc(X, Left, Right, Pairs)) -->
+        [global_cardinality(Vs, Pairs)],
+        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
