@@ -58,9 +58,13 @@ expansion.
 */
 
 :- dynamic
+	system:term_expansion/2,
+	system:goal_expansion/2,
 	user:term_expansion/2,
 	user:goal_expansion/2.
 :- multifile
+	system:term_expansion/2,
+	system:goal_expansion/2,
 	user:term_expansion/2,
 	user:goal_expansion/2.
 

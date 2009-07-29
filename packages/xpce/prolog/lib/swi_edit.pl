@@ -30,6 +30,7 @@
 */
 
 :- module(pce_nedit, []).
+:- use_module(library(pce)).
 :- use_module(library(pce_meta)).
 
 :- multifile

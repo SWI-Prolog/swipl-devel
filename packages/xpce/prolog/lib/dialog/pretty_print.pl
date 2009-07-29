@@ -32,6 +32,7 @@
 :- module(dia_pretty_print,
 	  [ pretty_print/1
 	  ]).
+:- use_module(library(pce)).
 
 :- require([ atom_length/2
 	   , between/3

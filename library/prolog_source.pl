@@ -264,7 +264,7 @@ search_path('.', Here, 999, DirLen) :-
 	ensure_slash(Here0, Here),
 	atom_length(Here, DirLen).
 search_path(Alias, Dir, AliasLen, DirLen) :-
-	file_search_path(Alias, _),
+	user:file_search_path(Alias, _),
 	Spec =.. [Alias,'.'],
 	atom_length(Alias, AliasLen0),
 	AliasLen is 1000 - AliasLen0,	% must do reverse sort

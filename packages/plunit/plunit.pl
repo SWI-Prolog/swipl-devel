@@ -265,7 +265,7 @@ user:term_expansion((:- begin_tests(Set)),
 
 begin_tests(Unit, Name, File:_Line, Options) :-
 	loading_tests, !,
-	(   current_unit(Unit, Name, -, Options)
+	(   current_unit(Unit, Name, _, Options)
 	->  true
 	;   retractall(current_unit(Unit, Name, _, _)),
 	    assert(current_unit(Unit, Name, -, Options))
@@ -378,10 +378,10 @@ expand(test(Name, _Options), _) :- !,
 
 :- if(swi).
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- endif.
 
-user:term_expansion(Term, Expanded) :-
+system:term_expansion(Term, Expanded) :-
 	(   loading_unit(_, _, File, _)
 	->  source_location(File, _),
 	    expand(Term, Expanded)

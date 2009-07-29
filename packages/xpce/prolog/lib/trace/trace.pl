@@ -32,6 +32,7 @@
 :- module(pce_prolog_tracer,
 	  [ prolog_show_frame/2		% +Frame, +Options
 	  ]).
+:- use_module(library(pce)).
 :- use_module(library(prolog_clause)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).

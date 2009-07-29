@@ -78,7 +78,11 @@ reexports the content of these files.
 	    pce_call/1,			% :Goal
 	    in_pce_thread/1,		% :Goal
 
-	    pce_welcome/0
+	    pce_welcome/0,
+
+	    op(200, fy,  @),
+	    op(250, yfx, ?),
+	    op(990, xfx, :=)
 	  ]).
 
 :- system_module.

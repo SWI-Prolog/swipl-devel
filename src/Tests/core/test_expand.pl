@@ -2,6 +2,7 @@
 	  [ test_expand/0
 	  ]).
 :- use_module(library(plunit)).
+:- set_base_module(user).
 
 test_expand :-
 	run_tests([ expand

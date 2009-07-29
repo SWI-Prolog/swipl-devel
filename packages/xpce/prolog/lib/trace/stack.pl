@@ -34,6 +34,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(pce)).
 :- use_module(library(pce_util)).
 :- use_module(util).
 :- use_module(gui).

@@ -40,6 +40,7 @@
 
 	    debug/2			% +Fmt, +Args
 	  ]).
+:- use_module(library(pce)).
 :- use_module(clause).
 
 		 /*******************************

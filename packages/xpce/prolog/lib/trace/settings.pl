@@ -32,6 +32,7 @@
 :- module(trace_settings,
 	  [ trace_settings/0
 	  ]).
+:- use_module(library(pce)).
 :- use_module(util).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

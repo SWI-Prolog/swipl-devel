@@ -35,10 +35,7 @@
 	, pce_autoload_all/0
 	]).
 
-:- use_module(pce_boot(pce_principal),
-	      [ get/3,
-		send/2
-	      ]).
+:- use_module(pce_boot(pce_principal)).
 :- use_module(pce_boot(pce_realise),
 	      [ pce_realise_class/1,
 		pce_prolog_class/1

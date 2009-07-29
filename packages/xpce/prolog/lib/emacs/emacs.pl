@@ -181,7 +181,7 @@ default_emacs_mode('.*\\.idl$',			   cpp).
 default_emacs_mode('.*\\.txt~?$',		   text).
 default_emacs_mode('[Cc]ompose|README|\\.article', text).
 default_emacs_mode(Pattern, prolog) :-
-	prolog_file_type(Ext, prolog),
+	user:prolog_file_type(Ext, prolog),
 	Ext \== pl,
 	atomic_list_concat(['.*\\.', Ext, '~?$'], Pattern).
 

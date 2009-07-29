@@ -32,16 +32,16 @@
 :- module(pce_expand, []).
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-
+system:term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-
 	(   pce_host:property(Prop)
 	->  TheClause = Clause
 	;   TheClause = []
 	).
-user:term_expansion(pce_ifhostproperty(Prop, If, Else), Clause) :-
+system:term_expansion(pce_ifhostproperty(Prop, If, Else), Clause) :-
 	(   pce_host:property(Prop)
 	->  Clause = If
 	;   Clause = Else

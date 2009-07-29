@@ -397,9 +397,9 @@ types([Name|T0], [Name|TN], [any|TT]) :-
 		 *******************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- record(Record)), Clauses) :-
+system:term_expansion((:- record(Record)), Clauses) :-
 	compile_records(Record, Clauses).

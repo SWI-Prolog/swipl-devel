@@ -121,9 +121,9 @@ setting(Name, Type, Default, Comment) :-
 		    _)).
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- setting(QName, Type, Default, Comment)),
+system:term_expansion((:- setting(QName, Type, Default, Comment)),
 		    Expanded) :-
 	prolog_load_context(module, M0),
 	strip_module(M0:QName, Module, Name),

@@ -279,6 +279,25 @@ setSuperModule(Module m, Module s)
 }
 
 
+static
+PRED_IMPL("set_base_module", 1, set_base_module, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module m = MODULE_parse;
+  atom_t mname;
+  int rc;
+
+  PL_strip_module(A1, &m, A1);
+  if ( !PL_get_atom_ex(A1, &mname) )
+    fail;
+
+  LOCK();
+  rc = setSuperModule(m, _lookupModule(mname));
+  UNLOCK();
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stripModule() takes an atom or term, possible embedded in the :/2 module
 term.  It will assing *module with the associated module and return  the
@@ -1033,6 +1052,7 @@ BeginPredDefs(module)
   PRED_DEF("$declare_module", 5, declare_module, 0)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
+  PRED_DEF("set_base_module", 1, set_base_module, PL_FA_TRANSPARENT)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)

@@ -32,7 +32,7 @@
 :- module(pce_goal_expansion, []).
 :- use_module(pce_realise).
 :- use_module(pce_boot(pce_expansion), [pce_compiling/1]).
-:- use_module(pce_boot(pce_principal), [get/3]).
+:- use_module(pce_boot(pce_principal)).
 :- require([ pce_error/1
 	   , append/3
 	   ]).
@@ -139,7 +139,7 @@ pce_ifhostproperty(prolog(sicstus),
 	expandable(Name, Arity),
 	expand(Goal, ExpandedGoal)
 ),
-(   user:goal_expansion(Goal, ExpandedGoal) :-
+(   system:goal_expansion(Goal, ExpandedGoal) :-
 	functor(Goal, Name, Arity),
 	expandable(Name, Arity),
 	expand(Goal, ExpandedGoal)

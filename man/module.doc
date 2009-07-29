@@ -389,14 +389,19 @@ In addition to built-in predicates, imported predicates and locally
 defined predicates, SWI-Prolog modules can also call predicates from its
 \jargon{import modules}. Each module has a (possibly empty) list of
 import modules. In the default setup, each new module has a single
-import module, called \const{user}. Module \const{user} imports from
-\const{system} where all built-in predicates reside.  These special
-modules are described in more detail in \secref{resmodules}.
+import module, which is \const{user} for all normal user modules and
+\const{system} for all system library modules. Module \const{user}
+imports from \const{system} where all built-in predicates reside. These
+special modules are described in more detail in \secref{resmodules}.
 
 The list of import modules can be manipulated and queried using the
 following predicates:
 
 \begin{description}
+    \predicate{set_base_module}{1}{:Module}
+Set the default import module of the current module to \arg{Module}.
+Typically, \arg{Module} is one of \const{user} or \const{system}.
+
     \predicate{import_module}{2}{+Module, -Import}
 True if \arg{Import} is defined as an import module for \arg{Module}.
 All normal modules only import from \const{user}, which imports from

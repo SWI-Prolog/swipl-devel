@@ -100,9 +100,6 @@ push_compile_operators(M) :-
 pop_compile_operators :-
 	pop_operators.
 
-:- op(100, fx, @).			% standard XPCE operators
-:- op(150, yfx, ?).
-:- op(990, xfx, :=).
 :- push_compile_operators.
 
 %verbose.
@@ -993,11 +990,11 @@ feedback(Term) :-
 		********************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion(A, B) :-
+system:term_expansion(A, B) :-
 	pce_term_expansion(A, B).
 
 :- pop_compile_operators.

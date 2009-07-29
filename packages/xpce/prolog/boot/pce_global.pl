@@ -36,7 +36,7 @@
 :- meta_predicate
       pce_global(+, :).
 
-:- use_module(pce_boot(pce_principal), [send/2, object/1, new/2]).
+:- use_module(pce_boot(pce_principal)).
 
 :- require([strip_module/3, gensym/2, append/3]).
 

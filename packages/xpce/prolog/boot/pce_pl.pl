@@ -43,7 +43,7 @@
 		 *	    EXPANSION		*
 		 *******************************/
 
-user:term_expansion((:- require(_)), []).
+system:term_expansion((:- require(_)), []).
 
 
 		 /*******************************
@@ -150,5 +150,5 @@ prolog:message(pce(no_threads)) -->
 
 user:message_hook('$aborted', _Kind, _Lines) :-
 	current_prolog_flag(xpce, true),
-	send(@display, reset),
+	send(@(display), reset),
 	fail.

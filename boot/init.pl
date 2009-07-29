@@ -1622,7 +1622,7 @@ load_files(Module:Files, Options) :-
 	       E,
 	       '$print_message_fail'(E)).
 
-%%	'$execute_directive'(:Goal, +F) is det.
+%%	'$execute_directive'(:Goal, +File) is det.
 %
 %	Execute the argument of :- or ?- while loading a file.
 
@@ -1656,11 +1656,11 @@ load_files(Module:Files, Options) :-
 
 '$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
-	catch(Module:Goal, Term, '$exception_in_directive'(Term)), !.
-'$execute_directive_3'(Goal) :-
-	'$set_source_module'(Module, Module),
-	print_message(warning, goal_failed(directive, Module:Goal)),
-	fail.
+	(   catch(Module:Goal, Term, '$exception_in_directive'(Term))
+	->  true
+	;   print_message(warning, goal_failed(directive, Module:Goal)),
+	    fail
+	).
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
