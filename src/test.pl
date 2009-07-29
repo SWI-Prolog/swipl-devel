@@ -61,36 +61,6 @@ available test sets. The public goals are:
 :- setenv('TZ', 'CET').
 
 		 /*******************************
-		 *    CONDITIONAL COMPILATION	*
-		 *******************************/
-
-:- dynamic
-	user:include_code/1.
-
-term_expansion((:- if(G)), []) :-
-	prolog_load_context(module, M),
-	(   catch(M:G, E, (print_message(error, E), fail))
-	->  asserta(user:include_code(true))
-	;   asserta(user:include_code(false))
-	).
-term_expansion((:- else), []) :-
-	(   retract(user:include_code(X))
-	->  (   X == true
-	    ->  X2 = false
-	    ;   X2 = true
-	    ),
-	    asserta(user:include_code(X2))
-	;   throw(error(context_error(no_if), _))
-	).
-term_expansion((:- endif), []) :-
-	retract(user:include_code(_)), !.
-
-term_expansion(_, []) :-
-	user:include_code(X), !,
-	X == false.
-
-
-		 /*******************************
 		 *	      SYNTAX		*
 		 *******************************/
 
