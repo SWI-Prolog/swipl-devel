@@ -169,41 +169,49 @@ Check whether an atom is defined as an   operator  in the context of the
 current thread and provided module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
+static operator *
+visibleOperator(Module m, atom_t name, int kind)
 { Symbol s;
   operator *op;
+  ListCell c;
+
+  if ( m->operators &&
+	 (s = lookupHTable(m->operators, (void *)name)) )
+  { op = s->value;
+    if ( op->type[kind] != OP_INHERIT )
+      return op;
+  }
+  for(c = m->supers; c; c=c->next)
+  { if ( (op = visibleOperator(c->value, name, kind)) )
+      return op;
+  }
+
+  return NULL;
+}
+
+
+int
+currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
+{ operator *op;
 
   assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
 
-  if ( m && m->operators &&
-       (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
-      goto out;
-  }
+  if ( !m )
+    m = MODULE_user;
 
-  if ( m != MODULE_user &&
-       (s = lookupHTable(MODULE_user->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
-      goto out;
-  }
+  if ( (op = visibleOperator(m, name, kind)) )
+  { if ( op->priority[kind] > 0 )
+    { *type     = op->type[kind];
+      *priority = op->priority[kind];
 
-  fail;
+      DEBUG(5,
+	    Sdprintf("currentOperator(%s) --> %s %d\n",
+		     PL_atom_chars(name),
+		     PL_atom_chars(operatorTypeToAtom(*type)),
+		     *priority));
 
-out:
-  if ( op->priority[kind] > 0 )
-  { *type     = op->type[kind];
-    *priority = op->priority[kind];
-
-    DEBUG(5,
-	  Sdprintf("currentOperator(%s) --> %s %d\n",
-		   PL_atom_chars(name),
-		   PL_atom_chars(operatorTypeToAtom(*type)),
-		   *priority));
-
-    succeed;
+      succeed;
+    }
   }
 
   fail;
@@ -217,14 +225,34 @@ one priority is defined, use the highest.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-maxOp(operator *op, int done[3], int sofar)
+maxOp(operator *op, int *done, int sofar)
 { int i;
 
   for(i=0; i<3; i++)
-  { if ( done[i] == FALSE && op->type[i] != OP_INHERIT )
+  { if ( !(*done & (1<<i))  && op->type[i] != OP_INHERIT )
     { if ( op->priority[i] > sofar )
 	sofar = op->priority[i];
-      done[i] = TRUE;
+      *done |= (1<<i);
+    }
+  }
+
+  return sofar;
+}
+
+
+static int
+scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
+{ if ( *done != 0x7 )
+  { Symbol s;
+
+    if ( m->operators && (s=lookupHTable(m->operators, (void *)name)) )
+      sofar = maxOp(s->value, done, sofar);
+
+    if ( *done != 0x7 )
+    { ListCell c;
+
+      for(c=m->supers; c; c=c->next)
+	sofar = scanPriorityOperator(c->value, name, done, sofar);
     }
   }
 
@@ -234,20 +262,12 @@ maxOp(operator *op, int done[3], int sofar)
 
 int
 priorityOperator(Module m, atom_t name)
-{ int result = 0;
-  int done[3];
-  Symbol s;
+{ int done = 0;
 
-  done[0] = done[1] = done[2] = FALSE;
+  if ( !m )
+    m = MODULE_user;
 
-  if ( m && m->operators &&
-       (s = lookupHTable(m->operators, (void *)name)) )
-    result = maxOp(s->value, done, result);
-
-  if ( (s = lookupHTable(MODULE_user->operators, (void *)name)) )
-    result = maxOp(s->value, done, result);
-
-  return result;
+  return scanPriorityOperator(m, name, &done, 0);
 }
 
 #undef LD
@@ -406,6 +426,21 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 }
 
 
+static void
+scanVisibleOperators(Module m, atom_t name, int priority, int type, Buffer b,
+		     int inherit)
+{ if ( m->operators )
+    addOpsFromTable(m->operators, name, priority, type, b);
+
+  if ( inherit )
+  { ListCell c;
+
+    for(c=m->supers; c; c=c->next)
+      scanVisibleOperators(c->value, name, priority, type, b, inherit);
+  }
+}
+
+
 typedef struct
 { buffer buffer;
   int    index;
@@ -452,12 +487,7 @@ current_op(Module m, int inherit,
       initBuffer(b);
       e->index = 0;
 
-      if ( m->operators )
-	addOpsFromTable(m->operators, nm, p, t, b);
-
-      if ( inherit && m != MODULE_user )
-	addOpsFromTable(MODULE_user->operators, nm, p, t, b);
-
+      scanVisibleOperators(m, nm, p, t, b, inherit);
       break;
     }
     case FRG_REDO:
@@ -598,7 +628,7 @@ initOperators(void)
 { const opdef *op;
 
   for( op = operators; op->name; op++ )
-    defOperator(MODULE_user, op->name, op->type, op->priority);
+    defOperator(MODULE_system, op->name, op->type, op->priority);
 }
 
 
