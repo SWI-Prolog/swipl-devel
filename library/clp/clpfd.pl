@@ -4634,7 +4634,7 @@ global_cardinality(Xs, Pairs) :-
         list_to_domain(Keys, Dom),
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
-        (   false, ground(Pairs) ->
+        (   ground(Pairs) ->
             gcc_ground(Xs, Pairs, [])
         ;   gcc_reify(Pairs, Xs)
         ).
@@ -4660,6 +4660,8 @@ gcc_check(X, Left, Right, Pairs) :-
         (   Current =:= Num ->
             all_neq(Vs1, X),
             all_neq(Vs2, X)
+        ;   ground(Left), ground(Right) ->
+            Current =:= Num
         ;   true
         ).
 
