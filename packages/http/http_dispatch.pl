@@ -151,9 +151,9 @@ http_handler(Path, Pred, Options) :-
 	assert(Clause).
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
+system:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
 	\+ current_prolog_flag(xref, true),
 	prolog_load_context(module, M),
 	compile_handler(Path, M:Pred, Options, Clause),

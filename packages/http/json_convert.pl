@@ -526,9 +526,9 @@ json_bool_to_prolog(@(True), True).
 		 *******************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- json_object(Spec)), Clauses) :-
+system:term_expansion((:- json_object(Spec)), Clauses) :-
 	compile_json_objects(Spec, Clauses).

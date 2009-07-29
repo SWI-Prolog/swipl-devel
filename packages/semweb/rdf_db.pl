@@ -289,9 +289,9 @@ rdf_global_term(Term, Term).
 		 *******************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- rdf_meta(Heads)), Clauses) :-
+system:term_expansion((:- rdf_meta(Heads)), Clauses) :-
 	mk_clauses(Heads, Clauses).
 
 mk_clauses((A,B), [H|T]) :- !,
