@@ -199,7 +199,7 @@ lookup1(_, _, _, []).
 conj_to_list(and(A,B)) --> !,
 	conj_to_list(A),
 	conj_to_list(B).
-conj_to_list(@false) --> !,
+conj_to_list(@(false)) --> !,
 	{fail}.
 conj_to_list(Tagged) -->
 	{ untag(Tagged, L) }, !,

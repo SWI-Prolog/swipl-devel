@@ -10,14 +10,14 @@
 :- module(rewrite,
 	  [ rewrite/2,			% +Rule, +Input
 	    rew_term_expansion/2,
-	    rew_goal_expansion/2
+	    rew_goal_expansion/2,
+
+	    op(1200, xfx, (::=))
 	  ]).
 :- use_module(library(quintus)).
 
 :- meta_predicate
-	rewrite(:, +).
-:- op(1200, xfx, user:(::=)).
-
+	rewrite(1, +).
 
 		 /*******************************
 		 *	    COMPILATION		*
@@ -43,17 +43,16 @@ rew_goal_expansion(rewrite(To, From), Goal) :-
 		 *	      TOPLEVEL		*
 		 *******************************/
 
-%%	rewrite(?To, +From)
+%%	rewrite(:To, +From)
 %
 %	Invoke the term-rewriting system
 
-rewrite(To, From) :-
-	strip_module(To, M, T),
+rewrite(M:T, From) :-
 	(   var(T)
 	->  From = T
 	;   T = \Rule
 	->  call(M:Rule, From)
-	;   match(To, M, From)
+	;   match(T, M, From)
 	).
 
 match(Rule, M, From) :-
