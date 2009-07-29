@@ -467,48 +467,24 @@ restore_prolog_flag(Flag, Value) :-
 		 *	     OPERATORS		*
 		 *******************************/
 
+%%	save_operators(+Save) is det.
+%
+%	Save operators for all modules.   Operators for =system= are
+%	not saved because these are read-only anyway.
+
 save_operators(save) :- !,
 	feedback('~nOPERATORS~n', []),
-	findall(op(P, T, N), current_op(P, T, N), Ops),
-	findall(op(P, T, N), '$builtin_op'(P, T, N), SystemOps),
-	make_operators(Ops, SystemOps, Set),
-	deleted_operators(SystemOps, Ops, Deleted),
-	append(Set, Deleted, Modify),
-	forall(member(O, Modify),
-	       (   feedback('~n~t~8|~w ', [O]),
-		   '$add_directive_wic'(O),
-		   O)).
+	forall(current_module(M), save_module_operators(M)),
+	feedback('~n', []).
 save_operators(_).
 
-make_operators([], _, []).
-make_operators([Op|L0], SystemOps, [Op|L]) :-
-	\+ memberchk(Op, SystemOps), !,
-	make_operators(L0, SystemOps, L).
-make_operators([_|T], SystemOps, L) :-
-	make_operators(T, SystemOps, L).
+save_module_operators(system) :- !.
+save_module_operators(M) :-
+	forall('$local_op'(P,T,M:N),
+	       (   feedback('~n~t~8|~w ', [op(P,T,M:N)]),
+		   '$add_directive_wic'(op(P,T,M:N))
+	       )).
 
-deleted_operators([], _, []).
-deleted_operators([Op|L0], CurrentOps, [op(0, T, N)|L]) :-
-	Op = op(_, T, N),
-	\+ (  member(op(_, OT, N), CurrentOps),
-	      same_op_type(T, OT)
-	   ), !,
-	deleted_operators(L0, CurrentOps, L).
-deleted_operators([_|L0], CurrentOps, L) :-
-	deleted_operators(L0, CurrentOps, L).
-
-same_op_type(T, OT) :-
-	op_type(T, Type),
-	op_type(OT, Type).
-
-op_type(fx,  prefix).
-op_type(fy,  prefix).
-op_type(xfx, infix).
-op_type(xfy, infix).
-op_type(yfx, infix).
-op_type(yfy, infix).
-op_type(xf,  postfix).
-op_type(yf,  postfix).
 
 		 /*******************************
 		 *       FORMAT PREDICATES	*

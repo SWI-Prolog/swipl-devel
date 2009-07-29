@@ -553,6 +553,14 @@ PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|
   return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
 }
 
+/** '$local_op'(?Precedence, ?Type, ?Name) is nondet.
+
+Same as curent_op/3, but  only  operators   defined  at  the  module are
+reported and not the operators that  are   inherited.  This  is used for
+additional  reflexive  capabilities,   such    as   save_operators/1  in
+library(qsave).
+*/
+
 static
 PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
 { PRED_LD
@@ -644,42 +652,6 @@ initOperators(void)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Examine  built-in  operators  (functions  as    current_op/3).  Used  by
-qsave_program to find out which operator declarations to save.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static
-PRED_IMPL("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
-{ PRED_LD
-  int i;
-  const opdef *op;
-  fid_t fid;
-
-  switch( CTX_CNTRL )
-  { case FRG_FIRST_CALL:
-      i = 0;
-      break;
-    case FRG_REDO:
-      i = (int)CTX_INT;
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  fid = PL_open_foreign_frame();
-  for( op = &operators[i]; op->name; op++ )
-  { if ( PL_unify_atom(A3, op->name) &&
-	 PL_unify_integer(A1, op->priority) &&
-	 PL_unify_atom(A2, operatorTypeToAtom(op->type)) )
-      ForeignRedoInt(i+1);
-    PL_rewind_foreign_frame(fid);
-  }
-
-  fail;
-}
-
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -688,5 +660,4 @@ BeginPredDefs(op)
   PRED_DEF("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   PRED_DEF("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
   PRED_DEF("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
-  PRED_DEF("$builtin_op", 3, builtin_op, PL_FA_NONDETERMINISTIC)
 EndPredDefs
