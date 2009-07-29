@@ -561,66 +561,66 @@ PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
 #define OP(a, t, p) { a, t, p }
 
 static const opdef operators[] = {
-  OP(ATOM_star,		OP_YFX,		400),	/* * */
-  OP(ATOM_plus,		OP_FY,		200),	/* + */
-  OP(ATOM_plus,		OP_YFX,		500),
-  OP(ATOM_comma,	OP_XFY,	       1000),	/* , */
-  OP(ATOM_minus,	OP_FY,		200),	/* - */
-  OP(ATOM_minus,	OP_YFX,		500),
-  OP(ATOM_grammar,	OP_XFX,	       1200),	/* --> */
-  OP(ATOM_ifthen,	OP_XFY,	       1050),	/* -> */
-  OP(ATOM_softcut,	OP_XFY,	       1050),	/* *-> */
-  OP(ATOM_divide,	OP_YFX,		400),	/* / */
-  OP(ATOM_div,		OP_YFX,		400),	/* // */
-  OP(ATOM_rdiv,		OP_YFX,		400),	/* rdiv */
-  OP(ATOM_and,		OP_YFX,		500),	/* /\ */
-  OP(ATOM_colon,	OP_XFY,		600),	/* : */
-  OP(ATOM_prove,	OP_FX,	       1200),	/* :- */
-  OP(ATOM_prove,	OP_XFX,	       1200),
-  OP(ATOM_semicolon,	OP_XFY,	       1100),	/* ; */
-  OP(ATOM_bar,		OP_XFY,	       1105),	/* | */
-  OP(ATOM_smaller,	OP_XFX,		700),	/* < */
-  OP(ATOM_lshift,	OP_YFX,		400),	/* << */
-  OP(ATOM_equals,	OP_XFX,		700),	/* = */
-  OP(ATOM_univ,		OP_XFX,		700),	/* =.. */
-  OP(ATOM_ar_equals,	OP_XFX,		700),	/* =:= */
-  OP(ATOM_smaller_equal,OP_XFX,		700),	/* =< */
-  OP(ATOM_larger_equal,	OP_XFX,		700),	/* >= */
-  OP(ATOM_strict_equal,	OP_XFX,		700),	/* == */
-  OP(ATOM_ar_not_equal,	OP_XFX,		700),	/* =\= */
-  OP(ATOM_larger,	OP_XFX,		700),	/* > */
-  OP(ATOM_rshift,	OP_YFX,		400),	/* >> */
-  OP(ATOM_query,	OP_FX,	       1200),	/* ?- */
-  OP(ATOM_at_smaller,	OP_XFX,		700),	/* @< */
-  OP(ATOM_at_smaller_eq,OP_XFX,		700),	/* @=< */
-  OP(ATOM_at_larger,	OP_XFX,		700),	/* @> */
-  OP(ATOM_at_larger_eq,	OP_XFX,		700),	/* @>= */
-  OP(ATOM_backslash,	OP_FY,		200),	/* \ */
-  OP(ATOM_not_provable,	OP_FY,		900),	/* \+ */
-  OP(ATOM_or,		OP_YFX,		500),	/* \/ */
-  OP(ATOM_bw_xor,	OP_YFX,		500),	/* >< */
-  OP(ATOM_not_equals,	OP_XFX,		700),	/* \= */
-  OP(ATOM_not_strickt_equals,OP_XFX,	700),	/* \== */
-  OP(ATOM_at_equals,	OP_XFX,		700),	/* =@= */
-  OP(ATOM_at_not_equals,OP_XFX,		700),	/* \=@= */
-  OP(ATOM_hat,		OP_XFY,		200),	/* ^ */
-  OP(ATOM_doublestar,	OP_XFX,		200), 	/* ** */
-  OP(ATOM_discontiguous,OP_FX,	       1150),	/* discontiguous */
-  OP(ATOM_dynamic,	OP_FX,	       1150),	/* dynamic */
-  OP(ATOM_volatile,	OP_FX,	       1150), 	/* volatile */
-  OP(ATOM_thread_local,	OP_FX,	       1150), 	/* thread_local */
-  OP(ATOM_initialization,OP_FX,	       1150), 	/* initialization */
-  OP(ATOM_thread_initialization,OP_FX, 1150), 	/* thread_initialization */
-  OP(ATOM_is,		OP_XFX,		700),	/* is */
-  OP(ATOM_as,		OP_XFX,		700),	/* as */
-  OP(ATOM_mod,		OP_YFX,		400),	/* mod */
-  OP(ATOM_rem,		OP_YFX,		400),	/* rem */
-  OP(ATOM_module_transparent,OP_FX,    1150),	/* module_transparent */
-  OP(ATOM_multifile,	OP_FX,	       1150),	/* multifile */
-  OP(ATOM_meta_predicate, OP_FX,       1150),	/* meta_predicate */
-  OP(ATOM_xor,		OP_YFX,		400),	/* xor */
+  OP(ATOM_star,			 OP_YFX, 400),	/* * */
+  OP(ATOM_plus,			 OP_FY,	 200),	/* + */
+  OP(ATOM_plus,			 OP_YFX, 500),
+  OP(ATOM_comma,		 OP_XFY, 1000),	/* , */
+  OP(ATOM_minus,		 OP_FY,	 200),	/* - */
+  OP(ATOM_minus,		 OP_YFX, 500),
+  OP(ATOM_grammar,		 OP_XFX, 1200),	/* --> */
+  OP(ATOM_ifthen,		 OP_XFY, 1050),	/* -> */
+  OP(ATOM_softcut,		 OP_XFY, 1050),	/* *-> */
+  OP(ATOM_divide,		 OP_YFX, 400),	/* / */
+  OP(ATOM_div,			 OP_YFX, 400),	/* // */
+  OP(ATOM_rdiv,			 OP_YFX, 400),	/* rdiv */
+  OP(ATOM_and,			 OP_YFX, 500),	/* /\ */
+  OP(ATOM_colon,		 OP_XFY, 600),	/* : */
+  OP(ATOM_prove,		 OP_FX,	 1200),	/* :- */
+  OP(ATOM_prove,		 OP_XFX, 1200),
+  OP(ATOM_semicolon,		 OP_XFY, 1100),	/* ; */
+  OP(ATOM_bar,			 OP_XFY, 1105),	/* | */
+  OP(ATOM_smaller,		 OP_XFX, 700),	/* < */
+  OP(ATOM_lshift,		 OP_YFX, 400),	/* << */
+  OP(ATOM_equals,		 OP_XFX, 700),	/* = */
+  OP(ATOM_univ,			 OP_XFX, 700),	/* =.. */
+  OP(ATOM_ar_equals,		 OP_XFX, 700),	/* =:= */
+  OP(ATOM_smaller_equal,	 OP_XFX, 700),	/* =< */
+  OP(ATOM_larger_equal,		 OP_XFX, 700),	/* >= */
+  OP(ATOM_strict_equal,		 OP_XFX, 700),	/* == */
+  OP(ATOM_ar_not_equal,		 OP_XFX, 700),	/* =\= */
+  OP(ATOM_larger,		 OP_XFX, 700),	/* > */
+  OP(ATOM_rshift,		 OP_YFX, 400),	/* >> */
+  OP(ATOM_query,		 OP_FX,	 1200),	/* ?- */
+  OP(ATOM_at_smaller,		 OP_XFX, 700),	/* @< */
+  OP(ATOM_at_smaller_eq,	 OP_XFX, 700),	/* @=< */
+  OP(ATOM_at_larger,		 OP_XFX, 700),	/* @> */
+  OP(ATOM_at_larger_eq,		 OP_XFX, 700),	/* @>= */
+  OP(ATOM_backslash,		 OP_FY,	 200),	/* \ */
+  OP(ATOM_not_provable,		 OP_FY,	 900),	/* \+ */
+  OP(ATOM_or,			 OP_YFX, 500),	/* \/ */
+  OP(ATOM_bw_xor,		 OP_YFX, 500),	/* >< */
+  OP(ATOM_not_equals,		 OP_XFX, 700),	/* \= */
+  OP(ATOM_not_strickt_equals,	 OP_XFX, 700),	/* \== */
+  OP(ATOM_at_equals,		 OP_XFX, 700),	/* =@= */
+  OP(ATOM_at_not_equals,	 OP_XFX, 700),	/* \=@= */
+  OP(ATOM_hat,			 OP_XFY, 200),	/* ^ */
+  OP(ATOM_doublestar,		 OP_XFX, 200),	/* ** */
+  OP(ATOM_discontiguous,	 OP_FX,	 1150),	/* discontiguous */
+  OP(ATOM_dynamic,		 OP_FX,	 1150),	/* dynamic */
+  OP(ATOM_volatile,		 OP_FX,	 1150),	/* volatile */
+  OP(ATOM_thread_local,		 OP_FX,	 1150),	/* thread_local */
+  OP(ATOM_initialization,	 OP_FX,	 1150),	/* initialization */
+  OP(ATOM_thread_initialization, OP_FX,	 1150),	/* thread_initialization */
+  OP(ATOM_is,			 OP_XFX, 700),	/* is */
+  OP(ATOM_as,			 OP_XFX, 700),	/* as */
+  OP(ATOM_mod,			 OP_YFX, 400),	/* mod */
+  OP(ATOM_rem,			 OP_YFX, 400),	/* rem */
+  OP(ATOM_module_transparent,	 OP_FX,	 1150),	/* module_transparent */
+  OP(ATOM_multifile,		 OP_FX,	 1150),	/* multifile */
+  OP(ATOM_meta_predicate,	 OP_FX,	 1150),	/* meta_predicate */
+  OP(ATOM_xor,			 OP_YFX, 400),	/* xor */
 
-  OP(NULL_ATOM,		0,		0)
+  OP(NULL_ATOM,			 0,	 0)
 };
 
 
