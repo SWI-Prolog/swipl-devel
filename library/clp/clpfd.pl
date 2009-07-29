@@ -4634,7 +4634,7 @@ global_cardinality(Xs, Pairs) :-
         list_to_domain(Keys, Dom),
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
-        (   ground(Pairs) ->
+        (   false, ground(Pairs) ->
             gcc_ground(Xs, Pairs, [])
         ;   gcc_reify(Pairs, Xs)
         ).
