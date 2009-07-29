@@ -58,6 +58,7 @@ _lookupModule(atom_t name)
   m->name = name;
   m->file = (SourceFile) NULL;
   m->operators = NULL;
+  m->level = 0;
 #ifdef O_PROLOG_HOOK
   m->hook = NULL;
 #endif
@@ -88,10 +89,7 @@ _lookupModule(atom_t name)
   }
 
   if ( super )
-  { addSuperModule(m, super, 'A');
-    m->level = super->level+1;		/* TBD: check usage as this is */
-  } else				/* no longer unique */
-    m->level = 0;
+    addSuperModule(m, super, 'A');
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
@@ -167,6 +165,28 @@ next:
 /* MT: Must be locked by caller
 */
 
+/* The `level' of a module is the shortest path to the root of the
+   module-tree.  The level information is used by pl-arith.c.
+
+   TBD: We should check for cycles when adding super-modules!
+*/
+
+static void
+updateLevelModule(Module m)
+{ int l = -1;
+  ListCell c;
+
+  for(c=m->supers; c; c=c->next)
+  { Module m2 = c->value;
+
+    if ( m2->level > l )
+      l = m2->level;
+  }
+
+  m->level = l+1;
+}
+
+
 static void
 addSuperModule(Module m, Module s, int where)
 { GET_LD
@@ -192,6 +212,8 @@ addSuperModule(Module m, Module s, int where)
     c->next = NULL;
     *p = c;
   }
+
+  updateLevelModule(m);
 }
 
 
@@ -207,6 +229,7 @@ delSuperModule(Module m, Module s)
     { *p = c->next;
       freeHeap(c, sizeof(*c));
 
+      updateLevelModule(m);
       succeed;
     }
   }
