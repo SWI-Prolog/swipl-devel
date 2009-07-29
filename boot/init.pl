@@ -786,13 +786,9 @@ extensions to .ext
 
 :- user:(dynamic
 	 	library_directory/1,
-		'$start_compilation'/2,
-		'$end_compilation'/2,
 	        prolog_load_file/2).
 :- user:(multifile
 	 	library_directory/1,
-		'$start_compilation'/2,
-		'$end_compilation'/2,
 	        prolog_load_file/2).
 
 
@@ -875,14 +871,12 @@ preprocessor(Old, New) :-
 '$open_source_call'(File, In, Goal, Status) :-
 	flag('$compilation_level', Level, Level+1),
 	asserta('$load_input'(File, In), Ref),
-	ignore(user:'$start_compilation'(File, Level)),
 	(   catch(Goal, E,
 		  (print_message(error, E),
 		   fail))
 	->  Status = yes
 	;   Status = no
 	),
-	ignore(user:'$end_compilation'(File, Level)),
 	erase(Ref),
 	flag('$compilation_level', _, Level).
 
@@ -1281,7 +1275,7 @@ load_files(Module:Files, Options) :-
 
 %%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
 %
-%	Called  from  '$load_file'/3  using   the    goal   returned  by
+%	Called  from  '$do_load_file'/4  using  the   goal  returned  by
 %	'$consult_goal'/2. This means that the  calling conventions must
 %	be kept synchronous with '$qload_file'/6.
 
