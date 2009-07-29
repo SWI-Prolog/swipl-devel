@@ -1368,9 +1368,12 @@ load_files(Module:Files, Options) :-
 	).
 
 
-%   '$load_file'(+In, +Path, -Module, +Options)
+%%   '$load_file'(+In, +Path, -Module, +Options)
 %
 %   '$load_file'/4 does the actual loading.
+%
+%   @tbd We should watch-out for an :- encoding/1 directive that can
+%   preceed the :- module/2 header!
 
 '$load_file'(In, File, Module, Options) :-
 	(   peek_char(In, #)

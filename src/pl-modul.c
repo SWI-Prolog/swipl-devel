@@ -657,6 +657,17 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
 }
 
 
+/** '$declare_module'(+Module, +File, +Line, +Redefine) is det.
+
+Start a new (source-)module
+
+@param	Module is the name of the module to declare
+@param	File is the canonical name of the file from which the module
+	is loaded
+@param  Line is the line-number of the :- module/2 directive.
+@param	Redefine If =true=, allow associating the module to a new file
+*/
+
 static
 PRED_IMPL("$declare_module", 4, declare_module, 0)
 { SourceFile sf;
