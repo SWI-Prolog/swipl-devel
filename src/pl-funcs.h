@@ -408,9 +408,11 @@ COMMON(Module) 		lookupModule(atom_t name);
 COMMON(Module) 		isCurrentModule(atom_t name);
 COMMON(void) 		initModules(void);
 COMMON(int) 		isSuperModule(Module s, Module m);
+COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(Word) 		stripModule(Word term, Module *module ARG_LD);
 COMMON(bool) 		isPublicModule(Module module, Procedure proc);
-COMMON(int) 		declareModule(atom_t name, SourceFile sf, int line,
+COMMON(int) 		declareModule(atom_t name, atom_t super,
+				      SourceFile sf, int line,
 				      int rdef);
 COMMON(word) 		pl_current_module(term_t module, term_t file, control_t h);
 COMMON(word) 		pl_module(term_t old, term_t new);

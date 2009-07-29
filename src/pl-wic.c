@@ -103,6 +103,8 @@ Below is an informal description of the format of a `.qlf' file:
 			'X'
 <qlf-header>	::=	'M' <XR/modulename>		% module name
 			<source>			% file + time
+			<line>
+			{'S' <XR/supername>}
 			{<qlf-export>}
 			'X'
 		      | <source>			% not a module
@@ -156,6 +158,7 @@ Below is an informal description of the format of a `.qlf' file:
 <system>	::=	's'				% system source file
 		      | 'u'				% user source file
 <time>		::=	<word>				% time file was loaded
+<line>		::=	<num>
 <pattern>	::=	<num>				% indexing pattern
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
@@ -173,8 +176,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 57			/* load all versions later >= X */
-#define VERSION 57			/* save version number */
+#define LOADVERSION 58			/* load all versions later >= X */
+#define VERSION 58			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1235,10 +1238,11 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
   switch(Qgetc(fd))
   { case 'M':
     { atom_t mname = loadXR(fd);
+      int c = Qgetc(fd);
 
       DEBUG(1, Sdprintf("Loading module %s\n", PL_atom_chars(mname)));
 
-      switch( Qgetc(fd) )
+      switch( c )
       { case '-':
 	{ LD->modules.source = lookupModule(mname);
 					/* TBD: clear module? */
@@ -1247,10 +1251,12 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	}
 	case 'F':
 	{ Module m;
+	  int line;
 
 	  qlfLoadSource(fd);
-	  DEBUG(1, Sdprintf("\tSource = %s\n",
-			    PL_atom_chars(currentSource->name)));
+	  line = getInt(fd);
+	  DEBUG(1, Sdprintf("\tSource = %s:%d\n",
+`			    PL_atom_chars(currentSource->name), line));
 
 	  m = lookupModule(mname);
 	  if ( m->file && m->file != currentSource )
@@ -1259,7 +1265,7 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	    skip = TRUE;
 	    LD->modules.source = m;
 	  } else
-	  { if ( !declareModule(mname, currentSource, 0, FALSE) ) /* TBD: line */
+	  { if ( !declareModule(mname, NULL_ATOM, currentSource, line, FALSE) )
 	      fail;
 	  }
 
@@ -1268,7 +1274,15 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 
 	  for(;;)
 	  { switch(Qgetc(fd))
-	    { case 'E':
+	    { case 'S':
+	      { atom_t sname = loadXR(fd);
+		Module s = lookupModule(sname);
+
+		addSuperModule(m, s, 'Z'); /* TBD: Lock */
+
+		continue;
+	      }
+	      case 'E':
 	      { functor_t f = (functor_t) loadXR(fd);
 
 		if ( !skip )
@@ -2390,14 +2404,25 @@ qlfSaveSource(SourceFile f, IOSTREAM *fd ARG_LD)
 
 static bool
 qlfStartModule(Module m, IOSTREAM *fd ARG_LD)
-{ closeProcedureWic(fd);
+{ ListCell c;
+  closeProcedureWic(fd);
   Sputc('Q', fd);
   Sputc('M', fd);
   saveXR(m->name, fd);
+
   if ( m->file )
-    qlfSaveSource(m->file, fd PASS_LD);
-  else
-    Sputc('-', fd);
+  { qlfSaveSource(m->file, fd PASS_LD);
+    putNum(m->line_no, fd);
+  } else
+  { Sputc('-', fd);
+  }
+
+  for(c=m->supers; c; c=c->next)
+  { Module s = c->value;
+
+    Sputc('S', fd);
+    saveXR(s->name, fd);
+  }
 
   DEBUG(2, Sdprintf("MODULE %s\n", stringAtom(m->name)));
   for_unlocked_table(m->public, s,

@@ -1428,13 +1428,25 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$get_option'(redefine_module(Action), Options, false),
-	'$declare_module'(Module, File, Line, Action),
+	'$super_module'(File, Super),
+	'$declare_module'(Module, Super, File, Line, Action),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
 	'$consult_stream'(In, File),
 	'$check_export'(Module),
 	'$ifcompiling'('$qlf_end_part').
+
+%%	'$super_module'(+File, -Super) is det.
+%
+%	Determine the initial module from which   I  inherit. All system
+%	and library modules inherit from =system=, while all normal user
+%	modules inherit from =user=.
+
+'$super_module'(File, system) :-
+	current_prolog_flag(home, Home),
+	sub_atom(File, 0, _, _, Home), !.
+'$super_module'(_, user).
 
 '$check_export'(Module) :-
 	'$undefined_export'(Module, UndefList),

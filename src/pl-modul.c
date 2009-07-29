@@ -41,7 +41,7 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	addSuperModule(Module m, Module s, int where);
+static void	addSuperModule_no_lock(Module m, Module s, int where);
 
 
 static Module
@@ -89,7 +89,7 @@ _lookupModule(atom_t name)
   }
 
   if ( super )
-    addSuperModule(m, super, 'A');
+    addSuperModule_no_lock(m, super, 'A');
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
@@ -188,7 +188,7 @@ updateLevelModule(Module m)
 
 
 static void
-addSuperModule(Module m, Module s, int where)
+addSuperModule_no_lock(Module m, Module s, int where)
 { GET_LD
   ListCell c;
 
@@ -217,6 +217,16 @@ addSuperModule(Module m, Module s, int where)
 }
 
 
+int
+addSuperModule(Module m, Module s, int where)
+{ LOCK();
+  addSuperModule_no_lock(m, s, where);
+  UNLOCK();
+
+  succeed;
+}
+
+
 static int
 delSuperModule(Module m, Module s)
 { GET_LD
@@ -235,6 +245,37 @@ delSuperModule(Module m, Module s)
   }
 
   fail;
+}
+
+
+static void
+clearSupersModule(Module m)
+{ GET_LD
+  ListCell c = m->supers;
+  ListCell next;
+
+  m->supers = NULL;
+  for(; c; c=next)
+  { next = c->next;
+    freeHeap(c, sizeof(*c));
+  }
+
+  m->level = 0;
+}
+
+
+static int
+setSuperModule(Module m, Module s)
+{ if ( m->supers && !m->supers->next )
+  { if ( (Module)m->supers->value != s )
+    { m->supers->value = s;
+      m->level = s->level+1;
+    }
+  }
+  clearSupersModule(m);
+  addSuperModule_no_lock(m, s, 'A');
+
+  succeed;
 }
 
 
@@ -354,11 +395,7 @@ PRED_IMPL("add_import_module", 3, add_import_module, 0)
        !PL_get_atom_ex(A3, &where) )
     fail;
 
-  LOCK();
-  addSuperModule(me, super, where == ATOM_start ? 'A' : 'Z');
-  UNLOCK();
-
-  succeed;
+  return addSuperModule(me, super, where == ATOM_start ? 'A' : 'Z');
 }
 
 
@@ -616,7 +653,9 @@ in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
+declareModule(atom_t name, atom_t super,
+	      SourceFile sf, int line,
+	      int allow_newfile)
 { GET_LD
   Module module;
   term_t tmp = 0, rdef = 0, rtail = 0;
@@ -664,6 +703,9 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
 	      }
 	    })
   clearHTable(module->public);
+  if ( super )
+    setSuperModule(module, _lookupModule(super));
+
   UNLOCK();
 
   if ( rdef )
@@ -680,7 +722,7 @@ declareModule(atom_t name, SourceFile sf, int line, int allow_newfile)
 }
 
 
-/** '$declare_module'(+Module, +File, +Line, +Redefine) is det.
+/** '$declare_module'(+Module, +Super, +File, +Line, +Redefine) is det.
 
 Start a new (source-)module
 
@@ -692,19 +734,26 @@ Start a new (source-)module
 */
 
 static
-PRED_IMPL("$declare_module", 4, declare_module, 0)
+PRED_IMPL("$declare_module", 5, declare_module, 0)
 { SourceFile sf;
-  atom_t mname, fname;
+  atom_t mname, sname, fname;
   int line_no, rdef;
 
-  if ( !PL_get_atom_ex(A1, &mname) ||
-       !PL_get_atom_ex(A2, &fname) ||
-       !PL_get_integer_ex(A3, &line_no) ||
-       !PL_get_bool_ex(A4, &rdef) )
+  term_t module   = A1;
+  term_t super    = A2;
+  term_t file     = A3;
+  term_t line     = A4;
+  term_t redefine = A5;
+
+  if ( !PL_get_atom_ex(module, &mname) ||
+       !PL_get_atom_ex(super, &sname) ||
+       !PL_get_atom_ex(file, &fname) ||
+       !PL_get_integer_ex(line, &line_no) ||
+       !PL_get_bool_ex(redefine, &rdef) )
     fail;
 
   sf = lookupSourceFile(fname, TRUE);
-  return declareModule(mname, sf, line_no, rdef);
+  return declareModule(mname, sname, sf, line_no, rdef);
 }
 
 
@@ -981,7 +1030,7 @@ BeginPredDefs(module)
   PRED_DEF("import_module", 2, import_module,
 	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
-  PRED_DEF("$declare_module", 4, declare_module, 0)
+  PRED_DEF("$declare_module", 5, declare_module, 0)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
   PRED_DEF("$module_property", 2, module_property, 0)
