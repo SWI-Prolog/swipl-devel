@@ -406,9 +406,7 @@ must_be_atom(X) :-
 	rdf_subject(r),
 	rdf_set_predicate(r, +),
 	rdf_predicate_property(r, -),
-	rdf_estimate_complexity(r,r,r,-),
-	rdf_transaction(:),
-	rdf_transaction(:, +).
+	rdf_estimate_complexity(r,r,r,-).
 
 %%	rdf_equal(?Resource1, ?Resource2)
 %
@@ -625,7 +623,7 @@ rdf_active_transaction(Id) :-
 
 %%	rdf_monitor(:Goal, +Options)
 %
-%	Call Goal if spefified actions occur on the database.
+%	Call Goal if specified actions occur on the database.
 
 rdf_monitor(Goal, Options) :-
 	monitor_mask(Options, 0xffff, Mask),
@@ -802,7 +800,7 @@ rdf_load([], _) :- !.
 rdf_load([H|T], Options) :- !,
 	rdf_load(H, Options),
 	rdf_load(T, Options).
-rdf_load(Spec, Options0) :-
+rdf_load(Spec, M:Options0) :-
 	fix_options(Options0, Options),
 	statistics(cputime, T0),
 	(   select(result(Action, Triples, MD5), Options, Options1)
@@ -841,11 +839,11 @@ rdf_load(Spec, Options0) :-
 		must_be(ground, Format),
 		rdf_format(Format, RDFFormat),
 		call_cleanup(rdf_load_stream(RDFFormat, Stream,
-					     [ base_uri(BaseURI),
-					       blank_nodes(ShareMode),
-					       db(DB)
-					     | RDFOptions
-					     ]),
+					     M:[ base_uri(BaseURI),
+						 blank_nodes(ShareMode),
+						 db(DB)
+					       | RDFOptions
+					       ]),
 			     close_input(Input, Stream)), !,
 		rdf_set_graph_source(DB, SourceURL, Modified),
 		register_file_ns(NSList),
@@ -1034,23 +1032,24 @@ rdf_file_type(trp,   triples).
 rdf_storage_encoding('', plain).
 
 
-%%	rdf_load_stream(+Format, +Stream, +Options)
+%%	rdf_load_stream(+Format, +Stream, :Options)
 %
 %	Load RDF data from Stream.
 %
 %	@tbd	Handle mime-types?
 
 rdf_load_stream(xml, Stream, Options) :- !,
-	option(db(Id), Options),
+	graph(Options, Graph),
 	rdf_transaction(process_rdf(Stream, assert_triples, Options),
-			parse(Id)).
+			parse(Graph)).
 rdf_load_stream(xhtml, Stream, Options) :- !,
-	option(db(Id), Options),
+	graph(Options, Graph),
 	rdf_transaction(process_rdf(Stream, assert_triples, [embedded(true)|Options]),
-			parse(Id)).
+			parse(Graph)).
 rdf_load_stream(triples, Stream, Options) :- !,
-	option(db(Id), Options),
-	rdf_load_db_(Stream, Id, _Graphs).
+	graph(Options, Graph),
+	rdf_load_db_(Stream, Graph, _Graphs).
+
 
 %%	read_cache(+BaseURI, +SourceModified, -CacheFile) is semidet.
 %
@@ -1205,8 +1204,8 @@ rdf_reset_db :-
 		 *	     SAVE RDF		*
 		 *******************************/
 
-%%	rdf_save(Out) is det.
-%%	rdf_save(Out, +Options) is det.
+%%	rdf_save(+Out) is det.
+%%	rdf_save(+Out, :Options) is det.
 %
 %	Write RDF data as RDF/XML. Options is a list of one or more of
 %	the following options:
@@ -1250,12 +1249,12 @@ rdf_reset_db :-
 %			file-url (=|file://path|=) or a stream wrapped
 %			in a term stream(Out).
 
-:- module_transparent
-	rdf_transaction/1,
-	rdf_transaction/2,
-	rdf_monitor/2,
-	rdf_save/2,
-	meta_options/2.
+:- meta_predicate
+	rdf_transaction(0),
+	rdf_transaction(0, +),
+	rdf_monitor(1, +),
+	rdf_save(+, :),
+	rdf_load(+, :).
 
 :- thread_local
 	named_anon/2.			% +Resource, -Id
@@ -1263,15 +1262,17 @@ rdf_reset_db :-
 rdf_save(File) :-
 	rdf_save2(File, []).
 
-rdf_save(Spec, Options0) :-
+rdf_save(Spec, M:Options0) :-
 	is_list(Options0), !,
-	meta_options(Options0, Options),
+	meta_options(save_meta_option, M:Options0, Options),
 	to_file(Spec, File),
 	rdf_save2(File, Options).
-rdf_save(Spec, DB) :-
+rdf_save(Spec, _:DB) :-
 	atom(DB), !,			% backward compatibility
 	to_file(Spec, File),
 	rdf_save2(File, [graph(DB)]).
+
+save_meta_option(convert_typed_literal).
 
 to_file(URL, File) :-
 	atom(URL),
@@ -1345,31 +1346,14 @@ rdf_subject(Subject, Options) :-
 	->  true
 	).
 
-graph(Options, DB) :-
+graph(Options0, DB) :-
+	strip_module(Options0, _, Options),
 	(   memberchk(graph(DB0), Options)
 	->  DB = DB0
 	;   memberchk(db(DB0), Options)
 	->  DB = DB0
 	;   true			% leave unbound
 	).
-
-
-%%	meta_options(+OptionsIn, -OptionsOut)
-%
-%	Do module qualification for options that are module sensitive.
-
-meta_options([], []).
-meta_options([Name=Value|T0], List) :-
-	atom(Name), !,
-	Opt =.. [Name, Value],
-	meta_options([Opt|T0], List).
-meta_options([H0|T0], [H|T]) :-
-	(   H0 = convert_typed_literal(Handler)
-	->  strip_module(Handler, M, P),
-	    H = convert_typed_literal(M:P)
-	;   H = H0
-	),
-	meta_options(T0, T).
 
 
 %%	rdf_save_header(+Fd, +Options)
@@ -1961,19 +1945,3 @@ into(_, _) --> [].			% TBD
 in_time(Triples, ParseTime) -->
 	[ ' in ~2f sec; ~D triples'-[ParseTime, Triples]
 	].
-
-		 /*******************************
-		 *	    ENVIRONMENT		*
-		 *******************************/
-
-%	prolog:meta_goal(+Goal, -MetaArgs)
-%
-%	Used by the XPCE/Prolog cross-referencer as well as PceEmacs for
-%	colouring code.
-
-:- multifile
-	prolog:meta_goal/2.
-
-prolog:meta_goal(rdf_transaction(G),	[G]).
-prolog:meta_goal(rdf_transaction(G,_),	[G]).
-prolog:meta_goal(rdf_monitor(G,_),	[G+1]).

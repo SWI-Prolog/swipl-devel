@@ -233,7 +233,7 @@ canonise_options2([H|T0], [H|T]) :- !,
 %	==
 
 :- meta_predicate
-	meta_options(:, :, -).
+	meta_options(1, :, -).
 
 meta_options(IsMeta, Context:Options0, Options) :-
 	meta_options(Options0, IsMeta, Context, Options).

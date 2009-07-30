@@ -32,12 +32,14 @@
 
 :- module(rdf,
 	  [ load_rdf/2,			% +File, -Triples
-	    load_rdf/3,			% +File, -Triples, +Options
+	    load_rdf/3,			% +File, -Triples, :Options
 	    xml_to_rdf/3,		% +XML, -Triples, +Options
-	    process_rdf/3		% +File, :OnTriples, +Options
+	    process_rdf/3		% +File, :OnTriples, :Options
 	  ]).
 
-:- meta_predicate(process_rdf(+, :, +)).
+:- meta_predicate
+	load_rdf(+, -, :),
+	process_rdf(+, :, :).
 
 :- use_module(library(sgml)).		% Basic XML loading
 :- use_module(library(option)).		% option/3
@@ -46,7 +48,7 @@
 :- use_module(rdf_triple).		% Generate triples
 
 %%	load_rdf(+File, -Triples) is det.
-%%	load_rdf(+File, -Triples, +Options) is det.
+%%	load_rdf(+File, -Triples, :Options) is det.
 %
 %	Parse an XML file holding an RDF term into a list of RDF triples.
 %	see rdf_triple.pl for a definition of the output format. Options:
@@ -69,9 +71,9 @@
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
 
-load_rdf(File, Triples, Options0) :-
+load_rdf(File, Triples, M:Options0) :-
 	entity_options(Options0, EntOptions, Options1),
-	meta_options(Options1, Options),
+	meta_options(load_meta_option, M:Options1, Options),
 	init_ns_collect(Options, NSList),
 	load_structure(File,
 		       [ RDFElement
@@ -96,6 +98,7 @@ entity_options([H|T0], Entities, Rest) :-
 	    entity_options(T0, Entities, RT)
 	).
 
+load_meta_option(convert_typed_literal).
 
 %%	xml_to_rdf(+XML, -Triples, +Options)
 
@@ -148,7 +151,7 @@ member_attribute(A) :-
 		 *	     BIG FILES		*
 		 *******************************/
 
-%%	process_rdf(+Input, :OnObject, +Options)
+%%	process_rdf(+Input, :OnObject, :Options)
 %
 %	Process RDF from Input. Input is either an atom or a term of the
 %	format stream(Handle). For each   encountered  description, call
@@ -182,10 +185,10 @@ member_attribute(A) :-
 %		If =true=, do not give warnings if rdf:RDF is embedded
 %		in other XML data.
 
-process_rdf(File, OnObject, Options0) :-
+process_rdf(File, OnObject, M:Options0) :-
 	is_list(Options0), !,
 	entity_options(Options0, EntOptions, Options1),
-	meta_options(Options1, Options2),
+	meta_options(load_meta_option, M:Options1, Options2),
 	process_options(Options2, ProcessOptions, Options),
 	option(base_uri(BaseURI), Options, []),
 	rdf_start_file(Options, Cleanup),
@@ -327,27 +330,6 @@ set_option(Opt, Options0, [Opt|Options]) :-
 	functor(Opt, F, A),
 	functor(VO, F, A),
 	delete(Options0, VO, Options).
-
-
-%%	meta_options(+OptionsIn, -OptionsOut)
-%
-%	Do module qualification for options that are module sensitive.
-
-:- module_transparent
-	meta_options/2.
-
-meta_options([], []).
-meta_options([Name=Value|T0], List) :-
-	atom(Name), !,
-	Opt =.. [Name, Value],
-	meta_options([Opt|T0], List).
-meta_options([H0|T0], [H|T]) :-
-	(   H0 = convert_typed_literal(Handler)
-	->  strip_module(Handler, M, P),
-	    H = convert_typed_literal(M:P)
-	;   H = H0
-	),
-	meta_options(T0, T).
 
 
 process_options(Options, Process, RestOptions) :-

@@ -5328,12 +5328,15 @@ rdf_monitor(term_t goal, term_t mask)
   broadcast_callback *cb;
   predicate_t p;
   long msk;
+  module_t m = NULL;
+
+  PL_strip_module(goal, &m, goal);
 
   if ( !get_atom_ex(goal, &name) ||
        !get_long_ex(mask, &msk) )
     return FALSE;
 
-  p = PL_pred(PL_new_functor(name, 1), NULL);
+  p = PL_pred(PL_new_functor(name, 1), m);
 
   for(cb=callback_list; cb; cb = cb->next)
   { if ( cb->pred == p )
