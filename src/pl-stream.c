@@ -3417,6 +3417,8 @@ Scleanup(void)
 
     s->bufp = s->buffer;		/* avoid actual flush */
     S__removebuf(s);
+
+#ifdef O_PLMT
     if ( S__iob[i].mutex )
     { recursiveMutex *m = S__iob[i].mutex;
 
@@ -3424,6 +3426,7 @@ Scleanup(void)
       recursiveMutexDelete(m);
       free(m);
     }
+#endif
 
     *s = S__iob0[i];			/* re-initialise */
   }
