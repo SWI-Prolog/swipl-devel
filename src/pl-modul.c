@@ -41,7 +41,7 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void	addSuperModule_no_lock(Module m, Module s, int where);
+static int addSuperModule_no_lock(Module m, Module s, int where);
 
 
 static Module
@@ -88,8 +88,10 @@ _lookupModule(atom_t name)
   { super = MODULE_user;
   }
 
-  if ( super )
-    addSuperModule_no_lock(m, super, 'A');
+  if ( super )				/* TBD: Better error-handling */
+  { if ( !addSuperModule_no_lock(m, super, 'A') )
+      PL_warning("Could not add super-module");
+  }
 
   addHTable(GD->tables.modules, (void *)name, m);
   GD->statistics.modules++;
@@ -187,14 +189,50 @@ updateLevelModule(Module m)
 }
 
 
-static void
+static int
+cannotSetSuperModule(Module m, Module s)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+
+  PL_put_atom(t, m->name);
+
+  return PL_error(NULL, 0, "would create a cycle",
+		  ERR_PERMISSION,
+		    ATOM_add_import,
+		    ATOM_module,
+		    t);
+}
+
+
+static int
+reachableModule(Module here, Module end)
+{ if ( here != end )
+  { ListCell c;
+
+    for(c=here->supers; c; c=c->next)
+    { if ( reachableModule(c->value, end) )
+	succeed;
+    }
+
+    fail;
+  }
+
+  succeed;
+}
+
+
+
+static int
 addSuperModule_no_lock(Module m, Module s, int where)
 { GET_LD
   ListCell c;
 
+  if ( reachableModule(s, m) )
+    return cannotSetSuperModule(m, s);
+
   for(c=m->supers; c; c=c->next)
   { if ( c->value == s )
-      return;				/* already a super-module */
+      return TRUE;			/* already a super-module */
   }
 
   c = allocHeap(sizeof(*c));
@@ -214,16 +252,19 @@ addSuperModule_no_lock(Module m, Module s, int where)
   }
 
   updateLevelModule(m);
+  succeed;
 }
 
 
 int
 addSuperModule(Module m, Module s, int where)
-{ LOCK();
-  addSuperModule_no_lock(m, s, where);
+{ int rc;
+
+  LOCK();
+  rc = addSuperModule_no_lock(m, s, where);
   UNLOCK();
 
-  succeed;
+  return rc;
 }
 
 
@@ -266,16 +307,20 @@ clearSupersModule(Module m)
 
 static int
 setSuperModule(Module m, Module s)
-{ if ( m->supers && !m->supers->next )
+{ if ( s == m )
+    cannotSetSuperModule(m, s);
+
+  if ( m->supers && !m->supers->next )
   { if ( (Module)m->supers->value != s )
     { m->supers->value = s;
       m->level = s->level+1;
+
+      succeed;
     }
   }
   clearSupersModule(m);
-  addSuperModule_no_lock(m, s, 'A');
 
-  succeed;
+  return addSuperModule_no_lock(m, s, 'A');
 }
 
 
