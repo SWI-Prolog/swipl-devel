@@ -74,7 +74,7 @@ check::
 doc:	html pdf
 
 html:	$(DOC).tex
-	../pl.sh -s run.pl -g main -- $(DOC)
+	$(PL) -f run.pl -g main -- $(DOC)
 
 pdf:	$(DOC).tex
 	$(RUNTEX) --pdf $(DOC)
