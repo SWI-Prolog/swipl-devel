@@ -4272,12 +4272,24 @@ a term is 0, unless its principal functor is an operator, in which case
 the precedence is the precedence of this operator. A term enclosed in
 brackets \exam{(\ldots)} has precedence 0.
 
-The predefined operators are shown in \tabref{operators}. Note that
-although all operators can be redefined by the user, this is strongly
-discouraged as it often leads to syntax errors or even different
-semantic interpretations when loading system libraries.  It is adviced
-to keep operators local to modules and load the system modules you need
-before changing operators.  See also \secref{moduleop}.
+The predefined operators are shown in \tabref{operators}. The ISO
+standard allows for redefining all operators except the comma (,).
+Applications must be extremely careful with (re-)defining operators
+because changing operators may cause (other) files to be interpreted
+\textbf{differently}. Often this will lead to a syntax error. In other
+cases, text is read silently into a different term which may lead to
+subtle and difficult to track errors.
+
+In SWI-Prolog, operators are \emph{local} to a module (see also
+\secref{moduleop}). Keeping operators in modules and using controlled
+import/export of operators as described with the module/2 directive keep
+the issues manageable. The module \const{system} provides the operators
+from \tabref{operators} and these operators cannot be modified. Files
+that are loaded from the SWI-Prolog directories resolve operators and
+predicates from this \const{system} module rather than \const{user}
+which makes the semantics of the library and development system modules
+independent from operator changes to the \const{user} module.
+
 
 \begin{table}
 \begin{center}
