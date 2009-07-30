@@ -33,11 +33,12 @@
 	  [ start_emacs_dde_server/1,	% +Force
 	    win_register_emacs/0	% +Externsion
 	  ]).
+:- use_module(library(pce)).
 
-%	start_emacs_dde_server
+%%	start_emacs_dde_server is det.
 %
-%	If there is no DDE server, register it as PceEmacs using the
-%	topic `control'.
+%	If there is no DDE server, register it as =PceEmacs= using the
+%	topic =control=.
 
 start_emacs_dde_server(_) :-
 	dde_current_service('PceEmacs', control), !.
