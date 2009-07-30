@@ -1913,8 +1913,10 @@ VMI(S_VIRGIN, 0, 0, ())
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
   { FR->predicate = DEF;
+#ifdef O_PROFILE
     if ( FR->prof_node )
       profSetHandle(FR->prof_node, DEF);
+#endif
     goto retry_continue;
   }
 
