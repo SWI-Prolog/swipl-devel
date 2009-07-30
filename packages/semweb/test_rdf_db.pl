@@ -29,10 +29,14 @@
     the GNU General Public License.
 */
 
-:- asserta(file_search_path(foreign, '../sgml')).
-:- asserta(file_search_path(library, '../sgml')).
-:- asserta(file_search_path(library, '../sgml/RDF')).
-:- asserta(file_search_path(foreign, '.')).
+:- module(test_rdf_db,
+	  [ test_rdf_db/0
+	  ]).
+
+:- asserta(user:file_search_path(foreign, '../sgml')).
+:- asserta(user:file_search_path(library, '../sgml')).
+:- asserta(user:file_search_path(library, '../sgml/RDF')).
+:- asserta(user:file_search_path(foreign, '.')).
 :- use_module(rdf_db).
 :- use_module(rdfs).
 :- use_module(library(xsdp_types)).
@@ -51,7 +55,9 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format('RDF-DB test suite.  To run all tests run ?- test.~n~n', []).
+test_rdf_db :-
+	test.
+
 
 		 /*******************************
 		 *	     TEST DATA		*
