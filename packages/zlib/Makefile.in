@@ -89,7 +89,7 @@ uninstall::
 ################################################################
 
 check::
-		$(PL) -q -f ztest.pl -g true -t run_tests
+		$(PL) -q -f test_zlib.pl -g test_zlib,halt -t 'halt(1)'
 
 ################################################################
 # Documentation

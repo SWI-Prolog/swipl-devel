@@ -1,5 +1,5 @@
-:- module(ztest,
-	  [
+:- module(test_zlib,
+	  [ test_zlib/0
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
@@ -7,27 +7,27 @@
 :- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(library, '../clib')).
 
-:- use_module(user:library(zlib)).
-:- use_module(user:library(plunit)).
-:- use_module(user:library(readutil)).
-:- use_module(user:library(socket)).
+:- use_module(library(zlib)).
+:- use_module(library(plunit)).
+:- use_module(library(readutil)).
+:- use_module(library(socket)).
 :- use_module(library(debug)).
 
-read_file_to_codes(File, Codes) :-
-	open(File, read, In),
-	call_cleanup(read_stream_to_codes(In, Codes), close(In)).
+test_zlib :-
+	run_tests([ zlib
+		  ]).
 
 :- begin_tests(zlib).
 
 %	gunzip: can we read a file compressed with gzip
 
 test(gunzip,
-     [ setup(shell('gzip < ztest.pl > plunit-tmp.gz')),
+     [ setup(shell('gzip < test_zlib.pl > plunit-tmp.gz')),
        cleanup(delete_file('plunit-tmp.gz'))
      ]) :-
 	gzopen('plunit-tmp.gz', read, ZIn),
 	call_cleanup(read_stream_to_codes(ZIn, Codes0), close(ZIn)),
-	read_file_to_codes('ztest.pl', Codes1),
+	read_file_to_codes('test_zlib.pl', Codes1),
 	Codes0 == Codes1.
 
 %	gzip: Can gunzip read our compressed file
@@ -35,7 +35,7 @@ test(gunzip,
 test(gzip,
      [ cleanup(delete_file('plunit-tmp.gz'))
      ]) :-
-	read_file_to_codes('ztest.pl', Codes),
+	read_file_to_codes('test_zlib.pl', Codes),
 	gzopen('plunit-tmp.gz', write, ZOut),
 	format(ZOut, '~s', [Codes]),
 	close(ZOut),
@@ -47,7 +47,7 @@ test(gzip,
 test(deflate,
      [ cleanup(delete_file('plunit-tmp.z'))
      ]) :-
-	read_file_to_codes('ztest.pl', Codes),
+	read_file_to_codes('test_zlib.pl', Codes),
 	open('plunit-tmp.z', write, Out),
 	zopen(Out, ZOut, []),
 	format(ZOut, '~s', [Codes]),
@@ -192,3 +192,13 @@ get_data(ZIn, N) :-
 	).
 
 :- end_tests(zlib).
+
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+read_file_to_codes(File, Codes) :-
+	open(File, read, In),
+	call_cleanup(read_stream_to_codes(In, Codes), close(In)).
+
