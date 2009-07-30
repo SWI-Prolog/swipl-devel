@@ -99,8 +99,8 @@ uninstall::
 		$(PL) -f none -g make -t halt
 
 check::
-		$(PL) -q -f test_http.pl -g true -t run_tests
-		$(PL) -q -f test_json.pl -g true -t test_json
+		$(PL) -q -f test_http.pl -g test_http,halt -t 'halt(1)'
+		$(PL) -q -f test_json.pl -g test_json,halt -t 'halt(1)'
 		$(PL) -q -f test_cgi_stream.pl -g true -t test_cgi_stream
 
 ################################################################

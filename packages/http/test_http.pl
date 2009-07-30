@@ -1,26 +1,28 @@
-:- module(http_test,
-	  [
+:- module(test_http,
+	  [ test_http/0
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
 :- asserta(user:file_search_path(foreign, '../clib')).
 :- asserta(user:file_search_path(foreign, '../sgml')).
-:- asserta(user:file_search_path(library, '.')).
+:- asserta(user:file_search_path(library, '..')).
 :- asserta(user:file_search_path(library, '../sgml')).
 :- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(library, '../clib')).
 
-:- use_module(user:library(http_open)).
-:- use_module(user:library(http_client)).
-:- use_module(user:library(http_stream)).
-:- use_module(user:library(plunit)).
-:- use_module(user:library(readutil)).
-:- use_module(user:library(socket)).
+:- use_module(library(http/http_open)).
+:- use_module(library(http/http_client)).
+:- use_module(library(http/http_stream)).
+:- use_module(library(plunit)).
+:- use_module(library(readutil)).
+:- use_module(library(socket)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 
-read_file_to_codes(File, Codes) :-
-	open(File, read, In),
-	call_cleanup(read_stream_to_codes(In, Codes), close(In)).
+test_http :-
+	run_tests([ http_open,
+		    http_get
+		  ]).
+
 
 :- begin_tests(http_open).
 
@@ -58,6 +60,10 @@ test(gollem_chunked, true(Data == Ref)) :-
 		 /*******************************
 		 *	       UTIL		*
 		 *******************************/
+
+read_file_to_codes(File, Codes) :-
+	open(File, read, In),
+	call_cleanup(read_stream_to_codes(In, Codes), close(In)).
 
 appendchk(Pre, Middle, Post, List) :-
 	append(Pre, Rest, List),
