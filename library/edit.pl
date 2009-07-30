@@ -482,7 +482,7 @@ short_filename(Path, Spec) :-
 short_filename(Path, Path).
 
 aliased_path(Path, Len-Spec) :-
-	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	setof(Alias, file_alias_path(Alias), Aliases),
 	member(Alias, Aliases),
 	Term =.. [Alias, '.'],
 	absolute_file_name(Term,
@@ -494,6 +494,9 @@ aliased_path(Path, Len-Spec) :-
 	remove_leading_slash(Local0, Local),
 	atom_length(Local, Len),
 	Spec =.. [Alias, Local].
+
+file_alias_path(Alias) :-
+	user:file_search_path(Alias, _).
 
 remove_leading_slash(Path, Local) :-
 	atom_concat(/, Local, Path), !.
