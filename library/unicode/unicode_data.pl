@@ -94,7 +94,7 @@ property(simple_titlecase_mapping(_)).
 :- dynamic
 	user:file_search_path/2.
 
-:- (   file_search_path(unicode, _)
+:- (   user:file_search_path(unicode, _)
    ->  true
    ;   prolog_load_context(directory, Dir),
        assert(user:file_search_path(unicode, Dir))
