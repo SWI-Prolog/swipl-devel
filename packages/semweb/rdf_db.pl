@@ -289,7 +289,8 @@ rdf_global_term(Term, Term).
 		 *******************************/
 
 :- multifile
-	system:term_expansion/2.
+	system:term_expansion/2,
+	system:goal_expansion/2.
 
 system:term_expansion((:- rdf_meta(Heads)), Clauses) :-
 	mk_clauses(Heads, Clauses).
@@ -338,7 +339,7 @@ rdf_meta(Heads) :-
 	throw(error(context_error(nodirective, rdf_meta(Heads)), _)).
 
 
-user:goal_expansion(G, Expanded) :-
+system:goal_expansion(G, Expanded) :-
 	rdf_meta_specification(G, Spec), !,
 	rdf_expand(G, Spec, Expanded).
 

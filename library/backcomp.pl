@@ -278,7 +278,7 @@ sublist(Goal, [_|T], R) :-
 %	Used in triple20 particle library. Should use a public interface
 
 '$declare_module'(Module, File, Line) :-
-	'$declare_module'(Module, File, Line, false).
+	'$declare_module'(Module, user, File, Line, false).
 
 
 %%	at_initialization(:Goal) is det.
