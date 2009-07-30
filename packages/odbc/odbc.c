@@ -1776,6 +1776,19 @@ clone_context(context *in)
 	    return NULL;
 	  vlenptr = &p->len_value;
 	  break;
+	case SQL_C_DATE:
+	case SQL_C_TYPE_DATE:
+	case SQL_C_TIME:
+	case SQL_C_TYPE_TIME:
+	case SQL_C_TIMESTAMP:
+	  if ( !(p->ptr_value = odbc_malloc(p->len_value)) )
+	    return NULL;
+	  break;
+	case SQL_C_SLONG:
+	case SQL_C_SBIGINT:
+	case SQL_C_DOUBLE:
+	  p->ptr_value = (SQLPOINTER)p->buf;
+	  break;
       }
 
       TRY(new, SQLBindParameter(new->hstmt,		/* hstmt */
