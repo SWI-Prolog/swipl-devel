@@ -97,8 +97,9 @@ current_options([]).
 %
 %		* File
 %		If File is a prolog file (as defined by
-%		prolog_file_type/2), process using latex_for_file/3,
-%		otherwise process using latex_for_wiki_file/3.
+%		user:prolog_file_type/2), process using
+%		latex_for_file/3, otherwise process using
+%		latex_for_wiki_file/3.
 %
 %	Typically Spec is either a  list  of   filenames  or  a  list of
 %	predicate indicators.   Defined options are:
@@ -160,7 +161,7 @@ process_items(FileSpec, Mode0, Mode, Options) -->
 	    file_name_extension(_Base, Ext, File)
 	},
 	need_mode(body, Mode0, Mode),
-	(   { prolog_file_type(Ext, prolog) }
+	(   { user:prolog_file_type(Ext, prolog) }
 	->  latex_tokens_for_file(File, Options)
 	;   latex_tokens_for_wiki_file(File, Options)
 	).

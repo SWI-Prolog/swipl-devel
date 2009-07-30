@@ -241,7 +241,7 @@ prolog_file_in_dir(Dir, File, Options) :-
 	(   option(if(loaded), Options, loaded)
 	->  source_file(File),
 	    file_directory_name(File, Dir)
-	;   prolog_file_type(Ext, prolog),
+	;   user:prolog_file_type(Ext, prolog),
 	    atomic_list_concat([Dir, '/*.', Ext], Pattern),
 	    expand_file_name(Pattern, Files),
 	    member(File, Files)
