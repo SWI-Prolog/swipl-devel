@@ -26,7 +26,8 @@
 	    xpath_chk/3,		% +DOM, +Spec, -Value
 
 	    op(400, fx, //),
-	    op(400, fx, /)
+	    op(400, fx, /),
+	    op(200, fy, @)
 	  ]).
 :- use_module(library(record)).
 :- use_module(library(lists)).
@@ -58,28 +59,28 @@ xpath_chk(DOM, Spec, Content) :-
 %	Find an element in a DOM structure.   The  syntax is inspired by
 %	XPath, using () rather than  []   to  select  inside an element.
 %	First we can construct paths using / and //:
-%	
+%
 %	    * //Term
 %	    Select any node in the DOM matching term.
 %	    * /Term
 %	    Match the root against Term
 %	    * Term
 %	    Select the immediate children of the root matching Term
-%	    
+%
 %	The Terms above are of type   _callable_.  The functor specifies
 %	the  element  name.  Optional    arguments   specify  additional
 %	constraints and functions. The arguments are processed from left
 %	to right. Defined conditional argument values are:
-%	
+%
 %	    * Integer
 %	    The N-th element with the given name
 %	    * last
 %	    The last element with the given name.
 %	    * last-IntExpr
 %	    The IntExpr-th element counting from the last (0-based)
-%	    
+%
 %	Defined function argument values are:
-%	
+%
 %	    * text
 %	    Evaluates to all text from the sub-tree as an atom
 %	    * @Attribute
@@ -105,7 +106,7 @@ in_dom(A/B, DOM, Value) :- !,
 in_dom(A//B, DOM, Value) :- !,
 	in_dom(A, DOM, Value0),
 	in_dom(//B, Value0, Value).
-in_dom(Spec, element(_, _, Content), Value) :- 
+in_dom(Spec, element(_, _, Content), Value) :-
 	Spec =.. [Name|Modifiers],
 	count_named_elements(Content, Name, CLen),
 	CLen > 0,
@@ -115,7 +116,7 @@ in_dom(Spec, element(_, _, Content), Value) :-
 %%	sub_dom(-Index, -Count, +Name, -Sub, +DOM) is nondet.
 %
 %	Sub is a node in DOM with Name.
-%	
+%
 %	@param Count	is the total number of nodes in the content
 %			list Sub appears that have the same name.
 %	@param Index	is the 1-based index of Sub of nodes with
@@ -176,7 +177,7 @@ nth_element_(I, N, Name, E, [_|T]) :-
 
 %%	modifiers(+Modifiers, +I, +Clen, +DOM, -Value)
 %
-%	
+%
 
 modifiers([], _, _, Value, Value).
 modifiers([H|T], I, L, Value0, Value) :-
