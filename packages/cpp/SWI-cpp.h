@@ -291,7 +291,7 @@ public:
   { ref = t.ref;
   }
 
-  operator char *(void);
+  operator const char *(void);
 
   int plThrow()
   { return PL_raise_exception(ref);
@@ -796,7 +796,7 @@ PlTermv::operator [](int n) const
 		 *	EXCEPTIONS (BODY)       *
 		 *******************************/
 
-__inline PlException::operator char *(void)
+__inline PlException::operator const char *(void)
 { PlFrame fr;
 #ifdef USE_PRINT_MESSAGE
   PlTermv av(2);
