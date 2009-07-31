@@ -41,7 +41,7 @@
 :- use_module(library(http/http_open)).
 
 :- meta_predicate
-	rdf_process_turtle(+,:,+).
+	rdf_process_turtle(+,2,+).
 
 /** <module> Turtle - Terse RDF Triple Language
 
@@ -791,8 +791,8 @@ syntax_error(Stream, LineNo, Which) :-
 	rdf_db:rdf_load_stream/3,
 	rdf_db:rdf_file_type/2.
 
-rdf_db:rdf_load_stream(turtle, Stream, Options) :-
-	option(db(Id), Options),
+rdf_db:rdf_load_stream(turtle, Stream, _Module:Options) :-
+	rdf_db:graph(Options, Id),
 	rdf_transaction(rdf_process_turtle(Stream, assert_triples, Options),
 			parse(Id)).
 
@@ -804,13 +804,3 @@ assert_triples([rdf(S,P,O)|T], Location) :-
 rdf_db:rdf_file_type(ttl, turtle).
 rdf_db:rdf_file_type(n3,  turtle).	% not really, but good enough
 rdf_db:rdf_file_type(nt,  turtle).	% not really, but good enough
-
-
-		 /*******************************
-		 *	   XREF SUPPORT		*
-		 *******************************/
-
-:- multifile
-	prolog:meta_goal/2.
-
-prolog:meta_goal(rdf_process_turtle(_,G,_), [G+2]).
