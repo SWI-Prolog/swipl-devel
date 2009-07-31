@@ -185,27 +185,27 @@ assertion_failed.
 		 *******************************/
 
 :- multifile
-	user:goal_expansion/2.
+	system:goal_expansion/2.
 
-user:goal_expansion(debug(Topic,_,_), true) :-
+system:goal_expansion(debug(Topic,_,_), true) :-
 	(   current_prolog_flag(optimise, true)
 	->  true
 	;   debug_topic(Topic),
 	    fail
 	).
-user:goal_expansion(debugging(Topic), fail) :-
+system:goal_expansion(debugging(Topic), fail) :-
 	(   current_prolog_flag(optimise, true)
 	->  true
 	;   debug_topic(Topic),
 	    fail
 	).
-user:goal_expansion(assertion(G), Goal) :-
+system:goal_expansion(assertion(G), Goal) :-
 	(   current_prolog_flag(optimise, true)
 	->  Goal = true
 	;   expand_goal(G, G2),
 	    Goal = assertion(G2)
 	).
-user:goal_expansion(assume(G), Goal) :-
+system:goal_expansion(assume(G), Goal) :-
 	print_message(informational,
 		      compatibility(renamed(assume/1, assertion/1))),
 	(   current_prolog_flag(optimise, true)
