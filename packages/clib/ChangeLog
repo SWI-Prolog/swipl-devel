@@ -1,3 +1,11 @@
+[Jul 27 2009]
+
+ * FIXED: Another timer issue that could crash the alarm-scheduler.
+   
+ * FIXED: The library(time) now uses SIGUSR2 rather then SIGALRM if available to avoid interference from libreadline's signal handling of SIGALRM.
+   
+ * FIXED: Crash in alarm-timers (Multi-threaded unix version)
+   
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant

@@ -1,3 +1,11 @@
+[Jul 31 2009]
+
+ * ADDED: libarry(xpath).
+   
+[Jul 30 2009]
+
+ * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
+   
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant

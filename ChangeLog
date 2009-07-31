@@ -9,6 +9,44 @@
 
 
 ============================
+VERSION 5.7.13 July 31, 2009
+============================
+
+ * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
+   
+ * FIXED: Possible crash in atom-gc on meta-calls
+   
+ * ENHANCED: System and library modules now use =system= as their parent module rather than =user=.
+   
+ * CLEANUP: Deleted not-documented hooks $start_compilation/2 and $end_compilation/2. Hooking can be achieved through the message subsystem.
+   
+ * MODIFIED: Operator inheritance now follows import modules
+   
+ * ADDED: CLP(FD): New constraint, global_cardinality/2.
+   
+ * MODIFIED: Using op(0, Type, Name) we can now delete operators in modules. Inheritance from the parent module can be restored using op(-1, Type, Name). Unlikely to affect user code
+   
+ * ENHANCED: Make setup-handler of setup_call_cleanup/3 atomic with regard to signals.
+   
+ * ADDED: set_stream(S, type(text|binary)).  Matt Lilley.
+   
+ * ENHANCED: Make cleanup-handler atomic with regard to signals
+   
+ * ENHANCED: Reconsult first removes initialization hooks registered from previous loads.
+   
+ * FIXED: DO not call overall initialization after compiling a stream. Matt Lilley
+   
+ * ENHANCED: CLP(FD): Replace all uses of setarg/3 in all_distinct/3 by attributed variables, shifting stress towards pure methods.
+   
+ * FIXED: avoid race condition if a signal arrives during deletion of a thread.
+   
+ * MODIFIED: use /dev/urandom over /dev/random for random number seeds. This gives slightly less secure random numbers, but avoids blocking.
+   
+ * FIXED: Delay running initialization until restore is complete for saved-states.
+   
+ * FIXED: QLF-compilation of non-module files.  Matt Lilley.
+   
+============================
 VERSION 5.7.12 July 23, 2009
 ============================
 

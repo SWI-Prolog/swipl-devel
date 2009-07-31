@@ -1,3 +1,14 @@
+[Jul 31 2009]
+
+ * FIXED: rdf_load/1 failed after unloading the data using rdf_unload/1. Willem Robert van Hage.
+   
+[Jul 30 2009]
+
+ * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
+   
+[Jul 24 2009]
+
+ * MODIFIED: rdf_load_turtle/3 now returns IRIs instead of URIs.
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant

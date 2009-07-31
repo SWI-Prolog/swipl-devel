@@ -1,3 +1,7 @@
+[Jul 30 2009]
+
+ * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
+   
 [Jul 2 2009]
 
  * FIXED: handle rdf:datatype earlier (compliant to the revised RDF syntax specs). This fixes empty strings using

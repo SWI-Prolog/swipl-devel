@@ -1,3 +1,6 @@
+[Jul 29 2009]
+
+ * ENHANCED: System and library modules now use =system= as their parent module rather than =user=.
 [Jun 15 2009]
 
  * DOC: Item#483: Broken link in PlUnit.  Ulrich Neumerkel.
