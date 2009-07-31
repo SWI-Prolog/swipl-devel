@@ -33,7 +33,8 @@
 	  [ init_win_menus/0
 	  ]).
 :- style_check(+dollar).
-:- op(100, fx, @).
+:- op(200, fy, @).
+:- op(990, xfx, :=).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library sets up the menu of PLWIN.EXE. It is called from the system
