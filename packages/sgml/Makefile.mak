@@ -2,7 +2,7 @@
 # Build the SWI-Prolog XML/SGML package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -45,6 +45,7 @@ ilib::
 		copy xsdp_types.pl "$(PLBASE)\library"
 		copy iso_639.pl "$(PLBASE)\library"
 		copy sgml_write.pl "$(PLBASE)\library"
+		copy xpath.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 idtd::
@@ -60,6 +61,7 @@ uninstall::
 		del "$(PLBASE)\library\xsdp_types.pl"
 		del "$(PLBASE)\library\iso_639.pl"
 		del "$(PLBASE)\library\sgml_write.pl"
+		del "$(PLBASE)\library\xpath.pl"
 		$(MAKEINDEX)
 
 html-install::
