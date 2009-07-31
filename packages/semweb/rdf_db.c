@@ -1580,6 +1580,32 @@ rdf_set_graph_source(term_t graph_name, term_t source, term_t modified)
   return rc;
 }
 
+
+static foreign_t
+rdf_unset_graph_source(term_t graph_name)
+{ atom_t gn;
+  rdf_db *db = DB;
+  graph *s;
+
+  if ( !get_atom_ex(graph_name, &gn) )
+    return FALSE;
+  if ( (s = lookup_graph(db, gn, TRUE)) )
+  { if ( s->source )
+    { PL_unregister_atom(s->source);
+      s->source = 0;
+    }
+    s->modified = 0.0;
+  }
+  if ( !RDLOCK(db) )
+    return FALSE;
+
+  RDUNLOCK(db);
+
+  return TRUE;
+}
+
+
+
 		 /*******************************
 		 *	     LITERALS		*
 		 *******************************/
@@ -6482,6 +6508,7 @@ install_rdf_db()
 					1, rdf_current_literal, NDET);
   PL_register_foreign("rdf_graphs_",    1, rdf_graphs,      0);
   PL_register_foreign("rdf_set_graph_source", 3, rdf_set_graph_source, 0);
+  PL_register_foreign("rdf_unset_graph_source", 1, rdf_unset_graph_source, 0);
   PL_register_foreign("rdf_graph_source_", 3, rdf_graph_source, 0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);

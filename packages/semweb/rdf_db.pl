@@ -1109,10 +1109,11 @@ rdf_unload(Spec) :-
 	do_unload(BaseURI).
 
 do_unload(DB) :-
-	retractall(rdf_source(DB, _, _, _, _)),
 	rdf_transaction((rdf_retractall(_,_,_,DB:_),
 			 rdf_retractall(_,_,_,DB)),
-			unload(DB)).
+			unload(DB)),
+	retractall(rdf_source(DB, _, _, _, _)),
+	rdf_unset_graph_source(DB).
 
 
 %%	rdf_graph(+DB) is semidet.

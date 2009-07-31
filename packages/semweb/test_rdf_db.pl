@@ -752,7 +752,19 @@ source(1) :-
 	rdf_source(test, X),
 	X == 'test.rdf'.
 
+		 /*******************************
+		 *	        UNLOAD		*
+		 *******************************/
 
+unload(1) :-
+	rdf_load(dc),
+	rdf_statistics(triples(T0)),
+	rdf_unload(dc),
+	rdf_statistics(triples(T1)),
+	rdf_load(dc),
+	rdf_statistics(triples(T2)),
+	T0 == T2,
+	T1 == 0.
 
 		 /*******************************
 		 *	      SCRIPTS		*
@@ -846,6 +858,7 @@ testset(ptree).
 testset(reachable).
 testset(duplicates).
 testset(source).
+testset(unload).
 
 %	testdir(Dir)
 %
