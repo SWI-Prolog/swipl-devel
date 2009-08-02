@@ -69,9 +69,9 @@ width_text(FontObj f, const char *s)
 
 static status
 rangeIntItem(IntItem ii, Int low, Int high)
-{ char buf[40];
+{ char buf[48];
   Type t = NULL;
-  char s1[20], s2[20];
+  char s1[24], s2[24];
   int b = valInt(getClassVariableValueObject(ii, NAME_border));
 
   obtainClassVariablesObject(ii);
