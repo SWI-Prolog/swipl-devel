@@ -1404,13 +1404,12 @@ like \jargon{iterative deepening}.  It was implemented after discussion
 with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
 
     \predicate{setup_call_cleanup}{3}{:Setup, :Goal, :Cleanup}
-Calls \exam{(once(Setup), Goal)} and quarantees that \arg{Cleanup} is
-eventually called exactly once iff \arg{Setup} succeeds. The
-\arg{Cleanup} is called after \arg{Goal} is finished, either on failure,
-deterministic success, commit, or an exception. The exection of
+Calls \exam{(once(Setup), Goal)}.  If \arg{Setup} succeeds, \arg{Cleanup} will be
+called exactly once after \arg{Goal} is finished: either on failure,
+deterministic success, commit, or an exception. The execution of
 \arg{Setup} is protected from asynchronous interrupts like
 call_with_time_limit/2 (package clib) or thread_signal/2. In most uses,
-\arg{Setup} will install temporary side-effects required by \arg{Goal}
+\arg{Setup} will perform temporary side-effects required by \arg{Goal}
 that are finally undone by \arg{Cleanup}.
 
 Success or failure of \arg{Cleanup} is ignored and choice-points it
