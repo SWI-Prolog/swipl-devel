@@ -136,7 +136,7 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
     return FALSE;
   nbio_setopt(socket, TCP_INSTREAM, in);
 
-  if ( !(nbio_get_flags(socket) & SOCK_LISTEN) )
+  if ( !(nbio_get_flags(socket) & PLSOCK_LISTEN) )
   { out = Snew(handle, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &writeFunctions);
     out->encoding = ENC_OCTET;
     if ( !PL_open_stream(Write, out) )

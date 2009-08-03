@@ -172,21 +172,12 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define INITLOCK()
 #endif
 
-#define SOCK_INSTREAM	0x01
-#define SOCK_OUTSTREAM	0x02
-#define SOCK_BIND	0x04		/* What have we done? */
-#define SOCK_LISTEN	0x08
-#define SOCK_CONNECT	0x10		/* Connected (client) socket */
-#define SOCK_ACCEPT	0x20		/* Accepted (server) socket */
-#define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
-#define SOCK_DISPATCH   0x80		/* do not dispatch events */
-
 #define set(s, f)   ((s)->flags |= (f))
 #define clear(s, f) ((s)->flags &= ~(f))
 #define true(s, f)  ((s)->flags & (f))
 #define false(s, f) (!true(s, f))
 
-#define SOCK_MAGIC 0x38da3f2c
+#define PLSOCK_MAGIC 0x38da3f2c
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: We must lock  the  structure   to  avoid  freeSocket() called from
@@ -195,7 +186,7 @@ that are concurrently executed in the socket thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct _plsocket
-{ int		    magic;		/* SOCK_MAGIC */
+{ int		    magic;		/* PLSOCK_MAGIC */
   nbio_sock_t	    id;			/* Integer id */
   SOCKET	    socket;		/* The OS socket */
   int		    flags;		/* Misc flags */
@@ -357,7 +348,7 @@ nbio_fcntl(nbio_sock_t socket, int op, int arg)
 	  non_block = 1;
 	  rval = ioctlsocket(s->socket, FIONBIO, &non_block);
 	  if ( rval )
-	  { s->flags |= SOCK_NONBLOCK;
+	  { s->flags |= PLSOCK_NONBLOCK;
 	    return 0;
 	  }
 
@@ -405,7 +396,7 @@ doneRequest(plsocket *s)
 
 static int
 waitRequest(plsocket *s)
-{ assert(s->magic == SOCK_MAGIC);
+{ assert(s->magic == PLSOCK_MAGIC);
 
   DEBUG(2, Sdprintf("[%d] (%ld): Waiting for %s on %d ...",
 		    PL_thread_self(), s->thread,
@@ -423,7 +414,7 @@ waitRequest(plsocket *s)
       return TRUE;
     }
 
-    if ( false(s, SOCK_DISPATCH) )
+    if ( false(s, PLSOCK_DISPATCH) )
     { if ( !GetMessage(&msg, NULL, WM_DONE, WM_DONE) )
 	return FALSE;
     } else if ( GetMessage(&msg, NULL, 0, 0) )
@@ -444,7 +435,7 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
   if ( !(s=nbio_to_plsocket(socket)) )
     return -1;
 
-  s->flags  |= SOCK_WAITING;
+  s->flags  |= PLSOCK_WAITING;
   s->done    = FALSE;
   s->error   = 0;
   s->thread  = GetCurrentThreadId();
@@ -467,7 +458,7 @@ nbio_wait(nbio_sock_t socket, nbio_request request)
       return 0;
     }
 
-    if ( false(s, SOCK_DISPATCH) )
+    if ( false(s, PLSOCK_DISPATCH) )
     { if ( !GetMessage(&msg, NULL, WM_DONE, WM_DONE) )
 	return FALSE;
     } else if ( GetMessage(&msg, NULL, 0, 0) )
@@ -510,11 +501,11 @@ nbio_select(int n,
       { plsocket *s = nbio_to_plsocket(i);
 
 	if ( s )
-	{ s->flags  |= SOCK_WAITING;
+	{ s->flags  |= PLSOCK_WAITING;
 	  s->done    = FALSE;
 	  s->error   = 0;
 	  s->thread  = GetCurrentThreadId();
-	  s->request = (s->flags & SOCK_LISTEN) ? REQ_ACCEPT : REQ_READ;
+	  s->request = (s->flags & PLSOCK_LISTEN) ? REQ_ACCEPT : REQ_READ;
 	  sockets[i] = s;
 	} else
 	{ DEBUG(2, Sdprintf("nbio_select(): no socket for %d\n", i));
@@ -592,14 +583,14 @@ nbio_select(int n,
 
 static int
 placeRequest(plsocket *s, nbio_request request)
-{ if ( s->magic != SOCK_MAGIC )
+{ if ( s->magic != PLSOCK_MAGIC )
     Sdprintf("placeRequest: %p has bad magic\n", s);
 
   s->error   = 0;
   s->done    = FALSE;
   s->thread  = GetCurrentThreadId();
   s->request = request;
-  clear(s, SOCK_WAITING);
+  clear(s, PLSOCK_WAITING);
 
   SendMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
   DEBUG(2, Sdprintf("%d (%ld): Placed %s request for %d\n",
@@ -611,7 +602,7 @@ placeRequest(plsocket *s, nbio_request request)
 
 static int
 doRequest(plsocket *s)
-{ if ( s->magic != SOCK_MAGIC )
+{ if ( s->magic != PLSOCK_MAGIC )
     Sdprintf("doRequest: %p has bad magic\n", s);
 
   switch(s->request)
@@ -621,7 +612,7 @@ doRequest(plsocket *s)
       if ( s->w32_flags & FD_CONNECT )
       { s->w32_flags &= ~FD_CONNECT;
 
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -654,7 +645,7 @@ doRequest(plsocket *s)
       { SOCKET slave;
 
 	s->w32_flags &= ~FD_ACCEPT;
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -679,7 +670,7 @@ doRequest(plsocket *s)
 	  DEBUG(2, Sdprintf("Accept(%d) --> %d\n",
 			    (int)s->socket, (int)slave));
 	  if ( (pls = allocSocket(slave)) )
-	  { pls->flags |= SOCK_ACCEPT;	/* requests */
+	  { pls->flags |= PLSOCK_ACCEPT;	/* requests */
 
 	    s->rdata.accept.slave = pls->id;
 	    s->error = 0;
@@ -695,7 +686,7 @@ doRequest(plsocket *s)
       if ( s->w32_flags & (FD_READ|FD_CLOSE) )
       { s->w32_flags &= ~FD_READ;
 
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -721,7 +712,7 @@ doRequest(plsocket *s)
       if ( s->w32_flags & (FD_READ|FD_CLOSE) )
       { s->w32_flags &= ~FD_READ;
 
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -754,7 +745,7 @@ doRequest(plsocket *s)
 
 	s->w32_flags &= ~FD_WRITE;
 
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -788,7 +779,7 @@ doRequest(plsocket *s)
 
 	s->w32_flags &= ~FD_WRITE;
 
-	if ( true(s, SOCK_WAITING) )
+	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
 	  break;
 	}
@@ -830,7 +821,7 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     for(i=0; i<n; i++)
     { if ( s[i] )
       { __try
-	{ if ( s[i]->magic != SOCK_MAGIC )
+	{ if ( s[i]->magic != PLSOCK_MAGIC )
 	  { goto nosocket;
 	  }
 	} __except(EXCEPTION_EXECUTE_HANDLER)
@@ -1035,10 +1026,10 @@ without dispatching if no input is available.
 
 static int
 wait_socket(plsocket *s)
-{ if ( true(s, SOCK_DISPATCH) )
+{ if ( true(s, PLSOCK_DISPATCH) )
   { int fd = s->socket;
 
-    if ( true(s, SOCK_NONBLOCK) && !PL_dispatch(fd, PL_DISPATCH_INSTALLED) )
+    if ( true(s, PLSOCK_NONBLOCK) && !PL_dispatch(fd, PL_DISPATCH_INSTALLED) )
     { fd_set rfds;
       struct timeval tv;
 
@@ -1081,7 +1072,7 @@ nbio_fcntl(nbio_sock_t socket, int op, int arg)
 
   if ( rc == 0 )
   { if ( op == F_SETFL && arg == O_NONBLOCK )
-      s->flags |= SOCK_NONBLOCK;
+      s->flags |= PLSOCK_NONBLOCK;
   } else
     nbio_error(errno, TCP_ERRNO);
 
@@ -1133,7 +1124,7 @@ lookupOSSocket(SOCKET socket)
   { if ( (p=sockets[i]) && p->socket == socket )
     { UNLOCK();
 
-      if ( p->magic != SOCK_MAGIC )
+      if ( p->magic != PLSOCK_MAGIC )
       { errno = EINVAL;
 	DEBUG(1, Sdprintf("Invalid OS socket: %d\n", socket));
 	return NULL;
@@ -1161,7 +1152,7 @@ nbio_to_plsocket_nolock(nbio_sock_t socket)
 
   p = sockets[socket];
 
-  if ( !p || p->magic != SOCK_MAGIC )
+  if ( !p || p->magic != PLSOCK_MAGIC )
   { DEBUG(1, Sdprintf("Invalid NBIO socket: %d\n", socket));
     errno = EINVAL;
     return NULL;
@@ -1268,8 +1259,8 @@ allocSocket(SOCKET socket)
   memset(p, 0, sizeof(*p));
   p->id     = (int)i;			/* place in the array */
   p->socket = socket;
-  p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
-  p->magic  = SOCK_MAGIC;
+  p->flags  = PLSOCK_DISPATCH;		/* by default, dispatch */
+  p->magic  = PLSOCK_MAGIC;
 #ifdef __WINDOWS__
   p->w32_flags = 0;
   p->request   = REQ_NONE;
@@ -1290,7 +1281,7 @@ freeSocket(plsocket *s)
   SOCKET sock;
 
   DEBUG(2, Sdprintf("Closing %d\n", s->id));
-  if ( !s || s->magic != SOCK_MAGIC )
+  if ( !s || s->magic != PLSOCK_MAGIC )
   { errno = EINVAL;
     return -1;
   }
@@ -1627,21 +1618,21 @@ nbio_closesocket(nbio_sock_t socket)
     return -1;
   }
 
-  if ( true(s, SOCK_OUTSTREAM|SOCK_INSTREAM) )
+  if ( true(s, PLSOCK_OUTSTREAM|PLSOCK_INSTREAM) )
   { int flags = s->flags;		/* may drop out! */
 
-    if ( flags & SOCK_INSTREAM )
+    if ( flags & PLSOCK_INSTREAM )
     { assert(s->input);
       Sclose(s->input);
     }
-    if ( flags & SOCK_OUTSTREAM )
+    if ( flags & PLSOCK_OUTSTREAM )
     { assert(s->output);
       Sclose(s->output);
     }
   } else
   {
 #ifdef __WINDOWS__
-    if ( true(s, SOCK_CONNECT) )
+    if ( true(s, PLSOCK_CONNECT) )
     { if ( s->socket >= 0 )
 	shutdown(s->socket, SD_SEND);
     }
@@ -1716,9 +1707,9 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
     { int val = va_arg(args, int);
 
       if ( val )
-	set(s, SOCK_DISPATCH);
+	set(s, PLSOCK_DISPATCH);
       else
-	clear(s, SOCK_DISPATCH);
+	clear(s, PLSOCK_DISPATCH);
 
       rc = 0;
 
@@ -1727,7 +1718,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
     case TCP_INSTREAM:
     { IOSTREAM *in = va_arg(args, IOSTREAM*);
 
-      s->flags |= SOCK_INSTREAM;
+      s->flags |= PLSOCK_INSTREAM;
       s->input = in;
 
       rc = 0;
@@ -1737,7 +1728,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
     case TCP_OUTSTREAM:
     { IOSTREAM *out = va_arg(args, IOSTREAM*);
 
-      s->flags |= SOCK_OUTSTREAM;
+      s->flags |= PLSOCK_OUTSTREAM;
       s->output = out;
 
       rc = 0;
@@ -1904,7 +1895,7 @@ nbio_bind(nbio_sock_t socket, struct sockaddr *my_addr, size_t addrlen)
     return -1;
   }
 
-  s->flags |= SOCK_BIND;
+  s->flags |= PLSOCK_BIND;
 
   return 0;
 }
@@ -1950,7 +1941,7 @@ nbio_connect(nbio_sock_t socket,
   }
 #endif
 
-  s->flags |= SOCK_CONNECT;
+  s->flags |= PLSOCK_CONNECT;
 
   return 0;
 }
@@ -2015,9 +2006,9 @@ nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
 #endif /*__WINDOWS__*/
 
   s = allocSocket(slave);
-  s->flags |= SOCK_ACCEPT;
+  s->flags |= PLSOCK_ACCEPT;
 #ifndef __WINDOWS__
-  if ( true(s, SOCK_NONBLOCK) )
+  if ( true(s, PLSOCK_NONBLOCK) )
     nbio_setopt(slave, TCP_NONBLOCK);
 #endif
 
@@ -2037,7 +2028,7 @@ nbio_listen(nbio_sock_t socket, int backlog)
     return -1;
   }
 
-  s->flags |= SOCK_LISTEN;
+  s->flags |= PLSOCK_LISTEN;
 
   return 0;
 }
@@ -2197,9 +2188,9 @@ nbio_close_input(nbio_sock_t socket)
 
   DEBUG(2, Sdprintf("[%d]: nbio_close_input(%d, flags=0x%x)\n",
 		    PL_thread_self(), socket, s->flags));
-  s->flags &= ~SOCK_INSTREAM;
+  s->flags &= ~PLSOCK_INSTREAM;
 #ifdef __WINDOWS__
-  if ( false(s, SOCK_LISTEN) )
+  if ( false(s, PLSOCK_LISTEN) )
   { SOCKET sock;
 
     if ( (sock=s->socket) < 0 )
@@ -2216,7 +2207,7 @@ nbio_close_input(nbio_sock_t socket)
 #endif
 
   s->input = NULL;
-  if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
+  if ( !(s->flags & (PLSOCK_INSTREAM|PLSOCK_OUTSTREAM)) )
     return freeSocket(s);
 
   return rc;
@@ -2239,7 +2230,7 @@ nbio_close_output(nbio_sock_t socket)
     SOCKET sock;
 #endif
 
-    s->flags &= ~SOCK_OUTSTREAM;
+    s->flags &= ~PLSOCK_OUTSTREAM;
 #if __WINDOWS__
     if ( (sock=s->socket) < 0 )
     { s->error = WSAECONNRESET;
@@ -2264,7 +2255,7 @@ nbio_close_output(nbio_sock_t socket)
 
   DEBUG(3, Sdprintf("%d->flags = 0x%x\n", socket, s->flags));
   s->output = NULL;
-  if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
+  if ( !(s->flags & (PLSOCK_INSTREAM|PLSOCK_OUTSTREAM)) )
     return freeSocket(s);
 
   return rc;

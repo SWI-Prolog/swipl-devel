@@ -108,17 +108,17 @@ typedef enum
 } nbio_request;
 
 					/* nbio_get_flags() mask */
-#define SOCK_INSTREAM	0x01
-#define SOCK_OUTSTREAM	0x02
-#define SOCK_BIND	0x04		/* What have we done? */
-#define SOCK_LISTEN	0x08
-#define SOCK_CONNECT	0x10
-#define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
-#define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
-#define SOCK_DISPATCH   0x80		/* do not dispatch events */
-#define SOCK_CLOSE_SEEN	0x100		/* FD_CLOSE seen */
-#define SOCK_EOF_SEEN   0x200		/* Seen end-of-file */
-#define SOCK_WAITING	0x400		/* using nbio_wait() */
+#define PLSOCK_INSTREAM	  0x001
+#define PLSOCK_OUTSTREAM  0x002
+#define PLSOCK_BIND	  0x004		/* What have we done? */
+#define PLSOCK_LISTEN	  0x008
+#define PLSOCK_CONNECT	  0x010
+#define PLSOCK_ACCEPT	  0x020		/* Set on accepted sockets */
+#define PLSOCK_NONBLOCK	  0x040		/* Set to non-blocking mode */
+#define PLSOCK_DISPATCH   0x080		/* do not dispatch events */
+#define PLSOCK_CLOSE_SEEN 0x100		/* FD_CLOSE seen */
+#define PLSOCK_EOF_SEEN   0x200		/* Seen end-of-file */
+#define PLSOCK_WAITING	  0x400		/* using nbio_wait() */
 
 
 typedef int	nbio_sock_t;		/* socket handle (not a file-descr) */
