@@ -38,6 +38,7 @@
 #endif
 
 #include "ssllib.h"
+#include <openssl/rand.h>
 
 #ifdef __SWI_PROLOG__
 #include <SWI-Stream.h>
@@ -879,6 +880,9 @@ ssl_lib_init(void)
  */
 {
     SSL_load_error_strings();
+    /* This call will ensure we only end up calling RAND_poll() once
+       - preventing an ugly synchronization issue in OpenSSL */
+    RAND_status();
     (void) SSL_library_init();
 
     if ((ctx_idx = SSL_CTX_get_ex_new_index( 0
