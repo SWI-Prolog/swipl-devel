@@ -122,7 +122,7 @@ user:portray(Codes) :-
 
 put_n_codes(N, [H|T]) :-
 	N > 0, !,
-	put_code(H),
+	emit_code(H),
 	N2 is N - 1,
 	put_n_codes(N2, T).
 put_n_codes(_, _).
@@ -137,9 +137,14 @@ put_var_codes(Var) :-
 	format('|~p', [Var]).
 put_var_codes([]).
 put_var_codes([H|T]) :-
-	put_code(H),
+	emit_code(H),
 	put_var_codes(T).
 
+emit_code(0'\b) :- !, format('\\b').
+emit_code(0'\r) :- !, format('\\r').
+emit_code(0'\n) :- !, format('\\n').
+emit_code(0'\t) :- !, format('\\t').
+emit_code(C) :- put_code(C).
 
 all_ascii(Var) :-
 	var_or_numbered(Var), !.
