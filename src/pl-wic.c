@@ -1230,6 +1230,52 @@ qlfLoadSource(IOSTREAM *fd)
 
 
 static bool
+loadModuleProperties(IOSTREAM *fd, Module m, int skip ARG_LD)
+{ for(;;)
+  { switch(Qgetc(fd))
+    { case 'S':
+      { atom_t sname = loadXR(fd);
+	Module s = lookupModule(sname);
+
+	if ( !skip )
+	  addSuperModule(m, s, 'Z');
+
+	continue;
+      }
+      case 'E':
+      { functor_t f = (functor_t) loadXR(fd);
+
+	if ( !skip )
+	{ Procedure proc = lookupProcedure(f, LD->modules.source);
+
+	  addHTable(LD->modules.source->public, (void *)f, proc);
+	} else
+	{ if ( !lookupHTable(m->public, (void *)f) )
+	  { FunctorDef fd = valueFunctor(f);
+
+	    warning("%s: skipped module \"%s\" lacks %s/%d",
+		    wicFile,
+		    stringAtom(m->name),
+		    stringAtom(fd->name),
+		    fd->arity);
+	  }
+	}
+
+	continue;
+      }
+      case 'X':
+	break;
+      default:
+	return qlfLoadError(fd, "loadPart()");
+    }
+    break;
+  }
+
+  succeed;
+}
+
+
+static bool
 loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 { Module om     = LD->modules.source;
   SourceFile of = currentSource;
@@ -1272,50 +1318,16 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	  if ( module )
 	    *module = LD->modules.source;
 
-	  for(;;)
-	  { switch(Qgetc(fd))
-	    { case 'S':
-	      { atom_t sname = loadXR(fd);
-		Module s = lookupModule(sname);
-
-		addSuperModule(m, s, 'Z'); /* TBD: Lock */
-
-		continue;
-	      }
-	      case 'E':
-	      { functor_t f = (functor_t) loadXR(fd);
-
-		if ( !skip )
-		{ Procedure proc = lookupProcedure(f, LD->modules.source);
-
-		  addHTable(LD->modules.source->public, (void *)f, proc);
-		} else
-		{ if ( !lookupHTable(m->public, (void *)f) )
-		  { FunctorDef fd = valueFunctor(f);
-
-		    warning("%s: skipped module \"%s\" lacks %s/%d",
-			    wicFile,
-			    stringAtom(m->name),
-			    stringAtom(fd->name),
-			    fd->arity);
-		  }
-		}
-
-		continue;
-	      }
-	      case 'X':
-		break;
-	      default:
-		return qlfLoadError(fd, "loadPart()");
-	    }
-	    break;
-	  }
 	  break;
 	}
 	default:
 	  qlfLoadError(fd, "loadPart()");
 	  break;
       }
+
+      if ( !loadModuleProperties(fd, LD->modules.source, skip PASS_LD) )
+	fail;
+
       break;
     }
     case 'F':
