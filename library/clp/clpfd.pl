@@ -4260,12 +4260,12 @@ regin_clear_attributes(V) :-
             del_attr(V, edges),
             % level and in_stack are already cleared
             maplist(del_attr(V), [index,lowlink,value,visited]),
-            maplist(clear_edge, Es)
-        ;   true
-        ),
-        (   get_attr(V, g0_edges, Es1) ->
-            del_attr(V, g0_edges),
-            maplist(clear_edge, Es1)
+            maplist(clear_edge, Es),
+            (   get_attr(V, g0_edges, Es1) ->
+                del_attr(V, g0_edges),
+                maplist(clear_edge, Es1)
+            ;   true
+            )
         ;   true
         ).
 
