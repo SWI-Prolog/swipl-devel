@@ -81,9 +81,9 @@ than compensated for by using block reads based on read_pending_input/3.
 %	?- match_count('pure_input.pl', "file", Count).
 %	==
 
-:- module_transparent
-	phrase_from_file/2,
-	phrase_from_file/3.
+:- meta_predicate
+	phrase_from_file(2, +),
+	phrase_from_file(2, +, +).
 
 phrase_from_file(Grammar, File) :-
 	phrase_from_file(Grammar, File, []).
