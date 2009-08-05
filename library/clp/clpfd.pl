@@ -3021,7 +3021,8 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
         take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
-        make_propagator(rel_tuple(mutable(Relation,_),Tuple), Prop),
+        put_attr(R, clpfd_relation, Relation),
+        make_propagator(rel_tuple(R, Tuple), Prop),
         tuple_freeze(Tuple, Tuple, Prop).
 
 tuple_freeze([],  _, _).
@@ -3163,8 +3164,8 @@ run_propagator(pgeq(A,B), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(rel_tuple(Rel, Tuple), MState) :-
-        arg(1, Rel, Relation),
+run_propagator(rel_tuple(R, Tuple), MState) :-
+        get_attr(R, clpfd_relation, Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
         ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
@@ -3174,7 +3175,7 @@ run_propagator(rel_tuple(Rel, Tuple), MState) :-
             ),
             (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
-            ;   setarg(1, Rel, Us),
+            ;   put_attr(R, clpfd_relation, Us),
                 disable_queue,
                 tuple_domain(Tuple, Us),
                 enable_queue
@@ -4966,6 +4967,9 @@ attribute_goals(X) -->
 clpfd_aux:attribute_goals(_) --> [].
 clpfd_aux:attr_unify_hook(_,_) :- false.
 
+clpfd_relation:attribute_goals(_) --> [].
+clpfd_relation:attr_unify_hook(_,_) :- false.
+
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
@@ -5017,7 +5021,9 @@ attribute_goal_(pgcc(X, Left, Right, Pairs)) -->
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
-attribute_goal_(rel_tuple(mutable(Rel,_), Tuple)) --> [tuples_in([Tuple], Rel)].
+attribute_goal_(rel_tuple(R, Tuple)) -->
+        { get_attr(R, clpfd_relation, Rel) },
+        [tuples_in([Tuple], Rel)].
 attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
 % reified constraints
 attribute_goal_(reified_in(V, D, B)) -->
