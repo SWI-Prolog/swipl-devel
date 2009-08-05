@@ -4621,13 +4621,7 @@ element(N, Is, V) :-
         element_(Is, 1, N, V),
         make_propagator(pelement(N,Is,V), Prop),
         element_attach(Is, Prop),
-        trigger_once(Prop),
-        (   ground(Is) ->
-            list_to_domain(Is, Dom),
-            domain_to_drep(Dom, Drep),
-            V in Drep
-        ;   true                % TODO: generalise propagation to arbitrary Is
-        ).
+        trigger_once(Prop).
 
 element_domain(V, VD) :-
         (   fd_get(V, VD, _) -> true
