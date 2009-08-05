@@ -71,6 +71,8 @@
 	    merge/3,			% +List1, +List2, -Union
 	    merge_set/3			% +Set1, +Set2, -Union
 	  ]).
+:- use_module(apply, [maplist/2]).
+:- use_module(system, [lock_predicate/1, unlock_predicate/1]).
 
 /** <module> Backward compatibility
 
@@ -233,9 +235,9 @@ hash_term(Term, Hash) :-
 %
 %	@deprecated Use maplist/2
 
-:- module_transparent
-	checklist/2,
-	sublist/3.
+:- meta_predicate
+	checklist(1, +),
+	sublist(1, +, ?).
 
 checklist(Goal, List) :-
 	maplist(Goal, List).
@@ -416,7 +418,9 @@ export_list(Module, List) :-
 %
 %	@deprecated Use setup_call_cleanup/3.
 
-:- module_transparent setup_and_call_cleanup/3, setup_and_call_cleanup/4.
+:- meta_predicate
+	setup_and_call_cleanup(0,0,0),
+	setup_and_call_cleanup(0,0,?,0).
 
 setup_and_call_cleanup(Setup, Goal, Cleanup) :-
 	setup_call_cleanup(Setup, Goal, Cleanup).
