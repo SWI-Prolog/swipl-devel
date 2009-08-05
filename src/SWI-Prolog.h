@@ -447,6 +447,7 @@ PL_EXPORT(int)		PL_unify_list_nchars(term_t t, size_t l, const char *s);
 PL_EXPORT(int)		PL_unify_string_nchars(term_t t,
 					       size_t len,
 					       const char *chars);
+PL_EXPORT(int)		PL_unify_bool(term_t t, int n);
 PL_EXPORT(int)		PL_unify_integer(term_t t, intptr_t n);
 PL_EXPORT(int)		PL_unify_float(term_t t, double f);
 PL_EXPORT(int)		PL_unify_pointer(term_t t, void *ptr);

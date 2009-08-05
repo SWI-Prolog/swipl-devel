@@ -2486,6 +2486,15 @@ PL_unify_float(term_t t, double f)
 
 
 int
+PL_unify_bool(term_t t, int val)
+{ GET_LD
+
+  return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+}
+
+
+
+int
 PL_unify_arg(int index, term_t t, term_t a)
 { GET_LD
   word w = valHandle(t);

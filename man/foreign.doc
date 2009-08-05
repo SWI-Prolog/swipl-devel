@@ -1151,8 +1151,12 @@ pl_hostname(term_t name)
 \begin{description}
     \cfunction{int}{PL_unify}{term_t ?t1, term_t ?t2}
 Unify two Prolog terms and return non-zero on success.
+
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
+
+    \cfunction{int}{PL_unify_bool}{term_t ?t, int a}
+Unify \arg{t} with either \const{true} or \const{false}.
 
     \cfunction{int}{PL_unify_chars}{term_t ?t, int flags,
 				    size_t len,
