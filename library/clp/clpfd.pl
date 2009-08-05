@@ -4605,7 +4605,13 @@ element(N, Is, V) :-
         must_be(list, Is),
         length(Is, L),
         N in 1..L,
-        element_(Is, 1, N, V).
+        element_(Is, 1, N, V),
+        (   ground(Is) ->
+            list_to_domain(Is, Dom),
+            domain_to_drep(Dom, Drep),
+            V in Drep
+        ;   true                % TODO: generalise propagation to arbitrary Is
+        ).
 
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
