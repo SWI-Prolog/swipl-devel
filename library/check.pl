@@ -311,7 +311,7 @@ short_filename(Path, Spec) :-
 short_filename(Path, Path).
 
 aliased_path(Path, Len-Spec) :-
-	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	setof(Alias, Spec^(user:file_search_path(Alias, Spec)), Aliases),
 	member(Alias, Aliases),
 	Term =.. [Alias, '.'],
 	absolute_file_name(Term,
