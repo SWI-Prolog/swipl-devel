@@ -4361,12 +4361,6 @@ vlowlink_min_lowlink(V, VP) -->
           VL1 is min(VL, VPL),
           put_attr(V, lowlink, VL1) }.
 
-vlowlink_min_index(V, VP) -->
-        { get_attr(V, lowlink, VL),
-          get_attr(VP, lowlink, VPI),
-          VL1 is min(VL, VPI),
-          put_attr(V, lowlink, VL1) }.
-
 scc(V) -->
         vindex_is_index(V),
         vlowlink_is_index(V),
@@ -4391,7 +4385,7 @@ each_edge([], _) --> [].
 each_edge([VP|VPs], V) -->
         (   { get_attr(VP, index, _) } ->
             (   v_in_stack(VP) ->
-                vlowlink_min_index(V, VP)
+                vlowlink_min_lowlink(V, VP)
             ;   []
             )
         ;   scc(VP),
