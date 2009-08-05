@@ -564,14 +564,13 @@ PL_atom_wchars(atom_t a, size_t *len)
 
 bool
 PL_cvt_i_integer(term_t p, long *c)
-{ GET_LD
-  return PL_get_long(p, c);
+{ return PL_get_long_ex(p, c);
 }
 
 
 bool
 PL_cvt_i_float(term_t p, double *c)
-{ return PL_get_float(p, c);
+{ return PL_get_float_ex(p, c);
 }
 
 
@@ -579,7 +578,7 @@ bool
 PL_cvt_i_single(term_t p, float *c)
 { double f;
 
-  if ( PL_get_float(p, &f) )
+  if ( PL_get_float_ex(p, &f) )
   { *c = (float)f;
     succeed;
   }
@@ -590,19 +589,18 @@ PL_cvt_i_single(term_t p, float *c)
 
 bool
 PL_cvt_i_string(term_t p, char **c)
-{ return PL_get_chars(p, c, CVT_ATOM|CVT_STRING);
+{ return PL_get_chars(p, c, CVT_ATOM|CVT_STRING|CVT_EXCEPTION);
 }
 
 
 bool
 PL_cvt_i_atom(term_t p, atom_t *c)
-{ GET_LD
-  return PL_get_atom(p, c);
+{ return PL_get_atom_ex(p, c);
 }
 
 
 bool
-PL_cvt_o_integer(intptr_t c, term_t p)
+PL_cvt_o_integer(long c, term_t p)
 { GET_LD
   return PL_unify_integer(p, c);
 }
