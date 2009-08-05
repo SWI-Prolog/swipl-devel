@@ -4668,6 +4668,9 @@ global_cardinality(Xs, Pairs) :-
         must_be(list, Pairs),
         maplist(gcc_pair, Pairs),
         pairs_keys_values(Pairs, Keys, Nums),
+        (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
+        ;   domain_error(gcc_unique_key_pairs, Pairs)
+        ),
         length(Xs, L),
         Nums ins 0..L,
         list_to_domain(Keys, Dom),
