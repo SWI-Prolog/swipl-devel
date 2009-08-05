@@ -208,44 +208,38 @@ call_det(Goal, Det) :-
 %    defined in the modules the attributes stem from, is used to
 %    convert attributes to lists of goals.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Intention: Reflect term variable order in residual goals. First, all
-   attributes are stripped from Term, then they are processed in their
-   natural order. The same strategy is applied to attributes themselves.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 copy_term(Term, Copy, Gs) :-
 	% encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(term_residuals(Term),GsC), [Copy-Gs]).
+	findall(Term-GsC, phrase(term_residuals(Term), GsC), [Copy-Gs]),
+	delete_attributes(Copy).
+
+% All of Term's variables are visited in their natural order.
+% Attributes are collected, and visited attributed variables are
+% marked with a copy_term_visited attribute.
 
 term_residuals(Term) -->
 	(   { '$attributed'(Term) }
-	->  { term_variables(Term, Vs0), collect_att_terms(Vs0, As, Vs) },
-	    att_terms_residuals(As, Vs)
+	->  { term_variables(Term, Vs0), variables_attvars(Vs0, AVs) },
+	    att_terms_residuals(AVs)
 	;   []
 	).
 
-collect_att_terms([], [], []).
-collect_att_terms([V0|Vs0], As, Vs) :-
-	(   attvar(V0)
-	->  get_attrs(V0, A),
-	    As = [A|ARest],
-	    Vs = [V0|VRest],
-	    del_all_attrs(A, V0)
-	;   As = ARest,
-	    Vs = VRest
-	),
-	collect_att_terms(Vs0, ARest, VRest).
+variables_attvars([], []).
+variables_attvars([V|Vs0], AVs) :-
+	(   attvar(V), \+ get_attr(V, copy_term_visited, _)
+	->  get_attrs(V, A),
+	    AVs = [A-V|Rest],
+	    put_attr(V, copy_term_visited, true),
+	    variables_attvars(Vs0, Rest)
+	;   variables_attvars(Vs0, AVs)
+	).
 
-del_all_attrs([], _).
-del_all_attrs(att(Module,_,As), V) :-
-	del_attr(V, Module),
-	del_all_attrs(As, V).
+copy_term_visited:attribute_goals(_) --> [].
 
-att_terms_residuals([], _)	    --> [].
-att_terms_residuals([A|As], [V|Vs]) -->
+att_terms_residuals([])	       --> [].
+att_terms_residuals([A-V|AVs]) -->
 	att_term_residuals(A, V),
-	att_terms_residuals(As, Vs).
+	att_terms_residuals(AVs).
 
 att_term_residuals([], _)		    --> [].
 att_term_residuals(att(Module,Value,As), V) -->
@@ -253,28 +247,46 @@ att_term_residuals(att(Module,Value,As), V) -->
 	->  % a previous projection predicate could have instantiated
 	    % this variable, for example, to avoid redundant goals
 	    []
-	;   % temporarily reinstate this attribute for attribute_goals//1
-	    { put_attr(V, Module, Value) },
-	    (	{ Module == freeze }
+	;   (	{ Module == freeze }
 	    ->	frozen_residuals(Value, V)
 	    ;	{ current_predicate(Module:attribute_goals/3) }
 	    ->	{ phrase(Module:attribute_goals(V), Goals) },
-		dlist(Goals)
+		list(Goals)
 	    ;	{ current_predicate(Module:attribute_goal/2) }
 	    ->	{ Module:attribute_goal(V, Goal) },
 		dot_list(Goal)
 	    ;	[put_attr(V, Module, Value)]
-	    ),
-	    { del_attr(V, Module) }
+	    )
 	),
 	term_residuals(Value),
 	att_term_residuals(As, V).
 
-dlist([])     --> [].
-dlist([L|Ls]) --> [L], dlist(Ls).
+list([])     --> [].
+list([L|Ls]) --> [L], list(Ls).
 
 dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)	--> [A].
+
+delete_attributes(Term) :-
+	(   '$attributed'(Term)
+	->  term_variables(Term, Vs),
+	    delete_attributes_(Vs)
+	;   true
+	).
+
+delete_attributes_([]).
+delete_attributes_([V|Vs]) :-
+	(   attvar(V)
+	->  get_attrs(V, A),
+	    del_attrs(A, V)
+	;   true
+	),
+	delete_attributes_(Vs).
+
+del_attrs([], _).
+del_attrs(att(Module, _, As), V) :-
+	del_attr(V, Module),
+	del_attrs(As, V).
 
 %%	frozen_residuals(+FreezeAttr, +Var)// is det.
 %
