@@ -210,8 +210,10 @@ call_det(Goal, Det) :-
 
 copy_term(Term, Copy, Gs) :-
 	% encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(term_residuals(Term), GsC), [Copy-Gs]),
-	delete_attributes(Copy).
+	findall(Term-GsC, phrase(term_residuals(Term), GsC), [Copy0-Gs0]),
+	delete_attributes(Copy0),
+	Copy0 = Copy,
+	Gs0 = Gs.
 
 % All of Term's variables are visited in their natural order.
 % Attributes are collected, and visited attributed variables are
