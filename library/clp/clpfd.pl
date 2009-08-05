@@ -3092,6 +3092,19 @@ run_propagator(check_distinct(Left,Right,X), _) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+run_propagator(pelement(_, Is, V), MState) :-
+        (   ground(Is) -> kill(MState)
+        ;   true
+        ),
+        domains_union(Is, Dom),
+        (   fd_get(V, VD, Ps) ->
+            domains_intersection(VD, Dom, VD1),
+            fd_put(V, VD1, Ps)
+        ;   domain_contains(Dom, V)
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 run_propagator(pgcc(X, Left, Right, Pairs), _) :-
         (   ground(X) ->
             gcc_check(X, Left, Right, Pairs)
@@ -4606,12 +4619,38 @@ element(N, Is, V) :-
         length(Is, L),
         N in 1..L,
         element_(Is, 1, N, V),
+        make_propagator(pelement(N,Is,V), Prop),
+        element_attach(Is, Prop),
+        trigger_once(Prop),
         (   ground(Is) ->
             list_to_domain(Is, Dom),
             domain_to_drep(Dom, Drep),
             V in Drep
         ;   true                % TODO: generalise propagation to arbitrary Is
         ).
+
+element_domain(V, VD) :-
+        (   fd_get(V, VD, _) -> true
+        ;   VD = from_to(n(V), n(V))
+        ).
+
+domains_union([V|Vs], Dom) :-
+        element_domain(V, VD),
+        domains_union_(Vs, VD, Dom).
+
+domains_union_([], D, D).
+domains_union_([V|Vs], D0, D) :-
+        element_domain(V, VD),
+        domains_union(VD, D0, D1),
+        domains_union_(Vs, D1, D).
+
+element_attach([], _).
+element_attach([V|Vs], Prop) :-
+        (   var(V) -> init_propagator(V, Prop)
+        ;   true
+        ),
+        element_attach(Vs, Prop).
+
 
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
@@ -4974,6 +5013,7 @@ attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
 attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_)) --> [].
+attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(X, Left, Right, Pairs)) -->
         [global_cardinality(Vs, Pairs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
