@@ -82,8 +82,8 @@ than compensated for by using block reads based on read_pending_input/3.
 %	==
 
 :- meta_predicate
-	phrase_from_file(2, +),
-	phrase_from_file(2, +, +).
+	phrase_from_file(:, +),
+	phrase_from_file(:, +, +).
 
 phrase_from_file(Grammar, File) :-
 	phrase_from_file(Grammar, File, []).
@@ -142,3 +142,19 @@ read_to_input_stream(Stream, Pos, List) :-
 	;   read_pending_input(Stream, List, Tail),
 	    stream_to_lazy_list(Stream, Tail)
 	).
+
+
+		 /*******************************
+		 *	       IDE		*
+		 *******************************/
+
+% Using meta_predicate phrase_from_file(2, +)   is inappropriate because
+% the first argument is an  arbitrary  grammar.   With  :,  we make less
+% promises. We tell the IDE that we call   G+2. This is not complete and
+% should be fixed at some point.
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(phrase_from_file(G, _File), [G+2]).
+prolog:called_by(phrase_from_file(G, _File, _Options), [G+2]).
