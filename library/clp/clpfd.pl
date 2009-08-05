@@ -4691,9 +4691,7 @@ count_num([X|Xs], C, Vs, N0, N) :-
 gcc_reify([], _).
 gcc_reify([Key-Val|Pairs], Vs) :-
         eq_key_bs(Vs, Key, Bs),
-        fd_dom(Val, Dom),
-        Sum in Dom,
-        sum(Bs, #=, Sum),
+        sum(Bs, #=, Val),
         gcc_reify(Pairs, Vs).
 
 eq_key_bs([], _, []).
