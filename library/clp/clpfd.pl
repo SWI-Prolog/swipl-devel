@@ -4323,15 +4323,17 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 
 scc([], Right)     --> scc_(Right).
 scc([V|Vs], Right) -->
-        (   { get_attr(V, index, _) } -> scc(Vs, Right)
+        (   vindex_defined(V) -> scc(Vs, Right)
         ;   scc(V), scc(Vs, Right)
         ).
 
 scc_([])     --> [].
 scc_([V|Vs]) -->
-        (   { get_attr(V, index, _) } -> scc_(Vs)
+        (   vindex_defined(V) -> scc_(Vs)
         ;   scc(V), scc_(Vs)
         ).
+
+vindex_defined(V) --> { get_attr(V, index, _) }.
 
 vindex_is_index(V) -->
         state(Index-_),
@@ -4383,7 +4385,7 @@ pop_stack_to(V, N) -->
 
 each_edge([], _) --> [].
 each_edge([VP|VPs], V) -->
-        (   { get_attr(VP, index, _) } ->
+        (   vindex_defined(VP) ->
             (   v_in_stack(VP) ->
                 vlowlink_min_lowlink(V, VP)
             ;   []
