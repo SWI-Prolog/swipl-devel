@@ -4596,18 +4596,22 @@ serialize_upper_bound(I, D_I, J, D_J) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%    element(?N, +Is, ?I)
+%%    element(?N, +Vs, ?V)
 %
-%     The N-th element of the list of integers Is is I. Analogous to nth1/3.
+%     The N-th element of the list of finite domain variables Vs is V.
+%     Analogous to nth1/3.
 
-element(N, Is, I) :-
+element(N, Is, V) :-
         must_be(list, Is),
         length(Is, L),
-        numlist(1, L, Ns),
-        maplist(twolist, Ns, Is, Rs),
-        tuples_in([[N,I]], Rs).
+        N in 1..L,
+        element_(Is, 1, N, V).
 
-twolist(N, I, [N,I]).
+element_([], _, _, _).
+element_([I|Is], N0, N, V) :-
+        I #\= V #==> N #\= N0,
+        N1 is N0 + 1,
+        element_(Is, N1, N, V).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
