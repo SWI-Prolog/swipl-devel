@@ -2246,19 +2246,21 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
 static int
 term_variables_loop(Word t, int n, int flags ARG_LD)
-{
+{ word w;
+
 right_recursion:
   deRef(t);
+  w = *t;
 
-  if ( canBind(*t) )
+  if ( canBind(w) )
   { term_t v;
 
     if ( visitedWord(t PASS_LD) )
       return n;
 
     if ( flags & TV_ATTVAR )
-    { if ( isAttVar(*t) )
-      { Word p = valPAttVar(*t);
+    { if ( isAttVar(w) )
+      { Word p = valPAttVar(w);
 
 	v = PL_new_term_ref();
 	*valTermRef(v) = makeRef(t);
@@ -2271,9 +2273,9 @@ right_recursion:
       return n+1;
     }
   }
-  if ( isTerm(*t) )
+  if ( isTerm(w) )
   { int arity;
-    Functor f = valueTerm(*t);
+    Functor f = valueTerm(w);
 
     if ( visited(f PASS_LD) )
       return n;
