@@ -45,6 +45,7 @@ predicates cannot be traced or redefined.
 
 @deprecated	Use :- set_prolog_flag(generate_debug_info, false) to
 		hide predicate internals from the tracer.
+@tbd		Move this functionlity to prolog flags.
 */
 
 %%	system_mode(+OnOff)
@@ -76,9 +77,9 @@ system_mode(off) :-
 system_module :-
 	system_mode(on).
 
-:- module_transparent
-	lock_predicate/1,
-	unlock_predicate/1.
+:- meta_predicate
+	lock_predicate(:),
+	unlock_predicate(:).
 
 %%	lock_predicate(+PredInd)
 %

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,8 +36,9 @@
 	  list_redefined/0		% list redefinitions
 	]).
 :- use_module(library(lists)).
+:- use_module(library(system)).
 
-:- style_check(+dollar).		% lock these predicates
+:- system_mode(on).			% lock these predicates
 
 /** <module> Consistency checking
 
@@ -74,9 +75,9 @@ list_undefined :-
 	list_undefined(informational).
 
 list_undefined(Level) :-
-	'$style_check'(Old, Old),
-	style_check(+dollar),
-	call_cleanup(list_undefined_(Level), '$style_check'(_, Old)).
+	system_mode(Old),
+	system_mode(on),
+	call_cleanup(list_undefined_(Level), system_mode(Old)).
 
 list_undefined_(Level) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
@@ -137,28 +138,37 @@ referenced(Term, Module, Ref) :-
 
 %%	list_autoload
 %
-%	Show predicates that need be linked via the autoload mechanism
+%	Show predicates that are not defined, but will be loaded on
+%	demand through the autoloader.
+%
+%	The behaviour of this predicate depends  on the system-mode (see
+%	system_mode/1): in normal  operation  it   only  lists  autoload
+%	requirements from user-module. In system-mode it also lists such
+%	requirements for the system modules.
 
 list_autoload :-
-	'$style_check'(Old, Old),
-	style_check(+dollar),
+	system_mode(Old),
+	system_mode(on),
 	current_prolog_flag(autoload, OldAutoLoad),
 	set_prolog_flag(autoload, false),
-	call_cleanup(list_autoload_,
+	call_cleanup(list_autoload_(Old),
 		     (	 set_prolog_flag(autoload, OldAutoLoad),
-			 '$style_check'(_, Old)
+			 system_mode(Old)
 		     )).
 
-list_autoload_ :-
-	(   setof(Lib-Pred, autoload_predicate(Module, Lib, Pred), Pairs),
+list_autoload_(SystemMode) :-
+	(   setof(Lib-Pred,
+		  autoload_predicate(Module, Lib, Pred, SystemMode),
+		  Pairs),
 	    print_message(informational,
 			  check(autoload(Module, Pairs))),
 	    fail
 	;   true
 	).
 
-autoload_predicate(Module, Library, Name/Arity) :-
+autoload_predicate(Module, Library, Name/Arity, SystemMode) :-
 	predicate_property(Module:Head, undefined),
+	check_module_enabled(Module, SystemMode),
 	(   \+ predicate_property(Module:Head, imported_from(_)),
 	    functor(Head, Name, Arity),
 	    '$find_library'(Module, Name, Arity, _LoadModule, Library),
@@ -166,15 +176,19 @@ autoload_predicate(Module, Library, Name/Arity) :-
 	->  true
 	).
 
+check_module_enabled(_, on) :- !.
+check_module_enabled(Module, _) :-
+	\+ import_module(Module, system).
+
 
 %%	list_redefined
 %
 %	Show redefined system predicates
 
 list_redefined :-
-	'$style_check'(Old, Old),
-	style_check(+dollar),
-	call_cleanup(list_redefined_, '$style_check'(_, Old)).
+	system_mode(Old),
+	system_mode(on),
+	call_cleanup(list_redefined_, system_mode(Old)).
 
 list_redefined_ :-
 	current_module(Module),
