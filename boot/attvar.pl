@@ -248,7 +248,7 @@ dot_list(A)	--> [A].
 
 delete_attributes(Term) :-
 	(   '$attributed'(Term)
-	->  term_variables(Term, Vs),
+	->  term_attvars(Term, Vs),
 	    delete_attributes_(Vs)
 	;   true
 	).
