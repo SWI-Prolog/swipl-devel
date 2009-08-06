@@ -236,6 +236,7 @@ suggest predicates from a keyword.
 \predicatesummary{format_time}{3}{C strftime() like date/time formatter}
 \predicatesummary{format_time}{4}{date/time formatter with explicit locale}
 \predicatesummary{format_predicate}{2}{Program format/[1,2]}
+\predicatesummary{term_attvars}{2}{Find attributed variables in a term}
 \predicatesummary{term_variables}{2}{Find unbound variables in a term}
 \predicatesummary{term_variables}{3}{Find unbound variables in a term}
 \predicatesummary{freeze}{2}{Delay execution until variable is bound}

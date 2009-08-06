@@ -112,11 +112,6 @@ is not an atom, a type error is raised. In all other cases this
 predicate succeeds regardless whether or not the named attribute is
 present.
 
-    \predicate{del_attrs}{1}{+Var}
-If \arg{Var} is an attributed variable, delete \emph{all} its
-attributes.  In all other cases, this predicate succeeds without
-side-effects.
-
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
 Hook that must be defined in the module an attributed variable refers
 to. Is is called \emph{after} the attributed variable has been
@@ -157,6 +152,16 @@ Get all attributes of \arg{Var}. \arg{Attributes} is a term of the form
     \predicate{put_attrs}{2}{+Var, -Attributes}
 Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
 \arg{Attributes}.
+
+    \predicate{del_attrs}{1}{+Var}
+If \arg{Var} is an attributed variable, delete \emph{all} its
+attributes.  In all other cases, this predicate succeeds without
+side-effects.
+
+    \predicate{term_attvars}{2}{+Term, -AttVars}
+\arg{AttVars} is a list of all attributed variables in \arg{Term} and
+its attributes. I.e., term_attvars/2 works recursively through
+attributes.  This predicate is Cycle-safe.
 
     \predicate{copy_term}{3}{+Term, -Copy, -Gs}
 Create a regular term \arg{Copy} as a copy of \arg{Term} (without

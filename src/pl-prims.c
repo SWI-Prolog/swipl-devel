@@ -2238,8 +2238,14 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 }
 
 
+		 /*******************************
+		 *	   TERM-VARIABLES	*
+		 *******************************/
+
+#define TV_ATTVAR 0x1
+
 static int
-term_variables_loop(Word t, term_t l, int n ARG_LD)
+term_variables_loop(Word t, term_t l, int n, int flags ARG_LD)
 {
 right_recursion:
   deRef(t);
@@ -2250,10 +2256,20 @@ right_recursion:
     if ( visitedWord(t PASS_LD) )
       return n;
 
-    v = PL_new_term_ref();
-    *valTermRef(v) = makeRef(t);
+    if ( flags & TV_ATTVAR )
+    { if ( isAttVar(*t) )
+      { Word p = valPAttVar(*t);
 
-    return n+1;
+	v = PL_new_term_ref();
+	*valTermRef(v) = makeRef(t);
+
+	return term_variables_loop(p, l, n+1, flags PASS_LD);
+      }
+    } else
+    { v = PL_new_term_ref();
+      *valTermRef(v) = makeRef(t);
+      return n+1;
+    }
   }
   if ( isTerm(*t) )
   { int arity;
@@ -2264,7 +2280,7 @@ right_recursion:
 
     arity = arityFunctor(f->definition);
     for(t = f->arguments; --arity > 0; t++)
-      n = term_variables_loop(t, l, n PASS_LD);
+      n = term_variables_loop(t, l, n, flags PASS_LD);
 
     goto right_recursion;
   }
@@ -2274,13 +2290,13 @@ right_recursion:
 
 
 static int
-term_variables_to_termv(term_t t, term_t *vp ARG_LD)
+term_variables_to_termv(term_t t, term_t *vp, int flags ARG_LD)
 { term_t v0   = PL_new_term_refs(0);
   int n;
 
   startCritical;
   initvisited(PASS_LD1);
-  n = term_variables_loop(valTermRef(t), v0, 0 PASS_LD);
+  n = term_variables_loop(valTermRef(t), v0, 0, flags PASS_LD);
   unvisit(PASS_LD1);
   if ( !endCritical )
     return -1;
@@ -2292,13 +2308,13 @@ term_variables_to_termv(term_t t, term_t *vp ARG_LD)
 
 
 static int
-term_variables(term_t t, term_t vars, term_t tail ARG_LD)
+term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(vars);
   term_t v0;
   int i, n;
 
-  if ( (n = term_variables_to_termv(t, &v0 PASS_LD)) < 0 )
+  if ( (n = term_variables_to_termv(t, &v0, flags PASS_LD)) < 0 )
     return FALSE;
 
   for(i=0; i<n; i++)
@@ -2319,7 +2335,7 @@ static
 PRED_IMPL("term_variables", 2, term_variables2, 0)
 { PRED_LD
 
-  return term_variables(A1, PL_copy_term_ref(A2), 0 PASS_LD);
+  return term_variables(A1, PL_copy_term_ref(A2), 0, 0 PASS_LD);
 }
 
 
@@ -2327,7 +2343,15 @@ static
 PRED_IMPL("term_variables", 3, term_variables3, 0)
 { PRED_LD
 
-  return term_variables(A1, PL_copy_term_ref(A2), A3 PASS_LD);
+  return term_variables(A1, PL_copy_term_ref(A2), A3, 0 PASS_LD);
+}
+
+
+static
+PRED_IMPL("term_attvars", 2, term_attvars, 0)
+{ PRED_LD
+
+  return term_variables(A1, PL_copy_term_ref(A2), 0, TV_ATTVAR PASS_LD);
 }
 
 
@@ -2376,7 +2400,7 @@ subsumes(term_t general, term_t specific ARG_LD)
   int i, n;
   term_t ex = 0;
 
-  n = term_variables_to_termv(specific, &v0 PASS_LD);
+  n = term_variables_to_termv(specific, &v0, 0 PASS_LD);
   if ( PL_unify(general, specific) &&
        foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
@@ -4759,6 +4783,7 @@ BeginPredDefs(prims)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
+  PRED_DEF("term_attvars", 2, term_attvars, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH
   PRED_DEF("term_hash", 2, term_hash, 0)
