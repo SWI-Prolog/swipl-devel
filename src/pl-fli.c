@@ -1603,6 +1603,34 @@ PL_get_nil(term_t l)
 
 
 int
+PL_skip_list(term_t list, term_t tail, size_t *len)
+{ GET_LD
+  intptr_t length;
+  Word l = valTermRef(list);
+  Word t;
+
+  length = skip_list(l, &t PASS_LD);
+  if ( len )
+    *len = length;
+  if ( tail )
+  { Word t2 = valTermRef(tail);
+
+    setVar(*t2);
+    unify_ptrs(t2, t PASS_LD);
+  }
+
+  if ( isNil(*t) )
+    return PL_LIST;
+  else if ( isVar(*t) )
+    return PL_PARTIAL_LIST;
+  else if ( isList(*t) )
+    return PL_CYCLIC_TERM;
+  else
+    return PL_NOT_A_LIST;
+}
+
+
+int
 _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
   word w = valHandle(t);

@@ -940,6 +940,35 @@ If \arg{l} is a list and not \const{[]} assign a term-reference to the
 tail to \arg{t}.
 \cfunction{int}{PL_get_nil}{term_t +l}
 Succeeds if {\em} represents the atom \const{[]}.
+
+\cfunction{int}{PL_skip_list}{term_t +list, term_t -tail, size_t *len}
+This is a multi-purpose function to deal with lists.  It allows for
+finding the length of a list, checking whether something is a list,
+etc. The reference \arg{tail} is set to point to the end of the list,
+\arg{len} is filled with the number of list-cells skipped and the
+return-value indicates the status of the list:
+
+    \begin{description}
+	\constitem{PL_LIST}
+    The list is a `proper' list: one that ends in \const{[]} and
+    \arg{tail} is filled with \const{[]}
+
+	\constitem{PL_PARTIAL_LIST}
+    The list is `partial' list: one that ends in a variable and
+    \arg{tail} is a reference to this variable.
+
+	\constitem{PL_CYCLIC_TERM}
+    The list is cyclic (e.g. X = [a|X]).  \arg{tail} points to
+    an arbitrary cell of the list and \arg{len} is at most twice
+    the cycle-length of the list.
+
+	\constitem{PL_NOT_A_LIST}
+    The term \arg{list} is not a list at all.  \arg{tail} is
+    bound to the non-list term and \arg{len} is set to the number
+    of list-cells skipped.
+    \end{description}
+
+It is allowed to pass 0 for \arg{tail} and \const{NULL} for \arg{len}.
 \end{description}
 
 

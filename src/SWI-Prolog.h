@@ -203,6 +203,10 @@ typedef union
 #define PL_CHAR		 (38)		/* int */
 #define PL_CODE		 (39)		/* int */
 #define PL_BYTE		 (40)		/* int */
+					/* PL_skip_list() */
+#define PL_PARTIAL_LIST	 (41)		/* a partial list */
+#define PL_CYCLIC_TERM	 (42)		/* a cyclic list/term */
+#define PL_NOT_A_LIST	 (43)		/* Object is not a list */
 
 /* Or'ed flags for PL_set_prolog_flag() */
 /* MUST fit in a short int! */
@@ -458,6 +462,12 @@ PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a);
 PL_EXPORT(int)		PL_unify_term(term_t t, ...);
 PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
 				       size_t len, const char *s);
+
+		 /*******************************
+		 *	       LISTS		*
+		 *******************************/
+
+PL_EXPORT(int)		PL_skip_list(term_t list, term_t tail, size_t *len);
 
 
 		 /*******************************
