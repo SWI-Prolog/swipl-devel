@@ -2245,7 +2245,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 #define TV_ATTVAR 0x1
 
 static int
-term_variables_loop(Word t, term_t l, int n, int flags ARG_LD)
+term_variables_loop(Word t, int n, int flags ARG_LD)
 {
 right_recursion:
   deRef(t);
@@ -2263,7 +2263,7 @@ right_recursion:
 	v = PL_new_term_ref();
 	*valTermRef(v) = makeRef(t);
 
-	return term_variables_loop(p, l, n+1, flags PASS_LD);
+	return term_variables_loop(p, n+1, flags PASS_LD);
       }
     } else
     { v = PL_new_term_ref();
@@ -2280,7 +2280,7 @@ right_recursion:
 
     arity = arityFunctor(f->definition);
     for(t = f->arguments; --arity > 0; t++)
-      n = term_variables_loop(t, l, n, flags PASS_LD);
+      n = term_variables_loop(t, n, flags PASS_LD);
 
     goto right_recursion;
   }
@@ -2296,7 +2296,7 @@ term_variables_to_termv(term_t t, term_t *vp, int flags ARG_LD)
 
   startCritical;
   initvisited(PASS_LD1);
-  n = term_variables_loop(valTermRef(t), v0, 0, flags PASS_LD);
+  n = term_variables_loop(valTermRef(t), 0, flags PASS_LD);
   unvisit(PASS_LD1);
   if ( !endCritical )
     return -1;
