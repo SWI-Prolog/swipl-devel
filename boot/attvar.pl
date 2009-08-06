@@ -278,23 +278,15 @@ delete_attributes(Term) :-
 
 delete_attributes_([]).
 delete_attributes_([V|Vs]) :-
-	(   attvar(V)
-	->  get_attrs(V, A),
-	    del_attrs(A, V)
-	;   true
-	),
+	del_attrs(V),
 	delete_attributes_(Vs).
 
-del_attrs([], _).
-del_attrs(att(Module, _, As), V) :-
-	del_attr(V, Module),
-	del_attrs(As, V).
 
 %%	frozen_residuals(+FreezeAttr, +Var)// is det.
 %
 %	Instantiate  a  freeze  goal  for  each    member  of  the  $and
 %	conjunction. Note that we cannot  map   this  into a conjunction
-%	because freeze(X, a),  freeze(X,  !)   wrould  create  freeze(X,
+%	because  freeze(X,  a),  freeze(X,  !)  would  create  freeze(X,
 %	(a,!)),  which  is  fundamentally  different.  We  could  create
 %	freeze(X,  (call(a),  call(!)))  or  preform  a  more  eleborate
 %	analysis to validate the semantics are not changed.

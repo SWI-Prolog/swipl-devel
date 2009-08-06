@@ -2,10 +2,10 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -604,6 +604,22 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
 }
 
 
+static
+PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
+{ PRED_LD
+  Word av;
+
+  av = valTermRef(A1);
+  deRef(av);
+
+  if ( isAttVar(*av) )
+  { TrailAssignment(av);
+    setVar(*av);
+  }
+
+  succeed;
+}
+
 		 /*******************************
 		 *	       FREEZE		*
 		 *******************************/
@@ -880,6 +896,7 @@ BeginPredDefs(attvar)
   PRED_DEF("put_attr",  3, put_attr3, 0)
   PRED_DEF("get_attr",  3, get_attr3, 0)
   PRED_DEF("del_attr",  2, del_attr2, 0)
+  PRED_DEF("del_attrs", 1, del_attrs, 0)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    PL_FA_TRANSPARENT)

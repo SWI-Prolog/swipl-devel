@@ -175,6 +175,7 @@ suggest predicates from a keyword.
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
+\predicatesummary{del_attrs}{1}{Delete all attributes from variable}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
