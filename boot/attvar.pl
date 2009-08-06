@@ -209,15 +209,11 @@ call_det(Goal, Det) :-
 %    convert attributes to lists of goals.
 
 copy_term(Term, Copy, Gs) :-
-	% encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(term_residuals(Term), GsC), [Copy0-Gs0]),
+	duplicate_term(Term, Copy0),
+	term_attvars(Copy0, Vs),
+	phrase(attvars_residuals(Vs), Gs),
 	delete_attributes(Copy0),
-	Copy0 = Copy,
-	Gs0 = Gs.
-
-term_residuals(Term) -->
-	{ term_attvars(Term, Vs) },
-	attvars_residuals(Vs).
+	Copy0 = Copy.
 
 attvars_residuals([]) --> [].
 attvars_residuals([V|Vs]) -->
