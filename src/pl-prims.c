@@ -161,6 +161,7 @@ static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 
 #endif /*O_CYCLIC*/
 
+#include "pl-termwalk.c"
 
 		/********************************
 		*          UNIFICATION          *
@@ -2244,67 +2245,65 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
 #define TV_ATTVAR 0x1
 
-static int
-term_variables_loop(Word t, int n, int flags ARG_LD)
-{ word w;
+static size_t
+term_variables_loop(term_agenda *agenda, int flags ARG_LD)
+{ Word p;
+  size_t count = 0;
 
-right_recursion:
-  deRef(t);
-  w = *t;
+  while( (p=nextTermAgenda(agenda)) )
+  { word w;
 
-  if ( canBind(w) )
-  { term_t v;
+  again:
+    w = *p;
 
-    if ( visitedWord(t PASS_LD) )
-      return n;
+    if ( canBind(w) )
+    { term_t v;
 
-    if ( flags & TV_ATTVAR )
-    { if ( isAttVar(w) )
-      { Word p = valPAttVar(w);
+      if ( visitedWord(p PASS_LD) )
+	continue;
 
+      if ( flags & TV_ATTVAR )
+      { if ( isAttVar(w) )
+	{ Word p2 = valPAttVar(w);
+
+	  count++;
+	  v = PL_new_term_ref();
+	  *valTermRef(v) = makeRef(p);
+
+	  deRef2(p2, p);
+	  goto again;
+	}
+      } else
+      { count++;
 	v = PL_new_term_ref();
-	*valTermRef(v) = makeRef(t);
-
-	return term_variables_loop(p, n+1, flags PASS_LD);
+	*valTermRef(v) = makeRef(p);
       }
-    } else
-    { v = PL_new_term_ref();
-      *valTermRef(v) = makeRef(t);
-      return n+1;
+    } else if ( isTerm(w) )
+    { pushTermAgendaIfNotVisited(agenda, w);
     }
   }
-  if ( isTerm(w) )
-  { int arity;
-    Functor f = valueTerm(w);
 
-    if ( visited(f PASS_LD) )
-      return n;
-
-    arity = arityFunctor(f->definition);
-    for(t = f->arguments; --arity > 0; t++)
-      n = term_variables_loop(t, n, flags PASS_LD);
-
-    goto right_recursion;
-  }
-
-  return n;
+  return count;
 }
 
 
-static int
+static size_t
 term_variables_to_termv(term_t t, term_t *vp, int flags ARG_LD)
-{ term_t v0   = PL_new_term_refs(0);
-  int n;
+{ term_agenda agenda;
+  term_t v0   = PL_new_term_refs(0);
+  size_t count;
 
   startCritical;
   initvisited(PASS_LD1);
-  n = term_variables_loop(valTermRef(t), 0, flags PASS_LD);
+  initTermAgenda(&agenda, valTermRef(t));
+  count = term_variables_loop(&agenda, flags PASS_LD);
+  clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
   if ( !endCritical )
-    return -1;
+    return (size_t)-1;
 
   *vp = v0;
-  return n;
+  return count;
 }
 
 
@@ -2314,12 +2313,12 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(vars);
   term_t v0;
-  int i, n;
+  size_t i, count;
 
-  if ( (n = term_variables_to_termv(t, &v0, flags PASS_LD)) < 0 )
-    return FALSE;
+  if ( (count = term_variables_to_termv(t, &v0, flags PASS_LD)) == (size_t)-1 )
+    return FALSE;			/* exception in critical section */
 
-  for(i=0; i<n; i++)
+  for(i=0; i<count; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
       fail;
@@ -2399,7 +2398,7 @@ The latest version of the old algorithm is in the GIT commit
 static int
 subsumes(term_t general, term_t specific ARG_LD)
 { term_t v0;
-  int i, n;
+  size_t i, n;
   term_t ex = 0;
 
   n = term_variables_to_termv(specific, &v0, 0 PASS_LD);

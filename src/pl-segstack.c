@@ -42,7 +42,24 @@ data before updating the pointers.
 TBD: Avoid instruction/cache write reordering in push/pop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CHUNKSIZE (1*1024)
+void
+initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
+{ memset(stack, 0, sizeof(*stack));
+  stack->unit_size = unit_size;
+
+  if ( len )
+  { segchunk *chunk = data;
+
+    assert(len > sizeof(*chunk));
+    memset(chunk, 0, sizeof(*chunk));
+
+    chunk->size = len;
+    stack->base = stack->top = chunk->top = chunk->data;
+    stack->last = stack->first = chunk;
+    stack->max  = addPointer(chunk, len);
+  }
+}
+
 
 int
 pushSegStack(segstack *stack, void *data)
@@ -53,11 +70,13 @@ pushSegStack(segstack *stack, void *data)
 
     return TRUE;
   } else
-  { segchunk *chunk = PL_malloc(CHUNKSIZE);
+  { segchunk *chunk = PL_malloc(SEGSTACK_CHUNKSIZE);
 
     if ( !chunk )
       return FALSE;			/* out of memory */
 
+    chunk->allocated = TRUE;
+    chunk->size = SEGSTACK_CHUNKSIZE;
     chunk->next = NULL;
     chunk->previous = stack->last;
     chunk->top = chunk->data;		/* async scanning */
@@ -72,7 +91,7 @@ pushSegStack(segstack *stack, void *data)
     }
 
     stack->base = chunk->data;
-    stack->max  = addPointer(chunk, CHUNKSIZE);
+    stack->max  = addPointer(chunk, chunk->size);
     memcpy(chunk->data, data, stack->unit_size);
     stack->top  = chunk->data + stack->unit_size;
     stack->count++;
@@ -104,21 +123,15 @@ popSegStack(segstack *stack, void *data)
     { if ( chunk->previous )
       { stack->last = chunk->previous;
 	stack->last->next = NULL;
-	PL_free(chunk);
+	if ( chunk->allocated )
+	  PL_free(chunk);
 
 	chunk = stack->last;
 	stack->base = chunk->data;
-	stack->max  = addPointer(chunk, CHUNKSIZE);
+	stack->max  = addPointer(chunk, chunk->size);
 	stack->top  = chunk->top;
 	goto again;
       }
-#if 0
-        else
-      { PL_free(chunk);
-	stack->first = stack->last = NULL;
-	stack->base = stack->max = stack->top = NULL;
-      }
-#endif
     }
 
     return FALSE;
@@ -161,7 +174,8 @@ clearSegStack(segstack *s)
 
   for(; c; c = n)
   { n = c->next;
-    PL_free(c);
+    if ( c->allocated )
+      PL_free(c);
   }
 
   memset(s, 0, sizeof(*s));
