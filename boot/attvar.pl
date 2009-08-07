@@ -209,42 +209,20 @@ call_det(Goal, Det) :-
 %    convert attributes to lists of goals.
 
 copy_term(Term, Copy, Gs) :-
-	% encapsulated in findall/3 such that attributes can be removed etc.
-	findall(Term-GsC, phrase(term_residuals(Term), GsC), [Copy0-Gs0]),
+	duplicate_term(Term, Copy0),
+	term_attvars(Copy0, Vs),
+	phrase(attvars_residuals(Vs), Gs),
 	delete_attributes(Copy0),
-	Copy0 = Copy,
-	Gs0 = Gs.
+	Copy0 = Copy.
 
-% All of Term's variables are visited in their natural order.
-% Attributes are collected, and visited attributed variables are
-% marked with a copy_term_visited attribute.
+attvars_residuals([]) --> [].
+attvars_residuals([V|Vs]) -->
+	{ get_attrs(V, As) },
+	attvar_residuals(As, V),
+	attvars_residuals(Vs).
 
-term_residuals(Term) -->
-	(   { '$attributed'(Term) }
-	->  { term_variables(Term, Vs0), variables_attvars(Vs0, AVs) },
-	    att_terms_residuals(AVs)
-	;   []
-	).
-
-variables_attvars([], []).
-variables_attvars([V|Vs0], AVs) :-
-	(   attvar(V), \+ get_attr(V, copy_term_visited, _)
-	->  get_attrs(V, A),
-	    AVs = [A-V|Rest],
-	    put_attr(V, copy_term_visited, true),
-	    variables_attvars(Vs0, Rest)
-	;   variables_attvars(Vs0, AVs)
-	).
-
-copy_term_visited:attribute_goals(_) --> [].
-
-att_terms_residuals([])	       --> [].
-att_terms_residuals([A-V|AVs]) -->
-	att_term_residuals(A, V),
-	att_terms_residuals(AVs).
-
-att_term_residuals([], _)		    --> [].
-att_term_residuals(att(Module,Value,As), V) -->
+attvar_residuals([], _) --> [].
+attvar_residuals(att(Module,Value,As), V) -->
 	(   { nonvar(V) }
 	->  % a previous projection predicate could have instantiated
 	    % this variable, for example, to avoid redundant goals
@@ -260,8 +238,7 @@ att_term_residuals(att(Module,Value,As), V) -->
 	    ;	[put_attr(V, Module, Value)]
 	    )
 	),
-	term_residuals(Value),
-	att_term_residuals(As, V).
+	attvar_residuals(As, V).
 
 list([])     --> [].
 list([L|Ls]) --> [L], list(Ls).
@@ -271,7 +248,7 @@ dot_list(A)	--> [A].
 
 delete_attributes(Term) :-
 	(   '$attributed'(Term)
-	->  term_variables(Term, Vs),
+	->  term_attvars(Term, Vs),
 	    delete_attributes_(Vs)
 	;   true
 	).
