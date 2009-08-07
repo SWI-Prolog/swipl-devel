@@ -217,8 +217,10 @@ copy_term(Term, Copy, Gs) :-
 
 attvars_residuals([]) --> [].
 attvars_residuals([V|Vs]) -->
-	{ get_attrs(V, As) },
-	attvar_residuals(As, V),
+	(   { get_attrs(V, As) }
+	->  attvar_residuals(As, V)
+	;   []
+	),
 	attvars_residuals(Vs).
 
 attvar_residuals([], _) --> [].
