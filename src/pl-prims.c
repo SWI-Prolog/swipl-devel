@@ -161,6 +161,7 @@ static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
 
 #endif /*O_CYCLIC*/
 
+#define HAVE_VISITED
 #include "pl-termwalk.c"
 
 		/********************************
