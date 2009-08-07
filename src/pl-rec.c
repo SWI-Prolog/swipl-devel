@@ -455,7 +455,6 @@ right_recursion:
 	arity   = arityFunctor(f->definition);
 	functor = f->definition;
 
-	requireStack(argument, sizeof(Word)*2);
 	mark.term = f;
 	mark.fdef = f->definition;
 	pushSegStack(&LD->cycle.stack, &mark);
