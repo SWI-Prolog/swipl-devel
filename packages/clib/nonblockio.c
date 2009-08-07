@@ -873,7 +873,10 @@ socket_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       }
 
       s->w32_flags |= evt;
-      if ( err )
+      if ( err == WSAECONNABORTED && s->request == REQ_READ )
+      { s->rdata.read.bytes = 0;
+	doneRequest(s);
+      } else if ( err )
       { SOCKET sock = s->socket;
 
 	s->error = err;
