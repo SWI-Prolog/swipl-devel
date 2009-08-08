@@ -630,9 +630,9 @@ result(Bindings, Residuals) -->
 	{ current_prolog_flag(toplevel_print_options, Options0),
 	  Options = [partial(true)|Options0]
 	},
-	bindings(Bindings, Options),
+	bindings(Bindings, [priority(699)|Options]),
 	bind_res_sep(Bindings, Residuals),
-	residuals(Residuals, Options).
+	residuals(Residuals, [priority(999)|Options]).
 
 bindings([], _) -->
 	[].

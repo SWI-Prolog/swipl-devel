@@ -740,13 +740,11 @@ answer_respons(-1, show_again) :- !,
 answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
-print_predicate(0'w, [write], [ quoted(true),
-				priority(699)
+print_predicate(0'w, [write], [ quoted(true)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
-				max_depth(10),
-				priority(699)
+				max_depth(10)
 			      ]).
 
 
