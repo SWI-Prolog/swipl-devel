@@ -637,17 +637,11 @@ result(Bindings, Residuals) -->
 bindings([], _) -->
 	[].
 bindings([Name = Value|T], Options) -->
-	{ (   T == []
-	  ->  Cont = ''
-	  ;   Cont = (,)
-	  )
-	},
-	[ '~w = ~W~a'-[Name, Value, Options, Cont] ],
-	(   {T == []}
-	->  []
-	;   [nl]
-	),
-	bindings(T, Options).
+	(   { T \== [] }
+	->  [ '~w = ~W,'-[Name, Value, Options], nl ],
+	    bindings(T, Options)
+	;   [ '~w = ~W'-[Name, Value, Options] ]
+	).
 
 residuals([], _) -->
 	[].
