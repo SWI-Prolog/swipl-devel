@@ -2247,7 +2247,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 #define TV_ATTVAR 0x1
 
 static size_t
-term_variables_loop(term_agenda *agenda, int flags ARG_LD)
+term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 { Word p;
   size_t count = 0;
 
@@ -2267,7 +2267,8 @@ term_variables_loop(term_agenda *agenda, int flags ARG_LD)
       { if ( isAttVar(w) )
 	{ Word p2 = valPAttVar(w);
 
-	  count++;
+	  if ( ++count > maxcount )
+	    return count;
 	  v = PL_new_term_ref();
 	  *valTermRef(v) = makeRef(p);
 
@@ -2275,7 +2276,8 @@ term_variables_loop(term_agenda *agenda, int flags ARG_LD)
 	  goto again;
 	}
       } else
-      { count++;
+      { if ( ++count > maxcount )
+	  return count;
 	v = PL_new_term_ref();
 	*valTermRef(v) = makeRef(p);
       }
@@ -2289,7 +2291,7 @@ term_variables_loop(term_agenda *agenda, int flags ARG_LD)
 
 
 static size_t
-term_variables_to_termv(term_t t, term_t *vp, int flags ARG_LD)
+term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 { term_agenda agenda;
   term_t v0   = PL_new_term_refs(0);
   size_t count;
@@ -2297,7 +2299,7 @@ term_variables_to_termv(term_t t, term_t *vp, int flags ARG_LD)
   startCritical;
   initvisited(PASS_LD1);
   initTermAgenda(&agenda, valTermRef(t));
-  count = term_variables_loop(&agenda, flags PASS_LD);
+  count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
   clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
   if ( !endCritical )
@@ -2314,10 +2316,15 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(vars);
   term_t v0;
-  size_t i, count;
+  size_t i, maxcount, count;
 
-  if ( (count = term_variables_to_termv(t, &v0, flags PASS_LD)) == (size_t)-1 )
+  if ( !(!tail && PL_skip_list(vars, 0, &maxcount) == PL_LIST) )
+    maxcount = PLMAXINT;
+
+  if ( (count = term_variables_to_termv(t, &v0, maxcount, flags PASS_LD)) == (size_t)-1 )
     return FALSE;			/* exception in critical section */
+  if ( count > maxcount )
+    return FALSE;
 
   for(i=0; i<count; i++)
   { if ( !PL_unify_list(list, head, list) ||
@@ -2402,7 +2409,7 @@ subsumes(term_t general, term_t specific ARG_LD)
   size_t i, n;
   term_t ex = 0;
 
-  n = term_variables_to_termv(specific, &v0, 0 PASS_LD);
+  n = term_variables_to_termv(specific, &v0, PLMAXINT, 0 PASS_LD);
   if ( PL_unify(general, specific) &&
        foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
