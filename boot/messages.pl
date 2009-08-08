@@ -583,7 +583,7 @@ query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
 	[ 'true.'-[] ],
 	extra_line.
 query_result(yes(Residuals)) -->
-	residuals(Residuals),
+	result([], Residuals),
 	extra_line.
 query_result(done) -->		% user typed <CR>
 	extra_line.
@@ -865,16 +865,6 @@ prolog_message(abnormal_thread_completion(Goal, fail)) -->
 prolog_message(threads_not_died(Count)) -->
 	[ '~D threads wouldn\'t die'-[Count] ].
 
-		 /*******************************
-		 *	       MISC		*
-		 *******************************/
-
-%	see initialization/1
-
-init_where(-) -->
-	[].
-init_where(Path:Line) -->
-	[ '~w:~d: '-[Path, Line] ].
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*
