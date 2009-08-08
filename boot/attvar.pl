@@ -247,11 +247,8 @@ dot_list((A,B)) --> !, dot_list(A), dot_list(B).
 dot_list(A)	--> [A].
 
 delete_attributes(Term) :-
-	(   '$attributed'(Term)
-	->  term_attvars(Term, Vs),
-	    delete_attributes_(Vs)
-	;   true
-	).
+	term_attvars(Term, Vs),
+	delete_attributes_(Vs).
 
 delete_attributes_([]).
 delete_attributes_([V|Vs]) :-
