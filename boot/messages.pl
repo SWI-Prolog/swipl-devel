@@ -588,14 +588,10 @@ query_result(yes(Residuals)) -->
 query_result(done) -->		% user typed <CR>
 	extra_line.
 query_result(yes(Bindings, Residuals)) -->
-	bindings(Bindings),
-	bind_res_sep(Bindings, Residuals),
-	residuals(Residuals),
+	result(Bindings, Residuals),
 	prompt(yes, Bindings, Residuals).
 query_result(more(Bindings, Residuals)) -->
-	bindings(Bindings),
-	bind_res_sep(Bindings, Residuals),
-	residuals(Residuals),
+	result(Bindings, Residuals),
 	prompt(more, Bindings, Residuals).
 query_result(help) -->
 	[ nl, 'Actions:'-[], nl, nl,
@@ -630,28 +626,36 @@ prompt(more, empty) --> !,
 prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
-bindings([]) -->
+result(Bindings, Residuals) -->
+	{ current_prolog_flag(toplevel_print_options, Options0),
+	  Options = [partial(true)|Options0]
+	},
+	bindings(Bindings, Options),
+	bind_res_sep(Bindings, Residuals),
+	residuals(Residuals, Options).
+
+bindings([], _) -->
 	[].
-bindings([Name = Value|T]) -->
-	{ current_prolog_flag(toplevel_print_options, Options),
-	  (   T == []
+bindings([Name = Value|T], Options) -->
+	{ (   T == []
 	  ->  Cont = ''
 	  ;   Cont = (,)
 	  )
 	},
-	[ '~w = ~W~a'-[Name, Value, [partial(true)|Options], Cont] ],
+	[ '~w = ~W~a'-[Name, Value, Options, Cont] ],
 	(   {T == []}
 	->  []
 	;   [nl]
 	),
-	bindings(T).
+	bindings(T, Options).
 
-residuals([]) --> !, [].
-residuals([G|Gs]) -->
+residuals([], _) -->
+	[].
+residuals([G|Gs], Options) -->
 	(   { Gs \== [] }
-	->  [ '~q,'-[G], nl ],
-	    residuals(Gs)
-	;   [ '~q'-[G] ]
+	->  [ '~W,'-[G, Options], nl ],
+	    residuals(Gs, Options)
+	;   [ '~W'-[G, Options] ]
 	).
 
 bind_res_sep(_, []) --> !,
