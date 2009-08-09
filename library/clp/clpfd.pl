@@ -2875,16 +2875,17 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
-constraint_wake(pgcc, ground).
 constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
+constraint_wake(pgcc, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 
 global_constraint(regin).
+%global_constraint(pgcc).
 %global_constraint(rel_tuple).
 %global_constraint(scalar_product_eq).
 
@@ -3106,11 +3107,10 @@ run_propagator(pelement(_, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc(X, Left, Right, Pairs), _) :-
-        (   ground(X) ->
-            gcc_check(X, Left, Right, Pairs)
-        ;   true
-        ).
+run_propagator(pgcc(_, _, Pairs), _) :-
+        disable_queue,
+        gcc_check(Pairs),
+        enable_queue.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pneq(A, B), MState) :-
@@ -4677,35 +4677,72 @@ global_cardinality(Xs, Pairs) :-
         list_to_domain(Keys, Dom),
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
-        (   false, ground(Pairs) ->
-            gcc_ground(Xs, Pairs, [])
+        (   ground(Pairs) ->
+            gcc_pairs(Pairs, Xs, Pairs1),
+            make_propagator(pgcc(Xs, Pairs, Pairs1), Prop),
+            gcc_attach(Xs, Prop),
+            trigger_once(Prop)
         ;   gcc_reify(Pairs, Xs)
         ).
 
 % Specialised version for ground Pairs.
 % TODO: Use arc-consistent filtering in this case.
 
-gcc_ground([], _, _).
-gcc_ground([X|Xs], Pairs, Left) :-
-        (   var(X) ->
-            make_propagator(pgcc(X,Left,Xs,Pairs), Prop),
-            init_propagator(X, Prop),
-            trigger_once(Prop)
-        ;   gcc_check(X, Xs, Left, Pairs)
-        ),
-        gcc_ground(Xs, Pairs, [X|Left]).
+gcc_pairs([], _, []).
+gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
+        put_attr(Num, clpfd_gcc_num, Num0),
+        put_attr(Num, clpfd_gcc_vs, Vs),
+        gcc_pairs(KNs, Vs, Rest).
 
-gcc_check(X, Left, Right, Pairs) :-
-        memberchk(X-Num, Pairs),
-        count_num(Left, X, Vs1, 1, Num1),
-        count_num(Right, X, Vs2, Num1, Current),
-        Current =< Num,
-        (   Current =:= Num ->
-            all_neq(Vs1, X),
-            all_neq(Vs2, X)
-        ;   ground(Left), ground(Right) ->
-            Current =:= Num
+gcc_attach([], _).
+gcc_attach([X|Xs], Prop) :-
+        (   var(X) -> init_propagator(X, Prop)
         ;   true
+        ),
+        gcc_attach(Xs, Prop).
+
+gcc_done(Num) :-
+        del_attr(Num, clpfd_gcc_vs),
+        del_attr(Num, clpfd_gcc_num).
+
+gcc_check([]).
+gcc_check([Key-Num0|KNs]) :-
+        (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
+            get_attr(Num0, clpfd_gcc_num, Num),
+            vs_key_min_max_others(Vs, Key, 0, Min, 0, Max, Os),
+            between(Min, Max, Num),
+            (   Min =:= Max ->
+                gcc_done(Num0),
+                all_neq(Os, Key)
+            ;   Diff is Num - Min,
+                length(Os, L),
+                L >= Diff,
+                (   L =:= Diff ->
+                    gcc_done(Num0),
+                    maplist(=(Key), Os)
+                ;   put_attr(Num0, clpfd_gcc_num, Diff),
+                    put_attr(Num0, clpfd_gcc_vs, Os)
+                )
+            )
+        ;   true
+        ),
+        gcc_check(KNs).
+
+vs_key_min_max_others([], _, Min, Min, Max, Max, []).
+vs_key_min_max_others([V|Vs], Key, Min0, Min, Max0, Max, Others) :-
+        (   fd_get(V, VD, _) ->
+            (   domain_contains(VD, Key) ->
+                Max1 is Max0 + 1,
+                Others = [V|Rest],
+                vs_key_min_max_others(Vs, Key, Min0, Min, Max1, Max, Rest)
+            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+            )
+        ;   (   V =:= Key ->
+                Min1 is Min0 + 1,
+                Max1 is Max0 + 1,
+                vs_key_min_max_others(Vs, Key, Min1, Min, Max1, Max, Others)
+            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+            )
         ).
 
 all_neq([], _).
@@ -4713,17 +4750,9 @@ all_neq([X|Xs], C) :-
         neq_num(X, C),
         all_neq(Xs, C).
 
-count_num([], _, [], N, N).
-count_num([X|Xs], C, Vs, N0, N) :-
-        (   integer(X) ->
-            (   X =:= C -> N1 is N0 + 1
-            ;   N1 = N0
-            ),
-            Vs1 = Vs
-        ;   N1 = N0,
-            Vs = [X|Vs1]
-        ),
-        count_num(Xs, C, Vs1, N1, N).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Reified version, used if some Nums are variables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_reify([], _).
 gcc_reify([Key-Val|Pairs], Vs) :-
@@ -4967,6 +4996,12 @@ attribute_goals(X) -->
 clpfd_aux:attribute_goals(_) --> [].
 clpfd_aux:attr_unify_hook(_,_) :- false.
 
+clpfd_gcc_vs:attribute_goals(_) --> [].
+clpfd_gcc_vs:attr_unify_hook(_,_) :- false.
+
+clpfd_gcc_num:attribute_goals(_) --> [].
+clpfd_gcc_num:attr_unify_hook(_,_) :- false.
+
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
@@ -5015,9 +5050,8 @@ attribute_goal_(pdistinct(Left, Right, X, processed)) -->
 attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_)) --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(X, Left, Right, Pairs)) -->
-        [global_cardinality(Vs, Pairs)],
-        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(pgcc(Vs, Pairs, _)) -->
+        [global_cardinality(Vs, Pairs)].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
