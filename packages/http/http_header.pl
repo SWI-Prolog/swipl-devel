@@ -990,14 +990,24 @@ charset(CharSet) -->
 	"; charset=",
 	atom(CharSet).
 
+%%	header_field(-Name, -Value)// is det.
+%%	header_field(+Name, +Value) is det.
+%
+%	Process an HTTP request property. Request properties appear as a
+%	single line in an HTTP header.
+
 header_field(Name, Value) -->
-	{ var(Name) }, !,
+	{ var(Name) }, !,		% parsing
 	field_name(Name),
 	":",
 	whites,
 	read_field_value(ValueChars),
 	blanks_to_nl, !,
-	{ field_to_prolog(Name, ValueChars, Value) }.
+	{   field_to_prolog(Name, ValueChars, Value)
+	->  true
+	;   atom_codes(Value, ValueChars),
+	    domain_error(Name, Value)
+	}.
 header_field(Name, Value) -->
 	field_name(Name),
 	": ",
@@ -1231,7 +1241,9 @@ http_version_number(Major-Minor) -->
 		 *	      COOKIES		*
 		 *******************************/
 
-%	cookies are of the format NAME=Value; ...
+%%	cookies(-List) is semidet.
+%
+%	Translate a cookie description into a list Name=Value.
 
 cookies([Name=Value|T]) -->
 	blanks,
@@ -1241,6 +1253,8 @@ cookies([Name=Value|T]) -->
 	->  cookies(T)
 	;   { T = [] }
 	).
+cookies([]) -->
+	blanks.
 
 cookie(Name, Value) -->
 	cookie_name(Name),
