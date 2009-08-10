@@ -86,7 +86,7 @@ prolog_source_files([H|T]) --> !,
 prolog_source_files(F) -->
 	{ exists_file(F),
 	  file_name_extension(_, Ext, F),
-	  prolog_file_type(Ext, prolog)
+	  user:prolog_file_type(Ext, prolog)
 	}, !,
 	[F].
 prolog_source_files(Dir) -->
