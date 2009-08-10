@@ -5719,6 +5719,12 @@ Like \%d, the day of the month as a decimal number, but a leading
 zero is replaced by a space.
     \fmtchar{E}
 Modifier.  Not implemented.
+    \fmtchar{f}
+Number of microseconds.  The \const{f} can be prefixed by an integer
+to print the desired number of digits.  E.g., \const{\%3f} prints
+milliseconds.  This format is not covered by any standard, but
+available with different format-specifiers in various incarnations
+of the strftime() function.
     \fmtchar{F}
 Equivalent to \%Y-\%m-\%d (the ISO 8601 date format).
     \fmtchar{g}

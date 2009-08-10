@@ -36,6 +36,7 @@ is supposed to give the POSIX standard one.
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
 #include <stdio.h>
+#include <ctype.h>
 
 #if defined(__WINDOWS__) || defined (__CYGWIN__)
 #define timezone _timezone
@@ -531,14 +532,19 @@ static const char *month[] =
   "July", "August", "September", "October", "November", "December"
 };
 
+#define NOARG (-1)
 
 static int
 format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 { wint_t c;
 
   while((c = *format++))
-  { switch(c)
+  { int arg = NOARG;
+
+    switch(c)
     { case '%':
+	arg = NOARG;
+      fmt_next:
 	switch((c = *format++))
 	{ case 'a':			/* %a: abbreviated weekday */
 	  case 'A':			/* %A: weekday */
@@ -686,6 +692,18 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case 'R':
 	    SUBFORMAT(L"%H:%M");
 	    break;
+	  case 'f':			/* Microseconds */
+	  { int digits = (arg == NOARG ? 6 : arg);
+
+	    if ( digits > 0 )
+	    { double ip;
+
+	      cal_ftm(ftm, HAS_STAMP);
+	      OUTNUMBER(fd, INT64_FORMAT, (int64_t)(modf(ftm->stamp, &ip) *
+						    pow(10, digits)));
+	    }
+	    break;
+	  }
 	  case 's':			/* Seconds since 1970 */
 	    cal_ftm(ftm, HAS_STAMP);
 	    OUTNUMBER(fd, "%.0f", ftm->stamp);
@@ -765,6 +783,14 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case '%':
 	    OUTCHR(fd, '%');
 	    break;
+	  default:
+	    if ( isdigit(c) )
+	    { if ( arg == NOARG )
+		arg = c - '0';
+	      else
+		arg = arg*10+(c-'0');
+	      goto fmt_next;
+	    }
 	}
         break;
       default:

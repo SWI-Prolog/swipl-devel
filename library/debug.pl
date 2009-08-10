@@ -142,8 +142,8 @@ list_debug_topics :-
 %	Specify additional context for debug messages.   What  is one of
 %	+Context or -Context and Context is   one of =thread=. =time= or
 %	time(Format),  where  Format  is    a  format-specification  for
-%	format_time/3 (default is =|%T|=). Initially,  debug/3 show only
-%	thread information.
+%	format_time/3 (default is =|%T.%3f|=).   Initially, debug/3 show
+%	only thread information.
 
 debug_message_context(+Topic) :- !,
 	valid_topic(Topic, Del, Add),
@@ -156,7 +156,7 @@ debug_message_context(Term) :-
 	type_error(debug_message_context, Term).
 
 valid_topic(thread, thread, thread) :- !.
-valid_topic(time, time(_), time('%T')) :- !.
+valid_topic(time, time(_), time('%T.%3f')) :- !.
 valid_topic(time(Format), time(_), time(Format)) :- !.
 valid_topic(X, _, _) :-
 	domain_error(debug_message_context, X).
