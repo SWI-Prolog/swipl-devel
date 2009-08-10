@@ -37,6 +37,7 @@
 :- use_module(library(option)).
 :- use_module(library(settings)).
 :- use_module(library(broadcast)).
+:- use_module(library(url)).
 
 
 /** <module> Abstract specification of HTTP server locations
@@ -99,7 +100,8 @@ http:location(root, Root, []) :-
 http_absolute_location(Spec, Path, Options) :-
 	must_be(ground, Spec),
 	option(relative_to(Base), Options, /),
-	absolute_location(Spec, Base, Path, Options).
+	absolute_location(Spec, Base, Path, Options),
+	debug(http_path, '~q (~q) --> ~q', [Spec, Base, Path]).
 
 absolute_location(Spec, Base, Path, _Options) :-
 	location_cache(Spec, Base, Cache), !,
@@ -180,12 +182,15 @@ relative_to(/, Path, Path) :- !.
 relative_to(_Base, Path, Path) :-
 	sub_atom(Path, 0, _, _, /), !.
 relative_to(Base, Local, Path) :-
+	sub_atom(Base, 0, _, _, /), !,	% file version
 	path_segments(Base, BaseSegments),
 	append(BaseDir, [_], BaseSegments) ->
 	path_segments(Local, LocalSegments),
 	append(BaseDir, LocalSegments, Segments0),
 	clean_segments(Segments0, Segments),
 	path_segments(Path, Segments).
+relative_to(Base, Local, Global) :-
+	global_url(Local, Base, Global).
 
 path_segments(Path, Segments) :-
 	atomic_list_concat(Segments, /, Path).
