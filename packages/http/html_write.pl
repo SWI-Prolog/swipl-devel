@@ -262,9 +262,9 @@ pagehead(Head) -->
 	html(Head).
 pagehead(Head) -->
 	{ strip_module(Head, M, _),
-	  hook_module(M, head//1)
+	  hook_module(M, HM, head//1)
 	}, !,
-	M:head(Head).
+	HM:head(Head).
 pagehead(Head) -->
 	html(head(Head)).
 
@@ -275,16 +275,16 @@ pagebody(Body) -->
 	html(Body).
 pagebody(Body) -->
 	{ strip_module(Body, M, _),
-	  hook_module(M, body//1)
+	  hook_module(M, HM, body//1)
 	}, !,
-	M:body(Body).
+	HM:body(Body).
 pagebody(Body) -->
 	html(body(Body)).
 
 
-hook_module(M, PI) :-
+hook_module(M, M, PI) :-
 	current_predicate(M:PI), !.
-hook_module(user, PI) :-
+hook_module(_, user, PI) :-
 	current_predicate(user:PI).
 
 %%	html(+Content:dom)// is det
