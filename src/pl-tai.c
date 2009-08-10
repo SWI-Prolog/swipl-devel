@@ -697,10 +697,12 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 
 	    if ( digits > 0 )
 	    { double ip;
+	      char fmt[64];
 
 	      cal_ftm(ftm, HAS_STAMP);
-	      OUTNUMBER(fd, INT64_FORMAT, (int64_t)(modf(ftm->stamp, &ip) *
-						    pow(10, digits)));
+	      Ssprintf(fmt, "%%0%dlld", digits);
+	      OUTNUMBER(fd, fmt, (long)(modf(ftm->stamp, &ip) *
+					pow(10, digits)));
 	    }
 	    break;
 	  }
