@@ -48,7 +48,7 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic
-	debugging/2,
+	debugging/3,			% Topic, Enabled, To
 	debug_context/1.
 
 debug_context(thread).
@@ -81,7 +81,10 @@ program explicit, trapping the debugger if the condition does not hold.
 %	are debugging.
 
 debugging(Topic) :-
-	debugging(Topic, true).
+	debugging(Topic, true, _To).
+
+debugging(Topic, Bool) :-
+	debugging(Topic, Bool, _To).
 
 %%	debug(+Topic) is det.
 %%	nodebug(+Topic) is det.
@@ -90,25 +93,36 @@ debugging(Topic) :-
 %	topics. Gives a warning if the topic is not defined unless it is
 %	used from a directive. The latter allows placing debug topics at
 %	the start a a (load-)file without warnings.
+%
+%	For debug/1, Topic can be  a  term   Topic  >  Out, where Out is
+%	either a stream or  stream-alias  or   a  filename  (atom). This
+%	redirects debug information on this topic to the given output.
 
 debug(Topic) :-
 	debug(Topic, true).
 nodebug(Topic) :-
 	debug(Topic, false).
 
-debug(Topic, Val) :-
-	(   (   retract(debugging(Topic, _))
-	    *-> assert(debugging(Topic, Val)),
+debug(Spec, Val) :-
+	debug_target(Spec, Val, Topic, To),
+	(   (   retract(debugging(Topic, _, _))
+	    *-> assert(debugging(Topic, Val, To)),
 		fail
 	    ;   (   prolog_load_context(file, _)
 		->  true
 		;   print_message(warning, debug_no_topic(Topic))
 		),
-	        assert(debugging(Topic, Val))
+	        assert(debugging(Topic, Val, To))
 	    )
 	->  true
 	;   true
 	).
+
+debug_target(Spec, _, Topic, To) :-
+	nonvar(Spec),
+	Spec = (Topic > To), !.
+debug_target(Topic, true, Topic, user_error) :- !.
+debug_target(Topic, false, Topic, -).
 
 
 %%	debug_topic(+Topic) is det.
@@ -117,10 +131,10 @@ debug(Topic, Val) :-
 %	topics available for debugging.
 
 debug_topic(Topic) :-
-	(   debugging(Registered, _),
+	(   debugging(Registered, _, _),
 	    Registered =@= Topic
 	->  true
-	;   assert(debugging(Topic, false))
+	;   assert(debugging(Topic, false, -))
 	).
 
 %%	list_debug_topics is det.
@@ -128,11 +142,12 @@ debug_topic(Topic) :-
 %	List currently known debug topics and their setting.
 
 list_debug_topics :-
-	format(user_error, '~*t~40|~n', "-"),
-	format(user_error, '~w~t~30| ~w~n', ['Debug Topic', 'Activated']),
-	format(user_error, '~*t~40|~n', "-"),
-	(   debugging(Topic, Value),
-	    format(user_error, '~w~t~30| ~w~n', [Topic, Value]),
+	format(user_error, '~*t~45|~n', "-"),
+	format(user_error, '~w~t ~w~35| ~w~n',
+	       ['Debug Topic', 'Activated', 'To']),
+	format(user_error, '~*t~45|~n', "-"),
+	(   debugging(Topic, Value, To),
+	    format(user_error, '~w~t ~w~35| ~w~n', [Topic, Value, To]),
 	    fail
 	;   true
 	).
@@ -168,18 +183,30 @@ valid_topic(X, _, _) :-
 %	is activated through debug/1.
 
 debug(Topic, Format, Args) :-
-	debugging(Topic, true), !,
-	print_debug(Topic, Format, Args).
+	debugging(Topic, true, To), !,
+	print_debug(Topic, To, Format, Args).
 debug(_, _, _).
 
 
 :- multifile
 	prolog:debug_print_hook/3.
 
-print_debug(Topic, Format, Args) :-
+print_debug(Topic, _To, Format, Args) :-
 	prolog:debug_print_hook(Topic, Format, Args), !.
-print_debug(_, Format, Args) :-
-	print_message(informational, debug(Format, Args)).
+print_debug(_, To, Format, Args) :-
+	phrase('$messages':translate_message(debug(Format, Args)), Lines),
+	debug_output(To, Stream),
+	print_message_lines(Stream, '% ', Lines).
+
+debug_output(user, user_error) :- !.
+debug_output(Stream, Stream) :-
+	is_stream(Stream), !.
+debug_output(File, Stream) :-
+	open(File, append, Stream,
+	     [ close_on_abort(false),
+	       alias(File),
+	       buffer(line)
+	     ]).
 
 
 		 /*******************************
