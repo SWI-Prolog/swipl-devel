@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,9 +36,11 @@
 	    debugging/1,		% ?Topic
 	    debugging/2,		% ?Topic, ?Bool
 	    list_debug_topics/0,
+	    debug_message_context/1,	% (+|-)What
 
 	    assertion/1			% :Goal
 	  ]).
+:- use_module(library(error)).
 
 :- meta_predicate(assertion(:)).
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
@@ -46,7 +48,10 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic
-	debugging/2.
+	debugging/2,
+	debug_context/1.
+
+debug_context(thread).
 
 /** <module> Print debug messages
 
@@ -131,6 +136,31 @@ list_debug_topics :-
 	    fail
 	;   true
 	).
+
+%%	debug_message_context(What) is det.
+%
+%	Specify additional context for debug messages.   What  is one of
+%	+Context or -Context and Context is   one of =thread=. =time= or
+%	time(Format),  where  Format  is    a  format-specification  for
+%	format_time/3 (default is =|%T|=). Initially,  debug/3 show only
+%	thread information.
+
+debug_message_context(+Topic) :- !,
+	valid_topic(Topic, Del, Add),
+	retractall(debug_context(Del)),
+	assert(debug_context(Add)).
+debug_message_context(-Topic) :- !,
+	valid_topic(Topic, Del, _),
+	retractall(debug_context(Del)).
+debug_message_context(Term) :-
+	type_error(debug_message_context, Term).
+
+valid_topic(thread, thread, thread) :- !.
+valid_topic(time, time(_), time('%T')) :- !.
+valid_topic(time(Format), time(_), time(Format)) :- !.
+valid_topic(X, _, _) :-
+	domain_error(debug_message_context, X).
+
 
 %%	debug(+Topic, +Format, +Args) is det.
 %
@@ -225,10 +255,27 @@ system:goal_expansion(assume(G), Goal) :-
 prolog:message(assumption_failed(G)) -->
 	[ 'Assertion failed: ~p'-[G] ].
 prolog:message(debug(Fmt, Args)) -->
-	{ thread_self(Me) },
-	(   { Me == main }
-	->  [ Fmt-Args ]
-	;   [ '[Thread ~w] '-[Me], Fmt-Args ]
-	).
+	show_thread_context,
+	show_time_context,
+	[ Fmt-Args ].
 prolog:message(debug_no_topic(Topic)) -->
 	[ '~q: no matching debug topic (yet)'-[Topic] ].
+
+show_thread_context -->
+	{ debug_context(thread),
+	  thread_self(Me) ,
+	  Me \== main
+	},
+	[ '[Thread ~w] '-[Me] ].
+show_thread_context -->
+	[].
+
+show_time_context -->
+	{ debug_context(time(Format)),
+	  get_time(Now),
+	  format_time(string(S), Format, Now)
+	},
+	[ '[~w] '-[S] ].
+show_time_context -->
+	[].
+
