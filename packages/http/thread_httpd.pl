@@ -85,12 +85,12 @@ for details.
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
 %
-%	| port(?Port)	     | - 	| Port to listen to |
+%	| port(?Port)	     | - 	| Port to listen to		      |
 %	| workers(N)	     | 2 	| Define the number of worker threads |
-%	| timeout(S)	     | infinite	| Drop connections after inactivity   |
+%	| timeout(S)	     | 60	| Max inactivity for reading request  |
 %	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
-%	| local(KBytes)	     | <CommandLine> |				    |
-%	| global(KBytes)     | <CommandLine> |				    |
+%	| local(KBytes)	     | <CommandLine> |				      |
+%	| global(KBytes)     | <CommandLine> |				      |
 %	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
 
 http_server(Goal, Options) :-
@@ -469,6 +469,8 @@ requeue_keep(protocol(_)).
 http_process(Goal, In, Out, Options) :-
 	debug(http(server), 'Running server goal ~p on ~p -> ~p',
 	      [Goal, In, Out]),
+	option(timeout(TMO), Options, 60),
+	set_stream(In, timeout(TMO)),
 	http_wrapper(Goal, In, Out, Connection,
 		     [ request(Request)
 		     | Options
