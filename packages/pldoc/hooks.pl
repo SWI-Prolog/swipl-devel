@@ -36,4 +36,5 @@
 	prolog:doc_category/3,		% Name, Order, Description
 	prolog:doc_file_index_header/4,	% +File, +Options, //
 	prolog:doc_object_title/2,	% +Object, -Title
-	prolog:doc_canonical_object/2.	% +ObjectIn, -CanonicalObj
+	prolog:doc_canonical_object/2,	% +ObjectIn, -CanonicalObj
+	prolog:doc_search_field//1.	% +Options

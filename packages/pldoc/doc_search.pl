@@ -68,10 +68,10 @@ search_form(Options) -->
 	  option(search_match(Match), Options, summary)
 	},
 	html(form(action(location_by_id(pldoc_search)),
-		  [ div([ input([ name(for),
-				  size(36)
-				| Extra
-				], []),
+		  [ div([ \search_field([ name(for),
+					  size(36)
+					| Extra
+					]),
 			  input([ type(submit),
 				  value('Search')
 				])
@@ -92,6 +92,17 @@ search_form(Options) -->
 			       ])
 			])
 		  ])).
+
+%%	search_field(+Options)// is det.
+%
+%	Hookable predicate to display the   search field. Hookability is
+%	provided  to  experiment  with    auto-completion  outside  this
+%	package.
+
+search_field(Options) -->
+	prolog:doc_search_field(Options), !.
+search_field(Options) -->
+	html(input(Options, [])).
 
 radio(Radio, Field, Label, In) -->
 	{   Field == In
