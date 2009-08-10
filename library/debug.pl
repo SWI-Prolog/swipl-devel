@@ -41,11 +41,12 @@
 	    assertion/1			% :Goal
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(lists)).
 
 :- meta_predicate(assertion(:)).
 /*:- use_module(library(prolog_stack)).*/ % We use the autoloader if needed
 
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic
 	debugging/3,			% Topic, Enabled, To
@@ -104,26 +105,38 @@ nodebug(Topic) :-
 	debug(Topic, false).
 
 debug(Spec, Val) :-
-	debug_target(Spec, Val, Topic, To),
-	(   (   retract(debugging(Topic, _, _))
-	    *-> assert(debugging(Topic, Val, To)),
+	debug_target(Spec, Topic, Out),
+	(   (   retract(debugging(Topic, Enabled0, To0))
+	    *-> update_debug(Enabled0, To0, Val, Out, Enabled, To),
+		assert(debugging(Topic, Enabled, To)),
 		fail
 	    ;   (   prolog_load_context(file, _)
 		->  true
 		;   print_message(warning, debug_no_topic(Topic))
 		),
-	        assert(debugging(Topic, Val, To))
+	        assert(debugging(Topic, Val, [Out]))
 	    )
 	->  true
 	;   true
 	).
 
-debug_target(Spec, _, Topic, To) :-
+debug_target(Spec, Topic, To) :-
 	nonvar(Spec),
 	Spec = (Topic > To), !.
-debug_target(Topic, true, Topic, user_error) :- !.
-debug_target(Topic, false, Topic, -).
+debug_target(Topic, Topic, -).
 
+update_debug(_, To0, true, -, true, To) :- !,
+	ensure_output(To0, To).
+update_debug(true, To0, true, Out, true, Output) :- !,
+	append(To0, [Out], Output).
+update_debug(false, _, true, Out, true, [Out]) :- !.
+update_debug(_, _, false, -, false, []) :- !.
+update_debug(true, [Out], false, Out, false, []) :- !.
+update_debug(true, To0, false, Out, true, Output) :- !,
+	delete(To0, Out, Output).
+
+ensure_output([], [user_error]) :- !.
+ensure_output(List, List).
 
 %%	debug_topic(+Topic) is det.
 %
@@ -134,7 +147,7 @@ debug_topic(Topic) :-
 	(   debugging(Registered, _, _),
 	    Registered =@= Topic
 	->  true
-	;   assert(debugging(Topic, false, -))
+	;   assert(debugging(Topic, false, []))
 	).
 
 %%	list_debug_topics is det.
@@ -193,10 +206,16 @@ debug(_, _, _).
 
 print_debug(Topic, _To, Format, Args) :-
 	prolog:debug_print_hook(Topic, Format, Args), !.
+print_debug(_, [], _, _) :- !.
 print_debug(_, To, Format, Args) :-
 	phrase('$messages':translate_message(debug(Format, Args)), Lines),
-	debug_output(To, Stream),
-	print_message_lines(Stream, '% ', Lines).
+	(   member(T, To),
+	    debug_output(T, Stream),
+	    print_message_lines(Stream, '% ', Lines),
+	    fail
+	;   true
+	).
+
 
 debug_output(user, user_error) :- !.
 debug_output(Stream, Stream) :-
