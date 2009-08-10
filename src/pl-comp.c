@@ -775,6 +775,9 @@ for predicates for which the body is  defined from another module as the
 head and the predicate is not a   meta-predicate. In principle, we could
 delay this until we decided there may be a meta-call, but this will harm
 automatic update if a predicate is later defined as meta-predicate.
+
+Not that this is also the case for predicates that have previous clauses
+that have an I_CONTEXT because we need to reset the context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
@@ -782,12 +785,17 @@ automatic update if a predicate is later defined as meta-predicate.
     size_t bi;
 
     if ( head )
-    { Output_0(&ci, I_ENTER);
+    { Definition def = proc->definition;
+
+      Output_0(&ci, I_ENTER);
 					/* ok; all live in the same module */
-      if ( ci.module != proc->definition->module &&
+      if ( false(def, P_MFCONTEXT) &&
+	   ci.module != def->module &&
 	   false(proc->definition, P_TRANSPARENT) )
-      { Output_1(&ci, I_CONTEXT, (code)ci.module);
-      }
+	set(def, P_MFCONTEXT);
+
+      if ( true(def, P_MFCONTEXT) )
+	Output_1(&ci, I_CONTEXT, (code)ci.module);
     }
 
     bi = PC(&ci);
