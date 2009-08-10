@@ -200,9 +200,12 @@ contains_illegal_dcgnt(NT) :-
 		 *	     ACTIVATE		*
 		 *******************************/
 
+:- multifile
+	system:goal_expansion/2.
+
 %	@tbd	Should we only apply if optimization is enabled (-O)?
 
-user:goal_expansion(GoalIn, GoalOut) :-
+system:goal_expansion(GoalIn, GoalOut) :-
 	\+ current_prolog_flag(xref, true),
 	expand_apply(GoalIn, GoalOut).
 
