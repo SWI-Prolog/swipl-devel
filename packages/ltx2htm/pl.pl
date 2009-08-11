@@ -146,7 +146,7 @@ cmd(manref({RawName}, {Section}),
     [#strong(Name), #embrace(Section)]) :-
 	clean_tt(RawName, Name).
 cmd(funcref({RawName}, {Args}),
-    #lref(RefName, [Name, #embrace(+Args)])) :-
+    #lref(func, RefName, [Name, #embrace(+Args)])) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]).
 cmd(definition({Tag}),

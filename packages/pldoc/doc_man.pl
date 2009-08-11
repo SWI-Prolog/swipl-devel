@@ -588,6 +588,9 @@ dom_element(Name, Attrs, Content, Path) -->
 %		$ File#flag:Name :
 %		Rewrite to =|section(Level, NT, FilePath)#flag:Name|=
 %
+%		$ File#Name()
+%		Rewrite to /man/CAPI=Name
+%
 %	@param Class	Class of the <A>.  Supported classes are
 %
 %		| sec  | Link to a section     |
@@ -606,6 +609,15 @@ rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	www_form_encode(Fragment, Enc),
 	http_location_by_id(pldoc_man, ManHandler),
 	format(string(Ref), '~w?predicate=~w', [ManHandler, Enc]).
+rewrite_ref(func, Ref0, _, Ref) :-		% C-API reference
+	sub_atom(Ref0, _, _, A, '#'), !,
+	sub_atom(Ref0, _, A, 0, Fragment),
+	name_to_object(Fragment, Obj),
+	man_index(Obj, _, _, _, _),
+	Obj = c(Function),
+	www_form_encode(Function, Enc),
+	http_location_by_id(pldoc_man, ManHandler),
+	format(string(Ref), '~w?CAPI=~w', [ManHandler, Enc]).
 rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),

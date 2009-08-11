@@ -508,16 +508,26 @@ clean_path(Path, Path).
 
 %%	pldoc_man(+Request)
 %
-%	Handler for /man?predicate=PI, providing  documentation from the
-%	manual on the predicate PI.
+%	Handler for /man, offerring one of the parameters:
+%
+%	    * predicate=PI
+%	    providing documentation from the manual on the predicate PI.
+%	    * 'CAPI'=F
+%	    providing documentation from the manual on the C-function F.
 
 pldoc_man(Request) :-
 	http_parameters(Request,
-			[ predicate(PI, [])
+			[ predicate(PI, [optional(true)]),
+			  'CAPI'(F,     [optional(true)])
 			]),
 	format(string(Title), 'Manual -- ~w', [PI]),
+	(   ground(PI)
+	->  Obj = PI
+	;   ground(F)
+	->  Obj = c(F)
+	),
 	reply_html_page(title(Title),
-			\man_page(PI, [])).
+			\man_page(Obj, [])).
 
 %%	pldoc_object(+Request)
 %

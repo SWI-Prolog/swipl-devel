@@ -17,6 +17,7 @@ sub printTeX
   s/^((\\index{[^}]+})+) *$/\1%/;
   s/(\\index{[^}]*)\\index{[^}]*}([^}]*})/\1\2/g;
   s/(\\class(get|send|both){)\\index{[^}]*}/\1/g;
+  s/(PL_[a-z_]*)\(([^\)]*)\)/\\funcref{\1}{\2}/g;
 
 # Prolog special arguments ...
 # TBD: pick these up automatically from pl.sty
