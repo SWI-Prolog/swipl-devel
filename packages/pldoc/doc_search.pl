@@ -309,6 +309,12 @@ collect_by_key(_, L, [], L).
 %	@tbd Deal with search syntax
 
 matching_object(Search, Type-(Section-Obj), Options) :-
+	atom_concat(Function, '()', Search),
+	Obj = c(Function),
+	option(search_in(In), Options, all),
+	prolog:doc_object_summary(Obj, Type, Section, _),
+	matching_category(In, Type).
+matching_object(Search, Type-(Section-Obj), Options) :-
 	catch(atom_to_term(Search, Obj, _), _, fail),
 	nonvar(Obj),
 	option(search_in(In), Options, all),

@@ -166,10 +166,10 @@ index_on_begin(dt, Attributes, Parser) :- !,
 		   ]),
 	sub_term(element(a, AA, _), DT),
         memberchk(name=Id, AA),
-	atom_to_pi(Id, PI),
+	name_to_object(Id, PI),
 	nb_setval(pldoc_man_index, dd(PI, File, Offset)).
 index_on_begin(dd, _, Parser) :- !,
-	nb_getval(pldoc_man_index, dd(Name/Arity, File, Offset)),
+	nb_getval(pldoc_man_index, dd(Object, File, Offset)),
 	nb_setval(pldoc_man_index, []),
 	sgml_parse(Parser,
 		   [ document(DD),
@@ -177,7 +177,7 @@ index_on_begin(dd, _, Parser) :- !,
 		   ]),
 	summary(DD, Summary),
 	nb_getval(pldoc_index_class, Class),
-        assert(man_index(Name/Arity, Summary, File, Class, Offset)).
+        assert(man_index(Object, Summary, File, Class, Offset)).
 index_on_begin(div, Attributes, Parser) :- !,
 	memberchk(class=title, Attributes),
 	get_sgml_parser(Parser, charpos(Offset)),
@@ -476,7 +476,7 @@ object_spec(Atom, Spec) :-
 	catch(atom_to_term(Atom, Spec, _), _, fail), !,
 	Atom \== Spec.
 object_spec(Atom, PI) :-
-	atom_to_pi(Atom, PI).
+	name_to_object(Atom, PI).
 
 
 		 /*******************************
@@ -601,7 +601,7 @@ dom_element(Name, Attrs, Content, Path) -->
 rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
-	atom_to_pi(Fragment, PI),
+	name_to_object(Fragment, PI),
 	man_index(PI, _, _, _, _),
 	www_form_encode(Fragment, Enc),
 	http_location_by_id(pldoc_man, ManHandler),
@@ -629,16 +629,22 @@ rewrite_ref(flag, Ref0, Path, Ref) :-
 	object_href(Obj, Ref1),
 	format(string(Ref), '~w#~w', [Ref1, Fragment]).
 
-%%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
+%%	name_to_object(+Atom, -PredicateIndicator) is semidet.
 %
 %	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
 
-atom_to_pi(Atom, Name/Arity) :-
+name_to_object(Atom, Name/Arity) :-
 	atom(Atom),
 	atomic_list_concat([Name, AA], /, Atom),
 	catch(atom_number(AA, Arity), _, fail),
 	integer(Arity),
 	Arity >= 0.
+name_to_object(Atom, c(Function)) :-
+	atom(Atom),
+	sub_atom(Atom, 0, _, _, 'PL_'),
+	sub_atom(Atom, B, _, _, '('), !,
+	sub_atom(Atom, 0, B, _, Function).
+
 
 %%	referenced_section(+Fragment, +File, +Path, -Section)
 
@@ -705,6 +711,13 @@ section_link(_, Obj, _Options) --> !,
 	->  html(Title)
 	;   html([Number, ' ', Title])
 	).
+
+%%	function_link(+Function, +Options) is det.
+%
+%	Create a link to a C-function
+
+function_link(Function, _) -->
+	html([Function, '()']).
 
 
 		 /*******************************
@@ -818,6 +831,9 @@ prolog:doc_object_page(Obj, Options) -->
 prolog:doc_object_link(Obj, Options) -->
 	{ Obj = section(_,_,_) }, !,
 	section_link(Obj, Options).
+prolog:doc_object_link(Obj, Options) -->
+	{ Obj = c(Function) }, !,
+	function_link(Function, Options).
 
 prolog:doc_category(manual,   30, 'SWI-Prolog Reference Manual').
 prolog:doc_category(packages, 40, 'Package documentation').
