@@ -318,7 +318,7 @@ doc_links(Directory, Options) -->
 	html([ \html_requires(pldoc),
 	       div(class(navhdr),
 		   [ div(class(jump),
-			  div([ \source_dir_menu(Dir),
+			  div([ \places_menu(Dir),
 				\version
 			      ])),
 		     div(class(search), \search_form(Options)),
@@ -340,11 +340,13 @@ version -->
 	       [' SWI-Prolog ', Major, '.', Minor, '.', Patch])).
 
 
-%%	source_dir_menu(Current)// is det
+%%	places_menu(Current)// is det
 %
 %	Create a =select= menu with entries for all loaded directories
 
-source_dir_menu(Dir) -->
+places_menu(Dir) -->
+	prolog:doc_places_menu(Dir), !.
+places_menu(Dir) -->
 	{ findall(D, source_directory(D), List),
 	  sort(List, Dirs)
 	},
