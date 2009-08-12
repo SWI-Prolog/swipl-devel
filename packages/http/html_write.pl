@@ -1067,8 +1067,9 @@ emacs_prolog_colours:goal_colours(html_post(_Id, HTML, _, _),
 					% TBD: Check with do_expand!
 html_colours(Var, classify) :-
 	var(Var), !.
-html_colours(\List, classify) :-
-	is_list(List), !.
+html_colours(\List, built_in-Colours) :-
+	is_list(List), !,
+	list_colours(List, Colours).
 html_colours(\_, built_in-[dcg]) :- !.
 html_colours(_:Term, built_in-[classify,Colours]) :- !,
 	html_colours(Term, Colours).
@@ -1209,7 +1210,7 @@ called_by(Var, _) -->
 	[].
 called_by(\G, M) --> !,
 	(   { is_list(G) }
-	->  []
+	->  called_by(G, M)
 	;   {atom(M)}
 	->  [M:G+2]
 	;   [G+2]
