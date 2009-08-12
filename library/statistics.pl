@@ -271,7 +271,7 @@ predicate_name(H, Name) :-
 	prolog:message/3.
 
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
-	[ '~D inferences, ~2f CPU in ~2f seconds (~w% CPU, ~w Lips)'-
+	[ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
 	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
 	{   Wall > 0
 	->  Perc is round(100*UsedTime/Wall)
