@@ -83,15 +83,38 @@ ISO-standard compliant predicates.
 
 Please also note the existence of   quintus.pl and edinburgh.pl for more
 compatibility predicates.
+
+@see	gxref/0 can be used to find files that import from
+	library(backcomp) and thus reply on deprecated features.
 */
+
+%%	'$arch'(-Architecture, -Version) is det.
+%
+%	@deprecated use current_prolog_flag(arch, Architecture)
 
 '$arch'(Arch, unknown) :-
 	current_prolog_flag(arch, Arch).
+
+%%	'$version'(Version:integer) is det.
+%
+%	@deprecated use current_prolog_flag(version, Version)
+
 '$version'(Version) :-
-	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
-	Version is 10000*Major+100*Minor+Patch.
+	current_prolog_flag(version, Version).
+
+%%	'$home'(-SWIPrologDir) is det.
+%
+%	@deprecated use current_prolog_flag(home, SWIPrologDir)
+%	@see file_search_path/2, absolute_file_name/3,  The Prolog home
+%	     directory is available through the alias =swi=.
+
 '$home'(Home) :-
 	current_prolog_flag(home, Home).
+
+%%	'$argv'(-Argv:list) is det.
+%
+%	@deprecated use current_prolog_flag(argv, Argv)
+
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
 
@@ -259,7 +282,7 @@ sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
 
-%%	strip_module(+Term, -Module, -Plain)
+%%	'$strip_module'(+Term, -Module, -Plain)
 %
 %	This used to be an internal predicate.  It was added to the XPCE
 %	compatibility library without $ and  since   then  used  at many
