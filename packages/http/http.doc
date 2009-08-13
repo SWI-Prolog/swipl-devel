@@ -1574,8 +1574,11 @@ Invoke the non-terminal <Module>:<Term>. This is similar to
 packages.
 
     \item [\&(Entity)]
-Emit {\tt\&<Entity>;}.  As Prolog understands Unicode and automatically
-inserts appropriate entity declarations, this is normally not needed.
+Emit {\tt\&<Entity>;} or {\tt\&#<Entity>;} if \arg{Entity} is an
+integer. SWI-Prolog atoms and strings are represented as Unicode.
+Explicit use of this construct is rarely needed because code-points that
+are not supported by the output encoding are automatically converted
+into character-entities.
 
     \item [\term{Tag}{Content}]
 Emit HTML element \arg{Tag} using \arg{Content} and no attributes.

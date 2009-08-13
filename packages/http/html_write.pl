@@ -335,7 +335,9 @@ do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	],
 	html_end(script).
 do_expand(&(Entity), _) --> !,
-	{ format(string(String), '&~w;', [Entity])
+	{   integer(Entity)
+	->  format(string(String), '&#~d;', [Entity])
+	;   format(string(String), '&~w;', [Entity])
 	},
 	[ String ].
 do_expand(Token, _) -->
