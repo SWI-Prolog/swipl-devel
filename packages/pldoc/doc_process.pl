@@ -320,7 +320,9 @@ process_comment(Pos, Comment, File) :-
 	process_structured_comment(FilePos, Comment, Prefixes).
 process_comment(_, _, _).
 
-%%	process_structured_comment(+FilePos, +Comment:string) is det.
+%%	process_structured_comment(+FilePos,
+%%				   +Comment:string,
+%%				   +Prefixed:list) is det.
 
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
@@ -336,15 +338,29 @@ process_structured_comment(FilePos, Comment, Prefixes) :-
 	;   prolog_load_context(module, Module),
 	    process_modes(Lines, Module, FilePos, Modes, _, RestLines)
 	->  store_modes(Modes, FilePos),
-	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
+	    modes_to_predicate_indicators(Modes, AllPIs),
+	    decl_module(AllPIs, M, [PI0|PIs]),
 	    summary_from_lines(RestLines, Codes),
 	    string_to_list(Summary, Codes),
-	    compile_clause('$pldoc'(PI0, FilePos, Summary, Comment), FilePos),
+	    compile_clause(M:'$pldoc'(PI0, FilePos, Summary, Comment),
+			   FilePos),
 	    forall(member(PI, PIs),
-		   compile_clause('$pldoc_link'(PI, PI0), FilePos))
+		   compile_clause(M:'$pldoc_link'(PI, PI0), FilePos))
 	), !.
 process_structured_comment(File:Line, Comment, _) :-
 	print_message(warning,
 		      format('~w:~d: Failed to process comment:~n~s~n',
 			     [File, Line, Comment])),
 	fail.
+
+decl_module([], M, []) :-
+	(   var(M)
+	->  '$set_source_module'(M, M)
+	;   true
+	).
+decl_module([H0|T0], M, [H|T]) :-
+	(   H0 = M1:H
+	->  M = M1
+	;   H = H0
+	),
+	decl_module(T0, M, T).

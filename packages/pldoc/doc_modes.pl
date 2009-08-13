@@ -41,6 +41,7 @@
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
 :- use_module(library(operators)).
+:- use_module(library(error)).
 
 /** <module> Analyse PlDoc mode declarations
 
@@ -264,6 +265,12 @@ dcg_expand(//(Head0), Head) :- !,
 dcg_expand(Head0, Head) :-
 	remove_argnames(Head0, Head).
 
+remove_argnames(Var, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+remove_argnames(M:Head0, M:Head) :- !,
+	must_be(atom, M),
+	remove_argnames(Head0, Head).
 remove_argnames(Head0, Head) :-
 	functor(Head0, Name, Arity),
 	functor(Head, Name, Arity),
@@ -408,12 +415,15 @@ mode_to_pi(Head is _Det, PI) :- !,
 mode_to_pi(Head, PI) :-
 	head_to_pi(Head, PI).
 
+head_to_pi(M:Head, M:PI) :-
+	atom(M), !,
+	head_to_pi(Head, PI).
 head_to_pi(//(Head), Name//Arity) :- !,
 	functor(Head, Name, Arity).
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
 
-%%	compile_clause(+Term, +FilePos) is det.
+%%	compile_clause(:Term, +FilePos) is det.
 %
 %	Add a clause to the  compiled   program.  Unlike  assert/1, this
 %	associates the clause with the   given source-location, makes it
@@ -427,13 +437,17 @@ head_to_pi(Head, Name/Arity) :-
 
 compile_clause(Term, FilePos) :-
 	'$set_source_module'(SM, SM),
-	clause_head(Term, Head),
+	strip_module(SM:Term, M, Plain),
+	clause_head(Plain, Head),
 	functor(Head, Name, Arity),
-	(   SM == user
-	->  multifile(SM:(Name/Arity))
-	;   discontiguous(SM:(Name/Arity))
+	(   M == user
+	->  multifile(M:(Name/Arity))
+	;   discontiguous(M:(Name/Arity))
 	),
-	'$record_clause'(Term, FilePos, _Ref).
+	(   M == SM
+	->  '$record_clause'(Term, FilePos, _)
+	;   '$record_clause'(M:Term, FilePos, _)
+	).
 
 clause_head((Head :- _Body), Head) :- !.
 clause_head(Head, Head).

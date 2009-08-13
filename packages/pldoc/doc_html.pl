@@ -857,9 +857,16 @@ canonise_predref(Head, PI, Options0, Options) :-
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
 
+pred_head(Var) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
 pred_head(//(Head)) --> !,
 	pred_head(Head),
 	html(//).
+pred_head(M:Head) -->
+	html([span(class=module, M), :]),
+	pred_head(Head).
 pred_head(Head) -->
 	{ atom(Head) }, !,
 	html(b(class=pred, Head)).
