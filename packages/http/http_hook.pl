@@ -68,3 +68,17 @@ Get the declarations of the HTTP package using
 
 :- multifile
 	http:authenticate/3.
+
+
+		 /*******************************
+		 *	 HTTP-PARAMETERS	*
+		 *******************************/
+
+:- multifile
+	http:convert_parameter/3.
+
+%%	http:convert_parameter(+Type, +ValueIn, -ValueOut) is semidet.
+%
+%	Hook to execute a step in the HTTP parameter conversion process.
+%
+%	@see http_parameters:check_type3/3.

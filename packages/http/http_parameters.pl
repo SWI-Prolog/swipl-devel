@@ -36,6 +36,7 @@
 	  ]).
 :- use_module(http_client).
 :- use_module(http_mime_plugin).
+:- use_module(http_hook).
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
@@ -66,7 +67,10 @@ http_parameters(Request, Params, Options) :-
 	meta_options(is_meta, Options, QOptions),
 	option(attribute_declarations(DeclGoal), QOptions, -),
 	http_parms(Request, Params, DeclGoal, Form),
-	ignore(memberchk(form_data(Form), QOptions)).
+	(   memberchk(form_data(RForm), QOptions)
+	->  RForm = Form
+	;   true
+	).
 
 is_meta(attribute_declarations).
 
@@ -133,9 +137,10 @@ fill_param_list([_|Form], Name, VT, Options) :-
 
 %%	check_type(+Options, +FieldName, +ValueIn, -ValueOut) is det.
 %
-%	Validate an HTTP form value.
+%	Conversion of an HTTP form value. First tries the multifile hook
+%	http:convert_parameter/3 and next the built-in checks.
 %
-%	@param Option		list as provided with the parameter
+%	@param Option		List as provided with the parameter
 %	@param FieldName	Name of the HTTP field (for better message)
 %	@param ValueIn		Atom value as received from HTTP layer
 %	@param ValueOut		Possibly converted final value
@@ -143,7 +148,9 @@ fill_param_list([_|Form], Name, VT, Options) :-
 
 check_type([], _, Value, Value).
 check_type([H|T], Field, Value0, Value) :-
-	(   check_type3(H, Value0, Value1)
+	(   http:convert_parameter(H, Value0, Value1)
+	->  check_type(T, Field, Value1, Value)
+	;   check_type3(H, Value0, Value1)
 	->  check_type(T, Field, Value1, Value)
 	;   check_type2(H, Value0)
 	->  check_type(T, Field, Value0, Value)
@@ -155,16 +162,14 @@ check_type([H|T], Field, Value0, Value) :-
 %%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
 %
 %	HTTP parameter type-check for types that need converting.
-%
-%	@error	syntax_error
 
 check_type3(number, Atom, Number) :-
-	atom_number(Atom, Number).
+	catch(atom_number(Atom, Number), _, fail).
 check_type3(integer, Atom, Integer) :-
-	atom_number(Atom, Integer),
+	catch(atom_number(Atom, Integer), _, fail),
 	integer(Integer).
 check_type3(float, Atom, Float) :-
-	atom_number(Atom, Number),
+	catch(atom_number(Atom, Number), _, fail),
 	Float is float(Number).
 check_type3(between(Low, High), Atom, Value) :-
 	atom_number(Atom, Number),
@@ -174,10 +179,7 @@ check_type3(between(Low, High), Atom, Value) :-
 	),
 	must_be(between(Low, High), Value).
 check_type3(boolean, Atom, Bool) :-
-	(   thruth(Atom, Bool)
-	->  true
-	;   must_be(boolean, Atom)
-	).
+	thruth(Atom, Bool).
 
 %%	check_type2(+Type, +ValueIn) is semidet.
 %
