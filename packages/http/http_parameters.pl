@@ -41,11 +41,11 @@
 :- use_module(library(lists)).
 :- use_module(library(error)).
 
-:- module_transparent
-	http_parameters/3.
+:- meta_predicate
+	http_parameters(+, ?, :).
 
 %%	http_parameters(+Request, ?Parms) is det.
-%%	http_parameters(+Request, ?Parms, +Options) is det.
+%%	http_parameters(+Request, ?Parms, :Options) is det.
 %
 %	Get HTTP GET  or  POST   form-data,  applying  type  validation,
 %	default values, etc.  Provided options are:
@@ -63,14 +63,12 @@ http_parameters(Request, Params) :-
 	http_parameters(Request, Params, []).
 
 http_parameters(Request, Params, Options) :-
-	option(attribute_declarations(G), Options, -),
-	(   G == (-)
-	->  DeclGoal = G
-	;   strip_module(G, M, G2),
-	    DeclGoal = M:G2
-	),
+	meta_options(is_meta, Options, QOptions),
+	option(attribute_declarations(DeclGoal), QOptions, -),
 	http_parms(Request, Params, DeclGoal, Form),
-	ignore(memberchk(form_data(Form), Options)).
+	ignore(memberchk(form_data(Form), QOptions)).
+
+is_meta(attribute_declarations).
 
 
 http_parms(Request, Params, DeclGoal, Search) :-
