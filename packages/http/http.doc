@@ -783,6 +783,11 @@ Convert value to a number.  Throws a type-error otherwise.
     \termitem{integer}{}
 Convert value to an integer.  Throws a type-error otherwise.
 
+    \termitem{nonneg}{}
+Convert value to a non-negative integer. Throws a type-error
+of the value cannot be converted to an integer and a domain-error
+otherwise.
+
     \termitem{float}{}
 Convert value to a float. Integers are transformed into float.  Throws a
 type-error otherwise.

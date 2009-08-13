@@ -168,6 +168,10 @@ check_type3(number, Atom, Number) :-
 check_type3(integer, Atom, Integer) :-
 	catch(atom_number(Atom, Integer), _, fail),
 	integer(Integer).
+check_type3(nonneg, Atom, Integer) :-
+	catch(atom_number(Atom, Integer), _, fail),
+	integer(Integer),
+	Integer >= 0.
 check_type3(float, Atom, Float) :-
 	catch(atom_number(Atom, Number), _, fail),
 	Float is float(Number).
