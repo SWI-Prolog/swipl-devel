@@ -585,6 +585,10 @@ wiki_face(\predref(Name/Arity), _) -->
 	[ w(Name), '/' ], arity(Arity),
 	{ functor_name(Name)
 	}, !.
+wiki_face(\predref(Module:(Name/Arity)), _) -->
+	[ w(Module), ':', w(Name), '/' ], arity(Arity),
+	{ functor_name(Name)
+	}, !.
 wiki_face(\predref(Name/Arity), _) -->
 	prolog_symbol_char(S0),
 	symbol_string(SRest), [ '/' ], arity(Arity), !,
@@ -592,6 +596,10 @@ wiki_face(\predref(Name/Arity), _) -->
 	}.
 wiki_face(\predref(Name//Arity), _) -->
 	[ w(Name), '/', '/' ], arity(Arity),
+	{ functor_name(Name)
+	}, !.
+wiki_face(\predref(Module:(Name//Arity)), _) -->
+	[ w(Module), ':', w(Name), '/', '/' ], arity(Arity),
 	{ functor_name(Name)
 	}, !.
 wiki_face(\include(Name, Type, Options), _) -->

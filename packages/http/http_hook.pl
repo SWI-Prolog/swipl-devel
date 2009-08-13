@@ -81,4 +81,4 @@ Get the declarations of the HTTP package using
 %
 %	Hook to execute a step in the HTTP parameter conversion process.
 %
-%	@see http_parameters:check_type3/3.
+%	@see http_parameters:check_type/4.
