@@ -746,11 +746,14 @@ If the named parameter is missing, \arg{Value} is unified to
 If the named parameter is missing, \arg{Value} is left unbound and
 no error is generated.
 
-    \termitem{zero_or_more}{}
+    \termitem{list}{Type}
 The same parameter may not appear or appear multiple times. If this
 option is present, \const{default} and \const{optional} are ignored and
 the value is returned as a list. Type checking options are processed on
 each value.
+
+    \termitem{zero_or_more}{}
+Deprecated.  Use \term{List}{Type}.
 
     \termitem{oneof}{List}
 Succeeds if the value is member of the given list.
@@ -766,6 +769,13 @@ Succeeds if value is an atom of less than $N$ characters.
 
     \definition{length $=< N$}
 Succeeds if value is an atom of length than or equal to $N$ characters.
+
+    \termitem{atom}{}
+No-op.  Allowed for consistency.
+
+    \termitem{boolean}{}
+Translate =true=, =yes=, =on= and '1' into =true=; =false=, =no=,
+=off= and '0' into =false= and raises an error otherwise.
 
     \termitem{number}{}
 Convert value to a number.  Throws a type-error otherwise.

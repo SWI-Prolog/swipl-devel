@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2006, University of Amsterdam
+    Copyright (C): 2004-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -108,6 +108,9 @@ fill_parameter(H, FormData, DeclGoal) :-
 fill_param(Name, Values, Options, FormData) :-
 	memberchk(zero_or_more, Options), !,
 	fill_param_list(FormData, Name, Values, Options).
+fill_param(Name, Values, Options, FormData) :-
+	memberchk(list(Type), Options), !,
+	fill_param_list(FormData, Name, Values, [Type|Options]).
 fill_param(Name, Value, Options, FormData) :-
 	(   memberchk(Name=Value0, FormData),
 	    Value0 \== ''		% Not sure
@@ -170,6 +173,11 @@ check_type3(between(Low, High), Atom, Value) :-
 	;   Value = Number
 	),
 	must_be(between(Low, High), Value).
+check_type3(boolean, Atom, Bool) :-
+	(   thruth(Atom, Bool)
+	->  true
+	;   must_be(boolean, Atom)
+	).
 
 %%	check_type2(+Type, +ValueIn) is semidet.
 %
@@ -190,6 +198,21 @@ check_type2(length =< N, Value) :- !,
 	atom_length(Value, Len),
 	Len =< N.
 check_type2(_, _).
+
+%%	thruth(+In, -Boolean) is semidet.
+%
+%	Translate some commonly used textual   representations  for true
+%	and false into their canonical representation.
+
+thruth(true,  true).
+thruth(yes,   true).
+thruth(on,    true).
+thruth('1',   true).
+
+thruth(false, false).
+thruth(no,    false).
+thruth(off,   false).
+thruth('0',   false).
 
 
 		 /*******************************
