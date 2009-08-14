@@ -30,17 +30,17 @@
 */
 
 :- module(json_convert,
-	  [ prolog_to_json/2,		% +Term, -JSON object
-	    json_to_prolog/2,		% :JSON, -Term
+	  [ prolog_to_json/2,		% :Term, -JSON object
+	    json_to_prolog/2,		% +JSON, :Term
 	    (json_object)/1,		% +Definition
 	    op(1150, fx, (json_object))
 	  ]).
 :- use_module(library(error)).
 :- use_module(json).
 
-:- module_transparent
-	prolog_to_json/2,
-	json_to_prolog/2.
+:- meta_predicate
+	prolog_to_json(:, -),
+	json_to_prolog(+, :).
 
 /** <module> Convert between JSON terms and Prolog application terms
 
@@ -367,9 +367,8 @@ types([Name|T0], [Name|TN], [any|TT]) :-
 %	@error	type_error(json_term, X)
 %	@error	instantiation_error
 
-prolog_to_json(Term, JSON) :-
-	strip_module(Term, M, T),
-	prolog_to_json(T, JSON, M).
+prolog_to_json(Module:Term, JSON) :-
+	prolog_to_json(Term, JSON, Module).
 
 prolog_to_json(Var, _, _) :-
 	var(Var), !,
@@ -430,9 +429,8 @@ clear_cache :-
 %	and @false are  translated  to  =true=   or  =false=,  the  most
 %	commonly used Prolog representation for truth-values.
 
-json_to_prolog(JSON, Term) :-
-	strip_module(Term, M, T),
-	json_to_prolog(JSON, T, M).
+json_to_prolog(JSON, Module:Term) :-
+	json_to_prolog(JSON, Term, Module).
 
 json_to_prolog(json(Pairs), Term, Module) :- !,
 	(   pairs_to_term(Pairs, Term, Module)
