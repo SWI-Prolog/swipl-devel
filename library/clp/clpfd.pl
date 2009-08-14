@@ -4700,8 +4700,9 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 gcc_global(KNs) :-
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
-            maximum_flow(S, T),
-            maplist(saturated_arc, Es),
+            level_var(0, S),
+            feasible_flow(Es, T), % for ground pairs, feasible = maximum
+            del_attr(S, level),
             phrase(gcc_scc(Vals), [0-[]], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
@@ -4731,17 +4732,66 @@ gcc_edge_goal(arc_to(_,_,V,F), Val) -->
         ;   []
         ).
 
-saturated_arc(arc_to(_,U,_,F)) :- get_attr(F, flow, U).
+feasible_flow([], _).
+feasible_flow([A|As], T) :-
+        make_arc_feasible(A, T),
+        feasible_flow(As, T).
 
-maximum_flow(S, T) :-
-        (   phrase(gcc_augmenting_path(S, T), Path) ->
-            Path = [augment(_,Min0,_)|_],
-            path_minimum(Path, Min0, Min),
-            maplist(gcc_augment(Min), Path),
-            gcc_clear_visited(S),
-            maximum_flow(S, T)
-        ;   true
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Like in all_distinct/1, first use breadth-first search, then
+   construct augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_arc_feasible(A, T) :-
+        A = arc_to(L,_,V,F),
+        get_attr(F, flow, Flow),
+        (   Flow >= L -> true
+        ;   level_var(1, V),
+            gcc_augmenting_path_length(2, [[V]], Levels, T, Length),
+            once(phrase(gcc_augmenting_path(Length, T), Path)),
+            Diff is L - Flow,
+            path_minimum(Path, Diff, Min),
+            maplist(gcc_augment(Min), [augment(F,Diff,+)|Path]),
+            maplist(maplist(clear_level), Levels),
+            make_arc_feasible(A, T)
         ).
+
+gcc_augmenting_path_length(Level, Levels0, Levels, T, Length) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
+        phrase(gcc_reachables(Vs), Tos),
+        Tos = [_|_],
+        (   member(To, Tos), To == T ->
+            Length = Level, Levels = Levels1
+        ;   maplist(level_var(Level), Tos),
+            Level1 is Level + 1,
+            gcc_augmenting_path_length(Level1, Levels1, Levels, T, Length)
+        ).
+
+gcc_reachables([])     --> [].
+gcc_reachables([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        gcc_reachables_(Es),
+        gcc_reachables(Vs).
+
+gcc_reachables_([])     --> [].
+gcc_reachables_([E|Es]) -->
+        gcc_reachable(E),
+        gcc_reachables_(Es).
+
+gcc_reachable(arc_from(_,_,V,F)) -->
+        (   { \+ get_attr(V, level, _),
+              get_attr(F, flow, Flow),
+              Flow > 0 } -> [V]
+        ;   []
+        ).
+gcc_reachable(arc_to(_L,U,V,F)) -->
+        (   { \+ get_attr(V, level, _),
+              get_attr(F, flow, Flow),
+              Flow < U } -> [V]
+        ;   []
+        ).
+
 
 path_minimum([], Min, Min).
 path_minimum([augment(_,A,_)|As], Min0, Min) :-
@@ -4756,28 +4806,33 @@ gcc_augment(Min, augment(F,_,Sign)) :-
 gcc_flow_(+, F0, A, F) :- F is F0 + A.
 gcc_flow_(-, F0, A, F) :- F is F0 - A.
 
-gcc_augmenting_path(V, T) -->
-        (   { V == T } -> []
-        ;   { get_attr(V, edges, Es),
-              put_attr(V, visited, true) },
-            gcc_augmenting_edge(Es, V1),
-            gcc_augmenting_path(V1, T)
+gcc_augmenting_path(Level0, V) -->
+        (   { Level0 =:= 1 } -> []
+        ;   { Level1 is Level0 - 1,
+              get_attr(V, edges, Es) },
+            gcc_augmenting_edge(Es, Level1, V1),
+            gcc_augmenting_path(Level1, V1)
         ).
 
-gcc_augmenting_edge([E|_], V)  --> gcc_augmenting_edge_(E, V).
-gcc_augmenting_edge([_|Es], V) --> gcc_augmenting_edge(Es, V).
+gcc_augmenting_edge([E|_], L, V)  --> gcc_augmenting_edge_(E, L, V).
+gcc_augmenting_edge([_|Es], L, V) --> gcc_augmenting_edge(Es, L, V).
 
-gcc_augmenting_edge_(arc_from(_L,_U,V,F), V) -->
-        { \+ get_attr(V, visited, _),
-          get_attr(F, flow, Flow),
-          Flow > 0 },
-        [augment(F,Flow,-)].
-gcc_augmenting_edge_(arc_to(_L,U,V,F), V) -->
-        { \+ get_attr(V, visited, _),
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Recall that we are constructing the part in reverse, so the
+   criteria for the residual graph are inverted as well.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_augmenting_edge_(arc_from(_L,U,V,F), Level, V) -->
+        { get_attr(V, level, Level),
           get_attr(F, flow, Flow),
           Flow < U,
           Diff is U - Flow },
         [augment(F,Diff,+)].
+gcc_augmenting_edge_(arc_to(_L,_U,V,F), Level, V) -->
+        { get_attr(V, level, Level),
+          get_attr(F, flow, Flow),
+          Flow > 0 },
+        [augment(F,Flow,-)].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Build value network for global cardinality constraint.
@@ -4833,17 +4888,6 @@ gcc_clear_edge(arc_to(_,_,V,F)) :-
         del_attr(F, flow),
         gcc_clear(V).
 gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
-
-gcc_clear_visited(V) :-
-        (   get_attr(V, visited, _) ->
-            del_attr(V, visited),
-            get_attr(V, edges, Es),
-            maplist(gcc_clear_visited_, Es)
-        ;   true
-        ).
-
-gcc_clear_visited_(arc_from(_,_,V,_)) :- gcc_clear_visited(V).
-gcc_clear_visited_(arc_to(_,_,V,_))   :- gcc_clear_visited(V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Tarjan's strongly connected components algorithm, tailored for GCC,
