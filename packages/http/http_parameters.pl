@@ -148,21 +148,29 @@ fill_param_list([_|Form], Name, VT, Options) :-
 
 check_type([], _, Value, Value).
 check_type([H|T], Field, Value0, Value) :-
-	(   http:convert_parameter(H, Value0, Value1)
+	(   check_type_no_error(H, Value0, Value1)
 	->  check_type(T, Field, Value1, Value)
-	;   check_type3(H, Value0, Value1)
-	->  check_type(T, Field, Value1, Value)
-	;   check_type2(H, Value0)
-	->  check_type(T, Field, Value0, Value)
 	;   format(string(Msg), 'HTTP parameter ~w', [Field]),
 	    throw(error(type_error(H, Value0),
 			context(_, Msg)))
 	).
 
+check_type_no_error(Type, In, Out) :-
+	http:convert_parameter(Type, In, Out), !.
+check_type_no_error(Type, In, Out) :-
+	check_type3(Type, In, Out), !.
+check_type_no_error(Type, In, In) :-
+	check_type2(Type, In).
+
 %%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
 %
 %	HTTP parameter type-check for types that need converting.
 
+check_type3((T1;T2), In, Out) :-
+	(   check_type_no_error(T1, In, Out)
+	->  true
+	;   check_type_no_error(T2, In, Out)
+	).
 check_type3(number, Atom, Number) :-
 	catch(atom_number(Atom, Number), _, fail).
 check_type3(integer, Atom, Integer) :-

@@ -755,6 +755,11 @@ each value.
     \termitem{zero_or_more}{}
 Deprecated.  Use \term{List}{Type}.
 
+    \termitem{;}{Type1, Type2}
+Succeed if either \arg{Type1} or \arg{Type2} applies.  It allows
+for checks such as \exam{(nonneg;oneof([infinite]))} to specify
+an integer or a symbolic value.
+
     \termitem{oneof}{List}
 Succeeds if the value is member of the given list.
 
