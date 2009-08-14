@@ -4910,9 +4910,9 @@ gcc_check([]).
 gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
-            vs_key_min_max_others(Vs, Key, 0, Min, 0, Max, Os),
-            between(Min, Max, Num),
-            (   Min =:= Max ->
+            vs_key_min_others(Vs, Key, 0, Min, Os),
+            Min =< Num,
+            (   Min =:= Num ->
                 gcc_done(Num0),
                 all_neq(Os, Key)
             ;   Diff is Num - Min,
@@ -4929,20 +4929,18 @@ gcc_check([Key-Num0|KNs]) :-
         ),
         gcc_check(KNs).
 
-vs_key_min_max_others([], _, Min, Min, Max, Max, []).
-vs_key_min_max_others([V|Vs], Key, Min0, Min, Max0, Max, Others) :-
+vs_key_min_others([], _, Min, Min, []).
+vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
         (   fd_get(V, VD, _) ->
             (   domain_contains(VD, Key) ->
-                Max1 is Max0 + 1,
                 Others = [V|Rest],
-                vs_key_min_max_others(Vs, Key, Min0, Min, Max1, Max, Rest)
-            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+                vs_key_min_others(Vs, Key, Min0, Min, Rest)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
             )
         ;   (   V =:= Key ->
                 Min1 is Min0 + 1,
-                Max1 is Max0 + 1,
-                vs_key_min_max_others(Vs, Key, Min1, Min, Max1, Max, Others)
-            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+                vs_key_min_others(Vs, Key, Min1, Min, Others)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
             )
         ).
 
