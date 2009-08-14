@@ -735,7 +735,10 @@ a list of option terms describing the type, default, etc. If no options
 are specified the parameter must be present and its value is returned in
 \arg{Value} as an atom. If a parameter is missing the exception
 \term{error}{\term{existence_error}{form_data, Name}, _} is thrown.
-Defined options are:
+Options fall into three categories: those that handle presence of
+the parameter, those that guide conversion and restrict types and
+those that support automatic generation of documention.  First,
+the presence-options:
 
 \begin{description}
     \termitem{default}{Default}
@@ -754,7 +757,13 @@ each value.
 
     \termitem{zero_or_more}{}
 Deprecated.  Use \term{List}{Type}.
+\end{description}
 
+The type and conversion options are given below. The type-language can
+be extended by providing clauses for the multifile hook
+http:convert_parameter/3.
+
+\begin{description}
     \termitem{;}{Type1, Type2}
 Succeed if either \arg{Type1} or \arg{Type2} applies.  It allows
 for checks such as \exam{(nonneg;oneof([infinite]))} to specify
@@ -778,12 +787,18 @@ Succeeds if value is an atom of length than or equal to $N$ characters.
     \termitem{atom}{}
 No-op.  Allowed for consistency.
 
+    \termitem{between}{+Low, +High}
+Convert value to a number and if either \arg{Low} or \arg{High} is a
+float, force value to be a float.  Then check that the value is in the
+given range, which includes the boundaries.
+
     \termitem{boolean}{}
 Translate =true=, =yes=, =on= and '1' into =true=; =false=, =no=,
 =off= and '0' into =false= and raises an error otherwise.
 
-    \termitem{number}{}
-Convert value to a number.  Throws a type-error otherwise.
+    \termitem{float}{}
+Convert value to a float. Integers are transformed into float.  Throws a
+type-error otherwise.
 
     \termitem{integer}{}
 Convert value to an integer.  Throws a type-error otherwise.
@@ -793,14 +808,22 @@ Convert value to a non-negative integer. Throws a type-error
 of the value cannot be converted to an integer and a domain-error
 otherwise.
 
-    \termitem{float}{}
-Convert value to a float. Integers are transformed into float.  Throws a
-type-error otherwise.
+    \termitem{number}{}
+Convert value to a number.  Throws a type-error otherwise.
+\end{description}
 
-    \termitem{between}{+Low, +High}
-Convert value to a number and if either \arg{Low} or \arg{High} is a
-float, force value to be a float.  Then check that the value is in the
-given range, which includes the boundaries.
+The last set of options is to support automatic generation of HTTP
+API documentation from the sources.\footnote{This facility is under
+development in ClioPatria; see \file{http_help.pl}}.
+
+\begin{description}
+    \termitem{description}{+Atom}
+Description of the parameter in plain text.
+
+    \termitem{group}{+Parameters, +Options}
+Define a logical group of parameters.  \arg{Parameters} are processed
+as normal. \arg{Options} may include a description of the group. Groups
+can be nested.
 \end{description}
 
 Below is an example
@@ -808,9 +831,9 @@ Below is an example
 \begin{code}
 reply(Request) :-
 	http_parameters(Request,
-			[ title(Title, [optional(true)]),
-			  name(Name, [ length >= 2 ]),
-			  age(Age, [integer])
+			[ title(Title, [ optional(true) ]),
+			  name(Name,   [ length >= 2 ]),
+			  age(Age,     [ between(0, 150) ])
 			]),
 	...
 \end{code}
@@ -1584,7 +1607,7 @@ Invoke the non-terminal <Module>:<Term>. This is similar to
 packages.
 
     \item [\&(Entity)]
-Emit {\tt\&<Entity>;} or {\tt\&#<Entity>;} if \arg{Entity} is an
+Emit {\tt\&<Entity>;} or {\tt\&\#<Entity>;} if \arg{Entity} is an
 integer. SWI-Prolog atoms and strings are represented as Unicode.
 Explicit use of this construct is rarely needed because code-points that
 are not supported by the output encoding are automatically converted
