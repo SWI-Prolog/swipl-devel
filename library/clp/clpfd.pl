@@ -1855,6 +1855,13 @@ propagator_init_trigger(Vs, P) :-
 
 prop_init(Prop, V) :-init_propagator(V, Prop).
 
+variables_attach([], _).
+variables_attach([V|Vs], Prop) :-
+        (   var(V) -> init_propagator(V, Prop)
+        ;   true
+        ),
+        variables_attach(Vs, Prop).
+
 geq(A, B) :-
         (   fd_get(A, AD, APs) ->
             domain_infimum(AD, AI),
@@ -2880,12 +2887,11 @@ constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
-constraint_wake(pgcc, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 
 global_constraint(regin).
-%global_constraint(pgcc).
+global_constraint(pgcc).
 %global_constraint(rel_tuple).
 %global_constraint(scalar_product_eq).
 
@@ -3107,9 +3113,14 @@ run_propagator(pelement(_, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc(_, _, Pairs), _) :-
+run_propagator(pgcc_check(_, _, Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
+        enable_queue.
+
+run_propagator(pgcc(Pairs), _) :-
+        disable_queue,
+        gcc_global(Pairs),
         enable_queue.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4261,7 +4272,7 @@ regin(Vars) :-
         maximum_matching(FreeLeft),
         sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft, FreeRight0), [0-[]], _),
+        phrase(scc(FreeLeft), [0-[]], _),
         maplist(dfs_used, FreeRight),
         phrase(regin_goals(FreeLeft), Gs),
         maplist(regin_clear_attributes, FreeLeft),
@@ -4335,16 +4346,10 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    DCGs are used to implicitly pass around the global index and stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-scc([], Right)     --> scc_(Right).
-scc([V|Vs], Right) -->
-        (   vindex_defined(V) -> scc(Vs, Right)
-        ;   scc(V), scc(Vs, Right)
-        ).
-
-scc_([])     --> [].
-scc_([V|Vs]) -->
-        (   vindex_defined(V) -> scc_(Vs)
-        ;   scc(V), scc_(Vs)
+scc([])     --> [].
+scc([V|Vs]) -->
+        (   vindex_defined(V) -> scc(Vs)
+        ;   scc_(V), scc(Vs)
         ).
 
 vindex_defined(V) --> { get_attr(V, index, _) }.
@@ -4377,7 +4382,7 @@ vlowlink_min_lowlink(V, VP) -->
           VL1 is min(VL, VPL),
           put_attr(V, lowlink, VL1) }.
 
-scc(V) -->
+scc_(V) -->
         vindex_is_index(V),
         vlowlink_is_index(V),
         index_plus_one,
@@ -4404,7 +4409,7 @@ each_edge([VP|VPs], V) -->
                 vlowlink_min_lowlink(V, VP)
             ;   []
             )
-        ;   scc(VP),
+        ;   scc_(VP),
             vlowlink_min_lowlink(V, VP)
         ),
         each_edge(VPs, V).
@@ -4621,7 +4626,7 @@ element(N, Is, V) :-
         N in 1..L,
         element_(Is, 1, N, V),
         make_propagator(pelement(N,Is,V), Prop),
-        element_attach(Is, Prop),
+        variables_attach(Is, Prop),
         trigger_once(Prop).
 
 element_domain(V, VD) :-
@@ -4638,14 +4643,6 @@ domains_union_([V|Vs], D0, D) :-
         element_domain(V, VD),
         domains_union(VD, D0, D1),
         domains_union_(Vs, D1, D).
-
-element_attach([], _).
-element_attach([V|Vs], Prop) :-
-        (   var(V) -> init_propagator(V, Prop)
-        ;   true
-        ),
-        element_attach(Vs, Prop).
-
 
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
@@ -4679,14 +4676,15 @@ global_cardinality(Xs, Pairs) :-
         Xs ins Drep,
         (   ground(Pairs) ->
             gcc_pairs(Pairs, Xs, Pairs1),
-            make_propagator(pgcc(Xs, Pairs, Pairs1), Prop),
-            gcc_attach(Xs, Prop),
-            trigger_once(Prop)
+            make_propagator(pgcc_check(Xs, Pairs, Pairs1), Prop1),
+            variables_attach(Xs, Prop1),
+            trigger_once(Prop1),
+            make_propagator(pgcc(Pairs1), Prop2),
+            variables_attach(Xs, Prop2),
+            trigger_once(Prop2)
         ;   gcc_reify(Pairs, Xs)
         ).
 
-% Specialised version for ground Pairs.
-% TODO: Use arc-consistent filtering in this case.
 
 gcc_pairs([], _, []).
 gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
@@ -4694,12 +4692,215 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_vs, Vs),
         gcc_pairs(KNs, Vs, Rest).
 
-gcc_attach([], _).
-gcc_attach([X|Xs], Prop) :-
-        (   var(X) -> init_propagator(X, Prop)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Specialised version for ground Pairs.
+   TODO: Generalise to other cases.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_global(KNs) :-
+        gcc_arcs(KNs, S, T, Vals),
+        (   get_attr(S, edges, Es) ->
+            maximum_flow(S, T),
+            maplist(saturated_arc, Es),
+            phrase(gcc_scc(Vals), [0-[]], _),
+            phrase(gcc_goals(Vals), Gs),
+            gcc_clear(S),
+            maplist(call, Gs)
         ;   true
+        ).
+
+gcc_goals([]) --> [].
+gcc_goals([Val|Vals]) -->
+        { get_attr(Val, edges, Es) },
+        gcc_edges_goals(Es, Val),
+        gcc_goals(Vals).
+
+gcc_edges_goals([], _) --> [].
+gcc_edges_goals([E|Es], Val) -->
+        gcc_edge_goal(E, Val),
+        gcc_edges_goals(Es, Val).
+
+gcc_edge_goal(arc_from(_,_,_,_), _) --> [].
+gcc_edge_goal(arc_to(_,_,V,F), Val) -->
+        (   { get_attr(F, flow, 0),
+              get_attr(V, lowlink, L1),
+              get_attr(Val, lowlink, L2),
+              L1 =\= L2,
+              get_attr(Val, value, Value) } ->
+            [neq_num(V, Value)]
+        ;   []
+        ).
+
+saturated_arc(arc_to(_,U,_,F)) :- get_attr(F, flow, U).
+
+maximum_flow(S, T) :-
+        (   phrase(gcc_augmenting_path(S, T), Path) ->
+            Path = [augment(_,Min0,_)|_],
+            path_minimum(Path, Min0, Min),
+            maplist(gcc_augment(Min), Path),
+            gcc_clear_visited(S),
+            maximum_flow(S, T)
+        ;   true
+        ).
+
+path_minimum([], Min, Min).
+path_minimum([augment(_,A,_)|As], Min0, Min) :-
+        Min1 is min(Min0,A),
+        path_minimum(As, Min1, Min).
+
+gcc_augment(Min, augment(F,_,Sign)) :-
+        get_attr(F, flow, Flow0),
+        gcc_flow_(Sign, Flow0, Min, Flow),
+        put_attr(F, flow, Flow).
+
+gcc_flow_(+, F0, A, F) :- F is F0 + A.
+gcc_flow_(-, F0, A, F) :- F is F0 - A.
+
+gcc_augmenting_path(V, T) -->
+        (   { V == T } -> []
+        ;   { get_attr(V, edges, Es),
+              put_attr(V, visited, true) },
+            gcc_augmenting_edge(Es, V1),
+            gcc_augmenting_path(V1, T)
+        ).
+
+gcc_augmenting_edge([E|_], V)  --> gcc_augmenting_edge_(E, V).
+gcc_augmenting_edge([_|Es], V) --> gcc_augmenting_edge(Es, V).
+
+gcc_augmenting_edge_(arc_from(_L,_U,V,F), V) -->
+        { \+ get_attr(V, visited, _),
+          get_attr(F, flow, Flow),
+          Flow > 0 },
+        [augment(F,Flow,-)].
+gcc_augmenting_edge_(arc_to(_L,U,V,F), V) -->
+        { \+ get_attr(V, visited, _),
+          get_attr(F, flow, Flow),
+          Flow < U,
+          Diff is U - Flow },
+        [augment(F,Diff,+)].
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Build value network for global cardinality constraint.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_arcs([], _, _, []).
+gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
+        (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
+            get_attr(Num0, clpfd_gcc_num, Num),
+            put_attr(Val, value, Key),
+            Vals = [Val|Rest],
+            Edge = arc_to(Num, Num, Val, F),
+            put_attr(F, flow, 0),
+            (   get_attr(S, edges, SEs) ->
+                put_attr(S, edges, [Edge|SEs])
+            ;   put_attr(S, edges, [Edge])
+            ),
+            put_attr(Val, edges, [arc_from(Num, Num, S, F)]),
+            connect_vs_to_target(Vs, Val, T)
+        ;   Vals = Rest
         ),
-        gcc_attach(Xs, Prop).
+        gcc_arcs(KNs, S, T, Rest).
+
+connect_vs_to_target([], _, _).
+connect_vs_to_target([V|Vs], Val, T) :-
+        put_attr(F2, flow, 0),
+        (   get_attr(V, edges, VarEs) -> true
+        ;   VarEs = []
+        ),
+        (   get_attr(V, arc_to_t, _) ->
+            put_attr(V, edges, [arc_from(0, 1, Val, F2)|VarEs])
+        ;   put_attr(V, arc_to_t, _),
+            put_attr(F1, flow, 0),
+            put_attr(V, edges, [arc_to(0, 1, T, F1), arc_from(0, 1, Val, F2)|VarEs]),
+            TE = arc_from(0, 1, V, F1),
+            (   get_attr(T, edges, TEs) ->
+                put_attr(T, edges, [TE|TEs])
+            ;   put_attr(T, edges, [TE])
+            )
+        ),
+        get_attr(Val, edges, VEs),
+        put_attr(Val, edges, [arc_to(0, 1, V, F2)|VEs]),
+        connect_vs_to_target(Vs, Val, T).
+
+gcc_clear(V) :-
+        (   get_attr(V, edges, Es) ->
+            maplist(del_attr(V), [arc_to_t,edges,index,lowlink,value]),
+            maplist(gcc_clear_edge, Es)
+        ;   true
+        ).
+
+gcc_clear_edge(arc_to(_,_,V,F)) :-
+        del_attr(F, flow),
+        gcc_clear(V).
+gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
+
+gcc_clear_visited(V) :-
+        (   get_attr(V, visited, _) ->
+            del_attr(V, visited),
+            get_attr(V, edges, Es),
+            maplist(gcc_clear_visited_, Es)
+        ;   true
+        ).
+
+gcc_clear_visited_(arc_from(_,_,V,_)) :- gcc_clear_visited(V).
+gcc_clear_visited_(arc_to(_,_,V,_))   :- gcc_clear_visited(V).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Tarjan's strongly connected components algorithm, tailored for GCC,
+   finding strongly connected components in the residual graph.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_scc([])     --> [].
+gcc_scc([V|Vs]) -->
+        (   vindex_defined(V) -> gcc_scc(Vs)
+        ;   gcc_scc_(V), gcc_scc(Vs)
+        ).
+
+gcc_scc_(V) -->
+        vindex_is_index(V),
+        vlowlink_is_index(V),
+        index_plus_one,
+        s_push(V),
+        gcc_successors(V, Tos),
+        gcc_each_edge(Tos, V),
+        (   { get_attr(V, index, VI),
+              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
+        ;   []
+        ).
+
+gcc_successors(V, Tos) -->
+        { get_attr(V, edges, Tos0),
+          phrase(gcc_successors_(Tos0), Tos) }.
+
+gcc_successors_([])     --> [].
+gcc_successors_([E|Es]) --> gcc_succ_edge(E), gcc_successors_(Es).
+
+gcc_succ_edge(arc_to(_,U,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow < U } -> [V]
+        ;   []
+        ).
+gcc_succ_edge(arc_from(_,_,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow > 0 } -> [V]
+        ;   []
+        ).
+
+gcc_each_edge([], _) --> [].
+gcc_each_edge([VP|VPs], V) -->
+        (   vindex_defined(VP) ->
+            (   v_in_stack(VP) ->
+                vlowlink_min_lowlink(V, VP)
+            ;   []
+            )
+        ;   gcc_scc_(VP),
+            vlowlink_min_lowlink(V, VP)
+        ),
+        gcc_each_edge(VPs, V).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Simple consistency check, run before global propagation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_vs),
@@ -5047,10 +5248,11 @@ attribute_goal_(pdifferent(Left, Right, X, processed)) -->
 attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         [all_distinct(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
-attribute_goal_(pexclude(_,_,_)) --> [].
+attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
+attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(Vs, Pairs, _)) -->
+attribute_goal_(pgcc(_))          --> [].
+attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
