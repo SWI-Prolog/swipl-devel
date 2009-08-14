@@ -16,8 +16,10 @@
 \glossitem{-}=item
 \menuitem{+}{+}=item		1 0
 \predref{+}{-}
+\qpredref{-}{+}{-}
 \prologflag{-}
 \dcgref{+}{-}
+\qdcgref{-}{+}{-}
 \nopredref{+}{-}
 \functor{+}{-}
 \compound{+}{+}

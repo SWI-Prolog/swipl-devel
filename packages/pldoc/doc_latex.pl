@@ -653,6 +653,10 @@ file(File, _Options) -->
 %	Called  from  name/arity  or   name//arity    patterns   in  the
 %	documentation.
 
+predref(Module:Name/Arity) --> !,
+	latex(cmd(qpredref(Module, Name, Arity))).
+predref(Module:Name//Arity) -->
+	latex(cmd(qdcgref(Module, Name, Arity))).
 predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
 predref(Name//Arity) -->
