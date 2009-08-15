@@ -4093,7 +4093,7 @@ regin_attach([X|Xs], Prop, Right) :-
    edges ... [flow_from(F,From)] and [flow_to(F,To)] where F has an
              attribute "flow" that is either 0 or 1 and an attribute "used"
              if it is part of a maximum matching
-   level ... level in breadth-first search
+   parent ... used in breadth-first search
    g0_edges ... [flow_to(F,To)] as above
    visited ... true if node was visited in DFS
    index, in_stack, lowlink ... used in Tarjan's SCC algorithm
@@ -4144,14 +4144,13 @@ enumerate([N|Ns], V, NumVar0, NumVar) :-
    the value graph, then find an augmenting path in reverse.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-clear_level(V) :- del_attr(V, level).
+clear_parent(V) :- del_attr(V, parent).
 
 maximum_matching([]).
 maximum_matching([FL|FLs]) :-
-        level_var(0, FL),
-        augmenting_path_to_length(1, [[FL]], Levels, To, Length),
-        once(augmenting_path(r(To), Length, [], Path)),
-        maplist(maplist(clear_level), Levels),
+        augmenting_path_to(1, [[FL]], Levels, To),
+        phrase(augmenting_path(r(To), FL), Path),
+        maplist(maplist(clear_parent), Levels),
         del_attr(To, free),
         adjust_alternate_1(Path),
         maximum_matching(FLs).
@@ -4159,35 +4158,37 @@ maximum_matching([FL|FLs]) :-
 reachables_right([]) --> [].
 reachables_right([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_right_(Es),
+        reachables_right_(Es, V),
         reachables_right(Vs).
 
-reachables_right_([]) --> [].
-reachables_right_([flow_to(F,To)|Es]) -->
+reachables_right_([], _) --> [].
+reachables_right_([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
-              \+ get_attr(To, level, _) } ->
+              \+ get_attr(To, parent, _) } ->
+            { put_attr(To, parent, V-F) },
             [To]
         ;   []
         ),
-        reachables_right_(Es).
+        reachables_right_(Es, V).
 
 
 reachables_left([]) --> [].
 reachables_left([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_left_(Es),
+        reachables_left_(Es, V),
         reachables_left(Vs).
 
-reachables_left_([]) --> [].
-reachables_left_([flow_from(F,From)|Es]) -->
+reachables_left_([], _) --> [].
+reachables_left_([flow_from(F,From)|Es], V) -->
         (   { get_attr(F, flow, 1),
-              \+ get_attr(From, level, _) } ->
+              \+ get_attr(From, parent, _) } ->
+            { put_attr(From, parent, V-F) },
             [From]
         ;   []
         ),
-        reachables_left_(Es).
+        reachables_left_(Es, V).
 
-augmenting_path_to_length(Level, Levels0, Levels, Right, Length) :-
+augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
         (   Level mod 2 =:= 1 ->
@@ -4196,31 +4197,21 @@ augmenting_path_to_length(Level, Levels0, Levels, Right, Length) :-
         ),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
-            Length = Level, Right = Free, Levels = Levels1
-        ;   maplist(level_var(Level), Tos),
-            Level1 is Level + 1,
-            augmenting_path_to_length(Level1, Levels1, Levels, Right, Length)
+            Right = Free, Levels = Levels1
+        ;   Level1 is Level + 1,
+            augmenting_path_to(Level1, Levels1, Levels, Right)
         ).
 
-level_var(L, V) :- put_attr(V, level, L).
-
-
-augmenting_path(l(N), Level0, Path0, Path) :-
-        (   Level0 =:= 0 -> Path0 = Path
-        ;   Level1 is Level0 - 1,
-            get_attr(N, edges, Es),
-            member(flow_to(F, To), Es),
-            get_attr(F, flow, 1),
-            get_attr(To, level, Level1),
-            augmenting_path(r(To), Level1, [F|Path0], Path)
+augmenting_path(l(N), To) -->
+        (   { N == To } -> []
+        ;   { get_attr(N, parent, P-F) },
+            [F],
+            augmenting_path(r(P), To)
         ).
-augmenting_path(r(N), Level0, Path0, Path) :-
-        Level1 is Level0 - 1,
-        get_attr(N, edges, Es),
-        member(flow_from(F, From), Es),
-        get_attr(From, level, Level1),
-        get_attr(F, flow, 0),
-        augmenting_path(l(From), Level1, [F|Path0], Path).
+augmenting_path(r(N), To) -->
+        { get_attr(N, parent, P-F) },
+        [F],
+        augmenting_path(l(P), To).
 
 
 adjust_alternate_1([A|Arcs]) :-
@@ -4283,7 +4274,7 @@ regin(Vars) :-
 regin_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
             del_attr(V, edges),
-            % level and in_stack are already cleared
+            % parent and in_stack are already cleared
             maplist(del_attr(V), [index,lowlink,value,visited]),
             maplist(clear_edge, Es),
             (   get_attr(V, g0_edges, Es1) ->
@@ -4700,9 +4691,9 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 gcc_global(KNs) :-
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
-            level_var(0, S),
-            feasible_flow(Es, T), % for ground pairs, feasible = maximum
-            del_attr(S, level),
+            put_attr(S, parent, none),
+            feasible_flow(Es, S, T), % for ground pairs, feasible = maximum
+            del_attr(S, parent),
             phrase(gcc_scc(Vals), [0-[]], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
@@ -4732,63 +4723,65 @@ gcc_edge_goal(arc_to(_,_,V,F), Val) -->
         ;   []
         ).
 
-feasible_flow([], _).
-feasible_flow([A|As], T) :-
-        make_arc_feasible(A, T),
-        feasible_flow(As, T).
+feasible_flow([], _, _).
+feasible_flow([A|As], S, T) :-
+        make_arc_feasible(A, S, T),
+        feasible_flow(As, S, T).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Like in all_distinct/1, first use breadth-first search, then
    construct augmenting path in reverse.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-make_arc_feasible(A, T) :-
+make_arc_feasible(A, S, T) :-
         A = arc_to(L,_,V,F),
         get_attr(F, flow, Flow),
         (   Flow >= L -> true
-        ;   level_var(1, V),
-            gcc_augmenting_path_length(2, [[V]], Levels, T, Length),
-            once(phrase(gcc_augmenting_path(Length, T), Path)),
-            Diff is L - Flow,
+        ;   Diff is L - Flow,
+            put_attr(V, parent, S-augment(F,Diff,+)),
+            gcc_augmenting_path([[V]], Levels, T),
+            phrase(gcc_augmenting_path(S, T), Path),
             path_minimum(Path, Diff, Min),
-            maplist(gcc_augment(Min), [augment(F,Diff,+)|Path]),
-            maplist(maplist(clear_level), Levels),
-            make_arc_feasible(A, T)
+            maplist(gcc_augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            make_arc_feasible(A, S, T)
         ).
 
-gcc_augmenting_path_length(Level, Levels0, Levels, T, Length) :-
+gcc_augmenting_path(Levels0, Levels, T) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
         phrase(gcc_reachables(Vs), Tos),
         Tos = [_|_],
-        (   member(To, Tos), To == T ->
-            Length = Level, Levels = Levels1
-        ;   maplist(level_var(Level), Tos),
-            Level1 is Level + 1,
-            gcc_augmenting_path_length(Level1, Levels1, Levels, T, Length)
+        (   member(To, Tos), To == T -> Levels = Levels1
+        ;   gcc_augmenting_path(Levels1, Levels, T)
         ).
 
 gcc_reachables([])     --> [].
 gcc_reachables([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        gcc_reachables_(Es),
+        gcc_reachables_(Es, V),
         gcc_reachables(Vs).
 
-gcc_reachables_([])     --> [].
-gcc_reachables_([E|Es]) -->
-        gcc_reachable(E),
-        gcc_reachables_(Es).
+gcc_reachables_([], _)     --> [].
+gcc_reachables_([E|Es], V) -->
+        gcc_reachable(E, V),
+        gcc_reachables_(Es, V).
 
-gcc_reachable(arc_from(_,_,V,F)) -->
-        (   { \+ get_attr(V, level, _),
+gcc_reachable(arc_from(_,_,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
               get_attr(F, flow, Flow),
-              Flow > 0 } -> [V]
+              Flow > 0 } ->
+            { put_attr(V, parent, P-augment(F,Flow,-)) },
+            [V]
         ;   []
         ).
-gcc_reachable(arc_to(_L,U,V,F)) -->
-        (   { \+ get_attr(V, level, _),
+gcc_reachable(arc_to(_L,U,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
               get_attr(F, flow, Flow),
-              Flow < U } -> [V]
+              Flow < U } ->
+            { Diff is U - Flow,
+              put_attr(V, parent, P-augment(F,Diff,+)) },
+            [V]
         ;   []
         ).
 
@@ -4806,33 +4799,12 @@ gcc_augment(Min, augment(F,_,Sign)) :-
 gcc_flow_(+, F0, A, F) :- F is F0 + A.
 gcc_flow_(-, F0, A, F) :- F is F0 - A.
 
-gcc_augmenting_path(Level0, V) -->
-        (   { Level0 =:= 1 } -> []
-        ;   { Level1 is Level0 - 1,
-              get_attr(V, edges, Es) },
-            gcc_augmenting_edge(Es, Level1, V1),
-            gcc_augmenting_path(Level1, V1)
+gcc_augmenting_path(S, V) -->
+        (   { V == S } -> []
+        ;   { get_attr(V, parent, V1-Augment) },
+            [Augment],
+            gcc_augmenting_path(S, V1)
         ).
-
-gcc_augmenting_edge([E|_], L, V)  --> gcc_augmenting_edge_(E, L, V).
-gcc_augmenting_edge([_|Es], L, V) --> gcc_augmenting_edge(Es, L, V).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Recall that we are constructing the part in reverse, so the
-   criteria for the residual graph are inverted as well.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-gcc_augmenting_edge_(arc_from(_L,U,V,F), Level, V) -->
-        { get_attr(V, level, Level),
-          get_attr(F, flow, Flow),
-          Flow < U,
-          Diff is U - Flow },
-        [augment(F,Diff,+)].
-gcc_augmenting_edge_(arc_to(_L,_U,V,F), Level, V) -->
-        { get_attr(V, level, Level),
-          get_attr(F, flow, Flow),
-          Flow > 0 },
-        [augment(F,Flow,-)].
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Build value network for global cardinality constraint.
