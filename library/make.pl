@@ -51,7 +51,7 @@ make :-
 	print_message(silent, make(reload(Reload))),
 	reload(Reload),
 	print_message(silent, make(done(Reload))),
-	list_undefined.
+	list_undefined([scan(local)]).
 
 modified_file(File) :-
 	'$time_source_file'(Source, Time, user),

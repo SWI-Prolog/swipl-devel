@@ -32,11 +32,13 @@
 :- module(check,
 	[ check/0,			% run all checks
 	  list_undefined/0,		% list undefined predicates
+	  list_undefined/1,		% +Options
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0		% list redefinitions
 	]).
 :- use_module(library(lists)).
 :- use_module(library(system)).
+:- use_module(library(option)).
 
 :- system_mode(on).			% lock these predicates
 
@@ -55,7 +57,7 @@ loaded Prolog program.
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
-	list_undefined(silent),
+	list_undefined(silent, global),
 	print_message(informational,
 		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
@@ -63,28 +65,42 @@ check :-
 		      check(pass(3, 'Predicates that need autoloading'))),
 	list_autoload.
 
-%%	list_undefined
+%%	list_undefined is det.
+%%	list_undefined(+Options) is det.
 %
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
-%	referencing tool.
+%	referencing tool.  Options:
+%
+%	    * scan(+Scan)
+%	    If =local=, only scan the module holding the undefined
+%	    predicate for references; if =global= (default), scan the
+%	    whole program.  Global scanning finds references through
+%	    qualified goals (i.e., M:G), but can take long on big
+%	    programs.
 %
 %	@see gxref/0 provides a graphical cross-referencer.
+%	@see make/0 calls list_undefined/1 using scan(local)
 
 list_undefined :-
-	list_undefined(informational).
+	list_undefined(informational, global).
 
-list_undefined(Level) :-
+list_undefined(Options) :-
+	option(scan(Scan), Options, global),
+	list_undefined(informational, Scan).
+
+
+list_undefined(Level, How) :-
 	system_mode(Old),
 	system_mode(on),
-	call_cleanup(list_undefined_(Level), system_mode(Old)).
+	call_cleanup(list_undefined_(Level, How), system_mode(Old)).
 
-list_undefined_(Level) :-
+list_undefined_(Level, How) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
 	(   Preds == []
 	->  true
 	;   print_message(Level, check(find_references(Preds))),
-	    find_references(Preds, Pairs),
+	    find_references(Preds, How, Pairs),
 	    (	Pairs == []
 	    ->	true
 	    ;   print_message(warning, check(undefined_predicates)),
@@ -102,7 +118,7 @@ undefined_predicate(Module:Head) :-
 	\+ predicate_property(Module:Head, imported_from(_)).
 
 
-%%	find_references(+Heads, -HeadRefs:list) is det.
+%%	find_references(+Heads, +How, -HeadRefs:list) is det.
 %
 %	Find references to the given  predicates.   For  speedup we only
 %	look for references from the  same   module.  This  isn't really
@@ -110,17 +126,19 @@ undefined_predicate(Module:Head) :-
 %	through meta-calls, it isn't too bad either.
 %
 %	@param HeadRefs List of Head-Refs
+%	@param How is one of =local= or =global=
 
-find_references([], []).
-find_references([H|T0], [H-Refs|T]) :-
+find_references([], _, []).
+find_references([H|T0], How, [H-Refs|T]) :-
 	(   ignore(H = M:_),
 	    findall(Ref, referenced(H, M, Ref), Refs)
-	;   findall(Ref, referenced(H, _, Ref), Refs)
+	;   How == global,
+	    findall(Ref, referenced(H, _, Ref), Refs)
 	),
 	Refs \== [], !,
-	find_references(T0, T).
-find_references([_|T0], T) :-
-	find_references(T0, T).
+	find_references(T0, How, T).
+find_references([_|T0], How, T) :-
+	find_references(T0, How, T).
 
 %%	referenced(+Predicate, ?Module, -ClauseRef) is nondet.
 %
