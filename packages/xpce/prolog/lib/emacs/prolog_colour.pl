@@ -94,15 +94,18 @@ reload_styles(M) :->
 	;   true
 	).
 
-colourise_term(M, Term:prolog, TermPos:prolog) :->
+colourise_term(M, Term:prolog, TermPos:prolog, Comments:prolog) :->
 	"Colourise the given term"::
 	send(M, setup_styles),
 	get(M, text_buffer, TB),
 	arg(1, TermPos, From),
 	arg(2, TermPos, To),
 	send(M, remove_syntax_fragments, From, To),
-	send(M, colourise_comments, From, To),
-	colourise_term(Term, TB, TermPos).
+	(   Comments == (-)
+	->  send(M, colourise_comments, From, To)
+	;   true
+	),
+	colourise_term(Term, TB, TermPos, Comments).
 
 colourise_buffer(M) :->
 	"Do cross-referencing and colourising of the whole buffer"::
@@ -176,12 +179,13 @@ colourise_buffer(Fd, M) :-
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
-			      module(SM)
+			      module(SM),
+			      comments(Comments)
 			    ]),
 		  E,
 		  syntax_error(E)),
 	    fix_operators(Term, Src),
-	    (	colourise_term(Term, TB, TermPos),
+	    (	colourise_term(Term, TB, TermPos, Comments),
 		send(M, mark_singletons, Term, Singletons, TermPos)
 	    ->	true
 	    ;	arg(1, TermPos, From),
@@ -271,7 +275,7 @@ process_use_module(File, Src) :-
 	;   true
 	).
 
-%	colourise(+TB, +Stream)
+%%	colourise(+TB, +Stream)
 %
 %	Read next term from the text_buffer and  colourise the syntax
 
@@ -281,9 +285,9 @@ colourise(TB, Fd) :-
 						Term,
 						Error,
 						_Singletons,
-						TermPos),
+						TermPos, Comments),
 	(   Error == none
-	->  colourise_term(Term, TB, TermPos)
+	->  colourise_term(Term, TB, TermPos, Comments)
 	;   show_syntax_error(TB, Error)
 	).
 
@@ -291,6 +295,22 @@ show_syntax_error(TB, Pos:_Message) :-
 	get(TB, scan, Pos, line, 0, start, BOL),
 	get(TB, scan, Pos, line, 0, end, EOL),
 	colour_item(syntax_error, TB, BOL-EOL).
+
+colourise_term(Term, TB, TermPos, Comments) :-
+	colourise_comments(Comments, TB),
+	colourise_term(Term, TB, TermPos).
+
+colourise_comments(-, _).
+colourise_comments([], _).
+colourise_comments([H|T], TB) :-
+	colourise_comment(H, TB),
+	colourise_comments(T, TB).
+
+colourise_comment(Pos-Comment, TB) :-
+	stream_position_data(char_count, Pos, Start),
+	string_length(Comment, Len),
+	End is Start + Len + 1,
+	colour_item(comment, TB, Start-End).
 
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,

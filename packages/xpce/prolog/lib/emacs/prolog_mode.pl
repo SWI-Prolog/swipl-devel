@@ -810,19 +810,19 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    ignore(send(M, electric_caret, Start)),
 	    Verbose = true
 	;   Start = From,
-	    Verbose = fail
+	    Verbose = false
 	),
 	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
-	read_term_from_stream(TB, Fd, Start, T, Error, S, P),
+	read_term_from_stream(TB, Fd, Start, T, Error, S, P, Comments),
 	close(Fd),
 	(   Error == none
 	->  (	send(M, has_send_method, colourise_term)
-	    ->	send(M, colourise_term, T, P)
+	    ->	send(M, colourise_term, T, P, Comments)
 	    ;	unmark_singletons(M, P)
 	    ),
 	    (   S == []
-	    ->  (   Verbose
+	    ->  (   Verbose == true
 		->  send(M, report, status, 'Clause checked')
 		;   true
 		)
@@ -836,23 +836,34 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    get(TB, find, E0, '.', 1, end, End)
 	;   get(M, forward_clause, Start, End),
 	    send(M, remove_syntax_fragments, Start, End),
-	    Error = EPos:Msg,
-	    (	Repair \== @off
-	    ->  send(M, caret, EPos)
+	    (	send(M, has_send_method, colourise_comments)
+	    ->	send(M, colourise_comments, Start, End)
 	    ;	true
 	    ),
-	    send(M, report, warning, 'Syntax error: %s', Msg),
+	    Error = EPos:Msg,
+	    (	Repair \== @off
+	    ->  send(M, caret, EPos),
+		send(M, report, warning, 'Syntax-error: %s', Msg)
+	    ;	true
+	    ),
 	    fail
 	).
 
-read_term_from_stream(TB, Fd, Start, T, Error, S, P) :-
+%%	read_term_from_stream(+TextBuffer, +Stream, +Start,
+%%			      -Start, -Term, -Errors, -Singletons, -TermPos,
+%%			      -Comments) is det.
+%
+%	@param	Comments is list of comments or (-) if the parser cannot
+%		produce information about comments.
+
+read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
 	retractall(syntax_error(_)),
 	alternate_syntax(_Name, Setup, Restore),
 	findall(Op, xref_op(TB, Op), Ops),
 	push_operators(Ops),
 	Setup,
 	seek(Fd, Start, bof, _),
-	read_with_errors(Fd, Start, T, Error, S, P),
+	read_with_errors(Fd, Start, T, Error, S, P, C),
 	Restore,
 	pop_operators,
 	(   Error == none
@@ -860,21 +871,22 @@ read_term_from_stream(TB, Fd, Start, T, Error, S, P) :-
 	;   assert(syntax_error(Error)),
 	    fail
 	), !.
-read_term_from_stream(_, _, _, _, Error, _, _) :-
+read_term_from_stream(_, _, _, _, Error, _, _, _) :-
 	setof(E, retract(syntax_error(E)), Es),
 	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),
-(read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-
+(read_with_errors(Fd, _Start, T, Error, Singletons, TermPos, Comments) :-
 	catch(read_term(Fd, T, [ singletons(Singletons),
 				 subterm_positions(TermPos),
-				 module(emacs_prolog_mode)
+				 module(emacs_prolog_mode),
+				 comments(Comments)
 			       ]),
 	      Error0,
 	      true),
 	pl_error_message(Error0, Error))).
 pce_ifhostproperty(prolog(quintus),
-(read_with_errors(Fd, Start, T, Error, Singletons, TermPos) :-
+(read_with_errors(Fd, Start, T, Error, Singletons, TermPos, -) :-
 	on_exception(syntax_error(_G, _Pos,
 				  Message,
 				  Pre, Post, _),
@@ -1054,7 +1066,7 @@ prolog_term(M, From:[int], Silent:[bool], TermPos:[prolog], Clause:prolog) :<-
 	  ),
 	  get(M, text_buffer, TB),
 	  pce_open(TB, read, Fd),
-	  read_term_from_stream(TB, Fd, Start, Clause, Error, _S, P),
+	  read_term_from_stream(TB, Fd, Start, Clause, Error, _S, P, _C),
 	  close(Fd),
 	  ignore(P = TermPos),
 	  (   Error == none
@@ -1125,7 +1137,7 @@ mark_variable(M, Check:[bool]) :->
 	    get(M, beginning_of_clause, Caret, Start),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
 	    ->  (   Check == @on
-		->  send(M, check_clause, Start, @off)
+		->  check_clauses(M, Start, Caret)
 		;   true
 		),
 		(   find_variable(Pos, Clause, Caret, Var)
@@ -1147,6 +1159,16 @@ mark_variable(M, Check:[bool]) :->
 	    ),
 	    send(E, slot, kill_location, KillLocation)
 	).
+
+check_clauses(M, Start, Caret) :-
+	ignore(get(M, check_clause, Start, @off, End)),
+	(   integer(End),
+	    End > Start,
+	    End < Caret
+	->  check_clauses(M, End, Caret)
+	;   true
+	).
+
 
 unmark_variables(M) :->
 	"Remove all variable-mark fragments"::
