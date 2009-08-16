@@ -66,30 +66,17 @@ server(Port, Options) :-
 write_index(Request) :-
 	...
 ==
-
-@author	Jan Wielemaker
 */
 
 :- setting(http:time_limit, nonneg, 300,
 	   'Time limit handling a single query (0=infinite)').
 
-%%	http_handler(+Path, :Pred, +Options) is det.
+%%	http_handler(+Path, :Closure, +Options) is det.
 %
-%	Register Pred as  a  handler  for   HTTP  requests.  Path  is is
-%	specification as provided by  http_path.pl.   Pred  is either an
-%	atom or one of the following reserved terms:
-%
-%		* reply_file(+File, +FileOptions)
-%		Reply contents of File using the given options.
-%		FileOptions include:
-%
-%			* mime_type(+Type)
-%			Mime-type specified with File.
-%
-%			* cache(+Boolean)
-%			If =false=, do not pass and process
-%			last_modification time.
-%
+%	Register Closure as a handler for HTTP requests. Path is a
+%	specification as provided by http_path.pl.  If an HTTP
+%	request arrives at the server that matches Path, Closure
+%	is called with one extra argument: the parsed HTTP request.
 %	Options is a list containing the following options:
 %
 %		* authentication(+Type)
@@ -141,6 +128,10 @@ write_index(Request) :-
 %	proper update through make/0 when the specification is modified.
 %	We do not expand when the  cross-referencer is running to ensure
 %	proper handling of the meta-call.
+%
+%	@error	existence_error(http_location, Location)
+%	@see    http_reply_file/3 and http_redirect/3 are generic
+%		handlers to serve files and achieve redirects.
 
 :- dynamic handler/4.			% Path, Action, IsPrefix, Options
 :- multifile handler/4.

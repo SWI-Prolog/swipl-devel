@@ -499,175 +499,9 @@ last time.
 \end{description}
 
 
-\subsection{Dispatching HTTP locations over predicates}
-\label{sec:dispatch}
-
-The library \file{http/http_dispatch.pl} can be between http_wrapper/5
-and the user handlers as described in \secref{body} to distribute
-locations over multiple predicates. This has several advantages:
-
-\begin{itemize}
-    \item It makes a distinction between failure of the predicate
-    and undefined locations, giving a server error on failure and
-    a 404 existence error on undefined locations.
-
-    \item It is much easier to put a spy-point on specific locations
-    or find the code implementing a location.  In addition, the
-    edit/1 interface is extended to deal with locations.  This
-    allows for \verb$?- edit('/path1/path2').$ to open an editor
-    on the implementation of the HTTP location \verb$/path1/path2$.
-\end{itemize}
-
-We introduce the library with a small but complete example combining the
-core HTTP libraries. To test the example on port 5000, load the code,
-run \verb$?- server(5000).$ and direct your browser to
-\url{http://localhost:5000}.
-
-\begin{code}
-:- use_module(library('http/thread_httpd')).
-:- use_module(library('http/http_dispatch')).
-:- use_module(library('http/html_write')).
-
-server(Port) :-
-	http_server(http_dispatch, [port(Port)]).
-
-:- http_handler('/', root, []).
-:- http_handler('/hello/world', hello_world, []).
-
-root(_Request) :-
-	reply_html_page([ title('Demo server')
-			],
-			[ p(a(href('hello/world'), hello))
-			]).
-
-hello_world(_Request) :-
-	reply_html_page([ title('Hello World')
-			],
-			[ h1('Hello World'),
-			  p('This is my first page')
-			]).
-\end{code}
-
-\begin{description}
-    \predicate{http_dispatch}{1}{+Request}
-Dispatch \arg{Request} to a predicate defined to handle the path
-component (location) of the request.  Locations are declared using
-http_handler/3.  The predicate http_dispatch/1 is normally called
-from http_server/2.
-
-    \predicate{http_handler}{3}{+Location, :Closure, +Options}
-Call \term{call}{Closure, Request} if an HTTP request for the path
-\arg{Location} is dispatched by http_dispatch/1.  Options include:
-
-    \begin{description}
-	\termitem{authentication}{+Type}
-Demand authentication. Authentication methods define \arg{Type} and are
-pluggable. The library \file{http_authenticate.pl} provides a plugin for
-user/password based \const{Basic} HTTP authentication.
-
-	\termitem{chunked}{}
-Enable chunked transfer-encoding if the client allows for it. See
-\secref{transfer}.
-
-	\termitem{id}{+ID}
-Identifier of the handler.  The default identifier is the predicate name.
-Used by http_location_by_id/2.
-
-	\termitem{time_limit}{+Spec}
-Specify a (wall-)time limit to handle the request. \arg{Spec} is one of
-\const{infinite}, \const{default} or a number expressing seconds. If
-\const{default} or omitted, the setting (see setting/4)
-\const{http:time_limit} is used.
-
-	\termitem{prefix}{}
-If present, call handler for all paths that \emph{start with} the
-given path.  If multiple specifications match the most specific one
-is used.  If a prefix is matched and the actual path is longer than
-the prefix, a term \term{path_info}{Rest} is added, where \arg{Rest}
-expresses the remainder of the specified path. The name
-\const{path_info} in inspired by the CHI variable \const{PATH_INFO}
-serving the same purpose for CGI scripts.
-
-	\termitem{priority}{+Integer}
-If two handlers handle the same path, the one with the highest priority
-is used. If equal, the last registered is used. Please be aware that the
-order of clauses in multifile predicates can change due to reloading
-files.
-
-	\termitem{spawn}{+Spec}
-Handle the request on a seperate thread. \arg{Spec} is either the name
-of a thread pool (see thread_pool_create/3 from library(thread_pool) or
-a set of options that are passed to thread_create/3. See also
-http_spawn/2.
-    \end{description}
-
-Note that http_handler/3 is normally invoked as a directive and
-processed using term-expansion. Using term-expansion ensures proper
-update through make/0 when the specification is modified. We do not
-expand when the cross-referencer is running to ensure proper handling of
-the meta-call.
-
-    \predicate{http_delete_handler}{1}{+Path}
-Delete handler for \arg{Path}. Typically, this should only be used for
-handlers that are registered dynamically.  Use the priority option to
-overrule an existing handler.
-
-    \predicate{http_location_by_id}{2}{+ID, -Location}
-Find the HTTP Location of handler with ID. If the setting (see
-setting/2) http:prefix is active, Location is the handler location
-prefixed with the prefix setting. Handler IDs can be specified in two
-ways:
-
-    \begin{itemlist}
-	\item [\term{id}{ID}]
-If this appears in the option list of the handler, this
-it is used and takes preference over using the predicate.
-
-	\item [<module>:<predicate>]
-The module-qualified name of the predicate.
-
-        \item [<predicate>]
-    \end{itemlist}
-
-    \predicate{http_current_handler}{2}{?Location, ?Closure}
-True if \arg{Location} is handled by \arg{Closure}.  It \arg{Location}
-is given, the \arg{Closure} with highest priority is returned.
-
-    \predicate{http_reply_file}{3}{+FileSpec, +Options, +Request}
-Reply a file.  The argument order is defined to allow using the
-predicate as a closure for http_handler/3.  Options include:
-
-    \begin{description}
-	\termitem{cache}{+Boolean}
-If \const{true} (default), handle If-modified-since and send
-modification time.
-	\termitem{mime_type}{+Type}
-Overrule mime-type guessing from the filename as provided by
-file_mime_type/
-	\termitem{unsafe}{+Boolean}
-If \const{false} (default), validate that \arg{FileSpec} does not
-contain references to parent directories. If \arg{FileSpec} is an atom,
-it is also not allowed to be an absolute filename. E.g., specifications
-such as \exam{www('../../etc/passwd')} are not allowed.
-
-This check is by default enabled (i.e., \const{false}) and must be
-disabled explicitely if you wish to serve files outside the root of
-an alias or outside the working directory of the server.
-    \end{description}
-
-Below is an example. Note that the file argument can be a specification
-for absolute_file_name/3 that is searched over application libraries
-defined using file_search_path/2.
-
-\begin{code}
-:- http_handler('/css/myapp.css',
-		http_reply_file('myapp.css', []),
-		[]).
-\end{code}
-\end{description}
-
-
+\input{httpdispatch.tex}
 \input{httpsession.tex}
+
 
 \subsection{HTTP Authentication}
 \label{sec:auth}
@@ -1180,7 +1014,7 @@ its simplest form, \arg{Spec} is the name of a thread pool as defined by
 thread_pool_create/3. Alternatively it is an option list, whose options
 are passed to thread_create_in_pool/4 if \arg{Spec} contains
 \term{pool}{Pool} or to thread_create/3 of the pool option is not
-present. If the dispatch module is used (see \secref{dispatch}),
+present. If the dispatch module is used (see \secref{httpdispatch}),
 spawning is normally specified as an option to the http_handler/3
 registration.
 
@@ -1434,7 +1268,7 @@ request. It is allowed to throw exceptions as defined in
 paths, deny access for certain requests or manage cookies. If it writes
 output, these must be HTTP header fields that are added \emph{before}
 header fields written by the body. The example below is from the
-session management library (see \secref{session}) sets a cookie.
+session management library (see \secref{httpsession}) sets a cookie.
 
 \begin{code}
 	...,
