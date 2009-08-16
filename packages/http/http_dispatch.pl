@@ -32,6 +32,7 @@
 	    http_handler/3,		% +Path, +Predicate, +Options
 	    http_delete_handler/1,	% +Path
 	    http_reply_file/3,		% +File, +Options, +Request
+	    http_redirect/3,		% +How, +Path, +Request
 	    http_current_handler/2,	% ?Path, ?Pred
 	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2	% +ID, -Location
@@ -128,6 +129,12 @@ write_index(Request) :-
 %		* time_limit(+Spec)
 %		One of =infinite=, =default= or a positive number
 %		(seconds)
+%
+%		* content_type(+Term)
+%		Specifies the content-type of the reply.  This value is
+%		currently not used by this library.  It enhances the
+%		reflexive capabilities of this library through
+%		http_current_handler/3.
 %
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
@@ -622,6 +629,30 @@ unsafe_name(Name) :- sub_atom(Name, 0, _, _, '../').
 unsafe_name(Name) :- sub_atom(Name, _, _, _, '/../').
 unsafe_name(Name) :- sub_atom(Name, _, _, 0, '/..').
 
+
+%%	http_redirect(+How, +To, +Request) is det.
+%
+%	Redirect to a new  location.  The   argument  order,  using  the
+%	Request as last argument, allows for  calling this directly from
+%	the handler declaration:
+%
+%	    ==
+%	    :- http_handler(root(.),
+%			    http_redirect(moved, myapp('index.html')),
+%			    []).
+%	    ==
+%
+%	@param How is one of =moved=, =moved_temporary= or =see_also=
+%	@param To is either an atom or a aliased path as defined by
+%	http_absolute_location/3. If To is not absolute, it is resolved
+%	relative to the current location.
+
+http_redirect(How, To, Request) :-
+	memberchk(path(Base), Request),
+	http_absolute_location(To, URL, [relative_to(Base)]),
+	must_be(oneof([moved, moved_temporary, see_also]), How),
+	Term =.. [How,URL],
+	throw(http_reply(Term)).
 
 
 		 /*******************************
