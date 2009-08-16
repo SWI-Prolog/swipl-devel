@@ -1855,6 +1855,13 @@ propagator_init_trigger(Vs, P) :-
 
 prop_init(Prop, V) :-init_propagator(V, Prop).
 
+variables_attach([], _).
+variables_attach([V|Vs], Prop) :-
+        (   var(V) -> init_propagator(V, Prop)
+        ;   true
+        ),
+        variables_attach(Vs, Prop).
+
 geq(A, B) :-
         (   fd_get(A, AD, APs) ->
             domain_infimum(AD, AI),
@@ -2880,12 +2887,11 @@ constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
-constraint_wake(pgcc, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 
 global_constraint(regin).
-%global_constraint(pgcc).
+global_constraint(pgcc).
 %global_constraint(rel_tuple).
 %global_constraint(scalar_product_eq).
 
@@ -3107,9 +3113,14 @@ run_propagator(pelement(_, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc(_, _, Pairs), _) :-
+run_propagator(pgcc_check(_, _, Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
+        enable_queue.
+
+run_propagator(pgcc(Pairs), _) :-
+        disable_queue,
+        gcc_global(Pairs),
         enable_queue.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4082,7 +4093,7 @@ regin_attach([X|Xs], Prop, Right) :-
    edges ... [flow_from(F,From)] and [flow_to(F,To)] where F has an
              attribute "flow" that is either 0 or 1 and an attribute "used"
              if it is part of a maximum matching
-   level ... level in breadth-first search
+   parent ... used in breadth-first search
    g0_edges ... [flow_to(F,To)] as above
    visited ... true if node was visited in DFS
    index, in_stack, lowlink ... used in Tarjan's SCC algorithm
@@ -4133,14 +4144,13 @@ enumerate([N|Ns], V, NumVar0, NumVar) :-
    the value graph, then find an augmenting path in reverse.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-clear_level(V) :- del_attr(V, level).
+clear_parent(V) :- del_attr(V, parent).
 
 maximum_matching([]).
 maximum_matching([FL|FLs]) :-
-        level_var(0, FL),
-        augmenting_path_to_length(1, [[FL]], Levels, To, Length),
-        once(augmenting_path(r(To), Length, [], Path)),
-        maplist(maplist(clear_level), Levels),
+        augmenting_path_to(1, [[FL]], Levels, To),
+        phrase(augmenting_path(r(To), FL), Path),
+        maplist(maplist(clear_parent), Levels),
         del_attr(To, free),
         adjust_alternate_1(Path),
         maximum_matching(FLs).
@@ -4148,35 +4158,37 @@ maximum_matching([FL|FLs]) :-
 reachables_right([]) --> [].
 reachables_right([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_right_(Es),
+        reachables_right_(Es, V),
         reachables_right(Vs).
 
-reachables_right_([]) --> [].
-reachables_right_([flow_to(F,To)|Es]) -->
+reachables_right_([], _) --> [].
+reachables_right_([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
-              \+ get_attr(To, level, _) } ->
+              \+ get_attr(To, parent, _) } ->
+            { put_attr(To, parent, V-F) },
             [To]
         ;   []
         ),
-        reachables_right_(Es).
+        reachables_right_(Es, V).
 
 
 reachables_left([]) --> [].
 reachables_left([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_left_(Es),
+        reachables_left_(Es, V),
         reachables_left(Vs).
 
-reachables_left_([]) --> [].
-reachables_left_([flow_from(F,From)|Es]) -->
+reachables_left_([], _) --> [].
+reachables_left_([flow_from(F,From)|Es], V) -->
         (   { get_attr(F, flow, 1),
-              \+ get_attr(From, level, _) } ->
+              \+ get_attr(From, parent, _) } ->
+            { put_attr(From, parent, V-F) },
             [From]
         ;   []
         ),
-        reachables_left_(Es).
+        reachables_left_(Es, V).
 
-augmenting_path_to_length(Level, Levels0, Levels, Right, Length) :-
+augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
         (   Level mod 2 =:= 1 ->
@@ -4185,31 +4197,21 @@ augmenting_path_to_length(Level, Levels0, Levels, Right, Length) :-
         ),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
-            Length = Level, Right = Free, Levels = Levels1
-        ;   maplist(level_var(Level), Tos),
-            Level1 is Level + 1,
-            augmenting_path_to_length(Level1, Levels1, Levels, Right, Length)
+            Right = Free, Levels = Levels1
+        ;   Level1 is Level + 1,
+            augmenting_path_to(Level1, Levels1, Levels, Right)
         ).
 
-level_var(L, V) :- put_attr(V, level, L).
-
-
-augmenting_path(l(N), Level0, Path0, Path) :-
-        (   Level0 =:= 0 -> Path0 = Path
-        ;   Level1 is Level0 - 1,
-            get_attr(N, edges, Es),
-            member(flow_to(F, To), Es),
-            get_attr(F, flow, 1),
-            get_attr(To, level, Level1),
-            augmenting_path(r(To), Level1, [F|Path0], Path)
+augmenting_path(l(N), To) -->
+        (   { N == To } -> []
+        ;   { get_attr(N, parent, P-F) },
+            [F],
+            augmenting_path(r(P), To)
         ).
-augmenting_path(r(N), Level0, Path0, Path) :-
-        Level1 is Level0 - 1,
-        get_attr(N, edges, Es),
-        member(flow_from(F, From), Es),
-        get_attr(From, level, Level1),
-        get_attr(F, flow, 0),
-        augmenting_path(l(From), Level1, [F|Path0], Path).
+augmenting_path(r(N), To) -->
+        { get_attr(N, parent, P-F) },
+        [F],
+        augmenting_path(l(P), To).
 
 
 adjust_alternate_1([A|Arcs]) :-
@@ -4261,7 +4263,7 @@ regin(Vars) :-
         maximum_matching(FreeLeft),
         sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft, FreeRight0), [0-[]], _),
+        phrase(scc(FreeLeft), [0-[]], _),
         maplist(dfs_used, FreeRight),
         phrase(regin_goals(FreeLeft), Gs),
         maplist(regin_clear_attributes, FreeLeft),
@@ -4272,7 +4274,7 @@ regin(Vars) :-
 regin_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
             del_attr(V, edges),
-            % level and in_stack are already cleared
+            % parent and in_stack are already cleared
             maplist(del_attr(V), [index,lowlink,value,visited]),
             maplist(clear_edge, Es),
             (   get_attr(V, g0_edges, Es1) ->
@@ -4335,16 +4337,10 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    DCGs are used to implicitly pass around the global index and stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-scc([], Right)     --> scc_(Right).
-scc([V|Vs], Right) -->
-        (   vindex_defined(V) -> scc(Vs, Right)
-        ;   scc(V), scc(Vs, Right)
-        ).
-
-scc_([])     --> [].
-scc_([V|Vs]) -->
-        (   vindex_defined(V) -> scc_(Vs)
-        ;   scc(V), scc_(Vs)
+scc([])     --> [].
+scc([V|Vs]) -->
+        (   vindex_defined(V) -> scc(Vs)
+        ;   scc_(V), scc(Vs)
         ).
 
 vindex_defined(V) --> { get_attr(V, index, _) }.
@@ -4377,7 +4373,7 @@ vlowlink_min_lowlink(V, VP) -->
           VL1 is min(VL, VPL),
           put_attr(V, lowlink, VL1) }.
 
-scc(V) -->
+scc_(V) -->
         vindex_is_index(V),
         vlowlink_is_index(V),
         index_plus_one,
@@ -4404,7 +4400,7 @@ each_edge([VP|VPs], V) -->
                 vlowlink_min_lowlink(V, VP)
             ;   []
             )
-        ;   scc(VP),
+        ;   scc_(VP),
             vlowlink_min_lowlink(V, VP)
         ),
         each_edge(VPs, V).
@@ -4621,7 +4617,7 @@ element(N, Is, V) :-
         N in 1..L,
         element_(Is, 1, N, V),
         make_propagator(pelement(N,Is,V), Prop),
-        element_attach(Is, Prop),
+        variables_attach(Is, Prop),
         trigger_once(Prop).
 
 element_domain(V, VD) :-
@@ -4638,14 +4634,6 @@ domains_union_([V|Vs], D0, D) :-
         element_domain(V, VD),
         domains_union(VD, D0, D1),
         domains_union_(Vs, D1, D).
-
-element_attach([], _).
-element_attach([V|Vs], Prop) :-
-        (   var(V) -> init_propagator(V, Prop)
-        ;   true
-        ),
-        element_attach(Vs, Prop).
-
 
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
@@ -4679,14 +4667,15 @@ global_cardinality(Xs, Pairs) :-
         Xs ins Drep,
         (   ground(Pairs) ->
             gcc_pairs(Pairs, Xs, Pairs1),
-            make_propagator(pgcc(Xs, Pairs, Pairs1), Prop),
-            gcc_attach(Xs, Prop),
-            trigger_once(Prop)
+            make_propagator(pgcc_check(Xs, Pairs, Pairs1), Prop1),
+            variables_attach(Xs, Prop1),
+            trigger_once(Prop1),
+            make_propagator(pgcc(Pairs1), Prop2),
+            variables_attach(Xs, Prop2),
+            trigger_once(Prop2)
         ;   gcc_reify(Pairs, Xs)
         ).
 
-% Specialised version for ground Pairs.
-% TODO: Use arc-consistent filtering in this case.
 
 gcc_pairs([], _, []).
 gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
@@ -4694,12 +4683,240 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_vs, Vs),
         gcc_pairs(KNs, Vs, Rest).
 
-gcc_attach([], _).
-gcc_attach([X|Xs], Prop) :-
-        (   var(X) -> init_propagator(X, Prop)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Specialised version for ground Pairs.
+   TODO: Generalise to other cases.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_global(KNs) :-
+        gcc_arcs(KNs, S, T, Vals),
+        (   get_attr(S, edges, Es) ->
+            put_attr(S, parent, none),
+            feasible_flow(Es, S, T), % for ground pairs, feasible = maximum
+            del_attr(S, parent),
+            phrase(gcc_scc(Vals), [0-[]], _),
+            phrase(gcc_goals(Vals), Gs),
+            gcc_clear(S),
+            maplist(call, Gs)
         ;   true
+        ).
+
+gcc_goals([]) --> [].
+gcc_goals([Val|Vals]) -->
+        { get_attr(Val, edges, Es) },
+        gcc_edges_goals(Es, Val),
+        gcc_goals(Vals).
+
+gcc_edges_goals([], _) --> [].
+gcc_edges_goals([E|Es], Val) -->
+        gcc_edge_goal(E, Val),
+        gcc_edges_goals(Es, Val).
+
+gcc_edge_goal(arc_from(_,_,_,_), _) --> [].
+gcc_edge_goal(arc_to(_,_,V,F), Val) -->
+        (   { get_attr(F, flow, 0),
+              get_attr(V, lowlink, L1),
+              get_attr(Val, lowlink, L2),
+              L1 =\= L2,
+              get_attr(Val, value, Value) } ->
+            [neq_num(V, Value)]
+        ;   []
+        ).
+
+feasible_flow([], _, _).
+feasible_flow([A|As], S, T) :-
+        make_arc_feasible(A, S, T),
+        feasible_flow(As, S, T).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Like in all_distinct/1, first use breadth-first search, then
+   construct augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_arc_feasible(A, S, T) :-
+        A = arc_to(L,_,V,F),
+        get_attr(F, flow, Flow),
+        (   Flow >= L -> true
+        ;   Diff is L - Flow,
+            put_attr(V, parent, S-augment(F,Diff,+)),
+            gcc_augmenting_path([[V]], Levels, T),
+            phrase(gcc_augmenting_path(S, T), Path),
+            path_minimum(Path, Diff, Min),
+            maplist(gcc_augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            make_arc_feasible(A, S, T)
+        ).
+
+gcc_augmenting_path(Levels0, Levels, T) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
+        phrase(gcc_reachables(Vs), Tos),
+        Tos = [_|_],
+        (   member(To, Tos), To == T -> Levels = Levels1
+        ;   gcc_augmenting_path(Levels1, Levels, T)
+        ).
+
+gcc_reachables([])     --> [].
+gcc_reachables([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        gcc_reachables_(Es, V),
+        gcc_reachables(Vs).
+
+gcc_reachables_([], _)     --> [].
+gcc_reachables_([E|Es], V) -->
+        gcc_reachable(E, V),
+        gcc_reachables_(Es, V).
+
+gcc_reachable(arc_from(_,_,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              Flow > 0 } ->
+            { put_attr(V, parent, P-augment(F,Flow,-)) },
+            [V]
+        ;   []
+        ).
+gcc_reachable(arc_to(_L,U,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              Flow < U } ->
+            { Diff is U - Flow,
+              put_attr(V, parent, P-augment(F,Diff,+)) },
+            [V]
+        ;   []
+        ).
+
+
+path_minimum([], Min, Min).
+path_minimum([augment(_,A,_)|As], Min0, Min) :-
+        Min1 is min(Min0,A),
+        path_minimum(As, Min1, Min).
+
+gcc_augment(Min, augment(F,_,Sign)) :-
+        get_attr(F, flow, Flow0),
+        gcc_flow_(Sign, Flow0, Min, Flow),
+        put_attr(F, flow, Flow).
+
+gcc_flow_(+, F0, A, F) :- F is F0 + A.
+gcc_flow_(-, F0, A, F) :- F is F0 - A.
+
+gcc_augmenting_path(S, V) -->
+        (   { V == S } -> []
+        ;   { get_attr(V, parent, V1-Augment) },
+            [Augment],
+            gcc_augmenting_path(S, V1)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Build value network for global cardinality constraint.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_arcs([], _, _, []).
+gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
+        (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
+            get_attr(Num0, clpfd_gcc_num, Num),
+            put_attr(Val, value, Key),
+            Vals = [Val|Rest],
+            Edge = arc_to(Num, Num, Val, F),
+            put_attr(F, flow, 0),
+            (   get_attr(S, edges, SEs) ->
+                put_attr(S, edges, [Edge|SEs])
+            ;   put_attr(S, edges, [Edge])
+            ),
+            put_attr(Val, edges, [arc_from(Num, Num, S, F)]),
+            connect_vs_to_target(Vs, Val, T)
+        ;   Vals = Rest
         ),
-        gcc_attach(Xs, Prop).
+        gcc_arcs(KNs, S, T, Rest).
+
+connect_vs_to_target([], _, _).
+connect_vs_to_target([V|Vs], Val, T) :-
+        put_attr(F2, flow, 0),
+        (   get_attr(V, edges, VarEs) -> true
+        ;   VarEs = []
+        ),
+        (   get_attr(V, arc_to_t, _) ->
+            put_attr(V, edges, [arc_from(0, 1, Val, F2)|VarEs])
+        ;   put_attr(V, arc_to_t, _),
+            put_attr(F1, flow, 0),
+            put_attr(V, edges, [arc_to(0, 1, T, F1), arc_from(0, 1, Val, F2)|VarEs]),
+            TE = arc_from(0, 1, V, F1),
+            (   get_attr(T, edges, TEs) ->
+                put_attr(T, edges, [TE|TEs])
+            ;   put_attr(T, edges, [TE])
+            )
+        ),
+        get_attr(Val, edges, VEs),
+        put_attr(Val, edges, [arc_to(0, 1, V, F2)|VEs]),
+        connect_vs_to_target(Vs, Val, T).
+
+gcc_clear(V) :-
+        (   get_attr(V, edges, Es) ->
+            maplist(del_attr(V), [arc_to_t,edges,index,lowlink,value]),
+            maplist(gcc_clear_edge, Es)
+        ;   true
+        ).
+
+gcc_clear_edge(arc_to(_,_,V,F)) :-
+        del_attr(F, flow),
+        gcc_clear(V).
+gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Tarjan's strongly connected components algorithm, tailored for GCC,
+   finding strongly connected components in the residual graph.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_scc([])     --> [].
+gcc_scc([V|Vs]) -->
+        (   vindex_defined(V) -> gcc_scc(Vs)
+        ;   gcc_scc_(V), gcc_scc(Vs)
+        ).
+
+gcc_scc_(V) -->
+        vindex_is_index(V),
+        vlowlink_is_index(V),
+        index_plus_one,
+        s_push(V),
+        gcc_successors(V, Tos),
+        gcc_each_edge(Tos, V),
+        (   { get_attr(V, index, VI),
+              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
+        ;   []
+        ).
+
+gcc_successors(V, Tos) -->
+        { get_attr(V, edges, Tos0),
+          phrase(gcc_successors_(Tos0), Tos) }.
+
+gcc_successors_([])     --> [].
+gcc_successors_([E|Es]) --> gcc_succ_edge(E), gcc_successors_(Es).
+
+gcc_succ_edge(arc_to(_,U,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow < U } -> [V]
+        ;   []
+        ).
+gcc_succ_edge(arc_from(_,_,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow > 0 } -> [V]
+        ;   []
+        ).
+
+gcc_each_edge([], _) --> [].
+gcc_each_edge([VP|VPs], V) -->
+        (   vindex_defined(VP) ->
+            (   v_in_stack(VP) ->
+                vlowlink_min_lowlink(V, VP)
+            ;   []
+            )
+        ;   gcc_scc_(VP),
+            vlowlink_min_lowlink(V, VP)
+        ),
+        gcc_each_edge(VPs, V).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Simple consistency check, run before global propagation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_vs),
@@ -4709,9 +4926,9 @@ gcc_check([]).
 gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
-            vs_key_min_max_others(Vs, Key, 0, Min, 0, Max, Os),
-            between(Min, Max, Num),
-            (   Min =:= Max ->
+            vs_key_min_others(Vs, Key, 0, Min, Os),
+            Min =< Num,
+            (   Min =:= Num ->
                 gcc_done(Num0),
                 all_neq(Os, Key)
             ;   Diff is Num - Min,
@@ -4728,20 +4945,18 @@ gcc_check([Key-Num0|KNs]) :-
         ),
         gcc_check(KNs).
 
-vs_key_min_max_others([], _, Min, Min, Max, Max, []).
-vs_key_min_max_others([V|Vs], Key, Min0, Min, Max0, Max, Others) :-
+vs_key_min_others([], _, Min, Min, []).
+vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
         (   fd_get(V, VD, _) ->
             (   domain_contains(VD, Key) ->
-                Max1 is Max0 + 1,
                 Others = [V|Rest],
-                vs_key_min_max_others(Vs, Key, Min0, Min, Max1, Max, Rest)
-            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+                vs_key_min_others(Vs, Key, Min0, Min, Rest)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
             )
         ;   (   V =:= Key ->
                 Min1 is Min0 + 1,
-                Max1 is Max0 + 1,
-                vs_key_min_max_others(Vs, Key, Min1, Min, Max1, Max, Others)
-            ;   vs_key_min_max_others(Vs, Key, Min0, Min, Max0, Max, Others)
+                vs_key_min_others(Vs, Key, Min1, Min, Others)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
             )
         ).
 
@@ -5047,10 +5262,11 @@ attribute_goal_(pdifferent(Left, Right, X, processed)) -->
 attribute_goal_(pdistinct(Left, Right, X, processed)) -->
         [all_distinct(Vs)],
         { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(regin(Vs))       --> [all_distinct(Vs)].
-attribute_goal_(pexclude(_,_,_)) --> [].
+attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
+attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(Vs, Pairs, _)) -->
+attribute_goal_(pgcc(_))          --> [].
+attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
