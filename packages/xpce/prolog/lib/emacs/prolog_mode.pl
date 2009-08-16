@@ -31,6 +31,7 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(debug)).
 :- use_module(library(operators)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(prolog_predicate)).
@@ -137,6 +138,8 @@ variable(varmark_style,    style*,       get, "How to mark variables").
 variable(has_var_marks,    bool := @off, get, "Optimise a bit").
 variable(var_marked_caret, int*,	 get, "Last caret at ->mark_variable").
 variable(var_marked_gen,   int*,	 get, "Last generation").
+variable(warnings,	   int := 0,	 get, "Number of warnings").
+variable(errors,	   int := 0,	 get, "Number of errors").
 
 
 icon(_, I:image) :<-
@@ -844,7 +847,7 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    (	Repair \== @off
 	    ->  send(M, caret, EPos),
 		send(M, report, warning, 'Syntax-error: %s', Msg)
-	    ;	true
+	    ;	send(M, show_syntax_error, EPos, Msg)
 	    ),
 	    fail
 	).
@@ -1135,12 +1138,12 @@ mark_variable(M, Check:[bool]) :->
 	    get(E, slot, kill_location, KillLocation), 		%  (*)
 	    send(M, unmark_variables),
 	    get(M, beginning_of_clause, Caret, Start),
+	    (   Check == @on
+	    ->  check_clauses(M, Start, Caret)
+	    ;   true
+	    ),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
-	    ->  (   Check == @on
-		->  check_clauses(M, Start, Caret)
-		;   true
-		),
-		(   find_variable(Pos, Clause, Caret, Var)
+	    ->  (   find_variable(Pos, Clause, Caret, Var)
 		->  get(M, text_buffer, TB),
 		    send(M, slot, has_var_marks, @on),
 		    (   subterm_position(Var, Clause, Pos, F-T),
@@ -1151,16 +1154,13 @@ mark_variable(M, Check:[bool]) :->
 		    )
 		;   true
 		)
-	    ;   (   get(M, forward_clause, Start, End)
-		->  true
-		;   End = Caret		% or end of buffer?
-		),
-		send(M, remove_syntax_fragments, Start, End)
+	    ;   true
 	    ),
 	    send(E, slot, kill_location, KillLocation)
 	).
 
 check_clauses(M, Start, Caret) :-
+	debug(emacs, '~p: Checking ~w..~w', [M, Start, Caret]),
 	ignore(get(M, check_clause, Start, @off, End)),
 	(   integer(End),
 	    End > Start,

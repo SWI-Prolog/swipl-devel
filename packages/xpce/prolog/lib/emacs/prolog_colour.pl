@@ -116,17 +116,24 @@ colourise_buffer(M) :->
 	send_super(M, colourise_buffer),
 	send(M, setup_styles),
 	send(M, xref_buffer),
+	send(M, slot, warnings, 0),
+	send(M, slot, errors, 0),
 	send(M, report, progress, 'Colourising buffer ...'),
 	colourise_buffer(M),
-	send(M, colourise_comments),
+	get(M, errors, Errors),
 	statistics(runtime, [_,UsedMilliSeconds]),
 	Used is UsedMilliSeconds/1000,
 	get(Class, no_created, @on, NewCreated),
 	Created is NewCreated - OldCreated,
-	send(M, report, done,
-	     'done, %.2f seconds, %d fragments', Used, Created).
+	(   Errors =:= 0
+	->  send(M, report, done,
+		 'done, %.2f seconds, %d fragments', Used, Created)
+	;   send(M, report, status,
+		 'File contains %d errors', Errors)
+	).
 
 colourise_comments(M, From:[int], To:[int]) :->
+	debug(emacs, 'Colourising comments in ~p..~p', [From, To]),
 	get(M, text_buffer, TB),
 	send(TB, for_all_comments,
 	     message(@prolog, colour_item, comment, TB, @arg1, @arg2),
@@ -138,6 +145,11 @@ colourise_or_recenter(M) :->
 	->  send(M, recenter)
 	;   send(M, colourise_buffer)
 	).
+
+show_syntax_error(M, Where:int, Message:name) :->
+	"Show syntax error position"::
+	get(M, text_buffer, TB),
+	show_syntax_error(TB, Where:Message).
 
 xref_buffer(M, Always:[bool]) :->
 	"Run the cross-referencer on buffer"::
@@ -176,6 +188,7 @@ colourise_buffer(Fd, M) :-
 	TB = @Src,
 	repeat,
 	    '$set_source_module'(SM, SM),
+	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
@@ -183,7 +196,7 @@ colourise_buffer(Fd, M) :-
 			      comments(Comments)
 			    ]),
 		  E,
-		  syntax_error(E)),
+		  syntax_error(M, Fd, Start, E)),
 	    fix_operators(Term, Src),
 	    (	colourise_term(Term, TB, TermPos, Comments),
 		send(M, mark_singletons, Term, Singletons, TermPos)
@@ -220,11 +233,27 @@ emacs_push_op(P, T, N0) :-
 	push_op(P, T, N),
 	debug(emacs, ':- ~w.', [op(P,T,N)]).
 
-%	syntax_error(+Error)
+%%	syntax_error(+Mode, +Stream, +Start, +Error)
 %
-%	Print syntax errors if the debugging topic emacs is active.
+%	Deal with syntax errors while colouring the whole buffer.
+%	Performs the following tasks:
+%
+%	    * Colourise comments using shallow syntax
+%	    * Indicate the error position
+%	    * If debug =emacs= is active, print the message
 
-syntax_error(E) :-
+syntax_error(M, Stream, Start, E) :-
+	character_count(Stream, End),
+	send(M, colourise_comments, Start, End),
+	(   E = error(syntax_error(_), stream(_S, _Line, _LinePos, CharNo))
+	->  message_to_string(E, Msg),
+	    get(M, text_buffer, TB),
+	    show_syntax_error(TB, CharNo:Msg)
+	;   true
+	),
+	get(M, errors, E0),
+	E1 is E0 + 1,
+	send(M, slot, errors, E1),
 	(   debugging(emacs)
 	->  print_message(error, E)
 	;   true
@@ -291,10 +320,9 @@ colourise(TB, Fd) :-
 	;   show_syntax_error(TB, Error)
 	).
 
-show_syntax_error(TB, Pos:_Message) :-
-	get(TB, scan, Pos, line, 0, start, BOL),
-	get(TB, scan, Pos, line, 0, end, EOL),
-	colour_item(syntax_error, TB, BOL-EOL).
+show_syntax_error(TB, Pos:Message) :-
+	End is Pos + 1,
+	colour_item(syntax_error(Message), TB, Pos-End).
 
 colourise_term(Term, TB, TermPos, Comments) :-
 	colourise_comments(Comments, TB),
@@ -845,7 +873,7 @@ pi_to_term(Name//Arity0, Term) :-
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
-%	colour_item(+Class, +TB, +Pos)
+%%	colour_item(+Class, +TB, +Pos)
 %
 %	colourise region if a style is defined for this class.
 
@@ -1115,7 +1143,7 @@ def_style(hook,			style(colour := blue,
 
 def_style(error,		style(background := orange)).
 def_style(type_error(_),	style(background := orange)).
-def_style(syntax_error,	  	style(background := red)).
+def_style(syntax_error(_),	style(background := orange)).
 
 :- dynamic
 	style_name/2.
@@ -1850,6 +1878,8 @@ identify_fragment(directory(Path), _, Summary) :-
 	new(Summary, string('Directory %s', Path)).
 identify_fragment(type_error(Type), _, Summary) :-
 	new(Summary, string('Type error: argument must be a %s', Type)).
+identify_fragment(syntax_error(Message), _, Summary) :-
+	new(Summary, string('%s', Message)).
 identify_fragment(module(Module), _, Summary) :-
 	module_property(Module, file(Path)),
 	new(Summary, string('Module %s loaded from %s', Module, Path)).
