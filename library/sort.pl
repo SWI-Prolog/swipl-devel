@@ -36,19 +36,17 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- module_transparent
-	predsort/3,
-	predsort/5,
-	predmerge/4,
-	predmerge/7.
-
+:- meta_predicate
+	predsort(3, +, -).		% 3: Delta, Left, Right
 
 %%	predsort(:Compare, +List, -Sorted) is det.
 %
-%	 Sorts similar to sort/2, but determines  the order of two terms
-%	 by calling Compare(-Delta, +E1,  +E2).   This  call  must unify
-%	 Delta with one of <, > or =. If built-in predicate compare/3 is
-%	 used, the result is the same as sort/2. See also keysort/2.
+%	Sorts similar to sort/2, but determines   the order of two terms
+%	by calling Compare(-Delta, +E1, +E2). This call must unify Delta
+%	with one of <, > or =.  If built-in predicate compare/3 is used,
+%	the result is the same as sort/2.
+%
+%	@see keysort/2.
 
 predsort(P, L, R) :-
 	length(L, N),
