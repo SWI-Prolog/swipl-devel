@@ -183,8 +183,8 @@ entry(_, default(Function), Function).
 		 *	    (UN)LOADING		*
 		 *******************************/
 
-%%	load_foreign_library(+FileSpec) is det.
-%%	load_foreign_library(+FileSpec, +Entry:atom) is det.
+%%	load_foreign_library(:FileSpec) is det.
+%%	load_foreign_library(:FileSpec, +Entry:atom) is det.
 %
 %	Load a _|shared object|_  or  _DLL_.   After  loading  the Entry
 %	function is called without arguments. The default entry function
