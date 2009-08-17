@@ -796,11 +796,12 @@ insert_full_stop(M, Arg:[int]) :->
 :- multifile
 	alternate_syntax/3.
 
-alternate_syntax(prolog,    true,
-			    true).
-alternate_syntax(pce_class, pce_expansion:push_compile_operators(SM),
-			    pce_expansion:pop_compile_operators) :-
-	'$set_source_module'(SM, SM).
+alternate_syntax(prolog,
+		 true,
+		 true).
+alternate_syntax(pce_class,
+		 pce_expansion:push_compile_operators(emacs_prolog_mode),
+		 pce_expansion:pop_compile_operators).
 
 :- dynamic
 	syntax_error/1.
