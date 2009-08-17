@@ -634,13 +634,16 @@ unsafe_name(Name) :- sub_atom(Name, _, _, 0, '/..').
 %	    ==
 %
 %	@param How is one of =moved=, =moved_temporary= or =see_also=
-%	@param To is either an atom or a aliased path as defined by
-%	http_absolute_location/3. If To is not absolute, it is resolved
-%	relative to the current location.
+%	@param To is an atom, a aliased path as defined by
+%	http_absolute_location/3. or a term location_by_id(Id). If To is
+%	not absolute, it is resolved relative to the current location.
 
 http_redirect(How, To, Request) :-
-	memberchk(path(Base), Request),
-	http_absolute_location(To, URL, [relative_to(Base)]),
+	(   To = location_by_id(Id)
+	->  http_location_by_id(Id, URL)
+	;   memberchk(path(Base), Request),
+	    http_absolute_location(To, URL, [relative_to(Base)])
+	),
 	must_be(oneof([moved, moved_temporary, see_also]), How),
 	Term =.. [How,URL],
 	throw(http_reply(Term)).
