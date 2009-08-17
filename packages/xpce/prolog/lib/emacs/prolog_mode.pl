@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -138,6 +138,7 @@ variable(varmark_style,    style*,       get, "How to mark variables").
 variable(has_var_marks,    bool := @off, get, "Optimise a bit").
 variable(var_marked_caret, int*,	 get, "Last caret at ->mark_variable").
 variable(var_marked_gen,   int*,	 get, "Last generation").
+variable(var_mark_enabled, bool := @on,  get, "Do varmark stuff").
 variable(warnings,	   int := 0,	 get, "Number of warnings").
 variable(errors,	   int := 0,	 get, "Number of errors").
 
@@ -337,6 +338,19 @@ fill_paragraph(M, Justify:[int]) :->
 	    between(BOC, EOC, Caret)
 	->  send(M, indent_clause)
 	;   send_super(M, fill_paragraph, Justify)
+	).
+
+
+fill_comment(M,
+	     Start:from=int, End:to=int,
+	     Re:leading=regex, Justify:justify=[bool|int]) :->
+	"Fill/justify comments"::
+	send(M, slot, var_mark_enabled, @off),
+	call_cleanup(send_super(M, fill_comment, Start, End, Re, Justify),
+		     send(M, slot, var_mark_enabled, @on)),
+	(   send(M, has_send_method, colourise_comments)
+	->  send(M, colourise_comments, Start, End)
+	;   true
 	).
 
 
@@ -1129,7 +1143,9 @@ mark_variable(M, Check:[bool]) :->
 	get(M, caret, Caret),
 	get(M, text_buffer, TB),
 	get(M, generation, Gen),
-	(   get(M, var_marked_caret, Caret),
+	(   get(M, var_mark_enabled, @off)
+	->  true
+	;   get(M, var_marked_caret, Caret),
 	    get(M, var_marked_gen, Gen)
 	->  true
 	;   send(M, slot, var_marked_caret, Caret),
@@ -1165,7 +1181,7 @@ check_clauses(M, Start, Caret) :-
 	ignore(get(M, check_clause, Start, @off, End)),
 	(   integer(End),
 	    End > Start,
-	    End < Caret
+	    End < Caret+5
 	->  check_clauses(M, End, Caret)
 	;   true
 	).
