@@ -4149,7 +4149,7 @@ clear_parent(V) :- del_attr(V, parent).
 maximum_matching([]).
 maximum_matching([FL|FLs]) :-
         augmenting_path_to(1, [[FL]], Levels, To),
-        phrase(augmenting_path(r(To), FL), Path),
+        phrase(augmenting_path(To, FL), Path),
         maplist(maplist(clear_parent), Levels),
         del_attr(To, free),
         adjust_alternate_1(Path),
@@ -4202,17 +4202,12 @@ augmenting_path_to(Level, Levels0, Levels, Right) :-
             augmenting_path_to(Level1, Levels1, Levels, Right)
         ).
 
-augmenting_path(l(N), To) -->
+augmenting_path(N, To) -->
         (   { N == To } -> []
         ;   { get_attr(N, parent, P-F) },
             [F],
-            augmenting_path(r(P), To)
+            augmenting_path(P, To)
         ).
-augmenting_path(r(N), To) -->
-        { get_attr(N, parent, P-F) },
-        [F],
-        augmenting_path(l(P), To).
-
 
 adjust_alternate_1([A|Arcs]) :-
         put_attr(A, flow, 1),
