@@ -115,7 +115,8 @@ pce_home(_) :-
 	init_pce.
 
 init_pce :-
-	current_prolog_flag(xpce, true), !.
+	current_prolog_flag(xpce, true),
+	current_predicate(pce_principal:object/1), !.
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
