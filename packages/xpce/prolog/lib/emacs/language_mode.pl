@@ -146,7 +146,7 @@ fill_comment_paragraph(M, Justify:justify=[bool|int], From:[int]) :->
 	    fail
 	),
 	new(Re, regex(string('^%s?[ \t]*$', CS))),
-	new(LeadRe, regex(string('%s[ \t]*', CS))),
+	new(LeadRe, regex(string('%s%s*[ \t]*', CS, CS))),
 	get(M, caret, Caret),
 	get(M, text_buffer, TB),
 	(   From \== @default
