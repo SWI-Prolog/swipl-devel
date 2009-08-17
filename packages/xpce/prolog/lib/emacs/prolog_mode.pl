@@ -133,12 +133,17 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 class_variable(varmark_style, style*,
 	       style(background := honeydew,
 		     underline := @on)).
+class_variable(show_syntax_errors, {never,typing,pause},
+	       pause).
 
 variable(varmark_style,    style*,       get, "How to mark variables").
 variable(has_var_marks,    bool := @off, get, "Optimise a bit").
 variable(var_marked_caret, int*,	 get, "Last caret at ->mark_variable").
 variable(var_marked_gen,   int*,	 get, "Last generation").
 variable(var_mark_enabled, bool := @on,  get, "Do varmark stuff").
+variable(show_syntax_errors,
+	 		   {never,typing,pause},
+	 				 get, "When highlight syntax errors").
 variable(warnings,	   int := 0,	 get, "Number of warnings").
 variable(errors,	   int := 0,	 get, "Number of errors").
 
@@ -862,7 +867,9 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    (	Repair \== @off
 	    ->  send(M, caret, EPos),
 		send(M, report, warning, 'Syntax-error: %s', Msg)
-	    ;	send(M, show_syntax_error, EPos, Msg)
+	    ;	get(M, show_syntax_errors, typing)
+	    ->	send(M, show_syntax_error, EPos, Msg)
+	    ;	true
 	    ),
 	    fail
 	).

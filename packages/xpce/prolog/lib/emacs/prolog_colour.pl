@@ -245,7 +245,8 @@ emacs_push_op(P, T, N0) :-
 syntax_error(M, Stream, Start, E) :-
 	character_count(Stream, End),
 	send(M, colourise_comments, Start, End),
-	(   E = error(syntax_error(_), stream(_S, _Line, _LinePos, CharNo))
+	(   \+ get(M, show_syntax_errors, never),
+	    E = error(syntax_error(_), stream(_S, _Line, _LinePos, CharNo))
 	->  message_to_string(E, Msg),
 	    get(M, text_buffer, TB),
 	    show_syntax_error(TB, CharNo:Msg)

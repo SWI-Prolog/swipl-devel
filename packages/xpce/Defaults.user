@@ -41,6 +41,13 @@
 
 !emacs_buffer.unicode_encoding: utf8
 
+! When to highlight syntax errors in PceEmacs Prolog mode.  One of
+! typing (always), pause (on whole-buffer scan) or never.  Default
+! is currently pause, but this will probably change to typing if
+! this mode becomes more mature.
+
+! emacs_prolog_mode.show_syntax_errors: typing
+
 ! Spelling program options for the ispell demo and checker for PceEmacs.
 ! Ispell is available on most Unix installations.
 
