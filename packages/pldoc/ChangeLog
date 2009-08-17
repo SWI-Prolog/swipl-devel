@@ -1,3 +1,17 @@
+[Aug 13 2009]
+
+ * ADDED: PlDoc wiki to handle references as module:name/arity.
+   
+ * ADDED: plDoc: Incomplete support for %% module:<mode>
+   
+[Aug 11 2009]
+
+ * ADDED: Make PlDoc places menu hookable
+   
+[Aug 10 2009]
+
+ * ADDED: Make search field of PlDoc hookable.
+   
 [Jul 2 2009]
 
  * ADDED: Public API to generate help on a predicate without the page header

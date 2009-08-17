@@ -1,3 +1,23 @@
+[Aug 17 2009]
+
+ * FIXED: PceEmacs %% --> % % when filling comments.
+   
+ * FIXED: PceEmacs syntax highlighting inside XPCE methods while typing.
+   
+[Aug 16 2009]
+
+ * ENHANCED: PceEmacs: show syntax errors using a small orange block.
+   
+ * ENHANCED: PceEmacs: base Prolog comment-colouring on actual parsing rather then the emacs-buffer syntax-rules.
+   
+[Aug 10 2009]
+
+ * FIXED: Force reloading the autoload index in pl.rc (linking XPCE).
+   
+[Aug 2 2009]
+
+ * FIXED: Buffer overflow in XPCE's int_item on 64-bit machines.
+   
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant

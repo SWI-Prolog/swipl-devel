@@ -1,3 +1,10 @@
+[Aug 7 2009]
+
+ * MODIFIED: WinSock interface now signals WSAECONNABORTED as EOF when reading. This is somewhat debatable, but compatible with the Unix version of the socket interface.  Matt Lilley.
+   
+[Aug 3 2009]
+
+ * PORT: Avoid name-clash on SOCK_* constants.
 [Jul 27 2009]
 
  * FIXED: Another timer issue that could crash the alarm-scheduler.

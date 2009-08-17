@@ -1,3 +1,43 @@
+[Aug 16 2009]
+
+ * DOC: Provide documentation of http_dispatch.pl through PlDoc
+   
+ * ADDED: http_redirect/3 to simplify writing redirect handlers and enhance the reflexive capabilities of the HTTP server.
+   
+[Aug 14 2009]
+
+ * ADDED: Allow grouping of HTTP parameters
+   
+ * ADDED: Support disjunctive types in HTTP parameter handling
+   
+ * CLEANUP: Use meta_predicate for json_convert.pl
+   
+[Aug 13 2009]
+
+ * ADDED: type nonneg to http_parameters/3.
+   
+ * ADDED: PlDoc wiki to handle references as module:name/arity.
+   
+ * ADDED: Allow hooking http_parameters type checking and conversion.
+   
+ * ADDED: &(Int) is written as &#Int; in html_write.  Clarified the documentation.
+   
+ * ADDED: Types list(Type), boolean and atom to http_parameters/3.
+   
+[Aug 12 2009]
+
+ * ENHANCED: Better handing of \[...] in cross-referencer
+   
+[Aug 10 2009]
+
+ * FIXED: Properly deal with external resources
+   
+ * FIXED: Module-handling of body//1 and head//1 hooks in html_write.pl
+   
+ * FIXED: Actually handle timout of the threaded HTTP deamon.  The connection is now dropped after 60 seconds inactivity of the client.
+   
+ * FIXED: HTTP server DoS if the clients sends an empty Cookie header.
+   
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant
