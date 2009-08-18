@@ -138,6 +138,7 @@ distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	rm -f pl.sh plld.sh
 	rm -f Makefile configure
 
 clean::

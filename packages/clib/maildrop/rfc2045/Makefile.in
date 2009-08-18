@@ -34,4 +34,5 @@ clean:
 
 distclean:	clean
 		rm -f Makefile config.status config.h librfc2045.a
+		rm -f rfc2045charset.h stamp-h1
 		rm -rf autom4te.cache

@@ -936,7 +936,9 @@ clean:
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
 		if [ -h h ]; then $(RM) h; fi
+		rm -f ../lib/$(PLARCH)
 		$(RM) -f version.h ../xpce.spec
+		$(RM) -f xpce.sh find_names
 		$(RM) -f $(LIB)
 		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
 		$(RM) -f Makefile config.h config.status config.cache

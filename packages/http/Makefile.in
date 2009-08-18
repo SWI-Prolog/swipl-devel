@@ -160,5 +160,4 @@ clean:
 		rm -rf html
 
 distclean:	clean
-		rm -f $(SOLIBS) config.cache config.status Makefile
-
+		rm -f $(SOLIBS) config.cache config.status config.h Makefile

@@ -48,6 +48,7 @@ distclean::
 	   cd packages && $(MAKE) distclean; \
 	fi
 	@cd $(BUILDARCH) && $(MAKE) $@
+	rm -f configure.out make.out
 	rm -f Makefile
 
 ################################################################
@@ -81,5 +82,3 @@ install-ln-world::
 	else \
 	    echo "WARNING: No documentation.  See README.doc"; \
 	fi
-
-

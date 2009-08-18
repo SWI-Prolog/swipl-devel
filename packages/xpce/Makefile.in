@@ -33,6 +33,7 @@ check::
 
 distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
+	@cd CXX/demo  && $(MAKE) $@
 	rm -f Makefile
 
 doc::
