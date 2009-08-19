@@ -91,6 +91,7 @@
 
 	    rdf_equal/2,		% ?Resource, ?Resource
 
+	    rdf_current_ns/2,		% ?Alias, ?URI
 	    rdf_register_ns/2,		% +Alias, +URI
 	    rdf_register_ns/3,		% +Alias, +URI, +Options
 	    rdf_global_id/2,		% ?NS:Name, ?Global
@@ -114,6 +115,8 @@
 	    rdf_find_literal_map/3,	% +Handle, +KeyList, -Literals
 	    rdf_keys_in_literal_map/3,	% +Handle, +Spec, -Keys
 	    rdf_statistics_literal_map/2, % +Handle, +Name(-Arg...)
+
+	    rdf_graph_prefixes/2,	% ?Graph, -Prefixes
 
 	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))
@@ -152,6 +155,19 @@
 		 /*******************************
 		 *	     NAMESPACES		*
 		 *******************************/
+
+%%	rdf_current_ns(?Alias, ?URI) is nondet.
+%
+%	Query  predefined  namespaces  and    namespaces   defined  with
+%	rdf_register_ns/2.
+
+rdf_current_ns(Alias, URI) :-
+	ns(Alias, URI).
+
+%%	ns(?Alias, ?URI) is nondet.
+%
+%	Dynamic  predicate  that  maintains   the  registered  namespace
+%	aliases.
 
 ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
@@ -1443,13 +1459,20 @@ header_namespaces(Options, List) :-
 	graph(Options, DB),
 	used_namespace_entities(List, DB).
 
-%%	used_namespace_entities(-List, ?DB)
+%%	rdf_graph_prefixes(?Graph, -List:ord_set)
 %
-%	Return the list of namespaces used in an RDF database.
+%	List is a list of prefixes that we need to deal with resources
+%	in the triples in Graph.
 
-used_namespace_entities(List, DB) :-
-	decl_used_predicate_ns(DB),
-	used_namespaces(List, DB).
+rdf_graph_prefixes(Graph, List) :-
+	used_namespace_entities(NSList, Graph),
+	maplist(ns, NSList, List0),
+	sort(List0, List).
+
+
+used_namespace_entities(List, Graph) :-
+	decl_used_predicate_ns(Graph),
+	used_namespaces(List, Graph).
 
 used_namespaces(List, DB) :-
 	empty_nb_set(Set),

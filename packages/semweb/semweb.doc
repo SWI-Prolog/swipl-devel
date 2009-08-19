@@ -901,6 +901,11 @@ runtime overhead than normal Prolog unification.
 	rdf_equal(rdfs:'Class', X)
 \end{code}
 
+    \predicate[nondet]{rdf_current_ns}{2}{?Alias, ?URI}
+Query defined namespace aliases (prefixes).\footnote{Older versions
+of this library did not export the table rdf_db:ns/2.  Please use
+this new public interface.}
+
     \predicate{rdf_register_ns}{2}{+Alias, +URL}
 Same as \term{rdf_register_ns}{Alias, URL, []}.
 
