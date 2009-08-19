@@ -215,7 +215,7 @@ rdf_register_ns(Alias, URI, Options) :-
 rdf_register_ns(Alias, URI, _) :-
 	assert(ns(Alias, URI)).
 
-%%	register_file_ns(+Map:list(NS=URL)) is det.
+%%	register_file_ns(+Map:list(pair)) is det.
 %
 %	Register a namespace as encounted in   the  namespace list of an
 %	RDF document. We only register if  both the abbreviation and URL
@@ -226,16 +226,18 @@ rdf_register_ns(Alias, URI, _) :-
 %	@tbd	Better error handling
 
 register_file_ns([]) :- !.
-register_file_ns([NS=URL|T]) :- !,
-	register_file_ns(NS=URL),
+register_file_ns([Decl|T]) :- !,
+	register_file_ns(Decl),
 	register_file_ns(T).
 register_file_ns([]=_) :- !.		% xmlns= (overall default)
-register_file_ns(NS=URL) :-
-	(   rdf_db:ns(NS, URL)
+register_file_ns(NS=URL) :- !,		% compatibility
+	register_file_ns(NS-URL).
+register_file_ns(NS-URL) :-
+	(   ns(NS, URL)
 	->  true
-	;   rdf_db:ns(NS, _)
+	;   ns(NS, _)
 	->  true			% redefined abbreviation
-	;   rdf_db:ns(_, URL)
+	;   ns(_, URL)
 	->  true			% redefined URL
 	;   rdf_register_ns(NS, URL)
 	).

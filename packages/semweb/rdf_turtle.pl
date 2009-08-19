@@ -76,12 +76,24 @@ by the above document at october 17, 2004.
 %		Blank nodes are generated as <Prefix>1, <Prefix>2, etc.
 %		If Prefix is not an atom blank nodes are generated as
 %		node(1), node(2), ...
+%
+%		* prefixes(-Pairs)
+%		Return encountered prefix declarations as a
+%		list of Alias-URI
+%
+%		* namespaces(-Pairs)
+%		Same as prefixes(Pairs).  Compatibility to rdf_load/2.
+%
+%		* base_used(-Base)
+%		Base URI used for processing the data.  Unified to
+%		[] if there is no base-uri.
 
 rdf_load_turtle(In, Triples, Options) :-
 	open_input(In, Stream, Close),
 	init_state(In, Stream, Options, State),
 	call_cleanup(phrase(turtle_file(State, Stream), Triples),
-		     Close).
+		     Close),
+	post_options(State, Options).
 
 
 %%	rdf_process_turtle(+Input, :OnObject, +Options) is det.
@@ -93,7 +105,32 @@ rdf_process_turtle(In, OnObject, Options) :-
 	open_input(In, Stream, Close),
 	init_state(In, Stream, Options, State),
 	call_cleanup(process_stream(State, Stream, OnObject),
-		     Close).
+		     Close),
+	post_options(State, Options).
+
+post_options(State, Options) :-
+	prefix_option(State, Options),
+	namespace_option(State, Options),
+	base_option(State, Options).
+
+prefix_option(State, Options) :-
+	(   option(prefixes(Pairs), Options)
+	->  arg(2, State, Map),
+	    assoc_to_list(Map, Pairs)
+	;   true
+	).
+namespace_option(State, Options) :-
+	(   option(namespaces(Pairs), Options)
+	->  arg(2, State, Map),
+	    assoc_to_list(Map, Pairs)
+	;   true
+	).
+
+base_option(State, Options) :-
+	(   option(base_used(Base), Options)
+	->  arg(1, State, Base)
+	;   true
+	).
 
 
 process_stream(State, In, OnObject) :-
@@ -169,8 +206,7 @@ init_state(In, Stream, Options, State) :-
 	->  BaseURI = []
 	;   is_absolute_url(In)
 	->  BaseURI = In
-	;   absolute_file_name(In, File),
-	    atom_concat('file://', File, BaseURI)
+	;   file_name_to_url(In, BaseURI)
 	),
 	(   option(anon_prefix(Prefix), Options)
 	->  true
@@ -214,10 +250,10 @@ triples(State, []) -->
 	{ setarg(1, State, URI)
 	}.
 triples(State, []) -->
-      ['@',name(base)],!,
-      uri(State,URI),
-      { setarg(1,State,URI)
-      }.
+	[ '@', name(base) ], !,
+	uri(State,URI),
+	{ setarg(1, State, URI)
+	}.
 triples(State, Triples) -->
 	subject(State, Subject, Triples, T),
 	(   predicate_object_list(State, Subject, T, [])
