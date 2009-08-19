@@ -4505,14 +4505,13 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%      serialized(+Starts, +Durations)
+%% serialized(+Starts, +Durations)
 %
-%       Constrain a set of intervals to a non-overlapping sequence.
-%       Starts = [S_1,...,S_n], is a list of variables or integers,
-%       Durations = [D_1,...,D_n] is a list of non-negative integers.
-%       Constrains Starts and Durations to denote a set of
-%       non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
-%       S_i for all 1 =< i < j =< n.
+% Constrain a set of intervals to a non-overlapping sequence. Starts =
+% [S_1,...,S_n], is a list of variables or integers, Durations =
+% [D_1,...,D_n] is a list of non-negative integers. Constrains Starts
+% and Durations to denote a set of non-overlapping tasks, i.e.: S_i +
+% D_i =< S_j or S_j + D_j =< S_i for all 1 =< i < j =< n.
 %
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
 %       Disjunctive Scheduling Problem"
@@ -4646,11 +4645,33 @@ element_([I|Is], N0, N, V) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Vs is a list of finite domain variables, Pairs is a list of
-%     Key-Num pairs, where Key is an integer and Num is a finite
-%     domain variable. The constraint holds iff each V in Vs is equal
-%     to some key, and for each Key-Num pair in Pairs, the number of
-%     occurrences of Key in Vs is Num.
+% Vs is a list of finite domain variables, Pairs is a list of Key-Num
+% pairs, where Key is an integer and Num is a finite domain variable.
+% The constraint holds iff each V in Vs is equal to some key, and for
+% each Key-Num pair in Pairs, the number of occurrences of Key in Vs
+% is Num.
+%
+% You can express the semantics of global_cardinality/2 with reified
+% constraints (omitting error-handling):
+%
+% ==
+% global_cardinality(Vs, Pairs) :- gcc_reify(Pairs, Vs).
+%
+% gcc_reify([], _).
+% gcc_reify([Key-Val|Pairs], Vs) :-
+%         eq_key_bs(Vs, Key, Bs),
+%         sum(Bs, #=, Val),
+%         gcc_reify(Pairs, Vs).
+%
+% eq_key_bs([], _, []).
+% eq_key_bs([X|Xs], K, [B|Bs]) :-
+%         X #= K #<==> B,
+%         eq_key_bs(Xs, K, Bs).
+% ==
+%
+% While the built-in version achieves better pruning than the version
+% with reified constraints, it may also take longer to compute.
+
 
 global_cardinality(Xs, Pairs) :-
         must_be(list, Xs),
