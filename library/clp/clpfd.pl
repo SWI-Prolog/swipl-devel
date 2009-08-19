@@ -2889,6 +2889,7 @@ constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
+constraint_wake(pgcc_check_single, bounds).
 
 global_constraint(regin).
 global_constraint(pgcc).
@@ -3116,6 +3117,11 @@ run_propagator(pelement(_, Is, V), MState) :-
 run_propagator(pgcc_check(_, _, Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
+        enable_queue.
+
+run_propagator(pgcc_check_single(Single), _) :-
+        disable_queue,
+        gcc_check(Single),
         enable_queue.
 
 run_propagator(pgcc(Pairs), _) :-
@@ -4660,34 +4666,44 @@ global_cardinality(Xs, Pairs) :-
         list_to_domain(Keys, Dom),
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
-        (   ground(Pairs) ->
-            gcc_pairs(Pairs, Xs, Pairs1),
-            make_propagator(pgcc_check(Xs, Pairs, Pairs1), Prop1),
-            variables_attach(Xs, Prop1),
-            trigger_once(Prop1),
-            make_propagator(pgcc(Pairs1), Prop2),
-            variables_attach(Xs, Prop2),
-            trigger_once(Prop2)
-        ;   gcc_reify(Pairs, Xs)
-        ).
+        gcc_pairs(Pairs, Xs, Pairs1),
+        make_propagator(pgcc_check(Xs, Pairs, Pairs1), Prop1),
+        variables_attach(Xs, Prop1),
+        trigger_once(Prop1),
+        make_propagator(pgcc(Pairs1), Prop2),
+        variables_attach(Xs, Prop2),
+        trigger_once(Prop2).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   For each Key-Num0 pair, we introduce an auxiliary variable Num and
+   attach the following attributes to it:
+
+   clpfd_gcc_num: equal Num0, the user-visible counter variable
+   clpfd_gcc_vs: the remaining variables in the constraint that can be
+   equal Key.
+   clpfd_gcc_occurred: stores how often Key already occurred in vs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_pairs([], _, []).
 gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_num, Num0),
         put_attr(Num, clpfd_gcc_vs, Vs),
+        put_attr(Num, clpfd_gcc_occurred, 0),
+        (   var(Num0) ->
+            make_propagator(pgcc_check_single([Key-Num]), Prop),
+            init_propagator(Num0, Prop)
+        ;   true
+        ),
         gcc_pairs(KNs, Vs, Rest).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Specialised version for ground Pairs.
-   TODO: Generalise to other cases.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
-            put_attr(S, parent, none),
-            feasible_flow(Es, S, T), % for ground pairs, feasible = maximum
+            put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
+            feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
+            maximum_flow(S, T),        % only then, maximize it.
+            gcc_consistent(T),
             del_attr(S, parent),
             phrase(gcc_scc(Vals), [0-[]], _),
             phrase(gcc_goals(Vals), Gs),
@@ -4695,6 +4711,18 @@ gcc_global(KNs) :-
             maplist(call, Gs)
         ;   true
         ).
+
+gcc_consistent(T) :-
+        get_attr(T, edges, Es),
+        length(Es, N),
+        total_flow(Es, 0, F),
+        N =:= F.
+
+total_flow([], F, F).
+total_flow([arc_from(_,_,_,Flow)|As], F0, F) :-
+        get_attr(Flow, flow, FF),
+        F1 is F0 + FF,
+        total_flow(As, F1, F).
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
@@ -4718,15 +4746,26 @@ gcc_edge_goal(arc_to(_,_,V,F), Val) -->
         ;   []
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Like in all_distinct/1, first use breadth-first search, then
+   construct an augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+maximum_flow(S, T) :-
+        (   gcc_augmenting_path([[S]], Levels, T) ->
+            phrase(gcc_augmenting_path(S, T), Path),
+            Path = [augment(_,First,_)|Rest],
+            path_minimum(Rest, First, Min),
+            maplist(gcc_augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            maximum_flow(S, T)
+        ;   true
+        ).
+
 feasible_flow([], _, _).
 feasible_flow([A|As], S, T) :-
         make_arc_feasible(A, S, T),
         feasible_flow(As, S, T).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Like in all_distinct/1, first use breadth-first search, then
-   construct augmenting path in reverse.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 make_arc_feasible(A, S, T) :-
         A = arc_to(L,_,V,F),
@@ -4809,15 +4848,20 @@ gcc_arcs([], _, _, []).
 gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
+            get_attr(Num0, clpfd_gcc_occurred, Occ),
+            (   nonvar(Num) -> U is Num - Occ, U = L
+            ;   fd_get(Num, _, n(L0), n(U0), _),
+                L is L0 - Occ, U is U0 - Occ
+            ),
             put_attr(Val, value, Key),
             Vals = [Val|Rest],
-            Edge = arc_to(Num, Num, Val, F),
+            Edge = arc_to(L, U, Val, F),
             put_attr(F, flow, 0),
             (   get_attr(S, edges, SEs) ->
                 put_attr(S, edges, [Edge|SEs])
             ;   put_attr(S, edges, [Edge])
             ),
-            put_attr(Val, edges, [arc_from(Num, Num, S, F)]),
+            put_attr(Val, edges, [arc_from(L, U, S, F)]),
             connect_vs_to_target(Vs, Val, T)
         ;   Vals = Rest
         ),
@@ -4915,25 +4959,35 @@ gcc_each_edge([VP|VPs], V) -->
 
 gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_vs),
-        del_attr(Num, clpfd_gcc_num).
+        del_attr(Num, clpfd_gcc_num),
+        del_attr(Num, clpfd_gcc_occurred).
 
 gcc_check([]).
 gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
+            get_attr(Num0, clpfd_gcc_occurred, Occ0),
             vs_key_min_others(Vs, Key, 0, Min, Os),
-            Min =< Num,
-            (   Min =:= Num ->
-                gcc_done(Num0),
-                all_neq(Os, Key)
-            ;   Diff is Num - Min,
-                length(Os, L),
+            put_attr(Num0, clpfd_gcc_vs, Os),
+            put_attr(Num0, clpfd_gcc_occurred, Occ1),
+            Occ1 is Occ0 + Min,
+            % The queue must be disabled when posting constraints
+            % here, otherwise the stored (new) occurrences can differ
+            % from the (old) ones used in the following.
+            geq(Num, Occ1),
+            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            ;   Os == [] -> gcc_done(Num0), Num = Occ1
+            ;   length(Os, L),
+                Max is Occ1 + L,
+                geq(Max, Num),
+                (   nonvar(Num) -> Diff is Num - Occ1
+                ;   fd_get(Num, ND, _),
+                    domain_infimum(ND, n(NInf)),
+                    Diff is NInf - Occ1
+                ),
                 L >= Diff,
-                (   L =:= Diff ->
-                    gcc_done(Num0),
-                    maplist(=(Key), Os)
-                ;   put_attr(Num0, clpfd_gcc_num, Diff),
-                    put_attr(Num0, clpfd_gcc_vs, Os)
+                (   L =:= Diff -> gcc_done(Num0), Num is Occ1 + Diff, maplist(=(Key), Os)
+                ;   true
                 )
             )
         ;   true
@@ -4959,22 +5013,6 @@ all_neq([], _).
 all_neq([X|Xs], C) :-
         neq_num(X, C),
         all_neq(Xs, C).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Reified version, used if some Nums are variables.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-gcc_reify([], _).
-gcc_reify([Key-Val|Pairs], Vs) :-
-        eq_key_bs(Vs, Key, Bs),
-        sum(Bs, #=, Val),
-        gcc_reify(Pairs, Vs).
-
-eq_key_bs([], _, []).
-eq_key_bs([X|Xs], K, [B|Bs]) :-
-	X #= K #<==> B,
-        eq_key_bs(Xs, K, Bs).
-
 
 gcc_pair(Pair) :-
         (   Pair = Key-Val ->
@@ -5212,6 +5250,9 @@ clpfd_gcc_vs:attr_unify_hook(_,_) :- false.
 clpfd_gcc_num:attribute_goals(_) --> [].
 clpfd_gcc_num:attr_unify_hook(_,_) :- false.
 
+clpfd_gcc_occurred:attribute_goals(_) --> [].
+clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
+
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
@@ -5263,6 +5304,7 @@ attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(_))          --> [].
 attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
+attribute_goal_(pgcc_check_single(_))     --> [].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
