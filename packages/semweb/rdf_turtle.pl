@@ -137,21 +137,46 @@ process_stream(State, In, OnObject) :-
 	line_count(In, LineNo),
 	nb_setarg(8, State, LineNo),
 	(   turtle_tokens(In, Tokens)
-	->  debug(turtle, 'Tokens: ~w~n', [Tokens])
-	;   syntax_error(In, LineNo, illegal_token)
-	),
-	(   Tokens == end_of_file
-	->  true
-	;   phrase(triples(State, Triples), Tokens)
-	->  (   Triples == []
-	    ->	true
-	    ;	arg(6, State, DB),
-		call(OnObject, Triples, DB:LineNo)
-	    ),
+	->  debug(turtle, 'Tokens: ~w~n', [Tokens]),
+	    (   Tokens == end_of_file
+	    ->  true
+	    ;   catch(phrase(triples(State, Triples), Tokens), E, true)
+	    ->  (   var(E)
+		->  (   Triples == []
+		    ->  true
+		    ;   arg(6, State, DB),
+			call(OnObject, Triples, DB:LineNo)
+		    )
+		;   print_message(error, E)
+		),
+		process_stream(State, In, OnObject)
+	    ;   syntax_error_term(In, LineNo, cannot_parse, Error),
+		print_message(error, Error)
+	    )
+	;   syntax_error_term(In, LineNo, illegal_token, Error),
+	    print_message(error, Error),
+	    skip_statement(In),
 	    process_stream(State, In, OnObject)
-	;   syntax_error(In, LineNo, cannot_parse)
 	).
 
+%%	skip_statement(+In)
+%
+%	Skip to the end of the statement
+
+skip_statement(In) :-
+	get_code(In, C0),
+	skip_statement(C0, In).
+
+skip_statement(-1, _) :- !.
+skip_statement(0'., In) :-
+	get_code(C, In),
+	(   turtle_ws(C)
+	->  !
+	;   skip_statement(C, In)
+	).
+skip_statement(_, In) :-
+	get_code(C, In),
+	skip_statement(C, In).
 
 %%	open_input(+Input, -Stream, -Close) is det.
 %
@@ -267,7 +292,7 @@ subject(State, Subject, T, T) -->
 subject(State, Subject, T0, T) -->
 	blank(State, Subject, T0, T), !.
 subject(State, _, _, _) -->
-	syntax_error(State, subject_expected).
+	syntax_rule(State, subject_expected).
 
 predicate_object_list(State, Subject, Triples, Tail) -->
 	verb(State, Predicate),
@@ -311,7 +336,7 @@ object(State, Object, T, T) -->
 object(State, Object, T0, T) -->
 	blank(State, Object, T0, T), !.
 object(State, _, _, _) -->
-	syntax_error(State, expected_object).
+	syntax_rule(State, expected_object).
 
 %%	normalise_number(+Type, +Codes:list, -Literal:atom) is det.
 %
@@ -449,16 +474,50 @@ mk_object(type(:(Name), Value), State, literal(type(Type, Value))) :- !,
 	  atom_concat(Base, Name, Type).
 mk_object(Value, _State, literal(Value)).
 
-syntax_error(State, Error) -->
-	[ Before ],
+syntax_rule(State, Error) -->
+	error_tokens(5, Tokens),
 	{ arg(7, State, Stream),
 	  stream_property(Stream, file_name(File)),
 	  arg(8, State, LineNo),
-	  format(string(Msg), '~w:~d (before ~w)',
+	  atomic_list_concat(Tokens, ' ', Before),
+	  format(string(Msg), '~w:~d (before "~w ...")',
 		 [File, LineNo, Before]),
 	  throw(error(syntax_error(Error),
 		      context(_, Msg)))
 	}.
+
+error_tokens(N, [H|T]) -->
+	{ succ(N2, N) },
+	error_token(H), !,
+	error_tokens(N2, T).
+error_tokens(_, []) --> [].
+
+error_token(Text) -->
+	[ numeric(_, Codes) ], !,
+	{ atom_codes(Text, Codes) }.
+error_token(Text) -->
+	[ literal(Literal) ], !,
+	{ literal_text(Literal, Text) }.
+error_token(Text) -->
+	[ URIToken ],
+	{ uri_text(URIToken, Text) }, !.
+error_token(Punct) -->
+	[ Punct ],
+	{ atom(Punct) }, !.
+error_token(Rest) -->
+	[ H ],
+	{ term_to_atom(H, Rest) }.
+
+literal_text(type(Type, Value), Text) :- !,
+	uri_text(Type, TypeText),
+	format(atom(Text), '"~w"^^~w', [Value, TypeText]).
+
+uri_text(relative_uri(URI), Text) :-
+	format(atom(Text), '<~w>', [URI]).
+uri_text(:(Name), Text) :-
+	format(atom(Text), ':~w', [Name]).
+
+
 
 
 		 /*******************************
@@ -807,17 +866,22 @@ turtle_ws(0xA).
 turtle_ws(0xD).
 turtle_ws(0x20).
 
-syntax_error(Stream, -1, Which) :- !,
+syntax_error(Stream, Line, Which) :-
+	syntax_error_term(Stream, Line, Which, Error),
+	throw(Error).
+
+syntax_error_term(Stream, -1, Which, Error) :- !,
 	stream_property(Stream, file_name(File)),
 	line_count(Stream, LineNo),
 	line_position(Stream, LinePos),
 	character_count(Stream, CharIndex),
-	throw(error(syntax_error(Which),
-		    file(File, LineNo, LinePos, CharIndex))).
-syntax_error(Stream, LineNo, Which) :-
+	Error = error(syntax_error(Which),
+		      file(File, LineNo, LinePos, CharIndex)).
+syntax_error_term(Stream, LineNo, Which, Error) :-
 	stream_property(Stream, file_name(File)),
-	throw(error(syntax_error(Which),
-		    file(File, LineNo, -1, -1))).
+	Error = error(syntax_error(Which),
+		      file(File, LineNo, -1, -1)).
+
 
 		 /*******************************
 		 *	    RDF-DB HOOK		*
