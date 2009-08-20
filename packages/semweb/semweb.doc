@@ -58,7 +58,7 @@ point of orientation for knowledge representation in the future, making
 a library designed in its spirit promising.
 
 
-\section{Modules}
+\section{Provided libraries}
 
 Central to this library is the module \pllib{semweb/rdf_db.pl},
 providing storage and basic querying for RDF triples. This triple store
@@ -79,7 +79,7 @@ the database. Figure \figref{modules} summarised the modular design.
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{Module semweb/rdf_db}
+\section{Library semweb/rdf_db}
 
 The central module is called \file{rdf_db}.  It provides storage and
 indexed querying of RDF triples.  Triples are stored as a quintuple.
@@ -1567,7 +1567,7 @@ Unify \arg{Keys} with the total key-count of the index and
 		 %	    PERSISTENCY		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Module semweb/rdf_persistency}
+\subsection{Library semweb/rdf_persistency}
 \label{sec:persistency}
 
 \index{Persistent store}%
@@ -1775,7 +1775,7 @@ in the directory described by rdf_current_db/1 and has the extension
 		 %	       RDFS		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module semweb/rdfs}
+\section{Library semweb/rdfs}
 \label{sec:rdfs}
 
 \index{RDF-Schema}%
@@ -1908,25 +1908,10 @@ the match was found.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		 %	       OWL		%
-		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{OWL}				\label{sec:owl}
-
-\index{OWL}%
-The current SemWeb library distributed with SWI-Prolog does not yet
-contain an OWL module.  A module \file{owl.pl} is part of the
-\url[Triple20]{http://www.swi-prolog.org/packages/Triple20/}
-triple browser and editor provides limited support for OWL
-reasoning.
-
-
-
-		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	     RDF-EDIT		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module semweb/rdf_edit}			\label{sec:rdfedit}
+\section{Library semweb/rdf_edit}			\label{sec:rdfedit}
 
 \begin{quote}\em
 It is anticipated that this library will eventually be superseeded by
@@ -2187,6 +2172,18 @@ servers from Java, while the Prolog client can be used to access the
 Sesame SeRQL server.  For further details, see the
 \url[project
 home]{http://gollem.science.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	       OWL		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{OWL}				\label{sec:owl}
+
+\index{OWL}%
+The SWI-Prolog Semantic Web library provides no direct support for OWL.
+OWL(-2) support is provided through Thea, an OWL library for SWI-Prolog
+See \url{http://www.semanticweb.gr/TheaOWLLib/}.
 
 
 \section*{Acknowledgements}
