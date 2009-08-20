@@ -179,6 +179,7 @@ error_option(State, Options) :-
 process_stream(State, In, OnObject) :-
 	read_turtle_tokens(In, Tokens, State),
 	debug(turtle, 'Tokens: ~w~n', [Tokens]),
+	ttl_state_line_no(State, LineNo),
 	(   Tokens == end_of_file
 	->  true
 	;   catch(phrase(triples(State, Triples), Tokens), E, true)
