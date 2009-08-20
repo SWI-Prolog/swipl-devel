@@ -733,9 +733,9 @@ param(param(Name,Descr)) -->
 
 file_header(File, Options) -->
 	{ memberchk(file(Title, Comment), Options), !,
-	  file_base_name(File, Base)
+	  file_synopsis(File, Synopsis)
 	},
-	file_title([Base, ' -- ', Title], File, Options),
+	file_title([Synopsis, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
 	  string_to_list(Comment, Codes),
 	  indented_lines(Codes, Prefixes, Lines),
@@ -746,14 +746,22 @@ file_header(File, Options) -->
 	latex(DOM),
 	latex(cmd(vspace('0.7cm'))).
 file_header(File, Options) -->
-	{ file_base_name(File, Base)
+	{ file_synopsis(File, Synopsis)
 	},
-	file_title([Base], File, Options).
+	file_title([Synopsis], File, Options).
 
 tags_to_front(DOM0, DOM) :-
 	append(Content, [\tags(Tags)], DOM0), !,
 	DOM = [\tags(Tags)|Content].
 tags_to_front(DOM, DOM).
+
+file_synopsis(File, Synopsis) :-
+	file_name_on_path(File, Term),
+	(   Term = library(Lib)
+	->  format(atom(Synopsis), 'Library ~w', [Lib])
+	;   format(atom(Synopsis), '~w', [Term])
+	).
+
 
 %%	file_title(+Title:list, +File, +Options)// is det
 %
