@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2007, University of Amsterdam
+    Copyright (C): 2004-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 
 :- module(rdf_turtle,
 	  [ rdf_load_turtle/3,		% +Input, -Triples, +Options
+	    rdf_read_turtle/3,		% +Input, -Triples, +Options
 	    rdf_process_turtle/3	% +Input, :OnObject, +Options
 	  ]).
 :- use_module(library(assoc)).
@@ -50,14 +51,17 @@ This module implements the Turtle  language   for  representing  the RDF
 triple model as defined by Dave Beckett  from the Institute for Learning
 and Research Technology University of Bristol in the document:
 
-	* http://www.w3.org/TeamSubmission/turtle/
-	* http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/ (original)
+  * http://www.w3.org/TeamSubmission/turtle/
+  * http://www.w3.org/TeamSubmission/2008/SUBM-turtle-20080114/#sec-conformance
 
-The current parser handles all positive   and negative examples provided
-by the above document at october 17, 2004.
+This parser passes all tests,  except   for  test-28.ttl  (decial number
+serialization) and test-29.ttl (uri containing  ...%&...). It is unclear
+to me whether these tests are correct. Notably, it is unclear whether we
+must do %-decoding. Certainly, this  is   expected  by various real-life
+datasets that we came accross with.
 
-@tbd	* Much better error handling
-	* Write turtle data
+@tbd Much better error handling
+@tbd Currently rdf_load_turtle
 */
 
 :- record ttl_state(base_uri,
@@ -69,7 +73,7 @@ by the above document at october 17, 2004.
 		    input,
 		    line_no=0).
 
-%%	rdf_load_turtle(+Input, -Triples, +Options)
+%%	rdf_read_turtle(+Input, -Triples, +Options)
 %
 %	Read a stream or file into a set of triples of the format
 %
@@ -98,7 +102,7 @@ by the above document at october 17, 2004.
 %		Base URI used for processing the data.  Unified to
 %		[] if there is no base-uri.
 
-rdf_load_turtle(In, Triples, Options) :-
+rdf_read_turtle(In, Triples, Options) :-
 	open_input(In, Stream, Close),
 	init_state(In, Stream, Options, State),
 	call_cleanup(phrase(turtle_file(State, Stream), Triples),
@@ -106,10 +110,21 @@ rdf_load_turtle(In, Triples, Options) :-
 	post_options(State, Options).
 
 
+%%	rdf_load_turtle(+Input, -Triples, +Options)
+%
+%	@deprecated Use rdf_read_turtle/3
+
+rdf_load_turtle(Input, Triples, Options) :-
+	rdf_read_turtle(Input, Triples, Options).
+
+
 %%	rdf_process_turtle(+Input, :OnObject, +Options) is det.
 %
-%	Process Turtle input from Input, calling OnObject with a list
-%	of triples.  Options is the same as for rdf_load_turtle/3.
+%	Process Turtle input from Input, calling OnObject with a list of
+%	triples. Options is the same as for rdf_load_turtle/3.
+%
+%	Errors encountered are sent to  print_message/2, after which the
+%	parser tries to recover and parse the remainder of the data.
 
 rdf_process_turtle(In, OnObject, Options) :-
 	open_input(In, Stream, Close),
@@ -355,10 +370,13 @@ object(State, _, _, _) -->
 %
 %	Turtle normalisation of numbers. Currently  only implemented for
 %	integers. This ensures that 0001 is parsed as "1"^^xsd:integer.
+%
+%	Hmmm.  Acording to test-10.ttl, this must *not* be done, so for
+%	now we disable all normalization.
 
-normalise_number(integer, Codes, N) :- !,
-	number_codes(I, Codes),
-	atom_number(N, I).
+%normalise_number(integer, Codes, N) :-
+%	number_codes(I, Codes),
+%	atom_number(N, I).
 normalise_number(_, Codes, N) :-
 	atom_codes(N, Codes).
 
@@ -752,7 +770,7 @@ string_escape(0'u, In, C, Code) :- !,
 string_escape(0'U, In, C, Code) :- !,
 	get_hhhh(In, Code0),
 	get_hhhh(In, Code1),
-	Code is Code0 << 16 + Code1,
+	Code is Code0 << 32 + Code1,
 	get_code(In, C).
 
 get_hhhh(In, Code) :-
