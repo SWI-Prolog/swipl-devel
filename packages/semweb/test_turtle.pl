@@ -33,14 +33,35 @@
 	  [ test_turtle/0
 	  ]).
 :- asserta(user:file_search_path(library, '..')).
+:- asserta(user:file_search_path(library, '../clib')).
+:- asserta(user:file_search_path(library, '../sgml')).
+:- asserta(user:file_search_path(library, '../sgml/RDF')).
+:- asserta(user:file_search_path(foreign, '.')).
+:- asserta(user:file_search_path(foreign, '../sgml')).
+:- asserta(user:file_search_path(foreign, '../clib')).
 
 :- use_module(library(semweb/rdf_turtle)).
+:- use_module(library(semweb/rdf_db)).
 :- use_module(library(rdf_ntriples)).
 :- use_module(library(apply)).
-:- use_module(library('semweb/rdf_db')).
+:- use_module(library(debug)).
+
+:- dynamic
+	error/1,
+	passed/1.
 
 test_turtle :-
-	test_dir('Tests/Turtle').
+	retractall(error(_)),
+	retractall(passed(_)),
+	test_dir('Tests/Turtle'),
+	(   error(_)
+	->  fail
+	;   findall(X, passed(X), Xs),
+	    length(Xs, N),
+	    format('All ~D Turtle tests passed~n', [N])
+	).
+
+%:- debug(test_turtle).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handle the test-cases provided with the Turtle language definition.
@@ -55,15 +76,15 @@ test_file(File) :-
 	file_base_name(File, Base),
 	atom_concat(bad, _, Base), !,
 	file_base_name(File, BaseName),
-	format('Negative test ~w ...', [BaseName]), flush_output,
+	debug(test_turtle, 'Negative test ~w ...', [BaseName]),
 	catch(load_turtle(File, _Triples), E, true),
 	(   nonvar(E)
-	->  format('ok~n')
-	;   format(' SHOULD FAIL~n')
+	->  print_message(informational, test_turtle(true, BaseName))
+	;   print_message(error, test_turtle(false, BaseName))
 	).
 test_file(File) :-
 	file_base_name(File, BaseName),
-	format('Test ~w ...', [BaseName]), flush_output,
+	debug(test_turtle, 'Test ~w ...', [BaseName]),
 	load_turtle(File, Triples),
 	file_name_extension(Base, ttl, File),
 	file_name_extension(Base, out, OkFile),
@@ -71,8 +92,14 @@ test_file(File) :-
 	maplist(canonical_triple, OkTriples0, OkTriples),
 	sort(Triples, Turtle),
 	sort(OkTriples, OK),
-	report_diff(OK, Turtle),
-	format(' done~n').
+	(   compare_triples(OK, Turtle, _)
+	->  print_message(informational, test_turtle(true, BaseName))
+	;   print_message(error, test_turtle(false, BaseName)),
+	    (	debugging(test_turtle)
+	    ->	report_diff(OK, Turtle)
+	    ;	true
+	    )
+	).
 
 load_turtle(File, Triples) :-
 	file_base_name(File, Base),
@@ -188,3 +215,20 @@ node_id(node(_)) :- !.
 node_id(X) :-
 	atom(X),
 	sub_atom(X, 0, _, _, '__').
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(test_turtle(true, Test)) -->
+	{ assert(passed(Test)) },
+	[ 'Turtle test ~q: ~tpassed~42|'-[Test] ].
+prolog:message(test_turtle(false, Test)) -->
+	{ assert(error(Test)) },
+	[ 'Turtle test ~q: ~tFAILED~42|'-[Test], nl,
+	  'Re-run with "?- debug(test_turtle)." to see more details'-[]
+	].
