@@ -38,6 +38,7 @@
 :- use_module(library('semweb/rdf_db')).
 :- use_module(library(debug)).
 :- use_module(library(url)).
+:- use_module(library(record)).
 :- use_module(library(http/http_open)).
 
 :- meta_predicate
@@ -58,6 +59,15 @@ by the above document at october 17, 2004.
 @tbd	* Much better error handling
 	* Write turtle data
 */
+
+:- record ttl_state(base_uri,
+		    prefix_map,
+		    nodeid_map,
+		    anon_prefix,
+		    anon_count=0,
+		    graph,
+		    input,
+		    line_no=0).
 
 %%	rdf_load_turtle(+Input, -Triples, +Options)
 %
@@ -115,27 +125,27 @@ post_options(State, Options) :-
 
 prefix_option(State, Options) :-
 	(   option(prefixes(Pairs), Options)
-	->  arg(2, State, Map),
+	->  ttl_state_prefix_map(State, Map),
 	    assoc_to_list(Map, Pairs)
 	;   true
 	).
 namespace_option(State, Options) :-
 	(   option(namespaces(Pairs), Options)
-	->  arg(2, State, Map),
+	->  ttl_state_prefix_map(State, Map),
 	    assoc_to_list(Map, Pairs)
 	;   true
 	).
 
 base_option(State, Options) :-
 	(   option(base_used(Base), Options)
-	->  arg(1, State, Base)
+	->  ttl_state_base_uri(State, Base)
 	;   true
 	).
 
 
 process_stream(State, In, OnObject) :-
 	line_count(In, LineNo),
-	nb_setarg(8, State, LineNo),
+	nb_set_line_no_of_ttl_state(LineNo, State),
 	(   turtle_tokens(In, Tokens)
 	->  debug(turtle, 'Tokens: ~w~n', [Tokens]),
 	    (   Tokens == end_of_file
@@ -144,7 +154,7 @@ process_stream(State, In, OnObject) :-
 	    ->  (   var(E)
 		->  (   Triples == []
 		    ->  true
-		    ;   arg(6, State, DB),
+		    ;   ttl_state_graph(State, DB),
 			call(OnObject, Triples, DB:LineNo)
 		    )
 		;   print_message(error, E)
@@ -212,16 +222,7 @@ The parser is a two-stage processor. The  first reads the raw file input
 and generates a list of tokens, stripping   comments and white space. It
 is defined to read a single  statement   upto  its  terminating '.'. The
 second stage is a traditional DCG parser  generating the triples for the
-statement. State:
-
-	| arg(1) | -BaseURI		|
-	| arg(2) | Prefix --> URI map	|
-	| arg(3) | NodeID --> URI map	|
-	| arg(4) | AnonPrefix		|
-	| arg(5) | AnonCount		|
-	| arg(6) | DB			|
-	| arg(7) | Input		|
-	| arg(8) | StartLine		|
+statement.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 init_state(In, Stream, Options, State) :-
@@ -242,12 +243,18 @@ init_state(In, Stream, Options, State) :-
 	option(db(DB), Options, BaseURI),
 	empty_assoc(Map),
 	empty_assoc(NodeMap),
-	State = state(BaseURI, Map, NodeMap, Prefix, 1, DB, Stream, 0).
+	make_ttl_state([ base_uri(BaseURI),
+			 prefix_map(Map),
+			 nodeid_map(NodeMap),
+			 anon_prefix(Prefix),
+			 graph(DB),
+			 input(Stream)
+		       ], State).
 
 
 turtle_file(State, In) -->
 	{ line_count(In, LineNo),
-	  nb_setarg(8, State, LineNo),
+	  nb_set_line_no_of_ttl_state(LineNo, State),
 	  (   turtle_tokens(In, Tokens)
 	  ->  debug(turtle, 'Tokens: ~w~n', [Tokens])
 	  ;   syntax_error(In, LineNo, illegal_token)
@@ -265,19 +272,19 @@ turtle_file(State, In) -->
 triples(State, []) -->
 	[ '@', name(prefix), name(Prefix), : ], !,
 	uri(State, URI),
-	{ arg(2, State, Map0),
+	{ ttl_state_prefix_map(State, Map0),
 	  put_assoc(Prefix, Map0, URI, Map),
-	  setarg(2, State, Map)
+	  set_prefix_map_of_ttl_state(Map, State)
 	}.
 triples(State, []) -->
 	[ '@', name(prefix), ':' ], !,
 	uri(State, URI),
-	{ setarg(1, State, URI)
+	{ set_base_uri_of_ttl_state(URI, State)
 	}.
 triples(State, []) -->
 	[ '@', name(base) ], !,
 	uri(State,URI),
-	{ setarg(1, State, URI)
+	{ set_base_uri_of_ttl_state(URI, State)
 	}.
 triples(State, Triples) -->
 	subject(State, Subject, Triples, T),
@@ -361,19 +368,19 @@ resource(State, IRI) -->
 	iri(State, IRI), !.
 resource(State, IRI) -->
 	[ :(Name) ], !,
-	{ arg(1, State, Base),
+	{ ttl_state_base_uri(State, Base),
 	  atom_concat(Base, Name, URI),
 	  url_iri(URI, IRI)
 	}.
 resource(State, IRI) -->
 	[ name(Prefix), : ], !,
-	{ arg(2, State, Map),
+	{ ttl_state_prefix_map(State, Map),
 	  get_assoc(Prefix, Map, URI),
 	  url_iri(URI, IRI)
 	}.
 resource(State, IRI) -->
 	[ Prefix:Name ], !,
-	{ arg(2, State, Map),
+	{ ttl_state_prefix_map(State, Map),
 	  (   get_assoc(Prefix, Map, Base)
 	  ->  atom_concat(Base, Name, URI),
 	      url_iri(URI, IRI)
@@ -382,7 +389,7 @@ resource(State, IRI) -->
 	}.
 resource(State, IRI) -->
 	[ : ], !,
-	{ arg(1, State, BaseURI),
+	{ ttl_state_base_uri(State, BaseURI),
 	  url_iri(BaseURI, IRI)
 	}.
 
@@ -390,7 +397,7 @@ resource(State, IRI) -->
 uri(State, URI) -->
 	[ relative_uri(Rel)
 	],
-	{ arg(1, State, Base),
+	{ ttl_state_base_uri(State, Base),
 	  (   Rel == ''			% must be in global_url?
 	  ->  URI = Base
 	  ;   global_url(Rel, Base, URI)
@@ -404,12 +411,12 @@ iri(State, IRI) -->
 
 blank(State, Resource, T, T) -->
 	[ nodeId(NodeId) ], !,
-	{ arg(3, State, IdMap),
+	{ ttl_state_nodeid_map(State, IdMap),
 	  (   get_assoc(NodeId, IdMap, Resource)
 	  ->  true
 	  ;   anonid(State, NodeId, Resource),
 	      put_assoc(NodeId, IdMap, Resource, NewIdMap),
-	      setarg(3, State, NewIdMap)
+	      set_nodeid_map_of_ttl_state(NewIdMap, State)
 	  )
 	}.
 blank(State, Resource, T, T) -->
@@ -444,41 +451,41 @@ item_list(State, Resource, T0, T) -->
 
 
 anonid(State, Node) :-
-	arg(4, State, AnonPrefix),
-	arg(5, State, Count),
+	ttl_state_anon_prefix(State, AnonPrefix),
+	ttl_state_anon_count(State, C0),
+	Count is C0 + 1,
+	set_anon_count_of_ttl_state(Count, State),
 	(   atom(AnonPrefix)
 	->  atom_concat(AnonPrefix, Count, Node)
 	;   Node = node(Count)
-	),
-	C2 is Count + 1,
-	setarg(5, State, C2).
+	).
 
 anonid(State, _NodeId, Node) :-
-	arg(4, State, AnonPrefix),
+	ttl_state_anon_prefix(State, AnonPrefix),
 	atom(AnonPrefix), !,
 	anonid(State, Node).
 anonid(_State, NodeId, node(NodeId)).
 
 mk_object(type(Prefix:Name, Value), State, literal(type(Type, Value))) :- !,
-	  arg(2, State, Map),
+	  ttl_state_prefix_map(State, Map),
 	  get_assoc(Prefix, Map, Base),
 	  atom_concat(Base, Name, Type).
 mk_object(type(relative_uri(Rel), Value), State, literal(type(Type, Value))) :- !,
-	  arg(1, State, Base),
+	  ttl_state_base_uri(State, Base),
 	  (   Rel == ''			% must be in global_url?
 	  ->  Type = Base
 	  ;   global_url(Rel, Base, Type)
 	  ).
 mk_object(type(:(Name), Value), State, literal(type(Type, Value))) :- !,
-	  arg(1, State, Base),
+	  ttl_state_base_uri(State, Base),
 	  atom_concat(Base, Name, Type).
 mk_object(Value, _State, literal(Value)).
 
 syntax_rule(State, Error) -->
 	error_tokens(5, Tokens),
-	{ arg(7, State, Stream),
+	{ ttl_state_input(State, Stream),
 	  stream_property(Stream, file_name(File)),
-	  arg(8, State, LineNo),
+	  ttl_state_line_no(State, LineNo),
 	  atomic_list_concat(Tokens, ' ', Before),
 	  format(string(Msg), '~w:~d (before "~w ...")',
 		 [File, LineNo, Before]),
