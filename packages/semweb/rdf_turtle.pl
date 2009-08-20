@@ -342,6 +342,12 @@ object(State, Object, T, T) -->
 	resource(State, Object), !.
 object(State, Object, T0, T) -->
 	blank(State, Object, T0, T), !.
+object(_, Object, T, T) -->
+	[ name(Bool) ],
+	{ boolean(Bool),
+	  Object = literal(type(BoolType, Bool)),
+	  rdf_equal(BoolType, xsd:boolean)
+	}.
 object(State, _, _, _) -->
 	syntax_rule(State, expected_object).
 
@@ -363,6 +369,9 @@ term_expansion(numeric_url(I, Local),
 numeric_url(integer, xsd:integer).
 numeric_url(decimal, xsd:decimal).
 numeric_url(double,  xsd:double).
+
+boolean(true).
+boolean(false).
 
 resource(State, IRI) -->
 	iri(State, IRI), !.
@@ -482,7 +491,7 @@ mk_object(type(:(Name), Value), State, literal(type(Type, Value))) :- !,
 mk_object(Value, _State, literal(Value)).
 
 syntax_rule(State, Error) -->
-	error_tokens(5, Tokens),
+	error_tokens(7, Tokens),
 	{ ttl_state_input(State, Stream),
 	  stream_property(Stream, file_name(File)),
 	  ttl_state_line_no(State, LineNo),
@@ -493,12 +502,19 @@ syntax_rule(State, Error) -->
 		      context(_, Msg)))
 	}.
 
+%%	error_tokens(+Count, -Tokens) is det.
+%
+%	Return maximum Count tokens,  converted   back  to  turtle input
+%	syntax.
+
 error_tokens(N, [H|T]) -->
 	{ succ(N2, N) },
 	error_token(H), !,
 	error_tokens(N2, T).
 error_tokens(_, []) --> [].
 
+error_token(Name) -->
+	[ name(Name) ], !.
 error_token(Text) -->
 	[ numeric(_, Codes) ], !,
 	{ atom_codes(Text, Codes) }.
