@@ -43,6 +43,7 @@
 
 :- use_module(library(semweb/rdf_turtle)).
 :- use_module(library(semweb/rdf_db)).
+:- use_module(library(semweb/rdf_compare)).
 :- use_module(library(rdf_ntriples)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
@@ -50,12 +51,20 @@
 
 :- dynamic
 	error/1,
-	passed/1.
+	passed/1,
+	this_dir/1.
+
+:- retractall(this_dir(_)),
+   prolog_load_context(directory, Dir),
+   asserta(this_dir(Dir)).
+
 
 test_turtle :-
 	retractall(error(_)),
 	retractall(passed(_)),
-	test_dir('Tests/Turtle'),
+	this_dir(Dir),
+	atom_concat(Dir, '/Tests/Turtle', TestDir),
+	test_dir(TestDir),
 	(   error(_)
 	->  fail
 	;   aggregate_all(count, passed(_), Passed),
@@ -65,7 +74,8 @@ test_turtle :-
 	).
 
 test_turtle(File) :-
-	atom_concat('Tests/Turtle/', File, FullFile),
+	this_dir(Here),
+	atomic_list_concat([Here, '/Tests/Turtle/', File], FullFile),
 	test_file(FullFile).
 
 %%	blocked(?Test)
@@ -122,7 +132,7 @@ test_file(File) :-
 	maplist(canonical_triple, OkTriples0, OkTriples),
 	sort(Triples, Turtle),
 	sort(OkTriples, OK),
-	(   compare_triples(OK, Turtle, _)
+	(   rdf_equal_graphs(OK, Turtle, _)
 	->  test_passed(BaseName)
 	;   print_message(error, test_turtle(false, BaseName)),
 	    (	debugging(test_turtle)
@@ -155,7 +165,7 @@ canonical_node(node(GenId), node(N)) :-
 canonical_node(Node, Node).
 
 report_diff(OK, Result) :-
-	compare_triples(OK, Result, _), !.
+	rdf_equal_graphs(OK, Result, _), !.
 report_diff(OK, Result) :-
 	subtract(OK, Result, Missing),
 	subtract(Result, OK, TooMany),
@@ -208,45 +218,6 @@ write_cell(R) :-
 	format('<!~w>', [R]).
 write_cell(X) :-
 	format('~p', [X]).
-
-		 /*******************************
-		 *	      COMPARE		*
-		 *******************************/
-
-%%	compare_triples(+PlRDF, +NTRDF, -Substitions)
-%
-%	Compare two models and if they are equal, return a list of
-%	PlID = NTID, mapping NodeID elements.
-
-
-compare_triples(A, B, Substitutions) :-
-	compare_list(A, B, [], Substitutions), !.
-
-compare_list([], [], S, S).
-compare_list([H1|T1], In2, S0, S) :-
-	select(H2, In2, T2),
-	compare_triple(H1, H2, S0, S1),
-	compare_list(T1, T2, S1, S).
-
-compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
-	compare_field(Subj1, Subj2, S0, S1),
-	compare_field(P1, P2, S1, S2),
-	compare_field(O1, O2, S2, S).
-
-compare_field(X, X, S, S) :- !.
-compare_field(literal(X), xml(X), S, S) :- !. % TBD
-compare_field(X, Id, S, S) :-
-	memberchk(X=Id, S), !.
-compare_field(X, Y, S, [X=Y|S]) :-
-	\+ memberchk(X=_, S),
-	node_id(X),
-	node_id(Y),
-	debug(rdf_compare, 'Assume ~w = ~w~n', [X, Y]).
-
-node_id(node(_)) :- !.
-node_id(X) :-
-	atom(X),
-	sub_atom(X, 0, _, _, '__').
 
 
 		 /*******************************

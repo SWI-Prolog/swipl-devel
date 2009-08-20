@@ -37,7 +37,7 @@ PUBLICPL=pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=semweb
-TEX=$(DOC).tex rdfturtle.tex
+TEX=$(DOC).tex rdfturtle.tex rdfcompare.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=@RUNTEX@
@@ -51,7 +51,8 @@ INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl \
 		rdf_persistency.pl rdf_turtle.pl rdf_cache.pl \
-		rdf_http_plugin.pl rdf_zlib_plugin.pl
+		rdf_http_plugin.pl rdf_zlib_plugin.pl \
+		rdf_compare.pl
 
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 TARGETS=	rdf_db.@SO@
@@ -124,6 +125,8 @@ $(TEX):		$(DOCTOTEX)
 
 rdfturtle.tex:	rdf_turtle.pl
 		$(PLTOTEX) --section 'library(semweb/rdf_turtle)'
+rdfcompare.tex:	rdf_compare.pl
+		$(PLTOTEX) --section 'library(semweb/rdf_compare)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
