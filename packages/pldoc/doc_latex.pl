@@ -1292,6 +1292,7 @@ print_char('>', Out) :- !, write(Out, '$>$').
 print_char('{', Out) :- !, write(Out, '\\{').
 print_char('}', Out) :- !, write(Out, '\\}').
 print_char('$', Out) :- !, write(Out, '\\$').
+print_char('&', Out) :- !, write(Out, '\\&').
 print_char('#', Out) :- !, write(Out, '\\#').
 print_char('%', Out) :- !, write(Out, '\\%').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
