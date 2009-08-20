@@ -1,6 +1,6 @@
 These are the tests for the Turtle Terse RDF Triple Language
 that must be passed by conformant systems.  See
-  http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/
+  http://www.dajobe.org/2004/01/turtle/
 for the full conformance information.
 
 The format is a set of good tests and bad tests.
@@ -15,6 +15,6 @@ bad tests are of the form
 which must fail.
 
 The tests should be performed with an assumed base URI
-of http://www.redland.opensource.ac.uk/raptor/tests/turtle/
+of http://www.w3.org/2001/sw/DataAccess/df1/tests/
 
 Dave
