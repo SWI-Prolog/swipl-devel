@@ -84,10 +84,11 @@ test_file(File) :-
 	).
 test_file(File) :-
 	file_base_name(File, BaseName),
-	debug(test_turtle, 'Test ~w ...', [BaseName]),
-	load_turtle(File, Triples),
 	file_name_extension(Base, ttl, File),
 	file_name_extension(Base, out, OkFile),
+	exists_file(OkFile), !,
+	debug(test_turtle, 'Test ~w ...', [BaseName]),
+	load_turtle(File, Triples),
 	load_rdf_ntriples(OkFile, OkTriples0),
 	maplist(canonical_triple, OkTriples0, OkTriples),
 	sort(Triples, Turtle),
@@ -100,6 +101,7 @@ test_file(File) :-
 	    ;	true
 	    )
 	).
+test_file(_).				% not a test
 
 load_turtle(File, Triples) :-
 	file_base_name(File, Base),
