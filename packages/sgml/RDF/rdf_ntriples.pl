@@ -187,6 +187,20 @@ escaped_uri_codes([C|T]) -->
 	},
 	escaped_uri_codes(T).
 escaped_uri_codes([C|T]) -->
+	"\\U", [D0,D1,D2,D3,D4,D5,D6,D7], !,
+	{ code_type(D0, xdigit(V0)),
+	  code_type(D1, xdigit(V1)),
+	  code_type(D2, xdigit(V2)),
+	  code_type(D3, xdigit(V3)),
+	  code_type(D4, xdigit(V4)),
+	  code_type(D5, xdigit(V5)),
+	  code_type(D6, xdigit(V6)),
+	  code_type(D7, xdigit(V7)),
+	  C is V0<<28 + V1<<24 + V2<<20 + V3<<16 +
+	       V4<<12 + V5<<8 + V6<<4 + V7
+	},
+	escaped_uri_codes(T).
+escaped_uri_codes([C|T]) -->
 	[C],
 	escaped_uri_codes(T).
 
@@ -249,10 +263,10 @@ string_char(C) -->
 	"\\u",
 	'4xdigits'(C).
 string_char(C) -->
-	"\\u",
+	"\\U",
 	'4xdigits'(C0),
 	'4xdigits'(C1),
-	{ C is C0<<16 + C1
+	{ C is C0<<32 + C1
 	}.
 string_char(C) -->
 	[C].
