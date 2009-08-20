@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -52,6 +52,7 @@ rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 		  [ header(content_type, Type),
 		    request_header('Accept' = 'text/rdf+xml; q=1, \
 					       application/rdf+xml; q=1, \
+					       text/turtle; q=0.9, \
 					       application/x-turtle; q=0.9, \
 					       text/xml; q=0.5, \
 					       text/html; q=0.5, \
@@ -76,6 +77,7 @@ guess_format('text/rdf+xml',	      _, xml).
 guess_format('application/rdf+xml',   _, xml).
 guess_format('application/x-turtle',  _, turtle).
 guess_format('application/turtle',    _, turtle).
+guess_format('text/turtle',	      _, turtle).
 guess_format('text/rdf+n3',	      _, turtle). % Bit dubious
 guess_format('text/html',	      _, xhtml).
 guess_format('application/xhtml+xml', _, xhtml).
