@@ -45,7 +45,7 @@
 :- meta_predicate
 	rdf_process_turtle(+,2,+).
 
-/** <module> Turtle - Terse RDF Triple Language
+/** <module> Turtle: Terse RDF Triple Language
 
 This module implements the Turtle  language   for  representing  the RDF
 triple model as defined by Dave Beckett  from the Institute for Learning
@@ -60,8 +60,10 @@ to me whether these tests are correct. Notably, it is unclear whether we
 must do %-decoding. Certainly, this  is   expected  by various real-life
 datasets that we came accross with.
 
-@tbd Much better error handling
-@tbd Currently rdf_load_turtle
+This module acts as a plugin to   rdf_load/2,  for processing files with
+one of the extensions =|.ttl|=, =|.n3|= or =|.nt|=.
+
+@tbd Better error handling
 */
 
 :- record ttl_state(base_uri,
@@ -71,7 +73,9 @@ datasets that we came accross with.
 		    anon_count=0,
 		    graph,
 		    input,
-		    line_no=0).
+		    line_no=0,
+		    on_error:oneof([warning,error])=warning,
+		    error_count=0).
 
 %%	rdf_read_turtle(+Input, -Triples, +Options)
 %
@@ -101,6 +105,15 @@ datasets that we came accross with.
 %		* base_used(-Base)
 %		Base URI used for processing the data.  Unified to
 %		[] if there is no base-uri.
+%
+%		* on_error(+ErrorMode)
+%		In =warning= (default), print the error and continue
+%		parsing the remainder of the file.  If =error=, abort
+%		with an exception on the first error encountered.
+%
+%		* error_count(-Count)
+%		If on_error(warning) is active, this option cane be
+%		used to retrieve the number of generated errors.
 
 rdf_read_turtle(In, Triples, Options) :-
 	open_input(In, Stream, Close),
@@ -136,7 +149,8 @@ rdf_process_turtle(In, OnObject, Options) :-
 post_options(State, Options) :-
 	prefix_option(State, Options),
 	namespace_option(State, Options),
-	base_option(State, Options).
+	base_option(State, Options),
+	error_option(State, Options).
 
 prefix_option(State, Options) :-
 	(   option(prefixes(Pairs), Options)
@@ -150,58 +164,55 @@ namespace_option(State, Options) :-
 	    assoc_to_list(Map, Pairs)
 	;   true
 	).
-
 base_option(State, Options) :-
 	(   option(base_used(Base), Options)
 	->  ttl_state_base_uri(State, Base)
 	;   true
 	).
+error_option(State, Options) :-
+	(   option(error_count(Count), Options)
+	->  ttl_state_error_count(State, Count)
+	;   true
+	).
 
 
 process_stream(State, In, OnObject) :-
-	line_count(In, LineNo),
-	nb_set_line_no_of_ttl_state(LineNo, State),
-	(   turtle_tokens(In, Tokens)
-	->  debug(turtle, 'Tokens: ~w~n', [Tokens]),
-	    (   Tokens == end_of_file
-	    ->  true
-	    ;   catch(phrase(triples(State, Triples), Tokens), E, true)
-	    ->  (   var(E)
-		->  (   Triples == []
-		    ->  true
-		    ;   ttl_state_graph(State, DB),
-			call(OnObject, Triples, DB:LineNo)
-		    )
-		;   print_message(error, E)
-		),
-		process_stream(State, In, OnObject)
-	    ;   syntax_error_term(In, LineNo, cannot_parse, Error),
-		print_message(error, Error)
-	    )
-	;   syntax_error_term(In, LineNo, illegal_token, Error),
-	    print_message(error, Error),
-	    skip_statement(In),
+	read_turtle_tokens(In, Tokens, State),
+	debug(turtle, 'Tokens: ~w~n', [Tokens]),
+	(   Tokens == end_of_file
+	->  true
+	;   catch(phrase(triples(State, Triples), Tokens), E, true)
+	->  (   var(E)
+	    ->  (   Triples == []
+		->  true
+		;   ttl_state_graph(State, DB),
+		    call(OnObject, Triples, DB:LineNo)
+		)
+	    ;   print_message(error, E)
+	    ),
+	    process_stream(State, In, OnObject)
+	;   syntax_error_term(In, LineNo, cannot_parse, Error),
+	    step_error(State, Error),
 	    process_stream(State, In, OnObject)
 	).
 
-%%	skip_statement(+In)
+
+%%	step_error(+State, +Error) is det.
 %
-%	Skip to the end of the statement
+%	Throw Error of =on_error= is =error=.  Otherwise print the error
+%	and increment =error_count=.
+%
+%	@error syntax_error(Culprit).
 
-skip_statement(In) :-
-	get_code(In, C0),
-	skip_statement(C0, In).
+step_error(State, Error) :-
+	ttl_state_on_error(State, error), !,
+	throw(Error).
+step_error(State, Error) :-
+	ttl_state_error_count(State, E0),
+	succ(E0, E),
+	nb_set_error_count_of_ttl_state(E, State),
+	print_message(error, Error).
 
-skip_statement(-1, _) :- !.
-skip_statement(0'., In) :-
-	get_code(C, In),
-	(   turtle_ws(C)
-	->  !
-	;   skip_statement(C, In)
-	).
-skip_statement(_, In) :-
-	get_code(C, In),
-	skip_statement(C, In).
 
 %%	open_input(+Input, -Stream, -Close) is det.
 %
@@ -256,6 +267,7 @@ init_state(In, Stream, Options, State) :-
 	;   atom_concat('__', BaseURI, Prefix)
 	),
 	option(db(DB), Options, BaseURI),
+	option(on_error(OnError), Options, warning),
 	empty_assoc(Map),
 	empty_assoc(NodeMap),
 	make_ttl_state([ base_uri(BaseURI),
@@ -263,26 +275,33 @@ init_state(In, Stream, Options, State) :-
 			 nodeid_map(NodeMap),
 			 anon_prefix(Prefix),
 			 graph(DB),
-			 input(Stream)
+			 input(Stream),
+			 on_error(OnError)
 		       ], State).
 
 
 turtle_file(State, In) -->
-	{ line_count(In, LineNo),
-	  nb_set_line_no_of_ttl_state(LineNo, State),
-	  (   turtle_tokens(In, Tokens)
-	  ->  debug(turtle, 'Tokens: ~w~n', [Tokens])
-	  ;   syntax_error(In, LineNo, illegal_token)
-	  )
+	{ read_turtle_tokens(In, Tokens, State),
+	  debug(turtle, 'Tokens: ~w~n', [Tokens])
 	},
 	(   { Tokens == end_of_file }
 	->  []
-	;   { phrase(triples(State, Triples), Tokens) }
-	->  Triples,
+	;   { catch(phrase(triples(State, Triples), Tokens), E, true) }
+	->  (   { var(E) }
+	    ->	list(Triples),
+		turtle_file(State, In)
+	    ;	{ step_error(State, E) },
+		turtle_file(State, In)
+	    )
+	;   { ttl_state_line_no(State, LineNo),
+	      syntax_error_term(In, LineNo, cannot_parse, Error),
+	      step_error(State, Error)
+	    },
 	    turtle_file(State, In)
-	;   { syntax_error(In, LineNo, cannot_parse)
-	    }
 	).
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
 
 triples(State, []) -->
 	[ '@', name(prefix), name(Prefix), : ], !,
@@ -559,11 +578,63 @@ uri_text(:(Name), Text) :-
 	format(atom(Text), ':~w', [Name]).
 
 
-
-
 		 /*******************************
 		 *	     TOKENISER		*
 		 *******************************/
+
+%%	read_turtle_tokens(+In, -List, +State) is det.
+%
+%	Read  the  next  Turtle  statement  as  a  list  of  tokens.  If
+%	on_error(warning)  is  active,  failure  prints  a  message  and
+%	continues reading the next statements.
+%
+%	The line_no property of the state is set to the start-line
+%
+%	@error syntax_error(Culprit)
+
+read_turtle_tokens(In, List, State) :-
+	ttl_state_on_error(State, error), !,
+	line_count(In, LineNo),
+	nb_set_line_no_of_ttl_state(LineNo, State),
+	(   turtle_tokens(In, List)
+	->  true
+	;   syntax_error_term(In, LineNo, illegal_token, Error),
+	    throw(Error)
+	).
+read_turtle_tokens(In, List, State) :-
+	line_count(In, LineNo),
+	nb_set_line_no_of_ttl_state(LineNo, State),
+	(   catch(turtle_tokens(In, List), Error, true)
+	->  (   var(Error)
+	    ->  true
+	    ;   print_message(error, Error),
+		skip_statement(In),
+		read_turtle_tokens(In, List, State)
+	    )
+	;   syntax_error_term(In, LineNo, illegal_token, Error),
+	    print_message(error, Error),
+	    skip_statement(In),
+	    read_turtle_tokens(In, List, State)
+	).
+
+%%	skip_statement(+In)
+%
+%	Skip to the end of the statement
+
+skip_statement(In) :-
+	get_code(In, C0),
+	skip_statement(C0, In).
+
+skip_statement(-1, _) :- !.
+skip_statement(0'., In) :-
+	get_code(C, In),
+	(   turtle_ws(C)
+	->  !
+	;   skip_statement(C, In)
+	).
+skip_statement(_, In) :-
+	get_code(C, In),
+	skip_statement(C, In).
 
 %%	turtle_tokens(+In, -List)
 %
