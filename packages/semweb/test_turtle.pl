@@ -139,7 +139,8 @@ load_turtle(File, Triples) :-
 		    BaseURI),
 	rdf_read_turtle(File, Triples,
 			[ base_uri(BaseURI),
-			  anon_prefix(node(_))
+			  anon_prefix(node(_)),
+			  on_error(error)
 			]).
 
 canonical_triple(rdf(S0, P0, O0),

@@ -1261,7 +1261,7 @@ for it.
 The \pllib{rdf_db} module provides several hooks for extending its
 functionality. Database updates can be monitored and acted upon through
 the features described in \secref{rdfmonitor}. The predicate rdf_load/2
-can be hooked to deal with different formats such as \jargon{turtle},
+can be hooked to deal with different formats such as \jargon{rdfturtle},
 different input sources (e.g.\ http) and different strategies for
 caching results.
 
@@ -1275,7 +1275,7 @@ source-code if you want to add new formats or locations.
 
 \begin{description}
     \item[\file{rdf_turtle.pl}]
-Load files in the Turtle format.  See \secref{turtle}.
+Load files in the Turtle format.  See \secref{rdfturtle}.
     \item[\file{rdf_zlib_plugin.pl}]
 Load \program{gzip} compressed files transparently.  See \secref{zlib}.
     \item[\file{rdf_http_plugin.pl}]
@@ -1768,46 +1768,7 @@ in the directory described by rdf_current_db/1 and has the extension
 		 %	      TURTLE		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Module semweb/rdf_turtle}
-\label{sec:turtle}
-
-\index{turtle}
-The module \pllib{semweb/rdf_turtle} provides a parser for the
-alternative RDF Turtle
-syntax.\footnote{\url{http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/}}
-The Turtle syntax is the basis for the SPARQL query language and much
-easier to read and write by humans\footnote{And computers \ldots} than
-the RDF/XML syntax.
-
-This module acts as a \jargon{plugin} to \pllib{rdf_db.pl}, enabling
-load_rdf/2 to load Turtle data transparently.  The default extension
-for a turtle file is \fileext{ttl}.
-
-\begin{description}
-    \predicate{rdf_load_turtle}{3}{+Input, -Triples, +Options}
-Parse Turtle data from Input, returning a list of \term{rdf}{S,P,O}
-triples. Input is either a term \term{stream}{Stream} or a specification
-for absolute_file_name/3.   Processed options are:
-
-    \begin{description}
-	\termitem{base_url}{+BaseURI}
-Define the base URI.  When processing a file the default is constructed
-from \const{file://} and the filename.
-
-	\termitem{anon_prefix}{+Prefix}
-Prefix used for blank notes.  Must start with \const{__}.  Default
-is constructed from the base URI.
-    \end{description}
-
-    \predicate{rdf_process_turtle}{3}{+Input, :OnTriples, +Options}
-Similar to rdf_load_turtle/3, but processes the file in call-back mode.
-See also process_rdf/3.  \arg{OnTriples} is called with two arguments.
-The first argument is a non-empty list of triples and the second is
-a term <DB>:<Line>, indicating the source location of the triples.
-In addition to the options described with rdf_load_turtle/3 it accepts
-the option \term{db}{DB}, specifying the named graph.  Default is the
-base URI.
-\end{description}
+\input{rdfturtle.tex}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -33,10 +33,11 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 
+PUBLICPL=pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=semweb
-TEX=$(DOC).tex
+TEX=$(DOC).tex rdfturtle.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=@RUNTEX@
@@ -121,10 +122,11 @@ html:		$(TEX)
 
 $(TEX):		$(DOCTOTEX)
 
+rdfturtle.tex:	rdf_turtle.pl
+		$(PLTOTEX) --section 'library(semweb/rdf_turtle)'
+
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
-.pl.tex:
-		$(PLTOTEX) $*.pl > $*.tex
 
 ################################################################
 # Check
