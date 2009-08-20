@@ -30,7 +30,8 @@
 */
 
 :- module(test_turtle,
-	  [ test_turtle/0
+	  [ test_turtle/0,
+	    test_turtle/1		% +Test
 	  ]).
 :- asserta(user:file_search_path(library, '..')).
 :- asserta(user:file_search_path(library, '../clib')).
@@ -60,6 +61,11 @@ test_turtle :-
 	    length(Xs, N),
 	    format('All ~D Turtle tests passed~n', [N])
 	).
+
+test_turtle(File) :-
+	atom_concat('Tests/Turtle/', File, FullFile),
+	test_file(FullFile).
+
 
 %:- debug(test_turtle).
 
@@ -105,7 +111,7 @@ test_file(_).				% not a test
 
 load_turtle(File, Triples) :-
 	file_base_name(File, Base),
-	atom_concat('http://www.redland.opensource.ac.uk/raptor/tests/turtle/',
+	atom_concat('http://www.w3.org/2001/sw/DataAccess/df1/tests/',
 		    Base,
 		    BaseURI),
 	rdf_load_turtle(File, Triples,
