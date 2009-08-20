@@ -628,13 +628,13 @@ skip_statement(In) :-
 
 skip_statement(-1, _) :- !.
 skip_statement(0'., In) :-
-	get_code(C, In),
+	get_code(In, C),
 	(   turtle_ws(C)
 	->  !
 	;   skip_statement(C, In)
 	).
 skip_statement(_, In) :-
-	get_code(C, In),
+	get_code(In, C),
 	skip_statement(C, In).
 
 %%	turtle_tokens(+In, -List)
