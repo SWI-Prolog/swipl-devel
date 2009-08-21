@@ -353,12 +353,13 @@ http_worker(Options) :-
 %	Opens the connection to the client in a worker from the message
 %	sent to the queue by accept_server/2.
 
-open_client(requeue(In, Out, Goal, ClOpts), _, Goal, In, Out, Opts, ClOpts) :- !,
+open_client(requeue(In, Out, Goal, ClOpts),
+	    _, Goal, In, Out, Opts, ClOpts) :- !,
 	memberchk(peer(Peer), ClOpts),
 	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
 	check_keep_alife_connection(In, KeepAliveTMO, Peer, In, Out).
 open_client(Message, Queue, Goal, In, Out, _Opts,
-	    [ pool(Queue, Goal, In, Out)
+	    [ pool(client(Queue, Goal, In, Out))
 	    | Options
 	    ]) :-
 	catch(open_client(Message, Goal, In, Out, Options),
@@ -444,7 +445,7 @@ current_message_level(Term, Level) :-
 
 http_requeue(Header) :-
 	requeue_header(Header, ClientOptions),
-	memberchk(pool(Queue, Goal, In, Out), ClientOptions),
+	memberchk(pool(client(Queue, Goal, In, Out)), ClientOptions),
 	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)), !.
 http_requeue(Header) :-
 	debug(http(error), 'Re-queue failed: ~p', [Header]),
@@ -457,7 +458,7 @@ requeue_header([H|T0], [H|T]) :-
 requeue_header([_|T0], T) :-
 	requeue_header(T0, T).
 
-requeue_keep(pool(_,_,_,_)).
+requeue_keep(pool(_)).
 requeue_keep(peer(_)).
 requeue_keep(protocol(_)).
 
@@ -491,7 +492,7 @@ next(_, Request) :-
 %	Close connection associated to Request.  See also http_requeue/1.
 
 http_close_connection(Request) :-
-	memberchk(pool(_Queue, _Goal, In, Out), Request),
+	memberchk(pool(client(_Queue, _Goal, In, Out)), Request),
 	memberchk(peer(Peer), Request),
 	close_connection(Peer, In, Out).
 

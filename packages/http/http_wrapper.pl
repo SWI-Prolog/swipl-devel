@@ -331,7 +331,7 @@ extend_request([_|T], R0, R) :-
 
 request_option(peer(_)).
 request_option(protocol(_)).
-request_option(pool(_,_,_,_)).
+request_option(pool(_)).
 
 
 %%	http_current_request(-Request) is semidet.
