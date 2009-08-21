@@ -4233,8 +4233,8 @@ time lead to hard to understand the limits of your syntax. To ease the
 pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
 they are defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
-module/2. This is an extension specific to SWI-Prolog and the advised
-mechanism of portability is not an important concern.
+module/2. This is an extension specific to SWI-Prolog and the
+recommended mechanism if portability is not an important concern.
 
 The module-table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
