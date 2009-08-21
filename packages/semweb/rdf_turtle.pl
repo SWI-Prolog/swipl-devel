@@ -969,7 +969,8 @@ skip_line(0xA, In, C) :- !,
 	get_code(In, C).
 skip_line(0xD, In, C) :- !,
 	get_code(In, C).
-skip_line(_, In, C) :- !,
+skip_line(-1, _, -1) :- !.
+skip_line(_, In, C) :-
 	get_code(In, C1),
 	skip_line(C1, In, C).
 
