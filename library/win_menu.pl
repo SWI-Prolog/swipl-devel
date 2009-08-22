@@ -192,7 +192,7 @@ gather_arg(file(Mode, Title), File) :-
 		 File)).
 
 prolog_file_pattern(Pattern) :-
-	prolog_file_type(Ext, prolog),
+	user:prolog_file_type(Ext, prolog),
 	atom_concat('*.', Ext, Pattern).
 
 
