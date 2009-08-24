@@ -75,17 +75,28 @@ correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
 	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
 	(   Action == error
-	->  existence_error(Module:Name/Arity)
+	->  existence_error(Module:Name/Arity),
+	    NewGoal = fail
 	;   Action == retry
 	->  NewGoal = Goal
 	;   NewGoal = fail
 	).
 
-existence_error(PredSpec) :- !,
+existence_error(PredSpec) :-
+	strip_module(PredSpec, M, _),
+	current_prolog_flag(M:unknown, Unknown),
+	dwim_existence_error(Unknown, PredSpec).
+
+dwim_existence_error(fail, _) :- !.
+dwim_existence_error(Unknown, PredSpec) :-
 	'$module'(TypeIn, TypeIn),
 	unqualify_if_context(TypeIn, PredSpec, Spec),
-	throw(error(existence_error(procedure, Spec),
-		    context(toplevel, 'DWIM could not correct goal'))).
+	Error = error(existence_error(procedure, Spec),
+		     context(toplevel, 'DWIM could not correct goal')),
+	(   Unknown == error
+	->  throw(Error)
+	;   print_message(warning, Error)
+	).
 
 %%	correct_meta_arguments(:Goal, +Module, +Bindings, -Final) is det.
 %

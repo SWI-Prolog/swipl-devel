@@ -66,7 +66,7 @@ _lookupModule(atom_t name)
   m->mutex = allocSimpleMutex(PL_atom_chars(m->name));
 #endif
   clearFlags(m);
-  set(m, CHARESCAPE|UNKNOWN_ERROR);
+  set(m, CHARESCAPE);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
@@ -79,7 +79,7 @@ _lookupModule(atom_t name)
   if ( name == ATOM_user )
   { super = MODULE_system;
   } else if ( name == ATOM_system )
-  { set(m, SYSTEM);
+  { set(m, SYSTEM|UNKNOWN_ERROR);
     super = NULL;
   } else if ( stringAtom(name)[0] == '$' )
   { set(m, SYSTEM);
@@ -341,6 +341,35 @@ PRED_IMPL("set_base_module", 1, set_base_module, PL_FA_TRANSPARENT)
 
   return rc;
 }
+
+
+static int
+inheritUnknown(Module m)
+{ int u;
+  ListCell c;
+
+  if ( (u = (m->flags & UNKNOWN_MASK)) )
+    return u;
+
+  for(c = m->supers; c; c=c->next)
+  { if ( (u = getUnknownModule(c->value)) )
+      return u;
+  }
+
+  return 0;
+}
+
+
+int		/* one of UNKNOWN_ERROR, UNKNOWN_WARNING, UNKNOWN_FAIL */
+getUnknownModule(Module m)
+{ int u = inheritUnknown(m);
+
+  if ( !u )
+    u = UNKNOWN_ERROR;
+
+  return u;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

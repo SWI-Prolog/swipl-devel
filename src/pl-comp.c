@@ -3761,7 +3761,7 @@ wouldBindToDefinition(Definition from, Definition to)
 
       if ( def->definition.clauses ||	/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
-	   false(def->module, UNKNOWN_ERROR|UNKNOWN_WARNING) )
+	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;
     }
 

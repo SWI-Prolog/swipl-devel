@@ -1675,7 +1675,7 @@ trapUndefined_unlocked(LocalFrame *frp, Code PC, Definition def ARG_LD)
     return newdef;
 					/* Pred/Module does not want to trap */
   if ( true(def, PROC_DEFINED) ||
-       false(module, UNKNOWN_WARNING|UNKNOWN_ERROR) )
+       getUnknownModule(module) == UNKNOWN_FAIL )
     return def;
 
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
@@ -1710,7 +1710,7 @@ trapUndefined_unlocked(LocalFrame *frp, Code PC, Definition def ARG_LD)
 error:
   if ( GD->bootsession )
   { sysError("Undefined predicate: %s", predicateName(def));
-  } else if ( true(module, UNKNOWN_ERROR) )
+  } else
   { createUndefSupervisor(def);
   }
 

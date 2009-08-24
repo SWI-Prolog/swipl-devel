@@ -254,7 +254,7 @@ setUnknown(atom_t a, unsigned int *flagp)
   else if ( a == ATOM_warning )
     flags = UNKNOWN_WARNING;
   else if ( a == ATOM_fail )
-    flags = 0;
+    flags = UNKNOWN_FAIL;
   else
   { term_t value = PL_new_term_ref();
 
@@ -262,7 +262,7 @@ setUnknown(atom_t a, unsigned int *flagp)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unknown, value);
   }
 
-  *flagp &= ~(UNKNOWN_ERROR|UNKNOWN_WARNING);
+  *flagp &= ~(UNKNOWN_MASK);
   *flagp |= flags;
 
   succeed;
@@ -541,12 +541,19 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   } else if ( key == ATOM_unknown )
   { atom_t v;
 
-    if ( true(m, UNKNOWN_ERROR) )
-      v = ATOM_error;
-    else if ( true(m, UNKNOWN_WARNING) )
-      v = ATOM_warning;
-    else
-      v = ATOM_fail;
+    switch ( getUnknownModule(m) )
+    { case UNKNOWN_ERROR:
+	v = ATOM_error;
+        break;
+      case UNKNOWN_WARNING:
+	v = ATOM_warning;
+        break;
+      case UNKNOWN_FAIL:
+	v = ATOM_fail;
+        break;
+      default:
+	assert(0);
+    }
 
     return PL_unify_atom(val, v);
 #ifdef O_PLMT

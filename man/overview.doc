@@ -980,8 +980,6 @@ with \program{plwin.exe}.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
-Note that autoloading only works if the flag \prologflag{unknown} is
-\emph{not} set to \const{fail}. See \secref{autoload}.
 
     \prologflagitem{backquoted_string}{bool}{rw}
 If \const{true} (default \const{false}), read translates text between
@@ -1369,13 +1367,18 @@ SWI-Prolog either defines \verb$__unix__$ or \const{unix}. On other
 systems this flag is not available.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
-Determines the behaviour if an undefined procedure is encountered.  If
-\const{fail}, the predicates fails silently.  If \const{warn}, a warning
+Determines the behaviour if an undefined procedure is encountered. If
+\const{fail}, the predicates fails silently. If \const{warn}, a warning
 is printed, and execution continues as if the predicate was not defined
-and if \const{error} (default), an \except{existence_error} exception
-is raised.  This flag is local to each module.  Switching this flag to
-\const{fail} disables autoloading and thus forces complete and
-consistent use of use_module/[1,2] to load the required libraries.
+and if \const{error} (default), an \except{existence_error} exception is
+raised. This flag is local to each module and inherited from the
+module's \jargon{import-module}. Using default setup, this implies that
+normal modules inherit the flag from \const{user}, which in turn
+inherits the value \const{error} from \const{system}.  The user may
+change the flag for module \const{user} to change the default for all
+application modules or for a specific module.  It is strongly adviced
+to keep the \const{error} default and use dynamic/1 and/or multifile/1
+to specify possible non-existence of a predicate.
 
     \prologflagitem{verbose}{Atom}{rw}
 This flags is used by print_message/2.  If its value is \const{silent},
@@ -1520,17 +1523,14 @@ If ---at runtime--- an undefined predicate is trapped the system will
 first try to import the predicate from the module's default module. If
 this fails the \jargon{auto loader} is activated. On first activation an
 index to all library files in all library directories is loaded in core
-(see library_directory/1 and file_search_path/2). If the undefined
-predicate can be located in one of the libraries that library file
-is automatically loaded and the call to the (previously undefined)
-predicate is restarted. By default this mechanism loads the file
-silently. The current_prolog_flag/2 \prologflag{verbose_autoload} is provided
-to get verbose loading. The Prolog flag \prologflag{autoload} can be used to
-enable/disable the entire auto load system.
-
-The auto-loader only works if the \prologflag{unknown} flag (see
-unknown/2) is set to \const{error} (default). A more appropriate
-interaction with this flag should be considered.
+(see library_directory/1, file_search_path/2 and
+reload_library_index/0). If the undefined predicate can be located in
+one of the libraries that library file is automatically loaded and the
+call to the (previously undefined) predicate is restarted. By default
+this mechanism loads the file silently. The current_prolog_flag/2
+\prologflag{verbose_autoload} is provided to get verbose loading. The
+Prolog flag \prologflag{autoload} can be used to enable/disable the
+auto-load system.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded

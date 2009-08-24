@@ -808,8 +808,10 @@ with one operation, it turns out to be faster as well.
 #define DBLQ_STRING		(0x0020) /* "ab" --> "ab" */
 #define DBLQ_MASK 		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
 #define MODULE_COPY_FLAGS	(DBLQ_MASK|CHARESCAPE)
-#define UNKNOWN_ERROR		(0x0040) /* module */
+#define UNKNOWN_FAIL		(0x0040) /* module */
 #define UNKNOWN_WARNING		(0x0080) /* module */
+#define UNKNOWN_ERROR		(0x0100) /* module */
+#define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
@@ -1400,6 +1402,7 @@ struct module
   		/*	DBLQ_INHERIT inherit from default module */
 		/*	DBLQ_CHARS "ab" --> ['a', 'b'] */
 		/*	DBLQ_ATOM  "ab" --> 'ab' */
+		/*	UNKNOWN_FAIL silent failure of unknown pred */
 		/*	UNKNOWN_WARNING Warn on unknown pred */
 		/*	UNKNOWN_ERROR Error on unknown pred */
 };
