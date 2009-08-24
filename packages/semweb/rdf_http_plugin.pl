@@ -39,6 +39,10 @@
 
 This module allows loading data into the semantic web library directly
 from an HTTP server.
+
+@tbd	Loading a single URL gives four requests, (1) through
+	rdf_db:exists_url/1, (2) through rdf_db:rdf_input_info_hook/3
+	and (3) for the actual loading.
 */
 
 :- multifile
@@ -46,18 +50,28 @@ from an HTTP server.
 	rdf_db:rdf_input_info_hook/3,
 	rdf_db:url_protocol/1.
 
+%%	rdf_extra_headers(-List)
+%
+%	Send extra headers with the request. Note that, although we also
+%	process RDF embedded in HTML, we do  not explicitely ask for it.
+%	Doing so causes some   (e.g., http://w3.org/2004/02/skos/core to
+%	reply with the HTML description rather than the RDF).
+
+rdf_extra_headers(
+	[ request_header('Accept' = 'text/rdf+xml,\
+				     application/rdf+xml; q=0.9, \
+				     text/turtle,\
+				     application/x-turtle; q=0.8, \
+				     */*; q=0.1')
+	      ]).
+
+
 rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 	atom(Format), !,
+	rdf_extra_headers(Extra),
 	http_open(URL, Stream,
-		  [ header(content_type, Type),
-		    request_header('Accept' = 'text/rdf+xml; q=1, \
-					       application/rdf+xml; q=1, \
-					       text/turtle; q=0.9, \
-					       application/x-turtle; q=0.9, \
-					       text/xml; q=0.5, \
-					       text/html; q=0.5, \
-					       application/xhtml+xml; q=0.5, \
-					       */*; q=0.1')
+		  [ header(content_type, Type)
+		  | Extra
 		  ]),
 	(   ground(Format)
 	->  true
@@ -93,10 +107,12 @@ zip_extension(URL, URL, Format, Format).
 
 
 rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-
+	rdf_extra_headers(Extra),
 	http_open(URL, Stream,
 		  [ header(content_type, Type),
 		    header(last_modified, Date),
 		    method(head)
+		  | Extra
 		  ]),
 	close(Stream),
 	Date \== '',
@@ -106,7 +122,9 @@ rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-
 rdf_db:url_protocol(http).
 
 rdf_db:exists_url(url(http, URL)) :-
+	rdf_extra_headers(Extra),
 	catch(http_open(URL, Stream,
 			[ method(head)
+			| Extra
 			]), _, fail),
 	close(Stream).
