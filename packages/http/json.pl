@@ -404,7 +404,7 @@ json_write_term(json(Pairs), Stream, State, Options) :- !,
 	    (   Width == 0
 	    ->  true
 	    ;   json_write_state_indent(State, Indent),
-		json_print_length(json(Pairs), Width, Indent, _)
+		json_print_length(json(Pairs), Options, Width, Indent, _)
 	    )
 	->  set_width_of_json_write_state(0, State, State2),
 	    write_pairs_hor(Pairs, Stream, State2, Options),
@@ -422,7 +422,7 @@ json_write_term(List, Stream, State, Options) :-
 	    (   Width == 0
 	    ->  true
 	    ;   json_write_state_indent(State, Indent),
-		json_print_length(List, Width, Indent, _)
+		json_print_length(List, Options, Width, Indent, _)
 	    )
 	->  set_width_of_json_write_state(0, State, State2),
 	    write_array_hor(List, Stream, State2, Options),
@@ -522,59 +522,71 @@ space_if_not_at_left_margin(Stream) :-
 	put_char(Stream, ' ').
 
 
-%%	json_print_length(+Value, +Max, +Len0, +Len) is semidet.
+%%	json_print_length(+Value, +Options, +Max, +Len0, +Len) is semidet.
 %
 %	True if Len-Len0 is the print-length of Value on a single line
 %	and Len-Len0 =< Max.
 %
 %	@tbd	Escape sequences in strings are not considered.
 
-json_print_length(json(Pairs), Max, Len0, Len) :- !,
+json_print_length(json(Pairs), Options, Max, Len0, Len) :- !,
 	Len1 is Len0 + 2,
 	Len1 =< Max,
-	pairs_print_length(Pairs, Max, Len1, Len).
-json_print_length(Array, Max, Len0, Len) :-
+	pairs_print_length(Pairs, Options, Max, Len1, Len).
+json_print_length(Array, Options, Max, Len0, Len) :-
 	is_list(Array), !,
 	Len1 is Len0 + 2,
 	Len1 =< Max,
-	array_print_length(Array, Max, Len1, Len).
-json_print_length(Number, Max, Len0, Len) :-
+	array_print_length(Array, Options, Max, Len1, Len).
+json_print_length(Null, Options, Max, Len0, Len) :-
+  json_options_null(Options, Null),
+	Len is Len0 + 4,
+	Len =< Max.
+json_print_length(False, Options, Max, Len0, Len) :-
+  json_options_false(Options, False),
+	Len is Len0 + 5,
+	Len =< Max.
+json_print_length(True, Options, Max, Len0, Len) :-
+  json_options_true(Options, True),
+	Len is Len0 + 4,
+	Len =< Max.
+json_print_length(Number, _Options, Max, Len0, Len) :-
 	number(Number), !,
 	atom_length(Number, AL),
 	Len is Len0 + AL,
 	Len =< Max.
-json_print_length(@(Id), Max, Len0, Len) :- !,
+json_print_length(@(Id), _Options, Max, Len0, Len) :- !,
 	atom_length(Id, IdLen),
 	Len is Len0+IdLen,
 	Len =< Max.
-json_print_length(String, Max, Len0, Len) :-
+json_print_length(String, _Options, Max, Len0, Len) :-
 	string_len(String, Len0, Len),
 	Len =< Max.
 
-pairs_print_length([], _, Len, Len).
-pairs_print_length([H|T], Max, Len0, Len) :-
-	pair_len(H, Max, Len0, Len1),
+pairs_print_length([], _, _, Len, Len).
+pairs_print_length([H|T], Options, Max, Len0, Len) :-
+	pair_len(H, Options, Max, Len0, Len1),
 	(   T == []
 	->  Len = Len1
 	;   Len2 is Len1 + 2,
 	    Len2 =< Max,
-	    pairs_print_length(T, Max, Len2, Len)
+	    pairs_print_length(T, Options, Max, Len2, Len)
 	).
 
-pair_len(Name=Value, Max, Len0, Len) :-
+pair_len(Name=Value, Options, Max, Len0, Len) :-
 	string_len(Name, Len0, Len1),
 	Len2 is Len1+2,
 	Len2 =< Max,
-	json_print_length(Value, Max, Len2, Len).
+	json_print_length(Value, Options, Max, Len2, Len).
 
-array_print_length([], _, Len, Len).
-array_print_length([H|T], Max, Len0, Len) :-
-	json_print_length(H, Max, Len0, Len1),
+array_print_length([], _, _, Len, Len).
+array_print_length([H|T], Options, Max, Len0, Len) :-
+	json_print_length(H, Options, Max, Len0, Len1),
 	(   T == []
 	->  Len = Len1
 	;   Len2 is Len1+2,
 	    Len2 =< Max,
-	    array_print_length(T, Max, Len2, Len)
+	    array_print_length(T, Options, Max, Len2, Len)
 	).
 
 string_len(String, Len0, Len) :-
