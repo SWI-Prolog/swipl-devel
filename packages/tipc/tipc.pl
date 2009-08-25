@@ -49,7 +49,8 @@
 	    tipc_service_port_monitor/2, % +Address, :Goal
 	    tipc_service_port_monitor/3, % +Address, :Goal, +Timeout
             tipc_service_exists/1,	% +Address
-	    tipc_service_exists/2       % +Address +Timeout
+	    tipc_service_exists/2,       % +Address +Timeout
+	    tipc_initialize/0            %
 	  ]).
 
 :- use_module(library(shlib)).
@@ -165,11 +166,14 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 @param Timeout an integer that specifies   the  duration of the
 %	 subscription in milliseconds. A  duration   of  -1, specifies a
 %	 subscription of infinite duration.  @param   Filter  the  event
-%	 filter bit map. @param UserHandle an   eight-byte  code that is
-%	 passed transparently to the user  with each event notification.
-%	 @error socket_error('Invalid argument') is thrown under several
-%	 circumstances, the most obscure  being   that  only  name_seq/3
-%	 addresses are permissible. To  interrogate   a  specific server
+%	 filter bit map.
+%
+%	 @param UserHandle an eight-byte code that is passed
+%	 transparently to the user with each event notification.
+%
+%        @error	 socket_error('Invalid argument') is thrown under several
+%	 circumstances, the most obscure being that only name_seq/3
+%	 addresses are permissible. To interrogate a specific server
 %	 instance X, of type Y, use: name_seq(Y, X, X).
 
 %%	 tipc_open_socket(+SocketId, -InStream, -OutStream) is det.
@@ -220,16 +224,17 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 port-id is sufficient for this role.   And server sockets (e.g.
 %	 those that are bound to name/3   or  name_seq/3, addresses) may
 %	 not act as clients. That is, they may not originate connections
-%	 from the socket. Please see the   TIPC programmers's guide for
-%	 other restrictions.
+%	 from the socket using tipc_connect/2. Servers however, may
+%	 originate datagrams from bound sockets using tipc_send/4.
+%	 Please see the TIPC programmers's guide for other restrictions.
 
 %%	 tipc_listen(+Socket,+Backlog) is det.
 %
-%	 Listens  for  incoming  requests    for   connections.  Backlog
-%	 indicates how many pending  connection   requests  are allowed.
-%	 Pending requests are requests  that   are  not yet acknowledged
-%	 using tipc_accept/3. If the indicated   number is exceeded, the
-%	 requesting  client  will  be  signalled  that  the  service  is
+%	 Listens for incoming requests for connections. Backlog
+%	 indicates how many pending connection requests are allowed.
+%	 Pending requests are requests that are not yet acknowledged
+%	 using tipc_accept/3. If the indicated number is exceeded, the
+%	 requesting client will be signalled that the service is
 %	 currently not available. A suggested default value is 5.
 
 %%	 tipc_accept(+Socket, -Slave, -Peer) is det.
@@ -308,7 +313,7 @@ pattern. For an overview, please see: tipc_overview.txt.
 
 %%	 tipc_send(+Socket, +Data, +To, +Options) is det.
 %
-%	 Sends a TIPC datagram to one or more destinations. Like its UDP
+%	 sends a TIPC datagram to one or more destinations. Like its UDP
 %	 counterpart, Data is a string, atom  or code-list providing the
 %	 data to be sent.  To  is   a  name/3,  name_seq/3, or port_id/2
 %	 address structure. See tipc_overview.txt, for more information
@@ -379,7 +384,6 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 _|Please note that this predicate should be considered
 %	 private. Its use in user programs is strongly discouraged.|_
 %
-
 
 tipc_event(Data, Event, Residue) :-
 	phrase(struct_tipc_event(Event), Data, Residue), !.
@@ -492,7 +496,8 @@ tipc_service_exists(Address) :-
 tipc_service_exists(Address, Timeout) :-
 	tipc_address(Address, NameSeq),!,
 	ITime is integer(Timeout * 1000),
-	try_finally(tipc_socket(S, seqpacket), tipc_close_socket(S)),
+	try_finally(tipc_socket(S, seqpacket),
+		    tipc_close_socket(S)),
 	tipc_connect(S, name(1,1,0)),   % connect to the topology server
 	tipc_subscribe(S, NameSeq, ITime, 2, "prolog"),
 	repeat,
@@ -536,7 +541,6 @@ tipc_service_probe(Address, PortId) :-
 	tipc_subscribe(S, name_seq(Type, 0, -1), 0, 1, "prolog"),  % look for everything
 	sp_collect(S, Members),
 	!, member([NameSeq, PortId], Members).
-
 
 sp_collect(S, Members) :-
 	findall([NameSeq ,PortId],
@@ -619,8 +623,21 @@ tipc_service_port_monitor(Addresses, Goal, Timeout) :-
 	        spm_dispatch(Goal, Event),
         !.
 
+%%     tipc_initialize is semidet.
+%
+%      causes the TIPC service and the TIPC stack to be initialized
+%      and made ready for service. An application must call this
+%      predicate as part of its initialization prior to any use of
+%      TIPC predicates. _|Please note the change of the API.|_
+%
+%      @throws socket_error('Address family not supported by protocol')
+%      if a TIPC server is not available on the current host.
+%
 
+tipc_initialize :-
+	forall(tipc:tipc_stack_initialize, true).
 
+:- multifile tipc:tipc_stack_initialize/0.
 
-
-
+tipc:tipc_stack_initialize :-
+	tipc_service_exists(name(1,1,0)).
