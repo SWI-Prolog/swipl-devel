@@ -445,7 +445,7 @@ pl_tipc_get_name(term_t Socket, term_t t)
 }
 
 
-#define TIPC_MAXDATA 4096
+#define TIPC_MAXDATA 65300
 
 static foreign_t
 pl_tipc_receive(term_t Socket, term_t Data, term_t From, term_t options)
