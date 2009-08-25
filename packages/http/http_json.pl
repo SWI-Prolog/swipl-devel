@@ -46,7 +46,8 @@
 
 :- multifile
 	http_client:http_convert_data/4,
-	http_client:post_data_hook/3.
+	http_client:post_data_hook/3,
+	json_type/1.
 
 
 /** <module> HTTP JSON Plugin module
@@ -86,7 +87,7 @@ terms.
 
 http_client:http_convert_data(In, Fields, Data, Options) :-
 	memberchk(content_type(Type), Fields),
-	json_type(Type), !,
+	is_json_type(Type), !,
 	(   memberchk(content_length(Bytes), Fields)
 	->  stream_range_open(In, Range, [size(Bytes)]),
 	    set_stream(Range, encoding(utf8)),
@@ -96,9 +97,34 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	).
 
 
+is_json_type(Type) :-
+	json_type(Type), !.
+is_json_type(ContentType) :-
+	json_type(Type),
+	sub_atom(ContentType, 0, _, _, Type), !,
+	strip_utf8(ContentType, Plain),
+	json_type(Plain).
+
+
+%%	strip_utf8(+ContentTypeIn, -ContentType) is det.
+%
+%	Strip an optional  =|;  charset=UTF-8|=.   JSON  data  is always
+%	UTF-8, but some clients seem to insist in sending this.
+
+strip_utf8(ContentType, Plain) :-
+	sub_atom(ContentType, B, _, A, ;),
+	sub_atom(ContentType, _, A, 0, Ext),
+	normalize_space(atom('charset=UTF-8'), Ext), !,
+	sub_atom(ContentType, 0, B, _, CT),
+	normalize_space(atom(Plain), CT).
+strip_utf8(ContentType, ContentType).
+
+
 %%	json_type(?MIMEType:atom) is semidet.
 %
-%	True if MIMEType is a JSON mimetype.
+%	True if MIMEType is a JSON  mimetype. http_json:json_type/1 is a
+%	multifile  predicate  and  may   be    extended   to  facilitate
+%	non-conforming clients.
 
 json_type('application/jsonrequest').
 json_type('application/json').
