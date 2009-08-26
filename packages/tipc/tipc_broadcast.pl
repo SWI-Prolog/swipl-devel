@@ -3,7 +3,7 @@
     Author:        Jeffrey Rosenwald
     E-mail:        jeffrose@acm.org
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, Jeffrey Rosenwald
+    Copyright (C): 2008-2009, Jeffrey Rosenwald
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
 
 :- module(tipc_broadcast,
              [
-		% there are no publicly exposed predicates
+	      % there are no publicly exposed predicates
 	     ]).
 
 /** <module> A TIPC Broadcast Bridge
@@ -40,32 +40,39 @@ members of a community of interest.  The   members  of the community are
 however, necessarily limited to a single   instance  of Prolog. The TIPC
 broadcast library removes that restriction.   With  this library loaded,
 any member of a TIPC network that also  has this library loaded may hear
-and respond to your broadcasts.
+and respond to your broadcasts. Using TIPC Broadcast, it becomes a
+nearly trivial matter to build an instance of supercomputer that
+researchers within the High Performance Computer community refer to as
+"Beowulf Class Cluster Computers."
 
-This module has no public predicates. When it initialized, it did three
-things:
+This module has no public predicates. When this module is initialized
+via tipc:tipc_initialize/0, it does three things:
 
-    * It started  a  listener  daemon   thread  that  is  listening for
+    * It starts  a  listener  daemon   thread  that  listens for
     broadcasts from others, received as TIPC datagrams, and
 
-    * It registered three listeners: tipc_node/1, tipc_cluster/1, and
+    * It registers three listeners: tipc_node/1, tipc_cluster/1, and
     tipc_zone/1, and
 
-    * It registered three listeners: tipc_node/2, tipc_cluster/2, and
+    * It registers three listeners: tipc_node/2, tipc_cluster/2, and
     tipc_zone/2.
 
 A broadcast/1 or broadcast_request/1 that is not  directed to one of the
 six listeners above, behaves as usual and is confined to the instance of
 Prolog that originated it. But when so   directed, the broadcast will be
 sent to all participating systems, including   itself,  by way of TIPC's
-multicast  addressing  facility.  The  principal  functors  =tipc_node=,
-=tipc_cluster=, and =tipc_zone=, specify the scope of the broadcast. The
-functor =tipc_node=, specifies that the broadcast   is to be confined to
-members  of  a  present   TIPC    node.   Likewise,  =tipc_cluster=  and
-=tipc_zone=, specify that the traffic should  be confined to members of
-a present TIPC cluster and zone,  respectively. To prevent the potential
-for feedback loops, the scope  qualifier   is  stripped from the message
-before transmission. See library module tipc.pl, for more information.
+multicast addressing facility. A TIPC broadcast or broadcast
+request takes the typical form: =|broadcast(tipc_node(+Term,
++Timeout))|=. The principal functors =tipc_node=, =tipc_cluster=, and
+=tipc_zone=, specify the scope of the broadcast. The functor
+=tipc_node=, specifies that the broadcast is to be confined to members
+of a present TIPC node. Likewise, =tipc_cluster= and =tipc_zone=,
+specify that the traffic should be confined to members of a present TIPC
+cluster and zone, respectively. To prevent the potential for feedback
+loops, the scope qualifier is stripped from the message before
+transmission. The timeout is optional. It specifies the amount to time
+to wait for replies to arrive in response to a broadcast_request. The
+default period is 0.250 seconds. The timeout is ignored for broadcasts.
 
 An example of three separate processes cooperating on the same Node:
 
@@ -151,6 +158,9 @@ Process C:
 While the implementation is mostly transparent, there are some important
 and subtle differences that must be taken into consideration:
 
+    * TIPC broadcast now requires an initialization step in order to
+    launch the broadcast listener daemon. See tipc_initialize/0.
+
     * Prolog's broadcast_request/1 is nondet. It sends the request,
     then evaluates the replies synchronously, backtracking as needed
     until a satisfactory reply is received. The remaining potential
@@ -165,11 +175,22 @@ and subtle differences that must be taken into consideration:
     optional second argument is provided so that a sender may specify
     more (or less) time for replies.
 
-    * Replies are collected using findall/3, then the list of replies
-    is presented to the user as a choice-point, using member/2. If a
-    listener is connected to a generator that always succeeds (e.g. a
-    random number generator), then the broadcast request will never
-    terminate and trouble is bound to ensue.
+    * Replies are _|no longer|_ collected using findall/3. Replies are
+    presented to the user as a choice point on arrival, until the
+    broadcast request timer finally expires. This change allows
+    traffic to propagate through the system faster and provides the
+    requestor with the opportunity to terminate a broadcast request
+    early if desired, by simply cutting choice points.
+
+    * Please beware that broadcast request transactions will now remain
+    active and resources consumed until broadcast_request finally fails
+    on backtracking, an uncaught exception occurs, or until choice
+    points are cut. Failure to properly manage this will likely result
+    in chronic exhaustion of TIPC sockets.
+
+    * If a listener is connected to a generator that always succeeds
+    (e.g. a random number generator), then the broadcast request will
+    never terminate and trouble is bound to ensue.
 
     * broadcast_request/1 with TIPC scope is _not_ reentrant (at
     least, not now anyway). If a listener performs a broadcast_request/1
@@ -178,12 +199,12 @@ and subtle differences that must be taken into consideration:
     be performed from a listener context.
 
     * TIPC's capacity is not infinite. While TIPC can tolerate
-    substantial bursts of activity, it is
-    designed for short bursts of small messages. It can tolerate
-    several thousand replies in response to a broadcast_request/1
-    without trouble, but it will begin to encounter congestion beyond
-    that. And in congested conditions, things will start to become
-    unreliable as TIPC begins prioritizing and/or discarding traffic.
+    substantial bursts of activity, it is designed for short bursts of
+    small messages. It can tolerate several thousand replies in response
+    to a broadcast_request/1 without trouble, but it will begin to
+    encounter congestion beyond that. And in congested conditions,
+    things will start to become unreliable as TIPC begins prioritizing
+    and/or discarding traffic.
 
     * A TIPC broadcast_request/1 term that is grounded is considered to
     be a broadcast only. No replies are collected unless the there is at
@@ -244,7 +265,7 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %
 
 %%  try_finally(?Setup, +Cleanup) is multi.
-%  Succeeds nondeterministically if Setup succeeds.
+%  succeeds nondeterministically if Setup succeeds.
 %  It executes Cleanup under one of three conditions:
 %     * backtracking on failure into try_finally/2,
 %     * An uncaught exception is thrown subsequent to
@@ -281,7 +302,8 @@ ld_dispatch(_S, Term, _From) :-
 	catch(broadcast(Term),_, fail).
 
 tipc_listener_daemon :-
-	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
+	try_finally(tipc_socket(S, rdm),
+		    tipc_close_socket(S)),
 
 	tipc_setopt(S, importance(medium)),
 	tipc_setopt(S, dest_droppable(true)),  % discard if not deliverable
@@ -289,22 +311,22 @@ tipc_listener_daemon :-
 	forall(tipc_broadcast_service(Scope, Address),
 	     tipc_bind(S, Address, scope(Scope))),
 
+	try_finally(listen(tipc_broadcast, Head, broadcast_listener(Head)),
+		    unlisten(tipc_broadcast)),
+
 	repeat,
 	     tipc_receive(S, Data, From, [as(atom)]),
 	     term_to_atom(Term, Data),
 	     once(ld_dispatch(S, Term, From)),
 	fail.
 
-
 start_tipc_listener_daemon :-
-	thread_property(Id, alias(tipc_listener_daemon)),
-	thread_property(Id, status(running)), !.
+	catch(thread_property(tipc_listener_daemon, status(running)), _, fail), !.
 
 start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
-	       [alias(tipc_listener_daemon), detached(true)]),
+	       [alias(tipc_listener_daemon), detached(true)]).
 
-	listen(tipc_broadcast, Head, broadcast_listener(Head)).
 %
 broadcast_listener(tipc_broadcast_service(Class, Addr)) :-
 	tipc_broadcast_service(Class, Addr).
@@ -353,42 +375,48 @@ tipc_broadcast(Term, Scope, _Timeout) :-
 tipc_broadcast(Term:Address, _Scope, Timeout) :-
 	ground(Address), !,
         tipc_basic_broadcast(S, '$tipc_request'(Term), Address),
-	tipc_br_collect_replies(S, Timeout, Replies),
-	!, member([Term, Address], Replies).
+	tipc_br_collect_replies(S, Timeout, Term:Address).
 
 % broadcast_request to all listeners returning responder port-id
 tipc_broadcast(Term:From, Scope, Timeout) :-
 	!, tipc_broadcast_service(Scope, Address),
         tipc_basic_broadcast(S, '$tipc_request'(Term), Address),
-	tipc_br_collect_replies(S, Timeout, Replies),
-	!, member([Term, From], Replies).
+	tipc_br_collect_replies(S, Timeout, Term:From).
 
 % broadcast_request to all listeners ignoring responder port-id
 tipc_broadcast(Term, Scope, Timeout) :-
 	tipc_broadcast(Term:_, Scope, Timeout).
 
 tipc_br_send_timeout(Port) :-
-	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
+	try_finally(tipc_socket(S, rdm),
+		    tipc_close_socket(S)),
+
 	tipc_setopt(S, importance(critical)),
 	tipc_send(S, '$tipc_br_timeout', Port, []),
 	!.
 
-tipc_br_collect_replies(S, Timeout, Terms) :-
+tipc_br_collect_replies(S, Timeout, Term:From) :-
 	tipc_get_name(S, Port),
 	try_finally(alarm(Timeout, tipc_br_send_timeout(Port), Id),
 		    remove_alarm(Id)),
+	repeat,
+        tipc_receive(S, Atom, From1, [as(atom)]),
+        (   (Atom \== '$tipc_br_timeout')
+  	    -> (From1 = From, term_to_atom(Term, Atom))
+	    ;  (!, fail)).
 
-	findall([Term, From],
-		(
-		repeat,
-	        tipc_receive(S, Atom, From, [as(atom)]),
-                (   (Atom \== '$tipc_br_timeout')
-		-> term_to_atom(Term, Atom)
-		;  (!, fail)
-		)
-	        ), Terms).
+:- multifile tipc:tipc_stack_initialize/0.
 
-:- initialization
-     start_tipc_listener_daemon.
+%   tipc_stack_initialize() is det. causes any required runtime
+%   initialization to occur. This called as a side-effect of
+%   tipc_initialize/0, which is now required to be included in an
+%   applications intialization directive.
+%
+tipc:tipc_stack_initialize :-
+	start_tipc_listener_daemon.
+
+
+
+
 
 

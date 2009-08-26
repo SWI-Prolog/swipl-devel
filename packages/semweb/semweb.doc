@@ -326,8 +326,8 @@ supported by the rest of the engine.
 
 \begin{description}
     \predicate{rdf_current_predicate}{1}{?Predicate}
-Enumerate all defined predicates.  Behaves as the code below, but
-much more efficient.
+Enumerate all predicates that are used in at least one triple. Behaves
+as the code below, but much more efficient.
 
 \begin{code}
 rdf_current_predicate(Predicate) :-
@@ -335,6 +335,11 @@ rdf_current_predicate(Predicate) :-
 	sort(Ps, S),
 	member(Predicate, S).
 \end{code}
+
+Note that there is no relation to defined RDF properties.  Properties
+that have no triples are not reported by this predicate, while
+predicates that are involved in triples do not need to be defined
+as an instance of rdf:Property.
 
     \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
 Define a property of the predicate. This predicate currently supports

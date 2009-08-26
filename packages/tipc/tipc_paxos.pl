@@ -103,6 +103,9 @@ _|Note that this algorithm does not guarantee the rightness of the value
 proposed. It only guarantees that if successful, the value proposed is
 identical for all attentive members of the quorum.|_
 
+_|Note also that tipc_paxos now requires an initialization step. See
+tipc_initialize/0.|_
+
 @author    Jeffrey Rosenwald (JeffRose@acm.org)
 @license   LGPL
 @see       tipc_broadcast.pl
@@ -120,36 +123,44 @@ c_element([New | More], _Old, New) :-
 
 c_element(_List, Old, Old).
 
+% tipc_paxos_initialize is det.
+% causes any required runtime initialization to occur. It is called as
+% a side-effect of tipc_initialize/0, which is now required as part of
+% an applications initialization directive.
 %
-%
-tipc_paxos_init :-
-	unlisten(tipc_paxos),
-	listen(tipc_paxos, paxos_prepare(K-V), tipc_paxos_prepare(K-V)),
-	listen(tipc_paxos, paxos_accept(K1-V1, S), tipc_paxos_accept(K1-V1, S)),
-	listen(tipc_paxos, paxos_retrieve(V2), tipc_paxos_retrieve(V2)).
+
+tipc_paxos_initialize :-
+	listening(tipc_paxos, _, _), !.
+
+tipc_paxos_initialize :-
+	listen(tipc_paxos, X, tipc_paxos_message(X)),
+	tipc_basic_paxos_on_change(Term, tipc_paxos_audit(Term)).
 %
 % The Paxos state machine is memoryless. The state is managed by a
 % coordinator.
 %
+tipc_paxos_audit(Term) :-
+	tipc_paxos_get(Term) ->
+	     true;
+	     tipc_paxos_set(Term).
 
-tipc_paxos_prepare(K-Term) :-
+tipc_paxos_message(paxos_prepare(K-Term)) :-
 	recorded(Term, paxons_ledger(K, _Term)),
 	!.
 
-tipc_paxos_prepare(0-Term) :-
+tipc_paxos_message(paxos_prepare(0-Term)) :-
 	recorda(Term, paxons_ledger(0, Term)).
 
-tipc_paxos_accept(K-Term, K) :-
+tipc_paxos_message(paxos_accept(K-Term, K)) :-
 	recorded(Term, paxons_ledger(K1, _Term), Ref),
 	K > K1,
 	recorda(Term, paxons_ledger(K, Term)),
 	erase(Ref),
 	!.
 
-tipc_paxos_accept(_, nack).
+tipc_paxos_message(paxos_accept(_, nack)).
 
-
-tipc_paxos_retrieve(K-Term) :-
+tipc_paxos_message(paxos_retrieve(K-Term)) :-
 	recorded(Term, paxons_ledger(K, Term)),
 	!.
 
@@ -246,13 +257,28 @@ tipc_paxos_replicate(X) :-
 %
 
 tipc_paxos_on_change(Term, ignore) :-
+	compound(Term),
 	unlisten(tipc_paxos, paxos_changed(Term)),
 	!.
 
 tipc_paxos_on_change(Term, Goal) :-
 	compound(Term),
+	tipc_basic_paxos_on_change(Term, Goal).
+
+% Private
+tipc_basic_paxos_on_change(Term, Goal) :-
 	callable(Goal),
 	listen(tipc_paxos, paxos_changed(Term),
 	       thread_create(Goal, _, [detached(true)])).
 
-:- tipc_paxos_init.
+:- multifile tipc:tipc_stack_initialize/0.
+
+%   tipc_stack_initialize is det. called as a side-effect of
+%   tipc:tipc_initialize/0.
+%
+tipc:tipc_stack_initialize :-
+      tipc_paxos_initialize, !.
+
+
+
+
