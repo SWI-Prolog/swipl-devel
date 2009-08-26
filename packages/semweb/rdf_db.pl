@@ -1467,9 +1467,15 @@ header_namespaces(Options, List) :-
 %	in the triples in Graph.
 
 rdf_graph_prefixes(Graph, List) :-
-	used_namespace_entities(NSList, Graph),
-	maplist(ns, NSList, List0),
-	sort(List0, List).
+	empty_nb_set(Set),
+	(   rdf_db(S, P, O, Graph),
+	    add_ns(S, Set),
+	    add_ns(P, Set),
+	    add_ns_obj(O, Set),
+	    fail
+	;   true
+	),
+	nb_set_to_list(Set, List).
 
 
 used_namespace_entities(List, Graph) :-
@@ -1477,18 +1483,9 @@ used_namespace_entities(List, Graph) :-
 	used_namespaces(List, Graph).
 
 used_namespaces(List, DB) :-
-	empty_nb_set(Set),
-	ns(rdf, RDF),
-	add_nb_set(RDF, Set),
-	(   rdf_db(S, P, O, DB),
-	    add_ns(S, Set),
-	    add_ns(P, Set),
-	    add_ns_obj(O, Set),
-	    fail
-	;   true
-	),
-	nb_set_to_list(Set, FullList),
-	ns_abbreviations(FullList, List).
+	rdf_graph_prefixes(DB, FullList),
+	ns_abbreviations(FullList, List0),
+	sort([rdf|List0], List).
 
 ns_abbreviations([], []).
 ns_abbreviations([H0|T0], [H|T]) :-
