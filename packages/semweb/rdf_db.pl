@@ -1496,21 +1496,18 @@ ns_abbreviations([_|T0], T) :-
 
 
 add_ns(S, Set) :-
+	\+ rdf_is_bnode(S),
 	rdf_url_namespace(S, Full),
 	Full \== '', !,
 	add_nb_set(Full, Set).
 add_ns(_, _).
 
 add_ns_obj(O, Set) :-
-	atom(O),
-	rdf_url_namespace(O, Full),
-	Full \== '', !,
-	add_nb_set(Full, Set).
+	atom(O), !,
+	add_ns(O, Set).
 add_ns_obj(literal(type(Type, _)), Set) :-
 	atom(Type), !,
-	rdf_url_namespace(Type, Full),
-	Full \== '', !,
-	add_nb_set(Full, Set).
+	add_ns(Type, Set).
 add_ns_obj(_,_).
 
 
