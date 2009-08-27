@@ -1232,19 +1232,17 @@ label([], _, _, _, Consistency) :- !,
         ;   true
         ).
 label(Vars, Selection, Order, Choice, Consistency) :-
-        select_var(Selection, Vars, Var, RVars),
-        (   var(Var) ->
-            (   Consistency = upto_in(I0,I),
-                fd_get(Var, _, Ps),
-                all_dead(Ps) ->
+        (   Vars = [V|Vs], nonvar(V) -> label(Vs, Selection, Order, Choice, Consistency)
+        ;   select_var(Selection, Vars, Var, RVars),
+            (   Consistency == upto_ground ->
+                choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
+            ;   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
                 fd_size(Var, Size),
                 I1 is I0*Size,
                 label(RVars, Selection, Order, Choice, upto_in(I1,I))
             ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
                 label(RVars, Selection, Order, Choice, Consistency)
-            ;   choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
             )
-        ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
 choice_order_variable(step, Order, Var, Vars, Vars0, Selection, Consistency) :-
@@ -1334,9 +1332,8 @@ find_max([V|Vs], CM, Max) :-
 
 find_ff([], Var, _, Var).
 find_ff([V|Vs], CM, S0, FF) :-
-        (   nonvar(CM) -> FF = CM
-        ;   fd_size_(V, n(S1)),
-            (   S1 < S0 ->
+        (   nonvar(V) -> find_ff(Vs, CM, S0, FF)
+        ;   (   fd_size_(V, n(S1)), S1 < S0 ->
                 find_ff(Vs, V, S1, FF)
             ;   find_ff(Vs, CM, S0, FF)
             )
@@ -1377,11 +1374,12 @@ bounds(X, L, U) :-
         ;   L = X, U = L
         ).
 
-delete_eq([],_,[]).
-delete_eq([X|Xs],Y,List) :-
-        (   X == Y -> List = Xs
+delete_eq([], _, []).
+delete_eq([X|Xs], Y, List) :-
+        (   nonvar(X) -> delete_eq(Xs, Y, List)
+        ;   X == Y -> List = Xs
         ;   List = [X|Tail],
-            delete_eq(Xs,Y,Tail)
+            delete_eq(Xs, Y, Tail)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
