@@ -182,7 +182,7 @@ request_to_json(Request, JSON, Options) :-
 	->  true
 	;   domain_error(method, Method)
 	),
-	(   json_type(Type)
+	(   is_json_type(Type)
 	->  true
 	;   domain_error(mimetype, Type)
 	),
