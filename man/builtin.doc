@@ -1149,6 +1149,15 @@ equal if their tree representation is identical and they have the same
 \end{tabular}
 \end{quote}
 
+The predicate can be defined as:\bug{The current implementation is not
+correct if the left and right argument share variables.  See bug\#417.}
+
+\begin{code}
+A =@= B :-
+	subsumes_chk(A, B),
+	subsumes_chk(B, A).
+\end{code}
+
 \index{variant, term comparison}%
 The predicates \predref{=@=}{2} and \predref{\=@=}{2} are cycle-safe.
 Attributed variables are considered structurally equal iff their
