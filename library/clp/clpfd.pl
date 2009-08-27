@@ -1311,7 +1311,8 @@ select_var(max, [V|Vs], Var, RVars) :-
         find_max(Vs, V, Var),
         delete_eq([V|Vs], Var, RVars).
 select_var(ff, [V|Vs], Var, RVars) :-
-        find_ff(Vs, V, Var),
+        fd_size_(V, n(S)),
+        find_ff(Vs, V, S, Var),
         delete_eq([V|Vs], Var, RVars).
 select_var(ffc, [V|Vs], Var, RVars) :-
         find_ffc(Vs, V, Var),
@@ -1331,11 +1332,14 @@ find_max([V|Vs], CM, Max) :-
         ;   find_max(Vs, CM, Max)
         ).
 
-find_ff([], Var, Var).
-find_ff([V|Vs], CM, FF) :-
-        (   ff_lt(V, CM) ->
-            find_ff(Vs, V, FF)
-        ;   find_ff(Vs, CM, FF)
+find_ff([], Var, _, Var).
+find_ff([V|Vs], CM, S0, FF) :-
+        (   nonvar(CM) -> FF = CM
+        ;   fd_size_(V, n(S1)),
+            (   S1 < S0 ->
+                find_ff(Vs, V, S1, FF)
+            ;   find_ff(Vs, CM, S0, FF)
+            )
         ).
 
 find_ffc([], Var, Var).
@@ -1345,16 +1349,6 @@ find_ffc([V|Vs], Prev, FFC) :-
         ;   find_ffc(Vs, Prev, FFC)
         ).
 
-ff_lt(X, Y) :-
-        (   fd_get(X, DX, _) ->
-            domain_num_elements(DX, n(NX))
-        ;   NX = 1
-        ),
-        (   fd_get(Y, DY, _) ->
-            domain_num_elements(DY, n(NY))
-        ;   NY = 1
-        ),
-        NX < NY.
 
 ffc_lt(X, Y) :-
         (   fd_get(X, XD, XPs) ->
