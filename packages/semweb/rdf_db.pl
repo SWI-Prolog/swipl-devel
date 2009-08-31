@@ -117,6 +117,7 @@
 	    rdf_statistics_literal_map/2, % +Handle, +Name(-Arg...)
 
 	    rdf_graph_prefixes/2,	% ?Graph, -Prefixes
+	    rdf_graph_prefixes/3,	% ?Graph, -Prefixes, :Filter
 
 	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))
@@ -1461,27 +1462,75 @@ header_namespaces(Options, List) :-
 	graph(Options, DB),
 	used_namespace_entities(List, DB).
 
-%%	rdf_graph_prefixes(?Graph, -List:ord_set)
+%%	rdf_graph_prefixes(?Graph, -List:ord_set) is det.
+%%	rdf_graph_prefixes(?Graph, -List:ord_set, :Filter is det.
 %
-%	List is a list of prefixes (or namepaces) that appear in Graph.
+%	List is a sorted list  of   prefixes  (namepaces)  in Graph. The
+%	optional Filter argument is used to   filter  the results. It is
+%	called with 3 additional arguments:
+%
+%	    ==
+%	    call(Filter, Where, Prefix, URI)
+%	    ==
+%
+%	The Where argument gives the location of   the prefix ans is one
+%	of  =subject=,  =predicate=,  =object=  or  =type=.  The  Prefix
+%	argument is the potentionally new prefix and URI is the full URI
+%	that is being processed.
+
 
 :- thread_local
 	graph_prefix/1.
+:- meta_predicate
+	rdf_graph_prefixes(?, -, 3).
 
 rdf_graph_prefixes(Graph, List) :-
-	call_cleanup(prefixes(Graph, Prefixes),
+	rdf_graph_prefixes(Graph, List, true).
+
+rdf_graph_prefixes(Graph, List, Filter) :-
+	call_cleanup(prefixes(Graph, Prefixes, Filter),
 		     retractall(graph_prefix(_))),
 	sort(Prefixes, List).
 
-prefixes(Graph, Prefixes) :-
+prefixes(Graph, Prefixes, Filter) :-
 	(   rdf_db(S, P, O, Graph),
-	    add_ns(S),
-	    add_ns(P),
-	    add_ns_obj(O),
+	    add_ns(subject, Filter, S),
+	    add_ns(predicate, Filter, P),
+	    add_ns_obj(Filter, O),
 	    fail
 	;   true
 	),
 	findall(Prefix, graph_prefix(Prefix), Prefixes).
+
+add_ns(Where, Filter, S) :-
+	\+ rdf_is_bnode(S),
+	rdf_url_namespace(S, Full),
+	Full \== '', !,
+	(   graph_prefix(Full)
+	->  true
+	;   Filter = _:true
+	->  assert(graph_prefix(Full))
+	;   call(Filter, Where, Full, S)
+	->  assert(graph_prefix(Full))
+	;   true
+	).
+add_ns(_, _, _).
+
+add_ns_obj(Filter, O) :-
+	atom(O), !,
+	add_ns(object, Filter, O).
+add_ns_obj(Filter, literal(type(Type, _))) :-
+	atom(Type), !,
+	add_ns(type, Filter, Type).
+add_ns_obj(_, _).
+
+
+%%	used_namespace_entities(-List, ?Graph) is det.
+%
+%	Return the namespace aliases that are actually used in Graph. In
+%	addition, this predicate creates ns<N>   aliases  for namespaces
+%	used in predicates because RDF/XML cannot write predicates other
+%	than as an XML name.
 
 used_namespace_entities(List, Graph) :-
 	decl_used_predicate_ns(Graph),
@@ -1498,25 +1547,6 @@ ns_abbreviations([H0|T0], [H|T]) :-
 	ns_abbreviations(T0, T).
 ns_abbreviations([_|T0], T) :-
 	ns_abbreviations(T0, T).
-
-
-add_ns(S) :-
-	\+ rdf_is_bnode(S),
-	rdf_url_namespace(S, Full),
-	Full \== '', !,
-	(   graph_prefix(Full)
-	->  true
-	;   assert(graph_prefix(Full))
-	).
-add_ns(_).
-
-add_ns_obj(O) :-
-	atom(O), !,
-	add_ns(O).
-add_ns_obj(literal(type(Type, _))) :-
-	atom(Type), !,
-	add_ns(Type).
-add_ns_obj(_).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
