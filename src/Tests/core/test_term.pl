@@ -34,7 +34,8 @@ suchj as numbervars, univ, etc.
 */
 
 test_term :-
-	run_tests([ numbervars
+	run_tests([ numbervars,
+		    variant
 		  ]).
 
 :- begin_tests(numbervars).
@@ -60,3 +61,29 @@ test(cyclic_s, [sto(rational_trees), End == 1]) :-
 	numbervars(X, 0, End, [singletons(true)]).
 
 :- end_tests(numbervars).
+
+
+:- begin_tests(variant).
+
+test(simple) :-
+	v(A), v(B),
+	a(A) =@= a(B).
+test(shared) :-
+	a(A) =@= a(A).
+test(shared) :-
+	a(A, A) =@= a(A, A).
+test(shared) :-
+	a(A, B) =@= a(A, B).
+test(shared, fail) :-
+	v(B),
+	a(A, B) =@= a(A, A).
+test(shared, fail) :-
+	v(A),
+	a(A, B) =@= a(B, B).
+test(cyclic, [sto(rational_trees)]) :-
+	A = f(A),
+	A =@= f(A).
+
+v(_).
+
+:- end_tests(variant).

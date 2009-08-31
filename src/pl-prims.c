@@ -1412,6 +1412,19 @@ representation is equivalent. Examples:
   A =@= B			--> true
   foo(A, B) =@= foo(C, D)	--> true
   foo(A, A) =@= foo(B, C)	--> false
+
+The approach is to walk both terms   while  numbering variables. If both
+terms get out-of-sync or the variable  labeling   gets  out  of sync, we
+fail. One problem is variables tht are shared between the terms. We deal
+with this as follows:
+
+    * If we find two unmarked variables
+	- If not shared, number left -2,-4,-6,... and right 2,4,6,...
+	- If shared, number both 3,5,7,...
+    * If we find two marked variables
+	- If Left == -Right, we are fine
+	- If Shared and equal, we are fine.
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
@@ -1428,9 +1441,13 @@ struct uchoice
   UChoice	next;
 };
 
+#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR)
+#define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
+
 static bool
 structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 { int todo = 1;
+  int vcount = 0;			/* Variable count */
   UChoice nextch = NULL, tailch = NULL;
   int arity;
 
@@ -1456,25 +1473,43 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
     todo--;
     t1++; t2++;
 
-    if ( w1 == w2 )
-    { if ( isVar(w1) )
-      { word id = consInt(sizeOfBuffer(buf))|MARK_MASK;
-	reset r;
+    if ( tag(w1) != tag(w2) )
+      fail;
+    if ( tag(w1) == TAG_VAR )
+    { if ( (w1&MARK_MASK) == (w2&MARK_MASK) )
+      { if ( (w1&MARK_MASK) )
+	{ if ( valVar(w1) == -valVar(w2) )
+	    continue;
+	  if ( p1 == p2 && valVar(w1)%2 )
+	    continue;
+	  fail;
+	} else
+	{ reset r;
 
-	r.v1 = p1;
-	r.v2 = p2;
-	addBuffer(buf, r, reset);
-	*p1 = *p2 = id;
+	  r.v1 = p1;
+	  r.v2 = p2;
+	  addBuffer(buf, r, reset);
+
+ 	  vcount += 2;
+
+	  if ( p1 == p2 )
+	  { *p1 = consVar(vcount+1)|MARK_MASK;
+	  } else
+	  { *p1 = consVar(-vcount)|MARK_MASK;
+	    *p2 = consVar(vcount)|MARK_MASK;
+	  }
+
+	  continue;
+	}
       }
-      continue;
+      fail;
     }
 
-    if ( ((w1|w2)&MARK_MASK) || tag(w1) != tag(w2) )
-      fail;
+    if ( w1 == w2 )
+      continue;
 
     switch(tag(w1))
-    { case TAG_VAR:
-      case TAG_ATOM:
+    { case TAG_ATOM:
 	fail;
       case TAG_ATTVAR:
       { p1 = valPAttVar(w1);
