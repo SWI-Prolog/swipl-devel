@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <wctype.h>
+#include "xml_unicode.h"
 #include "dtd.h"
 
 static atom_t ATOM_iso_latin_1;
@@ -321,6 +322,33 @@ xml_quote_cdata(term_t in, term_t out, term_t encoding)
 }
 
 
+static inline int
+is_xml_nmstart(dtd_charclass *map, int c)
+{ if ( c <= 0xff )
+  { return (map->class[c] & CH_NMSTART);
+  } else
+  { return ( xml_basechar(c) ||
+	     xml_ideographic(c)
+	   );
+  }
+}
+
+
+static inline int
+is_xml_chname(dtd_charclass *map, int c)
+{ if ( c <= 0xff )
+  { return (map->class[c] & CH_NAME);
+  } else
+  { return ( xml_basechar(c) ||
+	     xml_digit(c) ||
+	     xml_ideographic(c) ||
+	     xml_combining_char(c) ||
+	     xml_extender(c)
+	   );
+  }
+}
+
+
 static foreign_t
 xml_name(term_t in, term_t encoding)
 { char *ins;
@@ -361,21 +389,15 @@ xml_name(term_t in, term_t encoding)
   { if ( len == 0 )
       return FALSE;
 
-    if ( inW[0] > maxchr )
-      return FALSE;
-
-    if ( inW[0] <= 0xff &&
-	 !(map->class[inW[0]] & CH_NMSTART) )
-      return FALSE;
-    if ( inW[0] > 0xff && !iswalpha(inW[0]) )
+    if ( inW[0] > maxchr ||
+	 !is_xml_nmstart(map, inW[0]) )
       return FALSE;
 
     for(i=1; i<len; i++)
     { int c = inW[i];
 
-      if ( c <= 0xff && !(map->class[c] & CH_NAME) )
-	return FALSE;
-      if ( c > 0xff && !iswalnum((wint_t)c) )
+      if ( c > maxchr ||
+	   !is_xml_chname(map, c) )
 	return FALSE;
     }
 

@@ -58,6 +58,7 @@
 	    xml_quote_attribute/2,	% +In, -Quoted
 	    xml_quote_cdata/2,		% +In, -Quoted
 	    xml_name/1,			% +In
+	    xml_name/2,			% +In, +Encoding
 	    xml_is_dom/1		% +Term
 	  ]).
 :- use_module(library(lists)).

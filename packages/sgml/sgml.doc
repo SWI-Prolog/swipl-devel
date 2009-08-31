@@ -1223,8 +1223,8 @@ Assumes \const{ascii} encoding.
 Succeed if \arg{In} is an atom or string that satisfies the rules for
 a valid XML element or attribute name.  As with the other predicates in
 this group, if \arg{Encoding} cannot represent one of the characters, this
-function fails.  It uses a hard-coded table for ASCII-range characters and
-iswalpha()/iswalnum() for the first and remaining characters of the name.
+function fails. Character classification is based on
+\url{http://www.w3.org/TR/2006/REC-xml-20060816}.
 
     \predicate{xml_name}{1}{+In}
 Backward compatibility version for xml_name/2. Assumes \const{ascii}
