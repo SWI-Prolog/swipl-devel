@@ -5075,14 +5075,12 @@ single_component(V) :- get_attr(V, lowlink, 0).
 circuit_graph([], _, _).
 circuit_graph([V|Vs], Ts0, [T|Ts]) :-
         put_attr(T, clpfd_var, V),
-        (   nonvar(V) ->
-            nth1(V, Ts0, T0),
-            put_attr(T, edges, [arc_to(T0)])
+        (   nonvar(V) -> Ns = [V]
         ;   fd_get(V, Dom, _),
-            domain_to_list(Dom, Ns),
-            phrase(circuit_edges(Ns, Ts0), Es),
-            put_attr(T, edges, Es)
+            domain_to_list(Dom, Ns)
         ),
+        phrase(circuit_edges(Ns, Ts0), Es),
+        put_attr(T, edges, Es),
         circuit_graph(Vs, Ts0, Ts).
 
 circuit_edges([], _) --> [].
