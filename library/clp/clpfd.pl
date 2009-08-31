@@ -117,6 +117,7 @@
                   lex_chain/1,
                   serialized/2,
                   global_cardinality/2,
+                  circuit/1,
                   element/3,
                   zcompare/3,
                   chain/2,
@@ -2885,6 +2886,7 @@ constraint_wake(pgcc_check_single, bounds).
 
 global_constraint(regin).
 global_constraint(pgcc).
+global_constraint(pcircuit).
 %global_constraint(rel_tuple).
 %global_constraint(scalar_product_eq).
 
@@ -3120,6 +3122,12 @@ run_propagator(pgcc(Pairs), _) :-
         disable_queue,
         gcc_global(Pairs),
         enable_queue.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pcircuit(Vs), _MState) :-
+        regin(Vs),
+        propagate_circuit(Vs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pneq(A, B), MState) :-
@@ -5015,6 +5023,115 @@ gcc_pair(Pair) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%    circuit(+Vs)
+%
+%     True if the list Vs of finite domain variables induces a
+%     Hamiltonian circuit, where the k-th element of Vs denotes the
+%     successor of node k. Node indexing starts with 1.
+
+circuit(Vs) :-
+        must_be(list, Vs),
+        maplist(fd_variable, Vs),
+        length(Vs, L),
+        Vs ins 1..L,
+        (   Vs = [Single] -> Single = 1
+        ;   all_circuit(Vs, 1),
+            make_propagator(pcircuit(Vs), Prop),
+            regin_attach(Vs, Prop, []),
+            trigger_prop(Prop),
+            do_queue
+        ).
+
+all_circuit([], _).
+all_circuit([X|Xs], N) :-
+        neq_num(X, N),
+        N1 is N + 1,
+        all_circuit(Xs, N1).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Necessary condition for existence of a Hamiltonian circuit: The
+   graph has a single strongly connected component. If the list is
+   ground, the condition is also sufficient.
+
+   Ts are used as temporary variables to attach attributes:
+
+   lowlink, index: used for SCC
+   [arc_to(V)]: possible successors
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+propagate_circuit(Vs) :-
+        length(Vs, N),
+        length(Ts, N),
+        circuit_graph(Vs, Ts, Ts),
+        phrase(circuit_scc(Ts), [0-[]], _),
+        (   maplist(single_component, Ts) -> Continuation = true
+        ;   Continuation = false
+        ),
+        maplist(del_attrs, Ts),
+        Continuation.
+
+single_component(V) :- get_attr(V, lowlink, 0).
+
+circuit_graph([], _, _).
+circuit_graph([V|Vs], Ts0, [T|Ts]) :-
+        put_attr(T, clpfd_var, V),
+        (   nonvar(V) ->
+            nth1(V, Ts0, T0),
+            put_attr(T, edges, [arc_to(T0)])
+        ;   fd_get(V, Dom, _),
+            domain_to_list(Dom, Ns),
+            phrase(circuit_edges(Ns, Ts0), Es),
+            put_attr(T, edges, Es)
+        ),
+        circuit_graph(Vs, Ts0, Ts).
+
+circuit_edges([], _) --> [].
+circuit_edges([N|Ns], Ts) -->
+        { nth1(N, Ts, T) },
+        [arc_to(T)],
+        circuit_edges(Ns, Ts).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Tarjan's strongly connected components algorithm, tailored for
+   circuit/1.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+circuit_scc([])     --> [].
+circuit_scc([V|Vs]) -->
+        (   vindex_defined(V) -> circuit_scc(Vs)
+        ;   circuit_scc_(V), circuit_scc(Vs)
+        ).
+
+circuit_successors(V, Tos) -->
+        { get_attr(V, edges, Tos0),
+          maplist(arg(1), Tos0, Tos) }.
+
+circuit_scc_(V) -->
+        vindex_is_index(V),
+        vlowlink_is_index(V),
+        index_plus_one,
+        s_push(V),
+        circuit_successors(V, Tos),
+        circuit_each_edge(Tos, V),
+        (   { get_attr(V, index, VI),
+              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
+        ;   []
+        ).
+
+circuit_each_edge([], _) --> [].
+circuit_each_edge([VP|VPs], V) -->
+        (   vindex_defined(VP) ->
+            (   v_in_stack(VP) ->
+                vlowlink_min_lowlink(V, VP)
+            ;   []
+            )
+        ;   circuit_scc_(VP),
+            vlowlink_min_lowlink(V, VP)
+        ),
+        circuit_each_edge(VPs, V).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% zcompare(?Order, ?A, ?B)
 %
 % Analogous to compare/3, with finite domain variables A and B.
@@ -5296,7 +5413,8 @@ attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(_))          --> [].
 attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
-attribute_goal_(pgcc_check_single(_))     --> [].
+attribute_goal_(pgcc_check_single(_)) --> [].
+attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
 attribute_goal_(pserialized(Var,D,Left,Right)) -->
         [serialized(Vs, Ds)],
         { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
