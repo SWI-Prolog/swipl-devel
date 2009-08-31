@@ -1149,14 +1149,21 @@ equal if their tree representation is identical and they have the same
 \end{tabular}
 \end{quote}
 
-The predicate can be defined as:\bug{The current implementation is not
-correct if the left and right argument share variables.  See bug\#417.}
+Note that a term is always structurally equivalent to a copy of it. Term
+copying takes place in e.g., copy_term/2, findall/3 or proving a clause
+added with assert/1.  In the pure Prolog world (i,e,, without attributed
+variables), \predref{=@=}{2} behaves as if defined by the code below.
+With attributed variables, structural equivalence of the attributes is
+tested rather than trying to satisfy the constraints.
 
 \begin{code}
 A =@= B :-
 	subsumes_chk(A, B),
 	subsumes_chk(B, A).
 \end{code}
+
+This predicate safely handles cyclic terms. A cyclic term is
+structurally equivalent to itself.
 
 \index{variant, term comparison}%
 The predicates \predref{=@=}{2} and \predref{\=@=}{2} are cycle-safe.
