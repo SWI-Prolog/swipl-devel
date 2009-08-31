@@ -1463,20 +1463,25 @@ header_namespaces(Options, List) :-
 
 %%	rdf_graph_prefixes(?Graph, -List:ord_set)
 %
-%	List is a list of prefixes that we need to deal with resources
-%	in the triples in Graph.
+%	List is a list of prefixes (or namepaces) that appear in Graph.
+
+:- thread_local
+	graph_prefix/1.
 
 rdf_graph_prefixes(Graph, List) :-
-	empty_nb_set(Set),
+	call_cleanup(prefixes(Graph, Prefixes),
+		     retractall(graph_prefix(_))),
+	sort(Prefixes, List).
+
+prefixes(Graph, Prefixes) :-
 	(   rdf_db(S, P, O, Graph),
-	    add_ns(S, Set),
-	    add_ns(P, Set),
-	    add_ns_obj(O, Set),
+	    add_ns(S),
+	    add_ns(P),
+	    add_ns_obj(O),
 	    fail
 	;   true
 	),
-	nb_set_to_list(Set, List).
-
+	findall(Prefix, graph_prefix(Prefix), Prefixes).
 
 used_namespace_entities(List, Graph) :-
 	decl_used_predicate_ns(Graph),
@@ -1495,20 +1500,23 @@ ns_abbreviations([_|T0], T) :-
 	ns_abbreviations(T0, T).
 
 
-add_ns(S, Set) :-
+add_ns(S) :-
 	\+ rdf_is_bnode(S),
 	rdf_url_namespace(S, Full),
 	Full \== '', !,
-	add_nb_set(Full, Set).
-add_ns(_, _).
+	(   graph_prefix(Full)
+	->  true
+	;   assert(graph_prefix(Full))
+	).
+add_ns(_).
 
-add_ns_obj(O, Set) :-
+add_ns_obj(O) :-
 	atom(O), !,
-	add_ns(O, Set).
-add_ns_obj(literal(type(Type, _)), Set) :-
+	add_ns(O).
+add_ns_obj(literal(type(Type, _))) :-
 	atom(Type), !,
-	add_ns(Type, Set).
-add_ns_obj(_,_).
+	add_ns(Type).
+add_ns_obj(_).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
