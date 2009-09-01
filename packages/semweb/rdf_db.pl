@@ -1463,7 +1463,7 @@ header_namespaces(Options, List) :-
 	used_namespace_entities(List, DB).
 
 %%	rdf_graph_prefixes(?Graph, -List:ord_set) is det.
-%%	rdf_graph_prefixes(?Graph, -List:ord_set, :Filter is det.
+%%	rdf_graph_prefixes(?Graph, -List:ord_set, :Filter) is det.
 %
 %	List is a sorted list  of   prefixes  (namepaces)  in Graph. The
 %	optional Filter argument is used to   filter  the results. It is
