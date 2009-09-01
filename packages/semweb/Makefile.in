@@ -52,10 +52,10 @@ INSTALL_DATA=@INSTALL_DATA@
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl \
 		rdf_persistency.pl rdf_turtle.pl rdf_cache.pl \
 		rdf_http_plugin.pl rdf_zlib_plugin.pl \
-		rdf_compare.pl
+		rdf_compare.pl turtle_base.pl
 
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
-TARGETS=	rdf_db.@SO@
+TARGETS=	rdf_db.@SO@ turtle.@SO@
 
 RDFDBOBJ=	rdf_db.o atom.o lock.o md5.o avl.o atom_map.o debug.o \
 		hash.o murmur.o
@@ -64,6 +64,10 @@ all:		$(TARGETS)
 
 rdf_db.@SO@:	$(RDFDBOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RDFDBOBJ) $(LIBS)
+turtle.@SO@:	turtle.o
+		$(LD) $(LDFLAGS) -o $@ turtle.o $(LIBS)
+
+turtle.o:	turtle.c turtle_chars.c
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
