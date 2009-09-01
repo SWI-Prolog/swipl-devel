@@ -1519,6 +1519,8 @@ all_different([X|Right], Left, State) :-
 
 scalar_supported(#=).
 scalar_supported(#\=).
+scalar_supported(#=<).
+scalar_supported(#>=).
 
 sum(Ls, Op, Value) :-
         must_be(list, Ls),
@@ -1535,11 +1537,22 @@ vars_plusterm([], T, T).
 vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
 
 scalar_product(Cs, Vs, Op, C) :-
+        must_be(list(integer), Cs),
+        must_be(list, Vs),
+        maplist(fd_variable, Vs),
+        must_be(integer, C),
         (   Op == (#=)  -> Prop = scalar_product_eq(Cs,Vs,C)
         ;   Op == (#\=) -> Prop = scalar_product_neq(Cs,Vs,C)
+        ;   Op == (#=<) -> Prop = scalar_product_leq(Cs,Vs,C)
+        ;   Op == (#>=) ->
+            maplist(negative, Cs, Cs1),
+            C1 is -C,
+            Prop = scalar_product_leq(Cs1,Vs,C1)
         ;   domain_error(scalar_product_relation, Op)
         ),
         propagator_init_trigger(Vs, Prop).
+
+negative(X0, X) :- X is -X0.
 
 sum([], Sum, Op, Value) :- call(Op, Sum, Value).
 sum([X|Xs], Acc, Op, Value) :-
@@ -1613,6 +1626,24 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
         ;   true
         ),
         remove_dist_upper_lower(Cs, Vs, D1, D2).
+
+
+remove_dist_upper_leq([], _, _).
+remove_dist_upper_leq([C|Cs], [V|Vs], D1) :-
+        (   fd_get(V, VD, VPs) ->
+            (   C < 0 ->
+                domain_supremum(VD, n(Sup)),
+                L is Sup + D1//C,
+                domain_remove_smaller_than(VD, L, VD1)
+            ;   domain_infimum(VD, n(Inf)),
+                G is Inf + D1//C,
+                domain_remove_greater_than(VD, G, VD1)
+            ),
+            fd_put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_upper_leq(Cs, Vs, D1).
+
 
 remove_dist_upper([], _).
 remove_dist_upper([C*V|CVs], D) :-
@@ -1923,7 +1954,7 @@ matches([
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
-               ;   scalar_product([1|Cs], [S|Vs], #=, Const), geq(0, S)
+               ;   scalar_product(Cs, Vs, #>=, Const)
                ))],
          m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
@@ -2880,6 +2911,7 @@ constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
 constraint_wake(scalar_product_eq, bounds).
+constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 constraint_wake(pgcc_check_single, bounds).
@@ -3316,6 +3348,27 @@ run_propagator(scalar_product_neq(Cs0,Vs0,P0), MState) :-
         ;   P =:= 0, Cs = [-1,1,1] ->
             kill(MState), Vs = [A,B,C], x_neq_y_plus_z(A, B, C)
         ;   true
+        ).
+
+run_propagator(scalar_product_leq(Cs0,Vs0,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Vs = [] -> kill(MState), P >= 0
+        ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
+            D1 is P - Inf,
+            disable_queue,
+            (   Infs == [], Sups == [] ->
+                Inf =< P,
+                (   Sup =< P -> kill(MState)
+                ;   remove_dist_upper_leq(Cs, Vs, D1)
+                )
+            ;   Infs == [] -> Inf =< P, remove_dist_upper(Sups, D1)
+            ;   Sups = [_], Infs = [_] ->
+                remove_upper(Infs, D1)
+            ;   Infs = [_] -> remove_upper(Infs, D1)
+            ;   true
+            ),
+            enable_queue
         ).
 
 run_propagator(scalar_product_eq(Cs0,Vs0,P0), MState) :-
@@ -5398,6 +5451,9 @@ attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
 attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
         [Left #= C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
+        [Left #=< C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
 attribute_goal_(pdifferent(Left, Right, X, processed)) -->
         [all_different(Vs)],
