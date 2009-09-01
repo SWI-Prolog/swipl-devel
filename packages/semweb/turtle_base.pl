@@ -31,7 +31,8 @@
 	  [ turtle_name_start_char/1,	% +Integer
 	    turtle_name/1,		% +Atom
 	    turtle_read_name/4,		% +C0, +Stream, -C, -Atom
-	    turtle_read_string/4	% +C0, +Stream, -C, -Atom
+	    turtle_read_string/4,	% +C0, +Stream, -C, -Atom
+	    turtle_read_relative_uri/4	% +C0, +Stream, -C, -Atom
 	  ]).
 
 /** <module> Basic RDF/Turtle helper predicates
@@ -66,6 +67,13 @@ based on:
 %	Read a Turtle quotes string  starting   with  C0 from Stream. If
 %	successfull, C is unified with  the   first  character after the
 %	string and Atom is an atom representing the text of the string.
+%
+%	@error syntax_error(Culprit)
+
+%%	turtle_read_relative_uri(+C0, +Stream, -C, -Atom) is semidet.
+%
+%	Read a Turtle relative URI (<...>) into an atom and unify C with
+%	the next character.
 %
 %	@error syntax_error(Culprit)
 

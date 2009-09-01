@@ -237,6 +237,33 @@ read_hN(IOSTREAM *in, int digits, int *value)
 }
 
 
+static int
+string_escape(IOSTREAM *in, int c, int *value)
+{ int esc;
+
+  switch(c)
+  { case 'n': esc = '\n'; break;
+    case '"': esc = '"';  break;
+    case '\\':esc = '\\'; break;
+    case 't': esc = '\t'; break;
+    case 'r': esc = '\r'; break;
+    case 'u':
+      if ( !read_hN(in, 4, &esc) )
+	return FALSE;
+      break;
+    case 'U':
+      if ( !read_hN(in, 8, &esc) )
+	return FALSE;
+      break;
+    default:
+      return syntax_error("illegal escape in string");
+  }
+
+  *value = esc;
+  return TRUE;
+}
+
+
 /** turtle_read_string(+C0, +Stream, -C, -Value:atom) is semidet.
 */
 
@@ -300,27 +327,9 @@ turtle_read_string(term_t C0, term_t Stream, term_t C, term_t Value)
     { int esc;
 
       c = Sgetcode(in);
-      switch(c)
-      { case 'n': esc = '\n'; break;
-	case '"':  esc = '"';  break;
-	case '\\': esc = '\\'; break;
-	case 't': esc = '\t'; break;
-	case 'r': esc = '\r'; break;
-	case 'u':
-	  if ( !read_hN(in, 4, &esc) )
-	  { free_charbuf(&b);
-	    return FALSE;
-	  }
-	  break;
-	case 'U':
-	  if ( !read_hN(in, 8, &esc) )
-	  { free_charbuf(&b);
-	    return FALSE;
-	  }
-	  break;
-	default:
-	  free_charbuf(&b);
-	  return syntax_error("illegal escape in string");
+      if ( !string_escape(in, c, &esc) )
+      { free_charbuf(&b);
+	return FALSE;
       }
       add_charbuf(&b, esc);
     } else
@@ -328,6 +337,59 @@ turtle_read_string(term_t C0, term_t Stream, term_t C, term_t Value)
     }
   }
 }
+
+
+/** turtle_read_relative_uri(+C0, +Stream, -C, -Value:atom) is semidet.
+*/
+
+static foreign_t
+turtle_read_relative_uri(term_t C0, term_t Stream, term_t C, term_t Value)
+{ int c;
+  charbuf b;
+  IOSTREAM *in;
+
+  if ( !PL_get_integer(C0, &c) )
+    return type_error(C0, "code");
+  if ( c != '<' )
+    return FALSE;
+
+  if ( !PL_get_stream_handle(Stream, &in) )
+    return FALSE;
+
+  init_charbuf(&b);
+  c = Sgetcode(in);
+  for(; ; c = Sgetcode(in))
+  { if ( c == '>' )
+    { int rc;
+
+      c = Sgetcode(in);
+      rc = (PL_unify_integer(C, c) &&
+	    PL_unify_wchars(Value, PL_ATOM, b.here-b.base, b.base));
+      free_charbuf(&b);
+      return rc;
+    } else if ( c == '\\' )
+    { int esc;
+
+      c = Sgetcode(in);
+      if ( c == '>' )
+      { add_charbuf(&b, c);
+      } else if ( string_escape(in, c, &esc) )
+      { add_charbuf(&b, esc);
+      } else
+      { free_charbuf(&b);
+	return FALSE;
+      }
+    } else if ( c == -1 )
+    { free_charbuf(&b);
+      return syntax_error("eof_in_uri");
+    } else
+    { add_charbuf(&b, c);
+    }
+  }
+}
+
+
+
 
 
 		 /*******************************
@@ -351,4 +413,6 @@ install_turtle()
   PL_register_foreign("turtle_name",        1, turtle_name,        0);
   PL_register_foreign("turtle_read_name",   4, turtle_read_name,   0);
   PL_register_foreign("turtle_read_string", 4, turtle_read_string, 0);
+  PL_register_foreign("turtle_read_relative_uri",
+					    4, turtle_read_relative_uri, 0);
 }

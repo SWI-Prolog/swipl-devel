@@ -784,31 +784,6 @@ e(0'E).
 sign(0'-).
 sign(0'+).				%'
 
-string_escape(0'n, In, C, 0'\n) :- !,
-	get_code(In, C).
-string_escape(0'", In, C, 0'") :- !,
-	get_code(In, C).
-string_escape(0'\\, In, C, 0'\\) :- !,
-	get_code(In, C).
-string_escape(0't, In, C, 0'\t) :- !,
-	get_code(In, C).
-string_escape(0'r, In, C, 0'\r) :- !,
-	get_code(In, C).
-string_escape(0'u, In, C, Code) :- !,
-	get_hhhh(In, Code),
-	get_code(In, C).
-string_escape(0'U, In, C, Code) :- !,
-	get_hhhh(In, Code0),
-	get_hhhh(In, Code1),
-	Code is Code0 << 32 + Code1,
-	get_code(In, C).
-
-get_hhhh(In, Code) :-
-	get_code(In, C1), code_type(C1, xdigit(D1)),
-	get_code(In, C2), code_type(C2, xdigit(D2)),
-	get_code(In, C3), code_type(C3, xdigit(D3)),
-	get_code(In, C4), code_type(C4, xdigit(D4)),
-	Code is D1<<12+D2<<8+D3<<4+D4.
 
 					% language: [a-z]+ ('-' [a-z0-9]+ )*
 language(C0, In, C, [C0|Codes]) :-
@@ -847,9 +822,7 @@ lwrdigs(C, _, C, T, T).
 
 					% resource_token
 resource_token(0'<, In, C, relative_uri(URI)) :- !,
-	get_code(In, C1),
-	uri_chars(C1, In, C, Codes),
-	atom_codes(URI, Codes).
+	turtle_read_relative_uri(0'<, In, C, URI).
 resource_token(0':, In, C, Token) :- !,
 	get_code(In, C0),
 	(   turtle_read_name(C0, In, C, Name)
@@ -863,22 +836,6 @@ resource_token(C0, In, C, Prefix:Name) :-
 	C1 == 0':,
 	get_code(In, C2),
 	turtle_read_name(C2, In, C, Name).
-
-
-%%	uri_chars(+Char, +In:stream, -NextChar, -UriChars) is semidet.
-
-uri_chars(0'>, In, C, []) :- !,
-	get_code(In, C).
-uri_chars(0'\\, In, C, [H|T]) :- !,
-	get_code(In, C1),
-
-	string_escape(C1, In, C2, H),
-	uri_chars(C2, In, C, T).
-uri_chars(-1, _, _, _) :- !,
-	fail.
-uri_chars(C0, In, C, [C0|T]) :-
-	get_code(In, C1),
-	uri_chars(C1, In, C, T).
 
 
 punctuation(0'(, '(').
