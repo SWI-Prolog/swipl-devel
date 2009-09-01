@@ -1504,7 +1504,7 @@ prefixes(Graph, Prefixes, Filter) :-
 
 add_ns(Where, Filter, S) :-
 	\+ rdf_is_bnode(S),
-	rdf_url_namespace(S, Full),
+	iri_xml_namespace(S, Full),
 	Full \== '', !,
 	(   graph_prefix(Full)
 	->  true
@@ -1912,7 +1912,7 @@ rdf_id(Id, BaseURI, Local) :-
 	atom_concat(BaseURI, Local, Id),
 	sub_atom(Local, 0, 1, _, #), !.
 rdf_id(Id, _, NS:Local) :-
-	rdf_split_url(Full, Local, Id),
+	iri_xml_namespace(Id, Full, Local),
 	ns(NS, Full), !.
 rdf_id(Id, _, NS:Local) :-
 	ns(NS, Full),
@@ -1953,6 +1953,34 @@ rdf_value(V, _, Text, Encoding) :-
 rdf_value(V, _, Q, Encoding) :-
 	rdf_quote_uri(V, Q0),
 	xml_quote_attribute(Q0, Q, Encoding).
+
+
+		 /*******************************
+		 *	DEPRECATED MATERIAL	*
+		 *******************************/
+
+%%	rdf_split_url(+Prefix, +Local, -URL) is det.
+%%	rdf_split_url(-Prefix, -Local, +URL) is det.
+%
+%	Split/join a URL.  This functionality is moved to library(sgml).
+%
+%	@deprecated Use iri_xml_namespace/3. Note that the argument
+%	order is iri_xml_namespace(+IRI, -Namespace, -Localname).
+
+rdf_split_url(Prefix, Local, URL) :-
+	atomic(URL), !,
+	iri_xml_namespace(URL, Prefix, Local).
+rdf_split_url(Prefix, Local, URL) :-
+	atom_concat(Prefix, Local, URL).
+
+%%	rdf_url_namespace(+URL, -Namespace)
+%
+%	Namespace is the namespace of URL.
+%
+%	@deprecated Use iri_xml_namespace/2
+
+rdf_url_namespace(URL, Prefix) :-
+	iri_xml_namespace(URL, Prefix).
 
 
 		 /*******************************

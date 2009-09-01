@@ -6270,105 +6270,6 @@ match_label(term_t how, term_t search, term_t label)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Name 	   ::= (Letter | '_' | ':') (NameChar)*
-NameChar   ::= Letter | Digit | '.' | '-' | '_' | ':' | CombiningChar | Extender
-
-CombiningChar & Extender are outside Latin-1
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define NAME_START 1
-#define NAME_CONT  2
-
-static char url_special[128] = {0};
-static int  url_special_done = FALSE;
-
-static void
-fill_special()
-{ if ( !url_special_done )
-  { int i;
-
-    for(i='a'; i<= 'z'; i++)
-      url_special[i] = NAME_START;
-    for(i='A'; i<= 'Z'; i++)
-      url_special[i] = NAME_START;
-    for(i='0'; i<= '9'; i++)
-      url_special[i] = NAME_CONT;
-
-    url_special['_'] = NAME_START;
-    url_special[':'] = NAME_START;
-    url_special['.'] = NAME_CONT;
-    url_special['-'] = NAME_CONT;
-
-    url_special_done = TRUE;
-  }
-}
-
-
-static foreign_t
-split_url(term_t base, term_t local, term_t url)
-{ char *b, *l, *u;
-  size_t bl, ll, ul;
-
-  if ( local &&
-       PL_get_atom_nchars(base, &bl, &b) &&
-       PL_get_atom_nchars(local, &ll, &l) )
-  { if ( bl+ll < 1024 )			/* join */
-    { char buf[1024];
-
-      memcpy(buf, b, bl);
-      memcpy(buf+bl, l, ll);
-
-      return PL_unify_atom_nchars(url, bl+ll, buf);
-    } else
-    { char *buf = PL_malloc(bl+ll);
-      int rc;
-
-      memcpy(buf, b, bl);
-      memcpy(buf+bl, l, ll);
-
-      rc = PL_unify_atom_nchars(url, bl+ll, buf);
-      PL_free(buf);
-      return rc;
-    }
-  } else if ( PL_get_atom_nchars(url, &ul, &u) )
-  { const unsigned char *us = (unsigned char*)u;
-    const unsigned char *s;
-
-    fill_special();
-
-    for(s = us+ul; s>us; s--)
-    { int c = s[-1];
-
-      if ( c < 128 && !url_special[c] )
-	break;
-    }
-    for(; s<us+ul; s++)
-    { int c = s[0];
-
-      if ( c < 128 && url_special[c] == NAME_START )
-	break;
-    }
-
-    if ( local )
-    { ll = ul-(s-us);
-
-      if ( !PL_unify_atom_nchars(local, ll, (const char*)s) )
-	return FALSE;
-    }
-    return PL_unify_atom_nchars(base, s-us, u);
-  } else
-    return type_error(url, "atom");
-}
-
-
-static foreign_t
-url_namespace(term_t url, term_t namespace)
-{ return split_url(namespace, 0, url);
-}
-
-
-
 		 /*******************************
 		 *	       VERSION		*
 		 *******************************/
@@ -6492,8 +6393,6 @@ install_rdf_db()
   PL_register_foreign("rdf_statistics_",1, rdf_statistics,  NDET);
   PL_register_foreign("rdf_generation", 1, rdf_generation,  0);
   PL_register_foreign("rdf_match_label",3, match_label,     0);
-  PL_register_foreign("rdf_split_url",  3, split_url,       0);
-  PL_register_foreign("rdf_url_namespace", 2, url_namespace,0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
   PL_register_foreign("rdf_load_db_",   3, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);

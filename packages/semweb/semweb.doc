@@ -940,11 +940,6 @@ goals.
 Expands all \arg{Alias}:\arg{Local} in \arg{Term0} and return the
 result in \arg{Term}.  Use infrequently for runtime expansion of
 namespace identifiers.
-
-    \predicate{rdf_split_url}{3}{?Base, ?Local, ?URL}
-Split a URL into a prefix and local part if used in mode -,-,+
-or simply behave as atom_concat/3 in other modes.  The \arg{URL}
-is split on the last \chr{\#} or \chr{/} character.
 \end{description}
 
 
@@ -1878,13 +1873,14 @@ literal objects are hashed case-insensitive to speed up the commonly
 used case-insensitive search.
 
 \begin{description}
-    \predicate{rdfs_label}{3}{?Resource, ?Language, ?Label}
-Extract the label from \arg{Resource} or generate all resources with
-the given \arg{Label}. The label is either associated using
-a sub-property of \const{rdfs:label} or it is extracted from the URL
-using rdf_split_url/3.  \arg{Language} is unified to the value of
-the \const{xml:lang} attribute of the label or a variable if the
-label has no language specified.
+<    \predicate[multi]{rdfs_label}{3}{?Resource, ?Language, ?Label}
+Extract the label from \arg{Resource} or generate all resources with the
+given \arg{Label}. The label is either associated using a sub-property
+of \const{rdfs:label} or it is extracted from \arg{Resource} by taking
+the part after the last \chr{\#} or \chr{/}. If this too fails,
+\arg{Label} is unified with \arg{Resource}.  \arg{Language} is unified
+to the value of the \const{xml:lang} attribute of the label or a
+variable if the label has no language specified.
 
     \predicate{rdfs_label}{2}{?Resource, ?Label}
 Defined as \term{rdfs_label}{Resource, _, Label}.

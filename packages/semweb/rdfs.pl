@@ -236,14 +236,24 @@ rdfs_ns_label(Resource, Lang, Label) :-
 %%	take_label(+Resource, ?Lang, -Label) is multi.
 %
 %	Get the label to use for a  resource in the give Language. First
-%	tries label_of/3 and if all  fails,   unifies  Label to the last
-%	part of Resource using rdf_split_url/3.
+%	tries label_of/3.  If this fails, break the Resource over # or /
+%	and if all fails, unify Label with Resource.
 
 take_label(Resource, Lang, Label) :-
 	(   label_of(Resource, Lang, Label)
 	*-> true
-	;   rdf_split_url(_, Label, Resource)
+	;   after_char(Resource, '#', Local)
+	->  Label = Local
+	;   after_char(Resource, '/', Local)
+	->  Label = Local
+	;   Label = Resource
 	).
+
+after_char(Atom, Char, Rest) :-
+	sub_atom(Atom, _, _, L, Char), !,
+	sub_atom(Atom, _, L, 0, Rest).
+
+
 
 %%	label_of(+Resource, ?Lang, ?Label) is nondet.
 %
