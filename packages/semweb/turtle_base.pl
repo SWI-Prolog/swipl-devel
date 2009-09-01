@@ -28,7 +28,9 @@
 */
 
 :- module(turtle_base,
-	  [ turtle_name/1
+	  [ turtle_name_start_char/1,	% +Integer
+	    turtle_name/1,		% +Atom
+	    turtle_read_name/4		% +C0, +Stream, -C, -Atom
 	  ]).
 
 /** <module> Basic RDF/Turtle helper predicates
@@ -40,8 +42,21 @@ based on:
 	http://www.w3.org/TeamSubmission/2008/SUBM-turtle-20080114/
 */
 
+:- use_foreign_library(foreign(turtle)).
+
+%%	turtle_name_start_char(+Code) is semidet.
+%
+%	True if Code is a valid character code to start a Turtle name.
+
 %%	turtle_name(+Atom:atom) is semidet.
 %
 %	True if Atom is a valid Turtle name.
 %
 %	@see xml_name/2.
+
+%%	turtle_read_name(+C0, +Stream, -C, -Atom) is semidet.
+%
+%	Read a Turtle name starting with C0 from Stream. If successfull,
+%	C is unified with the first character after the name and Atom is
+%	an atom representing the name read.
+

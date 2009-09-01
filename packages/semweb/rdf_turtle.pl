@@ -41,6 +41,7 @@
 :- use_module(library(url)).
 :- use_module(library(record)).
 :- use_module(library(http/http_open)).
+:- use_module(turtle_base).
 
 :- meta_predicate
 	rdf_process_turtle(+,2,+).
@@ -709,19 +710,19 @@ turtle_token(0'_, In, C, nodeId(NodeID)) :-
 	peek_code(In, 0':), !,
 	get_code(In, _),
 	get_code(In, C1),
-	name(C1, In, C, NodeID).
+	turtle_read_name(C1, In, C, NodeID).
 turtle_token(0'<, In, C, URI) :- !,
 	resource_token(0'<, In, C, URI).
 turtle_token(0':, In, C, URI) :- !,
 	resource_token(0':, In, C, URI).
 turtle_token(C0, In, C, Token) :-
-	name(C0, In, C1, Name), !,
+	turtle_read_name(C0, In, C1, Name), !,
 	(   C1 == 0':,
 	    \+ sub_atom(Name, 0, _, _, '_'),
 	    peek_code(In, C2),
-	    name_start_char(C2)
+	    turtle_name_start_char(C2)
 	->  get_code(In, C2),
-	    name(C2, In, C, Name2),
+	    turtle_read_name(C2, In, C, Name2),
 	    Token = (Name:Name2)
 	;   Token = name(Name),
 	    C = C1
@@ -899,17 +900,17 @@ resource_token(0'<, In, C, relative_uri(URI)) :- !,
 	atom_codes(URI, Codes).
 resource_token(0':, In, C, Token) :- !,
 	get_code(In, C0),
-	(   name(C0, In, C, Name)
+	(   turtle_read_name(C0, In, C, Name)
 	->  Token = :(Name)
 	;   Token = :,
 	    C = C0
 	).
 resource_token(C0, In, C, Prefix:Name) :-
-	name(C0, In, C1, Prefix),
+	turtle_read_name(C0, In, C1, Prefix),
 	\+ sub_atom(Prefix, 0, _, _, '_'), !,
 	C1 == 0':,
 	get_code(In, C2),
-	name(C2, In, C, Name).
+	turtle_read_name(C2, In, C, Name).
 
 
 %%	uri_chars(+Char, +In:stream, -NextChar, -UriChars) is semidet.
@@ -926,39 +927,6 @@ uri_chars(C0, In, C, [C0|T]) :-
 	get_code(In, C1),
 	uri_chars(C1, In, C, T).
 
-					% name
-name(C0, In, C, Atom) :-
-	name_start_char(C0),
-	get_code(In, C1),
-	name_chars(C1, In, C, T),
-	atom_codes(Atom, [C0|T]).
-
-name_chars(C0, In, C, [C0|T]) :-
-	name_char(C0), !,
-	get_code(In, C1),
-	name_chars(C1, In, C, T).
-name_chars(C, _, C, []).
-
-name_start_char(C) :- code_type(C, csymf).
-name_start_char(C) :- between(0xC0, 0xD6, C).
-name_start_char(C) :- between(0xD8, 0xF6, C).
-name_start_char(C) :- between(0xF8, 0x2FF, C).
-name_start_char(C) :- between(0x370, 0x37D, C).
-name_start_char(C) :- between(0x37F, 0x1FFF, C).
-name_start_char(C) :- between(0x200C, 0x200D, C).
-name_start_char(C) :- between(0x2070, 0x218F, C).
-name_start_char(C) :- between(0x2C00, 0x2FEF, C).
-name_start_char(C) :- between(0x3001, 0xD7FF, C).
-name_start_char(C) :- between(0xF900, 0xFDCF, C).
-name_start_char(C) :- between(0xFDF0, 0xFFFD, C).
-name_start_char(C) :- between(0x10000, 0xEFFFF, C).
-
-name_char(C) :-	name_start_char(C).
-name_char(0'-).
-name_char(D) :-	code_type(D, digit).
-name_char(0xB7).
-name_char(C) :- between(0x0300, 0x036F, C).
-name_char(C) :- between(0x203F, 0x2040, C).
 
 punctuation(0'(, '(').
 punctuation(0'), ')').
