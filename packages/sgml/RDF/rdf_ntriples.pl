@@ -266,7 +266,7 @@ string_char(C) -->
 	"\\U",
 	'4xdigits'(C0),
 	'4xdigits'(C1),
-	{ C is C0<<32 + C1
+	{ C is C0<<16 + C1
 	}.
 string_char(C) -->
 	[C].
