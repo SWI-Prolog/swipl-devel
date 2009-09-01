@@ -36,7 +36,8 @@
 	    turtle_read_string/4,	% +C0, +Stream, -C, -Atom
 	    turtle_read_relative_uri/4,	% +C0, +Stream, -C, -Atom
 					% Output
-	    turtle_write_quoted_string/2 % +Stream, +Atom
+	    turtle_write_quoted_string/2, % +Stream, +Atom
+	    turtle_write_uri/2		% +Stream, +Atom
 	  ]).
 
 /** <module> Basic RDF/Turtle helper predicates
@@ -88,4 +89,11 @@ based on:
 
 %%	turtle_write_quoted_string(+Out, +Value) is det.
 %
-%	Write a string as "..."
+%	Write a string as =|"..."|=
+
+
+%%	turtle_write_uri(+Out, +Value) is det.
+%
+%	Write a URI as =|<...>|=
+
+

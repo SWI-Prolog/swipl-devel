@@ -511,6 +511,60 @@ turtle_write_quoted_string(term_t Stream, term_t Value)
   }
 }
 
+
+static int
+ttl_put_ucharacter(IOSTREAM *s, int c)
+{ switch(c)
+  { case '>':
+      Sputcode('\\', s);
+      return Sputcode('>', s);
+    default:
+      return ttl_put_character(s, c);
+  }
+}
+
+
+/** turtle_write_uri(+Stream, +URI) is det.
+*/
+
+static foreign_t
+turtle_write_uri(term_t Stream, term_t Value)
+{ size_t len;
+  char *s;
+  pl_wchar_t *w;
+  IOSTREAM *out;
+
+  if ( !PL_get_stream_handle(Stream, &out) )
+    return FALSE;
+
+  if ( PL_get_nchars(Value, &len, &s, CVT_ATOM|CVT_STRING) )
+  { const char *e = &s[len];
+
+    Sputcode('<', out);
+    for(; s<e; s++)
+    { if ( ttl_put_ucharacter(out, s[0]&0xff) < 0 )
+	break;
+    }
+    Sputcode('>', out);
+    return PL_release_stream(out);
+  } else if ( PL_get_wchars(Value, &len, &w, CVT_ATOM|CVT_EXCEPTION) )
+  { const pl_wchar_t *e = &w[len];
+
+    Sputcode('<', out);
+    for(; w<e; w++)
+    { if ( ttl_put_ucharacter(out, w[0]) < 0 )
+	break;
+    }
+    Sputcode('>', out);
+    return PL_release_stream(out);
+  } else
+  { PL_release_stream(out);
+    return FALSE;
+  }
+}
+
+
+
 		 /*******************************
 		 *	    REGISTRATION	*
 		 *******************************/
@@ -537,4 +591,5 @@ install_turtle()
 					    4, turtle_read_relative_uri, 0);
   PL_register_foreign("turtle_write_quoted_string",
 					    2, turtle_write_quoted_string, 0);
+  PL_register_foreign("turtle_write_uri",   2, turtle_write_uri,   0);
 }
