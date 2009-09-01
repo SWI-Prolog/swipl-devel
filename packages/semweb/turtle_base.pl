@@ -28,11 +28,15 @@
 */
 
 :- module(turtle_base,
-	  [ turtle_name_start_char/1,	% +Integer
+	  [				% Tests
+	    turtle_name_start_char/1,	% +Integer
 	    turtle_name/1,		% +Atom
+					% Input
 	    turtle_read_name/4,		% +C0, +Stream, -C, -Atom
 	    turtle_read_string/4,	% +C0, +Stream, -C, -Atom
-	    turtle_read_relative_uri/4	% +C0, +Stream, -C, -Atom
+	    turtle_read_relative_uri/4,	% +C0, +Stream, -C, -Atom
+					% Output
+	    turtle_write_quoted_string/2 % +Stream, +Atom
 	  ]).
 
 /** <module> Basic RDF/Turtle helper predicates
@@ -77,3 +81,11 @@ based on:
 %
 %	@error syntax_error(Culprit)
 
+
+		 /*******************************
+		 *	      WRITING		*
+		 *******************************/
+
+%%	turtle_write_quoted_string(+Out, +Value) is det.
+%
+%	Write a string as "..."
