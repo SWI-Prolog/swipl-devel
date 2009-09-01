@@ -1235,14 +1235,17 @@ label([], _, _, _, Consistency) :- !,
 label(Vars, Selection, Order, Choice, Consistency) :-
         (   Vars = [V|Vs], nonvar(V) -> label(Vs, Selection, Order, Choice, Consistency)
         ;   select_var(Selection, Vars, Var, RVars),
-            (   Consistency == upto_ground ->
-                choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
-            ;   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
-                fd_size(Var, Size),
-                I1 is I0*Size,
-                label(RVars, Selection, Order, Choice, upto_in(I1,I))
-            ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
-                label(RVars, Selection, Order, Choice, Consistency)
+            (   var(Var) ->
+                (   Consistency == upto_ground ->
+                    choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
+                ;   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
+                    fd_size(Var, Size),
+                    I1 is I0*Size,
+                    label(RVars, Selection, Order, Choice, upto_in(I1,I))
+                ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
+                    label(RVars, Selection, Order, Choice, Consistency)
+                )
+            ;   label(RVars, Selection, Order, Choice, Consistency)
             )
         ).
 
