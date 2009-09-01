@@ -30,7 +30,8 @@
 :- module(turtle_base,
 	  [ turtle_name_start_char/1,	% +Integer
 	    turtle_name/1,		% +Atom
-	    turtle_read_name/4		% +C0, +Stream, -C, -Atom
+	    turtle_read_name/4,		% +C0, +Stream, -C, -Atom
+	    turtle_read_string/4	% +C0, +Stream, -C, -Atom
 	  ]).
 
 /** <module> Basic RDF/Turtle helper predicates
@@ -59,4 +60,12 @@ based on:
 %	Read a Turtle name starting with C0 from Stream. If successfull,
 %	C is unified with the first character after the name and Atom is
 %	an atom representing the name read.
+
+%%	turtle_read_string(+C0, +Stream, -C, -Atom) is semidet.
+%
+%	Read a Turtle quotes string  starting   with  C0 from Stream. If
+%	successfull, C is unified with  the   first  character after the
+%	string and Atom is an atom representing the text of the string.
+%
+%	@error syntax_error(Culprit)
 

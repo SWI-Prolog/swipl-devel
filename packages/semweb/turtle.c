@@ -31,8 +31,10 @@
 		 *	       ERRORS		*
 		 *******************************/
 
+static atom_t	 ATOM_;
 static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
+static functor_t FUNCTOR_syntax_error1;
 
 static int
 type_error(term_t actual, const char *expected)
@@ -42,6 +44,19 @@ type_error(term_t actual, const char *expected)
 		      PL_FUNCTOR, FUNCTOR_type_error2,
 		        PL_CHARS, expected,
 		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
+syntax_error(const char *culprit)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_syntax_error1,
+		        PL_CHARS, culprit,
 		      PL_VARIABLE);
 
   return PL_raise_exception(ex);
@@ -195,16 +210,145 @@ turtle_read_name(term_t C0, term_t Stream, term_t C, term_t Name)
 }
 
 
+static int
+read_hN(IOSTREAM *in, int digits, int *value)
+{ int d = digits;
+  int v = 0;
+
+  while ( d-- > 0 )
+  { int c = Sgetcode(in);
+
+    if ( c >= '0' && c <= '9' )
+      v = (v<<4) + c - '0';
+    else if ( c >= 'A' && c <= 'F' )
+      v = (v<<4) + c + 10 - 'A';
+    else if ( c >= 'a' && c <= 'f' )
+      v = (v<<4) + c + 10 - 'a';
+    else
+    { if ( digits == 4 )
+	return syntax_error("Illegal \\uNNNN in string");
+      else
+	return syntax_error("Illegal \\UNNNNNNNN in string");
+    }
+  }
+
+  *value = v;
+  return TRUE;
+}
+
+
+/** turtle_read_string(+C0, +Stream, -C, -Value:atom) is semidet.
+*/
+
+static foreign_t
+turtle_read_string(term_t C0, term_t Stream, term_t C, term_t Value)
+{ int c;
+  charbuf b;
+  IOSTREAM *in;
+  int endlen = 1;
+
+  if ( !PL_get_integer(C0, &c) )
+    return type_error(C0, "code");
+  if ( c != '"' )
+    return FALSE;
+
+  if ( !PL_get_stream_handle(Stream, &in) )
+    return FALSE;
+
+  init_charbuf(&b);
+
+  c = Sgetcode(in);
+  if ( c == '"' )
+  { c = Sgetcode(in);
+    if ( c == '"' )			/* """...""" */
+    { endlen = 3;
+      c = Sgetcode(in);
+    } else
+    { return (PL_unify_integer(C, c) &&
+	      PL_unify_atom(Value, ATOM_));
+    }
+  }
+
+  for(;;c = Sgetcode(in))
+  { if ( c == -1 )
+    { free_charbuf(&b);
+      return syntax_error("eof_in_string");
+    } else if ( c == '"' )
+    { int count = 1;
+
+      for(count=1; count<endlen; )
+      { if ( (c=Sgetcode(in)) == '"' )
+	  count++;
+	else
+	  break;
+      }
+
+      if ( count == endlen )
+      { int rc;
+
+	c = Sgetcode(in);
+	rc = (PL_unify_integer(C, c) &&
+	      PL_unify_wchars(Value, PL_ATOM, b.here-b.base, b.base));
+	free_charbuf(&b);
+	return rc;
+      }
+
+      while(count-- > 0)
+	add_charbuf(&b, '"');
+      add_charbuf(&b, c);
+    } else if ( c == '\\' )
+    { int esc;
+
+      c = Sgetcode(in);
+      switch(c)
+      { case 'n': esc = '\n'; break;
+	case '"':  esc = '"';  break;
+	case '\\': esc = '\\'; break;
+	case 't': esc = '\t'; break;
+	case 'r': esc = '\r'; break;
+	case 'u':
+	  if ( !read_hN(in, 4, &esc) )
+	  { free_charbuf(&b);
+	    return FALSE;
+	  }
+	  break;
+	case 'U':
+	  if ( !read_hN(in, 8, &esc) )
+	  { free_charbuf(&b);
+	    return FALSE;
+	  }
+	  break;
+	default:
+	  free_charbuf(&b);
+	  return syntax_error("illegal escape in string");
+      }
+      add_charbuf(&b, esc);
+    } else
+    { add_charbuf(&b, c);
+    }
+  }
+}
+
+
+		 /*******************************
+		 *	    REGISTRATION	*
+		 *******************************/
+
 #define MKFUNCTOR(n,a) \
 	FUNCTOR_ ## n ## a = PL_new_functor(PL_new_atom(#n), a)
+#define MKATOM(n) \
+	ATOM_ ## n = PL_new_atom(#n)
 
 install_t
 install_turtle()
 { MKFUNCTOR(error, 2);
   MKFUNCTOR(type_error, 2);
+  MKFUNCTOR(syntax_error, 1);
+  ATOM_ = PL_new_atom("");
 
   PL_register_foreign("turtle_name_start_char",
-		      			  1, turtle_name_start_char, 0);
-  PL_register_foreign("turtle_name",      1, turtle_name,      0);
-  PL_register_foreign("turtle_read_name", 4, turtle_read_name, 0);
+		      			    1, turtle_name_start_char, 0);
+  PL_register_foreign("turtle_name",        1, turtle_name,        0);
+  PL_register_foreign("turtle_read_name",   4, turtle_read_name,   0);
+  PL_register_foreign("turtle_read_string", 4, turtle_read_string, 0);
 }
