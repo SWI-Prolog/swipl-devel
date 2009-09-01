@@ -395,7 +395,7 @@ is returned.
 Attributes declaring namespaces ({\tt xmlns:<ns>=<url>}) are reported
 as if \const{xmlns} were not a defined resource.
 
-In many cases, getting attribute-names as <xmp>\arg{url}:\arg{name}</xmp>
+In many cases, getting attribute-names as \arg{url}:\arg{name}
 is not desirable. Such terms are hard to unify and sometimes multiple
 URLs may be mapped to the same identifier. This may happen due to poor
 version management, poor standardisation or because the the application
@@ -428,6 +428,41 @@ load_rdf_xml(File, Term) :-
                          call(urlns, xmlns)
                        ]).
 \end{code}
+
+The library provides iri_xml_namespace/3 to break down an IRI into
+its namespace and localname:
+
+\begin{description}
+    \predicate[det]{iri_xml_namespace}{3}{+IRI, -Namespace, -Localname}
+Split an IRI (Unicode URI) into its \arg{Namespace} (an IRI) and
+\arg{Localname} (a Unicode XML name, see xml_name/2). The
+\arg{Localname} is defined as the longest last part of the IRI that
+satisfies the syntax of an XML name. With IRI schemas that are designed
+to work with XML namespaces, this will typically break the IRI on the
+last \chr{\#} or \chr{/}. Note however that this can produce unexpected
+results. E.g., in the example below, one might expect the namespace to
+be \url{http://example.com/images\#}, but an XML name cannot start with
+a digit.
+
+\begin{code}
+?- iri_xml_namespace('http://example.com/images#12345', NS, L).
+NS = 'http://example.com/images#12345',
+L = ''.
+\end{code}
+
+As we see from the example above, the \arg{Localname} can be the empty
+atom. Similarly, \arg{Namespace} can be the empty atom if \arg{IRI} is
+an XML name. Applications will often have to check for either or both
+these conditions. We decided against failing in these conditions because
+the application typically wants to know which of the two conditions
+(empty namespace or empty localname) holds. This predicate is often used
+for generating RDF/XML from an RDF graph.
+
+    \predicate[det]{iri_xml_namespace}{2}{+IRI, -Namespace}
+Same as iri_xml_namespace/3, but avoids creating an atom for the
+\arg{Localname}.
+\end{description}
+
 
 \subsection{DTD-Handling}
 

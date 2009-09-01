@@ -348,13 +348,13 @@ is_xml_chname(dtd_charclass *map, int c)
   }
 }
 
+static dtd_charclass *map;
 
 static foreign_t
 xml_name(term_t in, term_t encoding)
 { char *ins;
   wchar_t *inW;
   size_t len;
-  static dtd_charclass *map;
   unsigned int i;
   int maxchr;
 
@@ -408,6 +408,57 @@ xml_name(term_t in, term_t encoding)
 }
 
 
+static foreign_t
+iri_xml_namespace(term_t iri, term_t namespace, term_t localname)
+{ char *s;
+  pl_wchar_t *w;
+  size_t len;
+
+  if ( !map )
+    map = new_charclass();
+
+  if ( PL_get_nchars(iri, &len, &s, CVT_ATOM|CVT_STRING) )
+  { const char *e = &s[len];
+    const char *p = e;
+
+    while(p>s && (map->class[p[-1]&0xff] & CH_NAME))
+      p--;
+    while(p<e && !(map->class[p[0]&0xff] & CH_NMSTART))
+      p++;
+
+    if ( !PL_unify_atom_nchars(namespace, p-s, s) )
+      return FALSE;
+    if ( localname &&
+	 !PL_unify_atom_nchars(localname, e-p, p) )
+      return FALSE;
+
+    return TRUE;
+  } else if ( PL_get_wchars(iri, &len, &w, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  { const pl_wchar_t *e = &w[len];
+    const pl_wchar_t *p = e;
+
+    while(p>w && is_xml_chname(map, p[-1]) )
+      p--;
+    while(p<e && !is_xml_nmstart(map, p[0]) )
+      p++;
+
+    if ( !PL_unify_wchars(namespace, PL_ATOM, p-w, w) )
+      return FALSE;
+    if ( localname &&
+	 !PL_unify_wchars(localname, PL_ATOM, e-p, p) )
+      return FALSE;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static foreign_t
+iri_xml_namespace2(term_t iri, term_t namespace)
+{ return iri_xml_namespace(iri, namespace, 0);
+}
 
 
 install_t
@@ -420,4 +471,6 @@ install_xml_quote()
   PL_register_foreign("xml_quote_attribute", 3, xml_quote_attribute, 0);
   PL_register_foreign("xml_quote_cdata",     3, xml_quote_cdata,     0);
   PL_register_foreign("xml_name",            2, xml_name,            0);
+  PL_register_foreign("iri_xml_namespace",   3, iri_xml_namespace,   0);
+  PL_register_foreign("iri_xml_namespace",   2, iri_xml_namespace2,  0);
 }

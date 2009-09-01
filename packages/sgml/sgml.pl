@@ -59,6 +59,8 @@
 	    xml_quote_cdata/2,		% +In, -Quoted
 	    xml_name/1,			% +In
 	    xml_name/2,			% +In, +Encoding
+	    iri_xml_namespace/2,	% +IRI, -Namespace
+	    iri_xml_namespace/3,	% +IRI, -Namespace, -LocalName
 	    xml_is_dom/1		% +Term
 	  ]).
 :- use_module(library(lists)).
