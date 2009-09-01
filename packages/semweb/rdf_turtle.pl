@@ -324,10 +324,15 @@ triples(State, []) -->
 triples(State, Triples) -->
 	subject(State, Subject, Triples, T),
 	(   predicate_object_list(State, Subject, T, [])
-	->  []
+	->  (   eos
+	    ->	[]
+	    ;	syntax_rule(State, expected(predicate_object_list))
+	    )
 	;   { Triples \== T }		% [ p o ; ... ] .
 	->  { T = [] }
 	).
+
+eos([], []).
 
 subject(State, Subject, T, T) -->
 	resource(State, Subject), !.
