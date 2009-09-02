@@ -1381,31 +1381,36 @@ load_files(Module:Files, Options) :-
 	;   true
 	),
 	'$read_clause'(In, First),
-	'$load_file'(First, In, File, Module, Options).
+	'$expand_term'(First, Expanded),
+	'$load_file'(Expanded, In, File, Module, Options).
 
+'$load_file'([First|Rest], In, File, Module, Options) :- !,
+	'$load_file'(First, Rest, In, File, Module, Options).
+'$load_file'(First, In, File, Module, Options) :- !,
+	'$load_file'(First, [], In, File, Module, Options).
 
-'$load_file'((?- Directive), In, File, Module, Options) :- !,
-	'$load_file'((:- Directive), In, File, Module, Options).
-'$load_file'((:- module(Module, Public)), In, File, Module, Options) :- !,
-	'$load_module'(Module, Public, In, File, Options).
-'$load_file'(_, _, File, _, Options) :-
+'$load_file'((?- Directive), Cls, In, File, Module, Options) :- !,
+	'$load_file'((:- Directive), Cls, In, File, Module, Options).
+'$load_file'((:- module(Module, Public)), Cls, In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, Cls, In, File, Options).
+'$load_file'(_, _, _, File, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, File, Module, _) :- !, 	% empty file
+'$load_file'(end_of_file, _, _, File, Module, _) :- !, 	% empty file
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	'$ifcompiling'('$qlf_end_part').
-'$load_file'(FirstClause, In, File, Module, _Options) :- !,
+'$load_file'(FirstClause, Cls, In, File, Module, _Options) :- !,
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
-	ignore('$consult_clause'(FirstClause, File)),
+	ignore('$store_clause'([FirstClause|Cls], File)),
 	'$consult_stream'(In, File),
 	'$ifcompiling'('$qlf_end_part').
 
 '$reserved_module'(system).
 '$reserved_module'(user).
 
-%%	'$load_module'(+Module, +Public, +Stream, +File, +Options)
+%%	'$load_module'(+Module, +Public, +Clauses, +Stream, +File, +Options)
 %
 %	Options processed:
 %
@@ -1415,10 +1420,10 @@ load_files(Module:Files, Options) :-
 %	Redefining a module by loading another file must be more subtle.
 %	Verify the compatibility of the interface could be one example.
 
-'$load_module'(Reserved, _, _, _, _) :-
+'$load_module'(Reserved, _, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, Public, In, File, Options) :-
+'$load_module'(Module, Public, Cls, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
 	'$get_option'(redefine_module(Action), Options, false),
@@ -1427,6 +1432,7 @@ load_files(Module:Files, Options) :-
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
+	ignore('$store_clause'(Cls, File)),
 	'$consult_stream'(In, File),
 	'$check_export'(Module),
 	'$ifcompiling'('$qlf_end_part').
