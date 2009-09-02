@@ -1398,11 +1398,17 @@ load_files(Module:Files, Options) :-
 	).
 
 
+'$load_file'(Var, In, File, Module, _Options) :-
+	var(Var), !,
+	'$load_non_module_file'(Var, [], In, File, Module).
 '$load_file'([First|Rest], In, File, Module, Options) :- !,
 	'$load_file'(First, Rest, In, File, Module, Options).
 '$load_file'(First, In, File, Module, Options) :- !,
 	'$load_file'(First, [], In, File, Module, Options).
 
+'$load_file'(Var, Cls, In, File, Module, _Options) :-
+	var(Var), !,
+	'$load_non_module_file'(Var, Cls, In, File, Module).
 '$load_file'((?- Directive), Cls, In, File, Module, Options) :- !,
 	'$load_file'((:- Directive), Cls, In, File, Module, Options).
 '$load_file'((:- module(Module, Public)), Cls, In, File, Module, Options) :- !,
@@ -1414,7 +1420,10 @@ load_files(Module:Files, Options) :-
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	'$ifcompiling'('$qlf_end_part').
-'$load_file'(FirstClause, Cls, In, File, Module, _Options) :- !,
+'$load_file'(FirstClause, Cls, In, File, Module, _Options) :-
+	'$load_non_module_file'(FirstClause, Cls, In, File, Module).
+
+'$load_non_module_file'(FirstClause, Cls, In, File, Module) :-
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
 	ignore('$store_clause'([FirstClause|Cls], File)),
@@ -1750,6 +1759,9 @@ load_files(Module:Files, Options) :-
 		*        TERM EXPANSION         *
 		*********************************/
 
+'$store_clause'(Var, _) :-
+	var(Var), !,
+	print_message(error, error(instantiation_error, _)).
 '$store_clause'([], _) :- !.
 '$store_clause'([C|T], F) :- !,
 	'$store_clause'(C, F),
