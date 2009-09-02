@@ -110,6 +110,7 @@
                   all_different/1,
                   all_distinct/1,
                   sum/3,
+                  scalar_product/4,
                   tuples_in/2,
                   labeling/2,
                   label/1,
@@ -1507,7 +1508,7 @@ all_different([X|Right], Left, State) :-
         ),
         all_different(Right, [X|Left], State).
 
-%% sum(+Vars, +Rel, +Expr)
+%% sum(+Vars, +Rel, ?Expr)
 %
 % The sum of elements of the list Vars is in relation Rel to Expr. For
 % example:
@@ -1520,47 +1521,59 @@ all_different([X|Right], Left, State) :-
 % C in 0..100.
 % ==
 
-scalar_supported(#=).
-scalar_supported(#\=).
-scalar_supported(#=<).
-scalar_supported(#>=).
+sum(Vs, Op, Value) :-
+        must_be(list, Vs),
+        length(Vs, L),
+        length(Ones, L),
+        maplist(=(1), Ones),
+        scalar_product(Ones, Vs, Op, Value).
 
-sum(Ls, Op, Value) :-
-        must_be(list, Ls),
-        maplist(fd_variable, Ls),
-        must_be(callable, Op),
-        (   scalar_supported(Op),
-            vars_plusterm(Ls, 0, Left),
-            left_right_linsum_const(Left, Value, Cs, Vs, Const) ->
-            scalar_product(Cs, Vs, Op, Const)
-        ;   sum(Ls, 0, Op, Value)
-        ).
+vars_plusterm([], _, T, T).
+vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
 
-vars_plusterm([], T, T).
-vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
+%% scalar_product(+Cs, +Vs, +Rel, ?Expr)
+%
+% Cs is a list of integers, Vs is a list of variables and integers.
+% True if the scalar product of Cs and Vs is in relation Rel to Expr.
 
-scalar_product(Cs, Vs, Op, C) :-
+scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
+        must_be(callable, Op),
         maplist(fd_variable, Vs),
-        must_be(integer, C),
-        (   Op == (#=)  -> Prop = scalar_product_eq(Cs,Vs,C)
-        ;   Op == (#\=) -> Prop = scalar_product_neq(Cs,Vs,C)
-        ;   Op == (#=<) -> Prop = scalar_product_leq(Cs,Vs,C)
-        ;   Op == (#>=) ->
-            maplist(negative, Cs, Cs1),
-            C1 is -C,
-            Prop = scalar_product_leq(Cs1,Vs,C1)
+        \+ cyclic_term(Value),
+        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
         ;   domain_error(scalar_product_relation, Op)
         ),
-        propagator_init_trigger(Vs, Prop).
+        vars_plusterm(Cs, Vs, 0, Left),
+        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+            scalar_product_(Op, Cs1, Vs1, Const)
+        ;   sum(Cs, Vs, 0, Op, Value)
+        ).
+
+sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
+sum([C|Cs], [X|Xs], Acc, Op, Value) :-
+        NAcc #= Acc + C*X,
+        sum(Cs, Xs, NAcc, Op, Value).
+
+scalar_product_(#=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, C)).
+scalar_product_(#\=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_neq(Cs, Vs, C)).
+scalar_product_(#=<, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_leq(Cs, Vs, C)).
+scalar_product_(#<, Cs, Vs, C) :-
+        C1 is C - 1,
+        scalar_product_(#=<, Cs, Vs, C1).
+scalar_product_(#>, Cs, Vs, C) :-
+        C1 is C + 1,
+        scalar_product_(#>=, Cs, Vs, C1).
+scalar_product_(#>=, Cs, Vs, C) :-
+        maplist(negative, Cs, Cs1),
+        C1 is -C,
+        scalar_product_(#=<, Cs1, Vs, C1).
 
 negative(X0, X) :- X is -X0.
-
-sum([], Sum, Op, Value) :- call(Op, Sum, Value).
-sum([X|Xs], Acc, Op, Value) :-
-        NAcc #= Acc + X,
-        sum(Xs, NAcc, Op, Value).
 
 coeffs_variables_const([], [], [], [], I, I).
 coeffs_variables_const([C|Cs], [V|Vs], Cs1, Vs1, I0, I) :-
@@ -1957,7 +1970,7 @@ matches([
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
-               ;   scalar_product(Cs, Vs, #>=, Const)
+               ;   scalar_product_(#>=, Cs, Vs, Const)
                ))],
          m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
@@ -1979,7 +1992,7 @@ matches([
                ;   Cs = [C|CsRest],
                    gcd(CsRest, C, GCD),
                    S mod GCD =:= 0,
-                   scalar_product(Cs, Vs, #=, S)
+                   scalar_product_(#=, Cs, Vs, S)
                ))],
          m(var(X) #= any(Y))       -> [d(Y,X)],
          m(any(X) #= any(Y))       -> [d(X, RX), d(Y, RX)],
@@ -1994,7 +2007,7 @@ matches([
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
-            [g(scalar_product(Cs, Vs, #\=, S))],
+            [g(scalar_product_(#\=, Cs, Vs, S))],
          m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(X1, Y1, Z1))],
          m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(Y1, X1, Z1))],
          m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
