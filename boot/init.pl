@@ -1371,18 +1371,32 @@ load_files(Module:Files, Options) :-
 %%   '$load_file'(+In, +Path, -Module, +Options)
 %
 %   '$load_file'/4 does the actual loading.
-%
-%   @tbd We should watch-out for an :- encoding/1 directive that can
-%   preceed the :- module/2 header!
 
 '$load_file'(In, File, Module, Options) :-
+	'$read_first_clause'(In, First),
+	'$expand_term'(First, Expanded),
+	'$load_file'(Expanded, In, File, Module, Options).
+
+
+%%	'$read_first_clause'(+Stream, -Term) is det.
+%
+%	Read the very first term. PrologScript says   we must be able to
+%	deal with an #! line. According to   the ISO proposal, there can
+%	be an :- encoding(Enc) directive before the first (module) term.
+
+'$read_first_clause'(In, First) :-
 	(   peek_char(In, #)
 	->  skip(In, 10)
 	;   true
 	),
-	'$read_clause'(In, First),
-	'$expand_term'(First, Expanded),
-	'$load_file'(Expanded, In, File, Module, Options).
+	'$read_clause'(In, VeryFirst),
+	(   nonvar(First),
+	    First = (:- encoding(Encoding))
+	->  set_stream(In, encoding(Encoding)),
+	    '$read_first_clause'(In, First)
+	;   First = VeryFirst
+	).
+
 
 '$load_file'([First|Rest], In, File, Module, Options) :- !,
 	'$load_file'(First, Rest, In, File, Module, Options).
