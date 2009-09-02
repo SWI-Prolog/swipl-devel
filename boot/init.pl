@@ -1384,15 +1384,9 @@ load_files(Module:Files, Options) :-
 	'$load_file'(First, In, File, Module, Options).
 
 
-'$load_file'((?- module(Module, Public)), In, File, Module, Options) :- !,
-	'$load_module'(Module, Public, In, File, Options).
+'$load_file'((?- Directive), In, File, Module, Options) :- !,
+	'$load_file'((:- Directive), In, File, Module, Options).
 '$load_file'((:- module(Module, Public)), In, File, Module, Options) :- !,
-	'$load_module'(Module, Public, In, File, Options).
-'$load_file'((?- module(Module, Public)),
-	     In, File, Module, Options) :- !,
-	'$load_module'(Module, Public, In, File, Options).
-'$load_file'((:- module(Module, Public)),
-	     In, File, Module, Options) :- !,
 	'$load_module'(Module, Public, In, File, Options).
 '$load_file'(_, _, File, _, Options) :-
 	'$get_option'(must_be_module(true), Options, false), !,
