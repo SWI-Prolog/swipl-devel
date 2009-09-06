@@ -5073,7 +5073,7 @@ circuit(Vs) :-
         maplist(fd_variable, Vs),
         length(Vs, L),
         Vs ins 1..L,
-        (   Vs = [Single] -> Single = 1
+        (   L =:= 1 -> true
         ;   all_circuit(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
             regin_attach(Vs, Prop, []),
