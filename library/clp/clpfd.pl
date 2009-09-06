@@ -4318,6 +4318,13 @@ g_g0_(V, flow_to(F,To)) :-
             )
         ).
 
+
+g0_successors(V, Tos) :-
+        (   get_attr(V, g0_edges, Tos0) ->
+            maplist(arg(2), Tos0, Tos)
+        ;   Tos = []
+        ).
+
 put_free(F) :- put_attr(F, free, true).
 
 free_node(F) :-
@@ -4333,7 +4340,7 @@ regin(Vars) :-
         maximum_matching(FreeLeft),
         sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft), [0-[]], _),
+        phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
         maplist(dfs_used, FreeRight),
         phrase(regin_goals(FreeLeft), Gs),
         maplist(regin_clear_attributes, FreeLeft),
@@ -4404,7 +4411,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Tarjan's strongly connected components algorithm.
 
-   DCGs are used to implicitly pass around the global index and stack.
+   DCGs are used to implicitly pass around the global index, stack
+   and the predicate relating a vertex to its successors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc([])     --> [].
@@ -4416,32 +4424,28 @@ scc([V|Vs]) -->
 vindex_defined(V) --> { get_attr(V, index, _) }.
 
 vindex_is_index(V) -->
-        state(Index-_),
+        state(s(Index,_,_)),
         { put_attr(V, index, Index) }.
 
 vlowlink_is_index(V) -->
-        state(Index-_),
+        state(s(Index,_,_)),
         { put_attr(V, lowlink, Index) }.
 
 index_plus_one -->
-        state(I-S, I1-S),
+        state(s(I,Stack,Succ), s(I1,Stack,Succ)),
         { I1 is I+1 }.
 
 s_push(V)  -->
-        state(I-Stack, I-[V|Stack]),
+        state(s(I,Stack,Succ), s(I,[V|Stack],Succ)),
         { put_attr(V, in_stack, true) }.
-
-successors(V, Tos) -->
-        { (  get_attr(V, g0_edges, Tos0) ->
-             maplist(arg(2), Tos0, Tos)
-          ;   Tos = []
-          ) }.
 
 vlowlink_min_lowlink(V, VP) -->
         { get_attr(V, lowlink, VL),
           get_attr(VP, lowlink, VPL),
           VL1 is min(VL, VPL),
           put_attr(V, lowlink, VL1) }.
+
+successors(V, Tos) --> state(s(_,_,Succ)), { call(Succ, V, Tos) }.
 
 scc_(V) -->
         vindex_is_index(V),
@@ -4456,7 +4460,7 @@ scc_(V) -->
         ).
 
 pop_stack_to(V, N) -->
-        state(I-[First|Stack], I-Stack),
+        state(s(I,[First|Stack],Succ), s(I,Stack,Succ)),
         { del_attr(First, in_stack) },
         (   { First == V } -> []
         ;   { put_attr(First, lowlink, N) },
@@ -4774,7 +4778,7 @@ gcc_global(KNs) :-
             maximum_flow(S, T),        % only then, maximize it.
             gcc_consistent(T),
             del_attr(S, parent),
-            phrase(gcc_scc(Vals), [0-[]], _),
+            phrase(scc(Vals), [s(0,[],gcc_successors)], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
             maplist(call, Gs)
@@ -4969,32 +4973,10 @@ gcc_clear_edge(arc_to(_,_,V,F)) :-
         gcc_clear(V).
 gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Tarjan's strongly connected components algorithm, tailored for GCC,
-   finding strongly connected components in the residual graph.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_scc([])     --> [].
-gcc_scc([V|Vs]) -->
-        (   vindex_defined(V) -> gcc_scc(Vs)
-        ;   gcc_scc_(V), gcc_scc(Vs)
-        ).
-
-gcc_scc_(V) -->
-        vindex_is_index(V),
-        vlowlink_is_index(V),
-        index_plus_one,
-        s_push(V),
-        gcc_successors(V, Tos),
-        gcc_each_edge(Tos, V),
-        (   { get_attr(V, index, VI),
-              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
-        ;   []
-        ).
-
-gcc_successors(V, Tos) -->
-        { get_attr(V, edges, Tos0),
-          phrase(gcc_successors_(Tos0), Tos) }.
+gcc_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        phrase(gcc_successors_(Tos0), Tos).
 
 gcc_successors_([])     --> [].
 gcc_successors_([E|Es]) --> gcc_succ_edge(E), gcc_successors_(Es).
@@ -5009,18 +4991,6 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
               Flow > 0 } -> [V]
         ;   []
         ).
-
-gcc_each_edge([], _) --> [].
-gcc_each_edge([VP|VPs], V) -->
-        (   vindex_defined(VP) ->
-            (   v_in_stack(VP) ->
-                vlowlink_min_lowlink(V, VP)
-            ;   []
-            )
-        ;   gcc_scc_(VP),
-            vlowlink_min_lowlink(V, VP)
-        ),
-        gcc_each_edge(VPs, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
@@ -5132,7 +5102,7 @@ propagate_circuit(Vs) :-
         length(Vs, N),
         length(Ts, N),
         circuit_graph(Vs, Ts, Ts),
-        phrase(circuit_scc(Ts), [0-[]], _),
+        phrase(scc(Ts), [s(0,[],circuit_successors)], _),
         (   maplist(single_component, Ts) -> Continuation = true
         ;   Continuation = false
         ),
@@ -5158,44 +5128,9 @@ circuit_edges([N|Ns], Ts) -->
         [arc_to(T)],
         circuit_edges(Ns, Ts).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Tarjan's strongly connected components algorithm, tailored for
-   circuit/1.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-circuit_scc([])     --> [].
-circuit_scc([V|Vs]) -->
-        (   vindex_defined(V) -> circuit_scc(Vs)
-        ;   circuit_scc_(V), circuit_scc(Vs)
-        ).
-
-circuit_successors(V, Tos) -->
-        { get_attr(V, edges, Tos0),
-          maplist(arg(1), Tos0, Tos) }.
-
-circuit_scc_(V) -->
-        vindex_is_index(V),
-        vlowlink_is_index(V),
-        index_plus_one,
-        s_push(V),
-        circuit_successors(V, Tos),
-        circuit_each_edge(Tos, V),
-        (   { get_attr(V, index, VI),
-              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
-        ;   []
-        ).
-
-circuit_each_edge([], _) --> [].
-circuit_each_edge([VP|VPs], V) -->
-        (   vindex_defined(VP) ->
-            (   v_in_stack(VP) ->
-                vlowlink_min_lowlink(V, VP)
-            ;   []
-            )
-        ;   circuit_scc_(VP),
-            vlowlink_min_lowlink(V, VP)
-        ),
-        circuit_each_edge(VPs, V).
+circuit_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        maplist(arg(1), Tos0, Tos).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
