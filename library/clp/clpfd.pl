@@ -110,6 +110,7 @@
                   all_different/1,
                   all_distinct/1,
                   sum/3,
+                  scalar_product/4,
                   tuples_in/2,
                   labeling/2,
                   label/1,
@@ -1507,7 +1508,7 @@ all_different([X|Right], Left, State) :-
         ),
         all_different(Right, [X|Left], State).
 
-%% sum(+Vars, +Rel, +Expr)
+%% sum(+Vars, +Rel, ?Expr)
 %
 % The sum of elements of the list Vars is in relation Rel to Expr. For
 % example:
@@ -1520,47 +1521,59 @@ all_different([X|Right], Left, State) :-
 % C in 0..100.
 % ==
 
-scalar_supported(#=).
-scalar_supported(#\=).
-scalar_supported(#=<).
-scalar_supported(#>=).
+sum(Vs, Op, Value) :-
+        must_be(list, Vs),
+        length(Vs, L),
+        length(Ones, L),
+        maplist(=(1), Ones),
+        scalar_product(Ones, Vs, Op, Value).
 
-sum(Ls, Op, Value) :-
-        must_be(list, Ls),
-        maplist(fd_variable, Ls),
-        must_be(callable, Op),
-        (   scalar_supported(Op),
-            vars_plusterm(Ls, 0, Left),
-            left_right_linsum_const(Left, Value, Cs, Vs, Const) ->
-            scalar_product(Cs, Vs, Op, Const)
-        ;   sum(Ls, 0, Op, Value)
-        ).
+vars_plusterm([], _, T, T).
+vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
 
-vars_plusterm([], T, T).
-vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
+%% scalar_product(+Cs, +Vs, +Rel, ?Expr)
+%
+% Cs is a list of integers, Vs is a list of variables and integers.
+% True if the scalar product of Cs and Vs is in relation Rel to Expr.
 
-scalar_product(Cs, Vs, Op, C) :-
+scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
         must_be(list, Vs),
+        must_be(callable, Op),
         maplist(fd_variable, Vs),
-        must_be(integer, C),
-        (   Op == (#=)  -> Prop = scalar_product_eq(Cs,Vs,C)
-        ;   Op == (#\=) -> Prop = scalar_product_neq(Cs,Vs,C)
-        ;   Op == (#=<) -> Prop = scalar_product_leq(Cs,Vs,C)
-        ;   Op == (#>=) ->
-            maplist(negative, Cs, Cs1),
-            C1 is -C,
-            Prop = scalar_product_leq(Cs1,Vs,C1)
+        \+ cyclic_term(Value),
+        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
         ;   domain_error(scalar_product_relation, Op)
         ),
-        propagator_init_trigger(Vs, Prop).
+        vars_plusterm(Cs, Vs, 0, Left),
+        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+            scalar_product_(Op, Cs1, Vs1, Const)
+        ;   sum(Cs, Vs, 0, Op, Value)
+        ).
+
+sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
+sum([C|Cs], [X|Xs], Acc, Op, Value) :-
+        NAcc #= Acc + C*X,
+        sum(Cs, Xs, NAcc, Op, Value).
+
+scalar_product_(#=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, C)).
+scalar_product_(#\=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_neq(Cs, Vs, C)).
+scalar_product_(#=<, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_leq(Cs, Vs, C)).
+scalar_product_(#<, Cs, Vs, C) :-
+        C1 is C - 1,
+        scalar_product_(#=<, Cs, Vs, C1).
+scalar_product_(#>, Cs, Vs, C) :-
+        C1 is C + 1,
+        scalar_product_(#>=, Cs, Vs, C1).
+scalar_product_(#>=, Cs, Vs, C) :-
+        maplist(negative, Cs, Cs1),
+        C1 is -C,
+        scalar_product_(#=<, Cs1, Vs, C1).
 
 negative(X0, X) :- X is -X0.
-
-sum([], Sum, Op, Value) :- call(Op, Sum, Value).
-sum([X|Xs], Acc, Op, Value) :-
-        NAcc #= Acc + X,
-        sum(Xs, NAcc, Op, Value).
 
 coeffs_variables_const([], [], [], [], I, I).
 coeffs_variables_const([C|Cs], [V|Vs], Cs1, Vs1, I0, I) :-
@@ -1957,7 +1970,7 @@ matches([
                    )
                ;   Cs = [-1,-1], Vs = [A,B] ->
                    A+B #= S, Const1 is -Const, geq(Const1, S)
-               ;   scalar_product(Cs, Vs, #>=, Const)
+               ;   scalar_product_(#>=, Cs, Vs, Const)
                ))],
          m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
          m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
@@ -1979,7 +1992,7 @@ matches([
                ;   Cs = [C|CsRest],
                    gcd(CsRest, C, GCD),
                    S mod GCD =:= 0,
-                   scalar_product(Cs, Vs, #=, S)
+                   scalar_product_(#=, Cs, Vs, S)
                ))],
          m(var(X) #= any(Y))       -> [d(Y,X)],
          m(any(X) #= any(Y))       -> [d(X, RX), d(Y, RX)],
@@ -1994,7 +2007,7 @@ matches([
          m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
          m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
          m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
-            [g(scalar_product(Cs, Vs, #\=, S))],
+            [g(scalar_product_(#\=, Cs, Vs, S))],
          m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(X1, Y1, Z1))],
          m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(Y1, X1, Z1))],
          m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
@@ -4305,6 +4318,13 @@ g_g0_(V, flow_to(F,To)) :-
             )
         ).
 
+
+g0_successors(V, Tos) :-
+        (   get_attr(V, g0_edges, Tos0) ->
+            maplist(arg(2), Tos0, Tos)
+        ;   Tos = []
+        ).
+
 put_free(F) :- put_attr(F, free, true).
 
 free_node(F) :-
@@ -4320,7 +4340,7 @@ regin(Vars) :-
         maximum_matching(FreeLeft),
         sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft), [0-[]], _),
+        phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
         maplist(dfs_used, FreeRight),
         phrase(regin_goals(FreeLeft), Gs),
         maplist(regin_clear_attributes, FreeLeft),
@@ -4391,7 +4411,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Tarjan's strongly connected components algorithm.
 
-   DCGs are used to implicitly pass around the global index and stack.
+   DCGs are used to implicitly pass around the global index, stack
+   and the predicate relating a vertex to its successors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 scc([])     --> [].
@@ -4403,32 +4424,28 @@ scc([V|Vs]) -->
 vindex_defined(V) --> { get_attr(V, index, _) }.
 
 vindex_is_index(V) -->
-        state(Index-_),
+        state(s(Index,_,_)),
         { put_attr(V, index, Index) }.
 
 vlowlink_is_index(V) -->
-        state(Index-_),
+        state(s(Index,_,_)),
         { put_attr(V, lowlink, Index) }.
 
 index_plus_one -->
-        state(I-S, I1-S),
+        state(s(I,Stack,Succ), s(I1,Stack,Succ)),
         { I1 is I+1 }.
 
 s_push(V)  -->
-        state(I-Stack, I-[V|Stack]),
+        state(s(I,Stack,Succ), s(I,[V|Stack],Succ)),
         { put_attr(V, in_stack, true) }.
-
-successors(V, Tos) -->
-        { (  get_attr(V, g0_edges, Tos0) ->
-             maplist(arg(2), Tos0, Tos)
-          ;   Tos = []
-          ) }.
 
 vlowlink_min_lowlink(V, VP) -->
         { get_attr(V, lowlink, VL),
           get_attr(VP, lowlink, VPL),
           VL1 is min(VL, VPL),
           put_attr(V, lowlink, VL1) }.
+
+successors(V, Tos) --> state(s(_,_,Succ)), { call(Succ, V, Tos) }.
 
 scc_(V) -->
         vindex_is_index(V),
@@ -4443,7 +4460,7 @@ scc_(V) -->
         ).
 
 pop_stack_to(V, N) -->
-        state(I-[First|Stack], I-Stack),
+        state(s(I,[First|Stack],Succ), s(I,Stack,Succ)),
         { del_attr(First, in_stack) },
         (   { First == V } -> []
         ;   { put_attr(First, lowlink, N) },
@@ -4761,7 +4778,7 @@ gcc_global(KNs) :-
             maximum_flow(S, T),        % only then, maximize it.
             gcc_consistent(T),
             del_attr(S, parent),
-            phrase(gcc_scc(Vals), [0-[]], _),
+            phrase(scc(Vals), [s(0,[],gcc_successors)], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
             maplist(call, Gs)
@@ -4956,32 +4973,10 @@ gcc_clear_edge(arc_to(_,_,V,F)) :-
         gcc_clear(V).
 gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Tarjan's strongly connected components algorithm, tailored for GCC,
-   finding strongly connected components in the residual graph.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_scc([])     --> [].
-gcc_scc([V|Vs]) -->
-        (   vindex_defined(V) -> gcc_scc(Vs)
-        ;   gcc_scc_(V), gcc_scc(Vs)
-        ).
-
-gcc_scc_(V) -->
-        vindex_is_index(V),
-        vlowlink_is_index(V),
-        index_plus_one,
-        s_push(V),
-        gcc_successors(V, Tos),
-        gcc_each_edge(Tos, V),
-        (   { get_attr(V, index, VI),
-              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
-        ;   []
-        ).
-
-gcc_successors(V, Tos) -->
-        { get_attr(V, edges, Tos0),
-          phrase(gcc_successors_(Tos0), Tos) }.
+gcc_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        phrase(gcc_successors_(Tos0), Tos).
 
 gcc_successors_([])     --> [].
 gcc_successors_([E|Es]) --> gcc_succ_edge(E), gcc_successors_(Es).
@@ -4996,18 +4991,6 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
               Flow > 0 } -> [V]
         ;   []
         ).
-
-gcc_each_edge([], _) --> [].
-gcc_each_edge([VP|VPs], V) -->
-        (   vindex_defined(VP) ->
-            (   v_in_stack(VP) ->
-                vlowlink_min_lowlink(V, VP)
-            ;   []
-            )
-        ;   gcc_scc_(VP),
-            vlowlink_min_lowlink(V, VP)
-        ),
-        gcc_each_edge(VPs, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
@@ -5090,7 +5073,7 @@ circuit(Vs) :-
         maplist(fd_variable, Vs),
         length(Vs, L),
         Vs ins 1..L,
-        (   Vs = [Single] -> Single = 1
+        (   L =:= 1 -> true
         ;   all_circuit(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
             regin_attach(Vs, Prop, []),
@@ -5119,7 +5102,7 @@ propagate_circuit(Vs) :-
         length(Vs, N),
         length(Ts, N),
         circuit_graph(Vs, Ts, Ts),
-        phrase(circuit_scc(Ts), [0-[]], _),
+        phrase(scc(Ts), [s(0,[],circuit_successors)], _),
         (   maplist(single_component, Ts) -> Continuation = true
         ;   Continuation = false
         ),
@@ -5145,44 +5128,9 @@ circuit_edges([N|Ns], Ts) -->
         [arc_to(T)],
         circuit_edges(Ns, Ts).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Tarjan's strongly connected components algorithm, tailored for
-   circuit/1.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-circuit_scc([])     --> [].
-circuit_scc([V|Vs]) -->
-        (   vindex_defined(V) -> circuit_scc(Vs)
-        ;   circuit_scc_(V), circuit_scc(Vs)
-        ).
-
-circuit_successors(V, Tos) -->
-        { get_attr(V, edges, Tos0),
-          maplist(arg(1), Tos0, Tos) }.
-
-circuit_scc_(V) -->
-        vindex_is_index(V),
-        vlowlink_is_index(V),
-        index_plus_one,
-        s_push(V),
-        circuit_successors(V, Tos),
-        circuit_each_edge(Tos, V),
-        (   { get_attr(V, index, VI),
-              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
-        ;   []
-        ).
-
-circuit_each_edge([], _) --> [].
-circuit_each_edge([VP|VPs], V) -->
-        (   vindex_defined(VP) ->
-            (   v_in_stack(VP) ->
-                vlowlink_min_lowlink(V, VP)
-            ;   []
-            )
-        ;   circuit_scc_(VP),
-            vlowlink_min_lowlink(V, VP)
-        ),
-        circuit_each_edge(VPs, V).
+circuit_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        maplist(arg(1), Tos0, Tos).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -84,6 +84,9 @@ module named \arg{Module} and exporting the predicates of
 format \term{op}{Precedence, Type, Name}. Operators defined in the
 export list are available inside the module as well as to modules
 importing this module. See also \secref{operators}.
+
+Compatible to Ciao Prolog, if \arg{Module} is unbound, it is unified
+with the basename without extension of the file being loaded.
 \end{description}
 
 

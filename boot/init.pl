@@ -1443,9 +1443,11 @@ load_files(Module:Files, Options) :-
 %	Redefining a module by loading another file must be more subtle.
 %	Verify the compatibility of the interface could be one example.
 
-'$load_module'(Var, Public, Cls, In, File, Options) :-
+'$load_module'(Var, Public, Cls, In, AbsFile, Options) :-
 	var(Var), !,
-	Var = File,
+	file_base_name(AbsFile, File),
+	file_name_extension(Base, _, File),
+	Var = Base,
 	'$load_module'(Var, Public, Cls, In, File, Options).
 '$load_module'(Reserved, _, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
