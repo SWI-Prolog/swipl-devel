@@ -158,7 +158,7 @@ log_started(Request, Id, Stream) :-
 	log_request(Request, LogRequest),
 	format_time(string(HDate), '%+', Now),
 	format(Stream,
-	       '/*~s*/ request(~q, ~0f, ~q).~n',
+	       '/*~s*/ request(~q, ~3f, ~q).~n',
 	       [HDate, Id, Now, LogRequest]).
 
 %%	log_request(+Request, -Log)
