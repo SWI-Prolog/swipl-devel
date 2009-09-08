@@ -150,6 +150,7 @@ static functor_t FUNCTOR_sdata1;
 static functor_t FUNCTOR_ndata1;
 static functor_t FUNCTOR_number1;
 static functor_t FUNCTOR_syntax_errors1;
+static functor_t FUNCTOR_xml_no_ns1;
 static functor_t FUNCTOR_minus2;
 static functor_t FUNCTOR_positions1;
 static functor_t FUNCTOR_event_class1;
@@ -211,6 +212,7 @@ initConstants()
   FUNCTOR_ndata1	 = mkfunctor("ndata", 1);
   FUNCTOR_number1	 = mkfunctor("number", 1);
   FUNCTOR_syntax_errors1 = mkfunctor("syntax_errors", 1);
+  FUNCTOR_xml_no_ns1     = mkfunctor("xml_no_ns", 1);
   FUNCTOR_minus2 	 = mkfunctor("-", 2);
   FUNCTOR_positions1 	 = mkfunctor("positions", 1);
   FUNCTOR_event_class1 	 = mkfunctor("event_class", 1);
@@ -1616,6 +1618,19 @@ pl_sgml_parse(term_t parser, term_t options)
     } else if ( PL_is_functor(head, FUNCTOR_call2) )
     { if ( !set_callback_predicates(pd, head) )
 	return FALSE;
+    } else if ( PL_is_functor(head, FUNCTOR_xml_no_ns1) )
+    { term_t a = PL_new_term_ref();
+      PL_get_arg(1, head, a);
+      char *s;
+
+      if ( !PL_get_atom_chars(a, &s) )
+	return sgml2pl_error(ERR_TYPE, "atom", a);
+      if ( streq(s, "error") )
+	p->xml_no_ns = NONS_ERROR;
+      else if ( streq(s, "quiet") )
+	p->xml_no_ns = NONS_QUIET;
+      else
+	return sgml2pl_error(ERR_DOMAIN, "xml_no_ns", a);
     } else if ( PL_is_functor(head, FUNCTOR_parse1) )
     { term_t a = PL_new_term_ref();
       char *s;

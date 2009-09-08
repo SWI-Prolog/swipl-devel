@@ -911,6 +911,13 @@ Defines how syntax errors are handled.
 	using <pref builtin>print_message/2 with severity
 	\const{informational}.
     \end{description}
+
+    \termitem{xml_no_ns}{+Mode}
+Error handling if an XML namespace is not defined.  Default generates
+an error.  If \const{quiet}, the error is suppressed.  Can be used
+together with \term{call}{urlns, Closure} to provide external expansion
+of namespaces.  See also \secref{xmlns}.
+
     \termitem{call}{+Event, :PredicateName}
 Issue call-backs on the specified events. \arg{PredicateName} is the
 name of the predicate to call on this event, possibly prefixed with a

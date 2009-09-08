@@ -158,6 +158,8 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
 	return TRUE;
       } else
       { *url = n->name;			/* undefined namespace */
+	if ( p->xml_no_ns == NONS_QUIET )
+	  return TRUE;
 	gripe(p, ERC_EXISTENCE, L"namespace", n->name);
 	return FALSE;
       }
@@ -213,8 +215,10 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 	  return TRUE;
 	} else
 	{ *url = n->name;		/* undefined namespace */
-	  gripe(p, ERC_EXISTENCE, L"namespace", n->name);
 	  e->thisns = xmlns_push(p, n->name, n->name); /* define implicitly */
+	  if ( p->xml_no_ns == NONS_QUIET )
+	    return TRUE;
+	  gripe(p, ERC_EXISTENCE, L"namespace", n->name);
 	  return FALSE;
 	}
       }

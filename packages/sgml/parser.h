@@ -145,6 +145,12 @@ typedef enum
   DM_DATA				/* Environment has only elements */
 } data_mode;
 
+#ifdef XMLNS
+typedef enum
+{ NONS_ERROR = 0,
+  NONS_QUIET
+} xmlnons;
+#endif
 
 typedef struct _sgml_environment
 { dtd_element *element;			/* element that opened the env */
@@ -201,6 +207,7 @@ typedef struct _dtd_parser
   dtd_srcloc	startcdata;		/* Start of last cdata */
   dtd_symbol   *enforce_outer_element;	/* Outer element to look for */
   sgml_event_class event_class;		/* EV_* */
+  xmlnons	xml_no_ns;		/* What if namespace does not exist? */
 
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */
