@@ -68,9 +68,11 @@ xpath_chk(DOM, Spec, Content) :-
 %	    Select the immediate children of the root matching Term
 %
 %	The Terms above are of type   _callable_.  The functor specifies
-%	the  element  name.  Optional    arguments   specify  additional
-%	constraints and functions. The arguments are processed from left
-%	to right. Defined conditional argument values are:
+%	the element name. The element name '*' refers to any element and
+%	a term NS:Term refers to  an  XML   name  in  the  namespace NS.
+%	Optional arguments specify additional constraints and functions.
+%	The  arguments  are  processed  from   left  to  right.  Defined
+%	conditional argument values are:
 %
 %	    * Integer
 %	    The N-th element with the given name
@@ -90,11 +92,11 @@ xpath(DOM, Spec, Content) :-
 	in_dom(Spec, DOM, Content).
 
 in_dom(//Spec, DOM, Value) :- !,
-	Spec =.. [Name|Modifiers],
+	element_spec(Spec, Name, Modifiers),
 	sub_dom(I, Len, Name, E, DOM),
 	modifiers(Modifiers, I, Len, E, Value).
 in_dom(/Spec, E, Value) :- !,
-	Spec =.. [Name|Modifiers],
+	element_spec(Spec, Name, Modifiers),
 	(   Name == self
 	->  true
 	;   element_name(E, Name)
@@ -107,11 +109,25 @@ in_dom(A//B, DOM, Value) :- !,
 	in_dom(A, DOM, Value0),
 	in_dom(//B, Value0, Value).
 in_dom(Spec, element(_, _, Content), Value) :-
-	Spec =.. [Name|Modifiers],
+	element_spec(Spec, Name, Modifiers),
 	count_named_elements(Content, Name, CLen),
 	CLen > 0,
 	nth_element(N, Name, E, Content),
 	modifiers(Modifiers, N, CLen, E, Value).
+
+element_spec(Var, _, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+element_spec(NS:Term, NS:Name, Modifiers) :- !,
+	Term =.. [Name0|Modifiers],
+	star(Name0, Name).
+element_spec(Term, Name, Modifiers) :- !,
+	Term =.. [Name0|Modifiers],
+	star(Name0, Name).
+
+star(*, _) :- !.
+star(Name, Name).
+
 
 %%	sub_dom(-Index, -Count, +Name, -Sub, +DOM) is nondet.
 %
