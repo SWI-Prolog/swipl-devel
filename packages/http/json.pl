@@ -539,15 +539,15 @@ json_print_length(Array, Options, Max, Len0, Len) :-
 	Len1 =< Max,
 	array_print_length(Array, Options, Max, Len1, Len).
 json_print_length(Null, Options, Max, Len0, Len) :-
-  json_options_null(Options, Null),
+  json_options_null(Options, Null), !,
 	Len is Len0 + 4,
 	Len =< Max.
 json_print_length(False, Options, Max, Len0, Len) :-
-  json_options_false(Options, False),
+  json_options_false(Options, False), !,
 	Len is Len0 + 5,
 	Len =< Max.
 json_print_length(True, Options, Max, Len0, Len) :-
-  json_options_true(Options, True),
+  json_options_true(Options, True), !,
 	Len is Len0 + 4,
 	Len =< Max.
 json_print_length(Number, _Options, Max, Len0, Len) :-
