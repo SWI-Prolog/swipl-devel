@@ -257,7 +257,10 @@ set_parser_options(Parser, Options, RestOptions) :-
 set_parser_options(_, Options, Options).
 
 
-load_structure(stream(In), Term, Options) :- !,
+:- meta_predicate
+	load_structure(+, -, :).
+
+load_structure(stream(In), Term, M:Options) :- !,
 	(   select_option(offset(Offset), Options, Options1)
 	->  seek(In, Offset, bof, _)
 	;   Options1 = Options
@@ -271,7 +274,7 @@ load_structure(stream(In), Term, Options) :- !,
 			[ dtd(DTD)
 			]),
 	def_entities(Options2, DTD, Options3),
-	call_cleanup(parse(Parser, Options3, TermRead, In),
+	call_cleanup(parse(Parser, M:Options3, TermRead, In),
 		     free_sgml_parser(Parser)),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
@@ -285,18 +288,26 @@ load_structure(stream(In), Term, Options) :- !,
 load_structure(Stream, Term, Options) :-
 	is_stream(Stream), !,
 	load_structure(stream(Stream), Term, Options).
-load_structure(File, Term, Options) :-
+load_structure(File, Term, M:Options) :-
 	open(File, read, In, [type(binary)]),
-	load_structure(stream(In), Term, [file(File)|Options]),
+	load_structure(stream(In), Term, M:[file(File)|Options]),
 	close(In).
 
-parse(Parser, Options, Document, In) :-
+parse(Parser, M:Options, Document, In) :-
 	set_parser_options(Parser, Options, Options1),
+	parser_meta_options(Options1, M, Options2),
 	sgml_parse(Parser,
 		   [ document(Document),
 		     source(In)
-		   | Options1
+		   | Options2
 		   ]).
+
+parser_meta_options([], _, []).
+parser_meta_options([call(When, Closure)|T0], M, [call(When, M:Closure)|T]) :- !,
+	parser_meta_options(T0, M, T).
+parser_meta_options([H|T0], M, [H|T]) :-
+	parser_meta_options(T0, M, T).
+
 
 def_entities([], _, []).
 def_entities([entity(Name, Value)|T], DTD, Opts) :- !,
