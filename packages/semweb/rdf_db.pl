@@ -834,7 +834,7 @@ rdf_load(Spec, M:Options0) :-
 	),
 	select_option(base_uri(BaseURI), Options1, Options2, SourceURL),
 	select_option(format(Format), Options2, Options3, DefFormat),
-	select_option(blank_nodes(ShareMode), Options3, Options4, share),
+	select_option(blank_nodes(ShareMode), Options3, Options4, noshare),
 	select_option(cache(Cache), Options4, Options5, true),
 	select_option(if(If), Options5, Options6, changed),
 	select_option(db(DB), Options6, Options7, SourceURL),
