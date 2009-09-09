@@ -389,7 +389,7 @@ prolog_load_context(directory, D) :-
 	source_location(F, _),
 	file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
-	'$set_dialect'(D, D).
+	current_prolog_flag(emulated_dialect, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
 

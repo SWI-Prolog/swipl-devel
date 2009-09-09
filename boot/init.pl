@@ -1308,36 +1308,14 @@ load_files(Module:Files, Options) :-
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
-:- thread_local
-	'$current_load_dialect'/1.
-
-%%	'$set_dialect'(-Old, +New) is det.
-%
-%	Switch the currently expected dialect.
-
-'$set_dialect'(Old, New) :-
-	'$my_dialect'(Old),
-	(   Old == New
-	->  true
-	;   retractall('$current_load_dialect'(_)),
-	    (	New == swi
-	    ->	true
-	    ;	assert('$current_load_dialect'(New))
-	    )
-	).
-
-'$my_dialect'(Current) :-
-	(   '$current_load_dialect'(Dialect)
-	->  Current = Dialect
-	;   Current = swi
-	).
+:- set_prolog_flag(emulated_dialect, swi).
 
 '$save_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(Style, Style),
-	'$set_dialect'(Dialect, Dialect).
+	current_prolog_flag(emulated_dialect, Dialect).
 '$restore_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(_, Style),
-	'$set_dialect'(_, Dialect).
+	set_prolog_flag(emulated_dialect, Dialect).
 
 
 '$load_id'(stream(Id, _), Id) :- !.

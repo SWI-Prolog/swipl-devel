@@ -67,7 +67,7 @@ compilation:
 
 expects_dialect(Dialect) :-
 	must_be(atom, Dialect),
-	'$set_dialect'(_, Dialect),
+	set_prolog_flag(emulated_dialect, Dialect),
 	(   Dialect == swi
 	->  true
 	;   attach_dialect(Dialect)
