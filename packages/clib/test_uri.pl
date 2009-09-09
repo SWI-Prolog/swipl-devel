@@ -12,6 +12,7 @@
 
 test_uri :-
 	run_tests([ uri,
+		    iri,
 		    uri_authority,
 		    uri_query,
 		    uri_encode
@@ -38,10 +39,6 @@ test(unicode_uri, IRI == URI) :-
 test(latin_uri, IRI == URI) :-
 	URI = 'http://\u00a8',
 	uri_iri(URI, IRI).
-test(normalise_uri, NormalURI == 'example://a/b/c/%7Bfoo%7D') :-
-	uri_normalized('eXAMPLE://a/./b/../b/%63/%7bfoo%7d', NormalURI).
-test(normalise_iri, NormalIRI == 'example://a/b/c/{foo}') :-
-	uri_normalized_iri('eXAMPLE://a/./b/../b/%63/%7bfoo%7d', NormalIRI).
 
 test(resolve, URI == 'g:h')		     :-	resolve('g:h', URI).
 test(resolve, URI == 'http://a/b/c/g')	     :-	resolve('g', URI).
@@ -68,6 +65,17 @@ test(resolve, URI == 'http://a/')	     :-	resolve('../../', URI).
 test(resolve, URI == 'http://a/g')	     :-	resolve('../../g', URI).
 
 :- end_tests(uri).
+
+:- begin_tests(iri).
+
+test(normalise_uri, NormalURI == 'example://a/b/c/%7Bfoo%7D') :-
+	uri_normalized('eXAMPLE://a/./b/../b/%63/%7bfoo%7d', NormalURI).
+test(normalise_iri, NormalIRI == 'example://a/b/c/%7Bfoo%7D') :-
+	uri_normalized_iri('eXAMPLE://a/./b/../b/%63/%7bfoo%7d', NormalIRI).
+test(normalise_iri, NormalIRI == 'http://a.b/a%3F?x') :-	% 3F = '?'
+	uri_normalized_iri('http://a.b/a%3f?x', NormalIRI).
+
+:- end_tests(iri).
 
 :- begin_tests(uri_query).
 

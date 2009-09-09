@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <wchar.h>
 #include <wctype.h>
+#include <assert.h>
 
 static size_t removed_dot_segments(size_t len, const pl_wchar_t *in,
 				   pl_wchar_t *out);
@@ -172,6 +173,7 @@ fill_flags()
 }
 
 #define no_escape(c, f) ((c < 128) && (charflags[(int)c] & (f)))
+#define iri_no_escape(c, f) ((c > 128) || (charflags[(int)c] & (f)))
 
 
 /* hex(const pl_wchar_t *in, int digits, int *value)
@@ -368,6 +370,21 @@ add_encoded_charbuf(charbuf *cb, int c, int flags)
 }
 
 
+static int
+iri_add_encoded_charbuf(charbuf *cb, int c, int flags)
+{ if ( iri_no_escape(c, flags) )
+  { add_charbuf(cb, c);
+  } else
+  { assert(c < 128);
+    add_charbuf(cb, '%');
+    add_charbuf(cb, hexdigit(c>>4));
+    add_charbuf(cb, hexdigit(c&0xf));
+  }
+
+  return TRUE;
+}
+
+
 
 static int
 add_nchars_charbuf(charbuf *cb, size_t len, const pl_wchar_t *s)
@@ -399,12 +416,19 @@ range_has_escape(const range *r, int flags)
 
 
 static int
-range_is_unreserved(const range *r, int flags)
+range_is_unreserved(const range *r, int iri, int flags)
 { const pl_wchar_t *s = r->start;
 
-  for(; s<r->end; s++)
-  { if ( !no_escape(s[0], flags) )
-      return FALSE;
+  if ( iri )
+  { for(; s<r->end; s++)
+    { if ( !iri_no_escape(s[0], flags) )
+	return FALSE;
+    }
+  } else
+  { for(; s<r->end; s++)
+    { if ( !no_escape(s[0], flags) )
+	return FALSE;
+    }
   }
 
   return TRUE;
@@ -418,7 +442,38 @@ add_verb_range_charbuf(charbuf *cb, const range *r)
 
 
 static int
-add_decoded_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
+add_decoded_range_charbuf(charbuf *cb, const range *r, int flags)
+{ const pl_wchar_t *s = r->start;
+
+  while(s<r->end)
+  { int c;
+
+    if ( *s == '%' )
+    { const pl_wchar_t *e;
+
+      if ( (e=get_encoded_utf8(s, &c)) )
+      { s = e;
+      } else if (hex(s+1, 2, &c) )
+      { s += 3;
+      } else
+      { c = *s++;
+      }
+    } else if ( *s == '+' && flags == ESC_QVALUE )
+    { s++;
+      c = ' ';
+    } else
+    { c = *s++;
+    }
+
+    add_charbuf(cb, c);
+  }
+
+  return TRUE;
+}
+
+
+static int
+add_normalized_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
 { const pl_wchar_t *s = r->start;
 
   while(s<r->end)
@@ -442,7 +497,7 @@ add_decoded_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
     }
 
     if ( iri )
-    { add_charbuf(cb, c);
+    { iri_add_encoded_charbuf(cb, c, flags);
     } else
     { add_encoded_charbuf(cb, c, flags);
     }
@@ -452,27 +507,32 @@ add_decoded_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
 }
 
 
-/* add_range_charbuf(charbuf *cb, const range *r, int iri)
+/* add_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
 
    Add a range of characters while normalizing %-encoding.  This
    implies not to use encoding if it is not needed and upcase
    %xx to %XX otherwise.
 
-   If iri == TRUE, the input is precent-decoded, while if
-   iri == FALSE, the input will use canonical URI percent-encoding.
+   If iri == TRUE, values >= 128 are not escaped.  Otherwise they
+   use %-encoded UTF-8
 */
 
 static int
 add_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
 { if ( range_has_escape(r, flags) )
-  { return add_decoded_range_charbuf(cb, r, iri, flags);
-  } else if ( iri || range_is_unreserved(r, flags) )
+  { return add_normalized_range_charbuf(cb, r, iri, flags);
+  } else if ( range_is_unreserved(r, iri, flags) )
   { add_nchars_charbuf(cb, r->end-r->start, r->start);
   } else
   { const pl_wchar_t *s = r->start;
 
-    while(s<r->end)
-      add_encoded_charbuf(cb, *s++, flags);
+    if ( iri )
+    { while(s<r->end)
+	iri_add_encoded_charbuf(cb, *s++, flags);
+    } else
+    { while(s<r->end)
+	add_encoded_charbuf(cb, *s++, flags);
+    }
   }
 
   return TRUE;
@@ -725,7 +785,7 @@ uri_is_global(term_t URI)
     if ( e > s && e[0] == ':' )
     { r.start = s;
       r.end = e;
-      if ( range_is_unreserved(&r, CH_SCHEME) )
+      if ( range_is_unreserved(&r, TRUE, CH_SCHEME) )
 	return TRUE;
     }
   }
@@ -745,7 +805,7 @@ unify_decoded_atom(term_t t, range *r, int flags)
     int rc;
 
     init_charbuf(&b);
-    add_decoded_range_charbuf(&b, r, TRUE, flags);
+    add_decoded_range_charbuf(&b, r, flags);
     rc = PL_unify_wchars(t, PL_ATOM, b.here - b.base, b.base);
     free_charbuf(&b);
     return rc;
@@ -807,7 +867,7 @@ add_encoded_term_charbuf(charbuf *cb, term_t value, int flags)
 
   r.start = s;
   r.end = r.start+len;
-  if ( range_is_unreserved(&r, flags) )
+  if ( range_is_unreserved(&r, TRUE, flags) )
   { add_nchars_charbuf(cb, r.end-r.start, r.start);
   } else
   { const pl_wchar_t *s = r.start;
