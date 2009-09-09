@@ -38,7 +38,7 @@
 :- use_module(library(option)).
 :- use_module(library('semweb/rdf_db')).
 :- use_module(library(debug)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(record)).
 :- use_module(library(http/http_open)).
 :- use_module(turtle_base).
@@ -68,6 +68,7 @@ one of the extensions =|.ttl|=, =|.n3|= or =|.nt|=.
 */
 
 :- record ttl_state(base_uri,
+		    resources:oneof([uri,iri])=uri,
 		    prefix_map,
 		    nodeid_map,
 		    anon_prefix,
@@ -95,6 +96,12 @@ one of the extensions =|.ttl|=, =|.n3|= or =|.nt|=.
 %		Blank nodes are generated as <Prefix>1, <Prefix>2, etc.
 %		If Prefix is not an atom blank nodes are generated as
 %		node(1), node(2), ...
+%
+%		* resources(URIorIRI)
+%		Officially, Turtle resources are IRIs.  Quite a
+%		few applications however send URIs.  By default we
+%		do URI->IRI mapping because this rarely causes errors.
+%		To force strictly conforming mode, pass =iri=.
 %
 %		* prefixes(-Pairs)
 %		Return encountered prefix declarations as a
@@ -258,9 +265,9 @@ init_state(In, Stream, Options, State) :-
 	->  true
 	;   In = stream(_)
 	->  BaseURI = []
-	;   is_absolute_url(In)
-	->  BaseURI = In
-	;   file_name_to_url(In, BaseURI)
+	;   uri_is_global(In)
+	->  uri_normalized(In, BaseURI)
+	;   uri_file_name(BaseURI, In)
 	),
 	(   option(anon_prefix(Prefix), Options)
 	->  true
@@ -270,9 +277,11 @@ init_state(In, Stream, Options, State) :-
 	),
 	option(db(DB), Options, BaseURI),
 	option(on_error(OnError), Options, warning),
+	option(resources(URIIRI), Options, uri),
 	empty_assoc(Map),
 	empty_assoc(NodeMap),
 	make_ttl_state([ base_uri(BaseURI),
+			 resources(URIIRI),
 			 prefix_map(Map),
 			 nodeid_map(NodeMap),
 			 anon_prefix(Prefix),
@@ -307,19 +316,19 @@ list([H|T]) --> [H], list(T).
 
 triples(State, []) -->
 	[ '@', name(prefix), name(Prefix), : ], !,
-	uri(State, URI),
+	iri(State, URI),
 	{ ttl_state_prefix_map(State, Map0),
 	  put_assoc(Prefix, Map0, URI, Map),
 	  set_prefix_map_of_ttl_state(Map, State)
 	}.
 triples(State, []) -->
 	[ '@', name(prefix), ':' ], !,
-	uri(State, URI),
+	iri(State, URI),
 	{ set_base_uri_of_ttl_state(URI, State)
 	}.
 triples(State, []) -->
 	[ '@', name(base) ], !,
-	uri(State,URI),
+	iri(State,URI),
 	{ set_base_uri_of_ttl_state(URI, State)
 	}.
 triples(State, Triples) -->
@@ -423,44 +432,42 @@ resource(State, IRI) -->
 	[ :(Name) ], !,
 	{ ttl_state_base_uri(State, Base),
 	  atom_concat(Base, Name, URI),
-	  url_iri(URI, IRI)
+	  uri_iri(State, URI, IRI)
 	}.
 resource(State, IRI) -->
 	[ name(Prefix), : ], !,
 	{ ttl_state_prefix_map(State, Map),
-	  get_assoc(Prefix, Map, URI),
-	  url_iri(URI, IRI)
+	  get_assoc(Prefix, Map, IRI)
 	}.
 resource(State, IRI) -->
 	[ Prefix:Name ], !,
 	{ ttl_state_prefix_map(State, Map),
 	  (   get_assoc(Prefix, Map, Base)
 	  ->  atom_concat(Base, Name, URI),
-	      url_iri(URI, IRI)
+	      uri_iri(State, URI, IRI)
 	  ;   throw(error(existence_error(prefix, Prefix), _))
 	  )
 	}.
-resource(State, IRI) -->
+resource(State, BaseIRI) -->
 	[ : ], !,
-	{ ttl_state_base_uri(State, BaseURI),
-	  url_iri(BaseURI, IRI)
+	{ ttl_state_base_uri(State, BaseIRI)
 	}.
 
+uri_iri(State, URI, IRI) :-
+	(   ttl_state_resources(State, uri)
+	->  uri_iri(URI, IRI)
+	;   IRI = URI
+	).
 
-uri(State, URI) -->
+iri(State, IRI) -->
 	[ relative_uri(Rel)
 	],
 	{ ttl_state_base_uri(State, Base),
 	  (   Rel == ''			% must be in global_url?
-	  ->  URI = Base
-	  ;   global_url(Rel, Base, URI)
+	  ->  IRI = Base
+	  ;   uri_normalized_iri(Rel, Base, IRI)
 	  )
 	}.
-
-iri(State, IRI) -->
-	uri(State, URI),
-	{ url_iri(URI, IRI) }.
-
 
 blank(State, Resource, T, T) -->
 	[ nodeId(NodeId) ], !,
@@ -527,7 +534,7 @@ mk_object(type(relative_uri(Rel), Value), State, literal(type(Type, Value))) :- 
 	  ttl_state_base_uri(State, Base),
 	  (   Rel == ''			% must be in global_url?
 	  ->  Type = Base
-	  ;   global_url(Rel, Base, Type)
+	  ;   uri_normalized_iri(Rel, Base, Type)
 	  ).
 mk_object(type(:(Name), Value), State, literal(type(Type, Value))) :- !,
 	  ttl_state_base_uri(State, Base),

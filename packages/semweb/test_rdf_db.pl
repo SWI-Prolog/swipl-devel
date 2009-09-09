@@ -35,6 +35,8 @@
 
 :- asserta(user:file_search_path(foreign, '../sgml')).
 :- asserta(user:file_search_path(library, '../sgml')).
+:- asserta(user:file_search_path(foreign, '../clib')).
+:- asserta(user:file_search_path(library, '../clib')).
 :- asserta(user:file_search_path(library, '../sgml/RDF')).
 :- asserta(user:file_search_path(foreign, '.')).
 :- use_module(rdf_db).
