@@ -36,10 +36,12 @@
 
 :- asserta(user:file_search_path(foreign, '..')).
 :- asserta(user:file_search_path(foreign, '../../semweb')).
+:- asserta(user:file_search_path(foreign, '../../clib')).
 :- asserta(user:file_search_path(library, '../..')).
 :- asserta(user:file_search_path(library, '..')).
 :- asserta(user:file_search_path(library, '.')).
 :- asserta(user:file_search_path(library, '../../plunit')).
+:- asserta(user:file_search_path(library, '../../clib')).
 
 :- use_module(library(plunit)).
 :- use_module(library(rdf_write)).

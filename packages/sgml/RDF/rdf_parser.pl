@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2006, University of Amsterdam
+    Copyright (C): 2002-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,8 +37,7 @@
 :- use_module(rewrite).
 :- use_module(library(sgml)).		% xml_name/1
 :- use_module(library(lists)).
-:- use_module(library(url)).
-:- use_module(library(utf8)).
+:- use_module(library(uri)).
 
 :- op(500, fx, \?).			% Optional (attrs)
 
@@ -405,7 +404,7 @@ uri(URI, Options) ::=
 	    ->  canonical_uri(A, Base, URI)
 	    ;   sub_atom(A, 0, _, _, #)
 	    ->  sub_atom(A, 1, _, 0, URI)
-	    ;   url_iri(A, URI)
+	    ;   uri_normalized_iri(A, URI)
 	    )
 	}.
 
@@ -433,14 +432,14 @@ unique_xml_name(Name) :-
 make_globalid(In, Options, Id) :-
 	(   memberchk(base_uri(Base), Options),
 	    Base \== []
-	->  (   is_absolute_url(In)
-	    ->	url_iri(In, Id)
+	->  (   uri_is_global(In)
+	    ->	uri_normalized_iri(In, Id)
 	    ;	atomic_list_concat([Base, In], #, Id0),
-		url_iri(Id0, Id)
+		uri_normalized_iri(Id0, Id)
 	    )
 	;   sub_atom(In, 0, _, _, #)
 	->  sub_atom(In, 1, _, 0, Id)
-	;   url_iri(In, Id)
+	;   uri_normalized_iri(In, Id)
 	).
 
 
@@ -450,11 +449,10 @@ make_globalid(In, Options, Id) :-
 %	clause, which is the correct order?
 
 canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
-canonical_uri(URI0, [], URI) :- !,	% do not use one
-	url_iri(URI0, URI).
-canonical_uri(URI, Base, Global) :-	% use our generic library
-	global_url(URI, Base, Global0),
-	url_iri(Global0, Global).
+canonical_uri(URI0, [], URI) :- !,
+	uri_normalized_iri(URI0, URI).
+canonical_uri(URI, Base, IRI) :-
+	uri_normalized_iri(URI, Base, IRI).
 
 
 		 /*******************************

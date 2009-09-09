@@ -24,7 +24,9 @@
 	user:file_search_path/2.
 
 user:file_search_path(library, ..).
+user:file_search_path(library, '../../clib').
 user:file_search_path(foreign, ..).
+user:file_search_path(foreign, '../../clib').
 
 :- use_module(library(sgml)).
 :- use_module(rdf_parser).
