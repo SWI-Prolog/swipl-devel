@@ -134,7 +134,7 @@ tipc_paxos_initialize :-
 
 tipc_paxos_initialize :-
 	listen(tipc_paxos, X, tipc_paxos_message(X)),
-	tipc_basic_paxos_on_change(Term, tipc_paxos_audit(Term)).
+	tipc_basic_paxos_on_change(tipc_paxos, Term, tipc_paxos_audit(Term)).
 %
 % The Paxos state machine is memoryless. The state is managed by a
 % coordinator.
@@ -258,17 +258,17 @@ tipc_paxos_replicate(X) :-
 
 tipc_paxos_on_change(Term, ignore) :-
 	compound(Term),
-	unlisten(tipc_paxos, paxos_changed(Term)),
+	unlisten(tipc_paxos_user, paxos_changed(Term)),
 	!.
 
 tipc_paxos_on_change(Term, Goal) :-
 	compound(Term),
-	tipc_basic_paxos_on_change(Term, Goal).
+	tipc_basic_paxos_on_change(tipc_paxos_user, Term, Goal).
 
 % Private
-tipc_basic_paxos_on_change(Term, Goal) :-
+tipc_basic_paxos_on_change(Owner, Term, Goal) :-
 	callable(Goal),
-	listen(tipc_paxos, paxos_changed(Term),
+	listen(Owner, paxos_changed(Term),
 	       thread_create(Goal, _, [detached(true)])).
 
 :- multifile tipc:tipc_stack_initialize/0.
