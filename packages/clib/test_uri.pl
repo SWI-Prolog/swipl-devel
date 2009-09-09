@@ -27,17 +27,14 @@ resolve(In, Out) :-
 
 :- begin_tests(uri).
 
-test(space_trip, X == IRI) :-
-	IRI = 'hello world',
-	trip_uri_iri(IRI, X).
 test(unicode_trip, X == IRI) :-
-	IRI = 'http://\u041a',
+	IRI = 'http://a.b/\u041a',
 	trip_uri_iri(IRI, X).
 test(unicode_uri, IRI == URI) :-
-	URI = 'http://\u041a',
+	URI = 'http://a.b/\u041a',
 	uri_iri(URI, IRI).
 test(latin_uri, IRI == URI) :-
-	URI = 'http://\u00a8',
+	URI = 'http://a.b/\u00a8',
 	uri_iri(URI, IRI).
 
 test(resolve, URI == 'g:h')		     :-	resolve('g:h', URI).

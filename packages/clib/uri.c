@@ -569,7 +569,10 @@ add_lwr_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
     { c = *s++;
     }
 
-    add_encoded_charbuf(cb, towlower(c), flags);
+    if ( iri )
+      iri_add_encoded_charbuf(cb, towlower(c), flags);
+    else
+      add_encoded_charbuf(cb, towlower(c), flags);
   }
 
   return TRUE;
@@ -1458,75 +1461,10 @@ IRI
 
 static foreign_t
 uri_iri(term_t URI, term_t IRI)
-{ pl_wchar_t *uri;
-  char *iri;
-  size_t ulen, ilen;
-
-  if ( PL_get_wchars(URI, &ulen, &uri, CVT_ATOM|CVT_STRING|CVT_LIST) )
-  { char tmp[1024];
-    char *out;
-    const pl_wchar_t *in;
-    int rc;
-
-    if ( ulen*6 > sizeof(tmp) )
-      iri = PL_malloc(ulen*6);		/* 6 is max UTF-8 sequence lenght */
-    else
-      iri = tmp;
-
-    for(in=uri,out=iri; in<&uri[ulen];)
-    { if ( in[0] == '%' )
-      { int c;
-
-	if ( in+2 < &uri[ulen] && (in = hex(in+1, 2, &c)) )
-	{ *out++ = c;
-	} else
-	{ if ( iri != tmp )
-	    PL_free(iri);
-	  return syntax_error("illegal_percent_sequence");
-	}
-      } else
-      { out = utf8_put_char(out, in[0]);
-	in++;
-      }
-    }
-
-    rc = PL_unify_chars(IRI, PL_ATOM|REP_UTF8, out-iri, iri);
-    if ( iri != tmp )
-      PL_free(iri);
-
-    return rc;
-  } else if ( PL_get_nchars(IRI, &ilen, &iri, CVT_ATOM|CVT_STRING|CVT_LIST|REP_UTF8) )
-  { char tmp[1024];
-    char *uri, *out;
-    const char *in;
-    int rc;
-
-    if ( ilen*3 > sizeof(tmp) )
-      uri = PL_malloc(ilen*3);		/* percent-encoding is max *3 */
-    else
-      uri = tmp;
-
-    fill_flags();
-
-    for(out=uri, in=iri; in < &iri[ilen]; in++)
-    { int c = in[0]&0xff;
-
-      if ( no_escape(c, CH_UNRESERVED|CH_URL) )
-      { *out++ = c;
-      } else
-      { sprintf(out, "%%%02x", c);
-	out += 3;
-      }
-    }
-
-    rc = PL_unify_chars(URI, PL_ATOM, out-uri, uri);
-
-    if ( uri != tmp )
-      PL_free(uri);
-
-    return rc;
-  } else return PL_get_wchars(URI, &ulen, &uri,
-			      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION);
+{ if ( !PL_is_variable(URI) )
+    return uri_normalized_iri(URI, IRI);
+  else
+    return uri_normalized(IRI, URI);
 }
 
 
