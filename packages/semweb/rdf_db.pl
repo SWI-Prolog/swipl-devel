@@ -131,7 +131,7 @@
 :- use_module(library(option)).
 :- use_module(library(nb_set)).
 :- use_module(library(error)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(debug)).
 :- use_module(rdf_cache).
 
@@ -746,7 +746,7 @@ check_loaded_cache(DB, Graphs, _) :-
 %	the file administration.
 
 rdf_load_db(File) :-
-	file_name_to_url(File, URL),
+	uri_file_name(URL, File),
 	rdf_load_db_no_admin(File, URL, Graphs),
 	(   (   is_list(Graphs)
 	    ->	member(DB, Graphs)
@@ -926,7 +926,7 @@ close_input(_, Stream) :-
 
 rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
 	(   stream_property(Stream, file_name(File))
-	->  file_name_to_url(File, BaseURI)
+	->  uri_file_name(BaseURI, File)
 	;   gensym('stream://', BaseURI)
 	).
 rdf_input(Stream, stream(Stream), BaseURI) :-
@@ -934,7 +934,7 @@ rdf_input(Stream, stream(Stream), BaseURI) :-
 	rdf_input(stream(Stream), _, BaseURI).
 rdf_input(FileURL, file(File), BaseURI) :-
 	atom(FileURL),
-	file_name_to_url(File0, FileURL), !,
+	uri_file_name(FileURL, File0), !,
 	file_input(File0, File, BaseURI).
 rdf_input(URL0, url(Protocol, URL), URL0) :-
 	is_url(URL0, Protocol), !,
@@ -952,7 +952,7 @@ file_input(Spec, Path, BaseURI) :-
 			   [ access(read),
 			     extensions(Exts)
 			   ]),
-	file_name_to_url(Path, BaseURI0),
+	uri_file_name(BaseURI0, Path),
 	clean_base_uri(BaseURI0, BaseURI).
 
 valid_extension(Ext) :-
@@ -1296,7 +1296,7 @@ save_meta_option(convert_typed_literal).
 
 to_file(URL, File) :-
 	atom(URL),
-	file_name_to_url(File, URL), !.
+	uri_file_name(URL, File), !.
 to_file(File, File).
 
 rdf_save2(File, Options) :-
