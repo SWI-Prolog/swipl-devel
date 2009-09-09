@@ -2625,7 +2625,7 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 }
 
 
-void
+int
 redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 { GET_LD
   Definition def = proc->definition;
@@ -2637,10 +2637,12 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 		   PL_CHARS, "foreign",
 		   _PL_PREDICATE_INDICATOR, proc);
   }
-  assert(false(def, P_THREAD_LOCAL));	/* what to do? */
 
   if ( false(def, MULTIFILE) )
-  { ClauseRef first = hasClausesDefinition(def);
+  { ClauseRef first;
+
+    def = getProcDefinition__LD(def PASS_LD);
+    first = hasClausesDefinition(def);
 
     if ( first && first->clause->source_no == sf->index )
     { if ( ((debugstatus.styleCheck & ~suppress) & DISCONTIGUOUS_STYLE) &&
@@ -2649,7 +2651,10 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
 		     PL_FUNCTOR_CHARS, "discontiguous", 1,
 		       _PL_PREDICATE_INDICATOR, proc);
     } else if ( !hasProcedureSourceFile(sf, proc) )
-    { abolishProcedure(proc, def->module);
+    { if ( true(def, P_THREAD_LOCAL) )
+	return PL_error(NULL, 0, NULL, ERR_MODIFY_THREAD_LOCAL_PROC, proc);
+
+      abolishProcedure(proc, def->module);
 
       if ( def->references )
       { printMessage(ATOM_informational,
@@ -2664,6 +2669,8 @@ redefineProcedure(Procedure proc, SourceFile sf, unsigned int suppress)
       }
     }
   }
+
+  return TRUE;
 }
 
 

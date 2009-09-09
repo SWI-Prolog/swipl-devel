@@ -214,6 +214,18 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, pred);
       break;
     }
+    case ERR_MODIFY_THREAD_LOCAL_PROC:
+    { Procedure proc = va_arg(args, Procedure);
+      term_t pred = PL_new_term_ref();
+
+      unify_definition(pred, proc->definition, 0, GP_NAMEARITY|GP_HIDESYSTEM);
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_permission_error3,
+		      PL_ATOM, ATOM_modify,
+		      PL_ATOM, ATOM_thread_local_procedure,
+		      PL_TERM, pred);
+      break;
+    }
     case ERR_UNDEFINED_PROC:
     { Definition def = va_arg(args, Definition);
       Definition clr = va_arg(args, Definition);

@@ -966,7 +966,13 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   def = proc->definition;
   if ( !skip && currentSource )
   { if ( def->definition.clauses )
-      redefineProcedure(proc, currentSource, DISCONTIGUOUS_STYLE);
+    { if ( !redefineProcedure(proc, currentSource, DISCONTIGUOUS_STYLE) )
+      { printMessage(ATOM_error, exception_term);
+	exception_term = 0;
+	setVar(*valTermRef(exception_bin));
+	skip = TRUE;
+      }
+    }
     addProcedureSourceFile(currentSource, proc);
   }
   if ( def->references == 0 && !def->hash_info )
