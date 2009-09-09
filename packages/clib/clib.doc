@@ -563,6 +563,8 @@ the client to send a broadcast message to an agreed port. The server
 receives this message and replies to the client with a message
 indicating further details to establish the communication.
 
+\input{uri.tex}
+
 \section{CGI Support library}
 
 This is currently a very simple library, providing support for obtaining

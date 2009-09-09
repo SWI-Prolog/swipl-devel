@@ -8,13 +8,6 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 
-pltotex(File, Options) :-
-	file_name_extension(_, txt, File), !,
-	tex_file(File, Out),
-	doc_latex(File, Out,
-		  [ stand_alone(false)
-		  | Options
-		  ]).
 pltotex(Lib, Options) :-
 	(   file_name_extension(_, pl, Lib)
 	->  Spec = Lib

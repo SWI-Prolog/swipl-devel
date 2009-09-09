@@ -28,13 +28,13 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 CRYPTLIBS=@CRYPTLIBS@
-MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a 
+MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a
 
 PUBLICPL=       pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=clib
-TEX=$(DOC).tex process.tex
+TEX=$(DOC).tex process.tex uri.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -46,9 +46,10 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@ streaminfo.pl process.pl prolog_server.pl sha.pl
+LIBPL=		@PLTARGETS@ streaminfo.pl process.pl prolog_server.pl sha.pl \
+		uri.pl
 TARGETS=	@TARGETS@ readutil.@SO@ streaminfo.@SO@ process.@SO@ \
-		sha4pl.@SO@
+		sha4pl.@SO@ uri.@SO@
 
 UNXOBJ=		error.o unix.o
 SOCKOBJ=	error.o socket.o nonblockio.o
@@ -59,10 +60,11 @@ MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
 FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
+URIOBJ=		uri.o
 RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
 PROCESSOBJ=	error.o process.o
-STREAMINFOOBJ=	error.o streaminfo.o 
+STREAMINFOOBJ=	error.o streaminfo.o
 SHAOBJ=		error.o sha4pl.o sha1/sha1.o sha1/sha2.o \
 		sha1/hmac_sha1.o sha1/hmac_sha256.o
 
@@ -96,12 +98,14 @@ streaminfo.@SO@: $(STREAMINFOOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(STREAMINFOOBJ)
 sha4pl.@SO@:	$(SHAOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SHAOBJ)
+uri.@SO@:	$(URIOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(URIOBJ)
 
 socket.o:	socket.c sockcommon.c
 
-sha1/hmac_sha1.o:	
+sha1/hmac_sha1.o:
 		$(CC) -c $(CFLAGS) -DUSE_SHA1 -o $@ sha1/hmac.c
-sha1/hmac_sha256.o:	
+sha1/hmac_sha256.o:
 		$(CC) -c $(CFLAGS) -DUSE_SHA256 -o $@ sha1/hmac.c
 
 maildrop/rfc822/librfc822.a:
@@ -144,7 +148,7 @@ uninstall::
 ################################################################
 
 check:		check-socket check-memfile check-unit check-process \
-		check-read
+		check-read check-uri
 
 torture:	torture-socket
 
@@ -159,6 +163,9 @@ check-memfile::
 
 check-unit::
 		$(PL) -q -f test.pl -g true -t run_tests
+
+check-uri::
+		$(PL) -q -f test_uri.pl -g true -t test_uri
 
 check-process::
 		$(PL) -q -f test_process.pl -g true -t test_process
@@ -185,10 +192,14 @@ html:		$(TEX)
 
 $(TEX):		$(DOCTOTEX)
 
+uri.tex:	uri.pl
+		$(PLTOTEX) 'library(uri)'
+process.tex:	process.pl
+		$(PLTOTEX) 'library(process)'
+
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
-.pl.tex:
-		$(PLTOTEX) $*.pl
+
 
 ################################################################
 # Clean
@@ -196,6 +207,7 @@ $(TEX):		$(DOCTOTEX)
 
 clean:
 		rm -f $(OBJ) *~ *.o *% a.out core config.log sha1/*.o
+		rm -f $(TEX)
 		-(cd maildrop/rfc822 && $(MAKE) clean)
 		-(cd maildrop/rfc2045 && $(MAKE) clean)
 

@@ -315,6 +315,7 @@ Section "Package CLIB"
   File pl\bin\cgi.dll
   File pl\bin\crypt.dll
   File pl\bin\sha4pl.dll
+  File pl\bin\uri.dll
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
@@ -326,6 +327,7 @@ Section "Package CLIB"
   File pl\library\cgi.pl
   File pl\library\crypt.pl
   File pl\library\sha.pl
+  File pl\library\uri.pl
   File pl\library\memfile.pl
   File pl\library\mime.pl
   File pl\library\socket.pl

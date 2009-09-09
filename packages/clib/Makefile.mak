@@ -2,7 +2,7 @@
 # Build the SWI-Prolog tabling package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -24,10 +24,11 @@ PROCESSOBJ=	error.obj process.obj
 RANDOMOBJ=	random.obj
 SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj \
 		sha1/hmac_sha1.obj sha1/hmac_sha256.obj
+URIOBJ=		uri.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
-		random.dll crypt.dll sha4pl.dll process.dll
+		random.dll crypt.dll sha4pl.dll process.dll uri.dll
 
 readutil.dll:	$(READOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB) $(LIBS)
@@ -49,6 +50,8 @@ random.dll:	$(RANDOMOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(RANDOMOBJ) $(PLLIB) $(LIBS)
 sha4pl.dll:	$(SHAOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SHAOBJ) $(PLLIB) $(LIBS)
+uri.dll:	$(URIOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(URIOBJ) $(PLLIB) $(LIBS)
 
 sha1/hmac_sha1.obj:	sha1/hmac.c
 		$(CC) -I $(PLHOME)\include $(CFLAGS) /DUSE_SHA1 /Fo$@ sha1/hmac.c
@@ -112,6 +115,7 @@ ilib::
 		copy random.pl "$(PLBASE)\library"
 		copy time.pl "$(PLBASE)\library"
 		copy sha.pl "$(PLBASE)\library"
+		copy uri.pl "$(PLBASE)\library"
 		copy process.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
@@ -134,6 +138,7 @@ uninstall::
 		del "$(PLBASE)\library\random.pl"
 		del "$(PLBASE)\library\time.pl"
 		del "$(PLBASE)\library\sha.pl"
+		del "$(PLBASE)\library\uri.pl"
 		del "$(PLBASE)\library\process.pl"
 		$(MAKEINDEX)
 
