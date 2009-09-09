@@ -42,6 +42,7 @@
 	    uri_authority_data/3,	% ?Field, ?Components, ?Data
 					% Encoding
 	    uri_encoded/3,		% +Component, ?Value, ?Encoded
+	    uri_file_name/2,		% ?URI, ?Path
 	    uri_iri/2			% ?URI, ?IRI
 	  ]).
 :- use_foreign_library(foreign(uri)).
@@ -86,11 +87,11 @@ processing tools.
 %	Provide access the uri_component structure.  Defined field-names
 %	are: =scheme=, =authority=, =path=, =search= and =fragment=
 
-uri_data(scheme,    uri_component(S, _, _, _, _), S).
-uri_data(authority, uri_component(_, A, _, _, _), A).
-uri_data(path,	    uri_component(_, _, P, _, _), P).
-uri_data(search,    uri_component(_, _, _, S, _), S).
-uri_data(fragment,  uri_component(_, _, _, _, F), F).
+uri_data(scheme,    uri_components(S, _, _, _, _), S).
+uri_data(authority, uri_components(_, A, _, _, _), A).
+uri_data(path,	    uri_components(_, _, P, _, _), P).
+uri_data(search,    uri_components(_, _, _, S, _), S).
+uri_data(fragment,  uri_components(_, _, _, _, F), F).
 
 %%	uri_normalized(+URI, -NormalizedURI) is det.
 %
@@ -214,3 +215,24 @@ uri_authority_data(port,     uri_authority(_, _, _, P), P).
 %
 %	@error syntax_error(Culprit) in mode (+,-) if URI is not a
 %	legally percent-encoded UTF-8 string.
+
+
+%%	uri_file_name(+URI, -FileName) is semidet.
+%%	uri_file_name(-URI, +FileName) is det.
+%
+%	Convert between a URI and a local file_name.
+
+uri_file_name(URI, FileName) :-
+	nonvar(URI), !,
+	uri_components(URI, Components),
+	uri_data(scheme, Components, file),
+	uri_data(authority, Components, ''),
+	uri_data(path, Components, FileNameEnc),
+	uri_encoded(path, FileName, FileNameEnc).
+uri_file_name(URI, FileName) :-
+	nonvar(FileName), !,
+	uri_encoded(path, FileName, FileNameEnc),
+	uri_data(scheme, Components, file),
+	uri_data(authority, Components, ''),
+	uri_data(path, Components, FileNameEnc),
+	uri_components(URI, Components).
