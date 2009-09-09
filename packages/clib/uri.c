@@ -109,10 +109,15 @@ domain_error(const char *expected, term_t found)
 
 #define	ESC_PATH       (CH_PCHAR|CH_EX_PATH)
 #define	ESC_QUERY      (CH_PCHAR|CH_EX_QF)
-#define	ESC_QCOMPONENT (CH_UNRESERVED|CH_QSUBDELIM|CH_EX_PCHAR|CH_EX_QF)
+#define	ESC_QVALUE     (CH_UNRESERVED|CH_QSUBDELIM|CH_EX_PCHAR|CH_EX_QF)
+#define	ESC_QNAME      (CH_PCHAR)
 #define	ESC_FRAGMENT   (CH_PCHAR|CH_EX_QF)
 #define	ESC_AUTH       (CH_PCHAR)
+#define	ESC_PASSWD     (CH_PCHAR)
+#define ESC_USER       (CH_PCHAR)
 #define	ESC_SCHEME     (CH_SCHEME)
+#define ESC_PORT       (CH_DIGIT)
+#define ESC_HOST       (CH_UNRESERVED|CH_SUBDELIM)
 
 #define CH_ALPHA      0x0001
 #define CH_DIGIT      0x0002
@@ -153,7 +158,7 @@ fill_flags()
 
     set_flags("-._~",        CH_EX_UNRES);
     set_flags(":/?#[]@",     CH_GENDELIM);
-    set_flags("!$&'()*,;=",  CH_SUBDELIM);  /* deleted "+" (mapped to %2B) */
+    set_flags("!$&'()+*,;=", CH_SUBDELIM);
     set_flags("!$'()*,;",    CH_QSUBDELIM); /* = CH_SUBDELIM - "&=+" */
     set_flags(":@",          CH_EX_PCHAR);
     set_flags("/",           CH_EX_PATH);
@@ -381,11 +386,11 @@ add_nchars_charbuf(charbuf *cb, size_t len, const pl_wchar_t *s)
 
 
 static int
-range_has_percent(const range *r)
+range_has_escape(const range *r, int flags)
 { const pl_wchar_t *s = r->start;
 
   for(; s<r->end; s++)
-  { if ( s[0] == '%' || s[0] == '+' )
+  { if ( s[0] == '%' || (s[0] == '+' && flags == ESC_QVALUE) )
       return TRUE;
   }
 
@@ -429,7 +434,7 @@ add_decoded_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
       } else
       { c = *s++;
       }
-    } else if ( *s == '+' )
+    } else if ( *s == '+' && flags == ESC_QVALUE )
     { s++;
       c = ' ';
     } else
@@ -459,7 +464,7 @@ add_decoded_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
 
 static int
 add_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
-{ if ( range_has_percent(r) )
+{ if ( range_has_escape(r, flags) )
   { return add_decoded_range_charbuf(cb, r, iri, flags);
   } else if ( iri || range_is_unreserved(r, flags) )
   { add_nchars_charbuf(cb, r->end-r->start, r->start);
@@ -734,13 +739,13 @@ uri_is_global(term_t URI)
 		 *******************************/
 
 static int
-unify_decoded_atom(term_t t, range *r)
-{ if ( range_has_percent(r) )
+unify_decoded_atom(term_t t, range *r, int flags)
+{ if ( range_has_escape(r, flags) )
   { charbuf b;
     int rc;
 
     init_charbuf(&b);
-    add_decoded_range_charbuf(&b, r, TRUE, 0);
+    add_decoded_range_charbuf(&b, r, TRUE, flags);
     rc = PL_unify_wchars(t, PL_ATOM, b.here - b.base, b.base);
     free_charbuf(&b);
     return rc;
@@ -777,8 +782,8 @@ unify_query_string_components(term_t list, size_t len, const pl_wchar_t *qs)
 
       PL_put_variable(nv+0);
       PL_put_variable(nv+1);
-      unify_decoded_atom(nv+0, &name);
-      unify_decoded_atom(nv+1, &value);
+      unify_decoded_atom(nv+0, &name, ESC_QNAME);
+      unify_decoded_atom(nv+1, &value, ESC_QVALUE);
       PL_cons_functor_v(eq, FUNCTOR_equal2, nv);
 
       if ( !PL_unify_list(tail, head, tail) ||
@@ -852,12 +857,12 @@ uri_query_components(term_t string, term_t list)
 
       if ( out.here != out.base )
 	add_charbuf(&out, '&');
-      if ( !add_encoded_term_charbuf(&out, nv+0, ESC_QCOMPONENT) )
+      if ( !add_encoded_term_charbuf(&out, nv+0, ESC_QNAME) )
       { free_charbuf(&out);
 	return FALSE;
       }
       add_charbuf(&out, '=');
-      if ( !add_encoded_term_charbuf(&out, nv+1, ESC_QCOMPONENT) )
+      if ( !add_encoded_term_charbuf(&out, nv+1, ESC_QVALUE) )
       { free_charbuf(&out);
 	return FALSE;
       }
@@ -882,22 +887,26 @@ static foreign_t
 uri_encoded(term_t what, term_t qv, term_t enc)
 { pl_wchar_t *s;
   size_t len;
+  atom_t w;
+  int flags;
+
+  if ( !PL_get_atom(what, &w) )
+    return type_error("atom", what);
+  if ( w == ATOM_query_value )
+    flags = ESC_QVALUE;
+  else if ( w == ATOM_fragment )
+    flags = ESC_FRAGMENT;
+  else if ( w == ATOM_path )
+    flags = ESC_PATH;
+  else
+    return domain_error("uri_component", what);
+
+  fill_flags();
 
   if ( !PL_is_variable(qv) )
-  { atom_t w;
-    charbuf out;
-    int rc, flags;
+  { charbuf out;
+    int rc;
 
-    if ( !PL_get_atom(what, &w) )
-      return type_error("atom", what);
-    if ( w == ATOM_query_value || w == ATOM_fragment )
-      flags = ESC_QCOMPONENT;
-    else if ( w == ATOM_path )
-      flags = ESC_PATH;
-    else
-      return domain_error("uri_component", what);
-
-    fill_flags();
     init_charbuf(&out);
     if ( !add_encoded_term_charbuf(&out, qv, flags) )
     { free_charbuf(&out);
@@ -912,7 +921,7 @@ uri_encoded(term_t what, term_t qv, term_t enc)
     r.start = s;
     r.end = s+len;
 
-    return unify_decoded_atom(qv, &r);
+    return unify_decoded_atom(qv, &r, flags);
   } else
   { return FALSE;
   }
@@ -953,10 +962,10 @@ unify_uri_authority_components(term_t components,
   }
 
   if ( user.start )
-    unify_decoded_atom(av+0, &user);
+    unify_decoded_atom(av+0, &user, ESC_USER);
   if ( passwd.start )
-    unify_decoded_atom(av+1, &passwd);
-  unify_decoded_atom(av+2, &host);
+    unify_decoded_atom(av+1, &passwd, ESC_PASSWD);
+  unify_decoded_atom(av+2, &host, ESC_HOST);
   if ( port.start )
   { wchar_t *ep;
     long pn = wcstol(port.start, &ep, 10);
@@ -964,7 +973,7 @@ unify_uri_authority_components(term_t components,
     if ( ep == port.end )
       PL_put_integer(av+3, pn);
     else
-      unify_decoded_atom(av+3, &port);
+      unify_decoded_atom(av+3, &port, ESC_PORT);
   }
 
   PL_cons_functor_v(t, FUNCTOR_uri_authority4, av);
