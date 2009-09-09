@@ -101,7 +101,6 @@ uri_data(fragment,  uri_components(_, _, _, _, F), F).
 %	    * 6.2.2.1. Case Normalization
 %	    * 6.2.2.2. Percent-Encoding Normalization
 %	    * 6.2.2.3. Path Segment Normalization
-%	    * 6.2.3. Scheme-Based Normalization
 
 %%	uri_normalized_iri(+URI, -NormalizedIRI) is det.
 %
@@ -220,19 +219,26 @@ uri_authority_data(port,     uri_authority(_, _, _, P), P).
 %%	uri_file_name(+URI, -FileName) is semidet.
 %%	uri_file_name(-URI, +FileName) is det.
 %
-%	Convert between a URI and a local file_name.
+%	Convert between a URI and a   local  file_name. This protocol is
+%	covered by RFC 1738. Please note   that file-URIs use _absolute_
+%	paths. The mode (-, +) translates  a possible relative path into
+%	an absolute one.
 
 uri_file_name(URI, FileName) :-
 	nonvar(URI), !,
 	uri_components(URI, Components),
 	uri_data(scheme, Components, file),
-	uri_data(authority, Components, ''),
+	(   uri_data(authority, Components, '')
+	->  true
+	;   uri_data(authority, Components, localhost)
+	),
 	uri_data(path, Components, FileNameEnc),
 	uri_encoded(path, FileName, FileNameEnc).
 uri_file_name(URI, FileName) :-
 	nonvar(FileName), !,
-	uri_encoded(path, FileName, FileNameEnc),
+	absolute_file_name(FileName, Path),
+	uri_encoded(path, Path, PathEnc),
 	uri_data(scheme, Components, file),
 	uri_data(authority, Components, ''),
-	uri_data(path, Components, FileNameEnc),
+	uri_data(path, Components, PathEnc),
 	uri_components(URI, Components).

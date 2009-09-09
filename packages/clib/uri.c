@@ -1035,24 +1035,16 @@ uri_authority_components(term_t Authority, term_t components)
 
 static int
 normalize_in_charbuf(charbuf *cb, uri_component_ranges *ranges, int iri)
-{ int is_http = FALSE;
-
-  fill_flags();
+{ fill_flags();
 
   if ( ranges->scheme.start )
   { add_lwr_range_charbuf(cb, &ranges->scheme, iri, ESC_SCHEME);
     add_charbuf(cb, ':');
-    if ( wcsncmp(cb->base, L"http:", 5) == 0 )
-      is_http = TRUE;
   }
   if ( ranges->authority.start )
   { add_charbuf(cb, '/');
     add_charbuf(cb, '/');
     add_lwr_range_charbuf(cb, &ranges->authority, iri, ESC_AUTH);
-
-    if ( is_http && cb->here-cb->base >= 3 &&	/* drop HTTP default port */
-	 wcsncmp(cb->here-3, L":80", 3) == 0 )
-      cb->here -= 3;
   }
   if ( ranges->path.end > ranges->path.start )
   { charbuf pb;
@@ -1066,8 +1058,6 @@ normalize_in_charbuf(charbuf *cb, uri_component_ranges *ranges, int iri)
     add_nchars_charbuf(cb, len, path.base);
     free_charbuf(&path);
     free_charbuf(&pb);
-  } else if ( is_http )
-  { add_charbuf(cb, '/');
   }
   if ( ranges->query.start )
   { add_charbuf(cb, '?');
