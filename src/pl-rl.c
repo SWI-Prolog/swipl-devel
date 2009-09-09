@@ -554,12 +554,14 @@ prolog_completion(const char *text, int start, int end)
 
 install_t
 PL_install_readline()
-{
+{ bool old;
+
 #ifndef __WINDOWS__
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )
     return;
 #endif
 
+  old = systemMode(TRUE);
   rl_catch_signals = 0;
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
@@ -587,6 +589,7 @@ PL_install_readline()
   PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   PL_license("gpl", "GNU Readline library");
+  systemMode(old);
 }
 
 #else /*HAVE_LIBREADLINE*/
