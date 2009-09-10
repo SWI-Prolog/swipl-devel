@@ -190,7 +190,7 @@ write_triples([H|T]) :- !,
 write_triple(Triple) :-
 	is_rdf_triple(Triple), !,
 	Triple = rdf(S,P,O),
-	format('{~p, ~p, ~p}~n', [S,P,O]).
+	format('{~q, ~q, ~q}~n', [S,P,O]).
 write_triple(Triple) :-
 	format('@@@@@ Bad Triple: ~p~n', [Triple]),
 	fail.

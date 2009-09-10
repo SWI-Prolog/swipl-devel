@@ -38,6 +38,7 @@
 :- use_module(library(sgml)).		% xml_name/1
 :- use_module(library(lists)).
 :- use_module(library(uri)).
+:- use_module(library(record)).
 
 :- op(500, fx, \?).			% Optional (attrs)
 
@@ -88,6 +89,13 @@ rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 
+:- record
+	rdf_state(base_uri=[],
+		  lang='',
+		  ignore_lang=false,
+		  convert_typed_literal).
+
+
 %%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +Options)
 %
 %	Translate an XML (using namespaces)  term   into  an Prolog term
@@ -109,17 +117,19 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 %	if `BaseURI' == [], local URI's are not globalised.
 
 xml_to_plrdf(Element, RDF, Options) :-
-	is_list(Element), !,
-	rewrite(\xml_content_objects(RDF, Options), Element).
-xml_to_plrdf(Element, RDF, Options) :-
-	rewrite(\xml_objects(RDF, Options), Element).
+	make_rdf_state(Options, State, _),
+	(   is_list(Element)
+	->  rewrite(\xml_content_objects(RDF, State), Element)
+	;   rewrite(\xml_objects(RDF, State), Element)
+	).
 
 %%	element_to_plrdf(+DOM, -RDFTerm, +Options)
 %
 %	Rewrite a single XML element.
 
 element_to_plrdf(Element, RDF, Options) :-
-	rewrite(\nodeElementList(RDF, Options), [Element]).
+	make_rdf_state(Options, State, _),
+	rewrite(\nodeElementList(RDF, State), [Element]).
 
 xml_objects(Objects, Options0) ::=
 	E0,
@@ -333,7 +343,7 @@ literal_value(Value, literal(type(rdf:'XMLLiteral', Value)), _).
 
 mkliteral(Text, literal(Val), Options) :-
 	atom(Text),
-	(   memberchk(lang(Lang), Options),
+	(   rdf_state_lang(Options, Lang),
 	    Lang \== ''
 	->  Val = lang(Lang, Text)
 	;   Val = Text
@@ -346,7 +356,8 @@ mkliteral(Text, literal(Val), Options) :-
 %	conversion hook.
 
 typed_literal(Type, Content, literal(Object), Options) :-
-	memberchk(convert_typed_literal(Convert), Options), !,
+	rdf_state_convert_typed_literal(Options, Convert),
+	nonvar(Convert), !,
 	(   catch(call(Convert, Type, Content, Object), E, true)
 	->  (   var(E)
 	    ->	true
@@ -437,7 +448,7 @@ name_uri(URI, Options) ::=
 
 value_uri(URI, Options) ::=
 	A,
-	{   (	memberchk(base_uri(Base), Options),
+	{   (	rdf_state_base_uri(Options, Base),
 		Base \== []
 	    ->  canonical_uri(A, Base, URI)
 	    ;   sub_atom(A, 0, _, _, #)
@@ -465,7 +476,7 @@ unique_xml_name(Name) :-
 	).
 
 make_globalid(In, Options, Id) :-
-	(   memberchk(base_uri(Base), Options),
+	(   rdf_state_base_uri(Options, Base),
 	    Base \== []
 	->  (   uri_is_global(In)
 	    ->	uri_normalized_iri(In, Id)
@@ -577,21 +588,13 @@ modify_a_state([H|T0], Options0, [H|T], Options) :-
 
 
 modify_a(xml:base, Base1, Options0, Options) :- !,
-	(   select(base_uri(Base0), Options0, Options1)
-	->  true
-	;   Base0 = [],
-	    Options1 = Options0
-	),
+	rdf_state_base_uri(Options0, Base0),
 	remove_fragment(Base1, Base2),
 	canonical_uri(Base2, Base0, Base),
-	Options = [base_uri(Base)|Options1].
+	set_base_uri_of_rdf_state(Base, Options0, Options).
 modify_a(xml:lang, Lang, Options0, Options) :- !,
-	\+ memberchk(ignore_lang(true), Options0), !,
-	delete(Options0, lang(_), Options1),
-	(   Lang == ''
-	->  Options = Options1
-	;   Options = [lang(Lang)|Options1]
-	).
+	rdf_state_ignore_lang(Options0, false), !,
+	set_lang_of_rdf_state(Lang, Options0, Options).
 modify_a(xmlns, _, Options, Options).
 modify_a(xmlns:_, _, Options, Options).
 modify_a(xml:_, _, Options, Options).
