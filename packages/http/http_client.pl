@@ -263,7 +263,18 @@ x_headers(Options0, Out, Options) :-
 	select(request_header(Name=Value), Options0, Options1), !,
 	format(Out, '~w: ~w\r\n', [Name, Value]),
 	x_headers(Options1, Out, Options).
+x_headers(Options0, Out, Options) :-
+	select(proxy_authorization(ProxyAuthorization), Options0, Options1), !,
+  proxy_auth_header(ProxyAuthorization, Out),
+	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
+
+proxy_auth_header(basic(User, Password), Out) :- !,
+	format(codes(Codes), '~w:~w', [User, Password]),
+	phrase(base64(Codes), Base64Codes),
+	format(Out, 'Proxy-Authorization: basic ~s\r\n', [Base64Codes]).
+proxy_auth_header(Auth, _) :-
+	domain_error(authorization, Auth).
 
 %%	http_read_data(+Fields, -Data, +Options) is det.
 %

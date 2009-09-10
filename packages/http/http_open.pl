@@ -186,6 +186,8 @@ x_headers([H|T], Out) :- !,
 
 x_header(request_header(Name=Value), Out) :- !,
 	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(proxy_authorization(ProxyAuthorization), Out) :- !,
+	proxy_auth_header(ProxyAuthorization, Out).
 x_header(authorization(Authorization), Out) :- !,
 	auth_header(Authorization, Out).
 x_header(_, _).
@@ -195,6 +197,13 @@ auth_header(basic(User, Password), Out) :- !,
 	phrase(base64(Codes), Base64Codes),
 	format(Out, 'Authorization: basic ~s\r\n', [Base64Codes]).
 auth_header(Auth, _) :-
+	domain_error(authorization, Auth).
+
+proxy_auth_header(basic(User, Password), Out) :- !,
+	format(codes(Codes), '~w:~w', [User, Password]),
+	phrase(base64(Codes), Base64Codes),
+	format(Out, 'Proxy-Authorization: basic ~s\r\n', [Base64Codes]).
+proxy_auth_header(Auth, _) :-
 	domain_error(authorization, Auth).
 
 user_agent(Agent, Options) :-
