@@ -3,8 +3,8 @@
     Part of SWI-Prolog SGML/XML parser
 
     Author:  Jan Wielemaker
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    E-mail:  J.Wielemaker@uva.nl
+    WWW:     http://www.swi-prolog.org/
     Copying: LGPL-2.  See the file COPYING or http://www.gnu.org
 
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
@@ -23,18 +23,19 @@
 :- multifile
 	user:file_search_path/2.
 
+user:file_search_path(library, .).
 user:file_search_path(library, ..).
 user:file_search_path(library, '../../clib').
+user:file_search_path(library, '../..').
 user:file_search_path(foreign, ..).
 user:file_search_path(foreign, '../../clib').
 
 :- use_module(library(sgml)).
-:- use_module(rdf_parser).
-:- use_module(rdf_triple).
-:- use_module(rdf).
+:- use_module(library(semweb/rdf_compare)).
+:- use_module(library(rdf_parser)).
+:- use_module(library(rdf_triple)).
+:- use_module(library(rdf)).
 :- use_module(pretty_print).
-
-:- set_prolog_flag(rdf_container, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Test file for the SWI-Prolog RDF parser.  Toplevel predicates:
@@ -132,7 +133,7 @@ test(How, File) :-
 	->  (   catch(open(OkFile, read, Fd, [encoding(utf8)]), _, fail)
 	    ->  (   read_triples(Fd, OkTriples),
 		    close(Fd),
-		    compare_triples(Triples, OkTriples, _Subst)
+		    rdf_equal_graphs(Triples, OkTriples, _Subst)
 		->  true
 		;   assert(failed(File)),
 		    format('~N~w: WRONG ANSWER~n', [File])
@@ -282,58 +283,6 @@ term_member(X, Compound) :-
 	arg(_, Compound, Arg),
 	term_member(X, Arg).
 
-		 /*******************************
-		 *	     COMPARING		*
-		 *******************************/
-
-%	compare_triples(+PlRDF, +NTRDF, -Substitions)
-%
-%	Compare two models and if they are equal, return a list of
-%	PlID = NTID, mapping NodeID elements.
-
-
-compare_triples(A, B, Substitutions) :-
-	compare_list(A, B, [], Substitutions), !.
-
-compare_list([], [], S, S).
-compare_list([H1|T1], In2, S0, S) :-
-	select(H2, In2, T2),
-	compare_triple(H1, H2, S0, S1),
-	compare_list(T1, T2, S1, S).
-
-compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
-	compare_field(Subj1, Subj2, S0, S1),
-	compare_field(P1, P2, S1, S2),
-	compare_field(O1, O2, S2, S).
-
-compare_field(X, X, S, S) :- !.
-compare_field(literal(X), xml(X), S, S) :- !. % TBD
-compare_field(rdf:Name, Atom, S, S) :-
-	atom(Atom),
-	rdf_parser:rdf_name_space(NS),
-	atom_concat(NS, Name, Atom), !.
-compare_field(NS:Name, Atom, S, S) :-
-	atom(Atom),
-	atom_concat(NS, Name, Atom), !.
-compare_field(X, Id, S, S) :-
-	memberchk(X=Id, S), !.
-compare_field(X, Y, S, [X=Y|S]) :-
-	\+ memberchk(X=_, S),
-	node_id(X),
-	node_id(Y),
-	format('Assume ~w = ~w~n', [X, Y]).
-
-node_id(node(_)) :- !.
-node_id(X) :-
-	atom(X),
-	generated_prefix(Prefix),
-	sub_atom(X, 0, _, _, Prefix), !.
-
-generated_prefix('Bag__').
-generated_prefix('Seq__').
-generated_prefix('Alt__').
-generated_prefix('Description__').
-generated_prefix('Statement__').
 
 		 /*******************************
 		 *	    SHOW DIAGRAM	*

@@ -146,8 +146,6 @@ nodeElementOrError(H, Options) ::=
 nodeElementOrError(unparsed(Data), _Options) ::=
 	Data.
 
-nodeElement(container(Type, Id, Elements), Options) ::=
-	\container(Type, Id, Elements, Options), !. 	% compatibility
 nodeElement(description(Type, About, BagID, Properties), Options) ::=
 	\description(Type, About, BagID, Properties, Options).
 
@@ -478,104 +476,6 @@ canonical_uri(URI0, [], URI) :- !,
 	uri_normalized_iri(URI0, URI).
 canonical_uri(URI, Base, IRI) :-
 	uri_normalized_iri(URI, Base, IRI).
-
-
-		 /*******************************
-		 *	     CONTAINERS		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that containers are no longer part   of  the definition. We'll keep
-the code and call it conditionally if we must.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-container(_, _, _, _) ::=
-	_,
-	{ \+ current_prolog_flag(rdf_container, true),
-	  !, fail
-	}.
-container(Type, Id, Elements, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\container(Type, Id, Elements, Options), E)
-	}.
-container(Type, Id, Elements, Options) ::=
-	element(\containertype(Type),
-		\attrs([ \?idAttr(Id, Options)
-		       | \memberAttrs(Elements)
-		       ]),
-		[]), !.
-container(Type, Id, Elements, Options) ::=
-	element(\containertype(Type),
-		\attrs([ \?idAttr(Id, Options)
-		       ]),
-		\memberElts(Elements, Options)).
-
-containertype(Type) ::=
-	\rdf(Type),
-	{ containertype(Type)
-	}.
-
-containertype('Bag').
-containertype('Seq').
-containertype('Alt').
-
-memberElts([], _) ::=
-	[].
-memberElts([H|T], Options) ::=
-	[ \memberElt(H, Options)
-	| \memberElts(T, Options)
-	].
-
-memberElt(LI, Options) ::=
-	\referencedItem(LI, Options).
-memberElt(LI, Options) ::=
-	\inlineItem(LI, Options).
-
-referencedItem(LI, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\referencedItem(LI, Options), E)
-	}.
-referencedItem(LI, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \resourceAttr(LI, Options) ],
-		[]).
-
-inlineItem(Item, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\inlineItem(Item, Options), E)
-	}.
-inlineItem(Literal, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \parseLiteral ],
-		Value),
-	literal_value(Value, Literal, Options).
-inlineItem(description(description, _, _, Properties), Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \parseResource ],
-		\propertyElts(Properties, Options)).
-inlineItem(LI, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[],
-		[\nodeElement(LI, Options)]), !.	% inlined object
-inlineItem(Literal, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[],
-		[Text]),
-	{ mkliteral(Text, Literal, Options)
-	}.
-
-memberAttrs([]) ::=
-	[].
-memberAttrs([H|T]) ::=
-	[ \memberAttr(H)
-	| \memberAttrs(T)
-	].
-
-memberAttr(li(Id, Value)) ::=		% Id should be _<n>
-	\rdf(Id) = Value.
 
 parseLiteral    ::= \rdf_or_unqualified(parseType) = 'Literal'.
 parseResource   ::= \rdf_or_unqualified(parseType) = 'Resource'.

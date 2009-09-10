@@ -83,11 +83,6 @@ rdf_triples(Term) -->
 %	DGC set processing the output of xml_to_rdf/3.  In Id, the identifier
 %	of the main description or container is returned.
 
-triples(container(Type, Id, Elements), Id) --> !,
-	{ container_id(Type, Id)
-	},
-	rdf(Id, rdf:type, rdf:Type),
-	container(Elements, 1, Id).
 triples(description(Type, About, BagId, Props), Subject) -->
 	{ var(About),
 	  var(BagId),
@@ -117,41 +112,6 @@ triples(unparsed(Data), Id) -->
 	  print_message(error, rdf(unparsed(Data)))
 	},
 	[].
-
-
-		 /*******************************
-		 *	    CONTAINERS		*
-		 *******************************/
-
-container([], _, _) -->
-	[].
-container([H0|T0], N, Id) -->
-	li(H0, N, Id),
-	{ NN is N + 1
-	},
-	container(T0, NN, Id).
-
-li(li(Nid, V), _, Id) --> !,
-	rdf(Id, rdf:Nid, V).
-li(V, N, Id) -->
-	triples(V, VId), !,
-	{ atom_concat('_', N, Nid)
-	},
-	rdf(Id, rdf:Nid, VId).
-li(V, N, Id) -->
-	{ atom_concat('_', N, Nid)
-	},
-	rdf(Id, rdf:Nid, V).
-
-container_id(_, Id) :-
-	nonvar(Id), !.
-container_id(Type, Id) :-
-	container_base(Type, Base),
-	make_id(Base, Id).
-
-container_base('Bag', '__Bag').
-container_base('Seq', '__Seq').
-container_base('Alt', '__Alt').
 
 
 		 /*******************************
@@ -428,9 +388,6 @@ make_id(For, ID) :-
 make_id(For, ID) :-
 	gensym(For, ID).
 
-anon_base('__Bag').
-anon_base('__Seq').
-anon_base('__Alt').
 anon_base('__Description').
 anon_base('__Statement').
 anon_base('__List').
