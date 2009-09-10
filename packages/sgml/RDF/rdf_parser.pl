@@ -172,7 +172,7 @@ description(description, About, BagID, Properties, Options) ::=
 	{ !, append(PropAttrs, PropElts, Properties)
 	}.
 description(Type, About, BagID, Properties, Options) ::=
-	element(\uri(Type, Options),
+	element(\name_uri(Type, Options),
 		\attrs([ \?idAboutAttr(About, Options),
 			 \?bagIdAttr(BagID, Options)
 		       | \propAttrs(PropAttrs, Options)
@@ -189,7 +189,7 @@ propAttrs([H|T], Options) ::=
 	].
 
 propAttr(rdf:type = URI, Options) ::=
-	\rdf_or_unqualified(type) = \uri(URI, Options), !.
+	\rdf_or_unqualified(type) = \value_uri(URI, Options), !.
 propAttr(Name = Literal, Options) ::=
 	Name = Value,
 	{ mkliteral(Value, Literal, Options)
@@ -407,21 +407,28 @@ bagIdAttr(Id, Options) ::=
 	\rdf_or_unqualified(bagID) = \globalid(Id, Options).
 
 aboutAttr(About, Options) ::=
-	\rdf_or_unqualified(about) = \uri(About, Options).
+	\rdf_or_unqualified(about) = \value_uri(About, Options).
 
 nodeIDAttr(About) ::=
 	\rdf_or_unqualified(nodeID) = About.
 
 resourceAttr(URI, Options) ::=
-	\rdf_or_unqualified(resource) = \uri(URI, Options).
+	\rdf_or_unqualified(resource) = \value_uri(URI, Options).
 
 typeAttr(Type, Options) ::=
-	\rdf_or_unqualified(datatype) = \uri(Type, Options).
+	\rdf_or_unqualified(datatype) = \value_uri(Type, Options).
 
-uri(URI, Options) ::=
-	T,
-	{   make_atom(T, A),
-	    (	memberchk(base_uri(Base), Options),
+name_uri(URI, Options) ::=
+	NS:Local,
+	{   !, atom_concat(NS, Local, A),
+	    rewrite(\value_uri(URI, Options), A)
+	}.
+name_uri(URI, Options) ::=
+	\value_uri(URI, Options).
+
+value_uri(URI, Options) ::=
+	A,
+	{   (	memberchk(base_uri(Base), Options),
 		Base \== []
 	    ->  canonical_uri(A, Base, URI)
 	    ;   sub_atom(A, 0, _, _, #)
@@ -430,9 +437,6 @@ uri(URI, Options) ::=
 	    )
 	}.
 
-make_atom(NS:L, A) :- !,
-	atom_concat(NS, L, A).
-make_atom(A, A).
 
 globalid(Id, Options) ::=
 	A,
