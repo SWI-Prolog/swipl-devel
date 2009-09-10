@@ -356,8 +356,6 @@ idAboutAttr(about(About), Options) ::=
 	\aboutAttr(About, Options), !.
 idAboutAttr(node(About), _Options) ::=
 	\nodeIDAttr(About), !.
-idAboutAttr(AboutEach, Options) ::=
-	\aboutEachAttr(AboutEach, Options).
 
 %%	an_rdf_object(-Object, +OptionsURI)
 %
@@ -413,13 +411,6 @@ aboutAttr(About, Options) ::=
 
 nodeIDAttr(About) ::=
 	\rdf_or_unqualified(nodeID) = About.
-
-%	Not allowed in current RDF!
-
-aboutEachAttr(each(AboutEach), Options) ::=
-	\rdf_or_unqualified(aboutEach) = \uri(AboutEach, Options), !.
-aboutEachAttr(prefix(Prefix), Options) ::=
-	\rdf_or_unqualified(aboutEachPrefix) = \uri(Prefix, Options), !.
 
 resourceAttr(URI, Options) ::=
 	\rdf_or_unqualified(resource) = \uri(URI, Options).
