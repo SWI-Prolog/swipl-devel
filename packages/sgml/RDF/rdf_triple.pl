@@ -312,14 +312,16 @@ rdf(S0, P0, O0) -->
 	[ rdf(S, P, O) ].
 
 
-global_ref(URI, URI) :-
-	var(URI), !.
-global_ref(rdf:Local, Global) :-
-	rdf_name_space(NS), !,
-	atom_concat(NS, Local, Global).
-global_ref(NS:Local, Global) :- !,
-	atom_concat(NS, Local, Global).
-global_ref(URI, URI).
+global_ref(In, Out) :-
+	(   nonvar(In),
+	    In = NS:Local
+	->  (   NS == rdf,
+	        rdf_name_space(RDF)
+	    ->	atom_concat(RDF, Local, Out)
+	    ;	atom_concat(NS, Local, Out)
+	    )
+	;   Out = In
+	).
 
 global_obj(V, V) :-
 	var(V), !.
