@@ -44,6 +44,37 @@
 term_expansion(F, T) :- rew_term_expansion(F, T).
 goal_expansion(F, T) :- rew_goal_expansion(F, T).
 
+goal_expansion(attrs(List, Attrs), Goal) :-
+	translate_attrs(List, Attrs, Goal).
+
+translate_attrs(Var, Attrs, rewrite(Var, Attrs)) :-
+	var(Var), !.
+translate_attrs([], _, true) :- !.
+translate_attrs([H|T], Attrs0, Goal) :- !,
+	(   var(H)
+	->  G0 = rewrite(H, Attrs0),
+	    Attrs1 = Attrs0
+	;   H = \?Optional
+	->  G0 = (   select(A, Attrs0, Attrs1),
+	             OptRewrite
+		 ->  true
+		 ;   Attrs1 = Attrs0
+		 ),
+	    expand_goal(rewrite(\Optional, A), OptRewrite)
+	;   G0 = (   select(A, Attrs0, Attrs1),
+	             Rewrite
+		 ),
+	    expand_goal(rewrite(H, A), Rewrite)
+	),
+	(   T == []
+	->  Goal = G0
+	;   Goal = (G0, G1),
+	    translate_attrs(T, Attrs1, G1)
+	).
+translate_attrs(Rule, Attrs, Goal) :-
+	expand_goal(rewrite(Rule, Attrs), Goal).
+
+
 :- multifile rdf_name_space/1.
 :- dynamic   rdf_name_space/1.
 
@@ -578,6 +609,10 @@ rdf_or_unqualified(Tag) ::=
 		 *	       BASICS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code is translated by the  goal_expansion/2   rule  at the start of
+this file. We leave the original code for reference.
+
 attrs(Bag) ::=
 	L0,
 	{ do_attrs(Bag, L0)
@@ -597,6 +632,7 @@ do_attrs([H|T], L0) :-
 	do_attrs(T, L).
 do_attrs(C, L) :-
 	rewrite(C, L).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	\noMoreAttrs
 %
@@ -610,7 +646,7 @@ noMoreAttrs ::=
 	| \noMoreAttrs
 	].
 
-%%	modify_state(+Element0, +Options0, -Element, -Options)
+%%	modify_state(+Element0, +Options0, -Element, -Options) is semidet.
 %
 %	If Element0 contains xml:base = Base, strip it from the
 %	attributes list and update base_uri(_) in the Options

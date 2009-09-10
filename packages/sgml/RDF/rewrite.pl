@@ -33,7 +33,7 @@ rew_term_expansion((Rule ::= RuleBody), (Head :- Body)) :-
 rew_goal_expansion(rewrite(To, From), Goal) :-
 	nonvar(To),
 	To = \Rule,
-	compound(Rule),
+	callable(Rule),
 	Rule =.. List,
 	append(List, [From], List2),
 	Goal =.. List2.
