@@ -92,7 +92,7 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 
 :- record
-	rdf_state(base_uri=[],
+	rdf_state(base_uri='',
 		  lang='',
 		  ignore_lang=false,
 		  convert_typed_literal).
@@ -155,32 +155,30 @@ nodeElementOrError(H, Options) ::=
 nodeElementOrError(unparsed(Data), _Options) ::=
 	Data.
 
-nodeElement(description(Type, About, BagID, Properties), Options) ::=
-	\description(Type, About, BagID, Properties, Options).
+nodeElement(description(Type, About, Properties), Options) ::=
+	\description(Type, About, Properties, Options).
 
 
 		 /*******************************
 		 *	    DESCRIPTION		*
 		 *******************************/
 
-description(Type, About, BagID, Properties, Options0) ::=
+description(Type, About, Properties, Options0) ::=
 	E0,
 	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\description(Type, About, BagID, Properties, Options), E)
+	  rewrite(\description(Type, About, Properties, Options), E)
 	}.
-description(description, About, BagID, Properties, Options) ::=
+description(description, About, Properties, Options) ::=
 	element(\rdf('Description'),
-		\attrs([ \?idAboutAttr(About, Options),
-			 \?bagIdAttr(BagID, Options)
+		\attrs([ \?idAboutAttr(About, Options)
 		       | \propAttrs(PropAttrs, Options)
 		       ]),
 		\propertyElts(PropElts, Options)),
 	{ !, append(PropAttrs, PropElts, Properties)
 	}.
-description(Type, About, BagID, Properties, Options) ::=
+description(Type, About, Properties, Options) ::=
 	element(\name_uri(Type, Options),
-		\attrs([ \?idAboutAttr(About, Options),
-			 \?bagIdAttr(BagID, Options)
+		\attrs([ \?idAboutAttr(About, Options)
 		       | \propAttrs(PropAttrs, Options)
 		       ]),
 		\propertyElts(PropElts, Options)),
@@ -298,11 +296,10 @@ emptyPropertyElt(Id, Literal, Options) ::=
 	  mkliteral('', Literal, Options)
 	}.
 emptyPropertyElt(Id,
-		 description(description, About, BagID, Properties),
+		 description(description, About, Properties),
 		 Options) ::=
 	\attrs([ \?idAttr(Id, Options),
 		 \?aboutResourceEmptyElt(About, Options),
-		 \?bagIdAttr(BagID, Options),
 		 \?parseResource
 	       | \propAttrs(Properties, Options)
 	       ]), !.
@@ -410,9 +407,6 @@ all_blank([H|T]) :-
 idAttr(Id, Options) ::=
 	\rdf_or_unqualified('ID') = \uniqueid(Id, Options).
 
-bagIdAttr(Id, Options) ::=
-	\rdf_or_unqualified(bagID) = \globalid(Id, Options).
-
 aboutAttr(About, Options) ::=
 	\rdf_or_unqualified(about) = \value_uri(About, Options).
 
@@ -435,13 +429,8 @@ name_uri(URI, Options) ::=
 
 value_uri(URI, Options) ::=
 	A,
-	{   (	rdf_state_base_uri(Options, Base),
-		Base \== []
-	    ->  canonical_uri(A, Base, URI)
-	    ;   sub_atom(A, 0, _, _, #)
-	    ->  sub_atom(A, 1, _, 0, URI)
-	    ;   uri_normalized_iri(A, URI)
-	    )
+	{   rdf_state_base_uri(Options, Base),
+	    canonical_uri(A, Base, URI)
 	}.
 
 
@@ -452,28 +441,20 @@ globalid(Id, Options) ::=
 
 uniqueid(Id, Options) ::=
 	A,
-	{   unique_xml_name(A),
-	    make_globalid(A, Options, Id)
+	{   unique_xml_name(A, HashID),
+	    make_globalid(HashID, Options, Id)
 	}.
 
-unique_xml_name(Name) :-
+unique_xml_name(Name, HashID) :-
+	atom_concat(#, Name, HashID),
 	(   xml_name(Name)
 	->  true
 	;   print_message(warning, rdf(not_a_name(Name)))
 	).
 
 make_globalid(In, Options, Id) :-
-	(   rdf_state_base_uri(Options, Base),
-	    Base \== []
-	->  (   uri_is_global(In)
-	    ->	uri_normalized_iri(In, Id)
-	    ;	atomic_list_concat([Base, In], #, Id0),
-		uri_normalized_iri(Id0, Id)
-	    )
-	;   sub_atom(In, 0, _, _, #)
-	->  sub_atom(In, 1, _, 0, Id)
-	;   uri_normalized_iri(In, Id)
-	).
+	rdf_state_base_uri(Options, Base),
+	canonical_uri(In, Base, Id).
 
 
 %%	canonical_uri(+In, +Base, -Absolute)

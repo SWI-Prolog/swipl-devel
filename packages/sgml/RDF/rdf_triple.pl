@@ -83,9 +83,8 @@ rdf_triples(Term) -->
 %	DGC set processing the output of  xml_to_rdf/3. Id is unified to
 %	the identifier of the main description.
 
-triples(description(Type, About, BagId, Props), Subject) -->
+triples(description(Type, About, Props), Subject) -->
 	{ var(About),
-	  var(BagId),
 	  share_blank_nodes(true)
 	}, !,
 	(   { shared_description(description(Type, Props), Subject)
@@ -93,20 +92,20 @@ triples(description(Type, About, BagId, Props), Subject) -->
 	->  []
 	;   { make_id('__Description', Id)
 	    },
-	    triples(description(Type, about(Id), BagId, Props), Subject),
+	    triples(description(Type, about(Id), Props), Subject),
 	    { assert_shared_description(description(Type, Props), Subject)
 	    }
 	).
-triples(description(description, IdAbout, BagId, Props), Subject) --> !,
+triples(description(description, IdAbout, Props), Subject) --> !,
 	{ description_id(IdAbout, Subject)
 	},
-	properties(Props, BagId, Subject).
-triples(description(TypeURI, IdAbout, BagId, Props), Subject) -->
+	properties(Props, Subject).
+triples(description(TypeURI, IdAbout, Props), Subject) -->
 	{ description_id(IdAbout, Subject)
 	},
 	properties([ rdf:type = TypeURI
 		   | Props
-		   ], BagId, Subject).
+		   ], Subject).
 triples(unparsed(Data), Id) -->
 	{ make_id('__Error', Id),
 	  print_message(error, rdf(unparsed(Data)))
@@ -144,25 +143,8 @@ description_id(node(NodeID), Id) :-
 	    assert(node_id(NodeID, Id))
 	).
 
-properties(PlRDF, BagId, Subject) -->
-	{ nonvar(BagId)
-	}, !,
-	rdf(BagId, rdf:type, rdf:'Bag'),
-	properties(PlRDF, 1, Statements, [], Subject),
-	fill_bag(Statements, 1, BagId).
-properties(PlRDF, _BagId, Subject) -->
+properties(PlRDF, Subject) -->
 	properties(PlRDF, 1, [], [], Subject).
-
-
-fill_bag([], _, _) -->
-	[].
-fill_bag([H|T], N, BagId) -->
-	{ NN is N + 1,
-	  atom_concat('_', N, ElemId)
-	},
-	rdf(BagId, rdf:ElemId, H),
-	fill_bag(T, NN, BagId).
-
 
 properties([], _, Bag, Bag, _) -->
 	[].

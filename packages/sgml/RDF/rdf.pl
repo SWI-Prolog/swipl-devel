@@ -191,7 +191,7 @@ process_rdf(File, OnObject, M:Options0) :-
 	entity_options(Options0, EntOptions, Options1),
 	meta_options(load_meta_option, M:Options1, Options2),
 	process_options(Options2, ProcessOptions, Options),
-	option(base_uri(BaseURI), Options, []),
+	option(base_uri(BaseURI), Options, ''),
 	rdf_start_file(Options, Cleanup),
 	strip_module(OnObject, Module, Pred),
 	nb_setval(rdf_object_handler, Module:Pred),
