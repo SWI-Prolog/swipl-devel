@@ -53,7 +53,23 @@ goal_expansion(attrs(Attrs, List), Goal) :-
 translate_attrs(Var, Attrs, rewrite(Var, Attrs)) :-
 	var(Var), !.
 translate_attrs([], _, true) :- !.
-translate_attrs([H|T], Attrs0, Goal) :- !,
+translate_attrs([H], Attrs, Goal) :- !,
+	(   var(H)
+	->  Goal = rewrite(H, Attrs)
+	;   H = \?Optional
+	->  Goal = (   member(A, Attrs),
+	               OptRewrite
+		   ->  true
+		   ;   true
+		   ),
+	    expand_goal(rewrite(\Optional, A), OptRewrite)
+	;   Goal = (   member(A, Attrs),
+	               Rewrite
+		   ->  true
+		   ),
+	    expand_goal(rewrite(H, A), Rewrite)
+	).
+translate_attrs([H|T], Attrs0, (G0, G1)) :- !,
 	(   var(H)
 	->  G0 = rewrite(H, Attrs0),
 	    Attrs1 = Attrs0
@@ -69,11 +85,7 @@ translate_attrs([H|T], Attrs0, Goal) :- !,
 		 ),
 	    expand_goal(rewrite(H, A), Rewrite)
 	),
-	(   T == []
-	->  Goal = G0
-	;   Goal = (G0, G1),
-	    translate_attrs(T, Attrs1, G1)
-	).
+	translate_attrs(T, Attrs1, G1).
 translate_attrs(Rule, Attrs, Goal) :-
 	expand_goal(rewrite(Rule, Attrs), Goal).
 
