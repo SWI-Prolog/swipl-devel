@@ -430,7 +430,7 @@ name_uri(URI, Options) ::=
 value_uri(URI, Options) ::=
 	A,
 	{   rdf_state_base_uri(Options, Base),
-	    canonical_uri(A, Base, URI)
+	    uri_normalized_iri(A, Base, URI)
 	}.
 
 
@@ -454,17 +454,7 @@ unique_xml_name(Name, HashID) :-
 
 make_globalid(In, Options, Id) :-
 	rdf_state_base_uri(Options, Base),
-	canonical_uri(In, Base, Id).
-
-
-%%	canonical_uri(+In, +Base, -Absolute)
-%
-%	Make the URI absolute and decode special sequences. For the last
-%	clause, which is the correct order?
-
-canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
-canonical_uri(URI, Base, IRI) :-
-	uri_normalized_iri(URI, Base, IRI).
+	uri_normalized_iri(In, Base, Id).
 
 parseLiteral    ::= \rdf_or_unqualified(parseType) = 'Literal'.
 parseResource   ::= \rdf_or_unqualified(parseType) = 'Resource'.
@@ -560,7 +550,7 @@ modify_a_state([H|T0], Options0, [H|T], Options) :-
 modify_a(xml:base, Base1, Options0, Options) :- !,
 	rdf_state_base_uri(Options0, Base0),
 	remove_fragment(Base1, Base2),
-	canonical_uri(Base2, Base0, Base),
+	uri_normalized_iri(Base2, Base0, Base),
 	set_base_uri_of_rdf_state(Base, Options0, Options).
 modify_a(xml:lang, Lang, Options0, Options) :- !,
 	rdf_state_ignore_lang(Options0, false), !,
