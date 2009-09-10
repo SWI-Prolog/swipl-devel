@@ -30,8 +30,10 @@
 */
 
 :- module(rdf_parser,
-	  [ xml_to_plrdf/3,		% +XMLTerm, -RDFTerm, +Options
-	    element_to_plrdf/3,		% +ContentList, -RDFTerm, +Options
+	  [ xml_to_plrdf/3,		% +XMLTerm, -RDFTerm, +State
+	    element_to_plrdf/3,		% +ContentList, -RDFTerm, +State
+	    make_rdf_state/3,		% +Options, -State, -RestOptions
+	    rdf_modify_state/3,		% +XMLAttrs, +State0, -State
 	    rdf_name_space/1
 	  ]).
 :- use_module(rewrite).
@@ -96,39 +98,24 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 		  convert_typed_literal).
 
 
-%%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +Options)
+%%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +State)
 %
 %	Translate an XML (using namespaces)  term   into  an Prolog term
 %	representing the RDF data.  This  term   can  then  be  fed into
-%	rdf_triples/[2,3] to create a list of RDF triples.  Options:
-%
-%	    * base_uri
-%	    Current notion of the URI base (changed by xml_base=New).
-%
-%	    * lang(Lang)
-%	    Initial/default language code (changed by xml:lang=Lang).
-%
-%	    * ignore_lang(Boolean)
-%	    If =true=, ignore xml:lang statements
-%
-%	    * convert_typed_literal(:Converter)
-%	    Translate typed literals into Prolog terms
-%
-%	if `BaseURI' == [], local URI's are not globalised.
+%	rdf_triples/[2,3] to create a list of   RDF triples. State is an
+%	instance of an rdf_state record.
 
-xml_to_plrdf(Element, RDF, Options) :-
-	make_rdf_state(Options, State, _),
+xml_to_plrdf(Element, RDF, State) :-
 	(   is_list(Element)
 	->  rewrite(\xml_content_objects(RDF, State), Element)
 	;   rewrite(\xml_objects(RDF, State), Element)
 	).
 
-%%	element_to_plrdf(+DOM, -RDFTerm, +Options)
+%%	element_to_plrdf(+DOM, -RDFTerm, +State)
 %
 %	Rewrite a single XML element.
 
-element_to_plrdf(Element, RDF, Options) :-
-	make_rdf_state(Options, State, _),
+element_to_plrdf(Element, RDF, State) :-
 	rewrite(\nodeElementList(RDF, State), [Element]).
 
 xml_objects(Objects, Options0) ::=
@@ -578,6 +565,10 @@ modify_state(element(Name, Attrs0, Content), Options0,
 	     element(Name, Attrs,  Content), Options) :-
 	modify_a_state(Attrs0, Options0, Attrs, Options),
 	Attrs0 \== Attrs.
+
+rdf_modify_state(Attributes, State0, State) :-
+	modify_a_state(Attributes, State0, _, State).
+
 
 modify_a_state([], Options, [], Options).
 modify_a_state([Name=Value|T0], Options0, T, Options) :-

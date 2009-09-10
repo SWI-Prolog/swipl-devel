@@ -104,7 +104,8 @@ load_meta_option(convert_typed_literal).
 
 xml_to_rdf(XML, Triples, Options) :-
 	is_list(Options), !,
-	xml_to_plrdf(XML, RDF, Options),
+	make_rdf_state(Options, State, _),
+	xml_to_plrdf(XML, RDF, State),
 	rdf_triples(RDF, Triples).
 xml_to_rdf(XML, BaseURI, Triples) :-
 	atom(BaseURI), !,
@@ -254,12 +255,13 @@ cleanup_process(In, Cleanup, Parser) :-
 
 on_begin(NS:'RDF', Attr, _) :-
 	rdf_name_space(NS), !,
-	nb_getval(rdf_options, Options0),
-	modify_state(Attr, Options0, Options),
-	nb_setval(rdf_state, Options).
+	nb_getval(rdf_options, Options),
+	make_rdf_state(Options, State0, _),
+	rdf_modify_state(Attr, State0, State),
+	nb_setval(rdf_state, State).
 on_begin(Tag, Attr, Parser) :-
-	nb_getval(rdf_state, Options),
-	(   Options == (-)
+	nb_getval(rdf_state, State),
+	(   State == (-)
 	->  nb_getval(rdf_options, RdfOptions),
 	    (	memberchk(embedded(true), RdfOptions)
 	    ->	true
@@ -272,7 +274,7 @@ on_begin(Tag, Attr, Parser) :-
 			 parse(content)
 		       ]),
 	    nb_getval(rdf_object_handler, OnTriples),
-	    element_to_plrdf(element(Tag, Attr, Content), Objects, Options),
+	    element_to_plrdf(element(Tag, Attr, Content), Objects, State),
 	    rdf_triples(Objects, Triples),
 	    call(OnTriples, Triples, File:Start)
 	).
@@ -303,33 +305,6 @@ exit_ns_collect(NSList) :-
 	->  true
 	;   nb_getval(rdf_nslist, list(NSList))
 	).
-
-modify_state([], Options, Options).
-modify_state([H|T], Options0, Options) :-
-	modify_state1(H, Options0, Options1),
-	modify_state(T, Options1, Options).
-
-modify_state1(xml:base = Base0, Options0, Options) :- !,
-	remove_fragment(Base0, Base),
-	set_option(base_uri(Base), Options0, Options).
-modify_state1(xml:lang = Lang, Options0, Options) :- !,
-	set_option(lang(Lang), Options0, Options).
-modify_state1(_, Options, Options).
-
-%%	remove_fragment(+URI, -WithoutFragment)
-%
-%	When handling xml:base, we must delete the possible fragment.
-
-remove_fragment(URI, Plain) :-
-	sub_atom(URI, B, _, _, #), !,
-	sub_atom(URI, 0, B, _, Plain).
-remove_fragment(URI, URI).
-
-
-set_option(Opt, Options0, [Opt|Options]) :-
-	functor(Opt, F, A),
-	functor(VO, F, A),
-	delete(Options0, VO, Options).
 
 
 process_options(Options, Process, RestOptions) :-
