@@ -80,8 +80,8 @@ rdf_triples(Term) -->
 
 %%	triples(-Triples, -Id, +In, -Tail)
 %
-%	DGC set processing the output of xml_to_rdf/3.  In Id, the identifier
-%	of the main description or container is returned.
+%	DGC set processing the output of  xml_to_rdf/3. Id is unified to
+%	the identifier of the main description.
 
 triples(description(Type, About, BagId, Props), Subject) -->
 	{ var(About),

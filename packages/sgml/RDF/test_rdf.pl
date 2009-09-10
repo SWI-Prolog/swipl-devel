@@ -7,16 +7,17 @@
     WWW:     http://www.swi-prolog.org/
     Copying: LGPL-2.  See the file COPYING or http://www.gnu.org
 
-    Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
+    Copyright (C) 1990-2009 SWI, University of Amsterdam.
+    All rights reserved.
 */
 
-:- module(rdf_test,
+:- module(test_rdf,
 	  [ suite/1,			% +Test-number
 	    test_dir/1,			% +Directory
 	    test_file/1,		% +File
 	    time_file/1,		% +File
 	    passed/1,			% +Test-numberOrFile
-	    test/0,			% run whole suite
+	    test_rdf/0,			% run whole suite
 	    show_ok/1			% +Test
 	  ]).
 
@@ -29,6 +30,7 @@ user:file_search_path(library, '../../clib').
 user:file_search_path(library, '../..').
 user:file_search_path(foreign, ..).
 user:file_search_path(foreign, '../../clib').
+user:file_search_path(foreign, '../../semweb').
 
 :- use_module(library(sgml)).
 :- use_module(library(semweb/rdf_compare)).
@@ -99,7 +101,7 @@ passed(File) :-
 
 :- dynamic failed/1.
 
-test :-
+test_rdf :-
 	test(load_rdf),
 	test(process_rdf).
 

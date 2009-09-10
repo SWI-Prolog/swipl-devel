@@ -30,7 +30,8 @@
 */
 
 :- module(test_rdf_write,
-	  [ run_tests/0,
+	  [ test_write/0,
+	    run_tests/0,
             run_tests/1
 	  ]).
 
@@ -50,6 +51,10 @@
 :- use_module(library(debug)).
 :- use_module(library(semweb/rdf_db)).
 :- use_module(rdf).
+
+test_write :-
+	run_tests([ rdf_write
+		  ]).
 
 
 		 /*******************************
