@@ -2957,23 +2957,15 @@ insert_propagator(Prop, Ps0, Ps) :-
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
+        maplist(maplist(fd_variable), Lss),
         make_propagator(presidual(lex_chain(Lss)), Prop),
         lex_chain_(Lss, Prop).
 
 lex_chain_([], _).
 lex_chain_([Ls|Lss], Prop) :-
-        lex_check_and_attach(Ls, Prop),
+        variables_attach(Ls, Prop),
         lex_chain_lag(Lss, Ls),
         lex_chain_(Lss, Prop).
-
-lex_check_and_attach([], _).
-lex_check_and_attach([L|Ls], Prop) :-
-        fd_variable(L),
-        (   var(L) ->
-            init_propagator(L, Prop)
-        ;   true
-        ),
-        lex_check_and_attach(Ls, Prop).
 
 lex_chain_lag([], _).
 lex_chain_lag([Ls|Lss], Ls0) :-
