@@ -44,7 +44,7 @@
 term_expansion(F, T) :- rew_term_expansion(F, T).
 goal_expansion(F, T) :- rew_goal_expansion(F, T).
 
-goal_expansion(attrs(List, Attrs), Goal) :-
+goal_expansion(attrs(Attrs, List), Goal) :-
 	translate_attrs(List, Attrs, Goal).
 
 translate_attrs(Var, Attrs, rewrite(Var, Attrs)) :-
@@ -95,7 +95,6 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 %	rdf_triples/[2,3] to create a list of RDF triples.
 %
 %	if `BaseURI' == [], local URI's are not globalised.
-
 
 xml_to_plrdf(Element, RDF, Options) :-
 	is_list(Element), !,

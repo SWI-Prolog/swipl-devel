@@ -26,17 +26,15 @@
 rew_term_expansion((Rule ::= RuleBody), (Head :- Body)) :-
 	translate(RuleBody, Term, Body0),
 	simplify(Body0, Body),
-	Rule =.. List,
-	append(List, [Term], L2),
-	Head =.. L2.
+	Rule =.. [Name|List],
+	Head =.. [Name,Term|List].
 
 rew_goal_expansion(rewrite(To, From), Goal) :-
 	nonvar(To),
 	To = \Rule,
 	callable(Rule),
-	Rule =.. List,
-	append(List, [From], List2),
-	Goal =.. List2.
+	Rule =.. [Name|List],
+	Goal =.. [Name,From|List].
 
 
 		 /*******************************
@@ -51,7 +49,9 @@ rewrite(M:T, From) :-
 	(   var(T)
 	->  From = T
 	;   T = \Rule
-	->  call(M:Rule, From)
+	->  Rule =.. [Name|List],
+	    Goal =.. [Name,From|List],
+	    M:Goal
 	;   match(T, M, From)
 	).
 
@@ -63,16 +63,14 @@ translate(Var, Var, true) :-
 	var(Var), !.
 translate((\Command, !), Var, (Goal, !)) :- !,
 	(   callable(Command),
-	    Command =.. List
-	->  append(List, [Var], L2),
-	    Goal =.. L2
+	    Command =.. [Name|List]
+	->  Goal =.. [Name,Var|List]
 	;   Goal = rewrite(\Command, Var)
 	).
 translate(\Command, Var, Goal) :- !,
 	(   callable(Command),
-	    Command =.. List
-	->  append(List, [Var], L2),
-	    Goal =.. L2
+	    Command =.. [Name|List]
+	->  Goal =.. [Name,Var|List]
 	;   Goal = rewrite(\Command, Var)
 	).
 translate(Atomic, Atomic, true) :-
