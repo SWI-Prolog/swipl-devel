@@ -657,22 +657,20 @@ noMoreAttrs ::=
 %	Remove all xmlns=_, xmlns:_=_ and xml:_=_.  Only succeed
 %	if something changed.
 
-modify_state(E0, O0, E, O) :-
-	modify_states([base, lang, xmlns], M, E0, O0, E, O),
-	M \== [].
+modify_state(element(Name, Attrs0, Content), Options0,
+	     element(Name, Attrs,  Content), Options) :-
+	modify_a_state(Attrs0, Options0, Attrs, Options),
+	Attrs0 \== Attrs.
 
-modify_states([], [], E, O, E, O).
-modify_states([How|TH0], [How|TH], E0, O0, E, O) :-
-	modify_state(How, E0, O0, E1, O1), !,
-	modify_states(TH0, TH, E1, O1, E, O).
-modify_states([_|TH0], TH, E0, O0, E, O) :-
-	modify_states(TH0, TH, E0, O0, E, O).
+modify_a_state([], Options, [], Options).
+modify_a_state([Name=Value|T0], Options0, T, Options) :-
+	modify_a(Name, Value, Options0, Options1), !,
+	modify_a_state(T0, Options1, T, Options).
+modify_a_state([H|T0], Options0, [H|T], Options) :-
+	modify_a_state(T0, Options0, T, Options).
 
 
-modify_state(base,
-	     element(Name, Attrs0, Content), Options0,
-	     element(Name, Attrs, Content),  Options) :-
-	select(xml:base=Base1, Attrs0, Attrs), !,
+modify_a(xml:base, Base1, Options0, Options) :- !,
 	(   select(base_uri(Base0), Options0, Options1)
 	->  true
 	;   Base0 = [],
@@ -681,31 +679,16 @@ modify_state(base,
 	remove_fragment(Base1, Base2),
 	canonical_uri(Base2, Base0, Base),
 	Options = [base_uri(Base)|Options1].
-modify_state(lang, element(Name, Attrs0, Content), Options0,
-	     element(Name, Attrs, Content),  Options) :-
-	select(xml:lang=Lang, Attrs0, Attrs),
+modify_a(xml:lang, Lang, Options0, Options) :- !,
 	\+ memberchk(ignore_lang(true), Options0), !,
 	delete(Options0, lang(_), Options1),
 	(   Lang == ''
 	->  Options = Options1
 	;   Options = [lang(Lang)|Options1]
 	).
-modify_state(xmlns,
-	     element(Name, Attrs0, Content), Options,
-	     element(Name, Attrs, Content), Options) :-
-	clean_xmlns_attr(Attrs0, Attrs),
-	Attrs \== Attrs0.
-
-clean_xmlns_attr([], []).
-clean_xmlns_attr([H=_|T0], T) :-
-	xml_attr(H), !,
-	clean_xmlns_attr(T0, T).
-clean_xmlns_attr([H|T0], [H|T]) :-
-	clean_xmlns_attr(T0, T).
-
-xml_attr(xmlns).
-xml_attr(xmlns:_).
-xml_attr(xml:_).
+modify_a(xmlns, _, Options, Options).
+modify_a(xmlns:_, _, Options, Options).
+modify_a(xml:_, _, Options, Options).
 
 
 %%	remove_fragment(+URI, -WithoutFragment)
