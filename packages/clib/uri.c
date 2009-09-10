@@ -1212,12 +1212,81 @@ ranges_in_charbuf(charbuf *cb, uri_component_ranges *ranges)
 }
 
 
+typedef struct
+{ atom_t     	       atom;
+  pl_wchar_t 	      *text;
+  uri_component_ranges ranges;
+} base_cache;
+
+#ifdef _REENTRANT
+#include <pthread.h>
+static pthread_key_t base_key;
+
+static void
+free_base_cache(void *cache)
+{ base_cache *base = cache;
+
+  if ( base->atom )
+  { PL_unregister_atom(base->atom);
+    PL_free(base->text);
+  }
+
+  PL_free(base);
+}
+
+static base_cache *
+myBase()
+{ base_cache *base;
+
+  if ( (base=pthread_getspecific(base_key)) )
+    return base;
+  base = PL_malloc(sizeof(*base));
+  memset(base, 0, sizeof(*base));
+
+  pthread_setspecific(base_key, base);
+  return base;
+}
+
+#else
+static base_cache base_store;
+#define myBase() &base_store;
+#endif
+
+
+static const uri_component_ranges *
+base_ranges(term_t t)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { base_cache *base = myBase();
+
+    if ( base->atom != a )
+    { size_t len;
+      pl_wchar_t *s;
+
+      if ( base->atom )
+      { PL_unregister_atom(base->atom);
+	PL_free(base->text);
+      }
+      PL_get_wchars(t, &len, &s, CVT_ATOM|BUF_MALLOC);
+      base->atom = a;
+      PL_register_atom(a);
+      base->text = s;
+      parse_uri(&base->ranges, len, s);
+    }
+
+    return &base->ranges;
+  } else
+  { type_error("atom", t);
+    return NULL;
+  }
+}
+
+
 static foreign_t
 resolve(term_t Rel, term_t Base, term_t URI, int normalize, int iri)
 { pl_wchar_t *s;
   size_t slen;
-  pl_wchar_t *b;
-  size_t blen;
   uri_component_ranges s_ranges, t_ranges;
   int rc;
   size_t len;
@@ -1231,48 +1300,47 @@ resolve(term_t Rel, term_t Base, term_t URI, int normalize, int iri)
     if ( s_ranges.scheme.start )
     { t_ranges = s_ranges;
     } else
-    { if ( PL_get_wchars(Base, &blen, &b,
-			 CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-      { uri_component_ranges b_ranges;
+    { const uri_component_ranges *b_ranges;
 
-	parse_uri(&b_ranges, blen, b);
-	memset(&t_ranges, 0, sizeof(t_ranges));
-	if ( s_ranges.authority.start )
-	{ t_ranges.authority = s_ranges.authority;
-	  t_ranges.path      = s_ranges.path;
-	  t_ranges.query     = s_ranges.query;
-	} else
-	{ if ( s_ranges.path.start == s_ranges.path.end )
-	  { t_ranges.path = b_ranges.path;
-	    if ( s_ranges.query.start )
-	      t_ranges.query = s_ranges.query;
-	    else
-	      t_ranges.query = b_ranges.query;
-	  } else
-	  { if ( s_ranges.path.start[0] == '/' )
-	    { t_ranges.path = s_ranges.path;
-	    } else
-	    { if ( b_ranges.authority.start &&
-		   b_ranges.path.start == b_ranges.path.end )
-	      { add_charbuf(&pb, '/');
-		add_verb_range_charbuf(&pb, &s_ranges.path);
-	      } else
-	      { b_ranges.path.end = remove_last_segment(b_ranges.path.start,
-							b_ranges.path.end);
-		add_verb_range_charbuf(&pb, &b_ranges.path);
-		add_verb_range_charbuf(&pb, &s_ranges.path);
-		t_ranges.path.start = pb.base;
-		t_ranges.path.end = pb.here;
-	      }
-	    }
-	    t_ranges.query = s_ranges.query;
-	  }
-	  t_ranges.authority = b_ranges.authority;
-	}
-	t_ranges.scheme = b_ranges.scheme;
-	t_ranges.fragment = s_ranges.fragment;
+      if ( !(b_ranges = base_ranges(Base)) )
+	return FALSE;
+
+      memset(&t_ranges, 0, sizeof(t_ranges));
+      if ( s_ranges.authority.start )
+      { t_ranges.authority = s_ranges.authority;
+	t_ranges.path      = s_ranges.path;
+	t_ranges.query     = s_ranges.query;
       } else
-	return FALSE;			/* type error */
+      { if ( s_ranges.path.start == s_ranges.path.end )
+	{ t_ranges.path = b_ranges->path;
+	  if ( s_ranges.query.start )
+	    t_ranges.query = s_ranges.query;
+	  else
+	    t_ranges.query = b_ranges->query;
+	} else
+	{ if ( s_ranges.path.start[0] == '/' )
+	  { t_ranges.path = s_ranges.path;
+	  } else
+	  { if ( b_ranges->authority.start &&
+		 b_ranges->path.start == b_ranges->path.end )
+	    { add_charbuf(&pb, '/');
+	      add_verb_range_charbuf(&pb, &s_ranges.path);
+	    } else
+	    { range path = b_ranges->path;
+
+	      path.end = remove_last_segment(path.start, path.end);
+	      add_verb_range_charbuf(&pb, &path);
+	      add_verb_range_charbuf(&pb, &s_ranges.path);
+	      t_ranges.path.start = pb.base;
+	      t_ranges.path.end = pb.here;
+	    }
+	  }
+	  t_ranges.query = s_ranges.query;
+	}
+	t_ranges.authority = b_ranges->authority;
+      }
+      t_ranges.scheme = b_ranges->scheme;
+      t_ranges.fragment = s_ranges.fragment;
     }
   } else
     return FALSE;
@@ -1491,6 +1559,10 @@ install_uri()
   MKFUNCTOR(domain_error, 2);
   FUNCTOR_equal2 = PL_new_functor(PL_new_atom("="), 2);
   FUNCTOR_pair2 = PL_new_functor(PL_new_atom("-"), 2);
+
+#ifdef _REENTRANT
+  pthread_key_create(&base_key, free_base_cache);
+#endif
 
   PL_register_foreign("uri_components",	      2, uri_components,       0);
   PL_register_foreign("uri_is_global",	      1, uri_is_global,	       0);
