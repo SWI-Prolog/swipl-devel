@@ -265,7 +265,7 @@ x_headers(Options0, Out, Options) :-
 	x_headers(Options1, Out, Options).
 x_headers(Options0, Out, Options) :-
 	select(proxy_authorization(ProxyAuthorization), Options0, Options1), !,
-  proxy_auth_header(ProxyAuthorization, Out),
+	proxy_auth_header(ProxyAuthorization, Out),
 	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
 

@@ -141,6 +141,10 @@ Use an HTTP proxy to connect to the outside world.
 Send authorization.  Currently only supports \term{basic}{User,
 Password}.  See also http_set_authorization/2.
 
+	\termitem{proxy_authorization}{+Authorization}
+Send authorization to the proxy.  Otherwise the same as the
+\const{authorization} option.
+
 	\termitem{request_header}{+Name = +Value}
 Additional name-value parts are added in the order of appearance to
 the HTTP request header.  No interpretation is done.
@@ -237,6 +241,10 @@ Indicate the HTTP protocol version used for the connection.  Default is
 
 	\termitem{proxy}{+Host, +Port}
 Use an HTTP proxy to connect to the outside world.
+
+	\termitem{proxy_authorization}{+Authorization}
+Send authorization to the proxy.  Otherwise the same as the
+\const{authorization} option.
 
 	\termitem{timeout}{+Timeout}
 If provided, set a timeout on the stream using set_stream/2.  With this
