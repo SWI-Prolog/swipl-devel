@@ -90,9 +90,21 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 %%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +Options)
 %
-%	Translate an XML (using namespaces) term into an Prolog term
-%	representing the RDF data.  This term can then be fed into
-%	rdf_triples/[2,3] to create a list of RDF triples.
+%	Translate an XML (using namespaces)  term   into  an Prolog term
+%	representing the RDF data.  This  term   can  then  be  fed into
+%	rdf_triples/[2,3] to create a list of RDF triples.  Options:
+%
+%	    * base_uri
+%	    Current notion of the URI base (changed by xml_base=New).
+%
+%	    * lang(Lang)
+%	    Initial/default language code (changed by xml:lang=Lang).
+%
+%	    * ignore_lang(Boolean)
+%	    If =true=, ignore xml:lang statements
+%
+%	    * convert_typed_literal(:Converter)
+%	    Translate typed literals into Prolog terms
 %
 %	if `BaseURI' == [], local URI's are not globalised.
 
