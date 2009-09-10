@@ -7,8 +7,8 @@
   <rdf:Description about="http://www.swi.psy.uva.nl/projects/SWI-Prolog/">
     <s:Creator rdf:ID="pl-creator">
       <rdf:Description rdf:about="JW">
-        <name>Jan Wielemaker</name>
-	<works_at>SWI</works_at>
+        <s:name>Jan Wielemaker</s:name>
+	<s:works_at>SWI</s:works_at>
       </rdf:Description>
     </s:Creator>
   </rdf:Description>

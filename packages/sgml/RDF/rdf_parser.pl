@@ -238,7 +238,7 @@ propertyElt(Id, Name, Value, Options) ::=
 	  rewrite(\emptyPropertyElt(Id, Value, Options), A)
 	}.
 
-propertyElt(_, Name, description(description, Id, _, Properties), Options) ::=
+propertyElt(_, Name, description(description, Id, Properties), Options) ::=
 	element(Name,
 		\attrs([ \parseResource,
 			 \?idAboutAttr(Id, Options)

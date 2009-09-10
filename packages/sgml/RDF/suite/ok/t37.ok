@@ -1,7 +1,7 @@
-rdf('JW', name, literal('Jan Wielemaker')).
-rdf('JW', works_at, literal('SWI')).
-rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', 'JW').
-rdf('pl-creator', rdf:type, rdf:'Statement').
-rdf('pl-creator', rdf:subject, 'http://www.swi.psy.uva.nl/projects/SWI-Prolog/').
-rdf('pl-creator', rdf:predicate, 'http://description.org/schema/':'Creator').
-rdf('pl-creator', rdf:object, 'JW').
+rdf('JW', 'http://description.org/schema/name', literal('Jan Wielemaker')).
+rdf('JW', 'http://description.org/schema/works_at', literal('SWI')).
+rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/Creator', 'JW').
+rdf('#pl-creator', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement').
+rdf('#pl-creator', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', 'http://www.swi.psy.uva.nl/projects/SWI-Prolog/').
+rdf('#pl-creator', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', 'http://description.org/schema/Creator').
+rdf('#pl-creator', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#object', 'JW').

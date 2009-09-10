@@ -72,7 +72,8 @@ test_file(File) :-
 			 space(sgml)
 		       ]),
 	rdf_start_file([], Cleanup),
-	xml_to_plrdf(RDFElement, RDF, []),
+	make_rdf_state([base_uri('http://test.org/test/')], State, _),
+	xml_to_plrdf(RDFElement, RDF, State),
 	rdf_end_file(Cleanup),
 	format('============= Prolog term ==============~n', []),
 	pretty_print(RDF),
