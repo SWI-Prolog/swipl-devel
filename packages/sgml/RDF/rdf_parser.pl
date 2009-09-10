@@ -463,8 +463,6 @@ make_globalid(In, Options, Id) :-
 %	clause, which is the correct order?
 
 canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
-canonical_uri(URI0, [], URI) :- !,
-	uri_normalized_iri(URI0, URI).
 canonical_uri(URI, Base, IRI) :-
 	uri_normalized_iri(URI, Base, IRI).
 
