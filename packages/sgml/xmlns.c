@@ -29,35 +29,36 @@
 
 #ifdef XMLNS
 
-static xmlns *
+xmlns *
 xmlns_push(dtd_parser *p, const ichar *ns, const ichar *url)
 { sgml_environment *env = p->environments;
   dtd_symbol *n = (*ns ? dtd_add_symbol(p->dtd, ns) : (dtd_symbol *)NULL);
   dtd_symbol *u = dtd_add_symbol(p->dtd, url); /* TBD: ochar/ichar */
+  xmlns *x = sgml_malloc(sizeof(*x));
 
-  if ( p->on_xmlns )
-    (*p->on_xmlns)(p, n, u);
+  x->name = n;
+  x->url  = u;
 
   if ( env )
-  { xmlns *x = sgml_malloc(sizeof(*x));
+  { if ( p->on_xmlns )
+      (*p->on_xmlns)(p, n, u);
 
-    x->name = n;
-    x->url  = u;
     x->next = env->xmlns;
     env->xmlns = x;
-
-    return x;
+  } else
+  { x->next = p->xmlns;
+    p->xmlns = x;
   }
 
-  return NULL;
+  return x;
 }
 
 
 void
-xmlns_free(sgml_environment *env)
-{ xmlns *n, *next;
+xmlns_free(xmlns *n)
+{ xmlns *next;
 
-  for(n = env->xmlns; n; n = next)
+  for(; n; n = next)
   { next = n->next;
 
     sgml_free(n);
@@ -68,14 +69,18 @@ xmlns_free(sgml_environment *env)
 xmlns *
 xmlns_find(dtd_parser *p, dtd_symbol *ns)
 { sgml_environment *env = p->environments;
+  xmlns *n;
 
   for(; env; env = env->parent)
-  { xmlns *n;
-
-    for(n=env->xmlns; n; n = n->next)
+  { for(n=env->xmlns; n; n = n->next)
     { if ( n->name == ns )
 	return n;
     }
+  }
+
+  for (n=p->xmlns; n; n = n->next)
+  { if ( n->name == ns )
+      return n;
   }
 
   return NULL;
