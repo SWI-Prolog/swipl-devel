@@ -354,6 +354,7 @@ quit(F) :->
 	(   (   get(F, mode, thread_finished)
 	    ;   get(F, mode, query_finished)
 	    ;   get(F, mode, aborted)
+	    ;	get(F, mode, replied)
 	    )
 	->  send(F, destroy)
 	;   get(F, tracer_quitted, Action),
