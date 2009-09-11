@@ -39,7 +39,7 @@ xmlns_push(dtd_parser *p, const ichar *ns, const ichar *url)
     (*p->on_xmlns)(p, n, u);
 
   if ( env )
-  { xmlns *x = sgml_malloc(sizeof(*n));
+  { xmlns *x = sgml_malloc(sizeof(*x));
 
     x->name = n;
     x->url  = u;
