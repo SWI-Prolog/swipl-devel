@@ -66,8 +66,10 @@ xmlns_free(sgml_environment *env)
 
 
 xmlns *
-xmlns_find(sgml_environment *env, dtd_symbol *ns)
-{ for(; env; env = env->parent)
+xmlns_find(dtd_parser *p, dtd_symbol *ns)
+{ sgml_environment *env = p->environments;
+
+  for(; env; env = env->parent)
   { xmlns *n;
 
     for(n=env->xmlns; n; n = n->next)
@@ -150,7 +152,7 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
       if ( istrprefix(L"xml", buf) )	/* XML reserved namespaces */
       { *url = n->name;
         return TRUE;
-      } else if ( (ns = xmlns_find(p->environments, n)) )
+      } else if ( (ns = xmlns_find(p, n)) )
       { if ( ns->url->name[0] )
 	  *url = ns->url->name;
 	else
@@ -206,7 +208,7 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 	*local = s+1;
 	n = dtd_add_symbol(dtd, buf);
 
-	if ( (ns = xmlns_find(p->environments, n)) )
+	if ( (ns = xmlns_find(p, n)) )
 	{ if ( ns->url->name[0] )
 	    *url = ns->url->name;
 	  else
@@ -227,7 +229,7 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 
     *local = id->name;
 
-    if ( (ns = xmlns_find(p->environments, NULL)) )
+    if ( (ns = xmlns_find(p, NULL)) )
     { if ( ns->url->name[0] )
 	*url = ns->url->name;
       else
