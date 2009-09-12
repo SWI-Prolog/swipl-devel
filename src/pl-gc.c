@@ -219,7 +219,7 @@ static int		check_marked(const char *s);
 		*           DEBUGGING           *
 		*********************************/
 
-#if O_DEBUG
+#if O_DEBUG || O_SECURE
 
 static char *
 print_adr(Word adr, char *buf)
@@ -2271,7 +2271,7 @@ check_trail()
 	{ char b1[64], b2[64], b3[64];
 
 	  Sdprintf("Trail entry at %s not on global stack: %s (*=%s)\n",
-		   print_adr(te, b1),
+		   print_adr((Word)te, b1),
 		   print_adr(te->address, b2),
 		   print_val(*te->address, b3));
 	}
