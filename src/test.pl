@@ -2666,6 +2666,11 @@ runtest(Name) :-
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
+	(   current_prolog_flag(verbose, normal)
+	->  clause_property(R, line_count(Line)),
+	    format('(~w)', [Line]), flush_output
+	;   true
+	),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
 	    ->  put(.), flush_output
