@@ -1856,7 +1856,7 @@ trimStacks(ARG1_LD)
   LD->trim_stack_requested = FALSE;
 
 #ifdef O_SHIFT_STACKS
-  if ( !growStacks(NULL, NULL, NULL, -1, -1, -1) )
+  if ( !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
     return;
 #else
 #ifdef O_DYNAMIC_STACKS

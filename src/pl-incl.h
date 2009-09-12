@@ -1699,6 +1699,8 @@ typedef struct
 #define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
 
+#define GROW_TRIM ((size_t)-1)
+
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
   STACK_OVERFLOW_RAISE,

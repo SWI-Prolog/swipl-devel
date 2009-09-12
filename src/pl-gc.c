@@ -2912,15 +2912,15 @@ nextStackSizeAbove(size_t n)
 }
 
 
-static intptr_t
-nextStackSize(Stack s, intptr_t minfree)
-{ intptr_t size;
-  intptr_t limit = limitStackP(s);
+static size_t
+nextStackSize(Stack s, size_t minfree)
+{ size_t size;
+  size_t limit = limitStackP(s);
 
-  if ( minfree > 0 )
-    size = nextStackSizeAbove(sizeStackP(s) + minfree);
-  else
+  if ( minfree == 0 || minfree == GROW_TRIM )
     size = nextStackSizeAbove(usedStackP(s) + s->minfree);
+  else
+    size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
   if ( size == 0 )
   { outOfStack(s, STACK_OVERFLOW_THROW);
@@ -2951,10 +2951,10 @@ current usage and the minimum free stack.
 
 int
 growStacks(LocalFrame fr, Choice ch, Code PC,
-	   intptr_t l, intptr_t g, intptr_t t)
+	   size_t l, size_t g, size_t t)
 { GET_LD
   sigset_t mask;
-  intptr_t lsize, gsize, tsize;
+  size_t lsize, gsize, tsize;
   void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
 #if O_SECURE
   word key;
@@ -2983,7 +2983,10 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   }
 
   if ( g )
-  { if ( !(gsize = nextStackSize((Stack) &LD->stacks.global, g)) )
+  { gBase--;
+    gsize = nextStackSize((Stack) &LD->stacks.global, g);
+    gBase++;
+    if ( !gsize )
       fail;
     if ( gsize == sizeStack(global) )
       g = 0;
@@ -3037,10 +3040,13 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     }
 
     if ( g || l )
-    { intptr_t ogsize = sizeStack(global); 		/* old size */
-      intptr_t olsize = sizeStack(local);
+    { size_t ogsize, olsize;
       void *nw;
 
+      gBase--; gb--;
+      assert(*gb == MARK_MASK);		/* see initPrologStacks() */
+      ogsize = sizeStack(global);
+      olsize = sizeStack(local);
       assert(lb == addPointer(gb, ogsize));
 
       if ( gsize < ogsize )
@@ -3065,7 +3071,10 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
       }
+
+      gb++; gBase++;
     }
+    gsize -= sizeof(word);
 
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ Sdprintf("%6s: %p ... %p --> %p ... %p\n", \
