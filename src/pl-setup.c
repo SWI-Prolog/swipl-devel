@@ -1834,6 +1834,17 @@ resetStacks()
 { emptyStacks();
 }
 
+
+void
+ensure_room_stack(Stack s, size_t bytes)
+{ if ( s == (Stack)&LD->stacks.trail )
+  { if ( growStacks(NULL, NULL, NULL, 0, 0, bytes) )
+      return;
+
+    outOfStack(s, STACK_OVERFLOW_FATAL);
+  }
+}
+
 #endif /* O_DYNAMIC_STACKS */
 
 

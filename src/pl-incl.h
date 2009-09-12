@@ -1526,21 +1526,27 @@ Note that the local stack is always _above_ the global stack.
 
 #define Trail(p) \
   if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
   }
 
 					/* trail local stack pointer */
 #define LTrail(p) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
   }
 
 					/* trail global stack pointer */
 #define GTrail(p) \
   if ( p < LD->mark_bar ) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
+  }
+
+
+#define requireTrailStack(bytes) \
+  { if ( roomStack(trail) < (size_t)(bytes) ) \
+      ensureRoomStack(trail, bytes); \
   }
 
 

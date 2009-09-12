@@ -655,7 +655,7 @@ TrailAssignment__LD(Word p ARG_LD)
 
     assert(!(*p & (MARK_MASK|FIRST_MASK)));
     *old = *p;				/* save the old value on the global */
-    requireStack(trail, 2*sizeof(struct trail_entry));
+    requireTrailStack(2*sizeof(struct trail_entry));
     (tTop++)->address = p;
     (tTop++)->address = tagTrailPtr(old);
   }
