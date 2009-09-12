@@ -1457,8 +1457,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
-  qf->exception_env.parent = NULL;
-  qf->saved_throw_env   = LD->exception.throw_environment;
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
@@ -1548,7 +1546,6 @@ restore_after_query(QueryFrame qf)
 
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
-  LD->exception.throw_environment = qf->saved_throw_env;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
@@ -1661,6 +1658,7 @@ typedef enum
 	PC    = cref->clause->codes; \
 	NEXT_INSTRUCTION;
 
+
 int
 PL_next_solution(qid_t qid)
 { GET_LD
@@ -1673,6 +1671,7 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
+  exception_frame throw_env;		/* PL_thow() environment */
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1759,7 +1758,8 @@ variables used in the B_THROW instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_env.exception_jmp_env));
-  if ( setjmp(QF->exception_env.exception_jmp_env) != 0 )
+  throw_env.parent = LD->exception.throw_environment;
+  if ( setjmp(throw_env.exception_jmp_env) != 0 )
   { FliFrame ffr;
 #ifdef O_PLMT
     __PL_ld = GLOBAL_LD;		/* might be clobbered */
@@ -1780,9 +1780,11 @@ variables used in the B_THROW instruction.
     }
 
     goto b_throw;
+  } else				/* installation */
+  { throw_env.magic = THROW_MAGIC;
+    LD->exception.throw_environment = &throw_env;
   }
 
-  LD->exception.throw_environment = &QF->exception_env;
   DEF = FR->predicate;
   if ( QF->solutions )			/* retry */
   { fid_t fid = QF->foreign_frame;
@@ -2089,6 +2091,8 @@ next_choice:
       QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
+      assert(LD->exception.throw_environment == &throw_env);
+      LD->exception.throw_environment = throw_env.parent;
       fail;
     }
     case CHP_CATCH:			/* catch/3 */

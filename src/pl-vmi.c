@@ -1582,7 +1582,10 @@ VMI(I_EXITQUERY, 0, 0, ())
       profExit(NULL PASS_LD);
   }
 #endif
+
   QF->foreign_frame = PL_open_foreign_frame();
+  assert(LD->exception.throw_environment == &throw_env);
+  LD->exception.throw_environment = throw_env.parent;
 
   succeed;
 }
@@ -3423,6 +3426,9 @@ b_throw:
     }
 
     QF->foreign_frame = PL_open_foreign_frame();
+    assert(LD->exception.throw_environment == &throw_env);
+    LD->exception.throw_environment = throw_env.parent;
+
     fail;
   }
 

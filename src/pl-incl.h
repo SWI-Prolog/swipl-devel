@@ -1274,14 +1274,20 @@ stack overflow.
 	  { LD->exception.throw_environment = __throw_env.parent; \
 	    cleanup; \
 	  } else \
-	  { LD->exception.throw_environment = &__throw_env; \
+	  { __throw_env.magic = THROW_MAGIC; \
+	    LD->exception.throw_environment = &__throw_env; \
 	    code; \
+	    assert(LD->exception.throw_environment == &__throw_env); \
+	    __throw_env.magic = 41414141; \
 	    LD->exception.throw_environment = __throw_env.parent; \
 	  } \
 	}
 
+#define THROW_MAGIC 42424242
+
 typedef struct exception_frame		/* PL_throw exception environments */
 { struct exception_frame *parent;	/* parent frame */
+  int		magic;			/* THROW_MAGIC */
   jmp_buf	exception_jmp_env;	/* longjmp environment */
 } exception_frame;
 
@@ -1304,8 +1310,6 @@ struct queryFrame
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
-  exception_frame exception_env;	/* Top PL_throw() environment */
-  exception_frame *saved_throw_env;	/* Throw environment of parent query */
 #endif
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned long	flags;
