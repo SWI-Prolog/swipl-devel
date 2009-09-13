@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -273,7 +273,7 @@ load_structure(stream(In), Term, M:Options) :- !,
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
-	def_entities(Options2, DTD, Options3),
+	def_entities(Options2, Parser, Options3),
 	call_cleanup(parse(Parser, M:Options3, TermRead, In),
 		     free_sgml_parser(Parser)),
 	(   ExplicitDTD == true
@@ -310,17 +310,23 @@ parser_meta_options([H|T0], M, [H|T]) :-
 
 
 def_entities([], _, []).
-def_entities([entity(Name, Value)|T], DTD, Opts) :- !,
-	def_entity(DTD, Name, Value),
-	def_entities(T, DTD, Opts).
-def_entities([H|T0], DTD, [H|T]) :-
-	def_entities(T0, DTD, T).
+def_entities([H|T], Parser, Opts) :-
+	def_entity(H, Parser), !,
+	def_entities(T, Parser, Opts).
+def_entities([H|T0], Parser, [H|T]) :-
+	def_entities(T0, Parser, T).
 
-def_entity(DTD, Name, Value) :-
-	open_dtd(DTD, [], Stream),
+def_entity(entity(Name, Value), Parser) :-
+	get_sgml_parser(Parser, dtd(DTD)),
 	xml_quote_attribute(Value, QValue),
-	format(Stream, '<!ENTITY ~w "~w">~n', [Name, QValue]),
-	close(Stream).
+	setup_call_cleanup(open_dtd(DTD, [], Stream),
+			   format(Stream, '<!ENTITY ~w "~w">~n',
+				  [Name, QValue]),
+			   close(Stream)).
+def_entity(xmlns(URI), Parser) :-
+	set_sgml_parser(Parser, xmlns(URI)).
+def_entity(xmlns(NS, URI), Parser) :-
+	set_sgml_parser(Parser, xmlns(NS, URI)).
 
 
 		 /*******************************

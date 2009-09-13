@@ -38,6 +38,7 @@
 	    send_if_tracer/1,		% :Goal
 	    get_tracer/2,		% :Goal, -Result
 	    in_debug_thread/2,		% +ObjOrThread, :Goal
+	    thread_debug_queue/2,	% +Thread, -Queue
 	    prolog_frame_attribute/4	% +GUI, +Frame, +Attr, -Value
 	  ]).
 :- use_module(library(pce)).
@@ -135,6 +136,7 @@ break_level(1).
 send_tracer(Term) :-
 	thread_self(Thread),
 	send_tracer(Thread, Term).
+
 send_tracer(GUI, Term) :-
 	object(GUI), !,
 	send_pce(send(GUI, Term)).
@@ -154,6 +156,7 @@ send_if_tracer(Thread, Term) :-
 get_tracer(Term, Result) :-
 	thread_self(Thread),
 	get_tracer(Thread, Term, Result).
+
 get_tracer(GUI, Term, Result) :-
 	object(GUI), !,
 	get(GUI, Term, Result).
@@ -170,6 +173,30 @@ get_tracer(Thread, Term, Result) :-
 	in_debug_thread(+, :),
 	send_pce(:).
 
+%%	thread_debug_queue(+Thread, -Queue) is det.
+%
+%	Queue is the debugging queue for Thread.  We do not use the main
+%	queue to avoid interference with user-messages.
+
+:- dynamic
+	thread_debug_queue_store/2.
+
+thread_debug_queue(Thread, Queue) :-
+	(   thread_debug_queue_store(Thread, Q)
+	->  Queue = Q
+	;   message_queue_create(Q),
+	    assert(thread_debug_queue_store(Thread, Q)),
+	    Queue = Q
+	).
+
+:- multifile
+	user:prolog_event_hook/1.
+
+user:prolog_event_hook(thread_finished(TID)) :-
+	thread_debug_queue_store(TID, Queue),
+	message_queue_destroy(Queue),
+	fail.				% allow other hooks
+
 %%	send_pce(:Goal)
 %
 %	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
@@ -182,11 +209,11 @@ send_pce(Goal) :-
 	Goal.
 send_pce(Goal) :-
 	thread_self(Self),
-	strip_module(Goal, M, G),
-	term_variables(G, GVars),
-	in_pce_thread(run_pce(M:G, GVars, Self)),
+	term_variables(Goal, GVars),
+	in_pce_thread(run_pce(Goal, GVars, Self)),
+	thread_debug_queue(Self, Queue),
 	repeat,
-	thread_get_message('$trace'(Result)),
+	thread_get_message(Queue, '$trace'(Result)),
 	debug(' ---> send_pce: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
@@ -209,7 +236,8 @@ run_pce(Goal, Vars, Caller) :-
 	;   Result = false
 	),
 	debug('Ok, returning ~p~n', [Result]),
-	thread_send_message(Caller, '$trace'(Result)).
+	thread_debug_queue(Caller, Queue),
+	thread_send_message(Queue, '$trace'(Result)).
 
 %%	in_debug_thread(+Thread, :Goal) is semidet.
 %%	in_debug_thread(+Object, :Goal) is semidet.
@@ -227,12 +255,13 @@ in_debug_thread(Thread, Goal) :-
 	thread_self(Thread), !,
 	Goal, !.
 in_debug_thread(Thread, Goal) :-
-	strip_module(Goal, M, G),
 	thread_self(Self),
-	debug('Call [Thread ~p] ~p~n', [Thread, M:G]),
-	term_variables(G, GVars),
-	thread_send_message(Thread, '$trace'(call(M:G, GVars, Self))),
-	thread_get_message('$trace'(Result)),
+	debug('Call [Thread ~p] ~p~n', [Thread, Goal]),
+	term_variables(Goal, GVars),
+	thread_debug_queue(Thread, Queue),
+	thread_send_message(Queue, '$trace'(call(Goal, GVars, Self))),
+	thread_debug_queue(Self, MyQueue),
+	thread_get_message(MyQueue, '$trace'(Result)),
 	debug(' ---> in_debug_thread: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
@@ -325,6 +354,7 @@ quit(F) :->
 	(   (   get(F, mode, thread_finished)
 	    ;   get(F, mode, query_finished)
 	    ;   get(F, mode, aborted)
+	    ;	get(F, mode, replied)
 	    )
 	->  send(F, destroy)
 	;   get(F, tracer_quitted, Action),
@@ -479,14 +509,15 @@ return(Frame, Result:any) :->
 	(   get(Frame, mode, wait_user)
 	->  get(Frame, thread, Thread),
 	    send(Frame, mode, replied),
-	    (   Thread == main
-	    ->  send_super(Frame, return, Result)
+	    (	Thread == main
+	    ->	send_super(Frame, return, Result)
 	    ;   (   get(Frame, quitted, @on)
 		->  send(Frame, destroy)
 		;   true
 		),
 		debug(' ---> frame: result = ~p~n', [Result]),
-		thread_send_message(Thread, '$trace'(action(Result)))
+		thread_debug_queue(Thread, Queue),
+		thread_send_message(Queue, '$trace'(action(Result)))
 	    )
 	;   get(Frame, quitted, @on)
 	->  send(Frame, destroy)

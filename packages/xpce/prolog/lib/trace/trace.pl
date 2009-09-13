@@ -507,8 +507,11 @@ action(Action) :-
 	send_tracer(prepare_action),
 	repeat,
 	debug(' ---> action: wait~n', []),
-	(   repeat,
-	    catch(thread_get_message('$trace'(Result)), E, wait_error(E))
+	(   thread_self(Me),
+	    thread_debug_queue(Me, Queue),
+	    repeat,
+	    catch(thread_get_message(Queue, '$trace'(Result)),
+		  E, wait_error(E))
 	->  true
 	;   debug('thread_get_message() failed; retrying ...~n'),
 	    fail
@@ -527,7 +530,7 @@ action(Action) :-
 %	thread_get_message/1 can only fail due   to  signals throwing an
 %	exception. For example,  if  the  traced   goal  is  guarded  by
 %	call_with_time_limit/2. Here we  print  the   message  and  keep
-%	waiting. Note that this causes the  system   to  be lost for the
+%	waiting. Note that this causes the  signal   to  be lost for the
 %	application.
 %
 %	@tbd	Allow passing the error to the application
@@ -550,7 +553,8 @@ run_in_debug_thread(Goal, GVars, Caller) :-
 	;   Result = false
 	),
 	debug(' ---> run_in_debug_thread: send ~p~n', [Result]),
-	thread_send_message(Caller, '$trace'(Result)).
+	thread_debug_queue(Caller, Queue),
+	thread_send_message(Queue, '$trace'(Result)).
 
 action(break, Action) :- !,
 	break,

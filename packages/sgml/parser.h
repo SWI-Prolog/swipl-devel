@@ -208,6 +208,9 @@ typedef struct _dtd_parser
   dtd_symbol   *enforce_outer_element;	/* Outer element to look for */
   sgml_event_class event_class;		/* EV_* */
   xmlnons	xml_no_ns;		/* What if namespace does not exist? */
+#ifdef XMLNS
+  struct _xmlns *xmlns;			/* Outer xmlns declaration */
+#endif
 
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */

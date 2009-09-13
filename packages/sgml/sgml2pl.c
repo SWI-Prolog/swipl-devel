@@ -161,6 +161,8 @@ static functor_t FUNCTOR_defaults1;
 static functor_t FUNCTOR_shorttag1;
 static functor_t FUNCTOR_qualify_attributes1;
 static functor_t FUNCTOR_encoding1;
+static functor_t FUNCTOR_xmlns1;
+static functor_t FUNCTOR_xmlns2;
 
 static atom_t ATOM_true;
 static atom_t ATOM_false;
@@ -223,6 +225,8 @@ initConstants()
   FUNCTOR_shorttag1	 = mkfunctor("shorttag", 1);
   FUNCTOR_qualify_attributes1 = mkfunctor("qualify_attributes", 1);
   FUNCTOR_encoding1	 = mkfunctor("encoding", 1);
+  FUNCTOR_xmlns1	 = mkfunctor("xmlns", 1);
+  FUNCTOR_xmlns2	 = mkfunctor("xmlns", 2);
 
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
@@ -528,6 +532,28 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
       p->enforce_outer_element = dtd_add_symbol(p->dtd, s);
     }
+  } else if ( PL_is_functor(option, FUNCTOR_xmlns1) )
+  { term_t a = PL_new_term_ref();
+    ichar ns[1] = {0};
+    ichar *uri;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_wchars(a, NULL, &uri, CVT_ATOM|CVT_EXCEPTION) )
+      return FALSE;
+
+    xmlns_push(p, ns, uri);
+  } else if ( PL_is_functor(option, FUNCTOR_xmlns2) )
+  { term_t a = PL_new_term_ref();
+    ichar *ns, *uri;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_wchars(a, NULL, &ns, CVT_ATOM|CVT_EXCEPTION) )
+      return FALSE;
+    PL_get_arg(2, option, a);
+    if ( !PL_get_wchars(a, NULL, &uri, CVT_ATOM|CVT_EXCEPTION) )
+      return FALSE;
+
+    xmlns_push(p, ns, uri);
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_parser_option", option);
 

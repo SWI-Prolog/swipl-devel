@@ -29,35 +29,36 @@
 
 #ifdef XMLNS
 
-static xmlns *
+xmlns *
 xmlns_push(dtd_parser *p, const ichar *ns, const ichar *url)
 { sgml_environment *env = p->environments;
   dtd_symbol *n = (*ns ? dtd_add_symbol(p->dtd, ns) : (dtd_symbol *)NULL);
   dtd_symbol *u = dtd_add_symbol(p->dtd, url); /* TBD: ochar/ichar */
+  xmlns *x = sgml_malloc(sizeof(*x));
 
-  if ( p->on_xmlns )
-    (*p->on_xmlns)(p, n, u);
+  x->name = n;
+  x->url  = u;
 
   if ( env )
-  { xmlns *x = sgml_malloc(sizeof(*n));
+  { if ( p->on_xmlns )
+      (*p->on_xmlns)(p, n, u);
 
-    x->name = n;
-    x->url  = u;
     x->next = env->xmlns;
     env->xmlns = x;
-
-    return x;
+  } else
+  { x->next = p->xmlns;
+    p->xmlns = x;
   }
 
-  return NULL;
+  return x;
 }
 
 
 void
-xmlns_free(sgml_environment *env)
-{ xmlns *n, *next;
+xmlns_free(xmlns *n)
+{ xmlns *next;
 
-  for(n = env->xmlns; n; n = next)
+  for(; n; n = next)
   { next = n->next;
 
     sgml_free(n);
@@ -66,14 +67,20 @@ xmlns_free(sgml_environment *env)
 
 
 xmlns *
-xmlns_find(sgml_environment *env, dtd_symbol *ns)
-{ for(; env; env = env->parent)
-  { xmlns *n;
+xmlns_find(dtd_parser *p, dtd_symbol *ns)
+{ sgml_environment *env = p->environments;
+  xmlns *n;
 
-    for(n=env->xmlns; n; n = n->next)
+  for(; env; env = env->parent)
+  { for(n=env->xmlns; n; n = n->next)
     { if ( n->name == ns )
 	return n;
     }
+  }
+
+  for (n=p->xmlns; n; n = n->next)
+  { if ( n->name == ns )
+      return n;
   }
 
   return NULL;
@@ -150,7 +157,7 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
       if ( istrprefix(L"xml", buf) )	/* XML reserved namespaces */
       { *url = n->name;
         return TRUE;
-      } else if ( (ns = xmlns_find(p->environments, n)) )
+      } else if ( (ns = xmlns_find(p, n)) )
       { if ( ns->url->name[0] )
 	  *url = ns->url->name;
 	else
@@ -206,7 +213,7 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 	*local = s+1;
 	n = dtd_add_symbol(dtd, buf);
 
-	if ( (ns = xmlns_find(p->environments, n)) )
+	if ( (ns = xmlns_find(p, n)) )
 	{ if ( ns->url->name[0] )
 	    *url = ns->url->name;
 	  else
@@ -227,7 +234,7 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 
     *local = id->name;
 
-    if ( (ns = xmlns_find(p->environments, NULL)) )
+    if ( (ns = xmlns_find(p, NULL)) )
     { if ( ns->url->name[0] )
 	*url = ns->url->name;
       else

@@ -715,6 +715,16 @@ Process file as XML file with namespace support. See \secref{xmlns} for
 details.  See also the \verb$qualify_attributes$ option below.
 \end{description}
 
+    \termitem{xmlns}{+URI}
+Set the default namespace of the outer environment.  This option is
+provided to process partial XML content with proper namespace
+resolution.
+
+    \termitem{xmlns}{+NS, +URI}
+Specify a namespace for the outer environment. This option is
+provided to process partial XML content with proper namespace
+resolution.
+
     \termitem{qualify_attributes}{Boolean}
 How to handle unqualified attribute (i.e. without an explicit namespace)
 in XML namespace (\const{xmlns}) mode. Default and standard compliant is

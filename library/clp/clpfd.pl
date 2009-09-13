@@ -1237,14 +1237,13 @@ label(Vars, Selection, Order, Choice, Consistency) :-
         (   Vars = [V|Vs], nonvar(V) -> label(Vs, Selection, Order, Choice, Consistency)
         ;   select_var(Selection, Vars, Var, RVars),
             (   var(Var) ->
-                (   Consistency == upto_ground ->
-                    choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
-                ;   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
+                (   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
                     fd_size(Var, Size),
                     I1 is I0*Size,
                     label(RVars, Selection, Order, Choice, upto_in(I1,I))
                 ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
                     label(RVars, Selection, Order, Choice, Consistency)
+                ;   choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
                 )
             ;   label(RVars, Selection, Order, Choice, Consistency)
             )
@@ -2957,23 +2956,15 @@ insert_propagator(Prop, Ps0, Ps) :-
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
+        maplist(maplist(fd_variable), Lss),
         make_propagator(presidual(lex_chain(Lss)), Prop),
         lex_chain_(Lss, Prop).
 
 lex_chain_([], _).
 lex_chain_([Ls|Lss], Prop) :-
-        lex_check_and_attach(Ls, Prop),
+        variables_attach(Ls, Prop),
         lex_chain_lag(Lss, Ls),
         lex_chain_(Lss, Prop).
-
-lex_check_and_attach([], _).
-lex_check_and_attach([L|Ls], Prop) :-
-        fd_variable(L),
-        (   var(L) ->
-            init_propagator(L, Prop)
-        ;   true
-        ),
-        lex_check_and_attach(Ls, Prop).
 
 lex_chain_lag([], _).
 lex_chain_lag([Ls|Lss], Ls0) :-

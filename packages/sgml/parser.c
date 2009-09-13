@@ -2748,7 +2748,7 @@ free_environment(sgml_environment *env)
 {
 #ifdef XMLNS
   if ( env->xmlns )
-    xmlns_free(env);
+    xmlns_free(env->xmlns);
 #endif
 
   sgml_free(env);
@@ -3948,7 +3948,9 @@ void
 free_dtd_parser(dtd_parser *p)
 { free_icharbuf(p->buffer);
   free_ocharbuf(p->cdata);
-
+#ifdef XMLNS
+  xmlns_free(p->xmlns);
+#endif
   free_dtd(p->dtd);
 
   sgml_free(p);
