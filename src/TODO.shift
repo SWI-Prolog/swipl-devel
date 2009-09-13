@@ -1,0 +1,26 @@
+* Trigger shifts at `safe places'
+	- Set trigger limit (test resource exceptions)
+		+ min_free (what is done with this?)
+		++ Set max to real-max - min_free?
+		++ If above max: signal expansion request and max += NNN
+	- Or have a way out for exceptions (spare-stack?)
+
+* Virtual alloc/realloc/free of the stacks instead of malloc/realloc/free?
+
+* Remove max_threads limit?
+
+* Trouble:
+
+	- PC relocation if running code on local stack?
+	- What if we put PC and FR in the engine?  That would solve all this!
+		- Open/close query needs to save/reload
+		- Experiment!
+	- Where are the allocations?
+	    - Global
+		- allocGlobal()
+	    - Local
+		- PL_new_term_ref() (could be moved of local stack)
+		- Alloc environment, choice, foreign-frame
+	- Non-shiftable code
+	    - All code using Word and doing allocation!
+
