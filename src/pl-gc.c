@@ -286,10 +286,16 @@ print_val(word val, char *buf)
     { strcpy(o, s);
     }
   } else
+  { long offset = (val>>(LMASK_BITS-2))/sizeof(word);
+
+    if ( storage(val) == STG_GLOBAL )
+      offset -= gBase - (Word)base_addresses[STG_GLOBAL];
+
     Ssprintf(o, "%s at %s(%ld)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
-	     (val >> LMASK_BITS));
+	     offset);
+  }
 
   return buf;
 }
@@ -2794,8 +2800,6 @@ update_gvars(intptr_t gs)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Entry-point.   Update the  stacks to  reflect  their current  positions.
 This function should be called *after*  the  stacks have been relocated.
-Note that these functions are  only used  if  there is no virtual memory
-way to reach at dynamic stacks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define updateStackHeader(name, offset) \
@@ -2863,7 +2867,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     updateStackHeader(trail,  ts);
 
     base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
-    base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
+    base_addresses[STG_GLOBAL] = (uintptr_t)(gBase-1); /* MARK_MASK */
     base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   }
 
@@ -3125,7 +3129,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	     trap_gdb();
 	   });
     if ( verbose )
-    { Sdprintf("l+g+t = %lld+%lld+%lld (%2f sec)\n",
+    { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
 	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize);
     }
   }
