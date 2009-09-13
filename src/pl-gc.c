@@ -289,7 +289,7 @@ print_val(word val, char *buf)
     Ssprintf(o, "%s at %s(%ld)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
-	     (val >> LMASK_BITS)/sizeof(word));
+	     (val >> LMASK_BITS));
 
   return buf;
 }
