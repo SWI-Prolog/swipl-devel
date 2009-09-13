@@ -226,6 +226,10 @@ print_adr(Word adr, char *buf)
 { GET_LD
   char *name;
   Word base;
+  static char tmp[256];
+
+  if ( !buf )
+    buf = tmp;
 
   if ( onGlobal(adr) )
   { name = "global";
@@ -249,10 +253,15 @@ print_adr(Word adr, char *buf)
 static char *
 print_val(word val, char *buf)
 { GET_LD
-  char *tag_name[] = { "var", "attvar", "float", "int", "atom",
-		       "string", "term", "ref" };
-  char *stg_name[] = { "static", "global", "local", "reserved" };
-  char *o = buf;
+  static const char *tag_name[] = { "var", "attvar", "float", "int", "atom",
+				    "string", "term", "ref" };
+  static const char *stg_name[] = { "static", "global", "local", "reserved" };
+  static char tmp[256];
+  char *o;
+
+  if ( !buf )
+    buf = tmp;
+  o = buf;
 
   if ( val & (MARK_MASK|FIRST_MASK) )
   { *o++ = '[';
@@ -2636,7 +2645,6 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
 
     if ( ls )				/* update frame pointers */
     { update_pointer(&fr->parent, ls);
-      clearUninitialisedVarsFrame(fr, PC);
 
       DEBUG(2, Sdprintf("PC=%p ", fr->programPointer));
       update_local_pointer(&fr->programPointer, ls);
