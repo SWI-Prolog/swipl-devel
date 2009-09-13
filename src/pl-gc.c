@@ -2993,11 +2993,11 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   if ( g )
   { gBase--;
     gsize = nextStackSize((Stack) &LD->stacks.global, g);
+    if ( gsize == sizeStack(global) )
+      g = 0;
     gBase++;
     if ( !gsize )
       fail;
-    if ( gsize == sizeStack(global) )
-      g = 0;
   } else
   { gsize = sizeStack(global);
   }
@@ -3024,12 +3024,14 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     DEBUG(1, verbose = TRUE);
 
     if ( verbose )
-    { printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
-		     PL_FUNCTOR_CHARS, "start", 3,
-		       PL_BOOL, l,
-		       PL_BOOL, g,
-		       PL_BOOL, t);
+    { char *prefix;
+
+      if ( Serror->position && Serror->position->linepos > 0 )
+	prefix = "\n% ";
+      else
+	prefix = "% ";
+      Sdprintf("%sgrowStacks(%ld, %ld, %ld) ...",
+	       prefix, (long)l, (long)g, (long)t);
     }
 
     SECURE(if ( !scan_global(FALSE) ) sysError("Stack not ok at shift entry"));
@@ -3085,20 +3087,26 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     gsize -= sizeof(word);
 
 #define PrintStackParms(stack, name, newbase, newsize) \
-	{ Sdprintf("%6s: %p ... %p --> %p ... %p\n", \
+	{ void *newmax = addPointer(newbase, newsize); \
+	  Sdprintf("%-6s: %p ... %p --> ", \
 		   name, \
 		   LD->stacks.stack.base, \
-		   LD->stacks.stack.max, \
-		   newbase, \
-		   addPointer(newbase, newsize)); \
+		   LD->stacks.stack.max); \
+	  if ( LD->stacks.stack.base == newbase && \
+	       (void*)LD->stacks.stack.max == newmax ) \
+	  { Sdprintf("(no change)\n"); \
+	  } else \
+	  { Sdprintf("%p ... %p\n", newbase, newmax); \
+	  } \
 	}
 
-
-    DEBUG(1, { Sputchar('\n');
-	       PrintStackParms(global, "global", gb, gsize);
-	       PrintStackParms(local, "local", lb, lsize);
-	       PrintStackParms(trail, "trail", tb, tsize);
-	     });
+    if ( verbose )
+    { DEBUG(0, { Sputchar('\n');
+		 PrintStackParms(global, "global", gb, gsize);
+		 PrintStackParms(local, "local", lb, lsize);
+		 PrintStackParms(trail, "trail", tb, tsize);
+	       });
+    }
 
     DEBUG(1, Sdprintf("Updating stacks ..."));
     update_stacks(fr, ch, PC, lb, gb, tb);
@@ -3117,13 +3125,8 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	     trap_gdb();
 	   });
     if ( verbose )
-    { printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
-		     PL_FUNCTOR_CHARS, "done", 4,
-		       PL_DOUBLE, (double)time,
-		       PL_INTPTR, lsize,
-		       PL_INTPTR, gsize,
-		       PL_INTPTR, tsize);
+    { Sdprintf("l+g+t = %lld+%lld+%lld (%2f sec)\n",
+	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize);
     }
   }
 
@@ -3132,7 +3135,8 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   leaveGC();
 
   if ( fatal )
-  { DEBUG(1, Sdprintf("Out of %s stack due to failed rellocation\n", ((Stack)fatal)->name));
+  { DEBUG(1, Sdprintf("Out of %s stack due to failed rellocation\n",
+		      ((Stack)fatal)->name));
     return outOfStack(fatal, STACK_OVERFLOW_THROW);
   }
 
