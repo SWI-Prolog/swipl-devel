@@ -1205,14 +1205,13 @@ request(Fd, [unknown(What)|Header]) -->
 	;   Header = ""
 	}.
 
-method(get) -->
-	"GET", !.
-method(put) -->
-	"PUT", !.
-method(head) -->
-	"HEAD", !.
-method(post) -->
-	"POST", !.
+method(get)     --> "GET", !.
+method(put)     --> "PUT", !.
+method(head)    --> "HEAD", !.
+method(post)    --> "POST", !.
+method(delete)  --> "DELETE", !.
+method(options) --> "OPTIONS", !.
+method(trace)   --> "TRACE", !.
 
 request_header(_, []) -->		% Old-style non-version header
 	blanks,
