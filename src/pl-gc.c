@@ -179,6 +179,10 @@ forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 
+#ifdef O_SHIFT_STACKS
+static int		shiftTightStacks(LocalFrame fr, Choice ch);
+#endif
+
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
@@ -2048,8 +2052,6 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
 		*             MAIN              *
 		*********************************/
 
-#if O_DYNAMIC_STACKS
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If s == NULL, consider all stacks
 
@@ -2070,7 +2072,11 @@ considerGarbageCollect(Stack s)
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
+#ifdef O_SHIFT_STACKS
+	size_t limit = sizeStackP(s);	/* amount we want to grow to */
+#else
 	size_t limit = limitStackP(s);	/* amount we can grow to */
+#endif
 	size_t space = limit - used;
 
 	if ( LD->gc.inferences == LD->statistics.inferences )
@@ -2092,11 +2098,22 @@ considerGarbageCollect(Stack s)
 		 { Sdprintf("%s overflow: Posted garbage collect request\n",
 			    s->name);
 		 });
+      } else
+      {
+#ifdef O_SHIFT_STACKS
+	if ( s == (Stack)&LD->stacks.local )
+	{ if ( roomStackP(s) < s->min_free )
+	    PL_raise(SIG_LSHIFT);
+	}
+	DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
+		 { Sdprintf("%s low: Posted stack-shift request\n",
+			    s->name);
+		 });
+#endif
       }
     }
   }
 }
-#endif /* O_DYNAMIC_STACKS */
 
 
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
@@ -2537,6 +2554,10 @@ garbageCollect(LocalFrame fr, Choice ch)
 #endif
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
+
+#ifdef O_SHIFT_STACKS
+  shiftTightStacks(fr, ch);
+#endif
 }
 
 word
@@ -2806,10 +2827,11 @@ This function should be called *after*  the  stacks have been relocated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define updateStackHeader(name, offset) \
-	{ LD->stacks.name.base  = addPointer(LD->stacks.name.base,  offset); \
-	  LD->stacks.name.top   = addPointer(LD->stacks.name.top,   offset); \
-	  LD->stacks.name.max   = addPointer(LD->stacks.name.max,   offset); \
-	}
+  { LD->stacks.name.base    = addPointer(LD->stacks.name.base,    offset); \
+    LD->stacks.name.top     = addPointer(LD->stacks.name.top,     offset); \
+    LD->stacks.name.max     = addPointer(LD->stacks.name.max,     offset); \
+    LD->stacks.name.trigger = addPointer(LD->stacks.name.trigger, offset); \
+  }
 
 
 static void
@@ -2959,7 +2981,7 @@ the local, global and trail-stacks. Non-0 versions   ask the stack to be
 modified. Positive values enlarge the stack to the next size that has at
 least the specified value free space (i.e. min-free).
 
-Negative values cause the stack to shrink to the value nearest above the
+GROW_TRIM cause the stack to  shrink  to   the  value  nearest above the
 current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -3145,6 +3167,29 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 		      ((Stack)fatal)->name));
     return outOfStack(fatal, STACK_OVERFLOW_THROW);
   }
+
+  return TRUE;
+}
+
+
+static size_t
+tight(Stack s)
+{ if ( roomStackP(s) < s->min_free )
+    return 1;
+
+  return 0;
+}
+
+
+static int
+shiftTightStacks(LocalFrame fr, Choice ch)
+{ GET_LD
+  size_t l = tight((Stack)&LD->stacks.local);
+  size_t g = tight((Stack)&LD->stacks.global);
+  size_t t = tight((Stack)&LD->stacks.trail);
+
+  if ( (l|g|t) )
+    return growStacks(fr, ch, NULL, l, g, t);
 
   return TRUE;
 }

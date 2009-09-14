@@ -1607,7 +1607,9 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
-
+#ifdef O_SHIFT_STACKS
+#define SIG_LSHIFT	  (SIG_PROLOG_OFFSET+4)
+#endif
 
 		 /*******************************
 		 *	      EVENTS		*
@@ -1640,6 +1642,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #ifdef O_SHIFT_STACKS
 #define STACK_SHIFT_EXTRA(type) \
+	  type		trigger;	/* Trigger if above this pointer */ \
 	  size_t	min_free;	/* Minimum amount of free space */
 #else
 #define STACK_SHIFT_EXTRA(type)
@@ -1708,6 +1711,11 @@ typedef struct
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
 #define limitStackP(s) ((s)->size_limit)
 #define narrowStackP(s) (roomStackP(s) < (s)->minfree)
+#ifdef O_SHIFT_STACKS
+#define triggerStackP(s) ((char *)(s)->trigger - (char *)(s)->top)
+#else
+#define triggerStackP(s) roomStack(s)
+#endif
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
@@ -1715,6 +1723,7 @@ typedef struct
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
 #define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
+#define triggerStack(name) triggerStackP(&LD->stacks.name)
 
 #define GROW_TRIM ((size_t)-1)
 
@@ -1725,23 +1734,21 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
-#define ensureRoomStack(s, n) ensure_room_stack((Stack)&LD->stacks.s, (n))
 
-#if O_DYNAMIC_STACKS
 #ifdef O_SEGV_HANDLING
+
 #define requireStack(s, n)
-#else
+
+#else /*O_SEGV_HANDLING*/
+
+#define ensureRoomStack(s, n) \
+	ensure_room_stack((Stack)&LD->stacks.s, (n))
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (size_t)(n) ) \
+	{ if ( triggerStack(s) < (size_t)(n) ) \
  	    ensureRoomStack(s, n); \
 	}
+
 #endif /*O_SEGV_HANDLING*/
-#else
-#define requireStack(s, n) \
-	{ if ( roomStack(s) < (size_t)(n) ) \
- 	    outOfStack((void*)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
-	}
-#endif
 
 
 		 /*******************************

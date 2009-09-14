@@ -624,6 +624,15 @@ gc_handler(int sig)
 }
 
 
+#ifdef SIG_LSHIFT
+static void
+lshift_handler(int sig)
+{ growStacks(NULL, NULL, NULL,
+	     1, 0, 0);
+}
+#endif
+
+
 static void
 initSignals(void)
 { struct signame *sn = signames;
@@ -641,6 +650,9 @@ initSignals(void)
 
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
+#ifdef SIG_LSHIFT
+  PL_signal(SIG_LSHIFT|PL_SIGSYNC, lshift_handler);
+#endif
 
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
@@ -1096,6 +1108,15 @@ emptyStacks()
   LD->mark_bar          = NO_MARK_BAR;
 }
 
+
+static size_t size_alignment;	/* Stack sizes must be aligned to this */
+
+static size_t
+align_size(size_t x)
+{ return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
+}
+
+
 #if O_DYNAMIC_STACKS
 
 static void init_stack(Stack s, const char *name,
@@ -1152,13 +1173,6 @@ todays Unix systems or VirtualAlloc() and friends in Win32.
 #ifndef __WINDOWS__
 extern int errno;
 #endif /*__WINDOWS__*/
-
-static int size_alignment;	/* Stack sizes must be aligned to this */
-
-static size_t
-align_size(size_t x)
-{ return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
-}
 
 #ifdef MMAP_STACK
 #include <sys/mman.h>
@@ -1290,7 +1304,7 @@ ensure_room_stack(Stack s, size_t bytes)
 
 
 static void
-unmap(Stack s)
+trim_stack(Stack s)
 { void *min  = addPointer(s->base, s->size_min);
   void *top  = (s->top > min ? s->top : min);
   void *addr = (void *)align_size((size_t)top + size_alignment);
@@ -1510,7 +1524,7 @@ ensure_room_stack(Stack s, size_t bytes)
 #endif
 
 static void
-unmap(Stack s)
+trim_stack(Stack s)
 { void *min  = addPointer(s->base, s->size_min);
   void *top  = (s->top > min ? s->top : min);
   void *addr = (void *)align_size((size_t)top + size_alignment);
@@ -1753,13 +1767,13 @@ gcPolicy(Stack s, int policy)
 Malloc/realloc/free based stack allocation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
 static void
 init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree)
 { s->name 	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->max	= addPointer(s->base, size);
+  s->trigger    = addPointer(s->base, size_alignment); /* or min_free? */
   s->min_free	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
@@ -1774,6 +1788,8 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   size_t minlocal    = 4*SIZEOF_VOIDP K;
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
+
+  size_alignment = 32 K;
 
 #if O_SHIFT_STACKS
   size_t itrail  = nextStackSizeAbove(mintrail);
@@ -1833,13 +1849,41 @@ resetStacks()
 }
 
 
+static void
+trim_stack(Stack s)
+{ void *top  = s->top;
+  void *addr = (void *)align_size((size_t)top + size_alignment);
+
+  if ( addr < s->max )
+    s->trigger = addr;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Stack-expander version of  ensure_room_stack().  The   main  role  is to
+trigger shift and GC requests. If we are really at the end of our story,
+we can only expand the trail stack at any point in time.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ensure_room_stack(Stack s, size_t bytes)
-{ if ( s == (Stack)&LD->stacks.trail )
+{ if ( s->trigger < s->max )
+  { s->trigger += size_alignment;
+    if ( s->trigger > s->max )
+      s->trigger = s->max;
+
+    considerGarbageCollect(s);
+
+    return;
+  }
+
+  if ( s == (Stack)&LD->stacks.trail )
   { if ( growStacks(NULL, NULL, NULL, 0, 0, bytes) )
       return;
 
     outOfStack(s, STACK_OVERFLOW_FATAL);
+  } else
+  { outOfStack(s, STACK_OVERFLOW_FATAL);
   }
 }
 
@@ -1867,14 +1911,12 @@ trimStacks(ARG1_LD)
 #ifdef O_SHIFT_STACKS
   if ( !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
     return;
-#else
-#ifdef O_DYNAMIC_STACKS
-  unmap((Stack) &LD->stacks.local);
-  unmap((Stack) &LD->stacks.global);
-  unmap((Stack) &LD->stacks.trail);
-  unmap((Stack) &LD->stacks.argument);
-#endif /*O_DYNAMIC_STACKS*/
-#endif /*O_SHIFT_STACKS*/
+#endif
+
+  trim_stack((Stack) &LD->stacks.local);
+  trim_stack((Stack) &LD->stacks.global);
+  trim_stack((Stack) &LD->stacks.trail);
+  trim_stack((Stack) &LD->stacks.argument);
 
 #ifdef SECURE_GC
   { Word p;				/* clear the stacks */
