@@ -2727,17 +2727,18 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
-  { DEBUG(1, Sdprintf("Updating choicepoint %s for %s ... ",
-		      chp_chars(ch),
-		      predicateName(ch->frame->predicate)));
-
-    if ( ls )
+  { if ( ls )
     { update_pointer(&ch->frame, ls);
       update_pointer(&ch->parent, ls);
       if ( ch->type == CHP_JUMP )
 	update_local_pointer(&ch->value.PC, ls);
     }
     update_mark(&ch->mark, gs, ts);
+
+    DEBUG(1, Sdprintf("Updated choicepoint %s for %s ... ",
+		      chp_chars(ch),
+		      predicateName(ch->frame->predicate)));
+
     update_environments(ch->frame,
 		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
 			ls, gs, ts);
