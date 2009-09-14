@@ -1644,7 +1644,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
 	  size_t	size_limit;	/* Max size the stack can grow to */\
-	  size_t	minfree;	/* Minimum amount of free space */  \
+	  size_t	min_free;	/* Minimum amount of free space */  \
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \

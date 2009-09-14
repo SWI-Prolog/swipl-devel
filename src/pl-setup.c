@@ -1758,7 +1758,7 @@ init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree)
   s->top	= s->base;
   s->size_limit	= limit;
   s->max	= addPointer(s->base, size);
-  s->minfree	= minfree;
+  s->min_free	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
 		    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
@@ -1980,7 +1980,7 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
     if ( k == ATOM_min_free )
     {
 #ifdef O_SHIFT_STACKS
-      return PL_get_size_ex(value, &stack->minfree);
+      return PL_get_size_ex(value, &stack->min_free);
 #else
       succeed;
 #endif

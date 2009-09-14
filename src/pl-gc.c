@@ -2932,7 +2932,7 @@ nextStackSize(Stack s, size_t minfree)
   size_t limit = limitStackP(s);
 
   if ( minfree == 0 || minfree == GROW_TRIM )
-    size = nextStackSizeAbove(usedStackP(s) + s->minfree);
+    size = nextStackSizeAbove(usedStackP(s) + s->min_free);
   else
     size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
