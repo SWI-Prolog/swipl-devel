@@ -2939,12 +2939,15 @@ nextStackSize(Stack s, size_t minfree)
 { size_t size;
 
   if ( minfree == GROW_TRIM )
-    size = nextStackSizeAbove(usedStackP(s) + s->min_free);
-  else
-    size = nextStackSizeAbove(sizeStackP(s) + minfree);
+  { size = nextStackSizeAbove(usedStackP(s) + s->min_free);
+    if ( size > sizeStackP(s) )
+      size = sizeStackP(s);
+  } else
+  { size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
-  if ( size >= s->size_limit + s->size_limit/2 )
-    size = 0;				/* passed limit */
+    if ( size >= s->size_limit + s->size_limit/2 )
+      size = 0;				/* passed limit */
+  }
 
   return size;
 }
