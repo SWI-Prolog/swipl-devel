@@ -1638,15 +1638,28 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
+#ifdef O_SHIFT_STACKS
+#define STACK_SHIFT_EXTRA(type) \
+	  size_t	min_free;	/* Minimum amount of free space */
+#else
+#define STACK_SHIFT_EXTRA(type)
+#endif
+#ifdef O_DYNAMIC_STACKS
+#define STACK_DYN_EXTRA(type) \
+	  size_t	size_min;	/* Do not shrink below this size */
+#else
+#define STACK_DYN_EXTRA(type)
+#endif
+
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
 	  type		max;		/* allocated maximum */		    \
-	  size_t	size_min;	/* Do not shrink below this size */ \
 	  size_t	size_limit;	/* Max size the stack can grow to */\
-	  size_t	min_free;	/* Minimum amount of free space */  \
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
+	  STACK_SHIFT_EXTRA(type)	/* Implementation-specific fields */\
+	  STACK_DYN_EXTRA(type)		/* Implementation-specific fields */\
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
