@@ -2657,9 +2657,11 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
       if ( fr->predicate == PROCEDURE_dcall1->definition )
-      { update_pointer(&fr->clause, ls);
+      { assert(onStackArea(local, fr->clause));
+	update_pointer(&fr->clause, ls);
 	update_pointer(&fr->clause->clause, ls);
-	update_pointer(&fr->clause->clause->codes, ls);
+      } else
+      { assert(!onStackArea(local, fr->clause));
       }
 
 					/* update saved BFR's from C_IFTHEN */
