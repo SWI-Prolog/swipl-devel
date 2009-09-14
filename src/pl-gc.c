@@ -2943,8 +2943,6 @@ nextStackSize(Stack s, size_t minfree)
   else
     size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
-  if ( size >= s->size_limit )
-    outOfStack(s, STACK_OVERFLOW_SIGNAL);
   if ( size >= s->size_limit + s->size_limit/2 )
     size = 0;				/* passed limit */
 
