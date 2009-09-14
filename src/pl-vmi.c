@@ -3386,7 +3386,6 @@ b_throw:
     exception_term		   = 0;
 
     PC = findCatchExit();
-#if O_DYNAMIC_STACKS
     considerGarbageCollect((Stack)NULL);
 
     if ( LD->trim_stack_requested )
@@ -3395,7 +3394,6 @@ b_throw:
       trimStacks(PASS_LD1);
       lTop = lsave;
     }
-#endif
 
     VMI_GOTO(I_USERCALL0);
   } else
@@ -3417,9 +3415,7 @@ b_throw:
       *valTermRef(exception_printed) = 0; /* consider it handled */
     }
 
-#if O_DYNAMIC_STACKS
     considerGarbageCollect((Stack)NULL);
-#endif
     if ( LD->trim_stack_requested )
     { trimStacks(PASS_LD1);
       QF = QueryFromQid(qid);		/* may be shifted: recompute */

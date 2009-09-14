@@ -1872,12 +1872,13 @@ ensure_room_stack(Stack s, size_t bytes)
     if ( s->trigger > s->max )
       s->trigger = s->max;
 
+    if ( usedStackP(s) > limitStackP(s) )
+      outOfStack(s, STACK_OVERFLOW_SIGNAL);
+
     if ( s->gc )
     { considerGarbageCollect(s);
     } else if ( s == (Stack)&LD->stacks.local )
-    { if ( usedStackP(s) > limitStackP(s) )
-	outOfStack(s, STACK_OVERFLOW_SIGNAL);
-      else if ( roomStackP(s) <= s->min_free )
+    { if ( roomStackP(s) <= s->min_free )
 	PL_raise(SIG_LSHIFT);
 
       DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
