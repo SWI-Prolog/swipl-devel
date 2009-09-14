@@ -24,3 +24,6 @@
 	- Non-shiftable code
 	    - All code using Word and doing allocation!
 
+* growStacks(): provide argument telling whether the caller will check the
+  return code (raise vs. throw exception).  Try to make all/most of them
+  using raise!
