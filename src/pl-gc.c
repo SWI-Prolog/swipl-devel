@@ -2130,15 +2130,12 @@ scan_global(int marked)
     cells++;
 
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { warning("!Illegal cell in global stack (up) at %p (*= %p)",
-	      current, *current);
-      if ( isAtom(*current) )
-	warning("!%p is atom %s", current, stringAtom(*current));
-      if ( isTerm(*current) )
-	warning("!%p is term %s/%d",
-		current,
-		stringAtom(nameFunctor(functorTerm(*current))),
-		arityTerm(*current));
+    { char pbuf[256];
+      char vbuf[256];
+
+      Sdprintf("!Illegal cell in global stack (up) at %s (*= %s)\n",
+	       print_adr(current, pbuf), print_val(*current, vbuf));
+
       if ( ++errors > 10 )
       { Sdprintf("...\n");
         break;
@@ -2162,8 +2159,8 @@ scan_global(int marked)
   { cells--;
     current -= offset_cell(current);
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { warning("!Illegal cell in global stack (down) at %p (*= %p)",
-	      current, *current);
+    { Sdprintf("!Illegal cell in global stack (down) at %p (*= %p)\n",
+	       current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
         break;
