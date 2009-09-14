@@ -1155,8 +1155,8 @@ extern int errno;
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 
-static intptr_t
-align_size(intptr_t x)
+static size_t
+align_size(size_t x)
 { return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
 }
 
@@ -1291,11 +1291,11 @@ ensure_room_stack(Stack s, size_t bytes)
 
 static void
 unmap(Stack s)
-{ caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size((intptr_t) top + size_alignment);
+{ void *top  = (s->top > s->min ? s->top : s->min);
+  void *addr = (void *)align_size((size_t)top + size_alignment);
 
   if ( addr < s->max )
-  { intptr_t len = (char *)s->max - (char *)addr;
+  { size_t len = (char *)s->max - (char *)addr;
 
 #ifdef MAP_FIXED
 #ifndef MMAP_OVERRIDES
@@ -1340,7 +1340,10 @@ fixed_bases(void **gbase, void**tbase)
 
 static int
 allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ caddress lbase, gbase=NULL, tbase=NULL, abase=NULL;
+{ void *lbase;
+  void *gbase = NULL;
+  void *tbase = NULL;
+  void *abase = NULL;
   int flags = MAP_FLAGS;
   size_t glsize;
   size_t minglobal   = 4*SIZEOF_VOIDP K;
@@ -1459,17 +1462,17 @@ freeStacks(ARG1_LD)
 
 static void
 mapOrOutOf(Stack s)
-{ uintptr_t incr;
-  intptr_t  newroom;
+{ size_t incr;
+  size_t newroom;
 
   if ( s->top > s->max )
-    incr = ROUND(((uintptr_t)s->top - (uintptr_t)s->max), size_alignment);
+    incr = ROUND(((size_t)s->top - (size_t)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  newroom = (uintptr_t)s->limit - ((uintptr_t)s->max + incr);
-  if ( newroom < 0 )
+  if ( sizeStackP(s) + incr > limitStackP(s) )
     outOfStack(s, STACK_OVERFLOW_FATAL);
+  newroom = limitStackP(s) - (sizeStackP(s) + incr);
 
   if ( VirtualAlloc(s->max, incr,
 		    MEM_COMMIT, PAGE_READWRITE ) != s->max )
@@ -1507,11 +1510,13 @@ ensure_room_stack(Stack s, size_t bytes)
 
 static void
 unmap(Stack s)
-{ caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size((intptr_t) top + size_alignment);
+{ void *top  = (s->top > s->min ? s->top : s->min);
+  void *addr = (void *)align_size((size_t)top + size_alignment);
 
   if ( addr < s->max )
-  { if ( !VirtualFree(addr, (uintptr_t)s->max - (uintptr_t)addr, MEM_DECOMMIT) )
+  { size_t len = (char *)s->max - (char *)addr;
+
+    if ( !VirtualFree(addr, len, MEM_DECOMMIT) )
       fatalError("Failed to unmap memory: %d", GetLastError());
     s->max = addr;
   }
@@ -1522,7 +1527,10 @@ unmap(Stack s)
 
 static int
 allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ caddress lbase, gbase, tbase, abase;
+{ void *lbase;
+  void *gbase;
+  void *tbase;
+  void *abase;
   size_t glsize;
   SYSTEM_INFO info;
   size_t minglobal   = 4*SIZEOF_VOIDP K;
