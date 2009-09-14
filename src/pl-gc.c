@@ -2069,9 +2069,9 @@ considerGarbageCollect(Stack s)
       considerGarbageCollect((Stack)&LD->stacks.trail);
     } else
     { if ( s->gc )
-      { intptr_t used  = (char *)s->top   - (char *)s->base;
-	intptr_t free  = (char *)s->limit - (char *)s->top;
-	intptr_t limit = (char *)s->limit - (char *)s->base;
+      { size_t used  = usedStackP(s);	/* amount in actual use */
+	size_t limit = limitStackP(s);	/* amount we can grow to */
+	size_t space = limit - used;
 
 	if ( LD->gc.inferences == LD->statistics.inferences )
 	{ s->gced_size = used;		/* (*) */
@@ -2079,11 +2079,12 @@ considerGarbageCollect(Stack s)
 	}
 
 	if ( used > s->factor*s->gced_size + s->small )
-	{ DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
-			    s->name, s->factor, s->gced_size, s->small));
+	{ DEBUG(2,
+		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
+			 s->name, s->factor, s->gced_size, s->small));
 	  PL_raise(SIG_GC);
-	} else if ( free < limit/8 && used > s->gced_size + limit/32 )
-	{ DEBUG(2, Sdprintf("GC: request on low free\n"));
+	} else if ( space < limit/8 && used > s->gced_size + limit/32 )
+	{ DEBUG(2, Sdprintf("GC: request on low space\n"));
 	  PL_raise(SIG_GC);
 	}
 
@@ -2806,7 +2807,6 @@ This function should be called *after*  the  stacks have been relocated.
 	{ LD->stacks.name.base  = addPointer(LD->stacks.name.base,  offset); \
 	  LD->stacks.name.top   = addPointer(LD->stacks.name.top,   offset); \
 	  LD->stacks.name.max   = addPointer(LD->stacks.name.max,   offset); \
-	  LD->stacks.name.limit = addPointer(LD->stacks.name.limit, offset); \
 	}
 
 

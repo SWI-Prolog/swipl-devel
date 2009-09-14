@@ -239,6 +239,7 @@ COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
 COMMON(int) 		PL_get_long_ex(term_t t, long *i);
 COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
 COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
+COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
 COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
 COMMON(int) 		PL_get_float_ex(term_t t, double *f);
 COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);

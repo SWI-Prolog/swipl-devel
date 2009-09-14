@@ -903,7 +903,7 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 #define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
 #define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-#define isClause(c)	((inCore(c) || onStackArea(local, (c))) && \
+#define isClause(c)	((inCore(c) || onStack(local, (c))) && \
 			 inCore(((Clause)(c))->procedure) && \
 			 isProcedure(((Clause)(c))->procedure))
 #define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
@@ -1643,14 +1643,14 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		top;		/* current top of the stack */      \
 	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
-	  type		limit;		/* top the the range (base+limit) */\
-	  intptr_t	minfree;	/* minimum amount of free space */  \
+	  size_t	size_limit;	/* Max size the stack can grow to */\
+	  size_t	minfree;	/* Minimum amount of free space */  \
+	  size_t	gced_size;	/* size after last GC */	    \
+	  size_t	small;		/* Do not GC below this size */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  intptr_t	gced_size;	/* size after last GC */	    \
-	  intptr_t	small;		/* Do not GC below this size */	    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
-	  char		*name;		/* Symbolic name of the stack */    \
+	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
 struct stack STACK(caddress);		/* Anonymous stack */
@@ -1686,20 +1686,14 @@ typedef struct
 #define onStack(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.top)
-#ifdef O_SHIFT_STACKS
 #define onStackArea(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.max)
-#else
-#define onStackArea(name, addr) \
-	((char *)(addr) >= (char *)LD->stacks.name.base && \
-	 (char *)(addr) <  (char *)LD->stacks.name.limit)
-#endif
 #define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
 #define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
 #define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
-#define spaceStackP(s) ((char *)(s)->limit - (char *)(s)->top)
-#define limitStackP(s) ((char *)(s)->limit - (char *)(s)->base)
+#define spaceStackP(s) (limitStackP(s)-usedStackP(s))
+#define limitStackP(s) ((s)->size_limit)
 #define narrowStackP(s) (roomStackP(s) < (s)->minfree)
 
 #define usedStack(name) usedStackP(&LD->stacks.name)

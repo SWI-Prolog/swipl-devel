@@ -1098,8 +1098,8 @@ emptyStacks()
 
 #if O_DYNAMIC_STACKS
 
-static void init_stack(Stack s, char *name,
-		       void* base, intptr_t limit, intptr_t minsize);
+static void init_stack(Stack s, const char *name,
+		       void* base, size_t limit, size_t minsize);
 static void gcPolicy(Stack s, int policy);
 
 #ifdef O_SEGV_HANDLING
@@ -1242,17 +1242,17 @@ get_map_fd()
 
 static void
 mapOrOutOf(Stack s)
-{ uintptr_t incr;
-  intptr_t  newroom;
+{ size_t incr;
+  size_t newroom;
 
   if ( s->top > s->max )
-    incr = ROUND(((uintptr_t)s->top - (uintptr_t)s->max), size_alignment);
+    incr = ROUND(((size_t)s->top - (size_t)s->max), size_alignment);
   else
     incr = size_alignment;
 
-  newroom = (uintptr_t)s->limit - ((uintptr_t)s->max + incr);
-  if ( newroom < 0 )
+  if ( sizeStackP(s) + incr > limitStackP(s) )
     outOfStack(s, STACK_OVERFLOW_FATAL);
+  newroom = limitStackP(s) - (sizeStackP(s) + incr);
 
 #ifndef SGIMMAP
   if ( mprotect(s->max, incr, PROT_READ|PROT_WRITE) < 0 )
@@ -1689,16 +1689,16 @@ _PL_segv_handler(int sig)
 #endif /*O_SEGV_HANDLING*/
 
 static void
-init_stack(Stack s, char *name, void *base, intptr_t limit, intptr_t minsize)
+init_stack(Stack s, const char *name, void *base, size_t limit, size_t minsize)
 { s->name       = name;
   s->base       = s->max = s->top = base;
-  s->limit	= addPointer(base, limit);
+  s->size_limit	= limit;
   s->min        = addPointer(base, minsize);
   s->gced_size  = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
 
-  DEBUG(1, Sdprintf("%-8s stack from 0x%08x to 0x%08x\n",
-		    s->name, (uintptr_t)s->base, (uintptr_t)s->limit));
+  DEBUG(1, Sdprintf("%-8s stack from %p to %p\n",
+		    s->name, s->base, s->base + s->size_limit));
 
   while(s->max < s->min)
     mapOrOutOf(s);
@@ -1748,7 +1748,7 @@ static void
 init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree)
 { s->name 	= name;
   s->top	= s->base;
-  s->limit	= addPointer(s->base, limit);
+  s->size_limit	= limit;
   s->max	= addPointer(s->base, size);
   s->minfree	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
@@ -1966,13 +1966,13 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 
   if ( PL_get_atom_ex(prop, &k) )
   { if ( k == ATOM_low )
-      return PL_get_intptr_ex(value, &stack->small);
+      return PL_get_size_ex(value, &stack->small);
     if ( k == ATOM_factor )
       return PL_get_integer_ex(value, &stack->factor);
     if ( k == ATOM_min_free )
     {
 #ifdef O_SHIFT_STACKS
-      return PL_get_intptr_ex(value, &stack->minfree);
+      return PL_get_size_ex(value, &stack->minfree);
 #else
       succeed;
 #endif
