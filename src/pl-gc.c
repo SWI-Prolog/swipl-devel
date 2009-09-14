@@ -2098,18 +2098,6 @@ considerGarbageCollect(Stack s)
 		 { Sdprintf("%s overflow: Posted garbage collect request\n",
 			    s->name);
 		 });
-      } else
-      {
-#ifdef O_SHIFT_STACKS
-	if ( s == (Stack)&LD->stacks.local )
-	{ if ( roomStackP(s) < s->min_free )
-	    PL_raise(SIG_LSHIFT);
-	}
-	DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
-		 { Sdprintf("%s low: Posted stack-shift request\n",
-			    s->name);
-		 });
-#endif
       }
     }
   }
@@ -2732,7 +2720,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
     }
     update_mark(&ch->mark, gs, ts);
 
-    DEBUG(1, Sdprintf("Updated choicepoint %s for %s ... ",
+    DEBUG(3, Sdprintf("Updated %s for %s ... ",
 		      chp_chars(ch),
 		      predicateName(ch->frame->predicate)));
 
@@ -2740,7 +2728,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
 			ls, gs, ts);
     choice_count++;
-    DEBUG(1, Sdprintf("ok\n"));
+    DEBUG(3, Sdprintf("ok\n"));
   }
 }
 
@@ -2949,25 +2937,16 @@ nextStackSizeAbove(size_t n)
 static size_t
 nextStackSize(Stack s, size_t minfree)
 { size_t size;
-  size_t limit = limitStackP(s);
 
-  if ( minfree == 0 || minfree == GROW_TRIM )
+  if ( minfree == GROW_TRIM )
     size = nextStackSizeAbove(usedStackP(s) + s->min_free);
   else
     size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
-  if ( size == 0 )
-  { outOfStack(s, STACK_OVERFLOW_THROW);
-    return 0;
-  }
-
-  if ( size > limit )
-  { if ( size > limit+limit/2 )
-    { outOfStack(s, STACK_OVERFLOW_THROW); /* _RAISE? */
-      return 0;
-    } else
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
-  }
+  if ( size >= s->size_limit )
+    outOfStack(s, STACK_OVERFLOW_SIGNAL);
+  if ( size >= s->size_limit + s->size_limit/2 )
+    size = 0;				/* passed limit */
 
   return size;
 }
@@ -3000,7 +2979,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 
   if ( t )
   { if ( !(tsize = nextStackSize((Stack) &LD->stacks.trail, t)) )
-      fail;
+      return outOfStack(&LD->stacks.trail, STACK_OVERFLOW_THROW);
     if ( tsize == sizeStack(trail) )
       t = 0;
   } else
@@ -3009,7 +2988,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 
   if ( l )
   { if ( !(lsize = nextStackSize((Stack) &LD->stacks.local, l)) )
-      fail;
+      return outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
     if ( lsize == sizeStack(local) )
       l = 0;
   } else
@@ -3023,7 +3002,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
       g = 0;
     gBase++;
     if ( !gsize )
-      fail;
+      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
   } else
   { gsize = sizeStack(global);
   }

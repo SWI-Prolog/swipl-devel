@@ -1789,7 +1789,7 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
 
-  size_alignment = 32 K;
+  size_alignment = 8 K;			/* must be smaller than minfree */
 
 #if O_SHIFT_STACKS
   size_t itrail  = nextStackSizeAbove(mintrail);
@@ -1872,7 +1872,19 @@ ensure_room_stack(Stack s, size_t bytes)
     if ( s->trigger > s->max )
       s->trigger = s->max;
 
-    considerGarbageCollect(s);
+    if ( s->gc )
+    { considerGarbageCollect(s);
+    } else if ( s == (Stack)&LD->stacks.local )
+    { if ( usedStackP(s) > limitStackP(s) )
+	outOfStack(s, STACK_OVERFLOW_SIGNAL);
+      else if ( roomStackP(s) <= s->min_free )
+	PL_raise(SIG_LSHIFT);
+
+      DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
+	    { Sdprintf("%s low: Posted stack-shift request\n",
+		       s->name);
+	    });
+    }
 
     return;
   }
