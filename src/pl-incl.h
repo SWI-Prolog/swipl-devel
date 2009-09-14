@@ -1641,8 +1641,8 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
-	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
+	  size_t	size_min;	/* Do not shrink below this size */ \
 	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	min_free;	/* Minimum amount of free space */  \
 	  size_t	gced_size;	/* size after last GC */	    \

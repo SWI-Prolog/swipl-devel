@@ -1291,7 +1291,8 @@ ensure_room_stack(Stack s, size_t bytes)
 
 static void
 unmap(Stack s)
-{ void *top  = (s->top > s->min ? s->top : s->min);
+{ void *min  = addPointer(s->base, s->size_min);
+  void *top  = (s->top > min ? s->top : min);
   void *addr = (void *)align_size((size_t)top + size_alignment);
 
   if ( addr < s->max )
@@ -1510,7 +1511,8 @@ ensure_room_stack(Stack s, size_t bytes)
 
 static void
 unmap(Stack s)
-{ void *top  = (s->top > s->min ? s->top : s->min);
+{ void *min  = addPointer(s->base, s->size_min);
+  void *top  = (s->top > min ? s->top : min);
   void *addr = (void *)align_size((size_t)top + size_alignment);
 
   if ( addr < s->max )
@@ -1701,14 +1703,14 @@ init_stack(Stack s, const char *name, void *base, size_t limit, size_t minsize)
 { s->name       = name;
   s->base       = s->max = s->top = base;
   s->size_limit	= limit;
-  s->min        = addPointer(base, minsize);
+  s->size_min   = minsize;
   s->gced_size  = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
 
   DEBUG(1, Sdprintf("%-8s stack from %p to %p\n",
 		    s->name, s->base, s->base + s->size_limit));
 
-  while(s->max < s->min)
+  while(sizeStackP(s) < minsize)
     mapOrOutOf(s);
 }
 
