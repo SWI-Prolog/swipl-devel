@@ -103,6 +103,7 @@ mime_extension(kmz,  application/'vnd.google-earth.kmz').
 
 					% Flash
 mime_extension(swf,  application/'x-shockwave-flash').
+mime_extension(flv,  video/'x-flv').
 					% MP3
 mime_extension(mp3,  audio/mpeg).
 					% Downloads
