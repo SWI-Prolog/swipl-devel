@@ -46,7 +46,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static   int allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument);
+static   int allocStacks(size_t local, size_t global, size_t trail, size_t argument);
 forwards void initSignals(void);
 
 #undef I
@@ -999,10 +999,10 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 		 *******************************/
 
 static void
-enforce_limit(intptr_t *size, intptr_t maxarea, const char *name)
+enforce_limit(size_t *size, size_t maxarea, const char *name)
 { if ( *size == 0 )
     *size = maxarea;
-  else if ( *size > (intptr_t)(MAXTAGGEDPTR+1) )
+  else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
   { if ( *size != LONG_MAX )		/* user demanded maximum */
       Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
 	       name, (MAXTAGGEDPTR+1) / (1 MB));
@@ -1023,8 +1023,8 @@ Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-initPrologStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
-{ uintptr_t maxarea;
+initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
+{ size_t maxarea;
 
   maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
   if ( maxarea > 1024 MB )		/* 64-bit machines */
@@ -1339,14 +1339,14 @@ fixed_bases(void **gbase, void**tbase)
 #endif /*SECURE_GC*/
 
 static int
-allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
+allocStacks(size_t local, size_t global, size_t trail, size_t argument)
 { caddress lbase, gbase=NULL, tbase=NULL, abase=NULL;
   int flags = MAP_FLAGS;
-  intptr_t glsize;
-  intptr_t minglobal   = 4*SIZEOF_VOIDP K;
-  intptr_t minlocal    = 2*SIZEOF_VOIDP K;
-  intptr_t mintrail    = 2*SIZEOF_VOIDP K;
-  intptr_t minargument = 1*SIZEOF_VOIDP K;
+  size_t glsize;
+  size_t minglobal   = 4*SIZEOF_VOIDP K;
+  size_t minlocal    = 2*SIZEOF_VOIDP K;
+  size_t mintrail    = 2*SIZEOF_VOIDP K;
+  size_t minargument = 1*SIZEOF_VOIDP K;
 
   if ( !size_alignment )
   { size_alignment = getpagesize();
@@ -1366,10 +1366,10 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   trail    = max(trail,    mintrail + STACK_SIGNAL);
   argument = max(argument, minargument + STACK_SIGNAL);
 
-  local    = (intptr_t) align_size(local);	/* Round up to page boundary */
-  global   = (intptr_t) align_size(global);
-  trail    = (intptr_t) align_size(trail);
-  argument = (intptr_t) align_size(argument);
+  local    = (size_t) align_size(local);	/* Round up to page boundary */
+  global   = (size_t) align_size(global);
+  trail    = (size_t) align_size(trail);
+  argument = (size_t) align_size(argument);
   glsize   = global+local;
 
 #ifdef SECURE_GC
@@ -1426,7 +1426,7 @@ Free stacks for the current Prolog thread
 
 void
 freeStacks(ARG1_LD)
-{ intptr_t tlen, alen, gllen;
+{ size_t tlen, alen, gllen;
 
 #undef LD
 #define LD LOCAL_LD
@@ -1521,14 +1521,14 @@ unmap(Stack s)
 /* Windows VirtualAlloc() version */
 
 static int
-allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
+allocStacks(size_t local, size_t global, size_t trail, size_t argument)
 { caddress lbase, gbase, tbase, abase;
-  intptr_t glsize;
+  size_t glsize;
   SYSTEM_INFO info;
-  intptr_t minglobal   = 4*SIZEOF_VOIDP K;
-  intptr_t minlocal    = 2*SIZEOF_VOIDP K;
-  intptr_t mintrail    = 2*SIZEOF_VOIDP K;
-  intptr_t minargument = 1*SIZEOF_VOIDP K;
+  size_t minglobal   = 4*SIZEOF_VOIDP K;
+  size_t minlocal    = 2*SIZEOF_VOIDP K;
+  size_t mintrail    = 2*SIZEOF_VOIDP K;
+  size_t minargument = 1*SIZEOF_VOIDP K;
 
   if ( !size_alignment )
   { GetSystemInfo(&info);
@@ -1542,10 +1542,10 @@ allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
   trail    = max(trail,    mintrail + STACK_SIGNAL);
   argument = max(argument, minargument + STACK_SIGNAL);
 
-  local    = (intptr_t) align_size(local);	/* Round up to page boundary */
-  global   = (intptr_t) align_size(global);
-  trail    = (intptr_t) align_size(trail);
-  argument = (intptr_t) align_size(argument);
+  local    = (size_t) align_size(local);	/* Round up to page boundary */
+  global   = (size_t) align_size(global);
+  trail    = (size_t) align_size(trail);
+  argument = (size_t) align_size(argument);
   glsize   = global+local;
 
   tbase = VirtualAlloc(NULL, trail,    MEM_RESERVE, PAGE_READWRITE);
@@ -1740,18 +1740,12 @@ gcPolicy(Stack s, int policy)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On systems that do not allow us to get access to the MMU (or that do not
-have an MMU)  the  stacks  have  fixed  size  and  overflow  checks  are
-implemented  in  software.   The stacks are allocated using malloc(). If
-you malloc() does not allow you to get more than 64K bytes in one go you
-better start looking for another Prolog system (IBM-PC  is  an  example:
-why does IBM bring computers on the marked that are 10 years out-of-date
-at the moment of announcement?).
+Malloc/realloc/free based stack allocation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static void
-init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
+init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree)
 { s->name 	= name;
   s->top	= s->base;
   s->limit	= addPointer(s->base, limit);
@@ -1764,27 +1758,21 @@ init_stack(Stack s, char *name, intptr_t size, intptr_t limit, intptr_t minfree)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Malloc'ed version of the stacks. Our initial  stack size is a bit bigger
-than the minimum to avoid a stack-shift right at the start, We must find
-a better way to specify the minimum.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static int
-allocStacks(intptr_t local, intptr_t global, intptr_t trail, intptr_t argument)
-{ intptr_t minglobal   = 25*SIZEOF_VOIDP K;
-  intptr_t minlocal    = 4*SIZEOF_VOIDP K;
-  intptr_t mintrail    = 4*SIZEOF_VOIDP K;
-  intptr_t minargument = 1*SIZEOF_VOIDP K;
+allocStacks(size_t local, size_t global, size_t trail, size_t argument)
+{ size_t minglobal   = 25*SIZEOF_VOIDP K;
+  size_t minlocal    = 4*SIZEOF_VOIDP K;
+  size_t mintrail    = 4*SIZEOF_VOIDP K;
+  size_t minargument = 1*SIZEOF_VOIDP K;
 
 #if O_SHIFT_STACKS
-  intptr_t itrail  = nextStackSizeAbove(mintrail);
-  intptr_t iglobal = nextStackSizeAbove(minglobal);
-  intptr_t ilocal  = nextStackSizeAbove(minlocal);
+  size_t itrail  = nextStackSizeAbove(mintrail);
+  size_t iglobal = nextStackSizeAbove(minglobal);
+  size_t ilocal  = nextStackSizeAbove(minlocal);
 #else
-  intptr_t itrail  = trail;
-  intptr_t iglobal = global;
-  intptr_t ilocal  = local;
+  size_t itrail  = trail;
+  size_t iglobal = global;
+  size_t ilocal  = local;
 #endif
 
   local    = max(local,    minlocal);

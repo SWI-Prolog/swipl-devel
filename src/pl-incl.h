@@ -1725,13 +1725,13 @@ typedef enum
 #define requireStack(s, n)
 #else
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (intptr_t)(n) ) \
+	{ if ( roomStack(s) < (size_t)(n) ) \
  	    ensureRoomStack(s, n); \
 	}
 #endif /*O_SEGV_HANDLING*/
 #else
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (intptr_t)(n) ) \
+	{ if ( roomStack(s) < (size_t)(n) ) \
  	    outOfStack((void*)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
 #endif

@@ -630,10 +630,10 @@ COMMON(void) 		resetSignals(void);
 COMMON(void) 		cleanupSignals(void);
 COMMON(int)		handleSignals(Code PC);
 
-COMMON(int) 		initPrologStacks(intptr_t local,
-				 intptr_t global,
-				 intptr_t trail,
-				 intptr_t argument);
+COMMON(int) 		initPrologStacks(size_t local,
+					 size_t global,
+					 size_t trail,
+					 size_t argument);
 COMMON(void) 		initPrologLocalData(void);
 COMMON(void) 		deallocateStacks(void);
 COMMON(bool) 		restoreStack(Stack s);
