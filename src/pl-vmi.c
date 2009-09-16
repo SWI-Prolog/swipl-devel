@@ -3389,10 +3389,12 @@ b_throw:
     considerGarbageCollect((Stack)NULL);
 
     if ( LD->trim_stack_requested )
-    { LocalFrame lsave = lTop;
+    { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
+      SAVE_REGISTERS(qid);
       trimStacks(PASS_LD1);
-      lTop = lsave;
+      LOAD_REGISTERS(qid);
+      lTop = (LocalFrame)valTermRef(lSafe);
     }
 
     VMI_GOTO(I_USERCALL0);
