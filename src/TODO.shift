@@ -27,3 +27,16 @@
 * growStacks(): provide argument telling whether the caller will check the
   return code (raise vs. throw exception).  Try to make all/most of them
   using raise!
+
+================================================================
+Static analysis of the C-program:
+
+	- cscope: Unable to handle macros
+	- xz: same
+	- gcc -dr + scanning RTL dump makes it easy to find function
+	  calls with line numbers.  Seems hard to get type info.
+	- cli (http://hal.cs.berkeley.edu/cil/) seems capable of compiling
+	  SWI-Prolog.  It can do two things:
+		- Generate C that is easier to interpret
+		- Reason about the program in OCAML
+		- C2AST: http://www.cs.sunysb.edu/~cram/cse637/Notes/README.html
