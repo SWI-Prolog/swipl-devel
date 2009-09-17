@@ -3188,7 +3188,12 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 
 static size_t
 tight(Stack s)
-{ if ( roomStackP(s) < s->min_free )
+{ size_t min_room = s->min_free;
+
+  if ( min_room < sizeStackP(s)/4 )
+    min_room = sizeStackP(s)/4;
+
+  if ( roomStackP(s) < min_room )
     return 1;
 
   return 0;
