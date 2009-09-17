@@ -46,8 +46,10 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static   int allocStacks(size_t local, size_t global, size_t trail, size_t argument);
-forwards void initSignals(void);
+static int allocStacks(size_t local, size_t global, size_t trail,
+		       size_t argument);
+static void initSignals(void);
+static void gcPolicy(Stack s, int policy);
 
 #undef I
 #define I TAGEX_INDIRECT
@@ -1736,26 +1738,6 @@ resetStacks()
 }
 
 
-		/********************************
-		*     STACK TRIMMING & LIMITS   *
-		*********************************/
-
-static void
-gcPolicy(Stack s, int policy)
-{ s->gc = ((s == (Stack) &LD->stacks.global ||
-	    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
-  if ( s->gc )
-  { s->small  = SMALLSTACK;
-    s->factor = 3;
-    s->policy = policy;
-  } else
-  { s->small  = 0;
-    s->factor = 0;
-    s->policy = 0;
-  }
-}
-
-
 #else /* O_DYNAMIC_STACKS */
 
 
@@ -1768,7 +1750,8 @@ Malloc/realloc/free based stack allocation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree, size_t spare)
+init_stack(Stack s, char *name,
+	   size_t size, size_t limit, size_t minfree, size_t spare)
 { s->name 	= name;
   s->top	= s->base;
   s->size_limit	= limit;
@@ -1780,7 +1763,7 @@ init_stack(Stack s, char *name, size_t size, size_t limit, size_t minfree, size_
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
 		    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
-  s->small      = (s->gc ? SMALLSTACK : 0);
+  gcPolicy(s, GC_FAST_POLICY);
 }
 
 
@@ -1912,6 +1895,31 @@ ensure_room_stack(Stack s, size_t bytes)
 #endif /* O_DYNAMIC_STACKS */
 
 
+		/********************************
+		*     STACK TRIMMING & LIMITS   *
+		*********************************/
+
+#undef LD
+#define LD LOCAL_LD
+
+static void
+gcPolicy(Stack s, int policy)
+{ GET_LD
+
+  s->gc = ((s == (Stack) &LD->stacks.global ||
+	    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
+  if ( s->gc )
+  { s->small  = SMALLSTACK;
+    s->factor = 3;
+    s->policy = policy;
+  } else
+  { s->small  = 0;
+    s->factor = 0;
+    s->policy = 0;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 trimStacks() reclaims all unused space on the stack. Note that the trail
 can have references to unused stack. We set the references to point to a
@@ -1923,10 +1931,7 @@ result from a stack-overflow.
 
 void
 trimStacks(ARG1_LD)
-{
-#undef LD
-#define LD LOCAL_LD
-  TrailEntry te;
+{ TrailEntry te;
 
   LD->trim_stack_requested = FALSE;
 
@@ -1960,18 +1965,20 @@ trimStacks(ARG1_LD)
     { te->address = valTermRef(LD->trim.dummy);
     }
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
-word
-pl_trim_stacks()
-{ trimStacks(PASS_LD1);
+static
+PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
+{ PRED_LD
+
+  trimStacks(PASS_LD1);
 
   succeed;
 }
 
+#undef LD
+#define LD GLOBAL_LD
 
 		 /*******************************
 		 *	    LOCAL DATA		*
@@ -2066,4 +2073,5 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 BeginPredDefs(setup)
   PRED_DEF("set_prolog_stack", 3, set_prolog_stack, 0)
   PRED_DEF("$on_signal", 4, on_signal, 0)
+  PRED_DEF("trim_stacks", 0, trim_stacks, 0)
 EndPredDefs
