@@ -1643,7 +1643,9 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 #ifdef O_SHIFT_STACKS
 #define STACK_SHIFT_EXTRA(type) \
 	  type		trigger;	/* Trigger if above this pointer */ \
-	  size_t	min_free;	/* Minimum amount of free space */
+	  size_t	min_free;	/* Minimum amount of free space */ \
+	  size_t	spare;		/* Current reserved area */ \
+	  size_t	def_spare;	/* Desired reserved area */
 #else
 #define STACK_SHIFT_EXTRA(type)
 #endif

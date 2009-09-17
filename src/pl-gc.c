@@ -2963,11 +2963,30 @@ GROW_TRIM cause the stack to  shrink  to   the  value  nearest above the
 current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-growStacks(LocalFrame fr, Choice ch, Code PC,
-	   size_t l, size_t g, size_t t)
-{ GET_LD
-  sigset_t mask;
+static int
+new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
+{ if ( *request )
+  { size_t new;
+
+    if ( !(new = nextStackSize(s, *request)) )
+    { LD->outofstack = s;
+      return FALSE;
+    }
+    *newsize = new;
+    if ( new == sizeStackP(s) )
+      *request = 0;
+  } else
+  { *newsize = sizeStackP(s);
+  }
+
+  return TRUE;
+}
+
+
+static int
+grow_stacks(LocalFrame fr, Choice ch, Code PC,
+	    size_t l, size_t g, size_t t ARG_LD)
+{ sigset_t mask;
   size_t lsize, gsize, tsize;
   void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
 #if O_SECURE
@@ -2978,35 +2997,10 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
        PC != NULL )			/* for now, only at the call-port */
     return FALSE;
 
-  if ( t )
-  { if ( !(tsize = nextStackSize((Stack) &LD->stacks.trail, t)) )
-      return outOfStack(&LD->stacks.trail, STACK_OVERFLOW_THROW);
-    if ( tsize == sizeStack(trail) )
-      t = 0;
-  } else
-  { tsize = sizeStack(trail);
-  }
-
-  if ( l )
-  { if ( !(lsize = nextStackSize((Stack) &LD->stacks.local, l)) )
-      return outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
-    if ( lsize == sizeStack(local) )
-      l = 0;
-  } else
-  { lsize = sizeStack(local);
-  }
-
-  if ( g )
-  { gBase--;
-    gsize = nextStackSize((Stack) &LD->stacks.global, g);
-    if ( gsize == sizeStack(global) )
-      g = 0;
-    gBase++;
-    if ( !gsize )
-      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
-  } else
-  { gsize = sizeStack(global);
-  }
+  if ( !new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD) ||
+       !new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD) ||
+       !new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD) )
+    return FALSE;
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
@@ -3040,8 +3034,12 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	       prefix, (long)l, (long)g, (long)t);
     }
 
-    SECURE(if ( !scan_global(FALSE) ) sysError("Stack not ok at shift entry"));
-    SECURE(key = checkStacks(fr, ch));
+    SECURE({ gBase++;
+	     if ( !scan_global(FALSE) )
+	       sysError("Stack not ok at shift entry");
+	     key = checkStacks(fr, ch);
+	     gBase--;
+	   });
 
     if ( t )
     { void *nw;
@@ -3059,13 +3057,12 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     { size_t ogsize, olsize;
       void *nw;
 
-      gBase--; gb--;
       assert(*gb == MARK_MASK);		/* see initPrologStacks() */
       ogsize = sizeStack(global);
       olsize = sizeStack(local);
       assert(lb == addPointer(gb, ogsize));
 
-      if ( gsize < ogsize )
+      if ( gsize < ogsize )		/* TBD: Only copy life-part */
 	memmove(addPointer(gb, gsize), lb, olsize);
 
       if ( (nw = realloc(gb, lsize + gsize)) )
@@ -3087,10 +3084,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
       }
-
-      gb++; gBase++;
     }
-    gsize -= sizeof(word);
 
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ void *newmax = addPointer(newbase, newsize); \
@@ -3115,7 +3109,9 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     }
 
     DEBUG(1, Sdprintf("Updating stacks ..."));
+    gBase++; gb++;
     update_stacks(fr, ch, PC, lb, gb, tb);
+    gBase--; gb--;
 
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
@@ -3126,9 +3122,12 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 
     time = CpuTime(CPU_USER) - time;
     LD->shift_status.time += time;
-    SECURE(if ( checkStacks(NULL, NULL) != key )
-	   { Sdprintf("Stack checksum failure\n");
-	     trap_gdb();
+    SECURE({ gBase++;
+	     if ( checkStacks(NULL, NULL) != key )
+	     { Sdprintf("Stack checksum failure\n");
+	       trap_gdb();
+	     }
+	     gBase--;
 	   });
     if ( verbose )
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
@@ -3147,6 +3146,43 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   }
 
   return TRUE;
+}
+
+
+static void
+include_spare_stack(Stack s, size_t *request)
+{ if ( *request && *request != GROW_TRIM )
+    *request += s->def_spare - s->spare;
+
+  if ( s->spare )
+  { s->max = addPointer(s->max, s->spare);
+    s->spare = 0;
+  }
+}
+
+
+int
+growStacks(LocalFrame fr, Choice ch, Code PC,
+	   size_t l, size_t g, size_t t)
+{ GET_LD
+  int rc;
+
+  gBase--;
+  include_spare_stack((Stack)&LD->stacks.local,  &l);
+  include_spare_stack((Stack)&LD->stacks.global, &g);
+  include_spare_stack((Stack)&LD->stacks.trail,  &t);
+
+  rc = grow_stacks(fr, ch, PC, l, g, t PASS_LD);
+
+  trim_stack((Stack)&LD->stacks.trail);
+  trim_stack((Stack)&LD->stacks.global);
+  trim_stack((Stack)&LD->stacks.local);
+  gBase++;
+
+  if ( !rc && LD->outofstack )
+    return outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
+
+  return rc;
 }
 
 
