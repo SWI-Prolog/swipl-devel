@@ -255,15 +255,16 @@ tipc_paxos_replicate(X) :-
 %   * the atom =ignore=, which causes monitoring for Term to be
 %   discontinued.
 %
-
-tipc_paxos_on_change(Term, ignore) :-
-	compound(Term),
-	unlisten(tipc_paxos_user, paxos_changed(Term)),
-	!.
+:- meta_predicate
+	tipc_paxos_on_change(?, :).
 
 tipc_paxos_on_change(Term, Goal) :-
-	compound(Term),
-	tipc_basic_paxos_on_change(tipc_paxos_user, Term, Goal).
+	must_be(compound, Term),
+	Goal = _:Plain,
+	(   Plain == ignore
+	->  unlisten(tipc_paxos_user, paxos_changed(Term))
+	;   tipc_basic_paxos_on_change(tipc_paxos_user, Term, Goal)
+	).
 
 % Private
 tipc_basic_paxos_on_change(Owner, Term, Goal) :-
