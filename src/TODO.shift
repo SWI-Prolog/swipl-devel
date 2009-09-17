@@ -21,12 +21,15 @@
 	    - Must be tracktable by stack-shifter
 	    - Should get rid of marking too much anyway.  Use
 	      tmp_mark everywhere?
+	- Unification in write-mode *must* initialise the global
+	  stack because we might need shifts;  We could `fix'
+	  this by computing the max and inserting an allocation
+	  instruction.
+	    - Run some timing?
 
 * growStacks(): provide argument telling whether the caller will check the
   return code (raise vs. throw exception).  Try to make all/most of them
   using raise!
-
-* numlist(1, 100000, L) crashes if signalled grow-requests are disabled.
 
 ================================================================
 Static analysis of the C-program:

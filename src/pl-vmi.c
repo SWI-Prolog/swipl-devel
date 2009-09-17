@@ -497,24 +497,33 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   deRef(ARGP);
   if ( canBind(*ARGP) )
   { int arity = arityFunctor(f);
-    Word ap;
+    Word ap = gTop;
     word c;
 
 #ifdef O_SHIFT_STACKS
     if ( gTop + 1 + arity > gMax )
-    { if ( !growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0);
+      LOAD_REGISTERS(qid);
+      if ( !rc )
 	goto b_throw;
+      ap = gTop;
     }
 #else
     requireStack(global, sizeof(word)*(1+arity));
 #endif
 
-    ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     bindConst(ARGP, c);
     *ap++ = f;
     ARGP = ap;
+#ifdef O_SHIFT_STACKS
+    while(--arity>=0)
+      setVar(*ap++);
+#endif
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
