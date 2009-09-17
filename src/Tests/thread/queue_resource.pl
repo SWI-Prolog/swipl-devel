@@ -21,7 +21,7 @@ queue_resource :-
 	(   Status == exception(error(resource_error(stack), global))
 	->  true
 	;   format(user_error,
-		   'ERROR: queue_resource/0: wrong status: Status~n', []),
+		   'ERROR: queue_resource/0: wrong status: ~p~n', [Status]),
 	    fail
 	).
 
