@@ -1546,7 +1546,7 @@ Note that the local stack is always _above_ the global stack.
 
 
 #define requireTrailStack(bytes) \
-  { if ( roomStack(trail) < (size_t)(bytes) ) \
+  { if ( triggerStack(trail) < (ssize_t)(bytes) ) \
       ensureRoomStack(trail, bytes); \
   }
 
@@ -1756,7 +1756,7 @@ typedef enum
 #define ensureRoomStack(s, n) \
 	ensure_room_stack((Stack)&LD->stacks.s, (n))
 #define requireStack(s, n) \
-	{ if ( triggerStack(s) < (size_t)(n) ) \
+	{ if ( triggerStack(s) < (ssize_t)(n) ) \
  	    ensureRoomStack(s, n); \
 	}
 
