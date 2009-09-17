@@ -187,7 +187,6 @@ static int		shiftTightStacks(LocalFrame fr, Choice ch);
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
 forwards void		needsRelocation(void *);
-/*forwards bool		scan_global(int marked);*/
 forwards void		check_mark(mark *m);
 static int		check_marked(const char *s);
 #endif
@@ -2123,6 +2122,7 @@ scan_global(int marked)
 
       Sdprintf("!Illegal cell in global stack (up) at %s (*= %s)\n",
 	       print_adr(current, pbuf), print_val(*current, vbuf));
+      trap_gdb();
 
       if ( ++errors > 10 )
       { Sdprintf("...\n");
