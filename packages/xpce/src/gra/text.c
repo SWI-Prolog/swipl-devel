@@ -201,9 +201,9 @@ str_format(String out, const String in, const int width, const FontObj font)
 	return;
       }
 
-      if ( !last_is_layout && isspace(*s) )
+      if ( !last_is_layout && iswspace(*s) )
 	lb = o-1;
-      last_is_layout = isspace(*s);
+      last_is_layout = iswspace(*s);
 
       if ( *s == '\n' )
 	x = 0;
@@ -215,7 +215,7 @@ str_format(String out, const String in, const int width, const FontObj font)
 	{ o = lb;
 	  s = in->s_textW + (lb-out->s_textW);
 
-	  while( isspace(s[1]) )
+	  while( iswspace(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
 	  *o++ = '\n';
 	  lb = NULL;
