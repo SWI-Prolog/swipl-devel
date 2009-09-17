@@ -574,6 +574,10 @@ VMI(H_RLIST, 0, 0, ())
         gTop += 3;
 	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	*ap++ = FUNCTOR_dot2;
+#ifdef O_SHIFT_STACKS
+	setVar(ap[0]);
+	setVar(ap[1]);
+#endif
 	bindConst(ARGP, c);
 	ARGP = ap;
 	umode = uwrite;
