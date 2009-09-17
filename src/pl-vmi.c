@@ -3404,7 +3404,7 @@ b_throw:
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
       SAVE_REGISTERS(qid);
-      trimStacks(PASS_LD1);
+      trimStacks(TRUE, PASS_LD1);
       LOAD_REGISTERS(qid);
       lTop = (LocalFrame)valTermRef(lSafe);
     }
@@ -3431,7 +3431,7 @@ b_throw:
 
     considerGarbageCollect((Stack)NULL);
     if ( LD->trim_stack_requested )
-    { trimStacks(PASS_LD1);
+    { trimStacks(TRUE PASS_LD);
       QF = QueryFromQid(qid);		/* may be shifted: recompute */
     }
 

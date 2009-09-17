@@ -1734,7 +1734,7 @@ void
 resetStacks()
 { emptyStacks();
 
-  trimStacks(PASS_LD1);
+  trimStacks(TRUE PASS_LD);
 }
 
 
@@ -1930,13 +1930,14 @@ result from a stack-overflow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-trimStacks(ARG1_LD)
+trimStacks(int resize ARG_LD)
 { TrailEntry te;
 
   LD->trim_stack_requested = FALSE;
 
 #ifdef O_SHIFT_STACKS
-  if ( !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
+  if ( resize &&
+       !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
     return;
 #endif
 
@@ -1972,7 +1973,7 @@ static
 PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
 { PRED_LD
 
-  trimStacks(PASS_LD1);
+  trimStacks(TRUE PASS_LD);
 
   succeed;
 }

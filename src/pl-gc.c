@@ -2507,7 +2507,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks(PASS_LD1);
+  trimStacks(FALSE PASS_LD);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);
@@ -2762,7 +2762,7 @@ update_argument(intptr_t ls, intptr_t gs)
   for( ; p < t; p++ )
   { Word ptr = *p;
 
-    SECURE(assert(onGlobal(p) || onLocal(p)));
+    SECURE(assert(onGlobal(ptr) || onLocal(ptr)));
 
     if ( ptr > (Word)lBase )
       *p = addPointer(ptr, ls);
@@ -3011,10 +3011,6 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
   word key;
 #endif
 
-  if ( LD->shift_status.blocked ||
-       PC != NULL )			/* for now, only at the call-port */
-    return FALSE;
-
   if ( !new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD) ||
        !new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD) ||
        !new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD) )
@@ -3022,6 +3018,9 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
+
+  if ( LD->shift_status.blocked )
+    return FALSE;
 
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -3164,9 +3163,8 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
   leaveGC();
 
   if ( fatal )
-  { DEBUG(1, Sdprintf("Out of %s stack due to failed rellocation\n",
-		      ((Stack)fatal)->name));
-    return outOfStack(fatal, STACK_OVERFLOW_THROW);
+  { LD->outofstack = fatal;
+    return FALSE;
   }
 
   return TRUE;
