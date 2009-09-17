@@ -568,9 +568,10 @@ sp_collect(S, Members) :-
 %	@param Addresses is a list of name/3 or name_seq/3 addresses
 %	for the services to be monitored.
 %
-%	@param Goal is a predicate with an arity of one, that will be
-%	called when a worker's publication status changes. The Goal is
-%	called exactly once per event with the structure:
+%	@param Goal is a predicate that will be called when a
+%	worker's publication status changes. The Goal
+%	is called exactly once per event with its the last argument
+%	unified with the structure:
 %
 %	$ published(-NameSeq, -PortId) : when the worker binds
 %	its socket to the address.
@@ -600,6 +601,9 @@ spm_dispatch(Goal, tipc_event(Action, NameSeq, PortId, _)) :-
 	once(call(Goal, Event)), fail.
 
 %
+:- meta_predicate
+	tipc_service_port_monitor(+, :),
+	tipc_service_port_monitor(+, :, +).
 
 tipc_service_port_monitor(Address, Goal) :-
 	tipc_service_port_monitor(Address, Goal, 0.0), !.
