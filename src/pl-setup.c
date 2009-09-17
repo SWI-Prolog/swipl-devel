@@ -1842,6 +1842,8 @@ trim_stack(Stack s)
   if ( addr < s->max )
     s->trigger = addr;
 
+  s->gced_size = usedStackP(s);
+
   if ( s->spare < s->def_spare &&
        roomStackP(s) > s->def_spare*4 )
   { ssize_t reduce = s->def_spare - s->spare;
