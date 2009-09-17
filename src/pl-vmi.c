@@ -558,7 +558,12 @@ VMI(H_RLIST, 0, 0, ())
 
 #if O_SHIFT_STACKS
         if ( ap + 3 > gMax )
-	{ if ( !growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0) )
+	{ int rc;
+
+	  SAVE_REGISTERS(qid);
+	  rc = growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0);
+	  LOAD_REGISTERS(qid);
+	  if ( !rc )
 	    goto b_throw;
 	  ap = gTop;
 	}
@@ -2896,7 +2901,11 @@ VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN))
 VMI(I_FEXITDET, 0, 0, ())
 { FliFrame ffr = (FliFrame)valTermRef(ffr_id);
 
+#ifdef O_SHIFT_STACKS
   LOAD_REGISTERS(qid);
+  PC += 3;
+  SECURE(assert(PC[-1] == encode(I_FEXITDET)));
+#endif
   fli_context = ffr->parent;
 
   switch(rc)
@@ -3091,7 +3100,10 @@ VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
 VMI(I_FEXITNDET, 0, 0, ())
 { FliFrame ffr = (FliFrame) valTermRef(ffr_id);
 
+#ifdef O_SHIFT_STACKS
   LOAD_REGISTERS(qid);
+  PC += 3;				/* saved at in I_FOPENNDET */
+#endif
   fli_context = ffr->parent;
 
   switch(rc)

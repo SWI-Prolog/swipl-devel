@@ -1301,7 +1301,8 @@ struct queryFrame
 #if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
-    LocalFrame  bfr;
+    Word	argp;
+    Code	pc;
   } registers;
 #endif
 #ifdef O_LIMIT_DEPTH

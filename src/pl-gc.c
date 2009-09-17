@@ -2638,6 +2638,18 @@ update_local_pointer(void *p, intptr_t ls)
 }
 
 
+static inline void
+update_lg_pointer(void *p, intptr_t ls, intptr_t gs ARG_LD)
+{ char **ptr = (char **)p;
+
+  if ( onStackArea(local, *ptr) )
+  { update_pointer(p, ls);
+  } else if ( onStackArea(global, *ptr) )
+  { update_pointer(p, gs);
+  }
+}
+
+
 static QueryFrame
 update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
@@ -2699,6 +2711,10 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       { update_pointer(&query->saved_bfr, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->registers.fr, ls);
+	update_local_pointer(&query->registers.pc, ls);
+      }
+      if ( ls || gs )
+      { update_lg_pointer(&query->registers.argp, ls, gs PASS_LD);
       }
 
       return query;
@@ -2746,7 +2762,7 @@ update_argument(intptr_t ls, intptr_t gs)
   for( ; p < t; p++ )
   { Word ptr = *p;
 
-    SECURE(onGlobal(p) || onLocal(p));
+    SECURE(assert(onGlobal(p) || onLocal(p)));
 
     if ( ptr > (Word)lBase )
       *p = addPointer(ptr, ls);

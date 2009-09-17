@@ -1610,11 +1610,15 @@ PL_exception(qid_t qid)
 #if O_SHIFT_STACKS
 #define SAVE_REGISTERS(qid) \
 	{ QueryFrame qf = QueryFromQid(qid); \
-	  qf->registers.fr  = FR; \
+	  qf->registers.fr   = FR; \
+	  qf->registers.argp = ARGP; \
+	  qf->registers.pc   = PC; \
 	}
 #define LOAD_REGISTERS(qid) \
 	{ QueryFrame qf = QueryFromQid(qid); \
-	  FR = qf->registers.fr; \
+	  FR   = qf->registers.fr; \
+	  ARGP = qf->registers.argp; \
+	  PC   = qf->registers.pc; \
 	}
 #else /*O_SHIFT_STACKS*/
 #define SAVE_REGISTERS(qid)
