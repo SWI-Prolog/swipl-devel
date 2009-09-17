@@ -1966,6 +1966,10 @@ trimStacks(int resize ARG_LD)
     { te->address = valTermRef(LD->trim.dummy);
     }
   }
+
+  SECURE({ scan_global(FALSE);
+	   checkStacks(NULL, NULL);
+	 });
 }
 
 
