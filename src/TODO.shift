@@ -5,28 +5,28 @@
 		++ If above max: signal expansion request and max += NNN
 	- Or have a way out for exceptions (spare-stack?)
 
-* Virtual alloc/realloc/free of the stacks instead of malloc/realloc/free?
+* Make an abstract layer over stack malloc/realloc/free.  We might want to
+  use virtual-memory functions anyway.  Is there a way to realloc virtual
+  memory segments without physically moving the data (VM managers can do that)?
 
 * Remove max_threads limit?
 
 * Trouble:
 
-	- PC relocation if running code on local stack?
-	- What if we put PC and FR in the engine?  That would solve all this!
-		- Open/close query needs to save/reload
-		- Experiment!
 	- Where are the allocations?
-	    - Global
-		- allocGlobal()
-	    - Local
-		- PL_new_term_ref() (could be moved of local stack)
-		- Alloc environment, choice, foreign-frame
+	    - Transitive calls to growStacks(); see below
 	- Non-shiftable code
 	    - All code using Word and doing allocation!
+	- Mark/TmpMark code
+	    - Must be tracktable by stack-shifter
+	    - Should get rid of marking too much anyway.  Use
+	      tmp_mark everywhere?
 
 * growStacks(): provide argument telling whether the caller will check the
   return code (raise vs. throw exception).  Try to make all/most of them
   using raise!
+
+* numlist(1, 100000, L) crashes if signalled grow-requests are disabled.
 
 ================================================================
 Static analysis of the C-program:
