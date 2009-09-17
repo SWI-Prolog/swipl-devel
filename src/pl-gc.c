@@ -3042,14 +3042,20 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
     DEBUG(1, verbose = TRUE);
 
     if ( verbose )
-    { char *prefix;
+    { const char *prefix;
+      int tid = PL_thread_self();
 
       if ( Serror->position && Serror->position->linepos > 0 )
 	prefix = "\n% ";
       else
 	prefix = "% ";
-      Sdprintf("%sgrowStacks(%ld, %ld, %ld) ...",
-	       prefix, (long)l, (long)g, (long)t);
+
+      if ( tid != 1 )
+	Sdprintf("%s[%d] SHIFT: l:g:t = %ld:%ld:%ld ...",
+		 tid, prefix, (long)l, (long)g, (long)t);
+      else
+	Sdprintf("%sSHIFT: l:g:t = %ld:%ld:%ld ...",
+		 prefix, (long)l, (long)g, (long)t);
     }
 
     SECURE({ gBase++;
