@@ -3149,7 +3149,7 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 	   });
     if ( verbose )
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
-	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize);
+	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }
   }
 
