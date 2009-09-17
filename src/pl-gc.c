@@ -3051,7 +3051,7 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 
       if ( tid != 1 )
 	Sdprintf("%s[%d] SHIFT: l:g:t = %ld:%ld:%ld ...",
-		 tid, prefix, (long)l, (long)g, (long)t);
+		 prefix, tid, (long)l, (long)g, (long)t);
       else
 	Sdprintf("%sSHIFT: l:g:t = %ld:%ld:%ld ...",
 		 prefix, (long)l, (long)g, (long)t);
