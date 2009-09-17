@@ -415,7 +415,7 @@ makePtr(Word ptr, int tag ARG_LD)
   else if ( onStackArea(local, ptr) )
     stg = STG_LOCAL;
   else
-  { assert(onStackArea(trail, ptr));
+  { assert(onTrailArea(ptr));
     stg = STG_TRAIL;
   }
 
@@ -2167,7 +2167,7 @@ static void
 check_mark(mark *m)
 { GET_LD
 
-  assert(onStackArea(trail,  m->trailtop));
+  assert(onTrailArea(m->trailtop));
   assert(onStackArea(global, m->globaltop));
 }
 

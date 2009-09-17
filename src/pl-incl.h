@@ -1698,6 +1698,12 @@ typedef struct
 #define aTop	(LD->stacks.argument.top)
 #define aMax	(LD->stacks.argument.max)
 
+#ifdef O_SHIFT_STACKS
+#define tSpare	(LD->stacks.trail.spare)
+#else
+#define tSpare	(0)
+#endif
+
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
 
@@ -1707,6 +1713,9 @@ typedef struct
 #define onStackArea(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.max)
+#define onTrailArea(addr) \
+	((char *)(addr) >= (char *)tBase && \
+	 (char *)(addr) <  (char *)tMax + tSpare)
 #define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
 #define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
 #define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
