@@ -2744,12 +2744,14 @@ update_argument(intptr_t ls, intptr_t gs)
   Word *t = aTop;
 
   for( ; p < t; p++ )
-  { if ( onGlobal(*p) )
-    { *p = addPointer(*p, gs);
-    } else
-    { assert(onLocal(*p));
-      *p = addPointer(*p, ls);
-    }
+  { Word ptr = *p;
+
+    SECURE(onGlobal(p) || onLocal(p));
+
+    if ( ptr > (Word)lBase )
+      *p = addPointer(ptr, ls);
+    else
+      *p = addPointer(ptr, gs);
   }
 }
 
