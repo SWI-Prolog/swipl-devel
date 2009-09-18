@@ -34,6 +34,7 @@
 #include "dtd.h"
 #include "catalog.h"
 #include "model.h"
+#include "util.h"
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <errno.h>
@@ -2419,6 +2420,8 @@ extern void sgml_statistics(void);
 install_t
 install()
 { initConstants();
+
+  init_ring();
 
   PL_register_foreign("new_dtd",	  2, pl_new_dtd,	  0);
   PL_register_foreign("free_dtd",	  1, pl_free_dtd,	  0);

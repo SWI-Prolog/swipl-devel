@@ -98,6 +98,7 @@ void		empty_ocharbuf(ocharbuf *buf);
 	{ buf->data.w[at] = chr; \
 	}
 
+void		init_ring(void);
 const wchar_t *	str_summary(const wchar_t *s, int len);
 wchar_t *	str2ring(const wchar_t *in);
 void *		ringallo(size_t);

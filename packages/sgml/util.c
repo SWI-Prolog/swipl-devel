@@ -435,24 +435,76 @@ empty_ocharbuf(ocharbuf *buf)
 		 *******************************/
 
 #define RINGSIZE 16
-static void *ring[RINGSIZE];
-static int  ringp;
+
+typedef struct ring
+{ void *ring[RINGSIZE];
+  int   ringp;
+} ring;
+
+#ifdef _REENTRANT
+#include <pthread.h>
+static pthread_key_t ring_key;
+
+static void
+free_ring(void *ptr)
+{ ring *r = ptr;
+  int i;
+  void **bp;
+
+  for(i=0, bp=r->ring; i<RINGSIZE; i++)
+  { if ( *bp )
+    { sgml_free(*bp);
+      *bp = NULL;
+    }
+  }
+
+  sgml_free(r);
+}
+
+
+static ring *
+my_ring()
+{ ring *r;
+
+  if ( (r=pthread_getspecific(ring_key)) )
+    return r;
+
+  if ( (r = sgml_calloc(1, sizeof(*r))) )
+    pthread_setspecific(ring_key, r);
+
+  return r;
+}
+
+void
+init_ring(void)
+{ pthread_key_create(&ring_key, free_ring);
+}
+
+#else
+static ring ring_store;
+#define my_ring() (&ring_store)
+
+void init_ring(void) {}
+#endif
+
 
 wchar_t *
 str2ring(const wchar_t *in)
-{ wchar_t *copy = sgml_malloc((wcslen(in)+1)*sizeof(wchar_t));
+{ ring *r;
+  wchar_t *copy;
 
-  if ( !copy )
+  if ( !(r=my_ring()) ||
+       !(copy = sgml_malloc((wcslen(in)+1)*sizeof(wchar_t))) )
   { sgml_nomem();
     return NULL;
   }
 
   wcscpy(copy, in);
-  if ( ring[ringp] )
-    sgml_free(ring[ringp]);
-  ring[ringp++] = copy;
-  if ( ringp == RINGSIZE )
-    ringp = 0;
+  if ( r->ring[r->ringp] )
+    sgml_free(r->ring[r->ringp]);
+  r->ring[r->ringp++] = copy;
+  if ( r->ringp == RINGSIZE )
+    r->ringp = 0;
 
   return copy;
 }
@@ -460,13 +512,19 @@ str2ring(const wchar_t *in)
 
 void *
 ringallo(size_t size)
-{ char *result = sgml_malloc(size);
+{ ring *r;
+  char *result;
 
-  if ( ring[ringp] )
-    sgml_free(ring[ringp]);
-  ring[ringp++] = result;
-  if ( ringp == RINGSIZE )
-    ringp = 0;
+  if ( !(r=my_ring()) || !(result = sgml_malloc(size)) )
+  { sgml_nomem();
+    return NULL;
+  }
+
+  if ( r->ring[r->ringp] )
+    sgml_free(r->ring[r->ringp]);
+  r->ring[r->ringp++] = result;
+  if ( r->ringp == RINGSIZE )
+    r->ringp = 0;
 
   return result;
 }

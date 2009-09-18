@@ -27,6 +27,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "dtd.h"
+#include "util.h"
 #include "prolog.h"
 
 #define streq(s,q) strcmp((s), (q)) == 0
@@ -41,6 +42,8 @@ usage()
 int
 main(int argc, char **argv)
 { dtd_dialect dialect = DL_SGML;
+
+  init_ring();
 
   program = argv[0];
   argv++;
