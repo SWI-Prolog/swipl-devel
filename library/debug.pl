@@ -114,7 +114,8 @@ debug(Spec, Val) :-
 		->  true
 		;   print_message(warning, debug_no_topic(Topic))
 		),
-	        assert(debugging(Topic, Val, [Out]))
+		update_debug(false, [], Val, Out, Enabled, To),
+	        assert(debugging(Topic, Enabled, To))
 	    )
 	->  true
 	;   true
