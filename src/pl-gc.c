@@ -222,7 +222,7 @@ static int		check_marked(const char *s);
 		*           DEBUGGING           *
 		*********************************/
 
-#if O_DEBUG || O_SECURE
+#if O_DEBUG || O_SECURE || defined(O_MAINTENANCE)
 
 static char *
 print_adr(Word adr, char *buf)
