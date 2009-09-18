@@ -1509,7 +1509,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   environment_frame = FR = FR->parent;
   DEF = FR->predicate;
   ARGP = argFrameP(lTop, 0);
-  Profile(profExit(FR->prof_node PASS_LD));
+  Profile(profResumeParent(FR->prof_node PASS_LD));
   if ( leave )
     frameFinished(leave, FINISH_EXIT PASS_LD);
 
@@ -1577,9 +1577,9 @@ VMI(I_EXITQUERY, 0, 0, ())
   { LocalFrame parent = parentFrame(FR);
 
     if ( parent )
-      profExit(parent->prof_node PASS_LD);
+      profResumeParent(parent->prof_node PASS_LD);
     else
-      profExit(NULL PASS_LD);
+      profResumeParent(NULL PASS_LD);
   }
 #endif
   QF->foreign_frame = PL_open_foreign_frame();

@@ -944,7 +944,7 @@ code.  Considering this is development only, we'll leave this for now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-profExit(struct call_node *node ARG_LD)
+profResumeParent(struct call_node *node ARG_LD)
 { call_node *n;
 
   if ( node && node->magic != PROFNODE_MAGIC )
@@ -957,6 +957,15 @@ profExit(struct call_node *node ARG_LD)
   accounting = FALSE;
 
   current = node;
+}
+
+
+void
+profExit(struct call_node *node ARG_LD)
+{ if ( !node || node->magic != PROFNODE_MAGIC )
+    return;
+
+  profResumeParent(node->parent PASS_LD);
 }
 
 
@@ -1015,7 +1024,7 @@ PL_prof_exit(void *node)
 { GET_LD
   struct call_node *n = node;
 
-  profExit(n->parent PASS_LD);
+  profResumeParent(n->parent PASS_LD);
 }
 
 
