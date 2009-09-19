@@ -264,8 +264,9 @@ storeObject(Any obj, FileObj file)
   assert(isObject(obj));
 
   if ( instanceOfObject(obj, ClassVar) )
-  { int a = (unsigned long)obj - (unsigned long)Arg(0);
+  { intptr_t a = (char*)obj - (char*)Arg(1);
 
+    a++;				/* count 1.. */
     if ( a >= 1 && a <= 9 )
       return storeCharFile(file, '0' + (int) a);
     else if ( a == 10 )
