@@ -828,6 +828,8 @@ loadDefaultClassVariables(SourceSink f)
 	  value = StringToString(&str);
 	  DEBUG(NAME_default, Cprintf("Value = %s\n", pp(value)));
 	  add_class_variable(nfields, fields, value);
+	  if ( buf != localbuf )
+	    pceFree(buf);
 	  goto next;
 	} else
 	{ errorPce(PCE, NAME_defaultSyntaxError, f, toInt(lineno));
