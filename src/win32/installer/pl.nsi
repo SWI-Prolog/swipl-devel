@@ -191,11 +191,11 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
-Section "Common Prolog Library"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library\common
-  File /r pl\library\common
-SectionEnd
+#Section "Common Prolog Library"
+#  SectionIn 1 3
+#  SetOutPath $INSTDIR\library\common
+#  File /r pl\library\common
+#SectionEnd
 
 Section "Constraint Handling Rules"
   SectionIn 1 3
