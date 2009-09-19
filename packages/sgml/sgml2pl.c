@@ -1647,9 +1647,9 @@ pl_sgml_parse(term_t parser, term_t options)
 	return FALSE;
     } else if ( PL_is_functor(head, FUNCTOR_xml_no_ns1) )
     { term_t a = PL_new_term_ref();
-      PL_get_arg(1, head, a);
       char *s;
 
+      PL_get_arg(1, head, a);
       if ( !PL_get_atom_chars(a, &s) )
 	return sgml2pl_error(ERR_TYPE, "atom", a);
       if ( streq(s, "error") )

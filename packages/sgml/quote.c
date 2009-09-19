@@ -35,6 +35,9 @@
 #include <wctype.h>
 #include "xml_unicode.h"
 #include "dtd.h"
+#ifdef __WINDOWS__
+#define inline __inline
+#endif
 
 static atom_t ATOM_iso_latin_1;
 static atom_t ATOM_utf8;

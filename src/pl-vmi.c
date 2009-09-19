@@ -1978,10 +1978,11 @@ VMI(S_UNDEF, 0, 0, ())
     }
     case UNKNOWN_WARNING:
     { fid_t fid;
+      term_t pred;
 
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
       fid = PL_open_foreign_frame();
-      term_t pred = PL_new_term_ref();
+      pred = PL_new_term_ref();
 
       unify_definition(pred, DEF, 0, GP_NAMEARITY);
       printMessage(ATOM_warning,
@@ -2428,9 +2429,10 @@ VMI(A_FUNC2, 0, 1, (CA1_AFUNC))
 }
 
 VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
-{ fn = *PC++;
+{ int rc;
+
+  fn = *PC++;
   an = (int) *PC++;
-  int rc;
 
 common_an:
   SAVE_REGISTERS(qid);			/* may be Prolog function */

@@ -25,6 +25,9 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#ifdef __WINDOWS__
+#define inline __inline
+#endif
 
 #include <SWI-Prolog.h>
 #include <string.h>
@@ -570,9 +573,9 @@ add_lwr_range_charbuf(charbuf *cb, const range *r, int iri, int flags)
     }
 
     if ( iri )
-      iri_add_encoded_charbuf(cb, towlower(c), flags);
+      iri_add_encoded_charbuf(cb, towlower((wint_t)c), flags);
     else
-      add_encoded_charbuf(cb, towlower(c), flags);
+      add_encoded_charbuf(cb, towlower((wint_t)c), flags);
   }
 
   return TRUE;

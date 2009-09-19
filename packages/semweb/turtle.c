@@ -25,6 +25,10 @@
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <string.h>
+#ifdef __WINDOWS__
+#define inline __inline
+#endif
+
 #include "turtle_chars.c"
 
 		 /*******************************
