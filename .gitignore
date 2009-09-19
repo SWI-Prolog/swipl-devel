@@ -153,3 +153,4 @@ boot32.prc
 boot64.prc
 doc-version
 .doc-action
+pl-doc-*.tar.gz
