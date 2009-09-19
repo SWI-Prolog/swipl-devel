@@ -2304,7 +2304,7 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
   size_t i, maxcount, count;
 
   if ( !(!tail && PL_skip_list(vars, 0, &maxcount) == PL_LIST) )
-    maxcount = PLMAXINT;
+    maxcount = ~0;
 
   if ( (count = term_variables_to_termv(t, &v0, maxcount, flags PASS_LD)) == (size_t)-1 )
     return FALSE;			/* exception in critical section */
@@ -2394,7 +2394,7 @@ subsumes(term_t general, term_t specific ARG_LD)
   size_t i, n;
   term_t ex = 0;
 
-  n = term_variables_to_termv(specific, &v0, PLMAXINT, 0 PASS_LD);
+  n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
   if ( PL_unify(general, specific) &&
        foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
