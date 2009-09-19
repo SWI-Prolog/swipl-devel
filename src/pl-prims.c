@@ -2585,7 +2585,7 @@ unify_all_trail(term_t t1, term_t t2 ARG_LD)
 }
 
 
-static intptr_t
+static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { fid_t fid;
   intptr_t tmark;
@@ -2625,7 +2625,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
     TrailEntry mt = addPointer(tBase, tmark);
 
     if ( tt > mt )
-    { intptr_t needed = (tt-mt)*6+1;
+    { ssize_t needed = (tt-mt)*6+1;
       Word list = allocGlobalNoShift(needed);
       Word gp = list+1;
       Word tail = list;
@@ -2701,14 +2701,13 @@ PRED_IMPL("unifiable", 3, unifiable, 0)
 
 #ifdef O_SHIFT_STACKS
   for(;;)
-  { intptr_t rc = unifiable(A1, A2, A3 PASS_LD);
+  { ssize_t rc = unifiable(A1, A2, A3 PASS_LD);
 
     if ( rc < 0 )			/* not enough space */
     { if ( !growStacks(NULL, NULL, NULL, 0, (-rc)*sizeof(word), 0) )
 	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
     } else
-    { LD->mark_bar = mbarSave;
-      return rc;
+    { return rc;
     }
   }
 #else

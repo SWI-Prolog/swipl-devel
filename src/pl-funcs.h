@@ -239,6 +239,7 @@ COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
 COMMON(int) 		PL_get_long_ex(term_t t, long *i);
 COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
 COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
+COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
 COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
 COMMON(int) 		PL_get_float_ex(term_t t, double *f);
 COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
@@ -378,7 +379,8 @@ COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
-			   intptr_t lminfree, intptr_t gminfree, intptr_t tminfree);
+				   size_t lminfree, size_t gminfree,
+				   size_t tminfree);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
@@ -630,20 +632,22 @@ COMMON(void) 		resetSignals(void);
 COMMON(void) 		cleanupSignals(void);
 COMMON(int)		handleSignals(Code PC);
 
-COMMON(int) 		initPrologStacks(intptr_t local,
-				 intptr_t global,
-				 intptr_t trail,
-				 intptr_t argument);
+COMMON(int) 		initPrologStacks(size_t local,
+					 size_t global,
+					 size_t trail,
+					 size_t argument);
 COMMON(void) 		initPrologLocalData(void);
 COMMON(void) 		deallocateStacks(void);
 COMMON(bool) 		restoreStack(Stack s);
-COMMON(void) 		trimStacks(ARG1_LD);
+COMMON(void) 		trimStacks(int resize ARG_LD);
 COMMON(void) 		resetStacks(void);
 COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
-COMMON(word) 		pl_trim_stacks(void);
 COMMON(void) 		ensure_room_stack(Stack s, size_t n);
+#ifdef O_SHIFT_STACKS
+COMMON(void)		trim_stack(Stack s);
+#endif
 
 /* pl-sys.c */
 COMMON(word) 		pl_shell(term_t command, term_t status);

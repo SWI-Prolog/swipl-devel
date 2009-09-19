@@ -179,11 +179,14 @@ forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 
+#ifdef O_SHIFT_STACKS
+static int		shiftTightStacks(LocalFrame fr, Choice ch);
+#endif
+
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
 forwards void		needsRelocation(void *);
-/*forwards bool		scan_global(int marked);*/
 forwards void		check_mark(mark *m);
 static int		check_marked(const char *s);
 #endif
@@ -219,13 +222,17 @@ static int		check_marked(const char *s);
 		*           DEBUGGING           *
 		*********************************/
 
-#if O_DEBUG
+#if O_DEBUG || O_SECURE || defined(O_MAINTENANCE)
 
 static char *
 print_adr(Word adr, char *buf)
 { GET_LD
   char *name;
   Word base;
+  static char tmp[256];
+
+  if ( !buf )
+    buf = tmp;
 
   if ( onGlobal(adr) )
   { name = "global";
@@ -249,10 +256,15 @@ print_adr(Word adr, char *buf)
 static char *
 print_val(word val, char *buf)
 { GET_LD
-  char *tag_name[] = { "var", "attvar", "float", "int", "atom",
-		       "string", "term", "ref" };
-  char *stg_name[] = { "static", "global", "local", "reserved" };
-  char *o = buf;
+  static const char *tag_name[] = { "var", "attvar", "float", "int", "atom",
+				    "string", "term", "ref" };
+  static const char *stg_name[] = { "static", "global", "local", "reserved" };
+  static char tmp[256];
+  char *o;
+
+  if ( !buf )
+    buf = tmp;
+  o = buf;
 
   if ( val & (MARK_MASK|FIRST_MASK) )
   { *o++ = '[';
@@ -277,10 +289,16 @@ print_val(word val, char *buf)
     { strcpy(o, s);
     }
   } else
+  { long offset = (val>>(LMASK_BITS-2))/sizeof(word);
+
+    if ( storage(val) == STG_GLOBAL )
+      offset -= gBase - (Word)base_addresses[STG_GLOBAL];
+
     Ssprintf(o, "%s at %s(%ld)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
-	     (val >> LMASK_BITS)/sizeof(word));
+	     offset);
+  }
 
   return buf;
 }
@@ -396,7 +414,7 @@ makePtr(Word ptr, int tag ARG_LD)
   else if ( onStackArea(local, ptr) )
     stg = STG_LOCAL;
   else
-  { assert(onStackArea(trail, ptr));
+  { assert(onTrailArea(ptr));
     stg = STG_TRAIL;
   }
 
@@ -2033,8 +2051,6 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
 		*             MAIN              *
 		*********************************/
 
-#if O_DYNAMIC_STACKS
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If s == NULL, consider all stacks
 
@@ -2054,9 +2070,13 @@ considerGarbageCollect(Stack s)
       considerGarbageCollect((Stack)&LD->stacks.trail);
     } else
     { if ( s->gc )
-      { intptr_t used  = (char *)s->top   - (char *)s->base;
-	intptr_t free  = (char *)s->limit - (char *)s->top;
-	intptr_t limit = (char *)s->limit - (char *)s->base;
+      { size_t used  = usedStackP(s);	/* amount in actual use */
+#ifdef O_SHIFT_STACKS
+	size_t limit = sizeStackP(s);	/* amount we want to grow to */
+#else
+	size_t limit = limitStackP(s);	/* amount we can grow to */
+#endif
+	size_t space = limit - used;
 
 	if ( LD->gc.inferences == LD->statistics.inferences )
 	{ s->gced_size = used;		/* (*) */
@@ -2064,11 +2084,12 @@ considerGarbageCollect(Stack s)
 	}
 
 	if ( used > s->factor*s->gced_size + s->small )
-	{ DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
-			    s->name, s->factor, s->gced_size, s->small));
+	{ DEBUG(1,
+		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
+			 s->name, s->factor, s->gced_size, s->small));
 	  PL_raise(SIG_GC);
-	} else if ( free < limit/8 && used > s->gced_size + limit/32 )
-	{ DEBUG(2, Sdprintf("GC: request on low free\n"));
+	} else if ( space < limit/8 && used > s->gced_size + limit/32 )
+	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
 	  PL_raise(SIG_GC);
 	}
 
@@ -2080,7 +2101,6 @@ considerGarbageCollect(Stack s)
     }
   }
 }
-#endif /* O_DYNAMIC_STACKS */
 
 
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
@@ -2097,15 +2117,13 @@ scan_global(int marked)
     cells++;
 
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { warning("!Illegal cell in global stack (up) at %p (*= %p)",
-	      current, *current);
-      if ( isAtom(*current) )
-	warning("!%p is atom %s", current, stringAtom(*current));
-      if ( isTerm(*current) )
-	warning("!%p is term %s/%d",
-		current,
-		stringAtom(nameFunctor(functorTerm(*current))),
-		arityTerm(*current));
+    { char pbuf[256];
+      char vbuf[256];
+
+      Sdprintf("!Illegal cell in global stack (up) at %s (*= %s)\n",
+	       print_adr(current, pbuf), print_val(*current, vbuf));
+      trap_gdb();
+
       if ( ++errors > 10 )
       { Sdprintf("...\n");
         break;
@@ -2129,8 +2147,8 @@ scan_global(int marked)
   { cells--;
     current -= offset_cell(current);
     if ( (!marked && is_marked(current)) || is_first(current) )
-    { warning("!Illegal cell in global stack (down) at %p (*= %p)",
-	      current, *current);
+    { Sdprintf("!Illegal cell in global stack (down) at %p (*= %p)\n",
+	       current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
         break;
@@ -2149,7 +2167,7 @@ static void
 check_mark(mark *m)
 { GET_LD
 
-  assert(onStackArea(trail,  m->trailtop));
+  assert(onTrailArea(m->trailtop));
   assert(onStackArea(global, m->globaltop));
 }
 
@@ -2271,7 +2289,7 @@ check_trail()
 	{ char b1[64], b2[64], b3[64];
 
 	  Sdprintf("Trail entry at %s not on global stack: %s (*=%s)\n",
-		   print_adr(te, b1),
+		   print_adr((Word)te, b1),
 		   print_adr(te->address, b2),
 		   print_val(*te->address, b3));
 	}
@@ -2489,7 +2507,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks(PASS_LD1);
+  trimStacks(FALSE PASS_LD);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);
@@ -2521,6 +2539,10 @@ garbageCollect(LocalFrame fr, Choice ch)
 #endif
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
+
+#ifdef O_SHIFT_STACKS
+  shiftTightStacks(fr, ch);
+#endif
 }
 
 word
@@ -2616,6 +2638,18 @@ update_local_pointer(void *p, intptr_t ls)
 }
 
 
+static inline void
+update_lg_pointer(void *p, intptr_t ls, intptr_t gs ARG_LD)
+{ char **ptr = (char **)p;
+
+  if ( onStackArea(local, *ptr) )
+  { update_pointer(p, ls);
+  } else if ( onStackArea(global, *ptr) )
+  { update_pointer(p, gs);
+  }
+}
+
+
 static QueryFrame
 update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
@@ -2636,15 +2670,16 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
 
     if ( ls )				/* update frame pointers */
     { update_pointer(&fr->parent, ls);
-      clearUninitialisedVarsFrame(fr, PC);
 
       DEBUG(2, Sdprintf("PC=%p ", fr->programPointer));
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
       if ( fr->predicate == PROCEDURE_dcall1->definition )
-      { update_pointer(&fr->clause, ls);
+      { assert(onStackArea(local, fr->clause));
+	update_pointer(&fr->clause, ls);
 	update_pointer(&fr->clause->clause, ls);
-	update_pointer(&fr->clause->clause->codes, ls);
+      } else
+      { assert(!onStackArea(local, fr->clause));
       }
 
 					/* update saved BFR's from C_IFTHEN */
@@ -2676,6 +2711,10 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       { update_pointer(&query->saved_bfr, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->registers.fr, ls);
+	update_local_pointer(&query->registers.pc, ls);
+      }
+      if ( ls || gs )
+      { update_lg_pointer(&query->registers.argp, ls, gs PASS_LD);
       }
 
       return query;
@@ -2689,22 +2728,23 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
-  { DEBUG(1, Sdprintf("Updating choicepoint %s for %s ... ",
-		      chp_chars(ch),
-		      predicateName(ch->frame->predicate)));
-
-    if ( ls )
+  { if ( ls )
     { update_pointer(&ch->frame, ls);
       update_pointer(&ch->parent, ls);
       if ( ch->type == CHP_JUMP )
 	update_local_pointer(&ch->value.PC, ls);
     }
     update_mark(&ch->mark, gs, ts);
+
+    DEBUG(3, Sdprintf("Updated %s for %s ... ",
+		      chp_chars(ch),
+		      predicateName(ch->frame->predicate)));
+
     update_environments(ch->frame,
 		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
 			ls, gs, ts);
     choice_count++;
-    DEBUG(1, Sdprintf("ok\n"));
+    DEBUG(3, Sdprintf("ok\n"));
   }
 }
 
@@ -2720,12 +2760,14 @@ update_argument(intptr_t ls, intptr_t gs)
   Word *t = aTop;
 
   for( ; p < t; p++ )
-  { if ( onGlobal(*p) )
-    { *p = addPointer(*p, gs);
-    } else
-    { assert(onLocal(*p));
-      *p = addPointer(*p, ls);
-    }
+  { Word ptr = *p;
+
+    SECURE(assert(onGlobal(ptr) || onLocal(ptr)));
+
+    if ( ptr > (Word)lBase )
+      *p = addPointer(ptr, ls);
+    else
+      *p = addPointer(ptr, gs);
   }
 }
 
@@ -2786,16 +2828,14 @@ update_gvars(intptr_t gs)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Entry-point.   Update the  stacks to  reflect  their current  positions.
 This function should be called *after*  the  stacks have been relocated.
-Note that these functions are  only used  if  there is no virtual memory
-way to reach at dynamic stacks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define updateStackHeader(name, offset) \
-	{ LD->stacks.name.base  = addPointer(LD->stacks.name.base,  offset); \
-	  LD->stacks.name.top   = addPointer(LD->stacks.name.top,   offset); \
-	  LD->stacks.name.max   = addPointer(LD->stacks.name.max,   offset); \
-	  LD->stacks.name.limit = addPointer(LD->stacks.name.limit, offset); \
-	}
+  { LD->stacks.name.base    = addPointer(LD->stacks.name.base,    offset); \
+    LD->stacks.name.top     = addPointer(LD->stacks.name.top,     offset); \
+    LD->stacks.name.max     = addPointer(LD->stacks.name.max,     offset); \
+    LD->stacks.name.trigger = addPointer(LD->stacks.name.trigger, offset); \
+  }
 
 
 static void
@@ -2855,7 +2895,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     updateStackHeader(trail,  ts);
 
     base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
-    base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
+    base_addresses[STG_GLOBAL] = (uintptr_t)(gBase-1); /* MARK_MASK */
     base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
   }
 
@@ -2912,27 +2952,19 @@ nextStackSizeAbove(size_t n)
 }
 
 
-static intptr_t
-nextStackSize(Stack s, intptr_t minfree)
-{ intptr_t size;
-  intptr_t limit = limitStackP(s);
+static size_t
+nextStackSize(Stack s, size_t minfree)
+{ size_t size;
 
-  if ( minfree > 0 )
-    size = nextStackSizeAbove(sizeStackP(s) + minfree);
-  else
-    size = nextStackSizeAbove(usedStackP(s) + s->minfree);
+  if ( minfree == GROW_TRIM )
+  { size = nextStackSizeAbove(usedStackP(s) + s->min_free);
+    if ( size > sizeStackP(s) )
+      size = sizeStackP(s);
+  } else
+  { size = nextStackSizeAbove(sizeStackP(s) + minfree);
 
-  if ( size == 0 )
-  { outOfStack(s, STACK_OVERFLOW_THROW);
-    return 0;
-  }
-
-  if ( size > limit )
-  { if ( size > limit+limit/2 )
-    { outOfStack(s, STACK_OVERFLOW_THROW); /* _RAISE? */
-      return 0;
-    } else
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
+    if ( size >= s->size_limit + s->size_limit/2 )
+      size = 0;				/* passed limit */
   }
 
   return size;
@@ -2945,54 +2977,50 @@ the local, global and trail-stacks. Non-0 versions   ask the stack to be
 modified. Positive values enlarge the stack to the next size that has at
 least the specified value free space (i.e. min-free).
 
-Negative values cause the stack to shrink to the value nearest above the
+GROW_TRIM cause the stack to  shrink  to   the  value  nearest above the
 current usage and the minimum free stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-growStacks(LocalFrame fr, Choice ch, Code PC,
-	   intptr_t l, intptr_t g, intptr_t t)
-{ GET_LD
-  sigset_t mask;
-  intptr_t lsize, gsize, tsize;
+static int
+new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
+{ if ( *request )
+  { size_t new;
+
+    if ( !(new = nextStackSize(s, *request)) )
+    { LD->outofstack = s;
+      return FALSE;
+    }
+    *newsize = new;
+    if ( new == sizeStackP(s) )
+      *request = 0;
+  } else
+  { *newsize = sizeStackP(s);
+  }
+
+  return TRUE;
+}
+
+
+static int
+grow_stacks(LocalFrame fr, Choice ch, Code PC,
+	    size_t l, size_t g, size_t t ARG_LD)
+{ sigset_t mask;
+  size_t lsize, gsize, tsize;
   void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
 #if O_SECURE
   word key;
 #endif
 
-  if ( LD->shift_status.blocked ||
-       PC != NULL )			/* for now, only at the call-port */
+  if ( !new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD) ||
+       !new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD) ||
+       !new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD) )
     return FALSE;
-
-  if ( t )
-  { if ( !(tsize = nextStackSize((Stack) &LD->stacks.trail, t)) )
-      fail;
-    if ( tsize == sizeStack(trail) )
-      t = 0;
-  } else
-  { tsize = sizeStack(trail);
-  }
-
-  if ( l )
-  { if ( !(lsize = nextStackSize((Stack) &LD->stacks.local, l)) )
-      fail;
-    if ( lsize == sizeStack(local) )
-      l = 0;
-  } else
-  { lsize = sizeStack(local);
-  }
-
-  if ( g )
-  { if ( !(gsize = nextStackSize((Stack) &LD->stacks.global, g)) )
-      fail;
-    if ( gsize == sizeStack(global) )
-      g = 0;
-  } else
-  { gsize = sizeStack(global);
-  }
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
+
+  if ( LD->shift_status.blocked )
+    return FALSE;
 
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
@@ -3013,16 +3041,28 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     DEBUG(1, verbose = TRUE);
 
     if ( verbose )
-    { printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
-		     PL_FUNCTOR_CHARS, "start", 3,
-		       PL_BOOL, l,
-		       PL_BOOL, g,
-		       PL_BOOL, t);
+    { const char *prefix;
+      int tid = PL_thread_self();
+
+      if ( Serror->position && Serror->position->linepos > 0 )
+	prefix = "\n% ";
+      else
+	prefix = "% ";
+
+      if ( tid != 1 )
+	Sdprintf("%s[%d] SHIFT: l:g:t = %ld:%ld:%ld ...",
+		 prefix, tid, (long)l, (long)g, (long)t);
+      else
+	Sdprintf("%sSHIFT: l:g:t = %ld:%ld:%ld ...",
+		 prefix, (long)l, (long)g, (long)t);
     }
 
-    SECURE(if ( !scan_global(FALSE) ) sysError("Stack not ok at shift entry"));
-    SECURE(key = checkStacks(fr, ch));
+    SECURE({ gBase++;
+	     if ( !scan_global(FALSE) )
+	       sysError("Stack not ok at shift entry");
+	     key = checkStacks(fr, ch);
+	     gBase--;
+	   });
 
     if ( t )
     { void *nw;
@@ -3037,13 +3077,15 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     }
 
     if ( g || l )
-    { intptr_t ogsize = sizeStack(global); 		/* old size */
-      intptr_t olsize = sizeStack(local);
+    { size_t ogsize, olsize;
       void *nw;
 
+      assert(*gb == MARK_MASK);		/* see initPrologStacks() */
+      ogsize = sizeStack(global);
+      olsize = sizeStack(local);
       assert(lb == addPointer(gb, ogsize));
 
-      if ( gsize < ogsize )
+      if ( gsize < ogsize )		/* TBD: Only copy life-part */
 	memmove(addPointer(gb, gsize), lb, olsize);
 
       if ( (nw = realloc(gb, lsize + gsize)) )
@@ -3068,23 +3110,31 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
     }
 
 #define PrintStackParms(stack, name, newbase, newsize) \
-	{ Sdprintf("%6s: %p ... %p --> %p ... %p\n", \
+	{ void *newmax = addPointer(newbase, newsize); \
+	  Sdprintf("%-6s: %p ... %p --> ", \
 		   name, \
 		   LD->stacks.stack.base, \
-		   LD->stacks.stack.max, \
-		   newbase, \
-		   addPointer(newbase, newsize)); \
+		   LD->stacks.stack.max); \
+	  if ( LD->stacks.stack.base == newbase && \
+	       (void*)LD->stacks.stack.max == newmax ) \
+	  { Sdprintf("(no change)\n"); \
+	  } else \
+	  { Sdprintf("%p ... %p\n", newbase, newmax); \
+	  } \
 	}
 
-
-    DEBUG(1, { Sputchar('\n');
-	       PrintStackParms(global, "global", gb, gsize);
-	       PrintStackParms(local, "local", lb, lsize);
-	       PrintStackParms(trail, "trail", tb, tsize);
-	     });
+    if ( verbose )
+    { DEBUG(0, { Sputchar('\n');
+		 PrintStackParms(global, "global", gb, gsize);
+		 PrintStackParms(local, "local", lb, lsize);
+		 PrintStackParms(trail, "trail", tb, tsize);
+	       });
+    }
 
     DEBUG(1, Sdprintf("Updating stacks ..."));
+    gBase++; gb++;
     update_stacks(fr, ch, PC, lb, gb, tb);
+    gBase--; gb--;
 
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
@@ -3095,18 +3145,16 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
 
     time = CpuTime(CPU_USER) - time;
     LD->shift_status.time += time;
-    SECURE(if ( checkStacks(NULL, NULL) != key )
-	   { Sdprintf("Stack checksum failure\n");
-	     trap_gdb();
+    SECURE({ gBase++;
+	     if ( checkStacks(NULL, NULL) != key )
+	     { Sdprintf("Stack checksum failure\n");
+	       trap_gdb();
+	     }
+	     gBase--;
 	   });
     if ( verbose )
-    { printMessage(ATOM_informational,
-		   PL_FUNCTOR_CHARS, "shift_stacks", 1,
-		     PL_FUNCTOR_CHARS, "done", 4,
-		       PL_DOUBLE, (double)time,
-		       PL_INTPTR, lsize,
-		       PL_INTPTR, gsize,
-		       PL_INTPTR, tsize);
+    { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
+	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }
   }
 
@@ -3115,9 +3163,74 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   leaveGC();
 
   if ( fatal )
-  { DEBUG(1, Sdprintf("Out of %s stack due to failed rellocation\n", ((Stack)fatal)->name));
-    return outOfStack(fatal, STACK_OVERFLOW_THROW);
+  { LD->outofstack = fatal;
+    return FALSE;
   }
+
+  return TRUE;
+}
+
+
+static void
+include_spare_stack(Stack s, size_t *request)
+{ if ( *request && *request != GROW_TRIM )
+    *request += s->def_spare - s->spare;
+
+  if ( s->spare )
+  { s->max = addPointer(s->max, s->spare);
+    s->spare = 0;
+  }
+}
+
+
+int
+growStacks(LocalFrame fr, Choice ch, Code PC,
+	   size_t l, size_t g, size_t t)
+{ GET_LD
+  int rc;
+
+  gBase--;
+  include_spare_stack((Stack)&LD->stacks.local,  &l);
+  include_spare_stack((Stack)&LD->stacks.global, &g);
+  include_spare_stack((Stack)&LD->stacks.trail,  &t);
+
+  rc = grow_stacks(fr, ch, PC, l, g, t PASS_LD);
+
+  trim_stack((Stack)&LD->stacks.trail);
+  trim_stack((Stack)&LD->stacks.global);
+  trim_stack((Stack)&LD->stacks.local);
+  gBase++;
+
+  if ( !rc && LD->outofstack )
+    return outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
+
+  return rc;
+}
+
+
+static size_t
+tight(Stack s)
+{ size_t min_room = s->min_free;
+
+  if ( min_room < sizeStackP(s)/4 )
+    min_room = sizeStackP(s)/4;
+
+  if ( roomStackP(s) < min_room )
+    return 1;
+
+  return 0;
+}
+
+
+static int
+shiftTightStacks(LocalFrame fr, Choice ch)
+{ GET_LD
+  size_t l = tight((Stack)&LD->stacks.local);
+  size_t g = tight((Stack)&LD->stacks.global);
+  size_t t = tight((Stack)&LD->stacks.trail);
+
+  if ( (l|g|t) )
+    return growStacks(fr, ch, NULL, l, g, t);
 
   return TRUE;
 }

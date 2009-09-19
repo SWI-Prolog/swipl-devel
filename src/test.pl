@@ -1622,10 +1622,10 @@ make_data(N, s(X)) :-
 	make_data(NN, X).
 
 gc(shift-1) :-
-	(   feature(dynamic_stacks, true)
+	(   current_prolog_flag(dynamic_stacks, true)
 	->  true
 	;   MinFree is 400 * 1024,
-	    stack_parameter(global, min_free, _, MinFree)
+	    set_prolog_stack(global, min_free, MinFree)
 	).
 gc(gc-1) :-
 	garbage_collect.
@@ -2666,6 +2666,11 @@ runtest(Name) :-
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
+	(   current_prolog_flag(verbose, normal)
+	->  clause_property(R, line_count(Line)),
+	    format('(~w)', [Line]), flush_output
+	;   true
+	),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
 	    ->  put(.), flush_output

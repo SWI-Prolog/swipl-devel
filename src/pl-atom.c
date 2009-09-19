@@ -977,7 +977,13 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
   { Atom atom;
 
     if ( (atom = GD->atoms.array[i]) )
-    { if ( type )
+    {
+#ifdef LIFE_GC				/* see linkVal__LD() check */
+      if ( atom->atom == ATOM_garbage_collected )
+	continue;
+#endif
+
+      if ( type )
       { if ( type_name && type_name != atom->type->atom_name )
 	  continue;
 

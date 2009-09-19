@@ -1999,7 +1999,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		v = va_arg(args, int);
 	        break;
 	      case 1:
-		v = va_arg(args, intptr_t);
+		v = va_arg(args, long);
 	        break;
 	      case 2:
 	        vl = va_arg(args, int64_t);

@@ -713,6 +713,28 @@ PL_get_intptr_ex(term_t t, intptr_t *i)
 
 
 int
+PL_get_size_ex(term_t t, size_t *i)
+{ int64_t val;
+
+  if ( !PL_get_int64_ex(t, &val) )
+    fail;
+  if ( val < 0 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, t);
+#if SIZEOF_VOIDP < 8
+#if SIZEOF_LONG == SIZEOF_VOIDP
+  if ( val > (int64_t)ULONG_MAX )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+#endif
+#endif
+
+  *i = val;
+
+  return TRUE;
+}
+
+
+int
 PL_get_bool_ex(term_t t, int *i)
 { if ( PL_get_bool(t, i) )
     succeed;

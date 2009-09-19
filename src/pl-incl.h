@@ -903,7 +903,7 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 #define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
 #define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-#define isClause(c)	((inCore(c) || onStackArea(local, (c))) && \
+#define isClause(c)	((inCore(c) || onStack(local, (c))) && \
 			 inCore(((Clause)(c))->procedure) && \
 			 isProcedure(((Clause)(c))->procedure))
 #define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
@@ -1274,14 +1274,20 @@ stack overflow.
 	  { LD->exception.throw_environment = __throw_env.parent; \
 	    cleanup; \
 	  } else \
-	  { LD->exception.throw_environment = &__throw_env; \
+	  { __throw_env.magic = THROW_MAGIC; \
+	    LD->exception.throw_environment = &__throw_env; \
 	    code; \
+	    assert(LD->exception.throw_environment == &__throw_env); \
+	    __throw_env.magic = 41414141; \
 	    LD->exception.throw_environment = __throw_env.parent; \
 	  } \
 	}
 
+#define THROW_MAGIC 42424242
+
 typedef struct exception_frame		/* PL_throw exception environments */
 { struct exception_frame *parent;	/* parent frame */
+  int		magic;			/* THROW_MAGIC */
   jmp_buf	exception_jmp_env;	/* longjmp environment */
 } exception_frame;
 
@@ -1295,7 +1301,8 @@ struct queryFrame
 #if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
-    LocalFrame  bfr;
+    Word	argp;
+    Code	pc;
   } registers;
 #endif
 #ifdef O_LIMIT_DEPTH
@@ -1304,8 +1311,6 @@ struct queryFrame
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
-  exception_frame exception_env;	/* Top PL_throw() environment */
-  exception_frame *saved_throw_env;	/* Throw environment of parent query */
 #endif
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned long	flags;
@@ -1522,21 +1527,27 @@ Note that the local stack is always _above_ the global stack.
 
 #define Trail(p) \
   if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
   }
 
 					/* trail local stack pointer */
 #define LTrail(p) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
   }
 
 					/* trail global stack pointer */
 #define GTrail(p) \
   if ( p < LD->mark_bar ) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
+  { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
+  }
+
+
+#define requireTrailStack(bytes) \
+  { if ( triggerStack(trail) < (ssize_t)(bytes) ) \
+      ensureRoomStack(trail, bytes); \
   }
 
 
@@ -1597,7 +1608,9 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
-
+#ifdef O_SHIFT_STACKS
+#define SIG_LSHIFT	  (SIG_PROLOG_OFFSET+4)
+#endif
 
 		 /*******************************
 		 *	      EVENTS		*
@@ -1628,19 +1641,35 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
+#ifdef O_SHIFT_STACKS
+#define STACK_SHIFT_EXTRA(type) \
+	  type		trigger;	/* Trigger if above this pointer */ \
+	  size_t	min_free;	/* Minimum amount of free space */ \
+	  size_t	spare;		/* Current reserved area */ \
+	  size_t	def_spare;	/* Desired reserved area */
+#else
+#define STACK_SHIFT_EXTRA(type)
+#endif
+#ifdef O_DYNAMIC_STACKS
+#define STACK_DYN_EXTRA(type) \
+	  size_t	size_min;	/* Do not shrink below this size */
+#else
+#define STACK_DYN_EXTRA(type)
+#endif
+
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
-	  type		min;		/* donot shrink below this value */ \
 	  type		max;		/* allocated maximum */		    \
-	  type		limit;		/* top the the range (base+limit) */\
-	  intptr_t	minfree;	/* minimum amount of free space */  \
+	  size_t	size_limit;	/* Max size the stack can grow to */\
+	  size_t	gced_size;	/* size after last GC */	    \
+	  size_t	small;		/* Do not GC below this size */	    \
+	  STACK_SHIFT_EXTRA(type)	/* Implementation-specific fields */\
+	  STACK_DYN_EXTRA(type)		/* Implementation-specific fields */\
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  intptr_t	gced_size;	/* size after last GC */	    \
-	  intptr_t	small;		/* Do not GC below this size */	    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
-	  char		*name;		/* Symbolic name of the stack */    \
+	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
 struct stack STACK(caddress);		/* Anonymous stack */
@@ -1670,27 +1699,35 @@ typedef struct
 #define aTop	(LD->stacks.argument.top)
 #define aMax	(LD->stacks.argument.max)
 
+#ifdef O_SHIFT_STACKS
+#define tSpare	(LD->stacks.trail.spare)
+#else
+#define tSpare	(0)
+#endif
+
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
 
 #define onStack(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.top)
-#ifdef O_SHIFT_STACKS
 #define onStackArea(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.max)
-#else
-#define onStackArea(name, addr) \
-	((char *)(addr) >= (char *)LD->stacks.name.base && \
-	 (char *)(addr) <  (char *)LD->stacks.name.limit)
-#endif
+#define onTrailArea(addr) \
+	((char *)(addr) >= (char *)tBase && \
+	 (char *)(addr) <  (char *)tMax + tSpare)
 #define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
 #define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
 #define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
-#define spaceStackP(s) ((char *)(s)->limit - (char *)(s)->top)
-#define limitStackP(s) ((char *)(s)->limit - (char *)(s)->base)
+#define spaceStackP(s) (limitStackP(s)-usedStackP(s))
+#define limitStackP(s) ((s)->size_limit)
 #define narrowStackP(s) (roomStackP(s) < (s)->minfree)
+#ifdef O_SHIFT_STACKS
+#define triggerStackP(s) ((char *)(s)->trigger - (char *)(s)->top)
+#else
+#define triggerStackP(s) roomStack(s)
+#endif
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
@@ -1698,6 +1735,9 @@ typedef struct
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
 #define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
+#define triggerStack(name) triggerStackP(&LD->stacks.name)
+
+#define GROW_TRIM ((size_t)-1)
 
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
@@ -1706,23 +1746,21 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
-#define ensureRoomStack(s, n) ensure_room_stack((Stack)&LD->stacks.s, (n))
 
-#if O_DYNAMIC_STACKS
 #ifdef O_SEGV_HANDLING
+
 #define requireStack(s, n)
-#else
+
+#else /*O_SEGV_HANDLING*/
+
+#define ensureRoomStack(s, n) \
+	ensure_room_stack((Stack)&LD->stacks.s, (n))
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (intptr_t)(n) ) \
+	{ if ( triggerStack(s) < (ssize_t)(n) ) \
  	    ensureRoomStack(s, n); \
 	}
+
 #endif /*O_SEGV_HANDLING*/
-#else
-#define requireStack(s, n) \
-	{ if ( roomStack(s) < (intptr_t)(n) ) \
- 	    outOfStack((void*)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
-	}
-#endif
 
 
 		 /*******************************

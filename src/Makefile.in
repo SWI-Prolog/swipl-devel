@@ -3,11 +3,10 @@
 # $Id$
 #
 # Author:	Jan Wielemaker
-#		wielemak@science.uva.nl
-#		HCS (formerly SWI)
-#		University of Amsterdam
-#    		Kruislaan 419
-#		1098 VA  Amsterdam
+#		J.Wielemake@cs.vu.nl
+#		VU University Amsterdam
+#    		De Boelelaan 1081a
+#		1081 HV  Amsterdam
 #		The Netherlands
 #
 # This  Makefile  requires  GNU-Make,  often  installed  as  `gmake'  on
@@ -30,6 +29,8 @@
 #
 #	* LGPL (see file COPYING or http://www.swi-prolog.org/)
 ################################################################
+
+.SUFFIXES: .i
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -165,6 +166,8 @@ all:	banner gitversion dirs \
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+.c.i:
+	$(CC) -E -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
@@ -325,8 +328,10 @@ tags:		$(srcdir)/TAGS
 $(srcdir)/TAGS:	$(SRC)
 		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
 
+cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
+
 check::
-		$(DEVPL) -f $(srcdir)/test.pl -G2M -L2M -O -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -q -f $(srcdir)/test.pl -G2M -L2M -O -F none -g test,halt -t 'halt(1)'
 
 ln-install::
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install

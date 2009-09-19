@@ -219,7 +219,6 @@ static const PL_extension foreigns[] = {
   FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
   FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
   FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
-  FRG("trim_stacks",		0, pl_trim_stacks,		0),
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),

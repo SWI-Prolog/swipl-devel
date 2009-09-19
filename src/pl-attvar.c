@@ -162,11 +162,11 @@ static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
-  if ( onStackArea(local, p) )
+  if ( p >= (Word)lBase )
   { gp = allocGlobal(2);
     gp[1] = ATOM_nil;
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRef(&gp[0]);
+    *p = makeRefG(&gp[0]);
   } else
   { gp = allocGlobal(1);
     gp[0] = ATOM_nil;
@@ -181,12 +181,12 @@ static int
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
 
-  if ( onStackArea(local, p) )
+  if ( p >= (Word)lBase )
   { gp = allocGlobal(6);
     at = &gp[1];
     setVar(*at);
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRef(&gp[0]);
+    *p = makeRefG(&gp[0]);
   } else
   { gp = allocGlobal(5);
     at = &gp[0];
@@ -527,7 +527,7 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   vp = valTermRef(A3);
   deRef(vp);
 
-  if ( isVar(*vp) && !onStackArea(global, vp) )
+  if ( isVar(*vp) && vp >= (Word)lBase )
   { Word p = allocGlobal(1);		/* attribute values should be on */
 					/* the global stack! */
 

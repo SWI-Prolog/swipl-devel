@@ -2550,8 +2550,9 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
   { Word a;
 
 #ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < (intptr_t)(3 * sizeof(word)) )
-    { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
+    if ( roomStack(global) < (size_t)(3 * sizeof(word)) )
+    { if ( !growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE) )
+	fail;
       p = valHandleP(t);
       deRef(p);
     }

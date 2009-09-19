@@ -497,24 +497,33 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   deRef(ARGP);
   if ( canBind(*ARGP) )
   { int arity = arityFunctor(f);
-    Word ap;
+    Word ap = gTop;
     word c;
 
 #ifdef O_SHIFT_STACKS
     if ( gTop + 1 + arity > gMax )
-    { if ( !growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0);
+      LOAD_REGISTERS(qid);
+      if ( !rc )
 	goto b_throw;
+      ap = gTop;
     }
 #else
     requireStack(global, sizeof(word)*(1+arity));
 #endif
 
-    ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     bindConst(ARGP, c);
     *ap++ = f;
     ARGP = ap;
+#ifdef O_SHIFT_STACKS
+    while(--arity>=0)
+      setVar(*ap++);
+#endif
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
@@ -558,7 +567,12 @@ VMI(H_RLIST, 0, 0, ())
 
 #if O_SHIFT_STACKS
         if ( ap + 3 > gMax )
-	{ if ( !growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0) )
+	{ int rc;
+
+	  SAVE_REGISTERS(qid);
+	  rc = growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0);
+	  LOAD_REGISTERS(qid);
+	  if ( !rc )
 	    goto b_throw;
 	  ap = gTop;
 	}
@@ -569,6 +583,10 @@ VMI(H_RLIST, 0, 0, ())
         gTop += 3;
 	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	*ap++ = FUNCTOR_dot2;
+#ifdef O_SHIFT_STACKS
+	setVar(ap[0]);
+	setVar(ap[1]);
+#endif
 	bindConst(ARGP, c);
 	ARGP = ap;
 	umode = uwrite;
@@ -1582,7 +1600,10 @@ VMI(I_EXITQUERY, 0, 0, ())
       profResumeParent(NULL PASS_LD);
   }
 #endif
+
   QF->foreign_frame = PL_open_foreign_frame();
+  assert(LD->exception.throw_environment == &throw_env);
+  LD->exception.throw_environment = throw_env.parent;
 
   succeed;
 }
@@ -2338,11 +2359,13 @@ a_var_n:
       number result;
       int rc;
 
+      SAVE_REGISTERS(qid);
       lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
       fid = PL_open_foreign_frame();
       rc = valueExpression(consTermRef(p), &result PASS_LD);
       PL_close_foreign_frame(fid);
       lTop = addPointer(lBase, lsafe);
+      LOAD_REGISTERS(qid);
 
       if ( rc )
       { pushArithStack(&result PASS_LD);
@@ -2407,9 +2430,13 @@ VMI(A_FUNC2, 0, 1, (CA1_AFUNC))
 VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
 { fn = *PC++;
   an = (int) *PC++;
+  int rc;
 
 common_an:
-  if ( !ar_func_n((int)fn, an PASS_LD) )
+  SAVE_REGISTERS(qid);			/* may be Prolog function */
+  rc = ar_func_n((int)fn, an PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( !rc )
   { resetArithStack(PASS_LD1);
     goto b_throw;
   }
@@ -2468,9 +2495,9 @@ small integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
-{ Word rp  = varFrameP(FR, *PC++);
-  Word np  = varFrameP(FR, *PC++);
-  intptr_t add = (intptr_t)*PC++;
+{ Word rp  = varFrameP(FR, *PC++);	/* A = */
+  Word np  = varFrameP(FR, *PC++);	/* B + */
+  intptr_t add = (intptr_t)*PC++;	/* <int> */
 
   deRef(np);
 
@@ -2504,16 +2531,23 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     fid_t fid;
     int rc;
 
+    SAVE_REGISTERS(qid);
     fid = PL_open_foreign_frame();
     rc = valueExpression(wordToTermRef(np), &n PASS_LD);
     PL_close_foreign_frame(fid);
+    LOAD_REGISTERS(qid);
     if ( !rc )
       goto b_throw;
 
     ensureWritableNumber(&n);
     if ( ar_add_ui(&n, add) )
-    { *rp = put_number(&n);
+    { word w = put_number(&n);
+
       clearNumber(&n);
+#ifdef O_SHIFT_STACKS
+      rp = varFrameP(FR, PC[-3]);
+#endif
+      *rp = w;
 
       NEXT_INSTRUCTION;
     } else
@@ -2636,8 +2670,8 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     AR_END();
 #ifdef O_SHIFT_STACKS
     ARGP = argFrameP(lTop, 0);
-#endif
     deRef2(ARGP, k);
+#endif
     bindConst(k, c);
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
@@ -2677,13 +2711,20 @@ body mode and in many cases the result is used only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
-{ Word k = varFrameP(FR, *PC++);
-  Number n = argvArithStack(1 PASS_LD);
+{ Number n = argvArithStack(1 PASS_LD);
+  word w;
 
-  *k = put_number(n);
+  SAVE_REGISTERS(qid);
+  w = put_number(n);
+  LOAD_REGISTERS(qid);
+  *varFrameP(FR, *PC++) = w;
+
   popArgvArithStack(1 PASS_LD);
   AR_END();
 
+#ifdef O_SHIFT_STACKS
+  ARGP = argFrameP(lTop, 0);
+#endif
   NEXT_INSTRUCTION;
 }
 
@@ -2873,7 +2914,11 @@ VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN))
 VMI(I_FEXITDET, 0, 0, ())
 { FliFrame ffr = (FliFrame)valTermRef(ffr_id);
 
+#ifdef O_SHIFT_STACKS
   LOAD_REGISTERS(qid);
+  PC += 3;
+  SECURE(assert(PC[-1] == encode(I_FEXITDET)));
+#endif
   fli_context = ffr->parent;
 
   switch(rc)
@@ -3068,7 +3113,10 @@ VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
 VMI(I_FEXITNDET, 0, 0, ())
 { FliFrame ffr = (FliFrame) valTermRef(ffr_id);
 
+#ifdef O_SHIFT_STACKS
   LOAD_REGISTERS(qid);
+  PC += 3;				/* saved at in I_FOPENNDET */
+#endif
   fli_context = ffr->parent;
 
   switch(rc)
@@ -3363,16 +3411,16 @@ b_throw:
     exception_term		   = 0;
 
     PC = findCatchExit();
-#if O_DYNAMIC_STACKS
     considerGarbageCollect((Stack)NULL);
 
     if ( LD->trim_stack_requested )
-    { LocalFrame lsave = lTop;
+    { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
-      trimStacks(PASS_LD1);
-      lTop = lsave;
+      SAVE_REGISTERS(qid);
+      trimStacks(TRUE, PASS_LD1);
+      LOAD_REGISTERS(qid);
+      lTop = (LocalFrame)valTermRef(lSafe);
     }
-#endif
 
     VMI_GOTO(I_USERCALL0);
   } else
@@ -3394,15 +3442,16 @@ b_throw:
       *valTermRef(exception_printed) = 0; /* consider it handled */
     }
 
-#if O_DYNAMIC_STACKS
     considerGarbageCollect((Stack)NULL);
-#endif
     if ( LD->trim_stack_requested )
-    { trimStacks(PASS_LD1);
+    { trimStacks(TRUE PASS_LD);
       QF = QueryFromQid(qid);		/* may be shifted: recompute */
     }
 
     QF->foreign_frame = PL_open_foreign_frame();
+    assert(LD->exception.throw_environment == &throw_env);
+    LD->exception.throw_environment = throw_env.parent;
+
     fail;
   }
 

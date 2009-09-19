@@ -4653,25 +4653,6 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 		 *	DEBUGGING SUPPORT	*
 		 *******************************/
 
-PL_local_data_t *
-_LD()
-{ PL_local_data_t *ld = ((PL_local_data_t *)TLD_get(PL_ldata));
-  return ld;
-}
-
-PL_local_data_t *
-_LDN(int n)
-{ return threads[n].thread_data;
-}
-
-#undef lBase
-LocalFrame
-lBase()
-{ GET_LD
-
-  return (LD->stacks.local.base);
-}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function is called from  GNU  <assert.h>,   so  we  can print which
 thread caused the problem. If the thread is   not the main one, we could
@@ -4779,7 +4760,8 @@ initPrologThreads()
 
 foreign_t
 pl_with_mutex(term_t mutex, term_t goal)
-{ term_t ex = 0;
+{ GET_LD
+  term_t ex = 0;
   int rval;
 
   pl_mutex_lock(mutex);

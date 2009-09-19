@@ -624,6 +624,18 @@ mergeAllocPool(AllocPool to, AllocPool from)
 		*             STACKS            *
 		*********************************/
 
+static void
+enableSpareStack(Stack s)
+{
+#ifdef O_SHIFT_STACKS
+  if ( s->spare )
+  { s->max = addPointer(s->max, s->spare);
+    s->spare = 0;
+  }
+#endif
+}
+
+
 word
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
@@ -642,7 +654,11 @@ outOfStack(void *stack, stack_overflow_action how)
       fail;
     case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { fid_t fid = PL_open_foreign_frame();
+    { fid_t fid;
+
+      enableSpareStack(stack);
+
+      fid = PL_open_foreign_frame();
       LD->outofstack = NULL;
       updateAlerted(LD);
       PL_clearsig(SIG_GC);
