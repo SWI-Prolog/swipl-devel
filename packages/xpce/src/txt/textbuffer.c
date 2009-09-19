@@ -709,7 +709,7 @@ static int
 all_layout(TextBuffer tb, int from, int to)
 { SyntaxTable syntax = tb->syntax;
 
-  while( from < to && tislayout(tb->syntax, fetch(from)) )
+  while( from < to && tislayout(syntax, fetch(from)) )
     from++;
 
   return from == to;

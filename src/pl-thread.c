@@ -4760,8 +4760,7 @@ initPrologThreads()
 
 foreign_t
 pl_with_mutex(term_t mutex, term_t goal)
-{ GET_LD
-  term_t ex = 0;
+{ term_t ex = 0;
   int rval;
 
   pl_mutex_lock(mutex);
@@ -4769,7 +4768,9 @@ pl_with_mutex(term_t mutex, term_t goal)
   pl_mutex_unlock(mutex);
 
   if ( !rval && ex )
-  { SECURE(checkData(valTermRef(ex)));
+  { SECURE({ GET_LD
+	     checkData(valTermRef(ex))
+	   });
     PL_raise_exception(ex);
   }
 

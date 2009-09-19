@@ -373,10 +373,10 @@ test, conversion and computation macro's are provided.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef INTPTR_FORMAT
-#if SIZEOF_INT == SIZEOF_VOIDP
-#define INTPTR_FORMAT "%d"		/* printf format for intptr_t */
-#else
+#if SIZEOF_LONG == SIZEOF_VOIDP
 #define INTPTR_FORMAT "%ld"		/* printf format for intptr_t */
+#else
+#error "Config needs INTPTR_FORMAT"
 #endif
 #endif
 
