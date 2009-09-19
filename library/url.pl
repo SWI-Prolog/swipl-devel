@@ -64,6 +64,8 @@ of the standard encountered in practical use.
 
 @author	Jan Wielemaker
 @author Lukas Faulstich
+@deprecated New code should use library(uri), provided by the =clib=
+ 	    package.
 */
 
 		 /*******************************
