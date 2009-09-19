@@ -1726,7 +1726,7 @@ typedef struct
 #ifdef O_SHIFT_STACKS
 #define triggerStackP(s) ((char *)(s)->trigger - (char *)(s)->top)
 #else
-#define triggerStackP(s) roomStack(s)
+#define triggerStackP(s) roomStackP(s)
 #endif
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
