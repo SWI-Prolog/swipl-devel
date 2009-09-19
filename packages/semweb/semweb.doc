@@ -1769,6 +1769,7 @@ in the directory described by rdf_current_db/1 and has the extension
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \input{rdfturtle.tex}
+\input{rdfturtlewrite.tex}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1873,7 +1874,7 @@ literal objects are hashed case-insensitive to speed up the commonly
 used case-insensitive search.
 
 \begin{description}
-<    \predicate[multi]{rdfs_label}{3}{?Resource, ?Language, ?Label}
+    \predicate[multi]{rdfs_label}{3}{?Resource, ?Language, ?Label}
 Extract the label from \arg{Resource} or generate all resources with the
 given \arg{Label}. The label is either associated using a sub-property
 of \const{rdfs:label} or it is extracted from \arg{Resource} by taking
