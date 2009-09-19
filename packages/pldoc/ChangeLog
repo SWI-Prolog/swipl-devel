@@ -1,90 +1,102 @@
+[Sep 9 2009]
+
+ * FIXED: PlDoc LaTeX backend to escape | in running text
+
+[Aug 20 2009]
+
+ * FIXED: PlDoc: escape & when generation LaTeX.
+
+[Aug 18 2009]
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+
 [Aug 13 2009]
 
  * ADDED: PlDoc wiki to handle references as module:name/arity.
-   
+
  * ADDED: plDoc: Incomplete support for %% module:<mode>
-   
+
 [Aug 11 2009]
 
  * ADDED: Make PlDoc places menu hookable
-   
+
 [Aug 10 2009]
 
  * ADDED: Make search field of PlDoc hookable.
-   
+
 [Jul 2 2009]
 
  * ADDED: Public API to generate help on a predicate without the page header
-   
+
 [Jun 18 2009]
 
  * FIXED: Allow serving the manual again.
-   
+
 [Jun 16 2009]
 
  * FIXED: Bug#404: PlDoc local file inclusion vulnerability
-   
+
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
-   
+
 [Feb 25 2009]
 
  * FIXED: Include PlDoc CSS when serving .txt files
-   
+
 [Feb 16 2009]
 
  * FIXED: Use call_cleanup when processing HTML manual-files
-   
+
 [Feb 14 2009]
 
  * FIXED: List recognition in PlDoc.  Markus Triska.
-   
+
 [Feb 10 2009]
 
  * ENHANCED: PlDoc recognition of $ title : to ask for white-space after the :
-   
+
 [Jan 16 2009]
 
  * FIXED: Determinism of doc_browser/0. Erik Flister.
-   
+
  * ENHANCED: PlDoc: small speedup in (not) matching predicate references.
-   
+
  * CLEANUP: PlDoc item-list processing
-   
+
 [Jan 15 2009]
 
  * CLEANUP: PlDoc to use the standard page generation and resource management to
    facilitate customizing the PlDoc page layout using the html:page//2 hooks.
-   
+
 [Jan 14 2009]
 
  * FIXED: PlDoc: properly terminate lists
-   
+
  * ADDED: PlDoc: support horizontal rules for structuring.
-   
+
  * ADDED: PlDoc: [[label][link]] notation to provide links with given label.
-   
+
 [Jan 12 2009]
 
  * ADDED: PlDoc: support referencing files with relative URLs.
-   
+
  * FIXED: PlDoc: @tag was not recognised if it followed a list.  Jeff Rose.
-   
+
 [Jan 9 2009]
 
  * ADDED: PlDoc: allow linking to files in other directories using relative
    links.
-   
+
 [Jan 7 2009]
 
  * MODIFIED: Removed current_module/2 and export_list/2 and introduced
    module_property/2. The removed predicates have been moved to the
    backcomp.pl library and are thus autoloaded, providing compatibility.
-   
+
 [Dec 31 2008]
 
  * FIXED: PlDoc: support multi-paragraph items in a list.
@@ -95,19 +107,19 @@
 
  * CLEANUP: Make PlDoc run entirely on top of the http_dispatch module, so
    it can be integrated much easier with other packages.
-   
+
 [Oct 6 2008]
 
  * CLEANUP: Modernisation of the PlDoc code:
        - Use the central dispatcher library(http/http_dispatch)
        - Use the central logging facility library(http/http_log)
-   
+
    Changing the root of the server is now done using
-   
+
    	:- use_module(http/http_hook).
-   
+
    	http:location(pldoc, '/pldoc', [priority(10)]).
-   
+
 [Sep 29 2008]
 
  * ADDED: PlDoc: use alternate extensions for Prolog source files.  Chris Mungall.
@@ -115,7 +127,7 @@
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
@@ -159,7 +171,7 @@
 
  * ADDED: Make PceEmacs use PlDoc for the Documentation link if the old manual
    has no information.  Integration must be improved!
-   
+
  * DOC: various enhancement to the presentation of pldoc @keywords
 
 [Dec 8 2007]
@@ -182,7 +194,7 @@
 
 Nov 5, 2007
 
-* MODIFIED: Changed mode-operators (?, +, -, @, :) from 700 fx to 650 fx 
+* MODIFIED: Changed mode-operators (?, +, -, @, :) from 700 fx to 650 fx
   to allow for ?A = ?B, etc.
 
 Oct 29, 2007

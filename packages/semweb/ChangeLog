@@ -1,11 +1,61 @@
+[Sep 19 2009]
+
+ * ADDED: Turtle write library.
+
+[Sep 9 2009]
+
+ * MODIFIED: rdf_load/2 no longer shares blank nodes by default.  This is
+   not allowed according to the standards.
+
+[Sep 1 2009]
+
+ * ADDED: First version of low-level primitives for faster Turtle support
+
+ * CLEANUP: make RDF library depend on new iri_xml_namespace/3.
+
+[Aug 31 2009]
+
+ * ADDED: rdf_graph_prefixes/3 and realised various enhancements
+
+[Aug 26 2009]
+
+ * FIXED: rdf_graph_prefixes/2 to return all namespaces instead of only those
+   that have ns/2 declarations (as the title suggests).
+
+[Aug 24 2009]
+
+ * MODIFIED: RDF hook no longer accepts text/html explicitely
+
+[Aug 21 2009]
+
+ * FIXED: Turtle parser to deal with files where the last line is a
+   non-terminated comment.  Ivo Swartjes
+
+[Aug 20 2009]
+
+ * ADDED: Library semweb/rdf_compare for comparing RDF graphs (mostly used by
+   RDF test libraries)
+
+ * ADDED: Process the text/turtle MIME-type
+
+ * ADDED: Turtle parser to support booleans (true and false)
+
+[Aug 19 2009]
+
+ * MODIFIED: rdf_process_turtle/3 prints messages instead of aborting after
+   the first error.  Also some progress to enhance the error messages.
+
+ * ADDED: rdf_current_ns/2 as a replacement for rdf_db:ns/2 and rdf_graph_prefixes/2
+   to query prefixes used in a specific graph.
+
 [Jul 31 2009]
 
  * FIXED: rdf_load/1 failed after unloading the data using rdf_unload/1. Willem Robert van Hage.
-   
+
 [Jul 30 2009]
 
  * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
-   
+
 [Jul 24 2009]
 
  * MODIFIED: rdf_load_turtle/3 now returns IRIs instead of URIs.
@@ -21,58 +71,58 @@
    provides proper integration with saved-states automatically.  Loading
    code using initialization(load_foreign_library(...)) will load the
    library immediately and issue a warning.
-   
+
    See initialization/1,2 for details and further hints for dealing with
    possible compatibility problems.
-   
+
 [Jul 19 2009]
 
  * FIXED: RDF Literal indexing messed up handling of 'false'.  Vera Hollink.
 [Jun 28 2009]
 
  * FIXED: RDF literal matches (literal(exact(string), X))
-   
+
 [Jun 22 2009]
 
  * ADDED: Efficient SPARQL compliant literal matching to RDF-DB
-   
+
 [Jun 19 2009]
 
  * FIXED: Semweb: writing RDF/XML should not use bnodes as typed nodes.  Chris Mungall.
-   
+
 [Jun 17 2009]
 
  * FIXED: Turtle UTF-8 handling
-   
+
  * FIXED: rdf_load/2: Do not record a file as loaded before completion.
-   
+
  * ADDED: Semweb: Register turtle parser for .n3 files
-   
+
 [Jun 16 2009]
 
  * FIXED: Pass Turtle test-case #10.
-   
+
 [May 31 2009]
 
  * FIXED: RDF Transaction logging in persistency layer.  Jacco van Ossenbruggen.
-   
+
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
-   
+
 [Mar 5 2009]
 
  * FIXED: ensure the local part after splitting a URI is a valid XML name
-   
+
  * MODIFIED: Use graph(URI) instead of db(URI) for specifying the RDF graph that must be saved.  db(URI) is still supported for backward compatibility.
 [Jan 21 2009]
 
  * FIXED: RDF writer: write valid XML if the namespace entity contains characters
    that must be %-escaped.  Jacopo Urbani.
-   
+
 [Jan 13 2009]
 
  * FIXED: RDF/XML could save illegal XML if multiple namespaces are used
@@ -83,17 +133,17 @@
 [Oct 8 2008]
 
  * MODIFIED: rdf_load/[1,2] now raises an existence_error if the input does not exist.
-   
+
  * CLEANUP: Generalise plugin interface to deal with different storage envelopes in rdf_load/2.
 [Sep 23 2008]
 
  * ADDED: Preserve the modification time of the source URL in binary RDF files.
-   
+
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
@@ -111,7 +161,7 @@
    hashed on the same key. Fixes slow rdf_save/2 reported by Jacco van
    Ossenbruggen. Should also positively effect determinism and reliability
    of rdf_estimate_complexity/4.
-   
+
 [Apr 26 2008]
 
  * DOC: Fixed some paths in semweb documentation.  Jacco van Ossenbruggen
@@ -120,7 +170,7 @@
 
  * MODIFIED: Renamed hash_term/2 to term_hash/2.  Added hash_term/2 to
    library(backcomp), so most code should not notice this.
-   
+
 [Apr 17 2008]
 
  * FIXED: Avoid deadlock in RDF literal index when removing a literal
@@ -161,7 +211,7 @@
 
  * FIXED: Bug#332: operator declarations could mess up RDF/XML output.  Chris Sutton
    and Yves Raimond.
-   
+
 [Nov 28 2007]
 
  * FIXED: rdf_persistency.pl now keeps track of sources
@@ -178,17 +228,17 @@
 
  * ENHANCED: Minimise the time we keep a lock in rdf_load_db/1 to exploit
    concurrency.
-   
+
  * ADDED: silent(brief) option value to rdf_attach_db/2.  Avoid some file-system
    tests to speedup loading many named graphs.
-   
+
  * ENHANCED: Speedup for rdf_retractall(_,_,_,DB) for empty or non-extenting
    databases.
-   
+
  * ENHANCED: Avoid quadratic effect when loading many graphs from many
    snapshot files as used in rdf_persistency.pl.  Spotted by Yves Raimond
    loading 17,000 graphs.
-   
+
 Oct 15, 2007
 
   * FIXED: rdf_load/2 for loading .gz files.  Michiel Hildebrand.
@@ -398,7 +448,7 @@ Sep 11, 2006
 
 Aug 27, 2006
 
-  * FIXED: Bug#199: failed to compile in single-thread mode. Keri Harris. 
+  * FIXED: Bug#199: failed to compile in single-thread mode. Keri Harris.
 
 Aug 16, 2006
 
@@ -554,7 +604,7 @@ Version 2.2.1
 Aug 10, 2005
 
   * FIXED: Quick Save Format for wide-character atoms.  Saved first
-    character as many times as the length of the atom. 
+    character as many times as the length of the atom.
 
 Aug 4, 2005
 
@@ -666,7 +716,7 @@ Oct 18, 2004 (version 2.2.0)
 
 Oct 13, 2004
 
-  * FIXED: Total reorganisation of the multi-threaded access using 
+  * FIXED: Total reorganisation of the multi-threaded access using
     redesigned locking which allows for one writer and multiple readers.
 
 Oct 12, 2004
@@ -698,7 +748,7 @@ Sep 14, 2004
 
 Sep 2, 2004
 
-  * FIXED: rdfs_subclass_of(+Class, -Super) to relate all classes 
+  * FIXED: rdfs_subclass_of(+Class, -Super) to relate all classes
     implicitely to rdfs:Resource (rdfs entailment rule).
 
   * FIXED: Bug#182: After rdf_retractall(_,_,_) database cannot be refilled.
@@ -722,7 +772,7 @@ Aug 27, 2004
 
 Aug 26, 2004
 
-  * ADDED: convert_typed_literal option to rdf_save/2.  Bug#171. 
+  * ADDED: convert_typed_literal option to rdf_save/2.  Bug#171.
     Sandro Hawke.
 
 Aug 19, 2004
@@ -830,7 +880,7 @@ Nov 7, 2003
 
 Oct 27, 2003
 
-  * ADDED: installation of owl.owl. 
+  * ADDED: installation of owl.owl.
 
 Oct 16, 2003
 
@@ -857,7 +907,7 @@ Oct 6, 2003
 
 Oct 1, 2003
 
-  * MODIFIED: XSD namespace declaration in rdf_db.pl to 
+  * MODIFIED: XSD namespace declaration in rdf_db.pl to
     http://www.w3.org/2001/XMLSchema#
 
 Sep 30, 2003

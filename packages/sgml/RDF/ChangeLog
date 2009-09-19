@@ -1,29 +1,43 @@
+[Sep 10 2009]
+
+ * MODIFIED: Dropped support for old RDF Bag/Alt/Seq syntax.
+
+ * ENHANCED: Speedup processing of xml: properties in RDF/XML parser.
+
+ * ENHANCED: Compile-time expansion of the term-rewriter that is used by
+   the RDF/XML parser.
+
+[Aug 20 2009]
+
+ * FIXED: Support for \U in rdf_ntriples.pl (used to parse W3C test results)
+
 [Jul 30 2009]
 
  * CLEANUP: Modernise rdf.pl and rdf_db.pl module handling.
-   
+
 [Jul 2 2009]
 
- * FIXED: handle rdf:datatype earlier (compliant to the revised RDF syntax specs). This fixes empty strings using
-       <rdfs:label rdf:datatype="&xsd;string"/>
-   
+ * FIXED: handle rdf:datatype earlier (compliant to the revised RDF syntax
+   specs). This fixes empty strings using
+   <rdfs:label rdf:datatype="&xsd;string"/>
+
    Spotted by Chris Mungall
-   
+
 [Jun 22 2009]
 
  * FIXED: avoid bnodes in types nodes for rdf_write_xml/2.
-   
+
 [Jun 9 2009]
 
  * FIXED: RDF typed-nodes (<ns:Class ...>...</ns:Class> descriptions) if the expansion of ns contains %-escaped characters.  Jochem Liem.
-   
+
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
-   
+
 [Mar 6 2009]
 
  * FIXED: rdf_write_xml with different encodings.  Patch by Keri Harris.
@@ -31,7 +45,7 @@
 
  * FIXED: RDF writer: write valid XML if the namespace entity contains characters
    that must be %-escaped.  Jacopo Urbani.
-   
+
 [Jan 13 2009]
 
  * FIXED: RDF/XML could save illegal XML if multiple namespaces are used
@@ -43,7 +57,7 @@
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
@@ -225,7 +239,7 @@ Jan 17, 2003
 #	Content of Alt-container was incorrectly rendered as rdf:li
 #	instead of rdf:_1, rdf:_2, etc (suite/t27.rdf).
 ################################################################
-	
+
   * ADDED: Translate rdf:li predicates into _1, _2, etc.
 
   * FIXED: parseType=Literal to avoid extraneous [..] around the value
@@ -235,7 +249,7 @@ Oct 28, 2002
   * CLEANUP: pass base-uri as attribute, preparing for xml:base and making
     the parser ready for multi-threading.
 
-Sep 16, 2002 
+Sep 16, 2002
 
   * MODIFIED: Allow for unqualified attribute-names
 
@@ -251,7 +265,7 @@ Older entries
   * CGI Demo: report errors generated before a fatal exception.
 
   * FIXED: handling of propertyElt of the form
-    rdf:ID="myid" rdf:parseType="Resource" 
+    rdf:ID="myid" rdf:parseType="Resource"
 
   * For objects, map NameSpace:Local to the simple concatenation of the two.
     This implies:

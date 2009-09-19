@@ -1,43 +1,66 @@
+[Sep 13 2009]
+
+ * ADDED: Process HTTP DELETE, OPTIONS and TRACE methods.  Torbjörn Lager.
+
+[Aug 27 2009]
+
+ * FIXED: JSON Mimetype handling.  Matt Lilley.
+
+[Aug 25 2009]
+
+ * ENHANCED: Made the detection of JSON more flexible.
+
+ * ENHANCED: JSON indentation handling.  Matt Lilley.
+
+[Aug 21 2009]
+
+ * ENHANCED: Bug#414: Get rid of pool/4 in HTTP request structures.
+   Lourens van der Meij.
+
+[Aug 18 2009]
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+
 [Aug 16 2009]
 
  * DOC: Provide documentation of http_dispatch.pl through PlDoc
-   
+
  * ADDED: http_redirect/3 to simplify writing redirect handlers and enhance the reflexive capabilities of the HTTP server.
-   
+
 [Aug 14 2009]
 
  * ADDED: Allow grouping of HTTP parameters
-   
+
  * ADDED: Support disjunctive types in HTTP parameter handling
-   
+
  * CLEANUP: Use meta_predicate for json_convert.pl
-   
+
 [Aug 13 2009]
 
  * ADDED: type nonneg to http_parameters/3.
-   
+
  * ADDED: PlDoc wiki to handle references as module:name/arity.
-   
+
  * ADDED: Allow hooking http_parameters type checking and conversion.
-   
+
  * ADDED: &(Int) is written as &#Int; in html_write.  Clarified the documentation.
-   
+
  * ADDED: Types list(Type), boolean and atom to http_parameters/3.
-   
+
 [Aug 12 2009]
 
  * ENHANCED: Better handing of \[...] in cross-referencer
-   
+
 [Aug 10 2009]
 
  * FIXED: Properly deal with external resources
-   
+
  * FIXED: Module-handling of body//1 and head//1 hooks in html_write.pl
-   
+
  * FIXED: Actually handle timout of the threaded HTTP deamon.  The connection is now dropped after 60 seconds inactivity of the client.
-   
+
  * FIXED: HTTP server DoS if the clients sends an empty Cookie header.
-   
+
 [Jul 21 2009]
 
  * MODIFIED: Make initialization/1 ISO compliant
@@ -50,96 +73,96 @@
    provides proper integration with saved-states automatically.  Loading
    code using initialization(load_foreign_library(...)) will load the
    library immediately and issue a warning.
-   
+
    See initialization/1,2 for details and further hints for dealing with
    possible compatibility problems.
 [Jul 1 2009]
 
  * ADDED: Allow \-escape inside html(\List).
-   
+
  * ADDED: Return the fact that a handler is a prefix handler in http_current_handler/3.
-   
+
  * ADDED: Allow for http_handler(root(find/concept), ...).  I.e., allow for component/component without quotes,
-   
+
 [Jun 29 2009]
 
  * FIXED: http_currect_session(-, ?) did not generate (all) sessions.
-   
+
  * ADDED: http_close_session/1
-   
+
 [Jun 23 2009]
 
  * MODIFIED: Added option unsafe(Bool) to http_reply_file/3.  This option is by default false, which causes this predicate to refuse serving files with an absolute path, a path outside the working directory or, if an alias(Path) is used, outside the root of the alias.
    If you want to serve such files, you must provide unsafe(true) explicitely.
-   
+
  * ADDED: Reply with 400 Bad Request on illegal HTTP requests
-   
+
 [Mar 19 2009]
 
  * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
 [Mar 12 2009]
 
  * FIXED: Avoid race condition in session management.  Jacco van Ossenbruggen.
-   
+
  * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
-   
+
 [Feb 27 2009]
 
  * FIXED: http_current_server/2 was broken with meta_predicate introduction.
-   
+
 [Feb 25 2009]
 
  * ENHANCED: Use a cache for http_in_session/1 to avoid repetitive access to the CGI stream object.
-   
+
  * FIXED: make http_current_request/1 semidet again.  Added is_cgi_stream/1 for testing whether we are in a CGI context without raising an error.
-   
+
 [Feb 23 2009]
 
  * ENHANCED: Allow the start broadcast-message of the HTTP server to throw an exception.  This allows for defining additional policy-handlers as broadcast plugins.
-   
+
 [Feb 20 2009]
 
  * ADDED: Use nlink property of stream to close the logfile
-   
+
 [Feb 15 2009]
 
  * FIXED: Proper reply on partial content (use 206 reply; fix length computation)
-   
+
 [Feb 3 2009]
 
  * ADDED: HTTP server support for byte-ranges of files.
-   
+
  * ADDED: Parsing of HTTP Range field into a structured term
-   
+
 [Jan 30 2009]
 
  * ENHANCED: HTTP error handler in formulating replies from a file.
-   
+
 [Jan 29 2009]
 
  * CLEANUP: be careful, but to not crash on unexpected event on CGI streams.
-   
+
 [Jan 28 2009]
 
  * ADDED: When matching a prefix-path in http_dispatch, makethe remainder
    of the path available through path_info(PathInfo) in the request.
-   
+
 [Jan 22 2009]
 
  * ADDED: http_in_session/1 to find the current session but do not raise an
    exception if it doesn't exist.
-   
+
  * ADDED: http_current_handler/3 to get access to accumulated options on a path
-   
+
 [Jan 20 2009]
 
  * FIXED: ?- edit(HTTPLocation).  Module-handling issue in locate/3 in http_dispatch.pl
-   
+
  * CLEANUP: http_wrapper.pl: PlDoc and meta-predicate handler
-   
+
  * FIXED: http_open/3: avoid leaking a socket-handle if the tcp_connect
    raises an exception.
-   
+
 [Jan 9 2009]
 
  * ADDED: library(http/html_head), tracking CSS and Javascript dependencies and
@@ -148,7 +171,7 @@
 [Dec 20 2008]
 
  * ADDED: http_log_close/1 to provide for cooperation with logrotate
-   
+
 [Dec 18 2008]
 
  * MSFIX: Accept invalid cookie options sent by Microsoft (httponly). Matt Lilley.
@@ -158,11 +181,11 @@
 [Oct 9 2008]
 
  * ADDED: More flexible support for HTTP 503 (service unavailable) replies.
-   
+
 [Oct 8 2008]
 
  * FIXED: drop body of HTTP 304 response
-   
+
 [Oct 7 2008]
 
  * MODIFIED: Generalized the HTTP dispatch module authentication interface.
@@ -171,57 +194,57 @@
        the request.  The new API allows for multiple authentication
        hooks on the same location.  It is used by PlDoc to provide host
        access control.  See doc_access.pl from the PlDoc package.
-   
+
 [Oct 6 2008]
 
  * FIXED: Updated http_error to deal with new HTTP server
-   
+
 [Oct 5 2008]
 
  * ADDED: Support http_path.pl specifications in http_handler/3.
-   
+
  * MODIFIED: library(http/http_dispatch): Handler changes.
    :- http_handler(prefix(Path), Action, Options) is now
    translated into http_handler(Path, Action, [prefix|Options]) with a
    warning.  Future versions will drop the prefix(Path) syntax as it
    becomes ambiguous after integrating http_path.pl with the handler
    declarations.
-   
+
  * ADDED: html_write.pl: Support href(loc+[name1(value1),name2(value2)])
-   
+
 [Oct 3 2008]
 
  * ADDED: Support encode(Value) and describe http location handling.
-   
+
  * ADDED: http_location_by_id/2 and location_by_id(ID) to html_write values.
    Suggested by Jacco van Ossenbruggen.
-   
+
 [Oct 2 2008]
 
  * ADDED: Allow redefining the HTTP server address output of non-200 pages.
-   
+
  * ADDED: Provide hostname in http error messages
-   
+
  * FIXED: File descriptor leak in http session management.
-   
+
 [Oct 1 2008]
 
  * FIXED: undefined parse_url_ex/3 in http_open.pl (deals with redirections)
-   
+
 [Sep 30 2008]
 
  * ADDED: Support for proxy routes in HTTP session management.  Also cleanup
    and additional tests in library(http/http_session).
-   
+
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 30 2008]
 
  * FIXED: use csym instead of csymf for valid HTTP fieldname characters.  Edward Blake.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
@@ -229,10 +252,10 @@
 
  * MODIFIED: http_read_request/3 throws error on illegal request and http_wrapper/5
    maps these to internal server errors.
-   
+
  * MODIFIED: http_open/3 now raises an error if the URL is not well-formed
    (used to fail silently).
-   
+
 [Jul 31 2008]
 
  * FIXED: handling setting http:chunked_transfer(never).  Yves Raimond.
@@ -241,24 +264,24 @@
  * MODIFIED: Deleted the `after' option processing.  Modern code can start a
    thread to deal with formulating a reply and start procesing after the reply
    has been sent.
-   
+
 [Jul 2 2008]
 
  * ADDED: Support for HTTP 503 (service unavailable)
-   
+
  * ADDED: Support for options chunked and spawn in http_handler/3.
-   
+
 [Jun 27 2008]
 
  * FIXED: Read JSON reply when using chunked encoding
-   
+
  * FIXED: Post header when using data in CGI format (used by JSON posts)
-   
+
 [Jun 25 2008]
 
  * MODIFIED: http_get/3 using to(atom) or to(codes) perform UTF-8 decoding if
    the content type is declared as UTF-8.
-   
+
 [Jul 2 2008]
 
  * ADDED: Bug#365: timeout support for the HTTP client library.  Keri Harris.
@@ -290,7 +313,7 @@
  * MODIFIED: html//1 interpretation of Module:Term.  Previously this acted as
    \(Module:Term), now it acts as Module:html(Term), interpreting an entire
    specification relative to a module.
-   
+
 [Mar 20 2008]
 
  * FIXED: Make HTTP status messages work when using the xhtml dialect
@@ -325,7 +348,7 @@
 
  * PORT: Bug#346: Allow overriding COFLAGS and CWFLAGS in package
    configuration.   Keri Harris.
-   
+
 [Jan 22 2008]
 
  * DOC: Applied various patches.  Item#272, Ulrich Neumerkel.
@@ -334,14 +357,14 @@
 
  * FIXED: Write JSON newlines always as \n.  Also write all control characters
    that have no defined escape (< ' ') as \uXXXX.  Michiel Hildebrand.
-   
+
  * FIXED: json_read/2 for strings holding double-quotes.
 
 [Dec 18 2007]
 
  * WORKAROUND: Emit no DOCTYPE header of the doctype is set to ''.  This avoids
    a bug in Microsoft IE AJAX processing.
-   
+
 [Dec 16 2007]
 
  * FIXED: recursive handling of lists in prolog_to_json/2.  Michiel Hildebrand
@@ -356,7 +379,7 @@
    receiver used by xhtml_ns//2 to define XML namespaces in xhml mode.  Clarified
    documentation of the html_write library with examples on how to deal with HTML
    head material.
-   
+
 [Dec 11 2007]
 
  * DOC: various enhancement to the presentation of pldoc @keywords
@@ -365,12 +388,12 @@
 
  * MODIFIED: renamed library(http/http_chunked) to library(http/http_stream).
    Added range-limited streams
-   
+
 [Dec 5 2007]
 
  * ADDED: library(http/http_json.pl), integrating JSON support into the
    HTTP libraries.
-   
+
 [Dec 4 2007]
 
  * ADDED: library(http/json), providing (still incomplete) JSON support
@@ -387,7 +410,7 @@
 
  * ADDED: post/receive mechanism to modularize CSS and Javascript support in
    library(html_write).  Documented using PlDoc LaTeX backend
-   
+
 Oct 1, 2007
 
  * ADDED: http_stop_server/2 to stop a running HTTP server.
@@ -492,7 +515,7 @@ Feb 9, 2007
 
 Feb 8, 2007
 
-  * ADDED: Map existence_error(http_location, URL) and 
+  * ADDED: Map existence_error(http_location, URL) and
     permission_error(http_location, access, URL) to appropriate HTTP
     headers.
 
@@ -596,7 +619,7 @@ Jan 20, 2006
 
 Jan 16, 2006
 
-  * Fixed redirect handling if the option to(Stream) is given.  
+  * Fixed redirect handling if the option to(Stream) is given.
     Jacco van Ossenbruggen.
 
 Jan 11, 2006
@@ -715,7 +738,7 @@ Jul 18, 2004
   * ENHANCED: handle `normal' errors silent (David Reitter)
 
 Jun 28, 2004
-	
+
   * ENHANCED: print server errors and continue
 
   * ADDED: SSL interface to threaded HTTP server
@@ -762,7 +785,7 @@ Jan 23, 2003
   * ADDED: Provide User-Agent header for the client libraries
 
 Jan 8, 2003
- 
+
   * ADDED: Support for using proxy servers Option: proxy(Host, Port).
 
   * ADDED: Support for 302 (document moved) reply in http_open/3.

@@ -8,6 +8,60 @@
 					--------------------------------------
 
 
+=================================
+VERSION 5.7.15 September 19, 2009
+=================================
+
+ * FIXED: Profiling information about garbage collector
+
+ * FIXED: Use :- debug(Topic). where Topic is not yet defined in directives.
+
+ * FIXED: Ssprintf() and friends: %ld is a long (not intptr_t)
+
+ * FIXED: Bug#423: Interaction between discontiguous and thread_local
+
+ * ADDED: library(uri), providing a much faster and modern API to handling
+   URIs and IRIs.
+
+ * ADDED: CLP(FD): New constraint: scalar_product/4, generalising sum/3.
+
+ * ADDED: Allow for :- module(_, Exports); compatible to Ciao.
+
+ * FIXED: Generate error when loading a file holding a plain variable or
+   a term that is expanded into a variable.
+
+ * ADDED: Allow processing :- encoding(Encoding) before the
+   :- module directive.
+
+ * FIXED: Bug#420: Allow term_expansion on the first term to
+   modify/create/delete the module header.  Peter Schachte.
+
+ * ENHANCED: CLP(FD): Faster linear inequalities.
+
+ * ADDED: CLP(FD): New global constraint "circuit/1", constraining a list
+                   of variables to form a Hamiltonian circuit.
+
+ * FIXED: Bug#417: =@=/2 (variant/2) if left and right share variables.
+   Feliks Kluzniak
+
+ * ENHANCED: CLP(FD): Faster variable selection for "ff" labeling strategy.
+
+ * ENHANCED: library(simplex): Use a dual algorithm ("algorithm
+      alpha-beta" in Papadimitriou and Steiglitz) for transportation and
+      assignment problems, instead of a streamlined simplex algorithm.
+      The arising max-flow problem is solved with Edmonds-Karp, itself a
+      dual algorithm. The implementation is now much more scalable.
+
+ * MODIFIED: Handling of the unknown flag: make it inherit over modules and
+   properly implement the `warning' option.
+
+ * ENHANCED: CLP(FD): Generalised arc-consistency of global_cardinality/2
+         to other cases. In particular, global_cardinality/2 with
+         occurrences between 0 and 1 is now as strong as all_distinct/1.
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+
+
 ==============================
 VERSION 5.7.14 August 17, 2009
 ==============================
