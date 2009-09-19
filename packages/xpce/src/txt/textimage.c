@@ -178,6 +178,7 @@ ensure_lines_screen(TextScreen s, int lines)
       new[n].allocated = chars;
       new[n].changed = 0;
       new[n].start = -1;
+      new[n].y = -1;
     }
 
     if ( s->lines )

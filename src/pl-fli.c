@@ -2710,6 +2710,8 @@ cont:
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_UTF8_STRING ? PL_STRING : PL_ATOM);
+      PL_free_text(&txt);
+
       break;
     }
     case PL_NUTF8_CHARS:
@@ -2727,6 +2729,8 @@ cont:
 			   op == PL_NUTF8_CHARS ? PL_ATOM :
 			   op == PL_NUTF8_CODES ? PL_CODE_LIST :
 			   			  PL_STRING);
+      PL_free_text(&txt);
+
       break;
     }
     case PL_NWCHARS:
@@ -2744,6 +2748,8 @@ cont:
 			   op == PL_NWCHARS ? PL_ATOM :
 			   op == PL_NWCODES ? PL_CODE_LIST :
 					      PL_STRING);
+      PL_free_text(&txt);
+
       break;
     }
     case PL_MBCHARS:
@@ -2761,6 +2767,8 @@ cont:
 			   op == PL_MBCHARS ? PL_ATOM :
 			   op == PL_MBCODES ? PL_CODE_LIST :
 					      PL_STRING);
+      PL_free_text(&txt);
+
       break;
     }
   { functor_t ft;
