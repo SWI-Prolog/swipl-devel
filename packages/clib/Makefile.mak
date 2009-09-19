@@ -93,6 +93,7 @@ idll::
 		copy readutil.dll "$(BINDIR)"
 		copy process.dll "$(BINDIR)"
 		copy sha4pl.dll "$(BINDIR)"
+		copy uri.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy socket.pdb "$(BINDIR)"
 		copy cgi.pdb "$(BINDIR)"
@@ -102,6 +103,7 @@ idll::
 		copy readutil.pdb "$(BINDIR)"
 		copy process.pdb "$(BINDIR)"
 		copy sha4pl.pdb "$(BINDIR)"
+		copy uri.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::

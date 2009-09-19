@@ -382,6 +382,7 @@ Section "RDF and Semantic Web Library"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\rdf_db.dll
+  File pl\bin\turtle.dll
 
   SetOutPath $INSTDIR\library
   File pl\library\rdf.pl
@@ -493,6 +494,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\ssl4pl.pdb
   File pl\bin\zlib4pl.pdb
   File pl\bin\sha4pl.pdb
+  File pl\bin\uri.pdb
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
 SectionEnd
