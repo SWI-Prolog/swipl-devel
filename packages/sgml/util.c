@@ -451,7 +451,7 @@ free_ring(void *ptr)
   int i;
   void **bp;
 
-  for(i=0, bp=r->ring; i<RINGSIZE; i++)
+  for(i=0, bp=r->ring; i<RINGSIZE; i++, bp++)
   { if ( *bp )
     { sgml_free(*bp);
       *bp = NULL;
