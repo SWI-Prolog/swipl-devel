@@ -504,6 +504,8 @@ latex_arg(H) -->
 	  urldef_name(Atom, Name)
 	}, !,
 	latex(cmd(Name)).
+latex_arg(no_escape(Text)) --> !,
+	[no_escape(Text)].
 latex_arg(H) -->
 	latex(H).
 
@@ -1091,7 +1093,7 @@ latex_table(_Attrs, Content) -->
 	},
 %	latex(cmd(begin(table, opt(h)))),
 	latex(cmd(begin(quote))),
-	latex(cmd(begin(tabular, Format))),
+	latex(cmd(begin(tabular, no_escape(Format)))),
 	latex(cmd(hline)),
 	rows(Content),
 	latex(cmd(hline)),
@@ -1237,6 +1239,8 @@ print_latex_token(latex(Code), Out) :- !,
 	write(Out, Code).
 print_latex_token(w(Word), Out) :- !,
 	print_latex(Out, Word).
+print_latex_token(no_escape(Text), Out) :- !,
+	write(Out, Text).
 print_latex_token(Rest, Out) :-
 	(   atomic(Rest)
 	->  print_latex(Out, Rest)
