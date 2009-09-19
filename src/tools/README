@@ -1,0 +1,15 @@
+This directory contains tools developed to  find the consequences of the
+stack-shifter. This tool-chain is designed   for  GNU/Linux systems. The
+main program is update-deps. It is used as follows:
+
+    * Add -dr to COFLAGS and the Makefile and recompile.  This causes
+    GCC to generate RTL-dumps of the compiler in addition to its normal
+    output.
+
+    * Run ./update-deps *.expand. This generates file.c.tree, which
+    represents the call-tree (in Prolog format) and file.c.functions,
+    which represents the line-range for functions, including virtual
+    machine instruction implementations (VMI(...)) and predicates
+    (PRED_IMPL(...)).
+
+    * Use analysis.pl to find problematic code fragments.
