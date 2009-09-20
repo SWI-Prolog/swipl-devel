@@ -443,7 +443,7 @@ early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
   while((char*)state->flictx > (char*)ch)
   { FliFrame fli = state->flictx;
 
-    state->reset_entry = mark_foreign_frame(fli, state->reset_entry);
+    state->reset_entry = mark_foreign_frame(fli, state->reset_entry PASS_LD);
     state->flictx = fli->parent;
   }
 
@@ -608,7 +608,8 @@ mark_stacks(LocalFrame fr, Choice ch)
   }
 
   for( ; state.flictx; state.flictx = state.flictx->parent)
-    state.reset_entry = mark_foreign_frame(state.flictx, state.reset_entry);
+    state.reset_entry = mark_foreign_frame(state.flictx,
+					   state.reset_entry PASS_LD);
 
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }

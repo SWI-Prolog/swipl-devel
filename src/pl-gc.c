@@ -1138,17 +1138,18 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 
 
 static GCTrailEntry
-mark_foreign_frame(FliFrame fr, GCTrailEntry te)
-{ GET_LD
+mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
+{ SECURE(assert(fr->magic == FLI_MAGIC));
 
-  SECURE(assert(fr->magic == FLI_MAGIC));
+  if ( fr->mark.trailtop )
+  { te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
 
-  te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
+    DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
+    needsRelocation(&fr->mark.trailtop);
+    alien_into_relocation_chain(&fr->mark.trailtop,
+				STG_TRAIL, STG_LOCAL PASS_LD);
 
-  DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
-  needsRelocation(&fr->mark.trailtop);
-  alien_into_relocation_chain(&fr->mark.trailtop,
-			      STG_TRAIL, STG_LOCAL PASS_LD);
+  }
 
   return te;
 }
@@ -1166,7 +1167,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
     while((char*)*flictx > (char*)ch)
     { FliFrame fr = *flictx;
 
-      te = mark_foreign_frame(fr, te);
+      te = mark_foreign_frame(fr, te PASS_LD);
       *flictx = fr->parent;
     }
 
@@ -1238,7 +1239,7 @@ mark_stacks(LocalFrame fr, Choice ch)
     te = mark_choicepoints(qf->saved_bfr, te, &flictx);
 
   for( ; flictx; flictx = flictx->parent)
-    te = mark_foreign_frame(flictx, te);
+    te = mark_foreign_frame(flictx, te PASS_LD);
 
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
@@ -1569,7 +1570,8 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    sweep_mark(&fr->mark PASS_LD);
+    if ( fr->mark.trailtop )
+      sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
     { if ( is_marked(sp) )
       {	unmark(sp);
@@ -1600,7 +1602,9 @@ unsweep_foreign(ARG1_LD)
 { FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
-    unsweep_mark(&fr->mark PASS_LD);
+  { if ( fr->mark.trailtop )
+      unsweep_mark(&fr->mark PASS_LD);
+  }
 }
 
 
@@ -2257,7 +2261,8 @@ check_foreign()
     for(n=0 ; n < ff->size; n++ )
       key += checkData(&sp[n]);
 
-    check_mark(&ff->mark);
+    if ( ff->mark.trailtop )
+      check_mark(&ff->mark);
   }
 
   return key;

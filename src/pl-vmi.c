@@ -2769,7 +2769,7 @@ VMI(I_FOPEN, 0, 0, ())
 
   lTop = (LocalFrame)(ffr+1);
   ffr->size = 0;
-  Mark(ffr->mark);
+  NoMark(ffr->mark);
   ffr->parent = fli_context;
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;
@@ -2984,7 +2984,7 @@ foreign_redo:
   ffr = (FliFrame)(ch+1);
   lTop = (LocalFrame)(ffr+1);
   ffr->size = 0;
-  Mark(ffr->mark);
+  NoMark(ffr->mark);
   ffr->parent = fli_context;
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;

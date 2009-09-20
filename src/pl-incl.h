@@ -1493,7 +1493,8 @@ struct alloc_pool
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
 					     LD->frozen_bar : (b).saved_bar); \
 			   } while(0)
-
+#define NoMark(b)	do { (b).trailtop = NULL; \
+			   } while(0)
 
 
 		 /*******************************
