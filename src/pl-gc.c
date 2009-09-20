@@ -2621,8 +2621,13 @@ update_pointer(void *p, intptr_t offset)
 
 static void
 update_mark(mark *m, intptr_t gs, intptr_t ts)
-{ if ( ts ) update_pointer(&m->trailtop, ts);
-  if ( gs ) update_pointer(&m->globaltop, gs);
+{ if ( ts )
+    update_pointer(&m->trailtop, ts);
+  if ( gs )
+  { update_pointer(&m->globaltop, gs);
+    if ( m->saved_bar != NO_MARK_BAR )
+      update_pointer(&m->saved_bar, gs);
+  }
 }
 
 
@@ -2909,7 +2914,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     update_pointer(&LD->foreign_environment, ls);
     update_pointer(&LD->choicepoints,        ls);
   }
-  if ( gs )
+  if ( gs && LD->mark_bar != NO_MARK_BAR )
   { update_pointer(&LD->mark_bar, gs);
   }
 }
