@@ -1792,7 +1792,7 @@ right_recursion:
   if ( isAttVar(*t) )
   { Word p = valPAttVar(*t);
 
-    assert(onStackArea(global, p));
+    assert(onGlobalArea(p));
     t = p;
     goto right_recursion;
   } else if ( isTerm(*t) )

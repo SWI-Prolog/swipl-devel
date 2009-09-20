@@ -147,7 +147,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
 	 (char *)(addr) <  (char *)LD->stacks.name.max)
 
-#define onGlobal(p)	onStackArea(global, p) /* onStack()? */
+#define onGlobal(p)	onGlobalArea(p) /* onStack()? */
 #define onLocal(p)	onStackArea(local, p)
 #define onTrail(p)	topPointerOnStack(trail, p)
 
@@ -409,7 +409,7 @@ static inline word
 makePtr(Word ptr, int tag ARG_LD)
 { int stg;
 
-  if ( onStackArea(global, ptr) )
+  if ( onGlobalArea(ptr) )
     stg = STG_GLOBAL;
   else if ( onStackArea(local, ptr) )
     stg = STG_LOCAL;
@@ -1439,7 +1439,7 @@ tag_trail()
     { if ( onLocal(te->address) )
       { stg = STG_LOCAL;
       } else
-      { SECURE(assert(onStackArea(global, te->address)));
+      { SECURE(assert(onGlobalArea(te->address)));
 	stg = STG_GLOBAL;
       }
 
@@ -2178,8 +2178,8 @@ check_mark(mark *m)
 { GET_LD
 
   assert(onTrailArea(m->trailtop));
-  assert(onStackArea(global, m->globaltop));
-  assert(onStackArea(global, m->saved_bar));
+  assert(onGlobalArea(m->globaltop));
+  assert(onGlobalArea(m->saved_bar));
 }
 
 
@@ -2296,7 +2296,7 @@ check_trail()
       assert(!isTrailVal(te->address));
 #ifdef O_SECURE
     } else
-    { if ( onStackArea(global, te->address) )
+    { if ( onGlobalArea(te->address) )
       { if ( !onStack(global, te->address) )
 	{ char b1[64], b2[64], b3[64];
 
@@ -2663,7 +2663,7 @@ update_lg_pointer(void *p, intptr_t ls, intptr_t gs ARG_LD)
 
   if ( onStackArea(local, *ptr) )
   { update_pointer(p, ls);
-  } else if ( onStackArea(global, *ptr) )
+  } else if ( onGlobalArea(*ptr) )
   { update_pointer(p, gs);
   }
 }

@@ -2651,7 +2651,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 	  gp[5] = *p2;
 	} else
 	{ gp[5] = *p;
-	  assert(onStackArea(global, p));
+	  assert(onGlobalArea(p));
 	  gp[4] = makeRefG(p);
 	  setVar(*p);
 	}
@@ -2877,7 +2877,7 @@ again:
       } else
       { Word attr;			/* the new attributes */
 
-	if ( !onStackArea(global, to) )
+	if ( !onGlobalArea(to) )
 	{ Word t;
 
 	  if ( !(t = allocGlobalNoShift(1)) )
