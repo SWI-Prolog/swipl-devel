@@ -108,6 +108,7 @@ Marking, testing marks and extracting values from GC masked words.
 #if O_SECURE
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
+#define relocated_cell(p) do_relocated_cell(p PASS_LD)
 #define recordMark(p)   { if ( (char*)(p) < (char*)lBase ) \
 			  { assert(onStack(global, p)); \
 			    *mark_top++ = (p); \
@@ -116,6 +117,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
+#define relocated_cell(p)  { relocated_cells++; }
 #define check_relocation(p)
 #define markLocal(p) (local_marked++)
 #define processLocal(p) (local_marked--)
@@ -307,13 +309,17 @@ print_val(word val, char *buf)
 
 #if O_SECURE
 
+#define RELOC_NEEDS   ((void*)1)
+#define RELOC_CHAINED ((void*)2)
+#define RELOC_UPDATED ((void*)3)
+
 static void
 needsRelocation(void *addr)
 { GET_LD
 
   needs_relocation++;
 
-  addHTable(check_table, addr, (void*)TRUE);
+  addHTable(check_table, addr, RELOC_NEEDS);
 }
 
 
@@ -329,12 +335,56 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
     return;
   }
 
-  if ( !s->value )
+  if ( s->value != RELOC_NEEDS )
   { sysError("%s:%d: Relocated twice: 0x%lx", file, line, addr);
     return;
   }
 
-  s->value = FALSE;
+  s->value = RELOC_CHAINED;
+}
+
+
+static void
+do_relocated_cell(Word addr ARG_LD)
+{ Symbol s;
+
+  if ( !(s=lookupHTable(check_table, addr)) )
+  { char buf1[64];
+
+    sysError("Address %s was not supposed to be updated",
+	     print_adr(addr, buf1));
+    return;
+  }
+
+  if ( s->value == RELOC_UPDATED )
+  { char buf1[64];
+
+    sysError("%s: updated twice", print_adr(addr, buf1));
+    return;
+  }
+
+  s->value = RELOC_UPDATED;
+  relocated_cells++;
+}
+
+static void
+printNotRelocated()
+{ GET_LD
+  TableEnum e = newTableEnum(check_table);
+  Symbol s;
+
+  Sdprintf("Not relocated cells:\n");
+
+  while((s=advanceTableEnum(e)))
+  { if ( s->value == RELOC_CHAINED )
+    { Word p = s->name;
+      char buf1[64];
+
+      Sdprintf("\t%s\n", print_adr(p, buf1));
+    }
+  }
+
+  freeTableEnum(e);
 }
 
 
@@ -345,6 +395,7 @@ markLocal(Word addr)
   local_marked++;
   addHTable(local_table, addr, (void*)TRUE);
 }
+
 
 static void
 processLocal(Word addr)
@@ -1146,6 +1197,7 @@ mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
 
     DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
+    check_relocation((Word)&fr->mark.trailtop);
     SECURE(assert(isRealMark(fr->mark)));
     alien_into_relocation_chain(&fr->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
@@ -1182,6 +1234,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
     te = early_reset_vars(&ch->mark, top, te PASS_LD);
 
     needsRelocation(&ch->mark.trailtop);
+    check_relocation(&ch->mark.trailtop);
     alien_into_relocation_chain(&ch->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
     SECURE(trailtops_marked--);
@@ -1333,7 +1386,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 	      Sdprintf("Updating trail-mark of foreign frame at %p\n", f);
 	  });
     set_value(current, makePtr(dest, tag PASS_LD));
-    relocated_cells++;
+    relocated_cell(current);
   } while( is_first(current) );
 
   set_value(head, val);
@@ -1542,6 +1595,7 @@ sweep_global_mark(Word *m ARG_LD)
       *m = gm;
       DEBUG(3, Sdprintf("gTop mark from choice point: "));
       needsRelocation(m);
+      check_relocation((Word)m);
       alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
       return;
     } else if ( storage(*prev) == STG_LOCAL )
@@ -1656,11 +1710,13 @@ sweep_trail(void)
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
       if ( ttag(te->address) == TAG_TRAILVAL )
       { needsRelocation(&te->address);
+	check_relocation(&te->address);
 	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
       } else
 #endif
       if ( storage(te->address) == STG_GLOBAL )
       { needsRelocation(&te->address);
+	check_relocation(&te->address);
 	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
       }
     }
@@ -1965,8 +2021,10 @@ compact_global(void)
     sysError("Mismatch in down phase: dest = %p, gBase = %p\n",
 	     dest, gBase);
   if ( relocation_cells != relocated_cells )
+  { SECURE(printNotRelocated());
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
 	     relocation_cells, relocated_cells);
+  }
 
   SECURE(check_marked("Before up"));
 
