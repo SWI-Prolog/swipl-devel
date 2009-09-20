@@ -3001,7 +3001,7 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, DEF->functor->arity, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3010,7 +3010,7 @@ VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(&context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
@@ -3019,7 +3019,7 @@ VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3028,7 +3028,7 @@ VMI(I_FCALLNDET2, 0, 1, (CA1_FOREIGN))
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
   rc = (*f)(h0, h0+1, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3038,7 +3038,7 @@ VMI(I_FCALLNDET3, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3048,7 +3048,7 @@ VMI(I_FCALLNDET4, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3058,7 +3058,7 @@ VMI(I_FCALLNDET5, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3068,7 +3068,7 @@ VMI(I_FCALLNDET6, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, h0+5, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3078,7 +3078,7 @@ VMI(I_FCALLNDET7, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3088,7 +3088,7 @@ VMI(I_FCALLNDET8, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3098,7 +3098,7 @@ VMI(I_FCALLNDET9, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3108,7 +3108,7 @@ VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
 
   PROF_FOREIGN;
   rc = (*f)(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9, &context);
-  NEXT_INSTRUCTION;
+  VMI_GOTO(I_FEXITNDET);
 }
 
 
@@ -3127,13 +3127,13 @@ VMI(I_FEXITNDET, 0, 0, ())
       { exception_term = 0;
 	setVar(*valTermRef(exception_bin));
       }
-      assert(BFR->value.PC == PC);
+      SECURE(assert(BFR->value.PC == PC+1)); /* +1 because we use VMI_GOTO */
       BFR = BFR->parent;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	goto b_throw;
-      assert(BFR->value.PC == PC);
+      SECURE(assert(BFR->value.PC == PC+1));
       BFR = BFR->parent;
       FRAME_FAILED;
     default:
