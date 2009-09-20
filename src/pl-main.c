@@ -738,8 +738,8 @@ script_argv(int argc, char **argv)
     char *av[MAXARGV];
     int  an = 0;
 
-    fgets(buf, sizeof(buf), fd);
-    if ( !strprefix(buf, "#!") )
+    if ( !fgets(buf, sizeof(buf), fd) ||
+	 !strprefix(buf, "#!") )
     { fclose(fd);
       goto noscript;
     }
