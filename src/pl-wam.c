@@ -339,6 +339,7 @@ close_foreign_frame(fid_t id ARG_LD)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
   assert(fr->magic == FLI_MAGIC);
+  DiscardMark(fr->mark);
   fr->magic = FLI_MAGIC_CLOSED;
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
