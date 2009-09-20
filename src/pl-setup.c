@@ -1092,6 +1092,7 @@ emptyStacks()
   emptyStack((Stack)&LD->stacks.trail);
   emptyStack((Stack)&LD->stacks.argument);
 
+  LD->mark_bar          = gTop;
   PL_open_foreign_frame();
   exception_bin         = PL_new_term_ref();
   exception_printed     = PL_new_term_ref();
@@ -1106,8 +1107,6 @@ emptyStacks()
 #ifdef O_GVAR
   destroyGlobalVars();
 #endif
-
-  LD->mark_bar          = gTop;
 }
 
 

@@ -1559,6 +1559,8 @@ static inline void
 sweep_mark(mark *m ARG_LD)
 { marks_swept++;
   sweep_global_mark(&m->globaltop PASS_LD);
+  if ( m->saved_bar > gTop )
+    m->saved_bar = gTop;
   sweep_global_mark(&m->saved_bar PASS_LD);
 }
 
@@ -2496,6 +2498,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   tTop->address = 0;
 
   fid = gvars_to_term_refs(&saved_bar_at);
+  SECURE(check_foreign());
   tag_trail();
   mark_phase(fr, ch);
   tgar = trailcells_deleted * sizeof(struct trail_entry);

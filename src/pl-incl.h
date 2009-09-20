@@ -1486,6 +1486,7 @@ struct alloc_pool
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
+			     assert(onGlobalArea((b).saved_bar)); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
@@ -1709,6 +1710,9 @@ typedef struct
 #define onTrailArea(addr) \
 	((char *)(addr) >= (char *)tBase && \
 	 (char *)(addr) <  (char *)tMax + tSpare)
+#define onGlobalArea(addr) \
+	((char *)(addr) >= (char *)gBase && \
+	 (char *)(addr) <  (char *)lBase)
 #define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
 #define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
 #define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
