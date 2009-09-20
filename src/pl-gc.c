@@ -2044,6 +2044,7 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
   unsweep_foreign(PASS_LD1);
   unsweep_stacks(fr, ch PASS_LD);
 
+  assert(marks_swept==marks_unswept);
   if ( relocation_chains != 0 )
     sysError("relocation chains = %ld", relocation_chains);
   if ( relocated_cells != relocation_cells ||
@@ -2485,6 +2486,8 @@ garbageCollect(LocalFrame fr, Choice ch)
   relocation_cells  = 0;
   relocated_cells   = 0;
   local_marked	    = 0;
+  marks_swept	    = 0;
+  marks_unswept	    = 0;
   LD->gc.marked_attvars = FALSE;
 
   requireStack(global, sizeof(word));
