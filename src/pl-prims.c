@@ -325,15 +325,15 @@ static
 PRED_IMPL("=", 2, unify, 0)
 { PRED_LD
   Word p0 = valTermRef(A1);
-  tmp_mark m;
+  mark m;
   int rval;
 
-  TmpMark(m);
+  Mark(m);
   if ( !(rval = raw_unify_ptrs(p0, p0+1 PASS_LD)) )
   { if ( !exception_term )
-      TmpUndo(m);
+      Undo(m);
   }
-  EndTmpMark(m);
+  DiscardMark(m);
 
   return rval;
 }
@@ -362,13 +362,13 @@ to preserve the exception term.
 
 bool
 unify_ptrs(Word t1, Word t2 ARG_LD)
-{ tmp_mark m;
+{ mark m;
   bool rval;
 
-  TmpMark(m);
+  Mark(m);
   if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    TmpUndo(m);
-  EndTmpMark(m);
+    Undo(m);
+  DiscardMark(m);
 
   return rval;
 }
@@ -385,14 +385,14 @@ reference to the exception term.
 bool
 can_unify(Word t1, Word t2, term_t *ex)
 { GET_LD
-  tmp_mark m;
+  mark m;
   bool rval;
 
-  TmpMark(m);
+  Mark(m);
   if ( (rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
     rval = foreignWakeup(ex PASS_LD);
-  TmpUndo(m);
-  EndTmpMark(m);
+  Undo(m);
+  DiscardMark(m);
 
   return rval;
 }
@@ -1618,10 +1618,10 @@ either equal or non-equal. I.e. X and Y are equal or they cannot unify.
 static
 PRED_IMPL("?=", 2, can_compare, 0)
 { PRED_LD
-  tmp_mark m;
+  mark m;
   bool rval;
 
-  TmpMark(m);
+  Mark(m);
   rval = PL_unify(A1, A2);
   if ( rval )
   { if ( m.trailtop != tTop )
@@ -1632,9 +1632,9 @@ PRED_IMPL("?=", 2, can_compare, 0)
   } else
   { rval = TRUE;			/* cannot unify */
   }
-  TmpUndo(m);
+  Undo(m);
 no_undo:
-  EndTmpMark(m);
+  DiscardMark(m);
 
   return rval;
 }
@@ -2434,13 +2434,13 @@ PRED_IMPL("subsumes", 2, subsumes, 0)
 static
 PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
 { PRED_LD
-  tmp_mark m;
+  mark m;
   int rc;
 
-  TmpMark(m);
+  Mark(m);
   rc = subsumes(A1, A2 PASS_LD);
-  TmpUndo(m);
-  EndTmpMark(m);
+  Undo(m);
+  DiscardMark(m);
 
   return rc;
 }
@@ -2572,14 +2572,14 @@ static int
 unify_all_trail(term_t t1, term_t t2 ARG_LD)
 { Word p1 = valTermRef(t1);
   Word p2 = valTermRef(t2);
-  tmp_mark m;
+  mark m;
   bool rval;
 
-  TmpMark(m);
+  Mark(m);
   LD->mark_bar = NO_MARK_BAR;
   if ( !(rval = raw_unify_ptrs(p1, p2 PASS_LD)) )
-    TmpUndo(m);
-  EndTmpMark(m);
+    Undo(m);
+  DiscardMark(m);
 
   return rval;
 }

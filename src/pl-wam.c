@@ -1288,21 +1288,29 @@ chp_chars(Choice ch)
 
 static void
 discardChoicesAfter(LocalFrame fr ARG_LD)
-{ for(; BFR && (LocalFrame)BFR > fr; BFR = BFR->parent)
-  { LocalFrame fr2;
+{ if ( (LocalFrame)BFR > fr )
+  { for(;;)
+    { Choice me = BFR;
+      LocalFrame fr2;
 
-    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(BFR)));
-    for(fr2 = BFR->frame;
-	fr2 && fr2->clause && fr2 > fr;
-	fr2 = fr2->parent)
-    { discardFrame(fr2, FINISH_CUT PASS_LD);
-      if ( exception_term )
+      DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
+      for(fr2 = me->frame;
+	  fr2 && fr2->clause && fr2 > fr;
+	  fr2 = fr2->parent)
+      { discardFrame(fr2, FINISH_CUT PASS_LD);
+	if ( exception_term )
+	  break;
+      }
+
+      BFR = me->parent;
+      if ( (LocalFrame)BFR <= fr )
+      { DiscardMark(me->mark);
 	break;
+      }
     }
-  }
 
-  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
-  LD->mark_bar = BFR->mark.globaltop;
+    DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
+  }
 }
 
 

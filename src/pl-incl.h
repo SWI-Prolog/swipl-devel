@@ -1109,13 +1109,8 @@ typedef struct
 struct mark
 { TrailEntry	trailtop;	/* top of the trail stack */
   Word		globaltop;	/* top of the global stack */
+  Word		saved_bar;	/* saved LD->mark_bar */
 };
-
-typedef struct tmp_mark
-{ TrailEntry	trailtop;	/* top of the trail stack */
-  Word		globaltop;	/* top of the global stack */
-  Word		saved_mark;	/* saved LD->mark_bar */
-} tmp_mark;
 
 struct functor
 { word		definition;	/* Tagged definition pointer */
@@ -1474,7 +1469,6 @@ struct alloc_pool
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 #define Undo(b)		do_undo(&b)
-#define TmpUndo(b)	do_undo((mark*)&b)
 
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
@@ -1493,16 +1487,13 @@ struct alloc_pool
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
+			     (b).saved_bar = LD->mark_bar; \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
-
-#define TmpMark(b)	do { (b).trailtop  = tTop; \
-			     (b).saved_mark = LD->mark_bar; \
-			     LD->mark_bar = (b).globaltop = gTop; \
+#define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
+					     LD->frozen_bar : (b).saved_bar); \
 			   } while(0)
 
-#define EndTmpMark(b)	do { LD->mark_bar = (b).saved_mark; \
-			   } while(0)
 
 
 		 /*******************************
