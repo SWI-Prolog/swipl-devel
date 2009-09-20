@@ -1107,7 +1107,7 @@ emptyStacks()
   destroyGlobalVars();
 #endif
 
-  LD->mark_bar          = NO_MARK_BAR;
+  LD->mark_bar          = gTop;
 }
 
 

@@ -1141,11 +1141,12 @@ static GCTrailEntry
 mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
 { SECURE(assert(fr->magic == FLI_MAGIC));
 
-  if ( fr->mark.trailtop )
+  if ( isRealMark(fr->mark) )
   { te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
 
     DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
+    SECURE(assert(isRealMark(fr->mark)));
     alien_into_relocation_chain(&fr->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
 
@@ -1558,6 +1559,7 @@ static inline void
 sweep_mark(mark *m ARG_LD)
 { marks_swept++;
   sweep_global_mark(&m->globaltop PASS_LD);
+  sweep_global_mark(&m->saved_bar PASS_LD);
 }
 
 
@@ -1570,7 +1572,7 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    if ( fr->mark.trailtop )
+    if ( isRealMark(fr->mark) )
       sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
     { if ( is_marked(sp) )
@@ -1590,6 +1592,7 @@ static void
 unsweep_mark(mark *m ARG_LD)
 { m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
   m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
+  m->saved_bar = valPtr2((word)m->saved_bar, STG_GLOBAL);
 
   SECURE(check_mark(m));
 
@@ -1602,7 +1605,7 @@ unsweep_foreign(ARG1_LD)
 { FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
-  { if ( fr->mark.trailtop )
+  { if ( isRealMark(fr->mark) )
       unsweep_mark(&fr->mark PASS_LD);
   }
 }
@@ -2173,6 +2176,7 @@ check_mark(mark *m)
 
   assert(onTrailArea(m->trailtop));
   assert(onStackArea(global, m->globaltop));
+  assert(onStackArea(global, m->saved_bar));
 }
 
 
@@ -2261,7 +2265,7 @@ check_foreign()
     for(n=0 ; n < ff->size; n++ )
       key += checkData(&sp[n]);
 
-    if ( ff->mark.trailtop )
+    if ( isRealMark(ff->mark) )
       check_mark(&ff->mark);
   }
 
@@ -2625,8 +2629,7 @@ update_mark(mark *m, intptr_t gs, intptr_t ts)
     update_pointer(&m->trailtop, ts);
   if ( gs )
   { update_pointer(&m->globaltop, gs);
-    if ( m->saved_bar != NO_MARK_BAR )
-      update_pointer(&m->saved_bar, gs);
+    update_pointer(&m->saved_bar, gs);
   }
 }
 
@@ -2914,7 +2917,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     update_pointer(&LD->foreign_environment, ls);
     update_pointer(&LD->choicepoints,        ls);
   }
-  if ( gs && LD->mark_bar != NO_MARK_BAR )
+  if ( gs )
   { update_pointer(&LD->mark_bar, gs);
   }
 }

@@ -2576,7 +2576,7 @@ unify_all_trail(term_t t1, term_t t2 ARG_LD)
   bool rval;
 
   Mark(m);
-  LD->mark_bar = NO_MARK_BAR;
+  LD->mark_bar = gTop;			/* so all globals refs are trailed */
   if ( !(rval = raw_unify_ptrs(p1, p2 PASS_LD)) )
     Undo(m);
   DiscardMark(m);

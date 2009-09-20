@@ -1484,8 +1484,6 @@ struct alloc_pool
 			    } while(0)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define NO_MARK_BAR	(Word)(~(uintptr_t)0)
-
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
 			     LD->mark_bar = (b).globaltop = gTop; \
@@ -1493,8 +1491,10 @@ struct alloc_pool
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
 					     LD->frozen_bar : (b).saved_bar); \
 			   } while(0)
-#define NoMark(b)	do { (b).trailtop = NULL; \
+#define NOT_A_MARK	(TrailEntry)(~(word)0)
+#define NoMark(b)	do { (b).trailtop = NOT_A_MARK; \
 			   } while(0)
+#define isRealMark(b)	((b).trailtop != NOT_A_MARK)
 
 
 		 /*******************************
