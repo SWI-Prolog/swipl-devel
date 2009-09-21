@@ -382,7 +382,7 @@ extern void		initPrologThreads(void);
 #define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
 #define linkVal(p)		linkVal__LD(p PASS_LD)
 #define put_number(n)		put_number__LD(n PASS_LD)
-#define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
+#define TrailAssignmentEx(p)	TrailAssignment__LD(p PASS_LD)
 #ifdef O_SHIFT_STACKS
 #define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
 #else

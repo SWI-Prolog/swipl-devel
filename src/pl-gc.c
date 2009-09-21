@@ -1019,7 +1019,7 @@ mark_environments(LocalFrame fr, Code PC)
 #endif /*not LIFE_GC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If multiple TrailAssignment() calls happen on  the same address within a
+If multiple TrailAssignmentEx() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail
 for this choicepoint from the mark to the  top and mark (using the FIRST
 mark) the (global stack) addresses trailed. If we find one marked we can

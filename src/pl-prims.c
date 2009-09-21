@@ -184,9 +184,19 @@ are:
   - various macros, for example APPENDLIST and CLOSELIST
   - unifyAtomic(): unification of atomic data.
   - various builtin predicates. They should be flagged some way.
+
+Returns one of:
+
+  - FALSE:		terms cannot unify.  Note that this routine does not
+	   		rollback changes it made!
+  - TRUE:  		Unification has completed sucessfully
+  - GLOBAL_OVERFLOW:	Unification cannot be completed due to lack
+			of global-space.
+  - TRAIL_OVERFLOW:	Unification cannot be completed due to lack
+			of trail-space.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 do_unify(Word t1, Word t2 ARG_LD)
 {
   word w1;
@@ -214,13 +224,13 @@ right_recursion:
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
-	Trail(t2);
+	TrailEx(t2);
 	succeed;
       }
       if ( t1 == t2 )
 	succeed;
       *t1 = makeRef(t2);
-      Trail(t1);
+      TrailEx(t1);
       succeed;
     }
 #ifdef O_ATTVAR
@@ -228,7 +238,7 @@ right_recursion:
 #else
     *t1 = w2;
 #endif
-    Trail(t1);
+    TrailEx(t1);
     succeed;
   }
   if ( isVar(w2) )
@@ -238,7 +248,7 @@ right_recursion:
 #else
     *t2 = w1;
 #endif
-    Trail(t2);
+    TrailEx(t2);
     succeed;
   }
 
@@ -466,11 +476,11 @@ right_recursion:
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
-	Trail(t2);
+	TrailEx(t2);
 	succeed;
       }
       *t1 = makeRef(t2);
-      Trail(t1);
+      TrailEx(t1);
       succeed;
     }
     if ( onStack(global, t1) && var_occurs_in(t1, t2) )
@@ -480,7 +490,7 @@ right_recursion:
 #else
     *t1 = w2;
 #endif
-    Trail(t1);
+    TrailEx(t1);
     succeed;
   }
   if ( isVar(w2) )
@@ -492,7 +502,7 @@ right_recursion:
 #else
     *t2 = w1;
 #endif
-    Trail(t2);
+    TrailEx(t2);
     succeed;
   }
 
@@ -1829,7 +1839,7 @@ setarg(term_t n, term_t term, term_t value, int flags)
     if ( isVar(*a) )
     { return unify_ptrs(valTermRef(value), a PASS_LD);
     } else
-    { TrailAssignment(a);
+    { TrailAssignmentEx(a);
     }
   } else
   { v = valTermRef(value);
@@ -2099,7 +2109,7 @@ start:
     { assignAttVar(p, &v PASS_LD);
     } else
     { *p = v;
-      Trail(p);
+      TrailEx(p);
     }
   } else if ( isTerm(*p) )
   { Functor f = valueTerm(*p);

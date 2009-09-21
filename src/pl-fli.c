@@ -2569,7 +2569,7 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
     setVar(*++a);
     setHandle(t, makeRefG(a));
 
-    Trail(p);
+    TrailEx(p);
   } else if ( isList(*p) )
   { Word a = argTermP(*p, 0);
 
@@ -2892,7 +2892,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
     { Word a = allocGlobal(2);
 
       *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-      Trail(p);
+      TrailEx(p);
       *a++ = FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = makeNum(ref->value.i);
@@ -2911,7 +2911,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 	succeed;
       if ( isVar(*a) )
       { *a = v;
-        Trail(a);
+        TrailEx(a);
 	succeed;
       }
       if ( isIndirect(v) )

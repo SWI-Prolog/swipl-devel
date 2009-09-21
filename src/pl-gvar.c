@@ -73,7 +73,7 @@ free_nb_linkval_symbol(Symbol s)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Assign  a  global  variable.  For    backtrackable   variables  we  need
-TrailAssignment(), but we can only call that  on addresses on the global
+TrailAssignmentEx(), but we can only call that  on addresses on the global
 stack. Therefore we must make  a  reference   to  the  real value if the
 variable is not already a reference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -104,7 +104,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 
       setVar(*p2);
       w = *p = makeRef(p2);
-      Trail(p);
+      TrailEx(p);
     } else
     { w = makeRef(p);
     }
@@ -127,7 +127,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   { if ( isRef(old) )
     { Word p = unRef(old);
 
-      TrailAssignment(p);
+      TrailAssignmentEx(p);
       *p = w;
     } else
     { Word p = allocGlobal(1);
@@ -136,7 +136,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
       if ( storage(old) != STG_GLOBAL )
 	LD->gvar.grefs++;
       s->value = (void*)makeRefG(p);
-      TrailAssignment(p);
+      TrailAssignmentEx(p);
       *p = w;
     }
   } else

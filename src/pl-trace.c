@@ -1630,7 +1630,7 @@ prolog_frame_attribute(term_t frame, term_t what,
        return unify_ptrs(p, argp PASS_LD); /* unsafe: allow loosing var identity */
      else
        *p = makeRef(argp);		/* safe: preserve identity */
-     Trail(p);
+     TrailEx(p);
      succeed;
    }
 
@@ -1703,7 +1703,7 @@ prolog_frame_attribute(term_t frame, term_t what,
 	deRef2(argv+n, a);
 	if ( isVar(*a) && onStack(local, a) && gc_status.blocked )
 	{ *a = makeRef(argp);
-	  Trail(a);
+	  TrailEx(a);
 	} else
 	  *argp = (needsRef(*a) ? makeRef(a) : *a);
       }

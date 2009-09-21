@@ -239,13 +239,13 @@ and while loading .wic files.  It comes at no price.
 #ifdef O_ATTVAR
 #define bindConst(p, c) if ( isVar(*p) ) \
 			{ *p = (c); \
-    			  Trail(p); \
+    			  TrailEx(p); \
 			} else \
 			{ assignAttVar(p, &(c) PASS_LD); \
 			}
 #else
 #define bindConst(p, c) { *p = (c); \
-			  Trail(p); \
+			  TrailEx(p); \
 			}
 #endif
 

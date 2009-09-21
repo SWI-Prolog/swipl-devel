@@ -83,18 +83,18 @@ registerWakeup(Word name, Word value ARG_LD)
   { Word t;				/* Non-empty list */
 
     deRef2(tail, t);
-    TrailAssignment(t);
+    TrailAssignmentEx(t);
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    TrailAssignment(tail);		/* on local stack! */
+    TrailAssignmentEx(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
 
     assert(isVar(*head));
-    TrailAssignment(head);		/* See (*) */
+    TrailAssignmentEx(head);		/* See (*) */
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    TrailAssignment(tail);
+    TrailAssignmentEx(tail);
     *tail = makeRef(wake+3);
     LD->alerted |= ALERT_WAKEUP;
     DEBUG(1, Sdprintf("new wakeup\n"));
@@ -143,7 +143,7 @@ assignAttVar(Word av, Word value ARG_LD)
   if ( !registerWakeup(a, value PASS_LD) )
     fail;
 
-  TrailAssignment(av);
+  TrailAssignmentEx(av);
   if ( isAttVar(*value) )
   { DEBUG(1, Sdprintf("Unifying two attvars\n"));
     *av = makeRef(value);
@@ -173,7 +173,7 @@ make_new_attvar(Word p ARG_LD)
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
   }
 
-  Trail(p);
+  TrailEx(p);
 }
 
 
@@ -200,7 +200,7 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
-  Trail(p);
+  TrailEx(p);
   succeed;
 }
 
@@ -268,7 +268,7 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
 { Word vp;
 
   if ( find_attr(av, name, &vp PASS_LD) )
-  { TrailAssignment(vp);
+  { TrailAssignmentEx(vp);
     *vp = linkVal(value);
   } else if ( vp )
   { Word at = allocGlobal(4);
@@ -278,7 +278,7 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
     at[2] = linkVal(value);
     at[3] = ATOM_nil;
 
-    TrailAssignment(vp);
+    TrailAssignmentEx(vp);
     *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
   } else
     fail;
@@ -336,7 +336,7 @@ del_attr(Word av, atom_t name ARG_LD)
 
 	deRef2(&f->arguments[0], n);
 	if ( *n == name )
-	{ TrailAssignment(prev);
+	{ TrailAssignmentEx(prev);
 
 	  *prev = f->arguments[2];
 	  succeed;
@@ -533,7 +533,7 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
 
     setVar(*p);
     *vp = makeRefG(p);
-    Trail(vp);
+    TrailEx(vp);
     vp = p;
   }
 
@@ -569,7 +569,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   }
 
   vp = valPAttVar(*av);
-  TrailAssignment(vp);
+  TrailAssignmentEx(vp);
   *vp = linkVal(valTermRef(A2));
 
   succeed;
@@ -594,7 +594,7 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
 
       deRef(l);
       if ( isNil(*l) )
-      { TrailAssignment(av);
+      { TrailAssignmentEx(av);
 	setVar(*av);
       }
     }
@@ -613,7 +613,7 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
   deRef(av);
 
   if ( isAttVar(*av) )
-  { TrailAssignment(av);
+  { TrailAssignmentEx(av);
     setVar(*av);
   }
 
@@ -667,7 +667,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 	gc[1] = linkVal(vp);
 	gc[2] = goal;
 
-	TrailAssignment(vp);
+	TrailAssignmentEx(vp);
 	*vp = consPtr(gc, TAG_COMPOUND|STG_GLOBAL);
       } else if ( vp )				/* vp points to [] */
       { Word at = allocGlobal(4);		/* 4 cells global  */
@@ -678,7 +678,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 	at[3] = ATOM_nil;
 
 	assert(*vp == ATOM_nil);
-	TrailAssignment(vp);
+	TrailAssignmentEx(vp);
 	*vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
       } else
 	assert(0);				/* bad attribute list */

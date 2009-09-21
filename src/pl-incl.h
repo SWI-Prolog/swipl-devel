@@ -1504,7 +1504,7 @@ struct alloc_pool
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Trail  an  assignment.  Note  that  -when  using  dynamic  stacks-,  the
-assignment should be made *before* calling Trail()!
+assignment should be made *before* calling TrailEx()!
 
 p is a pointer into the local or   global stack. We trail any assignment
 made in the local stack. If the current   mark is from a choice-point we
@@ -1518,7 +1518,7 @@ value need not be trailed.
 Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define Trail(p) \
+#define TrailEx(p) \
   if ( p >= (Word)lBase || p < LD->mark_bar ) \
   { requireTrailStack(sizeof(struct trail_entry)); \
     (tTop++)->address = p; \
@@ -1734,6 +1734,8 @@ typedef struct
 #define triggerStack(name) triggerStackP(&LD->stacks.name)
 
 #define GROW_TRIM ((size_t)-1)
+#define GLOBAL_OVERFLOW	(-1)
+#define TRAIL_OVERFLOW	(-2)
 
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
@@ -1741,7 +1743,6 @@ typedef enum
   STACK_OVERFLOW_THROW,
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
-
 
 #ifdef O_SEGV_HANDLING
 

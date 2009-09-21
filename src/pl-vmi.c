@@ -424,7 +424,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
       { if ( k > ARGP )			/* k on local stack */
 	{ setVar(*ARGP);
 	  *k = makeRefG(ARGP);
-	  Trail(k);
+	  TrailEx(k);
 	} else
 	{ *ARGP = makeRefG(k);		/* ARGP on global, so k also */
 	}
@@ -780,7 +780,7 @@ VMI(B_ARGVAR, 0, 1, (CA1_VAR))
   { if ( ARGP < k )
     { setVar(*ARGP);
       *k = makeRefG(ARGP++);
-      Trail(k);
+      TrailEx(k);
       NEXT_INSTRUCTION;
     }
     *ARGP++ = makeRefG(k);	/* both on global stack! */
