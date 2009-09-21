@@ -446,7 +446,7 @@ failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 }
 
 
-static bool
+static int
 unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 { word w1;
   word w2;
@@ -470,35 +470,27 @@ right_recursion:
   if ( isVar(w1) )
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
-      { *t2 = makeRef(t1);
-	TrailEx(t2);
-	succeed;
+      { return Trail(t2, makeRef(t1));
       }
-      *t1 = makeRef(t2);
-      TrailEx(t1);
-      succeed;
+      return Trail(t1, makeRef(t2));
     }
     if ( onStack(global, t1) && var_occurs_in(t1, t2) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
 #ifdef O_ATTVAR
-    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
-#else
-    *t1 = w2;
+    if ( isAttVar(w2) )
+      w2 = makeRef(t2);
 #endif
-    TrailEx(t1);
-    succeed;
+    return Trail(t1, w2);
   }
   if ( isVar(w2) )
   { if ( onStack(global, t2) && var_occurs_in(t2, t1) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 
 #ifdef O_ATTVAR
-    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
-#else
-    *t2 = w1;
+    if ( isAttVar(w1) )
+      w1 = makeRef(t1);
 #endif
-    TrailEx(t2);
-    succeed;
+    return Trail(t2, w1);
   }
 
 #ifdef O_ATTVAR
@@ -542,8 +534,10 @@ right_recursion:
       t2 = f2->arguments;
 
       for(; --arity > 0; t1++, t2++)
-      { if ( !unify_with_occurs_check(t1, t2, mode PASS_LD) )
-	  fail;
+      { int rc;
+
+	if ( (rc=unify_with_occurs_check(t1, t2, mode PASS_LD)) <= 0 )
+	  return rc;
       }
       goto right_recursion;
     }
