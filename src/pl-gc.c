@@ -215,6 +215,7 @@ static int		check_marked(const char *s);
 #define mark_top	   (LD->gc._mark_top)
 #define check_table	   (LD->gc._check_table)
 #define local_table	   (LD->gc._local_table)
+#define start_map	   (LD->gc._start_map)
 #endif
 
 #undef LD
@@ -2172,16 +2173,54 @@ considerGarbageCollect(Stack s)
 
 
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
+#define INTBITS (sizeof(int)*8)
+#define REGISTER_STARTS 0x2
+
+static void
+alloc_start_map()
+{ GET_LD
+  size_t gsize = gTop+1-gBase;
+  size_t ints = (gsize+INTBITS-1)/INTBITS;
+
+  start_map = PL_malloc(ints*sizeof(int));
+  memset(start_map, 0, ints*sizeof(int));
+}
+
+
+static void
+set_start(Word m ARG_LD)
+{ size_t i = m-gBase;
+  int bit = i % INTBITS;
+  int at  = i / INTBITS;
+
+  start_map[at] |= 1<<(bit-1);
+}
+
+
+static int
+is_start(Word m ARG_LD)
+{ size_t i = m-gBase;
+  int bit = i % INTBITS;
+  int at  = i / INTBITS;
+
+  return (start_map[at] & 1<<(bit-1)) != 0;
+}
+
+
 bool
-scan_global(int marked)
+scan_global(int flags)
 { GET_LD
   Word current, next;
   int errors = 0;
   intptr_t cells = 0;
+  int marked = (flags & TRUE);
+  int regstart = (flags & REGISTER_STARTS) != 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { size_t offset;
 
+    if ( regstart )
+      set_start(current PASS_LD);
     cells++;
 
     if ( (!marked && is_marked(current)) || is_first(current) )
@@ -2210,6 +2249,8 @@ scan_global(int marked)
       }
     }
   }
+  if ( regstart )
+    set_start(gTop PASS_LD);
 
   for( current = gTop - 1; current >= gBase; current-- )
   { cells--;
@@ -2238,6 +2279,10 @@ check_mark(mark *m)
   assert(onTrailArea(m->trailtop));
   assert(onGlobalArea(m->globaltop));
   assert(onGlobalArea(m->saved_bar));
+  if ( start_map )
+  { assert(is_start(m->globaltop PASS_LD));
+    assert(is_start(m->saved_bar PASS_LD));
+  }
 }
 
 
@@ -2525,10 +2570,12 @@ garbageCollect(LocalFrame fr, Choice ch)
 #endif
 
 #if O_SECURE
-  if ( !scan_global(FALSE) )
+  alloc_start_map();
+  if ( !scan_global(FALSE|REGISTER_STARTS) )
     sysError("Stack not ok at gc entry");
-
   key = checkStacks(fr, ch);
+  free(start_map);
+  start_map = NULL;
 
   if ( check_table == NULL )
   { check_table = newHTable(256);
