@@ -329,18 +329,8 @@ raw_unify_ptrs(Word t1, Word t2 ARG_LD)
 static
 PRED_IMPL("=", 2, unify, 0)
 { PRED_LD
-  Word p0 = valTermRef(A1);
-  mark m;
-  int rval;
 
-  Mark(m);
-  if ( !(rval = raw_unify_ptrs(p0, p0+1 PASS_LD)) )
-  { if ( !exception_term )
-      Undo(m);
-  }
-  DiscardMark(m);
-
-  return rval;
+  return PL_unify(A1, A2);
 }
 
 

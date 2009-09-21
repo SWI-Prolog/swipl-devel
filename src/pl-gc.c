@@ -2528,7 +2528,7 @@ leaveGC()
 #endif /*O_PLMT*/
 
 
-void
+int
 garbageCollect(LocalFrame fr, Choice ch)
 { GET_LD
   intptr_t tgar, ggar;
@@ -2550,7 +2550,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   DEBUG(1, verbose = TRUE);
 
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
-    return;
+    return FALSE;
 
   if ( !fr )
     fr = LD->environment;
@@ -2670,6 +2670,8 @@ garbageCollect(LocalFrame fr, Choice ch)
 #ifdef O_SHIFT_STACKS
   shiftTightStacks(fr, ch);
 #endif
+
+  return TRUE;
 }
 
 word
@@ -2710,6 +2712,38 @@ unblockGC(ARG1_LD)
 #endif
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+makeMoreStackSpace(int overflow) is used in loops where the low-level
+implementation does not allow for stack-shifts
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+makeMoreStackSpace(int overflow)
+{ GET_LD
+
+  if ( LD->gc.inferences != LD->statistics.inferences &&
+       garbageCollect(NULL, NULL) )
+    return TRUE;
+
+#ifdef O_SHIFT_STACKS
+  { size_t l=0, g=0, t=0;
+
+    switch(overflow)
+    { case LOCAL_OVERFLOW:  l = 1; break;
+      case GLOBAL_OVERFLOW: g = 1; break;
+      case TRAIL_OVERFLOW:  t = 1; break;
+      default:
+	return raiseStackOverflow(overflow);
+    }
+
+    if ( growStacks(NULL, NULL, NULL, l, g, t) )
+      return TRUE;
+  }
+#endif
+
+  return raiseStackOverflow(overflow);
+}
 
 #if O_SHIFT_STACKS
 

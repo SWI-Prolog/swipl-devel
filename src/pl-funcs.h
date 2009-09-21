@@ -375,13 +375,14 @@ COMMON(word) 		pl_current_functor(term_t name, term_t arity,
 
 /* pl-gc.c */
 COMMON(void) 		considerGarbageCollect(Stack s);
-COMMON(void) 		garbageCollect(LocalFrame fr, Choice ch);
+COMMON(int) 		garbageCollect(LocalFrame fr, Choice ch);
 COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
 				   size_t lminfree, size_t gminfree,
 				   size_t tminfree);
+COMMON(int)		makeMoreStackSpace(int overflow);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);

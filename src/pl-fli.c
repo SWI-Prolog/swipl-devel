@@ -3049,12 +3049,30 @@ PL_term_type(term_t t)
 
 int
 PL_unify__LD(term_t t1, term_t t2 ARG_LD)
-{ Word p1 = valHandleP(t1);
-  Word p2 = valHandleP(t2);
+{ for(;;)
+  { Word p1 = valHandleP(t1);
+    Word p2 = valHandleP(t2);
+    mark m;
+    int rc;
 
-  return unify_ptrs(p1, p2 PASS_LD);
+    Mark(m);
+    rc = raw_unify_ptrs(p1, p2 PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { Undo(m);
+      DiscardMark(m);
+      if ( !makeMoreStackSpace(rc) )
+	return FALSE;
+    }
+  }
 }
-
 
 #undef PL_unify
 
