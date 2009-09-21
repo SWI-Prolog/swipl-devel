@@ -321,7 +321,7 @@ static fid_t
 open_foreign_frame(ARG1_LD)
 { FliFrame fr = (FliFrame) lTop;
 
-  requireStack(local, sizeof(struct fliFrame));
+  requireStackEx(local, sizeof(struct fliFrame));
   lTop = addPointer(lTop, sizeof(struct fliFrame));
   fr->size = 0;
   Mark(fr->mark);
@@ -366,7 +366,7 @@ PL_open_signal_foreign_frame()
   FliFrame fr;
   size_t margin = sizeof(struct localFrame) + MAXARITY*sizeof(word);
 
-  requireStack(local, sizeof(struct fliFrame)+margin);
+  requireStackEx(local, sizeof(struct fliFrame)+margin);
   lTop = addPointer(lTop, margin);
   fr = (FliFrame) lTop;
 
@@ -649,17 +649,24 @@ TBD: allocate the head and tail of the  wakeup list on the global stack.
 Possibly this should also hold for the other `special term references'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 TrailAssignment__LD(Word p ARG_LD)
 { if ( p < LD->mark_bar || p >= (Word)lBase )
-  { Word old = allocGlobal(1);
+  { Word old;
+    int rc;
+
+    if ( (rc=requireTrailStack(2)) < 0 )
+      return rc;
+    if ( !(old= allocGlobalNoShift(1)) )
+      return GLOBAL_OVERFLOW;
 
     assert(!(*p & (MARK_MASK|FIRST_MASK)));
     *old = *p;				/* save the old value on the global */
-    requireTrailStack(2*sizeof(struct trail_entry));
     (tTop++)->address = p;
     (tTop++)->address = tagTrailPtr(old);
   }
+
+  return TRUE;
 }
 
 
@@ -1349,7 +1356,7 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  requireStack(local, sizeof(*ch));
+  requireStackEx(local, sizeof(*ch));
   lTop = addPointer(lTop, sizeof(*ch));
   ch->type = type;
   ch->frame = fr;
@@ -1417,7 +1424,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     lTop = addPointer(lTop, sizeof(word));
 #endif
 
-  requireStack(local, sizeof(struct queryFrame)+MAXARITY*sizeof(word));
+  requireStackEx(local, sizeof(struct queryFrame)+MAXARITY*sizeof(word));
 
   qf	             = (QueryFrame) lTop;
 					/* fill top-frame */
@@ -1652,7 +1659,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
+	requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1661,7 +1668,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
+	requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
  	  ch->value.PC = altpc; \
@@ -2101,7 +2108,7 @@ next_choice:
       }
 
 			/* require space for the args of the next frame */
-      requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+      requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */

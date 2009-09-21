@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-inline.h"
 #ifdef O_ATTVAR
 
 #undef LD
@@ -62,18 +63,16 @@ deterministic wakeup does not leak  space.   The  test  program is this,
 which must run in constant space.
 
 	loop :- freeze(X, true), X = a, loop.
+
+SHIFT-SAFE: Caller must ensure 6 global and 4 trail-cells
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static void
 registerWakeup(Word name, Word value ARG_LD)
 { Word wake;
   Word tail = valTermRef(LD->attvar.tail);
 
-  wake = allocGlobalNoShift(4);		/* may NOT shift the stacks!!! */
-  if ( !wake )
-  { outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
-    fail;
-  }
+  wake = allocGlobal(4);
   wake[0] = FUNCTOR_wakeup3;
   wake[1] = needsRef(*name) ? makeRef(name) : *name;
   wake[2] = needsRef(*value) ? makeRef(value) : *value;
@@ -83,24 +82,22 @@ registerWakeup(Word name, Word value ARG_LD)
   { Word t;				/* Non-empty list */
 
     deRef2(tail, t);
-    TrailAssignmentEx(t);
+    TrailAssignment(t);
     *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    TrailAssignmentEx(tail);		/* on local stack! */
+    TrailAssignment(tail);		/* on local stack! */
     *tail = makeRef(wake+3);
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
 
     assert(isVar(*head));
-    TrailAssignmentEx(head);		/* See (*) */
+    TrailAssignment(head);		/* See (*) */
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
-    TrailAssignmentEx(tail);
+    TrailAssignment(tail);
     *tail = makeRef(wake+3);
     LD->alerted |= ALERT_WAKEUP;
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
-
-  succeed;
 }
 
 
@@ -120,15 +117,20 @@ and value to a legal value.
 
 The predicate unifiable/3 relies on  the   trailed  pattern left by this
 function. If you change this you must also adjust unifiable/3.
+
+SHIFT-SAFE: returns TRUE, GLOBAL_OVERFLOW or TRAIL_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 assignAttVar(Word av, Word value ARG_LD)
 { Word a;
+
   assert(isAttVar(*av));
   assert(!isRef(*value));
 
   DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
+
+  NEEDS_LGT(0,6+1,4+1);
 
   if ( isAttVar(*value) )
   { if ( value > av )
@@ -140,10 +142,9 @@ assignAttVar(Word av, Word value ARG_LD)
   }
 
   a = valPAttVar(*av);
-  if ( !registerWakeup(a, value PASS_LD) )
-    fail;
+  registerWakeup(a, value PASS_LD);
 
-  TrailAssignmentEx(av);
+  TrailAssignment(av);
   if ( isAttVar(*value) )
   { DEBUG(1, Sdprintf("Unifying two attvars\n"));
     *av = makeRef(value);
@@ -155,7 +156,7 @@ assignAttVar(Word av, Word value ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note: caller must require 2 words on global stack
+SHIFT-SAFE: Requires 2+0
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -176,6 +177,10 @@ make_new_attvar(Word p ARG_LD)
   TrailEx(p);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SHIFT-SAFE: Requires 6 global + 1 trail
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
@@ -200,8 +205,9 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
-  TrailEx(p);
-  succeed;
+  Trail(p);
+
+  return TRUE;
 }
 
 
@@ -259,8 +265,9 @@ find_attr(Word av, atom_t name, Word *vp ARG_LD)
 put_attr(Word attvar, atom_t name, Word value)
 
 Destructive assignment or adding in a list  of the form att(Name, Value,
-Rest). Caller must call requireStack(global, 4  * sizeof(word)) to avoid
-this predicate from shifting the stacks.
+Rest).
+
+SHIFT-SAFE: Requires max 5 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -268,7 +275,7 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
 { Word vp;
 
   if ( find_attr(av, name, &vp PASS_LD) )
-  { TrailAssignmentEx(vp);
+  { TrailAssignment(vp);
     *vp = linkVal(value);
   } else if ( vp )
   { Word at = allocGlobal(4);
@@ -278,7 +285,7 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
     at[2] = linkVal(value);
     at[3] = ATOM_nil;
 
-    TrailAssignmentEx(vp);
+    TrailAssignment(vp);
     *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
   } else
     fail;
@@ -336,7 +343,7 @@ del_attr(Word av, atom_t name ARG_LD)
 
 	deRef2(&f->arguments[0], n);
 	if ( *n == name )
-	{ TrailAssignmentEx(prev);
+	{ TrailAssignment(prev);			/* SHIFT: 1+2 */
 
 	  *prev = f->arguments[2];
 	  succeed;
@@ -521,31 +528,31 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   Word av, vp;
   atom_t name;
 
+  PRED_NEEDS_LGT(0,7,3);
+
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
 
   vp = valTermRef(A3);
   deRef(vp);
 
-  if ( isVar(*vp) && vp >= (Word)lBase )
-  { Word p = allocGlobal(1);		/* attribute values should be on */
-					/* the global stack! */
+  if ( isVar(*vp) && vp >= (Word)lBase )/* attribute values on global */
+  { Word p = allocGlobal(1);				/* SHIFT: 1+0 */
+
 
     setVar(*p);
     *vp = makeRefG(p);
-    TrailEx(vp);
+    Trail(vp);						/* SHIFT: 0+1 */
     vp = p;
   }
-
-  requireStack(global, 6*sizeof(word));
 
   av = valTermRef(A1);
   deRef(av);
 
   if ( isVar(*av) )
-  { return put_new_attvar(av, name, vp PASS_LD);
+  { return put_new_attvar(av, name, vp PASS_LD);	/* SHIFT: 6+1 */
   } else if ( isAttVar(*av) )
-  { return put_attr(av, name, vp PASS_LD);
+  { return put_attr(av, name, vp PASS_LD);		/* SHIFT: 5+2 */
   } else
   { return PL_error("put_attr", 3, NULL, ERR_MUST_BE_VAR, 1, A1);
   }
@@ -557,19 +564,20 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
 { PRED_LD
   Word av, vp;
 
-  requireStack(global, 4*sizeof(word));
+  PRED_NEEDS_LGT(0,3,2);
+
   av = valTermRef(A1);
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);	/* TBD: Merge */
+  { make_new_attvar(av PASS_LD);			/* SHIFT: 2+0 */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_MUST_BE_VAR, 1, A1);
   }
 
   vp = valPAttVar(*av);
-  TrailAssignmentEx(vp);
+  TrailAssignment(vp);					/* SHIFT: 1+2 */
   *vp = linkVal(valTermRef(A2));
 
   succeed;
@@ -582,6 +590,8 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   Word av;
   atom_t name;
 
+  PRED_NEEDS_LGT(0,2,4);
+
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
 
@@ -589,12 +599,12 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   deRef(av);
 
   if ( isAttVar(*av) )
-  { if ( del_attr(av, name PASS_LD) )
+  { if ( del_attr(av, name PASS_LD) )			/* SHIFT: 1+2 */
     { Word l = valPAttVar(*av);
 
       deRef(l);
       if ( isNil(*l) )
-      { TrailAssignmentEx(av);
+      { TrailAssignment(av);				/* SHIFT: 1+2 */
 	setVar(*av);
       }
     }
@@ -609,11 +619,13 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
 { PRED_LD
   Word av;
 
+  PRED_NEEDS_LGT(0,1,2);
+
   av = valTermRef(A1);
   deRef(av);
 
   if ( isAttVar(*av) )
-  { TrailAssignmentEx(av);
+  { TrailAssignment(av);				/* SHIFT: 1+2  */
     setVar(*av);
   }
 
@@ -640,14 +652,14 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 { PRED_LD
   Word v;
 
-  requireStack(global, 9*sizeof(word));
+  PRED_NEEDS_LGT(1,9,3);
 
   v = valTermRef(A1);
   deRef(v);
   if ( isVar(*v) || isAttVar(*v) )
   { Module m = NULL;
-    term_t g = PL_new_term_ref();
-    Word gt = allocGlobal(3);			/* 3 cells global */
+    term_t g = PL_new_term_ref();			/* SHIFT: local=1 */
+    Word gt = allocGlobal(3);				/* SHIFT: 3+0 */
     word goal = consPtr(gt, TAG_COMPOUND|STG_GLOBAL);
 
     PL_strip_module(A2, &m, g);
@@ -656,21 +668,21 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
     gt[2] = *valTermRef(g);
 
     if ( isVar(*v) )
-    { put_new_attvar(v, ATOM_freeze, &goal PASS_LD); /* <= 6 cells global */
+    { put_new_attvar(v, ATOM_freeze, &goal PASS_LD);	/* SHIFT: 6+1 */
     } else
     { Word vp;
 
       if ( find_attr(v, ATOM_freeze, &vp PASS_LD) )
-      { Word gc = allocGlobal(3);		/* 3 cells global */
+      { Word gc = allocGlobal(3);			/* SHIFT: 3+0 */
 
 	gc[0] = FUNCTOR_dand2;
 	gc[1] = linkVal(vp);
 	gc[2] = goal;
 
-	TrailAssignmentEx(vp);
+	TrailAssignment(vp);				/* SHIFT: 1+2 */
 	*vp = consPtr(gc, TAG_COMPOUND|STG_GLOBAL);
-      } else if ( vp )				/* vp points to [] */
-      { Word at = allocGlobal(4);		/* 4 cells global  */
+      } else if ( vp )					/* vp points to [] */
+      { Word at = allocGlobal(4);			/* SHIFT: 4+0  */
 
 	at[0] = FUNCTOR_att3;
 	at[1] = ATOM_freeze;
@@ -678,10 +690,10 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 	at[3] = ATOM_nil;
 
 	assert(*vp == ATOM_nil);
-	TrailAssignmentEx(vp);
+	TrailAssignment(vp);				/* SHIFT: 1+2 */
 	*vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
       } else
-	assert(0);				/* bad attribute list */
+	assert(0);					/* bad attributes */
     }
 
     succeed;
@@ -880,7 +892,7 @@ grow:
   } else
   { minfree *= 2;
   }
-  requireStack(global, minfree);
+  requireStackEx(global, minfree);	/* Cleaner way? */
   goto retry;
 }
 

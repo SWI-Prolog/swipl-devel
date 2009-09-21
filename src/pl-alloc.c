@@ -688,6 +688,25 @@ outOfStack(void *stack, stack_overflow_action how)
 }
 
 
+int
+raiseStackOverflow(int overflow)
+{ GET_LD
+  Stack s;
+
+  switch(overflow)
+  { case LOCAL_OVERFLOW:    s = (Stack)&LD->stacks.local;    break;
+    case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
+    case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
+    case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
+    default:
+        s = NULL;
+	assert(0);
+  }
+
+  return outOfStack(s, STACK_OVERFLOW_RAISE);
+}
+
+
 void
 outOfCore()
 { fatalError("Could not allocate memory: %s", OsError());
@@ -773,7 +792,7 @@ static inline Word
 __allocGlobal(size_t n ARG_LD)
 { Word result = gTop;
 
-  requireStack(global, n * sizeof(word));
+  requireStackEx(global, n * sizeof(word));
   gTop += n;
 
   return result;

@@ -73,9 +73,12 @@ free_nb_linkval_symbol(Symbol s)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Assign  a  global  variable.  For    backtrackable   variables  we  need
-TrailAssignmentEx(), but we can only call that  on addresses on the global
+TrailAssignment(), but we can only call that  on addresses on the global
 stack. Therefore we must make  a  reference   to  the  real value if the
 variable is not already a reference.
+
+SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
+	    2 more allocGlobal(1) makes g+t<3+3
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -84,6 +87,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   Word p;
   word w, old;
   Symbol s;
+  int rc;
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
@@ -93,7 +97,11 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
-  requireStack(global, sizeof(word));
+					/* avoid shifts from here */
+  if ( (rc=requireStack(global, 3*sizeof(word))) < 0 ||
+       (rc=requireStack(trail,  3*sizeof(word))) < 0 )
+    return raiseStackOverflow(rc);
+
   p = valTermRef(value);
   deRef(p);
   w = *p;
@@ -104,7 +112,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 
       setVar(*p2);
       w = *p = makeRef(p2);
-      TrailEx(p);
+      LTrail(p);
     } else
     { w = makeRef(p);
     }
@@ -127,7 +135,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   { if ( isRef(old) )
     { Word p = unRef(old);
 
-      TrailAssignmentEx(p);
+      TrailAssignment(p);
       *p = w;
     } else
     { Word p = allocGlobal(1);
@@ -136,7 +144,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
       if ( storage(old) != STG_GLOBAL )
 	LD->gvar.grefs++;
       s->value = (void*)makeRefG(p);
-      TrailAssignmentEx(p);
+      TrailAssignment(p);
       *p = w;
     }
   } else

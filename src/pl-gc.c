@@ -800,7 +800,7 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->frozen_bar )
   { Word *sb;
 
-    requireStack(local, sizeof(Word));
+    requireStackEx(local, sizeof(Word));
     sb = (Word*)lTop;
     lTop = (LocalFrame)(sb+1);
     *sb = LD->frozen_bar;
@@ -1019,7 +1019,7 @@ mark_environments(LocalFrame fr, Code PC)
 #endif /*not LIFE_GC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If multiple TrailAssignmentEx() calls happen on  the same address within a
+If multiple TrailAssignment() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail
 for this choicepoint from the mark to the  top and mark (using the FIRST
 mark) the (global stack) addresses trailed. If we find one marked we can
@@ -2604,8 +2604,8 @@ garbageCollect(LocalFrame fr, Choice ch)
   marks_unswept	    = 0;
   LD->gc.marked_attvars = FALSE;
 
-  requireStack(global, sizeof(word));
-  requireStack(trail, sizeof(struct trail_entry));
+  requireStackEx(global, sizeof(word));
+  requireStackEx(trail, sizeof(struct trail_entry));
   setVar(*gTop);
   tTop->address = 0;
 

@@ -46,4 +46,17 @@ stepPC(Code PC)
     return PC + codeTable[op].arguments;
 }
 
+
+static inline int
+Trail__LD(Word p ARG_LD)
+{ if ( p >= (Word)lBase || p < LD->mark_bar )
+  { int rc;
+
+    if ( (rc=requireTrailStack(1)) < 0 )
+      return rc;
+    (tTop++)->address = p;
+  }
+  return TRUE;
+}
+
 #endif /*PL_INLINE_H_INCLUDED*/

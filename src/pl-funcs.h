@@ -34,6 +34,7 @@ symbol lookup and relocations.
 /* pl-alloc.c */
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
 COMMON(word) 		outOfStack(void *stack, stack_overflow_action how);
+COMMON(int)		raiseStackOverflow(int which);
 COMMON(void)		outOfCore(void) NORETURN;
 COMMON(Word) 		allocGlobal__LD(size_t words ARG_LD);
 COMMON(Word) 		allocGlobalNoShift__LD(size_t words ARG_LD);
@@ -80,7 +81,7 @@ COMMON(void)		freezeGlobal(ARG1_LD);
 
 /* pl-wam.c */
 COMMON(word) 		pl_count(void);
-COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
+COMMON(int) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void) 		fix_term_ref_count(void);
@@ -644,7 +645,7 @@ COMMON(void) 		resetStacks(void);
 COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
-COMMON(void) 		ensure_room_stack(Stack s, size_t n);
+COMMON(int) 		ensure_room_stack(Stack s, size_t n, int ex);
 #ifdef O_SHIFT_STACKS
 COMMON(void)		trim_stack(Stack s);
 #endif

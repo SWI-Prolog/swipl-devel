@@ -140,7 +140,7 @@ PL_new_term_refs__LD(int n ARG_LD)
   term_t r;
   int i;
 
-  requireStack(local, sizeof(word)*n);
+  requireStackEx(local, sizeof(word)*n);
   t = (Word)lTop;
   r = consTermRef(t);
 
@@ -159,7 +159,7 @@ PL_new_term_ref__LD(ARG1_LD)
   term_t r;
   FliFrame fr;
 
-  requireStack(local, sizeof(word));
+  requireStackEx(local, sizeof(word));
   t = (Word)lTop;
   r = consTermRef(t);
   SECURE(assert(*t != QID_MAGIC));
@@ -223,7 +223,7 @@ PL_copy_term_ref(term_t from)
   term_t r;
   FliFrame fr;
 
-  requireStack(local, sizeof(word));
+  requireStackEx(local, sizeof(word));
 
   t  = (Word)lTop;
   r  = consTermRef(t);
@@ -2204,7 +2204,7 @@ PL_unify_functor(term_t t, functor_t f)
 	deRef(p);
       }
 #else
-      requireStack(global, needed);
+      requireStackEx(global, needed);
 #endif
 
       { Word a = gTop;
@@ -2557,7 +2557,7 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
       deRef(p);
     }
 #else
-    requireStack(global, sizeof(word)*3);
+    requireStackEx(global, sizeof(word)*3);
 #endif
     a = gTop;
     gTop += 3;

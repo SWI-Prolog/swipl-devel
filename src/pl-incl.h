@@ -1520,28 +1520,31 @@ Note that the local stack is always _above_ the global stack.
 
 #define TrailEx(p) \
   if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
+  { requireTrailStackEx(1); \
     (tTop++)->address = p; \
   }
 
+#define Trail(p) Trail__LD(p PASS_LD)
+
 					/* trail local stack pointer */
 #define LTrail(p) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
+  { requireTrailStackEx(1); \
     (tTop++)->address = p; \
   }
 
 					/* trail global stack pointer */
 #define GTrail(p) \
   if ( p < LD->mark_bar ) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
+  { requireTrailStackEx(1); \
     (tTop++)->address = p; \
   }
 
 
-#define requireTrailStack(bytes) \
-  { if ( triggerStack(trail) < (ssize_t)(bytes) ) \
-      ensureRoomStack(trail, bytes); \
-  }
+#define requireTrailStackEx(entries) \
+	requireStackEx(trail, (entries)*sizeof(struct trail_entry))
+
+#define requireTrailStack(entries) \
+  	requireStack(trail, (entries)*sizeof(struct trail_entry))
 
 
 		 /*******************************
@@ -1662,6 +1665,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
+	  int	        overflow_id;	/* OVERFLOW_* */		    \
 	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
@@ -1734,8 +1738,11 @@ typedef struct
 #define triggerStack(name) triggerStackP(&LD->stacks.name)
 
 #define GROW_TRIM ((size_t)-1)
-#define GLOBAL_OVERFLOW	(-1)
-#define TRAIL_OVERFLOW	(-2)
+
+#define	LOCAL_OVERFLOW	  (-1)
+#define	GLOBAL_OVERFLOW	  (-2)
+#define	TRAIL_OVERFLOW	  (-3)
+#define	ARGUMENT_OVERFLOW (-4)
 
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
@@ -1744,20 +1751,29 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
-#ifdef O_SEGV_HANDLING
-
-#define requireStack(s, n)
-
-#else /*O_SEGV_HANDLING*/
-
-#define ensureRoomStack(s, n) \
-	ensure_room_stack((Stack)&LD->stacks.s, (n))
-#define requireStack(s, n) \
+#define ensureRoomStack(s, n, ex) \
+	ensure_room_stack((Stack)&LD->stacks.s, (n), (ex))
+#define requireStackEx(s, n) \
 	{ if ( triggerStack(s) < (ssize_t)(n) ) \
- 	    ensureRoomStack(s, n); \
+ 	    ensureRoomStack(s, n, TRUE); \
 	}
+#define requireStack(s, n) \
+	(triggerStack(s) < (ssize_t)(n) ? TRUE : ensureRoomStack(s, n, FALSE))
 
-#endif /*O_SEGV_HANDLING*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Used for predicate implementations that need local+global+trail space
+without shifting the stacks to complete.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define NEEDS_LGT(l, g, t) \
+	do { int rc; \
+	     if ( ((l)&&(rc=requireStack(local, (l)*sizeof(word))) < 0) || \
+		  ((g)&&(rc=requireStack(global, (g)*sizeof(word))) < 0) || \
+		  ((t)&&(rc=requireTrailStack(t)) < 0) ) \
+	       return raiseStackOverflow(rc); \
+	   } while(0)
+
+#define PRED_NEEDS_LGT(l, g, t) NEEDS_LGT(l, g, t)
 
 
 		 /*******************************

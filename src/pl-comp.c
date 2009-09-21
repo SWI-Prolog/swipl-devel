@@ -842,7 +842,7 @@ Finish up the clause.
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
 		      ci.argvars, clause.prolog_vars, clause.variables));
     assert(ci.argvars == ci.argvar);
-    requireStack(local,
+    requireStackEx(local,
 		 clause.variables*sizeof(word) +
 		 sizeofClause(clause.code_size) +
 		 sizeof(*cref) +
@@ -1275,7 +1275,7 @@ isvar:
       DEBUG(1, Sdprintf("Linking b_var(%d) to %s\n",
 			index, vName(v->address)));
 
-      requireStack(local, (voffset+1)*sizeof(word));
+      requireStackEx(local, (voffset+1)*sizeof(word));
       *k = makeRef(v->address);
 
       if ( index < 3 )
@@ -1342,7 +1342,7 @@ isvar:
     voffset = VAROFFSET(ci->argvar);
     k = varFrameP(lTop, voffset);
 
-    requireStack(local, (voffset+1)*sizeof(word));
+    requireStackEx(local, (voffset+1)*sizeof(word));
     if ( isAttVar(*arg) )		/* attributed variable: must make */
       *k = makeRef(arg);		/* a reference to avoid binding a */
     else				/* copy! */
@@ -2587,7 +2587,7 @@ Then we create a term, back up and fill the arguments.
 static inline void
 setARGP__LD(Word ap ARG_LD)			/* ARGP = ap */
 { if ( ap > (Word)lTop )
-  { requireStack(local, ((char*)ap - (char*)lTop));
+  { requireStackEx(local, ((char*)ap - (char*)lTop));
   }
   lTop = (LocalFrame)ap;
 }
@@ -2597,7 +2597,7 @@ static inline Word
 ARGPinc__LD(ARG1_LD)			/* == ARGP++ */
 { Word ap;
 
-  requireStack(local, sizeof(word));
+  requireStackEx(local, sizeof(word));
   ap = (Word)lTop;
   lTop = (LocalFrame)(ap+1);
 
@@ -2609,7 +2609,7 @@ static inline Word
 decARGP__LD(ARG1_LD)			/* == --ARGP */
 { Word ap;
 
-  requireStack(local, sizeof(word));
+  requireStackEx(local, sizeof(word));
   ap = (Word)lTop;
   lTop = (LocalFrame)(ap-1);
 
@@ -3114,7 +3114,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
         { word w = globalFunctor(fdef);
-	  requireStack(argument, sizeof(Word));
+	  requireStackEx(argument, sizeof(Word));
 	  *ARGPinc() = w;
 	  *aTop++ = ARGP;
 	  setARGP(argTermP(w, 0));
@@ -3356,7 +3356,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
   Word a;
 
   if ( arity == 0 )
-  { requireStack(local, sizeof(Word));
+  { requireStackEx(local, sizeof(Word));
     *ARGPinc() = nameFunctor(f);
     return;
   }

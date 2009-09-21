@@ -483,7 +483,7 @@ the argument stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_FUNCTOR, 0, 1, (CA1_FUNC))
-{ requireStack(argument, sizeof(Word));
+{ requireStackEx(argument, sizeof(Word));
   *aTop++ = (Word)((intptr_t)(ARGP + 1)|umode);
   VMI_GOTO(H_RFUNCTOR);
 }
@@ -512,7 +512,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
       ap = gTop;
     }
 #else
-    requireStack(global, sizeof(word)*(1+arity));
+    requireStackEx(global, sizeof(word)*(1+arity));
 #endif
 
     gTop += 1+arity;
@@ -540,7 +540,7 @@ H_LIST:  As H_FUNCTOR, but using ./2 as predefined functor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_LIST, 0, 0, ())
-{ requireStack(argument, sizeof(Word));
+{ requireStackEx(argument, sizeof(Word));
   *aTop++ = (Word)((intptr_t)(ARGP + 1)|umode);
 
   VMI_GOTO(H_RLIST);
@@ -578,7 +578,7 @@ VMI(H_RLIST, 0, 0, ())
 	}
 #else
 	if ( ap + 3 > gMax )
-	  ensureRoomStack(global, 3*sizeof(word));
+	  ensureRoomStack(global, 3*sizeof(word), TRUE);
 #endif
         gTop += 3;
 	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -643,7 +643,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
       Word ap;
 
     write:
-      requireStack(global, 3*sizeof(word));
+      requireStackEx(global, 3*sizeof(word));
       ap = gTop;
       gTop = ap+3;
       c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -1124,7 +1124,7 @@ B_RFUNCTOR: right-argument recursive version of B_FUNCTOR
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
-{ requireStack(argument, sizeof(Word));
+{ requireStackEx(argument, sizeof(Word));
   *aTop++ = ARGP+1;
   VMI_GOTO(B_RFUNCTOR);
 }
@@ -1134,7 +1134,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
   int arity = arityFunctor(f);
 
-  requireStack(global, sizeof(word) * (1+arity));
+  requireStackEx(global, sizeof(word) * (1+arity));
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = f;
@@ -1150,14 +1150,14 @@ B_RLIST: Right-argument recursive B_LIST
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_LIST, 0, 0, ())
-{ requireStack(argument, sizeof(Word));
+{ requireStackEx(argument, sizeof(Word));
   *aTop++ = ARGP+1;
   VMI_GOTO(B_RLIST);
 }
 
 
 VMI(B_RLIST, 0, 0, ())
-{ requireStack(global, sizeof(word) * 3);
+{ requireStackEx(global, sizeof(word) * 3);
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = FUNCTOR_dot2;
@@ -1264,7 +1264,7 @@ true:
 
 normal_call:
 					/* ensure room for next args */
-  requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+  requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates
@@ -2023,7 +2023,7 @@ VMI(S_STATIC, 0, 0, ())
 
   PC = CL->clause->codes;
   lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  requireStack(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+  requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);

@@ -1052,6 +1052,11 @@ initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
   if ( !allocStacks(local, global, trail, argument) )
     fail;
 
+  LD->stacks.local.overflow_id    = LOCAL_OVERFLOW;
+  LD->stacks.global.overflow_id   = GLOBAL_OVERFLOW;
+  LD->stacks.trail.overflow_id    = TRAIL_OVERFLOW;
+  LD->stacks.argument.overflow_id = ARGUMENT_OVERFLOW;
+
   base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
   base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
   base_addresses[STG_TRAIL]  = (uintptr_t)tBase;
@@ -1120,8 +1125,8 @@ align_size(size_t x)
 
 #if O_DYNAMIC_STACKS
 
-static void init_stack(Stack s, const char *name,
-		       void* base, size_t limit, size_t minsize);
+static int init_stack(Stack s, const char *name,
+		      void* base, size_t limit, size_t minsize);
 static void gcPolicy(Stack s, int policy);
 
 #ifdef O_SEGV_HANDLING
@@ -1255,8 +1260,8 @@ get_map_fd()
 #endif /*HAVE_MAP_ANON*/
 
 
-static void
-mapOrOutOf(Stack s)
+static int
+mapOrOutOf(Stack s, int ex)
 { size_t incr;
   size_t newroom;
 
@@ -1266,7 +1271,10 @@ mapOrOutOf(Stack s)
     incr = size_alignment;
 
   if ( sizeStackP(s) + incr > limitStackP(s) )
-    outOfStack(s, STACK_OVERFLOW_FATAL);
+  { if ( ex )
+      outOfStack(s, STACK_OVERFLOW_FATAL);
+    return s->overflow_id;
+  }
   newroom = limitStackP(s) - (sizeStackP(s) + incr);
 
 #ifndef SGIMMAP
@@ -1282,24 +1290,35 @@ mapOrOutOf(Stack s)
 
   if ( newroom < STACK_SIGNAL )
   { if ( newroom < STACK_RESERVE )
-    {
+    { if ( ex )
+      {
 #ifdef O_SEGV_HANDLING
-      LD->current_signal = SIGSEGV;
+	LD->current_signal = SIGSEGV;
 #endif
-      outOfStack(s, STACK_OVERFLOW_THROW);
+	outOfStack(s, STACK_OVERFLOW_THROW);
+      }
+      return s->overflow_id;
     } else
       outOfStack(s, STACK_OVERFLOW_SIGNAL);
   }
 
   considerGarbageCollect(s);
+
+  return TRUE;
 }
 
 
 #ifndef O_SEGV_HANDLING
-void
-ensure_room_stack(Stack s, size_t bytes)
+int
+ensure_room_stack(Stack s, size_t bytes, int ex)
 { while((char *)s->max <= &((char *)s->top)[bytes])
-    mapOrOutOf(s);
+  { int rc;
+
+    if ( (rc=mapOrOutOf(s, ex)) < 0 )
+      return rc;
+  }
+
+  return TRUE;
 }
 #endif
 
@@ -1423,7 +1442,6 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
 #endif
 
 #define INIT_STACK(name, print, base, limit, minsize) \
-  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
@@ -1431,10 +1449,6 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   INIT_STACK(local,    "local",    lbase, local,    minlocal);
   INIT_STACK(trail,    "trail",    tbase, trail,    mintrail);
   INIT_STACK(argument, "argument", abase, argument, minargument);
-
-#ifdef O_SEGV_HANDLING
-  set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
-#endif
 
   succeed;
 }
@@ -1476,8 +1490,8 @@ freeStacks(ARG1_LD)
 #include <windows.h>
 #undef small
 
-static void
-mapOrOutOf(Stack s)
+static int
+mapOrOutOf(Stack s, int ex)
 { size_t incr;
   size_t newroom;
 
@@ -1487,7 +1501,11 @@ mapOrOutOf(Stack s)
     incr = size_alignment;
 
   if ( sizeStackP(s) + incr > limitStackP(s) )
-    outOfStack(s, STACK_OVERFLOW_FATAL);
+  { if ( ex )
+      outOfStack(s, STACK_OVERFLOW_FATAL);
+    else
+      return s->overflow_id;
+  }
   newroom = limitStackP(s) - (sizeStackP(s) + incr);
 
   if ( VirtualAlloc(s->max, incr,
@@ -1503,24 +1521,30 @@ mapOrOutOf(Stack s)
 
   if ( newroom <= STACK_SIGNAL )
   { if ( newroom <= STACK_RESERVE )
-    {
-#ifdef O_SEGV_HANDLING
-      LD->current_signal = SIGSEGV;
-#endif
-      outOfStack(s, STACK_OVERFLOW_THROW);
+    { if ( ex )
+	outOfStack(s, STACK_OVERFLOW_THROW);
+      return s->overflow_id;
     } else
       outOfStack(s, STACK_OVERFLOW_SIGNAL);
   }
 
   considerGarbageCollect(s);
+
+  return TRUE;
 }
 
 
 #ifndef O_SEGV_HANDLING
 void
-ensure_room_stack(Stack s, size_t bytes)
+ensure_room_stack(Stack s, size_t bytes, int ex)
 { while((char *)s->max <= &((char *)s->top)[bytes])
-    mapOrOutOf(s);
+  { int rc;
+
+    if ( (rc=mapOrOutOf(s, ex)) < 0 )
+      return rc;
+  }
+
+  return TRUE;
 }
 #endif
 
@@ -1656,64 +1680,8 @@ expandStack(Stack s, void *addr)
 }
 #endif /*USE_SIGINFO*/
 
-#ifdef O_SEGV_HANDLING
-#warning "SEGV guarded stacks are no longer supported"
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This code is left here for future use,   but  it no longer works. If you
-want to make it working, please  remember   that  the  stacks may now be
-allocated without a free page at the end, so make sure to leave the last
-page blank in the signal handler.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-RETSIGTYPE
-#ifdef USE_SIGINFO
-_PL_segv_handler(int sig, siginfo_t *info, void *extra)
-#else
-_PL_segv_handler(int sig)
-#endif
-{ Stack stacka = (Stack) &LD->stacks;
-  int mapped = 0;
-  int i;
-
-#ifdef USE_SIGINFO
-  void *addr;
-
-  if ( info && info->si_addr )
-  { addr = info->si_addr;
-
-    DEBUG(0, Sdprintf("Page fault at %p\n", addr));
-    for(i=0; i<N_STACKS; i++)
-    { if ( expandStack(&stacka[i], addr) )
-	return;
-    }
-
-    pl_signal_handler(sig);
-    return;
-  }
-#endif
-
-  DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
-		    roomStack(global), roomStack(local), roomStack(trail)));
-
-  for(i=0; i<N_STACKS; i++)
-  { intptr_t r = (uintptr_t)stacka[i].max - (uintptr_t)stacka[i].top;
-
-    if ( r < size_alignment )
-    { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
-      mapOrOutOf(&stacka[i]);
-      mapped++;
-    }
-  }
-
-  if ( mapped )
-    return;
-
-  pl_signal_handler(sig);
-}
-
-#endif /*O_SEGV_HANDLING*/
-
-static void
+static int
 init_stack(Stack s, const char *name, void *base, size_t limit, size_t minsize)
 { s->name       = name;
   s->base       = s->max = s->top = base;
@@ -1726,7 +1694,13 @@ init_stack(Stack s, const char *name, void *base, size_t limit, size_t minsize)
 		    s->name, s->base, s->base + s->size_limit));
 
   while(sizeStackP(s) < minsize)
-    mapOrOutOf(s);
+  { int rc;
+
+    if ( (rc=mapOrOutOf(s, FALSE)) < 0 )
+      return rc;
+  }
+
+  return TRUE;
 }
 
 void
@@ -1858,15 +1832,19 @@ trigger shift and GC requests. If we are really at the end of our story,
 we can only expand the trail stack at any point in time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-ensure_room_stack(Stack s, size_t bytes)
+int
+ensure_room_stack(Stack s, size_t bytes, int ex)
 { if ( s->trigger < s->max )
   { s->trigger += size_alignment;
     if ( s->trigger > s->max )
       s->trigger = s->max;
 
-    if ( usedStackP(s) > limitStackP(s) )
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
+    if ( usedStackP(s)+bytes > limitStackP(s) )
+    { if ( ex )
+	outOfStack(s, STACK_OVERFLOW_SIGNAL);
+      else
+	return s->overflow_id;
+    }
 
     if ( s->gc )
     { considerGarbageCollect(s);
@@ -1885,12 +1863,19 @@ ensure_room_stack(Stack s, size_t bytes)
 
   if ( s == (Stack)&LD->stacks.trail )
   { if ( growStacks(NULL, NULL, NULL, 0, 0, bytes) )
-      return;
+      return TRUE;
 
-    outOfStack(s, STACK_OVERFLOW_FATAL);
+    if ( ex )
+      outOfStack(s, STACK_OVERFLOW_FATAL);
+
+    return s->overflow_id;
   } else
-  { outOfStack(s, STACK_OVERFLOW_FATAL);
+  { if ( ex )
+      outOfStack(s, STACK_OVERFLOW_FATAL);
+    return s->overflow_id;
   }
+
+  return TRUE;
 }
 
 #endif /* O_DYNAMIC_STACKS */

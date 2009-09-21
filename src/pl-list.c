@@ -336,7 +336,7 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end
 #else
   if ( minfree > spaceStack(global) )
     garbageCollect(NULL, NULL);
-  requireStack(global, minfree);
+  requireStackEx(global, minfree);
 #endif
 
   p = (list)gTop;

@@ -1839,7 +1839,10 @@ setarg(term_t n, term_t term, term_t value, int flags)
     if ( isVar(*a) )
     { return unify_ptrs(valTermRef(value), a PASS_LD);
     } else
-    { TrailAssignmentEx(a);
+    { int rc;
+
+      if ( (rc=TrailAssignment(a)) < 0 )
+	return raiseStackOverflow(rc);
     }
   } else
   { v = valTermRef(value);
@@ -2090,7 +2093,7 @@ start:
       deRef(p);
     }
 #else
-    requireStack(global, sizeof(word)*(2));
+    requireStackEx(global, sizeof(word)*(2));
 #endif
 
     a = gTop;
