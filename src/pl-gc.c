@@ -216,6 +216,7 @@ static int		check_marked(const char *s);
 #define check_table	   (LD->gc._check_table)
 #define local_table	   (LD->gc._local_table)
 #define start_map	   (LD->gc._start_map)
+#define relocated_check	   (LD->gc._relocated_check)
 #endif
 
 #undef LD
@@ -347,26 +348,30 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
 
 static void
 do_relocated_cell(Word addr ARG_LD)
-{ Symbol s;
+{ if ( relocated_check )		/* we cannot do this during the */
+  { Symbol s;				/* final up-phase because the addresses */
+					/* have already changed */
+    if ( !(s=lookupHTable(check_table, addr)) )
+    { char buf1[64];
 
-  if ( !(s=lookupHTable(check_table, addr)) )
-  { char buf1[64];
+      sysError("Address %s was not supposed to be updated",
+	       print_adr(addr, buf1));
+      return;
+    }
 
-    sysError("Address %s was not supposed to be updated",
-	     print_adr(addr, buf1));
-    return;
+    if ( s->value == RELOC_UPDATED )
+    { char buf1[64];
+
+      sysError("%s: updated twice", print_adr(addr, buf1));
+      return;
+    }
+
+    s->value = RELOC_UPDATED;
   }
 
-  if ( s->value == RELOC_UPDATED )
-  { char buf1[64];
-
-    sysError("%s: updated twice", print_adr(addr, buf1));
-    return;
-  }
-
-  s->value = RELOC_UPDATED;
   relocated_cells++;
 }
+
 
 static void
 printNotRelocated()
@@ -2028,8 +2033,9 @@ compact_global(void)
   }
 
   SECURE(check_marked("Before up"));
-
+  SECURE(relocated_check=FALSE);	/* see do_relocated_cell() */
   DEBUG(2, Sdprintf("Scanning global stack upwards\n"));
+
   dest = base;
   top = gTop;
   for(current = gBase; current < top; )
@@ -2586,6 +2592,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   }
 
   mark_base = mark_top = malloc(usedStack(global));
+  relocated_check = TRUE;
 #endif
 
   needs_relocation  = 0;
