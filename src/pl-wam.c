@@ -1925,7 +1925,8 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
     aTop = aFloor;
 
     if ( ch->type == CHP_JUMP )
-    { PC   = ch->value.PC;
+    { DiscardMark(ch->mark);
+      PC   = ch->value.PC;
       BFR  = ch->parent;
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
@@ -1951,11 +1952,13 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	  NEXT_INSTRUCTION;
 	}
 
+	DiscardMark(ch->mark);
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
       } else
-      { BFR = ch->parent;
+      { DiscardMark(ch->mark);
+	BFR = ch->parent;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
 
 	if ( next )
@@ -2040,6 +2043,7 @@ next_choice:
 			loffset(FR),
 			predicateName(DEF)));
       PC   = ch->value.PC;
+      DiscardMark(ch->mark);
       BFR  = ch->parent;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
@@ -2053,6 +2057,7 @@ next_choice:
 			loffset(FR),
 			predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
+      DiscardMark(ch->mark);
       BFR = ch->parent;
       if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
 	goto next_choice;		/* should not happen */
@@ -2111,11 +2116,13 @@ next_choice:
     case CHP_CATCH:			/* catch/3 */
       Undo(ch->mark);
       callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
+      /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
 #ifdef O_DEBUGGER
       ch0 = ch;
 #endif
       BFR = ch->parent;
+      DiscardMark(ch->mark);
       goto next_choice;
   }
 }
