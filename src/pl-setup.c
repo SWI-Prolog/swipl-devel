@@ -1308,7 +1308,6 @@ mapOrOutOf(Stack s, int ex)
 }
 
 
-#ifndef O_SEGV_HANDLING
 int
 ensure_room_stack(Stack s, size_t bytes, int ex)
 { while((char *)s->max <= &((char *)s->top)[bytes])
@@ -1320,7 +1319,6 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
 
   return TRUE;
 }
-#endif
 
 
 static void

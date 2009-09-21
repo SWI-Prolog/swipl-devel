@@ -24,6 +24,8 @@
 
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
+#undef LD
+#define LD LOCAL_LD
 
 static inline code
 fetchop(Code PC)
@@ -48,7 +50,7 @@ stepPC(Code PC)
 
 
 static inline int
-Trail__LD(Word p ARG_LD)
+Trail__LD(Word p, word v ARG_LD)
 { if ( p >= (Word)lBase || p < LD->mark_bar )
   { int rc;
 
@@ -56,6 +58,8 @@ Trail__LD(Word p ARG_LD)
       return rc;
     (tTop++)->address = p;
   }
+  *p = v;
+
   return TRUE;
 }
 

@@ -1524,7 +1524,7 @@ Note that the local stack is always _above_ the global stack.
     (tTop++)->address = p; \
   }
 
-#define Trail(p) Trail__LD(p PASS_LD)
+#define Trail(p, w) Trail__LD(p, w PASS_LD)
 
 					/* trail local stack pointer */
 #define LTrail(p) \
@@ -1758,7 +1758,8 @@ typedef enum
  	    ensureRoomStack(s, n, TRUE); \
 	}
 #define requireStack(s, n) \
-	(triggerStack(s) < (ssize_t)(n) ? TRUE : ensureRoomStack(s, n, FALSE))
+	((triggerStack(s) < (ssize_t)(n)) \
+		? ensureRoomStack(s, (n), FALSE) : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Used for predicate implementations that need local+global+trail space

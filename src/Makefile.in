@@ -290,8 +290,11 @@ gitversion::
 version.h:	gitversion
 pl-version.o:	version.h
 
-$(OBJ):		parms.h $(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h
-pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic
+$(OBJ):		parms.h \
+		$(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h \
+		$(srcdir)/pl-inline.h
+pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c \
+		$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic
 pl-prims.o:	pl-termwalk.c
 pl-rec.o:	pl-termwalk.c
 pl-comp.o:	$(srcdir)/pl-vmi.h

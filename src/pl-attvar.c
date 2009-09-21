@@ -185,18 +185,19 @@ SHIFT-SAFE: Requires 6 global + 1 trail
 static int
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
+  word w;
 
   if ( p >= (Word)lBase )
   { gp = allocGlobal(6);
     at = &gp[1];
     setVar(*at);
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(&gp[0]);
+    w = makeRefG(&gp[0]);
   } else
   { gp = allocGlobal(5);
     at = &gp[0];
     setVar(*at);
-    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+    w = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
   }
 
   at[1] = FUNCTOR_att3;
@@ -205,9 +206,7 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
-  Trail(p);
-
-  return TRUE;
+  return Trail(p, w);
 }
 
 
@@ -541,8 +540,7 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
 
 
     setVar(*p);
-    *vp = makeRefG(p);
-    Trail(vp);						/* SHIFT: 0+1 */
+    Trail(vp, makeRefG(p));				/* SHIFT: 0+1 */
     vp = p;
   }
 

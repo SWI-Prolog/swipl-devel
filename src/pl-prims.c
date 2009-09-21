@@ -25,6 +25,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-inline.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -223,33 +224,25 @@ right_recursion:
   if ( isVar(w1) )
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
-      { *t2 = makeRef(t1);
-	TrailEx(t2);
-	succeed;
+      { return Trail(t2, makeRef(t1));
       }
       if ( t1 == t2 )
 	succeed;
-      *t1 = makeRef(t2);
-      TrailEx(t1);
-      succeed;
+      return Trail(t1, makeRef(t2));
     }
 #ifdef O_ATTVAR
-    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
-#else
-    *t1 = w2;
+    if ( isAttVar(w2 ) )
+      w2 = makeRef(t2);
 #endif
-    TrailEx(t1);
-    succeed;
+    return Trail(t1, w2);
   }
   if ( isVar(w2) )
   {
 #ifdef O_ATTVAR
-    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
-#else
-    *t2 = w1;
+    if ( isAttVar(w1) )
+      w1 = makeRef(t1);
 #endif
-    TrailEx(t2);
-    succeed;
+    return Trail(t2, w1);
   }
 
 #ifdef O_ATTVAR
@@ -297,8 +290,10 @@ right_recursion:
       linkTermsCyclic(f1, f2 PASS_LD);
 
       for(; t1 < e; t1++, t2++)
-      { if ( !do_unify(t1, t2 PASS_LD) )
-	  fail;
+      { int rc;
+
+	if ( (rc=do_unify(t1, t2 PASS_LD)) <= 0 )
+	  return rc;
       }
       goto right_recursion;
     }
@@ -308,11 +303,11 @@ right_recursion:
 }
 
 
-bool
+int
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
-    { bool rc;
+    { int rc;
 
       initCyclic(PASS_LD1);
       rc = do_unify(t1, t2 PASS_LD);
