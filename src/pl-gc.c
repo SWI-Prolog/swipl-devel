@@ -2934,7 +2934,8 @@ update_foreign(intptr_t ts, intptr_t ls, intptr_t gs)
   FliFrame fr = addPointer(fli_context, ls);
 
   for( ; fr; fr = fr->parent )
-  { update_mark(&fr->mark, gs, ts);
+  { if ( isRealMark(fr->mark) )
+      update_mark(&fr->mark, gs, ts);
     update_pointer(&fr->parent, ls);
   }
 }
