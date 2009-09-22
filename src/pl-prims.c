@@ -1652,33 +1652,32 @@ PRED_IMPL("\\=@=", 2, structural_neq, 0)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-?=(X, Y) is true if we can decide for   now and forever that X and Y are
-either equal or non-equal. I.e. X and Y are equal or they cannot unify.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** ?=(@X, @Y) is semidet.
+
+True if we can decide for now and forever  that X and Y are either equal
+or non-equal. I.e. X and Y are equal or they cannot unify.
+*/
 
 static
 PRED_IMPL("?=", 2, can_compare, 0)
 { PRED_LD
-  mark m;
-  bool rval;
+  fid_t fid = PL_open_foreign_frame();
+  int rc;
 
-  Mark(m);
-  rval = PL_unify(A1, A2);
-  if ( rval )
-  { if ( m.trailtop != tTop )
-      rval = FALSE;			/* can be equal after substitution */
+  rc = PL_unify(A1, A2);
+  if ( rc )
+  { FliFrame fr = (FliFrame) valTermRef(fid);
+
+    assert(fr->magic == FLI_MAGIC);
+    if ( fr->mark.trailtop != tTop )
+      rc = FALSE;
   } else if ( exception_term )
-  { rval = FALSE;
-    goto no_undo;			/* keep the exception term! */
-  } else
-  { rval = TRUE;			/* cannot unify */
+  { PL_close_foreign_frame(fid);	/* keep exception */
+    return FALSE;
   }
-  Undo(m);
-no_undo:
-  DiscardMark(m);
 
-  return rval;
+  PL_discard_foreign_frame(fid);
+  return rc;
 }
 
 
