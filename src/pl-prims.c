@@ -3013,10 +3013,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
   setVar(*dest);
   *valTermRef(to) = makeRef(dest);
 
-#ifdef O_SHIFT_STACKS
-  intptr_t grow = sizeStack(global)/2;
-
-  for(;; grow *= 2)
+  for(;;)
   { Word gsave = gTop;
 
     initCyclicCopy(PASS_LD1);
@@ -3025,26 +3022,13 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 
     if ( rc == -1 )
     { gTop = gsave;
-      if ( !growStacks(NULL, NULL, NULL, 0, grow, 0) )
-	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
+      if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
+	return FALSE;
       dest = &gTop[-1];
     } else
-    { succeed;		/* do_copy_term returning FALSE just means not-ground */
+    { return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
     }
   }
-
-#else
-
-  initCyclicCopy(PASS_LD1);
-  rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
-  exitCyclicCopy(0, flags PASS_LD);
-  if ( rc == -1 )
-  { outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
-    fail;
-  }
-
-  succeed;
-#endif
 }
 
 
