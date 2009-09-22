@@ -257,7 +257,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	a = argTermP(*a, 0);
 	b = argFrameP(fr, 0);
 	while( arity-- > 0 )
-	{ if ( !can_unify(a++, b++, &ex) )
+	{ if ( !can_unify(a++, b++, &ex, 0) )
 	  { rval = FALSE;
 	    break;
 	  }
@@ -1627,7 +1627,7 @@ prolog_frame_attribute(term_t frame, term_t what,
    { Word argp = argFrameP(fr, argn-1);
 
      if ( gc_status.blocked )
-       return unify_ptrs(p, argp PASS_LD); /* unsafe: allow loosing var identity */
+       return unify_ptrs(p, argp, 0 PASS_LD); /* unsafe: allow loosing var identity */
      else
        *p = makeRef(argp);		/* safe: preserve identity */
      TrailEx(p);

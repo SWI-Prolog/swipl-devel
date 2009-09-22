@@ -218,7 +218,7 @@ getval(term_t var, term_t value ARG_LD)
       if ( s )
       { word w = (word)s->value;
 
-	return unify_ptrs(valTermRef(value), &w PASS_LD);
+	return unify_ptrs(valTermRef(value), &w, ALLOW_GC|ALLOW_SHIFT PASS_LD);
       }
     }
 
@@ -325,7 +325,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
     word   val = (word)s->value;
 
     if ( PL_unify_atom(A1, name) &&
-	 unify_ptrs(valTermRef(A2), &val PASS_LD) )
+	 unify_ptrs(valTermRef(A2), &val, 0 PASS_LD) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     } else

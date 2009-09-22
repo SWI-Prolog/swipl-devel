@@ -143,7 +143,7 @@ unifyList(term_t term, list_ctx *ctx)
 
   a = valTermRef(term);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  if ( !unify_ptrs(a, ctx->lp, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }
@@ -161,13 +161,13 @@ unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
 
   a = valTermRef(head);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  if ( !unify_ptrs(a, ctx->lp, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }
   a = valTermRef(tail);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->gstore PASS_LD) )
+  if ( !unify_ptrs(a, ctx->gstore, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }

@@ -441,7 +441,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     }
   }
 
-  if ( raw_unify_ptrs(k, ARGP++ PASS_LD) )
+  if ( unify_ptrs(k, ARGP++, 0 PASS_LD) )
     NEXT_INSTRUCTION;
   if ( exception_term )
     goto b_throw;
@@ -953,7 +953,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   }
 #endif
 
-  if ( raw_unify_ptrs(v1, v2 PASS_LD) )
+  if ( unify_ptrs(v1, v2, 0 PASS_LD) )
   { CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   }
@@ -3404,7 +3404,7 @@ b_throw:
     discardChoicesAfter(FR PASS_LD);
     environment_frame = FR;
     Undo(ch->mark);
-    unify_ptrs(p, catcher PASS_LD); /* Undo() also */
+    unify_ptrs(p, catcher, 0 PASS_LD); /* Undo() also */
 				    /* undoes unify of findCatcher() */
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
     argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
@@ -3488,7 +3488,7 @@ VMI(B_EXIT, 0, 0, ())
     BODY_FAILED;
   }
 
-  if ( raw_unify_ptrs(argFrameP(blockfr, 2), rval PASS_LD) )
+  if ( unify_ptrs(argFrameP(blockfr, 2), rval, 0 PASS_LD) )
   { for( ; ; FR = FR->parent )
     { SECURE(assert(FR > blockfr));
       discardChoicesAfter(FR PASS_LD);

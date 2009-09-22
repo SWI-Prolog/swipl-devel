@@ -69,7 +69,7 @@ PRED_IMPL("$btree_find_node", 4, btree_find_node, 0)
     int arg;
 
     if ( d == 0 )
-    { if ( unify_ptrs(t, valTermRef(A3) PASS_LD) &&
+    { if ( unify_ptrs(t, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	   PL_unify_integer(A4, 1) )
 	succeed;
       fail;
@@ -83,7 +83,7 @@ PRED_IMPL("$btree_find_node", 4, btree_find_node, 0)
     if ( !isTerm(*n) )
     { nomatch:
 
-      if ( unify_ptrs(t, valTermRef(A3) PASS_LD) &&
+      if ( unify_ptrs(t, valTermRef(A3), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
 	   PL_unify_integer(A4, arg+1) )
 	succeed;
       fail;

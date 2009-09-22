@@ -881,7 +881,7 @@ findBlock(LocalFrame fr, Word block)
 { GET_LD
   for(; fr; fr = fr->parent)
   { if ( fr->predicate == PROCEDURE_block3->definition &&
-	 unify_ptrs(argFrameP(fr, 0), block PASS_LD) )
+	 unify_ptrs(argFrameP(fr, 0), block, 0 PASS_LD) )
       return fr;
   }
 
@@ -966,7 +966,7 @@ findCatcher(LocalFrame fr, Word ex ARG_LD)
       continue;
     if ( true(fr, FR_CATCHED) )
       continue;
-    if ( unify_ptrs(argFrameP(fr, 1), ex PASS_LD) )
+    if ( unify_ptrs(argFrameP(fr, 1), ex, 0 PASS_LD) )
     { set(fr, FR_CATCHED);
       return fr;
     }
@@ -996,7 +996,8 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
     term_t ex;
 
     while( fr )
-    { if ( fr->predicate == catch3 && can_unify(argFrameP(fr, 1), catcher, &ex) )
+    { if ( fr->predicate == catch3 &&
+	   can_unify(argFrameP(fr, 1), catcher, &ex, 0) )
 	succeed;
 
       if ( fr->parent )

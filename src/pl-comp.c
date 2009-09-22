@@ -2682,7 +2682,7 @@ unifyVar(Word var, term_t *vars, size_t i ARG_LD)
 
   assert(vars[i]);
 
-  return unify_ptrs(var, valTermRef(vars[i]) PASS_LD);
+  return unify_ptrs(var, valTermRef(vars[i]), 0 PASS_LD);
 }
 
 
@@ -2950,7 +2950,7 @@ decompile(Clause clause, term_t term, term_t bindings)
       *ba = *ARGP;
 
     lTop = lSave;
-    return unify_ptrs(body, b PASS_LD);
+    return unify_ptrs(body, b, ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }
 }
 

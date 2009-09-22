@@ -309,7 +309,8 @@ get_attr(term_t list, atom_t name, term_t value)
 
 	deRef2(&f->arguments[0], n);
 	if ( *n == name )
-	{ return unify_ptrs(valTermRef(value), &f->arguments[1] PASS_LD);
+	{ return unify_ptrs(valTermRef(value), &f->arguments[1],
+			    ALLOW_GC|ALLOW_SHIFT PASS_LD);
 	} else
 	{ l = &f->arguments[2];
 	}

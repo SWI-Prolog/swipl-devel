@@ -1616,7 +1616,7 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
   { Word t2 = valTermRef(tail);
 
     setVar(*t2);
-    unify_ptrs(t2, t PASS_LD);
+    unify_ptrs(t2, t, 0 PASS_LD);
   }
 
   if ( isNil(*t) )
@@ -2533,7 +2533,7 @@ PL_unify_arg(int index, term_t t, term_t a)
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 
-    return unify_ptrs(p, p2 PASS_LD);
+    return unify_ptrs(p, p2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }
 
   fail;
@@ -3049,29 +3049,10 @@ PL_term_type(term_t t)
 
 int
 PL_unify__LD(term_t t1, term_t t2 ARG_LD)
-{ for(;;)
-  { Word p1 = valHandleP(t1);
-    Word p2 = valHandleP(t2);
-    mark m;
-    int rc;
+{ Word p1 = valHandleP(t1);
+  Word p2 = valHandleP(t2);
 
-    Mark(m);
-    rc = raw_unify_ptrs(p1, p2 PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
-    } else if ( rc == FALSE )		/* Terms did not unify */
-    { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
-    } else				/* Stack overflow */
-    { Undo(m);
-      DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
-	return FALSE;
-    }
-  }
+  return unify_ptrs(p1, p2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
 }
 
 #undef PL_unify

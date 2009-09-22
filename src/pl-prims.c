@@ -303,7 +303,7 @@ right_recursion:
 }
 
 
-int
+static int
 raw_unify_ptrs(Word t1, Word t2 ARG_LD)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
@@ -340,7 +340,7 @@ PRED_IMPL("\\=", 2, not_unify, 0)
   Word p0 = valTermRef(A1);
   term_t ex = 0;
 
-  if ( can_unify(p0, p0+1, &ex) )
+  if ( can_unify(p0, p0+1, &ex, ALLOW_GC|ALLOW_SHIFT) )
     return FALSE;
   if ( ex )
     return PL_raise_exception(ex);
@@ -391,26 +391,47 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-can_unify(t1, t2, &ex) succeeds if two   terms *can* be unified, without
-actually doing so. This  is  basically   a  stripped  version of unify()
-above. See this function for comments.  Note   that  we  have to execute
-delayed goals and these may raise an exception. If this happens, ex is a
-reference to the exception term.
+can_unify(t1, t2, &ex, flags) succeeds if   two  terms *can* be unified,
+without actually doing so.  This  is   basically  a  stripped version of
+unify() above. See this function for  comments.   Note  that  we have to
+execute delayed goals and these may raise an exception. If this happens,
+ex is a reference to the exception term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(Word t1, Word t2, term_t *ex)
+can_unify(Word t1, Word t2, term_t *ex, int flags)
 { GET_LD
-  mark m;
-  bool rval;
 
-  Mark(m);
-  if ( (rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    rval = foreignWakeup(ex PASS_LD);
-  Undo(m);
-  DiscardMark(m);
+  flags = 0;				/* for now, disable */
 
-  return rval;
+  for(;;)
+  { mark m;
+    int rc;
+
+    Mark(m);
+    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { rc = foreignWakeup(ex PASS_LD);	/* TBD: Handle shift/gc flags */
+      Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { int rc2;
+
+      Undo(m);
+      DiscardMark(m);
+      PushPtr(t1); PushPtr(t2);
+      rc2 = makeMoreStackSpace(rc, flags);
+      PopPtr(t2); PopPtr(t1);
+      if ( !rc )
+	return FALSE;
+    }
+  }
 }
 
 		 /*******************************
@@ -1757,7 +1778,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       { if ( idx > 0 && idx <= arity )
 	{ Word ap = argTermP(*p, idx-1);
 
-	  return unify_ptrs(valTermRef(arg), ap PASS_LD);
+	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
 	}
 	if ( idx < 0 )
 	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
@@ -1837,7 +1858,7 @@ setarg(term_t n, term_t term, term_t value, int flags)
     a = argTermP(*a, argn-1);
 
     if ( isVar(*a) )
-    { return unify_ptrs(valTermRef(value), a PASS_LD);
+    { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT PASS_LD);
     } else
     { int rc;
 
@@ -1948,7 +1969,7 @@ PRED_IMPL("$skip_list", 3, skip_list, 0)
   if ( !PL_unify_integer(A1, skip_list(l, &tail PASS_LD)) )
     fail;
 
-  return unify_ptrs(valTermRef(A3), tail PASS_LD);
+  return unify_ptrs(valTermRef(A3), tail, ALLOW_GC|ALLOW_SHIFT PASS_LD);
 }
 
 
