@@ -203,15 +203,26 @@ globalMPZ() pushes an mpz type GMP  integer   onto  the local stack. The
 saved version is the _mp_size field, followed by the limps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static size_t
+mpz_wsize(mpz_t mpz, size_t *s)
+{ size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
+  size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
+
+  if ( s )
+    *s = size;
+
+  return wsz;
+}
+
+
 static word
 globalMPZ(mpz_t mpz)
 { GET_LD
   Word p;
   word r;
-
-  size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
-  size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
-  word m      = mkIndHdr(wsz+1, TAG_INTEGER);
+  size_t size;
+  size_t wsz = mpz_wsize(mpz, &size);
+  word m     = mkIndHdr(wsz+1, TAG_INTEGER);
 
   if ( wsizeofInd(m) != wsz+1 )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_integer);
@@ -647,6 +658,11 @@ put_number__LD(Number n ARG_LD)
       } else
       { word num, den;
 	Word p;
+	size_t req = ( mpz_wsize(mpq_numref(n->value.mpq), NULL) +
+		       mpz_wsize(mpq_denref(n->value.mpq), NULL) + 3 );
+
+					/* avoid shift/gc */
+	requireStackEx(global, req*sizeof(word));
 
 	if ( !(num=put_mpz(mpq_numref(n->value.mpq))) ||
 	     !(den=put_mpz(mpq_denref(n->value.mpq))) )
