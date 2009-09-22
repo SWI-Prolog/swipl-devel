@@ -2719,14 +2719,16 @@ implementation does not allow for stack-shifts
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-makeMoreStackSpace(int overflow)
+makeMoreStackSpace(int overflow, int flags)
 { GET_LD
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
+       (flags & ALLOW_GC) &&
        garbageCollect(NULL, NULL) )
     return TRUE;
 
 #ifdef O_SHIFT_STACKS
+  if ( (flags & ALLOW_SHIFT) )
   { size_t l=0, g=0, t=0;
 
     switch(overflow)

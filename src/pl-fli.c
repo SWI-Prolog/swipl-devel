@@ -3068,7 +3068,7 @@ PL_unify__LD(term_t t1, term_t t2 ARG_LD)
     } else				/* Stack overflow */
     { Undo(m);
       DiscardMark(m);
-      if ( !makeMoreStackSpace(rc) )
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return FALSE;
     }
   }

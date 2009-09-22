@@ -349,23 +349,39 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Public unification procedure for  `raw'  data.   See  also  unify()  and
-PL_unify(). Note that we  can  have   an  exception  due to occurs-check
-errors as well as stack-overflows. In this   case we must undo carefully
-to preserve the exception term.
+Public unification procedure for `raw' data.   See also PL_unify(). Note
+that we can have an exception due   to occurs-check errors. In this case
+we must undo carefully to preserve the exception term.
+
+TBD: Save/restore t1&t2 over  makeMoreStackSpace().   One  option  is to
+reserve a few term-references for  this   purpose  and store a reference
+into these. Now, this can execute both   GC  and stack-shifts. How do we
+deal with that?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-unify_ptrs(Word t1, Word t2 ARG_LD)
-{ mark m;
-  bool rval;
+unify_ptrs(Word t1, Word t2, int flags ARG_LD)
+{ for(;;)
+  { mark m;
+    int rc;
 
-  Mark(m);
-  if ( !(rval = raw_unify_ptrs(t1, t2 PASS_LD)) )
-    Undo(m);
-  DiscardMark(m);
-
-  return rval;
+    Mark(m);
+    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { Undo(m);
+      DiscardMark(m);
+      if ( !makeMoreStackSpace(rc, flags) )
+	return FALSE;
+    }
+  }
 }
 
 

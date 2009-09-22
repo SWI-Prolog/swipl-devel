@@ -1744,6 +1744,9 @@ typedef struct
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
 
+#define ALLOW_GC	0x1
+#define ALLOW_SHIFT	0x2
+
 typedef enum
 { STACK_OVERFLOW_SIGNAL,
   STACK_OVERFLOW_RAISE,
@@ -1972,7 +1975,7 @@ typedef struct debuginfo
 #define PLFLAG_FILEERRORS	    0x200000 /* Edinburgh file errors */
 
 typedef struct
-{ unsigned long flags;			/* Fast access to some boolean Prolog flags */
+{ unsigned int flags;		/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
 #define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
@@ -1980,9 +1983,9 @@ typedef struct
 #define clearPrologFlagMask(flag) clear(&LD->prolog_flag.mask, flag)
 
 typedef enum
-{ OCCURS_CHECK_FALSE = 0,
-  OCCURS_CHECK_TRUE,
-  OCCURS_CHECK_ERROR
+{ OCCURS_CHECK_FALSE = 0,	/* allow rational trees */
+  OCCURS_CHECK_TRUE,		/* fail if rational tree would result */
+  OCCURS_CHECK_ERROR		/* exception if rational tree would result */
 } occurs_check_t;
 
 
