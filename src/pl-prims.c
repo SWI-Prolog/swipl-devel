@@ -2359,9 +2359,9 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
     if ( count == TV_EXCEPTION )
       return FALSE;
     if ( count == TV_NOSPACE )
-    { if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) ) /* GC doesn't help */
-	return FALSE;
-      PL_reset_term_refs(v0);
+    { PL_reset_term_refs(v0);
+      if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
+	return FALSE;			/* GC doesn't help */
       continue;
     }
     if ( count > maxcount )
@@ -2505,15 +2505,15 @@ PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pl_e_free_variables(V0^V1^t, vars) is used  by   setof/3  and bagof/3 to
-determine  the  free  variables  in  the    goal   that  have  not  been
-existentially   bound.   The   implementation   is     very   close   to
-term_variables/2, but while traversing the lefthand   of ^, the variable
-is marked but not added to the list.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** '$e_free_variables'(V0^V1^Term, Vars)
 
-static int
+Used by setof/3 and bagof/3 to determine  the free variables in the goal
+that have not been existentially bound. The implementation is very close
+to term_variables/2, but  while  traversing  the   lefthand  of  ^,  the
+variable is marked but not added to the list.
+*/
+
+static size_t
 free_variables_loop(Word t, term_t l, int n, int existential ARG_LD)
 {
 right_recursion:
@@ -2523,7 +2523,8 @@ right_recursion:
   { term_t v;
 
     if ( !visitedWord(t PASS_LD) && !existential )
-    { v = PL_new_term_ref();
+    { if ( !(v = PL_new_term_ref_noshift()) )
+	return TV_NOSPACE;
       *valTermRef(v) = makeRef(t);
 
       n++;
@@ -2541,12 +2542,15 @@ right_recursion:
 
     t = f->arguments;
     if ( fd == FUNCTOR_hat2 )
-    { n = free_variables_loop(t, l, n, TRUE PASS_LD);
+    { n = free_variables_loop(t, l, n, TRUE PASS_LD); /* cannot overflow */
       t++;
     } else
     { arity = arityFunctor(f->definition);
       for(; --arity > 0; t++)
-	n = free_variables_loop(t, l, n, existential PASS_LD);
+      { n = free_variables_loop(t, l, n, existential PASS_LD);
+	if ( n == TV_NOSPACE )
+	  return n;
+      }
     }
 
     goto right_recursion;
@@ -2556,29 +2560,38 @@ right_recursion:
 }
 
 
-word
-pl_e_free_variables(term_t t, term_t vars)
+static
+PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
 { GET_LD
-  Word t2 = valTermRef(t);
-  term_t v0 = PL_new_term_refs(0);
-  int i, n;
 
-  startCritical;
-  initvisited(PASS_LD1);
-  n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
-  unvisit(PASS_LD1);
-  if ( !endCritical )
-    return FALSE;
+  for(;;)
+  { Word t2 = valTermRef(A1);
+    term_t v0 = PL_new_term_refs(0);
+    int i, n;
 
-  if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
-  { for(i=0; i<n; i++)
-    { TRY(PL_unify_arg(i+1, vars, v0+i));
+    startCritical;
+    initvisited(PASS_LD1);
+    n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
+    unvisit(PASS_LD1);
+    if ( !endCritical )
+      return FALSE;
+    if ( n == TV_NOSPACE )
+    { PL_reset_term_refs(v0);
+      if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
+	return FALSE;
+      continue;
     }
 
-    succeed;
-  }
+    if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, n)) )
+    { for(i=0; i<n; i++)
+      { if ( !PL_unify_arg(i+1, A2, v0+i) )
+	  return FALSE;
+      }
 
-  fail;
+      return TRUE;
+    }
+    return FALSE;
+  }
 }
 
 
@@ -4835,6 +4848,7 @@ BeginPredDefs(prims)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
+  PRED_DEF("$e_free_variables", 2, e_free_variables, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH
   PRED_DEF("term_hash", 2, term_hash, 0)

@@ -476,7 +476,6 @@ COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t) 	lengthList(term_t list, int errors);
 COMMON(int) 		numberVars(term_t t, nv_options *opts, int n ARG_LD);
 COMMON(int)		duplicate_term(term_t in, term_t copy ARG_LD);
-COMMON(word) 		pl_e_free_variables(term_t t, term_t l);
 COMMON(word) 		stringToList(char *s);
 COMMON(word) 		pl_apropos_match(term_t a1, term_t a2);
 COMMON(foreign_t) 	pl_sub_atom(term_t atom,

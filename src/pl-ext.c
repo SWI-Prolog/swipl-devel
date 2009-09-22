@@ -107,7 +107,6 @@ static const PL_extension foreigns[] = {
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
   FRG("!",			0, pl_metacut,		      ISO),
-  FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
   FRG("$close_wic",		0, pl_close_wic,		0),
