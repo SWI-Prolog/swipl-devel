@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -582,25 +582,36 @@ right_recursion:
 static
 PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
-  mark m;
-  Word p1, p2;
-  word rval;
 
-  Mark(m);
-  p1 = valTermRef(A1);
-  p2 = valTermRef(A2);
-  rval = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
-  if ( !rval )
-    Undo(m);
+  for(;;)
+  { mark m;
+    int rc;
+    Word p1 = valTermRef(A1);
+    Word p2 = valTermRef(A2);
 
-  return rval;
+    Mark(m);
+    rc = unify_with_occurs_check(p1, p2, OCCURS_CHECK_TRUE PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { Undo(m);
+      DiscardMark(m);
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	return FALSE;
+    }
+  }
 }
 
 
 		/********************************
 		*         TYPE CHECKING         *
 		*********************************/
-
 
 static
 PRED_IMPL("nonvar", 1, nonvar, 0)
