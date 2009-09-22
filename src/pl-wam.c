@@ -831,10 +831,13 @@ foreignWakeup() calls delayed goals while executing a foreign procedure.
 Note that the  choicepoints  of  the   awoken  code  are  destroyed  and
 therefore this code can only be used in places introducing an (implicit)
 cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
+
+Flags is a bitwise or of ALLOW_GC, ALLOW_SHIFT
+TBD: Map resource exceptions back to *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(term_t *ex ARG_LD)
+foreignWakeup(term_t *ex, int flags ARG_LD)
 { if ( LD->alerted & ALERT_WAKEUP )
   { LD->alerted &= ~ALERT_WAKEUP;
 
@@ -843,17 +846,19 @@ foreignWakeup(term_t *ex ARG_LD)
       int rval;
       term_t a0 = PL_new_term_ref();
       qid_t qid;
+      int gc = (flags & (ALLOW_SHIFT|ALLOW_GC)) == (ALLOW_SHIFT|ALLOW_GC);
 
       PL_put_term(a0, LD->attvar.head);
       setVar(*valTermRef(LD->attvar.head));
       setVar(*valTermRef(LD->attvar.tail));
-
+      if ( !gc ) blockGC(PASS_LD1);
       qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, PROCEDURE_dwakeup1, a0);
       rval = PL_next_solution(qid);
       if ( rval == FALSE )
 	*ex = PL_exception(qid);
       else
 	*ex = 0;
+      if ( !gc ) unblockGC(PASS_LD1);
       PL_cut_query(qid);
       PL_close_foreign_frame(fid);
 

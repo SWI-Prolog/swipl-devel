@@ -411,7 +411,7 @@ can_unify(Word t1, Word t2, term_t *ex, int flags)
     Mark(m);
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc == TRUE )			/* Terms unified */
-    { rc = foreignWakeup(ex PASS_LD);	/* TBD: Handle shift/gc flags */
+    { rc = foreignWakeup(ex, flags PASS_LD);
       Undo(m);
       DiscardMark(m);
       return rc;
@@ -2455,7 +2455,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
   n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
   if ( PL_unify(general, specific) &&
-       foreignWakeup(&ex PASS_LD) )
+       foreignWakeup(&ex, ALLOW_SHIFT|ALLOW_GC PASS_LD) )
   { int rc = TRUE;
 
     startCritical;
