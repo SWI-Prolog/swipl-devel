@@ -2118,7 +2118,7 @@ start:
 
 #ifdef O_SHIFT_STACKS
     if ( roomStack(global) < (intptr_t)(2 * sizeof(word)) )
-    { if ( !growStacks(environment_frame, NULL, NULL, 0, 2 * sizeof(word), 0) )
+    { if ( !growStacks(NULL, NULL, NULL, 0, 2 * sizeof(word), 0) )
 	return -1;
       p = valTermRef(t);
       deRef(p);
