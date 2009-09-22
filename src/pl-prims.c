@@ -376,9 +376,14 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
       DiscardMark(m);
       return rc;
     } else				/* Stack overflow */
-    { Undo(m);
+    { int rc2;
+
+      Undo(m);
       DiscardMark(m);
-      if ( !makeMoreStackSpace(rc, flags) )
+      PushPtr(t1); PushPtr(t2);
+      rc2 = makeMoreStackSpace(rc, flags);
+      PopPtr(t2); PopPtr(t1);
+      if ( !rc )
 	return FALSE;
     }
   }

@@ -1570,6 +1570,19 @@ Note that the local stack is always _above_ the global stack.
 #define RestoreLocalPtr(s, ptr)
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Temporary store/restore pointers to make them safe over GC/shift
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define PushPtr(p)	do { int i = LD->tmp.top++; \
+			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
+			   } while(0)
+#define PopPtr(n, p)	do { int i = --LD->tmp.top; \
+			     p = unRef(*valTermRef(LD->tmp.h[i])); \
+			     setVar(*valTermRef(LD->tmp.h[i])); \
+			   } while(0)
+
+
 #define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)

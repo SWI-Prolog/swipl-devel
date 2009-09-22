@@ -373,6 +373,11 @@ struct PL_local_data
   { term_t	dummy;			/* see trimStacks() */
   } trim;
 
+  struct
+  { term_t	h[2];			/* temporary handles. See unify_ptrs */
+    int		top;			/* Top-of-stack index */
+  } tmp;
+
 #ifdef O_GVAR
   struct
   { Table	nb_vars;		/* atom --> value */

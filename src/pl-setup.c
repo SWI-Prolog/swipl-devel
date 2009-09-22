@@ -1089,7 +1089,9 @@ emptyStack(Stack s)
 
 void
 emptyStacks()
-{ environment_frame = NULL;
+{ int i;
+
+  environment_frame = NULL;
   fli_context       = NULL;
 
   emptyStack((Stack)&LD->stacks.local);
@@ -1112,6 +1114,9 @@ emptyStacks()
 #ifdef O_GVAR
   destroyGlobalVars();
 #endif
+  for(i=0; i<sizeof(LD->tmp.h)/sizeof(term_t); i++)
+    LD->tmp.h[i] = PL_new_term_ref();
+  LD->tmp.h.top = 0;
 }
 
 
