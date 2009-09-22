@@ -12,3 +12,4 @@ shift_safe(unify_ptrs, function).
 shift_safe(unifyAtomic, function).
 shift_safe(unify_with_occurs_check, function).
 shift_safe(var_or_integer, function).
+shift_safe(globalMPZ, function).

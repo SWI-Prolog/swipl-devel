@@ -221,7 +221,6 @@ globalMPZ(mpz_t mpz)
   p = allocGlobal(wsz+3);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
-
   *p++     = m;
   p[wsz]   = 0L;			/* pad out */
   p[wsz+1] = m;
