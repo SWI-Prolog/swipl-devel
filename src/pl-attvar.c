@@ -835,7 +835,6 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
   intptr_t off;
   Choice ch;
   Word gp, gend, list, tailp;
-  size_t minfree = 0;
 
 retry:
   if ( !PL_get_intptr_ex(A1, &off) )
@@ -885,13 +884,8 @@ retry:
   }
 
 grow:
-  if ( minfree == 0 )
-  { garbageCollect(NULL, NULL);
-    minfree = 1024;
-  } else
-  { minfree *= 2;
-  }
-  requireStackEx(global, minfree);	/* Cleaner way? */
+  if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
+    return FALSE;
   goto retry;
 }
 
