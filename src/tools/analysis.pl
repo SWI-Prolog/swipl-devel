@@ -1,5 +1,6 @@
 #!/home/jan/bin/pl -q -g true -t main -s
 
+:- use_module(shift).
 :- op(500, xfx, @).
 
 :- multifile
@@ -44,6 +45,7 @@ target_callers :-
 
 problem(Func, Type, Problem, File, Line) :-
 	function(Func, Type, File, StartLine, EndLine, Words, Marks),
+	\+ shift_safe(Func, Type),
 	(   Words > 0,
 	    calls(_, Callee, File, Line),
 	    Line >= StartLine,
