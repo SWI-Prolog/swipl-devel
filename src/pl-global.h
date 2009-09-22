@@ -517,13 +517,13 @@ struct PL_local_data
     intptr_t _alien_relocations;		/* # alien_into_relocation_chain() */
     intptr_t _local_frames;			/* frame count for debugging */
     intptr_t _choice_count;			/* choice-point count for debugging */
+    int  *_start_map;			/* bitmap with legal global starts */
 #if defined(O_SECURE) || defined(SECURE_GC)
     intptr_t _trailtops_marked;		/* # marked trailtops */
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
     Table _check_table;			/* relocation address table */
     Table _local_table;			/* marked local variables */
-    int  *_start_map;			/* bitmap with legal global starts */
     int  _relocated_check;		/* Verify relocated addresses? */
 #endif
     int64_t inferences;			/* #inferences at last GC */

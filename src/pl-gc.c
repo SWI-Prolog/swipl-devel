@@ -209,13 +209,13 @@ static int		check_marked(const char *s);
 #define	alien_relocations  (LD->gc._alien_relocations)
 #define local_frames	   (LD->gc._local_frames)
 #define choice_count	   (LD->gc._choice_count)
+#define start_map	   (LD->gc._start_map)
 #if O_SECURE
 #define trailtops_marked   (LD->gc._trailtops_marked)
 #define mark_base	   (LD->gc._mark_base)
 #define mark_top	   (LD->gc._mark_top)
 #define check_table	   (LD->gc._check_table)
 #define local_table	   (LD->gc._local_table)
-#define start_map	   (LD->gc._start_map)
 #define relocated_check	   (LD->gc._relocated_check)
 #endif
 
