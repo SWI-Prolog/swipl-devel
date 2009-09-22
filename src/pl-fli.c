@@ -153,13 +153,12 @@ PL_new_term_refs__LD(int n ARG_LD)
 }
 
 
-term_t
-PL_new_term_ref__LD(ARG1_LD)
+static inline term_t
+new_term_ref(ARG1_LD)
 { Word t;
   term_t r;
   FliFrame fr;
 
-  requireStackEx(local, sizeof(word));
   t = (Word)lTop;
   r = consTermRef(t);
   SECURE(assert(*t != QID_MAGIC));
@@ -173,6 +172,21 @@ PL_new_term_ref__LD(ARG1_LD)
 	 });
 
   return r;
+}
+
+
+term_t
+PL_new_term_ref__LD(ARG1_LD)
+{ requireStackEx(local, sizeof(word));
+  return new_term_ref(PASS_LD1);
+}
+
+
+term_t
+PL_new_term_ref_noshift__LD(ARG1_LD)
+{ if ( !requireStack(local, sizeof(word)) )
+    return 0;
+  return new_term_ref(PASS_LD1);
 }
 
 

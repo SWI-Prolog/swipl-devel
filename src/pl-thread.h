@@ -393,6 +393,7 @@ extern void		initPrologThreads(void);
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
+#define PL_new_term_ref_noshift()	PL_new_term_ref_noshift__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)

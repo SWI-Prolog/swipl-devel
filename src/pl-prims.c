@@ -2274,6 +2274,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 		 *******************************/
 
 #define TV_ATTVAR 0x1
+#define TV_EXCEPTION ((size_t)-1)
+#define TV_NOSPACE   ((size_t)-2)
 
 static size_t
 term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
@@ -2298,7 +2300,8 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 
 	  if ( ++count > maxcount )
 	    return count;
-	  v = PL_new_term_ref();
+	  if ( !(v = PL_new_term_ref_noshift()) )
+	    return TV_NOSPACE;
 	  *valTermRef(v) = makeRef(p);
 
 	  deRef2(p2, p);
@@ -2307,7 +2310,8 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
       } else
       { if ( ++count > maxcount )
 	  return count;
-	v = PL_new_term_ref();
+	if ( !(v = PL_new_term_ref_noshift()) )
+	  return TV_NOSPACE;
 	*valTermRef(v) = makeRef(p);
       }
     } else if ( isTerm(w) )
@@ -2332,7 +2336,7 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
   clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
   if ( !endCritical )
-    return (size_t)-1;
+    return TV_EXCEPTION;
 
   *vp = v0;
   return count;
@@ -2350,16 +2354,27 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
   if ( !(!tail && PL_skip_list(vars, 0, &maxcount) == PL_LIST) )
     maxcount = ~0;
 
-  if ( (count = term_variables_to_termv(t, &v0, maxcount, flags PASS_LD)) == (size_t)-1 )
-    return FALSE;			/* exception in critical section */
-  if ( count > maxcount )
-    return FALSE;
+  for(;;)
+  { count = term_variables_to_termv(t, &v0, maxcount, flags PASS_LD);
+    if ( count == TV_EXCEPTION )
+      return FALSE;
+    if ( count == TV_NOSPACE )
+    { if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) ) /* GC doesn't help */
+	return FALSE;
+      PL_reset_term_refs(v0);
+      continue;
+    }
+    if ( count > maxcount )
+      return FALSE;
+    break;
+  }
 
   for(i=0; i<count; i++)
   { if ( !PL_unify_list(list, head, list) ||
 	 !PL_unify(head, v0+i) )
       fail;
   }
+  PL_reset_term_refs(v0);
 
   if ( tail )
     return PL_unify(list, tail);
