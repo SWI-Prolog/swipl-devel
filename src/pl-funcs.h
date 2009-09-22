@@ -382,7 +382,7 @@ COMMON(size_t)		nextStackSizeAbove(size_t n);
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
 				   size_t lminfree, size_t gminfree,
 				   size_t tminfree);
-COMMON(int)		makeMoreStackSpace(int overflow);
+COMMON(int)		makeMoreStackSpace(int overflow, int flags);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);

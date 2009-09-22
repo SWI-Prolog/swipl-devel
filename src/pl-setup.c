@@ -1116,7 +1116,7 @@ emptyStacks()
 #endif
   for(i=0; i<sizeof(LD->tmp.h)/sizeof(term_t); i++)
     LD->tmp.h[i] = PL_new_term_ref();
-  LD->tmp.h.top = 0;
+  LD->tmp.top = 0;
 }
 
 
