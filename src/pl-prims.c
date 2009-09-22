@@ -2640,27 +2640,9 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
 }
 
 
-static int
-unify_all_trail(term_t t1, term_t t2 ARG_LD)
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
-  mark m;
-  bool rval;
-
-  Mark(m);
-  LD->mark_bar = gTop;			/* so all globals refs are trailed */
-  if ( !(rval = raw_unify_ptrs(p1, p2 PASS_LD)) )
-    Undo(m);
-  DiscardMark(m);
-
-  return rval;
-}
-
-
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { fid_t fid;
-  intptr_t tmark;
 
   if ( PL_is_variable(t1) )
   { if ( PL_compare(t1, t2) == 0 )
@@ -2690,22 +2672,22 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
   }
 
   fid = PL_open_foreign_frame();
-  tmark = (char*)tTop - (char*)tBase;	/* prepare for a shift */
 
-  if ( unify_all_trail(t1, t2 PASS_LD) )
-  { TrailEntry tt = tTop;
-    TrailEntry mt = addPointer(tBase, tmark);
+  if ( PL_unify(t1, t2) )		/* can do shift/gc */
+  { FliFrame fr = (FliFrame)valTermRef(fid);
+    TrailEntry tt = tTop;
+    TrailEntry mt = fr->mark.trailtop;
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
-      Word list = allocGlobalNoShift(needed);
+      Word list = allocGlobal(needed);	/* can do shift/gc */
       Word gp = list+1;
       Word tail = list;
 
-      if ( !list )
-      { PL_rewind_foreign_frame(fid);
-	return -needed;
-      }
+					/* reload for shift/gc */
+      FliFrame fr = (FliFrame)valTermRef(fid);
+      tt = tTop;
+      mt = fr->mark.trailtop;
 
       *list = ATOM_nil;
       while(--tt >= mt)
@@ -2757,7 +2739,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 	}
       }
       gTop = gp;			/* may not have used all space */
-      tTop = addPointer(tBase, tmark);
+      tTop = fr->mark.trailtop;
 
       return PL_unify(wordToTermRef(list), subst);
     } else
@@ -2771,20 +2753,7 @@ static
 PRED_IMPL("unifiable", 3, unifiable, 0)
 { PRED_LD
 
-#ifdef O_SHIFT_STACKS
-  for(;;)
-  { ssize_t rc = unifiable(A1, A2, A3 PASS_LD);
-
-    if ( rc < 0 )			/* not enough space */
-    { if ( !growStacks(NULL, NULL, NULL, 0, (-rc)*sizeof(word), 0) )
-	return outOfStack(&LD->stacks.global, STACK_OVERFLOW_SIGNAL);
-    } else
-    { return rc;
-    }
-  }
-#else
   return unifiable(A1, A2, A3 PASS_LD);
-#endif
 }
 
 #if O_CYCLIC
