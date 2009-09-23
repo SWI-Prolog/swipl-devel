@@ -21,7 +21,7 @@ target(growStacks, shift).
 target(garbageCollect, gc).
 
 :- dynamic
-	caller/3,			% Func, File, shift/gc
+	caller/4,			% Func, File, Path, shift/gc
 	only/1,
 	report/1.
 
@@ -39,13 +39,13 @@ caller_of(Callee, CalleeFile, Caller, CallerFile) :-
 caller_of(Callee, _CalleeFile, Caller, CallerFile) :-
 	calls(Caller, Callee, CallerFile, _).
 
-r_caller_of(Callee, CalleeFile, What) :-
-	caller(Callee, CalleeFile, What), !.
-r_caller_of(Callee, CalleeFile, What) :-
-	assert(caller(Callee, CalleeFile, What)),
+r_caller_of(Callee, CalleeFile, _, What) :-
+	caller(Callee, CalleeFile, _, What), !.
+r_caller_of(Callee, CalleeFile, Path, What) :-
+	assert(caller(Callee, CalleeFile, Path, What)),
 	setof(Caller@CallerFile,
 	      ( caller_of(Callee, CalleeFile, Caller, CallerFile),
-		\+ caller(Caller, CallerFile, What)
+		\+ caller(Caller, CallerFile, _, What)
 	      ),
 	      Pairs), !,
 	(   debugging(called)
@@ -55,13 +55,13 @@ r_caller_of(Callee, CalleeFile, What) :-
 	;   true
 	),
 	forall(member(C@F, Pairs),
-	       r_caller_of(C, F, What)).
-r_caller_of(_,_, _).
+	       r_caller_of(C, F, [Callee|Path], What)).
+r_caller_of(_,_, _, _).
 
 target_callers(What) :-
 	retractall(caller(_,_,What)),
 	forall(target(Target, What),
-	       r_caller_of(Target, _, What)).
+	       r_caller_of(Target, _, [], What)).
 
 problem(Func, Type, Problem, File, Line) :-
 	function(Func, Type, File, StartLine, EndLine, Words, Marks),
@@ -69,10 +69,11 @@ problem(Func, Type, Problem, File, Line) :-
 	    calls(_, Callee, File, Line),
 	    Line >= StartLine,
 	    Line =< EndLine,
-	    setof(What, ( caller(Callee, _CalleeFile, What),
+	    setof(What, ( caller(Callee, _CalleeFile, Path, What),
 			  report(What),
 			  \+ safe(Type, What, Func)), WhatList),
-	    format(atom(Problem), 'Calls ~w ~w', [Callee, WhatList])
+	    atomic_list_concat([Callee|Path], '<-', Where),
+	    format(atom(Problem), 'Calls ~w ~w', [Where, WhatList])
 	;   Marks > 0,
 	    Line = StartLine,
 	    Problem = '[mark]',

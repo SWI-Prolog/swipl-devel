@@ -19,4 +19,7 @@ safe(function, _, put_number__LD).
 volatile('PL_halt', _).
 volatile('sysError', _).
 volatile('fatalError', _).
+volatile('PL_warning', _).
+volatile('warning', _).
 volatile('PL_throw', _).
+volatile('outOfStack', _).
