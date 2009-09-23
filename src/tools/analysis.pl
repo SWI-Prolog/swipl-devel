@@ -7,7 +7,9 @@
 
 :- multifile
 	function/7,	% Name, Type, File, StartLine, EndLine, Word, Mark
-	calls/4.	% Name, Callee, File, Line
+	calls/4,	% Name, Callee, File, Line
+	object/2,	% Object, Source
+	static/2.	% Name, File
 
 load :-
 	expand_file_name('*.functions', FFiles),
@@ -27,8 +29,14 @@ target(garbageCollect, gc).
 %
 %	@tbd	Deal with static functions (only called in local file)
 
+caller_of(Callee, CalleeFile, _, _) :-
+	volatile(Callee, CalleeFile), !, fail.
 caller_of(Callee, CalleeFile, Caller, CallerFile) :-
-	\+ volatile(Callee, CalleeFile),
+	static(Callee, CallerFile), !,
+	calls(Caller, Callee, CallerFile, _),
+	object(O, CalleeFile),
+	object(O, CallerFile).
+caller_of(Callee, _CalleeFile, Caller, CallerFile) :-
 	calls(Caller, Callee, CallerFile, _).
 
 r_caller_of(Callee, CalleeFile, What) :-

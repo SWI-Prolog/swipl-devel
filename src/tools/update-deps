@@ -59,7 +59,11 @@ function update
       return 1
     fi
     echo "" >> $fout
-    nm -l $aobj | grep -w t | \
+    for s in $sources; do
+      echo "object('$obj', '$s')." >> $fout
+    done
+    echo "" >> $fout
+    nm -l $aobj | grep -w t | sed 's/:[0-9]*//' | \
 	awk '{ printf("static('"'%s', '%s'"').\n", $3, $4) }' >> $fout
   fi
 }
