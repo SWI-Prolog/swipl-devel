@@ -59,7 +59,13 @@ function update
   fi
 }
 
-for f in $*; do
+if [ -z "$1" ]; then
+   files="*.expand"
+else
+   files="$*"
+fi
+
+for f in $files; do
    if ! update $f; then
       exit 1
    fi
