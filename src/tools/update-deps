@@ -5,8 +5,8 @@ if [ "x$tooldir" == x ]; then
     tooldir=.
 fi
 
-pwd=`pwd`
-home=`dirname $pwd`/src
+build=`pwd`
+home=`dirname $build`/src
 
 function basesource
 { case $1 in
@@ -44,6 +44,8 @@ function update
   tout="$base.tree"
   fout="$base.functions"
   src=`find $home -name $base`
+  obj=`echo $base | sed 's/\.c$/.o/'`
+  aobj=`find $build -name $obj`
 
   if [ ! -r $tout -o $1 -nt $tout ]; then
     if ! $tooldir/calltree.pl $1 $tout; then
@@ -56,6 +58,9 @@ function update
     if ! $tooldir/functions.pm $sources > $fout; then
       return 1
     fi
+    echo "" >> $fout
+    nm -l $aobj | grep -w t | \
+	awk '{ printf("static('"'%s', '%s'"').\n", $3, $4) }' >> $fout
   fi
 }
 

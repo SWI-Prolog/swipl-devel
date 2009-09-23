@@ -1,5 +1,6 @@
 :- module(shift,
-	  [ safe/3			% +Type, +What, +Func
+	  [ safe/3,			% +Type, +What, +Func
+	    (volatile)/2			% +Function, +File
 	  ]).
 
 safe(predicate, _, '$attvars_after_choicepoint/2').
@@ -14,3 +15,8 @@ safe(function, _, unify_with_occurs_check).
 safe(function, _, var_or_integer).
 safe(function, _, globalMPZ).
 safe(function, _, put_number__LD).
+
+volatile('PL_halt', _).
+volatile('sysError', _).
+volatile('fatalError', _).
+volatile('PL_throw', _).

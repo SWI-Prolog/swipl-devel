@@ -1,6 +1,8 @@
 #!/home/jan/bin/pl -q -g true -t main -s
 
+:- use_module(library(debug)).
 :- use_module(safe).
+
 :- op(500, xfx, @).
 
 :- multifile
@@ -21,28 +23,35 @@ target(garbageCollect, gc).
 	only/1,
 	report/1.
 
+%%	caller_of(+Callee, +CalleeFile, -Caller, -CallerFile) is nondet.
+%
+%	@tbd	Deal with static functions (only called in local file)
+
 caller_of(Callee, CalleeFile, Caller, CallerFile) :-
-	(   CalleeFile = CallerFile,
-	    calls(Caller, Callee, CallerFile, _)
-	*-> true
-	;   calls(Caller, Callee, CallerFile, _)
-	).
+	\+ volatile(Callee, CalleeFile),
+	calls(Caller, Callee, CallerFile, _).
 
 r_caller_of(Callee, CalleeFile, What) :-
 	caller(Callee, CalleeFile, What), !.
 r_caller_of(Callee, CalleeFile, What) :-
 	assert(caller(Callee, CalleeFile, What)),
 	setof(Caller@CallerFile,
-	      (	  caller_of(Callee, CalleeFile, Caller, CallerFile),
-		  \+ caller(Caller, CallerFile, What)
+	      ( caller_of(Callee, CalleeFile, Caller, CallerFile),
+		\+ caller(Caller, CallerFile, What)
 	      ),
 	      Pairs), !,
+	(   debugging(called)
+	->  format('~w is called by:', [Callee]),
+	    forall(member(C@F, Pairs), format(' ~w', [C])),
+	    nl
+	;   true
+	),
 	forall(member(C@F, Pairs),
 	       r_caller_of(C, F, What)).
 r_caller_of(_,_, _).
 
-target_callers :-
-	retractall(caller(_,_,_)),
+target_callers(What) :-
+	retractall(caller(_,_,What)),
 	forall(target(Target, What),
 	       r_caller_of(Target, _, What)).
 
@@ -86,7 +95,7 @@ report(problem(Func, function, Problem, File, Line)) :-
 main :-
 	options,
 	load,
-	target_callers,
+	target_callers(_),
 	problems.
 
 options :-
@@ -103,9 +112,12 @@ options([]) :- !.
 options(['-t', What|T]) :- !,
 	assert(only(What)),
 	options(T).
+options(['-d', What|T]) :- !,
+	debug(What),
+	options(T).
 options(_) :-
 	usage.
 
 usage :-
-	format(user_error, 'Usage: analysis.pl [-t type]~n', []),
+	format(user_error, 'Usage: analysis.pl [-t type] [-d topic]~n', []),
 	halt(1).
