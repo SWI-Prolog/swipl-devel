@@ -1,6 +1,6 @@
 #!/home/jan/bin/pl -q -g true -t main -s
 
-:- use_module(shift).
+:- use_module(safe).
 :- op(500, xfx, @).
 
 :- multifile
@@ -13,10 +13,13 @@ load :-
 	expand_file_name('*.tree', TFiles),
 	maplist(consult, TFiles).
 
-target(growStacks).
+target(growStacks, shift).
+target(garbageCollect, gc).
 
 :- dynamic
-	caller/2.			% Func, File
+	caller/3,			% Func, File, shift/gc
+	only/1,
+	report/1.
 
 caller_of(Callee, CalleeFile, Caller, CallerFile) :-
 	(   CalleeFile = CallerFile,
@@ -25,44 +28,48 @@ caller_of(Callee, CalleeFile, Caller, CallerFile) :-
 	;   calls(Caller, Callee, CallerFile, _)
 	).
 
-r_caller_of(Callee, CalleeFile) :-
-	caller(Callee, CalleeFile), !.
-r_caller_of(Callee, CalleeFile) :-
-	assert(caller(Callee, CalleeFile)),
+r_caller_of(Callee, CalleeFile, What) :-
+	caller(Callee, CalleeFile, What), !.
+r_caller_of(Callee, CalleeFile, What) :-
+	assert(caller(Callee, CalleeFile, What)),
 	setof(Caller@CallerFile,
 	      (	  caller_of(Callee, CalleeFile, Caller, CallerFile),
-		  \+ caller(Caller, CallerFile)
+		  \+ caller(Caller, CallerFile, What)
 	      ),
 	      Pairs), !,
 	forall(member(C@F, Pairs),
-	       r_caller_of(C, F)).
-r_caller_of(_,_).
+	       r_caller_of(C, F, What)).
+r_caller_of(_,_, _).
 
 target_callers :-
-	retractall(caller(_,_)),
-	forall(target(Target),
-	       r_caller_of(Target, _)).
+	retractall(caller(_,_,_)),
+	forall(target(Target, What),
+	       r_caller_of(Target, _, What)).
 
 problem(Func, Type, Problem, File, Line) :-
 	function(Func, Type, File, StartLine, EndLine, Words, Marks),
-	\+ shift_safe(Func, Type),
 	(   Words > 0,
 	    calls(_, Callee, File, Line),
 	    Line >= StartLine,
 	    Line =< EndLine,
-	    caller(Callee, _CalleeFile),
-	    format(atom(Problem), 'Calls ~w', [Callee])
+	    setof(What, ( caller(Callee, _CalleeFile, What),
+			  report(What),
+			  \+ safe(Type, What, Func)), WhatList),
+	    format(atom(Problem), 'Calls ~w ~w', [Callee, WhatList])
 	;   Marks > 0,
 	    Line = StartLine,
-	    Problem = 'Uses Mark()'
+	    Problem = '[mark]',
+	    report(mark)
 	).
 
 problems :-
 	Term = problem(_Func, _Type, _Problem, _File, _Line),
-	setof(Term, Term, List),
+	setof(Term, Term, List), !,
 	forall(member(Term, List), report(Term)),
 	length(List, N),
 	format('Found a total of ~D potential problems~n', [N]).
+problems :-
+	format('No problems found~n').
 
 report(problem(Func, vmi, Problem, File, Line)) :-
 	format('[~w] ~w:~d: ~w~n', [Func, File, Line, Problem]).
@@ -71,7 +78,34 @@ report(problem(Pred, predicate, Problem, File, Line)) :-
 report(problem(Func, function, Problem, File, Line)) :-
 	format('[~w()] ~w:~d: ~w~n', [Func, File, Line, Problem]).
 
+
+		 /*******************************
+		 *	       MAIN		*
+		 *******************************/
+
 main :-
+	options,
 	load,
 	target_callers,
 	problems.
+
+options :-
+	current_prolog_flag(argv, Argv),
+	append(_, [--|Args], Argv), !,
+	options(Args),
+	(   setof(O, only(O), Types)
+	->  true
+	;   setof(T, F^target(F, T), Types)
+	),
+	forall(member(T, Types), assert(report(T))).
+
+options([]) :- !.
+options(['-t', What|T]) :- !,
+	assert(only(What)),
+	options(T).
+options(_) :-
+	usage.
+
+usage :-
+	format(user_error, 'Usage: analysis.pl [-t type]~n', []),
+	halt(1).
