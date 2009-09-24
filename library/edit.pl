@@ -61,6 +61,7 @@ edit(Spec) :-
 	var(Spec), !,
 	throw(error(instantiation_error, _)).
 edit(Spec) :-
+	load_extensions,
 	findall(Location-FullSpec,
 		locate(Spec, FullSpec, Location),
 		Pairs0),
