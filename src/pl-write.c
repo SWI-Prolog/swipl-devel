@@ -828,6 +828,11 @@ writeTerm(term_t t, int prec, write_options *options)
   int levelSave = options->depth;
   fid_t fid = PL_open_foreign_frame();
 
+  if ( PL_handle_signals() < 0 )
+  { rval = FALSE;
+    goto out;
+  }
+
   if ( ++options->depth > options->max_depth && options->max_depth )
     rval = PutString("...", options->out);
   else if ( PL_is_compound(t) )
@@ -846,6 +851,7 @@ writeTerm(term_t t, int prec, write_options *options)
   { rval = writeTerm2(t, prec, options);
   }
 
+out:
   options->depth = levelSave;
   PL_close_foreign_frame(fid);
 
