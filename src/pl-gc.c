@@ -2158,7 +2158,7 @@ considerGarbageCollect(Stack s)
 
 	if ( LD->gc.inferences == LD->statistics.inferences )
 	{ s->gced_size = used;		/* (*) */
-	  return;
+	  return FALSE;
 	}
 
 	if ( used > s->factor*s->gced_size + s->small )
@@ -2739,6 +2739,7 @@ makeMoreStackSpace(int overflow, int flags)
 #ifdef O_SHIFT_STACKS
   if ( (flags & ALLOW_SHIFT) )
   { size_t l=0, g=0, t=0;
+    int rc;
 
     switch(overflow)
     { case LOCAL_OVERFLOW:  l = 1; break;
@@ -2748,8 +2749,10 @@ makeMoreStackSpace(int overflow, int flags)
 	return raiseStackOverflow(overflow);
     }
 
-    if ( growStacks(NULL, NULL, NULL, l, g, t) )
-      return TRUE;
+    if ( (rc = growStacks(NULL, NULL, NULL, l, g, t)) == TRUE )
+      return rc;
+    else if ( rc < 0 )
+      return raiseStackOverflow(rc);
   }
 #endif
 
@@ -2762,6 +2765,8 @@ int ensureGlobalSpace(size_t cell, int flags)
 
 Makes sure we have the requested amount of space on the global stack. If
 the space is not available, first try GC; than try shifting the stacks.
+
+Returns TRUE, FALSE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -3199,17 +3204,19 @@ new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
   { size_t new;
 
     if ( !(new = nextStackSize(s, *request)) )
-    { LD->outofstack = s;
-      return FALSE;
-    }
+      return s->overflow_id;
     *newsize = new;
     if ( new == sizeStackP(s) )
-      *request = 0;
+    { *request = 0;
+      return FALSE;			/* no change */
+    }
+
+    return TRUE;
   } else
   { *newsize = sizeStackP(s);
-  }
 
-  return TRUE;
+    return FALSE;
+  }
 }
 
 
@@ -3219,14 +3226,15 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 { sigset_t mask;
   size_t lsize, gsize, tsize;
   void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
+  int rc;
 #if O_SECURE
   word key;
 #endif
 
-  if ( !new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD) ||
-       !new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD) ||
-       !new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD) )
-    return FALSE;
+  if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD))<0 ||
+       (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD))<0 )
+    return rc;
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
@@ -3375,9 +3383,7 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
   leaveGC();
 
   if ( fatal )
-  { LD->outofstack = fatal;
-    return FALSE;
-  }
+    return fatal->overflow_id;
 
   return TRUE;
 }
@@ -3394,6 +3400,11 @@ include_spare_stack(Stack s, size_t *request)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns one of TRUE:  Stacks  are   resized;  FALSE:  stack-shifting  is
+blocked or *_OVERFLOW
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 growStacks(LocalFrame fr, Choice ch, Code PC,
@@ -3412,9 +3423,6 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   trim_stack((Stack)&LD->stacks.global);
   trim_stack((Stack)&LD->stacks.local);
   gBase++;
-
-  if ( !rc && LD->outofstack )
-    return outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
 
   return rc;
 }

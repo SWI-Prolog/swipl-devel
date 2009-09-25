@@ -698,9 +698,11 @@ raiseStackOverflow(int overflow)
     case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
     case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
     case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
+    case FALSE:				/* some other error is pending */
+      return FALSE;
     default:
-        s = NULL;
-	assert(0);
+      s = NULL;
+      assert(0);
   }
 
   return outOfStack(s, STACK_OVERFLOW_RAISE);

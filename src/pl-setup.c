@@ -629,8 +629,10 @@ gc_handler(int sig)
 #ifdef SIG_LSHIFT
 static void
 lshift_handler(int sig)
-{ growStacks(NULL, NULL, NULL,
-	     1, 0, 0);
+{ int rc;
+
+  if ( (rc=growStacks(NULL, NULL, NULL, 1, 0, 0)) < 0 )
+    raiseStackOverflow(rc);
 }
 #endif
 
@@ -1875,13 +1877,15 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
   }
 
   if ( s == (Stack)&LD->stacks.trail )
-  { if ( growStacks(NULL, NULL, NULL, 0, 0, bytes) )
+  { int rc;
+
+    if ( (rc=growStacks(NULL, NULL, NULL, 0, 0, bytes)) == TRUE )
       return TRUE;
 
     if ( ex )
-      outOfStack(s, STACK_OVERFLOW_FATAL);
+      raiseStackOverflow(rc);
 
-    return s->overflow_id;
+    return rc;
   } else
   { if ( ex )
       outOfStack(s, STACK_OVERFLOW_FATAL);
@@ -1930,20 +1934,32 @@ result from a stack-overflow.
 
 void
 trimStacks(int resize ARG_LD)
-{ int lt, gt;
+{ int scantrail;
 
   LD->trim_stack_requested = FALSE;
 
+  { LocalFrame olb = lBase;
+    LocalFrame olm = lMax;
+    Word ogb = gBase;
+    Word ogm = gMax;
+
 #ifdef O_SHIFT_STACKS
-  if ( resize &&
-       !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
-    return;
+    if ( resize )
+    { growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM);
+    } else
+#else
+    { trim_stack((Stack) &LD->stacks.local);
+      trim_stack((Stack) &LD->stacks.global);
+      trim_stack((Stack) &LD->stacks.trail);
+      trim_stack((Stack) &LD->stacks.argument);
+    }
 #endif
 
-  lt = trim_stack((Stack) &LD->stacks.local);
-  gt = trim_stack((Stack) &LD->stacks.global);
-  trim_stack((Stack) &LD->stacks.trail);
-  trim_stack((Stack) &LD->stacks.argument);
+    if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
+      scantrail = TRUE;
+    else
+      scantrail = FALSE;
+  }
 
 #ifdef SECURE_GC
   { Word p;				/* clear the stacks */
@@ -1955,7 +1971,7 @@ trimStacks(int resize ARG_LD)
   }
 #endif
 
-  if ( lt || gt )
+  if ( scantrail )
   { TrailEntry te;
 
     for(te = tTop; --te >= tBase; )

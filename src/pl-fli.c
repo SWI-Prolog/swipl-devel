@@ -2212,8 +2212,8 @@ PL_unify_functor(term_t t, functor_t f)
 
 #ifdef O_SHIFT_STACKS
       if ( roomStack(global) < needed )
-      { if ( !growStacks(NULL, NULL, NULL, 0, needed, 0) )
-	  fail;				/* error */
+      { if ( (rc=growStacks(NULL, NULL, NULL, 0, needed, 0))<0 )
+	  return raiseStackOverflow(rc);
 	p = valHandleP(t);
 	deRef(p);
       }
@@ -2565,8 +2565,10 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
 
 #ifdef O_SHIFT_STACKS
     if ( roomStack(global) < (size_t)(3 * sizeof(word)) )
-    { if ( !growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE) )
-	fail;
+    { int rc;
+
+      if ( (rc=growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE)) )
+	return raiseStackOverflow(rc);
       p = valHandleP(t);
       deRef(p);
     }

@@ -2116,16 +2116,14 @@ start:
       }
     }
 
-#ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < (intptr_t)(2 * sizeof(word)) )
-    { if ( !growStacks(NULL, NULL, NULL, 0, 2 * sizeof(word), 0) )
-	return -1;
+    if ( requireStack(global, sizeof(word)*(2)) != TRUE )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
       p = valTermRef(t);
       deRef(p);
     }
-#else
-    requireStackEx(global, sizeof(word)*(2));
-#endif
 
     a = gTop;
     a[0] = options->functor;

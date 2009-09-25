@@ -507,8 +507,10 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
       SAVE_REGISTERS(qid);
       rc = growStacks(FR, BFR, PC, 0, sizeof(word)*(1+arity), 0);
       LOAD_REGISTERS(qid);
-      if ( !rc )
+      if ( rc != TRUE )
+      { rc = raiseStackOverflow(rc);
 	goto b_throw;
+      }
       ap = gTop;
     }
 #else
@@ -572,8 +574,10 @@ VMI(H_RLIST, 0, 0, ())
 	  SAVE_REGISTERS(qid);
 	  rc = growStacks(FR, BFR, PC, 0, 3*sizeof(word), 0);
 	  LOAD_REGISTERS(qid);
-	  if ( !rc )
+	  if ( rc != TRUE )
+	  { raiseStackOverflow(rc);
 	    goto b_throw;
+	  }
 	  ap = gTop;
 	}
 #else
