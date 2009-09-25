@@ -713,6 +713,28 @@ raiseStackOverflow(int overflow)
 }
 
 
+static void
+pushArgumentStack__LD(Word p ARG_LD)
+{
+#ifdef O_SHIFT_STACKS
+  Word *newbase;
+  size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
+
+  if ( newsize && (newbase == realloc(aBase, newsize)) )
+  { aTop += newbase - aBase;
+    aBase = newbase;
+    aMax  = addPointer(newbase,  newsize);
+    *aTop++ = p;
+  } else
+    outOfStack((Stack)&LD->stacks.argument, STACK_OVERFLOW_THROW);
+
+#else
+  requireStackEx(argument, sizeof(w));
+  *aTop++ = p;
+#endif
+}
+
+
 void
 outOfCore()
 { fatalError("Could not allocate memory: %s", OsError());

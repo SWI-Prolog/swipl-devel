@@ -3162,7 +3162,7 @@ nextStackSizeAbove(size_t n)
 }
 
 
-static size_t
+size_t
 nextStackSize(Stack s, size_t minfree)
 { size_t size;
 

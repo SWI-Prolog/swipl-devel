@@ -3114,7 +3114,6 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
         { word w = globalFunctor(fdef);
-	  requireStackEx(argument, sizeof(Word));
 	  *ARGPinc() = w;
 	  *aTop++ = ARGP;
 	  setARGP(argTermP(w, 0));

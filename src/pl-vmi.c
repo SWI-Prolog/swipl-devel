@@ -483,8 +483,7 @@ the argument stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_FUNCTOR, 0, 1, (CA1_FUNC))
-{ requireStackEx(argument, sizeof(Word));
-  *aTop++ = (Word)((intptr_t)(ARGP + 1)|umode);
+{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|umode));
   VMI_GOTO(H_RFUNCTOR);
 }
 
@@ -542,8 +541,7 @@ H_LIST:  As H_FUNCTOR, but using ./2 as predefined functor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_LIST, 0, 0, ())
-{ requireStackEx(argument, sizeof(Word));
-  *aTop++ = (Word)((intptr_t)(ARGP + 1)|umode);
+{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|umode));
 
   VMI_GOTO(H_RLIST);
 }
@@ -1128,8 +1126,7 @@ B_RFUNCTOR: right-argument recursive version of B_FUNCTOR
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
-{ requireStackEx(argument, sizeof(Word));
-  *aTop++ = ARGP+1;
+{ pushArgumentStack(ARGP+1);
   VMI_GOTO(B_RFUNCTOR);
 }
 
@@ -1154,8 +1151,7 @@ B_RLIST: Right-argument recursive B_LIST
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_LIST, 0, 0, ())
-{ requireStackEx(argument, sizeof(Word));
-  *aTop++ = ARGP+1;
+{ pushArgumentStack(ARGP+1);
   VMI_GOTO(B_RLIST);
 }
 

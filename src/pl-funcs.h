@@ -381,9 +381,12 @@ COMMON(int) 		garbageCollect(LocalFrame fr, Choice ch);
 COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
+#ifdef O_SHIFT_STACKS
 COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
 				   size_t lminfree, size_t gminfree,
 				   size_t tminfree);
+COMMON(size_t)		nextStackSize(Stack s, size_t minfree);
+#endif
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
 COMMON(int)		ensureGlobalSpace(size_t minfree, int flags);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
