@@ -1823,7 +1823,7 @@ trim_stack(Stack s)
 { void *top  = s->top;
   void *addr = (void *)align_size((size_t)top + size_alignment);
 
-  if ( addr < s->max )
+  if ( addr < s->trigger )
     s->trigger = addr;
 
   s->gced_size = usedStackP(s);
@@ -1859,7 +1859,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
     if ( LD->exception.processing || LD->gc.status.active == TRUE )
     { if ( s->trigger == s->max	)
 	enableSpareStack(s);
-      return;
+      return TRUE;
     }
 
     if ( s->trigger == s->max )

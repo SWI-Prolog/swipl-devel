@@ -413,6 +413,12 @@ trap_gdb()
 { return 0;
 }
 
+static
+PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
+{ trap_gdb();
+  return TRUE;
+}
+
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -656,4 +662,5 @@ checkData(Word p)
 BeginPredDefs(pro)
   PRED_DEF("abort", 0, abort, 0)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+  PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
 EndPredDefs
