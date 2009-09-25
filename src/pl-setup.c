@@ -1755,7 +1755,7 @@ init_stack(Stack s, char *name,
 
 static int
 allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ size_t minglobal   = 25*SIZEOF_VOIDP K;
+{ size_t minglobal   = 8*SIZEOF_VOIDP K;
   size_t minlocal    = 4*SIZEOF_VOIDP K;
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
@@ -1763,9 +1763,9 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   size_alignment = 8 K;			/* must be smaller than minfree */
 
 #if O_SHIFT_STACKS
-  size_t itrail  = nextStackSizeAbove(mintrail);
-  size_t iglobal = nextStackSizeAbove(minglobal);
-  size_t ilocal  = nextStackSizeAbove(minlocal);
+  size_t itrail  = nextStackSizeAbove(mintrail-1);
+  size_t iglobal = nextStackSizeAbove(minglobal-1);
+  size_t ilocal  = nextStackSizeAbove(minlocal-1);
 #else
   size_t itrail  = trail;
   size_t iglobal = global;
@@ -1845,14 +1845,31 @@ trigger shift and GC requests. If we are really at the end of our story,
 we can only expand the trail stack at any point in time.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static size_t
+next_trigger(Stack s, size_t size)
+{ size_t max = sizeStackP(s);
+
+  if ( s->gc )
+  { size_t gc_trigger = s->factor * s->gced_size;
+
+    if ( gc_trigger > size && max - s->min_free > gc_trigger )
+      return gc_trigger;
+  }
+
+  if ( max - s->min_free > size )
+    return max - s->min_free;
+  else
+    return max;
+}
+
+
+
 int
 ensure_room_stack(Stack s, size_t bytes, int ex)
 { GET_LD
 
   if ( s->top + bytes < s->max )
-  { s->trigger = s->base + ROUND(s->top+bytes-s->base, size_alignment);
-    if ( s->trigger > s->max )
-      s->trigger = s->max;
+  { s->trigger = s->base + next_trigger(s, s->top+bytes-s->base);
 
     DEBUG(2, Sdprintf("%s-trigger to %d\n", s->name, s->max-s->trigger));
 
@@ -1862,7 +1879,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
       return TRUE;
     }
 
-    if ( s->trigger == s->max )
+    if ( s->trigger == s->max && s != (Stack)&LD->stacks.trail )
     { if ( ex )
 	outOfStack(s, STACK_OVERFLOW_SIGNAL);
       else
@@ -1872,7 +1889,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
     if ( s->gc )
     { considerGarbageCollect(s);
     } else if ( s == (Stack)&LD->stacks.local )
-    { if ( roomStackP(s) <= s->min_free )
+    { if ( roomStackP(s) < s->min_free )
 	PL_raise(SIG_LSHIFT);
 
       DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
