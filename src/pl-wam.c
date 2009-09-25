@@ -1479,6 +1479,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
+#ifdef O_SHIFT_STACKS
+  qf->registers.fr      = NULL;		/* invalid */
+#endif
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
@@ -1644,6 +1647,7 @@ PL_exception(qid_t qid)
 	  FR   = qf->registers.fr; \
 	  ARGP = qf->registers.argp; \
 	  PC   = qf->registers.pc; \
+	  qf->registers.fr = NULL; \
 	}
 #else /*O_SHIFT_STACKS*/
 #define SAVE_REGISTERS(qid)
