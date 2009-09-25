@@ -3225,7 +3225,7 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 	    size_t l, size_t g, size_t t ARG_LD)
 { sigset_t mask;
   size_t lsize, gsize, tsize;
-  void *fatal = NULL;	/* stack we couldn't expand due to lack of memory */
+  Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
 #if O_SECURE
   word key;
@@ -3291,7 +3291,7 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
       { LD->shift_status.trail_shifts++;
 	tb = nw;
       } else
-      { fatal = &LD->stacks.trail;
+      { fatal = (Stack)&LD->stacks.trail;
 	tsize = sizeStack(trail);
       }
     }
@@ -3320,9 +3320,9 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
 	  memmove(lb, addPointer(gb, ogsize), olsize);
       } else
       { if ( g )
-	  fatal = &LD->stacks.global;
+	  fatal = (Stack)&LD->stacks.global;
 	else
-	  fatal = &LD->stacks.local;
+	  fatal = (Stack)&LD->stacks.local;
 
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);

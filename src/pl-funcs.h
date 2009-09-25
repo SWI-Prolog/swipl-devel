@@ -650,7 +650,7 @@ COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(int) 		ensure_room_stack(Stack s, size_t n, int ex);
 #ifdef O_SHIFT_STACKS
-COMMON(void)		trim_stack(Stack s);
+COMMON(int)		trim_stack(Stack s);
 #endif
 
 /* pl-sys.c */

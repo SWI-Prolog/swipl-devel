@@ -1873,7 +1873,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
 	    });
     }
 
-    return;
+    return TRUE;
   }
 
   if ( s == (Stack)&LD->stacks.trail )
