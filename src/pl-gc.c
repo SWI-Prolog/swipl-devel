@@ -2156,7 +2156,8 @@ considerGarbageCollect(Stack s)
 #endif
 	size_t space = limit - used;
 
-	if ( LD->gc.inferences == LD->statistics.inferences )
+	if ( LD->gc.inferences == LD->statistics.inferences &&
+	     !LD->exception.processing )
 	{ s->gced_size = used;		/* (*) */
 	  return FALSE;
 	}
@@ -2165,12 +2166,10 @@ considerGarbageCollect(Stack s)
 	{ DEBUG(1,
 		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			 s->name, s->factor, s->gced_size, s->small));
-	  PL_raise(SIG_GC);
-	  return TRUE;
+	  return PL_raise(SIG_GC);
 	} else if ( space < limit/8 && used > s->gced_size + limit/32 )
 	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
-	  PL_raise(SIG_GC);
-	  return TRUE;
+	  return PL_raise(SIG_GC);
 	}
 
 	DEBUG(1, if ( PL_pending(SIG_GC) )
@@ -2641,7 +2640,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks(FALSE PASS_LD);
+  trimStacks(LD->trim_stack_requested PASS_LD);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);

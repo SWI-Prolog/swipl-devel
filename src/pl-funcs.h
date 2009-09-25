@@ -33,6 +33,7 @@ symbol lookup and relocations.
 
 /* pl-alloc.c */
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
+COMMON(int)		enableSpareStack(Stack s);
 COMMON(word) 		outOfStack(void *stack, stack_overflow_action how);
 COMMON(int)		raiseStackOverflow(int which);
 COMMON(void)		outOfCore(void) NORETURN;

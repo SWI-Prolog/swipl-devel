@@ -3416,6 +3416,7 @@ b_throw:
     *valTermRef(exception_bin)     = 0;
     exception_term		   = 0;
 
+    PC = findCatchExit();
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
       SAVE_REGISTERS(qid);
@@ -3424,7 +3425,6 @@ b_throw:
       lTop = (LocalFrame)valTermRef(lSafe);
     }
 
-    PC = findCatchExit();
     VMI_GOTO(I_USERCALL0);
   } else
   { Word p;

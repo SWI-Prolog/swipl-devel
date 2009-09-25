@@ -624,15 +624,18 @@ mergeAllocPool(AllocPool to, AllocPool from)
 		*             STACKS            *
 		*********************************/
 
-static void
+int
 enableSpareStack(Stack s)
 {
 #ifdef O_SHIFT_STACKS
   if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
+    return TRUE;
   }
 #endif
+
+  return FALSE;
 }
 
 
@@ -645,6 +648,7 @@ outOfStack(void *stack, stack_overflow_action how)
 
   switch(how)
   { case STACK_OVERFLOW_FATAL:
+      enableSpareStack(stack);
       LD->outofstack = s;
       updateAlerted(LD);
       Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);

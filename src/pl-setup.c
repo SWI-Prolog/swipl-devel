@@ -1800,17 +1800,15 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
 }
 
 
-void
-freeStacks(ARG1_LD)
-{
 #undef LD
 #define LD LOCAL_LD
-  gBase--;
+
+void
+freeStacks(ARG1_LD)
+{ gBase--;
   if ( gBase ) { free(gBase); gBase = NULL; lBase = NULL; }
   if ( tBase ) { free(tBase); tBase = NULL; }
   if ( aBase ) { free(aBase); aBase = NULL; }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
@@ -1849,12 +1847,20 @@ we can only expand the trail stack at any point in time.
 
 int
 ensure_room_stack(Stack s, size_t bytes, int ex)
-{ if ( s->trigger < s->max )
-  { s->trigger += size_alignment;
+{ GET_LD
+
+  if ( s->top + bytes < s->max )
+  { s->trigger = s->base + ROUND(s->top+bytes-s->base, size_alignment);
     if ( s->trigger > s->max )
       s->trigger = s->max;
 
-    if ( usedStackP(s)+bytes > limitStackP(s) )
+    if ( LD->exception.processing || LD->gc.status.active == TRUE )
+    { if ( s->trigger == s->max	)
+	enableSpareStack(s);
+      return;
+    }
+
+    if ( s->trigger == s->max )
     { if ( ex )
 	outOfStack(s, STACK_OVERFLOW_SIGNAL);
       else
@@ -1894,6 +1900,9 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
 
   return TRUE;
 }
+
+#undef LD
+#define LD GLOBAL_LD
 
 #endif /* O_DYNAMIC_STACKS */
 
@@ -2002,16 +2011,19 @@ PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called at the end of handling an exception. We cannot do GC, however, we
+can request it, after it will be executed   at the start of the recovery
+handler. If no GC is needed, we call trimStacks() to re-enable the spare
+stack-space if applicable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 resumeAfterException(void)
 { GET_LD
 
-  if ( considerGarbageCollect((Stack)NULL) )
-    garbageCollect(NULL, NULL);
-  else if ( LD->trim_stack_requested )
-    trimStacks(TRUE, PASS_LD1);
-  else
-    trimStacks(FALSE, PASS_LD1);	/* re-enable space stack-space */
+  if ( !considerGarbageCollect((Stack)NULL) )
+    trimStacks(FALSE, PASS_LD1);
 
   LD->exception.processing = FALSE;
 }
