@@ -30,7 +30,9 @@ target(garbageCollect, gc).
 %	@tbd	Deal with static functions (only called in local file)
 
 caller_of(Callee, CalleeFile, _, _) :-
-	volatile(Callee, CalleeFile), !, fail.
+	(   volatile(Callee, CalleeFile)
+	;   stop(Callee, CalleeFile)
+	), !, fail.
 caller_of(Callee, CalleeFile, Caller, CallerFile) :-
 	static(Callee, CallerFile), !,
 	calls(Caller, Callee, CallerFile, _),

@@ -231,6 +231,8 @@ redoFrame(LocalFrame fr, Code *PC)
 canUnifyTermWithGoal() is used to check whether the given frame satisfies
 the /search specification.  This function cannot use the `neat' interface
 as the record is not in the proper format.
+
+This function fails if its execution would require a stack-shift of GC!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -251,13 +253,14 @@ canUnifyTermWithGoal(LocalFrame fr)
 	int rval = TRUE;
 	term_t ex;
 
-	copyRecordToGlobal(t, find->goal.term.term PASS_LD);
+	if ( copyRecordToGlobal(t, find->goal.term.term, 0 PASS_LD) < 0 )
+	  fail;
 	a = valTermRef(t);
 	deRef(a);
 	a = argTermP(*a, 0);
 	b = argFrameP(fr, 0);
 	while( arity-- > 0 )
-	{ if ( !can_unify(a++, b++, &ex, 0) )
+	{ if ( !can_unify(a++, b++, &ex, 0) )	/* do not allow shift/gc */
 	  { rval = FALSE;
 	    break;
 	  }

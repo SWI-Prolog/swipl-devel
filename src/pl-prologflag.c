@@ -581,8 +581,10 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     case FT_TERM:
     { term_t tmp = PL_new_term_ref();
 
-      PL_recorded(f->value.t, tmp);
-      return PL_unify(val, tmp);
+      if ( PL_recorded(f->value.t, tmp) )
+	return PL_unify(val, tmp);
+      else
+	return raiseStackOverflow(GLOBAL_OVERFLOW);
     }
     default:
       assert(0);

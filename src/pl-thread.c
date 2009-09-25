@@ -982,8 +982,12 @@ start_thread(void *closure)
     rval = callProlog(MODULE_system, goal, PL_Q_CATCH_EXCEPTION, &ex);
 
     if ( rval )
-    { PL_recorded(info->goal, goal);
-      rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    { if ( !PL_recorded(info->goal, goal) )
+      { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
+	ex = exception_term;
+      } else
+      { rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+      }
     }
 
     if ( !rval && info->detached )
@@ -1199,15 +1203,19 @@ unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
       return PL_unify_atom(status, ATOM_running);
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
+      int rc = TRUE;
 
       if ( lock ) LOCK();
       if ( info->return_value )
-	PL_recorded(info->return_value, tmp);
+	rc = PL_recorded(info->return_value, tmp);
       if ( lock ) UNLOCK();
 
-      return PL_unify_term(status,
-			   PL_FUNCTOR, FUNCTOR_exited1,
-			     PL_TERM, tmp);
+      if ( !rc )
+	return raiseStackOverflow(GLOBAL_OVERFLOW);
+      else
+	return PL_unify_term(status,
+			     PL_FUNCTOR, FUNCTOR_exited1,
+			       PL_TERM, tmp);
     }
     case PL_THREAD_SUCCEEDED:
       return PL_unify_atom(status, ATOM_true);
@@ -1215,14 +1223,18 @@ unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
       return PL_unify_atom(status, ATOM_false);
     case PL_THREAD_EXCEPTION:
     { term_t tmp = PL_new_term_ref();
+      int rc = TRUE;
 
       if ( lock ) LOCK();
       if ( info->return_value )
-	PL_recorded(info->return_value, tmp);
+	rc = PL_recorded(info->return_value, tmp);
       if ( lock ) UNLOCK();
-      return PL_unify_term(status,
-			   PL_FUNCTOR, FUNCTOR_exception1,
-			     PL_TERM, tmp);
+      if ( !rc )
+	return raiseStackOverflow(GLOBAL_OVERFLOW);
+      else
+	return PL_unify_term(status,
+			     PL_FUNCTOR, FUNCTOR_exception1,
+			       PL_TERM, tmp);
     }
     case PL_THREAD_NOMEM:
     { return PL_unify_term(status,
@@ -1703,12 +1715,14 @@ run_exit_hooks(at_exit_goal *eg, int free)
 
     switch(eg->type)
     { case EXIT_PROLOG:
-	PL_recorded(eg->goal.prolog.goal, goal);
+      { int rc = PL_recorded(eg->goal.prolog.goal, goal);
         if ( free )
 	  PL_erase(eg->goal.prolog.goal);
-	callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
+	if ( rc )
+	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
 	PL_rewind_foreign_frame(fid);
 	break;
+      }
       case EXIT_C:
 	(*eg->goal.c.function)(eg->goal.c.closure);
         break;
@@ -1837,11 +1851,16 @@ executeThreadSignals(int sig)
     int rval;
 
     next = sg->next;
-    PL_recorded(sg->goal, goal);
+    rval = PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
     freeHeap(sg, sizeof(*sg));
     DEBUG(1, Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
-    rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    if ( rval )
+    { rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    } else
+    { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
+      ex = exception_term;
+    }
 
     if ( !rval && ex )
     { PL_close_foreign_frame(fid);
@@ -2280,8 +2299,11 @@ retry:
 	continue;			/* fast search */
 
       QSTAT(unified);
-      EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
-			  rc = PL_unify(msg, tmp);
+      if ( !PL_recorded(msgp->message, tmp) )
+      { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
+	goto out;
+      }
+      EXCEPTION_GUARDED({ rc = PL_unify(msg, tmp);
 			},
 			{ rval = FALSE;
 			  goto out;
@@ -2366,8 +2388,11 @@ peek_message(message_queue *queue, term_t msg)
     if ( key && msgp->key && key != msgp->key )
       continue;
 
-    EXCEPTION_GUARDED({ PL_recorded(msgp->message, tmp);
-		        rc = PL_unify(msg, tmp);
+    if ( !PL_recorded(msgp->message, tmp) )
+    { rc = raiseStackOverflow(GLOBAL_OVERFLOW);
+      goto out;
+    }
+    EXCEPTION_GUARDED({ rc = PL_unify(msg, tmp);
 		      },
 		      { goto out;
 		      });

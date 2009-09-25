@@ -310,11 +310,13 @@ will be.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end)
+prolog_list_to_sort_list(term_t t, int remove_dups, int key,
+			 list *lp, Word *end)
 { GET_LD
   Word l, tail;
   list p;
-  intptr_t len, minfree;
+  intptr_t len;
+  int rc;
 
   l = valTermRef(t);
   len = skip_list(l, &tail PASS_LD);
@@ -326,18 +328,11 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
   }
-  minfree = sizeof(word)*len*3;
 
-#ifdef O_SHIFT_STACKS
-  if ( roomStack(global) < minfree )
-  { if ( !growStacks(NULL, NULL, NULL, 0, minfree, 0) )
-      fail;
-  }
-#else
-  if ( minfree > spaceStack(global) )
-    garbageCollect(NULL, NULL);
-  requireStackEx(global, minfree);
-#endif
+  if ( !(rc=ensureGlobalSpace(len*3, ALLOW_GC)) < 0 )
+    return raiseStackOverflow(rc);
+  if ( !rc )
+    return rc;				/* exception in signal */
 
   p = (list)gTop;
   *lp = p;

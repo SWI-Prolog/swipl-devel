@@ -1,6 +1,7 @@
 :- module(shift,
 	  [ safe/3,			% +Type, +What, +Func
-	    (volatile)/2			% +Function, +File
+	    (volatile)/2,		% +Function, +File
+	    stop/2
 	  ]).
 
 safe(predicate, _, '$attvars_after_choicepoint/2').
@@ -19,7 +20,9 @@ safe(function, _, put_number__LD).
 volatile('PL_halt', _).
 volatile('sysError', _).
 volatile('fatalError', _).
-volatile('PL_warning', _).
-volatile('warning', _).
-volatile('PL_throw', _).
-volatile('outOfStack', _).
+
+stop('PL_warning', _).
+stop('warning', _).
+stop('PL_throw', _).
+stop('outOfStack', _).
+stop('abortProlog', _).

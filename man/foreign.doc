@@ -2157,10 +2157,14 @@ threads.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
-\cfunction{void}{PL_recorded}{record_t record, term_t -t}
+
+\cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
-    stack.  See also PL_record() and PL_erase().
+    stack. Returns \const{TRUE} on success, and \const{FALSE} if
+    there is not enough space on the stack to accomodate the term.
+    See also PL_record() and PL_erase().
+
 \cfunction{void}{PL_erase}{record_t record}
     Remove the recorded term from the Prolog database, reclaiming all
     associated memory resources.

@@ -121,20 +121,19 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
   Record r;
   term_t list = PL_copy_term_ref(A3);
   term_t answer = PL_new_term_ref();
+  int rc;
 
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
 
-  if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-  { garbageCollect(NULL, NULL);
-
-    if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
-  }
+  if ( (rc=ensureGlobalSpace(bag->gsize + bag->solutions*3, ALLOW_GC)) < 0 )
+    return raiseStackOverflow(rc);
+  if ( !rc )				/* signal exception */
+    return rc;
 
   PL_LOCK(L_AGC);
   while(popSegStack(&bag->answers, &r))
-  { copyRecordToGlobal(answer, r PASS_LD);
+  { copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
     PL_cons_list(list, answer, list);
 
     freeRecord(r);

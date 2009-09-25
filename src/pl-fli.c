@@ -184,7 +184,7 @@ PL_new_term_ref__LD(ARG1_LD)
 
 term_t
 PL_new_term_ref_noshift__LD(ARG1_LD)
-{ if ( !requireStack(local, sizeof(word)) )
+{ if ( requireStack(local, sizeof(word)) < 0 )
     return 0;
   return new_term_ref(PASS_LD1);
 }
@@ -3765,11 +3765,11 @@ PL_record(term_t t)
 }
 
 
-void
+int
 PL_recorded(record_t r, term_t t)
 { GET_LD
 
-  copyRecordToGlobal(t, r PASS_LD);
+  return copyRecordToGlobal(t, r, ALLOW_GC PASS_LD) == TRUE;
 }
 
 

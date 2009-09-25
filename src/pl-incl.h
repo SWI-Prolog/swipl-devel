@@ -1767,12 +1767,17 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
+/* If ex --> exception; else return *_OVERFLOW */
 #define ensureRoomStack(s, n, ex) \
 	ensure_room_stack((Stack)&LD->stacks.s, (n), (ex))
+
+/* Throws exception */
 #define requireStackEx(s, n) \
 	{ if ( triggerStack(s) < (ssize_t)(n) ) \
  	    ensureRoomStack(s, n, TRUE); \
 	}
+
+/* Returns TRUE or *_OVERFLOW */
 #define requireStack(s, n) \
 	((triggerStack(s) < (ssize_t)(n)) \
 		? ensureRoomStack(s, (n), FALSE) : TRUE)

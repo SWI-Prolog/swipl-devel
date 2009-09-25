@@ -2714,8 +2714,10 @@ unblockGC(ARG1_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-makeMoreStackSpace(int overflow) is used in loops where the low-level
-implementation does not allow for stack-shifts
+makeMoreStackSpace(int overflow, int flags)
+
+Used in loops where the  low-level   implementation  does  not allow for
+stack-shifts
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2746,6 +2748,41 @@ makeMoreStackSpace(int overflow, int flags)
 
   return raiseStackOverflow(overflow);
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int ensureGlobalSpace(size_t cell, int flags)
+
+Makes sure we have the requested amount of space on the global stack. If
+the space is not available, first try GC; than try shifting the stacks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ensureGlobalSpace(size_t cells, int flags)
+{ GET_LD
+  size_t minfree = cells*sizeof(word);
+  int rc;
+
+  if ( (rc=requireStack(global, minfree)) == TRUE )
+    return TRUE;
+
+  if ( !flags )
+    return rc;
+
+  considerGarbageCollect(NULL);
+  if ( PL_handle_signals() < 0 )
+    return FALSE;
+
+  if ( (rc=requireStack(global, minfree)) == TRUE )
+    return TRUE;
+
+#ifdef O_SHIFT_STACKS
+  return growStacks(NULL, NULL, NULL, 0, minfree, 0);
+#else
+  return rc;
+#endif
+}
+
 
 #if O_SHIFT_STACKS
 

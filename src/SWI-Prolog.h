@@ -625,7 +625,7 @@ PL_EXPORT(void)		PL_fatal_error(const char *fmt, ...);
 		 *******************************/
 
 PL_EXPORT(record_t)	PL_record(term_t term);
-PL_EXPORT(void)		PL_recorded(record_t record, term_t term);
+PL_EXPORT(int)		PL_recorded(record_t record, term_t term);
 PL_EXPORT(void)		PL_erase(record_t record);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);

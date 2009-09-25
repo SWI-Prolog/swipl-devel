@@ -984,12 +984,15 @@ right_recursion:
 }
 
 
-void
-copyRecordToGlobal(term_t copy, Record r ARG_LD)
+int
+copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
 { copy_info b;
+  int rc;
 
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
+  if ( (rc=ensureGlobalSpace(r->gsize, flags)) < 0 )
+    return rc;
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = allocGlobal(r->gsize);
 
@@ -999,6 +1002,8 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
 
   assert(b.gstore == gTop);
   SECURE(checkData(valTermRef(copy)));
+
+  return TRUE;
 }
 
 
@@ -1623,9 +1628,14 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 	if ( isRecordRef(record) )
 	{ if ( unifyKey(key, record->list->key) )
 	  { GET_LD
+	    int rc;
+
 	    copy = PL_new_term_ref();
-	    copyRecordToGlobal(copy, record->record PASS_LD);
-	    rval = PL_unify(term, copy);
+	    if ( (rc=copyRecordToGlobal(copy, record->record,
+					ALLOW_GC PASS_LD)) < 0 )
+	      rval = raiseStackOverflow(rc);
+	    else
+	      rval = PL_unify(term, copy);
 	  } else
 	    rval = FALSE;
 	} else
@@ -1674,10 +1684,15 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
   fid = PL_open_foreign_frame();
 
   for( ; record; record = record->next )
-  { if ( true(record->record, ERASED) )
+  { int rc;
+
+    if ( true(record->record, ERASED) )
       continue;
 
-    copyRecordToGlobal(copy, record->record PASS_LD);
+    if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
+    { UNLOCK();
+      return raiseStackOverflow(rc);
+    }
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { PL_close_foreign_frame(fid);
 

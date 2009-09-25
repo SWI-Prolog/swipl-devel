@@ -384,6 +384,7 @@ COMMON(int) 		growStacks(LocalFrame fr, Choice ch, Code PC,
 				   size_t lminfree, size_t gminfree,
 				   size_t tminfree);
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
+COMMON(int)		ensureGlobalSpace(size_t minfree, int flags);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
@@ -604,7 +605,8 @@ COMMON(int) 		read_clause(IOSTREAM *s, term_t term ARG_LD);
 /* pl-rec.c */
 COMMON(void) 		initRecords(void);
 COMMON(Record) 		compileTermToHeap__LD(term_t term, int flags ARG_LD);
-COMMON(void) 		copyRecordToGlobal(term_t copy, Record term ARG_LD);
+COMMON(int) 		copyRecordToGlobal(term_t copy, Record term,
+					   int flags ARG_LD);
 COMMON(int) 		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 COMMON(bool) 		freeRecord__LD(Record record ARG_LD);
 COMMON(bool) 		unifyKey(term_t key, word val);
