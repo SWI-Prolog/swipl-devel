@@ -631,7 +631,7 @@ static void
 lshift_handler(int sig)
 { int rc;
 
-  if ( (rc=growStacks(NULL, NULL, NULL, 1, 0, 0)) < 0 )
+  if ( (rc=growStacks(1, 0, 0)) < 0 )
     raiseStackOverflow(rc);
 }
 #endif
@@ -1904,7 +1904,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
   if ( s == (Stack)&LD->stacks.trail )
   { int rc;
 
-    if ( (rc=growStacks(NULL, NULL, NULL, 0, 0, bytes)) == TRUE )
+    if ( (rc=growStacks(0, 0, bytes)) == TRUE )
       return TRUE;
 
     if ( ex )
@@ -1973,7 +1973,7 @@ trimStacks(int resize ARG_LD)
 
 #ifdef O_SHIFT_STACKS
     if ( resize )
-    { growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM);
+    { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
     } else
 #endif
     { trim_stack((Stack) &LD->stacks.local);

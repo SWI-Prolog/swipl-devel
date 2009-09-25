@@ -2565,7 +2565,7 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
     if ( roomStack(global) < (size_t)(3 * sizeof(word)) )
     { int rc;
 
-      if ( (rc=growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE)) != TRUE )
+      if ( (rc=growStacks(FALSE, TRUE, FALSE)) != TRUE )
 	return raiseStackOverflow(rc);
       p = valHandleP(t);
       deRef(p);

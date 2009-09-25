@@ -182,7 +182,7 @@ forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 
 #ifdef O_SHIFT_STACKS
-static int		shiftTightStacks(LocalFrame fr, Choice ch);
+static int		shiftTightStacks();
 #endif
 
 #if O_SECURE
@@ -2666,7 +2666,9 @@ garbageCollect(LocalFrame fr, Choice ch)
   leaveGC();
 
 #ifdef O_SHIFT_STACKS
-  shiftTightStacks(fr, ch);
+  if ( LD->query->registers.fr )
+    assert(fr == LD->query->registers.fr);
+  shiftTightStacks();
 #endif
 
   return TRUE;
@@ -2740,7 +2742,7 @@ makeMoreStackSpace(int overflow, int flags)
 	return raiseStackOverflow(overflow);
     }
 
-    if ( (rc = growStacks(NULL, NULL, NULL, l, g, t)) == TRUE )
+    if ( (rc = growStacks(l, g, t)) == TRUE )
       return rc;
     else if ( rc < 0 )
       return raiseStackOverflow(rc);
@@ -2780,7 +2782,7 @@ ensureGlobalSpace(size_t cells, int flags)
     return TRUE;
 
 #ifdef O_SHIFT_STACKS
-  return growStacks(NULL, NULL, NULL, 0, minfree, 0);
+  return growStacks(0, minfree, 0);
 #else
   return rc;
 #endif
@@ -3214,10 +3216,12 @@ new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
 
 
 static int
-grow_stacks(LocalFrame fr, Choice ch, Code PC,
-	    size_t l, size_t g, size_t t ARG_LD)
+grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 { sigset_t mask;
   size_t lsize, gsize, tsize;
+  LocalFrame fr;
+  Choice ch;
+  Code PC;
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
 #if O_SECURE
@@ -3240,10 +3244,17 @@ grow_stacks(LocalFrame fr, Choice ch, Code PC,
   blockGC(PASS_LD1);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
-  if ( !fr )
-    fr = environment_frame;
-  if ( !ch )
-    ch = LD->choicepoints;
+  if ( LD->query->registers.fr )
+  { fr = LD->query->registers.fr;
+    if ( fr->clause )
+      PC = LD->query->registers.pc;
+    else
+      PC = NULL;			/* in handler for I_CALL */
+  } else
+  { fr = environment_frame;
+    PC = NULL;
+  }
+  ch = LD->choicepoints;
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
@@ -3400,8 +3411,7 @@ blocked or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-growStacks(LocalFrame fr, Choice ch, Code PC,
-	   size_t l, size_t g, size_t t)
+growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
 
@@ -3410,7 +3420,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC,
   include_spare_stack((Stack)&LD->stacks.global, &g);
   include_spare_stack((Stack)&LD->stacks.trail,  &t);
 
-  rc = grow_stacks(fr, ch, PC, l, g, t PASS_LD);
+  rc = grow_stacks(l, g, t PASS_LD);
 
   trim_stack((Stack)&LD->stacks.trail);
   trim_stack((Stack)&LD->stacks.global);
@@ -3436,14 +3446,14 @@ tight(Stack s)
 
 
 static int
-shiftTightStacks(LocalFrame fr, Choice ch)
+shiftTightStacks()
 { GET_LD
   size_t l = tight((Stack)&LD->stacks.local);
   size_t g = tight((Stack)&LD->stacks.global);
   size_t t = tight((Stack)&LD->stacks.trail);
 
   if ( (l|g|t) )
-    return growStacks(fr, ch, NULL, l, g, t);
+    return growStacks(l, g, t);
 
   return TRUE;
 }
