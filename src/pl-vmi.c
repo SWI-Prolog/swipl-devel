@@ -3412,18 +3412,15 @@ b_throw:
     *valTermRef(exception_bin)     = 0;
     exception_term		   = 0;
 
-    PC = findCatchExit();
-    considerGarbageCollect((Stack)NULL);
-
-    if ( LD->trim_stack_requested )
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
       SAVE_REGISTERS(qid);
-      trimStacks(TRUE, PASS_LD1);
+      resumeAfterException();
       LOAD_REGISTERS(qid);
       lTop = (LocalFrame)valTermRef(lSafe);
     }
 
+    PC = findCatchExit();
     VMI_GOTO(I_USERCALL0);
   } else
   { Word p;
@@ -3444,11 +3441,8 @@ b_throw:
       *valTermRef(exception_printed) = 0; /* consider it handled */
     }
 
-    considerGarbageCollect((Stack)NULL);
-    if ( LD->trim_stack_requested )
-    { trimStacks(TRUE PASS_LD);
-      QF = QueryFromQid(qid);		/* may be shifted: recompute */
-    }
+    resumeAfterException();
+    QF = QueryFromQid(qid);		/* may be shifted: recompute */
 
     QF->foreign_frame = PL_open_foreign_frame();
     assert(LD->exception.throw_environment == &throw_env);

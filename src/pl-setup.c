@@ -1326,7 +1326,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
 }
 
 
-static void
+static int
 trim_stack(Stack s)
 { void *min  = addPointer(s->base, s->size_min);
   void *top  = (s->top > min ? s->top : min);
@@ -1349,7 +1349,11 @@ trim_stack(Stack s)
 #endif
 
     s->max = addr;
+
+    return TRUE;
   }
+
+  return FALSE;
 }
 
 /* mmap() version */
@@ -1551,7 +1555,7 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
 }
 #endif
 
-static void
+static int
 trim_stack(Stack s)
 { void *min  = addPointer(s->base, s->size_min);
   void *top  = (s->top > min ? s->top : min);
@@ -1563,7 +1567,11 @@ trim_stack(Stack s)
     if ( !VirtualFree(addr, len, MEM_DECOMMIT) )
       fatalError("Failed to unmap memory: %d", GetLastError());
     s->max = addr;
+
+    return TRUE;
   }
+
+  return FALSE;
 }
 
 
@@ -1810,7 +1818,7 @@ resetStacks()
 }
 
 
-void
+int
 trim_stack(Stack s)
 { void *top  = s->top;
   void *addr = (void *)align_size((size_t)top + size_alignment);
@@ -1826,6 +1834,8 @@ trim_stack(Stack s)
     s->max = addPointer(s->max, -reduce);
     s->spare = s->def_spare;
   }
+
+  return FALSE;
 }
 
 
@@ -1920,7 +1930,7 @@ result from a stack-overflow.
 
 void
 trimStacks(int resize ARG_LD)
-{ TrailEntry te;
+{ int lt, gt;
 
   LD->trim_stack_requested = FALSE;
 
@@ -1930,8 +1940,8 @@ trimStacks(int resize ARG_LD)
     return;
 #endif
 
-  trim_stack((Stack) &LD->stacks.local);
-  trim_stack((Stack) &LD->stacks.global);
+  lt = trim_stack((Stack) &LD->stacks.local);
+  gt = trim_stack((Stack) &LD->stacks.global);
   trim_stack((Stack) &LD->stacks.trail);
   trim_stack((Stack) &LD->stacks.argument);
 
@@ -1945,14 +1955,18 @@ trimStacks(int resize ARG_LD)
   }
 #endif
 
-  for(te = tTop; --te >= tBase; )
-  { Word p = te->address;
+  if ( lt || gt )
+  { TrailEntry te;
 
-    if ( isTrailVal(p) )
-      continue;
+    for(te = tTop; --te >= tBase; )
+    { Word p = te->address;
 
-    if ( !onStack(local, p) && !onStack(global, p) )
-    { te->address = valTermRef(LD->trim.dummy);
+      if ( isTrailVal(p) )
+	continue;
+
+      if ( !onStack(local, p) && !onStack(global, p) )
+      { te->address = valTermRef(LD->trim.dummy);
+      }
     }
   }
 
@@ -1970,6 +1984,22 @@ PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
 
   succeed;
 }
+
+
+void
+resumeAfterException(void)
+{ GET_LD
+
+  if ( considerGarbageCollect((Stack)NULL) )
+    garbageCollect(NULL, NULL);
+  else if ( LD->trim_stack_requested )
+    trimStacks(TRUE, PASS_LD1);
+  else
+    trimStacks(FALSE, PASS_LD1);	/* re-enable space stack-space */
+
+  LD->exception.processing = FALSE;
+}
+
 
 #undef LD
 #define LD GLOBAL_LD

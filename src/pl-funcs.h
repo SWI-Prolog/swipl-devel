@@ -375,7 +375,7 @@ COMMON(word) 		pl_current_functor(term_t name, term_t arity,
 					   control_t h);
 
 /* pl-gc.c */
-COMMON(void) 		considerGarbageCollect(Stack s);
+COMMON(int) 		considerGarbageCollect(Stack s);
 COMMON(int) 		garbageCollect(LocalFrame fr, Choice ch);
 COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
@@ -643,6 +643,7 @@ COMMON(void) 		initPrologLocalData(void);
 COMMON(void) 		deallocateStacks(void);
 COMMON(bool) 		restoreStack(Stack s);
 COMMON(void) 		trimStacks(int resize ARG_LD);
+COMMON(void)		resumeAfterException(void);
 COMMON(void) 		resetStacks(void);
 COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);

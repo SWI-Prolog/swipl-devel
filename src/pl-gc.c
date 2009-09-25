@@ -2135,14 +2135,17 @@ that calls PL_handle_signals() from time to   time  to enable interrupts
 and call GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 considerGarbageCollect(Stack s)
 { GET_LD
 
-  if ( truePrologFlag(PLFLAG_GC) && !PL_pending(SIG_GC) )
-  { if ( s == NULL )
-    { considerGarbageCollect((Stack)&LD->stacks.global);
-      considerGarbageCollect((Stack)&LD->stacks.trail);
+  if ( truePrologFlag(PLFLAG_GC) )
+  { if ( PL_pending(SIG_GC) )
+      return TRUE;
+
+    if ( s == NULL )
+    { return (considerGarbageCollect((Stack)&LD->stacks.global) ||
+	      considerGarbageCollect((Stack)&LD->stacks.trail));
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
@@ -2163,9 +2166,11 @@ considerGarbageCollect(Stack s)
 		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			 s->name, s->factor, s->gced_size, s->small));
 	  PL_raise(SIG_GC);
+	  return TRUE;
 	} else if ( space < limit/8 && used > s->gced_size + limit/32 )
 	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
 	  PL_raise(SIG_GC);
+	  return TRUE;
 	}
 
 	DEBUG(1, if ( PL_pending(SIG_GC) )
@@ -2175,6 +2180,8 @@ considerGarbageCollect(Stack s)
       }
     }
   }
+
+  return FALSE;
 }
 
 
