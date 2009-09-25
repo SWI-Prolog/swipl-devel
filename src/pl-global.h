@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -314,6 +314,7 @@ struct PL_local_data
   LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
+  QueryFrame    query;			/* Currently open query */
   Word		mark_bar;		/* Mark globals > this one */
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */

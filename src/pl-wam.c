@@ -1536,6 +1536,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   }
 
   environment_frame = fr;
+  qf->parent = LD->query;
+  LD->query = qf;
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
   updateAlerted(LD);
 
@@ -1566,6 +1568,7 @@ restore_after_query(QueryFrame qf)
   if ( qf->exception && !exception_term )
     *valTermRef(exception_printed) = 0;
 
+  LD->query         = qf->parent;
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;

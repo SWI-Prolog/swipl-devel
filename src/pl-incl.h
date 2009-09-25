@@ -1301,22 +1301,20 @@ struct queryFrame
   } registers;
 #endif
 #ifdef O_LIMIT_DEPTH
-  uintptr_t saved_depth_limit;	/* saved values of these */
+  uintptr_t saved_depth_limit;		/* saved values of these */
   uintptr_t saved_depth_reached;
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
 #endif
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
-  unsigned long	flags;
+  unsigned int	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
-  Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
+  Word	       *aSave;			/* saved argument-stack */
   Choice	saved_bfr;		/* Saved choice-point */
   Code		saved_PC;		/* Saved program pointer */
-#ifndef LIFE_GC
-  QueryFrame	parent;			/* Only valid inside GC */
-#endif
+  QueryFrame	parent;			/* Parent queryFrame */
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
 					/* Do not put anything between */

@@ -1273,7 +1273,7 @@ variables in outer queries.
 static void
 mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
-  QueryFrame qf=NULL, pqf=NULL, top = NULL;
+  QueryFrame qf;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
   FliFrame flictx = fli_context;
 
@@ -1283,19 +1283,10 @@ mark_stacks(LocalFrame fr, Choice ch)
   { qf = mark_environments(fr, NULL);
 
     assert(qf->magic == QID_MAGIC);
-
-    if ( pqf )
-    { pqf->parent = qf;
-    } else if ( !top )
-    { top = qf;
-    }
-    pqf = qf;
   }
-  if ( qf )
-    qf->parent = NULL;			/* topmost query */
 
   te = mark_choicepoints(ch, te, &flictx);
-  for(qf=top; qf; qf=qf->parent)
+  for(qf=LD->queery; qf; qf=qf->parent)
     te = mark_choicepoints(qf->saved_bfr, te, &flictx);
 
   for( ; flictx; flictx = flictx->parent)
@@ -2924,7 +2915,8 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
     { QueryFrame query = queryOfFrame(fr);
 
       if ( ls )
-      { update_pointer(&query->saved_bfr, ls);
+      { update_pointer(&query->parent, ls);
+        update_pointer(&query->saved_bfr, ls);
 	update_pointer(&query->saved_environment, ls);
 	update_pointer(&query->registers.fr, ls);
 	update_local_pointer(&query->registers.pc, ls);
@@ -3076,6 +3068,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     choice_count = 0;
 
     update_local_pointer(&PC, ls);
+    update_local_pointer(&LD->query, ls);
 
     for( fr = addPointer(frame, ls),
 	 ch = addPointer(choice, ls)

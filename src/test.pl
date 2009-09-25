@@ -1625,7 +1625,7 @@ gc(shift-1) :-
 	(   current_prolog_flag(dynamic_stacks, true)
 	->  true
 	;   MinFree is 400 * 1024,
-	    set_prolog_stack(global, min_free, MinFree)
+	    set_prolog_stack(global, min_free, _, MinFree)
 	).
 gc(gc-1) :-
 	garbage_collect.
