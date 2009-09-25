@@ -1653,7 +1653,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 #ifdef O_SHIFT_STACKS
 #define STACK_SHIFT_EXTRA(type) \
 	  type		trigger;	/* Trigger if above this pointer */ \
-	  size_t	min_free;	/* Minimum amount of free space */ \
 	  size_t	spare;		/* Current reserved area */ \
 	  size_t	def_spare;	/* Desired reserved area */
 #else
@@ -1673,6 +1672,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
+	  size_t	min_free;	/* Minimum amount of free space */  \
 	  STACK_SHIFT_EXTRA(type)	/* Implementation-specific fields */\
 	  STACK_DYN_EXTRA(type)		/* Implementation-specific fields */\
 	  bool		gc;		/* Can be GC'ed? */		    \

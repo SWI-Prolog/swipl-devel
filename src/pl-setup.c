@@ -1854,6 +1854,8 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
     if ( s->trigger > s->max )
       s->trigger = s->max;
 
+    DEBUG(2, Sdprintf("%s-trigger to %d\n", s->name, s->max-s->trigger));
+
     if ( LD->exception.processing || LD->gc.status.active == TRUE )
     { if ( s->trigger == s->max	)
 	enableSpareStack(s);
@@ -1956,13 +1958,12 @@ trimStacks(int resize ARG_LD)
     if ( resize )
     { growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM);
     } else
-#else
+#endif
     { trim_stack((Stack) &LD->stacks.local);
       trim_stack((Stack) &LD->stacks.global);
       trim_stack((Stack) &LD->stacks.trail);
       trim_stack((Stack) &LD->stacks.argument);
     }
-#endif
 
     if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
       scantrail = TRUE;
@@ -2103,13 +2104,7 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
     if ( k == ATOM_factor )
       return PL_get_integer_ex(value, &stack->factor);
     if ( k == ATOM_min_free )
-    {
-#ifdef O_SHIFT_STACKS
       return PL_get_size_ex(value, &stack->min_free);
-#else
-      succeed;
-#endif
-    }
 
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, prop);
   }

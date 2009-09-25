@@ -2167,7 +2167,8 @@ considerGarbageCollect(Stack s)
 		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			 s->name, s->factor, s->gced_size, s->small));
 	  return PL_raise(SIG_GC);
-	} else if ( space < limit/8 && used > s->gced_size + limit/32 )
+	} else if ( (space < s->min_free || space < limit/8) &&
+		    used > s->gced_size + limit/32 )
 	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
 	  return PL_raise(SIG_GC);
 	}
