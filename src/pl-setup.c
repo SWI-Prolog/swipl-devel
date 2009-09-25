@@ -2077,13 +2077,14 @@ freeLocalData(PL_local_data_t *ld)
 		 *******************************/
 
 static
-PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
+PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
 { atom_t a, k;
   Stack stack = NULL;
 
   term_t name  = A1;
   term_t prop  = A2;
-  term_t value = A3;
+  term_t old   = A3;
+  term_t value = A4;
 
   if ( PL_get_atom(name, &a) )
   { if ( a == ATOM_local )
@@ -2100,11 +2101,14 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 
   if ( PL_get_atom_ex(prop, &k) )
   { if ( k == ATOM_low )
-      return PL_get_size_ex(value, &stack->small);
+      return (PL_unify_int64(old, stack->small) &&
+	      PL_get_size_ex(value, &stack->small));
     if ( k == ATOM_factor )
-      return PL_get_integer_ex(value, &stack->factor);
+      return (PL_unify_integer(old, stack->factor) &&
+	      PL_get_integer_ex(value, &stack->factor));
     if ( k == ATOM_min_free )
-      return PL_get_size_ex(value, &stack->min_free);
+      return (PL_unify_int64(old, stack->min_free) &&
+	      PL_get_size_ex(value, &stack->min_free));
 
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, prop);
   }
@@ -2118,7 +2122,7 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 		 *******************************/
 
 BeginPredDefs(setup)
-  PRED_DEF("set_prolog_stack", 3, set_prolog_stack, 0)
+  PRED_DEF("set_prolog_stack", 4, set_prolog_stack, 0)
   PRED_DEF("$on_signal", 4, on_signal, 0)
   PRED_DEF("trim_stacks", 0, trim_stacks, 0)
 EndPredDefs

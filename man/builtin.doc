@@ -6509,7 +6509,7 @@ loop :-
 The prolog top level loop is written this way, reclaiming memory
 resources after every user query.
 
-    \predicate{set_prolog_stack}{3}{+Stack, +Key, +Value}
+    \predicate{set_prolog_stack}{4}{+Stack, +Key, -Old, +Value}
 Set a parameter for a runtime stack. \arg{Stack} is one of
 \const{local}, \const{global}, \const{trail} or \const{argument}. The
 table below describes the \arg{Key}/\arg{Value} pairs.

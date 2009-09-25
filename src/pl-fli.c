@@ -2208,20 +2208,16 @@ PL_unify_functor(term_t t, functor_t f)
 
       bindConst(p, name);
     } else
-    { intptr_t needed = (1+arity) * sizeof(word);
+    { size_t needed = (1+arity);
 
-#ifdef O_SHIFT_STACKS
-      if ( roomStack(global) < needed )
+      if ( roomStack(global) < needed*sizeof(word) )
       { int rc;
 
-	if ( (rc=growStacks(NULL, NULL, NULL, 0, needed, 0))<0 )
+	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
 	  return raiseStackOverflow(rc);
-	p = valHandleP(t);
+	p = valHandleP(t);		/* reload: may have shifted */
 	deRef(p);
       }
-#else
-      requireStackEx(global, needed);
-#endif
 
       { Word a = gTop;
 	word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
