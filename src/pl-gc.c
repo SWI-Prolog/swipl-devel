@@ -2527,8 +2527,10 @@ leaveGC()
 
 
 int
-garbageCollect(LocalFrame fr, Choice ch)
+garbageCollect(void)
 { GET_LD
+  LocalFrame fr;
+  Choice ch;
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -2550,10 +2552,8 @@ garbageCollect(LocalFrame fr, Choice ch)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  if ( !fr )
-    fr = LD->environment;
-  if ( !ch )
-    ch = LD->choicepoints;
+  fr = LD->environment;
+  ch = LD->choicepoints;
 
   enterGC();
 #ifndef UNBLOCKED_GC
@@ -2687,7 +2687,7 @@ pl_garbage_collect(term_t d)
     GD->debug_level = nl;
   }
 #endif
-  garbageCollect(NULL, NULL);
+  garbageCollect();
 #if O_DEBUG
   GD->debug_level = ol;
 #endif
@@ -2726,7 +2726,7 @@ makeMoreStackSpace(int overflow, int flags)
 
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
-       garbageCollect(NULL, NULL) )
+       garbageCollect() )
     return TRUE;
 
 #ifdef O_SHIFT_STACKS

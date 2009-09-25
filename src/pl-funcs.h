@@ -377,7 +377,7 @@ COMMON(word) 		pl_current_functor(term_t name, term_t arity,
 
 /* pl-gc.c */
 COMMON(int) 		considerGarbageCollect(Stack s);
-COMMON(int) 		garbageCollect(LocalFrame fr, Choice ch);
+COMMON(int) 		garbageCollect(void);
 COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);

@@ -622,7 +622,7 @@ agc_handler(int sig)
 
 static void
 gc_handler(int sig)
-{ garbageCollect(NULL, NULL);
+{ garbageCollect();
 }
 
 
