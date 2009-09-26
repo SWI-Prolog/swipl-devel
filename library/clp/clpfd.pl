@@ -4627,23 +4627,26 @@ latest_start_time(Start, LST) :-
 
 myserialized([], _, _).
 myserialized([S_I-D_I|SDs], S_J, D_J) :-
+        serialize_lower_upper(S_I, D_I, S_J, D_J),
+        serialize_lower_upper(S_J, D_J, S_I, D_I),
+        (   nonvar(S_I), nonvar(S_J) ->
+            D_I = n(D_II), D_J = n(D_JJ),
+            (   S_I + D_II =< S_J -> true
+            ;   S_J + D_JJ =< S_I -> true
+            ;   false
+            )
+        ;   true
+        ),
+        myserialized(SDs, S_J, D_J).
+
+serialize_lower_upper(S_I, D_I, S_J, D_J) :-
         (   var(S_I) ->
             serialize_lower_bound(S_I, D_I, S_J, D_J),
             (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J)
             ;   true
             )
-        ;   var(S_J) ->
-            serialize_lower_bound(S_J, D_J, S, D_I),
-            (   var(S_J) -> serialize_upper_bound(S_J, D_J, S, D_I)
-            ;   true
-            )
-        ;   D_I = n(D_II), D_J = n(D_JJ),
-            (   S_I + D_II =< S_J -> true
-            ;   S_J + D_JJ =< S_I -> true
-            ;   fail
-            )
-        ),
-        myserialized(SDs, S_J, D_J).
+        ;   true
+        ).
 
 serialize_lower_bound(I, D_I, J, D_J) :-
         fd_get(I, DomI, Ps),
