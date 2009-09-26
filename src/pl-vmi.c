@@ -1134,12 +1134,25 @@ VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
 VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
   int arity = arityFunctor(f);
+  Word ap;
 
-  requireStackEx(global, sizeof(word) * (1+arity));
+  if ( gTop+1+arity > gMax )
+  { int rc;
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(1+arity, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = f;
-  gTop = ARGP+arity;
+  for(ap=ARGP; arity-->0;)		/* must clear if we want to do GC */
+    setVar(*ap++);
+  gTop = ap;
 
   NEXT_INSTRUCTION;
 }

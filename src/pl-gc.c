@@ -2647,7 +2647,6 @@ garbageCollect(void)
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);
   gc_status.trail_left       += usedStack(trail);
-  gc_status.active = FALSE;
 
   SECURE(checkStacks(fr, ch, PC));
 
@@ -2668,6 +2667,7 @@ garbageCollect(void)
     profExit(prof_node PASS_LD);
 #endif
 
+  gc_status.active = FALSE;
   unblockGC(PASS_LD1);
 #ifndef UNBLOCKED_GC
   unblockSignals(&mask);

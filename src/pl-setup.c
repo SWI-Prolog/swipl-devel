@@ -1788,7 +1788,7 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global,  minglobal, 256*SIZEOF_VOIDP);
+	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
 	     "local",    ilocal,  local,   minlocal, 256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
@@ -1868,16 +1868,16 @@ int
 ensure_room_stack(Stack s, size_t bytes, int ex)
 { GET_LD
 
+  if ( s->top + bytes < s->max+s->spare &&
+       (LD->exception.processing || LD->gc.status.active == TRUE) )
+  { enableSpareStack(s);
+    return TRUE;
+  }
+
   if ( s->top + bytes < s->max )
   { s->trigger = s->base + next_trigger(s, s->top+bytes-s->base);
 
     DEBUG(2, Sdprintf("%s-trigger to %d\n", s->name, s->max-s->trigger));
-
-    if ( LD->exception.processing || LD->gc.status.active == TRUE )
-    { if ( s->trigger == s->max	)
-	enableSpareStack(s);
-      return TRUE;
-    }
 
     if ( s->trigger == s->max && s != (Stack)&LD->stacks.trail )
     { if ( ex )
