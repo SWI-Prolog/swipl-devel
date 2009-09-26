@@ -1417,7 +1417,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
-  SECURE(checkStacks(environment_frame, NULL));
+  SECURE(checkStacks(NULL, NULL, NULL));
   assert((void*)fli_context > (void*)environment_frame);
   assert((void*)lTop >= (void*)(fli_context+1));
 
@@ -1460,7 +1460,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   arity		     = def->functor->arity;
 
-  SECURE(checkStacks(environment_frame, NULL));
+  SECURE(checkStacks(NULL, NULL, NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
   assert((uintptr_t)lTop >= (uintptr_t)(fli_context+1));
 
@@ -1585,7 +1585,7 @@ restore_after_query(QueryFrame qf)
 #endif /*O_LIMIT_DEPTH*/
   }
   updateAlerted(LD);
-  SECURE(checkStacks(environment_frame, NULL));
+  SECURE(checkStacks(NULL, NULL, NULL));
 }
 
 

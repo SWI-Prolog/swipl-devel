@@ -393,7 +393,7 @@ COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
 COMMON(void) 		markPredicatesInEnvironments(PL_local_data_t *ld);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
 #if defined(O_SECURE) || defined(SECURE_GC)
-COMMON(word) 		checkStacks(LocalFrame fr, Choice ch);
+COMMON(word) 		checkStacks(LocalFrame fr, Choice ch, Code PC);
 COMMON(bool)		scan_global(int marked);
 #endif
 

@@ -584,11 +584,10 @@ mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch, Code PC ARG_LD)
 
 
 static void
-mark_stacks(LocalFrame fr, Choice ch)
+mark_stacks(LocalFrame fr, Choice ch, Code PC)
 { GET_LD
   QueryFrame qf=NULL;
   mark_state state;
-  Code PC = NULL;
 
   memset(&state, 0, sizeof(state));
   state.reset_entry = (GCTrailEntry)tTop - 1;

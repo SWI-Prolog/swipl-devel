@@ -3311,7 +3311,7 @@ b_throw:
 	   });
 
   SECURE(checkData(catcher));	/* verify all data on stacks stack */
-  SECURE(checkStacks(FR, LD->choicepoints));
+  SECURE(checkStacks(FR, NULL, NULL));
 
   if ( debugstatus.suspendTrace == FALSE &&
        exception_hook(FR, catchfr PASS_LD) )
@@ -3342,7 +3342,7 @@ b_throw:
       if ( ch )
       { int printed = (*valTermRef(exception_printed) == except);
 
-	SECURE(checkStacks(FR, ch));
+	SECURE(checkStacks(FR, ch, NULL));
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	Undo(ch->mark);
 	*valTermRef(LD->exception.pending) = except;
@@ -3350,7 +3350,7 @@ b_throw:
 	  *valTermRef(exception_printed) = except;
 
 	environment_frame = FR;
-	SECURE(checkStacks(FR, ch));
+	SECURE(checkStacks(FR, ch, NULL));
 	switch(tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD))
 	{ case ACTION_RETRY:
 	    setVar(*valTermRef(exception_printed));

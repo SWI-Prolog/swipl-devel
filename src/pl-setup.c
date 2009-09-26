@@ -2014,7 +2014,7 @@ trimStacks(int resize ARG_LD)
   }
 
   SECURE({ scan_global(FALSE);
-	   checkStacks(NULL, NULL);
+	   checkStacks(NULL, NULL, NULL);
 	 });
 }
 

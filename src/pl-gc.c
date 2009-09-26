@@ -1271,7 +1271,7 @@ variables in outer queries.
 #include "pl-lifegc.c"
 #else
 static void
-mark_stacks(LocalFrame fr, Choice ch)
+mark_stacks(LocalFrame fr, Choice ch, Code PC)
 { GET_LD
   QueryFrame qf;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
@@ -1279,8 +1279,8 @@ mark_stacks(LocalFrame fr, Choice ch)
 
   trailcells_deleted = 0;
 
-  for( ; fr; fr = qf->saved_environment )
-  { qf = mark_environments(fr, NULL);
+  for( ; fr; fr = qf->saved_environment, PC=NULL )
+  { qf = mark_environments(fr, PC);
 
     assert(qf->magic == QID_MAGIC);
   }
@@ -1309,13 +1309,13 @@ cmp_address(const void *vp1, const void *vp2)
 
 
 static void
-mark_phase(LocalFrame fr, Choice ch)
+mark_phase(LocalFrame fr, Choice ch, Code PC)
 { GET_LD
   total_marked = 0;
 
   SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
-  mark_stacks(fr, ch);
+  mark_stacks(fr, ch, PC);
 #if O_SECURE
   if ( !scan_global(TRUE) )
     sysError("Global stack corrupted after GC mark-phase");
@@ -1782,12 +1782,12 @@ sweep_choicepoints(Choice ch ARG_LD)
 
 
 static void
-sweep_stacks(LocalFrame fr, Choice ch)
+sweep_stacks(LocalFrame fr, Choice ch, Code PC)
 { GET_LD
   QueryFrame query;
 
-  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
-  { query = sweep_environments(fr, NULL);
+  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr, PC=NULL )
+  { query = sweep_environments(fr, PC);
     sweep_choicepoints(ch PASS_LD);
 
     if ( !query )			/* we've been here */
@@ -2081,7 +2081,7 @@ compact_global(void)
 
 
 static void
-collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
+collect_phase(LocalFrame fr, Choice ch, Code PC, Word *saved_bar_at)
 { GET_LD
 
   SECURE(check_marked("Start collect"));
@@ -2091,7 +2091,7 @@ collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
   DEBUG(2, Sdprintf("Sweeping trail stack\n"));
   sweep_trail();
   DEBUG(2, Sdprintf("Sweeping local stack\n"));
-  sweep_stacks(fr, ch);
+  sweep_stacks(fr, ch, PC);
   if ( saved_bar_at )
   { DEBUG(2, Sdprintf("Sweeping frozen bar\n"));
     sweep_global_mark(saved_bar_at PASS_LD);
@@ -2423,7 +2423,7 @@ check_trail()
 
 
 word
-checkStacks(LocalFrame frame, Choice choice)
+checkStacks(LocalFrame frame, Choice choice, Code PC)
 { GET_LD
   LocalFrame fr;
   Choice ch;
@@ -2442,8 +2442,8 @@ checkStacks(LocalFrame frame, Choice choice)
 
   for( fr = frame, ch=choice;
        fr;
-       fr = qf->saved_environment, ch = qf->saved_bfr )
-  { qf = check_environments(fr, NULL, &key);
+       fr = qf->saved_environment, ch = qf->saved_bfr, PC=NULL )
+  { qf = check_environments(fr, PC, &key);
     assert(qf->magic == QID_MAGIC);
 
     DEBUG(3, Sdprintf("%ld\n", key));
@@ -2476,7 +2476,7 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
     Sdprintf("[thread %d] Checking stacks [%s] ...",
 	     PL_thread_self(), s);
 
-  checkStacks(NULL, NULL);
+  checkStacks(NULL, NULL, NULL);
   if ( s )
      Sdprintf(" (done)\n");
 
@@ -2531,6 +2531,7 @@ garbageCollect(void)
 { GET_LD
   LocalFrame fr;
   Choice ch;
+  Code PC;
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -2552,7 +2553,16 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  fr = LD->environment;
+  if ( LD->query->registers.fr )
+  { fr = LD->query->registers.fr;
+    if ( fr->clause )
+      PC = LD->query->registers.pc;
+    else
+      PC = NULL;			/* in handler for I_CALL */
+  } else
+  { fr = environment_frame;
+    PC = NULL;
+  }
   ch = LD->choicepoints;
 
   enterGC();
@@ -2577,7 +2587,7 @@ garbageCollect(void)
   alloc_start_map();
   if ( !scan_global(FALSE|REGISTER_STARTS) )
     sysError("Stack not ok at gc entry");
-  key = checkStacks(fr, ch);
+  key = checkStacks(fr, ch, PC);
   free(start_map);
   start_map = NULL;
 
@@ -2610,7 +2620,7 @@ garbageCollect(void)
   fid = gvars_to_term_refs(&saved_bar_at);
   SECURE(check_foreign());
   tag_trail();
-  mark_phase(fr, ch);
+  mark_phase(fr, ch, PC);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
   gc_status.global_gained += ggar;
@@ -2620,7 +2630,7 @@ garbageCollect(void)
   DEBUG(2, Sdprintf("Compacting trail ... "));
   compact_trail();
 
-  collect_phase(fr, ch, saved_bar_at);
+  collect_phase(fr, ch, PC, saved_bar_at);
   untag_trail();
   term_refs_to_gvars(fid, saved_bar_at);
 #if O_SECURE
@@ -2639,7 +2649,7 @@ garbageCollect(void)
   gc_status.trail_left       += usedStack(trail);
   gc_status.active = FALSE;
 
-  SECURE(checkStacks(fr, ch));
+  SECURE(checkStacks(fr, ch, PC));
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -3284,7 +3294,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     SECURE({ gBase++;
 	     if ( !scan_global(FALSE) )
 	       sysError("Stack not ok at shift entry");
-	     key = checkStacks(fr, ch);
+	     key = checkStacks(fr, ch, PC);
 	     gBase--;
 	   });
 
@@ -3370,7 +3380,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     time = CpuTime(CPU_USER) - time;
     LD->shift_status.time += time;
     SECURE({ gBase++;
-	     if ( checkStacks(NULL, NULL) != key )
+	     if ( checkStacks(NULL, NULL, PC) != key )
 	     { Sdprintf("Stack checksum failure\n");
 	       trap_gdb();
 	     }
