@@ -496,35 +496,29 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   deRef(ARGP);
   if ( canBind(*ARGP) )
   { int arity = arityFunctor(f);
-    Word ap = gTop;
+    Word ap;
     word c;
 
-#ifdef O_SHIFT_STACKS
-    if ( gTop + 1 + arity > gMax )
+    if ( gTop+1+arity > gMax )
     { int rc;
 
       SAVE_REGISTERS(qid);
-      rc = growStacks(0, sizeof(word)*(1+arity), 0);
+      rc = ensureGlobalSpace(1+arity, ALLOW_GC);
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
-      { rc = raiseStackOverflow(rc);
+      { raiseStackOverflow(rc);
 	goto b_throw;
       }
-      ap = gTop;
     }
-#else
-    requireStackEx(global, sizeof(word)*(1+arity));
-#endif
 
+    ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
     bindConst(ARGP, c);
     *ap++ = f;
     ARGP = ap;
-#ifdef O_SHIFT_STACKS
-    while(--arity>=0)
+    while(--arity>=0)			/* must clear if we want to do GC */
       setVar(*ap++);
-#endif
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
@@ -562,33 +556,27 @@ VMI(H_RLIST, 0, 0, ())
 	CLAUSE_FAILED;
       case TAG_VAR:
       case TAG_ATTVAR:
-      { Word ap = gTop;
+      { Word ap;
 	word c;
 
-#if O_SHIFT_STACKS
-        if ( ap + 3 > gMax )
+	if ( gTop+3 > gMax )
 	{ int rc;
 
 	  SAVE_REGISTERS(qid);
-	  rc = growStacks(0, 3*sizeof(word), 0);
+	  rc = ensureGlobalSpace(3, ALLOW_GC);
 	  LOAD_REGISTERS(qid);
 	  if ( rc != TRUE )
 	  { raiseStackOverflow(rc);
 	    goto b_throw;
 	  }
-	  ap = gTop;
 	}
-#else
-	if ( ap + 3 > gMax )
-	  ensureRoomStack(global, 3*sizeof(word), TRUE);
-#endif
+
+	ap = gTop;
         gTop += 3;
 	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	*ap++ = FUNCTOR_dot2;
-#ifdef O_SHIFT_STACKS
-	setVar(ap[0]);
+	setVar(ap[0]);			/* must clear for GC */
 	setVar(ap[1]);
-#endif
 	bindConst(ARGP, c);
 	ARGP = ap;
 	umode = uwrite;
@@ -645,7 +633,18 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
       Word ap;
 
     write:
-      requireStackEx(global, 3*sizeof(word));
+      if ( gTop+3 > gMax )
+      { int rc;
+
+	SAVE_REGISTERS(qid);
+	rc = ensureGlobalSpace(3, ALLOW_GC);
+	LOAD_REGISTERS(qid);
+	if ( rc != TRUE )
+	{ raiseStackOverflow(rc);
+	  goto b_throw;
+	}
+      }
+
       ap = gTop;
       gTop = ap+3;
       c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -1138,6 +1137,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 
   if ( gTop+1+arity > gMax )
   { int rc;
+
     SAVE_REGISTERS(qid);
     rc = ensureGlobalSpace(1+arity, ALLOW_GC);
     LOAD_REGISTERS(qid);
@@ -1170,10 +1170,23 @@ VMI(B_LIST, 0, 0, ())
 
 
 VMI(B_RLIST, 0, 0, ())
-{ requireStackEx(global, sizeof(word) * 3);
+{ if ( gTop+3 > gMax )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(3, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = FUNCTOR_dot2;
+  setVar(ARGP[0]);
+  setVar(ARGP[1]);
   gTop = ARGP+2;
 
   NEXT_INSTRUCTION;
