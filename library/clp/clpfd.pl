@@ -4628,8 +4628,8 @@ latest_start_time(Start, LST) :-
 myserialized([], _, _).
 myserialized([S_I-D_I|SDs], S_J, D_J) :-
         (   var(S_I) ->
-            serialize_lower_bound(S_I, D_I, Start, D_J),
-            (   var(S_I) -> serialize_upper_bound(S_I, D_I, Start, D_J)
+            serialize_lower_bound(S_I, D_I, S_J, D_J),
+            (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J)
             ;   true
             )
         ;   var(S_J) ->
@@ -4651,9 +4651,11 @@ serialize_lower_bound(I, D_I, J, D_J) :-
         latest_start_time(J, LST_J),
         (   Sum cis EST_I + D_I, Sum cis_gt LST_J ->
             earliest_start_time(J, EST_J),
-            EST cis EST_J+D_J,
-            domain_remove_smaller_than(DomI, EST, DomI1),
-            fd_put(I, DomI1, Ps)
+            (   n(EST) cis EST_J+D_J ->
+                domain_remove_smaller_than(DomI, EST, DomI1),
+                fd_put(I, DomI1, Ps)
+            ;   true
+            )
         ;   true
         ).
 
@@ -4663,9 +4665,11 @@ serialize_upper_bound(I, D_I, J, D_J) :-
         earliest_start_time(J, EST_J),
         (   Sum cis EST_J + D_J, Sum cis_gt LST_I ->
             latest_start_time(J, LST_J),
-            LST cis LST_J-D_I,
-            domain_remove_greater_than(DomI, LST, DomI1),
-            fd_put(I, DomI1, Ps)
+            (   n(LST) cis LST_J-D_I ->
+                domain_remove_greater_than(DomI, LST, DomI1),
+                fd_put(I, DomI1, Ps)
+            ;   true
+            )
         ;   true
         ).
 
