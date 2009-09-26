@@ -17,6 +17,7 @@
 	- Foreign calls use SAVE_REGISTERS.  This means PC is around
 	  for growStacks() (pointing into the supervisor).  Is this ok?
 	- Stack-shifts in PL_new_term_ref(): make return error on failure?
+	- Use just-in-time shift for new stack-frames.
 
 ================================================================
 Static analysis of the C-program:
