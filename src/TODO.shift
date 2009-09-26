@@ -8,19 +8,15 @@
 
 	- Where are the allocations?
 	    - Transitive calls to growStacks(); see src/tools
-	- Mark/TmpMark code
-	    - Must be tracktable by stack-shifter
-	    - Should get rid of marking too much anyway.  Use
-	      tmp_mark everywhere?
-	- Unification in write-mode *must* initialise the global
-	  stack because we might need shifts;  We could `fix'
-	  this by computing the max and inserting an allocation
-	  instruction.
-	    - Run some timing?
 
-* growStacks(): provide argument telling whether the caller will check the
-  return code (raise vs. throw exception).  Try to make all/most of them
-  using raise!
+* Issues to resolve
+
+	- New API for put_number, globalLong, etc. that returns
+	  overflows.
+	- Change PL_put_* from void to int
+	- Foreign calls use SAVE_REGISTERS.  This means PC is around
+	  for growStacks() (pointing into the supervisor).  Is this ok?
+	- Stack-shifts in PL_new_term_ref(): make return error on failure?
 
 ================================================================
 Static analysis of the C-program:
