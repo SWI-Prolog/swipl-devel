@@ -2556,33 +2556,28 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     NEXT_INSTRUCTION;
   } else
   { number n;
+    word w;
     fid_t fid;
     int rc;
 
     SAVE_REGISTERS(qid);
     fid = PL_open_foreign_frame();
     rc = valueExpression(wordToTermRef(np), &n PASS_LD);
+    if ( rc )
+    { ensureWritableNumber(&n);
+      if ( (rc=ar_add_ui(&n, add)) )
+	w = put_number(&n);
+      clearNumber(&n);
+    }
     PL_close_foreign_frame(fid);
     LOAD_REGISTERS(qid);
     if ( !rc )
       goto b_throw;
 
-    ensureWritableNumber(&n);
-    if ( ar_add_ui(&n, add) )
-    { word w = put_number(&n);
+    rp = varFrameP(FR, PC[-3]);		/* may have shifted */
+    *rp = w;
 
-      clearNumber(&n);
-#ifdef O_SHIFT_STACKS
-      rp = varFrameP(FR, PC[-3]);
-#endif
-      *rp = w;
-
-      NEXT_INSTRUCTION;
-    } else
-    { clearNumber(&n);
-    }
-
-    goto b_throw;
+    NEXT_INSTRUCTION;
   }
 }
 
