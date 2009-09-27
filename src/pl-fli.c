@@ -680,7 +680,10 @@ __makeNum(int64_t i ARG_LD)
   if ( valInt(w) == i )
     return w;
 
-  return globalLong(i PASS_LD);
+  if ( put_int64(&w, i, 0 PASS_LD) == TRUE )
+    return w;
+
+  return 0;
 }
 
 word
@@ -2469,7 +2472,7 @@ int
 PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
 { word w = consInt(i);
 
-  if ( valInt(w) == i )
+  if ( valInt(w) == i )			/* tagged integer */
   { Word p = valHandleP(t);
 
     deRef(p);
@@ -2486,9 +2489,14 @@ PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
 
     deRef(p);
     if ( canBind(*p) )
-    { w = globalLong(i PASS_LD);
-      bindConst(p, w);
-      succeed;
+    { int rc = put_int64(&w, i, 0 PASS_LD); /* TBD: Allow GC */
+
+      if ( rc == TRUE )
+      { bindConst(p, w);
+	succeed;
+      }
+
+      return raiseStackOverflow(rc);
     }
     if ( isInteger(*p) )
       return valInt(*p) == i ? TRUE : FALSE;

@@ -861,16 +861,45 @@ newTerm(void)
 }
 
 		 /*******************************
-		 *      OPERATIONS ON LONGS	*
+		 *    OPERATIONS ON INTEGERS	*
 		 *******************************/
 
-word
-globalLong(int64_t l ARG_LD)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Put an integer onto the stack that does  not fit into the compact tagged
+integer representation, but does  fit   into  the 64-bit representation.
+Typically this is called through makeNum() or put_number().
+
+Return is one of:
+
+	TRUE:		 Success
+	FALSE:		 Interrupt
+	GLOBAL_OVERFLOW: Stack overflow
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+put_int64(Word at, int64_t l, int flags ARG_LD)
 { Word p;
   word r, m;
+  int req;
 
 #if SIZEOF_VOIDP == 8
-  p = allocGlobal(3);
+  req = 3;
+#elif SIZEOF_VOIDP == 4
+  req = 4;
+#else
+#error "FIXME: Unsupported sizeof word"
+#endif
+
+  if ( gTop+req > gMax )
+  { int rc = ensureGlobalSpace(req, flags);
+
+    if ( rc != TRUE )
+      return rc;
+  }
+  p = gTop;
+  gTop += req;
+
+#if SIZEOF_VOIDP == 8
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(1, TAG_INTEGER);
 
@@ -879,7 +908,6 @@ globalLong(int64_t l ARG_LD)
   *p   = m;
 #else
 #if SIZEOF_VOIDP == 4
-  p = allocGlobal(4);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(2, TAG_INTEGER);
 
@@ -897,8 +925,8 @@ globalLong(int64_t l ARG_LD)
 #endif
 #endif
 
-
-  return r;
+  *at = r;
+  return TRUE;
 }
 
 

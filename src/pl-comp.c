@@ -2760,17 +2760,19 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
 	}
       case H_INTEGER:
-        { word copy = globalLong((intptr_t)XR(*PC++) PASS_LD);
-	  TRY(_PL_unify_atomic(argp, copy));
+        { intptr_t *p = (intptr_t*)PC;
+	  intptr_t v = *p++;
+	  PC = (Code)p;
+	  TRY(PL_unify_int64(argp, v));
 	  NEXTARG;
 	  continue;
 	}
       case H_INT64:
         { int64_t *p = (int64_t*)PC;
-	  word copy = globalLong(*p PASS_LD);
+	  int64_t v = *p++;
 	  p++;
 	  PC = (Code)p;
-	  TRY(_PL_unify_atomic(argp, copy));
+	  TRY(PL_unify_int64(argp, v));
 	  NEXTARG;
 	  continue;
 	}

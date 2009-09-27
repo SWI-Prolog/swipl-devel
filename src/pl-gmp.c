@@ -626,11 +626,7 @@ put_mpz(mpz_t mpz)
   } else if ( mpz_to_int64(mpz, &v) )
   { GET_LD
 
-#if SIZEOF_LONG < SIZEOF_VOIDP
     return makeNum(v);
-#else
-    return globalLong(v PASS_LD);
-#endif
   } else
   { return globalMPZ(mpz);
   }
@@ -647,7 +643,10 @@ put_number__LD(Number n ARG_LD)
       if ( valInt(w) == n->value.i )
 	return w;
 
-      return globalLong(n->value.i PASS_LD);
+      if ( put_int64(&w, n->value.i, 0 PASS_LD) == TRUE )
+	return w;
+
+      return 0;
     }
 #ifdef O_GMP
     case V_MPZ:
