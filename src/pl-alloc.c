@@ -865,9 +865,8 @@ newTerm(void)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Put an integer onto the stack that does  not fit into the compact tagged
-integer representation, but does  fit   into  the 64-bit representation.
-Typically this is called through makeNum() or put_number().
+Translate  a  64-bit  integer  into   a    Prolog   cell.   Uses  tagged
+representation if possible or allocates 64-bits on the global stack.
 
 Return is one of:
 
@@ -881,6 +880,12 @@ put_int64(Word at, int64_t l, int flags ARG_LD)
 { Word p;
   word r, m;
   int req;
+
+  r = consInt(l);
+  if ( valInt(r) == l )
+  { *at = r;
+    return TRUE;
+  }
 
 #if SIZEOF_VOIDP == 8
   req = 3;

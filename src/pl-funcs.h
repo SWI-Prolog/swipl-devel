@@ -304,7 +304,7 @@ COMMON(word) 		pl_current_flag(term_t k, control_t h);
 /* pl-fli.c */
 COMMON(word) 		linkVal__LD(Word p ARG_LD);
 COMMON(word) 		makeNum__LD(int64_t i ARG_LD);
-COMMON(void) 		_PL_put_number__LD(term_t t, Number n ARG_LD);
+COMMON(int) 		_PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(predicate_t) 	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);
 COMMON(void) 		initialiseForeign(int argc, char **argv);
@@ -840,7 +840,7 @@ COMMON(int) 		enableThreads(int enable);
 COMMON(int)	PL_unify_number(term_t t, Number n);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
-COMMON(word)	put_number__LD(Number n ARG_LD);
+COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
 COMMON(void)	promoteToFloatNumber(Number n);
 COMMON(void)	make_same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);

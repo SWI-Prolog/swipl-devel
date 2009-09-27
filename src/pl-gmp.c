@@ -215,11 +215,9 @@ mpz_wsize(mpz_t mpz, size_t *s)
 }
 
 
-static word
-globalMPZ(mpz_t mpz)
-{ GET_LD
-  Word p;
-  word r;
+static int
+globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
+{ Word p;
   size_t size;
   size_t wsz = mpz_wsize(mpz, &size);
   word m     = mkIndHdr(wsz+1, TAG_INTEGER);
@@ -229,8 +227,16 @@ globalMPZ(mpz_t mpz)
     return 0;
   }
 
-  p = allocGlobal(wsz+3);
-  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  if ( gTop+wsz+3 > gMax )
+  { int rc = ensureGlobalSpace(wsz+3, flags);
+
+    if ( rc != TRUE )
+      return rc;
+  }
+  p = gTop;
+  gTop += wsz+3;
+
+  *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
   *p++     = m;
   p[wsz]   = 0L;			/* pad out */
@@ -238,7 +244,7 @@ globalMPZ(mpz_t mpz)
   *p++     = (word)mpz->_mp_size;
   memcpy(p, mpz->_mp_d, size);
 
-  return r;
+  return TRUE;
 }
 
 
@@ -603,15 +609,15 @@ most compact representation, which is  essential   to  make unify() work
 without any knowledge of the represented data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static word
-put_mpz(mpz_t mpz)
+static int
+put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 { int64_t v;
 
-    DEBUG(2,
-	  { char buf[256];
-	    Sdprintf("put_mpz(%s)\n",
-		     mpz_get_str(buf, 10, mpz));
-	  });
+  DEBUG(2,
+	{ char buf[256];
+	  Sdprintf("put_mpz(%s)\n",
+		   mpz_get_str(buf, 10, mpz));
+	});
 
 #if SIZEOF_LONG < SIZEOF_VOIDP
   if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
@@ -622,73 +628,73 @@ put_mpz(mpz_t mpz)
 #endif
   { long v = mpz_get_si(mpz);
 
-    return consInt(v);
+    *at = consInt(v);
+    return TRUE;
   } else if ( mpz_to_int64(mpz, &v) )
-  { GET_LD
-
-    return makeNum(v);
+  { return put_int64(at, v, flags PASS_LD);
   } else
-  { return globalMPZ(mpz);
+  { return globalMPZ(at, mpz, flags PASS_LD);
   }
 }
 
 #endif /*O_GMP*/
 
-word
-put_number__LD(Number n ARG_LD)
+int
+put_number(Word at, Number n, int flags ARG_LD)
 { switch(n->type)
   { case V_INTEGER:
     { word w = consInt(n->value.i);
 
       if ( valInt(w) == n->value.i )
-	return w;
+      { *at = w;
+        return TRUE;
+      }
 
-      if ( put_int64(&w, n->value.i, 0 PASS_LD) == TRUE )
-	return w;
-
-      return 0;
+      return put_int64(at, n->value.i, flags PASS_LD);
     }
 #ifdef O_GMP
     case V_MPZ:
-      return put_mpz(n->value.mpz);
+      return put_mpz(at, n->value.mpz, flags PASS_LD);
     case V_MPQ:
     { if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
-      { return put_mpz(mpq_numref(n->value.mpq));
+      { return put_mpz(at, mpq_numref(n->value.mpq), flags PASS_LD);
       } else
       { word num, den;
 	Word p;
-	size_t req = ( mpz_wsize(mpq_numref(n->value.mpq), NULL) +
-		       mpz_wsize(mpq_denref(n->value.mpq), NULL) + 3 );
+	size_t req = ( mpz_wsize(mpq_numref(n->value.mpq), NULL)+3 +
+		       mpz_wsize(mpq_denref(n->value.mpq), NULL)+3 + 3 );
 
-					/* avoid shift/gc */
-	requireStackEx(global, req*sizeof(word));
+	if ( gTop+req > gMax )
+	{ int rc = ensureGlobalSpace(req, flags);
 
-	if ( !(num=put_mpz(mpq_numref(n->value.mpq))) ||
-	     !(den=put_mpz(mpq_denref(n->value.mpq))) )
+	  if ( rc != TRUE )
+	    return rc;
+	}
+
+	if ( !(put_mpz(&num, mpq_numref(n->value.mpq), 0 PASS_LD)) ||
+	     !(put_mpz(&den, mpq_denref(n->value.mpq), 0 PASS_LD)) )
 	  fail;
 
-	p = allocGlobal(3);
+	p = gTop;
+	gTop += 3;
+	assert(gTop <= gMax);
+
 
 	p[0] = FUNCTOR_rdiv2;
 	p[1] = num;
 	p[2] = den;
 
-	return consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*at = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	return TRUE;
       }
     }
 #endif
     case V_FLOAT:
-    { word w;
-
-      if ( put_double(&w, n->value.f, 0 PASS_LD) == TRUE )
-	return w;
-
-      return 0;
-    }
+      return put_double(at, n->value.f, 0 PASS_LD);
   }
 
   assert(0);
-  return 0L;
+  return FALSE;
 }
 
 
@@ -701,9 +707,11 @@ PL_unify_number(term_t t, Number n)
 
   if ( canBind(*p) )
   { word w;
+    int rc;
 
-    if ( !(w = put_number(n)) )
-      fail;
+					/* TBD: Allow GC */
+    if ( (rc=put_number(&w, n, 0 PASS_LD)) != TRUE )
+      return raiseStackOverflow(rc);
 
     p = valTermRef(t);			/* put_number can shift the stacks */
     deRef(p);
@@ -732,9 +740,11 @@ PL_unify_number(term_t t, Number n)
 #ifdef O_GMP
     case V_MPQ:
     { word w;
+      int rc;
 
-      if ( !(w=put_number(n)) )
-	fail;
+					/* TBD: Allow GC */
+      if ( (rc=put_number(&w, n, 0 PASS_LD)) != TRUE )
+	return raiseStackOverflow(rc);
 
       return _PL_unify_atomic(t, w);
     }

@@ -2566,7 +2566,9 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     if ( rc )
     { ensureWritableNumber(&n);
       if ( (rc=ar_add_ui(&n, add)) )
-	w = put_number(&n);
+      { if ( (rc=put_number(&w, &n, ALLOW_GC PASS_LD)) != TRUE )
+	  rc = raiseStackOverflow(rc);
+      }
       clearNumber(&n);
     }
     PL_close_foreign_frame(fid);
@@ -2687,15 +2689,23 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
   deRef2(ARGP, k);
 
   if ( canBind(*k) )
-  { word c = put_number(n);	/* can shift */
+  { word c;
+    int rc;
+
+    SAVE_REGISTERS(qid);
+    if ( (rc=put_number(&c, n, ALLOW_GC PASS_LD)) == TRUE )
+    { deRef2(ARGP, k);			/* may be shifted */
+      bindConst(k, c);
+    } else
+      rc = raiseStackOverflow(rc);
+    LOAD_REGISTERS(qid);
 
     popArgvArithStack(1 PASS_LD);
     AR_END();
-#ifdef O_SHIFT_STACKS
-    ARGP = argFrameP(lTop, 0);
-    deRef2(ARGP, k);
-#endif
-    bindConst(k, c);
+
+    if ( !rc )
+      goto b_throw;
+
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   } else
@@ -2736,19 +2746,21 @@ body mode and in many cases the result is used only once.
 VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
 { Number n = argvArithStack(1 PASS_LD);
   word w;
+  int rc;
 
   SAVE_REGISTERS(qid);
-  w = put_number(n);
+  if ( (rc = put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
+    rc = raiseStackOverflow(rc);
   LOAD_REGISTERS(qid);
-  *varFrameP(FR, *PC++) = w;
 
   popArgvArithStack(1 PASS_LD);
   AR_END();
 
-#ifdef O_SHIFT_STACKS
-  ARGP = argFrameP(lTop, 0);
-#endif
-  NEXT_INSTRUCTION;
+  if ( rc )
+  { *varFrameP(FR, *PC++) = w;
+    NEXT_INSTRUCTION;
+  } else
+    goto b_throw;
 }
 
 

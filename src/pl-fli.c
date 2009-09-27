@@ -2076,14 +2076,16 @@ PL_put_int64(term_t t, int64_t i)
 }
 
 
-void
+int
 _PL_put_number__LD(term_t t, Number n ARG_LD)
 { word w;
+  int rc;
 
-  if ( (w=put_number(n)) )
+  if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) == TRUE )
   { setHandle(t, w);
+    return TRUE;
   } else
-  { assert(0);
+  { return raiseStackOverflow(rc);
   }
 }
 
