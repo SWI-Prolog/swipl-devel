@@ -626,7 +626,15 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
     case XR_INT:
       return makeNum(getInt64(fd));
     case XR_FLOAT:
-      return globalFloat(getFloat(fd));
+    { word w;
+      double f = getFloat(fd);
+      int rc;
+
+      if ( (rc=put_double(&w, f, 0 PASS_LD)) == TRUE )
+	return w;
+
+      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_THROW);
+    }
 #if O_STRING
     case XR_STRING:
     { char *s;

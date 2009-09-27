@@ -2095,10 +2095,18 @@ PL_put_pointer(term_t t, void *ptr)
 }
 
 
-void
+int
 PL_put_float(term_t t, double f)
 { GET_LD
-  setHandle(t, globalFloat(f));
+  word w;
+  int rc;
+
+  if ( (rc=put_double(&w, f, ALLOW_GC PASS_LD)) == TRUE )
+  { setHandle(t, w);
+    return TRUE;
+  }
+
+  return raiseStackOverflow(rc);
 }
 
 
@@ -2527,9 +2535,13 @@ PL_unify_pointer(term_t t, void *ptr)
 int
 PL_unify_float(term_t t, double f)
 { GET_LD
-  word w = globalFloat(f);
+  word w;
+  int rc;
 
-  return unifyAtomic(t, w PASS_LD);
+  if ( (rc=put_double(&w, f, ALLOW_GC PASS_LD)) == TRUE )
+    return unifyAtomic(t, w PASS_LD);
+
+  return raiseStackOverflow(rc);
 }
 
 

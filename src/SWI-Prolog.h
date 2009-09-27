@@ -427,7 +427,7 @@ PL_EXPORT(void)		PL_put_list_nchars(term_t t, size_t l, const char *chars);
 PL_EXPORT(void)		PL_put_list_ncodes(term_t t, size_t l, const char *chars);
 PL_EXPORT(void)		PL_put_integer(term_t t, long i);
 PL_EXPORT(void)		PL_put_pointer(term_t t, void *ptr);
-PL_EXPORT(void)		PL_put_float(term_t t, double f);
+PL_EXPORT(int)		PL_put_float(term_t t, double f);
 PL_EXPORT(void)		PL_put_functor(term_t t, functor_t functor);
 PL_EXPORT(void)		PL_put_list(term_t l);
 PL_EXPORT(void)		PL_put_nil(term_t l);

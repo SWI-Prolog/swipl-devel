@@ -1087,11 +1087,9 @@ valFloat__LD(word w ARG_LD)
 }
 
 
-word
-globalFloat(double d)
-{ GET_LD
-  Word p = allocGlobal(2+WORDS_PER_DOUBLE);
-  word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+int
+put_double(Word at, double d, int flags ARG_LD)
+{ Word p;
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   union
   { double d;
@@ -1099,14 +1097,25 @@ globalFloat(double d)
   } val;
   fword *v;
 
+  if ( gTop+2+WORDS_PER_DOUBLE > gMax )
+  { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
+
+    if ( rc != TRUE )
+      return rc;
+  }
+  p = gTop;
+  gTop += 2+WORDS_PER_DOUBLE;
+
+  *at = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+
   val.d = d;
   *p++ = m;
   v = (fword *)p;
   *v++ = val.l;
   p = (Word) v;
-  *p   = m;
+  *p = m;
 
-  return r;
+  return TRUE;
 }
 
 

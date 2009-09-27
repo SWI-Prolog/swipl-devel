@@ -678,7 +678,13 @@ put_number__LD(Number n ARG_LD)
     }
 #endif
     case V_FLOAT:
-      return globalFloat(n->value.f);
+    { word w;
+
+      if ( put_double(&w, n->value.f, 0 PASS_LD) == TRUE )
+	return w;
+
+      return 0;
+    }
   }
 
   assert(0);
