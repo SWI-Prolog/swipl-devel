@@ -3240,8 +3240,16 @@ run_propagator(rel_tuple(R, Tuple), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
-        myserialized(Duration, Left, SDs, Var).
+run_propagator(pserialized(S_I, D_I, S_J, D_J, _), MState) :-
+        (   nonvar(S_I), nonvar(S_J) ->
+            kill(MState),
+            (   S_I + D_I =< S_J -> true
+            ;   S_J + D_J =< S_I -> true
+            ;   false
+            )
+        ;   serialize_lower_upper(S_I, D_I, S_J, D_J, MState),
+            serialize_lower_upper(S_J, D_J, S_I, D_I, MState)
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4583,35 +4591,27 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
-        pair_up(Starts, Durations, SDs),
-        serialize(SDs, []),
+        pairs_keys_values(SDs, Starts, Durations),
+        put_attr(All, clpfd_serialized, Starts-Durations),
+        serialize(SDs, All),
         do_queue.
 
-pair_up([], [], []).
-pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
-
-% attribute: pserialized(Var, Duration, Left, Right)
-%   Left and Right are lists of Start-Duration pairs representing
-%   other tasks occupying the same resource
-
 serialize([], _).
-serialize([Start-D|SDs], Left) :-
-        cis_geq_zero(D),
-        (   var(Start) ->
-            make_propagator(pserialized(Start,D,Left,SDs), Prop),
-            init_propagator(Start, Prop),
-            trigger_prop(Prop)
-        ;   true
-        ),
-        myserialized(D, Left, SDs, Start),
-        serialize(SDs, [Start-D|Left]).
+serialize([S-D|SDs], All) :-
+        D >= 0,
+        serialize(SDs, S, D, All),
+        serialize(SDs, All).
+
+serialize([], _, _, _).
+serialize([S-D|Rest], S0, D0, All) :-
+        D >= 0,
+        make_propagator(pserialized(S,D,S0,D0,All), Prop),
+        variables_attach([S0,S], Prop),
+        trigger_once(Prop),
+        serialize(Rest, S0, D0, All).
 
 % consistency check / propagation
 % Currently implements 2-b-consistency
-
-myserialized(Duration, Left, Right, Start) :-
-        myserialized(Left, Start, Duration),
-        myserialized(Right, Start, Duration).
 
 earliest_start_time(Start, EST) :-
         (   fd_get(Start, D, _) ->
@@ -4625,54 +4625,42 @@ latest_start_time(Start, LST) :-
         ;   LST = n(Start)
         ).
 
-myserialized([], _, _).
-myserialized([S_I-D_I|SDs], S_J, D_J) :-
-        serialize_lower_upper(S_I, D_I, S_J, D_J),
-        serialize_lower_upper(S_J, D_J, S_I, D_I),
-        (   nonvar(S_I), nonvar(S_J) ->
-            D_I = n(D_II), D_J = n(D_JJ),
-            (   S_I + D_II =< S_J -> true
-            ;   S_J + D_JJ =< S_I -> true
-            ;   false
-            )
-        ;   true
-        ),
-        myserialized(SDs, S_J, D_J).
-
-serialize_lower_upper(S_I, D_I, S_J, D_J) :-
+serialize_lower_upper(S_I, D_I, S_J, D_J, MState) :-
         (   var(S_I) ->
-            serialize_lower_bound(S_I, D_I, S_J, D_J),
-            (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J)
+            serialize_lower_bound(S_I, D_I, S_J, D_J, MState),
+            (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J, MState)
             ;   true
             )
         ;   true
         ).
 
-serialize_lower_bound(I, D_I, J, D_J) :-
+serialize_lower_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_infimum(DomI, EST_I),
-        latest_start_time(J, LST_J),
-        (   Sum cis EST_I + D_I, Sum cis_gt LST_J ->
-            earliest_start_time(J, EST_J),
-            (   n(EST) cis EST_J+D_J ->
-                domain_remove_smaller_than(DomI, EST, DomI1),
-                fd_put(I, DomI1, Ps)
+        (   domain_infimum(DomI, n(EST_I)),
+            latest_start_time(J, n(LST_J)),
+            EST_I + D_I > LST_J,
+            earliest_start_time(J, n(EST_J)) ->
+            (   nonvar(J) -> kill(MState)
             ;   true
-            )
+            ),
+            EST is EST_J+D_J,
+            domain_remove_smaller_than(DomI, EST, DomI1),
+            fd_put(I, DomI1, Ps)
         ;   true
         ).
 
-serialize_upper_bound(I, D_I, J, D_J) :-
+serialize_upper_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_supremum(DomI, LST_I),
-        earliest_start_time(J, EST_J),
-        (   Sum cis EST_J + D_J, Sum cis_gt LST_I ->
-            latest_start_time(J, LST_J),
-            (   n(LST) cis LST_J-D_I ->
-                domain_remove_greater_than(DomI, LST, DomI1),
-                fd_put(I, DomI1, Ps)
+        (   domain_supremum(DomI, n(LST_I)),
+            earliest_start_time(J, n(EST_J)),
+            EST_J + D_J > LST_I,
+            latest_start_time(J, n(LST_J)) ->
+            (   nonvar(J) -> kill(MState)
             ;   true
-            )
+            ),
+            LST is LST_J-D_I,
+            domain_remove_greater_than(DomI, LST, DomI1),
+            fd_put(I, DomI1, Ps)
         ;   true
         ).
 
@@ -5365,6 +5353,9 @@ clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
+clpfd_serialized:attribute_goals(_) --> [].
+clpfd_serialized:attr_unify_hook(_,_) :- false.
+
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
@@ -5418,9 +5409,12 @@ attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_check_single(_)) --> [].
 attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
-attribute_goal_(pserialized(Var,D,Left,Right)) -->
-        [serialized(Vs, Ds)],
-        { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
+attribute_goal_(pserialized(_,_,_,_,All)) -->
+        (   { get_attr(All, clpfd_serialized, Vs-Ds) } ->
+            { del_attr(All, clpfd_serialized) },
+            [serialized(Vs, Ds)]
+        ;   []
+        ).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel)].
