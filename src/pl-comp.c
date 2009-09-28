@@ -2639,16 +2639,11 @@ static inline Word
 decARGP__LD(ARG1_LD)			/* == --ARGP */
 { Word ap;
 
-  requireStackEx(local, sizeof(word));
   ap = (Word)lTop;
   lTop = (LocalFrame)(ap-1);
 
   return ap;
 }
-
-
-
-
 
 
 typedef struct
