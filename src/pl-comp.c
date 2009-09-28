@@ -2615,7 +2615,7 @@ Then we create a term, back up and fill the arguments.
 #define decARGP()   decARGP__LD(PASS_LD1)
 
 static inline void
-setARGP__LD(Word ap ARG_LD)			/* ARGP = ap */
+setARGP__LD(Word ap ARG_LD)		/* ARGP = ap */
 { if ( ap > (Word)lTop )
   { requireStackEx(local, ((char*)ap - (char*)lTop));
   }
@@ -2651,7 +2651,6 @@ typedef struct
   int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
   term_t bindings;			/* [Offset = Var, ...] */
-  Module body_context;			/* I_CONTEXT module (if any) */
 } decompileInfo;
 
 forwards bool	decompile_head(Clause, term_t, decompileInfo * ARG_LD);
@@ -2911,13 +2910,11 @@ decompile(Clause clause, term_t term, term_t bindings)
 { GET_LD
   decompileInfo dinfo;
   decompileInfo *di = &dinfo;
-  Word body;
-  LocalFrame lSave;
+  term_t body, vbody;
 
   di->nvars        = VAROFFSET(1) + clause->prolog_vars;
   di->variables    = alloca(di->nvars * sizeof(term_t));
   di->bindings     = bindings;
-  di->body_context = NULL;
 
 #ifdef O_RUNTIME
   if ( false(getProcDefinition(clause->procedure), DYNAMIC|P_THREAD_LOCAL) )
@@ -2947,38 +2944,26 @@ decompile(Clause clause, term_t term, term_t bindings)
     PL_get_arg(1, term, a);
     TRY(decompile_head(clause, a, di PASS_LD));
     PL_get_arg(2, term, a);
-    body = valTermRef(a);
-    deRef(body);
+    body = a;
   }
 
-  lSave = lTop;
+  if ( fetchop(PC) == I_CONTEXT )
+  { Module context = (Module)PC[1];
+    term_t a = PL_new_term_ref();
+
+    PC += 2;
+    TRY(PL_unify_functor(body, FUNCTOR_colon2));
+    PL_get_arg(1, body, a);
+    TRY(PL_unify_atom(a, context->name));
+    PL_get_arg(2, body, body);
+  }
+
+  vbody = PL_new_term_ref();
+  setARGP(valTermRef(vbody));
+
   decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
 
-  { Word b, ba;
-    ssize_t var;
-
-    b = newTerm();
-
-    if ( di->body_context )
-    { Word b2 = allocGlobal(3);
-      b2[0] = FUNCTOR_colon2;
-      b2[1] = di->body_context->name;
-      setVar(b2[2]);
-      ba = &b2[2];
-      *b = consPtr(b2, TAG_COMPOUND|STG_GLOBAL);
-    } else
-    { ba = b;
-    }
-
-    decARGP();
-    if ( (var = isVarRef(*ARGP)) >= 0 )
-      unifyVar(ba, di->variables, var PASS_LD);
-    else
-      *ba = *ARGP;
-
-    lTop = lSave;
-    return unify_ptrs(body, b, ALLOW_GC|ALLOW_SHIFT PASS_LD);
-  }
+  return PL_unify(body, vbody);
 }
 
 
@@ -3269,7 +3254,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    if ( *PC == encode(I_EXITCLEANUP) )
 			      PC++;
 			    continue;
-      case I_CONTEXT:	    di->body_context = (Module) *PC++;
+      case I_CONTEXT:	    PC++;
+      			    assert(0);	/* should never happen */
       			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
