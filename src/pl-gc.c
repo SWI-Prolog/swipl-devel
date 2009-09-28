@@ -2555,10 +2555,7 @@ garbageCollect(void)
 
   if ( LD->query->registers.fr )
   { fr = LD->query->registers.fr;
-    if ( fr->clause )
-      PC = LD->query->registers.pc;
-    else
-      PC = NULL;			/* in handler for I_CALL */
+    PC = startOfVMI(fr, LD->query->registers.pc);
   } else
   { fr = environment_frame;
     PC = NULL;
@@ -3256,10 +3253,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
   if ( LD->query->registers.fr )
   { fr = LD->query->registers.fr;
-    if ( fr->clause )
-      PC = LD->query->registers.pc;
-    else
-      PC = NULL;			/* in handler for I_CALL */
+    PC = startOfVMI(fr, LD->query->registers.pc);
   } else
   { fr = environment_frame;
     PC = NULL;
