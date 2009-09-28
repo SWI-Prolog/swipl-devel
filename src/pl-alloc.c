@@ -720,7 +720,7 @@ pushArgumentStack__LD(Word p ARG_LD)
   Word *newbase;
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
-  if ( newsize && (newbase == realloc(aBase, newsize)) )
+  if ( newsize && (newbase = realloc(aBase, newsize)) )
   { aTop += newbase - aBase;
     aBase = newbase;
     aMax  = addPointer(newbase,  newsize);
