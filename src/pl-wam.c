@@ -1378,8 +1378,14 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  requireStackEx(local, sizeof(*ch));
-  lTop = addPointer(lTop, sizeof(*ch));
+  if ( ch+1 > (Choice)lMax )
+  { int rc = ensureLocalSpace(sizeof(*ch), 0); /* TBD: Make shift-safe */
+
+    if ( rc != TRUE )
+      outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
+  }
+  lTop = (LocalFrame)(ch+1);
+
   ch->type = type;
   ch->frame = fr;
   ch->parent = BFR;
