@@ -2607,47 +2607,12 @@ Then we create a term, back up and fill the arguments.
 
 #undef PC
 #define PC	(di->pc)
-#define ARGP	((Word)lTop)
+#define ARGP	(di->argp)
 #define XR(c)	((word)(c))
-
-#define setARGP(ap) setARGP__LD(ap PASS_LD)
-#define ARGPinc()   ARGPinc__LD(PASS_LD1)
-#define decARGP()   decARGP__LD(PASS_LD1)
-
-static inline void
-setARGP__LD(Word ap ARG_LD)		/* ARGP = ap */
-{ if ( ap > (Word)lTop )
-  { requireStackEx(local, ((char*)ap - (char*)lTop));
-  }
-  lTop = (LocalFrame)ap;
-}
-
-
-static inline Word
-ARGPinc__LD(ARG1_LD)			/* == ARGP++ */
-{ Word ap;
-
-  requireStackEx(local, sizeof(word));
-  ap = (Word)lTop;
-  lTop = (LocalFrame)(ap+1);
-
-  return ap;
-}
-
-
-static inline Word
-decARGP__LD(ARG1_LD)			/* == --ARGP */
-{ Word ap;
-
-  ap = (Word)lTop;
-  lTop = (LocalFrame)(ap-1);
-
-  return ap;
-}
-
 
 typedef struct
 { Code	 pc;				/* pc for decompilation */
+  Word   argp;				/* argument pointer */
   int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
   term_t bindings;			/* [Offset = Var, ...] */
@@ -2959,7 +2924,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   }
 
   vbody = PL_new_term_ref();
-  setARGP(valTermRef(vbody));
+  ARGP = valTermRef(vbody);
 
   decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
 
@@ -3030,22 +2995,22 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
         case I_NOP:	    continue;
 	case H_CONST:
 	case B_CONST:
-			    *ARGPinc() = XR(*PC++);
+			    *ARGP++ = XR(*PC++);
 			    continue;
 	case H_NIL:
 	case B_NIL:
-			    *ARGPinc() = ATOM_nil;
+			    *ARGP++ = ATOM_nil;
 			    continue;
 	case H_INTEGER:
 	case B_INTEGER:
 	case A_INTEGER:
-			    *ARGPinc() = makeNum((intptr_t)*PC++);
+			    *ARGP++ = makeNum((intptr_t)*PC++);
 			    continue;
 	case H_INT64:
 	case B_INT64:
 	case A_INT64:
 			  { Word p = allocGlobal(2+WORDS_PER_INT64);
-			    *ARGPinc() = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    cpInt64Data(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -3056,7 +3021,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 
-			    *ARGPinc() = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    cpDoubleData(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -3067,7 +3032,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
-	  		    *ARGPinc() = globalIndirectFromCode(&PC);
+	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
       { size_t index;
 
@@ -3087,29 +3052,29 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 			    if ( nested )
-			      unifyVar(ARGPinc(), di->variables, index PASS_LD);
+			      unifyVar(ARGP++, di->variables, index PASS_LD);
 			    else
-			      *ARGPinc() = makeVarRef(index);
+			      *ARGP++ = makeVarRef(index);
 			    continue;
       }
       case B_UNIFY_FF:
       case B_UNIFY_FV:
       case B_UNIFY_VV:
-			    *ARGPinc() = makeVarRef((int)*PC++);
-			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
 			    goto b_unify_exit;
       case B_UNIFY_FC:
       case B_UNIFY_VC:
-			    *ARGPinc() = makeVarRef((int)*PC++);
-			    *ARGPinc() = (word)*PC++;
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = (word)*PC++;
 			    goto b_unify_exit;
       case B_EQ_VC:
-			    *ARGPinc() = makeVarRef((int)*PC++);
-			    *ARGPinc() = (word)*PC++;
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = (word)*PC++;
       			    goto b_eq_vv_cont;
       case B_EQ_VV:
-			    *ARGPinc() = makeVarRef((int)*PC++);
-			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
       			  b_eq_vv_cont:
 			    build_term(FUNCTOR_strict_equal2, di PASS_LD);
 			    pushed++;
@@ -3117,7 +3082,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case H_VOID:
       case H_ARGVOID:
       case B_VOID:
-			    setVar(*ARGPinc());
+			    setVar(*ARGP++);
 			    continue;
       case H_FUNCTOR:
       case B_FUNCTOR:
@@ -3126,9 +3091,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
         { word w = globalFunctor(fdef);
-	  *ARGPinc() = w;
+	  *ARGP++ = w;
 	  *aTop++ = ARGP;
-	  setARGP(argTermP(w, 0));
+	  ARGP = argTermP(w, 0);
 	}
         nested++;
 	continue;
@@ -3141,7 +3106,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       { size_t v1 = *PC++;
 	size_t v2 = *PC++;
 	word w = globalFunctor(FUNCTOR_dot2);
-	*ARGPinc() = w;
+	*ARGP++ = w;
 	unifyVar(argTermP(w, 0), di->variables, v1 PASS_LD);
 	unifyVar(argTermP(w, 1), di->variables, v2 PASS_LD);
 	continue;
@@ -3153,8 +3118,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	fdef = (functor_t)XR(*PC++);
       common_brfunctor:
 	{ word w = globalFunctor(fdef);
-	  *ARGPinc() = w;
-	  setARGP(argTermP(w, 0));
+	  *ARGP++ = w;
+	  ARGP= argTermP(w, 0);
 	}
 	continue;
       case H_RLIST:
@@ -3164,7 +3129,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       }
       case H_POP:
       case B_POP:
-			    setARGP(*--aTop);
+			    ARGP = *--aTop;
 			    nested--;
 			    continue;
 #ifdef O_COMPILE_IS
@@ -3195,9 +3160,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	int ivar = (int)*PC++;
 	intptr_t add = (intptr_t)*PC++;
 
-	*ARGPinc() = makeVarRef(rvar);
-	*ARGPinc() = makeVarRef(ivar);
-	*ARGPinc() = consInt(add);
+	*ARGP++ = makeVarRef(rvar);
+	*ARGP++ = makeVarRef(ivar);
+	*ARGP++ = consInt(add);
 	build_term(FUNCTOR_plus2, di PASS_LD); /* create B+<n> */
 	build_term(FUNCTOR_is2, di PASS_LD);
 	pushed++;
@@ -3217,7 +3182,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    index = *PC++;
 			    ARGP[0] = ARGP[-1];
 			    ARGP[-1] = makeVarRef(index);
-			    ARGPinc();
+			    ARGP++;
 			  }
 			    /*FALLTHROUGH*/
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
@@ -3235,21 +3200,21 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       }
-      case I_FAIL:	    *ARGPinc() = ATOM_fail;
+      case I_FAIL:	    *ARGP++ = ATOM_fail;
 			    pushed++;
 			    continue;
-      case I_TRUE:	    *ARGPinc() = ATOM_true;
+      case I_TRUE:	    *ARGP++ = ATOM_true;
 			    pushed++;
 			    continue;
       case C_LCUT:	    PC++;
 			    /*FALLTHROUGH*/
-      case I_CUT:	    *ARGPinc() = ATOM_cut;
+      case I_CUT:	    *ARGP++ = ATOM_cut;
 			    pushed++;
 			    continue;
-      case I_CATCH:	    *ARGPinc() = ATOM_dcatch;
+      case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
 			    continue;
-      case I_CALLCLEANUP:   *ARGPinc() = ATOM_dcall_cleanup;
+      case I_CALLCLEANUP:   *ARGP++ = ATOM_dcall_cleanup;
 			    pushed++;
 			    if ( *PC == encode(I_EXITCLEANUP) )
 			      PC++;
@@ -3267,7 +3232,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CALLM:       { Module m = (Module)XR(*PC++);
 			    Procedure proc = (Procedure)XR(*PC++);
 			    build_term(proc->definition->functor->functor, di PASS_LD);
-			    ARGPinc();
+			    ARGP++;
 			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
 			    ARGP[-2] = m->name;
 			    build_term(FUNCTOR_colon2, di PASS_LD);
@@ -3369,15 +3334,15 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 
   if ( arity == 0 )
   { requireStackEx(local, sizeof(Word));
-    *ARGPinc() = nameFunctor(f);
+    *ARGP++ = nameFunctor(f);
     return;
   }
 
   term = globalFunctor(f);
   a = argTermP(term, arity-1);
 
-  decARGP();
-  for( ; arity-- > 0; a--, decARGP() )
+  ARGP--;
+  for( ; arity-- > 0; a--, ARGP-- )
   { ssize_t var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
@@ -3385,9 +3350,9 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
     else
       *a = *ARGP;
   }
-  ARGPinc();
+  ARGP++;
 
-  *ARGPinc() = term;
+  *ARGP++ = term;
 }
 
 #undef PC
