@@ -166,7 +166,6 @@ COMMON(Clause) 		assert_term(term_t term, int where,
 COMMON(void) 		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(word) 		pl_redefine_system_predicate(term_t term);
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
-COMMON(Code)		startOfVMI(LocalFrame fr, Code invmi);
 COMMON(bool) 		decompileHead(Clause clause, term_t head);
 COMMON(int) 		arg1Key(Clause clause, int constonly, word *key);
 COMMON(bool) 		decompile(Clause clause, term_t term, term_t bindings);

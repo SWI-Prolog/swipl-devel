@@ -2128,58 +2128,6 @@ stepDynPC(Code PC, const code_info *ci)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-When using SAVE_REGISTERS(qid) in pl-vmi.c, the   PC  is either pointing
-inside or pointing to the next instruction.   Here, we find the start of
-the instruction for SHIFT/GC. We assume that   if  this is a first-write
-instruction,  the  writing  has  not  yet  been    done.   If  it  is  a
-read-intruction, we often have to be able to redo the read to compensate
-for the possible shift inside the code protected by SAVE_REGISTERS().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-clauseNo(Definition def, Clause cl)
-{ int i;
-  ClauseRef cref;
-
-  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
-      return i;
-  }
-
-  return -1;
-}
-
-
-Code
-startOfVMI(LocalFrame fr, Code invmi)
-{ if ( fr->clause )
-  { Clause clause = fr->clause->clause;
-    Code PC, ep, next;
-
-    PC = clause->codes;
-    ep = PC + clause->code_size;
-
-    for( ; PC < ep; PC = next )
-    { next = stepPC(PC);
-
-      if ( next >= invmi )
-      { size_t where = PC-clause->codes;
-
-	Sdprintf("At PC=%ld of %d-th clause of %s\n",
-		 where,
-		 clauseNo(fr->predicate, clause),
-		 predicateName(fr->predicate));
-
-	return PC;
-      }
-    }
-  }
-
-  return NULL;
-}
-
-
 		/********************************
 		*  PROLOG DATA BASE MANAGEMENT  *
 		*********************************/
