@@ -3273,6 +3273,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( LD->query->registers.fr )
   { fr = LD->query->registers.fr;
     PC = startOfVMI(fr, LD->query->registers.pc);
+    SECURE({ if ( lTop <= fr )
+	       lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
+	   });
   } else
   { fr = environment_frame;
     PC = NULL;
