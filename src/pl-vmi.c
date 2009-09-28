@@ -1289,7 +1289,6 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates
@@ -1306,6 +1305,8 @@ possible to be able to call-back to Prolog.
   NFR->programPointer = PC;		/* save PC in child */
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
+
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
 
 depart_continue:
 retry_continue:

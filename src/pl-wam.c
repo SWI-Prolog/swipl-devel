@@ -319,7 +319,10 @@ Brief description of the local stack-layout.  This stack contains:
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
 	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
         { int rc; \
-	  if ( (rc=ensureLocalSpace(bytes, ALLOW_SHIFT)) != TRUE ) \
+	  SAVE_REGISTERS(qid); \
+	  rc = ensureLocalSpace(bytes, ALLOW_SHIFT); \
+	  LOAD_REGISTERS(qid); \
+	  if ( rc != TRUE ) \
 	  { rc = raiseStackOverflow(rc); \
 	    ifnot; \
 	  } \
