@@ -1206,11 +1206,14 @@ tcl(a).
 tcl(b) :- true.
 tcl(c) :- write(hello).
 tcl(a(X)) :- b(X).
+tcl(x(G)) :- G.
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
 mtcl:(tcl(c) :- a, b).
 
+cl(call-1) :-
+	clause(tcl(x(G)), X), X == call(G).
 cl(clause-1) :-
 	clause(tcl(a), X), X == true.
 cl(clause-2) :-
