@@ -1494,18 +1494,19 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
-        all_different(Ls, [], _),
+        put_attr(Orig, clpfd_original, all_different(Ls)),
+        all_different(Ls, [], Orig),
         do_queue.
 
 all_different([], _, _).
-all_different([X|Right], Left, State) :-
+all_different([X|Right], Left, Orig) :-
         (   var(X) ->
-            make_propagator(pdifferent(Left,Right,X,State), Prop),
+            make_propagator(pdifferent(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
         ;   exclude_fire(Left, Right, X)
         ),
-        all_different(Right, [X|Left], State).
+        all_different(Right, [X|Left], Orig).
 
 %% sum(+Vars, +Rel, ?Expr)
 %
@@ -4497,14 +4498,15 @@ all_distinct(Ls) :- regin_attach(Ls).
 % all_distinct(Ls) :- all_different(Ls).
 % all_distinct(Ls) :-
 %         must_be(list, Ls),
-%         all_distinct(Ls, [], _),
+%         put_attr(O, clpfd_original, all_distinct(Ls)),
+%         all_distinct(Ls, [], O),
 %         do_queue.
 
 all_distinct([], _, _).
-all_distinct([X|Right], Left, MState) :-
+all_distinct([X|Right], Left, Orig) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(pdistinct(Left,Right,X,MState), Prop),
+            make_propagator(pdistinct(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -4513,7 +4515,7 @@ all_distinct([X|Right], Left, MState) :-
         ;   exclude_fire(Left, Right, X)
         ),
         outof_reducer(Left, Right, X),
-        all_distinct(Right, [X|Left], MState).
+        all_distinct(Right, [X|Left], Orig).
 
 exclude_fire(Left, Right, E) :-
         remove_ground(Left, E),
@@ -4592,23 +4594,23 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
         pairs_keys_values(SDs, Starts, Durations),
-        put_attr(All, clpfd_serialized, Starts-Durations),
-        serialize(SDs, All),
+        put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
+        serialize(SDs, Orig),
         do_queue.
 
 serialize([], _).
-serialize([S-D|SDs], All) :-
+serialize([S-D|SDs], Orig) :-
         D >= 0,
-        serialize(SDs, S, D, All),
-        serialize(SDs, All).
+        serialize(SDs, S, D, Orig),
+        serialize(SDs, Orig).
 
 serialize([], _, _, _).
-serialize([S-D|Rest], S0, D0, All) :-
+serialize([S-D|Rest], S0, D0, Orig) :-
         D >= 0,
-        make_propagator(pserialized(S,D,S0,D0,All), Prop),
+        make_propagator(pserialized(S,D,S0,D0,Orig), Prop),
         variables_attach([S0,S], Prop),
         trigger_once(Prop),
-        serialize(Rest, S0, D0, All).
+        serialize(Rest, S0, D0, Orig).
 
 % consistency check / propagation
 % Currently implements 2-b-consistency
@@ -5353,14 +5355,12 @@ clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
-clpfd_serialized:attribute_goals(_) --> [].
-clpfd_serialized:attr_unify_hook(_,_) :- false.
+clpfd_original:attribute_goals(_) --> [].
+clpfd_original:attr_unify_hook(_,_) :- false.
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
-        ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
-              arg(4, P, S), S == processed } -> []
         ;   { phrase(attribute_goal_(P), Gs) } ->
             { del_attr(State, clpfd_aux), State = processed },
             with_clpfd(Gs)
@@ -5395,12 +5395,8 @@ attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
 attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
         [Left #=< C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(pdifferent(Left, Right, X, processed)) -->
-        [all_different(Vs)],
-        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(pdistinct(Left, Right, X, processed)) -->
-        [all_distinct(Vs)],
-        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(pdifferent(_,_,_,O)) --> original_goal(O).
+attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
 attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
@@ -5409,12 +5405,7 @@ attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_check_single(_)) --> [].
 attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
-attribute_goal_(pserialized(_,_,_,_,All)) -->
-        (   { get_attr(All, clpfd_serialized, Vs-Ds) } ->
-            { del_attr(All, clpfd_serialized) },
-            [serialized(Vs, Ds)]
-        ;   []
-        ).
+attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel)].
@@ -5449,6 +5440,13 @@ fold_product([], [], P, P).
 fold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
         fold_product(Cs, Vs, P0 + T, P).
+
+original_goal(V) -->
+        (   { get_attr(V, clpfd_original, Goal) } ->
+            { del_attr(V, clpfd_original) },
+            [Goal]
+        ;   []
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
