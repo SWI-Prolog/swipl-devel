@@ -320,8 +320,9 @@ Brief description of the local stack-layout.  This stack contains:
 	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
         { int rc; \
 	  if ( (rc=ensureLocalSpace(bytes, ALLOW_SHIFT)) != TRUE ) \
-	    rc = raiseStackOverflow(rc); \
-	  ifnot; \
+	  { rc = raiseStackOverflow(rc); \
+	    ifnot; \
+	  } \
 	}
 
 
