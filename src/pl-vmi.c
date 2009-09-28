@@ -1289,8 +1289,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 normal_call:
-					/* ensure room for next args */
-  requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates
@@ -2049,7 +2048,7 @@ VMI(S_STATIC, 0, 0, ())
 
   PC = CL->clause->codes;
   lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);

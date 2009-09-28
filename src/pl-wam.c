@@ -311,6 +311,22 @@ Brief description of the local stack-layout.  This stack contains:
 
 
 		 /*******************************
+		 *	 LOCAL ALLOCATION	*
+		 *******************************/
+
+#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY))
+
+#define ENSURE_LOCAL_SPACE(bytes, ifnot) \
+	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
+        { int rc; \
+	  if ( (rc=ensureLocalSpace(bytes, ALLOW_SHIFT)) != TRUE ) \
+	    rc = raiseStackOverflow(rc); \
+	  ifnot; \
+	}
+
+
+
+		 /*******************************
 		 *	    FOREIGN FRAME	*
 		 *******************************/
 
@@ -1672,7 +1688,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
+ 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1681,7 +1697,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY)); \
+	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
  	  ch->value.PC = altpc; \
@@ -2121,7 +2137,7 @@ next_choice:
       }
 
 			/* require space for the args of the next frame */
-      requireStackEx(local, (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
+      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */

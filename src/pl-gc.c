@@ -2796,6 +2796,25 @@ ensureGlobalSpace(size_t cells, int flags)
 }
 
 
+int
+ensureLocalSpace(size_t bytes, int flags)
+{ GET_LD
+  int rc;
+
+  if ( (rc=requireStack(local, bytes)) == TRUE )
+    return TRUE;
+
+  if ( !flags )
+    return rc;
+
+#ifdef O_SHIFT_STACKS
+  return growStacks(bytes, 0, 0);
+#else
+  return rc;
+#endif
+}
+
+
 #if O_SHIFT_STACKS
 
 		 /*******************************

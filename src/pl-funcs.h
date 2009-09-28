@@ -388,6 +388,7 @@ COMMON(size_t)		nextStackSize(Stack s, size_t minfree);
 #endif
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
 COMMON(int)		ensureGlobalSpace(size_t minfree, int flags);
+COMMON(int)		ensureLocalSpace(size_t bytes, int flags);
 COMMON(void) 		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
