@@ -140,7 +140,15 @@ PL_new_term_refs__LD(int n ARG_LD)
   term_t r;
   int i;
 
-  requireStackEx(local, sizeof(word)*n);
+  if ( addPointer(lTop, n*sizeof(word)) > (void*) lMax )
+  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
+
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      return 0;
+    }
+  }
+
   t = (Word)lTop;
   r = consTermRef(t);
 
@@ -177,7 +185,15 @@ new_term_ref(ARG1_LD)
 
 term_t
 PL_new_term_ref__LD(ARG1_LD)
-{ requireStackEx(local, sizeof(word));
+{ if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
+  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
+
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      return 0;
+    }
+  }
+
   return new_term_ref(PASS_LD1);
 }
 
@@ -237,7 +253,14 @@ PL_copy_term_ref(term_t from)
   term_t r;
   FliFrame fr;
 
-  requireStackEx(local, sizeof(word));
+  if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
+  { int rc = ensureLocalSpace(sizeof(word), ALLOW_SHIFT);
+
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      return 0;
+    }
+  }
 
   t  = (Word)lTop;
   r  = consTermRef(t);
@@ -2583,18 +2606,15 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
   if ( isVar(*p) )
   { Word a;
 
-#ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < (size_t)(3 * sizeof(word)) )
+    if ( gTop + 3 > gMax )
     { int rc;
 
-      if ( (rc=growStacks(FALSE, TRUE, FALSE)) != TRUE )
+      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
 	return raiseStackOverflow(rc);
-      p = valHandleP(t);
+      p = valHandleP(l);		/* reload: may have shifted */
       deRef(p);
     }
-#else
-    requireStackEx(global, sizeof(word)*3);
-#endif
+
     a = gTop;
     gTop += 3;
 
