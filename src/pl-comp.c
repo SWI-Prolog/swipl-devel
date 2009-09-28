@@ -2137,6 +2137,20 @@ read-intruction, we often have to be able to redo the read to compensate
 for the possible shift inside the code protected by SAVE_REGISTERS().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+clauseNo(Definition def, Clause cl)
+{ int i;
+  ClauseRef cref;
+
+  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
+  { if ( cref->clause == cl )
+      return i;
+  }
+
+  return -1;
+}
+
+
 Code
 startOfVMI(LocalFrame fr, Code invmi)
 { if ( fr->clause )
@@ -2150,7 +2164,15 @@ startOfVMI(LocalFrame fr, Code invmi)
     { next = stepPC(PC);
 
       if ( next >= invmi )
+      { size_t where = PC-clause->codes;
+
+	Sdprintf("At PC=%ld of %d-th clause of %s\n",
+		 where,
+		 clauseNo(fr->predicate, clause),
+		 predicateName(fr->predicate));
+
 	return PC;
+      }
     }
   }
 
