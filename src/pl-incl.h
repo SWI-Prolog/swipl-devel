@@ -1780,11 +1780,12 @@ typedef enum
 	((triggerStack(s) < (ssize_t)(n)) \
 		? ensureRoomStack(s, (n), FALSE) : TRUE)
 
-#define pushArgumentStack(w) \
-	if ( aTop+1 < aMax ) \
-	  *aTop++ = (w); \
-	else \
-	  pushArgumentStack__LD((w) PASS_LD) \
+#define pushArgumentStack(p) \
+	do { if ( aTop+1 < aMax ) \
+	       *aTop++ = (p); \
+	     else \
+	       pushArgumentStack__LD((p) PASS_LD); \
+	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Used for predicate implementations that need local+global+trail space

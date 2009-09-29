@@ -713,7 +713,7 @@ raiseStackOverflow(int overflow)
 }
 
 
-static void
+void
 pushArgumentStack__LD(Word p ARG_LD)
 {
 #ifdef O_SHIFT_STACKS

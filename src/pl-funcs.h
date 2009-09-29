@@ -40,6 +40,7 @@ COMMON(void)		outOfCore(void) NORETURN;
 COMMON(Word) 		allocGlobal__LD(size_t words ARG_LD);
 COMMON(Word) 		allocGlobalNoShift__LD(size_t words ARG_LD);
 COMMON(void *) 		allocHeap__LD(size_t n ARG_LD);
+COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void) 		initMemAlloc(void);
 COMMON(void) 		cleanupMemAlloc(void);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);

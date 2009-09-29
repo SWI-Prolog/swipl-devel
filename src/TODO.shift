@@ -15,6 +15,8 @@
 	- Foreign calls use SAVE_REGISTERS.  This means PC is around
 	  for growStacks() (pointing into the supervisor).  Is this ok?
 	- Protect callers from newChoice()
+	- Make shifter functions return OK-BUT-SHIFTED
+	- Relocate ARGP pointers in the garbage collector
 
 ================================================================
 Static analysis of the C-program:

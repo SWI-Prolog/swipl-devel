@@ -171,6 +171,7 @@ typedef struct vm_state
   Code		pc_start_vmi;		/* PC at start of current VMI */
   Word		argp;			/* Argument pointer */
   int		adepth;			/* FUNCTOR/POP nesting depth */
+  int		save_argp;		/* Need to safe ARGP? */
 } vm_state;
 
 
@@ -1740,6 +1741,7 @@ sweep_trail(void)
 }
 
 
+
 static QueryFrame
 sweep_environments(LocalFrame fr, Code PC)
 { GET_LD
@@ -2181,6 +2183,22 @@ setStartOfVMI(vm_state *state)
     { code op;
 
       next = stepPC(PC);
+
+      if ( next >= state->pc )
+      { size_t where  = PC - clause->codes;
+	size_t where0 = state->pc - clause->codes;
+
+	Sdprintf("At PC=%ld(%ld) of %d-th clause of %s (ARGP=%d; adepth=%d)\n",
+		 where, where0,
+		 clauseNo(fr->predicate, clause),
+		 predicateName(fr->predicate),
+		 (state->argp - argFrameP(fr, 0)),
+		 state->adepth);
+
+	state->pc_start_vmi = PC;
+	return;
+      }
+
       op = fetchop(PC);
       switch(op)
       { case H_STRING:
@@ -2219,20 +2237,6 @@ setStartOfVMI(vm_state *state)
 	case I_ENTER:
 	  assert(state->adepth==0);
       }
-
-      if ( next >= state->pc )
-      { size_t where = PC-clause->codes;
-
-	Sdprintf("At PC=%ld of %d-th clause of %s (ARGP=%d; adepth=%d)\n",
-		 where,
-		 clauseNo(fr->predicate, clause),
-		 predicateName(fr->predicate),
-		 (state->argp - argFrameP(fr, 0)),
-		 state->adepth);
-
-	state->pc_start_vmi = PC;
-	return;
-      }
     }
   }
 
@@ -2258,6 +2262,7 @@ get_vmi_state(vm_state *state)
     state->argp		= argFrameP(state->frame, 0);
     state->adepth	= 0;
     state->pc           = LD->query->registers.pc;
+    state->save_argp    = (state->frame->clause != NULL);
     setStartOfVMI(state);
   } else
   { state->frame        = environment_frame;
@@ -2265,6 +2270,7 @@ get_vmi_state(vm_state *state)
     state->adepth	= 0;
     state->pc           = NULL;
     state->pc_start_vmi = NULL;
+    state->save_argp	= FALSE;
   }
 }
 
@@ -2766,6 +2772,8 @@ garbageCollect(void)
   setVar(*gTop);
   tTop->address = 0;
 
+  if ( state.save_argp )
+    pushArgumentStack(LD->query->registers.argp);
   fid = gvars_to_term_refs(&saved_bar_at);
   SECURE(check_foreign());
   tag_trail();
@@ -2782,6 +2790,8 @@ garbageCollect(void)
   collect_phase(&state, saved_bar_at);
   untag_trail();
   term_refs_to_gvars(fid, saved_bar_at);
+  if ( state.save_argp )
+    LD->query->registers.argp = *--aTop;
 #if O_SECURE
   assert(trailtops_marked == 0);
   if ( !scan_global(FALSE) )
