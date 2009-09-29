@@ -709,8 +709,7 @@ PL_unify_number(term_t t, Number n)
   { word w;
     int rc;
 
-					/* TBD: Allow GC */
-    if ( (rc=put_number(&w, n, 0 PASS_LD)) != TRUE )
+    if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
       return raiseStackOverflow(rc);
 
     p = valTermRef(t);			/* put_number can shift the stacks */
@@ -742,8 +741,7 @@ PL_unify_number(term_t t, Number n)
     { word w;
       int rc;
 
-					/* TBD: Allow GC */
-      if ( (rc=put_number(&w, n, 0 PASS_LD)) != TRUE )
+      if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
 	return raiseStackOverflow(rc);
 
       return _PL_unify_atomic(t, w);
