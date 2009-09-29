@@ -29,9 +29,28 @@
 		 *******************************/
 
 typedef struct mark_state
-{ FliFrame flictx;			/* foreign context for early reset */
-  GCTrailEntry reset_entry;		/* Walk trail stack for early reset */
+{ vm_state     *vm_state;		/* Virtual machine locations */
+  FliFrame	flictx;			/* foreign context for early reset */
+  GCTrailEntry	reset_entry;		/* Walk trail stack for early reset */
 } mark_state;
+
+
+typedef struct walk_state
+{ LocalFrame frame;			/* processing node */
+  int flags;				/* general flags */
+  Code c0;				/* start of code list */
+  Word envtop;				/* just above environment */
+  int unmarked;				/* left when marking alt clauses */
+#ifdef MARK_ALT_CLAUSES
+  Word ARGP;				/* head unify instructions */
+  int  adepth;				/* ARGP nesting */
+#endif
+} walk_state;
+
+#define GCM_CLEAR	0x1		/* Clear uninitialised data */
+#define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
+
+#define NO_ADEPTH 1234567
 
 static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
 static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD);
@@ -74,59 +93,6 @@ PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
 #else
 #define COUNT(f) ((void)0)
 #endif
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-When using SAVE_REGISTERS(qid) in pl-vmi.c, the   PC  is either pointing
-inside or pointing to the next instruction.   Here, we find the start of
-the instruction for SHIFT/GC. We assume that   if  this is a first-write
-instruction,  the  writing  has  not  yet  been    done.   If  it  is  a
-read-intruction, we often have to be able to redo the read to compensate
-for the possible shift inside the code protected by SAVE_REGISTERS().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-clauseNo(Definition def, Clause cl)
-{ int i;
-  ClauseRef cref;
-
-  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
-      return i;
-  }
-
-  return -1;
-}
-
-
-static Code
-startOfVMI(LocalFrame fr, Code invmi)
-{ if ( fr->clause )
-  { Clause clause = fr->clause->clause;
-    Code PC, ep, next;
-
-    PC = clause->codes;
-    ep = PC + clause->code_size;
-
-    for( ; PC < ep; PC = next )
-    { next = stepPC(PC);
-
-      if ( next >= invmi )
-      { size_t where = PC-clause->codes;
-
-	Sdprintf("At PC=%ld of %d-th clause of %s\n",
-		 where,
-		 clauseNo(fr->predicate, clause),
-		 predicateName(fr->predicate));
-
-	return PC;
-      }
-    }
-  }
-
-  return NULL;
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 mark_local_variable()
@@ -173,21 +139,6 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until)
 
 See decompileBody for details on handling the branch instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct walk_state
-{ LocalFrame frame;			/* processing node */
-  int flags;				/* general flags */
-  Code c0;				/* start of code list */
-  Word envtop;				/* just above environment */
-  int unmarked;				/* left when marking alt clauses */
-#ifdef MARK_ALT_CLAUSES
-  Word ARGP;				/* head unify instructions */
-  int  adepth;				/* ARGP nesting */
-#endif
-} walk_state;
-
-#define GCM_CLEAR	0x1		/* Clear uninitialised data */
-#define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
 
 static inline void
 mark_frame_var(walk_state *state, code v ARG_LD)
@@ -237,7 +188,6 @@ mark_argp(walk_state *state ARG_LD)
 #endif
 }
 
-#define NO_ADEPTH 1234567
 
 static Code
 walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
@@ -416,6 +366,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_FUNCTOR:
 	case H_LIST:
 	  mark_argp(state PASS_LD);
+	  /*FALLTHROUGH*/
 	case B_FUNCTOR:
 	case B_LIST:
 	  state->adepth++;
@@ -515,7 +466,8 @@ early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
 }
 
 
-static QueryFrame mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD);
+static QueryFrame mark_environments(mark_state *state,
+				    LocalFrame fr, Code PC ARG_LD);
 
 static void
 mark_choicepoints(mark_state *state, Choice ch ARG_LD)
@@ -571,10 +523,11 @@ install()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
+mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 { QueryFrame qf = NULL;
+  int first     = TRUE;
 
-  while(fr)
+  for(; fr; first=FALSE)
   { walk_state state;
 
     if ( false(fr, FR_MARKED) )
@@ -587,7 +540,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { state.flags = 0;
     }
 
-    if ( true(fr->predicate, FOREIGN) || PC == NULL )
+    if ( true(fr->predicate, FOREIGN) || PC == NULL || !fr->clause )
     { DEBUG(2, Sdprintf("Marking arguments for [%d] %s\n",
 			levelFrame(fr), predicateName(fr->predicate)));
       mark_arguments(fr PASS_LD);
@@ -596,6 +549,12 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
       state.c0       = fr->clause->clause->codes;
+
+      if ( fr == mstate->vm_state->frame &&
+	   PC == mstate->vm_state->pc_start_vmi )
+      { state.ARGP   = mstate->vm_state->argp;
+	state.adepth = mstate->vm_state->adepth;
+      }
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
 			levelFrame(fr), predicateName(fr->predicate),
@@ -637,14 +596,18 @@ mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch, Code PC ARG_LD)
 
 
 static void
-mark_stacks(LocalFrame fr, Choice ch, Code PC)
+mark_stacks(vm_state *vmstate)
 { GET_LD
   QueryFrame qf=NULL;
   mark_state state;
+  LocalFrame fr = vmstate->frame;
+  Choice ch     = vmstate->choice;
+  Code PC       = vmstate->pc_start_vmi;
 
   memset(&state, 0, sizeof(state));
-  state.reset_entry = (GCTrailEntry)tTop - 1;
-  state.flictx = fli_context;
+  state.vm_state     = vmstate;
+  state.reset_entry  = (GCTrailEntry)tTop - 1;
+  state.flictx       = fli_context;
   trailcells_deleted = 0;
 
   while(fr)

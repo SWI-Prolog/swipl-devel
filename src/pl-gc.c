@@ -159,6 +159,21 @@ char tmp[256];				/* for calling print_val(), etc. */
 
 #define ttag(x)		(((word)(x))&TAG_TRAILMASK)
 
+
+		 /*******************************
+		 *	     TYPES		*
+		 *******************************/
+
+typedef struct vm_state
+{ LocalFrame	frame;			/* Current frame */
+  Choice	choice;			/* Last choicepoint */
+  Code		pc;			/* Current PC */
+  Code		pc_start_vmi;		/* PC at start of current VMI */
+  Word		argp;			/* Argument pointer */
+  int		adepth;			/* FUNCTOR/POP nesting depth */
+} vm_state;
+
+
 		 /*******************************
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
@@ -1271,9 +1286,11 @@ variables in outer queries.
 #include "pl-lifegc.c"
 #else
 static void
-mark_stacks(LocalFrame fr, Choice ch, Code PC)
+mark_stacks(vm_state *state)
 { GET_LD
   QueryFrame qf;
+  LocalFrame fr = state->frame;
+  Code PC = state->pc_start_vmi;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
   FliFrame flictx = fli_context;
 
@@ -1285,7 +1302,7 @@ mark_stacks(LocalFrame fr, Choice ch, Code PC)
     assert(qf->magic == QID_MAGIC);
   }
 
-  te = mark_choicepoints(ch, te, &flictx);
+  te = mark_choicepoints(state->choice, te, &flictx);
   for(qf=LD->queery; qf; qf=qf->parent)
     te = mark_choicepoints(qf->saved_bfr, te, &flictx);
 
@@ -1309,13 +1326,13 @@ cmp_address(const void *vp1, const void *vp2)
 
 
 static void
-mark_phase(LocalFrame fr, Choice ch, Code PC)
+mark_phase(vm_state *state)
 { GET_LD
   total_marked = 0;
 
   SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
-  mark_stacks(fr, ch, PC);
+  mark_stacks(state);
 #if O_SECURE
   if ( !scan_global(TRUE) )
     sysError("Global stack corrupted after GC mark-phase");
@@ -1681,8 +1698,10 @@ unsweep_environments(LocalFrame fr)
 
 
 static void
-unsweep_stacks(LocalFrame fr, Choice ch ARG_LD)
+unsweep_stacks(vm_state *state ARG_LD)
 { QueryFrame query;
+  LocalFrame fr = state->frame;
+  Choice ch = state->choice;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = unsweep_environments(fr);
@@ -1782,9 +1801,12 @@ sweep_choicepoints(Choice ch ARG_LD)
 
 
 static void
-sweep_stacks(LocalFrame fr, Choice ch, Code PC)
+sweep_stacks(vm_state *state)
 { GET_LD
   QueryFrame query;
+  LocalFrame fr = state->frame;
+  Choice ch = state->choice;
+  Code PC = state->pc_start_vmi;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr, PC=NULL )
   { query = sweep_environments(fr, PC);
@@ -2081,7 +2103,7 @@ compact_global(void)
 
 
 static void
-collect_phase(LocalFrame fr, Choice ch, Code PC, Word *saved_bar_at)
+collect_phase(vm_state *state, Word *saved_bar_at)
 { GET_LD
 
   SECURE(check_marked("Start collect"));
@@ -2091,7 +2113,7 @@ collect_phase(LocalFrame fr, Choice ch, Code PC, Word *saved_bar_at)
   DEBUG(2, Sdprintf("Sweeping trail stack\n"));
   sweep_trail();
   DEBUG(2, Sdprintf("Sweeping local stack\n"));
-  sweep_stacks(fr, ch, PC);
+  sweep_stacks(state);
   if ( saved_bar_at )
   { DEBUG(2, Sdprintf("Sweeping frozen bar\n"));
     sweep_global_mark(saved_bar_at PASS_LD);
@@ -2100,7 +2122,7 @@ collect_phase(LocalFrame fr, Choice ch, Code PC, Word *saved_bar_at)
   compact_global();
 
   unsweep_foreign(PASS_LD1);
-  unsweep_stacks(fr, ch PASS_LD);
+  unsweep_stacks(state PASS_LD);
 
   assert(marks_swept==marks_unswept);
   if ( relocation_chains != 0 )
@@ -2112,9 +2134,143 @@ collect_phase(LocalFrame fr, Choice ch, Code PC, Word *saved_bar_at)
 	     relocation_cells, relocated_cells, needs_relocation);
 }
 
+		 /*******************************
+		 *	      VM-STATE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+When using SAVE_REGISTERS(qid) in pl-vmi.c, the   PC  is either pointing
+inside or pointing to the next instruction.   Here, we find the start of
+the instruction for SHIFT/GC. We assume that   if  this is a first-write
+instruction,  the  writing  has  not  yet  been    done.   If  it  is  a
+read-intruction, we often have to be able to redo the read to compensate
+for the possible shift inside the code protected by SAVE_REGISTERS().
+
+The situation is more complicated. We need to know the depth in which we
+are in *_functor...i_pop sequences. We always need to mark all arguments
+of the first frame (well, this can be more subtle, but I really doubt we
+want to try).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+clauseNo(Definition def, Clause cl)
+{ int i;
+  ClauseRef cref;
+
+  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
+  { if ( cref->clause == cl )
+      return i;
+  }
+
+  return -1;
+}
+
+
+static void
+setStartOfVMI(vm_state *state)
+{ LocalFrame fr = state->frame;
+
+  if ( fr->clause )
+  { Clause clause = fr->clause->clause;
+    Code PC, ep, next;
+
+    PC = clause->codes;
+    ep = PC + clause->code_size;
+
+    for( ; PC < ep; PC = next )
+    { code op;
+
+      next = stepPC(PC);
+      op = fetchop(PC);
+      switch(op)
+      { case H_STRING:
+	case H_MPZ:
+	case H_LIST_FF:
+	case H_FIRSTVAR:
+	case H_VAR:
+	case H_CONST:
+	case H_NIL:
+	case H_INTEGER:
+	case H_INT64:
+	case H_FLOAT:
+	case H_VOID:
+	  state->argp++;
+	  break;
+
+	case B_UNIFY_VAR:
+	case B_UNIFY_FIRSTVAR:
+	  state->adepth = NO_ADEPTH;
+	  break;
+	case H_FUNCTOR:
+	case H_LIST:
+	  state->argp++;
+	  /*FALLTHROUGH*/
+	case B_FUNCTOR:
+	case B_LIST:
+	  state->adepth++;
+	  break;
+	case H_POP:
+	case B_POP:
+	  state->adepth--;
+	  break;
+	case B_UNIFY_EXIT:
+	  assert(state->adepth == NO_ADEPTH);
+	  break;
+	case I_ENTER:
+	  assert(state->adepth==0);
+      }
+
+      if ( next >= state->pc )
+      { size_t where = PC-clause->codes;
+
+	Sdprintf("At PC=%ld of %d-th clause of %s (ARGP=%d; adepth=%d)\n",
+		 where,
+		 clauseNo(fr->predicate, clause),
+		 predicateName(fr->predicate),
+		 (state->argp - argFrameP(fr, 0)),
+		 state->adepth);
+
+	state->pc_start_vmi = PC;
+	return;
+      }
+    }
+  }
+
+  state->pc_start_vmi = NULL;
+}
+
+
+static void
+get_vmi_state(vm_state *state)
+{ GET_LD
+
+  state->choice = LD->choicepoints;
+
+  if ( LD->query->registers.fr )
+  { state->frame = LD->query->registers.fr;
+
+    SECURE({ if ( lTop <= state->frame )
+	     { int arity = state->frame->predicate->functor->arity;
+	       lTop = (LocalFrame)argFrameP(state->frame, arity);
+	     }
+	   });
+
+    state->argp		= argFrameP(state->frame, 0);
+    state->adepth	= 0;
+    state->pc           = LD->query->registers.pc;
+    setStartOfVMI(state);
+  } else
+  { state->frame        = environment_frame;
+    state->argp		= argFrameP(state->frame, 0);
+    state->adepth	= 0;
+    state->pc           = NULL;
+    state->pc_start_vmi = NULL;
+  }
+}
+
 
 		/********************************
-		*             MAIN              *
+		*	    GC's MAIN           *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2423,27 +2579,32 @@ check_trail()
 
 
 word
-checkStacks(LocalFrame frame, Choice choice, Code PC)
+checkStacks(void *state_ptr)
 { GET_LD
   LocalFrame fr;
   Choice ch;
   QueryFrame qf;
+  Code PC;
   word key = 0L;
+  vm_state state_buf;
+  vm_state *state;
 
-  if ( !frame )
-    frame = environment_frame;
-  if ( !choice )
-    choice = LD->choicepoints;
+  if ( state_ptr )
+  { state = state_ptr;
+  } else
+  { state = &state_buf;
+    get_vmi_state(state);
+  }
 
   assert(scan_global(FALSE));
 
   local_frames = 0;
   choice_count = 0;
 
-  for( fr = frame, ch=choice;
+  for( fr = state->frame, ch=state->choice, PC=state->pc_start_vmi;
        fr;
        fr = qf->saved_environment, ch = qf->saved_bfr, PC=NULL )
-  { qf = check_environments(fr, PC, &key);
+  { qf = check_environments(fr, state->pc_start_vmi, &key);
     assert(qf->magic == QID_MAGIC);
 
     DEBUG(3, Sdprintf("%ld\n", key));
@@ -2452,7 +2613,7 @@ checkStacks(LocalFrame frame, Choice choice, Code PC)
 
   SECURE(trailtops_marked = choice_count);
 
-  unmark_stacks(LD, frame, choice, FR_MARKED);
+  unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
 
   assert(local_frames == 0);
   assert(choice_count == 0);
@@ -2476,7 +2637,7 @@ PRED_IMPL("$check_stacks", 1, check_stacks, 0)
     Sdprintf("[thread %d] Checking stacks [%s] ...",
 	     PL_thread_self(), s);
 
-  checkStacks(NULL, NULL, NULL);
+  checkStacks(NULL);
   if ( s )
      Sdprintf(" (done)\n");
 
@@ -2529,9 +2690,7 @@ leaveGC()
 int
 garbageCollect(void)
 { GET_LD
-  LocalFrame fr;
-  Choice ch;
-  Code PC;
+  vm_state state;
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
@@ -2553,14 +2712,7 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  if ( LD->query->registers.fr )
-  { fr = LD->query->registers.fr;
-    PC = startOfVMI(fr, LD->query->registers.pc);
-  } else
-  { fr = environment_frame;
-    PC = NULL;
-  }
-  ch = LD->choicepoints;
+  get_vmi_state(&state);
 
   enterGC();
 #ifndef UNBLOCKED_GC
@@ -2584,7 +2736,7 @@ garbageCollect(void)
   alloc_start_map();
   if ( !scan_global(FALSE|REGISTER_STARTS) )
     sysError("Stack not ok at gc entry");
-  key = checkStacks(fr, ch, PC);
+  key = checkStacks(&state);
   free(start_map);
   start_map = NULL;
 
@@ -2617,7 +2769,7 @@ garbageCollect(void)
   fid = gvars_to_term_refs(&saved_bar_at);
   SECURE(check_foreign());
   tag_trail();
-  mark_phase(fr, ch, PC);
+  mark_phase(&state);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
   gc_status.global_gained += ggar;
@@ -2627,7 +2779,7 @@ garbageCollect(void)
   DEBUG(2, Sdprintf("Compacting trail ... "));
   compact_trail();
 
-  collect_phase(fr, ch, PC, saved_bar_at);
+  collect_phase(&state, saved_bar_at);
   untag_trail();
   term_refs_to_gvars(fid, saved_bar_at);
 #if O_SECURE
@@ -2645,7 +2797,7 @@ garbageCollect(void)
   gc_status.global_left      += usedStack(global);
   gc_status.trail_left       += usedStack(trail);
 
-  SECURE(checkStacks(fr, ch, PC));
+  SECURE(checkStacks(&state));
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -2674,7 +2826,7 @@ garbageCollect(void)
 
 #ifdef O_SHIFT_STACKS
   if ( LD->query->registers.fr )
-    assert(fr == LD->query->registers.fr);
+    assert(state.frame == LD->query->registers.fr);
   shiftTightStacks();
 #endif
 
@@ -3076,8 +3228,7 @@ This function should be called *after*  the  stacks have been relocated.
 
 
 static void
-update_stacks(LocalFrame frame, Choice choice, Code PC,
-	      void *lb, void *gb, void *tb)
+update_stacks(vm_state *state, void *lb, void *gb, void *tb)
 { GET_LD
   intptr_t ls, gs, ts;
 
@@ -3091,15 +3242,20 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
   { LocalFrame fr;
     Choice ch;
     QueryFrame qf;
+    Code PC;
 
     local_frames = 0;
     choice_count = 0;
 
-    update_local_pointer(&PC, ls);
+    update_local_pointer(&state->pc, ls);
+    update_local_pointer(&state->pc_start_vmi, ls);
+    update_local_pointer(&state->frame, ls);
+    update_local_pointer(&state->choice, ls);
     update_local_pointer(&LD->query, ls);
 
-    for( fr = addPointer(frame, ls),
-	 ch = addPointer(choice, ls)
+    for( PC = state->pc_start_vmi,
+	 fr = state->frame,
+	 ch = state->choice
        ; fr
        ; fr = qf->saved_environment,
 	 ch = qf->saved_bfr,
@@ -3113,9 +3269,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     DEBUG(2, Sdprintf("%d frames, %d choice-points ...",
 		      local_frames, choice_count));
 
-    frame  = addPointer(frame, ls);
-    choice = addPointer(choice, ls);
-    unmark_stacks(LD, frame, choice, FR_MARKED);
+    unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
 
     assert(local_frames == 0);
     assert(choice_count == 0);
@@ -3245,9 +3399,7 @@ static int
 grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 { sigset_t mask;
   size_t lsize, gsize, tsize;
-  LocalFrame fr;
-  Choice ch;
-  Code PC;
+  vm_state state;
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
 #if O_SECURE
@@ -3270,17 +3422,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   blockGC(PASS_LD1);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
-  if ( LD->query->registers.fr )
-  { fr = LD->query->registers.fr;
-    PC = startOfVMI(fr, LD->query->registers.pc);
-    SECURE({ if ( lTop <= fr )
-	       lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
-	   });
-  } else
-  { fr = environment_frame;
-    PC = NULL;
-  }
-  ch = LD->choicepoints;
+  get_vmi_state(&state);
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
@@ -3310,7 +3452,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     SECURE({ gBase++;
 	     if ( !scan_global(FALSE) )
 	       sysError("Stack not ok at shift entry");
-	     key = checkStacks(fr, ch, PC);
+	     key = checkStacks(&state);
 	     gBase--;
 	   });
 
@@ -3383,7 +3525,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
     DEBUG(1, Sdprintf("Updating stacks ..."));
     gBase++; gb++;
-    update_stacks(fr, ch, PC, lb, gb, tb);
+    update_stacks(&state, lb, gb, tb);
     gBase--; gb--;
 
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
@@ -3396,7 +3538,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     time = CpuTime(CPU_USER) - time;
     LD->shift_status.time += time;
     SECURE({ gBase++;
-	     if ( checkStacks(NULL, NULL, PC) != key )
+	     if ( checkStacks(&state) != key )
 	     { Sdprintf("Stack checksum failure\n");
 	       trap_gdb();
 	     }

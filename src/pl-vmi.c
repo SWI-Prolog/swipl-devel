@@ -3343,8 +3343,11 @@ b_throw:
 	     }
 	   });
 
-  SECURE(checkData(catcher));	/* verify all data on stacks stack */
-  SECURE(checkStacks(FR, NULL, NULL));
+  SECURE({ SAVE_REGISTERS(qid);
+	   checkData(catcher);
+	   checkStacks(NULL);
+	   LOAD_REGISTERS(qid);
+	 });
 
   if ( debugstatus.suspendTrace == FALSE &&
        exception_hook(FR, catchfr PASS_LD) )
@@ -3375,7 +3378,10 @@ b_throw:
       if ( ch )
       { int printed = (*valTermRef(exception_printed) == except);
 
-	SECURE(checkStacks(FR, ch, NULL));
+	SECURE({ SAVE_REGISTERS(qid);
+	         checkStacks(NULL);
+		 LOAD_REGISTERS(qid);
+	       });
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	Undo(ch->mark);
 	*valTermRef(LD->exception.pending) = except;
