@@ -769,7 +769,7 @@ Dealing  with  nb_setval/2  and   nb_getval/2  non-backtrackable  global
 variables as defined  in  pl-gvar.c.  We   cannot  mark  and  sweep  the
 hash-table itself as the  reversed   pointers  cannot  address arbitrary
 addresses returned by allocHeap(). Therefore we   turn all references to
-the global stack  into  term-references  and   reply  on  the  available
+the  global  stack  into  term-references  and  rely  on  the  available
 mark-and-sweep for foreign references.
 
 If none of the global  variable  refers   to  the  global stack we could
@@ -799,8 +799,9 @@ gvars_to_term_refs(Word **saved_bar_at)
     { Word p = (Word)&s->value;
 
       if ( isGlobalRef(*p) )
-      { term_t t = PL_new_term_ref();
+      { term_t t = PL_new_term_ref_noshift();
 
+	assert(t);
 	*valTermRef(t) = *p;
 	found++;
       }
@@ -868,6 +869,55 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
 #define term_refs_to_gvars(f) (void)0
 
 #endif /*O_GVAR*/
+
+
+static fid_t
+argument_stack_to_term_refs(vm_state *state)
+{ if ( state->save_argp )
+  { GET_LD
+    fid_t fid = PL_open_foreign_frame();
+    Word *ap;
+
+    pushArgumentStack(LD->query->registers.argp);
+
+    for(ap=aBase; ap<aTop; ap++)
+    { if ( onGlobal(*ap) )
+      { term_t t = PL_new_term_ref_noshift();
+
+	assert(t);
+	*valTermRef(t) = makeRefG(*ap);
+      } else
+      { assert(*ap >= (Word)lBase);
+      }
+    }
+
+    return fid;
+  }
+
+  return 0;
+}
+
+
+static void
+term_refs_to_argument_stack(fid_t fid)
+{ if ( fid )
+  { GET_LD
+    FliFrame fr = (FliFrame) valTermRef(fid);
+    Word fp = (Word)(fr+1);
+    Word *ap;
+
+    for(ap=aBase; ap<aTop; ap++)
+    { if ( *ap < (Word)lBase )
+      { *ap = valPtr2(*fp, STG_GLOBAL);
+        fp++;
+      }
+    }
+    assert(fp == (Word)(fr+1) + fr->size);
+
+    LD->query->registers.argp = *--aTop;
+    PL_close_foreign_frame(fid);
+  }
+}
 
 
 #ifdef O_CALL_RESIDUE
@@ -2173,7 +2223,7 @@ static void
 setStartOfVMI(vm_state *state)
 { LocalFrame fr = state->frame;
 
-  if ( fr->clause )
+  if ( fr->clause && state->pc )
   { Clause clause = fr->clause->clause;
     Code PC, ep, next;
 
@@ -2706,7 +2756,7 @@ garbageCollect(void)
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   sigset_t mask;
-  fid_t fid;
+  fid_t gvars, astack;
   Word *saved_bar_at;
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
@@ -2777,9 +2827,8 @@ garbageCollect(void)
   setVar(*gTop);
   tTop->address = 0;
 
-  if ( state.save_argp )
-    pushArgumentStack(LD->query->registers.argp);
-  fid = gvars_to_term_refs(&saved_bar_at);
+  astack = argument_stack_to_term_refs(&state);
+  gvars = gvars_to_term_refs(&saved_bar_at);
   SECURE(check_foreign());
   tag_trail();
   mark_phase(&state);
@@ -2794,9 +2843,9 @@ garbageCollect(void)
 
   collect_phase(&state, saved_bar_at);
   untag_trail();
-  term_refs_to_gvars(fid, saved_bar_at);
-  if ( state.save_argp )
-    LD->query->registers.argp = *--aTop;
+  term_refs_to_gvars(gvars, saved_bar_at);
+  term_refs_to_argument_stack(astack);
+
 #if O_SECURE
   assert(trailtops_marked == 0);
   if ( !scan_global(FALSE) )
