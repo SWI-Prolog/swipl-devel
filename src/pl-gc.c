@@ -2762,7 +2762,8 @@ checkStacks(void *state_ptr)
   /*key +=*/ check_trail();
 #endif
 
-  restore_vmi_state(state);
+  if ( state == &state_buf )
+    restore_vmi_state(state);
 
   DEBUG(2, Sdprintf("Final: %ld\n", key));
   return key;
