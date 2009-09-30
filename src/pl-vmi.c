@@ -3321,6 +3321,7 @@ VMI(B_THROW, 0, 0, ())
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
 b_throw:
+  aTop = aFloor;
   assert(exception_term);
   catcher = valTermRef(exception_term);
   deRef(catcher);
