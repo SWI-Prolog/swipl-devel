@@ -133,11 +133,12 @@ mark_arguments(LocalFrame fr ARG_LD)
 
 static void
 mark_new_arguments(vm_state *state ARG_LD)
-{ Word sp = (Word) state->lSave;
+{ Word sp = argFrameP(state->lSave, 0);
   int slots = state->new_args;
 
   for( ; slots-- > 0; sp++ )
-  { if ( !is_marked(sp) )
+  { SECURE(assert(*sp != FLI_MAGIC));
+    if ( !is_marked(sp) )
       mark_local_variable(sp PASS_LD);
   }
 }

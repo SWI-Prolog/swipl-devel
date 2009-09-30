@@ -1858,7 +1858,7 @@ sweep_choicepoints(Choice ch ARG_LD)
 static void
 sweep_new_arguments(vm_state *state ARG_LD)
 { if ( state->new_args )
-  { Word sp = (Word) state->lSave;
+  { Word sp = argFrameP(state->lSave, 0);
     int slots = state->new_args;
 
     for( ; slots-- > 0; sp++ )
