@@ -1494,18 +1494,19 @@ tighten(max, E, V) :- E #> V.
 all_different(Ls) :-
         must_be(list, Ls),
         maplist(fd_variable, Ls),
-        all_different(Ls, [], _),
+        put_attr(Orig, clpfd_original, all_different(Ls)),
+        all_different(Ls, [], Orig),
         do_queue.
 
 all_different([], _, _).
-all_different([X|Right], Left, State) :-
+all_different([X|Right], Left, Orig) :-
         (   var(X) ->
-            make_propagator(pdifferent(Left,Right,X,State), Prop),
+            make_propagator(pdifferent(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
         ;   exclude_fire(Left, Right, X)
         ),
-        all_different(Right, [X|Left], State).
+        all_different(Right, [X|Left], Orig).
 
 %% sum(+Vars, +Rel, ?Expr)
 %
@@ -3240,8 +3241,16 @@ run_propagator(rel_tuple(R, Tuple), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
-        myserialized(Duration, Left, SDs, Var).
+run_propagator(pserialized(S_I, D_I, S_J, D_J, _), MState) :-
+        (   nonvar(S_I), nonvar(S_J) ->
+            kill(MState),
+            (   S_I + D_I =< S_J -> true
+            ;   S_J + D_J =< S_I -> true
+            ;   false
+            )
+        ;   serialize_lower_upper(S_I, D_I, S_J, D_J, MState),
+            serialize_lower_upper(S_J, D_J, S_I, D_I, MState)
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4489,14 +4498,15 @@ all_distinct(Ls) :- regin_attach(Ls).
 % all_distinct(Ls) :- all_different(Ls).
 % all_distinct(Ls) :-
 %         must_be(list, Ls),
-%         all_distinct(Ls, [], _),
+%         put_attr(O, clpfd_original, all_distinct(Ls)),
+%         all_distinct(Ls, [], O),
 %         do_queue.
 
 all_distinct([], _, _).
-all_distinct([X|Right], Left, MState) :-
+all_distinct([X|Right], Left, Orig) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(pdistinct(Left,Right,X,MState), Prop),
+            make_propagator(pdistinct(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -4505,7 +4515,7 @@ all_distinct([X|Right], Left, MState) :-
         ;   exclude_fire(Left, Right, X)
         ),
         outof_reducer(Left, Right, X),
-        all_distinct(Right, [X|Left], MState).
+        all_distinct(Right, [X|Left], Orig).
 
 exclude_fire(Left, Right, E) :-
         remove_ground(Left, E),
@@ -4583,35 +4593,27 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
-        pair_up(Starts, Durations, SDs),
-        serialize(SDs, []),
+        pairs_keys_values(SDs, Starts, Durations),
+        put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
+        serialize(SDs, Orig),
         do_queue.
 
-pair_up([], [], []).
-pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
-
-% attribute: pserialized(Var, Duration, Left, Right)
-%   Left and Right are lists of Start-Duration pairs representing
-%   other tasks occupying the same resource
-
 serialize([], _).
-serialize([Start-D|SDs], Left) :-
-        cis_geq_zero(D),
-        (   var(Start) ->
-            make_propagator(pserialized(Start,D,Left,SDs), Prop),
-            init_propagator(Start, Prop),
-            trigger_prop(Prop)
-        ;   true
-        ),
-        myserialized(D, Left, SDs, Start),
-        serialize(SDs, [Start-D|Left]).
+serialize([S-D|SDs], Orig) :-
+        D >= 0,
+        serialize(SDs, S, D, Orig),
+        serialize(SDs, Orig).
+
+serialize([], _, _, _).
+serialize([S-D|Rest], S0, D0, Orig) :-
+        D >= 0,
+        make_propagator(pserialized(S,D,S0,D0,Orig), Prop),
+        variables_attach([S0,S], Prop),
+        trigger_once(Prop),
+        serialize(Rest, S0, D0, Orig).
 
 % consistency check / propagation
 % Currently implements 2-b-consistency
-
-myserialized(Duration, Left, Right, Start) :-
-        myserialized(Left, Start, Duration),
-        myserialized(Right, Start, Duration).
 
 earliest_start_time(Start, EST) :-
         (   fd_get(Start, D, _) ->
@@ -4625,45 +4627,40 @@ latest_start_time(Start, LST) :-
         ;   LST = n(Start)
         ).
 
-myserialized([], _, _).
-myserialized([S_I-D_I|SDs], S_J, D_J) :-
+serialize_lower_upper(S_I, D_I, S_J, D_J, MState) :-
         (   var(S_I) ->
-            serialize_lower_bound(S_I, D_I, Start, D_J),
-            (   var(S_I) -> serialize_upper_bound(S_I, D_I, Start, D_J)
+            serialize_lower_bound(S_I, D_I, S_J, D_J, MState),
+            (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J, MState)
             ;   true
             )
-        ;   var(S_J) ->
-            serialize_lower_bound(S_J, D_J, S, D_I),
-            (   var(S_J) -> serialize_upper_bound(S_J, D_J, S, D_I)
-            ;   true
-            )
-        ;   D_I = n(D_II), D_J = n(D_JJ),
-            (   S_I + D_II =< S_J -> true
-            ;   S_J + D_JJ =< S_I -> true
-            ;   fail
-            )
-        ),
-        myserialized(SDs, S_J, D_J).
+        ;   true
+        ).
 
-serialize_lower_bound(I, D_I, J, D_J) :-
+serialize_lower_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_infimum(DomI, EST_I),
-        latest_start_time(J, LST_J),
-        (   Sum cis EST_I + D_I, Sum cis_gt LST_J ->
-            earliest_start_time(J, EST_J),
-            EST cis EST_J+D_J,
+        (   domain_infimum(DomI, n(EST_I)),
+            latest_start_time(J, n(LST_J)),
+            EST_I + D_I > LST_J,
+            earliest_start_time(J, n(EST_J)) ->
+            (   nonvar(J) -> kill(MState)
+            ;   true
+            ),
+            EST is EST_J+D_J,
             domain_remove_smaller_than(DomI, EST, DomI1),
             fd_put(I, DomI1, Ps)
         ;   true
         ).
 
-serialize_upper_bound(I, D_I, J, D_J) :-
+serialize_upper_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_supremum(DomI, LST_I),
-        earliest_start_time(J, EST_J),
-        (   Sum cis EST_J + D_J, Sum cis_gt LST_I ->
-            latest_start_time(J, LST_J),
-            LST cis LST_J-D_I,
+        (   domain_supremum(DomI, n(LST_I)),
+            earliest_start_time(J, n(EST_J)),
+            EST_J + D_J > LST_I,
+            latest_start_time(J, n(LST_J)) ->
+            (   nonvar(J) -> kill(MState)
+            ;   true
+            ),
+            LST is LST_J-D_I,
             domain_remove_greater_than(DomI, LST, DomI1),
             fd_put(I, DomI1, Ps)
         ;   true
@@ -5358,11 +5355,12 @@ clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
 clpfd_relation:attribute_goals(_) --> [].
 clpfd_relation:attr_unify_hook(_,_) :- false.
 
+clpfd_original:attribute_goals(_) --> [].
+clpfd_original:attr_unify_hook(_,_) :- false.
+
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
-        ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
-              arg(4, P, S), S == processed } -> []
         ;   { phrase(attribute_goal_(P), Gs) } ->
             { del_attr(State, clpfd_aux), State = processed },
             with_clpfd(Gs)
@@ -5397,12 +5395,8 @@ attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
 attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
         [Left #=< C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(pdifferent(Left, Right, X, processed)) -->
-        [all_different(Vs)],
-        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
-attribute_goal_(pdistinct(Left, Right, X, processed)) -->
-        [all_distinct(Vs)],
-        { append(Left, [X|Right], Vs0), msort(Vs0, Vs) }.
+attribute_goal_(pdifferent(_,_,_,O)) --> original_goal(O).
+attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
 attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
@@ -5411,9 +5405,7 @@ attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
         [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_check_single(_)) --> [].
 attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
-attribute_goal_(pserialized(Var,D,Left,Right)) -->
-        [serialized(Vs, Ds)],
-        { append(Left, [Var-D|Right], VDs), pair_up(Vs, Ds, VDs) }.
+attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
         [tuples_in([Tuple], Rel)].
@@ -5448,6 +5440,13 @@ fold_product([], [], P, P).
 fold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
         fold_product(Cs, Vs, P0 + T, P).
+
+original_goal(V) -->
+        (   { get_attr(V, clpfd_original, Goal) } ->
+            { del_attr(V, clpfd_original) },
+            [Goal]
+        ;   []
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
