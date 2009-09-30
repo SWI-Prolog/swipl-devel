@@ -2246,7 +2246,7 @@ PL_unify_functor(term_t t, functor_t f)
     } else
     { size_t needed = (1+arity);
 
-      if ( roomStack(global) < needed*sizeof(word) )
+      if ( gTop+needed > gMax )
       { int rc;
 
 	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
@@ -2603,8 +2603,9 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
 
   deRef(p);
 
-  if ( isVar(*p) )
+  if ( canBind(*p) )
   { Word a;
+    word c;
 
     if ( gTop + 3 > gMax )
     { int rc;
@@ -2618,14 +2619,14 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
     a = gTop;
     gTop += 3;
 
-    *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
     *a++ = FUNCTOR_dot2;
     setVar(*a);
     setHandle(h, makeRefG(a));
     setVar(*++a);
     setHandle(t, makeRefG(a));
 
-    TrailEx(p);
+    bindConst(p, c);
   } else if ( isList(*p) )
   { Word a = argTermP(*p, 0);
 
