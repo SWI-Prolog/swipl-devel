@@ -2330,6 +2330,20 @@ get_vmi_state(vm_state *state)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that we need to restore lTop if   we  are called from the body mode
+because lTop is pointing to the new stack frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+restore_vmi_state(vm_state *state)
+{ GET_LD
+
+  lTop = state->lSave;
+}
+
+
+
 		/********************************
 		*	    GC's MAIN           *
 		*********************************/
@@ -2685,6 +2699,8 @@ checkStacks(void *state_ptr)
   /*key +=*/ check_trail();
 #endif
 
+  restore_vmi_state(state);
+
   DEBUG(2, Sdprintf("Final: %ld\n", key));
   return key;
 }
@@ -2773,8 +2789,6 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  get_vmi_state(&state);
-
   enterGC();
 #ifndef UNBLOCKED_GC
   blockSignals(&mask);
@@ -2783,6 +2797,8 @@ garbageCollect(void)
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
+  get_vmi_state(&state);
+
   if ( verbose )
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
@@ -2880,6 +2896,7 @@ garbageCollect(void)
     profExit(prof_node PASS_LD);
 #endif
 
+  restore_vmi_state(&state);
   gc_status.active = FALSE;
   unblockGC(PASS_LD1);
 #ifndef UNBLOCKED_GC
@@ -3315,6 +3332,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     update_local_pointer(&state->pc_start_vmi, ls);
     update_local_pointer(&state->frame, ls);
     update_local_pointer(&state->choice, ls);
+    update_local_pointer(&state->lSave, ls);
     update_local_pointer(&LD->query, ls);
 
     for( PC = state->pc_start_vmi,
@@ -3614,6 +3632,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     }
   }
 
+  restore_vmi_state(&state);
   unblockGC(PASS_LD1);
   unblockSignals(&mask);
   leaveGC();
