@@ -717,8 +717,17 @@ pushArgumentStack__LD(Word p ARG_LD)
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
   if ( newsize && (newbase = realloc(aBase, newsize)) )
-  { aTop += newbase - aBase;
-    aBase = newbase;
+  { intptr_t as = newbase - aBase;
+
+    if ( as )
+    { QueryFrame qf;
+
+      aTop += as;
+      aBase = newbase;
+
+      for(qf=LD->query; qf; qf = qf->parent)
+	qf->aSave += as;
+    }
     aMax  = addPointer(newbase,  newsize);
     *aTop++ = p;
   } else
