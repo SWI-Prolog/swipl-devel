@@ -3069,10 +3069,11 @@ Returns TRUE, FALSE or *_OVERFLOW
 int
 ensureGlobalSpace(size_t cells, int flags)
 { GET_LD
-  size_t minfree = cells*sizeof(word);
+  size_t gmin = (cells+BIND_GLOBAL_SPACE)*sizeof(word);
   int rc;
 
-  if ( (rc=requireStack(global, minfree)) == TRUE )
+  if ( (rc=requireStack(global, gmin)) == TRUE &&
+       (rc=requireTrailStack(BIND_TRAIL_SPACE)) == TRUE )
     return TRUE;
 
   if ( !flags )
@@ -3081,12 +3082,15 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( considerGarbageCollect(NULL) )
   { garbageCollect();
 
-    if ( (rc=requireStack(global, minfree)) == TRUE )
+    if ( (rc=requireStack(global, gmin)) == TRUE &&
+	 (rc=requireTrailStack(BIND_TRAIL_SPACE)) == TRUE )
       return TRUE;
   }
 
 #ifdef O_SHIFT_STACKS
-  return growStacks(0, minfree, 0);
+  { size_t tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
+    return growStacks(0, gmin, tmin);
+  }
 #else
   return rc;
 #endif

@@ -499,7 +499,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     Word ap;
     word c;
 
-    if ( gTop+1+arity > gMax )
+    if ( !hasGlobalSpace(1+arity) )
     { int rc;
 
       SAVE_REGISTERS(qid);

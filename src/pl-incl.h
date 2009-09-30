@@ -1788,6 +1788,17 @@ typedef enum
 	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+hasGlobalSpace(n) is true if we have enough space to create an object of
+size N on the global stack AND  can   use  bindConst()  to bind it to an
+(attributed) variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define BIND_GLOBAL_SPACE (7)
+#define BIND_TRAIL_SPACE (5)
+#define hasGlobalSpace(n) \
+	(gTop+(n)+BIND_GLOBAL_SPACE > gMax || tTop+BIND_TRAIL_SPACE > tMax)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Used for predicate implementations that need local+global+trail space
 without shifting the stacks to complete.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
