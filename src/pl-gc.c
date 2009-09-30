@@ -2345,17 +2345,24 @@ get_vmi_state(vm_state *state)
     setStartOfVMI(state);
 
     if ( state->in_body )
-    { Word ap;
+    { Word ap = LD->query->registers.argp;
+      Word *at = aTop;
+      Word *ab = LD->query->aSave;
 
-      if ( state->adepth == 0 )
-      { ap = LD->query->registers.argp;
-      } else
-      { ap = aTop[-state->adepth];
-      }
+      for(;;)
+      { if ( ap > (Word)lBase )
+	{ assert(ap >= argFrameP(state->frame, 0));
 
-      if ( lTop <= (LocalFrame)ap )
-      { state->new_args = ap - (Word)lTop;
-	lTop = (LocalFrame)ap;
+	  if ( ap > argFrameP(lTop, 0) )
+	  { state->new_args = ap - argFrameP(lTop, 0);
+	    lTop = (LocalFrame)ap;
+	  }
+	  break;
+	}
+	if ( at > ab )
+	  ap = *--at;
+	else
+	  break;
       }
     }
   } else
@@ -3052,12 +3059,12 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( !flags )
     return rc;
 
-  considerGarbageCollect(NULL);
-  if ( PL_handle_signals() < 0 )
-    return FALSE;
+  if ( considerGarbageCollect(NULL) )
+  { garbageCollect();
 
-  if ( (rc=requireStack(global, minfree)) == TRUE )
-    return TRUE;
+    if ( (rc=requireStack(global, minfree)) == TRUE )
+      return TRUE;
+  }
 
 #ifdef O_SHIFT_STACKS
   return growStacks(0, minfree, 0);
