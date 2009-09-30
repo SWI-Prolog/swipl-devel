@@ -171,6 +171,7 @@ typedef struct vm_state
   Code		pc_start_vmi;		/* PC at start of current VMI */
   Word		argp;			/* Argument pointer */
   int		adepth;			/* FUNCTOR/POP nesting depth */
+  LocalFrame	lSave;			/* Saved local top */
   int		save_argp;		/* Need to safe ARGP? */
 } vm_state;
 
@@ -2249,15 +2250,19 @@ get_vmi_state(vm_state *state)
 { GET_LD
 
   state->choice = LD->choicepoints;
+  state->lSave  = lTop;
 
   if ( LD->query->registers.fr )
-  { state->frame = LD->query->registers.fr;
+  { state->frame     = LD->query->registers.fr;
+    state->save_argp = (state->frame->clause != NULL);
 
-    SECURE({ if ( lTop <= state->frame )
-	     { int arity = state->frame->predicate->functor->arity;
-	       lTop = (LocalFrame)argFrameP(state->frame, arity);
-	     }
-	   });
+    if ( lTop <= state->frame )
+    { int arity = state->frame->predicate->functor->arity;
+      lTop = (LocalFrame)argFrameP(state->frame, arity);
+    }
+    if ( state->save_argp &&
+	 lTop <= (LocalFrame)LD->query->registers.argp )
+      lTop = (LocalFrame)LD->query->registers.argp;
 
     state->argp		= argFrameP(state->frame, 0);
     state->adepth	= 0;
