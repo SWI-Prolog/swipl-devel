@@ -131,6 +131,18 @@ mark_arguments(LocalFrame fr ARG_LD)
 }
 
 
+static void
+mark_new_arguments(vm_state *state ARG_LD)
+{ Word sp = (Word) state->lSave;
+  int slots = state->new_args;
+
+  for( ; slots-- > 0; sp++ )
+  { if ( !is_marked(sp) )
+      mark_local_variable(sp PASS_LD);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 walk_and_mark(walk_state *state, Code PC, code end, Code until)
     Walk along the byte code starting at PC and continuing until either
@@ -554,6 +566,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 	   PC == mstate->vm_state->pc_start_vmi )
       { state.ARGP   = mstate->vm_state->argp;
 	state.adepth = mstate->vm_state->adepth;
+	mark_new_arguments(mstate->vm_state PASS_LD);
       }
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",

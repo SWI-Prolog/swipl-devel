@@ -173,6 +173,8 @@ typedef struct vm_state
   int		adepth;			/* FUNCTOR/POP nesting depth */
   LocalFrame	lSave;			/* Saved local top */
   int		save_argp;		/* Need to safe ARGP? */
+  int		in_body;		/* Current frame is executing a body */
+  int		new_args;		/* #new arguments */
 } vm_state;
 
 
@@ -1854,12 +1856,33 @@ sweep_choicepoints(Choice ch ARG_LD)
 
 
 static void
+sweep_new_arguments(vm_state *state ARG_LD)
+{ if ( state->new_args )
+  { Word sp = (Word) state->lSave;
+    int slots = state->new_args;
+
+    for( ; slots-- > 0; sp++ )
+    { assert(is_marked(sp));
+      unmark(sp);
+      if ( isGlobalRef(get_value(sp)) )
+      { processLocal(sp);
+	check_relocation(sp);
+	into_relocation_chain(sp, STG_LOCAL PASS_LD);
+      }
+    }
+  }
+}
+
+
+static void
 sweep_stacks(vm_state *state)
 { GET_LD
   QueryFrame query;
   LocalFrame fr = state->frame;
   Choice ch = state->choice;
   Code PC = state->pc_start_vmi;
+
+  sweep_new_arguments(state PASS_LD);
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr, PC=NULL )
   { query = sweep_environments(fr, PC);
@@ -2286,6 +2309,7 @@ setStartOfVMI(vm_state *state)
 	  assert(state->adepth == NO_ADEPTH);
 	  break;
 	case I_ENTER:
+	  state->in_body = TRUE;
 	  assert(state->adepth==0);
       }
     }
@@ -2299,8 +2323,11 @@ static void
 get_vmi_state(vm_state *state)
 { GET_LD
 
-  state->choice = LD->choicepoints;
-  state->lSave  = lTop;
+  state->choice	     = LD->choicepoints;
+  state->lSave	     = lTop;
+  state->in_body     = FALSE;
+  state->adepth	     = 0;
+  state->new_args    = 0;
 
   if ( LD->query->registers.fr )
   { state->frame     = LD->query->registers.fr;
@@ -2309,20 +2336,31 @@ get_vmi_state(vm_state *state)
     if ( lTop <= state->frame )
     { int arity = state->frame->predicate->functor->arity;
       lTop = (LocalFrame)argFrameP(state->frame, arity);
+      assert(!state->frame->clause);
     }
-    if ( state->save_argp &&
-	 lTop <= (LocalFrame)LD->query->registers.argp )
-      lTop = (LocalFrame)LD->query->registers.argp;
 
     state->argp		= argFrameP(state->frame, 0);
-    state->adepth	= 0;
     state->pc           = LD->query->registers.pc;
     state->save_argp    = (state->frame->clause != NULL);
     setStartOfVMI(state);
+
+    if ( state->in_body )
+    { Word ap;
+
+      if ( state->adepth == 0 )
+      { ap = LD->query->registers.argp;
+      } else
+      { ap = aTop[-state->adepth];
+      }
+
+      if ( lTop <= (LocalFrame)ap )
+      { state->new_args = ap - (Word)lTop;
+	lTop = (LocalFrame)ap;
+      }
+    }
   } else
   { state->frame        = environment_frame;
     state->argp		= argFrameP(state->frame, 0);
-    state->adepth	= 0;
     state->pc           = NULL;
     state->pc_start_vmi = NULL;
     state->save_argp	= FALSE;
