@@ -2698,6 +2698,23 @@ check_trail()
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 
+static word
+check_new_arguments(vm_state *state)
+{ word key = 0L;
+
+  if ( state->new_args )
+  { Word sp = argFrameP(state->lSave, 0);
+    int slots = state->new_args;
+
+    for( ; slots-- > 0; sp++ )
+      key += checkData(sp);
+  }
+
+  return key;
+}
+
+
+
 word
 checkStacks(void *state_ptr)
 { GET_LD
@@ -2721,6 +2738,7 @@ checkStacks(void *state_ptr)
   local_frames = 0;
   choice_count = 0;
 
+  key += check_new_arguments(state);
   for( fr = state->frame, ch=state->choice, PC=state->pc_start_vmi;
        fr;
        fr = qf->saved_environment, ch = qf->saved_bfr, PC=NULL )
