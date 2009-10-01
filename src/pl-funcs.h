@@ -341,7 +341,7 @@ COMMON(int) 		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
 COMMON(int) 		PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD);
 COMMON(int) 		PL_is_atom__LD(term_t t ARG_LD);
 COMMON(int) 		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
-COMMON(void) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
+COMMON(int) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
 COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		isUCSAtom(Atom a);

@@ -434,9 +434,9 @@ PL_EXPORT(void)		PL_put_nil(term_t l);
 PL_EXPORT(void)		PL_put_term(term_t t1, term_t t2);
 
 			/* construct a functor or list-cell */
-PL_EXPORT(void)		PL_cons_functor(term_t h, functor_t f, ...);
-PL_EXPORT(void)		PL_cons_functor_v(term_t h, functor_t fd, term_t a0);
-PL_EXPORT(void)		PL_cons_list(term_t l, term_t h, term_t t);
+PL_EXPORT(int)		PL_cons_functor(term_t h, functor_t f, ...);
+PL_EXPORT(int)		PL_cons_functor_v(term_t h, functor_t fd, term_t a0);
+PL_EXPORT(int)		PL_cons_list(term_t l, term_t h, term_t t);
 
 			/* Unify term-references */
 PL_EXPORT(int)		PL_unify(term_t t1, term_t t2);

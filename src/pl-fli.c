@@ -737,7 +737,7 @@ bindConsVal(Word to, Word p ARG_LD)
 }
 
 
-void
+int
 PL_cons_functor(term_t h, functor_t fd, ...)
 { GET_LD
   int arity = arityFunctor(fd);
@@ -745,10 +745,18 @@ PL_cons_functor(term_t h, functor_t fd, ...)
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
-  { Word a = allocGlobal(1 + arity);
-    Word t = a;
-    va_list args;
+  { va_list args;
+    Word a, t;
 
+    if ( !hasGlobalSpace(1+arity) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
+	return FALSE;
+    }
+
+    a = t = gTop;
+    gTop += 1+arity;
     va_start(args, fd);
     *a = fd;
     while( --arity >= 0 )
@@ -759,10 +767,12 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
     va_end(args);
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 { GET_LD
   int arity = arityFunctor(fd);
@@ -770,36 +780,58 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
-  { Word t  = allocGlobal(1 + arity);
-    Word a  = t;
-    Word ai = valHandleP(a0);
+  { Word t, a, ai;
 
+    if ( !hasGlobalSpace(1+arity) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != TRUE )
+	return FALSE;
+    }
+
+    a = t = gTop;
+    gTop += 1+arity;
+
+    ai = valHandleP(a0);
     *a = fd;
     while( --arity >= 0 )
       bindConsVal(++a, ai++ PASS_LD);
 
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
-{ Word a = allocGlobal(3);
+{ Word a;
 
+  if ( !hasGlobalSpace(3) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return FALSE;
+  }
+
+  a = gTop;
+  gTop += 3;
   a[0] = FUNCTOR_dot2;
   bindConsVal(&a[1], valHandleP(head) PASS_LD);
   bindConsVal(&a[2], valHandleP(tail) PASS_LD);
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+
+  return TRUE;
 }
 
 
 #undef PL_cons_list
-void
+int
 PL_cons_list(term_t l, term_t head, term_t tail)
 { GET_LD
-  PL_cons_list__LD(l, head, tail PASS_LD);
+  return PL_cons_list__LD(l, head, tail PASS_LD);
 }
 #define PL_cons_list(l, h, t) PL_cons_list__LD(l, h, t PASS_LD)
 
