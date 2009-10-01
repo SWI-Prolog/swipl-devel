@@ -517,9 +517,9 @@ _PL_Random(void)
 #else
   { uint64_t l = rand();			/* 0<n<2^15-1 */
 
-    l ^= rand()<<15;
-    l ^= rand()<<30;
-    l ^= rand()<<45;
+    l ^= (uint64_t)rand()<<15;
+    l ^= (uint64_t)rand()<<30;
+    l ^= (uint64_t)rand()<<45;
 
     return l;
   }
