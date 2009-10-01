@@ -793,10 +793,10 @@ Word
 allocGlobal__LD(size_t n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
-  { growStacks(0, n * sizeof(word), 0);
+  if ( !hasGlobalSpace(n) )
+  { int rc;
 
-    if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
+    if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != TRUE )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_THROW);
   }
 

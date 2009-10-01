@@ -242,24 +242,45 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
 
   IF_WRITE_MODE_GOTO(B_INTEGER);
 
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( canBind(*k) )
-  { Word p = allocGlobal(2+WORDS_PER_INT64);
-    word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  { Word p;
+    word c;
     union
     { int64_t val;
       word w[WORDS_PER_INT64];
     } cvt;
     Word vp = cvt.w;
 
+    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+
+    p = gTop;
+    gTop += 2+WORDS_PER_INT64;
+    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+
     cvt.val = (int64_t)(intptr_t)*PC++;
     *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
     cpInt64Data(p, vp);
     *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+
     bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   } else if ( isBignum(*k) && valBignum(*k) == (intptr_t)*PC++ )
+  { ARGP++;
     NEXT_INSTRUCTION;
+  }
 
   CLAUSE_FAILED;
 }

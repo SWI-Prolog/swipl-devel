@@ -996,7 +996,8 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
       return rc;
   }
   b.base = b.data = dataRecord(r);
-  b.gbase = b.gstore = allocGlobal(r->gsize);
+  b.gbase = b.gstore = gTop;
+  gTop += r->gsize;
 
   INITCOPYVARS(b, r->nvars);
   copy_record(valTermRef(copy), &b PASS_LD);
