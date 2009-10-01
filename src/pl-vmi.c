@@ -756,12 +756,27 @@ TBD:	Merge the code writing longs to the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
-{ Word p = allocGlobal(2+WORDS_PER_INT64);
+{ Word p;
   union
   { int64_t val;
     word w[WORDS_PER_INT64];
   } cvt;
   Word vp = cvt.w;
+
+  if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
+  p = gTop;
+  gTop += 2+WORDS_PER_INT64;
 
   cvt.val = (int64_t)(intptr_t)*PC++;
   *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
@@ -777,8 +792,23 @@ B_INT64: 64-bit (int64_t) in the body.  See H_INT64
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
-{ Word p = allocGlobal(2+WORDS_PER_INT64);
+{ Word p;
   size_t i;
+
+  if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
+  p = gTop;
+  gTop += 2+WORDS_PER_INT64;
 
   *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
@@ -796,7 +826,22 @@ representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
-{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
+{ Word p;
+
+  if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
+  p = gTop;
+  gTop += 2+WORDS_PER_DOUBLE;
 
   *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
   *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
