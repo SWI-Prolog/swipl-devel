@@ -298,17 +298,36 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 
   IF_WRITE_MODE_GOTO(B_INT64);
 
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( canBind(*k) )
-  { Word p = allocGlobal(2+WORDS_PER_INT64);
-    word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  { Word p;
+    word c;
     size_t i;
+
+    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+
+    p = gTop;
+    gTop += 2+WORDS_PER_INT64;
+    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
     *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
     for(i=0; i<WORDS_PER_INT64; i++)
       *p++ = (word)*PC++;
     *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+
     bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   } else if ( isBignum(*k) )
   { Word vk = valIndirectP(*k);
@@ -318,6 +337,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
     { if ( *vk++ != (word)*PC++ )
 	CLAUSE_FAILED;
     }
+    ARGP++;
     NEXT_INSTRUCTION;
   }
 
