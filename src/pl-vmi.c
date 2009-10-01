@@ -355,15 +355,34 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 
   IF_WRITE_MODE_GOTO(B_FLOAT);
 
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( canBind(*k) )
-  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
-    word c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+  { Word p;
+    word c;
+
+    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+
+    p = gTop;
+    gTop += 2+WORDS_PER_DOUBLE;
+    c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 
     *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
     cpDoubleData(p, PC);
     *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+
     bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   } else if ( isFloat(*k) )
   { Word p = valIndirectP(*k);
@@ -374,7 +393,9 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 	  CLAUSE_FAILED;
       case 1:
 	if ( *p++ == *PC++ )
+	{ ARGP++;
 	  NEXT_INSTRUCTION;
+	}
 	CLAUSE_FAILED;
       default:
 	assert(0);
