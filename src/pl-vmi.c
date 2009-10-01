@@ -2336,18 +2336,32 @@ choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_MQUAL, 0, 1, (CA1_VAR))
-{ Word k = varFrameP(FR, (int)*PC++);
+{ int arg = (int)*PC++;
+  int rc;
 
-  m_qualify_argument(FR, k PASS_LD);
+  SAVE_REGISTERS(qid);
+  rc = m_qualify_argument(FR, arg PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( rc != TRUE )
+  { raiseStackOverflow(rc);
+    goto b_throw;
+  }
 
   NEXT_INSTRUCTION;
 }
 
 
 VMI(S_LMQUAL, 0, 1, (CA1_VAR))
-{ Word k = varFrameP(FR, (int)*PC++);
+{ int arg = (int)*PC++;
+  int rc;
 
-  m_qualify_argument(FR, k PASS_LD);
+  SAVE_REGISTERS(qid);
+  rc = m_qualify_argument(FR, arg PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( rc != TRUE )
+  { raiseStackOverflow(rc);
+    goto b_throw;
+  }
   setContextModule(FR, FR->predicate->module);
 
   NEXT_INSTRUCTION;
@@ -2601,7 +2615,9 @@ VMI(A_ADD, 0, 0, ())
   int rc;
   number r;
 
+  SAVE_REGISTERS(qid);
   rc = pl_ar_add(argv, argv+1, &r);
+  LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
   { pushArithStack(&r PASS_LD);

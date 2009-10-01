@@ -807,14 +807,29 @@ is_qualified(Word p ARG_LD)
 }
 
 
-static void
-m_qualify_argument(LocalFrame fr, Word k ARG_LD)
-{ Word p;
+static int
+m_qualify_argument(LocalFrame fr, int arg ARG_LD)
+{ Word k = varFrameP(fr, arg);
+  Word p;
 
   deRef2(k, p);
   if ( !is_qualified(p PASS_LD) )
-  { Word p2 = allocGlobal(3);
+  { Word p2;
 
+    if ( !hasGlobalSpace(3) )
+    { int rc;
+      size_t offset = (Word)fr - (Word)lBase;
+
+      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+	return rc;
+
+      fr = (LocalFrame)((Word)lBase + offset);
+      k = varFrameP(fr, arg);
+      deRef2(k, p);
+    }
+
+    p2 = gTop;
+    gTop += 3;
     p2[0] = FUNCTOR_colon2;
     p2[1] = contextModule(fr)->name;
     if ( isVar(*p) && p > (Word)lBase )
@@ -843,6 +858,8 @@ m_qualify_argument(LocalFrame fr, Word k ARG_LD)
 
     *k = *p;
   }
+
+  return TRUE;
 }
 
 
