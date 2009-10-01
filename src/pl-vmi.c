@@ -2622,7 +2622,9 @@ VMI(A_MUL, 0, 0, ())
   int rc;
   number r;
 
+  SAVE_REGISTERS(qid);
   rc = ar_mul(argv, argv+1, &r);
+  LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
   { pushArithStack(&r PASS_LD);
@@ -2649,11 +2651,28 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { Word expr = allocGlobal(3);
+  { Word expr;
 
+    if ( !hasGlobalSpace(3) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(3, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+
+      np = varFrameP(FR, PC[-2]);
+      rp = varFrameP(FR, PC[-3]);
+    }
+
+    expr = gTop;
+    gTop += 3;
     expr[0] = FUNCTOR_plus2;
     expr[1] = linkVal(np);
-    expr[2] = makeNum(add);
+    expr[2] = consInt(add);
 
     ARGP = argFrameP(lTop, 0);
     setVar(*rp);
