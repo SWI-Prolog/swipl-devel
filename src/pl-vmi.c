@@ -1306,7 +1306,18 @@ possible to be able to call-back to Prolog.
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
 
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
+  if ( addPointer(lTop, LOCAL_MARGIN) > (void*)lMax )
+  { int rc;
+
+    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+    SAVE_REGISTERS(qid);
+    rc = ensureLocalSpace(LOCAL_MARGIN, ALLOW_SHIFT);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { rc = raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
 
 depart_continue:
 retry_continue:
