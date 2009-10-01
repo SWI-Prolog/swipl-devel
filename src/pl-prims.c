@@ -2116,7 +2116,7 @@ start:
       }
     }
 
-    if ( requireStack(global, sizeof(word)*(2)) != TRUE )
+    if ( !hasGlobalSpace(2) )
     { int rc;
 
       if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )

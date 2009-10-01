@@ -559,7 +559,7 @@ VMI(H_RLIST, 0, 0, ())
       { Word ap;
 	word c;
 
-	if ( gTop+3 > gMax )
+	if ( !hasGlobalSpace(3) )
 	{ int rc;
 
 	  SAVE_REGISTERS(qid);
@@ -633,7 +633,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
       Word ap;
 
     write:
-      if ( gTop+3 > gMax )
+      if ( !hasGlobalSpace(3) )
       { int rc;
 
 	SAVE_REGISTERS(qid);
@@ -1135,7 +1135,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
   int arity = arityFunctor(f);
   Word ap;
 
-  if ( gTop+1+arity > gMax )
+  if ( !hasGlobalSpace(1+arity) )
   { int rc;
 
     SAVE_REGISTERS(qid);
@@ -1170,7 +1170,7 @@ VMI(B_LIST, 0, 0, ())
 
 
 VMI(B_RLIST, 0, 0, ())
-{ if ( gTop+3 > gMax )
+{ if ( !hasGlobalSpace(3) )
   { int rc;
 
     SAVE_REGISTERS(qid);

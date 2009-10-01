@@ -329,16 +329,15 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key,
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
   }
 
-  if ( !(rc=ensureGlobalSpace(len*3, ALLOW_GC)) < 0 )
-    return raiseStackOverflow(rc);
-  if ( !rc )
-    return rc;				/* exception in signal */
+  if ( !hasGlobalSpace(len*3) )
+  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+    l = valTermRef(t);			/* may be shifted */
+    deRef(l);
+  }
 
   p = (list)gTop;
   *lp = p;
-
-  l = valTermRef(t);			/* may be shifted */
-  deRef(l);
 
   while(len-- > 0)
   { p->item.term = HeadList(l);

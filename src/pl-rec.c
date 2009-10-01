@@ -991,8 +991,10 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
 
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
-  if ( (rc=ensureGlobalSpace(r->gsize, flags)) < 0 )
-    return rc;
+  if ( !hasGlobalSpace(r->gsize) )
+  { if ( (rc=ensureGlobalSpace(r->gsize, flags)) != TRUE )
+      return rc;
+  }
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = allocGlobal(r->gsize);
 

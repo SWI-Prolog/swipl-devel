@@ -227,7 +227,7 @@ globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
     return 0;
   }
 
-  if ( gTop+wsz+3 > gMax )
+  if ( !hasGlobalSpace(wsz+3) )
   { int rc = ensureGlobalSpace(wsz+3, flags);
 
     if ( rc != TRUE )
@@ -664,7 +664,7 @@ put_number(Word at, Number n, int flags ARG_LD)
 	size_t req = ( mpz_wsize(mpq_numref(n->value.mpq), NULL)+3 +
 		       mpz_wsize(mpq_denref(n->value.mpq), NULL)+3 + 3 );
 
-	if ( gTop+req > gMax )
+	if ( !hasGlobalSpace(req) )
 	{ int rc = ensureGlobalSpace(req, flags);
 
 	  if ( rc != TRUE )

@@ -121,15 +121,17 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
   Record r;
   term_t list = PL_copy_term_ref(A3);
   term_t answer = PL_new_term_ref();
+  size_t space;
   int rc;
 
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
+  space = bag->gsize + bag->solutions*3;
 
-  if ( (rc=ensureGlobalSpace(bag->gsize + bag->solutions*3, ALLOW_GC)) < 0 )
-    return raiseStackOverflow(rc);
-  if ( !rc )				/* signal exception */
-    return rc;
+  if ( !hasGlobalSpace(space) )
+  { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   PL_LOCK(L_AGC);
   while(popSegStack(&bag->answers, &r))

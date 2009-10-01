@@ -900,7 +900,7 @@ put_int64(Word at, int64_t l, int flags ARG_LD)
 #error "FIXME: Unsupported sizeof word"
 #endif
 
-  if ( gTop+req > gMax )
+  if ( !hasGlobalSpace(req) )
   { int rc = ensureGlobalSpace(req, flags);
 
     if ( rc != TRUE )
@@ -1107,7 +1107,7 @@ put_double(Word at, double d, int flags ARG_LD)
   } val;
   fword *v;
 
-  if ( gTop+2+WORDS_PER_DOUBLE > gMax )
+  if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
   { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
 
     if ( rc != TRUE )

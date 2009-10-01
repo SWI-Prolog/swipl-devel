@@ -2246,7 +2246,7 @@ PL_unify_functor(term_t t, functor_t f)
     } else
     { size_t needed = (1+arity);
 
-      if ( gTop+needed > gMax )
+      if ( !hasGlobalSpace(needed) )
       { int rc;
 
 	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
@@ -2607,7 +2607,7 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
   { Word a;
     word c;
 
-    if ( gTop + 3 > gMax )
+    if ( !hasGlobalSpace(3) )
     { int rc;
 
       if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
