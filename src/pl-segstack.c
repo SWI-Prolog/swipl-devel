@@ -139,6 +139,42 @@ popSegStack(segstack *stack, void *data)
 }
 
 
+void *
+topOfSegStack(segstack *stack)
+{ again:
+
+  if ( stack->top >= stack->base + stack->unit_size )
+  { return stack->top - stack->unit_size;
+  } else
+  { segchunk *chunk = stack->last;
+
+    if ( chunk )
+    { if ( chunk->previous )
+      { stack->last = chunk->previous;
+	stack->last->next = NULL;
+	if ( chunk->allocated )
+	  PL_free(chunk);
+
+	chunk = stack->last;
+	stack->base = chunk->data;
+	stack->max  = addPointer(chunk, chunk->size);
+	stack->top  = chunk->top;
+	goto again;
+      }
+    }
+
+    return NULL;
+  }
+}
+
+
+void
+popTopOfSegStack(segstack *stack)
+{ stack->top -= stack->unit_size;
+  stack->count--;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 scanSegStack(segstack *stack, void (*func)(void *cell))
 Walk along all living cells on the stack and call func on them.  The stack

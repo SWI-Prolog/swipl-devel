@@ -108,17 +108,11 @@ freeBag(findall_bag *bag ARG_LD)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that we much lock  L_AGC,  as   otherwise  AGC  may  get in between
-popSegStack and copyRecordToGlobal(). Alternatively  we   could  make an
-interface that gets the top of the stack, processed it and then pops it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static
 PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
 { PRED_LD
   findall_bag *bag;
-  Record r;
+  Record *rp;
   term_t list = PL_copy_term_ref(A3);
   term_t answer = PL_new_term_ref();
   size_t space;
@@ -133,15 +127,17 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
       return raiseStackOverflow(rc);
   }
 
-  PL_LOCK(L_AGC);
-  while(popSegStack(&bag->answers, &r))
-  { copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
+  while ( (rp=topOfSegStack(&bag->answers)) )
+  { Record r = *rp;
+    copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
     PL_cons_list(list, answer, list);
+    popTopOfSegStack(&bag->answers);
 
     freeRecord(r);
   }
 
   assert(LD->bags.bags == bag);
+  PL_LOCK(L_AGC);
   LD->bags.bags = bag->parent;
   PL_UNLOCK(L_AGC);
 
