@@ -2486,6 +2486,10 @@ run_test_script(Script) :-
 	file_base_name(Script, Base),
 	file_name_extension(Pred, _, Base),
 	load_files(Script, [silent(true)]),
+	(   current_prolog_flag(verbose, normal)
+	->  format('(~w)', [Base]), flush_output
+	;   true
+	),
 	Pred.
 
 run_test_scripts(Directory) :-

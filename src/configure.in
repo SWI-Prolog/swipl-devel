@@ -576,7 +576,7 @@ esac
 		  [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 		    pthread_mutex_lock(&m);
 		    pthread_mutex_unlock(&m);
-#if !(defined(_REENTRANT) || defined(_THREAD_SAFE)) 
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
 	this should not be compiled
 #endif
 		  ],
@@ -699,7 +699,7 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "y
 	    -f $RLPREFIX/lib/libreadline.$SO_EXT; then
       LIBS="$LIBS $RLPREFIX/lib/libreadline.$SO_EXT"
       AC_MSG_RESULT(Using $RLPREFIX)
-      AC_DEFINE(HAVE_LIBREADLINE, 1, 
+      AC_DEFINE(HAVE_LIBREADLINE, 1,
 		[Define to 1 if you have libreadline])
       AC_DEFINE(HAVE_READLINE_READLINE_H, 1,
 		[Define to 1 if you have <readline/readline.h>])
@@ -767,7 +767,7 @@ _EOP_
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
-AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h)
+AC_CHECK_HEADERS(malloc.h sys/stropts.h wchar.h execinfo.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
 AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
@@ -1012,7 +1012,7 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff,
 			  [Define is struct tm has tm_gmtoff]),
 		[],
 		[#include <time.h>])
-		
+
 AC_MSG_CHECKING("Boot filename");
 BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",
@@ -1038,7 +1038,7 @@ fi
 
 AC_MSG_CHECKING("alignment restrictions on doubles")
 AC_TRY_RUN(
-[ 
+[
 #include <inttypes.h>
   main()
   { intptr_t l[10];
@@ -1069,7 +1069,7 @@ AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
 AC_MSG_CHECKING("alignment restrictions on int64_t")
 AC_TRY_RUN(
-[ 
+[
 #include <inttypes.h>
   main()
   { intptr_t l[10];
@@ -1194,7 +1194,7 @@ AC_TRY_COMPILE(
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/termios.h>
-#include <sys/ioctl.h> 
+#include <sys/ioctl.h>
 ],
 [;
 ], true, AC_DEFINE(NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H, 1,
@@ -1319,7 +1319,7 @@ set_sighandler(int sig, handler_t func)
 #else
   return signal(sig, func);
 #endif
-} 
+}
 
 main()
 { struct itimerval value, ovalue;
@@ -1329,7 +1329,7 @@ main()
   value.it_interval.tv_usec = 1000;
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1000;
-  
+
   set_sighandler(SIGPROF, prof);
 
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
@@ -1376,7 +1376,7 @@ AC_TRY_COMPILE(
 
 AC_MSG_CHECKING("for label addresses")
 AC_TRY_COMPILE(
-[ 
+[
 ],
 [ int x=0;
   void *addr;
@@ -1389,7 +1389,7 @@ AC_TRY_COMPILE(
 	goto label3;
   label2:
 	x = 2;
-  
+
   label3:
 	if ( x == 2 )
   	  exit(0);
@@ -1495,7 +1495,7 @@ AC_CHECK_HEADERS(siginfo.h)
 
 AC_MSG_CHECKING("for SA_SIGINFO");
 AC_TRY_COMPILE(
-[ #include <signal.h> 
+[ #include <signal.h>
   #ifdef HAVE_SIGINFO_H
   #include <siginfo.h>
   #endif
@@ -1505,7 +1505,7 @@ AC_TRY_COMPILE(
 
   act.sa_sigaction = handler;
   act.sa_flags = SA_SIGINFO;
-  
+
   sigaction(SIGSEGV, (void *)0, &act);
 ], AC_DEFINE(HAVE_SIGINFO, 1,
 	     [Define if signal handler is compliant to POSIX.1b])
@@ -1663,9 +1663,9 @@ fi
 if test "$WARN_NO_GMP" = yes; then
 cat << _EOM_
 ****************************************************************
-* Could not find libgmp or gmp.h.  GMP enables SWI-Prolog 
+* Could not find libgmp or gmp.h.  GMP enables SWI-Prolog
 * support for unbounded integer arithmetic and rational numbers.
-* 
+*
 * See README.gmp for details.
 ****************************************************************
 

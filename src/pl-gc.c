@@ -327,6 +327,50 @@ print_val(word val, char *buf)
   return buf;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The BACKTRACE code below can only  be   compiled  on systems using glibc
+(the GNU C-library). It saves the  stack-trace   of  the  latest call to
+markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
+print_backtrace() from GDB to find the last stack-trace.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#include <string.h>
+#define SAVE_TRACES 10
+__thread char **mark_backtrace[SAVE_TRACES];
+__thread size_t trace_frames[SAVE_TRACES];
+__thread int trace;
+
+static void
+save_backtrace (void)
+{ void *array[100];
+
+  trace_frames[trace] = backtrace(array, sizeof(array)/sizeof(void *));
+  if ( mark_backtrace[trace] )
+    free(mark_backtrace[trace]);
+  mark_backtrace[trace] = backtrace_symbols(array, trace_frames[trace]);
+  if ( ++trace == SAVE_TRACES )
+    trace = 0;
+}
+
+void
+print_backtrace(int last)		/* 1..SAVE_TRACES */
+{ int i;
+  int me = trace-last;
+  if ( me < 0 )
+    me += SAVE_TRACES;
+
+  for(i=0; i<trace_frames[me]; i++)
+    Sdprintf("[%d] %s\n", i, mark_backtrace[me][i]);
+}
+
+#else
+
+#define save_backtrace()
+
+#endif /*HAVE_EXECINFO_H*/
+
 #endif /*O_DEBUG*/
 
 #if O_SECURE
@@ -3757,6 +3801,8 @@ growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
 
+  DEBUG(0, save_backtrace());
+
   gBase--;
   include_spare_stack((Stack)&LD->stacks.local,  &l);
   include_spare_stack((Stack)&LD->stacks.global, &g);
@@ -3958,42 +4004,6 @@ markAtomsInEnvironments(PL_local_data_t *ld)
 
   assert(ld->gc._local_frames == 0);
 }
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The BACKTRACE code below can only  be   compiled  on systems using glibc
-(the GNU C-library). It saves the  stack-trace   of  the  latest call to
-markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
-print_backtrace() from GDB to find the last stack-trace.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define BACKTRACE 0
-
-#if BACKTRACE
-#include <execinfo.h>
-#include <string.h>
-static char **mark_backtrace;
-size_t trace_frames;
-
-static void
-save_backtrace (void)
-{ void *array[100];
-
-  trace_frames = backtrace(array, sizeof(array)/sizeof(void *));
-  if ( mark_backtrace )
-    free(mark_backtrace);
-  mark_backtrace = backtrace_symbols(array, trace_frames);
-}
-
-void
-print_backtrace()
-{ int i;
-
-  for(i=0; i<trace_frames; i++)
-    Sdprintf("[%d] %s\n", i, mark_backtrace[i]);
-}
-
-#endif /*BACKTRACE*/
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
