@@ -527,7 +527,8 @@ last_arg:
     p2 = valPAttVar(*p);
     mark(p);
 
-    if ( !onGlobal(p) )
+					/* See argument_stack_to_term_refs() */
+    if ( !onGlobal(p) && (!gc_status.active || p < (Word)environment_frame) )
       printk("attvar: not on global stack: 0x%x", p);
     if ( !onGlobal(p2) )
       printk("attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);

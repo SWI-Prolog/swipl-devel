@@ -175,6 +175,7 @@ typedef struct vm_state
   int		save_argp;		/* Need to safe ARGP? */
   int		in_body;		/* Current frame is executing a body */
   int		new_args;		/* #new arguments */
+  int		uwrite_count;		/* #UWRITE marked ARGP cells */
 } vm_state;
 
 
@@ -872,6 +873,8 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
 
 #endif /*O_GVAR*/
 
+#define UWRITE 0x1
+#define LARGP  0x2
 
 static fid_t
 argument_stack_to_term_refs(vm_state *state)
@@ -881,15 +884,25 @@ argument_stack_to_term_refs(vm_state *state)
     Word *ap;
 
     pushArgumentStack(LD->query->registers.argp);
+    assert(LARGP != TAG_ATTVAR && LARGP != TAG_REFERENCE);
 
+    state->uwrite_count = 0;
     for(ap=aBase; ap<aTop; ap++)
-    { if ( onGlobal(*ap) )
+    { Word adr = *ap;
+
+      if ( onGlobal(adr) )
       { term_t t = PL_new_term_ref_noshift();
 
-	assert(t);
-	*valTermRef(t) = makeRefG(*ap);
+	if ( (word)adr & UWRITE )
+	{ adr = (Word)((word)adr & ~UWRITE);
+	  *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_ATTVAR);
+	  state->uwrite_count++;
+	} else
+	{ *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_REFERENCE);
+	}
       } else
-      { assert(*ap >= (Word)lBase);
+      { assert(adr >= (Word)lBase);
+	*ap = (Word)((word)adr | LARGP);
       }
     }
 
@@ -901,20 +914,30 @@ argument_stack_to_term_refs(vm_state *state)
 
 
 static void
-term_refs_to_argument_stack(fid_t fid)
+term_refs_to_argument_stack(vm_state *state, fid_t fid)
 { if ( fid )
   { GET_LD
     FliFrame fr = (FliFrame) valTermRef(fid);
     Word fp = (Word)(fr+1);
     Word *ap;
+    int uwc = 0;
 
     for(ap=aBase; ap<aTop; ap++)
-    { if ( *ap < (Word)lBase )
-      { *ap = valPtr2(*fp, STG_GLOBAL);
-        fp++;
+    { Word adr = *ap;
+
+      if ( (word)adr & LARGP )
+      { *ap = (Word)((word)adr & ~LARGP);
+      } else
+      { word w = *fp++;
+	word mask = (tag(w) == TAG_ATTVAR ? UWRITE : 0);
+
+	if ( mask )
+	  uwc++;
+	*ap = (Word)((word)valPtr(w)|mask);
       }
     }
     assert(fp == (Word)(fr+1) + fr->size);
+    assert(uwc == state->uwrite_count);
 
     LD->query->registers.argp = *--aTop;
     PL_close_foreign_frame(fid);
@@ -2924,7 +2947,7 @@ garbageCollect(void)
   collect_phase(&state, saved_bar_at);
   untag_trail();
   term_refs_to_gvars(gvars, saved_bar_at);
-  term_refs_to_argument_stack(astack);
+  term_refs_to_argument_stack(&state, astack);
 
 #if O_SECURE
   assert(trailtops_marked == 0);
