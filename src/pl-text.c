@@ -279,7 +279,10 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
     case PL_STRING:
     { word w = textToString(text);
 
-      return _PL_unify_atomic(term, w);
+      if ( w )
+	return _PL_unify_atomic(term, w);
+      else
+	return FALSE;
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
@@ -301,7 +304,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
 
-	    p0 = p = allocGlobal(text->length*3);
+	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+	      return FALSE;
+
 	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
@@ -317,7 +322,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-	    p0 = p = allocGlobal(text->length*3);
+	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+	      return FALSE;
+
 	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
@@ -334,7 +341,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    const char *e = &s[text->length];
 	    size_t len = utf8_strlen(s, text->length);
 
-	    p0 = p = allocGlobal(len*3);
+	    if ( !(p0 = p = allocGlobal(len*3)) )
+	      return FALSE;
+
 	    while(s<e)
 	    { int chr;
 
@@ -363,7 +372,8 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      s += rc;
 	    }
 
-	    p0 = p = allocGlobal(len*3);
+	    if ( !(p0 = p = allocGlobal(len*3)) )
+	      return FALSE;
 	    memset(&mbs, 0, sizeof(mbs));
 	    n = text->length;
 

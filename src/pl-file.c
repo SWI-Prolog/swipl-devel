@@ -1024,7 +1024,7 @@ closeOutputRedirect(redir_context *ctx)
     rval = PL_unify_wchars_diff(out, tail, ctx->out_format,
 				ctx->size/sizeof(wchar_t),
 				(wchar_t*)ctx->data);
-    if ( tail )
+    if ( rval && tail )
       rval = PL_unify(tail, diff);
 
     if ( ctx->data != ctx->buffer )

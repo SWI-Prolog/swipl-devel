@@ -643,18 +643,12 @@ PRED_IMPL("normalize_space", 2, normalize_space, 0)
 { redir_context ctx;
   word rc;
 
-  EXCEPTION_GUARDED(/*code*/
-		    if ( setupOutputRedirect(A1, &ctx, FALSE) )
-		    { if ( (rc = write_normalize_space(ctx.stream, A2)) )
-			rc = closeOutputRedirect(&ctx);
-		      else
-			discardOutputRedirect(&ctx);
-		    } else
-		      rc = FALSE;
-		    /*cleanup*/,
-		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
-		    discardOutputRedirect(&ctx);
-		    rc = PL_rethrow(););
+  if ( (rc = setupOutputRedirect(A1, &ctx, FALSE)) )
+  { if ( (rc = write_normalize_space(ctx.stream, A2)) )
+      rc = closeOutputRedirect(&ctx);
+    else
+      discardOutputRedirect(&ctx);
+  }
 
   return rc;
 }
