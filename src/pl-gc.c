@@ -2329,12 +2329,19 @@ setStartOfVMI(vm_state *state)
       { size_t where  = PC - clause->codes;
 	size_t where0 = state->pc - clause->codes;
 
-	Sdprintf("At PC=%ld(%ld) of %d-th clause of %s (ARGP=%d; adepth=%d)\n",
-		 where, where0,
-		 clauseNo(fr->predicate, clause),
-		 predicateName(fr->predicate),
-		 (state->argp - argFrameP(fr, 0)),
-		 state->adepth);
+#ifdef O_DEBUG
+	{ GET_LD
+	  if ( truePrologFlag(PLFLAG_TRACE_GC) )
+	  { Sdprintf("At PC=%ld(%ld) of "
+		     "%d-th clause of %s (ARGP=%d; adepth=%d)\n",
+		     where, where0,
+		     clauseNo(fr->predicate, clause),
+		     predicateName(fr->predicate),
+		     (state->argp - argFrameP(fr, 0)),
+		     state->adepth);
+	  }
+	}
+#endif
 
 	state->pc_start_vmi = PC;
 	return;
