@@ -16,7 +16,7 @@ PKGDLL=rdf_db
 
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl \
 		rdf_persistency.pl rdf_turtle.pl rdf_cache.pl \
-		rdf_http_plugin.pl rdf_zlib_plugin.pl \
+		rdf_http_plugin.pl rdf_zlib_plugin.pl rdf_portray.pl \
 		rdf_compare.pl turtle_base.pl rdf_turtle_write.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 OBJ=		rdf_db.obj md5.obj avl.obj atom_map.obj atom.obj \
