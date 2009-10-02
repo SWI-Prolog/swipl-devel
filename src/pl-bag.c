@@ -132,7 +132,9 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
   { Record r = *rp;
     copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
     PL_cons_list(list, answer, list);
+    PL_LOCK(L_AGC);			/* needed for markAtomsAnswers() */
     popTopOfSegStack(&bag->answers);
+    PL_UNLOCK(L_AGC);
 
     freeRecord(r);
   }
