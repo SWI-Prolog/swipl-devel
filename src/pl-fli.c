@@ -2512,30 +2512,7 @@ PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 
 
 int
-PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
-{ return unifyAtomic(t, makeNum(i) PASS_LD);
-}
-
-
-#undef PL_unify_integer
-int
-PL_unify_integer(term_t t, intptr_t i)
-{ GET_LD
-  return unifyAtomic(t, makeNum(i) PASS_LD);
-}
-#define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
-
-
-int
-PL_unify_int64(term_t t, int64_t i)
-{ GET_LD
-
-  return unifyAtomic(t, makeNum(i) PASS_LD);
-}
-
-
-int
-PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
+PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD)
 { word w = consInt(i);
   Word p = valHandleP(t);
 
@@ -2562,18 +2539,47 @@ PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
   if ( isBignum(*p) )
     return valBignum(*p) == i;
 
-  if ( isInteger(*p) )
-    fail;
+  if ( ex && !isInteger(*p) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  fail;
+}
+
+
+int
+PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
+{ return PL_unify_int64__LD(t, i, TRUE PASS_LD);
+}
+
+
+int
+PL_unify_integer__LD(term_t t, intptr_t i ARG_LD)
+{ return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+}
+
+
+#undef PL_unify_integer
+int
+PL_unify_integer(term_t t, intptr_t i)
+{ GET_LD
+  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+}
+#define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
+
+
+int
+PL_unify_int64(term_t t, int64_t i)
+{ GET_LD
+
+  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
 }
 
 
 int
 PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
-{ word w = makeNum(pointerToLong(ptr));
+{ intptr_t i = pointerToLong(ptr);
 
-  return unifyAtomic(t, w PASS_LD);
+  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
 }
 
 
