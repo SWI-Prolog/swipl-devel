@@ -797,7 +797,9 @@ allocGlobal__LD(size_t n ARG_LD)
   { int rc;
 
     if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != TRUE )
-      outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_THROW);
+    { raiseStackOverflow(rc);
+      return NULL;
+    }
   }
 
   result = gTop;
@@ -810,7 +812,7 @@ Word
 allocGlobalNoShift__LD(size_t n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
+  if ( gTop+n > gMax )
     return NULL;
 
   result = gTop;
@@ -948,6 +950,8 @@ put_int64(Word at, int64_t l, int flags ARG_LD)
 To distinguish between byte and wide strings,   the system adds a 'B' or
 'W' in front of the real string. For   a  'W', the following 3 bytes are
 ignored to avoid alignment restriction problems.
+
+Note that these functions can trigger GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
@@ -956,6 +960,9 @@ allocString(size_t len ARG_LD)
   int pad = (int)(lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
   word m = mkStrHdr(lw, pad);
+
+  if ( !p )
+    return NULL;
 
   p[0]    = m;
   p[lw]   = 0L;				/* zero the pad bytes */
@@ -969,12 +976,17 @@ word
 globalString(size_t len, const char *s)
 { GET_LD
   Word p = allocString(len+1 PASS_LD);
-  char *q = (char *)&p[1];
 
-  *q++ = 'B';
-  memcpy(q, s, len);
+  if ( p )
+  { char *q = (char *)&p[1];
 
-  return consPtr(p, TAG_STRING|STG_GLOBAL);
+    *q++ = 'B';
+    memcpy(q, s, len);
+
+    return consPtr(p, TAG_STRING|STG_GLOBAL);
+  }
+
+  return 0;
 }
 
 
@@ -993,7 +1005,8 @@ globalWString(size_t len, const pl_wchar_t *s)
   if ( p == e )				/* 8-bit string */
   { unsigned char *t;
 
-    g = allocString(len+1 PASS_LD);
+    if ( !(g = allocString(len+1 PASS_LD)) )
+      return 0;
     t = (unsigned char *)&g[1];
     *t++ = 'B';
     for(p=s; p<e; )
@@ -1002,7 +1015,8 @@ globalWString(size_t len, const pl_wchar_t *s)
   { char *t;
     pl_wchar_t *w;
 
-    g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD);
+    if ( !(g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD)) )
+      return 0;
     t = (char *)&g[1];
     w = (pl_wchar_t*)t;
     w[0] = 0;

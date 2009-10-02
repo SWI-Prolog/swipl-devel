@@ -1979,7 +1979,10 @@ PL_unify_string_chars(term_t t, const char *s)
 { GET_LD
   word str = globalString(strlen(s), (char *)s);
 
-  return unifyAtomic(t, str PASS_LD);
+  if ( str )
+    return unifyAtomic(t, str PASS_LD);
+
+  return FALSE;
 }
 
 int
@@ -1987,22 +1990,30 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   word str = globalString(len, s);
 
-  return unifyAtomic(t, str PASS_LD);
-}
+  if ( str )
+    return unifyAtomic(t, str PASS_LD);
 
-#endif
+  return FALSE;
+}
+#endif /*O_STRING*/
+
 
 		 /*******************************
 		 *             PUT-*  		*
 		 *******************************/
 
-void
+int
 PL_put_variable(term_t t)
 { GET_LD
   Word p = allocGlobal(1);
 
-  setVar(*p);
-  setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
+  if ( p )
+  { setVar(*p);
+    setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -2021,41 +2032,55 @@ PL_put_atom(term_t t, atom_t a)
 #define PL_put_atom(t, a) PL_put_atom__LD(t, a PASS_LD)
 
 
-void
+int
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
 
   setHandle(t, a);
   PL_unregister_atom(a);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
 
   setHandle(t, a);
   PL_unregister_atom(a);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_string_chars(term_t t, const char *s)
 { GET_LD
   word w = globalString(strlen(s), s);
 
-  setHandle(t, w);
+  if ( w )
+  { setHandle(t, w);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
-void
+int
 PL_put_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   word w = globalString(len, s);
 
-  setHandle(t, w);
+  if ( w )
+  { setHandle(t, w);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
