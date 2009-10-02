@@ -428,8 +428,8 @@ PL_EXPORT(int)		PL_put_list_ncodes(term_t t, size_t l, const char *chars);
 PL_EXPORT(int)		PL_put_integer(term_t t, long i);
 PL_EXPORT(int)		PL_put_pointer(term_t t, void *ptr);
 PL_EXPORT(int)		PL_put_float(term_t t, double f);
-PL_EXPORT(void)		PL_put_functor(term_t t, functor_t functor);
-PL_EXPORT(void)		PL_put_list(term_t l);
+PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor);
+PL_EXPORT(int)		PL_put_list(term_t l);
 PL_EXPORT(void)		PL_put_nil(term_t l);
 PL_EXPORT(void)		PL_put_term(term_t t1, term_t t2);
 
@@ -963,10 +963,10 @@ typedef struct
   } value;
 } xpceref_t;
 
-PL_EXPORT(int)	_PL_get_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(int)  _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
-PL_EXPORT(void) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
-PL_EXPORT(void) _PL_put_xpce_reference_a(term_t t, atom_t name);
+PL_EXPORT(int) _PL_get_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(int) _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
+PL_EXPORT(int) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
+PL_EXPORT(int) _PL_put_xpce_reference_a(term_t t, atom_t name);
 
 #ifdef __cplusplus
 }

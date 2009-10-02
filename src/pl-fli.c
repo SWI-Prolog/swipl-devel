@@ -2229,7 +2229,7 @@ PL_put_float(term_t t, double f)
 }
 
 
-void
+int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
   int arity = arityFunctor(f);
@@ -2239,23 +2239,32 @@ PL_put_functor(term_t t, functor_t f)
   } else
   { Word a = allocGlobal(1 + arity);
 
+    if ( !a )
+      return FALSE;
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
     *a++ = f;
     while(arity-- > 0)
       setVar(*a++);
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list(term_t l)
 { GET_LD
   Word a = allocGlobal(3);
 
-  setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_dot2;
-  setVar(*a++);
-  setVar(*a);
+  if ( a )
+  { setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    *a++ = FUNCTOR_dot2;
+    setVar(*a++);
+    setVar(*a);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
@@ -2285,25 +2294,33 @@ PL_put_term(term_t t1, term_t t2)
 #define PL_put_term(t1, t2) PL_put_term__LD(t1, t2 PASS_LD)
 
 
-void
+int
 _PL_put_xpce_reference_i(term_t t, uintptr_t r)
 { GET_LD
   Word a = allocGlobal(2);
 
-  setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_xpceref1;
-  *a++ = makeNum(r);
+  if ( a )
+  { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    *a++ = FUNCTOR_xpceref1;
+    *a++ = makeNum(r);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 
-void
+int
 _PL_put_xpce_reference_a(term_t t, atom_t name)
 { GET_LD
   Word a = allocGlobal(2);
 
-  setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_xpceref1;
-  *a++ = name;
+  if ( a )
+  { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    *a++ = FUNCTOR_xpceref1;
+    *a++ = name;
+    return TRUE;
+  }
+  return FALSE;
 }
 
 
