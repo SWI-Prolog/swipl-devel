@@ -285,8 +285,7 @@ PL_copy_term_ref(term_t from)
 unifyAtomic(p, a) unifies a term, represented by  a pointer to it, with
 an atomic value. It is intended for foreign language functions.
 
-May call bindConst(), so the caller   must ensure that hasGlobalSpace(0)
-is true.
+May call GC/SHIFT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -295,7 +294,15 @@ unifyAtomic(term_t t, word w ARG_LD)
 
   for(;;)
   { if ( canBind(*p) )
-    { bindConst(p, w);
+    { if ( !hasGlobalSpace(0) )
+      { int rc;
+
+	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+	  return raiseStackOverflow(rc);
+	p = valHandleP(t);
+      }
+
+      bindConst(p, w);
       succeed;
     }
 
