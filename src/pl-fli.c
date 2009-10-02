@@ -3077,17 +3077,30 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
   Word p = valHandleP(t);
 
   do
-  { if ( isVar(*p) )
-    { Word a = allocGlobal(2);
+  { if ( canBind(*p) )
+    { Word a;
+      word c;
 
-      *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-      TrailEx(p);
+      if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
+      { int rc;
+
+	if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+	  return raiseStackOverflow(rc);
+	p = valHandleP(t);
+	deRef(p);
+      }
+
+      a = gTop;
+      gTop += 2;
+      c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+
       *a++ = FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = makeNum(ref->value.i);
       else
 	*a++ = ref->value.a;
 
+      bindConst(p, c);
       succeed;
     }
     if ( hasFunctor(*p, FUNCTOR_xpceref1) )
