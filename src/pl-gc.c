@@ -2295,6 +2295,8 @@ of the first frame (well, this can be more subtle, but I really doubt we
 want to try).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_DEBUG
+
 static int
 clauseNo(Definition def, Clause cl)
 { int i;
@@ -2308,6 +2310,7 @@ clauseNo(Definition def, Clause cl)
   return -1;
 }
 
+#endif
 
 static void
 setStartOfVMI(vm_state *state)
@@ -2326,10 +2329,11 @@ setStartOfVMI(vm_state *state)
       next = stepPC(PC);
 
       if ( next >= state->pc )
-      { size_t where  = PC - clause->codes;
+      {
+#ifdef O_DEBUG
+        size_t where  = PC - clause->codes;
 	size_t where0 = state->pc - clause->codes;
 
-#ifdef O_DEBUG
 	{ GET_LD
 	  if ( truePrologFlag(PLFLAG_TRACE_GC) )
 	  { Sdprintf("At PC=%ld(%ld) of "
