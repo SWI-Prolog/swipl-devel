@@ -198,11 +198,26 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
   IF_WRITE_MODE_GOTO(B_CONST);
 
   c = (word)*PC++;
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( *k == c )
+  { ARGP++;
     NEXT_INSTRUCTION;
+  }
   if ( canBind(*k) )
-  { bindConst(k, c);
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+    bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   }
   CLAUSE_FAILED;
@@ -220,11 +235,26 @@ VMI(H_NIL, 0, 0, ())
   IF_WRITE_MODE_GOTO(B_NIL);
 
   c = ATOM_nil;
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( *k == c )
+  { ARGP++;
     NEXT_INSTRUCTION;
+  }
   if ( canBind(*k) )
-  { bindConst(k, c);
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+    bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   }
   CLAUSE_FAILED;
