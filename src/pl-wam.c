@@ -154,8 +154,9 @@ pl_count()
 		 *******************************/
 
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
-static inline intptr_t
-loffset(void *p)
+#define loffset(p) loffset__LD(p PASS_LD)
+static intptr_t
+loffset__LD(void *p ARG_LD)
 { if ( p == NULL )
     return 0;
 
@@ -334,9 +335,6 @@ Brief description of the local stack-layout.  This stack contains:
 		 /*******************************
 		 *	    FOREIGN FRAME	*
 		 *******************************/
-
-#undef LD
-#define LD LOCAL_LD
 
 static fid_t
 open_foreign_frame(ARG1_LD)
@@ -1323,7 +1321,8 @@ environment. See also discardFrame().
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 char *
 chp_chars(Choice ch)
-{ static char buf[256];
+{ GET_LD
+  static char buf[256];
 
   Ssprintf(buf, "Choice at #%ld for frame #%ld, type %s",
 	   loffset(ch), loffset(ch->frame),
