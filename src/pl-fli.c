@@ -284,6 +284,9 @@ PL_copy_term_ref(term_t from)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unifyAtomic(p, a) unifies a term, represented by  a pointer to it, with
 an atomic value. It is intended for foreign language functions.
+
+May call bindConst(), so the caller   must ensure that hasGlobalSpace(0)
+is true.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -2271,32 +2274,30 @@ PL_unify_functor(term_t t, functor_t f)
 
   deRef(p);
   if ( canBind(*p) )
-  { if ( arity == 0 )
-    { word name = nameFunctor(f);
+  { size_t needed = (1+arity);
 
+    if ( !hasGlobalSpace(needed) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      p = valHandleP(t);		/* reload: may have shifted */
+      deRef(p);
+    }
+
+    if ( arity == 0 )
+    { word name = nameFunctor(f);
       bindConst(p, name);
     } else
-    { size_t needed = (1+arity);
+    { Word a = gTop;
+      word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
-      if ( !hasGlobalSpace(needed) )
-      { int rc;
+      gTop += 1+arity;
+      *a = f;
+      while( --arity >= 0 )
+	setVar(*++a);
 
-	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != TRUE )
-	  return raiseStackOverflow(rc);
-	p = valHandleP(t);		/* reload: may have shifted */
-	deRef(p);
-      }
-
-      { Word a = gTop;
-	word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-
-	gTop += 1+arity;
-	*a = f;
-	while( --arity >= 0 )
-	  setVar(*++a);
-
-	bindConst(p, to);
-      }
+      bindConst(p, to);
     }
 
     succeed;
@@ -2536,36 +2537,33 @@ PL_unify_int64(term_t t, int64_t i)
 int
 PL_unify_int64_ex__LD(term_t t, int64_t i ARG_LD)
 { word w = consInt(i);
+  Word p = valHandleP(t);
 
-  if ( valInt(w) == i )			/* tagged integer */
-  { Word p = valHandleP(t);
+  deRef(p);
 
-    deRef(p);
-    if ( *p == w )
-      succeed;
-    if ( canBind(*p) )
-    { bindConst(p, w);
-      succeed;
+  if ( canBind(*p) )
+  { if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
     }
-    if ( isInteger(*p) )
-      fail;
-  } else
-  { Word p = valHandleP(t);
 
-    deRef(p);
-    if ( canBind(*p) )
-    { int rc = put_int64(&w, i, 0 PASS_LD); /* TBD: Allow GC */
+    if ( valInt(w) != i )
+      put_int64(&w, i, 0 PASS_LD);
 
-      if ( rc == TRUE )
-      { bindConst(p, w);
-	succeed;
-      }
-
-      return raiseStackOverflow(rc);
-    }
-    if ( isInteger(*p) )
-      return valInt(*p) == i ? TRUE : FALSE;
+    bindConst(p, w);
+    succeed;
   }
+
+  if ( w == *p && valInt(w) == i )
+    succeed;
+
+  if ( isBignum(*p) )
+    return valBignum(*p) == i;
+
+  if ( isInteger(*p) )
+    fail;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }

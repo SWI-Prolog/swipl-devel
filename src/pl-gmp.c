@@ -639,6 +639,12 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 
 #endif /*O_GMP*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+put_number()   translates   a   number   structure   into   its   Prolog
+representation and ensures there  is  enough   space  for  a  subsequent
+bindConst() call.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 put_number(Word at, Number n, int flags ARG_LD)
 { switch(n->type)
@@ -646,7 +652,14 @@ put_number(Word at, Number n, int flags ARG_LD)
     { word w = consInt(n->value.i);
 
       if ( valInt(w) == n->value.i )
-      { *at = w;
+      { if ( !hasGlobalSpace(0) )
+	{ int rc = ensureGlobalSpace(0, flags);
+
+	  if ( rc != TRUE )
+	    return rc;
+	}
+
+	*at = w;
         return TRUE;
       }
 
