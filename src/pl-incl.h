@@ -1805,7 +1805,7 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (5)
 #define hasGlobalSpace(n) \
-	(gTop+(n)+BIND_GLOBAL_SPACE < gMax && tTop+BIND_TRAIL_SPACE < tMax)
+	(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && tTop+BIND_TRAIL_SPACE <= tMax)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Used for predicate implementations that need local+global+trail space
