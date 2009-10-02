@@ -59,6 +59,7 @@ COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
 COMMON(word) 		globalIndirect(word in);
 COMMON(int) 		equalIndirect(word r1, word r2);
+COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
 #ifndef consPtr
 COMMON(word) 		consPtr(void *p, word ts);

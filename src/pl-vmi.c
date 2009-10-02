@@ -456,14 +456,33 @@ VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
 
   IF_WRITE_MODE_GOTO(B_STRING);
 
-  deRef2(ARGP++, k);
+  deRef2(ARGP, k);
   if ( canBind(*k) )
-  { word c = globalIndirectFromCode(&PC);
+  { word c;
+    size_t sz = gsizeIndirectFromCode(PC);
+
+    if ( !hasGlobalSpace(sz) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      deRef2(ARGP, k);
+    }
+
+    c = globalIndirectFromCode(&PC);
     bindConst(k, c);
+    ARGP++;
     NEXT_INSTRUCTION;
   }
   if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
+  { ARGP++;
     NEXT_INSTRUCTION;
+  }
   CLAUSE_FAILED;
 }
 

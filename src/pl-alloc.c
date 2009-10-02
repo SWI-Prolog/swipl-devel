@@ -1203,6 +1203,12 @@ globalIndirect(word w)
 }
 
 
+size_t
+gsizeIndirectFromCode(Code pc)
+{ return wsizeofInd(pc[0]) + 2;
+}
+
+
 word
 globalIndirectFromCode(Code *PC)
 { GET_LD
