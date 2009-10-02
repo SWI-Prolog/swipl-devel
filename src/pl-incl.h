@@ -1334,6 +1334,10 @@ struct fliFrame
   mark		mark;			/* data-stack mark */
 };
 
+#ifdef O_MAINTENANCE
+#define REC_MAGIC 27473244
+#endif
+
 struct record
 { int		size;			/* # bytes of the record */
   int		nvars;			/* # variables in the term */
@@ -1343,6 +1347,9 @@ struct record
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
 					/* R_LIST */
+#ifdef REC_MAGIC
+  int		magic;			/* REC_MAGIC */
+#endif
   int		references;		/* PL_duplicate_record() support */
   char 		buffer[1];		/* array holding codes */
 };

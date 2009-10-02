@@ -549,6 +549,9 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
+#ifdef REC_MAGIC
+  record->magic = REC_MAGIC;
+#endif
   record->gsize = (unsigned int)info.size; /* only 28-bit */
   record->nvars = info.nvars;
   record->size  = (int)size;
@@ -991,6 +994,9 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
 
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
+#ifdef REC_MAGIC
+  assert(r->magic == REC_MAGIC);
+#endif
   if ( !hasGlobalSpace(r->gsize) )
   { if ( (rc=ensureGlobalSpace(r->gsize, flags)) != TRUE )
       return rc;

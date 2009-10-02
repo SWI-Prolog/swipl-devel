@@ -141,12 +141,10 @@ popSegStack(segstack *stack, void *data)
 
 void *
 topOfSegStack(segstack *stack)
-{ char *rp;
-
+{
 again:
-  rp = stack->top - stack->unit_size;
-  if ( rp >= stack->base )
-  { return rp;
+  if ( stack->top >= stack->base + stack->unit_size )
+  { return stack->top - stack->unit_size;
   } else
   { segchunk *chunk = stack->last;
 
