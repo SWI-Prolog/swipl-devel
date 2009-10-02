@@ -419,14 +419,14 @@ PL_EXPORT(int)		PL_put_variable(term_t t);
 PL_EXPORT(void)		PL_put_atom(term_t t, atom_t a);
 PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars);
-PL_EXPORT(void)		PL_put_list_chars(term_t t, const char *chars);
-PL_EXPORT(void)		PL_put_list_codes(term_t t, const char *chars);
+PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars);
+PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
 PL_EXPORT(int)		PL_put_string_nchars(term_t t, size_t len, const char *chars);
-PL_EXPORT(void)		PL_put_list_nchars(term_t t, size_t l, const char *chars);
-PL_EXPORT(void)		PL_put_list_ncodes(term_t t, size_t l, const char *chars);
-PL_EXPORT(void)		PL_put_integer(term_t t, long i);
-PL_EXPORT(void)		PL_put_pointer(term_t t, void *ptr);
+PL_EXPORT(int)		PL_put_list_nchars(term_t t, size_t l, const char *chars);
+PL_EXPORT(int)		PL_put_list_ncodes(term_t t, size_t l, const char *chars);
+PL_EXPORT(int)		PL_put_integer(term_t t, long i);
+PL_EXPORT(int)		PL_put_pointer(term_t t, void *ptr);
 PL_EXPORT(int)		PL_put_float(term_t t, double f);
 PL_EXPORT(void)		PL_put_functor(term_t t, functor_t functor);
 PL_EXPORT(void)		PL_put_list(term_t l);
@@ -491,7 +491,7 @@ PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len);
 
 PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i);
 PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value);
-PL_EXPORT(void)		PL_put_int64(term_t t, int64_t i);
+PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i);
 
 
 		 /*******************************

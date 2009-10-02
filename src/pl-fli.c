@@ -2084,7 +2084,7 @@ PL_put_string_nchars(term_t t, size_t len, const char *s)
 }
 
 
-void
+int
 PL_put_list_ncodes(term_t t, size_t len, const char *chars)
 { GET_LD
 
@@ -2092,6 +2092,10 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
   { setHandle(t, ATOM_nil);
   } else
   { Word p = allocGlobal(len*3);
+
+    if ( !p )
+      return FALSE;
+
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
     for( ; len-- != 0; chars++)
@@ -2102,16 +2106,18 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
     }
     p[-1] = ATOM_nil;
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list_codes(term_t t, const char *chars)
-{ PL_put_list_ncodes(t, strlen(chars), chars);
+{ return PL_put_list_ncodes(t, strlen(chars), chars);
 }
 
 
-void
+int
 PL_put_list_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
 
@@ -2119,6 +2125,10 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
   { setHandle(t, ATOM_nil);
   } else
   { Word p = allocGlobal(len*3);
+
+    if ( !p )
+      return FALSE;
+
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
     for( ; len-- != 0 ; chars++)
@@ -2129,41 +2139,57 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
     }
     p[-1] = ATOM_nil;
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list_chars(term_t t, const char *chars)
-{ PL_put_list_nchars(t, strlen(chars), chars);
+{ return PL_put_list_nchars(t, strlen(chars), chars);
 }
 
 
-void
+int
+PL_put_int64__LD(term_t t, int64_t i ARG_LD)
+{ word w = consInt(i);
+
+  if ( valInt(w) != i &&
+       put_int64(&w, i, ALLOW_GC PASS_LD) != TRUE )
+    return FALSE;
+
+  setHandle(t, w);
+  return TRUE;
+}
+
+
+int
 PL_put_integer__LD(term_t t, long i ARG_LD)
-{ setHandle(t, makeNum(i));
+{ return PL_put_int64__LD(t, i PASS_LD);
 }
 
 
-void
+int
 PL_put_intptr__LD(term_t t, intptr_t i ARG_LD)
-{ setHandle(t, makeNum(i));
+{ return PL_put_int64__LD(t, i PASS_LD);
+}
+
+
+int
+PL_put_int64(term_t t, int64_t i)
+{ GET_LD
+
+  return PL_put_int64__LD(t, i PASS_LD);
 }
 
 
 #undef PL_put_integer
-void
+int
 PL_put_integer(term_t t, long i)
 { GET_LD
-  setHandle(t, makeNum(i));
+  return PL_put_int64__LD(t, i PASS_LD);
 }
 #define PL_put_integer(t, i) PL_put_integer__LD(t, i PASS_LD)
-
-
-void
-PL_put_int64(term_t t, int64_t i)
-{ GET_LD
-  setHandle(t, makeNum(i));
-}
 
 
 int
@@ -2180,10 +2206,11 @@ _PL_put_number__LD(term_t t, Number n ARG_LD)
 }
 
 
-void
+int
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
-  PL_put_intptr(t, pointerToLong(ptr));
+
+  return PL_put_int64__LD(t, pointerToLong(ptr) PASS_LD);
 }
 
 
