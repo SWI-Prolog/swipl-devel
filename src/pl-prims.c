@@ -352,11 +352,6 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 Public unification procedure for `raw' data.   See also PL_unify(). Note
 that we can have an exception due   to occurs-check errors. In this case
 we must undo carefully to preserve the exception term.
-
-TBD: Save/restore t1&t2 over  makeMoreStackSpace().   One  option  is to
-reserve a few term-references for  this   purpose  and store a reference
-into these. Now, this can execute both   GC  and stack-shifts. How do we
-deal with that?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool

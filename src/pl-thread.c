@@ -2303,11 +2303,7 @@ retry:
       { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
 	goto out;
       }
-      EXCEPTION_GUARDED({ rc = PL_unify(msg, tmp);
-			},
-			{ rval = FALSE;
-			  goto out;
-			});
+      rc = PL_unify(msg, tmp);
 
       if ( rc )
       { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
@@ -2325,7 +2321,8 @@ retry:
 	  cv_signal(&queue->drain_var);
 	}
 	goto out;
-      }
+      } else if ( exception_term )
+	goto out;
 
       PL_rewind_foreign_frame(fid);
     }
@@ -2390,22 +2387,18 @@ peek_message(message_queue *queue, term_t msg)
 
     if ( !PL_recorded(msgp->message, tmp) )
     { rc = raiseStackOverflow(GLOBAL_OVERFLOW);
-      goto out;
+      break;
     }
-    EXCEPTION_GUARDED({ rc = PL_unify(msg, tmp);
-		      },
-		      { goto out;
-		      });
 
-    if ( rc )
+    if ( PL_unify(msg, tmp) )
     { simpleMutexUnlock(&queue->mutex);
       succeed;
-    }
+    } else if ( exception_term )
+      break;
 
     PL_rewind_foreign_frame(fid);
   }
 
-out:
   simpleMutexUnlock(&queue->mutex);
   fail;
 }
