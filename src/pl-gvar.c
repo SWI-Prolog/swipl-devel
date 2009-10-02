@@ -87,7 +87,6 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   Word p;
   word w, old;
   Symbol s;
-  int rc;
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
@@ -97,10 +96,12 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
-					/* avoid shifts from here */
-  if ( (rc=requireStack(global, 3*sizeof(word))) < 0 ||
-       (rc=requireStack(trail,  3*sizeof(word))) < 0 )
-    return raiseStackOverflow(rc);
+  if ( !hasGlobalSpace(3) )		/* also ensures trail for */
+  { int rc;				/* TrailAssignment() */
+
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   p = valTermRef(value);
   deRef(p);

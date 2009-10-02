@@ -1762,8 +1762,10 @@ typedef struct
 #define	TRAIL_OVERFLOW	  (-3)
 #define	ARGUMENT_OVERFLOW (-4)
 
+#define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1
 #define ALLOW_SHIFT	0x2
+#define ALLOW_CHECKED	0x4
 
 typedef enum
 { STACK_OVERFLOW_SIGNAL,

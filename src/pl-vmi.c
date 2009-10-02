@@ -728,11 +728,10 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
 { Word p;
 
   if ( umode == uwrite )
-  { p = ARGP++;
+  { p = ARGP;
     goto write;
   } else
   { deRef2(ARGP, p);
-    ARGP++;
 
     if ( isList(*p) )
     { p = argTermP(*p, 0);
@@ -754,6 +753,10 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
 	{ raiseStackOverflow(rc);
 	  goto b_throw;
 	}
+	if ( umode == uwrite )
+	  p = ARGP;
+	else
+	  deRef2(ARGP, p);
       }
 
       ap = gTop;
@@ -771,6 +774,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
     }
   }
 
+  ARGP++;
   NEXT_INSTRUCTION;
 }
 

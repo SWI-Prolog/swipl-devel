@@ -1107,7 +1107,7 @@ put_double(Word at, double d, int flags ARG_LD)
   } val;
   fword *v;
 
-  if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+  if ( flags != ALLOW_CHECKED && !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
   { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
 
     if ( rc != TRUE )

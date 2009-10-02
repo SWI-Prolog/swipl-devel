@@ -2524,6 +2524,8 @@ PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD)
 
       if ( (rc=ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
 	return raiseStackOverflow(rc);
+      p = valHandleP(t);
+      deRef(p);
     }
 
     if ( valInt(w) != i )
@@ -2596,13 +2598,31 @@ PL_unify_pointer(term_t t, void *ptr)
 int
 PL_unify_float(term_t t, double f)
 { GET_LD
-  word w;
-  int rc;
+  Word p = valHandleP(t);
 
-  if ( (rc=put_double(&w, f, ALLOW_GC PASS_LD)) == TRUE )
-    return unifyAtomic(t, w PASS_LD);
+  deRef(p);
 
-  return raiseStackOverflow(rc);
+  if ( canBind(*p) )
+  { word w;
+
+    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      p = valHandleP(t);
+      deRef(p);
+    }
+
+    put_double(&w, f, ALLOW_CHECKED PASS_LD);
+    bindConst(p, w);
+    succeed;
+  }
+
+  if ( isFloat(*p) && valFloat(*p) == f )
+    succeed;
+
+  fail;
 }
 
 
