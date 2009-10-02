@@ -11,13 +11,11 @@
 
 * Issues to resolve
 
-	- Change PL_put_* from void to int
-	- Foreign calls use SAVE_REGISTERS.  This means PC is around
-	  for growStacks() (pointing into the supervisor).  Is this ok?
 	- Protect callers from newChoice()
 	- Make shifter functions return OK-BUT-SHIFTED
 	- GC: Shift first to accomodate gvars and the argument stack
 	  if needed.
+	- _PL_copy_atomic() is broken; analyse usage
 
 ================================================================
 Static analysis of the C-program:
