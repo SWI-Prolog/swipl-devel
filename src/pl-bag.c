@@ -121,6 +121,7 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
   space = bag->gsize + bag->solutions*3;
+  assert(bag->solutions == bag->answers.count);
 
   if ( !hasGlobalSpace(space) )
   { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
@@ -135,6 +136,7 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
 
     freeRecord(r);
   }
+  assert(bag->answers.count == 0);
 
   assert(LD->bags.bags == bag);
   PL_LOCK(L_AGC);
