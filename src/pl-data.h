@@ -236,18 +236,7 @@ and while loading .wic files.  It comes at no price.
 #define valPAttVar(w)	((Word)valPtr2(w, STG_GLOBAL))
 
 #define canBind(w)	needsRef(w)
-#ifdef O_ATTVAR
-#define bindConst(p, c) if ( isVar(*p) ) \
-			{ *p = (c); \
-    			  TrailEx(p); \
-			} else \
-			{ assignAttVar(p, &(c) PASS_LD); \
-			}
-#else
-#define bindConst(p, c) { *p = (c); \
-			  TrailEx(p); \
-			}
-#endif
+
 
 		 /*******************************
 		 *	      INDIRECTS		*

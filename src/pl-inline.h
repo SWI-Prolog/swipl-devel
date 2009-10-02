@@ -63,4 +63,24 @@ Trail__LD(Word p, word v ARG_LD)
   return TRUE;
 }
 
+
+static inline void
+bindConst__LD(Word p, word c ARG_LD)
+{ assert(hasGlobalSpace(0));
+
+#ifdef O_ATTVAR
+  if ( isVar(*p) )
+  { *p = (c);
+    if ( p >= (Word)lBase || p < LD->mark_bar )
+      (tTop++)->address = p;
+  } else
+  { assignAttVar(p, &(c) PASS_LD);
+  }
+#else
+  *p = (c);
+  if ( p >= (Word)lBase || p < LD->mark_bar )
+    (tTop++)->address = p;
+#endif
+}
+
 #endif /*PL_INLINE_H_INCLUDED*/
