@@ -208,7 +208,7 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
     { int rc;
 
       SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
@@ -245,7 +245,7 @@ VMI(H_NIL, 0, 0, ())
     { int rc;
 
       SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
@@ -1166,7 +1166,20 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
   if ( *k == c )
     NEXT_INSTRUCTION;
   if ( canBind(*k) )
-  { bindConst(k, c);
+  { if ( !hasGlobalSpace(0) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = ensureGlobalSpace(0, ALLOW_GC);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+	goto b_throw;
+      }
+      k = varFrameP(FR, (int)PC[-2]);
+    }
+
+    bindConst(k, c);
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   }
