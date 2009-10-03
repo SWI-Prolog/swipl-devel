@@ -2903,24 +2903,25 @@ decompile(Clause clause, term_t term, term_t bindings)
     PL_get_arg(2, body, body);
   }
 
-  vbody = PL_new_term_ref();
 
   for(;;)
-  { int rc;
-    Word gSave = gTop;
-    Word *aSave = aTop;
+  { fid_t fid = PL_open_foreign_frame();
+    Code PCsave = di->pc;
+    int rc;
 
+    vbody = PL_new_term_ref();
     ARGP = valTermRef(vbody);
     rc = decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
     if ( rc == TRUE )
-    { return PL_unify(body, vbody);
+    { rc = PL_unify(body, vbody);
+      PL_close_foreign_frame(fid);
+      return rc;
     } else if ( rc == FALSE )
-    { return FALSE;
+    { PL_close_foreign_frame(fid);
+      return FALSE;
     } else
-    { gTop = gSave;
-      aTop = aSave;
-
-      setVar(*valTermRef(vbody));
+    { PL_discard_foreign_frame(fid);
+      di->pc = PCsave;
       if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return FALSE;
     }
