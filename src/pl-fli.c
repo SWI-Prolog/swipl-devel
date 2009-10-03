@@ -3377,7 +3377,7 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 }
 
 
-bool
+int
 PL_call(term_t t, Module m)
 { return callProlog(m, t, PL_Q_NORMAL, NULL);
 }
@@ -3567,7 +3567,7 @@ PL_register_extensions(const PL_extension *e)
 }
 
 
-bool
+int
 PL_register_foreign_in_module(const char *module,
 			      const char *name, int arity, Func f, int flags)
 { if ( extensions_loaded )
@@ -3587,7 +3587,7 @@ PL_register_foreign_in_module(const char *module,
 }
 
 
-bool
+int
 PL_register_foreign(const char *name, int arity, Func f, int flags)
 { return PL_register_foreign_in_module(NULL, name, arity, f, flags);
 }
@@ -4011,7 +4011,7 @@ PL_set_prolog_flag(const char *name, int type, ...)
 		*           WARNINGS            *
 		*********************************/
 
-bool
+int
 PL_warning(const char *fm, ...)
 { va_list args;
 
