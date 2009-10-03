@@ -2938,6 +2938,12 @@ The decompilation stack is located on top of the local  stack,  as  this
 area is not in use during decompilation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define BUILD_TERM(f) \
+	{ int rc; \
+	  if ( (rc=build_term((f), di PASS_LD)) != TRUE ) \
+	    return rc; \
+	}
+
 static int
 decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
@@ -3075,11 +3081,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
       			  b_eq_vv_cont:
-			  { int rc = build_term(FUNCTOR_strict_equal2,
-						di PASS_LD);
-			    if ( rc != TRUE )
-			      return rc;
-			  }
+			    BUILD_TERM(FUNCTOR_strict_equal2);
 			    pushed++;
 			    continue;
       case H_VOID:
@@ -3114,12 +3116,15 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	size_t v2 = *PC++;
 	int rc;
 	word w;
+	Word p;
 
 	if ( (rc=put_functor(&w, FUNCTOR_dot2 PASS_LD)) != TRUE )
 	  return rc;
 	*ARGP++ = w;
-	unifyVar(argTermP(w, 0), di->variables, v1 PASS_LD);
-	unifyVar(argTermP(w, 1), di->variables, v2 PASS_LD);
+	p = argTermP(w, 0);
+	if ( (rc=unifyVar(p+0, di->variables, v1 PASS_LD)) != TRUE ||
+	     (rc=unifyVar(p+1, di->variables, v2 PASS_LD)) != TRUE )
+	  return rc;
 	continue;
       }
       case H_RFUNCTOR:
@@ -3151,24 +3156,24 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 #ifdef O_COMPILE_IS
       case B_UNIFY_EXIT:
 			  b_unify_exit:
-			    build_term(FUNCTOR_equals2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_equals2);
 			    pushed++;
 			    continue;
 #endif
 #if O_COMPILE_ARITH
       case A_ADD:
-			    build_term(FUNCTOR_plus2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_plus2);
 			    continue;
       case A_MUL:
-			    build_term(FUNCTOR_star2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_star2);
 			    continue;
       case A_FUNC0:
       case A_FUNC1:
       case A_FUNC2:
-			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
+			    BUILD_TERM(functorArithFunction((int)*PC++));
 			    continue;
       case A_FUNC:
-      			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
+      			    BUILD_TERM(functorArithFunction((int)*PC++));
       			    PC++;
 			    continue;
       case A_ADD_FC:
@@ -3179,8 +3184,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	*ARGP++ = makeVarRef(rvar);
 	*ARGP++ = makeVarRef(ivar);
 	*ARGP++ = consInt(add);
-	build_term(FUNCTOR_plus2, di PASS_LD); /* create B+<n> */
-	build_term(FUNCTOR_is2, di PASS_LD);
+	BUILD_TERM(FUNCTOR_plus2); /* create B+<n> */
+	BUILD_TERM(FUNCTOR_is2);
 	pushed++;
 	continue;
       }
@@ -3212,7 +3217,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 #endif
         case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
 							f_common:
-			    build_term(f, di PASS_LD);
+			    BUILD_TERM(f);
 			    pushed++;
 			    continue;
       }
@@ -3240,22 +3245,22 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
-			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    BUILD_TERM(proc->definition->functor->functor);
 			    pushed++;
 			    continue;
 			  }
       case I_DEPARTM:
       case I_CALLM:       { Module m = (Module)XR(*PC++);
 			    Procedure proc = (Procedure)XR(*PC++);
-			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    BUILD_TERM(proc->definition->functor->functor);
 			    ARGP++;
 			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
 			    ARGP[-2] = m->name;
-			    build_term(FUNCTOR_colon2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_colon2);
 			    pushed++;
 			    continue;
 			  }
-      case I_USERCALL0:	    build_term(FUNCTOR_call1, di PASS_LD);
+      case I_USERCALL0:	    BUILD_TERM(FUNCTOR_call1);
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR
@@ -3271,14 +3276,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    DECOMPILETOJUMP;	/* A */
 			    PC--;		/* get C_JMP argument */
 			    DECOMPILETOJUMP;	/* B */
-			    build_term(FUNCTOR_semicolon2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_semicolon2);
 			    pushed++;
 			    continue;
       case C_NOT:				/* \+ A */
 			  { PC += 2;		/* skip the two arguments */
 			    decompileBody(di, C_CUT, (Code)NULL PASS_LD);   /* A */
 			    PC += 3;		/* skip C_CUT <n> and C_FAIL */
-			    build_term(FUNCTOR_not_provable1, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_not_provable1);
 			    pushed++;
 			    continue;
 			  }
@@ -3301,10 +3306,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    decompileBody(di, icut, (Code)NULL PASS_LD);   /* A */
 			    PC += 2;		/* skip the cut */
 			    decompileBody(di, (code)-1, adr1 PASS_LD);	    /* B */
-			    build_term(f, di PASS_LD);
+			    BUILD_TERM(f);
 			    PC--;
 			    DECOMPILETOJUMP;	/* C */
-			    build_term(FUNCTOR_semicolon2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_semicolon2);
 			    pushed++;
 			    continue;
 			  }
@@ -3314,7 +3319,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    PC += 2;
 			    decompileBody(di, C_END, (Code)NULL PASS_LD);   /* B */
 			    PC++;
-			    build_term(FUNCTOR_ifthen2, di PASS_LD);
+			    BUILD_TERM(FUNCTOR_ifthen2);
 			    pushed++;
 			    continue;
 #endif /* O_COMPILE_OR */
@@ -3330,11 +3335,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
   }
 
   while( pushed-- > 1)
-  { int rc;
-
-    if ( (rc=build_term(FUNCTOR_comma2, di PASS_LD)) != TRUE )
-      return rc;
-  }
+    BUILD_TERM(FUNCTOR_comma2);
 
   return TRUE;
 }
