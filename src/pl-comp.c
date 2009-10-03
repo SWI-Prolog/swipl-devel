@@ -2588,9 +2588,9 @@ typedef struct
   term_t bindings;			/* [Offset = Var, ...] */
 } decompileInfo;
 
-forwards bool	decompile_head(Clause, term_t, decompileInfo * ARG_LD);
-forwards bool	decompileBody(decompileInfo *, code, Code ARG_LD);
-forwards void	build_term(functor_t, decompileInfo * ARG_LD);
+static int decompile_head(Clause, term_t, decompileInfo * ARG_LD);
+static int decompileBody(decompileInfo *, code, Code ARG_LD);
+static int build_term(functor_t, decompileInfo * ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
@@ -2635,7 +2635,7 @@ next_arg_ref(term_t argp ARG_LD)
 }
 
 
-static bool
+static int
 unifyVar(Word var, term_t *vars, size_t i ARG_LD)
 { DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
 
@@ -2937,7 +2937,7 @@ The decompilation stack is located on top of the local  stack,  as  this
 area is not in use during decompilation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
@@ -3284,9 +3284,13 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
   }
 
   while( pushed-- > 1)
-    build_term(FUNCTOR_comma2, di PASS_LD);
+  { int rc;
 
-  succeed;
+    if ( (rc=build_term(FUNCTOR_comma2, di PASS_LD)) != TRUE )
+      return rc;
+  }
+
+  return TRUE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3294,35 +3298,48 @@ Build the actual term.  The arguments are on  the  decompilation  stack.
 We  construct a term of requested arity and name, copy `arity' arguments
 from the stack into the term and finally  push  the  term  back  on  the
 stack.
+
+Returns one of TRUE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 build_term(functor_t f, decompileInfo *di ARG_LD)
 { word term;
-  int arity = arityFunctor(f);
+  int i, arity = arityFunctor(f);
   Word a;
 
   if ( arity == 0 )
-  { requireStackEx(local, sizeof(Word));
-    *ARGP++ = nameFunctor(f);
-    return;
+  { *ARGP++ = nameFunctor(f);
+    return TRUE;
   }
 
-  term = globalFunctor(f);
-  a = argTermP(term, arity-1);
+  if ( gTop+1+arity > gMax )
+    return GLOBAL_OVERFLOW;
+  a = gTop;
+  gTop += 1+arity;
+  term = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+  *a = f;
+  for(i=0; i<arity; i++)
+    setVar(*++a);
+					/* now a point to last argument */
 
   ARGP--;
   for( ; arity-- > 0; a--, ARGP-- )
   { ssize_t var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
-      unifyVar(a, di->variables, var PASS_LD);
-    else
-      *a = *ARGP;
+    { int rc;
+
+      if ( (rc=unifyVar(a, di->variables, var PASS_LD)) != TRUE )
+	return rc;
+    } else
+    { *a = *ARGP;
+    }
   }
   ARGP++;
 
   *ARGP++ = term;
+  return TRUE;
 }
 
 #undef PC
