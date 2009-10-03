@@ -2895,11 +2895,27 @@ decompile(Clause clause, term_t term, term_t bindings)
   }
 
   vbody = PL_new_term_ref();
-  ARGP = valTermRef(vbody);
 
-  decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
+  for(;;)
+  { int rc;
+    Word gSave = gTop;
+    Word *aSave = aTop;
 
-  return PL_unify(body, vbody);
+    ARGP = valTermRef(vbody);
+    rc = decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
+    if ( rc == TRUE )
+    { return PL_unify(body, vbody);
+    } else if ( rc == FALSE )
+    { return FALSE;
+    } else
+    { gTop = gSave;
+      aTop = aSave;
+
+      setVar(*valTermRef(vbody));
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	return FALSE;
+    }
+  }
 }
 
 
