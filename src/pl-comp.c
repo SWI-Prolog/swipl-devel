@@ -2974,12 +2974,24 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case H_INTEGER:
 	case B_INTEGER:
 	case A_INTEGER:
-			    *ARGP++ = makeNum((intptr_t)*PC++);
+			  { intptr_t i = (intptr_t)*PC++;
+			    int rc;
+
+			    if ( (rc=put_int64(ARGP++, i, 0 PASS_LD)) != TRUE )
+			      return rc;
 			    continue;
+			  }
 	case H_INT64:
 	case B_INT64:
 	case A_INT64:
-			  { Word p = allocGlobal(2+WORDS_PER_INT64);
+			  { Word p;
+			    int rc = requireStack(global, 2+WORDS_PER_INT64);
+
+			    if ( rc != TRUE )
+			      return rc;
+			    p = gTop;
+			    gTop += 2+WORDS_PER_INT64;
+
 			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    cpInt64Data(p, PC);
@@ -2989,7 +3001,13 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case H_FLOAT:
 	case B_FLOAT:
 	case A_DOUBLE:
-		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
+		  	  { Word p;
+			    int rc = requireStack(global, 2+WORDS_PER_DOUBLE);
+
+			    if ( rc != TRUE )
+			      return rc;
+			    p = gTop;
+			    gTop += 2+WORDS_PER_DOUBLE;
 
 			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -3002,8 +3020,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
+			  { size_t sz = gsizeIndirectFromCode(PC);
+			    int rc = requireStack(global, sz);
+			    if ( rc != TRUE )
+			      return rc;
+
 	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
+			  }
       { size_t index;
 
 	case B_ARGVAR:
@@ -3022,9 +3046,13 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 			    if ( nested )
-			      unifyVar(ARGP++, di->variables, index PASS_LD);
-			    else
-			      *ARGP++ = makeVarRef(index);
+			    { int rc = unifyVar(ARGP++, di->variables,
+						index PASS_LD);
+			      if ( rc != TRUE )
+				return rc;
+			    } else
+			    { *ARGP++ = makeVarRef(index);
+			    }
 			    continue;
       }
       case B_UNIFY_FF:
@@ -3046,7 +3074,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			    *ARGP++ = makeVarRef((int)*PC++);
       			  b_eq_vv_cont:
-			    build_term(FUNCTOR_strict_equal2, di PASS_LD);
+			  { int rc = build_term(FUNCTOR_strict_equal2,
+						di PASS_LD);
+			    if ( rc != TRUE )
+			      return rc;
+			  }
 			    pushed++;
 			    continue;
       case H_VOID:
