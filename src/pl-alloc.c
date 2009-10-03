@@ -1192,15 +1192,19 @@ globalIndirectFromCode(Code *PC)
   word m = *pc++;
   size_t n = wsizeofInd(m);
   Word p = allocGlobal(n+2);
-  word r = consPtr(p, tag(m)|STG_GLOBAL);
 
-  *p++ = m;
-  while(n-- > 0)
-    *p++ = *pc++;
-  *p++ = m;
+  if ( p )
+  { word r = consPtr(p, tag(m)|STG_GLOBAL);
 
-  *PC = pc;
-  return r;
+    *p++ = m;
+    while(n-- > 0)
+      *p++ = *pc++;
+    *p++ = m;
+
+    *PC = pc;
+    return r;
+  } else
+    return 0;
 }
 
 
