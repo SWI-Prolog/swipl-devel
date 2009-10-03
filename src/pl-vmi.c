@@ -465,7 +465,7 @@ VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
     { int rc;
 
       SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
+      rc = ensureGlobalSpace(sz, ALLOW_GC);
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
