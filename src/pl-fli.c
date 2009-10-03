@@ -3151,20 +3151,6 @@ _PL_put_atomic(term_t t, PL_atomic_t a)
 }
 
 
-void
-_PL_copy_atomic(term_t t, PL_atomic_t arg) /* internal one */
-{ GET_LD
-  word a;
-
-  if ( isIndirect(arg) )
-    a = globalIndirect(arg);
-  else
-    a = arg;
-
-  setHandle(t, a);
-}
-
-
 		 /*******************************
 		 *	       BLOBS		*
 		 *******************************/

@@ -1194,29 +1194,6 @@ equalIndirect(word w1, word w2)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Copy an indirect data object to the heap.  The type is not of importance,
-neither is the length or original location.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-globalIndirect(word w)
-{ GET_LD
-  Word p = addressIndirect(w);
-  word t = *p;
-  size_t  n = wsizeofInd(t);
-  Word h = allocGlobal((n+2));
-  Word hp = h;
-
-  *hp = t;
-  while(n-- > 0)
-    *++hp = *++p;
-  *++hp = t;
-
-  return consPtr(h, tag(w)|STG_GLOBAL);
-}
-
-
 size_t
 gsizeIndirectFromCode(Code pc)
 { return wsizeofInd(pc[0]) + 2;

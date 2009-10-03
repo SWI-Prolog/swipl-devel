@@ -57,7 +57,6 @@ COMMON(double) 		valFloat__LD(word w ARG_LD);
 #ifdef INT64_ALIGNMENT
 COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
-COMMON(word) 		globalIndirect(word in);
 COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word) 		globalIndirectFromCode(Code *PC);

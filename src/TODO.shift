@@ -15,7 +15,6 @@
 	- Make shifter functions return OK-BUT-SHIFTED
 	- GC: Shift first to accomodate gvars and the argument stack
 	  if needed.
-	- _PL_copy_atomic() is broken; analyse usage
 
 ================================================================
 Static analysis of the C-program:
