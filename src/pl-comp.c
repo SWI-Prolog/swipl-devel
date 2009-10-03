@@ -2591,6 +2591,7 @@ typedef struct
 static int decompile_head(Clause, term_t, decompileInfo * ARG_LD);
 static int decompileBody(decompileInfo *, code, Code ARG_LD);
 static int build_term(functor_t, decompileInfo * ARG_LD);
+static int put_functor(Word p, functor_t f ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
@@ -2985,7 +2986,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_INT64:
 	case A_INT64:
 			  { Word p;
-			    int rc = requireStack(global, 2+WORDS_PER_INT64);
+			    int rc = requireGlobal(2+WORDS_PER_INT64);
 
 			    if ( rc != TRUE )
 			      return rc;
@@ -3002,7 +3003,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p;
-			    int rc = requireStack(global, 2+WORDS_PER_DOUBLE);
+			    int rc = requireGlobal(2+WORDS_PER_DOUBLE);
 
 			    if ( rc != TRUE )
 			      return rc;
@@ -3021,7 +3022,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_MPZ:
 	case B_MPZ:
 			  { size_t sz = gsizeIndirectFromCode(PC);
-			    int rc = requireStack(global, sz);
+			    int rc = requireGlobal(sz);
 			    if ( rc != TRUE )
 			      return rc;
 
@@ -3092,7 +3093,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 	fdef = (functor_t)XR(*PC++);
       common_bfunctor:
-        { word w = globalFunctor(fdef);
+        { int rc;
+	  word w;
+
+	  if ( (rc=put_functor(&w, fdef PASS_LD)) != TRUE )
+	    return rc;
 	  *ARGP++ = w;
 	  *aTop++ = ARGP;
 	  ARGP = argTermP(w, 0);
@@ -3107,7 +3112,11 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case H_LIST_FF:
       { size_t v1 = *PC++;
 	size_t v2 = *PC++;
-	word w = globalFunctor(FUNCTOR_dot2);
+	int rc;
+	word w;
+
+	if ( (rc=put_functor(&w, FUNCTOR_dot2 PASS_LD)) != TRUE )
+	  return rc;
 	*ARGP++ = w;
 	unifyVar(argTermP(w, 0), di->variables, v1 PASS_LD);
 	unifyVar(argTermP(w, 1), di->variables, v2 PASS_LD);
@@ -3119,7 +3128,12 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
 	fdef = (functor_t)XR(*PC++);
       common_brfunctor:
-	{ word w = globalFunctor(fdef);
+	{ word w;
+	  int rc;
+
+	  if ( (rc=put_functor(&w, fdef PASS_LD)) != TRUE )
+	    return rc;
+
 	  *ARGP++ = w;
 	  ARGP= argTermP(w, 0);
 	}
@@ -3324,6 +3338,28 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 
   return TRUE;
 }
+
+
+static int
+put_functor(Word p, functor_t f ARG_LD)
+{ int arity = arityFunctor(f);
+  int rc;
+  Word a, t;
+
+  if ( (rc = requireGlobal(1+arity)) != TRUE )
+    return rc;
+
+  a = t = gTop;
+  gTop += (1+arity);
+
+  *a = f;
+  while( --arity >= 0 )
+    setVar(*++a);
+
+  *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+  return TRUE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Build the actual term.  The arguments are on  the  decompilation  stack.

@@ -44,7 +44,6 @@ COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void) 		initMemAlloc(void);
 COMMON(void) 		cleanupMemAlloc(void);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
-COMMON(word) 		globalFunctor(functor_t def);
 COMMON(word) 		globalString(size_t len, const char *s);
 COMMON(word) 		globalWString(size_t len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);

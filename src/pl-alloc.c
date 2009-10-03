@@ -842,21 +842,6 @@ Word allocGlobal__LD(size_t n ARG_LD)
 
 #endif
 
-word
-globalFunctor(functor_t f)
-{ GET_LD
-  int arity = arityFunctor(f);
-  Word a = allocGlobal(1 + arity);
-  Word t = a;
-
-  *a = f;
-  while( --arity >= 0 )
-    setVar(*++a);
-
-  return consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-}
-
-
 Word
 newTerm(void)
 { GET_LD
