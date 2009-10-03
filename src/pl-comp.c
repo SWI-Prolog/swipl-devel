@@ -2649,7 +2649,7 @@ unifyVar(Word var, term_t *vars, size_t i ARG_LD)
 static bool
 decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 { int arity;
-  term_t argp;
+  term_t argp = 0;
   int argn = 0;
   int pushed = 0;
   Definition def = getProcDefinition(clause->procedure);
@@ -2683,14 +2683,14 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   if ( true(clause, GOAL_CLAUSE) )
     return PL_unify_atom(head, ATOM_dcall);
 
-  argp  = PL_new_term_ref();
-
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
   TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
+  { if ( !(argp = PL_new_term_ref()) )
+      return FALSE;
     get_arg_ref(head, argp PASS_LD);
-
+  }
 
 #define NEXTARG { next_arg_ref(argp PASS_LD); if ( !pushed ) argn++; }
 
@@ -2715,7 +2715,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case H_STRING:
       case H_MPZ:
         { word copy = globalIndirectFromCode(&PC);
-	  TRY(_PL_unify_atomic(argp, copy));
+	  if ( !copy || !_PL_unify_atomic(argp, copy) )
+	    return FALSE;
 	  NEXTARG;
 	  continue;
 	}
@@ -2740,13 +2741,16 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
         { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 	  word w;
 
-	  w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	  cpDoubleData(p, PC);
-	  *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	  TRY(_PL_unify_atomic(argp, w));
-	  NEXTARG;
-	  continue;
+	  if ( p )
+	  { w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+	    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	    cpDoubleData(p, PC);
+	    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	    TRY(_PL_unify_atomic(argp, w));
+	    NEXTARG;
+	    continue;
+	  } else
+	    return FALSE;
 	}
       case H_CONST:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
@@ -2772,8 +2776,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  fdef = (functor_t) XR(*PC++);
       common_functor:
-	  t2 = PL_new_term_ref();
-	  TRY(PL_unify_functor(argp, fdef));
+	  if ( !(t2 = PL_new_term_ref()) ||
+	       !PL_unify_functor(argp, fdef) )
+	    return FALSE;
           get_arg_ref(argp, t2 PASS_LD);
           next_arg_ref(argp PASS_LD);
 	  argp = t2;
@@ -2820,10 +2825,14 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	{ assert(argn <= arity);
-	  for(; argn < arity; argn++)
-	  { TRY(unifyVar(valTermRef(argp), di->variables,
-			 VAROFFSET(argn) PASS_LD));
-	    next_arg_ref(argp PASS_LD);
+
+	  if ( argp )
+	  { for(; argn < arity; argn++)
+	    { TRY(unifyVar(valTermRef(argp), di->variables,
+			   VAROFFSET(argn) PASS_LD));
+	      next_arg_ref(argp PASS_LD);
+	    }
+	    PL_reset_term_refs(argp);
 	  }
 
 	  succeed;
