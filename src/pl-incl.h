@@ -1789,6 +1789,8 @@ typedef enum
 	((triggerStack(s) < (ssize_t)(n)) \
 		? ensureRoomStack(s, (n), FALSE) : TRUE)
 
+#define requireGlobal(n) requireStack(global, (n)*sizeof(word))
+
 #define pushArgumentStack(p) \
 	do { if ( aTop+1 < aMax ) \
 	       *aTop++ = (p); \

@@ -1194,7 +1194,7 @@ equalIndirect(word w1, word w2)
 }
 
 
-size_t
+size_t					/* size in cells */
 gsizeIndirectFromCode(Code pc)
 { return wsizeofInd(pc[0]) + 2;
 }
