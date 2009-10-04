@@ -1865,10 +1865,17 @@ setarg(term_t n, term_t term, term_t value, int flags)
     if ( isVar(*a) )
     { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT PASS_LD);
     } else
-    { int rc;
+    { if ( !hasGlobalSpace(0) )
+      { int rc;
 
-      if ( (rc=TrailAssignment(a)) < 0 )
-	return raiseStackOverflow(rc);
+	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+	  return raiseStackOverflow(rc);
+	a = valTermRef(term);
+	deRef(a);
+	a = argTermP(*a, argn-1);
+      }
+
+      TrailAssignment(a);
     }
   } else
   { v = valTermRef(value);

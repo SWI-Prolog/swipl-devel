@@ -82,7 +82,7 @@ COMMON(void)		freezeGlobal(ARG1_LD);
 
 /* pl-wam.c */
 COMMON(word) 		pl_count(void);
-COMMON(int) 		TrailAssignment__LD(Word p ARG_LD);
+COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void) 		fix_term_ref_count(void);

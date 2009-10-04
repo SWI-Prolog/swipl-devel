@@ -668,24 +668,19 @@ TBD: allocate the head and tail of the  wakeup list on the global stack.
 Possibly this should also hold for the other `special term references'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+void
 TrailAssignment__LD(Word p ARG_LD)
-{ if ( p < LD->mark_bar || p >= (Word)lBase )
-  { Word old;
-    int rc;
+{ assert(gTop+1 <= gMax && tTop+2 <= tMax);
+  assert(!(*p & (MARK_MASK|FIRST_MASK)));
 
-    if ( (rc=requireTrailStack(2)) < 0 )
-      return rc;
-    if ( !(old= allocGlobalNoShift(1)) )
-      return GLOBAL_OVERFLOW;
+  if ( p < LD->mark_bar || p >= (Word)lBase )
+  { Word old = gTop;
 
-    assert(!(*p & (MARK_MASK|FIRST_MASK)));
+    gTop++;
     *old = *p;				/* save the old value on the global */
     (tTop++)->address = p;
     (tTop++)->address = tagTrailPtr(old);
   }
-
-  return TRUE;
 }
 
 
