@@ -952,14 +952,27 @@ ARGP is pointing into the term on the global stack we are creating.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_ARGVAR, 0, 1, (CA1_VAR))
-{ Word k;
+{ Word k = varFrameP(FR, *PC++);
 
-  deRef2(varFrameP(FR, *PC++), k);
+  deRef(k);
   if ( isVar(*k) )
   { if ( ARGP < k )
-    { setVar(*ARGP);
-      *k = makeRefG(ARGP++);
-      TrailEx(k);
+    { if ( tTop+1 > tMax )
+      { int rc;
+
+	SAVE_REGISTERS(qid);
+	rc = ensureTrailSpace(1);
+	LOAD_REGISTERS(qid);
+	if ( rc != TRUE )
+	{ raiseStackOverflow(rc);
+	  assert(exception_term);
+	  goto b_throw;
+	}
+	k = varFrameP(FR, (int)PC[-1]);
+	deRef(k);
+      }
+      setVar(*ARGP);
+      Trail(k, makeRefG(ARGP++));
       NEXT_INSTRUCTION;
     }
     *ARGP++ = makeRefG(k);	/* both on global stack! */
