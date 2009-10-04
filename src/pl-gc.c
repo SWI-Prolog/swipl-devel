@@ -2316,7 +2316,7 @@ static void
 setStartOfVMI(vm_state *state)
 { LocalFrame fr = state->frame;
 
-  if ( fr->clause && state->pc )
+  if ( fr->clause && false(fr->predicate, FOREIGN) && state->pc )
   { Clause clause = fr->clause->clause;
     Code PC, ep, next;
 
@@ -3147,38 +3147,42 @@ Returns TRUE, FALSE or *_OVERFLOW
 int
 ensureGlobalSpace(size_t cells, int flags)
 { GET_LD
-  size_t gmin = (cells+BIND_GLOBAL_SPACE)*sizeof(word);
-  int rc;
 
-  if ( (rc=requireStack(global, gmin)) == TRUE &&
-       (rc=requireTrailStack(BIND_TRAIL_SPACE)) == TRUE )
+  cells += BIND_GLOBAL_SPACE;
+  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
     return TRUE;
 
   if ( !flags )
-    return rc;
+    goto nospace;
 
   if ( considerGarbageCollect(NULL) )
   { garbageCollect();
 
-    if ( (rc=requireStack(global, gmin)) == TRUE &&
-	 (rc=requireTrailStack(BIND_TRAIL_SPACE)) == TRUE )
+    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
 
 #ifdef O_SHIFT_STACKS
-  { size_t tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
-    return growStacks(0, gmin, tmin);
+  { size_t gmin = cells*sizeof(word);
+    size_t tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
+
+    growStacks(0, gmin, tmin);
+    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+      return TRUE;
   }
-#else
-  return rc;
 #endif
+
+nospace:
+  if ( gTop+cells > gMax )
+    return GLOBAL_OVERFLOW;
+  else
+    return TRAIL_OVERFLOW;
 }
 
 
 int
 ensureTrailSpace(size_t cells)
 { GET_LD
-  int rc = TRAIL_OVERFLOW;
 
   if ( tTop+cells <= tMax )
     return TRUE;
@@ -3192,30 +3196,35 @@ ensureTrailSpace(size_t cells)
 
 #ifdef O_SHIFT_STACKS
   { size_t tmin = cells*sizeof(struct trail_entry);
-    return growStacks(0, 0, tmin);
+
+    growStacks(0, 0, tmin);
+    if ( tTop+cells <= tMax )
+      return TRUE;
   }
-#else
-  return TRAIL_OVERFLOW;
 #endif
+
+  return TRAIL_OVERFLOW;
 }
 
 
 int
 ensureLocalSpace(size_t bytes, int flags)
 { GET_LD
-  int rc;
 
-  if ( (rc=requireStack(local, bytes)) == TRUE )
+  if ( addPointer(lTop, bytes) <= (void*)lMax )
     return TRUE;
 
   if ( !flags )
-    return rc;
+    goto nospace;
 
 #ifdef O_SHIFT_STACKS
-  return growStacks(bytes, 0, 0);
-#else
-  return rc;
+  growStacks(bytes, 0, 0);
+  if ( addPointer(lTop, bytes) <= (void*)lMax )
+    return TRUE;
 #endif
+
+nospace:
+  return LOCAL_OVERFLOW;
 }
 
 
