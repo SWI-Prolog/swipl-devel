@@ -658,48 +658,51 @@ freeze(X, Goal) :-
 freeze(_, Goal) :-
 	Goal.
 
+Note that Goal is qualified because freeze is a declared meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
-PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
+PRED_IMPL("$freeze", 2, freeze, 0)
 { PRED_LD
   Word v;
 
-  PRED_NEEDS_LGT(1,9,3);
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   v = valTermRef(A1);
   deRef(v);
   if ( isVar(*v) || isAttVar(*v) )
-  { Module m = NULL;
-    term_t g = PL_new_term_ref();			/* SHIFT: local=1 */
-    Word gt = allocGlobal(3);				/* SHIFT: 3+0 */
-    word goal = consPtr(gt, TAG_COMPOUND|STG_GLOBAL);
+  { Word goal;
 
-    PL_strip_module(A2, &m, g);
-    gt[0] = FUNCTOR_colon2;
-    gt[1] = m->name;
-    gt[2] = *valTermRef(g);
+    goal = valTermRef(A2);
+    deRef(goal);
 
     if ( isVar(*v) )
-    { put_new_attvar(v, ATOM_freeze, &goal PASS_LD);	/* SHIFT: 6+1 */
+    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+1 */
     } else
     { Word vp;
 
       if ( find_attr(v, ATOM_freeze, &vp PASS_LD) )
-      { Word gc = allocGlobal(3);			/* SHIFT: 3+0 */
+      { Word gc = gTop;
 
+	gTop += 3;
 	gc[0] = FUNCTOR_dand2;
 	gc[1] = linkVal(vp);
-	gc[2] = goal;
+	gc[2] = *goal;
 
 	TrailAssignment(vp);				/* SHIFT: 1+2 */
 	*vp = consPtr(gc, TAG_COMPOUND|STG_GLOBAL);
       } else if ( vp )					/* vp points to [] */
-      { Word at = allocGlobal(4);			/* SHIFT: 4+0  */
+      { Word at = gTop;
 
+	gTop += 4;
 	at[0] = FUNCTOR_att3;
 	at[1] = ATOM_freeze;
-	at[2] = goal;
+	at[2] = *goal;
 	at[3] = ATOM_nil;
 
 	assert(*vp == ATOM_nil);
@@ -918,7 +921,7 @@ BeginPredDefs(attvar)
   PRED_DEF("del_attrs", 1, del_attrs, 0)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
-  PRED_DEF("$freeze",   2, freeze,    PL_FA_TRANSPARENT)
+  PRED_DEF("$freeze",   2, freeze,    0)
 #ifdef O_CALL_RESIDUE
   PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
