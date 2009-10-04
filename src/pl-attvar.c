@@ -163,18 +163,23 @@ static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
+  assert(gTop+2 <= gMax && tTop+1 <= tMax);
+
   if ( p >= (Word)lBase )
-  { gp = allocGlobal(2);
+  { gp = gTop;
     gp[1] = ATOM_nil;
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRefG(&gp[0]);
+    *p = makeRefG(gp);
+    gTop += 2;
+    (tTop++)->address = p;
   } else
-  { gp = allocGlobal(1);
+  { gp = gTop;
     gp[0] = ATOM_nil;
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+    gTop += 1;
+    if ( p < LD->mark_bar )
+      (tTop++)->address = p;
   }
-
-  TrailEx(p);
 }
 
 
@@ -182,22 +187,27 @@ make_new_attvar(Word p ARG_LD)
 SHIFT-SAFE: Requires 6 global + 1 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static void
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
-  word w;
 
+  assert(gTop+6 <= gMax && tTop+1 <= tMax);
+
+  gp = gTop;
   if ( p >= (Word)lBase )
-  { gp = allocGlobal(6);
+  { gTop += 6;
     at = &gp[1];
     setVar(*at);
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    w = makeRefG(&gp[0]);
+    *p = makeRefG(&gp[0]);
+    (tTop++)->address = p;
   } else
-  { gp = allocGlobal(5);
+  { gTop += 5;
     at = &gp[0];
     setVar(*at);
-    w = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+    *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
+    if ( p < LD->mark_bar )
+      (tTop++)->address = p;
   }
 
   at[1] = FUNCTOR_att3;
@@ -205,8 +215,6 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[3] = linkVal(value);
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
-
-  return Trail(p, w);
 }
 
 
@@ -549,7 +557,8 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   deRef(av);
 
   if ( isVar(*av) )
-  { return put_new_attvar(av, name, vp PASS_LD);	/* SHIFT: 6+1 */
+  { put_new_attvar(av, name, vp PASS_LD);
+    return TRUE;
   } else if ( isAttVar(*av) )
   { return put_attr(av, name, vp PASS_LD);		/* SHIFT: 5+2 */
   } else
@@ -563,7 +572,12 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
 { PRED_LD
   Word av, vp;
 
-  PRED_NEEDS_LGT(0,3,2);
+  if ( !hasGlobalSpace(0) )		/* 0 means enough for attvars */
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   av = valTermRef(A1);
   deRef(av);
