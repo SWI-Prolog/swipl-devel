@@ -15,6 +15,9 @@
 	- Make shifter functions return OK-BUT-SHIFTED
 	- GC: Shift first to accomodate gvars and the argument stack
 	  if needed.
+	- Cleanup unneeded trail entries when discarding a choicepoint
+		- Wins for foreign-frames
+		- Also for !
 
 ================================================================
 Static analysis of the C-program:
