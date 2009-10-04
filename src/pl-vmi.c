@@ -527,15 +527,28 @@ stack that must be treated as a variable.
 
 VMI(H_VAR, 0, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (int)*PC++);
+  int rc;
 
   if ( umode == uwrite )
   { if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
     { deRef(k);
       if ( isVar(*k) )
       { if ( k > ARGP )			/* k on local stack */
-	{ setVar(*ARGP);
-	  *k = makeRefG(ARGP);
-	  TrailEx(k);
+	{ if ( tTop+1 > tMax )
+	  { int rc;
+
+	    SAVE_REGISTERS(qid);
+	    rc = ensureTrailSpace(1);
+	    LOAD_REGISTERS(qid);
+	    if ( rc != TRUE )
+	    { raiseStackOverflow(rc);
+	      goto b_throw;
+	    }
+	    k = varFrameP(FR, (int)PC[-1]);
+	    deRef(k);
+	  }
+	  setVar(*ARGP);
+	  Trail(k, makeRefG(ARGP));
 	} else
 	{ *ARGP = makeRefG(k);		/* ARGP on global, so k also */
 	}
@@ -552,8 +565,13 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     }
   }
 
-  if ( unify_ptrs(k, ARGP++, 0 PASS_LD) )
+  SAVE_REGISTERS(qid);
+  rc = unify_ptrs(k, ARGP, 0 PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( rc )
+  { ARGP++;
     NEXT_INSTRUCTION;
+  }
   if ( exception_term )
     goto b_throw;
   CLAUSE_FAILED;
