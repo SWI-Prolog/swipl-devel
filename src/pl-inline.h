@@ -49,18 +49,13 @@ stepPC(Code PC)
 }
 
 
-static inline int
+static inline void
 Trail__LD(Word p, word v ARG_LD)
-{ if ( p >= (Word)lBase || p < LD->mark_bar )
-  { int rc;
+{ assert(tTop+1 <= tMax);
 
-    if ( (rc=requireTrailStack(1)) < 0 )
-      return rc;
+  if ( p >= (Word)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
-  }
   *p = v;
-
-  return TRUE;
 }
 
 

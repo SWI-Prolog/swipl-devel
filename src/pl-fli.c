@@ -3074,21 +3074,21 @@ PL_unify_term(term_t t, ...)
 int
 _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
-  Word p = valHandleP(t);
+  Word p;
+
+  if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  p = valHandleP(t);
 
   do
   { if ( canBind(*p) )
     { Word a;
       word c;
-
-      if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
-	  return raiseStackOverflow(rc);
-	p = valHandleP(t);
-	deRef(p);
-      }
 
       a = gTop;
       gTop += 2;
@@ -3112,8 +3112,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
       if ( *a == v )
 	succeed;
       if ( isVar(*a) )
-      { *a = v;
-        TrailEx(a);
+      { Trail(a, v);
 	succeed;
       }
       if ( isIndirect(v) )

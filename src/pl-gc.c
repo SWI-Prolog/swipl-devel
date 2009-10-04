@@ -3176,6 +3176,31 @@ ensureGlobalSpace(size_t cells, int flags)
 
 
 int
+ensureTrailSpace(size_t cells)
+{ GET_LD
+  int rc = TRAIL_OVERFLOW;
+
+  if ( tTop+cells <= tMax )
+    return TRUE;
+
+  if ( considerGarbageCollect(NULL) )
+  { garbageCollect();
+
+    if ( tTop+cells <= tMax )
+      return TRUE;
+  }
+
+#ifdef O_SHIFT_STACKS
+  { size_t tmin = cells*sizeof(struct trail_entry);
+    return growStacks(0, 0, tmin);
+  }
+#else
+  return TRAIL_OVERFLOW;
+#endif
+}
+
+
+int
 ensureLocalSpace(size_t bytes, int flags)
 { GET_LD
   int rc;

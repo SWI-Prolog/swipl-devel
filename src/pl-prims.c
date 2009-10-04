@@ -222,27 +222,35 @@ right_recursion:
 #endif
 
   if ( isVar(w1) )
-  { if ( isVar(w2) )
+  { if ( tTop+1 >= tMax )
+      return TRAIL_OVERFLOW;
+
+    if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
-      { return Trail(t2, makeRef(t1));
+      { Trail(t2, makeRef(t1));
+	return TRUE;
       }
       if ( t1 == t2 )
 	succeed;
-      return Trail(t1, makeRef(t2));
+      Trail(t1, makeRef(t2));
+      return TRUE;
     }
 #ifdef O_ATTVAR
     if ( isAttVar(w2 ) )
       w2 = makeRef(t2);
 #endif
-    return Trail(t1, w2);
+    Trail(t1, w2);
+    return TRUE;
   }
   if ( isVar(w2) )
-  {
+  { if ( tTop+1 >= tMax )
+      return TRAIL_OVERFLOW;
 #ifdef O_ATTVAR
     if ( isAttVar(w1) )
       w1 = makeRef(t1);
 #endif
-    return Trail(t2, w1);
+    Trail(t2, w1);
+    return TRUE;
   }
 
 #ifdef O_ATTVAR
@@ -503,11 +511,16 @@ right_recursion:
     succeed;
 
   if ( isVar(w1) )
-  { if ( isVar(w2) )
+  { if ( tTop+1 > tMax )
+      return TRAIL_OVERFLOW;
+
+    if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
-      { return Trail(t2, makeRef(t1));
+      { Trail(t2, makeRef(t1));
+	return TRUE;
       }
-      return Trail(t1, makeRef(t2));
+      Trail(t1, makeRef(t2));
+      return TRUE;
     }
     if ( onStack(global, t1) && var_occurs_in(t1, t2) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
@@ -515,17 +528,22 @@ right_recursion:
     if ( isAttVar(w2) )
       w2 = makeRef(t2);
 #endif
-    return Trail(t1, w2);
+    Trail(t1, w2);
+    return TRUE;
   }
   if ( isVar(w2) )
-  { if ( onStack(global, t2) && var_occurs_in(t2, t1) )
+  { if ( tTop+1 > tMax )
+      return TRAIL_OVERFLOW;
+
+    if ( onStack(global, t2) && var_occurs_in(t2, t1) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
 
 #ifdef O_ATTVAR
     if ( isAttVar(w1) )
       w1 = makeRef(t1);
 #endif
-    return Trail(t2, w1);
+    Trail(t2, w1);
+    return TRUE;
   }
 
 #ifdef O_ATTVAR
@@ -2156,8 +2174,7 @@ start:
     if ( isAttVar(*p) )
     { assignAttVar(p, &v PASS_LD);
     } else
-    { *p = v;
-      TrailEx(p);
+    { Trail(p, v);
     }
   } else if ( isTerm(*p) )
   { Functor f = valueTerm(*p);

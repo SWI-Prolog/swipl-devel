@@ -173,14 +173,13 @@ make_new_attvar(Word p ARG_LD)
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
     *p = makeRefG(gp);
     gTop += 2;
-    (tTop++)->address = p;
+    LTrail(p);
   } else
   { gp = gTop;
     gp[0] = ATOM_nil;
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
     gTop += 1;
-    if ( p < LD->mark_bar )
-      (tTop++)->address = p;
+    GTrail(p);
   }
 }
 
@@ -202,14 +201,13 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
     setVar(*at);
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
     *p = makeRefG(&gp[0]);
-    (tTop++)->address = p;
+    LTrail(p);
   } else
   { gTop += 5;
     at = &gp[0];
     setVar(*at);
     *p = consPtr(&gp[0], TAG_ATTVAR|STG_GLOBAL);
-    if ( p < LD->mark_bar )
-      (tTop++)->address = p;
+    GTrail(p);
   }
 
   at[1] = FUNCTOR_att3;

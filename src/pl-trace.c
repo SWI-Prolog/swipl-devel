@@ -24,6 +24,7 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-inline.h"
 
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
@@ -55,7 +56,9 @@ Convert between integer frame reference and LocalFrame pointer.
 
 static int
 PL_unify_frame(term_t t, LocalFrame fr)
-{ if ( fr )
+{ GET_LD
+
+  if ( fr )
   { assert(fr >= lBase && fr < lTop);
 
     return PL_unify_integer(t, (Word)fr - (Word)lBase);
@@ -66,7 +69,9 @@ PL_unify_frame(term_t t, LocalFrame fr)
 
 void
 PL_put_frame(term_t t, LocalFrame fr)
-{ if ( fr )
+{ GET_LD
+
+  if ( fr )
   { assert(fr >= lBase && fr < lTop);
 
     PL_put_intptr(t, (Word)fr - (Word)lBase);
@@ -77,7 +82,8 @@ PL_put_frame(term_t t, LocalFrame fr)
 
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
-{ long i;
+{ GET_LD
+  long i;
   atom_t a;
 
   if ( PL_get_long(r, &i) )
@@ -100,7 +106,9 @@ PL_get_frame(term_t r, LocalFrame *fr)
 
 static void
 PL_put_choice(term_t t, Choice ch)
-{ if ( ch )
+{ GET_LD
+
+  if ( ch )
   { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
 
     PL_put_intptr(t, (Word)ch - (Word)lBase);
@@ -111,7 +119,9 @@ PL_put_choice(term_t t, Choice ch)
 
 static int
 PL_unify_choice(term_t t, Choice ch)
-{ if ( ch )
+{ GET_LD
+
+  if ( ch )
   { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
 
     return PL_unify_integer(t, (Word)ch - (Word)lBase);
@@ -122,7 +132,8 @@ PL_unify_choice(term_t t, Choice ch)
 
 static int
 PL_get_choice(term_t r, Choice *chp)
-{ long i;
+{ GET_LD
+  long i;
 
   if ( PL_get_long(r, &i) )
   { Choice ch = ((Choice)((Word)lBase + i));
@@ -237,7 +248,8 @@ This function fails if its execution would require a stack-shift of GC!
 
 static bool
 canUnifyTermWithGoal(LocalFrame fr)
-{ find_data *find = LD->trace.find;
+{ GET_LD
+  find_data *find = LD->trace.find;
 
   switch(find->type)
   { case TRACE_FIND_ANY:
@@ -1605,7 +1617,7 @@ prolog_frame_attribute(term_t frame, term_t what,
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();
     int argn;
-    Word p = valTermRef(value);
+    Word p;
 
     if ( !PL_get_arg_ex(1, what, arg) || !PL_get_integer_ex(arg, &argn) )
       fail;
@@ -1625,19 +1637,27 @@ prolog_frame_attribute(term_t frame, term_t what,
     checkData(argFrameP(fr, argn-1));
 #endif
 
+   if ( !hasGlobalSpace(0) )
+   { int rc;
+
+     if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+       return raiseStackOverflow(rc);
+     PL_get_frame(frame, &fr);
+   }
+
+   p = valTermRef(value);
    deRef(p);
    if ( isVar(*p) )
    { Word argp = argFrameP(fr, argn-1);
 
-     if ( gc_status.blocked )
-       return unify_ptrs(p, argp, 0 PASS_LD); /* unsafe: allow loosing var identity */
-     else
-       *p = makeRef(argp);		/* safe: preserve identity */
-     TrailEx(p);
-     succeed;
+     if ( gc_status.blocked )		/* unsafe: allow losing var identity */
+       return unify_ptrs(p, argp, 0 PASS_LD);
+
+     Trail(p, makeRef(argp));
+     return TRUE;
    }
 
-   fail;
+   return FALSE;
   }
 
   if ( arity != 0 )
@@ -1680,22 +1700,33 @@ prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_goal)
   { int arity, n;
     term_t arg = PL_new_term_ref();
+    Definition def = fr->predicate;
 
-    if (fr->predicate->module != MODULE_user)
+    if ( def->module != MODULE_user )
     { PL_put_functor(result, FUNCTOR_colon2);
       PL_get_arg(1, result, arg);
-      PL_unify_atom(arg, fr->predicate->module->name);
+      PL_unify_atom(arg, def->module->name);
       PL_get_arg(2, result, arg);
     } else
       PL_put_term(arg, result);
 
-    if ((arity = fr->predicate->functor->arity) == 0)
-    { PL_unify_atom(arg, fr->predicate->functor->name);
+    if ((arity = def->functor->arity) == 0)
+    { PL_unify_atom(arg, def->functor->name);
     } else			/* see put_frame_goal(); must be merged */
-    { Word argv = argFrameP(fr, 0);
+    { Word argv;
       Word argp;
 
-      PL_unify_functor(arg, fr->predicate->functor->functor);
+      if ( !PL_unify_functor(arg, def->functor->functor) )
+	return FALSE;
+      if ( tTop+arity > tMax )
+      { int rc;
+
+	if ( !(rc=ensureTrailSpace(arity)) != TRUE )
+	  return raiseStackOverflow(rc);
+      }
+
+      PL_get_frame(frame, &fr);		/* can be shifted */
+      argv = argFrameP(fr, 0);
       argp = valTermRef(arg);
       deRef(argp);
       argp = argTermP(*argp, 0);
@@ -1705,16 +1736,15 @@ prolog_frame_attribute(term_t frame, term_t what,
 
 	deRef2(argv+n, a);
 	if ( isVar(*a) && onStack(local, a) && gc_status.blocked )
-	{ *a = makeRef(argp);
-	  TrailEx(a);
-	} else
+	  Trail(a, makeRef(argp));
+	else
 	  *argp = (needsRef(*a) ? makeRef(a) : *a);
       }
     }
   } else if ( key == ATOM_predicate_indicator )
   { unify_definition(result, fr->predicate, 0, GP_NAMEARITY);
   } else if ( key == ATOM_parent_goal )
-  { Procedure proc;
+  { Procedure proc;			/* TBD: SHIFT */
     term_t head = PL_new_term_ref();
 
     if ( !get_procedure(value, &proc, head, GP_FIND) )
@@ -1747,9 +1777,6 @@ prolog_frame_attribute(term_t frame, term_t what,
 	 fr->parent->clause &&
 	 fr->parent->predicate != PROCEDURE_dcall1->definition )
     { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
-
-      if ( pc < 0 )
-	trap_gdb();
 
       PL_put_intptr(result, pc);
     } else

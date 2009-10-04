@@ -1533,16 +1533,13 @@ Note that the local stack is always _above_ the global stack.
 
 					/* trail local stack pointer */
 #define LTrail(p) \
-  { requireTrailStackEx(1); \
-    (tTop++)->address = p; \
-  }
+  (void)((tTop++)->address = p)
 
 					/* trail global stack pointer */
 #define GTrail(p) \
-  if ( p < LD->mark_bar ) \
-  { requireTrailStackEx(1); \
-    (tTop++)->address = p; \
-  }
+  do { if ( p < LD->mark_bar ) \
+         (tTop++)->address = p; \
+     } while(0)
 
 
 #define requireTrailStackEx(entries) \
