@@ -1828,9 +1828,13 @@ trim_stack(Stack s)
 
   s->gced_size = usedStackP(s);
 
-  if ( s->spare < s->def_spare &&
-       roomStackP(s) > s->def_spare*4 )
+  if ( s->spare < s->def_spare )
   { ssize_t reduce = s->def_spare - s->spare;
+    ssize_t room = roomStackP(s);
+
+    if ( room < reduce )
+      reduce = room;
+
     s->max = addPointer(s->max, -reduce);
     s->spare = s->def_spare;
   }
