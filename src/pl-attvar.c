@@ -72,7 +72,10 @@ registerWakeup(Word name, Word value ARG_LD)
 { Word wake;
   Word tail = valTermRef(LD->attvar.tail);
 
-  wake = allocGlobal(4);
+  assert(gTop+6 <= gMax && tTop+4 <= tMax);
+
+  wake = gTop;
+  gTop += 4;
   wake[0] = FUNCTOR_wakeup3;
   wake[1] = needsRef(*name) ? makeRef(name) : *name;
   wake[2] = needsRef(*value) ? makeRef(value) : *value;
@@ -121,16 +124,15 @@ function. If you change this you must also adjust unifiable/3.
 SHIFT-SAFE: returns TRUE, GLOBAL_OVERFLOW or TRAIL_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+void
 assignAttVar(Word av, Word value ARG_LD)
 { Word a;
 
   assert(isAttVar(*av));
   assert(!isRef(*value));
+  assert(gTop+7 <= gMax && tTop+6 <= tMax);
 
   DEBUG(1, Sdprintf("assignAttVar(%s)\n", vName(av)));
-
-  NEEDS_LGT(0,6+1,4+1);
 
   if ( isAttVar(*value) )
   { if ( value > av )
@@ -138,7 +140,7 @@ assignAttVar(Word av, Word value ARG_LD)
       av = value;
       value = tmp;
     } else if ( av == value )
-      succeed;
+      return;
   }
 
   a = valPAttVar(*av);
@@ -151,7 +153,7 @@ assignAttVar(Word av, Word value ARG_LD)
   } else
     *av = *value;
 
-  succeed;
+  return;
 }
 
 

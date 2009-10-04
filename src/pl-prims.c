@@ -247,9 +247,17 @@ right_recursion:
 
 #ifdef O_ATTVAR
   if ( isAttVar(w1) )
-    return assignAttVar(t1, t2 PASS_LD);
+  { if ( !hasGlobalSpace(0) )
+      return GLOBAL_OVERFLOW;
+    assignAttVar(t1, t2 PASS_LD);
+    return TRUE;
+  }
   if ( isAttVar(w2) )
-    return assignAttVar(t2, t1 PASS_LD);
+  { if ( !hasGlobalSpace(0) )
+      return GLOBAL_OVERFLOW;
+    assignAttVar(t2, t1 PASS_LD);
+    return TRUE;
+  }
 #endif
 
   if ( w1 == w2 )
@@ -524,12 +532,18 @@ right_recursion:
   if ( isAttVar(w1) )
   { if ( var_occurs_in(t1, t2) )
       return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-    return assignAttVar(t1, t2 PASS_LD);
+    if ( !hasGlobalSpace(0) )
+      return GLOBAL_OVERFLOW;
+    assignAttVar(t1, t2 PASS_LD);
+    return TRUE;
   }
   if ( isAttVar(w2) )
   { if ( var_occurs_in(t2, t1) )
       return failed_unify_with_occurs_check(t2, t1, mode PASS_LD);
-    return assignAttVar(t2, t1 PASS_LD);
+    if ( !hasGlobalSpace(0) )
+      return GLOBAL_OVERFLOW;
+    assignAttVar(t2, t1 PASS_LD);
+    return TRUE;
   }
 #endif
 
@@ -2153,8 +2167,8 @@ start:
     { Word p = &f->arguments[0];
 
       if ( *p == ATOM_anonvar )
-      { *p = makeNum(n);
-        n++;
+      { *p = consInt(n);		/* stack can't hold enough vars */
+        n++;				/* to averflow this */
       }
     }
 
