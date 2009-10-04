@@ -1636,7 +1636,9 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     if ( true(FR, FR_WATCHED) )
     { LocalFrame lSave = lTop;
       lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
+      SAVE_REGISTERS(qid);
       frameFinished(FR, FINISH_EXIT PASS_LD);
+      LOAD_REGISTERS(qid);
       lTop = lSave;
     }
 
@@ -1770,7 +1772,10 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   ARGP = argFrameP(lTop, 0);
   Profile(profResumeParent(FR->prof_node PASS_LD));
   if ( leave )
+  { SAVE_REGISTERS(qid);
     frameFinished(leave, FINISH_EXIT PASS_LD);
+    LOAD_REGISTERS(qid);
+  }
 
   NEXT_INSTRUCTION;
 }
@@ -1828,7 +1833,10 @@ VMI(I_EXITQUERY, 0, 0, ())
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
     if ( true(FR, FR_WATCHED) )
+    { SAVE_REGISTERS(qid);
       frameFinished(FR, FINISH_EXIT PASS_LD);
+      LOAD_REGISTERS(qid);
+    }
   }
 
 #ifdef O_PROFILE
@@ -3503,9 +3511,13 @@ VMI(I_EXITCLEANUP, 0, 0, ())
       assert(BFR->type == CHP_DEBUG);
     }
 
-    frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
-    if ( exception_term )
-      goto b_throw;
+    if ( finishFrameHooked(FR) )
+    { SAVE_REGISTERS(qid);
+      frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
+      LOAD_REGISTERS(qid);
+      if ( exception_term )
+	goto b_throw;
+    }
   }
 
   NEXT_INSTRUCTION;			/* goto i_exit? */
