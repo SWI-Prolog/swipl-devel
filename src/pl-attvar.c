@@ -223,7 +223,8 @@ int find_attr(Word av, atom_t name, Word *vp)
 
 Find the location of the value for   the  attribute named `name'. Return
 TRUE if found or FALSE if not found, leaving vp pointing at the ATOM_nil
-of the end of the list.
+of the end of the list.  Returns FALSE with *vp == NULL if the attribute
+list is invalid.
 
 Caller must ensure 4 cells space on global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -281,12 +282,15 @@ static int
 put_attr(Word av, atom_t name, Word value ARG_LD)
 { Word vp;
 
+  assert(gTop+5 <= gMax && tTop+2 <= tMax);
+
   if ( find_attr(av, name, &vp PASS_LD) )
   { TrailAssignment(vp);
     *vp = linkVal(value);
   } else if ( vp )
-  { Word at = allocGlobal(4);
+  { Word at = gTop;
 
+    gTop += 4;
     at[0] = FUNCTOR_att3;
     at[1] = name;
     at[2] = linkVal(value);
@@ -295,9 +299,9 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
     TrailAssignment(vp);
     *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
   } else
-    fail;
+    return FALSE;			/* Bad attribute list */
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -536,7 +540,12 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   Word av, vp;
   atom_t name;
 
-  PRED_NEEDS_LGT(0,7,3);
+  if ( !hasGlobalSpace(0) )		/* 0 means enough for attvars */
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
@@ -545,11 +554,12 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   deRef(vp);
 
   if ( isVar(*vp) && vp >= (Word)lBase )/* attribute values on global */
-  { Word p = allocGlobal(1);				/* SHIFT: 1+0 */
+  { Word p = gTop;
 
-
+    gTop += 1;
     setVar(*p);
-    Trail(vp, makeRefG(p));				/* SHIFT: 0+1 */
+    LTrail(vp);
+    *vp = makeRefG(p);
     vp = p;
   }
 
@@ -560,7 +570,10 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   { put_new_attvar(av, name, vp PASS_LD);
     return TRUE;
   } else if ( isAttVar(*av) )
-  { return put_attr(av, name, vp PASS_LD);		/* SHIFT: 5+2 */
+  { if ( put_attr(av, name, vp PASS_LD) )
+      return TRUE;
+    return PL_error("put_attr", 3, "invalid attribute structure",
+		    ERR_TYPE, ATOM_attributes, A1);
   } else
   { return PL_error("put_attr", 3, NULL, ERR_MUST_BE_VAR, 1, A1);
   }
@@ -593,7 +606,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   TrailAssignment(vp);					/* SHIFT: 1+2 */
   *vp = linkVal(valTermRef(A2));
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -603,10 +616,15 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   Word av;
   atom_t name;
 
-  PRED_NEEDS_LGT(0,2,4);
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   if ( !PL_get_atom_ex(A2, &name) )
-    fail;
+    return FALSE;
 
   av = valTermRef(A1);
   deRef(av);
@@ -623,7 +641,7 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
     }
   }
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -632,7 +650,12 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
 { PRED_LD
   Word av;
 
-  PRED_NEEDS_LGT(0,1,2);
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
 
   av = valTermRef(A1);
   deRef(av);
@@ -642,7 +665,7 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
     setVar(*av);
   }
 
-  succeed;
+  return TRUE;
 }
 
 		 /*******************************
