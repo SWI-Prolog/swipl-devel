@@ -2397,6 +2397,21 @@ setStartOfVMI(vm_state *state)
 }
 
 
+static Code
+startOfVMI(QueryFrame qf)
+{ vm_state state;
+
+  state.frame  = qf->registers.fr;
+  state.adepth = 0;
+  state.argp   = argFrameP(state.frame, 0);
+  state.pc     = qf->registers.pc;
+
+  setStartOfVMI(&state);
+
+  return state.pc_start_vmi;
+}
+
+
 static void
 get_vmi_state(vm_state *state)
 { GET_LD
@@ -2817,14 +2832,20 @@ checkStacks(void *state_ptr)
   choice_count = 0;
 
   key += check_new_arguments(state);
-  for( fr = state->frame, ch=state->choice, PC=state->pc_start_vmi;
-       fr;
-       fr = qf->saved_environment, ch = qf->saved_bfr, PC=NULL )
-  { qf = check_environments(fr, state->pc_start_vmi, &key);
+  fr = state->frame;
+  ch = state->choice;
+  PC = state->pc_start_vmi;
+  while(fr);
+  { qf = check_environments(fr, PC, &key);
     assert(qf->magic == QID_MAGIC);
 
     DEBUG(3, Sdprintf("%ld\n", key));
     /*key += */check_choicepoints(ch);		/* See above */
+    if ( (fr = qf->saved_environment) )
+    { ch = qf->saved_bfr;
+      assert(fr == qf->registers.fr);
+      PC = startOfVMI(qf);
+    }
   }
 
   SECURE(trailtops_marked = choice_count);
