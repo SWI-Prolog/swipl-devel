@@ -565,6 +565,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
     switch(reason)			/* In the end, all should become safe */
     { case FINISH_EXITCLEANUP:
+      case FINISH_FAIL:
 	safe = TRUE;
         break;
       default:
@@ -2065,51 +2066,49 @@ next_choice:
   ch = BFR;
   fr0 = FR;
 					/* leave older frames */
+  for(; (void *)FR > (void *)ch; FR = FR->parent)
+  {
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
-  { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { if ( isDebugFrame(FR) )
-      { Choice sch = findStartChoice(FR, ch0);
+    if ( debugstatus.debugging && isDebugFrame(FR) )
+    { Choice sch = findStartChoice(FR, ch0);
 
-	DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
+      DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
-	if ( sch )
-	{ Undo(sch->mark);
+      if ( sch )
+      { int rc;
 
-	  switch( tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD) )
-	  { case ACTION_RETRY:
-	      environment_frame = FR;
-	      DEF = FR->predicate;
-	      clear(FR, FR_CATCHED);
-	      goto retry_continue;
-	  }
-	} else
-	{ DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
-			    levelFrame(FR), predicateName(FR->predicate)));
-	}
-      }
-
-      leaveFrame(FR PASS_LD);
-      if ( true(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(qid);
-	frameFinished(FR, FINISH_FAIL PASS_LD);
+	Undo(sch->mark);
+	environment_frame = FR;
+	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+	SAVE_REGISTERS(qid);
+	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
 	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  goto b_throw;
+
+	switch( rc )
+	{ case ACTION_RETRY:
+	    environment_frame = FR;
+	    DEF = FR->predicate;
+	    clear(FR, FR_CATCHED);
+	    goto retry_continue;
+	}
+      } else
+      { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
+			  levelFrame(FR), predicateName(FR->predicate)));
       }
     }
-  } else
-#endif /*O_DEBUGGER*/
-  { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { /*Profile(FR->predicate->profile_fails++);*/
-      leaveFrame(FR PASS_LD);
-      if ( true(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(qid);
-	frameFinished(FR, FINISH_FAIL PASS_LD);
-	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  goto b_throw;
-      }
+#endif
+
+    leaveFrame(FR PASS_LD);
+    if ( true(FR, FR_WATCHED) )
+    { environment_frame = FR;
+      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+      FR->clause = NULL;
+      SAVE_REGISTERS(qid);
+      frameFinished(FR, FINISH_FAIL PASS_LD);
+      LOAD_REGISTERS(qid);
+      ch = BFR;			/* can be shifted */
+      if ( exception_term )
+	goto b_throw;
     }
   }
 
@@ -2198,9 +2197,6 @@ next_choice:
       fail;
     }
     case CHP_CATCH:			/* catch/3 */
-      Undo(ch->mark);
-      callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-      /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
 #ifdef O_DEBUGGER
       ch0 = ch;
