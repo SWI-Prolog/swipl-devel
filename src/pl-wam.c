@@ -558,18 +558,36 @@ static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 { if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
-  { fid_t cid  = PL_open_foreign_frame();
+  { size_t loffset = (char*)fr - (char*)lBase;
+    fid_t cid  = PL_open_foreign_frame();
     term_t catcher = argFrameP(fr, 2) - (Word)lBase;
+    int safe;
+
+    switch(reason)			/* In the end, all should become safe */
+    { case FINISH_EXITCLEANUP:
+	safe = TRUE;
+        break;
+      default:
+	safe = FALSE;
+    }
 
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
-    { term_t clean = argFrameP(fr, 3) - (Word)lBase;
+    { term_t clean;
       term_t ex;
       int rval;
       LocalFrame esave = environment_frame;
 
-      blockGC(PASS_LD1);
-      environment_frame = fr;		/* ensure proper parent for the handler */
+      fr = addPointer(lBase, loffset);	/* compensate for shift in unify_finished */
+
+      if ( safe )
+      { assert(environment_frame == fr);
+      } else
+      { blockGC(PASS_LD1);
+	environment_frame = fr;		/* ensure proper parent for the handler */
+      }
+
+      clean = argFrameP(fr, 3) - (Word)lBase;
       if ( reason == FINISH_EXCEPT )
       {	term_t pending = PL_new_term_ref();
 
@@ -577,20 +595,22 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 	exception_term = 0;
 	*valTermRef(exception_bin) = 0;
-	startCritical;			/* See (**) */
+	if ( !safe ) startCritical;	/* See (**) */
 	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
-	endCritical;
+	if ( !safe ) endCritical;
 	if ( rval || !ex )
 	{ *valTermRef(exception_bin) = *valTermRef(pending);
 	  exception_term = exception_bin;
 	}
       } else
-      { startCritical;			/*  See (**) */
+      { if ( !safe ) startCritical;	/*  See (**) */
 	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
-	endCritical;
+	if ( !safe ) endCritical;
       }
-      environment_frame = esave;
-      unblockGC(PASS_LD1);
+      if ( !safe )
+      { environment_frame = esave;
+	unblockGC(PASS_LD1);
+      }
 
       if ( !rval && ex )
 	PL_raise_exception(ex);
@@ -1734,7 +1754,7 @@ PL_next_solution(qid_t qid)
   QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
   LocalFrame NFR;			/* Next frame */
-  Word	     ARGP = NULL;		/* current argument pointer */
+  Word	     ARGP;			/* current argument pointer */
   Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
@@ -1813,6 +1833,7 @@ depart_continue() to do the normal thing or to the backtrack point.
     fail;
   }
   FR  = &QF->frame;
+  ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
