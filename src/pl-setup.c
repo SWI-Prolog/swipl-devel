@@ -580,7 +580,8 @@ unprepareSignal(int sig)
 { SigHandler sh = &GD->sig_handlers[sig];
 
   if ( true(sh, PLSIG_PREPARED) )
-  { set_sighandler(sig, sh->saved_handler);
+  { if ( sig < SIG_PROLOG_OFFSET )
+      set_sighandler(sig, sh->saved_handler);
     sh->flags         = 0;
     sh->handler       = NULL;
     sh->predicate     = NULL;
