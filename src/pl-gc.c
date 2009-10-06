@@ -3153,8 +3153,8 @@ ensureGlobalSpace(size_t cells, int flags)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack(&LD->stacks.global);
-    enableSpareStack(&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.global);
+    enableSpareStack((Stack)&LD->stacks.trail);
 
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
@@ -3196,7 +3196,7 @@ ensureTrailSpace(size_t cells)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack(&LD->stacks.trail);
+  { enableSpareStack((Stack)&LD->stacks.trail);
 
     if ( tTop+cells <= tMax )
       return TRUE;
@@ -3230,7 +3230,7 @@ ensureLocalSpace(size_t bytes, int flags)
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack(&LD->stacks.local);
+  { enableSpareStack((Stack)&LD->stacks.local);
     if ( addPointer(lTop, bytes) <= (void*)lMax )
       return TRUE;
   }
