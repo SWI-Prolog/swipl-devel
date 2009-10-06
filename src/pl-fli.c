@@ -300,6 +300,7 @@ unifyAtomic(term_t t, word w ARG_LD)
 	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
 	  return raiseStackOverflow(rc);
 	p = valHandleP(t);
+	deRef(p);
       }
 
       bindConst(p, w);
