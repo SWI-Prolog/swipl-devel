@@ -612,21 +612,6 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 
 
 static int
-finishFrameHooked(LocalFrame fr)
-{ if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
-       false(fr, FR_CATCHED) )
-    return TRUE;
-#ifdef O_DEBUGGER
-  if ( !PROCEDURE_event_hook1 )
-    PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
-  if ( PROCEDURE_event_hook1->definition->definition.clauses )
-    return TRUE;
-#endif
-  return FALSE;
-}
-
-
-static int
 mustBeCallable(term_t call ARG_LD)
 { Word p = valTermRef(call);
   Word ap;

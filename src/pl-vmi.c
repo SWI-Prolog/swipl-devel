@@ -3511,13 +3511,11 @@ VMI(I_EXITCLEANUP, 0, 0, ())
       assert(BFR->type == CHP_DEBUG);
     }
 
-    if ( finishFrameHooked(FR) )
-    { SAVE_REGISTERS(qid);
-      frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
-      LOAD_REGISTERS(qid);
-      if ( exception_term )
-	goto b_throw;
-    }
+    SAVE_REGISTERS(qid);
+    frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
+    LOAD_REGISTERS(qid);
+    if ( exception_term )
+      goto b_throw;
   }
 
   NEXT_INSTRUCTION;			/* goto i_exit? */
