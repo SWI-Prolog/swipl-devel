@@ -1905,7 +1905,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     }
   } else
 #endif
-  { discardChoicesAfter(FR PASS_LD);
+  { SAVE_REGISTERS(qid);
+    discardChoicesAfter(FR PASS_LD);
+    LOAD_REGISTERS(qid);
     lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
@@ -2057,7 +2059,7 @@ c_cut:
   BFR = och;
 
   if ( (void *)och > (void *)fr )
-  { lTop = addPointer(och, sizeof(*och));
+  { lTop = (LocalFrame)(och+1);
   } else
   { int nvar = (true(fr->predicate, FOREIGN)
 			? fr->predicate->functor->arity

@@ -1351,26 +1351,28 @@ static void
 discardChoicesAfter(LocalFrame fr ARG_LD)
 { if ( (LocalFrame)BFR > fr )
   { for(;;)
-    { Choice me = BFR;
-      LocalFrame fr2;
+    { LocalFrame fr2;
 
-      DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
-      for(fr2 = me->frame;
+      DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(BFR)));
+      for(fr2 = BFR->frame;
 	  fr2 && fr2->clause && fr2 > fr;
 	  fr2 = fr2->parent)
       { discardFrame(fr2 PASS_LD);
 	if ( true(fr2, FR_WATCHED) )
-	{ frameFinished(fr2, FINISH_CUT PASS_LD);
+	{ BFR->frame = fr2;
+	  lTop = (LocalFrame)(BFR+1);
+	  frameFinished(fr2, FINISH_CUT PASS_LD);
 	  if ( exception_term )
 	    break;
 	}
       }
 
-      BFR = me->parent;
-      if ( (LocalFrame)BFR <= fr )
-      { DiscardMark(me->mark);
+      if ( (void*)BFR->parent <= (void*)fr )
+      { DiscardMark(BFR->mark);
+	BFR = BFR->parent;
 	break;
       }
+      BFR = BFR->parent;
     }
 
     DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
@@ -1604,9 +1606,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
 
 static void
-discard_query(QueryFrame qf)
-{ GET_LD
-  LocalFrame FR  = &qf->frame;
+discard_query(qid_t qid ARG_LD)
+{ QueryFrame qf = QueryFromQid(qid);
+  LocalFrame FR = &qf->frame;
 
   discardChoicesAfter(FR PASS_LD);
   discardFrame(FR PASS_LD);
@@ -1657,7 +1659,9 @@ PL_cut_query(qid_t qid)
     PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
-    discard_query(qf);
+  { discard_query(qid PASS_LD);
+    qf = QueryFromQid(qid);
+  }
 
   restore_after_query(qf);
   qf->magic = 0;			/* disqualify the frame */
@@ -1674,7 +1678,9 @@ PL_close_query(qid_t qid)
     PL_close_foreign_frame(qf->foreign_frame);
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
-    discard_query(qf);
+  { discard_query(qid PASS_LD);
+    qf = QueryFromQid(qid);
+  }
 
   if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
     Undo(qf->choice.mark);
