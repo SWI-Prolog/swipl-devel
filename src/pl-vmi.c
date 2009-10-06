@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2045,9 +2045,12 @@ c_cut:
     for(fr2 = ch->frame;
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-    { discardFrame(fr2, FINISH_CUT PASS_LD);
-      if ( exception_term )
-	goto b_throw;
+    { discardFrame(fr2 PASS_LD);
+      if ( true(fr2, FR_WATCHED) )
+      { frameFinished(FR, FINISH_CUT PASS_LD);
+	if ( exception_term )
+	  goto b_throw;
+      }
     }
   }
   assert(och == ch);
@@ -3667,7 +3670,9 @@ b_throw:
 
       exception_term = 0;		/* save exception over call-back */
       discardChoicesAfter(FR PASS_LD);
-      discardFrame(FR, FINISH_EXCEPT PASS_LD);
+      discardFrame(FR PASS_LD);
+      if ( true(FR, FR_WATCHED) )
+	frameFinished(FR, FINISH_EXCEPT PASS_LD);
       *valTermRef(exception_bin) = *catcher;
       exception_term = exception_bin;
     }
@@ -3682,7 +3687,9 @@ b_throw:
       dbg_discardChoicesAfter(FR PASS_LD);
       if ( ch )
 	Undo(ch->mark);
-      discardFrame(FR, FINISH_EXCEPT PASS_LD);
+      discardFrame(FR PASS_LD);
+      if ( true(FR, FR_WATCHED) )
+	frameFinished(FR, FINISH_EXCEPT PASS_LD);
       SECURE(checkData(catcher));
     }
   }
@@ -3786,7 +3793,10 @@ VMI(B_EXIT, 0, 0, ())
   { for( ; ; FR = FR->parent )
     { SECURE(assert(FR > blockfr));
       discardChoicesAfter(FR PASS_LD);
-      discardFrame(FR, FINISH_CUT PASS_LD);
+      discardFrame(FR PASS_LD);
+      if ( true(FR, FR_WATCHED) )
+      { frameFinished(FR, FINISH_CUT PASS_LD);
+      }
       if ( FR->parent == blockfr )
       { PC = FR->programPointer;
 	break;
@@ -3839,7 +3849,11 @@ VMI(I_CUT_BLOCK, 0, 0, ())
     for(fr2 = ch->frame;
 	fr2 && fr2->clause && fr2 > FR;
 	fr2 = fr2->parent)
-	discardFrame(fr2, FINISH_CUT PASS_LD);
+    { discardFrame(fr2 PASS_LD);
+      if ( true(FR, FR_WATCHED) )
+      { frameFinished(FR, FINISH_CUT PASS_LD);
+      }
+    }
   }
   BFR = ch;
 

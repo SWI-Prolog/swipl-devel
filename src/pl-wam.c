@@ -1304,7 +1304,7 @@ leaveFrame(LocalFrame fr ARG_LD)
 
 
 static void
-discardFrame(LocalFrame fr, enum finished reason ARG_LD)
+discardFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
 
   DEBUG(2, Sdprintf("discard #%d running %s\n",
@@ -1320,9 +1320,6 @@ discardFrame(LocalFrame fr, enum finished reason ARG_LD)
   { fr->clause = NULL;		/* leaveDefinition() may destroy clauses */
     leaveDefinition(def);
   }
-
-  if ( true(fr, FR_WATCHED) )
-    frameFinished(fr, reason PASS_LD);
 }
 
 
@@ -1361,9 +1358,12 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
       for(fr2 = me->frame;
 	  fr2 && fr2->clause && fr2 > fr;
 	  fr2 = fr2->parent)
-      { discardFrame(fr2, FINISH_CUT PASS_LD);
-	if ( exception_term )
-	  break;
+      { discardFrame(fr2 PASS_LD);
+	if ( true(fr2, FR_WATCHED) )
+	{ frameFinished(fr2, FINISH_CUT PASS_LD);
+	  if ( exception_term )
+	    break;
+	}
       }
 
       BFR = me->parent;
@@ -1609,7 +1609,10 @@ discard_query(QueryFrame qf)
   LocalFrame FR  = &qf->frame;
 
   discardChoicesAfter(FR PASS_LD);
-  discardFrame(FR, FINISH_CUT PASS_LD);
+  discardFrame(FR PASS_LD);
+  if ( true(FR, FR_WATCHED) )
+  { frameFinished(FR, FINISH_CUT PASS_LD);
+  }
 }
 
 
