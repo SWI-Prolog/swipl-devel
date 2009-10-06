@@ -1530,7 +1530,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->flags		= flags;
   qf->saved_environment = environment_frame;
   qf->saved_bfr		= LD->choicepoints;
-  qf->saved_PC		= NULL;
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
@@ -2179,7 +2178,7 @@ next_choice:
 
       if ( is_signalled(PASS_LD1) )
       { SAVE_REGISTERS(qid);
-	handleSignals(NULL);
+	handleSignals(PASS_LD1);
 	LOAD_REGISTERS(qid);
 	if ( exception_term )
 	  goto b_throw;

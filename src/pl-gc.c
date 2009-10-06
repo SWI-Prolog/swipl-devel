@@ -200,6 +200,7 @@ forwards void		sweep_trail(void);
 forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
+static Code		startOfVMI(QueryFrame qf);
 
 #ifdef O_SHIFT_STACKS
 static int		shiftTightStacks();
@@ -2835,16 +2836,18 @@ checkStacks(void *state_ptr)
   fr = state->frame;
   ch = state->choice;
   PC = state->pc_start_vmi;
-  while(fr);
+  while(fr)
   { qf = check_environments(fr, PC, &key);
     assert(qf->magic == QID_MAGIC);
 
     DEBUG(3, Sdprintf("%ld\n", key));
-    /*key += */check_choicepoints(ch);		/* See above */
+    check_choicepoints(ch);		/* Do not update key; see above */
     if ( (fr = qf->saved_environment) )
-    { ch = qf->saved_bfr;
-      assert(fr == qf->registers.fr);
-      PC = startOfVMI(qf);
+    { QueryFrame pqf = qf->parent;
+
+      ch = qf->saved_bfr;
+      assert(fr == pqf->registers.fr);
+      PC = startOfVMI(pqf);
     }
   }
 

@@ -1554,7 +1554,7 @@ retry_continue:
 
     if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
-      handleSignals(NULL);
+      handleSignals(PASS_LD1);
       LOAD_REGISTERS(qid);
       if ( exception_term )
       { CL = NULL;
@@ -3445,7 +3445,7 @@ VMI(I_FEXITNDET, 0, 0, ())
 VMI(I_FREDO, 0, 0, ())
 { if ( is_signalled(PASS_LD1) )
   { SAVE_REGISTERS(qid);
-    handleSignals(NULL);
+    handleSignals(PASS_LD1);
     LOAD_REGISTERS(qid);
     if ( exception_term )
       goto b_throw;

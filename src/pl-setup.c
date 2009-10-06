@@ -367,7 +367,7 @@ to the main thread.
 #define LD LOCAL_LD
 
 static void
-dispatch_signal(int sig, int sync, Code PC)
+dispatch_signal(int sig, int sync)
 { GET_LD
   SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
@@ -435,8 +435,6 @@ dispatch_signal(int sig, int sync, Code PC)
 			PL_Q_CATCH_EXCEPTION,
 			sh->predicate,
 			sigterm);
-    if ( PC )
-      QueryFromQid(qid)->saved_PC = PC;
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
       if ( !sync )
@@ -489,12 +487,10 @@ dispatch_signal(int sig, int sync, Code PC)
     unblockGC(PASS_LD1);
 }
 
-#undef LD
-#define LD GLOBAL_LD
 
 static void
 pl_signal_handler(int sig)
-{ dispatch_signal(sig, FALSE, NULL);
+{ dispatch_signal(sig, FALSE);
 }
 
 #ifndef SA_RESTART
@@ -597,7 +593,9 @@ hupHandler(int sig)
 
 static void
 sig_exception_handler(int sig)
-{ if ( LD && LD->pending_exception )
+{ GET_LD
+
+  if ( LD && LD->pending_exception )
   { record_t ex = LD->pending_exception;
 
     LD->pending_exception = 0;
@@ -614,7 +612,9 @@ sig_exception_handler(int sig)
 
 static void
 agc_handler(int sig)
-{ if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
+{ GET_LD
+
+  if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
        !gc_status.blocked )
     pl_garbage_collect_atoms();
 }
@@ -681,7 +681,9 @@ cleanupSignals(void)
 
 void
 resetSignals()
-{ LD->current_signal = 0;
+{ GET_LD
+
+  LD->current_signal = 0;
   LD->pending_signals = 0L;
 }
 
@@ -830,33 +832,32 @@ PL_signal(int sigandflags, handler_t func)
 
 int
 PL_handle_signals()
-{ PL_local_data_t *ld = LD;
+{ GET_LD
 
-  if ( !ld || ld->critical || !ld->pending_signals )
+  if ( !LD || LD->critical || !LD->pending_signals )
     return 0;
 
-  return handleSignals(NULL);
+  return handleSignals(PASS_LD1);
 }
 
 
 int
-handleSignals(Code PC)
+handleSignals(ARG1_LD)
 { int done = 0;
-  PL_local_data_t *ld = LD;
 
-  if ( !ld || ld->critical )
+  if ( !LD || LD->critical )
     return 0;
 
-  while(ld->pending_signals)
+  while(LD->pending_signals)
   { int64_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
-    { if ( ld->pending_signals & mask )
-      { ld->pending_signals &= ~mask;	/* reset the signal */
+    { if ( LD->pending_signals & mask )
+      { LD->pending_signals &= ~mask;	/* reset the signal */
 
 	done++;
-	dispatch_signal(sig, TRUE, PC);
+	dispatch_signal(sig, TRUE);
 
 	if ( exception_term )
 	  goto out;
@@ -868,7 +869,7 @@ out:
   if ( exception_term )
     return -1;
   if ( done )
-    updateAlerted(ld);
+    updateAlerted(PASS_LD1);
 
   return done;
 }
@@ -891,7 +892,9 @@ Assign NewHandler to be called if signal arrives.
 
 static int
 get_meta_arg(term_t arg, term_t m, term_t t)
-{ if ( PL_is_functor(arg, FUNCTOR_colon2) )
+{ GET_LD
+
+  if ( PL_is_functor(arg, FUNCTOR_colon2) )
   { _PL_get_arg(1, arg, m);
     _PL_get_arg(2, arg, t);
     return TRUE;
@@ -916,7 +919,8 @@ get_module(term_t t, Module *m)
 
 static
 PRED_IMPL("$on_signal", 4, on_signal, 0)
-{ int sign = -1;
+{ PRED_LD
+  int sign = -1;
   SigHandler sh;
   char *sn;
   atom_t a;
@@ -1040,7 +1044,8 @@ Requested stack sizes are in bytes.
 
 int
 initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ size_t maxarea;
+{ GET_LD
+  size_t maxarea;
 
   maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
   if ( maxarea > 1024 MB )		/* 64-bit machines */
@@ -1091,7 +1096,8 @@ emptyStack(Stack s)
 
 void
 emptyStacks()
-{ int i;
+{ GET_LD
+  int i;
 
   environment_frame = NULL;
   fli_context       = NULL;
@@ -1470,8 +1476,6 @@ void
 freeStacks(ARG1_LD)
 { size_t tlen, alen, gllen;
 
-#undef LD
-#define LD LOCAL_LD
   gBase--;				/* see initPrologStacks() */
   tlen  = limitStack(trail);
   alen  = limitStack(argument);
@@ -1482,9 +1486,6 @@ freeStacks(ARG1_LD)
   munmap(tBase, tlen);  tBase = NULL;
   munmap(aBase, alen);  aBase = NULL;
   munmap(gBase, gllen); gBase = NULL;
-
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
@@ -1738,7 +1739,9 @@ Malloc/realloc/free based stack allocation
 static void
 init_stack(Stack s, char *name,
 	   size_t size, size_t limit, size_t minfree, size_t spare)
-{ s->name 	= name;
+{ GET_LD
+
+  s->name 	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->spare      = spare;
@@ -1755,7 +1758,8 @@ init_stack(Stack s, char *name,
 
 static int
 allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ size_t minglobal   = 8*SIZEOF_VOIDP K;
+{ GET_LD
+  size_t minglobal   = 8*SIZEOF_VOIDP K;
   size_t minlocal    = 4*SIZEOF_VOIDP K;
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
@@ -1799,9 +1803,6 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   succeed;
 }
 
-
-#undef LD
-#define LD LOCAL_LD
 
 void
 freeStacks(ARG1_LD)
@@ -1924,18 +1925,12 @@ ensure_room_stack(Stack s, size_t bytes, int ex)
   return TRUE;
 }
 
-#undef LD
-#define LD GLOBAL_LD
-
 #endif /* O_DYNAMIC_STACKS */
 
 
 		/********************************
 		*     STACK TRIMMING & LIMITS   *
 		*********************************/
-
-#undef LD
-#define LD LOCAL_LD
 
 static void
 gcPolicy(Stack s, int policy)
@@ -2051,9 +2046,6 @@ resumeAfterException(void)
 }
 
 
-#undef LD
-#define LD GLOBAL_LD
-
 		 /*******************************
 		 *	    LOCAL DATA		*
 		 *******************************/
@@ -2099,7 +2091,8 @@ freeLocalData(PL_local_data_t *ld)
 
 static
 PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
-{ atom_t a, k;
+{ PRED_LD
+  atom_t a, k;
   Stack stack = NULL;
 
   term_t name  = A1;

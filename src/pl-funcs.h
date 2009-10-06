@@ -637,7 +637,7 @@ COMMON(void) 		unblockSignal(int sig);
 COMMON(void) 		blockSignal(int sig);
 COMMON(void) 		resetSignals(void);
 COMMON(void) 		cleanupSignals(void);
-COMMON(int)		handleSignals(Code PC);
+COMMON(int)		handleSignals(ARG1_LD);
 
 COMMON(int) 		initPrologStacks(size_t local,
 					 size_t global,

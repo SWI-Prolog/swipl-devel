@@ -1313,7 +1313,6 @@ struct queryFrame
   int		solutions;		/* # of solutions produced */
   Word	       *aSave;			/* saved argument-stack */
   Choice	saved_bfr;		/* Saved choice-point */
-  Code		saved_PC;		/* Saved program pointer */
   QueryFrame	parent;			/* Parent queryFrame */
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
