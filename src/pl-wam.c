@@ -2199,7 +2199,20 @@ next_choice:
       LD->exception.throw_environment = throw_env.parent;
       fail;
     }
-    case CHP_CATCH:			/* catch/3 */
+    case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
+      Undo(ch->mark);
+      if ( true(ch->frame, FR_WATCHED) )
+      { environment_frame = FR = ch->frame;
+	lTop = (LocalFrame)(ch+1);
+	FR->clause = NULL;
+	SAVE_REGISTERS(qid);
+	callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
+	LOAD_REGISTERS(qid);
+	ch = BFR;			/* can be shifted */
+	if ( exception_term )
+	  goto b_throw;
+      }
+      /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
 #ifdef O_DEBUGGER
       ch0 = ch;
