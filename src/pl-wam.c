@@ -566,13 +566,14 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     switch(reason)			/* In the end, all should become safe */
     { case FINISH_CUT:
 	set_env = TRUE;
+      case FINISH_EXIT:
       case FINISH_EXITCLEANUP:
       case FINISH_FAIL:
 	safe = TRUE;
         break;
-      default:
+      case FINISH_EXCEPT:
 	safe = FALSE;
-        set_env = FALSE;
+        set_env = TRUE;
     }
 
     set(fr, FR_CATCHED);
