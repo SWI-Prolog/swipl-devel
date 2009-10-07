@@ -539,86 +539,45 @@ unify_finished(term_t catcher, enum finished reason)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
-call_cleanup/3. Both may call-back the Prolog engine, but in general the
-system is not in a state where we can do garbage collection.
+call_cleanup/3.  Both may call-back the Prolog engine.
 
-As a consequence the cleanup-handler  of   call_cleanup()  runs  with GC
-disables and so do the callEventHook()  hooks.   The  latter is merely a
-developers issue. Cleanup seems reasonable too.
-
-(**) In addition, we must protect ourselves  from signals to ensure that
-the    cleanup    handler    runs      without     being    interrupted.
-startCritical/endCritical may be a bit of an overkill here.
-
-TBD: also the setup-handler of setup_call  needs to be protected against
-interrupts.
+Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 { if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
-  { size_t loffset = (char*)fr - (char*)lBase;
+  { size_t fref = consTermRef(fr);
     fid_t cid  = PL_open_foreign_frame();
-    term_t catcher = argFrameP(fr, 2) - (Word)lBase;
-    int set_env, safe;
-
-    switch(reason)			/* In the end, all should become safe */
-    { case FINISH_CUT:
-	set_env = TRUE;
-      case FINISH_EXIT:
-      case FINISH_EXITCLEANUP:
-      case FINISH_FAIL:
-	safe = TRUE;
-        break;
-      case FINISH_EXCEPT:
-	safe = FALSE;
-        set_env = TRUE;
-    }
+    term_t catcher = consTermRef(argFrameP(fr, 2));
 
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
-    { term_t clean;
+    { term_t clean, wake;
       term_t ex;
       int rval;
+      int set_env = (reason == FINISH_CUT || reason == FINISH_EXCEPT);
       LocalFrame esave = environment_frame;
 
-      fr = addPointer(lBase, loffset);	/* compensate for shift in unify_finished */
+      fr = (LocalFrame)valTermRef(fref);
 
       if ( set_env )
 	environment_frame = fr;
       else
 	assert(environment_frame == fr);
 
-      if ( !safe )
-	blockGC(PASS_LD1);
-      clean = argFrameP(fr, 3) - (Word)lBase;
-      if ( reason == FINISH_EXCEPT )
-      {	term_t pending = PL_new_term_ref();
-
-	*valTermRef(pending) = *valTermRef(exception_bin);
-
-	exception_term = 0;
-	*valTermRef(exception_bin) = 0;
-	if ( !safe ) startCritical;	/* See (**) */
-	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
-	if ( !safe ) endCritical;
-	if ( rval || !ex )
-	{ *valTermRef(exception_bin) = *valTermRef(pending);
-	  exception_term = exception_bin;
-	}
-      } else
-      { if ( !safe ) startCritical;	/*  See (**) */
-	rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
-	if ( !safe ) endCritical;
-      }
-      if ( !safe )
-	unblockGC(PASS_LD1);
+      clean = consTermRef(argFrameP(fr, 3));
+      startCritical;
+      wake = saveWakeup(PASS_LD1);
+      rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+      restoreWakeup(wake PASS_LD);
+      endCritical;
 
       if ( set_env )
 	environment_frame = esave;
 
-      if ( !rval && ex )
+      if ( !rval && ex && !exception_term )
 	PL_raise_exception(ex);
     }
 

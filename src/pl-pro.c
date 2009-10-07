@@ -172,6 +172,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     if ( ex )
       *ex = exception_term;
 
+    PL_reset_term_refs(g);
     fail;
   }
 
@@ -191,6 +192,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       *ex = PL_exception(qid);
     PL_cut_query(qid);
 
+    PL_reset_term_refs(g);
     return rval;
   }
 }

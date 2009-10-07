@@ -843,7 +843,7 @@ cleanup(clean-4) :-
 	E == a.
 cleanup(clean-5) :-
 	catch(call_cleanup(throw(a), throw(b)), E, true),
-	E == b.
+	E == a.				% ISO Proposal
 cleanup(clean-6) :-
 	catch(call_cleanup(true, throw(b)), E, true),
 	E == b.
