@@ -1715,8 +1715,8 @@ True if T1 and T2 is really  the   same  term,  so setarg/3 affects both
 terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-PL_same_term(term_t T1, term_t T2 ARG_LD)
+int
+PL_same_term__LD(term_t T1, term_t T2 ARG_LD)
 { Word t1 = valTermRef(T1);
   Word t2 = valTermRef(T2);
 
@@ -1737,7 +1737,7 @@ static
 PRED_IMPL("same_term", 2, same_term, 0)
 { PRED_LD
 
-  return PL_same_term(A1, A2 PASS_LD);
+  return PL_same_term(A1, A2);
 }
 
 
@@ -3427,7 +3427,7 @@ concat(term_t a1, term_t a2, term_t a3,
 
     switch ( ForeignControl(ctx) )
     { case FRG_FIRST_CALL:
-        if ( PL_same_term(a1, a2 PASS_LD) )	/* sharing variables */
+        if ( PL_same_term(a1, a2) )	/* sharing variables */
 	{ if ( L3 % 2 )
 	  { rc = FALSE;
 	    goto out;

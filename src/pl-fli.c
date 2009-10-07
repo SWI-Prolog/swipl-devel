@@ -3457,6 +3457,18 @@ PL_rethrow(void)
 }
 
 
+void
+PL_clear_exception(void)
+{ GET_LD
+
+  if ( exception_term )
+  { exception_term = 0;
+    setVar(*valTermRef(LD->exception.bin));
+    setVar(*valTermRef(LD->exception.printed));
+    setVar(*valTermRef(LD->exception.pending));
+  }
+}
+
 
 		/********************************
 		*      REGISTERING FOREIGNS     *

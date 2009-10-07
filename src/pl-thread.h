@@ -421,5 +421,6 @@ extern void		initPrologThreads(void);
 #define PL_unify_int64_ex(t, i)	PL_unify_int64_ex__LD(t, i PASS_LD)
 #define PL_pending(sig)	        PL_pending__LD(sig PASS_LD)
 #define PL_clearsig(sig)        PL_clearsig__LD(sig PASS_LD)
+#define PL_same_term(t1, t2)	PL_same_term__LD(t1, t2 PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

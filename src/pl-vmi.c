@@ -3591,18 +3591,14 @@ immune for undo operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_THROW, 0, 0, ())
-{ Word catcher;
-  word except;
-  LocalFrame catchfr;
+{ term_t catchfr_ref;
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
 b_throw:
   aTop = aFloor;
   assert(exception_term);
-  catcher = valTermRef(exception_term);
-  deRef(catcher);
 
-  SECURE(checkData(catcher));
+  SECURE(checkData(valTermRef(exception_term)));
   DEBUG(1, { fid_t fid = PL_open_foreign_frame();
 	     Sdprintf("[%d] Throwing ", PL_thread_self());
 	     PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
@@ -3610,122 +3606,143 @@ b_throw:
 	     PL_discard_foreign_frame(fid);
 	   });
 
-  except = *catcher;
-  catchfr = findCatcher(FR, catcher PASS_LD);
-  DEBUG(1, { if ( catchfr )
-	     { Sdprintf("[%d]: found catcher at %d\n",
-			PL_thread_self(), levelFrame(catchfr));
+  SAVE_REGISTERS(qid);
+  catchfr_ref = findCatcher(FR, exception_term PASS_LD);
+  LOAD_REGISTERS(qid);
+  DEBUG(1, { if ( catchfr_ref )
+	     { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
+	       Sdprintf("[%d]: found catcher at %ld\n",
+			PL_thread_self(), (long)levelFrame(fr));
 	     } else
 	     { Sdprintf("[%d]: not caught\n", PL_thread_self());
 	     }
 	   });
 
   SECURE({ SAVE_REGISTERS(qid);
-	   checkData(catcher);
+	   checkData(valTermRef(exception_term));
 	   checkStacks(NULL);
 	   LOAD_REGISTERS(qid);
 	 });
 
-  if ( debugstatus.suspendTrace == FALSE &&
-       exception_hook(FR, catchfr PASS_LD) )
-  { catcher = valTermRef(exception_term);
-    deRef(catcher);
-    except = *catcher;
+  if ( debugstatus.suspendTrace == FALSE )
+  { SAVE_REGISTERS(qid);
+    exception_hook(FR, catchfr_ref PASS_LD);
+    LOAD_REGISTERS(qid);
   }
 
 #if O_DEBUGGER
-  if ( !catchfr &&
-       hasFunctor(except, FUNCTOR_error2) &&
-       *valTermRef(exception_printed) != except )
-  { QF = QueryFromQid(qid);	/* reload for relocation */
+  if ( !catchfr_ref &&
+       PL_is_functor(exception_term, FUNCTOR_error2) &&
+       !PL_same_term(exception_term, exception_printed) &&
+       truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
+       false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
+  { int rc;
 
-    if ( truePrologFlag(PLFLAG_DEBUG_ON_ERROR) &&
-	 false(QF, PL_Q_CATCH_EXCEPTION) &&
-	 !isCatchedInOuterQuery(QF, catcher) )
-    { printMessage(ATOM_error, PL_TERM, exception_term);
+    SAVE_REGISTERS(qid);
+    rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);
+    LOAD_REGISTERS(qid);
+
+    if ( !rc )
+    { SAVE_REGISTERS(qid);
+      printMessage(ATOM_error, PL_TERM, exception_term);
       pl_trace();
+      LOAD_REGISTERS(qid);
     }
   }
 
   if ( debugstatus.debugging )
-  { blockGC(PASS_LD1);
-    for( ; FR && FR > catchfr; FR = FR->parent )
+  { for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
     { Choice ch = findStartChoice(FR, LD->choicepoints);
 
       if ( ch )
-      { int printed = (*valTermRef(exception_printed) == except);
+      { int printed = PL_same_term(exception_printed, exception_term);
+	int rc;
 
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(NULL);
 		 LOAD_REGISTERS(qid);
 	       });
+	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
+	LOAD_REGISTERS(qid);
+	ch = BFR;			/* Verify? */
 	Undo(ch->mark);
-	*valTermRef(LD->exception.pending) = except;
+	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
-	  *valTermRef(exception_printed) = except;
+	  PL_put_term(exception_printed, exception_term);
 
 	environment_frame = FR;
-	SECURE(checkStacks(FR, ch, NULL));
-	switch(tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD))
+	SECURE({ SAVE_REGISTERS(qid);
+	         checkStacks(FR, ch, NULL);
+		 LOAD_REGISTERS(qid);
+	       });
+
+	SAVE_REGISTERS(qid);
+	rc = tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD);
+	LOAD_REGISTERS(qid);
+
+	switch( rc )
 	{ case ACTION_RETRY:
-	    setVar(*valTermRef(exception_printed));
-	    exception_term = 0;
-	    Undo(ch->mark);
+	    PL_clear_exception();
+	    SAVE_REGISTERS(qid);
 	    discardChoicesAfter(FR PASS_LD);
+	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
-	    unblockGC(PASS_LD1);
 	    goto retry_continue;
 	}
 
 	setVar(*valTermRef(LD->exception.pending));
       }
 
-      exception_term = 0;		/* save exception over call-back */
-      discardChoicesAfter(FR PASS_LD);
+      SAVE_REGISTERS(qid);
+      dbg_discardChoicesAfter(FR PASS_LD);
+      LOAD_REGISTERS(qid);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
+      { SAVE_REGISTERS(qid);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
-      *valTermRef(exception_bin) = *catcher;
-      exception_term = exception_bin;
+	LOAD_REGISTERS(qid);
+      }
     }
-    unblockGC(PASS_LD1);
   } else
 #endif /*O_DEBUGGER*/
   { DEBUG(3, Sdprintf("Unwinding for exception\n"));
 
-    for( ; FR && FR > catchfr; FR = FR->parent )
-    { Choice ch = findStartChoice(FR, LD->choicepoints);
+    for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
+    { Choice ch;
 
-      dbg_discardChoicesAfter(FR PASS_LD);
+      SAVE_REGISTERS(qid);
+      ch = dbg_discardChoicesAfter(FR PASS_LD);
+      LOAD_REGISTERS(qid);
       if ( ch )
 	Undo(ch->mark);
+
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
+      { SAVE_REGISTERS(qid);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
-      SECURE(checkData(catcher));
+	LOAD_REGISTERS(qid);
+      }
+      SECURE(checkData(valTermRef(exception_term)));
     }
   }
 
 					/* re-fetch (test cleanup(clean-5)) */
-  catcher = valTermRef(exception_term);
-  deRef(catcher);
-  SECURE(checkData(catcher));
+  SECURE(checkData(valTermRef(exception_term)));
 
-  if ( catchfr )
-  { Word p = argFrameP(FR, 1);
-    Choice ch = (Choice)argFrameP(FR, 3); /* Aligned above */
+  if ( catchfr_ref )
+  { Choice ch;
 
-    assert(ch->type == CHP_CATCH);
+    assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
-    deRef(p);
-
-    assert(catchfr == FR);
-    discardChoicesAfter(FR PASS_LD);
+    SAVE_REGISTERS(qid);
+    ch = dbg_discardChoicesAfter(FR PASS_LD);
+    LOAD_REGISTERS(qid);
+    assert(ch && ch->type == CHP_CATCH);
     environment_frame = FR;
     Undo(ch->mark);
-    unify_ptrs(p, catcher, 0 PASS_LD); /* Undo() also */
-				    /* undoes unify of findCatcher() */
+					/* re-unify */
+    PL_unify(consTermRef(argFrameP(FR, 1)), exception_term);
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
     argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
     *valTermRef(exception_printed) = 0;   /* consider it handled */
@@ -3736,7 +3753,7 @@ b_throw:
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
       SAVE_REGISTERS(qid);
-      resumeAfterException();
+      resumeAfterException();		/* trim/GC to recover space */
       LOAD_REGISTERS(qid);
       lTop = (LocalFrame)valTermRef(lSafe);
     }
@@ -3745,7 +3762,7 @@ b_throw:
   } else
   { Word p;
 
-    QF = QueryFromQid(qid);	/* may be shifted: recompute */
+    QF = QueryFromQid(qid);		/* may be shifted */
     set(QF, PL_Q_DETERMINISTIC);
     FR = environment_frame = &QF->frame;
     p = argFrameP(FR, FR->predicate->functor->arity);
@@ -3753,7 +3770,7 @@ b_throw:
 
     Undo(QF->choice.mark);
     QF->exception = consTermRef(p);
-    *p = except;
+    PL_put_term(QF->exception, exception_term);
 
     if ( false(QF, PL_Q_PASS_EXCEPTION) )
     { *valTermRef(exception_bin)     = 0;

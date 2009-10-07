@@ -337,6 +337,7 @@ PL_EXPORT(int)		PL_call_predicate(module_t m, int debug,
 PL_EXPORT(term_t)	PL_exception(qid_t qid);
 PL_EXPORT(int)		PL_raise_exception(term_t exception);
 PL_EXPORT(int)		PL_throw(term_t exception);
+PL_EXPORT(void)		PL_clear_exception(void);
 
 
 		 /*******************************

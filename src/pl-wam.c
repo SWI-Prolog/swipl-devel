@@ -1024,24 +1024,35 @@ and not find it again, as a catcher   can  only catch once from the 1-st
 argument goal. Exceptions from the  recover   goal  should be passed (to
 avoid a loop and allow for re-throwing).   With  thanks from Gertjan van
 Noord.
+
+findCatchExit() can do GC/shift!  The  return   value  is  a local-frame
+reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static LocalFrame
-findCatcher(LocalFrame fr, Word ex ARG_LD)
+static term_t
+findCatcher(LocalFrame fr, term_t ex ARG_LD)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
-  { if ( fr->predicate != catch3 )
+  { int rc;
+    term_t tref;
+
+    if ( fr->predicate != catch3 )
       continue;
     if ( true(fr, FR_CATCHED) )
       continue;
-    if ( unify_ptrs(argFrameP(fr, 1), ex, 0 PASS_LD) )
+
+    tref = consTermRef(fr);
+    rc = PL_unify(consTermRef(argFrameP(fr, 1)), ex);
+    fr = (LocalFrame)valTermRef(tref);
+
+    if ( rc )
     { set(fr, FR_CATCHED);
-      return fr;
+      return consTermRef(fr);
     }
   }
 
-  return NULL;
+  return 0;
 }
 
 
@@ -1057,17 +1068,24 @@ exception somewhere.
 
 #ifdef O_DEBUGGER
 static int
-isCatchedInOuterQuery(QueryFrame qf, Word catcher)
+isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 { Definition catch3 = PROCEDURE_catch3->definition;
+  QueryFrame qf = QueryFromQid(qid);
 
   while( qf && true(qf, PL_Q_PASS_EXCEPTION) )
   { LocalFrame fr = qf->saved_environment;
     term_t ex;
 
     while( fr )
-    { if ( fr->predicate == catch3 &&
-	   can_unify(argFrameP(fr, 1), catcher, &ex, 0) )
-	succeed;
+    { if ( fr->predicate == catch3 )
+      { term_t fref = consTermRef(fr);
+
+	if ( can_unify(argFrameP(fr, 1), /* may shift */
+		       valTermRef(ball),
+		       &ex, ALLOW_GC|ALLOW_SHIFT) )
+	  return TRUE;
+	fr = (LocalFrame)valTermRef(fref);
+      }
 
       if ( fr->parent )
       { fr = fr->parent;
@@ -1079,7 +1097,7 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 
   }
 
-  fail;
+  return FALSE;
 }
 
 
@@ -1131,7 +1149,7 @@ dbgRedoFrame(LocalFrame fr ARG_LD)
 #endif /*O_DEBUGGER*/
 
 static int
-exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
+exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
 { if ( PROCEDURE_exception_hook4->definition->definition.clauses )
   { if ( !LD->exception.in_hook )
     { fid_t fid, wake;
@@ -1140,15 +1158,16 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       int debug, trace, rc;
 
       LD->exception.in_hook++;
-      blockGC(PASS_LD1);
       fid = PL_open_foreign_frame();
       av = PL_new_term_refs(4);
 
       PL_put_term(av+0, exception_bin);
       PL_put_frame(av+2, fr);
-      if ( catcher )
-	catcher = parentFrame(catcher);
-      PL_put_frame(av+3, catcher);
+      if ( catchfr_ref )
+      { LocalFrame cfr = (LocalFrame)valTermRef(catchfr_ref);
+	cfr = parentFrame(cfr);
+	PL_put_frame(av+3, cfr);
+      }
 
       exception_term = 0;
       setVar(*valTermRef(exception_bin));
@@ -1173,7 +1192,6 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       }
 
       PL_close_foreign_frame(fid);
-      unblockGC(PASS_LD1);
       LD->exception.in_hook--;
 
       return rc;
@@ -1359,7 +1377,13 @@ chp_chars(Choice ch)
 #endif
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+discardChoicesAfter() discards all choicepoints created  after fr, while
+calling possible hooks on the frames.   It return the oldest choicepoint
+created after fr was created or NULL if this doesn't exist.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Choice
 discardChoicesAfter(LocalFrame fr ARG_LD)
 { if ( (LocalFrame)BFR > fr )
   { for(;;)
@@ -1389,12 +1413,14 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
       BFR = me->parent;
       if ( (LocalFrame)BFR <= fr )
       { DiscardMark(me->mark);
-	break;
+	return me;
       }
     }
 
     DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
   }
+
+  return NULL;
 }
 
 
@@ -1403,10 +1429,11 @@ Discard choicepoints in debugging mode.  As we might be doing callbacks
 on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static Choice
 dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
+    Choice ch;
 
     DEBUG(3, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
 	     pl_writeln(exception_term));
@@ -1414,12 +1441,13 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
     assert(!isVar(*p));
     PushPtr(p);
     exception_term = 0;
-    discardChoicesAfter(fr PASS_LD);
+    ch = discardChoicesAfter(fr PASS_LD);
     PopPtr(p);
     *valTermRef(exception_bin) = *p;
     exception_term = exception_bin;
+    return ch;
   } else
-    discardChoicesAfter(fr PASS_LD);
+    return discardChoicesAfter(fr PASS_LD);
 }
 
 
