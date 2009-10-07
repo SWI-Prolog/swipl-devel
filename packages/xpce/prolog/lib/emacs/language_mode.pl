@@ -57,8 +57,9 @@
 	]).
 
 
-variable(comment_column,	int,	both, "Column for line comment").
-variable(show_line_numbers,	[bool], get,  "Show line numbers?").
+variable(comment_column,    int,        both, "Column for line comment").
+variable(show_line_numbers, 'int|bool', get,  "Show line numbers?").
+class_variable(show_line_numbers, 'int|bool', 250000).
 
 setup_mode(E) :->
 	"Switch editor into fill-mode"::
@@ -69,7 +70,6 @@ setup_mode(E) :->
 initialise(M) :->
 	"Inititialise comment_column"::
 	send(M, send_super, initialise),
-	send(M, slot, show_line_numbers, @default),
 	send(M, comment_column, @emacs_comment_column).
 
 
@@ -631,10 +631,11 @@ new_caret_position(M, Caret:int) :->
 	send_super(M, new_caret_position, Caret),
 	(   get(M, frame, Frame),
 	    send(Frame, has_send_method, show_line_number)
-	->  (	get(M, show_line_numbers, @off)
+	->  get(M, show_line_numbers, How),
+	    (	How == @off
 	    ->	send(Frame, show_line_number, @nil)
-	    ;   (   (   get(M, show_line_numbers, @default)
-		    ->  Caret < 50000
+	    ;   (   (   integer(How)
+		    ->  Caret =< How
 		    ;   get(M, show_line_numbers, @on)
 		    )
 		->  get(M, line_number, Line),
