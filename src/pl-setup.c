@@ -1837,7 +1837,7 @@ trim_stack(Stack s)
       reduce = room;
 
     s->max = addPointer(s->max, -reduce);
-    s->spare = s->def_spare;
+    s->spare += reduce;
   }
 
   return FALSE;
