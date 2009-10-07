@@ -1405,20 +1405,21 @@ on behalf of the debugger we need to preserve the pending exception.
 
 static void
 dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
-{ blockGC(PASS_LD1);
-
-  if ( exception_term )
+{ if ( exception_term )
   { Word p = valTermRef(exception_term);
+
     DEBUG(3, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
 	     pl_writeln(exception_term));
+    deRef(p);
+    assert(!isVar(*p));
+    PushPtr(p);
     exception_term = 0;
     discardChoicesAfter(fr PASS_LD);
+    PopPtr(p);
     *valTermRef(exception_bin) = *p;
     exception_term = exception_bin;
   } else
     discardChoicesAfter(fr PASS_LD);
-
-  unblockGC(PASS_LD1);
 }
 
 

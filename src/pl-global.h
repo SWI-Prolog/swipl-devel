@@ -376,7 +376,7 @@ struct PL_local_data
   } trim;
 
   struct
-  { term_t	h[2];			/* temporary handles. See unify_ptrs */
+  { term_t	h[TMP_PTR_SIZE];	/* temporary handles. See unify_ptrs */
     int		top;			/* Top-of-stack index */
   } tmp;
 

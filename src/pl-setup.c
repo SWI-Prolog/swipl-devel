@@ -1122,7 +1122,7 @@ emptyStacks()
 #ifdef O_GVAR
   destroyGlobalVars();
 #endif
-  for(i=0; i<sizeof(LD->tmp.h)/sizeof(term_t); i++)
+  for(i=0; i<TMP_PTR_SIZE; i++)
     LD->tmp.h[i] = PL_new_term_ref();
   LD->tmp.top = 0;
 }

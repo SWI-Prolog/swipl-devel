@@ -1575,7 +1575,9 @@ Note that the local stack is always _above_ the global stack.
 Temporary store/restore pointers to make them safe over GC/shift
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define TMP_PTR_SIZE	(4)
 #define PushPtr(p)	do { int i = LD->tmp.top++; \
+			     assert(i<=TMP_PTR_SIZE); \
 			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
 			   } while(0)
 #define PopPtr(p)	do { int i = --LD->tmp.top; \
