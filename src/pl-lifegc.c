@@ -628,13 +628,16 @@ mark_stacks(vm_state *vmstate)
   { DEBUG(1, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
-    if ( qf )
-    { if ( (fr = qf->saved_environment) )
-      { QueryFrame pqf = qf->parent;
+    if ( qf->parent )			/* same code in checkStacks() */
+    { QueryFrame pqf = qf->parent;
 
-	ch = qf->saved_bfr;
-	PC = startOfVMI(pqf);
+      if ( (fr = pqf->registers.fr) )
+      { PC = startOfVMI(pqf);
+      } else
+      { fr = qf->saved_environment;
+	PC = NULL;
       }
+      ch = qf->saved_bfr;
     } else
       break;
   }

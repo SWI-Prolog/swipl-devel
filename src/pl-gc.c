@@ -2842,13 +2842,18 @@ checkStacks(void *state_ptr)
 
     DEBUG(3, Sdprintf("%ld\n", key));
     check_choicepoints(ch);		/* Do not update key; see above */
-    if ( (fr = qf->saved_environment) )
+    if ( qf->parent )			/* same code in mark_stacks() */
     { QueryFrame pqf = qf->parent;
 
+      if ( (fr = pqf->registers.fr) )
+      { PC = startOfVMI(pqf);
+      } else
+      { fr = qf->saved_environment;
+	PC = NULL;
+      }
       ch = qf->saved_bfr;
-      assert(fr == pqf->registers.fr);
-      PC = startOfVMI(pqf);
-    }
+    } else
+      break;
   }
 
   SECURE(trailtops_marked = choice_count);
@@ -3367,7 +3372,7 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       DEBUG(2, Sdprintf("PC=%p ", fr->programPointer));
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
-      if ( fr->predicate == PROCEDURE_dcall1->definition )
+      if ( fr->predicate == PROCEDURE_dcall1->definition && fr->clause )
       { assert(onStackArea(local, fr->clause));
 	update_pointer(&fr->clause, ls);
 	update_pointer(&fr->clause->clause, ls);
@@ -3376,7 +3381,7 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       }
 
 					/* update saved BFR's from C_IFTHEN */
-      if ( PC && false(fr->predicate, FOREIGN) )
+      if ( PC && false(fr->predicate, FOREIGN) && fr->clause )
       { Clause cl = fr->clause->clause;
 	unsigned int marks;
 
