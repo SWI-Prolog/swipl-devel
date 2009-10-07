@@ -2626,6 +2626,7 @@ testdir('Tests/attvar').
 testdir('Tests/library').
 testdir('Tests/charset').
 testdir('Tests/clp').
+testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 
