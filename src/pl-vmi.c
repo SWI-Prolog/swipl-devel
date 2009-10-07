@@ -2049,7 +2049,18 @@ c_cut:
 	fr2 = fr2->parent)
     { discardFrame(fr2 PASS_LD);
       if ( true(fr2, FR_WATCHED) )
-      { frameFinished(FR, FINISH_CUT PASS_LD);
+      { char *lSave = (char*)lBase;
+	SAVE_REGISTERS(qid);
+	frameFinished(fr2, FINISH_CUT PASS_LD);
+	LOAD_REGISTERS(qid);
+	if ( lSave != (char*)lBase )	/* shifted */
+	{ intptr_t offset = (char*)lBase - lSave;
+
+	  fr2 = addPointer(fr2, offset);
+	  ch  = addPointer(ch,  offset);
+	  och = addPointer(och, offset);
+	  fr  = addPointer(fr,  offset);
+	}
 	if ( exception_term )
 	  goto b_throw;
       }
@@ -3777,36 +3788,51 @@ vm_list(exit/2):
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_EXIT, 0, 0, ())
-{ Word name, rval;
+{ term_t name, rval;
   LocalFrame blockfr;
+  term_t bref;
+  int rc;
 
-  name = argFrameP(lTop, 0); deRef(name);
-  rval = argFrameP(lTop, 1); deRef(rval);
+  name = consTermRef(argFrameP(lTop, 0));
+  rval = consTermRef(argFrameP(lTop, 1));
   lTop = (LocalFrame)argFrameP(lTop, 2);
 
-  if ( !(blockfr = findBlock(FR, name)) )
+  SAVE_REGISTERS(qid);
+  blockfr = findBlock(FR, name PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( !blockfr )
   { if ( exception_term )
       goto b_throw;
 
     BODY_FAILED;
   }
+  bref = consTermRef(blockfr);
 
-  if ( unify_ptrs(argFrameP(blockfr, 2), rval, 0 PASS_LD) )
+  SAVE_REGISTERS(qid);
+  rc = PL_unify(consTermRef(argFrameP(blockfr, 2)), rval);
+  LOAD_REGISTERS(qid);
+
+  if ( rc )
   { for( ; ; FR = FR->parent )
-    { SECURE(assert(FR > blockfr));
+    { SAVE_REGISTERS(qid);
       discardChoicesAfter(FR PASS_LD);
+      LOAD_REGISTERS(qid);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
-      { frameFinished(FR, FINISH_CUT PASS_LD);
+      { SAVE_REGISTERS(qid);
+	frameFinished(FR, FINISH_CUT PASS_LD);
+	LOAD_REGISTERS(qid);
       }
+      blockfr = (LocalFrame)valTermRef(bref);
       if ( FR->parent == blockfr )
       { PC = FR->programPointer;
 	break;
       }
     }
-				  /* TBD: tracing? */
     environment_frame = FR = blockfr;
+    SAVE_REGISTERS(qid);
     discardChoicesAfter(FR PASS_LD); /* delete possible CHP_DEBUG */
+    LOAD_REGISTERS(qid);
     DEF = FR->predicate;
     lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
     ARGP = argFrameP(lTop, 0);
@@ -3833,31 +3859,22 @@ vm_list(!/1):
 
 VMI(I_CUT_BLOCK, 0, 0, ())
 { LocalFrame cutfr;
-  Choice ch;
-  Word name;
+  term_t name;
 
-  name = argFrameP(lTop, 0); deRef(name);
+  name = consTermRef(argFrameP(lTop, 0));
 
-  if ( !(cutfr = findBlock(FR, name)) )
+  SAVE_REGISTERS(qid);
+  cutfr = findBlock(FR, name PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( !cutfr )
   { if ( exception_term )
       goto b_throw;
     BODY_FAILED;
   }
 
-  for(ch=BFR; (void *)ch > (void *)cutfr; ch = ch->parent)
-  { LocalFrame fr2;
-
-    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
-    for(fr2 = ch->frame;
-	fr2 && fr2->clause && fr2 > FR;
-	fr2 = fr2->parent)
-    { discardFrame(fr2 PASS_LD);
-      if ( true(FR, FR_WATCHED) )
-      { frameFinished(FR, FINISH_CUT PASS_LD);
-      }
-    }
-  }
-  BFR = ch;
+  SAVE_REGISTERS(qid);
+  discardChoicesAfter(cutfr PASS_LD);
+  LOAD_REGISTERS(qid);
 
   lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
   ARGP = argFrameP(lTop, 0);

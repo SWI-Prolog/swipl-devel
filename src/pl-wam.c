@@ -561,15 +561,18 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
   { size_t loffset = (char*)fr - (char*)lBase;
     fid_t cid  = PL_open_foreign_frame();
     term_t catcher = argFrameP(fr, 2) - (Word)lBase;
-    int safe;
+    int set_env, safe;
 
     switch(reason)			/* In the end, all should become safe */
-    { case FINISH_EXITCLEANUP:
+    { case FINISH_CUT:
+	set_env = TRUE;
+      case FINISH_EXITCLEANUP:
       case FINISH_FAIL:
 	safe = TRUE;
         break;
       default:
 	safe = FALSE;
+        set_env = FALSE;
     }
 
     set(fr, FR_CATCHED);
@@ -581,13 +584,13 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
       fr = addPointer(lBase, loffset);	/* compensate for shift in unify_finished */
 
-      if ( safe )
-      { assert(environment_frame == fr);
-      } else
-      { blockGC(PASS_LD1);
-	environment_frame = fr;		/* ensure proper parent for the handler */
-      }
+      if ( set_env )
+	environment_frame = fr;
+      else
+	assert(environment_frame == fr);
 
+      if ( !safe )
+	blockGC(PASS_LD1);
       clean = argFrameP(fr, 3) - (Word)lBase;
       if ( reason == FINISH_EXCEPT )
       {	term_t pending = PL_new_term_ref();
@@ -609,9 +612,10 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 	if ( !safe ) endCritical;
       }
       if ( !safe )
-      { environment_frame = esave;
 	unblockGC(PASS_LD1);
-      }
+
+      if ( set_env )
+	environment_frame = esave;
 
       if ( !rval && ex )
 	PL_raise_exception(ex);
@@ -934,15 +938,22 @@ foreignWakeup(term_t *ex, int flags ARG_LD)
 		*********************************/
 
 static LocalFrame
-findBlock(LocalFrame fr, Word block)
-{ GET_LD
-  for(; fr; fr = fr->parent)
-  { if ( fr->predicate == PROCEDURE_block3->definition &&
-	 unify_ptrs(argFrameP(fr, 0), block, 0 PASS_LD) )
-      return fr;
+findBlock(LocalFrame fr, term_t id ARG_LD)
+{ for(; fr; fr = fr->parent)
+  { if ( fr->predicate == PROCEDURE_block3->definition )
+    { int rc;
+      term_t frref;
+
+      frref = consTermRef(fr);
+      rc = PL_unify(consTermRef(argFrameP(fr, 0)), id);
+      fr = (LocalFrame)valTermRef(frref);
+
+      if ( rc )
+	return fr;
+    }
   }
 
-  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_block, wordToTermRef(block));
+  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_block, id);
 
   return NULL;
 }
@@ -1351,28 +1362,34 @@ static void
 discardChoicesAfter(LocalFrame fr ARG_LD)
 { if ( (LocalFrame)BFR > fr )
   { for(;;)
-    { LocalFrame fr2;
+    { Choice me = BFR;
+      LocalFrame fr2;
 
-      DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(BFR)));
-      for(fr2 = BFR->frame;
+      DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(me)));
+      for(fr2 = me->frame;
 	  fr2 && fr2->clause && fr2 > fr;
 	  fr2 = fr2->parent)
       { discardFrame(fr2 PASS_LD);
 	if ( true(fr2, FR_WATCHED) )
-	{ BFR->frame = fr2;
-	  lTop = (LocalFrame)(BFR+1);
+	{ lTop = (LocalFrame)(me+1);
 	  frameFinished(fr2, FINISH_CUT PASS_LD);
+	  if ( me != BFR )		/* shifted */
+	  { intptr_t offset = (char*)BFR - (char*)me;
+
+	    me  = addPointer(me, offset);
+	    fr  = addPointer(fr, offset);
+	    fr2 = addPointer(fr2, offset);
+	  }
 	  if ( exception_term )
 	    break;
 	}
       }
 
-      if ( (void*)BFR->parent <= (void*)fr )
-      { DiscardMark(BFR->mark);
-	BFR = BFR->parent;
+      BFR = me->parent;
+      if ( (LocalFrame)BFR <= fr )
+      { DiscardMark(me->mark);
 	break;
       }
-      BFR = BFR->parent;
     }
 
     DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
@@ -1608,12 +1625,14 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 static void
 discard_query(qid_t qid ARG_LD)
 { QueryFrame qf = QueryFromQid(qid);
-  LocalFrame FR = &qf->frame;
 
-  discardChoicesAfter(FR PASS_LD);
-  discardFrame(FR PASS_LD);
-  if ( true(FR, FR_WATCHED) )
-  { frameFinished(FR, FINISH_CUT PASS_LD);
+  discardChoicesAfter(&qf->frame PASS_LD);
+  qf = QueryFromQid(qid);		/* may be shifted */
+  discardFrame(&qf->frame PASS_LD);
+  if ( true(&qf->frame, FR_WATCHED) )
+  { lTop = (LocalFrame)argFrameP(&qf->frame,
+				 qf->frame.predicate->functor->arity);
+    frameFinished(&qf->frame, FINISH_CUT PASS_LD);
   }
 }
 
