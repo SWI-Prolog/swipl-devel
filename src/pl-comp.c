@@ -3018,10 +3018,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_INT64:
 	case A_INT64:
 			  { Word p;
-			    int rc = requireGlobal(2+WORDS_PER_INT64);
 
-			    if ( rc != TRUE )
-			      return rc;
+			    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
+			      return GLOBAL_OVERFLOW;
+
 			    p = gTop;
 			    gTop += 2+WORDS_PER_INT64;
 
@@ -3035,10 +3035,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p;
-			    int rc = requireGlobal(2+WORDS_PER_DOUBLE);
 
-			    if ( rc != TRUE )
-			      return rc;
+			    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+			      return GLOBAL_OVERFLOW;
+
 			    p = gTop;
 			    gTop += 2+WORDS_PER_DOUBLE;
 
@@ -3054,9 +3054,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_MPZ:
 	case B_MPZ:
 			  { size_t sz = gsizeIndirectFromCode(PC);
-			    int rc = requireGlobal(sz);
-			    if ( rc != TRUE )
-			      return rc;
+
+			    if ( !hasGlobalSpace(sz) )
+			      return GLOBAL_OVERFLOW;
 
 	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
@@ -3370,11 +3370,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 static int
 put_functor(Word p, functor_t f ARG_LD)
 { int arity = arityFunctor(f);
-  int rc;
   Word a, t;
 
-  if ( (rc = requireGlobal(1+arity)) != TRUE )
-    return rc;
+  if ( !hasGlobalSpace(1+arity) )
+    return GLOBAL_OVERFLOW;
 
   a = t = gTop;
   gTop += (1+arity);
