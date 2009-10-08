@@ -340,8 +340,8 @@ static fid_t
 open_foreign_frame(ARG1_LD)
 { FliFrame fr = (FliFrame) lTop;
 
-  requireStackEx(local, sizeof(struct fliFrame));
-  lTop = addPointer(lTop, sizeof(struct fliFrame));
+  assert((LocalFrame)(fr+1) <= lMax);
+  lTop = (LocalFrame)(fr+1);
   fr->size = 0;
   Mark(fr->mark);
   SECURE(assert(fr>fli_context));
@@ -368,6 +368,16 @@ close_foreign_frame(fid_t id ARG_LD)
 fid_t
 PL_open_foreign_frame()
 { GET_LD
+  size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
+
+  if ( (char*)lTop + lneeded > (char*)lMax )
+  { int rc;
+
+    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+    { raiseStackOverflow(rc);
+      return 0;
+    }
+  }
 
   return open_foreign_frame(PASS_LD1);
 }

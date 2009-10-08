@@ -407,6 +407,7 @@ them.  Descriptions:
 #define BUFFER_RING_SIZE 	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
+#define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
 #define MAXSYMBOLLEN		256	/* max size of foreign symbols */
 #define MAXVARIABLES		65536	/* number of variables/clause */
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */

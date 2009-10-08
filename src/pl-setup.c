@@ -371,7 +371,7 @@ dispatch_signal(int sig, int sync)
 { GET_LD
   SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
-  uintptr_t lTopSave;
+  term_t lTopSave;
   int saved_current_signal;
   int saved_sync;
 
@@ -392,7 +392,7 @@ dispatch_signal(int sig, int sync)
 		    sig, sync ? " (sync)" : " (async)"));
 #endif
 
-  lTopSave = (char*)lTop - (char*)lBase;
+  lTopSave = consTermRef(lTop);
   saved_current_signal = LD->current_signal;
   saved_sync = LD->sync_signal;
 
@@ -481,7 +481,7 @@ dispatch_signal(int sig, int sync)
     PL_close_foreign_frame(fid);
   else
     PL_discard_foreign_frame(fid);
-  lTop = addPointer(lBase, lTopSave);
+  lTop = (LocalFrame)valTermRef(lTopSave);
 
   if ( !sync )
     unblockGC(PASS_LD1);
