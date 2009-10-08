@@ -49,6 +49,13 @@ stepPC(Code PC)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
+value need not be trailed.
+
+Note that the local stack is always _above_ the global stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static inline void
 Trail__LD(Word p, word v ARG_LD)
 { assert(tTop+1 <= tMax);

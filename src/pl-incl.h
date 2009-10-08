@@ -1508,45 +1508,19 @@ struct alloc_pool
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Trail  an  assignment.  Note  that  -when  using  dynamic  stacks-,  the
-assignment should be made *before* calling TrailEx()!
-
-p is a pointer into the local or   global stack. We trail any assignment
-made in the local stack. If the current   mark is from a choice-point we
-could improve here. Some marks however are created in foreign code, both
-using PL_open_foreign_frame() and directly by   calling Mark(). It would
-be a good idea to remove the latter.
-
-Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
-value need not be trailed.
-
-Note that the local stack is always _above_ the global stack.
+Note that all trail operations demand that   the caller ensures there is
+at least one free cell on the trail-stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define TrailEx(p) \
-  if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireTrailStackEx(1); \
-    (tTop++)->address = p; \
-  }
-
 #define Trail(p, w) Trail__LD(p, w PASS_LD)
-
 					/* trail local stack pointer */
 #define LTrail(p) \
   (void)((tTop++)->address = p)
-
 					/* trail global stack pointer */
 #define GTrail(p) \
   do { if ( p < LD->mark_bar ) \
          (tTop++)->address = p; \
      } while(0)
-
-
-#define requireTrailStackEx(entries) \
-	requireStackEx(trail, (entries)*sizeof(struct trail_entry))
-
-#define requireTrailStack(entries) \
-  	requireStack(trail, (entries)*sizeof(struct trail_entry))
 
 
 		 /*******************************
