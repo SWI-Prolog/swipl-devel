@@ -2784,6 +2784,7 @@ read_term(term_t term, ReadData rd ARG_LD)
 
   result = PL_new_term_ref();
   blockGC(ALLOW_SHIFT PASS_LD);
+  LD->read.active++;
   if ( (rc2=complex_term(NULL, result, rd->subtpos, rd PASS_LD)) != TRUE )
   { rc = raiseStackOverflow(rc2);
     goto out;
@@ -2812,6 +2813,7 @@ read_term(term_t term, ReadData rd ARG_LD)
 
 out:
   PL_reset_term_refs(result);
+  LD->read.active--;
   unblockGC(ALLOW_SHIFT PASS_LD);
   return rc;
 }

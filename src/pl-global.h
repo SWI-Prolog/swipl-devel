@@ -437,6 +437,10 @@ struct PL_local_data
   } comp;
 
   struct
+  { int		active;
+  } read;
+
+  struct
   { struct
     { Number	base;
       Number	top;
