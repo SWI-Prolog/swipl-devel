@@ -866,7 +866,7 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->frozen_bar )
   { Word *sb;
 
-    requireStackEx(local, sizeof(Word));
+    assert((Word)lTop + 1 <= (Word)lMax);
     sb = (Word*)lTop;
     lTop = (LocalFrame)(sb+1);
     *sb = LD->frozen_bar;
@@ -2935,6 +2935,28 @@ leaveGC()
 #endif /*O_PLMT*/
 
 
+static int
+gcEnsureSpace(vm_state *state ARG_LD)
+{ size_t lneeded = 0;
+
+  if ( LD->gvar.grefs )
+    lneeded += sizeof(struct fliFrame) + LD->gvar.grefs*sizeof(word);
+  if ( LD->frozen_bar )
+    lneeded += sizeof(Word);
+  if ( state->save_argp )
+    lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
+
+  if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
+    return ensureLocalSpace(lneeded, ALLOW_SHIFT);
+  if ( gTop+1 > gMax )
+    enableSpareStack((Stack)&LD->stacks.global);
+  if ( tTop+1 > tMax )
+    enableSpareStack((Stack)&LD->stacks.trail);
+
+  return TRUE;
+}
+
+
 int
 garbageCollect(void)
 { GET_LD
@@ -2942,6 +2964,7 @@ garbageCollect(void)
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+  int rc;
   sigset_t mask;
   fid_t gvars, astack;
   Word *saved_bar_at;
@@ -2960,6 +2983,10 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
+  get_vmi_state(&state);
+  if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
+    return rc;
+
   enterGC();
 #ifndef UNBLOCKED_GC
   blockSignals(&mask);
@@ -2968,7 +2995,6 @@ garbageCollect(void)
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
-  get_vmi_state(&state);
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -3009,8 +3035,8 @@ garbageCollect(void)
   marks_unswept	    = 0;
   LD->gc.marked_attvars = FALSE;
 
-  requireStackEx(global, sizeof(word));
-  requireStackEx(trail, sizeof(struct trail_entry));
+  assert(gTop+1 <= gMax);
+  assert(tTop+1 <= tMax);
   setVar(*gTop);
   tTop->address = 0;
 
