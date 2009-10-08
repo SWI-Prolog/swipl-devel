@@ -3973,6 +3973,7 @@ atom is referenced by the goal-term anyway.
       arity   = fd->arity;
     } else
     { Clause cl;
+      int rc;
 
       a = &goal;			/* we're going to overwrite */
       deRef(a);
@@ -3984,9 +3985,21 @@ atom is referenced by the goal-term anyway.
 	       });
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
-      if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1,
-				module PASS_LD)) )
+      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module PASS_LD);
+      if ( rc == FALSE )
 	goto b_throw;
+      if ( rc == LOCAL_OVERFLOW )
+      { size_t room = roomStack(local);
+
+	SAVE_REGISTERS(qid);
+	rc = ensureLocalSpace(room*2, ALLOW_SHIFT);
+	LOAD_REGISTERS(qid);
+	if ( rc != TRUE )
+	{ raiseStackOverflow(rc);
+	  goto b_throw;
+	}
+	VMI_GOTO(I_USERCALL0);
+      }
 
       DEF 		  = NFR->predicate;
       SECURE(assert(DEF == PROCEDURE_dcall1->definition));

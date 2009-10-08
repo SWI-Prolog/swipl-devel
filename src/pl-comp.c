@@ -467,7 +467,8 @@ calculation at runtime.
 
 #define ISVOID 0			/* compileArgument produced H_VOID */
 #define NONVOID 1			/* ... anything else */
-#define NOT_CALLABLE -1			/* return value for not-callable */
+					/* also allow for *_OVERFLOW */
+#define NOT_CALLABLE -10		/* return value for not-callable */
 
 #define BLOCK(s) do { s; } while (0)
 
@@ -501,8 +502,8 @@ forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 #endif
 #if O_COMPILE_IS
-forwards bool	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
-forwards bool	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 
 static inline int
@@ -705,11 +706,13 @@ goal-term and therefore initialised. This implies   there  is no need to
 play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Clause
-compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
+int
+compileClause(Clause *cp, Word head, Word body,
+	      Procedure proc, Module module ARG_LD)
 { compileInfo ci;			/* data base for the compiler */
   struct clause clause;
   Clause cl;
+  int rc;
 
   					/* See declaration of struct clause */
   DEBUG(0, assert(sizeof(clause) % sizeof(word) == 0));
@@ -762,8 +765,10 @@ before the I_ENTER instructions.
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
-    { if ( compileArgument(arg, A_HEAD, &ci PASS_LD) == NONVOID )
+    { if ( (rc=compileArgument(arg, A_HEAD, &ci PASS_LD)) == NONVOID )
 	lastnonvoid = PC(&ci);
+      if ( rc < 0 )
+	goto exit_fail;
     }
     seekBuffer(&ci.codes, lastnonvoid, code);
   }
@@ -781,8 +786,7 @@ that have an I_CONTEXT because we need to reset the context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
-  { int rv;
-    size_t bi;
+  { size_t bi;
 
     if ( head )
     { Definition def = proc->definition;
@@ -799,10 +803,11 @@ that have an I_CONTEXT because we need to reset the context.
     }
 
     bi = PC(&ci);
-    if ( (rv=compileBody(body, I_DEPART, &ci PASS_LD)) != TRUE )
-    { if ( rv == NOT_CALLABLE )
-	PL_error(NULL, 0, NULL, ERR_TYPE,
-		 ATOM_callable, wordToTermRef(body));
+    if ( (rc=compileBody(body, I_DEPART, &ci PASS_LD)) != TRUE )
+    { if ( rc == NOT_CALLABLE )
+      {	rc = PL_error(NULL, 0, NULL, ERR_TYPE,
+		      ATOM_callable, wordToTermRef(body));
+      }
 
       goto exit_fail;
     }
@@ -838,16 +843,22 @@ Finish up the clause.
     Word p0 = argFrameP(fr, clause.variables);
     Word p = p0;
     ClauseRef cref;
+    size_t space;
 
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
 		      ci.argvars, clause.prolog_vars, clause.variables));
     assert(ci.argvars == ci.argvar);
-    requireStackEx(local,
-		 clause.variables*sizeof(word) +
-		 sizeofClause(clause.code_size) +
-		 sizeof(*cref) +
-		 (size_t)argFrameP((LocalFrame)NULL, MAXARITY));
-					/* Needed for new frame arguments */
+
+					/* check space */
+    space = ( clause.variables*sizeof(word) +
+	      sizeofClause(clause.code_size) +
+	      sizeof(*cref) +
+	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY)
+	    );
+    if ( addPointer(lTop, space) >= (void*)lMax )
+    { rc = LOCAL_OVERFLOW;
+      goto exit_fail;
+    }
 
     cref = (ClauseRef)p;
     p = addPointer(p, sizeof(*cref));
@@ -869,11 +880,13 @@ Finish up the clause.
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
 
-  return cl;
+  *cp = cl;
+  return TRUE;
 
 exit_fail:
   resetVars(PASS_LD1);
-  return NULL;
+  discardBuffer(&ci.codes);
+  return rc;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1126,10 +1139,11 @@ is not produced by this function.
 compileArgument() returns ISVOID if a void instruction resulted from the
 compilation. This is used to  detect   the  ...ISVOID,  [I_ENTER, H_POP]
 sequences, in which case we can  leave   out  the  VOIDS just before the
-I_ENTER or H_POP instructions.
+I_ENTER or H_POP instructions.  Otherwise it returns NONVOID.
 
 When doing `islocal' compilation,  compound  terms   are  copied  to the
-current localframe and a B_VAR instruction is generated for it.
+current localframe and a B_VAR instruction is  generated for it. In this
+case it can return LOCAL_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_DEBUG
@@ -1275,7 +1289,8 @@ isvar:
       DEBUG(1, Sdprintf("Linking b_var(%d) to %s\n",
 			index, vName(v->address)));
 
-      requireStackEx(local, (voffset+1)*sizeof(word));
+      if ( k >= (Word) lMax )
+	return LOCAL_OVERFLOW;
       *k = makeRef(v->address);
 
       if ( index < 3 )
@@ -1342,7 +1357,9 @@ isvar:
     voffset = VAROFFSET(ci->argvar);
     k = varFrameP(lTop, voffset);
 
-    requireStackEx(local, (voffset+1)*sizeof(word));
+    if ( k >= (Word)lMax )
+      return LOCAL_OVERFLOW;
+
     if ( isAttVar(*arg) )		/* attributed variable: must make */
       *k = makeRef(arg);		/* a reference to avoid binding a */
     else				/* copy! */
@@ -1390,8 +1407,12 @@ isvar:
     where |= A_ARG;
 
     for(arg = argTermP(*arg, 0); --ar > 0; arg++)
-    { if ( compileArgument(arg, where, ci PASS_LD) == NONVOID )
+    { int rc;
+
+      if ( (rc=compileArgument(arg, where, ci PASS_LD)) == NONVOID )
 	lastnonvoid = PC(ci);
+      if ( rc < 0 )
+	return rc;
     }
 
     where |= A_RIGHT;
@@ -1405,10 +1426,13 @@ isvar:
     }
 
     if ( isright )
-      goto right_recursion;
-    else
+    { goto right_recursion;
+    } else
     { code c;
-      compileArgument(arg, where, ci PASS_LD);
+      int rc;
+
+      if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
+	return rc;
       c = (where & A_HEAD) ? H_POP : B_POP;
       Output_0(ci, c);
     }
@@ -1467,7 +1491,10 @@ compileSubClause(Word arg, code call, compileInfo *ci)
 A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   if ( isIndexedVarTerm(*arg PASS_LD) >= 0 )
-  { compileArgument(arg, A_BODY, ci PASS_LD);
+  { int rc;
+
+    if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+      return rc;
     Output_0(ci, I_USERCALL0);
     succeed;
   }
@@ -1489,6 +1516,7 @@ compile, but they are related to meta-calling anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( functor == FUNCTOR_colon2 )
     { Word mp, g;
+      int rc;
 
       mp = argTermP(*arg, 0); deRef(mp);
       if ( isTextAtom(*mp) && !ci->islocal )
@@ -1513,7 +1541,8 @@ compile, but they are related to meta-calling anyway.
 	}
       }
 
-      compileArgument(arg, A_BODY, ci PASS_LD);
+      if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+	return rc;
       Output_0(ci, I_USERCALL0);
       succeed;
     }
@@ -1530,12 +1559,17 @@ compile, but they are related to meta-calling anyway.
 
 #ifdef O_COMPILE_IS
     if ( !ci->islocal )
-    { if ( functor == FUNCTOR_equals2 &&	/* =/2 */
-	   compileBodyUnify(arg, call, ci PASS_LD) )
-	succeed;
-      if ( functor == FUNCTOR_strict_equal2 &&	/* ==/2 */
-	   compileBodyEQ(arg, call, ci PASS_LD) )
-	succeed;
+    { if ( functor == FUNCTOR_equals2 )	/* =/2 */
+      { int rc;
+
+	if ( (rc=compileBodyUnify(arg, call, ci PASS_LD)) != FALSE )
+	  return rc;
+      } else if ( functor == FUNCTOR_strict_equal2 )	/* ==/2 */
+      { int rc;
+
+	if ( (rc=compileBodyEQ(arg, call, ci PASS_LD)) != FALSE )
+	  return rc;
+      }
     }
 #endif
 
@@ -1568,7 +1602,11 @@ re-definition.
       }
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
-	compileArgument(arg, A_BODY, ci PASS_LD);
+      { int rc;
+
+	if ( (rc=compileArgument(arg, A_BODY, ci PASS_LD)) < 0 )
+	  return rc;
+      }
 
       if ( fdef->name == ATOM_call )
       { if ( fdef->arity == 1 )
@@ -1623,7 +1661,7 @@ re-definition.
   else
     Output_2(ci, mcall(call), (code)tm, (code)proc);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -1711,9 +1749,11 @@ OUT-OF-DATE: now pushes *numbers* rather then tagged Prolog data structures.
 
 Note. This function assumes the functors   of  all arithmetic predicates
 are tagged using the functor ARITH_F. See registerArithFunctors().
+
+Returns one of TRUE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 compileArith(Word arg, compileInfo *ci ARG_LD)
 { code a_func;
   functor_t fdef = functorTerm(*arg);
@@ -1727,22 +1767,25 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
   else if ( fdef == FUNCTOR_is2 )				/* is */
   { size_t tc_a1 = PC(ci);
     code isvar;
+    int rc;
 
-    if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
-      fail;
+    rc=compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD);
+    if ( rc != NONVOID )
+      return rc;
     if ( PC(ci) == tc_a1 + 2 &&	OpCode(ci, tc_a1) == encode(B_FIRSTVAR) )
     { isvar = OpCode(ci, tc_a1+1);
       seekBuffer(&ci->codes, tc_a1, code);
     } else
       isvar = 0;
     Output_0(ci, A_ENTER);
-    if ( !compileArithArgument(argTermP(*arg, 1), ci PASS_LD) )
-      fail;
+    rc = compileArithArgument(argTermP(*arg, 1), ci PASS_LD);
+    if ( rc != TRUE )
+      return rc;
     if ( isvar )
       Output_1(ci, A_FIRSTVAR_IS, isvar);
     else
       Output_0(ci, A_IS);
-    succeed;
+    return TRUE;
   } else
   { assert(0);			/* see pl-func.c, registerArithFunctors() */
     fail;
@@ -1755,11 +1798,11 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
 
   Output_0(ci, a_func);
 
-  succeed;
+  return TRUE;
 }
 
 
-static bool
+static int
 compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 { int index;
 
@@ -1878,7 +1921,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
     if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
     { return PL_error(NULL, 0, "No such arithmetic function",
-			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+		      ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
     }
 
     for(n=0; n<ar; a++, n++)
@@ -1909,9 +1952,11 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 #ifdef O_COMPILE_IS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compile unifications (=/2) in the body into inline instructions.
+
+Returns one of TRUE, FALSE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
@@ -1921,7 +1966,7 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   if ( isVar(*a1) )			/* Singleton = ? --> true */
   { unify_always_yields_true:
     Output_0(ci, I_TRUE);
-    succeed;
+    return TRUE;
   }
 
   a2 = argTermP(*arg, 1);
@@ -1945,11 +1990,12 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
     else
       Output_2(ci, B_UNIFY_VV, VAROFFSET(i1), VAROFFSET(i2));
 
-    succeed;
+    return TRUE;
   }
 
   if ( i1 >= 0 )			/* Var = Term */
   { int first;
+    int rc;
 
   unify_term:
     first = isFirstVarSet(ci->used_var, i1);
@@ -1960,11 +2006,12 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
     } else
     { int where = (first ? A_BODY : A_HEAD|A_ARG);
       Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
-      compileArgument(a2, where, ci PASS_LD);
+      if ( (rc=compileArgument(a2, where, ci PASS_LD)) < 0 )
+	return rc;
       Output_0(ci, B_UNIFY_EXIT);
     }
 
-    succeed;
+    return TRUE;
   }
   if ( i2 >= 0 )			/* (Term = Var): as (Var = Term)! */
   { i1 = i2;
@@ -1972,7 +2019,7 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
     goto unify_term;
   }
 
-  fail;					/* Term = Term */
+  return FALSE;				/* Term = Term */
 }
 
 
@@ -1981,9 +2028,12 @@ Compile ==/2. Note that if either  side   is  a  firstvar, the test will
 always fail. When doing optimized compilation we simply generate fail/0.
 otherwise we generate a balancing instruction and the normal equivalence
 test.  Likewise, an == on a singleton fails.
+
+Returns TRUE if compiled; FALSE if not compiled. Reserved *_OVERFLOW for
+errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
@@ -1995,10 +2045,10 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
   eq_always_false:
     if ( truePrologFlag(PLFLAG_OPTIMISE) )
     { Output_0(ci, I_FAIL);
-      succeed;
+      return TRUE;
     }
 
-    fail;				/* debugging: compile as normal code */
+    return FALSE;			/* debugging: compile as normal code */
   }
 
   a2 = argTermP(*arg, 1);
@@ -2016,7 +2066,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
     if ( f1 || f2 )
     { if ( truePrologFlag(PLFLAG_OPTIMISE) )
       {	Output_0(ci, i1 == i2 ? I_TRUE : I_FAIL);
-	succeed;
+	return TRUE;
       }
     } else
     { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
@@ -2025,7 +2075,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
 
     Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
 
-    succeed;
+    return TRUE;
   }
 
   if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
@@ -2035,7 +2085,7 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), *a2);
     if ( isAtom(*a2) )
       PL_register_atom(*a2);
-    succeed;
+    return TRUE;
   }
   if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
   { int f2 = isFirstVar(ci->used_var, i2);
@@ -2044,10 +2094,10 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), *a1);
     if ( isAtom(*a1) )
       PL_register_atom(*a1);
-    succeed;
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 #endif /*O_COMPILE_IS*/
 
@@ -2198,7 +2248,7 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   b = valTermRef(body);
   deRef(h);
   deRef(b);
-  if ( !(clause = compileClause(h, b, proc, module PASS_LD)) )
+  if ( compileClause(&clause, h, b, proc, module PASS_LD) != TRUE )
     return NULL;
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
