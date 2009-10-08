@@ -344,7 +344,7 @@ __thread size_t trace_frames[SAVE_TRACES];
 __thread int trace;
 
 static void
-save_backtrace (void)
+save_backtrace(void)
 { void *array[100];
 
   trace_frames[trace] = backtrace(array, sizeof(array)/sizeof(void *));
@@ -2983,6 +2983,8 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
+  DEBUG(0, save_backtrace());
+
   get_vmi_state(&state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
     return rc;
@@ -4137,9 +4139,7 @@ void
 markAtomsOnStacks(PL_local_data_t *ld)
 { assert(!ld->gc.status.active);
 
-#if BACKTRACE
-  save_backtrace();
-#endif
+  DEBUG(0, save_backtrace());
 
   markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);
