@@ -1137,12 +1137,6 @@ emptyStacks()
 
 static size_t size_alignment;	/* Stack sizes must be aligned to this */
 
-static size_t
-align_size(size_t x)
-{ return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
-}
-
-
 #if O_DYNAMIC_STACKS
 
 static int init_stack(Stack s, const char *name,
@@ -1156,6 +1150,11 @@ RETSIGTYPE _PL_segv_handler(int sig, siginfo_t *info, void *);
 RETSIGTYPE _PL_segv_handler(int sig);
 #endif
 #endif
+
+static size_t
+align_size(size_t x)
+{ return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 STACK_SEPARATION defines the  space  between   the  stacks.  The maximum
@@ -1754,7 +1753,6 @@ init_stack(Stack s, char *name,
   s->spare      = spare;
   s->def_spare  = spare;
   s->max	= addPointer(s->base, size - spare);
-  s->trigger    = addPointer(s->base, size_alignment); /* or min_free? */
   s->min_free	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
@@ -1828,13 +1826,7 @@ resetStacks()
 
 int
 trim_stack(Stack s)
-{ void *top  = s->top;
-  void *addr = (void *)align_size((size_t)top + size_alignment);
-
-  if ( addr < s->trigger )
-    s->trigger = addr;
-
-  s->gced_size = usedStackP(s);
+{ s->gced_size = usedStackP(s);
 
   if ( s->spare < s->def_spare )
   { ssize_t reduce = s->def_spare - s->spare;

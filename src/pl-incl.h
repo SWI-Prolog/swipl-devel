@@ -1630,7 +1630,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #ifdef O_SHIFT_STACKS
 #define STACK_SHIFT_EXTRA(type) \
-	  type		trigger;	/* Trigger if above this pointer */ \
 	  size_t	spare;		/* Current reserved area */ \
 	  size_t	def_spare;	/* Desired reserved area */
 #else
@@ -1714,11 +1713,6 @@ typedef struct
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
 #define limitStackP(s) ((s)->size_limit)
 #define narrowStackP(s) (roomStackP(s) < (s)->minfree)
-#ifdef O_SHIFT_STACKS
-#define triggerStackP(s) ((char *)(s)->trigger - (char *)(s)->top)
-#else
-#define triggerStackP(s) roomStackP(s)
-#endif
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
@@ -1726,7 +1720,6 @@ typedef struct
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
 #define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
-#define triggerStack(name) triggerStackP(&LD->stacks.name)
 
 #define GROW_TRIM ((size_t)-1)
 

@@ -3560,7 +3560,6 @@ This function should be called *after*  the  stacks have been relocated.
   { LD->stacks.name.base    = addPointer(LD->stacks.name.base,    offset); \
     LD->stacks.name.top     = addPointer(LD->stacks.name.top,     offset); \
     LD->stacks.name.max     = addPointer(LD->stacks.name.max,     offset); \
-    LD->stacks.name.trigger = addPointer(LD->stacks.name.trigger, offset); \
   }
 
 
