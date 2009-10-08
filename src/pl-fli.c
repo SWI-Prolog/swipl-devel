@@ -200,7 +200,7 @@ PL_new_term_ref__LD(ARG1_LD)
 
 term_t
 PL_new_term_ref_noshift__LD(ARG1_LD)
-{ if ( requireStack(local, sizeof(word)) < 0 )
+{ if ( addPointer(lTop, sizeof(word)) > (void*) lMax )
     return 0;
   return new_term_ref(PASS_LD1);
 }
