@@ -2037,11 +2037,18 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 }
 
 
-static void
+static int
 build_term(term_t term, atom_t atom, int arity, term_t *argv,
 	   ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
   Word argp = allocGlobal(arity+1);
+
+  if ( !hasGlobalSpace(arity+1) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(arity+1, ALLOW_GC)) != TRUE )
+      return rc;
+  }
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
@@ -2051,6 +2058,7 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv,
     readValHandle(*argv, argp, _PL_rd PASS_LD);
 
   DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
+  return TRUE;
 }
 
 
@@ -2074,7 +2082,7 @@ functions:  complex_term()  which is involved with operator handling and
 simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 simple_term(bool must_be_op, term_t term, bool *name,
 	    term_t positions,
 	    ReadData _PL_rd ARG_LD);
@@ -2122,7 +2130,7 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
   succeed;
 }
 
-static void
+static int
 build_op_term(term_t term,
 	      atom_t atom, int arity, out_entry *argv,
 	      ReadData _PL_rd ARG_LD)
@@ -2130,7 +2138,7 @@ build_op_term(term_t term,
 
   av[0] = argv[0].term;
   av[1] = argv[1].term;
-  build_term(term, atom, arity, av, _PL_rd PASS_LD);
+  return build_term(term, atom, arity, av, _PL_rd PASS_LD);
 }
 
 
@@ -2190,11 +2198,13 @@ remainder of the values.
 	    side_p = (side_n == 0 ? -1 : side_p-1); \
 	  } else if ( side[side_p].kind == OP_INFIX && out_n > 0 && rmo == 0 && \
 		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p], _PL_rd) ) \
-	  { DEBUG(9, Sdprintf("Infix %s to postfix\n", \
+	  { int rc; \
+	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd PASS_LD); \
+	    rc = build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd PASS_LD); \
+	    if ( rc != TRUE ) return rc; \
 	    out[out_n-1].pri  = side[side_p].op_pri; \
 	    out[out_n-1].term = tmp; \
 	    side[side_p].kind = OP_POSTFIX; \
@@ -2321,7 +2331,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 
 #define Reduce(cpri) \
 	while( out_n > 0 && side_p >= 0 && (cpri) >= side[side_p].op_pri ) \
-	{ int arity = (side[side_p].kind == OP_INFIX ? 2 : 1); \
+	{ int rc; \
+	  int arity = (side[side_p].kind == OP_INFIX ? 2 : 1); \
 	  term_t tmp; \
 	  if ( arity > out_n ) break; \
 	  if ( !can_reduce(&out[out_n-arity], &side[side_p]) ) \
@@ -2333,7 +2344,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
-	  build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd PASS_LD); \
+	  rc = build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd PASS_LD); \
+	  if ( rc != TRUE ) return rc; \
 	  out[out_n].pri  = side[side_p].op_pri; \
 	  out[out_n].term = tmp; \
 	  out[out_n].tpos = opPos(&side[side_p], &out[out_n] PASS_LD); \
@@ -2343,7 +2355,7 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 	}
 
 
-static bool
+static int
 complex_term(const char *stop, term_t term, term_t positions,
 	     ReadData _PL_rd ARG_LD)
 { out_entry *out  = NULL;
@@ -2359,7 +2371,8 @@ complex_term(const char *stop, term_t term, term_t positions,
   in_op.right_pri = 0;
 
   for(;;)
-  { bool isname;
+  { int rc;
+    bool isname;
     Token token;
     term_t in = PL_new_term_ref();
 
@@ -2390,7 +2403,8 @@ complex_term(const char *stop, term_t term, term_t positions,
     }
 
 					/* Read `simple' term */
-    TRY( simple_term(rmo == 1, in, &isname, pin, _PL_rd PASS_LD) );
+    if ( (rc=simple_term(rmo == 1, in, &isname, pin, _PL_rd PASS_LD)) != TRUE )
+      return rc;
 
     if ( isname )			/* Check for operators */
     { atom_t name;
@@ -2481,7 +2495,7 @@ exit:
 }
 
 
-static bool
+static int
 simple_term(bool must_be_op, term_t term, bool *name,
 	    term_t positions, ReadData _PL_rd ARG_LD)
 { Token token;
@@ -2542,6 +2556,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  term_t pe;			/* term-end */
 	  term_t ph;
 	  int unlock;
+	  int rc;
 
 	  if ( positions )
 	  { pa = PL_new_term_ref();
@@ -2574,10 +2589,10 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    if ( positions )
 	    { PL_unify_list(pa, ph, pa);
 	    }
-	    if ( !complex_term(",)", argv[argc], ph, _PL_rd PASS_LD) )
+	    if ( (rc=complex_term(",)", argv[argc], ph, _PL_rd PASS_LD)) != TRUE )
 	    { if ( unlock )
 		PL_unregister_atom(functor);
-	      fail;
+	      return rc;
 	    }
 	    argc++;
 	    token = get_token(must_be_op, _PL_rd); /* `,' or `)' */
@@ -2588,7 +2603,9 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    PL_unify_nil(pa);
 	  }
 
-	  build_term(term, functor, argc, argv, _PL_rd PASS_LD);
+	  rc = build_term(term, functor, argc, argv, _PL_rd PASS_LD);
+	  if ( rc != TRUE )
+	    return rc;
 	  if ( unlock )
 	    PL_unregister_atom(functor);
 	}
@@ -2597,9 +2614,11 @@ simple_term(bool must_be_op, term_t term, bool *name,
     case T_PUNCTUATION:
       { switch(token->value.character)
 	{ case '(':
-	    { size_t start = token->start;
+	    { int rc;
+	      size_t start = token->start;
 
-	      TRY( complex_term(")", term, positions, _PL_rd PASS_LD) );
+	      if ( (rc=complex_term(")", term, positions, _PL_rd PASS_LD)) != TRUE )
+		return rc;
 	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
 
 	      if ( positions )
@@ -2612,7 +2631,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      succeed;
 	    }
 	  case '{':
-	    { term_t arg = PL_new_term_ref();
+	    { int rc;
+	      term_t arg = PL_new_term_ref();
 	      term_t pa, pe;
 
 	      if ( positions )
@@ -2627,13 +2647,13 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      } else
 		pe = pa = 0;
 
-	      TRY( complex_term("}", arg, pa, _PL_rd PASS_LD) );
+	      if ( (rc=complex_term("}", arg, pa, _PL_rd PASS_LD)) != TRUE )
+		return rc;
 	      token = get_token(must_be_op, _PL_rd);
 	      if ( positions )
 		PL_unify_integer(pe, token->end);
-	      build_term(term, ATOM_curl, 1, &arg, _PL_rd PASS_LD);
 
-	      succeed;
+	      return build_term(term, ATOM_curl, 1, &arg, _PL_rd PASS_LD);
 	    }
 	  case '[':
 	    { term_t tail = PL_new_term_ref();
@@ -2664,11 +2684,13 @@ term is to be written.
 	      PL_put_term(tail, term);
 
 	      for(;;)
-	      { Word argp;
+	      { int rc;
+		Word argp;
 
 		if ( positions )
 		  PL_unify_list(pa, p2, pa);
-		TRY( complex_term(",|]", tmp, p2, _PL_rd PASS_LD) );
+		if ( (rc=complex_term(",|]", tmp, p2, _PL_rd PASS_LD)) != TRUE )
+		  return rc;
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
@@ -2689,7 +2711,10 @@ term is to be written.
 		      return PL_unify_nil(tail);
 		    }
 		  case '|':
-		    { TRY( complex_term("]", tmp, pt, _PL_rd PASS_LD) );
+		    { int rc;
+
+		      if ( (rc=complex_term("]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
+			return rc;
 		      argp = unRef(*valTermRef(tail));
 		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
@@ -2747,7 +2772,8 @@ read_term(?term, ReadData rd)
 
 static bool
 read_term(term_t term, ReadData rd ARG_LD)
-{ Token token;
+{ int rc2, rc = FALSE;
+  Token token;
   term_t result;
   Word p;
 
@@ -2757,37 +2783,37 @@ read_term(term_t term, ReadData rd ARG_LD)
   rd->here = rd->base;
 
   result = PL_new_term_ref();
-  blockGC(0 PASS_LD);
-  if ( !complex_term(NULL, result, rd->subtpos, rd PASS_LD) )
-    goto failed;
+  blockGC(ALLOW_SHIFT PASS_LD);
+  if ( (rc2=complex_term(NULL, result, rd->subtpos, rd PASS_LD)) != TRUE )
+  { rc = raiseStackOverflow(rc2);
+    goto out;
+  }
   p = valTermRef(result);
   if ( isVarAtom(*p, rd) )		/* reading a single variable */
     readValHandle(result, p, rd PASS_LD);
 
   if ( !(token = get_token(FALSE, rd)) )
-    goto failed;
+    goto out;
   if ( token->type != T_FULLSTOP )
   { errorWarning("end_of_clause_expected", 0, rd);
-    goto failed;
+    goto out;
   }
 
   if ( !PL_unify(term, result) )
-    goto failed;
+    goto out;
   if ( rd->varnames && !bind_variable_names(rd PASS_LD) )
-    goto failed;
+    goto out;
   if ( rd->variables && !bind_variables(rd PASS_LD) )
-    goto failed;
+    goto out;
   if ( rd->singles && !check_singletons(rd PASS_LD) )
-    goto failed;
+    goto out;
 
-  PL_reset_term_refs(result);
-  unblockGC(0 PASS_LD);
-  succeed;
+  rc = TRUE;
 
-failed:
+out:
   PL_reset_term_refs(result);
-  unblockGC(0 PASS_LD);
-  fail;
+  unblockGC(ALLOW_SHIFT PASS_LD);
+  return rc;
 }
 
 		/********************************

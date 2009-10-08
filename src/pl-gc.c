@@ -3136,18 +3136,22 @@ pl_garbage_collect(term_t d)
 
 void
 blockGC(int flags ARG_LD)
-{ gc_status.blocked++;
+{ if ( !(flags & ALLOW_GC) )
+    gc_status.blocked++;
 #if O_SHIFT_STACKS
-  LD->shift_status.blocked++;
+  if ( !(flags & ALLOW_SHIFT) )
+    LD->shift_status.blocked++;
 #endif
 }
 
 
 void
 unblockGC(int flags ARG_LD)
-{ gc_status.blocked--;
+{ if ( !(flags & ALLOW_GC) )
+    gc_status.blocked--;
 #if O_SHIFT_STACKS
-  LD->shift_status.blocked--;
+  if ( !(flags & ALLOW_SHIFT) )
+    LD->shift_status.blocked--;
 #endif
 }
 
@@ -3220,7 +3224,7 @@ ensureGlobalSpace(size_t cells, int flags)
   if ( !flags )
     goto nospace;
 
-  if ( considerGarbageCollect(NULL) )
+  if ( (flags & ALLOW_GC) && considerGarbageCollect(NULL) )
   { garbageCollect();
 
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
