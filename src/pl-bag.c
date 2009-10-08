@@ -157,13 +157,20 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
   findall_bag *bag;
 
   if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
-  { Record r;
+  { Record *rp;
 
-    while(popSegStack(&bag->answers, &r))
+    while ( (rp=topOfSegStack(&bag->answers)) )
+    { Record r = *rp;
+
+      PL_LOCK(L_AGC);
+      popTopOfSegStack(&bag->answers);
+      PL_UNLOCK(L_AGC);
+
       freeRecord(r);
+    }
 
-    PL_LOCK(L_AGC);
     assert(LD->bags.bags == bag);
+    PL_LOCK(L_AGC);
     LD->bags.bags = bag->parent;
     PL_UNLOCK(L_AGC);
 
