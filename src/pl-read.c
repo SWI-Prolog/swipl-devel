@@ -766,8 +766,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  rawSyntaxError("end_of_file");
 		}
 		if ( Sfpasteof(rb.stream) )
-		{ term_t stream = PL_new_term_ref();
+		{ term_t stream;
 
+		  LD->exception.processing = TRUE;
+		  stream = PL_new_term_ref();
 		  PL_unify_stream_or_alias(stream, rb.stream);
 		  PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			   ATOM_input, ATOM_past_end_of_stream, stream);
@@ -1988,7 +1990,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  else
 		    type = PL_CODE_LIST;
 
-		  PL_unify_text(t, 0, &txt, type);
+		  if ( !PL_unify_text(t, 0, &txt, type) )
+		  { PL_free_text(&txt);
+		    return FALSE;
+		  }
 		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -2009,7 +2014,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
-		  PL_unify_text(t, 0, &txt, PL_STRING);
+		  if ( !PL_unify_text(t, 0, &txt, PL_STRING) )
+		  { PL_free_text(&txt);
+		    return FALSE;
+		  }
 		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -2174,8 +2182,10 @@ build_op_term(term_t term,
 static bool
 outOfCStack(ReadData _PL_rd)
 { GET_LD
-  term_t ex = PL_new_term_ref();
+  term_t ex;
 
+  LD->exception.processing = TRUE;
+  ex = PL_new_term_ref();
   PL_unify_term(ex,
 		PL_FUNCTOR, FUNCTOR_resource_error1,
 		  PL_CHARS, "c_stack");
@@ -2265,14 +2275,15 @@ opPos(op_entry *op, out_entry *args ARG_LD)
     { long s = get_int_arg(args[0].tpos, 1 PASS_LD);
       long e = get_int_arg(args[1].tpos, 2 PASS_LD);
 
-      PL_unify_term(r,
-		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_LONG, s,
-		    PL_LONG, e,
-		    PL_LONG, fs,
-		    PL_LONG, fe,
-		    PL_LIST, 2, PL_TERM, args[0].tpos,
-		    		PL_TERM, args[1].tpos);
+      if ( !PL_unify_term(r,
+			  PL_FUNCTOR,	FUNCTOR_term_position5,
+			  PL_LONG, s,
+			  PL_LONG, e,
+			  PL_LONG, fs,
+			  PL_LONG, fe,
+			  PL_LIST, 2, PL_TERM, args[0].tpos,
+		    		      PL_TERM, args[1].tpos) )
+	return (term_t)0;
     } else
     { long s, e;
 
@@ -2284,13 +2295,14 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 	e = fe;
       }
 
-      PL_unify_term(r,
-		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_LONG, s,
-		    PL_LONG, e,
-		    PL_LONG, fs,
-		    PL_LONG, fe,
-		    PL_LIST, 1, PL_TERM, args[0].tpos);
+      if ( !PL_unify_term(r,
+			  PL_FUNCTOR,	FUNCTOR_term_position5,
+			  PL_LONG, s,
+			  PL_LONG, e,
+			  PL_LONG, fs,
+			  PL_LONG, fe,
+			    PL_LIST, 1, PL_TERM, args[0].tpos) )
+	return (term_t)0;
     }
 
     return r;
@@ -2492,14 +2504,14 @@ exit:
   if ( out_n == 1 && side_n == 0 )	/* simple term */
   { PL_assign_term(term, out[0].term PASS_LD);
     if ( positions )
-      PL_unify(positions, out[0].tpos);
+      return PL_unify(positions, out[0].tpos);
     succeed;
   }
 
   if ( out_n == 0 && side_n == 1 )	/* single operator */
   { PL_put_atom(term, side[0].op);
     if ( positions )
-      PL_unify(positions, side[0].tpos);
+      return PL_unify(positions, side[0].tpos);
     succeed;
   }
 
@@ -2507,11 +2519,14 @@ exit:
        ( side[0].op == ATOM_comma ||
 	 side[0].op == ATOM_semicolon
        ))
-  { term_t ex = PL_new_term_ref();
+  { term_t ex;
     char tmp[2];
 
     tmp[0] = thestop;
     tmp[1] = EOS;
+
+    LD->exception.processing = TRUE;
+    ex = PL_new_term_ref();
     PL_unify_term(ex,
 		  PL_FUNCTOR, FUNCTOR_punct2,
 		    PL_ATOM, side[0].op,
@@ -2594,13 +2609,14 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  { pa = PL_new_term_ref();
 	    pe = PL_new_term_ref();
 	    ph = PL_new_term_ref();
-	    PL_unify_term(positions,
-			  PL_FUNCTOR, FUNCTOR_term_position5,
-			  PL_INTPTR, token->start,
-			  PL_TERM, pe,
-			  PL_INTPTR, token->start,
-			  PL_INTPTR, token->end,
-			  PL_TERM, pa);
+	    if ( !PL_unify_term(positions,
+				PL_FUNCTOR, FUNCTOR_term_position5,
+				PL_INTPTR, token->start,
+				PL_TERM, pe,
+				PL_INTPTR, token->start,
+				PL_INTPTR, token->end,
+				PL_TERM, pa) )
+	      return FALSE;
 	  } else
 	    pa = pe = ph = 0;
 
@@ -2619,7 +2635,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    }
 	    argv[argc] = PL_new_term_ref();
 	    if ( positions )
-	    { PL_unify_list(pa, ph, pa);
+	    { if ( !PL_unify_list(pa, ph, pa) )
+		return FALSE;
 	    }
 	    if ( (rc=complex_term(",)", argv[argc], ph, _PL_rd PASS_LD)) != TRUE )
 	    { if ( unlock )
@@ -2631,8 +2648,9 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  } while(token->value.character == ',');
 
 	  if ( positions )
-	  { PL_unify_integer(pe, token->end);
-	    PL_unify_nil(pa);
+	  { if ( !PL_unify_integer(pe, token->end) ||
+		 !PL_unify_nil(pa) )
+	      return FALSE;
 	  }
 
 	  rc = build_term(term, functor, argc, argv, _PL_rd PASS_LD);
@@ -2671,11 +2689,12 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      { pa = PL_new_term_ref();
 		pe = PL_new_term_ref();
 
-		PL_unify_term(positions,
-			      PL_FUNCTOR, FUNCTOR_brace_term_position3,
-			      PL_INTPTR, token->start,
-			      PL_TERM, pe,
-			      PL_TERM, pa);
+		if ( !PL_unify_term(positions,
+				    PL_FUNCTOR, FUNCTOR_brace_term_position3,
+				    PL_INTPTR, token->start,
+				    PL_TERM, pe,
+				    PL_TERM, pa) )
+		  return FALSE;
 	      } else
 		pe = pa = 0;
 
@@ -2683,7 +2702,9 @@ simple_term(bool must_be_op, term_t term, bool *name,
 		return rc;
 	      token = get_token(must_be_op, _PL_rd);
 	      if ( positions )
-		PL_unify_integer(pe, token->end);
+	      { if ( !PL_unify_integer(pe, token->end) )
+		  return FALSE;
+	      }
 
 	      return build_term(term, ATOM_curl, 1, &arg, _PL_rd PASS_LD);
 	    }
@@ -2698,12 +2719,13 @@ simple_term(bool must_be_op, term_t term, bool *name,
 		pt = PL_new_term_ref();
 		p2 = PL_new_term_ref();
 
-		PL_unify_term(positions,
-			      PL_FUNCTOR, FUNCTOR_list_position4,
-			      PL_INTPTR, token->start,
-			      PL_TERM, pe,
-			      PL_TERM, pa,
-			      PL_TERM, pt);
+		if ( !PL_unify_term(positions,
+				    PL_FUNCTOR, FUNCTOR_list_position4,
+				    PL_INTPTR, token->start,
+				    PL_TERM, pe,
+				    PL_TERM, pa,
+				    PL_TERM, pt) )
+		  return FALSE;
 	      } else
 		pa = pe = p2 = pt = 0;
 
@@ -2720,7 +2742,9 @@ term is to be written.
 		Word argp;
 
 		if ( positions )
-		  PL_unify_list(pa, p2, pa);
+		{ if ( !PL_unify_list(pa, p2, pa) )
+		    return FALSE;
+		}
 		if ( (rc=complex_term(",|]", tmp, p2, _PL_rd PASS_LD)) != TRUE )
 		  return rc;
 		argp = allocGlobal(3);
@@ -2736,9 +2760,10 @@ term is to be written.
 		switch(token->value.character)
 		{ case ']':
 		    { if ( positions )
-		      { PL_unify_nil(pa);
-			PL_unify_atom(pt, ATOM_none);
-			PL_unify_integer(pe, token->end);
+		      { if ( !PL_unify_nil(pa) ||
+			     !PL_unify_atom(pt, ATOM_none) ||
+			     !PL_unify_integer(pe, token->end) )
+			  return FALSE;
 		      }
 		      return PL_unify_nil(tail);
 		    }
@@ -2751,8 +2776,9 @@ term is to be written.
 		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
 		      if ( positions )
-		      { PL_unify_nil(pa);
-			PL_unify_integer(pe, token->end);
+		      { if ( !PL_unify_nil(pa) ||
+			     !PL_unify_integer(pe, token->end) )
+			  return FALSE;
 		      }
 		      succeed;
 		    }
@@ -3116,7 +3142,8 @@ retry:
 			   PL_INT, source_line_pos,
 			   PL_INT, 0);			/* should be byteno */
     if ( tcomments )
-    { PL_unify_nil(rd.comments);
+    { if ( !PL_unify_nil(rd.comments) )
+	return FALSE;
     }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
