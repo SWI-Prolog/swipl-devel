@@ -1482,6 +1482,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Definition def;
   int arity;
   Word ap;
+  size_t lneeded;
   static int top_initialized = FALSE;
   static struct clause clause;
   static struct clause_ref cref = {&clause};
@@ -1510,7 +1511,20 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   assert((void*)fli_context > (void*)environment_frame);
   assert((void*)lTop >= (void*)(fli_context+1));
 
+#ifdef JMPBUF_ALIGNMENT
+  lneeded = JMPBUF_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
+#else
+  lneeded = sizeof(struct queryFrame)+MAXARITY*sizeof(word);
+#endif
 
+  if ( (char*)lTop + lneeded > (char*)lMax )
+  { int rc;
+
+    if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+    { raiseStackOverflow(rc);
+      return (qid_t)0;
+    }
+  }
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
@@ -1518,8 +1532,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   while ( (uintptr_t)lTop % JMPBUF_ALIGNMENT )
     lTop = addPointer(lTop, sizeof(word));
 #endif
-
-  requireStackEx(local, sizeof(struct queryFrame)+MAXARITY*sizeof(word));
 
   qf	             = (QueryFrame) lTop;
 					/* fill top-frame */
