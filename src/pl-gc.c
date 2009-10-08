@@ -2528,7 +2528,7 @@ considerGarbageCollect(Stack s)
 		Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
 			 s->name, s->factor, s->gced_size, s->small));
 	  return PL_raise(SIG_GC);
-	} else if ( (space < s->min_free || space < limit/8) &&
+	} else if ( space < limit/8 &&
 		    used > s->gced_size + limit/32 )
 	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
 	  return PL_raise(SIG_GC);
@@ -3686,11 +3686,11 @@ nextStackSize(Stack s, size_t minfree)
 { size_t size;
 
   if ( minfree == GROW_TRIM )
-  { size = nextStackSizeAbove(usedStackP(s) + s->min_free);
+  { size = nextStackSizeAbove(usedStackP(s));
     if ( size > sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { size = nextStackSizeAbove(sizeStackP(s) + minfree);
+  { size = nextStackSizeAbove(sizeStackP(s) + 1024); /* Always 1K extra */
 
     if ( size >= s->size_limit + s->size_limit/2 )
       size = 0;				/* passed limit */
@@ -3941,10 +3941,7 @@ growStacks(size_t l, size_t g, size_t t)
 
 static size_t
 tight(Stack s)
-{ size_t min_room = s->min_free;
-
-  if ( min_room < sizeStackP(s)/4 )
-    min_room = sizeStackP(s)/4;
+{ size_t min_room = sizeStackP(s)/4;
 
   if ( roomStackP(s) < min_room )
     return 1;

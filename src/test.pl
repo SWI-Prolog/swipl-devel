@@ -1624,12 +1624,6 @@ make_data(N, s(X)) :-
 	NN is N - 1,
 	make_data(NN, X).
 
-gc(shift-1) :-
-	(   current_prolog_flag(dynamic_stacks, true)
-	->  true
-	;   MinFree is 400 * 1024,
-	    set_prolog_stack(global, min_free, _, MinFree)
-	).
 gc(gc-1) :-
 	garbage_collect.
 gc(gc-2) :-			% Beautiful crash.  See compilation of \+

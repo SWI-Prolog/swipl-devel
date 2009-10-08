@@ -1753,7 +1753,6 @@ init_stack(Stack s, char *name,
   s->spare      = spare;
   s->def_spare  = spare;
   s->max	= addPointer(s->base, size - spare);
-  s->min_free	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
 		    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
@@ -2037,9 +2036,17 @@ PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_factor )
       return (PL_unify_integer(old, stack->factor) &&
 	      PL_get_integer_ex(value, &stack->factor));
-    if ( k == ATOM_min_free )
-      return (PL_unify_int64(old, stack->min_free) &&
-	      PL_get_size_ex(value, &stack->min_free));
+    if ( k == ATOM_spare )
+    { size_t spare = stack->def_spare/sizeof(word);
+
+      if ( PL_unify_int64(old, spare) &&
+	   PL_get_size_ex(value, &spare) )
+      { stack->def_spare = spare*sizeof(word);
+	trim_stack(stack);
+	return TRUE;
+      }
+      return FALSE;
+    }
 
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, prop);
   }

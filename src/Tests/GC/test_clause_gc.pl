@@ -58,6 +58,5 @@ a(_,_).
 gspace(Cells) :-
         statistics(globallimit, Limit),
         statistics(globalused, Used),
-        set_prolog_stack(global, min_free, MinFree, MinFree),
 	current_prolog_flag(address_bits, Wlen),
-        Cells is (Limit-Used-MinFree)//(Wlen//8).
+        Cells is (Limit-Used)//(Wlen//8).

@@ -6519,10 +6519,15 @@ table below describes the \arg{Key}/\arg{Value} pairs.
 Do not perform GC below this amount (bytes).
     \termitem{factor}{}
 Run next GC if memory exceeds $max(low,checked) \times factor$.
-    \termitem{min_free}{}
-Enlarge stack if free memory is below this value (bytes). This option is
-only provided if the system is compiled to support the stack-shifter;
-otherwise it is silently ignored.
+    \termitem{spare}{}
+All stacks trigger overflow before actually reaching the limit, so the
+resulting error can be handled gracefully. The spare stack is used for
+print_message/2 from the garbage collector and for handling exceptions.
+The default suffices, unless the user redefines related hooks.  The
+spare stack amount is reported and specified in `cells'.
+
+Related hooks are: message_hook/3 (redefining GC messages),
+prolog_trace_interception/4 and prolog_exception_hook/4.
 \end{description}
 
 Not all flags have impact for all stacks and the current implementation
