@@ -964,7 +964,9 @@ A ; B, A -> B, A -> B ; C, \+ A
 
 static int
 compileBody(Word body, code call, compileInfo *ci ARG_LD)
-{ deRef(body);
+{
+right_argument:
+  deRef(body);
 
   if ( isTerm(*body) )
   { functor_t fd = functorTerm(*body);
@@ -976,7 +978,8 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
-	return compileBody(argTermP(*body, 1), call, ci PASS_LD);
+	body = argTermP(*body, 1);
+	goto right_argument;
 #if O_COMPILE_OR
       } else if ( fd == FUNCTOR_semicolon2 ||
 		  fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
