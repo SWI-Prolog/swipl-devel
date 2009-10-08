@@ -416,11 +416,15 @@ dispatch_signal(int sig, int sync)
     return;
   }
 
+  if ( !(fid = PL_open_signal_foreign_frame(sync)) )
+  { PL_raise(sig);			/* no space; wait */
+    return;
+  }
+
   if ( !sync )
     blockGC(PASS_LD1);
   LD->current_signal = sig;
   LD->sync_signal = sync;
-  fid = PL_open_signal_foreign_frame();
 
   DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
 		    sig, sh->predicate, sh->handler));

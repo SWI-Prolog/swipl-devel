@@ -390,14 +390,29 @@ stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 fid_t
-PL_open_signal_foreign_frame()
+PL_open_signal_foreign_frame(int sync)
 { GET_LD
   FliFrame fr;
-  size_t margin = sizeof(struct localFrame) + MAXARITY*sizeof(word);
+  size_t margin = sizeof(struct localFrame);
 
-  requireStackEx(local, sizeof(struct fliFrame)+margin);
-  lTop = addPointer(lTop, margin);
+  if ( sync )
+    margin += MINFOREIGNSIZE*sizeof(word);
+  else
+    margin += MAXARITY*sizeof(word);
+
+  if ( (char*)lTop + margin > (char*)lMax )
+  { if ( sync )
+    { int rc;
+
+      if ( (rc=ensureLocalSpace(margin, ALLOW_SHIFT)) != TRUE )
+	return FALSE;
+    } else
+    { return FALSE;
+    }
+  }
+
   fr = (FliFrame) lTop;
+  lTop = addPointer(fr, margin);
 
   fr->magic = FLI_MAGIC;
   fr->size = 0;

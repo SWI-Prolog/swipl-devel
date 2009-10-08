@@ -86,7 +86,7 @@ COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void) 		fix_term_ref_count(void);
-COMMON(fid_t) 		PL_open_signal_foreign_frame(void);
+COMMON(fid_t) 		PL_open_signal_foreign_frame(int sync);
 COMMON(bool)		foreignWakeup(term_t *ex, int flags ARG_LD);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
