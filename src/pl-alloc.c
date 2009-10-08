@@ -787,8 +787,6 @@ allocGlobal() allocates on the global stack.  Many  functions  do  this
 inline  as  it is simple and usualy very time critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SHIFT_STACKS
-
 Word
 allocGlobal__LD(size_t n ARG_LD)
 { Word result;
@@ -821,26 +819,6 @@ allocGlobalNoShift__LD(size_t n ARG_LD)
   return result;
 }
 
-#else
-
-static inline Word
-__allocGlobal(size_t n ARG_LD)
-{ Word result = gTop;
-
-  requireStackEx(global, n * sizeof(word));
-  gTop += n;
-
-  return result;
-}
-
-Word allocGlobal__LD(size_t n ARG_LD)
-{ return __allocGlobal(n PASS_LD);
-}
-
-#undef allocGlobal			/* use inline version here */
-#define allocGlobal(n) __allocGlobal(n PASS_LD)
-
-#endif
 
 Word
 newTerm(void)
