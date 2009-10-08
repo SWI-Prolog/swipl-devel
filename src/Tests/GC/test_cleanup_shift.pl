@@ -7,10 +7,10 @@
 */
 
 test_cleanup_shift :-
-	run_tests([ setup_call_cleanup
+	run_tests([ cleanup_shift
 		  ]).
 
-:- begin_tests(setup_call_cleanup).
+:- begin_tests(cleanup_shift).
 
 test(gtrue, true) :- t_true(gshift).
 test(ltrue, true) :- t_true(lshift).
@@ -28,7 +28,7 @@ test(gexcept, true) :- t_except(gshift).
 test(lexcept, true) :- t_except(lshift).
 test(texcept, true) :- t_except(tshift).
 
-:- end_tests(setup_call_cleanup).
+:- end_tests(cleanup_shift).
 
 t_true(Cleanup) :-
 	garbage_collect,
