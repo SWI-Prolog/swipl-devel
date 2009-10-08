@@ -61,7 +61,8 @@ typedef struct
 
 static ssize_t
 Xterm_read(void *handle, char *buffer, size_t count)
-{ xterm *xt = handle;
+{ GET_LD
+  xterm *xt = handle;
   int size;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
@@ -98,7 +99,8 @@ Therefore we kill on the first occasion.
 
 static int
 Xterm_close(void *handle)
-{ xterm *xt = handle;
+{ GET_LD
+  xterm *xt = handle;
 
   DEBUG(1, Sdprintf("Closing xterm-handle (count = %d)\n", xt->count));
 
@@ -155,7 +157,8 @@ should this process be related to us?  Should it be a new session?
 
 foreign_t
 pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
-{ int master, slave, pid;
+{ GET_LD
+  int master, slave, pid;
   char *slavename;
   struct termios termio;
   xterm *xt;

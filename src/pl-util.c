@@ -183,7 +183,9 @@ setBoolean(int *flag, term_t old, term_t new)
 
 word
 setInteger(int *flag, term_t old, term_t new)
-{ if ( !PL_unify_integer(old, *flag) ||
+{ GET_LD
+
+  if ( !PL_unify_integer(old, *flag) ||
        !PL_get_integer_ex(new, flag) )
     fail;
 

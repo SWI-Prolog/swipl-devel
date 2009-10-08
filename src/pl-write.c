@@ -59,7 +59,8 @@ static bool	writeTerm(term_t t, int prec, write_options *options);
 
 static Word
 address_of(term_t t)
-{ Word adr = valTermRef(t);
+{ GET_LD
+  Word adr = valTermRef(t);
 
   deRef(adr);
   switch(tag(*adr))
@@ -86,7 +87,8 @@ has_visited(visited *v, Word addr)
 
 char *
 varName(term_t t, char *name)
-{ Word adr = valTermRef(t);
+{ GET_LD
+  Word adr = valTermRef(t);
 
   deRef(adr);
 
@@ -358,7 +360,8 @@ writeQuoted(IOSTREAM *stream, const char *text, size_t len, int quote,
 #if O_ATTVAR
 static bool
 writeAttVar(term_t av, write_options *options)
-{ char buf[32];
+{ GET_LD
+  char buf[32];
 
   TRY(PutToken(varName(av, buf), options->out));
 
@@ -536,7 +539,8 @@ get_chr_from_text(const PL_chars_t *t, int index)
 
 static int
 writeString(term_t t, write_options *options)
-{ PL_chars_t txt;
+{ GET_LD
+  PL_chars_t txt;
 
   PL_get_text(t, &txt, CVT_STRING);
 
@@ -623,7 +627,9 @@ format_float(double f, char *buf, const char *format)
 
 static bool
 WriteNumber(Number n, write_options *options)
-{ switch(n->type)
+{ GET_LD
+
+  switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
@@ -669,7 +675,8 @@ WriteNumber(Number n, write_options *options)
 
 static bool
 writePrimitive(term_t t, write_options *options)
-{ double f;
+{ GET_LD
+  double f;
   atom_t a;
   char buf[32];
   IOSTREAM *out = options->out;
@@ -803,7 +810,8 @@ callPortray(term_t arg, write_options *options)
   portray = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
 
   if ( portray->definition->definition.clauses )
-  { fid_t wake    = saveWakeup(PASS_LD1);
+  { GET_LD
+    fid_t wake    = saveWakeup(PASS_LD1);
     fid_t fid     = PL_open_foreign_frame();
     IOSTREAM *old = Scurout;
     int rval;
@@ -861,7 +869,8 @@ out:
 
 static bool
 writeList2(term_t list, write_options *options, int cyclic)
-{ term_t head = PL_new_term_ref();
+{ GET_LD
+  term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
 
   TRY(Putc('[', options->out));
@@ -901,7 +910,8 @@ writeList2(term_t list, write_options *options, int cyclic)
 
 static bool
 writeList(term_t list, write_options *options)
-{ visited *v = options->visited;
+{ GET_LD
+  visited *v = options->visited;
   Word tail;
   int rc;
 
@@ -915,7 +925,8 @@ writeList(term_t list, write_options *options)
 
 static bool
 writeTerm2(term_t t, int prec, write_options *options)
-{ atom_t functor;
+{ GET_LD
+  atom_t functor;
   int arity, n;
   int op_type, op_pri;
   atom_t a;
@@ -1129,7 +1140,8 @@ static const opt_spec write_term_options[] =
 
 word
 pl_write_term3(term_t stream, term_t term, term_t opts)
-{ bool quoted     = FALSE;
+{ GET_LD
+  bool quoted     = FALSE;
   bool ignore_ops = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
@@ -1219,7 +1231,8 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
 
 static word
 do_write2(term_t stream, term_t term, int flags)
-{ IOSTREAM *s;
+{ GET_LD
+  IOSTREAM *s;
 
   if ( getOutputStream(stream, &s) )
   { write_options options;
@@ -1261,7 +1274,8 @@ pl_print2(term_t stream, term_t term)
 
 word
 pl_write_canonical2(term_t stream, term_t term)
-{ fid_t fid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
   nv_options options;
   word rc;
 

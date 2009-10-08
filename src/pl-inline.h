@@ -85,4 +85,15 @@ bindConst__LD(Word p, word c ARG_LD)
 #endif
 }
 
+
+static inline word
+consPtr__LD(void *p, word ts ARG_LD)
+{ uintptr_t v = (uintptr_t) p;
+
+  v -= LD->bases[ts&STG_MASK];
+  SECURE(assert(v < MAXTAGGEDPTR && !(v&0x3)));
+  return (v<<5)|ts;
+}
+
+
 #endif /*PL_INLINE_H_INCLUDED*/

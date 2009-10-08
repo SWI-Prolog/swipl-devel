@@ -40,7 +40,8 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 
 word
 pl_break()
-{ fid_t wake = saveWakeup(PASS_LD1);
+{ GET_LD
+  fid_t wake = saveWakeup(PASS_LD1);
   fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
   word rval;
@@ -56,7 +57,8 @@ pl_break()
 
 word
 pl_break1(term_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
@@ -107,7 +109,8 @@ pl_break1(term_t goal)
 
 word
 pl_notrace1(term_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
 
   uintptr_t  skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;

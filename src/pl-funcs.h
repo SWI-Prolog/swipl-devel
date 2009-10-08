@@ -59,9 +59,6 @@ COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
-#ifndef consPtr
-COMMON(word) 		consPtr(void *p, word ts);
-#endif
 COMMON(char *) 		store_string(const char *s);
 COMMON(void) 		remove_string(char *s);
 #ifndef xmalloc

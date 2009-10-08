@@ -108,7 +108,8 @@ indexOfBoolMask(uintptr_t mask)
 
 void
 setPrologFlag(const char *name, int flags, ...)
-{ atom_t an = PL_new_atom(name);
+{ GET_LD
+  atom_t an = PL_new_atom(name);
   prolog_flag *f;
   Symbol s;
   va_list args;
@@ -196,7 +197,8 @@ setPrologFlag(const char *name, int flags, ...)
 #ifdef O_PLMT
 static void
 copySymbolPrologFlagTable(Symbol s)
-{ prolog_flag *f = s->value;
+{ GET_LD
+  prolog_flag *f = s->value;
   prolog_flag *copy = allocHeap(sizeof(*copy));
 
   *copy = *f;
@@ -208,7 +210,8 @@ copySymbolPrologFlagTable(Symbol s)
 
 static void
 freeSymbolPrologFlagTable(Symbol s)
-{ prolog_flag *f = s->value;
+{ GET_LD
+  prolog_flag *f = s->value;
 
   if ( (f->flags & FT_MASK) == FT_TERM )
     PL_erase(f->value.t);
@@ -220,7 +223,8 @@ freeSymbolPrologFlagTable(Symbol s)
 
 int
 setDoubleQuotes(atom_t a, unsigned int *flagp)
-{ unsigned int flags;
+{ GET_LD
+  unsigned int flags;
 
   if ( a == ATOM_chars )
     flags = DBLQ_CHARS;
@@ -256,7 +260,8 @@ setUnknown(atom_t a, unsigned int *flagp)
   else if ( a == ATOM_fail )
     flags = UNKNOWN_FAIL;
   else
-  { term_t value = PL_new_term_ref();
+  { GET_LD
+    term_t value = PL_new_term_ref();
 
     PL_put_atom(value, a);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unknown, value);
@@ -271,7 +276,8 @@ setUnknown(atom_t a, unsigned int *flagp)
 
 static int
 setWriteAttributes(atom_t a)
-{ int mask = writeAttributeMask(a);
+{ GET_LD
+  int mask = writeAttributeMask(a);
 
   if ( mask )
   { LD->prolog_flag.write_attributes = mask;
@@ -302,7 +308,9 @@ getOccursCheckMask(atom_t a, occurs_check_t *val)
 
 static int
 setOccursCheck(atom_t a)
-{ if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
+{ GET_LD
+
+  if ( getOccursCheckMask(a, &LD->prolog_flag.occurs_check) )
   { succeed;
   } else
   { term_t value = PL_new_term_ref();
@@ -315,7 +323,8 @@ setOccursCheck(atom_t a)
 
 static int
 setEncoding(atom_t a)
-{ IOENC enc = atom_to_encoding(a);
+{ GET_LD
+  IOENC enc = atom_to_encoding(a);
 
   if ( enc == ENC_UNKNOWN )
   { term_t value = PL_new_term_ref();
@@ -332,7 +341,8 @@ setEncoding(atom_t a)
 
 static word
 set_prolog_flag_unlocked(term_t key, term_t value)
-{ atom_t k;
+{ GET_LD
+  atom_t k;
   Symbol s;
   prolog_flag *f;
   Module m = MODULE_parse;
@@ -521,7 +531,9 @@ pl_set_prolog_flag(term_t key, term_t value)
 
 static int
 unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
-{ if ( key == ATOM_character_escapes )
+{ GET_LD
+
+  if ( key == ATOM_character_escapes )
   { atom_t v = (true(m, CHARESCAPE) ? ATOM_true : ATOM_false);
 
     return PL_unify_atom(val, v);
@@ -595,7 +607,9 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 
 static int
 unify_prolog_flag_access(prolog_flag *f, term_t access)
-{ if ( f->flags & FF_READONLY )
+{ GET_LD
+
+  if ( f->flags & FF_READONLY )
     return PL_unify_atom(access, ATOM_read);
   else
     return PL_unify_atom(access, ATOM_write);
@@ -604,7 +618,8 @@ unify_prolog_flag_access(prolog_flag *f, term_t access)
 
 static int
 unify_prolog_flag_type(prolog_flag *f, term_t type)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
@@ -639,7 +654,8 @@ word
 pl_prolog_flag5(term_t key, term_t value,
 	    word scope, word access, word type,
 	    control_t h)
-{ prolog_flag_enum *e;
+{ GET_LD
+  prolog_flag_enum *e;
   Symbol s;
   fid_t fid;
   Module module;
@@ -782,7 +798,8 @@ initPrologFlagTable()
 
 void
 initPrologFlags()
-{ setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
+{ GET_LD
+  setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
   setPrologFlag("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
@@ -928,7 +945,8 @@ initPrologFlags()
 
 static void
 setArgvPrologFlag()
-{ fid_t fid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
   term_t e = PL_new_term_ref();
   term_t l = PL_new_term_ref();
   int argc    = GD->cmdline.argc;
@@ -957,7 +975,8 @@ setTZPrologFlag()
 
 static void
 setVersionPrologFlag(void)
-{ fid_t fid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
   term_t t = PL_new_term_ref();
   int major = PLVERSION/10000;
   int minor = (PLVERSION/100)%100;

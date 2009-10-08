@@ -390,7 +390,8 @@ reset_readline()
 
 static ssize_t
 Sread_readline(void *handle, char *buf, size_t size)
-{ intptr_t h = (intptr_t)handle;
+{ GET_LD
+  intptr_t h = (intptr_t)handle;
   int fd = (int) h;
   int ttymode = PL_ttymode(Suser_input); /* Not so nice */
   int rval;
@@ -554,7 +555,8 @@ prolog_completion(const char *text, int start, int end)
 
 install_t
 PL_install_readline()
-{ bool old;
+{ GET_LD
+  bool old;
 
 #ifndef __WINDOWS__
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )

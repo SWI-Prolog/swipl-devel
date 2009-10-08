@@ -745,38 +745,6 @@ outOfCore()
 { fatalError("Could not allocate memory: %s", OsError());
 }
 
-		 /*******************************
-		 *	REFS AND POINTERS	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-__consPtr() is inlined for this module (including pl-wam.c), but external
-for the other modules, where it is far less fime-critical.
-
-Actually, for normal operation, consPtr() is a macro from pl-data.h
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if !defined(consPtr) || defined(SECURE_GC) || defined(_DEBUG)
-#undef consPtr
-
-static inline word
-__consPtr(void *p, word ts)
-{ GET_LD
-  uintptr_t v = (uintptr_t) p;
-
-  v -= base_addresses[ts&STG_MASK];
-  assert(v < MAXTAGGEDPTR && !(v&0x3));
-  return (v<<5)|ts;
-}
-
-word
-consPtr(void *p, word ts)
-{ return __consPtr(p, ts);
-}
-
-#define consPtr(p, s) __consPtr(p, s)
-#endif
-
 
 		/********************************
 		*        GLOBAL STACK           *

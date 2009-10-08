@@ -48,7 +48,8 @@ typedef union
 bool
 scan_options(term_t options, int flags, atom_t optype,
 	     const opt_spec *specs, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   const opt_spec *s;
   optvalue values[MAXOPTIONS];
   term_t list = PL_copy_term_ref(options);

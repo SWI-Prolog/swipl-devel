@@ -119,7 +119,8 @@ have to be dropped. See the header of pl-incl.h for details.
 
 bool
 initOs(void)
-{ DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
+{ GET_LD
+  DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
   initExpand();
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
@@ -411,7 +412,8 @@ setOSPrologFlags(void)
 
 uintptr_t
 UsedMemory(void)
-{
+{ GET_LD
+
 #if defined(HAVE_GETRUSAGE) && defined(HAVE_RU_IDRSS)
   struct rusage usage;
 
@@ -498,7 +500,9 @@ setRandom(unsigned int *seedp)
 
 uint64_t
 _PL_Random(void)
-{ if ( !LD->os.rand_initialised )
+{ GET_LD
+
+  if ( !LD->os.rand_initialised )
   { setRandom(NULL);
     LD->os.rand_initialised = TRUE;
   }
@@ -571,7 +575,9 @@ struct tempfile
 
 atom_t
 TemporaryFile(const char *id)
-{ char temp[MAXPATHLEN];
+{ GET_LD
+
+  char temp[MAXPATHLEN];
   TempFile tf = allocHeap(sizeof(struct tempfile));
   char envbuf[MAXPATHLEN];
   char *tmpdir;
@@ -631,7 +637,8 @@ TemporaryFile(const char *id)
 
 void
 RemoveTemporaryFiles(void)
-{ TempFile tf, tf2;
+{ GET_LD
+  TempFile tf, tf2;
 
   startCritical;
   for(tf = tmpfile_head; tf; tf = tf2)
@@ -800,7 +807,7 @@ forwards char   *canoniseDir(char *);
 
 static void
 initExpand(void)
-{
+{ GET_LD
 #ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
@@ -1126,7 +1133,9 @@ utf8_strlwr(char *s)
 
 char *
 canonisePath(char *path)
-{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
+{ GET_LD
+
+  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     utf8_strlwr(path);
 
   canoniseFileName(path);
@@ -1173,7 +1182,8 @@ takeWord(const char **string, char *wrd, int maxlen)
 
 bool
 expandVars(const char *pattern, char *expanded, int maxlen)
-{ int size = 0;
+{ GET_LD
+  int size = 0;
   char wordbuf[MAXPATHLEN];
 
   if ( *pattern == '~' )
@@ -1325,7 +1335,8 @@ ExpandFile(const char *pattern, char **vector)
 
 char *
 ExpandOneFile(const char *spec, char *file)
-{ char *vector[256];
+{ GET_LD
+  char *vector[256];
   int size;
 
   switch( (size=ExpandFile(spec, vector)) )
@@ -1424,7 +1435,8 @@ IsAbsolutePath(const char *p)
 
 char *
 AbsoluteFile(const char *spec, char *path)
-{ char tmp[MAXPATHLEN];
+{ GET_LD
+  char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
 
@@ -1472,7 +1484,9 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ if ( CWDdir )
+{ GET_LD
+
+  if ( CWDdir )
     remove_string(CWDdir);
   CWDdir = NULL;
   CWDlen = 0;
@@ -1481,7 +1495,9 @@ PL_changed_cwd(void)
 
 const char *
 PL_cwd(void)
-{ if ( CWDlen == 0 )
+{ GET_LD
+
+  if ( CWDlen == 0 )
   { char buf[MAXPATHLEN];
     char *rval;
 
@@ -1570,7 +1586,8 @@ DirName(const char *f, char *dir)
 
 bool
 ChDir(const char *path)
-{ char ospath[MAXPATHLEN];
+{ GET_LD
+  char ospath[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
   OsPath(path, ospath);
@@ -1668,7 +1685,8 @@ ResetStdin()
 
 static ssize_t
 Sread_terminal(void *handle, char *buf, size_t size)
-{ intptr_t h = (intptr_t)handle;
+{ GET_LD
+  intptr_t h = (intptr_t)handle;
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
@@ -1695,7 +1713,8 @@ Sread_terminal(void *handle, char *buf, size_t size)
 
 void
 ResetTty()
-{ startCritical;
+{ GET_LD
+  startCritical;
   ResetStdin();
 
   if ( !GD->os.iofunctions.read )
@@ -1723,7 +1742,8 @@ ResetTty()
 
 bool
 PushTty(IOSTREAM *s, ttybuf *buf, int mode)
-{ struct termios tio;
+{ GET_LD
+  struct termios tio;
   int fd;
 
   buf->mode = ttymode;
@@ -1790,7 +1810,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf)
-{ int fd;
+{ GET_LD
+  int fd;
   ttymode = buf->mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
@@ -2191,7 +2212,8 @@ argument to wait()
 
 int
 System(char *cmd)
-{ int pid;
+{ GET_LD
+  int pid;
   char *shell = "/bin/sh";
   int rval;
   void (*old_int)();

@@ -73,7 +73,9 @@ typedef struct
 
 void
 resetTerm()
-{ LOCK();
+{ GET_LD
+
+  LOCK();
   if ( capabilities == NULL )
   { capabilities = newHTable(16);
   } else
@@ -91,7 +93,9 @@ resetTerm()
 
 static int
 initTerm(void)
-{ if ( term_initialised == STAT_START )
+{ GET_LD
+
+  if ( term_initialised == STAT_START )
   { char term[100];
 
     term_initialised = STAT_ERROR;
@@ -142,7 +146,8 @@ out:
 
 static Entry
 lookupEntry(atom_t name, atom_t type)
-{ Symbol s;
+{ GET_LD
+  Symbol s;
   Entry e;
 
   LOCK();
@@ -208,13 +213,15 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
 
 static int
 tputc(int chr)
-{ return Sputc(chr, Suser_output);
+{ GET_LD
+  return Sputc(chr, Suser_output);
 }
 
 
 word
 pl_tty_goto(term_t x, term_t y)
-{ Entry e;
+{ GET_LD
+  Entry e;
   char *s;
   int ix, iy;
 
@@ -257,7 +264,8 @@ pl_tty_put(term_t a, term_t affcnt)
 
 word
 pl_tty_size(term_t r, term_t c)
-{ int rows, cols;
+{ GET_LD
+  int rows, cols;
 
 #ifdef __unix__
   int iorval;

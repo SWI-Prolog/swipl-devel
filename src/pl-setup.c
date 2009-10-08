@@ -67,7 +67,8 @@ const unsigned int tagtypeex[] =
 
 void
 setupProlog(void)
-{ DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
+{ GET_LD
+  DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
   LD->aborted = ABORT_NONE;
@@ -137,7 +138,8 @@ setupProlog(void)
 
 void
 initPrologLocalData(void)
-{
+{ GET_LD
+
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
   depth_reached = 0;
@@ -314,7 +316,8 @@ signal_index(const char *name)
 
 int
 PL_get_signum_ex(term_t sig, int *n)
-{ char *s;
+{ GET_LD
+  char *s;
   int i = -1;
 
   if ( PL_get_integer(sig, &i) )

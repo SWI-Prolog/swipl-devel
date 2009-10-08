@@ -53,7 +53,8 @@ thread-local, as thread_exit/1 should do the same.
 
 static void
 allocHTableEntries(Table ht)
-{ int n;
+{ GET_LD
+  int n;
   Symbol *p;
 
   ht->entries = allocHeap(ht->buckets * sizeof(Symbol));
@@ -65,7 +66,8 @@ allocHTableEntries(Table ht)
 
 Table
 newHTable(int buckets)
-{ Table ht;
+{ GET_LD
+  Table ht;
 
   ht		  = allocHeap(sizeof(struct table));
   ht->buckets	  = (buckets & ~TABLE_MASK);
@@ -89,7 +91,8 @@ newHTable(int buckets)
 
 void
 destroyHTable(Table ht)
-{
+{ GET_LD
+
 #ifdef O_PLMT
   if ( ht->mutex )
   { simpleMutexDelete(ht->mutex);
@@ -169,7 +172,8 @@ checkHTable(Table ht)
 
 static void
 rehashHTable(Table ht)
-{ Symbol *oldtab;
+{ GET_LD
+  Symbol *oldtab;
   int    oldbucks;
   int    i;
 
@@ -199,7 +203,8 @@ rehashHTable(Table ht)
 
 Symbol
 addHTable(Table ht, void *name, void *value)
-{ Symbol s;
+{ GET_LD
+  Symbol s;
   int v;
 
   LOCK_TABLE(ht);
@@ -232,7 +237,8 @@ Note: s must be in the table!
 
 void
 deleteSymbolHTable(Table ht, Symbol s)
-{ int v;
+{ GET_LD
+  int v;
   Symbol *h;
   TableEnum e;
 
@@ -262,7 +268,8 @@ deleteSymbolHTable(Table ht, Symbol s)
 
 void
 clearHTable(Table ht)
-{ int n;
+{ GET_LD
+  int n;
   TableEnum e;
 
   LOCK_TABLE(ht);
@@ -302,7 +309,8 @@ Table copyHTable(Table org)
 
 Table
 copyHTable(Table org)
-{ Table ht;
+{ GET_LD
+  Table ht;
   int n;
 
   ht = allocHeap(sizeof(struct table));
@@ -348,7 +356,8 @@ copyHTable(Table org)
 
 TableEnum
 newTableEnum(Table ht)
-{ TableEnum e = allocHeap(sizeof(struct table_enum));
+{ GET_LD
+  TableEnum e = allocHeap(sizeof(struct table_enum));
   Symbol n;
 
   LOCK_TABLE(ht);
@@ -369,7 +378,8 @@ newTableEnum(Table ht)
 
 void
 freeTableEnum(TableEnum e)
-{ TableEnum *ep;
+{ GET_LD
+  TableEnum *ep;
   Table ht;
 
   if ( !e )

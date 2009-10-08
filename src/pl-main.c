@@ -257,7 +257,9 @@ setupGNUEmacsInferiorMode()
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-  { clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+  { GET_LD
+
+    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
     val = TRUE;
   } else
   { val = FALSE;
@@ -312,7 +314,9 @@ initPaths(int argc, const char **argv)
 
 static void
 initDefaults()
-{ systemDefaults.arch	     = ARCH;
+{ GET_LD
+
+  systemDefaults.arch	     = ARCH;
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
@@ -436,9 +440,8 @@ isoption(const char *av, const char *opt)
 
 static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
-{ int argc = argc0;
-
-
+{ GET_LD
+  int argc = argc0;
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
@@ -675,7 +678,8 @@ stack-parameters.
 
 static void
 script_argv(int argc, char **argv)
-{ FILE *fd;
+{ GET_LD
+  FILE *fd;
   int i;
 
   DEBUG(1,
@@ -865,6 +869,7 @@ properly on Linux. Don't bother with it.
   initDefaults();			/* Initialise global defaults */
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
+  { GET_LD
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
@@ -982,6 +987,7 @@ properly on Linux. Don't bother with it.
   { int status = prologToplevel(PL_new_atom("$initialise"));
     return status;
   }
+  }					/* { GET_LD } */
 }
 
 
@@ -1159,7 +1165,8 @@ struct on_halt
 void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
-  { OnHalt h = allocHeap(sizeof(struct on_halt));
+  { GET_LD
+    OnHalt h = allocHeap(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
@@ -1173,7 +1180,8 @@ PL_on_halt(halt_function f, void *arg)
 
 int
 PL_cleanup(int rval)
-{ OnHalt h;
+{ GET_LD
+  OnHalt h;
 
   LOCK();
   if ( GD->cleaning != CLN_NORMAL )
@@ -1316,7 +1324,8 @@ warning(const char *fm, ...)
 
 static bool
 vsysError(const char *fm, va_list args)
-{ static int active = 0;
+{ GET_LD
+  static int active = 0;
 
   if ( active++ )
     PL_halt(3);
@@ -1408,7 +1417,8 @@ Where ListOfLines is a list of string objects.
 
 bool
 vwarning(const char *fm, va_list args)
-{ toldString();				/* play safe */
+{ GET_LD
+  toldString();				/* play safe */
 
   if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
   { if ( !GD->bootsession && GD->initialised &&

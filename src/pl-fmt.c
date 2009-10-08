@@ -228,7 +228,8 @@ pl_format_predicate(term_t chr, term_t descr)
 
 word
 pl_current_format_predicate(term_t chr, term_t descr, control_t h)
-{ Symbol s = NULL;
+{ GET_LD
+  Symbol s = NULL;
   TableEnum e;
   fid_t fid;
 
@@ -265,7 +266,8 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 static word
 format_impl(IOSTREAM *out, term_t format, term_t Args)
-{ term_t argv;
+{ GET_LD
+  term_t argv;
   int argc = 0;
   term_t args = PL_copy_term_ref(Args);
   int rval;
@@ -349,7 +351,8 @@ get_chr_from_text(const PL_chars_t *t, int index)
 
 static bool
 do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
-{ format_state state;			/* complete state */
+{ GET_LD
+  format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
   Symbol s;
   unsigned int here = 0;

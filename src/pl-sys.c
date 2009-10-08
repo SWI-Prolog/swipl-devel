@@ -35,7 +35,8 @@ Run an external command and wait for its completion.
 
 static
 PRED_IMPL("shell", 2, shell, 0)
-{ char *cmd;
+{ GET_LD
+  char *cmd;
 
   if ( PL_get_chars_ex(A1, &cmd, CVT_ALL|REP_FN) )
   { int rval = System(cmd);
@@ -125,7 +126,8 @@ pl_sleep(term_t time)
 
 word
 pl_get_pid(term_t pid)
-{ return PL_unify_integer(pid, getpid());
+{ GET_LD
+  return PL_unify_integer(pid, getpid());
 }
 
 

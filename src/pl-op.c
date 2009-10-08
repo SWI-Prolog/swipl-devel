@@ -80,7 +80,8 @@ typedef struct _opdef			/* predefined and enumerated */
 
 static void
 copyOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+{ GET_LD
+  operator *op = s->value;
   operator *o2 = allocHeap(sizeof(*o2));
 
   *o2 = *op;
@@ -89,7 +90,8 @@ copyOperatorSymbol(Symbol s)
 
 static void
 freeOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+{ GET_LD
+  operator *op = s->value;
 
   PL_unregister_atom((atom_t) s->name);
   freeHeap(op, sizeof(*op));
@@ -140,7 +142,9 @@ defOperator(Module m, atom_t name, int type, int priority)
   { UNLOCK();				/* already inherited: do not change */
     return;
   } else
-  { op = allocHeap(sizeof(*op));
+  { GET_LD
+
+    op = allocHeap(sizeof(*op));
 
     op->priority[OP_PREFIX]  = -1;
     op->priority[OP_INFIX]   = -1;

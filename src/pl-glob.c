@@ -116,7 +116,9 @@ static bool	match_pattern(matchcode *, char *);
 
 static inline void
 setMap(matchcode *map, int c)
-{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
+{ GET_LD
+
+  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     c = makeLower(c);
 
   map[(c)/8] |= 1 << ((c) % 8);
@@ -238,10 +240,13 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
+      { GET_LD
+
         if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	  c = makeLower(c);
 	Output(c);
 	continue;
+      }
     }
 
     Output(EXIT);
@@ -271,7 +276,8 @@ match_pattern(matchcode *p, char *str)
 	  s++;
 	  continue;
       case ANYOF:					/* [...] */
-        { matchcode c2 = *s;
+        { GET_LD
+	  matchcode c2 = *s;
 
 	  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	    c2 = makeLower(c2);
@@ -298,12 +304,15 @@ match_pattern(matchcode *p, char *str)
 	  p += *p;
 	  continue;
       default:						/* character */
+      { GET_LD
+
 	  if ( c == *s ||
 	       (!truePrologFlag(PLFLAG_FILE_CASE) && c == makeLower(*s)) )
 	  { s++;
 	    continue;
 	  }
           fail;
+      }
     }
   }
 }
@@ -530,7 +539,8 @@ expand(const char *pattern, GlobInfo info)
 
 static int
 compareBagEntries(const void *a1, const void *a2)
-{ GlobInfo info = LD->glob_info;
+{ GET_LD
+  GlobInfo info = LD->glob_info;
   int i1 = *(int *)a1;
   int i2 = *(int *)a2;
   const char *s1, *s2;
@@ -547,7 +557,8 @@ compareBagEntries(const void *a1, const void *a2)
 
 static void
 sort_expand(GlobInfo info)
-{ int *ip = &fetchBuffer(&info->files, info->start, int);
+{ GET_LD
+  int *ip = &fetchBuffer(&info->files, info->start, int);
   int is = info->end - info->start;
 
   LD->glob_info = info;
@@ -557,7 +568,8 @@ sort_expand(GlobInfo info)
 
 word
 pl_expand_file_name(term_t f, term_t list)
-{ char spec[MAXPATHLEN];
+{ GET_LD
+  char spec[MAXPATHLEN];
   char *s;
   glob_info info;
   term_t l    = PL_copy_term_ref(list);

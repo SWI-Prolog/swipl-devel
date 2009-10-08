@@ -37,7 +37,8 @@ throw(error(<Formal>, <SWI-Prolog>))
 
 static void
 put_name_arity(term_t t, functor_t f)
-{ FunctorDef fdef = valueFunctor(f);
+{ GET_LD
+  FunctorDef fdef = valueFunctor(f);
   term_t a = PL_new_term_refs(2);
 
   PL_put_atom(a+0, fdef->name);
@@ -48,7 +49,8 @@ put_name_arity(term_t t, functor_t f)
 
 static void
 rewrite_callable(atom_t *expected, term_t actual)
-{ term_t a = 0;
+{ GET_LD
+  term_t a = 0;
   int loops = 0;
 
   while ( PL_is_functor(actual, FUNCTOR_colon2) )
@@ -73,7 +75,8 @@ rewrite_callable(atom_t *expected, term_t actual)
 
 int
 PL_error(const char *pred, int arity, const char *msg, int id, ...)
-{ Definition caller;
+{ GET_LD
+  Definition caller;
   term_t except, formal, swi;
   va_list args;
   int do_throw = FALSE;
@@ -601,7 +604,8 @@ restores them to make the call from B_THROW possible.
 
 void
 printMessage(atom_t severity, ...)
-{ fid_t fid;
+{ GET_LD
+  fid_t fid;
   term_t ex, av;
   predicate_t pred = PROCEDURE_print_message2;
   va_list args;
@@ -658,7 +662,9 @@ PL_get_chars_ex(term_t t, char **s, unsigned int flags)
 
 int
 PL_get_atom_ex(term_t t, atom_t *a)
-{ if ( PL_get_atom(t, a) )
+{ GET_LD
+
+  if ( PL_get_atom(t, a) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, t);
@@ -667,7 +673,9 @@ PL_get_atom_ex(term_t t, atom_t *a)
 
 int
 PL_get_integer_ex(term_t t, int *i)
-{ if ( PL_get_integer(t, i) )
+{ GET_LD
+
+  if ( PL_get_integer(t, i) )
     succeed;
 
   if ( PL_is_integer(t) )
@@ -679,7 +687,9 @@ PL_get_integer_ex(term_t t, int *i)
 
 int
 PL_get_long_ex(term_t t, long *i)
-{ if ( PL_get_long(t, i) )
+{ GET_LD
+
+  if ( PL_get_long(t, i) )
     succeed;
 
   if ( PL_is_integer(t) )
@@ -691,7 +701,9 @@ PL_get_long_ex(term_t t, long *i)
 
 int
 PL_get_int64_ex(term_t t, int64_t *i)
-{ if ( PL_get_int64(t, i) )
+{ GET_LD
+
+  if ( PL_get_int64(t, i) )
     succeed;
 
   if ( PL_is_integer(t) )
@@ -763,7 +775,9 @@ PL_get_char_ex(term_t t, int *p, int eof)
 
 int
 PL_unify_list_ex(term_t l, term_t h, term_t t)
-{ if ( PL_unify_list(l, h, t) )
+{ GET_LD
+
+  if ( PL_unify_list(l, h, t) )
     succeed;
 
   if ( PL_get_nil(l) )
@@ -787,7 +801,9 @@ PL_unify_nil_ex(term_t l)
 
 int
 PL_get_list_ex(term_t l, term_t h, term_t t)
-{ if ( PL_get_list(l, h, t) )
+{ GET_LD
+
+  if ( PL_get_list(l, h, t) )
     succeed;
 
   if ( PL_get_nil(l) )
@@ -809,7 +825,8 @@ PL_get_nil_ex(term_t l)
 
 int
 PL_unify_bool_ex(term_t t, bool val)
-{ bool v;
+{ GET_LD
+  bool v;
 
   if ( PL_is_variable(t) )
     return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
@@ -825,9 +842,11 @@ PL_unify_bool_ex(term_t t, bool val)
 
 int
 PL_get_arg_ex(int n, term_t term, term_t arg)
-{ if ( PL_get_arg(n, term, arg) )
-    succeed;
-  else
+{ GET_LD
+
+  if ( PL_get_arg(n, term, arg) )
+  { succeed;
+  } else
   { term_t a = PL_new_term_ref();
 
     PL_put_integer(a, n);

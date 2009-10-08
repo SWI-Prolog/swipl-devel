@@ -85,7 +85,8 @@ Connection between the resource library and SWI-Prolog, C-part.
 
 static int
 get_rc(term_t handle, RcArchive *a)
-{ void *p;
+{ GET_LD
+  void *p;
 
   if ( PL_get_pointer(handle, &p) )
   { *a = p;
@@ -100,7 +101,9 @@ get_rc(term_t handle, RcArchive *a)
 
 foreign_t
 pl_rc_handle(term_t h)
-{ if ( GD->resourceDB )
+{ GET_LD
+
+  if ( GD->resourceDB )
     return PL_unify_pointer(h, GD->resourceDB);
 
   return FALSE;
@@ -173,7 +176,9 @@ pl_rc_open_archive(term_t file, term_t handle)
   { RcArchive a = rc_open_archive(name, RC_RDWR|RC_CREATE);
 
     if ( a )
+    { GET_LD
       return PL_unify_pointer(handle, a);
+    }
   }
 
   return FALSE;
@@ -196,7 +201,8 @@ pl_rc_close_archive(term_t rc_h)
 
 foreign_t
 pl_rc_save_archive(term_t rc_h, term_t to)
-{ RcArchive rc = NULL;
+{ GET_LD
+  RcArchive rc = NULL;
   char *file;
 
   if ( !get_rc(rc_h, &rc) )
@@ -253,7 +259,8 @@ $rc_members(+RCHandle, -ListOfMembers)
 
 foreign_t
 pl_rc_members(term_t rc_h, term_t members)
-{ RcArchive rc = NULL;
+{ GET_LD
+  RcArchive rc = NULL;
   RcMember m;
   functor_t f;
   term_t tail = PL_copy_term_ref(members);
