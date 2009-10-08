@@ -36,6 +36,7 @@
 	    tipc_accept/3,		% +Master, -Slave, -PeerName
 	    tipc_open_socket/3,		% +Socket, -Read, -Write
 	    tipc_get_name/2,		% +Socket, -Address
+	    tipc_get_peer_name/2,	% +Socket, -Address
 	    tipc_connect/2,		% +Socket, +Address
 	    tipc_receive/4,		% +Socket, -Data, -Sender, +Options
 	    tipc_send/4,  		% +Socket, +Data, +Receiver, +Options
@@ -250,10 +251,27 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 socket to a given TIPC_address.   After  successful completion,
 %	 tipc_open_socket/3 may be used  to   create  I/O-Streams to the
 %	 remote socket.
+%
+%	 @throws socket_error('Connection refused'), if there are
+%	 no servers bound to the specified address.
+%
+%	 @throws socket_error('Connection timed out'), if no server that
+%	 is bound to the specified address accepts the connect
+%	 request within the specified time limit. See also
+%	 tipc_setopt/2.
 
 %%	 tipc_get_name(+Socket, -TIPC_address) is det.
 %
 %	 Unifies TIPC_address with the port-id assigned to the socket.
+
+%%	 tipc_get_peer_name(+Socket, -TIPC_address) is det.
+%
+%	 Unifies TIPC_address with the port-id assigned to the socket
+%	 that this socket is connected to.
+%
+%	 @throws socket_error('Transport endpoint is not connected'), if
+%	 an attempt is made to obtain a peer's name of an unconnected
+%	 socket.
 
 %%	 tipc_setopt(+Socket,+Option) is det.
 %
