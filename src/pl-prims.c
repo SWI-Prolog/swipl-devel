@@ -394,7 +394,7 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
       PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, flags);
       PopPtr(t2); PopPtr(t1);
-      if ( !rc )
+      if ( !rc2 )
 	return FALSE;
     }
   }

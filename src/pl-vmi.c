@@ -566,7 +566,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
   }
 
   SAVE_REGISTERS(qid);
-  rc = unify_ptrs(k, ARGP, 0 PASS_LD);
+  rc = unify_ptrs(k, ARGP, ALLOW_GC|ALLOW_SHIFT PASS_LD);
   LOAD_REGISTERS(qid);
   if ( rc )
   { ARGP++;

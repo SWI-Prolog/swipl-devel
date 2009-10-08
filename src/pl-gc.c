@@ -3154,7 +3154,7 @@ unblockGC(ARG1_LD)
 makeMoreStackSpace(int overflow, int flags)
 
 Used in loops where the  low-level   implementation  does  not allow for
-stack-shifts
+stack-shifts.  Returns TRUE or FALSE and raises an exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
