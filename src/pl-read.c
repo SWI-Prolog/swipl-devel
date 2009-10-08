@@ -357,9 +357,13 @@ isStringStream(IOSTREAM *s)
 static bool
 errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
-  term_t ex = PL_new_term_ref();
-  term_t loc = PL_new_term_ref();
+  term_t ex, loc;
   unsigned char const *s, *ll = NULL;
+
+  LD->exception.processing = TRUE;	/* allow using spare stack */
+
+  ex = PL_new_term_ref();
+  loc = PL_new_term_ref();
 
   if ( !id_term )
   { id_term = PL_new_term_ref();
@@ -437,26 +441,35 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 }
 
 
-static void
+static int
 singletonWarning(const char *which, const char **vars, int nvars)
 { GET_LD
-  fid_t cid = PL_open_foreign_frame();
-  term_t l = PL_new_term_ref();
-  term_t a = PL_copy_term_ref(l);
-  term_t h = PL_new_term_ref();
-  int n;
+  fid_t fid;
 
-  for(n=0; n<nvars; n++)
-  { PL_unify_list(a, h, a);
-    PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n]);
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t l = PL_new_term_ref();
+    term_t a = PL_copy_term_ref(l);
+    term_t h = PL_new_term_ref();
+    int n;
+
+    for(n=0; n<nvars; n++)
+    { if ( !PL_unify_list(a, h, a) ||
+	   !PL_unify_chars(h, REP_UTF8|PL_ATOM, -1, vars[n]) )
+	return FALSE;
+    }
+    if ( !PL_unify_nil(a) )
+      return FALSE;
+
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, which, 1,
+		   PL_TERM,    l);
+
+    PL_discard_foreign_frame(fid);
+
+    return TRUE;
   }
-  PL_unify_nil(a);
 
-  printMessage(ATOM_warning,
-	       PL_FUNCTOR_CHARS, which, 1,
-	         PL_TERM,    l);
-
-  PL_discard_foreign_frame(cid);
+  return FALSE;
 }
 
 
@@ -675,27 +688,33 @@ raw_read_quoted(int q, ReadData _PL_rd)
 }
 
 
-static void
+static int
 add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 { term_t head = PL_new_term_ref();
 
   assert(_PL_rd->comments);
-  PL_unify_list(_PL_rd->comments, head, _PL_rd->comments);
+  if ( !PL_unify_list(_PL_rd->comments, head, _PL_rd->comments) )
+    return FALSE;
   if ( pos )
-    PL_unify_term(head,
-		  PL_FUNCTOR, FUNCTOR_minus2,
-		    PL_FUNCTOR, FUNCTOR_stream_position4,
-		      PL_INT64, pos->charno,
-		      PL_INT, pos->lineno,
-		      PL_INT, pos->linepos,
-		      PL_INT, 0,
-		    PL_UTF8_STRING, baseBuffer(b, char));
-  else
-    PL_unify_term(head,
-		  PL_FUNCTOR, FUNCTOR_minus2,
-		    ATOM_minus,
-		    PL_UTF8_STRING, baseBuffer(b, char));
+  { if ( !PL_unify_term(head,
+			PL_FUNCTOR, FUNCTOR_minus2,
+			  PL_FUNCTOR, FUNCTOR_stream_position4,
+			    PL_INT64, pos->charno,
+			    PL_INT, pos->lineno,
+			    PL_INT, pos->linepos,
+			    PL_INT, 0,
+			  PL_UTF8_STRING, baseBuffer(b, char)) )
+      return FALSE;
+  } else
+  { if ( !PL_unify_term(head,
+			PL_FUNCTOR, FUNCTOR_minus2,
+			  ATOM_minus,
+			  PL_UTF8_STRING, baseBuffer(b, char)) )
+      return FALSE;
+  }
+
   PL_reset_term_refs(head);
+  return TRUE;
 }
 
 
@@ -817,7 +836,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			if ( last == '*' && --level == 0 )
 			{ if ( cbuf )
 			  { addUTF8Buffer(cbuf, EOS);
-			    add_comment(cbuf, pos, _PL_rd PASS_LD);
+			    if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
+			    { discardBuffer(cbuf);
+			      return FALSE;
+			    }
 			    discardBuffer(cbuf);
 			  }
 			  c = ' ';
@@ -888,7 +910,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    break;
 		  }
 		  addUTF8Buffer(cbuf, EOS);
-		  add_comment(cbuf, pos, _PL_rd PASS_LD);
+		  if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
+		  { discardBuffer(cbuf);
+		    return FALSE;
+		  }
 		  discardBuffer(cbuf);
 		} else
 		{ while((c=getchr()) != EOF && c != '\n')
@@ -1164,7 +1189,9 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	     });
 
     if ( i > 0 )
-      singletonWarning("singletons", singletons, i);
+    { if ( !singletonWarning("singletons", singletons, i) )
+	return FALSE;
+    }
 
     i = 0;				/* multiple _X* */
     for_vars(var,
@@ -1174,7 +1201,9 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	     });
 
     if ( i > 0 )
-      singletonWarning("multitons", singletons, i);
+    { if ( !singletonWarning("multitons", singletons, i) )
+	return FALSE;
+    }
 
     succeed;
   }
@@ -2521,23 +2550,26 @@ simple_term(bool must_be_op, term_t term, bool *name,
       Unlock(token->value.atom);
       goto atomic_out;
     case T_NUMBER:
-      _PL_put_number(term, &token->value.number);
+      if ( !_PL_put_number(term, &token->value.number) )
+	return FALSE;
       clearNumber(&token->value.number);
     atomic_out:
       if ( positions )
-      { PL_unify_term(positions,
-		      PL_FUNCTOR, FUNCTOR_minus2,
-		      PL_INTPTR, token->start,
-		      PL_INTPTR, token->end);
+      { if ( !PL_unify_term(positions,
+			    PL_FUNCTOR, FUNCTOR_minus2,
+			    PL_INTPTR, token->start,
+			    PL_INTPTR, token->end) )
+	  return FALSE;
       }
       succeed;
     case T_STRING:
       PL_put_term(term,	token->value.term);
       if ( positions )
-      { PL_unify_term(positions,
-		      PL_FUNCTOR, FUNCTOR_string_position2,
-		      PL_INTPTR, token->start,
-		      PL_INTPTR, token->end);
+      { if ( !PL_unify_term(positions,
+			    PL_FUNCTOR, FUNCTOR_string_position2,
+			    PL_INTPTR, token->start,
+			    PL_INTPTR, token->end) )
+	  return FALSE;
       }
       succeed;
     case T_FUNCTOR:

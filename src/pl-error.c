@@ -83,6 +83,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
   fid_t fid;
   int rc;
 
+  LD->exception.processing = TRUE;	/* allow using spare stack */
+
   if ( environment_frame )
     caller = environment_frame->predicate;
   else
