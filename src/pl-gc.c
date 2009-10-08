@@ -3683,16 +3683,21 @@ nextStackSizeAbove(size_t n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return next size for the stack that ensures minfree bytes of free space.
+We add another 1024 to give some freedom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 size_t
 nextStackSize(Stack s, size_t minfree)
 { size_t size;
 
   if ( minfree == GROW_TRIM )
-  { size = nextStackSizeAbove(usedStackP(s));
+  { size = nextStackSizeAbove(usedStackP(s) + s->def_spare);
     if ( size > sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { size = nextStackSizeAbove(sizeStackP(s) + 1024); /* Always 1K extra */
+  { size = nextStackSizeAbove(sizeStackP(s) + minfree + s->def_spare + 1024);
 
     if ( size >= s->size_limit + s->size_limit/2 )
       size = 0;				/* passed limit */
@@ -3748,7 +3753,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( (rc=new_stack_size((Stack)&LD->stacks.trail,  &t, &tsize PASS_LD))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.global, &g, &gsize PASS_LD))<0 ||
        (rc=new_stack_size((Stack)&LD->stacks.local,  &l, &lsize PASS_LD))<0 )
+  { DEBUG(1, Sdprintf("Reached stack-limit\n"));
     return rc;
+  }
 
   if ( !(l || g || t) )
     return TRUE;			/* not a real request */
@@ -3837,6 +3844,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 	gsize = sizeStack(global);
 	lsize = sizeStack(local);
+	DEBUG(1, Sdprintf("realloc() failed\n"));
       }
     }
 
