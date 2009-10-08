@@ -1747,23 +1747,6 @@ typedef enum
   STACK_OVERFLOW_FATAL
 } stack_overflow_action;
 
-/* If ex --> exception; else return *_OVERFLOW */
-#define ensureRoomStack(s, n, ex) \
-	ensure_room_stack((Stack)&LD->stacks.s, (n), (ex))
-
-/* Throws exception */
-#define requireStackEx(s, n) \
-	{ if ( triggerStack(s) < (ssize_t)(n) ) \
- 	    ensureRoomStack(s, n, TRUE); \
-	}
-
-/* Returns TRUE or *_OVERFLOW */
-#define requireStack(s, n) \
-	((triggerStack(s) < (ssize_t)(n)) \
-		? ensureRoomStack(s, (n), FALSE) : TRUE)
-
-#define requireGlobal(n) requireStack(global, (n)*sizeof(word))
-
 #define pushArgumentStack(p) \
 	do { if ( aTop+1 < aMax ) \
 	       *aTop++ = (p); \
@@ -1781,21 +1764,6 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
 	(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && tTop+BIND_TRAIL_SPACE <= tMax)
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Used for predicate implementations that need local+global+trail space
-without shifting the stacks to complete.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define NEEDS_LGT(l, g, t) \
-	do { int rc; \
-	     if ( ((l)&&(rc=requireStack(local, (l)*sizeof(word))) < 0) || \
-		  ((g)&&(rc=requireStack(global, (g)*sizeof(word))) < 0) || \
-		  ((t)&&(rc=requireTrailStack(t)) < 0) ) \
-	       return raiseStackOverflow(rc); \
-	   } while(0)
-
-#define PRED_NEEDS_LGT(l, g, t) NEEDS_LGT(l, g, t)
 
 
 		 /*******************************
