@@ -2757,7 +2757,7 @@ read_term(term_t term, ReadData rd ARG_LD)
   rd->here = rd->base;
 
   result = PL_new_term_ref();
-  blockGC(PASS_LD1);
+  blockGC(0 PASS_LD);
   if ( !complex_term(NULL, result, rd->subtpos, rd PASS_LD) )
     goto failed;
   p = valTermRef(result);
@@ -2781,12 +2781,12 @@ read_term(term_t term, ReadData rd ARG_LD)
     goto failed;
 
   PL_reset_term_refs(result);
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
   succeed;
 
 failed:
   PL_reset_term_refs(result);
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
   fail;
 }
 

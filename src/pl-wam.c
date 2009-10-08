@@ -892,14 +892,14 @@ foreignWakeup(term_t *ex, int flags ARG_LD)
       PL_put_term(a0, LD->attvar.head);
       setVar(*valTermRef(LD->attvar.head));
       setVar(*valTermRef(LD->attvar.tail));
-      if ( !gc ) blockGC(PASS_LD1);
+      if ( !gc ) blockGC(0 PASS_LD);
       qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, PROCEDURE_dwakeup1, a0);
       rval = PL_next_solution(qid);
       if ( rval == FALSE )
 	*ex = PL_exception(qid);
       else
 	*ex = 0;
-      if ( !gc ) unblockGC(PASS_LD1);
+      if ( !gc ) unblockGC(0 PASS_LD);
       PL_cut_query(qid);
       PL_close_foreign_frame(fid);
 

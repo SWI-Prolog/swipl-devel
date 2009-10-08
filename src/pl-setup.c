@@ -425,7 +425,7 @@ dispatch_signal(int sig, int sync)
   }
 
   if ( !sync )
-    blockGC(PASS_LD1);
+    blockGC(0 PASS_LD);
   LD->current_signal = sig;
   LD->sync_signal = sync;
 
@@ -445,7 +445,7 @@ dispatch_signal(int sig, int sync)
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
       if ( !sync )
-	unblockGC(PASS_LD1);
+	unblockGC(0 PASS_LD);
       PL_throw(except);
       return;				/* make sure! */
     } else
@@ -468,7 +468,7 @@ dispatch_signal(int sig, int sync)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
     if ( !sync )
-      unblockGC(PASS_LD1);
+      unblockGC(0 PASS_LD);
 
     PL_throw(exception_term);		/* throw longjmp's */
     return;				/* make sure! */
@@ -491,7 +491,7 @@ dispatch_signal(int sig, int sync)
   lTop = (LocalFrame)valTermRef(lTopSave);
 
   if ( !sync )
-    unblockGC(PASS_LD1);
+    unblockGC(0 PASS_LD);
 }
 
 

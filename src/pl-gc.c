@@ -2993,7 +2993,7 @@ garbageCollect(void)
 #ifndef UNBLOCKED_GC
   blockSignals(&mask);
 #endif
-  blockGC(PASS_LD1);			/* avoid recursion due to */
+  blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
@@ -3097,7 +3097,7 @@ garbageCollect(void)
 
   restore_vmi_state(&state);
   gc_status.active = FALSE;
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
 #ifndef UNBLOCKED_GC
   unblockSignals(&mask);
 #endif
@@ -3135,7 +3135,7 @@ pl_garbage_collect(term_t d)
 
 
 void
-blockGC(ARG1_LD)
+blockGC(int flags ARG_LD)
 { gc_status.blocked++;
 #if O_SHIFT_STACKS
   LD->shift_status.blocked++;
@@ -3144,7 +3144,7 @@ blockGC(ARG1_LD)
 
 
 void
-unblockGC(ARG1_LD)
+unblockGC(int flags ARG_LD)
 { gc_status.blocked--;
 #if O_SHIFT_STACKS
   LD->shift_status.blocked--;
@@ -3765,7 +3765,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
   enterGC();				/* atom-gc synchronisation */
   blockSignals(&mask);
-  blockGC(PASS_LD1);			/* avoid recursion due to */
+  blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
   get_vmi_state(&state);
@@ -3898,7 +3898,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   }
 
   restore_vmi_state(&state);
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
   unblockSignals(&mask);
   leaveGC();
 

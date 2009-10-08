@@ -418,7 +418,7 @@ We are in searching mode; should we actually give this port?
 
 
   wake = saveWakeup(PASS_LD1);
-  blockGC(PASS_LD1);
+  blockGC(0 PASS_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Do the Prolog trace interception.
@@ -473,7 +473,7 @@ again:
     Sputcode('\n', Sdout);
 
 out:
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
   restoreWakeup(wake PASS_LD);
   if ( action == ACTION_ABORT )
     abortProlog(ABORT_RAISE);
@@ -825,7 +825,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   fid_t cid = PL_open_foreign_frame();
   Definition def = frame->predicate;
 
-  blockGC(PASS_LD1);
+  blockGC(0 PASS_LD);
 
   if ( gc_status.active )
   { Sfprintf(Serror, " (%d): %s\n",
@@ -897,7 +897,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     debugstatus.debugging = debugSave;
   }
 
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
 
   PL_discard_foreign_frame(cid);
   restoreWakeup(wake PASS_LD);
@@ -959,10 +959,10 @@ listGoal(LocalFrame frame)
   IOSTREAM *old = Scurout;
 
   Scurout = Sdout;
-  blockGC(PASS_LD1);
+  blockGC(0 PASS_LD);
   put_frame_goal(goal, frame);
   PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
   Scurout = old;
 
   PL_discard_foreign_frame(cid);
@@ -1881,7 +1881,7 @@ callEventHook(int ev, ...)
     term_t arg;
     term_t ex;
 
-    blockGC(PASS_LD1);
+    blockGC(0 PASS_LD);
     wake = saveWakeup(PASS_LD1);
     fid = PL_open_foreign_frame();
     arg = PL_new_term_ref();
@@ -1962,7 +1962,7 @@ callEventHook(int ev, ...)
 
     PL_discard_foreign_frame(fid);
     restoreWakeup(wake PASS_LD);
-    unblockGC(PASS_LD1);
+    unblockGC(0 PASS_LD);
     va_end(args);
   }
 }

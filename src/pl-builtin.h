@@ -307,7 +307,7 @@ engine. The calls can be  nested,  but   the  program  must  ensure each
 blockGC() is matched by an unblockGC().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-COMMON(void) 	blockGC(ARG1_LD);	/* disallow garbage collect */
-COMMON(void) 	unblockGC(ARG1_LD);	/* re-allow garbage collect */
+COMMON(void) 	blockGC(int flags ARG_LD);	/* disallow garbage collect */
+COMMON(void) 	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

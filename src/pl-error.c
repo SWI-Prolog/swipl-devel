@@ -610,7 +610,7 @@ printMessage(atom_t severity, ...)
   predicate_t pred = PROCEDURE_print_message2;
   va_list args;
 
-  blockGC(PASS_LD1);			/* sometimes called from dangerous */
+  blockGC(0 PASS_LD);			/* sometimes called from dangerous */
 					/* places */
   fid = PL_open_foreign_frame();
   av = PL_new_term_refs(2);
@@ -640,7 +640,7 @@ printMessage(atom_t severity, ...)
   }
 
   PL_discard_foreign_frame(fid);
-  unblockGC(PASS_LD1);
+  unblockGC(0 PASS_LD);
 }
 
 
