@@ -698,6 +698,7 @@ VMI(H_RLIST, 0, 0, ())
 	  { raiseStackOverflow(rc);
 	    goto b_throw;
 	  }
+	  assert(canBind(*ARGP));
 	}
 
 	ap = gTop;
@@ -2195,7 +2196,9 @@ this supervisor (see resetProcedure()). The task of this is to
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_VIRGIN, 0, 0, ())
-{ DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+{ SAVE_REGISTERS(qid);
+  DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+  LOAD_REGISTERS(qid);
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
   { FR->predicate = DEF;
