@@ -582,10 +582,18 @@ unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
 	      uintptr_t mask)
 { QueryFrame qf;
 
-  for( ; fr; fr = qf->saved_environment, ch = qf->saved_bfr )
+  while(fr)
   { qf = unmark_environments(ld, fr, mask);
     assert(qf->magic == QID_MAGIC);
     unmark_choicepoints(ld, ch, mask);
+    if ( qf->parent )
+    { QueryFrame pqf = qf->parent;
+
+      if ( !(fr = pqf->registers.fr) )
+	fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      break;
   }
 }
 
