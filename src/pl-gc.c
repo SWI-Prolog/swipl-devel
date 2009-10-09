@@ -1953,18 +1953,28 @@ sweep_new_arguments(vm_state *state ARG_LD)
 static void
 sweep_stacks(vm_state *state)
 { GET_LD
-  QueryFrame query;
   LocalFrame fr = state->frame;
   Choice ch = state->choice;
   Code PC = state->pc_start_vmi;
 
   sweep_new_arguments(state PASS_LD);
 
-  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr, PC=NULL )
-  { query = sweep_environments(fr, PC);
-    sweep_choicepoints(ch PASS_LD);
+  while( fr )
+  { QueryFrame qf = sweep_environments(fr, PC);
+    assert(qf->magic == QID_MAGIC);
 
-    if ( !query )			/* we've been here */
+    sweep_choicepoints(ch PASS_LD);
+    if ( qf->parent )
+    { QueryFrame pqf = qf->parent;
+
+      if ( (fr = pqf->registers.fr) )
+      { PC = startOfVMI(pqf);
+      } else
+      { fr = qf->saved_environment;
+	PC = NULL;
+      }
+      ch = qf->saved_bfr;
+    } else
       break;
   }
 
