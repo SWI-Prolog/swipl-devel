@@ -671,53 +671,53 @@ VMI(H_LIST, 0, 0, ())
 
 
 VMI(H_RLIST, 0, 0, ())
-{ IF_WRITE_MODE_GOTO(B_RLIST);
+{ Word p;
+  word w;
 
-  for(;;)
-  { word w = *ARGP;
+  IF_WRITE_MODE_GOTO(B_RLIST);
 
-    switch(tag(w))
-    { case TAG_COMPOUND:
-	if ( valueTerm(w)->definition == FUNCTOR_dot2 )
-	{ ARGP = argTermP(w, 0);
-	  NEXT_INSTRUCTION;
-	}
-	CLAUSE_FAILED;
-      case TAG_VAR:
-      case TAG_ATTVAR:
-      { Word ap;
-	word c;
+  deRef2(ARGP, p);
+  w = *p;
 
-	if ( !hasGlobalSpace(3) )
-	{ int rc;
-
-	  SAVE_REGISTERS(qid);
-	  rc = ensureGlobalSpace(3, ALLOW_GC);
-	  LOAD_REGISTERS(qid);
-	  if ( rc != TRUE )
-	  { raiseStackOverflow(rc);
-	    goto b_throw;
-	  }
-	  assert(canBind(*ARGP));
-	}
-
-	ap = gTop;
-        gTop += 3;
-	c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-	*ap++ = FUNCTOR_dot2;
-	setVar(ap[0]);			/* must clear for GC */
-	setVar(ap[1]);
-	bindConst(ARGP, c);
-	ARGP = ap;
-	umode = uwrite;
+  switch(tag(w))
+  { case TAG_COMPOUND:
+      if ( valueTerm(w)->definition == FUNCTOR_dot2 )
+      { ARGP = argTermP(w, 0);
 	NEXT_INSTRUCTION;
       }
-      case TAG_REFERENCE:
-	ARGP = unRef(w);
-        continue;
-      default:
-	CLAUSE_FAILED;
+      CLAUSE_FAILED;
+    case TAG_VAR:
+    case TAG_ATTVAR:
+    { Word ap;
+      word c;
+
+      if ( !hasGlobalSpace(3) )
+      { int rc;
+
+	SAVE_REGISTERS(qid);
+	rc = ensureGlobalSpace(3, ALLOW_GC);
+	LOAD_REGISTERS(qid);
+	if ( rc != TRUE )
+	{ raiseStackOverflow(rc);
+	  goto b_throw;
+	}
+	deRef2(ARGP, p);
+	w = *p;
+      }
+
+      ap = gTop;
+      gTop += 3;
+      c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+      *ap++ = FUNCTOR_dot2;
+      setVar(ap[0]);			/* must clear for GC */
+      setVar(ap[1]);
+      bindConst(p, c);
+      ARGP = ap;
+      umode = uwrite;
+      NEXT_INSTRUCTION;
     }
+    default:
+      CLAUSE_FAILED;
   }
 }
 
