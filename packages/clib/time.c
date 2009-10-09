@@ -35,6 +35,10 @@
 #include <config.h>
 #endif
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#endif
+
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <error.h>
@@ -73,7 +77,6 @@ The __WINDOWS__ port uses the multimedia timers.   This  module must be linked
 with winmm.lib
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include <windows.h>
 #include <sys/timeb.h>
 #if (_MSC_VER < 1400)
 typedef DWORD DWORD_PTR;
