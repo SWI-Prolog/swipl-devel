@@ -268,6 +268,11 @@ get_echars_arg_ex(int i, term_t from, term_t arg, echar **sp, size_t *lenp)
   return TRUE;
 }
 
+#ifdef __WINDOWS__
+#define ECHARS(s) L##s
+#else
+#define ECHARS(s) s
+#endif
 
 static int
 parse_environment(term_t t, p_options *info)
@@ -276,8 +281,10 @@ parse_environment(term_t t, p_options *info)
   term_t tmp  = PL_new_term_ref();
   ecbuf *eb   = &info->envbuf;
   int count = 0, c = 0;
+#ifndef __WINDOWS__
   echar *q;
   char **ep;
+#endif
 
   assert(eb->size == 0);
   assert(eb->allocated == 0);
@@ -293,11 +300,11 @@ parse_environment(term_t t, p_options *info)
     if ( !get_echars_arg_ex(1, head, tmp, &s, &len) )
       return FALSE;
     add_ecbuf(eb, s, len);
-    add_ecbuf(eb, "=", 1);
+    add_ecbuf(eb, ECHARS("="), 1);
     if ( !get_echars_arg_ex(2, head, tmp, &s, &len) )
       return FALSE;
     add_ecbuf(eb, s, len);
-    add_ecbuf(eb, "\0", 1);
+    add_ecbuf(eb, ECHARS("\0"), 1);
 
     count++;
   }
@@ -306,7 +313,7 @@ parse_environment(term_t t, p_options *info)
     return type_error(tail, "list");
 
 #ifdef __WINDOWS__
-  add_ecbuf(eb, "\0", 1);
+  add_ecbuf(eb, ECHARS("\0"), 1);
 #else
   info->envp = PL_malloc((count+1)*sizeof(char*));
 
