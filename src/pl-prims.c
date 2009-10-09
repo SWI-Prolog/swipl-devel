@@ -2008,12 +2008,15 @@ list Xs0:
 
 PRED_IMPL("$skip_list", 3, skip_list, 0)
 { PRED_LD
-  Word l = valTermRef(A2), tail;
+  Word tail;
+  intptr_t len;
 
-  if ( !PL_unify_integer(A1, skip_list(l, &tail PASS_LD)) )
-    fail;
+  len = skip_list(valTermRef(A2), &tail PASS_LD);
+  if ( unify_ptrs(valTermRef(A3), tail, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+       PL_unify_integer(A1, len) )
+    return TRUE;
 
-  return unify_ptrs(valTermRef(A3), tail, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+  return FALSE;
 }
 
 
