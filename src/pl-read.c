@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -281,6 +281,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   else
     _PL_rd->char_conversion_table = NULL;
 }
+
 
 static void
 free_read_data(ReadData _PL_rd)
@@ -1111,7 +1112,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
 
 static Variable
 isVarAtom(word w, ReadData _PL_rd)
-{ if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
+{ if ( tagex(w) == (TAG_VAR|STG_RESERVED) )
     return &baseBuffer(&var_buffer, variable)[w>>7];
 
   return NULL;
@@ -1137,7 +1138,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
   next.namelen   = len;
   next.times     = 1;
   next.variable  = 0;
-  next.signature = (nv<<7)|TAG_ATOM|STG_GLOBAL;
+  next.signature = (nv<<7)|TAG_VAR|STG_RESERVED;
   addBuffer(&var_buffer, next, variable);
   var = topBuffer(&var_buffer, variable);
 
@@ -2071,6 +2072,8 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
     }
   } else
     *argp = w;				/* plain value */
+
+  setVar(*valTermRef(term));
 }
 
 
@@ -2078,16 +2081,18 @@ static int
 build_term(term_t term, atom_t atom, int arity, term_t *argv,
 	   ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
-  Word argp = allocGlobal(arity+1);
+  Word argp;
 
   if ( !hasGlobalSpace(arity+1) )
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(arity+1, ALLOW_SHIFT)) != TRUE )
+    if ( (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
       return rc;
   }
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
+  argp = gTop;
+  gTop += 1+arity;
   setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
   *argp++ = functor;
 
@@ -2831,17 +2836,19 @@ read_term(?term, ReadData rd)
 static bool
 read_term(term_t term, ReadData rd ARG_LD)
 { int rc2, rc = FALSE;
-  Token token;
   term_t result;
+  Token token;
   Word p;
+  fid_t fid;
 
   if ( !(rd->base = raw_read(rd, &rd->end PASS_LD)) )
     fail;
 
-  rd->here = rd->base;
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
 
   result = PL_new_term_ref();
-  blockGC(ALLOW_SHIFT PASS_LD);
+  rd->here = rd->base;
   LD->read.active++;
   if ( (rc2=complex_term(NULL, result, rd->subtpos, rd PASS_LD)) != TRUE )
   { rc = raiseStackOverflow(rc2);
@@ -2870,9 +2877,9 @@ read_term(term_t term, ReadData rd ARG_LD)
   rc = TRUE;
 
 out:
-  PL_reset_term_refs(result);
   LD->read.active--;
-  unblockGC(ALLOW_SHIFT PASS_LD);
+  PL_close_foreign_frame(fid);
+
   return rc;
 }
 

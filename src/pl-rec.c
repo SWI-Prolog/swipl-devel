@@ -1503,8 +1503,7 @@ real atom.
 
 bool
 unifyKey(term_t key, word val)
-{ if ( (isAtom(val) && storage(val) != STG_GLOBAL) ||
-       isTaggedInt(val) )
+{ if ( isAtom(val) || isTaggedInt(val) )
     return _PL_unify_atomic(key, val);
 
   return PL_unify_functor(key, (functor_t) val);

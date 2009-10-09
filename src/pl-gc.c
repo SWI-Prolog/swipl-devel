@@ -2423,7 +2423,7 @@ get_vmi_state(vm_state *state)
   state->adepth	     = 0;
   state->new_args    = 0;
 
-  if ( LD->query->registers.fr )
+  if ( LD->query && LD->query->registers.fr )
   { state->frame     = LD->query->registers.fr;
     state->save_argp = (state->frame->clause != NULL);
 
@@ -2461,10 +2461,11 @@ get_vmi_state(vm_state *state)
     }
   } else
   { state->frame        = environment_frame;
-    state->argp		= argFrameP(state->frame, 0);
     state->pc           = NULL;
     state->pc_start_vmi = NULL;
     state->save_argp	= FALSE;
+    if ( state->frame)
+      state->argp       = argFrameP(state->frame, 0);
   }
 }
 
@@ -2596,6 +2597,9 @@ scan_global(int flags)
     if ( regstart )
       set_start(current PASS_LD);
     cells++;
+
+    if ( tagex(*current) == (TAG_VAR|STG_RESERVED) )
+      Sdprintf("read varref at %p\n", current);
 
     if ( (!marked && is_marked(current)) || is_first(current) )
     { char pbuf[256];

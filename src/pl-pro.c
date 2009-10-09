@@ -615,8 +615,13 @@ last_arg:
       printk("Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
-  if ( LD->read.active && tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
-    return key + *p;
+  if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
+  { if ( LD->read.active )
+      return key + *p;
+    else
+      printk("read() variable reference at %p", p);
+  }
+
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )
