@@ -21,7 +21,9 @@
 #ifdef __WINDOWS__
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
+#if (_MSC_VER < 1300)
 #define write _write
+#endif
 #include <io.h>
 #endif
 
