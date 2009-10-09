@@ -2370,7 +2370,8 @@ setStartOfVMI(vm_state *state)
 
 	case B_UNIFY_VAR:
 	case B_UNIFY_FIRSTVAR:
-	  state->adepth = NO_ADEPTH;
+	  state->argp = varFrameP(state->frame, PC[1]);
+	  assert(state->adepth == 0);
 	  break;
 	case H_FUNCTOR:
 	case H_LIST:
@@ -2385,7 +2386,7 @@ setStartOfVMI(vm_state *state)
 	  state->adepth--;
 	  break;
 	case B_UNIFY_EXIT:
-	  assert(state->adepth == NO_ADEPTH);
+	  assert(state->adepth == 0);
 	  break;
 	case I_ENTER:
 	  state->in_body = TRUE;
