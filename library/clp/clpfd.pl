@@ -1893,14 +1893,7 @@ propagator_init_trigger(P) :-
 propagator_init_trigger(Vs, P) :-
         phrase(propagator_init_trigger(Vs, P), _).
 
-prop_init(Prop, V) :-init_propagator(V, Prop).
-
-variables_attach([], _).
-variables_attach([V|Vs], Prop) :-
-        (   var(V) -> init_propagator(V, Prop)
-        ;   true
-        ),
-        variables_attach(Vs, Prop).
+prop_init(Prop, V) :- init_propagator(V, Prop).
 
 geq(A, B) :-
         (   fd_get(A, AD, APs) ->
@@ -2963,7 +2956,7 @@ lex_chain(Lss) :-
 
 lex_chain_([], _).
 lex_chain_([Ls|Lss], Prop) :-
-        variables_attach(Ls, Prop),
+        maplist(prop_init(Prop), Ls),
         lex_chain_lag(Lss, Ls),
         lex_chain_(Lss, Prop).
 
@@ -4595,8 +4588,7 @@ serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
         pairs_keys_values(SDs, Starts, Durations),
         put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
-        serialize(SDs, Orig),
-        do_queue.
+        serialize(SDs, Orig).
 
 serialize([], _).
 serialize([S-D|SDs], Orig) :-
@@ -4607,9 +4599,7 @@ serialize([S-D|SDs], Orig) :-
 serialize([], _, _, _).
 serialize([S-D|Rest], S0, D0, Orig) :-
         D >= 0,
-        make_propagator(pserialized(S,D,S0,D0,Orig), Prop),
-        variables_attach([S0,S], Prop),
-        trigger_once(Prop),
+        propagator_init_trigger([S0,S], pserialized(S,D,S0,D0,Orig)),
         serialize(Rest, S0, D0, Orig).
 
 % consistency check / propagation
@@ -4678,9 +4668,7 @@ element(N, Is, V) :-
         length(Is, L),
         N in 1..L,
         element_(Is, 1, N, V),
-        make_propagator(pelement(N,Is,V), Prop),
-        variables_attach(Is, Prop),
-        trigger_once(Prop).
+        propagator_init_trigger(Is, pelement(N,Is,V)).
 
 element_domain(V, VD) :-
         (   fd_get(V, VD, _) -> true
@@ -4728,12 +4716,8 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
-        make_propagator(pgcc_check(Xs, Pairs, Pairs1), Prop1),
-        variables_attach(Xs, Prop1),
-        trigger_once(Prop1),
-        make_propagator(pgcc(Pairs1), Prop2),
-        variables_attach(Xs, Prop2),
-        trigger_once(Prop2).
+        propagator_init_trigger(Xs, pgcc_check(Xs, Pairs, Pairs1)),
+        propagator_init_trigger(Xs, pgcc(Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
