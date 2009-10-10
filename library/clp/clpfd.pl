@@ -1079,6 +1079,11 @@ indomain(Var) :- label([Var]).
 
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
+order_dom_next(random_value(_), Dom, Next) :-
+        domain_to_list(Dom, Ls),
+        length(Ls, L),
+        I is random(L),
+        nth0(I, Ls, Next).
 
 
 %% label(+Vars)
@@ -1290,6 +1295,9 @@ selection(ffc).
 selection(min).
 selection(max).
 selection(leftmost).
+selection(random_variable(Seed)) :-
+        must_be(integer, Seed),
+        set_random(seed(Seed)).
 
 choice(step).
 choice(enum).
@@ -1297,6 +1305,11 @@ choice(bisect).
 
 order(up).
 order(down).
+% TODO: random_variable and random_value currently both set the seed,
+% so exchanging the options can yield different results.
+order(random_value(Seed)) :-
+        must_be(integer, Seed),
+        set_random(seed(Seed)).
 
 consistency(upto_in(I), upto_in(1, I)).
 consistency(upto_in, upto_in).
@@ -1319,6 +1332,11 @@ select_var(ff, [V|Vs], Var, RVars) :-
 select_var(ffc, [V|Vs], Var, RVars) :-
         find_ffc(Vs, V, Var),
         delete_eq([V|Vs], Var, RVars).
+select_var(random_variable(_), Vars0, Var, Vars) :-
+        length(Vars0, L),
+        I is random(L),
+        nth0(I, Vars0, Var),
+        delete_eq(Vars0, Var, Vars).
 
 find_min([], Var, Var).
 find_min([V|Vs], CM, Min) :-
