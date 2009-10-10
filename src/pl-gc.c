@@ -184,6 +184,7 @@ typedef struct vm_state
 		 *******************************/
 
 forwards void		mark_variable(Word ARG_LD);
+static void		mark_local_variable(Word p ARG_LD);
 forwards void		sweep_foreign(void);
 static void		sweep_global_mark(Word *m ARG_LD);
 #ifndef LIFE_GC
@@ -799,14 +800,14 @@ mark_term_refs()
 
     assert(fr->magic == FLI_MAGIC);
     for( ; n-- > 0; sp++ )
-    { SECURE(assert(!is_marked(sp)));
-
-      if ( isGlobalRef(*sp) )
-      { DEBUG(3, gmarked++);
-	mark_variable(sp PASS_LD);
-      } else
-      { DEBUG(3, lmarked++);
-	ldomark(sp);
+    { if ( !is_marked(sp) )
+      { if ( isGlobalRef(*sp) )
+	{ DEBUG(3, gmarked++);
+	  mark_variable(sp PASS_LD);
+	} else
+	{ DEBUG(3, lmarked++);
+	  mark_local_variable(sp PASS_LD);
+	}
       }
     }
 
@@ -3007,6 +3008,9 @@ garbageCollect(void)
     return FALSE;
 
   DEBUG(0, save_backtrace());
+
+  if ( gc_status.collections == 11 )
+    trap_gdb();
 
   get_vmi_state(&state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
