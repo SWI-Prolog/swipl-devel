@@ -4026,7 +4026,12 @@ PRED_IMPL("string_length", 2, string_length, 0)
   PL_chars_t t;
 
   if ( PL_get_text(A1, &t, CVT_ALL|CVT_EXCEPTION) )
-    return PL_unify_int64_ex(A2, t.length);
+  { int rc = PL_unify_int64_ex(A2, t.length);
+
+    PL_free_text(&t);
+
+    return rc;
+  }
 
   fail;
 }
@@ -4046,13 +4051,17 @@ PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
   term_t str = A1;
   term_t a = A2;
   PL_chars_t t;
+  int rc;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    return PL_unify_text(a, 0, &t, PL_ATOM);
+    rc = PL_unify_text(a, 0, &t, PL_ATOM);
   if ( PL_get_text(a, &t, CVT_ALL) )
-    return PL_unify_text(str, 0, &t, PL_STRING);
+    rc = PL_unify_text(str, 0, &t, PL_STRING);
+  else return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
-  return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  PL_free_text(&t);
+
+  return rc;
 }
 
 
@@ -4062,15 +4071,19 @@ PRED_IMPL("string_to_list", 2, string_to_list, 0)
   term_t str = A1;
   term_t list = A2;
   PL_chars_t t;
+  int rc;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    return PL_unify_text(list, 0, &t, PL_CODE_LIST);
-  if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) )/* string_to_list(S, []). */
-    return PL_unify_text(str, 0, &t, PL_STRING);
-  if ( PL_get_text(list, &t, CVT_ALL) )
-    return PL_unify_text(str, 0, &t, PL_STRING);
+    rc = PL_unify_text(list, 0, &t, PL_CODE_LIST);
+  else if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) ) /* -, [] */
+    rc = PL_unify_text(str, 0, &t, PL_STRING);
+  else if ( PL_get_text(list, &t, CVT_ALL) )
+    rc = PL_unify_text(str, 0, &t, PL_STRING);
+  else return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
-  return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  PL_free_text(&t);
+
+  return rc;
 }
 
 
