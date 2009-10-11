@@ -94,6 +94,31 @@ PL_save_text(PL_chars_t *text, int flags)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_from_stack_text() moves a string from  the   stack,  so  it won't get
+corrupted if GC/shift comes along.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+PL_from_stack_text(PL_chars_t *text)
+{ if ( text->storage == PL_CHARS_STACK )
+  { size_t bl = bufsize_text(text, text->length+1);
+
+    if ( bl < sizeof(text->buf) )
+    { memcpy(text->buf, text->text.t, bl);
+      text->text.t = text->buf;
+      text->storage = PL_CHARS_LOCAL;
+    } else
+    { Buffer b = findBuffer(BUF_RING);
+
+      addMultipleBuffer(b, text->text.t, bl, char);
+      text->text.t = baseBuffer(b, char);
+      text->storage = PL_CHARS_RING;
+    }
+  }
+}
+
+
 int
 PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 { word w = valHandle(l);
@@ -104,6 +129,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
       goto maybe_write;
+    PL_from_stack_text(text);
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { number n;
 
