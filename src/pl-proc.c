@@ -38,7 +38,7 @@ finding source files, etc.
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
 static int	removeClausesProcedure(Procedure proc, int sfindex, int file);
-static atom_t	autoLoader(LocalFrame *frp, Definition def);
+static atom_t	autoLoader(Definition def);
 static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
 
@@ -1606,7 +1606,7 @@ the garbage collector to scan this frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static atom_t
-autoLoader(LocalFrame *frp, Definition def)
+autoLoader(Definition def)
 { GET_LD
   fid_t  cid  = PL_open_foreign_frame();
   term_t argv = PL_new_term_refs(4);
@@ -1644,7 +1644,7 @@ discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Definition
-trapUndefined_unlocked(LocalFrame *frp, Definition def ARG_LD)
+trapUndefined_unlocked(Definition def ARG_LD)
 { int retry_times = 0;
   Definition newdef;
   Module module = def->module;
@@ -1669,7 +1669,7 @@ trapUndefined_unlocked(LocalFrame *frp, Definition def ARG_LD)
 
       return def;
     } else
-    { atom_t answer = autoLoader(frp, def);
+    { atom_t answer = autoLoader(def);
 
       def = lookupProcedure(functor->functor, module)->definition;
 
@@ -1707,23 +1707,16 @@ that should be considered.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
-trapUndefined(LocalFrame *frp, Definition undef ARG_LD)
-{ intptr_t lSafe = (char*)lTop - (char*)lBase;
-  LocalFrame fr = *frp;
-  Definition def;
+trapUndefined(Definition undef ARG_LD)
+{ Definition def;
 
-  lTop = (LocalFrame)argFrameP(fr, undef->functor->arity);
 #ifdef O_PLMT
   PL_mutex_lock(GD->thread.MUTEX_load);
 #endif
-  def = trapUndefined_unlocked(&fr, undef PASS_LD);
+  def = trapUndefined_unlocked(undef PASS_LD);
 #ifdef O_PLMT
   PL_mutex_unlock(GD->thread.MUTEX_load);
 #endif
-
-  lTop = (LocalFrame)((char*)lBase+lSafe);
-  if ( frp != &lTop )
-    *frp = fr;
 
   return def;
 }

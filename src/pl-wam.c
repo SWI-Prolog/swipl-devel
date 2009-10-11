@@ -760,9 +760,9 @@ getProcDefinition__LD(Definition def ARG_LD)
 
 
 static inline Definition
-getProcDefinedDefinition(LocalFrame *frp, Definition def ARG_LD)
+getProcDefinedDefinition(Definition def ARG_LD)
 { if ( !def->definition.clauses && false(def, PROC_DEFINED) )
-    def = trapUndefined(frp, def PASS_LD);
+    def = trapUndefined(def PASS_LD);
 
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
@@ -1554,7 +1554,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
-  def                = getProcDefinedDefinition(&fr, proc->definition PASS_LD);
+  def                = getProcDefinedDefinition(proc->definition PASS_LD);
 #ifdef O_SHIFT_STACKS
   qf	             = (QueryFrame) lTop;
 #endif

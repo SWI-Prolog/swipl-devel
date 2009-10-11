@@ -3010,9 +3010,6 @@ garbageCollect(void)
 
   DEBUG(0, save_backtrace());
 
-  if ( gc_status.collections == 11 )
-    trap_gdb();
-
   get_vmi_state(&state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
     return rc;
