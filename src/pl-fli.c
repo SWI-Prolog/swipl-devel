@@ -2003,18 +2003,12 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 		 *             PUT-*  		*
 		 *******************************/
 
-int
+void
 PL_put_variable(term_t t)
 { GET_LD
-  Word p = allocGlobal(1);
+  Word p = valTermRef(t);
 
-  if ( p )
-  { setVar(*p);
-    setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
-    return TRUE;
-  }
-
-  return FALSE;
+  setVar(*p);
 }
 
 

@@ -318,7 +318,6 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 PL_put_integer( argv+0, plhandle);
 	 unify_hsz(	 argv+1, hsz1);	/* topic */
 	 unify_hsz(      argv+2, hsz2);	/* item */
-	 PL_put_variable(argv+3);
 
 	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 { wchar_t *s;

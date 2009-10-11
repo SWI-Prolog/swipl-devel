@@ -1085,7 +1085,6 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-    PL_put_variable(rarg);
 
     if ( exception_term )
       ex = PL_copy_term_ref(exception_term);

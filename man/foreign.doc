@@ -1037,11 +1037,10 @@ is generally used for creating arguments for PL_call() and
 PL_open_query.
 
 \begin{description}
-\cfunction{int}{PL_put_variable}{term_t -t}
-Put a fresh variable in the term.  The new variable lives on the global
-stack.  Note that the initial variable lives on the local stack and is
-lost after a write to the term-references.  After using this function,
-the variable will continue to live.
+\cfunction{void}{PL_put_variable}{term_t -t}
+Put a fresh variable in the term, resetting the term-reference to its
+initial state.\footnote{Older versions created a variable on the global
+stack.}
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
 Put an atom in the term reference from a handle.  See also
 PL_new_atom() and PL_atom_chars().
