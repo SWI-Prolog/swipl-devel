@@ -2260,7 +2260,8 @@ next_choice:
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
       if ( true(ch->frame, FR_WATCHED) )
-      { environment_frame = FR = ch->frame;
+      { DiscardMark(ch->mark);
+	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
 	SAVE_REGISTERS(qid);
