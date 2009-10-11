@@ -704,7 +704,7 @@ put_number(Word at, Number n, int flags ARG_LD)
     }
 #endif
     case V_FLOAT:
-      return put_double(at, n->value.f, 0 PASS_LD);
+      return put_double(at, n->value.f, flags PASS_LD);
   }
 
   assert(0);
