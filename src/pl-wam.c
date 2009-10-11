@@ -455,6 +455,7 @@ PL_discard_foreign_frame(fid_t id)
   DEBUG(8, Sdprintf("Discarding foreign frame %p\n", fr));
   fli_context = fr->parent;
   Undo(fr->mark);
+  DiscardMark(fr->mark);
   lTop = (LocalFrame) fr;
 }
 
