@@ -954,6 +954,7 @@ argument_stack_to_term_refs(vm_state *state)
 	} else
 	{ *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_REFERENCE);
 	}
+	SECURE(checkData(adr));
       } else
       { assert(adr >= (Word)lBase);
 	*ap = (Word)((word)adr | LARGP);

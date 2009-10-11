@@ -4126,24 +4126,34 @@ frame.
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Find the associated procedure.  First look in the specified module.   If
-the function is not there then look in the user module.  Finally specify
-the context module environment for the goal. This is not necessary if it
-will  be  specified  correctly  by  the goal started.  Otherwise tag the
-frame and write  the  module  name  just  below  the  frame.   See  also
-contextModule().
+Find  the  associated  procedure  and  its  definition.  The  latter  is
+unfortunate, but we need to know the transparent status of the predicate
+to be called to get the context module   right. We must build a complete
+environment before we can call trapUndefined() to make shift/GC happy.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  SAVE_REGISTERS(qid);
-  DEF = getProcDefinedDefinition(&NFR, PC,
-				 resolveProcedure(functor, module)->definition
-				 PASS_LD);
-  LOAD_REGISTERS(qid);
+  DEF = resolveProcedure(functor, module)->definition;
+  if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )
+  { NFR->parent         = FR;
+    NFR->predicate      = DEF;		/* TBD */
+    NFR->programPointer = PC;		/* save PC in child */
+    NFR->clause         = NULL;
+#ifdef O_PROFILE
+    NFR->prof_node      = NULL;
+#endif
+    setNextFrameFlags(NFR, FR);
+    environment_frame = FR = NFR;
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save the program counter (note  that   I_USERCALL0  has no argument) and
-continue as with a normal call.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    SAVE_REGISTERS(qid);
+    DEF = trapUndefined(&NFR, NULL, DEF PASS_LD);
+    LOAD_REGISTERS(qid);
+
+    FR = FR->parent;
+#ifdef O_PLMT
+  } else if ( true(DEF, P_THREAD_LOCAL) )
+  { DEF = getProcDefinition__LD(DEF PASS_LD);
+#endif
+  }
 
   if ( true(DEF, P_TRANSPARENT) )
     setContextModule(NFR, module);
