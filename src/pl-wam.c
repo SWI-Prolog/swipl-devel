@@ -169,7 +169,8 @@ loffset__LD(void *p ARG_LD)
 
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
-{ static LocalFrame ofr = NULL;
+{ GET_LD
+  static LocalFrame ofr = NULL;
 
   DEBUG(3,
 	if ( ofr != FR )
@@ -1904,7 +1905,7 @@ environment. BFR is volatile, and qid is an argument. These are the only
 variables used in the B_THROW instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  DEBUG(9, Sdprintf("Setjmp env at %p\n", &QF->exception_env.exception_jmp_env));
+  DEBUG(9, Sdprintf("Setjmp env at %p\n", &LD->exception.throw_environment));
   throw_env.parent = LD->exception.throw_environment;
   if ( setjmp(throw_env.exception_jmp_env) != 0 )
   { FliFrame ffr;
