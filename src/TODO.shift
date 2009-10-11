@@ -23,6 +23,8 @@
 	  total stack-usage statistics.
 	- Remove all dynamic-stack code
 	- Remove max_threads
+	- Make PL_next_solution(0) return FALSE and PL_close_solution(0)
+	  happy.
 
 ================================================================
 Static analysis of the C-program:
