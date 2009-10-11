@@ -2259,7 +2259,6 @@ next_choice:
       fail;
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
-      Undo(ch->mark);
       if ( true(ch->frame, FR_WATCHED) )
       { environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
