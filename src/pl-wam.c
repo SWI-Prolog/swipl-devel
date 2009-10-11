@@ -1512,6 +1512,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   assert((void*)fli_context > (void*)environment_frame);
   assert((void*)lTop >= (void*)(fli_context+1));
 
+					/* resolve can call-back */
+  def = getProcDefinedDefinition(proc->definition PASS_LD);
+
 #ifdef JMPBUF_ALIGNMENT
   lneeded = JMPBUF_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
 #else
@@ -1555,7 +1558,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
-  def                = getProcDefinedDefinition(proc->definition PASS_LD);
 #ifdef O_SHIFT_STACKS
   qf	             = (QueryFrame) lTop;
 #endif
