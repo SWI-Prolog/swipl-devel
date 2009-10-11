@@ -3041,26 +3041,32 @@ again:
 
 static int
 copy_term_refs(term_t from, term_t to, int flags ARG_LD)
-{ Word dest = allocGlobal(1);
-  int rc;
+{ Word dest;
 
-  setVar(*dest);
-  *valTermRef(to) = makeRef(dest);
+  if ( !(dest = allocGlobal(1)) )
+    return FALSE;
+
+  setVar(*dest);			/* make a variable on the global */
+  *valTermRef(to) = makeRef(dest);	/* stack */
 
   for(;;)
-  { Word gsave = gTop;
+  { fid_t fid;
+    int rc;
+
+    if ( !(fid = PL_open_foreign_frame()) )
+      return FALSE;			/* no space */
 
     initCyclicCopy(PASS_LD1);
     rc = do_copy_term(valTermRef(from), valTermRef(to), flags PASS_LD);
     exitCyclicCopy(0, flags PASS_LD);
 
     if ( rc == -1 )
-    { gTop = gsave;
+    { PL_discard_foreign_frame(fid);
       if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
-      dest = &gTop[-1];
     } else
-    { return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
+    { PL_close_foreign_frame(fid);
+      return TRUE;		/* if do_copy_term() == FALSE --> not-ground */
     }
   }
 }
