@@ -1868,10 +1868,14 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { Choice ch;
+  { int rc;
+    Choice ch;
     mark m;
 
-    switch(tracePort(FR, BFR, CUT_CALL_PORT, PC PASS_LD))
+    SAVE_REGISTERS(qid);
+    rc = tracePort(FR, BFR, CUT_CALL_PORT, PC PASS_LD);
+    LOAD_REGISTERS(qid);
+    switch( rc )
     { case ACTION_RETRY:
 	goto retry;
       case ACTION_FAIL:
@@ -1880,7 +1884,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 
     if ( (ch = findStartChoice(FR, BFR)) )
     { m = ch->mark;
+      SAVE_REGISTERS(qid);
       dbg_discardChoicesAfter(FR PASS_LD);
+      LOAD_REGISTERS(qid);
       lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
@@ -1892,7 +1898,10 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     if ( exception_term )
       goto b_throw;
 
-    switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD))
+    SAVE_REGISTERS(qid);
+    rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD);
+    LOAD_REGISTERS(qid);
+    switch( rc );
     { case ACTION_RETRY:
 	goto retry;
       case ACTION_FAIL:
