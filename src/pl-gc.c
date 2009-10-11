@@ -3135,6 +3135,9 @@ garbageCollect(void)
   shiftTightStacks();
 #endif
 
+  if ( LD->mark_bar > gTop )
+    LD->mark_bar = gTop;
+
   return TRUE;
 }
 
