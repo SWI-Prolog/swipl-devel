@@ -1491,7 +1491,8 @@ struct alloc_pool
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     assert(onGlobalArea((b).saved_bar)); \
+			     assert((b).saved_bar >= gBase && \
+				    (b).saved_bar <= gTop); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \

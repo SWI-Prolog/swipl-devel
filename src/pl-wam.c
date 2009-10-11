@@ -2250,7 +2250,8 @@ next_choice:
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */
-    { Profile(profRedo(ch->prof_node PASS_LD));
+    { DiscardMark(ch->mark);
+      Profile(profRedo(ch->prof_node PASS_LD));
       QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
