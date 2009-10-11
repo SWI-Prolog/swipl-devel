@@ -1714,23 +1714,25 @@ PL_cut_query(qid_t qid)
 
 void
 PL_close_query(qid_t qid)
-{ GET_LD
-  QueryFrame qf = QueryFromQid(qid);
+{ if ( qid != 0 )
+  { GET_LD
+    QueryFrame qf = QueryFromQid(qid);
 
-  SECURE(assert(qf->magic == QID_MAGIC));
-  if ( qf->foreign_frame )
-    PL_close_foreign_frame(qf->foreign_frame);
+    SECURE(assert(qf->magic == QID_MAGIC));
+    if ( qf->foreign_frame )
+      PL_close_foreign_frame(qf->foreign_frame);
 
-  if ( false(qf, PL_Q_DETERMINISTIC) )
-  { discard_query(qid PASS_LD);
-    qf = QueryFromQid(qid);
+    if ( false(qf, PL_Q_DETERMINISTIC) )
+    { discard_query(qid PASS_LD);
+      qf = QueryFromQid(qid);
+    }
+
+    if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
+      Undo(qf->choice.mark);
+
+    restore_after_query(qf);
+    qf->magic = 0;			/* disqualify the frame */
   }
-
-  if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
-    Undo(qf->choice.mark);
-
-  restore_after_query(qf);
-  qf->magic = 0;			/* disqualify the frame */
 }
 
 
@@ -1869,6 +1871,9 @@ code thiscode;
     succeed;
   }
 #endif /* VMCODE_IS_ADDRESS */
+
+  if ( qid == 0 )			/* PL_open_query() failed */
+    return FALSE;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the real start point  of   this  function.  Simply loads the VMI

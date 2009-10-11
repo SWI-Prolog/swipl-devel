@@ -1748,18 +1748,17 @@ opened before opening the next or returning control back to Prolog.
 \cfunction{qid_t}{PL_open_query}{module_t ctx, int flags,
 				 predicate_t p, term_t +t0}
 
-Opens a query and returns an identifier for it. This function always
-succeeds, regardless whether the predicate is defined or not. \arg{ctx}
-is the {\em context module} of the goal. When \const{NULL}, the context
-module of the calling context will be used, or \const{user} if there is
-no calling context (as may happen in embedded systems). Note that the
-context module only matters for \jargon{meta-predicates}. See
-meta_predicate/1, context_module/1 and module_transparent/1. The \arg{p}
-argument specifies the predicate, and should be the result of a call to
-PL_pred() or PL_predicate(). Note that it is allowed to store this
-handle as global data and reuse it for future queries. The
-term-reference \arg{t0} is the first of a vector of term-references as
-returned by PL_new_term_refs(n).
+Opens a query and returns an identifier for it. \arg{ctx} is the {\em
+context module} of the goal. When \const{NULL}, the context module of
+the calling context will be used, or \const{user} if there is no calling
+context (as may happen in embedded systems). Note that the context
+module only matters for \jargon{meta-predicates}. See meta_predicate/1,
+context_module/1 and module_transparent/1. The \arg{p} argument
+specifies the predicate, and should be the result of a call to PL_pred()
+or PL_predicate(). Note that it is allowed to store this handle as
+global data and reuse it for future queries. The term-reference \arg{t0}
+is the first of a vector of term-references as returned by
+PL_new_term_refs(n).
 
 The \arg{flags} arguments provides some additional options concerning
 debugging and exception handling.  It is a bitwise or of the following
@@ -1785,8 +1784,15 @@ As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
 while calling PL_close_query().  This option is experimental.
 \end{description}
 
+PL_open_query() can return a query-identifier `0' if there is not enough
+space on the environment stack. This function succeeds, even if the
+referenced predicate is not defined. In this case, running the query
+using PL_next_solution() will return an existence_error. See
+PL_exception().
+
 The example below opens a query to the predicate {is_a}/2 to find the
-ancestor of for some name.
+ancestor of `me'. The reference to the predicate is valid for the
+duration of the process and may be cached by the client.
 
 \begin{code}
 char *
