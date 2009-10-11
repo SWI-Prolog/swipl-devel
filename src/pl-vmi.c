@@ -2060,6 +2060,9 @@ c_cut:
 	  goto b_throw;
       }
     }
+
+    if ( ch->parent == och )
+      DiscardMark(ch->mark);
   }
   assert(och == ch);
   BFR = och;
