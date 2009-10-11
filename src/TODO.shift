@@ -18,13 +18,11 @@
 	- Finish shifting in prolog_frame_attribute/3
 	- Add shift/gc to debugger, or
 		- Make the debugger in the the spare stacks?
-	- More tests for read_term/3 and friends (broken).
 	- Use malloc/realloc wrappers for stacks and maintain
 	  total stack-usage statistics.
 	- Remove all dynamic-stack code
 	- Remove max_threads
-	- Make PL_next_solution(0) return FALSE and PL_close_solution(0)
-	  happy.
+	- Use GCC's int fn () __attribute__ ((warn_unused_result));
 
 ================================================================
 Static analysis of the C-program:
