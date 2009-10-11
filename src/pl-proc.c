@@ -38,7 +38,7 @@ finding source files, etc.
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
 static int	removeClausesProcedure(Procedure proc, int sfindex, int file);
-static atom_t	autoLoader(LocalFrame *frp, Code PC, Definition def);
+static atom_t	autoLoader(LocalFrame *frp, Definition def);
 static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
 
@@ -1606,7 +1606,7 @@ the garbage collector to scan this frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static atom_t
-autoLoader(LocalFrame *frp, Code PC, Definition def)
+autoLoader(LocalFrame *frp, Definition def)
 { GET_LD
   fid_t  cid  = PL_open_foreign_frame();
   term_t argv = PL_new_term_refs(4);
@@ -1624,30 +1624,11 @@ autoLoader(LocalFrame *frp, Code PC, Definition def)
   PL_put_integer( argv+2, def->functor->arity);
 
   LD->autoload_nesting++;
-  if ( PC )
-  { LocalFrame fr = *frp;
-
-    fr->parent = environment_frame;
-    setNextFrameFlags(fr, fr->parent);
-    fr->predicate = def;
-    fr->programPointer = PC;
-    fr->clause = NULL;
-#ifdef O_PROFILE
-    fr->prof_node = NULL;
-#endif
-    environment_frame = fr;
-  }
   qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
 		      GD->procedures.undefinterc4, argv);
   if ( PL_next_solution(qid) )
     PL_get_atom(argv+3, &answer);
   PL_close_query(qid);
-  if ( PC )
-  { LocalFrame fr = environment_frame;		/* may be shifted */
-
-    *frp = fr;
-    environment_frame = fr->parent;
-  }
   LD->autoload_nesting--;
   source_file_name = sfn;
   source_line_no   = sln;
@@ -1663,7 +1644,7 @@ discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Definition
-trapUndefined_unlocked(LocalFrame *frp, Code PC, Definition def ARG_LD)
+trapUndefined_unlocked(LocalFrame *frp, Definition def ARG_LD)
 { int retry_times = 0;
   Definition newdef;
   Module module = def->module;
@@ -1688,7 +1669,7 @@ trapUndefined_unlocked(LocalFrame *frp, Code PC, Definition def ARG_LD)
 
       return def;
     } else
-    { atom_t answer = autoLoader(frp, PC, def);
+    { atom_t answer = autoLoader(frp, def);
 
       def = lookupProcedure(functor->functor, module)->definition;
 
@@ -1726,7 +1707,7 @@ that should be considered.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
-trapUndefined(LocalFrame *frp, Code PC, Definition undef ARG_LD)
+trapUndefined(LocalFrame *frp, Definition undef ARG_LD)
 { intptr_t lSafe = (char*)lTop - (char*)lBase;
   LocalFrame fr = *frp;
   Definition def;
@@ -1735,7 +1716,7 @@ trapUndefined(LocalFrame *frp, Code PC, Definition undef ARG_LD)
 #ifdef O_PLMT
   PL_mutex_lock(GD->thread.MUTEX_load);
 #endif
-  def = trapUndefined_unlocked(&fr, PC, undef PASS_LD);
+  def = trapUndefined_unlocked(&fr, undef PASS_LD);
 #ifdef O_PLMT
   PL_mutex_unlock(GD->thread.MUTEX_load);
 #endif

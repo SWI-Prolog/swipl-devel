@@ -545,7 +545,7 @@ COMMON(void) 		gcClausesDefinitionAndUnlock(Definition def);
 COMMON(void) 		destroyDefinition(Definition def);
 COMMON(void) 		resetReferences(void);
 COMMON(Procedure) 	resolveProcedure(functor_t f, Module module);
-COMMON(Definition) 	trapUndefined(LocalFrame *frp, Code PC, Definition undef ARG_LD);
+COMMON(Definition) 	trapUndefined(LocalFrame *frp, Definition undef ARG_LD);
 COMMON(word) 		pl_retractall(term_t head);
 COMMON(word) 		pl_abolish(term_t atom, term_t arity);
 COMMON(word) 		pl_abolish1(term_t pred);

@@ -1592,7 +1592,7 @@ retry_continue:
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+    { DEF = getProcDefinedDefinition(&FR, DEF PASS_LD);
       FR->predicate = DEF;
       if ( false(DEF, FOREIGN) )
 	FR->clause = DEF->definition.clauses;
@@ -1671,7 +1671,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
 VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 { Module m = (Module)*PC++;
   Procedure proc = (Procedure)*PC++;
-  DEF = getProcDefinedDefinition(&lTop, NULL, proc->definition PASS_LD);
+  DEF = getProcDefinedDefinition(&lTop, proc->definition PASS_LD);
 
   NFR = lTop;
   setNextFrameFlags(NFR, FR);
@@ -2197,7 +2197,7 @@ this supervisor (see resetProcedure()). The task of this is to
 
 VMI(S_VIRGIN, 0, 0, ())
 { SAVE_REGISTERS(qid);
-  DEF = getProcDefinedDefinition(&FR, NULL, DEF PASS_LD);
+  DEF = getProcDefinedDefinition(&FR, DEF PASS_LD);
   LOAD_REGISTERS(qid);
 
   if ( FR->predicate != DEF )		/* auto imported/loaded */
@@ -4145,7 +4145,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
     environment_frame = FR = NFR;
 
     SAVE_REGISTERS(qid);
-    DEF = trapUndefined(&NFR, NULL, DEF PASS_LD);
+    DEF = trapUndefined(&NFR, DEF PASS_LD);
     LOAD_REGISTERS(qid);
 
     FR = FR->parent;
