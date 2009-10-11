@@ -1901,7 +1901,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     SAVE_REGISTERS(qid);
     rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD);
     LOAD_REGISTERS(qid);
-    switch( rc );
+    switch( rc )
     { case ACTION_RETRY:
 	goto retry;
       case ACTION_FAIL:
