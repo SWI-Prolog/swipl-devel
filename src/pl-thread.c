@@ -2119,6 +2119,7 @@ queue_message(message_queue *queue, term_t msg)
     queue->wait_for_drain--;
   }
 
+  PL_LOCK(L_AGC);
   msgp->sequence_id = ++queue->sequence_next;
   if ( !queue->head )
   { queue->head = queue->tail = msgp;
@@ -2127,6 +2128,7 @@ queue_message(message_queue *queue, term_t msg)
     queue->tail = msgp;
   }
   queue->size++;
+  PL_UNLOCK(L_AGC);
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
@@ -2144,9 +2146,6 @@ queue_message(message_queue *queue, term_t msg)
 
 out:
   simpleMutexUnlock(&queue->mutex);
-
-  PL_LOCK(L_AGC);			/* See (*) above */
-  PL_UNLOCK(L_AGC);
 
   return rval;
 }
@@ -2307,6 +2306,8 @@ retry:
 
       if ( rc )
       { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
+
+	PL_LOCK(L_AGC);
 	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
@@ -2314,6 +2315,7 @@ retry:
 	{ if ( !(queue->head = msgp->next) )
 	    queue->tail = NULL;
 	}
+	PL_UNLOCK(L_AGC);
 	free_thread_message(msgp);
 	queue->size--;
 	if ( queue->wait_for_drain )
@@ -4533,11 +4535,9 @@ static void
 markAtomsMessageQueue(message_queue *queue)
 { thread_message *msg;
 
-  simpleMutexLock(&queue->mutex);
   for(msg=queue->head; msg; msg=msg->next)
   { markAtomsRecord(msg->message);
   }
-  simpleMutexUnlock(&queue->mutex);
 }
 
 
