@@ -842,16 +842,13 @@ is much to gain with this approach.
 static fid_t
 gvars_to_term_refs(Word **saved_bar_at)
 { GET_LD
-  fid_t fid;
-
-  *saved_bar_at = NULL;
+  fid_t fid = PL_open_foreign_frame();
 
   if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
   { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
     Symbol s;
 
-    fid = PL_open_foreign_frame();
     while( (s=advanceTableEnum(e)) )
     { Word p = (Word)&s->value;
 
@@ -869,8 +866,7 @@ gvars_to_term_refs(Word **saved_bar_at)
 
     DEBUG(1, Sdprintf("Found %d global vars on global stack. "
 		      "stored in frame %p\n", found, fli_context));
-  } else
-    fid = 0;
+  }
 
   if ( LD->frozen_bar )
   { Word *sb;
@@ -880,6 +876,8 @@ gvars_to_term_refs(Word **saved_bar_at)
     lTop = (LocalFrame)(sb+1);
     *sb = LD->frozen_bar;
     *saved_bar_at = sb;
+  } else
+  { *saved_bar_at = NULL;
   }
 
   return fid;
@@ -898,7 +896,7 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
     lTop = (LocalFrame) saved_bar_at;
   }
 
-  if ( fid )
+  if ( LD->gvar.grefs > 0 )
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word fp = (Word)(fr+1);
     TableEnum e = newTableEnum(LD->gvar.nb_vars);
@@ -916,8 +914,9 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
     assert(found == fr->size);
 
     freeTableEnum(e);
-    PL_close_foreign_frame(fid);
   }
+
+  PL_close_foreign_frame(fid);
 }
 
 #else /*O_GVAR*/
@@ -3087,8 +3086,7 @@ garbageCollect(void)
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
 
-  if ( LD->mark_bar > gTop )		/* or properly relocate it? */
-    LD->mark_bar = gTop;
+  assert(LD->mark_bar <= gTop);
 
 #if O_SECURE
   assert(trailtops_marked == 0);
