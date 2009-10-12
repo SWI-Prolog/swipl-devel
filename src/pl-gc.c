@@ -2678,6 +2678,7 @@ check_mark(mark *m)
   assert(onTrailArea(m->trailtop));
   assert(onGlobalArea(m->globaltop));
   assert(onGlobalArea(m->saved_bar));
+  assert(m->saved_bar <= m->globaltop);
   if ( start_map )
   { assert(is_start(m->globaltop PASS_LD));
     assert(is_start(m->saved_bar PASS_LD));
