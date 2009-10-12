@@ -3087,6 +3087,9 @@ garbageCollect(void)
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
 
+  if ( LD->mark_bar > gTop )		/* or properly relocate it? */
+    LD->mark_bar = gTop;
+
 #if O_SECURE
   assert(trailtops_marked == 0);
   if ( !scan_global(FALSE) )
@@ -3135,9 +3138,6 @@ garbageCollect(void)
     assert(state.frame == LD->query->registers.fr);
   shiftTightStacks();
 #endif
-
-  if ( LD->mark_bar > gTop )
-    LD->mark_bar = gTop;
 
   return TRUE;
 }
