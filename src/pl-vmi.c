@@ -618,12 +618,13 @@ VMI(H_FUNCTOR, 0, 1, (CA1_FUNC))
 
 VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f;
+  Word p;
 
   IF_WRITE_MODE_GOTO(B_RFUNCTOR);
 
   f = (functor_t) *PC++;
-  deRef(ARGP);
-  if ( canBind(*ARGP) )
+  deRef2(ARGP, p);
+  if ( canBind(*p) )
   { int arity = arityFunctor(f);
     Word ap;
     word c;
@@ -638,12 +639,13 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
       { raiseStackOverflow(rc);
 	goto b_throw;
       }
+      deRef2(ARGP, p);
     }
 
     ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-    bindConst(ARGP, c);
+    bindConst(p, c);
     *ap++ = f;
     ARGP = ap;
     while(--arity>=0)			/* must clear if we want to do GC */
@@ -651,8 +653,8 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
-  if ( hasFunctor(*ARGP, f) )
-  { ARGP = argTermP(*ARGP, 0);
+  if ( hasFunctor(*p, f) )
+  { ARGP = argTermP(*p, 0);
     NEXT_INSTRUCTION;
   }
   CLAUSE_FAILED;
