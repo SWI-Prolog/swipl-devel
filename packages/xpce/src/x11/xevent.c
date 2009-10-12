@@ -177,8 +177,10 @@ ws_discard_input(const char *msg)
   { char buf[1024];
 
     Cprintf("%s; discarding input ...", msg);
-    read(dispatch_fd, buf, sizeof(buf));
-    Cprintf("ok\n");
+    if ( read(dispatch_fd, buf, sizeof(buf)) >= 0 )
+      Cprintf("ok\n");
+    else
+      Cprintf("failed\n");
   }
 }
 
