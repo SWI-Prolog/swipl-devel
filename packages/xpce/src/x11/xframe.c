@@ -68,12 +68,6 @@ setWidgetFrame(FrameObj fr, Widget w)
 
 
 static void
-setGravityFrame(FrameObj fr, int gravity)
-{ ensureWsRefFrame(fr)->win_gravity = gravity;
-}
-
-
-static void
 setBusyWindowFrame(FrameObj fr, Window w)
 { ensureWsRefFrame(fr)->busy_window = w;
 }

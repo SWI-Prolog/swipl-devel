@@ -205,7 +205,8 @@ stringToMB(String str)
   }
 
   roomBuffer(out, MB_LEN_MAX+1);	/* add restore state + 0-byte */
-  wcrtomb(out->bufp, 0, &mbs);
+  if ( wcrtomb(out->bufp, 0, &mbs) ==  (size_t)-1 )
+    return NULL;
 
   return out->data;
 }
