@@ -2674,18 +2674,36 @@ decompileHead(Clause clause, term_t head)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The `argument pointer' is a pair of  term-references. The lower one is a
+reference to the current argument. The higher  one is a reference to the
+last argument. We need that to avoid that the argument pointer points to
+the first cell after the term, producing an illegal term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 get_arg_ref(term_t term, term_t argp ARG_LD)
 { word w = valHandle(term PASS_LD);
-  setHandle(argp, makeRef(argTermP(w, 0)));
+  Word p = argTermP(w, 0);
+  int ar = arityTerm(w);
+  Word ap = valTermRef(argp);
+
+  assert(ar > 0);
+
+  ap[0] = makeRefG(p);			/* points to first argument */
+  ap[1] = makeRefG(p+ar-1);		/* points to last argument */
 }
 
 
 static void
 next_arg_ref(term_t argp ARG_LD)
-{ Word p = valTermRef(argp);
+{ Word ap = valTermRef(argp);
 
-  *p = makeRef(unRef(*p)+1);
+  if ( ap[0] != ap[1] )
+  { Word p = unRef(ap[0]);
+
+    ap[0] = makeRefG(p+1);
+  }
 }
 
 
@@ -2740,7 +2758,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   arity = def->functor->arity;
   TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
-  { if ( !(argp = PL_new_term_ref()) )
+  { if ( !(argp = PL_new_term_refs(2)) )
       return FALSE;
     get_arg_ref(head, argp PASS_LD);
   }
@@ -2829,11 +2847,12 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  fdef = (functor_t) XR(*PC++);
       common_functor:
-	  if ( !(t2 = PL_new_term_ref()) ||
+	  if ( !(t2 = PL_new_term_refs(2)) ||
 	       !PL_unify_functor(argp, fdef) )
 	    return FALSE;
           get_arg_ref(argp, t2 PASS_LD);
           next_arg_ref(argp PASS_LD);
+	  assert(t2 == argp+2);
 	  argp = t2;
 	  pushed++;
 	  continue;
@@ -2856,7 +2875,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case H_POP:
       case B_POP:
 	  PL_reset_term_refs(argp);
-          argp--;
+          argp -= 2;
 	  pushed--;
 	  if ( !pushed )
 	    argn++;
