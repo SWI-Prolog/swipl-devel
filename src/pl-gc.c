@@ -2384,7 +2384,8 @@ setStartOfVMI(vm_state *state)
 	case H_INT64:
 	case H_FLOAT:
 	case H_VOID:
-	  state->argp++;
+	  if ( state->adepth == 0 )
+	    state->argp++;
 	  break;
 
 	case B_UNIFY_VAR:
@@ -2394,7 +2395,8 @@ setStartOfVMI(vm_state *state)
 	  break;
 	case H_FUNCTOR:
 	case H_LIST:
-	  state->argp++;
+	  if ( state->adepth == 0 )
+	    state->argp++;
 	  /*FALLTHROUGH*/
 	case B_FUNCTOR:
 	case B_LIST:
