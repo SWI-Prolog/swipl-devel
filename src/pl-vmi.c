@@ -1215,6 +1215,7 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
 	goto b_throw;
       }
       k = varFrameP(FR, (int)PC[-2]);
+      deRef(k);
     }
 
     bindConst(k, c);
