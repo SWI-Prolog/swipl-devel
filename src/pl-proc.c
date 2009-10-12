@@ -1859,7 +1859,6 @@ pl_retractall(term_t head)
   ClauseRef cref;
   ClauseRef next;
   Word argv;
-  LocalFrame fr = environment_frame;
   fid_t fid;
 
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
@@ -1887,7 +1886,7 @@ pl_retractall(term_t head)
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
-  if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
+  if ( !(cref = firstClause(argv, environment_frame, def, &next PASS_LD)) )
   { int rc = endCritical;
     leaveDefinition(def);
     return rc;
@@ -1904,8 +1903,12 @@ pl_retractall(term_t head)
       return endCritical;
     }
 
+    if ( argv )				/* may be shifted */
+    { argv = valTermRef(thehead);
+      argv = argTermP(*argv, 0);
+    }
 
-    cref = findClause(next, argv, fr, def, &next PASS_LD);
+    cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
   }
   leaveDefinition(def);
   return endCritical;
