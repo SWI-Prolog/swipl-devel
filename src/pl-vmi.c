@@ -1040,20 +1040,20 @@ TBD: B_UNIFY_CONST <var>, <const>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_VAR))
-{ SEPERATE_VMI;
-  VMI_GOTO(B_UNIFY_VAR);
+{ ARGP = varFrameP(FR, (int)*PC++);
+  setVar(*ARGP);			/* needed for GC */
+  goto unify_var_cont;
 }
 
 
 VMI(B_UNIFY_VAR, 0, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
 
+unify_var_cont:
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { Word k = ARGP;
 
-    if ( decode(PC[-2]) == B_UNIFY_FIRSTVAR )
-      setVar(*k);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(k);
     setVar(*ARGP);
