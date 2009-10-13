@@ -246,7 +246,7 @@ as the record is not in the proper format.
 This function fails if its execution would require a stack-shift of GC!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 canUnifyTermWithGoal(LocalFrame fr)
 { GET_LD
   find_data *find = LD->trace.find;
@@ -258,28 +258,36 @@ canUnifyTermWithGoal(LocalFrame fr)
       return find->goal.name == fr->predicate->functor->name;
     case TRACE_FIND_TERM:
     { if ( find->goal.term.functor == fr->predicate->functor->functor )
-      { fid_t cid = PL_open_foreign_frame();
-	term_t t = PL_new_term_ref();
-	Word a, b;
-	int arity = fr->predicate->functor->arity;
-	int rval = TRUE;
-	term_t ex;
+      { fid_t cid;
 
-	if ( copyRecordToGlobal(t, find->goal.term.term, 0 PASS_LD) < 0 )
-	  fail;
-	a = valTermRef(t);
-	deRef(a);
-	a = argTermP(*a, 0);
-	b = argFrameP(fr, 0);
-	while( arity-- > 0 )
-	{ if ( !can_unify(a++, b++, &ex, 0) )	/* do not allow shift/gc */
-	  { rval = FALSE;
-	    break;
+	if ( (cid=PL_open_foreign_frame()) )
+	{ term_t t = PL_new_term_ref();
+	  term_t frref = consTermRef(fr);
+	  int i, arity = fr->predicate->functor->arity;
+	  int rval = TRUE;
+	  term_t ex;
+
+	  if ( copyRecordToGlobal(t, find->goal.term.term,
+				  ALLOW_GC|ALLOW_SHIFT PASS_LD) < 0 )
+	    fail;
+	  for(i=0; i<arity; i++)
+	  { Word a, b;
+
+	    a = valTermRef(t);
+	    deRef(a);
+	    a = argFrameP(*a, i);
+	    fr = (LocalFrame)valTermRef(frref);
+	    b = argFrameP(fr, i);
+
+	    if ( !can_unify(a++, b++, &ex, ALLOW_GC|ALLOW_SHIFT) )
+	    { rval = FALSE;
+	      break;
+	    }
 	  }
-	}
 
-	PL_discard_foreign_frame(cid);
-	return rval;
+	  PL_discard_foreign_frame(cid);
+	  return rval;
+	}
       }
 
       fail;
