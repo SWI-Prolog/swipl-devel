@@ -840,9 +840,6 @@ initPrologFlags()
   setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
   setPrologFlag("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
 #endif
-#if O_DYNAMIC_STACKS
-  setPrologFlag("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);
-#endif
   setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
 #ifdef HAVE_POPEN
   setPrologFlag("pipe", FT_BOOL, TRUE, 0);

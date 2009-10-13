@@ -173,13 +173,7 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#if MMAP_STACK || HAVE_VIRTUALALLOC
-#define O_DYNAMIC_STACKS 1		/* sparse memory management */
-#else
-#ifndef O_SHIFT_STACKS
 #define O_SHIFT_STACKS 1		/* use stack-shifter */
-#endif
-#endif
 
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
@@ -1294,13 +1288,11 @@ typedef struct exception_frame		/* PL_throw exception environments */
 
 struct queryFrame
 { uintptr_t magic;			/* Magic code for security */
-#if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
     Word	argp;
     Code	pc;
   } registers;
-#endif
 #ifdef O_LIMIT_DEPTH
   uintptr_t saved_depth_limit;		/* saved values of these */
   uintptr_t saved_depth_reached;
@@ -1539,14 +1531,6 @@ at least one free cell on the trail-stack.
 #define consTermRef(p)	 ((Word)(p) - (Word)(lBase))
 #define valTermRef(r)	 (&((Word)(lBase))[r])
 
-#if O_SHIFT_STACKS
-#define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)
-#define RestoreLocalPtr(s, ptr) (ptr) = (void *) valTermRef(s)
-#else
-#define SaveLocalPtr(s, ptr)
-#define RestoreLocalPtr(s, ptr)
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Temporary store/restore pointers to make them safe over GC/shift
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1596,9 +1580,6 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
-#ifdef O_SHIFT_STACKS
-#define SIG_LSHIFT	  (SIG_PROLOG_OFFSET+4)
-#endif
 
 		 /*******************************
 		 *	      EVENTS		*
@@ -1629,20 +1610,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
-#ifdef O_SHIFT_STACKS
-#define STACK_SHIFT_EXTRA(type) \
-	  size_t	spare;		/* Current reserved area */ \
-	  size_t	def_spare;	/* Desired reserved area */
-#else
-#define STACK_SHIFT_EXTRA(type)
-#endif
-#ifdef O_DYNAMIC_STACKS
-#define STACK_DYN_EXTRA(type) \
-	  size_t	size_min;	/* Do not shrink below this size */
-#else
-#define STACK_DYN_EXTRA(type)
-#endif
-
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
@@ -1650,8 +1617,8 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
-	  STACK_SHIFT_EXTRA(type)	/* Implementation-specific fields */\
-	  STACK_DYN_EXTRA(type)		/* Implementation-specific fields */\
+	  size_t	spare;		/* Current reserved area */ 	    \
+	  size_t	def_spare;	/* Desired reserved area */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
