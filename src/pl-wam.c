@@ -358,7 +358,8 @@ static void
 close_foreign_frame(fid_t id ARG_LD)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
-  assert(fr->magic == FLI_MAGIC);
+  if ( !id || fr->magic != FLI_MAGIC )
+    sysError("PL_close_foreign_frame(): illegal frame: %d", id);
   DiscardMark(fr->mark);
   fr->magic = FLI_MAGIC_CLOSED;
   fli_context = fr->parent;
