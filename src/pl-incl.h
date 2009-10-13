@@ -1051,12 +1051,7 @@ struct clause
 #endif /*O_LOGICAL_UPDATE*/
   unsigned short	variables;	/* # of variables for frame */
   unsigned short	prolog_vars;	/* # real Prolog variables */
-#ifdef O_SHIFT_STACKS
-  unsigned short	marks;		/* C_IFTHEN reserved */
-  unsigned short	line_no;	/* Source line-number */
-#else
   unsigned int		line_no; 	/* Source line-number */
-#endif
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */

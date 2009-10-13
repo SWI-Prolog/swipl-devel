@@ -827,10 +827,6 @@ that have an I_CONTEXT because we need to reset the context.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#ifdef O_SHIFT_STACKS
-  clause.marks = clause.variables - clause.prolog_vars;
-#endif
-
   clause.code_size = entriesBuffer(&ci.codes, code);
 
   if ( head )

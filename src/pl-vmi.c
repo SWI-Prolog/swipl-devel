@@ -1955,14 +1955,15 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-C_IFTHEN saves the value of BFR  (current   backtrack  frame) into a local
-frame slot reserved by the compiler.  Note that the variable to hold the
+C_IFTHEN saves the value of BFR (current   backtrack frame) into a local
+frame slot reserved by the compiler. Note  that the variable to hold the
 local-frame pointer is  *not*  reserved   in  clause->variables,  so the
-garbage collector won't see it.
+garbage collector won't see it. We use  a term-reference because using a
+relative address simplifies the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_IFTHEN, 0, 1, (CA1_CHP))
-{ varFrame(FR, *PC++) = (word) BFR;
+{ varFrame(FR, *PC++) = consTermRef(BFR);
 
   NEXT_INSTRUCTION;
 }
@@ -1982,7 +1983,7 @@ VMI(C_NOT, 0, 2, (CA1_CHP,CA1_JUMP))
 
 
 VMI(C_IFTHENELSE, 0, 2, (CA1_CHP,CA1_JUMP))
-{ varFrame(FR, *PC++) = (word) BFR; /* == C_IFTHEN */
+{ varFrame(FR, *PC++) = consTermRef(BFR); /* == C_IFTHEN */
 
   VMI_GOTO(C_OR);
 }
@@ -2026,7 +2027,7 @@ BEGIN_SHAREDVARS
   Choice ch;
 
 VMI(C_LCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) varFrame(FR, *PC);
+{ och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;
 
   for(ch=BFR; ch; ch = ch->parent)
@@ -2040,7 +2041,7 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
 }
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
-{ och = (Choice) varFrame(FR, *PC);
+{ och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;					/* cannot be in macro! */
 c_cut:
   if ( !och || FR > och->frame )	/* most recent frame to keep */

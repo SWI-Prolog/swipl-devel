@@ -3444,21 +3444,6 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       { assert(!onStackArea(local, fr->clause));
       }
 
-					/* update saved BFR's from C_IFTHEN */
-      if ( PC && false(fr->predicate, FOREIGN) && fr->clause )
-      { Clause cl = fr->clause->clause;
-	unsigned int marks;
-
-	if ( (marks = cl->marks) )
-	{ Word sp = argFrameP(fr, cl->prolog_vars);
-
-	  DEBUG(2, Sdprintf(" (%d marks)", marks));
-
-	  for( ; marks-- > 0; sp++ )
-	    update_pointer(sp, ls);
-	}
-      }
-
       DEBUG(2, Sdprintf("ok\n"));
     }
 
