@@ -176,7 +176,7 @@ curi(A) -->
 cpath(A) -->
 	(   { memberchk(path(Path), A) }
 	->  { atom_codes(Path, Codes) },
-	    www_encode(Codes, "/+:")
+	    www_encode(Codes, "/+:,")
 	;   ""
 	).
 
