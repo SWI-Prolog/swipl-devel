@@ -100,6 +100,11 @@ LD=link.exe /nologo
 !ENDIF
 AR=lib.exe
 RSC=rc.exe
+!IF "$(_NMAKE_VER)" != "6.00.8168.0" && "$(_NMAKE_VER)" != "162" && "$(_NMAKE_VER)" != ""
+MTEXE=mt.exe
+!ELSE
+MTEXE=rem
+!ENDIF
 CMD=cmd.exe
 INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
@@ -169,6 +174,6 @@ PLCON=$(PLBASE)\bin\plcon.exe
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
-!ELSE 
+!ELSE
 NULL=nul
-!ENDIF 
+!ENDIF

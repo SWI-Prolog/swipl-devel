@@ -1,4 +1,4 @@
-# 63-bit version specific make rules
+# 32-bit version specific make rules
 
 # Find additional .lib files here
 EXTRALIBDIR=$(HOME)\lib
