@@ -22,7 +22,7 @@
 	  total stack-usage statistics.
 	- Remove all dynamic-stack code
 	- Remove max_threads
-	- Use GCC's int fn () __attribute__ ((warn_unused_result));
+	- Remove -A option
 
 ================================================================
 Static analysis of the C-program:
