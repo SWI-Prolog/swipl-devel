@@ -135,10 +135,6 @@ AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
 	      configreadline="$enableval",
 	      configreadline=yes)
 
-AC_ARG_ENABLE(mapped-stacks, [  --disable-mapped-stacks Do not use mmap for stacks],
-	      configmmappedstacks="$enableval",
-	      configmmappedstacks=yes)
-
 AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 	      configgmp="$enableval",
 	      configgmp=yes)
@@ -1485,10 +1481,8 @@ rm -f conftest.dummy
 fi
 
 
-
-if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 dnl ****************************************************************
-dnl First lets see whether our signal handler is POSIX.1b
+dnl Are our signal handler is POSIX.1b?
 dnl ****************************************************************
 
 AC_CHECK_HEADERS(siginfo.h)
@@ -1512,86 +1506,6 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
-dnl ****************************************************************
-dnl More tricky stuff.  Try to find out whether or not we can use mmap()
-dnl to implement dynamic stacks.
-dnl
-dnl First test is test/sgimmap.c, which uses MAP_AUTOGROW|MAP_AUTORESRV.
-dnl Second test is test/mmap.c, with SEGV handling
-dnl Third test is test/mmap.c, without SEGV handling
-dnl ****************************************************************
-
-mmap_tried=nosegv;
-mmap_test=mmap.c
-AC_MSG_CHECKING("if we can use mmap for stack allocation")
-while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
-echo '#include "confdefs.h"' > conftest.c
-cat $srcdir/test/$mmap_test >> conftest.c
-(eval $ac_link) 2>&5
-if test -s conftest; then
-    res=`./conftest`
-    if test "$?" = 0 && eval $res; then
-	if test "$MMAP_STACK" = "1"; then
-	    if test "$HAVE_MAP_ANON" = "1"; then
-		AC_DEFINE(HAVE_MAP_ANON, 1,
-			  [Define if MAP_ANON is defined and works ok])
-	    fi
-	    AC_DEFINE(MMAP_STACK, 1,
-		      [Define if mmap() can be used to allocate stacks])
-	    if test "$MMAP_OVERRIDES" = "1"; then
-		 AC_DEFINE(MMAP_OVERRIDES, 1,
-			  [Define if mmap() can override an existing map])
-	    fi
-	    if test "$mmap_tried" = "sgi"; then
-	      AC_DEFINE(SGIMMAP, 1,
-			[Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV])
-	      AC_DEFINE(NO_SEGV_HANDLING)
-	    fi
-	    AC_MSG_RESULT(yes)
-	    AC_MSG_CHECKING("if SA_SIGINFO is usable")
-	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
-	      AC_MSG_RESULT(yes)
-	      AC_DEFINE(USE_SIGINFO, 1,
-			[Define if signal handler works compliant to POSIX.1b])
-	    else
-	      AC_MSG_RESULT(no)
-	    fi
-	else
-	    AC_MSG_RESULT("mmap is not good enough")
-	fi
-    else
-        AC_MSG_RESULT("could not run mmap test");
-    fi
-fi
-rm -fr conftest*
-if test ! "$MMAP_STACK" = "1"; then
-  if test "$mmap_tried" = "sgi"; then
-    mmap_tried=segv
-    mmap_test=mmap.c
-  elif test "$mmap_tried" = "segv"; then
-    mmap_tried=nosegv
-  else
-    mmap_tried=stop
-    AC_MSG_RESULT("no");
-  fi
-else
-    mmap_tried=stop
-fi
-done
-fi # mmap
-
-case "$ARCH" in
-    *cygwin*)
-	if test ! "$MMAP_STACK" = "1"; then
-		AC_MSG_CHECKING("Cygwin ...")
-		configmmappedstacks=no
-		AC_DEFINE(HAVE_VIRTUALALLOC, 1,
-			  [On older Cygwin versions we should use VirtualAlloc()])
-		AC_DEFINE(NO_SEGV_HANDLING)
-		AC_MSG_RESULT("Use VirtualAlloc")
-	fi
-        ;;
-esac
 
 dnl ================================================================
 
