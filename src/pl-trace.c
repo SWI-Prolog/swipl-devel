@@ -320,9 +320,6 @@ returns to the WAM interpreter how to continue the execution:
     ACTION_IGNORE:	Go to the exit port of this goal
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#undef LD
-#define LD LOCAL_LD
-
 int
 tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
@@ -482,13 +479,10 @@ out:
 }
 
 
-#undef LD
-#define LD GLOBAL_LD
-
-
 static int
 setupFind(char *buf)
-{ char *s;
+{ GET_LD
+  char *s;
   int port = 0;
 
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
@@ -567,20 +561,26 @@ setupFind(char *buf)
 
 static void
 setPrintOptions(word t)
-{ fid_t fid        = PL_open_foreign_frame();
-  term_t av        = PL_new_term_ref();
-  predicate_t pred = PL_predicate("$set_debugger_print_options", 1, "system");
+{ GET_LD
+  fid_t fid;
 
-  _PL_put_atomic(av, t);
-  PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t av = PL_new_term_ref();
+    predicate_t pred = PL_predicate("$set_debugger_print_options", 1,
+				    "system");
 
-  PL_discard_foreign_frame(fid);
+    _PL_put_atomic(av, t);
+    PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+
+    PL_discard_foreign_frame(fid);
+  }
 }
 
 
 static int
 traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
-{ int num_arg;				/* numeric argument */
+{ GET_LD
+  int num_arg;				/* numeric argument */
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
@@ -718,7 +718,9 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 
 static void
 helpTrace(void)
-{ Sfputs("Options:\n"
+{ GET_LD
+
+  Sfputs("Options:\n"
 	 "+:                  spy        -:              no spy\n"
 	 "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
 	 "a:                  abort      A:              alternatives\n"
@@ -769,7 +771,8 @@ than normal unification, etc.
 
 static int
 put_frame_goal(term_t goal, LocalFrame frame)
-{ Definition def = frame->predicate;
+{ GET_LD
+  Definition def = frame->predicate;
   int argc = def->functor->arity;
   Word argv = argFrameP(frame, 0);
 
@@ -829,7 +832,8 @@ static const portname portnames[] =
 
 static int
 writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
-{ fid_t wake, cid;
+{ GET_LD
+  fid_t wake, cid;
   Definition def = frame->predicate;
   int rc = TRUE;
 
@@ -928,7 +932,9 @@ out:
 
 static void
 alternatives(Choice ch)
-{ for(; ch; ch = ch->parent)
+{ GET_LD
+
+  for(; ch; ch = ch->parent)
   { if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
       writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
   }
@@ -942,7 +948,8 @@ translating a message-term as used for exceptions into a C-string.
 
 static char *
 messageToString(term_t msg)
-{ fid_t fid;
+{ GET_LD
+  fid_t fid;
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t av = PL_new_term_refs(2);
@@ -964,7 +971,8 @@ messageToString(term_t msg)
 
 static void
 exceptionDetails()
-{ term_t except = LD->exception.pending;
+{ GET_LD
+  term_t except = LD->exception.pending;
   fid_t cid = PL_open_foreign_frame();
 
   Sflush(Suser_output);			/* make sure to stay `in sync' */
@@ -978,7 +986,8 @@ exceptionDetails()
 
 static void
 listGoal(LocalFrame frame)
-{ fid_t cid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
   predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
   IOSTREAM *old = Scurout;
@@ -996,7 +1005,8 @@ listGoal(LocalFrame frame)
 
 void
 backTrace(LocalFrame frame, int depth)
-{ LocalFrame same_proc_frame = NULL;
+{ GET_LD
+  LocalFrame same_proc_frame = NULL;
   Definition def = NULL;
   int same_proc = 0;
   int alien = FALSE;
@@ -1056,7 +1066,8 @@ This predicate is supposed to return one of the following atoms:
 
 static int
 traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
-{ int rval = -1;			/* Default C-action */
+{ GET_LD
+  int rval = -1;			/* Default C-action */
   predicate_t proc;
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
@@ -1182,7 +1193,8 @@ findQuery(LocalFrame fr)
 
 static bool
 hasAlternativesFrame(LocalFrame frame)
-{ QueryFrame qf;
+{ GET_LD
+  QueryFrame qf;
   LocalFrame fr = environment_frame;
   Choice ch = LD->choicepoints;
 
@@ -1227,7 +1239,8 @@ extern char *chp_chars(Choice ch);
 
 static LocalFrame
 alternativeFrame(LocalFrame frame)
-{ QueryFrame qf;
+{ GET_LD
+  QueryFrame qf;
   LocalFrame fr = environment_frame;
   Choice ch = LD->choicepoints;
 
@@ -1272,7 +1285,8 @@ alternativeFrame(LocalFrame frame)
 
 void
 resetTracer(void)
-{
+{ GET_LD
+
 #ifdef O_INTERRUPT
   if ( truePrologFlag(PLFLAG_SIGNALS) )
     PL_signal(SIGINT, interruptHandler);
@@ -1300,7 +1314,9 @@ increment the top pointer to point above the furthest argument.
 
 static void
 helpInterrupt(void)
-{ Sfputs("Options:\n"
+{ GET_LD
+
+  Sfputs("Options:\n"
         "a:                 abort      b:                 break\n"
         "c:                 continue   e:                 exit\n"
 #ifdef O_DEBUGGER
@@ -1311,7 +1327,8 @@ helpInterrupt(void)
 
 static void
 interruptHandler(int sig)
-{ int c;
+{ GET_LD
+  int c;
   int safe;
   abort_type at = ABORT_RAISE;
 
@@ -1415,7 +1432,9 @@ PL_interrupt(int sig)
 
 void
 initTracer(void)
-{ debugstatus.visible      =
+{ GET_LD
+
+  debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     BREAK_PORT|EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
@@ -1431,7 +1450,9 @@ initTracer(void)
 
 int
 tracemode(int doit, int *old)
-{ if ( doit )
+{ GET_LD
+
+  if ( doit )
   { debugmode(DBG_ON, NULL);
     doit = TRUE;
   }
@@ -1465,7 +1486,9 @@ PceEmacs that runs its Prolog work in non-debug mode.
 
 int
 debugmode(debug_type doit, debug_type *old)
-{ if ( old )
+{ GET_LD
+
+  if ( old )
     *old = debugstatus.debugging;
 
   if ( debugstatus.debugging != doit )
@@ -1525,12 +1548,15 @@ pl_notrace()
 
 word
 pl_tracing()
-{ return debugstatus.tracing;
+{ GET_LD
+
+  return debugstatus.tracing;
 }
 
 word
 pl_skip_level(term_t old, term_t new)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
   long sl;
 
   if ( debugstatus.skiplevel == VERY_DEEP )
@@ -1553,7 +1579,8 @@ pl_skip_level(term_t old, term_t new)
 
 word
 pl_spy(term_t p)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
   { Definition def = getProcDefinition(proc);
@@ -1575,7 +1602,8 @@ pl_spy(term_t p)
 
 word
 pl_nospy(term_t p)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND|GP_EXISTENCE_ERROR) )
   { Definition def = getProcDefinition(proc);
@@ -1596,12 +1624,14 @@ pl_nospy(term_t p)
 
 word
 pl_leash(term_t old, term_t new)
-{ return setInteger(&debugstatus.leashing, old, new);
+{ GET_LD
+  return setInteger(&debugstatus.leashing, old, new);
 }
 
 word
 pl_visible(term_t old, term_t new)
-{ return setInteger(&debugstatus.visible, old, new);
+{ GET_LD
+  return setInteger(&debugstatus.visible, old, new);
 }
 
 
@@ -1613,7 +1643,8 @@ pl_debuglevel(term_t old, term_t new)
 
 word
 pl_prolog_current_frame(term_t frame)
-{ LocalFrame fr = environment_frame;
+{ GET_LD
+  LocalFrame fr = environment_frame;
 
   if ( fr->predicate->definition.function == pl_prolog_current_frame )
     fr = parentFrame(fr);		/* thats me! */
@@ -1625,7 +1656,8 @@ pl_prolog_current_frame(term_t frame)
 static int
 prolog_frame_attribute(term_t frame, term_t what,
 		       term_t value)
-{ LocalFrame fr;
+{ GET_LD
+  LocalFrame fr;
   atom_t key;
   int arity;
   term_t result = PL_new_term_ref();
@@ -1871,7 +1903,8 @@ PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
 
 static
 PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
-{ Choice ch = NULL;
+{ PRED_LD
+  Choice ch = NULL;
   atom_t key;
 
   if ( !PL_get_choice(A1, &ch) ||
@@ -1913,7 +1946,8 @@ callEventHook(int ev, ...)
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
 
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
-  { int rc;
+  { GET_LD
+    int rc;
     va_list args;
     fid_t fid, wake;
     term_t arg;
