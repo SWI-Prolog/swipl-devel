@@ -1559,9 +1559,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
-#ifdef O_SHIFT_STACKS
-  qf	             = (QueryFrame) lTop;
-#endif
   arity		     = def->functor->arity;
 
   SECURE(checkStacks(NULL));
@@ -1614,7 +1611,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* create initial choicepoint */
   qf->choice.type   = CHP_TOP;
   qf->choice.parent = NULL;
-  qf->choice.frame  = fr;
+  qf->choice.frame  = top;
 #ifdef O_PROFILE
   qf->choice.prof_node = NULL;
   fr->prof_node = NULL;			/* true? */
