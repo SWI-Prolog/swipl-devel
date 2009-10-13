@@ -20,7 +20,6 @@
 		- Make the debugger in the the spare stacks?
 	- Use malloc/realloc wrappers for stacks and maintain
 	  total stack-usage statistics.
-	- Remove all dynamic-stack code
 	- Remove max_threads
 	- Remove -A option
 

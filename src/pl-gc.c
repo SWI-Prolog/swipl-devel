@@ -202,10 +202,7 @@ forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 static Code		startOfVMI(QueryFrame qf);
-
-#ifdef O_SHIFT_STACKS
 static int		shiftTightStacks();
-#endif
 
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
@@ -2533,11 +2530,7 @@ considerGarbageCollect(Stack s)
     } else
     { if ( s->gc )
       { size_t used  = usedStackP(s);	/* amount in actual use */
-#ifdef O_SHIFT_STACKS
 	size_t limit = sizeStackP(s);	/* amount we want to grow to */
-#else
-	size_t limit = limitStackP(s);	/* amount we can grow to */
-#endif
 	size_t space = limit - used;
 
 	if ( LD->gc.inferences == LD->statistics.inferences &&
@@ -3136,11 +3129,9 @@ garbageCollect(void)
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
 
-#ifdef O_SHIFT_STACKS
-  if ( LD->query->registers.fr )
-    assert(state.frame == LD->query->registers.fr);
+  assert(!LD->query->registers.fr ||
+	 state.frame == LD->query->registers.fr);
   shiftTightStacks();
-#endif
 
   return TRUE;
 }
@@ -3170,10 +3161,8 @@ void
 blockGC(int flags ARG_LD)
 { if ( !(flags & ALLOW_GC) )
     gc_status.blocked++;
-#if O_SHIFT_STACKS
   if ( !(flags & ALLOW_SHIFT) )
     LD->shift_status.blocked++;
-#endif
 }
 
 
@@ -3181,10 +3170,8 @@ void
 unblockGC(int flags ARG_LD)
 { if ( !(flags & ALLOW_GC) )
     gc_status.blocked--;
-#if O_SHIFT_STACKS
   if ( !(flags & ALLOW_SHIFT) )
     LD->shift_status.blocked--;
-#endif
 }
 
 
@@ -3204,7 +3191,6 @@ makeMoreStackSpace(int overflow, int flags)
        garbageCollect() )
     return TRUE;
 
-#ifdef O_SHIFT_STACKS
   if ( (flags & ALLOW_SHIFT) )
   { size_t l=0, g=0, t=0;
     int rc;
@@ -3222,7 +3208,6 @@ makeMoreStackSpace(int overflow, int flags)
     else if ( rc < 0 )
       return raiseStackOverflow(rc);
   }
-#endif
 
   return raiseStackOverflow(overflow);
 }
@@ -3263,7 +3248,6 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-#ifdef O_SHIFT_STACKS
   { size_t gmin = cells*sizeof(word);
     size_t tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
 
@@ -3271,7 +3255,6 @@ ensureGlobalSpace(size_t cells, int flags)
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
       return TRUE;
   }
-#endif
 
 nospace:
   if ( gTop+cells > gMax )
@@ -3302,14 +3285,12 @@ ensureTrailSpace(size_t cells)
       return TRUE;
   }
 
-#ifdef O_SHIFT_STACKS
   { size_t tmin = cells*sizeof(struct trail_entry);
 
     growStacks(0, 0, tmin);
     if ( tTop+cells <= tMax )
       return TRUE;
   }
-#endif
 
   return TRAIL_OVERFLOW;
 }
@@ -3331,18 +3312,14 @@ ensureLocalSpace(size_t bytes, int flags)
   if ( !flags )
     goto nospace;
 
-#ifdef O_SHIFT_STACKS
   growStacks(bytes, 0, 0);
   if ( addPointer(lTop, bytes) <= (void*)lMax )
     return TRUE;
-#endif
 
 nospace:
   return LOCAL_OVERFLOW;
 }
 
-
-#if O_SHIFT_STACKS
 
 		 /*******************************
 		 *	   STACK-SHIFTER	*
@@ -3994,7 +3971,6 @@ shiftTightStacks()
   return TRUE;
 }
 
-#endif /*O_SHIFT_STACKS*/
 
 #ifdef O_ATOMGC
 

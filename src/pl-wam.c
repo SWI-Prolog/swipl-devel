@@ -1580,9 +1580,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
-#ifdef O_SHIFT_STACKS
   qf->registers.fr      = NULL;		/* invalid */
-#endif
 
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
@@ -1747,7 +1745,6 @@ PL_exception(qid_t qid)
 }
 
 
-#if O_SHIFT_STACKS
 #define SAVE_REGISTERS(qid) \
 	{ QueryFrame qf = QueryFromQid(qid); \
 	  qf->registers.fr   = FR; \
@@ -1761,10 +1758,6 @@ PL_exception(qid_t qid)
 	  PC   = qf->registers.pc; \
 	  qf->registers.fr = NULL; \
 	}
-#else /*O_SHIFT_STACKS*/
-#define SAVE_REGISTERS(qid)
-#define LOAD_REGISTERS(qid)
-#endif /*O_SHIFT_STACKS*/
 
 #ifndef ASM_NOP
 int _PL_nop_counter;

@@ -1086,8 +1086,6 @@ emptyStacks()
 }
 
 
-static size_t size_alignment;	/* Stack sizes must be aligned to this */
-
 		/********************************
 		*    	STACK ALLOCATION        *
 		*********************************/
@@ -1122,17 +1120,9 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
 
-  size_alignment = 8 K;			/* must be smaller than minfree */
-
-#if O_SHIFT_STACKS
   size_t itrail  = nextStackSizeAbove(mintrail-1);
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
-#else
-  size_t itrail  = trail;
-  size_t iglobal = global;
-  size_t ilocal  = local;
-#endif
 
   local    = max(local,    minlocal);
   global   = max(global,   minglobal);
@@ -1238,11 +1228,9 @@ trimStacks(int resize ARG_LD)
     Word ogb = gBase;
     Word ogm = gMax;
 
-#ifdef O_SHIFT_STACKS
     if ( resize )
     { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
     } else
-#endif
     { trim_stack((Stack) &LD->stacks.local);
       trim_stack((Stack) &LD->stacks.global);
       trim_stack((Stack) &LD->stacks.trail);

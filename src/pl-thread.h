@@ -384,11 +384,7 @@ extern void		initPrologThreads(void);
 #define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
 #define bindConst(p, c)		bindConst__LD(p, c PASS_LD)
 #define consPtr(p, ts)		consPtr__LD(p, ts PASS_LD)
-#ifdef O_SHIFT_STACKS
 #define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
-#else
-#define allocGlobalNoShift(n)	allocGlobal__LD(n PASS_LD)
-#endif
 #define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)

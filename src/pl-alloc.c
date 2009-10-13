@@ -626,14 +626,11 @@ mergeAllocPool(AllocPool to, AllocPool from)
 
 int
 enableSpareStack(Stack s)
-{
-#ifdef O_SHIFT_STACKS
-  if ( s->spare )
+{ if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
     return TRUE;
   }
-#endif
 
   return FALSE;
 }
@@ -722,9 +719,7 @@ raiseStackOverflow(int overflow)
 
 void
 pushArgumentStack__LD(Word p ARG_LD)
-{
-#ifdef O_SHIFT_STACKS
-  Word *newbase;
+{ Word *newbase;
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
   if ( newsize && (newbase = realloc(aBase, newsize)) )
@@ -743,11 +738,6 @@ pushArgumentStack__LD(Word p ARG_LD)
     *aTop++ = p;
   } else
     outOfStack((Stack)&LD->stacks.argument, STACK_OVERFLOW_THROW);
-
-#else
-  requireStackEx(argument, sizeof(w));
-  *aTop++ = p;
-#endif
 }
 
 

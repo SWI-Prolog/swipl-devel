@@ -540,10 +540,7 @@ struct PL_local_data
 #endif
   } gc;
 
-#ifdef O_SHIFT_STACKS
-  pl_shift_status_t	shift_status;	/* Stack shifter status */
-#endif
-
+  pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
 
 #ifdef O_PLMT

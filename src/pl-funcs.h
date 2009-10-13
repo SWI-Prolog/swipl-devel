@@ -379,10 +379,8 @@ COMMON(int) 		garbageCollect(void);
 COMMON(word) 		pl_garbage_collect(term_t d);
 COMMON(Word) 		findGRef(int n);
 COMMON(size_t)		nextStackSizeAbove(size_t n);
-#ifdef O_SHIFT_STACKS
 COMMON(int) 		growStacks(size_t l, size_t g, size_t t);
 COMMON(size_t)		nextStackSize(Stack s, size_t minfree);
-#endif
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
 COMMON(int)		ensureGlobalSpace(size_t cells, int flags);
 COMMON(int)		ensureTrailSpace(size_t cells);
@@ -651,9 +649,7 @@ COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(int) 		ensure_room_stack(Stack s, size_t n, int ex);
-#ifdef O_SHIFT_STACKS
 COMMON(int)		trim_stack(Stack s);
-#endif
 
 /* pl-sys.c */
 COMMON(word) 		pl_shell(term_t command, term_t status);

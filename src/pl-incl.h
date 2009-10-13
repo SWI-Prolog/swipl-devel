@@ -173,8 +173,6 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#define O_SHIFT_STACKS 1		/* use stack-shifter */
-
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
 #define O_LABEL_ADDRESSES	1
@@ -1648,11 +1646,7 @@ typedef struct
 #define aTop	(LD->stacks.argument.top)
 #define aMax	(LD->stacks.argument.max)
 
-#ifdef O_SHIFT_STACKS
 #define tSpare	(LD->stacks.trail.spare)
-#else
-#define tSpare	(0)
-#endif
 
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }

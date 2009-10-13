@@ -320,11 +320,9 @@ resetProlog()
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
-  gc_status.blocked    = 0;
-#if O_SHIFT_STACKS
+  gc_status.blocked        = 0;
   LD->shift_status.blocked = 0;
-#endif
-  LD->in_arithmetic    = 0;
+  LD->in_arithmetic        = 0;
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);
