@@ -9,7 +9,6 @@
 	- Cleanup unneeded trail entries when discarding a choicepoint
 		- Wins for foreign-frames
 		- Also for !
-	- Finish shifting in prolog_frame_attribute/3
 	- Add shift/gc to debugger, or
 		- Make the debugger in the the spare stacks?
 	- Remove max_threads

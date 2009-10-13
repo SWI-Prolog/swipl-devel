@@ -1771,29 +1771,37 @@ prolog_frame_attribute(term_t frame, term_t what,
       }
     }
   } else if ( key == ATOM_predicate_indicator )
-  { unify_definition(result, fr->predicate, 0, GP_NAMEARITY);
+  { if ( !unify_definition(result, fr->predicate, 0, GP_NAMEARITY) )
+      return FALSE;
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;			/* TBD: SHIFT */
     term_t head = PL_new_term_ref();
+    term_t a = PL_new_term_ref();
 
     if ( !get_procedure(value, &proc, head, GP_FIND) )
       fail;
-    while(fr)
+
+    while( fr )
     { while(fr && fr->predicate != proc->definition)
 	fr = parentFrame(fr);
 
       if ( fr )
-      { term_t a  = PL_new_term_ref();
-	term_t fa = argFrameP(fr, 0) - (Word)lBase;
+      { term_t fref = consTermRef(fr);
 	int i, arity = fr->predicate->functor->arity;
 
-	for(i=0; i<arity; i++, fa++)
-	{ _PL_get_arg(i+1, head, a);
+	for(i=0; i<arity; i++)
+	{ term_t fa;
+
+	  fr = (LocalFrame)valTermRef(fref);
+	  fa = consTermRef(argFrameP(fr, i));
+
+	  _PL_get_arg(i+1, head, a);
 	  if ( !PL_unify(a, fa) )
 	    break;
 	}
         if ( i == arity )
 	  succeed;
+	fr = (LocalFrame)valTermRef(fref);
       } else
 	fail;
 
