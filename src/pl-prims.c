@@ -412,42 +412,21 @@ ex is a reference to the exception term.
 bool
 can_unify(Word t1, Word t2, term_t *ex)
 { GET_LD
-  int flags = 0;			/* for now, disable */
+  fid_t fid;
 
-  for(;;)
-  { mark m;
-    int rc;
-
-    Mark(m);
-    rc = raw_unify_ptrs(t1, t2 PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { blockGC(0 PASS_LD);
-      rc = foreignWakeup(ex PASS_LD);
-      unblockGC(0 PASS_LD);
-      if ( rc < 0 )
-	goto grow;
-      Undo(m);
-      DiscardMark(m);
-      return rc;
-    } else if ( rc == FALSE )		/* Terms did not unify */
-    { if ( !exception_term )		/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
-    } else				/* Stack overflow */
-    { int rc2;
-
-    grow:
-      Undo(m);
-      DiscardMark(m);
-      PushPtr(t1); PushPtr(t2);
-      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
-      PopPtr(t2); PopPtr(t1);
-      if ( !rc )
-	return FALSE;
+  if ( (fid = PL_open_foreign_frame()) )
+  { if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+	 foreignWakeup(ex PASS_LD) )
+    { PL_discard_foreign_frame(fid);
+      return TRUE;
     }
+
+    PL_discard_foreign_frame(fid);
   }
+
+  return FALSE;
 }
+
 
 		 /*******************************
 		 *	   OCCURS-CHECK		*
