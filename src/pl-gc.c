@@ -2767,7 +2767,10 @@ check_foreign()
     int n = ff->size;
 
     assert(ff->magic == FLI_MAGIC);
-    assert(ff->parent < ff);
+    if ( ff->parent )
+    { assert(ff->parent < ff);
+      assert(onStack(local, ff->parent));
+    }
 
     for(n=0 ; n < ff->size; n++ )
       key += checkData(&sp[n]);
