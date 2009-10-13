@@ -1,9 +1,3 @@
-* Make an abstract layer over stack malloc/realloc/free.  We might want to
-  use virtual-memory functions anyway.  Is there a way to realloc virtual
-  memory segments without physically moving the data (VM managers can do that)?
-
-* Remove max_threads limit?
-
 * Trouble:
 
 	- Where are the allocations?
