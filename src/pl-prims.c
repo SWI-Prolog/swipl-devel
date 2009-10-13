@@ -356,7 +356,7 @@ PRED_IMPL("\\=", 2, not_unify, 0)
   Word p0 = valTermRef(A1);
   term_t ex = 0;
 
-  if ( can_unify(p0, p0+1, &ex, ALLOW_GC|ALLOW_SHIFT) )
+  if ( can_unify(p0, p0+1, &ex) )
     return FALSE;
   if ( ex )
     return PL_raise_exception(ex);
@@ -410,10 +410,9 @@ ex is a reference to the exception term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-can_unify(Word t1, Word t2, term_t *ex, int flags)
+can_unify(Word t1, Word t2, term_t *ex)
 { GET_LD
-
-  flags = 0;				/* for now, disable */
+  int flags = 0;			/* for now, disable */
 
   for(;;)
   { mark m;
@@ -437,7 +436,7 @@ can_unify(Word t1, Word t2, term_t *ex, int flags)
       Undo(m);
       DiscardMark(m);
       PushPtr(t1); PushPtr(t2);
-      rc2 = makeMoreStackSpace(rc, flags);
+      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
       PopPtr(t2); PopPtr(t1);
       if ( !rc )
 	return FALSE;

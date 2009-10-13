@@ -279,7 +279,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 
-	    if ( !can_unify(a++, b++, &ex, ALLOW_GC|ALLOW_SHIFT) )
+	    if ( !can_unify(a++, b++, &ex) )
 	    { rval = FALSE;
 	      break;
 	    }

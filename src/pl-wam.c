@@ -1069,7 +1069,7 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 
 	if ( can_unify(argFrameP(fr, 1), /* may shift */
 		       valTermRef(ball),
-		       &ex, ALLOW_GC|ALLOW_SHIFT) )
+		       &ex) )
 	  return TRUE;
 	fr = (LocalFrame)valTermRef(fref);
       }

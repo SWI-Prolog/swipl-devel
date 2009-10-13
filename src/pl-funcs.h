@@ -471,7 +471,7 @@ COMMON(int) 		Pause(double time);
 
 /* pl-prims.c */
 COMMON(bool) 		unify_ptrs(Word t1, Word t2, int flags ARG_LD);
-COMMON(bool) 		can_unify(Word t1, Word t2, term_t *ex, int flags);
+COMMON(bool) 		can_unify(Word t1, Word t2, term_t *ex);
 COMMON(int) 		compareStandard(Word t1, Word t2, int eq ARG_LD);
 COMMON(intptr_t)	skip_list(Word l, Word *tailp ARG_LD);
 COMMON(intptr_t) 	lengthList(term_t list, int errors);
