@@ -1000,6 +1000,7 @@ PL_unify_mpq(term_t t, mpq_t mpq)
 		 *******************************/
 
 #ifdef WIN64
+#if (_MSC_VER < 1400)
 size_t
 strnlen(const char *s, size_t maxlen)
 { size_t len = 0;
@@ -1009,7 +1010,7 @@ strnlen(const char *s, size_t maxlen)
 
   return len;
 }
-
+#endif
 
 void
 __GSHandlerCheck()
