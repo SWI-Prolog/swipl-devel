@@ -97,7 +97,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
     if ( PL_unify(A1, h) )
     { term_t ex = 0;
 
-      if ( foreignWakeup(&ex, ALLOW_SHIFT|ALLOW_GC PASS_LD) )
+      if ( foreignWakeup(&ex PASS_LD) )
       { PL_close_foreign_frame(fid);
 	succeed;
       } else

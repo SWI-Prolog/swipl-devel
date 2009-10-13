@@ -421,7 +421,11 @@ can_unify(Word t1, Word t2, term_t *ex)
     Mark(m);
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
     if ( rc == TRUE )			/* Terms unified */
-    { rc = foreignWakeup(ex, flags PASS_LD);
+    { blockGC(0 PASS_LD);
+      rc = foreignWakeup(ex PASS_LD);
+      unblockGC(0 PASS_LD);
+      if ( rc < 0 )
+	goto grow;
       Undo(m);
       DiscardMark(m);
       return rc;
@@ -433,6 +437,7 @@ can_unify(Word t1, Word t2, term_t *ex)
     } else				/* Stack overflow */
     { int rc2;
 
+    grow:
       Undo(m);
       DiscardMark(m);
       PushPtr(t1); PushPtr(t2);
@@ -2493,7 +2498,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
   n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
   if ( PL_unify(general, specific) &&
-       foreignWakeup(&ex, ALLOW_SHIFT|ALLOW_GC PASS_LD) )
+       foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
 
     startCritical;
