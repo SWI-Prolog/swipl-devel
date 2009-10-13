@@ -430,8 +430,15 @@ We are in searching mode; should we actually give this port?
   if ( LD->trace.find &&  LD->trace.find->searching )
   { DEBUG(2, Sdprintf("Searching\n"));
 
-    if ( (port & LD->trace.find->port) && canUnifyTermWithGoal(frame) )
-    { LD->trace.find->searching = FALSE; /* Got you */
+    if ( (port & LD->trace.find->port) )
+    { int rc;
+
+      SAVE_PTRS();
+      rc = canUnifyTermWithGoal(frame);
+      RESTORE_PTRS()
+      if ( rc )
+	LD->trace.find->searching = FALSE; /* Got you */
+      return ACTION_CONTINUE;		/* Continue the search */
     } else
     { return ACTION_CONTINUE;		/* Continue the search */
     }
