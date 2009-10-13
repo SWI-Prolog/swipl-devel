@@ -320,15 +320,22 @@ returns to the WAM interpreter how to continue the execution:
     ACTION_IGNORE:	Go to the exit port of this goal
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SAVE_PTRS() \
+	frameref = consTermRef(frame); \
+	chref    = consTermRef(bfr); \
+	frref    = (fr ? consTermRef(fr) : 0);
+#define RESTORE_PTRS() \
+	frame = (LocalFrame)valTermRef(frameref); \
+	bfr   = (Choice)valTermRef(chref); \
+	fr    = (frref ? (LocalFrame)valTermRef(frref) : NULL);
+
 int
 tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
+  term_t frameref, chref, frref;
   Definition def = frame->predicate;
-  LocalFrame fr;
+  LocalFrame fr = NULL;
   fid_t wake;
-
-  if ( !bfr )
-    bfr = LD->choicepoints;
 
   if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
        debugstatus.suspendTrace )	        /* called back */
@@ -353,7 +360,10 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     }
 
     if ( doit )
+    { SAVE_PTRS();
       writeFrameGoal(frame, PC, port|WFG_TRACE);
+      RESTORE_PTRS();
+    }
   }
 
   if ( port & BREAK_PORT )
@@ -384,8 +394,14 @@ Give a trace on the skipped goal for a redo.
 
     if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
 	 (fr = redoFrame(frame, &pc2)) != NULL )
-    { debugstatus.skiplevel--;				   /* avoid a loop */
-      switch( tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD) )
+    { int rc;
+
+      debugstatus.skiplevel--;				   /* avoid a loop */
+      SAVE_PTRS();
+      rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
+      RESTORE_PTRS();
+
+      switch( rc )
       { case ACTION_CONTINUE:
 	  if ( debugstatus.skiplevel < levelFrame(frame) )
 	    return ACTION_CONTINUE;
