@@ -650,6 +650,9 @@ COMMON(void) 		freeStacks(ARG1_LD);
 COMMON(void) 		freeLocalData(PL_local_data_t *ld);
 COMMON(int) 		ensure_room_stack(Stack s, size_t n, int ex);
 COMMON(int)		trim_stack(Stack s);
+COMMON(void *)		stack_malloc(size_t size);
+COMMON(void *)		stack_realloc(void *old, size_t size);
+COMMON(void)		stack_free(void *mem);
 
 /* pl-sys.c */
 COMMON(word) 		pl_shell(term_t command, term_t status);

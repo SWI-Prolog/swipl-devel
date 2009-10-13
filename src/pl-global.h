@@ -115,6 +115,7 @@ struct PL_global_data
   { size_t	heap;			/* heap in use */
     size_t	atoms;			/* No. of atoms defined */
     size_t	atomspace;		/* # bytes used to store atoms */
+    size_t	stack_space;		/* # bytes on stacks */
 #ifdef O_ATOMGC
     size_t	atomspacefreed;		/* Freed atom-space */
 #endif

@@ -4455,6 +4455,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.f = LD->statistics.user_cputime;
   } else if (key == ATOM_inferences)			/* inferences */
     v->value.i = LD->statistics.inferences;
+  else if (key == ATOM_stack)
+    v->value.i = GD->statistics.stack_space;
   else if (key == ATOM_local)				/* local stack */
     v->value.i = sizeStack(local);
   else if (key == ATOM_localused)

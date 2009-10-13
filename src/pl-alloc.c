@@ -722,7 +722,7 @@ pushArgumentStack__LD(Word p ARG_LD)
 { Word *newbase;
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
-  if ( newsize && (newbase = realloc(aBase, newsize)) )
+  if ( newsize && (newbase = stack_realloc(aBase, newsize)) )
   { intptr_t as = newbase - aBase;
 
     if ( as )

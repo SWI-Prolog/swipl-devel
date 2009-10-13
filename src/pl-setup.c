@@ -1129,9 +1129,9 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   trail    = max(trail,    mintrail);
   argument = max(argument, minargument);
 
-  gBase = (Word) malloc(iglobal + ilocal);
-  tBase = (TrailEntry) malloc(itrail);
-  aBase = (Word *)     malloc(argument);
+  gBase = (Word)       stack_malloc(iglobal + ilocal);
+  tBase = (TrailEntry) stack_malloc(itrail);
+  aBase = (Word *)     stack_malloc(argument);
   if ( !gBase || !tBase || !aBase )
   { freeStacks(PASS_LD1);
     fail;
@@ -1155,9 +1155,58 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
 void
 freeStacks(ARG1_LD)
 { gBase--;
-  if ( gBase ) { free(gBase); gBase = NULL; lBase = NULL; }
-  if ( tBase ) { free(tBase); tBase = NULL; }
-  if ( aBase ) { free(aBase); aBase = NULL; }
+  if ( gBase ) { stack_free(gBase); gBase = NULL; lBase = NULL; }
+  if ( tBase ) { stack_free(tBase); tBase = NULL; }
+  if ( aBase ) { stack_free(aBase); aBase = NULL; }
+}
+
+
+void *
+stack_malloc(size_t size)
+{ void *mem = malloc(size+sizeof(size_t));
+
+  if ( mem )
+  { size_t *sp = mem;
+    *sp++ = size;
+
+    PL_LOCK(L_MISC);
+    GD->statistics.stack_space += size;
+    PL_UNLOCK(L_MISC);
+    return sp;
+  }
+
+  return NULL;
+}
+
+void *
+stack_realloc(void *old, size_t size)
+{ size_t *sp = old;
+  size_t osize = *--sp;
+  void *mem;
+
+  if ( (mem = realloc(sp, size+sizeof(size_t))) )
+  { sp = mem;
+    *sp++ = size;
+    PL_LOCK(L_MISC);
+    GD->statistics.stack_space -= osize;
+    GD->statistics.stack_space += size;
+    PL_UNLOCK(L_MISC);
+    return sp;
+  }
+
+  return NULL;
+}
+
+void
+stack_free(void *mem)
+{ size_t *sp = mem;
+  size_t osize = *--sp;
+
+  PL_LOCK(L_MISC);
+  GD->statistics.stack_space -= osize;
+  PL_UNLOCK(L_MISC);
+
+  free(sp);
 }
 
 

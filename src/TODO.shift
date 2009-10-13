@@ -18,8 +18,6 @@
 	- Finish shifting in prolog_frame_attribute/3
 	- Add shift/gc to debugger, or
 		- Make the debugger in the the spare stacks?
-	- Use malloc/realloc wrappers for stacks and maintain
-	  total stack-usage statistics.
 	- Remove max_threads
 	- Remove -A option
 

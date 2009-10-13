@@ -3803,7 +3803,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     if ( t )
     { void *nw;
 
-      if ( (nw = realloc(tb, tsize)) )
+      if ( (nw = stack_realloc(tb, tsize)) )
       { LD->shift_status.trail_shifts++;
 	tb = nw;
       } else
@@ -3824,7 +3824,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       if ( gsize < ogsize )		/* TBD: Only copy life-part */
 	memmove(addPointer(gb, gsize), lb, olsize);
 
-      if ( (nw = realloc(gb, lsize + gsize)) )
+      if ( (nw = stack_realloc(gb, lsize + gsize)) )
       { if ( g )
 	  LD->shift_status.global_shifts++;
 	if ( l )
