@@ -2895,8 +2895,8 @@ read_term(term_t term, ReadData rd ARG_LD)
   rc = TRUE;
 
 out:
-  LD->read.active--;
   PL_close_foreign_frame(fid);
+  LD->read.active--;
 
   return rc;
 }
