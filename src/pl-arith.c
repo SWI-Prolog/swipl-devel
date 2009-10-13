@@ -647,7 +647,7 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 #endif
       { term_t goal;
 
-	rval = ( goal = PL_new_term_ref() &&
+	rval = ( (goal = PL_new_term_ref()) &&
 		 PL_cons_functor_v(goal, def->functor->functor, av) &&
 		 PL_error(NULL, 0,
 			  "Aritmetic function must succeed or throw exception",
