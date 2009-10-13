@@ -4629,7 +4629,6 @@ static const optdef optdefs[] =
 { { "local",		CMDOPT_LONG,	&GD->options.localSize },
   { "global",		CMDOPT_LONG,	&GD->options.globalSize },
   { "trail",		CMDOPT_LONG,	&GD->options.trailSize },
-  { "argument",		CMDOPT_LONG,	&GD->options.argumentSize },
   { "heap",		CMDOPT_LONG,	&GD->options.heapSize },
 
   { "goal",		CMDOPT_STRING,	&GD->options.goal },

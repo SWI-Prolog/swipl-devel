@@ -248,13 +248,6 @@ Give trail stack limit (4 Mbytes default). This limit is relatively high
 because trail-stack overflows are not often caused by program bugs. See
 \cmdlineoption{-L} for more details.
 
-    \cmdlineoptionitem*{-A}{size[kmg]}
-Give argument stack limit (1 Mbytes default). The argument stack limits
-the maximum nesting of terms that can be compiled and executed.
-SWI-Prolog does `last-argument optimisation' to avoid many deeply nested
-structure using this stack. Enlarging this limit is only necessary in
-extreme cases. See \cmdlineoption{-L} for more details.
-
     \cmdlineoptionitem{-c}{file \ldots}
 Compile files into an `intermediate code file'. See \secref{compilation}.
 

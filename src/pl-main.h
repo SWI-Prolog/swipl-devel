@@ -32,7 +32,6 @@ typedef struct
   int  local;				/* default local stack size (K) */
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
-  int  argument;			/* default argument stack size (K) */
   int  heap;				/* default heap size (K) */
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
@@ -42,11 +41,10 @@ typedef struct
 } pl_defaults_t;
 
 typedef struct
-{ intptr_t		localSize;		/* size of local stack */
-  intptr_t		globalSize;		/* size of global stack */
-  intptr_t		trailSize;		/* size of trail stack */
-  intptr_t		argumentSize;		/* size of argument stack */
-  intptr_t		heapSize;		/* size of the heap */
+{ size_t	localSize;		/* size of local stack */
+  size_t	globalSize;		/* size of global stack */
+  size_t	trailSize;		/* size of trail stack */
+  size_t	heapSize;		/* size of the heap */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
@@ -93,9 +91,6 @@ typedef struct
 #endif
 #ifndef DEFTRAIL
 #define DEFTRAIL    DEF_DEFTRAIL
-#endif
-#ifndef DEFARGUMENT
-#define DEFARGUMENT DEF_DEFARGUMENT
 #endif
 #ifndef DEFHEAP
 #define DEFHEAP     DEF_DEFHEAP

@@ -56,10 +56,9 @@ typedef struct
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  uintptr_t	    local_size;		/* Stack sizes */
-  uintptr_t	    global_size;
-  uintptr_t	    trail_size;
-  uintptr_t	    argument_size;
+  size_t	    local_size;		/* Stack sizes */
+  size_t	    global_size;
+  size_t	    trail_size;
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */

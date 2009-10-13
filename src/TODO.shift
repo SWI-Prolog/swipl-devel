@@ -19,7 +19,6 @@
 	- Add shift/gc to debugger, or
 		- Make the debugger in the the spare stacks?
 	- Remove max_threads
-	- Remove -A option
 
 ================================================================
 Static analysis of the C-program:

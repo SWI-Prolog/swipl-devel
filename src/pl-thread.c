@@ -436,12 +436,10 @@ initialise_thread(PL_thread_info_t *info, int emergency)
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
   if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
   if ( !info->trail_size    ) info->trail_size    = GD->options.trailSize;
-  if ( !info->argument_size ) info->argument_size = GD->options.argumentSize;
 
   if ( !initPrologStacks(info->local_size,
 			 info->global_size,
-			 info->trail_size,
-			 info->argument_size) )
+			 info->trail_size) )
   { PL_local_data_t *ld = info->thread_data;
 
     info->status = PL_THREAD_NOMEM;
@@ -451,8 +449,7 @@ initialise_thread(PL_thread_info_t *info, int emergency)
     if ( emergency &&
 	 initPrologStacks(8 K,		/* local */
 			  8 K,		/* global */
-			  8 K,		/* trail */
-			  8 K) )	/* argument */
+			  8 K) )	/* trail */
     { DEBUG(1, Sdprintf("Using small emergency stacks\n"));
     } else
     { memset(&ld->stacks, 0, sizeof(ld->stacks));
@@ -939,7 +936,6 @@ static const opt_spec make_thread_options[] =
 { { ATOM_local,		OPT_LONG|OPT_INF },
   { ATOM_global,	OPT_LONG|OPT_INF },
   { ATOM_trail,	        OPT_LONG|OPT_INF },
-  { ATOM_argument,	OPT_LONG|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_detached,	OPT_BOOL },
   { ATOM_stack,		OPT_LONG },
@@ -1063,7 +1059,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->local_size,
 		     &info->global_size,
 		     &info->trail_size,
-		     &info->argument_size,
 		     &alias,
 		     &info->detached,
 		     &stack,
@@ -1086,7 +1081,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   MK_KBYTES(info->local_size);
   MK_KBYTES(info->global_size);
   MK_KBYTES(info->trail_size);
-  MK_KBYTES(info->argument_size);
   MK_KBYTES(stack);
 
   info->goal = PL_record(goal);
@@ -3655,8 +3649,6 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
       info->global_size = attr->global_size * 1024;
     if ( attr->trail_size )
       info->trail_size = attr->trail_size * 1024;
-    if ( attr->argument_size )
-      info->argument_size = attr->argument_size * 1024;
 
     info->cancel = attr->cancel;
   }

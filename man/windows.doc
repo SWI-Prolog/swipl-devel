@@ -178,10 +178,10 @@ commonly used SWI-Prolog predicates to control the environment.
 
 \begin{description}
     \predicate{consult}{1}{+File}
-Load a source-file. On Windows folders may be specified with the 
+Load a source-file. On Windows folders may be specified with the
 DOS/Windows \chr{\}, which must be escaped or using the POSIX standard
 \chr{/}.  Especially when used in source-code \chr{/} is to be preferred
-as it is portable.  A Prolog list ([\ldots]) can be used to abbreviate 
+as it is portable.  A Prolog list ([\ldots]) can be used to abbreviate
 the consult command.  The file-extension (\fileext{pl} as well as the
 selected alternative) can be omitted.  Here are some examples:
 
@@ -444,7 +444,6 @@ version only.
 \verb$localSize$		& Default local stack size (KB) \\
 \verb$globalSize$		& Default global stack size (KB) \\
 \verb$trailSize$		& Default trail stack size (KB) \\
-\verb$argumentSize$		& Default argument stack size (KB) \\
 \hline
 \multicolumn{2}{|c|}{\tt HKEY_CURRENT_USER\bsl{}Software\bsl{}SWI\bsl{}Plwin\bsl{}Console} \\
 \multicolumn{2}{|c|}{Note: thread-windows store the same info in sub-keys} \\
@@ -525,7 +524,7 @@ There are several ways to support SWI-Prolog:
           in publications.
     \item Ask for commercial development or support at
           \url{http://www.cognitivetools.com/}
-    \item Support development financially at 
+    \item Support development financially at
           \url{http://www.swi-prolog.org/donate.html}.
 \end{itemize}
 

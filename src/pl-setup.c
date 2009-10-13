@@ -46,8 +46,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int allocStacks(size_t local, size_t global, size_t trail,
-		       size_t argument);
+static int allocStacks(size_t local, size_t global, size_t trail);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
@@ -89,8 +88,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
 			 GD->options.globalSize,
-			 GD->options.trailSize,
-			 GD->options.argumentSize) )
+			 GD->options.trailSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
   initPrologLocalData();
 
@@ -1001,7 +999,7 @@ Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
+initPrologStacks(size_t local, size_t global, size_t trail)
 { GET_LD
   size_t maxarea;
 
@@ -1012,9 +1010,8 @@ initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
   enforce_limit(&local,	   maxarea,  "local");
   enforce_limit(&global,   maxarea,  "global");
   enforce_limit(&trail,	   maxarea,  "trail");
-  enforce_limit(&argument, global/2, "argument");
 
-  if ( !allocStacks(local, global, trail, argument) )
+  if ( !allocStacks(local, global, trail) )
     fail;
 
   LD->stacks.local.overflow_id    = LOCAL_OVERFLOW;
@@ -1113,12 +1110,13 @@ init_stack(Stack s, char *name,
 
 
 static int
-allocStacks(size_t local, size_t global, size_t trail, size_t argument)
+allocStacks(size_t local, size_t global, size_t trail)
 { GET_LD
   size_t minglobal   = 8*SIZEOF_VOIDP K;
   size_t minlocal    = 4*SIZEOF_VOIDP K;
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
+  size_t argument    = 1 K K;		/* not really used */
 
   size_t itrail  = nextStackSizeAbove(mintrail-1);
   size_t iglobal = nextStackSizeAbove(minglobal-1);
@@ -1127,11 +1125,10 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   local    = max(local,    minlocal);
   global   = max(global,   minglobal);
   trail    = max(trail,    mintrail);
-  argument = max(argument, minargument);
 
   gBase = (Word)       stack_malloc(iglobal + ilocal);
   tBase = (TrailEntry) stack_malloc(itrail);
-  aBase = (Word *)     stack_malloc(argument);
+  aBase = (Word *)     stack_malloc(minargument);
   if ( !gBase || !tBase || !aBase )
   { freeStacks(PASS_LD1);
     fail;

@@ -320,7 +320,6 @@ initDefaults()
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
-  systemDefaults.argument    = DEFARGUMENT;
   systemDefaults.heap	     = DEFHEAP;
   systemDefaults.goal	     = "'$welcome'";
   systemDefaults.toplevel    = "prolog";
@@ -401,7 +400,6 @@ initDefaultOptions()
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
-  GD->options.argumentSize  = systemDefaults.argument K;
   GD->options.heapSize      = systemDefaults.heap     K;
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
@@ -517,8 +515,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  { case 'L':	GD->options.localSize    = size; goto next;
 	    case 'G':	GD->options.globalSize   = size; goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
-	    case 'A':	GD->options.argumentSize = size; goto next;
 	    case 'H':	GD->options.heapSize     = size; goto next;
+	    case 'A':
+	      Sdprintf("% WARNING: -Asize is no longer supported\n");
+	      goto next;
 	  }
 	}
       }

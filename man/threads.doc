@@ -58,11 +58,6 @@ Associate an `alias-name' with the thread.  This named may be used to
 refer to the thread and remains valid until the thread is joined
 (see thread_join/2).
 
-    \termitem{argument}{K-Bytes}
-Set the limit to which the argument stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-A} command-line option.
-
     \termitem{at_exit}{:AtExit}
 Register \arg{AtExit} as using thread_at_exit/1 before entering the
 thread goal. Unlike calling thread_at_exit/1 as part of the normal
