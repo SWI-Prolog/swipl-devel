@@ -1829,6 +1829,7 @@ VMI(I_EXITQUERY, 0, 0, ())
   if ( BFR == &QF->choice )		/* No alternatives */
   { set(QF, PL_Q_DETERMINISTIC);
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+    FR->clause = NULL;
 
     if ( true(FR, FR_WATCHED) )
     { SAVE_REGISTERS(qid);
