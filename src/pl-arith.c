@@ -619,11 +619,13 @@ static int
 prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 { Definition def = getProcDefinition(f->proc);
   int arity = def->functor->arity;
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av);
+  if ( !(fid=PL_open_foreign_frame()) ||
+       !(qid=PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av)) )
+    return FALSE;
 
   if ( PL_next_solution(qid) )
   { rval = valueExpression(av+arity-1, r PASS_LD);
@@ -640,15 +642,17 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 
 #ifdef O_LIMIT_DEPTH
       if ( depth_reached > depth_limit )
-	rval = FALSE;
-      else
+      { rval = FALSE;
+      } else
 #endif
-      { term_t goal = PL_new_term_ref();
-	PL_cons_functor_v(goal, def->functor->functor, av);
+      { term_t goal;
 
-	rval = PL_error(NULL, 0,
-			"Aritmetic function must succeed or throw exception",
-			ERR_FAILED, goal);
+	rval = ( goal = PL_new_term_ref() &&
+		 PL_cons_functor_v(goal, def->functor->functor, av) &&
+		 PL_error(NULL, 0,
+			  "Aritmetic function must succeed or throw exception",
+			  ERR_FAILED, goal)
+	       );
       }
     }
 
@@ -3078,8 +3082,8 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
   for( ; i<mx; i++ )
   { ArithFunction f = FunctionFromIndex(i);
 
-    PL_put_functor(tmp, f->functor);
-    if ( f->proc &&
+    if ( PL_put_functor(tmp, f->functor) &&
+	 f->proc &&
 	 PL_unify_term(A1,
 		       PL_FUNCTOR, FUNCTOR_colon2,
 		         PL_ATOM, f->module->name,
@@ -3089,6 +3093,9 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 	succeed;
       ForeignRedoInt(i);
     }
+
+    if ( exception_term )
+      return FALSE;
 
     PL_rewind_foreign_frame(fid);
   }

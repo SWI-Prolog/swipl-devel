@@ -360,22 +360,27 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc;
   unsigned char const *s, *ll = NULL;
+  int rc = TRUE;
 
   LD->exception.processing = TRUE;	/* allow using spare stack */
+  blockGC(0 PASS_LD);
 
-  ex = PL_new_term_ref();
-  loc = PL_new_term_ref();
+  if ( !(ex = PL_new_term_ref()) ||
+       !(loc = PL_new_term_ref()) )
+    rc = FALSE;
 
-  if ( !id_term )
-  { id_term = PL_new_term_ref();
-    PL_put_atom_chars(id_term, id_str);
+  if ( rc && !id_term )
+  { if ( !(id_term=PL_new_term_ref()) ||
+	 !PL_put_atom_chars(id_term, id_str) )
+      rc = FALSE;
   }
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_syntax_error1,
-		    PL_TERM, id_term,
-		  PL_TERM, loc);
+  if ( rc )
+    rc = PL_unify_term(ex,
+		       PL_FUNCTOR, FUNCTOR_error2,
+		         PL_FUNCTOR, FUNCTOR_syntax_error1,
+		           PL_TERM, id_term,
+		         PL_TERM, loc);
 
   source_char_no += last_token_start - rdbase;
   for(s=rdbase; s<last_token_start; s++)
@@ -403,39 +408,49 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
     source_line_pos = lp;
   }
 
-  if ( ReadingSource )			/* reading a file */
-  { PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_file4,
-		    PL_ATOM, source_file_name,
-		    PL_INT, source_line_no,
-		    PL_INT, source_line_pos,
-		    PL_INT64, source_char_no);
-  } else if ( isStringStream(rb.stream) )
-  { size_t pos;
+  if ( rc )
+  { if ( ReadingSource )			/* reading a file */
+    { rc = PL_unify_term(loc,
+			 PL_FUNCTOR, FUNCTOR_file4,
+			   PL_ATOM, source_file_name,
+			   PL_INT, source_line_no,
+			   PL_INT, source_line_pos,
+			   PL_INT64, source_char_no);
+    } else if ( isStringStream(rb.stream) )
+    { size_t pos;
 
-    pos = utf8_strlen((char *)rdbase, last_token_start-rdbase);
+      pos = utf8_strlen((char *)rdbase, last_token_start-rdbase);
 
-    PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_string2,
-		    PL_UTF8_STRING, rdbase,
-		    PL_INT, (int)pos);
-  } else				/* any stream */
-  { term_t stream = PL_new_term_ref();
+      rc = PL_unify_term(loc,
+			 PL_FUNCTOR, FUNCTOR_string2,
+			   PL_UTF8_STRING, rdbase,
+			   PL_INT, (int)pos);
+    } else				/* any stream */
+    { term_t stream;
 
-    PL_unify_stream_or_alias(stream, rb.stream);
-    PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_stream4,
-		    PL_TERM, stream,
-		    PL_INT, source_line_no,
-		    PL_INT, source_line_pos,
-		    PL_INT64, source_char_no);
+      if ( !(stream=PL_new_term_ref()) ||
+	   !PL_unify_stream_or_alias(stream, rb.stream) ||
+	   !PL_unify_term(loc,
+			  PL_FUNCTOR, FUNCTOR_stream4,
+			    PL_TERM, stream,
+			    PL_INT, source_line_no,
+			    PL_INT, source_line_pos,
+			    PL_INT64, source_char_no) )
+	rc = FALSE;
+    }
   }
+
+  unblockGC(0 PASS_LD);
 
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
-    PL_put_term(_PL_rd->exception, ex);
+    if ( rc )
+      PL_put_term(_PL_rd->exception, ex);
+    else
+      PL_put_term(_PL_rd->exception, exception_term);
   } else
-  { PL_raise_exception(ex);
+  { if ( rc )
+      PL_raise_exception(ex);
   }
 
   fail;
@@ -2190,12 +2205,13 @@ outOfCStack(ReadData _PL_rd)
   term_t ex;
 
   LD->exception.processing = TRUE;
-  ex = PL_new_term_ref();
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_resource_error1,
-		  PL_CHARS, "c_stack");
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_resource_error1,
+		     PL_CHARS, "c_stack") )
+    return errorWarning(NULL, ex, _PL_rd);
 
-  return errorWarning(NULL, ex, _PL_rd);
+  return FALSE;
 }
 
 
@@ -2531,13 +2547,15 @@ exit:
     tmp[1] = EOS;
 
     LD->exception.processing = TRUE;
-    ex = PL_new_term_ref();
-    PL_unify_term(ex,
-		  PL_FUNCTOR, FUNCTOR_punct2,
-		    PL_ATOM, side[0].op,
-		    PL_CHARS, tmp);
 
-    return errorWarning(NULL, ex, _PL_rd);
+    if ( (ex = PL_new_term_ref()) &&
+	 PL_unify_term(ex,
+		       PL_FUNCTOR, FUNCTOR_punct2,
+		         PL_ATOM, side[0].op,
+		         PL_CHARS, tmp) )
+      return errorWarning(NULL, ex, _PL_rd);
+
+    return FALSE;
   }
 
   syntaxError("operator_balance", _PL_rd);

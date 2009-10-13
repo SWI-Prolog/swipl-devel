@@ -218,7 +218,7 @@ static int		traceAction(char *cmd,
 				    Choice bfr,
 				    bool interactive);
 forwards void		interruptHandler(int sig);
-static void		writeFrameGoal(LocalFrame frame, Code PC,
+static int		writeFrameGoal(LocalFrame frame, Code PC,
 				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -767,13 +767,15 @@ For the above reason, the code  below uses low-level manipulation rather
 than normal unification, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 put_frame_goal(term_t goal, LocalFrame frame)
 { Definition def = frame->predicate;
   int argc = def->functor->arity;
   Word argv = argFrameP(frame, 0);
 
-  PL_unify_functor(goal, def->functor->functor);
+  if ( !PL_unify_functor(goal, def->functor->functor) )
+    return FALSE;
+
   if ( argc > 0 )
   { Word argp = valTermRef(goal);
     int i;
@@ -788,13 +790,19 @@ put_frame_goal(term_t goal, LocalFrame frame)
       *argp++ = (needsRef(*a) ? makeRef(a) : *a);
     }
   }
+
   if ( def->module != MODULE_user &&
        (false(def->module, SYSTEM) || SYSTEM_MODE))
-  { term_t a = PL_new_term_ref();
+  { term_t a;
+
+    if ( !(a=PL_new_term_ref()) )
+      return FALSE;
 
     PL_put_atom(a, def->module->name);
-    PL_cons_functor(goal, FUNCTOR_colon2, a, goal);
+    return PL_cons_functor(goal, FUNCTOR_colon2, a, goal);
   }
+
+  return TRUE;
 }
 
 
@@ -819,13 +827,18 @@ static const portname portnames[] =
 };
 
 
-static void
+static int
 writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
-{ fid_t wake = saveWakeup(PASS_LD1);
-  fid_t cid = PL_open_foreign_frame();
+{ fid_t wake, cid;
   Definition def = frame->predicate;
+  int rc = TRUE;
 
   blockGC(0 PASS_LD);
+  wake = saveWakeup(PASS_LD1);
+  if ( !(cid = PL_open_foreign_frame()) )
+  { rc = FALSE;
+    goto out;
+  }
 
   if ( gc_status.active )
   { Sfprintf(Serror, " (%d): %s\n",
@@ -839,26 +852,30 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     if ( true(def, FOREIGN) )
       PL_put_atom(pc, ATOM_foreign);
     else if ( PC && frame->clause )
-      PL_put_intptr(pc, PC-frame->clause->clause->codes);
+      rc = PL_put_intptr(pc, PC-frame->clause->clause->codes);
     else
       PL_put_nil(pc);
 
-    PL_put_frame(fr, frame);
+    if ( rc )
+      PL_put_frame(fr, frame);
 
-    for(; pn->flags; pn++)
-    { if ( flags & pn->flags )
-      { PL_put_atom(port, pn->name);
-	break;
+    if ( rc )
+    { for(; pn->flags; pn++)
+      { if ( flags & pn->flags )
+	{ PL_put_atom(port, pn->name);
+	  break;
+	}
       }
     }
-    if ( flags & WFG_TRACE )
-      PL_cons_functor(port, FUNCTOR_trace1, port);
+    if ( rc && (flags & WFG_TRACE) )
+      rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
-    printMessage(ATOM_debug,
-		 PL_FUNCTOR, FUNCTOR_frame3,
-		   PL_TERM, fr,
-		   PL_TERM, port,
-		   PL_TERM, pc);
+    if ( rc )
+      printMessage(ATOM_debug,
+		   PL_FUNCTOR, FUNCTOR_frame3,
+		     PL_TERM, fr,
+		     PL_TERM, port,
+		     PL_TERM, pc);
   } else
   { debug_type debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
@@ -897,10 +914,12 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     debugstatus.debugging = debugSave;
   }
 
+out:
   unblockGC(0 PASS_LD);
 
   PL_discard_foreign_frame(cid);
   restoreWakeup(wake PASS_LD);
+  return rc;
 }
 
 /*  Write those frames on the stack that have alternatives left.
@@ -923,17 +942,23 @@ translating a message-term as used for exceptions into a C-string.
 
 static char *
 messageToString(term_t msg)
-{ fid_t fid = PL_open_foreign_frame();
-  term_t av = PL_new_term_refs(2);
-  predicate_t pred = PL_predicate("message_to_string", 2, "$messages");
-  char *s;
+{ fid_t fid;
 
-  PL_put_term(av+0, msg);
-  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av);
-  PL_get_chars(av+1, &s, CVT_ALL|BUF_RING);
-  PL_discard_foreign_frame(fid);
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t av = PL_new_term_refs(2);
+    predicate_t pred = PL_predicate("message_to_string", 2, "$messages");
+    int rc;
+    char *s;
 
-  return s;
+    PL_put_term(av+0, msg);
+    rc = (PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av) &&
+	  PL_get_chars(av+1, &s, CVT_ALL|BUF_RING));
+    PL_discard_foreign_frame(fid);
+
+    return rc ? s : (char*)NULL;
+  }
+
+  return NULL;
 }
 
 
@@ -1040,14 +1065,17 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
-  { fid_t cid = PL_open_foreign_frame();
-    qid_t qid;
-    term_t argv = PL_new_term_refs(4);
-    term_t rarg = argv+3;
+  { fid_t wid=0, cid=0;
+    qid_t qid=0;
+    term_t argv, rarg;
     atom_t portname = NULL_ATOM;
     functor_t portfunc = 0;
     int nodebug = FALSE;
-    term_t ex;
+
+    if ( !(cid=PL_open_foreign_frame()) )
+      goto out;
+    argv = PL_new_term_refs(4);
+    rarg = argv+3;
 
     switch(port)
     { case CALL_PORT:	   portname = ATOM_call;         break;
@@ -1056,21 +1084,22 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       case FAIL_PORT:	   portname = ATOM_fail;         break;
       case UNIFY_PORT:	   portname = ATOM_unify;	 break;
       case EXCEPTION_PORT:
-        PL_unify_term(argv,
-		      PL_FUNCTOR, FUNCTOR_exception1,
-		        PL_TERM, LD->exception.pending);
+	if ( !PL_unify_term(argv,
+			    PL_FUNCTOR, FUNCTOR_exception1,
+			      PL_TERM, LD->exception.pending) )
+	  goto out;
 	break;
       case BREAK_PORT:     portfunc = FUNCTOR_break1;	 break;
       case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
       case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
       default:
 	assert(0);
-        return rval;
+        goto out;
     }
 
     if ( portname )
-      PL_put_atom(argv, portname);
-    else if ( portfunc )
+    { PL_put_atom(argv, portname);
+    } else if ( portfunc )
     { int pcn;
 
       if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
@@ -1078,19 +1107,17 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       else
 	pcn = 0;
 
-      PL_unify_term(argv,
-		    PL_FUNCTOR, portfunc,
-		    PL_INT, pcn);
+      if ( !PL_unify_term(argv,
+			  PL_FUNCTOR, portfunc,
+			    PL_INT, pcn) )
+	goto out;
     }
 
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-
-    if ( exception_term )
-      ex = PL_copy_term_ref(exception_term);
-    else
-      ex = 0;
-    qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
+    wid = saveWakeup(PASS_LD1);
+    if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv)) )
+      goto out;
     if ( PL_next_solution(qid) )
     { atom_t a;
 
@@ -1121,12 +1148,11 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	  PL_warning("prolog_trace_interception/3: bad argument to retry/1");
       }
     }
-    PL_close_query(qid);
-    if ( ex )
-    { PL_put_term(exception_bin, ex);
-      exception_term = exception_bin;
-    }
-    PL_discard_foreign_frame(cid);
+
+  out:
+    if ( qid ) PL_close_query(qid);
+    if ( wid ) restoreWakeup(wid PASS_LD);
+    if ( cid ) PL_discard_foreign_frame(cid);
 
     if ( nodebug )
     { tracemode(FALSE, NULL);
@@ -1596,7 +1622,7 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
-static word
+static int
 prolog_frame_attribute(term_t frame, term_t what,
 		       term_t value)
 { LocalFrame fr;
@@ -1693,19 +1719,23 @@ prolog_frame_attribute(term_t frame, term_t what,
   { if ( false(fr->predicate, FOREIGN) &&
 	 fr->clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
-      PL_put_pointer(result, fr->clause->clause);
-    else
-      fail;
+    { if ( !PL_put_pointer(result, fr->clause->clause) )
+	return FALSE;
+    } else
+    { return FALSE;
+    }
   } else if (key == ATOM_goal)
   { int arity, n;
     term_t arg = PL_new_term_ref();
     Definition def = fr->predicate;
 
     if ( def->module != MODULE_user )
-    { PL_put_functor(result, FUNCTOR_colon2);
-      PL_get_arg(1, result, arg);
-      PL_unify_atom(arg, def->module->name);
-      PL_get_arg(2, result, arg);
+    { if ( !PL_put_functor(result, FUNCTOR_colon2) )
+	return FALSE;
+      _PL_get_arg(1, result, arg);
+      if ( !PL_unify_atom(arg, def->module->name) )
+	return FALSE;
+      _PL_get_arg(2, result, arg);
     } else
       PL_put_term(arg, result);
 
@@ -1875,43 +1905,40 @@ callEventHook(int ev, ...)
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
 
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
-  { va_list args;
+  { int rc;
+    va_list args;
     fid_t fid, wake;
     term_t arg;
-    term_t ex;
 
     blockGC(0 PASS_LD);
     wake = saveWakeup(PASS_LD1);
     fid = PL_open_foreign_frame();
     arg = PL_new_term_ref();
 
-    if ( exception_term )
-    { ex = PL_copy_term_ref(exception_term);
-      exception_term = 0;
-    } else
-      ex = 0;
-
     va_start(args, ev);
     switch(ev)
     { case PLEV_ERASED:
       {	void *ptr = va_arg(args, void *); 	/* object erased */
 
-	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_erased1,
-		           PL_POINTER, ptr);
+	rc = PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_erased1,
+			     PL_POINTER, ptr);
 	break;
       }
       case PLEV_DEBUGGING:
       { int dbg = va_arg(args, int);
 
-	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_debugging1,
-			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
+	rc = PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_debugging1,
+			     PL_ATOM, dbg ? ATOM_true : ATOM_false);
 	break;
       }
       case PLEV_TRACING:
       { int trc = va_arg(args, int);
 
-	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_tracing1,
-			   PL_ATOM, trc ? ATOM_true : ATOM_false);
+	rc = PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_tracing1,
+			     PL_ATOM, trc ? ATOM_true : ATOM_false);
 	break;
       }
       case PLEV_BREAK:
@@ -1919,11 +1946,12 @@ callEventHook(int ev, ...)
       { Clause clause = va_arg(args, Clause);
 	int offset = va_arg(args, int);
 
-	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_break3,
-		           PL_POINTER, clause,
-		           PL_INT, offset,
-			   PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-					             : ATOM_false);
+	rc = PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_break3,
+			     PL_POINTER, clause,
+		             PL_INT, offset,
+			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
+						       : ATOM_false);
 	break;
       }
       case PLEV_FRAMEFINISHED:
@@ -1931,34 +1959,35 @@ callEventHook(int ev, ...)
 	term_t ref = PL_new_term_ref();
 
 	PL_put_frame(ref, fr);
-	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_frame_finished1,
-		           PL_TERM, ref);
+	rc = PL_unify_term(arg,
+			   PL_FUNCTOR, FUNCTOR_frame_finished1,
+			     PL_TERM, ref);
 	break;
       }
 #ifdef O_PLMT
       case PL_EV_THREADFINISHED:
       { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
-	term_t id = PL_new_term_ref();
+	term_t id;
 
-	unify_thread_id(id, info);
-	PL_unify_term(arg, PL_FUNCTOR_CHARS, "thread_finished", 1,
-		             PL_TERM, id);
+	rc = ( (id = PL_new_term_ref()) &&
+	       unify_thread_id(id, info) &&
+	       PL_unify_term(arg,
+			     PL_FUNCTOR_CHARS, "thread_finished", 1,
+			       PL_TERM, id)
+	     );
+
 	break;
       }
 #endif
       default:
-	warning("callEventHook(): unknown event: %d", ev);
+	rc = warning("callEventHook(): unknown event: %d", ev);
         goto out;
     }
 
-    PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
+    if ( rc )
+      PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
+
   out:
-
-    if ( ex )
-    { PL_put_term(exception_bin, ex);
-      exception_term = exception_bin;
-    }
-
     PL_discard_foreign_frame(fid);
     restoreWakeup(wake PASS_LD);
     unblockGC(0 PASS_LD);

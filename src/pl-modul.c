@@ -802,7 +802,8 @@ declareModule(atom_t name, atom_t super,
   UNLOCK();
 
   if ( rdef )
-  { PL_unify_nil(rtail);
+  { if ( !PL_unify_nil(rtail) )
+      return FALSE;
 
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, "declare_module", 2,

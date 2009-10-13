@@ -114,7 +114,7 @@ foreign_t
 pl_rc_open(term_t rc_h,
 	   term_t name, term_t class, term_t rw,
 	   term_t handle)
-{ char *n, *c = NULL;
+{ char *n, *c;
   RcArchive rc = NULL;
   atom_t how;
   int flags = 0, sflags = 0;		/* compiler isn't smart enough */
@@ -136,7 +136,8 @@ pl_rc_open(term_t rc_h,
   if ( PL_get_chars_ex(name, &n, CVT_ALL) )
   { RcObject o;
 
-    PL_get_chars(class, &c, CVT_ALL);
+    if ( !PL_get_chars(class, &c, CVT_ALL) )
+      c = NULL;
 
     if ( (o = rc_open(rc, n, c, flags)) )
     { IOSTREAM *stream;
@@ -212,8 +213,9 @@ pl_rc_save_archive(term_t rc_h, term_t to)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_file_name, to);
 
   if ( rc_save_archive(rc, file) )
-  { if ( PL_is_variable(to) )
-      PL_unify_atom_chars(to, rc->path);
+  { if ( PL_is_variable(to) &&
+	 !PL_unify_atom_chars(to, rc->path) )
+      return FALSE;			/* resource error */
 
     return TRUE;
   }

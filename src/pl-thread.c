@@ -1531,17 +1531,22 @@ enumerate:
   { term_t arg = PL_new_term_ref();
 
     if ( !state->enum_properties )
-      PL_get_arg(1, property, arg);
+      _PL_get_arg(1, property, arg);
 
     for(;;)
     { PL_thread_info_t *info = &threads[state->tid];
 
       if ( (*state->p->function)(info, arg PASS_LD) )
       { if ( state->enum_properties )
-	  PL_unify_term(property, PL_FUNCTOR, state->p->functor,
-				    PL_TERM, arg);
+	{ if ( !PL_unify_term(property,
+			      PL_FUNCTOR, state->p->functor,
+			        PL_TERM, arg) )
+	    goto error;
+	}
 	if ( state->enum_threads )
-	  unify_thread_id(thread, info);
+	{ if ( !unify_thread_id(thread, info) )
+	    goto error;
+	}
 
 	if ( advance_state(state) )
 	{ if ( state == &statebuf )
@@ -1558,7 +1563,8 @@ enumerate:
       }
 
       if ( !advance_state(state) )
-      { if ( state != &statebuf )
+      { error:
+	if ( state != &statebuf )
 	  freeHeap(state, sizeof(*state));
 	fail;
       }
@@ -2848,17 +2854,20 @@ enumerate:
   { term_t a1 = PL_new_term_ref();
 
     if ( !state->enum_properties )
-      PL_get_arg(1, property, a1);
+      _PL_get_arg(1, property, a1);
 
     for(;;)
     { if ( (*state->p->function)(state->q, a1 PASS_LD) )
       { if ( state->enum_properties )
-	{ PL_unify_term(property,
-			PL_FUNCTOR, state->p->functor,
-			  PL_TERM, a1);
+	{ if ( !PL_unify_term(property,
+			      PL_FUNCTOR, state->p->functor,
+			        PL_TERM, a1) )
+	    goto error;
 	}
 	if ( state->e )
-	  unify_queue(queue, state->q);
+	{ if ( !unify_queue(queue, state->q) )
+	    goto error;
+	}
 
 	if ( advance_qstate(state) )
 	{ if ( state == &statebuf )
@@ -2875,7 +2884,8 @@ enumerate:
       }
 
       if ( !advance_qstate(state) )
-      { if ( state != &statebuf )
+      { error:
+	if ( state != &statebuf )
 	  free_qstate(state);
 	fail;
       }
@@ -3238,7 +3248,7 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   { term_t a = PL_new_term_ref();
     long i;
 
-    PL_get_arg(1, t, a);
+    _PL_get_arg(1, t, a);
     if ( PL_get_long(a, &i) )
       id = consInt(i);
   }
@@ -3567,17 +3577,20 @@ enumerate:
   { term_t arg = PL_new_term_ref();
 
     if ( !state->enum_properties )
-      PL_get_arg(1, property, arg);
+      _PL_get_arg(1, property, arg);
 
     for(;;)
     { if ( (*state->p->function)(state->m, arg PASS_LD) )
       { if ( state->enum_properties )
-	{ PL_unify_term(property,
-			    PL_FUNCTOR, state->p->functor,
-			      PL_TERM, arg);
+	{ if ( !PL_unify_term(property,
+			      PL_FUNCTOR, state->p->functor,
+			        PL_TERM, arg) )
+	    goto error;
 	}
 	if ( state->e )
-	  unify_mutex(mutex, state->m);
+	{ if ( !unify_mutex(mutex, state->m) )
+	    goto error;
+	}
 
 	if ( advance_mstate(state) )
 	{ if ( state == &statebuf )
@@ -3594,7 +3607,8 @@ enumerate:
       }
 
       if ( !advance_mstate(state) )
-      { if ( state != &statebuf )
+      { error:
+	if ( state != &statebuf )
 	  free_mstate__LD(state PASS_LD);
 	fail;
       }

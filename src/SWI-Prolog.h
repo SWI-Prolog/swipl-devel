@@ -429,11 +429,11 @@ PL_EXPORT(int)		PL_is_acyclic(term_t t);
 			/* Assign to term-references */
 PL_EXPORT(void)		PL_put_variable(term_t t);
 PL_EXPORT(void)		PL_put_atom(term_t t, atom_t a);
-PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars) WUNUSED;
+PL_EXPORT(int)		PL_put_atom_chars(term_t t, const char *chars);
 PL_EXPORT(int)		PL_put_string_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_chars(term_t t, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_codes(term_t t, const char *chars) WUNUSED;
-PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars) WUNUSED;
+PL_EXPORT(int)		PL_put_atom_nchars(term_t t, size_t l, const char *chars);
 PL_EXPORT(int)		PL_put_string_nchars(term_t t, size_t len, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_nchars(term_t t, size_t l, const char *chars) WUNUSED;
 PL_EXPORT(int)		PL_put_list_ncodes(term_t t, size_t l, const char *chars) WUNUSED;

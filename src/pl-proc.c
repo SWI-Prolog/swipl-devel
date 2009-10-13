@@ -583,10 +583,12 @@ pl_current_predicate1(term_t spec, control_t ctx)
       _PL_get_arg(2, pi, at);
       aextra = 2;
     } else if ( PL_is_variable(pi) )
-    { term_t a = PL_new_term_ref();
+    { term_t a;
 
-      PL_cons_functor(a, FUNCTOR_divide2, nt, at);
-      PL_unify(pi, a);
+      if ( !(a=PL_new_term_ref()) ||
+	   !PL_cons_functor(a, FUNCTOR_divide2, nt, at) ||
+	   !PL_unify(pi, a) )
+	return FALSE;			/* resource error */
     } else
       goto typeerror;
   }
@@ -1253,13 +1255,14 @@ meta_declaration(term_t spec)
   int mask = 0;
   int transparent = FALSE;
 
-  if ( !get_procedure(spec, &proc, head, GP_DEFINE) )
+  if ( !get_procedure(spec, &proc, head, GP_DEFINE) ||
+       !PL_get_name_arity(head, &name, &arity) )
     return FALSE;
 
-  PL_get_name_arity(head, &name, &arity);
   if ( arity > (int)sizeof(mask)*2 )
     return PL_error(NULL, 0, "max arity of meta predicates is 8",
 		    ERR_REPRESENTATION, ATOM_max_arity);
+
   for(i=0; i<arity; i++)
   { atom_t ma;
 

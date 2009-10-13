@@ -1827,13 +1827,15 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	term_t a = PL_new_term_ref();
 
 	for(argn=1; argn <= arity; argn++)
-	{ PL_get_arg(argn, term, a);
+	{ _PL_get_arg(argn, term, a);
 	  if ( PL_unify(arg, a) )
 	  { PL_unify_integer(n, argn);
 	    if ( argn == arity )
 	      succeed;
 	    ForeignRedoInt(argn);
 	  }
+	  if ( exception_term )
+	    return FALSE;
 	}
 	fail;
       }
@@ -1843,16 +1845,19 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
     { int argn = (int)CTX_INT + 1;
       term_t a = PL_new_term_ref();
 
-      PL_get_name_arity(term, &name, &arity);
+      if ( !PL_get_name_arity(term, &name, &arity) )
+	sysError("arg/3: PL_get_name_arity() failed");
 
       for(; argn <= arity; argn++)
-      { PL_get_arg(argn, term, a);
+      { _PL_get_arg(argn, term, a);
 	if ( PL_unify(arg, a) )
 	{ PL_unify_integer(n, argn);
 	  if ( argn == arity )
 	    succeed;
 	  ForeignRedoInt(argn);
 	}
+	if ( exception_term )
+	  return FALSE;
       }
 
       fail;
@@ -4683,7 +4688,8 @@ PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
 	      break;
 	    }
 	  }
-	  PL_unify_atom_chars(key, optdefs[index].name);
+	  if ( !PL_unify_atom_chars(key, optdefs[index].name) )
+	    return FALSE;
 	  ForeignRedoInt(index+1);
 	}
 

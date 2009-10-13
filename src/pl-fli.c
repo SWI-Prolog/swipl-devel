@@ -2482,8 +2482,8 @@ PL_unify_list_ncodes(term_t l, size_t len, const char *chars)
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
-    PL_put_list_ncodes(tmp, len, chars);
-    return PL_unify(l, tmp);
+    return (PL_put_list_ncodes(tmp, len, chars) &&
+	    PL_unify(l, tmp));
   } else
   { term_t head = PL_new_term_ref();
     term_t t    = PL_copy_term_ref(l);
@@ -2515,8 +2515,8 @@ PL_unify_list_nchars(term_t l, size_t len, const char *chars)
   if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
-    PL_put_list_nchars(tmp, len, chars);
-    return PL_unify(l, tmp);
+    return (PL_put_list_nchars(tmp, len, chars) &&
+	    PL_unify(l, tmp));
   } else
   { term_t head = PL_new_term_ref();
     term_t t    = PL_copy_term_ref(l);
@@ -3474,15 +3474,19 @@ static void
 notify_registered_foreign(functor_t fd, Module m)
 { if ( GD->initialised )
   { GET_LD
-    fid_t cid = PL_open_foreign_frame();
-    term_t argv = PL_new_term_refs(2);
-    predicate_t pred = _PL_predicate("$foreign_registered", 2, "system",
-				     &GD->procedures.foreign_registered2);
+    fid_t cid;
 
-    PL_put_atom(argv+0, m->name);
-    PL_put_functor(argv+1, fd);
-    PL_call_predicate(MODULE_system, FALSE, pred, argv);
-    PL_discard_foreign_frame(cid);
+    if ( (cid = PL_open_foreign_frame()) )
+    { term_t argv = PL_new_term_refs(2);
+      predicate_t pred = _PL_predicate("$foreign_registered", 2, "system",
+				       &GD->procedures.foreign_registered2);
+
+      PL_put_atom(argv+0, m->name);
+      if ( !(PL_put_functor(argv+1, fd) &&
+	     PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, argv)) )
+	Sdprintf("Failed to notify new foreign predicate\n");
+      PL_discard_foreign_frame(cid);
+    }
   }
 }
 

@@ -1310,15 +1310,16 @@ fatalError(const char *fm, ...)
 }
 
 
-bool
+int
 warning(const char *fm, ...)
-{ va_list args;
+{ int rc;
+  va_list args;
 
   va_start(args, fm);
-  vwarning(fm, args);
+  rc = vwarning(fm, args);
   va_end(args);
 
-  PL_fail;
+  return rc;
 }
 
 
@@ -1415,21 +1416,27 @@ move the rest of the warnings gradually. For this reason we make a term
 Where ListOfLines is a list of string objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
+int
 vwarning(const char *fm, va_list args)
 { GET_LD
   toldString();				/* play safe */
 
   if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
-  { if ( !GD->bootsession && GD->initialised &&
+  { fid_t cid = 0;
+
+    if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack && 		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;
-      fid_t cid   = PL_open_foreign_frame();
-      term_t av   = PL_new_term_refs(2);
-      term_t tail = PL_copy_term_ref(av+1);
-      term_t head = PL_new_term_ref();
+      fid_t cid;
+      term_t av, head, tail;
+
+      if ( !(cid = PL_open_foreign_frame()) )
+	goto nospace;
+      av   = PL_new_term_refs(2);
+      tail = PL_copy_term_ref(av+1);
+      head = PL_new_term_ref();
 
       Svsprintf(message, fm, args);
 
@@ -1437,33 +1444,40 @@ vwarning(const char *fm, va_list args)
       { char *eol = strchr(s, '\n');
 
 	if ( eol )
-	{ PL_unify_list(tail, head, tail);
-	  PL_unify_string_nchars(head, eol-s, s);
+	{ if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_string_nchars(head, eol-s, s) )
+	    goto nospace;
 	  s = eol+1;
 	} else
 	{ if ( *s )
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_string_chars(head, s);
+	  { if ( !PL_unify_list(tail, head, tail) ||
+		 !PL_unify_string_chars(head, s) )
+	      goto nospace;
 	  }
-	  PL_unify_nil(tail);
+	  if ( !PL_unify_nil(tail) )
+	    goto nospace;
 	  break;
 	}
       }
-      PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1);
+      if ( !PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1) )
+	goto nospace;
       PL_put_atom(av, ATOM_error);	/* error? */
 
       PL_call_predicate(NULL, PL_Q_NODEBUG, PROCEDURE_print_message2, av);
       PL_discard_foreign_frame(cid);
     } else
-    { Sfprintf(Suser_error, "ERROR: ");
+    { nospace:
+      if ( cid )
+	PL_discard_foreign_frame(cid);
+      Sfprintf(Suser_error, "ERROR: ");
       Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
-      Pause(0.5);
+      Pause(0.2);
     }
   }
 
   if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
     pl_trace();
 
-  PL_fail;
+  return FALSE;
 }

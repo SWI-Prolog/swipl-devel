@@ -1000,7 +1000,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   { term_t a = PL_new_term_ref();
     void *f;
 
-    PL_get_arg(1, new, a);
+    _PL_get_arg(1, new, a);
 
     if ( PL_get_pointer(a, &f) )
     { sh = prepareSignal(sign);

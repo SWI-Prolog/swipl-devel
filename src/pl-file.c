@@ -504,12 +504,13 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   if ( ctx->alias_head )
   { rval = PL_unify_atom(t, ctx->alias_head->name);
   } else
-  { term_t a = PL_new_term_ref();
+  { term_t a;
 
-    PL_put_pointer(a, s);
-    PL_cons_functor(a, FUNCTOR_dstream1, a);
-
-    rval = PL_unify(t, a);
+    rval = ( (a=PL_new_term_ref()) &&
+	     PL_put_pointer(a, s) &&
+	     PL_cons_functor(a, FUNCTOR_dstream1, a) &&
+	     PL_unify(t, a)
+	   );
   }
   UNLOCK();
 
@@ -527,8 +528,10 @@ PL_unify_stream(term_t t, IOSTREAM *s)
   ctx = getStreamContext(s);
   UNLOCK();
 
-  PL_put_pointer(a, s);
-  PL_cons_functor(a, FUNCTOR_dstream1, a);
+  if ( !(a = PL_new_term_ref()) ||
+       !PL_put_pointer(a, s) ||
+       !PL_cons_functor(a, FUNCTOR_dstream1, a) )
+    return FALSE;			/* resource error */
 
   if ( PL_unify(t, a) )
     return TRUE;
@@ -2639,7 +2642,7 @@ openStream(term_t file, term_t mode, term_t options)
   { term_t a = PL_new_term_ref();
     char *cmd;
 
-    PL_get_arg(1, file, a);
+    _PL_get_arg(1, file, a);
     if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING|REP_FN) )
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
       return NULL;

@@ -352,15 +352,19 @@ unifyTime(term_t t, time_t time)
 }
 
 
-static void
+static int
 add_option(term_t options, functor_t f, atom_t val)
 { GET_LD
-  term_t head = PL_new_term_ref();
+  term_t head;
 
-  PL_unify_list(options, head, options);
-  PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val);
+  if ( (head=PL_new_term_ref()) &&
+       PL_unify_list(options, head, options) &&
+       PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val) )
+  { PL_reset_term_refs(head);
+    return TRUE;
+  }
 
-  PL_reset_term_refs(head);
+  return FALSE;
 }
 
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
@@ -373,29 +377,36 @@ PL_get_file_name(term_t n, char **namep, int flags)
   char ospath[MAXPATHLEN];
 
   if ( flags & PL_FILE_SEARCH )
-  { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
-    term_t av = PL_new_term_refs(3);
-    term_t options = PL_copy_term_ref(av+2);
-    int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
-					   : PL_Q_PASS_EXCEPTION);
+  { fid_t fid;
 
-    PL_put_term(av+0, n);
+    if ( (fid = PL_open_foreign_frame()) )
+    { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
+      term_t av = PL_new_term_refs(3);
+      term_t options = PL_copy_term_ref(av+2);
+      int rc = TRUE;
+      int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
+					     : PL_Q_PASS_EXCEPTION);
 
-    if ( flags & PL_FILE_EXIST )
-      add_option(options, FUNCTOR_access1, ATOM_exist);
-    if ( flags & PL_FILE_READ )
-      add_option(options, FUNCTOR_access1, ATOM_read);
-    if ( flags & PL_FILE_WRITE )
-      add_option(options, FUNCTOR_access1, ATOM_write);
-    if ( flags & PL_FILE_EXECUTE )
-      add_option(options, FUNCTOR_access1, ATOM_execute);
+      PL_put_term(av+0, n);
 
-    PL_unify_nil(options);
+      if ( rc && flags & PL_FILE_EXIST )
+	rc = add_option(options, FUNCTOR_access1, ATOM_exist);
+      if ( rc && flags & PL_FILE_READ )
+	rc = add_option(options, FUNCTOR_access1, ATOM_read);
+      if ( rc && flags & PL_FILE_WRITE )
+	rc = add_option(options, FUNCTOR_access1, ATOM_write);
+      if ( rc && flags & PL_FILE_EXECUTE )
+	rc = add_option(options, FUNCTOR_access1, ATOM_execute);
 
-    if ( !PL_call_predicate(NULL, cflags, pred, av) )
-      return FALSE;
+      if ( rc ) rc = PL_unify_nil(options);
+      if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
+      if ( rc ) rc = PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
 
-    return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
+      PL_discard_foreign_frame(fid);
+      return rc;
+    }
+
+    return FALSE;
   }
 
   if ( flags & PL_FILE_NOERRORS )

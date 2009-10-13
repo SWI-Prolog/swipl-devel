@@ -658,24 +658,35 @@ outOfStack(void *stack, stack_overflow_action how)
       fail;
     case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { fid_t fid = PL_open_foreign_frame();
-      LD->outofstack = NULL;
-      updateAlerted(LD);
-      PL_clearsig(SIG_GC);
-      s->gced_size = 0;			/* after handling, all is new */
-      PL_unify_term(LD->exception.tmp,
-		    PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_ATOM, ATOM_stack,
-		      PL_CHARS, s->name);
-      if ( how == STACK_OVERFLOW_THROW )
-      { PL_throw(LD->exception.tmp);
-	warning("Out of %s stack while not in Prolog!?", s->name);
-	assert(0);
-      } else
-      { PL_raise_exception(LD->exception.tmp);
+    { blockGC(0 PASS_LD);
+      fid_t fid;
+
+      if ( (fid=PL_open_foreign_frame()) )
+      { LD->outofstack = NULL;
+	updateAlerted(LD);
+	PL_clearsig(SIG_GC);
+	s->gced_size = 0;			/* after handling, all is new */
+	if ( !PL_unify_term(LD->exception.tmp,
+			    PL_FUNCTOR, FUNCTOR_error2,
+			      PL_FUNCTOR, FUNCTOR_resource_error1,
+			        PL_ATOM, ATOM_stack,
+			      PL_CHARS, s->name) )
+	  fatalError("Out of stack inside out-of-stack handler");
+
+	if ( how == STACK_OVERFLOW_THROW )
+	{ PL_close_foreign_frame(fid);
+	  unblockGC(0 PASS_LD);
+	  PL_throw(LD->exception.tmp);
+	  warning("Out of %s stack while not in Prolog!?", s->name);
+	  assert(0);
+	} else
+	{ PL_raise_exception(LD->exception.tmp);
+	}
+
+	PL_close_foreign_frame(fid);
       }
-      PL_close_foreign_frame(fid);
+
+      unblockGC(0 PASS_LD);
       fail;
     }
     case STACK_OVERFLOW_SIGNAL:

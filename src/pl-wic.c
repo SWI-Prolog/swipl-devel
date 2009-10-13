@@ -2786,14 +2786,16 @@ directiveClause(term_t directive, term_t clause, const char *functor)
        !streq(stringAtom(name), functor) )
     fail;
 
-  PL_get_arg(1, clause, d0);
+  _PL_get_arg(1, clause, d0);
   if ( PL_get_functor(d0, &f) && f == FUNCTOR_colon2 )
-    PL_put_term(directive, d0);
-  else
-  { term_t m = PL_new_term_ref();
+  { PL_put_term(directive, d0);
+  } else
+  { term_t m;
 
+    if ( !(m = PL_new_term_ref()) )
+      return FALSE;
     PL_put_atom(m, LD->modules.source->name);
-    PL_cons_functor(directive, FUNCTOR_colon2, m, d0);
+    return PL_cons_functor(directive, FUNCTOR_colon2, m, d0);
   }
 
   succeed;

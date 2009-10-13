@@ -414,7 +414,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    char *str = buf;
 	    size_t bufsize = BUFSIZE;
 	    unsigned int i;
-	    qid_t qid;
+	    int rc;
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
@@ -428,11 +428,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    }
 
 	    tellString(&str, &bufsize, ENC_UTF8);
-	    qid = PL_open_query(proc->definition->module, PL_Q_NODEBUG,
-				proc, av);
-	    PL_next_solution(qid);
-	    PL_close_query(qid);
+	    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, proc, av);
 	    toldString();
+	    if ( !rc )
+	      return FALSE;
 	    oututf8(&state, str, bufsize);
 	    if ( str != buf )
 	      free(str);

@@ -950,13 +950,14 @@ writeTerm2(term_t t, int prec, write_options *options)
   if ( !PL_get_name_arity(t, &functor, &arity) )
   { return writePrimitive(t, options);
   } else
-  { if ( functor == ATOM_isovar &&			/* $VAR/1 */
+  { if ( arity == 1 &&
+	 functor == ATOM_isovar &&			/* $VAR/1 */
 	 true(options, PL_WRT_NUMBERVARS) )
     { int n;
       atom_t a;
       term_t arg = PL_new_term_ref();
 
-      PL_get_arg(1, t, arg);
+      _PL_get_arg(1, t, arg);
       if ( PL_get_integer(arg, &n) && n >= 0 )
       { int i = n % 26;
 	int j = n / 26;
@@ -987,15 +988,15 @@ writeTerm2(term_t t, int prec, write_options *options)
       { if ( functor == ATOM_curl )	/* {a,b,c} */
 	{ term_t a = PL_new_term_ref();
 
-	  PL_get_arg(1, t, arg);
+	  _PL_get_arg(1, t, arg);
 	  TRY(Putc('{', out));
 	  for(;;)
 	  { if ( !PL_is_functor(arg, FUNCTOR_comma2) )
 	      break;
-	    PL_get_arg(1, arg, a);
+	    _PL_get_arg(1, arg, a);
 	    TRY(writeTerm(a, 999, options) &&
 		PutString(", ", out));
-	    PL_get_arg(2, arg, arg);
+	    _PL_get_arg(2, arg, arg);
 	  }
 	  TRY(writeTerm(arg, 999, options) &&
 	      Putc('}', out));
@@ -1011,7 +1012,7 @@ writeTerm2(term_t t, int prec, write_options *options)
 
 	  embrace = ( op_pri > prec );
 
-	  PL_get_arg(1, t, arg);
+	  _PL_get_arg(1, t, arg);
 	  if ( embrace )
 	  { TRY(PutOpenBrace(out));
 	  }
@@ -1040,7 +1041,7 @@ writeTerm2(term_t t, int prec, write_options *options)
 			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
 
-	  PL_get_arg(1, t, arg);
+	  _PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
 	  TRY(writeTerm(arg,
@@ -1062,8 +1063,8 @@ writeTerm2(term_t t, int prec, write_options *options)
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
 
-	  PL_get_arg(1, t, l);
-	  PL_get_arg(2, t, r);
+	  _PL_get_arg(1, t, l);
+	  _PL_get_arg(2, t, r);
 
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
@@ -1099,7 +1100,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       for(n=0; n<arity; n++)
       { if (n > 0)
 	  TRY(PutString(", ", out));
-	PL_get_arg(n+1, t, a);
+	_PL_get_arg(n+1, t, a);
 	TRY(writeTerm(a, 999, options));
       }
       return Putc(')', out);
