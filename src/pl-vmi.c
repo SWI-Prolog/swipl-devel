@@ -3690,7 +3690,10 @@ b_throw:
   }
 
   if ( debugstatus.debugging )
-  { for( ; FR && FR > (LocalFrame)valTermRef(catchfr_ref); FR = FR->parent )
+  { for( ;
+	 FR && FR > (LocalFrame)valTermRef(catchfr_ref);
+	 PC = FR->programPointer,
+	 FR = FR->parent )
     { Choice ch = findStartChoice(FR, LD->choicepoints);
 
       if ( ch )
