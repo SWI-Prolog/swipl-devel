@@ -713,12 +713,11 @@ typedef struct
 
 #define	ALERT_SIGNAL	 0x01
 #define	ALERT_GCREQ	 0x02
-#define	ALERT_OUTOFSTACK 0x04
-#define	ALERT_PROFILE	 0x08
-#define	ALERT_EXITREQ	 0x10
-#define	ALERT_DEPTHLIMIT 0x20
-#define	ALERT_WAKEUP	 0x40
-#define ALERT_DEBUG	 0x80
+#define	ALERT_PROFILE	 0x04
+#define	ALERT_EXITREQ	 0x08
+#define	ALERT_DEPTHLIMIT 0x10
+#define	ALERT_WAKEUP	 0x20
+#define ALERT_DEBUG	 0x40
 
 
 		 /*******************************
@@ -1690,10 +1689,8 @@ typedef struct
 #define ALLOW_CHECKED	0x4
 
 typedef enum
-{ STACK_OVERFLOW_SIGNAL,
-  STACK_OVERFLOW_RAISE,
-  STACK_OVERFLOW_THROW,
-  STACK_OVERFLOW_FATAL
+{ STACK_OVERFLOW_RAISE,
+  STACK_OVERFLOW_THROW
 } stack_overflow_action;
 
 #define pushArgumentStack(p) \

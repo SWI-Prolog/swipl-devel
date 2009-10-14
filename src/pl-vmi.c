@@ -1555,12 +1555,6 @@ retry_continue:
   {					/* play safe */
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
-    if ( LD->outofstack )
-    { enterDefinition(DEF);		/* exception will lower! */
-      outOfStack(LD->outofstack, STACK_OVERFLOW_RAISE);
-      goto b_throw;
-    }
-
     if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
       handleSignals(PASS_LD1);

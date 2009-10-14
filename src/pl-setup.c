@@ -1345,6 +1345,7 @@ resumeAfterException(void)
     trimStacks(FALSE, PASS_LD1);
 
   LD->exception.processing = FALSE;
+  LD->outofstack = NULL;
 }
 
 

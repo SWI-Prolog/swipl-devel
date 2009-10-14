@@ -641,27 +641,22 @@ outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
 
+  if ( LD->outofstack )
+    fatalError("Sorry, failed to recover from %s-overflow", s->name);
+
   LD->trim_stack_requested = TRUE;
   LD->exception.processing = TRUE;
+  LD->outofstack = stack;
 
   switch(how)
-  { case STACK_OVERFLOW_FATAL:
-      LD->outofstack = s;
-      updateAlerted(LD);
-      Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
-
-      abortProlog(ABORT_THROW);
-      assert(0);
-      fail;
-    case STACK_OVERFLOW_THROW:
+  { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { blockGC(0 PASS_LD);
-      fid_t fid;
+    { fid_t fid;
+
+      blockGC(0 PASS_LD);
 
       if ( (fid=PL_open_foreign_frame()) )
-      { LD->outofstack = NULL;
-	updateAlerted(LD);
-	PL_clearsig(SIG_GC);
+      { PL_clearsig(SIG_GC);
 	s->gced_size = 0;			/* after handling, all is new */
 	if ( !PL_unify_term(LD->exception.tmp,
 			    PL_FUNCTOR, FUNCTOR_error2,
@@ -686,10 +681,6 @@ outOfStack(void *stack, stack_overflow_action how)
       unblockGC(0 PASS_LD);
       fail;
     }
-    case STACK_OVERFLOW_SIGNAL:
-      LD->outofstack = s;
-      updateAlerted(LD);
-      succeed;
   }
   assert(0);
   fail;

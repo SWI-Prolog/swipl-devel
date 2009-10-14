@@ -234,7 +234,6 @@ updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
   if ( ld->pending_signals )			mask |= ALERT_SIGNAL;
-  if ( ld->outofstack )				mask |= ALERT_OUTOFSTACK;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
