@@ -2258,35 +2258,44 @@ VMI(S_UNDEF, 0, 0, ())
     { fid_t fid;
       Definition caller;
 
-      lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-      fid = PL_open_foreign_frame();
       if ( FR->parent )
 	caller = FR->parent->predicate;
       else
 	caller = NULL;
 
-      PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF, caller);
-      PL_close_foreign_frame(fid);
+      lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+
+      SAVE_REGISTERS(qid);
+      if ( (fid = PL_open_foreign_frame()) )
+      { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF, caller);
+	PL_close_foreign_frame(fid);
+      }
+      LOAD_REGISTERS(qid);
+
       enterDefinition(DEF);		/* will be left in exception code */
 
       goto b_throw;
     }
     case UNKNOWN_WARNING:
     { fid_t fid;
-      term_t pred;
 
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-      fid = PL_open_foreign_frame();
-      pred = PL_new_term_ref();
+      SAVE_REGISTERS(qid);
+      if ( (fid = PL_open_foreign_frame()) )
+      { term_t pred = PL_new_term_ref();
 
-      unify_definition(pred, DEF, 0, GP_NAMEARITY);
-      printMessage(ATOM_warning,
-		   PL_FUNCTOR, FUNCTOR_error2,
-		     PL_FUNCTOR, FUNCTOR_existence_error2,
-		      PL_ATOM, ATOM_procedure,
-		      PL_TERM, pred,
-		     PL_VARIABLE);
-      PL_close_foreign_frame(fid);
+	if ( !unify_definition(pred, DEF, 0, GP_NAMEARITY) )
+	{ printMessage(ATOM_warning,
+		       PL_FUNCTOR, FUNCTOR_error2,
+		         PL_FUNCTOR, FUNCTOR_existence_error2,
+		           PL_ATOM, ATOM_procedure,
+		           PL_TERM, pred,
+			 PL_VARIABLE);
+	}
+	PL_close_foreign_frame(fid);
+      }
+      if ( exception_term )
+	goto b_throw;
       /*FALLTHROUGH*/
     }
     case UNKNOWN_FAIL:

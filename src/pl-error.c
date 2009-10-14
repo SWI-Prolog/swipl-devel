@@ -616,8 +616,6 @@ printMessage(atom_t severity, ...)
 Calls print_message(severity, term), where  ...   are  arguments  as for
 PL_unify_term(). This predicate saves possible   pending  exceptions and
 restores them to make the call from B_THROW possible.
-
-FIXME: Make blocking GC an option or demand the environment to do this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -629,19 +627,16 @@ printMessage(atom_t severity, ...)
   va_list args;
   int rc;
 
-  blockGC(0 PASS_LD);		/* sometimes called from dangerous places */
-
   if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-  { unblockGC(0 PASS_LD);
     return FALSE;
-  }
 
   av = PL_new_term_refs(2);
   va_start(args, severity);
   PL_put_atom(av+0, severity);
-  if ( !PL_unify_termv(av+1, args) )
-    goto out;
+  rc = PL_unify_termv(av+1, args);
   va_end(args);
+  if ( !rc )
+    goto out;
 
   if ( isDefinedProcedure(pred) )
   { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
@@ -653,7 +648,6 @@ printMessage(atom_t severity, ...)
 
 out:
   restoreWakeup(&wstate PASS_LD);
-  unblockGC(0 PASS_LD);
 
   return rc;
 }
