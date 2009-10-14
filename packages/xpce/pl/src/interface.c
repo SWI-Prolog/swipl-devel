@@ -155,7 +155,7 @@ typedef struct
 static PceObject	termToObject(Term t, PceType type,
 				     Atom assoc, int new);
 static prolog_call_data *get_pcd(PceObject method);
-static void		put_object(Term t, PceObject obj);
+static int		put_object(Term t, PceObject obj);
 static void		put_trace_info(term_t id, prolog_call_data *pm);
        foreign_t	pl_pce_init(Term a);
 static Module		pceContextModule();
@@ -379,7 +379,7 @@ cToPceType(const char *name)
 #define PutFunctor(t, n, a)	SP_put_functor((t), (n), (a))
 #define PutCharp(t, s)		SP_put_string((t), (s))
 #define PutInteger(t, i)	SP_put_integer((t), (i))
-#define PutFloat(t, f)		SP_put_float((t), (f))
+#define PL_put_float(t, f)	SP_put_float((t), (f))
 #define Unify(t1, t2)		SP_unify((t1), (t2))
 #define PutAtom(t, a)		SP_put_atom((t), (a))
 #define PutTerm(t, f)		SP_put_term((t), (f))
@@ -513,7 +513,6 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define PutFunctor(t, n, a)	PL_put_functor((t), PL_new_functor((n), (a)))
 #define PutCharp(t, s)		PL_put_atom_chars((t), (s))
 #define PutInteger(t, i)	PL_put_integer((t), (i))
-#define PutFloat(t, f)		PL_put_float((t), (f))
 #define PutTerm(t, f)		PL_put_term((t), (f))
 #define Unify(t1, t2)		PL_unify((t1), (t2))
 #define UnifyAtom(t, a)		PL_unify_atom((t), (a))
@@ -693,20 +692,20 @@ Defined context terms
 #define EX_TOO_MANY_ARGUMENTS		9
 #define EX_EXISTENCE		       10 /* <type>, <term> */
 
-static void
+static int
 put_goal_context(Term ctx, PceGoal g, va_list args)
 { if ( g->flags & (PCE_GF_SEND|PCE_GF_GET) )
   { Term rec = va_arg(args, Term);
     Term msg = va_arg(args, Term);
 
     if ( g->flags & PCE_GF_SEND )
-      PL_cons_functor(ctx, FUNCTOR_send2, rec, msg);
+      return PL_cons_functor(ctx, FUNCTOR_send2, rec, msg);
     else
-      PL_cons_functor(ctx, FUNCTOR_get2, rec, msg);
+      return PL_cons_functor(ctx, FUNCTOR_get2, rec, msg);
   } else				/* new/2 */
   { Term descr = va_arg(args, Term);
 
-    PL_cons_functor(ctx, FUNCTOR_new1, descr);
+    return PL_cons_functor(ctx, FUNCTOR_new1, descr);
   }
 }
 
@@ -717,9 +716,10 @@ add_list(PceObject e, void *closure)
   Term head = ((Term *)closure)[1];
   Term tmp  = ((Term *)closure)[2];
 
-  PL_unify_list(tail, head, tail);
-  put_object(tmp, e);
-  return PL_unify(head, tmp);
+  return ( PL_unify_list(tail, head, tail) &&
+	   put_object(tmp, e) &&
+	   PL_unify(head, tmp)
+	 );
 }
 
 
@@ -748,8 +748,9 @@ ThrowException(int id, ...)
 	  pceEnumElements(g->errc2, add_list, (void *)l);
 	  PL_unify_nil(l[0]);			/* the tail */
 
-	  PL_cons_functor(err, FUNCTOR_pce2, a1, a2);
-	  put_goal_context(ctx, g, args);
+	  if ( !PL_cons_functor(err, FUNCTOR_pce2, a1, a2) ||
+	       !put_goal_context(ctx, g, args) )
+	    return FALSE;
 	  break;
 	}
 	default:
@@ -2339,7 +2340,7 @@ out:
 }
 
 
-static void
+static int
 put_object(Term t, PceObject obj)
 { PceCValue value;
   int pcetype;
@@ -2349,12 +2350,13 @@ put_object(Term t, PceObject obj)
   { case PCE_REFERENCE:
     {
 #ifdef HAVE_XPCEREF
-      _PL_put_xpce_reference_i(t, value.integer);
+      return _PL_put_xpce_reference_i(t, value.integer);
 #else
-      Term t2 = NewTerm();
+      Term t2;
 
-      PutInteger(t2, value.integer);
-      PL_cons_functor(t, FUNCTOR_ref1, t2);
+      return ( (t2 = NewTerm()) &&
+	       PutInteger(t2, value.integer) &&
+	       PL_cons_functor(t, FUNCTOR_ref1, t2) );
 #endif
       break;
     }
@@ -2364,11 +2366,14 @@ put_object(Term t, PceObject obj)
       avalue = CachedNameToAtom(symbol->name);
 
 #ifdef HAVE_XPCEREF
-      _PL_put_xpce_reference_a(t, avalue);
+      return _PL_put_xpce_reference_a(t, avalue);
 #else
-      { Term t2 = NewTerm();
-	PutAtom(t2, avalue);
-	PL_cons_functor(t, FUNCTOR_ref1, t2);
+      { Term t2;
+
+	return ( (t2=NewTerm()) &&
+		 PutAtom(t2, avalue) &&
+		 PL_cons_functor(t, FUNCTOR_ref1, t2)
+	       );
       }
 #endif
 
@@ -2376,10 +2381,11 @@ put_object(Term t, PceObject obj)
     }
     case PCE_HOSTDATA:
     { PutTerm(t, getTermHandle(obj));	/* TBD: Use saved handle */
+      return TRUE;
       break;
     }
     case PCE_INTEGER:
-      PutInteger(t, value.integer);
+      return PutInteger(t, value.integer);
 
       break;
     case PCE_NAME:
@@ -2388,14 +2394,16 @@ put_object(Term t, PceObject obj)
 	avalue = nameToAtom(symbol->name);
       }
       PutAtom(t, avalue);
+      return TRUE;
 
       break;
     case PCE_REAL:
-      PutFloat(t, value.real);
+      return PL_put_float(t, value.real);
 
       break;
     default:
       assert(0);
+      return FALSE;
   }
 }
 
