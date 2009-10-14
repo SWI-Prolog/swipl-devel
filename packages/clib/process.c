@@ -93,42 +93,51 @@ ISSUES:
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 resource_error(const char *resource)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_CHARS, resource,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_resource_error1,
+		         PL_CHARS, resource,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -249,7 +258,8 @@ static int
 get_echars_arg_ex(int i, term_t from, term_t arg, echar **sp, size_t *lenp)
 { const echar *s, *e;
 
-  PL_get_arg(i, from, arg);
+  if ( !PL_get_arg(i, from, arg) )
+    return FALSE;
 
 #ifdef __WINDOWS__
   if ( !PL_get_wchars(arg, lenp, sp,
@@ -345,7 +355,7 @@ get_stream(term_t t, p_options *info, p_stream *stream)
     }
   } else if ( PL_is_functor(t, FUNCTOR_pipe1) )
   { stream->term = PL_new_term_ref();
-    PL_get_arg(1, t, stream->term);
+    _PL_get_arg(1, t, stream->term);
     stream->type = std_pipe;
     info->pipes++;
     return TRUE;
@@ -368,7 +378,7 @@ parse_options(term_t options, p_options *info)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
 
     if ( name == ATOM_stdin )
     { if ( !get_stream(arg, info, &info->streams[0]) )
@@ -437,7 +447,7 @@ get_exe(term_t exe, p_options *info)
   { int i;
 
     for(i=1; i<=arity; i++)
-    { PL_get_arg(i, exe, arg);
+    { _PL_get_arg(i, exe, arg);
 
       if ( !PL_get_chars(arg, &info->argv[i],
 			 CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
@@ -1230,10 +1240,10 @@ wait_for_pid(pid_t pid, term_t code, wait_options *opts)
     { term_t PID;
 
     error:
-      PID = PL_new_term_ref();
-      PL_put_integer(PID, pid);
-
-      return pl_error(NULL, 0, "waitpid", ERR_ERRNO, errno, "wait", "process", PID);
+      return ((PID = PL_new_term_ref()) &&
+	      PL_put_integer(PID, pid) &&
+	      pl_error(NULL, 0, "waitpid", ERR_ERRNO,
+		       errno, "wait", "process", PID));
     }
   }
 
@@ -1282,17 +1292,19 @@ wait_success(atom_t name, pid_t pid)
     { if ( WIFEXITED(status) && WEXITSTATUS(status) == 0 )
       { return TRUE;
       } else
-      { term_t code = PL_new_term_ref();
-	term_t ex = PL_new_term_ref();
+      { term_t code, ex;
 
-	unify_exit_status(code, status);
-	PL_unify_term(ex,
-		      PL_FUNCTOR, FUNCTOR_error2,
-		        PL_FUNCTOR, FUNCTOR_process_error2,
-		          PL_ATOM, name,
-		          PL_TERM, code,
-		        PL_VARIABLE);
-	return PL_raise_exception(ex);
+	if ( (code = PL_new_term_ref()) &&
+	     (ex = PL_new_term_ref()) &&
+	     unify_exit_status(code, status) &&
+	     PL_unify_term(ex,
+			   PL_FUNCTOR, FUNCTOR_error2,
+			     PL_FUNCTOR, FUNCTOR_process_error2,
+			       PL_ATOM, name,
+			       PL_TERM, code,
+			     PL_VARIABLE) )
+	  return PL_raise_exception(ex);
+	return FALSE;
       }
     }
 
@@ -1504,7 +1516,7 @@ process_wait(term_t pid, term_t code, term_t options)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
     if ( name == ATOM_timeout )
     { atom_t a;
 
