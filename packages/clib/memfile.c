@@ -88,7 +88,7 @@ get_memfile(term_t handle, memfile **f)
   { term_t a = PL_new_term_ref();
     void *ptr;
 
-    PL_get_arg(1, handle, a);
+    _PL_get_arg(1, handle, a);
     if ( PL_get_pointer(a, &ptr) )
     { memfile *m = ptr;
 
@@ -248,7 +248,7 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
       if ( PL_get_name_arity(head, &name, &arity) && arity == 1 )
       { term_t arg = PL_new_term_ref();
 
-	PL_get_arg(1, head, arg);
+	_PL_get_arg(1, head, arg);
 	if ( name == ATOM_encoding )
 	{ if ( !get_encoding(arg, &encoding) )
 	    return FALSE;
