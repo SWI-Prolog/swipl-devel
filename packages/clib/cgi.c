@@ -70,15 +70,17 @@ add_to_form(const char *name, const char *value, void *closure)
   long vl;
   double vf;
   size_t len = strlen(value);		/* TBD: pass this in */
+  int rc;
 
   if ( isinteger(value, &vl, len) )
-    PL_put_integer(val, vl);
+    rc = PL_put_integer(val, vl);
   else if ( isfloat(value, &vf, len) )
-    PL_put_float(val, vf);
+    rc = PL_put_float(val, vf);
   else
-    PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
+    rc = PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
-  if ( !PL_unify_list(tail, head, tail) ||
+  if ( !rc ||
+       !PL_unify_list(tail, head, tail) ||
        !PL_unify_term(head,
 		      PL_FUNCTOR, PL_new_functor(PL_new_atom(name), 1),
 		      PL_TERM, val) )
@@ -96,15 +98,17 @@ mp_add_to_form(const char *name, const char *value, size_t len,
   term_t val  = PL_new_term_ref();
   long vl;
   double vf;
+  int rc;
 
   if ( isinteger(value, &vl, len) )
-    PL_put_integer(val, vl);
+    rc = PL_put_integer(val, vl);
   else if ( isfloat(value, &vf, len) )
-    PL_put_float(val, vf);
+    rc = PL_put_float(val, vf);
   else
-    PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
+    rc = PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
-  if ( !PL_unify_list(tail, head, tail) ||
+  if ( !rc ||
+       !PL_unify_list(tail, head, tail) ||
        !PL_unify_term(head,
 		      PL_FUNCTOR, PL_new_functor(PL_new_atom(name), 1),
 		      PL_TERM, val) )
