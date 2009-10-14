@@ -376,7 +376,7 @@ cToPceType(const char *name)
 #define GetArg(n, t, a)		SP_get_arg((n), (t), (a))
 #define PutFunctor(t, n, a)	SP_put_functor((t), (n), (a))
 #define PL_put_atom_chars(t, s)	SP_put_string((t), (s))
-#define PutInteger(t, i)	SP_put_integer((t), (i))
+#define PL_put_integer(t, i)	SP_put_integer((t), (i))
 #define PL_put_float(t, f)	SP_put_float((t), (f))
 #define Unify(t1, t2)		SP_unify((t1), (t2))
 #define PutAtom(t, a)		SP_put_atom((t), (a))
@@ -447,11 +447,11 @@ UndefinedPredicate(atom_t pred, int arity, atom_t module)
   term_t m = NewTerm();			/* Module */
 
   PutFunctor(goal, pred, arity);
-  PutInteger(zero, 0);
+  PL_put_integer(zero, 0);
   PutAtom(id, ATOM_procedure);
   PutAtom(name, pred);
   PutAtom(m, module);
-  PutInteger(ar, arity);
+  PL_put_integer(ar, arity);
   PL_cons_functor(fa, ATOM_slash, 2, name, ar);
   PL_cons_functor(culprit, ATOM_module, 2, m, fa);
   PL_cons_functor(et, ATOM_existence_error, 5, goal, zero, id, culprit, zero);
@@ -509,7 +509,7 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define QGetArg(n, t, a)	_PL_get_arg((n), (t), (a))
 #define IsFunctor(t, f)		PL_is_functor((t), (f))
 #define PutFunctor(t, n, a)	PL_put_functor((t), PL_new_functor((n), (a)))
-#define PutInteger(t, i)	PL_put_integer((t), (i))
+#define PL_put_integer(t, i)	PL_put_integer((t), (i))
 #define PutTerm(t, f)		PL_put_term((t), (f))
 #define Unify(t1, t2)		PL_unify((t1), (t2))
 #define UnifyAtom(t, a)		PL_unify_atom((t), (a))
@@ -765,7 +765,7 @@ ThrowException(int id, ...)
 
       PutAtom(a1, ATOM_object);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
-	   !PutInteger(a2, ref) ||
+	   !PL_put_integer(a2, ref) ||
 	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
 	return FALSE;
@@ -965,7 +965,7 @@ unifyReferenceArg(term_t t, int type, PceCValue value)
 { term_t t2 = NewTerm();		/* Exploit SWI-Prolog PL_unify-* */
 
   if ( type == PCE_REFERENCE )
-  { PutInteger(t2, value.integer);
+  { PL_put_integer(t2, value.integer);
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
@@ -999,7 +999,7 @@ unifyReference(term_t t, int type, PceCValue value)
   term_t r  = NewTerm();
 
   if ( type == PCE_REFERENCE )
-  { PutInteger(t2, value.integer);
+  { PL_put_integer(t2, value.integer);
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
@@ -2359,7 +2359,7 @@ put_object(term_t t, PceObject obj)
       term_t t2;
 
       return ( (t2 = NewTerm()) &&
-	       PutInteger(t2, value.integer) &&
+	       PL_put_integer(t2, value.integer) &&
 	       PL_cons_functor(t, FUNCTOR_ref1, t2) );
 #endif
       break;
@@ -2389,7 +2389,7 @@ put_object(term_t t, PceObject obj)
       break;
     }
     case PCE_INTEGER:
-      return PutInteger(t, value.integer);
+      return PL_put_integer(t, value.integer);
 
       break;
     case PCE_NAME:
