@@ -1988,7 +1988,7 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 		 *	  PROLOG EVENT HOOK	*
 		 *******************************/
 
-void
+int
 callEventHook(int ev, ...)
 { if ( !PROCEDURE_event_hook1 )
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
@@ -2000,9 +2000,8 @@ callEventHook(int ev, ...)
     va_list args;
     term_t arg;
 
-    blockGC(0 PASS_LD);
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-      goto out;
+      return FALSE;
     arg = PL_new_term_ref();
 
     va_start(args, ev);
@@ -2075,13 +2074,16 @@ callEventHook(int ev, ...)
     }
 
     if ( rc )
-      PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
+      rc = PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
 
   out:
     restoreWakeup(&wstate PASS_LD);
-    unblockGC(0 PASS_LD);
     va_end(args);
+
+    return rc;
   }
+
+  return TRUE;
 }
 
 #endif /*O_DEBUGGER*/

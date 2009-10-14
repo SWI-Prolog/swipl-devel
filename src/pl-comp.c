@@ -4938,8 +4938,7 @@ setBreak(Clause clause, int offset)	/* offset is already verified */
     *PC = encode(D_BREAK);
     set(clause, HAS_BREAKPOINTS);
 
-    callEventHook(PLEV_BREAK, clause, offset);
-    succeed;
+    return callEventHook(PLEV_BREAK, clause, offset);
   } else
   { return not_breakable(ATOM_set, clause, offset);
   }
@@ -4972,8 +4971,7 @@ clearBreak(Clause clause, int offset)
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
 
-  callEventHook(PLEV_NOBREAK, clause, offset);
-  succeed;
+  return callEventHook(PLEV_NOBREAK, clause, offset);
 }
 
 
