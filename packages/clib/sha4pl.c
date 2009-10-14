@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -75,7 +75,7 @@ sha_options(term_t options, optval *result)
     if ( PL_get_name_arity(opt, &aname, &arity) && arity == 1 )
     { term_t a = PL_new_term_ref();
 
-      PL_get_arg(1, opt, a);
+      _PL_get_arg(1, opt, a);
 
       if ( aname == ATOM_algorithm )
       { atom_t a_algorithm;
