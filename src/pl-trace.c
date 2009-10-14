@@ -342,10 +342,10 @@ returns to the WAM interpreter how to continue the execution:
 int
 tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
+  wakeup_state wstate;
   term_t frameref, chref, frref, pcref;
   Definition def = frame->predicate;
   LocalFrame fr = NULL;
-  fid_t wake;
 
   if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
        debugstatus.suspendTrace )	        /* called back */
@@ -446,7 +446,8 @@ We are in searching mode; should we actually give this port?
     }
   }
 
-  wake = saveWakeup(PASS_LD1);
+  if ( !saveWakeup(&wstate, FALSE PASS_LD) )
+    return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Do the Prolog trace interception.
@@ -507,7 +508,7 @@ again:
     Sputcode('\n', Sdout);
 
 out:
-  restoreWakeup(wake PASS_LD);
+  restoreWakeup(&wstate PASS_LD);
   if ( action == ACTION_ABORT )
     abortProlog(ABORT_RAISE);
 
@@ -870,13 +871,12 @@ static const portname portnames[] =
 static int
 writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 { GET_LD
-  fid_t wake, cid;
+  wakeup_state wstate;
   Definition def = frame->predicate;
   int rc = TRUE;
 
   blockGC(0 PASS_LD);
-  wake = saveWakeup(PASS_LD1);
-  if ( !(cid = PL_open_foreign_frame()) )
+  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
   { rc = FALSE;
     goto out;
   }
@@ -958,8 +958,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 out:
   unblockGC(0 PASS_LD);
 
-  PL_discard_foreign_frame(cid);
-  restoreWakeup(wake PASS_LD);
+  restoreWakeup(&wstate PASS_LD);
   return rc;
 }
 
@@ -1987,14 +1986,14 @@ callEventHook(int ev, ...)
 
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
   { GET_LD
+    wakeup_state wstate;
     int rc;
     va_list args;
-    fid_t fid, wake;
     term_t arg;
 
     blockGC(0 PASS_LD);
-    wake = saveWakeup(PASS_LD1);
-    fid = PL_open_foreign_frame();
+    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+      goto out;
     arg = PL_new_term_ref();
 
     va_start(args, ev);
@@ -2070,8 +2069,7 @@ callEventHook(int ev, ...)
       PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
 
   out:
-    PL_discard_foreign_frame(fid);
-    restoreWakeup(wake PASS_LD);
+    restoreWakeup(&wstate PASS_LD);
     unblockGC(0 PASS_LD);
     va_end(args);
   }

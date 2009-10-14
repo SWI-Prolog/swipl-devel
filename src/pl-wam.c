@@ -577,16 +577,23 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 { if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
        false(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
-    fid_t cid  = PL_open_foreign_frame();
-    term_t catcher = consTermRef(argFrameP(fr, 2));
+    fid_t cid;
+    term_t catcher;
+
+    if ( !(cid=PL_open_foreign_frame()) )
+      return;
+
+    fr = (LocalFrame)valTermRef(fref);
+    catcher = consTermRef(argFrameP(fr, 2));
 
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
-    { term_t clean, wake;
+    { term_t clean;
       term_t ex;
       int rval;
       int set_env = (reason == FINISH_CUT || reason == FINISH_EXCEPT);
       LocalFrame esave = environment_frame;
+      wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
 
@@ -597,9 +604,12 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
       clean = consTermRef(argFrameP(fr, 3));
       startCritical;
-      wake = saveWakeup(PASS_LD1);
-      rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
-      restoreWakeup(wake PASS_LD);
+      if ( saveWakeup(&wstate, FALSE PASS_LD) )
+      { rval = callProlog(contextModule(fr), clean, PL_Q_CATCH_EXCEPTION, &ex);
+	restoreWakeup(&wstate PASS_LD);
+      } else
+      { rval = FALSE;
+      }
       endCritical;
 
       if ( set_env )
@@ -1143,15 +1153,16 @@ static int
 exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
 { if ( PROCEDURE_exception_hook4->definition->definition.clauses )
   { if ( !LD->exception.in_hook )
-    { fid_t fid, wake;
+    { wakeup_state wstate;
       qid_t qid;
       term_t av;
       int debug, trace, rc;
 
       LD->exception.in_hook++;
-      fid = PL_open_foreign_frame();
-      av = PL_new_term_refs(4);
+      if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+	return FALSE;
 
+      av = PL_new_term_refs(4);
       PL_put_term(av+0, exception_bin);
       PL_put_frame(av+2, fr);
       if ( catchfr_ref )
@@ -1160,16 +1171,12 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
 	PL_put_frame(av+3, cfr);
       }
 
-      exception_term = 0;
-      setVar(*valTermRef(exception_bin));
-      wake = saveWakeup(PASS_LD1);
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
       PL_cut_query(qid);
-      restoreWakeup(wake PASS_LD);
       if ( rc )				/* pass user setting trace/debug */
       { if ( debug ) debugstatus.debugging = TRUE;
 	if ( trace ) debugstatus.tracing = TRUE;
@@ -1182,7 +1189,7 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
 	exception_term = exception_bin;
       }
 
-      PL_close_foreign_frame(fid);
+      restoreWakeup(&wstate PASS_LD);
       LD->exception.in_hook--;
 
       return rc;

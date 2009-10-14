@@ -811,17 +811,16 @@ callPortray(term_t arg, write_options *options)
 
   if ( portray->definition->definition.clauses )
   { GET_LD
-    fid_t wake    = saveWakeup(PASS_LD1);
-    fid_t fid     = PL_open_foreign_frame();
+    wakeup_state wstate;
     IOSTREAM *old = Scurout;
     int rval;
 
+    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+      return FALSE;
     Scurout = options->out;
     rval = PL_call_predicate(NULL, PL_Q_NODEBUG, portray, arg);
     Scurout = old;
-
-    PL_discard_foreign_frame(fid);
-    restoreWakeup(wake PASS_LD);
+    restoreWakeup(&wstate PASS_LD);
 
     return rval;
   }

@@ -1733,6 +1733,21 @@ typedef struct
 
 
 		 /*******************************
+		 *	      WAKEUP		*
+		 *******************************/
+
+#define WAKEUP_STATE_WAKEUP    0x1
+#define WAKEUP_STATE_EXCEPTION 0x2
+
+typedef struct wakeup_state
+{ fid_t		fid;			/* foreign frame reference */
+  int		flags;
+} wakeup_state;
+
+
+
+
+		 /*******************************
 		 *	    STREAM I/O		*
 		 *******************************/
 

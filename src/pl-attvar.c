@@ -394,9 +394,9 @@ Points requiring attention are:
 	- event hook.					(S/W)
 
 The ones marked (S/W) should not affect execution and therefore must use
-the save/restore approach. Effectively,  forcing   from  foreign code is
-very hard as explained in the   determinism handling of foreignWakeup(),
-so we will use save/restore in all places.
+the save/restore approach. Effectively, forcing  execution of the wakeup
+list from foreign code is very  hard   as  explained  in the determinism
+handling of foreignWakeup(), so we will use save/restore in all places.
 
 The functions below provide a way to   realise the save/restore. It must
 be nicely nested in the  same  way   and  using  the same constraints as
@@ -407,22 +407,30 @@ apply. The environment has size 1 if there  is a pending exception, 2 if
 a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-fid_t
-saveWakeup(ARG1_LD)
+int
+saveWakeup(wakeup_state *state, int forceframe, ARG1_LD)
 { Word h;
 
-  if ( *(h=valTermRef(LD->attvar.head)) || exception_term )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t s;
+  state->flags = 0;
+
+  if ( *(h=valTermRef(LD->attvar.head)) ||
+       exception_term ||
+       forceframe )
+  { term_t s;
+
+    if ( !(state->fid = PL_open_foreign_frame()) )
+      return FALSE;			/* no space! */
 
     if ( exception_term )
-    { s = PL_new_term_ref();
+    { state->flags |= WAKEUP_STATE_EXCEPTION;
+      s = PL_new_term_ref();
       *valTermRef(s) = *valTermRef(exception_term);
       exception_term = 0;
     }
 
     if ( *h )
-    { s = PL_new_term_refs(2);
+    { state->flags |= WAKEUP_STATE_WAKEUP;
+      s = PL_new_term_refs(2);
 
       DEBUG(1, pl_write(LD->attvar.head); pl_nl());
 
@@ -434,10 +442,11 @@ saveWakeup(ARG1_LD)
       DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
     }
 
-    return fid;
+    return TRUE;
+  } else
+  { state->fid = 0;
+    return TRUE;
   }
-
-  return (fid_t)0;
 }
 
 
@@ -454,9 +463,7 @@ restore_exception(Word p ARG_LD)
 
 static void
 restore_wakeup(Word p ARG_LD)
-{
-
-  *valTermRef(LD->attvar.head) = p[0];
+{ *valTermRef(LD->attvar.head) = p[0];
   *valTermRef(LD->attvar.tail) = p[1];
 
   DEBUG(1, pl_writeln(LD->attvar.head));
@@ -464,27 +471,22 @@ restore_wakeup(Word p ARG_LD)
 
 
 void
-restoreWakeup(fid_t fid ARG_LD)
-{ if ( fid )
-  { FliFrame fr = (FliFrame) valTermRef(fid);
-    Word p = (Word)(fr+1);
+restoreWakeup(wakeup_state *state ARG_LD)
+{ if ( state->fid )
+  { if ( state->flags )
+    { FliFrame fr = (FliFrame) valTermRef(state->fid);
+      Word p = (Word)(fr+1);
 
-    switch(fr->size)
-    { case 3:
-	restore_exception(p PASS_LD);
+      if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
+      { restore_exception(p PASS_LD);
         p++;
-	/*FALLTHROUGH*/
-      case 2:
-	restore_wakeup(p PASS_LD);
-        break;
-      case 1:
-	restore_exception(p PASS_LD);
-        break;
-      default:
-	assert(0);
+      }
+      if ( (state->flags & WAKEUP_STATE_WAKEUP) )
+      { restore_wakeup(p PASS_LD);
+      }
     }
 
-    PL_discard_foreign_frame(fid);
+    PL_discard_foreign_frame(state->fid);
   }
 }
 

@@ -616,21 +616,25 @@ printMessage(atom_t severity, ...)
 Calls print_message(severity, term), where  ...   are  arguments  as for
 PL_unify_term(). This predicate saves possible   pending  exceptions and
 restores them to make the call from B_THROW possible.
+
+FIXME: Make blocking GC an option or demand the environment to do this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 printMessage(atom_t severity, ...)
 { GET_LD
-  fid_t fid=0, wid=0;
+  wakeup_state wstate;
   term_t av;
   predicate_t pred = PROCEDURE_print_message2;
   va_list args;
+  int rc;
 
-  blockGC(0 PASS_LD);			/* sometimes called from dangerous */
-					/* places */
-  if ( !(fid = PL_open_foreign_frame()) )
-    goto out;
-  wid = saveWakeup(PASS_LD1);
+  blockGC(0 PASS_LD);		/* sometimes called from dangerous places */
+
+  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  { unblockGC(0 PASS_LD);
+    return FALSE;
+  }
 
   av = PL_new_term_refs(2);
   va_start(args, severity);
@@ -640,17 +644,18 @@ printMessage(atom_t severity, ...)
   va_end(args);
 
   if ( isDefinedProcedure(pred) )
-    PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
-  else
+  { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
+  } else
   { Sfprintf(Serror, "Message: ");
-    PL_write_term(Serror, av+1, 1200, 0);
+    rc = PL_write_term(Serror, av+1, 1200, 0);
     Sfprintf(Serror, "\n");
   }
 
 out:
-  if ( wid ) restoreWakeup(wid PASS_LD);
-  if ( fid ) PL_discard_foreign_frame(fid);
+  restoreWakeup(&wstate PASS_LD);
   unblockGC(0 PASS_LD);
+
+  return rc;
 }
 
 

@@ -41,17 +41,20 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 word
 pl_break()
 { GET_LD
-  fid_t wake = saveWakeup(PASS_LD1);
-  fid_t cid = PL_open_foreign_frame();
-  term_t goal = PL_new_term_ref();
-  word rval;
+  wakeup_state wstate;
 
-  PL_put_atom_chars(goal, "$break");
-  rval = pl_break1(goal);
-  PL_discard_foreign_frame(cid);
-  restoreWakeup(wake PASS_LD);
+  if ( saveWakeup(&wstate, TRUE PASS_LD) )
+  { term_t goal = PL_new_term_ref();
+    int rc;
 
-  return rval;
+    PL_put_atom_chars(goal, "$break");
+    rc = pl_break1(goal);
+    restoreWakeup(&wstate PASS_LD);
+
+    return rc;
+  }
+
+  return FALSE;
 }
 
 

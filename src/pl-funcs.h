@@ -68,8 +68,8 @@ COMMON(void *) 		xrealloc(void *mem, size_t size);
 
 /* pl-attvar.c */
 COMMON(void) 		assignAttVar(Word av, Word value ARG_LD);
-COMMON(fid_t)		saveWakeup(ARG1_LD);
-COMMON(void)		restoreWakeup(fid_t fid ARG_LD);
+COMMON(int)		saveWakeup(wakeup_state *state, int forceframe ARG_LD);
+COMMON(void)		restoreWakeup(wakeup_state *state ARG_LD);
 
 /* pl-gvar.c */
 
@@ -229,7 +229,7 @@ COMMON(void)            rememberExtensions(const char *module,
 COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
 COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
-COMMON(void) 		printMessage(atom_t severity, ...);
+COMMON(int) 		printMessage(atom_t severity, ...);
 COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
 					 unsigned int flags);
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
