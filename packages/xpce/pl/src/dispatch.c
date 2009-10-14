@@ -125,57 +125,69 @@ undispatch(void *closure)
 
 static int
 permission_error(const char *type, const char *op, const char *obj)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "permission_error", 3,
-		        PL_CHARS, type,
-		        PL_CHARS, op,
-		        PL_CHARS, obj,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+	PL_unify_term(ex,
+		      PL_FUNCTOR_CHARS, "error", 2,
+		        PL_FUNCTOR_CHARS, "permission_error", 3,
+		          PL_CHARS, type,
+		          PL_CHARS, op,
+		          PL_CHARS, obj,
+		        PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 resource_error(const char *error)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "resource_error", 1,
-		        PL_CHARS, error,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "resource_error", 1,
+		         PL_CHARS, error,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return  FALSE;
 }
 
 #ifdef __WINDOWS__
@@ -455,7 +467,7 @@ set_options(dispatch_context *ctx, term_t options)
       int b;
       const char *s = PL_atom_chars(name);
 
-      PL_get_arg(1, head, arg);
+      _PL_get_arg(1, head, arg);
 
       if ( streq(s, "console") )
       { if ( !PL_get_bool(arg, &b) )
