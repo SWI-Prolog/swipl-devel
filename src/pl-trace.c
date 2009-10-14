@@ -202,22 +202,22 @@ user to intercept and redefine the tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 					/* Frame <-> Prolog integer */
-forwards LocalFrame	redoFrame(LocalFrame, Code *PC);
-forwards void		helpTrace(void);
+static LocalFrame	redoFrame(LocalFrame, Code *PC);
+static void		helpTrace(void);
 #ifdef O_INTERRUPT
-forwards void		helpInterrupt(void);
+static void		helpInterrupt(void);
 #endif
-forwards bool		hasAlternativesFrame(LocalFrame);
+static bool		hasAlternativesFrame(LocalFrame);
 static void		alternatives(Choice);
-static void		exceptionDetails(void);
-forwards void		listGoal(LocalFrame frame);
-forwards int		traceInterception(LocalFrame, Choice, int, Code);
+static int		exceptionDetails(void);
+static int		listGoal(LocalFrame frame);
+static int		traceInterception(LocalFrame, Choice, int, Code);
 static int		traceAction(char *cmd,
 				    int port,
 				    LocalFrame frame,
 				    Choice bfr,
 				    bool interactive);
-forwards void		interruptHandler(int sig);
+static void		interruptHandler(int sig);
 static int		writeFrameGoal(LocalFrame frame, Code PC,
 				       unsigned int flags);
 
@@ -875,7 +875,6 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   Definition def = frame->predicate;
   int rc = TRUE;
 
-  blockGC(0 PASS_LD);
   if ( !saveWakeup(&wstate, TRUE PASS_LD) )
   { rc = FALSE;
     goto out;
@@ -956,8 +955,6 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   }
 
 out:
-  unblockGC(0 PASS_LD);
-
   restoreWakeup(&wstate PASS_LD);
   return rc;
 }
@@ -1005,37 +1002,50 @@ messageToString(term_t msg)
 }
 
 
-static void
+static int
 exceptionDetails()
 { GET_LD
   term_t except = LD->exception.pending;
-  fid_t cid = PL_open_foreign_frame();
+  fid_t cid;
 
-  Sflush(Suser_output);			/* make sure to stay `in sync' */
-  Sfputs("\n\tException term: ", Sdout);
-  PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
-  Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
+  if ( (cid = PL_open_foreign_frame()) )
+  { int rc;
 
-  PL_discard_foreign_frame(cid);
+    Sflush(Suser_output);		/* make sure to stay in sync */
+    Sfputs("\n\tException term: ", Sdout);
+    rc = PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
+    Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
+
+    PL_discard_foreign_frame(cid);
+    return rc;
+  }
+
+  return FALSE;
 }
 
 
-static void
+static int
 listGoal(LocalFrame frame)
 { GET_LD
-  fid_t cid = PL_open_foreign_frame();
-  term_t goal = PL_new_term_ref();
-  predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
-  IOSTREAM *old = Scurout;
+  fid_t cid;
 
-  Scurout = Sdout;
-  blockGC(0 PASS_LD);
-  put_frame_goal(goal, frame);
-  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
-  unblockGC(0 PASS_LD);
-  Scurout = old;
+  if ( (cid=PL_open_foreign_frame()) )
+  { term_t goal = PL_new_term_ref();
+    predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
+    IOSTREAM *old = Scurout;
+    int rc;
 
-  PL_discard_foreign_frame(cid);
+    Scurout = Sdout;
+    put_frame_goal(goal, frame);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
+    unblockGC(0 PASS_LD);
+    Scurout = old;
+
+    PL_discard_foreign_frame(cid);
+    return rc;
+  }
+
+  return FALSE;
 }
 
 
