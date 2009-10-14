@@ -14,7 +14,7 @@ typedef struct asymbol *ASymbol;
 typedef struct table   *Table;
 
 struct asymbol
-{ Atom		atom;
+{ atom_t	atom;
   PceName	name;
   ASymbol	next;
 };
@@ -66,7 +66,7 @@ rehashTable(Table t, int aton)
 }
 
 static PceName
-atomToName(Atom a)
+atomToName(atom_t a)
 { int k = AtomKey(&atom_to_name, a);
   ASymbol s = atom_to_name.symbols[k];
   PceName name;
@@ -101,11 +101,11 @@ atomToName(Atom a)
 }
 
 
-static Atom
+static atom_t
 CachedNameToAtom(PceName name)
 { int k = NameKey(&name_to_atom, name);
   ASymbol s = name_to_atom.symbols[k];
-  Atom a;
+  atom_t a;
   size_t len;
   const char *textA;
   const wchar_t *textW;
