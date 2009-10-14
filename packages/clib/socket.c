@@ -82,7 +82,7 @@ tcp_get_socket(term_t Socket, int *id)
   if ( PL_is_functor(Socket, FUNCTOR_socket1) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, Socket, a);
+    _PL_get_arg(1, Socket, a);
     if ( PL_get_integer(a, id) )
       return TRUE;
   }
@@ -155,7 +155,7 @@ pl_setopt(term_t Socket, term_t opt)
       } else /*if ( arity == 1 )*/
       { term_t a = PL_new_term_ref();
 
-	PL_get_arg(1, opt, a);
+	_PL_get_arg(1, opt, a);
 	if ( !PL_get_bool(a, &enable) )
 	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a, "boolean");
       }
@@ -246,7 +246,7 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t options)
       int arity;
 
       if ( PL_get_name_arity(head, &name, &arity) && arity == 1 )
-      { PL_get_arg(1, head, arg);
+      { _PL_get_arg(1, head, arg);
 
 	if ( name == ATOM_as )
 	{ atom_t a;
@@ -386,7 +386,7 @@ pl_bind(term_t Socket, term_t Address)
 
     if ( getsockname(fd, (struct sockaddr *) &addr, &len) )
       return nbio_error(errno, TCP_ERRNO);
-    PL_unify_integer(Address, ntohs(addr.sin_port));
+    return PL_unify_integer(Address, ntohs(addr.sin_port));
   }
 
   return TRUE;
@@ -595,10 +595,12 @@ static foreign_t
 pl_debug(term_t val)
 { int dbg;
 
-  PL_get_integer(val, &dbg);
-  nbio_debug(dbg);
+  if ( PL_get_integer(val, &dbg) )
+  { nbio_debug(dbg);
+    return TRUE;
+  }
 
-  return TRUE;
+  return FALSE;
 }
 #endif
 
