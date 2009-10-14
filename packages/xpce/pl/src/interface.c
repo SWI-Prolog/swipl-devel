@@ -154,7 +154,7 @@ static PceObject	termToObject(term_t t, PceType type,
 				     atom_t assoc, int new);
 static prolog_call_data *get_pcd(PceObject method);
 static int		put_object(term_t t, PceObject obj);
-static void		put_trace_info(term_t id, prolog_call_data *pm);
+static int		put_trace_info(term_t id, prolog_call_data *pm);
        foreign_t	pl_pce_init(term_t a);
 static Module		pceContextModule();
 static void		makeClassProlog();
@@ -968,10 +968,11 @@ get_object_from_refterm(term_t t, PceObject *obj)
 
 static int
 unifyReferenceArg(term_t t, int type, PceCValue value)
-{ term_t t2 = PL_new_term_ref();		/* Exploit SWI-Prolog PL_unify-* */
+{ term_t t2 = PL_new_term_ref();	/* Exploit SWI-Prolog PL_unify-* */
 
   if ( type == PCE_REFERENCE )
-  { PL_put_integer(t2, value.integer);
+  { if ( !PL_put_integer(t2, value.integer) )
+      return FALSE;
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
@@ -1654,11 +1655,13 @@ unifyObject(term_t t, PceObject obj, int top)
     term_t a = PL_new_term_ref();
 
     if ( (textA = pceCharArrayToCA(obj, &len)) )
-      PL_put_atom_nchars(a, len, textA);
-    else if ( (textW = pceCharArrayToCW(obj, &len)) )
-      PL_unify_wchars(a, PL_ATOM, len, textW);
-    else
-      return FALSE;
+    { PL_put_atom_nchars(a, len, textA);
+    } else if ( (textW = pceCharArrayToCW(obj, &len)) )
+    { if ( !PL_unify_wchars(a, PL_ATOM, len, textW) )
+	return FALSE;
+    } else
+    { return FALSE;
+    }
 
     return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_string1,
@@ -1699,7 +1702,8 @@ unifyObject(term_t t, PceObject obj, int top)
     } else if ( IsVar(t) )
     { term_t t2 = PL_new_term_ref();
 
-      PutFunctor(t2, pname, parity);
+      if ( !PutFunctor(t2, pname, parity) )
+	return FALSE;
       for(n=1; n<=parity; n++)
       { PceObject pcen = cToPceInteger(n);
 
@@ -1802,13 +1806,11 @@ put_default(PceGoal g, int n, term_t t)
 
   if ( v == DEFAULT )			/* pass @default */
   { PL_put_atom(t, ATOM_default);
-    PL_cons_functor(t, FUNCTOR_ref1, t);
+    return PL_cons_functor(t, FUNCTOR_ref1, t);
   } else if ( v )
-  { put_object(t, v);			/* some converted object */
+  { return put_object(t, v);		/* some converted object */
   } else
     return pceSetErrorGoal(g, PCE_ERR_MISSING_ARGUMENT, cToPceInteger(n));
-
-  return TRUE;
 }
 
 
@@ -1839,9 +1841,7 @@ put_prolog_argument(PceGoal g, term_t t, PceType type, term_t f)
       break;
     case PL_INTEGER:
       if ( pceCheckIntType(type, (long)val.i) ) /* cast ok? */
-      { PL_put_int64(t, val.i);
-	return TRUE;
-      }
+	return PL_put_int64(t, val.i);
       break;
     case PL_FLOAT:
       if ( pceCheckFloatType(type, val.f) )
@@ -1981,9 +1981,11 @@ invoke(term_t rec, term_t cl, term_t msg, term_t ret)
 
 					/* push method identifier */
 	  if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
-	    put_trace_info(av+0, pcd);
-	  else
-	    _PL_put_atomic(av+0, pcd->method_id);
+	  { if ( !put_trace_info(av+0, pcd) )
+	      goto plerror;
+	  } else
+	  { _PL_put_atomic(av+0, pcd->method_id);
+	  }
 
 	  if ( goal.flags & PCE_GF_CATCHALL )
 	  { goal.argn++;
@@ -2012,22 +2014,31 @@ invoke(term_t rec, term_t cl, term_t msg, term_t ret)
 	      goto plerror;
 	    }
 	    if ( i < 0 )
-	    { PL_unify_list(tail, tmp2, tail);
-	      PL_unify(tmp2, tmp);
+	    { if ( !PL_unify_list(tail, tmp2, tail) ||
+		   !PL_unify(tmp2, tmp) )
+	      { rval = FALSE;
+		goto out;
+	      }
 	    } else
 	      goal.argv[i] = (PceObject)(mav+i);
 	  }
 	  if ( tail )
-	    PL_unify_nil(tail);
+	  { if ( !PL_unify_nil(tail) )
+	    { rval = FALSE;
+	      goto out;
+	    }
+	  }
 
 	  for(n=0; n<goal.argc; n++)
 	  { if ( !goal.argv[n] && !put_default(&goal, n, mav+n) )
 	      goto plerror;
 	  }
 
-	  PL_cons_functor_v(av+1, pcd->functor, mav);
-						/* push @Receiver */
-	  put_object(av+2, goal.receiver);
+	  if ( !PL_cons_functor_v(av+1, pcd->functor, mav) ||
+	       !put_object(av+2, goal.receiver) )
+	  { rval = FALSE;
+	    goto out;
+	  }
 
 	  if ( prof_active )
 	    prof_node = PL_prof_call(goal.implementation, &pceProfType);
@@ -2460,7 +2471,7 @@ get_pcd(PceObject method)
 }
 
 
-static void
+static int
 put_trace_info(term_t id, prolog_call_data *pm)
 { term_t a = PL_new_term_ref();
   functor_t f;
@@ -2471,7 +2482,7 @@ put_trace_info(term_t id, prolog_call_data *pm)
   else /*if ( (pm->flags & PCE_METHOD_INFO_TRACE) )*/
     f = FUNCTOR_trace1;
 
-  PL_cons_functor(id, f, a);
+  return PL_cons_functor(id, f, a);
 }
 
 
@@ -2492,50 +2503,57 @@ PrologCall(PceGoal goal)
 { prolog_call_data *pcd;
 
   if ( (pcd = get_pcd(goal->implementation)) )
-  { fid_t  fid = PL_open_foreign_frame();
-    term_t av  = PL_new_term_refs(4);
-    term_t mav = PL_new_term_refs(pcd->argc);
-    int rval, n;
+  { fid_t fid;
 
-					/* push method identifier */
-    if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
-      put_trace_info(av+0, pcd);
-    else
-      _PL_put_atomic(av+0, pcd->method_id);
+    if ( (fid=PL_open_foreign_frame()) )
+    { term_t av  = PL_new_term_refs(4);
+      term_t mav = PL_new_term_refs(pcd->argc);
+      int rval = PCE_FAIL, n;
+  					  /* push method identifier */
+      if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
+      { if ( !put_trace_info(av+0, pcd) )
+	  goto error;
+      } else
+	_PL_put_atomic(av+0, pcd->method_id);
 
-    for(n=0; n<goal->argc; n++)		/* push normal arguments */
-      put_object(mav+n, goal->argv[n]);
-    if ( goal->va_argc >= 0 )		/* push varargs excess args in list */
-    { term_t l = mav+n;
-      term_t tmp = PL_new_term_ref();
-
-      PL_put_nil(l);
-      for(n=goal->va_argc; --n >= 0; )
-      { put_object(tmp, goal->va_argv[n]);
-	PL_cons_list(l, tmp, l);
+      for(n=0; n<goal->argc; n++)		/* push normal arguments */
+      { if ( !put_object(mav+n, goal->argv[n]) )
+	  goto error;
       }
-    }
-    PL_cons_functor_v(av+1, pcd->functor, mav);
-					/* push @receiver */
-    put_object(av+2, goal->receiver);
+      if ( goal->va_argc >= 0 )		/* push varargs excess args in list */
+      { term_t l = mav+n;
+	term_t tmp = PL_new_term_ref();
 
-    if ( goal->flags & PCE_GF_SEND )
-      rval = PL_call_predicate(MODULE_user, DebugMode,
-			       PREDICATE_send_implementation, av);
-    else
-    { rval = PL_call_predicate(MODULE_user, DebugMode,
-			       PREDICATE_get_implementation, av);
-      if ( rval )
-      { if ( !get_answer_object(goal, av+3, goal->return_type, &goal->rval) )
-	{ pceReportErrorGoal(goal);
-	  rval = PCE_FAIL;
+	PL_put_nil(l);
+	for(n=goal->va_argc; --n >= 0; )
+	{ if ( !put_object(tmp, goal->va_argv[n]) ||
+	       !PL_cons_list(l, tmp, l) )
+	    goto error;
 	}
       }
+					  /* push @receiver */
+      if ( !PL_cons_functor_v(av+1, pcd->functor, mav) ||
+	   !put_object(av+2, goal->receiver) )
+	goto error;
+
+      if ( goal->flags & PCE_GF_SEND )
+	rval = PL_call_predicate(MODULE_user, DebugMode,
+				 PREDICATE_send_implementation, av);
+      else
+      { rval = PL_call_predicate(MODULE_user, DebugMode,
+				 PREDICATE_get_implementation, av);
+	if ( rval )
+	{ if ( !get_answer_object(goal, av+3, goal->return_type, &goal->rval) )
+	  { pceReportErrorGoal(goal);
+	    rval = PCE_FAIL;
+	  }
+	}
+      }
+
+    error:
+      PL_discard_foreign_frame(fid);
+      return rval;
     }
-
-    PL_discard_foreign_frame(fid);
-
-    return rval;
   }
 
   return PCE_FAIL;
