@@ -1607,8 +1607,6 @@ retry_continue:
       DEF = getProcDefinedDefinition(DEF PASS_LD);
       LOAD_REGISTERS(qid);
       FR->predicate = DEF;
-      if ( false(DEF, FOREIGN) )
-	FR->clause = DEF->definition.clauses;
       set(FR, FR_INBOX);
 
       SAVE_REGISTERS(qid);

@@ -12,6 +12,9 @@
 	- Add shift/gc to debugger, or
 		- Make the debugger in the the spare stacks?
 	- Remove max_threads
+	- At call-port, FR->clause is no longer set to the
+	  first clause when tracing.  Debuggers have to do that
+	  themselves.
 
 ================================================================
 Static analysis of the C-program:
