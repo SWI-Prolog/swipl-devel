@@ -785,26 +785,26 @@ ThrowException(int id, ...)
       break;
     }
     case EX_BAD_ATOM_OBJECT_REF:		/* , <name> */
-    { atom_t ref = va_arg(args, long);
+    { atom_t ref = va_arg(args, atom_t);
       term_t a1 = NewTerm();
       term_t a2 = NewTerm();
 
       PutAtom(a1, ATOM_object);
-      PL_cons_functor(a1, FUNCTOR_pce1, a1);
       PutAtom(a2, ref);
-      PL_cons_functor(a2, FUNCTOR_ref1, a2);
-
-      PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
+	return FALSE;
       break;
     }
     case EX_BAD_OBJECT_REF:			/* not @<name-or-int> */
-    { term_t ref = va_arg(args, long);
+    { term_t ref = va_arg(args, term_t);
       term_t a1  = NewTerm();
 
       PutAtom(a1, ATOM_object);
-      PL_cons_functor(a1, FUNCTOR_pce1, a1);
-
-      PL_cons_functor(err, FUNCTOR_type_error2, a1, ref);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, ref) )
+	return FALSE;
       break;
     }
     case EX_TYPE:				/* type-name, arg */
@@ -816,9 +816,9 @@ ThrowException(int id, ...)
 	goto ex_instantiation;
 
       PutAtom(a1, tn);
-      PL_cons_functor(a1, FUNCTOR_pce1, a1);
-
-      PL_cons_functor(err, FUNCTOR_type_error2, a1, v);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, v) )
+	return FALSE;
       break;
     }
     case EX_EXISTENCE:				/* type-name, arg */
@@ -830,9 +830,9 @@ ThrowException(int id, ...)
 	goto ex_instantiation;
 
       PutAtom(a1, tn);
-      PL_cons_functor(a1, FUNCTOR_pce1, a1);
-
-      PL_cons_functor(err, FUNCTOR_existence_error2, a1, v);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, v) )
+	return FALSE;
       break;
     }
     case EX_INSTANTIATION:			/* No arguments */
@@ -847,7 +847,8 @@ ThrowException(int id, ...)
       term_t v  = va_arg(args, term_t);
 
       PutAtom(a1, tn);
-      PL_cons_functor(err, FUNCTOR_domain_error2, a1, v);
+      if ( !PL_cons_functor(err, FUNCTOR_domain_error2, a1, v) )
+	return FALSE;
       break;
     }
     case EX_PERMISSION:
@@ -861,12 +862,14 @@ ThrowException(int id, ...)
 
       PutAtom(a1, op);
       PutAtom(a2, tp);
-      put_object(a3, obj);
-      PL_cons_functor(err, FUNCTOR_permission_error3, a1, a2, a3);
+      if ( !put_object(a3, obj) ||
+	   !PL_cons_functor(err, FUNCTOR_permission_error3, a1, a2, a3) )
+	return FALSE;
 
       PutVar(a1);
       PutAtom(a2, msg);
-      PL_cons_functor(ctx, FUNCTOR_context2, a1, a2);
+      if ( !PL_cons_functor(ctx, FUNCTOR_context2, a1, a2) )
+	return FALSE;
       break;
     }
     default:
@@ -874,7 +877,8 @@ ThrowException(int id, ...)
   }
   va_end(args);
 
-  PL_cons_functor(et, FUNCTOR_error2, err, ctx);
+  if ( !PL_cons_functor(et, FUNCTOR_error2, err, ctx) )
+    return FALSE;
 
   return PL_raise_exception(et);
 }
@@ -958,7 +962,7 @@ get_object_from_refterm(term_t t, PceObject *obj)
 
 static int
 unifyReferenceArg(term_t t, int type, PceCValue value)
-{ term_t t2 = NewTerm();			/* Exploit SWI-Prolog PL_unify-* */
+{ term_t t2 = NewTerm();		/* Exploit SWI-Prolog PL_unify-* */
 
   if ( type == PCE_REFERENCE )
   { PutInteger(t2, value.integer);
