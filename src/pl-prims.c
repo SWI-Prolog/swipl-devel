@@ -2155,7 +2155,8 @@ start:
     if ( options->singletons )
     { a[1] = ATOM_anonvar;
     } else
-    { a[1] = makeNum(n);
+    { a[1] = consInt(n);
+      assert(valInt(a[1]) == n);
       n++;
     }
     gTop += 2;

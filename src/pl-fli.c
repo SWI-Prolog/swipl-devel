@@ -704,32 +704,6 @@ PL_same_compound(term_t t1, term_t t2)
 
 
 		 /*******************************
-		 *	      INTEGERS		*
-		 *******************************/
-
-static inline word
-__makeNum(int64_t i ARG_LD)
-{ word w = consInt(i);
-
-  if ( valInt(w) == i )
-    return w;
-
-  if ( put_int64(&w, i, 0 PASS_LD) == TRUE )
-    return w;
-
-  return 0;
-}
-
-word
-makeNum__LD(int64_t i ARG_LD)
-{ return __makeNum(i PASS_LD);
-}
-
-#undef makeNum
-#define makeNum(i) __makeNum(i PASS_LD)
-
-
-		 /*******************************
 		 *	       CONS-*		*
 		 *******************************/
 
@@ -2290,17 +2264,29 @@ PL_put_term(term_t t1, term_t t2)
 
 
 int
-_PL_put_xpce_reference_i(term_t t, uintptr_t r)
+_PL_put_xpce_reference_i(term_t t, uintptr_t i)
 { GET_LD
-  Word a = allocGlobal(2);
+  Word p;
+  word w;
 
-  if ( a )
-  { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-    *a++ = FUNCTOR_xpceref1;
-    *a++ = makeNum(r);
-    return TRUE;
+  if ( !hasGlobalSpace(2+2+WORDS_PER_INT64) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(2+2+WORDS_PER_INT64, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
   }
-  return FALSE;
+
+  w = consInt(i);
+  if ( valInt(w) != i )
+    put_int64(&w, i, 0 PASS_LD);
+
+  p = gTop;
+  gTop += 2;
+  setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+  *p++ = FUNCTOR_xpceref1;
+  *p++ = w;
+
+  return TRUE;
 }
 
 
@@ -3066,6 +3052,21 @@ PL_unify_term(term_t t, ...)
 }
 
 
+static inline word
+put_xpce_ref_arg(xpceref_t *ref ARG_LD)
+{ if ( ref->type == PL_INTEGER )
+  { word w = consInt(ref->value.i);
+
+    if ( valInt(w) != ref->value.i )
+      put_int64(&w, ref->value.i, 0 PASS_LD);
+
+    return w;
+  }
+
+  return ref->value.a;
+}
+
+
 int
 _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 { GET_LD
@@ -3090,29 +3091,27 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
       c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
       *a++ = FUNCTOR_xpceref1;
-      if ( ref->type == PL_INTEGER )
-	*a++ = makeNum(ref->value.i);
-      else
-	*a++ = ref->value.a;
+      *a++ = put_xpce_ref_arg(ref PASS_LD);
 
       bindConst(p, c);
       succeed;
     }
     if ( hasFunctor(*p, FUNCTOR_xpceref1) )
     { Word a = argTermP(*p, 0);
-      word v = (ref->type == PL_INTEGER ? makeNum(ref->value.i)
-					: ref->value.a);
 
       deRef(a);
-      if ( *a == v )
+      if ( canBind(*a) )
+      { word c = put_xpce_ref_arg(ref PASS_LD);
+
+	bindConst(a, c);
 	succeed;
-      if ( isVar(*a) )
-      { Trail(a, v);
-	succeed;
+      } else
+      { if ( ref->type == PL_INTEGER )
+	  return ( isInteger(*a) &&
+		   valInteger(*a) == ref->value.i );
+	else
+	  return *a == ref->value.a;
       }
-      if ( isIndirect(v) )
-	return equalIndirect(v, *a);
-      fail;
     }
   } while ( isRef(*p) && (p = unRef(*p)) );
 

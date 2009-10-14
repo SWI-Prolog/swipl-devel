@@ -2862,8 +2862,20 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
   if ( tagex(*np) == (TAG_INTEGER|STG_INLINE) )
   { intptr_t v = valInt(*np);
     int64_t r = v+add;			/* tagged ints never overflow */
+    word w = consInt(r);
 
-    *rp = makeNum(r);
+    if ( valInt(w) == r )
+    { *rp = w;
+    } else				/* but their some might not fit */
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = put_int64(&w, r, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+	goto b_throw;
+      *rp = w;
+    }
     NEXT_INSTRUCTION;
   } else
   { number n;
