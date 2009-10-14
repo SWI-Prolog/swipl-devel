@@ -1003,7 +1003,7 @@ get_timer(term_t t, Event *ev)
   { term_t a = PL_new_term_ref();
     void *p;
 
-    PL_get_arg(1, t, a);
+    _PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
     { Event e = p;
 
@@ -1051,7 +1051,7 @@ alarm4_gen(time_abs_rel abs_rel, term_t time, term_t callable,
       { if ( arity == 1 )
 	{ term_t arg = PL_new_term_ref();
 
-	  PL_get_arg(1, head, arg);
+	  _PL_get_arg(1, head, arg);
 
 	  if ( name == ATOM_remove )
 	  { int t = FALSE;
@@ -1243,12 +1243,16 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
     PL_discard_foreign_frame(fid);
 
-    PL_put_float(av+0, at);		/* time */
-    PL_recorded(ev->goal, av+1);	/* goal */
-    PL_put_variable(av+2);		/* id */
-    unify_timer(av+2, ev);
-    PL_put_atom(av+3, s);		/* status */
-    PL_cons_functor_v(next, FUNCTOR_alarm4, av);
+    if ( !PL_put_float(av+0, at) ||		/* time */
+	 !PL_recorded(ev->goal, av+1) ||	/* goal */
+	 !PL_put_variable(av+2) ||		/* id */
+	 !unify_timer(av+2, ev) ||
+	 !PL_put_atom(av+3, s) ||		/* status */
+	 !PL_cons_functor_v(next, FUNCTOR_alarm4, av) )
+    { PL_close_foreign_frame(fid);
+      UNLOCK();
+      return FALSE;
+    }
 
     if ( PL_unify_list(tail, head, tail) &&
 	 PL_unify(head, next) )
