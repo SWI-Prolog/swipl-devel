@@ -1977,12 +1977,13 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 		 *             PUT-*  		*
 		 *******************************/
 
-void
+int
 PL_put_variable(term_t t)
 { GET_LD
   Word p = valTermRef(t);
 
   setVar(*p);
+  return TRUE;
 }
 
 
@@ -1993,10 +1994,11 @@ PL_put_atom__LD(term_t t, atom_t a ARG_LD)
 
 
 #undef PL_put_atom
-void
+int
 PL_put_atom(term_t t, atom_t a)
 { GET_LD
   setHandle(t, a);
+  return TRUE;
 }
 #define PL_put_atom(t, a) PL_put_atom__LD(t, a PASS_LD)
 
