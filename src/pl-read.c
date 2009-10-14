@@ -363,7 +363,6 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   int rc = TRUE;
 
   LD->exception.processing = TRUE;	/* allow using spare stack */
-  blockGC(0 PASS_LD);
 
   if ( !(ex = PL_new_term_ref()) ||
        !(loc = PL_new_term_ref()) )
@@ -439,8 +438,6 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 	rc = FALSE;
     }
   }
-
-  unblockGC(0 PASS_LD);
 
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
