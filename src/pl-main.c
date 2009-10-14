@@ -1342,6 +1342,7 @@ vsysError(const char *fm, va_list args)
   { Sfprintf(Serror,
 	    "\n[While in %ld-th garbage collection]\n",
 	    gc_status.collections);
+    unblockSignals(&LD->gc.saved_sigmask);
   }
 
 #if defined(O_DEBUGGER)

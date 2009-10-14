@@ -2989,7 +2989,6 @@ garbageCollect(void)
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
   int rc;
-  sigset_t mask;
   fid_t gvars, astack;
   Word *saved_bar_at;
 #ifdef O_PROFILE
@@ -3015,7 +3014,7 @@ garbageCollect(void)
 
   enterGC();
 #ifndef UNBLOCKED_GC
-  blockSignals(&mask);
+  blockSignals(&LD->gc.saved_sigmask);
 #endif
   blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
@@ -3125,7 +3124,7 @@ garbageCollect(void)
   gc_status.active = FALSE;
   unblockGC(0 PASS_LD);
 #ifndef UNBLOCKED_GC
-  unblockSignals(&mask);
+  unblockSignals(&LD->gc.saved_sigmask);
 #endif
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
