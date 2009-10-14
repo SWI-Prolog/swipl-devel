@@ -376,7 +376,7 @@ cToPceType(const char *name)
 #define IsVar(t)		SP_is_variable(t)
 #define GetArg(n, t, a)		SP_get_arg((n), (t), (a))
 #define PutFunctor(t, n, a)	SP_put_functor((t), (n), (a))
-#define PutCharp(t, s)		SP_put_string((t), (s))
+#define PL_put_atom_chars(t, s)	SP_put_string((t), (s))
 #define PutInteger(t, i)	SP_put_integer((t), (i))
 #define PL_put_float(t, f)	SP_put_float((t), (f))
 #define Unify(t1, t2)		SP_unify((t1), (t2))
@@ -510,7 +510,6 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define QGetArg(n, t, a)	_PL_get_arg((n), (t), (a))
 #define IsFunctor(t, f)		PL_is_functor((t), (f))
 #define PutFunctor(t, n, a)	PL_put_functor((t), PL_new_functor((n), (a)))
-#define PutCharp(t, s)		PL_put_atom_chars((t), (s))
 #define PutInteger(t, i)	PL_put_integer((t), (i))
 #define PutTerm(t, f)		PL_put_term((t), (f))
 #define Unify(t1, t2)		PL_unify((t1), (t2))
@@ -743,9 +742,10 @@ ThrowException(int id, ...)
 	  l[1] = NewTerm();
 	  l[2] = NewTerm();
 
-	  put_object(a1, g->errc1);		/* error->id */
-	  pceEnumElements(g->errc2, add_list, (void *)l);
-	  PL_unify_nil(l[0]);			/* the tail */
+	  if ( !put_object(a1, g->errc1) || /* error->id */
+	       !pceEnumElements(g->errc2, add_list, (void *)l) ||
+	       !PL_unify_nil(l[0]) )	/* the tail */
+	    return FALSE;
 
 	  if ( !PL_cons_functor(err, FUNCTOR_pce2, a1, a2) ||
 	       !put_goal_context(ctx, g, args) )
@@ -765,10 +765,11 @@ ThrowException(int id, ...)
       term_t na = NewTerm();
 
       PutAtom(a1, ATOM_object);
-      PL_cons_functor(a1, FUNCTOR_pce1, a1);
-      PutInteger(a2, ref);
-      PL_cons_functor(a2, FUNCTOR_ref1, a2);
-      PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PutInteger(a2, ref) ||
+	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
+	return FALSE;
 
       if ( descr[0] == '@' )
       { char *s;
@@ -776,8 +777,9 @@ ThrowException(int id, ...)
 	for(s=&descr[1]; *s && isdigit(*s&0xff); s++)
 	  ;
 	if ( *s )
-	{ PutCharp(ctx, descr);			/* context(_, Message) */
-	  PL_cons_functor(ctx, FUNCTOR_context2, na, ctx);
+	{ if ( !PL_put_atom_chars(ctx, descr) || /* context(_, Message) */
+	       !PL_cons_functor(ctx, FUNCTOR_context2, na, ctx) )
+	    return FALSE;
 	}
       }
 
