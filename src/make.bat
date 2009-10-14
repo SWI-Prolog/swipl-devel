@@ -16,6 +16,11 @@ set LIB=%LIB%;%HOME%\lib;%DEVSTUDIO%\VC98\lib
 set INCLUDE=%INCLUDE%;%HOME%\include;%DEVSTUDIO%\VC98\include
 rem ****************************************************************
 
+echo int main ( void ) { return 0; } > have_manifest.c
+cl /MD have_manifest.c 
+IF EXIST have_manifest.exe.manifest (SET "MTEXE=mt.exe") ELSE (SET "MTEXE=rem")
+del /Q have_manifest.*
+
 rem Build default multi-threaded version 
 nmake /f makefile.mak %*
 
