@@ -516,7 +516,7 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We need to mark  the  top   frame  to  deal  with foreign predicates
 calling  Prolog  back  that  can  leak    term-handles   of  the  parent
-environment. This came from Roberto Bagnara   and  was simplfied to this
+environment. This came from Roberto Bagnara   and was simplified to this
 program, which must write foo(0).
 
 test :- c_bind(X), writeln(X).
