@@ -378,8 +378,8 @@ cToPceType(const char *name)
 #define PL_put_atom_chars(t, s)	SP_put_string((t), (s))
 #define PL_put_integer(t, i)	SP_put_integer((t), (i))
 #define PL_put_float(t, f)	SP_put_float((t), (f))
-#define Unify(t1, t2)		SP_unify((t1), (t2))
-#define PutAtom(t, a)		SP_put_atom((t), (a))
+#define PL_unify(t1, t2)	SP_unify((t1), (t2))
+#define PL_put_atom(t, a)	SP_put_atom((t), (a))
 #define PutTerm(t, f)		SP_put_term((t), (f))
 #define FindPredicate(n, a, m)	SP_pred(n, a, m)
 #define OpenForeign()		SP_new_term_refs(0)
@@ -448,9 +448,9 @@ UndefinedPredicate(atom_t pred, int arity, atom_t module)
 
   PutFunctor(goal, pred, arity);
   PL_put_integer(zero, 0);
-  PutAtom(id, ATOM_procedure);
-  PutAtom(name, pred);
-  PutAtom(m, module);
+  PL_put_atom(id, ATOM_procedure);
+  PL_put_atom(name, pred);
+  PL_put_atom(m, module);
   PL_put_integer(ar, arity);
   PL_cons_functor(fa, ATOM_slash, 2, name, ar);
   PL_cons_functor(culprit, ATOM_module, 2, m, fa);
@@ -509,13 +509,10 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define QGetArg(n, t, a)	_PL_get_arg((n), (t), (a))
 #define IsFunctor(t, f)		PL_is_functor((t), (f))
 #define PutFunctor(t, n, a)	PL_put_functor((t), PL_new_functor((n), (a)))
-#define PL_put_integer(t, i)	PL_put_integer((t), (i))
 #define PutTerm(t, f)		PL_put_term((t), (f))
-#define Unify(t1, t2)		PL_unify((t1), (t2))
 #define UnifyAtom(t, a)		PL_unify_atom((t), (a))
 #define UnifyFloat(t, a)	PL_unify_float((t), (a))
 #define UnifyInteger(t, a)	PL_unify_integer((t), (a))
-#define PutAtom(t, a)		PL_put_atom((t), (a))
 #define PutVar(t)		PL_put_variable((t))
 #define StripModuleTag(t, m, p)	PL_strip_module((t), (m), (p))
 #define FindPredicate(n, a, m)	PL_pred(PL_new_functor(n, a), m)
@@ -763,7 +760,7 @@ ThrowException(int id, ...)
       term_t a2 = NewTerm();
       term_t na = NewTerm();
 
-      PutAtom(a1, ATOM_object);
+      PL_put_atom(a1, ATOM_object);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_put_integer(a2, ref) ||
 	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
@@ -789,8 +786,8 @@ ThrowException(int id, ...)
       term_t a1 = NewTerm();
       term_t a2 = NewTerm();
 
-      PutAtom(a1, ATOM_object);
-      PutAtom(a2, ref);
+      PL_put_atom(a1, ATOM_object);
+      PL_put_atom(a2, ref);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
@@ -801,7 +798,7 @@ ThrowException(int id, ...)
     { term_t ref = va_arg(args, term_t);
       term_t a1  = NewTerm();
 
-      PutAtom(a1, ATOM_object);
+      PL_put_atom(a1, ATOM_object);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, ref) )
 	return FALSE;
@@ -815,7 +812,7 @@ ThrowException(int id, ...)
       if ( PL_is_variable(v) )
 	goto ex_instantiation;
 
-      PutAtom(a1, tn);
+      PL_put_atom(a1, tn);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, v) )
 	return FALSE;
@@ -829,7 +826,7 @@ ThrowException(int id, ...)
       if ( PL_is_variable(v) )
 	goto ex_instantiation;
 
-      PutAtom(a1, tn);
+      PL_put_atom(a1, tn);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, v) )
 	return FALSE;
@@ -846,7 +843,7 @@ ThrowException(int id, ...)
       atom_t tn = va_arg(args, atom_t);
       term_t v  = va_arg(args, term_t);
 
-      PutAtom(a1, tn);
+      PL_put_atom(a1, tn);
       if ( !PL_cons_functor(err, FUNCTOR_domain_error2, a1, v) )
 	return FALSE;
       break;
@@ -860,14 +857,14 @@ ThrowException(int id, ...)
       PceObject obj = va_arg(args, PceObject);
       atom_t msg = va_arg(args, atom_t);
 
-      PutAtom(a1, op);
-      PutAtom(a2, tp);
+      PL_put_atom(a1, op);
+      PL_put_atom(a2, tp);
       if ( !put_object(a3, obj) ||
 	   !PL_cons_functor(err, FUNCTOR_permission_error3, a1, a2, a3) )
 	return FALSE;
 
       PutVar(a1);
-      PutAtom(a2, msg);
+      PL_put_atom(a2, msg);
       if ( !PL_cons_functor(ctx, FUNCTOR_context2, a1, a2) )
 	return FALSE;
       break;
@@ -969,10 +966,10 @@ unifyReferenceArg(term_t t, int type, PceCValue value)
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
-    PutAtom(t2, CachedNameToAtom(symbol->name));
+    PL_put_atom(t2, CachedNameToAtom(symbol->name));
   }
 
-  return Unify(t, t2);
+  return PL_unify(t, t2);
 }
 
 
@@ -1003,11 +1000,11 @@ unifyReference(term_t t, int type, PceCValue value)
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
-    PutAtom(t2, CachedNameToAtom(symbol->name));
+    PL_put_atom(t2, CachedNameToAtom(symbol->name));
   }
   PL_cons_functor(r, FUNCTOR_ref1, t2);
 
-  return Unify(t, r);
+  return PL_unify(t, r);
 #endif /*HAVE_XPCEREF*/
 }
 
@@ -1621,7 +1618,7 @@ unifyObject(term_t t, PceObject obj, int top)
       }
     }
     case PCE_HOSTDATA:
-      return Unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */
+      return PL_unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */
     case PCE_REFERENCE:
     case PCE_ASSOC:
       if ( !top )
@@ -1705,7 +1702,7 @@ unifyObject(term_t t, PceObject obj, int top)
 	} else
 	  return FALSE;
       }
-      return Unify(t, t2);
+      return PL_unify(t, t2);
     } else
       return FALSE;
   }
@@ -1795,7 +1792,7 @@ put_default(PceGoal g, int n, term_t t)
 { PceObject v = pceCheckType(g, g->types[n], DEFAULT);
 
   if ( v == DEFAULT )			/* pass @default */
-  { PutAtom(t, ATOM_default);
+  { PL_put_atom(t, ATOM_default);
     PL_cons_functor(t, FUNCTOR_ref1, t);
   } else if ( v )
   { put_object(t, v);			/* some converted object */
@@ -1827,7 +1824,7 @@ put_prolog_argument(PceGoal g, term_t t, PceType type, term_t f)
   switch(PL_get_term_value(f, &val))
   { case PL_ATOM:
       if ( pceCheckNameType(type, AtomCharp(val.a)) )
-      { PutAtom(t, val.a);
+      { PL_put_atom(t, val.a);
 	return TRUE;
       }
       break;
@@ -2375,7 +2372,7 @@ put_object(term_t t, PceObject obj)
       { term_t t2;
 
 	return ( (t2=NewTerm()) &&
-		 PutAtom(t2, avalue) &&
+		 PL_put_atom(t2, avalue) &&
 		 PL_cons_functor(t, FUNCTOR_ref1, t2)
 	       );
       }
@@ -2397,7 +2394,7 @@ put_object(term_t t, PceObject obj)
 
 	avalue = nameToAtom(symbol->name);
       }
-      PutAtom(t, avalue);
+      PL_put_atom(t, avalue);
       return TRUE;
 
       break;
