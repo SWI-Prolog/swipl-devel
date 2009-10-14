@@ -143,12 +143,11 @@ VMI(D_BREAK, 0, 0, ())
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { int action;
-    LocalFrame lSave = lTop;
 
-    lTop = (LocalFrame)argFrameP(lTop, MAXARITY);
+    SAVE_REGISTERS(qid);
     clearUninitialisedVarsFrame(FR, PC-1);
     action = tracePort(FR, BFR, BREAK_PORT, PC-1 PASS_LD);
-    lTop = lSave;
+    LOAD_REGISTERS(qid);
 
     switch(action)
     { case ACTION_RETRY:
@@ -1437,8 +1436,14 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { clearUninitialisedVarsFrame(FR, PC);
-      switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
+    { int action;
+
+      SAVE_REGISTERS(qid);
+      clearUninitialisedVarsFrame(FR, PC);
+      action = tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD);
+      LOAD_REGISTERS(qid);
+
+      switch( action )
       { case ACTION_RETRY:
 	  goto retry;
 	case ACTION_FAIL:
@@ -1736,7 +1741,11 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { int action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
+    { int action;
+
+      SAVE_REGISTERS(qid);
+      action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
+      LOAD_REGISTERS(qid);
 
       switch( action )
       { case ACTION_RETRY:
@@ -1791,7 +1800,13 @@ VMI(I_EXITFACT, 0, 0, ())
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { switch(tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD))
+    { int action;
+
+      SAVE_REGISTERS(qid);
+      action = tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD);
+      LOAD_REGISTERS(qid);
+
+      switch( action )
       { case ACTION_RETRY:
 	  goto retry;
       }
@@ -2414,7 +2429,13 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
 	CL = cref;
 
 	if ( (fr = dbgRedoFrame(FR PASS_LD)) )
-	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
+	{ int action;
+
+	  SAVE_REGISTERS(qid);
+	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	  LOAD_REGISTERS(qid);
+
+	  switch( action )
 	  { case ACTION_FAIL:
 	      FRAME_FAILED;
 	    case ACTION_IGNORE:

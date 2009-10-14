@@ -2207,7 +2207,13 @@ next_choice:
       { LocalFrame fr = dbgRedoFrame(FR PASS_LD);
 
 	if ( fr )
-	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
+	{ int action;
+
+	  SAVE_REGISTERS(qid);
+	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
+	  LOAD_REGISTERS(qid);
+
+	  switch( action )
 	  { case ACTION_FAIL:
 	      FRAME_FAILED;
 	    case ACTION_IGNORE:
