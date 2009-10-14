@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -331,16 +331,18 @@ returns to the WAM interpreter how to continue the execution:
 #define SAVE_PTRS() \
 	frameref = consTermRef(frame); \
 	chref    = consTermRef(bfr); \
-	frref    = (fr ? consTermRef(fr) : 0);
+	frref    = (fr ? consTermRef(fr) : 0); \
+	pcref    = (onStack(local, PC) ? consTermRef(PC) : 0);
 #define RESTORE_PTRS() \
 	frame = (LocalFrame)valTermRef(frameref); \
 	bfr   = (Choice)valTermRef(chref); \
-	fr    = (frref ? (LocalFrame)valTermRef(frref) : NULL);
+	fr    = (frref ? (LocalFrame)valTermRef(frref) : NULL); \
+	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
 int
 tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
 { int action = ACTION_CONTINUE;
-  term_t frameref, chref, frref;
+  term_t frameref, chref, frref, pcref;
   Definition def = frame->predicate;
   LocalFrame fr = NULL;
   fid_t wake;
@@ -444,15 +446,15 @@ We are in searching mode; should we actually give this port?
     }
   }
 
-
   wake = saveWakeup(PASS_LD1);
-  blockGC(0 PASS_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  SAVE_PTRS();
   action = traceInterception(frame, bfr, port, PC);
+  RESTORE_PTRS();
   if ( action >= 0 )
     goto out;
 
@@ -463,7 +465,9 @@ All failed.  Things now are upto the normal Prolog tracer.
   action = ACTION_CONTINUE;
 
 again:
+  SAVE_PTRS();
   writeFrameGoal(frame, PC, port|WFG_TRACING);
+  RESTORE_PTRS();
 
   if (debugstatus.leashing & port)
   { char buf[LINESIZ];
@@ -493,15 +497,16 @@ again:
 	readLine(Sdin, Sdout, buf);
       }
     }
+    SAVE_PTRS();
     action = traceAction(buf, port, frame, bfr,
 			 truePrologFlag(PLFLAG_TTY_CONTROL));
+    RESTORE_PTRS();
     if ( action == ACTION_AGAIN )
       goto again;
   } else
     Sputcode('\n', Sdout);
 
 out:
-  unblockGC(0 PASS_LD);
   restoreWakeup(wake PASS_LD);
   if ( action == ACTION_ABORT )
     abortProlog(ABORT_RAISE);
@@ -609,7 +614,8 @@ setPrintOptions(word t)
 
 
 static int
-traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
+traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
+	    bool interactive)
 { GET_LD
   int num_arg;				/* numeric argument */
   char *s;
@@ -1107,13 +1113,16 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
-  { fid_t wid=0, cid=0;
+  { fid_t cid=0;
     qid_t qid=0;
+    LocalFrame fr = NULL;
+    term_t frameref, chref, frref, pcref;
     term_t argv, rarg;
     atom_t portname = NULL_ATOM;
     functor_t portfunc = 0;
     int nodebug = FALSE;
 
+    SAVE_PTRS();
     if ( !(cid=PL_open_foreign_frame()) )
       goto out;
     argv = PL_new_term_refs(4);
@@ -1138,6 +1147,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	assert(0);
         goto out;
     }
+    RESTORE_PTRS();
 
     if ( portname )
     { PL_put_atom(argv, portname);
@@ -1155,9 +1165,9 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	goto out;
     }
 
+    RESTORE_PTRS();
     PL_put_frame(argv+1, frame);
     PL_put_choice(argv+2, bfr);
-    wid = saveWakeup(PASS_LD1);
     if ( !(qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv)) )
       goto out;
     if ( PL_next_solution(qid) )
@@ -1193,7 +1203,6 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
   out:
     if ( qid ) PL_close_query(qid);
-    if ( wid ) restoreWakeup(wid PASS_LD);
     if ( cid ) PL_discard_foreign_frame(cid);
 
     if ( nodebug )
