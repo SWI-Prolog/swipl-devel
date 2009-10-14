@@ -625,14 +625,20 @@ mark_stacks(vm_state *vmstate)
   trailcells_deleted = 0;
 
   while(fr)
-  { DEBUG(1, Sdprintf("Marking query %p\n", qf));
+  { vm_state sub_state;
+
+    DEBUG(1, Sdprintf("Marking query %p\n", qf));
     qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
 
     if ( qf->parent )			/* same code in checkStacks() */
     { QueryFrame pqf = qf->parent;
 
       if ( (fr = pqf->registers.fr) )
-      { PC = startOfVMI(pqf);
+      { get_vmi_state(pqf, &sub_state);
+	sub_state.choice = qf->saved_bfr;
+
+	state.vm_state = &sub_state;
+	PC = sub_state.pc_start_vmi;
       } else
       { fr = qf->saved_environment;
 	PC = NULL;

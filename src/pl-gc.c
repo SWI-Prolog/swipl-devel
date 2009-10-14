@@ -202,6 +202,7 @@ forwards bool		is_downward_ref(Word ARG_LD);
 forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 static Code		startOfVMI(QueryFrame qf);
+static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static int		shiftTightStacks();
 
 #if O_SECURE
@@ -2433,7 +2434,7 @@ startOfVMI(QueryFrame qf)
 
 
 static void
-get_vmi_state(vm_state *state)
+get_vmi_state(QueryFrame qf, vm_state *state)
 { GET_LD
 
   state->choice	     = LD->choicepoints;
@@ -2442,8 +2443,8 @@ get_vmi_state(vm_state *state)
   state->adepth	     = 0;
   state->new_args    = 0;
 
-  if ( LD->query && LD->query->registers.fr )
-  { state->frame     = LD->query->registers.fr;
+  if ( qf && qf->registers.fr )
+  { state->frame     = qf->registers.fr;
     state->save_argp = (state->frame->clause != NULL);
 
     if ( lTop <= state->frame )
@@ -2453,14 +2454,14 @@ get_vmi_state(vm_state *state)
     }
 
     state->argp		= argFrameP(state->frame, 0);
-    state->pc           = LD->query->registers.pc;
+    state->pc           = qf->registers.pc;
     state->save_argp    = (state->frame->clause != NULL);
     setStartOfVMI(state);
 
     if ( state->in_body )
-    { Word ap = LD->query->registers.argp;
+    { Word ap = qf->registers.argp;
       Word *at = aTop;
-      Word *ab = LD->query->aSave;
+      Word *ab = qf->aSave;
 
       for(;;)
       { if ( ap > (Word)lBase )
@@ -2847,7 +2848,7 @@ checkStacks(void *state_ptr)
   { state = state_ptr;
   } else
   { state = &state_buf;
-    get_vmi_state(state);
+    get_vmi_state(LD->query, state);
   }
 
   assert(scan_global(FALSE));
@@ -3008,7 +3009,7 @@ garbageCollect(void)
 
   DEBUG(0, save_backtrace());
 
-  get_vmi_state(&state);
+  get_vmi_state(LD->query, &state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
     return rc;
 
@@ -3766,7 +3767,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   blockGC(0 PASS_LD);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
-  get_vmi_state(&state);
+  get_vmi_state(LD->query, &state);
 
   { TrailEntry tb = tBase;
     Word gb = gBase;
