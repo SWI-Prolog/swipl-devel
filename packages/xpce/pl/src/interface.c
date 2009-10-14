@@ -719,6 +719,11 @@ add_list(PceObject e, void *closure)
 static int
 ThrowException(int id, ...)
 { va_list args;
+  fid_t fid;
+
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
   term_t et  = PL_new_term_ref();	/* the error term */
   term_t err = PL_new_term_ref();	/* the 1-st argument */
   term_t ctx = PL_new_term_ref();	/* the 2-nd (context) argument */
@@ -740,11 +745,11 @@ ThrowException(int id, ...)
 	  if ( !put_object(a1, g->errc1) || /* error->id */
 	       !pceEnumElements(g->errc2, add_list, (void *)l) ||
 	       !PL_unify_nil(l[0]) )	/* the tail */
-	    return FALSE;
+	    goto error;
 
 	  if ( !PL_cons_functor(err, FUNCTOR_pce2, a1, a2) ||
 	       !put_goal_context(ctx, g, args) )
-	    return FALSE;
+	    goto error;
 	  break;
 	}
 	default:
@@ -764,7 +769,7 @@ ThrowException(int id, ...)
 	   !PL_put_integer(a2, ref) ||
 	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
-	return FALSE;
+	goto error;
 
       if ( descr[0] == '@' )
       { char *s;
@@ -774,7 +779,7 @@ ThrowException(int id, ...)
 	if ( *s )
 	{ if ( !PL_put_atom_chars(ctx, descr) || /* context(_, Message) */
 	       !PL_cons_functor(ctx, FUNCTOR_context2, na, ctx) )
-	    return FALSE;
+	    goto error;
 	}
       }
 
@@ -790,7 +795,7 @@ ThrowException(int id, ...)
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
-	return FALSE;
+	goto error;
       break;
     }
     case EX_BAD_OBJECT_REF:			/* not @<name-or-int> */
@@ -800,7 +805,7 @@ ThrowException(int id, ...)
       PL_put_atom(a1, ATOM_object);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, ref) )
-	return FALSE;
+	goto error;
       break;
     }
     case EX_TYPE:				/* type-name, arg */
@@ -814,7 +819,7 @@ ThrowException(int id, ...)
       PL_put_atom(a1, tn);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, v) )
-	return FALSE;
+	goto error;
       break;
     }
     case EX_EXISTENCE:				/* type-name, arg */
@@ -828,7 +833,7 @@ ThrowException(int id, ...)
       PL_put_atom(a1, tn);
       if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
 	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, v) )
-	return FALSE;
+	goto error;
       break;
     }
     case EX_INSTANTIATION:			/* No arguments */
@@ -844,7 +849,7 @@ ThrowException(int id, ...)
 
       PL_put_atom(a1, tn);
       if ( !PL_cons_functor(err, FUNCTOR_domain_error2, a1, v) )
-	return FALSE;
+	goto error;
       break;
     }
     case EX_PERMISSION:
@@ -860,12 +865,12 @@ ThrowException(int id, ...)
       PL_put_atom(a2, tp);
       if ( !put_object(a3, obj) ||
 	   !PL_cons_functor(err, FUNCTOR_permission_error3, a1, a2, a3) )
-	return FALSE;
+	goto error;
 
       PutVar(a1);
       PL_put_atom(a2, msg);
       if ( !PL_cons_functor(ctx, FUNCTOR_context2, a1, a2) )
-	return FALSE;
+	goto error;
       break;
     }
     default:
@@ -874,9 +879,14 @@ ThrowException(int id, ...)
   va_end(args);
 
   if ( !PL_cons_functor(et, FUNCTOR_error2, err, ctx) )
-    return FALSE;
+    goto error;
 
   return PL_raise_exception(et);
+
+error:
+  va_end(args);
+  PL_close_foreign_frame(fid);
+  return FALSE;
 }
 
 
