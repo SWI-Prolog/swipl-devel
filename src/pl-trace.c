@@ -1038,7 +1038,6 @@ listGoal(LocalFrame frame)
     Scurout = Sdout;
     put_frame_goal(goal, frame);
     rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
-    unblockGC(0 PASS_LD);
     Scurout = old;
 
     PL_discard_foreign_frame(cid);
