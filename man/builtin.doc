@@ -415,10 +415,11 @@ user:prolog_file_type(Ext,	executable) :-
 	current_prolog_flag(shared_object_extension, Ext).
 \end{code}
 
-Users may wish to change the extension used for Prolog source files
-to avoid conflicts (for example with \program{perl}) as well as to
-be compatible with some specific implementation. The preferred
-alternative extension is \fileext{pro}.
+Users can add extensions used for Prolog source files to avoid conflicts
+(for example with \program{perl}) as well as to be compatible with
+another Prolog implementation. We suggest using \fileext{pro} for
+avoiding conflicts with \program{perl}. Overriding the system
+definitions can stop the system from finding libraries.
 
     \predicate{source_file}{1}{?File}
 True if \arg{File} is a loaded Prolog source file.  \arg{File} is
@@ -3918,7 +3919,8 @@ True if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
 exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
-using write/1.
+using write_term/2 with the option \term{quoted}{true}.  See also
+format/3 and with_output_to/2.
 
     \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option

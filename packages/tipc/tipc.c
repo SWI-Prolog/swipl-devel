@@ -423,7 +423,7 @@ unify_tipc_address(term_t t, struct sockaddr_tipc *addr)
 
 
 static foreign_t
-pl_tipc_get_name(term_t Socket, term_t t)
+pl_tipc_basic_get_name(term_t Socket, term_t t, int peer)
 { struct sockaddr_tipc addr;
   int socket;
   SOCKET fd;
@@ -438,12 +438,24 @@ pl_tipc_get_name(term_t Socket, term_t t)
 
   fd = nbio_fd(socket);
 
-  if ( getsockname(fd, (struct sockaddr *) &addr, &alen) )
+  if ( (peer) ? getpeername(fd, (struct sockaddr *) &addr, &alen)
+			  : getsockname(fd, (struct sockaddr *) &addr, &alen) )
     return nbio_error(errno, TCP_ERRNO);
   else
     return unify_tipc_address(t, &addr);
 }
 
+static foreign_t
+pl_tipc_get_name(term_t Socket, term_t t)
+{
+	return pl_tipc_basic_get_name(Socket, t, 0);
+}
+
+static foreign_t
+pl_tipc_get_peer_name(term_t Socket, term_t t)
+{
+	return pl_tipc_basic_get_name(Socket, t, 1);
+}
 
 #define TIPC_MAXDATA 65300
 
@@ -769,7 +781,8 @@ install_tipc()
   PL_register_foreign("tipc_accept",          3, pl_tipc_accept,      0);
   PL_register_foreign("tipc_connect",         2, pl_tipc_connect,     0);
   PL_register_foreign("tipc_get_name",        2, pl_tipc_get_name,    0);
+  PL_register_foreign("tipc_get_peer_name",   2, pl_tipc_get_peer_name, 0);
   PL_register_foreign("tipc_receive",	      4, pl_tipc_receive,     0);
-  PL_register_foreign("tipc_send",	      4, pl_tipc_send,	      0);
+  PL_register_foreign("tipc_send",	          4, pl_tipc_send,	      0);
   PL_register_foreign("tipc_subscribe",	      5, pl_tipc_subscribe,   0);
 }

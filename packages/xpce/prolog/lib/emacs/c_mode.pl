@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -223,7 +223,7 @@ run_gdb(M, Cmd:file) :->
 	"Run GDB on program (same as ->gdb)"::
 	send(M, gdb, Cmd).
 
-tell_gdb(M, Fmt:char_array, Args:any ...) :->
+tell_gdb_warn(M, Level:name, Fmt:char_array, Args:any ...) :->
 	"Send a command to gdb"::
 	get(@emacs?buffers, find_all,
 	    and(message(@arg1, instance_of, emacs_gdb_buffer),
@@ -233,7 +233,9 @@ tell_gdb(M, Fmt:char_array, Args:any ...) :->
 	->  get(ActiveGdbBuffers, head, Buffer),
 	    Msg =.. [format_data, Fmt|Args],
 	    send(Buffer, Msg)
-	;   send(M, report, warning, 'No or multiple GDB buffers')
+	;   Level == silent
+	->  fail
+	;   send(M, report, Level, 'No or multiple GDB buffers')
 	).
 
 break_at_line(M) :->
@@ -241,34 +243,39 @@ break_at_line(M) :->
 	get(M, line_number, M?caret, CaretLine),
 	get(M?text_buffer, file, File),
 	get(File, base_name, Base),
-	send(M, tell_gdb, 'break %s:%d\n', Base, CaretLine).
+	new(Cmd, string('break %s:%d\n', Base, CaretLine)),
+	(   send(M, tell_gdb_warn, silent, Cmd)
+	->  true
+	;   send(@display, copy, Cmd),
+	    send(M, report, inform, 'Copied: %s', Cmd)
+	).
 
 break_at_function(M, Function:[name]) :->
 	"Set GDB breakpoint at function"::
 	get(M, expand_tag, Function, TheFunction),
-	send(M, tell_gdb, 'break %s\n', TheFunction).
+	send(M, tell_gdb, warning, 'break %s\n', TheFunction).
 
 gdb_go(M) :->
 	"Send `run' to GDB"::
-	send(M, tell_gdb, 'run\n').
+	send(M, tell_gdb, warning, 'run\n').
 
 gdb_step(M, Times:[int]) :->
 	"Send `run' to GDB"::
 	(   Times == @default
-	->  send(M, tell_gdb, 'step\n')
-	;   send(M, tell_gdb, 'step %d\n', Times)
+	->  send(M, tell_gdb, warning, 'step\n')
+	;   send(M, tell_gdb, warning, 'step %d\n', Times)
 	).
 
 gdb_next(M, Times:[int]) :->
 	"Send `run' to GDB"::
 	(   Times == @default
-	->  send(M, tell_gdb, 'next\n')
-	;   send(M, tell_gdb, 'next %d\n', Times)
+	->  send(M, tell_gdb, warning, 'next\n')
+	;   send(M, tell_gdb, warning, 'next %d\n', Times)
 	).
 
 gdb_print(M, Expression:expresion=string) :->
 	"Print value of expression"::
-	send(M, tell_gdb, 'print %s\n', Expression).
+	send(M, tell_gdb, warning, 'print %s\n', Expression).
 
 
 		 /*******************************

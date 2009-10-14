@@ -169,6 +169,6 @@ PLCON=$(PLBASE)\bin\plcon.exe
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
-!ELSE 
+!ELSE
 NULL=nul
-!ENDIF 
+!ENDIF

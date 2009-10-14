@@ -561,7 +561,7 @@ chr *start;
 	struct sset *ss;
 	struct sset *p;
 	struct arcp ap;
-	struct arcp lastap;
+	struct arcp lastap = {0};
 	color co;
 
 	ss = pickss(v, d, cp, start);

@@ -3439,10 +3439,6 @@ concat(term_t a1, term_t a2, term_t a3,
 	    goto out;
 	  }
 	}
-        if ( L3 == 0 )
-	{ rc = FALSE;
-	  goto out;
-	}
 	at_n = 0;
         break;
       case FRG_REDO:

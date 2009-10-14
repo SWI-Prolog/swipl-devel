@@ -33,34 +33,39 @@ books, online tutorials and other Prolog related material.
 
 \tableofcontents
 
-\section{Introduction -- Darwinports}
+\section{Introduction -- MacPorts}
 
 SWI-Prolog is by origin an Unix application, and not a native Macintosh
 application.  It has been brought to the Mac using the 
-\url[darwinports]{http://darwinports.opendarwin.org/} project, using 
-(Macintosh) X11 for its graphical capabilities.
+\url[MacPorts]{http://www.macports.org/} project, using 
+\url[XQuartz]{http://xquartz.macosforge.org/} (Macintosh X11) 
+for its graphical capabilities.
 
 \section{Installation}
 
-\subsection{Using Darwinports}
+XQuartz should be installed prior to SWI-Prolog installation. The 
+installer can be downloaded from the XQuartz web site.
 
-Users of the Darwinports system can install the system just like any port
+\subsection{Using MacPorts}
+
+Users of the MacPorts system can install the system just like any port
 using the command below. In addition to the port named
 \const{swi-prolog} providing the stable version, there is a port called
 \const{swi-prolog-devel} providing the development version.
 
 \begin{code}
-% sudo port -d selfupdate       # make sure we have the latest portfiles
+% sudo port -v selfupdate       # make sure we have the latest portfiles
 % sudo port install swi-prolog
 \end{code}
 
-The swi-prolog port depends on \const{readline}, \const{ncurses}
-\const{gmp} \const{libmcrypt}, \const{Xfree86} and \const{jpeg}, 
+The swi-prolog port depends on \const{readline}, \const{ncurses}, 
+\const{ncursesw}, \const{gmp} \const{libmcrypt}, \const{zlib}, 
+\const{expat}, and \const{jpeg}.
 
 \subsection{From the installer}
 
 Opening and installing the meta installer installs the required ports
-from the Darwinports system.  The programs are installed in the directory
+from the MacPorts system.  The programs are installed in the directory
 \file{/opt/local/bin}.  The main executable is named \file{swipl}.
 
 \section{Running SWI-Prolog}

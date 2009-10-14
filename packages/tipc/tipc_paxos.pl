@@ -38,6 +38,8 @@
 
 :- use_module(tipc_broadcast).
 
+:- export(tipc_initialize/0).
+
 /** <module> A Replicated Data Store
 This module provides a replicated data store that is coordinated using a
 variation on Lamport's Paxos concensus protocol. The original method is

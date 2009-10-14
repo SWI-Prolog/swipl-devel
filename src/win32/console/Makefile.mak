@@ -23,6 +23,8 @@ all:		$(OUTLIB) $(OUTINC)
 
 $(OUTLIB):	$(OBJ)
 		$(LD) $(LDFLAGS) /out:$(OUTDLL) /implib:$@ /dll $(OBJ) $(LIBS) $(XLIBS)
+		$(MTEXE) -manifest $(OUTDLL).manifest -outputresource:$(OUTDLL);2
+		del /Q $(OUTDLL).manifest
 
 $(OUTINC):	console.h
 		copy console.h $@

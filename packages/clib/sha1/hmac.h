@@ -105,6 +105,9 @@ void hmac_sha_end(unsigned char mac[], unsigned long mac_len, hmac_ctx cx[1]);
 void hmac_sha(const unsigned char key[], unsigned long key_len,
           const unsigned char data[], unsigned long data_len,
           unsigned char mac[], unsigned long mac_len);
+void hmac_sha1(const unsigned char key[], unsigned long key_len,
+          const unsigned char data[], unsigned long data_len,
+          unsigned char mac[], unsigned long mac_len);
 
 #if defined(__cplusplus)
 }

@@ -45,8 +45,8 @@ nearly trivial matter to build an instance of supercomputer that
 researchers within the High Performance Computer community refer to as
 "Beowulf Class Cluster Computers."
 
-This module has no public predicates. When this module is initialized
-via tipc:tipc_initialize/0, it does three things:
+This module has no public predicates. When this module is initialized,
+it does three things:
 
     * It starts  a  listener  daemon   thread  that  listens for
     broadcasts from others, received as TIPC datagrams, and
@@ -244,6 +244,7 @@ and subtle differences that must be taken into consideration:
 	   , thread_create/3
 	   ]).
 
+:- export(tipc_initialize/0).
 
 tipc_broadcast_service(node,            name_seq(20005, 0, 0)).
 tipc_broadcast_service(cluster,         name_seq(20005, 1, 1)).
@@ -414,9 +415,3 @@ tipc_br_collect_replies(S, Timeout, Term:From) :-
 %
 tipc:tipc_stack_initialize :-
 	start_tipc_listener_daemon.
-
-
-
-
-
-

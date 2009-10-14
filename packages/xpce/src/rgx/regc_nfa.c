@@ -1501,6 +1501,7 @@ FILE *f;
  */
 #endif				/* ifdef REG_DEBUG */
 
+#ifdef REG_DEBUG
 /*
  - dumpcnfa - dump a compacted NFA in human-readable form
  ^ static VOID dumpcnfa(struct cnfa *, FILE *);
@@ -1510,7 +1511,6 @@ dumpcnfa(cnfa, f)
 struct cnfa *cnfa;
 FILE *f;
 {
-#ifdef REG_DEBUG
 	int st;
 
 	fprintf(f, "pre %d, post %d", cnfa->pre, cnfa->post);
@@ -1528,10 +1528,8 @@ FILE *f;
 	for (st = 0; st < cnfa->nstates; st++)
 		dumpcstate(st, cnfa->states[st], cnfa, f);
 	fflush(f);
-#endif
 }
 
-#ifdef REG_DEBUG		/* subordinates of dumpcnfa */
 /*
  ^ #ifdef REG_DEBUG
  */

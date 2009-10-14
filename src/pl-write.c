@@ -54,8 +54,9 @@ typedef struct
   visited *visited;			/* visited (attributed-) variables */
 } write_options;
 
-static bool	writeTerm2(term_t term, int prec, write_options *options);
+static bool	writeTerm2(term_t term, int prec, write_options *options, bool arg);
 static bool	writeTerm(term_t t, int prec, write_options *options);
+static bool	writeArgTerm(term_t t, int prec, write_options *options, bool arg);
 
 static Word
 address_of(term_t t)
@@ -830,7 +831,7 @@ callPortray(term_t arg, write_options *options)
 
 
 static bool
-writeTerm(term_t t, int prec, write_options *options)
+writeArgTerm(term_t t, int prec, write_options *options, bool arg)
 { int rval;
   int levelSave = options->depth;
   fid_t fid = PL_open_foreign_frame();
@@ -851,11 +852,11 @@ writeTerm(term_t t, int prec, write_options *options)
     } else
     { v.next = options->visited;
       options->visited = &v;
-      rval = writeTerm2(t, prec, options);
+      rval = writeTerm2(t, prec, options, arg);
       options->visited = v.next;
     }
   } else
-  { rval = writeTerm2(t, prec, options);
+  { rval = writeTerm2(t, prec, options, arg);
   }
 
 out:
@@ -865,6 +866,11 @@ out:
   return rval;
 }
 
+static bool
+writeTerm(term_t t, int prec, write_options *options)
+{
+  return writeArgTerm(t, prec, options, FALSE);
+}
 
 static bool
 writeList2(term_t list, write_options *options, int cyclic)
@@ -875,7 +881,7 @@ writeList2(term_t list, write_options *options, int cyclic)
   TRY(Putc('[', options->out));
   for(;;)
   { PL_get_list(l, head, l);
-    TRY(writeTerm(head, 999, options));
+    TRY(writeArgTerm(head, 999, options, TRUE));
 
     if ( PL_get_nil(l) )
       break;
@@ -883,7 +889,7 @@ writeList2(term_t list, write_options *options, int cyclic)
       return PutString("|...]", options->out);
     if ( !PL_is_functor(l, FUNCTOR_dot2) )
     { TRY(Putc('|', options->out));
-      TRY(writeTerm(l, 999, options));
+      TRY(writeArgTerm(l, 999, options, TRUE));
       break;
     }
 
@@ -922,8 +928,9 @@ writeList(term_t list, write_options *options)
 }
 
 
+
 static bool
-writeTerm2(term_t t, int prec, write_options *options)
+writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { GET_LD
   atom_t functor;
   int arity, n;
@@ -937,7 +944,7 @@ writeTerm2(term_t t, int prec, write_options *options)
     succeed;
 
   if ( PL_get_atom(t, &a) )
-  { if ( priorityOperator(NULL, a) > prec )
+  { if ( !arg && priorityOperator(NULL, a) > prec )
     { if ( PutOpenBrace(out) &&
 	   writeAtom(a, options) &&
 	   PutCloseBrace(out) )
@@ -1100,7 +1107,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       { if (n > 0)
 	  TRY(PutString(", ", out));
 	_PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 999, options));
+	TRY(writeArgTerm(a, 999, options, TRUE));
       }
       return Putc(')', out);
     }

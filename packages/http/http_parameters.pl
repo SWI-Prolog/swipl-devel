@@ -75,19 +75,23 @@ http_parameters(Request, Params, Options) :-
 is_meta(attribute_declarations).
 
 
+http_parms(Request, Params, DeclGoal, Data) :-
+	memberchk(method(post), Request),
+	memberchk(content_type(Content), Request),
+	form_data_content_type(Content), !,
+	debug(post_request, 'POST Request: ~p', [Request]),
+	http_read_data(Request, Data, []),
+	debug(post, 'POST Data: ~p', [Data]),
+	fill_parameters(Params, Data, DeclGoal).
 http_parms(Request, Params, DeclGoal, Search) :-
-	memberchk(method(get), Request), !,
 	(   memberchk(search(Search), Request)
 	->  true
 	;   Search = []
 	),
 	fill_parameters(Params, Search, DeclGoal).
-http_parms(Request, Params, DeclGoal, Data) :-
-	member(method(post), Request), !,
-	debug(post_request, 'POST Request: ~p', [Request]),
-        http_read_data(Request, Data, []),
-	debug(post, 'POST Data: ~p', [Data]),
-	fill_parameters(Params, Data, DeclGoal).
+
+
+form_data_content_type('application/x-www-form-urlencoded').
 
 %%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
 %

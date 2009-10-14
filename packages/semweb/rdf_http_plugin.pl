@@ -115,9 +115,11 @@ rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-
 		  | Extra
 		  ]),
 	close(Stream),
-	Date \== '',
 	guess_format(Type, URL, Format),
-	parse_time(Date, Modified).
+	(   Date == ''
+	->  get_time(Modified)
+	;   parse_time(Date, Modified)
+	).
 
 rdf_db:url_protocol(http).
 

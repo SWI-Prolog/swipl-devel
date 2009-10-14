@@ -1093,6 +1093,10 @@ atom_handling(concat-5) :-
 atom_handling(concat-6) :-
 	atom_concat(X, a, a),
 	X == ''.
+atom_handling(concat-7) :-
+	atom_concat(X, Y, ''),
+	X == '',
+	Y == ''.
 
 atom_handling(number-1) :-
 	atom_number('42', X), X == 42.

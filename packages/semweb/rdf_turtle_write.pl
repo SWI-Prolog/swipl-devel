@@ -1040,8 +1040,28 @@ tw_literal(literal(type(Type, Value)), State, Out) :- !,
 tw_literal(literal(lang(Lang, Value)), State, Out) :- !,
 	tw_quoted_string(Value, State, Out),
 	format(Out, '@~w', [Lang]).
-tw_literal(literal(Value), State, Out) :- !,
+tw_literal(literal(Value), State, Out) :-
+	atom(Value), !,
 	tw_quoted_string(Value, State, Out).
+tw_literal(literal(Value), State, Out) :-
+	atom(Value), !,
+	tw_quoted_string(Value, State, Out).
+					% Add types automatically
+tw_literal(literal(Value), State, Out) :-
+	integer(Value), !,
+	rdf_equal(Type, xsd:integer),
+	tw_typed_literal(Type, Value, State, Out).
+tw_literal(literal(Value), State, Out) :-
+	float(Value), !,
+	rdf_equal(Type, xsd:double),
+	tw_typed_literal(Type, Value, State, Out).
+tw_literal(literal(Value), State, Out) :-
+	xml_is_dom(Value), !,
+	rdf_equal(Type, rdf:'XMLLiteral'),
+	tw_typed_literal(Type, Value, State, Out).
+tw_literal(Literal, _State, _Out) :-
+	type_error(rdf_literal, Literal).
+
 
 tw_typed_literal(Type, Value, State, Out) :-
 	tw_abbreviated_literal(Type, Value, State, Out), !.

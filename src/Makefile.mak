@@ -130,14 +130,20 @@ banner:
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
+		$(MTEXE) -manifest $(PLDLL).manifest -outputresource:$(PLDLL);2
+		del /Q $(PLDLL).manifest
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
 		editbin /stack:$(STACK) $(PLCON)
+		$(MTEXE) -manifest $(PLCON).manifest -outputresource:$(PLCON);1
+		del /Q $(PLCON).manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
+		$(MTEXE) -manifest $(PLWIN).manifest -outputresource:$(PLWIN);1
+		del /Q $(PLWIN).manifest
 
 pl.res:		pl.rc pl.ico xpce.ico
 		$(RSC) /fo$@ pl.rc
@@ -194,6 +200,8 @@ mkvmi.exe:	mkvmi.obj
 
 $(PLLD):	plld.obj
 		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
+		$(MTEXE) -manifest $(PLLD).manifest -outputresource:$(PLLD);1
+		del /Q $(PLLD).manifest
 
 tags:		TAGS
 

@@ -946,3 +946,4 @@ distclean:	clean
 		$(RM) -f ../prolog/lib/Makefile
 		$(RM) -f ../prolog/pwboot/Makefile
 		$(RM) -f ../sicstus/src/Makefile
+		$(RM) -f ../man/reference/index.obj

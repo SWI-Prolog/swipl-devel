@@ -61,9 +61,12 @@ ws_console_label(CharArray label)
 
   if ( t && streq(t, "xterm") && isatty(2) )
   { char buf[256];
+    size_t len;
 
     sprintf(buf, "\033]2;%s\007", strName(label));
-    write(2, buf, strlen(buf));
+    len = strlen(buf);
+    if ( write(2, buf, len) != len )
+      fail;
   }
 
   succeed;
