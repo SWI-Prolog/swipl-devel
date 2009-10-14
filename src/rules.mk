@@ -100,7 +100,10 @@ LD=link.exe /nologo
 !ENDIF
 AR=lib.exe
 RSC=rc.exe
-!IF "$(_NMAKE_VER)" != "6.00.8168.0" && "$(_NMAKE_VER)" != "162" && "$(_NMAKE_VER)" != ""
+# Sure Billy ...
+!IF "$(_NMAKE_VER)" != "7.10.3077" && "$(_NMAKE_VER)" != "7.00.9466" && \
+   "$(_NMAKE_VER)" != "6.00.9782.0" && "$(_NMAKE_VER)" != "6.00.8168.0" && \
+   "$(_NMAKE_VER)" != "162" && "$(_NMAKE_VER)" != ""
 MTEXE=mt.exe
 !ELSE
 MTEXE=rem
