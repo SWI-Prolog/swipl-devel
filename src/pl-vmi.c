@@ -3702,10 +3702,13 @@ b_throw:
 	 FR = FR->parent )
     { Choice ch = findStartChoice(FR, LD->choicepoints);
 
+      environment_frame = FR;
+
       if ( ch )
       { int printed = PL_same_term(exception_printed, exception_term);
 	int rc;
 
+	lTop = (LocalFrame)(ch+1);
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(NULL);
 		 LOAD_REGISTERS(qid);
@@ -3719,7 +3722,6 @@ b_throw:
 	if ( printed )
 	  PL_put_term(exception_printed, exception_term);
 
-	environment_frame = FR;
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(FR, ch, NULL);
 		 LOAD_REGISTERS(qid);
@@ -3742,6 +3744,7 @@ b_throw:
 	setVar(*valTermRef(LD->exception.pending));
       }
 
+      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       SAVE_REGISTERS(qid);
       dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);
@@ -3812,7 +3815,7 @@ b_throw:
 
     QF = QueryFromQid(qid);		/* may be shifted */
     set(QF, PL_Q_DETERMINISTIC);
-    FR = environment_frame = &QF->frame;
+    FR = environment_frame = &QF->top_frame;
     p = argFrameP(FR, FR->predicate->functor->arity);
     lTop = (LocalFrame)(p+1);
 
