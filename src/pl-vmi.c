@@ -130,12 +130,12 @@ D_BREAK implements break-points in the  code.   A  break-point is set by
 replacing  an  instruction  by  a   D_BREAK  instruction.  The  orininal
 instruction is saved in a table. replacedBreak() fetches it.
 
-Note that we must  be  careful  that   the  user  may  have  removed the
-break-point in the debugger, so we must check for it.
-
-We might be in a state where  we   are  writing  the arguments above the
-current lTop, and therefore with higher this  with the maximum number of
-arguments.
+Trouble. Typically, we break at an I_CALL,  etc. intruction and thus the
+next frame is filled. We need to set   lTop above the arguments. That is
+ok; setLTopInBody() can take care of that.   The problem however is that
+tracePort can call GC, and at this point   in  the call, GC uses lTop to
+find where the `new' arguments are, but  lTop is above the new arguments
+rather than at the start of the new frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(D_BREAK, 0, 0, ())
@@ -143,21 +143,22 @@ VMI(D_BREAK, 0, 0, ())
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { int action;
-    term_t lref = consTermRef(lTop);
+    term_t lref;
 
     SAVE_REGISTERS(qid);
+    lref = consTermRef(lTop);
     setLTopInBody();
     clearUninitialisedVarsFrame(FR, PC-1);
     action = tracePort(FR, BFR, BREAK_PORT, PC-1 PASS_LD);
-    LOAD_REGISTERS(qid);
     lTop = (LocalFrame)valTermRef(lref);
+    LOAD_REGISTERS(qid);
 
     switch(action)
     { case ACTION_RETRY:
 	goto retry;
     }
 
-    if ( PC[-1] != encode(D_BREAK) )	/* break is cleared! */
+    if ( PC[-1] != encode(D_BREAK) )	/* break might be cleared! */
     { PC--;
       NEXT_INSTRUCTION;
     }
