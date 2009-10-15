@@ -1750,16 +1750,7 @@ prolog_frame_attribute(term_t frame, term_t what,
      PL_get_frame(frame, &fr);
    }
 
-   p = valTermRef(value);
-   deRef(p);
-   if ( isVar(*p) )
-   { Word argp = argFrameP(fr, argn-1);
-
-     Trail(p, makeRef(argp));
-     return TRUE;
-   }
-
-   return FALSE;
+   return PL_unify(value, consTermRef(argFrameP(fr, argn-1)));
   }
 
   if ( arity != 0 )
@@ -1935,7 +1926,11 @@ prolog_frame_attribute(term_t frame, term_t what,
 
 static
 PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
-{ return prolog_frame_attribute(A1, A2, A3);
+{ int rc = prolog_frame_attribute(A1, A2, A3);
+
+  SECURE(scan_global(0));
+
+  return rc;
 }
 
 		 /*******************************
