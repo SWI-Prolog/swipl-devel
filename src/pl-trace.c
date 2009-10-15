@@ -1755,9 +1755,6 @@ prolog_frame_attribute(term_t frame, term_t what,
    if ( isVar(*p) )
    { Word argp = argFrameP(fr, argn-1);
 
-     if ( gc_status.blocked )		/* unsafe: allow losing var identity */
-       return unify_ptrs(p, argp, 0 PASS_LD);
-
      Trail(p, makeRef(argp));
      return TRUE;
    }
@@ -1844,7 +1841,7 @@ prolog_frame_attribute(term_t frame, term_t what,
       { Word a;
 
 	deRef2(argv+n, a);
-	if ( isVar(*a) && onStack(local, a) && gc_status.blocked )
+	if ( isVar(*a) && onStack(local, a) )
 	  Trail(a, makeRef(argp));
 	else
 	  *argp = (needsRef(*a) ? makeRef(a) : *a);
@@ -1854,7 +1851,7 @@ prolog_frame_attribute(term_t frame, term_t what,
   { if ( !unify_definition(result, fr->predicate, 0, GP_NAMEARITY) )
       return FALSE;
   } else if ( key == ATOM_parent_goal )
-  { Procedure proc;			/* TBD: SHIFT */
+  { Procedure proc;
     term_t head = PL_new_term_ref();
     term_t a = PL_new_term_ref();
 
