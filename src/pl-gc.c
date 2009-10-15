@@ -2503,6 +2503,19 @@ restore_vmi_state(vm_state *state)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Used in D_BREAK to safely set lTop,  so the debugger won't overwrite the
+stack-frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+setLTopInBody(void)
+{ GET_LD
+  vm_state state;
+
+  get_vmi_state(LD->query, &state);
+}
+
 
 		/********************************
 		*	    GC's MAIN           *

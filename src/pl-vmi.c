@@ -143,18 +143,21 @@ VMI(D_BREAK, 0, 0, ())
 #if O_DEBUGGER
   if ( debugstatus.debugging )
   { int action;
+    term_t lref = consTermRef(lTop);
 
     SAVE_REGISTERS(qid);
+    setLTopInBody();
     clearUninitialisedVarsFrame(FR, PC-1);
     action = tracePort(FR, BFR, BREAK_PORT, PC-1 PASS_LD);
     LOAD_REGISTERS(qid);
+    lTop = (LocalFrame)valTermRef(lref);
 
     switch(action)
     { case ACTION_RETRY:
 	goto retry;
     }
 
-    if ( PC[-1] != encode(D_BREAK) )
+    if ( PC[-1] != encode(D_BREAK) )	/* break is cleared! */
     { PC--;
       NEXT_INSTRUCTION;
     }
