@@ -592,14 +592,15 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       term_t ex;
       int rval;
       int set_env = (reason == FINISH_CUT || reason == FINISH_EXCEPT);
-      LocalFrame esave = environment_frame;
+      term_t esave;
       wakeup_state wstate;
 
       fr = (LocalFrame)valTermRef(fref);
 
       if ( set_env )
+      { esave = consTermRef(environment_frame);
 	environment_frame = fr;
-      else
+      } else
 	assert(environment_frame == fr);
 
       clean = consTermRef(argFrameP(fr, 3));
@@ -613,7 +614,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       endCritical;
 
       if ( set_env )
-	environment_frame = esave;
+	environment_frame = (LocalFrame)valTermRef(esave);
 
       if ( !rval && ex && !exception_term )
 	PL_raise_exception(ex);
