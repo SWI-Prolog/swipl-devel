@@ -2142,6 +2142,7 @@ next_choice:
 
 	Undo(sch->mark);
 	environment_frame = FR;
+	FR->clause = NULL;
 	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 	SAVE_REGISTERS(qid);
 	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
