@@ -14,7 +14,9 @@ test_ch_shift :-
 	once(t),
 	erase(Ref).
 
-make_or(0, true) :- !.
-make_or(N, (G;true)) :-
+make_or(0, a) :- !.
+make_or(N, (G;a)) :-
 	N2 is N - 1,
 	make_or(N2, G).
+
+a.
