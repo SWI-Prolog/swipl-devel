@@ -5,14 +5,10 @@
 
 * Issues to resolve
 
-	- Protect callers from newChoice()
 	- Cleanup unneeded trail entries when discarding a choicepoint
 		- Wins for foreign-frames
 		- Also for !
 	- Remove max_threads
-	- At call-port, FR->clause is no longer set to the
-	  first clause when tracing.  Debuggers have to do that
-	  themselves.
 
 ================================================================
 Static analysis of the C-program:

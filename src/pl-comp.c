@@ -851,7 +851,8 @@ Finish up the clause.
     space = ( clause.variables*sizeof(word) +
 	      sizeofClause(clause.code_size) +
 	      sizeof(*cref) +
-	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY)
+	      (size_t)argFrameP((LocalFrame)NULL, MAXARITY) +
+	      sizeof(struct choice)
 	    );
     if ( addPointer(lTop, space) >= (void*)lMax )
     { rc = LOCAL_OVERFLOW;

@@ -1946,7 +1946,21 @@ if the choice-point needs to be activated.
 
 VMI(C_OR, 0, 1, (CA1_JUMP))
 { size_t skip = *PC++;
-  Choice ch = newChoice(CHP_JUMP, FR PASS_LD);
+  Choice ch;
+
+  if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureLocalSpace(sizeof(*ch), ALLOW_SHIFT);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
+  ch = newChoice(CHP_JUMP, FR PASS_LD);
   ch->value.PC = PC+skip;
   ARGP = argFrameP(lTop, 0);
 

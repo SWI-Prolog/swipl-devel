@@ -316,7 +316,8 @@ Brief description of the local stack-layout.  This stack contains:
 		 *	 LOCAL ALLOCATION	*
 		 *******************************/
 
-#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY))
+#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
+		      sizeof(struct choice))
 
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
 	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
@@ -1452,18 +1453,17 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
 choice-point, the user has to fill the choice-points mark as well as the
 required context value.
+
+Note that a frame has only one choicepoint associated, except for choice
+points created from C_OR. Therefore, C_OR  ensures there is space; space
+for the one other choicepoint is ensured of a local frame is created.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  if ( ch+1 > (Choice)lMax )
-  { int rc = ensureLocalSpace(sizeof(*ch), 0); /* TBD: Make shift-safe */
-
-    if ( rc != TRUE )
-      outOfStack(&LD->stacks.local, STACK_OVERFLOW_THROW);
-  }
+  assert(ch+1 <= (Choice)lMax);
   lTop = (LocalFrame)(ch+1);
 
   ch->type = type;
