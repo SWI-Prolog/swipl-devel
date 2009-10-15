@@ -1430,6 +1430,8 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
 	  goto retry;
 	case ACTION_FAIL:
 	  FRAME_FAILED;
+	case ACTION_ABORT:
+	  goto b_throw;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1591,6 +1593,7 @@ retry_continue:
       switch( rc )
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
+	case ACTION_ABORT:  goto b_throw;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1727,6 +1730,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 	case ACTION_FAIL:
 	  discardChoicesAfter(FR PASS_LD);
 	  FRAME_FAILED;
+	case ACTION_ABORT:
+	  goto b_throw;
       }
 
       if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
@@ -1783,6 +1788,8 @@ VMI(I_EXITFACT, 0, 0, ())
       switch( action )
       { case ACTION_RETRY:
 	  goto retry;
+	case ACTION_ABORT:
+	  goto b_throw;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1873,6 +1880,8 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 	goto retry;
       case ACTION_FAIL:
 	FRAME_FAILED;
+      case ACTION_ABORT:
+	goto b_throw;
     }
 
     if ( (ch = findStartChoice(FR, BFR)) )
@@ -1899,6 +1908,8 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 	goto retry;
       case ACTION_FAIL:
 	FRAME_FAILED;
+      case ACTION_ABORT:
+	goto b_throw;
     }
   } else
 #endif
@@ -2425,6 +2436,8 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
 	      VMI_GOTO(I_EXIT);
 	    case ACTION_RETRY:
 	      goto retry_continue;
+	    case ACTION_ABORT:
+	      goto b_throw;
 	  }
 	}
 
