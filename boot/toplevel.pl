@@ -495,6 +495,32 @@ set_default_history :-
 :- initialization set_default_history.
 
 
+		 /*******************************
+		 *	  TOPLEVEL DEBUG	*
+		 *******************************/
+
+save_debug :-
+	(   tracing,
+	    notrace
+	->  Tracing = true
+	;   Tracing = false
+	),
+	current_prolog_flag(debug, Debugging),
+	set_prolog_flag(debug, false),
+	set_prolog_flag(query_debug_settings, debug(Debugging, Tracing)).
+
+restore_debug :-
+	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
+	set_prolog_flag(debug, Debugging),
+	(   Tracing == true
+	->  trace
+	;   true
+	).
+
+:- initialization
+	set_prolog_flag(query_debug_settings, debug(false, false)).
+
+
 		/********************************
 		*            PROMPTING		*
 		********************************/
@@ -520,9 +546,10 @@ set_default_history :-
 	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
 	;    '$substitute'("%l", [], P1, P2)
 	),
-	(    tracing
+	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
+	(    Tracing == true
 	->   '$substitute'("%d", ["[trace] "], P2, P3)
-	;    current_prolog_flag(debug, true)
+	;    Debugging == true
 	->   '$substitute'("%d", ["[debug] "], P2, P3)
 	;    '$substitute'("%d", [], P2, P3)
 	),
@@ -563,32 +590,27 @@ subst_chars([H|T]) -->
 	'$module'(TypeIn, TypeIn),
 	expand_goal(Goal, Expanded),
 	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !,
-	'$execute_goal'(Corrected, Bindings).
+	print_message(silent, toplevel_goal(Goal, Bindings)),
+	'$execute_goal2'(Corrected, Bindings).
 '$execute'(_, _) :-
 	notrace,
 	print_message(query, query(no)),
 	fail.
 
-'$execute_goal'(trace, []) :-
-	trace,
-	print_message(query, query(yes)), !,
-	fail.
-'$execute_goal'(Goal, Bindings) :-
-	print_message(silent, toplevel_goal(Goal, Bindings)),
-	'$execute_goal2'(Goal, Bindings).
-
 '$execute_goal2'(Goal, Bindings) :-
+	restore_debug,
 	Goal,
-	flush_output(user_output),
 	deterministic(Det),
+	(   save_debug
+	;   restore_debug, fail
+	),
+	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
 	(    write_bindings(NewBindings, Det)
-	->   !,
-	     notrace,
-	     fail
+	->   !, fail
 	).
 '$execute_goal2'(_, _) :-
-	notrace,
+	save_debug,
 	print_message(query, query(no)),
 	fail.
 
