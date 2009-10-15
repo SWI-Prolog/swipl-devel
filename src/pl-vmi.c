@@ -130,38 +130,16 @@ D_BREAK implements break-points in the  code.   A  break-point is set by
 replacing  an  instruction  by  a   D_BREAK  instruction.  The  orininal
 instruction is saved in a table. replacedBreak() fetches it.
 
-Trouble. Typically, we break at an I_CALL,  etc. intruction and thus the
-next frame is filled. We need to set   lTop above the arguments. That is
-ok; setLTopInBody() can take care of that.   The problem however is that
-tracePort can call GC, and at this point   in  the call, GC uses lTop to
-find where the `new' arguments are, but  lTop is above the new arguments
-rather than at the start of the new frame.
+We simply switch to trace-mode, which will   trap the tracer on the next
+breakable instruction (which is what D_BREAK is supposed to replace).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(D_BREAK, 0, 0, ())
 {
 #if O_DEBUGGER
   if ( debugstatus.debugging )
-  { int action;
-    term_t lref;
-
-    SAVE_REGISTERS(qid);
-    lref = consTermRef(lTop);
-    setLTopInBody();
-    clearUninitialisedVarsFrame(FR, PC-1);
-    action = tracePort(FR, BFR, BREAK_PORT, PC-1 PASS_LD);
-    lTop = (LocalFrame)valTermRef(lref);
-    LOAD_REGISTERS(qid);
-
-    switch(action)
-    { case ACTION_RETRY:
-	goto retry;
-    }
-
-    if ( PC[-1] != encode(D_BREAK) )	/* break might be cleared! */
-    { PC--;
-      NEXT_INSTRUCTION;
-    }
+  { debugstatus.tracing = TRUE;		/* HACK: avoid printMessage() */
+    tracemode(TRUE, NULL);		/* in tracemode() */
   }
 #if VMCODE_IS_ADDRESS
   { void *c = (void *)replacedBreak(PC-1);
