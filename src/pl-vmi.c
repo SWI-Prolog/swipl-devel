@@ -3748,6 +3748,8 @@ b_throw:
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
 	    goto retry_continue;
+	  case ACTION_ABORT:
+	    goto b_throw;
 	}
 
 	setVar(*valTermRef(LD->exception.pending));

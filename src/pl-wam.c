@@ -2154,6 +2154,8 @@ next_choice:
 	    DEF = FR->predicate;
 	    clear(FR, FR_CATCHED);
 	    goto retry_continue;
+	    case ACTION_ABORT:
+	      goto b_throw;
 	}
       } else
       { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
@@ -2227,6 +2229,8 @@ next_choice:
 	      VMI_GOTO(I_EXIT);
 	    case ACTION_RETRY:
 	      goto retry_continue;
+	    case ACTION_ABORT:
+	      goto b_throw;
 	  }
 	}
       }
