@@ -103,27 +103,33 @@ static context_t context;
 
 static int
 resource_error(const char *error)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "resource_error", 1,
-		        PL_CHARS, error,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "resource_error", 1,
+		         PL_CHARS, error,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 static int
 type_error(term_t actual, const char *expected)
 { term_t ex = PL_new_term_ref();
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "type_error", 2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 #ifdef __WINDOWS__
