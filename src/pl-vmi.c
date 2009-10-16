@@ -3730,6 +3730,7 @@ b_throw:
     { Choice ch = findStartChoice(FR, LD->choicepoints);
 
       environment_frame = FR;
+      ARGP = argFrameP(FR, 0);	/* otherwise GC might see `new' arguments */
 
       if ( ch )
       { int printed = PL_same_term(exception_printed, exception_term);
