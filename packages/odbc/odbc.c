@@ -344,10 +344,12 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
     case SQL_SUCCESS:
       if ( msglen > SQL_MAX_MESSAGE_LENGTH )
 	msglen = SQL_MAX_MESSAGE_LENGTH; /* TBD: get the rest? */
-      PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
-			   PL_CHARS,   state,
-		           PL_INTEGER, (long)native,
-		           PL_NCHARS,  (size_t)msglen, message);
+      if ( !PL_unify_term(msg,
+			  PL_FUNCTOR, FUNCTOR_odbc3,
+			    PL_CHARS,   state,
+			    PL_INTEGER, (long)native,
+			    PL_NCHARS,  (size_t)msglen, message) )
+	return FALSE;
       break;
     case SQL_INVALID_HANDLE:
       return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error");
@@ -371,13 +373,16 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
       return TRUE;
     }
     case SQL_ERROR:
-    { term_t ex = PL_new_term_ref();
+    { term_t ex;
 
-      PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		    PL_TERM, msg,
-		    PL_VARIABLE);
+      if ( (ex=PL_new_term_ref()) &&
+	   PL_unify_term(ex,
+			 PL_FUNCTOR, FUNCTOR_error2,
+			   PL_TERM, msg,
+			 PL_VARIABLE) )
+	return PL_raise_exception(ex);
 
-      return PL_raise_exception(ex);
+      return FALSE;
     }
     default:
       return PL_warning("Statement returned %d\n", rc);
@@ -415,96 +420,117 @@ report_status(context *ctxt)
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 static int
 existence_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_existence_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_existence_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 static int
 resource_error(const char *error)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_CHARS, error,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_resource_error1,
+		         PL_CHARS, error,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 representation_error(term_t t, const char *error)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_representation_error1,
-		        PL_CHARS, error,
-		      PL_TERM, t);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_representation_error1,
+		         PL_CHARS, error,
+		       PL_TERM, t) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 context_error(term_t term, const char *error, const char *what)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_context_error3,
-			PL_TERM, term,
-		        PL_CHARS, error,
-			PL_CHARS, what,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_context_error3,
+			 PL_TERM, term,
+		         PL_CHARS, error,
+			 PL_CHARS, what,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 permission_error(const char *op, const char *type, term_t obj)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_permission_error3,
-		        PL_CHARS, op,
-			PL_CHARS, type,
-			PL_TERM, obj,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_permission_error3,
+		         PL_CHARS, op,
+			 PL_CHARS, type,
+			 PL_TERM, obj,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -601,11 +627,11 @@ formatted_string(term_t in, size_t *len, char **out)
 
   if ( !format )
     format = PL_predicate("format", 3, "user");
-  PL_unify_stream(av+0, fd);
-  PL_get_arg(1, in, av+1);
-  PL_get_arg(2, in, av+2);
-					/* TBD: call natively */
-  if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, format, av) )
+
+  if ( !PL_unify_stream(av+0, fd) ||
+       !PL_get_arg(1, in, av+1) ||
+       !PL_get_arg(2, in, av+2) ||
+       !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, format, av) )
   { Sclose(fd);
     if ( *out )
       PL_free(*out);
@@ -652,7 +678,7 @@ nulldef_spec(term_t t)
 	      PL_functor_arity(f) == 1 )
   { term_t a1 = PL_new_term_ref();
 
-    PL_get_arg(1, t, a1);
+    _PL_get_arg(1, t, a1);
     if ( PL_is_variable(a1) )
     { nd->nulltype = NULL_FUNCTOR;
       nd->nullvalue.functor = f;
@@ -698,23 +724,24 @@ free_nulldef(nulldef *nd)
 }
 
 
-static void
+WUNUSED static int
 put_sql_null(term_t t, nulldef *nd)
 { if ( nd )
   { switch(nd->nulltype)
     { case NULL_VAR:
-	break;
+	return TRUE;
       case NULL_ATOM:
-	PL_put_atom(t, nd->nullvalue.atom);
-        break;
+	return PL_put_atom(t, nd->nullvalue.atom);
       case NULL_FUNCTOR:
-	PL_put_functor(t, nd->nullvalue.functor);
-        break;
+	return PL_put_functor(t, nd->nullvalue.functor);
       case NULL_RECORD:
-	PL_recorded(nd->nullvalue.record, t);
+	return PL_recorded(nd->nullvalue.record, t);
+      default:
+	assert(0);
+        return FALSE;
     }
   } else
-    PL_put_atom(t, ATOM_null);
+    return PL_put_atom(t, ATOM_null);
 }
 
 
@@ -794,7 +821,7 @@ nth_row_arg(compile_info *info, term_t var)
 { int i;
 
   for(i=1; i<=info->columns; i++)
-  { PL_get_arg(i, info->row, info->tmp);
+  { _PL_get_arg(i, info->row, info->tmp);
     if ( PL_compare(info->tmp, var) == 0 )
       return i;
   }
@@ -825,7 +852,9 @@ compile_arg(compile_info *info, term_t t)
     }
     case PL_ATOM:
     { atom_t val;
-      PL_get_atom(t, &val);
+
+      if ( !PL_get_atom(t, &val) )
+	assert(0);
       ADDCODE_1(info, PL_ATOM, val);
       if ( true(info, CTX_PERSISTENT) )
 	PL_register_atom(val);
@@ -838,7 +867,8 @@ compile_arg(compile_info *info, term_t t)
 	{ u_double v;
 	  unsigned int i;
 
-	  PL_get_float(t, &v.asdouble);
+	  if ( !PL_get_float(t, &v.asdouble) )
+	    assert(0);
 	  ADDCODE(info, PL_FLOAT);
 	  for(i=0; i<sizeof(double)/sizeof(code); i++)
 	    ADDCODE(info, v.ascode[i]);
@@ -861,7 +891,9 @@ compile_arg(compile_info *info, term_t t)
       break;
     case PL_INTEGER:
     { long v;
-      PL_get_long(t, &v);
+
+      if ( !PL_get_long(t, &v) )
+	assert(0);
       ADDCODE_1(info, PL_INTEGER, v);
       break;
     }
@@ -870,11 +902,12 @@ compile_arg(compile_info *info, term_t t)
       int i, arity;
       term_t a = PL_new_term_ref();
 
-      PL_get_functor(t, &f);
+      if ( !PL_get_functor(t, &f) )
+	assert(0);
       arity = PL_functor_arity(f);
       ADDCODE_1(info, PL_FUNCTOR, f);
       for(i=1; i<=arity; i++)
-      { PL_get_arg(i, t, a);
+      { _PL_get_arg(i, t, a);
 	compile_arg(info, a);
       }
       break;
@@ -900,18 +933,21 @@ compile_findall(term_t all, unsigned flags)
   info.size  = 0;
   info.flags = flags;
 
-  PL_get_arg(2, all, info.row);
-  PL_get_name_arity(info.row, &a, &info.columns);
+  if ( !PL_get_arg(2, all, info.row) ||
+       !PL_get_name_arity(info.row, &a, &info.columns) )
+    return NULL;
 
   for(i=1; i<=info.columns; i++)
-  { PL_get_arg(i, info.row, t);
+  { if ( !PL_get_arg(i, info.row, t) )
+      return NULL;
     if ( !PL_is_variable(t) )
     { type_error(t, "unbound");
       return NULL;
     }
   }
 
-  PL_get_arg(1, all, t);
+  if ( !PL_get_arg(1, all, t) )
+    return NULL;
   compile_arg(&info, t);
 
   if ( !(f = odbc_malloc(FND_SIZE(info.size))) )
@@ -1001,17 +1037,20 @@ build_term(context *ctxt, code *PC, term_t result)
 
       for(i=0; i<sizeof(double)/sizeof(code); i++)
 	v.ascode[i] = *PC++;
-      PL_put_float(result, v.asdouble);
+      if ( !PL_put_float(result, v.asdouble) )
+	return NULL;
       return PC;
     }
     case PL_STRING:
     { int len = (int)*PC++;
       char *s = (char*)*PC++;
-      PL_put_string_nchars(result, len, s);
+      if ( !PL_put_string_nchars(result, len, s) )
+	return NULL;
       return PC;
     }
     case PL_INTEGER:
-    { PL_put_integer(result, (long)*PC++);
+    { if ( !PL_put_integer(result, (long)*PC++) )
+	return NULL;
       return PC;
     }
     case PL_TERM:
@@ -1028,7 +1067,8 @@ build_term(context *ctxt, code *PC, term_t result)
 	  return NULL;
       }
 
-      PL_cons_functor_v(result, f, av);
+      if ( !PL_cons_functor_v(result, f, av) )
+	return NULL;
       PL_reset_term_refs(av);
       return PC;
     }
@@ -1140,7 +1180,7 @@ get_connection(term_t tdsn, connection **cn)
   { term_t a = PL_new_term_ref();
     void *ptr;
 
-    PL_get_arg(1, tdsn, a);
+    _PL_get_arg(1, tdsn, a);
     if ( !PL_get_pointer(a, &ptr) )
       return type_error(tdsn, "odbc_connection");
     c = ptr;
@@ -1458,7 +1498,7 @@ odbc_set_connection(connection *cn, term_t option)
   } else if ( PL_is_functor(option, FUNCTOR_null1) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, option, a);
+    _PL_get_arg(1, option, a);
     cn->null = nulldef_spec(a);
 
     return TRUE;
@@ -1551,7 +1591,7 @@ odbc_get_connection(term_t conn, term_t option, control_t h)
 find:
   val = PL_new_term_ref();
   a = PL_new_term_ref();
-  PL_get_arg(1, option, a);
+  _PL_get_arg(1, option, a);
 
   for(; opt->name; opt++)
   { if ( !opt->functor )
@@ -1576,7 +1616,8 @@ find:
 	  break;
 	case sword:
 	{ SQLSMALLINT v = *((SQLSMALLINT*)buf);
-	  PL_put_integer(val, v);
+	  if ( !PL_put_integer(val, v) )
+	    return FALSE;
 	  break;
 	}
 	default:
@@ -1588,9 +1629,10 @@ find:
       if ( f )
 	return PL_unify(a, val);
 
-      PL_unify_term(option,
-		    PL_FUNCTOR, opt->functor,
-		    PL_TERM, val);
+      if ( !PL_unify_term(option,
+			  PL_FUNCTOR, opt->functor,
+			  PL_TERM, val) )
+	return FALSE;
 
       if ( opt[1].name )
 	PL_retry_address(opt+1);
@@ -2171,8 +2213,8 @@ set_column_types(context *ctxt, term_t option)
   parameter *p;
   int ntypes;
 
-  PL_get_arg(1, option, tail);
-  if ( (ntypes = list_length(tail)) < 0 )
+  if ( !PL_get_arg(1, option, tail) ||
+       (ntypes = list_length(tail)) < 0 )
     return FALSE;			/* not a proper list */
 
   ctxt->NumCols = ntypes;
@@ -2205,7 +2247,7 @@ set_statement_options(context *ctxt, term_t options)
       } else if ( PL_is_functor(head, FUNCTOR_null1) )
       { term_t arg = PL_new_term_ref();
 
-	PL_get_arg(1, head, arg);
+	_PL_get_arg(1, head, arg);
 	ctxt->null = nulldef_spec(arg);
 	set(ctxt, CTX_OWNNULL);
       } else if ( PL_is_functor(head, FUNCTOR_source1) )
@@ -2230,7 +2272,7 @@ set_statement_options(context *ctxt, term_t options)
 	  set(ctxt, CTX_NOAUTO);
 	else
 	{ term_t a = PL_new_term_ref();
-	  PL_get_arg(1, head, a);
+	  _PL_get_arg(1, head, a);
 	  return domain_error(a, "fetch");
 	}
       } else if ( PL_is_functor(head, FUNCTOR_wide_column_threshold1) )
@@ -2476,7 +2518,7 @@ getStmt(term_t id, context **ctxt)
   { term_t a = PL_new_term_ref();
     void *ptr;
 
-    PL_get_arg(1, id, a);
+    _PL_get_arg(1, id, a);
     if ( PL_get_pointer(a, &ptr) )
     { *ctxt = ptr;
 
@@ -2624,11 +2666,11 @@ declare_parameters(context *ctxt, term_t parms)
     if ( PL_is_functor(head, FUNCTOR_gt2) )
     { term_t a = PL_new_term_ref();
 
-      PL_get_arg(1, head, a);
+      _PL_get_arg(1, head, a);
       if ( !get_pltype(a, &plType) )
 	return FALSE;
 
-      PL_get_arg(2, head, head);
+      _PL_get_arg(2, head, head);
     }
 
     if ( !PL_get_name_arity(head, &name, &arity) )
@@ -3495,21 +3537,19 @@ Microsoft SQL Server sometimes gives the wrong length indication as well
 as the wrong number of pad bytes for the first part of the data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+WUNUSED static int
 put_chars(term_t val, int plTypeID, size_t len, const char *chars)
 { switch( plTypeID )
   { case SQL_PL_DEFAULT:
     case SQL_PL_ATOM:
-      PL_put_atom_nchars(val, len, chars);
-      break;
+      return PL_put_atom_nchars(val, len, chars);
     case SQL_PL_STRING:
-      PL_put_string_nchars(val, len, chars);
-      break;
+      return PL_put_string_nchars(val, len, chars);
     case SQL_PL_CODES:
-      PL_put_list_ncodes(val, len, chars);
-      break;
+      return PL_put_list_ncodes(val, len, chars);
     default:
       assert(0);
+      return FALSE;
   }
 }
 
@@ -3545,7 +3585,8 @@ pl_put_column(context *c, int nth, term_t col)
     if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
     { DEBUG(2, Sdprintf("Got %ld bytes\n", len));
       if ( len == SQL_NULL_DATA )
-      { put_sql_null(val, c->null);
+      { if ( !put_sql_null(val, c->null) )
+	  return FALSE;
 	goto ok;
       } else if ( len == SQL_NO_TOTAL )
       { /* Don't know what to do here */
@@ -3597,49 +3638,55 @@ pl_put_column(context *c, int nth, term_t col)
     }
 
   got_all_data:
-    put_chars(val, p->plTypeID, len, data);
+    if ( !put_chars(val, p->plTypeID, len, data) )
+      return FALSE;
     if ( data != buf )
       free(data);
     goto ok;
   }
 
   if ( p->length_ind == SQL_NULL_DATA )
-  { put_sql_null(val, c->null);
+  { if ( !put_sql_null(val, c->null) )
+      return FALSE;
   } else
-  { switch( p->cTypeID )
+  { int rc;
+
+    switch( p->cTypeID )
     { case SQL_C_CHAR:
       case SQL_C_BINARY:
-	put_chars(val, p->plTypeID, p->length_ind, (char*)p->ptr_value);
+	rc = put_chars(val, p->plTypeID, p->length_ind, (char*)p->ptr_value);
 	break;
       case SQL_C_SLONG:
-	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
+	rc = PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
 	break;
       case SQL_C_SBIGINT:
-	PL_put_int64(val, *(SQLBIGINT *)p->ptr_value);
+	rc = PL_put_int64(val, *(SQLBIGINT *)p->ptr_value);
 	break;
       case SQL_C_DOUBLE:
-	PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
+	rc = PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
 	break;
       case SQL_C_TYPE_DATE:
       { DATE_STRUCT* ds = (DATE_STRUCT*)p->ptr_value;
-	term_t av = PL_new_term_refs(3);
+	term_t av;
 
-	PL_put_integer(av+0, ds->year);
-	PL_put_integer(av+1, ds->month);
-	PL_put_integer(av+2, ds->day);
-
-	PL_cons_functor_v(val, FUNCTOR_date3, av);
+	rc = ( (av=PL_new_term_refs(3)) &&
+	       PL_put_integer(av+0, ds->year) &&
+	       PL_put_integer(av+1, ds->month) &&
+	       PL_put_integer(av+2, ds->day) &&
+	       PL_cons_functor_v(val, FUNCTOR_date3, av)
+	     );
 	break;
       }
       case SQL_C_TYPE_TIME:
       { TIME_STRUCT* ts = (TIME_STRUCT*)p->ptr_value;
-	term_t av = PL_new_term_refs(3);
+	term_t av;
 
-	PL_put_integer(av+0, ts->hour);
-	PL_put_integer(av+1, ts->minute);
-	PL_put_integer(av+2, ts->second);
-
-	PL_cons_functor_v(val, FUNCTOR_time3, av);
+	rc = ( (av=PL_new_term_refs(3)) &&
+	       PL_put_integer(av+0, ts->hour) &&
+	       PL_put_integer(av+1, ts->minute) &&
+	       PL_put_integer(av+2, ts->second) &&
+	       PL_cons_functor_v(val, FUNCTOR_time3, av)
+	     );
 	break;
       }
       case SQL_C_TIMESTAMP:
@@ -3648,17 +3695,18 @@ pl_put_column(context *c, int nth, term_t col)
 	switch( p->plTypeID )
 	{ case SQL_PL_DEFAULT:
 	  case SQL_PL_TIMESTAMP:
-	  { term_t av = PL_new_term_refs(7);
+	  { term_t av;
 
-	    PL_put_integer(av+0, ts->year);
-	    PL_put_integer(av+1, ts->month);
-	    PL_put_integer(av+2, ts->day);
-	    PL_put_integer(av+3, ts->hour);
-	    PL_put_integer(av+4, ts->minute);
-	    PL_put_integer(av+5, ts->second);
-	    PL_put_integer(av+6, ts->fraction);
-
-	    PL_cons_functor_v(val, FUNCTOR_timestamp7, av);
+	    rc = ( (av=PL_new_term_refs(7)) &&
+		   PL_put_integer(av+0, ts->year) &&
+		   PL_put_integer(av+1, ts->month) &&
+		   PL_put_integer(av+2, ts->day) &&
+		   PL_put_integer(av+3, ts->hour) &&
+		   PL_put_integer(av+4, ts->minute) &&
+		   PL_put_integer(av+5, ts->second) &&
+		   PL_put_integer(av+6, ts->fraction) &&
+		   PL_cons_functor_v(val, FUNCTOR_timestamp7, av)
+		 );
 	    break;
 	  }
 	  case SQL_PL_INTEGER:
@@ -3687,9 +3735,9 @@ pl_put_column(context *c, int nth, term_t col)
 #endif
 
 	    if ( p->plTypeID == SQL_PL_INTEGER )
-	      PL_put_integer(val, t);
+	      rc = PL_put_integer(val, t);
 	    else
-	      PL_put_float(val, (double)t); /* TBD: fraction */
+	      rc = PL_put_float(val, (double)t); /* TBD: fraction */
 	  }
 #else
 	    return PL_warning("System doesn't support mktime()/timegm()");
@@ -3704,11 +3752,13 @@ pl_put_column(context *c, int nth, term_t col)
 	return PL_warning("ODBC: Unknown cTypeID: %d",
 			  p->cTypeID);
     }
+    if ( !rc )
+      return FALSE;
   }
 
 ok:
   if ( true(c, CTX_SOURCE) )
-    PL_cons_functor_v(col, FUNCTOR_column3, cell);
+    return PL_cons_functor_v(col, FUNCTOR_column3, cell);
 
   return TRUE;
 }
@@ -3730,9 +3780,7 @@ pl_put_row(term_t row, context *c)
       return FALSE;			/* with exception */
   }
 
-  PL_cons_functor_v(row, c->db_row, columns);
-
-  return TRUE;
+  return PL_cons_functor_v(row, c->db_row, columns);
 }
 
 
