@@ -601,7 +601,9 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       { esave = consTermRef(environment_frame);
 	environment_frame = fr;
       } else
+      { esave = 0;			/* keep compiler happy */
 	assert(environment_frame == fr);
+      }
 
       clean = consTermRef(argFrameP(fr, 3));
       startCritical;
