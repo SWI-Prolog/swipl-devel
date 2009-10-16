@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -211,15 +211,24 @@ getval(term_t var, term_t value ARG_LD)
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
 
   for(i=0; i<2; i++)
   { if ( LD->gvar.nb_vars )
     { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
 
       if ( s )
-      { word w = (word)s->value;
+      { term_t tmp = PL_new_term_ref();
+	word w = (word)s->value;
 
-	return unify_ptrs(valTermRef(value), &w, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+	*valTermRef(tmp) = w;
+	return PL_unify(value, tmp);
       }
     }
 
