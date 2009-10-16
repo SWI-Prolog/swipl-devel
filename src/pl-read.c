@@ -2093,7 +2093,8 @@ static int
 build_term(term_t term, atom_t atom, int arity, term_t *argv,
 	   ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
-  Word argp;
+  int i;
+  Word ap, argp;
 
   if ( !hasGlobalSpace(arity+1) )
   { int rc;
@@ -2108,6 +2109,8 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv,
   setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
   *argp++ = functor;
 
+  for(ap=argp, i=arity; i-- > 0; )
+    setVar(*ap++);			/* prepare for local shift */
   for( ; arity-- > 0; argv++, argp++)
     readValHandle(*argv, argp, _PL_rd PASS_LD);
 
