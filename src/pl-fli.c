@@ -2255,12 +2255,13 @@ PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
 
 
 #undef PL_put_term
-void
+int
 PL_put_term(term_t t1, term_t t2)
 { GET_LD
   Word p2 = valHandleP(t2);
 
   setHandle(t1, linkVal(p2));
+  return TRUE;
 }
 #define PL_put_term(t1, t2) PL_put_term__LD(t1, t2 PASS_LD)
 
