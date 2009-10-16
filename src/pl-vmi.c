@@ -1113,7 +1113,8 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
 
 VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ int rc;
+  Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
@@ -1129,7 +1130,10 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   }
 #endif
 
-  if ( unify_ptrs(v1, v2, 0 PASS_LD) )
+  SAVE_REGISTERS(qid);
+  rc = unify_ptrs(v1, v2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( rc )
   { CHECK_WAKEUP;
     NEXT_INSTRUCTION;
   }
