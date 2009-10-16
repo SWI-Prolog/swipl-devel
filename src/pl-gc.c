@@ -2654,6 +2654,16 @@ scan_global(int flags)
 		 current, next, tag(*current), (long)offset);
 	trap_gdb();
       }
+    } else if ( !marked )
+    { if ( isRef(*current) )
+      { if ( !onStack(global, unRef(*current)) )
+	{ char b1[64], b2[64];
+
+	  Sdprintf("ERROR: ref at %s not on global (*=%s)\n",
+		   print_adr(current, b1), print_val(*current, b2));
+	  trap_gdb();
+	}
+      }
     }
   }
   if ( regstart )
