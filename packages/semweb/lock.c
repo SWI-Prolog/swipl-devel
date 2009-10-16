@@ -32,20 +32,26 @@
 static int
 permission_error(const char *op, const char *type, const char *obj,
 		 const char *msg)
-{ term_t ex = PL_new_term_ref();
-  term_t ctx = PL_new_term_ref();
+{ term_t ex, ctx;
+
+  if ( !(ex = PL_new_term_ref()) ||
+       !(ctx = PL_new_term_ref()) )
+    return FALSE;
 
   if ( msg )
-    PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
-		         PL_VARIABLE,
-		         PL_CHARS, msg);
+  { if ( !PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
+			       PL_VARIABLE,
+			       PL_CHARS, msg) )
+      return FALSE;
+  }
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+  if ( !PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
 		      PL_FUNCTOR_CHARS, "permission_error", 3,
 		        PL_CHARS, op,
 		        PL_CHARS, type,
 		        PL_CHARS, obj,
-		      PL_TERM, ctx);
+		      PL_TERM, ctx) )
+    return FALSE;
 
   return PL_raise_exception(ex);
 }
