@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,12 +32,16 @@
 
 int
 sgml2pl_error(plerrorid id, ...)
-{ term_t except = PL_new_term_ref();
-  term_t formal = PL_new_term_ref();
-  term_t swi	= PL_new_term_ref();
+{ int rc;
+  term_t except, formal, swi;
   va_list args;
   char msgbuf[1024];
   char *msg = NULL;
+
+  if ( !(except = PL_new_term_ref()) ||
+       !(formal = PL_new_term_ref()) ||
+       !(swi	= PL_new_term_ref()) )
+    return FALSE;
 
   va_start(args, id);
   switch(id)
@@ -48,32 +52,32 @@ sgml2pl_error(plerrorid id, ...)
 
       switch(err)
       { case ENOMEM:
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "resource_error", 1,
-			  PL_CHARS, "no_memory");
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "resource_error", 1,
+			       PL_CHARS, "no_memory");
 	  break;
 	case EACCES:
 	{ const char *file = va_arg(args,   const char *);
 	  const char *action = va_arg(args, const char *);
 
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "permission_error", 3,
-			  PL_CHARS, action,
-			  PL_CHARS, "file",
-			  PL_CHARS, file);
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "permission_error", 3,
+			       PL_CHARS, action,
+			       PL_CHARS, "file",
+			       PL_CHARS, file);
 	  break;
 	}
 	case ENOENT:
 	{ const char *file = va_arg(args, const char *);
 
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "existence_error", 2,
-			  PL_CHARS, "file",
-			  PL_CHARS, file);
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "existence_error", 2,
+			       PL_CHARS, "file",
+			       PL_CHARS, file);
 	  break;
 	}
 	default:
-	  PL_unify_atom_chars(formal, "system_error");
+	  rc = PL_unify_atom_chars(formal, "system_error");
 	  break;
       }
       break;
@@ -84,12 +88,12 @@ sgml2pl_error(plerrorid id, ...)
 
       if ( PL_is_variable(actual) &&
 	   strcmp(expected, "variable") != 0 )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		      PL_CHARS, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR_CHARS, "type_error", 2,
+			     PL_CHARS, expected,
+			     PL_TERM, actual);
       break;
     }
     case ERR_DOMAIN:
@@ -97,31 +101,31 @@ sgml2pl_error(plerrorid id, ...)
       term_t actual        = va_arg(args, term_t);
 
       if ( PL_is_variable(actual) )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      PL_FUNCTOR_CHARS, "domain_error", 2,
-		      PL_CHARS, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR_CHARS, "domain_error", 2,
+			     PL_CHARS, expected,
+			     PL_TERM, actual);
       break;
     }
     case ERR_EXISTENCE:
     { const char *type = va_arg(args, const char *);
       term_t obj  = va_arg(args, term_t);
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "existence_error", 2,
-		    PL_CHARS, type,
-		    PL_TERM, obj);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "existence_error", 2,
+			   PL_CHARS, type,
+			   PL_TERM, obj);
 
       break;
     }
     case ERR_FAIL:
     { term_t goal  = va_arg(args, term_t);
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "goal_failed", 1,
-		    PL_TERM, goal);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "goal_failed", 1,
+			   PL_TERM, goal);
 
       break;
     }
@@ -129,10 +133,10 @@ sgml2pl_error(plerrorid id, ...)
     { const char *limit = va_arg(args, const char *);
       long maxval  = va_arg(args, long);
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "limit_exceeded", 2,
-		    PL_CHARS, limit,
-		    PL_LONG, maxval);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "limit_exceeded", 2,
+			   PL_CHARS, limit,
+			   PL_LONG, maxval);
 
       break;
     }
@@ -143,9 +147,9 @@ sgml2pl_error(plerrorid id, ...)
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "miscellaneous", 1,
-		      PL_CHARS, id);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "miscellaneous", 1,
+			   PL_CHARS, id);
       break;
     }
     default:
@@ -153,26 +157,29 @@ sgml2pl_error(plerrorid id, ...)
   }
   va_end(args);
 
-  if ( msg )
+  if ( rc && msg )
   { term_t predterm = PL_new_term_ref();
     term_t msgterm  = PL_new_term_ref();
 
-    if ( msg )
-    { PL_put_atom_chars(msgterm, msg);
-    }
-
-    PL_unify_term(swi,
-		  PL_FUNCTOR_CHARS, "context", 2,
-		    PL_TERM, predterm,
-		    PL_TERM, msgterm);
+    if ( !(predterm = PL_new_term_ref()) ||
+	 !(msgterm  = PL_new_term_ref()) ||
+	 !PL_put_atom_chars(msgterm, msg) ||
+	 !PL_unify_term(swi,
+			PL_FUNCTOR_CHARS, "context", 2,
+			  PL_TERM, predterm,
+			  PL_TERM, msgterm) )
+      rc = FALSE;
   }
 
-  PL_unify_term(except,
-		PL_FUNCTOR_CHARS, "error", 2,
-		  PL_TERM, formal,
-		  PL_TERM, swi);
+  if ( rc )
+    rc = PL_unify_term(except,
+		       PL_FUNCTOR_CHARS, "error", 2,
+		         PL_TERM, formal,
+		         PL_TERM, swi);
 
+  if ( rc )
+    return PL_raise_exception(except);
 
-  return PL_raise_exception(except);
+  return FALSE;
 }
 
