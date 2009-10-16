@@ -1722,7 +1722,6 @@ prolog_frame_attribute(term_t frame, term_t what,
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();
     int argn;
-    Word p;
 
     if ( !PL_get_arg_ex(1, what, arg) || !PL_get_integer_ex(arg, &argn) )
       fail;
