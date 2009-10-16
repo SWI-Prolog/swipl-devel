@@ -4227,7 +4227,8 @@ environment before we can call trapUndefined() to make shift/GC happy.
 mcall_cont:
   setNextFrameFlags(NFR, FR);
   if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )
-  { NFR->parent         = FR;
+  { term_t nref = consTermRef(NFR);
+    NFR->parent         = FR;
     NFR->predicate      = DEF;		/* TBD */
     NFR->programPointer = PC;		/* save PC in child */
     NFR->clause         = NULL;
@@ -4241,6 +4242,7 @@ mcall_cont:
     SAVE_REGISTERS(qid);
     DEF = trapUndefined(DEF PASS_LD);
     LOAD_REGISTERS(qid);
+    NFR = (LocalFrame)valTermRef(nref);
 
     FR = FR->parent;
 #ifdef O_PLMT
