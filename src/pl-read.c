@@ -2067,7 +2067,7 @@ statically allocated and thus unique.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
-static inline void
+static inline int
 readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 { word w = *valTermRef(term);
   Variable var;
@@ -2076,7 +2076,8 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
   { DEBUG(9, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
-    { var->variable = PL_new_term_ref();
+    { if ( !(var->variable = PL_new_term_ref()) )
+	return FALSE;
       setVar(*argp);
       *valTermRef(var->variable) = makeRef(argp);
     } else				/* reference to existing var */
@@ -2086,6 +2087,7 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
     *argp = w;				/* plain value */
 
   setVar(*valTermRef(term));
+  return TRUE;
 }
 
 
@@ -2112,7 +2114,9 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv,
   for(ap=argp, i=arity; i-- > 0; )
     setVar(*ap++);			/* prepare for local shift */
   for( ; arity-- > 0; argv++, argp++)
-    readValHandle(*argv, argp, _PL_rd PASS_LD);
+  { if ( !readValHandle(*argv, argp, _PL_rd PASS_LD) )
+      return FALSE;
+  }
 
   DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
   return TRUE;
@@ -2629,10 +2633,10 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	  int rc;
 
 	  if ( positions )
-	  { pa = PL_new_term_ref();
-	    pe = PL_new_term_ref();
-	    ph = PL_new_term_ref();
-	    if ( !PL_unify_term(positions,
+	  { if ( !(pa = PL_new_term_ref()) ||
+		 !(pe = PL_new_term_ref()) ||
+		 !(ph = PL_new_term_ref()) ||
+		 !PL_unify_term(positions,
 				PL_FUNCTOR, FUNCTOR_term_position5,
 				PL_INTPTR, token->start,
 				PL_TERM, pe,
@@ -2656,7 +2660,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      avn *= 2;
 	      argv = nargv;
 	    }
-	    argv[argc] = PL_new_term_ref();
+	    if ( !(argv[argc] = PL_new_term_ref()) )
+	      return FALSE;
 	    if ( positions )
 	    { if ( !PL_unify_list(pa, ph, pa) )
 		return FALSE;
@@ -2709,10 +2714,9 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      term_t pa, pe;
 
 	      if ( positions )
-	      { pa = PL_new_term_ref();
-		pe = PL_new_term_ref();
-
-		if ( !PL_unify_term(positions,
+	      { if ( !(pa = PL_new_term_ref()) ||
+		     !(pe = PL_new_term_ref()) ||
+		     !PL_unify_term(positions,
 				    PL_FUNCTOR, FUNCTOR_brace_term_position3,
 				    PL_INTPTR, token->start,
 				    PL_TERM, pe,
@@ -2732,17 +2736,19 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      return build_term(term, ATOM_curl, 1, &arg, _PL_rd PASS_LD);
 	    }
 	  case '[':
-	    { term_t tail = PL_new_term_ref();
-	      term_t tmp  = PL_new_term_ref();
+	    { term_t tail, tmp;
 	      term_t pa, pe, pt, p2;
 
-	      if ( positions )
-	      { pa = PL_new_term_ref();
-		pe = PL_new_term_ref();
-		pt = PL_new_term_ref();
-		p2 = PL_new_term_ref();
+	      if ( !(tail = PL_new_term_ref()) ||
+		   !(tmp  = PL_new_term_ref()) )
+		return FALSE;
 
-		if ( !PL_unify_term(positions,
+	      if ( positions )
+	      { if ( !(pa = PL_new_term_ref()) ||
+		     !(pe = PL_new_term_ref()) ||
+		     !(pt = PL_new_term_ref()) ||
+		     !(p2 = PL_new_term_ref()) ||
+		     !PL_unify_term(positions,
 				    PL_FUNCTOR, FUNCTOR_list_position4,
 				    PL_INTPTR, token->start,
 				    PL_TERM, pe,
@@ -2774,8 +2780,10 @@ term is to be written.
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
 		*argp++ = FUNCTOR_dot2;
-		readValHandle(tmp, argp++, _PL_rd PASS_LD);
-		setVar(*argp);
+		setVar(argp[0]);
+		setVar(argp[1]);
+		if ( !readValHandle(tmp, argp++, _PL_rd PASS_LD) )
+		  return FALSE;
 		setHandle(tail, makeRef(argp));
 
 		token = get_token(must_be_op, _PL_rd);
@@ -2796,7 +2804,8 @@ term is to be written.
 		      if ( (rc=complex_term("]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
 			return rc;
 		      argp = unRef(*valTermRef(tail));
-		      readValHandle(tmp, argp, _PL_rd PASS_LD);
+		      if ( !readValHandle(tmp, argp, _PL_rd PASS_LD) )
+			return FALSE;
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
 		      if ( positions )
 		      { if ( !PL_unify_nil(pa) ||
@@ -2874,7 +2883,9 @@ read_term(term_t term, ReadData rd ARG_LD)
   }
   p = valTermRef(result);
   if ( isVarAtom(*p, rd) )		/* reading a single variable */
-    readValHandle(result, p, rd PASS_LD);
+  { if ( !readValHandle(result, p, rd PASS_LD) )
+      return FALSE;
+  }
 
   if ( !(token = get_token(FALSE, rd)) )
     goto out;
