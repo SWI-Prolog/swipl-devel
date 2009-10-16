@@ -73,61 +73,69 @@ static functor_t FUNCTOR_ip4;
 
 static int
 type_error(term_t val, const char *type)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_type_error2,
-		    PL_TERM, val,
-		    PL_CHARS, type,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_TERM, val,
+		         PL_CHARS, type,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t val, const char *type)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_domain_error2,
-		    PL_TERM, val,
-		    PL_CHARS, type,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_TERM, val,
+		         PL_CHARS, type,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 resource_error(const char *resource)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_resource_error1,
-		    PL_CHARS, resource,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_resource_error1,
+		         PL_CHARS, resource,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 permission_error(const char *action, const char *type, term_t obj)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_permission_error3,
-		    PL_CHARS, action,
-		    PL_CHARS, type,
-		    PL_TERM, obj,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_permission_error3,
+		         PL_CHARS, action,
+		         PL_CHARS, type,
+		         PL_TERM, obj,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -144,7 +152,7 @@ static int
 get_char_arg(int a, term_t t, char **s)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_atom_chars(t2, s) )
     return type_error(t2, "atom");
 
@@ -152,23 +160,11 @@ get_char_arg(int a, term_t t, char **s)
 }
 
 
-#if 0					/* not used anymore */
-static int
-get_atom_arg(int a, term_t t, atom_t *n)
-{ term_t t2 = PL_new_term_ref();
-
-  PL_get_arg(a, t, t2);
-
-  return get_atom_ex(t2, n);
-}
-#endif
-
-
 static int
 get_int_arg(int a, term_t t, int *i)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_integer(t2, i) )
     return type_error(t2, "integer");
 
@@ -180,7 +176,7 @@ static int
 get_bool_arg(int a, term_t t, int *i)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_bool(t2, i) )
     return type_error(t2, "boolean");
 
@@ -192,7 +188,7 @@ static int
 get_file_arg(int a, term_t t, char **f)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_file_name(t2, f, PL_FILE_EXIST) )
     return type_error(t2, "file");	/* TBD: check errors */
 
@@ -206,7 +202,7 @@ get_predicate_arg(int a, term_t t, int arity, predicate_t *pred)
   module_t m = NULL;
   atom_t name;
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   PL_strip_module(t2, &m, t2);
   if ( !get_atom_ex(t2, &name) )
     return FALSE;
@@ -236,7 +232,7 @@ get_conf(term_t config, PL_SSL **conf)
 
   if ( !PL_is_functor(config, FUNCTOR_ssl1) )
     return type_error(config, "ssl_config");
-  PL_get_arg(1, config, a);
+  _PL_get_arg(1, config, a);
   if ( !PL_get_pointer(a, &ptr) )
     return type_error(config, "ssl_config");
   ssl = ptr;
@@ -325,14 +321,10 @@ pl_cert_verify_hook(PL_SSL *config,
 
   unify_conf(av+0, config);
   /*Sdprintf("\n---Certificate:'%s'---\n", certificate);*/
-  PL_unify_atom_nchars(av+1, len, certificate);
-  PL_unify_atom_chars(av+2, error);
 
-  if ( PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) )
-  { val = TRUE;
-  } else
-  { val = FALSE;			/* TBD: Handle exception? */
-  }
+  val = ( PL_unify_atom_nchars(av+1, len, certificate) &&
+	  PL_unify_atom_chars(av+2, error) &&
+	  PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) );
 
   PL_close_foreign_frame(fid);
 
