@@ -316,7 +316,7 @@ pl_new_order_table(term_t name, term_t options)
       { term_t a = PL_new_term_ref();
 	OrdTable from;
 
-	PL_get_arg(1, head, a);
+	_PL_get_arg(1, head, a);
 	if ( get_order_table(a, &from) )
 	{ copy_table(t, from);
 	} else
@@ -327,7 +327,7 @@ pl_new_order_table(term_t name, term_t options)
       { fid_t fid = PL_open_foreign_frame();
 	term_t a = PL_new_term_ref();
 
-	PL_get_arg(1, head, a);
+	_PL_get_arg(1, head, a);
 	if ( !parse_set(t, name, a) )
 	  goto err1;
 
@@ -403,7 +403,8 @@ pl_order_table_mapping(term_t handle, term_t from, term_t to, control_t ctrl)
     while( f <= 255 && !unify_mapped_code(to, ORD(t, f)) )
       f++;
     if ( f <= 255 )
-    { PL_unify_integer(from, f);
+    { if ( !PL_unify_integer(from, f) )
+	return FALSE;
       PL_retry(f+1);
     }
     return FALSE;

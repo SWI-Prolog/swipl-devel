@@ -209,43 +209,51 @@ init_constants()
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "domain_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "domain_error", 2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "type_error", 2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 existence_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
-		      PL_FUNCTOR_CHARS, "existence_error", 2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
-  return PL_raise_exception(ex);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "existence_error", 2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -448,14 +456,14 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
       term_t head2 = PL_new_term_ref();
       term_t arg2  = PL_new_term_ref();
 
-      PL_get_arg(2, head, tail2);
+      _PL_get_arg(2, head, tail2);
       while(PL_get_list(tail2, head2, tail2))
       { atom_t a;
 	int optarity;
 
 	if ( PL_get_name_arity(head2, &a, &optarity) )
 	{ if ( optarity == 1 )
-	  { PL_get_arg(1, head2, arg2);
+	  { _PL_get_arg(1, head2, arg2);
 
 	    if ( !get_field_flag(a, arg2, &fields[nfields]) )
 	      goto colerr;
@@ -504,13 +512,13 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
     { term_t head2 = PL_new_term_ref();
       term_t tail2 = PL_new_term_ref();
 
-      PL_get_arg(1, head, arg);
+      _PL_get_arg(1, head, arg);
 
       if ( !PL_get_integer(arg, &table->escape) )
 	goto err3;
 
       default_escape_table(table);
-      PL_get_arg(2, head, tail2);
+      _PL_get_arg(2, head, tail2);
       while(PL_get_list(tail2, head2, tail2))
       { atom_t name;
 	int arity;
@@ -534,7 +542,7 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
 
     if ( arity != 1 )
       goto err3;
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
     if ( name == ATOM_record_separator )
     { if ( !PL_get_integer(arg, &table->record_sep) )
 	goto err3;
@@ -731,7 +739,7 @@ pl_get_table_attribute(term_t handle, term_t name, term_t value)
     { term_t a = PL_new_term_ref();
       int i;
 
-      PL_get_arg(1, name, a);
+      _PL_get_arg(1, name, a);
       if ( PL_get_integer(a, &i) )
       { if ( i >= 1 && i <= table->nfields )
 	  return unify_field_info(value, &table->fields[i-1]);
@@ -804,50 +812,60 @@ unify_field_info(term_t t, Field field)	/* name(Type, Flags) */
   }
 
   if ( field->flags & FIELD_UNIQUE )
-  { PL_unify_list(tail, head, tail);
-    PL_unify_atom(head, ATOM_unique);
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_atom(head, ATOM_unique) )
+      return FALSE;
     options++;
   }
   if ( field->flags & FIELD_DOWNCASE )
-  { PL_unify_list(tail, head, tail);
-    PL_unify_atom(head, ATOM_downcase);
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_atom(head, ATOM_downcase) )
+      return FALSE;
     options++;
   }
   if ( field->flags & FIELD_ALLOWBADNUM )
-  { PL_unify_list(tail, head, tail);
-    PL_unify_atom(head, ATOM_syntax);
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_atom(head, ATOM_syntax) )
+      return FALSE;
     options++;
   }
   if ( field->flags & FIELD_MAPSPACETOUNDERSCORE )
-  { PL_unify_list(tail, head, tail);
-    PL_unify_atom(head, ATOM_map_space_to_underscore);
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !PL_unify_atom(head, ATOM_map_space_to_underscore) )
+      return FALSE;
     options++;
   }
   if ( field->flags & FIELD_SORTED )
-  { PL_unify_list(tail, head, tail);
+  { if ( !PL_unify_list(tail, head, tail) )
+      return FALSE;
     if ( field->ord )
-      PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_sorted, 1),
-			    PL_ATOM, field->ord->name);
-    else
-      PL_unify_atom(head, ATOM_sorted);
+    { if ( !PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_sorted, 1),
+			  PL_ATOM, field->ord->name) )
+	return FALSE;
+    } else
+    { if ( !PL_unify_atom(head, ATOM_sorted) )
+	return FALSE;
+    }
     options++;
   }
   if ( field->width > 0 )
-  { PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_width, 1),
-			    PL_INT, field->width);
+  { if ( !PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_width, 1),
+			PL_INT, field->width) )
+      return FALSE;
     options++;
   }
   if ( field->arg > 0 )
-  { PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_arg, 1),
-			    PL_INT, field->arg);
+  { if ( !PL_unify_term(head, PL_FUNCTOR, PL_new_functor(ATOM_arg, 1),
+			PL_INT, field->arg) )
+      return FALSE;
     options++;
   }
 
   if ( options )
-  { PL_unify_nil(tail);
-    return PL_unify_term(t, PL_FUNCTOR, PL_new_functor(field->name, 2),
-			 	PL_ATOM, type,
-			 	PL_TERM, flags);
+  { return (PL_unify_nil(tail) &&
+	    PL_unify_term(t, PL_FUNCTOR, PL_new_functor(field->name, 2),
+			  PL_ATOM, type,
+			  PL_TERM, flags));
   } else
   { return PL_unify_term(t, PL_FUNCTOR, PL_new_functor(field->name, 1),
 			  	PL_ATOM, type);
@@ -1463,7 +1481,8 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
     for(i=0; i<table->nfields; i++)
     { if ( table->fields[i].name == a )
       { argv[i] = PL_new_term_ref();
-	PL_get_arg(1, head, argv[i]);
+	if ( !PL_get_arg(1, head, argv[i]) )
+	  return FALSE;
 	goto cont;
       }
     }
@@ -1506,6 +1525,7 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 #define MR_KEY_ONLY	0x02		/* only compare the key (=sorted) */
 					/* field */
 
+#define MATCH_ERROR    -3		/* Prolog (resource) error */
 #define MATCH_NORECORD -2		/* bad record */
 #define MATCH_LT       -1		/* < */
 #define MATCH_EQ	0		/* == */
@@ -1547,13 +1567,22 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       if ( q->flags & QUERY_READ )
       { switch(f->type)
 	{ case FIELD_ATOM:
-	    PL_unify_atom_chars(q->value.term, tmp);
+	    if ( !PL_unify_atom_chars(q->value.term, tmp) )
+	    { DEALLOC();
+	      return MATCH_ERROR;
+	    }
 	    break;
 	  case FIELD_STRING:
-	    PL_unify_string_chars(q->value.term, tmp);
+	    if ( !PL_unify_string_chars(q->value.term, tmp) )
+	    { DEALLOC();
+	      return MATCH_ERROR;
+	    }
 	    break;
 	  case FIELD_CODELIST:
-	    PL_unify_list_chars(q->value.term, tmp);
+	    if ( !PL_unify_list_chars(q->value.term, tmp) )
+	    { DEALLOC();
+	      return MATCH_ERROR;
+	    }
 	    break;
 	}
 
@@ -1647,7 +1676,8 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       }
 
       if ( q->flags & QUERY_READ )
-      { PL_unify_integer(q->value.term, l);
+      { if ( !PL_unify_integer(q->value.term, l) )
+	  return MATCH_ERROR;
 	return MATCH_EQ;
       }
 
@@ -1670,7 +1700,8 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
       }
 
       if ( q->flags & QUERY_READ )
-      { PL_unify_float(q->value.term, x);
+      { if ( !PL_unify_float(q->value.term, x) )
+	  return MATCH_ERROR;
 	return MATCH_EQ;
       }
 
@@ -1702,6 +1733,7 @@ match_record(Query q, table_offset_t start, table_offset_t *end, int flags)
 
     switch(match)
     { case MATCH_NORECORD:
+      case MATCH_ERROR:
 	rval = match;
         goto out;
       case MATCH_EQ:
@@ -1737,7 +1769,9 @@ execute_binary_search(Query q)
   { table_offset_t next;
 
     switch( match_record(q, here, &next, MR_KEY_ONLY) )
-    { case MATCH_NORECORD:
+    { case MATCH_ERROR:
+	return -1;
+      case MATCH_NORECORD:
       { if ( here >= (table_offset_t)t->window_size )
 	  return FALSE;
 	here = next;
@@ -1765,10 +1799,14 @@ execute_binary_search(Query q)
 
 	  while(prev > 0)		/* find the first */
 	  { prev = previous_record(t, prev);
-	    if ( match_record(q, prev, &next, MR_KEY_ONLY) == MATCH_EQ )
-	    { first = prev;
-	    } else
-	      break;
+	    switch( match_record(q, prev, &next, MR_KEY_ONLY) )
+	    { case MATCH_EQ:
+		first = prev;
+	        continue;
+	      case MATCH_ERROR:
+		return -1;
+	    }
+	    break;
 	  }
 	  return first;
 	}
@@ -1783,6 +1821,8 @@ execute_binary_search(Query q)
       { switch( match_record(q, here, &next, MR_KEY_ONLY) )
 	{ case MATCH_EQ:
 	    return here;
+	  case MATCH_ERROR:
+	    return -1;
 	}
 	here = next;
       }
@@ -1812,7 +1852,7 @@ field structures for a redo in pl_in_table().   No  checking needs to be
 done as the initial call has already done that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 rebind_query_vars(Query q, term_t from)
 { if ( q->nvars > 0 )
   { term_t tail = PL_copy_term_ref(from);
@@ -1821,26 +1861,30 @@ rebind_query_vars(Query q, term_t from)
     int varsleft = q->nvars;
 
     while(PL_get_list(tail, head, tail))
-    { PL_get_arg(1, head, arg);
+    { if ( !PL_get_arg(1, head, arg) )
+	return FALSE;
 
       if ( PL_is_variable(arg) )
       { atom_t name;
 	int arity;
 	int i;
 
-	PL_get_name_arity(head, &name, &arity);
+	if ( !PL_get_name_arity(head, &name, &arity) )
+	  return FALSE;
 	for(i=0; i<q->table->nfields; i++)
 	{ if ( q->table->fields[i].name == name )
 	  { QueryField qf = &q->field[i];
 	    qf->value.term = PL_copy_term_ref(arg);
 	    if ( --varsleft == 0 )
-	      return;
+	      return TRUE;
 	    break;
 	  }
 	}
       }
     }
   }
+
+  return TRUE;
 }
 
 
@@ -1866,7 +1910,7 @@ make_query(Table t, term_t from)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity < 1 || arity > 2 )
       goto err2;
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
 
     for(i=0; i<t->nfields; i++)
     { if ( t->fields[i].name == name )
@@ -1916,7 +1960,7 @@ make_query(Table t, term_t from)
 	  atom_t tab;
 	  int a;
 
-	  PL_get_arg(2, head, arg);
+	  _PL_get_arg(2, head, arg);
 	  if ( !PL_get_name_arity(arg, &opt, &a) || a > 1 )
 	    goto err2;
 	  if ( opt == ATOM_prefix )
@@ -2025,8 +2069,11 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
     DEBUG(Sdprintf("Binary search, match at offset=%ld\n", q->offset));
 
     if ( q->technique & TECH_UNIQUE )
-    { if ( match_record(q, q->offset, &next, MR_BIND) == MATCH_EQ )
-      { PL_unify_integer(record, q->offset);
+    { int rc;
+
+      if ( (rc=match_record(q, q->offset, &next, MR_BIND)) == MATCH_EQ )
+      { if ( !PL_unify_integer(record, q->offset) )
+	  return FALSE;
 	if ( unique_match(q) )
 	{ free_query(q);
 	  return TRUE;
@@ -2034,16 +2081,24 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 	q->offset = next;
 
 	PL_retry_address(q);
+      } else if ( rc == MATCH_ERROR )
+      { free_query(q);
+	return FALSE;
       }
     } else
     { DEBUG(Sdprintf("Non-unique match\n"));
 
       do
-      { DEBUG(Sdprintf("Trying offset %ld\n", q->offset));
+      { int rc;
 
-	if ( match_record(q, q->offset, &next, 0) == MATCH_EQ )
-	{ match_record(q, q->offset, &next, MR_BIND);
-	  PL_unify_integer(record, q->offset);
+	DEBUG(Sdprintf("Trying offset %ld\n", q->offset));
+
+	if ( (rc=match_record(q, q->offset, &next, 0)) == MATCH_EQ )
+	{ if ( (match_record(q, q->offset, &next, MR_BIND) == MATCH_ERROR) ||
+	       !PL_unify_integer(record, q->offset) )
+	  { free_query(q);
+	    return FALSE;
+	  }
 	  if ( unique_match(q) )
 	  { free_query(q);
 	    return TRUE;
@@ -2051,6 +2106,9 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 	  q->offset = next;
 
 	  PL_retry_address(q);
+	} else if ( rc == MATCH_ERROR )
+	{ free_query(q);
+	  return FALSE;
 	}
 
 	q->offset = next;
@@ -2067,7 +2125,8 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 
     if ( match_record(q, q->offset, &next, 0) == MATCH_EQ )
     { match_record(q, q->offset, &next, MR_BIND);
-      PL_unify_integer(record, q->offset);
+      if ( !PL_unify_integer(record, q->offset) )
+	return FALSE;
       if ( unique_match(q) )
       { free_query(q);
 	return TRUE;
