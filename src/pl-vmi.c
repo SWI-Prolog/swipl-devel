@@ -2054,6 +2054,17 @@ VMI(C_LCUT, 0, 1, (CA1_CHP))
   NEXT_INSTRUCTION;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+C_CUT implements -> (and most of  *->).   Unfortunately  we have to loop
+twice because calling discardFrame() in the fist loop can invalidate the
+stacks and make GC calls from frameFinished() invalid.
+
+It might be possible to fix this by updating pointers in the first loop,
+but that is complicated and might  well  turn   out  to  be slower as it
+involves more write operations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 VMI(C_CUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;					/* cannot be in macro! */
@@ -2067,12 +2078,13 @@ c_cut:
   { LocalFrame fr2;
 
     DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
+
     for(fr2 = ch->frame;
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-    { discardFrame(fr2 PASS_LD);
-      if ( true(fr2, FR_WATCHED) )
+    { if ( true(fr2, FR_WATCHED) )
       { char *lSave = (char*)lBase;
+
 	SAVE_REGISTERS(qid);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
 	LOAD_REGISTERS(qid);
@@ -2087,6 +2099,12 @@ c_cut:
 	if ( exception_term )
 	  goto b_throw;
       }
+    }
+
+    for(fr2 = ch->frame;
+	fr2 && fr2->clause && fr2 > fr;
+	fr2 = fr2->parent)
+    { discardFrame(fr2 PASS_LD);
     }
 
     if ( ch->parent == och )
