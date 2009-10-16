@@ -2067,7 +2067,7 @@ statically allocated and thus unique.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
-static inline int
+static inline void
 readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 { word w = *valTermRef(term);
   Variable var;
@@ -2076,8 +2076,8 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
   { DEBUG(9, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
-    { if ( !(var->variable = PL_new_term_ref()) )
-	return FALSE;
+    { var->variable = PL_new_term_ref_noshift();
+      assert(var->variable);
       setVar(*argp);
       *valTermRef(var->variable) = makeRef(argp);
     } else				/* reference to existing var */
@@ -2087,6 +2087,21 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
     *argp = w;				/* plain value */
 
   setVar(*valTermRef(term));
+}
+
+
+static int
+ensureSpaceForTermRefs(size_t n ARG_LD)
+{ size_t bytes = n*sizeof(word);
+
+  if ( addPointer(lTop, bytes) > (void*)lMax )
+  { int rc;
+
+    rc = ensureLocalSpace(bytes, ALLOW_SHIFT);
+    if ( rc != TRUE )
+      return rc;
+  }
+
   return TRUE;
 }
 
@@ -2095,15 +2110,14 @@ static int
 build_term(term_t term, atom_t atom, int arity, term_t *argv,
 	   ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
-  int i;
-  Word ap, argp;
+  Word argp;
+  int rc;
 
-  if ( !hasGlobalSpace(arity+1) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
-      return rc;
-  }
+  if ( !hasGlobalSpace(arity+1) &&
+       (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
+    return rc;
+  if ( ensureSpaceForTermRefs(arity PASS_LD) != TRUE )
+    return rc;
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   argp = gTop;
@@ -2111,12 +2125,8 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv,
   setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
   *argp++ = functor;
 
-  for(ap=argp, i=arity; i-- > 0; )
-    setVar(*ap++);			/* prepare for local shift */
   for( ; arity-- > 0; argv++, argp++)
-  { if ( !readValHandle(*argv, argp, _PL_rd PASS_LD) )
-      return FALSE;
-  }
+    readValHandle(*argv, argp, _PL_rd PASS_LD);
 
   DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
   return TRUE;
@@ -2469,7 +2479,8 @@ complex_term(const char *stop, term_t term, term_t positions,
     }
 
 					/* Read `simple' term */
-    if ( (rc=simple_term(rmo == 1, in, &isname, pin, _PL_rd PASS_LD)) != TRUE )
+    rc = simple_term(rmo == 1, in, &isname, pin, _PL_rd PASS_LD);
+    if ( rc != TRUE )
       return rc;
 
     if ( isname )			/* Check for operators */
@@ -2695,7 +2706,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    { int rc;
 	      size_t start = token->start;
 
-	      if ( (rc=complex_term(")", term, positions, _PL_rd PASS_LD)) != TRUE )
+	      rc = complex_term(")", term, positions, _PL_rd PASS_LD);
+	      if ( rc != TRUE )
 		return rc;
 	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
 
@@ -2774,7 +2786,11 @@ term is to be written.
 		{ if ( !PL_unify_list(pa, p2, pa) )
 		    return FALSE;
 		}
-		if ( (rc=complex_term(",|]", tmp, p2, _PL_rd PASS_LD)) != TRUE )
+
+		rc = complex_term(",|]", tmp, p2, _PL_rd PASS_LD);
+		if ( rc != TRUE )
+		  return rc;
+		if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
 		  return rc;
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
@@ -2782,8 +2798,7 @@ term is to be written.
 		*argp++ = FUNCTOR_dot2;
 		setVar(argp[0]);
 		setVar(argp[1]);
-		if ( !readValHandle(tmp, argp++, _PL_rd PASS_LD) )
-		  return FALSE;
+		readValHandle(tmp, argp++, _PL_rd PASS_LD);
 		setHandle(tail, makeRef(argp));
 
 		token = get_token(must_be_op, _PL_rd);
@@ -2804,8 +2819,7 @@ term is to be written.
 		      if ( (rc=complex_term("]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
 			return rc;
 		      argp = unRef(*valTermRef(tail));
-		      if ( !readValHandle(tmp, argp, _PL_rd PASS_LD) )
-			return FALSE;
+		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
 		      if ( positions )
 		      { if ( !PL_unify_nil(pa) ||
@@ -2883,8 +2897,12 @@ read_term(term_t term, ReadData rd ARG_LD)
   }
   p = valTermRef(result);
   if ( isVarAtom(*p, rd) )		/* reading a single variable */
-  { if ( !readValHandle(result, p, rd PASS_LD) )
-      return FALSE;
+  { if ( (rc2=ensureSpaceForTermRefs(1 PASS_LD)) != TRUE )
+    { rc = raiseStackOverflow(rc2);
+      goto out;
+    }
+    p = valTermRef(result);		/* may be shifted */
+    readValHandle(result, p, rd PASS_LD);
   }
 
   if ( !(token = get_token(FALSE, rd)) )
