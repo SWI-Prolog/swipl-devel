@@ -358,7 +358,7 @@ isStringStream(IOSTREAM *s)
 static bool
 errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
-  term_t ex, loc;
+  term_t ex, loc=0;			/* keep compiler happy */
   unsigned char const *s, *ll = NULL;
   int rc = TRUE;
 
