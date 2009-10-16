@@ -697,7 +697,7 @@ bindConsVal(Word to, Word p ARG_LD)
 }
 
 
-void
+int
 PL_cons_functor(term_t h, functor_t fd, ...)
 { GET_LD
   int arity = arityFunctor(fd);
@@ -719,10 +719,12 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
     va_end(args);
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 { GET_LD
   int arity = arityFunctor(fd);
@@ -740,10 +742,12 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
 { Word a = allocGlobal(3);
 
@@ -752,14 +756,16 @@ PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
   bindConsVal(&a[2], valHandleP(tail) PASS_LD);
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+
+  return TRUE;
 }
 
 
 #undef PL_cons_list
-void
+int
 PL_cons_list(term_t l, term_t head, term_t tail)
 { GET_LD
-  PL_cons_list__LD(l, head, tail PASS_LD);
+  return PL_cons_list__LD(l, head, tail PASS_LD);
 }
 #define PL_cons_list(l, h, t) PL_cons_list__LD(l, h, t PASS_LD)
 
@@ -1914,70 +1920,84 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 		 *             PUT-*  		*
 		 *******************************/
 
-void
+int
 PL_put_variable(term_t t)
 { GET_LD
   Word p = allocGlobal(1);
 
   setVar(*p);
   setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_atom__LD(term_t t, atom_t a ARG_LD)
 { setHandle(t, a);
+
+  return TRUE;
 }
 
 
 #undef PL_put_atom
-void
+int
 PL_put_atom(term_t t, atom_t a)
 { GET_LD
   setHandle(t, a);
+
+  return TRUE;
 }
 #define PL_put_atom(t, a) PL_put_atom__LD(t, a PASS_LD)
 
 
-void
+int
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, strlen(s));
 
   setHandle(t, a);
   PL_unregister_atom(a);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_atom_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   atom_t a = lookupAtom(s, len);
 
   setHandle(t, a);
   PL_unregister_atom(a);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_string_chars(term_t t, const char *s)
 { GET_LD
   word w = globalString(strlen(s), s);
 
   setHandle(t, w);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_string_nchars(term_t t, size_t len, const char *s)
 { GET_LD
   word w = globalString(len, s);
 
   setHandle(t, w);
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list_ncodes(term_t t, size_t len, const char *chars)
 { GET_LD
 
@@ -1995,16 +2015,18 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
     }
     p[-1] = ATOM_nil;
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list_codes(term_t t, const char *chars)
-{ PL_put_list_ncodes(t, strlen(chars), chars);
+{ return PL_put_list_ncodes(t, strlen(chars), chars);
 }
 
 
-void
+int
 PL_put_list_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
 
@@ -2022,12 +2044,14 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
     }
     p[-1] = ATOM_nil;
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list_chars(term_t t, const char *chars)
-{ PL_put_list_nchars(t, strlen(chars), chars);
+{ return PL_put_list_nchars(t, strlen(chars), chars);
 }
 
 
@@ -2037,25 +2061,30 @@ PL_put_integer__LD(term_t t, long i ARG_LD)
 }
 
 
-void
+int
 PL_put_intptr__LD(term_t t, intptr_t i ARG_LD)
 { setHandle(t, makeNum(i));
+
+  return TRUE;
 }
 
 
 #undef PL_put_integer
-void
+int
 PL_put_integer(term_t t, long i)
 { GET_LD
   setHandle(t, makeNum(i));
+  return TRUE;
 }
 #define PL_put_integer(t, i) PL_put_integer__LD(t, i PASS_LD)
 
 
-void
+int
 PL_put_int64(term_t t, int64_t i)
 { GET_LD
   setHandle(t, makeNum(i));
+
+  return TRUE;
 }
 
 
@@ -2071,21 +2100,23 @@ _PL_put_number__LD(term_t t, Number n ARG_LD)
 }
 
 
-void
+int
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
-  PL_put_intptr(t, pointerToLong(ptr));
+  return PL_put_intptr(t, pointerToLong(ptr));
 }
 
 
-void
+int
 PL_put_float(term_t t, double f)
 { GET_LD
   setHandle(t, globalFloat(f));
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_functor(term_t t, functor_t f)
 { GET_LD
   int arity = arityFunctor(f);
@@ -2100,10 +2131,12 @@ PL_put_functor(term_t t, functor_t f)
     while(arity-- > 0)
       setVar(*a++);
   }
+
+  return TRUE;
 }
 
 
-void
+int
 PL_put_list(term_t l)
 { GET_LD
   Word a = allocGlobal(3);
@@ -2112,6 +2145,8 @@ PL_put_list(term_t l)
   *a++ = FUNCTOR_dot2;
   setVar(*a++);
   setVar(*a);
+
+  return TRUE;
 }
 
 
@@ -2141,7 +2176,7 @@ PL_put_term(term_t t1, term_t t2)
 #define PL_put_term(t1, t2) PL_put_term__LD(t1, t2 PASS_LD)
 
 
-void
+int
 _PL_put_xpce_reference_i(term_t t, uintptr_t r)
 { GET_LD
   Word a = allocGlobal(2);
@@ -2149,10 +2184,12 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t r)
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
   *a++ = FUNCTOR_xpceref1;
   *a++ = makeNum(r);
+
+  return TRUE;
 }
 
 
-void
+int
 _PL_put_xpce_reference_a(term_t t, atom_t name)
 { GET_LD
   Word a = allocGlobal(2);
@@ -2160,6 +2197,8 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
   *a++ = FUNCTOR_xpceref1;
   *a++ = name;
+
+  return TRUE;
 }
 
 
@@ -3752,11 +3791,13 @@ PL_record(term_t t)
 }
 
 
-void
+int
 PL_recorded(record_t r, term_t t)
 { GET_LD
 
   copyRecordToGlobal(t, r PASS_LD);
+
+  return TRUE;
 }
 
 

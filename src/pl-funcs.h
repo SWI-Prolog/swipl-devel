@@ -319,9 +319,9 @@ COMMON(int) 		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int) 		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int)		PL_unify_int64_ex__LD(term_t t1, int64_t ARG_LD);
 COMMON(int) 		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
-COMMON(void) 		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
+COMMON(int) 		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
 COMMON(void) 		PL_put_integer__LD(term_t t1, long i ARG_LD);
-COMMON(void) 		PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);
+COMMON(int) 		PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int) 		PL_is_atomic__LD(term_t t ARG_LD);
 COMMON(int) 		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
 COMMON(int) 		PL_is_variable__LD(term_t t ARG_LD);
@@ -337,7 +337,7 @@ COMMON(int) 		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
 COMMON(int) 		PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD);
 COMMON(int) 		PL_is_atom__LD(term_t t ARG_LD);
 COMMON(int) 		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
-COMMON(void) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
+COMMON(int) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
 COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		isUCSAtom(Atom a);

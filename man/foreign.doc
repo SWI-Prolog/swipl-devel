@@ -1045,11 +1045,11 @@ the variable will continue to live.
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
 Put an atom in the term reference from a handle.  See also
 PL_new_atom() and PL_atom_chars().
-\cfunction{void}{PL_put_atom_chars}{term_t -t, const char *chars}
+\cfunction{int}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term-reference constructed from the 0-terminated
 string.  The string itself will never be referenced by Prolog after this
 function.
-\cfunction{void}{PL_put_string_chars}{term_t -t, const char *chars}
+\cfunction{int}{PL_put_string_chars}{term_t -t, const char *chars}
 Put a zero-terminated string in the term-reference. The data will be
 copied.  See also PL_put_string_nchars().
 \cfunction{void}{PL_put_string_nchars}{term_t -t,
@@ -1059,18 +1059,18 @@ copied.  See also PL_put_string_nchars().
 Put a string, represented by a length/start pointer pair in the
 term-reference.  The data will be copied.  This interface can deal
 with 0-bytes in the string.  See also \secref{foreigndata}.
-\cfunction{void}{PL_put_list_chars}{term_t -t, const char *chars}
+\cfunction{int}{PL_put_list_chars}{term_t -t, const char *chars}
 Put a list of ASCII values in the term-reference.
-\cfunction{void}{PL_put_integer}{term_t -t, long i}
+\cfunction{int}{PL_put_integer}{term_t -t, long i}
 Put a Prolog integer in the term reference.
-\cfunction{void}{PL_put_int64}{term_t -t, int64_t i}
+\cfunction{int}{PL_put_int64}{term_t -t, int64_t i}
 Put a Prolog integer in the term reference.
-\cfunction{void}{PL_put_pointer}{term_t -t, void *ptr}
+\cfunction{int}{PL_put_pointer}{term_t -t, void *ptr}
 Put a Prolog integer in the term-reference.  Provided ptr is in the
 `malloc()-area', PL_get_pointer() will get the pointer back.
-\cfunction{void}{PL_put_float}{term_t -t, double f}
+\cfunction{int}{PL_put_float}{term_t -t, double f}
 Put a floating-point value in the term-reference.
-\cfunction{void}{PL_put_functor}{term_t -t, functor_t functor}
+\cfunction{int}{PL_put_functor}{term_t -t, functor_t functor}
 Create a new compound term from \arg{functor} and bind \arg{t} to
 this term. All arguments of the term will be variables. To create
 a term with instantiated arguments, either instantiate the arguments
@@ -1081,7 +1081,7 @@ Same as \exam{PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2))}.
 Same as \exam{PL_put_atom_chars("[]")}.
 \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
 Make \arg{t1} point to the same term as \arg{t2}.
-\cfunction{void}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
+\cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
 Create a term, whose arguments are filled from variable argument list
 holding the same number of term_t objects as the arity of the functor.
 To create the term \exam{animal(gnu, 50)}, use:
@@ -1106,12 +1106,12 @@ To create the term \exam{animal(gnu, 50)}, use:
 
 After this sequence, the term-references \arg{a1} and \arg{a2} may
 be used for other purposes.
-\cfunction{void}{PL_cons_functor_v}{term_t -h, functor_t f, term_t a0}
+\cfunction{int}{PL_cons_functor_v}{term_t -h, functor_t f, term_t a0}
 Creates a compound term like PL_cons_functor(), but \arg{a0} is an
 array of term references as returned by PL_new_term_refs().  The length
 of this array should match the number of arguments required by the
 functor.
-\cfunction{void}{PL_cons_list}{term_t -l, term_t +h, term_t +t}
+\cfunction{int}{PL_cons_list}{term_t -l, term_t +h, term_t +t}
 Create a list (cons-) cell in \arg{l} from the head and tail.  The
 code below creates a list of atoms from a \ctype{char **}.  The list
 is built tail-to-head.  The {\tt PL_unify_*()} functions can be used
@@ -2157,7 +2157,7 @@ threads.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
-\cfunction{void}{PL_recorded}{record_t record, term_t -t}
+\cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
     stack.  See also PL_record() and PL_erase().
