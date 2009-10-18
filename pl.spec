@@ -1,5 +1,5 @@
 Name:		pl
-Version:	5.7.15
+Version:	5.8.0
 Release:	200
 Epoch:		0
 Summary:	A Free Software Prolog compiler.

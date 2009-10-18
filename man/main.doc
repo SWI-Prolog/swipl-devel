@@ -45,9 +45,9 @@
 #endif
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{7}
-\newcommand{\vpatch}{15}
-\newcommand{\vmonth}{September}
+\newcommand{\vminor}{8}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{October}
 \newcommand{\vyear}{2009}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -55,11 +55,13 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl}	\\
+\author{\email[Jan Wielemaker]{J.Wielemaker@cs.vu.nl}	\\
+	Department of Computer Science			\\
+	VU University					\\
+	De Boelelaan 1081a, 1081 HV~~Amsterdam 		\\[5pt]
 	Human-Computer Studies (HCS, formerly SWI)	\\
 	    Kruislaan 419, 1098 VA~~Amsterdam		\\
-		    The Netherlands			\\
-		Tel. (+31) 20 5256121}
+		    The Netherlands}
 
 \begin{htmlonly}
 \maketitle
