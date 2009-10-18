@@ -204,7 +204,7 @@ _output(char *fm, va_list args)
 			} else if ( instanceOfObject(texture, ClassCharArray) )
 			{ CharArray ca = (CharArray) texture;
 			  ca = getDowncaseCharArray(ca);
-			  
+
 			  putString(strName(ca));
 			}
 
@@ -406,7 +406,7 @@ fill(Any gr, Name sel)
 		pattern->size->w, pattern->size->h, ONE, pattern);
     }
   }
-  
+
   succeed;
 }
 
@@ -484,7 +484,7 @@ header(Any gr, Area area, Bool ls)
   ps_output("%%DocumentFonts: (atend)\n");
 
   { Area bb = get(gr, NAME_boundingBox, EAV);
-    
+
 					/* Hack */
     if ( instanceOfObject(gr, ClassFrame) )
     { assign(bb, x, ZERO);
@@ -518,7 +518,7 @@ header(Any gr, Area area, Bool ls)
 
   ps_output("%%Object: ~O\n", gr);
   ps_output("%%EndComments\n\n");
-  
+
   TRY(send(gr, NAME_Postscript, NAME_head, EAV));
 
   ps_output("gsave\n\n");
@@ -534,7 +534,7 @@ header(Any gr, Area area, Bool ls)
   ps_output("%%Page 0 1\n");
 
   succeed;
-}    
+}
 
 
 static int
@@ -545,7 +545,7 @@ footer(void)
   ps_output("grestore\n");
 /*  ps_output("/pce restore\n"); */
   ps_output("%%DocumentFonts:");
-  
+
   for_cell(cell, documentFonts)
     ps_output(" ~N", cell->value);
 
@@ -651,7 +651,7 @@ static psmacro macrodefs[] =
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 %	Create a path for a PCE box without rounded corners. Stack:
-%	
+%
 %	pen x y w h radius BOXPATH path
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1141,7 +1141,7 @@ drawPostScriptNode(Node node, Image cimg, Image eimg)
     Cell cell;
 
     ps_line(lx, fy, lx, ty);
-    
+
     for_cell(cell, node->sons)
       drawPostScriptNode(cell->value, cimg, eimg);
   }
@@ -1162,7 +1162,7 @@ drawPostScriptTree(Tree tree, Name hb)
     { if ( proto->pen != ZERO )
       { Image cimg = getClassVariableValueObject(tree, NAME_collapsedImage);
 	Image eimg = getClassVariableValueObject(tree, NAME_expandedImage);
-  
+
 	ps_output("gsave\n~t ~C ~T ~p pen\n", tree, proto, proto, proto);
 	drawPostScriptNode(tree->displayRoot, cimg, eimg);
 	ps_output("grestore\n");
@@ -1197,7 +1197,7 @@ drawPostScriptBox(Box b, Name hb)
 
     if ( b->shadow != ZERO )
     { int s = valInt(b->shadow);
-  
+
       ps_output("gsave nodash 0 ~D ~D ~D ~D ~D boxpath\n",
 		x+s, y+s, w-s, h-s, r);
       ps_output("0.0 setgray fill grestore\n");
@@ -1250,7 +1250,7 @@ drawPostScriptEllipse(Ellipse e, Name hb)
   { if ( e->shadow != ZERO )
     { Area a = e->area;
       Int s = e->shadow;
-  
+
       ps_output("gsave nodash 0 ~d ~d ~d ~d ellipsepath\n",
 		add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s));
       ps_output("0.0 setgray fill grestore\n");
@@ -1268,7 +1268,7 @@ drawPostScriptEllipse(Ellipse e, Name hb)
       ps_output("draw grestore\n");
     }
   }
-  
+
   succeed;
 }
 
@@ -1287,31 +1287,31 @@ drawPostScriptPath(Path p, Name hb)
   } else
   { if ( valInt(getSizeChain(p->points)) >= 2 )
     { Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
-  
+
       if ( p->kind == NAME_smooth )	/* Smooth path */
       { Cell cell;
 	int i = -1;			/* skip first */
 	int px, py, x0, y0;
 	Point pt = getHeadChain(points);
-  
+
 	x0 = valInt(pt->x);
 	y0 = valInt(pt->y);
-  
+
 	if ( p->closed == ON )
 	{ Point end = getTailChain(points);
-  
+
 	  px = valInt(end->x);
 	  py = valInt(end->y);
 	} else
 	{ Point pn = getNth1Chain(points, TWO);
-  
+
 	  px = x0 - (valInt(pn->x) - x0);
 	  py = y0 - (valInt(pn->y) - y0);
 	}
-  
+
 	ps_output("gsave ~d ~d translate ~C ~T ~p ~c startpath\n",
 		  p->offset->x, p->offset->y, p, p, p, pt);
-  
+
 	for_cell(cell, points)
 	{ if ( i >= 0 )
 	  { Point pt = cell->value;
@@ -1319,7 +1319,7 @@ drawPostScriptPath(Path p, Name hb)
 	    int y3 = valInt(pt->y);
 	    int nx, ny;
 	    float x1, y1, x2, y2;
-	  
+
 	    if ( notNil(cell->next) )
 	    { Point np = cell->next->value;
 	      nx = valInt(np->x);
@@ -1332,32 +1332,32 @@ drawPostScriptPath(Path p, Name hb)
 	    { nx = x3 + x3 - x0;
 	      ny = y3 + y3 -y0;
 	    }
-  
+
 	    x1 = (float) x0 + (float) ((x0-px) + (x3-x0) + 4) / 8.0;
 	    y1 = (float) y0 + (float) ((y0-py) + (y3-y0) + 4) / 8.0;
-  
+
 	    x2 = (float) x3 - (float) ((nx-x3) + (x3-x0) + 4) / 8.0;
 	    y2 = (float) y3 - (float) ((ny-y3) + (y3-y0) + 4) / 8.0;
-  
+
 	    ps_output("~f ~f ~f ~f ~D ~D curveto\n", x1, y1, x2, y2, x3, y3);
-  
+
 	    px = x0; py = y0;
 	    x0 = x3; y0 = y3;
 	  }
-  
+
 	  i++;
 	}
-  
+
 	if ( notNil(p->fill_pattern) || p->closed == ON )
 	  ps_output(" closepath");
 	ps_output("\n");
-  
+
 	fill(p, NAME_fillPattern);
 	ps_output("draw\n");
       } else				/* poly-path */
       { Cell cell;
 	int i = -1;			/* skip first */
-  
+
 	ps_output("gsave ~d ~d translate ~C ~T ~p ~c startpath\n",
 		  p->offset->x, p->offset->y,
 		  p, p, p, getHeadChain(points));
@@ -1367,18 +1367,18 @@ drawPostScriptPath(Path p, Name hb)
 	    if ( i % 6 == 0 )
 	      ps_output("\n");
 	  }
-	  
+
 	  i++;
 	}
-      
+
 	if ( notNil(p->fill_pattern) || p->closed == ON )
 	  ps_output(" closepath");
 	ps_output("\n");
-	
+
 	fill(p, NAME_fillPattern);
 	ps_output("draw\n");
       }
-  
+
       if ( notNil(p->mark) )
       { Cell cell;
 	Image i = p->mark;
@@ -1402,7 +1402,7 @@ drawPostScriptPath(Path p, Name hb)
 	postscriptGraphical(p->first_arrow, hb);
       if ( adjustSecondArrowPath(p) )
 	postscriptGraphical(p->second_arrow, hb);
-  
+
       ps_output("grestore\n");
     }
   }
@@ -1421,7 +1421,7 @@ drawPostScriptBezier(Bezier b, Name hb)
     psdef_arrows(b);
   } else
   { ps_output("gsave ~C\n", b);
-    
+
     if ( b->pen != ZERO )
     { ps_output("newpath ~d ~d moveto\n", b->start->x, b->start->y);
       ps_output("~T ~p pen\n", b, b);
@@ -1443,7 +1443,7 @@ drawPostScriptBezier(Bezier b, Name hb)
       postscriptGraphical(b->first_arrow, hb);
     if ( adjustSecondArrowBezier(b) )
       postscriptGraphical(b->second_arrow, hb);
-  
+
     ps_output("grestore\n");
   }
 
@@ -1467,12 +1467,12 @@ drawPostScriptLine(Line ln, Name hb)
     int x2 = valInt(ln->end_x);
     int y1 = valInt(ln->start_y);
     int y2 = valInt(ln->end_y);
-  
+
     ps_output("gsave ~C\n", ln);
     if ( ln->pen != ZERO )
       ps_output("~T ~p ~D ~D ~D ~D linepath draw\n",
 		ln, ln, x1, y1, x2-x1, y2-y1);
-  
+
     if ( adjustFirstArrowLine(ln) )
     { Colour old = ln->first_arrow->colour;
       ln->first_arrow->colour = ln->colour;
@@ -1505,15 +1505,15 @@ drawPostScriptArrow(Arrow a, Name hb)
 	      a->left->x, a->left->y,
 	      a->tip->x, a->tip->y,
 	      a->right->x, a->right->y);
-  
+
     if ( a->style == NAME_closed || notNil(a->fill_pattern) )
       ps_output(" closepath ");
-  
+
     if ( notNil(a->fill_pattern) )
       fill(a, NAME_fillPattern);
     if ( a->pen != ZERO )
       ps_output(" ~T draw\n", a);
-  
+
     ps_output(" grestore\n");
   }
 
@@ -1538,20 +1538,20 @@ drawPostScriptArc(Arc a, Name hb)
 
     fill(a, NAME_fillPattern);
     ps_output("draw\n");
-  
+
     if ( notNil(a->first_arrow) ||  notNil(a->second_arrow) )
     { int sx, sy, cx, cy, ex, ey;
-  
+
       points_arc(a, &sx, &sy, &ex, &ey);
       cx = valInt(a->position->x);
       cy = valInt(a->position->y);
-  
+
       if (notNil(a->first_arrow))	/* should be merged from arc.c */
       { Any av[4];
-    
+
 	av[0] = toInt(sx);
 	av[1] = toInt(sy);
-    
+
 	if ( valReal(a->size_angle) >= 0.0 )
 	{ av[2] = toInt(sx+(sy-cy));
 	  av[3] = toInt(sy-(sx-cx));
@@ -1559,7 +1559,7 @@ drawPostScriptArc(Arc a, Name hb)
 	{ av[2] = toInt(sx-(sy-cy));
 	  av[3] = toInt(sy+(sx-cx));
 	}
-	  
+
 	if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
 	{ ComputeGraphical(a->first_arrow);
 	  postscriptGraphical(a->first_arrow, hb);
@@ -1567,10 +1567,10 @@ drawPostScriptArc(Arc a, Name hb)
       }
       if (notNil(a->second_arrow))
       { Any av[4];
-    
+
 	av[0] = toInt(ex);
 	av[1] = toInt(ey);
-    
+
 	if ( valReal(a->size_angle) >= 0.0 )
 	{ av[2] = toInt(ex-(ey-cy));
 	  av[3] = toInt(ey+(ex-cx));
@@ -1578,14 +1578,14 @@ drawPostScriptArc(Arc a, Name hb)
 	{ av[2] = toInt(ex+(ey-cy));
 	  av[3] = toInt(ey-(ex-cx));
 	}
-    
+
 	if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
 	{ ComputeGraphical(a->second_arrow);
 	  postscriptGraphical(a->second_arrow, hb);
 	}
       }
     }
-  
+
     ps_output("grestore\n");
   }
 
@@ -1607,13 +1607,13 @@ draw_postscript_image(Image image, Int x, Int y, Name hb)
     }
   } else
   { Name format = get(image, NAME_postscriptFormat, EAV);
-  
+
     if ( format == NAME_colour )
     { if ( hb == NAME_head )
       { psdef(NAME_rgbimage);
       } else
       { Int depth = get(image, NAME_postscriptDepth, EAV);
-  
+
 	ps_output("~d ~d ~d ~d ~d rgbimage\n~I\n",
 		  x, y, image->size->w, image->size->h, depth, depth, image);
       }
@@ -1622,7 +1622,7 @@ draw_postscript_image(Image image, Int x, Int y, Name hb)
       { psdef(NAME_greymap);
       } else
       { Int depth = get(image, NAME_postscriptDepth, EAV);
-	
+
 	ps_output("~d ~d ~d ~d ~d greymap\n~P\n",
 		  x, y, image->size->w, image->size->h, depth, depth, image);
       }
@@ -1687,7 +1687,7 @@ drawPostScriptText(TextObj t, Name hb)
 	  ps_output("draw\n");
       }
     }
-  
+
     if ( hb == NAME_head )
     { if ( t->wrap == NAME_clip )
       { psdef(NAME_boxpath);
@@ -1706,7 +1706,7 @@ drawPostScriptText(TextObj t, Name hb)
 
       if ( Wrapped(t) )
       { LocalString(buf, s->iswide, s->size + MAX_WRAP_LINES);
-      
+
 	str_format(buf, s, valInt(t->margin), t->font);
 	ps_string(buf, t->font, x+b, y+b, w-2*b, t->format, flags);
       } else if ( t->wrap == NAME_clip )
@@ -1716,7 +1716,7 @@ drawPostScriptText(TextObj t, Name hb)
 	ps_output("grestore\n");
       } else
 	ps_string(s, t->font, x+b, y+b, w-2*b, t->format, flags);
-  
+
       ps_output("grestore\n", t);
     }
   }

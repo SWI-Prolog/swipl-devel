@@ -68,6 +68,10 @@
 	\mbox{\reffont #1/#2}}
 \newcommand{\dcgref}[2]{%		% functor//arity
 	\mbox{\reffont #1//#2}}
+\newcommand{\qpredref}[3]{%		% module:functor/arity
+	\mbox{\reffont #1:#2/#3}}
+\newcommand{\qdcgref}[3]{%		% module:functor//arity
+	\mbox{\reffont #1:#2//#3}}
 \newcommand{\nopredref}[2]{%		% functor/arity (external)
 	\mbox{\reffont #1/#2}}
 \newcommand{\functor}[2]{%		% functor/arity (no predicate)
@@ -132,15 +136,10 @@
 %	\infixop{Name}{Left}{Right}
 %	\prefixop{Name}{Right}
 %	\dcg[Attibutes]{Name}{Arity}{Args}
-%	
+%
 %	Predicate   descriptions.   Must   appear   in   a   description
 %	environment.
 
-\newcommand{\directive}[3]{%
-	\ifthenelse{\equal{#2}{0}}{%
-	    \defentry{:- #1}}{%
-	    \defentry{:- #1({\it #3})}}%
-	\index{#1/#2}\ignorespaces}
 \newcommand{\resitem}[1]{%
 	\defentry{#1}%
 	\index{#1}\ignorespaces}
@@ -156,6 +155,17 @@
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2\predatt{#1}}}{%
 	    \defentry{#2({\it #4})\predatt{#1}}}%
+	\index{#2/#3}\ignorespaces}
+\def\directive{\@ifnextchar[{\@attdirective}{\@directive}}
+\def\@directive#1#2#3{%
+	\ifthenelse{\equal{#2}{0}}{%
+	    \defentry{:- #1}}{%
+	    \defentry{:- #1({\it #3})}}%
+	\index{#1/#2}\ignorespaces}
+\def\@attdirective[#1]#2#3#4{%
+	\ifthenelse{\equal{#3}{0}}{%
+	    \defentry{:- #2\predatt{#1}}}{%
+	    \defentry{:- #2({\it #4})\predatt{#1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\dcg{\@ifnextchar[{\@attdcg}{\@dcg}}
 \def\@dcg#1#2#3{%
@@ -188,7 +198,7 @@
 %	\infixtermitem{functor}{Left}{Right}
 %	\prefixtermitem{functor}{Right}
 %	\postfixtermitem{functor}{Left}
-%	
+%
 %	Terms in description lists. Typically used to describe various
 %	possible values or types for a term.
 
@@ -207,7 +217,7 @@
 %	\infixterm{functor}{Left}{Right}
 %	\prefixterm{functor}{Right}
 %	\postfixterm{functor}{Left}
-%	
+%
 %	Terms used in running text.
 
 \def\term{}
@@ -256,7 +266,7 @@
 
 
 %	\tag{Keyword}
-%	
+%
 %	PlDoc @keyword expansion.  \mtag{Keyword} is a multi-valued tag
 
 \newcommand{\tag}[1]{%
@@ -342,6 +352,7 @@
 \urldef{\Sdot}\satom{.} 		% .
 \urldef{\Ssemicolon}\satom{;} 		% ;
 \urldef{\Slt}\satom{<} 			% <
+\urldef{\Sxor}\satom{><} 		% ><
 \urldef{\Seq}\satom{=} 			% =
 \urldef{\Suniv}\satom{=..} 		% =..
 \urldef{\Saeq}\satom{=:=} 		% =:=
@@ -417,44 +428,27 @@
 %			CODE environment			%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newlength{\codeindent}
-\setlength{\codeindent}{\leftmargin}
-\newenvironment{codequote}%
-	{\begin{list}{}{\setlength{\leftmargin}{0pt}%
-			\setlength{\rightmargin}{0pt}}%
-			\item[]\small\ignorespaces}%
-  	{\end{list}}
+\usepackage{fancyvrb}
+\usepackage{color}
+
+%\definecolor{codeboxcolor}{rgb}{0.7,0.7,0.7}
+\definecolor{codeboxcolor}{rgb}{0.4,0.4,0.4}
+\DefineVerbatimEnvironment%
+  {code}{Verbatim}
+  {frame=single,
+   framerule=0.2pt,
+   rulecolor=\color{codeboxcolor},
+  }
 
 
-%	just like verbatim, but indents like quote.
-%	allows also the use of leading tabs
-
-\makeatletter
-{\catcode`\^^I=\active
-    \gdef^^I{\mbox{}\space\space\space\space\space\space\space\space}}
-
-\begingroup \catcode `|=0 \catcode `[= 1
-\catcode`]=2 \catcode `\{=12 \catcode `\}=12
-\catcode`\\=12
-|gdef|@xcode#1\end{code}[#1|end[code]]
-|endgroup
-
-\def\@code{\trivlist\setlength{\leftmargin}{\codeindent}%
-		    \setlength{\rightmargin}{\codeindent}%
-		    \item[]\if@minipage\else\vskip\parskip\fi
-\leftskip\@totalleftmargin\rightskip\z@
-\parindent\z@\parfillskip\@flushglue\parskip\z@
-\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
-\obeylines \catcode`\^^I=\active \tt \let\do\@makeother \dospecials}
-
-\def\code{\@code \frenchspacing\@vobeyspaces \@xcode}
-\def\@endcode{\endtrivlist}
-\let\endcode=\@endcode
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%			INCLUDE FIGURES				%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %	PostScript figures
 %	\postscriptfig[width=5in]{label}{Title}
 
+\makeatletter
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
 	\begin{figure}%
@@ -468,7 +462,7 @@
 	    \caption{#2}
 	    \label{fig:#1}
 	\end{figure}}
-\makeatletter
+\makeatother
 
 %	\begin{tabularlp}{longest-text}
 
@@ -499,14 +493,5 @@
 	 \begin{tabular*}{\linewidth}{lp{0.7\linewidth}}
 	 \hline}%
 	{\end{tabular*}}
-
-%	\begin{shortlist} ... \end{shortlist}
-%
-%	As itemize environment, but do not include extra space between the
-%	items.
-
-\newenvironment{shortlist}{%
-	\begin{itemize}\setlength{\itemsep}{0pt}}{%
-	\end{itemize}}
 
 

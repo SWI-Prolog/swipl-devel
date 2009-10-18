@@ -112,7 +112,7 @@ initTerm(void)
     switch( tgetent(buf_area, term) )
     { case -1:
       { term_t t = PL_new_term_ref();
-	
+
 	PL_put_atom_chars(t, "termcap");
 	PL_error(NULL, 0, "tgetent() cannot read database",
 		 ERR_PERMISSION,
@@ -164,12 +164,12 @@ lookupEntry(atom_t name, atom_t type)
         e->value  = consInt(n);
     } else if ( type == ATOM_bool )
     { int b;
-    
+
       if ( (b = tgetflag(stringAtom(name))) != -1 )
         e->value = (b ? ATOM_on : ATOM_off);
     } else if ( type == ATOM_string )
     { char *s;
-    
+
       if ( (s = tgetstr(stringAtom(name), &string_area)) != NULL )
         e->value  = PL_new_atom(s);	/* locked: ok */
     } else
@@ -182,12 +182,12 @@ lookupEntry(atom_t name, atom_t type)
     addHTable(capabilities, (void *)name, e);
   } else
     e = (Entry)s->value;
-    
+
 out:
   UNLOCK();
   return e;
 }
-      
+
 
 word
 pl_tty_get_capability(term_t name, term_t type, term_t value)
@@ -204,11 +204,11 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
 
   fail;
 }
-  
+
 
 static int
 tputc(int chr)
-{ return Sputc(chr, Suser_output); 
+{ return Sputc(chr, Suser_output);
 }
 
 
@@ -265,7 +265,7 @@ pl_tty_size(term_t r, term_t c)
 #ifdef TIOCGSIZE
   struct ttysize ws;
   iorval = ioctl(0, TIOCGSIZE, &ws);
-	
+
   rows = ws.ts_lines;
   cols = ws.ts_cols;
 #else

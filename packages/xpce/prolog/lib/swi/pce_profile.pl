@@ -10,7 +10,7 @@
 :- use_module(library(prolog_predicate)).
 
 %	pce_show_profile/0
-%	
+%
 %	Show already collected profile using a graphical browser.
 
 pce_show_profile :-
@@ -75,7 +75,7 @@ fill_dialog(F, TD:tool_dialog) :->
 		    menu_item(help,
 			      message(F, help))
 		  ]).
-			      
+
 
 load_profile(F, ProfData:[prolog]) :->
 	"Load stored profile from the Prolog database"::
@@ -129,7 +129,7 @@ details(F, From:prolog) :->
 	->  get(DI, data, Node),
 	    send(W, node, Node)
 	).
-	    
+
 sort_by(F, SortBy:name, Order:[{normal,reverse}]) :->
 	"Define the key for sorting the flat profile"::
 	get(F, member, prof_browser, B),
@@ -209,7 +209,7 @@ load_profile(B, Nodes:prolog) :->
 	forall(member(Node, Nodes),
 	       send(B, append, prof_dict_item(Node, SortBy, Frame))),
 	send(B, sort).
-	
+
 update_label(B) :->
 	get(B, sort_by, Sort),
 	sort_by(Human, Sort, _How),
@@ -250,7 +250,7 @@ initialise(DI, Node:prolog, SortBy:name, F:prof_frame) :->
 	predicate_label(Predicate, Key),
 	send_super(DI, initialise, Key),
 	send(DI, update_label, SortBy, F).
-	
+
 value(DI, Name:name, Value:prolog) :<-
 	"Get associated value"::
 	get(DI, data, Data),
@@ -422,7 +422,7 @@ ticks([H|T], Self0, Self, Sibl0, Sibl, Call0, Call, Redo0, Redo) :-
 
 
 %	clusters(+Relatives, -Cycles)
-%	
+%
 %	Organise the relatives by cluster.
 
 clusters(Relatives, Cycles) :-
@@ -442,7 +442,7 @@ cluster([H|T0], C, TC, [H|T]) :-
 	cluster(T0, C, TC, T).
 
 %	sort_relatives(+Relatives, -Sorted)
-%	
+%
 %	Sort relatives in ascending number of calls.
 
 sort_relatives(List, Sorted) :-
@@ -465,7 +465,7 @@ unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
 
 %	show_relatives(+Relatives, +Rolw, +Window)
-%	
+%
 %	Show list of relatives as table-rows.
 
 show_relatives([], _, _) :- !.
@@ -649,7 +649,7 @@ sort_by(flat_profile_by_number_of_redos,     redo,	     reverse).
 
 
 %	predicate_label(+Head, -Label)
-%	
+%
 %	Create a human-readable label for the given head
 
 predicate_label(Obj, Label) :-
@@ -658,12 +658,12 @@ predicate_label(Obj, Label) :-
 predicate_label(M:H, Label) :- !,
 	functor(H, Name, Arity),
 	(   hidden_module(M, H)
-	->  concat_atom([Name, /, Arity], Label)
-	;   concat_atom([M, :, Name, /, Arity], Label)
+	->  atomic_list_concat([Name, /, Arity], Label)
+	;   atomic_list_concat([M, :, Name, /, Arity], Label)
 	).
 predicate_label(H, Label) :- !,
 	functor(H, Name, Arity),
-	concat_atom([Name, /, Arity], Label).
+	atomic_list_concat([Name, /, Arity], Label).
 
 hidden_module(system, _).
 hidden_module(user, _).

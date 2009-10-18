@@ -32,20 +32,18 @@
 
 :- module(pce_host,
 	  [ '$load_pce'/0
-	  , (meta_predicate)/1
 	  ]).
 
 
 :- module_transparent
 	'$load_pce'/0.
 
-:- use_module(library(quintus), [(meta_predicate)/1]).
 
 		 /*******************************
 		 *	    EXPANSION		*
 		 *******************************/
 
-user:term_expansion((:- require(_)), []).
+system:term_expansion((:- require(_)), []).
 
 
 		 /*******************************
@@ -59,7 +57,7 @@ property(register_source_locations).	% register the source locations
 property(string).			% Supports string datatype
 property(runtime) :-
 	get(@(pce), is_runtime_system, @(on)).
-	
+
 
 		 /*******************************
 		 *	     ERRORS		*
@@ -104,7 +102,7 @@ pce_home(_) :-
 	halt(1).
 
 '$load_pce' :-
-	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
+	current_predicate(user:'$pce_init'/1), !,
 	init_pce.
 '$load_pce' :-
 	current_prolog_flag(open_shared_object, true),
@@ -117,6 +115,9 @@ pce_home(_) :-
 	init_pce.
 
 init_pce :-
+	current_prolog_flag(xpce, true),
+	current_predicate(pce_principal:object/1), !.
+init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
 	->  set_prolog_flag(xpce, true)
@@ -127,7 +128,7 @@ init_pce :-
 
 %	We must declare this here as boot/english/pce_messages.pl is
 %	not yet loaded.
-%	
+%
 %	Right now the message is not printed from here but directly from
 %	pl/src/interface.c.
 
@@ -150,5 +151,5 @@ prolog:message(pce(no_threads)) -->
 
 user:message_hook('$aborted', _Kind, _Lines) :-
 	current_prolog_flag(xpce, true),
-	send(@display, reset),
+	send(@(display), reset),
 	fail.

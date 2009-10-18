@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -83,7 +83,7 @@ action(Data, Attributes) :-
 %
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
@@ -103,7 +103,7 @@ option(Opt, _, Default) :-
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention. Fails silently
 %	if the option does not appear in OptionList.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-			% make option processing stead-fast
@@ -224,21 +224,19 @@ canonise_options2([H|T0], [H|T]) :- !,
 %	Perform meta-expansion on options that are module-sensitive.
 %	Whether an option name is module sensitive is determined by
 %	calling call(IsMeta, Name).  Here is an example:
-%	
+%
 %	==
 %		meta_options(is_meta, OptionsIn, Options),
 %		...
-%	
+%
 %	is_meta(callback).
 %	==
 
-:- module_transparent
-	meta_options/3.
+:- meta_predicate
+	meta_options(1, :, -).
 
-meta_options(IsMeta, Options0, Options) :-
-	strip_module(IsMeta, IMC, IM),
-	strip_module(Options0, Context, Options1),
-	meta_options(Options1, IMC:IM, Context, Options).
+meta_options(IsMeta, Context:Options0, Options) :-
+	meta_options(Options0, IsMeta, Context, Options).
 
 meta_options([], _, _, []).
 meta_options([H0|T0], IM, Context, [H|T]) :-

@@ -3,20 +3,20 @@
  * This file #includes several others (see the bottom).
  *
  * Copyright (c) 1998, 1999 Henry Spencer.  All rights reserved.
- * 
+ *
  * Development of this software was funded, in part, by Cray Research Inc.,
  * UUNET Communications Services Inc., Sun Microsystems Inc., and Scriptics
  * Corporation, none of whom are responsible for the results.  The author
- * thanks all of them. 
- * 
+ * thanks all of them.
+ *
  * Redistribution and use in source and binary forms -- with or without
  * modification -- are permitted for any purpose, provided that
  * redistributions in source form retain this entire copyright notice and
  * indicate the origin and nature of any modifications.
- * 
+ *
  * I'd appreciate being given credit for this package in the documentation
  * of software which uses it, but that is not a requirement.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
  * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL
@@ -73,9 +73,9 @@ static VOID rfree _ANSI_ARGS_((regex_t *));
 #ifdef REG_DEBUG
 static VOID dump _ANSI_ARGS_((regex_t *, FILE *));
 static VOID dumpst _ANSI_ARGS_((struct subre *, FILE *, int));
-#endif
 static VOID stdump _ANSI_ARGS_((struct subre *, FILE *, int));
 static char *stid _ANSI_ARGS_((struct subre *, char *, size_t));
+#endif
 /* === regc_lex.c === */
 static VOID lexstart _ANSI_ARGS_((struct vars *));
 static VOID prefixes _ANSI_ARGS_((struct vars *));
@@ -163,9 +163,7 @@ static VOID dumpstate _ANSI_ARGS_((struct state *, FILE *));
 static VOID dumparcs _ANSI_ARGS_((struct state *, FILE *));
 static int dumprarcs _ANSI_ARGS_((struct arc *, struct state *, FILE *, int));
 static VOID dumparc _ANSI_ARGS_((struct arc *, struct state *, FILE *));
-#endif
 static VOID dumpcnfa _ANSI_ARGS_((struct cnfa *, FILE *));
-#ifdef REG_DEBUG
 static VOID dumpcstate _ANSI_ARGS_((int, struct carc *, struct cnfa *, FILE *));
 #endif
 /* === regc_cvec.c === */
@@ -1376,7 +1374,7 @@ struct state *rp;
 	assert(right->nins == 0);
 	freestate(v->nfa, right);
 }
-			
+
 /*
  - brackpart - handle one item (or range) within a bracket expression
  ^ static VOID brackpart(struct vars *, struct state *, struct state *);
@@ -2071,9 +2069,7 @@ regex_t *re;
  */
 #ifdef REG_DEBUG
 static VOID
-dump(re, f)
-regex_t *re;
-FILE *f;
+dump(regex_t *re, FILE *f)
 {
 	struct guts *g;
 	int i;
@@ -2091,7 +2087,7 @@ FILE *f;
 								GUTSMAGIC);
 
 	fprintf(f, "\n\n\n========= DUMP ==========\n");
-	fprintf(f, "nsub %d, info 0%lo, csize %d, ntree %d\n", 
+	fprintf(f, "nsub %d, info 0%lo, csize %d, ntree %d\n",
 		re->re_nsub, re->re_info, re->re_csize, g->ntree);
 
 	dumpcolors(&g->cmap, f);
@@ -2124,7 +2120,6 @@ int nfapresent;			/* is the original NFA still around? */
 		stdump(t, f, nfapresent);
 	fflush(f);
 }
-#endif
 
 /*
  - stdump - recursive guts of dumpst
@@ -2195,6 +2190,7 @@ size_t bufsize;
 		sprintf(buf, "%p", t);
 	return buf;
 }
+#endif /*REG_DEBUG*/
 
 #include "regc_lex.c"
 #include "regc_color.c"

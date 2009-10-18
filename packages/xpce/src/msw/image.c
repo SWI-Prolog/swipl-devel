@@ -35,7 +35,7 @@ ws_destroy_image(Image image)
     if ( r->msw_info )
       free(r->msw_info);
     unalloc(sizeof(ws_image), image->ws_ref);
-    
+
     image->ws_ref = NULL;
   }
 
@@ -86,7 +86,7 @@ read_bitmap_info(FileObj f)
   BITMAPINFOHEADER bmih;
   int rgbquads;
   BITMAPINFO *bmi;
-  
+
   if ( fread(&bmih, sizeof(bmih), 1, fd) != 1 )
   { errorPce(f, NAME_ioError, OsError());
     return NULL;
@@ -150,7 +150,7 @@ ws_load_windows_bmp_file(Image image, FileObj f)
 
     return errorPce(f, NAME_ioError, getOsErrorPce(PCE));
   }
-  
+
   attach_dbi_image(image, bmi, aBitmapBits);
   succeed;
 }
@@ -175,7 +175,7 @@ typedef struct ICONDIR
   WORD	idCount;
   ICONDIRENTRY idEntries[1];
 } ICONHEADER;
-    
+
 static status
 ws_load_windows_ico_file(Image image)
 { FILE *fd = image->file->fd;
@@ -241,7 +241,7 @@ ws_load_image_file(Image image)
   if ( send(image->file, NAME_open, NAME_read, 0) )
   { int w, h;
     unsigned char *data;
-    
+
     DEBUG(NAME_image, Cprintf("Trying to read bitmap from %s\n",
 			      pp(image->file->path)));
     if ( (data = read_bitmap_data(image->file->fd, &w, &h)) )
@@ -322,7 +322,7 @@ ws_open_image(Image image, DisplayObj d)
 
   if ( image->ws_ref )
   { bm = windows_bitmap_from_bits(image);
-    if ( bm ) 
+    if ( bm )
     { registerXrefObject(image, d, (void *) bm);
 
       succeed;
@@ -347,7 +347,7 @@ ws_open_image(Image image, DisplayObj d)
 	assign(image, background, d->background);
       if ( isDefault(image->foreground) )
 	assign(image, foreground, d->foreground);
-      
+
       bm = CreateCompatibleBitmap(hdc, w, h);
       GetObject(bm, sizeof(BITMAP), &bitmap);
       assign(image, depth, toInt(bitmap.bmPlanes * bitmap.bmBitsPixel));
@@ -366,7 +366,7 @@ ws_open_image(Image image, DisplayObj d)
       succeed;
     }
   }
-  
+
   fail;
 }
 
@@ -399,7 +399,7 @@ ws_resize_image(Image image, Int w, Int h)
 	int minh = min(valInt(h), valInt(image->size->h));
 
 	BitBlt(hdcdst, 0, 0, minw, minh, hdcsrc, 0, 0, SRCCOPY);
-      
+
 	ZSelectObject(hdcsrc, osbm);
 	ZSelectObject(hdcdst, odbm);
 	DeleteDC(hdcsrc);
@@ -457,7 +457,7 @@ mirror_byte(unsigned int b)
     if ( b & 0x01L )
       copy |= 0x01L;
   }
-    
+
   return copy;
 }
 
@@ -526,7 +526,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
     bytes = ws_sizeof_bits(dw, dh);
     dbits = alloc(bytes);
     alloced = bytes;
-   
+
     DEBUG(NAME_cursor, Cprintf("Alloced %d bytes at 0x%lx\n",
 			       alloced, (long) dbits));
 
@@ -536,7 +536,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
     DEBUG(NAME_cursor, Cprintf("Got %d bytes image from %s\n",
 			       bytes, pp(image)));
   }
-		   
+
   for(y=0; y<h; y++)
   { c = cbits + y*((w+15)/16);
     d = dbits + y*((dw+15)/16);

@@ -9,7 +9,7 @@
 :- use_module(library(lists)).
 
 libtotex(Lib, Out, Options) :-
-	user:use_module(Lib),		% we want the operators in user
+	use_module(user:Lib),		% we want the operators in user
 	doc_latex(Lib, Out,
 		  [ stand_alone(false)
 		  | Options
@@ -26,9 +26,11 @@ libtotex(Options, LibAtom) :-
 	file_name_extension(Base0, _, Local),
 	strip(Base0, 0'_, Base),
 	file_name_extension(Base, tex, TeXLocalFile),
-	atom_concat('lib/', TeXLocalFile, TeXFile),
-	atom_concat('lib/summaries.d/', TeXLocalFile, SummaryTeXFile),
-	ensure_dir('lib/summaries.d'),
+	option(outdir(Dir), Options, lib),
+	atomic_list_concat([Dir, /, TeXLocalFile], TeXFile),
+	atomic_list_concat([Dir, '/summaries.d'], SummaryDir),
+	atomic_list_concat([SummaryDir, /, TeXLocalFile], SummaryTeXFile),
+	ensure_dir(SummaryDir),
 	libtotex(File, TeXFile,
 		 [ summary(SummaryTeXFile)
 		 | Options
@@ -63,3 +65,7 @@ is_option(Arg) :-
 to_option('--section', section_level(section)).
 to_option('--subsection', section_level(subsection)).
 to_option('--subsubsection', section_level(subsubsection)).
+to_option(Opt, output(TexBase)) :-
+	atom_concat('--out=', TexBase, Opt).
+to_option(Opt, outdir(Dir)) :-
+	atom_concat('--outdir=', Dir, Opt).

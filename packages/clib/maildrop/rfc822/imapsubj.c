@@ -136,7 +136,7 @@ static void stripsubj(char *s, int *hasrefwd)
 				if (*q == '[')
 				{
 					++q;
-					
+
 					while (*q && *q != '[' && *q != ']'
 					       && *q != ' ')
 						++q;
@@ -170,7 +170,7 @@ static void stripsubj(char *s, int *hasrefwd)
 					while (*q && isspace((int)(unsigned
 								   char)*q))
 						++q;
-					
+
 					if (*q)
 					{
 						p=q;

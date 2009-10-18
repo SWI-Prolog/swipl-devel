@@ -22,4 +22,4 @@ GetEnhMetaFileBits(HENHMETAFILE hemf, UINT cbBuffer, LPBYTE lpbBuffer)
 { Cprintf("GetEnhMetaFileBits() stub called\n");
   return FALSE;
 }
- 
+

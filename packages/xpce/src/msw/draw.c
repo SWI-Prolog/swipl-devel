@@ -338,7 +338,7 @@ d_image(Image i, int x, int y, int w, int h)
   context.open++;
   d_display(notNil(i->display) ? i->display : DEFAULT);
   context.device = i;
-  
+
   context.hbitmap  = (HBITMAP) getXrefObject(i, context.display);
   context.hdc      = CreateCompatibleDC(NULL);
   context.ohbitmap = ZSelectObject(context.hdc, context.hbitmap);
@@ -359,7 +359,7 @@ d_image(Image i, int x, int y, int w, int h)
     else
       context.default_colour = context.display->foreground;
   }
-  
+
   if ( notDefault(i->background) )
     background = i->background;
   else
@@ -431,7 +431,7 @@ d_clip(int x, int y, int w, int h)
 			       rect->right - rect->left,
 			       rect->bottom - rect->top);
 		     });
-    
+
     if ( context.cache )
     { x += context.r_offset_x - context.cache_x; /* TRY ... */
       y += context.r_offset_y - context.cache_y;
@@ -568,7 +568,7 @@ intersection_iarea(IArea a, IArea b)
   w = (a->x + a->w < b->x + b->w ? a->x + a->w : b->x + b->w) - x;
   h = (a->y + a->h < b->y + b->h ? a->y + a->h : b->y + b->h) - y;
 
-  if ( w < 0 ) w = 0;  
+  if ( w < 0 ) w = 0;
   if ( h < 0 ) h = 0;
 
   a->x = x;
@@ -638,7 +638,7 @@ r_update_pen()
       style = PS_DASHDOTDOT;
     else if ( context.texture == NAME_longdash )
       style = PS_DASH;		/* not supported */
-    
+
     context.hpen = CreatePen(style, context.thickness, context.rgb);
     ZSelectObject(context.hdc, context.hpen);
 
@@ -700,7 +700,7 @@ r_fillbrush(Any fill, int *stock)
   { hbrush = GetStockObject(NULL_BRUSH);
     s = TRUE;
   } else if ( instanceOfObject(fill, ClassImage) )
-  { HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);     
+  { HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);
 
     hbrush = CreatePatternBrush(bm);
     s = FALSE;
@@ -725,8 +725,8 @@ void
 r_fillpattern(Any fill)			/* colour or image */
 { if ( context.fill_pattern != fill )
   { HBRUSH new, old = context.hbrush;
-    int stock;    
-    
+    int stock;
+
     DEBUG(NAME_fill, Cprintf("Selecting fill-pattern %s\n", pp(fill)));
     new = r_fillbrush(fill, &stock);
     ZSelectObject(context.hdc, new);
@@ -749,7 +749,7 @@ r_arcmode(Name mode)
 Any
 r_default_colour(Any c)
 { Any old = context.default_colour;
-  
+
   DEBUG(NAME_colour, Cprintf("r_default_colour(%s)\n", pp(c)));
   if ( notDefault(c) )
   { if ( !instanceOfObject(c, ClassColour) )
@@ -760,7 +760,7 @@ r_default_colour(Any c)
 
   assert(notDefault(context.default_colour));
   r_colour(context.default_colour);
-  
+
   return old;
 }
 
@@ -777,7 +777,7 @@ r_background(Any c)
 
   if ( context.background != c )
   { COLORREF rgb = cref_colour(c);
-    
+
     SetBkColor(context.hdc, rgb);
     context.background     = c;
     context.background_rgb = rgb;
@@ -827,7 +827,7 @@ void
 r_box(int x, int y, int w, int h, int r, Image fill)
 { int da = context.thickness / 2;
   int db = max(0, (context.thickness - 1) / 2);
-  
+
   DEBUG(NAME_redraw, Cprintf("r_box(%d, %d, %d, %d, %d, %s)\n",
 			     x, y, w, h, r, pp(fill)));
 
@@ -900,7 +900,7 @@ r_elevation(Elevation e)
 	shadow = BLACK_COLOUR;
     } else
       shadow = e->shadow;
-  
+
     assert(instanceOfObject(shadow, ClassColour));
 
     if ( context.relief_pen )
@@ -960,7 +960,7 @@ cos64(int angle, int radius)
     angle = angle - 180, f = -1;
   else /* if ( angle <= 360 ) */
     angle = 360 - angle, f = 1;
-  
+
   if ( !costable[angle] && angle != 90 )
   { costable[angle] = rfloat(1024.0 * cos(((float)angle * M_PI)/M_PI));
     DEBUG(NAME_arc, Cprintf("Adding cos(%d) = %d (%f)\n",
@@ -968,7 +968,7 @@ cos64(int angle, int radius)
 			    costable[angle],
 			    (float) costable[angle] * 1024.0));
   }
-    
+
   return (radius * costable[angle] * f) / 1024;
 }
 
@@ -986,7 +986,7 @@ sin64(int angle, int radius)
 static void
 draw_arcs(larc *a, int n, HPEN pen)
 { HPEN old = ZSelectObject(context.hdc, pen);
-  
+
   for( ; n > 0; n--, a++ )
   { int x1, y1, x2, y2;
     int cx = a->x + a->width/2;
@@ -1031,7 +1031,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       shadow = MAX_SHADOW;
 
     r_box(x, y, w-shadow, h-shadow, radius-shadow, e->colour);
-    
+
     xt = x, yt = y;
 
     if ( radius > 0 )
@@ -1114,13 +1114,13 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       int      is=0, ir=0, ns=0, nr=0;	/* # items */
       int      i, os;
       int      xt = x, yt = y;
-  
+
       w--, h--;
 
       for(os=0; os<shadow; os++)
       { int r     = radius-os;
 	short wh  = r*2;
-  
+
 	sr[ir].x1 = os+xt+r;	sr[ir].y1 = os+yt;	/* top */
 	sr[ir].x2 = -os+xt+w-r;	sr[ir].y2 = os+yt;
 	ir++;
@@ -1180,7 +1180,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	i++;
       }
       draw_segments(s, i, top_left_pen);
-      
+
       for(i=0, os=0; os < shadow; os += pen)
       { s[i].x1 = xt+os;	s[i].y1 = yt+h-1-os;	/* bottom-side */
 	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
@@ -1278,11 +1278,11 @@ r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)
 
   if ( !z || isNil(z) )
     r_ellipse(x, y, w, h, NIL);
-  
+
   shadow = valInt(z->height);
   if ( !up )
     shadow = -shadow;
-  
+
   if ( shadow > MAX_SHADOW )
     shadow = MAX_SHADOW;
 
@@ -1366,7 +1366,7 @@ r_line(int x1, int y1, int x2, int y2)
 
 void
 r_polygon(IPoint pts, int n, int close)
-{ 
+{
 }
 
 
@@ -1415,7 +1415,7 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
   else if ( op == NAME_and )
     rop = SRCPAINT;
   else /*if ( op == NAME_xor )*/
-    rop = SRCINVERT;    
+    rop = SRCINVERT;
 
   DEBUG(NAME_redraw,
 	Cprintf("r_op_image(%s, %d, %d, %d, %d, %d, %d, %s) "
@@ -1442,7 +1442,7 @@ r_image(Image image,
   DEBUG(NAME_redraw,
 	Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
 		pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
-    
+
   if ( transparent == ON )
   { HBRUSH hbrush = CreateSolidBrush(context.rgb);
     HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
@@ -1469,7 +1469,7 @@ r_image(Image image,
 void
 r_copy(int xf, int yf, int xt, int yt, int w, int h)
 { RECT toclear, source, dest;
-  
+
   source.left = xf;
   source.right = xf + w;
   source.top = yf;
@@ -1544,7 +1544,7 @@ r_caret(int cx, int cy, FontObj font)
   r_thickness(1);
   r_dash(NAME_none);
   r_line(cx, cb-2, cx, cb-ch);
-    
+
   pts[0].x = cx - cw2;
   pts[0].y = cb;
   pts[1].x = cx + cw2;
@@ -1635,7 +1635,7 @@ s_font(FontObj font)
     if ( !context.hdc )
       make_default_context();
     wsf = getXrefObject(font, context.display);
-  
+
     DEBUG(NAME_font, Cprintf("s_font(%s) (hfont = 0x%x)\n",
 			     pp(font), (int)wsf->hfont));
     context.wsf = wsf;
@@ -1691,7 +1691,7 @@ s_height(FontObj f)
 int
 c_width(unsigned int c, FontObj font)
 { s_font(font);
-  
+
   return context.wsf->widths[c];
 }
 
@@ -1718,7 +1718,7 @@ str_bits_as_font(String s, FontObj f, int *shift)
       *shift = 1;
     return &s2;
   }
-  
+
   if ( shift )
     *shift = 0;
   return s;
@@ -1829,7 +1829,7 @@ str_string(String s, FontObj font,
 	   Name hadjust, Name vadjust)
 { RECT rect;
   UINT flags = DT_EXTERNALLEADING|DT_NOCLIP|DT_NOPREFIX;
-  
+
   if ( hadjust == NAME_left )
     flags |= DT_LEFT;
   else if ( hadjust == NAME_center )

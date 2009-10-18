@@ -56,7 +56,7 @@
 	  sticky_window		   = key('\\es'),
 	  write_region		   = key('\\e\\C-w'),
 	  compile		   = key('\\C-x\\C-m'),
-	  
+
 					% FILE menu
 	  show_buffer_menu	   = key('\\C-x\\C-b') + button(file),
 	  switch_to_buffer	   = key('\\C-xb') +
@@ -350,7 +350,7 @@ delete_matching_lines(M, Re:regex) :->
 		),
 		fail
 	    ).
-		
+
 
 /*
 delete_rectangle(M) :->
@@ -361,7 +361,7 @@ delete_rectangle(M) :->
 	get(M, column, Caret, CaretColumn),
 	min(MarkColumn, CaretColumn, FromColumn),
 	max(MarkColumn, CaretColumn, ToColumn),
-	
+
 */
 
 		 /*******************************
@@ -913,7 +913,7 @@ customise(_) :->
 
 
 %	->help_on_mode
-%	
+%
 %	See whether there is a file named <Source>.html, where <Source>
 %	is the name of the source-file loaded to define the given mode.
 %	If so, open it using the users' browser using www_open_url/1.
@@ -1028,7 +1028,7 @@ spypce(M, Method:behaviour*) :->
 		 /*******************************
 		 *	       DROP		*
 		 *******************************/
-	
+
 preview_drop(M, Obj:object*) :->
 	"Preview the upcomming drop action"::
 	(   Obj == @nil

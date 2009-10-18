@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2006, University of Amsterdam
+    Copyright (C): 2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,21 +30,21 @@
 */
 
 :- module(pldoc_html,
-	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
+	  [ doc_for_file/2,		% +FileSpec, +Options
 	    doc_write_html/3,		% +Stream, +Title, +Term
-	    doc_for_wiki_file/3,	% +FileSpec, +Out, +Options
+	    doc_for_wiki_file/2,	% +FileSpec, +Options
 	    				% Support doc_index
 	    doc_page_dom/3,		% +Title, +Body, -DOM
 	    print_html_head/1,		% +Stream
-	    predref/3,			% +PI //
-	    predref/4,			% +PI, Options //
+	    predref//1,			% +PI //
+	    predref//2,			% +PI, Options //
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
-	    edit_button/4,		% +File, +Options, //
-	    source_button/4,		% +File, +Options, //
-	    pred_edit_button/4,		% +PredInd, +Options, //
-	    object_edit_button/4,	% +Obj, +Options, //
-	    object_source_button/4,	% +Obj, +Options, //
+	    edit_button//2,		% +File, +Options, //
+	    source_button//2,		% +File, +Options, //
+	    pred_edit_button//2,		% +PredInd, +Options, //
+	    object_edit_button//2,	% +Obj, +Options, //
+	    object_source_button//2,	% +Obj, +Options, //
 					% Support other backends
 	    doc_file_objects/5,		% +FSpec, -File, -Objs, -FileOpts, +Opts
 	    existing_linked_file/2,	% +FileSpec, -Path
@@ -54,24 +54,30 @@
 	    is_pi/1,			% @Term
 	    is_op_type/2,		% +Atom, ?Type
 					% Output routines
-	    file/3,			% +File, //
-	    include/4,			% +File, +Type, //
-	    tags/3,			% +Tags, //
-	    file_header/4,		% +File, +Options, //
-	    objects/4,			% +Objects, +Options, //
-	    object_ref/4,		% +Object, +Options, //
+	    file//1,			% +File, //
+	    file//2,			% +File, +Options, //
+	    include//3,			% +File, +Type, +Options //
+	    tags//1,			% +Tags, //
+	    term//2,			% +Term, +Bindings, //
+	    file_header//2,		% +File, +Options, //
+	    objects//2,			% +Objects, +Options, //
+	    object_ref//2,		% +Object, +Options, //
 	    object_href/2,		% +Object, -URL
-	    object_page/4		% +Object, +Options, //
+	    object_page//2		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(url)).
 :- use_module(library(readutil)).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/http_dispatch')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_path)).
+:- use_module(library(http/html_head)).
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
+:- use_module(library(apply)).
 :- use_module(doc_process).
+:- use_module(doc_man).
 :- use_module(doc_modes).
 :- use_module(doc_wiki).
 :- use_module(doc_search).
@@ -88,25 +94,47 @@ extracting module doc_wiki.pl into HTML+CSS.
 */
 
 		 /*******************************
+		 *	     RESOURCES		*
+		 *******************************/
+
+:- html_resource(pldoc_css,
+		 [ virtual(true),
+		   requires([ pldoc_resource('pldoc.css')
+			    ])
+		 ]).
+:- html_resource(pldoc_js,
+		 [ virtual(true),
+		   requires([ pldoc_resource('pldoc.js')
+			    ])
+		 ]).
+:- html_resource(pldoc,
+		 [ virtual(true),
+		   requires([ pldoc_css,
+			      pldoc_js
+			    ])
+		 ]).
+
+
+		 /*******************************
 		 *	 FILE PROCESSING	*
 		 *******************************/
 
-%%	doc_for_file(+File, +Out:stream, +Options) is det
+%%	doc_for_file(+File, +Options) is det
 %
-%	Write documentation for File to Out in HTML.  Options:
-%	
+%	Write documentation for File as HTML.  Options:
+%
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
-%	
+%
 %		* edit(Bool)
 %		If =true=, provide edit buttons. Default, these buttons
 %		are suppressed.
-%		
+%
 %	@param File	Prolog file specification.
 %	@param Out	Output stream
 
-doc_for_file(FileSpec, Out, Options) :-
+doc_for_file(FileSpec, Options) :-
 	absolute_file_name(FileSpec,
 			   [ file_type(prolog),
 			     access(read)
@@ -114,35 +142,34 @@ doc_for_file(FileSpec, Out, Options) :-
 			   File),
 	file_base_name(File, Base),
 	Title = Base,
-	doc_page_dom(Title, \prolog_file(FileSpec, Options), DOM),
-	phrase(html(DOM), Tokens),
-	print_html_head(Out),
-	print_html(Out, Tokens).
+	reply_html_page(title(Title),
+			\prolog_file(FileSpec, Options)).
 
 prolog_file(FileSpec, Options) -->
 	{ doc_file_objects(FileSpec, File, Objects, FileOptions, Options),
 	  b_setval(pldoc_file, File),	% TBD: delete?
 	  file_directory_name(File, Dir)
 	},
-	html([ \doc_links(Dir, FileOptions),
+	html([ \html_requires(pldoc),
+	       \doc_links(Dir, FileOptions),
 	       \file_header(File, FileOptions)
 	     | \objects(Objects, FileOptions)
 	     ]),
 	undocumented(Objects, FileOptions).
-	  
+
 %%	doc_file_objects(+FileSpec, -File, -Objects, -FileOptions, +Options) is det.
 %
 %	Extracts  relevant  information  for  FileSpec  from  the  PlDoc
 %	database.  FileOptions contains:
-%	
+%
 %		* file(Title:string, Comment:string)
 %		* module(Module:atom)
 %		* public(Public:list(predicate_indicator)
-%	
+%
 %	Objects contains
-%	
+%
 %		* doc(PI:predicate_indicator, File:Line, Comment)
-%		
+%
 %	@param FileSpec File specification as used for load_files/2.
 %	@param File	Prolog canonical filename
 
@@ -166,8 +193,8 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 %	File is a module file.
 
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
-	current_module(Module, File), !,
-	export_list(Module, Exports).
+	module_property(Module, file(File)), !,
+	module_property(Module, exports(Exports)).
 module_info(_, Options, Options).
 
 
@@ -240,7 +267,8 @@ file_header(File, Options) -->
 	},
 	file_title([Base, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
 	  wiki_lines_to_dom(Lines1, [], DOM)
 	},
@@ -298,7 +326,7 @@ edit_button(File, Options) -->
 	{ option(edit(true), Options), !,
 	  option(button_height(H), Options, 24)
 	},
-	html(a([ onClick('HTTPrequest(\'' + 
+	html(a([ onClick('HTTPrequest(\'' +
 			 location_by_id(pldoc_edit) + [file(File)] +
 			 '\')'),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
@@ -334,7 +362,7 @@ zoom_button(Base, Options) -->
 		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
-	
+
 
 %%	source_button(+File, +Options)// is det.
 %
@@ -355,7 +383,7 @@ source_button(File, Options) -->
 		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
-	
+
 
 %%	objects(+Objects:list, +Options)// is det.
 %
@@ -380,7 +408,8 @@ object(Obj, Mode0, Mode, Options) -->
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  strip_module(user:Obj, Module, _),
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
@@ -402,7 +431,7 @@ object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
-	
+
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -417,7 +446,7 @@ need_mode(Mode, Stack, Stack) -->
 need_mode(Mode, Stack, Rest) -->
 	{ memberchk(Mode, Stack)
 	}, !,
-	pop_mode(Mode, Stack, Rest).	
+	pop_mode(Mode, Stack, Rest).
 need_mode(Mode, Stack, [Mode|Stack]) --> !,
 	html_begin(Mode).
 
@@ -453,11 +482,11 @@ undocumented_predicates([], _) -->
 undocumented_predicates([H|T], Options) -->
 	undocumented_pred(H, Options),
 	undocumented_predicates(T, Options).
-		
+
 undocumented_pred(Name/Arity, Options) -->
 	{ functor(Head, Name, Arity) },
 	html(dt(class=undoc, \pred_mode(Head, [], _, Options))).
-		
+
 select_undocumented([], _, _, []).
 select_undocumented([PI|T0], M, Objs, [PI|T]) :-
 	is_pi(PI),
@@ -508,21 +537,31 @@ is_pi(_//_).
 %%	object_page(+Obj, +Options)// is det.
 %
 %	Generate an HTML page describing Obj.  The top presents the file
-%	the object is documented in and a search-form.
+%	the object is documented in and a search-form.  Options:
+%
+%	    * header(+Boolean)
+%	    Show the navigation and search header.
 
 object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
 	},
-	html([ div(class(navhdr),
-		   [ span(style('float:left'),
-			  a(href(location_by_id(pldoc_doc)+File), File)),
-		     span(style('float:right'), \search_form(Options)),
-		     br(clear(both))
-		   ]),
+	html([ \html_requires(pldoc),
+	       \object_page_header(File, Options),
 	       \objects([Obj], Options)
 	     ]).
+
+object_page_header(File, Options) -->
+	{ option(header(true), Options, true) }, !,
+	html(div(class(navhdr),
+		 [ div(class(jump),
+		       a(href(location_by_id(pldoc_doc)+File), File)),
+		   div(class(search), \search_form(Options)),
+		   br(clear(right))
+		 ])).
+object_page_header(_, _) --> [].
+
 
 
 		 /*******************************
@@ -573,7 +612,7 @@ print_html_head(Out) :-
 %%	tags(+Tags)// is det.
 %
 %	Emit the @tag tags of a description. Tags is produced by tags/3.
-%	
+%
 %	@see combine_tags/2.
 
 tags(Tags) -->
@@ -637,7 +676,8 @@ param(param(Name,Descr)) -->
 		 *******************************/
 
 section(Type, Title) -->
-	{ wiki_string_to_dom(Title, [], Content0),
+	{ string_to_list(Title, Codes),
+	  wiki_codes_to_dom(Codes, [], Content0),
 	  strip_leading_par(Content0, Content),
 	  make_section(Type, Content, HTML)
 	},
@@ -654,7 +694,7 @@ make_section(section, Title, h1(class=section, Title)).
 %%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the predicate header.
-%	
+%
 %	@param Modes	List as returned by process_modes/5.
 
 pred_dt(Modes, Class, Options) -->
@@ -722,7 +762,7 @@ pred_edit_button(_, Options) -->
 pred_edit_button(PI0, Options0) -->
 	{ canonise_predref(PI0, PI, Options0, Options) },
 	pred_edit_button2(PI, Options).
-	
+
 pred_edit_button2(Name/Arity, Options) -->
 	{ functor(Head, Name, Arity),
 	  option(module(M), Options, _),
@@ -817,9 +857,16 @@ canonise_predref(Head, PI, Options0, Options) :-
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
 
+pred_head(Var) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
 pred_head(//(Head)) --> !,
 	pred_head(Head),
 	html(//).
+pred_head(M:Head) -->
+	html([span(class=module, M), :]),
+	pred_head(Head).
 pred_head(Head) -->
 	{ atom(Head) }, !,
 	html(b(class=pred, Head)).
@@ -921,7 +968,7 @@ pred_det(Det) -->
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element as produced by doc_wiki.pl.
-%	
+%
 %	@tbd	Properly merge with pred_head//1
 
 term(Atom, []) -->
@@ -935,7 +982,7 @@ term(Term, Bindings) -->
 term(Term, Bindings) -->
 	{ bind_vars(Term, Bindings) },
 	argtype(Term).
-	
+
 
 		 /*******************************
 		 *	       PREDREF		*
@@ -947,7 +994,7 @@ term(Term, Bindings) -->
 %	Create a reference to a predicate. The reference consists of the
 %	relative path to the  file  using   the  predicate  indicator as
 %	anchor.
-%	
+%
 %	Current file must  be  available   through  the  global variable
 %	=pldoc_file=. If this variable not  set   it  creates  a link to
 %	/doc/<file>#anchor.  Such links only work in the online browser.
@@ -1008,16 +1055,16 @@ manref(Name/Arity, HREF, Options) :-
 	),
 	http_location_by_id(pldoc_man, ManHandler),
 	format(string(HREF), '~w?predicate=~w', [ManHandler, EncId]).
-	
+
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
 %
 %	Create reference.  Prefer:
-%	
+%
 %		1. Local definition
 %		2. If from package and documented: package documentation
 %		3. From any file
-%	
+%
 %	@bug	Should analyse import list to find where the predicate
 %		comes from.
 
@@ -1047,7 +1094,7 @@ relative_file(Head, RelFile) :-
 	b_getval(pldoc_file, CurrentFile), CurrentFile \== [],
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
-	
+
 %%	pred_source_href(+Pred:predicate_indicator, +Module, -HREF) is semidet.
 %
 %	HREF is a URL to show the predicate source in its file.
@@ -1083,7 +1130,7 @@ object_ref(Obj, Options) -->
 	{ object_href(Obj, HREF, Options)
 	},
 	html(a(href(HREF), \object_link(Obj, Options))).
-	
+
 %%	object_href(+Object, -HREF) is det.
 %%	object_href(+Object, -HREF, +Options) is det.
 %
@@ -1094,14 +1141,15 @@ object_href(Obj, HREF) :-
 
 object_href(M:PI0, HREF, Options) :-
 	option(files(Map), Options),
-	current_module(M, File),
+	module_property(M, file(File)),
 	memberchk(file(File, DocFile), Map), !,
 	expand_pi(PI0, PI),
 	term_to_string(PI, PIS),
 	www_form_encode(PIS, PIEnc),
 	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
 	format(string(HREF), '~w#~w', [LocalFile, PIEnc]).
-object_href(Obj, HREF, _Options) :-
+object_href(Obj0, HREF, _Options) :-
+	localise_object(Obj0, Obj),
 	term_to_string(Obj, String),
 	www_form_encode(String, Enc),
 	http_location_by_id(pldoc_object, ObjHandler),
@@ -1110,6 +1158,16 @@ object_href(Obj, HREF, _Options) :-
 expand_pi(Name//Arity0, Name/Arity) :- !,
 	Arity is Arity0+2.
 expand_pi(PI, PI).
+
+
+%%	localise_object(+ObjIn, -ObjOut) is det.
+%
+%	Abstract  path-details  to  make  references  more  stable  over
+%	versions.
+
+localise_object(Obj0, Obj) :-
+	prolog:doc_canonical_object(Obj0, Obj), !.
+localise_object(Obj, Obj).
 
 
 %%	term_to_string(+Term, -String) is det.
@@ -1137,16 +1195,17 @@ term_to_string(Term, String) :-
 
 object_link(Obj, Options) -->
 	prolog:doc_object_link(Obj, Options), !.
-object_link(_M:PI, _) --> !,
-	pi(PI).
 object_link(PI, _) -->
-	pi(PI), !.
+	{ is_pi(PI) }, !,
+	pi(PI).
 object_link(Module:module(_Title), _) -->
-	{ current_module(Module, File),
+	{ module_property(Module, file(File)),
 	  file_base_name(File, Base)
 	}, !,
 	html(Base).
 
+pi(_M:PI) --> !,
+	pi(PI).
 pi(Name/Arity) --> !,
 	html([Name, /, Arity]).
 pi(Name//Arity) -->
@@ -1183,15 +1242,15 @@ in_file(Module, Head, File) :-
 %%	relative_file_name(+Path:atom, +RelTo:atom, -RelPath:atom) is det.
 %
 %	Create a relative path from an absolute one.
-%	
+%
 %	@tbd	move to library?
 
 relative_file_name(Path, RelTo, RelPath) :-
-        concat_atom(PL, /, Path),
-        concat_atom(RL, /, RelTo),
+        atomic_list_concat(PL, /, Path),
+        atomic_list_concat(RL, /, RelTo),
         delete_common_prefix(PL, RL, PL1, PL2),
         to_dot_dot(PL2, DotDot, PL1),
-        concat_atom(DotDot, /, RelPath).
+        atomic_list_concat(DotDot, /, RelPath).
 
 delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
         delete_common_prefix(T01, T02, T1, T2).
@@ -1204,25 +1263,104 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 
 
 %%     file(+FileName)// is det.
+%%     file(+FileName, +Options)// is det.
 %
-%      Create a link to another filename if the file exists.  Called by
-%      \file(File) terms in the DOM term generated by wiki.pl.
+%      Create a link to another filename if   the file exists. Called by
+%      \file(File) terms in the DOM term generated by wiki.pl. Supported
+%      options are:
+%
+%          * label(+Label)
+%          Label to use for the link to the file.
+%
+%          * absolute_path(+Path)
+%          Absolute location of the referenced file.
+%
+%          * href(+HREF)
+%          Explicitely provided link; overrule link computation.
+%
+%          * map_extension(+Pairs)
+%          Map the final extension if OldExt-NewExt is in Pairs.
+%
+%          * files(+Map)
+%          List of file(Name, Link) that specifies that we must
+%	   user Link for the given physical file Name.
+%
+%	@tbd	Translation of files to HREFS is a mess.  How to relate
+%		these elegantly?
 
 file(File) -->
-	{ catch(nb_getval(pldoc_options, Options), _, Options = []) },
-	file(File, Options).
-	  
+	file(File, []).
+
 file(File, Options) -->
-	{ existing_linked_file(File, Path) }, !,
-	{ (   option(files(Map), Options),
-	      memberchk(file(Path, DocFile), Map)
-	  ->  file_base_name(DocFile, HREF)	% TBD: proper location
-	  ;   HREF=File
-	  )
+	{ catch(nb_getval(pldoc_options, GenOptions), _, GenOptions = []),
+	  merge_options(Options, GenOptions, FinalOptions)
 	},
-	html(a([class(file), href(HREF)], File)).
+	link_file(File, FinalOptions), !.
 file(File, _) -->
-	html(code(class(file), File)).
+	html(code(class(nofile), File)).
+
+link_file(File, Options) -->
+	{ file_href(File, HREF, Options),
+	  option(label(Label), Options, File),
+	  option(class(Class), Options, file)
+	},
+	html(a([class(Class), href(HREF)], Label)).
+
+%%	file_href(+FilePath, -HREF, +Options) is det.
+%
+%	Find URL for refering to FilePath based on Options.
+
+file_href(_, HREF, Options) :-
+	option(href(HREF), Options), !.
+file_href(File, HREF, Options) :-
+	file_href_real(File, HREF0, Options),
+	map_extension(HREF0, HREF, Options).
+
+%%	map_extension(+HREFIn, -HREFOut, Options) is det.
+%
+%	Replace extension using the option
+%
+%	    * map_extension(+Pairs)
+
+map_extension(HREF0, HREF, Options) :-
+	option(map_extension(Map), Options),
+	file_name_extension(Base, Old, HREF0),
+	memberchk(Old-New, Map), !,
+	file_name_extension(Base, New, HREF).
+map_extension(HREF, HREF, _).
+
+
+file_href_real(File, HREF, Options) :-
+	(   option(absolute_path(Path), Options)
+	;   existing_linked_file(File, Path)
+	), !,
+	(   option(files(Map), Options),
+	    memberchk(file(Path, LinkFile), Map)
+	->  true
+	;   LinkFile = Path
+	),
+	file_href(LinkFile, HREF).
+file_href_real(File, HREF, _) :-
+	http:location(Alias, _, _),
+	Term =.. [Alias,File],
+	absolute_file_name(Term, _,
+			   [ access(read),
+			     file_errors(fail)
+			   ]), !,
+	http_absolute_location(Term, HREF, []).
+
+%%	file_href(+FilePath, -HREF) is det.
+%
+%	Create a relative URL from  the   current  location to the given
+%	absolute file name. It resolves  the   filename  relative to the
+%	file being processed  that  is   available  through  the  global
+%	variable =pldoc_file=.
+
+file_href(Path, HREF) :-
+	nb_current(pldoc_file, CFile),
+	CFile \== [], !,
+	relative_file_name(Path, CFile, HREF).
+file_href(Path, Path).
 
 
 %%	existing_linked_file(+File, -Path) is semidet.
@@ -1240,33 +1378,46 @@ existing_linked_file(File, Path) :-
 			   ]).
 
 
-%%	include(+FileName, +Type)// is det.
+%%	include(+FileName, +Type, +Options)// is det.
 %
 %	Inline FileName. If this is an image file, show an inline image.
 %	Else we create a link  like   file//1.  Called by \include(File,
 %	Type)  terms  in  the  DOM  term  generated  by  wiki.pl  if  it
 %	encounters [[file.ext]].
 
-include(PI, predicate) --> !,
+include(PI, predicate, _) --> !,
 	(   html_tokens_for_predicates(PI, [])
 	->  []
 	;   html(['[[', \predref(PI), ']]'])
 	).
-include(File, image) -->
-	{ existing_linked_file(File, _) }, !,
-	html(img([src(File), alt(File)])).
-include(File, _Type) -->
-	{ existing_linked_file(File, _) }, !,
-	file(File).
-include(File, _) -->
-	html(code(class(file), ['[[',File,']]'])).
+include(File, image, Options) -->
+	{ file_href(File, HREF, Options),
+	  include(image_attribute, Options, Attrs0),
+	  merge_options(Attrs0,
+			[ alt(File),
+			  border(0),
+			  src(HREF)
+			], Attrs)
+	},
+	html(img(Attrs)).
+include(File, _Type, Options) -->
+	link_file(File, Options), !.
+include(File, _, _) -->
+	html(code(class(nofile), ['[[',File,']]'])).
+
+image_attribute(src(_)).
+image_attribute(alt(_)).
+image_attribute(align(_)).
+image_attribute(width(_)).
+image_attribute(height(_)).
+image_attribute(border(_)).
 
 
 %%	html_tokens_for_predicates(+PI, +Options)// is semidet.
 %
 %	Inline description for a predicate as produced by the text below
 %	from wiki processing.
-%	
+%
 %	==
 %		* [[member/2]]
 %		* [[append/3]]
@@ -1287,12 +1438,11 @@ html_tokens_for_predicates(PI, Options) -->
 	object(PI, Pos, Comment, [dl], _, Options).
 html_tokens_for_predicates(Spec, Options) -->
 	{ findall(PI, documented_pi(Spec, PI), List),
-	  (   List == []
-	  ->  print_message(warning, pldoc(no_predicates_from(Spec)))
-	  ;   true
-	  )
+	  List \== [], !
 	},
 	html_tokens_for_predicates(List, Options).
+html_tokens_for_predicates(Spec, Options) -->
+	man_page(Spec, [links(false)|Options]).
 
 
 documented_pi(Spec, PI) :-
@@ -1308,22 +1458,31 @@ generalise_spec(Name//Arity, _M:Name//Arity).
 		 *******************************/
 
 
-%%	doc_for_wiki_file(+File, +Out:stream, +Options) is det.
+%%	doc_for_wiki_file(+File, +Options) is det.
 %
 %	Write HTML for the File containing wiki data.
 
-doc_for_wiki_file(FileSpec, Out, _Options) :-
+doc_for_wiki_file(FileSpec, _Options) :-
 	absolute_file_name(FileSpec, File,
 			   [ access(read)
 			   ]),
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
-	call_cleanup((wiki_string_to_dom(String, [], DOM),
-		      phrase(html(DOM), Tokens),
-		      print_html_head(Out),
-		      print_html(Out, Tokens)
-		     ),
+	call_cleanup(reply_wiki_page(File, String),
 		     nb_delete(pldoc_file)).
+
+reply_wiki_page(File, String) :-
+	wiki_codes_to_dom(String, [], DOM),
+	title(DOM, File, Title),
+	reply_html_page(title(Title),
+			[ \html_requires(pldoc)
+			| DOM
+			]).
+
+title(DOM, _, Title) :-
+	sub_term(h1(_,Title), DOM), !.
+title(_, File, Title) :-
+	file_base_name(File, Title).
 
 
 		 /*******************************

@@ -52,7 +52,7 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	METAPRED		Predicate is module transparent
+	P_TRANSPARENT		Predicate is module transparent
 	NONDETERMINISTIC	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -70,52 +70,13 @@ static const PL_extension foreigns[] = {
   FRG("crash",			0, pl_crash,			0),
 #endif
   FRG("nl",			0, pl_nl,			ISO),
-  FRG("get_single_char",	1, pl_get_single_char,		0),
-  FRG("$push_input_context",	0, pl_push_input_context,	0),
-  FRG("$pop_input_context",	0, pl_pop_input_context,	0),
-  FRG("seeing",			1, pl_seeing,			0),
-  FRG("telling",		1, pl_telling,			0),
-  FRG("seen",			0, pl_seen,			0),
-  FRG("tab",			1, pl_tab,			0),
-  FRG("tmp_file",		2, pl_tmp_file,			0),
-  FRG("delete_file",		1, pl_delete_file,		0),
-  FRG("delete_directory",	1, pl_delete_directory,		0),
-  FRG("make_directory",		1, pl_make_directory,		0),
-  FRG("access_file",		2, pl_access_file,		0),
-  FRG("read_link",		3, pl_read_link,		0),
-  FRG("exists_file",		1, pl_exists_file,		0),
-  FRG("exists_directory",	1, pl_exists_directory,		0),
-  FRG("rename_file",		2, pl_rename_file,		0),
-  FRG("same_file",		2, pl_same_file,		0),
-  FRG("time_file",		2, pl_time_file,		0),
-  FRG("told",			0, pl_told,			0),
-  FRG("see",			1, pl_see,			0),
-  FRG("tell",			1, pl_tell,			0),
-  FRG("append",			1, pl_append,			0),
-  FRG("ttyflush",		0, pl_ttyflush,			0),
-  FRG("flush_output",		0, pl_flush_output,		ISO),
-  FRG("prompt",			2, pl_prompt,			0),
-  FRG("prompt1",		1, pl_prompt1,			0),
   FRG("expand_file_name",	2, pl_expand_file_name,		0),
-  FRG("$absolute_file_name",	2, pl_absolute_file_name,	0),
-  FRG("is_absolute_file_name",	1, pl_is_absolute_file_name,	0),
-  FRG("file_base_name",		2, pl_file_base_name,		0),
-  FRG("file_directory_name",	2, pl_file_dir_name,		0),
-  FRG("file_name_extension",	3, pl_file_name_extension,	0),
-  FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	0),
-  FRG("$mark_executable",	1, pl_mark_executable,		0),
 #ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
 #endif
 
-  FRG("$on_signal",		4, pl_on_signal,	     META),
-
-  FRG("fileerrors",		2, pl_fileerrors,		0),
-  FRG("working_directory",	2, pl_working_directory,	0),
-
   FRG("halt",			1, pl_halt,		      ISO),
-  FRG("$shell",			2, pl_shell,			0),
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
@@ -126,10 +87,6 @@ static const PL_extension foreigns[] = {
   FRG("break",			0, pl_break,			0),
   FRG("$break",			1, pl_break1,			0),
   FRG("notrace",		1, pl_notrace1,		     META),
-#ifdef O_LIMIT_DEPTH
-  FRG("$depth_limit",		3, pl_depth_limit,		0),
-  FRG("$depth_limit_true",	5, pl_depth_limit_true,	     NDET),
-#endif
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
   FRG("write_term",		2, pl_write_term,	      ISO),
@@ -143,18 +100,13 @@ static const PL_extension foreigns[] = {
   FRG("read",			1, pl_read,		      ISO),
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
-  FRG("current_op",		3, pl_current_op,	NDET|META|ISO),
-  FRG("$local_op",		3, pl_local_op,	        NDET|META),
-  FRG("$builtin_op",		3, pl_builtin_op,	     NDET),
   FRG("current_functor",	2, pl_current_functor,	     NDET),
   FRG("$complete_atom",		3, pl_complete_atom,		0),
   FRG("$atom_completions",	2, pl_atom_completions,		0),
-  FRG("op",			3, pl_op,		     META|ISO),
   FRG("char_conversion",	2, pl_char_conversion,	      ISO),
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
   FRG("!",			0, pl_metacut,		      ISO),
-  FRG("atom_concat",		3, pl_atom_concat,	 NDET|ISO),
   FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
@@ -169,8 +121,6 @@ static const PL_extension foreigns[] = {
   FRG("$rc_close_archive",	1, pl_rc_close_archive,		0),
   FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
   FRG("$rc_append_file",	5, pl_rc_append_file,		0),
-  FRG("copy_stream_data",	2, pl_copy_stream_data2,	0),
-  FRG("copy_stream_data",	3, pl_copy_stream_data3,	0),
 
   FRG("$qlf_start_module",	1, pl_qlf_start_module,		0),
   FRG("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	0),
@@ -215,7 +165,6 @@ static const PL_extension foreigns[] = {
   FRG("fail",			0, pl_fail,		      ISO),
   FRG("true",			0, pl_true,		      ISO),
   FRG("$fail",			0, pl_fail,		  NOTRACE),
-  FRG("abort",			0, pl_abort,			0),
 
   FRG("trace",			0, pl_trace,		  NOTRACE),
   FRG("notrace",		0, pl_notrace,		  NOTRACE),
@@ -231,17 +180,10 @@ static const PL_extension foreigns[] = {
 #endif /* COUNTING */
 
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	0),
-  FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	0),
-  FRG("prolog_choice_attribute",3, pl_prolog_choice_attribute,	0),
   FRG("prolog_skip_level",	2, pl_skip_level,	  NOTRACE),
 
   FRG("dwim_match",		3, pl_dwim_match,		0),
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	     NDET),
-
-  FRG("protocol",		1, pl_protocol,			0),
-  FRG("protocola",		1, pl_protocola,		0),
-  FRG("noprotocol",		0, pl_noprotocol,		0),
-  FRG("protocolling",		1, pl_protocolling,		0),
 
 #ifdef O_PROLOG_HOOK
   FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        0),
@@ -249,20 +191,10 @@ static const PL_extension foreigns[] = {
   FRG("$current_module",	2, pl_current_module,	     NDET),
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
-  FRG("$declare_module",	3, pl_declare_module,		0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("import",			1, pl_import,		     META),
-  FRG("$check_export",		0, pl_check_export,	     META),
-  FRG("export_list",		2, pl_export_list,		0),
   FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
-  FRG("$open_shared_object",	3, pl_open_shared_object,    META),
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  FRG("close_shared_object",	1, pl_close_shared_object,   META),
-  FRG("call_shared_object_function",
-				2, pl_call_shared_object_function,
-							     META),
-#endif /*HAVE_DLOPEN*/
 
 #if O_DDE
   FRG("open_dde_conversation",	3, pl_open_dde_conversation,	0),
@@ -274,7 +206,6 @@ static const PL_extension foreigns[] = {
 #endif /*O_DDE*/
 
 #if O_STRING
-  FRG("string_concat",		3, pl_string_concat,	     NDET),
   FRG("sub_string",		5, pl_sub_string,	     NDET),
 #endif /* O_STRING */
 
@@ -285,13 +216,9 @@ static const PL_extension foreigns[] = {
 #endif
 
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
-  FRG("$current_prolog_flag",	5, pl_feature5,		     NDET),
-  FRG("current_prolog_flag",	2, pl_feature,		 NDET|ISO),
-  FRG("set_prolog_flag",	2, pl_set_feature,	      ISO),
-  FRG("trim_stacks",		0, pl_trim_stacks,		0),
-#if O_SHIFT_STACKS
-  FRG("stack_parameter",	4, pl_stack_parameter,		0),
-#endif
+  FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
+  FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
+  FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
@@ -303,26 +230,7 @@ static const PL_extension foreigns[] = {
   FRG("current_key",		1, pl_current_key,	     NDET),
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
-  FRG("open",			3, pl_open,		      ISO),
-  FRG("open",			4, pl_open4,		      ISO),
-  FRG("open_null_stream",	1, pl_open_null_stream,		0),
-  FRG("close",			1, pl_close,		      ISO),
-  FRG("close",			2, pl_close2,		      ISO),
-  FRG("stream_property",	2, pl_stream_property,	 NDET|ISO),
-  FRG("flush_output",		1, pl_flush_output1,	      ISO),
-  FRG("set_stream_position",	2, pl_set_stream_position,    ISO),
-  FRG("seek",			4, pl_seek,			0),
-  FRG("set_input",		1, pl_set_input,	      ISO),
-  FRG("set_output",		1, pl_set_output,	      ISO),
-  FRG("set_stream",		2, pl_set_stream,		0),
-  FRG("current_input",		1, pl_current_input,	      ISO),
-  FRG("current_output",		1, pl_current_output,	      ISO),
-  FRG("source_location",	2, pl_source_location,		0),
-  FRG("at_end_of_stream",	1, pl_at_end_of_stream1,      ISO),
-  FRG("at_end_of_stream",	0, pl_at_end_of_stream0,      ISO),
-
   FRG("nl",			1, pl_nl1,		      ISO),
-  FRG("tab",			2, pl_tab2,			0),
   FRG("read",			2, pl_read2,		      ISO),
   FRG("write",			2, pl_write2,		      ISO),
   FRG("writeq",			2, pl_writeq2,		      ISO),
@@ -337,10 +245,7 @@ static const PL_extension foreigns[] = {
   FRG("format_predicate",	2, pl_format_predicate,	     META),
   FRG("current_format_predicate", 2, pl_current_format_predicate,
 						        META|NDET),
-  FRG("wait_for_input",		3, pl_wait_for_input,		0),
   FRG("get_time",		1, pl_get_time,			0),
-  FRG("size_file",		2, pl_size_file,		0),
-  FRG("$size_stream",		2, pl_size_stream,		0),
 #if O_PROLOG_FUNCTIONS
   FRG("current_arithmetic_function", 1, pl_current_arithmetic_function,
 							NDET|META),
@@ -430,7 +335,7 @@ rememberExtensions(const char *module, const PL_extension *e)
   cell->extensions = dupExtensions(e);
   cell->next = NULL;
   cell->module = dupStr(module);
-  
+
   if ( ext_tail )
   { ext_tail->next = cell;
     ext_tail = cell;
@@ -480,7 +385,7 @@ registerBuiltins(const PL_extension *f)
     set(def, FOREIGN|SYSTEM|HIDE_CHILDS|LOCKED);
 
     if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
-    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, METAPRED);
+    if ( f->flags & PL_FA_TRANSPARENT )	     set(def, P_TRANSPARENT);
     if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
     if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
@@ -489,9 +394,7 @@ registerBuiltins(const PL_extension *f)
     def->definition.function = f->function;
     def->indexPattern = 0;
     def->indexCardinality = 0;
-    if ( false(def, NONDETERMINISTIC) && 
-	 f->arity <= 2 )
-      set(valueFunctor(fdef), INLINE_F);
+    createForeignSupervisor(def, f->function);
   }
 }
 
@@ -509,6 +412,8 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(trace);
+DECL_PLIST(pro);
 DECL_PLIST(read);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
@@ -517,12 +422,17 @@ DECL_PLIST(attvar);
 DECL_PLIST(gvar);
 DECL_PLIST(win);
 DECL_PLIST(file);
+DECL_PLIST(files);
 DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
+DECL_PLIST(setup);
 DECL_PLIST(gc);
 DECL_PLIST(proc);
 DECL_PLIST(write);
+DECL_PLIST(dlopen);
+DECL_PLIST(system);
+DECL_PLIST(op);
 
 void
 initBuildIns(void)
@@ -538,17 +448,24 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(trace);
+  REG_PLIST(pro);
   REG_PLIST(read);
   REG_PLIST(thread);
   REG_PLIST(profile);
   REG_PLIST(wic);
   REG_PLIST(file);
+  REG_PLIST(files);
   REG_PLIST(btree);
   REG_PLIST(ctype);
   REG_PLIST(tai);
+  REG_PLIST(setup);
   REG_PLIST(gc);
   REG_PLIST(proc);
   REG_PLIST(write);
+  REG_PLIST(dlopen);
+  REG_PLIST(system);
+  REG_PLIST(op);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif
@@ -559,28 +476,34 @@ initBuildIns(void)
   REG_PLIST(win);
 #endif
 
-  PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
-  PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);
-  PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, 		  m);
-  PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, 		  m);
-  PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, 		  m);
-  PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
-  PROCEDURE_dcall1	     = lookupProcedure(FUNCTOR_dcall1,		  m);
-  PROCEDURE_setup_and_call_cleanup4
-		    = lookupProcedure(FUNCTOR_setup_and_call_cleanup4,	  m); 
-  PROCEDURE_dthread_init0    = lookupProcedure(FUNCTOR_dthread_init0,	  m);
+#define LOOKUPPROC(name) \
+	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
+
+  LOOKUPPROC(dgarbage_collect1);
+  LOOKUPPROC(block3);
+  LOOKUPPROC(catch3);
+  LOOKUPPROC(true0);
+  LOOKUPPROC(fail0);
+  LOOKUPPROC(equals2);
+  LOOKUPPROC(is2);
+  LOOKUPPROC(strict_equal2);
+  LOOKUPPROC(print_message2);
+  LOOKUPPROC(dcall1);
+  LOOKUPPROC(setup_call_catcher_cleanup4);
+  LOOKUPPROC(dthread_init0);
+  LOOKUPPROC(dc_call_prolog0);
 #ifdef O_ATTVAR
-  PROCEDURE_dwakeup1	     = lookupProcedure(FUNCTOR_dwakeup1,	  m);
+  LOOKUPPROC(dwakeup1);
 #endif
 #ifdef O_CALL_RESIDUE
-  PROCEDURE_call_residue_vars2  = 
+  PROCEDURE_call_residue_vars2  =
 	PL_predicate("call_residue_vars", 2, "$attvar");
 #endif
-  PROCEDURE_exception_hook4  = 
+  PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
-  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS);
-  set(PROCEDURE_dcall1->definition, DYNAMIC);
+  clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
+  set(PROCEDURE_dcall1->definition, DYNAMIC|SYSTEM);
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

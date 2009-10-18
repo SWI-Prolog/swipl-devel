@@ -251,7 +251,7 @@ CreateDispatchWindow(dispatch_context *ctx)
 static void
 dispatch(dispatch_context *context)
 { MSG msg;
-  
+
   CreateDispatchWindow(context);
 
   while( !(context->flags & DISPATCH_END) &&

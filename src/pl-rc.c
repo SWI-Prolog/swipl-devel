@@ -67,7 +67,7 @@ SopenRC(void *rca, const char *name, const char *rcclass, int flags)
 
   if ( o )
   { int sflags = ((flags & RC_WRONLY) ? SIO_OUTPUT : SIO_INPUT);
-      
+
     return Snew(o, sflags, &rc_stream_functions);
   }
 
@@ -102,7 +102,7 @@ foreign_t
 pl_rc_handle(term_t h)
 { if ( GD->resourceDB )
     return PL_unify_pointer(h, GD->resourceDB);
-  
+
   return FALSE;
 }
 
@@ -151,7 +151,7 @@ pl_rc_open(term_t rc_h,
       }
 
       if ( (stream = Snew(o, sflags, &rc_stream_functions)) )
-      { if ( PL_open_stream(handle, stream) )
+      { if ( PL_unify_stream(handle, stream) )
 	  return TRUE;
 
 	Sclose(stream);
@@ -208,7 +208,7 @@ pl_rc_save_archive(term_t rc_h, term_t to)
   if ( rc_save_archive(rc, file) )
   { if ( PL_is_variable(to) )
       PL_unify_atom_chars(to, rc->path);
-    
+
     return TRUE;
   }
 
@@ -237,7 +237,7 @@ pl_rc_append_file(term_t rc_h,
   if ( !PL_get_chars_ex(encoding, &enc, CVT_ALL) &&
        !PL_unify_atom_chars(encoding, enc) )
     fail;
-  
+
   if ( !rc_append_file(rc, n, c, enc, f) )
     return FALSE;
 
@@ -261,7 +261,7 @@ pl_rc_members(term_t rc_h, term_t members)
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
-  
+
   f = PL_new_functor(PL_new_atom("rc"), 2);
   for(m = rc->members; m; m = m->next)
   { if ( !PL_unify_list(tail, head, tail) ||

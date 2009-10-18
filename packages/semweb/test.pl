@@ -41,6 +41,7 @@
 :- asserta(user:file_search_path(foreign, '.')).
 
 :- use_module(library(plunit)).
+:- use_module(library(uri)).
 :- use_module(library(semweb/rdf_db)).
 :- use_module(library(semweb/rdf_zlib_plugin)).
 :- use_module(library(semweb/rdf_http_plugin)).
@@ -56,7 +57,8 @@ test(file, [true(N == 1), cleanup(rdf_reset_db)]) :-
 	rdf_statistics(triples(N)).
 
 test(file, [true(N == 1), cleanup(rdf_reset_db)]) :-
-	rdf_load('file://Tests/test-001.rdf', [silent(true)]),
+	uri_file_name(URI, 'Tests/test-001.rdf'),
+	rdf_load(URI, [silent(true)]),
 	rdf_statistics(triples(N)).
 
 test(gzip_file, [true(N == 1), cleanup(rdf_reset_db)]) :-
@@ -64,7 +66,8 @@ test(gzip_file, [true(N == 1), cleanup(rdf_reset_db)]) :-
 	rdf_statistics(triples(N)).
 
 test(gzip_file, [true(N == 1), cleanup(rdf_reset_db)]) :-
-	rdf_load('file://Tests/test-002.rdf', [silent(true)]),
+	uri_file_name(URI, 'Tests/test-002.rdf'),
+	rdf_load(URI, [silent(true)]),
 	rdf_statistics(triples(N)).
 
 test(http, [true(N == 1), cleanup(rdf_reset_db)]) :-

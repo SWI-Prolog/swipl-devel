@@ -80,7 +80,7 @@ static senddecl send_equal[] =
 #define get_equal NULL
 /*
 static getdecl get_equal[] =
-{ 
+{
 };
 */
 
@@ -89,7 +89,7 @@ static getdecl get_equal[] =
 #define rc_equal NULL
 /*
 static classvardecl rc_equal[] =
-{ 
+{
 };
 */
 

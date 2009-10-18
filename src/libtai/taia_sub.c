@@ -6,7 +6,7 @@ void taia_sub(struct taia *t, struct taia *u, struct taia *v)
 {
   unsigned long unano = u->nano;
   unsigned long uatto = u->atto;
-  
+
   t->sec.x = u->sec.x - v->sec.x;
   t->nano = unano - v->nano;
   t->atto = uatto - v->atto;

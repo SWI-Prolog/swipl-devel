@@ -33,7 +33,7 @@
 #include <sys/resource.h>
 #endif
 #ifdef HAVE_UNISTD_H
-#include <unistd.h> 
+#include <unistd.h>
 #endif
 #include <string.h>
 #include <signal.h>
@@ -101,7 +101,7 @@ pl_rlimit(term_t what, term_t old, term_t new)
     { int64_t n;
 
       if ( PL_get_int64(new, &n) )
-      { 
+      {
       set:
 	if ( rlim.rlim_cur != (unsigned long) n )
 	{ rlim.rlim_cur = n;

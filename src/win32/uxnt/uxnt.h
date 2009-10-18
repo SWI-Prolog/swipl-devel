@@ -33,6 +33,7 @@
 #endif
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <io.h>
 #include <direct.h>
@@ -43,7 +44,6 @@ typedef unsigned long uintptr_t;
 typedef intptr_t ssize_t;		/* signed version of size_t */
 
 #ifndef _UXNT_KERNEL
-#include <sys/stat.h>
 
 #undef remove
 #undef rename

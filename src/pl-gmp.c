@@ -70,10 +70,13 @@ mp_alloc(size_t bytes)
 { GET_LD
   mp_mem_header *mem;
 
+  if ( LD->gmp.persistent )
+    return malloc(bytes);
+
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
   { gmp_too_big();
-    pl_abort(ABORT_FATAL);
+    abortProlog(ABORT_THROW);
     return NULL;			/* make compiler happy */
   }
 
@@ -98,13 +101,16 @@ mp_alloc(size_t bytes)
 static void *
 mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
-  mp_mem_header *oldmem = ((mp_mem_header*)ptr)-1;
-  mp_mem_header *newmem;
+  mp_mem_header *oldmem, *newmem;
 
+  if ( LD->gmp.persistent )
+    return realloc(ptr, newsize);
+
+  oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
        !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
   { gmp_too_big();
-    pl_abort(ABORT_FATAL);
+    abortProlog(ABORT_THROW);
     return NULL;			/* make compiler happy */
   }
 
@@ -131,7 +137,14 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 static void
 mp_free(void *ptr, size_t size)
 { GET_LD
-  mp_mem_header *mem = ((mp_mem_header*)ptr)-1;
+  mp_mem_header *mem;
+
+  if ( LD->gmp.persistent )
+  { free(ptr);
+    return;
+  }
+
+  mem = ((mp_mem_header*)ptr)-1;
 
   if ( mem == LD->gmp.head )
   { LD->gmp.head = LD->gmp.head->next;
@@ -207,14 +220,14 @@ globalMPZ(mpz_t mpz)
 
   p = allocGlobal(wsz+3);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  
+
 
   *p++     = m;
   p[wsz]   = 0L;			/* pad out */
   p[wsz+1] = m;
   *p++     = (word)mpz->_mp_size;
   memcpy(p, mpz->_mp_d, size);
-  
+
   return r;
 }
 
@@ -321,7 +334,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
     size = -size;
   } else
     neg = FALSE;
-  
+
   limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
   wsize = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
@@ -375,7 +388,7 @@ skipMPZOnCharp(const char *data)
 
 static void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
-{ 
+{
 #if SIZEOF_LONG == 8
   mpz_init_set_si(mpz, (long)i);
 #else
@@ -419,7 +432,7 @@ promoteToMPZNumber(number *n)
       n->value.mpz[0] = mpz[0];
       break;
     }
-    case V_REAL:
+    case V_FLOAT:
       mpz_init_set_d(n->value.mpz, n->value.f);
       n->type = V_MPZ;
       break;
@@ -441,7 +454,7 @@ promoteToMPQNumber(number *n)
     }
     case V_MPQ:
       break;
-    case V_REAL:
+    case V_FLOAT:
     { double v = n->value.f;
 
       n->type = V_MPQ;
@@ -451,6 +464,43 @@ promoteToMPQNumber(number *n)
     }
   }
 }
+
+
+		 /*******************************
+		 *		RW		*
+		 *******************************/
+
+void
+ensureWritableNumber(Number n)
+{ switch(n->type)
+  { case V_MPZ:
+      if ( !n->value.mpz->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = n->value.mpz[0];
+	mpz_init_set(n->value.mpz, tmp);
+	break;
+      }
+    case V_MPQ:
+    { if ( !mpq_numref(n->value.mpq)->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = mpq_numref(n->value.mpq)[0];
+	mpz_init_set(mpq_numref(n->value.mpq), tmp);
+      }
+      if ( !mpq_denref(n->value.mpq)->_mp_alloc )
+      { mpz_t tmp;
+
+	tmp[0] = mpq_denref(n->value.mpq)[0];
+	mpz_init_set(mpq_denref(n->value.mpq), tmp);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+}
+
 
 
 		 /*******************************
@@ -466,7 +516,7 @@ numbers that are created by GMP only.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-clearNumber(Number n)
+clearGMPNumber(Number n)
 { switch(n->type)
   { case V_MPZ:
       if ( n->value.mpz->_mp_alloc )
@@ -565,7 +615,7 @@ put_mpz(mpz_t mpz)
     return consInt(v);
   } else if ( mpz_to_int64(mpz, &v) )
   { GET_LD
-    
+
 #if SIZEOF_LONG < SIZEOF_VOIDP
     return makeNum(v);
 #else
@@ -579,10 +629,8 @@ put_mpz(mpz_t mpz)
 #endif /*O_GMP*/
 
 word
-put_number(Number n)
-{ GET_LD
-
-  switch(n->type)
+put_number__LD(Number n ARG_LD)
+{ switch(n->type)
   { case V_INTEGER:
     { word w = consInt(n->value.i);
 
@@ -606,7 +654,7 @@ put_number(Number n)
 	  fail;
 
 	p = allocGlobal(3);
-	
+
 	p[0] = FUNCTOR_rdiv2;
 	p[1] = num;
 	p[2] = den;
@@ -615,8 +663,8 @@ put_number(Number n)
       }
     }
 #endif
-    case V_REAL:
-      return globalReal(n->value.f);
+    case V_FLOAT:
+      return globalFloat(n->value.f);
   }
 
   assert(0);
@@ -654,7 +702,8 @@ PL_unify_number(term_t t, Number n)
 	int rc;
 
 	get_integer(*p, &n2);
-	rc = ar_compare(n, &n2, EQ);
+	same_type_numbers(n, &n2);
+	rc = ar_compare_eq(n, &n2);
 	clearNumber(&n2);
 
 	return rc;
@@ -666,13 +715,13 @@ PL_unify_number(term_t t, Number n)
 
       if ( !(w=put_number(n)) )
 	fail;
-      
+
       return _PL_unify_atomic(t, w);
     }
 #endif
-    case V_REAL:
-      if ( isReal(*p) )
-	return n->value.f == valReal(*p);
+    case V_FLOAT:
+      if ( isFloat(*p) )
+	return n->value.f == valFloat(*p);
       break;
   }
 
@@ -685,8 +734,8 @@ get_number(word w, Number n ARG_LD)
 { if ( isInteger(w) )
   { get_integer(w, n);
   } else
-  { n->type = V_REAL;
-    n->value.f = valReal(w);
+  { n->type = V_FLOAT;
+    n->value.f = valFloat(w);
   }
 }
 
@@ -701,9 +750,9 @@ PL_get_number(term_t t, Number n)
   { get_integer(*p, n);
     succeed;
   }
-  if ( isReal(*p) )
-  { n->value.f = valReal(*p);
-    n->type = V_REAL;
+  if ( isFloat(*p) )
+  { n->value.f = valFloat(*p);
+    n->type = V_FLOAT;
     succeed;
   }
 
@@ -716,11 +765,11 @@ PL_get_number(term_t t, Number n)
 		 *******************************/
 
 void
-promoteToRealNumber(Number n)
+promoteToFloatNumber(Number n)
 { switch(n->type)
   { case V_INTEGER:
       n->value.f = (double)n->value.i;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
 #ifdef O_GMP
     case V_MPZ:
@@ -728,7 +777,7 @@ promoteToRealNumber(Number n)
 
       clearNumber(n);
       n->value.f = val;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
     }
     case V_MPQ:
@@ -736,11 +785,11 @@ promoteToRealNumber(Number n)
 
       clearNumber(n);
       n->value.f = val;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       break;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
       break;
   }
 }
@@ -759,8 +808,8 @@ promoteNumber(Number n, numtype t)
       promoteToMPQNumber(n);
       break;
 #endif
-    case V_REAL:
-      promoteToRealNumber(n);
+    case V_FLOAT:
+      promoteToFloatNumber(n);
       break;
   }
 }
@@ -773,18 +822,12 @@ same_type_numbers(n1, n2)
     total ordering between the number types.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef max
-#define max(a,b) ((a) >= (b) ? (a) : (b))
-#endif
-
 void
-same_type_numbers(Number n1, Number n2)
-{ if ( n1->type != n2->type )
-  { if ( (int)n1->type > (int)n2->type )
-      promoteNumber(n2, n1->type);
-    else
-      promoteNumber(n1, n2->type);
-  }
+make_same_type_numbers(Number n1, Number n2)
+{ if ( (int)n1->type > (int)n2->type )
+    promoteNumber(n2, n1->type);
+  else
+    promoteNumber(n1, n2->type);
 }
 
 
@@ -817,7 +860,7 @@ cmpNumbers(Number n1, Number n2)
       return rc < 0 ? LESS : rc == 0 ? EQUAL : GREATER;
     }
 #endif
-    case V_REAL:
+    case V_FLOAT:
       return n1->value.f  < n2->value.f ? LESS :
 	     n1->value.f == n2->value.f ? EQUAL : GREATER;
   }
@@ -845,7 +888,7 @@ cpNumber(Number to, Number from)
       mpq_set(to->value.mpq, from->value.mpq);
       break;
 #endif
-    case V_REAL:
+    case V_FLOAT:
       to->value.f = from->value.f;
   }
 }
@@ -861,7 +904,7 @@ int
 PL_get_mpz(term_t t, mpz_t mpz)
 { GET_LD
   Word p = valTermRef(t);
-  
+
   deRef(p);
   if ( isInteger(*p) )
   { number n;
@@ -892,7 +935,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
 { if ( PL_is_rational(t) )
   { GET_LD
     number n;
-    
+
     if ( valueExpression(t, &n PASS_LD) )
     { switch(n.type)
       { case V_INTEGER:
@@ -914,7 +957,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
 	  ;
       }
       clearNumber(&n);
-    }	 
+    }
   }
 
   return FALSE;
@@ -957,6 +1000,7 @@ PL_unify_mpq(term_t t, mpq_t mpq)
 		 *******************************/
 
 #ifdef WIN64
+#if (_MSC_VER < 1400)
 size_t
 strnlen(const char *s, size_t maxlen)
 { size_t len = 0;
@@ -966,7 +1010,7 @@ strnlen(const char *s, size_t maxlen)
 
   return len;
 }
-
+#endif
 
 void
 __GSHandlerCheck()

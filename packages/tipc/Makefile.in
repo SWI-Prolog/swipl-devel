@@ -1,0 +1,155 @@
+################################################################
+# Makefile template for SWI-Prolog TIPC package
+#
+# This template is used by configure to create Makefile.  See
+# the file INSTALL for further installation instructions.
+#
+# License: LGPL
+#
+# Author: Jeff Rose, Jan Wielemaker (wielemak@science.uva.nl)
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../xpce
+DESTDIR=
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I. -I../clib
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+PUBLICPL=       pl
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
+DOC=tipc
+TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex tipcpaxos.tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+RUNTEX=../../man/runtex
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		@PLTARGETS@
+LIBTXT=		@LIBTXT@
+TARGETS=	@TARGETS@
+
+TIPCOBJ=	../clib/error.o tipc.o ../clib/nonblockio.o
+
+all:		$(TARGETS)
+
+tipc.@SO@:	$(TIPCOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(TIPCOBJ) $(NETLIBS)
+
+tipc.o:		tipc.c ../clib/sockcommon.c
+
+ifeq ($(TARGETS),)
+
+install::
+ln-install::
+rpm-install::
+html-install::
+pdf-install::
+uninstall::
+
+else
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
+		done
+		mkdir -p $(DESTDIR)$(PLBASE)/library/tipc
+		for f in $(LIBPL) $(LIBTXT); do \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/tipc; \
+		done
+		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' install
+
+rpm-install:	install
+
+html-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
+
+pdf-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
+
+uninstall::
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library/tipc && rm -f $(LIBPL) $(LIBTXT))
+		$(PL) -f none -g make -t halt
+
+endif
+
+################################################################
+# Testing
+################################################################
+
+check::
+
+################################################################
+# Documentation
+################################################################
+
+pdf:		$(PDF)
+
+$(DVI):		$(TEX)
+		$(RUNTEX) $(DOC)
+
+$(PDF):		$(TEX)
+		$(RUNTEX) --pdf $(DOC)
+
+html:		$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $(DOC).html
+		rm -r html
+
+$(TEX):		$(DOCTOTEX)
+
+tipcoverview.tex:	tipc_overview.txt
+		$(PLTOTEX) --section $<
+tipcpl.tex:	tipc.pl
+		$(PLTOTEX) --subsection --out=tipcpl $<
+tipcbroadcast.tex:	tipc_broadcast.pl
+		$(PLTOTEX) --subsection $<
+tipcpaxos.tex:	tipc_paxos.pl
+		$(PLTOTEX) --subsection $<
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		rm -f $(TEX)
+
+distclean:	clean
+		rm -f $(TARGETS)
+		rm -f config.cache config.h config.h.in configure
+		rm -f config.status Makefile
+		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
+		rm -f tipc.idx tipc.ilg
+		rm -rf html autom4te.cache

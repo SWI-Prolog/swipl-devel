@@ -255,7 +255,7 @@ read_cursor_glyphs(FILE *in)
     pceFree(set);
     return NULL;
   }
-  
+
   entries   = set->header.entries;
   dshorts   = set->header.dsize / sizeof(unsigned short);
   cachesize = entries/2 * sizeof(cursor_bits);
@@ -272,7 +272,7 @@ read_cursor_glyphs(FILE *in)
   { Cprintf("Read failed\n");
     return NULL;
   }
-    
+
   memset(set->cache, 0, cachesize);
   set->cwidth = cursor_width;
   set->cheight = cursor_height;
@@ -362,7 +362,7 @@ copy_image_pattern(unsigned short *dbits, int dw, int dh,
     for(y=h-1; y>=sx; y--)
     { t = cbits + y*spl;
       f = cbits + (y-1)*spl;
-      
+
       for(x=0; x<w; x+=16)
 	*t++ = *f++;
     }
@@ -413,7 +413,7 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
 { CursorBits result;
   int cache_idx = cursor/2;		/* cache index */
   CursorGlyph mglyph = &set->glyphs[cursor+1];
-    
+
   if ( cursor < 0 || cursor > set->header.entries-1 )
   { Cprintf("Cursor %d out of range\n", cursor);
     return NULL;
@@ -426,17 +426,17 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
 
     result->image = pceMalloc(ws_sizeof_bits(set->cwidth, set->cheight));
     result->mask  = pceMalloc(ws_sizeof_bits(set->cwidth, set->cheight));
-    
+
     DEBUG(NAME_cursor, Cprintf("Mask hotspot = %d, %d\n",
 			       SEC(mglyph->hot_x), SEC(mglyph->hot_y)));
     DEBUG(NAME_cursor, Cprintf("Image hotspot = %d, %d\n",
 			       SEC(iglyph->hot_x), SEC(iglyph->hot_y)));
 
-    copy_mask_pattern(&set->data[mglyph->offset/sizeof(unsigned short)], 
+    copy_mask_pattern(&set->data[mglyph->offset/sizeof(unsigned short)],
 		      mglyph->width, mglyph->height,
 		      result->mask,
 		      set->cwidth, set->cheight);
-    copy_image_pattern(&set->data[iglyph->offset/sizeof(unsigned short)], 
+    copy_image_pattern(&set->data[iglyph->offset/sizeof(unsigned short)],
 		       iglyph->width, iglyph->height,
 		       result->image,
 		       set->cwidth, set->cheight,
@@ -503,7 +503,7 @@ X11Glyhps()
   { FileObj f = answerObject(ClassFile,
 			     CtoName("$PCEHOME/lib/X11.crs"),
 			     NAME_binary, EAV);
-    
+
     if ( send(f, NAME_open, NAME_read, EAV) )
     { glyphs = read_cursor_glyphs(f->fd);
       send(f, NAME_close, EAV);
@@ -579,7 +579,7 @@ details.
 status
 ws_create_cursor(CursorObj c, DisplayObj d)
 { HCURSOR msc = 0;			/* Windows cursor */
-  
+
   if ( notNil(c->font_id) )
   { CursorBits bits;
     int hx, hy;				/* hot spot */
@@ -593,7 +593,7 @@ ws_create_cursor(CursorObj c, DisplayObj d)
 
       assign(c, font_id, id);
     }
-    
+
     id = valInt(c->font_id);
     if ( id >= XID_MIN && id <= XID_MAX )
     { if ( (bits = get_cursor_bits(X11Glyhps(), id, &hx, &hy)) )
@@ -638,9 +638,9 @@ ws_destroy_cursor(CursorObj c, DisplayObj d)
 
   while( (r = unregisterXrefObject(c, d)) )
   { HCURSOR msc = (HCURSOR) r->xref;
-    
+
     if ( msc == GetCursor() )
-      SetCursor(LoadCursor(NULL, IDC_ARROW));      
+      SetCursor(LoadCursor(NULL, IDC_ARROW));
 
     DestroyCursor(msc);
   }
@@ -680,7 +680,7 @@ save_big_cursor_background()
   HDC bmhdc = CreateCompatibleDC(hdc);
   HBITMAP obm;
   POINT pt;
-  
+
   GetCursorPos(&pt);
   saved_x = pt.x - hot_x;
   saved_y = pt.y - hot_y;
@@ -729,7 +729,7 @@ restore_big_cursor_background()
   }
 
   succeed;
-}  
+}
 
 
 status
@@ -763,7 +763,7 @@ MASK	IMG	IMAGE
  1       0        0
  1       1        0
 
-	 --> IMAGE = ~(IMG|MASK) 
+	 --> IMAGE = ~(IMG|MASK)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static HBITMAP
@@ -805,7 +805,7 @@ start_big_cursor(CursorObj c)
   big_cursor_height = valInt(c->mask->size->h);
   hot_x             = valInt(c->hot_spot->x);
   hot_y             = valInt(c->hot_spot->y);
-  
+
   image = mask_image(img, mask, big_cursor_width, big_cursor_height);
 
   DEBUG(NAME_cursor, Cprintf("Started BIG cursor of %dx%d\n",
@@ -814,7 +814,7 @@ start_big_cursor(CursorObj c)
 /*hcursorsave = SetCursor(LoadCursor(NULL, IDC_ICON));  empty cursor */
   save_big_cursor_background();
   paint_big_cursor();
-  
+
   succeed;
 }
 

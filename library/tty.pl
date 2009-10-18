@@ -59,7 +59,7 @@ tty_clear :-
 	string_action(cl).
 
 %%	tty_flash
-%	
+%
 %	Give visual signal if possible, otherwise beep.
 
 tty_flash :-
@@ -131,7 +131,7 @@ tty_nl(default) :- !,
 tty_nl(N) :-
 	tty_get_capability(ce, string, Ce),
 	between(1, N, _),
-	    tty_put(Ce, 1),	    
+	    tty_put(Ce, 1),
 	    nl,
 	fail ; true.
 
@@ -145,7 +145,7 @@ tty_nl(N) :-
 %	the top, the options are displayed  and finally the user actions
 %	are parsed and the user's choice   is returned. The screen looks
 %	like this:
-%	
+%
 %	==
 %    		--------------------------------------------
 %		|                                          |

@@ -33,7 +33,7 @@ initialiseElevation(Elevation e, Any name,
 		    Name kind, Any bg)
 { if ( isDefault(name) )
     name = NIL;
-  
+
   assign(e, name,       name);
   assign(e, background, bg);
 
@@ -175,7 +175,7 @@ getModifyElevation(Elevation e, Name att, Any val)
     else if ( att == NAME_shadow ) shadow = val;
     else if ( att == NAME_kind   ) kind   = val;
     else if ( att == NAME_background ) bg = val;
-    
+
     answer(answerObject(ClassElevation, NIL, height, colour,
 			relief, shadow, kind, bg, EAV));
   } else

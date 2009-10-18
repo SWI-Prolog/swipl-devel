@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -109,7 +109,7 @@ word
 pl_notrace1(term_t goal)
 { bool rval;
 
-  intptr_t	     skipSave  = debugstatus.skiplevel;
+  uintptr_t  skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
 
   rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
@@ -120,6 +120,36 @@ pl_notrace1(term_t goal)
   return rval;
 }
 
+#undef LD
+#define LD LOCAL_LD
+
+/** '$sig_atomic'(:Goal) is semidet.
+
+Execute Goal as once/1 while blocking signals.
+
+@see setup_call_catcher_cleanup/4 in boot/init.pl
+@see callCleanupHandler() uses the same mechanism to protect the cleanup
+*/
+
+static
+PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t ex;
+  int rval;
+
+  startCritical;
+  rval = callProlog(NULL, A1, PL_Q_CATCH_EXCEPTION, &ex);
+  if ( !endCritical )
+    fail;				/* aborted */
+
+  if ( !rval && ex )
+    return PL_raise_exception(ex);
+
+  return rval;
+}
+
+#undef LD
+#define LD GLOBAL_LD
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,9 +174,9 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
     fail;
   }
-  
+
   proc = lookupProcedure(fd, module);
-  
+
   { int arity = arityFunctor(fd);
     term_t args = PL_new_term_refs(arity);
     qid_t qid;
@@ -168,12 +198,12 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Abort and toplevel. At the  moment,   prologToplevel()  sets a longjmp()
-context and pl_abort() jumps to this   context and resets the SWI-Prolog
-engine. 
+context and abortProlog() jumps to this   context and resets the SWI-Prolog
+engine.
 
 Using the multi-threaded version, this is   not  acceptable. Each thread
 needs such a context, but worse  is   that  we cannot properly reset the
-reference count and ensure locks are all in a sane state. 
+reference count and ensure locks are all in a sane state.
 
 A cleaner solution is to  map  an   abort  onto  a Prolog exception. The
 exception-handling   code   should    ensure     proper    handling   of
@@ -188,34 +218,39 @@ little choice.
 #define O_ABORT_WITH_THROW 1
 #endif
 
-static word
-pl_throw_abort()
+static int
+pl_throw_abort(abort_type type)
 { pl_notrace();
   Sreset();
 
   if ( LD->critical > 0 )		/* abort in critical region: delay */
-  { LD->aborted = TRUE;
+  { LD->aborted = type;
     succeed;
   } else
   { fid_t fid = PL_open_foreign_frame();
     term_t ex = PL_new_term_ref();
+    int rc;
 
     clearSegStack(&LD->cycle.stack);	/* can do no harm */
 
     PL_put_atom(ex, ATOM_aborted);
-    PL_throw(ex);			/* use longjmp() to ensure */
+    if ( type == ABORT_RAISE )
+      rc = PL_raise_exception(ex);
+    else
+      rc = PL_throw(ex);		/* use longjmp() to ensure */
 
-    PL_close_foreign_frame(fid);	/* should not be reached */
-    fail;				
+    PL_close_foreign_frame(fid);
+
+    return rc;
   }
 }
 
 
 #ifdef O_ABORT_WITH_THROW
 
-word
-pl_abort(abort_type type)
-{ return pl_throw_abort();
+int
+abortProlog(abort_type type)
+{ return pl_throw_abort(type);
 }
 
 #else /*O_ABORT_WITH_THROW*/
@@ -223,19 +258,19 @@ pl_abort(abort_type type)
 static jmp_buf abort_context;		/* jmp buffer for abort() */
 static int can_abort;			/* embeded code can't abort */
 
-word
-pl_abort(abort_type type)
+int
+abortProlog(abort_type type)
 { if ( !can_abort ||
-       (trueFeature(EX_ABORT_FEATURE) && type == ABORT_NORMAL) )
-    return pl_throw_abort();
+       (truePrologFlag(PLFLAG_EX_ABORT) && type == ABORT_NORMAL) )
+    return pl_throw_abort(type);
 
   if ( LD->critical > 0 )		/* abort in critical region: delay */
   { pl_notrace();
-    LD->aborted = TRUE;
+    LD->aborted = type;
     succeed;
   }
 
-  if ( !trueFeature(READLINE_FEATURE) )
+  if ( !truePrologFlag(PLFLAG_READLINE) )
     PopTty(Sinput, &ttytab);
   LD->outofstack = NULL;
   clearSegStack(&LD->cycle.stack);
@@ -249,6 +284,7 @@ pl_abort(abort_type type)
   resetSignals();
   resetForeign();
   resetAtoms();
+  updateAlerted(LD);
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/
@@ -256,6 +292,12 @@ pl_abort(abort_type type)
 }
 
 #endif /*O_ABORT_WITH_THROW*/
+
+static
+PRED_IMPL("abort", 0, abort, 0)
+{ return abortProlog(ABORT_RAISE);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 prologToplevel(): Initial entry point from C to start the Prolog engine.
@@ -286,6 +328,8 @@ resetProlog()
 #ifndef O_ABORT_WITH_THROW
   can_abort = TRUE;
 #endif
+
+  updateAlerted(LD);
 }
 
 
@@ -298,7 +342,7 @@ prologToplevel(volatile atom_t goal)
   if ( setjmp(abort_context) != 0 )
   { if ( LD->current_signal )
       unblockSignal(LD->current_signal);
-    
+
     aborted = TRUE;
   } else
 #endif
@@ -312,10 +356,10 @@ prologToplevel(volatile atom_t goal)
     Procedure p;
     word gn;
 
-   resetProlog();
-   fid = PL_open_foreign_frame();
+    resetProlog();
+    fid = PL_open_foreign_frame();
 
-   if ( aborted )
+    if ( aborted )
     { aborted = FALSE;
       gn = PL_new_atom("$abort");
     } else
@@ -327,10 +371,10 @@ prologToplevel(volatile atom_t goal)
     rval = PL_next_solution(qid);
     if ( !rval && (except = PL_exception(qid)) )
     { atom_t a;
-      
+
       tracemode(FALSE, NULL);
       debugmode(DBG_OFF, NULL);
-      setFeatureMask(LASTCALL_FEATURE);
+      setPrologFlagMask(PLFLAG_LASTCALL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
       { aborted = TRUE;
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )
@@ -452,7 +496,8 @@ last_arg:
 #ifdef O_ATTVAR
       if ( !isAttVar(*p2) )
 #endif
-         printk("Reference to higher address");
+	if ( !gc_status.blocked )
+	  printk("Reference to higher address");
     }
     if ( p2 == p )
       printk("Reference to same address");
@@ -504,15 +549,15 @@ last_arg:
       printk("Indirect data not on global");
     if ( isBignum(*p) )
       return key+(word) valBignum(*p);
-    if ( isReal(*p) )
-      return key+(word) valReal(*p);
+    if ( isFloat(*p) )
+      return key+(word) valFloat(*p);
     if ( isString(*p) )
     { if ( isBString(*p) )
       { size_t sz, len;
 	char *s;
-  
+
 	s = getCharsString(*p, &sz);
-  
+
 	if ( sz != (len=strlen(s)) )
 	{ if ( sz < len )
 	    printk("String has inconsistent length: 0x%x", *p);
@@ -527,12 +572,12 @@ last_arg:
 	pl_wchar_t *s;
 
 	s = getCharsWString(*p, &sz);
-  
+
 	if ( sz != (len=wcslen(s)) )
 	{ if ( sz < len )
 	    printk("String has inconsistent length: 0x%x", *p);
 	  else if ( s[sz] )
-	    printk("String not followed by NUL-char: 0x%x", *p);	
+	    printk("String not followed by NUL-char: 0x%x", *p);
 	}
       }
       return key + *addressIndirect(*p);
@@ -573,7 +618,7 @@ last_arg:
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
-      
+
     if ( tag(f->definition) != TAG_ATOM ||
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
@@ -584,7 +629,7 @@ last_arg:
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
       key += check_data(&f->arguments[n], recursive);
-	
+
     p = &f->arguments[n];
     goto last_arg;
   }
@@ -603,3 +648,12 @@ checkData(Word p)
 }
 
 #endif /* TEST */
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(pro)
+  PRED_DEF("abort", 0, abort, 0)
+  PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+EndPredDefs

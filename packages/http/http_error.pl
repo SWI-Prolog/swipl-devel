@@ -30,7 +30,7 @@
 */
 
 :- module(http_error,
-	  [ 
+	  [
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(prolog_stack)).
@@ -80,7 +80,7 @@ guard_frame(frame(_,clause(ClauseRef, _))) :-
 	nth_clause(M:Head, _, ClauseRef),
 	functor(Head, Name, Arity),
 	guard(M:Name/Arity).
-	
+
 
 		 /*******************************
 		 *	     MESSAGES		*

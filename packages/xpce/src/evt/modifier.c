@@ -67,7 +67,7 @@ getConvertModifier(Class class, Name name)
 	  fail;
       }
     }
-  
+
     m = answerObject(ClassModifier, shift, control, meta, EAV);
     protectObject(m);
     appendHashTable(ModifierTable, name, m);
@@ -116,7 +116,7 @@ static getdecl get_modifier[] =
 #define rc_modifier NULL
 /*
 static classvardecl rc_modifier[] =
-{ 
+{
 };
 */
 

@@ -49,7 +49,7 @@ static char *T_fromAobject_toAobject[] =
 #define var_relation NULL
 /*
 vardecl var_relation[] =
-{ 
+{
 };
 */
 
@@ -69,7 +69,7 @@ static senddecl send_relation[] =
 #define get_relation NULL
 /*
 static getdecl get_relation[] =
-{ 
+{
 };
 */
 
@@ -78,7 +78,7 @@ static getdecl get_relation[] =
 #define rc_relation NULL
 /*
 static classvardecl rc_relation[] =
-{ 
+{
 };
 */
 

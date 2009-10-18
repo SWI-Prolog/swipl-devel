@@ -61,7 +61,7 @@ F_UTF8_GET_CHAR(const char *in, int *chr)
   }
 
   *chr = *in;
-  
+
   return (char *)in+1;
 }
 
@@ -128,7 +128,7 @@ F_UTF8_ENCLENW(const wchar_t *s, size_t len)
 
     n += z-out;
   }
-  
+
   return n;
 }
 
@@ -145,7 +145,7 @@ F_UTF8_ENCLENA(const char *s, size_t len)
 
     n += z-out;
   }
-  
+
   return n;
 }
 

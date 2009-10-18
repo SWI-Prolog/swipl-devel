@@ -45,7 +45,7 @@ getConvertAttribute(Class class, Any name)
 static status
 sendAttribute(Attribute att, Any rec, Any value)
 { assign(att, value, value);
-  
+
   succeed;
 }
 
@@ -113,7 +113,7 @@ static getdecl get_attribute[] =
 #define rc_attribute NULL
 /*
 static classvardecl rc_attribute[] =
-{ 
+{
 };
 */
 

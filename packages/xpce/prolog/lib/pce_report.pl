@@ -66,7 +66,7 @@ report(R, Status:name, Fmt:[char_array], Args:any ...) :->
 	    send(R, slot, delay_next_to, Date),
 	    send_super(R, Msg)
 	).
-	
+
 colour(error, red) :- !.
 colour(_, @default).
 

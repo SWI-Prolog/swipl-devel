@@ -111,7 +111,7 @@ append(F, W:window) :->
 
 title_bar_height(F, Margin, Height) :-
 	Margin = 2,
-	
+
 	new(H, number(0)),
 	send(F?left_buttons, for_all, message(H, maximum, @arg1?height)),
 	send(F?right_buttons, for_all, message(H, maximum, @arg1?height)),
@@ -124,11 +124,11 @@ title_bar_height(F, Margin, Height) :-
 geometry(F, FX:[int], FY:[int], FW:[int], FH:[int]) :->
 	"Update position and layout of the title-bar"::
 	send(F, send_super, geometry, FX, FY, FW, FH),
-	
+
 	(   get(F, closed, @off)
 	->  title_bar_height(F, Margin, H),
 	    send(F, scroll_to, point(0, -H)),
-	    
+
 	    new(X, number(Margin)),
 	    get(H, value, PLH),
 	    Y is -PLH + Margin,
@@ -144,7 +144,7 @@ geometry(F, FX:[int], FY:[int], FW:[int], FH:[int]) :->
 		     message(@arg1, set, X, Y),
 		     message(F, display, @arg1),
 		     message(X, minus, Margin))),
-	    
+
 	    send(F, display, F?title_line),
 	    send(F, display, F?title_box),
 	    send(F?title_line, end_x, F?width),
@@ -305,7 +305,7 @@ test :-
 
 	send(@f, append, @p2),
 	send(@f, open, @p, point(50,50)),
-	
+
 	send(@p2, display, new(B, bitmap('pce.bm'))),
 	send(B, recogniser, new(move_gesture)),
 

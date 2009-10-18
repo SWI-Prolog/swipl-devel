@@ -161,7 +161,7 @@ appendSheet(Sheet sh, Attribute att)
 
   for_cell(cell, sh->attributes)
   { Attribute a = cell->value;
-    
+
     if ( EQ(a->name, att->name) )
     { assign(a, value, att->value);
       succeed;
@@ -268,7 +268,7 @@ static getdecl get_sheet[] =
 #define rc_sheet NULL
 /*
 static classvardecl rc_sheet[] =
-{ 
+{
 };
 */
 

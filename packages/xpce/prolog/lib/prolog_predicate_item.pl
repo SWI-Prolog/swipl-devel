@@ -78,8 +78,8 @@ completions(FI, From:'tuple|name', Matches:chain) :<-
 		new(Matches, chain)
 	    )
 	).
-	
-		
+
+
 split_completion(FI, Value:char_array, RVal:'tuple|char_array') :<-
 	"Split into module part if present"::
 	(   get(Value, index, :, Split)
@@ -103,7 +103,7 @@ indicate_directory(_FI, Text:string) :->
 	->  send(Text, ensure_suffix, :)
 	;   send(Text, ensure_suffix, /)
 	).
-	
+
 
 complete_module_or_predicate(Prefix, Matches) :-
 	new(Matches, chain),
@@ -117,7 +117,7 @@ complete_module(Prefix, Matches) :-
 	send(Matches, append, string('%s:', Module)),
 	fail.
 complete_module(_, _).
-	
+
 complete_predicate(Prefix, Module, Matches) :-
 	get(Prefix, rindex, /, Idx), !,
 	get(Prefix, sub, 0, Idx, Name),

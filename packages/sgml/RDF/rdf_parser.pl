@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2002-2006, University of Amsterdam
+    Copyright (C): 2002-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,20 +30,65 @@
 */
 
 :- module(rdf_parser,
-	  [ xml_to_plrdf/3,		% +XMLTerm, -RDFTerm, +Options
-	    element_to_plrdf/3,		% +ContentList, -RDFTerm, +Options
+	  [ xml_to_plrdf/3,		% +XMLTerm, -RDFTerm, +State
+	    element_to_plrdf/3,		% +ContentList, -RDFTerm, +State
+	    make_rdf_state/3,		% +Options, -State, -RestOptions
+	    rdf_modify_state/3,		% +XMLAttrs, +State0, -State
 	    rdf_name_space/1
 	  ]).
 :- use_module(rewrite).
 :- use_module(library(sgml)).		% xml_name/1
 :- use_module(library(lists)).
-:- use_module(library(url)).
-:- use_module(library(utf8)).
+:- use_module(library(uri)).
+:- use_module(library(record)).
 
 :- op(500, fx, \?).			% Optional (attrs)
 
 term_expansion(F, T) :- rew_term_expansion(F, T).
 goal_expansion(F, T) :- rew_goal_expansion(F, T).
+
+goal_expansion(attrs(Attrs, List), Goal) :-
+	translate_attrs(List, Attrs, Goal).
+
+translate_attrs(Var, Attrs, rewrite(Var, Attrs)) :-
+	var(Var), !.
+translate_attrs([], _, true) :- !.
+translate_attrs([H], Attrs, Goal) :- !,
+	(   var(H)
+	->  Goal = rewrite(H, Attrs)
+	;   H = \?Optional
+	->  Goal = (   member(A, Attrs),
+	               OptRewrite
+		   ->  true
+		   ;   true
+		   ),
+	    expand_goal(rewrite(\Optional, A), OptRewrite)
+	;   Goal = (   member(A, Attrs),
+	               Rewrite
+		   ->  true
+		   ),
+	    expand_goal(rewrite(H, A), Rewrite)
+	).
+translate_attrs([H|T], Attrs0, (G0, G1)) :- !,
+	(   var(H)
+	->  G0 = rewrite(H, Attrs0),
+	    Attrs1 = Attrs0
+	;   H = \?Optional
+	->  G0 = (   select(A, Attrs0, Attrs1),
+	             OptRewrite
+		 ->  true
+		 ;   Attrs1 = Attrs0
+		 ),
+	    expand_goal(rewrite(\Optional, A), OptRewrite)
+	;   G0 = (   select(A, Attrs0, Attrs1),
+	             Rewrite
+		 ),
+	    expand_goal(rewrite(H, A), Rewrite)
+	),
+	translate_attrs(T, Attrs1, G1).
+translate_attrs(Rule, Attrs, Goal) :-
+	expand_goal(rewrite(Rule, Attrs), Goal).
+
 
 :- multifile rdf_name_space/1.
 :- dynamic   rdf_name_space/1.
@@ -58,27 +103,32 @@ rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
 
-%%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +Options)
+:- record
+	rdf_state(base_uri='',
+		  lang='',
+		  ignore_lang=false,
+		  convert_typed_literal).
+
+
+%%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +State)
 %
-%	Translate an XML (using namespaces) term into an Prolog term
-%	representing the RDF data.  This term can then be fed into
-%	rdf_triples/[2,3] to create a list of RDF triples.
-%
-%	if `BaseURI' == [], local URI's are not globalised.
+%	Translate an XML (using namespaces)  term   into  an Prolog term
+%	representing the RDF data.  This  term   can  then  be  fed into
+%	rdf_triples/[2,3] to create a list of   RDF triples. State is an
+%	instance of an rdf_state record.
 
+xml_to_plrdf(Element, RDF, State) :-
+	(   is_list(Element)
+	->  rewrite(\xml_content_objects(RDF, State), Element)
+	;   rewrite(\xml_objects(RDF, State), Element)
+	).
 
-xml_to_plrdf(Element, RDF, Options) :-
-	is_list(Element), !,
-	rewrite(\xml_content_objects(RDF, Options), Element).
-xml_to_plrdf(Element, RDF, Options) :-
-	rewrite(\xml_objects(RDF, Options), Element).
-
-%%	element_to_plrdf(+DOM, -RDFTerm, +Options)
+%%	element_to_plrdf(+DOM, -RDFTerm, +State)
 %
 %	Rewrite a single XML element.
 
-element_to_plrdf(Element, RDF, Options) :-
-	rewrite(\nodeElementList(RDF, Options), [Element]).
+element_to_plrdf(Element, RDF, State) :-
+	rewrite(\nodeElementList(RDF, State), [Element]).
 
 xml_objects(Objects, Options0) ::=
 	E0,
@@ -117,40 +167,36 @@ nodeElementOrError(H, Options) ::=
 nodeElementOrError(unparsed(Data), _Options) ::=
 	Data.
 
-nodeElement(container(Type, Id, Elements), Options) ::=
-	\container(Type, Id, Elements, Options), !. 	% compatibility
-nodeElement(description(Type, About, BagID, Properties), Options) ::=
-	\description(Type, About, BagID, Properties, Options).
+nodeElement(description(Type, About, Properties), Options) ::=
+	\description(Type, About, Properties, Options).
 
 
 		 /*******************************
 		 *	    DESCRIPTION		*
 		 *******************************/
 
-description(Type, About, BagID, Properties, Options0) ::=
+description(Type, About, Properties, Options0) ::=
 	E0,
 	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\description(Type, About, BagID, Properties, Options), E)
+	  rewrite(\description(Type, About, Properties, Options), E)
 	}.
-description(description, About, BagID, Properties, Options) ::=
+description(description, About, Properties, Options) ::=
 	element(\rdf('Description'),
-		\attrs([ \?idAboutAttr(About, Options),
-			 \?bagIdAttr(BagID, Options)
+		\attrs([ \?idAboutAttr(About, Options)
 		       | \propAttrs(PropAttrs, Options)
 		       ]),
 		\propertyElts(PropElts, Options)),
 	{ !, append(PropAttrs, PropElts, Properties)
 	}.
-description(Type, About, BagID, Properties, Options) ::=
-	element(Type,
-		\attrs([ \?idAboutAttr(About, Options),
-			 \?bagIdAttr(BagID, Options)
+description(Type, About, Properties, Options) ::=
+	element(\name_uri(Type, Options),
+		\attrs([ \?idAboutAttr(About, Options)
 		       | \propAttrs(PropAttrs, Options)
 		       ]),
 		\propertyElts(PropElts, Options)),
 	{ append(PropAttrs, PropElts, Properties)
 	}.
-		
+
 propAttrs([], _) ::=
 	[], !.
 propAttrs([H|T], Options) ::=
@@ -159,7 +205,7 @@ propAttrs([H|T], Options) ::=
 	].
 
 propAttr(rdf:type = URI, Options) ::=
-	\rdf_or_unqualified(type) = \uri(URI, Options), !.
+	\rdf_or_unqualified(type) = \value_uri(URI, Options), !.
 propAttr(Name = Literal, Options) ::=
 	Name = Value,
 	{ mkliteral(Value, Literal, Options)
@@ -195,6 +241,8 @@ propertyElt(Id, Name, Value, Options0) ::=
 	{ modify_state(E0, Options0, E, Options), !,
 	  rewrite(\propertyElt(Id, Name, Value, Options), E)
 	}.
+propertyElt(Id, Name, Value, Options) ::=
+	\literalPropertyElt(Id, Name, Value, Options), !.
 					% 5.14 emptyPropertyElt
 propertyElt(Id, Name, Value, Options) ::=
 	element(Name, A, \all_ws),
@@ -202,7 +250,7 @@ propertyElt(Id, Name, Value, Options) ::=
 	  rewrite(\emptyPropertyElt(Id, Value, Options), A)
 	}.
 
-propertyElt(_, Name, description(description, Id, _, Properties), Options) ::=
+propertyElt(_, Name, description(description, Id, Properties), Options) ::=
 	element(Name,
 		\attrs([ \parseResource,
 			 \?idAboutAttr(Id, Options)
@@ -225,14 +273,6 @@ propertyElt(Id, Name, collection(Elements), Options) ::=
 		\nodeElementList(Elements, Options)).
 propertyElt(Id, Name, Literal, Options) ::=
 	element(Name,
-		\attrs([ \typeAttr(Type, Options),
-			 \?idAttr(Id, Options)
-		       ]),
-		Content),
-	{ typed_literal(Type, Content, Literal, Options)
-	}.
-propertyElt(Id, Name, Literal, Options) ::=
-	element(Name,
 		\attrs([ \?idAttr(Id, Options)
 		       ]),
 		[ Value ]),
@@ -250,6 +290,15 @@ propertyElt(Id, Name, unparsed(Value), Options) ::=
 		       ]),
 		Value).
 
+literalPropertyElt(Id, Name, Literal, Options) ::=
+	element(Name,
+		\attrs([ \typeAttr(Type, Options),
+			 \?idAttr(Id, Options)
+		       ]),
+		Content),
+	{ typed_literal(Type, Content, Literal, Options)
+	}.
+
 emptyPropertyElt(Id, Literal, Options) ::=
 	\attrs([ \?idAttr(Id, Options),
 		 \?parseLiteral
@@ -259,11 +308,10 @@ emptyPropertyElt(Id, Literal, Options) ::=
 	  mkliteral('', Literal, Options)
 	}.
 emptyPropertyElt(Id,
-		 description(description, About, BagID, Properties),
+		 description(description, About, Properties),
 		 Options) ::=
 	\attrs([ \?idAttr(Id, Options),
 		 \?aboutResourceEmptyElt(About, Options),
-		 \?bagIdAttr(BagID, Options),
 		 \?parseResource
 	       | \propAttrs(Properties, Options)
 	       ]), !.
@@ -274,10 +322,10 @@ aboutResourceEmptyElt(node(URI), _Options) ::=
 	\nodeIDAttr(URI).
 
 %%	literal_value(+In, -Value, +Options)
-%	
+%
 %	Create the literal value for rdf:parseType="Literal" attributes.
 %	The content is the Prolog XML DOM tree for the literal.
-%	
+%
 %	@tbd	Note that the specs demand a canonical textual representation
 %		of the XML data as a Unicode string.  For now the user can
 %		achieve this using the convert_typed_literal hook.
@@ -285,26 +333,27 @@ aboutResourceEmptyElt(node(URI), _Options) ::=
 literal_value(Value, literal(type(rdf:'XMLLiteral', Value)), _).
 
 %%	mkliteral(+Atom, -Object, +Options)
-%	
+%
 %	Translate attribute value Atom into an RDF object using the
 %	lang(Lang) option from Options.
 
 mkliteral(Text, literal(Val), Options) :-
 	atom(Text),
-	(   memberchk(lang(Lang), Options),
+	(   rdf_state_lang(Options, Lang),
 	    Lang \== ''
 	->  Val = lang(Lang, Text)
 	;   Val = Text
 	).
 
 %%	typed_literal(+Type, +Content, -Literal, +Options)
-%	
+%
 %	Handle a literal attribute with rdf:datatype=Type qualifier. NB:
 %	possibly  it  is  faster  to  use  a  global  variable  for  the
 %	conversion hook.
 
 typed_literal(Type, Content, literal(Object), Options) :-
-	memberchk(convert_typed_literal(Convert), Options), !,
+	rdf_state_convert_typed_literal(Options, Convert),
+	nonvar(Convert), !,
 	(   catch(call(Convert, Type, Content, Object), E, true)
 	->  (   var(E)
 	    ->	true
@@ -312,9 +361,10 @@ typed_literal(Type, Content, literal(Object), Options) :-
 	    )
 	;   Object = error(cannot_convert(Type, Content), _)
 	).
+typed_literal(Type, [], literal(type(Type, '')), _Options) :- !.
 typed_literal(Type, [Text], literal(type(Type, Text)), _Options) :- !.
 typed_literal(Type, Content, literal(type(Type, Content)), _Options).
-	
+
 
 idAboutAttr(id(Id), Options) ::=
 	\idAttr(Id, Options), !.
@@ -322,8 +372,6 @@ idAboutAttr(about(About), Options) ::=
 	\aboutAttr(About, Options), !.
 idAboutAttr(node(About), _Options) ::=
 	\nodeIDAttr(About), !.
-idAboutAttr(AboutEach, Options) ::=
-	\aboutEachAttr(AboutEach, Options).
 
 %%	an_rdf_object(-Object, +OptionsURI)
 %
@@ -371,37 +419,32 @@ all_blank([H|T]) :-
 idAttr(Id, Options) ::=
 	\rdf_or_unqualified('ID') = \uniqueid(Id, Options).
 
-bagIdAttr(Id, Options) ::=
-	\rdf_or_unqualified(bagID) = \globalid(Id, Options).
-
 aboutAttr(About, Options) ::=
-	\rdf_or_unqualified(about) = \uri(About, Options).
+	\rdf_or_unqualified(about) = \value_uri(About, Options).
 
 nodeIDAttr(About) ::=
 	\rdf_or_unqualified(nodeID) = About.
 
-%	Not allowed in current RDF!
-
-aboutEachAttr(each(AboutEach), Options) ::=
-	\rdf_or_unqualified(aboutEach) = \uri(AboutEach, Options), !.
-aboutEachAttr(prefix(Prefix), Options) ::=
-	\rdf_or_unqualified(aboutEachPrefix) = \uri(Prefix, Options), !.
-
 resourceAttr(URI, Options) ::=
-	\rdf_or_unqualified(resource) = \uri(URI, Options).
+	\rdf_or_unqualified(resource) = \value_uri(URI, Options).
 
 typeAttr(Type, Options) ::=
-	\rdf_or_unqualified(datatype) = \uri(Type, Options).
+	\rdf_or_unqualified(datatype) = \value_uri(Type, Options).
 
-uri(URI, Options) ::=
-	A,
-	{   memberchk(base_uri(Base), Options),
-	    Base \== []
-	->  canonical_uri(A, Base, URI)
-	;   sub_atom(A, 0, _, _, #)
-	->  sub_atom(A, 1, _, 0, URI)
-	;   url_iri(A, URI)
+name_uri(URI, Options) ::=
+	NS:Local,
+	{   !, atom_concat(NS, Local, A),
+	    rewrite(\value_uri(URI, Options), A)
 	}.
+name_uri(URI, Options) ::=
+	\value_uri(URI, Options).
+
+value_uri(URI, Options) ::=
+	A,
+	{   rdf_state_base_uri(Options, Base),
+	    uri_normalized_iri(A, Base, URI)
+	}.
+
 
 globalid(Id, Options) ::=
 	A,
@@ -410,139 +453,20 @@ globalid(Id, Options) ::=
 
 uniqueid(Id, Options) ::=
 	A,
-	{   unique_xml_name(A),
-	    make_globalid(A, Options, Id)
+	{   unique_xml_name(A, HashID),
+	    make_globalid(HashID, Options, Id)
 	}.
 
-unique_xml_name(Name) :-
+unique_xml_name(Name, HashID) :-
+	atom_concat(#, Name, HashID),
 	(   xml_name(Name)
 	->  true
 	;   print_message(warning, rdf(not_a_name(Name)))
 	).
 
 make_globalid(In, Options, Id) :-
-	(   memberchk(base_uri(Base), Options),
-	    Base \== []
-	->  (   is_absolute_url(In)
-	    ->	url_iri(In, Id)
-	    ;	concat_atom([Base, In], #, Id0),
-		url_iri(Id0, Id)
-	    )
-	;   sub_atom(In, 0, _, _, #)
-	->  sub_atom(In, 1, _, 0, Id)
-	;   url_iri(In, Id)
-	).
-
-
-%%	canonical_uri(+In, +Base, -Absolute)
-%	
-%	Make the URI absolute and decode special sequences. For the last
-%	clause, which is the correct order?
-
-canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
-canonical_uri(URI0, [], URI) :- !,	% do not use one
-	url_iri(URI0, URI).
-canonical_uri(URI, Base, Global) :-	% use our generic library
-	global_url(URI, Base, Global0),
-	url_iri(Global0, Global).
-
-
-		 /*******************************
-		 *	     CONTAINERS		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that containers are no longer part   of  the definition. We'll keep
-the code and call it conditionally if we must.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-container(_, _, _, _) ::=
-	_,
-	{ \+ current_prolog_flag(rdf_container, true),
-	  !, fail
-	}.
-container(Type, Id, Elements, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\container(Type, Id, Elements, Options), E)
-	}.
-container(Type, Id, Elements, Options) ::=
-	element(\containertype(Type),
-		\attrs([ \?idAttr(Id, Options)
-		       | \memberAttrs(Elements)
-		       ]),
-		[]), !.
-container(Type, Id, Elements, Options) ::=
-	element(\containertype(Type),
-		\attrs([ \?idAttr(Id, Options)
-		       ]),
-		\memberElts(Elements, Options)).
-
-containertype(Type) ::=
-	\rdf(Type),
-	{ containertype(Type)
-	}.
-
-containertype('Bag').
-containertype('Seq').
-containertype('Alt').
-
-memberElts([], _) ::=
-	[].
-memberElts([H|T], Options) ::=
-	[ \memberElt(H, Options)
-	| \memberElts(T, Options)
-	].
-
-memberElt(LI, Options) ::=
-	\referencedItem(LI, Options).
-memberElt(LI, Options) ::=
-	\inlineItem(LI, Options).
-
-referencedItem(LI, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\referencedItem(LI, Options), E)
-	}.
-referencedItem(LI, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \resourceAttr(LI, Options) ],
-		[]).
-
-inlineItem(Item, Options0) ::=
-	E0,
-	{ modify_state(E0, Options0, E, Options), !,
-	  rewrite(\inlineItem(Item, Options), E)
-	}.
-inlineItem(Literal, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \parseLiteral ],
-		Value),
-	literal_value(Value, Literal, Options).
-inlineItem(description(description, _, _, Properties), Options) ::=
-	element(\rdf_or_unqualified(li),
-		[ \parseResource ],
-		\propertyElts(Properties, Options)).
-inlineItem(LI, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[],
-		[\nodeElement(LI, Options)]), !.	% inlined object
-inlineItem(Literal, Options) ::=
-	element(\rdf_or_unqualified(li),
-		[],
-		[Text]),
-	{ mkliteral(Text, Literal, Options)
-	}.
-
-memberAttrs([]) ::=
-	[].
-memberAttrs([H|T]) ::=
-	[ \memberAttr(H)
-	| \memberAttrs(T)
-	].
-
-memberAttr(li(Id, Value)) ::=		% Id should be _<n>
-	\rdf(Id) = Value.
+	rdf_state_base_uri(Options, Base),
+	uri_normalized_iri(In, Base, Id).
 
 parseLiteral    ::= \rdf_or_unqualified(parseType) = 'Literal'.
 parseResource   ::= \rdf_or_unqualified(parseType) = 'Resource'.
@@ -570,6 +494,10 @@ rdf_or_unqualified(Tag) ::=
 		 *	       BASICS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code is translated by the  goal_expansion/2   rule  at the start of
+this file. We leave the original code for reference.
+
 attrs(Bag) ::=
 	L0,
 	{ do_attrs(Bag, L0)
@@ -589,9 +517,10 @@ do_attrs([H|T], L0) :-
 	do_attrs(T, L).
 do_attrs(C, L) :-
 	rewrite(C, L).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	\noMoreAttrs
-%	
+%
 %	Check attribute-list is empty.  Reserved xml: attributes are
 %	excluded from this test.
 
@@ -602,77 +531,56 @@ noMoreAttrs ::=
 	| \noMoreAttrs
 	].
 
-%%	modify_state(+Element0, +Options0, -Element, -Options)
-%	
+%%	modify_state(+Element0, +Options0, -Element, -Options) is semidet.
+%
 %	If Element0 contains xml:base = Base, strip it from the
 %	attributes list and update base_uri(_) in the Options
-%	
+%
 %	It Element0 contains xml:lang = Lang, strip it from the
 %	attributes list and update lang(_) in the Options
-%	
+%
 %	Remove all xmlns=_, xmlns:_=_ and xml:_=_.  Only succeed
 %	if something changed.
 
-modify_state(E0, O0, E, O) :-
-	modify_states([base, lang, xmlns], M, E0, O0, E, O),
-	M \== [].
+modify_state(element(Name, Attrs0, Content), Options0,
+	     element(Name, Attrs,  Content), Options) :-
+	modify_a_state(Attrs0, Options0, Attrs, Options),
+	Attrs0 \== Attrs.
 
-modify_states([], [], E, O, E, O).
-modify_states([How|TH0], [How|TH], E0, O0, E, O) :-
-	modify_state(How, E0, O0, E1, O1), !,
-	modify_states(TH0, TH, E1, O1, E, O).
-modify_states([_|TH0], TH, E0, O0, E, O) :-
-	modify_states(TH0, TH, E0, O0, E, O).
+rdf_modify_state(Attributes, State0, State) :-
+	modify_a_state(Attributes, State0, _, State).
 
 
-modify_state(base,
-	     element(Name, Attrs0, Content), Options0,
-	     element(Name, Attrs, Content),  Options) :-
-	select(xml:base=Base1, Attrs0, Attrs), !,
-	(   select(base_uri(Base0), Options0, Options1)
-	->  true
-	;   Base0 = [],
-	    Options1 = Options0
-	),
+modify_a_state([], Options, [], Options).
+modify_a_state([Name=Value|T0], Options0, T, Options) :-
+	modify_a(Name, Value, Options0, Options1), !,
+	modify_a_state(T0, Options1, T, Options).
+modify_a_state([H|T0], Options0, [H|T], Options) :-
+	modify_a_state(T0, Options0, T, Options).
+
+
+modify_a(xml:base, Base1, Options0, Options) :- !,
+	rdf_state_base_uri(Options0, Base0),
 	remove_fragment(Base1, Base2),
-	canonical_uri(Base2, Base0, Base),
-	Options = [base_uri(Base)|Options1].
-modify_state(lang, element(Name, Attrs0, Content), Options0,
-	     element(Name, Attrs, Content),  Options) :-
-	select(xml:lang=Lang, Attrs0, Attrs),
-	\+ memberchk(ignore_lang(true), Options0), !,
-	delete(Options0, lang(_), Options1),
-	(   Lang == ''
-	->  Options = Options1
-	;   Options = [lang(Lang)|Options1]
-	).
-modify_state(xmlns,
-	     element(Name, Attrs0, Content), Options,
-	     element(Name, Attrs, Content), Options) :-
-	clean_xmlns_attr(Attrs0, Attrs),
-	Attrs \== Attrs0.
-
-clean_xmlns_attr([], []).
-clean_xmlns_attr([H=_|T0], T) :-
-	xml_attr(H), !,
-	clean_xmlns_attr(T0, T).
-clean_xmlns_attr([H|T0], [H|T]) :-
-	clean_xmlns_attr(T0, T).
-
-xml_attr(xmlns).
-xml_attr(xmlns:_).
-xml_attr(xml:_).
+	uri_normalized_iri(Base2, Base0, Base),
+	set_base_uri_of_rdf_state(Base, Options0, Options).
+modify_a(xml:lang, Lang, Options0, Options) :- !,
+	rdf_state_ignore_lang(Options0, false), !,
+	set_lang_of_rdf_state(Lang, Options0, Options).
+modify_a(xmlns, _, Options, Options).
+modify_a(xmlns:_, _, Options, Options).
+modify_a(xml:_, _, Options, Options).
 
 
 %%	remove_fragment(+URI, -WithoutFragment)
-%	
+%
 %	When handling xml:base, we must delete the possible fragment.
 
 remove_fragment(URI, Plain) :-
 	sub_atom(URI, B, _, _, #), !,
 	sub_atom(URI, 0, B, _, Plain).
 remove_fragment(URI, URI).
-	
+
 
 		 /*******************************
 		 *     HELP PCE-EMACS A BIT	*

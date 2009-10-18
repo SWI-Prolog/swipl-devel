@@ -35,6 +35,7 @@
 	  ]).
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 /** <module> Describe Prolog Terms
 
@@ -136,9 +137,9 @@ explain(Term, Explanation) :-
 	      [Term, [quoted(true), numbervars(true)]]).
 explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
-	
+
 %%	known_predicate(:Head)
-%	
+%
 %	Succeeds if we know anything about this predicate.  Undefined
 %	predicates are considered `known' for this purpose, so we can
 %	provide referenced messages on them.
@@ -195,8 +196,8 @@ explain_functor(Head, Explanation) :-
 		  '~w:~w/~d is an undefined predicate', [M,N,A])
 	;   referenced(M:Head, Explanation)
 	).
-	
-	
+
+
 		/********************************
 		*           PREDICATE           *
 		*********************************/
@@ -212,7 +213,7 @@ tproperty(line_count(Number),	':~d', [Number]).
 
 combine_utterances(Pairs, Explanation) :-
 	maplist(first, Pairs, Fmts),
-	concat_atom(Fmts, Format),
+	atomic_list_concat(Fmts, Format),
 	maplist(second, Pairs, ArgList),
 	flatten(ArgList, Args),
 	utter(Explanation, Format, Args).
@@ -225,7 +226,7 @@ second(_A-B, B).
 explain_predicate(Pred, Explanation) :-
 	Pred = Module:Head,
 	functor(Head, Name, Arity),
-	
+
 	(   predicate_property(Pred, undefined)
 	->  utter(Explanation,
 		  '~w:~w/~d is an undefined predicate', [Module,Name,Arity])
@@ -248,7 +249,7 @@ explain_predicate(Pred, Explanation) :-
 	utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
 explain_predicate(Pred, Explanation) :-
 	referenced(Pred, Explanation).
-	
+
 		/********************************
 		*          REFERENCES           *
 		*********************************/
@@ -301,7 +302,7 @@ utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-
 	utter(Explanation,
 	      '~t~8|~w from ~d-th clause of ~w:~w/~d',
 	      [Text, N, Module, Name, Arity]).
-	
+
 xpce_method_id(Ref, Id) :-
 	clause(Head, _Body, Ref),
 	strip_module(Head, _, H),

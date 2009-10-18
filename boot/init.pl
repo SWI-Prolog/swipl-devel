@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -42,9 +42,6 @@ If you want  to  debug  this  module,  put  a  '$:-'(trace).   directive
 somewhere.   The  tracer will work properly under boot compilation as it
 will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
-
-Please note that of version  3.3,  $:-   is  no  longer  an operator and
-therefore you have to use braces.
 */
 
 '$:-'(format('Loading boot file ...~n', [])).
@@ -59,13 +56,27 @@ therefore you have to use braces.
 		*          DIRECTIVES           *
 		*********************************/
 
-'$set_pattr'([], _) :- !.
-'$set_pattr'([H|T], Attr) :- !,		% ISO
-	'$set_pattr'(H, Attr),
-	'$set_pattr'(T, Attr).
-'$set_pattr'((A,B), Attr) :- !,		% ISO and traditional
-	'$set_pattr'(A, Attr),
-	'$set_pattr'(B, Attr).
+:- meta_predicate
+	dynamic(:),
+	multifile(:),
+	module_transparent(:),
+	discontiguous(:),
+	volatile(:),
+	thread_local(:),
+	noprofile(:),
+	'$iso'(:),
+	'$hide'(:).
+
+'$set_pattr'(_:X, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+'$set_pattr'(_:[], _) :- !.
+'$set_pattr'(M:[H|T], Attr) :- !,		% ISO
+	'$set_pattr'(M:H, Attr),
+	'$set_pattr'(M:T, Attr).
+'$set_pattr'(M:(A,B), Attr) :- !,		% ISO and traditional
+	'$set_pattr'(M:A, Attr),
+	'$set_pattr'(M:B, Attr).
 '$set_pattr'(A, Attr) :-
 	'$set_predicate_attribute'(A, Attr, 1).
 
@@ -78,28 +89,12 @@ thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
-:- module_transparent
-	'$set_pattr'/2,
-	(dynamic)/1,
-	(multifile)/1,
-	(module_transparent)/1,
-	(discontiguous)/1,
-	(volatile)/1,
-	(thread_local)/1,
-	(noprofile)/1,
-	'$hide'/2,
-	'$iso'/1.
-
-
-		/********************************
-		*        TRACE BEHAVIOUR        *
-		*********************************/
-
-%	'$hide'(+Name, +Arity)
+%%	'$hide'(:PI)
+%
 %	Predicates protected this way are never visible in the tracer.
 
-'$hide'(Name, Arity) :-
-	'$set_predicate_attribute'(Name/Arity, trace, 0).
+'$hide'(Pred) :-
+	'$set_predicate_attribute'(Pred, trace, 0).
 
 
 		/********************************
@@ -112,39 +107,43 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      ignore/1,
 	      call_cleanup/2,
 	      call_cleanup/3,
-	      setup_and_call_cleanup/3,
-	      setup_and_call_cleanup/4,
+	      setup_call_cleanup/3,
+	      setup_call_catcher_cleanup/4,
 	      (^)/2)).
 
+:- meta_predicate
+	';'(0,0),
+	'|'(0,0),
+	','(0,0),
+	call(0),
+	call(1,?),
+	call(2,?,?),
+	call(3,?,?,?),
+	call(4,?,?,?,?),
+	call(5,?,?,?,?,?),
+	call(6,?,?,?,?,?,?),
+	call(7,?,?,?,?,?,?,?),
+	^(+,0),
+	not(0),
+	\+(0),
+	'->'(0,0),
+	'*->'(0,0),
+	once(0),
+	ignore(0),
+	block(+,0,-),
+	catch(0,?,0),
+	setup_call_cleanup(0,0,0),
+	setup_call_catcher_cleanup(0,0,?,0),
+	call_cleanup(0,0),
+	call_cleanup(0,?,0).
+
+/* Currently, meta_predicate is only supported upto arity 8
+*/
+
 :- module_transparent
-	';'/2,
-	'|'/2,
-	','/2,
-	call/1,
-	call/2,
-	call/3,
-	call/4,
-	call/5,
-	call/6,
-	call/7,
-	call/8,
 	call/9,
 	call/10,
-	call/11,
-	(^)/2,
-	(not)/1,
-	(\+)/1,
-	(->)/2,
-	(*->)/2,
-	once/1,
-	ignore/1,
-	block/3,
-	catch/3,
-	setup_and_call_cleanup/3,
-	setup_and_call_cleanup/4,
-	call_cleanup/2,
-	call_cleanup/3,
-	apply/2.
+	call/11.
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
 
@@ -211,9 +210,6 @@ ignore(Goal) :-
 	Goal, !.
 ignore(_Goal).
 
-apply(Pred, Arguments) :-
-	'$apply'(Pred, Arguments).		% handled by the compiler
-
 _Var^Goal :-					% setof/3, bagof/3
 	Goal.
 
@@ -223,8 +219,7 @@ false :-					% SICStus compatibility
 %	block/3, !/1, exit/2, fail/1
 %	`longjmp' like control-structures.  See manual.  The predicate
 %	system:block/3 is used by the VMI's I_CUT_BLOCK and B_EXIT.
-%	'$exit' and '$cut' are interpreted by the compiler/decompiler,
-%	just like '$apply'/2.
+%	'$exit' and '$cut' are interpreted by the compiler/decompiler.
 
 block(_Label, Goal, _RVal) :-
 	Goal.
@@ -246,26 +241,104 @@ fail(Label) :-
 catch(_Goal, _Catcher, _Recover) :-
 	'$catch'.
 
-%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
-%%	setup_and_call_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
+%%	setup_call_cleanup(:Setup, :Goal, :Cleanup).
+%%	setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
 %%	call_cleanup(:Goal, :Cleanup)
 %%	call_cleanup(:Goal, +Catcher, :Cleanup)
 %
-%	Call Cleanup as Goal finished (deterministic success, failure,
+%	Call Cleanup once after Goal is finished (deterministic success, failure,
 %	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
 
-setup_and_call_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
-	Setup,
+setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
+	'$sig_atomic'(Setup),
 	'$call_cleanup'.
 
-setup_and_call_cleanup(Setup, Goal, Cleanup) :-
-	setup_and_call_cleanup(Setup, Goal, _Catcher, Cleanup).
+setup_call_cleanup(Setup, Goal, Cleanup) :-
+	setup_call_catcher_cleanup(Setup, Goal, _Catcher, Cleanup).
 
 call_cleanup(Goal, Cleanup) :-
-	setup_and_call_cleanup(true, Goal, _Catcher, Cleanup).
+	setup_call_catcher_cleanup(true, Goal, _Catcher, Cleanup).
 
 call_cleanup(Goal, Catcher, Cleanup) :-
-	setup_and_call_cleanup(true, Goal, Catcher, Cleanup).
+	setup_call_catcher_cleanup(true, Goal, Catcher, Cleanup).
+
+
+		 /*******************************
+		 *	 INITIALIZATION		*
+		 *******************************/
+
+:- meta_predicate
+	initialization(0, +).
+
+:- dynamic
+	'$init_goal'/3.
+
+%%	initialization(:Goal, +When)
+%
+%	Register Goal to be executed if a saved state is restored. In
+%	addition, the goal is executed depending on When:
+%
+%	    * now
+%	    Execute immediately
+%	    * after_load
+%	    Execute after loading the file in which it appears
+%	    * restore
+%	    Do not execute immediately, but only when restoring the
+%	    state.
+
+initialization(Goal, When) :-
+	'$initialization_context'(Ctx),
+	(   When == now
+	->  Goal,
+	    assert('$init_goal'(-, Goal, Ctx))
+	;   When == after_load
+	->  (   Ctx = File:_Line
+	    ->	assert('$init_goal'(File, Goal, Ctx))
+	    ;	throw(error(context_error(nodirective,
+					  initialization(Goal, after_load)),
+			    _))
+	    )
+	;   When == restore
+	->  assert('$init_goal'(-, Goal, Ctx))
+	;   (   var(When)
+	    ->	throw(error(instantiation_error, _))
+	    ;	atom(When)
+	    ->	throw(error(domain_error(initialization_type, When), _))
+	    ;   throw(error(type_error(atom, When), _))
+	    )
+	).
+
+
+'$run_initialization'(File) :-
+	(   '$init_goal'(File, Goal, Ctx),
+	    (   catch(Goal, E, '$initialization_error'(E, Goal, Ctx))
+	    ->  fail
+	    ;   '$initialization_failure'(Goal, Ctx),
+		fail
+	    )
+	;   true
+	).
+
+'$initialization_context'(Ctx) :-
+	(   source_location(File, Line)
+	->  Ctx = File:Line
+	;   Ctx = (-)
+	).
+
+'$initialization_error'(E, Goal, Ctx) :-
+	print_message(error, initialization_error(Goal, E, Ctx)).
+
+'$initialization_failure'(Goal, Ctx) :-
+	print_message(warning, initialization_failure(Goal, Ctx)).
+
+%%	'$clear_initialization'(+File) is det.
+%
+%	removes all initialization goals that are registered from File.
+%
+%	@see Called from startConsult() in pl-proc.c
+
+'$clear_initialization'(File) :-
+	retractall('$init_goal'(_, _, File:_)).
 
 
 		/********************************
@@ -277,6 +350,15 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 
 '$prefix_module'(Module, Module, Head, Head) :- !.
 '$prefix_module'(Module, _, Head, Module:Head).
+
+%%	default_module(+Me, -Super) is nondet.
+%
+%	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
+
+default_module(Me, Me).
+default_module(Me, Super) :-
+	import_module(Me, S),
+	default_module(S, Super).
 
 
 		/********************************
@@ -314,13 +396,15 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   Level = silent
 	),
 	print_message(Level, autoload(Module:Name/Arity, Library)),
+	flag('$compiling', OldComp, database),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
-	;   (   '$c_current_predicate'(_, LoadModule:Head)
+	;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1)
 	    ->	Module:import(LoadModule:Head)
 	    ;	use_module(Module:Library, [Name/Arity])
 	    )
 	),
+	flag('$compiling', _, OldComp),
 	flag('$autoloading', _, Old),
 	'$c_current_predicate'(_, Module:Head).
 
@@ -330,7 +414,7 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	;   true
 	).
 
-:- '$hide'('$calleventhook', 1).
+:- '$hide'('$calleventhook'/1).
 
 %	 handle debugger 'w', 'p' and <N> depth options.
 
@@ -379,12 +463,12 @@ call_cleanup(Goal, Catcher, Cleanup) :-
 	    ;	print_message(help, query(confirm)),
 		fail
 	    ).
-	    
+
 :- dynamic
 	user:portray/1.
 :- multifile
 	user:portray/1.
-	
+
 
 		 /*******************************
 		 *	 FILE_SEARCH_PATH	*
@@ -439,7 +523,7 @@ expand_file_search_path(Spec, Expanded) :-
 	'$make_path'(Exp1, Base, Expanded).
 '$expand_file_search_path'(A/B, Expanded, _, _) :- !,
 	'$make_path_from_slash'(A/B, Parts, []),
-	concat_atom(Parts, Expanded).
+	atomic_list_concat(Parts, Expanded).
 '$expand_file_search_path'(Spec, Spec, _, _) :-
 	atomic(Spec).
 
@@ -449,7 +533,7 @@ expand_file_search_path(Spec, Expanded) :-
 '$make_path'(Dir, File, Path) :-
 	'$make_path_from_slash'(File, Parts, []),
 	'$append'([Dir, /], Parts, AllParts),
-	'$concat_atom'(AllParts, Path).
+	atomic_list_concat(AllParts, Path).
 
 
 %%	'$make_path_from_slash'(+SlashPath, -Parts, ?Tail) is det.
@@ -469,7 +553,7 @@ expand_file_search_path(Spec, Expanded) :-
 
 %%	absolute_file_name(+Term, +Args, -AbsoluteFile) is nondet.
 %%	absolute_file_name(+Term, -AbsoluteFile, +Args) is nondet.
-%	
+%
 %	Translate path-specifier into a full   path-name. This predicate
 %	originates from Quintus was introduced  in SWI-Prolog very early
 %	and  has  re-appeared  in  SICStus  3.9.0,  where  they  changed
@@ -576,7 +660,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$absolute_file_name'(Extended, FullName).
 '$dochk_file'(File, Exts, Cond, FullName) :-
 	'$relative_to'(Cond, source, Dir),
-	'$concat_atom'([Dir, /, File], AbsFile),
+	atomic_list_concat([Dir, /, File], AbsFile),
 	'$extend_file'(AbsFile, Exts, Extended),
 	'$file_condition'(Cond, Extended), !,
 	'$absolute_file_name'(Extended, FullName).
@@ -586,7 +670,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$absolute_file_name'(Extended, FullName).
 
 %	'$relative_to'(+Condition, +Default, -Dir)
-%	
+%
 %	Determine the directory to work from.  This can be specified
 %	explicitely using one or more relative_to(FileOrDir) options
 %	or implicitely relative to the working directory or current
@@ -636,10 +720,10 @@ user:prolog_file_type(Ext,	executable) :-
 '$search_message'(_).
 
 
-	
+
 %	'$file_condition'(+Condition, +Path)
 %
-%	Verify Path satisfies Condition. 
+%	Verify Path satisfies Condition.
 
 '$file_condition'([], _) :- !.
 '$file_condition'([H|T], File) :- !,
@@ -663,7 +747,7 @@ user:prolog_file_type(Ext,	executable) :-
 	'$ensure_extensions'(Exts, File, Fs),
 	'$list_to_set'(Fs, FsSet),
 	'$member'(FileEx, FsSet).
-	
+
 '$ensure_extensions'([], _, []).
 '$ensure_extensions'([E|E0], F, [FE|E1]) :-
 	file_name_extension(F, E, FE),
@@ -671,7 +755,7 @@ user:prolog_file_type(Ext,	executable) :-
 
 '$list_to_set'([], []).
 '$list_to_set'([H|T], R) :-
-	memberchk(H, T), !, 
+	memberchk(H, T), !,
 	'$list_to_set'(T, R).
 '$list_to_set'([H|T], [H|R]) :-
 	'$list_to_set'(T, R).
@@ -702,13 +786,9 @@ extensions to .ext
 
 :- user:(dynamic
 	 	library_directory/1,
-		'$start_compilation'/2,
-		'$end_compilation'/2,
 	        prolog_load_file/2).
 :- user:(multifile
 	 	library_directory/1,
-		'$start_compilation'/2,
-		'$end_compilation'/2,
 	        prolog_load_file/2).
 
 
@@ -728,8 +808,8 @@ compiling :-
 	       flag('$directive', database, database)
 	   ).
 
-:- module_transparent
-	'$ifcompiling'/1.
+:- meta_predicate
+	'$ifcompiling'(0).
 
 '$ifcompiling'(_) :-
 	flag('$compiling', database, database), !.
@@ -743,33 +823,38 @@ compiling :-
 preprocessor(Old, New) :-
 	flag('$preprocessor', Old, New).
 
-'$set_encoding'(default, _) :- !.
-'$set_encoding'(Encoding, Stream) :-
-	set_stream(Stream, encoding(Encoding)).
+'$set_encoding'(Stream, Options) :-
+	memberchk(encoding(Enc), Options),
+	Enc \== default,
+	set_stream(Stream, encoding(Enc)).
+'$set_encoding'(_, _).
 
-'$open_source'(stream(Id, In), Enc, In, Goal) :- !,
+
+%%	'$open_source'(+Spec, -In, :Goal, +Options) is semidet.
+
+'$open_source'(stream(Id, In), In, Goal, Options) :- !,
 	'$push_input_context',
-	'$set_encoding'(Enc, In),
+	'$set_encoding'(In, Options),
 	set_stream(In, file_name(Id)),
 	set_stream(In, record_position(true)),
 	'$open_source_call'(Id, In, Goal, True),
 	'$pop_input_context',
 	True == yes.
-'$open_source'(File, Enc, In, Goal) :-
+'$open_source'(File, In, Goal, Options) :-
 	preprocessor(none, none), !,
 	'$push_input_context',
 	open(File, read, In),
-	'$set_encoding'(Enc, In),
+	'$set_encoding'(In, Options),
 	'$open_source_call'(File, In, Goal, True),
 	close(In),
 	'$pop_input_context',
 	True == yes.
-'$open_source'(File, Enc, In, Goal) :-
+'$open_source'(File, In, Goal, Options) :-
 	preprocessor(Pre, Pre),
 	(   '$substitute_atom'('%f', File, Pre, Command)
 	->  '$push_input_context',
 	    open(pipe(Command), read, In),
-	    '$set_encoding'(Enc, In),
+	    '$set_encoding'(In, Options),
 	    '$open_source_call'(File, In, Goal, True),
 	    close(In),
 	    '$pop_input_context',
@@ -786,14 +871,12 @@ preprocessor(Old, New) :-
 '$open_source_call'(File, In, Goal, Status) :-
 	flag('$compilation_level', Level, Level+1),
 	asserta('$load_input'(File, In), Ref),
-	ignore(user:'$start_compilation'(File, Level)),
 	(   catch(Goal, E,
 		  (print_message(error, E),
 		   fail))
 	->  Status = yes
 	;   Status = no
 	),
-	ignore(user:'$end_compilation'(File, Level)),
 	erase(Ref),
 	flag('$compilation_level', _, Level).
 
@@ -804,7 +887,7 @@ preprocessor(Old, New) :-
 	sub_atom(In, B, _, A, From),
 	sub_atom(In, 0, B, _, Before),
 	sub_atom(In, _, A, 0, After),
-	concat_atom([Before, To, After], Out).
+	atomic_list_concat([Before, To, After], Out).
 
 
 		 /*******************************
@@ -814,6 +897,7 @@ preprocessor(Old, New) :-
 :- dynamic
 	'$derived_source_db'/3.		% Loaded, DerivedFrom, Time
 
+'$register_derived_source'(_, '-') :- !.
 '$register_derived_source'(Loaded, DerivedFrom) :-
 	retractall('$derived_source_db'(Loaded, _, _)),
 	time_file(DerivedFrom, Time),
@@ -830,20 +914,19 @@ preprocessor(Old, New) :-
 		*       LOAD PREDICATES         *
 		*********************************/
 
-:- module_transparent
-	ensure_loaded/1,
-	'.'/2,
-	consult/1,
-	use_module/1,
-	use_module/2,
-	reexport/1,
-	reexport/2,
-	'$load_file'/3,
-	load_files/1,
-	load_files/2.
+:- meta_predicate
+	ensure_loaded(:),
+	[:|+],
+	consult(:),
+	use_module(:),
+	use_module(:, +),
+	reexport(:),
+	reexport(:, +),
+	load_files(:),
+	load_files(:, +).
 
 %	ensure_loaded(+File|+ListOfFiles)
-%	
+%
 %	Load specified files, provided they where not loaded before. If the
 %	file is a module file import the public predicates into the context
 %	module.
@@ -852,7 +935,7 @@ ensure_loaded(Files) :-
 	load_files(Files, [if(not_loaded)]).
 
 %	use_module(+File|+ListOfFiles)
-%	
+%
 %	Very similar to ensure_loaded/1, but insists on the loaded file to
 %	be a module file. If the file is already imported, but the public
 %	predicates are not yet imported into the context module, then do
@@ -864,7 +947,7 @@ use_module(Files) :-
 			  ]).
 
 %	use_module(+File, +ImportList)
-%	
+%
 %	As use_module/1, but takes only one file argument and imports only
 %	the specified predicates rather than all public predicates.
 
@@ -898,35 +981,35 @@ reexport(File, Import) :-
 
 [X] :- !,
 	consult(X).
-[F|R] :-
-	consult([F|R]).
+[M:F|R] :-
+	consult(M:[F|R]).
 [].
 
-consult(X) :-
+consult(M:X) :-
 	X == user, !,
 	flag('$user_consult', N, N+1),
 	NN is N + 1,
 	atom_concat('user://', NN, Id),
-	load_files(Id, [stream(user_input)]).
+	load_files(M:Id, [stream(user_input)]).
 consult(List) :-
 	load_files(List).
 
-%	'$consult_goal'(+Path, -Goal)
+%%	'$consult_goal'(+Path, -Goal)
 %
 %	Determine how to load the indicated file
 
 '$consult_goal'(Path, Goal) :-
-	(   file_name_extension(_, Ext, Path),
-	    user:prolog_file_type(Ext, qlf)
-	->  Goal = '$qload_file'
-	;   Goal = '$consult_file'
+	file_name_extension(_, Ext, Path),
+	(   user:prolog_file_type(Ext, qlf)
+	->  Goal = system:'$qload_file'
+	;   Goal = system:'$consult_file'
 	).
 
-%	load_files(+File, +Options)
-%	
+%%	load_files(:File, +Options)
+%
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
-%	
+%
 %	`Options' is a list of additional options.  Defined values are
 %
 %	    verbose		Print statistics on user channel
@@ -935,9 +1018,8 @@ consult(List) :-
 
 load_files(Files) :-
 	load_files(Files, []).
-load_files(Files, Options) :-
-	strip_module(Files, Module, TheFiles),
-        with_mutex('$load', '$load_files'(TheFiles, Module, Options)).
+load_files(Module:Files, Options) :-
+        '$load_files'(Files, Module, Options).
 
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	memberchk(stream(_), Options), !,
@@ -964,9 +1046,13 @@ load_files(Files, Options) :-
 
 
 '$get_option'(Term, Options, Default) :-
-	(   memberchk(Term, Options)
-	->  true
-	;   arg(1, Term, Default)
+	arg(1, Term, Value),
+	functor(Term, Name, 1),
+	functor(Gen, Name, 1),
+	arg(1, Gen, GVal),
+	(   memberchk(Gen, Options)
+	->  Value = GVal
+	;   Value = Default
 	).
 
 
@@ -987,7 +1073,7 @@ load_files(Files, Options) :-
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
-%	
+%
 %	If the user-specification specified a prolog file, do not
 %	replace this with a .qlf file.
 
@@ -1013,120 +1099,170 @@ load_files(Files, Options) :-
 	'$spec_extension'(Arg, Ext).
 
 
+%%	'$load_file'(+Spec, +ContextModule, +Options) is det.
+%
+%	Load the file Spec  into   ContextModule  controlled by Options.
+%	This wrapper deals with two cases  before proceeding to the real
+%	loader:
+%
+%	    * User hooks based on prolog_load_file/2
+%	    * The file is already loaded.
+
 '$load_file'(File, Module, Options) :-
 	\+ memberchk(stream(_), Options),
 	user:prolog_load_file(Module:File, Options), !.
 '$load_file'(File, Module, Options) :-
-	statistics(heapused, OldHeap),
-	statistics(cputime, OldTime),
- 
 	(   memberchk(stream(FromStream), Options)
-	->  true
+	->  FullFile = File
 	;   absolute_file_name(File,
 			       [ file_type(prolog),
 				 access(read)
 			       ],
 			       FullFile)
 	),
-	    
-	'$get_option'(imports(Import), Options, all),
-	'$get_option'(reexport(Reexport), Options, false),
-	'$get_option'(must_be_module(IsModule), Options, false),
-	current_prolog_flag(verbose_load, DefVerbose),
-	'$negate'(DefVerbose, DefSilent),
-	'$get_option'(silent(Silent), Options, DefSilent),
-	'$negate'(Silent, Verbose),
-	set_prolog_flag(verbose_load, Verbose),
-	'$get_option'(if(If), Options, true),
-	'$get_option'(autoload(Autoload), Options, false),
-	'$get_option'(derived_from(DerivedFrom), Options, -),
-	'$get_option'(encoding(Encoding), Options, default),
-	current_prolog_flag(generate_debug_info, DebugInfo),
 
-	(   Autoload == false
-	->  flag('$autoloading', AutoLevel, AutoLevel)
-	;   flag('$autoloading', AutoLevel, AutoLevel+1)
-	),
+	'$get_option'(if(If), Options, true),
 
 	(   var(FromStream),
 	    '$noload'(If, FullFile)
 	->  (   '$current_module'(LoadModule, FullFile)
-	    ->  '$import_list'(Module, LoadModule, Import, Reexport)
+	    ->  '$import_from_loaded_module'(LoadModule, Module, Options)
 	    ;   (   Module == user
 		->  true
 		;   '$load_file'(File, Module, [if(true)|Options])
 		)
 	    )
-	;   (   nonvar(FromStream)
-	    ->	Absolute = File
-	    ;   '$qlf_file'(File, FullFile, Absolute)
-	    ),
+	;   with_mutex('$load',
+		       '$do_load_file'(File, FullFile, Module, Options)),
+	    '$run_initialization'(FullFile)
+	).
 
-	    flag('$compilation_level', Level, Level),
-	    (   Silent == false,
-		(   flag('$autoloading', 0, 0)
-		;   current_prolog_flag(verbose_autoload, true)
-		)
-	    ->	MessageLevel = informational
-	    ;	MessageLevel = silent
-	    ),
 
-	    '$print_message'(silent /*MessageLevel*/,
-			     load_file(start(Level,
-					     file(File, Absolute)))),
-	    (   nonvar(FromStream),
-		(   '$get_option'(format(qlf), Options, source)
-		->  set_stream(FromStream, file_name(Absolute)),
-		    '$qload_stream'(FromStream, Module, IsModule, Action, LM)
-		;   '$consult_file'(stream(Absolute, FromStream), Encoding,
-				    Module, IsModule, Action, LM)
-		)
-	    ->	true
-	    ;   var(FromStream),
-		'$consult_goal'(Absolute, Goal),
-		call(Goal,
-		     Absolute, Encoding,
-		     Module, IsModule, Action, LM)
-	    ->  true
-	    ;   print_message(error, load_file(failed(File))),
-		fail
-	    ),
 
-	    (	atom(LM)
-	    ->  '$import_list'(Module, LM, Import, Reexport)
-	    ;	true
-	    ),
 
-	    (	Level == 0
-	    ->	garbage_collect_clauses
-	    ;	true
-	    ),
+%%	'$do_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%
+%	Perform the actual loading. This process is guarded by the mutex
+%	=|$load|=
 
-	    (	DerivedFrom \== -
-	    ->	'$register_derived_source'(Absolute, DerivedFrom)
-	    ;	true
-	    ),
+'$do_load_file'(File, FullFile, Module, Options) :-
+	statistics(heapused, OldHeap),
+	statistics(cputime, OldTime),
 
-	    statistics(heapused, Heap),
-	    statistics(cputime, Time),
-	    HeapUsed is Heap - OldHeap,
-	    TimeUsed is Time - OldTime,
+	'$set_verbose_load'(Options, OldVerbose),
+	'$update_autoload_level'(Options, OldAutoLevel),
+	'$get_option'(derived_from(DerivedFrom), Options, -),
 
-	    '$print_message'(MessageLevel,
-			     load_file(done(Level,
-					    file(File, Absolute),
-					    Action,
-					    LM,
-					    TimeUsed,
-					    HeapUsed)))
+	current_prolog_flag(generate_debug_info, DebugInfo),
+
+	(   memberchk(stream(FromStream), Options)
+	->  Absolute = File
+	;   '$qlf_file'(File, FullFile, Absolute)
 	),
-	flag('$autoloading', _, AutoLevel),
-	set_prolog_flag(verbose_load, DefVerbose),
+
+	flag('$compilation_level', Level, Level),
+	'$load_message_level'(MessageLevel),
+
+	'$print_message'(silent /*MessageLevel*/,
+			 load_file(start(Level,
+					 file(File, Absolute)))),
+	(   nonvar(FromStream),
+	    (   '$get_option'(format(qlf), Options, source)
+	    ->  set_stream(FromStream, file_name(Absolute)),
+		'$qload_stream'(FromStream, Module, Action, LM, Options)
+	    ;   '$consult_file'(stream(Absolute, FromStream),
+				Module, Action, LM, Options)
+	    )
+	->  true
+	;   var(FromStream),
+	    '$consult_goal'(Absolute, Goal),
+	    call(Goal, Absolute, Module, Action, LM, Options)
+	->  true
+	;   print_message(error, load_file(failed(File))),
+	    fail
+	),
+
+	'$import_from_loaded_module'(LM, Module, Options),
+
+	(   Level == 0
+	->  garbage_collect_clauses
+	;   true
+	),
+
+	'$register_derived_source'(Absolute, DerivedFrom),
+
+	statistics(heapused, Heap),
+	statistics(cputime, Time),
+	HeapUsed is Heap - OldHeap,
+	TimeUsed is Time - OldTime,
+
+	'$print_message'(MessageLevel,
+			 load_file(done(Level,
+					file(File, Absolute),
+					Action,
+					LM,
+					TimeUsed,
+					HeapUsed))),
+	flag('$autoloading', _, OldAutoLevel),
+	set_prolog_flag(verbose_load, OldVerbose),
 	set_prolog_flag(generate_debug_info, DebugInfo).
 
 
+%%	'$import_from_loaded_module'(LoadedModule, Module, Options) is det.
+%
+% 	Import public predicates from LoadedModule into Module
+
+'$import_from_loaded_module'(LoadedModule, Module, Options) :-
+	atom(LoadedModule), !,
+	'$get_option'(imports(Import), Options, all),
+	'$get_option'(reexport(Reexport), Options, false),
+	'$import_list'(Module, LoadedModule, Import, Reexport).
+'$import_from_loaded_module'(_, _, _).
+
+
+%%	'$set_verbose_load'(+Options, -Old) is det.
+%
+%	Set the =verbose_load= flag according to   Options and unify Old
+%	with the old value.
+
+'$set_verbose_load'(Options, Old) :-
+	current_prolog_flag(verbose_load, Old),
+	'$negate'(Old, DefSilent),
+	'$get_option'(silent(Silent), Options, DefSilent),
+	'$negate'(Silent, Verbose),
+	set_prolog_flag(verbose_load, Verbose).
+
 '$negate'(false, true).
 '$negate'(true,  false).
+
+%%	'$update_autoload_level'(+Options, -OldLevel)
+%
+%	Update the $autoloading flag and return the old value.
+
+'$update_autoload_level'(Options, AutoLevel) :-
+	'$get_option'(autoload(Autoload), Options, false),
+	(   Autoload == false
+	->  flag('$autoloading', AutoLevel, AutoLevel)
+	;   flag('$autoloading', AutoLevel, AutoLevel+1)
+	).
+
+%%	'$load_message_level'(-MessageLevel) is det.
+%
+%	Compute the verbosity-level for loading this file.
+
+'$load_message_level'(MessageLevel) :-
+	(   current_prolog_flag(verbose_load, true),
+	    (   flag('$autoloading', 0, 0)
+	    ;   current_prolog_flag(verbose_autoload, true)
+	    )
+	->  MessageLevel = informational
+	;   MessageLevel = silent
+	).
+
+%%	'$print_message'(+Level, +Term) is det.
+%
+%	As print_message/2, but deal with  the   fact  that  the message
+%	system might not yet be loaded.
 
 '$print_message'(Level, Term) :-
 	'$current_module'('$messages', _), !,
@@ -1134,22 +1270,26 @@ load_files(Files, Options) :-
 '$print_message'(_Level, _Term).
 
 '$print_message_fail'(E) :-
-	print_message(error, E),
+	'$print_message'(error, E),
 	fail.
 
-%%	'$consult_file'(+Path, +Encoding, +Module, +IsModule, -Action, -LoadedIn)
+%%	'$consult_file'(+Path, +Module, -Action, -LoadedIn, +Options)
+%
+%	Called  from  '$do_load_file'/4  using  the   goal  returned  by
+%	'$consult_goal'/2. This means that the  calling conventions must
+%	be kept synchronous with '$qload_file'/6.
 
-'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
+'$consult_file'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(Module, Module), !, % same module
-	'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM).
-'$consult_file'(Absolute, Enc, Module, IsModule, What, LM) :-
+	'$consult_file_2'(Absolute, Module, What, LM, Options).
+'$consult_file'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),
 	'$ifcompiling'('$qlf_start_sub_module'(Module)),
-        '$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM),
+        '$consult_file_2'(Absolute, Module, What, LM, Options),
 	'$ifcompiling'('$qlf_end_part'),
 	'$set_source_module'(_, OldModule).
 
-'$consult_file_2'(Absolute, Enc, Module, IsModule, What, LM) :-
+'$consult_file_2'(Absolute, Module, What, LM, Options) :-
 	'$set_source_module'(OldModule, Module),	% Inform C we start loading
 	'$load_id'(Absolute, Id),
 	'$start_consult'(Id),
@@ -1160,39 +1300,22 @@ load_files(Files, Options) :-
 	),
 	'$assert_load_context_module'(Id, OldModule),
 
-	
+
 	'$save_lex_state'(LexState),
-	'$open_source'(Absolute, Enc, In,
-		     '$load_file'(In, Id, IsModule, LM)),
+	'$open_source'(Absolute, In,
+		       '$load_file'(In, Id, LM, Options),
+		       Options),
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
-:- thread_local
-	'$current_load_dialect'/1.
-
-%%	'$set_dialect'(-Old, +New) is det.
-%
-%	Switch the currently expected dialect.
-
-'$set_dialect'(Old, New) :-
-	Old == New, !,
-	(   '$current_load_dialect'(Dialect)
-	->  true
-	;   Dialect = swi
-	).
-'$set_dialect'(Old, Dialect) :-
-	(   retract('$current_load_dialect'(Old))
-	->  true
-	;   Old = swi
-	),
-	assert('$current_load_dialect'(Dialect)).
+:- set_prolog_flag(emulated_dialect, swi).
 
 '$save_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(Style, Style),
-	'$set_dialect'(Dialect, Dialect).
+	current_prolog_flag(emulated_dialect, Dialect).
 '$restore_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(_, Style),
-	'$set_dialect'(_, Dialect).
+	set_prolog_flag(emulated_dialect, Dialect).
 
 
 '$load_id'(stream(Id, _), Id) :- !.
@@ -1208,9 +1331,9 @@ load_files(Files, Options) :-
 	).
 
 %%	'$load_context_module'(+File, -Module)
-%	
+%
 %	Record the module a file was loaded from (see make/0)
-%	
+%
 %	@tbd	Should also know which predicates are imported!
 
 :- dynamic
@@ -1223,56 +1346,124 @@ load_files(Files, Options) :-
 	).
 
 
-%   '$load_file'(+In, +Path, +IsModule, -Module)
+%%   '$load_file'(+In, +Path, -Module, +Options)
 %
 %   '$load_file'/4 does the actual loading.
 
-'$load_file'(In, File, IsModule, Module) :-
+'$load_file'(In, File, Module, Options) :-
+	'$read_first_clause'(In, First),
+	'$expand_term'(First, Expanded),
+	'$load_file'(Expanded, In, File, Module, Options).
+
+
+%%	'$read_first_clause'(+Stream, -Term) is det.
+%
+%	Read the very first term. PrologScript says   we must be able to
+%	deal with an #! line. According to   the ISO proposal, there can
+%	be an :- encoding(Enc) directive before the first (module) term.
+
+'$read_first_clause'(In, First) :-
 	(   peek_char(In, #)
 	->  skip(In, 10)
 	;   true
 	),
-	'$read_clause'(In, First),
-	'$load_file'(First, In, File, IsModule, Module).
+	'$read_clause'(In, VeryFirst),
+	(   nonvar(First),
+	    First = (:- encoding(Encoding))
+	->  set_stream(In, encoding(Encoding)),
+	    '$read_first_clause'(In, First)
+	;   First = VeryFirst
+	).
 
 
-'$load_file'((?- module(Module, Public)), In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'((:- module(Module, Public)), In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'((?- module(Module, Public)),
-	     In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'((:- module(Module, Public)),
-	     In, File, _, Module) :- !,
-	'$load_module'(Module, Public, In, File).
-'$load_file'(_, _, File, true, _) :- !,
+'$load_file'(Var, In, File, Module, _Options) :-
+	var(Var), !,
+	'$load_non_module_file'(Var, [], In, File, Module).
+'$load_file'([First|Rest], In, File, Module, Options) :- !,
+	'$load_file'(First, Rest, In, File, Module, Options).
+'$load_file'(First, In, File, Module, Options) :- !,
+	'$load_file'(First, [], In, File, Module, Options).
+
+'$load_file'(Var, Cls, In, File, Module, _Options) :-
+	var(Var), !,
+	'$load_non_module_file'(Var, Cls, In, File, Module).
+'$load_file'((?- Directive), Cls, In, File, Module, Options) :- !,
+	'$load_file'((:- Directive), Cls, In, File, Module, Options).
+'$load_file'((:- module(Module, Public)), Cls, In, File, Module, Options) :- !,
+	'$load_module'(Module, Public, Cls, In, File, Options).
+'$load_file'(_, _, _, File, _, Options) :-
+	'$get_option'(must_be_module(true), Options, false), !,
 	throw(error(domain_error(module_file, File), _)).
-'$load_file'(end_of_file, _, _, _, Module) :- !, 	% empty file
-	'$set_source_module'(Module, Module).
-'$load_file'(FirstClause, In, File, false, Module) :- !,
+'$load_file'(end_of_file, _, _, File, Module, _) :- !, 	% empty file
 	'$set_source_module'(Module, Module),
 	'$ifcompiling'('$qlf_start_file'(File)),
-	ignore('$consult_clause'(FirstClause, File)),
+	'$ifcompiling'('$qlf_end_part').
+'$load_file'(FirstClause, Cls, In, File, Module, _Options) :-
+	'$load_non_module_file'(FirstClause, Cls, In, File, Module).
+
+'$load_non_module_file'(FirstClause, Cls, In, File, Module) :-
+	'$set_source_module'(Module, Module),
+	'$ifcompiling'('$qlf_start_file'(File)),
+	ignore('$store_clause'([FirstClause|Cls], File)),
 	'$consult_stream'(In, File),
 	'$ifcompiling'('$qlf_end_part').
 
 '$reserved_module'(system).
 '$reserved_module'(user).
 
-'$load_module'(Reserved, _, _, _) :-
+%%	'$load_module'(+Module, +Public, +Clauses, +Stream, +File, +Options)
+%
+%	Options processed:
+%
+%		* redefine_module(Action)
+%		Action is one of =true=, =false= or =ask=.
+%
+%	Redefining a module by loading another file must be more subtle.
+%	Verify the compatibility of the interface could be one example.
+
+'$load_module'(Var, Public, Cls, In, AbsFile, Options) :-
+	var(Var), !,
+	file_base_name(AbsFile, File),
+	file_name_extension(Base, _, File),
+	Var = Base,
+	'$load_module'(Var, Public, Cls, In, File, Options).
+'$load_module'(Reserved, _, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
-'$load_module'(Module, Public, In, File) :-
+'$load_module'(Module, Public, Cls, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
-	'$declare_module'(Module, File, Line),
+	'$get_option'(redefine_module(Action), Options, false),
+	'$super_module'(File, Super),
+	'$declare_module'(Module, Super, File, Line, Action),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
+	ignore('$store_clause'(Cls, File)),
 	'$consult_stream'(In, File),
-	Module:'$check_export',
+	'$check_export'(Module),
 	'$ifcompiling'('$qlf_end_part').
+
+%%	'$super_module'(+File, -Super) is det.
+%
+%	Determine the initial module from which   I  inherit. All system
+%	and library modules inherit from =system=, while all normal user
+%	modules inherit from =user=.
+
+'$super_module'(File, system) :-
+	current_prolog_flag(home, Home),
+	sub_atom(File, 0, _, _, Home), !.
+'$super_module'(_, user).
+
+'$check_export'(Module) :-
+	'$undefined_export'(Module, UndefList),
+	(   '$member'(Undef, UndefList),
+	    strip_module(Undef, _, Local),
+	    print_message(error,
+			  undefined_export(Module, Local)),
+	    fail
+	;   true
+	).
 
 
 %%	'$import_list'(+TargetModule, +FromModule, +Import, +Reexport) is det.
@@ -1285,11 +1476,11 @@ load_files(Files, Options) :-
 	var(Var), !,
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
-	export_list(Source, Import),
+	'$module_property'(Source, exports(Import)),
 	'$import_ops'(Target, Source),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
-	export_list(Source, Export),
+	'$module_property'(Source, exports(Export)),
 	(   is_list(Spec)
 	->  true
 	;   throw(error(type_error(list, Spec), _))
@@ -1302,8 +1493,6 @@ load_files(Files, Options) :-
 '$import_list'(_, _, Import, _) :-
 	throw(error(type_error(import_specifier, Import))).
 
-
-:- op(700, xfx, user:as).		% TBD: kernel table
 
 '$import_except'([], List, List).
 '$import_except'([H as N|T], List0, List) :- !,
@@ -1367,7 +1556,7 @@ load_files(Files, Options) :-
 	'$list_to_conj'(T, Rest).
 
 %%	'$import_ops'(+Target, +Source)
-%	
+%
 %	Import the operators export from Source into the module table of
 %	Target.
 
@@ -1381,7 +1570,7 @@ load_files(Files, Options) :-
 
 
 %%	'$export_list'(+Declarations, +Module, -Ops)
-%	
+%
 %	Handle the export list of the module declaration for Module
 %	associated to File.
 
@@ -1426,51 +1615,59 @@ load_files(Files, Options) :-
 		  fail
 	      )), !.
 
-	      
+
 '$consult_stream2'(In, File) :-
 	repeat,
 	    '$read_clause'(In, Clause),
-	    expand_term(Clause, Expanded),
+	    '$expand_term'(Clause, Expanded),
 	    '$store_clause'(Expanded, File),
 	    Clause == end_of_file, !.
 
 '$consult_clause'(Clause, File) :-
-	catch((expand_term(Clause, Expanded),
+	catch(('$expand_term'(Clause, Expanded),
 	       '$store_clause'(Expanded, File)),
 	       E,
 	       '$print_message_fail'(E)).
 
-'$execute_directive'(include(File), F) :- !,
+%%	'$execute_directive'(:Goal, +File) is det.
+%
+%	Execute the argument of :- or ?- while loading a file.
+
+'$execute_directive'(Goal, F) :-
+	'$expand_goal'(Goal, Goal1),
+	'$execute_directive_2'(Goal1, F).
+
+'$execute_directive_2'(include(File), F) :- !,
 	'$expand_include'(File, F).
-'$execute_directive'(encoding(Encoding), F) :- !,
+'$execute_directive_2'(encoding(Encoding), F) :- !,
 	source_location(F, _),
 	'$load_input'(F, S),
 	set_stream(S, encoding(Encoding)).
-'$execute_directive'(ISO, F) :-
+'$execute_directive_2'(ISO, F) :-
 	'$expand_directive'(ISO, Normal), !,
 	'$execute_directive'(Normal, F).
-'$execute_directive'(Goal, _) :-
+'$execute_directive_2'(Goal, _) :-
 	\+ flag('$compiling', database, database), !,
 	'$add_directive_wic2'(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
 	->  flag('$compiling', Old, database),
 	    flag('$directive', OldDir, Old),
-	    call_cleanup('$execute_directive2'(Goal),
+	    call_cleanup('$execute_directive_3'(Goal),
 			 (   flag('$compiling', _, Old),
 			     flag('$directive', _, OldDir)
 			 ))
-	;   '$execute_directive2'(Goal)
+	;   '$execute_directive_3'(Goal)
 	).
-'$execute_directive'(Goal, _) :-
-	'$execute_directive2'(Goal).
+'$execute_directive_2'(Goal, _) :-
+	'$execute_directive_3'(Goal).
 
-'$execute_directive2'(Goal) :-
+'$execute_directive_3'(Goal) :-
 	'$set_source_module'(Module, Module),
-	catch(Module:Goal, Term, '$exception_in_directive'(Term)), !.
-'$execute_directive2'(Goal) :-
-	'$set_source_module'(Module, Module),
-	print_message(warning, goal_failed(directive, Module:Goal)),
-	fail.
+	(   catch(Module:Goal, Term, '$exception_in_directive'(Term))
+	->  true
+	;   print_message(warning, goal_failed(directive, Module:Goal)),
+	    fail
+	).
 
 '$exception_in_directive'(Term) :-
 	print_message(error, Term),
@@ -1514,7 +1711,7 @@ load_files(Files, Options) :-
 	->  true
 	;   print_message(error, mixed_directive(Goal))
 	).
-	
+
 '$common_goal_type'((A,B), Type) :- !,
 	'$common_goal_type'(A, Type),
 	'$common_goal_type'(B, Type).
@@ -1546,30 +1743,9 @@ load_files(Files, Options) :-
 		*        TERM EXPANSION         *
 		*********************************/
 
-:- user:dynamic(term_expansion/2).
-:- user:multifile(term_expansion/2).
-:- user:dynamic(goal_expansion/2).
-:- user:multifile(goal_expansion/2).
-
-expand_term(Var, Expanded) :-
+'$store_clause'(Var, _) :-
 	var(Var), !,
-	Expanded = Var.
-expand_term(Term, Expanded) :-		% local term-expansion
-	'$term_expansion_module'(Module),
-	Module:term_expansion(Term, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
-expand_term(Head --> Body, Expanded) :-
-	'$translate_rule'(Head --> Body, Expanded0), !,
-	'$expand_clauses'(Expanded0, Expanded).
-expand_term(Term, []) :-
-	'$if_expansion'(Term, X),
-	X == [], !.
-expand_term(Term0, Term) :-
-	'$goal_expansion_module'(_), !,
-	'$expand_clauses'(Term0, Term).
-expand_term(Term, Term).
-
-
+	print_message(error, error(instantiation_error, _)).
 '$store_clause'([], _) :- !.
 '$store_clause'([C|T], F) :- !,
 	'$store_clause'(C, F),
@@ -1646,60 +1822,6 @@ compile_aux_clauses(Clauses) :-
 
 
 		 /*******************************
-		 *	:- IF ... :- ENDIF	*
-		 *******************************/
-
-:- thread_local
-	'$include_code'/1.
-
-'$including' :-
-	'$include_code'(X), !,
-	X == true.
-'$including'.
-
-'$if_expansion'((:- if(G)), []) :-
-	(   '$including'
-	->  (   catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;   asserta('$include_code'(false))
-	    )
-	;   asserta('$include_code'(else_false))
-	).
-'$if_expansion'((:- elif(G)), []) :-
-	(   retract('$include_code'(Old))
-	->  (   Old == true
-	    ->  asserta('$include_code'(else_false))
-	    ;   Old == false,
-		catch('$eval_if'(G), E, (print_message(error, E), fail))
-	    ->  asserta('$include_code'(true))
-	    ;	asserta('$include_code'(Old))
-	    )
-	;    throw(error(context_error(no_if), _))
-	).
-'$if_expansion'((:- else), []) :-
-	(   retract('$include_code'(X))
-	->  (   X == true
-	    ->  X2 = false 
-	    ;   X == false
-	    ->	X2 = true
-	    ;	X2 = X
-	    ),
-	    asserta('$include_code'(X2))
-	;   throw(error(context_error(no_if), _))
-	).
-'$if_expansion'(end_of_file, end_of_file) :- !. % TBD: Check completeness
-'$if_expansion'((:- endif), []) :-
-	retract('$include_code'(_)), !.
-
-'$if_expansion'(_, []) :-
-	\+ '$including'.
-
-'$eval_if'(G) :-
-	expand_goal(G, G2),
-	G2.
-
-
-		 /*******************************
 		 *	       READING		*
 		 *******************************/
 
@@ -1729,7 +1851,7 @@ compile_aux_clauses(Clauses) :-
 
 '$singleton_option'(M, [singletons(warning)|T],T) :-
 	M:'$style_check'(Old, Old),
-	Old /\ 2'0000010 =\= 0, !.	% See style_check/1
+	Old /\ 0b0000010 =\= 0, !.	% See style_check/1
 '$singleton_option'(_, T, T).
 
 
@@ -1744,336 +1866,19 @@ compile_aux_clauses(Clauses) :-
 :- dynamic
 	'$foreign_registered'/2.
 
-
 		 /*******************************
-		 *   GOAL_EXPANSION/2 SUPPORT	*
+		 *   TEMPORARY TERM EXPANSION	*
 		 *******************************/
 
-'$expand_clauses'(X, X) :-
-	var(X), !.
-'$expand_clauses'([H0|T0], [H|T]) :- !,
-	'$expand_clauses'(H0, H),
-	'$expand_clauses'(T0, T).
-'$expand_clauses'('$source_location'(File, Line):Clause0,
-		  '$source_location'(File, Line):Clause) :- !,
-	'$expand_clauses'(Clause0, Clause).
-'$expand_clauses'((Head :- Body), (Head :- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'((:- Body), (:- ExpandedBody)) :-
-	nonvar(Body), !,
-	expand_goal(Body,  ExpandedBody).
-'$expand_clauses'(Head, Head).
+% Provide temporary definitions for the boot-loader.  These are replaced
+% by the real thing in load.pl
 
-expand_goal(A, B) :-
-        '$do_expand_body'(A, B0),
-	'$tidy_body'(B0, B).
+:- dynamic
+	'$expand_goal'/2,
+	'$expand_term'/2.
 
-'$do_expand_body'(G, G) :-
-        var(G), !.
-'$do_expand_body'((A,B), (EA,EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A;B), (EA;EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A->B), (EA->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((A*->B), (EA*->EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'((\+A), (\+EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(A, B) :-
-        '$goal_expansion_module'(M),
-        M:goal_expansion(A, B0),
-	B0 \== A, !,			% avoid a loop
-	'$do_expand_body'(B0, B).
-'$do_expand_body'(not(A), not(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(call(A), call(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(once(A), once(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(ignore(A), ignore(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(initialization(A), initialization(EA)) :- !,
-        '$do_expand_body'(A, EA).
-'$do_expand_body'(catch(A, E, B), catch(EA, E, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, B), call_cleanup(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(call_cleanup(A, R, B), call_cleanup(EA, R, EB)) :- !,
-        '$do_expand_body'(A, EA),
-	'$do_expand_body'(B, EB).
-'$do_expand_body'(forall(A, B), forall(EA, EB)) :- !,
-        '$do_expand_body'(A, EA),
-        '$do_expand_body'(B, EB).
-'$do_expand_body'(findall(V, G, B), findall(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(findall(V, G, B, T), findall(V, EG, B, T)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(bagof(V, G, B), bagof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(setof(V, G, B), setof(V, EG, B)) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(V^G, V^EG) :- !,
-        '$do_expand_body'(G, EG).
-'$do_expand_body'(M:G, M:EG) :-
-	atom(M),
-	'$set_source_module'(Old, M),
-	call_cleanup('$do_expand_body'(G, EG),
-		     '$set_source_module'(_, Old)), !.
-'$do_expand_body'(A, A).
-
-%	Delete extraneous true's that result from goal_expansion(..., true)
-%
-%	Is the really necessary?  Should we only do it if -O is effective?
-
-'$tidy_body'(A, A) :-
-	current_prolog_flag(optimise, false), !.
-'$tidy_body'(A, A) :-
-        var(A), !.
-'$tidy_body'((A,B), (A, TB)) :-
-        var(A), !,
-        '$tidy_body'(B, TB).
-'$tidy_body'((A,B), (TA, B)) :-
-        var(B), !,
-        '$tidy_body'(A, TA).
-'$tidy_body'(((A,B),C), R) :- !,
-	'$tidy_body'((A,B,C), R).
-'$tidy_body'((true,A), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,true), R) :- !,
-        '$tidy_body'(A, R).
-'$tidy_body'((A,B), (TA, TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A;B), (TA; TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'((A->B), (TA->TB)) :- !,
-        '$tidy_body'(A, TA),
-        '$tidy_body'(B, TB).
-'$tidy_body'(A, A).
-
-
-		/********************************
-		*        GRAMMAR RULES          *
-		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The DCG compiler. The original code was copied from C-Prolog and written
-by Fernando Pereira, EDCAAD, Edinburgh,  1984.   Since  then many people
-have modified and extended this code. It's a nice mess now and it should
-be redone from scratch. I won't be doing   this  before I get a complete
-spec explaining all an implementor needs to   know  about DCG. I'm a too
-basic user of this facility myself (though   I  learned some tricks from
-people reporting bugs :-)
-
-The original version contained  '$t_tidy'/2  to   convert  ((a,b),  c)  to
-(a,(b,c)), but as the  SWI-Prolog  compiler   doesn't  really  care (the
-resulting code is simply the same), I've removed that.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-'$translate_rule'(((LP,MNT)-->RP),(H:-B)) :- !,
-	( var(LP) -> throw(error(instantiation_error,_)) ; true ),
-	'$extend'(LP, S0, SR, H),
-	'$t_body'(RP, S0, S1, B0),
-	'$t_body'(MNT, SR, S1,M),
-	'$body_optimized'((B0,M),B1,S0),
-	'$body_optimized'(B1,B,SR).
-'$translate_rule'((LP-->RP), (H:-B)):-
-	'$extend'(LP, S0, S, H),
-	'$t_body'(RP, S0, S, B0),
-	'$body_optimized'(B0,B,S0).
-
-'$body_optimized'(B0,B,S0) :-
-	(   B0 = (S00=X, B),		% map a(H,T) :- H = [a,b|T], b(T)
-	    S00 == S0
-	->  S0 = X			% into a([a,b|T0]) :- b(T0, T).
-	;   B0 = (S00=X),		% map a(H,T) :- H = [a,b|T]
-	    S00 == S0
-	->  S0 = X,			% into a([a,b|T], T)
-	    B = true
-	;   B0 = B
-	).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On the DCG Translation of {}
-
-	a --> x, {y}.
-
-There are two options.  In traditional systems we see:
-
-	a(A, B) :- x(A, B), y.
-
-And in modern system we see:
-
-	a(A, B) :- x(A, C), y, B=C.
-
-
-Martin Sondergaard's grammar was breaking down on
-=================================================
-
-s --> v, star0, {write('You can not do that')}.
-star0 --> [].
-star0 --> [_], star0.
-
-meaning to write a  message  for  any   sentence  starting  with  a `v',
-skipping the remainder. With delayed binding  this causes a large number
-of messages as star0 only eats one token on backtracing.
-
-You can fix this using remaining as below rather then star0.
-
-remaining --> [_], !, remaining.
-remaining --> [].
-
-
-Without delayed unification of the tail we get the following trouble
-====================================================================
-(comment from Richard O'Keefe)
-
-Suppose I have
-
-    p --> [a], !, {fail}. p --> [].
-
-That is, p//0 is suppose to match the empty  string as long as it is not
-followed by a. Now consider
-
-    p([a], [a])
-
-If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S1], !, fail, S = S1.
-
-then it will work *correctly*, and the call  p([a], [a]) will fail as it
-is supposed to. If the first clause is translated as
-
-    p(S0, S) :- S0 = [a|S], !, fail.
-
-then the call p([a], [a]) will succeed, which is quite definitely wrong.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-'$t_body'(Var, S, SR, phrase(Var, S, SR)) :-
-	var(Var), !.
-'$t_body'([], S, SR, S=SR) :- !.		% inline lists
-'$t_body'(List, S, SR, C) :-
-	(   List = [_|_]
-	->  !,
-	    (   is_list(List)
-	    ->  '$append'(List, SR, OL),
-		C = (S = OL)
-	    ;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
-	    )
-	;   string(List)
-	->  !,
-	    string_to_list(List, Codes),
-	    '$append'(Codes, SR, OL),
-	    C = (S = OL)
-	).
-'$t_body'(!, S, S, !) :- !.
-'$t_body'({}, S, S, true) :- !.
-'$t_body'({T}, S, SR, (T, SR = S)) :- !.		% (*)
-%'$t_body'({T}, S, S, T) :- !.			% (*)
-'$t_body'((T, R), S, SR, (Tt, Rt)) :- !,
-	'$t_body'(T, S, SR1, Tt),
-	'$t_body'(R, SR1, SR, Rt).
-'$t_body'((T;R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((T|R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((C->T), S, SR, (Ct->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((C*->T), S, SR, (Ct*->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((\+ C), S, S, (\+ Ct)) :- !,
-	'$t_body'(C, S, _, Ct).
-'$t_body'(T, S, SR, Tt) :-
-	'$extend'(T, S, SR, Tt).
-
-
-'$t_fill'(S, SR, S1, T, (T, SR=S)) :-
-	S1 == S, !.
-'$t_fill'(_S, SR, SR, T, T).
-
-
-%	'$extend'(+Head, +Extra1, +Extra2, -NewHead)
-%	
-%	Extend Head with two more arguments (on behalf DCG compilation).
-%	The solution below is one option. Using   =..  and append is the
-%	alternative. In the current version (5.3.2), the =.. is actually
-%	slightly faster, but it creates less garbage.
-
-:- dynamic  '$extend_cache'/4.
-:- volatile '$extend_cache'/4.
-
-'$dcg_reserved'([]).
-'$dcg_reserved'([_|_]).
-'$dcg_reserved'({_}).
-'$dcg_reserved'({}).
-'$dcg_reserved'(!).
-'$dcg_reserved'((\+_)).
-'$dcg_reserved'((_,_)).
-'$dcg_reserved'((_;_)).
-'$dcg_reserved'((_|_)).
-'$dcg_reserved'((_->_)).
-'$dcg_reserved'((_*->_)).
-'$dcg_reserved'((_-->_)).
-
-'$extend'(V, _, _, _) :-
-	var(V), !,
-	throw(error(instantiation_error,_)).
-'$extend'(M:OldT, A1, A2, M:NewT) :- !,
-	'$extend'(OldT, A1, A2, NewT).
-'$extend'(OldT, A1, A2, NewT) :-
-	'$extend_cache'(OldT, A1, A2, NewT), !.
-'$extend'(OldT, A1, A2, NewT) :-
-	( callable(OldT) -> true ; throw(error(type_error(callable,OldT),_)) ),
-	( '$dcg_reserved'(OldT) -> throw(error(permission_error(define,dcg_nonterminal,OldT),_)) ; true ),
-	functor(OldT, Name, Arity),
-	functor(CopT, Name, Arity),
-	NewArity is Arity+2,
-	functor(NewT, Name, NewArity),
-	'$copy_args'(1, Arity, CopT, NewT),
-	A1Pos is Arity+1,
-	A2Pos is Arity+2,
-	arg(A1Pos, NewT, A1C),
-	arg(A2Pos, NewT, A2C),
-	assert('$extend_cache'(CopT, A1C, A2C, NewT)),
-	OldT = CopT,
-	A1C = A1,
-	A2C = A2.
-
-'$copy_args'(I, Arity, Old, New) :-
-	I =< Arity, !,
-	arg(I, Old, A),
-	arg(I, New, A),
-	I2 is I + 1,
-	'$copy_args'(I2, Arity, Old, New).
-'$copy_args'(_, _, _, _).
-
-:- module_transparent
-	phrase/2,
-	phrase/3.
-:- noprofile((phrase/2,
-	      phrase/3)).
-
-phrase(RuleSet, Input) :-
-	phrase(RuleSet, Input, []).
-phrase(RuleSet, Input, Rest) :-
-	strip_module(RuleSet, M, Plain),
-	( var(Plain) -> throw(error(instantiation_error,_)) ; true ),
-	'$t_body'(Plain, S0, S, Body),
-	Input = S0, Rest = S,
-	M:Body.
+'$expand_goal'(In, In).
+'$expand_term'(In, In).
 
 
 		/********************************
@@ -2145,7 +1950,7 @@ saved state.
 	'$reverse'(List1, [Head|List2], List3).
 
 '$delete'([], _, []) :- !.
-'$delete'([Elem|Tail], Elem, Result) :- !, 
+'$delete'([Elem|Tail], Elem, Result) :- !,
 	'$delete'(Tail, Elem, Result).
 '$delete'([Head|Tail], Elem, [Head|Rest]) :-
 	'$delete'(Tail, Elem, Rest).
@@ -2174,14 +1979,13 @@ halt :-
 	halt(0).
 
 
-:- module_transparent
-	at_halt/1.
+:- meta_predicate
+	at_halt(0).
 :- dynamic
 	'$at_halt'/1.
 
-at_halt(Spec) :-
-	strip_module(Spec, Module, Goal),
-	asserta(system:'$at_halt'(Module:Goal)).
+at_halt(Goal) :-
+	asserta('$at_halt'(Goal)).
 
 '$run_at_halt' :-
 	(   '$at_halt'(Goal),
@@ -2195,11 +1999,11 @@ at_halt(Spec) :-
 		*      LOAD OTHER MODULES       *
 		*********************************/
 
-:- module_transparent
-	'$load_wic_files'/2,
-	'$load_additional_boot_files'/0.
+:- meta_predicate
+	'$load_wic_files'(:).
 
-'$load_wic_files'(Module, Files) :-
+'$load_wic_files'(Files) :-
+	Files = Module:_,
 	'$execute_directive'('$set_source_module'(OldM, Module), []),
 	'$save_lex_state'(LexState),
 	'$style_check'(_, 2'1111),
@@ -2210,12 +2014,17 @@ at_halt(Spec) :-
 	flag('$compiling', _, OldC).
 
 
+%%	'$load_additional_boot_files' is det.
+%
+%	Called from compileFileList() in pl-wic.c.   Gets the files from
+%	"-c file ..." and loads them into the module user.
+
 '$load_additional_boot_files' :-
 	current_prolog_flag(argv, Argv),
 	'$get_files_argv'(Argv, Files),
 	(   Files \== []
 	->  format('Loading additional boot files~n'),
-	    '$load_wic_files'(user, Files),
+	    '$load_wic_files'(user:Files),
 	    format('additional boot files loaded~n')
 	;   true
         ).
@@ -2224,10 +2033,10 @@ at_halt(Spec) :-
        source_location(File, _Line),
        file_directory_name(File, Dir),
        atom_concat(Dir, '/load.pl', LoadFile),
-       '$load_wic_files'(system, [LoadFile]),
+       '$load_wic_files'(system:[LoadFile]),
        (   current_prolog_flag(windows, true)
        ->  atom_concat(Dir, '/menu.pl', MenuFile),
-	   '$load_wic_files'(system, [MenuFile])
+	   '$load_wic_files'(system:[MenuFile])
        ;   true
        ),
        format('SWI-Prolog boot files loaded~n', []),

@@ -40,6 +40,7 @@
 
 	    debug/2			% +Fmt, +Args
 	  ]).
+:- use_module(library(pce)).
 :- use_module(clause).
 
 		 /*******************************
@@ -79,7 +80,7 @@ trace_setting(Name, Old, New) :-
 %
 %	Finds the source-location of the predicate.  If the predicate
 %	is not defined, it will list the predicate on @dynamic_source_buffer
-%	and return this buffer.	
+%	and return this buffer.
 
 find_source(Predicate, File, Line) :-
 	predicate_property(Predicate, file(File)),
@@ -115,7 +116,7 @@ list_predicate(Predicate) :-
 	    send(@dynamic_source_buffer, attribute, comment,
 		 string('Decompiled listing of %s', PrintName))
 	).
-	    
+
 
 list_clauses(Predicate, From, To) :-
 	between(From, To, Nth),

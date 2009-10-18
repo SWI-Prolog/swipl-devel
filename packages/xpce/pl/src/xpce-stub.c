@@ -56,13 +56,13 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   argc = breakargs(program, lpszCmdLine, argv);
 
   bind_terminal();
-  PL_set_feature("verbose", PL_ATOM, "silent"); /* operate silently */
+  PL_set_prolog_flag("verbose", PL_ATOM, "silent"); /* operate silently */
   DEBUG(ok("About to start Prolog with %d arguments", argc));
   if ( !PL_initialise(argc, argv) )
   { ok("Initialisation failed");
     PL_halt(1);
   }
-  
+
   if ( PL_toplevel() )
   { PL_halt(0);
   } else
@@ -80,7 +80,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 static IOFUNCTIONS console_functions;
 
-typedef enum 
+typedef enum
 { C_NONE,				/* normal operation */
   C_READ,				/* attach on read */
   C_NEVER,				/* do not attach */
@@ -117,7 +117,7 @@ getInput(LPVOID h)
 
   return ctx->rc;
 }
-  
+
 static ssize_t
 read_console(void *h, char *buf, size_t len)
 { HANDLE th;
@@ -173,7 +173,7 @@ attach_console(void)
       { cin  = GetStdHandle(STD_INPUT_HANDLE);
 	cout = GetStdHandle(STD_OUTPUT_HANDLE);
 	cerr = GetStdHandle(STD_ERROR_HANDLE);
-	
+
 	if ( cin  != INVALID_HANDLE_VALUE &&
 	     cerr != INVALID_HANDLE_VALUE &&
 	     cout != INVALID_HANDLE_VALUE )
@@ -236,7 +236,7 @@ ask_attach(int read)
   switch(rc)
   { case IDABORT:
     case IDCANCEL:
-      
+
       PostQuitMessage(1);
       ExitProcess(1);
     case IDYES:
@@ -379,7 +379,7 @@ program_name(HANDLE hInstance)
 
   GetModuleFileName(hInstance, program, sizeof(program));
   long_name(program);
-  
+
   return strcpy(malloc(strlen(program)+1), program);
 }
 
@@ -419,4 +419,4 @@ breakargs(char *program, char *line, char **argv)
   argv[argc] = NULL;			/* add trailing NULL pointer to argv */
 
   return argc;
-}      
+}

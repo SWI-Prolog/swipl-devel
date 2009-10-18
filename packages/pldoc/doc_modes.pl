@@ -41,6 +41,7 @@
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
 :- use_module(library(operators)).
+:- use_module(library(error)).
 
 /** <module> Analyse PlDoc mode declarations
 
@@ -77,7 +78,7 @@ operator declarations in this module.
 %	Process the formal header lines  (upto   the  first blank line),
 %	returning the remaining lines and  the   names  of the arguments
 %	used in the various header lines.
-%	
+%
 %	@param FilePos	Term File:Line with the position of comment
 %	@param Modes	List if mode(Head, Bindings) terms
 %	@param Args	List of argument-names appearing in modes
@@ -87,7 +88,7 @@ process_modes(Lines, Module, FilePos, ModeDecls, Vars, RestLines) :-
 	modes(ModeText, Module, FilePos, ModeDecls),
 	extract_varnames(ModeDecls, Vars0, []),
 	sort(Vars0, Vars).
-	
+
 %%	mode_lines(+Lines, -ModeText:codes, ?ModeTail:codes, -Lines) is det.
 %
 %	Extract the formal header. For %%   comments these are all lines
@@ -100,7 +101,7 @@ mode_lines(Lines0, ModeText, ModeTail, Lines) :-
 mode_lines(Lines0, ModeText, ModeTail, Lines) :-
 	non_empty_lines(Lines0, ModeText, ModeTail, Lines).
 
-percent_mode_line([1-[0'%|L]|Lines], ModeText, ModeTail, Lines) :-	%' 
+percent_mode_line([1-[0'%|L]|Lines], ModeText, ModeTail, Lines) :-	%'
 	append(L, [10|ModeTail], ModeText).
 
 percent_mode_lines(Lines0, ModeText, ModeTail, Lines) :-
@@ -118,14 +119,14 @@ non_empty_lines([_-L|Lines0], ModeText, ModeTail, Lines) :-
 %%	modes(+Text:codes, +Module, +FilePos, -ModeDecls) is det.
 %
 %	Read mode declaration. This consists of a number of Prolog terms
-%	which may or may not be closed by  a Prolog full-stop. 
-%	
+%	which may or may not be closed by  a Prolog full-stop.
+%
 %	@param Text		Input text as list of codes.
 %	@param Module		Module the comment comes from
 %	@param ModeDecls	List of mode(Term, Bindings)
 
 modes(Text, Module, FilePos, Decls) :-
-	prepare_module_operators(Module), 
+	prepare_module_operators(Module),
 	modes(Text, FilePos, Decls).
 
 modes(Text, FilePos, Decls) :-
@@ -202,13 +203,13 @@ prepare_module_operators(Module) :-
 unprepare_module_operators :-
 	forall(retract(prepared_module(_, Undo)),
 	       pop_operators(Undo)).
-	
+
 
 %%	public_operators(+Module, -List:list(op(Pri,Assoc,Name))) is det.
 %
 %	List is the list of operators exported from Module through its
 %	module header.
-%	
+%
 %	@tbd	Must be provided by a public interface from the core
 
 public_operators(Module, List) :-
@@ -221,7 +222,7 @@ public_operators(_, []).
 %%	extract_varnames(+Bindings, -VarNames, ?VarTail) is det.
 %
 %	Extract the variables names.
-%	
+%
 %	@param Bindings		Nested list of Name=Var
 %	@param VarNames		List of variable names
 %	@param VarTail		Tail of VarNames
@@ -237,7 +238,7 @@ extract_varnames(Name=_, [Name|VN], VN).
 %%	store_modes(+Modes, +SourcePos) is det.
 %
 %	Assert modes into the database with the given position.
-%	
+%
 %	@param Modes	  List if mode-terms.  See process_modes/5.
 %	@param SourcePos  Term File:Line
 
@@ -255,7 +256,7 @@ store_mode(Head0 is Det, Pos) :- !,
 store_mode(Head0, Pos) :-
 	dcg_expand(Head0, Head),
 	compile_clause('$mode'(Head, unknown), Pos).
-	
+
 dcg_expand(//(Head0), Head) :- !,
 	Head0 =.. [Name|List0],
 	maplist(remove_argname, List0, List1),
@@ -264,6 +265,12 @@ dcg_expand(//(Head0), Head) :- !,
 dcg_expand(Head0, Head) :-
 	remove_argnames(Head0, Head).
 
+remove_argnames(Var, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+remove_argnames(M:Head0, M:Head) :- !,
+	must_be(atom, M),
+	remove_argnames(Head0, Head).
 remove_argnames(Head0, Head) :-
 	functor(Head0, Name, Arity),
 	functor(Head, Name, Arity),
@@ -296,7 +303,7 @@ remove_aname(_:Type, Type) :- !.
 %%	mode(:Head, ?Det) is nondet.
 %
 %	True if there is a mode-declaration for Head with Det.
-%	
+%
 %	@param	Head	Callable term.  Arguments are a mode-indicator
 %			followed by a type.
 %	@param  Det	One of =unknown=, =det=, =semidet=, or =nondet=.
@@ -386,11 +393,11 @@ mode_ind(!(X), !, X).
 
 
 %%	modes_to_predicate_indicators(+Modes:list, -PI:list) is det.
-%	
+%
 %	Create a list of predicate indicators represented by Modes. Each
 %	predicate indicator is  of  the   form  atom/integer  for normal
 %	predicates or atom//integer for DCG rules.
-%	
+%
 %	@param Modes	Mode-list as produced by process_modes/5
 %	@param PI	List of Name/Arity or Name//Arity without duplicates
 
@@ -408,32 +415,39 @@ mode_to_pi(Head is _Det, PI) :- !,
 mode_to_pi(Head, PI) :-
 	head_to_pi(Head, PI).
 
+head_to_pi(M:Head, M:PI) :-
+	atom(M), !,
+	head_to_pi(Head, PI).
 head_to_pi(//(Head), Name//Arity) :- !,
 	functor(Head, Name, Arity).
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
 
-%%	compile_clause(+Term, +FilePos) is det.
-%	
+%%	compile_clause(:Term, +FilePos) is det.
+%
 %	Add a clause to the  compiled   program.  Unlike  assert/1, this
 %	associates the clause with the   given source-location, makes it
-%	static code and removes the  clause   of  the  file is reloaded.
+%	static code and removes the  clause   if  the  file is reloaded.
 %	Finally,  as  we  create  clauses   one-by-one,  we  define  our
 %	predicates as discontiguous.
-%	
+%
 %	@param Term	Clause-term
 %	@param FilePos	Term of the form File:Line, where File is a
 %			canonical filename.
 
 compile_clause(Term, FilePos) :-
 	'$set_source_module'(SM, SM),
-	clause_head(Term, Head),
+	strip_module(SM:Term, M, Plain),
+	clause_head(Plain, Head),
 	functor(Head, Name, Arity),
-	(   SM == user
-	->  multifile(SM:(Name/Arity))
-	;   discontiguous(SM:(Name/Arity))
+	(   M == user ; M \== SM
+	->  multifile(M:(Name/Arity))
+	;   discontiguous(M:(Name/Arity))
 	),
-	'$record_clause'(Term, FilePos, _Ref).
+	(   M == SM
+	->  '$record_clause'(Term, FilePos, _)
+	;   '$record_clause'(M:Term, FilePos, _)
+	).
 
 clause_head((Head :- _Body), Head) :- !.
 clause_head(Head, Head).

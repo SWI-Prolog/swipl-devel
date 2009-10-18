@@ -49,10 +49,10 @@ tmp_file([_|T], File) :-
 		********************************/
 
 %	'$editor_load_code'(+Kind, +File)
-%	Load code from EMACS.  `Kind' is {procedure,region,buffer}.  
+%	Load code from EMACS.  `Kind' is {procedure,region,buffer}.
 %	`File' is the name of the file from which the code comes.  It
 %	is an absolute filename.
-%	
+%
 %	To be implemented.  There is a start for portions of a file
 %	(region, procedure), but this is hard:  What is the starting
 %	line of the region (for error-messages).  There is also a
@@ -115,7 +115,7 @@ make :-
 	qp_start_compilation,
 	system:make,
 	qp_finish_compilation.
-	
+
 
 exception(syntax_error, syntax_error(Path, Line, Warning), _) :-
 	qp_warning_file(Path, File),
@@ -134,7 +134,7 @@ qp_start_compilation :-
 	asserta(compilation_base_dir(Pwd)),
 	call_emacs('(prolog-compilation-start "~w")', [Pwd]).
 
-	
+
 qp_finish_compilation :-
 	retractall(qp_compilation_base_dir(_)),
 	call_emacs('(prolog-compilation-finish)').
@@ -146,7 +146,7 @@ qp_warning_file(Path, File) :-
 	compilation_base_dir(Cwd),
 	concat(Cwd, File, Path), !.
 qp_warning_file(Path, Path).
-	
+
 
 		/********************************
 		*         FIND PREDICATE	*
@@ -166,7 +166,7 @@ find_predicate1(Name, Arity) :-
 	->  call_emacs('(@find "ok" "nodebug")')
 	;   call_emacs('(@find "none" "nodebug")')
 	).
-	
+
 
 find_predicate(Name, Arity, Preds) :-
 	(   integer(Arity)
@@ -178,7 +178,7 @@ find_predicate(Name, Arity, Preds) :-
 find_predicate_(Head, Module:Head) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)).
-	
+
 
 		/********************************
 		*          ATOM DABREV		*
@@ -235,7 +235,7 @@ qp_previous_command :-
 	;   flag(qp_last_command, _, Last),
 	    qp_insert_command(Last)
 	).
-	    
+
 
 qp_next_command :-
 	flag('$last_event', Last, Last),
@@ -255,7 +255,7 @@ qp_next_command :-
 call_emacs(Fmt) :-
 	call_emacs(Fmt, []).
 call_emacs(Fmt, Args) :-
-	concat_atom(['', Fmt, ''], F1),
+	atomic_list_concat(['', Fmt, ''], F1),
 	format(F1, Args),
 	flush.
 

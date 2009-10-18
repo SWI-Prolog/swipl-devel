@@ -62,7 +62,7 @@ getTableFromEvent(EventObj ev)
        !instanceOfObject((tab=(Table)dev->layout_manager), ClassTable) )
     fail;
 
-  return tab;       
+  return tab;
 }
 
 
@@ -165,12 +165,12 @@ setPointerResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
   { Int cx, cy;
     Int px = ZERO, py = ZERO;	/* keep compiler happy */
     Point pos;
-  
+
     get_xy_event(ev, ev->receiver, ON, &cx, &cy);
 
     if ( g->mode == NAME_column )
     { TableColumn col = getColumnTable(tab, g->column, ON);
-      
+
       px = add(col->position, col->width);
       py = cy;
     } else
@@ -179,7 +179,7 @@ setPointerResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
       py = add(row->position, row->width);
       px = cx;
     }
-    
+
     pos = tempObject(ClassPoint, px, py, EAV);
     pointerGraphical(ev->receiver, pos);
     considerPreserveObject(pos);
@@ -208,7 +208,7 @@ dragResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
   { Int cx, cy;
 
     get_xy_event(ev, ev->receiver, ON, &cx, &cy);
-    
+
     if ( g->mode == NAME_column )
     { TableColumn col = getColumnTable(tab, g->column, ON);
       int nw = valInt(cx) - valInt(col->position);
@@ -281,7 +281,7 @@ static senddecl send_resizeGesture[] =
 #define get_resizeGesture NULL
 /*
 static getdecl get_resizeGesture[] =
-{ 
+{
 };
 */
 

@@ -30,4 +30,4 @@ dialog(W) :-
 	send(D, default_button, apply),
 	send(D, open).
 
-	     
+

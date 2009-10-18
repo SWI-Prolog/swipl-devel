@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,11 +35,15 @@
 	    '$home'/1,
 	    '$argv'/1,
 	    '$strip_module'/3,
+	    '$declare_module'/3,
+	    at_initialization/1,	% :Goal
 	    displayq/1,
 	    displayq/2,
 	    sformat/2,			% -String, +Fmt
 	    sformat/3,			% -String, +Fmt, +Args
 	    concat/3,
+	    concat_atom/2,		% +List, -Atom
+	    concat_atom/3,		% +List, +Sep, -Atom
 	    read_variables/2,
 	    read_variables/3,
 	    feature/2,
@@ -59,8 +63,16 @@
 	    current_mutex/3,		% ?Mutex, ?Owner, ?Count
 	    message_queue_size/2,	% +Queue, -TermsWaiting
 	    lock_predicate/2,		% +Name, +Arity
-	    unlock_predicate/2		% +Name, +Arity
+	    unlock_predicate/2,		% +Name, +Arity
+	    current_module/2,		% ?Module, ?File
+	    export_list/2,		% +Module, -Exports
+	    setup_and_call_cleanup/3,	% :Setup, :Goal, :Cleanup
+	    setup_and_call_cleanup/4,	% :Setup, :Goal, ?Catcher, :Cleanup
+	    merge/3,			% +List1, +List2, -Union
+	    merge_set/3			% +Set1, +Set2, -Union
 	  ]).
+:- use_module(apply, [maplist/2]).
+:- use_module(system, [lock_predicate/1, unlock_predicate/1]).
 
 /** <module> Backward compatibility
 
@@ -71,23 +83,46 @@ ISO-standard compliant predicates.
 
 Please also note the existence of   quintus.pl and edinburgh.pl for more
 compatibility predicates.
+
+@see	gxref/0 can be used to find files that import from
+	library(backcomp) and thus reply on deprecated features.
 */
+
+%%	'$arch'(-Architecture, -Version) is det.
+%
+%	@deprecated use current_prolog_flag(arch, Architecture)
 
 '$arch'(Arch, unknown) :-
 	current_prolog_flag(arch, Arch).
+
+%%	'$version'(Version:integer) is det.
+%
+%	@deprecated use current_prolog_flag(version, Version)
+
 '$version'(Version) :-
-	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
-	Version is 10000*Major+100*Minor+Patch.
+	current_prolog_flag(version, Version).
+
+%%	'$home'(-SWIPrologDir) is det.
+%
+%	@deprecated use current_prolog_flag(home, SWIPrologDir)
+%	@see file_search_path/2, absolute_file_name/3,  The Prolog home
+%	     directory is available through the alias =swi=.
+
 '$home'(Home) :-
 	current_prolog_flag(home, Home).
+
+%%	'$argv'(-Argv:list) is det.
+%
+%	@deprecated use current_prolog_flag(argv, Argv)
+
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
 
 %%	displayq(@Term) is det.
 %%	displayq(+Stream, @Term) is det.
-%	
+%
 %	Write term ignoring operators and quote atoms.
-%	
+%
 %	@deprecated Use write_term/3 or write_canonical/2.
 
 displayq(Term) :-
@@ -114,6 +149,31 @@ sformat(String, Format, Arguments) :-
 
 concat(A, B, C) :-
 	atom_concat(A, B, C).
+
+%%	concat_atom(+List, -Atom) is det.
+%
+%	Concatenate a list of atomic values to an atom.
+%
+%	@deprecated Use atomic_list_concat/2 as proposed by the prolog
+%		    commons initiative.
+
+concat_atom([A, B], C) :- !,
+	atom_concat(A, B, C).
+concat_atom(L, Atom) :-
+	atomic_list_concat(L, Atom).
+
+
+%%	concat_atom(+List, +Seperator, -Atom) is det.
+%
+%	Concatenate a list of atomic values to an atom, inserting Seperator
+%	between each consecutive elements.
+%
+%	@deprecated Use atomic_list_concat/3 as proposed by the prolog
+%		    commons initiative.
+
+concat_atom(L, Sep, Atom) :-
+	atomic_list_concat(L, Sep, Atom).
+
 
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.
@@ -142,7 +202,7 @@ set_feature(Key, Value) :-
 %%	substring(+String, +Offset, +Length, -Sub)
 %
 %	Predecessor of sub_string using 1-based Offset.
-%	
+%
 %	@deprecated Use sub_string/5.
 
 substring(String, Offset, Length, Sub) :-
@@ -168,17 +228,17 @@ write_ln(X) :-
 %	Old SWI-Prolog predicate to check for a list that really ends
 %	in a [].  There is not much use for the quick is_list, as in
 %	most cases you want to process the list element-by-element anyway.
-%	
+%
 %	@deprecated Use ISO is_list/1.
 
 proper_list(List) :-
 	is_list(List).
 
 %%	free_variables(+Term, -Variables)
-%	
+%
 %	Return  a  list  of  unbound  variables    in   Term.  The  name
 %	term_variables/2 is more widely used.
-%	
+%
 %	@deprecated Use term_variables/2.
 
 free_variables(Term, Variables) :-
@@ -188,47 +248,47 @@ free_variables(Term, Variables) :-
 %
 %	If Term is ground, Hash is unified to an integer representing
 %	a hash for Term.  Otherwise Hash is left unbound.
-%	
+%
 %	@deprecated Use term_hash/2.
 
 hash_term(Term, Hash) :-
 	term_hash(Term, Hash).
 
 %%	checklist(:Goal, +List)
-%	
+%
 %	@deprecated Use maplist/2
 
-:- module_transparent
-	checklist/2,
-	sublist/3.
+:- meta_predicate
+	checklist(1, +),
+	sublist(1, +, ?).
 
 checklist(Goal, List) :-
 	maplist(Goal, List).
 
 %%	sublist(:Goal, +List1, ?List2)
-%	
+%
 %	Succeeds if List2 unifies with a list holding those terms for wich
 %	call(Goal, Elem) succeeds.
-%	
+%
 %	@deprecated Use include/3 from library(apply)
 %	@compat	DEC10 library
 
 sublist(_, [], []) :- !.
 sublist(Goal, [H|T], Sub) :-
-	call(Goal, H), !, 
-	Sub = [H|R], 
+	call(Goal, H), !,
+	Sub = [H|R],
 	sublist(Goal, T, R).
 sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
 
-%%	strip_module(+Term, -Module, -Plain)
-%	
+%%	'$strip_module'(+Term, -Module, -Plain)
+%
 %	This used to be an internal predicate.  It was added to the XPCE
 %	compatibility library without $ and  since   then  used  at many
 %	places. From 5.4.1 onwards strip_module/3 is  built-in and the $
 %	variation is added here for compatibility.
-%	
+%
 %	@deprecated Use strip_module/3.
 
 :- module_transparent
@@ -237,13 +297,34 @@ sublist(Goal, [_|T], R) :-
 '$strip_module'(Term, Module, Plain) :-
 	strip_module(Term, Module, Plain).
 
+
+%%	'$declare_module'(Module, File, Line)
+%
+%	Used in triple20 particle library. Should use a public interface
+
+'$declare_module'(Module, File, Line) :-
+	'$declare_module'(Module, user, File, Line, false).
+
+
+%%	at_initialization(:Goal) is det.
+%
+%	Register goal only to be run if a saved state is restored.
+%
+%	@deprecated Use initialization(Goal, restore)
+
+:- meta_predicate
+	at_initialization(0).
+
+at_initialization(Goal) :-
+	initialization(Goal, restore).
+
 %%	convert_time(+Stamp, -String)
 %
 %	Convert  a time-stamp as  obtained though get_time/1 into a  textual
 %	representation  using the C-library function ctime().  The  value is
 %	returned  as a  SWI-Prolog string object  (see section  4.23).   See
 %	also convert_time/8.
-%	
+%
 %	@deprecated Use format_time/3.
 
 
@@ -260,7 +341,7 @@ convert_time(Stamp, String) :-
 %	milliseconds  (0--999).  Note that the latter might not  be accurate
 %	or  might always be 0, depending  on the timing capabilities of  the
 %	system.  See also convert_time/2.
-%	
+%
 %	@deprecated Use stamp_date_time/3.
 
 convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
@@ -276,7 +357,7 @@ convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 %
 %	Used to be generated by DCG.  Some people appear to be using in
 %	in normal code too.
-%	
+%
 %	@deprecated Do not use in normal code; DCG no longer generates it.
 
 'C'([H|T], H, T).
@@ -315,7 +396,7 @@ map_mutex_status(locked(Owner, Count), Owner, Count).
 %%	message_queue_size(+Queue, -Size) is det.
 %
 %	True if Queue holds Size terms.
-%	
+%
 %	@deprecated Please use message_queue_property(Queue, Size)
 
 message_queue_size(Queue, Size) :-
@@ -335,4 +416,78 @@ lock_predicate(Name, Arity) :-
 
 unlock_predicate(Name, Arity) :-
 	unlock_predicate(Name/Arity).
+
+%%	current_module(?Module, ?File) is nondet.
+%
+%	True if Module is a module loaded from File.
+%
+%	@deprecated Use module_property(Module, file(File))
+
+current_module(Module, File) :-
+	module_property(Module, file(File)).
+
+%%	export_list(+Module, -List) is det.
+%
+%	Module exports the predicates of List.
+%
+%	@deprecated Use module_property(Module, exports(List))
+
+export_list(Module, List) :-
+	module_property(Module, exports(List)).
+
+%%	setup_and_call_cleanup(:Setup, :Goal, :Cleanup).
+%
+%	Call Cleanup once after Goal is finished.
+%
+%	@deprecated Use setup_call_cleanup/3.
+
+:- meta_predicate
+	setup_and_call_cleanup(0,0,0),
+	setup_and_call_cleanup(0,0,?,0).
+
+setup_and_call_cleanup(Setup, Goal, Cleanup) :-
+	setup_call_cleanup(Setup, Goal, Cleanup).
+
+%%	setup_and_call_cleanup(:Setup, :Goal, Catcher, :Cleanup).
+%
+%	Call Cleanup once after Goal is finished, with Catcher
+%       unified to the reason
+%
+%	@deprecated Use setup_call_cleanup/3.
+
+setup_and_call_cleanup(Setup, Goal, Catcher, Cleanup) :-
+	setup_call_catcher_cleanup(Setup, Goal, Catcher,Cleanup).
+
+%%	merge_set(+Set1, +Set2, -Set3)
+%
+%	Merge the ordered sets Set1 and  Set2   into  a  new ordered set
+%	without duplicates.
+%
+%	@deprecated	New code should use ord_union/3 from
+%			library(ordsets)
+
+merge_set([], L, L) :- !.
+merge_set(L, [], L) :- !.
+merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 @< H2, !, merge_set(T1, [H2|T2], R).
+merge_set([H1|T1], [H2|T2], [H2|R]) :- H1 @> H2, !, merge_set([H1|T1], T2, R).
+merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 == H2,    merge_set(T1, T2, R).
+
+
+%%	merge(+List1, +List2, -List3)
+%
+%	Merge the ordered sets List1 and List2 into a new ordered  list.
+%	Duplicates are not removed and their order is maintained.
+%
+%	@deprecated	The name of this predicate is far too general for
+%			a rather specific function.
+
+merge([], L, L) :- !.
+merge(L, [], L) :- !.
+merge([H1|T1], [H2|T2], [H|R]) :-
+	(   H1 @=< H2
+	->  H = H1,
+	    merge(T1, [H2|T2], R)
+	;   H = H2,
+	    merge([H1|T1], T2, R)
+	).
 

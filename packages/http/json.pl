@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@
 	    json_read/3,		% +Stream, -JSONTerm, +Options
 	    atom_json_term/3,		% ?Atom, ?JSONTerm, +Options
 	    json_write/2,		% +Stream, +Term
-	    json_write/3,		% +Stream, +Term
+	    json_write/3,		% +Stream, +Term, +Options
 	    is_json_term/1,		% @Term
 	    is_json_term/2		% @Term, +Options
 	  ]).
@@ -43,8 +43,7 @@
 :- use_module(library(error)).
 :- use_module(library(option)).
 
-:- initialization
-   load_foreign_library(foreign(json)).
+:- use_foreign_library(foreign(json)).
 
 /** <module> Reading and writing JSON serialization
 
@@ -58,11 +57,11 @@ Prolog representation for a JSON value is defined as:
     * A JSON array is mapped to a Prolog list of JSON values.
 
     * A JSON string is mapped to a Prolog atom
-    
+
     * A JSON number is mapped to a Prolog number
-    
+
     * The JSON constants =true= and =false= are mapped -like JPL- to
-    @(true) and @(false). 
+    @(true) and @(false).
 
     * The JSON constant =null= is mapped to the Prolog term @(null)
 
@@ -141,7 +140,7 @@ type_term(codes,  Result, codes(Result)).
 %
 %	Read next JSON value from Stream into a Prolog term. Options
 %	are:
-%	
+%
 %		* null(NullTerm)
 %		Term used to represent JSON =null=.  Default @(null)
 %		* true(TrueTerm)
@@ -197,7 +196,7 @@ json_term(C, Stream, Constant, Next, Options) :-
 	json_constant(ID, Constant, Options).
 
 json_pairs(0'}, _, [], _) :- !.
-json_pairs(C0, Stream, [Pair|Tail], Options) :- 
+json_pairs(C0, Stream, [Pair|Tail], Options) :-
 	json_pair(C0, Stream, Pair, C, Options),
 	ws(C, Stream, Next),
 	(   Next == 0',
@@ -213,10 +212,10 @@ json_pair(C0, Stream, Name=Value, Next, Options) :-
 	ws(Stream, C),
 	C == 0':,
 	json_value(Stream, Value, Next, Options).
-	
+
 
 json_array(0'], _, [], _) :- !.
-json_array(C0, Stream, [Value|Tail], Options) :- 
+json_array(C0, Stream, [Value|Tail], Options) :-
 	json_term(C0, Stream, Value, C, Options),
 	ws(C, Stream, Next),
 	(   Next == 0',
@@ -267,7 +266,7 @@ escape(0'u, Stream, C) :- !,
 	code_type(C2, xdigit(D2)),
 	code_type(C3, xdigit(D3)),
 	code_type(C4, xdigit(D4)),
-	C is D1<<12+D2<<8+D3<<4+D4.		  
+	C is D1<<12+D2<<8+D3<<4+D4.
 
 json_number_codes(Stream, Codes, Next) :-
 	get_code(Stream, C1),
@@ -278,7 +277,7 @@ json_number_codes(C1, Stream, [C1|Codes], Next) :-
 	get_code(Stream, C2),
 	json_number_codes(C2, Stream, Codes, Next).
 json_number_codes(C, _, [], C).
-	
+
 number_code(C) :-
 	between(0'0, 0'9, C), !.
 number_code(0'.).
@@ -368,17 +367,17 @@ stream_error_context(Stream, stream(Stream, Line, LinePos, CharNo)) :-
 %	Name-Value and Name(Value) produce the  same output. In addition
 %	to  the  options  recognised  by  json_read/3,  we  process  the
 %	following options are recognised:
-%	
+%
 %	    * width(+Width)
 %	    Width in which we try to format the result.  Too long lines
 %	    switch from _horizontal_ to _vertical_ layout for better
 %	    readability. If performance is critical and human
 %	    readability is not an issue use Width = 0, which causes a
 %	    single-line output.
-%	    
+%
 %	    * step(+Step)
 %	    Indentation increnment for next level.  Default is 2.
-%	    
+%
 %	    * tab(+TabDistance)
 %	    Distance between tab-stops.  If equal to Step, layout
 %	    is generated with one tab per level.
@@ -387,7 +386,7 @@ stream_error_context(Stream, stream(Stream, Line, LinePos, CharNo)) :-
 			   step:positive_integer = 2,
 			   tab:positive_integer = 8,
 			   width:nonneg = 72).
-			   
+
 json_write(Stream, Term) :-
 	json_write(Stream, Term, []).
 json_write(Stream, Term, Options) :-
@@ -405,7 +404,7 @@ json_write_term(json(Pairs), Stream, State, Options) :- !,
 	    (   Width == 0
 	    ->  true
 	    ;   json_write_state_indent(State, Indent),
-		json_print_length(json(Pairs), Width, Indent, _)
+		json_print_length(json(Pairs), Options, Width, Indent, _)
 	    )
 	->  set_width_of_json_write_state(0, State, State2),
 	    write_pairs_hor(Pairs, Stream, State2, Options),
@@ -423,7 +422,7 @@ json_write_term(List, Stream, State, Options) :-
 	    (   Width == 0
 	    ->  true
 	    ;   json_write_state_indent(State, Indent),
-		json_print_length(List, Width, Indent, _)
+		json_print_length(List, Options, Width, Indent, _)
 	    )
 	->  set_width_of_json_write_state(0, State, State2),
 	    write_array_hor(List, Stream, State2, Options),
@@ -459,7 +458,7 @@ write_pairs_hor([H|T], Stream, State, Options) :-
 	;   write(Stream, ', '),
 	    write_pairs_hor(T, Stream, State, Options)
 	).
-	
+
 write_pairs_ver([], _, _, _).
 write_pairs_ver([H|T], Stream, State, Options) :-
 	indent(Stream, State),
@@ -504,7 +503,7 @@ write_array_ver([H|T], Stream, State, Options) :-
 	;   write(Stream, ','),
 	    write_array_ver(T, Stream, State, Options)
 	).
-	
+
 
 indent(Stream, State) :-
 	json_write_state_indent(State, Indent),
@@ -523,59 +522,71 @@ space_if_not_at_left_margin(Stream) :-
 	put_char(Stream, ' ').
 
 
-%%	json_print_length(+Value, +Max, +Len0, +Len) is semidet.  
+%%	json_print_length(+Value, +Options, +Max, +Len0, +Len) is semidet.
 %
 %	True if Len-Len0 is the print-length of Value on a single line
 %	and Len-Len0 =< Max.
-%	
+%
 %	@tbd	Escape sequences in strings are not considered.
 
-json_print_length(json(Pairs), Max, Len0, Len) :- !,
+json_print_length(json(Pairs), Options, Max, Len0, Len) :- !,
 	Len1 is Len0 + 2,
 	Len1 =< Max,
-	pairs_print_length(Pairs, Max, Len1, Len).
-json_print_length(Array, Max, Len0, Len) :-
+	pairs_print_length(Pairs, Options, Max, Len1, Len).
+json_print_length(Array, Options, Max, Len0, Len) :-
 	is_list(Array), !,
 	Len1 is Len0 + 2,
 	Len1 =< Max,
-	array_print_length(Array, Max, Len1, Len).
-json_print_length(Number, Max, Len0, Len) :-
+	array_print_length(Array, Options, Max, Len1, Len).
+json_print_length(Null, Options, Max, Len0, Len) :-
+  json_options_null(Options, Null), !,
+	Len is Len0 + 4,
+	Len =< Max.
+json_print_length(False, Options, Max, Len0, Len) :-
+  json_options_false(Options, False), !,
+	Len is Len0 + 5,
+	Len =< Max.
+json_print_length(True, Options, Max, Len0, Len) :-
+  json_options_true(Options, True), !,
+	Len is Len0 + 4,
+	Len =< Max.
+json_print_length(Number, _Options, Max, Len0, Len) :-
 	number(Number), !,
 	atom_length(Number, AL),
 	Len is Len0 + AL,
 	Len =< Max.
-json_print_length(@(Id), Max, Len0, Len) :- !,
+json_print_length(@(Id), _Options, Max, Len0, Len) :- !,
 	atom_length(Id, IdLen),
 	Len is Len0+IdLen,
 	Len =< Max.
-json_print_length(String, Max, Len0, Len) :-
+json_print_length(String, _Options, Max, Len0, Len) :-
 	string_len(String, Len0, Len),
 	Len =< Max.
 
-pairs_print_length([], _, Len, Len).
-pairs_print_length([H|T], Max, Len0, Len) :-
-	pair_len(H, Max, Len0, Len1),
+pairs_print_length([], _, _, Len, Len).
+pairs_print_length([H|T], Options, Max, Len0, Len) :-
+	pair_len(H, Options, Max, Len0, Len1),
 	(   T == []
 	->  Len = Len1
 	;   Len2 is Len1 + 2,
 	    Len2 =< Max,
-	    pairs_print_length(T, Max, Len2, Len)
+	    pairs_print_length(T, Options, Max, Len2, Len)
 	).
 
-pair_len(Name=Value, Max, Len0, Len) :-
+pair_len(Name=Value, Options, Max, Len0, Len) :-
 	string_len(Name, Len0, Len1),
 	Len2 is Len1+2,
 	Len2 =< Max,
-	json_print_length(Value, Max, Len2, Len).
+	json_print_length(Value, Options, Max, Len2, Len).
 
-array_print_length([], _, Len, Len).
-array_print_length([H|T], Max, Len0, Len) :-
-	json_print_length(H, Max, Len0, Len1),
+array_print_length([], _, _, Len, Len).
+array_print_length([H|T], Options, Max, Len0, Len) :-
+	json_print_length(H, Options, Max, Len0, Len1),
 	(   T == []
 	->  Len = Len1
 	;   Len2 is Len1+2,
 	    Len2 =< Max,
-	    array_print_length(T, Max, Len2, Len)
+	    array_print_length(T, Options, Max, Len2, Len)
 	).
 
 string_len(String, Len0, Len) :-

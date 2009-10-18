@@ -65,8 +65,8 @@ typedef struct avl_tree
   long        count;          /* number of nodes in the tree */
 			      /* function used to compare keys */
   void	     *client_data;		/* arbitrary client data */
-  int         (*compar)(void *l, void*r, NODE type); 
-  void        (*destroy)(void *data); 
+  int         (*compar)(void *l, void*r, NODE type);
+  void        (*destroy)(void *data);
   void*	      (*alloc)(void *cdata, size_t size);
   void	      (*free)(void *cdata, void* data, size_t size);
   int	      isize;	      /* item data size */
@@ -102,7 +102,7 @@ extern void         avlfree(AVL_TREE tree);
        /* Routine for manipulating/accessing each data item in a tree */
 extern void      avlwalk(AVL_TREE,
 			 void (*action)(void *data,
-					SIBLING_ORDER order, 
+					SIBLING_ORDER order,
 					NODE type,
 					int level,
 					int balance),

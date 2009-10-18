@@ -175,7 +175,7 @@ has_relation_value(Obj, Selector) :-
 %	from or delegates too.
 
 :- dynamic done_class/1.
-	
+
 super_or_delegate_class(Class, Super) :-
 	retractall(done_class(_)),
 	super_or_delegate_class_(Class, Super).

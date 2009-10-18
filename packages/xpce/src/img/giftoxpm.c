@@ -63,7 +63,7 @@ static int
 alloc_color(int index, int r, int g, int b, void *closure)
 { XpmImage *img = closure;
   XpmColor *c;
-  
+
   if ( index < 0 || index >= (int)img->ncolors )
     return GIF_INVALID;
   c = &img->colorTable[index];
@@ -108,6 +108,7 @@ gif_extension(int ext, void *data, void *closure)
 int
 XpmReadGIF(IOSTREAM *fd, XpmImage *img)
 { long here = Stell(fd);
+  int w, h;
 
   img->ncolors    = 0;
   img->colorTable = NULL;
@@ -115,13 +116,15 @@ XpmReadGIF(IOSTREAM *fd, XpmImage *img)
 
   switch( GIFReadFD(fd,
 		    &img->data,
-		    &img->width,
-		    &img->height,
+		    &w,
+		    &h,
 		    alloc_colortable,
 		    alloc_color,
 		    gif_extension,
 		    img) )
   { case GIF_OK:
+      img->width = w;
+      img->height = h;
       return XpmSuccess;
     case GIF_NOMEM:
       Sseek(fd, here, SIO_SEEK_SET);

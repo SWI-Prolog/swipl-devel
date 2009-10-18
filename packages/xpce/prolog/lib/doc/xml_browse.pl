@@ -39,7 +39,7 @@
 :- use_module(library(find_file)).
 
 :- pce_global(@finder, new(finder)).
- 
+
 :- multifile
 	doc:caption/2.
 
@@ -54,7 +54,7 @@ initialise(B, XML:[prolog]) :->
 	send(new(doc_window), right, H),
 	send(H, below, D),
 	send(new(report_dialog), below, H).
-	
+
 fill_dialog(B, D:tool_dialog) :->
 	send_list(D, append,
 		  [ new(F, popup(file)),
@@ -94,7 +94,7 @@ show_xml(B, Tokens:prolog) :->
 	"Show parsed XML in browser"::
 	get(B, member, doc_window, DW),
 	send(DW, show, Tokens).
-	
+
 :- pce_group(action).
 
 open_file(B) :->
@@ -114,13 +114,13 @@ open_file(B) :->
 			   ])
 	),
 	send(B, xml, DOM).
-	    
+
 dialect(html, html).
 dialect(htm,  html).
 dialect(xml,  xml).
 dialect(sgml, sgml).
 dialect(sgm,  sgml).
-	    
+
 about(_B) :->
 	send(@display, inform,
 	     'Visualise HTML/XML/SGML DOM structure\n\
@@ -218,7 +218,7 @@ find(element(_, _, Content), E, A, Text, [N|T]) :-
 	find(Sub, E, A, Text, T).
 
 %	nth_element(-N, +List, -Element)
-%	
+%
 %	As nth1/3, but only counts the element(_,_,_) terms in the
 %	list.
 

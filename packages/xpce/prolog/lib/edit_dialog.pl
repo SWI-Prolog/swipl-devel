@@ -38,4 +38,4 @@
 
 dialog :-
 	send(new(dia_editor), open).
-	
+

@@ -5,7 +5,7 @@ myapp :-
 	send(new(MD, dialog), above, B),
 	send(new(RD, dialog), below, B),
 	send(Frame, append, B),
-	
+
 	send(MD, append, new(MB, menu_bar)),
 	send(MD, gap, size(0,0)),
 	send(MD, pen, 0),

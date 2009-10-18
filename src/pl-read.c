@@ -104,7 +104,7 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
 
       if ( !PL_is_variable(in) )
       { if ( PL_get_char(in, &cin, FALSE) )
-	  return PL_unify_char(out, char_conversion_table[cin], CHAR_MODE);
+	  return PL_unify_char(out, char_conversion_table[cin], PL_CHAR);
 	fail;
       }
       ctx = 0;
@@ -121,8 +121,8 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
 
   fid = PL_open_foreign_frame();
   for( ; ctx < 256; ctx++)
-  { if ( PL_unify_char(in, ctx, CHAR_MODE) &&
-	 PL_unify_char(out, char_conversion_table[ctx], CHAR_MODE) )
+  { if ( PL_unify_char(in, ctx, PL_CHAR) &&
+	 PL_unify_char(out, char_conversion_table[ctx], PL_CHAR) )
       ForeignRedoInt(ctx+1);
 
     PL_rewind_foreign_frame(fid);
@@ -264,7 +264,7 @@ typedef struct
 #define var_buffer	  (_PL_rd->vt._var_buffer)
 
 static void
-init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD) 
+init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
 { memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
 
   initBuffer(&var_name_buffer);
@@ -275,8 +275,8 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
-  _PL_rd->backquoted_string = trueFeature(BACKQUOTED_STRING_FEATURE);
-  if ( trueFeature(CHARCONVERSION_FEATURE) )
+  _PL_rd->backquoted_string = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
+  if ( truePrologFlag(PLFLAG_CHARCONVERSION) )
     _PL_rd->char_conversion_table = char_conversion_table;
   else
     _PL_rd->char_conversion_table = NULL;
@@ -473,7 +473,7 @@ reportReadError(ReadData rd)
     fail;
 
   printMessage(ATOM_error, PL_TERM, rd->exception);
-  
+
   if ( rd->on_error == ATOM_dec10 )
     succeed;
 
@@ -506,7 +506,7 @@ clearBuffer(ReadData _PL_rd)
 
   _PL_rd->posp = rdbase;
   _PL_rd->posi = 0;
-}      
+}
 
 
 static void
@@ -701,11 +701,13 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 
 static void
 setErrorLocation(IOPOS *pos, ReadData _PL_rd)
-{ GET_LD
+{ if ( pos )
+  { GET_LD
 
-  source_char_no = pos->charno;
-  source_line_pos = pos->linepos;
-  source_line_no = pos->lineno;
+    source_char_no = pos->charno;
+    source_line_pos = pos->linepos;
+    source_line_no = pos->lineno;
+  }
   rb.here = rb.base+1;			/* see rawSyntaxError() */
 }
 
@@ -717,7 +719,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
   bool dotseen = FALSE;
   IOPOS pbuf;					/* comment start */
   IOPOS *pos;
-  
+
   clearBuffer(_PL_rd);				/* clear input buffer */
   source_line_no = -1;
 
@@ -1019,7 +1021,7 @@ raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
 
   if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
   { ttybuf tab;
-    
+
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab);
     s = raw_read2(_PL_rd PASS_LD);
@@ -1084,7 +1086,7 @@ static Variable
 isVarAtom(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
     return &baseBuffer(&var_buffer, variable)[w>>7];
-  
+
   return NULL;
 }
 
@@ -1102,7 +1104,7 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 	       return v;
 	     })
   }
-       
+
   nv = entriesBuffer(&var_buffer, variable);
   next.name      = save_var_name(name, len, _PL_rd);
   next.namelen   = len;
@@ -1237,7 +1239,7 @@ skipSpaces(cucharp in)
 
     if ( !PlBlankW(chr) )
       return (ucharp)in;
-  }  
+  }
 
   return (ucharp)in;
 }
@@ -1253,7 +1255,7 @@ SkipIdCont(unsigned char *in)
 
     if ( !PlIdContW(chr) )
       return in;
-  }  
+  }
 
   return in;
 }
@@ -1271,7 +1273,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
       return in;
     if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
-  }  
+  }
 
   return in;
 }
@@ -1280,17 +1282,17 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
 #define unget_token()	{ unget = TRUE; }
 
 #ifndef O_GMP
-static real
-uint64_to_real(uint64_t i)
+static double
+uint64_to_double(uint64_t i)
 {
 #ifdef __WINDOWS__
   int64_t s = (int64_t)i;
   if ( s >= 0 )
-    return (real)s;
+    return (double)s;
   else
-    return (real)s + 18446744073709551616.0;
+    return (double)s + 18446744073709551616.0;
 #else
-  return (real)i;
+  return (double)i;
 #endif
 }
 #endif
@@ -1305,12 +1307,12 @@ scan_decimal(cucharp *sp, Number n)
 
   for(c = *s; isDigit(c); c = *++s)
   { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
-    { 
+    {
 #ifdef O_GMP
       n->value.i = (int64_t)t;
       n->type = V_INTEGER;
       promoteToMPZNumber(n);
-      
+
       for(c = *s; isDigit(c); c = *++s)
       { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
 	mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
@@ -1320,7 +1322,7 @@ scan_decimal(cucharp *sp, Number n)
       succeed;
 #else
       double maxf = MAXREAL / (double) 10 - (double) 10;
-      double tf = uint64_to_real(t);
+      double tf = uint64_to_double(t);
 
       for(c = *s; isDigit(c); c = *++s)
       { if ( tf > maxf )
@@ -1329,12 +1331,12 @@ scan_decimal(cucharp *sp, Number n)
       }
       *sp = s;
       n->value.f = tf;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       succeed;
 #endif
     } else
       t = t * 10 + c - '0';
-  }  
+  }
 
   *sp = s;
 
@@ -1373,18 +1375,18 @@ scan_number(cucharp *s, int b, Number n)
 
       succeed;
 #else
-      real maxf = MAXREAL / (real) b - (real) b;
-      real tf = uint64_to_real(t);
+      double maxf = MAXREAL / (double) b - (double) b;
+      double tf = uint64_to_double(t);
 
-      tf = tf * (real)b + (real)d;
+      tf = tf * (double)b + (double)d;
       while((d = digitValue(b, *q)) >= 0)
       { q++;
         if ( tf > maxf )
 	  fail;				/* number too large */
-        tf = tf * (real)b + (real)d;
+        tf = tf * (double)b + (double)d;
       }
       n->value.f = tf;
-      n->type = V_REAL;
+      n->type = V_FLOAT;
       *s = q;
       succeed;
 #endif
@@ -1392,7 +1394,7 @@ scan_number(cucharp *s, int b, Number n)
     { q++;
       t = t * b + d;
     }
-  }  
+  }
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1581,7 +1583,7 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
     *end = in;
 
   return TRUE;
-}  
+}
 
 
 static void
@@ -1594,7 +1596,7 @@ neg_number(Number n)
 	promoteToMPZNumber(n);
 	mpz_neg(n->value.mpz, n->value.mpz);
 #else
-	n->type = V_REAL;
+	n->type = V_FLOAT;
 	n->value.f = -(double)n->value.i;
 #endif
       } else
@@ -1608,7 +1610,7 @@ neg_number(Number n)
     case V_MPQ:
       assert(0);			/* are not read directly */
 #endif
-    case V_REAL:
+    case V_FLOAT:
       n->value.f = -n->value.f;
   }
 }
@@ -1631,7 +1633,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     switch(in[1])
     { case '\'':			/* 0'<char> */
       { int chr;
-	
+
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0, NULL);
 	} else
@@ -1695,7 +1697,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
   if ( *in == '.' && isDigit(in[1]) )
   { double n;
 
-    promoteToRealNumber(value);
+    promoteToFloatNumber(value);
     n = 10.0, in++;
     while( isDigit(c = *in) )
     { in++;
@@ -1727,7 +1729,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 	 exponent.type != V_INTEGER )
       fail;				/* too large exponent */
 
-    promoteToRealNumber(value);
+    promoteToFloatNumber(value);
 
     value->value.f *= pow((double)10.0,
 			  neg_exponent ? -(double)exponent.value.i
@@ -1806,7 +1808,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
   }
 
   switch(_PL_char_types[c])
-  { case LC:	
+  { case LC:
     lower:
 		{ PL_chars_t txt;
 
@@ -1814,7 +1816,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		symbol:
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
-		  
+
 		functor:
 		  txt.text.t    = (char *)start;
 		  txt.length    = rdhere-start;
@@ -1823,6 +1825,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.canonical = FALSE;
 		  cur_token.value.atom = textToAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
+		  PL_free_text(&txt);
 
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
@@ -1835,7 +1838,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		{ rdhere = SkipIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
-		  if ( *rdhere == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
+		  if ( *rdhere == '(' && truePrologFlag(ALLOW_VARNAME_FUNCTOR) )
 		    goto functor;
 		  if ( start[0] == '_' &&
 		       rdhere == start + 1 &&
@@ -1985,7 +1988,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #endif
-    default:	
+    default:
     		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
 		}
@@ -2168,7 +2171,7 @@ remainder of the values.
 	realloca(side, sizeof(*side), side_n+1); \
 	side[side_n++] = in_op; \
 	side_p = (side_n == 1 ? 0 : side_p+1);
-	
+
 #define Modify(cpri) \
 	if ( side_p >= 0 && cpri > side[side_p].right_pri ) \
 	{ term_t tmp; \
@@ -2233,7 +2236,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 		    		PL_TERM, args[1].tpos);
     } else
     { long s, e;
-      
+
       if ( op->kind == OP_PREFIX )
       { s = fs;
 	e = get_int_arg(args[0].tpos, 2 PASS_LD);
@@ -2250,7 +2253,7 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 		    PL_LONG, fe,
 		    PL_LIST, 1, PL_TERM, args[0].tpos);
     }
-    
+
     return r;
   }
 
@@ -2364,7 +2367,7 @@ complex_term(const char *stop, term_t term, term_t positions,
       pin = PL_new_term_ref();
     else
       pin = 0;
-  
+
     if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
     { if ( !(token = get_token(rmo == 1, _PL_rd)) )
 	fail;
@@ -2400,7 +2403,7 @@ complex_term(const char *stop, term_t term, term_t positions,
 
       if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
-	
+
 	PushOp();
 
 	continue;
@@ -2423,8 +2426,8 @@ complex_term(const char *stop, term_t term, term_t positions,
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
 	{ Reduce(in_op.left_pri);
-	  PushOp();	
-	
+	  PushOp();
+
 	  continue;
 	}
       }
@@ -2673,7 +2676,7 @@ term is to be written.
 		readValHandle(tmp, argp++, _PL_rd PASS_LD);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));
-		
+
 		token = get_token(must_be_op, _PL_rd);
 
 		switch(token->value.character)
@@ -2852,7 +2855,7 @@ pl_raw_read2(term_t from, term_t term)
     top++;
   *top = EOS;
   s = skipSpaces(s);
-  
+
   txt.text.t    = (char*)s;
   txt.length    = top-s;
   txt.storage   = PL_CHARS_HEAP;
@@ -2934,45 +2937,39 @@ retry:
 }
 
 
-static
-PRED_IMPL("read_clause", 2, read_clause, 0)
-{ PRED_LD
-  int rval;
+static int
+read_clause_pred(term_t from, term_t term ARG_LD)
+{ int rval;
+  IOSTREAM *s;
 
-  switch( CTX_ARITY )
-  { case 1:
-    { IOSTREAM *s;
+  if ( !getInputStream(from, &s) )
+    fail;
+  rval = read_clause(s, term PASS_LD);
+  if ( Sferror(s) )
+    return streamStatus(s);
+  else
+    PL_release_stream(s);
 
-      if ( !getInputStream(0, &s) )	/* Scurin */
-	fail;
-      rval = read_clause(s, A1 PASS_LD);
-      if ( Sferror(s) )
-	return streamStatus(s);
-      else
-	PL_release_stream(s);
-
-      return rval;
-    }
-    case 2:
-    { IOSTREAM *s;
-
-      if ( !getInputStream(A1, &s) )
-	fail;
-      rval = read_clause(s, A2 PASS_LD);
-      if ( Sferror(s) )
-	return streamStatus(s);
-      else
-	PL_release_stream(s);
-
-      return rval;
-    }
-  }
-  assert(0);
-  fail;
+  return rval;
 }
 
 
-static const opt_spec read_term_options[] = 
+static
+PRED_IMPL("read_clause", 1, read_clause, 0)
+{ PRED_LD
+
+  return read_clause_pred(0, A2 PASS_LD);
+}
+
+static
+PRED_IMPL("read_clause", 2, read_clause, 0)
+{ PRED_LD
+
+  return read_clause_pred(A1, A2 PASS_LD);
+}
+
+
+static const opt_spec read_term_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_variables,         OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
@@ -3025,7 +3022,7 @@ retry:
   if ( mname )
   { rd.module = lookupModule(mname);
     rd.flags  = rd.module->flags;
-  } 
+  }
 
   if ( charescapes != -1 )
   { if ( charescapes )
@@ -3100,7 +3097,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
     stream->encoding = ENC_UTF8;
     PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
     Sflush(stream);
-    
+
     txt.text.t = s;
     txt.length = bufsize;
     txt.storage = PL_CHARS_HEAP;
@@ -3162,7 +3159,7 @@ PL_chars_to_term(const char *s, term_t t)
   int rval;
   IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
   source_location oldsrc = LD->read_source;
-    
+
   init_read_data(&rd, stream PASS_LD);
   PL_put_variable(t);
   if ( !(rval = read_term(t, &rd PASS_LD)) && rd.has_exception )

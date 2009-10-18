@@ -34,7 +34,7 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ absolute_file_name/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , is_absolute_file_name/1
 	   ]).
 
@@ -75,7 +75,7 @@ pce_image_directory(Dir) :-
 	(   atom(Dir)
 	->  (   \+ is_absolute_file_name(Dir),
 	        prolog_load_context(directory, Cwd)
-	    ->	concat_atom([Cwd, /, Dir], DirPath)
+	    ->	atomic_list_concat([Cwd, /, Dir], DirPath)
 	    ;	DirPath = Dir
 	    ),
 	    asserta(user:file_search_path(image, DirPath))

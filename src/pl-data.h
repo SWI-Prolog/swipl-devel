@@ -65,7 +65,7 @@ Storage places:
 -------------------------------------------------------------
 Var		0      -                 00
 Integer		1      G-       01       00
-Float		2      G        01 
+Float		2      G        01
 Atom		3      S              00
 String		4      G        01
 List		5      G        01
@@ -101,7 +101,7 @@ Indirect data
 	  is only INTEGER, STRING or FLOAT
 
 	* Using value: size in words of the object * 4
-	
+
 	* String uses the low-order 2 bits for specifying the amount of
 	  padding bytes (0-3, 0 means 4).
 
@@ -153,12 +153,13 @@ be kept consistent.
 #define clear_both(p)	do { *(p) &= ~(FIRST_MASK|MARK_MASK); } while(0)
 #define is_marked(p)	(*(p) & MARK_MASK)
 #define is_first(p)	(*(p) & FIRST_MASK)
+#define is_marked_or_first(p) (*(p) & (MARK_MASK|FIRST_MASK))
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
 #define valPtr(w)	valPtr2(w, storage(w))
-#define valInt(w)	((intptr_t)(w) >> 7)
+#define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
@@ -187,7 +188,7 @@ and while loading .wic files.  It comes at no price.
 #define isAtom(w)	(tagex(w) == TAG_ATOM)
 #define isTextAtom(w)	(isAtom(w) && true(atomValue(w)->type, PL_BLOB_TEXT))
 #define isInteger(w)	(tag(w)   == TAG_INTEGER)
-#define isReal(w)	(tag(w)   == TAG_FLOAT)
+#define isFloat(w)	(tag(w)   == TAG_FLOAT)
 #define isString(w)	(tag(w)   == TAG_STRING)
 #define isTerm(w)	(tag(w)   == TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_CONST, B_CONST */
@@ -237,13 +238,13 @@ and while loading .wic files.  It comes at no price.
 #define canBind(w)	needsRef(w)
 #ifdef O_ATTVAR
 #define bindConst(p, c) if ( isVar(*p) ) \
-			{ *p = c; \
+			{ *p = (c); \
     			  Trail(p); \
 			} else \
-			{ assignAttVar(p, &c PASS_LD); \
+			{ assignAttVar(p, &(c) PASS_LD); \
 			}
 #else
-#define bindConst(p, c) { *p = c; \
+#define bindConst(p, c) { *p = (c); \
 			  Trail(p); \
 			}
 #endif
@@ -321,7 +322,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define nonvar(w)	(!isVar(w))
-#define isNumber(w)	(isInteger(w) || isReal(w))
+#define isNumber(w)	(isInteger(w) || isFloat(w))
 #define isAtomic(w)	(!canBind(w) && !isTerm(w))
 
 
@@ -331,8 +332,7 @@ and while loading .wic files.  It comes at no price.
 
 #define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
-#define consInt(n)	(((word)(n)<<7) | TAG_INTEGER)
-#if !O_DEBUG
+#define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 #define consPtr(p,ts)	((word)((((word)(p)-base_addresses[(ts)&STG_MASK])<<5)|(ts)))
-#endif
+
 

@@ -28,11 +28,13 @@
 #define MAX_LIKE_CHOICES	100	/* max *'s in like pattern */
 
 #define STR_MATCH_CASE		0x0	/* Default: perfect match */
-#define	STR_MATCH_EXACT		0x1	/* case-insensitive */
-#define	STR_MATCH_SUBSTRING	0x2	/* substring */
-#define	STR_MATCH_WORD		0x3	/* whole word */
-#define	STR_MATCH_PREFIX	0x4	/* prefix */
-#define STR_MATCH_LIKE		0x5	/* SeRQL *like* match */
+#define STR_MATCH_PLAIN		0x1	/* Same, also match qualifier */
+#define	STR_MATCH_EXACT		0x2	/* case-insensitive */
+#define	STR_MATCH_SUBSTRING	0x3	/* substring */
+#define	STR_MATCH_WORD		0x4	/* whole word */
+#define	STR_MATCH_PREFIX	0x5	/* prefix */
+#define STR_MATCH_LIKE		0x6	/* SeRQL *like* match */
+					/* MAX: 0x7 (3 bits in triple) */
 
 typedef unsigned char charA;
 typedef wchar_t       charW;

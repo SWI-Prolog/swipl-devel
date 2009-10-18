@@ -80,16 +80,16 @@ RedrawLabelDialogItem(Any obj, int acc,
       ix = x;
     else if ( hadjust == NAME_center )
       ix = x + (w-iw)/2;
-    else 
+    else
       ix = x + w-iw;
-    
+
     if ( vadjust == NAME_top )
       iy = y;
     else if ( vadjust == NAME_center )
       iy = y + (h-ih)/2;
-    else 
+    else
       iy = y + h-ih;
-    
+
     r_image(i, 0, 0, ix, iy, iw, ih, ON);
   } else if ( instanceOfObject(di->label, ClassCharArray) )
   { CharArray label = di->label;
@@ -225,7 +225,7 @@ advanceEventDialogItem(Any obj, EventObj ev)
        getKeyboardFocusGraphical(obj) == ON )
   { Name dir = (ev->id == NAME_cursorLeft ? NAME_backwards : NAME_forwards);
     Device dev = ((Graphical)obj)->device;
-  
+
     send(dev, NAME_advance, obj, DEFAULT, dir, EAV);
 
     succeed;
@@ -238,7 +238,7 @@ advanceEventDialogItem(Any obj, EventObj ev)
 status
 eventDialogItem(Any obj, EventObj ev)
 { DialogItem di = obj;
-  
+
   if ( eventGraphical(di, ev) )
     succeed;
   if ( advanceEventDialogItem(obj, ev) )
@@ -389,10 +389,10 @@ acc_index(Abin a, unsigned char *used)
 
     do
     { int acc = a->label[i];
-      
+
       if ( isalpha(acc) )
       { acc = tolower(acc);
-  
+
 	if ( !(used && used[acc]) )
 	{ a->index = i;
 	  a->acc = acc;
@@ -411,13 +411,13 @@ acc_index(Abin a, unsigned char *used)
   if ( a->mode == ACC_UPPER )
   { for( i = a->index+1; a->label[i]; i++ )
     { int acc = a->label[i];
-  
+
       if ( isupper(acc) )
       { acc = tolower(acc);
-  
+
 	if ( used && used[acc] )
 	  continue;
-  
+
 	a->index = i;
 	a->acc = acc;
 	succeed;

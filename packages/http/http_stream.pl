@@ -36,11 +36,11 @@
 	    cgi_open/4,			% +Stream, -DataStream, :Hook, +Options
 	    cgi_property/2,		% +Stream, -Property
 	    cgi_set/2,			% +Stream, -Property
-	    cgi_discard/1		% +Stream
+	    cgi_discard/1,		% +Stream
+	    is_cgi_stream/1		% +Stream
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(http_stream)).
+:- use_foreign_library(foreign(http_stream)).
 
 /** <module> HTTP Streams
 
@@ -72,11 +72,11 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	Create a stream to realise HTTP   chunked  encoding or decoding.
 %	The technique is similar to library(zlib), using a Prolog stream
 %	as a filter on another stream.  Options:
-%	
+%
 %		* close_parent(+Bool)
 %		If =true= (default =false=), the parent stream is closed
 %		if DataStream is closed.
-%		
+%
 %		* max_chunk_size(+PosInt)
 %		Define the maximum size of a chunk.  Default is the
 %		default buffer size of fully buffered streams (4096).
@@ -85,37 +85,37 @@ bytes, dispite the fact that the underlying stream may be longer.
 %		on the data stream to get line-buffered output. See
 %		set_stream/2 for details. Switching buffering to =false=
 %		is supported.
-%		
+%
 %	Here is example code to write a chunked data to a stream
-%	
+%
 %	==
 %		http_chunked_open(Out, S, []),
 %		format(S, 'Hello world~n', []),
 %		close(S).
 %	==
-%	
+%
 %	If a stream is known to contain chunked data, we can extract
 %	this data using
-%	
+%
 %	==
 %		http_chunked_open(In, S, []),
 %		read_stream_to_codes(S, Codes),
 %		close(S).
 %	==
-%	
+%
 %	The current implementation does not  generate chunked extensions
 %	or an HTTP trailer. If such extensions  appear on the input they
 %	are silently ignored. This  is  compatible   with  the  HTTP 1.1
 %	specifications. Although a filtering  stream   is  an  excellent
 %	mechanism for encoding and decoding   the core chunked protocol,
 %	it does not well support out-of-band data.
-%	
+%
 %	After http_chunked_open/3, the encoding  of   DataStream  is the
 %	same as the  encoding  of  RawStream,   while  the  encoding  of
 %	RawStream is =octet=, the only value   allowed  for HTTP chunked
 %	streams. Closing the DataStream  restores   the  old encoding on
 %	RawStream.
-%	
+%
 %	@error	io_error(read, Stream) where the message context provides
 %		an indication of the problem.  This error is raised if
 %		the input is not valid HTTP chunked data.
@@ -131,18 +131,18 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	Process CGI output. OutStream is   normally the socket returning
 %	data to the HTTP client. CGIStream   is  the stream the (Prolog)
 %	code writes to. The CGIStream provides the following functions:
-%	
+%
 %	    * At the end of the header, it calls Hook using
 %	    call(Hook, header, Stream), where Stream is a stream holding
 %	    the buffered header.
-%	    
+%
 %	    * If the stream is closed, it calls Hook using
 %	    call(Hook, data, Stream), where Stream holds the buffered
 %	    data.
-%	    
+%
 %	The stream calls Hook, adding  the   event  and CGIStream to the
 %	closure. Defined events are:
-%	
+%
 %	    * header
 %	    Called  if  the  header  is   complete.  Typically  it  uses
 %	    cgi_property/2 to extract the collected  header and combines
@@ -150,18 +150,18 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    transfer-encoding, connection parameters and   the  complete
 %	    header (as a Prolog term). Typically   it  uses cgi_set/2 to
 %	    associate these with the stream.
-%	    
+%
 %	    * send_header
 %	    Called if the HTTP header must  be sent. This is immediately
 %	    after setting the transfer encoding to =chunked= or when the
 %	    CGI stream is closed.  Typically   it  requests  the current
 %	    header, optionally the content-length and   sends the header
 %	    to the original (client) stream.
-%	    
+%
 %	    * close
 %	    Called from close/1 on the CGI   stream  after everything is
 %	    complete.
-%	    
+%
 %	The predicates cgi_property/2  and  cgi_set/2   can  be  used to
 %	control the stream and store status   info.  Terms are stored as
 %	Prolog records and can thus be transferred between threads.
@@ -169,7 +169,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 %%	cgi_property(+CGIStream, ?Property) is det.
 %
 %	Inquire the status of the CGI stream.  Defined properties are:
-%	
+%
 %	    * request(-Term)
 %	    The original request
 %	    * header(-Term)
@@ -195,7 +195,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 %%	cgi_set(+CGIStream, ?Property) is det.
 %
 %	Change one of the properies.  Supported properties are:
-%	
+%
 %	    * request(+Term)
 %	    Associate a request to the stream.
 %	    * header(+Term)
@@ -208,7 +208,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	    One of =chunked= or =none=.  Initially set to =none=.  When
 %	    switching to =chunked= from the =header= hook, it calls the
 %	    =send_header= hook and if there is data queed this is send
-%	    as first chunk.  Each subsequent write to the CGI stream 
+%	    as first chunk.  Each subsequent write to the CGI stream
 %	    emits a chunk.
 
 %%	cgi_discard(+CGIStream) is det.
@@ -218,6 +218,9 @@ bytes, dispite the fact that the underlying stream may be longer.
 %	must be to use an alternate output   (e.g. an error page) if the
 %	page generator fails.
 
+%%	is_cgi_stream(+Stream) is semidet.
+%
+%	True if Stream is a CGI stream created using cgi_open/4.
 
 :- multifile
 	http:encoding_filter/3.		% +Encoding, +In0,  -In
@@ -225,16 +228,16 @@ bytes, dispite the fact that the underlying stream may be longer.
 	http:current_transfer_encoding/1. % ?Encoding
 
 %	http:encoding_filter(+Encoding, +In0, -In) is semidet.
-%	
+%
 %	Install a filter to deal with =chunked= encoded messages.
 
 http:encoding_filter(chunked, In0, In) :-
-	http_chunked_open(In0, In, 
+	http_chunked_open(In0, In,
 			  [ close_parent(true)
 			  ]).
 
 %	http:current_transfer_encoding(?Encoding) is semidet.
-%	
+%
 %	True if Encoding is supported
 
 http:current_transfer_encoding(chunked).

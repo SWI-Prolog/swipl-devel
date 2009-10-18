@@ -32,6 +32,7 @@ MANUAL=		./MANUAL.dvi
 PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
+VERSION=	$(shell cat ../VERSION)
 
 WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
@@ -40,12 +41,12 @@ BETAMAN=	~www/SWI-Prolog/BETA/Manual
 LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
 		lib/lists.tex lib/bounds.tex lib/clpqr.tex lib/gensym.tex \
-		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex \
+		lib/nbset.tex lib/clpdistinct.tex lib/libsummary.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
 		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
-		lib/pio.tex lib/pureinput.tex
+		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -54,9 +55,9 @@ TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:
-.SUFFIXES: .doc .tex 
+.SUFFIXES: .doc .tex
 
-help:		
+help:
 		@echo
 		@echo '"make all"       creates online, PDF and HTML'
 		@echo '"make online"    creates the help/1 database'
@@ -67,7 +68,7 @@ help:
 		@echo '"make distclean" lets you start from scratch'
 		@echo
 
-all:		
+all:
 		$(MAKE) pdf
 		$(MAKE) clean
 		$(MAKE) online
@@ -102,7 +103,7 @@ txt.sty:	txt/txt.sty
 html.sty:	../packages/ltx2htm/html.sty
 		cp $< $@
 
-clean:		
+clean:
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg
 		rm -f lib/*~ lib/*.tex lib/*.aux
 		rm -f online.* *.tex
@@ -124,7 +125,7 @@ tex:		$(TEXFILES)
 
 $(TEXFILES):	doc2tex
 
-.doc.tex:	
+.doc.tex:
 		./doc2tex $*.doc > $*.tex
 
 doc.bbl:	biblio.doc
@@ -165,17 +166,10 @@ $(DVITOTTY):
 		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
 
 install::
-		rm -rf $(WWWMAN)
-		cp -a Manual $(WWWMAN)
-		tar zcf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
-		install -m 644 $(PDF) $(FTPDIR)/refman/refman.pdf
-		rsync -aCv --delete Manual liduop:/home/web/hcs/projects/SWI-Prolog
+		rsync -av $(PDF) ec:/home/pl/web/download/stable/doc/SWI-Prolog-$(VERSION).pdf
 
 beta-install::
-		rm -rf $(BETAMAN)
-		cp -a Manual $(BETAMAN)
-		install -m 644 MANUAL.pdf $(FTPDIR)/BETA/Manual.pdf
-		tar zcf $(FTPDIR)/BETA/Manual.html.tgz Manual
+		rsync -av $(PDF) ec:/home/pl/web/download/devel/doc/SWI-Prolog-$(VERSION).pdf
 
 ################################################################
 # PlDoc generated manual files
@@ -183,6 +177,8 @@ beta-install::
 
 LIBTOTEX=$(PUBLICPL) -q -s libtotex.pl -g libtotex --
 
+lib/shlib.tex:	../library/shlib.pl
+		$(LIBTOTEX) --subsection 'library(shlib)'
 lib/apply.tex:	../library/apply.pl
 		$(LIBTOTEX) 'library(apply)'
 lib/clpfd.tex:	../library/clp/clpfd.pl
@@ -199,6 +195,8 @@ lib/pureinput.tex: ../library/pure_input.pl
 		$(LIBTOTEX) --subsection 'library(pure_input)'
 lib/threadpool.tex: ../library/thread_pool.pl
 		$(LIBTOTEX) 'library(thread_pool)'
+lib/charsio.tex: ../library/charsio.pl
+		$(LIBTOTEX) 'library(charsio)'
 
 
 ################################################################

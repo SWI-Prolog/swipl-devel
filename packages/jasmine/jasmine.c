@@ -78,7 +78,7 @@ get_chars_or_null_ex(term_t t, char **s)
   { *s = NULL;
     return TRUE;
   }
-  
+
   return pl_error(ERR_TYPE, "atom_or_variable", t);
 }
 
@@ -91,7 +91,7 @@ get_chars_ex(term_t t, char **s)
   { *s = NULL;
     return TRUE;
   }
-  
+
   return pl_error(ERR_TYPE, "atom_or_variable", t);
 }
 
@@ -126,11 +126,11 @@ odb_ses_start(term_t h, term_t node, term_t user, term_t pwd, term_t env)
        !get_chars_or_null_ex(pwd, &p) ||
        !get_chars_or_null_ex(env, &e) )
     return FALSE;
-  
+
   if ( (rval=odbSesStart(&sh, n, u, p, e)) != ODB_NORMAL )
     return report_status(sh, rval);
-  
-  return unify_session(h, sh);  
+
+  return unify_session(h, sh);
 }
 
 
@@ -140,7 +140,7 @@ odb_ses_end(term_t h)
 
   if ( !get_session(h, &sh) )
     return FALSE;
-  
+
   odbSesEnd(sh);
   return TRUE;
 }
@@ -299,7 +299,7 @@ put_value(odbSessH sh, term_t value, odbData data)
 	return pl_error(ERR_TYPE, "time", value);
       tt = (time_t)t;
       tm = localtime(&tt);
-      
+
       return report_status(sh, odbSetDate(data, tm));
     }
     case ODBDEC:
@@ -347,7 +347,7 @@ put_value(odbSessH sh, term_t value, odbData data)
     }
     case ODBOID:
     { if ( PL_is_functor(value, FUNCTOR_odb_object1) )
-      { term_t a; 
+      { term_t a;
 	char *oid;
 
       oid:
@@ -399,7 +399,7 @@ odb_get_var(term_t h, term_t name, term_t value)
   if ( (rval=odbGetVar(sh, vname, data)) == ODB_NORMAL )
   { int r = unify_value(value, data);
     odbFreeData(data);
-    
+
     return r;
   }
 
@@ -419,7 +419,7 @@ odb_set_var(term_t h, term_t name, term_t value)
     return FALSE;
   if ( !get_chars_ex(name, &vname) )
     return FALSE;
-  
+
   data = odbAllocData();
   if ( (rval=odbGetVar(sh, vname, data)) != ODB_NORMAL )
     return report_status(sh, rval);
@@ -474,7 +474,7 @@ ok:
     term_t head = PL_new_term_ref();
     odbData e = odbAllocData();
     int rval = FALSE;
-  
+
     while( odbScanNext(sh, scanId, e) == ODB_NORMAL )
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !unify_value(head, e) )
@@ -482,7 +482,7 @@ ok:
     }
     if ( PL_unify_nil(tail) )
       rval = TRUE;
-  
+
   out:
     odbFreeData(e);
     odbScanClose(sh, scanId);

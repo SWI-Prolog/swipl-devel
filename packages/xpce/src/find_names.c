@@ -26,7 +26,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This program is  used  to  generate   the  built-in  name  database from
 NAME_<id> found in the  sources.  It  must   be  called  in  the  source
-directory using 
+directory using
 
 	find_names h/names.ic h/names.ih -- file ...
 
@@ -71,7 +71,7 @@ scan_file(const char *file)
 { FILE *fd = fopen(file, "r");
   char buf[LINESIZE];
   int len = strlen(name);
-  
+
   if ( !fd )
   { fprintf(stderr, "Warning: could not open %s (skipped)\n", file);
     return 0;
@@ -123,7 +123,7 @@ sort_names()
 
     count = out;
   }
-} 
+}
 
 static void
 emit_names(FILE *ic, FILE *ih)
@@ -156,14 +156,14 @@ main(int argc, char **argv)
 { int i;
   const char *program = argv[0];
   FILE *ic, *ih;
-  
+
   argc--;				/* skip program */
   argv++;
   if ( argc < 3 || strcmp(argv[2], "--") )
   { fprintf(stderr, "Usage: %s ic-file ih-file -- file ...\n", program);
     exit(1);
   }
-  
+
   if ( !(ic = fopen(argv[0], "w")) ||
        !(ih = fopen(argv[1], "w")) )
   { fprintf(stderr, "%s: Could not open output\n", program);
@@ -178,7 +178,7 @@ main(int argc, char **argv)
 
   sort_names();
   emit_names(ic, ih);
-  
+
   fclose(ic);
   fclose(ih);
 

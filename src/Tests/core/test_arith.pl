@@ -33,7 +33,10 @@
 test_arith :-
 	run_tests([ rem,
 		    mod,
-		    errors
+		    gcd,
+		    shift,
+		    errors,
+		    ar_builtin
 		  ]).
 
 :- begin_tests(rem).
@@ -82,6 +85,22 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 
 :- end_tests(mod).
 
+:- begin_tests(shift).
+
+test(shift_right_large, X == 0) :-
+	X is 5>>64.
+
+:- end_tests(shift).
+
+:- begin_tests(gcd).
+
+test(gcd, X == 4) :-
+	X is gcd(100, 24).
+test(gcd, X == 4) :-
+	X is gcd(24, 100).		% seems to be some argument ordering
+
+:- end_tests(gcd).
+
 :- begin_tests(errors).
 
 test(cyclic, [sto(rational_trees), error(type_error(expression, T))]) :-
@@ -90,3 +109,23 @@ test(cyclic, [sto(rational_trees), error(type_error(expression, T))]) :-
 	number(A).			% avoid singleton
 
 :- end_tests(errors).
+
+
+:- begin_tests(ar_builtin).
+
+a1(A, R) :-
+	B is A+1,
+	B =:= R.
+a2 :-
+	X = 7,
+	Y is 10 - X,
+	Y == 3.
+
+test(a_add_fc_int) :-
+	a1(1, 2).
+test(a_add_fc_float) :-
+	a1(0.1, 1.1).
+test(a_fc_minus) :-
+	a2.
+
+:- end_tests(ar_builtin).

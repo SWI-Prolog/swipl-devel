@@ -214,7 +214,7 @@ static getdecl get_classStub[] =
 #define rc_classStub NULL
 /*
 static classvardecl rc_classStub[] =
-{ 
+{
 };
 */
 

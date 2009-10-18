@@ -35,7 +35,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module extends class text_buffer with   the ->print method, dealing
 with printing plain text.  This  issue   is  completely  different  when
-comparing Windows and Unix. 
+comparing Windows and Unix.
 
 Windows
 =======
@@ -122,13 +122,13 @@ win_print(TB, From:int, To:int,
 	    send(BG, attribute, page_right, Right)
 	;   true
 	),
-	
+
 	send(E, scroll_to, From, 1),
 	print_pages(Prt, E, To, margin(LDPI,LDPI), BG, 1, Pages),
 	send(TB, report, status, 'Sent %d pages to the printer', Pages),
 	send(Prt, close),
 	send(E, destroy).
-	
+
 setup_print_editor(_TB, E:editor, From:[editor]) :->
 	"Get defaults from editor"::
 	(   From \== @default
@@ -142,9 +142,9 @@ setup_print_editor(_TB, E:editor, From:[editor]) :->
 
 %%	print_pages(+Printer, +Editor, +EndIndex, +Margin,
 %%		    +Background, +Page, -LastPage) is det.
-%		    
+%
 %       Actual page printing loop.
-%       
+%
 %       @param Margin	Term margin(+X,+Y) representing the page margins
 
 print_pages(Printer, Editor, End, Margin, BG, Page, Pages) :-
@@ -214,7 +214,7 @@ do_print(Command, Text) :-
 	open(pipe(Command), write, Out),
 	write(Out, Text),
 	close(Out).
-	    
+
 :- pce_end_class.
 
 /*

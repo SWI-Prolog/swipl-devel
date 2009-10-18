@@ -85,6 +85,6 @@ read_terms([H|T]) :-
 	),
 	read_terms(T).
 read_terms([]).
-	
-	    
-	
+
+
+

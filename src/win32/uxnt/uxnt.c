@@ -293,7 +293,7 @@ _xos_os_filename(const char *cname, char *osname, size_t len)
 
   if ( !_xos_os_filenameW(cname, buf, PATH_MAX) )
     return NULL;
-  
+
   return wcstoutf8(osname, buf, len);
 }
 
@@ -319,7 +319,7 @@ _xos_canonical_filenameW(const wchar_t *spec,
 
   for(; *s; s++)
   { int c = *s;
-    
+
     if ( c == '\\' )
     { c = '/';
     } else if ( (flags&XOS_DOWNCASE) )
@@ -344,7 +344,7 @@ _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 
   if ( !utf8towcs(buf, spec, PATH_MAX) )
     return NULL;
-  
+
   return _xos_canonical_filenameW(buf, xname, len, flags);
 }
 
@@ -521,7 +521,7 @@ _xos_limited_os_filename(const char *spec, char *limited)
 
   while(*i)
   { int wc;
-  
+
     i = utf8_get_char(i, &wc);
     wc = towlower((wchar_t)wc);
     o = utf8_put_char(o, wc);
@@ -541,7 +541,7 @@ _xos_open(const char *path, int access, ...)
 { va_list args;
   TCHAR buf[PATH_MAX];
   int mode;
-  
+
   va_start(args, access);
   mode = va_arg(args, int);
   va_end(args);
@@ -647,7 +647,11 @@ _xos_rename(const char *old, const char *new)
        !_xos_os_filenameW(new, osnew, PATH_MAX) )
     return -1;
 
-  return _wrename(osold, osnew);
+  if ( MoveFileEx(osold, osnew, MOVEFILE_REPLACE_EXISTING) )
+    return 0;
+
+  errno = EPERM;
+  return -1;				/* TBD: map error codes */
 }
 
 
@@ -657,7 +661,7 @@ _xos_stat(const char *path, struct _stat *sbuf)
 
    if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
-  
+
   return _wstat(buf, sbuf);
 }
 
@@ -701,7 +705,7 @@ opendir(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
     return NULL;
   _tcscat(buf, _T("\\*.*"));
-  
+
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { errno = ENOMEM;
     return NULL;
@@ -825,6 +829,7 @@ _xos_getcwd(char *buf, size_t len)
   return NULL;
 }
 
+
 		 /*******************************
 		 *	    ENVIRONMENT		*
 		 *******************************/
@@ -853,7 +858,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
       rc = strlen(buf);
     else
       rc = wcutf8len(valp);
-    
+
     if ( valp != val )
       free(valp);
 

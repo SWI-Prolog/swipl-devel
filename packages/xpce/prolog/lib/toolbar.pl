@@ -62,7 +62,7 @@ initialise(MyApp) :->
 				print)
 		  ]),
 	...
-				
+
 print(MyApp) :->
 	<Print the current document>
 
@@ -81,7 +81,7 @@ initialise(BG, Client:[object]*, Orientation:[{horizontal,vertical}]) :->
 	send(BG, slot, client, C),
 	send(BG, slot, orientation, O),
 	send(BG, gap, size(0,0)).
-	
+
 append(BG, B:'tool_button|{gap}') :->
 	"Append button or gap"::
 	(   get(BG, orientation, horizontal)
@@ -145,7 +145,7 @@ initialise(TB,
 	    send(TB, help_message, tag, Text)
 	;   send(TB, help_message, tag, Balloon)
 	).
-	     
+
 client(TB, Client:object) :<-
 	get(TB, device, Dev),
 	get(Dev, client, Client).
@@ -232,7 +232,7 @@ execute(TB) :->
 	->  true
 	;   send(Message, forward, NewValue)
 	).
-	
+
 
 value(TB, Value:bool) :->
 	(   get(TB, value, Value)

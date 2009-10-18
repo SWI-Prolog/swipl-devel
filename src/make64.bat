@@ -18,6 +18,11 @@ set LIB=%HOME%\lib64;%LIB%
 set INCLUDE=%HOME%\include;%INCLUDE%
 rem ****************************************************************
 
+echo int main ( void ) { return 0; } > have_manifest.c
+cl /MD have_manifest.c 
+IF EXIST have_manifest.exe.manifest (SET "MTEXE=mt.exe") ELSE (SET "MTEXE=rem")
+del /Q have_manifest.*
+
 rem Build default multi-threaded version 
 nmake MD=WIN64 /f makefile.mak %*
 rem nmake GMP=false MD=WIN64 /f makefile.mak %*

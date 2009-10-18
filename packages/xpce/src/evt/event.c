@@ -58,7 +58,7 @@ initialiseEvent(EventObj e, Name id, Any window,
 
   if ( notNil(EVENT->value) )
   { EventObj parent = EVENT->value;
-    
+
     if ( isDefault(x) )      x      = parent->x;
     if ( isDefault(y) )      y      = parent->y;
     if ( isDefault(bts) )    bts    = parent->buttons;
@@ -177,7 +177,7 @@ considerLocStillEvent()
 		    postNamedEvent(e, (Graphical) last_window, DEFAULT, NAME_postEvent);
 		    delCodeReference(e);
 		    freeableObj(e);
-		    rewindAnswerStack(mark, NIL);		   
+		    rewindAnswerStack(mark, NIL);
 		  })
     }
     loc_still_posted = TRUE;
@@ -274,10 +274,10 @@ isAEvent(EventObj e, Any id)
   } else
   { fail;
   }
-  
+
   TRY( sb    = getNodeEventTree(EventTree, nm) );
   TRY( super = getNodeEventTree(EventTree, id) );
-  
+
   return isAEventNode(sb, super);
 }
 
@@ -358,7 +358,7 @@ getButtonEvent(EventObj e)
   errorPce(e, NAME_noButtonEvent);
   fail;
 }
-   
+
 
 status
 isDragEvent(EventObj ev)
@@ -379,7 +379,7 @@ isDragEvent(EventObj ev)
 
 status
 hasModifierEvent(EventObj ev, Modifier m)
-{ 
+{
 #define DOWN(b) (valInt(ev->buttons) & b)
 #define UP(b)   (!DOWN(b))
   if ( notDefault(m->shift) &&
@@ -424,7 +424,7 @@ Int
 getClickDisplacementEvent(EventObj e)
 { int dx = valInt(e->x) - last_down_x;
   int dy = valInt(e->y) - last_down_y;
-    
+
   answer(toInt(isqrt(dx*dx + dy*dy)));
 }
 
@@ -481,7 +481,7 @@ static void
 get_xy_event_frame(EventObj ev, FrameObj fr, int *rx, int *ry)
 { FrameObj fr2;
   int frx, fry;
-  
+
   get_xy_event_window(ev, ev->window, ON, rx, ry);
   DEBUG(NAME_drag, Cprintf("At %d, %d to %s\n", *rx, *ry, pp(ev->window)));
   frame_offset_window(ev->window, &fr2, &frx, &fry);
@@ -536,7 +536,7 @@ static void
 get_xy_event_graphical(EventObj ev, Graphical gr, int *rx, int *ry)
 { int ox, oy;
   PceWindow sw = getWindowGraphical(gr);
-    
+
   if ( !sw )
     sw = ev->window;
 
@@ -589,13 +589,13 @@ get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
     x -= valInt(dev->area->x) - valInt(dev->offset->x);
     y -= valInt(dev->area->y) - valInt(dev->offset->y);
   }
-  
+
   *rx = toInt(x);
   *ry = toInt(y);
 
   succeed;
 }
-  
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Return x-y coordinates of  Event.  Normally these  are relative to the
@@ -611,7 +611,7 @@ getPositionEvent(EventObj ev, Any obj)
     obj = ev->receiver;
 
   TRY( get_xy_event(ev, obj, OFF, &x, &y) );
-  
+
   if ( isNil(ev->position) )
     assign(ev, position, newObject(ClassPoint, x, y, EAV));
   else
@@ -674,7 +674,7 @@ insideEvent(EventObj ev, Graphical gr)
   DEBUG(NAME_inside, Cprintf("Event at %d,%d on %s\n",
 			     valInt(x), valInt(y), pp(gr)));
   if ( instanceOfObject(gr, ClassWindow) )
-  { int vx, vy, vw, vh; 
+  { int vx, vy, vw, vh;
     PceWindow sw = (PceWindow) gr;
     int ex = valInt(x);
     int ey = valInt(y);
@@ -755,7 +755,7 @@ postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method)
 	    Cprintf("Posting %s to %s->%s (focus on %s)\n",
 		    pp(ev->id), pp(obj), pp(method), pp(rec));
 	});
-		    
+
 
   withLocalVars({ assignVar(EVENT, ev, NAME_local);
 		  assign(ev, receiver, obj);
@@ -843,12 +843,12 @@ mapWheelMouseEvent(EventObj ev, Any rec)
 
     if ( !hasSendMethodObject(rec, NAME_scrollVertical) )
       fail;
-  
+
     if ( valInt(rot) > 0 )
       dir = NAME_backwards;
     else
       dir = NAME_forwards;
-      
+
     if ( valInt(ev->buttons) & BUTTON_shift )
     { unit = NAME_line;
       count = toInt(1);
@@ -859,7 +859,7 @@ mapWheelMouseEvent(EventObj ev, Any rec)
     { unit = NAME_page;
       count = toInt(200);
     }
-  
+
     send(rec, NAME_scrollVertical, dir, unit, count, EAV);
     succeed;				/* Or return? */
   }

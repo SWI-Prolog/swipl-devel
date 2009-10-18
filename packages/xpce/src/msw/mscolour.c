@@ -46,7 +46,7 @@ LoadColourNames()
   { xcolourdef *cd;
 
     ColourNames = globalObject(NAME_colourNames, ClassHashTable, EAV);
-    
+
     for(cd = x11_colours; cd->name; cd++)
     { COLORREF rgb = RGB(cd->red, cd->green, cd->blue);
       char buf[100];
@@ -77,7 +77,7 @@ LoadColourNames()
 { if ( !ColourNames )
   { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), EAV);
     ColourNames = globalObject(NAME_colourNames, ClassHashTable, EAV);
-    
+
     if ( send(f, NAME_open, NAME_read, EAV) )
     { char line[256];
       int r, g, b;
@@ -106,7 +106,7 @@ LoadColourNames()
 	    rgb = RGB(r, g, b);
 	    appendHashTable(ColourNames, cname, toInt(rgb));
 	    DEBUG(NAME_colour, Cprintf("%s --> 0x%lx\n",
-				       pp(cname), (long) rgb)); 
+				       pp(cname), (long) rgb));
 	    break;
 	  }
 	}
@@ -150,7 +150,7 @@ LoadX11ColourNames()
   { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), EAV);
     X11ColourNames = globalObject(CtoName("_x11_colour_names"),
 				  ClassHashTable, EAV);
-    
+
     if ( send(f, NAME_open, NAME_read, EAV) )
     { char line[256];
       int r, g, b;
@@ -256,7 +256,7 @@ canonical_colour_name(Name in)
   int left = sizeof(buf);
   char *q = buf;
   int changed = 0;
-  
+
   for( ; *s && --left > 0; s++, q++ )
   { if ( *s == ' ' )
     { *q = '_';
@@ -267,7 +267,7 @@ canonical_colour_name(Name in)
     } else
       *q = *s;
   }
-  
+
   if ( left && changed )
   { *q = EOS;
     return CtoKeyword(buf);
@@ -404,7 +404,7 @@ static struct system_colour window_colours[] =
   { "win_scrollbar",		   COLOR_SCROLLBAR },
   { "win_window",		   COLOR_WINDOW },
   { "win_windowframe",		   COLOR_WINDOWFRAME },
-  { "win_windowtext",		   COLOR_WINDOWTEXT 
+  { "win_windowtext",		   COLOR_WINDOWTEXT
  },
 
   { NULL, 			   0 }
@@ -550,7 +550,7 @@ ws_open_colourmap(ColourMap cm)
       } else
 	Cprintf("%s is not a colour\n", pp(c));
     }
-    
+
     lp->palVersion    = 0x300;
     lp->palNumEntries = nc;
 
@@ -578,7 +578,7 @@ getWsCmdata(ColourMap cm)
 void
 ws_colour_cube(ColourMap cm, int size)
 { HPALETTE hpal;
-  
+
   if ( size < 1 )			/* nonsence value */
     size = 2;
   if ( size > 6 )			/* too large */
@@ -631,7 +631,7 @@ ws_colour_map_colours(ColourMap cm)
       lpe = alloca(entries * sizeof(PALETTEENTRY));
       GetPaletteEntries(hpal, 0, entries, lpe);
     }
-  
+
     assign(cm, colours, newObject(ClassVector, EAV));
     elementVector(cm->colours, ONE, NIL);
     elementVector(cm->colours, toInt(entries), NIL);
@@ -664,7 +664,7 @@ ws_unlink_colour_map(ColourMap cm)
 
   if ( (data = cm->ws_ref) )
   { cm->ws_ref = NULL;
-    
+
     if ( data->hpal )
       DeleteObject(data->hpal);
     if ( data->jpeg_cmap )
@@ -685,7 +685,7 @@ ws_unlink_colour_map(ColourMap cm)
 Allocate a colour in the XPCE central  colourmap. At the moment, the map
 is filled, and colours are not changed afterwards. It would be better to
 collect all colours and now and then   build an optimal palette from the
-defined colours. How does one do that? 
+defined colours. How does one do that?
 
 Also, all device dependant (read: based  on this colourmap) images would
 need to be updated (or all images should be stored as DIB images).
@@ -717,7 +717,7 @@ ws_alloc_colour(ColourMap cm, Colour c)
     pe->peGreen = valInt(c->green) >> 8;
     pe->peBlue  = valInt(c->blue)  >> 8;
     pe->peFlags = 0;
-      
+
     if ( i )
     { if ( SetPaletteEntries(hpal, valInt(i)-1, 1, pe) != 1 )
       { DEBUG(NAME_colour,

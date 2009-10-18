@@ -160,7 +160,7 @@ static getdecl get_obtain[] =
 #define rc_obtain NULL
 /*
 static classvardecl rc_obtain[] =
-{ 
+{
 };
 */
 

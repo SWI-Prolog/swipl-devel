@@ -105,7 +105,7 @@ unrender(B, Rendering:graphical, Obj:any) :<-
 	).
 
 represents(B, Gr:graphical, Obj:any) :->
-	"Test if graphical represents object":: 
+	"Test if graphical represents object"::
 	get(B, unrender, Gr, Obj).
 
 

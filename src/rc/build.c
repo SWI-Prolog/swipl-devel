@@ -140,7 +140,7 @@ rc_save_data(RcMember m, FILE *fd)
 	close(in);
 	return FALSE;
       }
-      
+
       close(in);
     } else
     { rc_errno = RCE_ERRNO;
@@ -243,7 +243,7 @@ rc_save_archive(RcArchive rca, const char *to)
 
     return TRUE;
   }
-  
+
   rc_errno = RCE_ERRNO;
   return FALSE;
 }

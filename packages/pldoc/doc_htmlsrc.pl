@@ -61,7 +61,7 @@ cross-reference based technology as used by PceEmacs.
 %
 %	Colourise Prolog source as HTML. The idea is to first create a
 %	sequence of fragments and then to apply these to the code.
-%	
+%
 %	@param In	A filename
 %	@param Out	Term stream(Stream) or file-name specification
 
@@ -88,16 +88,16 @@ source_to_html(Src, FileSpec, Options) :-
 %%	print_html_head(+Out:stream, +Options) is det.
 %
 %	Print the =DOCTYPE= line and HTML header.  Options:
-%	
+%
 %		* header(Bool)
 %		Only print the header if Bool is not =false=
-%		
+%
 %		* title(Title)
 %		Title of the HTML document
-%		
+%
 %		* stylesheets(List)
 %		Reference to the CSS style-sheets.
-%		
+%
 %		* format_comments(Bool)
 %		If =true= (default), format structured comments.
 
@@ -145,8 +145,7 @@ html_fragment(fragment(Start, End, structured_comment, []),
 	copy_without_trailing_white_lines(In, Start, Out, State0, State1),
 	pop_state(State1, Out, In),
 	Len is End - Start,
-	read_n_codes(In, Len, CommentCodes),
-	string_to_list(Comment, CommentCodes),
+	read_n_codes(In, Len, Comment),
 	is_structured_comment(Comment, Prefix),
 	indented_lines(Comment, Prefix, Lines0),
 	(   section_comment_header(Lines0, Header, Lines1)
@@ -247,7 +246,7 @@ copy_without_trailing_white_lines(In, End, Out, State, State) :-
 	write_codes(Codes, Line, Out).
 copy_without_trailing_white_lines(In, End, Out, State0, State) :-
 	copy_to(In, End, Out, State0, State).
-	
+
 delete_trailing_white_lines(Codes0, []) :-
 	all_spaces(Codes0), !.
 delete_trailing_white_lines(Codes0, Codes) :-
@@ -290,7 +289,7 @@ write_codes([H|T], L0, Out) :-
 %%	content_escape(+Code, +Out, +Line0, -Line) is det
 %
 %	Write Code to Out, while taking care of.
-%	
+%
 %		* Use HTML entities for =|<&>|=
 %		* If a line-no-tag is requested, write it
 %		* On \n, post a line-no request.  If nonl/0 is set,
@@ -312,7 +311,7 @@ content_escape(0'<, Out, L, L) :- !,
 	format(Out, '&lt;', []).
 content_escape(0'>, Out, L, L) :- !,
 	format(Out, '&gt;', []).
-content_escape(0'&, Out, L, L) :- !, 
+content_escape(0'&, Out, L, L) :- !,
 	format(Out, '&amp;', []).
 content_escape(C, Out, L, L) :-
 	put_code(Out, C).
@@ -372,7 +371,7 @@ css_class(Term, Class) :-
 	(   var(A)
 	->  Class = P1
 	;   css_class(A, P2),
-	    concat_atom([P1, -, P2], Class)
+	    atomic_list_concat([P1, -, P2], Class)
 	).
 
 element/3.
@@ -440,7 +439,7 @@ x11_colour_name_to_rgb(Name, RGB) :-
 	R256 is R//256,
 	G256 is G//256,
 	B256 is B//256,
-	format(atom(RGB), 
+	format(atom(RGB),
 	       '#~|~`0t~16r~2+~`0t~16r~2+~`0t~16r~2+',
 	       [R256, G256, B256]).
 
@@ -449,10 +448,10 @@ x11_colour_name_to_rgb(Name, RGB) :-
 %	Redefine styles from prolog_src_style/2 for better ones on
 %	HTML output.
 
-html_style(var, 
+html_style(var,
 	   style(colour := red4,
 		 'font-style' := italic)).
 html_style(directive,
 	   style(background := grey90,
 		 'display' := block)).
-	
+

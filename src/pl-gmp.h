@@ -31,17 +31,21 @@
 #include <gmp.h>
 
 #define O_MY_GMP_ALLOC 1
+#define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
 COMMON(void) 	initGMP(void);
 COMMON(void)	get_integer(word w, number *n);
 COMMON(void)	promoteToMPZNumber(number *n);
 COMMON(void)	promoteToMPQNumber(number *n);
-COMMON(void)	clearNumber(Number n);
+COMMON(void)	ensureWritableNumber(Number n);
+COMMON(void)	clearGMPNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
 COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 
+#define clearNumber(n) \
+	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
 #else /*O_GMP*/
 
 #define get_integer(w, n) \
@@ -50,8 +54,10 @@ COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 	  (n)->value.i = valInteger(w); \
 	} while(0)
 
-#define clearNumber(n)	(void)0
-#define initGMP()	(void)0
+#define clearGMPNumber(n)	(void)0
+#define clearNumber(n)		(void)0
+#define ensureWritableNumber(n) (void)0
+#define initGMP()		(void)0
 
 #endif /*O_GMP*/
 
@@ -77,7 +83,7 @@ typedef struct ar_context
 #define GMP_LEAK_CHECK(g) g
 #else
 #define GMP_LEAK_CHECK(g)
-#endif 
+#endif
 
 #define AR_CTX	ar_context __PL_ar_ctx = {0};
 #define AR_BEGIN() \

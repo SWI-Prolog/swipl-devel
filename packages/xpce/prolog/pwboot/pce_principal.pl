@@ -33,13 +33,13 @@
 	  [ new/2, free/1,
 
 	    send/2, send/3, send/4, send/5, send/6, send/7,
-	    send/8, send/9, send/10, send/11, send/12, 
+	    send/8, send/9, send/10, send/11, send/12,
 
 	    get/3, get/4, get/5, get/6, get/7, get/8,
 	    get/9, get/10, get/11, get/12, get/13,
 
 	    object/1, object/2,
-	    
+
 	    pce_open/3,
 
 	    pce_predicate_reference/2
@@ -102,9 +102,9 @@ foreign(pce_xt_appcontext, c,
 	pce_appcontext(+integer, [-integer])).
 foreign(setup_input, c,
 	setup_input(+integer, +integer, +integer, [-integer])).
-foreign(qp_pce_reset, c, 
+foreign(qp_pce_reset, c,
 	pce_reset).
-foreign(qp_pce_redraw, c, 
+foreign(qp_pce_redraw, c,
 	pce_redraw).
 foreign(qp_pce_exit, c,
 	pce_exit).
@@ -290,7 +290,7 @@ user:query_hook(toplevel, _, _, _, _, _) :-
 	fail.
 
 % callbacks from XPCE call user:call/1 with the goal term to call
- 
+
 user:(:- extern(call(+term))).
 
 		 /*******************************

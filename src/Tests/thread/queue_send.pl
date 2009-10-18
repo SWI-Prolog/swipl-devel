@@ -7,7 +7,7 @@
 This simple test verifies sending messages   between  threads. There are
 two variations: one-by-one synchronous and   asynchronous. This was done
 to get some timing information. Asynchronous   is way faster, especially
-on Windows (tested on Windows 2000 Advanced Server). 
+on Windows (tested on Windows 2000 Advanced Server).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 queue_send :-

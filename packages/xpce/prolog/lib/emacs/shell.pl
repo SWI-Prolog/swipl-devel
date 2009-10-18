@@ -279,7 +279,7 @@ properties(B) :->
 	),
 	send(V, appendf, '\n'),
 	send(V, appendf, 'Status:\t%s\n', Process?status).
-	
+
 
 		 /*******************************
 		 *      WINDOW INTERFACE	*
@@ -292,7 +292,7 @@ start_process(B) :->
 	    send(B, update_label)
 	;   send(B, report, warning, 'No process')
 	).
-	
+
 
 open(B, New:[bool]) :->
 	"Create window for buffer"::
@@ -310,7 +310,7 @@ open(B, New:[bool]) :->
 	;   true
 	),
 	send(B, update_label).
-	
+
 
 :- pce_end_class.
 
@@ -352,7 +352,7 @@ open(B, New:[bool]) :->
 	send(MM, append, shell, end_of_file),
 	send(MM, append, shell, interrupt),
 	send(MM, append, shell, kill_subjob).
-	
+
 
 variable(current_history, number*, both, "Current history number").
 
@@ -429,7 +429,7 @@ insert_history(N, Chain, E) :-
 	),
 	NN is N - 1,
 	insert_history(NN, Chain, E).
-	
+
 
 backward_history(E, Id:event_id) :->
 	"Insert last command"::
@@ -604,7 +604,7 @@ mark_errors(M, From:[int], To:[int]) :->
 		 ;   send(M, report, status, 'No errors')
 		 )
 	     ).
-	     
+
 
 goto_error(M) :->
 	"Goto error from current_line"::
@@ -655,7 +655,7 @@ unlink(F) :->
 	;   true
 	),
 	send(F, send_super, unlink).
-	
+
 
 link(F, F2:emacs_link_fragment) :->
 	send(F, slot, link, F2),

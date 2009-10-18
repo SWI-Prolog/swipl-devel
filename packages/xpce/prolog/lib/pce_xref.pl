@@ -89,7 +89,7 @@ XPCE based font-end of the Prolog cross-referencer.  Tasks:
 		- Export header for non-module files		OK
 
 ----------------
-NOTE: This is work in progress.  
+NOTE: This is work in progress.
 
 Its in CVS as this makes it easier to maintain and as-is, the
 tools is now in a useable state.
@@ -125,7 +125,7 @@ initialise(F) :->
 		  [ append(new(xref_depgraph), dependencies)
 		  ]),
 	send(F, fill_toolbar, TD).
-	
+
 tab_popup(_F, P:popup) :<-
 	"Popup for tab labels"::
 	new(P, popup),
@@ -153,7 +153,7 @@ fill_toolbar(F, TD:tool_dialog) :->
 	send(Settings, show_current, @on),
 	send(Settings, multiple_selection, @on),
 	send(F, update_setting_menu).
-	     
+
 about(_F) :->
 	version(Version),
 	send(@display, inform,
@@ -180,7 +180,7 @@ workspace(F, Which:name, Create:[bool], Expose:bool, WS:window) :<-
 
 workspace_term(file_info, prolog_file_info).
 workspace_term(header,    xref_view).
-	    
+
 browser(F, Which:name, Browser:browser) :<-
 	"Find named browser"::
 	get(F, member, browsers, Tabs),
@@ -225,7 +225,7 @@ file_header(F, File:name) :->
 	"Create import/export header"::
 	get(F, workspace, header, @on, @on, View),
 	send(View, file_header, File).
-		     
+
 :- pce_group(settings).
 
 update_setting_menu(F) :->
@@ -308,7 +308,7 @@ sources(_, Sources:prolog) :<-
 	findall(S, dep_source(S), Sources).
 
 %%	dep_source(?Src)
-%	
+%
 %	Generate all sources for the dependecy graph one-by-one.
 
 dep_source(Src) :-
@@ -343,7 +343,7 @@ node(G, File:name, Create:[bool|{always}], Pos:[point],
 	    send(G, display, new(Gr, xref_file_graph_node(File)), At),
 	    send(G, remove_intro_text)
 	).
-	
+
 update_links(G) :->
 	"Add all export links"::
 	send(G?graphicals, for_all,
@@ -483,7 +483,7 @@ popup(N, Popup:popup) :<-
 show_import_exports(N, Which:{import,export}) :->
 	"Show who I'm exporting to"::
 	get(N, device, G),
-	layout_new(G, 
+	layout_new(G,
 		   (   (   Which == export
 		       ->  send(N, create_export_links, @on)
 		       ;   send(N, create_import_links, @on)
@@ -557,7 +557,7 @@ edit_callable(C, Callable:prolog) :->
 	;   get(C?to, path, ImportFile),
 	    edit_callable(Callable, ImportFile)
 	).
-	
+
 :- pce_end_class(xref_export_connection).
 
 
@@ -587,7 +587,7 @@ event(Tag, Ev:event) :->
 
 %%	export_link(+ExportingFile, -ImportingFile, -Callables) is det.
 %%	export_link(-ExportingFile, +ImportingFile, -Callables) is det.
-%	
+%
 %	Callables are exported from ExportingFile to ImportingFile.
 
 export_link(ExportFile, ImportingFile, Callables) :-
@@ -759,7 +759,7 @@ clear(Tree) :->
 append(Tree, File:name) :->
 	"Add Prolog source file"::
 	send(Tree, append_node, new(prolog_file_node(File))).
-	
+
 append_node(Tree, Node:toc_node) :->
 	"Append a given node to the tree"::
 	get(Node, parent_id, ParentId),
@@ -769,7 +769,7 @@ append_node(Tree, Node:toc_node) :->
 		 new(Parent, prolog_directory_node(ParentId)))
 	),
 	send(Parent, son, Node).
-	
+
 sort(Tree) :->
 	forall(top_node(Name, _),
 	       (   get(Tree, node, Name, Node),
@@ -826,7 +826,7 @@ filter_files(Tree, Filter:code*) :->
 	    send(Tree, report, status, 'Filter on file name: %d hits', Count)
 	),
 	send(Tree, scroll_to, point(0,0)).
-	
+
 show_node_path(Tree, Node:node) :->
 	"Select Node and make sure all parents are expanded"::
 	send(Node, selected, @on),
@@ -1140,7 +1140,7 @@ show_module_export(W, File:name, Module:name, Callable:prolog) :->
 		   send(XL, append, xref_imported_by(F, Callable)))
 	),
 	send(T, next_row).
-	
+
 show_file_export(W, Callable:prolog, ImportFiles:prolog) :->
 	get(W, prolog_file, File),
 	get(W, tabular, T),
@@ -1160,10 +1160,10 @@ qualify_from_file(Callable, _, Callable).
 
 
 %%	exported_to(+ExportFile, +Callable, -ImportFile)
-%	
+%
 %	ImportFile imports Callable from ExportFile.  The second clause
 %	deals with auto-import.
-%	
+%
 %	TBD: Make sure the autoload library is loaded before we begin.
 
 exported_to(ExportFile, Callable, ImportFile) :-
@@ -1237,7 +1237,7 @@ show_undef(W, Callable:prolog) :->
 	forall(member(P, Sorted),
 	       send(L, append, xref_predicate_text(Module:P, called_by, File))),
 	send(T, next_row).
-	
+
 
 show_not_called(W) :->
 	"Show predicates that are not called"::
@@ -1289,9 +1289,9 @@ initialise(T, Callable0:prolog,
 	;   true
 	),
 	send(T, classification, Class).
-       
+
 %%	single_qualify(+Term, -Qualified)
-%	
+%
 %	Strip redundant M: from the term, leaving at most one qualifier.
 
 single_qualify(_:Q0, Q) :-
@@ -1327,7 +1327,7 @@ classification(T, Class:[name]) :->
 
 :- pce_global(@xref_predicate_text_recogniser,
 	      new(handler_group(@arm_recogniser,
-				click_gesture(left, '', single, 
+				click_gesture(left, '', single,
 					      message(@receiver, edit))))).
 
 event(T, Ev:event) :->
@@ -1378,7 +1378,7 @@ initialise(TF, File:name) :->
 	      make_xref_file_text_recogniser).
 
 make_xref_file_text_recogniser(G) :-
-	new(C, click_gesture(left, '', single, 
+	new(C, click_gesture(left, '', single,
 			     message(@receiver, run_default_action))),
 	new(P, popup_gesture(@arg1?popup)),
 	new(D, drag_and_drop_gesture(left)),
@@ -1505,7 +1505,7 @@ initialise(IT, File:name, Imported:prolog) :->
 	send(F, name, file_text),
 	send(IT, slot, callable, Imported),
 	send(IT, show_called_by).
-	
+
 path(IT, Path:name) :<-
 	"Represented file"::
 	get(IT, member, file_text, Text),
@@ -1531,7 +1531,7 @@ called_by(IT, ByList:prolog) :<-
 	findall(By, used_in(Source, Callable, By), ByList).
 
 %%	used_in(+Source, +QCallable, -CalledBy)
-%	
+%
 %	Determine which the callers for   QCallable in Source. QCallable
 %	is qualified with the module of the exporting file (if any).
 
@@ -1722,7 +1722,7 @@ print_decls(Term, Out) :-
 		 *******************************/
 
 %%	short_file_name_to_atom(+ShortId, -Atom)
-%	
+%
 %	Convert a short filename into an atom
 
 short_file_name_to_atom(Atom, Atom) :-
@@ -1732,7 +1732,7 @@ short_file_name_to_atom(Term, Atom) :-
 
 
 %%	library_file(+Path)
-%	
+%
 %	True if Path comes from the Prolog tree and must be considered a
 %	library.
 
@@ -1741,7 +1741,7 @@ library_file(Path) :-
 	sub_atom(Path, 0, _, _, Home).
 
 %%	profile_file(+Path)
-%	
+%
 %	True if path is a personalisation file.  This is a bit hairy.
 
 profile_file(Path) :-
@@ -1755,7 +1755,7 @@ known_profile_file(File) :-
 	sub_atom(File, 0, _, _, 'lib/xpce/emacs').
 
 %%	sort_files(+Files, -Sorted)
-%	
+%
 %	Sort files, keeping groups comming from the same alias together.
 
 sort_files(Files0, Sorted) :-
@@ -1773,7 +1773,7 @@ key_file(File, Key-File) :-
 		 *******************************/
 
 %%	available(+File, +Callable, -HowDefined)
-%	
+%
 %	True if Callable is available in File.
 
 available(File, Called, How) :-
@@ -1805,7 +1805,7 @@ available(_, Called, How) :-
 
 
 %%	built_in_predicate(+Callable)
-%	
+%
 %	True if Callable is a built-in
 
 built_in_predicate(Goal) :-
@@ -1814,7 +1814,7 @@ built_in_predicate(Goal) :-
 
 %%	autoload_predicate(+Callable) is semidet.
 %%	autoload_predicate(+Callable, -File) is semidet.
-%	
+%
 %	True if Callable can be autoloaded.  TBD: make sure the autoload
 %	index is up-to-date.
 
@@ -1828,7 +1828,7 @@ autoload_predicate(Goal, File) :-
 
 
 %%	global_predicate(+Callable)
-%	
+%
 %	True if Callable can  be  auto-imported   from  the  global user
 %	module.
 
@@ -1836,7 +1836,7 @@ global_predicate(Goal) :-
 	predicate_property(user:Goal, _), !.
 
 %%	to_predicate_indicator(+Term, -PI)
-%	
+%
 %	Convert to a predicate indicator.
 
 to_predicate_indicator(PI, PI) :-
@@ -1846,7 +1846,7 @@ to_predicate_indicator(Callable, PI) :-
 	predicate_indicator(Callable, PI).
 
 %%	is_predicate_indicator(+PI) is semidet.
-%	
+%
 %	True if PI is a predicate indicator.
 
 is_predicate_indicator(Name/Arity) :-
@@ -1858,7 +1858,7 @@ is_predicate_indicator(Module:Name/Arity) :-
 	integer(Arity).
 
 %%	predicate_indicator(+Callable, -Name)
-%	
+%
 %	Generate a human-readable predicate indicator
 
 predicate_indicator(Module:Goal, PI) :-
@@ -1879,7 +1879,7 @@ hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
 
 %%	sort_callables(+List, -Sorted)
-%	
+%
 %	Sort list of callable terms.
 
 sort_callables(Callables, Sorted) :-
@@ -1892,7 +1892,7 @@ key_callables([], []).
 key_callables([H0|T0], [Key-H0|T]) :-
 	key_callable(H0, Key),
 	key_callables(T0, T).
-	
+
 key_callable(Callable, k(Name, Arity, Module)) :-
 	predicate_indicator(Callable, PI),
 	(   PI = Name/Arity
@@ -1905,7 +1905,7 @@ unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
 
 %%	ord_list_to_set(+OrdList, -OrdSet)
-%	
+%
 %	Removed duplicates (after unification) from an ordered list,
 %	creating a set.
 
@@ -1963,11 +1963,11 @@ edit_callable(Callable, File) :-
 	).
 edit_callable(pce_principal:send_implementation(Id,_,_), _) :-
 	atom(Id),
-	concat_atom([Class,Method], ->, Id), !,
+	atomic_list_concat([Class,Method], ->, Id), !,
 	edit(send(Class, Method)).
 edit_callable(pce_principal:get_implementation(Id,_,_,_), _) :-
 	atom(Id),
-	concat_atom([Class,Method], <-, Id), !,
+	atomic_list_concat([Class,Method], <-, Id), !,
 	edit(get(Class, Method)).
 edit_callable('<directive>'(Line), File) :-
 	File \== @nil, !,
@@ -1989,7 +1989,7 @@ local_callable(Callable, _, Callable).
 		 *******************************/
 
 %%	file_warnings(+File:atom, -Warnings:list(atom))
-%	
+%
 %	Unify Warnings with a list  of   dubious  things  found in File.
 %	Intended to create icons.  Fails if the file is totally ok.
 
@@ -2004,7 +2004,7 @@ file_warning(File, not_called) :-
 
 
 %%	not_called(+File, -Callable)
-%	
+%
 %	Callable is a term defined in File, and for which no callers can
 %	be found.
 
@@ -2037,9 +2037,9 @@ not_called(File, NotCalled) :-		% non-module version
 	       \+ defined(AutoImportFile, NotCalled),
 	       global_predicate(NotCalled)
 	   ).
-	   
-%%	xref_called(?Source, ?Callable) 
-%	
+
+%%	xref_called(?Source, ?Callable)
+%
 %	True if Callable is called in   Source, after removing recursive
 %	calls.
 
@@ -2048,7 +2048,7 @@ xref_called(Source, Callable) :-
 	By \= Callable.			% recursive calls
 
 %%	defined(?File, ?Callable)
-%	
+%
 %	True if Callable is defined in File and not imported.
 
 defined(File, Callable) :-
@@ -2058,7 +2058,7 @@ defined(File, Callable) :-
 	How \= (multifile).
 
 %%	undefined(+File, -Callable)
-%	
+%
 %	Callable is called in File, but no   definition can be found. If
 %	File is not a module file we   consider other files that are not
 %	module files.
@@ -2079,20 +2079,20 @@ undefined(File, Undef) :-
 		 *******************************/
 
 %%	file_imports(+File, -Imports)
-%	
+%
 %	Determine which modules must  be  imported   into  this  one. It
 %	considers all called predicates that are   not covered by system
 %	predicates. Next, we have three sources to resolve the remaining
 %	predicates, which are tried in the   order below. The latter two
 %	is dubious.
-%	
+%
 %		* Already existing imports
 %		* Imports from other files in the project
 %		* Imports from the (autoload) library
-%	
+%
 %	We first resolve all imports to   absolute  files. Localizing is
 %	done afterwards.  Imports is a list of
-%	
+%
 %%		use_module(FileSpec, Callables)
 
 xref_file_imports(FileSpec, Imports) :-
@@ -2105,7 +2105,7 @@ xref_file_imports(FileSpec, Imports) :-
 	keysort(ImportList, SortedByFile),
 	merge_by_key(SortedByFile, ImportsByFile),
 	maplist(make_import(File), ImportsByFile, Imports).
-	
+
 canonical_filename(FileSpec, File) :-
 	absolute_file_name(FileSpec,
 			   [ file_type(prolog),
@@ -2156,7 +2156,7 @@ ambiguous_imports([A-C|T0], [A-C|T], UnAmbig, Undef) :-
 
 
 %%	resolve(+Callable, -File)
-%	
+%
 %	Try to find files from which to resolve Callable.
 
 resolve(Callable, File) :-		% Export from module files
@@ -2171,7 +2171,7 @@ resolve(Callable, File) :-		% The Prolog autoload library
 
 
 %%	merge_by_key(+KeyedList, -ListOfKeyValues) is det.
-%	
+%
 %	Example: [a-x, a-y, b-z] --> [a-[x,y], b-[z]]
 
 merge_by_key([], []).
@@ -2185,7 +2185,7 @@ same_key(_, L, [], L).
 
 
 %%	make_import(+RefFile, +ImportList, -UseModules)
-%	
+%
 %	Glues it all together to make a list of directives.
 
 make_import(RefFile, File-Imports, (:-use_module(ShortPath, PIs))) :-
@@ -2194,7 +2194,7 @@ make_import(RefFile, File-Imports, (:-use_module(ShortPath, PIs))) :-
 	maplist(predicate_indicator, SortedImports, PIs).
 
 local_filename(File, RefFile, ShortPath) :-
-	atom(RefFile), 
+	atom(RefFile),
 	file_directory_name(File, Dir),
 	file_directory_name(RefFile, Dir), !,	% i.e. same dir
 	file_base_name(File, Base),
@@ -2259,7 +2259,7 @@ cancel(D) :->
 :- pce_end_class(xref_disambiguate_import_dialog).
 
 %%	xref_file_exports(+File, -Exports)
-%	
+%
 %	Produce the export-header for non-module files.  Fails if the
 %	file is already a module file.
 

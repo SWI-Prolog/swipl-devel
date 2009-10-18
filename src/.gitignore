@@ -2,6 +2,7 @@ parms.h
 pl
 pl.1
 pl.prc
+pl.pc
 plld
 rc/plrc
 pl-atom.ic
@@ -12,6 +13,7 @@ pl-codetable.c
 pl-jumptable.ic
 pl-vmi.h
 defatom
+mkvmi
 vmi
 *.exe
 .defatom-sentinel

@@ -46,6 +46,31 @@ put_name_arity(term_t t, functor_t f)
 }
 
 
+static void
+rewrite_callable(atom_t *expected, term_t actual)
+{ term_t a = 0;
+  int loops = 0;
+
+  while ( PL_is_functor(actual, FUNCTOR_colon2) )
+  { if ( !a )
+     a = PL_new_term_ref();
+
+    PL_get_arg(1, actual, a);
+    if ( !PL_is_atom(a) )
+    { *expected = ATOM_atom;
+      PL_put_term(actual, a);
+      return;
+    } else
+    { PL_get_arg(2, actual, a);
+      PL_put_term(actual, a);
+    }
+
+    if ( ++loops > 100 && !PL_is_acyclic(actual) )
+      break;
+  }
+}
+
+
 int
 PL_error(const char *pred, int arity, const char *msg, int id, ...)
 { Definition caller;
@@ -60,7 +85,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
   else
     caller = NULL;
 
-  if ( id == ERR_FILE_OPERATION && !fileerrors )
+  if ( id == ERR_FILE_OPERATION &&
+       !truePrologFlag(PLFLAG_FILEERRORS) )
     fail;
 
   if ( msg == MSG_ERRNO )
@@ -83,8 +109,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       break;
     case ERR_MUST_BE_VAR:
     { int argn = va_arg(args, int);
-      term_t bound = va_arg(args, term_t);
       char buf[50];
+      /*term_t bound =*/ va_arg(args, term_t);
 
       if ( !msg )
       { Ssprintf(buf, "%d-%s argument",
@@ -101,6 +127,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { atom_t expected = va_arg(args, atom_t);
       term_t actual   = va_arg(args, term_t);
 
+      if ( expected == ATOM_callable )
+	rewrite_callable(&expected, actual);
       if ( PL_is_variable(actual) && expected != ATOM_variable )
 	goto err_instantiation;
 
@@ -186,6 +214,18 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, pred);
       break;
     }
+    case ERR_MODIFY_THREAD_LOCAL_PROC:
+    { Procedure proc = va_arg(args, Procedure);
+      term_t pred = PL_new_term_ref();
+
+      unify_definition(pred, proc->definition, 0, GP_NAMEARITY|GP_HIDESYSTEM);
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_permission_error3,
+		      PL_ATOM, ATOM_modify,
+		      PL_ATOM, ATOM_thread_local_procedure,
+		      PL_TERM, pred);
+      break;
+    }
     case ERR_UNDEFINED_PROC:
     { Definition def = va_arg(args, Definition);
       Definition clr = va_arg(args, Definition);
@@ -204,15 +244,15 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_PERMISSION_PROC:
     { atom_t op = va_arg(args, atom_t);
       atom_t type = va_arg(args, atom_t);
-      Definition def = va_arg(args, Definition);
-      term_t pred = PL_new_term_ref();
+      predicate_t pred = va_arg(args, predicate_t);
+      term_t pi = PL_new_term_ref();
 
-      unify_definition(pred, def, 0, GP_NAMEARITY|GP_HIDESYSTEM);
+      PL_unify_predicate(pi, pred, GP_NAMEARITY|GP_HIDESYSTEM);
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_permission_error3,
 		    PL_ATOM, op,
 		    PL_ATOM, type,
-		    PL_TERM, pred);
+		    PL_TERM, pi);
       break;
     }
     case ERR_NOT_IMPLEMENTED_PROC:
@@ -249,7 +289,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       term_t actual = PL_new_term_ref();
 
       put_name_arity(actual, f);
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_type_error2,
 		      PL_ATOM, ATOM_evaluable,
@@ -278,7 +318,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_OCCURS_CHECK:
     { Word p1  = va_arg(args, Word);
       Word p2  = va_arg(args, Word);
-      
+
       PL_unify_term(formal,
 			PL_FUNCTOR, FUNCTOR_occurs_check2,
 			  PL_TERM, wordToTermRef(p1),
@@ -346,7 +386,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     case ERR_STREAM_OP:
     { atom_t action = va_arg(args, atom_t);
       term_t stream = va_arg(args, term_t);
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_io_error2,
 		      PL_ATOM, action,
@@ -373,7 +413,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_CHARS, err);
       break;
     }
-    case ERR_NOT_IMPLEMENTED_FEATURE:		/* non-ISO */
+    case ERR_NOT_IMPLEMENTED:		/* non-ISO */
     { const char *what = va_arg(args, const char *);
 
       PL_unify_term(formal,
@@ -542,7 +582,7 @@ tostr(char *buf, const char *fmt, ...)
   va_start(args, fmt);
   Svsprintf(buf, fmt, args);
   va_end(args);
-  
+
   return buf;
 }
 
@@ -673,6 +713,28 @@ PL_get_intptr_ex(term_t t, intptr_t *i)
 
 
 int
+PL_get_size_ex(term_t t, size_t *i)
+{ int64_t val;
+
+  if ( !PL_get_int64_ex(t, &val) )
+    fail;
+  if ( val < 0 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, t);
+#if SIZEOF_VOIDP < 8
+#if SIZEOF_LONG == SIZEOF_VOIDP
+  if ( val > (int64_t)ULONG_MAX )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+#endif
+#endif
+
+  *i = val;
+
+  return TRUE;
+}
+
+
+int
 PL_get_bool_ex(term_t t, int *i)
 { if ( PL_get_bool(t, i) )
     succeed;
@@ -706,7 +768,7 @@ PL_unify_list_ex(term_t l, term_t h, term_t t)
 
   if ( PL_get_nil(l) )
     fail;
-  
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
@@ -730,7 +792,7 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
 
   if ( PL_get_nil(l) )
     fail;
-  
+
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 

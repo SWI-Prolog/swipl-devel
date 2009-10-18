@@ -342,7 +342,7 @@ prolog_print_attribute(dtd_element *e, dtd_attr *at)
       printf("list(nutoken)");
       break;
   }
-  
+
   printf(", ");				/* print default */
   switch(at->def)
   { case AT_REQUIRED:
@@ -427,7 +427,7 @@ prolog_print_element(dtd_element *e, unsigned int flags)
 
     if ( def->excluded )
     { dtd_element_list *el;
-  
+
       for(el = def->excluded; el; el=el->next)
 	wprintf(L"exclude(%ls, %ls).\n",
 		atom(e->name->name),
@@ -435,7 +435,7 @@ prolog_print_element(dtd_element *e, unsigned int flags)
     }
     if ( def->included )
     { dtd_element_list *el;
-  
+
       for(el = def->included; el; el=el->next)
 	wprintf(L"include(%ls, %ls).\n",
 		atom(e->name->name),

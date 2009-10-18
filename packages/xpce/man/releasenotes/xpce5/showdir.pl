@@ -13,7 +13,7 @@ resource(pce,	image,	image('16x16/pce.xpm')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The toplevel of this module simply  creates   an  instance  of the class
-dir_listing and opens it. 
+dir_listing and opens it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 show_directory(D) :-
@@ -121,12 +121,12 @@ clicked(DL, Clicked:'file|directory') :->
 	->  send(DL, directory, Clicked)
 	;   true
 	).
-	    
+
 
 :- pce_group(build).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Build the contents of the table.  
+Build the contents of the table.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -191,7 +191,7 @@ window to sort the represented table on the named column.
 initialise(L, Name:name) :->
 	send_super(L, initialise(Name?label_name, font := bold)),
 	send(L, name, Name).
-	
+
 :- pce_global(@sortable_column_label_recogniser,
 	      new(click_gesture(left, '', single,
 				message(@receiver, clicked)))).
@@ -205,7 +205,7 @@ clicked(L) :->
 	"Clicked.  Send ->sort to the window"::
 	get(L, device, Window),
 	send(Window, sort, L?name).
-	
+
 :- pce_end_class.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

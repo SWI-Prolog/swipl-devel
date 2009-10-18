@@ -42,7 +42,7 @@
 	    current_setting/1,		% Module:Name
 	    setting_property/2,		% ?Setting, ?Property
 	    list_settings/0,
-	    
+
 	    convert_setting_text/3	% +Type, +Text, -Value
 	  ]).
 :- use_module(library(error)).
@@ -86,7 +86,7 @@ access, loading and saving of settings.
 :- multifile
 	current_setting/6.		% Name, Module, Type, Default, Comment, Source
 
-:- module_transparent
+:- meta_predicate
 	setting(:, +, +, +),
 	setting(:, ?),
 	set_setting(:, +),
@@ -107,21 +107,23 @@ curr_setting(Name, Module, Type, Default, Comment) :-
 %	type. Default is the value before  it is modified. Default refer
 %	to environment variables  and  use   arithmetic  expressions  as
 %	defined by eval_default/4.
-%	
+%
 %	@param Name	Name of the setting (an atom)
 %	@param Type	Type for setting.  One of =any= or a type defined
 %			by must_be/2.
 %	@param Default  Default value for the setting.
 %	@param Comment	Atom containing a (short) descriptive note.
 
-	
-setting(_Name, _Type, _Default, _Comment) :-
-	throw(error(context_error(only_in_directive), _)).
+
+setting(Name, Type, Default, Comment) :-
+	throw(error(context_error(nodirective,
+				  setting(Name, Type, Default, Comment)),
+		    _)).
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- setting(QName, Type, Default, Comment)),
+system:term_expansion((:- setting(QName, Type, Default, Comment)),
 		    Expanded) :-
 	prolog_load_context(module, M0),
 	strip_module(M0:QName, Module, Name),
@@ -138,7 +140,7 @@ user:term_expansion((:- setting(QName, Type, Default, Comment)),
 	->  Expanded = settings:current_setting(Name, Module, Type, Default,
 						CommentAtom, File:Line)
 	).
-	
+
 to_atom(Atom, Atom) :-
 	atom(Atom), !.
 to_atom(String, Atom) :-
@@ -147,7 +149,7 @@ to_atom(String, Atom) :-
 %%	setting(:Name, ?Value) is nondet.
 %
 %	True if Name is a currently defined setting with Value.
-%	
+%
 %	@error	existence_error(setting, Name)
 
 setting(QName, Value) :-
@@ -180,20 +182,20 @@ clear_setting_cache :-
 %
 %	Convert the settings default value. The notation allows for some
 %	`function-style' notations to make the library more generic:
-%	
+%
 %		* env(Name)
 %		Get value from the given environment variable. The value
 %		is handed to convert_setting_text/3 to convert the
 %		textual representation into a Prolog term.  Raises an
 %		existence_error of the variable is not defined.
-%		
+%
 %		* env(Name, Default)
 %		As env(Name), but uses the value Default if the variable
 %		is not defined.
-%		
+%
 %		* setting(Name)
 %		Ask the value of another setting.
-%		
+%
 %		* Expression
 %		If Type is numeric, evaluate the expression.  env(Var)
 %		evaluates to the value of an environment variable.
@@ -243,7 +245,7 @@ eval_default(Expr, _, Type, Value) :-
 	Value = Val.
 eval_default(A+B, Module, atom, Value) :- !,
 	phrase(expr_to_list(A+B, Module), L),
-	concat_atom(L, Val),
+	atomic_list_concat(L, Val),
 	assert(setting_cache(A+B, atom, Val)),
 	Value = Val.
 eval_default(List, Module, list(Type), Value) :- !,
@@ -287,7 +289,7 @@ expr_to_list(setting(Name), Module) --> !,
 	[ Value ].
 expr_to_list(A, _) -->
 	[A].
-	  
+
 %%	env(+Name:atom, -Value:number) is det.
 %%	env(+Name:atom, +Default:number, -Value:number) is det
 %
@@ -329,7 +331,7 @@ numeric_type(between(L,_), Type) :-
 %	broadcasts the event below.
 %
 %		settings(changed(Module:Name, Old, New))
-%	
+%
 %	@error	existence_error(setting, Name)
 %	@error  type_error(Type, Value)
 
@@ -422,7 +424,7 @@ check_type(Type, Term) :-
 %
 %	Load local settings from File. Succeeds  if File does not exist,
 %	setting the default save-file to File.  Options are:
-%	
+%
 %	  * undefined(+Action)
 %	  Define how to handle settings that are not defined.  When
 %	  =error=, an error is printed and the setting is ignored.
@@ -542,7 +544,7 @@ current_setting(Module:Name) :-
 %%	setting_property(?Setting, ?Property) is nondet.
 %
 %	Query currently defined settings.  Property is one of
-%	
+%
 %		* comment(-Atom)
 %		* type(-Type)
 %		Type of the setting.
@@ -596,7 +598,7 @@ list_setting(Module:Name) :-
 %	Converts from textual form to  Prolog   Value.  Used  to convert
 %	values obtained from the environment.  Public to provide support
 %	in user-interfaces to this library.
-%	
+%
 %	@error	type_error(Type, Value)
 
 :- multifile

@@ -95,7 +95,7 @@ range_read(void *handle, char *buf, size_t size)
 
   return rd;
 }
- 
+
 
 static ssize_t				/* no writing! */
 range_write(void *handle, char *buf, size_t size)
@@ -205,7 +205,7 @@ pl_stream_range_open(term_t org, term_t new, term_t options)
     return TRUE;
   } else
   { return instantiation_error();
-  }    
+  }
 }
 
 

@@ -35,7 +35,7 @@ table_of_cell(TableCell cell)
 
   if ( isNil(tab) )
     fail;
-  
+
   answer(tab);
 }
 
@@ -68,7 +68,7 @@ unlinkTableCell(TableCell cell)
 
   if ( (tab=table_of_cell(cell)) )
     qadSendv(tab, NAME_delete, 1, (Any *)&cell);
-    
+
   return unlinkLayoutInterface(cell);
 }
 
@@ -269,7 +269,7 @@ static status
 colSpanTableCell(TableCell cell, Int span)
 { if ( cell->col_span != span )
   { Table tab = table_of_cell(cell);
-    
+
     if ( tab )
     { int x,y;
       int fx = valInt(cell->column);
@@ -287,7 +287,7 @@ colSpanTableCell(TableCell cell, Int span)
 	    e = cell;
 	  else
 	    e = NIL;
-	  
+
 	  cellTableRow(row, toInt(x), e);
 	}
       }
@@ -307,7 +307,7 @@ static status
 rowSpanTableCell(TableCell cell, Int span)
 { if ( cell->row_span != span )
   { Table tab = table_of_cell(cell);
-    
+
     if ( tab )
     { int x,y;
       int fy = valInt(cell->row);
@@ -325,7 +325,7 @@ rowSpanTableCell(TableCell cell, Int span)
 	    e = cell;
 	  else
 	    e = NIL;
-	  
+
 	  cellTableRow(row, toInt(x), e);
 	}
       }
@@ -452,7 +452,7 @@ placeImageTableCell(TableCell cell)
   Name valign = getValignTableCell(cell);
 
   ComputeGraphical(gr);			/* make sure */
-	  
+
   av[2] = DEFAULT;			/* width */
   av[3] = DEFAULT;			/* height */
 
@@ -475,7 +475,7 @@ placeImageTableCell(TableCell cell)
     else
       grx = d.x + d.px;
   }
-  
+
   if ( valign == NAME_top )		/* determine Y-placement */
     gry = d.y + d.py;
   else if ( valign == NAME_bottom )
@@ -494,7 +494,7 @@ placeImageTableCell(TableCell cell)
     else
       gry = d.y + d.py;
   }
-  
+
   av[0] = toInt(grx);
   av[1] = toInt(gry);
 
@@ -547,7 +547,7 @@ static vardecl var_table_cell[] =
   SV(NAME_noteMark, "image*", IV_GET|IV_STORE, noteMarkTableCell,
      NAME_appearance, "Image painted in the top-right corner")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_table_cell[] =

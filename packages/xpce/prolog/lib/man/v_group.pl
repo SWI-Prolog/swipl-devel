@@ -91,7 +91,7 @@ initialise(MB, Manual:man_manual, ModuleName:[name], Label:[name]) :->
 
 	send(MB, view, MN),
 	send(MB, edit_mode, Manual?edit_mode).
-	
+
 
 view(MB, View) :<-
 	"Get the view"::
@@ -285,8 +285,8 @@ load_manual_groups(MB) :->
 	    ;	!,
 	        send(F, close)
 	    ).
-	    
-		
+
+
 %	Move to library!
 
 to_regex(Pattern, Regex) :-

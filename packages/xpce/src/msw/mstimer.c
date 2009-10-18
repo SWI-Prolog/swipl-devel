@@ -48,7 +48,7 @@ do_timer_proc(Timer tm, UINT id)
   }
 
   executeTimer(tm);
-  
+
   RedrawDisplayManager(TheDisplayManager());
 }
 
@@ -90,7 +90,7 @@ ws_status_timer(Timer tm, Name status)
 
   if ( status != NAME_idle )
   { long msec = (long) (valReal(tm->interval) * 1000.0);
-    
+
     if ( (id = SetTimer(NULL, 0, (UINT)msec, (TIMERPROC) timer_proc)) )
     { if ( !TimerTable )
       { TimerTable = globalObject(CtoName("active_timers"),

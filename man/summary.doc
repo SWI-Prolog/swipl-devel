@@ -75,15 +75,18 @@ suggest predicates from a keyword.
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
 \predicatesummary{at_halt}{1}{Register goal to run at halt/1}
-\predicatesummary{at_initialization}{1}{Register goal to run at start-up}
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
+\predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
+\predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
+\predicatesummary{atomic_list_concat}{2}{Append a list of atoms}
+\predicatesummary{atomic_list_concat}{3}{Append a list of atoms with separator}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
@@ -127,10 +130,7 @@ suggest predicates from a keyword.
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
-\predicatesummary{atom_concat}{3}{Append two atoms}
 \predicatesummary{code_type}{2}{Classify a character-code}
-\predicatesummary{concat_atom}{2}{Append a list of atoms}
-\predicatesummary{concat_atom}{3}{Append a list of atoms with separator}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
 \predicatesummary{context_module}{1}{Get context module of current goal}
 \predicatesummary{convert_time}{8}{Break time stamp into fields}
@@ -151,7 +151,6 @@ suggest predicates from a keyword.
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}
 \predicatesummary{current_module}{1}{Examine existing modules}
-\predicatesummary{current_module}{2}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}
@@ -161,6 +160,7 @@ suggest predicates from a keyword.
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
+\predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
@@ -174,8 +174,8 @@ suggest predicates from a keyword.
 \predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
-\predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
+\predicatesummary{del_attrs}{1}{Delete all attributes from variable}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
@@ -214,7 +214,6 @@ suggest predicates from a keyword.
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
 \predicatesummary{export}{1}{Export a predicate from a module}
-\predicatesummary{export_list}{2}{List of public predicates of a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
 \predicatesummary{fail}{1}{Immediately fail named block. See block/3}
@@ -223,7 +222,7 @@ suggest predicates from a keyword.
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
 \predicatesummary{file_name_extension}{3}{Add, remove or test file extensions}
 \predicatesummary{file_search_path}{2}{Define path-aliases for locating files}
-\predicatesummary{fileerrors}{2}{Do/Don't warn on file errors}
+\predicatesummary{find_chr_constraint}{1}{Returns a constraint from the store}
 \predicatesummary{findall}{3}{Find all solutions to a goal}
 \predicatesummary{findall}{4}{Difference list version of findall/3}
 \predicatesummary{flag}{3}{Simple global variable system}
@@ -237,6 +236,7 @@ suggest predicates from a keyword.
 \predicatesummary{format_time}{3}{C strftime() like date/time formatter}
 \predicatesummary{format_time}{4}{date/time formatter with explicit locale}
 \predicatesummary{format_predicate}{2}{Program format/[1,2]}
+\predicatesummary{term_attvars}{2}{Find attributed variables in a term}
 \predicatesummary{term_variables}{2}{Find unbound variables in a term}
 \predicatesummary{term_variables}{3}{Find unbound variables in a term}
 \predicatesummary{freeze}{2}{Delay execution until variable is bound}
@@ -288,6 +288,7 @@ suggest predicates from a keyword.
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
+\predicatesummary{initialization}{2}{Initialization directive}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
@@ -319,13 +320,8 @@ suggest predicates from a keyword.
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
-\predicatesummary{maplist}{2}{Apply predicate on all elements}
-\predicatesummary{maplist}{3}{Map elements pairwise}
-\predicatesummary{maplist}{4}{Map triples of elements}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
-\predicatesummary{merge}{3}{Merge two sorted lists}
-\predicatesummary{merge_set}{3}{Merge two sorted sets}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
 \predicatesummary{message_queue_create}{1}{Create queue for thread communication}
 \predicatesummary{message_queue_create}{2}{Create queue for thread communication}
@@ -336,6 +332,7 @@ suggest predicates from a keyword.
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
+\predicatesummary{module_property}{2}{Find properties of a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}
 \oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed definition of predicate}
@@ -472,6 +469,7 @@ suggest predicates from a keyword.
 \predicatesummary{redefine_system_predicate}{1}{Abolish system definition}
 \predicatesummary{reexport}{1}{Load files and re-export the imported predicates}
 \predicatesummary{reexport}{2}{Load predicates from a file and re-export it}
+\predicatesummary{reload_foreign_libraries}{0}{Reload DLLs/shared objects}
 \predicatesummary{reload_library_index}{0}{Force reloading the autoload index}
 \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
@@ -488,14 +486,18 @@ suggest predicates from a keyword.
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
+\predicatesummary{set_base_module}{1}{Declare the associated global module}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}
+\predicatesummary{set_prolog_stack}{3}{Modify stack characteristics}
+\predicatesummary{set_random}{1}{Control random number generation}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
-\predicatesummary{setup_and_call_cleanup}{3}{Undo side-effects safely}
+\predicatesummary{setup_call_cleanup}{3}{Undo side-effects safely}
+\predicatesummary{setup_call_catcher_cleanup}{4}{Undo side-effects safely}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
 \predicatesummary{setlocale}{3}{Set/query C-library regional information}
@@ -520,7 +522,6 @@ suggest predicates from a keyword.
 \predicatesummary{source_file}{2}{Obtain source file of predicate}
 \predicatesummary{source_location}{2}{Location of last read term}
 \predicatesummary{spy}{1}{Force tracer on specified predicate}
-\predicatesummary{stack_parameter}{4}{Some systems: Query/Set runtime stack parameter}
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
@@ -592,8 +593,11 @@ suggest predicates from a keyword.
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
+\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}
 \predicatesummary{upcase_atom}{2}{Convert atom to upper-case}
+\predicatesummary{use_foreign_library}{1}{Load DLL/shared object (directive)}
+\predicatesummary{use_foreign_library}{2}{Load DLL/shared object (directive)}
 \predicatesummary{use_module}{1}{Import a module}
 \predicatesummary{use_module}{2}{Import predicates from a module}
 \predicatesummary{var}{1}{Type check for unbound variable}
@@ -628,7 +632,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeq}{2}{Write term, insert quotes on stream}
 \end{summarylist}
 
-\input{lib/summary.tex}
+\input{lib/libsummary.tex}
 
 \pagebreak
 \section{Arithmetic Functions}		\label{sec:funcsummary}
@@ -644,6 +648,7 @@ suggest predicates from a keyword.
 \opfuncsummary{//}{2}{yfx}{400}{Integer division}
 \opfuncsummary{/\}{2}{yfx}{500}{Bitwise and}
 \opfuncsummary{<<}{2}{yfx}{400}{Bitwise left shift}
+\opfuncsummary{><}{2}{yfx}{400}{Bitwise exclusive or}
 \opfuncsummary{>>}{2}{yfx}{400}{Bitwise right shift}
 \functionsummary{.}{2}{List of one character: character code}
 \opfuncsummary{\}{1}{fx}{500}{Bitwise negation}
@@ -659,12 +664,14 @@ suggest predicates from a keyword.
 \functionsummary{cos}{1}{Cosine}
 \functionsummary{cputime}{0}{Get CPU time}
 \functionsummary{e}{0}{Mathematical constant}
+\functionsummary{epsilon}{0}{Floating point precision}
 \functionsummary{eval}{1}{Evaluate term as expression}
 \functionsummary{exp}{1}{Exponent (base $e$)}
 \functionsummary{float}{1}{Explicitly convert to float}
 \functionsummary{float_fractional_part}{1}{Fractional part of a float}
 \functionsummary{float_integer_part}{1}{Integer part of a float}
 \functionsummary{floor}{1}{Largest integer below argument}
+\functionsummary{gcd}{2}{Greatest common divisor}
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}

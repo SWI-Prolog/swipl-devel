@@ -91,7 +91,7 @@ initialiseParagraph(Paragraph par, TextBuffer tb)
 static status
 computeParagraph(Paragraph par)
 { if ( notNil(par->request_compute) )
-  { 
+  {
 
     assign(par, request_compute, NIL);
   }
@@ -199,10 +199,10 @@ static vardecl var_paragraph[] =
      NAME_appearance, "Alignment of text in paragraph"),
   SV(NAME_justify, "bool", IV_GET|IV_STORE, justifyParagraph,
      NAME_layout, "Align all lines at the right"),
-  IV(NAME_content,  "chain", IV_GET, 
+  IV(NAME_content,  "chain", IV_GET,
      NAME_contents, "Text and graphics represented")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_paragraph[] =
@@ -219,7 +219,7 @@ static senddecl send_paragraph[] =
 #define get_paragraph NULL
 /*
 static getdecl get_paragraph[] =
-{ 
+{
 };
 */
 

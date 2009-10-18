@@ -34,6 +34,7 @@ typedef struct mark_state
 } mark_state;
 
 static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
+static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD);
 
 
 		 /*******************************
@@ -64,7 +65,7 @@ PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
 			   PL_INT64, counts.marked_cont,
 			   PL_INT64, counts.c_scanned,
 			   PL_INT64, counts.vm_scanned);
-		       
+
   memset(&counts, 0, sizeof(counts));
 
   return rc;
@@ -147,11 +148,34 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 
 
 static inline void
+clear_frame_var(walk_state *state, Code PC ARG_LD)
+{ if ( (state->flags & GCM_CLEAR) )
+  { LocalFrame fr = state->frame;
+    DEBUG(3, Sdprintf("Clear var %d at %d\n",
+		      PC[0]-VAROFFSET(0), (PC-state->c0)-1));
+#ifdef O_SECURE
+    { Word vp = varFrameP(fr, PC[0]);
+
+      if ( !isVar(*vp & ~MARK_MASK) )
+      { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
+		 levelFrame(fr), predicateName(fr->predicate),
+		 PC[0]-VAROFFSET(0),
+		 (PC-state->c0)-1);
+      }
+    }
+#else
+    setVar(varFrame(fr, PC[0]));
+#endif
+  }
+}
+
+
+static inline void
 mark_argp(walk_state *state ARG_LD)
 {
 #ifdef MARK_ALT_CLAUSES
   if ( state->adepth == 0 )
-  { if ( !is_marked(state->ARGP) )
+  { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
     { mark_local_variable(state->ARGP PASS_LD);
       state->unmarked--;
     }
@@ -160,6 +184,7 @@ mark_argp(walk_state *state ARG_LD)
 #endif
 }
 
+#define NO_ADEPTH 1234567
 
 static Code
 walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
@@ -171,6 +196,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
   { op = decode(*PC++);
 
   again:
+    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
     COUNT(vm_scanned);
     if ( op == end )
     { PC--;
@@ -187,10 +213,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 					/* dynamically sized objects */
       case H_STRING:			/* only skip the size of the */
       case H_MPZ:
-      case A_MPZ:
 	mark_argp(state PASS_LD);
 	/*FALLTHROUGH*/
       case B_STRING:			/* string + header */
+      case A_MPZ:
       case B_MPZ:
       { word m = *PC;
 	PC += wsizeofInd(m)+1;
@@ -199,8 +225,19 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       }
 
+      case I_EXITQUERY:
       case I_EXITFACT:
+      case I_FEXITDET:
+      case I_FEXITNDET:
+      case S_TRUSTME:			/* Consider supervisor handling! */
+      case S_LIST:
 	return PC-1;
+      case S_NEXTCLAUSE:
+	mark_alt_clauses(state->frame, state->frame->clause->next PASS_LD);
+        return PC-1;
+      case I_FREDO:
+	mark_arguments(state->frame PASS_LD);
+        return PC-1;
 
       case C_JMP:			/* unconditional jump */
 	if ( (state->flags & GCM_ALTCLAUSE) )
@@ -245,30 +282,43 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       }
 
 					/* variable access */
-      case B_FIRSTVAR:			/* reset uninitialised */
-      case B_ARGFIRSTVAR:
-      case C_VAR:
-	if ( (state->flags & GCM_CLEAR) )
-	{ LocalFrame fr = state->frame;
-	  DEBUG(3, Sdprintf("Clear var %d at %d\n", 
-			    PC[0]-VAROFFSET(0), (PC-state->c0)-1));
-#ifdef O_SECURE
-	  { Word vp = varFrameP(fr, PC[0]);
 
-	    if ( !isVar(*vp & ~MARK_MASK) )
-	    { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
-		       levelFrame(fr), predicateName(fr->predicate),
-		       PC[0]-VAROFFSET(0),
-		       (PC-state->c0)-1);
-	    }
-	  } 
-#else
-	  setVar(varFrame(fr, PC[0]));
-#endif
-	}
+      case B_UNIFY_VAR:			/* Var = Term */
+	mark_frame_var(state, PC[0] PASS_LD);
+        state->adepth = NO_ADEPTH;
+	break;
+      case B_UNIFY_FIRSTVAR:
+	state->adepth = NO_ADEPTH;	/* never need to mark over ARGP */
+        /*FALLTHROUGH*/
+      case B_FIRSTVAR:
+      case B_ARGFIRSTVAR:
+      case A_FIRSTVAR_IS:
+      case B_UNIFY_FC:
+      case C_VAR:
+	clear_frame_var(state, PC PASS_LD);
+	break;
+      case H_LIST_FF:
+	mark_argp(state PASS_LD);
+        /*FALLTHROUGH*/
+      case B_UNIFY_FF:
+	clear_frame_var(state, PC+0 PASS_LD);
+	clear_frame_var(state, PC+1 PASS_LD);
+	break;
+      case A_ADD_FC:
+      case B_UNIFY_FV:
+	clear_frame_var(state, PC+0 PASS_LD);
+	mark_frame_var(state, PC[1] PASS_LD);
+	break;
+      case B_UNIFY_VV:
+      case B_EQ_VV:
+	mark_frame_var(state, PC[0] PASS_LD);
+        mark_frame_var(state, PC[1] PASS_LD);
 	break;
 
       { size_t index;			/* mark variable access */
+
+	case B_UNIFY_VC:
+	case B_EQ_VC:
 	case B_ARGVAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC;		goto var_common;
@@ -292,17 +342,17 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
 	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
 	  break;
-	case I_CALL_FV2:
-	  mark_frame_var(state, PC[2] PASS_LD);
-	  /*FALLTHROUGH*/
-	case I_CALL_FV1:
-	  mark_frame_var(state, PC[1] PASS_LD);
-	  break;
 #ifdef MARK_ALT_CLAUSES
+	case H_FIRSTVAR:
+	  if ( (state->flags & GCM_CLEAR) )
+	  { clear_frame_var(state, PC PASS_LD);
+	    break;
+	  }
+	  mark_argp(state PASS_LD);
+	  break;
 	case H_VAR:
 	  mark_frame_var(state, PC[0] PASS_LD);
 	  /*FALLTHROUGH*/
-	case H_FIRSTVAR:
 	case H_CONST:
 	case H_NIL:
 	case H_INTEGER:
@@ -313,14 +363,20 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_FUNCTOR:
 	case H_LIST:
 	  mark_argp(state PASS_LD);
+	case B_FUNCTOR:
+	case B_LIST:
 	  state->adepth++;
 	  break;
 	case H_VOID:
-	  if ( state->adepth == 0 )
-	    state->ARGP++;
+	  assert(state->adepth == 0);
+	  state->ARGP++;
 	  break;
-	case I_POPF:
+	case H_POP:
+	case B_POP:
 	  state->adepth--;
+	  break;
+	case B_UNIFY_EXIT:
+	  assert(state->adepth == NO_ADEPTH);
 	  break;
 	case I_ENTER:
 	  assert(state->adepth==0);
@@ -429,7 +485,6 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 	}
 	break;
       }
-      case CHP_FOREIGN:
       case CHP_DEBUG:
       case CHP_CATCH:
 	mark_environments(state, ch->frame, NULL PASS_LD);
@@ -503,8 +558,7 @@ mark_environments(mark_state *state, LocalFrame fr, Code PC ARG_LD)
     { PC = fr->programPointer;
       fr = fr->parent;
     } else
-    { qf = QueryOfTopFrame(fr);
-      assert(qf->magic == QID_MAGIC);
+    { qf = queryOfFrame(fr);
 
       if ( qf->saved_environment )
 	mark_arguments(qf->saved_environment PASS_LD); /* (*) */

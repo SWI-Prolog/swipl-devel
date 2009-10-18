@@ -123,7 +123,7 @@ fontMenuItem(MenuItem mi, FontObj font)
   { assign(mi, font, font);
     changedMenuItem(mi);
   }
-  
+
   succeed;
 }
 
@@ -134,7 +134,7 @@ colourMenuItem(MenuItem mi, Colour colour)
   { assign(mi, colour, colour);
     changedMenuItem(mi);
   }
-  
+
   succeed;
 }
 
@@ -145,7 +145,7 @@ backgroundMenuItem(MenuItem mi, Colour colour)
   { assign(mi, background, colour);
     changedMenuItem(mi);
   }
-  
+
   succeed;
 }
 
@@ -204,7 +204,7 @@ onMenuItem(MenuItem mi)
 
 static status
 offMenuItem(MenuItem mi)
-{ return activeMenuItem(mi, OFF); 
+{ return activeMenuItem(mi, OFF);
 }
 
 
@@ -264,7 +264,7 @@ getDefaultLabelMenuItem(MenuItem m, Any value)
 
   if ( (name = checkType(value, TypeName, m)) )
     answer(GetLabelNameName(name));
-  
+
   if ( isObject(value) && (name = get(value, NAME_name, EAV)) )
     answer(GetLabelNameName(name));
 
@@ -364,7 +364,7 @@ static getdecl get_menuItem[] =
 #define rc_menuItem NULL
 /*
 static classvardecl rc_menuItem[] =
-{ 
+{
 };
 */
 

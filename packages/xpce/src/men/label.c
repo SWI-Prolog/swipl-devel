@@ -32,7 +32,7 @@ static status
 initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 { if ( isDefault(name) )
     name = NAME_reporter;
-  if ( isDefault(selection) )	
+  if ( isDefault(selection) )
     selection = NAME_;
 
   createDialogItem(lb, name);
@@ -41,7 +41,7 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
     assign(lb, font, font);
   selectionLabel(lb, selection);
   assign(lb, width, DEFAULT);
-  
+
   return requestComputeGraphical(lb, DEFAULT);
 }
 
@@ -75,7 +75,7 @@ RedrawAreaLabel(Label lb, Area a)
   }
 
   if ( preview && isNil(z) )
-    r_complement(x, y, w, h);    
+    r_complement(x, y, w, h);
 
   return RedrawAreaGraphical(lb, a);
 }
@@ -218,7 +218,7 @@ formatLabel(Label lb, CharArray fm, int argc, Any *argv)
 { ArgVector(av, argc+1);
   int ac;
   StringObj str;
-  
+
   av[0] = fm;
   for(ac=1; ac <= argc; ac++)
     av[ac] = argv[ac-1];
@@ -309,7 +309,7 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
       StringObj str;
       ArgVector(av, argc+1);
       int ac;
-  
+
       av[0] = fmt;
       for(ac=1; ac <= argc; ac++)
 	av[ac] = argv[ac-1];
@@ -328,7 +328,7 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
   { TRY(formatLabel(lb, fmt, argc, argv));
 
     if ( kind == NAME_error || kind == NAME_warning )
-    { send(lb, NAME_flash, EAV); 
+    { send(lb, NAME_flash, EAV);
       alertReporteeVisual((VisualObj) lb);
     } else if ( kind == NAME_progress )
       flushGraphical(lb);

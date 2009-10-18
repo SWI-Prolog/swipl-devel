@@ -61,7 +61,7 @@
 	add_config(:, +),
 	del_config(:, +),
 	save_config(:),
-	load_config(:), 
+	load_config(:),
 	ensure_loaded_config(:),
 	edit_config(:),
 	config_attributes(:, -).
@@ -107,7 +107,7 @@ lasserta(Term) :-
 	asserta(Term).
 lretract(Term) :-
 	retract(Term).
-	
+
 		 /*******************************
 		 *	     REGISTER		*
 		 *******************************/
@@ -143,7 +143,7 @@ get_config(Key, Value) :-
 	    config_term_to_object(Type, Default, Value)
 	;   Value = Default
 	).
-	    
+
 
 get_config_term(Key, Term, Type) :-
 	strip_module(Key, DB, Path),
@@ -243,7 +243,7 @@ config_path(DB, Path) :-
 	config_db(DB, Pred),
 	call(DB:Pred, Path, Attributes),
 	memberchk(type(_), Attributes).
-	
+
 
 
 
@@ -284,7 +284,7 @@ save_config(Spec) :-
 save_config(File, M) :-
 	catch(do_save_config(File, M), E,
 	      print_message(warning, E)).
-	
+
 do_save_config(File, M) :-
 	open(File, write, Fd),
 	save_config_header(Fd, M),
@@ -304,7 +304,7 @@ save_config_header(Fd, M) :-
 	format(Fd, '% Option lines starting with a `%'' indicate      %~n',[]),
 	format(Fd, '% the value is equal to the application default. %~n', []),
 	format(Fd, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%~n', []).
-	
+
 save_config_body(Fd, M) :-
 	forall(current_config_path(M:Path),
 	       save_config_key(Fd, M:Path)).
@@ -348,7 +348,7 @@ save_modified_configs.
 :- initialization
    send(@pce, exit_message, message(@prolog, save_modified_configs)).
 
-	
+
 		 /*******************************
 		 *	       LOAD		*
 		 *******************************/
@@ -420,7 +420,7 @@ load_config_key(Key, Bindings) :-
 	->  set_config_term(DB, Path, Value, Type)
 	), !.
 load_config_key(_, _).
-	
+
 
 		 /*******************************
 		 *	       EDIT		*
@@ -437,7 +437,7 @@ edit_config(Spec) :-
 	    send(Editor, open_centered, Frame?area?center)
 	;   send(Editor, open_centered)
 	).
-	    
+
 make_config_editor(M, Editor) :-
 	new(Editor, pce_config_editor(M)).
 
@@ -515,7 +515,7 @@ config_term_to_object(Type, Term, Object) :-
 	pce_object_type(Type), !,
 	config_term_to_object(Term, Object).
 config_term_to_object(_, Value, Value).
-	
+
 
 config_term_to_object(Term, Object) :-
 	nonvar(Object), !,
@@ -592,7 +592,7 @@ prolog_value_argument(Obj, Arg, Value) :-
 	get(Arg, '_forward', Obj, Value).
 prolog_value_argument(_, Arg, Arg).
 
-	
+
 		 /*******************************
 		 *	   XREF SUPPORT		*
 		 *******************************/

@@ -141,7 +141,7 @@ broadcast_request(Templ) :-
 
 
 %	{assert,retract}_listener(+Templ, +Listener, +Module, +Goal)
-%	
+%
 %	Implemented as sub-predicate to ensure storage in this module.
 %	Second registration is ignored.  Is this ok?  It avoids problems
 %	using multiple registration of global listen channels.

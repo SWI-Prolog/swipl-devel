@@ -7,14 +7,19 @@
     See:	http://murmurhash.googlepages.com/
 */
 
+#ifdef NO_SWIPL
+#define uintptr_t long
+#define DEBUG(l,g) (void)0
+#else
 #include <pl-incl.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The first one is actually  MurmurHashNeutral2().   It  produces the same
 hash  as  MurmurHashAligned2()  on  little    endian  machines,  but  is
 significantly  slower.  MurmurHashAligned2()  however    is   broken  on
 big-endian machines, as it produces different   hashes, depending on the
-alignment. 
+alignment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if WORDS_BIGENDIAN
@@ -37,10 +42,10 @@ MurmurHashAligned2(const void * key, size_t len, unsigned int seed)
     k *= m;
     k ^= k >> r;
     k *= m;
-    
+
     h *= m;
     h ^= k;
-    
+
     data += 4;
     len -= 4;
   }
@@ -68,8 +73,8 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
   const int r = 24;
   const unsigned char * data = (const unsigned char *)key;
-  unsigned int h = seed ^ len;
-  int align = (int)(uintptr_t)data & 3;
+  unsigned int h = seed ^ (unsigned int)len;
+  size_t align = (size_t)(uintptr_t)data & 3;
 
   DEBUG(0, assert(sizeof(int) == 4));
 
@@ -88,19 +93,19 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
     data += 4-align;
     len -= 4-align;
 
-    sl = 8 * (4-align);
-    sr = 8 * align;
+    sl = 8 * (4-(int)align);
+    sr = 8 * (int)align;
 
     while ( len >= 4 )
     { unsigned int k;
 
       d = *(unsigned int *)data;
       t = (t >> sr) | (d << sl);
-      
+
       k = t;
       MIX(h,k,m);
       t = d;
-      
+
       data += 4;
       len -= 4;
     }
@@ -159,11 +164,11 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
       case 1: h ^= data[0];
       h *= m;
     };
-    
+
     h ^= h >> 13;
     h *= m;
     h ^= h >> 15;
-    
+
     return h;
   }
 }

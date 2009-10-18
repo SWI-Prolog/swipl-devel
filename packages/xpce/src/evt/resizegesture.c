@@ -34,7 +34,7 @@ initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier)
   assign(g, h_mode, NAME_keep);
   assign(g, v_mode, NAME_keep);
   assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, EAV));
-  
+
   succeed;
 }
 
@@ -58,7 +58,7 @@ verifyResizeGesture(ResizeGesture g, EventObj ev)
   x = valInt(X), y = valInt(Y);
   w = valInt(gr->area->w);
   h = valInt(gr->area->h);
-  
+
   if ( x < w/frac && x < mx )		/* determine horizontal-mode */
     assign(g, h_mode, NAME_left);
   else if ( x > ((frac-1) * w)/frac && x > w - mx )
@@ -106,7 +106,7 @@ setCursorResizeGesture(ResizeGesture g, PceWindow sw)
     { send(sw, NAME_focusCursor, cursors[i].cursor, EAV);
       succeed;
     }
-    
+
   fail;
 }
 
@@ -138,7 +138,7 @@ setPointerResizeGesture(ResizeGesture g, Graphical gr, EventObj ev)
     else
       NOTREACHED;
   }
-    
+
   pos = tempObject(ClassPoint, px, py, EAV);
   pointerGraphical(gr, pos);
   considerPreserveObject(pos);
@@ -164,7 +164,7 @@ dragResizeGesture(ResizeGesture g, EventObj ev)
   int ex, ey;
   Int X, Y;
   Name hm = g->h_mode, vm = g->v_mode;
-  
+
   x = valInt(gr->area->x);
   y = valInt(gr->area->y);
   w = valInt(gr->area->w);
@@ -195,19 +195,19 @@ dragResizeGesture(ResizeGesture g, EventObj ev)
 
   if (      hm == NAME_left  && vm == NAME_top )
     sx = x+ex, sy = y+ey, sw = w-ex, sh = h-ey;
-  else if ( hm == NAME_right && vm == NAME_top )     
+  else if ( hm == NAME_right && vm == NAME_top )
     sx = x,    sy = y+ey, sw = ex,   sh = h-ey;
-  else if ( hm == NAME_left  && vm == NAME_bottom )  
+  else if ( hm == NAME_left  && vm == NAME_bottom )
     sx = x+ex, sy = y,    sw = w-ex, sh = ey;
-  else if ( hm == NAME_right && vm == NAME_bottom )  
+  else if ( hm == NAME_right && vm == NAME_bottom )
     sx = x,    sy = y,    sw = ex,   sh = ey;
-  else if ( hm == NAME_keep  && vm == NAME_top )     
+  else if ( hm == NAME_keep  && vm == NAME_top )
     sx = x,    sy = y+ey, sw = w,    sh = h-ey;
-  else if ( hm == NAME_keep  && vm == NAME_bottom )  
+  else if ( hm == NAME_keep  && vm == NAME_bottom )
     sx = x,    sy = y,    sw = w,    sh = ey;
-  else if ( hm == NAME_left  && vm == NAME_keep )    
+  else if ( hm == NAME_left  && vm == NAME_keep )
     sx = x+ex, sy = y,    sw = w-ex, sh = h;
-  else if ( hm == NAME_right && vm == NAME_keep )    
+  else if ( hm == NAME_right && vm == NAME_keep )
     sx = x,    sy = y,    sw = ex,   sh = h;
   else
   { NOTREACHED;
@@ -266,7 +266,7 @@ static senddecl send_resizeGesture[] =
 #define get_resizeGesture NULL
 /*
 static getdecl get_resizeGesture[] =
-{ 
+{
 };
 */
 

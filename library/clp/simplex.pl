@@ -49,6 +49,7 @@
 
 :- use_module(library(clpr)).
 :- use_module(library(assoc)).
+:- use_module(library(pio)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CLP(R) bindings
@@ -1019,429 +1020,464 @@ variables([_Coeff*Var|Rest]) -->
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% streamlined simplex algorithm for transportation problems
-% structures used:
-% cost matrix:
-%   *) row(Cols), Cols is a list of cells
-%   *) cell(Row,Col,Cost,Diff)
-% basic variables:
-%   *) bv(Row, Col, Cost, Value)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   A dual algorithm ("algorithm alpha-beta" in Papadimitriou and
+   Steiglitz) is used for transportation and assignment problems. The
+   arising max-flow problem is solved with Edmonds-Karp, itself a dual
+   algorithm.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   An attributed variable is introduced for each node. Attributes:
+   node: Original name of the node.
+   edges: arc_to(To,F,Capacity) (F has an attribute "flow") or
+          arc_from(From,F,Capacity)
+   parent: used in breadth-first search
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+arcs([], Assoc, Assoc).
+arcs([arc(From0,To0,C)|As], Assoc0, Assoc) :-
+        (   get_assoc(From0, Assoc0, From) -> Assoc1 = Assoc0
+        ;   put_assoc(From0, Assoc0, From, Assoc1),
+            put_attr(From, node, From0)
+        ),
+        (   get_attr(From, edges, Es) -> true
+        ;   Es = []
+        ),
+        put_attr(F, flow, 0),
+        put_attr(From, edges, [arc_to(To,F,C)|Es]),
+        (   get_assoc(To0, Assoc1, To) -> Assoc2 = Assoc1
+        ;   put_assoc(To0, Assoc1, To, Assoc2),
+            put_attr(To, node, To0)
+        ),
+        (   get_attr(To, edges, Es1) -> true
+        ;   Es1 = []
+        ),
+        put_attr(To, edges, [arc_from(From,F,C)|Es1]),
+        arcs(As, Assoc2, Assoc).
 
 
-make_rows([], _, []).
-make_rows([C|Costs], R, [Row|Rows]) :-
-	make_cols(C, R, 0, Cols),
-	Row = row(Cols),
-	R1 is R + 1,
-	make_rows(Costs, R1, Rows).
+edmonds_karp(Arcs0, Arcs) :-
+        empty_assoc(E),
+        arcs(Arcs0, E, Assoc),
+        get_assoc(s, Assoc, S),
+        get_assoc(t, Assoc, T),
+        maximum_flow(S, T),
+        % fetch attvars before deleting visited edges
+        term_attvars(S, AttVars),
+        phrase(flow_to_arcs(S), Ls),
+        arcs_assoc(Ls, Arcs),
+        maplist(del_attrs, AttVars).
 
-make_cols([], _, _, []).
-make_cols([Cost|Cs], R, C, [cell(R,C,Cost1,_)|Cells]) :-
-	Cost1 is rationalize(Cost),
-	C1 is C + 1,
-	make_cols(Cs, R, C1, Cells).
+flow_to_arcs(V) -->
+        (   { get_attr(V, edges, Es) } ->
+            { del_attr(V, edges),
+              get_attr(V, node, Name) },
+            flow_to_arcs_(Es, Name)
+        ;   []
+        ).
 
-all_rationalize([], []).
-all_rationalize([A|As], [R|Rs]) :-
-	R is rationalize(A),
-	all_rationalize(As, Rs).
+flow_to_arcs_([], _) --> [].
+flow_to_arcs_([E|Es], Name) -->
+        edge_to_arc(E, Name),
+        flow_to_arcs_(Es, Name).
 
-transportation(Supplies, Demands, Costs, Transport) :-
-	make_rows(Costs, 0, Rows0),
-	all_rationalize(Supplies, Supplies1),
-	all_rationalize(Demands, Demands1),
-	length(Supplies, NRows),
-	length(Demands, NCols),
-	vogel_approximation(Supplies1, Demands1, Costs, Basis),
-	transportation_iterate(Rows0, NRows, NCols, Basis, Basis1),
-	length(Line, NCols),
-	maplist(=(0), Line),
-	length(Matrix, NRows),
-	maplist(=(Line), Matrix),
-	basis_transport(Basis1, Matrix, Transport).
+edge_to_arc(arc_from(_,_,_), _) --> [].
+edge_to_arc(arc_to(To,F,C), Name) -->
+        { get_attr(To, node, NTo),
+          get_attr(F, flow, Flow) },
+        [arc(Name,NTo,Flow,C)],
+        flow_to_arcs(To).
 
-basis_transport([], Matrix, Matrix).
-basis_transport([bv(NR,NC,_,Value)|Bs], Matrix0, Matrix) :-
-	nth0(NR, Matrix0, Row0),
-	set_nth0(NC, Row0, Value, Row1),
-	set_nth0(NR, Matrix0, Row1, Matrix1),
-	basis_transport(Bs, Matrix1, Matrix).
+arcs_assoc(Arcs, Hash) :-
+	empty_assoc(E),
+	arcs_assoc(Arcs, E, Hash).
 
-entering_variable(Rows, BBR, BBC, NRows, NCols, Var) :-
-	tableau_entering(Rows, BBR, BBC, NRows, NCols, Diff, Var),
-	Diff < 0.
-
-
-   % compute value of the objective function (useful for debugging)
-
-basis_objective([], N, N).
-basis_objective([bv(_,_,Cost,Value)|BVs], N0, N) :-
-	N1 is N0 + Cost*Value,
-	basis_objective(BVs, N1, N).
-
-transportation_iterate(Rows, NRows, NCols, Basis0, Basis) :-
-	%basis_objective(Basis0, 0, Obj),
-	%format("sum: ~w\n", [Obj]),
-	empty_assoc(Empty),
-	basis_by_col(Basis0, Empty, BBC),
-	basis_by_row(Basis0, Empty, BBR),
-	findall(V, entering_variable(Rows, BBR, BBC, NRows, NCols, V), Vs),
-	( Vs = [Entering] ->
-		Entering = v(ERow, ECol, ECost),
-		once(chain_reaction(Entering, BBR, BBC, Donors, Recipients)),
-		Donors = [bv(_, _, _, D0)|_],
-		min_donors(Donors, D0, Min),
-		bvs_add(Recipients, Min, Recipients1),
-		bvs_add(Donors, -Min, Donors1),
-		append(Recipients1, Donors1, ChangedBasis),
-		EnterBV = bv(ERow, ECol, ECost, Min),
-		merge_basis(Basis0, ChangedBasis, Basis1),
-		memberchk(bv(LeavingRow,LeavingCol,_,0), Donors1),
-		delete(Basis1, bv(LeavingRow,LeavingCol,_,0), Basis2),
-		transportation_iterate(Rows, NRows, NCols, [EnterBV|Basis2], Basis)
-	;
-		Basis0 = Basis
-	).
-
-
-merge_basis([], _, []).
-merge_basis([BV0|BVs0], Changed, [BV|BVs]) :-
-	BV0 = bv(Row, Col, _, _),
-	( memberchk(bv(Row, Col, Cost, Value), Changed) ->
-		BV = bv(Row, Col, Cost, Value)
-	;
-		BV = BV0
+arcs_assoc([], Hs, Hs).
+arcs_assoc([arc(From,To,F,C)|Rest], Hs0, Hs) :-
+	(   get_assoc(From, Hs0, As) -> Hs1 = Hs0
+	;   put_assoc(From, Hs0, [], Hs1),
+            empty_assoc(As)
 	),
-	merge_basis(BVs0, Changed, BVs).
+	put_assoc(To, As, arc(From,To,F,C), As1),
+	put_assoc(From, Hs1, As1, Hs2),
+	arcs_assoc(Rest, Hs2, Hs).
 
 
-bvs_add([], _, []).
-bvs_add([bv(NR,NC,C,V0)|BVs0], Val, [bv(NR,NC,C,V1)|BVs]) :-
-	V1 is V0 + Val,
-	bvs_add(BVs0, Val, BVs).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Strategy: Breadth-first search until we find a free right vertex in
+   the value graph, then find an augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+maximum_flow(S, T) :-
+        (   augmenting_path([[S]], Levels, T) ->
+            phrase(augmenting_path(S, T), Path),
+            Path = [augment(_,First,_)|Rest],
+            path_minimum(Rest, First, Min),
+            % format("augmenting path: ~w\n", [Min]),
+            maplist(augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            maximum_flow(S, T)
+        ;   true
+        ).
+
+clear_parent(V) :- del_attr(V, parent).
+
+augmenting_path(Levels0, Levels, T) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
+        phrase(reachables(Vs), Tos),
+        Tos = [_|_],
+        (   member(To, Tos), To == T -> Levels = Levels1
+        ;   augmenting_path(Levels1, Levels, T)
+        ).
+
+reachables([])     --> [].
+reachables([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_(Es, V),
+        reachables(Vs).
+
+reachables_([], _)     --> [].
+reachables_([E|Es], V) -->
+        reachable(E, V),
+        reachables_(Es, V).
+
+reachable(arc_from(V,F,_), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              Flow > 0 } ->
+            { put_attr(V, parent, P-augment(F,Flow,-)) },
+            [V]
+        ;   []
+        ).
+reachable(arc_to(V,F,C), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              (   C == inf ; Flow < C )} ->
+            { ( C == inf -> Diff = inf
+              ;   Diff is C - Flow
+              ),
+              put_attr(V, parent, P-augment(F,Diff,+)) },
+            [V]
+        ;   []
+        ).
 
 
-min_donors([], Min, Min).
-min_donors([bv(_, _, _, Val)|Ds], Min0, Min) :-
-	Min1 is min(Val, Min0),
-	min_donors(Ds, Min1, Min).
+path_minimum([], Min, Min).
+path_minimum([augment(_,A,_)|As], Min0, Min) :-
+        (   A == inf -> Min1 = Min0
+        ;   Min1 is min(Min0,A)
+        ),
+        path_minimum(As, Min1, Min).
 
+augment(Min, augment(F,_,Sign)) :-
+        get_attr(F, flow, Flow0),
+        flow_(Sign, Flow0, Min, Flow),
+        put_attr(F, flow, Flow).
 
-chain_reaction(v(Row,Col,_), BBR, BBC, Donors, Recipients) :-
-	get_assoc(Col, BBC, Cs0),
-	select(bv(BRow,Col,Cost,Value), Cs0, Cs1),
-	BRow =\= Row,
-	Curr = bv(BRow, Col, Cost, Value),
-	Donors = [Curr|RestDonors],
-	put_assoc(Col, BBC, Cs1, BBC1),
-	get_assoc(BRow, BBR, Rs),
-	delete(Rs, bv(BRow,Col,_,_), Rs1),
-	put_assoc(BRow, BBR, Rs1, BBR1),
-	chain_reaction_row(Row, Curr, BBR1, BBC1, RestDonors, Recipients).
+flow_(+, F0, A, F) :- F is F0 + A.
+flow_(-, F0, A, F) :- F is F0 - A.
 
-chain_reaction_col(TargetRow, bv(_,FCol,_,_), BBR, BBC, Dons, Recs) :-
-	get_assoc(FCol, BBC, Cs0),
-	select(Curr, Cs0, Cs1),
-	Curr = bv(FRow,FCol,_,_),
-	put_assoc(FCol, BBC, Cs1, BBC1),
-	get_assoc(FRow, BBR, Rs),
-	delete(Rs, bv(FRow,FCol,_,_), Rs1),
-	put_assoc(FRow, BBR, Rs1, BBR1),
-	Dons = [Curr|Rest],
-	chain_reaction_row(TargetRow, Curr, BBR1, BBC1, Rest, Recs).
+augmenting_path(S, V) -->
+        (   { V == S } -> []
+        ;   { get_attr(V, parent, V1-Augment) },
+            [Augment],
+            augmenting_path(S, V1)
+        ).
 
-chain_reaction_row(TargetRow, bv(FRow,_,_,_), BBR, BBC, Dons, Recs) :-
-	( TargetRow =:= FRow ->
-		Dons = [],
-		Recs = []
-	;
-		get_assoc(FRow, BBR, Rs),
-		select(Curr, Rs, Rs1),
-		put_assoc(FRow, BBR, Rs1, BBR1),
-		Curr = bv(_,FCol,_,_),
-		get_assoc(FCol, BBC, Cs),
-		delete(Cs, bv(FRow,FCol,_,_), Cs1),
-		put_assoc(FCol, BBC, Cs1, BBC1),
-		Recs = [Curr|Rest],
-		chain_reaction_col(TargetRow, Curr, BBR1, BBC1, Dons, Rest)
-	).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+naive_init(Supplies, _, Costs, Alphas, Betas) :-
+        length(Supplies, LAs),
+        length(Alphas, LAs),
+        maplist(=(0), Alphas),
+        transpose(Costs, TCs),
+        naive_init_betas(TCs, Betas).
 
+naive_init_betas([], []).
+naive_init_betas([Ls|Lss], [B|Bs]) :-
+        list_min(Ls, B),
+        naive_init_betas(Lss, Bs).
 
-rows_number_basic(N, N, _, []) :- !.
-rows_number_basic(I, N, BBR, NB0) :-
-	get_assoc(I, BBR, Cols),
-	length(Cols, Num),
-	Num1 is -Num,
-	NB0 = [Num1-I|Rest],
-	I1 is I + 1,
-	rows_number_basic(I1, N, BBR, Rest).
+list_min([F|Rest], Min) :-
+        list_min(Rest, F, Min).
 
-tableau_entering(Rows0, BBR, BBC, NRows, NCols, Diff, Var) :-
-	length(Uis, NRows),
-	length(Vjs, NCols),
-	rows_number_basic(0, NRows, BBR, NB),
-	keysort(NB, Sorted),
-	Sorted = [_Num-NMaxRow|_],
-	nth0(NMaxRow, Uis, 0),
-	uis_vjs_row([NMaxRow], [], [], [], BBR, BBC, Uis, Vjs, Rows0),
-	diffs(Rows0, Uis, Vjs, 0, Diff, _, Var).
+list_min([], Min, Min).
+list_min([L|Ls], Min0, Min) :-
+        Min1 is min(L,Min0),
+        list_min(Ls, Min1, Min).
 
-basis_by_col([], BBC, BBC).
-basis_by_col([bv(BR,BC,Cost,Value)|Bs], BBC0, BBC) :-
-	( get_assoc(BC, BBC0, Rows) ->
-		put_assoc(BC, BBC0, [bv(BR,BC,Cost,Value)|Rows], BBC1)
-	;
-		put_assoc(BC, BBC0, [bv(BR,BC,Cost,Value)], BBC1)
-	),
-	basis_by_col(Bs, BBC1, BBC).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-basis_by_row([], BBR, BBR).
-basis_by_row([bv(BR,BC,Cost,Value)|Bs], BBR0, BBR) :-
-	( get_assoc(BR, BBR0, Cols) ->
-		put_assoc(BR, BBR0, [bv(BR,BC,Cost,Value)|Cols], BBR1)
-	;
-		put_assoc(BR, BBR0, [bv(BR,BC,Cost,Value)], BBR1)
-	),
-	basis_by_row(Bs, BBR1, BBR).
-
-
-uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
-	( Rows == [] ->
-		( Cols == [] ->
-			true
-		;
-			uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
-		)
-	;
-		Rows = [NRow|Todo],
-		( memberchk(NRow, RowsVisited) ->
-			uis_vjs_row(Todo, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
-		;
-			nth0(NRow, Uis, Ui),
-			get_assoc(NRow, BBR, Cs),
-			whole_row(Cs, Ui, Vjs, Cols, Cols1),
-			sort(Cols1, Cols2), % remove dups
-			uis_vjs_col(Todo, [NRow|RowsVisited], Cols2, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
-		)
-	).
-
-whole_row([], _, _, ColsQueue, ColsQueue).
-whole_row([bv(_,VNCol,Cost,_)|Vs], Ui, Vjs, ColsQueue0, ColsQueue) :-
-	nth0(VNCol, Vjs, Vj),
-	Vj is Cost - Ui,
-	whole_row(Vs, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue).
-
-
-uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
-	( Cols == [] ->
-		uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
-	;
-		Cols = [NCol|Todo],
-		( memberchk(NCol, ColsVisited) ->
-			uis_vjs_col(Rows, RowsVisited, Todo, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
-		;
-			nth0(NCol, Vjs, Vj),
-			get_assoc(NCol, BBC, Rs),
-			whole_col(Rs, Vj, Uis, Rows, Rows1),
-			sort(Rows1, Rows2), % remove dups
-			uis_vjs_row(Rows2, RowsVisited, Todo, [NCol|ColsVisited], BBR, BBC, Uis, Vjs, Costs)
-		)
-	).
-
-whole_col([], _, _, RowsQueue, RowsQueue).
-whole_col([bv(VNRow,_,Cost,_)|Vs], Vj, Uis, RowsQueue0, RowsQueue) :-
-	nth0(VNRow, Uis, Ui),
-	Ui is Cost - Vj,
-	whole_col(Vs, Vj, Uis, [VNRow|RowsQueue0], RowsQueue).
-
-
-diffs([], _, _, Diff, Diff, Var, Var).
-diffs([row(Cols)|Rows], [Ui|Uis], Vjs, Diff0, Diff, Var0, Var) :-
-	diffs_(Cols, Ui, Vjs, Diff0, Diff1, Var0, Var1),
-	diffs(Rows, Uis, Vjs, Diff1, Diff, Var1, Var).
-
-diffs_([], _, _, Diff, Diff, Var, Var).
-diffs_([cell(Row,Col,Cost,CD)|Cols], Ui, [Vj|Vjs], Diff0, Diff, Var0, Var) :-
-	CD is Cost - Ui - Vj,
-	( CD < Diff0 ->
-		Var1 = v(Row,Col,Cost),
-		Diff1 = CD
-	;
-		Var1 = Var0,
-		Diff1 = Diff0
-	),
-	diffs_(Cols, Ui, Vjs, Diff1, Diff, Var1, Var).
-
-
-
-   % Vogel's approximation method used for finding an initial solution of the
-   % transportation problem
-
-
-   % The following predicates compute the difference for each row/column
-   % (difference = arithmetic difference between smallest and next-to-smallest
-   %               unit cost still remaining in a row/column)
-   % as we then want to select the row/col with the largest difference, we
-   % actually compute the negative difference to sort in reverse order.
-   % We also keep track of the element with least unit cost for later.
-
-rows_with_diffs([], []).
-rows_with_diffs([NR-Costs|NRs], [Diff-row(NR,NC,Costs)|Rest]) :-
-	( Costs = [First-NC,Second-_|_] ->
-		Diff is First - Second
-	;
-		Diff = 0
-	),
-	rows_with_diffs(NRs, Rest).
-
-   % the same for column-differences:
-
-cols_with_diffs([], []).
-cols_with_diffs([NC-Costs|NCs], [Diff-col(NC,NR,Costs)|Rest]) :-
-	( Costs = [First-NR,Second-_|_] ->
-		Diff is First - Second
-	;
-		Diff = 0
-	),
-	cols_with_diffs(NCs, Rest).
-
-recompute_diffs([], []).
-recompute_diffs([_-E|Es], [R|Rs]) :-
-	recompute_diff(E, R),
-	recompute_diffs(Es, Rs).
-
-recompute_diff(col(NC,_,Costs), Diff-col(NC,NR,Costs)) :-
-	( Costs = [First-NR, Second-_|_] ->
-		Diff is First - Second
-	;
-		Diff = 0
-	).
-recompute_diff(row(NR,_,Costs), Diff-row(NR,NC,Costs)) :-
-	( Costs = [First-NC, Second-_|_] ->
-		Diff is First - Second
-	;
-		Diff = 0
-	).
-
-
-   % entry-point for Vogel's approximation method
-
-vogel_approximation(Supplies, Demands, Costs, Basis) :-
-	number_list(Costs, 0, NumberedCosts),
-	transpose(Costs, TCosts),
-	number_list(TCosts, 0, NumberedTCosts),
-	rows_with_diffs(NumberedCosts, Rows),
-	cols_with_diffs(NumberedTCosts, Cols),
-	keysort(Rows, Rows1),
-	keysort(Cols, Cols1),
-	vogel_iterate(Rows1, Cols1, Supplies, Demands, Basis, []).
-
-   % Each row of the cost matrix is represented as Diff-row(NR,N,Costs),
-   % with NR being the row number (in the original matrix), and costs are of
-   % the form Cost-NC, NC being the column in the original matrix. N is
-   % the column with minimal cost.
-   % Columns are stored analogously. This way, it is easy to remove rows and
-   % columns and still maintain information where they originally were.
-
-number_list([], _, []).
-number_list([E|Es], N0, [N0-E2|Rest]) :-
-	number_list_(E, 0, E1),
-	keysort(E1, E2),
-	N1 is N0 + 1,
-	number_list(Es, N1, Rest).
-
-number_list_([], _, []).
-number_list_([E|Es], N0, [E-N0|Rest]) :-
-	N1 is N0 + 1,
-	number_list_(Es, N1, Rest).
-
-
-transpose(Matrix, Transposed) :-
-        Matrix = [Row|_],
-        transpose(Row, Matrix, Transposed).
+transpose(Ms, Ts) :- Ms = [F|_], transpose(F, Ms, Ts).
 
 transpose([], _, []).
-transpose([_|Rest], Matrix, [Row|Rows]) :-
-        firsts(Matrix, NewMatrix, Row),
-        transpose(Rest, NewMatrix, Rows).
+transpose([_|Rs], Ms, [Ts|Tss]) :-
+        lists_firsts_rests(Ms, Ts, Ms1),
+        transpose(Rs, Ms1, Tss).
 
-firsts([], [], []).
-firsts([[F|Rs]|Rest], [Rs|Ts], [F|Fs]) :-
-        firsts(Rest, Ts, Fs).
+lists_firsts_rests([], [], []).
+lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
+        lists_firsts_rests(Rest, Fs, Oss).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   TODO: use attributed variables throughout
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-remaining_row([], _, _, _, Basis, Basis).
-remaining_row([Cost-NC|Rest], NR, Supply, Demands, Basis0, Basis) :-
-	nth0(NC, Demands, DemandBound),
-	Amount is min(DemandBound, Supply),
-	Basis0 = [bv(NR, NC, Cost, Amount)|Basis1],
-	Supply1 is Supply - Amount,
-	remaining_row(Rest, NR, Supply1, Demands, Basis1, Basis).
+transportation(Supplies, Demands, Costs, Transport) :-
+        alpha_beta(Supplies, Demands, Costs, Transport).
 
-remaining_col([], _, _, _, Basis, Basis).
-remaining_col([Cost-NR|Rest], NC, Supplies, Demand, Basis0, Basis) :-
-	nth0(NR, Supplies, SupplyBound),
-	Amount is min(SupplyBound, Demand),
-	Basis0 = [bv(NR, NC, Cost, Amount)|Basis1],
-	Demand1 is Demand - Amount,
-	remaining_col(Rest, NC, Supplies, Demand1, Basis1, Basis).
+alpha_beta(Supplies, Demands, Costs, Transport) :-
+        length(Supplies, LAs),
+        length(Demands, LBs),
+        naive_init(Supplies, Demands, Costs, Alphas, Betas),
+        network_head(Supplies, 1, SArcs, []),
+        network_tail(Demands, 1, DArcs, []),
+        numlist(1, LAs, Sources),
+        numlist(1, LBs, Sinks0),
+        maplist(make_sink, Sinks0, Sinks),
+        append(SArcs, DArcs, Torso),
+        alpha_beta(Torso, Sources, Sinks, Costs, Alphas, Betas, Flow),
+        flow_transport(Supplies, 1, Demands, Flow, Transport).
 
-vogel_iterate(Rows, Cols, Supplies, Demands, Basis0, Basis) :-
-	( Cols = [SingleCol] ->
-		SingleCol = _-col(NC,_,Costs),
-		nth0(NC, Demands, Demand),
-		remaining_col(Costs, NC, Supplies, Demand, Basis0, Basis)
-	; Rows = [SingleRow] ->
-		SingleRow = _-row(NR,_,Costs),
-		nth0(NR, Supplies, Supply),
-		remaining_row(Costs, NR, Supply, Demands, Basis0, Basis)
-	;
-		Rows = [RDiff-MinRow|_],
-		Cols = [CDiff-MinCol|_],
-		( RDiff < CDiff ->
-			% choose the row (with smallest negative difference)
-			MinRow = row(BasicRow, BasicCol, _)
-		;
-			% choose the column
-			MinCol = col(BasicCol, BasicRow, _)
-		),
-		nth0(BasicCol, Demands, DemandsBound),
-		nth0(BasicRow, Supplies, SupplyBound),
-		Amount is min(DemandsBound, SupplyBound),
-		DemandsBound1 is DemandsBound - Amount,
-		SupplyBound1 is SupplyBound - Amount,
-		set_nth0(BasicCol, Demands, DemandsBound1, Demands1),
-		set_nth0(BasicRow, Supplies, SupplyBound1, Supplies1),
-		memberchk(_-row(BasicRow,_,Cs), Rows),
-		memberchk(Cost-BasicCol, Cs),
-		Basis0 = [bv(BasicRow, BasicCol, Cost, Amount)|Basis1],
-		( DemandsBound1 =:= 0 ->
-			delete(Cols, _-col(BasicCol,_,_), Cols3),
-			delete_from_all(Rows, BasicCol, Rows1),
-			recompute_diffs(Rows1, Rows2),
-			keysort(Rows2, Rows3)
-		;
-			delete(Rows, _-row(BasicRow,_,_), Rows3),
-			delete_from_all(Cols, BasicRow, Cols1),
-			recompute_diffs(Cols1, Cols2),
-			keysort(Cols2, Cols3)
-		),
-		vogel_iterate(Rows3, Cols3, Supplies1, Demands1, Basis1, Basis)
-	).
+flow_transport([], _, _, _, []).
+flow_transport([_|Rest], N, Demands, Flow, [Line|Lines]) :-
+        transport_line(Demands, N, 1, Flow, Line),
+        N1 is N + 1,
+        flow_transport(Rest, N1, Demands, Flow, Lines).
 
-delete_from_all([], _, []).
-delete_from_all([Diff-E0|As0], Del, [Diff-E|As]) :-
-	E0 =.. [Func,N1,N2,Costs],
-	delete(Costs, _-Del, Costs1),
-	E =.. [Func,N1,N2,Costs1],
-	delete_from_all(As0, Del, As).
+transport_line([], _, _, _, []).
+transport_line([_|Rest], I, J, Flow, [L|Ls]) :-
+        (   get_assoc(I, Flow, As), get_assoc(p(J), As, arc(I,p(J),F,_)) -> L = F
+        ;   L = 0
+        ),
+        J1 is J + 1,
+        transport_line(Rest, I, J1, Flow, Ls).
 
 
-set_nth0(0, [_|Ls], Element, [Element|Ls]) :- !.
-set_nth0(Curr, [L|Ls], Element, [L|Ss]) :-
-	Curr1 is Curr - 1,
-	set_nth0(Curr1, Ls, Element, Ss).
+make_sink(N, p(N)).
+
+network_head([], _) --> [].
+network_head([S|Ss], N) -->
+        [arc(s,N,S)],
+        { N1 is N + 1 },
+        network_head(Ss, N1).
+
+network_tail([], _) --> [].
+network_tail([D|Ds], N) -->
+        [arc(p(N),t,D)],
+        { N1 is N + 1 },
+        network_tail(Ds, N1).
+
+network_connections([], _, _, _) --> [].
+network_connections([A|As], Betas, [Cs|Css], N) -->
+        network_connections(Betas, Cs, A, N, 1),
+        { N1 is N + 1 },
+        network_connections(As, Betas, Css, N1).
+
+network_connections([], _, _, _, _) --> [].
+network_connections([B|Bs], [C|Cs], A, N, PN) -->
+        (   { C =:= A + B } -> [arc(N,p(PN),inf)]
+        ;   []
+        ),
+        { PN1 is PN + 1 },
+        network_connections(Bs, Cs, A, N, PN1).
+
+alpha_beta(Torso, Sources, Sinks, Costs, Alphas, Betas, Flow) :-
+        network_connections(Alphas, Betas, Costs, 1, Cons, []),
+        append(Torso, Cons, Arcs),
+        edmonds_karp(Arcs, MaxFlow),
+        mark_hashes(MaxFlow, MArcs, MRevArcs),
+        all_markable(MArcs, MRevArcs, Markable),
+        mark_unmark(Sources, Markable, MarkSources, UnmarkSources),
+        (   MarkSources == [] -> Flow = MaxFlow
+        ;   mark_unmark(Sinks, Markable, MarkSinks0, UnmarkSinks0),
+            maplist(un_p, MarkSinks0, MarkSinks),
+            maplist(un_p, UnmarkSinks0, UnmarkSinks),
+            MarkSources = [FirstSource|_],
+            UnmarkSinks = [FirstSink|_],
+            theta(FirstSource, FirstSink, Costs, Alphas, Betas, TInit),
+            theta(MarkSources, UnmarkSinks, Costs, Alphas, Betas, TInit, Theta),
+            duals_add(MarkSources, Alphas, Theta, Alphas1),
+            duals_add(UnmarkSinks, Betas, Theta, Betas1),
+            Theta1 is -Theta,
+            duals_add(UnmarkSources, Alphas1, Theta1, Alphas2),
+            duals_add(MarkSinks, Betas1, Theta1, Betas2),
+            alpha_beta(Torso, Sources, Sinks, Costs, Alphas2, Betas2, Flow)
+        ).
+
+mark_hashes(MaxFlow, Arcs, RevArcs) :-
+        assoc_to_list(MaxFlow, FlowList),
+        maplist(un_arc, FlowList, FlowList1),
+        flatten(FlowList1, FlowList2),
+        empty_assoc(E),
+        mark_arcs(FlowList2, E, Arcs),
+        mark_revarcs(FlowList2, E, RevArcs).
+
+un_arc(_-Ls0, Ls) :-
+        assoc_to_list(Ls0, Ls1),
+        maplist(un_arc_, Ls1, Ls).
+
+un_arc_(_-Ls, Ls).
+
+mark_arcs([], Arcs, Arcs).
+mark_arcs([arc(From,To,F,C)|Rest], Arcs0, Arcs) :-
+        (   get_assoc(From, Arcs0, As) -> true
+        ;   As = []
+        ),
+        (   C == inf -> As1 = [To|As]
+        ;   F < C -> As1 = [To|As]
+        ;   As1 = As
+        ),
+        put_assoc(From, Arcs0, As1, Arcs1),
+        mark_arcs(Rest, Arcs1, Arcs).
+
+mark_revarcs([], Arcs, Arcs).
+mark_revarcs([arc(From,To,F,_)|Rest], Arcs0, Arcs) :-
+        (   get_assoc(To, Arcs0, Fs) -> true
+        ;   Fs = []
+        ),
+        (   F > 0 -> Fs1 = [From|Fs]
+        ;   Fs1 = Fs
+        ),
+        put_assoc(To, Arcs0, Fs1, Arcs1),
+        mark_revarcs(Rest, Arcs1, Arcs).
+
+
+un_p(p(N), N).
+
+duals_add([], Alphas, _, Alphas).
+duals_add([S|Ss], Alphas0, Theta, Alphas) :-
+        add_to_nth(1, S, Alphas0, Theta, Alphas1),
+        duals_add(Ss, Alphas1, Theta, Alphas).
+
+add_to_nth(N, N, [A0|As], Theta, [A|As]) :- !,
+        A is A0 + Theta.
+add_to_nth(N0, N, [A|As0], Theta, [A|As]) :-
+        N1 is N0 + 1,
+        add_to_nth(N1, N, As0, Theta, As).
+
+
+theta(Source, Sink, Costs, Alphas, Betas, Theta) :-
+        nth1(Source, Costs, Row),
+        nth1(Sink, Row, C),
+        nth1(Source, Alphas, A),
+        nth1(Sink, Betas, B),
+        Theta is (C - A - B) rdiv 2.
+
+theta([], _, _, _, _, Theta, Theta).
+theta([Source|Sources], Sinks, Costs, Alphas, Betas, Theta0, Theta) :-
+        theta_(Sinks, Source, Costs, Alphas, Betas, Theta0, Theta1),
+        theta(Sources, Sinks, Costs, Alphas, Betas, Theta1, Theta).
+
+theta_([], _, _, _, _, Theta, Theta).
+theta_([Sink|Sinks], Source, Costs, Alphas, Betas, Theta0, Theta) :-
+        theta(Source, Sink, Costs, Alphas, Betas, Theta1),
+        Theta2 is min(Theta0, Theta1),
+        theta_(Sinks, Source, Costs, Alphas, Betas, Theta2, Theta).
+
+
+mark_unmark(Nodes, Hash, Mark, Unmark) :-
+        mark_unmark(Nodes, Hash, Mark, [], Unmark, []).
+
+mark_unmark([], _, Mark, Mark, Unmark, Unmark).
+mark_unmark([Node|Nodes], Markable, Mark0, Mark, Unmark0, Unmark) :-
+        (   memberchk(Node, Markable) ->
+            Mark0 = [Node|Mark1],
+            Unmark0 = Unmark1
+        ;   Mark0 = Mark1,
+            Unmark0 = [Node|Unmark1]
+        ),
+        mark_unmark(Nodes, Markable, Mark1, Mark, Unmark1, Unmark).
+
+all_markable(Flow, RevArcs, Markable) :-
+        phrase(markable(s, [], _, Flow, RevArcs), Markable).
+
+all_markable([], Visited, Visited, _, _) --> [].
+all_markable([To|Tos], Visited0, Visited, Arcs, RevArcs) -->
+        (   { memberchk(To, Visited0) } -> { Visited0 = Visited1 }
+        ;   markable(To, [To|Visited0], Visited1, Arcs, RevArcs)
+        ),
+        all_markable(Tos, Visited1, Visited, Arcs, RevArcs).
+
+markable(Current, Visited0, Visited, Arcs, RevArcs) -->
+        { (   Current = p(_) ->
+              (   get_assoc(Current, RevArcs, Fs) -> true
+              ;   Fs = []
+              )
+          ;   (   get_assoc(Current, Arcs, Fs) -> true
+              ;   Fs = []
+              )
+          ) },
+        [Current],
+        all_markable(Fs, [Current|Visited0], Visited, Arcs, RevArcs).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   solve(File) -- read input from File.
+
+   Format (NS = number of sources, ND = number of demands):
+
+   NS
+   ND
+   S1 S2 S3 ...
+   D1 D2 D3 ...
+   C11 C12 C13 ...
+   C21 C22 C23 ...
+   ... ... ... ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+input(Ss, Ds, Costs) -->
+        integer(NS),
+        integer(ND),
+        n_integers(NS, Ss),
+        n_integers(ND, Ds),
+        n_kvectors(NS, ND, Costs).
+
+n_kvectors(0, _, []) --> !.
+n_kvectors(N, K, [V|Vs]) -->
+        n_integers(K, V),
+        { N1 is N - 1 },
+        n_kvectors(N1, K, Vs).
+
+n_integers(0, []) --> !.
+n_integers(N, [I|Is]) --> integer(I), { N1 is N - 1 }, n_integers(N1, Is).
+
+
+number([D|Ds]) --> digit(D), number(Ds).
+number([D])    --> digit(D).
+
+digit(D) --> [D], { between(0'0, 0'9, D) }.
+
+integer(N) --> number(Ds), !, ws, { name(N, Ds) }.
+
+ws --> [W], { W =< 0' }, !, ws.  % closing quote for syntax highlighting: '
+ws --> [].
+
+solve(File) :-
+        time((phrase_from_file(input(Supplies, Demands, Costs), File),
+              alpha_beta(Supplies, Demands, Costs, Matrix),
+              maplist(print_row, Matrix))),
+        halt.
+
+print_row(R) :- maplist(print_row_, R), nl.
+
+print_row_(N) :- format("~w ", [N]).
+
+
+% ?- call_residue_vars(alpha_beta([12,7,14], [3,15,9,6], [[20,50,10,60],[70,40,60,30],[40,80,70,40]], Ms), Vs).
+%@ Ms = [[0, 3, 9, 0], [0, 7, 0, 0], [3, 5, 0, 6]],
+%@ Vs = [].
+
+
+%?- call_residue_vars(simplex:solve('instance_80_80.txt'), Vs).
+
+%?- call_residue_vars(simplex:solve('instance_3_4.txt'), Vs).
+
+%?- call_residue_vars(simplex:solve('instance_100_100.txt'), Vs).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -57,7 +57,7 @@ reply('/blank', HTTPD) :-
 blank -->
 	page(title('Blank'),
 	     []).
-	       
+
 reply('/index', HTTPD) :-
 	send(HTTPD, reply_html, my_httpd:index).
 
@@ -72,7 +72,7 @@ index -->
 
 reply('/text', HTTPD) :-
 	send(HTTPD, reply_html, my_httpd:text).
-	       
+
 text -->
 	page(title('Text'),
 	     [ p(['Just showing a little text'])
@@ -91,7 +91,7 @@ into an XPCE graphical using the support library draw/importpl.
 reply('/picture', HTTPD) :-
 	make_picture(Gr),
 	send(HTTPD, reply, Gr, 'image/gif').
-	       
+
 make_picture(Dev) :-
 	new(Dev, device),
 	drawing(xpcenetscape, Drawing),

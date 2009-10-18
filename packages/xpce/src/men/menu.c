@@ -49,7 +49,7 @@ static MenuItem getMemberMenu(Menu m, Any obj);
 status
 initialiseMenu(Menu m, Name name, Name kind, Code msg)
 { createDialogItem(m, name);
- 
+
   assign(m, message,		msg);
   assign(m, members,	        newObject(ClassChain, EAV));
   assign(m, multiple_selection, OFF);
@@ -58,7 +58,7 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
 
   assign(m, kind,		kind);
   assign(m, columns,            ONE);
-  
+
   assign(m, left_offset,	ZERO);
   assign(m, right_offset,	ZERO);
   assign(m, label_area,		NIL);
@@ -78,7 +78,7 @@ unlinkMenu(Menu m)
 
   for_cell(cell, m->members)
   { MenuItem mi = cell->value;
-    
+
     assign(mi, menu, NIL);
   }
   clearChain(m->members);
@@ -94,7 +94,7 @@ unlinkMenu(Menu m)
 static void
 rows_and_cols(Menu m, int *rows, int *cols)
 { int size = valInt(getSizeChain(m->members));
-  
+
   *cols = valInt(m->columns);
   *cols = min(*cols, size);
   *rows = (*cols == 0 ? 0 : (size + *cols - 1) / *cols);
@@ -165,12 +165,12 @@ computeLabelMenu(Menu m)
 
     if ( isNil(m->label_area) )
       assign(m, label_area, newObject(ClassArea, EAV));
-    
+
     dia_label_size(m, &w, &h, NULL);
     if ( m->layout == NAME_horizontal )
       w += valInt(getExFont(m->label_font));
     setArea(m->label_area, DEFAULT, DEFAULT, toInt(w), toInt(h));
-    
+
     if ( m->layout == NAME_vertical )
     { iox = 0;
       ioy = h;
@@ -182,7 +182,7 @@ computeLabelMenu(Menu m)
   { assign(m, label_area, NIL);
     iox = ioy = 0;
   }
-  
+
   if ( notDefault(m->label_width) &&
        m->layout == NAME_horizontal &&
        valInt(m->label_width) > iox )
@@ -190,7 +190,7 @@ computeLabelMenu(Menu m)
 
   if ( m->feedback == NAME_showSelectionOnly )
   { Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
-    
+
     if ( (Name)ci == NAME_comboBox )
     { iox += 0;
     } else if ( instanceOfObject(ci, ClassElevation) )
@@ -212,7 +212,7 @@ static void
 size_menu_item(Menu m, MenuItem mi, int *w, int *h)
 { if ( instanceOfObject(mi->label, ClassImage) )
   { Image image = (Image) mi->label;
-  
+
     *w = valInt(image->size->w);
     *h = valInt(image->size->h);
   } else if ( isName(mi->label) )
@@ -267,18 +267,18 @@ computeItemsMenu(Menu m)
       { ws_checkbox_size(0, &cw, &ch);
 	lm = cw;
       }
-  
+
       if ( instanceOfObject(m->off_image, ClassImage) )
 	lm = max(lm, valInt(m->off_image->size->w));
       else if ( (Name)m->off_image == NAME_marked )
       { ws_checkbox_size(0, &cw, &ch);
 	lm = max(lm, cw);
       }
-  
+
       lm += 5;				/* TBD: Parameter? */
     }
   }
-  
+
   if ( isDefault(m->accelerator_font) )
     assign(m, accelerator_font,
 	   getClassVariableValueObject(m, NAME_acceleratorFont));
@@ -286,7 +286,7 @@ computeItemsMenu(Menu m)
   if ( notNil(m->accelerator_font) )
   { int am = 0;
     FontObj f = m->accelerator_font;
-    
+
     for_cell(cell, m->members)
     { MenuItem mi = cell->value;
       int aw, ah;
@@ -306,7 +306,7 @@ computeItemsMenu(Menu m)
   assign(m->item_size, h, toInt(h));
   assign(m, right_offset, toInt(rm));
   assign(m, left_offset, toInt(lm));
-  
+
   succeed;
 }
 
@@ -338,7 +338,7 @@ computeMenu(Menu m)
       w = valInt(a->w); h = valInt(a->h);
     } else
       x = y = w = h = 0;
-      
+
     ix = valInt(m->item_offset->x);
     iy = valInt(m->item_offset->y);
 
@@ -519,7 +519,7 @@ elevated_items(Menu m, Elevation z)
     if ( m->look == NAME_motif )
       return instanceOfObject(m, ClassPopup);
 
-    if ( m->look == NAME_win) 
+    if ( m->look == NAME_win)
       return (m->preview_feedback != NAME_colour &&
 	      instanceOfObject(m, ClassPopup));
   }
@@ -616,7 +616,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
       { fill = BLACK_IMAGE;
 	radius = 10;
       }
-	
+
       DEBUG(NAME_menu, Cprintf("Feedback = %s, p = %d; r = %d, fill = %s\n",
 			       pp(m->preview_feedback),
 			       pen, radius, pp(fill)));
@@ -657,29 +657,29 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   { if ( instanceOfObject(leftmark, ClassImage) )
     { int bw, bh, by;
       Elevation mz = getClassVariableValueObject(m, NAME_markElevation);
-      
+
       bw = valInt(leftmark->size->w);
       bh = valInt(leftmark->size->h);
       by = item_mark_y(m, y, h, bh);
-  
+
       if ( instanceOfObject(mz, ClassElevation) && mz->height != ZERO )
       { int h = valInt(mz->height);
 	r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, mz, FALSE);
       }
-  
+
       r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
     } else if ( (Name) leftmark == NAME_marked )
     { if ( m->look == NAME_motif )
       { Elevation mz = getClassVariableValueObject(m, NAME_markElevation);
-  
+
 	if ( m->multiple_selection == ON )
 	{ int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
-  
+
 	  r_3d_box(x+b, dy, MARK_BOX_SIZE, MARK_BOX_SIZE,
 		   0, mz, mi->selected == OFF);
 	} else
 	{ int dy = item_mark_y(m, y, h, MARK_DIAMOND_SIZE);
-  
+
 	  r_3d_diamond(x+b, dy, MARK_DIAMOND_SIZE, MARK_DIAMOND_SIZE,
 		       mz, mi->selected == OFF);
 	}
@@ -690,7 +690,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 	  int dy = item_mark_y(m, y, h, d);
 	  int dx = x+b+lm - (MARK_CIRCLE_SIZE+5);
 	  int mw = 3;			/* mark-width */
-  
+
 	  r_3d_ellipse(dx-zh, dy-zh, d+2*zh, d+2*zh, z, FALSE);
 	  r_thickness(0);
 	  r_ellipse(dx, dy, d, d, WHITE_COLOUR);
@@ -744,7 +744,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 	      accelerator_code(mi->accelerator),
 	      f,
 	      ix+fw/2, iy, iw-fw, ih,
-	      m->format, m->vertical_format, 
+	      m->format, m->vertical_format,
 	      lblflags);
 
   } else if ( instanceOfObject(mi->label, ClassImage) )
@@ -789,7 +789,7 @@ RedrawAreaMenu(Menu m, Area a)
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
-  
+
   if ( m->show_label == ON )
   { int flags = (m->active == ON ? 0 : LABEL_INACTIVE);
     int lw = (isDefault(m->label_width) ? valInt(m->label_area->w)
@@ -805,12 +805,12 @@ RedrawAreaMenu(Menu m, Area a)
 			  valInt(m->label_area->h),
 			  m->label_format, m->vertical_format, flags);
   }
-  
+
   bx = cx = x + valInt(m->item_offset->x);
   by = cy = y + valInt(m->item_offset->y);
   iw = valInt(m->item_size->w);
   ih = valInt(m->item_size->h);
-  
+
   if ( m->feedback == NAME_showSelectionOnly )
   { MenuItem mi = getItemSelectionMenu(m);
     Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
@@ -846,12 +846,12 @@ RedrawAreaMenu(Menu m, Area a)
     Cell cell;
     int ax, ay, aw, ah;
 
-    ax = valInt(a->x); ay = valInt(a->y); 
-    aw = valInt(a->w); ah = valInt(a->h); 
+    ax = valInt(a->x); ay = valInt(a->y);
+    aw = valInt(a->w); ah = valInt(a->h);
     ax += x - valInt(m->area->x);
     ay += y - valInt(m->area->y);
     rows_and_cols(m, &rows, &cols);
-    
+
     if ( z && notNil(z) )
       r_3d_box(cx, cy, w-(cx-x), h-(cy-y), 0, z, TRUE);
     cx += valInt(m->margin);
@@ -864,7 +864,7 @@ RedrawAreaMenu(Menu m, Area a)
     } else if ( m->pen != ZERO )
     { iw += gx + 1; ih += gy + 1;
       gx = gy = -1;
-    } 
+    }
 
     for_cell(cell, m->members)
     { MenuItem mi = cell->value;
@@ -890,7 +890,7 @@ RedrawAreaMenu(Menu m, Area a)
       n++;
     }
   }
-    
+
   return RedrawAreaGraphical(m, a);
 }
 
@@ -923,7 +923,7 @@ getCenterYMenuItemMenu(Menu m, Any obj)
   } else
     if ( (mi = findMenuItemMenu(m, obj)) == FAIL )
       return ZERO;
-  
+
   computeMenu(m);
   area_menu_item(m, mi, &x, &y, &w, &h);
 
@@ -979,7 +979,7 @@ getItemFromEventMenu(Menu m, EventObj ev)
   x /= valInt(m->item_size->w) + x_gap(m);
   y /= valInt(m->item_size->h) + y_gap(m);
   DEBUG(NAME_event, Cprintf("item at %d,%d; rows = %d\n", x, y, rows));
-  
+
   if ( m->layout == NAME_horizontal )
     index = x + y * rows + 1;
   else
@@ -1033,7 +1033,7 @@ forwardMenu(Menu m, Code msg, EventObj ev)
   succeed;
 }
 
-  
+
 
 static status
 selectedCompletionMenu(Menu m, DictItem di)
@@ -1092,7 +1092,7 @@ executeMenuItem(Menu m, MenuItem mi, EventObj ev)
   { toggleMenu(m, mi);
     flushGraphical(m);
     send(m->device, NAME_modifiedItem, m, ON, EAV);
-    
+
     if ( notDefault(mi->message) )
     { if ( notNil(mi->message) )
 	forwardReceiverCode(mi->message, m,
@@ -1141,7 +1141,7 @@ executeMenu(Menu m, EventObj ev)
   if ( isDefault(ev) )
     ev = EVENT->value;			/* @event */
   TRY((mi = getItemFromEventMenu(m, ev)) && mi->active == ON);
-    
+
   return executeMenuItem(m, mi, ev);
 }
 
@@ -1232,7 +1232,7 @@ index_item_menu(Menu m, Any spec)
   } else
   { Cell cell;
     int n;
-    
+
     n = 1;				/* exact match */
     for_cell(cell, m->members)
     { MenuItem mi = cell->value;
@@ -1248,7 +1248,7 @@ index_item_menu(Menu m, Any spec)
         return n;
       n++;
     }
-  }    
+  }
 
   fail;
 }
@@ -1361,7 +1361,7 @@ selectedMenu(Menu m, MenuItem mi, Bool val)
   { assign(mi, selected, val);
     ChangedItemMenu(m, mi);
   }
-  
+
   succeed;
 }
 
@@ -1377,7 +1377,7 @@ toggleMenu(Menu m, MenuItem mi)
 { CHANGING_GRAPHICAL(m,
 	assign(mi, selected, mi->selected == ON ? OFF : ON);
 	ChangedItemMenu(m, mi));
-	 
+
   succeed;
 }
 
@@ -1477,7 +1477,7 @@ clearMenu(Menu m)
   GcProtect(m,
 	    { for_cell(cell, m->members)
 	      { MenuItem mi = cell->value;
-    
+
 		assign(mi, menu, NIL);
 	      }
 	      clearChain(m->members);
@@ -1502,7 +1502,7 @@ membersMenu(Menu m, Chain members)
 static status
 memberMenu(Menu m, Any obj)
 { TRY( findMenuItemMenu(m, obj) );
-  
+
   succeed;
 }
 
@@ -1512,7 +1512,7 @@ getMemberMenu(Menu m, Any obj)
 { MenuItem mi;
 
   TRY( mi = findMenuItemMenu(m, obj) );
-  
+
   answer(mi);
 }
 
@@ -1538,7 +1538,7 @@ updateMenu(Menu m, Any context)
       }
     }
   }
-      	
+
   if ( changed )
     CHANGING_GRAPHICAL(m, changedEntireImageGraphical(m));
 
@@ -1577,7 +1577,7 @@ getActiveItemMenu(Menu m, Any obj)
 { MenuItem mi;
 
   TRY( mi = findMenuItemMenu(m, obj) );
-  
+
   answer(mi->active);
 }
 
@@ -1603,13 +1603,13 @@ isOffMenu(Menu m, Any obj)
 static status
 activeAllItemsMenu(Menu m, Bool val)
 { Cell cell;
-  
+
   for_cell(cell, m->members)
   { MenuItem mi = cell->value;
 
     assign(mi, active, val);
   }
-  
+
   CHANGING_GRAPHICAL(m,
 	changedEntireImageGraphical(m));
 
@@ -1708,7 +1708,7 @@ kindMenu(Menu m, Name kind)
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
     }
-  } 
+  }
 
   if ( kind == NAME_cycle )
   { assign(m, on_image, NIL);
@@ -1784,7 +1784,7 @@ ensureSingleSelectionMenu(Menu m)
 
   for_cell(cell, m->members)
   { MenuItem mi = cell->value;
-    
+
     if ( mi->active == ON && isNil(first) )
       first = mi;
     if ( mi->selected == ON )
@@ -1809,7 +1809,7 @@ ensureSingleSelectionMenu(Menu m)
 static status
 multipleSelectionMenu(Menu m, Bool val)
 { assignGraphical(m, NAME_multipleSelection, val);
-  
+
   get(m, NAME_selection, EAV);		/* update <-selection */
 
   succeed;
@@ -1958,7 +1958,7 @@ getModifiedMenu(Menu m)
     n = 1;
     for_cell(cell, m->members)
       is_set[n++] = 0;
-    
+
     for_cell(cell, (Chain) m->selection)
     { int index = index_item_menu(m, cell->value);
 

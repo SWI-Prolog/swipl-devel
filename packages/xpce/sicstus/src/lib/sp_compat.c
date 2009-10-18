@@ -11,7 +11,7 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Predicates required by XPCE that are built-ins or part of the SWI-Prolog
-library. 
+library.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef EOS
@@ -46,7 +46,7 @@ typedef struct
  	  *((type *)(b)->top) = obj; \
           (b)->top += sizeof(type); \
 	} while(0)
-  
+
 #define addUnalignedBuffer(b, obj, type) \
 	do \
 	{ if ( (b)->top + sizeof(type) > (b)->max ) \
@@ -54,7 +54,7 @@ typedef struct
 	  memcpy((b)->top, (char *)&obj, sizeof(type)); \
           (b)->top += sizeof(type); \
 	} while(0)
-  
+
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
 	{ int len = sizeof(type) * (times); \
@@ -63,7 +63,7 @@ typedef struct
 	  memcpy((b)->top, ptr, len); \
           (b)->top += len; \
 	} while(0)
-  
+
 #define baseBuffer(b, type)	 ((type *) (b)->base)
 #define topBuffer(b, type)       ((type *) (b)->top)
 #define inBuffer(b, addr)        ((char *) (addr) >= (b)->base && \
@@ -177,7 +177,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   char *sp;
   int splen;
   tmp_buffer b;
-  
+
   if ( sep )
   { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC|BUF_RING) )
       return PL_warning("concat_atom/3: illegal separator");

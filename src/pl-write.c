@@ -54,8 +54,9 @@ typedef struct
   visited *visited;			/* visited (attributed-) variables */
 } write_options;
 
-static bool	writeTerm2(term_t term, int prec, write_options *options);
+static bool	writeTerm2(term_t term, int prec, write_options *options, bool arg);
 static bool	writeTerm(term_t t, int prec, write_options *options);
+static bool	writeArgTerm(term_t t, int prec, write_options *options, bool arg);
 
 static Word
 address_of(term_t t)
@@ -127,7 +128,7 @@ atomType(atom_t a, IOSTREAM *fd)
 
   if ( a == ATOM_dot )
     return AT_FULLSTOP;
-  
+
   if ( isSymbol(*s) )
   { if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
@@ -146,7 +147,7 @@ atomType(atom_t a, IOSTREAM *fd)
 
   if ( a == ATOM_nil || a == ATOM_curl )
     return AT_SPECIAL;
-  
+
   return AT_QUOTE;
 }
 
@@ -184,7 +185,7 @@ PutStringN(const char *str, size_t length, IOSTREAM *s)
   for(i=0; i<length; i++, q++)
   { if ( Sputcode(*q, s) == EOF )
       return FALSE;
-  } 
+  }
 
   return TRUE;
 }
@@ -395,7 +396,7 @@ writeAttVar(term_t av, write_options *options)
 
     pred = _PL_predicate("portray_attvar", 1, "$attvar",
 			 &GD->procedures.portray_attvar1);
-    
+
     old = Scurout;
     Scurout = options->out;
     PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
@@ -422,7 +423,7 @@ writeBlob(atom_t a, write_options *options)
     TRY(Putc(digits[(*s >> 4) & 0xf], options->out));
     TRY(Putc(digits[(*s     ) & 0xf], options->out));
   }
-  
+
   return PutString(">", options->out);
 }
 
@@ -539,7 +540,7 @@ writeString(term_t t, write_options *options)
 { PL_chars_t txt;
 
   PL_get_text(t, &txt, CVT_STRING);
-  
+
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
     unsigned int i;
@@ -548,7 +549,7 @@ writeString(term_t t, write_options *options)
       quote = '`';
     else
       quote = '"';
-      
+
     TRY(Putc(quote, options->out));
 
     for(i=0; i<txt.length; i++)
@@ -589,7 +590,7 @@ patch used localeconv() to find the  decimal   point,  but  this is both
 complicated and not thread-safe.
 
 Finally, with help of Richard we decided  to replace the first character
-that is not a digit nor [eE], as this must be the decimal point. 
+that is not a digit nor [eE], as this must be the decimal point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
@@ -642,16 +643,23 @@ WriteNumber(Number n, write_options *options)
       else
 	buf = PL_malloc(sz);
 
-      mpz_get_str(buf, 10, n->value.mpz);
+      /* mpz_get_str() can perform large intermediate allocations :-( */
+      EXCEPTION_GUARDED({ LD->gmp.persistent++;
+			  mpz_get_str(buf, 10, n->value.mpz);
+			  LD->gmp.persistent--;
+			},
+			{ LD->gmp.persistent--;
+			  rc = PL_rethrow();
+			})
       rc = PutToken(buf, options->out);
       if ( buf != tmp )
 	PL_free(buf);
-	
+
       return rc;
     }
     case V_MPQ:				/* should not get here */
 #endif
-    case V_REAL:
+    case V_FLOAT:
       assert(0);
   }
 
@@ -816,7 +824,7 @@ callPortray(term_t arg, write_options *options)
 
 
 static bool
-writeTerm(term_t t, int prec, write_options *options)
+writeArgTerm(term_t t, int prec, write_options *options, bool arg)
 { int rval;
   int levelSave = options->depth;
   fid_t fid = PL_open_foreign_frame();
@@ -832,11 +840,11 @@ writeTerm(term_t t, int prec, write_options *options)
     } else
     { v.next = options->visited;
       options->visited = &v;
-      rval = writeTerm2(t, prec, options);
+      rval = writeTerm2(t, prec, options, arg);
       options->visited = v.next;
     }
   } else
-  { rval = writeTerm2(t, prec, options);
+  { rval = writeTerm2(t, prec, options, arg);
   }
 
   options->depth = levelSave;
@@ -845,16 +853,21 @@ writeTerm(term_t t, int prec, write_options *options)
   return rval;
 }
 
+static bool
+writeTerm(term_t t, int prec, write_options *options)
+{
+  return writeArgTerm(t, prec, options, FALSE);
+}
 
 static bool
 writeList2(term_t list, write_options *options, int cyclic)
 { term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
-  
+
   TRY(Putc('[', options->out));
   for(;;)
   { PL_get_list(l, head, l);
-    TRY(writeTerm(head, 999, options));
+    TRY(writeArgTerm(head, 999, options, TRUE));
 
     if ( PL_get_nil(l) )
       break;
@@ -862,7 +875,7 @@ writeList2(term_t list, write_options *options, int cyclic)
       return PutString("|...]", options->out);
     if ( !PL_is_functor(l, FUNCTOR_dot2) )
     { TRY(Putc('|', options->out));
-      TRY(writeTerm(l, 999, options));
+      TRY(writeArgTerm(l, 999, options, TRUE));
       break;
     }
 
@@ -900,8 +913,9 @@ writeList(term_t list, write_options *options)
 }
 
 
+
 static bool
-writeTerm2(term_t t, int prec, write_options *options)
+writeTerm2(term_t t, int prec, write_options *options, bool arg)
 { atom_t functor;
   int arity, n;
   int op_type, op_pri;
@@ -914,7 +928,7 @@ writeTerm2(term_t t, int prec, write_options *options)
     succeed;
 
   if ( PL_get_atom(t, &a) )
-  { if ( priorityOperator(NULL, a) > prec )
+  { if ( !arg && priorityOperator(NULL, a) > prec )
     { if ( PutOpenBrace(out) &&
 	   writeAtom(a, options) &&
 	   PutCloseBrace(out) )
@@ -950,9 +964,9 @@ writeTerm2(term_t t, int prec, write_options *options)
       if ( PL_get_atom(arg, &a) )
       { write_options o2 = *options;
 	clear(&o2, PL_WRT_QUOTED);
-	
+
 	return writeAtom(a, &o2);
-      }	    
+      }
     }
 
 
@@ -962,7 +976,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       if ( arity == 1 )
       { if ( functor == ATOM_curl )	/* {a,b,c} */
 	{ term_t a = PL_new_term_ref();
-  
+
 	  PL_get_arg(1, t, arg);
 	  TRY(Putc('{', out));
 	  for(;;)
@@ -975,10 +989,10 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  }
 	  TRY(writeTerm(arg, 999, options) &&
 	      Putc('}', out));
-  
+
 	  succeed;
 	}
-  
+
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
 			     &op_type, &op_pri) )
@@ -1010,12 +1024,12 @@ writeTerm2(term_t t, int prec, write_options *options)
 
 	  succeed;
 	}
-  
+
 					  /* <term> op */
 	if ( currentOperator(options->module, functor, OP_POSTFIX,
 			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
-  
+
 	  PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
@@ -1025,27 +1039,27 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  TRY(writeAtom(functor, options));
 	  if (op_pri > prec)
 	    TRY(PutCloseBrace(out));
-  
+
 	  succeed;
 	}
       } else if ( arity == 2 )
       { if ( functor == ATOM_dot )	/* [...] */
 	  return writeList(t, options);
-  
+
 					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
-	  
+
 	  PL_get_arg(1, t, l);
 	  PL_get_arg(2, t, r);
-  
+
 	  if ( op_pri > prec )
 	    TRY(PutOpenBrace(out));
-	  TRY(writeTerm(l, 
+	  TRY(writeTerm(l,
 			op_type == OP_XFX || op_type == OP_XFY
-				? op_pri-1 : op_pri, 
+				? op_pri-1 : op_pri,
 			options));
 	  if ( functor == ATOM_comma )
 	  { TRY(PutString(", ", out));
@@ -1055,11 +1069,11 @@ writeTerm2(term_t t, int prec, write_options *options)
 		fail;
 	      case TRUE_WITH_SPACE:
 		TRY(Putc(' ', out));
-	    } 
+	    }
 	  }
-	  TRY(writeTerm(r, 
+	  TRY(writeTerm(r,
 			op_type == OP_XFX || op_type == OP_YFX
-				? op_pri-1 : op_pri, 
+				? op_pri-1 : op_pri,
 			options));
 	  if ( op_pri > prec )
 	    TRY(PutCloseBrace(out));
@@ -1076,7 +1090,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       { if (n > 0)
 	  TRY(PutString(", ", out));
 	PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 999, options));
+	TRY(writeArgTerm(a, 999, options, TRUE));
       }
       return Putc(')', out);
     }
@@ -1099,7 +1113,7 @@ writeAttributeMask(atom_t a)
 }
 
 
-static const opt_spec write_term_options[] = 
+static const opt_spec write_term_options[] =
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
@@ -1120,7 +1134,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool ignore_ops = FALSE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
-  bool bqstring   = trueFeature(BACKQUOTED_STRING_FEATURE);
+  bool bqstring   = truePrologFlag(PLFLAG_BACKQUOTED_STRING);
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
@@ -1138,13 +1152,13 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     fail;
 
   if ( attr == ATOM_nil )
-  { options.flags |= LD->feature.write_attributes;
+  { options.flags |= LD->prolog_flag.write_attributes;
   } else
   { int mask = writeAttributeMask(attr);
 
     if ( !mask )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_write_option, opts);
-    
+
     options.flags |= mask;
   }
   if ( priority < 0 || priority > OP_MAXPRIORITY )
@@ -1155,14 +1169,14 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   }
   if ( !getOutputStream(stream, &s) )
     fail;
-  
+
   options.module = lookupModule(mname);
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
   if ( numbervars == -1 )
     numbervars = (portray ? TRUE : FALSE);
-  
+
   if ( quoted )     options.flags |= PL_WRT_QUOTED;
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
@@ -1217,12 +1231,12 @@ do_write2(term_t stream, term_t term, int flags)
     options.module    = MODULE_user;
     if ( options.module && true(options.module, CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
-    if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+    if ( truePrologFlag(PLFLAG_BACKQUOTED_STRING) )
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
     writeTerm(term, 1200, &options);
-    
+
     return streamStatus(s);
   }
 

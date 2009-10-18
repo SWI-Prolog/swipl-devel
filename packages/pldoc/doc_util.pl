@@ -59,14 +59,14 @@ insert_alias(Path, Path).
 
 %%	expand_alias(+Path0, -Path) is det.
 %
-%	Translate an aliased path to a native path.  
+%	Translate an aliased path to a native path.
 
 expand_alias(Path0, Path) :-
 	path_alias(Alias, Prefix),
 	atom_concat(Alias, Postfix, Path0), !,
 	atom_concat(Prefix, Postfix, Path).
 expand_alias(Path, Path).
-	    
+
 
 %%	path_alias(?Alias, ?Path) is nondet.
 %

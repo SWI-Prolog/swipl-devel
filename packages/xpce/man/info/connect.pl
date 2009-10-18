@@ -20,4 +20,4 @@ display_box(P, Pos) :-
 		  [ @east, @north, @west, @south
 		  ]),
 	send(B, recogniser, @connect_recogniser).
-	
+

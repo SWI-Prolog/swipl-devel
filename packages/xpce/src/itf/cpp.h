@@ -67,9 +67,9 @@ class XPCE_Object :public PceBase;
 #endif
 
 class P :public PceBase
-{ 
+{
 public:
-  
+
   P(char *text)
   { self = XPCE_to_name(text);
   }
@@ -125,7 +125,7 @@ public:
     { return XPCE_sendv(self, sel.self, 0, NULL);
     }
   XPCE_status send(P sel, P a1)
-    { return XPCE_sendv(self, sel.self, 1, &a1.self); 
+    { return XPCE_sendv(self, sel.self, 1, &a1.self);
     }
   XPCE_status send(P sel, P a1, P a2)
     { void * av[2] = { a1.self, a2.self };

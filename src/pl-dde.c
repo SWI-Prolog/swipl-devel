@@ -91,7 +91,7 @@ dde_error_message(int errn)
 
   switch(errn)
   { case DMLERR_ADVACKTIMEOUT:
-    case DMLERR_DATAACKTIMEOUT:		
+    case DMLERR_DATAACKTIMEOUT:
     case DMLERR_EXECACKTIMEOUT:
     case DMLERR_POKEACKTIMEOUT:
     case DMLERR_UNADVACKTIMEOUT:	err = "Timeout";		break;
@@ -135,7 +135,7 @@ unify_hsz(term_t term, HSZ hsz)
   { if ( (len=DdeQueryStringW(ddeInst, hsz, NULL, 0, CP_WINUNICODE)) > 0 )
     { wchar_t *b2 = malloc((len+1)*sizeof(wchar_t));
       int rc;
-      
+
       DdeQueryStringW(ddeInst, hsz, b2, len+1, CP_WINUNICODE);
       rc = PL_unify_wchars(term, PL_ATOM, len, b2);
       free(b2);
@@ -164,7 +164,7 @@ unify_hdata(term_t t, HDDEDATA data)
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
     { char *b2 = malloc(len);
       int rval;
-      
+
       DdeGetData(data, b2, len, 0);
       rval = PL_unify_wchars(t, PL_ATOM, len/sizeof(wchar_t)-1, (wchar_t*)b2);
       free(b2);
@@ -230,7 +230,7 @@ findServerHandle(HCONV handle)
 }
 
 
-static HDDEDATA CALLBACK 
+static HDDEDATA CALLBACK
 DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
             HDDEDATA hData, DWORD dwData1, DWORD dwData2)
 {
@@ -278,7 +278,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        term_t argv = PL_new_term_refs(1);
        predicate_t pred = PL_pred(FUNCTOR_dde_disconnect1, MODULE_dde);
        int plhandle = findServerHandle(hconv);
-       
+
        if ( plhandle >= 0 && plhandle < MAX_CONVERSATIONS )
 	 server_handle[plhandle] = (HCONV)NULL;
 
@@ -506,7 +506,7 @@ pl_dde_request(term_t handle, term_t item,
 	rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
       DdeUnaccessData(Hvalue);
       return rval;
-    } else 
+    } else
     { return dde_warning("access_data");
     }
   } else
@@ -581,7 +581,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 #if 0
   if ( !Hvalue )
   { char *txt;
-    
+
     if ( !PL_get_nchars(data, &datalen, &txt, CVT_ALL|CVT_EXCEPTION|REP_MB) )
       fail;
 

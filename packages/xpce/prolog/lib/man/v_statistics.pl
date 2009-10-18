@@ -47,7 +47,7 @@ variable(timer, timer*,	get,
 initialise(S, Manual:man_manual) :->
 	"Create from manual"::
 	send(S, send_super, initialise, Manual, 'PCE Statistics'),
-	
+
 	send(S, append, new(D, dialog)),
 	send(D, append, new(CU, text_item(core_in_use,    0))),
 	send(D, append, new(CW, text_item(core_wasted,    0))),

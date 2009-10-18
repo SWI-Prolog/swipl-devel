@@ -79,7 +79,7 @@ dragClickGesture(ClickGesture g, EventObj ev)
 	 valInt(g->max_drag_distance) )
       send(g, NAME_cancel, ev, EAV);
   }
-  
+
   succeed;
 }
 
@@ -88,7 +88,7 @@ static status
 cancelClickGesture(ClickGesture g, EventObj ev)
 { if ( notNil(g->cancel_message) )
     forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, EAV);
-  
+
   return cancelGesture((Gesture) g, ev);
 }
 
@@ -113,7 +113,7 @@ terminateClickGesture(ClickGesture g, EventObj ev)
   } else
   { send(g, NAME_cancel, ev, EAV);
   }
-    
+
   succeed;
 }
 
@@ -168,7 +168,7 @@ static senddecl send_clickGesture[] =
 #define get_clickGesture NULL
 /*
 static getdecl get_clickGesture[] =
-{ 
+{
 };
 */
 

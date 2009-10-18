@@ -2,7 +2,7 @@
 # This Makefile is created from Makefile.in by the main Prolog
 # configuration in .../pl/src/configure.
 #
-# It can be used to configure and make the add-on packages.  
+# It can be used to configure and make the add-on packages.
 ################################################################
 .EXPORT_ALL_VARIABLES:
 
@@ -10,7 +10,7 @@
 # libXPM and libjpeg to compile.  This   variable  is normally overruled
 # from the configure script.  MUST be on one line
 
-PKG=	clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl pldoc plunit jpl zlib
+PKG=	clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib
 
 # Define additional config options.  If you wish to build the multi-threaded
 # version of SWI-Prolog and pl-mt to the same install-base, you must provide
@@ -86,6 +86,7 @@ install::
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
 	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
@@ -110,6 +111,10 @@ ln-install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ) || exit 1; fi; \
         done
+	@echo "*** Forcing update of library index ***"
+	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
+	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 configure::
 	@echo "**********************"
@@ -133,6 +138,7 @@ distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	rm -f pl.sh plld.sh
 	rm -f Makefile configure
 
 clean::

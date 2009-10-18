@@ -61,6 +61,7 @@ edit(Spec) :-
 	var(Spec), !,
 	throw(error(instantiation_error, _)).
 edit(Spec) :-
+	load_extensions,
 	findall(Location-FullSpec,
 		locate(Spec, FullSpec, Location),
 		Pairs0),
@@ -69,10 +70,10 @@ edit(Spec) :-
 	do_edit_source(Location).
 
 %%	edit
-%	
+%
 %	Edit associated or script file.  This is the Prolog file opened
 %	by double-clicking or the file loaded using
-%	
+%
 %	==
 %	% pl -s file.pl
 %	==
@@ -188,8 +189,8 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	predicate_property(Module:Head, line_count(Line)).
 locate(module(Module), [file(Path)|Rest]) :-
 	atom(Module),
-	current_module(Module, Path),
-	(   '$module_property'(Module, line_count(Line))
+	module_property(Module, file(Path)),
+	(   module_property(Module, line_count(Line))
 	->  Rest = [line(Line)]
 	;   Rest = []
 	).
@@ -206,13 +207,13 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 		 *******************************/
 
 %%	do_edit_source(+Location)
-%	
+%
 %	Actually call the editor to edit Location, a list of Name(Value)
 %	that contains file(File) and may contain line(Line). First the
 %	multifile hook edit_source/1 is called. If this fails the system
 %	checks for XPCE and the prolog-flag editor. If the latter is
 %	built_in or pce_emacs, it will start PceEmacs.
-%	
+%
 %	Finally, it will get the editor to use from the prolog-flag
 %	editor and use edit_command/2 to determine how this editor
 %	should be called.
@@ -268,13 +269,13 @@ external_edit_command(Location, Command) :-
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
 	editor(Editor),
-	concat_atom(['"', Editor, '" "', File, '"'], Command).
+	atomic_list_concat(['"', Editor, '" "', File, '"'], Command).
 
 pceemacs(pce_emacs).
 pceemacs(built_in).
 
 %%	editor(-Editor)
-%	
+%
 %	Determine the external editor to run.
 
 editor(Editor) :-			% $EDITOR
@@ -400,7 +401,7 @@ list_pairs([H|T], N0, N) :-
 list_pair(Pair, N) :-
 	print_message(help, edit(target(Pair, N))).
 
-	
+
 read_number(Max, X) :-
 	Max < 10, !,
 	get_single_char(C),
@@ -480,9 +481,9 @@ short_filename(Path, Spec) :-
 	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
 	keysort(Keyed, [_-Spec|_]).
 short_filename(Path, Path).
-	
+
 aliased_path(Path, Len-Spec) :-
-	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	setof(Alias, file_alias_path(Alias), Aliases),
 	member(Alias, Aliases),
 	Term =.. [Alias, '.'],
 	absolute_file_name(Term,
@@ -494,6 +495,9 @@ aliased_path(Path, Len-Spec) :-
 	remove_leading_slash(Local0, Local),
 	atom_length(Local, Len),
 	Spec =.. [Alias, Local].
+
+file_alias_path(Alias) :-
+	user:file_search_path(Alias, _).
 
 remove_leading_slash(Path, Local) :-
 	atom_concat(/, Local, Path), !.

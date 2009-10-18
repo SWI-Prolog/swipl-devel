@@ -30,9 +30,9 @@ static status	drawArrow(int x1, int y1, int x2, int y2, int x3, int y3,
 			  Image fill, int pen, Name texture, Name style);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Arrows are defined in terms of the point at the tip the length of the arrow 
-head and the width of the two wings.  The direction of the arrow is 
-determined by a reference point on an imaginery line through the reference 
+Arrows are defined in terms of the point at the tip the length of the arrow
+head and the width of the two wings.  The direction of the arrow is
+determined by a reference point on an imaginery line through the reference
 point and the tip:
 
 
@@ -47,8 +47,8 @@ point and the tip:
 
 	               |------|    <= length
 
-Although arrows are a sub-class of graphical this feature (in particular the 
-area of the graphical) should not be used.  Changing the area of an arrow 
+Although arrows are a sub-class of graphical this feature (in particular the
+area of the graphical) should not be used.  Changing the area of an arrow
 has no well-defined meaning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -165,7 +165,7 @@ geometryArrow(Arrow a, Int x, Int y, Int w, Int h)
     ComputeGraphical(a);
     dx = valInt(x)-valInt(a->area->x);
     dy = valInt(y)-valInt(a->area->y);
-    
+
     pointsArrow(a, toInt(valInt(a->tip->x)+dx),
 		   toInt(valInt(a->tip->y)+dy),
 		   toInt(valInt(a->reference->x)+dx),
@@ -182,7 +182,7 @@ RedrawAreaArrow(Arrow a, Area area)
 	    valInt(a->tip->x),   valInt(a->tip->y),
 	    valInt(a->right->x), valInt(a->right->y),
 	    a->fill_pattern,
-	    valInt(a->pen), 
+	    valInt(a->pen),
 	    a->texture,
 	    a->style);
 
@@ -202,7 +202,7 @@ drawArrow(int x1, int y1, int x2, int y2, int x3, int y3,
     pts[1].y = y2;
     pts[2].x = x3;
     pts[2].y = y3;
-  
+
     r_fillpattern(fill, NAME_foreground);
     r_fill_polygon(pts, 3);
   }
@@ -270,7 +270,7 @@ getReferenceXArrow(Arrow a)
 
 static Int
 getReferenceYArrow(Arrow a)
-{ answer(a->reference->y); 
+{ answer(a->reference->y);
 }
 
 
@@ -309,7 +309,7 @@ static status
 pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
 { Point tip = a->tip;
   Point ref = a->reference;
-  
+
   if (isDefault(tx)) tx = tip->x;
   if (isDefault(ty)) ty = tip->y;
   if (isDefault(rx)) rx = ref->x;
@@ -322,7 +322,7 @@ pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
     assign(ref, y, ry);
     requestComputeGraphical(a, DEFAULT);
   }
-  
+
   succeed;
 }
 

@@ -120,15 +120,15 @@ gs_command(Options, Cmd) :-
 	aformat(Cmd,
 		'~w -q -dNOPAUSE -sDEVICE=~w ~w -r~w -sOutputFile=~w',
 		[GS, Dev, SCmd, Res, Tmp]).
-	
-	
+
+
 get_option(List, Term) :-
 	memberchk(Term, List), !.
 get_option(_, Term) :-
 	functor(Term, Name, _),
 	option(Name, Def), !,
 	arg(1, Term, Def).
-	
+
 aformat(Atom, Fmt, Args) :-
 	sformat(Str, Fmt, Args),
 	string_to_atom(Str, Atom).

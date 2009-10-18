@@ -160,7 +160,7 @@ deviceGraphical(Any obj, Device dev)
 
   if ( notNil(dev) )
     appendDevice(dev, gr);
-    
+
   succeed;
 }
 
@@ -206,7 +206,7 @@ displayedGraphical(Any obj, Bool val)
       }
       displayedGraphicalDevice(gr->device, gr, val);
     }
-    
+
     if ( val == OFF )
       assign(gr, displayed, val);
   }
@@ -266,7 +266,7 @@ initialiseRedrawAreaGraphical(Any obj, Area a,
 
   a2.x = *x, a2.y = *y, a2.w = *w, a2.h = *h;
   NormaliseArea(a2.x, a2.y, a2.w, a2.h);
-  
+
   intersection_iarea(redraw, &a2);
 
   succeed;
@@ -372,7 +372,7 @@ DisplayObj
 getDisplayGraphical(Graphical gr)
 { FrameObj fr = getFrameGraphical(gr);
 
-  if ( fr ) 
+  if ( fr )
     answer(fr->display);
 
   fail;
@@ -392,7 +392,7 @@ getMonitorGraphical(Graphical gr)
   { Area a = tempObject(ClassArea,
 			pt->x, pt->y, gr->area->w, gr->area->h,
 			EAV);
-    
+
     mon = getMonitorDisplay(d, a);
     considerPreserveObject(a);
   }
@@ -406,7 +406,7 @@ Application
 getApplicationGraphical(Graphical gr)
 { FrameObj fr = getFrameGraphical(gr);
 
-  if ( fr && notNil(fr->application) ) 
+  if ( fr && notNil(fr->application) )
     answer(fr->application);
 
   fail;
@@ -635,7 +635,7 @@ requestComputeGraphical(Any obj, Any val)
   if ( notNil(gr->request_compute) && gr->request_compute != val )
     ComputeGraphical(gr);
   assign(gr, request_compute, val);
-    
+
   if ( instanceOfObject(gr, ClassWindow) && gr->displayed == ON )
   { if ( !memberChain(ChangedWindows, gr) )
     { DEBUG(NAME_window, Cprintf("Adding %s to ChangedWindows\n", pp(gr)));
@@ -656,7 +656,7 @@ ComputeGraphical(Any obj)
 
   if ( notNil(gr->request_compute) && !isFreeingObj(gr) )
   { qadSendv(gr, NAME_compute, 0, NULL);
-    
+
     assign(gr, request_compute, NIL);
   }
 
@@ -757,7 +757,7 @@ RedrawArea(Any obj, Area area)
   Any inactive_colour;
 
   ComputeGraphical(obj);		/* should not be necessary: */
-  
+
   if ( !( gr->area == area ||		/* image->draw_in and friends */
 	  ( gr->displayed == ON &&
 	    overlapExtendedAreaGraphical(gr, area)
@@ -887,7 +887,7 @@ RedrawAreaGraphical(Any obj, Area area)
     initialiseDeviceGraphical(gr, &x, &y, &w, &h);
     r_complement(x, y, w, h);
   }
-  
+
   if ( gr->selected == ON )
     qadSendv(gr, NAME_paintSelected, 0, NULL);
 
@@ -913,7 +913,7 @@ synchroniseGraphical(Graphical gr, Bool always)
 
   if ( always != ON )
   { long now = mclock();
-    
+
     if ( now - last < 50 )
       succeed;
 
@@ -934,7 +934,7 @@ static status
 hideGraphical(Any obj1, Any obj2)
 { Graphical gr1 = obj1;
   Graphical gr2 = obj2;
-  
+
   if ( notNil(gr1->device) &&
        (isDefault(gr2) || gr2->device == gr1->device) )
   { hideDevice(gr1->device, gr1, gr2);
@@ -1479,7 +1479,7 @@ getDisplayPositionGraphical(Graphical gr)
 
   x = toInt(valInt(x) + ox + wx);
   y = toInt(valInt(y) + oy + wy);
-  
+
   answer(answerObject(ClassPoint, x, y, EAV));
 }
 
@@ -1588,7 +1588,7 @@ same_device(Graphical gr1, Graphical gr2)
     else
       return errorPce(gr1, NAME_alreadyShown, 12, gr2->device);
   }
-  
+
   succeed;
 }
 
@@ -1630,7 +1630,7 @@ aboveGraphical(Graphical gr1, Graphical gr2)
   }
   if ( (gr = get(gr1, NAME_above, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_below, NIL);
-  
+
   assignDialogItem(gr1, NAME_above, gr2);
 
   succeed;
@@ -1649,7 +1649,7 @@ belowGraphical(Graphical gr1, Graphical gr2)
   }
   if ( (gr = get(gr1, NAME_below, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_above, NIL);
-  
+
   assignDialogItem(gr1, NAME_below, gr2);
 
   succeed;
@@ -1669,7 +1669,7 @@ rightGraphical(Graphical gr1, Graphical gr2)
   }
   if ( (gr = get(gr1, NAME_right, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_left, NIL);
-  
+
   assignDialogItem(gr1, NAME_right, gr2);
 
   succeed;
@@ -1689,7 +1689,7 @@ leftGraphical(Graphical gr1, Graphical gr2)
   }
   if ( (gr = get(gr1, NAME_right, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_right, NIL);
-  
+
   assignDialogItem(gr1, NAME_left, gr2);
 
   succeed;
@@ -1841,8 +1841,8 @@ colourGraphical(Graphical gr, Any c)
   { CHANGING_GRAPHICAL(gr, assign(gr, colour, c);
   			   changedEntireImageGraphical(gr));
   }
-  
-  succeed;  
+
+  succeed;
 }
 
 
@@ -1934,7 +1934,7 @@ getHandlePositionGraphical(Graphical gr, Name name, Device dev)
   TRY(h = getHandleGraphical(gr, name));
   TRY(x = getXHandle(h, gr, dev));
   TRY(y = getYHandle(h, gr, dev));
-  
+
   answer(answerObject(ClassPoint, x, y, EAV));
 }
 
@@ -2031,7 +2031,7 @@ activeGraphical(Graphical gr, Bool val)
 		       assign(gr, active, val);
 		       changedEntireImageGraphical(gr));
   }
-  
+
   succeed;
 }
 
@@ -2045,7 +2045,7 @@ cursorGraphical(Graphical gr, CursorObj cursor)
 { PceWindow w = getWindowGraphical(gr);
 
   assign(gr, cursor, cursor);
-  
+
   if ( w )
     updateCursorWindow(w);
 
@@ -2104,7 +2104,7 @@ status
 updateConnectionsGraphical(Graphical gr, Int level)
 { if ( notNil(gr->connections) )
   { Cell cell;
-    
+
     for_cell(cell, gr->connections)
     { Connection c = cell->value;
 
@@ -2124,7 +2124,7 @@ static status
 updateHideExposeConnectionsGraphical(Graphical gr)
 { if ( notNil(gr->connections) )
   { Cell cell;
-    
+
     for_cell(cell, gr->connections)
       updateHideExposeConnection(cell->value);
   }
@@ -2151,7 +2151,7 @@ attachConnectionGraphical(Graphical gr, Connection c)
 
   succeed;
 }
-      
+
 
 status
 detachConnectionGraphical(Graphical gr, Connection c)
@@ -2184,7 +2184,7 @@ getConnectedGraphical(Graphical gr, Graphical gr2,
   if ( notNil(ch = gr->connections) )
   { for_cell(cell, ch)
     { Connection c = cell->value;
-    
+
       if ( (isDefault(gr2) || c->to == gr2 || c->from == gr2) &&
 	   match_connection(c, link, from, to) )
 	answer(c);
@@ -2300,8 +2300,8 @@ getNetworkGraphical(Graphical gr, Link link, Name from, Name to)
 	(1984), "A Heuristic for Graph Drawing", Congressus Numerantium, vol.
 	42, pp. 149-160.  All figures (indirectly) related to Figure, i.e. the
 	graph, are moved such: (a) the distance between two figures which are
-	connected is constant and (b) the distance between two figures which are 
-	not connected is as large as possible.  The algorithm computes the 
+	connected is constant and (b) the distance between two figures which are
+	not connected is as large as possible.  The algorithm computes the
 	forces on each	figure (the links can be seen as springs), where
 	connected figures attract and unconnected figures repel each other.  The
 	force on each figure is computed repeatedly, and incremental use of the
@@ -2367,11 +2367,11 @@ static void
 place_object(lg_object *o)
 { if ( o->update )
   { Any av[4];
-    
+
     o->update = FALSE;
     av[0] = toInt(o->area.x);
     av[1] = toInt(o->area.y);
-    
+
     if ( o->gr->area->x != av[0] ||
 	 o->gr->area->y != av[1] )
     { av[2] = DEFAULT;
@@ -2608,7 +2608,7 @@ eventGraphical(Any obj, EventObj ev)
     Cell cell;
 
     TRY( recognisers = getAllRecognisersGraphical(gr, OFF) );
-  
+
     for_cell(cell, recognisers)
       if ( qadSendv(cell->value, NAME_event, 1, (Any*)&ev) )
 	succeed;
@@ -2657,7 +2657,7 @@ generateEventGraphical(Graphical gr, Name name)
 
   rval = postEvent(ev, gr, DEFAULT);
   considerPreserveObject(ev);
-  
+
   return rval;
 }
 
@@ -2678,7 +2678,7 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
   NormaliseArea(ax, ay, aw, ah);
   if ( aw < evtol ) ax -= (evtol-aw)/2, aw = evtol;
   if ( ah < evtol ) ay -= (evtol-ah)/2, ah = evtol;
-  
+
   if ( x >= ax && x <= ax + aw &&
        y >= ay && y <= ay + ah )
   { Class class = classOfObject(gr);
@@ -2686,7 +2686,7 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
     if ( class->in_event_area_function )
     { if ( class->in_event_area_function == INVOKE_FUNC )
       { Any av[2];
-	
+
 	av[0] = xc;
 	av[1] = yc;
 
@@ -2715,7 +2715,7 @@ prependRecogniserGraphical(Any gr, Any r)
 { Chain ch = getAllRecognisersGraphical(gr, ON);
 
   return prependChain(ch, r);
-} 
+}
 
 
 static status
@@ -2863,7 +2863,7 @@ status
 pointerGraphical(Graphical gr, Point pos)
 { Int x, y;
   PceWindow sw = DEFAULT;
-  
+
   get_absolute_xy_graphical(gr, (Device *)&sw, &x, &y);
   if ( instanceOfObject(sw, ClassWindow) )
   { Point p2;
@@ -2871,7 +2871,7 @@ pointerGraphical(Graphical gr, Point pos)
     p2 = tempObject(ClassPoint, add(x, pos->x), add(y, pos->y), EAV);
     pointerWindow(sw, p2);
     considerPreserveObject(p2);
-  }    
+  }
 
   succeed;
 }
@@ -2984,12 +2984,12 @@ drawPostScriptGraphical(Graphical gr, Name hb)
 
     if ( (i=checkType(gr, nameToType(NAME_image), gr)) )
     { BitmapObj bm = answerObject(ClassBitmap, i, EAV);
-      
+
       setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
       send(bm, NAME_DrawPostScript, hb, EAV);
       doneObject(bm);
       doneObject(i);
-  
+
       succeed;
     }
 
@@ -3087,7 +3087,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
   } else				/* vector */
   { Vector vector = points;
     Point pt;
-    
+
     pts = (IPoint) alloca(sizeof(ipoint) * valInt(vector->size));
 
     for_vector(vector, pt,
@@ -3118,7 +3118,7 @@ drawArcGraphical(Graphical gr,		/* has to handle mode */
 		 Real start, Real end, Any fill)
 { int s = (isDefault(start) ? 0      : rfloat(valReal(start) * 64.0));
   int e = (isDefault(end)   ? 360*64 : rfloat(valReal(end) * 64.0));
-  
+
   if ( isDefault(fill) )
     fill = NIL;
 
@@ -3154,7 +3154,7 @@ drawBoxGraphical(Graphical gr,
 
   succeed;
 }
-		 
+
 
 static status
 drawFillGraphical(Graphical gr,
@@ -3202,7 +3202,7 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
       vadjust = NAME_top;
 
     str_string(&txt->data, font,
-	       valInt(x), valInt(y), valInt(w), valInt(h), 
+	       valInt(x), valInt(y), valInt(w), valInt(h),
 	       hadjust, vadjust, 0);
   }
 
@@ -3211,20 +3211,20 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 
 
 static status
-solidGraphical(Graphical gr, Bool solid) 
+solidGraphical(Graphical gr, Bool solid)
 { if ( solid == ON )
     setFlag(gr, F_SOLID);
   else
     clearFlag(gr, F_SOLID);
 
   succeed;
-}	
+}
 
 
 static Bool
-getSolidGraphical(Graphical gr) 
+getSolidGraphical(Graphical gr)
 { answer(onFlag(gr, F_SOLID) ? ON : OFF);
-}	
+}
 
 
 /* Type declaractions */

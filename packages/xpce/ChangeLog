@@ -1,26 +1,149 @@
+[Sep 17 2009]
+
+ * FIXED: XPCE: possible crash rendering wide-character strings.
+
+[Aug 18 2009]
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+
+[Aug 17 2009]
+
+ * FIXED: Deal with XPCE in saved states.  Jeffrey Rosenwald.
+
+[Aug 17 2009]
+
+ * FIXED: PceEmacs %% --> % % when filling comments.
+
+ * FIXED: PceEmacs syntax highlighting inside XPCE methods while typing.
+
+[Aug 16 2009]
+
+ * ENHANCED: PceEmacs: show syntax errors using a small orange block.
+
+ * ENHANCED: PceEmacs: base Prolog comment-colouring on actual parsing
+   rather then the emacs-buffer syntax-rules.
+
+[Aug 10 2009]
+
+ * FIXED: Force reloading the autoload index in pl.rc (linking XPCE).
+
+[Aug 2 2009]
+
+ * FIXED: Buffer overflow in XPCE's int_item on 64-bit machines.
+
+[Jul 21 2009]
+
+ * MODIFIED: Make initialization/1 ISO compliant
+   This patch is a modest cleanup to the implementation of '$load_file'/3
+   from init.pl and provides an ISO compatible implementation of
+   initialization/1. This executes the argument goal *after* loading the
+   file rather than when encountering the directive. Often this makes no
+   difference, but notably load_foreign_library/1 is an exception.
+   Therefore we added use_foreign_library/1,2 that act as a directive and
+   provides proper integration with saved-states automatically.  Loading
+   code using initialization(load_foreign_library(...)) will load the
+   library immediately and issue a warning.
+
+   See initialization/1,2 for details and further hints for dealing with
+   possible compatibility problems.
+
+[Jul 18 2009]
+
+ * CLEANUP: Extended .gitignore files
+
+[Jul 7 2009]
+
+ * BUILD: Refuse to build XPCE without the freetype libraries.  Give informative message if libXft cannot be found.
+
+[Jul 6 2009]
+
+ * ADDED: Application->leader to support ICCCM window groups
+[Jun 29 2009]
+
+ * BUILD: Enhance message if -lXpm is not found.  Dennis van Dok.
+
+[Jun 15 2009]
+
+ * SECURITY: Loading XPCE can cause an insecure library search path.  ELF-systems only.  Keri Harris.
+
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
+
+ * ADDED: PceEmacs automatically removes trailing whitespace from lines. The feature is controlled by the resource
+   	emacs_buffer.ensure_no_whitespace_errors: true
+[Mar 12 2009]
+
+ * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
+
+[Jan 30 2009]
+
+ * FIXED: PceEmacs colouring of module:head --> body clauses.
+
+[Jan 26 2009]
+
+ * PORT: Build properly working XPCE if xinerama is missing
+[Jan 22 2009]
+
+ * FIXED: Tracer handling of redo port.
+
+ * EHANCED: Avoid that the gui-tracer ever reverts to the normal tracer by
+   adding a catch-all rule.  Especially avoids deadlocks when tracing threads
+   that cannot interact with the toplevel.
+
+ * CLEANUP: Avoid pce_global failure messages to use the general goal_failed/1
+   term.
+
+[Jan 20 2009]
+
+ * ENHANCED: Avoid crash if XPCE cannot even find its default font
+[Jan 7 2009]
+
+ * MODIFIED: Removed current_module/2 and export_list/2 and introduced
+   module_property/2. The removed predicates have been moved to the
+   backcomp.pl library and are thus autoloaded, providing compatibility.
+
+[Jan 2 2009]
+
+ * CLEANUP: Make XPCE work with new meta_predicate declarations
+
+ * MODIFIED: Removed high-arity meta declarations for XPCE's get/N, send/N and
+   get_object/N.  Note that this only limits these predicates for meta-calling
+   because normally compiled versions are expanded by means of goal_expansion/2.
+
+[Dec 28 2008]
+
+ * ADDED: PceEmacs: realise a backup encoding for saving files as Unicode if the normal encoding cannot represent the content of the buffer.
+
+ * FIXED: XPCE: text_buffer->save failed to report representation errors.
+
+[Dec 5 2008]
+
+ * FIXED: Bug#384: Memory leak in XPCE conversion of Prolog objects to text.  Keri Harris
+
 [Nov 17 2008]
 
  * BUILD: Make distclean removes h-link in xpce
 [Sep 29 2008]
 
  * BUILD: Bug#381: more parallel build issues.  Keri Harris.
-   
+
 [Sep 27 2008]
 
  * BUILD: Parallel build patches by Keri Harris.
-   
+
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 11 2008]
 
  * BUILD: XPCE: deleted generated h/names.[ic] files and replace the scripts
    by a plain C program to build these files.
-   
+
  * INSTALL: Remove all configure files from the git repository
-   
+
 [Aug 5 2008]
 
  * MODIFIED: Now uses PceEmacs as default editor if XPCE can be enabled
@@ -28,13 +151,13 @@
 
  * PORT: Properly include curses.h and term.h in pl-term.c.  Does this need to
    be conditional?
-   
+
 [Jul 7 2008]
 
  * ADDED: Prolog navigator listens to prolog_file_type/2.  Jean-Marc Vanel.
-   
+
  * FIXED: Navigator failed to open on files with only directives.
-   
+
 [Jun 19 2008]
 
  * ADDED: Provide support for printing attributes in the GUI tracer
@@ -55,7 +178,7 @@
 
  * PORT: Bug#357: Updated config.{guess,sub}, needed for development version of FC.
    Mary Ellen Foster.
-   
+
 [May 14 2008]
 
  * FIXED: Bug#355: XPCE: warnings on undefined method frame->post_event.   Andreas Steiner.
@@ -72,7 +195,7 @@
 
  * PORT: Make some scripts for building the manuals not depend on the perl path.
    Jacco van Ossenbruggen.
-   
+
 [Apr 25 2008]
 
  * ENHANCED: PceEmacs: show location of import
@@ -135,13 +258,13 @@
 
  * ADDED: Make PceEmacs use PlDoc for the Documentation link if the old manual
    has no information.  Integration must be improved!
-   
+
 [Nov 15 2007]
 
  * ADDED: library(apply) with include/3, exclude/3, partition/5.
    Moved sublist/3 from built-in to library(backcomp).  Added library apply
    to the manual.
-   
+
 [Nov 12 2007]
 
  * ADDED: PceEmacs: ->insert_file_header expands %E to E-mail address
@@ -178,7 +301,7 @@ VERSION 6.6.39, distributed with SWI-Prolog 5.6.39
 VERSION 6.6.37, distributed with SWI-Prolog 5.6.37
 ==================================================
 
-* FIXED: Bug#294: PceEmacs colouring of pce_image_directory arg. 
+* FIXED: Bug#294: PceEmacs colouring of pce_image_directory arg.
 
 * FIXED: Bug#290: text<-postscript ignores <-wrap: wrap_fixed_width.
   Tom Conlon.
@@ -317,7 +440,7 @@ VERSION 6.6.12, distributed with SWI-Prolog 5.6.12
 ==================================================
 
 * ENHANCED: `text_buffer->for_all_fragments' to avoid use of alloca() for
-  large number of arguments.  Patchwork for problems in Windows with limited 
+  large number of arguments.  Patchwork for problems in Windows with limited
   stack-sizes.  Pierpaolo Bernardi.
 
 
@@ -352,7 +475,7 @@ VERSION 6.6.10, distributed with SWI-Prolog 5.6.10
   supporting multiple monitors.
 
 * ADDED: Query available physical monitors.  See class monitor.  Added
-  monitor argument to frame->center, frame->open_centered, etc. This 
+  monitor argument to frame->center, frame->open_centered, etc. This
   fixes Bug#82.  Holger Kanwischer.
 
 * FIXED: regex->match on backward matches (executed as search).
@@ -513,7 +636,7 @@ VERSION 6.5.30, distributed with SWI-Prolog 5.5.30
 
 VERSION 6.5.29, distributed with SWI-Prolog 5.5.29
 ==================================================
-	
+
 * FIXED: `unclip window' recursive event processing (leaving empty `unclip'
   windows behind.
 
@@ -531,7 +654,7 @@ VERSION 6.5.29, distributed with SWI-Prolog 5.5.29
 
 VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
 ==================================================
-	
+
 * FIXED: Bug#85: conversion of unicode SWI-Prolog string objects to
   XPCE strings.  Dmitry.
 
@@ -544,18 +667,18 @@ VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
 
 VERSION 6.5.27, distributed with SWI-Prolog 5.5.27
 ==================================================
-	
+
 * FIXED: `menu->selection' for single-selection menus sometimes wasn't
   honoured.
 
-* FIXED: PceEmacs: colourising of use_module directives pointing to 
+* FIXED: PceEmacs: colourising of use_module directives pointing to
   non-existing files.
 
 * FIXED: `file->kind'.   Petter Egesund.
 
 VERSION 6.5.26, distributed with SWI-Prolog 5.5.26
 ==================================================
-	
+
 * Consistent numbering (SuSE 10.0 beta2)
 
 VERSION 6.5.24, distributed with SWI-Prolog 5.5.24
@@ -683,7 +806,7 @@ VERSION 6.5.14, distributed with SWI-Prolog 5.5.14
 ==================================================
 
 * ADDED: allow for rules for the multifile predicate
-  emacs_prolog_colours:style/2 to define personal colour preference. 
+  emacs_prolog_colours:style/2 to define personal colour preference.
   Steve Moyle.
 
 
@@ -910,7 +1033,7 @@ VERSION 6.2.24, distributed with SWI-Prolog 5.3.17
 * FIXED: editor->transpose_characters to fail if the caret is at the
   end of the buffer instead of importing a random character.
 
-* FIXED: Bug#154 Application modal frame handling.  Holger Kanwischer. 
+* FIXED: Bug#154 Application modal frame handling.  Holger Kanwischer.
 
 VERSION 6.2.23, distributed with SWI-Prolog 5.3.16
 ==================================================
@@ -988,7 +1111,7 @@ VERSION 6.2.16, distributed with SWI-Prolog 5.3.7
 VERSION 6.2.15, distributed with SWI-Prolog 5.3.6
 =================================================
 
-* ADDED: PceEmacs: Highlight of matching bracket in language mode. 
+* ADDED: PceEmacs: Highlight of matching bracket in language mode.
   Suggested by Maurizio Colucci.
 
 * ENHANCED: make view->colour and editor->colour all set the foreground
@@ -1066,7 +1189,7 @@ VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 
 * ADDED: PceDraw: Alignment sub-menu for text objects
 
-* FIXED: Frame area computation in MS-Windows to use AdjustWindowRectEx(). 
+* FIXED: Frame area computation in MS-Windows to use AdjustWindowRectEx().
   Fixes layout problems in Windows XP.
 
 * ADDED: in_pce_thread/1 to support the model of XPCE running in the foreground
@@ -1131,7 +1254,7 @@ VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 * FIXED: MS-Windows: displaying of large cursor for drag-and-drop while the
   underlying window updates.
 
-* ADDED: `frame->sensitive'.  Use this to avoid tooltip (balloon) and the 
+* ADDED: `frame->sensitive'.  Use this to avoid tooltip (balloon) and the
   `unclip' windows of library(pce_unclip) to grab the focus from the
   application window.
 
@@ -1270,7 +1393,7 @@ VERSION 6.2.3, distributed with SWI-Prolog 5.2.3
 
 VERSION 6.2.2, distributed with SWI-Prolog 5.2.2
 ================================================
-		
+
 * FIXED: `frame->keyboard_focus' to use window rather than decorator.
   Could make dialog windows with a scrollbar insensitive to typing.
 
@@ -1307,7 +1430,7 @@ VERSION 6.2.2, distributed with SWI-Prolog 5.2.2
 
 VERSION 6.2.0, distributed with SWI-Prolog 5.2.0
 ================================================
-		
+
 * ADDED: `view->background' and `editor->background' to set the background
   of the text_image
 
@@ -1454,7 +1577,7 @@ VERSION 6.1.6, distributed with SWI-Prolog 5.1.6
 
 * ENHANCED: image->draw_in to avoid redrawing the whole graphical if only
   part overlaps the image.
-	
+
 * ADDED: Support for writing PostScript colour images.
 
 * ADDED: Windows version: load .ICO data from streams and therefore from
@@ -1643,7 +1766,7 @@ VERSION 6.0.7, distributed with SWI-Prolog 5.0.7
 ================================================
 
 * COMPAT: X11 file-finder: allow again for specifying extensions as .xyz
-  
+
 * FIXED: Improved compatibility of X11 selection-handling.  Works again
   with recent Qt versions which demanded the obligatory `targets' target.
 
@@ -1703,7 +1826,7 @@ VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 * ADDED: `file_item <->exists', fixing browse mode in PceEmacs save_as and
   friends.
 
-* FIXED: Explicit window placement in Windows version. 
+* FIXED: Explicit window placement in Windows version.
 
 * FIXED: avoid loosing a file-descriptor in prolog_xref.pl if a loaded
   file contains a syntax-error in the first term.  Affects PceEmacs in
@@ -1944,7 +2067,7 @@ VERSION 6.0.2, distributed with SWI-Prolog 5.0.2
 	- Fix Control-j (new_line_and_indent)
 	- Make prompters return immediately if typed value is unique
 	- `editor->fill_paragraph' justifies if argument is specified
-	- Make Control-x b (switch_to_buffer) use last buffer as default. 
+	- Make Control-x b (switch_to_buffer) use last buffer as default.
 	- Add Control-h k (describe_key) and Control-h f (describe_function)
 
 
@@ -2121,7 +2244,7 @@ VERSION 5.1.9, distributed with SWI-Prolog 4.0.10
 
 * FIXED: `table_cell->note_mark' for cells in top row or left column.
 
-* FIXED: Colour update in class reporter on ->report: progress, ... 
+* FIXED: Colour update in class reporter on ->report: progress, ...
 
 * FIXED: Focus handling bug opening text_item combobox (for completions).
   Reported by Bob Wielinga.
@@ -2227,7 +2350,7 @@ VERSION 5.1.7
 =============
 
 * FIXED: Possible loop in repaint of rounded buttons in X11 version.
-	
+
 * FIXED: Image scaling and rotation in 24-bit colourmode for the X11
   version (memory corruption).
 
@@ -2253,7 +2376,7 @@ VERSION 5.1.6
   the SuSE team for providing access to their hardware.  The most
   important patch affects all hardware where int passed different
   to an `stdarg' function as void*.
-  
+
 * FIXED: Removed incomplete reference to library('overview.hlp').
 
 * FIXED: Stop combobox browser from scrolling after a loc-still.
@@ -2323,7 +2446,7 @@ VERSION 5.1.4
 * FIXED: Problem in finder (opening files) due to the modified type
   checking in frame->return.
 
-* PORT: Fixed handling of --with-jpeg=<dir> and --with-xpm=<dir>. 
+* PORT: Fixed handling of --with-jpeg=<dir> and --with-xpm=<dir>.
   Thanks to Brad Knotwell.
 
 
@@ -2469,7 +2592,7 @@ VERSION 5.1.2
 * FIXED: Some problems in `text_buffer<-skip_comment', operating backwards.
 
 * ENHANCED: Various Prolog Mode layout problems if there is comment in the
-  clause. 
+  clause.
 
 VERSION 5.1.1
 =============
@@ -2521,7 +2644,7 @@ VERSION 5.0.11
 
 * ADDED: `pixmap <-convert' to deal with graphicals and files.  Graphicals
   used to be indirected over class image, resulting in a black-and-white
-  pixmap after an unnecessary and expensive intermediate conversion. 
+  pixmap after an unnecessary and expensive intermediate conversion.
 
 * MODIFIED: PceEmacs Prolog mode never to move the caret on automatic
   checking launced by typing a full-stop.  Also singleton-replace mode
@@ -2587,7 +2710,7 @@ VERSION 5.0.10
 
 * ADDED: @pce->debugging_subject to allow using pcedebug/1 from user code.
 
-* FIXED: More graceful handling of term-expansion errors, especially 
+* FIXED: More graceful handling of term-expansion errors, especially
   useful for the on-the-fly cross-referencing PceEmacs.
 
 * ADDED: `date<-rfc_string' to return date in RFC compatible format
@@ -2775,7 +2898,7 @@ VERSION 5.0.7-beta-5
   3.3.0).
 
 * MODIFIED: Class vector to distinguish between size and allocated size.
- 
+
 * FIXED: `style <-underline' and similar attributes.  Returned @on on
   all attributes if any of the attributes was set.
 
@@ -2963,7 +3086,7 @@ VERSION 5.0.4
 
 * MODIFIED: General cleanup and UI improvement of (list-)browser:
 	DELETED:  list_broswer->select_middle_message
-	MODIFIED: Argument forwarding.  Both ->open_message and 
+	MODIFIED: Argument forwarding.  Both ->open_message and
 		  ->select_message now forward the current selection.
 	ADDED:	  multiple-selection using shift cursor up/down.
 		  multiple-selection using shift-drag
@@ -3011,7 +3134,7 @@ VERSION 5.0.4
   related events, so one can detect shift-cursor-left, etc.  Spotted by
   Uwe Lesta.
 
-* ADDED: various details to PceEmacs modes (to improve sharing with 
+* ADDED: various details to PceEmacs modes (to improve sharing with
   functionality under development).
 
 * ADDED: `text_buffer <-skip_layout' to skip blank space
@@ -3216,7 +3339,7 @@ FINAL 5.0.0 RELEASE
   perform the desired action.  ->execute acts as a wrapper dealing with the
   visual feedback.
 
-* ADDED: `table->sort_rows' and optional range-limitation arguments to 
+* ADDED: `table->sort_rows' and optional range-limitation arguments to
   `vector->sort'.
 
 * ADDED: library(pce_toc): ->son now also accepts a node as argument.
@@ -3476,7 +3599,7 @@ FINAL 5.0.0 RELEASE
 * FIXED: reentrance in rewindAnswerStack(), which may be caused
   by exception-handling and unlink-handling during a free invoked by
   another rewindAnswerStack().  Thanks to Heddrik van Rijn for providing
-  me with a program to reproduce this error, which may leave the system 
+  me with a program to reproduce this error, which may leave the system
   with an illegal answerStack, causing an infinite loop of crashes.
 
 * FIXED: Win32 `frame->geometry' for WxH-x-y, position relative to the right
@@ -3615,7 +3738,7 @@ FINAL 5.0.0 RELEASE
 * MODIFIED: `text->wrap: clip' (used by text_item) now shows the text as
   a single line, mapping \n, \r and \t to the paragraph sign, << and >>.
   Modified PceEmacs prompter handling such that Control-Q <one of the above>
-  may be entered for search/replace.  
+  may be entered for search/replace.
 
 * FIXED: `window->normalise' to be prepared for (dis)appearing scrollbars.
 
@@ -3626,7 +3749,7 @@ FINAL 5.0.0 RELEASE
   See ->selected_completion for details on altering this behaviour.  Also
   see library(file_item) for an example.
 
-* ADDED: Selection handling in text and text_item classes.  
+* ADDED: Selection handling in text and text_item classes.
 
 * ADDED: Various additions to mouse-based editing:
 	+ `editor ->cut_or_delete_char', bound to DEL
@@ -3922,7 +4045,7 @@ FINAL 5.0.0 RELEASE
 * ADDED: `connection->relate' to change connections without removing
   them.
 
-* MODIFED: `device->erase' and `graphical->device: @nil' no longer 
+* MODIFED: `device->erase' and `graphical->device: @nil' no longer
   modified the <-displayed attribute.
 
 * FIXED: Binding of @class when reconsulting a file.  Make class
@@ -3962,7 +4085,7 @@ FINAL 5.0.0 RELEASE
   that lack visual feedback, and may be used to define compound
   dialog objects.
 
-* FIXED: Repaint of text objects with border and clipping (appears 
+* FIXED: Repaint of text objects with border and clipping (appears
   as loosing the last character in scrolled text_item objects).
 
 * PERFORMANCE: Better detection of changes while doing dialog layout, to
@@ -4028,7 +4151,7 @@ FINAL 5.0.0 RELEASE
   in canonise.
 
 * FIXED: Class socket: convert port to network byte-order in the address
-  specification.  Also fixed in xpce-client.  Only affects big-endian 
+  specification.  Also fixed in xpce-client.  Only affects big-endian
   (e.g. Intel) machines.
 
 * ADDED: `image->mask' to support non-rectangular images.
@@ -4092,10 +4215,10 @@ FINAL 5.0.0 RELEASE
   belongs to using both the virtual-window-system and direct access
   to the underlying system.
 
-  At the moment, this layer is restricted to graphical operations. 
+  At the moment, this layer is restricted to graphical operations.
   For example, vd_draw_button_face() is supposed to draw the face of
   a button according to the current look-and-feel, giving its state
-  and bounding box.  
+  and bounding box.
 
   This approach allows for a simpler and more garanteed compatibility
   in look-and-feel.  This is currently being implemented realising more
@@ -4163,7 +4286,7 @@ FINAL 5.0.0 RELEASE
   implementing methods. REQUIRES SWI-Prolog 2.7.12 or later!
 
 * FIXED: ->orientation type check to accept 'south_west'.  Thanks to
-  Donalt Kwakkel. 
+  Donalt Kwakkel.
 
 * FIXED: pce_extend_class to accept variable, resource and class-directives.
 
@@ -4184,7 +4307,7 @@ FINAL 5.0.0 RELEASE
   XPCE/SWI-Prolog interface, as this predicate is part of Prolog since
   a while.
 
-* DISTR: Removed various outdated files. 
+* DISTR: Removed various outdated files.
 
 * FIXED: (hopefully) mispositioned Popup menus on some X11 servers and/or
   window managers.
@@ -4273,7 +4396,7 @@ FINAL 5.0.0 RELEASE
 
 * MODIFIED: General cleanup of arithmetic, improving on its range, precision
   and error handling:
-  
+
 	* Tagged integers with range +/- 512 M (not changed)
 	* Object integers (class number) with full 32-bit range
 	* Floats (class real) using double-precision representation
@@ -4412,7 +4535,7 @@ FINAL 5.0.0 RELEASE
 
 * INTERNAL: Modified class-definition structure for built-in classes.  Also
   built-in methods are now bound `lazy', reducing startup-time and memory
-  usage.  
+  usage.
 
 * FIXED: `graphical <-keyboard_focus'.
 
@@ -4457,7 +4580,7 @@ FINAL 5.0.0 RELEASE
   also all windows in it have been painted properly.
 
 * FIXED: Redraw problem on colour screens in menu-bar, notably appearing
-  on Solaris!! 
+  on Solaris!!
 
 * FIXED: Readline interface library, avoiding crash on illegal instruction
   after ^Z and repeated repaint of the first line on resize.  See
@@ -4574,7 +4697,7 @@ FINAL 5.0.0 RELEASE
 * FIXED: {list_browser,editor}->reference to use `graphical ->reference'
   rather then `device ->reference' to make these objects fit into the
   dialog layout schema.  Fixed various related problems in the
-  dialog editor.  Proper interpretation of the reference point still 
+  dialog editor.  Proper interpretation of the reference point still
   needs to be implemented in the dialog editor.
 
 * ADDED: Completed floating-point support for class slider.  Added ->format
@@ -4895,7 +5018,7 @@ FINAL 5.0.0 RELEASE
   pattern includes this.
 
 * FIXED: Avoid previewing non-active menu items in popup menus using `stayup'
-  mode. 
+  mode.
 
 * FIXED: Dialog Editor code generation for cycle menus.
 
@@ -4993,9 +5116,9 @@ FINAL 5.0.0 RELEASE
 
 * ADDED: Lazy method-binding schema to speedup loading of Prolog (precompiled)
   files.  Changed pce_term_expansion/2 and adds various features to class
-  class.  Should be 100% compatible, except for applications redefining 
+  class.  Should be 100% compatible, except for applications redefining
   PCE's term_expansion.
-  
+
 * FIXED: hash-table resize problem that wasted memory (result was ok).
 
 * ADDED: `always' argument to `graphical ->synchronise'.  If not @on,
@@ -5271,7 +5394,7 @@ FINAL 5.0.0 RELEASE
 
 * FIXED: `editor ->kill' for `adjecent' kills that exceed more than 10K
   characters (crashed).
-  
+
 * Various minor memory management problems (found with strict checking version
   of the alloc.c module).  Most of them just `unelegant', a few could cause
   trouble in rare circumstances.
@@ -5388,7 +5511,7 @@ FINAL 5.0.0 RELEASE
 * FIXED: `menu ->_redraw_area' deferences an invalid pointer.  Crashed
   on Irix machines.  Also fix to instantiation of X11-counterpart for
   images.  Thanks to Jan van der Steen (jansteen@cwi.nl), who also created
-  new up-to-date Irix machine description files. 
+  new up-to-date Irix machine description files.
 
 * CHANGED: Hyper-text help library.  Many new features added.  This library
   is now used for an XPCE FAQ (through the manual File/Faq menu), PceEmacs,
@@ -5429,7 +5552,7 @@ FINAL 5.0.0 RELEASE
 	`frame -has_returned'	(deleted variable)
 	`text ->show_caret'	(now @off, passive, @on)
 	`text ->event'		(new method for handling caret activation)
-	
+
   The event-types activate_keyboard_focus and deactivate_keyboard_focus have
   been added (below type focus; see event-hierarchy demo program).
 
@@ -5585,7 +5708,7 @@ FINAL 5.0.0 RELEASE
 * Improved colour-handling:
 	- Allow (window) background to be both an pixmap or a colour.
 	- Allow graphical colour to be both pixmap or a colour.
-	
+
 
 * Added `timer ->delay' to allow suspension of the XPCE process in a
   host-independant fashion.
@@ -5602,7 +5725,7 @@ FINAL 5.0.0 RELEASE
   desirable to clean-up the various interacting methods dealing with
   opening, iconising, mapping, etc. of frames.  All is now handled
   by the central method <->status.  `Frame <->show' and <->iconic
-  are mapped onto this new method for compatibility reasons.  
+  are mapped onto this new method for compatibility reasons.
   `Frame ->mapped', invoked from the X11 interface has gone.  The
   most likely usage of this method is to wait for a frame to be
   open.  This functionality is now realised by the new method
@@ -5695,7 +5818,7 @@ FINAL 5.0.0 RELEASE
   this file is supposed to be loaded *first*.  the module pce_host is
   supposed to define property/1 describing some aspects of the Prolog
   system.
-  
+
   XPCE/SICStus still does not run due to a bug in SICStus 2.1#8.  An
   fix has been promised by SICS for 2.1#9.
 
@@ -5726,7 +5849,7 @@ FINAL 5.0.0 RELEASE
 * Modified: Visual-hierarchy: added `dict' between `browser' and
   `dict_item'.  This is both conceptually clearer and drastically improves
   the speed of ->destroy'ing large browsers.  Browsers are now tested to
-  be really fast upto 25.000 items on a SPARC-II.  
+  be really fast upto 25.000 items on a SPARC-II.
 
 * Modified: graphical <->fill_pattern now also accepts a colour argument:
   send(Box, fill_pattern, colour(green)) make the *interior* of the box
@@ -5927,7 +6050,7 @@ FINAL 5.0.0 RELEASE
 
 * Fixed: `text_item ->enter' now invokes ->typed: id, @on on its <-device
   in order to properly handle default buttons with nested dialogues.
-  
+
 * Fixed: delCodeReference() testing for freeing object.  This should FIX
   CRASHES IN ALLOC() recently reported.
 
@@ -6196,7 +6319,7 @@ FINAL 5.0.0 RELEASE
   changes the label!
 
 * Fixed superfluous redraw when displaying text_item objects.  Notably
-  speed-up of making dialog windows.  
+  speed-up of making dialog windows.
 
 [VERSION 4.6.5]
 
@@ -6318,7 +6441,7 @@ FINAL 5.0.0 RELEASE
 * Added class `create' to create objects using functions (i.e. as part of
   an (compound) PCE code object).
 
-* Fixed `device <->{position,x,y}' to ->compute the device first. 
+* Fixed `device <->{position,x,y}' to ->compute the device first.
   Undisplayed devices (also class figure) yielded wrong results.
 
 * Fixed `window ->catch_all' to take care of frame-defined methods when
@@ -6508,7 +6631,7 @@ VERSION 4.6.0
 * Added `pce <-answer_stack_size'.  Changed the implementation of the
   answer-stack to reduce garbage on this stack.  Avoids quadradic
   (time) behaviour on some types of loops.   Performance problem is
-  completely solved.  There is still a little garbage left on this stack.  
+  completely solved.  There is still a little garbage left on this stack.
 
 * Added breakpce/1 and nobreakpce/1 to break on PCE methods like
   tracepce/1 and notracepce/1.
@@ -6618,7 +6741,7 @@ VERSION 4.6.0
 
 	  No compatibility issues.
 
-	- Turned class window into a true graphical class.  Now allows 
+	- Turned class window into a true graphical class.  Now allows
 	  for `windows on windows'.
 
 	  *COMPATIBILITY*
@@ -6626,7 +6749,7 @@ VERSION 4.6.0
 	  to the parent (window or frame).  `window <-bounding_box'
 	  reflects what the old `window <-area' did: the bouding box
 	  of the displayed graphicals in the window coordinate system.
-	  
+
 	  `Window <->display_size', `window <->display_position' and
 	  `Window <-display_area' have gone.  The normal methods
 	  to handle graphical geometry now work properly.  Old bugs
@@ -6637,7 +6760,7 @@ VERSION 4.6.0
 * Fixed bug in trapping existing object references.  Added library
   pce_renew which allows you to redefine the behaviour of new/2 on
   an attempt to redefine an existing reference.  Fixed related exception
-  generation.  The predicate pce_renew/1 allows you to preset how 
+  generation.  The predicate pce_renew/1 allows you to preset how
   existing references are handled: trace, free, rename, ask.
 
 * Fixed bug in PceDraw yielding undefined <-mode behaviour
@@ -6704,7 +6827,7 @@ VERSION 4.5.12
   windows.  PceEmacs now will reuse any `non-sticky' window for displaying
   a new file.  There are two pools of buffers: `file' and `other'.
   Tell me whether you like it!
-  
+
 * Fixed `Class Hierarchy' tool for the added `device <-find': now class
   tree inherits <-find from device instead of delegating to its <-root
   node object.
@@ -6737,7 +6860,7 @@ VERSION 4.5.12
 * Fixed `frame ->return' `frame <-confirm' couple for proper handling
   of the return value by the incremental garbage collector.
 
-* Fixed `image ->draw_in' to properly restore the position of the 
+* Fixed `image ->draw_in' to properly restore the position of the
   graphical when a position was specified.  Now uses `graphical <->set'
   rather than `graphical <->position' for moving the graphical.  Also
   fixed when the graphical is currently displayed on a device with
@@ -6753,7 +6876,7 @@ VERSION 4.5.12
   event dispatching system.
 
 * Added `event <-inside_sub_window' for locating events on frames and
-  windows in frames.    
+  windows in frames.
 
 * Changed `graphical ->toggle_select' and `device ->selection' to
   invoke `graphical ->selected' using a message, so this message may

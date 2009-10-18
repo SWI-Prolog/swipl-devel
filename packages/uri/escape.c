@@ -127,12 +127,6 @@ escape(term_t in, term_t out, term_t tail, const char *map)
 
 
 static foreign_t
-js_escape(term_t uri, term_t url)
-{ return escape(uri, url, 0, escape_map);
-}
-
-
-static foreign_t
 encode_uri(term_t uri, term_t url)
 { return escape(uri, url, 0, escape_uri_map);
 }
@@ -188,18 +182,11 @@ non_ascii(term_t t)
 
 
 static int
-decode(term_t in, term_t out, int plustoo)
-{ char *s, *q;
-  size_t len;
+decode_chars(size_t len, char *s, term_t out, int plustoo)
+{ char *q;
   char tmp[256];
   char *buf, *o;
   int rc;
-
-  if ( !PL_get_nchars(in, &len, &s, CVT_LIST) )
-  { if ( !PL_get_nchars(in, &len, &s,
-			CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_ISO_LATIN_1) )
-      return FALSE;
-  }
 
   if ( len < sizeof(tmp) )
   { buf = tmp;
@@ -211,14 +198,14 @@ decode(term_t in, term_t out, int plustoo)
   { int c = *q & 0xff;
 
     if ( c >= 128 )
-      return non_ascii(in);
+      return -1;			/* non-ASCII input */
     if ( c == '%' )
     { int v1, v2;
-      
+
       if ( (v1=dehex(*++q)) >= 0 && (v2=dehex(*++q)) >= 0 )
       { *o++ = (v1<<4)|v2;
       } else
-      { return non_ascii(in);
+      { return -1;			/* non-ASCII input */
       }
     } else if ( c == '+' && plustoo )
     { *o++ = ' ';
@@ -237,9 +224,24 @@ decode(term_t in, term_t out, int plustoo)
 }
 
 
-static foreign_t
-unescape(term_t in, term_t out)
-{ return decode(in, out, TRUE);
+static int
+decode(term_t in, term_t out, int plustoo)
+{ char *s;
+  size_t len;
+  int rc;
+
+  if ( !PL_get_nchars(in, &len, &s, CVT_LIST) )
+  { if ( !PL_get_nchars(in, &len, &s,
+			CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_ISO_LATIN_1) )
+      return FALSE;
+  }
+
+  switch((rc=decode_chars(len, s, out, plustoo)))
+  { case -1:
+      return non_ascii(in);
+    default:
+      return rc;
+  }
 }
 
 
@@ -253,12 +255,10 @@ static void
 install_escape()
 { init_maps();
 
-/*  PL_register_foreign("escape", 2, js_escape, 0); */
   PL_register_foreign("encode_uri", 2, encode_uri, 0);
   PL_register_foreign("encode_uri_component", 2, encode_uri_component, 0);
   PL_register_foreign("encode_uri", 3, encode_uri3, 0);
   PL_register_foreign("encode_uri_component", 3, encode_uri_component3, 0);
-/*  PL_register_foreign("unescape", 2, unescape, 0); */
   PL_register_foreign("decode_uri", 2, decode_uri, 0);
   PL_register_foreign("decode_uri_component", 2, decode_uri, 0);
 }

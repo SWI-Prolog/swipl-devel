@@ -292,7 +292,12 @@ Prolog specific additions.
 
 \begin{description}
     \item [Paragraphs]
-Paragraphs are seperated by a blank line.
+Paragraphs are seperated by a blank line. Paragraphs that are indented
+in the source-code \emph{after} normalising the left-margin are also
+indented in the output.  Indentation is realised in the HTML backend
+using a \const{blockquote} element and in \LaTeX{} using the
+\const{quote} environment.  Finally, if the initial indentation is
+16 or more, the paragraph is \textit{centered}.
 
     \item [General lists]
 The wiki knows three types of lists: \emph{bullet lists} (HTML
@@ -379,6 +384,15 @@ the \verb$==$ marks.
 		X < 5.
 	==
 \end{verbatim}
+
+    \item [Rules]
+A single line starting at column 1 with at least two dashes is
+translated into a horizontal rule over the page.  For example:
+
+\begin{code}
+--
+\end{code}
+
 \end{description}
 
 \subsection{Text markup: fonts and links}
@@ -399,8 +413,13 @@ PceEmacs can be set as default editor using
 =|set_prolog_flag(editor, pce_emacs)|=
 \end{code}
 
+\Tabref{fonts} shows the font-changing constructions, while
+\tabref{links} shows the constructs for creating links.
+
+\begin{table}
 \begin{center}
-\begin{tabular}{lp{0.7\linewidth}}
+\begin{tabular}{|l|p{0.7\linewidth}|}
+\hline
 \tt *bold*	& Typset text in \textbf{bold}.
 		  Content must be a single word. \\
 \tt *|bold|*	& Typset text in \textbf{bold}.
@@ -413,17 +432,44 @@ PceEmacs can be set as default editor using
 		  Content must be a single word. \\
 \tt =|code|=    & Typset text \texttt{fixed} font.
 		  Content can be long. \\
-\tt name/arity  & Create a link to a predicate \\
-\tt name//arity & Create a link to a DCG rule \\
-\tt name.pl	& If <name>.pl is the name of an existing file
-		  in the same directory, create a link. \\
-\tt\chr{<}url\chr{>} & Create a hyperlink to URL. \\
 \tt Word	& Capitalised words that appear as argument-name
 		  are written in \arg{Italic} \\
-\tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain
-		  keyword value. \\
+\hline
 \end{tabular}
 \end{center}
+    \caption{Wiki constructs to change the font}
+    \label{tab:fonts}
+\end{table}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|p{0.7\linewidth}|}
+\hline
+\tt name/arity  & Create a link to a predicate \\
+\tt name//arity & Create a link to a DCG rule \\
+\tt name.ext	& If <name>.<ext> is the name of an existing file
+		  and <ext> is one of \fileext{pl}, \fileext{txt},
+		  \fileext{png}, \fileext{gif} or \fileext{jpeg},
+		  create a link to the file. \\
+\tt prot\verb$://$url	& If <prot> is one of \const{http} or
+		  \const{ftp}, create a link. \\
+\tt\chr{<}url\chr{>} & Create a hyperlink to URL.  This construct
+		  supports the expand_url_path/2 using the construct
+		  <alias>:<local>.  <local> can be empty. \\
+\tt\verb$[[$label\verb$][$link\verb$]]$ &
+		  Create a link using the given <label>.  Label
+		  can be text or a reference to an image file.
+		  Additional arguments can be supplied as
+		  \chr{;}<name>=\chr{"}<value>\chr{"}.  More
+		  arguments are separated by commas. <link> must be a
+		  filename as above or a url. \\
+\hline
+\end{tabular}
+\end{center}
+    \caption{Wiki constructs that create links}
+    \label{tab:links}
+\end{table}
+
 
 
 \subsection{Images}

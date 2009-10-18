@@ -36,7 +36,7 @@
 	    http_current_worker/2,	% ?Port, ?ThreadID
 	    http_stop_server/2,		% +Port, +Options
 	    http_spawn/2,		% :Goal, +Options
-	    
+
 	    http_requeue/1,		% +Request
 	    http_close_connection/1	% +Request
 	  ]).
@@ -81,16 +81,16 @@ for details.
 	open_client_hook/5.
 
 %%	http_server(:Goal, +Options) is det.
-%	
+%
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
-%	
-%	| port(?Port)	     | - 	| Port to listen to |
+%
+%	| port(?Port)	     | - 	| Port to listen to		      |
 %	| workers(N)	     | 2 	| Define the number of worker threads |
-%	| timeout(S)	     | infinite	| Drop connections after inactivity   |
+%	| timeout(S)	     | 60	| Max inactivity for reading request  |
 %	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
-%	| local(KBytes)	     | <CommandLine> |				    |
-%	| global(KBytes)     | <CommandLine> |				    |
+%	| local(KBytes)	     | <CommandLine> |				      |
+%	| global(KBytes)     | <CommandLine> |				      |
 %	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
 
 http_server(Goal, Options) :-
@@ -153,20 +153,16 @@ assert_port_options([Opt|T], Port) :- !,
 
 
 %%	http_current_server(:Goal, ?Port) is nondet.
-%	
+%
 %	True if Goal is the goal of a server at Port.
 
 http_current_server(Goal, Port) :-
-	(   var(Goal)
-	->  current_server(Port, Goal, _, _)
-	;   strip_module(Goal, Module, G),
-	    current_server(Port, Module:G, _, _)
-	).
+	current_server(Port, Goal, _, _).
 
 
 %%	http_workers(+Port, -Workers) is det.
 %%	http_workers(+Port, +Workers:int) is det.
-%	
+%
 %	Query or set the number of workers  for the server at this port.
 %	The number of workers is dynamically   modified. Setting it to 1
 %	(one) can be used to profile the worker using tprofile/1.
@@ -184,7 +180,7 @@ http_workers(Port, _) :-
 
 
 %%	http_current_worker(?Port, ?ThreadID) is nondet.
-%	
+%
 %	True if ThreadID is the identifier   of  a Prolog thread serving
 %	Port. This predicate is  motivated  to   allow  for  the  use of
 %	arbitrary interaction with the worker thread for development and
@@ -241,7 +237,7 @@ close_server_socket(Options) :-
 %
 %	Stop the indicated  HTTP  server   gracefully.  First  stops all
 %	workers, then stops the server.
-%	
+%
 %	@tbd	Realise non-graceful stop
 
 http_stop_server(Port, _Options) :-
@@ -264,7 +260,7 @@ connect(Address) :-
 		 *******************************/
 
 %%	create_workers(+Options)
-%	
+%
 %	Create the pool of HTTP worker-threads. Each worker has the
 %	alias http_worker_N.
 
@@ -313,10 +309,10 @@ resize_pool(Queue, Size) :-
 
 
 %%	http_worker(+Options)
-%	
+%
 %	Run HTTP worker main loop. Workers   simply  wait until they are
-%	passed an accepted socket to process  a client. 
-%	
+%	passed an accepted socket to process  a client.
+%
 %	If the message quit(Sender) is read   from the queue, the worker
 %	stops.
 
@@ -349,7 +345,7 @@ http_worker(Options) :-
 		  fail
 	      )
 	  ).
-	
+
 
 %%	open_client(+Message, +Queue, -Goal, -In, -Out,
 %%		    +Options, -ClientOptions) is semidet.
@@ -357,12 +353,13 @@ http_worker(Options) :-
 %	Opens the connection to the client in a worker from the message
 %	sent to the queue by accept_server/2.
 
-open_client(requeue(In, Out, Goal, ClOpts), _, Goal, In, Out, Opts, ClOpts) :- !,
+open_client(requeue(In, Out, Goal, ClOpts),
+	    _, Goal, In, Out, Opts, ClOpts) :- !,
 	memberchk(peer(Peer), ClOpts),
 	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
 	check_keep_alife_connection(In, KeepAliveTMO, Peer, In, Out).
 open_client(Message, Queue, Goal, In, Out, _Opts,
-	    [ pool(Queue, Goal, In, Out)
+	    [ pool(client(Queue, Goal, In, Out))
 	    | Options
 	    ]) :-
 	catch(open_client(Message, Goal, In, Out, Options),
@@ -421,7 +418,7 @@ done_worker :-
 
 
 %	thread_httpd:message_level(+Exception, -Level)
-%	
+%
 %	Determine the message stream used for  exceptions that may occur
 %	during server_loop/5. Being multifile, clauses   can be added by
 %	the   application   to   refine   error   handling.   See   also
@@ -448,8 +445,11 @@ current_message_level(Term, Level) :-
 
 http_requeue(Header) :-
 	requeue_header(Header, ClientOptions),
-	memberchk(pool(Queue, Goal, In, Out), ClientOptions),
-	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)).
+	memberchk(pool(client(Queue, Goal, In, Out)), ClientOptions),
+	thread_send_message(Queue, requeue(In, Out, Goal, ClientOptions)), !.
+http_requeue(Header) :-
+	debug(http(error), 'Re-queue failed: ~p', [Header]),
+	fail.
 
 requeue_header([], []).
 requeue_header([H|T0], [H|T]) :-
@@ -458,29 +458,31 @@ requeue_header([H|T0], [H|T]) :-
 requeue_header([_|T0], T) :-
 	requeue_header(T0, T).
 
-requeue_keep(pool(_,_,_,_)).
+requeue_keep(pool(_)).
 requeue_keep(peer(_)).
 requeue_keep(protocol(_)).
 
 
 %%	http_process(Message, Queue, +Options)
-%	
+%
 %	Handle a single client message on the given stream.
 
 http_process(Goal, In, Out, Options) :-
 	debug(http(server), 'Running server goal ~p on ~p -> ~p',
 	      [Goal, In, Out]),
+	option(timeout(TMO), Options, 60),
+	set_stream(In, timeout(TMO)),
 	http_wrapper(Goal, In, Out, Connection,
 		     [ request(Request)
 		     | Options
 		     ]),
 	next(Connection, Request).
 
-next(spawned, _) :- !,
-	debug(http(spawn), 'Handler spawned', []).
+next(spawned(ThreadId), _) :- !,
+	debug(http(spawn), 'Handler spawned to thread ~w', [ThreadId]).
 next(Connection, Request) :-
-	downcase_atom(Connection, 'keep-alive'), !,
-	http_requeue(Request).
+	downcase_atom(Connection, 'keep-alive'),
+	http_requeue(Request), !.
 next(_, Request) :-
 	http_close_connection(Request).
 
@@ -490,12 +492,12 @@ next(_, Request) :-
 %	Close connection associated to Request.  See also http_requeue/1.
 
 http_close_connection(Request) :-
-	memberchk(pool(_Queue, _Goal, In, Out), Request),
+	memberchk(pool(client(_Queue, _Goal, In, Out)), Request),
 	memberchk(peer(Peer), Request),
 	close_connection(Peer, In, Out).
 
 %%	close_connection(+Peer, +In, +Out)
-%	
+%
 %	Closes the connection from the server to the client.  Errors are
 %	currently silently ignored.
 
@@ -511,7 +513,7 @@ close_connection(Peer, In, Out) :-
 %	current request using Goal. The original   thread returns to the
 %	worker pool for processing new requests.   Options are passed to
 %	thread_create/3, except for:
-%	
+%
 %	    * pool(+Pool)
 %	    Interfaces to library(thread_pool), starting the thread
 %	    on the given pool.
@@ -520,10 +522,6 @@ close_connection(Peer, In, Out) :-
 %	    are waiting in this pool.
 
 http_spawn(Goal, Options) :-
-	strip_module(Goal, M, G),
-	spawn(M:G, Options) .
-
-spawn(Goal, Options) :-
 	select_option(pool(Pool), Options, Options1), !,
 	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
 	check_backlog(BackLog, Pool),
@@ -534,7 +532,7 @@ spawn(Goal, Options) :-
 			      | ThreadOptions
 			      ]),
 	http_spawned(Id).
-spawn(Goal, Options) :-
+http_spawn(Goal, Options) :-
 	current_output(CGI),
 	thread_create(wrap_spawned(CGI, Goal), Id,
 		      [ detached(true)

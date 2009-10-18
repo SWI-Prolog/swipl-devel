@@ -51,7 +51,7 @@ initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
     assign(t, paragraph_end,
 	   newObject(ClassRegex, CtoName("\\s*\n"), EAV));
   }
-    
+
   assign(t, name, name);
   assign(t, size, toInt(256));
 
@@ -294,7 +294,7 @@ static status
 hasSyntaxSyntaxTable(SyntaxTable t, Int chr, Name name)
 { if ( tischtype(t, valInt(chr), nameToCode(name)) )
     succeed;
-  
+
   fail;
 }
 
@@ -452,29 +452,29 @@ makeClassSyntaxTable(Class class)
 
 unsigned short syntax_spec_code[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
-BL|EL,  0, QT,  0,  0,  0,  0,  0, OB, CB,  0,  0,  0, SY, PU,  0, 
+BL|EL,  0, QT,  0,  0,  0,  0,  0, OB, CB,  0,  0,  0, SY, PU,  0,
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, CS,  0, CE,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, CS,  0, CE,  0,
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, WS, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, WS,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-    0,  0,  0,  0, DI,  0,  0,  0,  0,  0,  0,  0, LC,  0, EL,  0, 
+    0,  0,  0,  0, DI,  0,  0,  0,  0,  0,  0,  0, LC,  0, EL,  0,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-    0,  0,  0,  0,  0, UC,  0, AN,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0, UC,  0, AN,  0,  0,  0,  0,  0,  0,  0,  0,
 			  /* 128-255 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 };
 
 #undef XL
@@ -484,54 +484,54 @@ BL|EL,  0, QT,  0,  0,  0,  0,  0, OB, CB,  0,  0,  0, SY, PU,  0,
 
 unsigned short char_flags[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-   EB, CT, CT, CT, CT, CT, CT, CT, CT, BL, EL, CT, BL, BL, CT, CT, 
+   EB, CT, CT, CT, CT, CT, CT, CT, CT, BL, EL, CT, BL, BL, CT, CT,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, 
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
-   BL, PU, QT, PU, PU, PU, PU, QT, OB, CB, PU, PU, PU, PU, PU, PU, 
+   BL, PU, QT, PU, PU, PU, PU, QT, OB, CB, PU, PU, PU, PU, PU, PU,
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
-   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, PU, PU, PU, PU, PU, PU, 
+   DI, DI, DI, DI, DI, DI, DI, DI, DI, DI, PU, PU, PU, PU, PU, PU,
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-   PU, XL, XL, XL, XL, XL, XL, UC, UC, UC, UC, UC, UC, UC, UC, UC, 
+   PU, XL, XL, XL, XL, XL, XL, UC, UC, UC, UC, UC, UC, UC, UC, UC,
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
-   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, OB, PU, CB, PU, WS, 
+   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, OB, PU, CB, PU, WS,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-   PU, xl, xl, xl, xl, xl, xl, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
+   PU, xl, xl, xl, xl, xl, xl, LC, LC, LC, LC, LC, LC, LC, LC, LC,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, OB, PU, CB, PU, CT, 
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, OB, PU, CB, PU, CT,
 			  /* 128-255 */
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC };
 
 unsigned char char_context[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */
-    0,  0,  0,  0,  0,  0,  0,  0,')','(',  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,')','(',  0,  0,  0,  0,  0,  0,
 /*  0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?   48-63 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /*  @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   64-79 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /*  P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _   80-95 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,']',  0,'[',  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,']',  0,'[',  0,  0,
 /*  `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o   96-111 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 /*  p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~  ^?   112-127 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,'}',  0,'{',  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,'}',  0,'{',  0,  0,
 			  /* 128-255 */
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 };

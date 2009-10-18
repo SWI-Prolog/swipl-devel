@@ -59,7 +59,7 @@ static senddecl send_quoteFunction[] =
 #define get_quoteFunction NULL
 /*
 static getdecl get_quoteFunction[] =
-{ 
+{
 };
 */
 
@@ -68,7 +68,7 @@ static getdecl get_quoteFunction[] =
 #define rc_quoteFunction NULL
 /*
 static classvardecl rc_quoteFunction[] =
-{ 
+{
 };
 */
 

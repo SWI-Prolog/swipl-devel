@@ -49,7 +49,7 @@ static void
 registerFunctor(FunctorDef fd)
 { size_t n = maxFunctorIndex();
   int amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
-    
+
   fd->functor = MK_FUNCTOR(n, amask);
   addBuffer(&functor_array, fd, FunctorDef);
 
@@ -207,7 +207,7 @@ registerControlFunctors()
     (functor_t) 0
   };
   functor_t *f;
-  
+
   for(f	= control; *f; f++)
   { valueFunctor(*f)->flags |= CONTROL_F;
   }
@@ -227,7 +227,7 @@ registerArithFunctors()
     (functor_t) 0
   };
   functor_t *f;
-  
+
   for(f	= arith; *f; f++)
   { valueFunctor(*f)->flags |= ARITH_F;
   }

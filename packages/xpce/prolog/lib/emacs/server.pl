@@ -30,7 +30,7 @@
 */
 
 :- module(emacs_server,
-	  [ 
+	  [
 	  ]).
 :- use_module(library(pce)).
 :- require([ file_base_name/2

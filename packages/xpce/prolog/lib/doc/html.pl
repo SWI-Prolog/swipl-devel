@@ -206,7 +206,7 @@ element(cite,	  _, Content) --> Content.
 element(language, _, Content) --> Content.
 element(person,	  _, Content) --> Content.
 element(q,	  _, Content) --> Content.
-	  
+
 %	Lists
 
 element(ul, _, Content) -->		% <UL>
@@ -333,13 +333,13 @@ element(thead, Attr, Content) -->	% <THEAD>
 	[ \thead(Attr, Content)
 	].
 element(tr, Attr, Content) -->		% <TR>
-	[ \tr(Attr, Content) 
+	[ \tr(Attr, Content)
 	].
 element(td, Attr, Content) -->		% <TD>
-	[ \td(Attr, Content) 
+	[ \td(Attr, Content)
 	].
 element(th, Attr, Content) -->		% <TH>
-	[ \td(Attr, Content) 
+	[ \td(Attr, Content)
 	].
 element(col, Attr, _) -->		% <COL>
 	[ \col(Attr)
@@ -431,8 +431,8 @@ header(Level, Options, Content) -->
 	[ @br, Below
 	],
 	element(p, [], []).		% Some tools omit the <P>
-	
-	
+
+
 		 /*******************************
 		 *	       FORMS		*
 		 *******************************/
@@ -461,7 +461,7 @@ input_element(hidden, Attrs) -->
 	},
 	[ \input(hidden(Name, Value))
 	].
-	
+
 element(select, Attrs, Content) -->	% <SELECT>
 	{ option(name(Name), Attrs),
 	  (   option(size(Size), Attrs),
@@ -473,7 +473,7 @@ element(select, Attrs, Content) -->	% <SELECT>
 	},
 	[ \input(Select)
 	].
-	
+
 
 		 /*******************************
 		 *	      CATCH ALL		*
@@ -510,7 +510,7 @@ doc:action(input(Obj), PB, _Mode) :-
 	->  send(Form, append, Obj)
 	;   print_message(warning, doc(expected_context(input, form)))
 	).
-	   
+
 
 		 /*******************************
 		 *	UTILITY PREDICATES	*

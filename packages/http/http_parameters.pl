@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2004-2006, University of Amsterdam
+    Copyright (C): 2004-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,24 +36,25 @@
 	  ]).
 :- use_module(http_client).
 :- use_module(http_mime_plugin).
+:- use_module(http_hook).
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(error)).
 
-:- module_transparent
-	http_parameters/3.
+:- meta_predicate
+	http_parameters(+, ?, :).
 
 %%	http_parameters(+Request, ?Parms) is det.
-%%	http_parameters(+Request, ?Parms, +Options) is det.
-%	
+%%	http_parameters(+Request, ?Parms, :Options) is det.
+%
 %	Get HTTP GET  or  POST   form-data,  applying  type  validation,
 %	default values, etc.  Provided options are:
-%	
+%
 %		* attribute_declarations(:Goal)
 %		Causes the declarations for an attributed named A to be
 %		fetched using call(Goal, A, Declarations).
-%		
+%
 %		* form_data(-Data)
 %		Return the data read from the GET por POST request as a
 %		list Name = Value.  All data, including name/value pairs
@@ -63,32 +64,37 @@ http_parameters(Request, Params) :-
 	http_parameters(Request, Params, []).
 
 http_parameters(Request, Params, Options) :-
-	option(attribute_declarations(G), Options, -),
-	(   G == (-)
-	->  DeclGoal = G
-	;   strip_module(G, M, G2),
-	    DeclGoal = M:G2
-	),
+	meta_options(is_meta, Options, QOptions),
+	option(attribute_declarations(DeclGoal), QOptions, -),
 	http_parms(Request, Params, DeclGoal, Form),
-	ignore(memberchk(form_data(Form), Options)).
+	(   memberchk(form_data(RForm), QOptions)
+	->  RForm = Form
+	;   true
+	).
+
+is_meta(attribute_declarations).
 
 
+http_parms(Request, Params, DeclGoal, Data) :-
+	memberchk(method(post), Request),
+	memberchk(content_type(Content), Request),
+	form_data_content_type(Content), !,
+	debug(post_request, 'POST Request: ~p', [Request]),
+	http_read_data(Request, Data, []),
+	debug(post, 'POST Data: ~p', [Data]),
+	fill_parameters(Params, Data, DeclGoal).
 http_parms(Request, Params, DeclGoal, Search) :-
-	memberchk(method(get), Request), !,
 	(   memberchk(search(Search), Request)
 	->  true
 	;   Search = []
 	),
 	fill_parameters(Params, Search, DeclGoal).
-http_parms(Request, Params, DeclGoal, Data) :-
-	member(method(post), Request), !,
-	debug(post_request, 'POST Request: ~p', [Request]),
-        http_read_data(Request, Data, []),
-	debug(post, 'POST Data: ~p', [Data]),
-	fill_parameters(Params, Data, DeclGoal).
+
+
+form_data_content_type('application/x-www-form-urlencoded').
 
 %%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
-%	
+%
 %	Fill values from the parameter list
 
 fill_parameters([], _, _).
@@ -96,6 +102,11 @@ fill_parameters([H|T], FormData, DeclGoal) :-
 	fill_parameter(H, FormData, DeclGoal),
 	fill_parameters(T, FormData, DeclGoal).
 
+fill_parameter(H, _, _) :-
+	var(H), !,
+	instantiation_error(H).
+fill_parameter(group(Members, _Options), FormData, DeclGoal) :- !,
+	fill_parameters(Members, FormData, DeclGoal).
 fill_parameter(H, FormData, _) :-
 	H =.. [Name,Value,Options], !,
 	fill_param(Name, Value, Options, FormData).
@@ -110,6 +121,9 @@ fill_parameter(H, FormData, DeclGoal) :-
 fill_param(Name, Values, Options, FormData) :-
 	memberchk(zero_or_more, Options), !,
 	fill_param_list(FormData, Name, Values, Options).
+fill_param(Name, Values, Options, FormData) :-
+	memberchk(list(Type), Options), !,
+	fill_param_list(FormData, Name, Values, [Type|Options]).
 fill_param(Name, Value, Options, FormData) :-
 	(   memberchk(Name=Value0, FormData),
 	    Value0 \== ''		% Not sure
@@ -132,9 +146,10 @@ fill_param_list([_|Form], Name, VT, Options) :-
 
 %%	check_type(+Options, +FieldName, +ValueIn, -ValueOut) is det.
 %
-%	Validate an HTTP form value.
-%	
-%	@param Option		list as provided with the parameter
+%	Conversion of an HTTP form value. First tries the multifile hook
+%	http:convert_parameter/3 and next the built-in checks.
+%
+%	@param Option		List as provided with the parameter
 %	@param FieldName	Name of the HTTP field (for better message)
 %	@param ValueIn		Atom value as received from HTTP layer
 %	@param ValueOut		Possibly converted final value
@@ -142,28 +157,40 @@ fill_param_list([_|Form], Name, VT, Options) :-
 
 check_type([], _, Value, Value).
 check_type([H|T], Field, Value0, Value) :-
-	(   check_type3(H, Value0, Value1)
+	(   check_type_no_error(H, Value0, Value1)
 	->  check_type(T, Field, Value1, Value)
-	;   check_type2(H, Value0)
-	->  check_type(T, Field, Value0, Value)
 	;   format(string(Msg), 'HTTP parameter ~w', [Field]),
-	    throw(error(type_error(H, Value0), 
+	    throw(error(type_error(H, Value0),
 			context(_, Msg)))
 	).
+
+check_type_no_error(Type, In, Out) :-
+	http:convert_parameter(Type, In, Out), !.
+check_type_no_error(Type, In, Out) :-
+	check_type3(Type, In, Out), !.
+check_type_no_error(Type, In, In) :-
+	check_type2(Type, In).
 
 %%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
 %
 %	HTTP parameter type-check for types that need converting.
-%	
-%	@error	syntax_error
 
+check_type3((T1;T2), In, Out) :-
+	(   check_type_no_error(T1, In, Out)
+	->  true
+	;   check_type_no_error(T2, In, Out)
+	).
 check_type3(number, Atom, Number) :-
-	atom_number(Atom, Number).
+	catch(atom_number(Atom, Number), _, fail).
 check_type3(integer, Atom, Integer) :-
-	atom_number(Atom, Integer),
+	catch(atom_number(Atom, Integer), _, fail),
 	integer(Integer).
+check_type3(nonneg, Atom, Integer) :-
+	catch(atom_number(Atom, Integer), _, fail),
+	integer(Integer),
+	Integer >= 0.
 check_type3(float, Atom, Float) :-
-	atom_number(Atom, Number),
+	catch(atom_number(Atom, Number), _, fail),
 	Float is float(Number).
 check_type3(between(Low, High), Atom, Value) :-
 	atom_number(Atom, Number),
@@ -172,6 +199,8 @@ check_type3(between(Low, High), Atom, Value) :-
 	;   Value = Number
 	),
 	must_be(between(Low, High), Value).
+check_type3(boolean, Atom, Bool) :-
+	thruth(Atom, Bool).
 
 %%	check_type2(+Type, +ValueIn) is semidet.
 %
@@ -192,6 +221,21 @@ check_type2(length =< N, Value) :- !,
 	atom_length(Value, Len),
 	Len =< N.
 check_type2(_, _).
+
+%%	thruth(+In, -Boolean) is semidet.
+%
+%	Translate some commonly used textual   representations  for true
+%	and false into their canonical representation.
+
+thruth(true,  true).
+thruth(yes,   true).
+thruth(on,    true).
+thruth('1',   true).
+
+thruth(false, false).
+thruth(no,    false).
+thruth(off,   false).
+thruth('0',   false).
 
 
 		 /*******************************

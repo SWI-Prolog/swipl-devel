@@ -61,7 +61,7 @@
 
    * is_heap(+Heap)
           is true if Heap is a valid heap
-	  
+
    @author R.A.O'Keefe
 */
 

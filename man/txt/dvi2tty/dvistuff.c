@@ -1150,7 +1150,7 @@ long dir;
     }
 
 } /* vmsseek */
-        
+
 
 
 long vms_ftell(fp)

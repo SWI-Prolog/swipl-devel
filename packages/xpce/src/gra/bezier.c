@@ -113,7 +113,7 @@ adjustSecondArrowBezier(Bezier b)
 
 static void
 shiftpts(IPoint pts, int to, int shift)
-{ 
+{
   DEBUG(NAME_bezier, Cprintf("Shift to %d\n", to));
   to--;
   for(; to>=shift; to--)
@@ -133,7 +133,7 @@ splitQuadratic(IPoint pts, int i, int *n)
 
   pts += i;
   mkmid(m, pts[0], pts[2]);
-  
+
   if ( abs(m.x-pts[1].x) > md || abs(m.y-pts[1].y) > md )
   { ipoint p1;
 
@@ -162,7 +162,7 @@ splitCubic(IPoint pts, int i, int *n)
        distanceLineToPoint(pts[0].x, pts[0].y, pts[3].x, pts[3].y,
 			   pts[2].x, pts[2].y, TRUE) > 1 )
   { ipoint p1, p2, p12;
-    
+
     p1 = pts[1];
     p2 = pts[2];
 
@@ -190,7 +190,7 @@ printPts(IPoint pts, int n)
 
   for(i=0; i<n; i++)
     Cprintf(" %d,%d", pts[i].x, pts[i].y);
-    
+
   Cprintf("\n");
 }
 */
@@ -514,7 +514,7 @@ static status
 geometryBezier(Bezier b, Int x, Int y, Int w, Int h)
 { if ( notDefault(x) || notDefault(y) )
   { Int dx, dy;
-    
+
     ComputeGraphical(b);
     if ( notDefault(x) )
       dx = sub(x, b->area->x);
@@ -525,7 +525,7 @@ geometryBezier(Bezier b, Int x, Int y, Int w, Int h)
       dy = sub(y, b->area->y);
     else
       dy = ZERO;
-    
+
     if ( dx != ZERO || dy != ZERO )
     { offsetPoint(b->start, dx, dy);
       offsetPoint(b->end, dx, dy);
@@ -612,7 +612,7 @@ static getdecl get_bezier[] =
 #define rc_bezier NULL
 /*
 static classvardecl rc_bezier[] =
-{ 
+{
 };
 */
 

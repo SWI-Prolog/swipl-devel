@@ -74,7 +74,7 @@
 				 with_output_to_chars/2]).
 :- use_module(library(between), [between/3]).
 :- use_module(library(files), [file_exists/1]).
-:- use_module(library(strings), [concat_atom/2, string_append/3]).
+:- use_module(library(strings), [atomic_list_concat/2, string_append/3]).
 :- use_module(library(freevars), [free_variables/4]).
 :- use_module(library(arg), [genarg/3]).
 :- use_module(library(call), [call/2]).
@@ -146,7 +146,7 @@ file_name_extension(Base, DotExt, Path) :-
 	file_name_extension2(Base, Ext, Path).
 file_name_extension(Base, Ext, Path) :-
 	file_name_extension2(Base, Ext, Path).
-	
+
 file_name_extension2(Base, Ext, Path) :-	% -, -, +
 	nonvar(Path), !,
 	(   atom_chars(Path, PC),
@@ -174,7 +174,7 @@ file_name_extension2(Base, Ext, Path) :- % +, +, -
 % term_to_atom(-Term, +Atom)
 %
 % If Term may be a variable, if Atom is an atom.
- 
+
 term_to_atom(Term, Atom) :-
         ( var(Term) ->
                 atom_to_term(Atom, Term)
@@ -189,10 +189,10 @@ term_to_atom(Term, Atom) :-
 %
 % Convert an atom to a term, possibly saving original variable names.
 % Fails if 1st argument is not an atom.
- 
+
 atom_to_term(Atom, Term) :-
         atom_to_term(Atom, Term, _).
- 
+
 atom_to_term(Atom, Term, Bindings) :-
         ( Atom == '' ->
                 Term = Atom,
@@ -200,7 +200,7 @@ atom_to_term(Atom, Term, Bindings) :-
         ; atom(Atom) ->
                 atom_to_term_1(Atom, Term, Bindings)
         ).
- 
+
 atom_to_term_1(Atom, Term, Bindings) :-
         atom_chars(Atom, Chars0),
 	(   append(Base, [0'.|Spaces], Chars0),
@@ -334,7 +334,7 @@ atom_length(String, Length) :-
 % pce_arg(?N, +Term, ?Arg)
 %
 % uses genarg/3 from library(arg), can solve for N
- 
+
 pce_arg(N, Term, Arg) :-
 	genarg(N, Term, Arg).
 

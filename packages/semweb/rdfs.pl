@@ -61,7 +61,7 @@ for languages on top of RDF:
 
 	* Provide new predicates according to the concept of the high
 	  level language (used in this module)
-	  
+
 	* Extend rdf/3 relation with triples _implied_ by the high-level
 	  semantics.  This approach is taken by the SeRQL system.
 */
@@ -84,7 +84,7 @@ for languages on top of RDF:
 
 %%	rdfs_subproperty_of(+SubProperty, ?Property) is nondet.
 %%	rdfs_subproperty_of(?SubProperty, +Property) is nondet.
-%	
+%
 %	Query the property hierarchy.
 
 rdfs_subproperty_of(SubProperty, Property) :-
@@ -97,14 +97,14 @@ rdfs_subproperty_of(SubProperty, Property) :-
 
 %%	rdfs_subclass_of(+Class, ?Super) is nondet.
 %%	rdfs_subclass_of(?Class, +Super) is nondet.
-%	
+%
 %	Generate  sub/super  classes.  rdf_reachable/3    considers  the
 %	rdfs:subPropertyOf relation as well  as   cycles.  Note  that by
 %	definition all classes are  subclass   of  rdfs:Resource, a case
 %	which is dealt with by the 1st and 3th clauses :-(
-%	
+%
 %	According to production 2.4 "rdfs:Datatype", Each instance of
-%	rdfs:Datatype is a subclass of rdfs:Literal.  
+%	rdfs:Datatype is a subclass of rdfs:Literal.
 
 rdfs_subclass_of(Class, Super) :-
 	rdf_equal(rdfs:'Resource', Resource),
@@ -140,17 +140,17 @@ rdfs_subclass_of(Class, Super) :-	% production 2.4
 %%	rdfs_individual_of(+Resource, +Class) is semidet.
 %%	rdfs_individual_of(+Resource, -Class) is nondet.
 %%	rdfs_individual_of(-Resource, +Class) is nondet.
-%	
+%
 %	Generate resources belonging to a class   or  classes a resource
 %	belongs to. We assume everything at the `object' end of a triple
 %	is a class. A validator should confirm this property.
-%	
+%
 %	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
 %	properties, deriving that if rdf(R,  P,   _)  is  present R must
 %	satisfy the domain of P (and similar for range).
-%	
+%
 %	There are a few hacks:
-%	
+%
 %		* Any resource is an individual of rdfs:Resource
 %		* literal(_) is an individual of rdfs:Literal
 
@@ -194,7 +194,7 @@ rdfs_label(Resource, Label) :-
 %%	rdfs_label(+Resource, ?Lang, -Label) is multi.
 %%	rdfs_label(+Resource, ?Lang, +Label) is semidet.
 %%	rdfs_label(-Resource, ?Lang, ?Label) is nondet.
-%	
+%
 %	Resource  has  Label  in  Lang.  If  Resource  is  nonvar  calls
 %	take_label/3 which is guaranteed to succeed label.
 
@@ -206,7 +206,7 @@ rdfs_label(Resource, Lang, Label) :-
 
 %%	rdfs_ns_label(+Resource, -Label) is multi.
 %%	rdfs_ns_label(+Resource, ?Lang, -Label) is multi.
-%	
+%
 %	Present label with  namespace  indication.   This  predicate  is
 %	indented  to  provide  meaningful  short   names  applicable  to
 %	ontology maintainers.  Note that this predicate is non-deterministic
@@ -219,7 +219,7 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	rdfs_label(Resource, Lang, Label0),
 	(   rdf_global_id(NS:_, Resource),
 	    Label0 \== ''
-	->  concat_atom([NS, Label0], :, Label)
+	->  atomic_list_concat([NS, Label0], :, Label)
 	;   \+ rdf_has(Resource, rdfs:label, _)
 	->  Label = Resource
 	;   member(Sep, [#,/]),
@@ -228,7 +228,7 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	    \+ sub_atom(Frag, _, _, _, Sep)
 	->  Len is B+L,
 	    sub_atom(Resource, 0, Len, _, NS),
-	    concat_atom([NS, Label0], :, Label)
+	    atomic_list_concat([NS, Label0], :, Label)
 	;   Label = Label0
 	).
 
@@ -236,14 +236,24 @@ rdfs_ns_label(Resource, Lang, Label) :-
 %%	take_label(+Resource, ?Lang, -Label) is multi.
 %
 %	Get the label to use for a  resource in the give Language. First
-%	tries label_of/3 and if all  fails,   unifies  Label to the last
-%	part of Resource using rdf_split_url/3.
+%	tries label_of/3.  If this fails, break the Resource over # or /
+%	and if all fails, unify Label with Resource.
 
 take_label(Resource, Lang, Label) :-
 	(   label_of(Resource, Lang, Label)
 	*-> true
-	;   rdf_split_url(_, Label, Resource)
+	;   after_char(Resource, '#', Local)
+	->  Label = Local
+	;   after_char(Resource, '/', Local)
+	->  Label = Local
+	;   Label = Resource
 	).
+
+after_char(Atom, Char, Rest) :-
+	sub_atom(Atom, _, _, L, Char), !,
+	sub_atom(Atom, _, L, 0, Rest).
+
+
 
 %%	label_of(+Resource, ?Lang, ?Label) is nondet.
 %
@@ -273,9 +283,9 @@ rdfs_class_property(Class, Property) :-
 		 *******************************/
 
 %%	rdfs_member(?Element, +Set)
-%	
+%
 %	As Prolog member on sets.  Operates both on attributes parsed as
-%	parseType="Collection" as well as on Bag, Set and Alt. 
+%	parseType="Collection" as well as on Bag, Set and Alt.
 
 rdfs_member(Element, Set) :-
 	rdf_has(Set, rdf:first, _),
@@ -301,7 +311,7 @@ rdfs_collection_member(Element, Set) :-
 
 
 %%	rdfs_list_to_prolog_list(+RDFSList, -PrologList)
-%	
+%
 %	Convert ann RDFS list (result from parseType=Collection) into a
 %	Prolog list of elements.
 
@@ -315,7 +325,7 @@ rdfs_list_to_prolog_list(Set, [H|T]) :-
 
 %%	rdfs_assert_list(+Resources, -List) is det.
 %%	rdfs_assert_list(+Resources, -List, +DB) is det.
-%	
+%
 %	Create an RDF list from the given Resources.
 
 rdfs_assert_list(Resources, List) :-
@@ -336,17 +346,17 @@ rdfs_assert_list([H|T], List, DB) :-
 		 *******************************/
 
 %%	rdfs_find(+String, +Domain, ?Properties, +Method, -Subject)
-%	
+%
 %	Search all classes below Domain for a literal property with
 %	that matches String.  Method is one of
-%	
+%
 %		* substring
 %		* word
 %		* prefix
 %		* exact
-%		
+%
 %	domain is defined by owl_satisfy from owl.pl
-%		
+%
 %	Note that the rdfs:label field is handled by rdfs_label/2,
 %	making the URI-ref fragment name the last resort to determine
 %	the label.
@@ -421,9 +431,9 @@ rdfs_find(String, Domain, Fields, Method, Subject) :-
 	;   rdf_has(Subject, Field, literal(Arg))
 	),
 	rdf_match_label(Method, String, Arg).
-	
+
 %%	generate_domain(+Domain, -Resource)
-%	
+%
 %	Generate all resources that satisfy some a domain specification.
 
 generate_domain(All, Subject) :-

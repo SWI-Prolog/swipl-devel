@@ -31,7 +31,7 @@
 
 
 :- module(man_card_editor,
-	[ 
+	[
 	]).
 
 :- use_module(library(pce)).

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,19 @@
 #include "pl-incl.h"
 #include "pl-inline.h"
 #include <limits.h>
+#ifdef HAVE_DLADDR
+#define __USE_GNU 1
+#include <dlfcn.h>
+#endif
+
+/* MacOS (re-)defines bool, true and false.  This is a bit unelegant,
+   but it works
+*/
+#undef false
+#undef true
+#undef bool
+#define true(s, a)		((s)->flags & (a))
+#define false(s, a)		(!true((s), (a)))
 
 #undef LD			/* Get at most once per function */
 #define LD LOCAL_LD
@@ -38,10 +51,10 @@ forwards void	checkCodeTable(void);
 static void
 checkCodeTable(void)
 { const code_info *ci;
-  unsigned int n;
+  int n;
 
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
-  { if ( ci->code != n )
+  { if ( (int)ci->code != n )
       sysError("Wrong entry in codeTable: %d", n);
   }
 
@@ -73,25 +86,16 @@ next_instruction:
 	goto r1;
 
 With gcc-2.1 or later, we can get this result without using assembler.
-All this required where a few pacthes in interpret(), the compiler and
+All this required where a few patches in interpret(), the compiler and
 the wic (intermediate code)  generation  code.  The initialisation  is
 very critical:
 
-The function interpret() (the VM interpreter)  declares a static array
-holding  the label  addresses      of the  various  virtual    machine
-instructions.  When it is  called,  it will  store the address of this
-table in  the  global  variable  interpreter_jmp_table.   the function
-initWamTable() than makes the two  translation tables wam_table[] (wam
-code --> label address and dewam_table[] (label address --> wam code).
-Note that initWamTable() calles prolog() and thus interpret to get the
-table with  the label addresses  out of interpret().   It does so with
-the  C-defined  predicate fail/0 (because   it  cannot  yet run prolog
-predicates).
-
-BUGS:	Currently there are three  places were all the VM instructions
-	are  defined: pl-incl.h;  above and   pl-wam.c.  One day  this
-	should  be merged.  For  now, be very carefull  if you add  or
-	delete a VM instruction.
+The function PL_next_solution() (the VM   interpreter) declares a static
+array holding the  label  addresses  of   the  various  virtual  machine
+instructions. When it is called, it will store the address of this table
+in   the   global   variable     interpreter_jmp_table.   the   function
+initWamTable() than makes the two   translation  tables wam_table[] (wam
+code --> label address and dewam_table[]   (label address --> wam code).
 
 NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 	more information.
@@ -103,6 +107,8 @@ initWamTable(void)
 { GET_LD
   unsigned int n;
   code maxcoded, mincoded;
+
+  assert(I_HIGHEST < 255);	/* need short for dewam_table on overflow */
 
   if ( interpreter_jmp_table == NULL )
     PL_next_solution(QID_EXPORT_WAM_TABLE);
@@ -120,13 +126,14 @@ initWamTable(void)
   dewam_table_offset = mincoded;
 
   assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
-  dewam_table = (char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
+  dewam_table = (unsigned char *)allocHeap(((maxcoded-dewam_table_offset) + 1) *
 				  sizeof(char));
-  
+
   for(n = 0; n < I_HIGHEST; n++)
-    dewam_table[wam_table[n]-dewam_table_offset] = (char) n;
+    dewam_table[wam_table[n]-dewam_table_offset] = (unsigned char) n;
 
   checkCodeTable();
+  initSupervisors();
 }
 
 #else /* VMCODE_IS_ADDRESS */
@@ -134,6 +141,7 @@ initWamTable(void)
 void
 initWamTable()
 { checkCodeTable();
+  initSupervisors();
 }
 
 #endif /* VMCODE_IS_ADDRESS */
@@ -290,7 +298,7 @@ get_head_and_body_clause(term_t clause,
   { PL_put_term(head, clause);		/* facts */
     PL_put_atom(body, ATOM_true);
   }
-  
+
   DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
 	   Sdprintf("%s:", stringAtom(m0->name));
 	   pl_write(head); Sdprintf(" :- "); pl_write(body); Sdprintf("\n"));
@@ -298,7 +306,7 @@ get_head_and_body_clause(term_t clause,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Analyse the variables of a clause.  `term' is the term to  be  analysed, 
+Analyse the variables of a clause.  `term' is the term to  be  analysed,
 which  is  either  a  fact  or  a  clause (:-/2) term.  First of all the
 functor and arity of the predicate are determined.   The  first  `arity'
 elements  of  the variable definition array are then cleared.  This part
@@ -463,10 +471,14 @@ calculation at runtime.
 
 #define BLOCK(s) do { s; } while (0)
 
-#define Output_0(ci, c)		addBuffer(&(ci)->codes, encode(c), code)
-#define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code)
-#define Output_1(ci, c, a)	BLOCK(Output_0(ci, c); Output_a(ci, a))
-#define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
+#define Output_0(ci,c)		addBuffer(&(ci)->codes, encode(c), code)
+#define Output_a(ci,c)		addBuffer(&(ci)->codes, c, code)
+#define Output_1(ci,c,a)	BLOCK(Output_0(ci, c); \
+				      Output_a(ci, a))
+#define Output_2(ci,c,a0,a1)	BLOCK(Output_1(ci, c, a0); \
+				      Output_a(ci, a1))
+#define Output_3(ci,c,a0,a1,a2) BLOCK(Output_2(ci, c, a0, a1); \
+				      Output_a(ci, a2))
 #define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
 
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
@@ -479,12 +491,18 @@ Variable table operations.
 forwards int	compileBody(Word, code, compileInfo * ARG_LD);
 forwards int	compileArgument(Word, int, compileInfo * ARG_LD);
 forwards int	compileSubClause(Word, code, compileInfo *);
-forwards bool	isFirstVar(VarTable vt, int n);
+forwards bool	isFirstVarSet(VarTable vt, int n);
 forwards int	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
+forwards int	compileListFF(word arg, compileInfo *ci ARG_LD);
+forwards bool	compileSimpleAddition(Word, compileInfo * ARG_LD);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo * ARG_LD);
 forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
+#endif
+#if O_COMPILE_IS
+forwards bool	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
+forwards bool	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 
 static inline int
@@ -508,14 +526,23 @@ clearVarTable(compileInfo *ci)
 }
 
 static bool
-isFirstVar(VarTable vt, int n)
+isFirstVarSet(VarTable vt, int n)
 { int m  = 1 << (n % BITSPERINT);
   int *p = &vt->entry[n / BITSPERINT];
-  
+
   if ( (*p & m) )
     return FALSE;
   *p |= m;
   return TRUE;
+}
+
+
+static bool
+isFirstVar(VarTable vt, int n)
+{ int m  = 1 << (n % BITSPERINT);
+  int *p = &vt->entry[n / BITSPERINT];
+
+  return (*p & m) == 0;
 }
 
 
@@ -573,7 +600,7 @@ last_arg:
 
   deRef(t);
   if ( (index = isIndexedVarTerm(*t PASS_LD)) >= 0 )
-  { isFirstVar(vt, index);
+  { isFirstVarSet(vt, index);
     return;
   }
 
@@ -619,6 +646,25 @@ resetVars(ARG1_LD)
     { *vd->address = vd->saved;
     }
   }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+True if p points to a first-var allocated at *i.  P is derefereced.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+isFirstVarP(Word p, compileInfo *ci, int *i ARG_LD)
+{ int idx;
+
+  deRef(p);
+  if ( (idx=isIndexedVarTerm(*p PASS_LD)) >= 0 &&
+       isFirstVar(ci->used_var, idx) )
+  { *i = idx;
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -729,6 +775,9 @@ for predicates for which the body is  defined from another module as the
 head and the predicate is not a   meta-predicate. In principle, we could
 delay this until we decided there may be a meta-call, but this will harm
 automatic update if a predicate is later defined as meta-predicate.
+
+Not that this is also the case for predicates that have previous clauses
+that have an I_CONTEXT because we need to reset the context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
@@ -736,12 +785,17 @@ automatic update if a predicate is later defined as meta-predicate.
     size_t bi;
 
     if ( head )
-    { Output_0(&ci, I_ENTER);
+    { Definition def = proc->definition;
+
+      Output_0(&ci, I_ENTER);
 					/* ok; all live in the same module */
-      if ( ci.module != proc->definition->module &&
-	   false(proc->definition, METAPRED) )
-      { Output_1(&ci, I_CONTEXT, (code)ci.module);
-      }
+      if ( false(def, P_MFCONTEXT) &&
+	   ci.module != def->module &&
+	   false(proc->definition, P_TRANSPARENT) )
+	set(def, P_MFCONTEXT);
+
+      if ( true(def, P_MFCONTEXT) )
+	Output_1(&ci, I_CONTEXT, (code)ci.module);
     }
 
     bi = PC(&ci);
@@ -749,7 +803,7 @@ automatic update if a predicate is later defined as meta-predicate.
     { if ( rv == NOT_CALLABLE )
 	PL_error(NULL, 0, NULL, ERR_TYPE,
 		 ATOM_callable, wordToTermRef(body));
-      
+
       goto exit_fail;
     }
     Output_0(&ci, I_EXIT);
@@ -804,8 +858,9 @@ Finish up the clause.
     cl->variables += (int)(p-p0);
 
     fr->clause = cref;
-    fr->context = module;
     fr->predicate = getProcDefinition(proc);
+    setNextFrameFlags(fr, environment_frame);
+    setContextModule(fr, module);
 
     DEBUG(1, Sdprintf("; now %d vars\n", clause.variables));
     lTop = (LocalFrame)p;
@@ -813,11 +868,6 @@ Finish up the clause.
 
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
-
-  DEBUG(1,
-	if ( !head )
-	{ wamListClause(cl);
-	});
 
   return cl;
 
@@ -843,12 +893,12 @@ VARIABLE or META CALL
 A ; B, A -> B, A -> B ; C, \+ A
     The compilation of these statements are  a  bit  more  tricky.   Two
     mechanisms support this compilation:
-    
+
 	C_IFTHEN var	Mark for `soft-cut'
 	C_CUT  var	Cut alternatives generated since C_IFTHEN var
 
     and
-	
+
 	C_OR jmp	Generate a choicepoint.  It the continuation
 			fails skip `jmp' instructions and continue
 			there.
@@ -864,7 +914,7 @@ A ; B, A -> B, A -> B ; C, \+ A
     FIRSTVAR  type  of instructions.  to avoid such trouble the compiler
     generates  SETVAR  instructions  to  balance  both   brances.    See
     balanceVars();
-  
+
     If you add anything to this, please ensure registerControlFunctors()
     remains consistent.
 
@@ -896,7 +946,7 @@ A ; B, A -> B, A -> B ; C, \+ A
     slot in the frame to GC.  For the moment we consider \+ the same as
     G->fail;true.  This leads to a bit longer and slower code in some
     cases, but at least it works.  Time to rethink the entire issue around
-    uninitialised variables ...  
+    uninitialised variables ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -925,7 +975,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	{ vsave = mkCopiedVarTable(ci->used_var);
 	  valt1 = mkCopiedVarTable(ci->used_var);
 	  valt2 = mkCopiedVarTable(ci->used_var);
-	
+
 	  setVars(argTermP(*body, 0), valt1 PASS_LD);
 	  setVars(argTermP(*body, 1), valt2 PASS_LD);
 	} else
@@ -1004,7 +1054,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci PASS_LD)) != TRUE )
 	  return rv;
 	Output_0(ci, C_END);
-      
+
 	succeed;
       } else if ( fd == FUNCTOR_softcut2 ) 		/* A *-> B */
       { int rv;						/* compile as A,B */
@@ -1049,7 +1099,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	    OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	  }
 	}
-      
+
 	succeed;
 #endif /* O_COMPILE_OR */
       }
@@ -1074,9 +1124,9 @@ analyseVariables()  and  returns the offset of the variable, or -1 if it
 is not produced by this function.
 
 compileArgument() returns ISVOID if a void instruction resulted from the
-compilation.  This is used to detect  the  ...ISVOID,  [I_ENTER,  I_POPF]
-sequences,  in  which  case  we  can leave out the VOIDS just before the
-I_ENTER or I_POPF instructions.
+compilation. This is used to  detect   the  ...ISVOID,  [I_ENTER, H_POP]
+sequences, in which case we can  leave   out  the  VOIDS just before the
+I_ENTER or H_POP instructions.
 
 When doing `islocal' compilation,  compound  terms   are  copied  to the
 current localframe and a B_VAR instruction is generated for it.
@@ -1096,7 +1146,7 @@ vName(Word adr)
     Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
 
   return name;
-} 
+}
 #endif
 
 
@@ -1119,7 +1169,7 @@ right_recursion:
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A void.  Generate either B_VOID or H_VOID.  Note that the  return  value
 ISVOID  is reserved for head variables only (B_VOID sets the location to
-be a variable, and thus cannot be removed if it is before an I_POPF.
+be a variable, and thus cannot be removed if it is before an B_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   switch(tag(*arg))
@@ -1127,6 +1177,10 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
     var:
       if (where & A_BODY)
       { Output_0(ci, B_VOID);
+	return NONVOID;
+      }
+      if (where & A_ARG)
+      { Output_0(ci, H_ARGVOID);
 	return NONVOID;
       }
       Output_0(ci, H_VOID);
@@ -1141,7 +1195,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       if ( storage(*arg) != STG_INLINE )
       {	Word p = addressIndirect(*arg);
 	size_t n = wsizeofInd(*p);
-	
+
 	if ( n == WORDS_PER_INT64 )
 	{
 #if ( SIZEOF_VOIDP == 8 )
@@ -1152,7 +1206,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
 	    word w[WORDS_PER_INT64];
 	  } cvt;
 	  int64_t val;
-	  
+
 	  cvt.w[0] = p[1];
 	  cvt.w[1] = p[2];
 	  val = cvt.i;
@@ -1233,7 +1287,7 @@ isvar:
       return NONVOID;
     }
 
-    first = isFirstVar(ci->used_var, index);
+    first = isFirstVarSet(ci->used_var, index);
 
     if ( index < ci->arity )		/* variable on its own in the head */
     { if ( where & A_BODY )
@@ -1279,7 +1333,7 @@ isvar:
   }
 
   assert(isTerm(*arg));
-    
+
   if ( ci->islocal )
   { int voffset;
     Word k;
@@ -1312,9 +1366,12 @@ isvar:
     { code c;
 
       if ( (where & A_HEAD) )		/* index in array! */
+      { if ( compileListFF(*arg, ci PASS_LD) )
+	  return NONVOID;
 	c = (isright ? H_RLIST : H_LIST);
-      else
-	c = (isright ? B_RLIST : B_LIST);
+      } else
+      { c = (isright ? B_RLIST : B_LIST);
+      }
 
       Output_0(ci, c);
     } else
@@ -1340,24 +1397,57 @@ isvar:
     where |= A_RIGHT;
     deRef(arg);
 
-    if ( tag(*arg) == TAG_VAR && !(where & A_BODY) )
+    if ( tag(*arg) == TAG_VAR && !(where & (A_BODY|A_ARG)) )
     { seekBuffer(&ci->codes, lastnonvoid, code);
       if ( !isright )
-	Output_0(ci, I_POPF);
+	Output_0(ci, H_POP);
       return NONVOID;
     }
 
     if ( isright )
       goto right_recursion;
     else
-    { compileArgument(arg, where, ci PASS_LD);
-      Output_0(ci, I_POPF);
+    { code c;
+      compileArgument(arg, where, ci PASS_LD);
+      c = (where & A_HEAD) ? H_POP : B_POP;
+      Output_0(ci, c);
     }
 
     return NONVOID;
   }
 }
 
+
+static int
+compileListFF(word arg, compileInfo *ci ARG_LD)
+{ Word p = argTermP(arg, 0);
+  int i1, i2;
+
+  if ( isFirstVarP(p+0, ci, &i1 PASS_LD) &&
+       isFirstVarP(p+1, ci, &i2 PASS_LD) &&
+       i1 != i2 )
+  { isFirstVarSet(ci->used_var, i1);
+    isFirstVarSet(ci->used_var, i2);
+    Output_2(ci, H_LIST_FF, VAROFFSET(i1), VAROFFSET(i2));
+    succeed;
+  }
+
+  fail;
+}
+
+
+static inline code
+mcall(code call)
+{ switch(call)
+  { case I_CALL:
+      return I_CALLM;
+    case I_DEPART:
+      return I_DEPARTM;
+    default:
+      assert(0);
+      return (code)0;
+  }
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of compileSubClause() is to  generate  code  for  a  subclause.
@@ -1370,6 +1460,7 @@ static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
   Module tm = ci->module;
+  Procedure proc;
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1384,61 +1475,71 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   if ( isTerm(*arg) )
   { functor_t functor = functorTerm(*arg);
     FunctorDef fdef = valueFunctor(functor);
-      
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If the argument is of the form <Module>:<Goal>, <Module> is an atom  and
-<Goal>  is  nonvar  then compile to the specified module.  Otherwise use
-the meta-call mechanism (BUG: `user:hello:foo' is called  via  meta-call
-mechanism, but this only is a bit slower).
+If the argument is of the form  <Module>:<Goal>, <Module> is an atom and
+<Goal> is callable, compile to to  a   call  I_CALLM  <module> <proc> or
+I_DEPARTM <module> <proc>. There are two special   cases  that we do not
+compile, but they are related to meta-calling anyway.
 
-This is a bit more complex then expected: foo:assert(baz) should  assert
-baz/0  into module foo.  In general: the context module should be set to
-the appropriate value.  This needs a  new  virtual  machine  instruction
-that  handles  calls  with  specified context module.  For the moment we
-will use the meta-call mechanism for all these types of calls.
-
-[Tue Dec 18 2001] Now we do have I_CONTEXT.  Time to reconsider!
+	* When compiling in local mode, this is all much more complicated
+	  due to the ci->argvars computation and maintenance, so we skip
+	  this
+	* We do not try to be smart with <module>:call(...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( functor == FUNCTOR_colon2 )
-    {
-  /*							SEE COMMENT ABOVE
-      Word mp, g;
+    { Word mp, g;
 
       mp = argTermP(*arg, 0); deRef(mp);
-      if ( isTextAtom(*mp) )
+      if ( isTextAtom(*mp) && !ci->islocal )
       { g = argTermP(*arg, 1); deRef(g);
 	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
-	{ arg = g;
-	  tm = lookupModule(*mp);
-	  goto cont;
+	{ if ( isTerm(*g) )
+	  { functor_t f2 = functorTerm(*g);
+	    FunctorDef fd2 = valueFunctor(f2);
+
+	    if ( fd2->name != ATOM_call )
+	    { arg = g;
+	      functor = f2;
+	      fdef = fd2;
+	      tm = lookupModule(*mp);
+	      goto cont;
+	    }
+	  } else if ( isTextAtom(*g) )
+	  { arg = g;
+	    tm = lookupModule(*mp);
+	    goto cont_atom;
+	  }
 	}
       }
-  */
 
       compileArgument(arg, A_BODY, ci PASS_LD);
       Output_0(ci, I_USERCALL0);
       succeed;
     }
-/*  cont: */
 
+    if ( true(fdef, ARITH_F) && !ci->islocal )
+    { if ( functor == FUNCTOR_is2 &&
+	   compileSimpleAddition(arg, ci PASS_LD) )
+	succeed;
 #if O_COMPILE_ARITH
-    if ( true(fdef, ARITH_F) &&
-	 trueFeature(OPTIMISE_FEATURE) &&
-	 !ci->islocal )			/* no use for local compilation */
-      return compileArith(arg, ci PASS_LD);
-#endif /* O_COMPILE_ARITH */
+      if ( truePrologFlag(PLFLAG_OPTIMISE) )
+	 return compileArith(arg, ci PASS_LD);
+#endif
+    }
+
+#ifdef O_COMPILE_IS
+    if ( !ci->islocal )
+    { if ( functor == FUNCTOR_equals2 &&	/* =/2 */
+	   compileBodyUnify(arg, call, ci PASS_LD) )
+	succeed;
+      if ( functor == FUNCTOR_strict_equal2 &&	/* ==/2 */
+	   compileBodyEQ(arg, call, ci PASS_LD) )
+	succeed;
+    }
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term, not a variable and not a module   call. First of all, we check for
-`inline calls'. This refers to a  light-weight calling mechanism applied
-to deterministic foreign predicates that are   called with simple normal
-variable arguments only. This deals with fast  calling of checks such as
-var/1 as well as  A  =  B.  If   we  are  compiling  clauses  for call/1
-(islocal), we skip this, as it   complicates the compilation process and
-the dynamic clause will be used  once   only  anyhow. Moreover, it would
-require  one  more  place  to  do    the   special  variable-linking  in
-compileArgument().
-
 For normal cases, simply compile the arguments   (push on the stack) and
 create a call-instruction. Finally, some  special   atoms  are mapped to
 special instructions.
@@ -1447,8 +1548,10 @@ If we call a currently undefined procedure we   check it is not a system
 procedure. If it is, we import the  procedure immediately to avoid later
 re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { Procedure proc = lookupProcedure(functor, tm);
-      int ar = fdef->arity;
+    cont:
+    { int ar = fdef->arity;
+
+      proc = lookupProcedure(functor, tm);
 
       if ( !isDefinedProcedure(proc) &&
 	   !true(proc->definition, P_REDEFINED) &&
@@ -1464,45 +1567,14 @@ re-definition.
 	}
       }
 
-#ifdef O_INLINE_FOREIGNS
-#define MAX_FV 2
-      if ( true(fdef, INLINE_F) && ar <= MAX_FV && !ci->islocal )
-      { int n;
-	int vars[MAX_FV];
-
-	for(n = 0; n < ar; n++)
-	{ Word a = argTermP(*arg, n);
-
-	  deRef(a);
-	  if ( (vars[n] = isIndexedVarTerm(*a PASS_LD)) >= 0 )
-	    continue;
-
-	  goto non_fv;
-	}
-
-	for(n = 0; n < ar; n++)
-	{ if ( isFirstVar(ci->used_var, vars[n]) )
-	  { Output_1(ci, C_VAR, VAROFFSET(vars[n]));
-	  }
-	}
-
-        Output_1(ci, I_CALL_FV0 + ar, (code)proc);
-	for(n=0; n<ar; n++)
-	  Output_a(ci, VAROFFSET(vars[n]));
-
-	succeed;
-      non_fv:;
-      }
-#endif /*O_INLINE_FOREIGNS*/
-
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, A_BODY, ci PASS_LD);
 
-      if ( fdef->name == ATOM_call && fdef->arity > 1 )
-      { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
-	succeed;
-      } else if ( functor == FUNCTOR_apply2 )
-      { Output_0(ci, I_APPLY);
+      if ( fdef->name == ATOM_call )
+      { if ( fdef->arity == 1 )
+	  Output_0(ci, I_USERCALL0);
+	else
+	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
 #if O_BLOCK
       } else if ( functor == FUNCTOR_dcut1 )
@@ -1513,47 +1585,105 @@ re-definition.
 	succeed;
 #endif
       }
-      Output_1(ci, call, (code) proc);
-
-      succeed;
     }
-  }
+  } else if ( isTextAtom(*arg) )
+  { cont_atom:
 
-  if ( isTextAtom(*arg) )
-  { if ( *arg == ATOM_cut )
+    if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
 	Output_1(ci, ci->cut.instruction, ci->cut.var);
       else
 	Output_0(ci, I_CUT);
+      succeed;
     } else if ( *arg == ATOM_true )
     { Output_0(ci, I_TRUE);
+      succeed;
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
-    } else if ( *arg == ATOM_dcatch )	/* $catch */
+      succeed;
+    } else if ( *arg == ATOM_dcatch )		/* $catch */
     { Output_0(ci, I_CATCH);
       Output_0(ci, I_EXITCATCH);
+      succeed;
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
+      succeed;
     } else
     { functor_t fdef = lookupFunctorDef(*arg, 0);
-      code cproc = (code) lookupProcedure(fdef, tm);
 
-#ifdef O_INLINE_FOREIGNS
-      if ( true(valueFunctor(fdef), INLINE_F) )
-      { Output_1(ci, I_CALL_FV0, cproc);
-      } else
-#endif /*O_INLINE_FOREIGNS*/
-      { Output_1(ci, call, cproc);
-      }
+      proc = lookupProcedure(fdef, tm);
     }
-
-    succeed;
+  } else
+  { return NOT_CALLABLE;
   }
-    
-  return NOT_CALLABLE;
+
+  if ( tm == ci->module )
+    Output_1(ci, call, (code) proc);
+  else
+    Output_2(ci, mcall(call), (code)tm, (code)proc);
+
+  succeed;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compileSimpleAddition() compiles NewVar is Var   +/- SmallInt. At entry,
+vc is known to be a dereferenced pointer to term is/2.  For addition, it
+allows for swapping the arguments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileSimpleAddition(Word sc, compileInfo *ci ARG_LD)
+{ Word a = argTermP(*sc, 0);
+  int rvar;
+
+  if ( isFirstVarP(a, ci, &rvar PASS_LD) ) /* NewVar is ? */
+  { int neg = FALSE;
+
+    a++;
+    deRef(a);
+
+    if ( hasFunctor(*a, FUNCTOR_plus2) ||
+	 (neg=hasFunctor(*a, FUNCTOR_minus2)) )
+    { Word a1 = argTermP(*a, 0);
+      Word a2 = a1 + 1;
+      int vi, swapped = 0;
+
+      deRef(a1);
+      deRef(a2);
+
+      while(swapped++ < 2)
+      { Word tmp;
+
+	if ( (vi=isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+	     !isFirstVar(ci->used_var, vi) &&
+	     tagex(*a2) == (TAG_INTEGER|STG_INLINE) )
+	{ intptr_t i = valInt(*a2);
+
+	  if ( neg )
+	    i = -i;			/* tagged int: cannot overflow */
+
+	  isFirstVarSet(ci->used_var, rvar);
+	  Output_3(ci, A_ADD_FC, VAROFFSET(rvar), VAROFFSET(vi), i);
+	  succeed;
+	}
+
+	if ( neg )
+	  break;			/* do not swap X is 10 - Y */
+
+	tmp = a1;
+	a1 = a2;
+	a2 = tmp;
+      }
+    }
+  }
+
+  fail;
+}
+
+
+#if O_COMPILE_ARITH
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic compilation compiles is/2, >/2, etc.  Instead of building the
 compound terms holding the arithmetic expression as  a  whole  and  then
@@ -1583,7 +1713,6 @@ Note. This function assumes the functors   of  all arithmetic predicates
 are tagged using the functor ARITH_F. See registerArithFunctors().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_COMPILE_ARITH
 static bool
 compileArith(Word arg, compileInfo *ci ARG_LD)
 { code a_func;
@@ -1596,14 +1725,25 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
-  { if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
+  { size_t tc_a1 = PC(ci);
+    code isvar;
+
+    if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD) )
       fail;
+    if ( PC(ci) == tc_a1 + 2 &&	OpCode(ci, tc_a1) == encode(B_FIRSTVAR) )
+    { isvar = OpCode(ci, tc_a1+1);
+      seekBuffer(&ci->codes, tc_a1, code);
+    } else
+      isvar = 0;
     Output_0(ci, A_ENTER);
     if ( !compileArithArgument(argTermP(*arg, 1), ci PASS_LD) )
       fail;
-    Output_0(ci, A_IS);
+    if ( isvar )
+      Output_1(ci, A_FIRSTVAR_IS, isvar);
+    else
+      Output_0(ci, A_IS);
     succeed;
-  } else	
+  } else
   { assert(0);			/* see pl-func.c, registerArithFunctors() */
     fail;
   }
@@ -1644,9 +1784,9 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 	    word w[WORDS_PER_INT64];
 	  } cvt;
 	  Word vp = cvt.w;
-  
+
 	  cpInt64Data(vp, p);
-  
+
 	  if ( cvt.val >= LONG_MIN && cvt.val <= LONG_MAX )
 	  { Output_1(ci, A_INTEGER, (word)cvt.val);
 	  } else
@@ -1662,7 +1802,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     }
     succeed;
   }
-  if ( isReal(*arg) )
+  if ( isFloat(*arg) )
   { Word p = valIndirectP(*arg);
 
     Output_0(ci, A_DOUBLE);
@@ -1671,7 +1811,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 					/* variable */
   if ( (index = isIndexedVarTerm(*arg PASS_LD)) >= 0 )
-  { int first = isFirstVar(ci->used_var, index);
+  { int first = isFirstVarSet(ci->used_var, index);
 
     if ( index < ci->arity )		/* shared in the head */
     { if ( index < 3 )
@@ -1691,7 +1831,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
       }
       Output_0(ci, A_VAR);
-    }          
+    }
     Output_a(ci, VAROFFSET(index));
     succeed;
   }
@@ -1711,7 +1851,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     } else if ( isTerm(*arg) )
     { fdef = functorTerm(*arg);
       ar = arityFunctor(fdef);
-      a = argTermP(*arg, 0);      
+      a = argTermP(*arg, 0);
     } else
       return PL_error(NULL, 0, NULL, ERR_TYPE,
 		      ATOM_evaluable, wordToTermRef(arg));
@@ -1744,6 +1884,15 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     for(n=0; n<ar; a++, n++)
       TRY( compileArithArgument(a, ci PASS_LD) );
 
+    if ( fdef == FUNCTOR_plus2 )
+    { Output_0(ci, A_ADD);
+      succeed;
+    }
+    if ( fdef == FUNCTOR_star2 )
+    { Output_0(ci, A_MUL);
+      succeed;
+    }
+
     switch(ar)
     { case 0:	Output_1(ci, A_FUNC0, index); break;
       case 1:	Output_1(ci, A_FUNC1, index); break;
@@ -1755,6 +1904,152 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   }
 }
 #endif /* O_COMPILE_ARITH */
+
+
+#ifdef O_COMPILE_IS
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile unifications (=/2) in the body into inline instructions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1, a2;
+  int i1, i2;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton = ? --> true */
+  { unify_always_yields_true:
+    Output_0(ci, I_TRUE);
+    succeed;
+  }
+
+  a2 = argTermP(*arg, 1);
+  deRef(a2);
+  if ( isVar(*a2) )
+    goto unify_always_yields_true;
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  i2 = isIndexedVarTerm(*a2 PASS_LD);
+
+  if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
+  { int f1 = isFirstVarSet(ci->used_var, i1);
+    int f2 = isFirstVarSet(ci->used_var, i2);
+
+    if ( f1 && f2 )
+      Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
+    else if ( f1 )
+      Output_2(ci, B_UNIFY_FV, VAROFFSET(i1), VAROFFSET(i2));
+    else if ( f2 )
+      Output_2(ci, B_UNIFY_FV, VAROFFSET(i2), VAROFFSET(i1));
+    else
+      Output_2(ci, B_UNIFY_VV, VAROFFSET(i1), VAROFFSET(i2));
+
+    succeed;
+  }
+
+  if ( i1 >= 0 )			/* Var = Term */
+  { int first;
+
+  unify_term:
+    first = isFirstVarSet(ci->used_var, i1);
+    if ( isConst(*a2) )
+    { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), *a2);
+      if ( isAtom(*a2) )
+	PL_register_atom(*a2);
+    } else
+    { int where = (first ? A_BODY : A_HEAD|A_ARG);
+      Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
+      compileArgument(a2, where, ci PASS_LD);
+      Output_0(ci, B_UNIFY_EXIT);
+    }
+
+    succeed;
+  }
+  if ( i2 >= 0 )			/* (Term = Var): as (Var = Term)! */
+  { i1 = i2;
+    a2 = a1;
+    goto unify_term;
+  }
+
+  fail;					/* Term = Term */
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile ==/2. Note that if either  side   is  a  firstvar, the test will
+always fail. When doing optimized compilation we simply generate fail/0.
+otherwise we generate a balancing instruction and the normal equivalence
+test.  Likewise, an == on a singleton fails.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1, a2;
+  int i1, i2;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton == ?: always fail */
+  {
+  eq_always_false:
+    if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_FAIL);
+      succeed;
+    }
+
+    fail;				/* debugging: compile as normal code */
+  }
+
+  a2 = argTermP(*arg, 1);
+  deRef(a2);
+  if ( isVar(*a2) )			/* ? = Singleton: no need to compile */
+    goto eq_always_false;
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  i2 = isIndexedVarTerm(*a2 PASS_LD);
+
+  if ( i1 >=0 && i2 >= 0 )		/* Var1 == Var2 */
+  { int f1 = isFirstVar(ci->used_var, i1);
+    int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f1 || f2 )
+    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      {	Output_0(ci, i1 == i2 ? I_TRUE : I_FAIL);
+	succeed;
+      }
+    } else
+    { if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+      if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    }
+
+    Output_2(ci, B_EQ_VV, VAROFFSET(i1), VAROFFSET(i2));
+
+    succeed;
+  }
+
+  if ( i1 >= 0 && isConst(*a2) )	/* Var == const */
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 ) Output_1(ci, C_VAR, VAROFFSET(i1));
+    Output_2(ci, B_EQ_VC, VAROFFSET(i1), *a2);
+    if ( isAtom(*a2) )
+      PL_register_atom(*a2);
+    succeed;
+  }
+  if ( i2 >= 0 && isConst(*a1) )	/* const == Var */
+  { int f2 = isFirstVar(ci->used_var, i2);
+
+    if ( f2 ) Output_1(ci, C_VAR, VAROFFSET(i2));
+    Output_2(ci, B_EQ_VC, VAROFFSET(i2), *a1);
+    if ( isAtom(*a1) )
+      PL_register_atom(*a1);
+    succeed;
+  }
+
+  fail;
+}
+#endif /*O_COMPILE_IS*/
 
 
 		 /*******************************
@@ -1784,6 +2079,15 @@ forAtomsInClause(Clause clause, void (func)(atom_t a))
 
 	  (*func)(a);
 	}
+	break;
+      }
+      case B_EQ_VC:
+      case B_UNIFY_FC:
+      case B_UNIFY_VC:			/* var, const */
+      { word w = PC[2];
+
+	if ( isAtom(w) )
+	  PL_unregister_atom(w);
 	break;
       }
     }
@@ -1923,10 +2227,10 @@ care of reconsult, redefinition, etc.
     if ( def->module != mhead )
     { if ( true(def->module, SYSTEM) )
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_built_in_procedure, def);
+		 ATOM_redefine, ATOM_built_in_procedure, proc);
       } else
       { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		 ATOM_redefine, ATOM_imported_procedure, def);
+		 ATOM_redefine, ATOM_imported_procedure, proc);
       }
       freeClause(clause PASS_LD);
       return NULL;
@@ -1936,7 +2240,11 @@ care of reconsult, redefinition, etc.
       return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
     if ( def->definition.clauses )	/* i.e. is (might be) defined */
-      redefineProcedure(proc, sf, 0);
+    { if ( !redefineProcedure(proc, sf, 0) )
+      { freeClause(clause PASS_LD);
+	return NULL;
+      }
+    }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This `if' locks predicates as system predicates  if  we  are  in  system
@@ -1948,7 +2256,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       { if ( false(def, SYSTEM) )
 	  set(def, SYSTEM|HIDE_CHILDS|LOCKED);
       } else
-      { if ( trueFeature(DEBUGINFO_FEATURE) )
+      { if ( truePrologFlag(PLFLAG_DEBUGINFO) )
 	  clear(def, HIDE_CHILDS);
 	else
 	  set(def, HIDE_CHILDS);
@@ -1989,12 +2297,23 @@ PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 }
 
 
+static int
+mustBeVar(term_t t ARG_LD)
+{ if ( !PL_is_variable(t) )
+    return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, t);
+
+  succeed;
+}
+
+
 static
 PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause = assert_term(A1, CL_END, NULL PASS_LD);
+  Clause clause;
 
-  if (clause == (Clause)NULL)
+  if ( !mustBeVar(A2 PASS_LD) )
+    fail;
+  if ( !(clause = assert_term(A1, CL_END, NULL PASS_LD)) )
     fail;
 
   return PL_unify_pointer(A2, clause);
@@ -2004,9 +2323,11 @@ PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 static
 PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause = assert_term(A1, CL_START, NULL PASS_LD);
+  Clause clause;
 
-  if (clause == (Clause)NULL)
+  if ( !mustBeVar(A2 PASS_LD) )
+    fail;
+  if ( !(clause = assert_term(A1, CL_START, NULL PASS_LD)) )
     fail;
 
   return PL_unify_pointer(A2, clause);
@@ -2033,9 +2354,9 @@ record_clause(term_t term, term_t file, term_t ref ARG_LD)
 
   if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
     return PL_unify_pointer(ref, clause);
-  
+
   fail;
-}  
+}
 
 
 static
@@ -2056,7 +2377,7 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 
   sf = lookupSourceFile(filename, TRUE);
   if ( sf->current_procedure )
-  { if ( unify_definition(A2, sf->current_procedure->definition, 0, 
+  { if ( unify_definition(A2, sf->current_procedure->definition, 0,
 			  GP_QUALIFY|GP_NAMEARITY) )
     { sf->current_procedure = NULL;
       succeed;
@@ -2088,7 +2409,7 @@ PRED_IMPL("$end_aux", 2, end_aux, 0)
 
     fail;
   }
-    
+
   succeed;
 }
 
@@ -2141,17 +2462,17 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
-function is to extract the relevant   information  for (re)computing the
-index information for indexing on the   first argument (the 99.9% case).
-See reindexClause().
+arg1Key() determines the first argument-key   by  inspecting the virtual
+machine code. If constonly is  non-zero,  it   creates  a  key for large
+integers and floats. Otherwise it only succeeds on atoms, small integers
+and functors.
 
 NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-arg1Key(Clause clause, word *key)
+arg1Key(Clause clause, int constonly, word *key)
 { Code PC = clause->codes;
 
   for(;;)
@@ -2171,29 +2492,36 @@ arg1Key(Clause clause, word *key)
       case H_NIL:
 	*key = ATOM_nil;
         succeed;
+      case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
         succeed;
       case H_INT64:			/* only on 32-bit hardware! */
-	*key = (word)PC[0] ^ (word)PC[1];
-        succeed;
+	if ( !constonly )
+	{ *key = (word)PC[0] ^ (word)PC[1];
+          succeed;
+	} else
+	  fail;
       case H_INTEGER:
-      { word k;
+	if ( !constonly )
+	{ word k;
 #if SIZEOF_VOIDP == 4
-	k = (word)*PC;			/* indexOfWord() picks 64-bits */
-        if ( (intptr_t)k < 0L )
-	  k ^= -1L;
-	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
+	  k = (word)*PC;			/* indexOfWord() picks 64-bits */
+	  if ( (intptr_t)k < 0L )
+	    k ^= -1L;
+	  DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
 #else
-	k = (word)*PC;
+	  k = (word)*PC;
 #endif
-	if ( !k )
-	  k++;
-        *key = k;
-	succeed;
-      }
+	  if ( !k )
+	    k++;
+	  *key = k;
+	  succeed;
+	} else
+	  fail;
       case H_FLOAT:			/* tbd */
+      if ( !constonly )
       { word k;
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
@@ -2205,7 +2533,7 @@ arg1Key(Clause clause, word *key)
 	  default:
 	    assert(0);
 	}
-      
+
 	if ( !k )
 	  k++;
 	*key = k;
@@ -2260,7 +2588,7 @@ static inline void
 setARGP__LD(Word ap ARG_LD)			/* ARGP = ap */
 { if ( ap > (Word)lTop )
   { requireStack(local, ((char*)ap - (char*)lTop));
-  } 
+  }
   lTop = (LocalFrame)ap;
 }
 
@@ -2343,7 +2671,7 @@ get_arg_ref(term_t term, term_t argp ARG_LD)
 static void
 next_arg_ref(term_t argp ARG_LD)
 { Word p = valTermRef(argp);
-  
+
   *p = makeRef(unRef(*p)+1);
 }
 
@@ -2469,6 +2797,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
           NEXTARG;
 	  continue;
       case H_VOID:
+      case H_ARGVOID:
 	{ if ( !pushed )		/* FIRSTVAR in the head */
 	    TRY(unifyVar(valTermRef(argp), di->variables,
 			 VAROFFSET(argn) PASS_LD) );
@@ -2504,13 +2833,26 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  fdef = FUNCTOR_dot2;
           goto common_rfunctor;
 	}
-      case I_POPF:
+      case H_POP:
+      case B_POP:
 	  PL_reset_term_refs(argp);
           argp--;
 	  pushed--;
 	  if ( !pushed )
 	    argn++;
 	  continue;
+      case H_LIST_FF:
+      { Word p;
+
+	TRY(PL_unify_functor(argp, FUNCTOR_dot2));
+	p = valTermRef(argp);
+	deRef(p);
+	p = argTermP(*p, 0);
+        TRY(unifyVar(p+0, di->variables, *PC++ PASS_LD) );
+        TRY(unifyVar(p+1, di->variables, *PC++ PASS_LD) );
+	NEXTARG;
+	continue;
+      }
       case I_EXITCATCH:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
@@ -2639,7 +2981,7 @@ Unfortunately it also has some serious disadvantages:
     bottom-up.
 
 In the current implementation the head is decompiled in the  unification
-style  and the head is decompiled using a stack machine.  This takes the
+style  and the body is decompiled using a stack machine.  This takes the
 best of both approaches: the head is not in reverse polish notation  and
 is  not  unlikely  to be instantiated (retract/1), while it is very rare
 that clause/retract are used with instantiated body.
@@ -2671,19 +3013,23 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 #if O_DEBUGGER
         case D_BREAK:	    op = decode(replacedBreak(PC-1));
 			    goto again;
-#endif	  
+#endif
         case A_ENTER:
         case I_NOP:	    continue;
+	case H_CONST:
 	case B_CONST:
 			    *ARGPinc() = XR(*PC++);
 			    continue;
+	case H_NIL:
 	case B_NIL:
 			    *ARGPinc() = ATOM_nil;
 			    continue;
+	case H_INTEGER:
 	case B_INTEGER:
 	case A_INTEGER:
 			    *ARGPinc() = makeNum((intptr_t)*PC++);
 			    continue;
+	case H_INT64:
 	case B_INT64:
 	case A_INT64:
 			  { Word p = allocGlobal(2+WORDS_PER_INT64);
@@ -2693,26 +3039,33 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    continue;
 			  }
+	case H_FLOAT:
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
-			    
+
 			    *ARGPinc() = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    cpDoubleData(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    continue;
 			  }
+	case H_STRING:
+	case H_MPZ:
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
 	  		    *ARGPinc() = globalIndirectFromCode(&PC);
 			    continue;
-      { size_t index;      
+      { size_t index;
 
 	case B_ARGVAR:
 	case B_ARGFIRSTVAR:
+	case H_FIRSTVAR:
 	case B_FIRSTVAR:
+	case B_UNIFY_VAR:
+	case B_UNIFY_FIRSTVAR:
+	case H_VAR:
 	case A_VAR:
 	case B_VAR:	    index = *PC++;		goto var_common;
 	case A_VAR0:
@@ -2727,9 +3080,34 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			      *ARGPinc() = makeVarRef(index);
 			    continue;
       }
+      case B_UNIFY_FF:
+      case B_UNIFY_FV:
+      case B_UNIFY_VV:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    goto b_unify_exit;
+      case B_UNIFY_FC:
+      case B_UNIFY_VC:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = (word)*PC++;
+			    goto b_unify_exit;
+      case B_EQ_VC:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = (word)*PC++;
+      			    goto b_eq_vv_cont;
+      case B_EQ_VV:
+			    *ARGPinc() = makeVarRef((int)*PC++);
+			    *ARGPinc() = makeVarRef((int)*PC++);
+      			  b_eq_vv_cont:
+			    build_term(FUNCTOR_strict_equal2, di PASS_LD);
+			    pushed++;
+			    continue;
+      case H_VOID:
+      case H_ARGVOID:
       case B_VOID:
 			    setVar(*ARGPinc());
 			    continue;
+      case H_FUNCTOR:
       case B_FUNCTOR:
       { functor_t fdef;
 
@@ -2743,10 +3121,21 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	}
         nested++;
 	continue;
+      case H_LIST:
       case B_LIST:
 	fdef = FUNCTOR_dot2;
         goto common_bfunctor;
       }
+      case H_LIST_FF:
+      { size_t v1 = *PC++;
+	size_t v2 = *PC++;
+	word w = globalFunctor(FUNCTOR_dot2);
+	*ARGPinc() = w;
+	unifyVar(argTermP(w, 0), di->variables, v1 PASS_LD);
+	unifyVar(argTermP(w, 1), di->variables, v2 PASS_LD);
+	continue;
+      }
+      case H_RFUNCTOR:
       case B_RFUNCTOR:
       { functor_t fdef;
 
@@ -2757,15 +3146,30 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	  setARGP(argTermP(w, 0));
 	}
 	continue;
+      case H_RLIST:
       case B_RLIST:
 	fdef = FUNCTOR_dot2;
         goto common_brfunctor;
       }
-      case I_POPF:
+      case H_POP:
+      case B_POP:
 			    setARGP(*--aTop);
 			    nested--;
 			    continue;
+#ifdef O_COMPILE_IS
+      case B_UNIFY_EXIT:
+			  b_unify_exit:
+			    build_term(FUNCTOR_equals2, di PASS_LD);
+			    pushed++;
+			    continue;
+#endif
 #if O_COMPILE_ARITH
+      case A_ADD:
+			    build_term(FUNCTOR_plus2, di PASS_LD);
+			    continue;
+      case A_MUL:
+			    build_term(FUNCTOR_star2, di PASS_LD);
+			    continue;
       case A_FUNC0:
       case A_FUNC1:
       case A_FUNC2:
@@ -2775,6 +3179,19 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       			    build_term(functorArithFunction((int)*PC++), di PASS_LD);
       			    PC++;
 			    continue;
+      case A_ADD_FC:
+      { int rvar = (int)*PC++;
+	int ivar = (int)*PC++;
+	intptr_t add = (intptr_t)*PC++;
+
+	*ARGPinc() = makeVarRef(rvar);
+	*ARGPinc() = makeVarRef(ivar);
+	*ARGPinc() = consInt(add);
+	build_term(FUNCTOR_plus2, di PASS_LD); /* create B+<n> */
+	build_term(FUNCTOR_is2, di PASS_LD);
+	pushed++;
+	continue;
+      }
 #endif /* O_COMPILE_ARITH */
       { functor_t f;
 #if O_COMPILE_ARITH
@@ -2784,6 +3201,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_GE:	    f = FUNCTOR_larger_equal2;	goto f_common;
 	case A_EQ:	    f = FUNCTOR_ar_equals2;	goto f_common;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
+	case A_FIRSTVAR_IS:
+			  { size_t index;
+			    index = *PC++;
+			    ARGP[0] = ARGP[-1];
+			    ARGP[-1] = makeVarRef(index);
+			    ARGPinc();
+			  }
+			    /*FALLTHROUGH*/
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
 #endif /* O_COMPILE_ARITH */
 #if O_BLOCK
@@ -2794,8 +3219,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
 #endif
         case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, (int)*PC++ + 1);
-							goto f_common;
-	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
+							f_common:
 			    build_term(f, di PASS_LD);
 			    pushed++;
 			    continue;
@@ -2827,28 +3251,20 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
-      case I_USERCALL0:
+      case I_DEPARTM:
+      case I_CALLM:       { Module m = (Module)XR(*PC++);
+			    Procedure proc = (Procedure)XR(*PC++);
+			    build_term(proc->definition->functor->functor, di PASS_LD);
+			    ARGPinc();
+			    ARGP[-1] = ARGP[-2];	/* need to swap arguments */
+			    ARGP[-2] = m->name;
+			    build_term(FUNCTOR_colon2, di PASS_LD);
 			    pushed++;
 			    continue;
-#if O_INLINE_FOREIGNS
-      case I_CALL_FV0:			/* proc */
-      case I_CALL_FV1:			/* proc, var */
-      case I_CALL_FV2:			/* proc, var, var */
-      { int vars = (int)(op - I_CALL_FV0);
-	int i;
-
-	requireStack(local, sizeof(Word)*vars);
-	for(i=0; i<vars; i++)
-	{ int index = (int)PC[i+1];	/* = B_VAR <N> (never nested!) */
-	  
-	  *ARGPinc() = makeVarRef(index);
-	}
-	build_term(((Procedure)XR(*PC))->definition->functor->functor, di PASS_LD);
-	pushed++;
-	PC += vars+1;
-	continue;
-      }
-#endif /*O_INLINE_FOREIGNS*/
+			  }
+      case I_USERCALL0:	    build_term(FUNCTOR_call1, di PASS_LD);
+			    pushed++;
+			    continue;
 #if O_COMPILE_OR
 #define DECOMPILETOJUMP { int to_jump = (int) *PC++; \
 			  decompileBody(di, (code)-1, PC+to_jump PASS_LD); \
@@ -2914,7 +3330,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_EXIT:
 			    break;
       default:
-	  sysError("Illegal instruction in clause body: %d", PC[-1]);
+	  sysError("Decompiler: unknown instruction in clause body: %s",
+		   codeTable[op].name);
 	  /*NOTREACHED*/
     }
   }
@@ -2942,7 +3359,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
   { requireStack(local, sizeof(Word));
     *ARGPinc() = nameFunctor(f);
     return;
-  }    
+  }
 
   term = globalFunctor(f);
   a = argTermP(term, arity-1);
@@ -2990,6 +3407,12 @@ unify_functor(term_t t, functor_t fd, int how)
 
 
 int
+PL_unify_predicate(term_t head, predicate_t pred, int how)
+{ return unify_definition(head, pred->definition, 0, how);
+}
+
+
+int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { GET_LD
 
@@ -3002,7 +3425,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 	PL_put_term(thehead, head);
     } else
     { term_t tmp = PL_new_term_ref();
-      
+
       PL_unify_functor(head, FUNCTOR_colon2);
       PL_get_arg(1, head, tmp);
       PL_unify_atom(tmp, def->module->name);
@@ -3029,7 +3452,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 	     !isSuperModule(def->module, m) )
 	  fail;
       }
-      
+
       PL_get_arg(2, head, h);
     } else
       h = head;
@@ -3084,12 +3507,12 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       if ( ref )
       { if ( PL_get_pointer(ref, &ptr) )
 	{ term_t tmp;
-      
+
 	  clause = ptr;
 	  if ( !isClause(clause) )
 	    return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
 			    ATOM_clause_reference, ref);
-	      
+
 	  decompile(clause, term, bindings);
 	  proc = clause->procedure;
 	  def = getProcDefinition(proc);
@@ -3113,11 +3536,11 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       def = getProcDefinition(proc);
 
       if ( true(def, FOREIGN) ||
-	   (   trueFeature(ISO_FEATURE) &&
+	   (   truePrologFlag(PLFLAG_ISO) &&
 	       false(def, DYNAMIC)
 	   ) )
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_access, ATOM_private_procedure, def);
+			ATOM_access, ATOM_private_procedure, proc);
 
       cref = NULL;			/* see below */
       enterDefinition(def);		/* reference the predicate */
@@ -3229,7 +3652,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     if ( !isClause(clause) )
       return PL_error(NULL, 0, "Invalid integer reference", ERR_DOMAIN,
 		      ATOM_clause_reference, ref);
-	
+
     if ( true(clause, GOAL_CLAUSE) )
       fail;				/* I don't belong to a predicate */
 
@@ -3261,7 +3684,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     cref = def->definition.clauses;
     while ( cref && !visibleClause(cref->clause, generation) )
       cref = cref->next;
-    
+
     if ( !cref )
       fail;
 
@@ -3342,12 +3765,14 @@ wouldBindToDefinition(Definition from, Definition to)
 
       if ( def->definition.clauses ||	/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
-	   false(def->module, UNKNOWN_ERROR|UNKNOWN_WARNING) )
+	   getUnknownModule(def->module) == UNKNOWN_FAIL )
 	fail;
     }
 
     if ( (c = m->supers) )
-    { m = c->value;			/* TBD: multiple supers */
+    { GET_LD
+
+      m = c->value;			/* TBD: multiple supers */
       proc = isCurrentProcedure(from->functor->functor, m);
       def = proc ? getProcDefinition(proc) : (Definition)NULL;
     } else
@@ -3382,55 +3807,47 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   end = &PC[clause->code_size];
 
   if ( PL_is_variable(term) )
-  { if ( CTX_CNTRL != FRG_FIRST_CALL)
+  { int an;
+
+    if ( CTX_CNTRL != FRG_FIRST_CALL)
     { size_t i = CTX_INT;
 
-      PC += i;
+      PC += i >> 3;
+      an = (int)i & 0x7;
+    } else
+    { an = 0;
     }
 
-    while( PC < end )
-    { bool rval = FALSE;
-      code op = fetchop(PC++);
-      
-      switch(codeTable[op].argtype[0])	/* TBD */
-      { case CA1_PROC:
-	{ Procedure proc = (Procedure) *PC;
-	  rval = unify_definition(term, getProcDefinition(proc), 0, 0);
-	  break;
-	}
-	case CA1_FUNC:
-	{ functor_t fd = (functor_t) *PC;
-	  rval = PL_unify_functor(term, fd);
-	  break;
-	}
-	case CA1_DATA:
-	{ word xr = *PC;
-	  rval = _PL_unify_atomic(term, xr);
-	  break;
-	}
-	case CA1_MODULE:
-	{ Module xr = (Module)*PC;
-	  rval = _PL_unify_atomic(term, xr->name);
-	  break;
-	}
-	case CA1_INTEGER:
-	case CA1_INT64:
-	case CA1_FLOAT:
-	  break;
-	case CA1_MPZ:
-	case CA1_STRING:
-	{ word m = *PC++;
-	  PC += wsizeofInd(m);
-	  break;
-	}
-      }
+    for( ; PC < end; PC = stepPC(PC),an=0 )
+    { code op = fetchop(PC);
+      const char *ats=codeTable[op].argtype;
 
-      PC += codeTable[op].arguments;
-
-      if ( rval )
-      { intptr_t i = PC - clause->codes;	/* compensate ++ above! */
-
-	ForeignRedoInt(i);
+      while(ats[an])
+      { switch(ats[an++])
+	{ case CA1_PROC:
+	  { size_t i;
+	    Procedure proc = (Procedure) PC[an];
+	    unify_definition(term, getProcDefinition(proc), 0, 0);
+	  hit:
+	    i = ((PC - clause->codes)<<3) + an;
+	    ForeignRedoInt(i);
+	  }
+	  case CA1_FUNC:
+	  { functor_t fd = (functor_t) PC[an];
+	    PL_unify_functor(term, fd);
+	    goto hit;
+	  }
+	  case CA1_DATA:
+	  { word xr = PC[an];
+	    _PL_unify_atomic(term, xr);
+	    goto hit;
+	  }
+	  case CA1_MODULE:
+	  { Module xr = (Module)PC[an];
+	    PL_unify_atom(term, xr->name);
+	    goto hit;
+	  }
+	}
       }
     }
 
@@ -3438,42 +3855,46 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   } else				/* instantiated */
   { Procedure proc;
     functor_t fd;
+    int an = 0;
 
     if ( PL_is_atomic(term) )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_DATA && /* TBD */
-	     _PL_unify_atomic(term, PC[1]) )
-	    succeed;
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_DATA:
+	      if ( _PL_unify_atomic(term, PC[an]) )
+		succeed;
+	      break;
+	    case CA1_MODULE:
+	    { Module xr = (Module)PC[an];
 
-	PC = stepPC(PC);
+	      if ( PL_unify_atom(term, xr->name) )
+		succeed;
+	    }
+	  }
+	}
       }
     }
 
     PC = clause->codes;
     if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
-    { while( PC < end )
+    { for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_FUNC ) /* TBD */
-	{ functor_t fa = (functor_t)PC[1];
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_FUNC:
+	    { functor_t fa = (functor_t) PC[an];
 
-	  if ( fa == fd )
-	  { DEBUG(1,
-		  { term_t ref = PL_new_term_ref();
-		    intptr_t i;
-		    
-		    PL_unify_pointer(ref, clause);
-		    PL_get_long(ref, &i);
-		    Sdprintf("Got it, clause %d at %d\n",
-			     i, PC-clause->codes);
-		  });
-	    succeed;
+	      if ( fa == fd )
+		succeed;
+	    }
 	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
 
@@ -3481,21 +3902,24 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
     if ( get_procedure(term, &proc, 0, GP_FINDHERE|GP_TYPE_QUIET) )
     { Definition pd = getProcDefinition(proc);
 
-      while( PC < end )
+      for( ; PC < end; PC = stepPC(PC),an=0 )
       { code op = fetchop(PC);
+	const char *ats=codeTable[op].argtype;
 
-	if ( codeTable[op].argtype[0] == CA1_PROC ) /* TBD */
-	{ Procedure pa = (Procedure)PC[1];
-	  Definition def = getProcDefinition(pa);
+	while(ats[an])
+	{ switch(ats[an++])
+	  { case CA1_PROC:
+	    { Procedure pa = (Procedure)PC[an];
+	      Definition def = getProcDefinition(pa);
 
-	  if ( pd == def )
-	    succeed;
-	  if ( pd->functor == def->functor &&
-	       wouldBindToDefinition(def, pd) )
-	    succeed;
+	      if ( pd == def )
+		succeed;
+	      if ( pd->functor == def->functor &&
+		   wouldBindToDefinition(def, pd) )
+		succeed;
+	    }
+	  }
 	}
-
-	PC = stepPC(PC);
       }
     }
   }
@@ -3533,28 +3957,29 @@ unify_vmi(term_t t, Clause clause, Code bp)
       return NULL;
   } else
   { const char *ats = codeTable[op].argtype;
-    term_t av = PL_new_term_refs(strlen(ats));
+    term_t av = PL_new_term_refs((int)strlen(ats));
     int an;
 
     for(an=0; ats[an]; an++)
     { switch(ats[an])
       { case CA1_VAR:
+	case CA1_CHP:
 	{ int vn =  VARNUM(*bp++);
-    
+
 	  PL_put_integer(av+an, vn);
 	  break;
 	}
 	case CA1_INTEGER:
 	case CA1_JUMP:
 	{ intptr_t i = (intptr_t)*bp++;
-  
+
 	  PL_put_int64(av+an, i);
 	  break;
 	}
 	case CA1_FLOAT:
 	{ double d;
 	  Word dp = (Word)&d;
-    
+
 	  cpDoubleData(dp, bp);
 	  PL_put_float(av+an, d);
 	  break;
@@ -3562,7 +3987,7 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	case CA1_INT64:
 	{ int64_t i;
 	  Word dp = (Word)&i;
-    
+
 	  cpInt64Data(dp, bp);
 	  PL_put_int64(av+an, i);
 	  break;
@@ -3583,9 +4008,38 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	}
 	case CA1_PROC:
 	{ Procedure proc = (Procedure)*bp++;
-    
+
 	  unify_definition(av+an, proc->definition, 0,
 			   GP_HIDESYSTEM|GP_NAMEARITY);
+	  break;
+	}
+	case CA1_CLAUSEREF:
+	{ ClauseRef cref = (ClauseRef)*bp++;
+
+	  PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_clause1,
+			PL_POINTER, cref->clause);
+
+	  break;
+	}
+	case CA1_FOREIGN:
+	{ void *func = (void*)*bp++;
+
+#ifdef HAVE_DLADDR
+	  Dl_info info;
+
+	  if ( dladdr(func, &info) )
+	  { if ( info.dli_sname )
+	      PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_colon2,
+			    PL_CHARS, info.dli_fname,
+			    PL_CHARS, info.dli_sname);
+	    else
+	      PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_plus2,
+			    PL_CHARS, info.dli_fname,
+			    PL_INTPTR, (char*)func-(char*)info.dli_fbase);
+	    break;
+	  }
+#endif
+	  PL_put_pointer(av+an, func);
 	  break;
 	}
 	case CA1_AFUNC:
@@ -3633,58 +4087,77 @@ unify_vmi(term_t t, Clause clause, Code bp)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$fetch_vm(+Clause, +PC, -NextPC, -Instruction) is det.
+$fetch_vm(+ClauseOrProc, +PC, -NextPC, -Instruction) is det.
 
 Intruction is the VM instruction at PC and  NextPC is the PC of the next
 instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
-PRED_IMPL("$fetch_vm", 4, fetch_vm, 0)
+PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
 { Clause clause = NULL;
-  int pcoffset;
-  Code PC, next;
+  Procedure proc = NULL;
+  size_t len;
+  intptr_t pcoffset;
+  Code base, PC, next;
   code op;
   const code_info *ci;
 
-  term_t ref = A1;
+  term_t from = A1;
   term_t offset = A2;
   term_t noffset = A3;
   term_t instruction = A4;
 
-  if ( !get_clause_ptr_ex(ref, &clause) ||
-       !PL_get_integer_ex(offset, &pcoffset) )
+  if ( PL_is_integer(from) )
+  { if ( !get_clause_ptr_ex(from, &clause) )
+      fail;
+    base = clause->codes;
+    len  = (size_t)clause->code_size;
+  } else
+  { Module module = NULL;
+    functor_t fd;
+
+    if ( !get_functor(from, &fd, &module, 0, GF_PROCEDURE) ||
+	 !(proc = resolveProcedure(fd, module)) )
+      fail;
+    base = proc->definition->codes;
+    if ( !base )
+      fail;
+    len = supervisorLength(base);
+  }
+
+  if ( !PL_get_intptr_ex(offset, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
+  if ( pcoffset < 0 || pcoffset > (intptr_t)len )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
-  if ( pcoffset == (int)clause->code_size )
+  if ( pcoffset == (intptr_t)len )
     fail;
 
-  PC = clause->codes + pcoffset;
+  PC = base + pcoffset;
   op = fetchop(PC);
   ci = &codeTable[op];
-  
+
   if ( (next=unify_vmi(instruction, clause, PC)) )
-    return PL_unify_int64(noffset, next-clause->codes);
+    return PL_unify_int64(noffset, next-base);
 
   fail;
 }
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 '$vm_assert'(+PI, :VM, -Ref) is det.
 
 Create a clause from VM and  assert  it   to  the  predicate  PI. Ref is
-unified with a reference to the new clause. 
+unified with a reference to the new clause.
 
 TBD The current implementation is very incomplete. Using direct jumps is
 very unattractive and we should abstract away from some details, such as
 the different integer sizes (inline, int, int64, mpz).  Other issues:
 
 	- Automatic variable balancing
-	- Computation of Prolog vars and size of stack-frame
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
- 
+
 static const code_info *
 lookup_vmi(atom_t name)
 { static Table ctable = NULL;
@@ -3721,6 +4194,8 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
     if ( (cinfo = lookup_vmi(name)) )
     { Output_0(ci, cinfo->code);
+      if ( cinfo->code == I_EXITFACT )
+	set(ci->clause, UNIT_CLAUSE);
 
       if ( arity == 0 )
       { assert(cinfo->arguments == 0);
@@ -3737,11 +4212,17 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	  switch(ats[an])
 	  { case CA1_VAR:
-	    { int vn;
+	    case CA1_CHP:
+	    { int vn, i;
 
 	      if ( !PL_get_integer_ex(a, &vn) )
 		fail;
-	      Output_a(ci, VAROFFSET(vn));
+	      i = VAROFFSET(vn);
+	      Output_a(ci, i);
+	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
+		ci->clause->prolog_vars = i;
+	      if ( ci->clause->variables < i )
+		ci->clause->variables = i;
 	      break;
 	    }
 	    case CA1_INTEGER:
@@ -3857,7 +4338,7 @@ vm_compile(term_t t, CompileInfo ci)
 
   if ( !PL_get_nil(t) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
-  
+
   succeed;
 }
 
@@ -3870,8 +4351,8 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   struct clause clause;
   Clause cl;
   Module module = NULL;
-  int size;
-  
+  size_t size;
+
   if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
     fail;
   PL_strip_module(A2, &module, A2);
@@ -3881,12 +4362,14 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   ci.arity        = proc->definition->functor->arity;
   ci.argvars      = 0;
 
-  clause.flags      = 0;
-  clause.procedure  = proc;
-  clause.code_size  = 0;
-  clause.source_no  = clause.line_no = 0;
-  ci.clause	    = &clause;
-  ci.module	    = module;
+  clause.flags       = 0;
+  clause.procedure   = proc;
+  clause.code_size   = 0;
+  clause.source_no   = clause.line_no = 0;
+  clause.variables   = ci.arity;
+  clause.prolog_vars = ci.arity;
+  ci.clause	     = &clause;
+  ci.module	     = module;
   initBuffer(&ci.codes);
 
   if ( !vm_compile(A2, &ci) )
@@ -3921,66 +4404,70 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 
 static Code
 find_code1(Code PC, code fop, code ctx)
-{ for(;;)
-  { code op = fetchop(PC++);
+{ for(;; PC = stepPC(PC))
+  { code op = fetchop(PC);
 
-    if ( fop == op && ctx == *PC )
-      return &PC[-1];
+    if ( fop == op && ctx == PC[1] )
+      return PC;
     assert(op != I_EXIT);
-
-    PC += codeTable[op].arguments;
   }
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find C_END, where we need to jump over control structures.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static Code
-find_if_then_end(Code PC)
+find_if_then_end(Code PC, Code base)
 { for(;;)
-  { code op = fetchop(PC++);
+  { code op = fetchop(PC);
+    Code nextpc = stepPC(PC);
 
     if ( op == C_END )
-      return &PC[-1];
+      return PC;
 
     assert(op != I_EXIT);
 
     switch(op)				/* jump over control structures */
     { case C_OR:
       { Code jmploc;
-	code inc = *PC++;
-	
-	jmploc = PC + inc;
+
+	jmploc = nextpc + PC[1];
 	PC = jmploc + jmploc[-1];
+	DEBUG(1, Sdprintf("find_if_then_end: C_OR --> %d\n", PC-base));
 	break;
       }
       case C_NOT:
-	PC = PC + PC[1] + 2;
+	PC = nextpc + PC[2];
         break;
       case C_SOFTIF:
       case C_IFTHENELSE:
-      { Code elseloc = PC + PC[1] + 2;
+      { Code elseloc = nextpc + PC[2];
 
 	PC = elseloc + elseloc[-1];
 	break;
       }
       case C_IFTHEN:
-      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
-	PC = find_if_then_end(cutloc+2) + 1; /* returns location of C_END */
+      { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
+	PC = find_if_then_end(cutloc+2, base) + 1; /* returns location of C_END */
 	break;
       }
       default:
-	PC += codeTable[op].arguments;
+	PC = nextpc;
         break;
     }
-
   }
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$clause_term_position(+ClauseRef, +PCoffset, -TermPos)
-	Find the term-location of the call that ends in the given PC offset.
-	The term-position is a list of argument-numbers one has to use from
-	the clause-term to find the subterm that sets up the goal.
+'$clause_term_position'(+ClauseRef, +PCoffset, -TermPos)
+
+Find the location of the subterm of the   call for which PCoffset is the
+continuation PC, i.e. the PC that follows the call. The term-position is
+a list of argument-numbers one has to   use from the clause-term to find
+the subterm that sets up the goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -4003,9 +4490,24 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
     PC += 2;
 
   if ( PC != end )
+  { DEBUG(1, Sdprintf("not-at-end: adding 1\n"));
     add_node(tail, 1 PASS_LD);
+  }
 }
 
+
+static int
+not_breakable(atom_t op, Clause clause, int offset)
+{ GET_LD
+  term_t brk = PL_new_term_ref();
+
+  PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
+		       PL_POINTER, clause,
+		       PL_INT, offset);
+
+  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  op, ATOM_break, brk);
+}
 
 
 static
@@ -4020,47 +4522,55 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
        !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, A2);
+    return PL_error(NULL, 0, "not in clause executable code",
+		    ERR_DOMAIN, ATOM_program_counter, A2);
 
   PC = clause->codes;
   loc = &PC[pcoffset];
-  end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
+  end = &PC[clause->code_size - 1];		/* forget the final I_EXIT */
   DEBUG(0, assert(fetchop(end) == I_EXIT ||
 		  fetchop(end) == I_EXITFACT ||
 		  fetchop(end) == I_EXITCATCH));
+
+  if ( pcoffset == (int)clause->code_size )
+    return PL_unify_atom(A3, ATOM_exit);
 
   if ( true(clause, GOAL_CLAUSE) )
     add_node(tail, 2 PASS_LD);			/* $call :- <Body> */
 
   while( PC < loc )
-  { code op = fetchop(PC++);
+  { code op = fetchop(PC);
     const code_info *ci;
+    Code nextpc = stepPC(PC);
 
     ci = &codeTable[op];
+    DEBUG(1, Sdprintf("\t%s at %d\n", ci->name, PC-clause->codes));
 
     switch(op)
     { case I_ENTER:
-	if ( loc == PC )
+	if ( loc == nextpc )
 	{ add_node(tail, 1 PASS_LD);
 
 	  return PL_unify_nil(tail);
 	}
 	add_node(tail, 2 PASS_LD);
+	PC = nextpc;
 	continue;
       case I_EXIT:
       case I_EXITFACT:
       case I_EXITCATCH:
-	if ( loc == PC )
+      case I_EXITCLEANUP:
+	if ( loc == nextpc )
 	{ return PL_unify_nil(tail);
 	}
         continue;
     { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
       { Code jmploc;
-	code inc = *PC++;
-	
-	jmploc = PC + inc;
+
+	jmploc = nextpc + PC[1];
 	endloc = jmploc + jmploc[-1];
+	PC = nextpc;
 
 	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
 			  jmploc - clause->codes, endloc - clause->codes));
@@ -4086,18 +4596,23 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	continue;
       }
       case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT <var>, C_FAIL */
-      { endloc = PC + PC[1] + 2;
+      { endloc = nextpc+PC[2];
+	PC = nextpc;
 
 	DEBUG(1, Sdprintf("not: PC= %d, endloc = %d\n",
 			  PC - clause->codes, endloc - clause->codes));
 
-	if ( loc <= endloc )		/* in the \+ argument */
+	if ( loc <= endloc-3 )		/* in the \+ argument */
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  add_node(tail, 1 PASS_LD);
-	  PC += 2;
 	  end = endloc-3;		/* C_CUT <var>, C_FAIL */
+	  DEBUG(1, Sdprintf("Inside not: PC=%d, end = %d\n",
+			    PC - clause->codes, end - clause->codes));
 	  continue;
+	} else if ( loc <= endloc )
+	{ return PL_error(NULL, 0, "not a possible continuation",
+			  ERR_DOMAIN, ATOM_program_counter, A2);
 	}
 
 	goto after_construct;
@@ -4105,7 +4620,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       case C_SOFTIF:
       case C_IFTHENELSE:	/* C_IFTHENELSE <var> <jmp1> */
 				/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
-      { Code elseloc = PC + PC[1] + 2;
+      { Code elseloc = nextpc + PC[2];
 	code cut = (op == C_IFTHENELSE ? C_CUT : C_SOFTCUT);
 
 	endloc = elseloc + elseloc[-1];
@@ -4117,20 +4632,20 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  if ( loc <= elseloc )		/* a->b */
-	  { Code cutloc = find_code1(&PC[2], cut, PC[0]);
+	  { Code cutloc = find_code1(nextpc, cut, PC[1]);
 
 	    DEBUG(1, Sdprintf("cut at %d\n", cutloc - clause->codes));
 	    add_node(tail, 1 PASS_LD);
-	    
+
 	    if ( loc <= cutloc )	/* a */
 	    { add_node(tail, 1 PASS_LD);
 	      end = cutloc;
-	      PC = &PC[2];
+	      PC = nextpc;
 	    } else			/* b */
 	    { add_node(tail, 2 PASS_LD);
 	      PC = cutloc + 2;
 	      end = elseloc-2;
-	    }    
+	    }
 	    DEBUG(1, Sdprintf("end = %d\n", end - clause->codes));
 	    continue;
 	  }
@@ -4145,25 +4660,27 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       case C_IFTHEN:		/* A -> B */
 				/* C_IFTHEN <var> <A> C_CUT <var> <B> C_END */
-      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
-	
-	endloc = find_if_then_end(cutloc+2);
+      { Code cutloc = find_code1(nextpc, C_CUT, PC[1]);
 
-	DEBUG(0, Sdprintf("C_MARK: cut = %d, end = %d\n",
+	DEBUG(1, Sdprintf("C_IFTHEN: cut at %d\n", cutloc - clause->codes));
+	endloc = find_if_then_end(cutloc+2, clause->codes)+1;
+	PC = nextpc;
+
+	DEBUG(1, Sdprintf("C_MARK: cut = %d, end = %d\n",
 			  cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
-	{ add_1_if_not_at_end(endloc+1, end, tail PASS_LD);
+	{ add_1_if_not_at_end(endloc, end, tail PASS_LD);
 
 	  if ( loc <= cutloc )		/* a */
 	  { add_node(tail, 1 PASS_LD);
 
-	    PC += 1;
+	    PC = nextpc;
 	    end = cutloc;
 	  } else			/* b */
 	  { add_node(tail, 2 PASS_LD);
 	    PC = cutloc+2;
-	    end = endloc;
+	    end = endloc-1;		/* point at the C_END */
 	  }
 
 	  continue;
@@ -4173,42 +4690,19 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
       }
       }					/* closes the special constructs */
       case I_CONTEXT:			/* used to compile m:head :- body */
-	PC += ci->arguments;
+	PC = nextpc;
 	add_node(tail, 2 PASS_LD);
         continue;
-      case I_CALL:
-      case I_DEPART:
-      case I_CUT:
-      case I_FAIL:
-      case I_TRUE:
-      case I_APPLY:
-      case I_USERCALL0:
-      case I_USERCALLN:
-      case I_CALL_FV0:
-      case I_CALL_FV1:
-      case I_CALL_FV2:
-      case I_CATCH:
-	PC += ci->arguments;
-        if ( loc == PC )
-	{ add_1_if_not_at_end(PC, end, tail PASS_LD);
+      default:
+        if ( loc == nextpc )
+	{ add_1_if_not_at_end(nextpc, end, tail PASS_LD);
 
 	  return PL_unify_nil(tail);
 	}
-	add_node(tail, 2 PASS_LD);
-	continue;
-      case H_STRING:
-      case B_STRING:
-#ifdef O_GMP
-      case H_MPZ:
-      case B_MPZ:
-      case A_MPZ:
-#endif
-      { word m = PC[0];
-	PC += wsizeofInd(m)+1;
-	break;
-      }
-      default:
-	PC += ci->arguments;
+        if ( codeTable[op].flags & VIF_BREAK )
+	  add_node(tail, 2 PASS_LD);
+	PC = nextpc;
+        continue;
     }
   }
 
@@ -4217,6 +4711,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$break_pc'(+ClauseRef, -StartPC, EndPC) is nondet.
+
 Generate (on backtracing), all  possible   break-points  of  the clause.
 Works in combination with pl_clause_term_position()   to  find the place
 for placing a break-point.
@@ -4249,25 +4745,10 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
   { code op = fetchop(PC);
     Code next = stepPC(PC);
 
-    switch(op)
-    { case I_ENTER:
-      case I_EXIT:
-      case I_EXITCATCH:
-      case I_EXITFACT:
-      case I_CALL:
-      case I_DEPART:
-      case I_CUT:
-      case I_FAIL:
-      case I_TRUE:
-      case I_APPLY:
-      case I_USERCALL0:
-      case I_USERCALLN:
-      case I_CALL_FV0:
-      case I_CALL_FV1:
-      case I_CALL_FV2:
-	if ( PL_unify_integer(A2, PC-clause->codes) &&
-	     PL_unify_integer(A3, next-clause->codes) )
-	  ForeignRedoInt(next-clause->codes);
+    if ( (codeTable[op].flags & VIF_BREAK) )
+    { if ( PL_unify_integer(A2, PC-clause->codes) &&
+	   PL_unify_integer(A3, next-clause->codes) )
+	ForeignRedoInt(next-clause->codes);
     }
 
     PC = next;
@@ -4290,19 +4771,20 @@ typedef struct
 
 
 static bool
-setBreak(Clause clause, int offset)
+setBreak(Clause clause, int offset)	/* offset is already verified */
 { GET_LD
   Code PC = clause->codes + offset;
+  code op = *PC;
 
   if ( !breakTable )
     breakTable = newHTable(16);
 
-  if ( *PC != encode(D_BREAK) )
+  if ( (codeTable[decode(op)].flags & VIF_BREAK) )
   { BreakPoint bp = allocHeap(sizeof(break_point));
 
     bp->clause = clause;
     bp->offset = offset;
-    bp->saved_instruction = *PC;
+    bp->saved_instruction = op;
 
     addHTable(breakTable, PC, bp);
     *PC = encode(D_BREAK);
@@ -4310,9 +4792,9 @@ setBreak(Clause clause, int offset)
 
     callEventHook(PLEV_BREAK, clause, offset);
     succeed;
+  } else
+  { return not_breakable(ATOM_set, clause, offset);
   }
-
-  fail;
 }
 
 
@@ -4325,7 +4807,14 @@ clearBreak(Clause clause, int offset)
 
   PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
-    fail;
+  { term_t brk = PL_new_term_ref();
+
+    PL_unify_term(brk, PL_FUNCTOR, FUNCTOR_break2,
+		  	 PL_POINTER, clause,
+		         PL_INT, offset);
+
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_break, brk);
+  }
 
   bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
@@ -4343,7 +4832,7 @@ clearBreakPointsClause(Clause clause)
   { PL_LOCK(L_BREAK);
     for_unlocked_table(breakTable, s,
 		       { BreakPoint bp = (BreakPoint)s->value;
-			 
+
 			 if ( bp->clause == clause )
 			   clearBreak(bp->clause, bp->offset);
 		       });
@@ -4369,11 +4858,17 @@ replacedBreak(Code PC)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'$break_at'(+ClauseRef, +PC, +Bool) is det.
+
+Set/clear a breakpoint at PC on ClauseRef.   Setting a break replaces an
+instruction with D_BREAK.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static
 PRED_IMPL("$break_at", 3, break_at, 0)
 { Clause clause = NULL;
-  int offset;
-  int doit;
+  int offset, doit, rc;
 
   if ( !get_clause_ptr_ex(A1, &clause) )
     fail;
@@ -4381,16 +4876,16 @@ PRED_IMPL("$break_at", 3, break_at, 0)
        !PL_get_integer_ex(A2, &offset) )
     fail;
   if ( offset < 0 || offset >= (int)clause->code_size )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, A2);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, A2);
 
   PL_LOCK(L_BREAK);
   if ( doit )
-    setBreak(clause, offset);
+    rc = setBreak(clause, offset);
   else
-    clearBreak(clause, offset);
+    rc = clearBreak(clause, offset);
   PL_UNLOCK(L_BREAK);
 
-  succeed;
+  return rc;
 }
 
 
@@ -4399,7 +4894,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 { GET_LD
   TableEnum e = NULL;			/* make gcc happy */
   Symbol symb;
-  
+
   if ( !breakTable )
     fail;
 
@@ -4422,7 +4917,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
     { fid_t cid = PL_open_foreign_frame();
 
       if ( PL_unify_pointer(A1, bp->clause) &&
-	   PL_unify_integer(A2,  bp->offset) )
+	   PL_unify_integer(A2, bp->offset) )
       { ForeignRedoPtr(e);
       }
 
@@ -4451,7 +4946,7 @@ BeginPredDefs(comp)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
-  PRED_DEF("$fetch_vm", 4, fetch_vm, 0)
+  PRED_DEF("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_term_position", 3, clause_term_position, 0)

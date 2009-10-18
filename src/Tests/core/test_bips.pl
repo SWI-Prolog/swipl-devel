@@ -29,6 +29,7 @@ This module is a test-frame for testing built-in predicates.
 
 :- module(test_bips, [test_bips/0]).
 :- use_module(library(plunit)).
+:- use_module(library(when)).
 
 test_bips :-
 	run_tests([bips,bips_occurs_check_error,coroutining]).
@@ -38,6 +39,7 @@ has_occurs_check_flag :-
 
 
 :- begin_tests(bips).
+
 test(iso_8_3_10_4,[]) :-
        ground(3).
 test(iso_8_3_10_4,[fail]) :-
@@ -167,3 +169,14 @@ test(when8,[fail]) :-
 	when(ground(g),fail).
 
 :- end_tests(coroutining).
+
+
+:- begin_tests(eq).
+
+a :-
+	A == A.
+
+test(eq_ff, true) :-
+	a.
+
+:- end_tests(eq).

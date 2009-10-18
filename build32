@@ -24,6 +24,7 @@ config=true
 make=true
 install=true
 done=false
+setvars=false
 
 while test "$done" = false; do
 case "$1" in
@@ -39,7 +40,10 @@ case "$1" in
 		make=false
 		shift
 		;;
-   --prefix=*)   PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   --prefix=*)  PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   		shift
+		;;
+   --setvars)	setvars=true
    		shift
 		;;
    *)		done=true
@@ -75,6 +79,8 @@ PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
 # [EDIT] Packages to configure.  Leaving it blank compiles all packages.
 # export PKG=
 
+if [ "$setvars" = "false" ]; then
+
 if [ "$config" = "true" ]; then
   ./configure --prefix=$PREFIX --with-world $CONFIGOPTS 2>&1 | tee configure.out
 fi
@@ -86,3 +92,5 @@ fi
 if [ "$install" = "true" ]; then
   make install 2>&1 | tee make-install.out
 fi
+
+fi # setvars

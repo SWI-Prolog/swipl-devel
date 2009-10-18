@@ -44,7 +44,7 @@ make_editor_recogniser(G) :-
 					       message(Editor, mark_undo))))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines @editor_recogniser, a recogniser called from 
+This module defines @editor_recogniser, a recogniser called from
 
 Parts of the specs by Uwe Lesta.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -62,7 +62,7 @@ initialise(G) :->
 	send_super(G, initialise),
 	send(G, slot, unit, character),
 	send(G, drag_scroll, self).
-	
+
 
 initiate(G, Ev:event) :->
 	"Set caret and prepare for selectiong"::

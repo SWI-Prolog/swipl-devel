@@ -73,7 +73,7 @@ rlc_complete_file_function(RlcCompleteData data)
 
       for( ; n < ln->point; n++)
       { int c = ln->data[n];
-      
+
 	if ( c == '/' )
 	  c = '\\';
 	if ( c == '\\' )
@@ -104,7 +104,7 @@ rlc_complete_file_function(RlcCompleteData data)
       { _tcscpy(data->candidate, fdata.cFileName);
 	return TRUE;
       }
-      
+
       return FALSE;
     }
 

@@ -61,13 +61,13 @@ compilation:
 %	next :- expects_dialect/1 directive is written for the indicated
 %	Dialect.   The   current   dialect     is    available   through
 %	prolog_load_context/2.
-%	
+%
 %	@tbd	Should we setup the dialect module only as autoload for
 %		the current module?
 
 expects_dialect(Dialect) :-
 	must_be(atom, Dialect),
-	'$set_dialect'(_, Dialect),
+	set_prolog_flag(emulated_dialect, Dialect),
 	(   Dialect == swi
 	->  true
 	;   attach_dialect(Dialect)
@@ -87,7 +87,7 @@ attach_dialect(_).
 %	without error if this is not the case. The predicate is intended
 %	to be used with  :-  if,  as   in  the  example  below. See also
 %	source_exports/2.
-%	
+%
 %	==
 %	:- if(exists_source(library(error))).
 %	:- use_module_library(error).
@@ -109,7 +109,7 @@ exists_source(Source, Path) :-
 %
 %	True if Source exports Export. Fails   without  error if this is
 %	not the case.  See also exists_source/1.
-%	
+%
 %	@tbd	Should we also allow for source_exports(-Source, +Export)?
 
 source_exports(Source, Export) :-

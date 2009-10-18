@@ -108,7 +108,7 @@ styles(Menu) :-
 styles(_).
 
 %	->layout_dialog
-%	
+%
 %	Does the normal layout, but afterwards adjusts the arrow and its
 %	line, as this doesn't fit in the automatic layout specification.
 %	Note that the arrow is not part of the line (see `joint->second_arrow')

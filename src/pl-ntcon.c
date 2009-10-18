@@ -22,8 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <winsock2.h>
 #include <windows.h>
-#include "pl-itf.h"
+#include "SWI-Prolog.h"
 #include <signal.h>
 
 #if 0
@@ -36,7 +37,7 @@ consoleHandlerRoutine(DWORD id)
       PL_w32thread_raise(main_thread_id, SIGINT);
       return TRUE;
   }
-  
+
   return FALSE;
 }
 #endif
@@ -47,11 +48,11 @@ main(int argc, char **argv)
 #if 0
   main_thread_id = GetCurrentThreadId();
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
-#endif  
+#endif
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
-  
+
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;

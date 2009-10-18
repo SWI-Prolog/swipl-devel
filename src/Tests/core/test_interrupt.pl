@@ -45,7 +45,7 @@ test_interrupt :-
 %	True if we can interrupt Goal, which also means we can use it in
 %	call_with_time_limit/2. Goal is  must  run   long  enough  to be
 %	interrupted.
-%	
+%
 %	@bug	If we cannot interrupt, the thread remains hanging.
 %	@bug	There is no good way to know the code to be tested has
 %		reached the critical predicate or is still at the

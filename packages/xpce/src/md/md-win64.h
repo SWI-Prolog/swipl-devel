@@ -33,6 +33,6 @@
 #define SIZEOF_DOUBLE 8
 
 /* printf format for intptr_t */
-#define INTPTR "%I64d"
+#define INTPTR_FORMAT "%I64d"
 
 #include "md-windows.h"

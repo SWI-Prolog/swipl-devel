@@ -80,6 +80,9 @@ typedef struct _PL_thread_info_t
   ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
 } PL_thread_info_t;
 
+#define QTYPE_THREAD	0
+#define QTYPE_QUEUE	1
+
 typedef struct message_queue
 { simpleMutex	       mutex;		/* Message queue mutex */
 #ifdef __WINDOWS__
@@ -95,9 +98,11 @@ typedef struct message_queue
   word		       id;		/* Id of the queue */
   long		       size;		/* # terms in queue */
   long		       max_size;	/* Max # terms in queue */
-  int		       wait_for_drain;	/* A thread is waiting for write */
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
+  unsigned	wait_for_drain : 1;	/* A thread is waiting for write */
+  unsigned	destroyed : 1;		/* Thread is being destroyed */
+  unsigned	type : 2;		/* QTYPE_* */
 } message_queue;
 
 typedef struct pl_mutex
@@ -135,7 +140,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TABLE		9
 #define L_BREAK	       10
 #define L_FILE	       11
-#define L_FEATURE      12
+#define PLFLAG_L      12
 #define L_OP	       13
 #define L_INIT	       14
 #define L_TERM	       15
@@ -222,7 +227,7 @@ compile-time
 
 #define LOCKMODULE(module)   countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module) countingMutexUnlock((module)->mutex)
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
@@ -273,23 +278,8 @@ choose to store the result of LD is a local variable.
 
 extern TLD_KEY PL_ldata;		/* key to local data */
 
-#if 0					/* doesn't seem to help much */
-#define GLOBAL_LD (GD->thread.enabled ? \
-		   (PL_local_data_t *)TLD_get(PL_ldata) : \
-		   &PL_local_data)
-#else
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
-#endif
 
-#define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
-
-#define ARG1_LD   PL_local_data_t *__PL_ld
-#define ARG_LD    , ARG1_LD
-#define PASS_LD1  LD
-#define PASS_LD   , LD
-#define LOCAL_LD  __PL_ld
-#define LD	  GLOBAL_LD
 
 		 /*******************************
 		 *	       WINDOWS		*
@@ -350,24 +340,11 @@ void		markAtomsThreads(void);
 
 #ifdef O_MULTIPLE_ENGINES
 
-#define GLOBAL_LD	PL_current_engine_ptr
-#define GET_LD		PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
-
-#define ARG1_LD   PL_local_data_t *__PL_ld
-#define ARG_LD    , ARG1_LD
-#define PASS_LD1  LD
-#define PASS_LD   , LD
-#define LOCAL_LD  __PL_ld
-#define LD	  GLOBAL_LD
+#define GLOBAL_LD PL_current_engine_ptr
 
 #else /*O_MULTIPLE_ENGINES*/
 
-#define GET_LD
-#define PRED_LD
-#define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
-#define LD	  GLOBAL_LD
 
 #endif /*O_MULTIPLE_ENGINES*/
 
@@ -399,17 +376,19 @@ extern void		initPrologThreads(void);
 #define freeRecord(r)		freeRecord__LD(r PASS_LD)
 #define makeNum(n)		makeNum__LD(n PASS_LD)
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
-#define valReal(w)		valReal__LD(w PASS_LD)
+#define valFloat(w)		valFloat__LD(w PASS_LD)
 #define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
 #define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
 #define linkVal(p)		linkVal__LD(p PASS_LD)
+#define put_number(n)		put_number__LD(n PASS_LD)
 #define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
 #ifdef O_SHIFT_STACKS
 #define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
 #else
 #define allocGlobalNoShift(n)	allocGlobal__LD(n PASS_LD)
 #endif
+#define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)

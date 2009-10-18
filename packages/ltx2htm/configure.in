@@ -68,6 +68,9 @@ else
     COFLAGS="${COFLAGS--O}"
 fi
 
+AC_CONFIG_COMMANDS([exe],
+		   [ chmod +x latex2html
+		   ])
 AC_OUTPUT(Makefile latex2html)
 
 

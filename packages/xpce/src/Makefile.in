@@ -16,8 +16,8 @@
 # 1 and 2.  Version 3 is result of joint effort from Anjo Anjewierden and
 # Jan Wielemaker.  Versions 4 to 6 are written by Jan Wielemaker.
 #
-# Addresses:	Jan Wielemaker:		wielemak@science.uva.nl
-#		Anjo Anjewierden:	anjo@science.uva.nl
+# Addresses:	Jan Wielemaker:		J.Wielemaker@uva.nl
+#		Anjo Anjewierden:	A.A.Anjewierden@gw.utwente.nl
 #
 # 		Human-Computer Studies
 #		University of Amsterdam
@@ -30,7 +30,7 @@
 # XPCE is licenced under the LGPL. See the file COPYING or
 # http://www.swi-prolog.org/license.html
 #
-# Copyright (C) 1993-2005, University of Amsterdam
+# Copyright (C) 1993-2009, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -145,7 +145,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=December 2008
+PCEVERSIONDATE=July 2009
 
 SOMAJOR=$(VMAJOR)
 SOMINOR=$(VMINOR).$(VPATCH)
@@ -278,7 +278,7 @@ $(LIBXPCEMAIN):	$(srcdir)/itf/main.cxx
 # unititialized it this file isn't included explicitely.
 # Looks like a bug to me.
 
-Initialize.o:	
+Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 ################################################################
@@ -305,7 +305,7 @@ directories:	h $(MODULES) $(VWS)
 $(MODULES) bin lib $(VWS):
 		mkdir $@
 
-h:		
+h:
 		ln -s $(srcdir)/h .
 
 ################################################################
@@ -325,7 +325,7 @@ h/names.ih h/names.ic:	.names-sentinel
 # GNU-Emacs TAG table
 ################################################################
 
-tags:		
+tags:
 		cd $(srcdir); \
 		fs="h/*.h $(VWS)/*.c"; \
 		for d in $(MODULES); do fs="$$fs $$d/*.c"; done; \
@@ -701,7 +701,7 @@ DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons lib/trace/icons/16x16 \
 		lib/doc/icons
 DVBOOTDIRS=	boot
-DVMISCFILES=	ChangeLog 
+DVMISCFILES=	ChangeLog
 RTMISC=		Defaults Defaults.user COPYING README
 
 install:	dv-install
@@ -709,11 +709,11 @@ install:	dv-install
 rt-install:	$(INSTALL) rt-home rt-misc rt-bitmaps rt-bins rt-link
 
 dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
-	        dv-link dv-pl-files dv-manual dv-man \
+	        rt-link dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins dv-online dv-classindex
 
 rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
-		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
+		dv-lib dv-boot dv-help rt-link dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-bins dv-online dv-classindex
 
 manindex:	$(MANINDEX)
@@ -721,6 +721,20 @@ manindex:	$(MANINDEX)
 rpm-link::
 		rm -f $(DESTDIR)$(PLBASE)/xpce
 		(cd $(DESTDIR)$(PLBASE) && ln -s xpce-$(PCEVERSION) xpce)
+
+# ln-install installs the system by creating a link from the installed
+# Prolog to the XPCE build-tree. Such installations enable development
+# of xpce considerably using the normal IDE tools.
+
+ln-install:	$(INSTALL) link-dev-tree dv-link dv-qlf-clean \
+		dv-qlf manindex ln-classindex
+
+link-dev-tree::
+		rm -f $(DESTDIR)$(PLBASE)/xpce
+		(here=`pwd` && home=`dirname $$here` && $(REL_LN) $$home $(DESTDIR)$(PLBASE)/xpce)
+ln-classindex::
+		./xpce.sh -t "halt(1)" \
+			-g "[library(pce_class_index)],pce_make_library_index('$(DESTDIR)$(PLBASE)/xpce/prolog/lib'),halt"
 
 #	runtime only stuff
 
@@ -783,7 +797,7 @@ dv-lib:		dv-home
 		    fi; \
 		    echo done; \
 		done
-		$(PLBUILD) -t halt \
+		$(PLBUILD) -f none -t halt \
 			-g "make_library_index('$(DESTDIR)$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DESTDIR)$(DVHOME)/prolog/lib
 		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DESTDIR)$(DVHOME)/prolog/lib/trace
@@ -843,7 +857,7 @@ dv-man:		dv-manual
 rt-link:
 		cd $(DESTDIR)$(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
 
-dv-link:	rt-link
+dv-link::
 		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/$(PLNAME).rc
 		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(PLBASE)/Makefile
@@ -857,7 +871,12 @@ dv-pl-files:	rt-home
 # (for now) only build the quick load files if we actually install into
 # the target location.  If not, the paths will be wrong anyway.
 
-dv-qlf::		
+dv-qlf-clean::
+ifeq ($(DESTDIR),)
+		cd $(PLBASE); $(MAKE) clean
+endif
+
+dv-qlf::
 ifeq ($(DESTDIR),)
 		cd $(PLBASE); $(MAKE) xpce-qlfs
 endif
@@ -917,7 +936,9 @@ clean:
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
 		if [ -h h ]; then $(RM) h; fi
+		rm -f ../lib/$(PLARCH)
 		$(RM) -f version.h ../xpce.spec
+		$(RM) -f xpce.sh find_names
 		$(RM) -f $(LIB)
 		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
 		$(RM) -f Makefile config.h config.status config.cache
@@ -925,3 +946,4 @@ distclean:	clean
 		$(RM) -f ../prolog/lib/Makefile
 		$(RM) -f ../prolog/pwboot/Makefile
 		$(RM) -f ../sicstus/src/Makefile
+		$(RM) -f ../man/reference/index.obj

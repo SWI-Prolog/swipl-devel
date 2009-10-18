@@ -13,6 +13,7 @@
 ./packages/odbc/odbc.pdf
 ./packages/sgml/RDF/rdf2pl.pdf
 ./packages/sgml/sgml.pdf
+./packages/tipc/tipc.pdf
 ./packages/zlib/zlib.pdf
 ./packages/pldoc/pldoc.pdf
 ./packages/table/table.pdf
@@ -31,6 +32,7 @@
 ./packages/odbc/odbc.html
 ./packages/sgml/RDF/rdf2pl.html
 ./packages/sgml/sgml.html
+./packages/tipc/tipc.html
 ./packages/zlib/zlib.html
 ./packages/pldoc/pldoc.html
 ./packages/table/table.html

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,9 +30,9 @@
 */
 
 :- module('$qlf',
-	  [ qcompile/1,		% +File
-	    '$qload_file'/6,	% +Path, +Enc, +Module, +IsModule, -Ac, -LM
-	    '$qload_stream'/5	% +Stream, +Module, +IsModule, -Ac, -LM
+	  [ qcompile/1,		% :Files
+	    '$qload_file'/5,	% +Path, +Module, -Ac, -LM, +Options
+	    '$qload_stream'/5	% +Stream, +Module, -Ac, -LM, +Options
 	  ]).
 
 
@@ -40,22 +40,29 @@
 		 *	   COMPILATION		*
 		 *******************************/
 
-:- module_transparent
-	qcompile/1.
+:- meta_predicate
+	qcompile(:).
 
-qcompile([]) :- !.
-qcompile([H|T]) :- !,
-	qcompile(H),
-	qcompile(T).
-qcompile(File) :-
-	strip_module(File, Module, FileName),
+%%	qcompile(:Files) is det.
+%
+%	Compile Files as consult/1 and generate   a  Quick Load File for
+%	each compiled file.
+
+qcompile(M:Files) :-
+	qcompile(Files, M).
+
+qcompile([], _) :- !.
+qcompile([H|T], M) :- !,
+	qcompile(H, M),
+	qcompile(T, M).
+qcompile(FileName, Module) :-
 	absolute_file_name(FileName,
 			   [ file_type(prolog),
 			     access(read)
 			   ], Absolute),
 	file_name_extension(ABase, PlExt, Absolute),
 	(   user:prolog_file_type(PlExt, qlf)
-	->  throw(error(permission_error(compile, qlf, File),
+	->  throw(error(permission_error(compile, qlf, FileName),
 			context(qcompile/1, 'Conflicting extension')))
 	;   true
 	),
@@ -74,22 +81,24 @@ qcompile(File) :-
 	Ok == true.
 
 
-%%	'$qload_file'(+File, _Enc, +Module, -IsModule, -Action, -LoadedModule)
+%%	'$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
 %
 %	Load predicate for .qlf files.  See init.pl
 
-'$qload_file'(File, _Enc, Module, IsModule, Action, LoadedModule) :-
+'$qload_file'(File, Module, Action, LoadedModule, Options) :-
 	open(File, read, In, [type(binary)]),
 	call_cleanup('$qload_stream'(In, Module,
-				     IsModule, Action, LoadedModule),
+				     Action, LoadedModule, Options),
 		     close(In)).
 
 
-'$qload_stream'(In, Module, IsModule, loaded, LoadedModule) :-
+'$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
 	'$qlf_load'(Module:In, LoadedModule),
-	check_is_module(IsModule, LoadedModule, In).
+	check_is_module(LoadedModule, In, Options).
 
-check_is_module(true, 0, In) :- !,
+check_is_module(LM, In, Options) :-
+	var(LM),
+	'$get_option'(must_be_module(true), Options, false), !,
 	stream_property(In, file_name(File)),
 	throw(error(domain_error(module_file, File), _)).
 check_is_module(_, _, _).

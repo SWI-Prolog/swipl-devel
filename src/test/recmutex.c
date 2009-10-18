@@ -76,7 +76,7 @@ main(int argc, char **argv)
 { int status;
   pthread_t thread_id;
   pthread_mutexattr_t attr;
-	
+
   my_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutexattr_init(&attr);
 #ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP

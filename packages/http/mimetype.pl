@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -103,5 +103,9 @@ mime_extension(kmz,  application/'vnd.google-earth.kmz').
 
 					% Flash
 mime_extension(swf,  application/'x-shockwave-flash').
+mime_extension(flv,  video/'x-flv').
 					% MP3
 mime_extension(mp3,  audio/mpeg).
+					% Downloads
+mime_extension(rpm,  application/'x-rpm').
+mime_extension(exe,  application/'x-executable').

@@ -217,7 +217,7 @@ ws_getpid()
 { DEBUG(NAME_instance, Cprintf("HINSTANCE is %d\n", PceHInstance));
 
   return (int) GetCurrentProcessId();
-} 
+}
 
 
 char *
@@ -433,12 +433,12 @@ getWinFileNameDisplay(DisplayObj d,
     *ef++ = L'\0';
   } else
   { Cell cell;
-  
+
     for_cell(cell, filters)
     { if ( instanceOfObject(cell->value, ClassTuple) )
       { Tuple t = cell->value;
 	CharArray s1 = t->first, s2 = t->second;
-  
+
 	if ( !instanceOfObject(s1, ClassCharArray) )
 	{ errorPce(s1, NAME_unexpectedType, TypeCharArray);
 	  fail;
@@ -453,7 +453,7 @@ getWinFileNameDisplay(DisplayObj d,
 	*ef++ = L'\0';
       } else if ( instanceOfObject(cell->value, ClassCharArray) )
       { StringObj s = cell->value;
-  
+
 	strapp(ef, nameToTCHAR((Name)s));
 	*ef++ = L'\0';
 	strapp(ef, nameToTCHAR((Name)s));
@@ -491,7 +491,7 @@ getWinFileNameDisplay(DisplayObj d,
   ofn.lpstrTitle = nameToTCHAR(title);
 
   ofn.Flags = OFN_NOCHANGEDIR;
-	       
+
   if ( notDefault(options) )
   { Cell cell;
 
@@ -530,14 +530,14 @@ getWinFileNameDisplay(DisplayObj d,
     { TCHAR *pattern = filter;
       TCHAR *ext;
       int n;
-	
+
       pattern = filter;
       pattern += _tcslen(pattern)+1;	/* first pattern */
       for(n=1; n<ofn.nFilterIndex; n++)
       { pattern += _tcslen(pattern)+1;
 	pattern += _tcslen(pattern)+1;
       }
-  
+
       if ( (ext = _tcsrchr(pattern, '.')) && allLetter(ext+1) )
 	_tcscat(buffer, ext);
     }
@@ -630,7 +630,7 @@ getWinDirectoryDisplay(DisplayObj d,
   { TCHAR path[MAX_PATH];
 
     if ( SHGetPathFromIDList(pidl, path) )
-    { 
+    {
 #ifdef O_XOS				/* should always be true */
       char buf[MAXPATHLEN];
 
@@ -642,7 +642,7 @@ getWinDirectoryDisplay(DisplayObj d,
       result = TCHARToName(path);
 #endif
     }
-    
+
 #if 1
     CoTaskMemFree(pidl);
 #else
@@ -654,7 +654,7 @@ getWinDirectoryDisplay(DisplayObj d,
   }
 #endif
   }
-  
+
   CoUninitialize();
 
   return result;

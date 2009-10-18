@@ -57,11 +57,11 @@ predicates.
 
 send([], _) :- !.
 send(_, []) :- !.
-send([Object|Objects], Selectors) :- !, 
-	send(Object, Selectors), 
+send([Object|Objects], Selectors) :- !,
+	send(Object, Selectors),
 	send(Objects, Selectors).
-send(Object, [Selector|Selectors]) :- !, 
-	send(Object, Selector), 
+send(Object, [Selector|Selectors]) :- !,
+	send(Object, Selector),
 	send(Object, Selectors).
 send(Object, Selector) :-
 	'$pce_send'(Object, Selector, arguments).
@@ -70,14 +70,14 @@ send(Object, Selector) :-
 send([], _,  _) :- !.
 send(_, [], _) :- !.
 send(_, _, []) :- !.
-send([Object|Objects], Selectors, Arguments) :- !, 
-	send(Object, Selectors, Arguments), 
+send([Object|Objects], Selectors, Arguments) :- !,
+	send(Object, Selectors, Arguments),
 	send(Objects, Selectors, Arguments).
-send(Objects, [Selector|Selectors], Arguments) :- !, 
-	send(Objects, Selector, Arguments), 
+send(Objects, [Selector|Selectors], Arguments) :- !,
+	send(Objects, Selector, Arguments),
 	send(Objects, Selectors, Arguments).
-send(Object, Selector, [Argument|Arguments]) :- !, 
-	send(Object, Selector, Argument), 
+send(Object, Selector, [Argument|Arguments]) :- !,
+	send(Object, Selector, Argument),
 	send(Object, Selector, Arguments).
 send(Object, Selector, Argument) :-
 	'$pce_send'(Object, Selector, arguments(Argument)).

@@ -5,9 +5,8 @@
 #	F <name> <arity>	--> #define FUNCTOR_<name><arity>
 #				(A name should exist as well)
 #
-# This file is processed using the Unix awk program defineatoms to produce
-# pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.  If you do not have
-# awk you can propagate the changes by hand, but be careful!
+# This file is processed using defatom, compiled from defatom.c to
+# produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
 
 
@@ -16,6 +15,7 @@ A aborted		"$aborted"
 A abs			"abs"
 A access		"access"
 A acos			"acos"
+A add_import		"add_import"
 A agc			"agc"
 A agc_gained		"agc_gained"
 A agc_margin		"agc_margin"
@@ -28,11 +28,11 @@ A alternative		"alternative"
 A and			"/\\"
 A anonvar		"_"
 A append		"append"
-A apply			"$apply"
 A ar_equals		"=:="
 A ar_not_equal		"=\\="
 A argument		"argument"
 A argumentlimit		"argumentlimit"
+A as			"as"
 A ascii			"ascii"
 A asin			"asin"
 A assert		"assert"
@@ -72,6 +72,7 @@ A buffer		"buffer"
 A buffer_size		"buffer_size"
 A built_in_procedure	"built_in_procedure"
 A busy			"busy"
+A bw_xor		"><"
 A byte			"byte"
 A call			"call"
 A callable		"callable"
@@ -124,8 +125,10 @@ A cut_call		"cut_call"
 A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
+A dand			"$and"
 A date			"date"
 A db_reference		"db_reference"
+A dc_call_prolog	"$c_call_prolog"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
 A dcatch		"$catch"
@@ -182,6 +185,7 @@ A eof_action		"eof_action"
 A eof_code		"eof_code"
 A equal			"equal"
 A equals		"="
+A epsilon		"epsilon"
 A erase			"erase"
 A erased		"erased"
 A error			"error"
@@ -198,9 +202,11 @@ A exited		"exited"
 A exp			"exp"
 A export		"export"
 A exported		"exported"
+A exports		"exports"
 A expression		"expression"
 A externals		"externals"
 A fact			"fact"
+A factor		"factor"
 A fail			"fail"
 A failure_error		"failure_error"
 A false			"false"
@@ -237,6 +243,7 @@ A fy			"fy"
 A garbage_collected	"<garbage_collected>"
 A garbage_collection	"garbage_collection"
 A gc			"gc"
+A gcd			"gcd"
 A gctime		"gctime"
 A getcwd		"getcwd"
 A global		"global"
@@ -281,6 +288,7 @@ A int			"int"
 A int64_t		"int64_t"
 A int_overflow		"int_overflow"
 A integer		"integer"
+A integer_expression	"integer_expression"
 A interrupt		"interrupt"
 A io_error		"io_error"
 A io_mode		"io_mode"
@@ -314,6 +322,7 @@ A locked		"locked"
 A log			"log"
 A log10			"log10"
 A long			"long"
+A low			"low"
 A lower			"lower"
 A lsb			"lsb"
 A lshift		"<<"
@@ -333,6 +342,8 @@ A message		"message"
 A message_lines		"message_lines"
 A message_queue		"message_queue"
 A message_queue_property "message_queue_property"
+A meta_argument		"meta_argument"
+A meta_argument_specifier "meta_argument_specifier"
 A meta_predicate	"meta_predicate"
 A min			"min"
 A min_free		"min_free"
@@ -353,6 +364,7 @@ A mutex_property	"mutex_property"
 A natural		"natural"
 A newline		"newline"
 A nil			"[]"
+A nlink			"nlink"
 A no_memory		"no_memory"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
@@ -421,12 +433,14 @@ A protocol		"protocol"
 A prove			":-"
 A punct			"punct"
 A query			"?-"
+A question_mark		"?"
 A queue_option		"queue_option"
 A quiet			"quiet"
 A quote			"quote"
 A quoted		"quoted"
 A radix			"radix"
 A random		"random"
+A random_option		"random_option"
 A rational		"rational"
 A rationalize		"rationalize"
 A rdiv			"rdiv"
@@ -456,11 +470,13 @@ A running		"running"
 A runtime		"runtime"
 A save_class		"save_class"
 A save_option		"save_option"
+A seed			"seed"
 A seek_method		"seek_method"
 A select		"select"
 A semicolon		";"
 A separated		"separated"
-A setup_and_call_cleanup "setup_and_call_cleanup"
+A set			"set"
+A setup_call_catcher_cleanup "setup_call_catcher_cleanup"
 A shared		"shared"
 A shared_object		"shared_object"
 A shared_object_handle	"shared_object_handle"
@@ -472,6 +488,7 @@ A silent		"silent"
 A sin			"sin"
 A singletons		"singletons"
 A size			"size"
+A size_t		"size_t"
 A skip			"skip"
 A smaller		"<"
 A smaller_equal		"=<"
@@ -497,7 +514,7 @@ A stream_option		"stream_option"
 A stream_or_alias	"stream_or_alias"
 A stream_position	"$stream_position"
 A stream_property	"stream_property"
-A strick_equal		"=="
+A strict_equal		"=="
 A string		"string"
 A string_position	"string_position"
 A subterm_positions	"subterm_positions"
@@ -611,7 +628,6 @@ F access		1
 F acos			1
 F alias			1
 F and			2
-F apply			2
 F ar_equals		2
 F ar_not_equal		2
 F asin			1
@@ -627,10 +643,12 @@ F block			3
 F bom			1
 F brace_term_position	3
 F break			1
+F break			2
 F break			3
 F buffer		1
 F buffer_size		1
 F busy			2
+F bw_xor		2
 F call			1
 F callpred		2
 F catch			3
@@ -638,6 +656,7 @@ F ceil			1
 F ceiling		1
 F chars			1
 F chars			2
+F clause		1
 F close_on_abort	1
 F codes			1
 F codes			2
@@ -649,6 +668,7 @@ F cputime		0
 F curl			1
 F cut_call		1
 F cut_exit		1
+F dand			2
 F date			9
 F dcall			1
 F dcut			1
@@ -676,6 +696,7 @@ F encoding		1
 F end_of_stream		1
 F eof_action		1
 F equals		2
+F epsilon		0
 F erased		1
 F error			2
 F eval			1
@@ -685,6 +706,7 @@ F exception		3
 F existence_error	2
 F exited		1
 F exp			1
+F exports		1
 F fail			0
 F failure_error		1
 F file			1
@@ -698,6 +720,7 @@ F floor			1
 F foreign_function	1
 F frame			3
 F frame_finished	1
+F gcd			2
 F goal_expansion	2
 F hat			2
 F ifthen		2
@@ -717,6 +740,7 @@ F log			1
 F log10			1
 F lsb			1
 F lshift		2
+F nlink			1
 F max			2
 F max_size		1
 F message_lines		1
@@ -760,7 +784,7 @@ F retry			1
 F round			1
 F rshift		2
 F semicolon		2
-F setup_and_call_cleanup 4
+F setup_call_catcher_cleanup 4
 F shared_object		2
 F shell			2
 F sign			1
@@ -802,3 +826,5 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F dc_call_prolog	0
+F strict_equal		2

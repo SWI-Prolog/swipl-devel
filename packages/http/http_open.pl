@@ -61,11 +61,11 @@ client support is provided by http_client.pl
 
 
 %%	http_open(+Url, -Stream, +Options) is det.
-%	
+%
 %	Open a HTTP url as a (binary) stream. Uses HTTP 1.0 protocol
 %	revision to deal with virtual hosts and to be able to interpret
 %	the header.  Supported options:
-%	
+%
 %		* size(-Size)
 %		  Return size of the resource
 %		* header(Name, -Atom)
@@ -85,7 +85,7 @@ client support is provided by http_client.pl
 %		* final_url(-URL)
 %		  Unified with the final URL to deal with
 %		  redirections.
-%	
+%
 %	@error	existence_error(url, Id)
 
 http_open(URL, Stream, Options) :-
@@ -186,15 +186,17 @@ x_headers([H|T], Out) :- !,
 
 x_header(request_header(Name=Value), Out) :- !,
 	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(proxy_authorization(ProxyAuthorization), Out) :- !,
+	auth_header(ProxyAuthorization, 'Proxy-Authorization', Out).
 x_header(authorization(Authorization), Out) :- !,
-	auth_header(Authorization, Out).
+	auth_header(Authorization, 'Authorization', Out).
 x_header(_, _).
 
-auth_header(basic(User, Password), Out) :- !,
+auth_header(basic(User, Password), Header, Out) :- !,
 	format(codes(Codes), '~w:~w', [User, Password]),
 	phrase(base64(Codes), Base64Codes),
-	format(Out, 'Authorization: basic ~s\r\n', [Base64Codes]).
-auth_header(Auth, _) :-
+	format(Out, '~w: basic ~s\r\n', [Header, Base64Codes]).
+auth_header(Auth, _, _) :-
 	domain_error(authorization, Auth).
 
 user_agent(Agent, Options) :-
@@ -208,7 +210,7 @@ user_agent(Agent, Options) :-
 %
 %	Handle the HTTP status. If 200, we   are ok. If a redirect, redo
 %	the open, returning a new stream. Else issue an error.
-%	
+%
 %	@error	existence_error(url, URL)
 
 do_open(200, _, Lines, Options, Parts, In0, In) :- !,
@@ -223,6 +225,7 @@ do_open(200, _, Lines, Options, Parts, In0, In) :- !,
 do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	redirect_code(Code),
 	location(Lines, Location), !,
+	debug(http(redirect), 'http_open: redirecting to ~w', [Location]),
 	parse_url_ex(Location, Parts, Redirected),
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
@@ -238,7 +241,7 @@ do_open(Code, Comment, _,  _, Parts, _, _) :-
 %%	map_error_code(+HTTPCode, -PrologError) is semidet.
 %
 %	Map HTTP error codes to Prolog errors.
-%	
+%
 %	@tbd	Many more maps. Unfortunately many have no sensible Prolog
 %		counterpart.
 
@@ -256,11 +259,11 @@ redirect_code(303).			% see also
 %%	open_socket(+Address, -In, -Out, +Options) is det.
 %
 %	Create and connect a client socket to Address.  Options
-%	
+%
 %	    * timeout(+Timeout)
 %	    Sets timeout on the stream, *after* connecting the
 %	    socket.
-%	    
+%
 %	@tbd	Make timeout also work on tcp_connect/2.
 %	@tbd	This is the same as do_connect/4 in http_client.pl
 
@@ -311,7 +314,7 @@ return_final_url(Options) :-
 	parse_url_ex(URL, Parts).
 return_final_url(_).
 
-	
+
 %%	transfer_encoding_filter(+Lines, +In0, -In) is det.
 %
 %	Install filters depending on the encoding.
@@ -343,7 +346,7 @@ transfer_encoding(Encoding) -->
 %%	read_header(+In:stream, -Code:int, -Comment:atom, -Lines:list)
 %
 %	Read the HTTP reply-header.
-%	
+%
 %	@param Code	Numeric HTTP reply-code
 %	@param Comment	Comment of reply-code as atom
 %	@param Lines	Remaining header lines as code-lists.
@@ -448,15 +451,15 @@ rest(A,L,[]) :-
 %	Set user/password to supply with URLs   that have URL as prefix.
 %	If  Authorization  is  the   atom    =|-|=,   possibly   defined
 %	authorization is cleared.  For example:
-%	
+%
 %	==
 %	?- http_set_authorization('http://www.example.com/private/',
 %				  basic('John', 'Secret'))
 %	==
-%	
+%
 %	@tbd	Move to a separate module, so http_get/3, etc. can use this
 %		too.
-	
+
 :- dynamic
 	stored_authorization/2,
 	cached_authorization/2.
@@ -481,7 +484,7 @@ check_authorization(basic(User, Password)) :-
 %%	authorization(+URL, -Authorization) is semdet.
 %
 %	True if Authorization must be supplied for URL.
-%	
+%
 %	@tbd	Cleanup cache if it gets too big.
 
 authorization(_, _) :-
@@ -497,7 +500,7 @@ authorization(URL, Authorization) :-
 	;   assert(cached_authorization(URL, -)),
 	    fail
 	).
-	
+
 add_authorization(_, Options, Options) :-
 	option(authorization(_), Options), !.
 add_authorization(For, Options0, Options) :-
@@ -509,7 +512,7 @@ add_authorization(For, Options0, Options) :-
 	authorization(URL, Auth), !,
 	Options = [authorization(Auth)|Options0].
 add_authorization(_, Options, Options).
-	
+
 
 parse_url_ex(URL, Parts) :-
 	parse_url(URL, Parts), !.

@@ -1,0 +1,45 @@
+* Trigger shifts at `safe places'
+	- Set trigger limit (test resource exceptions)
+		+ min_free (what is done with this?)
+		++ Set max to real-max - min_free?
+		++ If above max: signal expansion request and max += NNN
+	- Or have a way out for exceptions (spare-stack?)
+
+* Make an abstract layer over stack malloc/realloc/free.  We might want to
+  use virtual-memory functions anyway.  Is there a way to realloc virtual
+  memory segments without physically moving the data (VM managers can do that)?
+
+* Remove max_threads limit?
+
+* Trouble:
+
+	- Where are the allocations?
+	    - Transitive calls to growStacks(); see below
+	- Non-shiftable code
+	    - All code using Word and doing allocation!
+	- Mark/TmpMark code
+	    - Must be tracktable by stack-shifter
+	    - Should get rid of marking too much anyway.  Use
+	      tmp_mark everywhere?
+	- Unification in write-mode *must* initialise the global
+	  stack because we might need shifts;  We could `fix'
+	  this by computing the max and inserting an allocation
+	  instruction.
+	    - Run some timing?
+
+* growStacks(): provide argument telling whether the caller will check the
+  return code (raise vs. throw exception).  Try to make all/most of them
+  using raise!
+
+================================================================
+Static analysis of the C-program:
+
+	- cscope: Unable to handle macros
+	- xz: same
+	- gcc -dr + scanning RTL dump makes it easy to find function
+	  calls with line numbers.  Seems hard to get type info.
+	- cli (http://hal.cs.berkeley.edu/cil/) seems capable of compiling
+	  SWI-Prolog.  It can do two things:
+		- Generate C that is easier to interpret
+		- Reason about the program in OCAML
+		- C2AST: http://www.cs.sunysb.edu/~cram/cse637/Notes/README.html

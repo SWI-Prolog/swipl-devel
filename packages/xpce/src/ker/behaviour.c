@@ -67,7 +67,7 @@ static senddecl send_behaviour[] =
 #define get_behaviour NULL
 /*
 static getdecl get_behaviour[] =
-{ 
+{
 };
 */
 
@@ -76,7 +76,7 @@ static getdecl get_behaviour[] =
 #define rc_behaviour NULL
 /*
 static classvardecl rc_behaviour[] =
-{ 
+{
 };
 */
 

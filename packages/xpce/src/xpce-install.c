@@ -104,10 +104,10 @@ get_mode(const char *s, unsigned short *m)
   while(*s >= '0' && *s <= '7')
   { mode = (mode << 3) + *s++ - '0';
   }
-  
+
   if ( *s )
     return FALSE;
-  
+
   *m = mode;
   return TRUE;
 }
@@ -172,7 +172,7 @@ dirname(const char *path)		/* returns malloced directory name */
 
   while(base > path && IsDirSep(base[-1]) )
     base--;
-  
+
   if ( !(rval = malloc(base-path+1)) )
   { perror("malloc");
     exit(1);
@@ -226,7 +226,7 @@ install_dir(const char *name)
 { if ( !isdir(name) )
     return makedir(str_store(name));
 
-  return TRUE; 
+  return TRUE;
 }
 
 
@@ -337,7 +337,7 @@ install_file_in_dir(const char *file, const char *dir)
 
   if ( (rval = install_file(file, path)) && verbose )
     printf("%s\n", base);
-    
+
   return rval;
 }
 
@@ -390,13 +390,13 @@ ignore(Ilist ign, const char *name)
   { compilePattern(c->pattern);
     if ( matchPattern(name) )
       return TRUE;
-  } 
+  }
   for(c = ign->head; c; c=c->next)
   { compilePattern(c->pattern);
      if ( matchPattern(name) )
        return TRUE;
-  } 
-  
+  }
+
   return FALSE;
 }
 
@@ -571,7 +571,7 @@ compile_pattern(struct _pattern_buffer *Out, const char *p, int curl)
 	      return (char *) NULL;
 	    }
 	  }
-	  
+
 	  continue;
 	}
       case '}':
@@ -631,7 +631,7 @@ match_pattern(uchar *p, const char *s)
 	  if ( match_pattern(p+1, s) )
 	    succeed;
 	  p += *p;
-	  continue;	  
+	  continue;
       default:						/* character */
 	  if ( c != (uchar) *s )
 	    fail;
@@ -694,7 +694,7 @@ main(int argc, char **argv)
 	  break;
 	case 'C':
 	{ char *dir = argv[0];
-	  
+
 	  shift;
 	  if ( chdir(dir) != 0 )
 	  { perror(dir);
@@ -713,7 +713,7 @@ main(int argc, char **argv)
       }
     }
   }
-  
+
   if ( argc == 0 )
     usage();
   out = argv[argc-1];
@@ -728,7 +728,7 @@ main(int argc, char **argv)
   } else
   { if ( isdir(out) )
     { int i;
-  
+
       to_ignore_list(ignore_patterns, "*~");
       to_ignore_list(ignore_patterns, "*.bak");
       to_ignore_list(ignore_patterns, "*.old");

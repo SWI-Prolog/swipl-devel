@@ -150,14 +150,14 @@ Smaller changes to especially older releases have been removed. For
 a complete log, see the file \file{ChangeLog} from the distribution.
 
 
-\subsection{Version 1.8 Release Notes}	\label{sec:rel-1.8}
+\subsection*{Version 1.8 Release Notes}	\label{sec:rel-1.8}
 
 Version 1.8 offers a stack-shifter to provide dynamically expanding
 stacks on machines that do not offer operating-system support for
 implementing dynamic stacks.
 
 
-\subsection{Version 1.9 Release Notes}	\label{sec:rel-1.9}
+\subsection*{Version 1.9 Release Notes}	\label{sec:rel-1.9}
 
 Version 1.9 offers better portability including an MS-Windows 3.1
 version.  Changes to the Prolog system include:
@@ -177,7 +177,7 @@ sources of individual clauses.
 \end{itemlist}
 
 
-\subsection{Version 2.0 Release Notes}	\label{sec:rel-2.0}
+\subsection*{Version 2.0 Release Notes}	\label{sec:rel-2.0}
 
 New features offered:
 
@@ -197,7 +197,7 @@ facilitating much simpler integration in window environments.
 \end{itemlist}
 
 
-\subsection{Version 2.5 Release Notes}	\label{sec:rel-2.5}
+\subsection*{Version 2.5 Release Notes}	\label{sec:rel-2.5}
 
 Version 2.5 is an intermediate release on the path from 2.1 to 3.0. All
 changes are to the foreign-language interface, both to user- and
@@ -230,7 +230,7 @@ The predicate qsave_program/[1,2] allows for the creating of machine
 independent saved-states that load very quickly.
 \end{itemlist}
 
-\subsection{Version 2.6 Release Notes}	\label{sec:rel-2.6}
+\subsection*{Version 2.6 Release Notes}	\label{sec:rel-2.6}
 
 Version 2.6 provides a stable implementation of the features added in
 the 2.5.x releases, but at the same time implements a number of new
@@ -252,7 +252,7 @@ Version 2.6.0 can create stand-alone executables by attaching the
 saved-state to the emulator.  See qsave_program/2.
 \end{itemlist}
 
-\subsection{Version 2.7 Release Notes}	\label{sec:rel-2.7}
+\subsection*{Version 2.7 Release Notes}	\label{sec:rel-2.7}
 
 Version 2.7 reorganises the entire data-representation of the Prolog data
 itself.  The aim is to remove most of the assumption on the machine's
@@ -266,7 +266,7 @@ variables in a clause considerably and allow for further expansion at
 minimal cost.
 
 
-\subsection{Version 2.8 Release Notes}	\label{sec:rel-2.8}
+\subsection*{Version 2.8 Release Notes}	\label{sec:rel-2.8}
 
 \index{Alpha, DEC}\index{DEC, Alpha}%
 With version 2.8, we declare the data-representation changes of 2.7.x
@@ -277,7 +277,7 @@ represented in a compiled format. SWI-Prolog no longer limits the use of
 malloc() or uses assumptions on the addresses returned by this
 function.
 
-\subsection{Version 2.9 Release Notes}	\label{sec:rel-2.9}
+\subsection*{Version 2.9 Release Notes}	\label{sec:rel-2.9}
 
 Version 2.9 is the next step towards version 3.0, improving ISO
 compliance and introducing ISO compliant exception handling. New are
@@ -293,14 +293,14 @@ code using these constants compatible. Non-zero values other than
 \const{TRUE} (1) will be interpreted different.
 
 
-\subsection{Version 3.0 Release Notes}	\label{sec:rel-3.0}
+\subsection*{Version 3.0 Release Notes}	\label{sec:rel-3.0}
 
 Complete redesign of the saved-state mechanism, providing the
 possibility of `program resources'. See resource/3, open_resource/3, and
 qsave_program/[1,2].
 
 
-\subsection{Version 3.1 Release Notes}	\label{sec:rel-3.1}
+\subsection*{Version 3.1 Release Notes}	\label{sec:rel-3.1}
 
 Improvements on exception-handling. Allows relating software interrupts
 (signals) to exceptions, handling signals in Prolog and C (see
@@ -309,7 +309,7 @@ the \const{resource_error} exception and thus can be handled in
 Prolog using catch/3.
 
 
-\subsection{Version 3.3 Release Notes}	\label{sec:rel-3.3}
+\subsection*{Version 3.3 Release Notes}	\label{sec:rel-3.3}
 
 Version 3.3 is a major release, changing many things internally and
 externally.  The highlights are a complete redesign of the high-level
@@ -341,7 +341,7 @@ too detailed mutex locks. The basic thread API is ready for serious
 use and testing however.  See \secref{threads}.
 
 
-\subsubsection{Incompatible changes}
+\subsubsection*{Incompatible changes}
 
 A number of incompatible changes result from this upgrade.  They
 are all easily fixed however.
@@ -391,7 +391,7 @@ These predicates have been moved to \pllib{quintus}.
 \end{itemlist}
 
 
-\subsection{Version 3.4 Release Notes}	\label{sec:rel-3.4}
+\subsection*{Version 3.4 Release Notes}	\label{sec:rel-3.4}
 
 The 3.4 release is a consolidation release. It consolidates the
 improvements and standard conformance of the 3.3 releases.  This
@@ -414,7 +414,7 @@ This library can be loaded explicitly or by calling check_old_select/0.
 \end{itemlist}
 
 
-\subsection{Version 4.0 Release Notes}	\label{sec:rel-4.0}
+\subsection*{Version 4.0 Release Notes}	\label{sec:rel-4.0}
 
 As of version 4.0 the standard distribution of SWI-Prolog is bundled
 with a number of its popular extension packages, among which the now
@@ -434,7 +434,7 @@ cause edit/1 to use the built-in PceEmacs editor.
 \end{itemlist}
 
 
-\subsection{Version 5.0 Release Notes} \label{sec:rel-5.0}
+\subsection*{Version 5.0 Release Notes} \label{sec:rel-5.0}
 
 Version 5.0 marks a breakpoint in the philosophy, where SWI-Prolog
 moves from a dual GPL/proprietary to a uniform LGPL (Lesser GNU Public
@@ -452,7 +452,7 @@ For details, please visit the new website at
 \url{http://www.swi-prolog.org}
 
 
-\subsection{Version 5.1 Release Notes} \label{sec:rel-5.1}
+\subsection*{Version 5.1 Release Notes} \label{sec:rel-5.1}
 
 Version 5.1 is a beta-serie introducing portable multi-threading. See
 \chapref{threads}.  In addition it introduces many new facilities to
@@ -461,13 +461,13 @@ to limit system resources and the possibility to set timeouts on
 input streams.
 
 
-\subsection{Version 5.2 Release Notes} \label{sec:rel-5.2}
+\subsection*{Version 5.2 Release Notes} \label{sec:rel-5.2}
 
 Version 5.2 consolidates the 5.1.x beta series that introduced threading
 and many related modifications to the kernel.
 
 
-\subsection{Version 5.3 Release Notes} \label{sec:rel-5.3}
+\subsection*{Version 5.3 Release Notes} \label{sec:rel-5.3}
 
 Version 5.3.x is a development series for adding coroutining,
 constraints, global variables, cyclic terms (infinite trees) and other
@@ -476,12 +476,12 @@ Java/Prolog interface is added to the common source-tree and common
 binary packages.
 
 
-\subsection{Version 5.4 Release Notes} \label{sec:rel-5.4}
+\subsection*{Version 5.4 Release Notes} \label{sec:rel-5.4}
 
 Version 5.4 consolidates the 5.3.x beta series.
 
 
-\subsection{Version 5.5 Release Notes} \label{sec:rel-5.5}
+\subsection*{Version 5.5 Release Notes} \label{sec:rel-5.5}
 
 Version 5.5.x provides support for \jargon{wide characters} with UTF-8
 and UNICODE I/O (\secref{encoding}). On both 32 and 64-bit hardware
@@ -493,9 +493,17 @@ Limited, \url{www.sss.co.nz}. This version also incorporates clp(r) by
 Christian Holzbaur, brought to SWI-Prolog by Tom Schrijvers and Leslie
 De Koninck (\secref{lib:clpqr}).
 
-\subsection{Version 5.6 Release Notes} \label{sec:rel-5.6}
+\subsection*{Version 5.6 Release Notes} \label{sec:rel-5.6}
 
 Version 5.6 consolidates the 5.5.x beta series.
+
+\subsection*{Version 5.7 Release Notes} \label{sec:rel-5.7}
+
+The aim of the 5.7 series is to cleanup much of the system. Notably, the
+virtual machine has a much simpler setup that makes it much easier to
+add new instructions. This facility has been exploited to enhance
+performance and provide proper support for the meta_predicate/1
+directive for enhanced portability.
 
 
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}

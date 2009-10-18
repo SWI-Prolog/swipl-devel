@@ -41,13 +41,14 @@
 :- use_module(library(pairs)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
-:- module_transparent
-	foreach/2,
-	aggregate/3,
-	aggregate/4,
-	aggregate_all/3,
-	aggregate_all/4.
+:- meta_predicate
+	foreach(0,0),
+	aggregate(?,0,-),
+	aggregate(?,?,0,-),
+	aggregate_all(?,0,-),
+	aggregate_all(?,?,0,-).
 
 /** <module> Aggregation operators on backtrackable predicates
 
@@ -80,7 +81,7 @@ There are four aggregation predicates, distinguished on two properties.
     For example, if we wish to compute the total population of all
     countries we do not want to lose results because two countries
     have the same population.  Therefore we use:
-    
+
     ==
 	aggregate(sum(P), Name, country(Name, P), Total)
     ==
@@ -212,12 +213,12 @@ clean_body(Goal, Goal).
 %
 %	Determine which parts of the goal we must remember in the
 %	findall/3 pattern.
-%	
+%
 %	@param Post is a body-term that evaluates expressions to reduce
 %		    storage requirements.
 %	@param Vars is a list of intermediate variables that must be
 %		    added to the existential variables for bagof/3.
-%	@param Agregate defines the aggregation operation to execute. 
+%	@param Agregate defines the aggregation operation to execute.
 
 template_to_pattern(sum(X),	      X,	 true, 	  [],   sum) :- var(X), !.
 template_to_pattern(sum(X0),	      X,	 X is X0, [X0], sum) :- !.
@@ -245,7 +246,7 @@ templates_to_patterns([H0|T0], [H|T], (G0,G), Vars, [A0|A]) :-
 	template_to_pattern(H0, H, G0, V0, A0),
 	append(V0, RV, Vars),
 	templates_to_patterns(T0, T, G, RV, A).
-			    
+
 %%	needs_one(+Ops, -OneOrZero)
 %
 %	If one of the operations in Ops needs at least one answer,
@@ -266,7 +267,7 @@ needs_one(max_witness).
 %	Aggregate the answer  from  the   list  produced  by  findall/3,
 %	bagof/3 or setof/3. The latter  two   cases  deal  with compound
 %	answers.
-%	
+%
 %	@tbd	Compile code for incremental state update, which we will use
 %		for aggregate_all/3 as well.  We should be using goal_expansion
 %		to generate these clauses.
@@ -383,7 +384,7 @@ finish_result([Op|OpT], [F|FT], I, R0, R) :-
 	finish_result1(Op, F, A0, A),
 	succ(I, I2),
 	finish_result(OpT, FT, I2, R0, R).
-	
+
 finish_result1(bag, Bag0, [], Bag) :- !,
 	Bag = Bag0.
 finish_result1(set, Bag,  [], Set) :- !,
@@ -403,9 +404,9 @@ state0(sum,   0, _).
 
 %%	state1(+Op, +First, -State, -Finish)
 
-state1(bag, X, [X|L], L).
-state1(set, X, [X|L], L).
-state1(_,   X, X,     _).
+state1(bag, X, L, [X|L]) :- !.
+state1(set, X, L, [X|L]) :- !.
+state1(_,   X, X, _).
 
 
 		 /*******************************
@@ -421,25 +422,23 @@ state1(_,   X, X,     _).
 %	conjunction is a copy of  Goal,   where  the variables it shares
 %	with Generator are filled with the values from the corresponding
 %	solution.
-%	
+%
 %	The implementation executes forall/2 if   Goal  does not contain
 %	any variables that are not shared with Generator.
-%	
+%
 %	Here is an example:
-%	
+%
 %	==
 %	?- foreach(between(1,4,X), dif(X,Y)), Y = 5.
 %	Y = 5
 %	?- foreach(between(1,4,X), dif(X,Y)), Y = 3.
 %	No
 %	==
-%	
+%
 %	@bug	Goal is copied repeatetly, which may cause problems if
 %		attributed variables are involved.
 
-foreach(Generator, Goal0) :-
-	strip_module(Goal0, M, G),
-	Goal = M:G,
+foreach(Generator, Goal) :-
 	term_variables(Generator, GenVars0), sort(GenVars0, GenVars),
 	term_variables(Goal, GoalVars0), sort(GoalVars0, GoalVars),
 	ord_subtract(GoalVars, GenVars, SharedGoalVars),
@@ -458,20 +457,20 @@ prove_list([H|T], Templ, SharedTempl, Goal) :-
 		  H+SharedTempl+Copy),
 	Copy,
 	prove_list(T, Templ, SharedTempl, Goal).
-	
+
 
 %%	free_variables(:Generator, +Template, +VarList0, -VarList) is det.
 %
 %	In order to handle variables properly, we   have to find all the
 %	universally quantified variables in the Generator. All variables
 %	as yet unbound are universally quantified, unless
-%   
+%
 %	    1. they occur in the template
 %	    2. they are bound by X^P, setof, or bagof
-%	
+%
 %	free_variables(Generator, Template, OldList, NewList) finds this
 %	set, using OldList as an accumulator.
-%	
+%
 %	@author Richard O'Keefe
 %	@author Jan Wielemaker (made some SWI-Prolog enhancements)
 %	@license Public domain (from DEC10 library).

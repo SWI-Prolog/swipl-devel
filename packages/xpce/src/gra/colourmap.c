@@ -132,7 +132,7 @@ static getdecl get_colour_map[] =
 #define rc_colour_map NULL
 /*
 static classvardecl rc_colour_map[] =
-{ 
+{
 };
 */
 

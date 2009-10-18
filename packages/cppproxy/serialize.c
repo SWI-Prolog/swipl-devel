@@ -59,7 +59,7 @@ io_error(term_t stream, const char *action, int eno)
 
   if ( !msg )
     msg = "Unknown error";
-    
+
   PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		      PL_FUNCTOR, FUNCTOR_io_error2,
 		        PL_CHARS, action,
@@ -103,7 +103,7 @@ static int
 get_stream_handle_ex(term_t t, IOSTREAM **s)
 { if ( PL_get_stream_handle(t, s) )
     return TRUE;
-  
+
   return type_error(t, "stream");
 }
 
@@ -112,7 +112,7 @@ static int
 get_integer_ex(term_t t, int *val)
 { if ( PL_get_integer(t, val) )
     return TRUE;
-  
+
   return type_error(t, "integer");
 }
 
@@ -121,7 +121,7 @@ static int
 get_float_ex(term_t t, double *val)
 { if ( PL_get_float(t, val) )
     return TRUE;
-  
+
   return type_error(t, "float");
 }
 
@@ -295,7 +295,7 @@ pl_write_float(term_t stream, term_t val)
 static foreign_t
 pl_read_float(term_t stream, term_t val)
 { IOSTREAM *fd;
-  
+
   if ( get_stream_handle_ex(stream, &fd) )
   { double f;
     unsigned char *cl = (unsigned char *)&f;
@@ -303,7 +303,7 @@ pl_read_float(term_t stream, term_t val)
 
     for(i=0; i<sizeof(double); i++)
     { int c = Sgetc(fd);
-    
+
       if ( c == -1 )
 	return io_error(stream, "read", errno);
       cl[double_byte_order[i]] = c;

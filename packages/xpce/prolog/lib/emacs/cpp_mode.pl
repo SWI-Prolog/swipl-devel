@@ -68,7 +68,7 @@ pce_insert_include_files(M) :->
 
 	get(M, collect, regex('\\yPce([A-Z][a-zA-Z]*)'), 1, Ch),
 	canonise(Ch),
-	
+
 	(   send(CE, equal, Ch)
 	->  send(M, report, status, 'No changes necessary')
 	;   send(Ch, for_all,

@@ -198,7 +198,7 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
     pushAnswerObject(rval);
   } else
     assign(fr, return_value, ConstantNotReturned);
-  
+
   answer(rval);
 }
 
@@ -233,10 +233,10 @@ static status
 openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 { Int x, y;
   Int w = DEFAULT, h = DEFAULT;
-    
+
   if ( !createdFrame(fr) )
     TRY( send(fr, NAME_create, EAV) );
-  
+
   if ( isDefault(pos) && isOpenFrameStatus(fr->status) )
     succeed;
 
@@ -254,7 +254,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
       Area tmp = tempObject(ClassArea,
 			    toInt(x), toInt(y), fr->area->w, fr->area->h, EAV);
       Monitor mon = getMonitorDisplay(fr->display, tmp);
-      
+
       considerPreserveObject(tmp);
 
       if ( !mon )
@@ -274,10 +274,10 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
       if ( valInt(y) < my ) y = toInt(my);
     }
 
-    setFrame(fr, x, y, w, h, DEFAULT);  
+    setFrame(fr, x, y, w, h, DEFAULT);
   } else if ( notNil(fr->geometry) )
   { ws_x_geometry_frame(fr, fr->geometry, DEFAULT);
-  }					
+  }
 #ifdef __WINDOWS__				/* But in Windows `do-it-yourself' */
   else if ( notNil(fr->transient_for) )
   { Area pa = fr->transient_for->area;
@@ -295,7 +295,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
   if ( !isOpenFrameStatus(fr->status) )
     statusFrame(fr, NAME_window);
-  
+
   succeed;
 }
 
@@ -368,13 +368,13 @@ static status
 wmDeleteFrame(FrameObj fr)
 { if ( fr->can_delete == OFF )
     fail;
-  
+
   if ( fr->confirm_done == ON )
   { TRY(send(fr->display, NAME_confirm,
 	     CtoName("Delete window ``%s''"), fr->label, EAV));
   }
-  
-  return send(fr, NAME_destroy, EAV);    
+
+  return send(fr, NAME_destroy, EAV);
 }
 
 
@@ -446,7 +446,7 @@ createFrame(FrameObj fr)
   { updateCursorWindow(cell->value);
     qadSendv(cell->value, NAME_resize, 0, NULL);
   }
-  
+
   send(fr, NAME_updateTileAdjusters, EAV);
 
   succeed;
@@ -473,7 +473,10 @@ fitFrame(FrameObj fr)
 
   if ( fr->fitting == ON ||
        !(t = getTileFrame(fr)) )
-    fail;
+  { setFrame(fr, DEFAULT, DEFAULT,
+	     toInt(100), toInt(100), DEFAULT);
+    succeed;
+  }
 
   assign(fr, fitting, ON);
   enforceTile(t, OFF);
@@ -514,7 +517,7 @@ statusFrame(FrameObj fr, Name stat)
       flushFrame(fr);
     }
   }
-  
+
   succeed;
 }
 
@@ -525,10 +528,10 @@ frame_is_upto_date(FrameObj fr)
 
   if ( fr->status == NAME_hidden )
     fail;
-  
+
   for_cell(cell, fr->members)
   { PceWindow sw = cell->value;
-    
+
     if ( ChangedWindows && memberChain(ChangedWindows, sw) )
       fail;
   }
@@ -672,7 +675,7 @@ get_position_from_center_frame(FrameObj fr, Monitor mon, Point pos,
 
   *x -= valInt(fr->area->w) / 2;
   *y -= valInt(fr->area->h) / 2;
-  
+
   succeed;
 }
 
@@ -760,7 +763,7 @@ getGeometryFrame(FrameObj fr)
 				   mx, my, mw, mh));
     } else
     { Size size = getSizeDisplay(fr->display);
-      
+
       mx = my = 0;
       mw = valInt(size->w);
       mh = valInt(size->h);
@@ -1091,7 +1094,7 @@ TileObj
 getTileFrame(FrameObj fr)
 { if ( notNil(fr->members->head) )
   { PceWindow sw = getHeadChain(fr->members);
-  
+
     return getRootTile(sw->tile);
   }
 
@@ -1104,7 +1107,7 @@ labelFrame(FrameObj fr, Name label, Name icon)
 { assign(fr, label, label);
 
   ws_set_label_frame(fr);
-  
+
   if ( notDefault(icon) )
     iconLabelFrame(fr, icon);
 
@@ -1204,7 +1207,7 @@ getMemberFrame(FrameObj fr, Name name)
     if ( (w=getUserWindow(cell->value))->name == name )
       answer(w);
   }
-  
+
   fail;
 }
 
@@ -1224,7 +1227,7 @@ getPointerWindowFrame(FrameObj fr)
 
     if ( instanceOfObject(sw, ClassWindowDecorator) )
     { WindowDecorator dw = (WindowDecorator)sw;
-	
+
       sw = dw->window;
       if ( sw->has_pointer == ON )
 	answer(sw);
@@ -1274,7 +1277,7 @@ keyboardFocusFrame(FrameObj fr, PceWindow sw)
 
     send(fr, NAME_inputWindow, iw, EAV);
   }
-  
+
   succeed;
 }
 
@@ -1328,7 +1331,7 @@ inputWindowFrame(FrameObj fr, PceWindow iw)
   }
 
   if ( fr->input_focus == ON && notNil(iw) )
-  { newObject(ClassHyper, fr, iw, NAME_inputWindow, EAV); 
+  { newObject(ClassHyper, fr, iw, NAME_inputWindow, EAV);
     inputFocusWindow(iw, ON);
   }
 
@@ -1409,7 +1412,7 @@ updateTileAdjustersFrame(FrameObj fr, TileObj t)
 
     if ( notNil(t->members) )
     { Cell cell;
-      
+
       for_cell(cell, t->members)
 	updateTileAdjustersFrame(fr, cell->value);
     }
@@ -1441,14 +1444,14 @@ blockedByModalFrame(FrameObj fr)
       if ( isOpenFrameStatus(fr2->status) )
 	return fr2;
     }
-  }	
+  }
 
   if ( notNil(fr->transients) )
   { Cell cell;
 
     for_cell(cell, fr->transients)
     { FrameObj fr2 = cell->value;
-    
+
       DEBUG(NAME_transient,
 	    Cprintf("blockedByModalFrame(%s) checking %s\n",
 		    pp(fr), pp(fr2)));
@@ -1479,7 +1482,7 @@ eventFrame(FrameObj fr, EventObj ev)
   { PceWindow sw;
 
     if ( (bfr=blockedByModalFrame(fr)) )
-    { 
+    {
     blocked:
       send(bfr, NAME_expose, EAV);
       send(bfr, NAME_event, ev, EAV);

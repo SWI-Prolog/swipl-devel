@@ -1,7 +1,7 @@
 /*  File:    pce_index.pl
     Author:  Jan Wielemaker
     Created: Mar 14 2003
-    Purpose: 
+    Purpose:
 */
 
 :- module(pce_class_index,
@@ -14,11 +14,11 @@
 index_file('CLASSINDEX.pl').
 
 %%	pce_make_library_index(+Dir)
-%	
+%
 %	Create a file CLASSINDEX.pl in Dir holding facts of the format
-%	
+%
 %%		class(Name, Super, Summary, File)
-%	
+%
 %	This file can be used for auto-loading as well as supporting
 %	cross-referencing and syntax-highlighting.
 
@@ -33,7 +33,7 @@ pce_make_library_index(Dir) :-
 		     working_directory(_, Old)).
 
 %	pce_update_library_index/0
-%	
+%
 %	Update out-of-date CLASSINDEX.pl files in defined library
 %	directories.
 
@@ -44,7 +44,7 @@ pce_update_library_index :-
 				 access(write),
 				 solutions(all),
 				 file_errors(fail)
-			       ], 
+			       ],
 			       AbsFile),
 	    file_directory_name(AbsFile, Dir),
 	    print_message(informational, pce(update_library_index(Dir))),
@@ -95,7 +95,7 @@ index_file(File, Out) :-
 	;   true
 	),
 	xref_clean(File).
-	
+
 header(Out) :-
 	format(Out,
 	       '/*  $Id\

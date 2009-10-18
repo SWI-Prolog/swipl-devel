@@ -63,7 +63,7 @@ static senddecl send_tuple[] =
 #define get_tuple NULL
 /*
 static getdecl get_tuple[] =
-{ 
+{
 };
 */
 
@@ -72,7 +72,7 @@ static getdecl get_tuple[] =
 #define rc_tuple NULL
 /*
 static classvardecl rc_tuple[] =
-{ 
+{
 };
 */
 

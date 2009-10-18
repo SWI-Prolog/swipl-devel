@@ -93,7 +93,7 @@ same_row(Gr1, Gr2) :-
 	Overlap is min(B1, B2) - max(T1, T2),
 	Smallest is min(B1-T1, B2-T2),
 	Overlap >= Smallest // 2.
-	
+
 		 /*******************************
 		 *	 GEOMETRIC SORTS	*
 		 *******************************/
@@ -179,7 +179,7 @@ has_column_alignment(_, []) :- !.
 has_column_alignment([H1|T1], [H2|T2]) :-
 	above(H1, H2),
 	has_column_alignment(T1, T2).
-	
+
 align_columns([], _) :- !.
 align_columns(_, []) :- !.
 align_columns([H1|T1], [H2|T2]) :-

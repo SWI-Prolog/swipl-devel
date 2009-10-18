@@ -42,7 +42,7 @@
 	   , pce_info/1
 	   , pce_warn/1
 	   , string/1
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , expand_goal/2
 	   , flatten/2
 	   , forall/2
@@ -65,14 +65,17 @@
 	verbose/0,
 	recording/2.			% items recorded
 
-pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
+pce_ifhostproperty(prolog(swi),
+		   [ (:- index(attribute(1,1,0))),
+		     (:- use_module(library(quintus), [genarg/3]))
+		   ]).
 
 		 /*******************************
 		 *	     OPERATORS		*
 		 *******************************/
 
 %	push_compile_operators.
-%	
+%
 %	Push operator definitions  that  are   specific  to  XPCE  class
 %	definitions.
 
@@ -97,9 +100,6 @@ push_compile_operators(M) :-
 pop_compile_operators :-
 	pop_operators.
 
-:- op(100, fx, @).			% standard XPCE operators
-:- op(150, yfx, ?).
-:- op(990, xfx, :=).
 :- push_compile_operators.
 
 %verbose.
@@ -145,7 +145,7 @@ do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	pce_error(context_error((Head :- Body), nomethod, clause)),
 	fail.
 
-	
+
 is_string(0) :- !, fail.		% catch variables
 is_string([]).
 is_string([H|T]) :-
@@ -425,9 +425,9 @@ file a domain? How do we associate a unique domain to each file?
 
 gen_method_id(SG, Class, Selector, Id) :-
 	attribute(Class, extending, true), !,
-	concat_atom([Class, '$+$', SG, Selector], Id).
+	atomic_list_concat([Class, '$+$', SG, Selector], Id).
 gen_method_id(SG, Class, Selector, Id) :-
-	concat_atom([Class, SG, Selector], Id).
+	atomic_list_concat([Class, SG, Selector], Id).
 
 %gen_method_id(_, _, _, Id) :-
 %%	flag(pce_method_id, Id, Id+1).
@@ -504,15 +504,15 @@ convert_meta(I, Arity, G0, M, T, C, G) :-
 	convert_meta(A, Arity, G0, M, T, C, G).
 
 meta(','(:, :)).			% TBD: synchronise with boot/init.pl
-meta(;(:, :)).	
-meta(->(:, :)).	
-meta(*->(:, :)).	
-meta(\+(:)).	
-meta(not(:)).	
+meta(;(:, :)).
+meta(->(:, :)).
+meta(*->(:, :)).
+meta(\+(:)).
+meta(not(:)).
 meta(call(:)).
 meta(once(:)).
 meta(ignore(:)).
-meta(forall(:, :)).	
+meta(forall(:, :)).
 meta(findall(-, :, -)).
 meta(bagof(-, :, -)).
 meta(setof(-, :, -)).
@@ -559,7 +559,7 @@ use_template_send_method(Template, pce_principal:Clause) :-
 	    IClassMsg =.. Args1,
 	    atom_concat('T-', Id, Tid)
 	).
-	  
+
 use_template_get_methods(Template, Clauses) :-
 	findall(C, use_template_get_method(Template, C), Clauses).
 
@@ -613,7 +613,7 @@ isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 		 *******************************/
 
 %%	can_define_class(+Name, +Super)
-%	
+%
 %	Check whether we can define Name as   a  subclass of Super. This
 %	cannot be done of Name  is  a   builtin  class  or it is already
 %	defined at another location.
@@ -677,7 +677,7 @@ pop_class :-
 pop_class :-
 	pce_error(no_class_to_end),
 	fail.
-	
+
 		 /*******************************
 		 *	     ATTRIBUTES		*
 		 *******************************/
@@ -710,7 +710,7 @@ class_source(ClassName) :-
 	add_attribute(ClassName, directive,
 		      send(@class, source, Term)).
 class_source(_).
-	
+
 
 		 /*******************************
 		 *	     RECORDING		*
@@ -920,7 +920,7 @@ head_arg(Var, Var, any) :-
 head_arg(Arg:Type, Arg, Type).
 head_arg(Arg:Name=Type, Arg, Name=Type).
 
-	
+
 		 /*******************************
 		 *	  PUBLIC METHODS	*
 		 *******************************/
@@ -990,11 +990,11 @@ feedback(Term) :-
 		********************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion(A, B) :-
+system:term_expansion(A, B) :-
 	pce_term_expansion(A, B).
 
 :- pop_compile_operators.

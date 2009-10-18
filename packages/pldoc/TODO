@@ -9,7 +9,6 @@ Incomplete, but very usable.
 Making solid progress.  remaining issues:
 
 	* Tables in lists
-	* Paragraphs in list-items
 	* Complete tag processing
 		* Combining multiple tags
 
@@ -20,14 +19,9 @@ Making solid progress.  remaining issues:
 
 ---++ LaTeX generation
 
-	* Generate summary file
 	* Generate entire directory
 		- Need some driver file to now which files to generate
 		  and provide the overall header
-
----++ Integrate with help/apropos
-
-	* Should also link to PceEmacs
 
 ---++ UI
 
@@ -46,6 +40,19 @@ Making solid progress.  remaining issues:
 	* Verify declared @param exists
 	* Verify references name/arity point to existing code
 
+---++ Prolog issues
+
+	* Deal with reexport/1 and friends.
+
 ---++ Notes on CSS:
 
 	* See <http://www.htmldog.com/guides/cssbeginner/selectors/>
+
+---++ Commons
+
+	* Add %! processing
+	* If no predicate, link to last :- pred.
+	* Add ! Name: Value processing
+	* Add @name{Arg,..} processing
+	* Document the DOM term
+

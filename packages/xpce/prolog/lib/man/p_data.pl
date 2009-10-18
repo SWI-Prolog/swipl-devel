@@ -391,7 +391,7 @@ initialise(G, Name:name, Summary:[string]*) :->
 lookup(_, Name:name, G) :<-
 	"Lookup existing one"::
 	get(@man_globals, member, Name, G).
-			   
+
 
 group(G, Group:name) :<-
 	"Group (class name)"::
@@ -587,7 +587,7 @@ man_card_class(_Class, Class:class) :<-
 man_name(Class, Name:string) :<-
 	"Name for relation browser"::
 	new(Name, string('C\t%s', Class?name)).
-	
+
 
 has_source(Class) :->
 	"Test if object may have associated sources"::
@@ -602,7 +602,7 @@ source(Class, Loc:source_location) :<-
 
 
 %	fix_source_path(+SourceLocation, +Context)
-%	
+%
 %	Fixes  the  location  of  a  registered   source  due  to  moved
 %	installation. The 2nd and 3th clause exploit the Prolog database
 %	to re-locate the source. It is used to find the correct location
@@ -712,7 +712,7 @@ man_name(Var, ManName:string) :<-
 	get(Var, access_arrow, Arrow),
 	get(Var, name, Name),
 	new(ManName, string('V\t%s %s%s', ClassName, Arrow, Name)).
-	
+
 
 man_header(Var, Header:string) :<-
 	"Header for card viewer"::
@@ -874,7 +874,7 @@ method_types(M, Str) :-
 man_name(M, Name) :<-
 	"Name for relation browser"::
 	new(Name, string('M\t%s->%s', M?context?name, M?name)).
-	
+
 
 man_header(M, Header:string) :<-
 	"Header for card browser"::
@@ -909,7 +909,7 @@ man_name(M, Name) :<-
 	"Name for relation browser"::
 	new(Name, string),
 	send(Name, format, 'M\t%s<-%s', M?context?name, M?name).
-	
+
 man_header(M, Header:string) :<-
 	"Header for card browser"::
 	get(M, context, Ctx),
@@ -960,7 +960,7 @@ man_name(R, Name) :<-
 	term_to_atom(Term, ValueDescription),
 	new(Name, string('R\t%s.%s: %s',
 			 R?context?name, R?name, ValueDescription)).
-	
+
 
 has_source(_R) :->
 	"Test if object may have associated sources"::

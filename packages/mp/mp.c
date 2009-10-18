@@ -246,7 +246,7 @@ static atom_t
 /* min and max SWI-Prolog ints */
 #include <limits.h>
 static long mp_min_int = LONG_MIN;
-static long mp_max_int = LONG_MAX;	
+static long mp_max_int = LONG_MAX;
 
 #define BUFSIZE (32768)	/* holds digits for conversion of MP to readable form.
 			   Unfortunately, this limits precision of the output */
@@ -1097,7 +1097,7 @@ static foreign_t mp_getprec(term_t op, term_t prec)
 static foreign_t mp_add(term_t addend1, term_t addend2, term_t sum)
 {	mp_t mp1, mp2;
 	switch (mp_conformargs(addend1, addend2, &mp1, &mp2)) {
-	case MPZ:	
+	case MPZ:
 		mpz_add(mp1.n.z, mp1.n.z, mp2.n.z);
 		mpz_clear(mp2.n.z);
 		break;
@@ -1128,7 +1128,7 @@ static foreign_t mp_add(term_t addend1, term_t addend2, term_t sum)
 static foreign_t mp_sub(term_t minuend, term_t subtrahend, term_t difference)
 {	mp_t mp1, mp2;
 	switch (mp_conformargs(minuend, subtrahend, &mp1, &mp2)) {
-	case MPZ:	
+	case MPZ:
 		mpz_sub(mp1.n.z, mp1.n.z, mp2.n.z);
 		mpz_clear(mp2.n.z);
 		break;
@@ -1159,7 +1159,7 @@ static foreign_t mp_sub(term_t minuend, term_t subtrahend, term_t difference)
 static foreign_t mp_mul(term_t multiplier, term_t multiplicant, term_t product)
 {	mp_t mp1, mp2;
 	switch (mp_conformargs(multiplier, multiplicant, &mp1, &mp2)) {
-	case MPZ:	
+	case MPZ:
 		mpz_mul(mp1.n.z, mp1.n.z, mp2.n.z);
 		mpz_clear(mp2.n.z);
 		break;
@@ -1217,7 +1217,7 @@ static foreign_t mp_mul(term_t multiplier, term_t multiplicant, term_t product)
 static foreign_t mp_div(term_t dividend, term_t divisor, term_t quotient)
 {	mp_t mp1, mp2;
 	switch (mp_conformargs(dividend, divisor, &mp1, &mp2)) {
-	case MPZ:	
+	case MPZ:
 	{	mpq_t q;
 		mpq_init(q);
 		mpq_set_num(q, mp1.n.z);
@@ -1414,7 +1414,7 @@ static foreign_t mp_lsh(term_t op1, term_t op2, term_t lsh)
 		PL_fail;
 	}
 	switch (term_to_mp(op1, &mp1)) {
-	case MPZ:	
+	case MPZ:
 		mpz_mul_2exp(mp1.n.z, mp1.n.z, mpz_get_ui(mp2.n.z));
 		break;
 	case MPQ:
@@ -1446,7 +1446,7 @@ static foreign_t mp_rsh(term_t op1, term_t op2, term_t rsh)
 		PL_fail;
 	}
 	switch (term_to_mp(op1, &mp1)) {
-	case MPZ:	
+	case MPZ:
 		mpz_div_2exp(mp1.n.z, mp1.n.z, mpz_get_ui(mp2.n.z));
 		break;
 	case MPQ:
@@ -1475,7 +1475,7 @@ static foreign_t mp_cmp(term_t op1, term_t op2, term_t rel)
 {	mp_t mp1, mp2;
 	int n;
 	switch (mp_conformargs(op1, op2, &mp1, &mp2)) {
-	case MPZ:	
+	case MPZ:
 		n = mpz_cmp(mp1.n.z, mp2.n.z);
 		mpz_clear(mp1.n.z);
 		mpz_clear(mp2.n.z);

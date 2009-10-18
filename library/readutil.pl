@@ -59,13 +59,13 @@ implementation if the shared object cannot be found.
 link_foreign :-
 	catch(load_foreign_library(foreign(readutil)), _, fail), !.
 link_foreign :-
-	assert((read_line_to_codes(Stream, Line) :-
-	        pl_read_line_to_codes(Stream, Line))),
-	assert((read_line_to_codes(Stream, Line, Tail) :-
-	        pl_read_line_to_codes(Stream, Line, Tail))),
-	assert((read_stream_to_codes(Stream, Content) :-
+	assertz((read_line_to_codes(Stream, Line) :-
+		pl_read_line_to_codes(Stream, Line))),
+	assertz((read_line_to_codes(Stream, Line, Tail) :-
+		pl_read_line_to_codes(Stream, Line, Tail))),
+	assertz((read_stream_to_codes(Stream, Content) :-
 	        pl_read_stream_to_codes(Stream, Content))),
-	assert((read_stream_to_codes(Stream, Content, Tail) :-
+	assertz((read_stream_to_codes(Stream, Content, Tail) :-
 	        pl_read_stream_to_codes(Stream, Content, Tail))),
 	compile_predicates([ read_line_to_codes/2,
 			     read_line_to_codes/3,
@@ -73,8 +73,7 @@ link_foreign :-
 			     read_stream_to_codes/3
 			   ]).
 
-:- initialization
-   link_foreign.
+:- initialization(link_foreign, now).
 
 
 		 /*******************************

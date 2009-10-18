@@ -40,8 +40,8 @@
 :- use_module(library(persistent_frame)).
 :- require([ '$qlf_info'/5
 	   , append/3
-	   , concat_atom/2
-	   , concat_atom/3
+	   , atomic_list_concat/2
+	   , atomic_list_concat/3
 	   , file_name_extension/3
 	   , flatten/2
 	   , gensym/2
@@ -133,7 +133,7 @@ source_pattern(Pat) :-
 		    \+ prolog_file_type(E, qlf)), Exts),
 	(   Exts = [Ext]
 	->  format(atom(Pat), '.*\\.~w$', [Ext])
-	;   concat_atom(Exts, '|', P1),
+	;   atomic_list_concat(Exts, '|', P1),
 	    format(atom(Pat), '.*\\.(~w)$', [P1])
 	).
 
@@ -292,7 +292,7 @@ module_of_path(Path, Module) :-
 	read(Fd, Term),
 	close(Fd),
 	Term = (:- module(Module, _Public)).
-			  
+
 hidden_entity(module(_)).
 
 file_expansion_entity(Path, entity(module(Module), Line)) :-
@@ -351,10 +351,10 @@ to_summary(_, @default).
 local_predicate_name(M:Head, Label) :- !,
 	callable(Head),
 	functor(Head, Name, Arity),
-	concat_atom([M, :, Name, /, Arity], Label).
+	atomic_list_concat([M, :, Name, /, Arity], Label).
 local_predicate_name(Head, Label) :-
 	functor(Head, Name, Arity),
-	concat_atom([Name, /, Arity], Label).
+	atomic_list_concat([Name, /, Arity], Label).
 
 identify(TF) :->
 	"Identify myself"::
@@ -371,7 +371,7 @@ identify(TF) :->
 
 make_sb_file_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit)),
@@ -434,7 +434,7 @@ status(TE, Status:{open,close}) :<-
 
 make_source_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit),
@@ -473,13 +473,13 @@ has_source(TE) :->
 loaded(TE) :->
 	"Test if class is loaded"::
 	get(TE, identifier, Id),
-	concat_atom([_Type, _Name, Class], $, Id),
+	atomic_list_concat([_Type, _Name, Class], $, Id),
 	pce_prolog_class(Class).
 
 behaviour(TE, Behaviour:behaviour) :<-
 	"Get behaviour (if loaded)"::
 	get(TE, identifier, Id),
-	concat_atom([Type, Name, Class], $, Id),
+	atomic_list_concat([Type, Name, Class], $, Id),
 	get(@pce, convert, Class, class, ClassObj),
 	(   Type == send
 	->  get(ClassObj, send_method, Name, Behaviour)
@@ -510,7 +510,7 @@ trace(TE, Val:[bool]) :->
 identify(TE) :->
 	"Identify myself"::
 	get(TE, identifier, Id),
-	concat_atom([Type, Name, Class], $, Id),
+	atomic_list_concat([Type, Name, Class], $, Id),
 	identify_behaviour(Type, Name, Class, TE).
 
 identify_behaviour(send, Name, Class, TE) :-
@@ -521,7 +521,7 @@ identify_behaviour(var, Name, Class, TE) :-
 	send(TE, report, status, 'XPCE instance variable %s-%s', Class, Name).
 identify_behaviour(cvar, Name, Class, TE) :-
 	send(TE, report, status, 'XPCE class variable %s.%s', Class, Name).
-	
+
 :- pce_group(popup).
 
 :- free(@sb_xpce_behaviour_popup).
@@ -530,7 +530,7 @@ identify_behaviour(cvar, Name, Class, TE) :-
 
 make_sb_xpce_behaviour_popup(P) :-
 	new(P, popup(predicate_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, open),
@@ -577,23 +577,23 @@ expand(CF) :->
 	    fail
 	;   true
 	).
-		
+
 make_class_toc_enter(xpce_class_local_predicate(Class,Head), Class, Key, TE) :-
 	make_file_toc_entry(predicate(Head), Key, TE), !.
 make_class_toc_enter(Term, Class, _Key, TE) :-
 	make_class_toc_enter(Term, Class, TE).
 
 make_class_toc_enter(xpce_method(send(Class, Name, _Doc)), Class, TE) :-
-	concat_atom([send, Name, Class], $, Id),
+	atomic_list_concat([send, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'send.xpm')).
 make_class_toc_enter(xpce_method(get(Class, Name, _Doc)), Class, TE) :-
-	concat_atom([get, Name, Class], $, Id),
+	atomic_list_concat([get, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'get.xpm')).
 make_class_toc_enter(xpce_variable(Class, Name, _Doc), Class, TE) :-
-	concat_atom([var, Name, Class], $, Id),
+	atomic_list_concat([var, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'ivar.xpm')).
 make_class_toc_enter(xpce_class_variable(Class, Name, _Doc), Class, TE) :-
-	concat_atom([cvar, Name, Class], $, Id),
+	atomic_list_concat([cvar, Name, Class], $, Id),
 	new(TE, toc_xpce_entity(Name, Id, 'classvar.xpm')).
 
 identify(CF) :->
@@ -612,7 +612,7 @@ identify(CF) :->
 
 make_sb_xpce_class_popup(P) :-
 	new(P, popup(source_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit),
@@ -804,7 +804,7 @@ expand(P) :->
 	    fail
 	;   true
 	).
-	
+
 predicate_location(K, Called, Line) :-
 	x_browse_info(K, entity(predicate(Called), Line)), !.
 predicate_location(K, Called, Line) :-
@@ -883,7 +883,7 @@ trace(P, Val:[bool]) :->
 
 make_prolog_predicate_popup(P) :-
 	new(P, popup(predicate_options)),
-	
+
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, open),
@@ -963,4 +963,4 @@ load_info(failed(Spec),
 			   Path).
 load_info(done(_Level, file(_, Path), _, _, _, _),
 	  Path, true).
-	
+

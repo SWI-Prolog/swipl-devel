@@ -86,26 +86,26 @@ test(status_running, Status == running) :-
 	thread_property(Id, status(Status)),
 	thread_send_message(Id, done),
 	thread_join(Id, true).
-		
+
 test(status_true, Status == true) :-
 	thread_self(Me),
 	thread_create(receive(Me, true), Id, []),
 	thread_get_message(ready),
 	thread_send_message(Id, done),
 	wait_status(Id, Status).
-		
+
 test(status_fail, Status == false) :-
 	thread_self(Me),
 	thread_create(receive(Me, fail), Id, []),
 	thread_get_message(ready),
 	wait_status(Id, Status).
-		
+
 test(status_exception, Status == exception(error)) :-
 	thread_self(Me),
 	thread_create(receive(Me, throw(error)), Id, []),
 	thread_get_message(ready),
 	wait_status(Id, Status).
-		
+
 test(status_enum1, true) :-
 	thread_self(Me),
 	thread_create(receive(Me, true), Id, []),

@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc_index,
-	  [ doc_for_dir/3,		% +Dir, +Out, +Options
+	  [ doc_for_dir/2,		% +Dir, +Options
 	    dir_index/4,		% +Dir, +Options, //
 	    object_summaries/5,		% +Objs, +Section, +Options, //
 	    file_index_header/4,	% +File, +Options, //
@@ -43,8 +43,9 @@
 :- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(doc_util).
-:- use_module(library('http/http_dispatch')).
-:- use_module(library('http/html_write')).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
 :- use_module(library(readutil)).
 :- use_module(library(url)).
 :- use_module(library(option)).
@@ -54,14 +55,14 @@
 /** <module> Create indexes
 */
 
-%%	doc_for_dir(+Dir, +Out, +Options) is det.
+%%	doc_for_dir(+Dir, +Options) is det.
 %
 %	Write summary index for all files  in   Dir  to  Out. The result
 %	consists of the =README= file  (if   any),  a  table holding with
 %	links to objects and summary  sentences   and  finaly the =TODO=
 %	file (if any).
 
-doc_for_dir(DirSpec, Out, Options) :-
+doc_for_dir(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
 			   [ file_type(directory),
 			     access(read)
@@ -69,10 +70,8 @@ doc_for_dir(DirSpec, Out, Options) :-
 			   Dir),
 	file_base_name(Dir, Base),
 	Title = Base,
-	doc_page_dom(Title, \dir_index(Dir, Options), DOM),
-	phrase(html(DOM), Tokens),
-	print_html_head(Out),
-	print_html(Out, Tokens).
+	reply_html_page(title(Title),
+			\dir_index(Dir, Options)).
 
 
 %%	dir_index(+Dir, +Options)//
@@ -135,10 +134,10 @@ dir_footer(_, _) -->
 
 wiki_file(Dir, Type) -->
 	{ wiki_file_type(Type, Base),
-	  concat_atom([Dir, /, Base], File),
+	  atomic_list_concat([Dir, /, Base], File),
 	  access_file(File, read), !,
 	  read_file_to_codes(File, String, []),
-	  wiki_string_to_dom(String, [], DOM)
+	  wiki_codes_to_dom(String, [], DOM)
 	},
 	pldoc_html:html(DOM).
 
@@ -159,7 +158,7 @@ file_indices([], _) -->
 file_indices([H|T], Options) -->
 	file_index(H, Options),
 	file_indices(T, Options).
-	
+
 %%	file_index(+File, +Options)// is det.
 %
 %	Create an index for File.
@@ -218,7 +217,7 @@ doc_file_href(File, HREF, _) :-
 %
 %	Create a /doc HREF from Path.  There   are  some nasty things we
 %	should take care of.
-%	
+%
 %		* Windows paths may start with =|L:|= (mapped to =|/L:|=)
 %		* Paths may contain spaces and other weird stuff
 
@@ -249,7 +248,7 @@ object_summaries(Objects, Section, Options) -->
 	  keysort(Tagged, Ordered)
 	},
 	obj_summaries(Ordered, Section, Options).
-	
+
 obj_summaries([], _, _) -->
 	[].
 obj_summaries([_Tag-H|T], Section, Options) -->
@@ -269,11 +268,12 @@ tag_pub_priv([H|T0], [Tag-H|T], Options) :-
 %
 %	Create a summary for Object.  Summary consists of a link to
 %	the Object and a summary text as a table-row.
-%	
+%
 %	@tbd	Hacky interface.  Do we demand Summary to be in Wiki?
 
 object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
-	(   { wiki_string_to_dom(Summary, [], DOM0),
+	(   { string_to_list(Summary, Codes),
+	      wiki_codes_to_dom(Codes, [], DOM0),
 	      strip_leading_par(DOM0, DOM),
 	      (	  private(Obj, Options)
 	      ->  Class = private		% private definition
@@ -302,7 +302,7 @@ object_summary(_, _, _) -->
 		 /*******************************
 		 *	    NAVIGATION		*
 		 *******************************/
-	       
+
 %%	doc_links(+Directory, +Options)// is det.
 %
 %	Provide overview links and search facilities.
@@ -315,14 +315,16 @@ doc_links(Directory, Options) -->
 	->  working_directory(Dir, Dir)
 	;   Dir = Directory
 	},
-	html(div(class(navhdr),
-		 [ span(style('float:left'),
-			div([ \source_dir_menu(Dir),
-			      \version
-			    ])),
-		   span(style('float:right'), \search_form(Options)),
-		   br(clear(both))
-		 ])).
+	html([ \html_requires(pldoc),
+	       div(class(navhdr),
+		   [ div(class(jump),
+			  div([ \places_menu(Dir),
+				\version
+			      ])),
+		     div(class(search), \search_form(Options)),
+		     br(clear(right))
+		   ])
+	     ]).
 
 
 %%	version// is det.
@@ -338,11 +340,13 @@ version -->
 	       [' SWI-Prolog ', Major, '.', Minor, '.', Patch])).
 
 
-%%	source_dir_menu(Current)// is det
+%%	places_menu(Current)// is det
 %
 %	Create a =select= menu with entries for all loaded directories
 
-source_dir_menu(Dir) -->
+places_menu(Dir) -->
+	prolog:doc_places_menu(Dir), !.
+places_menu(Dir) -->
 	{ findall(D, source_directory(D), List),
 	  sort(List, Dirs)
 	},
@@ -352,7 +356,7 @@ source_dir_menu(Dir) -->
 		    select(name(dir),
 			   \source_dirs(Dirs, Dir))
 		  ])).
-	     
+
 source_dirs([], _) -->
 	[].
 source_dirs([H|T], WD) -->
@@ -365,7 +369,7 @@ source_dirs([H|T], WD) -->
 	  format(string(Call), 'document.location=\'~w\';', [HREF])
 	},
 	html(option([onClick(Call)|Attrs], H)),
-	source_dirs(T, WD).	
+	source_dirs(T, WD).
 
 %%	source_directory(+Dir) is semidet.
 %%	source_directory(-Dir) is det.

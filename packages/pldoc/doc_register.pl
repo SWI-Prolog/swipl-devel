@@ -78,7 +78,7 @@ user:message_hook(load_file(done(0, _F, _A, _M, _T, _H)), _, _) :-
 %	the comment, it passes the  term  itself   to  see  what term is
 %	commented  as  well  as  the  start-position   of  the  term  to
 %	distinguish between comments before the term and inside it.
-%	
+%
 %	@param Comments	List of comments read before the end of Term
 %	@param TermPos	Start location of Term
 %	@param Term 	Actual term read
@@ -88,13 +88,13 @@ prolog:comment_hook(Comments, TermPos, Term) :-
 	'$push_input_context',		% Preserve input file and line
 	call_cleanup(do_comment_hook(Comments, TermPos, File, Term),
 		     '$pop_input_context').
-	
+
 process_stored_comments :-
 	forall(retract(mydoc(Comments, TermPos, File)),
 	       delayed_process(Comments, TermPos, File)).
 
 delayed_process(Comments, TermPos, File) :-
-	current_module(Module, File),
+	module_property(Module, file(File)),
 	'$set_source_module'(Old, Module),
 	process_comments(Comments, TermPos, File),
 	'$set_source_module'(_, Old).

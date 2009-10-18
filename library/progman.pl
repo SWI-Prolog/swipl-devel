@@ -94,7 +94,7 @@ progman_make_group(Name, File) :-
 	close_dde_conversation(DDE).
 
 %%	progman_make_item(+Group, +Title, +CmdLine, +Dir)
-%	
+%
 %	Make a new program item in the named group.  If the item already
 %	exists, delete it.
 
@@ -222,7 +222,7 @@ line([Arg|More]) -->
 	line(More).
 line([]) -->
 	[].
-	
+
 string(Arg) -->
 	char(""""), !,
 	string_val(A0),
@@ -239,7 +239,7 @@ char([C], [C|T], T).
 end_of_string([], []).
 
 %%	lines_to_atoms(+Lines, -Atoms)
-%       
+%
 %	Break a multiline answer from PROGMAN in multiple atoms, each
 %	describing a single line of the answer without the \r\n.
 

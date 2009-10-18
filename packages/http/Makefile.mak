@@ -20,7 +20,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
-		http_path.pl http_hook.pl \
+		http_path.pl http_hook.pl html_head.pl http_exception.pl \
 		json.pl http_json.pl json_convert.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
@@ -36,7 +36,7 @@ http_stream.dll:	$(OBJ)
 json.dll:	json.obj
 		$(LD) /dll /out:$@ $(LDFLAGS) json.obj $(PLLIB) $(LIBS)
 
-http_stream.obj:	http_error.c http_chunked.c stream_range.c
+http_stream.obj:	http_error.c http_chunked.c cgi_stream.c stream_range.c
 
 all:		
 
@@ -78,7 +78,10 @@ uninstall::
 
 clean::
 		if exist *~ del *~
+		if exist *.obj del *.obj
 
 distclean:	clean
+		if exist *.dll del *.dll
+		if exist *.pdb del *.pdb
 
 

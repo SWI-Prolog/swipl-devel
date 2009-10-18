@@ -37,6 +37,7 @@
 :- use_module(library(option)).
 :- use_module(library(settings)).
 :- use_module(library(broadcast)).
+:- use_module(library(url)).
 
 
 /** <module> Abstract specification of HTTP server locations
@@ -49,7 +50,7 @@ additional argument with options. Currently only one option is defined:
 
     * priority(+Integer)
     If two rules match, take the one with highest priority.  Using
-    priorities is needed because we want to be able to overrule 
+    priorities is needed because we want to be able to overrule
     paths, but we do not want to become dependent on clause ordering.
 
 Here is an example that binds =|/login|=  to login/1. The user can reuse
@@ -88,7 +89,7 @@ http:location(root, Root, []) :-
 %
 %	Path is the HTTP location for the abstract specification Spec.
 %	Options:
-%	
+%
 %	    * relative_to(Base)
 %	    Path is made relative to Base.  Default is to generate
 %	    absolute URLs.
@@ -99,7 +100,8 @@ http:location(root, Root, []) :-
 http_absolute_location(Spec, Path, Options) :-
 	must_be(ground, Spec),
 	option(relative_to(Base), Options, /),
-	absolute_location(Spec, Base, Path, Options).
+	absolute_location(Spec, Base, Path, Options),
+	debug(http_path, '~q (~q) --> ~q', [Spec, Base, Path]).
 
 absolute_location(Spec, Base, Path, _Options) :-
 	location_cache(Spec, Base, Cache), !,
@@ -117,12 +119,12 @@ expand_location(Spec, _Base, Path, Options) :-
 	http_location_path(Alias, Parent),
 	absolute_location(Parent, /, ParentLocation, Options),
 	phrase(path_list(Sub), List),
-	concat_atom(List, /, SubAtom),
+	atomic_list_concat(List, /, SubAtom),
 	(   ParentLocation == ''
 	->  Path = SubAtom
 	;   sub_atom(ParentLocation, _, _, 0, /)
 	->  atom_concat(ParentLocation, SubAtom, Path)
-	;   concat_atom([ParentLocation, SubAtom], /, Path)
+	;   atomic_list_concat([ParentLocation, SubAtom], /, Path)
 	).
 
 
@@ -132,7 +134,7 @@ expand_location(Spec, _Base, Path, Options) :-
 %	condition search, we demand a single  expansion for an alias. An
 %	ambiguous alias results in a printed   warning.  A lacking alias
 %	results in an exception.
-%	
+%
 %	@error	existence_error(http_alias, Alias)
 
 http_location_path(Alias, Path) :-
@@ -180,15 +182,18 @@ relative_to(/, Path, Path) :- !.
 relative_to(_Base, Path, Path) :-
 	sub_atom(Path, 0, _, _, /), !.
 relative_to(Base, Local, Path) :-
+	sub_atom(Base, 0, _, _, /), !,	% file version
 	path_segments(Base, BaseSegments),
 	append(BaseDir, [_], BaseSegments) ->
 	path_segments(Local, LocalSegments),
 	append(BaseDir, LocalSegments, Segments0),
 	clean_segments(Segments0, Segments),
 	path_segments(Path, Segments).
-	
+relative_to(Base, Local, Global) :-
+	global_url(Local, Base, Global).
+
 path_segments(Path, Segments) :-
-	concat_atom(Segments, /, Path).
+	atomic_list_concat(Segments, /, Path).
 
 %%	clean_segments(+SegmentsIn, -SegmentsOut) is det.
 %
@@ -217,7 +222,7 @@ empty_segment('.').
 %%	path_list(+Spec, -List) is det.
 %
 %	Translate seg1/seg2/... into [seg1,seg2,...].
-%	
+%
 %	@error	instantiation_error
 %	@error	type_error(atomic, X)
 

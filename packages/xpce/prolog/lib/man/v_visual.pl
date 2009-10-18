@@ -34,7 +34,7 @@
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
 :- use_module(pce_op).			% should move
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , ignore/1
 	   , portray_object/2
 	   , send_list/3
@@ -136,7 +136,7 @@ expand_node(V, Id:'name|int') :->
 add_visual(V, Visual:visual, SuperId:[name|int]) :->
 	"Add a visual object to the tree"::
 	Id = Visual->>object_reference,
-	(   _ = V->>node(Id)  
+	(   _ = V->>node(Id)
 	->  true
 	;   (   SuperId == @default
 	    ->	TheSuperId = Visual->>contained_in->>object_reference
@@ -150,7 +150,7 @@ add_visual(V, Visual:visual, SuperId:[name|int]) :->
 	    ),
 	    V->>prepare(Visual)
 	).
-	
+
 
 prepare(V, Visual:visual) :->
 	"Ensure the freed-message is trapped"::
@@ -279,7 +279,7 @@ initialise(F, Manual:man_manual) :->
 
 	new(V, vis_window)->>below(TD),
 	new(report_dialog)->>below(V).
-	
+
 window(F, Window:vis_window) :<-
 	Window = F->>member(vis_window).
 
@@ -295,7 +295,7 @@ visualise_from_atom(F, Atom:name) :->
 	    )
 	;   F->>report(warning, '%s: syntax error', Atom)
 	).
-		    
+
 vis_expandable(_V) :->
 	fail.
 

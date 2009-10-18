@@ -10,6 +10,3 @@
 [submodule "packages/inclpr"]
 	path = packages/inclpr
 	url = ../inclpr.git
-[submodule "library/common"]
-	path = library/common
-	url = ../lib.git

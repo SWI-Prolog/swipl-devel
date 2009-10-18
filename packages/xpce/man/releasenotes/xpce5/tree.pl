@@ -19,7 +19,7 @@ initialise(T, Tree:prolog) :->
 	send(T, node_handler,
 	     click_gesture(left, '', single,
 			   message(@event?receiver?node, clicked))).
-	
+
 :- pce_end_class.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

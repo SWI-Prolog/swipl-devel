@@ -44,7 +44,7 @@ new_charclass()
   char_range(map, 'a', 'z', CH_LCLETTER);
   char_range(map, 'A', 'Z', CH_LCLETTER);
   char_range(map, '0', '9', CH_DIGIT);
-  
+
   ca['.'] |= CH_CNM;
   ca['-'] |= CH_CNM;
   ca[183] |= CH_CNM;			/* XML */

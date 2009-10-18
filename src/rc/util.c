@@ -110,7 +110,7 @@ rc_register_member(RcArchive archive, RcMember member)
   } else
   { if ( !(copy = malloc(sizeof(*member))) )
       return FALSE;
-   
+
     copy->next    = NULL;
     copy->archive = archive;
 
@@ -119,7 +119,7 @@ rc_register_member(RcArchive archive, RcMember member)
     } else
     { archive->members_tail->next = copy;
       archive->members_tail = copy;
-    } 
+    }
   }
 
   copy->name     = member->name;
@@ -131,7 +131,7 @@ rc_register_member(RcArchive archive, RcMember member)
   copy->data     = member->data;
   copy->offset   = member->offset;
   copy->size     = member->size;
-    
+
   return copy;
 }
 

@@ -37,14 +37,15 @@ available test sets. The public goals are:
 
 % Load XPCE from the development environment
 
-:- initialization op(200, fy,  user:(@)).
-:- initialization op(250, yfx, user:(?)).
-:- initialization op(990, xfx, user:(:=)).
+:- op(200, fy,  user:(@)).
+:- op(250, yfx, user:(?)).
+:- op(990, xfx, user:(:=)).
 
 user:file_search_path(foreign, '.').
 user:file_search_path(pce, '..').
 user:file_search_path(library, '../prolog/lib').
 :- use_module(library(pce)).
+:- use_module(library(pce_util)).
 
 
 :- get(@pce, version, V),
@@ -155,7 +156,7 @@ wstring(sub-1) :-
 wstring(split-1) :-
 	List = ["aap", [1060,1061], "noot"],
 	maplist(atom_codes, Atoms, List),
-	concat_atom(Atoms, -, Text),
+	atomic_list_concat(Atoms, -, Text),
 	get(Text, split, -, Chain),
 	chain_list(Chain, Splitted),
 	Splitted == Atoms.
@@ -616,7 +617,7 @@ run_test_script(Script) :-
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
-	    concat_atom([ScriptDir, /, Directory], Dir),
+	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
 	;   Dir = Directory
@@ -673,7 +674,7 @@ testset(regex).				% Regular expression matches
 testset(type).				% Check type logic
 
 %	testdir(Dir)
-%	
+%
 %	Enumerate directories holding tests.
 
 :- multifile
@@ -738,7 +739,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 test_failed(R, Except) :-
 	clause(Head, _, R),
 	functor(Head, Name, 1),

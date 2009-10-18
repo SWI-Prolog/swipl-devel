@@ -29,7 +29,7 @@
 
 sendmoney :-
 	send(X),
-	X == 
+	X ==
 	[    [9, 5, 6, 7],
 	     [1, 0, 8, 5],
 	  [1, 0, 6, 5, 2]
@@ -40,13 +40,13 @@ send([[S,E,N,D],  [M,O,R,E],  [M,O,N,E,Y]])  :-
 	Carries = [C1,C2,C3,C4],
 	Digits  in 0..9,
 	Carries in 0..1,
-	
+
 	M                #=              C4,
 	O  +  10  *  C4  #=  M  +  S  +  C3,
 	N  +  10  *  C3  #=  O  +  E  +  C2,
 	E  +  10  *  C2  #=  R  +  N  +  C1,
 	Y  +  10  *  C1  #=  E  +  D,
-	
+
 	M  #>=  1,
 	S  #>=  1,
 	all_different(Digits),

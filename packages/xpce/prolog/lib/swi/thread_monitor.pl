@@ -30,7 +30,7 @@
 */
 
 :- module(pce_thread_monitor,
-	  [ 
+	  [
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
@@ -69,7 +69,7 @@ initialise(TS, Thread:any, CPU:int) :->
 	thread_statistics(Thread, localused, Local),
 	thread_statistics(Thread, globalused, Global),
 	thread_statistics(Thread, trailused, Trail),
-	
+
 	send(TS, slot, local,  Local),
 	send(TS, slot, global, Global),
 	send(TS, slot, trail,  Trail),
@@ -159,7 +159,7 @@ truncate_chain(Chain, Len) :-
 truncate_chain(Chain, Len) :-
 	send(Chain, delete_head),
 	truncate_chain(Chain, Len).
-	
+
 
 join(TS) :->
 	"Join this thread"::
@@ -177,7 +177,7 @@ start_profile(TS) :->
 	(   get(TS, profiling, @on)
 	->  send(TS, report, warning, 'Already profiling')
 	;   get(TS, key, TID),
-	    thread_signal(TID, 
+	    thread_signal(TID,
 			  (	  reset_profiler,
 				  profiler(_, true)
 			  )),
@@ -190,7 +190,7 @@ end_profile(TS) :->
 	(   get(TS, profiling, @off)
 	->  send(TS, report, error, 'Not profiling')
 	;   get(TS, key, TID),
-	    thread_signal(TID, 
+	    thread_signal(TID,
 			  (	  profiler(_, false),
 				  show_profile(plain, 25)
 			  )),
@@ -391,7 +391,7 @@ initialise(TD, TS:thread_status, Graphs:chain, H:int, V:int) :->
 	new(_, partof_hyper(TS, TD, diagram, status)),
 	send(TS, recall, H),
 	send(TD, update).
-	
+
 
 attach(TD, TS:thread_status) :->
 	"Switch to another thread"::
@@ -512,7 +512,7 @@ label_for_value(A, Val:'int|real', Gr:graphical) :<-
 	),
 	get(A, tag_font, Font),
 	new(Gr, text(S, right, Font)).
-	
+
 location(A, Sel:name, Val:'int|real', Loc:int) :<-
 	"Ignore values < low"::
 	(   percent_scale(Sel)

@@ -230,7 +230,7 @@ computeBoundingBoxPath(Path p)
     if ( py < miny ) miny = py;
     if ( py > maxy ) maxy = py;
   }
-  
+
   if ( notNil(p->mark) || p->selected == ON )
   { int mw=0, mh=0;
 
@@ -333,7 +333,7 @@ smooth_path(Path p)
 
     return;
   }
-    
+
   ipoints = (npoints - 1) * intervals + 1;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -510,14 +510,14 @@ pointsPath(Path p, Chain points)
     for_cell(cell, points)
     { if ( !instanceOfObject(cell->value, ClassPoint) )
       { Point pt = checkType(cell->value, TypePoint, p);
-  
+
 	if ( pt )
 	  cellValueChain(points, PointerToInt(cell), pt);
 	else
 	  return errorPce(cell->value, NAME_unexpectedType, TypePoint);
       }
     }
-  
+
     assign(p, points, points);
     requestComputeGraphical(p, DEFAULT);
   }
@@ -591,7 +591,7 @@ radiusPath(Path p, Int r)
 	assign(p, radius, r);
 	changedEntireImageGraphical(p));
   }
-  
+
   succeed;
 }
 
@@ -603,7 +603,7 @@ kindPath(Path p, Name kind)
 
   assign(p, kind, kind);
   requestComputeGraphical(p, DEFAULT);
-  
+
   succeed;
 }
 
@@ -644,30 +644,30 @@ geometryPath(Path p, Int x, Int y, Int w, Int h)
 	{ setArea(p->area, x, y, w, h);
 	  ax = valInt(p->area->x);
 	  ay = valInt(p->area->y);
-	  ooffx = valInt(p->offset->x); 
-	  ooffy = valInt(p->offset->y); 
+	  ooffx = valInt(p->offset->x);
+	  ooffy = valInt(p->offset->y);
 	  offx = ooffx + ax - ox;
 	  offy = ooffy + ay - oy;
 	  xf = (float) valInt(p->area->w) / (float) valInt(ow);
 	  yf = (float) valInt(p->area->h) / (float) valInt(oh);
-  
+
 	  assign(p->offset, x, toInt(offx));
 	  assign(p->offset, y, toInt(offy));
-  
+
 	  for_cell(cell, p->points)
 	  { Point pt = cell->value;
 	    int nx = ax + rfloat((float) (valInt(pt->x)-ox+ooffx) * xf) - offx;
 	    int ny = ay + rfloat((float) (valInt(pt->y)-oy+ooffy) * yf) - offy;
-      
+
 	    assign(pt, x, toInt(nx));
 	    assign(pt, y, toInt(ny));
 	  }
-  
+
 	  if ( p->kind == NAME_smooth && notNil(p->interpolation) )
-	  { if ( xf == 1.0 && yf == 1.0 )		     
+	  { if ( xf == 1.0 && yf == 1.0 )
 	    { Int dx = toInt(ax - ox - (offx - ooffx));
 	      Int dy = toInt(ay - oy - (offy - ooffy));
-  
+
 	      for_cell(cell, p->interpolation)
 		offsetPoint(cell->value, dx, dy);
 	    } else
@@ -722,7 +722,7 @@ referencePath(Path p, Point r)
 
   dx = sub(p->offset->x, rx);
   dy = sub(p->offset->y, ry);
-  
+
   if ( dx || dy )
   { Cell cell;
 
@@ -756,7 +756,7 @@ resizePath(Path p, Real xfactor, Real yfactor, Point origin)
   { Point pt = cell->value;
     int nx = ox + rfloat((float) (valInt(pt->x)+offx-ox) * xf) - offx;
     int ny = oy + rfloat((float) (valInt(pt->y)+offy-oy) * yf) - offy;
-    
+
     assign(pt, x, toInt(nx));
     assign(pt, y, toInt(ny));
   }
@@ -794,7 +794,7 @@ getPointPath(Path p, Point pos, Int dist)
   for_cell(cell, p->points)
   { Point pt = cell->value;
     Int d = getDistancePoint(pt, pos);
-    
+
     if ( valInt(d) < valInt(dist) && (isNil(rval) || valInt(d) < bestd) )
     { rval = pt;
       bestd = valInt(d);

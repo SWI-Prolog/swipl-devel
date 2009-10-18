@@ -155,7 +155,7 @@ static getdecl get_sourceLocation[] =
 #define rc_sourceLocation NULL
 /*
 static classvardecl rc_sourceLocation[] =
-{ 
+{
 };
 */
 

@@ -53,8 +53,8 @@ user_help :-
 pce_reinitialise :-
 	pce_boot:pce_reinitialise,
 	format('~nFor HELP, please invoke the predicate `manpce''.~n~n', []).
-	
- 
+
+
 print_exception(Excp) :-
 	Excp = existence_error(_,_,procedure,Target,_), !,
 	format("Exception caught by hostSend/Get:~n", []),

@@ -67,7 +67,7 @@ forever :-
 
 forever(Test) :-
 	gethostname(Host),
-	concat_atom([Host, -, 'forever.txt'], Log),
+	atomic_list_concat([Host, -, 'forever.txt'], Log),
 	protocol(Log),
 	between(1, 10000000, N),
 	  get_time(T),
@@ -117,7 +117,7 @@ create_server(Workers) :-
 	thread_create(server(Workers), _, [alias(server)]),
 	thread_get_message(ready),
 	debug(tcp, 'Server started', []).
- 
+
 stop_server :-
 	forall(worker(_), client(exit, _)),
 	debug(tcp, 'Workers exited, prepare to join server', []),
@@ -145,15 +145,15 @@ server(Workers) :-
 	stop_pool,
 	tcp_close_socket(Socket),
 	retract(port(Port)).
- 
+
 create_pool(Number) :-
-	message_queue_create(queue),   
-	forall(between(1, Number, _),  
+	message_queue_create(queue),
+	forall(between(1, Number, _),
 	       (   thread_create(work(queue), Id, []),
 		   assert(worker(Id))
 	       )).
-				 
- 
+
+
 stop_pool :-
 	forall(worker(_),
 	       thread_send_message(queue, stop)),
@@ -167,7 +167,7 @@ work(Queue) :-
 	thread_get_message(Queue, Socket),
 	handle(Socket, Data),
 	Data == exit, !.
- 
+
 handle(Client, Data) :-
 	tcp_open_socket(Client, In, Out),
 	read(In, Data),
@@ -211,7 +211,7 @@ do_work(sleep(Time), true) :- !,
 		 *******************************/
 
 host(localhost).
- 
+
 client(Term, Reply) :-
 	client(Term, Reply, 0).
 client(Term, Reply, TimeOut) :-
@@ -230,7 +230,7 @@ client(Host, Port, Timeout, Term, Reply) :-
 	),
 	call_cleanup(read(In, Reply), close(In)),
 	debug(data, 'Reply = ~W', [Reply, [max_depth(10)]]).
- 
+
 send_output(List, Out) :-
 	is_list(List), !,
 	send_list_output(List, Out).
@@ -263,7 +263,7 @@ connect :-
 		 *******************************/
 
 %	echo(Times)
-%	
+%
 %	Send a lot of short messages to the server
 
 test_impl(echo(Times)) :- !,
@@ -271,7 +271,7 @@ test_impl(echo(Times)) :- !,
 	       echo(N)).
 
 %	big(Size)
-%	
+%
 %	Send a list of 1...Size to the server
 
 test_impl(big(Size)) :-
@@ -279,7 +279,7 @@ test_impl(big(Size)) :-
 	echo(L).
 
 %	big(Size, Times)
-%	
+%
 %	Send Times lists of 1...Size to the server
 
 test_impl(big(Size, Times)) :-
@@ -350,7 +350,7 @@ clean :-
 	ok(:).
 
 %	concurrent(+Times, +Threads, :Goal)
-%	
+%
 %	Run Goal Times times concurrent in Threads
 
 concurrent(Times, 1, Goal) :- !,

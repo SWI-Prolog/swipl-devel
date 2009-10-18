@@ -100,7 +100,7 @@ initHexTable(void)
   hexTable[' '] = -1;	hexTable[','] = -1;
   hexTable['}'] = -1;	hexTable['\n'] = -1;
   hexTable['\t'] = -1;
-	
+
   initialized = TRUE;
 }
 
@@ -114,7 +114,7 @@ NextInt(IOSTREAM *fstream)
   int value = 0;
   int gotone = 0;
   int done = 0;
-    
+
     /* loop, accumulate hex value until find delimiter  */
     /* skip any initial delimiters found in read stream */
 
@@ -183,7 +183,7 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
       }
       continue;
     }
-    
+
     if (sscanf(line, "static short %s = {", name_and_type) == 1)
       version10p = 1;
     else if (sscanf(line,"static unsigned char %s = {",name_and_type) == 1)
@@ -200,7 +200,7 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
 
     if (strcmp("bits[]", type))
       continue;
-    
+
     if (!ww || !hh)
       RETURN_ERROR;
 
@@ -228,9 +228,9 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
     } else
     { unsigned char *ptr;
       int bytes;
-      
+
       for (bytes=0, ptr=data; bytes<size; bytes++, ptr++)
-      { if ((value = NextInt(fd)) < 0) 
+      { if ((value = NextInt(fd)) < 0)
 	  RETURN_ERROR;
 	*ptr=value;
       }

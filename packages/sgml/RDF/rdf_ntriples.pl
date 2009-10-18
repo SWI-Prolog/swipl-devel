@@ -40,7 +40,7 @@ where
 
 
 %	load_rdf_ntriples(+Source, -Triples)
-%	
+%
 %	Load a file or stream to a list of rdf(S,P,O) triples.
 
 load_rdf_ntriples(File, Triples) :-
@@ -48,7 +48,7 @@ load_rdf_ntriples(File, Triples) :-
 	call_cleanup(stream_to_triples(In, Triples), Close).
 
 %	open_nt_file(+Input, -Stream, -Close)
-%	
+%
 %	Open Input, returning Stream and a goal to cleanup Stream if it
 %	was opened.
 
@@ -64,7 +64,7 @@ open_nt_file(Spec, Stream, close(Stream)) :-
 
 
 %	rdf_ntriple_part(+Type, -Value, <DCG>)
-%	
+%
 %	Parse one of the fields of  an   ntriple.  This  is used for the
 %	SWI-Prolog Sesame (www.openrdf.org) implementation   to  realise
 %	/servlets/removeStatements. I do not think   public  use of this
@@ -79,7 +79,7 @@ rdf_ntriple_part(object, Object) -->
 
 
 %	stream_to_triples(+Stream, -ListOfTriples)
-%	
+%
 %	Read Stream, returning all its triples
 
 stream_to_triples(In, Triples) :-
@@ -143,11 +143,11 @@ literal(Literal) -->
 	lang_string(Literal), !.
 literal(Literal) -->
 	xml_string(Literal).
-	
+
 
 %	name_start(-Code)
 %	name_codes(-ListfCodes)
-%	
+%
 %	Parse identifier names
 
 name_start(C) -->
@@ -165,7 +165,7 @@ name_codes([]) -->
 
 
 %	escaped_uri_codes(-CodeList)
-%	
+%
 %	Decode string holding %xx escaped characters.
 
 escaped_uri_codes([]) -->
@@ -187,12 +187,26 @@ escaped_uri_codes([C|T]) -->
 	},
 	escaped_uri_codes(T).
 escaped_uri_codes([C|T]) -->
+	"\\U", [D0,D1,D2,D3,D4,D5,D6,D7], !,
+	{ code_type(D0, xdigit(V0)),
+	  code_type(D1, xdigit(V1)),
+	  code_type(D2, xdigit(V2)),
+	  code_type(D3, xdigit(V3)),
+	  code_type(D4, xdigit(V4)),
+	  code_type(D5, xdigit(V5)),
+	  code_type(D6, xdigit(V6)),
+	  code_type(D7, xdigit(V7)),
+	  C is V0<<28 + V1<<24 + V2<<20 + V3<<16 +
+	       V4<<12 + V5<<8 + V6<<4 + V7
+	},
+	escaped_uri_codes(T).
+escaped_uri_codes([C|T]) -->
 	[C],
 	escaped_uri_codes(T).
 
 
 %	lang_string()
-%	
+%
 %	Process a language string
 
 lang_string(String) -->
@@ -208,7 +222,7 @@ lang_string(String) -->
 	;   "^^"
 	->  uniref(Type),
 	    { String = literal(type(Type, Atom))
-	    }	
+	    }
 	;   { String = literal(Atom)
 	    }
 	).
@@ -219,7 +233,7 @@ langsep -->
 	"@".
 
 %	xml_string(String)
-%	
+%
 %	Handle xml"..."
 
 xml_string(xml(String)) -->
@@ -249,26 +263,26 @@ string_char(C) -->
 	"\\u",
 	'4xdigits'(C).
 string_char(C) -->
-	"\\u",
+	"\\U",
 	'4xdigits'(C0),
 	'4xdigits'(C1),
 	{ C is C0<<16 + C1
 	}.
 string_char(C) -->
 	[C].
-	
+
 '4xdigits'(C) -->
 	[C0,C1,C2,C3],
 	{ code_type(C0, xdigit(V0)),
 	  code_type(C1, xdigit(V1)),
 	  code_type(C2, xdigit(V2)),
 	  code_type(C3, xdigit(V3)),
-	  
+
 	  C is V0<<12 + V1<<8 + V2<<4 + V3
 	}.
 
 %	language(-Lang)
-%	
+%
 %	Return xml:lang language identifier.
 
 language(Lang) -->
@@ -302,7 +316,7 @@ ws -->
 	}.
 
 end_of_input([], []).
-	
+
 
 wss -->
 	ws, !,

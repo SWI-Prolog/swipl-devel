@@ -124,7 +124,7 @@ about  the same  relative numbers.    For  this reason  PCE addopts  a
 perfect fit strategy for memory allocation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define offset(structure, field) ((int) &(((structure *)NULL)->field))
+#define offset(structure, field) ((intptr_t) &(((structure *)NULL)->field))
 
 static inline Zone
 allocate(size_t size)
@@ -216,7 +216,7 @@ alloc(size_t n)
     size_t m = n / sizeof(Zone);
 
     if ( (z = freeChains[m]) != NULL )	/* perfect fit */
-    { 
+    {
 #if ALLOC_DEBUG
       assert((long) z >= allocBase && (long) z <= allocTop);
       assert(z->in_use == FALSE);
@@ -276,7 +276,7 @@ unalloc(size_t n, Any p)
 { Zone z = p;
   n = roundAlloc(n);
   allocbytes -= n;
-  
+
   if ( n <= ALLOCFAST )
   { size_t m = n / sizeof(Zone);
     assert((unsigned long)z >= allocBase && (unsigned long)z <= allocTop);
@@ -302,7 +302,7 @@ unalloc(size_t n, Any p)
 	  Cprintf("unalloc %d bytes for %s, m = %d, now %d\n",
 		  n, pp(z), m, count_zone_chain(freeChains[m])));
 #endif
-    
+
     return;
   }
 
@@ -360,7 +360,7 @@ checkFreeChains()
     }
   }
 }
-#endif 
+#endif
 
 
 status
@@ -390,7 +390,7 @@ listWastedCorePce(Pce pce, Bool ppcells)
       }
     }
   }
-  
+
   Cprintf("Total wasted: %ld bytes\n", total);
 
   succeed;

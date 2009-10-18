@@ -55,7 +55,7 @@ corresponds to one all_distinct constraint the  variable is involved in,
 and "left" and "right" means literally which  variables are to the left,
 and which to the right in the first, second etc. of those constraints.
 
-all_distinct([A,B,C,D]), all_distinct([X,Y,C,F,E]) causes the following 
+all_distinct([A,B,C,D]), all_distinct([X,Y,C,F,E]) causes the following
 attributes for "C":
 
 	Left:  [[A,B],[X,Y]]
@@ -98,7 +98,7 @@ domain_bitvector([], Bitvec, Bitvec).
 domain_bitvector([D|Ds], Bitvec0, Bitvec) :-
 	Bitvec1 is Bitvec0 \/ (1 << D),
 	domain_bitvector(Ds, Bitvec1, Bitvec).
-	
+
 
 all_distinct(Ls) :-
 	all_distinct(Ls, []),
@@ -162,7 +162,7 @@ attr_unify_hook(dom_neq(Dom,Lefts,Rights), Y) :-
 		Dom /\ (1 << Y) =\= 0,
 		exclude_fire(Lefts, Rights, Y)
 	;
-		
+
 		\+ lists_contain(Lefts, Y),
 		\+ lists_contain(Rights, Y),
 		( get_attr(Y, clp_distinct, dom_neq(YDom0,YLefts0,YRights0)) ->

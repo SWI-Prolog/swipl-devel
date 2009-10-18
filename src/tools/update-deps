@@ -1,0 +1,66 @@
+#!/bin/bash
+
+tooldir=`dirname $0`
+if [ "x$tooldir" == x ]; then
+    tooldir=.
+fi
+
+pwd=`pwd`
+home=`dirname $pwd`/src
+
+function basesource
+{ case $1 in
+    pl-wam.c)
+	echo $1 pl-alloc.c pl-index.c pl-fli.c pl-vmi.c
+	;;
+    pl-prims.c|pl-rec.c)
+	echo $1 pl-termwalk.c
+	;;
+    pl-read.c)
+	echo $1 pl-umap.c
+	;;
+    pl-gc.c)
+	echo $1 pl-lifegc.c
+	;;
+    *)
+	echo $1
+	;;
+  esac
+}
+
+
+function source
+{ base=`basename $1`
+  dir=`dirname $1`
+
+  for f in `basesource $base`; do
+    echo $dir/$f
+  done
+}
+
+
+function update
+{ base=`echo $1 | sed 's/\.c.*/.c/'`
+  tout="$base.tree"
+  fout="$base.functions"
+  src=`find $home -name $base`
+
+  if [ ! -r $tout -o $1 -nt $tout ]; then
+    if ! $tooldir/calltree.pl $1 $tout; then
+      return 1
+    fi
+  fi
+  if [ ! -r $fout -o $src -nt $fout ]; then
+    sources="`source $src`"
+    echo $tooldir/functions.pm $sources
+    if ! $tooldir/functions.pm $sources > $fout; then
+      return 1
+    fi
+  fi
+}
+
+for f in $*; do
+   if ! update $f; then
+      exit 1
+   fi
+done

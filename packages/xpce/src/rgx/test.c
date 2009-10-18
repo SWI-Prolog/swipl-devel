@@ -54,7 +54,7 @@ main(int argc, char **argv)
   int i;
   charW *target, *offset;
   int dflags = REG_MTRACE|REG_FTRACE;
-  
+
   dflags = 0;
 
   if ( argc != 3 )

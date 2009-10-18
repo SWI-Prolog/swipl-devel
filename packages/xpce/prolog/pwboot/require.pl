@@ -109,7 +109,7 @@ combine_use_modules([lib(Lib, Term)|Rest],
 	functor(Term, Name, Ar),
 	collect_for_lib(Rest, Lib, Ps, [], R0),
 	combine_use_modules(R0, RestDecl).
-				  
+
 collect_for_lib([], _, [], R, R).
 collect_for_lib([lib(Lib, Term)|L], Lib, [Name/Arity|RH], R0, R) :- !,
 	functor(Term, Name, Arity),

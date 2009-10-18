@@ -186,7 +186,7 @@ jpeg_cmap_from_colour_map(ColourMap cm, DisplayObj d)
     int i=0;
     Colour e;
     JpegColourMap map = alloc_jpeg_cmap(ncolors);
-    
+
     for_vector(colours, e,
 	       { if ( notNil(e) )
 		 { int r; int g; int b;
@@ -204,7 +204,7 @@ jpeg_cmap_from_colour_map(ColourMap cm, DisplayObj d)
 		   map->dib_colours[i].rgbRed   = r;
 		   map->dib_colours[i].rgbGreen = g;
 		   map->dib_colours[i].rgbBlue  = b;
-		     
+
 		   i++;
 		 }
 	       });
@@ -300,7 +300,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 	     cmap->size*sizeof(RGBQUAD));
       header->biBitCount = 8;
       header->biClrUsed  = cmap->size;
-    
+
       cinfo.colormap = cmap->colours;
       cinfo.actual_number_of_colors = cmap->size;
       cinfo.quantize_colors = TRUE;
@@ -319,7 +319,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   else
     bwidth = ((width*3+3)&0xfffc);	/* why is this? */
   image_size = bwidth*height;
-  
+
   data = pceMalloc(image_size);
 
   for(outline = height-1;
@@ -329,7 +329,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
     BYTE *src, *dest;
 
     dest = data + bwidth*outline;
-  
+
     jpeg_read_scanlines(&cinfo, buff, 1);
     i = width;
     src = buff[0];
@@ -399,7 +399,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   header->biSizeImage   = image_size;
 
   attach_dib_image(image, dib, data);
-  
+
   succeed;
 }
 

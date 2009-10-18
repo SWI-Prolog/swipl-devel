@@ -464,7 +464,7 @@ Load \fileext{plt} test-files that belong to the currently loaded
 sources.     
 
     \predicate{running_tests}{0}{}
-Print all currrently running tests to the terminal.  It can be used
+Print all currently running tests to the terminal.  It can be used
 to find running thread in multi-threaded test operation or find the
 currently running test if a test appears to be blocking.
 

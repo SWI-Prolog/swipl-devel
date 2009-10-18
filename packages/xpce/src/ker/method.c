@@ -160,7 +160,7 @@ getArgumentTypeMethod(Method m, Int n)
 
   fail;
 }
-  
+
 
 
 		/********************************
@@ -323,7 +323,7 @@ getManIdMethod(Method m)
     nm = buf;
   else
     nm = pceMalloc(sizeof(wchar_t)*len);
-  
+
   o = nm;
   *o++ = 'M';
   *o++ = '.';
@@ -362,7 +362,7 @@ getManSummaryMethod(Method m)
 
   appendTextBuffer(tb, (CharArray)getContextNameMethod(m), ONE);
   CAppendTextBuffer(tb, " ");
-  
+
   appendTextBuffer(tb, (CharArray)getAccessArrowMethod(m), ONE);
   appendTextBuffer(tb, (CharArray)m->name, ONE);
 
@@ -524,7 +524,7 @@ static getdecl get_method[] =
 #define rc_method NULL
 /*
 static classvardecl rc_method[] =
-{ 
+{
 };
 */
 

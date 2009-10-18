@@ -30,34 +30,30 @@
 */
 
 :- module(pce_by_operator,
-	  [ (->>)/2
+	  [ (->>)/2,
+	    op(800, yfx, ->>),		% send/get
+	    op(800, xfx, *>>),		% send/get super
+	    op(800, xfx, =>>)
 	  ]).
+:- use_module(library(pce)).
+
 :- meta_predicate
 	->>(+, :).
-
-:- use_module(library(pce)).
-:- require([ throw/1
-	   , strip_module/3
-	   ]).
-
-:- multifile
-	user:goal_expansion/2.
-
-:- op(800, yfx, user:(->>)).		% send/get
-:- op(800, xfx, user:(*>>)).		% send/get super
-:- op(800, xfx, user:(=>>)).		% send/get slot
 
 
 		 /*******************************
 		 *	      SEND/GET		*
 		 *******************************/
 
-%	TBD: make this a goal-expansion too.
+%%	->>(Object, Message) is semidet.
+%
+%	Send an XPCE message.
+%
+%	@tbd make this a goal-expansion too.
 
-Obj->>Sel :-
-	strip_module(Sel, M, Msg),
+Obj->>M:Msg :-
 	action(Obj, [Msg], M).
-	
+
 action(A, _, _) :-
 	var(A), !,
 	throw(error(instantiation_error, (->>)/2)).
@@ -106,12 +102,13 @@ expand(Rec=>>Msg, Expanded) :- !,
 	).
 
 pce_ifhostproperty(prolog(sicstus),
-[(   :- multifile(user:goal_expansion/3)		),
- (   user:goal_expansion(G, M, E) :-
+[(:- multifile(user:goal_expansion/3)),
+ (user:goal_expansion(G, M, E) :-
 	M \== pce_by_operator,
 	expand(G, E)
  )
 ],
-[(   :- multifile(user:goal_expansion/2)		),
- (   user:goal_expansion(G, E) :- expand(G, E)		)
+[(:- multifile(system:goal_expansion/2)),
+ (system:goal_expansion(G, E) :-
+	expand(G, E)		)
 ]).

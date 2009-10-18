@@ -65,7 +65,7 @@ static senddecl send_binding[] =
 #define get_binding NULL
 /*
 static getdecl get_binding[] =
-{ 
+{
 };
 */
 
@@ -74,7 +74,7 @@ static getdecl get_binding[] =
 #define rc_binding NULL
 /*
 static classvardecl rc_binding[] =
-{ 
+{
 };
 */
 

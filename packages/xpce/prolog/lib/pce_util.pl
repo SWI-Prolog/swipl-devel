@@ -32,8 +32,6 @@
 :- module(pce_util,
 	  [ get_object/3, get_object/4, get_object/5
 	  , get_object/6, get_object/7, get_object/8
-	  , get_object/9, get_object/10, get_object/11
-	  , get_object/12, get_object/13
 
 	  , send_list/2, send_list/3
 	  , get_chain/3
@@ -51,11 +49,6 @@
 	get_object(+, :, +, +, +, -),
 	get_object(+, :, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, +, -),
-	get_object(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
 	send_list(:, +),
 	send_list(:, +, +),
@@ -94,21 +87,6 @@ get_object(Obj, Sel, A1, A2, A3, A4, Out) :-
 get_object(Obj, Sel, A1, A2, A3, A4, A5, Out) :-
 	get(Obj, Sel, A1, A2, A3, A4, A5, R),
 	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, R),
-	get_to_object(R, Out).
-get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
-	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R),
-	get_to_object(R, Out).
 
 get_to_object(Ref, Object) :-
 	(   atomic(Ref)
@@ -132,11 +110,11 @@ pce_ifhostproperty(prolog(quintus), [],
 (   send_list([], _) :- !)).
 send_list(_, []) :- !.
 pce_ifhostproperty(prolog(quintus), [],
-(   send_list([Object|Objects], Selectors) :- !, 
-        send_list(Object, Selectors), 
+(   send_list([Object|Objects], Selectors) :- !,
+        send_list(Object, Selectors),
         send_list(Objects, Selectors))).
-send_list(Object, [Selector|Selectors]) :- !, 
-        send_list(Object, Selector), 
+send_list(Object, [Selector|Selectors]) :- !,
+        send_list(Object, Selector),
         send_list(Object, Selectors).
 send_list(Object, Selector) :-
         send_list1(Object, Selector).
@@ -149,11 +127,11 @@ send_list1(Object, Selector) :-
 
 send_list_module([], _, _) :- !.
 send_list_module(_, [], _) :- !.
-send_list_module([Object|Objects], Selectors, Module) :- !, 
-        send_list_module(Object, Selectors, Module), 
+send_list_module([Object|Objects], Selectors, Module) :- !,
+        send_list_module(Object, Selectors, Module),
         send_list_module(Objects, Selectors, Module).
-send_list_module(Object, [Selector|Selectors], Module) :- !, 
-        send_list_module(Object, Selector, Module), 
+send_list_module(Object, [Selector|Selectors], Module) :- !,
+        send_list_module(Object, Selector, Module),
         send_list_module(Object, Selectors, Module).
 send_list_module(Object, Selector, Module) :-
         send(Object, Module:Selector).
@@ -178,14 +156,14 @@ pce_ifhostproperty(prolog(quintus), [],
 send_list(_, [], _) :- !.
 send_list(_, _, []) :- !.
 pce_ifhostproperty(prolog(quintus), [],
-(   send_list([Object|Objects], Selectors, Arguments) :- !, 
-        send_list(Object, Selectors, Arguments), 
+(   send_list([Object|Objects], Selectors, Arguments) :- !,
+        send_list(Object, Selectors, Arguments),
         send_list(Objects, Selectors, Arguments))).
-send_list(Objects, [Selector|Selectors], Arguments) :- !, 
-        send_list(Objects, Selector, Arguments), 
+send_list(Objects, [Selector|Selectors], Arguments) :- !,
+        send_list(Objects, Selector, Arguments),
         send_list(Objects, Selectors, Arguments).
-send_list(Object, Selector, [Argument|Arguments]) :- !, 
-        send_list(Object, Selector, Argument), 
+send_list(Object, Selector, [Argument|Arguments]) :- !,
+        send_list(Object, Selector, Argument),
         send_list(Object, Selector, Arguments).
 send_list(Object, Selector, Argument) :-
         send_list1(Object, Selector, Argument).
@@ -199,14 +177,14 @@ send_list1(Obj, Selector, Arg) :-
 send_list_module([], _, _, _) :- !.
 send_list_module(_, [], _, _) :- !.
 send_list_module(_, _, [], _) :- !.
-send_list_module([Object|Objects], Selectors, Arguments, Module) :- !, 
-	send_list_module(Object, Selectors, Arguments, Module), 
+send_list_module([Object|Objects], Selectors, Arguments, Module) :- !,
+	send_list_module(Object, Selectors, Arguments, Module),
 	send_list_module(Objects, Selectors, Arguments, Module).
-send_list_module(Objects, [Selector|Selectors], Arguments, Module) :- !, 
-	send_list_module(Objects, Selector, Arguments, Module), 
+send_list_module(Objects, [Selector|Selectors], Arguments, Module) :- !,
+	send_list_module(Objects, Selector, Arguments, Module),
 	send_list_module(Objects, Selectors, Arguments, Module).
-send_list_module(Object, Selector, [Argument|Arguments], Module) :- !, 
-	send_list_module(Object, Selector, Argument, Module), 
+send_list_module(Object, Selector, [Argument|Arguments], Module) :- !,
+	send_list_module(Object, Selector, Argument, Module),
 	send_list_module(Object, Selector, Arguments, Module).
 send_list_module(Object, Selector, Argument, Module) :-
 	send(Object, Module:Selector, Argument).
@@ -215,10 +193,10 @@ send_list_module(Object, Selector, Argument, Module) :-
 %%   get_chain(+Object, +Selector, -List:list) is semidet.
 %
 %   List is a Prolog list constructed from the PCE chain returned by <-Selector
-%   on Object.  get_chain/3 returns a list of object names, 
+%   on Object.  get_chain/3 returns a list of object names,
 
 get_chain(Object, Selector, List) :-
-	get(Object, Selector, Chain), 
+	get(Object, Selector, Chain),
 	chain_list(Chain, List).
 
 
@@ -243,7 +221,7 @@ chain_list(Chain, List) :-
 	send_list(Chain, append, List).
 
 chain_to_list_(Chain, [El|Rest]) :-
-	get(Chain, next, El), !, 
+	get(Chain, next, El), !,
 	chain_to_list_(Chain, Rest).
 chain_to_list_(Chain, []) :-
 	\+ get(Chain, current, _).

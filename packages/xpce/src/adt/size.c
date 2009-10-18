@@ -158,7 +158,7 @@ static getdecl get_size[] =
 #define rc_size NULL
 /*
 static classvardecl rc_size[] =
-{ 
+{
 };
 */
 

@@ -93,7 +93,7 @@ make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 		 *******************************/
 
 %%	substitute_eq(+OldVal, +OldList, +NewVal, -NewList)
-%	
+%
 %	Substitute OldVal by NewVal in OldList and unify the result
 %	with NewList.
 
@@ -107,7 +107,7 @@ substitute_eq(X, [U|Us], Y, [V|Vs]) :-
         ).
 
 %%	memberchk_eq(+Val, +List)
-%	
+%
 %	Deterministic check of membership using == rather than
 %	unification.
 
@@ -120,7 +120,7 @@ memberchk_eq(X, [Y|Ys]) :-
 % :- load_foreign_library(chr_support).
 
 %%	list_difference_eq(+List, -Subtract, -Rest)
-%	
+%
 %	Delete all elements of Subtract from List and unify the result
 %	with Rest.  Element comparision is done using ==/2.
 
@@ -133,7 +133,7 @@ list_difference_eq([X|Xs],Ys,L) :-
 	).
 
 %%	intersect_eq(+List1, +List2, -Intersection)
-%	
+%
 %	Determine the intersection of two lists without unifying values.
 
 intersect_eq([], _, []).
@@ -146,7 +146,7 @@ intersect_eq([X|Xs], Ys, L) :-
 
 
 %%	take(+N, +List, -FirstElements)
-%	
+%
 %	Take the first  N  elements  from   List  and  unify  this  with
 %	FirstElements. The definition is based   on the GNU-Prolog lists
 %	library. Implementation by Jan Wielemaker.
@@ -178,7 +178,7 @@ split_at(N,[H|T],[H|L1],L2) :-
 	split_at(M,T,L1,L2).
 
 %%	max_go_list(+List, -Max)
-%	
+%
 %	Return the maximum of List in the standard order of terms.
 
 max_go_list([H|T], Max) :-
@@ -192,7 +192,7 @@ max_go_list([H|T], X, Max) :-
         ).
 
 %%	or_list(+ListOfInts, -BitwiseOr)
-%	
+%
 %	Do a bitwise disjuction over all integer members of ListOfInts.
 
 or_list(L, Or) :-
@@ -225,7 +225,7 @@ sublist(Sub, [H|T]) :-
 %	As sublist/2, but Sub has at most  Bound elements. E.g. the call
 %	below generates all 21 sublists of length   =< 2 from the second
 %	argument.
-%	
+%
 %	==
 %	?- bounded_sublist(List, [a,b,c,d], 2).
 %	X = [] ;
@@ -246,7 +246,7 @@ bounded_sublist(Sublist,[H|List],Bound) :-
 	;
 		bounded_sublist(Sublist,List,Bound)
 	).
-	
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -262,4 +262,4 @@ chr_delete([H|T], X, L) :-
         ;   L=[H|RT],
             chr_delete(T, X, RT)
         ).
-    
+

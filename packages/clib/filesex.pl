@@ -33,8 +33,7 @@
 	  [ set_time_file/3
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(files), install_files).
+:- use_foreign_library(foreign(files), install_files).
 
 %	set_time_file(+File, -OldTimes, +NewTimes)
 %

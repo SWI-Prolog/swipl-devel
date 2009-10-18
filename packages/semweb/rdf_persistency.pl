@@ -90,18 +90,18 @@ move the .new to the plain snapshot name as a means of recovery.
 	no_agc(0).
 
 %%	rdf_attach_db(+Directory, +Options)
-%	
+%
 %	Start persistent operations using Directory   as  place to store
 %	files.   There are several cases:
-%	
+%
 %		* Empty DB, existing directory
 %		Load the DB from the existing directory
-%		
+%
 %		* Full DB, empty directory
 %		Create snapshots for all sources in directory
-%		
+%
 %	Options:
-%	
+%
 %		* concurrency(+Jobs)
 %		Number of threads to use for loading the initial
 %		database.  If not provided it is the number of CPUs
@@ -110,12 +110,12 @@ move the .new to the plain snapshot name as a means of recovery.
 %		* max_open_journals(+Count)
 %		Maximum number of journals kept open.  If not provided,
 %		the default is 10.  See limit_fd_pool/0.
-%		
+%
 %		* silent(+BoolOrBrief)
 %		If =true= (default =false=), do not print informational
-%		messages.  Finally, if =brief= it will show minimal 
+%		messages.  Finally, if =brief= it will show minimal
 %		feedback.
-%		
+%
 %		* log_nested_transactions(+Boolean)
 %		If =true=, nested _log_ transactions are added to the
 %		journal information.  By default (=false=), no log-term
@@ -160,7 +160,7 @@ assert_options([H|T]) :-
 	;   true			% ignore options we do not understand
 	),
 	assert_options(T).
-	
+
 option_type(concurrency(X),		must_be(positive_integer, X)).
 option_type(max_open_journals(X),	must_be(positive_integer, X)).
 option_type(silent(X),	       must_be(oneof([true,false,brief]), X)).
@@ -171,7 +171,7 @@ option_type(log_nested_transactions(X),	must_be(boolean, X)).
 %
 %	Run Goal with atom garbage collection   disabled. Loading an RDF
 %	database creates large amounts  of  atoms   we  *know*  are  not
-%	garbage. 
+%	garbage.
 
 no_agc(Goal) :-
 	current_prolog_flag(agc_margin, Old),
@@ -183,7 +183,7 @@ no_agc(Goal) :-
 %
 %	Detach from the  current  database.   Succeeds  silently  if  no
 %	database is attached. Normally called at  the end of the program
-%	through at_halt/1. 
+%	through at_halt/1.
 
 rdf_detach_db :-
 	debug(halt, 'Detaching database', []),
@@ -200,7 +200,7 @@ rdf_detach_db :-
 
 
 %%	rdf_current_db(?Dir)
-%	
+%
 %	True if Dir is the current RDF persistent database.
 
 rdf_current_db(Directory) :-
@@ -209,9 +209,9 @@ rdf_current_db(Directory) :-
 
 
 %%	rdf_flush_journals(+Options)
-%	
+%
 %	Flush dirty journals.  Options:
-%	
+%
 %		* min_size(+KB)
 %		Only flush if journal is over KB in size.
 %		TBD: sensible default size
@@ -302,7 +302,7 @@ find_dbs(DBs) :-
 	keysort(BySize, SortedBySize),
 	pairs_values(SortedBySize, DBs).
 
-	
+
 %%	scan_db_files(+Files)// is det.
 %
 %	Produces a list of db(DB,  Size,   File)  for all recognised RDF
@@ -337,10 +337,10 @@ same_db(_, L, L, S, S).
 
 
 %%	load_source(+DB, +Silent, +Nth, +Total) is det.
-%	
+%
 %	Load triples and reload  journal   from  the  indicated snapshot
 %	file.
-%	
+%
 %	@param Silent One of =false=, =true= or =brief=
 
 load_source(DB, Silent, Nth, Total) :-
@@ -368,15 +368,15 @@ load_source(DB, Silent, Nth, Total) :-
 	),
 	print_message(Level, rdf(restore(Silent,
 					 done(DB, T, Count, Nth, Total)))).
-	
+
 message_level(true, silent) :- !.
 message_level(_, informational).
 
-	
+
 		 /*******************************
 		 *	   LOAD JOURNAL		*
 		 *******************************/
-	
+
 %%	load_journal(+File:atom, +DB:atom) is det.
 %
 %	Process transactions from the RDF journal File, adding the given
@@ -388,7 +388,7 @@ load_journal(File, DB) :-
 			process_journal(T0, In, DB)
 		     ),
 		     close(In)).
-	
+
 process_journal(end_of_file, _, _) :- !.
 process_journal(Term, In, DB) :-
 	(   process_journal_term(Term, DB)
@@ -469,7 +469,7 @@ stop_monitor :-
 %
 %	Handle an rdf_monitor/2 callback to  deal with persistency. Note
 %	that the monitor calls that come   from rdf_db.pl that deal with
-%	database changes are synchronised. They   do come from different
+%	database changes are serialized.  They   do  come from different
 %	threads though.
 
 monitor(Msg) :-
@@ -559,7 +559,7 @@ monitor_transaction(log(_), end(N)) :-
 	check_nested(N),
 	retract(transaction_message(N, _, _)), !,
 	findall(DB:Id, retract(transaction_db(N, DB, Id)), DBs),
-	end_transactions(DBs, N).    
+	end_transactions(DBs, N).
 monitor_transaction(log(Msg, DB), begin(N)) :- !,
 	check_nested(N),
 	get_time(Time),
@@ -573,8 +573,9 @@ monitor_transaction(reset, begin(L)) :-
 	       monitor_transaction(unload(DB), begin(L))).
 monitor_transaction(reset, end(L)) :-
 	forall(blocked_db(DB, unload),
-	       monitor_transaction(unload(DB), end(L))).
-	       
+	       monitor_transaction(unload(DB), end(L))),
+	retractall(current_transaction_id(_,_)).
+
 
 %%	check_nested(+Level) is semidet.
 %
@@ -623,30 +624,29 @@ next_transaction_id(DB, Id) :-
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, Id) :-
 	db_files(DB, _, Journal),
-	catch(open_db(Journal, read, In, []),
-	      error(existence_error(_,_),_),
-	      fail), !,
-	call_cleanup(iterative_expand(In, Last), close(In)),
+	exists_file(Journal), !,
+	size_file(Journal, Size),
+	open_db(Journal, read, In, []),
+	call_cleanup(iterative_expand(In, Size, Last), close(In)),
 	Id is Last + 1,
 	assert(current_transaction_id(DB, Id)).
 next_transaction_id(DB, 1) :-
 	assert(current_transaction_id(DB, 1)).
 
-iterative_expand(In, Last) :-
-	between(10, 62, Step),		% 62 is big enough and safer than infinite
-	    Offset is -(1<<Step),
-	    catch(seek(In, Offset, eof, _), E, true),
-	    (	var(E)
-	    ->	skip(In, 10)		% records are line-based
-	    ;	seek(In, 0, bof, _), !,
-		WholeFile = true
-	    ),
-	    read(In, T0),
-	    last_transaction_id(T0, In, 0, Last),
-	    (	WholeFile == true	% we scanned the whole file
-	    ;   Last > 0		% we found a transaction
-	    ), !.
-iterative_expand(_, 0).
+iterative_expand(_, 0, 0) :- !.
+iterative_expand(In, Size, Last) :-	% Scan growing sections from the end
+	Max is floor(log(Size)/log(2)),
+	between(10, Max, Step),
+	Offset is -(1<<Step),
+	seek(In, Offset, eof, _),
+	skip(In, 10),			% records are line-based
+	read(In, T0),
+	last_transaction_id(T0, In, 0, Last),
+	Last > 0, !.
+iterative_expand(In, _, Last) :-	% Scan the whole file
+	seek(In, 0, bof, _),
+	read(In, T0),
+	last_transaction_id(T0, In, 0, Last).
 
 last_transaction_id(end_of_file, _, Last, Last) :- !.
 last_transaction_id(end(Id, _, _), In, _, Last) :-
@@ -662,7 +662,7 @@ last_transaction_id(_, In, Id, Last) :-
 %	End a transaction that affected the  given list of databases. We
 %	write the list of other affected databases as an argument to the
 %	end-term to facilitate fast finding of the related transactions.
-%	
+%
 %	In each database, the transaction is   ended with a term end(Id,
 %	Nesting, Others), where  Id  and   Nesting  are  the transaction
 %	identifier and nesting (see open_transaction/2)  and Others is a
@@ -720,7 +720,7 @@ sync_state([DB-MD5|TA], Pre) :-
 		 *******************************/
 
 %%	journal_fd(+DB, -Stream) is det.
-%	
+%
 %	Get an open stream to a journal. If the journal is not open, old
 %	journals are closed to satisfy   the =max_open_journals= option.
 %	Then the journal is opened in   =append= mode. Journal files are
@@ -769,10 +769,10 @@ close_oldest_journal :-
 	debug(rdf_persistency, 'Closing old journal for ~q', [DB]),
 	close_journal(DB).
 close_oldest_journal.
-		       
+
 
 %%	sync_journal(+DB, +Fd)
-%	
+%
 %	Sync journal represented by database and   stream.  If the DB is
 %	involved in a transaction there is   no point flushing until the
 %	end of the transaction.
@@ -783,7 +783,7 @@ sync_journal(_, Fd) :-
 	flush_output(Fd).
 
 %%	close_journal(+DB) is det.
-%	
+%
 %	Close the journal associated with DB if it is open.
 
 close_journal(DB) :-
@@ -799,7 +799,7 @@ close_journal_(DB) :-
 	).
 
 %	close_journals
-%	
+%
 %	Close all open journals.
 
 close_journals :-
@@ -808,7 +808,7 @@ close_journals :-
 		     print_message(error, E))).
 
 %%	create_db(+DB)
-%	
+%
 %	Create a saved version of DB in corresponding file, close and
 %	delete journals.
 
@@ -828,7 +828,7 @@ create_db(DB) :-
 
 
 %%	delete_db(+DB)
-%	
+%
 %	Remove snapshot and journal file for DB.
 
 delete_db(DB) :-
@@ -848,7 +848,7 @@ delete_db(DB) :-
 		 *******************************/
 
 %%	lock_db(+Dir)
-%	
+%
 %	Lock the database  directory.  This  isn't   safe  as  the  file
 %	operations are not  atomic.  Needs   re-thinking,  but  with the
 %	normal server setting it should be ok.
@@ -890,11 +890,11 @@ unlock_db(Dir) :-
 		 *******************************/
 
 lockfile(Dir, LockFile) :-
-	concat_atom([Dir, /, lock], LockFile).
+	atomic_list_concat([Dir, /, lock], LockFile).
 
 db_file(Base, File) :-
 	rdf_directory(Dir),
-	concat_atom([Dir, /, Base], File).
+	atomic_list_concat([Dir, /, Base], File).
 
 open_db(Base, Mode, Stream, Options) :-
 	db_file(Base, File),
@@ -936,10 +936,10 @@ db_abs_files(DB, Snapshot, Journal) :-
 
 %%	rdf_journal_file(+DB, -File) is semidet.
 %%	rdf_journal_file(-DB, -File) is nondet.
-%	
+%
 %	True if File is the absolute  file   name  of  an existing named
-%	graph DB. 
-%	
+%	graph DB.
+%
 %	@tbd	Avoid using private rdf_db:rdf_graphs_/1.
 
 rdf_journal_file(DB, Journal) :-
@@ -954,13 +954,13 @@ rdf_journal_file(DB, Journal) :-
 
 %%	rdf_db_to_file(+DB, -File) is det.
 %%	rdf_db_to_file(-DB, +File) is det.
-%	
+%
 %	Translate between database encoding (often an   file or URL) and
 %	the name we store in the  directory.   We  keep  a cache for two
 %	reasons. Speed, but much more important   is that the mapping of
 %	raw --> encoded provided by  www_form_encode/2 is not guaranteed
 %	to be unique by the W3C standards.
-%	
+%
 %	@tbd	We keep two predicates for exploiting Prolog indexing.
 %		Once multi-argument indexed is hashed we should clean
 %		this up.
@@ -978,7 +978,7 @@ rdf_db_to_file(DB, File) :-
 
 %%	url_to_filename(+URL, -FileName) is det.
 %%	url_to_filename(-URL, +FileName) is det.
-%	
+%
 %	Turn  a  valid  URL  into  a  filename.  Earlier  versions  used
 %	www_form_encode/2, but this can produce  characters that are not
 %	valid  in  filenames.  We  will  use    the   same  encoding  as
@@ -1036,7 +1036,7 @@ no_enc_extra(0'_) --> "_".		%'
 		 *******************************/
 
 %%	mkdir(+Directory)
-%	
+%
 %	Create a directory if it does not already exist.
 
 mkdir(Directory) :-
@@ -1045,7 +1045,7 @@ mkdir(Directory) :-
 	make_directory(Directory).
 
 %%	time_stamp(-Integer)
-%	
+%
 %	Return time-stamp rounded to integer.
 
 time_stamp(Int) :-
@@ -1072,9 +1072,9 @@ message(restore(true, Action)) --> !,
 	silent_message(Action).
 message(restore(brief, Action)) --> !,
 	brief_message(Action).
-message(restore(_, source(DB))) -->
+message(restore(_, source(DB, Nth, Total))) -->
 	{ file_base_name(DB, Base) },
-	[ 'Restoring ~w ... '-[Base], flush ].
+	[ 'Restoring ~w ... (~D of ~D graphs) '-[Base, Nth, Total], flush ].
 message(restore(_, snapshot(_))) -->
 	[ at_same_line, '(snapshot) '-[], flush ].
 message(restore(_, journal(_))) -->
@@ -1088,7 +1088,7 @@ silent_message(_Action) --> [].
 
 brief_message(source(DB, Nth, Total)) -->
 	{ file_base_name(DB, Base) },
-	[ at_same_line, 
+	[ at_same_line,
 	  '\r~w~`.t ~D of ~D graphs~72|'-[Base, Nth, Total],
 	  flush
 	].
@@ -1102,5 +1102,5 @@ prolog:message_context(rdf_locked(Args)) -->
 	  format_time(string(S), '%+', Time)
 	},
 	[ nl,
-	  'locked at ~s by process id ~w'-[S,Pid] 
+	  'locked at ~s by process id ~w'-[S,Pid]
 	].

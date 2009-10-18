@@ -29,8 +29,8 @@
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
-#include "pl-stream.h"
-#include "pl-itf.h"
+#include "SWI-Stream.h"
+#include "SWI-Prolog.h"
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>
@@ -158,7 +158,7 @@ Srlc_read(void *handle, char *buffer, size_t size)
        PL_ttymode(Suser_input) == PL_RAWTTY )
   { int chr = getkey(c);
     TCHAR *tbuf = (TCHAR*)buffer;
-      
+
     if ( chr == 04 || chr == 26 || chr == -1 )
     { bytes = 0;
     } else
@@ -265,7 +265,7 @@ rlc_bind_terminal(rlc_console c)
   Sinput->functions  = &rlc_functions;
   Soutput->functions = &rlc_functions;
   Serror->functions  = &rlc_functions;
-  
+
   Sinput->handle  = c;
   Soutput->handle = c;
   Serror->handle  = c;
@@ -431,7 +431,7 @@ prolog_complete(RlcCompleteData data)
 	start--;
       if ( start > 0 )
       { _TINT cs = ln->data[start-1];
-	
+
 	if ( _tcschr(_T("'/\\.~"), cs) )
 	  return FALSE;			/* treat as a filename */
       }
@@ -440,7 +440,7 @@ prolog_complete(RlcCompleteData data)
 
 	_tcsncpy(data->buf_handle, &ln->data[start], patlen);
 	data->buf_handle[patlen] = '\0';
-	
+
 	if ( PL_atom_generator_w(data->buf_handle,
 				 data->candidate,
 				 sizeof(data->candidate)/sizeof(TCHAR),
@@ -582,7 +582,7 @@ pl_window_pos(term_t options)
   { atom_t name;
     const char *s;
     int arity;
-    
+
     if ( !PL_get_name_arity(opt, &name, &arity) )
       return type_error(opt, "compound");
     s = PL_atom_chars(name);
@@ -662,12 +662,12 @@ pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
        !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
        !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
     return FALSE;
-  
+
   if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
   if ( _tcscmp(l, _T("--")) == 0 )
     l = NULL;				/* insert a separator */
-    
+
   return rlc_insert_menu_item(PL_current_console(), m, l, b);
 }
 
@@ -679,10 +679,10 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
   if ( !PL_get_wchars(label, NULL, &l, CVT_ATOM) ||
        !PL_get_wchars(before, NULL, &b, CVT_ATOM) )
     return FALSE;
-  
+
   if ( _tcscmp(b, _T("-")) == 0 )
     b = NULL;
-    
+
   return rlc_insert_menu(PL_current_console(), l, b);
 }
 
@@ -704,7 +704,7 @@ run_interactor(void *closure)
 
   PL_thread_attach_engine(NULL);
   pthread_cleanup_push(free_interactor, NULL);
-  
+
 
   pred = PL_predicate("thread_run_interactor", 0, "user");
   PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);
@@ -867,7 +867,7 @@ interrupt(rlc_console c, int sig)
 
 static void
 menu_select(rlc_console c, const TCHAR *name)
-{ 
+{
 #ifdef O_PLMT
   if ( _tcscmp(name, _T("&New thread")) == 0 )
   { create_interactor();
@@ -945,8 +945,8 @@ install_readline(rlc_console c)
   PL_register_foreign_in_module("system", "rl_add_history",    1, pl_rl_add_history,    0);
   PL_register_foreign_in_module("system", "rl_read_init_file", 1, pl_rl_read_init_file, 0);
 
-  PL_set_feature("tty_control", PL_BOOL, TRUE);
-  PL_set_feature("readline",    PL_BOOL, TRUE);
+  PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
+  PL_set_prolog_flag("readline",    PL_BOOL, TRUE);
 }
 
 /* destroy the console on exit.  Using PL_on_halt() is the clean, but somewhat
@@ -980,7 +980,7 @@ utf8_required_len(const wchar_t *s)
   { q = utf8_put_char(tmp, *s);
     l += q-tmp;
   }
-  
+
   return l;
 }
 
@@ -1000,11 +1000,11 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   PL_on_halt(closeWin, c);
 
   create_prolog_hidden_window(c);
-  PL_set_feature("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
+  PL_set_prolog_flag("hwnd", PL_INTEGER, (intptr_t)rlc_hwnd(c));
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
   rlc_message_hook(message_proc);
-  PL_set_feature("console_menu", PL_BOOL, TRUE);
+  PL_set_prolog_flag("console_menu", PL_BOOL, TRUE);
 #ifdef O_PLMT
   rlc_insert_menu_item(c, _T("&Run"), _T("&New thread"), NULL);
 #endif
@@ -1030,7 +1030,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
 
   if ( !PL_initialise(argc, av) )
     PL_halt(1);
-  
+
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;

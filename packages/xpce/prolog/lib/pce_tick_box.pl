@@ -104,6 +104,6 @@ forward(TB) :->
 	->  true
 	;   send(Msg, forward, Val)
 	).
-	
+
 :- pce_end_class.
-		   
+

@@ -119,7 +119,7 @@ static void  freeBigHeap(void *p);
 static void  freeAllBigHeaps(void);
 
 #define ALLOCROUND(n) ROUND(n, ALIGN_SIZE)
-			   
+
 
 		 /*******************************
 		 *	DEBUG ENCAPSULATION	*
@@ -157,7 +157,7 @@ allocHeap__LD(size_t n ARG_LD)
   p[-1] = n;
   p[-2] = INUSE_MAGIC;
   memset(p, ALLOC_MAGIC, n);
-  
+
   return p;
 }
 
@@ -175,7 +175,7 @@ allocHeap__LD(size_t n ARG_LD)
 static void
 freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
 { Chunk p = (Chunk) mem;
-  
+
   pool->allocated -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
 		    (uintptr_t)n, (uintptr_t)p));
@@ -212,7 +212,7 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 { if ( mem == NULL )
     return;
   n = ALLOCROUND(n);
-  
+
   if ( n <= ALLOCFAST )
   {
 #ifdef O_PLMT
@@ -299,7 +299,7 @@ allocate(AllocPool pool, size_t n)
       { *fp = ch->next;
         if ( welocked )
 	  UNLOCK();
-	
+
 	p = (char *)ch;
 	pool->space = p + n;
 	pool->free  = ch->size - n;
@@ -310,7 +310,7 @@ allocate(AllocPool pool, size_t n)
     }
   }
 #endif
-  
+
   if ( mustlock && !welocked )
   { LOCK();
     welocked = TRUE;
@@ -341,7 +341,7 @@ the m-th chain.
 static void *
 allocFromPool(AllocPool pool, size_t m)
 { Chunk f;
-  
+
   if ( (f = pool->free_chains[m]) )
   { pool->free_chains[m] = f->next;
     pool->free_count[m]--;
@@ -387,7 +387,7 @@ allocHeap__LD(size_t n ARG_LD)
 	    GD->alloc_pool.free_count[m] = 0;
 	  }
 	  UNLOCK();
-	  
+
 	  if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
 	    mem = allocate(&LD->alloc_pool, n);
 	} else
@@ -464,10 +464,10 @@ mergeAllocPool(AllocPool to, AllocPool from)
     { if ( to->free_count[i] )
       { if ( to->free_count[i] <= from->free_count[i] )
 	{ Chunk c = *t;
-		 
+
 	  while(c->next)
 	    c = c->next;
-	  c->next = *f; 
+	  c->next = *f;
 	} else
 	{ Chunk c = *f;
 
@@ -478,7 +478,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 	}
       } else
 	*t = *f;
-	 
+
       to->free_count[i] += from->free_count[i];
       from->free_count[i] = 0;
 
@@ -515,7 +515,7 @@ allocBigHeap(size_t size)
   { outOfCore();
     return NULL;
   }
-  
+
   h->next = big_heaps;
   h->prev = NULL;
   if ( big_heaps )
@@ -539,7 +539,7 @@ allocBigHeap(size_t size)
 static void
 freeBigHeap(void *p)
 { BigHeap h = p;
-  
+
   h--;					/* get the base */
   if ( h->prev )
     h->prev->next = h->next;
@@ -577,7 +577,7 @@ allocHeap__LD(size_t n ARG_LD)
 
     if ( !mem )
       outOfCore();
-    
+
     GD->statistics.heap += n;
     if ( !hTop )
     { hBase = mem;
@@ -624,6 +624,18 @@ mergeAllocPool(AllocPool to, AllocPool from)
 		*             STACKS            *
 		*********************************/
 
+static void
+enableSpareStack(Stack s)
+{
+#ifdef O_SHIFT_STACKS
+  if ( s->spare )
+  { s->max = addPointer(s->max, s->spare);
+    s->spare = 0;
+  }
+#endif
+}
+
+
 word
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
@@ -634,15 +646,21 @@ outOfStack(void *stack, stack_overflow_action how)
   switch(how)
   { case STACK_OVERFLOW_FATAL:
       LD->outofstack = s;
+      updateAlerted(LD);
       Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
 
-      pl_abort(ABORT_FATAL);
+      abortProlog(ABORT_THROW);
       assert(0);
       fail;
     case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
-    { fid_t fid = PL_open_foreign_frame();
+    { fid_t fid;
+
+      enableSpareStack(stack);
+
+      fid = PL_open_foreign_frame();
       LD->outofstack = NULL;
+      updateAlerted(LD);
       PL_clearsig(SIG_GC);
       s->gced_size = 0;			/* after handling, all is new */
       PL_unify_term(LD->exception.tmp,
@@ -662,6 +680,7 @@ outOfStack(void *stack, stack_overflow_action how)
     }
     case STACK_OVERFLOW_SIGNAL:
       LD->outofstack = s;
+      updateAlerted(LD);
       succeed;
   }
   assert(0);
@@ -831,7 +850,7 @@ globalLong(int64_t l ARG_LD)
 #endif
 #endif
 
-  
+
   return r;
 }
 
@@ -869,7 +888,7 @@ globalString(size_t len, const char *s)
 
   *q++ = 'B';
   memcpy(q, s, len);
-  
+
   return consPtr(p, TAG_STRING|STG_GLOBAL);
 }
 
@@ -920,7 +939,7 @@ getCharsString__LD(word w, size_t *len ARG_LD)
 
   if ( len )
     *len = wn*sizeof(word) - pad - 1;	/* -1 for the 'B' */
-  
+
   s = (char *)&p[1];
 
   if ( *s == 'B' )
@@ -943,10 +962,10 @@ getCharsWString__LD(word w, size_t *len ARG_LD)
   s = (char *)&p[1];
   if ( *s != 'W' )
     return NULL;
-  
+
   if ( len )
     *len = ((wn*sizeof(word) - pad)/sizeof(pl_wchar_t)) - 1;
-  
+
   ws = (pl_wchar_t *)&p[1];
   return ws+1;
 }
@@ -980,13 +999,13 @@ doublecpy(void *to, void *from)
 
 
 double					/* take care of alignment! */
-valReal__LD(word w ARG_LD)
+valFloat__LD(word w ARG_LD)
 { fword *v = (fword *)valIndirectP(w);
   union
   { double d;
     fword  l;
   } val;
-  
+
   val.l = *v;
 
   return val.d;
@@ -994,7 +1013,7 @@ valReal__LD(word w ARG_LD)
 
 
 word
-globalReal(double d)
+globalFloat(double d)
 { GET_LD
   Word p = allocGlobal(2+WORDS_PER_DOUBLE);
   word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
@@ -1029,7 +1048,7 @@ valBignum__LD(word w ARG_LD)
   { int64_t i;
     word w[WORDS_PER_INT64];
   } val;
-  
+
 #if ( SIZEOF_VOIDP == 4 )
   val.w[0] = p[0];
   val.w[1] = p[1];
@@ -1051,10 +1070,10 @@ equalIndirect(word w1, word w2)
 { GET_LD
   Word p1 = addressIndirect(w1);
   Word p2 = addressIndirect(w2);
-  
+
   if ( *p1 == *p2 )
   { size_t n = wsizeofInd(*p1);
-    
+
     while( n-- > 0 )
     { if ( *++p1 != *++p2 )
 	fail;
@@ -1080,7 +1099,7 @@ globalIndirect(word w)
   size_t  n = wsizeofInd(t);
   Word h = allocGlobal((n+2));
   Word hp = h;
-  
+
   *hp = t;
   while(n-- > 0)
     *++hp = *++p;
@@ -1161,7 +1180,7 @@ remove_string(char *s)
 { if ( s )
   { GET_LD
     assert(s[-1] == CHAR_INUSE);
-    
+
     s[-1] = CHAR_FREED;
     freeHeap(s-1, strlen(s)+2);
   }
@@ -1173,9 +1192,9 @@ char *
 store_string(const char *s)
 { if ( s )
   { GET_LD
-  
+
     char *copy = (char *)allocHeap(strlen(s)+1);
-    
+
     strcpy(copy, s);
     return copy;
   } else
@@ -1207,7 +1226,7 @@ unboundStringHashValue(const char *t, size_t len)
 
   while(len-- != 0)
   { unsigned int c = *t++;
-    
+
     c -= 'a';
     value ^= c << (shift & 0xf);
     shift ^= c;
@@ -1299,8 +1318,8 @@ PL_realloc(void *mem, size_t size)
     { free(mem);
       return NULL;
     }
-  } 
-  
+  }
+
   return PL_malloc(size);
 }
 

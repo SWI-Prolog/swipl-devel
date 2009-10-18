@@ -36,7 +36,7 @@ static Int	getCellIndexChain(Chain ch, Cell c);
 
 /* (JW)	Class chain is not a truely object oriented class as its internal
 	representation as cell is no class.  assign() is used such that
-	reference counts to other objects are kept, most internal 
+	reference counts to other objects are kept, most internal
 	assignments are done with '='.
  */
 
@@ -93,7 +93,7 @@ getConvertChain(Any ctx, Vector v)
 
   for( ; --n >= 0; e++ )
   { appendChain(ch, *e);
-  }  
+  }
 
   answer(ch);
 }
@@ -121,7 +121,7 @@ storeChain(Chain ch, FileObj file)
 
   succeed;
 }
-    
+
 static status
 loadChain(Chain ch, IOSTREAM *fd, ClassDef def)
 { Any obj;
@@ -150,7 +150,7 @@ loadChain(Chain ch, IOSTREAM *fd, ClassDef def)
 	  errorPce(LoadFile, NAME_illegalCharacter,
 		   toInt(c), toInt(Stell(fd)));
     }
-} 
+}
 
 
 static status
@@ -215,7 +215,7 @@ truncateChain(Chain ch, Int to)
 
       freeCell(ch, p);
     }
-      
+
     i++;
   }
 
@@ -238,7 +238,7 @@ prependChain(register Chain ch, Any obj)
   if (isNil(ch->head))
     ch->head = ch->tail = cell;
   else
-    cell->next = ch->head, 
+    cell->next = ch->head,
     ch->head = cell;
 
   assign(ch, size, inc(ch->size));
@@ -313,7 +313,7 @@ insertAfterChain(Chain ch, Any obj, Any obj2)
       { return appendChain(ch, obj);
       } else
       { Cell c2 = newCell(ch, obj);
-      
+
 	c2->next = cell->next;
 	cell->next = c2;
 	assign(ch, size, inc(ch->size));
@@ -341,7 +341,7 @@ insertBeforeChain(Chain ch, Any obj, Any obj2)
       { return prependChain(ch, obj);
       } else
       { Cell c2 = newCell(ch, obj);
-      
+
 	c2->next = prev->next;
 	prev->next = c2;
 	assign(ch, size, inc(ch->size));
@@ -778,7 +778,7 @@ mergeChain(Chain ch, Chain ch2)
     if ( cell == tail )			/* @ch ->merge @ch */
       break;
   }
-  
+
   succeed;
 }
 
@@ -903,7 +903,7 @@ getMergeChain(Chain ch, Chain ch2)
     appendChain(r, cell->value);
   for_cell(cell, ch2)
     appendChain(r, cell->value);
-  
+
   answer(r);
 }
 
@@ -926,7 +926,7 @@ getUnionChain(Chain ch, Chain ch2)
       continue;
     appendChain(r, cell->value);
   }
-  
+
   answer(r);
 }
 
@@ -1120,14 +1120,14 @@ Chain
 getIntersectionChain(Chain ch, Chain ch2)
 { register Cell cell;
   Chain r;
-  
+
   r = answerObject(classOfObject(ch), EAV);
-  
+
   for_cell(cell, ch)
   { if (memberChain(ch2, cell->value) != FAIL)
       appendChain(r, cell->value);
   }
-  
+
   answer(r);
 }
 
@@ -1143,7 +1143,7 @@ getHeadChain(Chain ch)
 Any
 getDeleteHeadChain(Chain ch)
 { Any result;
-  
+
   EXISTS(ch->head);
   result = ch->head->value;
   if ( isObject(result) && !isProtectedObj(result) )
@@ -1202,7 +1202,7 @@ getSubChain(Chain ch, Int start, Int end)
 static status
 uniqueChain(Chain ch)
 { Cell cell, cell2;
-  
+
   for_cell(cell, ch)
   { Cell next;
 
@@ -1220,10 +1220,10 @@ uniqueChain(Chain ch)
 status
 moveBeforeChain(Chain ch, Any obj1, Any obj2)
 { Cell cell;
-  
+
   if ( obj1 == obj2 )
     fail;
-  
+
   TRY( currentChain(ch, obj2) );
   cell = ch->current;
   addCodeReference(obj1);
@@ -1234,7 +1234,7 @@ moveBeforeChain(Chain ch, Any obj1, Any obj2)
   ch->current = cell;
   insertChain(ch, obj1);
   delCodeReference(obj1);
-  
+
   succeed;
 }
 
@@ -1244,7 +1244,7 @@ moveAfterChain(Chain ch, Any obj1, Any obj2)
 { Cell cell;
   int is_obj = isObject(obj1);
   status rval;
-  
+
   if ( notDefault(obj2) && notNil(obj2) )
   { if ( obj1 == obj2 || !currentChain(ch, obj2) )
       fail;
@@ -1256,21 +1256,21 @@ moveAfterChain(Chain ch, Any obj1, Any obj2)
       succeed;
     cell = ch->head;
   }
-  
-  if ( is_obj ) 
+
+  if ( is_obj )
     addCodeReference(obj1);
-  
+
   if ( deleteChain(ch, obj1) )
   { ch->current = cell;
     insertChain(ch, obj1);
-    
+
     rval = SUCCEED;
   } else
     rval = FAIL;
-  
+
   if ( is_obj )
     delCodeReference(obj1);
-  
+
   return rval;
 }
 
@@ -1285,10 +1285,10 @@ beforeChain(Chain ch, Any obj1, Any obj2)
       i1 = i;
     if ( cell->value == obj2 )
       i2 = i;
-    
+
     if ( i1 && i2 )
       return (i1 < i2) ? SUCCEED : FAIL;
-    
+
     i++;
   }
 
@@ -1306,7 +1306,7 @@ afterChain(Chain ch, Any obj1, Any obj2)
       i1 = i;
     if ( cell->value == obj2 )
       i2 = i;
-    
+
     if ( i1 && i2 )
       return (i1 > i2) ? SUCCEED : FAIL;
 
@@ -1321,12 +1321,12 @@ Any
 getNth1Chain(Chain ch, Int index)
 { register Cell cell;
   register int n = valInt(index);
-  
+
   for_cell(cell, ch)
   { if (--n == 0)
       answer(cell->value);
   }
-  
+
   fail;
 }
 
@@ -1335,12 +1335,12 @@ static status
 nth1Chain(Chain ch, Int index, Any value)
 { register Cell cell;
   register int n = valInt(index);
-  
+
   for_cell(cell, ch)
   { if (--n == 0)
       return cellValueChain(ch, PointerToInt(cell), value);
   }
-  
+
   fail;
 }
 
@@ -1349,12 +1349,12 @@ Any
 getNth0Chain(Chain ch, Int index)
 { register Cell cell;
   register int n = valInt(index);
-  
+
   for_cell(cell, ch)
   { if (n-- == 0)
       answer(cell->value);
   }
-  
+
   fail;
 }
 
@@ -1363,12 +1363,12 @@ static status
 nth0Chain(Chain ch, Int index, Any value)
 { register Cell cell;
   register int n = valInt(index);
-  
+
   for_cell(cell, ch)
   { if (n-- == 0)
       return cellValueChain(ch, PointerToInt(cell), value);
   }
-  
+
   fail;
 }
 
@@ -1384,10 +1384,10 @@ getHeadCellChain(Chain ch)
 static Int
 getNextCellChain(Chain ch, Int c)
 { Cell cell = (Cell) IntToPointer(c);
-  
+
   if ( notNil(cell->next) )
     answer(PointerToInt(cell->next));
-  
+
   fail;
 }
 
@@ -1403,12 +1403,12 @@ getCellValueChain(Chain ch, Int c)
 status
 cellValueChain(Chain ch, Int c, Any obj)
 { Cell cell = (Cell) IntToPointer(c);
-  
+
   if ( cell->value != obj )
   { assignField((Instance) ch, &cell->value, obj);
     ChangedChain(ch, NAME_cell, getCellIndexChain(ch, cell));
   }
-  
+
   succeed;
 }
 
@@ -1431,13 +1431,13 @@ static Int
 getCellIndexChain(Chain ch, Cell c)
 { int i = 1;
   Cell cell;
-  
+
   for_cell(cell, ch)
   { if ( cell == c )
       answer(toInt(i));
     i++;
   }
-  
+
   fail;
 }
 
@@ -1446,13 +1446,13 @@ Int
 getIndexChain(Chain ch, Any obj)
 { int n = 0;
   Cell cell;
-  
+
   for_cell(cell, ch)
   { n++;
     if (cell->value == obj)
       answer(toInt(n));
   }
-  
+
   fail;
 }
 
@@ -1466,7 +1466,7 @@ getArityChain(Chain ch)
 Any
 getArgChain(Chain ch, Int arg)
 { answer(getNth1Chain(ch, arg));
-} 
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1676,7 +1676,7 @@ static getdecl get_chain[] =
 #define rc_chain NULL
 /*
 static classvardecl rc_chain[] =
-{ 
+{
 };
 */
 

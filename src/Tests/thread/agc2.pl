@@ -32,7 +32,7 @@ make_atoms(N, Prefix, [H|T]) :-
 	N2 is N - 1,
 	make_atoms(N2, Prefix, T).
 
-	
+
 check_atoms(0, _, []) :- !.
 check_atoms(N, Prefix, [H|T]) :-
 	atom_concat(Prefix, N, H0),

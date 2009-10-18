@@ -46,7 +46,7 @@
 	   , absolute_file_name/3
 	   , atom_concat/3
 	   , catch/3
-	   , concat_atom/3
+	   , atomic_list_concat/3
 	   , delete/3
 	   , send_list/3
 	   ]).
@@ -424,7 +424,7 @@ colourise(M, Parser, Options) :-
 	      E,
 	      show_message(M, E)),
 	erase(Ref).
-	
+
 on_begin(Tag, _Attributes, Parser) :-
 	get_sgml_parser(Parser, file(File)),
 	current_tb(TB, File),
@@ -505,7 +505,7 @@ colour_item(Class, TB, From, To, Fragment) :-
 	Len > 0,
 	new(Fragment, sgml_mode_fragment(TB, From, Len, Name)).
 colour_item(_, _, _, _, @nil).
-	
+
 
 		 /*******************************
 		 *	       STYLES		*
@@ -681,7 +681,7 @@ fill_attribute_menu([A|T], DTD, E, P, Mode) :-
 	dtd_property(DTD, attribute(E, A, Type, Default)),
 	add_attribute_menu(Type, Default, A, P, Mode),
 	fill_attribute_menu(T, DTD, E, P, Mode).
-	
+
 add_attribute_menu(nameof(List), Def, A, P, Mode) :- !,
 	send(P, append, new(P2, popup(A, message(Mode, insert_attribute,
 						 A, @arg1)))),
@@ -798,7 +798,7 @@ tag_region(M, Tag:[name], From:int, To:int,
 	->  send(M, tag_region, Tag, From, To, block)
 	;   send(M, tag_region, Tag, From, To, inline)
 	).
-	    
+
 
 insert_element(M, Tag:element=name, Style:[{inline,shorttag,block}]) :->
 	"Insert a new empty element"::
@@ -995,7 +995,7 @@ allowed_elements(M, Allowed:prolog) :<-
 report_allowed(M) :->			% DEBUGGING
 	"Report allowed elements at point"::
 	get(M, allowed_elements, Allowed),
-	concat_atom(Allowed, ', ', Atom),
+	atomic_list_concat(Allowed, ', ', Atom),
 	send(M, report, status, 'Allowed: %s', Atom).
 
 show_message(M, E) :-
@@ -1097,7 +1097,7 @@ variable(parsed,   bool := @on,	     both, "@off for unparsed fragments").
 		 *******************************/
 
 %	seek_to(+Stream, +Pos)
-%	
+%
 %	Seek to Pos on Stream related to an  XPCE object.
 
 seek_to(Stream, Pos) :-

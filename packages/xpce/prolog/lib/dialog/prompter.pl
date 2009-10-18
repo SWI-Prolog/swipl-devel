@@ -100,7 +100,7 @@ read_prompter(P, Label:Type = Value) :-
 	;   send(@display, inform, '%s should be a %s', Label, Type),
 	    fail
 	).
-	
+
 
 canonise(DI, A, B) :-
 	send(DI?class, is_a, text_item), !,

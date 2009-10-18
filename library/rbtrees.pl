@@ -1,4 +1,4 @@
-/* 
+/*
 
 	This code implements Red-Black trees as described in:
 
@@ -69,7 +69,7 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
 %%	rb_new(-T) is det.
 %
 %	Create a new Red-Black tree.
-%	
+%
 %	@deprecated	Use rb_empty/1.
 
 rb_new(t(Nil,Nil)) :-
@@ -339,7 +339,7 @@ insert(Tree0,Key,Val,Nil,Tree) :-
 	fix_root(TreeI,Tree).
 
 %
-% Cormen et al present the algorithm as 
+% Cormen et al present the algorithm as
 % (1) standard tree insertion;
 % (2) from the viewpoint of the newly inserted node:
 %     partially fix the tree;
@@ -393,7 +393,7 @@ insert_new(Tree0,Key,Val,Nil,Tree) :-
 	fix_root(TreeI,Tree).
 
 %
-% actual insertion, copied from insert2 
+% actual insertion, copied from insert2
 %
 insert_new_2(black([],[],[],[]), K, V, Nil, T, Status) :- !,
 	T = red(Nil,K,V,Nil),
@@ -898,7 +898,7 @@ size(black(L,_,_,R),Sz0,Szf) :-
 %%	is_rbtree(?Term) is semidet.
 %
 %	True if Term is a valide Red-Black tree.
-%	
+%
 %	@tbd	Catch variables.
 
 is_rbtree(X) :-
@@ -918,7 +918,7 @@ rbtree1(black(L,K,_,R)) :-
 	check_rbtree(R,K,1000000,Bls).
 rbtree1(red(_,_,_,_)) :-
 	throw(msg('root should be black',[])).
-	
+
 
 find_path_blacks(black([],[],[],[]), Bls, Bls) :- !.
 find_path_blacks(black(L,_,_,_), Bls0, Bls) :-
@@ -946,7 +946,7 @@ check_height(Bls0,Min,Max) :-
 	throw(msg('Unbalance ~d between ~w and ~w~n',[Bls0,Min,Max])).
 
 check_val(K, Min, Max) :- K > Min, K < Max, !.
-check_val(K, Min, Max) :- 
+check_val(K, Min, Max) :-
 	throw(msg('not ordered: ~w not between ~w and ~w~n',[K,Min,Max])).
 
 check_red_child(black(_,_,_,_)).

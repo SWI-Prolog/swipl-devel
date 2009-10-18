@@ -69,7 +69,7 @@ callCv(CObj host, CPointer function, int argc, Any *argv)
     default:
       rval = errorPce(host, NAME_tooManyArguments, argc);
   }
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -107,7 +107,7 @@ getCallCv(CObj host, CPointer function, int argc, Any *argv)
       errorPce(host, NAME_tooManyArguments, argc);
       rval = FAIL;
   }
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -157,7 +157,7 @@ getCallCPlusPlusMethodv(CObj host, CPointer function,
       addCodeReference(argv[n]);
 
   rval = callCPlusPlusMethodFunc(obj, f, argc, argv);
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -176,7 +176,7 @@ callCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
       addCodeReference(argv[n]);
 
   rval = callCPlusPlusProc(f, argc, argv);
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -196,7 +196,7 @@ getCallCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
       addCodeReference(argv[n]);
 
   rval = callCPlusPlusFunc(f, argc, argv);
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -624,7 +624,7 @@ XPCE_makeclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary)
   }
 
   TRY(class = newObject(superclass->class, name, superclass, EAV));
-  
+
   if ( instanceOfObject(summary, ClassCharArray) )
     assign(class, summary, summary);
 

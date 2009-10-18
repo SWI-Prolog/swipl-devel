@@ -35,7 +35,7 @@ initialiseBitmap(BitmapObj b, Image image, Bool transparent)
     TRY(image = newObject(ClassImage, NIL, EAV));
   if ( isDefault(transparent) )
     transparent = OFF;
-  
+
   initialiseGraphical(b, ZERO, ZERO, image->size->w, image->size->h);
 
   assign(b, pen, ZERO);
@@ -163,7 +163,7 @@ redrawBitmap(BitmapObj bm, Area a)
 static status
 loadBitmap(BitmapObj bm, FileObj file, CharArray path)
 { Image image;
-  
+
   if ( isDefault(path) )
     TRY( path = getClassVariableValueClass(ClassImage, NAME_path));
 
@@ -287,7 +287,7 @@ static getdecl get_bitmap[] =
 #define rc_bitmap NULL
 /*
 static classvardecl rc_bitmap[] =
-{ 
+{
 };
 */
 

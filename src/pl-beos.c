@@ -46,7 +46,7 @@ interface.
 void *
 dlopen(const char *file, int flags)
 { image_id image = load_add_on(file);
-	
+
   if ( image < B_OK )
   { LD->os.dl_error = image;
     return NULL;

@@ -54,7 +54,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dif(X,Y) :-
 	dif_c_c(X,Y,_).
-	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % types of attributes?
 % 	vardif: X is a variable
@@ -63,7 +63,7 @@ dif(X,Y) :-
 dif_c_c(X,Y,OrNode) :-
 	(	( current_prolog_flag(occurs_check, error) ->
 			catch(unifiable(X,Y,Unifier), error(occurs_check(_,_),_), fail)
-		  ; 
+		  ;
 			unifiable(X,Y,Unifier)
 		) ->
 		( Unifier == [] ->
@@ -79,7 +79,7 @@ dif_c_c(X,Y,OrNode) :-
 dif_c_c_l(Unifier,OrNode) :-
 	length(Unifier,N),
 	extend_ornode(OrNode,N,List,Tail),
-	dif_c_c_l_aux(Unifier,OrNode,List,Tail).	
+	dif_c_c_l_aux(Unifier,OrNode,List,Tail).
 
 extend_ornode(OrNode,N,List,Vars) :-
 	( get_attr(OrNode,dif,Attr) ->
@@ -90,12 +90,12 @@ extend_ornode(OrNode,N,List,Vars) :-
 		Vars = []
 	),
 	put_attr(OrNode,dif,node(O,List)).
-		
+
 dif_c_c_l_aux([],_,List,List).
 dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
 	List = [X=Y|Rest],
 	add_ornode(X,Y,OrNode),
-	dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).	
+	dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
 
 add_ornode(X,Y,OrNode) :-
 	add_ornode_var1(X,Y,OrNode),
@@ -103,7 +103,7 @@ add_ornode(X,Y,OrNode) :-
 		add_ornode_var2(X,Y,OrNode)
 	;
 		true
-	).	
+	).
 
 add_ornode_var1(X,Y,OrNode) :-
 	( get_attr(X,dif,Attr) ->
@@ -136,11 +136,11 @@ attr_unify_hook(vardif(V1,V2),Other) :-
 		( CV1 == [], CV2 == [] ->
 			del_attr(Other,dif)
 		;
-			put_attr(Other,dif,vardif(CV1,CV2))	
+			put_attr(Other,dif,vardif(CV1,CV2))
 		)
 	;
 		verify_compounds(V1,Other),
-		verify_compounds(V2,Other)	
+		verify_compounds(V2,Other)
 	).
 
 remove_obsolete([], _, []).
@@ -199,7 +199,7 @@ or_one_fail(OrNode) :-
 			put_attr(OrNode,dif,node(NCounter,Pairs))
 		)
 	;
-		fail	
+		fail
 	).
 
 del_or_dif([]).
@@ -215,9 +215,9 @@ cleanup_dead_nodes(X) :-
 		filter_dead_ors(V1,NV1),
 		filter_dead_ors(V2,NV2),
 		( NV1 == [], NV2 == [] ->
-			del_attr(X,dif) 
+			del_attr(X,dif)
 		;
-			put_attr(X,dif,vardif(NV1,NV2))	
+			put_attr(X,dif,vardif(NV1,NV2))
 		)
 	;
 		true

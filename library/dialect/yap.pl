@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, University of Amsterdam
+    Copyright (C): 2007-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,7 +35,9 @@
 	    system/1,			% +Command
 	    exists/1,			% +File
 	    assert_static/1,		% :Term
-	    atomic_concat/3		% +Atomic, +Atomic, -Atom
+	    source/0,
+	    yap_flag/2,			% +Flag, +Value
+	    yap_style_check/1		% +Style
 	  ]).
 
 /** <module> YAP Compatibility module
@@ -72,6 +74,10 @@ David Reitter and Steve Moyle
 @author Jan Wielemaker
 */
 
+:- meta_predicate
+	yap_initialization(0).
+
+
 		 /*******************************
 		 *	     EXPANSION		*
 		 *******************************/
@@ -102,7 +108,8 @@ yap_expansion(if(Goal, Then),
 	      (Goal *-> Then; true)).
 yap_expansion(if(Goal, Then, Else),
 	      (Goal *-> Then; Else)).
-
+yap_expansion(style_check(Style),
+	      yap_style_check(Style)).
 
 
 		 /*******************************
@@ -148,7 +155,7 @@ push_yap_file_extension :-
 %%	gc
 %
 %	Garbage collect.
-%	
+%
 %	@compat yap
 
 gc :-
@@ -157,19 +164,19 @@ gc :-
 %%	depth_bound_call(:Goal, :Limit)
 %
 %	Equivalent to call_with_depth_limit(Goal, Limit, _Reached)
-%	
+%
 %	@compat yap
 
 :- module_transparent
 	depth_bound_call/2.
 
-depth_bound_call(G, L) :- 
+depth_bound_call(G, L) :-
 	call_with_depth_limit(G, L, _).
 
 %%	system(+Command)
 %
 %	Equivalent to shell(Command).
-%	
+%
 %	@compat yap
 
 system(Command) :-
@@ -178,7 +185,7 @@ system(Command) :-
 %%	exists(+File)
 %
 %	Equivalent to exists_file(File).
-%	
+%
 %	@compat yap
 
 exists(File) :-
@@ -190,7 +197,7 @@ exists(File) :-
 %	compile_predicates/1 to achieve this. The   emulation  is a mere
 %	alias for assert/1, as  immediate   compilation  would  prohibit
 %	further calls to this predicate.
-%	
+%
 %	@compat yap
 %	@deprecated Use assert/1 and compile_predicates/1 after
 %	completing the predicate definition.
@@ -202,10 +209,76 @@ assert_static(Term) :-
 	assert(Term).
 
 
-%%	atomic_concat(+Prefix, +Suffix, -Atom) is det.
+%%	source is det.
 %
-%	Append to atomic values.  SWI-Prolog's built-in atom_concat/3
-%	already overloads this behaviour.
+%	YAP directive to  maintain  source-information.   We  have  that
+%	always.
 
-atomic_concat(Prefix, Suffix, Atom) :-
-	atom_concat(Prefix, Suffix, Atom).
+source.
+
+
+%%	yap_flag(+Key, +Value) is det.
+%
+%	Map some YAP flags to SWI-Prolog.  Supported flags:
+%
+%	    * write_strings: Bool
+%	    If =on=, writes strings as "..." instead of a list of
+%	    integers.  In SWI-Prolog this only affects write routines
+%	    that use portray.
+
+yap_flag(write_strings, OnOff) :- !,
+	map_bool(OnOff, Bool),
+	set_prolog_flag(write_strings, Bool).
+yap_flag(Flag, Value) :-
+	fixme_true(yap_flag(Flag, Value)).
+
+map_bool(on, true) :- !.
+map_bool(off, false) :- !.
+map_bool(Bool, Bool).
+
+:- multifile
+	user:portray/1.
+
+user:portray(String) :-
+	current_prolog_flag(write_strings, true),
+	is_list(String),
+	length(String, L),
+	L > 2,
+	maplist(printable, String),
+	format('"~s"', [String]).
+
+printable(C) :-	code_type(C, graph), !.
+printable(C) :-	code_type(C, space), !.
+
+
+%%	yap_style_check(+Style) is det.
+%
+%	Map YAP style-check options onto the SWI-Prolog ones.
+
+yap_style_check(all) :- !,
+	system:style_check([ +singleton,
+			     +discontiguous
+			   ]).
+yap_style_check(Style) :-
+	fixme_true(yap_style_check(Style)).
+
+
+		 /*******************************
+		 *	   UNIMPLEMENTED		*
+		 *******************************/
+
+:- dynamic
+	fixme_reported/1.
+
+fixme_true(Goal) :-
+	fixme_reported(Goal), !.
+fixme_true(Goal) :-
+	print_message(warning, yap_unsupported(Goal)),
+	assert(fixme_reported(Goal)).
+
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(yap_unsupported(Goal)) -->
+	[ 'YAP emulation (yap.pl): unsupported: ~p'-[Goal] ].

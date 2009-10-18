@@ -69,8 +69,8 @@ hierarchy(Root, GenChild, GenLabel, Cookie, Level, Lines) -->
 		  java_expand(Root, ExpCol)
 	      )
 	  ),
-	  concat_atom([Pre, Level|Lines], :, Place),
-	  concat_atom(['/images/hierarchy/', Place], ImgSrc),
+	  atomic_list_concat([Pre, Level|Lines], :, Place),
+	  atomic_list_concat(['/images/hierarchy/', Place], ImgSrc),
 	  SubLevel is Level + 1
 	},
 	(   {Pre==n}
@@ -99,12 +99,12 @@ hierarchy(Root, GenChild, GenLabel, Cookie, Level, Lines) -->
 		   br([])
 		 ])
 	).
-	
+
 
 script -->				% tagged window.location.pathname
 	html(script(
 'function pageY()
-{ if ( navigator.appName == "Microsoft Internet Explorer" ) 
+{ if ( navigator.appName == "Microsoft Internet Explorer" )
     return document.body.scrollTop;
   else
     return window.pageYOffset;
@@ -154,7 +154,7 @@ function collapse(name)
   if ( e )
   { var a = e.split("&");
     var r = new String("&");
-    
+
     for(var i=0; i < a.length; i++)
     { if ( a[i] != name && a[i] != "" )
       { r += a[i] + "&";
@@ -202,7 +202,7 @@ expanded(_, Cookie) :-
 	send(regex('expand=all'), search, Cookie), !.
 expanded(Class, Cookie) :-
 	class_code(Class, Code),
-	concat_atom([&, Code, &], Pattern),
+	atomic_list_concat([&, Code, &], Pattern),
 	sub_atom(Cookie, _, _, _, Pattern), !.
 
 java_expand(Class, Code) :-
@@ -219,7 +219,7 @@ subclasses([H], GenChild, GenLabel, Cookie, Level, Lines) --> !,
 	hierarchy(H, GenChild, GenLabel, Cookie, Level, Lines).
 subclasses([H|T], GenChild, GenLabel, Cookie, Level, Lines) -->
 	hierarchy(H, GenChild, GenLabel, Cookie, Level, [Level|Lines]),
-	subclasses(T, GenChild, GenLabel, Cookie, Level, Lines).		       
+	subclasses(T, GenChild, GenLabel, Cookie, Level, Lines).
 
 
 		 /*******************************
@@ -231,7 +231,7 @@ gen_child(GenChildren, Root, Child) :-
 
 gen_label(G, Class, A, B) :-
 	call(G, Class, A, B).
-	
+
 
 		 /*******************************
 		 *	      IMAGES		*
@@ -272,8 +272,8 @@ vlines(N:T, Img, H) :- !,
 	vlines(T, Img, H).
 vlines(N, Img, H) :-
 	X is (N-1)*20+10,
-	send(Img, draw_in, line(X, 0, X, H)).	
-	
+	send(Img, draw_in, line(X, 0, X, H)).
+
 level(A0-B, Level, [B|A]) :- !,
 	level(A0, Level, A).
 level(B, B, []).

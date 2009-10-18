@@ -5,7 +5,7 @@
 \definition{+}=item		1 0
 \predicate[+]{+}{-}{+}=item	1 0
 \dcg[+]{+}{-}{+}=item		1 0
-\directive{+}{-}{-}=item	1 0
+\directive[+]{+}{-}{-}=item	1 0
 \infixop[+]{+}{+}{+}=item	1 0
 \prefixop[+]{+}{-}=item		1 0
 \cfunction{-}{+}{+}=item	1 0
@@ -16,8 +16,10 @@
 \glossitem{-}=item
 \menuitem{+}{+}=item		1 0
 \predref{+}{-}
+\qpredref{-}{+}{-}
 \prologflag{-}
 \dcgref{+}{-}
+\qdcgref{-}{+}{-}
 \nopredref{+}{-}
 \functor{+}{-}
 \compound{+}{+}
@@ -227,6 +229,7 @@
 \Slimplies
 \backslash
 \bsl
+\Sxor
 
 % These are hacks to get the index right
 

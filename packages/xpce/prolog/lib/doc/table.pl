@@ -32,7 +32,7 @@
 :- module(doc_table, []).
 :- use_module(library(pce)).
 :- use_module(doc(util)).
-	  
+
 
 		 /*******************************
 		 *	      TABLE		*
@@ -131,7 +131,7 @@ border(T, Border:'0..') :->
 	    send(Table, cell_padding, size(PW, PH))
 	;   true
 	).
-	
+
 specify_table_width(T, Width:name) :->	% from HTML spec
 	table_width(Width, CW),
 	(   CW = percent(Rel)
@@ -174,7 +174,7 @@ set_col_options(Col, Options) :-
 	->  catch(new(C, colour(Colour)), _, fail),
 	    send(Col, background, C)
 	).
-	
+
 row_group(T, _Options:prolog) :->
 	"Start a new row group using options"::
 	get(T, layout_manager, Table),

@@ -75,10 +75,10 @@ has_tmp_file([_|T], File) :-
 		********************************/
 
 %	'$editor_load_code'(+Kind, +File)
-%	Load code from EMACS.  `Kind' is {procedure,region,buffer}.  
+%	Load code from EMACS.  `Kind' is {procedure,region,buffer}.
 %	`File' is the name of the file from which the code comes.  It
 %	is an absolute filename.
-%	
+%
 %	To be implemented.  There is a start for portions of a file
 %	(region, procedure), but this is hard:  What is the starting
 %	line of the region (for error-messages).  There is also a
@@ -87,12 +87,12 @@ has_tmp_file([_|T], File) :-
 %	links.  Finally: the region might be the entire file, in which
 %	case we need to know about the module info ...`
 %
-%	(MA)   
+%	(MA)
 %	For the time being:
 %	"buffer" loads the entire file associated with the buffer.
 %	"predicate" and "region" load the tmp-file. Yes, module info is
-%	scrambled...      
-   
+%	scrambled...
+
 
 
 '$editor_load_code'(buffer, File) :- !,
@@ -134,7 +134,7 @@ emacs_make :-
 	emacs_start_compilation,
 	system:make,
 	emacs_finish_compilation.
-	
+
 
 exception(warning, warning(Path, Line, Message), _) :-
 	emacs_warning_file(Path, File),
@@ -144,11 +144,11 @@ exception(warning, warning(Path, Line, Message), _) :-
 
 
 emacs_start_compilation :-
-	absolute_file_name('', Pwd),	
+	absolute_file_name('', Pwd),
 	asserta(compilation_base_dir(Pwd)),
 	call_emacs('(prolog-compilation-start "~w")', [Pwd]).
 
-	
+
 emacs_finish_compilation :-
 	retractall(emacs_compilation_base_dir(_)),
 	call_emacs('(prolog-compilation-finish)').
@@ -160,7 +160,7 @@ emacs_warning_file(Path, File) :-
 	compilation_base_dir(Cwd),
 	atom_concat(Cwd, File, Path), !.
 emacs_warning_file(Path, Path).
-	
+
 
 
 		/********************************
@@ -193,7 +193,7 @@ remove_double_slashes_list([0'/, 0'/|T], L) :- !,
 	remove_double_slashes_list([0'/|T], L).
 remove_double_slashes_list([H|T], [H|T1]) :-
 	remove_double_slashes_list(T, T1).
-	
+
 
 find_predicate(Name, Arity, Preds) :-
 	(   integer(Arity)
@@ -205,7 +205,7 @@ find_predicate(Name, Arity, Preds) :-
 find_predicate_(Head, Module:Head) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)).
-	
+
 
 		/********************************
 		*          ATOM DABREV		*
@@ -262,7 +262,7 @@ emacs_previous_command :-
 	;   flag(emacs_last_command, _, Last),
 	    emacs_insert_command(Last)
 	).
-	    
+
 
 emacs_next_command :-
 	flag('$last_event', Last, Last),
@@ -282,7 +282,7 @@ emacs_next_command :-
 call_emacs(Fmt) :-
 	call_emacs(Fmt, []).
 call_emacs(Fmt, Args) :-
-	concat_atom(['', Fmt, ''], F1),
+	atomic_list_concat(['', Fmt, ''], F1),
 	format(F1, Args),
 	flush_output.
 

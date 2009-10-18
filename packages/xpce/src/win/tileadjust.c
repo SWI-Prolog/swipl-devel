@@ -52,7 +52,7 @@ initialiseTileAdjuster(TileAdjuster p, TileObj t)
 
   send(p, NAME_display, bm=newObject(ClassBitmap, img, EAV), EAV);
 /*send(bm, NAME_cursor, crs, EAV);*/
- 
+
   assign(t, adjuster, p);
   assign(p, client, t);
 
@@ -112,7 +112,7 @@ eventTileAdjuster(TileAdjuster adj, EventObj ev)
 
   if ( isDownEvent(ev) && (offset = getEventOffsetTileAdjuster(adj, ev)) )
   { send(adj, NAME_focus, adj, DEFAULT, adj->cursor, getButtonEvent(ev), EAV);
-    
+
     assign(adj, down_offset, offset);
     succeed;
   } else if ( notNil(adj->offset) )
@@ -169,7 +169,7 @@ static senddecl send_tile_adjuster[] =
 #define get_tile_adjuster NULL
 /*
 static getdecl get_tile_adjuster[] =
-{ 
+{
 };
 */
 

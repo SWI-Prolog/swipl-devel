@@ -34,7 +34,7 @@
 
 :- emacs_begin_mode(java, c,
 		    "Mode for Java programs",
-		    [ 
+		    [
 		    ],
 		    []).
 

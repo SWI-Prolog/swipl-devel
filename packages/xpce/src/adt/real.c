@@ -91,7 +91,7 @@ initialiseReal(Real r, Any arg)
   { v = (double)((Number)arg)->value;
   } else if ( instanceOfObject(arg, ClassReal) )
   { Real a = arg;
-    
+
     return valueReal(r, a);
   } else
     return errorPce(ClassReal, NAME_cannotConvert, arg);
@@ -199,7 +199,7 @@ equalReal(Real r, Real r2)
 
 static status
 notEqualReal(Real r, Real r2)
-{ 
+{
 #ifdef REAL_IN_ONE
   if ( r->value == r2->value )
 #else
@@ -384,7 +384,7 @@ static getdecl get_real[] =
 #define rc_real NULL
 /*
 static classvardecl rc_real[] =
-{ 
+{
 };
 */
 

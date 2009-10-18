@@ -90,10 +90,6 @@ dl.wiki dt
   font-size: 90%;
 }
 
-ul, ol, dl
-{ margin-top: 0.7em;
-}
-
 .argdescr
 { padding-left: 1em;
 }
@@ -134,6 +130,14 @@ div.navhdr
 { border: 1px dotted;
   padding: 5px 5px 3px 5px;		/* top,right,bottom,left */
   background-color: #f0f0f0;
+}
+
+div.navhdr div.jump
+{ float: left;
+}
+
+div.navhdr div.search
+{ float: right;
 }
 
 /* Summary index */
@@ -260,4 +264,9 @@ div.comment h1.module
 a.prolog_version
 { font-style: italic;
   font-size: 70%;
+}
+
+
+code.nofile				# non-existing file-link
+{ color: red;
 }

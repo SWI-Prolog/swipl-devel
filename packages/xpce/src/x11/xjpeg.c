@@ -34,7 +34,7 @@ This is the first module (PPM and  GIF   to  go)  that bypasses this for
 `static' visuals. For static visuals  we   can  create  a ZPixmap format
 XImage structure that has mask and shift   for  the color components, so
 all we need to do is to create   the  XImage, get the pixels one-by-one,
-map the brightness values and call XPutPixel(). 
+map the brightness values and call XPutPixel().
 
 For some popular formats we also   bypass  XPutPixel(), storing our bits
 directly into the XImage structure and saving another 30% (Linux on dual
@@ -157,7 +157,7 @@ init_maps(XImage *img)
     { init_map(r_map, r_bright, r_shift);
       init_map(g_map, g_bright, g_shift);
       init_map(b_map, b_bright, b_shift);
-      
+
       r_b = r_bright;
       g_b = g_bright;
       b_b = b_bright;
@@ -196,9 +196,9 @@ writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
       int r = *i++;
       int g = *i++;
       int b = *i++;
-      
+
       pixel = MKPIXEL(r, g, b);
-      
+
       if ( img->byte_order == MSBFirst )
       { *data++ = pixel >> 24;
         *data++ = pixel >> 16;
@@ -219,7 +219,7 @@ writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
       int r = *i++;
       int g = *i++;
       int b = *i++;
-    
+
       pixel = MKPIXEL(r, g, b);
 
       if ( img->byte_order == MSBFirst )
@@ -236,7 +236,7 @@ writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
       int r = *i++;
       int g = *i++;
       int b = *i++;
-    
+
       pixel = MKPIXEL(r, g, b);
 
       XPutPixel(img, x, y, pixel);
@@ -255,9 +255,9 @@ writeGrayScanLine(JSAMPLE *line, int width, int y, XImage *img)
   for(x=0, i=line; x<width; x++)
   { unsigned long pixel;
     int g = *i++;
-	  
+
     pixel = MKPIXEL(g, g, g);
-      
+
     XPutPixel(img, x, y, pixel);
   }
 }
@@ -291,13 +291,13 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
 
   if ( r->depth < 16 )			/* better test? */
     return IMG_NO_STATIC_COLOUR;
-  
+
 					/* setup JPEG error handling */
   cinfo.err = jpeg_std_error((struct jpeg_error_mgr *)&jerr);
   if ( setjmp(jerr.jmp_context) )
   { DEBUG(NAME_image,
 	  { char buf[1024];
-	    
+
 	    (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
 	    Cprintf("JPEG: %s\n", buf);
 	  });
@@ -382,7 +382,7 @@ out:
   if ( line )
     pceFree(line);
   jpeg_destroy_decompress(&cinfo);
-  
+
   if ( img )
     *return_image = img;
 

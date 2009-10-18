@@ -52,14 +52,14 @@ subject to change.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %%	get_prolog_backtrace(+MaxDepth, -Backtrace)
-%	
+%
 %	Return a Prolog structure representing a backtrace from the
 %	current location.  The backtrace is a list of frames.  Each
 %	frame is represented as one of
-%	
+%
 %		* frame(Level, Clause, PC)
 %		* frame(Level, foreign(Name/Arity), foreign)
-%	
+%
 %	MaxDepth defines the maximum number of frames returned.
 
 get_prolog_backtrace(MaxDepth, Stack) :-
@@ -80,8 +80,9 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	;   PC == call
 	->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
 	    Where = call(Pred)
-	;   prolog_frame_attribute(Fr, clause, Clause),
-	    Where = clause(Clause, PC)
+	;   prolog_frame_attribute(Fr, clause, Clause)
+	->  Where = clause(Clause, PC)
+	;   Where = meta_call
 	),
 	(   prolog_frame_attribute(Fr, pc, PC2)
 	->  true
@@ -95,7 +96,7 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 
 
 %%	print_prolog_backtrace(+Stream, +Backtrace)
-%	
+%
 %	Print a stacktrace in human readable form.
 
 print_prolog_backtrace(Stream, Backtrace) :-
@@ -137,6 +138,8 @@ where(clause(Clause, _PC)) -->
 	{ clause_name(Clause, ClauseName)
 	},
 	[ '~w <no source>'-[ClauseName] ].
+where(meta_call) -->
+	[ '<meta call>' ].
 
 level(Level) -->
 	[ '~|~t[~D]~8+ '-[Level] ].
@@ -155,7 +158,7 @@ clause_predicate_name(Clause, PredName) :-
 
 
 %%	backtrace(+MaxDepth)
-%	
+%
 %	Get and print a stacktrace to the user_error stream.
 
 backtrace(MaxDepth) :-
@@ -164,9 +167,10 @@ backtrace(MaxDepth) :-
 
 
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
+	debug(clause, 'Term-position in ~w at PC=~w:', [ClauseRef, PC]),
 	clause_info(ClauseRef, File, TPos, _),
 	'$clause_term_position'(ClauseRef, PC, List),
-	debug(clause, 'Term-position: ~w~n', [List]),
+	debug(clause, '\t~w~n', [List]),
 	find_subgoal(List, TPos, PosTerm),
 	arg(1, PosTerm, CharA),
 	arg(2, PosTerm, CharZ).

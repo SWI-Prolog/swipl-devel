@@ -56,7 +56,7 @@ computeGrBox(GrBox grb)
   ComputeGraphical(gr);
   if ( isNil(grb->rubber) ||
        ( grb->rubber->stretch == ZERO &&
-	 grb->rubber->shrink  == ZERO 
+	 grb->rubber->shrink  == ZERO
        ) )
   { DEBUG(NAME_grbox,
 	  Cprintf("%s width %d --> %d\n",
@@ -147,7 +147,7 @@ static senddecl send_grbox[] =
 #define get_grbox NULL
 /*
 static getdecl get_grbox[] =
-{ 
+{
 };
 */
 
@@ -156,7 +156,7 @@ static getdecl get_grbox[] =
 #define rc_grbox NULL
 /*
 static classvardecl rc_grbox[] =
-{ 
+{
 };
 */
 

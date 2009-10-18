@@ -74,7 +74,7 @@ typedef struct _winassoc
   Any			object;		/* Associated object */
   struct _winassoc     *next;		/* Next in chain */
 } winassoc, *WinAssoc;
-  
+
 static WinAssoc wintable[WINASSOC_TABLESIZE];
 
 static int
@@ -119,12 +119,12 @@ Any
 getObjectFromHWND(HWND hwnd)
 { int key = handleKey(hwnd);
   WinAssoc a = wintable[key];
-  
+
   for( ; a; a=a->next )
   { if ( a->hwnd == hwnd )
       return a->object;
   }
-  
+
   fail;
 }
 
@@ -151,7 +151,7 @@ destroyThreadWindows(Class class)
 
   for(i=0; i<WINASSOC_TABLESIZE; i++)
   { WinAssoc a;
-    
+
     for(a = wintable[i]; a; a = a->next)
     { if ( instanceOfObject(a->object, class) &&
 	   tid == GetWindowThreadProcessId(a->hwnd, NULL) )
@@ -277,7 +277,7 @@ Any
 messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 { Any id = FAIL;
   unsigned long state = 0L;
-  
+
   if ( IsDownKey(VK_CONTROL) )
     state |= BUTTON_control;
   if ( IsDownKey(VK_SHIFT) )
@@ -297,7 +297,7 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 	case VK_PRIOR:		id = NAME_pageUp;	break;
 	case VK_NEXT:		id = NAME_pageDown;	break;
 	case VK_END:		id = NAME_end;		break;
-	
+
 	case VK_SELECT:		id = NAME_select;	break;
 	case VK_PRINT:		id = NAME_print;	break;
 	case VK_EXECUTE:	id = NAME_execute;	break;
@@ -332,7 +332,7 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 	    id = toInt(Control('I') + META_OFFSET);
 	  break;
       }
-      
+
       break;
     }
     case WM_SYSCHAR:			/* handle ALT keys myself */
@@ -561,7 +561,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 			      pp(id), pp(x), pp(y), pp(window)));
 
     ev = answerObject(ClassEvent,
-		      id, 
+		      id,
 		      window,
 		      x, y,
 		      buttons,

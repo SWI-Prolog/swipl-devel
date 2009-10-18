@@ -84,7 +84,7 @@ compute_label(DialogGroup g, int *x, int *y, int *w, int *h)
   { int tw, th;
 
     compute_label_size_dialog_group(g, &tw, &th);
-  
+
     if ( w ) *w = tw;
     if ( h ) *h = th;
     if ( y )
@@ -129,21 +129,21 @@ computeDialogGroup(DialogGroup g)
     CHANGING_GRAPHICAL(g,
     { computeGraphicalsDevice((Device) g);
       compute_label(g, &lx, &ly, &lw, &lh);
-      
+
       if ( isDefault(g->size) )		/* implicit size */
       { if ( isNil(g->layout_manager) ||
 	     !qadSendv(g->layout_manager, NAME_computeBoundingBox, 0, NULL) )
 	{ Cell cell;
-  
+
 	  clearArea(a);
 	  for_cell(cell, g->graphicals)
 	  { Graphical gr = cell->value;
-	    
+
 	    unionNormalisedArea(a, gr->area);
 	  }
 	}
 	relativeMoveArea(a, g->offset);
-  
+
 	x = valInt(a->x) -     valInt(border->w);
 	y = valInt(a->y) -     valInt(border->h);
 	w = valInt(a->w) + 2 * valInt(border->w);
@@ -154,7 +154,7 @@ computeDialogGroup(DialogGroup g)
 	w = valInt(g->size->w);
 	h = valInt(g->size->h);
       }
-  
+
       if ( w < 2*lx + lw )
 	w = 2*lx + lw;
 
@@ -162,7 +162,7 @@ computeDialogGroup(DialogGroup g)
       { h -= ly;
 	y += ly;
       }
-  
+
       assign(a, x, toInt(x));
       assign(a, y, toInt(y));
       assign(a, w, toInt(w));
@@ -218,7 +218,7 @@ sizeDialogGroup(DialogGroup g, Size s)
     copySize(g->size, s);
   else
     assign(g, size, s);
-  
+
   send(g, NAME_layoutDialog, EAV);
 
   return requestComputeGraphical(g, DEFAULT);
@@ -288,7 +288,7 @@ nameDialogGroup(DialogGroup g, Name name)
 }
 
 
-static status 
+static status
 ChangedLabelDialogGroup(DialogGroup g)
 { requestComputeGraphical(g, DEFAULT);
 
@@ -323,7 +323,7 @@ showLabelDialogGroup(DialogGroup g, Bool show)
 { if ( (show == OFF && isNil(g->label)) ||
        (show == ON  && notNil(g->label)) )
     succeed;
-  
+
   if ( show == OFF )
   { labelDialogGroup(g, NIL);
   } else
@@ -409,16 +409,16 @@ RedrawLabelDialogGroup(DialogGroup g, int acc,
       ix = x;
     else if ( hadjust == NAME_center )
       ix = x + (w-iw)/2;
-    else 
+    else
       ix = x + w-iw;
-    
+
     if ( vadjust == NAME_top )
       iy = y;
     else if ( vadjust == NAME_center )
       iy = y + (h-ih)/2;
-    else 
+    else
       iy = y + h-ih;
-    
+
     r_image(i, 0, 0, ix, iy, iw, ih, ON);
   } else if ( instanceOfObject(g->label, ClassCharArray) )
   { CharArray label = g->label;
@@ -450,7 +450,7 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
       int by = y-ly;
       int bw = w;
       int bh = h+ly;
-      
+
       eh = valInt(e->height);
       r_3d_box(bx, by, bw, bh, valInt(g->radius), e, FALSE);
       bx += eh;
@@ -460,7 +460,7 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
       r_3d_box(bx, by, bw, bh, valInt(g->radius), e, TRUE);
     } else
     { eh = valInt(g->pen);
-  
+
       r_thickness(eh);
       r_dash(g->texture);
       r_box(x, y-ly, w, h+ly, valInt(g->radius), NIL);
@@ -513,7 +513,7 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
     r_offset(-ox, -oy);
     qassign(a, x, ax);
     qassign(a, y, ay);
-    d_clip_done();	     
+    d_clip_done();
   }
 
   return RedrawAreaGraphical(g, a);
@@ -548,7 +548,7 @@ eventDialogGroup(DialogGroup g, EventObj ev)
 static Button
 getDefaultButtonDialogGroup(DialogGroup g, Bool delegate)
 { Device d;
-  Cell cell;	
+  Cell cell;
 
   for_cell(cell, g->graphicals)
   { if ( instanceOfObject(cell->value, ClassButton) )
@@ -574,7 +574,7 @@ static status
 applyDialogGroup(DialogGroup g, Bool always)
 { DialogItem di;
   Graphical defb;
-  
+
   for_chain(g->graphicals, di, send(di, NAME_apply, always, EAV));
   if ( (defb = get(g, NAME_defaultButton, EAV)) )
     send(defb, NAME_active, OFF, EAV);
@@ -587,7 +587,7 @@ static status
 restoreDialogGroup(DialogGroup g)
 { DialogItem di;
   Graphical defb;
-  
+
   for_chain(g->graphicals, di, send(di, NAME_restore, EAV));
   if ( (defb = get(g, NAME_defaultButton, EAV)) )
     send(defb, NAME_active, OFF, EAV);

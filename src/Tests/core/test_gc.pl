@@ -34,6 +34,7 @@ test_gc :-
 	run_tests([ gc_leak,
 		    gc_reset,
 		    gc_crash,
+		    gc_mark,
 		    agc
 		  ]).
 
@@ -139,6 +140,20 @@ test(wakeup_two) :-
 :- end_tests(gc_crash).
 
 
+:- begin_tests(gc_mark).
+
+test(s_list, true) :-			% S_NEXTCLAUSE must mark args of next
+	length(_List, N),		% clause (broken in 5.7.0)
+	garbage_collect,
+	N == 4, !.
+test(s_fredo, true) :-
+	A = a(1,2,3,4,5,6),
+	arg(_I, A, N),
+	garbage_collect,
+	N == 5, !.
+
+:- end_tests(gc_mark).
+
 
 :- begin_tests(agc).
 
@@ -175,5 +190,5 @@ test(usercall, A == Ok) :-
 	test,
 	retract(v(A)),
 	atom_concat(abcd, efgh, Ok).
-		
+
 :- end_tests(agc).

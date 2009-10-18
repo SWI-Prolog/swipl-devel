@@ -31,7 +31,7 @@ initialiseSourceSink(SourceSink ss)
   if ( hostQuery(HOST_ENCODING, &val) )
   { Name en;
     IOENC enc;
-  
+
     enc = (IOENC)val.integer;
     if ( (en = encoding_to_name(enc)) )
       assign(ss, encoding, en);
@@ -62,7 +62,7 @@ typedef struct encname
 } encname;
 
 
-static const encname enc_names[] = 
+static const encname enc_names[] =
 { { NAME_octet,		ENC_OCTET },
   { NAME_ascii,		ENC_ASCII },
   { NAME_iso_latin_1,   ENC_ISO_LATIN_1 },
@@ -150,7 +150,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
 
       if ( ok )
       { StringObj str = answerObject(ClassString, EAV);
-	
+
 	str_unalloc(&str->data);
 	str->data = s;
 

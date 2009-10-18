@@ -86,7 +86,7 @@ read_table(Table, KeyName, From, [KeyValue-From|T]) :-
 	read_field(Table, From, To, KeyName, KeyValue), !,
 	read_table(Table, KeyName, To, T).
 read_table(_, _, _, []).
-	
+
 sort_fields(Order, Fields, Sorted) :-
 	length(Fields, N),
 	format('(sorting ~D records) ... ', [N]), flush,
@@ -110,11 +110,11 @@ write_records([_-From|T], Table, Sep, OutFd) :-
 %	given ordering table.
 
 sort_keyed_strings(Table, List, Sorted) :-
-	length(List, Length), 
-	do_sort(Length, Table, List, _, Result), 
+	length(List, Length),
+	do_sort(Length, Table, List, _, Result),
 	Sorted = Result.
 
-do_sort(2, Table, [X1, X2|L], L, R) :- !, 
+do_sort(2, Table, [X1, X2|L], L, R) :- !,
 	X1 = K1-_,
 	X2 = K2-_,
 	compare_strings(Table, K1, K2, Cmp),
@@ -122,17 +122,17 @@ do_sort(2, Table, [X1, X2|L], L, R) :- !,
 do_sort(1, _, [X|L], L, [X]) :- !.
 do_sort(0, _, L, L, []) :- !.
 do_sort(N, Table, L1, L3, R) :-
-	N1 is N // 2, 
-	N2 is N - N1, 
-	do_sort(N1, Table, L1, L2, R1), 
-	do_sort(N2, Table, L2, L3, R2), 
+	N1 is N // 2,
+	N2 is N - N1,
+	do_sort(N1, Table, L1, L2, R1),
+	do_sort(N2, Table, L2, L3, R2),
 	do_merge(R1, R2, Table, R).
 
 do_merge([], R, _, R) :- !.
 do_merge(R, [], _, R) :- !.
 do_merge(R1, R2, Table, [X|R]) :-
-	R1 = [X1|R1a], 
-	R2 = [X2|R2a], 
+	R1 = [X1|R1a],
+	R2 = [X2|R2a],
 	X1 = K1-_,
 	X2 = K2-_,
 	(   compare_strings(Table, K1, K2, >)

@@ -36,18 +36,17 @@
 	    setof/3			% +Templ, :Goal, -List
 	  ]).
 
-:- module_transparent
-	findall/4,
-	findall/3,
-	bagof/3,
-	setof/3.
+:- meta_predicate
+	findall(?, 0, -),
+	findall(?, 0, -, ?),
+	bagof(?, 0, -),
+	setof(?, 0, -).
 
 :- noprofile((
 	findall/4,
 	findall/3,
 	bagof/3,
 	setof/3,
-	fa_local/4,
 	fa_loop/5)).
 
 :- '$iso'((findall/3,
@@ -61,27 +60,22 @@
 %       duplicates.   Equivalent  to bagof, using the existence operator
 %       (^) on all free variables of Goal.  Succeeds with Bag  =  []  if
 %       Goal fails immediately.
-%       
+%
 %	The  findall/4  variation  is  a    difference-list  version  of
 %	findall/3.
 
 findall(Templ, Goal, List) :-
 	findall(Templ, Goal, List, []).
 
-
 findall(Templ, Goal, List, Tail) :-
-	strip_module(Goal, M, G),
-	fa_local(Templ, M:G, List, Tail).
-
-fa_local(Templ, M:G, List, Tail) :-
-	setup_and_call_cleanup('$new_findall_bag'(Bag),
-			       fa_loop(Templ, M:G, Bag, List, Tail),
+	setup_call_cleanup('$new_findall_bag'(Bag),
+			       fa_loop(Templ, Goal, Bag, List, Tail),
 			       '$destroy_findall_bag'(Bag)).
-			       
+
 fa_loop(Templ, Goal, Bag, List, Tail) :-
 	\+ (Goal, \+ '$add_findall_bag'(Bag, Templ)),
 	'$collect_findall_bag'(Bag, List, Tail).
-	
+
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %
 %       Implements Clocksin and  Melish's  bagof/3  predicate.   Bag  is

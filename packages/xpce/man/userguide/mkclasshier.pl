@@ -31,4 +31,4 @@ expand_node(N) :-
 expand_node(_).
 
 
-	
+

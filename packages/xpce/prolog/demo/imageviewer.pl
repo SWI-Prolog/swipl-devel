@@ -33,7 +33,7 @@
 :- use_module(library(pce)).
 :- require([ append/3
 	   , chain_list/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , flatten/2
 	   , send_list/3
 	   , shell/1
@@ -132,7 +132,7 @@ reload(Bitmap) :-
 
 edit_image(Bitmap) :-
 	get(Bitmap?file, name, File),
-	concat_atom(['bitmap ', File, ' &'], Cmd),
+	atomic_list_concat(['bitmap ', File, ' &'], Cmd),
 	shell(Cmd).
 
 
@@ -233,4 +233,4 @@ charset(Set) -->
 
 charset2([]) --> "]", !.
 charset2([H|T]) --> [H], charset2(T).
-	
+

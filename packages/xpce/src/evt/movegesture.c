@@ -29,7 +29,7 @@ status
 initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier)
 { initialiseGesture((Gesture) g, button, modifier);
   assign(g, offset, newObject(ClassPoint, ZERO, ZERO, EAV));
-  
+
   succeed;
 }
 
@@ -115,7 +115,7 @@ static senddecl send_moveGesture[] =
 #define get_moveGesture NULL
 /*
 static getdecl get_moveGesture[] =
-{ 
+{
 };
 */
 

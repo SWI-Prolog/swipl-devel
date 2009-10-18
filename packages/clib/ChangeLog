@@ -1,10 +1,112 @@
+[Sep 9 2009]
+
+ * ADDED: uri_file_name/2
+
+ * ADDED: library(uri), providing a much faster and modern API to handling
+   URIs and IRIs.
+
+[Aug 18 2009]
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+[Aug 7 2009]
+
+ * MODIFIED: WinSock interface now signals WSAECONNABORTED as EOF when reading. This is somewhat debatable, but compatible with the Unix version of the socket interface.  Matt Lilley.
+
+[Aug 3 2009]
+
+ * PORT: Avoid name-clash on SOCK_* constants.
+[Jul 27 2009]
+
+ * FIXED: Another timer issue that could crash the alarm-scheduler.
+
+ * FIXED: The library(time) now uses SIGUSR2 rather then SIGALRM if available to avoid interference from libreadline's signal handling of SIGALRM.
+
+ * FIXED: Crash in alarm-timers (Multi-threaded unix version)
+
+[Jul 21 2009]
+
+ * MODIFIED: Make initialization/1 ISO compliant
+   This patch is a modest cleanup to the implementation of '$load_file'/3
+   from init.pl and provides an ISO compatible implementation of
+   initialization/1. This executes the argument goal *after* loading the
+   file rather than when encountering the directive. Often this makes no
+   difference, but notably load_foreign_library/1 is an exception.
+   Therefore we added use_foreign_library/1,2 that act as a directive and
+   provides proper integration with saved-states automatically.  Loading
+   code using initialization(load_foreign_library(...)) will load the
+   library immediately and issue a warning.
+
+   See initialization/1,2 for details and further hints for dealing with
+   possible compatibility problems.
+
+[Jul 8 2009]
+
+ * ADDED: alarm_at/4.  Addition provided by Samar Abdallah.
+
+[Jul 6 2009]
+
+ * FIXED: library(time) (Unix version): properly handle multiple alarms at the same time.  Reported by Samer Abdallah.
+[Jun 15 2009]
+
+ * BUILD: Skip RFC2202 tests if Prolog is not compiled with unbounded arithmetic. Keri Harris.
+
+[Jun 2 2009]
+
+ * ADDED: uninstall_alarm/1
+
+[Mar 30 2009]
+
+ * FIXED: alarm handling on Win64 (Kerri Haris)
+
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.  This avoids many GIT (merge) warnings.
+[Mar 12 2009]
+
+ * MODIFIED: Renamed concat_atom/2,3 into atomic_list_concat/2,3 for compatibility.  Moved the old predicates into library(backcomp).  It is adviced to update your code, but 99% of the code will remain working because the old definitions are autoloaded.
+
+[Feb 4 2009]
+
+ * FIXED: Uninitialised variable in environment parsing of process.c.  Keri Harris.
+
+[Jan 29 2009]
+
+ * CLEANUP: generalisations in the socket library design to allow TIPC to
+   reuse parts of it.  Contributed by Jeff Rosenwald.
+
+ * PORT: Port new environment initialisation of process_create/3 to Windows.
+   The new environment processing code is free of limits (of course, except
+   limits of the operating system).
+
+[Jan 28 2009]
+
+ * ADDED: env option to process_create/3 to specify the environment for
+   the child process.
+
+[Jan 26 2009]
+
+ * FIXED: make install_alarm/1 produce an error when installing twice.
+
+ * MODIFIED: Renamed setup_and_call_cleanup/3,4 to setup_call_cleanup/3 and setup_call_catcher_cleanup/4; added to library(backcomp).
+
+ * ADDED: library(streaminfo) for debugging (network) stream issues
+[Jan 23 2009]
+
+ * CHECK: Fixed makefile for modified test entry-point
+
+[Jan 22 2009]
+
+ * ADDED: free_on_close option to open_memory_file/4
+
+ * CLEANUP: library(time) to use meta_predicate declaration and make debugging a
+   bit simpler.
 [Oct 9 2008]
 
  * ADDED: library(unix): support symbolic signal names.
-   
+
  * FIXED: Many errors in exceptions raised after failing system calls
    by the libraries from the clib package.
-   
+
 [Oct 2 2008]
 
  * ENHANCED: Cache value of gethostname/1.
@@ -12,35 +114,35 @@
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Sep 9 2008]
 
  * ADDED: TCP sockets: support TCP_NODELAY using tcp_setopt(Socket, nodelay(true)).
    After patch submitted by Matt Lilley.
-   
+
 [Aug 14 2008]
 
  * FIXED: Possible crash if closing a socket in Windows fails.  Matt Lilley.
-   
+
 [Aug 13 2008]
 
  * FIXED: Windows: closing the read-handle of a socket reported an error.  Matt Lilley.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
 [Jul 4 2008]
 
  * FIXED: library(process) stream administration (could lead to errors in close)
-   
+
 [Jul 3 2008]
 
  * FIXED: Avoid possible deadlock in PL_cleanup_fork(). Michiel William Kauw-A-Tjoe
-   
+
 [Jun 25 2008]
 
  * ADDED: memory_file_to_atom/3 and memory_file_to_codes/3 to convert encodings.
-   
+
 [Jun 27 2008]
 
  * FIXED: read_line_to_codes/3: foreign implementation did not unlock stream.
@@ -52,14 +154,14 @@
 
  * FIXED: Error message when using a service name in tcp_bind/connect.
    Jean-Marc Vanel.
-   
+
 [May 20 2008]
 
  * PORT: Port UDP socket support to Windows
 
  * MODIFIED: Streams in socket.pl and ssl.pl appeared unbuffered.  They
    are now fully buffered.
-   
+
 [May 19 2008]
 
  * ADDED: support for 'as(Type) option to udp_receive/4
@@ -77,10 +179,10 @@
  * ADDED: library(process), providing SICStus 4 compatible process interaction
    to the clib packages.  Currently runs on Unix systems only (tested Linux and
    MacOS X 10.4).
-   
+
    This patch also extends the foreign interface with the PL_get_signum_ex()
    and PL_cleanup_fork().
-   
+
 [Mar 10 2008]
 
  * FIXED: Pass error while waiting for accept() in Windows
@@ -115,7 +217,7 @@ Sep 3, 2007
 
 Jul 30, 2007
 
-  * FIXED: Bug#302: memory leak in atom_to_memory_file/2 with filled 
+  * FIXED: Bug#302: memory leak in atom_to_memory_file/2 with filled
     output argument.  Keri Harris.
 
 Jul 12, 2007
@@ -126,7 +228,7 @@ Jul 12, 2007
 
   * ADDED: install_alarm/1.
 
-  * FIXED: Avoid exit of Prolog on uncaught exception from 
+  * FIXED: Avoid exit of Prolog on uncaught exception from
     call_with_time_limit/2.  Ulrich Neumerkel.
 
 May 3, 2007
@@ -154,7 +256,7 @@ Feb 28, 2007
 Feb 26, 2007
 
   * FIXED: complete redesign of nonblock.c socket layer to deal with
-    validness of socket handles.  
+    validness of socket handles.
 
 Feb 9, 2007
 
@@ -344,7 +446,7 @@ Jun 11, 2002
  * ADDED: library(files), providing uncommon access to file objects.
 
 29/04/2002
-  
+
  * Add initialization to load_foreign_library for calls lacking this.
    Holger Kanwischer.
 
@@ -365,11 +467,11 @@ Jun 11, 2002
    when the file contains no data.
 
 10/06/2001
- 
+
  * ADDED: library(mime) for MIME message parsing.
 
 07/10/2000
- 
+
  * ADDED: Allow for descriptor to arguments of dup/2.
 
 30/06/1999

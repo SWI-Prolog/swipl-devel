@@ -331,7 +331,7 @@ getTermParser(Parser p, Chain end)
   Stack out = &os;
   Stack side = &ss;
   int rmo = 0;
-  
+
   initStack(out);
   initStack(side);
 
@@ -401,7 +401,7 @@ getTermParser(Parser p, Chain end)
 	TRY(reduce(p, out, side, valInt(op->left_priority)));
 	pushStack(side, op);
 	continue;
-      } 
+      }
     }
 
     if ( rmo == 0 )
@@ -417,7 +417,7 @@ getTermParser(Parser p, Chain end)
 exit:
   rmo = modify(p, rmo, out, side, 100000);
   TRY(reduce(p, out, side, 100000));
-  
+
   DEBUG(NAME_term, Cprintf("out->size = %d; side->size = %d\n",
 			   out->size == 1, side->size));
 
@@ -444,7 +444,7 @@ getParseParser(Parser p, Any input)
 { Any rval;
   Tokeniser t = p->tokeniser;
   Tokeniser t2 = getOpenTokeniser(t, input);
-  
+
   addCodeReference(t);
   addCodeReference(input);
   if ( t2 != t )
@@ -515,7 +515,7 @@ static getdecl get_parser[] =
 #define rc_parser NULL
 /*
 static classvardecl rc_parser[] =
-{ 
+{
 };
 */
 

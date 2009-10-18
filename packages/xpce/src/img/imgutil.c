@@ -39,7 +39,7 @@ int
 image_type_from_data(char *data, int size)
 { if ( size > 2 )
   { unsigned short beshort = data[0]<<8|data[1];
-    
+
     switch(beshort)
     { case 0xffd8:
 	return IMG_IS_JPEG;

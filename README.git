@@ -1,7 +1,7 @@
 Installing from GIT/CVS
 -----------------------
 
-Last update: Aug 12, 2008
+Last update: Jun 28, 2009
 
 GIT (git.or.cz/) is the  recommended  way   to  track  the  development,
 especially if you plan to maintain a  modified version or want to submit
@@ -18,13 +18,12 @@ Downloading
 Next, get the SWI-Prolog git. This  takes   a  while the first time, but
 subsequent updates will be fast:
 
-	% git clone git://gollem.science.uva.nl/home/pl/pl.git
+	% git clone git://www.swi-prolog.org/home/pl/git/pl-57x.git
 
 If you have the poor luck that you are behind a firewall, you can almost
 certainly use this alternative.  Note however that this is much slower.
 
-	% git clone http://gollem.science.uva.nl/home/pl/pl.git
-
+	% git clone http://www.swi-prolog.org/home/pl/git/pl-57x.git
 
 Building
 ========
@@ -86,7 +85,7 @@ If you made no branches and patches, you update to the latest using
 	% make distclean
 	<optionally get new documentation archive and unpack>
 	% ./build 	(see using of the build script in INSTALL.notes)
-	
+
 If you have patches, this is slightly  more difficult. You can keep your
 history clean using this instead of the simple pull above:
 

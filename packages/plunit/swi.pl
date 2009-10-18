@@ -23,7 +23,7 @@
 	    copy_term/3,		% +Term, ?Copy
 	    option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
-	    concat_atom/2,		% +List, -Atom
+	    atomic_list_concat/2,		% +List, -Atom
 	    pairs_values/2,		% +Pairs, -Values
 	    group_pairs_by_key/2,	% +Pairs, -Groups
 	    thread_self/1		% -Thread
@@ -82,7 +82,7 @@ maplist(Goal, List) :-
 
 maplist2([], _).
 maplist2([Elem|Tail], Goal) :-
-	call(Goal, Elem), 
+	call(Goal, Elem),
 	maplist2(Tail, Goal).
 
 %	maplist(:Goal, ?List1, ?List2)
@@ -161,7 +161,7 @@ source_location(File, Line) :-
 %
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options, Default) :-	% make option processing stead-fast
@@ -182,7 +182,7 @@ option(Opt, _, Default) :-
 %	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention. Fails silently
 %	if the option does not appear in OptionList.
-%	
+%
 %	@param Option	Term of the form Name(?Value).
 
 option(Opt, Options) :-	% make option processing stead-fast
@@ -204,11 +204,11 @@ get_option(Opt, Options) :-
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
 
-%%	concat_atom(+Atoms:list(atomic), -Atom:atom) is det.
+%%	atomic_list_concat(+Atoms:list(atomic), -Atom:atom) is det.
 %
 %	Concatenate a list of atomic items to an atom.
 
-concat_atom(List, Atom) :-
+atomic_list_concat(List, Atom) :-
 	to_codes(List, Codes, []),
 	atom_codes(Atom, Codes).
 
@@ -233,17 +233,17 @@ pairs_values([_-V|T0], [V|T]) :-
 %%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
 %
 %	Group values with the same key.  For example:
-%	
+%
 %	==
 %	?- group_pairs_by_key([a-2, a-1, b-4], X).
-%	
+%
 %	X = [a-[2,1], b-[4]]
 %	==
-%	
+%
 %	@param	Pairs	Key-Value list, sorted to the standard order
 %			of terms (as keysort/2 does)
 %	@param  Joined	List of Key-Group, where Group is the
-%			list of Values associated with Key. 
+%			list of Values associated with Key.
 
 group_pairs_by_key([], []).
 group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-

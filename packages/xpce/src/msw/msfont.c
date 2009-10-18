@@ -33,7 +33,7 @@ typedef struct _lname
 } lname;
 
 
-static lname charset_names[] = 
+static lname charset_names[] =
 { { "ansi",	ANSI_CHARSET },
   { "oem",	OEM_CHARSET },
   { "symbol",	SYMBOL_CHARSET },
@@ -44,7 +44,7 @@ static lname charset_names[] =
 };
 
 
-static lname outprecision_names[] = 
+static lname outprecision_names[] =
 { { "character",OUT_CHARACTER_PRECIS },
   { "default",	OUT_DEFAULT_PRECIS },
   { "device",	OUT_DEVICE_PRECIS },
@@ -58,7 +58,7 @@ static lname outprecision_names[] =
 };
 
 
-static lname clipprecision_names[] = 
+static lname clipprecision_names[] =
 { { "character",CLIP_CHARACTER_PRECIS },
   { "default",	CLIP_DEFAULT_PRECIS },
   { "stroke",	CLIP_STROKE_PRECIS },
@@ -66,7 +66,7 @@ static lname clipprecision_names[] =
 };
 
 
-static lname quality_names[] = 
+static lname quality_names[] =
 { { "default",  DEFAULT_QUALITY },
   { "draft",	DRAFT_QUALITY },
   { "proof",	PROOF_QUALITY },
@@ -74,7 +74,7 @@ static lname quality_names[] =
 };
 
 
-static lname pitch_names[] = 
+static lname pitch_names[] =
 { { "default",  DEFAULT_PITCH },
   { "fixed",	FIXED_PITCH },
   { "variable",	VARIABLE_PITCH },
@@ -82,7 +82,7 @@ static lname pitch_names[] =
 };
 
 
-static lname family_names[] = 
+static lname family_names[] =
 { { "decorative",  FF_DECORATIVE },
   { "dontcare",	   FF_DONTCARE },
   { "modern",	   FF_MODERN },
@@ -121,7 +121,7 @@ static int
 string_attribute(char *s, char *string, int len)
 { char *q = s;
   char *r = string;
-  
+
   if ( *q++ != '(' )
     return -1;
   while(isspace(*q))
@@ -163,7 +163,7 @@ bool_attribute(char *s, BYTE *val)
 { *val = TRUE;
 
   return 0;
-} 
+}
 
 
 static status
@@ -209,7 +209,7 @@ parse_font(char *s, LOGFONT *lfont)
       n=string_attribute(s, lfont->lfFaceName, LF_FACESIZE);
     else
       Cprintf("Bad font-attribute name: %s\n", att);
-  
+
     if ( n < 0 )
     { Cprintf("Bad value for font-attribute %s\n", att);
       while( *s && *s != ':' )
@@ -259,7 +259,7 @@ ws_create_font(FontObj f, DisplayObj d)
 			       f->family == NAME_times     ? FF_ROMAN :
 			       f->family == NAME_screen    ? FF_MODERN :
 							     FF_DONTCARE);
-  
+
     if ( f->family == NAME_symbol )
       strcpy(lfont.lfFaceName, "symbol");
 
@@ -345,7 +345,7 @@ ws_destroy_font(FontObj f, DisplayObj d)
 static struct system_font
 { char *name;
   int  id;
-} window_fonts [] = 
+} window_fonts [] =
 { { "ansi_fixed",	ANSI_FIXED_FONT },
   { "ansi_var",		ANSI_VAR_FONT },
   { "device_default",	DEVICE_DEFAULT_FONT },

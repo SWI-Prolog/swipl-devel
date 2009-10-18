@@ -55,7 +55,7 @@ iso_639(Code, Lang) :-
 
 
 %	l3(?Code, ?Lang)
-%	
+%
 %	ISO-639 3-letter codes
 
 l3(abk, 'Abkhazian').
@@ -487,7 +487,7 @@ l3(zul, 'Zulu').
 l3(zun, 'Zuni').
 
 %	l2(?Code, ?Lang)
-%	
+%
 %	ISO-639 2 letter codes
 
 l2(aa, 'Afar').

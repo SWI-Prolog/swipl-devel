@@ -46,7 +46,7 @@ very specific code. Operators in Prolog  are global objects and changing
 operators changes syntax and possible semantics of existing sources. For
 this reason it is desirable  to   reset  operator declarations after the
 code that needs them has been read.   This module defines a rather cruel
--but portable- method to do this. 
+-but portable- method to do this.
 
 Usage:
 
@@ -55,7 +55,7 @@ Usage:
 	[ op(900, fx, hello_world)
 	, op(600, xf, *)
 	]).
-	
+
 hello_world World :-
 	....
 
@@ -90,7 +90,7 @@ otherwise a more structured approach for operator handling.
 
 %%	push_operators(:New) is det.
 %%	push_operators(:New, -Undo) is det.
-%	
+%
 %	Installs the operators from New, where New is a list of op(Prec,
 %	Type, :Name). The modifications to the operator table are undone
 %	in a matching call to pop_operators/0.
@@ -107,7 +107,7 @@ push_operators(New) :-
 	assert_op(Undo).
 
 %%	push_op(+Precedence, +Type, :Name) is det.
-%	
+%
 %	As op/3, but this call must  appear between push_operators/1 and
 %	pop_operators/0.  The  change  is   undone    by   the  call  to
 %	pop_operators/0
@@ -123,7 +123,7 @@ push_op(P, T, A0) :-
 	op(P, T, A).
 
 %%	pop_operators is det.
-%	
+%
 %	Revert all changes to the operator table realised since the last
 %	push_operators/1.
 
@@ -170,7 +170,7 @@ undo_operator(op(P, T, [H|R]), [OH|OT]) :- !,
 	undo_operator(op(P, T, R), OT).
 undo_operator(op(_, _, []), []) :- !.
 undo_operator(op(_P, T, N), op(0, T, N)).
-	
+
 same_op_type(T, OT) :-
 	op_type(T, Type),
 	op_type(OT, Type).
@@ -186,7 +186,7 @@ op_type(yf,  postfix).
 
 %%	assert_op(+Term) is det.
 %%	retract_op(-Term) is det.
-%	
+%
 %	Force local assert/retract.
 
 assert_op(Term) :-

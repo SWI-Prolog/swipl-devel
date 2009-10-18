@@ -61,36 +61,6 @@ available test sets. The public goals are:
 :- setenv('TZ', 'CET').
 
 		 /*******************************
-		 *    CONDITIONAL COMPILATION	*
-		 *******************************/
-
-:- dynamic
-	user:include_code/1.
-
-term_expansion((:- if(G)), []) :-
-	prolog_load_context(module, M),
-	(   catch(M:G, E, (print_message(error, E), fail))
-	->  asserta(user:include_code(true))
-	;   asserta(user:include_code(false))
-	).
-term_expansion((:- else), []) :-
-	(   retract(user:include_code(X))
-	->  (   X == true
-	    ->  X2 = false 
-	    ;   X2 = true
-	    ),
-	    asserta(user:include_code(X2))
-	;   throw(error(context_error(no_if), _))
-	).
-term_expansion((:- endif), []) :-
-	retract(user:include_code(_)), !.
-
-term_expansion(_, []) :-
-	user:include_code(X), !,
-	X == false.
-	    
-
-		 /*******************************
 		 *	      SYNTAX		*
 		 *******************************/
 
@@ -150,7 +120,7 @@ syntax(latin-1) :-
 	atom_codes(A, [247]),
 	atom_to_term(A, T, []),
 	atom_codes(T, [247]).
-	
+
 
 		 /*******************************
 		 *	       WRITE		*
@@ -232,7 +202,7 @@ occurs_check(simple-2) :-
 	unify_with_occurs_check(_A, _B).
 occurs_check(attvar-1) :-		% test wakeup
 	freeze(X, X = Y),
-	unify_with_occurs_check(X, a), 
+	unify_with_occurs_check(X, a),
 	Y == a.
 occurs_check(attvar-2) :-		% test occurs-check
 	freeze(A, true),
@@ -370,7 +340,7 @@ arithmetic(truncate-1) :-
 	1 is truncate(1.9),
 	-1 is truncate(-1.1),
 	-1 is truncate(-1.9).
-:- if(current_prolog_flag(bounded, false)). 
+:- if(current_prolog_flag(bounded, false)).
 arithmetic(floor-2) :-
 	A is floor(9223372036854775808.000000),
 	A == 9223372036854775808.
@@ -519,7 +489,15 @@ idiv(Dd,Dr,Iq):-
         rational(Q,Qt,Qn),
         Iq is Qt//Qn.
 
+dec(X, Y) :-
+	Y is X - 1.
 
+gmp(add-promote1) :-
+	A is 1 + 9223372036854775807,
+	A =:= 9223372036854775808.
+gmp(add-promote2) :-
+	A is -9223372036854775808 + -1,
+	A =:= -9223372036854775809.
 gmp(neg-1) :-				% check conversion of PLMININT
 	A is -9223372036854775808,
 	-A =:= 9223372036854775808.
@@ -530,7 +508,7 @@ gmp(abs-1) :-
 	abs(A) =:= 9223372036854775808.
 gmp(sign-1) :-
 	-1 =:= sign(-5 rdiv 3),
-	0 =:= sign(0 rdiv 1), 
+	0 =:= sign(0 rdiv 1),
 	1 =:= sign(2 rdiv 7),
 	fac(60, X),
 	-1 =:= sign(-X),
@@ -590,7 +568,7 @@ gmp(arith-1) :-
 	Y is B * A * B * A * B * A,
 	integer(Y),
 	R is X / Y,
-	R == A. 
+	R == A.
 gmp(pow-1) :-
 	A is 10**50, integer(A).
 gmp(pow-2) :-
@@ -628,6 +606,9 @@ gmp(rational-1) :-				% IEEE can represent 0.25
 gmp(rational-2) :-
 	A is 2 rdiv 4,
 	rational(A, 1, 2).
+gmp(rational-3) :-
+	dec(6 rdiv 5, X),
+	X == 1 rdiv 5.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
 	B is rationalize(0.1), B == 1 rdiv 10,
@@ -721,6 +702,10 @@ gmp(length) :-
 	N is 1<<66,
 	catch(length(_L, N), Error, true),
 	Error = error(resource_error(stack), global).
+gmp(ar_add_ui) :-			% check realloc of gmp number
+	A = 1000000000000000000000,
+	X is A+1,
+	X == 1000000000000000000001.
 
 :- endif.
 
@@ -806,7 +791,7 @@ meta(call-11) :-
 	flag(a, 3, Old).
 meta(call-12) :-
 	catch(call(1), E, true),
-	error(E, type_error(callable, 1)).
+	error(E, type_error(callable, _)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
@@ -914,7 +899,7 @@ depth_limit(depth-2) :-
 depth_limit(depth-3) :-
 	call_with_depth_limit(dl_det(10), 9, depth_limit_exceeded).
 depth_limit(ndet-1) :-
-	findall(X, 
+	findall(X,
 		call_with_depth_limit(dl_ndet(5), 10, X),
 		L),
 	L = [5, depth_limit_exceeded].
@@ -1108,6 +1093,10 @@ atom_handling(concat-5) :-
 atom_handling(concat-6) :-
 	atom_concat(X, a, a),
 	X == ''.
+atom_handling(concat-7) :-
+	atom_concat(X, Y, ''),
+	X == '',
+	Y == ''.
 
 atom_handling(number-1) :-
 	atom_number('42', X), X == 42.
@@ -1316,7 +1305,7 @@ record(erase-2) :-
 		 *******************************/
 
 %	compiler
-%	
+%
 %	This suite tests whether all data-types can be compiled properly
 %	and handled by the decompiler.
 
@@ -1355,6 +1344,13 @@ compiler(assert-6) :-
 	T =.. [x|A],
 	assert(T),
 	T.
+compiler(assert-7) :-
+	Body = (a(A), A=[B|C], a(B), a(C)),
+	Clause = (at:-Body),
+	assert(Clause, Ref),
+	clause(_H, BC, Ref),
+	BC =@= Body,
+	erase(Ref).
 
 unify(X, X).
 
@@ -1543,6 +1539,7 @@ catchme :-
 
 undef :-
 	'this is not defined'.
+undef.					% avoid last-call optimization for context
 
 tcatch :-
 	catch(ierror, E, throw(ok(E))).
@@ -1564,13 +1561,12 @@ exception(call-4) :-
 	X = a.
 exception(call-5) :-
 	catch(throwit, _, catchme).
-
 exception(context-1) :-
 	catch(functor(_,_,_), E, true),
-	error_pred(E, functor/3).
+	error_context(E, functor/3).
 exception(context-2) :-
 	catch(undef, E, true),
-	error_pred(E, undef/0).
+	error_context(E, undef/0).
 exception(catch-gc) :-
 	catch(tcatch, E, true),
 	subsumes_chk(ok(error(_,_)), E).
@@ -1597,7 +1593,7 @@ string_overflow(StringList) :-
 string_overflow2([H|T]) :-		% Causes PL_throw() overflow
 	format(string(H), '~txx~1000000|', []),
 	string_overflow2(T).
-		
+
 
 resource(stack-1) :-
 	catch(local_overflow, E, true),
@@ -1615,6 +1611,9 @@ resource(stack-4) :-
 	E1 = error(resource_error(stack), global),
 	catch(global_overflow(_), E2, true),
 	E2 = error(resource_error(stack), global).
+resource(stack-5) :-
+	catch(length(_L,10000000), E, true),
+	E = error(resource_error(stack), global).
 
 
 		 /*******************************
@@ -1627,10 +1626,10 @@ make_data(N, s(X)) :-
 	make_data(NN, X).
 
 gc(shift-1) :-
-	(   feature(dynamic_stacks, true)
+	(   current_prolog_flag(dynamic_stacks, true)
 	->  true
 	;   MinFree is 400 * 1024,
-	    stack_parameter(global, min_free, _, MinFree)
+	    set_prolog_stack(global, min_free, MinFree)
 	).
 gc(gc-1) :-
 	garbage_collect.
@@ -1690,13 +1689,18 @@ intoverflow(syntax-2) :-
 	name(X, Chars),
 	float(X),
 	X =:= Float.
-	
+
 
 		 /*******************************
 		 *	ATTRIBUTED VARIABLES	*
 		 *******************************/
 
+:- dynamic
+	woken/2.
+
 test:attr_unify_hook(_Att, _Val).
+woken:attr_unify_hook(Att, Var) :-
+	assert(woken(Att, Var)).
 
 u_predarg(predarg).
 u_termarg(f(termarg)).
@@ -1830,6 +1834,11 @@ avar(order-1) :-			% attributes do not change standard
 	;   put_attr(A, test, x),
 	    A @> B
 	).
+avar(nowake-1) :-
+	retractall(woken(_,_)),
+	put_attr(V, woken, 10),
+	\+ (V-a = 10-b),
+	\+ woken(_,_).
 
 
 		 /*******************************
@@ -1932,7 +1941,7 @@ copy_term(av-4) :-
 	X = ok,
 	Done == true,
 	get_attr(Y, freeze, Att),
-	Att = (user:true, user:(D2=true)),
+	Att = '$and'(user:true, user:(D2=true)),
 	var(D2),
 	Y = ok,
 	D2  == true.
@@ -1958,16 +1967,11 @@ copy_term(nat-2) :-			% cyclic term
 
 
 		 /*******************************
-		 *	     HASH-TERM		*
+		 *	     TERM-HASH		*
 		 *******************************/
 
-%	NOTE: these numbers are for 32-bit platforms. Different value of
-%	max_tagged_integer is main reason why the result is different on
-%	64-bit platforms. What to do? Use the   32-bit  limit also on 64
-%	bit platforms?  For now the test is disabled on 64-bit machines.
-
 term_hash(simple-1) :-
-	term_hash(aap, 8246445).
+	term_hash(aap, 9270206).
 term_hash(simple-2) :-			% small int
 	term_hash(42, X),
 	memberchk(X, [ 12280004,	% little endian
@@ -1988,12 +1992,12 @@ term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
-	term_hash(hello(world), 2391568). 
+	term_hash(hello(world), 12599352).
 term_hash(compound-2) :-
 	X = x(a),
-	term_hash(hello(X, X), 4126440). 
+	term_hash(hello(X, X), 5826661).
 term_hash(compound-3) :-
-	term_hash(hello(x(a), x(a)), 4126440). 
+	term_hash(hello(x(a), x(a)), 5826661).
 
 
 		 /*******************************
@@ -2089,7 +2093,7 @@ popen(cat-1) :-
 	;   File = 'pltest.txt',
 	    Text = 'Hello World',
 	    Cmd = cat,
-	    concat_atom([Cmd, ' > ', File], Command),
+	    atomic_list_concat([Cmd, ' > ', File], Command),
 	    open(pipe(Command), write, Fd),
 	    format(Fd, '~w', [Text]),
 	    close(Fd),
@@ -2179,9 +2183,8 @@ timeout(pipe-1) :-
 
 :- dynamic
 	testfile/1.
-:- initialization
-	prolog_load_context(file, File),
-	assert(testfile(File)).
+:- prolog_load_context(file, File),
+   assert(testfile(File)).
 
 root(Root) :-
 	(   current_prolog_flag(windows, true)
@@ -2423,7 +2426,7 @@ thread(status-1) :-
 thread(create_error-1) :-
 	catch(thread_create(true, _, [local(a)]), E, true),
 	E = error(domain_error(thread_option, local(a)), _).
-	
+
 
 		 /*******************************
 		 *	 MUTEX HANDLING		*
@@ -2434,7 +2437,8 @@ mutex(trylock-1) :-
 	thread_self(Main),
 	thread_create(( mutex_lock(Mutex),
 			thread_send_message(Main, locked),
-			thread_get_message(_)),
+			thread_get_message(_),
+			mutex_unlock(Mutex)),
 		      Id, []),
 	thread_get_message(locked),
 	\+ mutex_trylock(Mutex),
@@ -2487,7 +2491,7 @@ run_test_script(Script) :-
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
-	    concat_atom([ScriptDir, /, Directory], Dir),
+	    atomic_list_concat([ScriptDir, /, Directory], Dir),
 	    exists_directory(Dir)
 	->  true
 	;   Dir = Directory
@@ -2587,7 +2591,7 @@ testset(mutex) :-
 testset(resource).
 
 %	unicode_file_locale/0
-%	
+%
 %	True if out filesystem can   handle Unicode filenames. Difficult
 %	to have a good test.
 
@@ -2601,7 +2605,7 @@ unicode_file_locale :-
 	).
 
 %	wide_character_types
-%	
+%
 %	True if the  character  classification   routines  work  on wide
 %	characters. Hard to say when this is  the case. On some machines
 %	the wide character versions always work,  on others only for the
@@ -2611,7 +2615,7 @@ wide_character_types :-
 	current_prolog_flag(encoding, utf8), !.
 
 %	testdir(Dir)
-%	
+%
 %	Enumerate directories holding tests.
 
 testdir('Tests/core').
@@ -2666,6 +2670,11 @@ runtest(Name) :-
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
+	(   current_prolog_flag(verbose, normal)
+	->  clause_property(R, line_count(Line)),
+	    format('(~w)', [Line]), flush_output
+	;   true
+	),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
 	    ->  put(.), flush_output
@@ -2679,7 +2688,7 @@ runtest(Name) :-
 	fail.
 runtest(_) :-
 	format(' done.~n').
-	
+
 nth_clause_head(Head, R) :-
 	nth_clause(Head, _N, R),
 	clause(Head, _, R).
@@ -2721,19 +2730,22 @@ blocked(Reason) :-
 
 
 %	error(+Exception, +Expected)
-%	
+%
 %	Check whether the correct exception  is thrown, disregarding the
 %	2nd context argument.
 
 error(error(Ex, _Ctx), Expected) :-
-	Ex =@= Expected, !.
+	subsumes_chk(Expected, Ex), !.
 error(error(Ex, _Ctx), Expected) :-
 	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
 	fail.
 
-error_pred(error(_, context(Pred, _)), Pred).
-error_pred(error(_, context(Module:Pred, _)), Pred) :-
-	hidden_module(Module).
+error_context(error(_, context(Pred, _)), Pred) :- !.
+error_context(error(_, context(Module:Pred, _)), Pred) :-
+	hidden_module(Module), !.
+error_context(Error, _Pred) :-
+	format('Wrong error context: ~q~n', [Error]),
+	fail.
 
 hidden_module(user) :- !.
 hidden_module(system) :- !.

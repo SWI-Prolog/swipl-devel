@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -137,6 +137,41 @@ PL_get_choice(term_t r, Choice *chp)
 
 
 #ifdef O_DEBUGGER
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+isDebugFrame(LocalFrame FR) is true if this call  must be visible in the
+tracer. `No-debug' code has HIDE_CHILDS. Calls to  it must be visible if
+the parent is a debug frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+isDebugFrame(LocalFrame FR)
+{ if ( false(FR->predicate, TRACE_ME) )
+    return FALSE;			/* hidden predicate */
+
+  if ( false(FR->predicate, HIDE_CHILDS) )
+    return TRUE;			/* user pred */
+
+  if ( FR->parent )
+  { LocalFrame parent = FR->parent;
+
+    if ( levelFrame(FR) == levelFrame(parent)+1 )
+    {					/* not last-call optimized */
+      if ( false(parent->predicate, HIDE_CHILDS) )
+	return TRUE;			/* user calls system */
+      return FALSE;			/* system cals system */
+    } else
+    { if ( false(parent, FR_HIDE_CHILDS) )
+	return TRUE;
+      return FALSE;
+    }
+  } else
+  { QueryFrame qf = queryOfFrame(FR);
+
+    return (qf->flags & PL_Q_NODEBUG) ? FALSE : TRUE;
+  }
+}
+
 
 static void
 exitFromDebugger(int status)
@@ -283,8 +318,8 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
   if ( !bfr )
     bfr = LD->choicepoints;
 
-  if ( (true(frame, FR_NODEBUG) && !SYSTEM_MODE) || /* hidden */
-       debugstatus.suspendTrace )		      /* called back */
+  if ( (!isDebugFrame(frame) && !SYSTEM_MODE) || /* hidden */
+       debugstatus.suspendTrace )	        /* called back */
     return ACTION_CONTINUE;
 
   if ( port == EXCEPTION_PORT )		/* do not trace abort */
@@ -294,7 +329,7 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     if ( *p == ATOM_aborted )
       return ACTION_CONTINUE;
   }
-					/* trace/[1,2] */
+							/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
   { int doit = FALSE;
 
@@ -395,7 +430,7 @@ again:
 
     Sfputs(" ? ", Sdout);
     Sflush(Sdout);
-    if ( !trueFeature(TTY_CONTROL_FEATURE) )
+    if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
       { Sfputs("EOF: exit\n", Sdout);
@@ -416,7 +451,7 @@ again:
       }
     }
     action = traceAction(buf, port, frame, bfr,
-			 trueFeature(TTY_CONTROL_FEATURE));
+			 truePrologFlag(PLFLAG_TTY_CONTROL));
     if ( action == ACTION_AGAIN )
       goto again;
   } else
@@ -426,7 +461,7 @@ out:
   unblockGC(PASS_LD1);
   restoreWakeup(wake PASS_LD);
   if ( action == ACTION_ABORT )
-    pl_abort(ABORT_NORMAL);
+    abortProlog(ABORT_RAISE);
 
   return action;
 }
@@ -452,7 +487,7 @@ setupFind(char *buf)
     succeed;
   }
   for( ; *s && !isBlank(*s); s++ )	/* Parse the port specification */
-  { switch( *s )  
+  { switch( *s )
     { case 'c':	port |= CALL_PORT;  continue;
       case 'e':	port |= EXIT_PORT;  continue;
       case 'r':	port |= REDO_PORT;  continue;
@@ -566,7 +601,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		}
-		return ACTION_AGAIN;    		
+		return ACTION_AGAIN;
     case '.':   if ( LD->trace.find &&
 		     LD->trace.find->type != TRACE_FIND_NONE )
       	        { FeedBack("repeat search\n");
@@ -576,13 +611,15 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 		} else
 		{ Warn("No previous search\n");
 		}
-		return ACTION_AGAIN;    		
+		return ACTION_AGAIN;
     case EOS:
     case ' ':
     case '\n':
     case '\r':
     case 'c':	FeedBack("creep\n");
 		clear(frame, FR_SKIPPED);
+		if ( !(port & EXIT_PORT) )
+		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04':
     case EOF:	FeedBack("EOF: ");
@@ -653,7 +690,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
     case '-':	FeedBack("no spy\n");
 		clear(frame->predicate, SPY_ME);
 		return ACTION_AGAIN;
-    case '?': 
+    case '?':
     case 'h':	helpTrace();
 		return ACTION_AGAIN;
     case 'D':   GD->debug_level = num_arg;
@@ -790,7 +827,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
       PL_put_intptr(pc, PC-frame->clause->clause->codes);
     else
       PL_put_nil(pc);
-    
+
     PL_put_frame(fr, frame);
 
     for(; pn->flags; pn++)
@@ -822,11 +859,11 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     ctx.context = 0;
     ctx.control = FRG_FIRST_CALL;
     ctx.engine  = LD;
-    if ( !pl_feature(tmp, options, &ctx) )
+    if ( !pl_prolog_flag(tmp, options, &ctx) )
       PL_put_nil(options);
     PL_put_atom(tmp, ATOM_user_output);
 
-    msg[0] = true(def, METAPRED) ? '^' : ' ';
+    msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
     msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
     msg[2] = EOS;
 
@@ -846,7 +883,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
   }
 
   unblockGC(PASS_LD1);
-    
+
   PL_discard_foreign_frame(cid);
   restoreWakeup(wake PASS_LD);
 }
@@ -858,10 +895,10 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 static void
 alternatives(Choice ch)
 { for(; ch; ch = ch->parent)
-  { if ( (false(ch->frame, FR_NODEBUG) || SYSTEM_MODE) )
+  { if ( (isDebugFrame(ch->frame) || SYSTEM_MODE) )
       writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
   }
-}    
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -891,7 +928,7 @@ exceptionDetails()
   fid_t cid = PL_open_foreign_frame();
 
   Sflush(Suser_output);			/* make sure to stay `in sync' */
-  Sfputs("\n\n\tException term: ", Sdout);
+  Sfputs("\n\tException term: ", Sdout);
   PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
   Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
@@ -939,12 +976,12 @@ backTrace(LocalFrame frame, int depth)
     { if ( ++same_proc >= 10 )
       { if ( same_proc == 10 )
 	  Sfputs("    ...\n    ...\n", Sdout);
-	same_proc_frame = frame;  
+	same_proc_frame = frame;
 	continue;
       }
     } else
     { if ( same_proc_frame != NULL )
-      { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
+      { if ( isDebugFrame(same_proc_frame) || SYSTEM_MODE )
         { writeFrameGoal(same_proc_frame, PC, WFG_BACKTRACE);
 	  depth--;
 	}
@@ -954,7 +991,7 @@ backTrace(LocalFrame frame, int depth)
       def = frame->predicate;
     }
 
-    if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
+    if ( isDebugFrame(frame) || SYSTEM_MODE)
     { writeFrameGoal(frame, PC, WFG_BACKTRACE);
       depth--;
     }
@@ -1098,7 +1135,7 @@ findQuery(LocalFrame fr)
     fr = fr->parent;
 
   if ( fr )
-    return QueryOfTopFrame(fr);
+    return queryOfFrame(fr);
   return NULL;
 }
 
@@ -1118,7 +1155,6 @@ hasAlternativesFrame(LocalFrame frame)
       { switch( ch->type )
 	{ case CHP_CLAUSE:
 	  case CHP_JUMP:
-	  case CHP_FOREIGN:
 	    return TRUE;
 	  case CHP_TOP:			/* no default to get warning */
 	  case CHP_CATCH:
@@ -1173,7 +1209,6 @@ alternativeFrame(LocalFrame frame)
 
 	  switch( ch->type )
 	  { case CHP_CLAUSE:
-	    case CHP_FOREIGN:
 	    case CHP_JUMP:
 	      DEBUG(3, Sdprintf("\tReturning: %s\n", chp_chars(ch)));
 	      return ch->frame;
@@ -1199,7 +1234,7 @@ void
 resetTracer(void)
 {
 #ifdef O_INTERRUPT
-  if ( trueFeature(SIGNALS_FEATURE) )
+  if ( truePrologFlag(PLFLAG_SIGNALS) )
     PL_signal(SIGINT, interruptHandler);
 #endif
 
@@ -1209,7 +1244,7 @@ resetTracer(void)
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = NULL;
 
-  setFeatureMask(LASTCALL_FEATURE);
+  setPrologFlagMask(PLFLAG_LASTCALL);
 }
 
 
@@ -1236,13 +1271,14 @@ helpInterrupt(void)
 
 static void
 interruptHandler(int sig)
-{ int c; 
+{ int c;
   int safe;
+  abort_type at = ABORT_RAISE;
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
     PL_halt(1);
-  }  
+  }
 
 #ifdef O_PLMT
   if ( !LD )				/* we can't handle this; main thread */
@@ -1278,7 +1314,8 @@ again:
   if ( safe )
   { printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_begin);
   } else
-  { Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
+  { at = ABORT_THROW;
+    Sfprintf(Sdout, "\n%sAction (h for help) ? ", safe ? "" : "[forced] ");
     Sflush(Sdout);
   }
   ResetTty();                           /* clear pending input -- atoenne -- */
@@ -1287,12 +1324,12 @@ again:
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
-    		pl_abort(ABORT_NORMAL);
+		abortProlog(at);
 		break;
     case 'b':	Sfputs("break\n", Sdout);
 		unblockSignal(sig);	/* into pl_break() itself */
 		pl_break();
-		goto again;		
+		goto again;
     case 'c':	if ( safe )
 		{ printMessage(ATOM_debug, PL_FUNCTOR, FUNCTOR_interrupt1, PL_ATOM, ATOM_end);
 		} else
@@ -1338,7 +1375,7 @@ PL_interrupt(int sig)
 
 void
 initTracer(void)
-{ debugstatus.visible      = 
+{ debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     BREAK_PORT|EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
@@ -1394,7 +1431,7 @@ debugmode(debug_type doit, debug_type *old)
   if ( debugstatus.debugging != doit )
   { if ( doit )
     { debugstatus.skiplevel = VERY_DEEP;
-      clearFeatureMask(LASTCALL_FEATURE);
+      clearPrologFlagMask(PLFLAG_LASTCALL);
       if ( doit == DBG_ALL )
       { LocalFrame fr = environment_frame;
 
@@ -1402,8 +1439,7 @@ debugmode(debug_type doit, debug_type *old)
 	{ if ( fr->parent )
 	    fr = fr->parent;
 	  else
-	  { QueryFrame qf = QueryOfTopFrame(fr);
-	    assert(qf->magic == QID_MAGIC);
+	  { QueryFrame qf = queryOfFrame(fr);
 	    qf->debugSave = DBG_ON;
 	    fr = qf->saved_environment;
 	  }
@@ -1411,9 +1447,10 @@ debugmode(debug_type doit, debug_type *old)
 	doit = DBG_ON;
       }
     } else
-    { setFeatureMask(LASTCALL_FEATURE);
+    { setPrologFlagMask(PLFLAG_LASTCALL);
     }
     debugstatus.debugging = doit;
+    updateAlerted(LD);
     printMessage(ATOM_silent,
 		 PL_FUNCTOR_CHARS, "debug_mode", 1,
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);
@@ -1461,7 +1498,7 @@ pl_skip_level(term_t old, term_t new)
   } else
   { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
-      
+
   if ( PL_get_long(new, &sl) )
   { debugstatus.skiplevel = sl;
     succeed;
@@ -1502,7 +1539,7 @@ pl_nospy(term_t p)
 
   if ( get_procedure(p, &proc, 0, GP_FIND|GP_EXISTENCE_ERROR) )
   { Definition def = getProcDefinition(proc);
-    
+
     if ( true(def, SPY_ME) )
     { LOCKDEF(def);
       clear(def, SPY_ME);
@@ -1545,9 +1582,9 @@ pl_prolog_current_frame(term_t frame)
 }
 
 
-word
-pl_prolog_frame_attribute(term_t frame, term_t what,
-			  term_t value)
+static word
+prolog_frame_attribute(term_t frame, term_t what,
+		       term_t value)
 { LocalFrame fr;
   atom_t key;
   int arity;
@@ -1587,7 +1624,12 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
    deRef(p);
    if ( isVar(*p) )
-   { *p = makeRef(argFrameP(fr, argn-1));
+   { Word argp = argFrameP(fr, argn-1);
+
+     if ( gc_status.blocked )
+       return unify_ptrs(p, argp PASS_LD); /* unsafe: allow loosing var identity */
+     else
+       *p = makeRef(argp);		/* safe: preserve identity */
      Trail(p);
      succeed;
    }
@@ -1626,14 +1668,16 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_context_module)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
-  { if ( false(fr->predicate, FOREIGN) && fr->clause )
+  { if ( false(fr->predicate, FOREIGN) &&
+	 fr->clause &&
+	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
       PL_put_pointer(result, fr->clause->clause);
     else
       fail;
   } else if (key == ATOM_goal)
   { int arity, n;
     term_t arg = PL_new_term_ref();
-    
+
     if (fr->predicate->module != MODULE_user)
     { PL_put_functor(result, FUNCTOR_colon2);
       PL_get_arg(1, result, arg);
@@ -1657,7 +1701,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       { Word a;
 
 	deRef2(argv+n, a);
-	if ( isVar(*a) && onStack(local, a) && !gc_status.blocked )
+	if ( isVar(*a) && onStack(local, a) && gc_status.blocked )
 	{ *a = makeRef(argp);
 	  Trail(a);
 	} else
@@ -1670,7 +1714,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   { Procedure proc;
     term_t head = PL_new_term_ref();
 
-    if ( !get_procedure(value, &proc, head, GP_FIND) ) 
+    if ( !get_procedure(value, &proc, head, GP_FIND) )
       fail;
     while(fr)
     { while(fr && fr->predicate != proc->definition)
@@ -1680,7 +1724,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       { term_t a  = PL_new_term_ref();
 	term_t fa = argFrameP(fr, 0) - (Word)lBase;
 	int i, arity = fr->predicate->functor->arity;
-	
+
 	for(i=0; i<arity; i++, fa++)
 	{ _PL_get_arg(i+1, head, a);
 	  if ( !PL_unify(a, fa) )
@@ -1714,10 +1758,10 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     if ( SYSTEM_MODE )
     { a = ATOM_true;
     } else
-    { if ( true(fr, FR_NODEBUG) || false(fr->predicate, TRACE_ME) )
-	a = ATOM_true;
-      else
+    { if ( isDebugFrame(fr) )
 	a = ATOM_false;
+      else
+	a = ATOM_true;
     }
 
     PL_put_atom(result, a);
@@ -1726,7 +1770,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
 #ifdef O_LIMIT_DEPTH
     QueryFrame qf = findQuery(environment_frame);
-    
+
     if ( qf && (uintptr_t)levelFrame(fr) > qf->saved_depth_limit )
       a = ATOM_true;
     else
@@ -1741,25 +1785,38 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 }
 
 
+/** prolog_frame_attribute(+Frame, +Key, -Value) is semidet.
+
+*/
+
+static
+PRED_IMPL("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+{ return prolog_frame_attribute(A1, A2, A3);
+}
+
 		 /*******************************
 		 *	 CHOICEPOINT STACK	*
 		 *******************************/
 
-foreign_t
-pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
+/** prolog_choice_attribute(+Choice, +Key, -Value) is semidet.
+
+*/
+
+static
+PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 { Choice ch = NULL;
   atom_t key;
 
-  if ( !PL_get_choice(choice, &ch) ||
-       !PL_get_atom_ex(what, &key) )
+  if ( !PL_get_choice(A1, &ch) ||
+       !PL_get_atom_ex(A2, &key) )
     fail;
 
   if ( key == ATOM_parent )
   { if ( ch->parent )
-      return PL_unify_choice(value, ch->parent);
+      return PL_unify_choice(A3, ch->parent);
     fail;
   } else if ( key == ATOM_frame )
-  { return PL_unify_frame(value, ch->frame);
+  { return PL_unify_frame(A3, ch->frame);
   } else if ( key == ATOM_type )
   { static const atom_t types[] =
     { ATOM_jump,
@@ -1771,9 +1828,9 @@ pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
       ATOM_none
     };
 
-    return PL_unify_atom(value, types[ch->type]);
+    return PL_unify_atom(A3, types[ch->type]);
   } else
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, what);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
 
 }
 
@@ -1787,7 +1844,7 @@ void
 callEventHook(int ev, ...)
 { if ( !PROCEDURE_event_hook1 )
     PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
-  
+
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
   { va_list args;
     fid_t fid, wake;
@@ -1816,14 +1873,14 @@ callEventHook(int ev, ...)
       }
       case PLEV_DEBUGGING:
       { int dbg = va_arg(args, int);
-	
+
 	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_debugging1,
 			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
 	break;
       }
       case PLEV_TRACING:
       { int trc = va_arg(args, int);
-	
+
 	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_tracing1,
 			   PL_ATOM, trc ? ATOM_true : ATOM_false);
 	break;
@@ -1864,7 +1921,7 @@ callEventHook(int ev, ...)
 	warning("callEventHook(): unknown event: %d", ev);
         goto out;
     }
-    
+
     PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
   out:
 
@@ -1881,3 +1938,12 @@ callEventHook(int ev, ...)
 }
 
 #endif /*O_DEBUGGER*/
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(trace)
+  PRED_DEF("prolog_frame_attribute", 3, prolog_frame_attribute, 0)
+  PRED_DEF("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
+EndPredDefs

@@ -119,7 +119,7 @@ RedrawAreaSlider(Slider s, Area a)
 			  s->label_format, NAME_top,
 			  lflags);
   }
-      
+
   if ( s->look == NAME_motif )
   { int by = y+sy+(SLIDER_HEIGHT-OL_BAR_HEIGHT)/2;
     int ex  = x + sx + valInt(s->width);
@@ -273,7 +273,7 @@ getReferenceSlider(Slider s)
 
     ref = answerObject(ClassPoint, ZERO, toInt(ascent + ny), EAV);
   }
-  
+
   answer(ref);
 }
 
@@ -290,7 +290,7 @@ getLabelWidthSlider(Slider s)
 static status
 labelWidthSlider(Slider s, Int w)
 { if ( s->show_label == ON && s->label_width != w )
-  { assign(s, label_width, w); 
+  { assign(s, label_width, w);
     CHANGING_GRAPHICAL(s,
 	requestComputeGraphical(s, DEFAULT));
   }
@@ -307,7 +307,7 @@ geometrySlider(Slider s, Int x, Int y, Int w, Int h)
     ComputeGraphical(s);
     extra = valInt(s->area->w) - valInt(s->width);
     width = valInt(w) - extra;
-    
+
     if ( width < 20 )
     { w = toInt(valInt(w) + 20 - width);
       width = 20;
@@ -330,7 +330,7 @@ displayedValueSlider(Slider s, Any val)
 { if ( s->displayed_value != val )
   { assign(s, displayed_value, val);
 
-    changedDialogItem(s);    
+    changedDialogItem(s);
   }
 
   succeed;
@@ -372,7 +372,7 @@ eventSlider(Slider s, EventObj ev)
       } else
       { float l = convert_value(s->low);
 	float h = convert_value(s->high);
-	
+
 	val = CtoReal(((float)(ex - sx) * (h - l) / (float) (se - sx)) + l);
       }
 
@@ -432,7 +432,7 @@ selectionSlider(Slider s, Any val)
   if ( (v = checkType(val, t, s)) )
   { assign(s, selection, val);
     displayedValueSlider(s, val);
-  
+
     succeed;
   }
 
@@ -489,7 +489,7 @@ static Type
 getTypeSlider(Slider s)
 { if ( isInteger(s->low) && isInteger(s->high) )
     answer(TypeInt);
-  
+
   answer(TypeReal);
 }
 

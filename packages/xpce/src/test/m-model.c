@@ -58,7 +58,7 @@ char *argv[];
   unsigned long mad = (unsigned long) malloc(2000);
   char *decl[MAX_DECL];
   int ndecl = 0;
-  
+
 
 #ifdef VERBOSE
   printf("Memory layout:\n\n");
@@ -66,7 +66,7 @@ char *argv[];
   printf("\tLocal variable at 0x%x\n", buf);
   printf("\tmalloc() at 0x%x\n", mad);
 #endif
-	 
+
   if ( (gva & 0xfC000000L) )
   { if ( (gva & 0xfC000000L) == (mad & 0xfC000000L) )
     { static char msg[100];
@@ -78,7 +78,7 @@ char *argv[];
       exit(1);
     }
   }
-  
+
   printf("mmodel=ok\n");	/* Some sh don't like eval '' */
   if ( ndecl > 0 )
   { int n;

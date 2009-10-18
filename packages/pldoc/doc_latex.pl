@@ -67,7 +67,7 @@ the same paradigm. The module can
 	latex_for_file/3.
 
 	* Generate LaTeX from a Wiki file using latex_for_wiki_file/3
-	
+
 	* Generate LaTeX for a single predicate or a list of predicates
 	for embedding in a document using latex_for_predicates/3.
 
@@ -88,34 +88,35 @@ current_options([]).
 %
 %	Process one or  more  objects,  writing   the  LaTeX  output  to
 %	OutFile.  Spec is one of:
-%	
+%
 %		* Name/Arity
 %		Generate documentation for predicate
-%		
+%
 %		* Name//Arity
 %		Generate documentation for DCG rule
-%		
+%
 %		* File
 %		If File is a prolog file (as defined by
-%		prolog_file_type/2), process using latex_for_file/3,
-%		otherwise process using latex_for_wiki_file/3.
-%		
+%		user:prolog_file_type/2), process using
+%		latex_for_file/3, otherwise process using
+%		latex_for_wiki_file/3.
+%
 %	Typically Spec is either a  list  of   filenames  or  a  list of
 %	predicate indicators.   Defined options are:
-%	
+%
 %		* stand_alone(+Bool)
 %		If =true= (default), create a document that can be run
 %		through LaTeX.  If =false=, produce a document to be
 %		included in another LaTeX document.
-%		
+%
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
-%		
+%
 %		* section_level(+Level)
 %		Outermost section level produced. Level is the
 %		name of a LaTeX section command.  Default is =section=.
-%		
+%
 %		* summary(+File)
 %		Write summary declarations to the named File.
 
@@ -160,7 +161,7 @@ process_items(FileSpec, Mode0, Mode, Options) -->
 	    file_name_extension(_Base, Ext, File)
 	},
 	need_mode(body, Mode0, Mode),
-	(   { prolog_file_type(Ext, prolog) }
+	(   { user:prolog_file_type(Ext, prolog) }
 	->  latex_tokens_for_file(File, Options)
 	;   latex_tokens_for_wiki_file(File, Options)
 	).
@@ -215,7 +216,7 @@ latex_tokens_for_wiki_file(FileSpec, Options, Tokens, Tail) :-
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
 	asserta(options(Options), Ref),
-	call_cleanup((wiki_string_to_dom(String, [], DOM),
+	call_cleanup((wiki_codes_to_dom(String, [], DOM),
 		      phrase(latex(DOM), Tokens, Tail)
 		     ),
 		     (nb_delete(pldoc_file),
@@ -294,6 +295,8 @@ latex(Atomic) -->			% can this actually happen?
 latex(List) -->
 	latex_special(List, Rest), !,
 	latex(Rest).
+latex(w(Word)) -->
+	[ Word ].
 latex([H|T]) --> !,
 	(   latex(H)
 	->  latex(T)
@@ -313,15 +316,25 @@ latex(h4(Attrs, Content)) -->
 latex(p(Content)) -->
 	[ nl_exact(2) ],
 	latex(Content).
+latex(blockquote(Content)) -->
+	latex(cmd(begin(quote))),
+	latex(Content),
+	latex(cmd(end(quote))).
+latex(center(Content)) -->
+	latex(cmd(begin(center))),
+	latex(Content),
+	latex(cmd(end(center))).
 latex(a(Attrs, Content)) -->
 	{ attribute(href(HREF), Attrs) },
 	(   {HREF == Content}
 	->  latex(cmd(url(HREF)))
 	;   latex(cmd(url(opt(Content), HREF)))
 	).
+latex(hr(_)) -->
+	latex(cmd(hrule)).
 latex(code(CodeList)) -->
 	{ is_list(CodeList), !,
-	  concat_atom(CodeList, Atom)
+	  atomic_list_concat(CodeList, Atom)
 	},
 	[ verb(Atom) ].
 latex(code(Code)) -->
@@ -357,9 +370,9 @@ latex(dd(_, Content)) -->
 	latex(Content).
 latex(dd(Content)) -->
 	latex(Content).
-latex(dt(class=term, \term(Term, Bindings))) --> 
+latex(dt(class=term, \term(Term, Bindings))) -->
 	termitem(Term, Bindings).
-latex(dt(Content)) --> 
+latex(dt(Content)) -->
 	latex(cmd(item(opt(Content)))).
 latex(table(Attrs, Content)) -->
 	latex_table(Attrs, Content).
@@ -450,7 +463,7 @@ url_chars(L, [], L).
 %	opt(Arg) it is written as  [Arg],   Otherwise  it  is written as
 %	{Arg}. Note that opt([]) is omitted. I think no LaTeX command is
 %	designed to handle an empty optional argument special.
-%	
+%
 %	During processing the arguments it asserts fragile/0 to allow is
 %	taking care of LaTeX fragile   constructs  (i.e. constructs that
 %	are not allows inside {...}).
@@ -459,7 +472,7 @@ latex_arguments(List, Out, Tail) :-
 	asserta(fragile, Ref),
 	call_cleanup(fragile_list(List, Out, Tail),
 		     erase(Ref)).
-	
+
 fragile_list([]) --> [].
 fragile_list([opt([])|T]) --> !,
 	fragile_list(T).
@@ -487,13 +500,15 @@ latex_arg(H) -->
 	latex(cmd(Name)).
 latex_arg(H) -->
 	{ maplist(atom, H),
-	  concat_atom(H, Atom),
+	  atomic_list_concat(H, Atom),
 	  urldef_name(Atom, Name)
 	}, !,
 	latex(cmd(Name)).
+latex_arg(no_escape(Text)) --> !,
+	[no_escape(Text)].
 latex_arg(H) -->
 	latex(H).
-	
+
 attribute(Att, Attrs) :-
 	is_list(Attrs), !,
 	option(Att, Attrs).
@@ -541,7 +556,7 @@ summed_string_len([_|T], L0, L) :-
 %
 %	Emit a LaTeX section,  keeping  track   of  the  desired highest
 %	section level.
-%	
+%
 %	@param Level	Desired level, relative to the base-level.  Must
 %			be a non-negative integer.
 
@@ -594,19 +609,19 @@ delete_unsafe_label_chars(LabelIn, LabelOut) :-
 		 *	   \ COMMANDS		*
 		 *******************************/
 
-%%	include(+File, +Type)// is det.
+%%	include(+File, +Type, +Options)// is det.
 %
 %	Called from [[File]].
 
-include(PI, predicate) --> !,
+include(PI, predicate, _) --> !,
 	(   latex_tokens_for_predicates(PI, [])
 	->  []
 	;   latex(cmd(item(['[[', \predref(PI), ']]'])))
 	).
-include(File, Type) -->
+include(File, Type, _) -->
 	{ existing_linked_file(File, Path) }, !,
 	include_file(Path, Type).
-include(File, _) -->
+include(File, _, _) -->
 	latex(code(['[[', File, ']]'])).
 
 include_file(Path, image) --> !,
@@ -624,15 +639,15 @@ include_file(Path, Type) -->
 	;   latex_tokens_for_wiki_file(Path, Options)
 	).
 
-%%	file(+File)// is det.
+%%	file(+File, +Options)// is det.
 %
 %	Called from implicitely linked files.  The HTML version creates
 %	a hyperlink.  We just name the file.
 
-file(File) -->
+file(File, _Options) -->
 	{ fragile }, !,
 	latex(cmd(texttt(File))).
-file(File) -->
+file(File, _Options) -->
 	latex(cmd(file(File))).
 
 %%	predref(+PI)// is det.
@@ -640,6 +655,10 @@ file(File) -->
 %	Called  from  name/arity  or   name//arity    patterns   in  the
 %	documentation.
 
+predref(Module:Name/Arity) --> !,
+	latex(cmd(qpredref(Module, Name, Arity))).
+predref(Module:Name//Arity) -->
+	latex(cmd(qdcgref(Module, Name, Arity))).
 predref(Name/Arity) -->
 	latex(cmd(predref(Name, Arity))).
 predref(Name//Arity) -->
@@ -716,11 +735,12 @@ param(param(Name,Descr)) -->
 
 file_header(File, Options) -->
 	{ memberchk(file(Title, Comment), Options), !,
-	  file_base_name(File, Base)
+	  file_synopsis(File, Synopsis)
 	},
-	file_title([Base, ' -- ', Title], File, Options),
+	file_title([Synopsis, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
 	  wiki_lines_to_dom(Lines1, [], DOM0),
 	  tags_to_front(DOM0, DOM)
@@ -728,14 +748,22 @@ file_header(File, Options) -->
 	latex(DOM),
 	latex(cmd(vspace('0.7cm'))).
 file_header(File, Options) -->
-	{ file_base_name(File, Base)
+	{ file_synopsis(File, Synopsis)
 	},
-	file_title([Base], File, Options).
+	file_title([Synopsis], File, Options).
 
 tags_to_front(DOM0, DOM) :-
 	append(Content, [\tags(Tags)], DOM0), !,
 	DOM = [\tags(Tags)|Content].
 tags_to_front(DOM, DOM).
+
+file_synopsis(File, Synopsis) :-
+	file_name_on_path(File, Term),
+	(   Term = library(Lib)
+	->  format(atom(Synopsis), 'Library ~w', [Lib])
+	;   format(atom(Synopsis), '~w', [Term])
+	).
+
 
 %%	file_title(+Title:list, +File, +Options)// is det
 %
@@ -776,7 +804,8 @@ object(Obj, Mode0, Mode, Options) -->
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
+	  string_to_list(Comment, Codes),
+	  indented_lines(Codes, Prefixes, Lines),
 	  strip_module(user:Obj, Module, _),
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
@@ -799,7 +828,7 @@ object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
-	
+
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -814,7 +843,7 @@ need_mode(Mode, Stack, Stack) -->
 need_mode(Mode, Stack, Rest) -->
 	{ memberchk(Mode, Stack)
 	}, !,
-	pop_mode(Mode, Stack, Rest).	
+	pop_mode(Mode, Stack, Rest).
 need_mode(Mode, Stack, [Mode|Stack]) --> !,
 	latex(cmd(begin(Mode))).
 
@@ -829,10 +858,10 @@ pop_mode(Mode, [H|Rest0], Rest) -->
 %%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the \predicate{}{}{} header.
-%	
+%
 %	@param Modes	List as returned by process_modes/5.
 %	@param Class	One of =privdef= or =pubdef=.
-%	
+%
 %	@tbd	Determinism
 
 pred_dt(Modes, Class, Options) -->
@@ -894,7 +923,7 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 %
 %	Emit a predicate head. The functor is  typeset as a =span= using
 %	class =pred= and the arguments and =var= using class =arglist=.
-%	
+%
 %	@tbd Support determinism in operators
 
 pred_head(//(Head), Options) --> !,
@@ -923,7 +952,7 @@ pred_head(Head, Options) -->			% Plain terms
 	  Head =.. [Functor|Args],
 	  length(Args, Arity)
 	},
-	latex(cmd(predicate(opt(Atts), 
+	latex(cmd(predicate(opt(Atts),
 			    Functor, Arity, \pred_args(Args, 1)))).
 
 %%	pred_attributes(+Options, -Attributes) is det.
@@ -970,7 +999,10 @@ pred_arg(Term, I) -->
 pred_arg(Arg:Type, _) --> !,
 	latex([\argname(Arg), :, \argtype(Type)]).
 pred_arg(Arg, _) -->
+	{ atom(Arg) }, !,
 	argname(Arg).
+pred_arg(Arg, _) -->
+	argtype(Arg).			% arbitrary term
 
 argname('$VAR'(Name)) --> !,
 	latex(Name).
@@ -989,7 +1021,7 @@ argtype(Term) -->
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element as produced by doc_wiki.pl.
-%	
+%
 %	@tbd	Properly merge with pred_head//1
 
 term(Term, Bindings) -->
@@ -1061,14 +1093,14 @@ latex_table(_Attrs, Content) -->
 	},
 %	latex(cmd(begin(table, opt(h)))),
 	latex(cmd(begin(quote))),
-	latex(cmd(begin(tabular, Format))),
+	latex(cmd(begin(tabular, no_escape(Format)))),
 	latex(cmd(hline)),
 	rows(Content),
 	latex(cmd(hline)),
 	latex(cmd(end(tabular))),
 	latex(cmd(end(quote))).
 %	latex(cmd(end(table))).
-	
+
 max_columns([], C, C).
 max_columns([tr(List)|T], C0, C) :-
 	length(List, C1),
@@ -1139,7 +1171,7 @@ summary([H|T], Options) -->
 summary_line(Obj, _Options) -->
 	{ doc_comment(Obj, _Pos, Summary, _Comment) ->
 	  atom_codes(Summary, Codes),
-	  phrase(pldoc_wiki:tokens(Tokens), Codes), % TBD: proper export
+	  phrase(pldoc_wiki:line_tokens(Tokens), Codes), % TBD: proper export
 	  object_name_arity(Obj, Name, Arity)
 	},
 	(   { strip_module(Obj, M, _),
@@ -1148,7 +1180,7 @@ summary_line(Obj, _Options) -->
 	->  latex(cmd(oppredsummary(Name, Arity, Ass, Pri, Tokens)))
 	;   latex(cmd(predicatesummary(Name, Arity, Tokens)))
 	).
-	
+
 
 		 /*******************************
 		 *	    PRINT TOKENS	*
@@ -1190,7 +1222,7 @@ print_latex_token(nl(N), Out) :- !,
 	forall(between(2,N,_), nl(Out)).
 print_latex_token(verb(Verb), Out) :-
 	is_list(Verb), Verb \== [], !,
-	concat_atom(Verb, Atom),
+	atomic_list_concat(Verb, Atom),
 	print_latex_token(verb(Atom), Out).
 print_latex_token(verb(Verb), Out) :- !,
 	(   member(C, [$,'|',@,=,'"',^,!]),
@@ -1205,6 +1237,10 @@ print_latex_token(code(Code), Out) :- !,
 	format(Out, '~N\\end{code}', []).
 print_latex_token(latex(Code), Out) :- !,
 	write(Out, Code).
+print_latex_token(w(Word), Out) :- !,
+	print_latex(Out, Word).
+print_latex_token(no_escape(Text), Out) :- !,
+	write(Out, Text).
 print_latex_token(Rest, Out) :-
 	(   atomic(Rest)
 	->  print_latex(Out, Rest)
@@ -1268,10 +1304,12 @@ print_char('>', Out) :- !, write(Out, '$>$').
 print_char('{', Out) :- !, write(Out, '\\{').
 print_char('}', Out) :- !, write(Out, '\\}').
 print_char('$', Out) :- !, write(Out, '\\$').
+print_char('&', Out) :- !, write(Out, '\\&').
 print_char('#', Out) :- !, write(Out, '\\#').
 print_char('%', Out) :- !, write(Out, '\\%').
 print_char('\\',Out) :- !, write(Out, '\\bsl{}').
 print_char('^', Out) :- !, write(Out, '$\\wedge$').
+print_char('|', Out) :- !, write(Out, '{\\tt\\string|}').
 print_char(C,   Out) :- put_char(Out, C).
 
 
@@ -1365,7 +1403,7 @@ ws --> [].
 
 string([]) --> [].
 string([H|T]) --> [H], string(T).
-	
+
 eol([],[]).
 
 

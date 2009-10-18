@@ -401,7 +401,7 @@ pl_reg_value_names(term_t h, term_t names)
 
   if ( !(k = to_key(h)) )
     PL_fail;
-  
+
   for(i=0;;i++)
   { char name[256];
     DWORD sizen = sizeof(name);
@@ -436,14 +436,14 @@ pl_reg_value(term_t h, term_t name, term_t value)
   if ( rval == ERROR_MORE_DATA )
   { data = alloca(sizedata);
     rval = RegQueryValueEx(k, vname, NULL, &type, data, &sizedata);
-  } 
+  }
 
   if ( rval == ERROR_SUCCESS )
   { switch(type)
     { case REG_BINARY:
       { term_t head = PL_new_term_ref();
 	term_t tail = PL_new_term_ref();
-	
+
 	if ( PL_unify_term(value, PL_FUNCTOR, FUNCTOR_binary1,
 			   		PL_TERM, tail) )
 	{ DWORD i;
@@ -593,7 +593,7 @@ pl_reg_delete_value(term_t h, term_t name)
 
   if ( !(k = to_key(h)) || !PL_get_atom_chars(name, &vname) )
     PL_fail;
-  
+
   if ( (rval = RegDeleteValue(k, vname)) == ERROR_SUCCESS )
     PL_succeed;
 
@@ -609,7 +609,7 @@ pl_reg_flush(term_t h)
 
   if ( (k = to_key(h)) )
   { DWORD rval;
-    
+
     if ( (rval = RegFlushKey(k)) == ERROR_SUCCESS )
       PL_succeed;
 

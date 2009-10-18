@@ -46,10 +46,10 @@ eventEditTextGesture(EditTextGesture g, EventObj ev)
     return send(t, NAME_showCaret, ON, EAV);
   else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
     return send(t, NAME_showCaret, OFF, EAV);
-  
+
   return eventGesture(g, ev);
 }
- 
+
 
 		/********************************
 		*       GESTURE BEHAVIOUR	*
@@ -113,7 +113,7 @@ terminateEditTextGesture(EditTextGesture g, EventObj ev)
 
     if ( sw )
       send(sw, NAME_keyboardFocus, t, EAV);
-  }    
+  }
 
   succeed;
 }
@@ -159,7 +159,7 @@ static senddecl send_editTextGesture[] =
 #define get_editTextGesture NULL
 /*
 static getdecl get_editTextGesture[] =
-{ 
+{
 };
 */
 

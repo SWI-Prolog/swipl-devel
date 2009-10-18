@@ -59,7 +59,7 @@ install_exception_hook :-
 	asserta((user:prolog_exception_hook(Ex, Out, Frame, Catcher) :-
 			exception_hook(Ex, Out, Frame, Catcher)), Ref),
 	assert(installed(Ref)).
-		 
+
 
 %%	register(Ex) is det.
 %
@@ -131,7 +131,7 @@ new_exception(Ex, Where) :-
 	).
 
 new_exception(Ex, NotCaught, Caught, Where) :-
-	(   repeat, 
+	(   repeat,
 	    gensym(ex, Name),
 	    \+ exception(Name, _, _, _)
 	->  (   Where == first
@@ -182,7 +182,7 @@ initialise(F) :->
 	send(W, resize_message, message(T, table_width, @arg2?width - 2)),
 	send(new(report_dialog), below, W),
 	install_exception_hook.
-	     
+
 create_menu(F) :->
 	get(F, member, tool_dialog, D),
 	send(D, append, new(File, popup(file))),
@@ -281,7 +281,7 @@ refresh(T) :->
 	forall(exception(Name, Error, NotCaught, Caught),
 	       send(T, append_error, Name, Error, NotCaught, Caught)),
 	install_exception_hook.		% make sure!
-	
+
 
 append_error(T, Name:name, Error:prolog, Trace:[bool], WhenCaught:[bool]) :->
 	get(T, current, point(_, RowN)),

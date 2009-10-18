@@ -114,7 +114,7 @@ findHome(const char *symbols, int argc, const char **argv)
   char envbuf[MAXPATHLEN];
   char plp[MAXPATHLEN];
   const char *val;
-  
+
   if ( (val=longopt("home", argc, argv)) )
   { if ( (home=PrologPath(val, plp, sizeof(plp))) )
       return store_string(home);
@@ -257,13 +257,13 @@ setupGNUEmacsInferiorMode()
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-  { clearFeatureMask(TTY_CONTROL_FEATURE);
+  { clearPrologFlagMask(PLFLAG_TTY_CONTROL);
     val = TRUE;
   } else
   { val = FALSE;
-  } 
+  }
 
-  defFeature("emacs_inferior_process", FT_BOOL|FF_READONLY, val, 0);
+  PL_set_prolog_flag("emacs_inferior_process", PL_BOOL|FF_READONLY, val);
 }
 
 
@@ -278,11 +278,11 @@ initPaths(int argc, const char **argv)
     if ( !(symbols = findExecutable(argv[0], plp1)) ||
 	 !(symbols = DeRefLink(symbols, plp)) )
       symbols = argv[0];
-  
+
     DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
-  
+
     systemDefaults.home	       = findHome(symbols, argc, argv);
-  
+
 #ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
     symbols = findExecutable(NULL, plp);
@@ -331,11 +331,11 @@ initDefaults()
   GD->bootsession	     = FALSE;
 
   if ( systemDefaults.notty )
-    clearFeatureMask(TTY_CONTROL_FEATURE);
+    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
   else
-    setFeatureMask(TTY_CONTROL_FEATURE);
+    setPrologFlagMask(PLFLAG_TTY_CONTROL);
 
-  setFeatureMask(DEBUGINFO_FEATURE);
+  setPrologFlagMask(PLFLAG_DEBUGINFO);
 }
 
 
@@ -438,7 +438,7 @@ static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { int argc = argc0;
 
-  
+
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
@@ -448,16 +448,16 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
     if ( streq(s, "tty") )	/* +/-tty */
     { if ( s[-1] == '+' )
-	setFeatureMask(TTY_CONTROL_FEATURE);
+	setPrologFlagMask(PLFLAG_TTY_CONTROL);
       else
-	clearFeatureMask(TTY_CONTROL_FEATURE);
+	clearPrologFlagMask(PLFLAG_TTY_CONTROL);
 
       continue;
     } else if ( isoption(s, "nosignals") )
-    { clearFeatureMask(SIGNALS_FEATURE);
+    { clearPrologFlagMask(PLFLAG_SIGNALS);
       continue;
     } else if ( isoption(s, "nodebug") )
-    { clearFeatureMask(DEBUGINFO_FEATURE);
+    { clearPrologFlagMask(PLFLAG_DEBUGINFO);
       continue;
     } else if ( streq(s, "-quiet") )
     { GD->options.silent = TRUE;
@@ -506,7 +506,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'A':
 	case 'H':
         { uintptr_t size = memarea_limit(&s[1]);
-	  
+
 	  if ( size == MEMAREA_INVALID_SIZE )
 	    return -1;
 
@@ -572,7 +572,7 @@ openResourceDB(int argc, char **argv)
   int n;
 
   if ( !GD->bootsession )
-  { 
+  {
 #ifdef __WINDOWS__
     if ( GD->paths.module &&
 	 !streq(GD->paths.module, GD->paths.executable) &&
@@ -582,7 +582,7 @@ openResourceDB(int argc, char **argv)
     if ( (rc = rc_open_archive(GD->paths.executable, flags)) )
       return rc;
   }
-  
+
   for(n=0; n<argc-1; n++)
   { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
     { if ( argv[n][1] == '-' )
@@ -590,12 +590,12 @@ openResourceDB(int argc, char **argv)
       if ( GD->bootsession )
       { if ( argv[n][1] == 'o' )
 	{ xfile = argv[n+1];
-	  break; 
+	  break;
 	}
       } else
       { if ( argv[n][1] == 'x' )
 	{ xfile = argv[n+1];
-	  break; 
+	  break;
 	}
       }
     }
@@ -840,7 +840,7 @@ PL_initialise(int argc, char **argv)
   GD->cmdline._c_argc = -1;
   DEBUG(1,
   { int i;
-    
+
     Sdprintf("argv =");
     for(i=0; i<argc; i++)
       Sdprintf(" %s", argv[i]);
@@ -867,7 +867,7 @@ properly on Linux. Don't bother with it.
 
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
-  setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
+  setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 
   if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
@@ -917,7 +917,7 @@ properly on Linux. Don't bother with it.
   aliasThread(PL_thread_self(), ATOM_main);
   enableThreads(TRUE);
 #endif
-  defFeature("resource_database", FT_ATOM|FF_READONLY, rcpath);
+  PL_set_prolog_flag("resource_database", PL_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);
   systemMode(TRUE);
@@ -930,7 +930,7 @@ properly on Linux. Don't bother with it.
     { PL_halt(1);
     }
     if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
-    { 
+    {
 #ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
 #else
@@ -1075,7 +1075,7 @@ runtime_vars(int format)
   char version[20];
 
   if ( systemDefaults.home )
-  { 
+  {
 #ifdef O_XOS
     if ( format == FMT_CMD )
     { _xos_os_filename(systemDefaults.home, base, MAXPATHLEN);
@@ -1147,17 +1147,17 @@ giveVersionInfo(const char *a)
 		 *	     CLEANUP		*
 		 *******************************/
 
-typedef void (*halt_function)(int, Void);
+typedef void (*halt_function)(int, void*);
 
 struct on_halt
 { halt_function	function;
-  Void		argument;
+  void*		argument;
   OnHalt	next;
 };
 
 
 void
-PL_on_halt(halt_function f, Void arg)
+PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
   { OnHalt h = allocHeap(sizeof(struct on_halt));
 
@@ -1263,6 +1263,7 @@ PL_cleanup(int rval)
   cleanupThreads();
 #endif
   cleanupForeign();
+  cleanupCodeToAtom();
   cleanupMemAlloc();
 
   UNLOCK();				/* requires GD->thread.enabled */
@@ -1354,7 +1355,7 @@ action:
 
   switch(getSingleChar(Sinput, FALSE))
   { case 'a':
-      pl_abort(ABORT_FATAL);
+      abortProlog(ABORT_FATAL);
       break;
     case EOF:
       Sfprintf(Serror, "EOF: exit\n");
@@ -1369,7 +1370,7 @@ action:
       goto action;
   }
 
-  pl_abort(ABORT_FATAL);
+  abortProlog(ABORT_FATAL);
   PL_halt(3);
   PL_fail;
 }
@@ -1383,7 +1384,7 @@ vfatalError(const char *fm, va_list args)
   Ssprintf(msg, "[FATAL ERROR:\n\t");
   Svsprintf(&msg[strlen(msg)], fm, args);
   Ssprintf(&msg[strlen(msg)], "]");
-  
+
   PlMessage(msg);
 #else
   Sfprintf(Serror, "[FATAL ERROR:\n\t");
@@ -1409,7 +1410,7 @@ bool
 vwarning(const char *fm, va_list args)
 { toldString();				/* play safe */
 
-  if ( trueFeature(REPORT_ERROR_FEATURE) )
+  if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
   { if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack && 		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
@@ -1421,7 +1422,7 @@ vwarning(const char *fm, va_list args)
       term_t head = PL_new_term_ref();
 
       Svsprintf(message, fm, args);
-      
+
       for(;;)
       { char *eol = strchr(s, '\n');
 
@@ -1451,7 +1452,7 @@ vwarning(const char *fm, va_list args)
     }
   }
 
-  if ( !ReadingSource && trueFeature(DEBUG_ON_ERROR_FEATURE) )
+  if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
     pl_trace();
 
   PL_fail;

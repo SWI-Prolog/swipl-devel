@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,14 +44,13 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
-:- initialization
-   load_foreign_library(foreign(process)).
+:- use_foreign_library(foreign(process)).
 
 /** <module> Create processes and redirect I/O
 
 The module library(process) implements interaction  with child processes
 and unifies older interfaces such   as  shell/[1,2], open(pipe(command),
-...) etc. This library is modelled after SICStus 4. 
+...) etc. This library is modelled after SICStus 4.
 
 The main interface is formed by process_create/3.   If the process id is
 requested the process must be waited for using process_wait/2. Otherwise
@@ -80,6 +79,9 @@ following finds the executable for =ls=:
     is unclear what it is supposed to do.  Disable signals in the child?
     Use setsid() to detach from the session?
 
+    * An extra option env([Name=Value, ...]) is added to
+    process_create/3.
+
 @tbd	Implement detached option in process_create/3
 @compat	SICStus 4
 */
@@ -97,8 +99,8 @@ following finds the executable for =ls=:
 user:file_search_path(path, Dir) :-
 	getenv('PATH', Path),
 	(   current_prolog_flag(windows, true)
-	->  concat_atom(Dirs, (;), Path)
-	;   concat_atom(Dirs, :, Path)
+	->  atomic_list_concat(Dirs, (;), Path)
+	;   atomic_list_concat(Dirs, :, Path)
 	),
 	member(Dir, Dirs).
 
@@ -119,7 +121,7 @@ user:file_search_path(path, Dir) :-
 %	properly quoted if needed.
 %
 %	Options:
-%	
+%
 %	    * stdin(Spec)
 %	    * stdout(Spec)
 %	    * stderr(Spec)
@@ -127,7 +129,7 @@ user:file_search_path(path, Dir) :-
 %	    the terms below. If pipe(Pipe) is used, the Prolog stream is
 %	    a stream in text-mode using the encoding of the default
 %	    locale.  The encoding can be changed using set_stream/2.
-%	    
+%
 %		* std
 %		Just share with the Prolog I/O streams
 %		* null
@@ -135,28 +137,34 @@ user:file_search_path(path, Dir) :-
 %		returns end-of-file, writing produces no output
 %		* pipe(-Stream)
 %		Attach input and/or output to a Prolog stream.
-%		
+%
 %	    * cwd(+Directory)
 %	    Run the new process in Directory.  Directory can be a
 %	    compound specification, which is converted using
 %	    absolute_file_name/3.
+%	    * env(+List)
+%	    Specify the environment for the new process.  List is
+%	    a list of Name=Value terms.  Note that the current
+%	    implementation does not pass any environment variables.
+%	    If unspecified, the environment is inherited from the
+%	    Prolog process.
 %	    * process(-PID)
 %	    Unify PID with the process id of the created process.
 %	    * detached(+Bool)
 %	    If =true=, detach the process from the terminal (Unix only)
 %	    * window(+Bool)
 %	    If =true=, create a window for the process (Windows only)
-%	    
+%
 %	If the user specifies the process(-PID)   option, he *must* call
 %	process_wait/2 to reclaim the process.  Without this option, the
 %	system will wait for completion of   the  process after the last
 %	pipe stream is closed.
-%	
+%
 %	If the process is not waited for, it must succeed with status 0.
 %	If not, an process_error is raised.
-%	
+%
 %	*|Windows notes|*
-%	
+%
 %	On Windows this call is an interface to the CreateProcess() API.
 %	The  commandline  consists  of  the  basename  of  Exe  and  the
 %	arguments formed from Args. Arguments are  separated by a single
@@ -164,23 +172,23 @@ user:file_search_path(path, Dir) :-
 %	the argument contains a double-quote it   is quoted using single
 %	quotes. If both single and double   quotes appear a domain_error
 %	is raised, otherwise double-quote are used.
-%	
+%
 %	The CreateProcess() API has  many   options.  Currently only the
 %	=CREATE_NO_WINDOW=   options   is   supported     through    the
 %	window(+Bool) option. If omitted, the  default   is  to use this
 %	option if the application has no   console.  Future versions are
 %	likely to support  more  window   specific  options  and replace
 %	win_exec/2.
-%	
+%
 %	*Examples*
-%	
+%
 %	First,  a  very  simple  example  that    behaves  the  same  as
 %	=|shell('ls -l')|=, except for error handling:
 %
 %	==
 %	?- process_create(path(ls), ['-l'], []).
 %	==
-%	
+%
 %	@tbd	The detach options is a no-op.
 %	@error	process_error(Exe, Status) where Status is one of
 %		exit(Code) or killed(Signal).  Raised if the process
@@ -226,7 +234,7 @@ map_arg([], []) :- !.
 map_arg(List, Arg) :-
 	is_list(List), !,
 	maplist(map_arg_prim, List, Prims),
-	concat_atom(Prims, Arg).
+	atomic_list_concat(Prims, Arg).
 map_arg(Prim, Arg) :-
 	map_arg_prim(Prim, Arg).
 
@@ -242,7 +250,7 @@ map_arg_prim(Arg, Arg).
 %%	process_id(-PID) is det.
 %
 %	True if PID is the process id of the running Prolog process.
-%	
+%
 %	@deprecated	Use current_prolog_flag(pid, PID)
 
 process_id(PID) :-
@@ -277,7 +285,7 @@ process_release(PID) :-
 %
 %	True if PID completed with  Status.   This  call normally blocks
 %	until the process is finished.  Options:
-%	
+%
 %	    * timeout(+Timeout)
 %	    Default: =infinite=.  If this option is a number, the
 %	    waits for a maximum of Timeout seconds and unifies Status
@@ -285,7 +293,7 @@ process_release(PID) :-
 %	    Timeout.  In this case PID is _not_ invalidated.  On Unix
 %	    systems only timeout 0 and =infinite= are supported.  A
 %	    0-value can be used to poll the status of the process.
-%	    
+%
 %	    * release(+Bool)
 %	    Do/do not release the process.  We do not support this flag
 %	    and a domain_error is raised if release(false) is provided.
@@ -303,7 +311,7 @@ process_wait(PID, Status) :-
 %	the process is terminated using   the TerminateProcess() API. On
 %	Windows systems PID must  be   obtained  from  process_create/3,
 %	while any PID is allowed on Unix systems.
-%	
+%
 %	@compat	SICStus does not accept the prolog friendly version.  We
 %		choose to do so for compatibility with on_signal/3.
 

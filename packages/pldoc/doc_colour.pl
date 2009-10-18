@@ -77,9 +77,9 @@ User extension hooks.
 %%	colour_fragments(+In, -Fragments:list) is det.
 %
 %	Create a list of colour fragments from In.
-%	
+%
 %	@param Fragments	List of fragment(Start, End, Class)
-	
+
 colour_fragments(Source, Fragments) :-
 	F = fragment(_,_,_),
 	retractall(F),
@@ -89,7 +89,7 @@ colour_fragments(Source, Fragments) :-
 	findall(F, retract(F), Fragments0),
 	sort(Fragments0, Fragments1),
 	fragment_hierarchy(Fragments1, Fragments).
-	
+
 assert_fragment(Start, End, Class) :-
 	assert(fragment(Start, End, Class)).
 
@@ -98,7 +98,7 @@ assert_fragment(Start, End, Class) :-
 %
 %	Translate   list   of   fragment(Start,     End,   Class)   into
 %	fragment(Start, End, Class, SubFragments).
-%	
+%
 %	@tbd	Detect improper nesting.  How to handle?
 
 fragment_hierarchy([], []).
@@ -242,7 +242,7 @@ colourise_clause_head(Head, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %%	colourise_extern_head(+Head, +Module, +TB, +Pos)
-%	
+%
 %	Colourise the head specified as Module:Head. Normally used for
 %	adding clauses to multifile predicates in other modules.
 
@@ -259,7 +259,7 @@ colour_method_head(SGHead, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %%	functor_position(+Term, -FunctorPos, -ArgPosList)
-%	
+%
 %	Get the position of a functor   and  its argument. Unfortunately
 %	this goes wrong for lists, who have two `functor-positions'.
 
@@ -270,7 +270,7 @@ functor_position(Pos, Pos, []).
 
 
 %%	colourise_directive(+Body, +TB, +Pos)
-%	
+%
 %	Colourise the body of a directive.
 
 colourise_directive(Body, TB, Pos) :-
@@ -278,7 +278,7 @@ colourise_directive(Body, TB, Pos) :-
 
 
 %%	colourise_body(+Body, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_goal/3.
 
 colourise_body(Body, TB, Pos) :-
@@ -289,7 +289,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 	colourise_goals(Body, Origin, TB, Pos).
 
 %%	colourise_method_body(+MethodBody, +TB, +Pos)
-%	
+%
 %	Colourise the optional "comment":: as pce(comment) and proceed
 %	with the body.
 
@@ -328,7 +328,7 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 	colourise_subgoals(T, NN, Body, Origin, TB).
 
 %%	colourise_dcg(+Body, +Head, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_dcg_goal/3.
 
 colourise_dcg(Body, Head, TB, Pos) :-
@@ -380,7 +380,7 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 
 
 %%	colourise_goal(+Goal, +Origin, +TB, +Pos)
-%	
+%
 %	Colourise access to a single goal.
 
 					% Deal with list as goal (consult)
@@ -418,7 +418,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	colourise_goal_args(Goal, TB, Pos).
 
 %%	colourise_goal_args(+Goal, +TB, +Pos)
-%	
+%
 %	Colourise the arguments to a goal. This predicate deals with
 %	meta- and database-access predicates.
 
@@ -440,13 +440,13 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
 
 %%	meta_args(+Goal, -ArgSpec)
-%	
+%
 %	Return a copy of Goal, where each meta-argument is an integer
 %	representing the number of extra arguments. The non-meta
 %	arguments are unbound variables.
-%	
+%
 %	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
-%	
+%
 %	NOTE: this could be cached if performance becomes an issue.
 
 meta_args(Goal, VarGoal) :-
@@ -466,7 +466,7 @@ instantiate_meta([H|T]) :-
 	instantiate_meta(T).
 
 %%	expand_meta(+MetaSpec, +Goal, -Expanded)
-%	
+%
 %	Add extra arguments to the goal if the meta-specifier is an
 %	integer (see above).
 
@@ -481,7 +481,7 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 	Expanded =.. List.
 
 %%	colourise_db(+Arg, +TB, +Pos)
-%	
+%
 %	Colourise database modification calls (assert/1, retract/1 and
 %	friends.
 
@@ -559,7 +559,7 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom),
 	arg(1, Pos, From),
-	get(TB, character, From, 39), !, 	
+	get(TB, character, From, 39), !,
 	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
@@ -570,7 +570,7 @@ colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
-	
+
 colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 	specified_item(How, H, TB, HP),
 	colourise_list_args(TP, Tail, T, TB, How).
@@ -580,7 +580,7 @@ colourise_list_args([], TP, T, TB, How) :-
 
 
 %%	colourise_exports(+List, +TB, +Pos)
-%	
+%
 %	Colourise the module export-list (or any other list holding
 %	terms of the form Name/Arity referring to predicates).
 
@@ -601,7 +601,7 @@ colourise_exports2(_, _, _).
 
 
 %%	colourise_imports(+List, +File, +TB, +Pos)
-%	
+%
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
@@ -619,7 +619,7 @@ colourise_imports(List, File, Public, TB, list_position(_,_,ElmPos,Tail)) :- !,
 	),
 	colourise_imports2(List, File, Public, TB, ElmPos).
 colourise_imports(_, _, _, TB, Pos) :-
-	colour_item(type_error(list), TB, Pos).	
+	colour_item(type_error(list), TB, Pos).
 
 colourise_imports2([G0|GT], File, Public, TB, [P0|PT]) :- !,
 	colourise_import(G0, File, TB, P0),
@@ -639,7 +639,7 @@ colourise_import(PI, _, TB, Pos) :-
 
 
 %%	colourise_declarations(+Term, +TB, +Pos)
-%	
+%
 %	Colourise the Name/Arity lists of dynamic, multifile, etc
 %	declarations.
 
@@ -684,7 +684,7 @@ colour_item(Class, _Source, Pos) :-
 	b_getval(doc_colour_handler, Handler),
 	call(Handler, F, T, Class).
 colour_item(_, _, _).
-	
+
 
 		 /*******************************
 		 *	  CONFIGURATION		*
@@ -701,7 +701,7 @@ body_compiled((_;_)).
 body_compiled(\+_).
 
 %%	goal_classification(+TB, +Goal, +Origin, -Class)
-%	
+%
 %	Classify Goal appearing in TB and called from a clause with head
 %	Origin.  For directives Origin is [].
 
@@ -718,7 +718,7 @@ goal_classification(_TB, Goal, _, Class) :-
 goal_classification(_TB, _Goal, _, undefined).
 
 %%	goal_classification(+Goal, -Class)
-%	
+%
 %	Multifile hookable classification for non-local goals.
 
 goal_classification(Goal, built_in) :-
@@ -732,7 +732,7 @@ goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, send_super, A),
 	A >= 2, !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
-	functor(SS, get_super, A), 
+	functor(SS, get_super, A),
 	A >= 3, !.
 
 classify_head(TB, Goal, exported) :-

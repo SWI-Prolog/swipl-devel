@@ -33,19 +33,19 @@
 
 static char *	getString(IOSTREAM *, unsigned *len);
 static int64_t	getInt64(IOSTREAM *);
+static int	getInt32(IOSTREAM *s);
 static long	getLong(IOSTREAM *);
 static int	getInt(IOSTREAM *);
-static real	getReal(IOSTREAM *);
+static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
 static void	saveXRBlobType(PL_blob_t *type, IOSTREAM *fd);
 static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
-static void	putReal(real, IOSTREAM *);
+static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
-static bool	compileFile(char *);
 static word	loadXRc(int c, IOSTREAM *fd ARG_LD);
 static atom_t   getBlob(IOSTREAM *fd ARG_LD);
 static bool	loadStatement(int c, IOSTREAM *fd, int skip ARG_LD);
@@ -60,7 +60,7 @@ static void	popPathTranslation(void);
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SWI-Prolog can compile Prolog source files into intermediate code files, 
+SWI-Prolog can compile Prolog source files into intermediate code files,
 which can be loaded very  fast.   They  can  be  saved  as  stand  alone
 executables using Unix #! magic number.
 
@@ -103,6 +103,8 @@ Below is an informal description of the format of a `.qlf' file:
 			'X'
 <qlf-header>	::=	'M' <XR/modulename>		% module name
 			<source>			% file + time
+			<line>
+			{'S' <XR/supername>}
 			{<qlf-export>}
 			'X'
 		      | <source>			% not a module
@@ -121,7 +123,7 @@ Below is an informal description of the format of a `.qlf' file:
 			    <XR/functor>
 			    <flags>
 			    {<clause>} <pattern>
-		      | 'D' 
+		      | 'D'
 		        <lineno>			% source line number
 			<term>				% directive
 		      | 'E' <XR/functor>		% export predicate
@@ -139,7 +141,7 @@ Below is an informal description of the format of a `.qlf' file:
 			XR_ATOM    <len><chars>		% atom
 			XR_BLOB	   <blob><private>	% typed atom (blob)
 			XR_INT     <num>		% number
-			XR_FLOAT   <word>*		% real (double)
+			XR_FLOAT   <word>*		% float (double)
 			XR_STRING  <string>		% string
 			XR_STRING_UTF8  <utf-8 string>	% wide string
 			XR_FUNCTOR <XR/name> <num>	% functor
@@ -156,6 +158,7 @@ Below is an informal description of the format of a `.qlf' file:
 <system>	::=	's'				% system source file
 		      | 'u'				% user source file
 <time>		::=	<word>				% time file was loaded
+<line>		::=	<num>
 <pattern>	::=	<num>				% indexing pattern
 <codes>		::=	<num> {<code>}
 <string>	::=	{<non-zero byte>} <0>
@@ -173,8 +176,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 44			/* load all versions later >= X */
-#define VERSION 44			/* save version number */
+#define LOADVERSION 58			/* load all versions later >= X */
+#define VERSION 58			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -289,7 +292,7 @@ storeXrId(long id, word value)
     SECURE(memset(a, 0, ALLOCSIZE));
     t->table[t->tablesize++] = a;
   }
-  
+
   t->table[i][id%SUBENTRIES] = value;
 }
 
@@ -342,7 +345,7 @@ getString(IOSTREAM *fd, unsigned *length)
   }
 
   for( i=0, s = getstr_buffer; i<len; i++ )
-  { int c = Getc(fd);
+  { int c = Sgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -365,7 +368,7 @@ wicGetStringUTF8(IOSTREAM *fd, size_t *length,
 { size_t i, len = (size_t)wicGetNum(fd);
   IOENC oenc = fd->encoding;
   pl_wchar_t *tmp, *o;
-  
+
   if ( length )
     *length = len;
 
@@ -401,9 +404,9 @@ getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
     tmp = buf;
   else
     tmp = allocHeap(len);
-  
+
   for(s=tmp, i=0; i<len; i++)
-  { int c = Getc(fd);
+  { int c = Sgetc(fd);
 
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
@@ -438,7 +441,7 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 { char *s;
   int c;
 
-  for( s = buf; --maxlen >= 0 && (*s = (c = Getc(fd))); s++ )
+  for( s = buf; --maxlen >= 0 && (*s = (c = Sgetc(fd))); s++ )
     if ( c == EOF )
       return NULL;
 
@@ -456,8 +459,8 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Getc(fd);
-  if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
+  first = Sgetc(fd);
+  if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
@@ -471,7 +474,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Getc(fd) & 0xff;
+      first |= Sgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -483,14 +486,14 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Getc(fd) & 0xff;
+      first |= Sgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
 
   first <<= shift;
   first >>= shift;
-  
+
   DEBUG(4, Sdprintf(INT64_FORMAT "\n", first));
   return first;
 }
@@ -520,29 +523,29 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 
 #define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
 
-static real
-getReal(IOSTREAM *fd)
-{ real f;
+static double
+getFloat(IOSTREAM *fd)
+{ double f;
   unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
   { int c = Sgetc(fd);
-    
+
     if ( c == -1 )
       fatalError("Unexpected end-of-file in QLT file");
     cl[double_byte_order[i]] = c;
   }
-  
-  DEBUG(3, Sdprintf("getReal() --> %f\n", f));
+
+  DEBUG(3, Sdprintf("getFloat() --> %f\n", f));
 
   return f;
 }
 
 
-word
-getWord(IOSTREAM *s)
-{ word v;
+static int
+getInt32(IOSTREAM *s)
+{ int v;
 
   v  = (Sgetc(s) & 0xff) << 24;
   v |= (Sgetc(s) & 0xff) << 16;
@@ -623,7 +626,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
     case XR_INT:
       return makeNum(getInt64(fd));
     case XR_FLOAT:
-      return globalReal(getReal(fd));
+      return globalFloat(getFloat(fd));
 #if O_STRING
     case XR_STRING:
     { char *s;
@@ -638,7 +641,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
       size_t len;
       pl_wchar_t buf[256];
       word s;
-      
+
       w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
       s = globalWString(len, w);
       if ( w != buf )
@@ -693,7 +696,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 static atom_t
 getBlob(IOSTREAM *fd ARG_LD)
 { PL_blob_t *type = (PL_blob_t*)loadXR(fd);
-  
+
   if ( type->load )
   { return (*type->load)(fd);
   } else
@@ -708,7 +711,7 @@ do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term ARG_LD)
 
   if ( c == 'v' )
   { int id = getInt(fd);
-    
+
     if ( vars[id] )
       PL_unify(term, vars[id]);
     else
@@ -804,6 +807,7 @@ loadWicFd(IOSTREAM *fd)
   char mbuf[100];
   int saved_wsize;
   int saved_version;
+  int vm_signature;
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
@@ -813,6 +817,10 @@ loadWicFd(IOSTREAM *fd)
 
   if ( (saved_version=getInt(fd)) < LOADVERSION )
   { fatalError("Saved state has incompatible save version");
+    fail;
+  }
+  if ( (vm_signature=getInt(fd)) != (int)VM_SIGNATURE )
+  { fatalError("Saved state has incompatible VM signature");
     fail;
   }
 
@@ -826,7 +834,7 @@ loadWicFd(IOSTREAM *fd)
   load_state->saved_version = saved_version;
 
   for(;;)
-  { c = Getc(fd);
+  { c = Sgetc(fd);
 
     switch( c )
     { case EOF:
@@ -878,7 +886,7 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
 
       source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
       source_line_no   = getInt(fd);
-      
+
       loadQlfTerm(goal, fd PASS_LD);
       DEBUG(2,
 	    if ( source_file_name )
@@ -901,12 +909,12 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
 	}
       }
       PL_discard_foreign_frame(cid);
-      
+
       source_file_name = osf;
       source_line_no   = oln;
 
       succeed;
-    }	  
+    }
 
     case 'Q':
       return loadPart(fd, NULL, skip PASS_LD);
@@ -935,7 +943,7 @@ loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
 	lflags |= SYSTEM;
       if ( flags & PRED_HIDE_CHILDS )
 	lflags |= HIDE_CHILDS;
-    
+
       set(def, lflags);
     }
   }
@@ -958,7 +966,13 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   def = proc->definition;
   if ( !skip && currentSource )
   { if ( def->definition.clauses )
-      redefineProcedure(proc, currentSource, DISCONTIGUOUS_STYLE);
+    { if ( !redefineProcedure(proc, currentSource, DISCONTIGUOUS_STYLE) )
+      { printMessage(ATOM_error, exception_term);
+	exception_term = 0;
+	setVar(*valTermRef(exception_bin));
+	skip = TRUE;
+      }
+    }
     addProcedureSourceFile(currentSource, proc);
   }
   if ( def->references == 0 && !def->hash_info )
@@ -966,7 +980,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   loadPredicateFlags(def, fd, skip PASS_LD);
 
   for(;;)
-  { switch(Getc(fd) )
+  { switch(Sgetc(fd) )
     { case 'X':
       { unsigned long pattern = getLong(fd);
 
@@ -1017,7 +1031,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	{ code op = getInt(fd);
 	  const char *ats;
 	  int n = 0;
-	  
+
 	  if ( op >= I_HIGHEST )
 	    fatalError("Illegal op-code (%d) at %ld", op, Stell(fd));
 
@@ -1047,13 +1061,14 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      case CA1_INTEGER:
 	      case CA1_JUMP:
 	      case CA1_VAR:
+	      case CA1_CHP:
 	      case CA1_AFUNC:
 		*bp++ = (intptr_t)getInt64(fd);
 		break;
 	      case CA1_INT64:
 	      { int64_t val = getInt64(fd);
 		Word p = (Word)&val;
-		
+
 		cpInt64Data(bp, p);
 		break;
 	      }
@@ -1063,7 +1078,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		  double f;
 		} v;
 		Word p = v.w;
-		v.f = getReal(fd);
+		v.f = getFloat(fd);
 		cpDoubleData(bp, p);
 		break;
 	      }
@@ -1072,13 +1087,13 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		int lw = (l+sizeof(word))/sizeof(word);
 		int pad = (lw*sizeof(word) - l);
 		char *s = (char *)&bp[1];
-  
+
 		DEBUG(3, Sdprintf("String of %ld bytes\n", l));
 		*bp = mkStrHdr(lw, pad);
 		bp += lw;
 		*bp++ = 0L;
 		while(--l >= 0)
-		  *s++ = Getc(fd);
+		  *s++ = Sgetc(fd);
 		break;
 	      }
 	      case CA1_MPZ:
@@ -1089,15 +1104,15 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 		int wsz	 = (l+sizeof(word)-1)/sizeof(word);
 		word m     = mkIndHdr(wsz+1, TAG_INTEGER);
 		char *s;
-  
+
 		*bp++     = m;
 		*bp++     = mpsize;
 		s         = (char*)bp;
 		bp[wsz-1] = 0L;
 		bp       += wsz;
-  
+
 		while(--l >= 0)
-		  *s++ = Getc(fd);
+		  *s++ = Sgetc(fd);
 		DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
 	      }
@@ -1115,13 +1130,36 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  freeClause(clause PASS_LD);
 	else
 	{ if ( def->hash_info )
-	  { reindexClause(clause, def);
+	  { reindexClause(clause, def, 0x1L);
 	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
 	}
       }
     }
   }
+}
+
+
+static bool
+runInitialization(SourceFile sf)
+{ int rc = FALSE;
+
+  if ( sf )
+  { GET_LD
+    fid_t fid = PL_open_foreign_frame();
+    term_t name = PL_new_term_ref();
+    static predicate_t pred = NULL;
+
+    if ( !pred )
+      pred = PL_predicate("$run_initialization", 1, "system");
+
+    PL_put_atom(name, sf->name);
+    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+
+    PL_discard_foreign_frame(fid);
+  }
+
+  return rc;
 }
 
 
@@ -1139,14 +1177,14 @@ loadImport(IOSTREAM *fd, int skip ARG_LD)
 static atom_t
 qlfFixSourcePath(const char *raw)
 { char buf[MAXPATHLEN];
-    
+
   if ( load_state->has_moved && strprefix(raw, load_state->save_dir) )
   { char *s;
     size_t lensave = strlen(load_state->save_dir);
     const char *tail = &raw[lensave];
 
     if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
-      fatalError("Path name too intptr_t: %s", raw);
+      fatalError("Path name too long: %s", raw);
 
     strcpy(buf, load_state->load_dir);
     s = &buf[strlen(buf)];
@@ -1154,7 +1192,7 @@ qlfFixSourcePath(const char *raw)
     strcpy(s, tail);
   } else
   { if ( strlen(raw)+1 > MAXPATHLEN )
-      fatalError("Path name too intptr_t: %s", raw);
+      fatalError("Path name too long: %s", raw);
     strcpy(buf, raw);
   }
 
@@ -1166,7 +1204,7 @@ qlfFixSourcePath(const char *raw)
 (**) Note. When loading a qlf  file   we  must do the possible reconsult
 stuff associated with loading sourcefiles. If we are loading a state all
 is nice and fresh, so we can skip that. Actually, we *must* skip that as
-a state is  created  based  on   modules  rather  then  files. Multifile
+a state is  created  based  on   modules  rather  than  files. Multifile
 predicates are stored with the module. If   we  take no measures loading
 the file from which a clause originates  will remove the one loaded with
 the module where it is a multifile one.
@@ -1198,6 +1236,52 @@ qlfLoadSource(IOSTREAM *fd)
 
 
 static bool
+loadModuleProperties(IOSTREAM *fd, Module m, int skip ARG_LD)
+{ for(;;)
+  { switch(Qgetc(fd))
+    { case 'S':
+      { atom_t sname = loadXR(fd);
+	Module s = lookupModule(sname);
+
+	if ( !skip )
+	  addSuperModule(m, s, 'Z');
+
+	continue;
+      }
+      case 'E':
+      { functor_t f = (functor_t) loadXR(fd);
+
+	if ( !skip )
+	{ Procedure proc = lookupProcedure(f, LD->modules.source);
+
+	  addHTable(LD->modules.source->public, (void *)f, proc);
+	} else
+	{ if ( !lookupHTable(m->public, (void *)f) )
+	  { FunctorDef fd = valueFunctor(f);
+
+	    warning("%s: skipped module \"%s\" lacks %s/%d",
+		    wicFile,
+		    stringAtom(m->name),
+		    stringAtom(fd->name),
+		    fd->arity);
+	  }
+	}
+
+	continue;
+      }
+      case 'X':
+	break;
+      default:
+	return qlfLoadError(fd, "loadPart()");
+    }
+    break;
+  }
+
+  succeed;
+}
+
+
+static bool
 loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 { Module om     = LD->modules.source;
   SourceFile of = currentSource;
@@ -1206,10 +1290,11 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
   switch(Qgetc(fd))
   { case 'M':
     { atom_t mname = loadXR(fd);
+      int c = Qgetc(fd);
 
       DEBUG(1, Sdprintf("Loading module %s\n", PL_atom_chars(mname)));
 
-      switch( Qgetc(fd) )
+      switch( c )
       { case '-':
 	{ LD->modules.source = lookupModule(mname);
 					/* TBD: clear module? */
@@ -1218,10 +1303,12 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	}
 	case 'F':
 	{ Module m;
+	  int line;
 
 	  qlfLoadSource(fd);
-	  DEBUG(1, Sdprintf("\tSource = %s\n",
-			    PL_atom_chars(currentSource->name)));
+	  line = getInt(fd);
+	  DEBUG(1, Sdprintf("\tSource = %s:%d\n",
+`			    PL_atom_chars(currentSource->name), line));
 
 	  m = lookupModule(mname);
 	  if ( m->file && m->file != currentSource )
@@ -1230,49 +1317,23 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 	    skip = TRUE;
 	    LD->modules.source = m;
 	  } else
-	  { if ( !declareModule(mname, currentSource, 0) ) /* TBD: line */
+	  { if ( !declareModule(mname, NULL_ATOM, currentSource, line, FALSE) )
 	      fail;
 	  }
 
 	  if ( module )
 	    *module = LD->modules.source;
 
-	  for(;;)
-	  { switch(Qgetc(fd))
-	    { case 'E':
-	      { functor_t f = (functor_t) loadXR(fd);
-
-		if ( !skip )
-		{ Procedure proc = lookupProcedure(f, LD->modules.source);
-
-		  addHTable(LD->modules.source->public, (void *)f, proc);
-		} else
-		{ if ( !lookupHTable(m->public, (void *)f) )
-		  { FunctorDef fd = valueFunctor(f);
-
-		    warning("%s: skipped module \"%s\" lacks %s/%d",
-			    wicFile,
-			    stringAtom(m->name),
-			    stringAtom(fd->name),
-			    fd->arity);
-		  }
-		}
-
-		continue;
-	      }
-	      case 'X':
-		break;
-	      default:
-		return qlfLoadError(fd, "loadPart()");
-	    }
-	    break;
-	  }
 	  break;
 	}
 	default:
 	  qlfLoadError(fd, "loadPart()");
 	  break;
       }
+
+      if ( !loadModuleProperties(fd, LD->modules.source, skip PASS_LD) )
+	fail;
+
       break;
     }
     case 'F':
@@ -1292,7 +1353,9 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
 
     switch(c)
     { case 'X':
-      { LD->modules.source = om;
+      { if ( !GD->bootsession )
+	  runInitialization(currentSource);
+	LD->modules.source = om;
 	currentSource  = of;
 	debugstatus.styleCheck = stchk;
 	systemMode(debugstatus.styleCheck & DOLLAR_STYLE);
@@ -1312,7 +1375,7 @@ loadInModule(IOSTREAM *fd, int skip ARG_LD)
   Module om = LD->modules.source;
 
   LD->modules.source = lookupModule(mname);
-  
+
   for(;;)
   { int c = Qgetc(fd);
 
@@ -1451,18 +1514,18 @@ putNum(int64_t n, IOSTREAM *fd)
 
   for( ; m > 0; m--)
   { int b = (int)(n >> ((m-1)*8)) & 0xff;
-    
+
     Sputc(b, fd);
   }
 }
 
 
 static void
-putReal(real f, IOSTREAM *fd)
+putFloat(double f, IOSTREAM *fd)
 { unsigned char *cl = (unsigned char *)&f;
   unsigned int i;
 
-  DEBUG(3, Sdprintf("putReal(%f)\n", f));
+  DEBUG(3, Sdprintf("putFloat(%f)\n", f));
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
     Sputc(cl[double_byte_order[i]], fd);
@@ -1470,7 +1533,7 @@ putReal(real f, IOSTREAM *fd)
 
 
 static void
-putLong(long v, IOSTREAM *fd)		/* always 4 bytes */
+putInt32(int v, IOSTREAM *fd)
 { Sputc((v>>24)&0xff, fd);
   Sputc((v>>16)&0xff, fd);
   Sputc((v>>8)&0xff, fd);
@@ -1533,7 +1596,7 @@ savedXR(void *xr, IOSTREAM *fd)
   { id = (intptr_t) s->value;
     Sputc(XR_REF, fd);
     putNum(id, fd);
-    
+
     succeed;
   } else
   { id = ++savedXRTableId;
@@ -1578,9 +1641,9 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
   { Sputc(XR_INT, fd);
     putNum(valBignum(xr), fd);
     return;
-  } else if ( isReal(xr) )
+  } else if ( isFloat(xr) )
   { Sputc(XR_FLOAT, fd);
-    putReal(valReal(xr), fd);
+    putFloat(valFloat(xr), fd);
     return;
 #if O_STRING
   } else if ( isString(xr) )
@@ -1677,7 +1740,7 @@ saveXRSourceFile(SourceFile f, IOSTREAM *fd ARG_LD)
     putNum(f->time, fd);
   } else
   { DEBUG(3, Sdprintf("XR(%d) = <no file>\n", savedXRTableId));
-    Sputc('-', fd);  
+    Sputc('-', fd);
   }
 }
 
@@ -1795,6 +1858,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	case CA1_INTEGER:
 	case CA1_JUMP:
 	case CA1_VAR:
+	case CA1_CHP:
 	case CA1_AFUNC:
 	{ putNum(*bp++, fd);
 	  break;
@@ -1802,7 +1866,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	case CA1_INT64:
 	{ int64_t val;
 	  Word p = (Word)&val;
-  
+
 	  cpInt64Data(p, bp);
 	  putNum(val, fd);
 	  break;
@@ -1814,7 +1878,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	  } v;
 	  Word p = v.w;
 	  cpDoubleData(p, bp);
-	  putReal(v.f, fd);
+	  putFloat(v.f, fd);
 	  break;
 	}
 	case CA1_STRING:
@@ -1823,7 +1887,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	  size_t wn = wsizeofInd(m);
 	  size_t l = wn*sizeof(word) - padHdr(m);
 	  bp += wn;
-  
+
 	  putNum(l, fd);
 	  while(l-- > 0)
 	    Sputc(*s++&0xff, fd);
@@ -1837,7 +1901,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	  int l = abs(mpsize)*sizeof(mp_limb_t);
 	  char *s = (char*)&bp[1];
 	  bp += wn;
-  
+
 	  DEBUG(3, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
 	  putNum(mpsize, fd);
 	  while(--l >= 0)
@@ -1872,7 +1936,7 @@ closeProcedureWic(IOSTREAM *fd)
 static int
 predicateFlags(Definition def, atom_t sclass)
 { int flags = 0;
-  
+
   if ( sclass == ATOM_kernel )
   { if ( true(def, SYSTEM) && false(def, HIDE_CHILDS) )
       return PRED_SYSTEM;
@@ -1883,7 +1947,7 @@ predicateFlags(Definition def, atom_t sclass)
     flags |= PRED_SYSTEM;
   if ( true(def, HIDE_CHILDS) )
     flags |= PRED_HIDE_CHILDS;
-  
+
   return flags;
 }
 
@@ -1926,6 +1990,7 @@ writeWicHeader(IOSTREAM *fd)
 
   putMagic(saveMagic, fd);
   putNum(VERSION, fd);
+  putNum(VM_SIGNATURE, fd);
   putNum(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
@@ -1936,7 +2001,7 @@ writeWicHeader(IOSTREAM *fd)
 
   DEBUG(2, Sdprintf("Header complete ...\n"));
   succeed;
-}  
+}
 
 
 static bool
@@ -1984,7 +2049,7 @@ addDirectiveWic(term_t term, IOSTREAM *fd ARG_LD)
   saveQlfTerm(term, fd PASS_LD);
 
   succeed;
-}  
+}
 
 
 static bool
@@ -2043,31 +2108,33 @@ writeSourceMarks(IOSTREAM *s ARG_LD)
   { pn = pm->next;
 
     DEBUG(1, Sdprintf(" %d", pm->file_index));
-    putLong(pm->file_index, s);
+    putInt32(pm->file_index, s);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   source_mark_head = source_mark_tail = NULL;
-  
+
   DEBUG(1, Sdprintf("Written %d marks\n", n));
-  putLong(n, s);
+  putInt32(n, s);
 
   return 0;
 }
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
+qlfSourceInfo(IOSTREAM *s, size_t offset, term_t list ARG_LD)
 { char *str;
   term_t head = PL_new_term_ref();
+  atom_t fname;
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
-  if ( Getc(s) != 'F' || !(str=getString(s, NULL)) )
+  if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
-  
+  fname = qlfFixSourcePath(str);
+
   return PL_unify_list(list, head, list) &&
-         PL_unify_atom(head, qlfFixSourcePath(str));
+         PL_unify_atom(head, fname);
 }
 
 
@@ -2078,10 +2145,11 @@ qlfInfo(const char *file,
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
-  long *qlfstart = NULL;
+  size_t *qlfstart = NULL;
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
   int saved_wsize;
+  int vm_signature;
 
   TRY(PL_unify_integer(cversion, VERSION));
 
@@ -2093,7 +2161,7 @@ qlfInfo(const char *file,
     PL_put_atom_chars(f, file);
     return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 		    ATOM_open, ATOM_source_sink, f);
-  }    
+  }
 
   if ( !(lversion = qlfVersion(s)) )
   { Sclose(s);
@@ -2101,20 +2169,21 @@ qlfInfo(const char *file,
   }
   TRY(PL_unify_integer(version, lversion));
 
+  vm_signature = getInt(s);		/* TBD: provide to Prolog layer */
   saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 
   pushPathTranslation(s, file, 0);
 
-  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
+  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = (int)getWord(s);
+  nqlf = (int)getInt32(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
-  qlfstart = (long*)allocHeap(sizeof(long) * nqlf);
+  qlfstart = (size_t*)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getLong(s);
-    DEBUG(1, Sdprintf(" %d", qlfstart[i]));
+  { qlfstart[i] = (size_t)getInt32(s);
+    DEBUG(1, Sdprintf(" %ld", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));
 
@@ -2130,7 +2199,7 @@ qlfInfo(const char *file,
 
 out:
   if ( qlfstart )
-    freeHeap(qlfstart, sizeof(intptr_t) * nqlf);
+    freeHeap(qlfstart, sizeof(*qlfstart) * nqlf);
   if ( s )
     Sclose(s);
 
@@ -2171,6 +2240,7 @@ qlfOpen(atom_t name)
 
   putMagic(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
+  putNum(VM_SIGNATURE, wicFd);
   putNum(sizeof(word)*8, wicFd);
 
   putString(absname, STR_NOLEN, wicFd);
@@ -2191,7 +2261,7 @@ qlfClose(ARG1_LD)
   wicFd = NULL;
   mkWicFile = NULL;
   destroyXR();
-  
+
   succeed;
 }
 
@@ -2220,12 +2290,12 @@ pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
   memset(new, 0, sizeof(*new));
   new->previous = load_state;
   load_state = new;
-  
+
   abssavename = getString(fd, NULL);
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];
-    char *l, *s, *le, *se; 
+    char *l, *s, *le, *se;
 
     new->has_moved = TRUE;
 
@@ -2279,6 +2349,7 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
   const char *absloadname;
   char tmp[MAXPATHLEN];
   int saved_wsize;
+  int vm_signature;
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -2297,17 +2368,25 @@ qlfLoad(IOSTREAM *fd, Module *module ARG_LD)
   } else
   { absloadname = NULL;
   }
-  
+
   if ( !(lversion = qlfVersion(fd)) || lversion < LOADVERSION )
   { if ( lversion )
       warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
 	      wicFile, lversion, VERSION);
     fail;
   }
+  vm_signature = getInt(fd);
+  if ( vm_signature != (int)VM_SIGNATURE )
+  { warning("QLF file %s has incompatible VM-signature (0x%x; expected 0x%x)",
+	    stringAtom(file),
+	    (unsigned int)vm_signature,
+	    (unsigned int)VM_SIGNATURE);
+    fail;
+  }
   saved_wsize = getInt(fd);
   if ( saved_wsize != sizeof(word)*8 )
   { warning("QLF file %s has incompatible (%d) word-length",
-	    file, saved_wsize);
+	    stringAtom(file), (int)saved_wsize);
     fail;
   }
 
@@ -2343,14 +2422,25 @@ qlfSaveSource(SourceFile f, IOSTREAM *fd ARG_LD)
 
 static bool
 qlfStartModule(Module m, IOSTREAM *fd ARG_LD)
-{ closeProcedureWic(fd);
+{ ListCell c;
+  closeProcedureWic(fd);
   Sputc('Q', fd);
   Sputc('M', fd);
   saveXR(m->name, fd);
+
   if ( m->file )
-    qlfSaveSource(m->file, fd PASS_LD);
-  else
-    Sputc('-', fd);
+  { qlfSaveSource(m->file, fd PASS_LD);
+    putNum(m->line_no, fd);
+  } else
+  { Sputc('-', fd);
+  }
+
+  for(c=m->supers; c; c=c->next)
+  { Module s = c->value;
+
+    Sputc('S', fd);
+    saveXR(s->name, fd);
+  }
 
   DEBUG(2, Sdprintf("MODULE %s\n", stringAtom(m->name)));
   for_unlocked_table(m->public, s,
@@ -2406,7 +2496,7 @@ pl_qlf_start_module(term_t name)
 
     if ( !PL_get_module_ex(name, &m) )
       fail;
-  
+
     return qlfStartModule(m, wicFd PASS_LD);
   }
 
@@ -2422,7 +2512,7 @@ pl_qlf_start_sub_module(term_t name)
 
     if ( !PL_get_module_ex(name, &m) )
       fail;
-  
+
     return qlfStartSubModule(m, wicFd PASS_LD);
   }
 
@@ -2438,7 +2528,7 @@ pl_qlf_start_file(term_t name)
 
     if ( !PL_get_atom_ex(name, &a) )
       fail;
-  
+
     return qlfStartFile(lookupSourceFile(a, TRUE), wicFd PASS_LD);
   }
 
@@ -2476,6 +2566,12 @@ pl_qlf_close()
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $qlf_load(:Stream, -ModuleOut)
+
+Load QLF data from Stream.
+
+@param	ModuleOut is unified to an atom holding the name of the
+	loaded module or the integer 0 if the loaded object is
+	not a module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
@@ -2652,7 +2748,7 @@ directiveClause(term_t directive, term_t clause, const char *functor)
  ** Thu Apr 28 13:44:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-compileFile(char *file)
+compileFile(const char *file)
 { GET_LD
   char tmp[MAXPATHLEN];
   char *path;
@@ -2672,7 +2768,7 @@ compileFile(char *file)
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
   pl_start_consult(f);
   qlfStartFile(lookupSourceFile(nf, TRUE), wicFd PASS_LD);
-  
+
   for(;;)
   { fid_t	 cid = PL_open_foreign_frame();
     term_t         t = PL_new_term_ref();
@@ -2723,9 +2819,9 @@ compileFile(char *file)
 bool
 compileFileList(IOSTREAM *fd, int argc, char **argv)
 { TRY(writeWicHeader(fd));
-  
+
   systemMode(TRUE);
-  defFeature("autoload", FT_BOOL, FALSE, 0);
+  PL_set_prolog_flag("autoload", PL_BOOL, FALSE);
 
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
@@ -2733,7 +2829,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
     compileFile(argv[0]);
   }
 
-  defFeature("autoload", FT_BOOL, TRUE, 0);
+  PL_set_prolog_flag("autoload", PL_BOOL, TRUE);
   systemMode(FALSE);
 
   { predicate_t pred = PL_predicate("$load_additional_boot_files", 0, "user");
@@ -2785,7 +2881,7 @@ wicGetNum(IOSTREAM *fd)
 void
 wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 { putStringW(w, len, fd);
-} 
+}
 
 
 		 /*******************************

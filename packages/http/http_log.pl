@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -67,9 +67,9 @@ specifications (e.g. =|/topsecret?password=secret|=.
 http_message(request_start(Id, Request)) :- !,
 	http_log_stream(Stream),
 	log_started(Request, Id, Stream).
-http_message(request_finished(Id, CPU, Status)) :- !,
+http_message(request_finished(Id, Code, Status, CPU, Bytes)) :- !,
 	http_log_stream(Stream),
-	log_completed(Status, Id, CPU, Stream).
+	log_completed(Code, Status, Bytes, Id, CPU, Stream).
 
 
 		 /*******************************
@@ -80,7 +80,7 @@ http_message(request_finished(Id, CPU, Status)) :- !,
 	log_stream/1.
 
 %%	http_log_stream(-Stream) is semidet.
-%	
+%
 %	Returns handle to open logfile. Fails if no logfile is open and
 %	none is defined.
 
@@ -112,14 +112,14 @@ http_log_stream(_) :-
 %	a term server(Reason, Time).  to  the   logfile.  This  call  is
 %	intended for cooperation with the Unix logrotate facility
 %	using the following schema:
-%	
+%
 %	    * Move logfile (the HTTP server keeps writing to the moved
 %	    file)
 %	    * Inform the server using an HTTP request that calls
 %	    http_log_close/1
 %	    * Compress the moved logfile
-%	    
-%	@author Suggested by Jacco van Ossenbruggen    
+%
+%	@author Suggested by Jacco van Ossenbruggen
 
 http_log_close(Reason) :-
 	with_mutex(http_log, close_log(Reason)).
@@ -150,7 +150,7 @@ http_log(Format, Args) :-
 %%	log_started(+Request, +Id, +Stream) is det.
 %
 %	Write log message that Request was started to Stream.
-%	
+%
 %	@param	Filled with sequence identifier for the request
 
 log_started(Request, Id, Stream) :-
@@ -158,11 +158,11 @@ log_started(Request, Id, Stream) :-
 	log_request(Request, LogRequest),
 	format_time(string(HDate), '%+', Now),
 	format(Stream,
-	       '/*~s*/ request(~q, ~0f, ~q).~n',
+	       '/*~s*/ request(~q, ~3f, ~q).~n',
 	       [HDate, Id, Now, LogRequest]).
 
 %%	log_request(+Request, -Log)
-%	
+%
 %	Remove passwords from the request to avoid sending them to the
 %	logfiles.
 
@@ -204,39 +204,59 @@ nolog(accept(_)).
 nolog(accept_language(_)).
 nolog(accept_encoding(_)).
 nolog(accept_charset(_)).
-nolog(pool(_,_,_,_)).
+nolog(pool(_)).
+nolog(protocol(_)).
 nolog(referer(R)) :-
 	sub_atom(R, _, _, _, password), !.
 
-%%	log_completed(+Status, +Id, +CPU, +Stream) is det.
+%%	log_completed(+Code, +Status, +Bytes, +Id, +CPU, +Stream) is det.
 %
 %	Write log message to Stream from a call_cleanup/3 call.
-%	
+%
 %	@param Status	2nd argument of call_cleanup/3
 %	@param Id	Term identifying the completed request
 %	@param CPU0	CPU time at time of entrance
 %	@param Stream	Stream to write to (normally from http_log_stream/1).
 
-log_completed(Status, Id, CPU, Stream) :-
-	is_stream(Stream), !,
-	log(Status, Id, CPU, Stream).
-log_completed(Status, Id, CPU0, _) :-
+log_completed(Code, Status, Bytes, Id, CPU, Stream) :-
+	is_stream(Stream),
+	log_check_deleted(Stream), !,
+	log(Code, Status, Bytes, Id, CPU, Stream).
+log_completed(Code, Status, Bytes, Id, CPU0, _) :-
 	http_log_stream(Stream), !,	% Logfile has changed!
-	log_completed(Status, Id, CPU0, Stream).
-log_completed(_,_,_,_).
+	log_completed(Code, Status, Bytes, Id, CPU0, Stream).
+log_completed(_,_,_,_,_,_).
 
 
-log(ok, Id, CPU, Stream) :-
-	format(Stream, 'completed(~q, ~2f, true).~n',
-	       [ Id, CPU ]).
-log(Error, Id, CPU, Stream) :-
-	(   map_exception(Error, Term)
+%%	log_check_deleted(+Stream) is semidet.
+%
+%	If the link-count of the stream has   dropped  to zero, the file
+%	has been deleted/moved. In this case the  log file is closed and
+%	log_check_deleted/6 will open a  new   one.  This  provides some
+%	support for cleaning up the logfile   without  shutting down the
+%	server.
+%
+%	@see logrotate(1) to manage logfiles on Unix systems.
+
+log_check_deleted(Stream) :-
+	stream_property(Stream, nlink(Links)),
+	Links == 0, !,
+	http_log_close(log_file_deleted),
+	fail.
+log_check_deleted(_).
+
+
+log(Code, ok, Bytes, Id, CPU, Stream) :- !,
+	format(Stream, 'completed(~q, ~2f, ~q, ~q, ok).~n',
+	       [ Id, CPU, Bytes, Code ]).
+log(Code, Status, Bytes, Id, CPU, Stream) :-
+	(   map_exception(Status, Term)
 	->  true
-	;   message_to_string(Error, String),
+	;   message_to_string(Status, String),
 	    Term = error(String)
 	),
-	format(Stream, 'completed(~q, ~2f, ~q).~n',
-	       [ Id, CPU, Term ]).
+	format(Stream, 'completed(~q, ~2f, ~q, ~q, ~q).~n',
+	       [ Id, CPU, Bytes, Code, Term ]).
 
 map_exception(http_reply(Reply), Reply).
 map_exception(error(existence_error(http_location, Location), _Stack),

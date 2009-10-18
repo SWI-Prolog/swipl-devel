@@ -284,7 +284,7 @@ static intptr_t atom_mask;
 static void
 init_datum_store()
 { atom_t a = PL_new_atom("[]");
-  
+
   atom_mask = a & ((1<<(ATOM_TAG_BITS-1))-1);
 }
 
@@ -438,7 +438,7 @@ new_atom_set(datum a0)
     as->atoms[0] = a0;
     SECURE(as->magic = S_MAGIC);
   }
-  
+
   return as;
 }
 
@@ -458,7 +458,7 @@ find_in_atom_set(atom_set *as, datum a, int *found)
 
   for(;;)
   { const datum *cp = ap+(ep-ap)/2;
-    
+
     if ( a < *cp )
     { if ( ep == cp )
       { *found = FALSE;
@@ -496,7 +496,7 @@ static int
 insert_atom_set(atom_set *as, datum a)
 { int found;
   datum *ap = find_in_atom_set(as, a, &found);
-  
+
   if ( !found )
   { lock_datum(a);
 
@@ -584,7 +584,7 @@ cmp_node_data(void *l, void *r, NODE type)
     } else
     { long l1 = long_from_datum(d1);
       long l2 = long_from_datum(d2);
-      
+
       return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
     }
   }
@@ -654,7 +654,7 @@ insert_atom_map4(term_t handle, term_t from, term_t to, term_t keys)
        !get_search_datum(from, &search) ||
        !get_datum(to, &a2) )
     return FALSE;
-  
+
   if ( !WRLOCK(map, FALSE) )
     return FALSE;
 
@@ -708,7 +708,7 @@ delete_atom_map2(term_t handle, term_t from)
   if ( !get_atom_map(handle, &map) ||
        !get_search_datum(from, &search) )
     return FALSE;
-  
+
   if ( !WRLOCK(map, TRUE) )
     return FALSE;
 
@@ -738,7 +738,7 @@ delete_atom_map3(term_t handle, term_t from, term_t to)
        !get_search_datum(from, &search) ||
        !get_datum(to, &a2) )
     return FALSE;
-  
+
   if ( !WRLOCK(map, TRUE) )
     return FALSE;
 
@@ -819,7 +819,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     { if ( !get_search_datum(head, &search) )
 	goto failure;
     }
-    
+
     if ( (data = avlfind(&map->tree, &search)) )
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
@@ -844,7 +844,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   { domain_error(keys, "keywords");
     goto failure;
   }
-    
+
   s0 = as[0].set;
 
   PL_put_term(tail, literals);
@@ -855,7 +855,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
 
     for(i=1; i<ns; i++)
     { if ( !as[i].neg )
-      { if ( !in_atom_set(as[i].set, a) ) 
+      { if ( !in_atom_set(as[i].set, a) )
 	{ if ( a > as[i].set->atoms[as[i].set->size-1] )
 	    goto empty;
 	  goto next;
@@ -865,7 +865,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
 	  goto next;
       }
     }
-    
+
     if ( !PL_unify_list(tail, head, tail) ||
 	 !unify_datum(head, a) )
       goto failure;
@@ -907,22 +907,22 @@ unify_keys(term_t head, term_t tail, AVLnode *node)
     { if ( !unify_keys(head, tail, node->subtree[LEFT]) )
 	return FALSE;
     }
-    
+
     data = (node_data*)node->data;
     if ( !PL_unify_list(tail, head, tail) ||
 	 !unify_datum(head, data->key) )
       return FALSE;
-  
+
     if ( node->subtree[RIGHT] )
       return unify_keys(head, tail, node->subtree[RIGHT]);
   }
-  
+
   return TRUE;
 }
 
 
 static int
-between_keys(atom_map *map, long min, long max, term_t head, term_t tail) 
+between_keys(atom_map *map, long min, long max, term_t head, term_t tail)
 { avl_enum state;
   node_data *data;
   node_data_ex search;
@@ -1042,7 +1042,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
       min = val, max = MAP_MAX_INT;
     else
       max = val, min = MAP_MIN_INT;
-    
+
     if ( !between_keys(map, min, max, head, tail) )
       goto failure;
   } else if ( name == ATOM_between && arity == 2 )
@@ -1107,7 +1107,7 @@ rdf_statistics_literal_map(term_t map, term_t key)
 
   if ( !get_atom_map(map, &m) )
     return FALSE;
-  
+
   if ( PL_is_functor(key, FUNCTOR_size2) )
   { term_t a = PL_new_term_ref();
 

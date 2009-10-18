@@ -32,7 +32,7 @@
 :- module(db,
 	  [ db_open/4,			% +File, +Mode, -Handle, +Options
 	    db_close/1,			% +Handle
-	    db_closeall/0,		% 
+	    db_closeall/0,		%
 	    db_put/3,			% +DB, +Key, +Value
 	    db_del/3,			% +DB, +Key, ?Value
 	    db_delall/3,		% +DB, +Key, +Value
@@ -43,8 +43,7 @@
 	    db_transaction/1,		% :Goal
 	    db_atom/3			% +DB, ?Atom, ?Id
 	  ]).
-:- initialization
-   load_foreign_library(foreign(db4pl)).
+:- use_foreign_library(foreign(db4pl)).
 
 db_delall(DB, Key, Value) :-
 	var(Value), !,

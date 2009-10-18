@@ -64,7 +64,8 @@ connect(Parts, Read, Write, _) :-
 	memberchk(socket(Read, Write), Parts), !.
 connect(Parts, Read, Write, Options) :-
 	address(Parts, Address, Options),
-	with_mutex(http_client_connect, connect2(Address, Read, Write, Options)).
+	with_mutex(http_client_connect,
+		   connect2(Address, Read, Write, Options)).
 
 connect2(Address, In, Out, _) :-
 	thread_self(Self),
@@ -90,7 +91,7 @@ do_connect(Address, In, Out, Options) :-
 	), !.
 do_connect(Address, _, _, _) :-		% can this happen!?
 	throw(error(failed(connect, Address), _)).
-	
+
 
 disconnect(Parts) :-
 	address(Parts, Address, []), !,
@@ -111,7 +112,7 @@ close_socket(In, Out) :-
 	close(In,  [force(true)]).
 
 %%	http_disconnect(+Connections) is det.
-%	
+%
 %	Close down some connections. Currently Connections must have the
 %	value =all=, closing all connections.
 
@@ -122,7 +123,7 @@ http_disconnect(all) :-
 	    fail
 	;   true
 	).
-	
+
 address(_Parts, Host:Port, Options) :-
 	memberchk(proxy(Host, Port), Options), !.
 address(Parts, Host:Port, _Options) :-
@@ -138,7 +139,7 @@ port(Parts, 80) :-
 		 *	        GET		*
 		 *******************************/
 
-%%	http_get(+URL, -Data, +Options)
+%%	http_get(+URL, -Data, +Options) is det.
 %
 %	Get data from an HTTP server.
 
@@ -218,7 +219,7 @@ http_read_reply(In, _Data, _Options) :-
 %%			  +Host, +Options, -RestOptions) is det.
 %
 %	Write the request header.  It accepts the following options:
-%	
+%
 %		* http_version(Major-Minor)
 %		* connection(Connection)
 %		* user_agent(Agent)
@@ -250,11 +251,11 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 
 
 %%	x_headers(+Options, +Out, -RestOptions) is det.
-%	
+%
 %	Pass additional request options.  For example:
-%	
+%
 %		request_header('Accept-Language' = 'nl, en')
-%		
+%
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
 
@@ -262,7 +263,18 @@ x_headers(Options0, Out, Options) :-
 	select(request_header(Name=Value), Options0, Options1), !,
 	format(Out, '~w: ~w\r\n', [Name, Value]),
 	x_headers(Options1, Out, Options).
+x_headers(Options0, Out, Options) :-
+	select(proxy_authorization(ProxyAuthorization), Options0, Options1), !,
+	proxy_auth_header(ProxyAuthorization, Out),
+	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
+
+proxy_auth_header(basic(User, Password), Out) :- !,
+	format(codes(Codes), '~w:~w', [User, Password]),
+	phrase(base64(Codes), Base64Codes),
+	format(Out, 'Proxy-Authorization: basic ~s\r\n', [Base64Codes]).
+proxy_auth_header(Auth, _) :-
+	domain_error(authorization, Auth).
 
 %%	http_read_data(+Fields, -Data, +Options) is det.
 %
@@ -385,7 +397,7 @@ write_post_header(Out, Location, Host, In, Options) :-
 	http_write_header(Out, 'POST', Location, Host, Options, DataOptions),
 	http_post_data(In, Out, DataOptions),
 	flush_output(Out).
-	
+
 post_option(connection(_)).
 post_option(http_version(_)).
 post_option(cache_control(_)).

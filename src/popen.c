@@ -61,7 +61,7 @@ DWORD RunSilent(const char* strCommand)
 	char *pEnvCMD = NULL;
 	char *pDefaultCMD = "CMD.EXE";
 	ULONG rc;
-	
+
 	memset(&StartupInfo, 0, sizeof(StartupInfo));
 	StartupInfo.cb = sizeof(STARTUPINFO);
 	StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
@@ -71,25 +71,25 @@ DWORD RunSilent(const char* strCommand)
 
 	pEnvCMD = getenv("COMSPEC");
 
-	if(pEnvCMD){		
+	if(pEnvCMD){
 		strcpy(Args, pEnvCMD);
 	} else{
 		strcpy(Args, pDefaultCMD);
 	}
 
 	/* "/c" option - Do the command then terminate the command window */
-	strcat(Args, " /c "); 
+	strcat(Args, " /c ");
 	/*the application you would like to run from the command window */
-	strcat(Args, strCommand);  
+	strcat(Args, strCommand);
 
 	if (!CreateProcess( NULL, Args, NULL, NULL, FALSE,
-		CREATE_NEW_CONSOLE, 
-		NULL, 
+		CREATE_NEW_CONSOLE,
+		NULL,
 		NULL,
 		&StartupInfo,
 		&ProcessInfo))
 	{
-		return GetLastError();		
+		return GetLastError();
 	}
 
 	WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
@@ -100,7 +100,7 @@ DWORD RunSilent(const char* strCommand)
 	CloseHandle(ProcessInfo.hProcess);
 
 	return rc;
-	
+
 }
 
 /*------------------------------------------------------------------------------
@@ -271,15 +271,15 @@ pt_popen(const char *cmd, const char *mode)
   siStartInfo.dwFlags      = STARTF_USESTDHANDLES;
 
   success = CreateProcessW(NULL,
-			   wcmd,	// command line 
-			   NULL,	// process security attributes 
-			   NULL,	// primary thread security attributes 
-			   TRUE,	// handles are inherited 
+			   wcmd,	// command line
+			   NULL,	// process security attributes
+			   NULL,	// primary thread security attributes
+			   TRUE,	// handles are inherited
 			   CREATE_NO_WINDOW,  // creation flags: without window (?)
-			   NULL,	// use parent's environment 
-			   NULL,	// use parent's current directory 
-			   &siStartInfo, // STARTUPINFO pointer 
-			   &piProcInfo); // receives PROCESS_INFORMATION 
+			   NULL,	// use parent's environment
+			   NULL,	// use parent's current directory
+			   &siStartInfo, // STARTUPINFO pointer
+			   &piProcInfo); // receives PROCESS_INFORMATION
 
   if ( !success )
     goto finito;

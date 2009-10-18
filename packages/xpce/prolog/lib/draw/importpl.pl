@@ -81,7 +81,7 @@ draw([compound(Term, Contents, Point)|T], Device) :-
 	send(Device, display, SubDev, Point),
 	draw(T, Device).
 
-	
+
 term_to_object(Term+Attribute, Object) :- !,
 	term_to_object(Term, Object),
 	Attribute =.. [Selector|PlArgs],
@@ -129,7 +129,7 @@ make_link(FH, TH, Link) :-
 	    send(Link, lock_object, @on),
 	    asserta(link_store(FName, TName, Link))
 	).
-	
+
 
 handle_kind(handle(_X, _Y, Kind, _Name), Kind).
 

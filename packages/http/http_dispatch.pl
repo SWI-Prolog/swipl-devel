@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2008, University of Amsterdam
+    Copyright (C): 2007-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,7 +32,9 @@
 	    http_handler/3,		% +Path, +Predicate, +Options
 	    http_delete_handler/1,	% +Path
 	    http_reply_file/3,		% +File, +Options, +Request
+	    http_redirect/3,		% +How, +Path, +Request
 	    http_current_handler/2,	% ?Path, ?Pred
+	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2	% +ID, -Location
 	  ]).
 :- use_module(library(option)).
@@ -64,58 +66,45 @@ server(Port, Options) :-
 write_index(Request) :-
 	...
 ==
-
-@author	Jan Wielemaker
 */
 
 :- setting(http:time_limit, nonneg, 300,
 	   'Time limit handling a single query (0=infinite)').
 
-%%	http_handler(+Path, :Pred, +Options) is det.
+%%	http_handler(+Path, :Closure, +Options) is det.
 %
-%	Register Pred as  a  handler  for   HTTP  requests.  Path  is is
-%	specification as provided by  http_path.pl.   Pred  is either an
-%	atom or one of the following reserved terms:
-%	
-%		* reply_file(+File, +FileOptions)
-%		Reply contents of File using the given options.
-%		FileOptions include:
-%			
-%			* mime_type(+Type)
-%			Mime-type specified with File.
-%			
-%			* cache(+Boolean)
-%			If =false=, do not pass and process
-%			last_modification time.
-%
+%	Register Closure as a handler for HTTP requests. Path is a
+%	specification as provided by http_path.pl.  If an HTTP
+%	request arrives at the server that matches Path, Closure
+%	is called with one extra argument: the parsed HTTP request.
 %	Options is a list containing the following options:
-%	
+%
 %		* authentication(+Type)
 %		Demand authentication.  Authentication methods are
 %		pluggable.  The library http_authenticate.pl provides
 %		a plugin for user/password based =Basic= HTTP
 %		authentication.
-%		
+%
 %		* chunked
 %		Use =|Transfer-encoding: chunked|= if the client
 %		allows for it.
-%		
+%
 %		* id(+Term)
 %		Identifier of the handler.  The default identifier is
 %		the predicate name.  Used by http_location_by_id/2.
-%		
+%
 %		* priority(+Integer)
 %		If two handlers handle the same path, the one with the
 %		highest priority is used.  If equal, the last registered
 %		is used.  Please be aware that the order of clauses in
 %		multifile predicates can change due to reloading files.
 %		The default priority is 0 (zero).
-%		
+%
 %		* prefix
 %		Call Pred on any location that is a specialisation of
 %		Path.  If multiple handlers match, the one with the
 %		longest path is used.
-%		
+%
 %		* spawn(+SpawnOptions)
 %		Run the handler in a seperate thread.  If SpawnOptions
 %		is an atom, it is interpreted as a thread pool name
@@ -123,16 +112,26 @@ write_index(Request) :-
 %		are passed to http_spawn/2 and from there to
 %		thread_create/3.  These options are typically used to
 %		set the stack limits.
-%		
+%
 %		* time_limit(+Spec)
 %		One of =infinite=, =default= or a positive number
 %		(seconds)
-%		
+%
+%		* content_type(+Term)
+%		Specifies the content-type of the reply.  This value is
+%		currently not used by this library.  It enhances the
+%		reflexive capabilities of this library through
+%		http_current_handler/3.
+%
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
 %	proper update through make/0 when the specification is modified.
 %	We do not expand when the  cross-referencer is running to ensure
 %	proper handling of the meta-call.
+%
+%	@error	existence_error(http_location, Location)
+%	@see    http_reply_file/3 and http_redirect/3 are generic
+%		handlers to serve files and achieve redirects.
 
 :- dynamic handler/4.			% Path, Action, IsPrefix, Options
 :- multifile handler/4.
@@ -140,7 +139,8 @@ write_index(Request) :-
 
 :- meta_predicate
 	http_handler(+, :, +),
-	http_current_handler(?, :).
+	http_current_handler(?, :),
+	http_current_handler(?, :, ?).
 
 http_handler(Path, Pred, Options) :-
 	strip_module(Pred, M, P),
@@ -149,9 +149,9 @@ http_handler(Path, Pred, Options) :-
 	assert(Clause).
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
+system:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
 	\+ current_prolog_flag(xref, true),
 	prolog_load_context(module, M),
 	compile_handler(Path, M:Pred, Options, Clause),
@@ -189,25 +189,78 @@ current_generation(G) :-
 current_generation(0).
 
 
-%%	compile_handler(+Path, +Pred, +Options) is det.
+%%	compile_handler(+Path, :Pred, +Options) is det.
 %
 %	Compile a handler specification. For now we this is a no-op, but
 %	in the feature can make this more efficiently, especially in the
 %	presence of one or multiple prefix declarations. We can also use
 %	this to detect conflicts.
 
-compile_handler(prefix(Path), PredSpec, Options,
-		http_dispatch:handler(Path, M:Pred, true, Options)) :- !,
-	print_message(warning, http_dispatch(prefix(Path))),
-	strip_module(PredSpec, M, Pred).
-compile_handler(Path, PredSpec, Options0,
-		http_dispatch:handler(Path, M:Pred, IsPrefix, Options)) :-
-	strip_module(PredSpec, M, Pred),
+compile_handler(prefix(Path), Pred, Options,
+		http_dispatch:handler(Path, Pred, true, Options)) :- !,
+	check_path(Path, Path1),
+	print_message(warning, http_dispatch(prefix(Path1))).
+compile_handler(Path, Pred, Options0,
+		http_dispatch:handler(Path1, Pred, IsPrefix, Options)) :-
+	check_path(Path, Path1),
 	(   select(prefix, Options0, Options)
 	->  IsPrefix = true
 	;   IsPrefix = false,
 	    Options = Options0
 	).
+
+%%	check_path(+PathSpecIn, -PathSpecOut) is det.
+%
+%	Validate the given path specification.  We want one of
+%
+%		* AbsoluteLocation
+%		* Alias(Relative)
+%
+%	Similar  to  absolute_file_name/3,  Relative  can    be  a  term
+%	_|Component/Component/...|_
+%
+%	@error	domain_error, type_error
+%	@see	http_absolute_location/3
+
+check_path(Path, Path) :-
+	atom(Path), !,
+	(   sub_atom(Path, 0, _, _, /)
+	->  true
+	;   domain_error(absolute_http_location, Path)
+	).
+check_path(Alias, AliasOut) :-
+	compound(Alias),
+	Alias =.. [Name, Relative], !,
+	to_atom(Relative, Local),
+	(   sub_atom(Local, 0, _, _, /)
+	->  domain_error(relative_location, Relative)
+	;   AliasOut =.. [Name, Local]
+	).
+check_path(PathSpec, _) :-
+	type_error(path_or_alias, PathSpec).
+
+to_atom(Atom, Atom) :-
+	atom(Atom), !.
+to_atom(Path, Atom) :-
+	phrase(path_to_list(Path), Components), !,
+	atomic_list_concat(Components, '/', Atom).
+to_atom(Path, _) :-
+	ground(Path), !,
+	type_error(relative_location, Path).
+to_atom(Path, _) :-
+	instantiation_error(Path).
+
+path_to_list(Var) -->
+	{ var(Var), !,
+	  fail
+	}.
+path_to_list(A/B) -->
+	path_to_list(A),
+	path_to_list(B).
+path_to_list(Atom) -->
+	{ atom(Atom) },
+	[Atom].
+
 
 
 %%	http_dispatch(Request) is det.
@@ -222,8 +275,8 @@ http_dispatch(Request) :-
 	action(Pred, AuthRequest, Options).
 
 
-%%	http_current_handler(+Location, -Closure) is semidet.
-%%	http_current_handler(-Location, +Closure) is nondet.
+%%	http_current_handler(+Location, :Closure) is semidet.
+%%	http_current_handler(-Location, :Closure) is nondet.
 %
 %	True if Location is handled by Closure.
 
@@ -231,13 +284,24 @@ http_current_handler(Path, Closure) :-
 	atom(Path), !,
 	path_tree(Tree),
 	find_handler(Tree, Path, Closure, _).
-http_current_handler(Path, M:C) :- !,
+http_current_handler(Path, M:C) :-
 	handler(Spec, M:C, _, _),
 	http_absolute_location(Spec, Path, []).
-http_current_handler(Path, Closure) :-
-	strip_module(Closure, M, C),
+
+%%	http_current_handler(+Location, :Closure, -Options) is semidet.
+%%	http_current_handler(?Location, :Closure, ?Options) is nondet.
+%
+%	Resolve the current handler and options to execute it.
+
+http_current_handler(Path, Closure, Options) :-
+	atom(Path), !,
+	path_tree(Tree),
+	find_handler(Tree, Path, Closure, Options).
+http_current_handler(Path, M:C, Options) :-
 	handler(Spec, M:C, _, _),
-	http_absolute_location(Spec, Path, []).
+	http_absolute_location(Spec, Path, []),
+	path_tree(Tree),
+	find_handler(Tree, Path, _, Options).
 
 
 %%	http_location_by_id(+ID, -Location) is det.
@@ -246,7 +310,7 @@ http_current_handler(Path, Closure) :-
 %	setting/2)  http:prefix  is  active,  Location  is  the  handler
 %	location prefixed with the prefix setting.   Handler  IDs can be
 %	specified in two ways:
-%	
+%
 %	    * id(ID)
 %	    If this appears in the option list of the handler, this
 %	    it is used and takes preference over using the predicate.
@@ -332,7 +396,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 %	done by the multifile   predicate  http_dispatch:authenticate/3.
 %	The  library  http_authenticate.pl  provides  an  implementation
 %	thereof.
-%	
+%
 %	@error	permission_error(http_location, access, Location)
 
 :- multifile
@@ -353,15 +417,15 @@ authentication([_|Options], Request, Fields) :-
 %%	find_handler(+Path, -Action, -Options) is det.
 %
 %	Find the handler to call from Path.  Rules:
-%	
+%
 %		* If there is a matching handler, use this.
 %		* If there are multiple prefix(Path) handlers, use the
 %		  longest.
-%		  
+%
 %	If there is a handler for =|/dir/|=   and  the requested path is
 %	=|/dir|=, find_handler/3 throws a  http_reply exception, causing
 %	the wrapper to generate a 301 (Moved Permanently) reply.
-%		  
+%
 %	@error	existence_error(http_location, Location)
 %	@throw	http_reply(moved(Dir))
 %	@tbd	Introduce automatic redirection to indexes here?
@@ -380,15 +444,21 @@ find_handler(Path, Action, Options) :-
 
 find_handler([node(prefix(Prefix), PAction, POptions, Children)|_],
 	     Path, Action, Options) :-
-	sub_atom(Path, 0, _, _, Prefix), !,
+	sub_atom(Path, 0, _, After, Prefix), !,
 	(   find_handler(Children, Path, Action, Options)
 	->  true
 	;   Action = PAction,
-	    Options = POptions
+	    path_info(After, Path, POptions, Options)
 	).
 find_handler([node(Path, Action, Options, _)|_], Path, Action, Options) :- !.
 find_handler([_|Tree], Path, Action, Options) :-
 	find_handler(Tree, Path, Action, Options).
+
+path_info(0, _, Options,
+	  [prefix(true)|Options]) :- !.
+path_info(After, Path, Options,
+	  [path_info(PathInfo),prefix(true)|Options]) :-
+	sub_atom(Path, _, After, 0, PathInfo).
 
 
 %%	action(+Action, +Request, +Options) is det.
@@ -437,32 +507,54 @@ time_limit_action(Action, Request, Options) :-
 
 call_action(reply_file(File, FileOptions), Request, _Options) :- !,
 	http_reply_file(File, FileOptions, Request).
+call_action(Pred, Request, Options) :-
+	memberchk(path_info(PathInfo), Options), !,
+	call_action(Pred, [path_info(PathInfo)|Request]).
 call_action(Pred, Request, _Options) :-
+	call_action(Pred, Request).
+
+call_action(Pred, Request) :-
 	(   call(Pred, Request)
 	->  true
-	;   Pred =.. List,
-	    append(List, [Request], List2),
-	    Goal =.. List2,
+	;   extend(Pred, [Request], Goal),
 	    throw(error(goal_failed(Goal), _))
 	).
 
+extend(Var, _, Var) :-
+	var(Var), !.
+extend(M:G0, Extra, M:G) :-
+	extend(G0, Extra, G).
+extend(G0, Extra, G) :-
+	G0 =.. List,
+	append(List, Extra, List2),
+	G =.. List2.
 
 %%	http_reply_file(+FileSpec, +Options, +Request) is det.
 %
 %	Options is a list of
-%	
+%
 %		* cache(+Boolean)
 %		If =true= (default), handle If-modified-since and send
 %		modification time.
-%		
+%
 %		* mime_type(+Type)
 %		Overrule mime-type guessing from the filename as
 %		provided by file_mime_type/2.
+%
+%		* unsafe(+Boolean)
+%		If =false= (default), validate that FileSpec does not
+%		contain references to parent directories.  E.g.,
+%		specifications such as =|www('../../etc/passwd')|= are
+%		not allowed.
+%
+%	If caching is not disabled,  it   processed  the request headers
+%	=|If-modified-since|= and =Range=.
 %
 %	@throws	http_reply(not_modified)
 %	@throws http_reply(file(MimeType, Path))
 
 http_reply_file(File, Options, Request) :-
+	check_file_safeness(File, Options),
 	absolute_file_name(File, Path,
 			   [ access(read)
 			   ]),
@@ -473,7 +565,10 @@ http_reply_file(File, Options, Request) :-
 	    ->  throw(http_reply(not_modified))
 	    ;	true
 	    ),
-	    Reply = file(Type, Path)
+	    (	memberchk(range(Range), Request)
+	    ->	Reply = file(Type, Path, Range)
+	    ;	Reply = file(Type, Path)
+	    )
 	;   Reply = tmp_file(Type, Path)
 	),
 	(   option(mime_type(Type), Options)
@@ -484,6 +579,75 @@ http_reply_file(File, Options, Request) :-
 	),
 	throw(http_reply(Reply)).
 
+%%	check_file_safeness(+FileSpec, +Options) is det.
+%
+%	True if FileSpec is considered _safe_.  If   it  is  an atom, it
+%	cannot  be  absolute  and  cannot   have  references  to  parent
+%	directories. If it is of the   form  alias(Sub), than Sub cannot
+%	have references to parent directories.
+%
+%	@error instantiation_error
+%	@error permission_error(read, file, FileSpec)
+
+check_file_safeness(File, _) :-
+	var(File), !,
+	instantiation_error(File).
+check_file_safeness(_, Options) :-
+	option(unsafe(true), Options, false), !.
+check_file_safeness(File, _) :-
+	check_file_safeness(File).
+
+check_file_safeness(File) :-
+	compound(File),
+	functor(File, _, 1), !,
+	arg(1, File, Name),
+	safe_name(Name, File).
+check_file_safeness(Name) :-
+	(   is_absolute_file_name(Name)
+	->  permission_error(read, file, Name)
+	;   true
+	),
+	safe_name(Name, Name).
+
+safe_name(Name, _) :-
+	must_be(atom, Name),
+	\+ unsafe_name(Name), !.
+safe_name(_, Spec) :-
+	permission_error(read, file, Spec).
+
+unsafe_name(Name) :- Name == '..'.
+unsafe_name(Name) :- sub_atom(Name, 0, _, _, '../').
+unsafe_name(Name) :- sub_atom(Name, _, _, _, '/../').
+unsafe_name(Name) :- sub_atom(Name, _, _, 0, '/..').
+
+
+%%	http_redirect(+How, +To, +Request) is det.
+%
+%	Redirect to a new  location.  The   argument  order,  using  the
+%	Request as last argument, allows for  calling this directly from
+%	the handler declaration:
+%
+%	    ==
+%	    :- http_handler(root(.),
+%			    http_redirect(moved, myapp('index.html')),
+%			    []).
+%	    ==
+%
+%	@param How is one of =moved=, =moved_temporary= or =see_also=
+%	@param To is an atom, a aliased path as defined by
+%	http_absolute_location/3. or a term location_by_id(Id). If To is
+%	not absolute, it is resolved relative to the current location.
+
+http_redirect(How, To, Request) :-
+	(   To = location_by_id(Id)
+	->  http_location_by_id(Id, URL)
+	;   memberchk(path(Base), Request),
+	    http_absolute_location(To, URL, [relative_to(Base)])
+	),
+	must_be(oneof([moved, moved_temporary, see_also]), How),
+	Term =.. [How,URL],
+	throw(http_reply(Term)).
+
 
 		 /*******************************
 		 *	  PATH COMPILATION	*
@@ -493,9 +657,9 @@ http_reply_file(File, Options, Request) :-
 %
 %	Compile paths into  a  tree.  The   treee  is  multi-rooted  and
 %	represented as a list of nodes, where each node has the form:
-%	
+%
 %		node(PathOrPrefix, Action, Options, Children)
-%		
+%
 %	The tree is a potentially complicated structure. It is cached in
 %	a global variable. Note that this   cache is per-thread, so each
 %	worker thread holds a copy of  the   tree.  If handler facts are
@@ -539,7 +703,7 @@ insert_prefix(Prefix, Tree, [Prefix-[]|Tree]).
 %%	prefix_options(+PrefixTree, +DefOptions, -OptionTree)
 %
 %	Generate the option-tree for all prefix declarations.
-%	
+%
 %	@tbd	What to do if there are more?
 
 prefix_options([], _, []).
@@ -556,7 +720,7 @@ prefix_options([P-C|T0], DefOptions,
 %	Add the plain paths.
 
 add_paths_tree(OPTree, Tree) :-
-	findall(path(Path, Action, Options), 
+	findall(path(Path, Action, Options),
 		plain_path(Path, Action, Options),
 		Triples),
 	add_paths_tree(Triples, OPTree, Tree).
@@ -641,6 +805,7 @@ prolog:meta_goal(http_current_handler(_, G), [G+1]).
 
 prolog_edit:locate(Path, Spec, Location) :-
 	atom(Path),
+	Pred = _M:_H,
 	http_current_handler(Path, Pred),
 	closure_name_arity(Pred, 1, PI),
 	prolog_edit:locate(PI, Spec, Location).

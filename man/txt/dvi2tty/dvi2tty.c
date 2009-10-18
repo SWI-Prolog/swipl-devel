@@ -17,7 +17,7 @@
  *               Version 3.2.
  * Marcel Mol: 1989-01-19  (UUCP: duteca!marcel)
  *               Changed in option handling, no change
- *               in user interface (only the undocumented 
+ *               in user interface (only the undocumented
  *               feature -e).
  *               Version 3.1.
  * Marcel Mol: 1989-01-11  (UUCP: duteca!marcel)
@@ -49,7 +49,7 @@
  *               80. Wider lines gives better results.
  *      -q       Don't try to pipe to a pager.
  *      -f       Try to pipe to a pager if output is a tty.
- *      -Fname   Specify a pager program.                  
+ *      -Fname   Specify a pager program.
  *               Default of -q and -f is a compile time option, a constant.
  *      -l       Write '^L' instead of formfeed between pages.
  *      -u       Don't try to find Scandinavian characters (they will

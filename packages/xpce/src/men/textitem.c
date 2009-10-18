@@ -110,7 +110,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
 			  ti->label_format, NAME_top,
 			  ti->active == ON ? 0 : LABEL_INACTIVE);
   }
-      
+
   tx = x+lw;
   ty = y+am-av;
   tw = valInt(vt->area->w);
@@ -125,15 +125,15 @@ RedrawAreaTextItem(TextItem ti, Area a)
     { if ( z && notNil(z) )
       { int zh = abs(valInt(z->height));
 	int ly = y+am+zh+valInt(getDescentFont(vt->font));
-  
+
 	r_3d_line(x+lw, ly, x+lw+tw, ly, z, TRUE);
       } else if ( ti->pen != ZERO )
       { int pen = valInt(ti->pen);
 	int ly = y+am+1+pen/2;
-      
+
 	r_dash(ti->texture);
 	r_thickness(valInt(ti->pen));
-  
+
 	r_line(x+lw, ly, x+lw+tw, ly);
       }
     }
@@ -142,10 +142,10 @@ RedrawAreaTextItem(TextItem ti, Area a)
       int trw = 9;
       int trx, try;
       int up = (flags & TEXTFIELD_COMBO) ? TRUE : FALSE;
-  
+
       trx = tx+tw+5;
       try = y + (h-trh)/2;
-  
+
       r_3d_triangle(trx+trw/2, try+trh, trx, try, trx+trw, try, z, up, 0x3);
     }
     if ( flags & TEXTFIELD_STEPPER )
@@ -187,7 +187,7 @@ updateShowCaretTextItem(TextItem ti)
   { PceWindow sw = getWindowGraphical((Graphical)ti);
     int active = (sw && sw->input_focus == ON);
 
-    showCaretText(ti->value_text, active ? (Any)ON : (Any)NAME_passive);  
+    showCaretText(ti->value_text, active ? (Any)ON : (Any)NAME_passive);
   } else
     showCaretText(ti->value_text, OFF);
 
@@ -285,7 +285,7 @@ computeTextItem(TextItem ti)
     am = max(al, av);
     assign(vt->area, x, toInt(lw));
     assign(vt->area, y, toInt(am-av));
-    
+
     h = max(lh, valInt(vt->area->h));
     w = lw + valInt(vt->area->w) + cwb;
 
@@ -320,7 +320,7 @@ getReferenceTextItem(TextItem ti)
 
     ref = answerObject(ClassPoint, ZERO, toInt(ry), EAV);
   }
-  
+
   answer(ref);
 }
 
@@ -381,7 +381,7 @@ CompletionBrowser()
 
   return Completer;
 }
-				       
+
 
 status
 completerShownDialogItem(Any di)
@@ -611,13 +611,13 @@ completions(TextItem ti, CharArray prefix, Bool all,
       { *dirp  = NIL;
 	*filep = split;
       }
-  
+
       *filesp = files;
-  
+
       succeed;
     }
   }
-    
+
   fail;
 }
 
@@ -636,7 +636,7 @@ completeTextItem(TextItem ti, EventId id)
     { Tuple t;
       int dirmode;
       Bool ignore_case = getClassVariableValueObject(ti, NAME_searchIgnoreCase);
-      
+
       if ( !(dirmode = notNil(dir)) )
 	dir = (CharArray)NAME_;
 
@@ -836,11 +836,11 @@ getIncDecTextItem(TextItem ti, EventObj ev)
   { Int X, Y;
     int x, y;
     int r = valInt(ti->area->w);
-    
+
     get_xy_event(ev, ti, OFF, &X, &Y);
     x = valInt(X);
     y = valInt(Y);
-      
+
     if ( x >= r - text_item_combo_width(ti) && x < r &&
 	 y >= 0 && y <= valInt(ti->area->h) )
     { if ( y < valInt(ti->area->h)/2 )
@@ -849,7 +849,7 @@ getIncDecTextItem(TextItem ti, EventObj ev)
 	answer(NAME_decrement);
     }
   }
-    
+
   fail;
 }
 
@@ -877,7 +877,7 @@ detachTimerTextItem(TextItem ti)
   { freeObject(t);
     deleteAttributeObject(ti, NAME_Timer);
   }
-  
+
   succeed;
 }
 
@@ -949,7 +949,7 @@ eventTextItem(TextItem ti, EventObj ev)
 	f = getFunctionKeyBinding(lb->key_binding, ev);
 	if ( f == NAME_backwardDeleteChar )
 	{ Int autohide = getAttributeObject(lb->device, NAME_autoHide);
-	
+
 	  if ( autohide != ZERO )
 	  { StringObj ss = lb->search_string;
 	    if ( isNil(ss) || valInt(autohide) > valInt(getSizeCharArray(ss)) )
@@ -961,8 +961,8 @@ eventTextItem(TextItem ti, EventObj ev)
       }
 
       return send(ti, NAME_typed, ev, EAV);
-    }	 
-    
+    }
+
     if ( forwardCompletionEvent(ev) )
       succeed;
 
@@ -997,7 +997,7 @@ eventTextItem(TextItem ti, EventObj ev)
       int wasactive = (ti->status == NAME_active);
 
       send(ti, NAME_keyboardFocus, ON, EAV);
-      
+
       if ( (cbw = text_item_combo_width(ti)) > 0 &&
 	   ti->editable == ON )
       { Int X, Y;
@@ -1032,7 +1032,7 @@ eventTextItem(TextItem ti, EventObj ev)
       return alertGraphical((Graphical) ti);
   } else if ( isAEvent(ev, NAME_msLeftDrag) )
   { Int here = getPointedTextItem(ti, getPositionEvent(ev, ti));
-    
+
     if ( here )
     { send(ti->value_text, NAME_selection, origin, here, EAV);
       send(ti, NAME_caret, here, EAV);
@@ -1269,12 +1269,12 @@ getSelectionTextItem(TextItem ti)
 static status
 clearTextItem(TextItem ti)
 { int modified = (getSizeCharArray(ti->value_text->string) != ZERO);
-  
+
   stringText(ti->value_text, (CharArray) NAME_);
 /*valueString(ti->print_name, (CharArray) NAME_); must indicate as modified!*/
   if ( modified && hasSendMethodObject(ti->device, NAME_modifiedItem) )
     send(ti->device, NAME_modifiedItem, ti, ON, EAV);
-  
+
   quitCompleterDialogItem(ti);
   return requestComputeGraphical(ti, DEFAULT);
 }
@@ -1304,7 +1304,7 @@ selectionTextItem(TextItem ti, Any selection)
 static status
 resetTextItem(TextItem ti)
 { quitCompleterDialogItem(ti);
-    
+
   if ( !equalCharArray((CharArray)ti->value_text->string,
 		       (CharArray)ti->print_name, OFF) )
   { stringText(ti->value_text, (CharArray) ti->print_name);
@@ -1459,7 +1459,7 @@ catchAllTextItem(TextItem ti, Name sel, int argc, Any *argv)
 
     if ( rval )
     { Bool new;
-    
+
       requestComputeGraphical(ti, DEFAULT);
       if ( (new = getModifiedTextItem(ti)) != old &&
 	   hasSendMethodObject(ti->device, NAME_modifiedItem) )
@@ -1483,7 +1483,7 @@ getCatchAllTextItem(TextItem t, Name sel, int argc, Any *argv)
 
   errorPce(t, NAME_noBehaviour, CtoName("<-"), sel);
   fail;
-} 
+}
 
 static status
 hasSendMethodTextItem(TextItem t, Name sel)

@@ -49,7 +49,8 @@ section(_,_,_,_).
 :- endif.
 
 :- multifile
-	prolog:help_hook/1.		% Generic help hook.
+	prolog:help_hook/1,		% Generic help hook.
+	prolog:show_help_hook/2.	% +Title, +TmpFile
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module  defines the  online  help  facility of   SWI-Prolog.   It
@@ -127,11 +128,12 @@ write_ranges_to_file(Ranges, Outfile) :-
 	close(Output).
 
 show_help(Title, Ranges) :-
-	current_predicate(_, show_help_hook(_,_)),
+	predicate_property(prolog:show_help_hook(_,_), number_of_clauses(N)),
+	N > 0,
 	write_ranges_to_file(Ranges, TmpFile),
-	user:show_help_hook(Title, TmpFile).
+	prolog:show_help_hook(Title, TmpFile).
 show_help(_, Ranges) :-
-	clause(running_under_emacs_interface, _), 
+	clause(running_under_emacs_interface, _),
 	running_under_emacs_interface, !,
 	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
@@ -215,7 +217,7 @@ set_overstrike_feature :-
 	set_prolog_flag(write_help_with_overstrike, true).
 set_overstrike_feature :-
 	set_prolog_flag(write_help_with_overstrike, false).
-	
+
 :- initialization set_overstrike_feature.
 
 %%	line_start(Line, Start) is det.

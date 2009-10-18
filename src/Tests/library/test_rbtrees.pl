@@ -121,13 +121,13 @@ pretty_print(black(L,K,_,R),D) :-
 
 time(What, Goal) :-
 	debugging(time), !,
-	statistics(cputime, OldTime), 
-	statistics(inferences, OldInferences), 
+	statistics(cputime, OldTime),
+	statistics(inferences, OldInferences),
 	Goal,
-	statistics(inferences, NewInferences), 
+	statistics(inferences, NewInferences),
 	statistics(cputime, NewTime),
-	UsedTime is NewTime - OldTime, 
-	UsedInf  is NewInferences - OldInferences - 3, 
+	UsedTime is NewTime - OldTime,
+	UsedInf  is NewInferences - OldInferences - 3,
 	format('~t~w~15|: ~D inferences in ~2f secs~n',
 	       [What, UsedInf, UsedTime]).
 time(_, Goal) :-

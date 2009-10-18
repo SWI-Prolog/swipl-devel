@@ -30,7 +30,7 @@
    send(@pce, catch_error_signals, @on),
    concat('SWI-Prolog version ', PlVersion, PlId),
    send(@prolog, system, PlId).
-   
+
 
 		/********************************
 		*           SET PCE HOME	*

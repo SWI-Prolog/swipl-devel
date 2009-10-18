@@ -31,6 +31,7 @@
 
 :- module((record),
 	  [ (record)/1,			% +Record
+	    current_record/2,		% ?Name, ?Term
 	    op(1150, fx, record)
 	  ]).
 :- use_module(library(error)).
@@ -57,17 +58,24 @@ _directive_.  Here is a simple example declaration and some calls.
 @author Richard O'Keefe
 */
 
+:- multifile
+	error:has_type/2.
+
+error:has_type(record(M:Name), X) :-
+	current_record(Name, M, _, X, IsX), !,
+	call(M:IsX).
+
 %%	record(+RecordDef)
 %
 %	Define access predicates for a compound-term. RecordDef is of
 %	the form <constructor>(<argument>, ...), where each argument
 %	is of the form:
-%	
+%
 %	  * <name>[:<type>][=<default>]
 %
 %	Used a directive, =|:- record Constructor(Arg, ...)|= is expanded
 %	info the following predicates:
-%	
+%
 %	  * <constructor>_<name>(Record, Value)
 %	  * default_<constructor>(-Record)
 %	  * is_<constructor>(@Term)
@@ -79,6 +87,7 @@ _directive_.  Here is a simple example declaration and some calls.
 %	  * set_<constructor>_fields(+Fields, +Record0, -Record).
 %	  * set_<constructor>_fields(+Fields, +Record0, -Record, -RestFields).
 %	  * set_<constructor>_field(+Field, +Record0, -Record).
+%	  * user:current_record(:<constructor>)
 
 record(Record) :-
 	throw(error(context_error(nodirective, record(Record)), _)).
@@ -94,7 +103,7 @@ compile_records(Spec, Clauses) :-
 
 compile_records(Var) -->
 	{ var(Var), !,
-	  type_error(record_declaration, Var)
+	  instantiation_error(Var)
 	}.
 compile_records((A,B)) -->
 	compile_record(A),
@@ -120,25 +129,49 @@ compile_record(RecordDef) -->
 	set_predicates(Names, 1, Arity, Types, Constructor),
 	set_field_predicates(Names, 1, Arity, Types, Constructor),
 	make_predicate(Constructor),
-	is_predicate(Constructor, Types).
-	
+	is_predicate(Constructor, Types),
+	current_clause(RecordDef).
+
+:- meta_predicate
+	current_record(:).
+:- multifile
+	current_record/5.		% Name, Module, Term, X, IsX
+
+%%	current_record(?Name, :Term)
+%
+%	True if Name is the  name  of   a  record  defined in the module
+%	associated with Term  and  Term   is  the  user-provided  record
+%	declaration.
+
+current_record(Name, M:Term) :-
+	current_record(Name, M, Term, _, _).
+
+current_clause(RecordDef) -->
+	{ prolog_load_context(module, M),
+	  functor(RecordDef, Name, _),
+	  atom_concat(is_, Name, IsName),
+	  IsX =.. [IsName, X]
+	},
+	[ (record):current_record(Name, M, RecordDef, X, IsX)
+	].
+
 
 %%	make_predicate(+Constructor)// is det.
 %
 %	Creates the make_<constructor>(+Fields, -Record) predicate. This
 %	looks like this:
-%	
+%
 %	==
 %	make_<constructor>(Fields, Record) :-
 %		make_<constructor>(Fields, Record, [])
-%		
+%
 %	make_<constructor>(Fields, Record, RestFields) :-
 %		default_<constructor>(Record0),
 %		set_<constructor>_fields(Fields, Record0, Record, RestFields).
-%		
+%
 %	set_<constructor>_fields(Fields, Record0, Record) :-
 %		set_<constructor>_fields(Fields, Record0, Record, []).
-%		
+%
 %	set_<constructor>_fields([], Record, Record, []).
 %	set_<constructor>_fields([H|T], Record0, Record, RestFields) :-
 %		(   set_<constructor>_field(H, Record0, Record1)
@@ -146,16 +179,16 @@ compile_record(RecordDef) -->
 %		;   RestFields = [H|RF],
 %		    set_<constructor>_fields(T, Record0, Record, RF)
 %		).
-%		
+%
 %	set_<constructor>_field(<name1>(Value), Record0, Record).
 %	...
 %	==
 
 make_predicate(Constructor) -->
-	{ concat_atom([make_, Constructor], MakePredName),
-	  concat_atom([default_, Constructor], DefPredName),
-	  concat_atom([set_, Constructor, '_fields'], SetFieldsName),
-	  concat_atom([set_, Constructor, '_field'], SetFieldName),
+	{ atomic_list_concat([make_, Constructor], MakePredName),
+	  atomic_list_concat([default_, Constructor], DefPredName),
+	  atomic_list_concat([set_, Constructor, '_fields'], SetFieldsName),
+	  atomic_list_concat([set_, Constructor, '_field'], SetFieldName),
 	  MakeHead3 =.. [MakePredName, Fields, Record],
 	  MakeHead4 =.. [MakePredName, Fields, Record, []],
 	  MakeClause3 = (MakeHead3 :- MakeHead4),
@@ -192,7 +225,7 @@ is_predicate(Constructor, Types) -->
 	->  [ Head2 ]
 	;   [ (Head2 :- Body) ]
 	).
-	      
+
 type_checks([], [], true).
 type_checks([any|T], [_|Vars], Body) :-
 	type_checks(T, Vars, Body).
@@ -205,11 +238,25 @@ type_checks([Type|T], [V|Vars], (Goal, Body)) :-
 %	Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
-	Type \= list(_),
-	clause(error:has_type(Type, Var), Body), !.
-type_goal(Type, Var, is_of_type(Type, Var)).
+	defined_type(Type, Var, Body), !.
+type_goal(record(Record), Var, Body) :- !,
+	atom_concat(is_, Record, Pred),
+	Body =.. [Pred,Var].
+type_goal(Record, Var, Body) :-
+	atom(Record), !,
+	atom_concat(is_, Record, Pred),
+	Body =.. [Pred,Var].
+type_goal(Type, _, _) :-
+	domain_error(type, Type).
+
+defined_type(Type, Var, error:Body) :-
+	clause(error:has_type(Type, Var), Body).
 
 
+clean_body(M:(A0,B0), G) :- !,
+	clean_body(M:A0, A),
+	clean_body(M:B0, B),
+	clean_body((A,B), G).
 clean_body((A0,true), A) :- !,
 	clean_body(A0, A).
 clean_body((true,A0), A) :- !,
@@ -229,7 +276,7 @@ clean_body(A, A).
 access_predicates([], _, _, _) -->
 	[].
 access_predicates([Name|NT], I, Arity, Constructor) -->
-	{ concat_atom([Constructor, '_', Name], PredName),
+	{ atomic_list_concat([Constructor, '_', Name], PredName),
 	  functor(Record, Constructor, Arity),
 	  arg(I, Record, Value),
 	  Clause =.. [PredName, Record, Value],
@@ -237,7 +284,7 @@ access_predicates([Name|NT], I, Arity, Constructor) -->
 	},
 	[Clause],
 	access_predicates(NT, I2, Arity, Constructor).
-	
+
 
 %%	set_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
 %
@@ -249,8 +296,8 @@ access_predicates([Name|NT], I, Arity, Constructor) -->
 set_predicates([], _, _, _, _) -->
 	[].
 set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
-	{ concat_atom(['set_', Name, '_of_', Constructor], PredName),
-	  concat_atom(['nb_set_', Name, '_of_', Constructor], NBPredName),
+	{ atomic_list_concat(['set_', Name, '_of_', Constructor], PredName),
+	  atomic_list_concat(['nb_set_', Name, '_of_', Constructor], NBPredName),
 	  length(Args, Arity),
 	  replace_nth(I, Args, Value, NewArgs),
 	  Old =.. [Constructor|Args],
@@ -262,10 +309,11 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 	  ->  Clause = Head,
 	      SetClause = (SetHead :- setarg(I, Term, Value)),
 	      NBSetClause = (NBSetHead :- nb_setarg(I, Term, Value))
-	  ;   Clause = (Head :- must_be(Type, Value)),
-	      SetClause = (SetHead :- must_be(Type, Value),
+	  ;   type_check(Type, Value, MustBe),
+	      Clause = (Head :- MustBe),
+	      SetClause = (SetHead :- MustBe,
 				      setarg(I, Term, Value)),
-	      NBSetClause = (NBSetHead :- must_be(Type, Value),
+	      NBSetClause = (NBSetHead :- MustBe,
 				          nb_setarg(I, Term, Value))
 	  ),
 	  I2 is I + 1
@@ -273,17 +321,26 @@ set_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 	[ Clause, SetClause, NBSetClause ],
 	set_predicates(NT, I2, Arity, TT, Constructor).
 
+type_check(Type, Value, must_be(Type, Value)) :-
+	defined_type(Type, Value, _), !.
+type_check(record(Spec), Value, must_be(record(M:Name), Value)) :- !,
+	prolog_load_context(module, C),
+	strip_module(C:Spec, M, Name).
+type_check(Atom, Value, Check) :-
+	atom(Atom), !,
+	type_check(record(Atom), Value, Check).
+
 
 %%	set_field_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
 %
 %	Create the clauses
-%	
+%
 %		* set_<constructor>_field(<name>(Value), Old, New)
 
 set_field_predicates([], _, _, _, _) -->
 	[].
 set_field_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
-	{ concat_atom(['set_', Constructor, '_field'], FieldPredName),
+	{ atomic_list_concat(['set_', Constructor, '_field'], FieldPredName),
 	  length(Args, Arity),
 	  replace_nth(I, Args, Value, NewArgs),
 	  Old =.. [Constructor|Args],
@@ -292,7 +349,8 @@ set_field_predicates([Name|NT], I, Arity, [Type|TT], Constructor) -->
 	  SetFieldHead =.. [FieldPredName, NameTerm, Old, New],
 	  (   Type == any
 	  ->  SetField = SetFieldHead
-	  ;   SetField = (SetFieldHead :- must_be(Type, Value))
+	  ;   type_check(Type, Value, MustBe),
+	      SetField = (SetFieldHead :- MustBe)
 	  ),
 	  I2 is I + 1
 	},
@@ -319,7 +377,7 @@ defaults([Arg=Default|T0], [Default|TD], [Arg|TA]) :- !,
 	defaults(T0, TD, TA).
 defaults([Arg|T0], [_|TD], [Arg|TA]) :-
 	defaults(T0, TD, TA).
-	
+
 
 %%	types(+ArgsSpecs, -Defaults, -Args)
 %
@@ -332,16 +390,16 @@ types([Name:Type|T0], [Name|TN], [Type|TT]) :- !,
 types([Name|T0], [Name|TN], [any|TT]) :-
 	must_be(atom, Name),
 	types(T0, TN, TT).
-	
+
 
 		 /*******************************
 		 *	      EXPANSION		*
 		 *******************************/
 
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- dynamic
-	user:term_expansion/2.
+	system:term_expansion/2.
 
-user:term_expansion((:- record(Record)), Clauses) :-
+system:term_expansion((:- record(Record)), Clauses) :-
 	compile_records(Record, Clauses).

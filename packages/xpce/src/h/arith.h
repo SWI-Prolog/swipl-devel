@@ -49,7 +49,7 @@ Functions:
 	  p = PSF_mul(p1, p2)	p = p1*p2
 	  p = PSF_add(p1, p2)	p = p1+p2
 	  p = PSF_sub(p1, p2)	p = p1-p2
-	
+
 Note that the implementation may change and one  should also use these
 macro's for addition and subtraction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

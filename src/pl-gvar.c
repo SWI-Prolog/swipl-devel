@@ -36,7 +36,7 @@
 
 void
 freezeGlobal(ARG1_LD)
-{ LD->frozen_bar = LD->mark_bar = gTop;  
+{ LD->frozen_bar = LD->mark_bar = gTop;
   DEBUG(2, Sdprintf("*** frozen bar to %p at freezeGlobal()\n",
 		    LD->frozen_bar));
 }
@@ -206,10 +206,10 @@ getval(term_t var, term_t value ARG_LD)
   for(i=0; i<2; i++)
   { if ( LD->gvar.nb_vars )
     { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-    
+
       if ( s )
       { word w = (word)s->value;
-	
+
 	return unify_ptrs(valTermRef(value), &w PASS_LD);
       }
     }
@@ -243,7 +243,7 @@ PRED_IMPL("nb_linkval", 2, nb_linkval, 0)
 static
 PRED_IMPL("nb_getval", 2, nb_getval, 0)
 { PRED_LD
-  
+
   return getval(A1, A2 PASS_LD);
 }
 
@@ -258,7 +258,7 @@ PRED_IMPL("b_setval", 2, b_setval, 0)
 static
 PRED_IMPL("b_getval", 2, b_getval, 0)
 { PRED_LD
-  
+
   return getval(A1, A2 PASS_LD);
 }
 
@@ -273,7 +273,7 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
 
   if ( LD->gvar.nb_vars )
   { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
-    
+
     if ( s )
     { free_nb_linkval_symbol(s);
       deleteSymbolHTable(LD->gvar.nb_vars, s);

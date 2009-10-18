@@ -32,7 +32,7 @@
 :- module(pce_cursor,
 	  [ cursor_demo/0
 	  ]).
-	  
+
 :- use_module(library(pce)).
 
 cursor_demo :-

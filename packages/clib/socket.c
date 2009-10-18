@@ -86,7 +86,7 @@ tcp_get_socket(term_t Socket, int *id)
     if ( PL_get_integer(a, id) )
       return TRUE;
   }
-  
+
   if ( PL_get_stream_handle(Socket, &s) )
   { socket = (int)(intptr_t)s->handle;
 
@@ -103,20 +103,6 @@ tcp_unify_socket(term_t Socket, int id)
 { return PL_unify_term(Socket,
 		       PL_FUNCTOR, FUNCTOR_socket1,
 		         IntArg(id));
-}
-
-
-static foreign_t
-pl_close_socket(term_t socket)
-{ int sock;
-
-  if ( !tcp_get_socket(socket, &sock) )
-    return FALSE;
-
-  if ( nbio_closesocket(sock) < 0 )
-    return nbio_error(errno, TCP_ERRNO);;
-
-  return TRUE;
 }
 
 
@@ -151,7 +137,7 @@ pl_setopt(term_t Socket, term_t opt)
 { int socket;
   atom_t a;
   int arity;
-       
+
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
 
@@ -200,132 +186,13 @@ pl_setopt(term_t Socket, term_t opt)
       return FALSE;
     }
   }
-       
+
 not_implemented:
   return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "socket_option");
 }
 
 
-		 /*******************************
-		 *	  IO-STREAM STUFF	*
-		 *******************************/
-
-#define fdFromHandle(p) ((nbio_sock_t)((long)(p)))
-
-static ssize_t
-tcp_read_handle(void *handle, char *buf, size_t bufSize)
-{ nbio_sock_t sock = fdFromHandle(handle);
-
-  return nbio_read(sock, buf, bufSize);
-}
-
-
-static ssize_t
-tcp_write_handle(void *handle, char *buf, size_t bufSize)
-{ nbio_sock_t sock = fdFromHandle(handle);
-
-  return nbio_write(sock, buf, bufSize);
-}
-
-
-static long
-tcp_seek_null(void *handle, long offset, int whence)
-{ return -1;
-}
-
-
-static int
-tcp_close_input_handle(void *handle)
-{ nbio_sock_t socket = fdFromHandle(handle);
-
-  return nbio_close_input(socket);
-}
-
-
-static int
-tcp_close_output_handle(void *handle)
-{ nbio_sock_t socket = fdFromHandle(handle);
-
-  return nbio_close_output(socket);
-}
-
-
-static int
-tcp_control(void *handle, int action, void *arg)
-{ nbio_sock_t socket = fdFromHandle(handle);
-
-  switch(action)
-  { case SIO_GETFILENO:
-    { SOCKET fd = nbio_fd(socket);
-      SOCKET *fdp = arg;
-      *fdp = fd;
-      return 0;
-    }
-    case SIO_LASTERROR:
-    { const char *s;
-      
-      if ( (s=nbio_last_error(socket)) )
-      { const char **sp = arg;
-	*sp = s;
-	return 0;
-      }
-
-      return -1;
-    }
-    case SIO_SETENCODING:
-    case SIO_FLUSHOUTPUT:
-      return 0;
-    default:
-      return -1;
-  }
-}
-
-
-static IOFUNCTIONS readFunctions =
-{ tcp_read_handle,
-  tcp_write_handle,
-  tcp_seek_null,
-  tcp_close_input_handle,
-  tcp_control
-};
-
-
-static IOFUNCTIONS writeFunctions =
-{ tcp_read_handle,
-  tcp_write_handle,
-  tcp_seek_null,
-  tcp_close_output_handle,
-  tcp_control
-};
-
-
-static foreign_t
-pl_open_socket(term_t Socket, term_t Read, term_t Write)
-{ IOSTREAM *in, *out;
-  int socket;
-  void *handle;
-
-  if ( !tcp_get_socket(Socket, &socket) )
-    return FALSE;
-  handle = (void *)(long)socket;
-  
-  in  = Snew(handle, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF,  &readFunctions);
-  in->encoding = ENC_OCTET;
-  if ( !PL_open_stream(Read, in) )
-    return FALSE;
-  nbio_setopt(socket, TCP_INSTREAM, in);
-
-  if ( !(nbio_get_flags(socket) & SOCK_LISTEN) )
-  { out = Snew(handle, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &writeFunctions);
-    out->encoding = ENC_OCTET;
-    if ( !PL_open_stream(Write, out) )
-      return FALSE;
-    nbio_setopt(socket, TCP_OUTSTREAM, out);
-  }
-
-  return TRUE;
-}
-
+#include "sockcommon.c"
 
 		 /*******************************
 		 *	    UDP SOCKETS		*
@@ -352,6 +219,7 @@ unify_address(term_t t, struct sockaddr_in *addr)
 		       PL_TERM, av+0,
 		       PL_TERM, av+1);
 }
+
 
 
 static foreign_t
@@ -406,7 +274,7 @@ udp_receive(term_t Socket, term_t Data, term_t From, term_t options)
   if ( !tcp_get_socket(Socket, &socket) ||
        !nbio_get_sockaddr(From, &sockaddr) )
     return FALSE;
-  
+
   if ( (n=nbio_recvfrom(socket, buf, sizeof(buf), flags,
 			(struct sockaddr*)&sockaddr, &alen)) == -1 )
     return nbio_error(errno, TCP_ERRNO);
@@ -448,10 +316,10 @@ udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
   return TRUE;
 }
 
-
 		 /*******************************
 		 *	PROLOG CONNECTION	*
 		 *******************************/
+
 
 static foreign_t
 create_socket(term_t socket, int type)
@@ -485,7 +353,7 @@ pl_connect(term_t Socket, term_t Address)
   if ( !tcp_get_socket(Socket, &sock) ||
        !nbio_get_sockaddr(Address, &sockaddr) )
     return FALSE;
-  
+
   if ( nbio_connect(sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) == 0 )
     return TRUE;
 
@@ -497,7 +365,9 @@ static foreign_t
 pl_bind(term_t Socket, term_t Address)
 { struct sockaddr_in sockaddr;
   int socket;
-       
+
+  memset(&sockaddr, 0, sizeof(sockaddr));
+
   if ( !tcp_get_socket(Socket, &socket) ||
        !nbio_get_sockaddr(Address, &sockaddr) )
     return FALSE;
@@ -518,24 +388,6 @@ pl_bind(term_t Socket, term_t Address)
       return nbio_error(errno, TCP_ERRNO);
     PL_unify_integer(Address, ntohs(addr.sin_port));
   }
-
-  return TRUE;
-}
-
-
-static foreign_t
-pl_listen(term_t Sock, term_t BackLog)
-{ int socket;
-  int backlog;
-
-  if ( !tcp_get_socket(Sock, &socket) )
-    return FALSE;
-
-  if ( !PL_get_integer(BackLog, &backlog) ) 
-    return pl_error(NULL, 0, NULL, ERR_ARGTYPE, -1, BackLog, "integer");
-
-  if ( nbio_listen(socket, backlog) < 0 )
-    return FALSE;
 
   return TRUE;
 }
@@ -571,7 +423,7 @@ pl_gethostname(term_t name)
 
     if ( gethostname(buf, sizeof(buf)) == 0 )
     { struct hostent *he;
-      
+
       if ( (he = gethostbyname(buf)) )
 	hname = PL_new_atom(he->h_name);
       else
@@ -692,7 +544,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
   { if ( !PL_get_float(timeout, &time) )
       return pl_error("tcp_select", 3, NULL,
 		      ERR_TYPE, timeout, "number");
-  
+
     if ( time >= 0.0 )
     { t.tv_sec  = (int)time;
       t.tv_usec = ((int)(time * 1000000) % 1000000);
@@ -718,7 +570,7 @@ tcp_select(term_t Streams, term_t Available, term_t timeout)
 
   switch(ret)
   { case -1:
-      return pl_error("tcp_select", 3, ERR_ERRNO, errno, "select", "streams", Streams);
+      return pl_error("tcp_select", 3, NULL, ERR_ERRNO, errno, "select", "streams", Streams);
 
     case 0: /* Timeout */
       break;
@@ -750,24 +602,23 @@ pl_debug(term_t val)
 }
 #endif
 
-
 install_t
 install_socket()
 { nbio_init("socket");
 
-  ATOM_reuseaddr  = PL_new_atom("reuseaddr");
-  ATOM_broadcast  = PL_new_atom("broadcast");
-  ATOM_nodelay    = PL_new_atom("nodelay");
-  ATOM_dispatch   = PL_new_atom("dispatch");
-  ATOM_nonblock   = PL_new_atom("nonblock");
-  ATOM_infinite   = PL_new_atom("infinite");
-  ATOM_as         = PL_new_atom("as");
-  ATOM_atom       = PL_new_atom("atom");
-  ATOM_string     = PL_new_atom("string");
-  ATOM_codes      = PL_new_atom("codes");
+  ATOM_reuseaddr      =	PL_new_atom("reuseaddr");
+  ATOM_broadcast      =	PL_new_atom("broadcast");
+  ATOM_nodelay	      =	PL_new_atom("nodelay");
+  ATOM_dispatch	      =	PL_new_atom("dispatch");
+  ATOM_nonblock	      =	PL_new_atom("nonblock");
+  ATOM_infinite	      =	PL_new_atom("infinite");
+  ATOM_as	      =	PL_new_atom("as");
+  ATOM_atom	      =	PL_new_atom("atom");
+  ATOM_string	      =	PL_new_atom("string");
+  ATOM_codes	      =	PL_new_atom("codes");
 
   FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
-  
+
 #ifdef O_DEBUG
   PL_register_foreign_in_module("user", "tcp_debug", 1, pl_debug, 0);
 #endif

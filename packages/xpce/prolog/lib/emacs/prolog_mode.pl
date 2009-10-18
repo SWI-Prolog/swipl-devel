@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(debug)).
 :- use_module(library(operators)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(prolog_predicate)).
@@ -39,7 +40,7 @@
 	   , absolute_file_name/3
 	   , auto_call/1
 	   , chain_list/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , default/3
 	   , forall/2
 	   , ignore/1
@@ -111,8 +112,8 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  prolog_navigator	       = button(browse) + key('\\C-c\\C-n')
 	],
 					% SYNTAX TABLE
-	[ $    = symbol,
-	  @    = symbol,
+	[ ($)  = symbol,
+	  (@)  = symbol,
 %	  '"'  = string_quote('"'),
 %	  '''' = string_quote(''''),
 	  '%'  = comment_start,
@@ -128,15 +129,23 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 			  '[^\n]*:<?->?\\s*$'	% clause head
 			])
 	]).
-		 
+
 class_variable(varmark_style, style*,
 	       style(background := honeydew,
 		     underline := @on)).
+class_variable(show_syntax_errors, {never,typing,pause},
+	       pause).
 
 variable(varmark_style,    style*,       get, "How to mark variables").
 variable(has_var_marks,    bool := @off, get, "Optimise a bit").
 variable(var_marked_caret, int*,	 get, "Last caret at ->mark_variable").
 variable(var_marked_gen,   int*,	 get, "Last generation").
+variable(var_mark_enabled, bool := @on,  get, "Do varmark stuff").
+variable(show_syntax_errors,
+	 		   {never,typing,pause},
+	 				 get, "When highlight syntax errors").
+variable(warnings,	   int := 0,	 get, "Number of warnings").
+variable(errors,	   int := 0,	 get, "Number of errors").
 
 
 icon(_, I:image) :<-
@@ -186,7 +195,7 @@ expand_path(Term, D) :-
 	Term =.. [New, Sub],
 	user:file_search_path(New, D0),
 	expand_path(D0, D1),
-	concat_atom([D1, /, Sub], D).
+	atomic_list_concat([D1, /, Sub], D).
 
 
 :- pce_group(indent).
@@ -208,7 +217,7 @@ indent_line(E) :->
 	;   send(E, indent_clause_line)
 	;   send(E, align_line, 8)
 	).
-	
+
 
 beginning_of_clause(E, Start:int, BOP:int) :<-
 	"Find start of predicate"::
@@ -266,7 +275,7 @@ indent_if_then_else(E) :->
 	;   get(E, column, OpenPos, OpenCol),
 	    send(E, align_line, OpenCol)
 	).
-	
+
 
 indent_clause_line(E) :->
 	"Indent current line according to clause"::
@@ -337,6 +346,19 @@ fill_paragraph(M, Justify:[int]) :->
 	).
 
 
+fill_comment(M,
+	     Start:from=int, End:to=int,
+	     Re:leading=regex, Justify:justify=[bool|int]) :->
+	"Fill/justify comments"::
+	send(M, slot, var_mark_enabled, @off),
+	call_cleanup(send_super(M, fill_comment, Start, End, Re, Justify),
+		     send(M, slot, var_mark_enabled, @on)),
+	(   send(M, has_send_method, colourise_comments)
+	->  send(M, colourise_comments, Start, End)
+	;   true
+	).
+
+
 insert_quote(E, Times:[int], Char:char) :->
 	"Complete quote"::
 	send(E, insert_self, Times, Char),
@@ -404,7 +426,7 @@ default(M, For:type, Default:unchecked) :<-
 	(   send(For, includes, prolog_predicate)
 	->  get(M, caret, Caret),
 	    get(M, name_and_arity, Caret, tuple(Name, Arity)),
-	    concat_atom([Name, /, Arity], Default)
+	    atomic_list_concat([Name, /, Arity], Default)
 	;   get_super(M, default, For, Default)
 	).
 
@@ -476,7 +498,7 @@ what_class(E, ClassName:name) :<-
 	;   true
 	), !,
 	get(BG, register_value, TB, 1, name, Raw),
-	concat_atom(Parts, ClassName).
+	atomic_list_concat(Parts, ClassName).
 
 what_class(E) :->
 	"Display current class"::
@@ -588,7 +610,7 @@ consult_region(M, From:[int], To:[int]) :->
 	consult(user:TmpNam),
 	send(M, report, status, 'Region consulted'),
 	send(File, remove).
-	
+
 
 consult_selection(M) :->
 	"Consult selected text"::
@@ -662,7 +684,7 @@ spy(M) :->
 	->  term_to_atom(Feedback, Atom),
 	    send(M, report, status,
 		 'Placed spy-point on "%s"', Atom)
-	;   send(M, report, warning, 
+	;   send(M, report, warning,
 		 'Can''t find anything to spy from caret location')
 	).
 
@@ -695,7 +717,7 @@ trace(M) :->
 	->  term_to_atom(Feedback, Atom),
 	    send(M, report, status,
 		 'Placed trace-point on "%s"', Atom)
-	;   send(M, report, warning, 
+	;   send(M, report, warning,
 		 'Can''t find anything to trace from caret location')
 	).
 
@@ -726,11 +748,11 @@ prolog_debug_spec(M, Head, Spec) :-
 	->  Spec = (Module:Name/Arity)
 	;   Spec = Name/Arity
 	).
-	    
+
 		 /*******************************
 		 *	       DROP		*
 		 *******************************/
-	
+
 preview_drop(M, Obj:object*) :->
 	"Preview the upcomming drop action"::
 	(   Obj == @nil
@@ -793,11 +815,12 @@ insert_full_stop(M, Arg:[int]) :->
 :- multifile
 	alternate_syntax/3.
 
-alternate_syntax(prolog,    true,
-			    true).
-alternate_syntax(pce_class, pce_expansion:push_compile_operators(SM),
-			    pce_expansion:pop_compile_operators) :-
-	'$set_source_module'(SM, SM).
+alternate_syntax(prolog,
+		 true,
+		 true).
+alternate_syntax(pce_class,
+		 pce_expansion:push_compile_operators(emacs_prolog_mode),
+		 pce_expansion:pop_compile_operators).
 
 :- dynamic
 	syntax_error/1.
@@ -810,19 +833,19 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    ignore(send(M, electric_caret, Start)),
 	    Verbose = true
 	;   Start = From,
-	    Verbose = fail
+	    Verbose = false
 	),
 	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
-	read_term_from_stream(TB, Fd, Start, T, Error, S, P),
+	read_term_from_stream(TB, Fd, Start, T, Error, S, P, Comments),
 	close(Fd),
 	(   Error == none
 	->  (	send(M, has_send_method, colourise_term)
-	    ->	send(M, colourise_term, T, P)
+	    ->	send(M, colourise_term, T, P, Comments)
 	    ;	unmark_singletons(M, P)
 	    ),
 	    (   S == []
-	    ->  (   Verbose
+	    ->  (   Verbose == true
 		->  send(M, report, status, 'Clause checked')
 		;   true
 		)
@@ -836,23 +859,36 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    get(TB, find, E0, '.', 1, end, End)
 	;   get(M, forward_clause, Start, End),
 	    send(M, remove_syntax_fragments, Start, End),
-	    Error = EPos:Msg,
-	    (	Repair \== @off
-	    ->  send(M, caret, EPos)
+	    (	send(M, has_send_method, colourise_comments)
+	    ->	send(M, colourise_comments, Start, End)
 	    ;	true
 	    ),
-	    send(M, report, warning, 'Syntax error: %s', Msg),
+	    Error = EPos:Msg,
+	    (	Repair \== @off
+	    ->  send(M, caret, EPos),
+		send(M, report, warning, 'Syntax-error: %s', Msg)
+	    ;	get(M, show_syntax_errors, typing)
+	    ->	send(M, show_syntax_error, EPos, Msg)
+	    ;	true
+	    ),
 	    fail
 	).
 
-read_term_from_stream(TB, Fd, Start, T, Error, S, P) :-
+%%	read_term_from_stream(+TextBuffer, +Stream, +Start,
+%%			      -Start, -Term, -Errors, -Singletons, -TermPos,
+%%			      -Comments) is det.
+%
+%	@param	Comments is list of comments or (-) if the parser cannot
+%		produce information about comments.
+
+read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
 	retractall(syntax_error(_)),
 	alternate_syntax(_Name, Setup, Restore),
 	findall(Op, xref_op(TB, Op), Ops),
 	push_operators(Ops),
 	Setup,
 	seek(Fd, Start, bof, _),
-	read_with_errors(Fd, Start, T, Error, S, P),
+	read_with_errors(Fd, Start, T, Error, S, P, C),
 	Restore,
 	pop_operators,
 	(   Error == none
@@ -860,21 +896,22 @@ read_term_from_stream(TB, Fd, Start, T, Error, S, P) :-
 	;   assert(syntax_error(Error)),
 	    fail
 	), !.
-read_term_from_stream(_, _, _, _, Error, _, _) :-
+read_term_from_stream(_, _, _, _, Error, _, _, _) :-
 	setof(E, retract(syntax_error(E)), Es),
 	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),
-(read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-
+(read_with_errors(Fd, _Start, T, Error, Singletons, TermPos, Comments) :-
 	catch(read_term(Fd, T, [ singletons(Singletons),
 				 subterm_positions(TermPos),
-				 module(emacs_prolog_mode)
+				 module(emacs_prolog_mode),
+				 comments(Comments)
 			       ]),
 	      Error0,
 	      true),
 	pl_error_message(Error0, Error))).
 pce_ifhostproperty(prolog(quintus),
-(read_with_errors(Fd, Start, T, Error, Singletons, TermPos) :-
+(read_with_errors(Fd, Start, T, Error, Singletons, TermPos, -) :-
 	on_exception(syntax_error(_G, _Pos,
 				  Message,
 				  Pre, Post, _),
@@ -939,7 +976,7 @@ unmark_singletons(M, P) :-
 		message(@arg1, free))).
 
 %	->mark_singletons: Term, Singletons, Pos
-%	
+%
 %	Mark singleton variables in Term, where Singletons is a list of
 %	singleton variables returned from read_term/3 and Pos is the
 %	subterm-position returned.
@@ -1037,7 +1074,7 @@ prepare_replace_singletons(M) :-
 		 *******************************/
 
 %	<-prolog_term
-%	
+%
 %	Read a Prolog term from the buffer. If From is specified, this
 %	is taken to be the start of the clause rather than using
 %	<-beginning_of_clause from <-caret. If Silent is @off, error
@@ -1054,7 +1091,7 @@ prolog_term(M, From:[int], Silent:[bool], TermPos:[prolog], Clause:prolog) :<-
 	  ),
 	  get(M, text_buffer, TB),
 	  pce_open(TB, read, Fd),
-	  read_term_from_stream(TB, Fd, Start, Clause, Error, _S, P),
+	  read_term_from_stream(TB, Fd, Start, Clause, Error, _S, P, _C),
 	  close(Fd),
 	  ignore(P = TermPos),
 	  (   Error == none
@@ -1083,7 +1120,7 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	    )
 	;   true
 	).
-	
+
 new_caret_position(M, NewCaret:int) :->
 	"Mark variables around caret"::
 	send_super(M, new_caret_position, NewCaret),
@@ -1113,7 +1150,9 @@ mark_variable(M, Check:[bool]) :->
 	get(M, caret, Caret),
 	get(M, text_buffer, TB),
 	get(M, generation, Gen),
-	(   get(M, var_marked_caret, Caret),
+	(   get(M, var_mark_enabled, @off)
+	->  true
+	;   get(M, var_marked_caret, Caret),
 	    get(M, var_marked_gen, Gen)
 	->  true
 	;   send(M, slot, var_marked_caret, Caret),
@@ -1123,12 +1162,12 @@ mark_variable(M, Check:[bool]) :->
 	    get(E, slot, kill_location, KillLocation), 		%  (*)
 	    send(M, unmark_variables),
 	    get(M, beginning_of_clause, Caret, Start),
+	    (   Check == @on
+	    ->  check_clauses(M, Start, Caret)
+	    ;   true
+	    ),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
-	    ->  (   Check == @on
-		->  send(M, check_clause, Start, @off)
-		;   true
-		),
-		(   find_variable(Pos, Clause, Caret, Var)
+	    ->  (   find_variable(Pos, Clause, Caret, Var)
 		->  get(M, text_buffer, TB),
 		    send(M, slot, has_var_marks, @on),
 		    (   subterm_position(Var, Clause, Pos, F-T),
@@ -1139,14 +1178,21 @@ mark_variable(M, Check:[bool]) :->
 		    )
 		;   true
 		)
-	    ;   (   get(M, forward_clause, Start, End)
-		->  true
-		;   End = Caret		% or end of buffer?
-		),
-		send(M, remove_syntax_fragments, Start, End)
+	    ;   true
 	    ),
 	    send(E, slot, kill_location, KillLocation)
 	).
+
+check_clauses(M, Start, Caret) :-
+	debug(emacs, '~p: Checking ~w..~w', [M, Start, Caret]),
+	ignore(get(M, check_clause, Start, @off, End)),
+	(   integer(End),
+	    End > Start,
+	    End < Caret+5
+	->  check_clauses(M, End, Caret)
+	;   true
+	).
+
 
 unmark_variables(M) :->
 	"Remove all variable-mark fragments"::
@@ -1157,7 +1203,7 @@ unmark_variables(M) :->
 	).
 
 %	find_variable(+TermPos, +Clause, +Caret, -Var)
-%	
+%
 %	Find the variable around the caret and return it in Var. If the
 %	caret is not on a variable, fail.
 
@@ -1181,7 +1227,7 @@ list_pos([_|PT], TP, [_|ET],  P,  E) :-
 	list_pos(PT, TP, ET, P, E).
 
 %	subterm_position(+Term, +Clause, +TermPos, -Pos)
-%	
+%
 %	Find all positions at which Term appears in Clause.
 
 subterm_position(Search, Term, Pos, Pos) :-
@@ -1317,7 +1363,7 @@ at_start_of_predicate(M, Start:[int]) :->
 	->  \+ get(M, name_and_arity, P1, tuple(Name, Arity))
 	;   true
 	).
-	    
+
 
 backward_predicate(M, P0:int, BPred:int) :<-
 	"Find start of this/previous predicate"::

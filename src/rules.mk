@@ -21,7 +21,7 @@ MD=WIN32
 
 # prefix=C:\Program Files
 #HOME=$(USERPROFILE)
-prefix=$(HOME)\installed
+prefix=$(HOME)\installed-57x
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
@@ -169,6 +169,6 @@ PLCON=$(PLBASE)\bin\plcon.exe
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
-!ELSE 
+!ELSE
 NULL=nul
-!ENDIF 
+!ENDIF

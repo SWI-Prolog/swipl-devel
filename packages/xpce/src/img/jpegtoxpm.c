@@ -95,7 +95,7 @@ convert_colourmap(int ncolors, int ncomponents,
 	  sysPce("JPEG: Unknown number of colour components: %d\n",
 		 ncomponents);
       }
-      
+
       sprintf(c->c_color, "#%02x%02x%02x", r, g, b);
     } else
       return XpmNoMemory;
@@ -169,7 +169,7 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image)
   jpeg_read_header(&cinfo, TRUE);
   cinfo.quantize_colors = TRUE;
   jpeg_start_decompress(&cinfo);
-  
+
   if ( (rval=convert_colourmap(cinfo.actual_number_of_colors,
 			       cinfo.out_color_components,
 			       cinfo.colormap,

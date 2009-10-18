@@ -15,7 +15,7 @@
 	   , apply/2
 	   , between/3
 	   , concat/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , forall/2
 	   , ignore/1
 	   , is_list/1
@@ -60,7 +60,7 @@ generate_cpp_class_header_file :-
 cpp_class(ClassName) :-
 	cpp_header_dir(Dir),
 	cpp_class_name(ClassName, CppName),
-	concat_atom([Dir, /, CppName, '.h'], File),
+	atomic_list_concat([Dir, /, CppName, '.h'], File),
 	telling(Old), tell(File),
 	xpce_file_header(CppName),
 	generate_class_def(ClassName),
@@ -80,7 +80,7 @@ xpce_file_header(ClassName) :-
 
 xpce_file_footer(ClassName) :-
 	output('#endif /*!_PCE_%s_H*/\n', ClassName?upcase).
-	
+
 
 generate_as(ClassName) :-
 	get(@pce, convert, ClassName, class, Class),
@@ -161,7 +161,7 @@ constructor_iarg(ArgNames, Arg) :-
 constructor_oarg(ArgNames, Arg) :-
 	nth1(Arg, ArgNames, Name),
 	output(', %s', Name).
-	    
+
 argument_range(Types, Low, High) :-
 	get(Types, size, Size),
 	(   Size == 0
@@ -182,7 +182,7 @@ argument_range(Types, Low, High) :-
 	    )
 	).
 
-	    
+
 		 /*******************************
 		 *	      OUTPUT		*
 		 *******************************/

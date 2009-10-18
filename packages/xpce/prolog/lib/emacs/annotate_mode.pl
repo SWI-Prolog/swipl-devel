@@ -191,7 +191,7 @@ define_style(E, Name:'annotate_style_name|name') :->
 	    send(E, modified, @on)
 	;   fail
 	).
-	
+
 
 make_fragment(E, Style:annotate_style_name) :->
 	"Create a fragment from the current selection"::
@@ -214,7 +214,7 @@ delete_fragment(E) :->
 	"Delete most smallest fragment around caret"::
 	get(E, fragment, F),
 	send(F, free),
-	send(E, modified, @on).	
+	send(E, modified, @on).
 
 
 selected_fragment(E, F:fragment*) :->

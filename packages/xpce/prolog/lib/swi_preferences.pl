@@ -81,7 +81,7 @@ locate_preferences(prolog, File) :-
 %	it, so the user can be presented a starting point.
 
 default_preferences(prolog, File) :-
-	member(Location, 
+	member(Location,
 	       [ swi('custom/pl.ini'),
 		 swi('dotfiles/dotplrc')
 	       ]),

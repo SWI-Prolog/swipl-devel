@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,22 +35,26 @@
 	    current_resource/3		% :Name, ?Class, ?File
 	  ]).
 
+:- meta_predicate
+	open_resource(:, ?, -),
+	open_resource(:, ?, +, -),
+	current_resource(:, ?, ?).
+
 :- dynamic
 	user:resource/3.
 :- multifile
 	user:resource/3.
-	
-:- module_transparent
-	open_resource/3,
-	open_resource/4.
 
-%	open_resource(:Name, ?Class, -Handle)
+%%	open_resource(:Name, ?Class, -Handle) is det.
+%%	open_resource(:Name, ?Class, +Mode, -Handle) is det.
+%
+%	Open resource with given Name  and   Class,  returning  a stream
+%	handle.
 
 open_resource(Name, Class, Handle) :-
 	open_resource(Name, Class, read, Handle).
 
-open_resource(Name, Class, RW, Handle) :-
-	strip_module(Name, Module, RcName),
+open_resource(Module:RcName, Class, RW, Handle) :-
 	(   catch(Module:resource(RcName, Class, FileSpec),
 		  error(existence_error(procedure, Module:resource/3), _),
 		  user:resource(RcName, Class, FileSpec))
@@ -63,22 +67,14 @@ open_resource(Name, Class, RW, Handle) :-
 
 tag_rc_name(user, RcName, RcName) :- !.
 tag_rc_name(Module, RcName, TaggedName) :-
-	concat_atom([Module, ':', RcName], TaggedName).
+	atomic_list_concat([Module, ':', RcName], TaggedName).
 tag_rc_name(_, RcName, RcName).
 
-%	current_resource(Name, Class, File)
+%%	current_resource(:Name, ?Class, ?File) is nondet.
 %
-%	List all currently defined resources.  Should eventually deal with
-%	resources that are already part of the state.
+%	List all currently declared resources.   Should  eventually deal
+%	with resources that are already part of the state.
 
-:- module_transparent
-	current_resource/3.
-
-current_resource(Name, Class, File) :-
-	(   atom(Name)
-	;   var(Name)
-	), !,
-	catch(resource(Name, Class, File), _, fail).
 current_resource(M:Name, Class, File) :-
 	current_module(M),
 	catch(M:resource(Name, Class, File), _, fail).

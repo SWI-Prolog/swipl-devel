@@ -36,10 +36,10 @@
 :- require([ ignore/1
 	   , access_file/2
 	   , chain_list/2
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , send_list/2
 	   , catch/3
-	   , concat_atom/3
+	   , atomic_list_concat/3
 	   , default/3
 	   , file_name_extension/3
 	   , maplist/3
@@ -126,7 +126,7 @@ layout(D, Size:[size]) :->
 	get(D, member, files, Files),
 	get(D, width, DW),
 	get(D?border, width, BW),
-	get(D?gap, width, GW), 
+	get(D?gap, width, GW),
 	BrW is (DW-2*BW-GW)//2,
 	send(SubDirs, do_set, BW, @default, BrW),
 	send(Files, do_set, BW+BrW+GW, @default, BrW),
@@ -145,7 +145,7 @@ right_to_left([H|T], D, GW, Right) :-
 	send(Item, x, IX),
 	RX is IX - GW,
 	right_to_left(T, D, GW, RX).
-       
+
 
 make_transient(D) :->
 	"Make transient to current object"::
@@ -395,7 +395,7 @@ prompt_name(D, For:name, Name:name) :<-
 	get(D2, confirm_centered, D?frame?area?center, Name),
 	send(D2, destroy),
 	Name \== ''.
-	
+
 delete_dir(D, Name:name) :->
 	"Delete named directory"::
 	send(D?display, confirm, 'Delete directory "%s"?', Name),
@@ -503,14 +503,14 @@ enter(FI) :->
 
 
 %	->filter(Filter)
-%	
+%
 %	Defines file-selection filter.  The argument is either single
 %	or a chain to specify alternatives.  Singles are either a plain
 %	atom denoting the extension, or a tuple(Label, Ext), where Ext
 %	is a single atom or a chain of atoms.
-%	
+%
 %	For example:
-%	
+%
 %	    ->filter: pl		% *.pl files
 %	    ->filter: chain(pl,qlf)	% *.pl or *.qlf files
 %	    ->filter: tuple(prolog, chain(pl,qlf))
@@ -563,7 +563,7 @@ alt_regex(Atom, Regex) :-
 alt_regex(Chain, Regex) :-
 	chain_list(Chain, List),
 	maplist(ext_pattern, List, Patterns),
-	concat_atom(Patterns, |, AltPattern),
+	atomic_list_concat(Patterns, |, AltPattern),
 	send(Regex, pattern, AltPattern),
 	(   List = [Def|_]
 	->  send(Regex, attribute, default_extension, Def)
@@ -576,9 +576,9 @@ ext_pattern(Ext, Pattern) :-
 ext_pattern(Ext, Plain, Pattern) :-
 	sub_atom(Ext, 0, _, _, '.'), !,
 	sub_atom(Ext, 1, _, 0, Plain),
-	concat_atom(['^.*\\', Ext, '$'], Pattern).
+	atomic_list_concat(['^.*\\', Ext, '$'], Pattern).
 ext_pattern(Ext, Ext, Pattern) :-
-	concat_atom(['^.*\\.', Ext, '$'], Pattern).
+	atomic_list_concat(['^.*\\.', Ext, '$'], Pattern).
 
 :- pce_end_class(finder_filter_item).
 

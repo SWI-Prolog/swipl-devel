@@ -33,7 +33,7 @@
 
 %   +stretch_region(Corner, Region)
 %
-%   Corner is a symbolic name of Region.  Regions are defined as being 
+%   Corner is a symbolic name of Region.  Regions are defined as being
 %   quarter width and height.
 
 stretch_region(north_east, region(w-w/4, 0    , w/4, h/4)).
@@ -58,16 +58,16 @@ move-Button
     Drags a graphical by moving the entire graphical each drag-event.  This
     is pleasant in simple drawings as the display always shows the correct
     contents, but annoyingly slow if complex graphicals are moved this way
-    or the graphical is moved over complex graphicals.  Use with care!    
+    or the graphical is moved over complex graphicals.  Use with care!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-do_make_handlers(move-Button, Group) :- !, 
-	mouse_event_type(Button-down, Down), 
-	mouse_event_type(Button-drag, Drag), 
-	mouse_event_type(Button-up, Up), !, 
+do_make_handlers(move-Button, Group) :- !,
+	mouse_event_type(Button-down, Down),
+	mouse_event_type(Button-drag, Drag),
+	mouse_event_type(Button-up, Up), !,
 
-	new_handler(DragHandler, Drag, 
-		    block(message(@event_receiver, position, 
+	new_handler(DragHandler, Drag,
+		    block(message(@event_receiver, position,
 				  ?(@event_position,
 				    difference,
 				    ?(@event_window, saved_cursor))))),
@@ -87,8 +87,8 @@ do_make_handlers(move-Button, Group) :- !,
 
 attach_handlers(+Object, +HandlerTypes)
 detach_handlers(+Object, +HandlerTypes)
-    Attaches (detaches) event handlers defined by HandlerTypes to Object.  
-    The elements in HandlerTypes are defined by the argument to 
+    Attaches (detaches) event handlers defined by HandlerTypes to Object.
+    The elements in HandlerTypes are defined by the argument to
     make_handlers/1.  For example:
 
 	attach_handlers(@b, [stretch-left, move-middle]).
@@ -101,7 +101,7 @@ attach_handlers(Object, [H|T]) :- !,
 attach_handlers(Object, Type) :-
        find_handler(Type, Handler),
        send(Object, recogniser, Handler).
-       
+
 detach_handlers(_, []) :- !.
 detach_handlers(Object, [H|T]) :- !,
        detach_handlers(Object, H),
@@ -109,7 +109,7 @@ detach_handlers(Object, [H|T]) :- !,
 detach_handlers(Object, Type) :-
        find_handler(Type, Handler),
        send(Object, delete_recogniser, Handler).
-       
+
 find_handler(Type, Handler) :-
        es_handlers(Type, Handler), !.
 find_handler(Type, Handler) :-
@@ -127,8 +127,8 @@ assert_handlers(Type, Handlers) :-
 %   new_handler(?@Handler, +EventType, +Message)
 %   new_handler(?@Handler, +EventType, +Message, +Region)
 %
-%   Creates a PCE Handler object which handles events of type EventType 
-%   and sends out Message.  The optional Region determines where the event 
+%   Creates a PCE Handler object which handles events of type EventType
+%   and sends out Message.  The optional Region determines where the event
 %   is valid (default is the entire area of the graphical).
 
 new_handler(Handler, EventType, Message) :-

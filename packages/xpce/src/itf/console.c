@@ -45,7 +45,7 @@ based systems you may redefine these functions to use a window.
 
     char *
     Cgetline(char *buf, int size)
-	Behaves like: fgets(buf, size, stdin); 
+	Behaves like: fgets(buf, size, stdin);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WINDOWS__

@@ -35,7 +35,7 @@ wysiwyg(File) :-
 	append_style(Fr, italic, style(font := italic)),
 	send(V, load, File),
 	send(Fr, open).
-			    
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Set the style for the current selection. Simply pick the selection start
 and end and make a  fragment  using   the  selection  parameters and the
@@ -105,4 +105,4 @@ ask_style(Fr, Name, Style) :-
 	    send(D, destroy),
 	    fail
 	).
-	
+

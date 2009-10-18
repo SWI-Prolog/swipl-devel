@@ -92,7 +92,7 @@ detach(IB) :->
 	    send(IB, slot, created_message, @nil),
 	    send(IB, slot, freed_messages, @nil)
 	).
-	   
+
 
 class(IB, Class:class*) :->
 	"Monitor instances of some class"::

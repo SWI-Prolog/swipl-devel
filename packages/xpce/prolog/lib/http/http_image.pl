@@ -44,7 +44,7 @@
 %	Currently the only option recognised is content_type(+Type) to
 %	specify the type.  image/jpeg and image/gif are the only sensible
 %	values.  The default is to generate gif.
-%	
+%
 %	If this module is used as a server on X11-based systems the user
 %	must ensure the presence of an X11 server.  The XPCE library
 %	'Xserver' provides code to start a `head-less' (i.e. server that

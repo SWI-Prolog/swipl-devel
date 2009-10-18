@@ -178,7 +178,7 @@ str_format(String out, const String in, const int width, const FontObj font)
       { if ( lb )
 	{ o = lb;
 	  s = in->s_textA + (lb-out->s_textA);
-	  
+
 	  while( isspace(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
 	  *o++ = '\n';
@@ -201,9 +201,9 @@ str_format(String out, const String in, const int width, const FontObj font)
 	return;
       }
 
-      if ( !last_is_layout && isspace(*s) )
+      if ( !last_is_layout && iswspace(*s) )
 	lb = o-1;
-      last_is_layout = isspace(*s);
+      last_is_layout = iswspace(*s);
 
       if ( *s == '\n' )
 	x = 0;
@@ -214,8 +214,8 @@ str_format(String out, const String in, const int width, const FontObj font)
       { if ( lb )
 	{ o = lb;
 	  s = in->s_textW + (lb-out->s_textW);
-	  
-	  while( isspace(s[1]) )
+
+	  while( iswspace(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
 	  *o++ = '\n';
 	  lb = NULL;
@@ -233,7 +233,7 @@ str_one_line(String to, String from)
 
   for(n=0; n<from->size; n++)
   { unsigned int c = str_fetch(from, n);
-	
+
     if      ( c == '\n' ) c = 0xb6;	/* Paragraph sign */
     else if ( c == '\t' ) c = 0xbb;	/* >> */
     else if ( c == '\r' ) c = 0xab;	/* << */
@@ -262,7 +262,7 @@ draw_caret(int x, int y, int w, int h, int active)
     pts[i].x = x;   pts[i].y = cy;  i++;
     pts[i].x = cx;  pts[i].y = y+h; i++;
     pts[i].x = x+w; pts[i].y = cy;  i++;
-      
+
     r_fillpattern(GREY50_IMAGE, NAME_foreground);
     r_fill_polygon(pts, i);
   }
@@ -315,7 +315,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
 			  x+valInt(t->x_offset), y, w, h,
 			  t->format, NAME_top);
     else
-      str_string(buf, t->font,  
+      str_string(buf, t->font,
 		 x+valInt(t->x_offset), y, w, h,
 		 t->format, NAME_top, flags);
   } else
@@ -394,7 +394,7 @@ initAreaText(TextObj t)
   } else
   { if ( t->wrap == NAME_clip )
     { LocalString(buf, s->iswide, s->size + 1);
-      
+
       str_one_line(buf, s);
       s = buf;
     }
@@ -538,7 +538,7 @@ resizeText(TextObj t, Real xfactor, Real yfactor, Point origin)
   ny = oy + rfloat((float) (valInt(t->position->y)-oy) * yf);
   assign(t->position, x, toInt(nx));
   assign(t->position, y, toInt(ny));
-  
+
   return recomputeText(t, NAME_area);
 }
 
@@ -621,7 +621,7 @@ get_pointed_text(TextObj t, int x, int y)
   int cw, w;
   int caret = 0, el;
   int line = (y-b) / ch;			/* line for caret */
-  string buf; 
+  string buf;
 
   if ( s->size == 0 )
     answer(ZERO);
@@ -669,7 +669,7 @@ get_pointed_text(TextObj t, int x, int y)
 	break;
     }
   }
-  
+
   answer(toInt(caret));
 }
 
@@ -704,8 +704,8 @@ underlineText(TextObj t, Bool underline)
   { CHANGING_GRAPHICAL(t, assign(t, underline, underline);
 		       changedEntireImageGraphical(t));
   }
-  
-  succeed;  
+
+  succeed;
 }
 
 
@@ -804,12 +804,12 @@ selectionText(TextObj t, Int from, Int to)
     { GetSel(t->selection, &ofrom, &oto);
     } else
       ofrom = oto = 0;
-  
+
     if ( isDefault(from) )
       from = toInt(ofrom);
     if ( isDefault(to) )
       to = toInt(oto);
-  
+
     Before(from, to);
     new = MakeSel(from, to);
 
@@ -915,7 +915,7 @@ geometryText(TextObj t, Int x, Int y, Int w, Int h)
   Int oy = t->area->y;
   Point p = t->position;
   Area a = t->area;
-  
+
   if ( Wrapped(t) && notDefault(w) )
   { assign(t, margin, w);
     CHANGING_GRAPHICAL(t,
@@ -948,7 +948,7 @@ updateShowCaretText(TextObj t)
   { PceWindow sw = getWindowGraphical((Graphical)t);
     int active = (sw && sw->input_focus == ON);
 
-    showCaretText(t, active ? (Any)ON : (Any)NAME_passive); 
+    showCaretText(t, active ? (Any)ON : (Any)NAME_passive);
   }
 
   succeed;
@@ -1008,8 +1008,8 @@ forward_word(String s, int i, int n)
   { while( i < s->size && !isalnum(str_fetch(s, i)) ) i++;
     while( i < s->size && isalnum(str_fetch(s, i)) ) i++;
   }
-  
-  return i;  
+
+  return i;
 }
 
 
@@ -1020,8 +1020,8 @@ backward_word(String s, int i, int n)
     while( i > 0 && !isalnum(str_fetch(s, i)) ) i--;
     while( i > 0 && isalnum(str_fetch(s, i-1)) ) i--;
   }
-  
-  return i;  
+
+  return i;
 }
 
 
@@ -1050,7 +1050,7 @@ caretText(TextObj t, Int where)
   assign(t, caret, where);
   if ( t->show_caret == ON )
     recomputeText(t, NAME_area);
-  
+
   succeed;
 }
 
@@ -1215,7 +1215,7 @@ backwardDeleteCharText(TextObj t, Int arg)
   int len  = UArg(t);
   int from = (len > 0 ? caret - len : caret);
   int size = t->string->data.size;
-  
+
   deselectText(t);
 
   len = abs(len);
@@ -1232,7 +1232,7 @@ backwardDeleteCharText(TextObj t, Int arg)
     deleteString((StringObj) t->string, toInt(from), toInt(len));
     return recomputeText(t, NAME_area);
   }
-  
+
   succeed;
 }
 
@@ -1325,7 +1325,7 @@ insertSelfText(TextObj t, Int times, Int chr)
       return errorPce(t, NAME_noCharacter);
   } else
     c = valInt(chr);
-    
+
   prepareInsertText(t);
 
   { LocalString(buf, c > 0xff, tms);
@@ -1387,7 +1387,7 @@ gosmacsTransposeText(TextObj t)
     str_store(s, caret-1, tmp);
     return recomputeText(t, NAME_area);
   }
-  
+
   fail;
 }
 
@@ -1408,7 +1408,7 @@ transposeCharsText(TextObj t)
     str_store(s, caret, tmp);
     return recomputeText(t, NAME_area);
   }
-  
+
   fail;
 }
 
@@ -1466,7 +1466,7 @@ formatRightText(TextObj t)
 status
 lengthText(TextObj t, Int l)
 { int fw, len;
-    
+
   if ( isDefault(t->font) )
     obtainClassVariablesObject(t);
 
@@ -1525,7 +1525,7 @@ loadText(TextObj t, IOSTREAM *fd, ClassDef def)
     assign(t, border, ZERO);
   if ( isNil(t->underline) )
     assign(t, underline, OFF);
-    
+
   succeed;
 }
 
@@ -1565,7 +1565,7 @@ getCatchAllText(TextObj t, Name sel, int argc, Any *argv)
 
   errorPce(t, NAME_noBehaviour, CtoName("<-"), sel);
   fail;
-} 
+}
 
 
 static status

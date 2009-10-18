@@ -34,13 +34,13 @@
 status
 initialiseVectorv(Vector v, int argc, Any *argv)
 { int n;
-  
+
   v->offset = ZERO;
   v->size = toInt(argc);
   v->allocated = v->size;
   if ( argc > 0 )
   { v->elements = alloc(argc * sizeof(Any));
-  
+
     for(n=0; n < argc; n++)
     { v->elements[n] = NIL;
       assignVector(v, n, argv[n]);
@@ -104,7 +104,7 @@ storeVector(Vector v, FileObj file)
 
   succeed;
 }
-    
+
 
 static status
 loadVector(Vector v, IOSTREAM *fd, ClassDef def)
@@ -322,7 +322,7 @@ shiftVector(Vector v, Int places)
 { int n = valInt(v->size);
   int s = valInt(places);
   int i;
-  
+
   if ( s > 0 )
   { for(i=n-s; i < n; i++)
       assignVector(v, i, NIL);
@@ -338,7 +338,7 @@ shiftVector(Vector v, Int places)
     for( ; i < n; i++ )
       v->elements[i] = NIL;
   }
-    
+
   succeed;
 }
 
@@ -411,7 +411,7 @@ status
 appendVector(Vector v, int argc, Any obj[])
 { if ( argc )
   { int start = valInt(v->size) + valInt(v->offset) + 1;
-  
+
     fillVector(v, NIL, toInt(start), toInt(start + argc - 1));
     for( ; argc-- > 0; start++, obj++ )
       elementVector(v, toInt(start), *obj);
@@ -512,7 +512,7 @@ get_range(Vector v, Int from, Int to, int *f, int *t)
       *t = high;
     } else				/* from, @default */
     { int i = valInt(from);
-      
+
       if ( i > high )
 	fail;
       if ( i < low )
@@ -532,7 +532,7 @@ get_range(Vector v, Int from, Int to, int *f, int *t)
       *f = low;
     } else				/* from, to */
     { int i = valInt(from);
-      
+
       BOUNDS(i, low, high);
       *f = i;
       i = valInt(to);
@@ -543,7 +543,7 @@ get_range(Vector v, Int from, Int to, int *f, int *t)
 
   succeed;
 }
-  
+
 
 static status
 forVector(Vector v, Code code, Int from, Int to, int some)
@@ -632,7 +632,7 @@ getIndexVector(Vector v, Any obj)
   for( n=0; n<size; n++)
     if ( v->elements[n] == obj )
       answer(toInt(n + valInt(v->offset) + 1));
-  
+
   fail;
 }
 
@@ -645,7 +645,7 @@ getRindexVector(Vector v, Any obj)
   for( n=size-1; n>=0; n--)
     if ( v->elements[n] == obj )
       answer(toInt(n + valInt(v->offset) + 1));
-  
+
   fail;
 }
 
@@ -786,7 +786,7 @@ static getdecl get_vector[] =
 #define rc_vector NULL
 /*
 static classvardecl rc_vector[] =
-{ 
+{
 };
 */
 

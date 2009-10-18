@@ -32,6 +32,9 @@
 #include <unistd.h>
 #endif
 
+#define NO_SWIPL 1
+#include "pl-hash.c"
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This program creates pl-codetable.c, pl-jumptable.ic   and pl-vmi.h from
 pl-vmi.c.
@@ -46,14 +49,38 @@ const char *vmi_hdr	= "pl-vmi.h";
 
 #define MAX_VMI 1000
 
-typedef struct
-{ char *name;
-  char *argc;
-  char *args;
-} vmi;
+typedef struct				/* VMI( */
+{ char *name;				/* Name */
+  char *flags;				/* Flags (VIF_*) */
+  char *argc;				/* Argument length (or VM_DYNARGC) */
+  char *args;				/* Argument types (max 3) */
+} vmi;					/* ) */
 
 vmi vmi_list[MAX_VMI];
 int vmi_count = 0;
+
+char *synopsis;
+size_t syn_size = 0;
+size_t syn_allocated = 0;
+
+static void
+add_synopsis(const char *s, size_t len)
+{ if ( syn_size+len+1 > syn_allocated )
+  { if ( syn_allocated == 0 )
+    { syn_allocated = 1024;
+      synopsis = malloc(syn_allocated);
+      syn_size = 0;
+    } else
+    { syn_allocated *= 2;
+      synopsis = realloc(synopsis, syn_allocated);
+    }
+  }
+
+  strncpy(&synopsis[syn_size], s, len);
+  syn_size+=len;
+  synopsis[syn_size++]='&';
+}
+
 
 static char *
 skip_ws(const char *s)
@@ -86,6 +113,23 @@ skip_id(const char *s)
 
 
 static char *
+skip_flags(const char *s)
+{ if ( s )
+  { for (; *s; s++)
+    { if ( *s == '_' || *s == '|' ||
+	   (*s >= 'A' && *s <= 'Z') ||
+	   (*s >= '0' && *s <= '9') )
+	continue;
+
+      return (char*)s;
+    }
+  }
+
+  return NULL;
+}
+
+
+static char *
 skip_over(const char *s, int c)
 { if ( s )
   { for (; *s; s++)
@@ -98,10 +142,10 @@ skip_over(const char *s, int c)
 }
 
 
-static char *
-strndup(const char *in, size_t len)
+static char *				/* not always around */
+my_strndup(const char *in, size_t len)
 { char *s = malloc(len+1);
-  
+
   strncpy(s, in, len);
   s[len] = '\0';
 
@@ -116,28 +160,35 @@ load_vmis(const char *file)
   if ( fd )
   { char buf[1024];
     int line = 0;
-  
+
     while(fgets(buf, sizeof(buf), fd))
     { line++;
-  
+
       if ( strncmp(buf, "VMI(", 4) == 0 )
       { const char *s1 = skip_ws(buf+4);
 	const char *e1 = skip_id(s1);
 	const char *s2 = skip_ws(skip_over(e1, ','));
-	const char *e2 = skip_id(s2);
-	const char *s3 = skip_over(skip_ws(skip_over(e2, ',')), '(');
-	const char *e3 = skip_over(s3, ')');
+	const char *e2 = skip_flags(s2);
+	const char *s3 = skip_ws(skip_over(e2, ','));
+	const char *e3 = skip_flags(s3);
+	const char *s4 = skip_over(skip_ws(skip_over(e3, ',')), '(');
+	const char *e4 = skip_over(s4, ')');
 
-	if ( !e3 )
+	if ( !e4 )
 	{ fprintf(stderr, "Syntax error at %s:%d\n", file, line);
 	  exit(1);
 	} else
-	  e3--;				/* backspace over ) */
+	  e4--;				/* backspace over ) */
 
-	vmi_list[vmi_count].name = strndup(s1, e1-s1);
-	vmi_list[vmi_count].argc = strndup(s2, e2-s2);
-	vmi_list[vmi_count].args = strndup(s3, e3-s3);
-  
+	vmi_list[vmi_count].name  = my_strndup(s1, e1-s1);
+	vmi_list[vmi_count].flags = my_strndup(s2, e2-s2);
+	vmi_list[vmi_count].argc  = my_strndup(s3, e3-s3);
+	vmi_list[vmi_count].args  = my_strndup(s4, e4-s4);
+
+	add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
+	add_synopsis(s3, e3-s3);
+	add_synopsis(s4, e4-s4);
+
 	vmi_count++;
       }
     }
@@ -223,19 +274,20 @@ emit_code_table(const char *to)
   fprintf(out, "*/\n\n");
   fprintf(out, "#include \"pl-incl.h\"\n\n");
   fprintf(out, "const code_info codeTable[] = {\n");
-  fprintf(out, "  /* {name, ID, #args, argtype} */\n");
+  fprintf(out, "  /* {name, ID, flags, #args, argtype} */\n");
 
   for(i=0; i<vmi_count; i++)
   { char name[100];
 
-    fprintf(out, "  {\"%s\", %s, %s, {%s}},\n",
+    fprintf(out, "  {\"%s\", %s, %s, %s, {%s}},\n",
 	    mystrlwr(name, vmi_list[i].name),
 	    vmi_list[i].name,
+	    vmi_list[i].flags,
 	    vmi_list[i].argc,
-	    vmi_list[i].args[0] ? vmi_list[i].args : "0"); 
+	    vmi_list[i].args[0] ? vmi_list[i].args : "0");
   }
-  
-  fprintf(out, "  { NULL, 0, 0, {0} }\n");
+
+  fprintf(out, "  { NULL, 0, 0, 0, {0} }\n");
   fprintf(out, "};\n");
   fclose(out);
 
@@ -298,6 +350,7 @@ emit_code_defs(const char *to)
   fprintf(out, "  VMI_END_LIST\n");
   fprintf(out, "} vmi;\n\n");
   fprintf(out, "#define I_HIGHEST ((int)VMI_END_LIST)\n");
+  fprintf(out, "#define VM_SIGNATURE 0x%x\n", MurmurHashAligned2(synopsis, syn_size, 0x12345678));
 
   fclose(out);
 
@@ -307,7 +360,7 @@ emit_code_defs(const char *to)
 int
 main(int argc, char **argv)
 { program = argv[0];
-  
+
   argc--;
   argv++;
 

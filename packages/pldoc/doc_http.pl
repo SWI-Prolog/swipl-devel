@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,6 +44,7 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_log)).
 :- use_module(library(http/http_hook)).
+:- use_module(library(http/http_path)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
@@ -71,7 +72,11 @@ _after_ library(pldoc) has been loaded.
 :- dynamic
 	doc_server_port/1.
 
-http:location(pldoc,	root(.),    []).
+http:location(pldoc, root(.), []).
+http:location(pldoc_man, pldoc(refman), []).
+http:location(pldoc_pkg, pldoc(package), []).
+http:location(pldoc_resource, Path, []) :-
+	http_location_by_id(pldoc_resource, Path).
 
 
 %%	doc_server(?Port) is det.
@@ -81,7 +86,7 @@ http:location(pldoc,	root(.),    []).
 %	server is started in a seperate   thread.  Options are handed to
 %	http_server/2.  In  addition,   the    following   options   are
 %	recognised:
-%	
+%
 %		* allow(HostOrIP)
 %		Allow connections from HostOrIP.  If HostOrIP is an atom
 %		it is matched to the hostname.  It if starts with a .,
@@ -91,14 +96,14 @@ http:location(pldoc,	root(.),    []).
 %
 %		* deny(HostOrIP)
 %		See allow(HostOrIP).
-%		
+%
 %		* edit(Bool)
 %		Allow editing from localhost connections? Default:
 %		=true=.
-%		
+%
 %	The predicate doc_server/1 is defined as below, which provides a
 %	good default for development.
-%	
+%
 %	==
 %	doc_server(Port) :-
 %		doc_server(Port,
@@ -106,7 +111,7 @@ http:location(pldoc,	root(.),    []).
 %			     allow(localhost)
 %			   ]).
 %	==
-%	
+%
 %	@see	doc_browser/1
 
 doc_server(Port) :-
@@ -135,17 +140,22 @@ doc_server(Port, Options) :-
 
 %%	doc_current_server(-Port) is det.
 %
-%	TCP/IP port of the documentation server. Fails if no server is
-%	running.
-%	
+%	TCP/IP port of the documentation server.   Fails if no server is
+%	running. Note that in the current   infrastructure we can easily
+%	be embedded into another  Prolog  HTTP   server.  If  we are not
+%	started from doc_server/2, we  return  the   port  of  a running
+%	HTTP server.
+%
 %	@tbd	Trap destruction of the server.
 %	@error	existence_error(http_server, pldoc)
 
 doc_current_server(Port) :-
-	doc_server_port(Port).
-doc_current_server(_) :-
-	existence_error(http_server, pldoc).
-
+	(   doc_server_port(P)
+	->  Port = P
+	;   http_current_server(_:_, P)
+	->  Port = P
+	;   existence_error(http_server, pldoc)
+	).
 
 %%	doc_browser is det.
 %%	doc_browser(+What) is semidet.
@@ -207,6 +217,7 @@ prepare_editor.
 
 :- http_handler(pldoc(.),	   pldoc_root,
 		[prefix, authentication(pldoc(read))]).
+:- http_handler(pldoc('index.html'), pldoc_index,   []).
 :- http_handler(pldoc(file),	   pldoc_file,	   []).
 :- http_handler(pldoc(directory),  pldoc_dir,	   []).
 :- http_handler(pldoc(edit),	   pldoc_edit,
@@ -215,32 +226,51 @@ prepare_editor.
 :- http_handler(pldoc(man),	   pldoc_man,	   []).
 :- http_handler(pldoc(doc_for),	   pldoc_object,   []).
 :- http_handler(pldoc(search),	   pldoc_search,   []).
-:- http_handler(pldoc('package/'), pldoc_package,  [prefix]).
 :- http_handler(pldoc('res/'),	   pldoc_resource, [prefix]).
 
 
 %%	pldoc_root(+Request)
-%	
+%
 %	Reply using the index-page  of   the  Prolog  working directory.
 %	There are various options for the   start directory. For example
 %	we could also use the file or   directory of the file that would
 %	be edited using edit/0.
 
 pldoc_root(Request) :-
+	http_parameters(Request,
+			[ empty(Empty, [ oneof([true,false]),
+					 default(false)
+				       ])
+			]),
+	pldoc_root(Request, Empty).
+
+pldoc_root(Request, false) :-
 	http_location_by_id(pldoc_root, Root),
 	memberchk(path(Path), Request),
 	Root \== Path, !,
 	existence_error(http_location, Path).
-pldoc_root(_Request) :-
+pldoc_root(_Request, false) :-
 	working_directory(Dir0, Dir0),
 	allowed_directory(Dir0), !,
 	ensure_slash_end(Dir0, Dir1),
 	doc_file_href(Dir1, Ref0),
 	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(see_other(Index))).
-pldoc_root(_Request) :-
-	reply_page('PlDoc directory index',
-		   \doc_links('', [])).
+pldoc_root(Request, _) :-
+	pldoc_index(Request).
+
+
+%%	pldoc_index(+Request)
+%
+%	HTTP handle for /index.html, providing an overall overview
+%	of the available documentation.
+
+pldoc_index(_Request) :-
+	reply_html_page(title('SWI-Prolog documentation'),
+			[ \doc_links('', []),
+			   h1('SWI-Prolog documentation'),
+			  \man_overview([])
+			]).
 
 
 %%	pldoc_file(+Request)
@@ -255,20 +285,35 @@ pldoc_file(Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	format('Content-type: text/html~n~n'),
-	doc_for_file(File, current_output, []).
+	doc_for_file(File, []).
 
 %%	pldoc_edit(+Request)
 %
-%	Handler for /edit?file=REF, starting the   SWI-Prolog  editor on
-%	File.
+%	HTTP handler that starts the user's   default editor on the host
+%	running the server. This  handler  can   only  accessed  if  the
+%	browser connection originates from  =localhost=.   The  call can
+%	edit files using the =file=  attribute   or  a predicate if both
+%	=name= and =arity= is given and optionally =module=.
 
 pldoc_edit(Request) :-
 	http_parameters(Request,
-			[ file(File,     [optional(true)]),
-			  module(Module, [optional(true)]),
-			  name(Name,     [optional(true)]),
-			  arity(Arity,   [integer, optional(true)])
+			[ file(File,
+			       [ optional(true),
+				 description('Name of the file to edit')
+			       ]),
+			  name(Name,
+			       [ optional(true),
+				 description('Name of a Prolog predicate to edit')
+			       ]),
+			  arity(Arity,
+				[ integer,
+				  optional(true),
+				  description('Arity of a Prolog predicate to edit')
+				]),
+			  module(Module,
+				 [ optional(true),
+				   description('Name of a Prolog module to search for predicate')
+				 ])
 			]),
 	(   atom(File)
 	->  Edit = file(File)
@@ -280,9 +325,8 @@ pldoc_edit(Request) :-
 	),
 	format(string(Cmd), '~q', [edit(Edit)]),
 	edit(Edit),
-	reply_page('Edit',
-		   [ p(['Started ', Cmd])
-		   ]).
+	reply_html_page(title('Edit'),
+			p(['Started ', Cmd])).
 pldoc_edit(_Request) :-
 	throw(http_reply(forbidden('/edit'))).
 
@@ -353,13 +397,13 @@ file('favicon.ico',   'favicon.ico').
 
 
 %%	pldoc_doc(+Request)
-%	
+%
 %	Handler for /doc/Path
-%	
+%
 %	Reply documentation of a file. Path is  the absolute path of the
 %	file for which to return the  documentation. Extension is either
 %	none, the Prolog extension or the HTML extension.
-%	
+%
 %	Note that we reply  with  pldoc.css   if  the  file  basename is
 %	pldoc.css to allow for a relative link from any directory.
 
@@ -382,13 +426,12 @@ documentation(Path, Request) :-
 	http_reply_file(pldoc(Base), [], Request).
 documentation(Path, Request) :-
 	Index = '/index.html',
-	sub_atom(Path, _, _, 0, Index), 
+	sub_atom(Path, _, _, 0, Index),
 	atom_concat(Dir, Index, Path),
 	exists_directory(Dir), !,		% Directory index
 	(   allowed_directory(Dir)
 	->  edit_options(Request, EditOptions),
-	    format('Content-type: text/html~n~n'),
-	    doc_for_dir(Dir, current_output, EditOptions)
+	    doc_for_dir(Dir, EditOptions)
 	;   throw(http_reply(forbidden(Dir)))
 	).
 documentation(File, _Request) :-
@@ -400,8 +443,7 @@ documentation(File, _Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	format('Content-type: text/html~n~n'),
-	doc_for_wiki_file(File, current_output, []).
+	doc_for_wiki_file(File, []).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
@@ -420,10 +462,10 @@ documentation(Path, Request) :-
 	;   true
 	),
 	edit_options(Request, EditOptions),
-	format('Content-type: text/html~n~n'),
 	(   Source == true
-	->  source_to_html(File, stream(current_output), [])
-	;   doc_for_file(File, current_output,
+	->  format('Content-type: text/html~n~n', []),
+	    source_to_html(File, stream(current_output), [])
+	;   doc_for_file(File,
 			 [ public_only(Public)
 			 | EditOptions
 			 ])
@@ -466,17 +508,26 @@ clean_path(Path, Path).
 
 %%	pldoc_man(+Request)
 %
-%	Handler for /man?predicate=PI, providing  documentation from the
-%	manual on the predicate PI.
+%	Handler for /man, offerring one of the parameters:
+%
+%	    * predicate=PI
+%	    providing documentation from the manual on the predicate PI.
+%	    * 'CAPI'=F
+%	    providing documentation from the manual on the C-function F.
 
 pldoc_man(Request) :-
 	http_parameters(Request,
-			[ predicate(PI, [])
+			[ predicate(PI, [optional(true)]),
+			  'CAPI'(F,     [optional(true)])
 			]),
 	format(string(Title), 'Manual -- ~w', [PI]),
-	reply_page(Title,
-		   [ \man_page(PI, [])
-		   ]).
+	(   ground(PI)
+	->  Obj = PI
+	;   ground(F)
+	->  Obj = c(F)
+	),
+	reply_html_page(title(Title),
+			\man_page(Obj, [])).
 
 %%	pldoc_object(+Request)
 %
@@ -493,69 +544,45 @@ pldoc_object(Request) :-
 	;   Title = Atom
 	),
 	edit_options(Request, EditOptions),
-	reply_page(Title,
-		   [ \object_page(Obj, EditOptions)
-		   ]).
+	reply_html_page(title(Title),
+			\object_page(Obj, EditOptions)).
 
 
 %%	pldoc_search(+Request)
 %
-%	Handler for /search?for=String, searching for String.
+%	Search the collected PlDoc comments and Prolog manual.
 
 pldoc_search(Request) :-
 	http_parameters(Request,
-			[ for(For, [length > 1]),
+			[ for(For,
+			      [ length > 1,
+				description('String to search for')
+			      ]),
 			  in(In,
 			     [ oneof([all,app,man]),
-			       default(all)
+			       default(all),
+			       description('Search everying, application only or manual only')
 			     ]),
 			  match(Match,
 				[ oneof([name,summary]),
-				  default(summary)
+				  default(summary),
+				  description('Match only the name or also the summary')
 				]),
-			  resultFormat(Format, [ oneof(long,summary),
-						 default(summary)
-					       ])
+			  resultFormat(Format,
+				       [ oneof(long,summary),
+					 default(summary),
+					 description('Return full documentation or summary-lines')
+				       ])
 			]),
 	edit_options(Request, EditOptions),
 	format(string(Title), 'Prolog search -- ~w', [For]),
-	reply_page(Title,
-		   [ \search_reply(For,
-				   [ resultFormat(Format),
-				     search_in(In),
-				     search_match(Match)
-				   | EditOptions
-				   ])
-		   ]).
-
-%%	pldoc_package(+Request)
-%
-%	Handler  for  /package/Name,  providing  documentation  for  the
-%	SWI-Prolog  package  Name.  Exploits  the    file   search  path
-%	=package_documentation=.
-
-pldoc_package(Request) :-
-	http_location_by_id(pldoc_package, Path),
-	atom_concat(Path, Package, Path), !,
-	absolute_file_name(package_documentation(Package),
-			   DocFile,
-			   [ access(read),
-			     file_errors(fail)
-			   ]),
-	http_reply_file(DocFile, [], Request).
-
-
-
-		 /*******************************
-		 *	       UTIL		*
-		 *******************************/
-
-reply_page(Title, Content) :-
-	doc_page_dom(Title, Content, DOM),
-	phrase(html(DOM), Tokens),
-	format('Content-type: text/html~n~n'),
-	print_html_head(current_output),
-	print_html(Tokens).
+	reply_html_page(title(Title),
+			\search_reply(For,
+				      [ resultFormat(Format),
+					search_in(In),
+					search_match(Match)
+				      | EditOptions
+				      ])).
 
 
 		 /*******************************
@@ -588,20 +615,3 @@ prolog:message(pldoc(server_started(Port))) -->
 	[ 'Started Prolog Documentation server at port ~w'-[Port], nl,
 	  'You may access the server at http://localhost:~w~w'-[Port, Root]
 	].
-
-
-                 /*******************************
-                 *        PCEEMACS SUPPORT      *
-                 *******************************/
-
-:- multifile
-        emacs_prolog_colours:goal_colours/2,
-        prolog:called_by/2.
-
-
-emacs_prolog_colours:goal_colours(reply_page(_, HTML),
-                                  built_in-[classify, Colours]) :-
-        catch(html_write:html_colours(HTML, Colours), _, fail).
-
-prolog:called_by(reply_page(_, HTML), Called) :-
-        catch(phrase(html_write:called_by(HTML), Called), _, fail).

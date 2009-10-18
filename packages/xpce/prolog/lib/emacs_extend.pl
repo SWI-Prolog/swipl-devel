@@ -34,7 +34,7 @@
 	    declare_emacs_mode/3
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   ]).
 
 		/********************************
@@ -84,7 +84,7 @@ special_mode(annotate).
 
 
 %%	declare_emacs_mode(+ModeName, +FileSpec, +ListOfPatterns)
-%	
+%
 %	Sames as declare_emacs_mode/2.  `ListOfPatterns' is a list of
 %	regular expressions that will automatically start this mode.
 
@@ -169,7 +169,7 @@ bind(button(Button, Func), Selector, Module, _, MM) :-
 bind(A+B, Selector, Module, KB, MM) :-
 	bind(A, Selector, Module, KB, MM),
 	bind(B, Selector, Module, KB, MM).
-	
+
 syntax(Char = Term, ST) :-
 	Term =.. TermArgs,
 	Msg =.. [syntax, Char | TermArgs],
@@ -180,13 +180,13 @@ syntax(Char + Term, ST) :-
 	send(ST, Msg).
 syntax(paragraph_end(End), ST) :-
 	(   is_list(End)
-	->  concat_atom(End, |, Regex)
+	->  atomic_list_concat(End, |, Regex)
 	;   Regex = End
 	),
 	send(ST, paragraph_end, Regex).
 syntax(sentence_end(End), ST) :-
 	(   is_list(End)
-	->  concat_atom(End, |, Regex)
+	->  atomic_list_concat(End, |, Regex)
 	;   Regex = End
 	),
 	send(ST, sentence_end, Regex).
@@ -204,7 +204,7 @@ emacs_mode_class(ModeName, ClassName) :-
 	atom(ModeName), !,
 	(   ModeName == []
 	->  ClassName = emacs_mode
-	;   concat_atom([emacs_, ModeName, '_mode'], ClassName)
+	;   atomic_list_concat([emacs_, ModeName, '_mode'], ClassName)
 	).
 emacs_mode_class(ModeName, ClassName) :-
 	atom_concat(emacs_, M0, ClassName),

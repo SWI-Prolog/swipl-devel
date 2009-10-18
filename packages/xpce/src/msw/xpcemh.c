@@ -97,7 +97,7 @@ AddProcess(DWORD pid)
   for(i=0; i<MAX_PCE_TASKS; i++)
     if ( process_list[i] == pid )
       return 0;
-  
+
   for(i=0; i<MAX_PCE_TASKS; i++)
   { if ( !process_list[i] )
     { process_list[i] = pid;

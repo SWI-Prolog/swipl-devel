@@ -11,7 +11,7 @@ compile(CPP) :-
 	compile(CPP, Exe).
 
 %	compile(+C++-Source, -Executable)
-%	
+%
 %	Call the C++ compiler.  The   path  -I../../../../include  finds
 %	SWI-proxy.cpp and SWI-proxy.h in the   distribution.  -I.. finds
 %	them in the package source.
@@ -33,5 +33,5 @@ compile(CPP, Exe) :-
 		[Port, Exe, CPP]),
 %	writeln(Cmd),
 	shell(Cmd).
-	
+
 port(5000).

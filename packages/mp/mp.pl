@@ -54,15 +54,7 @@
 	, mp_compound/1
 	]).
 
-load_mp :-
-	current_predicate(_, user:mp_term(_,_,_,_)), !.
-load_mp :-
-	getenv('PLLD', true), !.
-load_mp :-
-	load_foreign_library(user:foreign(mp), mp_install).
-
-:- initialization
-	load_mp.
+:- use_foreign_library(user:foreign(mp), mp_install).
 
 :- style_check(+dollar).
 :- style_check(+string).
@@ -318,7 +310,7 @@ mp_compare1(O, $mpz(X), $mpz(Y)) :-
 	mp_cmp($mpz(X), $mpz(Y), O), !.
 mp_compare1(O, $mpq(N, D), $mpq(M, E)) :-
 	mp_cmp($mpq(N, D), $mpq(M, E), O), !.
-mp_compare1(O, $mpf(X), $mpf(Y)) :- 
+mp_compare1(O, $mpf(X), $mpf(Y)) :-
 	mp_cmp($mpf(X), $mpf(Y), O), !.
 mp_compare1(O, $mpc(R, I), $mpc(S, J)) :-
 	mp_cmp($mpc(R, I), $mpc(S, J), O), !.
@@ -406,16 +398,16 @@ diff3(<,  H1, T1,  H2, T2, [H1|D]) :- diff12(T1, H2, T2, D).
 diff3(=, _H1, T1, _H2, T2, D) :- mp_setdiff(T1, T2, D).
 diff3(>,  H1, T1, _H2, T2, D) :- diff21(T2, H1, T1, D).
 
-%	mp_addel(+Set, +El, -Add)  
+%	mp_addel(+Set, +El, -Add)
 
-mp_addel([], E, [E]). 
+mp_addel([], E, [E]).
 mp_addel([H|T], E, A) :- mp_compare(Order, H, E), addel(Order, H, T, E, A).
 
 addel(<, H, T,  E, [H|A]) :- mp_addel(T, E, A).
-addel(=, H, T, _E, [H|T]). 
+addel(=, H, T, _E, [H|T]).
 addel(>, H, T,  E, [E,H|T]).
 
-%	mp_delel(+Set, +el, -Del)  
+%	mp_delel(+Set, +el, -Del)
 
 mp_delel([], _E, []).
 mp_delel([H|T], E, D) :- compare(Order, H, E), delel(Order, H, T, E, D).

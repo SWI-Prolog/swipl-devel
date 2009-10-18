@@ -33,7 +33,7 @@
 	  [ pce_shell_command/1
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/3
+:- require([ atomic_list_concat/3
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -65,7 +65,7 @@ pce_shell_command(Cmd) :-
 	     and(message(@arg1, translate, 13, @nil),
 		 message(TB, append, @arg1))),
 	send(P, record_separator, @nil),
-	concat_atom(List, ' ', CmdAtom),
+	atomic_list_concat(List, ' ', CmdAtom),
 	send(P, report, progress, 'running %s ...', CmdAtom),
 	send(P, open),
 	send(P, wait),

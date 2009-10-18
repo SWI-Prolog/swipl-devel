@@ -60,7 +60,7 @@ static int
 width_text(FontObj f, const char *s)
 { CharArray ctmp = CtoScratchCharArray(s);
   Int w = getWidthFont(f, ctmp);
-  
+
   doneScratchCharArray(ctmp);
 
   return(valInt(w));
@@ -69,9 +69,9 @@ width_text(FontObj f, const char *s)
 
 static status
 rangeIntItem(IntItem ii, Int low, Int high)
-{ char buf[40];
+{ char buf[48];
   Type t = NULL;
-  char s1[20], s2[20];
+  char s1[24], s2[24];
   int b = valInt(getClassVariableValueObject(ii, NAME_border));
 
   obtainClassVariablesObject(ii);
@@ -101,7 +101,7 @@ rangeIntItem(IntItem ii, Int low, Int high)
 
   if ( !t )
     t = checkType(CtoName(buf), TypeType, NIL);
-      
+
   assign(ii, type, t);
   assign(ii, hor_stretch, ZERO);
   valueWidthTextItem((TextItem)ii,
@@ -151,7 +151,7 @@ static status
 typedIntItem(IntItem ii, EventId id)
 { CharArray save = getCopyCharArray(ii->value_text->string);
   status rval = typedTextItem((TextItem)ii, id);
-  
+
   if ( rval &&
        !checkType(ii->value_text->string, TypeInt, NIL) &&
        getSizeCharArray(ii->value_text->string) != ZERO )
@@ -217,7 +217,7 @@ typeIntItem(IntItem ii, Type type)
     rangeIntItem(ii, t->first, t->second);
   } else if ( type->kind == NAME_int )
     rangeIntItem(ii, DEFAULT, DEFAULT);
-  
+
   succeed;
 }
 
@@ -239,10 +239,10 @@ static char *T_range[] =
 #define var_int_item NULL
 /*
 static vardecl var_int_item[] =
-{ 
+{
 };
 */
-  
+
 /* Send Methods */
 
 static senddecl send_int_item[] =
@@ -265,7 +265,7 @@ static senddecl send_int_item[] =
 #define get_int_item NULL
 /*
 static getdecl get_int_item[] =
-{ 
+{
 };
 */
 

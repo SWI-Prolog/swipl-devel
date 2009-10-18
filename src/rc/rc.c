@@ -202,7 +202,7 @@ rcadd(const char *archive, char **members)
     return badarchive(archive);
 
   if ( members )
-  { for( ; *members; members++ ) 
+  { for( ; *members; members++ )
     { char *m = *members;
 
       if ( strncmp(m, "--class=", clen) == 0 )
@@ -246,7 +246,7 @@ rcdel(const char *archive, char **members)
     return badarchive(archive);
 
   if ( members )
-  { for( ; *members; members++ ) 
+  { for( ; *members; members++ )
     { char *m = *members;
 
       if ( strncmp(m, "--class=", clen) == 0 )
@@ -287,7 +287,7 @@ main(int argc, char **argv)
   { cmd     = argv[1];
     archive = argv[2];
     members = (argc == 3 ? NULL : argv+3);
-    
+
     if ( strcmp(cmd, "l") == 0 )
       return rcls(archive, members);
     else if ( strcmp(cmd, "x") == 0 )

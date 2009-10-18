@@ -55,9 +55,12 @@ O'Keefe.
 %%	pairs_keys_values(?Pairs, ?Keys, ?Values) is det.
 %
 %	True if Keys holds the keys of Pairs and Values the values.
-%	
-%	Deterministic if any argument is instantiated to a finite list
-%	and the others are either free or finite lists.
+%
+%	Deterministic if any argument is instantiated   to a finite list
+%	and the others are either free or  finite lists. All three lists
+%	are in the same order.
+%
+%	@see pairs_values/2 and pairs_keys/2.
 
 pairs_keys_values(Pairs, Keys, Values) :-
 	(   nonvar(Pairs) ->
@@ -102,17 +105,17 @@ pairs_keys([K-_|T0], [K|T]) :-
 %%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
 %
 %	Group values with the same key.  For example:
-%	
+%
 %	==
 %	?- group_pairs_by_key([a-2, a-1, b-4], X).
-%	
+%
 %	X = [a-[2,1], b-[4]]
 %	==
-%	
+%
 %	@param	Pairs	Key-Value list, sorted to the standard order
 %			of terms (as keysort/2 does)
 %	@param  Joined	List of Key-Group, where Group is the
-%			list of Values associated with Key. 
+%			list of Values associated with Key.
 
 group_pairs_by_key([], []).
 group_pairs_by_key([M-N|T0], [M-[N|TN]|T]) :-
@@ -143,14 +146,13 @@ flip_pairs([Key-Val|Pairs], [Val-Key|Flipped]) :-
 %	Create a key-value list by mapping each element of List.
 %	For example, if we have a list of lists we can create a
 %	list of Length-List using
-%	
+%
 %	==
 %		map_list_to_pairs(length, ListOfLists, Pairs),
 %	==
 
-:- module_transparent
-	map_list_to_pairs/3,
-	map_list_to_pairs2/3.
+:- meta_predicate
+	map_list_to_pairs(2, +, -).
 
 map_list_to_pairs(Function, List, Pairs) :-
 	map_list_to_pairs2(List, Function, Pairs).

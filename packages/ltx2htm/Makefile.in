@@ -49,11 +49,24 @@ install:	tex.@SO@
 	$(INSTALL_DATA) tex.@SO@ $(DESTDIR)$(LIBDIR)/lib/$(PLARCH)
 	$(INSTALL_PROGRAM) latex2html $(DESTDIR)$(bindir)
 	for f in $(LIB); do $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR); done
+	$(INSTALL_DATA) pl.pl $(DESTDIR)$(LIBDIR)/pldoc.pl
+	$(INSTALL_DATA) pl.cmd $(DESTDIR)$(LIBDIR)/pldoc.cmd
 	mkdir -p $(DESTDIR)$(LIBDIR)/icons
 	for f in icons/*.gif; do $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR)/icons; done
 
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' \
+			 INSTALL_PROGRAM='../ln-install' \
+			 install
+
 tex.@SO@:		$(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $(OBJ)
+
+################################################################
+# CHECK
+################################################################
+
+check::
 
 ################################################################
 # Documentation
@@ -61,13 +74,15 @@ tex.@SO@:		$(OBJ)
 doc:	html pdf
 
 html:	$(DOC).tex
-	../pl.sh -s run.pl -g main -- $(DOC)
+	$(PL) -f run.pl -g main -- $(DOC)
 
 pdf:	$(DOC).tex
 	$(RUNTEX) --pdf $(DOC)
 
 $(DOC).tex:	$(DOC).doc
 	./doc2tex $< > $@
+
+html-install::
 
 ################################################################
 # Cleanup
@@ -79,7 +94,7 @@ clean::
 
 distclean: clean
 	rm -f Makefile latex2html
-	rm -f config.cache config.log config.status config.h 
+	rm -f config.cache config.log config.status config.h
 
 uninstall::
 	rm -r $(LIBDIR)

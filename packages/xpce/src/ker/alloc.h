@@ -34,7 +34,7 @@ GLOBAL size_t	wastedbytes;	/* core in allocation chains */
 typedef struct zone *Zone;	/* memory zone */
 
 struct zone
-{ 
+{
 #if ALLOC_DEBUG
   unsigned	in_use : 1;		/* Zone is in_use (1) or freed (0) */
   unsigned	size   : 31;		/* Size of the zone (bytes) */
@@ -46,7 +46,7 @@ struct zone
 
 GLOBAL Zone freeChains[ALLOCFAST/sizeof(Zone)+1];
 
-#define struct_offset(structure, field) ((int) &(((structure *)NULL)->field))
+#define struct_offset(structure, field) ((size_t) &(((structure *)NULL)->field))
 #define MINALLOC    (sizeof(struct zone) - struct_offset(struct zone, start))
 #define ROUNDALLOC  (sizeof(void *))
 

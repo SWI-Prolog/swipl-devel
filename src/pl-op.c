@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ Proposal:
 	  the global operator table.
 
 To find the  current  definition  of   some  operator,  first  check the
-thread's table, then the module-table and finally the global table. 
+thread's table, then the module-table and finally the global table.
 
 current_op/3 gets difficult.  TBD.
 
@@ -136,6 +136,9 @@ defOperator(Module m, atom_t name, int type, int priority)
 
   if ( (s = lookupHTable(m->operators, (void *)name)) )
   { op = s->value;
+  } else if ( priority < 0 )
+  { UNLOCK();				/* already inherited: do not change */
+    return;
   } else
   { op = allocHeap(sizeof(*op));
 
@@ -148,7 +151,7 @@ defOperator(Module m, atom_t name, int type, int priority)
   }
 
   op->priority[t] = priority;
-  op->type[t]     = (priority > 0 ? type : 0);
+  op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
   if ( !s )
   { PL_register_atom(name);
     addHTable(m->operators, (void *)name, op);
@@ -166,43 +169,51 @@ Check whether an atom is defined as an   operator  in the context of the
 current thread and provided module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
+static operator *
+visibleOperator(Module m, atom_t name, int kind)
 { Symbol s;
   operator *op;
+  ListCell c;
+
+  if ( m->operators &&
+	 (s = lookupHTable(m->operators, (void *)name)) )
+  { op = s->value;
+    if ( op->type[kind] != OP_INHERIT )
+      return op;
+  }
+  for(c = m->supers; c; c=c->next)
+  { if ( (op = visibleOperator(c->value, name, kind)) )
+      return op;
+  }
+
+  return NULL;
+}
+
+
+int
+currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
+{ operator *op;
 
   assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
 
-  if ( m && m->operators &&
-       (s = lookupHTable(m->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
-      goto out;
+  if ( !m )
+    m = MODULE_user;
+
+  if ( (op = visibleOperator(m, name, kind)) )
+  { if ( op->priority[kind] > 0 )
+    { *type     = op->type[kind];
+      *priority = op->priority[kind];
+
+      DEBUG(5,
+	    Sdprintf("currentOperator(%s) --> %s %d\n",
+		     PL_atom_chars(name),
+		     PL_atom_chars(operatorTypeToAtom(*type)),
+		     *priority));
+
+      succeed;
+    }
   }
 
-  if ( m != MODULE_user &&
-       (s = lookupHTable(MODULE_user->operators, (void *)name)) )
-  { op = s->value;
-    if ( op->type[kind] != OP_INHERIT )
-      goto out;
-  }
-
-  fail;
-
-out:
-  if ( op->priority[kind] > 0 )
-  { *type     = op->type[kind];
-    *priority = op->priority[kind];
-    
-    DEBUG(5,
-	  Sdprintf("currentOperator(%s) --> %s %d\n",
-		   PL_atom_chars(name),
-		   PL_atom_chars(operatorTypeToAtom(*type)),
-		   *priority));
-
-    succeed;
-  }
-    
   fail;
 }
 
@@ -214,14 +225,34 @@ one priority is defined, use the highest.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-maxOp(operator *op, int done[3], int sofar)
+maxOp(operator *op, int *done, int sofar)
 { int i;
 
   for(i=0; i<3; i++)
-  { if ( done[i] == FALSE && op->type[i] != OP_INHERIT )
+  { if ( !(*done & (1<<i))  && op->type[i] != OP_INHERIT )
     { if ( op->priority[i] > sofar )
 	sofar = op->priority[i];
-      done[i] = TRUE;
+      *done |= (1<<i);
+    }
+  }
+
+  return sofar;
+}
+
+
+static int
+scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
+{ if ( *done != 0x7 )
+  { Symbol s;
+
+    if ( m->operators && (s=lookupHTable(m->operators, (void *)name)) )
+      sofar = maxOp(s->value, done, sofar);
+
+    if ( *done != 0x7 )
+    { ListCell c;
+
+      for(c=m->supers; c; c=c->next)
+	sofar = scanPriorityOperator(c->value, name, done, sofar);
     }
   }
 
@@ -231,21 +262,16 @@ maxOp(operator *op, int done[3], int sofar)
 
 int
 priorityOperator(Module m, atom_t name)
-{ int result = 0;
-  int done[3];
-  Symbol s;
+{ int done = 0;
 
-  done[0] = done[1] = done[2] = FALSE;
+  if ( !m )
+    m = MODULE_user;
 
-  if ( m && m->operators &&
-       (s = lookupHTable(m->operators, (void *)name)) )
-    result = maxOp(s->value, done, result);
-
-  if ( (s = lookupHTable(MODULE_user->operators, (void *)name)) )
-    result = maxOp(s->value, done, result);
-
-  return result;
+  return scanPriorityOperator(m, name, &done, 0);
 }
+
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *	  PROLOG BINDING	*
@@ -283,21 +309,37 @@ Define an operator from Prolog (op/3). The  current version is fully ISO
 compliant for all exception cases.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_op(term_t pri, term_t type, term_t name)
-{ atom_t nm;
+static
+PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+  atom_t nm;
   atom_t tp;
   int t;
   int p;
   Module m = MODULE_parse;
 
-  PL_strip_module(name, &m, name);
+  term_t pri = A1;
+  term_t type = A2;
+  term_t name = A3;
 
-  if ( !PL_get_atom(type, &tp) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, type);
-  if ( !PL_get_integer(pri, &p) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, pri);
-  if ( p < 0 || p > OP_MAXPRIORITY )
+  PL_strip_module(name, &m, name);
+  if ( m == MODULE_system )
+  { term_t t = PL_new_term_ref();
+    term_t a = PL_new_term_ref();
+
+    PL_put_atom(a, m->name);
+    PL_cons_functor(t, FUNCTOR_colon2, a, name);
+
+    return PL_error(NULL, 0, "system operators are protected",
+		    ERR_PERMISSION, ATOM_redefine, ATOM_operator,
+		    t);
+  }
+
+  if ( !PL_get_atom_ex(type, &tp) )
+    fail;
+  if ( !PL_get_integer_ex(pri, &p) )
+    fail;
+  if ( !((p >= 0 && p <= OP_MAXPRIORITY) || (p == -1 && m != MODULE_user)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_priority, pri);
   if ( !(t = atomToOperatorType(tp)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_specifier, type);
@@ -325,8 +367,7 @@ pl_op(term_t pri, term_t type, term_t name)
   }
 
   succeed;
-}    
-
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 current_op is a bit hard with   the distributed operator tables (thread,
@@ -345,7 +386,7 @@ addOpToBuffer(Buffer b, atom_t name, int type, int priority)
   { if ( op->name == name && op->type == type )
       return;				/* got this one already */
   }
-  
+
   new.name = name;
   new.type = type;
   new.priority = priority;
@@ -371,7 +412,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 	if ( op->priority[kind] < 0 ||
 	     op->type[kind] != type )
 	  continue;
-	
+
 	if ( !priority ||
 	     op->priority[kind] == priority ||
 	     op->priority[kind] == 0 )
@@ -382,7 +423,7 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
 	for(kind = OP_PREFIX; kind <= OP_POSTFIX; kind++)
 	{ if ( op->priority[kind] < 0 )
 	    continue;
-	  
+
 	  if ( !priority ||
 	     op->priority[kind] == priority ||
 	     op->priority[kind] == 0 )
@@ -391,8 +432,23 @@ addOpsFromTable(Table t, atom_t name, int priority, int type, Buffer b)
       }
     }
   }
-  
+
   freeTableEnum(e);
+}
+
+
+static void
+scanVisibleOperators(Module m, atom_t name, int priority, int type, Buffer b,
+		     int inherit)
+{ if ( m->operators )
+    addOpsFromTable(m->operators, name, priority, type, b);
+
+  if ( inherit )
+  { ListCell c;
+
+    for(c=m->supers; c; c=c->next)
+      scanVisibleOperators(c->value, name, priority, type, b, inherit);
+  }
 }
 
 
@@ -405,7 +461,7 @@ typedef struct
 static word
 current_op(Module m, int inherit,
 	   term_t prec, term_t type, term_t name,
-	   control_t h)
+	   control_t h ARG_LD)
 { op_enum *e;
   Buffer b;
   int mx;
@@ -414,28 +470,35 @@ current_op(Module m, int inherit,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { atom_t a, nm = NULL_ATOM;		/* any name */
-      int p = 0;			/* any priority */
-      int t = 0;			/* any type */
+    { atom_t a, nm;			/* NULL_ATOM: any name */
+      int p;				/* 0: any priority */
+      int t;				/* 0: any type */
+
+      if ( PL_is_variable(name) )
+	nm = NULL_ATOM;
+      else if ( !PL_get_atom_ex(name, &nm) )
+	return FALSE;
+
+      if ( PL_is_variable(prec) )
+	p = 0;
+      else if ( !PL_get_integer_ex(prec, &p) )
+	return FALSE;
+
+      if ( PL_is_variable(type) )
+	t = 0;
+      else if ( PL_get_atom_ex(type, &a) )
+      { if ( !(t = atomToOperatorType(a)) )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_operator_specifier, type);
+      } else
+	return FALSE;
 
       e = allocHeap(sizeof(*e));
       b = &e->buffer;
       initBuffer(b);
       e->index = 0;
 
-      PL_get_atom(name, &nm);
-      PL_get_integer(prec, &p);
-      if ( PL_get_atom(type, &a) )
-      { if ( !(t = atomToOperatorType(a)) )
-	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_operator_specifier, type);
-      }
-      if ( m->operators )
-	addOpsFromTable(m->operators, nm, p, t, b);
-	
-      if ( inherit && m != MODULE_user )
-	addOpsFromTable(MODULE_user->operators, nm, p, t, b);
-
+      scanVisibleOperators(m, nm, p, t, b, inherit);
       break;
     }
     case FRG_REDO:
@@ -479,26 +542,34 @@ current_op(Module m, int inherit,
   fail;
 }
 
+static
+PRED_IMPL("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
+{ PRED_LD
+  Module m = MODULE_parse;
 
-word
-pl_current_op(term_t prec, term_t type, term_t name, control_t h)
-{ Module m = MODULE_parse;
+  if ( CTX_CNTRL != FRG_CUTTED )
+    PL_strip_module(A3, &m, A3);
 
-  if ( name )				/* FRG_CUTTED: no name! */
-    PL_strip_module(name, &m, name);
-
-  return current_op(m, TRUE, prec, type, name, h);
+  return current_op(m, TRUE, A1, A2, A3, PL__ctx PASS_LD);
 }
 
+/** '$local_op'(?Precedence, ?Type, ?Name) is nondet.
 
-word
-pl_local_op(term_t prec, term_t type, term_t name, control_t h)
-{ Module m = MODULE_user;
+Same as curent_op/3, but  only  operators   defined  at  the  module are
+reported and not the operators that  are   inherited.  This  is used for
+additional  reflexive  capabilities,   such    as   save_operators/1  in
+library(qsave).
+*/
 
-  if ( name )				/* FRG_CUTTED: no name! */
-    PL_strip_module(name, &m, name);
+static
+PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module m = MODULE_user;
 
-  return current_op(m, FALSE, prec, type, name, h);
+  if ( CTX_CNTRL != FRG_CUTTED )
+    PL_strip_module(A3, &m, A3);
+
+  return current_op(m, FALSE, A1, A2, A3, PL__ctx PASS_LD);
 }
 
 
@@ -509,64 +580,66 @@ pl_local_op(term_t prec, term_t type, term_t name, control_t h)
 #define OP(a, t, p) { a, t, p }
 
 static const opdef operators[] = {
-  OP(ATOM_star,		OP_YFX,		400),	/* * */
-  OP(ATOM_plus,		OP_FY,		200),	/* + */
-  OP(ATOM_plus,		OP_YFX,		500),
-  OP(ATOM_comma,	OP_XFY,	       1000),	/* , */
-  OP(ATOM_minus,	OP_FY,		200),	/* - */
-  OP(ATOM_minus,	OP_YFX,		500),
-  OP(ATOM_grammar,	OP_XFX,	       1200),	/* --> */
-  OP(ATOM_ifthen,	OP_XFY,	       1050),	/* -> */
-  OP(ATOM_softcut,	OP_XFY,	       1050),	/* *-> */
-  OP(ATOM_divide,	OP_YFX,		400),	/* / */
-  OP(ATOM_div,		OP_YFX,		400),	/* // */
-  OP(ATOM_rdiv,		OP_YFX,		400),	/* rdiv */
-  OP(ATOM_and,		OP_YFX,		500),	/* /\ */
-  OP(ATOM_colon,	OP_XFY,		600),	/* : */
-  OP(ATOM_prove,	OP_FX,	       1200),	/* :- */
-  OP(ATOM_prove,	OP_XFX,	       1200),
-  OP(ATOM_semicolon,	OP_XFY,	       1100),	/* ; */
-  OP(ATOM_bar,		OP_XFY,	       1105),	/* | */
-  OP(ATOM_smaller,	OP_XFX,		700),	/* < */
-  OP(ATOM_lshift,	OP_YFX,		400),	/* << */
-  OP(ATOM_equals,	OP_XFX,		700),	/* = */
-  OP(ATOM_univ,		OP_XFX,		700),	/* =.. */
-  OP(ATOM_ar_equals,	OP_XFX,		700),	/* =:= */
-  OP(ATOM_smaller_equal,OP_XFX,		700),	/* =< */
-  OP(ATOM_larger_equal,	OP_XFX,		700),	/* >= */
-  OP(ATOM_strick_equal,	OP_XFX,		700),	/* == */
-  OP(ATOM_ar_not_equal,	OP_XFX,		700),	/* =\= */
-  OP(ATOM_larger,	OP_XFX,		700),	/* > */
-  OP(ATOM_rshift,	OP_YFX,		400),	/* >> */
-  OP(ATOM_query,	OP_FX,	       1200),	/* ?- */
-  OP(ATOM_at_smaller,	OP_XFX,		700),	/* @< */
-  OP(ATOM_at_smaller_eq,OP_XFX,		700),	/* @=< */
-  OP(ATOM_at_larger,	OP_XFX,		700),	/* @> */
-  OP(ATOM_at_larger_eq,	OP_XFX,		700),	/* @>= */
-  OP(ATOM_backslash,	OP_FY,		200),	/* \ */
-  OP(ATOM_not_provable,	OP_FY,		900),	/* \+ */
-  OP(ATOM_or,		OP_YFX,		500),	/* \/ */
-  OP(ATOM_not_equals,	OP_XFX,		700),	/* \= */
-  OP(ATOM_not_strickt_equals,OP_XFX,	700),	/* \== */
-  OP(ATOM_at_equals,	OP_XFX,		700),	/* =@= */
-  OP(ATOM_at_not_equals,OP_XFX,		700),	/* \=@= */
-  OP(ATOM_hat,		OP_XFY,		200),	/* ^ */
-  OP(ATOM_doublestar,	OP_XFX,		200), 	/* ** */
-  OP(ATOM_discontiguous,OP_FX,	       1150),	/* discontiguous */
-  OP(ATOM_dynamic,	OP_FX,	       1150),	/* dynamic */
-  OP(ATOM_volatile,	OP_FX,	       1150), 	/* volatile */
-  OP(ATOM_thread_local,	OP_FX,	       1150), 	/* thread_local */
-  OP(ATOM_initialization,OP_FX,	       1150), 	/* initialization */
-  OP(ATOM_thread_initialization,OP_FX, 1150), 	/* thread_initialization */
-  OP(ATOM_is,		OP_XFX,		700),	/* is */
-  OP(ATOM_mod,		OP_YFX,		400),	/* mod */
-  OP(ATOM_rem,		OP_YFX,		400),	/* rem */
-  OP(ATOM_module_transparent,OP_FX,    1150),	/* module_transparent */
-  OP(ATOM_multifile,	OP_FX,	       1150),	/* multifile */
-  OP(ATOM_meta_predicate, OP_FX,       1150),	/* meta_predicate */
-  OP(ATOM_xor,		OP_YFX,		400),	/* xor */
+  OP(ATOM_star,			 OP_YFX, 400),	/* * */
+  OP(ATOM_plus,			 OP_FY,	 200),	/* + */
+  OP(ATOM_plus,			 OP_YFX, 500),
+  OP(ATOM_comma,		 OP_XFY, 1000),	/* , */
+  OP(ATOM_minus,		 OP_FY,	 200),	/* - */
+  OP(ATOM_minus,		 OP_YFX, 500),
+  OP(ATOM_grammar,		 OP_XFX, 1200),	/* --> */
+  OP(ATOM_ifthen,		 OP_XFY, 1050),	/* -> */
+  OP(ATOM_softcut,		 OP_XFY, 1050),	/* *-> */
+  OP(ATOM_divide,		 OP_YFX, 400),	/* / */
+  OP(ATOM_div,			 OP_YFX, 400),	/* // */
+  OP(ATOM_rdiv,			 OP_YFX, 400),	/* rdiv */
+  OP(ATOM_and,			 OP_YFX, 500),	/* /\ */
+  OP(ATOM_colon,		 OP_XFY, 600),	/* : */
+  OP(ATOM_prove,		 OP_FX,	 1200),	/* :- */
+  OP(ATOM_prove,		 OP_XFX, 1200),
+  OP(ATOM_semicolon,		 OP_XFY, 1100),	/* ; */
+  OP(ATOM_bar,			 OP_XFY, 1105),	/* | */
+  OP(ATOM_smaller,		 OP_XFX, 700),	/* < */
+  OP(ATOM_lshift,		 OP_YFX, 400),	/* << */
+  OP(ATOM_equals,		 OP_XFX, 700),	/* = */
+  OP(ATOM_univ,			 OP_XFX, 700),	/* =.. */
+  OP(ATOM_ar_equals,		 OP_XFX, 700),	/* =:= */
+  OP(ATOM_smaller_equal,	 OP_XFX, 700),	/* =< */
+  OP(ATOM_larger_equal,		 OP_XFX, 700),	/* >= */
+  OP(ATOM_strict_equal,		 OP_XFX, 700),	/* == */
+  OP(ATOM_ar_not_equal,		 OP_XFX, 700),	/* =\= */
+  OP(ATOM_larger,		 OP_XFX, 700),	/* > */
+  OP(ATOM_rshift,		 OP_YFX, 400),	/* >> */
+  OP(ATOM_query,		 OP_FX,	 1200),	/* ?- */
+  OP(ATOM_at_smaller,		 OP_XFX, 700),	/* @< */
+  OP(ATOM_at_smaller_eq,	 OP_XFX, 700),	/* @=< */
+  OP(ATOM_at_larger,		 OP_XFX, 700),	/* @> */
+  OP(ATOM_at_larger_eq,		 OP_XFX, 700),	/* @>= */
+  OP(ATOM_backslash,		 OP_FY,	 200),	/* \ */
+  OP(ATOM_not_provable,		 OP_FY,	 900),	/* \+ */
+  OP(ATOM_or,			 OP_YFX, 500),	/* \/ */
+  OP(ATOM_bw_xor,		 OP_YFX, 500),	/* >< */
+  OP(ATOM_not_equals,		 OP_XFX, 700),	/* \= */
+  OP(ATOM_not_strickt_equals,	 OP_XFX, 700),	/* \== */
+  OP(ATOM_at_equals,		 OP_XFX, 700),	/* =@= */
+  OP(ATOM_at_not_equals,	 OP_XFX, 700),	/* \=@= */
+  OP(ATOM_hat,			 OP_XFY, 200),	/* ^ */
+  OP(ATOM_doublestar,		 OP_XFX, 200),	/* ** */
+  OP(ATOM_discontiguous,	 OP_FX,	 1150),	/* discontiguous */
+  OP(ATOM_dynamic,		 OP_FX,	 1150),	/* dynamic */
+  OP(ATOM_volatile,		 OP_FX,	 1150),	/* volatile */
+  OP(ATOM_thread_local,		 OP_FX,	 1150),	/* thread_local */
+  OP(ATOM_initialization,	 OP_FX,	 1150),	/* initialization */
+  OP(ATOM_thread_initialization, OP_FX,	 1150),	/* thread_initialization */
+  OP(ATOM_is,			 OP_XFX, 700),	/* is */
+  OP(ATOM_as,			 OP_XFX, 700),	/* as */
+  OP(ATOM_mod,			 OP_YFX, 400),	/* mod */
+  OP(ATOM_rem,			 OP_YFX, 400),	/* rem */
+  OP(ATOM_module_transparent,	 OP_FX,	 1150),	/* module_transparent */
+  OP(ATOM_multifile,		 OP_FX,	 1150),	/* multifile */
+  OP(ATOM_meta_predicate,	 OP_FX,	 1150),	/* meta_predicate */
+  OP(ATOM_xor,			 OP_YFX, 400),	/* xor */
 
-  OP(NULL_ATOM,		0,		0)
+  OP(NULL_ATOM,			 0,	 0)
 };
 
 
@@ -575,40 +648,16 @@ initOperators(void)
 { const opdef *op;
 
   for( op = operators; op->name; op++ )
-    defOperator(MODULE_user, op->name, op->type, op->priority);
+    defOperator(MODULE_system, op->name, op->type, op->priority);
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Examine  built-in  operators  (functions  as    current_op/3).  Used  by
-qsave_program to find out which operator declarations to save.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
-word
-pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
-{ int i;
-  const opdef *op;
-  fid_t fid;
-
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-      i = 0;
-      break;
-    case FRG_REDO:
-      i = (int)ForeignContextInt(h);
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  fid = PL_open_foreign_frame();
-  for( op = &operators[i]; op->name; op++ )
-  { if ( PL_unify_atom(name, op->name) &&
-	 PL_unify_integer(prec, op->priority) &&
-	 PL_unify_atom(type, operatorTypeToAtom(op->type)) )
-      ForeignRedoInt(i+1);
-    PL_rewind_foreign_frame(fid);
-  }
-  fail;
-}
+BeginPredDefs(op)
+  PRED_DEF("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
+  PRED_DEF("current_op", 3, current_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT|PL_FA_ISO)
+  PRED_DEF("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+EndPredDefs

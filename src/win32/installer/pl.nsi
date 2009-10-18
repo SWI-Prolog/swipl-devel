@@ -97,6 +97,7 @@ Section "Base system (required)"
   File pl\library\qpforeign.pl
   File pl\library\quintus.pl
   File pl\library\files.pl
+  File pl\library\charsio.pl
 
 ; `STANDARD LIBRARIES'
   File pl\library\ctypes.pl
@@ -140,6 +141,8 @@ Section "Base system (required)"
   File pl\library\emacs_interface.pl
   File pl\library\explain.pl
   File pl\library\debug.pl
+  File pl\library\portray_text.pl
+  File pl\library\vm.pl
   File pl\library\check.pl
   File pl\library\checklast.pl
   File pl\library\checkselect.pl
@@ -188,11 +191,11 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
-Section "Common Prolog Library"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library\common
-  File /r pl\library\common
-SectionEnd
+#Section "Common Prolog Library"
+#  SectionIn 1 3
+#  SetOutPath $INSTDIR\library\common
+#  File /r pl\library\common
+#SectionEnd
 
 Section "Constraint Handling Rules"
   SectionIn 1 3
@@ -204,7 +207,6 @@ Section "Constraint Handling Rules"
   File pl\library\chr\chr_debug.pl
   File pl\library\chr\chr_op.pl
   File pl\library\chr\chr_translate.pl
-  File pl\library\chr\hprolog.pl
   File pl\library\chr\pairlist.pl
   File pl\library\chr\a_star.pl
   File pl\library\chr\binomialheap.pl
@@ -268,7 +270,7 @@ Section "Demo files"
 SectionEnd
 
 Section "C/C++ Interface"
-  SectionIn 1 3 
+  SectionIn 1 3
   SetOutPath $INSTDIR\lib
   File pl\lib\libpl.lib
   File pl\lib\plterm.lib
@@ -313,6 +315,7 @@ Section "Package CLIB"
   File pl\bin\cgi.dll
   File pl\bin\crypt.dll
   File pl\bin\sha4pl.dll
+  File pl\bin\uri.dll
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
@@ -324,6 +327,7 @@ Section "Package CLIB"
   File pl\library\cgi.pl
   File pl\library\crypt.pl
   File pl\library\sha.pl
+  File pl\library\uri.pl
   File pl\library\memfile.pl
   File pl\library\mime.pl
   File pl\library\socket.pl
@@ -369,6 +373,7 @@ Section "SGML/XML/HTML parser"
   File pl\library\sgml_write.pl
   File pl\library\xsdp_types.pl
   File pl\library\iso_639.pl
+  File pl\library\xpath.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\sgml.html
 SectionEnd
@@ -377,6 +382,7 @@ Section "RDF and Semantic Web Library"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\rdf_db.dll
+  File pl\bin\turtle.dll
 
   SetOutPath $INSTDIR\library
   File pl\library\rdf.pl
@@ -488,6 +494,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\ssl4pl.pdb
   File pl\bin\zlib4pl.pdb
   File pl\bin\sha4pl.pdb
+  File pl\bin\uri.pdb
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
 SectionEnd
@@ -659,7 +666,7 @@ Function .onInit
 
   ;Extract InstallOptions files
   ;$PLUGINSDIR will automatically be removed when the installer closes
-  
+
   InitPluginsDir
   File /oname=$PLUGINSDIR\options.ini "options.ini"
 
@@ -711,14 +718,14 @@ Function SetCustom
   StrCmp ${EXT} "" 0 HasExt
     StrCpy ${EXT} "pl"
   HasExt:
-  WriteINIStr $PLUGINSDIR\options.ini "Field 4" "State" ${EXT}  
+  WriteINIStr $PLUGINSDIR\options.ini "Field 4" "State" ${EXT}
 
 # Startmenu program group
   ReadRegStr ${GRP} HKLM ${REGKEY} group
   StrCmp ${GRP} "" 0 HasGroup
     StrCpy ${GRP} "SWI-Prolog"
   HasGroup:
-  WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}  
+  WriteINIStr $PLUGINSDIR\options.ini "Field 6" "State" ${GRP}
 
 # Start the dialog
   Push ${TEMP1}

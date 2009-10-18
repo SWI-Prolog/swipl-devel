@@ -25,10 +25,14 @@
 #ifndef PL_SEGSTACK_H_INCLUDED
 #define PL_SEGSTACK_H_INCLUDED
 
+#define SEGSTACK_CHUNKSIZE (1*1024)
+
 typedef struct segchunk
 { struct segchunk *next;		/* double linked list */
   struct segchunk *previous;
   char  *top;				/* top when closed */
+  int	 allocated;			/* must call free on it */
+  size_t size;				/* size of the chunk */
   char	 data[1];			/* data on my back */
 } segchunk;
 
@@ -43,6 +47,8 @@ typedef struct
 } segstack;
 
 
+COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
+			     size_t len, void *data);
 COMMON(int)	pushSegStack(segstack *stack, void* data);
 COMMON(int)	popSegStack(segstack *stack, void *data);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));

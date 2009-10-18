@@ -18,7 +18,7 @@ therefore its frame is destroyed immediately after succeeding.
 
     \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
 Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
-is a frame reference as obtained through prolog_current_frame/1, 
+is a frame reference as obtained through prolog_current_frame/1,
 prolog_trace_interception/4 or this predicate.  The key values are
 described below.
 
@@ -194,8 +194,8 @@ example below records all goals trapped by the tracer in the database.
 
 \begin{code}
 prolog_trace_interception(Port, Frame, _PC, continue) :-
-        prolog_frame_attribute(Frame, goal, Goal), 
-        prolog_frame_attribute(Frame, level, Level), 
+        prolog_frame_attribute(Frame, goal, Goal),
+        prolog_frame_attribute(Frame, level, Level),
         recordz(trace, trace(Port, Level, Goal)).
 \end{code}
 
@@ -248,7 +248,7 @@ as way that it no longer unifies with the catching frame.
 
 Typically, prolog_exception_hook/4 is used to fill the second argument
 of \term{error}{Formal, Context} exceptions. \arg{Formal} is
-defined by the ISO standard, while SWI-Prolog defines \arg{Context} 
+defined by the ISO standard, while SWI-Prolog defines \arg{Context}
 as a term \term{context}{Location, Message}.  \arg{Location} is bound
 to a term <name>/<arity> by the kernel.  This hook can be used to add
 more information on the calling context, such as a full stack trace.
@@ -280,13 +280,13 @@ no relation to Prolog exceptions as defined by the ISO predicates
 catch/3 and throw/1.
 
 The predicate exception/3 is called by the kernel on a couple of events,
-allowing the user to `fix' errors just in time events.   The mechanism
-allows for \jargon{lazy} creation of objects such as predicates.
+allowing the user to `fix' errors just-in-time. The mechanism allows for
+\jargon{lazy} creation of objects such as predicates.
 
 \begin{description}
     \predicate{exception}{3}{+Exception, +Context, -Action}
 Dynamic predicate, normally not defined. Called by the Prolog system on
-run-time exceptions that can be repaired `just in time'.  The values
+run-time exceptions that can be repaired `just-in-time'.  The values
 for \arg{Exception} are described below.  See also catch/3 and throw/1.
 
 If this hook predicate succeeds it must instantiate the \arg{Action}
@@ -298,12 +298,12 @@ operation can now succeed without error.
 
 \begin{description}
     \termitem{undefined_predicate}{}
-\arg{Context} is instantiated to a term \arg{Name}/\arg{Arity}.
-\arg{Name} refers to the name and \arg{Arity} to the arity of the
-undefined predicate. If the definition module of the predicate is not
-\arg{user}, \arg{Context} will be of the form \mbox{\tt
-<Module>:<Name>/<Arity>}. If the predicate fails Prolog will generate an
-\except{existence_error} exception.
+\arg{Context} is instantiated to a predicate-indicator
+([module]:<name>/<arity>). If the predicate fails Prolog will generate
+an \except{existence_error} exception. The hook is intended to implement
+alternatives to the built-in autoloader, such as autoloading code from
+a database.  Do \emph{not} use this hook to suppress existence errors on
+predicates.  See also \prologflag{unknown} and \secref{autoload}.
 
     \termitem{undefined_global_variable}{}
 \arg{Context} is instantiated to the name of the missing global
@@ -396,7 +396,7 @@ providing a list of \arg{Position}-\arg{Comment} in \arg{Comments},
 the start-position of the next term in \arg{Pos} and the next term
 itself in \arg{Term}.  All positions are stream-position terms.
 This hook is exploited by the documentation system.  See
-stream_position_data/3. See also read_term/3. 
+stream_position_data/3. See also read_term/3.
 \end{description}
 
 

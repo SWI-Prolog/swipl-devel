@@ -55,6 +55,21 @@ unlinkApplication(Application app)
 
 
 static status
+leaderApplication(Application app, FrameObj leader)
+{ if ( app->leader != leader )
+  { if ( notNil(app->leader) )
+      send(app, NAME_delete, app->leader, EAV);
+    if ( notNil(leader->application) )
+      send(leader->application, NAME_delete, leader, EAV);
+    assign(app, leader, leader);
+    assign(leader, application, app);
+  }
+
+  succeed;
+}
+
+
+static status
 appendApplication(Application app, FrameObj fr)
 { if ( fr->application != app )
   { if ( notNil(fr->application) )
@@ -79,6 +94,8 @@ deleteApplication(Application app, FrameObj fr)
   { deleteChain(app->members, fr);
     assign(fr, application, NIL);
     deleteChain(app->modal, fr);
+    if ( app->leader == fr )
+      assign(app, leader, NIL);
     succeed;
   }
 
@@ -96,7 +113,7 @@ getMemberApplication(Application app, Name name)
     if ( fr->name == name )
       answer(fr);
   }
-  
+
   fail;
 }
 
@@ -155,6 +172,8 @@ getModalApplication(Application app)
 static vardecl var_application[] =
 { IV(NAME_name, "name", IV_BOTH,
      NAME_name, "Identifier name of the application"),
+  SV(NAME_leader, "frame*", IV_GET|IV_STORE, leaderApplication,
+     NAME_organisation, "Leading frame of the application"),
   IV(NAME_members, "chain", IV_GET,
      NAME_organisation, "Chain holding member frames"),
   IV(NAME_kind, "{user,service}", IV_BOTH,
@@ -196,7 +215,7 @@ static getdecl get_application[] =
 #define rc_application NULL
 /*
 static classvardecl rc_application[] =
-{ 
+{
 };
 */
 

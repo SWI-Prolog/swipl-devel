@@ -121,7 +121,7 @@ static getdecl get_rc[] =
 #define rc_rc NULL
 /*
 static classvardecl rc_rc[] =
-{ 
+{
 };
 */
 

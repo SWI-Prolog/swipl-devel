@@ -89,18 +89,18 @@ otherwise during startup of the application.
 %	the   behaviour   depends   on    the     =wait=    option    of
 %	thread_create_in_pool/4  and  the  =backlog=   option  described
 %	below.  Options are passed to thread_create/3, except for
-%	
+%
 %	    * backlog(+MaxBackLog)
 %	    Maximum number of requests that can be suspended.  Default
 %	    is =infinite=.  Otherwise it must be a non-negative integer.
 %	    Using backlog(0) will never delay thread creation for this
 %	    pool.
-%	    
-%	The pooling mechanism does _not_ interact with the =detached=
-%	state of a thread.  Threads can be created but =detached= and
-%	normal and must be joined using thread_join/2 if they are not
+%
+%	The pooling mechanism does _not_   interact  with the =detached=
+%	state of a thread. Threads can   be  created both =detached= and
+%	normal and must be joined using   thread_join/2  if they are not
 %	detached.
-%	
+%
 %	@bug	The thread creation option =at_exit= is reserved for
 %		internal use by this library.
 
@@ -113,7 +113,7 @@ thread_pool_create(Name, Size, Options) :-
 %%	thread_pool_destroy(+Name) is det.
 %
 %	Destroy the thread pool named Name.
-%	
+%
 %	@error	existence_error(thread_pool, Name).
 
 thread_pool_destroy(Name) :-
@@ -141,11 +141,17 @@ current_thread_pool(Name) :-
 %
 %	True if Property is a property of thread pool Name. Defined
 %	properties are:
-%	
+%
 %	    * options(Options)
 %	    Thread creation options for this pool
 %	    * free(Size)
 %	    Number of free slots on this pool
+%	    * size(Size)
+%	    Total number of slots on this pool
+%	    * members(ListOfIDs)
+%	    ListOfIDs is the list or threads running in this pool
+%	    * running(Running)
+%	    Number of running threads in this pool
 %	    * backlog(Size)
 %	    Number of delayed thread creations on this pool
 
@@ -166,12 +172,12 @@ thread_pool_property(Name, Property) :-
 %	Create  a  thread  in  Pool.  Options  overrule  default  thread
 %	creation options associated  to  the   pool.  In  addition,  the
 %	following option is defined:
-%	
+%
 %	    * wait(+Boolean)
 %	    If =true= (default) and the pool is full, wait until a
 %	    member of the pool completes.  If =false=, throw a
 %	    resource_error.
-%	    
+%
 %	@error	resource_error(threads_in_pool(Pool)) is raised if wait
 %		is =false= or the backlog limit has been reached.
 
@@ -209,16 +215,16 @@ create_pool_manager :-
 	rb_new(State0),
 	thread_create(manage_thread_pool(State0), _,
 		      [ alias('__thread_pool_manager'),
-			local(100),
-			global(1000),
-			trail(1000)
+			local(1000),
+			global(2000),
+			trail(2000)
 		      ]).
 
 
 		 /*******************************
 		 *	  MANAGER LOGIC		*
 		 *******************************/
-	
+
 %%	manage_thread_pool(+State)
 
 manage_thread_pool(State0) :-
@@ -232,7 +238,7 @@ manage_thread_pool(State0) :-
 
 update_thread_pool(create_pool(Name, Size, Options, For), State0, State) :- !,
 	(   rb_insert_new(State0,
-			  Name, pool(Options, Size, WP, WP),
+			  Name, tpool(Options, Size, Size, WP, WP, []),
 			  State)
 	->  thread_send_message(For, thread_pool(true))
 	;   reply_error(For, permission_error(create, thread_pool, Name)),
@@ -266,10 +272,20 @@ update_thread_pool(Message, State0, State) :-
 	    )
 	).
 
-pool_property(options(Options), pool(Options, _Free, _WP, _WPT)).
-pool_property(backlog(Size), pool(_, _Free, WP, WPT)) :-
+pool_property(options(Options),
+	      tpool(Options, _Free, _Size, _WP, _WPT, _Members)).
+pool_property(backlog(Size),
+	      tpool(_, _Free, _Size, WP, WPT, _Members)) :-
 	diff_list_length(WP, WPT, Size).
-pool_property(free(Free), pool(_, Free, _, _)).
+pool_property(free(Free),
+	      tpool(_, Free, _Size, _, _, _)).
+pool_property(size(Size),
+	      tpool(_, _Free, Size, _, _, _)).
+pool_property(running(Count),
+	      tpool(_, Free, Size, _, _, _)) :-
+	Count is Size - Free.
+pool_property(members(IDList),
+	      tpool(_, _, _, _, _, IDList)).
 
 diff_list_length(List, Tail, Size) :-
 	'$skip_list'(Length, List, Rest),
@@ -283,7 +299,7 @@ diff_list_length(List, Tail, Size) :-
 %
 %	Deal with create requests and  completion   messages  on a given
 %	pool.  There are two messages:
-%	
+%
 %	    * create(PoolName, Goal, ForThread, Wait, Options)
 %	    Create a new thread on behalve of ForThread.  There are
 %	    two cases:
@@ -294,22 +310,30 @@ diff_list_length(List, Tail, Size) :-
 %	    create a new one.
 
 update_pool(create(Name, Goal, For, _, MyOptions),
-	    pool(Options, Free0, WP, WPT),
-	    pool(Options, Free, WP, WPT)) :-
+	    tpool(Options, Free0, Size, WP, WPT, Members0),
+	    tpool(Options, Free, Size, WP, WPT, Members)) :-
 	succ(Free, Free0), !,
 	thread_self(Me),
 	merge_options(MyOptions, Options, ThreadOptions),
 	(   option(at_exit(_), ThreadOptions)
-	->  reply_error(For, permission_error(specify, option, at_axit))
-	;   thread_create(Goal, Id,
-			  [ at_exit(thread_send_message(Me, exitted(Name, Id)))
-			  | ThreadOptions
-			  ]),
-	    reply(For, Id)
+	->  reply_error(For, permission_error(specify, option, at_axit)),
+	    Members = Members0
+	;   Exit = thread_send_message(Me, exitted(Name, Id)),
+	    catch(thread_create(Goal, Id,
+				[ at_exit(Exit)
+				| ThreadOptions
+				]),
+		  E, true),
+	    (	var(E)
+	    ->	Members = [Id|Members0],
+		reply(For, Id)
+	    ;	reply_error(For, E),
+		Members = Members0
+	    )
 	).
 update_pool(Create,
-	    pool(Options, 0, WP, WPT0),
-	    pool(Options, 0, WP, WPT)) :-
+	    tpool(Options, 0, Size, WP, WPT0, Members),
+	    tpool(Options, 0, Size, WP, WPT, Members)) :-
 	Create = create(Name, _Goal, For, Wait, _Options), !,
 	option(backlog(BackLog), Options, infinite),
 	(   can_delay(Wait, BackLog, WP, WPT0)
@@ -318,11 +342,12 @@ update_pool(Create,
 	;   WPT = WPT0,
 	    reply_error(For, resource_error(threads_in_pool(Name)))
 	).
-update_pool(exitted(_Name, _Id),
-	    pool(Options, Free0, WP0, WPT),
+update_pool(exitted(_Name, Id),
+	    tpool(Options, Free0, Size, WP0, WPT, Members0),
 	    Pool) :-
 	succ(Free0, Free),
-	Pool1 = pool(Options, Free, WP, WPT),
+	delete(Members0, Id, Members1),
+	Pool1 = tpool(Options, Free, Size, WP, WPT, Members1),
 	(   WP0 == WPT
 	->  WP = WP0,
 	    Pool = Pool1
@@ -365,7 +390,7 @@ wait_reply(Value) :-
 	->  fail
 	;   throw(Reply)
 	).
-	
+
 
 		 /*******************************
 		 *	      MESSAGES		*

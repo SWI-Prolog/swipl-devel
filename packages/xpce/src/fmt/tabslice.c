@@ -159,7 +159,7 @@ static vardecl var_table_slice[] =
   SV(NAME_displayed, "bool", IV_GET|IV_STORE, displayedTableSlice,
      NAME_visibility, "If @on, row/column is visible")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_table_slice[] =
@@ -344,7 +344,7 @@ computeTableColumn(TableColumn col)
     if ( cell )
       rows++;
   }
-  
+
   w = max(w, l+r);
   assign(col, width, toInt(w));
   assign(col, reference, toInt(l));
@@ -431,7 +431,7 @@ static vardecl var_table_column[] =
 { IV(NAME_alignment, T_halign, IV_GET|IV_REDEFINE,
      NAME_layout, "Default alignment of cells")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_table_column[] =
@@ -566,7 +566,7 @@ getCellTableRow(TableRow row, Any x)
   if ( !isInteger(x) )
   { if ( notNil(row->table) )
     { TableColumn col = findNamedSlice(row->table->columns, x);
-      
+
       if ( col )
 	x = col->index;
       else
@@ -585,7 +585,7 @@ getCellTableRow(TableRow row, Any x)
 status
 cellTableRow(TableRow row, Int col, TableCell cell)
 { TableCell old;
-  
+
   if ( (old=getCellTableRow(row, col)) )
   { if ( old != cell )
     { if ( notNil(cell) )
@@ -593,7 +593,7 @@ cellTableRow(TableRow row, Int col, TableCell cell)
     } else
       succeed;				/* no change */
   }
-    
+
   return elementVector((Vector)row, col, cell);
 }
 
@@ -642,7 +642,7 @@ computeTableRow(TableRow row)
       }
     }
   }
-    
+
   h = max(h, t+b);
   assign(row, width,     toInt(h));
   assign(row, reference, toInt(t));
@@ -654,7 +654,7 @@ computeTableRow(TableRow row)
 static status
 computeRubberTableRow(TableRow row)
 { Cprintf("computeRubberTableRow(): Not implemented");
-  
+
   fail;
 }
 
@@ -662,7 +662,7 @@ computeRubberTableRow(TableRow row)
 static status
 appendTableRow(TableRow r, TableCell cell)
 { int i = valInt(getHighIndexVector((Vector)r));
-  
+
   if ( notNil(r->table) )
   { return send(r->table, NAME_append, cell, toInt(i+1), r->index, EAV);
   } else
@@ -689,7 +689,7 @@ static vardecl var_table_row[] =
 { IV(NAME_alignment, T_valign, IV_GET|IV_REDEFINE,
      NAME_layout, "Default alignment of cells")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_table_row[] =

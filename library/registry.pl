@@ -42,7 +42,7 @@ dlldemo directory.
 	    registry_delete_key/1,	% +Path
 	    registry_lookup_key/3,	% +Path, +Access, -Key
 	    win_flush_filetypes/0,	% Flush changes filetypes to shell
-	    
+
 	    shell_register_file_type/4,	% +Ext, +Type, +Name, +Open
 	    shell_register_file_type/5,	% +Ext, +Type, +Name, +Open, +Icon
 	    shell_register_dde/6,	% +Type, +Action,
@@ -51,8 +51,7 @@ dlldemo directory.
 	    shell_register_prolog/1	% +Extension
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(plregtry)).	% load plregtry.ddl
+:- use_foreign_library(foreign(plregtry)).	% load plregtry.ddl
 
 		 /*******************************
 		 *	 REGISTER PROLOG	*
@@ -60,12 +59,12 @@ dlldemo directory.
 
 shell_register_prolog(Ext) :-
 	current_prolog_flag(argv, [Me|_]),
-	concat_atom(['"', Me, '" "%1"'], OpenCommand),
+	atomic_list_concat(['"', Me, '" "%1"'], OpenCommand),
 	atom_concat(Me, ',0', Icon),
 	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
 				 OpenCommand, Icon),
 	shell_register_dde('prolog.type', consult,
-			   prolog, control, 'consult(''%1'')', Me), 
+			   prolog, control, 'consult(''%1'')', Me),
 	shell_register_dde('prolog.type', edit,
 			   prolog, control, 'edit(''%1'')', Me),
 	win_flush_filetypes.
@@ -81,12 +80,12 @@ shell_register_prolog(Ext) :-
 %	Register an extension to a type.  The open command for the type
 %	is defined and files with this extension will be given Name as
 %	their description in the explorer.  For example:
-% 
+%
 % 	==
 %	?- shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
 %				    '"c:\\pl\\bin\\plwin.exe" "%1"').
 %	==
-%				    
+%
 %	The icon command is of the form File.exe,N or File.ico,0
 
 shell_register_file_type(Ext, Type, Name, Open) :-
@@ -151,7 +150,7 @@ registry_set_key(Path, Name, Value) :-
 	registry_make_key(Path, write, Key, Close),
 	reg_set_value(Key, Name, Value),
 	Close.
-	
+
 %%	registry_get_key(+Path, -Value) is semidet.
 %%	registry_get_key(+Path, +Name, -Value) is semidet.
 %
@@ -168,7 +167,7 @@ registry_get_key(Path, Name, Value) :-
 	;   Close,
 	    fail
 	).
-	
+
 %%	registry_delete_key(+Path)
 %
 %	Delete the gven key and all its subkeys and values.  Note that
@@ -214,7 +213,7 @@ registry_make_key(A/B, Access, Key, Close) :- !,
 registry_make_key(Key, _, Key, true).
 
 %%	registry_lookup_key(+Path, +Access, -Key)
-%	
+%
 %	Open the given key, fail silently if the key doesn't
 %	exist.
 

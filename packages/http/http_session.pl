@@ -34,7 +34,9 @@
 	  [ http_set_session_options/1,	% +Options
 
 	    http_session_id/1,		% -SessionId
+	    http_in_session/1,		% -SessionId
 	    http_current_session/2,	% ?SessionId, ?Data
+	    http_close_session/1,	% +SessionId
 
 	    http_session_asserta/1,	% +Data
 	    http_session_assert/1,	% +Data
@@ -47,25 +49,28 @@
 :- use_module(library(debug)).
 :- use_module(library(socket)).
 :- use_module(library(broadcast)).
+:- use_module(library(lists)).
 
 /** <module> HTTP Session management
 
 This library defines session management based   on HTTP cookies. Session
 management is enabled simply by  loading   this  module.  Details can be
-modified using http_set_session_options/1.
-
-If sessions are enabled, http_session_id/1  produces the current session
-and http_session_assert/1 and friends maintain   data about the session.
-If the session is reclaimed, all associated data is reclaimed too.
+modified using http_set_session_options/1.  If   sessions  are  enabled,
+http_session_id/1 produces the current session and http_session_assert/1
+and  friends  maintain  data  about  the  session.  If  the  session  is
+reclaimed, all associated data is reclaimed too.
 
 Begin and end of sessions can be monitored using library(broadcast). The
 broadcasted messages are:
 
     * http_session(begin(SessionID, Peer))
+    Broadcasted if a session is started
     * http_session(end(SessionId, Peer))
+    Broadcasted if a session is ended. See http_close_session/1.
 
-I.e. the following  calls  end_session(SessionId)   whenever  a  session
-terminates. Please note that sessions ends are not scheduled. Creating a
+For example, the  following  calls   end_session(SessionId)  whenever  a
+session terminates. Please note that sessions  ends are not scheduled to
+happen at the actual timeout moment of  the session. Instead, creating a
 new session scans the  active  list   for  timed-out  sessions. This may
 change in future versions of this library.
 
@@ -93,14 +98,14 @@ session_option(route, atom).
 %%	http_set_session_options(+Options) is det.
 %
 %	Set options for the session library.  Provided options are:
-%	
+%
 %		* timeout(+Seconds)
 %		Session timeout in seconds.  Default is 600 (10 min).
-%		
+%
 %		* cookie(+Cookiekname)
 %		Name to use for the cookie to identify the session.
 %		Default =swipl_session=.
-%		
+%
 %		* path(+Path)
 %		Path to which the cookie is associated.  Default is
 %		=|/|=.	Cookies are only sent if the HTTP request path
@@ -128,25 +133,49 @@ http_session_option(Option) :-
 	assert(session_setting(Option)).
 
 %%	http_session_id(-SessionId) is det.
-%%	http_session_id(+Request, -SessionId) is det.
-%	
-%	Fetch the current session ID from the global request variable.
-%	
+%
+%	True if SessionId is an identifier for the current session.
+%
+%	@param SessionId is an atom.
 %	@error existence_error(http_session, _)
+%	@see   http_in_session/1 for a version that fails if there is
+%	       no session.
 
 http_session_id(SessionID) :-
-	http_current_request(Request),
-	http_session_id(Request, SessionID).
-
-http_session_id(Request, SessionID) :-
-	(   memberchk(session(SessionID0), Request)
-	->  SessionID = SessionID0
+	(   http_in_session(ID)
+	->  SessionID = ID
 	;   throw(error(existence_error(http_session, _), _))
 	).
 
+%%	http_in_session(-SessionId) is semidet.
+%
+%	True if SessionId is an identifier  for the current session. The
+%	current session is extracted from   session(ID) from the current
+%	HTTP request (see http_current_request/1). The   value is cached
+%	in a backtrackable global variable   =http_session_id=.  Using a
+%	backtrackable global variable is safe  because continuous worker
+%	threads use a failure driven  look   and  spawned  threads start
+%	without any global variables. This variable  can be set from the
+%	commandline to fake running a goal   from the commandline in the
+%	context of a session.
+%
+%	@see http_session_id/1
+
+http_in_session(SessionID) :-
+	(   nb_current(http_session_id, ID),
+	    ID \== []
+	->  true
+	;   http_current_request(Request),
+	    memberchk(session(ID), Request),
+	    b_setval(http_session_id, ID)
+	;   b_setval(http_session_id, no_session),
+	    fail
+	),
+	ID \== no_session,
+	SessionID = ID.
 
 %%	http_session(+RequestIn, -RequestOut, -SessionID) is semidet.
-%	
+%
 %	Maintain the notion of a  session   using  a client-side cookie.
 %	This must be called first when handling a request that wishes to
 %	do session management, after which the possibly modified request
@@ -162,7 +191,8 @@ http_session(Request0, Request, SessionID) :-
 	peer(Request0, Peer),
 	valid_session_id(SessionID0, Peer), !,
 	SessionID = SessionID0,
-	Request = [session(SessionID)|Request0].
+	Request = [session(SessionID)|Request0],
+	b_setval(http_session_id, SessionID).
 http_session(Request0, Request, SessionID) :-
 	session_setting(path(Path)),
 	memberchk(path(ReqPath), Request0),
@@ -173,7 +203,8 @@ http_session(Request0, Request, SessionID) :-
 	format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
 	Request = [session(SessionID)|Request0],
 	peer(Request0, Peer),
-	open_session(SessionID, Peer).
+	open_session(SessionID, Peer),
+	b_setval(http_session_id, SessionID).
 
 :- multifile
 	http:request_expansion/2.
@@ -193,7 +224,7 @@ peer(Request, Peer) :-
 	).
 
 %%	open_session(+SessionID, +Peer)
-%	
+%
 %	Open a new session.  Uses broadcast/1 with the term
 %	http_session(begin(SessionID, Peer)).
 
@@ -205,7 +236,7 @@ open_session(SessionID, Peer) :-
 
 
 %%	valid_session_id(+SessionID, +Peer)
-%	
+%
 %	Check if this sessionID is known. If so, check the idle time and
 %	update the last_used for this session.
 
@@ -214,20 +245,35 @@ valid_session_id(SessionID, Peer) :-
 	get_time(Now),
 	(   session_setting(timeout(Timeout)),
 	    Timeout > 0
-	->  last_used(SessionID, Last),
+	->  get_last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    (	Idle =< Timeout
 	    ->  true
-	    ;   close_session(SessionID),
+	    ;   http_close_session(SessionID),
 		fail
 	    )
 	;   Peer \== SessionPeer
-	->  close_session(SessionID),
+	->  http_close_session(SessionID),
 	    fail
 	;   true
 	),
-	retractall(last_used(SessionID, _)),
-	assert(last_used(SessionID, Now)).
+	set_last_used(SessionID, Now).
+
+get_last_used(SessionID, Last) :-
+	atom(SessionID), !,
+	with_mutex(http_session, last_used(SessionID, Last)).
+get_last_used(SessionID, Last) :-
+	with_mutex(http_session,
+		   findall(SessionID-Last,
+			   last_used(SessionID, Last),
+			   Pairs)),
+	member(SessionID-Last, Pairs).
+
+set_last_used(SessionID, Now) :-
+	with_mutex(http_session,
+		  (   retractall(last_used(SessionID, _)),
+		      assert(last_used(SessionID, Now)))).
+
 
 
 		 /*******************************
@@ -259,7 +305,7 @@ http_session_retractall(Data) :-
 	retractall(session_data(SessionId, Data)).
 
 %	http_session_data(?Data) is nondet.
-%	
+%
 %	True if Data is associated using http_session_assert/1 to the
 %	current HTTP session.
 
@@ -273,19 +319,19 @@ http_session_data(Data) :-
 		 *******************************/
 
 %%	http_current_session(?SessionID, ?Data) is nondet.
-%	
+%
 %	Enumerate the current sessions and   associated data.  There are
 %	two _Pseudo_ data elements:
-%	
+%
 %		* idle(Seconds)
 %		Session has been idle for Seconds.
-%		
+%
 %		* peer(Peer)
 %		Peer of the connection.
 
 http_current_session(SessionID, Data) :-
 	get_time(Now),
-	last_used(SessionID, Last),
+	get_last_used(SessionID, Last),
 	Idle is Now - Last,
 	(   session_setting(timeout(Timeout)),
 	    Timeout > 0
@@ -303,14 +349,43 @@ http_current_session(SessionID, Data) :-
 		 *	    GC SESSIONS		*
 		 *******************************/
 
-%%	close_session(+SessionID)
+%%	http_close_session(+SessionID) is det.
 %
-%	Closes an HTTP session.   Broadcasts http_session(end(SessionId,
-%	Peer)).
+%	Closes an HTTP session. This predicate   can  be called from any
+%	thread to terminate a session.  It uses the broadcast/1 service
+%	with the message below.
+%
+%		http_session(end(SessionId, Peer))
+%
+%	The broadcast is done *before* the session data is destroyed and
+%	the listen-handlers are executed in context  of the session that
+%	is being closed. Here  is  an   example  that  destroys a Prolog
+%	thread that is associated to a thread:
+%
+%	==
+%	:- listen(http_session(end(SessionId, _Peer)),
+%		  kill_session_thread(SessionID)).
+%
+%	kill_session_thread(SessionID) :-
+%		http_session_data(thread(ThreadID)),
+%		thread_signal(ThreadID, throw(session_closed)).
+%	==
+%
+%	Succeed without any effect if  SessionID   does  not refer to an
+%	active session.
+%
+%	@error	type_error(atom, SessionID)
+%	@see	listen/2 for acting upon closed sessions
 
-close_session(SessionId) :-
-	(   retract(current_session(SessionId, Peer)),
-	    broadcast(http_session(end(SessionId, Peer))),
+http_close_session(SessionId) :-
+	must_be(atom, SessionId),
+	(   current_session(SessionId, Peer),
+	    (	b_setval(http_session_id, SessionId),
+		broadcast(http_session(end(SessionId, Peer))),
+		fail
+	    ;	true
+	    ),
+	    retractall(current_session(SessionId, _)),
 	    retractall(last_used(SessionId, _)),
 	    retractall(session_data(SessionId, _)),
 	    fail
@@ -318,7 +393,7 @@ close_session(SessionId) :-
 	).
 
 %	http_gc_sessions/0
-%	
+%
 %	Delete dead sessions. When  should  we   be  calling  this? This
 %	assumes that updated sessions are at the end of the clause list,
 %	so we can break  as  soon   as  we  encounter  a no-yet-timedout
@@ -331,7 +406,7 @@ http_gc_sessions :-
 	(   last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    (	Idle > Timeout
-	    ->	close_session(SessionID),
+	    ->	http_close_session(SessionID),
 		fail
 	    ;	!
 	    )
@@ -345,7 +420,7 @@ http_gc_sessions.
 		 *******************************/
 
 %%	gen_cookie(-Cookie) is det.
-%	
+%
 %	Generate a random cookie that  can  be   used  by  a  browser to
 %	identify  the  current  session.  The   cookie  has  the  format
 %	XXXX-XXXX-XXXX-XXXX[.<route>], where XXXX are random hexadecimal

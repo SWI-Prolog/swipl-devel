@@ -1,22 +1,24 @@
 #!/bin/sh
 # ./prepare
-# 
+#
 # Prepare sources obtained from GIT for   compilation. Runs GNU autoconf
 # to generate all configure  files   and  optionally downloads generated
 # documentation  files.  On  first  run  the  desired  handling  of  the
 # documentation is stored in the  file   .doc-action.  This  file can be
 # deleted to make this script ask again.
-# 
+#
 # This script must be run each time after updating your version from the
 # master repository. It is  normally  executed   from  configure  in the
 # toplevel directory.
-# 
+#
 # On Windows installations, this script may be run from the MsysGit bash
 # shell to initialise the submodules and download the documentation.
 
 version="`cat VERSION`"
-server="http://gollem.science.uva.nl"
-serverpath="/cgi-bin/nph-download/SWI-Prolog"
+#server="http://gollem.science.uva.nl"
+#serverpath="/cgi-bin/nph-download/SWI-Prolog"
+server="http://prolog.cs.vu.nl"
+serverpath="/download"
 serverurl="$server$serverpath"
 yes=ask
 tar=tar
@@ -210,7 +212,7 @@ _EOM_
     ;;
   out-of-date)
     cat << _EOM_
-WARNING: "Documentation version ($docversion) does not match version ($version)"
+WARNING: Documentation version ($docversion) does not match version ($version)
 _EOM_
     ;;
 esac
@@ -234,16 +236,31 @@ confdir()
 }
 
 
-if findexe autoconf; then
-  for f in `find . -name configure.in`; do
-    d=`dirname $f`
-    (cd $d && confdir $d)
-  done
-  echo "Your kit is prepared."
-  echo "Please consult INSTALL for further instructions."
-else
-  echo 'WARNING: Cannot find GNU autoconf in $PATH.'
-  echo 'WARNING: configure scripts cannot be created.'
-  echo 'WARNING: Please install autoconf and re-run this script.'
-fi
+is_mingw()
+{ case `uname` in
+    MINGW*)
+	return 0
+	;;
+    *)
+	return 1
+	;;
+  esac
+}
 
+if is_mingw; then
+  echo "MinGW: skipping autoconf setup"
+  echo "Your kit is prepared."
+else
+  if findexe autoconf; then
+    for f in `find . -name configure.in`; do
+      d=`dirname $f`
+      (cd $d && confdir $d)
+    done
+    echo "Your kit is prepared."
+    echo "Please consult INSTALL for further instructions."
+  else
+    echo 'WARNING: Cannot find GNU autoconf in $PATH.'
+    echo 'WARNING: configure scripts cannot be created.'
+    echo 'WARNING: Please install autoconf and re-run this script.'
+  fi
+fi

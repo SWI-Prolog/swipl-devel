@@ -36,6 +36,7 @@ static void	xEventFrame(Widget, FrameObj, XEvent *);
 static void	expose_frame(Widget w, FrameObj fr, Region xregion);
 static void	destroyFrame(Widget, FrameObj, XtPointer);
 static status   updateAreaFrame(FrameObj fr, Int border);
+static int	ws_group_frame(FrameObj fr);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
 			       fr->members->head->value )
@@ -67,12 +68,6 @@ setWidgetFrame(FrameObj fr, Widget w)
 
 
 static void
-setGravityFrame(FrameObj fr, int gravity)
-{ ensureWsRefFrame(fr)->win_gravity = gravity;
-}
-
-
-static void
 setBusyWindowFrame(FrameObj fr, Window w)
 { ensureWsRefFrame(fr)->busy_window = w;
 }
@@ -88,7 +83,7 @@ static inline Display *
 getXDisplayFrame(FrameObj fr)
 { if ( notNil(fr->display) )
   { DisplayWsXref dr = fr->display->ws_ref;
-    
+
     if ( dr )
       return dr->display_xref;
   }
@@ -105,7 +100,7 @@ status
 ws_created_frame(FrameObj fr)
 { if ( widgetFrame(fr) )
     succeed;
-  
+
   fail;
 }
 
@@ -129,7 +124,7 @@ ws_uncreate_frame(FrameObj fr)
     if ( fr->ws_ref )
     { FrameWsRef wsfr = fr->ws_ref;
 
-#ifdef O_XIM      
+#ifdef O_XIM
       if ( wsfr->ic )
 	XDestroyIC(wsfr->ic);
 #endif
@@ -162,7 +157,7 @@ ws_create_frame(FrameObj fr)
   { Pixmap pm = (Pixmap) getXrefObject(fr->background, d);
 
     XtSetArg(args[n], XtNbackgroundPixmap, pm); n++;
-  }		
+  }
 
   if ( notNil(fr->icon_label) )
   { XtSetArg(args[n], XtNiconName, nameToMB(getIconLabelFrame(fr)));
@@ -257,6 +252,7 @@ ws_realise_frame(FrameObj fr)
 
 
   ws_frame_background(fr, fr->background); /* Why is this necessary? */
+  ws_group_frame(fr);
 }
 
 
@@ -313,7 +309,7 @@ void
 ws_lower_frame(FrameObj fr)
 { Widget w = widgetFrame(fr);
   DisplayWsXref r = fr->display->ws_ref;
-  
+
   if ( w )
     XLowerWindow(r->display_xref, XtWindow(w));
 }
@@ -348,6 +344,40 @@ ws_attach_wm_prototols_frame(FrameObj fr)
   succeed;
 }
 
+
+		 /*******************************
+		 *	    WINDOW GROUP	*
+		 *******************************/
+
+static int
+ws_group_frame(FrameObj fr)
+{ FrameObj leader;
+  Widget w = widgetFrame(fr);
+  DisplayWsXref r = fr->display->ws_ref;
+
+  if ( w &&
+       notNil(fr->application) &&
+       notNil((leader=fr->application->leader)) &&
+       fr != leader )
+  { if ( createdFrame(leader) ||
+	 send(leader, NAME_create, EAV) )
+    { Widget lw = widgetFrame(leader);
+      XWMHints hints;
+
+      memset(&hints, 0, sizeof(hints));
+      hints.flags = WindowGroupHint;
+      hints.window_group = XtWindow(lw);
+      XSetWMHints(r->display_xref, XtWindow(w), &hints);
+      DEBUG(NAME_leader,
+	    Cprintf("Set WindowGroupHint of %s to %s (Xwindow=0x%x)\n",
+		    pp(fr), pp(leader), (unsigned int) hints.window_group));
+
+      succeed;
+    }
+  }
+
+  fail;
+}
 
 #ifdef O_XDND
 		 /*******************************
@@ -395,9 +425,9 @@ setDndAwareFrame(FrameObj fr)
   { DEBUG(NAME_dnd, Cprintf("Registered %s for drag-and-drop\n", pp(fr)));
     xdnd_set_dnd_aware(getDndDisplay(fr->display), w, NULL);
   }
-  
+
   succeed;
-} 
+}
 
 
 static int
@@ -501,7 +531,7 @@ widget_apply_position(DndClass *dnd, Window widgets_window, Window from,
   info->dropfile = TRUE;
   info->x = x;
   info->y = y;
-  
+
   return 1;
 }
 
@@ -515,7 +545,7 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
   { struct xdnd_get_drop_info i;
     DisplayWsXref r = (DisplayWsXref)fr->display->ws_ref;
     XWindowAttributes atts;
-    
+
     XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
 
     memset(&i, 0, sizeof(i));
@@ -552,7 +582,7 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 		    files = answerObject(ClassChain, EAV);
 		    pos   = answerObject(ClassPoint,
 					 toInt(i.x), toInt(i.y), EAV);
-		    
+
 		    for(; s<e; )
 		    { char *start;
 		      string str;
@@ -707,7 +737,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(fr, NAME_hidden, EAV);
       return;
     case FocusIn:
-    { 
+    {
 #if 0
       FrameObj fr2;		/* this code causes BadMatch errors.  Why? */
 
@@ -720,7 +750,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	  XSetInputFocus(d, win, RevertToParent, CurrentTime);
       } else
 #endif
-      { 
+      {
 #ifdef O_XIM
 	if ( wsfr && wsfr->ic )
 	  XSetICFocus(wsfr->ic);
@@ -730,7 +760,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       return;
     }
     case FocusOut:
-    { 
+    {
 #ifdef O_XIM
 	if ( wsfr && wsfr->ic )
 	  XUnsetICFocus(wsfr->ic);
@@ -760,7 +790,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
     { EventObj ev;
       AnswerMark mark;
       markAnswerStack(mark);
-  
+
       if ( (ev = CtoEvent(fr, event)) )
       { addCodeReference(ev);
 	send(fr, NAME_event, ev, EAV);
@@ -769,7 +799,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       }
 
       rewindAnswerStack(mark, NIL);
-      
+
       return;
     }
   }
@@ -867,11 +897,11 @@ updateAreaFrame(FrameObj fr, Int border)
     Window me, root, child;
     int x, y;
     unsigned int w, h, bw, depth;
-    
+
     if ( (me = XtWindow(wdg)) )
     { Area a = fr->area;
       Int ow = a->w, oh = a->h;
-    
+
       XGetGeometry(d, me, &root, &x, &y, &w, &h, &bw, &depth);
       XTranslateCoordinates(d, me, root, 0, 0, &x, &y, &child);
 
@@ -974,7 +1004,7 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
     *y = atts.y - bw;
     *w = atts.width + 2*bw;
     *h = atts.height + 2*bw;
-    
+
     succeed;
   }
 
@@ -984,7 +1014,7 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ws_x_geometry_frame() updates the window position using an X geometry
-request.  
+request.
 
 This is a mess, totally unclear when  we   have  to  add which border to
 where. At the moment we do do-your-own  as the system version doesn't do
@@ -1002,7 +1032,7 @@ Therefore we re-do our work if the window is mapped.
 void
 ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 { Widget wdg = widgetFrame(fr);
-  
+
   DEBUG(NAME_frame, Cprintf("ws_x_geometry_frame(%s, %s, %s)\n",
 			    pp(fr), pp(spec), pp(mon)));
 
@@ -1070,12 +1100,12 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 	  if ( sscanf(s, "%d%[+-]%d", &x, signy, &y) != 3 )
 	    break;
 	}
-  
+
 	DEBUG(NAME_frame,
 	      Cprintf("signx = %s, x = %d, signy = %s,"
 		      "y = %d, w0 = %d, h0 = %d\n",
 		      signx, x, signy, y, w0, h0));
-  
+
 	flags |= SWP_NOSIZE;
 	if ( signx[1] == '-' )
 	  x = -x;
@@ -1088,7 +1118,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 	ok++;
 	break;
     }
-    
+
     if ( ok )
     { int mw = (w < MIN_VISIBLE ? MIN_VISIBLE : w);
 
@@ -1101,7 +1131,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
       if ( x > dw-MIN_VISIBLE )		/* right of the screen */
 	x = dw - MIN_VISIBLE;
     }
-    
+
     X = Y = W = H = (Int)DEFAULT;
     if ( !(flags & SWP_NOMOVE) )
     { X = toInt(x);
@@ -1147,7 +1177,7 @@ ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon)
     if ( fr->kind != NAME_popup )
     { XSizeHints *hints = XAllocSizeHints();
       FrameWsRef wsref  = fr->ws_ref;
-      
+
       if ( notDefault(x) || notDefault(y) ) hints->flags |= USPosition;
       if ( notDefault(w) || notDefault(h) ) hints->flags |= USSize;
 
@@ -1265,7 +1295,7 @@ ws_frame_background(FrameObj fr, Any c)
 
       XtSetArg(args[i], XtNbackgroundPixmap, pm);			i++;
     }
-      
+
     XtSetValues(w, args, i);
   }
 }
@@ -1365,7 +1395,7 @@ ws_enable_frame(FrameObj fr, int val)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -1420,7 +1450,7 @@ ws_status_frame(FrameObj fr, Name status)
 	CARD32 bits = (status == NAME_fullScreen ? change : 0);
 	DisplayWsXref r = (DisplayWsXref)fr->display->ws_ref;
 	XWindowAttributes atts;
-    
+
 	XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
 
 	xev.type   = ClientMessage;
@@ -1455,7 +1485,7 @@ ws_status_frame(FrameObj fr, Name status)
 
 void
 ws_topmost_frame(FrameObj fr, Bool topmost)
-{ 
+{
 }
 
 		 /*******************************
@@ -1497,17 +1527,17 @@ ws_image_of_frame(FrameObj fr)
     XTranslateCoordinates(d, win, root, 0, 0, &x, &y, &child);
     if ( notDefault(fr->border) )
       bw = valInt(fr->border);
-    
+
     TRY(im = answerObject(ClassImage, NIL,
 			  toInt(w+2*bw), toInt(h+2*bw), NAME_pixmap, EAV));
-    
+
     ix = XGetImage(d, root,
 		   x-bw, y-bw, w+2*bw, h+2*bw, AllPlanes, ZPixmap);
     setXImageImage(im, ix);
     assign(im, depth, toInt(ix->depth));
     answer(im);
   }
-  
+
   fail;
 }
 
@@ -1516,7 +1546,7 @@ void
 ws_transient_frame(FrameObj fr, FrameObj fr2)
 { Widget w1 = widgetFrame(fr);
   Widget w2 = widgetFrame(fr2);
-  
+
 
   if ( w1 && w2 )
   { DisplayWsXref r = fr->display->ws_ref;
@@ -1537,7 +1567,7 @@ psdepthXImage(XImage *im)
 }
 
 
-  
+
 status
 ws_postscript_frame(FrameObj fr, int iscolor)
 { Window win;
@@ -1555,10 +1585,10 @@ ws_postscript_frame(FrameObj fr, int iscolor)
     XGetGeometry(d, win, &root, &x, &y, &w, &h, &bw, &depth);
     XTranslateCoordinates(d, win, root, 0, 0, &x, &y, &child);
     XGetWindowAttributes(d, root, &atts);
-    
+
     if ( notDefault(fr->border) )
       bw = valInt(fr->border);
-    
+
     iw = w+2*bw; ih = h+2*bw;		/* include the frame-border */
     x -= bw; y -= bw;
     if ( x < 0 ) { iw += x; x = 0; }	/* clip to the display */
@@ -1569,7 +1599,7 @@ ws_postscript_frame(FrameObj fr, int iscolor)
     DEBUG(NAME_postscript, Cprintf("frame at %d %d %d %d\n", x, y, iw, ih));
 
     im = XGetImage(d, root, x, y, iw, ih, AllPlanes, ZPixmap);
-    
+
     ps_output("0 0 ~D ~D ~D ~N\n", iw, ih,
 	      psdepthXImage(im),
 	      iscolor ? NAME_rgbimage : NAME_greymap);
@@ -1580,7 +1610,7 @@ ws_postscript_frame(FrameObj fr, int iscolor)
     XDestroyImage(im);
     succeed;
   }
-  
+
   return errorPce(fr, NAME_mustBeOpenBeforePostscript);
 }
 

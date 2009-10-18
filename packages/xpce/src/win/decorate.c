@@ -78,7 +78,7 @@ horizontalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
     assign(dw, horizontal_scrollbar, NIL);
     send(dw, NAME_rearrange, EAV);
   }
-  
+
   succeed;
 }
 
@@ -95,7 +95,7 @@ verticalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
     assign(dw, vertical_scrollbar, NIL);
     send(dw, NAME_rearrange, EAV);
   }
-  
+
   succeed;
 }
 
@@ -111,10 +111,10 @@ scrollbarsWindowDecorator(WindowDecorator dw, Name bars)
     hbar = ON;
   else if ( equalName(bars, NAME_both) )
     vbar = hbar = ON;
-	
+
   horizontalScrollbarWindowDecorator(dw, hbar);
   verticalScrollbarWindowDecorator(dw, vbar);
-  
+
   succeed;
 }
 
@@ -174,7 +174,7 @@ compute_margins_window_decorator(WindowDecorator dw,
     t += valInt(getAreaGraphical((Graphical) dw->label_text)->h);
   if ( notNil(dw->horizontal_scrollbar) )
   { int m = valInt(getMarginScrollBar(dw->horizontal_scrollbar));
-    
+
     if ( m > 0 )
       b += m;
     else
@@ -182,13 +182,13 @@ compute_margins_window_decorator(WindowDecorator dw,
   }
   if ( notNil(dw->vertical_scrollbar) )
   { int m = valInt(getMarginScrollBar(dw->vertical_scrollbar));
-    
+
     if ( m > 0 )
       r += m;
     else
       l -= m;
   }
-  
+
   *lm = toInt(l), *tm = toInt(t), *rm = toInt(r), *bm = toInt(b);
 }
 
@@ -202,7 +202,7 @@ rearrangeWindowDecorator(WindowDecorator dw)
 		 lm, tm,
 		 sub(dw->area->w, add(lm, rm)),
 		 sub(dw->area->h, add(tm, bm)));
-  if ( notNil(dw->horizontal_scrollbar) && 
+  if ( notNil(dw->horizontal_scrollbar) &&
        dw->horizontal_scrollbar->displayed == ON )
     placeScrollBar(dw->horizontal_scrollbar, DEFAULT);
   if ( notNil(dw->vertical_scrollbar) &&

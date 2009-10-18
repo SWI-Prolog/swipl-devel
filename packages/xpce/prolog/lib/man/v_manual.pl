@@ -84,7 +84,7 @@ and possible broadcasted by ManualTool.  These messages are:
 
 		* SelectionHolder ->release_selection
 		* AllTools        ->selected: object*
-	
+
 	If bool == @on, the card viewer is started automatically
 
     ->tool_focus: object*
@@ -351,7 +351,7 @@ start_tool(M, ToolName:name, Tool:frame) :<-
 	->  send(M, register_tool, ToolName, Tool)
 	;   send(@display, inform, 'Failed to start %s', ToolName)
 	).
-	
+
 start_tool(M, ToolName:name) :->
 	"Start named tool"::
 	get(M, start_tool, ToolName, _).
@@ -441,7 +441,7 @@ modified(M, Modified:bool) :<-
 	->  Modified = @on
 	;   Modified = @off
 	).
-	
+
 
 save_if_modified(M, Ask:[bool]) :->
 	"Save if some part has been modified"::
@@ -760,7 +760,7 @@ request_selection(M, Frame:man_frame*, Obj:any*, Open:[bool]) :->
 	    )
 	;   send(M, expose_tool, card_viewer)  % exposes it?
 	).
-	
+
 
 request_tool_focus(M, Obj:object*, ForceClass:[bool]) :->
 	"Change the tool focus"::
@@ -844,7 +844,7 @@ request_relate(M, Obj:object) :->
 request_unrelate(M, Obj:object) :->
 	"Destroy relation to selection"::
 	request_relate(M, unrelate, Obj).
-	
+
 request_relate(M, CD, Obj) :-
 	(   get(M, edit_mode, @on)
 	->  (   get(M, selection, Selection),
@@ -889,7 +889,7 @@ request_inherit(M, Obj:object) :->
 request_uninherit(M, Obj:object) :->
 	"Destroy relation to selection"::
 	request_inherit(M, unrelate, Obj).
-	
+
 request_inherit(M, CD, Obj) :-
 	(   get(M, edit_mode, @on)
 	->  (   get(M, selection, Selection),

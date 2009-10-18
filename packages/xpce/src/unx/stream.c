@@ -112,7 +112,7 @@ status
 closeOutputStream(Stream s)
 { if ( s->wrfd >= 0 )
   { int input_too = (s->wrfd == s->rdfd);
-      
+
     DEBUG(NAME_stream, Cprintf("%s: Closing output\n", pp(s)));
 
     ws_close_output_stream(s);
@@ -246,7 +246,7 @@ dispatch_stream(Stream s, int size, int discard)
 	  write_buffer((char *)s->input_buffer, s->input_p);
 	  Cprintf("'\n");
 	});
-  
+
   if ( notNil(s->input_message) )
   { addCodeReference(s);
     assert(isProperObject(s));
@@ -340,7 +340,7 @@ handleInputStream(Stream s)
       dispatch_input_stream(s);
     }
   } else if ( n != -2 )			/* Win 9x errornous WSAEWOULDBLOCK */
-  { 
+  {
     DEBUG(NAME_stream,
 	  if ( n < 0 )
 	    Cprintf("Read failed: %s\n", strName(StreamError()));
@@ -448,7 +448,7 @@ getReadLineStream(Stream s, Real timeout)
 	{ string str;
 	  int len = (q-s->input_buffer)+1;
 	  StringObj rval;
-	  
+
 	  str_set_n_ascii(&str, len, (char *)s->input_buffer);
 	  rval = StringToString(&str);
 	  strncpy((char *)s->input_buffer,
@@ -472,7 +472,7 @@ getReadLineStream(Stream s, Real timeout)
 
     if ( !ws_dispatch(DEFAULT, use_timeout ? toInt(left) : NIL) )
       return (StringObj) NIL;
-  }    
+  }
 
   fail;
 }
@@ -508,7 +508,7 @@ static status
 inputMessageStream(Stream s, Code msg)
 { if ( s->input_message != msg )
   { Code old = s->input_message;
-    
+
     assign(s, input_message, msg);
     if ( isNil(old) && notNil(msg) )
     { ws_input_stream(s);
@@ -616,7 +616,7 @@ static getdecl get_stream[] =
 #define rc_stream NULL
 /*
 static classvardecl rc_stream[] =
-{ 
+{
 };
 */
 
@@ -669,7 +669,7 @@ static vardecl var_stream[] =
 #define send_stream NULL
 /*
 static senddecl send_stream[] =
-{ 
+{
 };
 */
 
@@ -678,7 +678,7 @@ static senddecl send_stream[] =
 #define get_stream NULL
 /*
 static getdecl get_stream[] =
-{ 
+{
 };
 */
 
@@ -687,7 +687,7 @@ static getdecl get_stream[] =
 #define rc_stream NULL
 /*
 static classvardecl rc_stream[] =
-{ 
+{
 };
 */
 

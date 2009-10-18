@@ -194,7 +194,7 @@ static int
 setup()
 { if ( context.window )
     return TRUE;
-  
+
   DLOCK();
   if ( !context.window )
   { context.window = CreateWindow(HiddenFrameClass(),
@@ -267,7 +267,7 @@ setup()
 
   return TRUE;
 }
-  
+
 
 static foreign_t
 pl_pce_call(term_t goal)

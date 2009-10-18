@@ -100,7 +100,7 @@ rlc_add_history(rlc_console c, const TCHAR *line)
     { b->history.current = -1;
       return;				/* same as last line added */
     }
-    
+
     if ( i == b->history.tail )		/* this one is lost */
       b->history.tail = next(b, b->history.tail);
     b->history.head = i;

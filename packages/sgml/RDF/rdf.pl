@@ -32,12 +32,14 @@
 
 :- module(rdf,
 	  [ load_rdf/2,			% +File, -Triples
-	    load_rdf/3,			% +File, -Triples, +Options
+	    load_rdf/3,			% +File, -Triples, :Options
 	    xml_to_rdf/3,		% +XML, -Triples, +Options
-	    process_rdf/3		% +File, :OnTriples, +Options
+	    process_rdf/3		% +File, :OnTriples, :Options
 	  ]).
 
-:- meta_predicate(process_rdf(+, :, +)).
+:- meta_predicate
+	load_rdf(+, -, :),
+	process_rdf(+, :, :).
 
 :- use_module(library(sgml)).		% Basic XML loading
 :- use_module(library(option)).		% option/3
@@ -46,7 +48,7 @@
 :- use_module(rdf_triple).		% Generate triples
 
 %%	load_rdf(+File, -Triples) is det.
-%%	load_rdf(+File, -Triples, +Options) is det.
+%%	load_rdf(+File, -Triples, :Options) is det.
 %
 %	Parse an XML file holding an RDF term into a list of RDF triples.
 %	see rdf_triple.pl for a definition of the output format. Options:
@@ -57,21 +59,21 @@
 %		* expand_foreach(+Bool)
 %		Apply each(Container, Pred, Object) on the members of
 %		Container
-%		
+%
 %		* namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
-%	
+%
 %	@see	Use process_rdf/3 for processing large documents in
 %		_|call-back|_ style.
 
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
 
-load_rdf(File, Triples, Options0) :-
+load_rdf(File, Triples, M:Options0) :-
 	entity_options(Options0, EntOptions, Options1),
-	meta_options(Options1, Options),
+	meta_options(load_meta_option, M:Options1, Options),
 	init_ns_collect(Options, NSList),
 	load_structure(File,
 		       [ RDFElement
@@ -86,7 +88,7 @@ load_rdf(File, Triples, Options0) :-
 		     rdf_end_file(Cleanup)),
 	exit_ns_collect(NSList),
 	post_process(Options, Triples0, Triples).
-	
+
 entity_options([], [], []).
 entity_options([H|T0], Entities, Rest) :-
 	(   H = entity(_,_)
@@ -96,12 +98,14 @@ entity_options([H|T0], Entities, Rest) :-
 	    entity_options(T0, Entities, RT)
 	).
 
+load_meta_option(convert_typed_literal).
 
 %%	xml_to_rdf(+XML, -Triples, +Options)
 
 xml_to_rdf(XML, Triples, Options) :-
 	is_list(Options), !,
-	xml_to_plrdf(XML, RDF, Options),
+	make_rdf_state(Options, State, _),
+	xml_to_plrdf(XML, RDF, State),
 	rdf_triples(RDF, Triples).
 xml_to_rdf(XML, BaseURI, Triples) :-
 	atom(BaseURI), !,
@@ -148,46 +152,46 @@ member_attribute(A) :-
 		 *	     BIG FILES		*
 		 *******************************/
 
-%%	process_rdf(+Input, :OnObject, +Options)
-%	
+%%	process_rdf(+Input, :OnObject, :Options)
+%
 %	Process RDF from Input. Input is either an atom or a term of the
 %	format stream(Handle). For each   encountered  description, call
 %	OnObject(+Triples) to handle the  triples   resulting  from  the
 %	description. Defined Options are:
-%	
+%
 %		* base_uri(+URI)
 %		Determines the reference URI.
-%		
+%
 %		* db(DB)
 %		When loading from a stream, the source is taken from
 %		this option or -if non-existent- from base_uri.
-%		
+%
 %		* lang(LanguageID)
 %		Set initial language (as xml:lang)
-%		
+%
 %		* convert_typed_literal(:Convertor)
 %		Call Convertor(+Type, +Content, -RDFObject) to create
 %		a triple rdf(S, P, RDFObject) instead of rdf(S, P,
 %		literal(type(Type, Content)).
-%		
+%
 %		*  namespaces(-Namespaces:list(NS=URL))
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
-%		
+%
 %		* entity(Name, Value)
 %		Overrule entity values found in the file
-%		
+%
 %		* embedded(Boolean)
 %		If =true=, do not give warnings if rdf:RDF is embedded
 %		in other XML data.
 
-process_rdf(File, OnObject, Options0) :-
+process_rdf(File, OnObject, M:Options0) :-
 	is_list(Options0), !,
 	entity_options(Options0, EntOptions, Options1),
-	meta_options(Options1, Options2),
+	meta_options(load_meta_option, M:Options1, Options2),
 	process_options(Options2, ProcessOptions, Options),
-	option(base_uri(BaseURI), Options, []),
+	option(base_uri(BaseURI), Options, ''),
 	rdf_start_file(Options, Cleanup),
 	strip_module(OnObject, Module, Pred),
 	nb_setval(rdf_object_handler, Module:Pred),
@@ -251,12 +255,13 @@ cleanup_process(In, Cleanup, Parser) :-
 
 on_begin(NS:'RDF', Attr, _) :-
 	rdf_name_space(NS), !,
-	nb_getval(rdf_options, Options0),
-	modify_state(Attr, Options0, Options),
-	nb_setval(rdf_state, Options).
+	nb_getval(rdf_options, Options),
+	make_rdf_state(Options, State0, _),
+	rdf_modify_state(Attr, State0, State),
+	nb_setval(rdf_state, State).
 on_begin(Tag, Attr, Parser) :-
-	nb_getval(rdf_state, Options),
-	(   Options == (-)
+	nb_getval(rdf_state, State),
+	(   State == (-)
 	->  nb_getval(rdf_options, RdfOptions),
 	    (	memberchk(embedded(true), RdfOptions)
 	    ->	true
@@ -269,13 +274,13 @@ on_begin(Tag, Attr, Parser) :-
 			 parse(content)
 		       ]),
 	    nb_getval(rdf_object_handler, OnTriples),
-	    element_to_plrdf(element(Tag, Attr, Content), Objects, Options),
+	    element_to_plrdf(element(Tag, Attr, Content), Objects, State),
 	    rdf_triples(Objects, Triples),
 	    call(OnTriples, Triples, File:Start)
 	).
 
 %%	on_xmlns(+NS, +URL, +Parser)
-%	
+%
 %	Build up the list of   encountered xmlns:NS=URL declarations. We
 %	use  destructive  assignment  here   as    an   alternative   to
 %	assert/retract, ensuring thread-safety and better performance.
@@ -300,54 +305,6 @@ exit_ns_collect(NSList) :-
 	->  true
 	;   nb_getval(rdf_nslist, list(NSList))
 	).
-
-modify_state([], Options, Options).
-modify_state([H|T], Options0, Options) :-
-	modify_state1(H, Options0, Options1),
-	modify_state(T, Options1, Options).
-
-modify_state1(xml:base = Base0, Options0, Options) :- !,
-	remove_fragment(Base0, Base),
-	set_option(base_uri(Base), Options0, Options).
-modify_state1(xml:lang = Lang, Options0, Options) :- !,
-	set_option(lang(Lang), Options0, Options).
-modify_state1(_, Options, Options).
-
-%%	remove_fragment(+URI, -WithoutFragment)
-%	
-%	When handling xml:base, we must delete the possible fragment.
-
-remove_fragment(URI, Plain) :-
-	sub_atom(URI, B, _, _, #), !,
-	sub_atom(URI, 0, B, _, Plain).
-remove_fragment(URI, URI).
-
-
-set_option(Opt, Options0, [Opt|Options]) :-
-	functor(Opt, F, A),
-	functor(VO, F, A),
-	delete(Options0, VO, Options).
-
-
-%%	meta_options(+OptionsIn, -OptionsOut)
-%	
-%	Do module qualification for options that are module sensitive.
-
-:- module_transparent
-	meta_options/2.
-
-meta_options([], []).
-meta_options([Name=Value|T0], List) :-
-	atom(Name), !,
-	Opt =.. [Name, Value],
-	meta_options([Opt|T0], List).
-meta_options([H0|T0], [H|T]) :-
-	(   H0 = convert_typed_literal(Handler)
-	->  strip_module(Handler, M, P),
-	    H = convert_typed_literal(M:P)
-	;   H = H0
-	),
-	meta_options(T0, T).
 
 
 process_options(Options, Process, RestOptions) :-
@@ -405,7 +362,7 @@ unparse_xml(element(Name, Attr, Content)) -->
 	;   ">",
 	    unparse_xml(Content)
 	).
-	
+
 attributes([]) -->
 	[].
 attributes([H|T]) -->

@@ -30,7 +30,7 @@
 #endif
 #include "lock.h"
 
-#define RDF_VERSION 20700		/* 2.7.0 */
+#define RDF_VERSION 20800		/* 2.8.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -134,7 +134,7 @@ typedef struct graph
   unsigned	    md5 : 1;		/* do/don't record MD5 */
   md5_byte_t 	    digest[16];		/* MD5 digest */
 #endif
-} graph;  
+} graph;
 
 
 typedef struct literal

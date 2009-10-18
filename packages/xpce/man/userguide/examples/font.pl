@@ -17,7 +17,7 @@ wysiwyg(File) :-
 	send(new(V, view), below, D),
 	send(V, load, File),
 	send(Fr, open).
-			    
+
 set_style(Fr, Style) :-
 	get(Fr, member, view, V),
 	get(V, selection, point(Start, End)),
@@ -60,4 +60,4 @@ ask_style(Fr, Name, Style) :-
 	    send(D, destroy),
 	    fail
 	).
-	
+

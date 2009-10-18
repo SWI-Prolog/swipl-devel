@@ -72,7 +72,7 @@ close_stream_pool :-
 	    fail
 	;   true
 	).
-	
+
 %	dispatch_stream_pool(+TimeOut)
 %
 %	Wait for input on one or more streams and handle that.  Wait for
@@ -103,7 +103,7 @@ action(Stream) :-
 	;   print_message(warning,
 			  goal_failed(Action, stream_pool))
 	).
-	
+
 %	stream_pool_main_loop
 %
 %	Keep handling input from the streams in the pool until they have

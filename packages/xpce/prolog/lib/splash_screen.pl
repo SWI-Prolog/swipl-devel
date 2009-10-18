@@ -57,7 +57,7 @@ of the image:
 	     message(@prolog, browse_manual),
 	     'Browse manual'),
 	send(S, open).
-	
+
 The graphical is used to define the sensitive area as well as the cursor
 that is visible in the area. It is not displayed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -97,12 +97,12 @@ map(S, Gr:[graphical]*, Msg:code, Alt:[char_array]) :->
 	;   send(S, slot, maps, new(Maps, chain))
 	),
 	send(Maps, append, splash_map(TheGr, Msg, Alt)).
-	    
+
 map(S, At:point, Map:splash_map) :<-
 	"Find map from position"::
 	get(S, maps, Maps), Maps \== @nil,
 	object(At, point(X, Y)),
-	get(Maps, find, 
+	get(Maps, find,
 	    or(@arg1?graphical == @nil,
 	       message(@arg1?graphical, in_event_area, X, Y)),
 	    Map).

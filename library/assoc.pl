@@ -68,14 +68,9 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 @license	Public domain
 */
 
-%:- meta_predicate map_assoc(:, ?).
-%:- meta_predicate map_assoc(:, ?, ?).
-
-:- module_transparent
-	map_assoc/2,
-	map_assoc/3,
-	map_assoc_/2,
-	map_assoc_/3.
+:- meta_predicate
+	map_assoc(:, ?),
+	map_assoc(:, ?, ?).
 
 %%	empty_assoc(-Assoc) is det.
 %%	empty_assoc(+Assoc) is semidet.
@@ -131,7 +126,7 @@ assoc_to_values(t, List, List).
 %
 %	True if Key-Value is an association in Assoc. Enumerates keys in
 %	ascending order.
-%	
+%
 %	@see get_assoc/3.
 
 gen_assoc(Key, t(_,_,_,L,_), Val) :-

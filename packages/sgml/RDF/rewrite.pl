@@ -10,14 +10,14 @@
 :- module(rewrite,
 	  [ rewrite/2,			% +Rule, +Input
 	    rew_term_expansion/2,
-	    rew_goal_expansion/2
+	    rew_goal_expansion/2,
+
+	    op(1200, xfx, (::=))
 	  ]).
 :- use_module(library(quintus)).
 
 :- meta_predicate
-	rewrite(:, +).
-:- op(1200, xfx, user:(::=)).
-
+	rewrite(1, +).
 
 		 /*******************************
 		 *	    COMPILATION		*
@@ -26,34 +26,33 @@
 rew_term_expansion((Rule ::= RuleBody), (Head :- Body)) :-
 	translate(RuleBody, Term, Body0),
 	simplify(Body0, Body),
-	Rule =.. List,
-	append(List, [Term], L2),
-	Head =.. L2.
+	Rule =.. [Name|List],
+	Head =.. [Name,Term|List].
 
 rew_goal_expansion(rewrite(To, From), Goal) :-
 	nonvar(To),
 	To = \Rule,
-	compound(Rule),
-	Rule =.. List,
-	append(List, [From], List2),
-	Goal =.. List2.
+	callable(Rule),
+	Rule =.. [Name|List],
+	Goal =.. [Name,From|List].
 
 
 		 /*******************************
 		 *	      TOPLEVEL		*
 		 *******************************/
 
-%%	rewrite(?To, +From)
+%%	rewrite(:To, +From)
 %
 %	Invoke the term-rewriting system
 
-rewrite(To, From) :-
-	strip_module(To, M, T),
+rewrite(M:T, From) :-
 	(   var(T)
 	->  From = T
 	;   T = \Rule
-	->  call(M:Rule, From)
-	;   match(To, M, From)
+	->  Rule =.. [Name|List],
+	    Goal =.. [Name,From|List],
+	    M:Goal
+	;   match(T, M, From)
 	).
 
 match(Rule, M, From) :-
@@ -64,16 +63,14 @@ translate(Var, Var, true) :-
 	var(Var), !.
 translate((\Command, !), Var, (Goal, !)) :- !,
 	(   callable(Command),
-	    Command =.. List
-	->  append(List, [Var], L2),
-	    Goal =.. L2
+	    Command =.. [Name|List]
+	->  Goal =.. [Name,Var|List]
 	;   Goal = rewrite(\Command, Var)
 	).
 translate(\Command, Var, Goal) :- !,
 	(   callable(Command),
-	    Command =.. List
-	->  append(List, [Var], L2),
-	    Goal =.. L2
+	    Command =.. [Name|List]
+	->  Goal =.. [Name,Var|List]
 	;   Goal = rewrite(\Command, Var)
 	).
 translate(Atomic, Atomic, true) :-
@@ -95,7 +92,7 @@ translate(Term0, Term, Command) :-
 
 translate_args(N, N, _, _, true) :- !.
 translate_args(I0, Arity, T0, T1, (C0,C)) :-
-	I is I0 + 1, 
+	I is I0 + 1,
 	arg(I, T0, A0),
 	arg(I, T1, A1),
 	translate(A0, A1, C0),

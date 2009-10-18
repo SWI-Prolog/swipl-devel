@@ -50,7 +50,7 @@ initialise(TB, Manual:man_manual) :->
 
 	get(Manual, module, topics, @on, Module),
 	send(TB, slot, topics, Module),
-	
+
 	picture(Picture, Module),
 	dialog(Dialog),
 
@@ -58,7 +58,7 @@ initialise(TB, Manual:man_manual) :->
 	send(Dialog, below, Picture),
 	send(TB, edit_mode, Manual?edit_mode),
 	send(TB, expand_node, TB?tree?root),
-	
+
 	send(TB, open).
 
 
@@ -100,7 +100,7 @@ edit_mode(TB, Val:bool) :->
 		  , Dialog?summary_member
 		  ],
 		  active, Val).
-	
+
 
 node(TB, Card:man_topic_card, Node) :<-
 	"Find node displaying card"::
@@ -209,7 +209,7 @@ remove_son_node(TB, Node:node) :->
 	send(Selection, unrelate, subs, Node?card),
 	send(Node?card, unrelate, super, Selection),
 	send(?(TB, node, Selection), unrelate, Node).
-	
+
 
 below_node(TB, Node:node) :->
 	"Move node below selection or to be the first"::
@@ -304,7 +304,7 @@ make_man_topic_node_handler(H) :-
 			     click_gesture(left, '', double,
 					   message(HTool, request_selection,
 						   HNode?card, @on)))).
-			     
+
 
 picture(P, Topics) :-
 	new(P, picture),
@@ -325,10 +325,10 @@ create_node(Card, Node) :-
 	    \+ send(Subs, empty)
 	->  Font = font(helvetica, bold,  12)
 	;   Font = font(helvetica, roman, 12)
-	), 
+	),
 	new(Node, node(text(Card?name, left, Font))),
 	send(Node, attribute, attribute(card, Card)).
-	
+
 
 tree(TB, Tree) :<-
 	"Get the associated tree object"::

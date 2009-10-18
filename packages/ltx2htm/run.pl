@@ -65,4 +65,4 @@ process(Base) :-
 	latex2html(Base).
 
 
-	
+

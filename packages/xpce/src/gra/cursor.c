@@ -128,7 +128,7 @@ getConvertCursor(Class class, Name name)
   if ( syntax.uppercase &&
        (c = getMemberHashTable(CursorTable, CtoKeyword(strName(name)))) )
     answer(c);
-    
+
   return answerObject(ClassCursor, name, EAV);
 }
 
@@ -188,7 +188,7 @@ static getdecl get_cursor[] =
 #define rc_cursor NULL
 /*
 static classvardecl rc_cursor[] =
-{ 
+{
 };
 */
 

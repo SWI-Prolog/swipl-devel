@@ -54,13 +54,13 @@ creates the index file help_index.pl. Toplevel:
 
 
 :- multifile
-	user:portray/1.	
+	user:portray/1.
 
 user:portray(X) :-
 	is_list(X),
 	ascii_list(X),
 	format('"~s"', [X]).
-	
+
 ascii_list([]).
 ascii_list([H|T]) :-
 	integer(H),
@@ -123,7 +123,7 @@ list(Out, _, _) :-
 	format(Out, '~n~n', []).
 
 %%	read_index(+In:stream)
-%	
+%
 %	Create an index in the prolog database.  Input is read from stream
 %	`in'
 
@@ -145,7 +145,7 @@ read_index(In) :-
 %%	read_page(In, -Page)
 %
 %	Read the next page from stream `in'.  Pages are separeted (by
-%	dvi2tty) by ^L.  The last page is ended by the end-of-file. 
+%	dvi2tty) by ^L.  The last page is ended by the end-of-file.
 
 read_page(In, [C|R]) :-
 	get_code(In, C),
@@ -156,9 +156,9 @@ read_page(In, [C|R]) :-
 	), !,
 	read_page(In, R).
 read_page(_, []).
-	
+
 %%	identify_page(+StartOffset, +EndOffset, +Page)
-%	
+%
 %	Parse the start of `Page' and record it in the database as a
 %	page describing a certain type of data as well as were it starts
 %	and ends.
@@ -309,7 +309,7 @@ optional_predicate_tag(Tags) -->
 	"[", string(Codes), "]", !,
 	skip_blanks,
 	{ atom_codes(Atom, Codes),
-	  concat_atom(Tags, ', ', Atom)
+	  atomic_list_concat(Tags, ', ', Atom)
 	}.
 optional_predicate_tag([]) -->
 	"".
@@ -516,7 +516,7 @@ skip_blanks -->
 blank(C) -->
 	char(C),
 	{ blank(C) }.
-	
+
 blank(9).
 blank(32).
 
@@ -567,7 +567,7 @@ alpha(0'_) -->
 	char(0'_).
 
 char(C, [C|L], L).
-	
+
 %	update_offsets
 
 update_offsets :-
@@ -605,11 +605,11 @@ next_index(L, N) :-
 	Next is Last + 1,
 	reverse([Next|Tail], N).
 
-	
+
 		/********************************
 		*       PARSE SUMMARIES         *
 		********************************/
-	
+
 :- dynamic
 	summary_file/2.
 

@@ -48,7 +48,7 @@ initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
     name = get(data, NAME_name, EAV);
   if ( !name )
     name = NIL;
-    
+
   assign(image, name,       name);
   assign(image, background, DEFAULT);
   assign(image, foreground, DEFAULT);
@@ -156,7 +156,7 @@ getConvertImage(Class class, Any obj)
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
     Image img;
-    
+
     ComputeGraphical(gr);
     if ( (img = newObject(ClassImage, NIL, gr->area->w, gr->area->h, EAV)) )
     { drawInImage(img, gr, answerObject(ClassPoint, EAV));
@@ -307,7 +307,7 @@ loadImage(Image image, SourceSink file, CharArray path)
 
   if ( notDefault(file) )
     assign(image, file, file);
-    
+
   if ( isNil(image->file) )
     fail;
 
@@ -577,7 +577,7 @@ pixelImage(Image image, Int X, Int Y, Any val)
   { if ( (image->kind == NAME_bitmap && !instanceOfObject(val, ClassBool)) ||
 	 (image->kind == NAME_pixmap && !instanceOfObject(val, ClassColour)) )
       return errorPce(image, NAME_pixelMismatch, val);
-    
+
     CHANGING_IMAGE(image,
 	  d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
 	  d_modify();
@@ -587,7 +587,7 @@ pixelImage(Image image, Int X, Int Y, Any val)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -615,7 +615,7 @@ invertPixelImage(Image image, Int x, Int y)
 { TRY(verifyAccessImage(image, NAME_invertPixel));
 
   if ( inImage(image, x, y) )
-  { CHANGING_IMAGE(image, 
+  { CHANGING_IMAGE(image,
 	d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
 	d_modify();
 	r_complement_pixel(valInt(x), valInt(y));
@@ -630,7 +630,7 @@ static status
 invertImage(Image image)
 { TRY(verifyAccessImage(image, NAME_invert));
 
-  CHANGING_IMAGE(image, 
+  CHANGING_IMAGE(image,
 	d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
 	d_modify();
 	r_complement(0, 0, valInt(image->size->w), valInt(image->size->h));
@@ -662,7 +662,7 @@ getPixelImage(Image image, Int x, Int y)
 
     answer(result);
   }
-  
+
   fail;
 }
 
@@ -695,7 +695,7 @@ opImage(Image image, Image i2, Name op, Point pos)
   } else
     x = y = 0;
 
-  CHANGING_IMAGE(image, 
+  CHANGING_IMAGE(image,
 	d_image(image, x, y, valInt(image->size->w), valInt(image->size->h));
 	d_modify();
 	r_op_image(i2, 0, 0, x, y, valInt(i2->size->w), valInt(i2->size->h),
@@ -783,7 +783,7 @@ getScaleImage(Image image, Size size)
     return getClipImage(image, DEFAULT);
   if ( size->w == ZERO || size->h == ZERO )
     return answerObject(ClassImage, NIL, size->w, size->h, image->kind, EAV);
-  
+
   i2 = ws_scale_image(image, valInt(size->w), valInt(size->h));
 
   if ( notNil(image->mask) )
@@ -824,10 +824,10 @@ getRotateImage(Image image, Real degrees)
       int hy = valInt(image->hot_spot->y);
       int nhx, nhy;
       double rads = (a * M_PI) / 180.0;
-  
+
       nhx = rfloat((double)hx * cos(rads) + (double)hy * sin(rads));
       nhy = rfloat((double)hy * cos(rads) - (double)hx * sin(rads));
-      
+
       if ( a <= 90.0 )
       { nhy += rfloat(sin(rads) * (double)valInt(image->size->w));
       } else if ( a <= 180.0 )
@@ -839,14 +839,14 @@ getRotateImage(Image image, Real degrees)
       } else
       { nhx -= rfloat(sin(rads) * (double)valInt(image->size->h));
       }
-  
+
       assign(rimg, hot_spot, newObject(ClassPoint, toInt(nhx), toInt(nhy), EAV));
     }
 
     if ( notNil(image->mask) )
       assign(rimg, mask, getRotateImage(image->mask, degrees));
   }
-  
+
   answer(rimg);
 }
 
@@ -912,7 +912,7 @@ getPostscriptFormatImage(Image image)
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
 { Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), EAV);
-  
+
   assign(image, access, NAME_read);
   image->bits = alloc(sizeof(*image->bits));
   image->bits->type = XBM_DATA;
@@ -930,7 +930,7 @@ stdXPMImage(Name name, Image *global, char **bits)
 
   if ( sscanf(bits[0], "%d %d %d", &w, &h, &colours) == 3 )
   { Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), EAV);
-    
+
     if ( colours == 2 )
     { assign(image, depth, ONE);
       assign(image, kind, NAME_bitmap);
@@ -942,7 +942,7 @@ stdXPMImage(Name name, Image *global, char **bits)
     image->bits = alloc(sizeof(*image->bits));
     image->bits->type = XPM_DATA;
     image->bits->bits.xpm = bits;
-    
+
     if ( global )
       *global = image;
   } else

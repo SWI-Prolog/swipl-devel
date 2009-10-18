@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,16 +32,18 @@ ticks prof_ticks;
 
 static ticks overhead;
 
+/* See http://www.technovelty.org/code/c/reading-rdtsc.html */
+
 ticks
 pentium_clock()
-{ register uintptr_t iax;
-  uintptr_t idx;
+{ unsigned int iax;
+  unsigned int idx;
 
   __asm__ __volatile__ ("rdtsc"
 			: "=a" (iax), "=d" (idx)
 		       );
 
-  return (ticks)iax + ((ticks)idx<<32);
+  return (ticks)iax | ((ticks)idx<<32);
 }
 
 
@@ -60,7 +62,7 @@ CPU_MHz()
 	{ /*printf("%f MHz CPU\n", mhz);*/
 	  break;
 	}
-      }    
+      }
 
       fclose(fp);
     }
@@ -92,7 +94,7 @@ prof_report_field(prof_record *pr)
     double av  = (double)(pr->ticks/pr->calls-overhead)/CPU_MHz();
     double tot = av*(double)pr->calls;
 
-    printf("%7d %10.3f %10.3f %20.3f %s\n",
+    printf("%9d %10.3f %10.3f %20.3f %s\n",
 	   pr->calls, f, av, tot, pr->name);
   }
   memset(pr, 0, sizeof(*pr));
@@ -103,7 +105,8 @@ prof_report_field(prof_record *pr)
 void
 prof_report()
 { int i;
-  ticks totalfast = 0, totalav = 0;
+  ticks totalticks = 0, totalfast = 0, totalav = 0;
+  long long totalcalls = 0;
   prof_record *pr = &prof_data[0];
 
   for(i=0; i<100; i++)
@@ -112,7 +115,7 @@ prof_report()
   printf("------------------------------------------------------\n");
   printf("Pentium rdtsc timing in micro-seconds (%.0f MHz CPU)\n", CPU_MHz());
   printf("------------------------------------------------------\n");
-  printf("%7s %10s %10s %20s %s\n",
+  printf("%9s %10s %10s %20s %s\n",
 	 "calls", "fastest", "av", "total", "statement");
   printf("------------------------------------------------------\n");
   overhead = 0;
@@ -124,8 +127,10 @@ prof_report()
   qsort(pr, MAXPROF-1, sizeof(*pr), prof_compare);
   for(i=1; i<MAXPROF; i++, pr++)
   { if ( pr->name && pr->calls > 0 )
-    { totalfast += pr->fastest - overhead;
-      totalav   += pr->ticks/pr->calls - overhead;
+    { totalfast  += pr->fastest - overhead;
+      totalav    += pr->ticks/pr->calls - overhead;
+      totalticks += pr->ticks - pr->calls*overhead;
+      totalcalls += pr->calls;
     }
 
     prof_report_field(pr);
@@ -133,10 +138,10 @@ prof_report()
 
   printf("------------------------------------------------------\n");
 
-  { double f  = (double)totalfast/CPU_MHz();
-    double av = (double)totalav/CPU_MHz();
+  { double tot = (double)totalticks/CPU_MHz();
 
-    printf("%-7s %10.3f %10.3f Totals\n", "", f, av);
+    printf("%9lld %10s %10s %20.3f %s\n",
+	   totalcalls, "", "", tot, "Totals");
   }
 }
 
@@ -145,6 +150,8 @@ void
 prof_reset()
 { prof_record *pr = &prof_data[0];
   int i;
+
+  END_PROF();
 
   for(i=0; i<MAXPROF; i++, pr++)
     memset(pr, 0, sizeof(*pr));

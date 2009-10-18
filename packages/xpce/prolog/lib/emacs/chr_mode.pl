@@ -73,7 +73,7 @@ colourise_buffer(M) :->
 	emacs_prolog_colours:goal_colours/2.
 
 %	term_colours(+Term, -Colours)
-%	
+%
 %	Colourisation of a toplevel term as read from the file.
 
 term_colours((_Name @ Rule), delimiter - [ identifier, RuleColours ]) :- !,
@@ -103,7 +103,7 @@ chr_body(_, body).
 
 
 %	goal_colours(+Goal, -Colours)
-%	
+%
 %	Colouring of special goals.
 
 goal_colours(constraints(_),	built_in-[predicates]).

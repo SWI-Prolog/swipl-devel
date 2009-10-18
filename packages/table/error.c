@@ -83,7 +83,7 @@ again:
 static char *
 strerror(int err)
 { extern char *sys_errlist[];
-  
+
   return sys_errlist[err];
 }
 #endif

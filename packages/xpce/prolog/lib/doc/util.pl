@@ -149,7 +149,7 @@ digit(D, [D|T], T) :-			% a digit
 		 /*******************************
 		 *	       OPTIONS		*
 		 *******************************/
-	
+
 %	option(Option(?Value), OptionList, Default)
 
 option(Opt, Options) :-
@@ -193,7 +193,7 @@ apply_option(Term, _, Object) :-
 		 *******************************/
 
 %	content_to_atom(+Content, -Atom)
-%	
+%
 %	Translate content into an atom.   Used for <title> and other elements
 %	for which we only allow CDATA.
 
@@ -226,4 +226,4 @@ debug(+Subject) :-
 	asserta(subject(Subject)).
 debug(-Subject) :-
 	retractall(subject(Subject)).
-	
+

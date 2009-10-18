@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -55,6 +55,7 @@ static atom_t ATOM_null;
 static atom_t ATOM_process;
 static atom_t ATOM_detached;
 static atom_t ATOM_cwd;
+static atom_t ATOM_env;
 static atom_t ATOM_window;
 static atom_t ATOM_timeout;
 static atom_t ATOM_release;
@@ -68,6 +69,7 @@ static functor_t FUNCTOR_system_error2;
 static functor_t FUNCTOR_pipe1;
 static functor_t FUNCTOR_exit1;
 static functor_t FUNCTOR_killed1;
+static functor_t FUNCTOR_eq2;		/* =/2 */
 
 #define MAYBE 2
 
@@ -140,7 +142,9 @@ resource_error(const char *resource)
 #include <fcntl.h>
 #include <io.h>
 typedef DWORD  pid_t;
+typedef wchar_t echar;			/* environment character */
 #else
+typedef char echar;
 #endif
 
 typedef enum std_type
@@ -161,6 +165,13 @@ typedef struct p_stream
 } p_stream;
 
 
+typedef struct ecbuf
+{ echar *buffer;
+  size_t size;
+  size_t allocated;
+} ecbuf;
+
+
 typedef struct p_options
 { atom_t exe_name;			/* exe as atom */
 #ifdef __WINDOWS__
@@ -171,7 +182,9 @@ typedef struct p_options
   char *exe;				/* Executable */
   char **argv;				/* argument vector */
   char *cwd;				/* CWD of new process */
+  char **envp;				/* New environment */
 #endif
+  ecbuf  envbuf;			/* environment buffer */
   term_t pid;				/* process(PID) */
   int pipes;				/* #pipes found */
   p_stream streams[3];
@@ -191,6 +204,130 @@ typedef struct wait_options
 static int win_command_line(term_t t, int arity,
 			    const wchar_t *exepath, wchar_t **cmdline);
 #endif
+
+		 /*******************************
+		 *	  STRING BUFFER		*
+		 *******************************/
+
+static void
+free_ecbuf(ecbuf *b)
+{ if ( b->buffer )
+  { PL_free(b->buffer);
+    b->buffer = NULL;
+  }
+}
+
+
+static int
+add_ecbuf(ecbuf *b, echar *data, size_t len)
+{ if ( b->size + len > b->allocated )
+  { size_t newsize = (b->allocated ? b->allocated * 2 : 2048);
+
+    while( b->size + len > newsize )
+      newsize *= 2;
+
+    if ( b->buffer )
+    { b->buffer = PL_realloc(b->buffer, newsize*sizeof(echar));
+    } else
+    { b->buffer = PL_malloc(newsize*sizeof(echar));
+    }
+
+    b->allocated = newsize;
+  }
+
+  memcpy(b->buffer+b->size, data, len*sizeof(echar));
+  b->size += len;
+
+  return TRUE;
+}
+
+		 /*******************************
+		 *	ENVIRONMENT PARSING	*
+		 *******************************/
+
+static int
+get_echars_arg_ex(int i, term_t from, term_t arg, echar **sp, size_t *lenp)
+{ const echar *s, *e;
+
+  PL_get_arg(i, from, arg);
+
+#ifdef __WINDOWS__
+  if ( !PL_get_wchars(arg, lenp, sp,
+		      CVT_ATOMIC|CVT_EXCEPTION) )
+#else
+  if ( !PL_get_nchars(arg, lenp, sp,
+		      CVT_ATOMIC|CVT_EXCEPTION|REP_FN) )
+#endif
+    return FALSE;
+
+  for(s = *sp, e = s+*lenp; s<e; s++)
+  { if ( !*s )
+      return domain_error(arg, "text_non_zero_code");
+  }
+
+  return TRUE;
+}
+
+#ifdef __WINDOWS__
+#define ECHARS(s) L##s
+#else
+#define ECHARS(s) s
+#endif
+
+static int
+parse_environment(term_t t, p_options *info)
+{ term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
+  ecbuf *eb   = &info->envbuf;
+  int count = 0, c = 0;
+#ifndef __WINDOWS__
+  echar *q;
+  char **ep;
+#endif
+
+  assert(eb->size == 0);
+  assert(eb->allocated == 0);
+  assert(eb->buffer == NULL);
+
+  while( PL_get_list(tail, head, tail) )
+  { echar *s;
+    size_t len;
+
+    if ( !PL_is_functor(head, FUNCTOR_eq2) )
+      return type_error(head, "environment_variable");
+
+    if ( !get_echars_arg_ex(1, head, tmp, &s, &len) )
+      return FALSE;
+    add_ecbuf(eb, s, len);
+    add_ecbuf(eb, ECHARS("="), 1);
+    if ( !get_echars_arg_ex(2, head, tmp, &s, &len) )
+      return FALSE;
+    add_ecbuf(eb, s, len);
+    add_ecbuf(eb, ECHARS("\0"), 1);
+
+    count++;
+  }
+
+  if ( !PL_get_nil(tail) )
+    return type_error(tail, "list");
+
+#ifdef __WINDOWS__
+  add_ecbuf(eb, ECHARS("\0"), 1);
+#else
+  info->envp = PL_malloc((count+1)*sizeof(char*));
+
+  for(ep=info->envp, c=0, q=eb->buffer; c<count; c++, ep++)
+  { *ep = q;
+    q += strlen(q)+1;
+  }
+  assert((size_t)(q-eb->buffer) == eb->size);
+  *ep = NULL;
+#endif
+
+  return TRUE;
+}
+
 
 static int
 get_stream(term_t t, p_options *info, p_stream *stream)
@@ -261,6 +398,9 @@ parse_options(term_t options, p_options *info)
     } else if ( name == ATOM_window )
     { if ( !PL_get_bool(arg, &info->window) )
 	return type_error(arg, "boolean");
+    } else if ( name == ATOM_env )
+    { if ( !parse_environment(arg, info) )
+	return FALSE;
     } else
       return domain_error(head, "process_option");
   }
@@ -298,7 +438,7 @@ get_exe(term_t exe, p_options *info)
 
     for(i=1; i<=arity; i++)
     { PL_get_arg(i, exe, arg);
-  
+
       if ( !PL_get_chars(arg, &info->argv[i],
 			 CVT_ATOMIC|CVT_EXCEPTION|BUF_MALLOC|REP_FN) )
 	return FALSE;
@@ -321,6 +461,13 @@ free_options(p_options *info)		/* TBD: close streams */
   { PL_free(info->cwd);
     info->cwd = NULL;
   }
+#ifndef __WINDOWS__
+  if ( info->envp )
+  { PL_free(info->envp);
+    info->envp = NULL;
+  }
+#endif
+  free_ecbuf(&info->envbuf);
 #ifdef __WINDOWS__
   if ( info->cmdline )
   { PL_free(info->cmdline);
@@ -405,14 +552,14 @@ Sclose_process(void *handle)
 
     rc = (*Sfilefunctions.close)((void*)(uintptr_t)fd);
     pc->open_mask &= ~(1<<which);
-    
+
     DEBUG(Sdprintf("Closing fd[%d]; mask = 0x%x\n", which, pc->open_mask));
 
     if ( !pc->open_mask )
     { int rcw = wait_for_process(pc);
 
       return rcw ? 0 : -1;
-    }    
+    }
 
     return rc;
   }
@@ -626,11 +773,11 @@ win_command_line(term_t t, int arity, const wchar_t *exe, wchar_t **cline)
 
       cmdlen += av[i].len+(av[i].quote?2:0)+1;
     }
-    
+
     cmdline = PL_malloc(cmdlen*sizeof(wchar_t));
     for( o=cmdline,i=0; i<=arity; )
     { wchar_t *s = av[i].text;
-	  
+
       if ( av[i].quote )
 	*o++ = av[i].quote;
       wcsncpy(o, s, av[i].len);
@@ -710,8 +857,8 @@ find_process_from_pid(DWORD pid, const char *pred)
   }
 
   UNLOCK();
-  
-  if ( pred ) 
+
+  if ( pred )
   { term_t ex = PL_new_term_ref();
 
     PL_put_integer(ex, pid);
@@ -787,7 +934,7 @@ wait_for_pid(pid_t pid, term_t code, wait_options *opts)
 
     unregister_process(pid);
 
-    return PL_unify_term(code, 
+    return PL_unify_term(code,
 			 PL_FUNCTOR, FUNCTOR_exit1,
 			   PL_LONG, rc);
   } else
@@ -804,7 +951,7 @@ wait_for_process(process_context *pc)
   rc = wait_process_handle(pc->handle, &prc, INFINITE);
   CloseHandle(pc->handle);
   PL_free(pc);
-  
+
   return rc;
 }
 
@@ -967,7 +1114,7 @@ do_create_process(p_options *info)
 		      NULL,		/* Thread security */
 		      TRUE,		/* Inherit handles */
 		      flags,		/* Creation flags */
-		      NULL,		/* Environment */
+		      info->envbuf.buffer, /* Environment */
 		      info->cwd,	/* Directory */
 		      &si,		/* Startup info */
 		      &pi) )		/* Process information */
@@ -998,7 +1145,7 @@ do_create_process(p_options *info)
 	s = open_process_pipe(pc, 2, info->streams[2].fd[0]);
 	PL_unify_stream(info->streams[2].term, s);
       }
-      
+
       return TRUE;
     } else if ( info->pipes > 0 )
     { IOSTREAM *s;
@@ -1109,7 +1256,7 @@ wait_for_process(process_context *pc)
 { for(;;)
   { int status;
     pid_t p2;
-    
+
     if ( (p2=waitpid(pc->pid, &status, 0)) == pc->pid )
     { PL_free(pc);
       return TRUE;
@@ -1147,7 +1294,7 @@ wait_success(atom_t name, pid_t pid)
 		        PL_VARIABLE);
 	return PL_raise_exception(ex);
       }
-    } 
+    }
 
     if ( p2 == -1 && errno == EINTR )
     { if ( PL_handle_signals() < 0 )
@@ -1163,6 +1310,7 @@ do_create_process(p_options *info)
 
   if ( !(pid=fork()) )			/* child */
   { int fd;
+    int rc;
 
     PL_cleanup_fork();
 
@@ -1172,7 +1320,7 @@ do_create_process(p_options *info)
 	exit(1);
       }
     }
-    
+
 					/* stdin */
     switch( info->streams[0].type )
     { case std_pipe:
@@ -1213,7 +1361,12 @@ do_create_process(p_options *info)
 	break;
     }
 
-    if ( execv(info->exe, info->argv) )
+    if ( info->envp )
+      rc = execve(info->exe, info->argv, info->envp);
+    else
+      rc = execv(info->exe, info->argv);
+
+    if ( rc )
     { perror(info->exe);
       exit(1);
     }
@@ -1273,7 +1426,7 @@ do_create_process(p_options *info)
 
     if ( info->pid )
       return PL_unify_integer(info->pid, pid);
-    
+
     return wait_success(info->exe_name, pid);
   }
 }
@@ -1327,7 +1480,7 @@ get_pid(term_t pid, pid_t *p)
     return type_error(pid, "integer");
   if ( n < 0 )
     return domain_error(pid, "not_less_than_zero");
-  
+
   *p = n;
   return TRUE;
 }
@@ -1343,7 +1496,7 @@ process_wait(term_t pid, term_t code, term_t options)
 
   if ( !get_pid(pid, &p) )
     return FALSE;
-  
+
   memset(&opts, 0, sizeof(opts));
   while(PL_get_list(tail, head, tail))
   { atom_t name;
@@ -1401,7 +1554,7 @@ process_kill(term_t pid, term_t signal)
 
   if ( kill(p, sig) == 0 )
     return TRUE;
-  
+
   switch(errno)
   { case EPERM:
       return pl_error("process_kill", 2, NULL, ERR_PERMISSION,
@@ -1422,7 +1575,7 @@ process_kill(term_t pid, term_t signal)
 
 install_t
 install_process()
-{ 
+{
 #ifdef __WINDOWS__
   win_init();
 #endif
@@ -1435,6 +1588,7 @@ install_process()
   MKATOM(process);
   MKATOM(detached);
   MKATOM(cwd);
+  MKATOM(env);
   MKATOM(window);
   MKATOM(timeout);
   MKATOM(release);
@@ -1449,6 +1603,8 @@ install_process()
   MKFUNCTOR(resource_error, 1);
   MKFUNCTOR(exit, 1);
   MKFUNCTOR(killed, 1);
+
+  FUNCTOR_eq2 = PL_new_functor(PL_new_atom("="), 2);
 
   PL_register_foreign("process_create", 2, process_create, 0);
   PL_register_foreign("process_wait", 3, process_wait, 0);

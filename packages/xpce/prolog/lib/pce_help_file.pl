@@ -34,7 +34,7 @@
 	    pce_help/2
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , is_absolute_file_name/1
 	   ]).
 
@@ -72,14 +72,14 @@ pce_help_file(Id, FileName) :-
 	(   atom(FileName),
 	    \+ is_absolute_file_name(FileName)
 	->  prolog_load_context(directory, Cwd),
-	    concat_atom([Cwd, /, FileName], Path)
+	    atomic_list_concat([Cwd, /, FileName], Path)
 	;   Path = FileName
 	),
 	retractall(resource(Id, help, Path)),
 	asserta(resource(Id, help, Path)).
 
 %%	pce_help(+DataBaseId, +Label)
-%	
+%
 %	Start @helper/helper on the help module `DataBaseId', searching
 %	for a fragment with label `Label'.  Normally invoked through the
 %	send directly.

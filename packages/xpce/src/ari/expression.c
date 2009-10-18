@@ -70,7 +70,7 @@ getPseudoFloatExpression(Any e)
     return Int_PSF(((Number)e)->value);
   if ( instanceOfObject(e, ClassReal) )	/* real */
     return Float_PSF(valReal(e));
-  
+
   if ( (ival = (Int) checkType(e, TypeInt, NIL)) )
     return Int_PSF(valInt(ival));
 
@@ -99,9 +99,9 @@ promoteToRealNumericValue(NumericValue n)
 
 status
 ar_add(NumericValue n1, NumericValue n2, NumericValue r)
-{ if ( intNumericValue(n1) && intNumericValue(n2) ) 
-  { r->value.i = n1->value.i + n2->value.i; 
-    
+{ if ( intNumericValue(n1) && intNumericValue(n2) )
+  { r->value.i = n1->value.i + n2->value.i;
+
     if ( n1->value.i > 0 && n2->value.i > 0 && r->value.i <= 0 )
       goto overflow;
     if ( n1->value.i < 0 && n2->value.i < 0 && r->value.i >= 0 )
@@ -109,12 +109,12 @@ ar_add(NumericValue n1, NumericValue n2, NumericValue r)
 
     r->type = V_INTEGER;
     succeed;
-  } 
+  }
 
 overflow:
   promoteToRealNumericValue(n1);
   promoteToRealNumericValue(n2);
-  r->value.f = n1->value.f + n2->value.f; 
+  r->value.f = n1->value.f + n2->value.f;
   r->type = V_DOUBLE;
 
   succeed;
@@ -123,9 +123,9 @@ overflow:
 
 int
 ar_minus(NumericValue n1, NumericValue n2, NumericValue r)
-{ if ( intNumericValue(n1) && intNumericValue(n2) ) 
-  { r->value.i = n1->value.i - n2->value.i; 
-    
+{ if ( intNumericValue(n1) && intNumericValue(n2) )
+  { r->value.i = n1->value.i - n2->value.i;
+
     if ( n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0 )
       goto overflow;
     if ( n1->value.i < 0 && n2->value.i > 0 && r->value.i >= 0 )
@@ -133,12 +133,12 @@ ar_minus(NumericValue n1, NumericValue n2, NumericValue r)
 
     r->type = V_INTEGER;
     succeed;
-  } 
+  }
 
 overflow:
   promoteToRealNumericValue(n1);
   promoteToRealNumericValue(n2);
-  r->value.f = n1->value.f - n2->value.f; 
+  r->value.f = n1->value.f - n2->value.f;
   r->type = V_DOUBLE;
 
   succeed;
@@ -175,7 +175,7 @@ ar_times(NumericValue n1, NumericValue n2, NumericValue r)
     r->type = V_INTEGER;
     succeed;
   }
-  
+
   promoteToRealNumericValue(n1);
   promoteToRealNumericValue(n2);
 
@@ -208,7 +208,7 @@ evaluateExpression(Any e, NumericValue v)
 	return ar_times(&vl, &vr, v);
       if ( class == ClassDivide )	/* / */
 	return ar_divide(&vl, &vr, v);
-      
+
       errorPce(e, NAME_unknownFunction);
       v->type = V_ERROR;
       fail;
@@ -422,7 +422,7 @@ static getdecl get_binaryExpression[] =
 #define rc_binaryExpression NULL
 /*
 static classvardecl rc_binaryExpression[] =
-{ 
+{
 };
 */
 
@@ -488,7 +488,7 @@ static char *T_minitialise[] =
 #define var_minus NULL
 /*
 vardecl var_minus[] =
-{ 
+{
 };
 */
 
@@ -504,7 +504,7 @@ static senddecl send_minus[] =
 #define get_minus NULL
 /*
 static getdecl get_minus[] =
-{ 
+{
 };
 */
 
@@ -513,7 +513,7 @@ static getdecl get_minus[] =
 #define rc_minus NULL
 /*
 static classvardecl rc_minus[] =
-{ 
+{
 };
 */
 

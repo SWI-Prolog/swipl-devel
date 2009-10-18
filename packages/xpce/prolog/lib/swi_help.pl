@@ -54,8 +54,8 @@ This module is normally hooked into help/1 by the module swi_hooks.pl.
 	   , atom_length/2
 	   , between/3
 	   , chain_list/2
-	   , concat_atom/2
-	   , concat_atom/3
+	   , atomic_list_concat/2
+	   , atomic_list_concat/3
 	   , default/3
 	   , explain/2
 	   , forall/2
@@ -83,7 +83,7 @@ resource(predicate,	image,  image('16x16/preddoc.xpm')).
 
 prolog_help :-
 	section(S, 'Getting started quickly', _, _),
-	concat_atom(S, -, Id),
+	atomic_list_concat(S, -, Id),
 	term_to_atom(Spec, Id),
 	prolog_help(Spec).
 
@@ -230,7 +230,7 @@ fill_menu_bar(F) :->
 		    menu_item('SWI-Prolog Download (on www) ...',
 			      message(F, open_url, pl_download),
 			      end_group := @on),
-		    
+
 		    menu_item('XPCE (GUI) Manual ...',
 			      message(@prolog, manpce)),
 		    menu_item('XPCE User Guide (on www) ...',
@@ -386,7 +386,7 @@ setup_isearch(V) :->
 				message(@receiver, focus_function, @nil)),
 			    message(@receiver, send_class, '_isearch',
 				    @arg1)))).
-	
+
 
 displayed_ranges(V, Displayed:prolog) :->
 	send(V, slot, displayed_ranges, Displayed),
@@ -490,7 +490,7 @@ mark_titles(TB, From, To) :-
 	->  mark_titles(TB, Idx, To)
 	;   true
 	).
-	
+
 		 /*******************************
 		 *     CROSS-REFERENCE LINKS	*
 		 *******************************/
@@ -655,7 +655,7 @@ line_index(Stream, LineNo) :-
 %
 %	Find the character range for the given help topic, which is of
 %	the form
-%	
+%
 %		* name/arity
 %		* function()
 %		* n.m..
@@ -797,11 +797,11 @@ alnum(C) -->
 help_atom(Name/Arity, Atom) :- !,
 	(   var(Arity)
 	->  atom_concat(Name, '/_', Atom)
-	;   concat_atom([Name, /, Arity], Atom)
+	;   atomic_list_concat([Name, /, Arity], Atom)
 	).
 help_atom(S1-S0, Atom) :- !,
 	help_atom(S1, A0),
-	concat_atom([A0, '.', S0], Atom).
+	atomic_list_concat([A0, '.', S0], Atom).
 help_atom(C, C) :-
 	integer(C), !.
 help_atom(F, F) :-
@@ -862,7 +862,7 @@ section_apropos(V, Pattern) :-
 	send(V, insert_section,
 	     string('Sections from "%s":', Pattern)),
 	forall(member(Index-Title, Names),
-	       (   concat_atom(Index, '.', Jump),
+	       (   atomic_list_concat(Index, '.', Jump),
 		   append_apropos(V, Jump, Title)
 	       )).
 
@@ -953,8 +953,8 @@ source(File, Line) -->			% XPCE method
 	  get(Location, file_name, File),
 	  get(Location, line_no, Line)
 	}.
-	
-	
+
+
 		 /*******************************
 		 *       TABLE-OF-CONTENTS	*
 		 *******************************/
@@ -1032,7 +1032,7 @@ function_in_section(Section, Func) :-
 
 subsection(Sec, Sub) :-
 	append(Sec, [_], Sub).
-	
+
 select_range(PT, Ranges:prolog) :->
 	"Select selections in range"::
 	(   Ranges == []
@@ -1044,7 +1044,7 @@ select_range(PT, Ranges:prolog) :->
 	    get(PT, selection, Nodes),
 	    send(PT, normalise, Nodes, y)
 	).
-	    
+
 in_range(F-T, Node, How) :-
 	get(Node, start, S),
 	get(Node, end, E),
@@ -1075,7 +1075,7 @@ initialise(N, Index:prolog) :->
 	->  CanExpand = @on
 	;   CanExpand = @off
 	),
-	concat_atom(Index, '.', Id),
+	atomic_list_concat(Index, '.', Id),
 	send_super(N, initialise, Title?capitalise, Id,
 		   resource(manual), resource(book),
 		   CanExpand),
@@ -1099,7 +1099,7 @@ select_range(N, Ranges:prolog) :->
 	;   true
 	).
 
-:- pce_end_class(pui_section_node). 
+:- pce_end_class(pui_section_node).
 
 
 :- pce_begin_class(pui_predicate_node, toc_file,

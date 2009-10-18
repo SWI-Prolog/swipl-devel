@@ -81,7 +81,7 @@ Sread_object(void *handle, char *buf, size_t size)
       { charW *dest = (charW*)buf;
 	const charA *f = s->s_textA;
 	const charA *e = &f[s->size];
-      
+
 	while(f<e)
 	  *dest++ = *f++;
       } else
@@ -134,14 +134,14 @@ Swrite_object(void *handle, char *buf, size_t size)
     { if ( *f > 0xff )
 	break;
     }
-  
+
     if ( f == end )
     { charA *asc = alloca(size);
       charA *t = asc;
-  
+
       for(f=wbuf; f<end; )
 	*t++ = (charA)*f++;
-  
+
       str_set_n_ascii(&s, advance, (char*)asc);
     } else
     { str_set_n_wchar(&s, advance, (wchar_t*)wbuf);
@@ -278,7 +278,7 @@ Sopen_object(Any obj, const char *mode)
 	    rc = 0;
 	  }
 	}
-	    
+
 	s->newline = (f->newline_mode == NAME_posix ? SIO_NL_POSIX :
 		      f->newline_mode == NAME_dos   ? SIO_NL_DOS :
 						      SIO_NL_DETECT);
@@ -290,7 +290,7 @@ Sopen_object(Any obj, const char *mode)
       }
       return s;
     }
-    
+
     errorPce(obj, NAME_openFile,
 	     mode[0] == 'r' ? NAME_read : NAME_write,
 	     getOsErrorPce(PCE));
@@ -319,7 +319,7 @@ Sopen_object(Any obj, const char *mode)
       s = (*TheCallbackFunctions.rc_open)(strName(rc->name),
 					  rc_class,
 					  mode);
-					  
+
     if ( !s )
       errorPce(obj, NAME_openFile,
 	       mode[0] == 'r' ? NAME_read : NAME_write,

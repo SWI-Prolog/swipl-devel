@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -71,7 +71,7 @@ cmd(=, index, nospace('\=')).
 cmd(spaces({X}), html(Spaces)) :-
 	atom_number(X, N),
 	n_list(N, '&nbsp;', L),
-	concat_atom(L, Spaces).
+	atomic_list_concat(L, Spaces).
 cmd(hrule, html('<HR>')).
 cmd(bug({TeX}), #footnote(bug, +TeX)).
 cmd(fileext({Ext}), #code(Text)) :-
@@ -112,7 +112,7 @@ cmd(versionshort,	    _, nospace(Version)) :-
 	Major is V // 10000,
 	Minor is (V // 100) mod 100,
 	Patch is V mod 100,
-	concat_atom([Major, Minor, Patch], '.', Version).
+	atomic_list_concat([Major, Minor, Patch], '.', Version).
 cmd(bnfor, '|').
 cmd(bnfmeta({Meta}), [nospace('<'), #var(+Meta), nospace('>')]).
 cmd(argoption({RawName}, {ArgName}),
@@ -129,6 +129,16 @@ cmd(dcgref({RawName}, {DCGArity}), #lref(pred, RefName, Text)) :-
 	Arity is ArityInt + 2,
 	predicate_refname(Name, Arity, RefName),
 	sformat(Text, '~w/~w', [Name, Arity]).
+cmd(qpredref({Module}, {RawName}, {Arity}), #lref(pred, RefName, Text)) :-
+	clean_name(RawName, Name),
+	predicate_refname(Module:Name, Arity, RefName),
+	sformat(Text, '~w:~w/~w', [Module, Name, Arity]).
+cmd(qdcgref({Module}, {RawName}, {DCGArity}), #lref(pred, RefName, Text)) :-
+	clean_name(RawName, Name),
+	atom_number(DCGArity, ArityInt),
+	Arity is ArityInt + 2,
+	predicate_refname(Module:Name, Arity, RefName),
+	sformat(Text, '~w:~w/~w', [Module, Name, Arity]).
 cmd(nopredref({RawName}, {Arity}), Text) :-
 	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
@@ -146,7 +156,7 @@ cmd(manref({RawName}, {Section}),
     [#strong(Name), #embrace(Section)]) :-
 	clean_tt(RawName, Name).
 cmd(funcref({RawName}, {Args}),
-    #lref(RefName, [Name, #embrace(+Args)])) :-
+    #lref(func, RefName, [Name, #embrace(+Args)])) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]).
 cmd(definition({Tag}),
@@ -174,7 +184,7 @@ cmd(dcg(A, {RawName}, {'0'}, {_}),
 	add_to_index(RefName, +RefName).
 cmd(dcg(A, {RawName}, {Arity}, {Args}),
     #defitem(pubdef, Content)) :-
-	pred_tag(A, Content, 
+	pred_tag(A, Content,
 		 [ #label(RefName,
 			  [ #strong(Name), #embrace(#var(+Args))
 			  ]),
@@ -183,17 +193,23 @@ cmd(dcg(A, {RawName}, {Arity}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {'0'}, {_}),
-    #defitem(pubdef, #label(RefName,
-			    [ ':- ', #strong(Name)
-			    ]))) :- !,
+cmd(directive(A, {RawName}, {'0'}, {_}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 [ #label(RefName,
+			  [ ':- ', #strong(Name)
+			  ])
+		 ]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, 0]),
 	add_to_index(RefName, +RefName).
-cmd(directive({RawName}, {Arity}, {Args}),
-    #defitem(pubdef, #label(RefName,
-			    [ ':- ', #strong(Name), #embrace(#var(Args))
-			    ]))) :-
+cmd(directive(A, {RawName}, {Arity}, {Args}),
+    #defitem(pubdef, Content)) :-
+	pred_tag(A, Content,
+		 [ #label(RefName,
+			  [ ':- ', #strong(Name), #embrace(#var(Args))
+			  ])
+		 ]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
@@ -277,13 +293,13 @@ cmd(menuitem({Name}, {[]}),
     #defitem(#label(RefName, #strong(+Name)))) :-
 	clean_name(Name, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(Name, ' ', Atom),
+	atomic_list_concat(Name, ' ', Atom),
 	add_to_index(Atom, +RefName).
 cmd(menuitem({Name}, {Arg}),
     #defitem([#label(RefName, #strong(+Name)), ' ', #embrace(#var(+Arg))])) :-
 	clean_name(Name, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(Name, ' ', Atom),
+	atomic_list_concat(Name, ' ', Atom),
 	add_to_index(Atom, +RefName).
 cmd(escapeitem({Name}), #defitem(#code([nospace('\\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
@@ -328,7 +344,7 @@ cmd(class({Name}),              #lref(Label, Name)) :-
 cmd(menuref({A1}),            #lref(RefName, Name)) :-
 	clean_name(A1, RefName0),
 	atom_concat('menu:', RefName0, RefName),
-	concat_atom(A1, ' ', Name),
+	atomic_list_concat(A1, ' ', Name),
         add_to_index(Name).
 
 % Glossary support
@@ -496,7 +512,7 @@ ws --> [].
 
 string([]) --> [].
 string([H|T]) --> [H], string(T).
-	
+
 eol([],[]).
 
 
@@ -509,13 +525,15 @@ clean_name(X, X) :-
 	atomic(X), !.
 clean_name(L, Out) :-
 	maplist(clean_name, L, L2),
-	concat_atom(L2, Out).
-	
+	atomic_list_concat(L2, Out).
+
 predicate_refname(Symbol, Arity, Ref) :-
 	symbol_name(Symbol, Name), !,
-	concat_atom([Name, /, Arity], Ref).
+	atomic_list_concat([Name, /, Arity], Ref).
+predicate_refname(Module:Name, Arity, Ref) :- !,
+	atomic_list_concat([Module, :, Name, /, Arity], Ref).
 predicate_refname(Name, Arity, Ref) :-
-	concat_atom([Name, /, Arity], Ref).
+	atomic_list_concat([Name, /, Arity], Ref).
 
 symbol_name('->',	send_arrow).
 symbol_name('<-',	get_arrow).

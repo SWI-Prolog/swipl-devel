@@ -105,7 +105,7 @@ static getdecl get_monitor[] =
 #define rc_monitor NULL
 /*
 static classvardecl rc_monitor[] =
-{ 
+{
 };
 */
 

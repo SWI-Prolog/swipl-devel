@@ -22,12 +22,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if __TOS__
-#include <tos.h>
-#define HIDDEN	0x02
-#define SUBDIR 0x10
-#endif
-
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -122,7 +116,7 @@ static bool	match_pattern(matchcode *, char *);
 
 static inline void
 setMap(matchcode *map, int c)
-{ if ( !trueFeature(FILE_CASE_FEATURE) )
+{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     c = makeLower(c);
 
   map[(c)/8] |= 1 << ((c) % 8);
@@ -224,7 +218,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	      return (char *) NULL;
 	    }
 	  }
-	  
+
 	  continue;
 	}
       case ANY:
@@ -244,7 +238,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
-        if ( !trueFeature(FILE_CASE_FEATURE) )
+        if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	  c = makeLower(c);
 	Output(c);
 	continue;
@@ -279,7 +273,7 @@ match_pattern(matchcode *p, char *str)
       case ANYOF:					/* [...] */
         { matchcode c2 = *s;
 
-	  if ( !trueFeature(FILE_CASE_FEATURE) )
+	  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	    c2 = makeLower(c2);
 
 	  if ( p[c2 / 8] & (1 << (c2 % 8)) )
@@ -302,10 +296,10 @@ match_pattern(matchcode *p, char *str)
 	  if ( match_pattern(p+1, (char *)s) )
 	    succeed;
 	  p += *p;
-	  continue;	  
+	  continue;
       default:						/* character */
 	  if ( c == *s ||
-	       (!trueFeature(FILE_CASE_FEATURE) && c == makeLower(*s)) )
+	       (!truePrologFlag(PLFLAG_FILE_CASE) && c == makeLower(*s)) )
 	  { s++;
 	    continue;
 	  }
@@ -431,17 +425,17 @@ expand(const char *pattern, GlobInfo info)
 
     for(;;)
     { int c;
-  
+
       switch( (c=*s++) )
       { case EOS:
 	  if ( s > pat )		/* something left and expanded */
 	  { un_escape(prefix, pat, s);
-	  
+
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
 	    { char path[MAXPATHLEN];
 	      size_t plen;
-  
+
 	      strcpy(path, expand_entry(info, info->start));
 	      plen = strlen(path);
 	      if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
@@ -470,10 +464,10 @@ expand(const char *pattern, GlobInfo info)
       }
       break;
     }
-    
+
     for( tail=s; *tail && !IS_DIR_SEPARATOR(*tail); tail++ )
       ;
-  
+
 /*  By now, head points to the start of the path holding meta characters,
     while tail points to the tail:
 
@@ -483,13 +477,13 @@ expand(const char *pattern, GlobInfo info)
 */
     un_escape(prefix, pat, head);
     un_escape(patbuf, head, tail);
-  
+
     if ( !compilePattern(patbuf, &cbuf) )		/* syntax error */
       fail;
     dot = (patbuf[0] == '.');			/* do dots as well */
-  
+
     end = info->end;
-  
+
     for(; info->start < end; info->start++)
     { DIR *d;
       struct dirent *e;
@@ -499,7 +493,7 @@ expand(const char *pattern, GlobInfo info)
 
       strcpy(path, current);
       strcat(path, prefix);
-      
+
       if ( (d=opendir(path[0] ? OsPath(path, tmp) : ".")) )
       { size_t plen = strlen(path);
 
@@ -514,7 +508,7 @@ expand(const char *pattern, GlobInfo info)
 	  if ( (dot || e->d_name[0] != '.') &&
 	       matchPattern(e->d_name, &cbuf) )
 	  { char newp[MAXPATHLEN];
-  
+
 	    strcpy(newp, path);
 	    strcpy(&newp[plen], e->d_name);
 /*	    if ( !tail[0] || ExistsDirectory(newp) )
@@ -543,8 +537,8 @@ compareBagEntries(const void *a1, const void *a2)
 
   s1 = expand_str(info, i1);
   s2 = expand_str(info, i2);
-  
-  if ( trueFeature(FILE_CASE_FEATURE) )
+
+  if ( truePrologFlag(PLFLAG_FILE_CASE) )
     return mbscoll(s1, s2);
   else
     return mbscasecoll(s1, s2);
@@ -555,7 +549,7 @@ static void
 sort_expand(GlobInfo info)
 { int *ip = &fetchBuffer(&info->files, info->start, int);
   int is = info->end - info->start;
-  
+
   LD->glob_info = info;
   qsort(ip, is, sizeof(int), compareBagEntries);
 }

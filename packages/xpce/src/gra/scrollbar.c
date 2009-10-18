@@ -112,7 +112,7 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
     orientationScrollBar(s, orientation);
 
   requestComputeGraphical(s, DEFAULT);
-  
+
   succeed;
 }
 
@@ -135,7 +135,7 @@ arrow_height_scrollbar(ScrollBar sb)
 
     return ah;
   }
-  
+
   return 0;
 }
 
@@ -145,7 +145,7 @@ ComputeScrollBar(ScrollBar sb)
 { if ( notNil(sb->request_compute) )
   { struct bubble_info bi;
     int arrow = arrow_height_scrollbar(sb);
-    
+
     compute_bubble(sb, &bi, arrow, MIN_BUBBLE, FALSE);
     if ( valInt(sb->bubble_start) != bi.start ||
 	 valInt(sb->bubble_length) != bi.length )
@@ -540,7 +540,7 @@ RedrawAreaScrollBar(ScrollBar s, Area a)
 { Any bg = getClassVariableValueObject(s, NAME_background);
   Any obg = NIL;
   Elevation z = NIL;
-  
+
   if ( bg )
   { if ( instanceOfObject(bg, ClassColour) ||
 	 instanceOfObject(bg, ClassPixmap) )
@@ -654,7 +654,7 @@ repeatScrollBar(ScrollBar s)
 	goto again;
     }
   }
-  
+
   succeed;
 }
 
@@ -681,7 +681,7 @@ attachTimerScrollBar(ScrollBar s)
   assign(ScrollBarRepeatMessage, receiver, s);
   startTimer(t, NAME_once);
 }
-  
+
 
 static status
 unlinkScrollBar(ScrollBar s)
@@ -779,7 +779,7 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
       sb_box(x, y+h-boxh, w, boxh, vertical, z, FALSE,
 	     s->status == NAME_bottomOfFile);
     }
-    
+
     cy = y + bar_bi.bar_start;		/* paint the bar */
     ch = y+bar_bi.start - cy;
     Fill(bx, cy, BAR_WIDTH, ch, GREY50_IMAGE);
@@ -876,7 +876,7 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
 	changedImageGraphical(s, 0, toInt(valInt(h)-BOXHEIGHT),
 			      w, toInt(BOXHEIGHT));
       else
-	changedImageGraphical(s, toInt(valInt(w)-BOXHEIGHT), 0, 
+	changedImageGraphical(s, toInt(valInt(w)-BOXHEIGHT), 0,
 			      toInt(BOXHEIGHT), h);
     } else
     { if ( offset < button_bi.start )
@@ -904,9 +904,9 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
 	assign(s, direction, NAME_goto);
 	assign(s, status,    NAME_dragging);
       }
-      
+
       if ( s->status == NAME_repeatDelay )
-      { LastOffset = offset; 
+      { LastOffset = offset;
 	attachTimerScrollBar(s);
       }
 
@@ -980,7 +980,7 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
     Int h = s->area->h;
     int offset = offset_event_scrollbar(s, ev);
     int len = (vertical ? valInt(h) : valInt(w));
-  
+
     if ( ah < 0 )
       ah = (vertical ? valInt(w) : valInt(h));
 
@@ -999,9 +999,9 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
 	assign(s, status,    NAME_repeatDelay);
       } else				/* not on the arrows */
       { struct bubble_info bi;
-  
+
 	compute_bubble(s, &bi, ah, MIN_BUBBLE, FALSE);
-	
+
 	if ( offset < bi.start )	/* page-up */
 	{ assign(s, unit,      NAME_page);
 	  assign(s, direction, NAME_backwards);
@@ -1029,7 +1029,7 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
     { int offset = offset_event_scrollbar(s, ev);
       struct bubble_info bi;
       int prom;
-  
+
       compute_bubble(s, &bi, ah, MIN_BUBBLE, FALSE);
       if ( bi.bar_length <= bi.length )
 	prom = 0;			/* avoid division by 0 */
@@ -1052,15 +1052,15 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
 
     succeed;
   }
-  
+
   if ( isAEvent(ev, NAME_msMiddle) )
   { if ( isAEvent(ev, NAME_msMiddleDown) )
     { assign(s, unit,      NAME_file);
       assign(s, direction, NAME_goto);
       assign(s, amount,    promilage_event_scrollbar(s, ev));
       assign(s, status,    NAME_running);
-  
-      forwardScrollBar(s);	
+
+      forwardScrollBar(s);
     } else if ( s->status == NAME_running &&
 		s->drag == ON &&
 		isAEvent(ev, NAME_msMiddleDrag) )
@@ -1068,7 +1068,7 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
       forwardScrollBar(s);
     } else if ( isAEvent(ev, NAME_msMiddleUp) )
     { assign(s, status, NAME_inactive);
-    }  
+    }
 
     succeed;
   }
@@ -1105,7 +1105,7 @@ promilage_event_scrollbar(ScrollBar s, EventObj ev)
 
   compute_bubble(s, &bi, ah, MIN_BUBBLE, FALSE);
   rval = ((offset - bi.bar_start) * 1000) / bi.bar_length;
-  
+
   return toInt(BOUNDS(rval, 0, 1000));
 }
 
@@ -1124,7 +1124,7 @@ forwardScrollBar(ScrollBar s)
   } else
     forwardReceiverCode(s->message, s->object,
 			s->direction, s->unit, s->amount, EAV);
-  
+
   succeed;
 }
 
@@ -1185,7 +1185,7 @@ eventScrollBar(ScrollBar s, EventObj ev)
 	  assign(s, amount,    promilage_event_scrollbar(s, ev));
 	  assign(s, status,    NAME_running);
 	  updateCursorScrollBar(s, NAME_goto);
-	  forwardScrollBar(s);	
+	  forwardScrollBar(s);
 	  succeed;
 	}
 	if ( isAEvent(ev, NAME_msRightDown) )
@@ -1209,7 +1209,7 @@ eventScrollBar(ScrollBar s, EventObj ev)
       if ( isUpEvent(ev) )
       { if ( !equalName(s->unit, NAME_file) )
 	  forwardScrollBar(s);
-	
+
 	if ( allButtonsUpEvent(ev) )
 	{ if ( insideEvent(ev, (Graphical) s) )
 	  { assign(s, status, NAME_active);
@@ -1239,7 +1239,7 @@ orientationScrollBar(ScrollBar s, Name or)
 { if ( s->orientation == or )
     succeed;
 
-  CHANGING_GRAPHICAL(s, 
+  CHANGING_GRAPHICAL(s,
 	swapInt(s->area->h, s->area->w);
 	assign(s, orientation, or);
 	changedEntireImageGraphical(s));
@@ -1365,7 +1365,7 @@ convertLoadedObjectScrollBar(ScrollBar sb, Int ov, Int nv)
   succeed;
 }
 
- 
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -1446,7 +1446,7 @@ static senddecl send_scrollBar[] =
 #define get_scrollBar NULL
 /*
 static getdecl get_scrollBar[] =
-{ 
+{
 };
 */
 

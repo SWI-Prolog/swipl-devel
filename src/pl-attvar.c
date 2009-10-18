@@ -2,10 +2,10 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -50,7 +50,7 @@ vName(Word adr)
     Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
 
   return name;
-} 
+}
 #endif
 
 
@@ -90,12 +90,13 @@ registerWakeup(Word name, Word value ARG_LD)
     DEBUG(1, Sdprintf("appended to wakeup\n"));
   } else				/* empty list */
   { Word head = valTermRef(LD->attvar.head);
-    
+
     assert(isVar(*head));
     TrailAssignment(head);		/* See (*) */
     *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
     TrailAssignment(tail);
     *tail = makeRef(wake+3);
+    LD->alerted |= ALERT_WAKEUP;
     DEBUG(1, Sdprintf("new wakeup\n"));
   }
 
@@ -109,7 +110,7 @@ registerWakeup(Word name, Word value ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 assignAttVar(Word var, Word value)		(var := value)
-	
+
 Assign  value  to  the  given  attributed    variable,   adding  a  term
 wake(Attribute, Value, Tail) to the global variable resembling the goals
 that should be awoken.
@@ -161,11 +162,11 @@ static void
 make_new_attvar(Word p ARG_LD)
 { Word gp;
 
-  if ( onStackArea(local, p) )
+  if ( p >= (Word)lBase )
   { gp = allocGlobal(2);
     gp[1] = ATOM_nil;
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRef(&gp[0]);
+    *p = makeRefG(&gp[0]);
   } else
   { gp = allocGlobal(1);
     gp[0] = ATOM_nil;
@@ -180,12 +181,12 @@ static int
 put_new_attvar(Word p, atom_t name, Word value ARG_LD)
 { Word gp, at;
 
-  if ( onStackArea(local, p) )
+  if ( p >= (Word)lBase )
   { gp = allocGlobal(6);
     at = &gp[1];
     setVar(*at);
     gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
-    *p = makeRef(&gp[0]);
+    *p = makeRefG(&gp[0]);
   } else
   { gp = allocGlobal(5);
     at = &gp[0];
@@ -224,7 +225,7 @@ find_attr(Word av, atom_t name, Word *vp ARG_LD)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isNil(*l) )
     { *vp = l;
       fail;
@@ -293,7 +294,7 @@ get_attr(term_t list, atom_t name, term_t value)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
@@ -381,29 +382,65 @@ so we will use save/restore in all places.
 The functions below provide a way to   realise the save/restore. It must
 be nicely nested in the  same  way   and  using  the same constraints as
 PL_open_foreign_frame/PL_close_foreign_frame.
+
+NOTE: Now we also save pending  exceptions,   for  which  the same rules
+apply. The environment has size 1 if there  is a pending exception, 2 if
+a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 fid_t
 saveWakeup(ARG1_LD)
 { Word h;
 
-  if ( *(h=valTermRef(LD->attvar.head)) )
+  if ( *(h=valTermRef(LD->attvar.head)) || exception_term )
   { fid_t fid = PL_open_foreign_frame();
-    term_t s = PL_new_term_refs(2);
-    
-    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+    term_t s;
 
-    *valTermRef(s+0) = *h;
-    setVar(*h);
-    h = valTermRef(LD->attvar.tail);
-    *valTermRef(s+1) = *h;
-    setVar(*h);    
-    DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
+    if ( exception_term )
+    { s = PL_new_term_ref();
+      *valTermRef(s) = *valTermRef(exception_term);
+      exception_term = 0;
+    }
+
+    if ( *h )
+    { s = PL_new_term_refs(2);
+
+      DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+
+      *valTermRef(s+0) = *h;
+      setVar(*h);
+      h = valTermRef(LD->attvar.tail);
+      *valTermRef(s+1) = *h;
+      setVar(*h);
+      DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
+    }
 
     return fid;
   }
 
   return (fid_t)0;
+}
+
+
+static void
+restore_exception(Word p ARG_LD)
+{ DEBUG(1, Sdprintf("Restore exception from %p\n", p));
+
+  *valTermRef(exception_bin) = p[0];
+  exception_term = exception_bin;
+
+  DEBUG(1, pl_writeln(exception_term));
+}
+
+
+static void
+restore_wakeup(Word p ARG_LD)
+{
+
+  *valTermRef(LD->attvar.head) = p[0];
+  *valTermRef(LD->attvar.tail) = p[1];
+
+  DEBUG(1, pl_writeln(LD->attvar.head));
 }
 
 
@@ -413,12 +450,20 @@ restoreWakeup(fid_t fid ARG_LD)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word p = (Word)(fr+1);
 
-    DEBUG(1, Sdprintf("Restore wakeup from %p\n", p));
-
-    *valTermRef(LD->attvar.head) = p[0];
-    *valTermRef(LD->attvar.tail) = p[1];
-
-    DEBUG(1, pl_write(LD->attvar.head); pl_nl());
+    switch(fr->size)
+    { case 3:
+	restore_exception(p PASS_LD);
+        p++;
+	/*FALLTHROUGH*/
+      case 2:
+	restore_wakeup(p PASS_LD);
+        break;
+      case 1:
+	restore_exception(p PASS_LD);
+        break;
+      default:
+	assert(0);
+    }
 
     PL_discard_foreign_frame(fid);
   }
@@ -465,7 +510,7 @@ PRED_IMPL("get_attr", 3, get_attr3, 0) /* +Var, +Name, -Value */
     fail;
   if ( !PL_get_attr(A1, al) )
     fail;
-  
+
   return get_attr(al, name, A3);
 }
 
@@ -482,10 +527,10 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   vp = valTermRef(A3);
   deRef(vp);
 
-  if ( isVar(*vp) && !onStackArea(global, vp) )
+  if ( isVar(*vp) && vp >= (Word)lBase )
   { Word p = allocGlobal(1);		/* attribute values should be on */
 					/* the global stack! */
-    
+
     setVar(*p);
     *vp = makeRefG(p);
     Trail(vp);
@@ -559,6 +604,22 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
 }
 
 
+static
+PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
+{ PRED_LD
+  Word av;
+
+  av = valTermRef(A1);
+  deRef(av);
+
+  if ( isAttVar(*av) )
+  { TrailAssignment(av);
+    setVar(*av);
+  }
+
+  succeed;
+}
+
 		 /*******************************
 		 *	       FREEZE		*
 		 *******************************/
@@ -602,7 +663,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
       if ( find_attr(v, ATOM_freeze, &vp PASS_LD) )
       { Word gc = allocGlobal(3);		/* 3 cells global */
 
-	gc[0] = FUNCTOR_comma2;
+	gc[0] = FUNCTOR_dand2;
 	gc[1] = linkVal(vp);
 	gc[2] = goal;
 
@@ -638,7 +699,7 @@ PRED_IMPL("$freeze", 2, freeze, PL_FA_TRANSPARENT)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $new_choice_point(-Chp) is det.
 
-Unify Chp with a reference to a new choicepoint. 
+Unify Chp with a reference to a new choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
@@ -698,14 +759,14 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
   for(;;)
   { deRef(l);
-    
+
     if ( isNil(*l) )
     { fail;
     } else if ( isTerm(*l) )
     { Functor f = valueTerm(*l);
 
       DEBUG(1, Sdprintf("\tterm at %p\n", f));
-      
+
       if ( (Word)f >= ch->mark.globaltop )
 	succeed;
 
@@ -768,7 +829,7 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 retry:
   if ( !PL_get_intptr_ex(A1, &off) )
     fail;
-  
+
   ch = (Choice)((Word)lBase+off);
   list = tailp = allocGlobalNoShift(1);
   if ( !list )
@@ -793,14 +854,16 @@ retry:
       } else
       { gTop = gend;
 	scan_trail(FALSE);
-	endCritical;
+	if ( !endCritical )
+	  return FALSE;
 	goto grow;
       }
     }
   }
-  
+
   scan_trail(FALSE);
-  endCritical;
+  if ( !endCritical )
+    return FALSE;
 
   if ( list == tailp )
   { gTop = gend;
@@ -833,6 +896,7 @@ BeginPredDefs(attvar)
   PRED_DEF("put_attr",  3, put_attr3, 0)
   PRED_DEF("get_attr",  3, get_attr3, 0)
   PRED_DEF("del_attr",  2, del_attr2, 0)
+  PRED_DEF("del_attrs", 1, del_attrs, 0)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    PL_FA_TRANSPARENT)

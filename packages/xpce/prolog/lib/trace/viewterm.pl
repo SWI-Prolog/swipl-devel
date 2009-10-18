@@ -148,7 +148,7 @@ update(TV) :->
 	     clear(true),
 	     write_options(OptionList)
 	   ]).
-	
+
 make_options([], _, [ numbervars(true), attributes(portray) ]).
 make_options([H0|T0], Selection, [H|T]) :-
 	(   send(Selection, member, H0)

@@ -181,7 +181,7 @@ forwardCode(Code c, ...)
   for(argc=0; (argv[argc] = va_arg(args, Any)) != NULL; argc++)
     assert(argc <= VA_PCE_MAX_ARGS);
   va_end(args);
-  
+
   return forwardCodev(c, argc, argv);
 }
 
@@ -196,7 +196,7 @@ forwardReceiverCode(Code c, Any rec, ...)
   for(argc=0; (argv[argc] = va_arg(args, Any)) != NULL; argc++)
     assert(argc <= VA_PCE_MAX_ARGS);
   va_end(args);
-  
+
   return forwardReceiverCodev(c, rec, argc, argv);
 }
 
@@ -311,7 +311,7 @@ static char *T_fill[] =
 #define var_codeVector NULL
 /*
 static vardecl var_codeVector[] =
-{ 
+{
 };
 */
 
@@ -343,7 +343,7 @@ static getdecl get_codeVector[] =
 #define rc_codeVector NULL
 /*
 static classvardecl rc_codeVector[] =
-{ 
+{
 };
 */
 
@@ -380,7 +380,7 @@ static char *T_fwdrec[] =
 #define var_code NULL
 /*
 static vardecl var_code[] =
-{ 
+{
 };
 */
 
@@ -419,7 +419,7 @@ static getdecl get_code[] =
 #define rc_code NULL
 /*
 static classvardecl rc_code[] =
-{ 
+{
 };
 */
 

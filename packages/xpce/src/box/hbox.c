@@ -80,7 +80,7 @@ static senddecl send_hbox[] =
 #define get_hbox NULL
 /*
 static getdecl get_hbox[] =
-{ 
+{
 };
 */
 
@@ -89,7 +89,7 @@ static getdecl get_hbox[] =
 #define rc_hbox NULL
 /*
 static classvardecl rc_hbox[] =
-{ 
+{
 };
 */
 

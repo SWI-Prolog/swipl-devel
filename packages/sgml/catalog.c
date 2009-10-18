@@ -241,7 +241,7 @@ init_catalog()
 int
 register_catalog_file(const ichar *file, catalog_location where)
 { int rc;
-  
+
   init_catalog();
 
   LOCK();
@@ -310,7 +310,7 @@ cs_streql(ichar const *a, ichar const *b)
 
 static int
 scan_overflow(size_t buflen)
-{ gripe(ERC_REPRESENTATION, L"token length");
+{ gripe(NULL, ERC_REPRESENTATION, L"token length");
 
   return EOF;
 }
@@ -439,7 +439,7 @@ load_one_catalogue(catalog_file * file)
   int override = 0;
 
   if ( !src )
-  { gripe(ERC_NO_CATALOGUE, file->file);
+  { gripe(NULL, ERC_NO_CATALOGUE, file->file);
     return;
   }
 
@@ -514,7 +514,7 @@ load_one_catalogue(catalog_file * file)
 
     To look up a parameter entity:
     f = find_in_catalogue(CAT_PENTITY, name, pubid, sysid, ci);
-    The name may begin with a % but need not; if it doesn't    
+    The name may begin with a % but need not; if it doesn't
     a % will be prefixed for the search.
     If it cannot otherwise be found ${name}.pen will be returned.
 
@@ -635,7 +635,7 @@ find_in_catalogue(int kind,
     return 0;
 
   if ( istrlen(name)+4+1 > penlen )
-  { gripe(ERC_REPRESENTATION, L"entity name");
+  { gripe(NULL, ERC_REPRESENTATION, L"entity name");
     return NULL;
   }
 

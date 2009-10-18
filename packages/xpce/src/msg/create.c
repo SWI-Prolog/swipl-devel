@@ -158,7 +158,7 @@ static getdecl get_create[] =
 #define rc_create NULL
 /*
 static classvardecl rc_create[] =
-{ 
+{
 };
 */
 

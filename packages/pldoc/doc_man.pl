@@ -30,20 +30,25 @@
 */
 
 :- module(pldoc_man,
-	  [ clean_man_index/0,		% 
+	  [ clean_man_index/0,		%
 	    index_man_directory/2,	% +DirSpec, +Options
 	    index_man_file/2,		% +Class, +FileSpec
-	    man_page/4			% +Obj, +Options, //
+					% HTML generation
+	    man_page//2,		% +Obj, +Options
+	    man_overview//1		% +Options
 	  ]).
 :- use_module(library(sgml)).
 :- use_module(library(occurs)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
+:- use_module(library(apply)).
 :- use_module(doc_wiki).
 :- use_module(doc_html).
 :- use_module(doc_search).
-:- use_module(library('http/html_write')).
-:- use_module(library('http/http_dispatch')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_path)).
 :- use_module(library(doc_http)).
 :- include(hooks).
 
@@ -96,10 +101,10 @@ index_manual :-
 %%	index_man_directory(Dir, +Options) is det
 %
 %	Index  the  HTML  directory   Dir.    Options are:
-%	
+%
 %		* class(Class)
 %		Define category of the found objects.
-%		
+%
 %	Remaining Options are passed to absolute_file_name/3.
 
 index_man_directory(Spec, Options) :-
@@ -161,10 +166,10 @@ index_on_begin(dt, Attributes, Parser) :- !,
 		   ]),
 	sub_term(element(a, AA, _), DT),
         memberchk(name=Id, AA),
-	atom_to_pi(Id, PI),
+	name_to_object(Id, PI),
 	nb_setval(pldoc_man_index, dd(PI, File, Offset)).
 index_on_begin(dd, _, Parser) :- !,
-	nb_getval(pldoc_man_index, dd(Name/Arity, File, Offset)),
+	nb_getval(pldoc_man_index, dd(Object, File, Offset)),
 	nb_setval(pldoc_man_index, []),
 	sgml_parse(Parser,
 		   [ document(DD),
@@ -172,7 +177,7 @@ index_on_begin(dd, _, Parser) :- !,
 		   ]),
 	summary(DD, Summary),
 	nb_getval(pldoc_index_class, Class),
-        assert(man_index(Name/Arity, Summary, File, Class, Offset)).
+        assert(man_index(Object, Summary, File, Class, Offset)).
 index_on_begin(div, Attributes, Parser) :- !,
 	memberchk(class=title, Attributes),
 	get_sgml_parser(Parser, charpos(Offset)),
@@ -195,13 +200,13 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	dom_section(Doc, Nr, Title),
 	nb_getval(pldoc_index_class, Class),
 	assert(man_index(section(Level, Nr, File), Title, File, Class, Offset)).
-	
+
 %%	dom_section(+HeaderDOM, -NR, -Title) is semidet.
 %
 %	NR is the section number (e.g. 1.1, 1.23) and Title is the title
 %	from a section header. The  first   clauses  processes the style
 %	information from latex2html, emitting sections as:
-%	
+%
 %	==
 %	<HN> <A name="sec:nr"><span class='sec-nr'>NR</span>|_|
 %			      <span class='sec-title'>Title</span>
@@ -271,7 +276,7 @@ summary([CDATA|T], Done) -->
 	;   string(Codes),
 	    summary(T, Done)
 	).
-	
+
 string([]) -->
 	[].
 string([H|T]) -->
@@ -317,14 +322,17 @@ cdata(_) -->
 %
 %	load the desription of the  object   matching  Obj from the HTML
 %	sources and return the DT/DD pair in DOM.
-%	
+%
 %	@tbd	Nondet?
 
-load_man_object(For, ParentSection, Path, DOM) :-
+load_man_object(Obj, ParentSection, Path, DOM) :-
+	resolve_section(Obj, For),
 	For = section(_,SN,Path),
 	parent_section(For, ParentSection),
 	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
-	(   Pairs = [SN-_|_]
+	(   (   Pairs = [SN-_|_]
+	    ;	Pairs == []
+	    )
 	->  !,
 	    load_html_file(Path, DOM)		% Load whole file
 	;   append(_, [SN-Start|Rest], Pairs)
@@ -346,14 +354,15 @@ load_man_object(For, ParentSection, Path, DOM) :-
 	    set_sgml_parser(Parser, dialect(sgml)),
 	    set_sgml_parser(Parser, shorttag(false)),
 	    set_sgml_parser(Parser, defaults(false)),
-	    sgml_parse(Parser,
-		       [ document(DOM),
-			 source(In),
-			 syntax_errors(quiet)
-		       | Options
-		       ]),
-	    free_sgml_parser(Parser),
-	    close(In)
+	    call_cleanup(sgml_parse(Parser,
+				    [ document(DOM),
+				      source(In),
+				      syntax_errors(quiet)
+				    | Options
+				    ]),
+			 ( free_sgml_parser(Parser),
+			   close(In)
+			 ))
 	).
 load_man_object(For, Parent, Path, DOM) :-
 	index_manual,
@@ -373,23 +382,51 @@ load_man_object(For, Parent, Path, DOM) :-
         set_sgml_parser(Parser, dialect(sgml)),
 	set_sgml_parser(Parser, shorttag(false)),
 	set_sgml_parser(Parser, defaults(false)),
-	sgml_parse(Parser,
-		   [ document(DT),
-		     source(In),
-		     parse(element)
-		   ]),
-	sgml_parse(Parser,
-		   [ document(DD),
-		     source(In),
-		     parse(element)
-		   ]),
-	free_sgml_parser(Parser),
-	close(In),
+	call_cleanup((sgml_parse(Parser,
+				 [ document(DT),
+				   source(In),
+				   parse(element)
+				 ]),
+		      sgml_parse(Parser,
+				 [ document(DD),
+				   source(In),
+				   parse(element)
+				 ])
+		     ),
+		     ( free_sgml_parser(Parser),
+		       close(In)
+		     )),
 	append(DT, DD, DOM).
 
 section_start(Path, Nr, Pos) :-
 	index_manual,
 	man_index(section(_,Nr,_), _, Path, _, Pos).
+
+%%	resolve_section(+SecIn, -SecOut) is det.
+%
+%	Resolve symbolic path reference and fill   in  level and section
+%	number if this information is missing.   The latter allows us to
+%	refer to files of the manual.
+
+resolve_section(section(Level, No, Spec),
+		section(Level, No, Path)) :-
+	absolute_file_name(Spec, Path,
+			   [ access(read)
+			   ]),
+	(   man_index(section(Level, No, Path), _, _, _, _)
+	->  true
+	;   path_allowed(Path)
+	->  true
+	;   permission_error(read, manual_file, Spec)
+	).
+
+path_allowed(Path) :-			% allow all files from swi/doc
+	absolute_file_name(swi(doc), Parent,
+			   [ access(read),
+			     file_type(directory)
+			   ]),
+	sub_atom(Path, 0, _, _, Parent).
+
 
 %%	parent_section(+Section, +Parent) is det.
 %
@@ -398,6 +435,7 @@ section_start(Path, Nr, Pos) :-
 %	file or same directory.
 
 parent_section(section(Level, Nr, File), Parent) :-
+	integer(Level),
 	Parent = section(PL, PNr, _PFile),
 	PL is Level - 1,
 	findall(B, sub_atom(Nr, B, _, _, '.'), BL),
@@ -438,7 +476,7 @@ object_spec(Atom, Spec) :-
 	catch(atom_to_term(Atom, Spec, _), _, fail), !,
 	Atom \== Spec.
 object_spec(Atom, PI) :-
-	atom_to_pi(Atom, PI).
+	name_to_object(Atom, PI).
 
 
 		 /*******************************
@@ -449,11 +487,23 @@ object_spec(Atom, PI) :-
 %
 %	Produce a Prolog manual page for  Obj.   The  page consists of a
 %	link to the section-file and  a   search  field, followed by the
-%	predicate description.  Options:
-%	
+%	predicate description.  Obj is one of:
+%
+%	    * Name/Arity
+%	    Predicate indicator: display documentation of the predicate
+
+%	    * section(Level, Number, File)
+%	    Display a section of the manual
+%
+%	Options:
+%
 %		* no_manual(Action)
 %		If Action = =fail=, fail instead of displaying a
 %		not-found message.
+%
+%		* links(Bool)
+%		If =true= (default), include links to the parent object;
+%		if =false=, just emit the manual material.
 
 man_page(Obj, Options) -->
 	{ findall((Parent+Path)-DOM,
@@ -461,17 +511,22 @@ man_page(Obj, Options) -->
 		  Matches),
 	  Matches = [Parent+Path-_|_]
 	},
-	html([ \man_links(Parent, Options),
-	       p([]),
-	       \man_matches(Matches)
-	     ]).
+	html_requires(pldoc),
+	(   { option(links(true), Options, true) }
+	->  man_links(Parent, Options),
+	    html(p([]))
+	;   []
+	),
+	man_matches(Matches).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
 	  term_to_atom(Obj, Atom)
 	},
-	html([ \man_links([], []),	% Use index file?
-	       p(['No manual entry for ', Atom])
-	     ]).
+	html_requires(pldoc),
+	(   { option(links(true), Options, true) }
+	->  man_links([], [])
+	;   html(p(['No manual entry for ', Atom]))
+	).
 
 man_matches([]) -->
 	[].
@@ -522,23 +577,26 @@ dom_element(Name, Attrs, Content, Path) -->
 %
 %	Rewrite Ref0 from the HTML reference manual format to the server
 %	format. Reformatted:
-%	
+%
 %		$ File#Name/Arity :
 %		Local reference using the manual presentation
 %		=|/man?predicate=PI|=.
-%		
+%
 %		$ File#sec:NR :
 %		Rewrite to =|section(Level, NT, FilePath)|=
-%		
+%
 %		$ File#flag:Name :
 %		Rewrite to =|section(Level, NT, FilePath)#flag:Name|=
-%		
+%
+%		$ File#Name()
+%		Rewrite to /man/CAPI=Name
+%
 %	@param Class	Class of the <A>.  Supported classes are
-%	
+%
 %		| sec  | Link to a section     |
 %		| pred | Link to a predicate   |
 %		| flag | link to a Prolog flag |
-%		
+%
 %	@param Ref0	Initial reference from the =a= element
 %	@param Path	Currently loaded file
 %	@param ManRef	PlDoc server reference
@@ -546,11 +604,20 @@ dom_element(Name, Attrs, Content, Path) -->
 rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
-	atom_to_pi(Fragment, PI),
+	name_to_object(Fragment, PI),
 	man_index(PI, _, _, _, _),
 	www_form_encode(Fragment, Enc),
 	http_location_by_id(pldoc_man, ManHandler),
 	format(string(Ref), '~w?predicate=~w', [ManHandler, Enc]).
+rewrite_ref(func, Ref0, _, Ref) :-		% C-API reference
+	sub_atom(Ref0, _, _, A, '#'), !,
+	sub_atom(Ref0, _, A, 0, Fragment),
+	name_to_object(Fragment, Obj),
+	man_index(Obj, _, _, _, _),
+	Obj = c(Function),
+	www_form_encode(Function, Enc),
+	http_location_by_id(pldoc_man, ManHandler),
+	format(string(Ref), '~w?CAPI=~w', [ManHandler, Enc]).
 rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
@@ -559,7 +626,7 @@ rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	object_href(Section, Ref).
 rewrite_ref(sec, File, Path, Ref) :-		% Section is a file
 	file_directory_name(Path, Dir),
-	concat_atom([Dir, /, File], SecPath),
+	atomic_list_concat([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
 	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref).
@@ -568,22 +635,28 @@ rewrite_ref(flag, Ref0, Path, Ref) :-
 	sub_atom(Ref0, 0, B, _, File),
 	sub_atom(Ref0, _, A, 0, Fragment),
 	file_directory_name(Path, Dir),
-	concat_atom([Dir, /, File], SecPath),
+	atomic_list_concat([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
 	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref1),
 	format(string(Ref), '~w#~w', [Ref1, Fragment]).
 
-%%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
-%	
+%%	name_to_object(+Atom, -PredicateIndicator) is semidet.
+%
 %	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
 
-atom_to_pi(Atom, Name/Arity) :-
+name_to_object(Atom, Name/Arity) :-
 	atom(Atom),
-	concat_atom([Name, AA], /, Atom),
+	atomic_list_concat([Name, AA], /, Atom),
 	catch(atom_number(AA, Arity), _, fail),
 	integer(Arity),
 	Arity >= 0.
+name_to_object(Atom, c(Function)) :-
+	atom(Atom),
+	sub_atom(Atom, 0, _, _, 'PL_'),
+	sub_atom(Atom, B, _, _, '('), !,
+	sub_atom(Atom, 0, B, _, Function).
+
 
 %%	referenced_section(+Fragment, +File, +Path, -Section)
 
@@ -592,7 +665,7 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	(   File == ''
 	->  SecPath = Path
 	;   file_directory_name(Path, Dir),
-	    concat_atom([Dir, /, File], SecPath)
+	    atomic_list_concat([Dir, /, File], SecPath)
 	),
 	man_index(section(Level, Nr, SecPath), _, _, _, _).
 
@@ -603,9 +676,9 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 
 man_links(Parent, Options) -->
 	html(div(class(navhdr),
-		 [ span(style('float:left'), \man_parent(Parent)),
-		   span(style('float:right'), \search_form(Options)),
-		   br(clear(both))
+		 [ div(class(jump), \man_parent(Parent)),
+		   div(class(search), \search_form(Options)),
+		   br(clear(right))
 		 ])).
 
 man_parent(Section) -->
@@ -624,7 +697,7 @@ man_parent(_) -->
 %%	section_link(+Obj, +Options)// is det.
 %
 %	Create link to a section.  Options recognised:
-%	
+%
 %		* secref_style(+Style)
 %		One of =number=, =title= or =number_title=.
 
@@ -651,6 +724,110 @@ section_link(_, Obj, _Options) --> !,
 	;   html([Number, ' ', Title])
 	).
 
+%%	function_link(+Function, +Options) is det.
+%
+%	Create a link to a C-function
+
+function_link(Function, _) -->
+	html([Function, '()']).
+
+
+		 /*******************************
+		 *	 INDICES & OVERVIEW	*
+		 *******************************/
+
+%%	man_overview(+Options)// is det.
+%
+%	Provide a toplevel overview on the  manual: the reference manual
+%	and the available packages.
+
+man_overview(Options) -->
+	{ http_absolute_location(pldoc_man(.), RefMan, [])
+	},
+	html([ blockquote(class(refman_link),
+			  a(href(RefMan),
+			    'SWI-Prolog reference manual')),
+	       h2(class(package_doc_title),
+		  'SWI-Prolog package documentation'),
+	       blockquote(class(package_overview),
+			  \packages(Options))
+	     ]).
+
+packages(Options) -->
+	{ findall(Pkg, current_package(Pkg), Pkgs)
+	},
+	packages(Pkgs, Options).
+
+packages([], _) -->
+	[].
+packages([Pkg|T], Options) -->
+	package(Pkg, Options),
+	packages(T, Options).
+
+package(pkg(Title, HREF, HavePackage), Options) -->
+	{ package_class(HavePackage, Class, Options)
+	},
+	html(div(class(Class),
+		 a([href(HREF)], Title))).
+
+package_class(true,  pkg_link, _).
+package_class(false, no_pkg_link, _).
+
+current_package(pkg(Title, HREF, HavePackage)) :-
+	man_index(section(0, _, _), Title, File, packages, _),
+	file_base_name(File, FileNoDir),
+	file_name_extension(Base, _, FileNoDir),
+	(   exists_source(library(Base))
+	->  HavePackage = true
+	;   HavePackage = false
+	),
+	http_absolute_location(pldoc_pkg(FileNoDir), HREF, []).
+
+
+:- http_handler(pldoc_pkg(.), pldoc_package, [prefix]).
+:- http_handler(pldoc_man(.), pldoc_refman, [prefix]).
+
+%%	pldoc_package(+Request)
+%
+%	HTTP handler for PlDoc package documentation.  Accepts
+%	/pkg/<package>.html.
+
+pldoc_package(Request) :-
+	(   memberchk(path_info(PkgDoc), Request),
+	    \+ sub_atom(PkgDoc, _, _, _, /),
+	    Obj = section(0,_,_),
+	    index_manual,
+	    man_index(Obj, Title, File, packages, _),
+	    file_base_name(File, PkgDoc)
+	->  reply_html_page(title(Title),
+			    \object_page(Obj, []))
+	;   memberchk(path(Path), Request),
+	    existence_error(http_location, Path)
+	).
+
+%%	pldoc_refman(+Request)
+%
+%	HTTP handler for PlDoc Reference Manual access.  Accepts
+%	/refman/[<package>.html.]
+
+pldoc_refman(Request) :-
+	memberchk(path_info(Section), Request),
+	\+ sub_atom(Section, _, _, _, /),
+	Obj = section(0,_,_),
+	index_manual,
+	man_index(Obj, Title, File, manual, _),
+	file_base_name(File, Section), !,
+	reply_html_page(title(Title),
+			\object_page(Obj, [])).
+pldoc_refman(Request) :-		% server Contents.html
+	\+ memberchk(path_info(_), Request), !,
+	Section = section(_, _, swi('doc/Manual/Contents.html')),
+	reply_html_page(title('SWI-Prolog manual'),
+			\man_page(Section, [])).
+pldoc_refman(Request) :-
+	memberchk(path(Path), Request),
+	existence_error(http_location, Path).
+
 
 		 /*******************************
 		 *	    HOOK SEARCH		*
@@ -659,13 +836,16 @@ section_link(_, Obj, _Options) --> !,
 prolog:doc_object_summary(Obj, Class, File, Summary) :-
 	index_manual,
 	man_index(Obj, Summary, File, Class, _Offset).
-	
+
 prolog:doc_object_page(Obj, Options) -->
 	man_page(Obj, [no_manual(fail)|Options]).
 
 prolog:doc_object_link(Obj, Options) -->
 	{ Obj = section(_,_,_) }, !,
 	section_link(Obj, Options).
+prolog:doc_object_link(Obj, Options) -->
+	{ Obj = c(Function) }, !,
+	function_link(Function, Options).
 
 prolog:doc_category(manual,   30, 'SWI-Prolog Reference Manual').
 prolog:doc_category(packages, 40, 'Package documentation').
@@ -684,3 +864,12 @@ prolog:doc_file_index_header(File, Options) -->
 prolog:doc_object_title(Obj, Title) :-
 	Obj = section(_,_,_),
 	man_index(Obj, Title, _, _, _), !.
+
+prolog:doc_canonical_object(section(Level, No, Path),
+			    section(Level, No, swi(Local))) :-
+	is_absolute_file_name(Path),
+	absolute_file_name(swi(.), SWI,
+			   [ file_type(directory),
+			     solutions(all)
+			   ]),
+	atom_concat(SWI, Local, Path), !.

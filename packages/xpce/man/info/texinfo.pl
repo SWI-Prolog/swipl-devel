@@ -89,7 +89,7 @@ class_inheritance(Class) :-
 	;   true
 	),
 	output('\n').
-	       
+
 
 show_inheritance(@nil) :- !,
 	output('\n').
@@ -138,7 +138,7 @@ texi_description(Obj, Description) :-
 	Obj = @Ref,
 	assert(fetched_description(Ref, S0)),
 	Description = S0.
-	    
+
 
 :- pce_extend_class(object).
 
@@ -183,7 +183,7 @@ substitute(S, [Search, Replace | Rest]) :-
 	),
 	done_regex(Search, Re),
 	substitute(S, Rest).
-	
+
 
 texinfo_description(S) :-
 	send(S, ensure_nl),
@@ -227,7 +227,7 @@ texinfo_lists(S) :-
 		     '\n+\\(\\(\n+\t.*\\)+\\)',
 		     	call(example)
 		   ]).
-	
+
 
 example(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -261,7 +261,7 @@ list(itemize, Re, String) :-
 	send(S0, ensure_nl),
 	send(S0, prepend, string('@item\n')),
 	send(Re, register_value, String, S0).
-	
+
 
 itemize(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -286,7 +286,7 @@ description(Re, String) :-
 	send(S2, append, string('@end itemize\n\n')),
 	substitute(S2, ['@\\*\n@\\(item\\|end\\)', '\n@\\1']),
 	send(Re, register_value, String, S2).
-	
+
 
 enumerate(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -298,7 +298,7 @@ enumerate(Re, String) :-
 	send(S2, prepend, string('\n\n@enumerate\n')),
 	send(S2, append, string('@end enumerate\n\n')),
 	send(Re, register_value, String, S2).
-	
+
 
 table(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -390,7 +390,7 @@ behaviour(Class) :-
 	group_objects(Chain, Groups),
 	send(Groups, for_all,
 	     message(@prolog, texinfo_group, Class, @arg1?name, @arg1?value)).
-	
+
 
 collect_behaviour(Class, Behaviour) :-
 	new(Behaviour, chain),
@@ -901,7 +901,7 @@ includeonly(F, String) :-
 	     message(C, append,
 		     ?(@file_name_regex, register_value, String)?value)),
 	send(F, attribute, attribute(includeonly, C)).
-		       
+
 include(F, Name) :-
 	(   get(F, attribute, includeonly, Only),
 	    (   (   send(Only, member, Name)
@@ -988,7 +988,7 @@ class_pattern(File, Class,
 class_pattern(File, Class,
 	      '#description\\s *$',
 	      class_description(File, Class)).
-	      
+
 class_exclude(Class, Type, Name) :-
 	get(Class, Type, Name, Method),
 	get(@document, classes, Classes),
@@ -1177,7 +1177,7 @@ check_documented_all_classes(List) :-
 	    send(AllClasses, for_all,
 		 message(@pce, format, '\t%s\n', @arg1?name))
 	).
-	
+
 
 
 		 /*******************************
@@ -1216,7 +1216,7 @@ make_preview_view(V) :-
 	send(D, append, button(quit,
 			       message(D?frame, destroy))),
 	send(V, open).
-	
+
 
 
 generate(V, Classes) :-

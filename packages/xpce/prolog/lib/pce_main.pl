@@ -42,7 +42,7 @@
 	pce_main_loop(:).
 
 :- use_module(library(pce)).
-:- use_module(library(pce_util)).	    
+:- use_module(library(pce_util)).
 :- require([ append/3
 	   , call/2
 	   , ignore/1
@@ -51,7 +51,7 @@
 	   ]).
 
 %%	pce_main_loop(+Goal)
-%	
+%
 %	Simple XPCE runtime toplevel loop.  This goal extracts the command
 %	line arguments, calls `call(Goal, CmdLineArgs)' and waits for all
 %	frames created by this call to be invisible.  Then it will halt/0.

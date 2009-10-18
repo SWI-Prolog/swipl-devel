@@ -321,8 +321,8 @@ strdup(const char *in)
 static char *
 strndup(const char *in, size_t len)
 { char *r = xmalloc(len+1);
- 
-  r[len] = '\0'; 
+
+  r[len] = '\0';
 
   return memcpy(r, in, len);
 }
@@ -352,7 +352,7 @@ prependArgList(arglist *list, const char *arg)
   }
   for(n=++list->size; n>0; n--)
     list->list[n] = list->list[n-1];
-  
+
   list->list[0] = strdup(arg);
 }
 
@@ -406,7 +406,7 @@ breakargs(const char *line, char **argv)
   argv[argc] = NULL;			/* add trailing NULL pointer to argv */
 
   return argc;
-}      
+}
 
 
 
@@ -475,7 +475,7 @@ freeArgList(arglist *l)
     xfree(l->list[n]);
 
   xfree(l);
-}  
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -503,7 +503,7 @@ replaceExtension(const char *base, const char *ext, char *buf)
   { e = q + strlen(q);
     *e++ = '.';
   }
-  
+
   strcpy(e, ext);
 
   return buf;
@@ -542,7 +542,7 @@ static extdef extdefs[] =
 const char *
 file_name_extension(const char *in)
 { const char *ext = NULL;
-  
+
   for( ; *in; in++)
   { if ( *in == '.' )
       ext = in+1;
@@ -568,7 +568,7 @@ dispatchFile(const char *name)
       }
     }
   }
-  
+
   return FALSE;
 }
 
@@ -644,7 +644,7 @@ static void
 parseOptions(int argc, char **argv)
 { for( ; argc > 0; argc--, argv++ )
   { char *opt = argv[0];
-    
+
     if ( dispatchFile(opt) )
       continue;
 
@@ -1045,7 +1045,7 @@ shell_quote(char *to, const char *arg)
     }
     *to++ = '"';
     *to = '\0';
-    
+
     return to;
   }
 
@@ -1176,7 +1176,7 @@ linkBaseExecutable()
   if ( embed_shared )
   { linkSharedObject();
     return;
-  } 
+  }
 #endif
 
 #ifdef __WINDOWS__
@@ -1200,7 +1200,7 @@ linkBaseExecutable()
 #endif
 
   if ( !nostate )
-  { 
+  {
 #ifdef __WINDOWS__
     if ( !embed_shared )
     { char buf[MAXPATHLEN];
@@ -1402,7 +1402,7 @@ saveExportLib()
 
   ilib = replaceExtension(ctmp, "lib", ibuf);
   olib = replaceExtension(out, "lib", obuf);
-  
+
   if ( verbose )
   { printf("\tren \"%s\" \"%s\"\n", ilib, olib);
   }
@@ -1452,7 +1452,7 @@ createOutput()
 
 #ifdef HAVE_CHMOD
   { int mask = umask(0777);
-    
+
     umask(mask);
 
     if ( verbose )
@@ -1506,10 +1506,10 @@ catchSignals()
 
 int
 main(int argc, char **argv)
-{ int special; 
+{ int special;
 
   plld = argv[0];
-  
+
   argc--;
   argv++;
 
@@ -1572,7 +1572,7 @@ main(int argc, char **argv)
       linkSharedObject();
     else
     { linkBaseExecutable();
-      
+
       if ( !nostate )
       { createSavedState();
 	createOutput();

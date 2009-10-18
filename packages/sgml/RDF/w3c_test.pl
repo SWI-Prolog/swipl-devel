@@ -73,7 +73,7 @@ canonise(Absolute, N:Name) :-
 	ns(N, NS),
 	atom_concat(NS, Name, Absolute), !.
 canonise(X, X).
-	
+
 
 run_tests :-
 	process_manifest,
@@ -322,7 +322,7 @@ show(Item) :->
 	).
 %	member(substitutions(Substitutions), List),
 %	send(Result, copy_layout, Norm, Substitutions),
-	
+
 :- pce_end_class(rdf_test_item).
 
 
@@ -345,7 +345,7 @@ test_result(Result, Test, Data) :-
 	    pp(Norm)
 	;   true
 	).
-	    
+
 
 
 start_tests :-
@@ -369,7 +369,7 @@ run :-
 
 show(File) :-
 	rdf_diagram_from_file(File).
-	
+
 
 		 /*******************************
 		 *	     COMPARING		*
@@ -423,7 +423,7 @@ generated_prefix(Prefix) :-
 	rdf_truple:anon_base(Prefix).
 
 %	compare_bags(+Members1, +Members2, +S0, -S)
-%	
+%
 %	Order of _1, _2, etc. are not relevant in BadID reification. Are
 %	they in general?  Anyway, we'll normalise the order of the bags
 
@@ -438,14 +438,14 @@ take_bag(Triples, Bag, Elems, RestTriples) :-
 	compare_field(rdf:type, Type, [], []),
 	compare_field(rdf:'Bag', BagClass, [], []),
 	bag_members(T1, Bag, Elems, RestTriples).
-	
+
 bag_members([], _, [], []).
 bag_members([rdf(Bag, IsElm, E)|T], Bag, [E|ET], Rest) :-
 	member_prop(IsElm), !,
 	bag_members(T, Bag, ET, Rest).
 bag_members([T0|T], Bag, Elems, [T0|R]) :-
 	bag_members(T, Bag, Elems, R).
-	
+
 member_prop(rdf:Name) :-
 	atom_codes(Name, [0'_|Codes]),
 	number_codes(_N, Codes), !.
@@ -458,7 +458,7 @@ member_prop(Prop) :-
 
 
 %	feedback(+Format, +Args)
-%	
+%
 %	Print if verbose
 
 feedback(Fmt, Args) :-

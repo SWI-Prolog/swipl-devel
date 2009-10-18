@@ -173,6 +173,7 @@ static functor_t FUNCTOR_odbc_statement1; /* $odbc_statement(Id) */
 static functor_t FUNCTOR_odbc_connection1;
 static functor_t FUNCTOR_user1;
 static functor_t FUNCTOR_password1;
+static functor_t FUNCTOR_driver_string1;
 static functor_t FUNCTOR_alias1;
 static functor_t FUNCTOR_mars1;
 static functor_t FUNCTOR_open1;
@@ -360,18 +361,18 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
     { fid_t fid = PL_open_foreign_frame();
       predicate_t pred = PL_predicate("print_message", 2, "user");
       term_t av = PL_new_term_refs(2);
-      
+
       PL_put_atom(av+0, ATOM_informational);
       PL_put_term(av+1, msg);
-	
+
       PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
       PL_discard_foreign_frame(fid);
-	
+
       return TRUE;
     }
     case SQL_ERROR:
     { term_t ex = PL_new_term_ref();
-      
+
       PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		    PL_TERM, msg,
 		    PL_VARIABLE);
@@ -547,7 +548,7 @@ static int
 PL_get_typed_arg_ex(int i, term_t t, int (*func)(), const char *ex, void *ap)
 { term_t a = PL_new_term_ref();
 
-  if ( !PL_get_arg(i, t, a) ) 
+  if ( !PL_get_arg(i, t, a) )
     return type_error(t, "compound");
   if ( !(*func)(a, ap) )
     return type_error(a, ex);
@@ -562,7 +563,7 @@ static int
 PL_get_typed_arg(int i, term_t t, int (*func)(), void *ap)
 { term_t a = PL_new_term_ref();
 
-  if ( !PL_get_arg(i, t, a) ) 
+  if ( !PL_get_arg(i, t, a) )
     return FALSE;
   return (*func)(a, ap);
 }
@@ -610,7 +611,7 @@ formatted_string(term_t in, size_t *len, char **out)
       PL_free(*out);
     return FALSE;
   }
-  
+
   Sclose(fd);
   return TRUE;
 }
@@ -634,7 +635,7 @@ nulldef_spec(term_t t)
 
   if ( !(nd=odbc_malloc(sizeof(*nd))) )
     return NULL;
-  
+
   memset(nd, 0, sizeof(*nd));
 
   if ( PL_get_atom(t, &a) )
@@ -660,7 +661,7 @@ nulldef_spec(term_t t)
   } else
   { term:
     nd->nulltype = NULL_RECORD;
-    nd->nullvalue.record = PL_record(t);  
+    nd->nullvalue.record = PL_record(t);
   }
 
   nd->references = 1;
@@ -766,7 +767,7 @@ The current implementation is incomplete. It does not allow arguments of
 row(...) to be instantiated. Plain instantiation   can always be avoided
 using a proper SELECT statement. Potentionally   useful however would be
 the  translation  of   compound   terms,    especially   to   translates
-date/time/timestamp structures to a format for use by the application. 
+date/time/timestamp structures to a format for use by the application.
 
 The  statement  is  compiled  into  a    findall  statement,  a  set  of
 instructions that builds the target structure   from the row returned by
@@ -829,7 +830,7 @@ compile_arg(compile_info *info, term_t t)
       if ( true(info, CTX_PERSISTENT) )
 	PL_register_atom(val);
       break;
-    } 
+    }
     case PL_STRING:
     case PL_FLOAT:
       if ( true(info, CTX_PERSISTENT) )
@@ -888,7 +889,7 @@ compile_arg(compile_info *info, term_t t)
 
 static findall *
 compile_findall(term_t all, unsigned flags)
-{ compile_info info; 
+{ compile_info info;
   term_t t = PL_new_term_ref();
   atom_t a;
   findall *f;
@@ -912,7 +913,7 @@ compile_findall(term_t all, unsigned flags)
 
   PL_get_arg(1, all, t);
   compile_arg(&info, t);
-  
+
   if ( !(f = odbc_malloc(FND_SIZE(info.size))) )
     return NULL;
   f->references = 1;
@@ -1062,7 +1063,7 @@ find_connection(atom_t alias)
   { if ( c->alias == alias )
       return c;
   }
-  
+
 
   return NULL;
 }
@@ -1087,7 +1088,7 @@ alloc_connection(atom_t alias, atom_t dsn)
 
   if ( alias && find_connection(alias) )
     return NULL;			/* already existenting */
-  
+
   if ( !(c = odbc_malloc(sizeof(*c))) )
     return NULL;
   memset(c, 0, sizeof(*c));
@@ -1152,7 +1153,7 @@ get_connection(term_t tdsn, connection **cn)
     if ( !(c=find_connection(dsn)) )
       return existence_error(tdsn, "odbc_connection");
   }
-  
+
   *cn = c;
 
   return TRUE;
@@ -1190,6 +1191,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    const char *dsource;			/* odbc data source */
    char *uid = NULL;			/* user id */
    char *pwd = NULL;			/* password */
+   char *driver_string = NULL;			/* driver_string */
    atom_t alias = 0;			/* alias-name */
    int mars = 0;			/* mars-value */
    atom_t open = 0;			/* open next connection */
@@ -1214,11 +1216,14 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
      { if ( !get_text_arg_ex(1, head, &pwd) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_alias1) )
-     { if ( !get_atom_arg_ex(1, head, &alias) )        
+     { if ( !get_atom_arg_ex(1, head, &alias) )
+	 return FALSE;
+     } else if ( PL_is_functor(head, FUNCTOR_driver_string1) )
+     { if ( !get_text_arg_ex(1, head, &driver_string) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_mars1) )
      { if ( !get_bool_arg_ex(1, head, &mars) )
-	 return FALSE;          
+	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_open1) )
      { if ( !get_atom_arg_ex(1, head, &open) )
 	 return FALSE;
@@ -1268,19 +1273,39 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 
    if ( (rc=SQLAllocConnect(henv, &hdbc)) != SQL_SUCCESS )
      return odbc_report(henv, NULL, NULL, rc);
-   
+
    if ( mars )
    { if ( (rc=SQLSetConnectAttr(hdbc,
 				SQL_COPT_SS_MARS_ENABLED,
 				SQL_MARS_ENABLED_YES,
 				SQL_IS_UINTEGER)) != SQL_SUCCESS )
      return odbc_report(henv, NULL, NULL, rc);
-   }   
+   }
 
    /* Connect to a data source. */
-   rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
-                         (SQLCHAR *)uid,     SQL_NTS,
-                         (SQLCHAR *)pwd,     SQL_NTS);
+   if ( driver_string != NULL )
+   { if ( uid != NULL )
+     { return context_error(options, "Option incompatible with driver_string",
+			    "user");
+     } else if ( pwd != NULL )
+     { return context_error(options, "Option incompatible with driver_string",
+			    "password");
+     } else
+     { SQLCHAR connection_out[1025];	/* completed driver string */
+       SQLSMALLINT connection_out_len;
+
+       rc = SQLDriverConnect(hdbc,
+                             NULL, /* window handle */
+                             (SQLCHAR *)driver_string, SQL_NTS,
+                             connection_out, 1024,
+                             &connection_out_len,
+                             SQL_DRIVER_NOPROMPT);
+     }
+   } else
+   { rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
+                           (SQLCHAR *)uid,     SQL_NTS,
+                           (SQLCHAR *)pwd,     SQL_NTS);
+   }
    if ( rc == SQL_ERROR )
      return odbc_report(henv, hdbc, NULL, rc);
    if ( rc != SQL_SUCCESS && !silent && !odbc_report(henv, hdbc, NULL, rc) )
@@ -1324,7 +1349,7 @@ odbc_disconnect(+Connection)
 static foreign_t
 pl_odbc_disconnect(term_t dsn)
 { connection *cn;
-  
+
   if ( !get_connection(dsn, &cn) )
     return FALSE;
 
@@ -1346,7 +1371,7 @@ odbc_current_connection(term_t cid, term_t dsn, control_t h)
       { if ( get_connection(cid, &cn) &&
 	     PL_unify_atom(dsn, cn->dsn) )
 	  return TRUE;
-	
+
 	return FALSE;
       }
 
@@ -1397,7 +1422,7 @@ odbc_set_connection(connection *cn, term_t option)
     if ( !get_atom_arg_ex(1, option, &val) )
       return FALSE;
     opt = SQL_ACCESS_MODE;
-	      
+
     if ( val == ATOM_read )
       optval = SQL_MODE_READ_ONLY;
     else if ( val == ATOM_update )
@@ -1410,7 +1435,7 @@ odbc_set_connection(connection *cn, term_t option)
     if ( !get_atom_arg_ex(1, option, &val) )
       return FALSE;
     opt = SQL_CURSOR_TYPE;
-    
+
     if ( val == ATOM_dynamic )
       optval = SQL_CURSOR_DYNAMIC;
     else if ( val == ATOM_forwards_only )
@@ -1426,7 +1451,7 @@ odbc_set_connection(connection *cn, term_t option)
 
     if ( !get_bool_arg_ex(1, option, &val) )
       return FALSE;
-    
+
     set(cn, CTX_SILENT);
 
     return TRUE;
@@ -1462,7 +1487,7 @@ pl_odbc_set_connection(term_t con, term_t option)
 
   if ( !get_connection(con, &cn) )
     return FALSE;
-  
+
   return odbc_set_connection(cn, option);
 }
 
@@ -1478,7 +1503,7 @@ typedef struct
   functor_t functor;
 } conn_option;
 
-static conn_option conn_option_list[] = 
+static conn_option conn_option_list[] =
 { { "database_name",	   SQL_DATABASE_NAME, text },
   { "dbms_name",           SQL_DBMS_NAME, text },
   { "dbms_version",        SQL_DBMS_VER, text },
@@ -1587,7 +1612,7 @@ odbc_end_transaction(term_t conn, term_t action)
   RETCODE rc;
   UWORD opt;
   atom_t a;
-  
+
 
   if ( !get_connection(conn, &cn) )
     return FALSE;
@@ -1600,7 +1625,7 @@ odbc_end_transaction(term_t conn, term_t action)
   { opt = SQL_ROLLBACK;
   } else
     return domain_error(action, "transaction");
-  
+
   if ( (rc=SQLTransact(henv, cn->hdbc, opt)) != SQL_SUCCESS )
     return odbc_report(henv, cn->hdbc, NULL, rc);
 
@@ -1751,6 +1776,19 @@ clone_context(context *in)
 	    return NULL;
 	  vlenptr = &p->len_value;
 	  break;
+	case SQL_C_DATE:
+	case SQL_C_TYPE_DATE:
+	case SQL_C_TIME:
+	case SQL_C_TYPE_TIME:
+	case SQL_C_TIMESTAMP:
+	  if ( !(p->ptr_value = odbc_malloc(p->len_value)) )
+	    return NULL;
+	  break;
+	case SQL_C_SLONG:
+	case SQL_C_SBIGINT:
+	case SQL_C_DOUBLE:
+	  p->ptr_value = (SQLPOINTER)p->buf;
+	  break;
       }
 
       TRY(new, SQLBindParameter(new->hstmt,		/* hstmt */
@@ -1850,7 +1888,7 @@ max_qualifier_lenght(connection *cn)
     { /*Sdprintf("SQL_MAX_QUALIFIER_NAME_LEN = %d\n", (int)len);*/
       cn->max_qualifier_lenght = (int)len; /* 0: unknown */
     } else
-    { odbc_report(henv, cn->hdbc, NULL, rc); 
+    { odbc_report(henv, cn->hdbc, NULL, rc);
       cn->max_qualifier_lenght = -1;
     }
 
@@ -1916,7 +1954,7 @@ prepare_result(context *ctxt)
 	PL_register_atom(ATOM_);
       }
     }
-	
+
     ptr_result->sqlTypeID = dataType;
     ptr_result->cTypeID = CvtSqlToCType(ctxt, dataType, ptr_result->plTypeID);
     if (ptr_result->cTypeID == CVNERR)
@@ -1960,7 +1998,7 @@ prepare_result(context *ctxt)
 	goto bind;
       }
     }
-    
+
     switch (ptr_result->cTypeID)
     { case SQL_C_CHAR:
 	if ( columnSize == 0 )
@@ -1994,7 +2032,7 @@ prepare_result(context *ctxt)
 	assert(0);
         return FALSE;			/* make compiler happy */
     }
-	
+
   bind:
     if ( ptr_result->len_value <= PARAM_BUFSIZE )
       ptr_result->ptr_value = (void *)ptr_result->buf;
@@ -2034,7 +2072,7 @@ odbc_row(context *ctxt, term_t trow)
     }
     set(ctxt, CTX_BOUND);
   }
-      
+
   if ( !ctxt->result )			/* not a SELECT statement */
   { SQLLEN rows;			/* was DWORD */
     int rval;
@@ -2047,9 +2085,9 @@ odbc_row(context *ctxt, term_t trow)
 			     PL_LONG, (long)rows);
     else
       rval = TRUE;
-    
+
     close_context(ctxt);
-    
+
     return rval;
   }
 
@@ -2060,7 +2098,7 @@ odbc_row(context *ctxt, term_t trow)
 
     for(;;)
     { ctxt->rc = SQLFetch(ctxt->hstmt);
-      
+
       switch(ctxt->rc)
       { case SQL_NO_DATA_FOUND:
 	  close_context(ctxt);
@@ -2073,14 +2111,14 @@ odbc_row(context *ctxt, term_t trow)
 	    return FALSE;
 	  }
       }
-      
+
       if ( !PL_unify_list(tail, head, tail) ||
 	   !put_findall(ctxt, tmp) ||
 	   !PL_unify(head, tmp) )
       { close_context(ctxt);
 	return FALSE;
       }
-    }      
+    }
   }
 
   local_trow = PL_new_term_ref();
@@ -2096,12 +2134,12 @@ odbc_row(context *ctxt, term_t trow)
     { close_context(ctxt);
       return FALSE;			/* with pending exception */
     }
-      
+
     if ( !PL_unify(trow, local_trow) )
     { PL_rewind_foreign_frame(fid);
       continue;
     }
-     
+
 					/* success! */
 					/* pre-fetch to get determinism */
     ctxt->rc = SQLFetch(ctxt->hstmt);
@@ -2225,12 +2263,12 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
 { context *ctxt;
 
   switch( PL_foreign_control(handle) )
-  { case PL_FIRST_CALL:   
+  { case PL_FIRST_CALL:
     { connection *cn;
-  
+
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
-         
+
       if ( !(ctxt = new_context(cn)) )
 	return FALSE;
       if ( !get_sql_text(ctxt, tquery) )
@@ -2320,7 +2358,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
 	  SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
 		     (SQLCHAR*)s, (SWORD)len, NULL, 0),
 	  close_context(ctxt));
-      
+
       return odbc_row(ctxt, row);
     }
     case PL_REDO:
@@ -2366,7 +2404,7 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
       TRY(ctxt,
 	  SQLGetTypeInfo(ctxt->hstmt, type),
 	  close_context(ctxt));
-      
+
       return odbc_row(ctxt, row);
     }
     case PL_REDO:
@@ -2392,7 +2430,7 @@ odbc_data_sources(term_t list)
   RETCODE rc;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
-  
+
   if ( !henv )
     SQLAllocEnv(&henv);		/* Allocate an environment handle */
 
@@ -2459,7 +2497,7 @@ typedef struct
   atom_t name;				/* Prolog name */
 } sqltypedef;
 
-static sqltypedef sqltypes[] = 
+static sqltypedef sqltypes[] =
 { { SQL_BIGINT,	       "bigint" },
   { SQL_BINARY,	       "binary" },
   { SQL_BIT,	       "bit" },
@@ -2499,7 +2537,7 @@ get_sqltype_from_atom(atom_t name, SWORD *type)
   return FALSE;
 }
 
-static sqltypedef pltypes[] = 
+static sqltypedef pltypes[] =
 { { SQL_PL_DEFAULT,    "default" },
   { SQL_PL_ATOM,       "atom" },
   { SQL_PL_STRING,     "string" },
@@ -2691,7 +2729,7 @@ declare_parameters(context *ctxt, term_t parms)
 			       params->ptr_value,	/* rgbValue */
 			       0,			/* cbValueMax */
 			       vlenptr), 		/* pcbValue */
-	(void)0);		
+	(void)0);
   }
 
   return TRUE;
@@ -3282,6 +3320,7 @@ install_odbc4pl()
    FUNCTOR_odbc_connection1	 = MKFUNCTOR("$odbc_connection", 1);
    FUNCTOR_user1		 = MKFUNCTOR("user", 1);
    FUNCTOR_password1		 = MKFUNCTOR("password", 1);
+   FUNCTOR_driver_string1		 = MKFUNCTOR("driver_string", 1);
    FUNCTOR_alias1		 = MKFUNCTOR("alias", 1);
    FUNCTOR_mars1		 = MKFUNCTOR("mars", 1);
    FUNCTOR_open1		 = MKFUNCTOR("open", 1);
@@ -3362,7 +3401,7 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_WLONGVARCHAR:
 #endif
 	  return SQL_C_CHAR;
-    
+
 	case SQL_BINARY:
 	case SQL_VARBINARY:
 	case SQL_LONGVARBINARY:
@@ -3371,18 +3410,18 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 	case SQL_DECIMAL:
 	case SQL_NUMERIC:
 	  return SQL_C_CHAR;
-  
+
 	case SQL_REAL:
 	case SQL_FLOAT:
 	case SQL_DOUBLE:
 	  return SQL_C_DOUBLE;
-       
+
 	case SQL_BIT:
 	case SQL_TINYINT:
 	case SQL_SMALLINT:
 	case SQL_INTEGER:
 	  return SQL_C_SLONG;
-    
+
 	case SQL_BIGINT:		/* 64-bit integers */
 	  return SQL_C_SBIGINT;
 
@@ -3588,7 +3627,7 @@ pl_put_column(context *c, int nth, term_t col)
 	PL_put_integer(av+0, ds->year);
 	PL_put_integer(av+1, ds->month);
 	PL_put_integer(av+2, ds->day);
-	
+
 	PL_cons_functor_v(val, FUNCTOR_date3, av);
 	break;
       }
@@ -3599,11 +3638,11 @@ pl_put_column(context *c, int nth, term_t col)
 	PL_put_integer(av+0, ts->hour);
 	PL_put_integer(av+1, ts->minute);
 	PL_put_integer(av+2, ts->second);
-	
+
 	PL_cons_functor_v(val, FUNCTOR_time3, av);
 	break;
       }
-      case SQL_C_TIMESTAMP: 
+      case SQL_C_TIMESTAMP:
       { SQL_TIMESTAMP_STRUCT* ts = (SQL_TIMESTAMP_STRUCT*)p->ptr_value;
 
 	switch( p->plTypeID )
@@ -3618,7 +3657,7 @@ pl_put_column(context *c, int nth, term_t col)
 	    PL_put_integer(av+4, ts->minute);
 	    PL_put_integer(av+5, ts->second);
 	    PL_put_integer(av+6, ts->fraction);
-	
+
 	    PL_cons_functor_v(val, FUNCTOR_timestamp7, av);
 	    break;
 	  }
@@ -3685,7 +3724,7 @@ static int
 pl_put_row(term_t row, context *c)
 { term_t columns = PL_new_term_refs(c->NumCols);
   SQLSMALLINT i;
-   
+
   for (i=0; i<c->NumCols; i++)
   { if ( !pl_put_column(c, i, columns+i) )
       return FALSE;			/* with exception */

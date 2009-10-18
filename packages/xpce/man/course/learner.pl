@@ -71,7 +71,7 @@ string(TB, String:char_array) :<-
 make_graph_editor(E) :-
 	new(E, picture('Graph Editor')),
 	send(E, popup, new(P, popup(options))),
-	send_list(P, append, 
+	send_list(P, append,
 		  [ menu_item(add_new_box,
 			      message(@prolog, add_new_box,
 				      E, E?focus_event?position)),
@@ -111,7 +111,7 @@ make_move_resize_recogniser(R) :-
 		    menu_item(delete,
 			      message(TB, free))
 		  ]).
-	    
+
 
 event(TB, Ev:event) :->
 	(   send(TB, send_super, event, Ev)
@@ -170,4 +170,4 @@ assert_graph(E, Predicate) :-
 assert_link(Predicate, From, To) :-
 	Term =.. [Predicate, From, To],
 	assert(Term).
-	     
+

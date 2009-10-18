@@ -24,7 +24,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@uva.nl}}
 
 \maketitle
 
@@ -37,7 +37,7 @@ storing semantic web documents as well as XPCE libraries that provide
 visualisation and editing.  The Prolog libraries can be used without
 the XPCE GUI modules.  The library has been actively used with upto 10
 million triples, using approximately 1GB of memory.  Its scalability
-is limited by memory only.  The library can be used both on 32-bit 
+is limited by memory only.  The library can be used both on 32-bit
 and 64-bit platforms.
 \end{abstract}
 
@@ -58,7 +58,7 @@ point of orientation for knowledge representation in the future, making
 a library designed in its spirit promising.
 
 
-\section{Modules}
+\section{Provided libraries}
 
 Central to this library is the module \pllib{semweb/rdf_db.pl},
 providing storage and basic querying for RDF triples. This triple store
@@ -79,7 +79,7 @@ the database. Figure \figref{modules} summarised the modular design.
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{Module semweb/rdf_db}
+\section{Library semweb/rdf_db}
 
 The central module is called \file{rdf_db}.  It provides storage and
 indexed querying of RDF triples.  Triples are stored as a quintuple.
@@ -152,6 +152,16 @@ terms below.  Details of literal matching and indexing are described
 in \secref{litindex}.
 
     \begin{description}
+	\termitem{plain}{+Text}
+    	    Perform exact match \textbf{and} demand the language or
+	    type qualifiers to match. This query is fully indexed.%
+	    \footnote{This should have been the default when using
+		      literal with one argument because it is logically
+		      consisent (i.e., (rdf(S,P,literal(X)), X == hello)
+		      would have been the same as
+		      rdf(S,P,literal(hello).  In addition, this is
+		      consistent with SPARQL literal identity
+		      definition.}
 	\termitem{exact}{+Text}
     	    Perform exact, but case-insensitive match.  This query is
 	    fully indexed.
@@ -193,7 +203,7 @@ Unlike rdf/3, this predicate does not remove duplicates from the result
 set.
 
     \predicate{rdf_has}{4}{?Subject, ?Predicate, ?Object, -TriplePred}
-This query exploits the RDFS \const{subPropertyOf} relation.  It 
+This query exploits the RDFS \const{subPropertyOf} relation.  It
 returns any triple whose stored predicate equals \arg{Predicate} or
 can reach this by following the recursive \arg{subPropertyOf} relation.
 The actual stored predicate is returned in \arg{TriplePred}. The example
@@ -271,7 +281,7 @@ index is threefold.
 	  destruction events (see rdf_monitor/2).  These events can
 	  be used to maintain additional indexing on literals, such
 	  as `by word'.
-    
+
     \item A binary table allow for fast interval matching on typed
           numeric literals.\footnote{Not yet implemented}
 \end{itemize}
@@ -316,8 +326,8 @@ supported by the rest of the engine.
 
 \begin{description}
     \predicate{rdf_current_predicate}{1}{?Predicate}
-Enumerate all defined predicates.  Behaves as the code below, but
-much more efficient.
+Enumerate all predicates that are used in at least one triple. Behaves
+as the code below, but much more efficient.
 
 \begin{code}
 rdf_current_predicate(Predicate) :-
@@ -325,6 +335,11 @@ rdf_current_predicate(Predicate) :-
 	sort(Ps, S),
 	member(Predicate, S).
 \end{code}
+
+Note that there is no relation to defined RDF properties.  Properties
+that have no triples are not reported by this predicate, while
+predicates that are involved in triples do not need to be defined
+as an instance of rdf:Property.
 
     \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
 Define a property of the predicate. This predicate currently supports
@@ -339,7 +354,7 @@ are given below.
 
     \begin{description}
 	\termitem{symmetric}{Bool}
-True if the predicate is defined to be symetric.  I.e.\ 
+True if the predicate is defined to be symetric.  I.e.\
 \mbox{\{A\} P \{B\}} implies \mbox{\{B\} P \{A\}}.
 
 	\termitem{inverse_of}{Inverse}
@@ -350,7 +365,7 @@ True if this predicate is transitive.
 
 	\termitem{triples}{Triples}
 Unify \arg{Triples} with the number of existing triples using
-this predicate as second argument.  Reporting the number of 
+this predicate as second argument.  Reporting the number of
 triples is intended to support query optimization.
 
 	\termitem{rdf_subject_branch_factor}{-Float}
@@ -486,10 +501,10 @@ will deadlock if it would not generate an exception.
 
 \begin{code}
 1 ?- rdf_assert(a,b,c).
- 
+
 Yes
 2 ?- rdf_assert(a,b,d).
- 
+
 Yes
 3 ?- rdf(a,b,X), rdf_transaction(rdf_assert(a,b,e)).
 ERROR: No permission to write rdf_db `default' (Operation would deadlock)
@@ -508,7 +523,7 @@ append their operation to the \emph{transaction} instead of modifying
 the database. If \arg{Goal} succeeds rdf_transaction cuts all
 choicepoints in \arg{Goal} and executes all recorded operations. If
 \arg{Goal} fails or throws an exception, all recorded operations are
-discarded and rdf_transaction/1 fails or re-throws the exception. 
+discarded and rdf_transaction/1 fails or re-throws the exception.
 
 On entry, rdf_transaction/1 gains exclusive access to the database, but
 does allow readers to come in from all threads. After the successful
@@ -605,10 +620,13 @@ Save all known triples to the given \arg{File}.  Same as
 Save with options.  Provided options are:
 
     \begin{description}
+        \termitem{graph}{+URI}
+Save all triples that belong to the named-graph \arg{URI}. Saving
+arbitrary selections is possible using predicates from
+\secref{partsave}.
+
         \termitem{db}{+FileRef}
-Save all triples whose file-part of their \arg{SourceRef} matches
-\arg{FileRef} to the given \arg{File}.   Saving arbitrary selections
-is possible using predicates from \secref{partsave}.
+Deprecated synonym for \term{graph}{URI}.
 
         \termitem{anon}{+Bool}
 if \term{anon}{false} is provided anonymous resources are only saved
@@ -667,7 +685,7 @@ option namespaces for details.
 True if \arg{DB} is the name of a graph with at least one triple.
 
     \predicate{rdf_source}{1}{?DB}
-Depricated.  Use rdf_graph/1 or rdf_source/2 in new code.
+Deprecated.  Use rdf_graph/1 or rdf_source/2 in new code.
 
     \predicate{rdf_source}{2}{?DB, ?SourceURL}
 True if the named graph \arg{DB} was loaded from the source
@@ -757,8 +775,12 @@ generate the required namespaces and desired short-name.  \arg{Options}
 is one of:
 
     \begin{description}
+	\termitem{graph}{+URI}
+    Only search for namespaces used in triples that belong to the
+    given named graph.
+
 	\termitem{db}{+FileRef}
-    Only search for namespaces used in triples labeled with \arg{FileRef}.
+    Deprecated synonym for \term{graph}{FileRef}.
 
 	\termitem{namespaces}{+List}
     Where \arg{List} is a list of namespace abbreviations (see
@@ -804,7 +826,7 @@ line-number. For example, using \const{user} all information added
 using rdf_assert/3 is stored in the database.
 
     \predicate{rdf_load_db}{1}{+File}
-Load triples from \arg{File}.  
+Load triples from \arg{File}.
 \end{description}
 
 
@@ -884,6 +906,11 @@ runtime overhead than normal Prolog unification.
 	rdf_equal(rdfs:'Class', X)
 \end{code}
 
+    \predicate[nondet]{rdf_current_ns}{2}{?Alias, ?URI}
+Query defined namespace aliases (prefixes).\footnote{Older versions
+of this library did not export the table rdf_db:ns/2.  Please use
+this new public interface.}
+
     \predicate{rdf_register_ns}{2}{+Alias, +URL}
 Same as \term{rdf_register_ns}{Alias, URL, []}.
 
@@ -913,11 +940,6 @@ goals.
 Expands all \arg{Alias}:\arg{Local} in \arg{Term0} and return the
 result in \arg{Term}.  Use infrequently for runtime expansion of
 namespace identifiers.
-
-    \predicate{rdf_split_url}{3}{?Base, ?Local, ?URL}
-Split a URL into a prefix and local part if used in mode -,-,+
-or simply behave as atom_concat/3 in other modes.  The \arg{URL}
-is split on the last \chr{\#} or \chr{/} character.
 \end{description}
 
 
@@ -1031,11 +1053,11 @@ A triple has been deleted.
     \termitem{update}{+S, +P, +O, +DB, +Action}
 A triple has been updated.
     \termitem{new_literal}{+Literal}
-A new literal has been created.  \arg{Literal} is the argument of 
+A new literal has been created.  \arg{Literal} is the argument of
 \term{literal}{Arg} of the triple's object.  This event is introduced
 in version 2.5.0 of this library.
     \termitem{old_literal}{+Literal}
-The literal \arg{Literal} is no longer used by any triple. 
+The literal \arg{Literal} is no longer used by any triple.
     \termitem{transaction}{+BeginOrEnd, +Id}
 Mark begin or end of the \emph{commit} of a transaction started by
 rdf_transaction/2. \arg{BeginOrEnd} is \term{begin}{Nesting} or
@@ -1123,7 +1145,7 @@ modified, providing a heuristic for `how dirty' cached results may be.
 
     \predicate{rdf_estimate_complexity}{4}{?Subject, ?Predicate, ?Object,
 					   -Complexity}
-Return the number of alternatives as indicated by the database 
+Return the number of alternatives as indicated by the database
 internal hashed indexing.  This is a rough measure for the number
 of alternatives we can expect for an rdf_has/3 call using the
 given three arguments. When called with three variables, the total
@@ -1177,7 +1199,7 @@ Core used by the triple store.  This includes all memory allocated on
 behalf of the library, but \emph{not} the memory allocated in
 Prolog atoms referenced (only) by the triple store.
     \end{description}
-	
+
     \predicate{rdf_match_label}{3}{+Method, +Search, +Atom}
 True if \arg{Search} matches \arg{Atom} as defined by \arg{Method}.
 All matching is performed case-insensitive.  Defines methods are:
@@ -1239,7 +1261,7 @@ for it.
 The \pllib{rdf_db} module provides several hooks for extending its
 functionality. Database updates can be monitored and acted upon through
 the features described in \secref{rdfmonitor}. The predicate rdf_load/2
-can be hooked to deal with different formats such as \jargon{turtle},
+can be hooked to deal with different formats such as \jargon{rdfturtle},
 different input sources (e.g.\ http) and different strategies for
 caching results.
 
@@ -1253,7 +1275,7 @@ source-code if you want to add new formats or locations.
 
 \begin{description}
     \item[\file{rdf_turtle.pl}]
-Load files in the Turtle format.  See \secref{turtle}.
+Load files in the Turtle format.  See \secref{rdfturtle}.
     \item[\file{rdf_zlib_plugin.pl}]
 Load \program{gzip} compressed files transparently.  See \secref{zlib}.
     \item[\file{rdf_http_plugin.pl}]
@@ -1283,7 +1305,7 @@ the default modified time is `0' and the format is assumed to be
 
     \predicate{rdf_db:rdf_file_type}{2}{?Extension, ?Format}
 True if \arg{Format} is the default RDF file format for files
-with the given extension.  \arg{Extension} is lowercase and 
+with the given extension.  \arg{Extension} is lowercase and
 without a '.'.  E.g.\ \const{owl}.  \arg{Format} is either a
 built-in format (\const{xml} or \const{triples}) or a format
 understood by the rdf_load_stream/3 hook.
@@ -1471,7 +1493,7 @@ no longer used.  In some scenarios rdf_reset_literal_map/1
 provides a safe alternative.
 
     \predicate{rdf_reset_literal_map}{1}{+Map}
-Delete all content from the literal map.  
+Delete all content from the literal map.
 
     \predicate{rdf_insert_literal_map}{3}{+Map, +Key, +Value}
 Add a relation between \arg{Key} and \arg{Value} to the map.  If
@@ -1518,11 +1540,11 @@ given prefix.  See \secref{rdfquery} for details on prefix matching.
 in user interfaces.
 
 	\termitem{ge}{+Min}
-Unify \arg{Answer} with all keys that are larger or equal to the 
+Unify \arg{Answer} with all keys that are larger or equal to the
 integer \arg{Min}.
 
 	\termitem{le}{+Max}
-Unify \arg{Answer} with all keys that are smaller or equal to the 
+Unify \arg{Answer} with all keys that are smaller or equal to the
 integer \arg{Max}.
 
 
@@ -1545,10 +1567,10 @@ Unify \arg{Keys} with the total key-count of the index and
 		 %	    PERSISTENCY		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Module semweb/rdf_persistency}
+\subsection{Library semweb/rdf_persistency}
 \label{sec:persistency}
 
-\index{Persistent store}% 
+\index{Persistent store}%
 The \pllib{semweb/rdf_persistency} provides reliable persistent storage
 for the RDF data. The store uses a directory with files for each source
 (see rdf_source/1) present in the database. Each source is represented
@@ -1648,7 +1670,7 @@ The above predicates suffice for most applications. The predicates in
 this section provide access to the journal files and the base state
 files and are intented to provide additional services, such as reasoning
 about the journals, loaded files, etc.%
-    \footnote{A library \pllib{rdf_history} is under development 
+    \footnote{A library \pllib{rdf_history} is under development
 	      exploiting these features supporting wiki style editing
 	      of RDF.}
 
@@ -1746,53 +1768,15 @@ in the directory described by rdf_current_db/1 and has the extension
 		 %	      TURTLE		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Module semweb/rdf_turtle}
-\label{sec:turtle}
-
-\index{turtle}
-The module \pllib{semweb/rdf_turtle} provides a parser for the
-alternative RDF Turtle
-syntax.\footnote{\url{http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/}}
-The Turtle syntax is the basis for the SPARQL query language and much
-easier to read and write by humans\footnote{And computers \ldots} than
-the RDF/XML syntax.
-
-This module acts as a \jargon{plugin} to \pllib{rdf_db.pl}, enabling
-load_rdf/2 to load Turtle data transparently.  The default extension
-for a turtle file is \fileext{ttl}.
-
-\begin{description}
-    \predicate{rdf_load_turtle}{3}{+Input, -Triples, +Options}
-Parse Turtle data from Input, returning a list of \term{rdf}{S,P,O}
-triples. Input is either a term \term{stream}{Stream} or a specification
-for absolute_file_name/3.   Processed options are:
-
-    \begin{description}
-	\termitem{base_url}{+BaseURI}
-Define the base URI.  When processing a file the default is constructed
-from \const{file://} and the filename.
-
-	\termitem{anon_prefix}{+Prefix}
-Prefix used for blank notes.  Must start with \const{__}.  Default
-is constructed from the base URI.
-    \end{description}
-
-    \predicate{rdf_process_turtle}{3}{+Input, :OnTriples, +Options}
-Similar to rdf_load_turtle/3, but processes the file in call-back mode.
-See also process_rdf/3.  \arg{OnTriples} is called with two arguments.
-The first argument is a non-empty list of triples and the second is
-a term <DB>:<Line>, indicating the source location of the triples.
-In addition to the options described with rdf_load_turtle/3 it accepts
-the option \term{db}{DB}, specifying the named graph.  Default is the
-base URI.
-\end{description}
+\input{rdfturtle.tex}
+\input{rdfturtlewrite.tex}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	       RDFS		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module semweb/rdfs}
+\section{Library semweb/rdfs}
 \label{sec:rdfs}
 
 \index{RDF-Schema}%
@@ -1819,7 +1803,7 @@ taken in the \pllib{semweb/rdfs.p}l library, providing calls like
 
 The predicates in this section explore the \const{rdfs:subPropertyOf},
 \const{rdfs:subClassOf} and \const{rdf:type} relations.  Note that the
-most fundamental of these, \const{rdfs:subPropertyOf}, is also used 
+most fundamental of these, \const{rdfs:subPropertyOf}, is also used
 by rdf_has/[3,4].
 
 \begin{description}
@@ -1890,13 +1874,14 @@ literal objects are hashed case-insensitive to speed up the commonly
 used case-insensitive search.
 
 \begin{description}
-    \predicate{rdfs_label}{3}{?Resource, ?Language, ?Label}
-Extract the label from \arg{Resource} or generate all resources with
-the given \arg{Label}. The label is either associated using
-a sub-property of \const{rdfs:label} or it is extracted from the URL
-using rdf_split_url/3.  \arg{Language} is unified to the value of
-the \const{xml:lang} attribute of the label or a variable if the
-label has no language specified.
+    \predicate[multi]{rdfs_label}{3}{?Resource, ?Language, ?Label}
+Extract the label from \arg{Resource} or generate all resources with the
+given \arg{Label}. The label is either associated using a sub-property
+of \const{rdfs:label} or it is extracted from \arg{Resource} by taking
+the part after the last \chr{\#} or \chr{/}. If this too fails,
+\arg{Label} is unified with \arg{Resource}.  \arg{Language} is unified
+to the value of the \const{xml:lang} attribute of the label or a
+variable if the label has no language specified.
 
     \predicate{rdfs_label}{2}{?Resource, ?Label}
 Defined as \term{rdfs_label}{Resource, _, Label}.
@@ -1925,25 +1910,18 @@ the match was found.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		 %	       OWL		%
+		 %	  PLDOC LIBRARIES	%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{OWL}				\label{sec:owl}
-
-\index{OWL}%
-The current SemWeb library distributed with SWI-Prolog does not yet
-contain an OWL module.  A module \file{owl.pl} is part of the
-\url[Triple20]{http://www.swi-prolog.org/packages/Triple20/}
-triple browser and editor provides limited support for OWL
-reasoning.
-
+\input{rdfcompare.tex}
+\input{rdfportray.tex}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	     RDF-EDIT		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module semweb/rdf_edit}			\label{sec:rdfedit}
+\section{Library semweb/rdf_edit}			\label{sec:rdfedit}
 
 \begin{quote}\em
 It is anticipated that this library will eventually be superseeded by
@@ -1980,7 +1958,7 @@ Transactions group low-level modification actions together.
     \predicate{rdfe_transaction}{1}{:Goal}
 Run \arg{Goal}, recording all modifications to the triple store made
 through \secref{rdfeencap}.  Execution is performed as in once/1.  If
-\arg{Goal} succeeds the changes are committed.  If \arg{Goal} fails 
+\arg{Goal} succeeds the changes are committed.  If \arg{Goal} fails
 or throws an exception the changes are reverted.
 
 Transactions may be nested.  A failing nested transaction only reverts
@@ -2204,6 +2182,18 @@ servers from Java, while the Prolog client can be used to access the
 Sesame SeRQL server.  For further details, see the
 \url[project
 home]{http://gollem.science.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	       OWL		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{OWL}				\label{sec:owl}
+
+\index{OWL}%
+The SWI-Prolog Semantic Web library provides no direct support for OWL.
+OWL(-2) support is provided through Thea, an OWL library for SWI-Prolog
+See \url{http://www.semanticweb.gr/TheaOWLLib/}.
 
 
 \section*{Acknowledgements}

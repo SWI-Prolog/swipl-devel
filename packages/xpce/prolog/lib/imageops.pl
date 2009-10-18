@@ -55,7 +55,7 @@ active(Img, Active:bool, Img2:image) :<-
 	    ;	Img2 = Img
 	    )
 	).
-	    
+
 
 greyed(Img, Grey:image) :<-
 	"Created a greyed version of a colour image"::

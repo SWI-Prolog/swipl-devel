@@ -98,7 +98,7 @@ ws_depth_display(DisplayObj d)
 int
 ws_resolution_display(DisplayObj d, int *rx, int *ry)
 { HDC hdc = GetDC(NULL);
-  
+
   *rx = GetDeviceCaps(hdc, LOGPIXELSX);
   *ry = GetDeviceCaps(hdc, LOGPIXELSY);
 
@@ -476,7 +476,7 @@ get_clipboard_data(DisplayObj d, Name type)
   }
   CloseClipboard();
 
-  return rval; 
+  return rval;
 }
 
 
@@ -511,7 +511,7 @@ ws_get_selection(DisplayObj d, Name which, Name target)
 void
 ws_renderall(void)
 { HWND hwnd = CLIPBOARDWIN;
-  
+
   OpenClipboard(hwnd);
   EmptyClipboard();
   CloseClipboard();
@@ -550,7 +550,7 @@ ws_provide_selection(int format)
 
     if ( type == NAME_text )
     { CharArray ca = checkType(val, TypeCharArray, NIL);
-      
+
       if ( ca )
       { String s = &ca->data;
       	HGLOBAL mem = ws_string_to_global_mem(s);
@@ -584,7 +584,7 @@ ws_own_selection(DisplayObj d, Name selection, Name type)
     format = CF_ENHMETAFILE;
   else if ( type == NAME_wmf )
     format = CF_METAFILEPICT;
-  else if ( type == NAME_text) 
+  else if ( type == NAME_text)
     format = CF_UNICODETEXT;
   else
     return errorPce(d, NAME_noSelectionType, type);
@@ -609,7 +609,7 @@ ws_window_manager(DisplayObj d)
 
 void
 ws_synchronous(DisplayObj d)
-{ 
+{
 }
 
 
@@ -666,7 +666,7 @@ ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
   if ( rect.top < 0 )  rect.top  = 0;
   if ( rect.bottom > valInt(size->h) ) rect.bottom = valInt(size->h);
   if ( rect.right >  valInt(size->w) ) rect.right  = valInt(size->w);
-  
+
   w = rect.right - rect.left;
   h = rect.bottom - rect.top;
 

@@ -347,7 +347,7 @@ undo_restack_action(Gr) :->
 hide(Gr, Behind:[graphical]) :->
 	send(Gr, undo_restack_action),
 	send(Gr, send_super, hide, Behind).
-	
+
 expose(Gr, Before:[graphical]) :->
 	send(Gr, undo_restack_action),
 	send(Gr, send_super, expose, Before).
@@ -433,7 +433,7 @@ handle(w,   h/2, link, east).
 In draw_text, we'd like to write  ->event,   but  this  has already been
 defined in the template. XPCE does not  support this. Therefore we first
 define draw_text1, which will include the   template, and then draw_text
-as a subclass thereof in which we redefine the ->event method. 
+as a subclass thereof in which we redefine the ->event method.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- draw_begin_shape(draw_text1, text, "PceDraw editable text (support)", []).
@@ -648,7 +648,7 @@ delete(Path, P:point) :->
 	;   true
 	),
 	send_super(Path, delete, P).
-	    
+
 insert(Path, P:point, After:point*) :->
 	send(Path, send_super, insert, P, After),
 	(   get(Path, window, Window),
@@ -800,7 +800,7 @@ geometry(C, X:[int], Y:[int], W:[int], H:[int]) :->
 	(   get(C, window, Window)
 	->  send(Window, open_undo_group),
 	    get(C, area, area(OX, OY, OW, OH)),
-	    send(Window, undo_action, 
+	    send(Window, undo_action,
 		 message(C, do_set, OX, OY, OW, OH))
 	;   true
 	),

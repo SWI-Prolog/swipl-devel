@@ -297,7 +297,7 @@ base_name(_, '', _) :- !,
 	fail.
 base_name(FileName, Dir, Local) :-
 	file_directory_name(Dir, Super),
-	base_name(FileName, Super, Local). 
+	base_name(FileName, Super, Local).
 
 :- pce_end_class.
 

@@ -192,7 +192,7 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   updateStyleCursorEditor(e);		/* also does position */
   send(tb, NAME_attach, e, EAV);
   geometryEditor(e, ZERO, ZERO, ew, ih);
-  
+
   succeed;
 }
 
@@ -211,7 +211,7 @@ unlinkEditor(Editor e)
   { stopTimer(ElectricTimer);
     assign((Message)ElectricTimer->message, receiver, NIL);
   }
-   
+
   if ( notNil(e->text_buffer) )
   { send(e->text_buffer, NAME_detach, e, EAV);
     assign(e, text_buffer, NIL);
@@ -301,7 +301,7 @@ loadFdEditor(Editor e, IOSTREAM *fd, ClassDef def)
 static status
 cloneEditor(Editor e, Editor clone)
 { clonePceSlots(e, clone);
-  
+
   e->fragment_cache = newFragmentCache(e);
 
   succeed;
@@ -332,7 +332,7 @@ textBufferEditor(Editor e, TextBuffer tb)
     ChangedEntireTextImage(ti);
     requestComputeGraphical(e, DEFAULT);
   }
-  
+
   succeed;
 }
 
@@ -431,7 +431,7 @@ bubbleScrollBarEditor(Editor e, ScrollBar sb)
   { Int len   = countLinesEditor(e, ZERO, toInt(tb->size));
     Int first = sub(getLineNumberEditor(e, start), ONE); /* 1-based! */
     Int view  = countLinesEditor(e, start, e->image->end);
-    
+
     if ( tb->size > 0 &&
 	 !tisendsline(tb->syntax, Fetch(e, tb->size-1)) )
       incrInt(len);			/* incomplete last line */
@@ -525,7 +525,7 @@ marginWidthEditor(Editor e, Int width)
       displayDevice(e, e->margin, DEFAULT);
     } else
       setGraphical(e->margin, DEFAULT, DEFAULT, width, DEFAULT);
-          
+
     geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
   }
 
@@ -554,7 +554,7 @@ selectedFragmentEditor(Editor e, Fragment fr)
     if ( notNil(fr) )
       ChangedRegionEditor(e, toInt(fr->start), toInt(fr->start + fr->length));
   }
-  
+
   succeed;
 }
 
@@ -585,7 +585,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   Area a = e->area;
   Any sbobj = e->image;
   int fh = valInt(getHeightFont(e->font));
-  
+
   if ( e->badBoundingBox == ON && (isDefault(w) || isDefault(h)) )
   { Cell cell;
     clearArea(a);
@@ -632,7 +632,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   sw = isNil(e->scroll_bar) ? 0 : valInt(getMarginScrollBar(e->scroll_bar));
   mw = notNil(e->margin) ? valInt(e->margin->area->w) : 0;
   iw = valInt(w) - abs(sw) - mw;
-  
+
   DEBUG(NAME_editor, Cprintf("sw = %d, mw = %d, iw = %d\n",
 			     sw, mw, iw));
 
@@ -720,7 +720,7 @@ styleEditor(Editor e, Name name, Style style)
 
   ChangedEditor(e);
 
-  succeed;    
+  succeed;
 }
 
 static status
@@ -728,7 +728,7 @@ stylesEditor(Editor e, Sheet styles)
 { assign(e, styles, styles);
   ChangedEditor(e);
 
-  succeed;    
+  succeed;
 }
 
 
@@ -869,7 +869,7 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
 
       if ( s->attributes & TXT_HIDDEN )
       { Fragment fr = cell->fragment;
-	
+
 	indexFragmentCache(fc, e, fr->start + fr->length);
 	return;
       }
@@ -958,13 +958,13 @@ scan_editor(Any obj, long int index, int dir, int how, int category, int *eof)
       goto out_eof;
     }
   }
-	  
+
 out_eof:
   *eof = TRUE;
 out:
   if ( index < 0 )
     index = 0;
-  else if ( index > size ) 
+  else if ( index > size )
     index = size;
 
   return index;
@@ -996,7 +996,7 @@ fetch_editor(Any obj, TextChar tc)
     if ( gr )
     { tc->value.graphical = gr;
       tc->type	         = CHAR_GRAPHICAL;
-    
+
       indexFragmentCache(e->fragment_cache, e, index+3);
       return fc->index;
     }
@@ -1143,7 +1143,7 @@ where_editor(Editor e, Int index)
   if ( i == e->text_buffer->size &&	/* standing on EOF that is in window */
        e->image->eof_in_window == ON )
     return NAME_inside;
-  
+
   return NAME_below;
 }
 
@@ -1165,7 +1165,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
 					   NAME_line, ONE,
 					   NAME_start),
 		     ZERO);
-  
+
       if ( where_editor(e, to) == NAME_below )
       { DEBUG(NAME_scroll, Cprintf("More than one line: centering\n"));
 	centerWindowEditor(e, to);
@@ -1183,7 +1183,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
 	ComputeGraphical(ti);
       }
     }
-  
+
     if ( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
     { while( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
       { startTextImage(ti, getScanTextBuffer(e->text_buffer,
@@ -1222,7 +1222,7 @@ ensureCaretInWindowEditor(Editor e)
 	CaretEditor(e, e->image->end);
       else
       { long ie = max(0, valInt(e->image->end) - 1);
-	
+
 	CaretEditor(e, toInt(ie));
       }
     }
@@ -1371,7 +1371,7 @@ event_editor(Editor e, EventObj ev)
 
   if ( mapWheelMouseEvent(ev, e) )
     succeed;
-    
+
 					/* @editor_recogniser is a hook */
 					/* to allow for host-language */
 					/* level redefinition */
@@ -1428,7 +1428,7 @@ event_editor(Editor e, EventObj ev)
       } else if ( hasModifierEvent(ev, select_modifier) )
       { selectionExtendEditor(e, where);
 	selectionToCutBufferEditor(e, DEFAULT);
-      } 
+      }
     }
 
     if ( hasModifierEvent(ev, select_modifier) &&
@@ -1443,7 +1443,7 @@ event_editor(Editor e, EventObj ev)
 static status
 eventEditor(Editor e, EventObj ev)
 { status rval = event_editor(e, ev);
-  
+
   if ( rval && !isFreedObj(e) )
   { if ( (isAEvent(ev, NAME_keyboard) || isAEvent(ev, NAME_button) ) &&
 	 e->bindings->prefix == NAME_ )
@@ -1468,7 +1468,7 @@ cuaKeyAsPrefixEditor(Editor e, EventObj ev)
 
   if ( !HasSelection(e) )
     succeed;
-  
+
   if ( ws_wait_for_key(250) )
     succeed;
 
@@ -1520,7 +1520,7 @@ insert_editor(Editor e, Int times, Int chr, int fill)
       return errorPce(e, NAME_noCharacter);
   } else
     c = valInt(chr);
-    
+
   str_store(s, 0, c);
   s->size = 1;
   insert_textbuffer(e->text_buffer, Caret(e), valInt(times), s);
@@ -1685,7 +1685,7 @@ static status
 beginningOfLineEditor(Editor e, Int arg)
 { Int caret;
 
-  if ( e->image->wrap == NAME_word && 
+  if ( e->image->wrap == NAME_word &&
        isDefault(arg) &&
        (caret = getBeginningOfLineCursorTextImage(e->image, e->caret)) )
   {
@@ -1703,7 +1703,7 @@ static status
 endOfLineEditor(Editor e, Int arg)
 { Int caret;
 
-  if ( e->image->wrap == NAME_word && 
+  if ( e->image->wrap == NAME_word &&
        isDefault(arg) &&
        (caret = getEndOfLineCursorTextImage(e->image, e->caret)) )
   {
@@ -1936,7 +1936,7 @@ static int
 buttons()
 { if ( instanceOfObject(EVENT->value, ClassEvent) )
   { EventObj ev = EVENT->value;
-    
+
     return valInt(ev->buttons);
   }
 
@@ -2157,7 +2157,7 @@ yankEditor(Editor e, Int times)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -2182,7 +2182,7 @@ killEditor(Editor e, Int from, Int to)
 
   deleteTextBuffer(e->text_buffer, from, length);
   assign(e, kill_location, from);
-    
+
   succeed;
 }
 
@@ -2410,7 +2410,7 @@ transposeWordEditor(Editor e)
   forwardWordEditor(e, ONE);	t2 = e->caret;
   backwardWordEditor(e, ONE);	f2 = e->caret;
   if ( transposeTextBuffer(e->text_buffer, f1, t1, f2, t2) )
-    CaretEditor(e, add(caret, sub(sub(t2, f2), sub(t1, f1))));  
+    CaretEditor(e, add(caret, sub(sub(t2, f2), sub(t1, f1))));
 
   succeed;
 }
@@ -2499,7 +2499,7 @@ static status
 isBlankLine(Editor e, Int sol)
 { TextBuffer tb = e->text_buffer;
   Int eol = getSkipBlanksTextBuffer(tb, sol, NAME_forward, OFF);
-  
+
   if ( Fetch(e, valInt(eol)) == '\n' )
   { Cprintf("blank at %s\n", pp(sol));
     succeed;
@@ -2517,7 +2517,7 @@ deleteBlankLinesEditor(Editor e)
   Int caret = NIL;
 
   MustBeEditable(e);
-  
+
   sol = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
 
   if ( !isBlankLine(e, sol) )
@@ -2541,13 +2541,13 @@ deleteBlankLinesEditor(Editor e)
 	from = add(from, ONE);
       }
     }
-  }    
+  }
 
   if ( valInt(to) > valInt(from) )
   { deleteTextBuffer(tb, from, sub(to, from));
     if ( notNil(caret) )
       CaretEditor(e, caret);
-  }  
+  }
 
   succeed;
 }
@@ -2568,7 +2568,7 @@ gosmacsTransposeEditor(Editor e)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -2588,7 +2588,7 @@ transposeCharsEditor(Editor e)
 
     succeed;
   }
-  
+
   fail;
 }
 
@@ -2610,7 +2610,7 @@ saveBufferEditor(Editor e, Int arg)
       { send(e, NAME_report, NAME_error,
 	     CtoName("Failed to save buffer into %N"), e->file, EAV);
 	rval = FAIL;
-      }      
+      }
     } else
     { send(e, NAME_report, NAME_error, CtoName("No current file"), EAV);
       rval = FAIL;
@@ -2631,7 +2631,7 @@ static status
 downcaseRegionEditor(Editor e)
 { Int from = e->mark;
   Int to   = e->caret;
-  
+
   MustBeEditable(e);
   if ( isDefault(from) )
     fail;
@@ -2645,7 +2645,7 @@ static status
 upcaseRegionEditor(Editor e)
 { Int from = e->mark;
   Int to   = e->caret;
-  
+
   MustBeEditable(e);
   if ( isDefault(from) )
     fail;
@@ -2659,7 +2659,7 @@ static status
 capitaliseRegionEditor(Editor e)
 { Int from = e->mark;
   Int to   = e->caret;
-  
+
   MustBeEditable(e);
   if ( isDefault(from) )
     fail;
@@ -2747,10 +2747,10 @@ toggleCharCaseEditor(Editor e)
       c = towupper(c);
     else
       succeed;
-    
+
     return characterTextBuffer(e->text_buffer, toInt(caret-1), toInt(c));
   }
-  
+
   fail;
 
 }
@@ -2796,7 +2796,7 @@ static status
 blankLineEditor(Editor e, Int where)
 { TextBuffer tb = e->text_buffer;
   long sol = start_of_line(e, where);
-  
+
   for( ; ; sol++)
   { char c = fetch_textbuffer(tb, sol);
 
@@ -2931,7 +2931,7 @@ alignRegionEditor(Editor e, Int arg)
   MustBeEditable(e);
   get_region_editor(e, &from, &to);
   e->internal_mark = valInt(to);
-  while( valInt(from) < e->internal_mark )  
+  while( valInt(from) < e->internal_mark )
   { alignOneLineEditor(e, from, arg);
     from = getScanTextBuffer(tb, from, NAME_line, ONE, NAME_start);
   }
@@ -2972,7 +2972,7 @@ indentRegionEditor(Editor e, Int arg)
   MustBeEditable(e);
   SelectionRegion(e, from, to);
   e->internal_mark = valInt(to);
-  while( valInt(from) < e->internal_mark )  
+  while( valInt(from) < e->internal_mark )
   { indentOneLineEditor(e, from, arg);
     from = getScanTextBuffer(tb, from, NAME_line, ONE, NAME_start);
   }
@@ -3006,7 +3006,7 @@ newlineAndIndentEditor(Editor e, Int arg)
       break;
     }
   } while( index != ZERO );
-  
+
   succeed;
 }
 
@@ -3064,9 +3064,9 @@ fillEditor(Editor e,
   while( pos < end )
   { int p0 = pos;
 
-    DEBUG(NAME_fill, Cprintf("fill: region = %d ... %d\n", pos, end)); 
-    
-					/* skip the separator */ 
+    DEBUG(NAME_fill, Cprintf("fill: region = %d ... %d\n", pos, end));
+
+					/* skip the separator */
     while( pos < end && parsep_line_textbuffer(tb, pos) )
     { pos = scan_textbuffer(tb, p=pos, NAME_line, 1, 'a');
       if ( pos <= p )			/* end of file? */
@@ -3157,7 +3157,7 @@ justifyRegionEditor(Editor e)
 { TextBuffer tb = e->text_buffer;
   Int from = e->mark;
   Int to   = e->caret;
-  
+
   from = getScanTextBuffer(tb, from, NAME_line, ZERO, NAME_start);
 
   Before(from, to);
@@ -3213,13 +3213,13 @@ static status
 autoFillEditor(Editor e, Int caret, Regex re)
 { TextBuffer tb = e->text_buffer;
   Int from, to, lm;
-  
+
   if ( isDefault(caret) )
     caret = e->caret;
   from = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
   to = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
 			 ZERO, NAME_end);
-    
+
   if ( isDefault(re) )
   { lm = getIndentationEditor(e, from, DEFAULT);
   } else
@@ -3239,7 +3239,7 @@ autoFillEditor(Editor e, Int caret, Regex re)
 	    Cprintf("autofill regex %p did not match\n", re));
 
       lm = getIndentationEditor(e, from, DEFAULT);
-    } 
+    }
   }
 
   fillEditor(e, from, to, lm, DEFAULT, OFF);
@@ -3265,7 +3265,7 @@ findCutBufferEditor(Editor e, Int arg)
 	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1));
     fail;
   }
-  
+
   if ( (str = get(getDisplayGraphical((Graphical) e),
 		  NAME_cutBuffer, toInt(buffer), EAV)) == FAIL )
   { send(e, NAME_report, NAME_warning,
@@ -3281,7 +3281,7 @@ findCutBufferEditor(Editor e, Int arg)
   { send(e, NAME_report, NAME_warning, CtoName("Failed search: %s"), str, EAV);
     fail;
   }
-    
+
   selection_editor(e,
 		   toInt(hit_start),
 		   toInt(hit_start + str->data.size),
@@ -3333,7 +3333,7 @@ abortIsearchEditor(Editor e)
   { assign(e, focus_function, NIL);
     selection_editor(e, DEFAULT, DEFAULT, NAME_inactive);
   }
-  
+
   succeed;
 }
 
@@ -3389,7 +3389,7 @@ backwardDeleteCharSearchStringEditor(Editor e)
     else
       deleteString(e->search_string, sub(size, ONE), DEFAULT);
   }
-  
+
   succeed;
 }
 
@@ -3427,7 +3427,7 @@ executeSearchEditor(Editor e, Int chr)
     start += times;
 
   hit_start = find_textbuffer(e->text_buffer,
-			      start, 
+			      start,
 			      &e->search_string->data,
 			      times, 'a', !ign, FALSE);
   if ( hit_start < 0 )
@@ -3510,7 +3510,7 @@ IsearchEditor(Editor e, EventId id)
 
     succeed;
   }
-      
+
   if ( !isInteger(id) )
   { endIsearchEditor(e);
     fail;
@@ -3553,7 +3553,7 @@ get_dabbrev_target(Editor e)
   Int sow = getScanTextBuffer(tb, caret, NAME_word, 0, NAME_start);
   int n;
   string s;
-  
+
   for(n=valInt(sow); n < valInt(caret); n++)
   { if ( !tisalnum(tb->syntax, fetch_textbuffer(tb, n)) )
     { send(e, NAME_report, NAME_warning, CtoName("Not at end of word"), EAV);
@@ -3563,7 +3563,7 @@ get_dabbrev_target(Editor e)
 
   assign(e, dabbrev_origin, sow);
   str_sub_text_buffer(tb, &s, valInt(sow), valInt(caret) - valInt(sow));
-  answer(StringToName(&s));  
+  answer(StringToName(&s));
 }
 
 
@@ -3711,7 +3711,7 @@ DabbrevExpandEditor(Editor e, EventId id)
 
     for_cell(cell, e->dabbrev_reject)
     { Name reject = cell->value;
-     
+
       if ( ec && reject == hit )
       	goto next;
       if ( !ec && str_icase_eq(&hit->data, &reject->data) )
@@ -3735,7 +3735,7 @@ DabbrevExpandEditor(Editor e, EventId id)
     succeed;
 
     next:;
-  } 
+  }
 }
 
 		/********************************
@@ -3778,7 +3778,7 @@ scrollDownEditor(Editor e, Int arg)
 static status
 scrollUpEditor(Editor e, Int arg)
 { Name unit = NAME_line;
-  
+
   if ( isDefault(arg) )
   { arg = toInt(SCROLL_PAGE_PROM);
     unit = NAME_page;
@@ -3831,17 +3831,17 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
     { if ( tb->size < MAXPRECISESCROLLING &&
 	   (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
       { startTextImage(e->image, start, ZERO);
-	
+
 	return ensureCaretInWindowEditor(e);
       } else if ( tb->size < MAXLINEBASEDSCROLLING )
       { int size = valInt(countLinesEditor(e, ZERO, toInt(tb->size)));
 	int view = valInt(getLinesTextImage(e->image));
 	int target = ((size-view)*valInt(amount))/1000;
 	int cp;				/* character-position */
-	
+
 	if ( target < 0 )
 	  target = 0;
-	
+
 	cp = start_of_line_n_textbuffer(tb, target+1);
 	centerTextImage(e->image, toInt(cp), ONE);
 	ensureCaretInWindowEditor(e);
@@ -3852,10 +3852,10 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 	scrollToEditor(e, toInt(h), DEFAULT);
       }
     }
-  } else 
+  } else
   { if ( (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
     { startTextImage(e->image, start, ZERO);
-	
+
       return ensureCaretInWindowEditor(e);
     }
   }
@@ -4015,7 +4015,7 @@ getSelectionEditor(Editor e)
   { Before(f, t);
     answer(answerObject(ClassPoint, f, t, EAV));
   }
-  
+
   fail;
 }
 
@@ -4047,7 +4047,7 @@ getSelectedEditor(Editor e)
   { Before(f, t);
     answer(getContentsTextBuffer(e->text_buffer, f, sub(t, f)));
   }
-  
+
   fail;
 }
 
@@ -4103,7 +4103,7 @@ insertCutBufferEditor(Editor e, Int arg)
 	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1), EAV);
     fail;
   }
-  
+
   if ( (str = get(getDisplayGraphical((Graphical) e),
 		  NAME_cutBuffer, toInt(buffer), EAV)) == FAIL )
   { send(e, NAME_report, NAME_warning,
@@ -4145,7 +4145,7 @@ formatEditor(Editor e, CharArray fmt, int argc, Any *argv)
   TRY(str_writefv(&s, fmt, argc, argv));
   insert_textbuffer(e->text_buffer, Caret(e), 1, &s);
   str_unalloc(&s);
-  
+
   succeed;
 }
 
@@ -4157,7 +4157,7 @@ appendfEditor(Editor e, CharArray fmt, int argc, Any *argv)
   TRY(str_writefv(&s, fmt, argc, argv));
   insert_textbuffer(e->text_buffer, e->text_buffer->size, 1, &s);
   str_unalloc(&s);
-  
+
   succeed;
 }
 
@@ -4197,7 +4197,7 @@ deleteLineEditor(Editor e, Int line)
 			       NAME_start);
   Int to =   getScanTextBuffer(e->text_buffer,
 			       from, NAME_line, ZERO, NAME_end);
-  
+
   return deleteTextBuffer(e->text_buffer, from, sub(add(to, ONE), from));
 }
 
@@ -4264,8 +4264,8 @@ getReadLineEditor(Editor e)
   to = getScanTextBuffer(e->text_buffer, e->caret, NAME_line, 0, NAME_end);
   rval = getContentsTextBuffer(e->text_buffer, e->caret, sub(to, e->caret));
   CaretEditor(e, add(to, ONE));
-  
-  answer(rval);  
+
+  answer(rval);
 }
 
 
@@ -4295,7 +4295,7 @@ getColumnEditor(Editor e, Int where)
     } else
       col++;
   }
-  
+
   answer(toInt(col));
 }
 
@@ -4363,7 +4363,7 @@ loadEditor(Editor e, SourceSink file)
   status rval;
 
   clearTextBuffer(tb);
-  if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) ) 
+  if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) )
   { Bool editable = (send(file, NAME_access, NAME_write, EAV) ? ON : OFF);
 
     assign(e, file, file);
@@ -4384,7 +4384,7 @@ saveEditor(Editor e, SourceSink file)
 
   if ( isNil(file) )
     fail;
-  
+
   if ( instanceOfObject(file, ClassFile) &&
        existsFile((FileObj)file, DEFAULT) )
     TRY(send(file, NAME_backup, EAV));
@@ -4408,7 +4408,7 @@ fontEditor(Editor e, FontObj font)
     updateStyleCursorEditor(e);
     ChangedEditor(e);
   }
-  
+
   succeed;
 }
 
@@ -4420,7 +4420,7 @@ tabDistanceEditor(Editor e, Int tab)
     tabDistanceTextImage(e->image, mul(tab, getExFont(e->font)));
     ChangedEditor(e);
   }
-  
+
   succeed;
 }
 
@@ -4633,7 +4633,7 @@ static char *T_selection[] =
 static char *T_mark[] =
         { "mark=[int]", "status=[{active,inactive,highlight}]"
 	};
-static char *T_scrollTo[] = 
+static char *T_scrollTo[] =
 	{ "index=[int]", "screenline=[int]" };
 static char *T_autoFill[] =
         { "from=[int]", "skip=[regex]" };
@@ -5276,7 +5276,7 @@ newKill(CharArray ca)
 static CharArray
 killRegister(Int which)
 { CharArray ca;
- Vector ring; 
+ Vector ring;
 
   if ( isDefault(which) )
     which = ZERO;

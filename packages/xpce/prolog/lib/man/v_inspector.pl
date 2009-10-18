@@ -69,7 +69,7 @@ initialise(T, String:string, Adjust:[name], Font:[font]) :->
 			  message(@receiver, select)))).
 
 event(_T, Event:event) :->
-	send(@isp_selectable_text_handler, event, Event).	
+	send(@isp_selectable_text_handler, event, Event).
 
 select(T) :->
 	send(T?window, selection, T),
@@ -143,14 +143,14 @@ object(T, Object:unchecked) :->
 	->  Object = @Ref,
 	    send(T, slot, reference, Ref)
 	;   send(T, slot, reference, @nil)
-	).	
+	).
 
 
 object(T, Object) :<-
 	get(T, reference, Ref),
 	Ref \== @nil,
 	Object = @Ref.
-       
+
 
 %		EVENTS
 
@@ -160,7 +160,7 @@ make_isp_value_text_popup(P) :-
 	new(P, popup),
 	VT = @arg1,
 	new(Obj, VT?object),
-	send_list(P, append, 
+	send_list(P, append,
 		  [ menu_item(flash_visual,
 			      message(Obj, flash),
 			      condition := message(Obj, has_send_method,
@@ -179,7 +179,7 @@ make_isp_value_text_popup(P) :-
 		  ]).
 
 
-:- pce_global(@isp_value_text_handler, 
+:- pce_global(@isp_value_text_handler,
 	new(handler_group(
 		click_gesture(left, '', single,
 			      and(message(@receiver, select),
@@ -251,7 +251,7 @@ relink(T) :->
        ->  send(T, link, Monitor)
        ;   true
        ).
-       
+
 
 :- pce_global(@isp_value_text_link,
 	      new(link(link, link, line(0,0,0,0,second)))).
@@ -313,12 +313,12 @@ initialise(AV, Title:name, TitleValue:[name]) :->
 
 	send(TT, name, title),
 	send(TV, name, title_value),
-	
+
 	(   TitleValue \== @default
 	->  send(TV, string, TitleValue)
 	;   true
 	),
-	
+
 	send(AV, send_super, initialise),
 	send(AV, border, 5),
 	send(AV, background, colour(white)),
@@ -343,10 +343,10 @@ title_value(AV, Text:string) :->
 display_value(AV, Name:name, Value:unchecked) :->
 	new(NT, isp_label_text(Name)),
 	new(VT, isp_value_text(Value)),
-	
+
 	send(NT, name, Name),
 	send(VT, name, Name),
-	
+
 	send(AV, display, NT),
 	send(AV, display, VT).
 
@@ -688,7 +688,7 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 		    message(@arg1, link_to, Reference))),
 	    prepare_class(Object)
 	).
-	
+
 
 %	Place object with with OW at random location in window at X
 %	with visual width W.
@@ -797,9 +797,9 @@ changed_slot(Instance, A1, A2) :-
 	get(Instance, '_class_name', ClassName),
 	changed_slot(ClassName, Instance, Monitor, A1, A2),
 	fail ; true.
-	
+
 changed_slot(chain, _, Monitor, clear,  _) :- !,
-	send(Monitor, clear_no).	
+	send(Monitor, clear_no).
 changed_slot(chain, Chain, Monitor, insert, Index) :- !,
 	get(Chain, nth1, Index, Value),
 	send(Monitor, insert_no, Index, Value).
@@ -880,6 +880,6 @@ grab(F) :->
 	send(D, destroy),
 	Obj \== @nil,
 	send(F, inspect, Obj).
-	
+
 
 :- pce_end_class(isp_frame).

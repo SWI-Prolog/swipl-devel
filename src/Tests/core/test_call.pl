@@ -34,12 +34,28 @@ meta-calling. Please define a test-set for each predicate.
 */
 
 test_call :-
-	run_tests([ apply,
+	run_tests([ call1,
+		    apply,
 		    callN,
+		    cross_module_call,
 		    snip,
 		    no_autoload,
-		    setup_and_call_cleanup
+		    setup_call_cleanup
 		  ]).
+
+:- begin_tests(call1).
+
+call1_a(X) :- X.			% These must be compiled the same.
+call1_b(X) :- call(X).
+
+test(call, X == 42) :-
+	call1_a(X = 42).
+test(clause, Body == call(X)) :-
+	clause(call1_a(X), Body).
+test(clause, Body == call(X)) :-
+	clause(call1_b(X), Body).
+
+:- end_tests(call1).
 
 :- begin_tests(apply).
 
@@ -55,6 +71,52 @@ test(error, error(type_error(callable, 1))) :-
 	call(1, a, b).
 
 :- end_tests(callN).
+
+cm1(X) :- context_module(X).
+cm2(X) :- context_module(X).
+:- export((cm1/1, cm2/1)).
+:- user:(import((cm1/1, cm2/1))).	% import to user to call from foo:
+
+:- begin_tests(cross_module_call).
+
+cmc1:ok(cmc1).
+cmc2:ok(cmc2).
+
+cmc1(X) :-
+	cmc1:ok(X).			% I_DEPARTM
+cmc2(X) :-
+	cmc2:ok(X),			% I_CALLM
+	atom(X).
+cmc3(X) :-
+	cmc3:context_module(X).
+cmc4(X) :-
+	cmc4:context_module(X),
+	atom(X).
+c_cm1(X) :-
+	foo:cm1(X).
+c_cm2(X) :-
+	foo:cm2(X).
+
+test(cmc1, X == cmc1) :-
+	cmc1(X).
+test(cmc1, Body == cmc1:ok(X)) :-
+	clause(cmc1(X), Body).
+test(cmc2, X == cmc2) :-
+	cmc2(X).
+test(cmc2, Body == (cmc2:ok(X),atom(X))) :-
+	clause(cmc2(X), Body).
+test(cmc3, X == cmc3) :-
+	cmc3(X).
+test(cmc4, X == cmc4) :-
+	cmc4(X).
+test(c_cm1, X == test_call) :-
+	c_cm1(X),
+	1 = 1.				% avoid last-call
+test(c_cm2, X == test_call) :-
+	c_cm2(X).
+
+:- end_tests(cross_module_call).
+
 
 :- begin_tests(snip).
 
@@ -72,17 +134,17 @@ verum :-
 			      cleanup(set_prolog_flag(autoload, true))
 			    ]).
 
-known(t) :- 
+known(t) :-
 	this_should_not_be_defined(V),
 	call(V).
 
-test(unknown, error(existence_error(procedure, 
+test(unknown, error(existence_error(procedure,
 				    _:this_should_not_be_defined/1))) :-
 	known(t).
 
 :- end_tests(no_autoload).
 
-:- begin_tests(setup_and_call_cleanup,
+:- begin_tests(setup_call_cleanup,
 	       [ setup(retractall(v(_)))
 	       ]).
 
@@ -90,67 +152,79 @@ test(unknown, error(existence_error(procedure,
 	v/1.
 
 test(true, X == 42) :-
-	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
-     
+
 test(true_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	setup_and_call_cleanup(A=42, true, assert(v(A))),
+	setup_call_cleanup(A=42, true, assert(v(A))),
 	retract(v(X)).
-     
+
 test(cut, X == 42) :-
-	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
-     
+
 test(cut_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	setup_and_call_cleanup(A=42, (true;true), assert(v(A))), !,
+	setup_call_cleanup(A=42, (true;true), assert(v(A))), !,
 	retract(v(X)).
-     
+
 test(fail, X == 42) :-
-	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
-     
+
 test(fail2, X =@= [42,_]) :-
-	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
-     
+
 test(fail_debug, [ true(X == 42),
 		   setup(debug),
 		   cleanup(nodebug)
 		 ]) :-
-	\+ setup_and_call_cleanup(A=42, fail, assert(v(A))),
+	\+ setup_call_cleanup(A=42, fail, assert(v(A))),
 	retract(v(X)).
-     
+
 test(fail_debug2, [ true(X =@= [42,_]),
 		    setup(debug),
 		    cleanup(nodebug)
 		  ]) :-
-	\+ setup_and_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
+	\+ setup_call_cleanup(A=42, (B=2,fail), assert(v([A,B]))),
 	retract(v(X)).
-     
+
 test(error, [X,E] == [42,error(x)]) :-
-	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
-     
+
 test(error_debug, [ true([X,E] == [42,error(x)]),
 		    setup(debug),
 		    cleanup(nodebug)
 		 ]) :-
-	catch(setup_and_call_cleanup(A=42, throw(error(x)), assert(v(A))),
+	catch(setup_call_cleanup(A=42, throw(error(x)), assert(v(A))),
 	      E, true),
 	retract(v(X)).
-     
-test(nondet, [Vs == [a,b,fail], cleanup(retractall(v_))]) :-
-	(   setup_and_call_cleanup(member(X,[a,b]), assert(v(X)),
-				   Exit, assert(v(Exit))),
+
+test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
+	(   setup_call_catcher_cleanup(true,
+				       (member(X,[a,b]),
+					assert(v(X))),
+				       Exit,
+				       assert(v(Exit))),
 	    fail
 	;   findall(V, retract(v(V)), Vs)
 	).
 
-:- end_tests(setup_and_call_cleanup).
+test(cleanup, error(instantiation_error)) :-
+	a(X),
+	setup_call_cleanup(true, true, X).
+
+test(cleanup, true) :-
+	setup_call_cleanup(X=true, true, X).
+
+a(_).
+
+:- end_tests(setup_call_cleanup).

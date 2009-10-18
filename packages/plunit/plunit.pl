@@ -26,7 +26,7 @@
 /** <module> Unit Testing
 
 Unit testing environment for SWI-Prolog and   SICStus Prolog. For usage,
-please visit http://www.swi-prolog.org/packages/plunit.html.
+please visit http://www.swi-prolog.org/pldoc/package/plunit.html.
 
 @author		Jan Wielemaker
 @license	artistic
@@ -58,7 +58,7 @@ if_expansion((:- if(G)), []) :-
 if_expansion((:- else), []) :-
 	(   retract(include_code(X))
 	->  (   X == true
-	    ->  X2 = false 
+	    ->  X2 = false
 	    ;   X == false
 	    ->	X2 = true
 	    ;	X2 = X
@@ -71,7 +71,7 @@ if_expansion((:- endif), []) :-
 
 if_expansion(_, []) :-
 	\+ including.
-	    
+
 user:term_expansion(In, Out) :-
 	prolog_load_context(module, plunit),
 	if_expansion(In, Out).
@@ -156,20 +156,20 @@ user:term_expansion((:- thread_local(PI)), (:- dynamic(PI))) :-
 %%	set_test_options(+Options)
 %
 %	Specifies how to deal with test suites.  Defined options are:
-%	
+%
 %		* load(+Load)
 %		Whether or not the tests must be loaded.  Values are
 %		=never=, =always=, =normal= (only if not optimised)
-%		
+%
 %		* run(+When)
 %		When the tests are run.  Values are =manual=, =make=
 %		or make(all).
-%		
+%
 %		* silent(+Bool)
 %		If =true= (default =false=), report successful tests
 %		using message level =silent=, only printing errors and
 %		warnings.
-%		
+%
 %		* sto(+Bool)
 %		How to test whether code is subject to occurs check
 %		(STO).  If =false= (default), STO is not considered.
@@ -212,7 +212,7 @@ loading_tests :-
 	loading_unit/4,			% Unit, Module, File, OldSource
 	current_unit/4,			% Unit, Module, Context, Options
 	test_file_for/2.		% ?TestFile, ?PrologFile
-	
+
 %%	begin_tests(+UnitName:atom) is det.
 %%	begin_tests(+UnitName:atom, Options) is det.
 %
@@ -232,15 +232,13 @@ begin_tests(Unit, Options) :-
 begin_tests(Unit, Name, File:Line, Options) :-
 	loading_tests, !,
 	'$set_source_module'(Context, Context),
-	Supers = [Context],
-	(   current_unit(Unit, Name, Supers, Options)
+	(   current_unit(Unit, Name, Context, Options)
 	->  true
 	;   retractall(current_unit(Unit, Name, _, _)),
-	    assert(current_unit(Unit, Name, Supers, Options)),
-	    set_import_modules(Name, Supers)
+	    assert(current_unit(Unit, Name, Context, Options))
 	),
 	'$set_source_module'(Old, Name),
-	'$declare_module'(Name, File, Line),
+	'$declare_module'(Name, Context, File, Line, false),
 	discontiguous(Name:'unit test'/4),
 	'$set_predicate_attribute'(Name:'unit test'/4, trace, 0),
 	discontiguous(Name:'unit body'/2),
@@ -267,10 +265,10 @@ user:term_expansion((:- begin_tests(Set)),
 
 begin_tests(Unit, Name, File:_Line, Options) :-
 	loading_tests, !,
-	(   current_unit(Unit, Name, Supers, Options)
+	(   current_unit(Unit, Name, _, Options)
 	->  true
 	;   retractall(current_unit(Unit, Name, _, _)),
-	    assert(current_unit(Unit, Name, Supers, Options))
+	    assert(current_unit(Unit, Name, -, Options))
 	),
 	asserta(loading_unit(Unit, Name, File, -)).
 begin_tests(Unit, Name, File:_Line, _Options) :-
@@ -281,7 +279,7 @@ begin_tests(Unit, Name, File:_Line, _Options) :-
 %%	end_tests(+Name) is det.
 %
 %	Close a unit-test module.
-%	
+%
 %	@tbd	Run tests/clean module?
 %	@tbd	End of file?
 
@@ -341,7 +339,7 @@ expand_test(Name, Options0, Body,
 	    ]) :-
 	source_location(_File, Line),
 	prolog_load_context(module, Module),
-	concat_atom([Name, '@line ', Line], Id),
+	atomic_list_concat([Name, '@line ', Line], Id),
 	term_variables(Body, VarList),
 	Vars =.. [vars|VarList],
 	(   is_list(Options0)		% allow for single option without list
@@ -380,10 +378,10 @@ expand(test(Name, _Options), _) :- !,
 
 :- if(swi).
 :- multifile
-	user:term_expansion/2.
+	system:term_expansion/2.
 :- endif.
 
-user:term_expansion(Term, Expanded) :-
+system:term_expansion(Term, Expanded) :-
 	(   loading_unit(_, _, File, _)
 	->  source_location(File, _),
 	    expand(Term, Expanded)
@@ -629,7 +627,7 @@ unification_capability(_) :-
 
 %%	run_test(+Unit, +Name, +Line, +Options, +Body) is det.
 %
-%	Run a single test.  
+%	Run a single test.
 
 run_test(Unit, Name, Line, Options, Body) :-
 	option(forall(Generator), Options), !,
@@ -715,7 +713,7 @@ report_sto_results([Type+Result|T], Options) :-
 %%	run_test_6(+Unit, +Name, +Line, +Options, :Body, -Result) is det.
 %
 %	Result is one of:
-%	
+%
 %		* blocked(Unit, Name, Line, Reason)
 %		* failure(Unit, Name, Line, How)
 %		* success(Unit, Name, Line, Determinism, Time)
@@ -818,7 +816,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	;   Result = setup_failed(Unit, Name, Line)
 	).
 
-	
+
 %%	non_det_test(+Expected, +Unit, +Name, +Line, +Options, +Body, -Result)
 %
 %	Run tests on non-deterministic predicates.
@@ -846,7 +844,7 @@ nondet_test(Expected, Unit, Name, Line, Options, Body, Result) :-
 
 
 %%	result_vars(+Expected, -Vars) is det.
-%	
+%
 %	Create a term v(V1, ...) containing all variables at the left
 %	side of the comparison operator on Expected.
 
@@ -857,7 +855,7 @@ result_vars(Expected, Vars) :-
 %%	nondet_compare(+Expected, +Bindings, +Unit, +Name, +Line) is semidet.
 %
 %	Compare list/set results for non-deterministic predicates.
-%	
+%
 %	@tbd	Properly report errors
 %	@bug	Sort should deal with equivalence on the comparison
 %		operator.
@@ -917,7 +915,7 @@ match_error(Expect, Rec) :-
 %	Call the setup handler and  fail  if   it  cannot  run  for some
 %	reason. The condition handler is  similar,   but  failing is not
 %	considered an error.  Context is one of
-%	
+%
 %	    * unit(Unit)
 %	    If it is the setup handler for a unit
 %	    * test(Unit,Name,Line)
@@ -1011,7 +1009,7 @@ failure(Unit, Name, Line, E, Options) :-
 %	Assert  a  possibly  cyclic  unit   clause.  Current  SWI-Prolog
 %	assert/1 does not handle cyclic terms,  so we emulate this using
 %	the recorded database.
-%	
+%
 %	@tbd	Implement cycle-safe assert and remove this.
 
 :- if(swi).
@@ -1042,11 +1040,11 @@ assert_cyclic(Term) :-
 %
 %	Maintain running/5 and report a test has started/is ended using
 %	a =silent= message:
-%	
+%
 %	    * plunit(begin(Unit:Test, File:Line, STO))
 %	    * plunit(end(Unit:Test, File:Line, STO))
-%	    
-%	@see message_hook/3 for intercepting these messages    
+%
+%	@see message_hook/3 for intercepting these messages
 
 begin_test(Unit, Test, Line, STO) :-
 	thread_self(Me),
@@ -1146,7 +1144,7 @@ fixme(How, Tuples, Count) :-
 	findall(fixme(Unit, Name, Line, Reason, How),
 		fixme(Unit, Name, Line, Reason, How), Tuples),
 	length(Tuples, Count).
-	
+
 
 report_failure(Unit, Name, Line, Error, _Options) :-
 	print_message(error, plunit(failed(Unit, Name, Line, Error))).
@@ -1387,7 +1385,7 @@ running([H|T]) -->
 thread(main) --> !.
 thread(Other) -->
 	[' [~w] '-[Other] ].
-	
+
 current_sto(sto_error_incomplete) -->
 	[ ' (STO: error checking)' ].
 current_sto(rational_trees) -->

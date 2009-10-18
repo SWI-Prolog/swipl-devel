@@ -176,7 +176,7 @@ restrictAreaEvent(EventObj ev, Graphical gr)
 
   ex = valInt(X);
   ey = valInt(Y);
-  
+
   aw = valInt(gr->area->w);
   ah = valInt(gr->area->h);
 
@@ -193,7 +193,7 @@ restrictAreaEvent(EventObj ev, Graphical gr)
     assign(ev, x, toInt(valInt(ev->x)+dx));
   if ( dy )
     assign(ev, y, toInt(valInt(ev->y)+dy));
-  
+
   succeed;
 }
 
@@ -218,7 +218,7 @@ getScrollTarget(Gesture g, EventObj ev)
 
   return gr;
 }
-  
+
 
 #define DRAGSCROLL_MARGIN 50
 
@@ -242,7 +242,7 @@ scrollMessage(Gesture g, EventObj ev,
     fail;
   ex = valInt(X);
   ey = valInt(Y);
-  
+
   aw = valInt(gr->area->w);
   ah = valInt(gr->area->h);
 
@@ -298,7 +298,7 @@ scrollGesture(Gesture g)
   if ( hasSendMethodObject(gr, msg) &&
        send(gr, msg, dir, NAME_line, amount, EAV) )
   { EventObj ev = getCloneObject(g->drag_scroll_event); /* TBD: optimise? */
-    
+
     DEBUG(NAME_dragScroll,
 	  Cprintf("Drag event = %s, receiver %s\n",
 		  pp(ev->id), pp(ev->receiver)));
@@ -330,7 +330,7 @@ cancelDragScrollGesture(Gesture g)
 static int
 tryDragScrollGesture(Gesture g, EventObj ev)
 { status doscroll = scrollMessage(g, ev, NULL, NULL, NULL);
-  
+
   if ( doscroll )
   { if ( isNil(g->drag_scroll_event) )
     { assign(g, drag_scroll_timer,
@@ -404,7 +404,7 @@ static senddecl send_gesture[] =
 #define get_gesture NULL
 /*
 static getdecl get_gesture[] =
-{ 
+{
 };
 */
 

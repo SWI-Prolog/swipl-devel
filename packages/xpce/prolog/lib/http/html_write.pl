@@ -68,7 +68,7 @@ directly, but this is generally not very satisfactory:
 
 This module tries to remedy these problems.   The idea is to translate a
 Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
-generation. 
+generation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 page(Content) -->
@@ -157,7 +157,7 @@ do_expand(script(Content), _) --> !,	% general CDATA declared content elements?
 	],
 	html_end(script).
 do_expand(&(Entity), _) --> !,
-	{ concat_atom([&, Entity, ;], HTML)
+	{ atomic_list_concat([&, Entity, ;], HTML)
 	},
 	[ HTML ].
 do_expand(Token, _) -->
@@ -185,7 +185,7 @@ do_expand(Term, M) -->
 	html(Contents, M),
 	html_end(Env).
 
-	
+
 html_begin(Env) -->
 	{ Env =.. [Name|Attributes]
 	},
@@ -248,7 +248,7 @@ html_quoted(Text) -->
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
+	  atomic_list_concat(QuotedChars, Quoted)
 	},
 	[ Quoted ].
 html_quoted(Text) -->
@@ -277,12 +277,12 @@ html_quoted_attribute(Text) -->
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_att_chars(Chars, QuotedChars),
-	  concat_atom(QuotedChars, Quoted)
+	  atomic_list_concat(QuotedChars, Quoted)
 	},
 	[ Quoted ].
 html_quoted_attribute(Text) -->
 	[ Text ].
-	
+
 quote_att_chars([], []).
 quote_att_chars([H0|T0], [H|T]) :-
 	quote_att_char(H0, H),

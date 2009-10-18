@@ -441,7 +441,7 @@ int	rc;
 			for (c=i; str[c] && isspace((int)(unsigned char)str[c]);
 				++c)
 				;
-			
+
 			for (; str[c]; c++)
 				if (isspace((int)(unsigned char)str[c]) ||
 					(str[c] & 0x80) || str[c] == '"')
@@ -502,7 +502,7 @@ int	rc;
 			{
 				if ( (rc=(*func)("?= ", i ? 3:2, arg)) != 0)
 					return (rc);
-				
+
 				c=0;
 			}
 		}

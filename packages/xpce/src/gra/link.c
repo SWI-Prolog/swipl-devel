@@ -97,7 +97,7 @@ static getdecl get_link[] =
 #define rc_link NULL
 /*
 static classvardecl rc_link[] =
-{ 
+{
 };
 */
 

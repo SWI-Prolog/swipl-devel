@@ -32,3 +32,4 @@ clean:
 distclean:	clean
 		rm -f Makefile config.status config.h librfc822.a
 		rm -rf autom4te.cache
+		rm -f stamp-h1

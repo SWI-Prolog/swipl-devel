@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, University of Amsterdam
+    Copyright (C): 2007-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -87,10 +87,10 @@ chunked_read(void *handle, char *buf, size_t size)
   { if ( ctx->avail > 0 )			/* data waiting */
     { size_t  max_rd = ctx->avail < size ? ctx->avail : size;
       ssize_t rc;
-  
+
       if ( (rc = Sfread(buf, sizeof(char), max_rd, ctx->stream)) > 0 )
       { ctx->avail -= rc;
-  
+
 	if ( ctx->avail == 0 )
 	{ if ( Sgetc(ctx->stream) != '\r' ||
 	       Sgetc(ctx->stream) != '\n' )
@@ -105,16 +105,16 @@ chunked_read(void *handle, char *buf, size_t size)
 	return -1;
       } else
       { return -1;
-      }    
+      }
     } else
     { char hdr[MAXHDR];
       char *s;
-      
-  
+
+
       if ( (s = Sfgets(hdr, sizeof(hdr), ctx->stream)) )
       { char *ehdr;
 	long len;
-  
+
 	errno = 0;
 	len = strtol(hdr, &ehdr, 16);
 	if ( errno || len < 0 )
@@ -191,7 +191,7 @@ chunked_close(void *handle)
       rc = rc2;
   } else
   { free_chunked_context(ctx);
-  } 
+  }
 
   return rc;
 }
@@ -264,7 +264,7 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
   { char *buf = PL_malloc(max_chunk_size);
     Ssetbuffer(s2, buf, max_chunk_size);
   }
-  
+
   s2->encoding = s->encoding;
   ctx->parent_encoding = s->encoding;
   s->encoding = ENC_OCTET;
@@ -276,7 +276,7 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
     return TRUE;
   } else
   { return instantiation_error();
-  }    
+  }
 }
 
 

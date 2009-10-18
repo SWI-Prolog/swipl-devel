@@ -40,7 +40,7 @@ MT:
 
 Multithreading is supported through  Slock()   and  Sunlock(). These are
 recursive locks. If a stream handle  might   be  known to another thread
-locking is required. 
+locking is required.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef MD
@@ -126,7 +126,7 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
     size = SIO_BUFSIZE;
 
   s->bufsize = size;
-  
+
   if ( s->buffer && !(s->flags & SIO_USERBUF) )
     free(s->buffer);
 
@@ -245,7 +245,7 @@ S__flushbufc(int c, IOSTREAM *s)
   } else
   { if ( s->flags & SIO_NBUF )
     { char chr = (char)c;
-    
+
       if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
       { s->flags |= SIO_FERR;
 	c = -1;
@@ -341,7 +341,7 @@ S___fupdatefilepos(IOSTREAM *s, int c)
   { if ( s->magic == SIO_CMAGIC )
       PL_error(NULL, 0, NULL, ERR_CLOSED_STREAM, s);
 					/* PL_error() should not return */
-    fatalError("Did you load a pre-3.1.2 foreign package?"); 
+    fatalError("Did you load a pre-3.1.2 foreign package?");
   }
 #endif
 
@@ -371,7 +371,7 @@ S___fupdatefilepos(IOSTREAM *s, int c)
       default:
 	p->linepos++;
     }
-  
+
     p->charno++;
   }
 
@@ -476,7 +476,7 @@ Sfread(void *data, int size, int elms, IOSTREAM *s)
 
     *buf++ = c & 0xff;
   }
-  
+
   return (size*elms - chars)/size;
 }
 
@@ -490,7 +490,7 @@ Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
   { if ( Sputc(*buf++, s) < 0 )
       break;
   }
-  
+
   return (size*elms - chars)/size;
 }
 
@@ -518,13 +518,13 @@ Sfeof(IOSTREAM *s)
   s->bufp--;
   return FALSE;
 }
-    
+
 
 int
 Sferror(IOSTREAM *s)
 { return (s->flags & SIO_FERR) != 0;
 }
-    
+
 
 int
 Sfpasteof(IOSTREAM *s)
@@ -598,7 +598,7 @@ Sseek(IOSTREAM *s, long pos, int whence)
     if ( now != -1 )
     { long rval;
       char *nbufp = (char *)-1;
-    
+
       if ( whence == SIO_SEEK_CUR )
       { nbufp = s->bufp + pos;
 	rval = now + pos;
@@ -623,7 +623,7 @@ Sseek(IOSTREAM *s, long pos, int whence)
   }
 
   Sflush(s);
-    
+
   s->bufp   = s->buffer;
   s->limitp = s->buffer;
 
@@ -767,7 +767,7 @@ Sgets(char *buf)
 
 int
 Sfputs(const char *q, IOSTREAM *s)
-{ 
+{
   for( ; *q; q++)
   { if ( Sputc(*q, s) < 0 )
       return EOF;
@@ -1049,7 +1049,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   s.handle    = NULL;
   s.functions = NULL;
   s.mutex     = NULL;
-  
+
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
 
@@ -1129,7 +1129,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  continue;
 	}
       }
-	
+
       if ( *fm != '[' && *fm != c )
 	while(isblank(c))
 	  c = GET(s);
@@ -1282,13 +1282,13 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	      { float *fp = va_arg(args, float *);
 		*fp = v;
 		break;
-	      }	
+	      }
 	      case SZ_LONG:
 	      { double *fp = va_arg(args, double *);
 		*fp = v;
 		break;
 	      }
-	    }  
+	    }
 	    done++;
 	  }
 
@@ -1298,7 +1298,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	case 's':
 	  if ( !supress )
 	  { char *sp = va_arg(args, char *);
-	    
+
 	    while(!isblank(c) && field_width-- != 0)
 	    { *sp++ = c;
 	      c = GET(s);
@@ -1318,7 +1318,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  continue;
 	case '[':
 	{ char set[256];
-	  
+
 	  memset(set, 0, sizeof(set));
 	  fm++;
 	  if ( *fm == ']' )
@@ -1329,7 +1329,7 @@ Svfscanf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	  while(*fm != ']')
 	  { if ( *fm == '-' )
-	      
+
 	  }
 	}
       }
@@ -1523,7 +1523,7 @@ Sopen_file(const char *path, const char *how)
     return NULL;
 
   if ( lock )
-  { 
+  {
 #ifdef FCNTL_LOCKS
     struct flock buf;
 
@@ -1780,7 +1780,7 @@ Sread_memfile(void *handle, char *buf, int size)
     if ( size < 0 )
       size = 0;
   }
-  
+
   memcpy(buf, &(*mf->buffer)[mf->here], size);
   mf->here += size;
 
@@ -1823,7 +1823,7 @@ Sclose_memfile(void *handle)
   { free(mf);
     return 0;
   }
-	 
+
   errno = EINVAL;			/* not opened */
   return -1;
 }

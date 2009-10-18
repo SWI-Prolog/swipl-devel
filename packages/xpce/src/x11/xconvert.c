@@ -159,7 +159,7 @@ readImageFile(Image image, IOSTREAM *fd)
 	return img;
       if ( fmt != IMG_IS_UNKNOWN )
 	break;
-#endif  
+#endif
 #ifdef HAVE_LIBXPM
 #ifdef O_GIFTOXPM
     case IMG_IS_GIF:
@@ -229,7 +229,7 @@ initHexTable(void)
   hexTable[' '] = -1;	hexTable[','] = -1;
   hexTable['}'] = -1;	hexTable['\n'] = -1;
   hexTable['\t'] = -1;
-	
+
   initialized = TRUE;
 }
 
@@ -242,7 +242,7 @@ NextInt(IOSTREAM *fstream)
 { int value = 0;
   int gotone = 0;
   int done = 0;
-    
+
     /* loop, accumulate hex value until find delimiter  */
     /* skip any initial delimiters found in read stream */
 
@@ -310,7 +310,7 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
       }
       continue;
     }
-    
+
     if (sscanf(line, "static short %s = {", name_and_type) == 1)
       version10p = 1;
     else if (sscanf(line,"static unsigned char %s = {",name_and_type) == 1)
@@ -327,7 +327,7 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
 
     if (strcmp("bits[]", type))
       continue;
-    
+
     if (!ww || !hh)
       RETURN_ERROR;
 
@@ -355,9 +355,9 @@ read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
     } else
     { unsigned char *ptr;
       int bytes;
-      
+
       for (bytes=0, ptr=data; bytes<size; bytes++, ptr++)
-      { if ((value = NextInt(fd)) < 0) 
+      { if ((value = NextInt(fd)) < 0)
 	  RETURN_ERROR;
 	*ptr=value;
       }
@@ -388,8 +388,8 @@ read_sun_icon_file(IOSTREAM *fd, int *width, int *height)
   char hdr[256];
 
   if ( !Sfgets(hdr, sizeof(hdr), fd) ||
-       sscanf(hdr, 
-"/* Format_version=1, Width=%d, Height=%d, Depth=1, Valid_bits_per_item=16", 
+       sscanf(hdr,
+"/* Format_version=1, Width=%d, Height=%d, Depth=1, Valid_bits_per_item=16",
 	&w, &h) != 2 )
     return NULL;
   while( (c=Sgetc(fd)) != EOF && c != '/' ) /* skip to end of comment */
@@ -400,7 +400,7 @@ read_sun_icon_file(IOSTREAM *fd, int *width, int *height)
 
   size = Round(w, 8) * h;
   dst = data = (unsigned char *) XMalloc(size);
-  
+
   skip_last = (w % 16) <= 8 && (w % 16) > 0;
 
   for(y = 0; y < h; y++)
@@ -408,7 +408,7 @@ read_sun_icon_file(IOSTREAM *fd, int *width, int *height)
     { int s;
       int d = 0;
       int n;
-      
+
       s = NextInt(fd);
 
       for( n=0; n < 16 ; n++ )		/* revert all bits in the short */
@@ -492,7 +492,7 @@ readXpmFile(Image image, IOSTREAM *fd)
       XpmAttributes *atts = (XpmAttributes *)alloca(as);
 
       memset(atts, 0, as);
-    
+
       if ( size < 10000 )
       { buffer = (char *)alloca(size+1);
       } else
@@ -508,7 +508,7 @@ readXpmFile(Image image, IOSTREAM *fd)
       atts->exactColors = FALSE;
       atts->closeness   = (1<<16)-1;	/* always continue */
       atts->valuemask   = XpmExactColors|XpmCloseness;
-      
+
       if ( XpmCreateImageFromBuffer(disp, buffer,
 				    &i, &shape, atts) != XpmSuccess )
 	i = NULL;
@@ -613,7 +613,7 @@ write_jpeg_file(IOSTREAM *fd,
       cmap = DefaultColormap(disp, DefaultScreen(disp));
     XQueryColors(disp, cmap, cdata, entries);
     colorinfo = cdata;
-  } else 
+  } else
   { colorinfo = NULL;
   }
 
@@ -641,11 +641,11 @@ write_jpeg_file(IOSTREAM *fd,
     { Chain ch = comment;
       Cell cell;
 
-      for_cell(cell, ch) 
+      for_cell(cell, ch)
       { if ( instanceOfObject(cell->value, ClassCharArray) )
 	{ CharArray v = cell->value;
 	  String s= &v->data;
-	
+
 	  jpeg_write_marker(&cinfo, JPEG_COM, s->s_textA, s->size);
 	} else
 	  errorPce(comment, NAME_unexpectedType, TypeCharArray);
@@ -662,7 +662,7 @@ write_jpeg_file(IOSTREAM *fd,
     if ( colorinfo )
     { for(x=0; x<width; x++)
       { XColor *c;
-  
+
 	c = &colorinfo[XGetPixel(img, x, y)];
 	*s++ = rescale(c->red);
 	*s++ = rescale(c->green);
@@ -738,7 +738,7 @@ write_gif_file(IOSTREAM *fd, XImage *img, XImage *msk,
       cmap = DefaultColormap(disp, DefaultScreen(disp));
     XQueryColors(disp, cmap, cdata, entries);
     colorinfo = cdata;
-  } else 
+  } else
   { colorinfo = NULL;
   }
 
@@ -764,7 +764,7 @@ write_gif_file(IOSTREAM *fd, XImage *img, XImage *msk,
     { for(x=0; x<width; x++)
       { if ( !msk || XGetPixel(msk, x, y) )
 	{ XColor *c;
-  
+
 	  c = &colorinfo[XGetPixel(img, x, y)];
 	  *s++ = rescale(c->red);
 	  *s++ = rescale(c->green);

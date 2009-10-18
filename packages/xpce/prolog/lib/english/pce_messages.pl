@@ -88,9 +88,9 @@ pce_message(instantiation_error(Goal)) -->
 pce_message(summary_not_closed(Text)) -->
 	['Class summary "~s" not closed by `::'''-[Text],nl].
 pce_message(get_resource_failed(Name, Obj)) -->
-	['Failed to get resource ~p of ~p'-[Name,Obj],nl]. 
+	['Failed to get resource ~p of ~p'-[Name,Obj],nl].
 pce_message(get_class_variable_failed(Name, Obj)) -->
-	['Failed to get class_variable ~p of ~p'-[Name,Obj],nl]. 
+	['Failed to get class_variable ~p of ~p'-[Name,Obj],nl].
 
 pce_message(loading_class(ClassName)) -->
 	['Loading PCE class ~w'-[ClassName],nl].
@@ -119,7 +119,7 @@ pce_message(object_already_defined(Ref,Mod)) -->
 	['Global object @~w already defined in module ~w'-[Ref,Mod],nl].
 pce_message(create_failed(Term)) -->
 	[':- pce_global/2: create failed: ~w'-[Term],nl].
-pce_message(goal_failed(Goal)) -->
+pce_message(make_global_failed(Goal)) -->
 	[':- pce_global/2: goal failed: ~w'-[Goal],nl].
 
 
@@ -144,7 +144,7 @@ pce_message(preformatted(Fmt, Args)) -->
 %	Resource --> class-variable compatibility messages
 
 pce_message(compatibility(resource)) -->
-	['Class resource has been renamed to class_variable'-[],nl]. 
+	['Class resource has been renamed to class_variable'-[],nl].
 pce_message(compatibility(resource(Value, NewVal))) -->
 	['Converted class-variable value:'-[], nl,
 	 '    From: ~q'-[Value], nl,

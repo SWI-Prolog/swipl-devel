@@ -22,8 +22,10 @@
    working_directory(_, CWD).
 
 :- asserta(user:file_search_path(library, '..')).
+:- asserta(user:file_search_path(library, '../RDF')).
 :- asserta(user:file_search_path(foreign, '..')).
 :- use_module(library(sgml)).
+:- use_module(library(pretty_print)).
 
 
 test :-
@@ -52,27 +54,27 @@ test(File) :-
 	    ->	format('ok')
 	    ;	format('WRONG'),
 	        format('~NOK:~n'),
-		pp(TermOk),
+		pretty_print(TermOk),
 		format('~NANSWER:~n'),
-		pp(Term)
+		pretty_print(Term)
 	    ),
 	    error_terms(Errors),
 	    (	compare_errors(Errors, ErrorsOk)
 	    ->	true
 	    ;	format(' [Different errors]~nOK:~n'),
-		pp(ErrorsOk),
+		pretty_print(ErrorsOk),
 		format('~NANSWER:~n'),
-		pp(Errors)
+		pretty_print(Errors)
 	    ),
 	    nl
 	;   show_errors,
 	    format('Loaded, no validating data~n'),
-	    pp(Term)
+	    pretty_print(Term)
 	).
 
 show(File) :-
 	load_file(File, Term),
-	pp(Term).
+	pretty_print(Term).
 
 pass(File) :-
 	load_file(File, Term),
@@ -130,7 +132,7 @@ load_pred(html,	load_html_file).
 okfile(File, OkFile) :-
 	file_name_extension(Base, _, File),
 	file_directory_name(Base, Dir),
-	concat_atom([Dir, '/ok/', Base, '.ok'], OkFile).
+	atomic_list_concat([Dir, '/ok/', Base, '.ok'], OkFile).
 
 load_prolog_file(File, Term, Errors) :-
 	open(File, read, Fd,
@@ -159,5 +161,5 @@ compare_attributes(A1, A2) :-
 	sort(A2, L2),
 	L1 == L2.
 
-	    
-	
+
+

@@ -126,7 +126,7 @@ get_map_fd()
 
       return fd;
     }
-    
+
     perror(map);
     exit(1);
     return -1;				/* make compiler happy */
@@ -293,7 +293,7 @@ getpagesize()
 #include <a.out.h>
 int
 getpagesize()
-{  
+{
 #ifdef EXEC_PAGESIZE
   return EXEC_PAGESIZE;
 #else
@@ -354,7 +354,7 @@ main(int argc, char **argv)
   base = mmap(NULL, size, PROT_NONE, MAP_FLAGS, mapfd, 0L);
   if ( base == MAP_FAILED )
     perror("mmap");
-    
+
 #ifdef SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, segv_handler);
 #endif

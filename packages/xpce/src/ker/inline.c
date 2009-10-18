@@ -53,7 +53,7 @@ INLINE status
 instanceOfObject(const Any obj, const Class super)
 { if ( isObject(obj) )
   { Class class = classOfObject(obj);
-    
+
     return class == super || (class->tree_index >= super->tree_index &&
 			      class->tree_index <  super->neighbour_index);
   }
@@ -65,7 +65,7 @@ instanceOfObject(const Any obj, const Class super)
 INLINE status
 objectIsInstanceOf(const Any obj, const Class super)
 { const Class class = classOfObject(obj);
-    
+
   return class == super || (class->tree_index >= super->tree_index &&
 			    class->tree_index <  super->neighbour_index);
 }
@@ -163,7 +163,7 @@ forwardBlockv(Block b, int argc, const Any argv[])
   { withLocalVars({ int i;
 		    Var *vars = (Var *) b->parameters->elements;
 		    int nvars = valInt(b->parameters->size);
-		    
+
 		    for(i=0; i<argc; i++)
 		    { if ( i < nvars )
 			assignVar(vars[i], argv[i], DEFAULT);

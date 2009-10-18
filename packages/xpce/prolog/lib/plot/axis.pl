@@ -73,7 +73,7 @@ variable(support,	chain,		none, "Supporting graphicals").
 
 :- pce_group(@default).
 
-initialise(A, 
+initialise(A,
 	   Type:'type={x,y}',
 	   Low:'low=int|real', High:'high=int|real', Step:step=[int|real],
 	   Length:length=[int],
@@ -154,7 +154,7 @@ location(A, Val:'int|real', Loc:int) :<-
 value_from_coordinate(A, Loc:int, Val:'int|real') :<-
 	"Translate location into value"::
 	catch(loc(A, Val, Loc), _, fail).
-       
+
 pixel_range(A, Tuple:tuple) :<-
 	"Pixel range covered"::
 	get(A, length, L),
@@ -250,8 +250,8 @@ geometry(A, X:[int], Y:[int], W:[int], H:[int]) :->
 		 *******************************/
 
 %	loc(+Axis, ?Value, ?Coordinate)
-%	
-%	Translate between Value and Coordinate.  
+%
+%	Translate between Value and Coordinate.
 
 loc(A, V, X) :-
 	get(A, scale, linear), !,	% Linear scales
@@ -264,7 +264,7 @@ loc(A, V, X) :-
 	(   T == x
 	->  (   nonvar(V)
 	    ->  X is round(Origin + ((V-Low) * Length) / (High - Low))
-	    ;	V is Low + (X-Origin) * (High-Low)/Length 
+	    ;	V is Low + (X-Origin) * (High-Low)/Length
 	    )
 	;   (	nonvar(V)
 	    ->	X is round(Origin - ((V-Low) * Length) / (High - Low))
@@ -359,7 +359,7 @@ compute_small_steps(A) :->
 			    send(SL, texture, dotted),
 			    send(SL, colour, grey50),
 			    send(Support, append, SL)
-			;   true 
+			;   true
 			)
 		    ),
 		    fail
@@ -377,7 +377,7 @@ compute_small_steps(A) :->
 			    send(SL, texture, dotted),
 			    send(SL, colour, grey50),
 			    send(Support, append, SL)
-			;   true 
+			;   true
 			)
 		    ),
 		    fail
@@ -413,7 +413,7 @@ lines_extend(A, Which, Min, Max) :-
 	    Max = 0
 	).
 
-	
+
 label_for_value(A, Val:'int|real', Gr:graphical) :<-
 	"Compute a label for a value"::
 	get(A, format, Fmt),
@@ -578,6 +578,6 @@ compute(R) :->
 	;   true
 	),
 	send_super(R, compute).
-		
+
 :- pce_end_class.
 

@@ -26,7 +26,7 @@
    working_directory(_, Dir).
 
 %	daily
-%	
+%
 %	True if this is a daily build
 
 daily :-
@@ -187,12 +187,12 @@ process_file_decl -->
 process_file_decl -->
 	string(_),
 	eos.
-	
+
 path(Path) -->
 	token(Token),
 	{ prolog_to_os_filename(Path, Token)
 	}.
-	
+
 token(Value) -->
 	(   "\""
 	->  string(Codes),
@@ -238,7 +238,7 @@ peek(C, X, X) :-
 	X = [C|_].
 
 %	check_covered(+Dir)
-%	
+%
 %	See whether all files in Dir are covered by some install
 %	instruction.
 
@@ -304,4 +304,4 @@ main :-
 	).
 
 % :- main.
-	
+

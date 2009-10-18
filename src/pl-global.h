@@ -43,13 +43,24 @@ that is related to a Prolog thread.
 typedef struct
 {
 #if VMCODE_IS_ADDRESS
-  char   *_dewam_table;			/* decoding table */
-  intptr_t	  _dewam_table_offset;		/* offset of 1st */
-  code    _wam_table[I_HIGHEST];	/* code --> address */
+  unsigned char   *_dewam_table;	/* decoding table */
+  intptr_t	  _dewam_table_offset;	/* offset of 1st */
   void  **_interpreter_jmp_table;	/* interpreters table */
+					/* must be last! (why?) */
+  code    _wam_table[I_HIGHEST];	/* code --> address */
 #else
   int	  struct_may_not_be_empty;	/* empty structure is illegal */
 #endif
+  struct				/* see initSupervisors() */
+  { code exit[3];			/* I_EXIT */
+    code next_clause[3];		/* S_NEXTCLAUSE */
+    code virgin[3];			/* S_VIRGIN */
+    code undef[3];			/* S_UNDEF */
+    code dynamic[3];			/* S_DYNAMIC */
+    code thread_local[3];		/* S_THREAD_LOCAL */
+    code multifile[3];			/* S_MULTIFILE */
+    code staticp[3];			/* S_STATIC */
+  } supervisors;
 } PL_code_data_t;
 
 typedef struct
@@ -63,7 +74,7 @@ typedef struct
 		 *	    GLOBAL DATA		*
 		 *******************************/
 
-typedef struct
+struct PL_global_data
 { char *top_of_heap;			/* highest allocated heap address */
   char *base_of_heap;			/* lowest allocated heap address */
   uintptr_t rounded_heap_base;		/* heap-base rounded downwards */
@@ -79,7 +90,7 @@ typedef struct
 
 #ifdef HAVE_SIGNAL
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#endif  
+#endif
 #ifdef O_LOGICAL_UPDATE
   uintptr_t generation;		/* generation of the database */
 #endif
@@ -114,7 +125,7 @@ typedef struct
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
-    real	thread_cputime;		/* Total CPU time of threads */
+    double	thread_cputime;		/* Total CPU time of threads */
 #endif
   } statistics;
 
@@ -149,7 +160,7 @@ typedef struct
     size_t	non_garbage;		/* # atoms for after last AGC */
     int		gc;			/* # atom garbage collections */
     int64_t	collected;		/* # collected atoms */
-    real	gc_time;		/* Time spent on atom-gc */
+    double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */
@@ -192,9 +203,9 @@ typedef struct
   { Table	table;			/* flag key --> flag */
   } flags;
 
-  struct 
+  struct
   { Table	table;			/* global (read-only) features */
-  } feature;
+  } prolog_flag;
 
   struct
   { buffer	array;			/* index --> functor */
@@ -222,11 +233,14 @@ typedef struct
   } os;
 
   struct
-  { Procedure	garbage_collect0;
+  { Procedure	dgarbage_collect1;
     Procedure 	block3;
     Procedure	catch3;
     Procedure	true0;
     Procedure	fail0;
+    Procedure	equals2;		/* =/2 */
+    Procedure	is2;			/* is/2 */
+    Procedure	strict_equal2;		/* ==/2 */
     Procedure	event_hook1;
     Procedure	exception_hook4;
     Procedure	print_message2;
@@ -234,9 +248,10 @@ typedef struct
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
-    Procedure	setup_and_call_cleanup4; /* setup_and_call_cleanup/4 */
+    Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
+    Procedure   dc_call_prolog0;	/* $c_call_prolog/0 */
 #ifdef O_ATTVAR
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
@@ -285,7 +300,7 @@ typedef struct
     counting_mutex     *mutexes;	/* Registered mutexes */
   } thread;
 #endif /*O_PLMT*/
-} PL_global_data_t;
+};
 
 
 		 /*******************************
@@ -294,7 +309,7 @@ typedef struct
 
 #define LD_MAGIC	0x3cfd82b4	/* Valid local-data structure */
 
-typedef struct PL_local_data
+struct PL_local_data
 { uintptr_t	magic;			/* LD_MAGIC */
   LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
@@ -305,15 +320,13 @@ typedef struct PL_local_data
 #endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
-#ifdef O_PLMT
-  int		cancel_counter;		/* check cancellation */
-#endif
+  int		alerted;		/* Special mode. See updateAlerted() */
   int64_t	pending_signals;	/* PL_raise() pending signals */
   record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
   int		sync_signal;		/* Current signal is synchronous */
   int		critical;		/* heap is being modified */
-  int		aborted;		/* thread asked for abort */
+  abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
 #ifdef O_PLMT
@@ -337,7 +350,6 @@ typedef struct PL_local_data
   } prompt;
 
   source_location read_source;		/* file, line, char of last term */
-  int	 _fileerrors;			/* current file-error status */
   const char   *float_format;		/* floating point format */
 
   struct
@@ -379,7 +391,8 @@ typedef struct PL_local_data
 
 #ifdef O_GMP
   struct
-  { size_t	allocated;		/* memory allocated */
+  { int		persistent;		/* do persistent operations */
+    size_t	allocated;		/* memory allocated */
     ar_context *context;		/* current allocation context */
     mp_mem_header *head;		/* linked list of allocated chunks */
     mp_mem_header *tail;
@@ -422,6 +435,12 @@ typedef struct PL_local_data
       Number	top;
       Number	max;
     } stack;
+#ifdef O_GMP
+    struct
+    { gmp_randstate_t state;
+      int initialised;
+    } random;
+#endif
   } arith;
 
 #if O_CYCLIC
@@ -444,7 +463,7 @@ typedef struct PL_local_data
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
     occurs_check_t occurs_check;	/* Unify and occurs check */
-  } feature;
+  } prolog_flag;
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
@@ -459,7 +478,7 @@ typedef struct PL_local_data
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;
-    
+
     PL_dispatch_hook_t _dispatch_events; /* PL_dispatch_hook() */
 
     buffer	_discardable_buffer;	/* PL_*() character buffers */
@@ -511,7 +530,7 @@ typedef struct PL_local_data
 #ifdef O_SHIFT_STACKS
   pl_shift_status_t	shift_status;	/* Stack shifter status */
 #endif
-  
+
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
 
 #ifdef O_PLMT
@@ -529,7 +548,7 @@ typedef struct PL_local_data
 
   struct alloc_pool alloc_pool;		/* Thread allocation pool */
 #endif
-} PL_local_data_t;
+};
 
 GLOBAL PL_global_data_t PL_global_data;
 GLOBAL PL_code_data_t	PL_code_data;
@@ -556,7 +575,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define heap_base		(GD->rounded_heap_base)
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
-#define features		(LD->feature.mask)
 
 #define environment_frame 	(LD->environment)
 #define fli_context	  	(LD->foreign_environment)
@@ -567,7 +585,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)
-#define fileerrors		(LD->_fileerrors)
 #define gc_status		(LD->gc.status)
 #define debugstatus		(LD->_debugstatus)
 #define depth_limit		(LD->depth_info.limit)

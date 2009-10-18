@@ -34,5 +34,4 @@
 	    double_metaphone/3		% +In, -Primary, -Secondary
 	  ]).
 
-:- initialization
-   load_foreign_library(foreign(double_metaphone)).
+:- use_foreign_library(foreign(double_metaphone)).

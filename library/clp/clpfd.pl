@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007, 2008 Markus Triska
+    Copyright (C): 2007-2009 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@
    No artificial limits (using GMP)
    ---------------------------------
 
-   ?- N is 2**66, X #\= N.
+   ?- N is 2^66, X #\= N.
    %@ N = 73786976294838206464,
    %@ X in inf..73786976294838206463\/73786976294838206465..sup.
 
@@ -69,7 +69,7 @@
    CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
 
    You can implement this algorithm without any knowledge of Prolog or
-   this library. Just write an efficient C function that, given a set
+   this library. Just write an efficient predicate that, given a set
    of variables and their list of domain elements, uses the described
    algorithm to compute the set of arcs that can be safely removed
    from the value graph.
@@ -110,12 +110,15 @@
                   all_different/1,
                   all_distinct/1,
                   sum/3,
+                  scalar_product/4,
                   tuples_in/2,
                   labeling/2,
                   label/1,
                   indomain/1,
                   lex_chain/1,
                   serialized/2,
+                  global_cardinality/2,
+                  circuit/1,
                   element/3,
                   zcompare/3,
                   chain/2,
@@ -127,7 +130,11 @@
                  ]).
 
 
+:- use_module(library(apply)).
 :- use_module(library(error)).
+:- use_module(library(lists)).
+:- use_module(library(pairs)).
+
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
@@ -225,11 +232,11 @@ _G10152 in 2..8.
 ==
 
 Here, the constraint solver has deduced more stringent bounds for all
-variables. Keeping the modeling part separate from the search allows
-to view these residual goals, observe termination and determinism
-properties of the modeling part in isolation from the search, and to
-more easily experiment with different search strategies. Labeling can
-then be used to search for solutions:
+variables. Keeping the modeling part separate from the search lets you
+view these residual goals, observe termination and determinism
+properties of the modeling part in isolation from the search, and more
+easily experiment with different search strategies. Labeling can then
+be used to search for solutions:
 
 ==
 ?- puzzle(As+Bs=Cs), label(As).
@@ -245,8 +252,8 @@ to reduce the domains of remaining variables to singleton sets. In
 general though, it is necessary to label all variables to obtain
 ground solutions.
 
-It is perfectly reasonable to use CLP(FD) constraints instead of
-ordinary integer arithmetic with is/2, >/2 etc. For example:
+You can also use CLP(FD) constraints as a more declarative alternative
+for ordinary integer arithmetic with is/2, >/2 etc. For example:
 
 ==
 :- use_module(library(clpfd)).
@@ -1072,6 +1079,11 @@ indomain(Var) :- label([Var]).
 
 order_dom_next(up, Dom, Next)   :- domain_infimum(Dom, n(Next)).
 order_dom_next(down, Dom, Next) :- domain_supremum(Dom, n(Next)).
+order_dom_next(random_value(_), Dom, Next) :-
+        domain_to_list(Dom, Ls),
+        length(Ls, L),
+        I is random(L),
+        nth0(I, Ls, Next).
 
 
 %% label(+Vars)
@@ -1089,7 +1101,7 @@ label(Vs) :- labeling([], Vs).
 % categories of options exist:
 %
 % The variable selection strategy lets you specify which variable of
-% Vars should be labeled next and is one of:
+% Vars is labeled next and is one of:
 %
 %   * leftmost
 %   Label the variables in the order they occur in Vars. This is the
@@ -1200,8 +1212,19 @@ label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         ( Optim0 == [] ->
             label(Vars, S, O, C, Consistency)
         ;   reverse(Optim0, Optim),
-            optimise(Vars, [S,O,C], Optim)
+            exprs_singlevars(Optim, SVs),
+            optimise(Vars, [S,O,C], SVs)
         ).
+
+% Introduce new variables for each min/max expression to avoid
+% reparsing expressions during optimisation.
+
+exprs_singlevars([], []).
+exprs_singlevars([E|Es], [SV|SVs]) :-
+        E =.. [F,Expr],
+        Single #= Expr,
+        SV =.. [F,Single],
+        exprs_singlevars(Es, SVs).
 
 all_dead(fd_props(Bs,Gs,Os)) :-
         all_dead_(Bs),
@@ -1216,44 +1239,44 @@ label([], _, _, _, Consistency) :- !,
         ;   true
         ).
 label(Vars, Selection, Order, Choice, Consistency) :-
-        select_var(Selection, Vars, Var, RVars),
-        (   var(Var) ->
-            (   Consistency = upto_in(I0,I),
-                fd_get(Var, _, Ps),
-                all_dead(Ps) ->
-                fd_size(Var, Size),
-                I1 is I0*Size,
-                label(RVars, Selection, Order, Choice, upto_in(I1,I))
-            ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
-                label(RVars, Selection, Order, Choice, Consistency)
-            ;   choice_order_variable(Choice, Order, Var, RVars, Selection, Consistency)
+        (   Vars = [V|Vs], nonvar(V) -> label(Vs, Selection, Order, Choice, Consistency)
+        ;   select_var(Selection, Vars, Var, RVars),
+            (   var(Var) ->
+                (   Consistency = upto_in(I0,I), fd_get(Var, _, Ps), all_dead(Ps) ->
+                    fd_size(Var, Size),
+                    I1 is I0*Size,
+                    label(RVars, Selection, Order, Choice, upto_in(I1,I))
+                ;   Consistency = upto_in, fd_get(Var, _, Ps), all_dead(Ps) ->
+                    label(RVars, Selection, Order, Choice, Consistency)
+                ;   choice_order_variable(Choice, Order, Var, RVars, Vars, Selection, Consistency)
+                )
+            ;   label(RVars, Selection, Order, Choice, Consistency)
             )
-        ;   label(RVars, Selection, Order, Choice, Consistency)
         ).
 
-choice_order_variable(step, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(step, Order, Var, Vars, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         order_dom_next(Order, Dom, Next),
         (   Var = Next,
             label(Vars, Selection, Order, step, Consistency)
         ;   neq_num(Var, Next),
             do_queue,
-            label([Var|Vars], Selection, Order, step, Consistency)
+            label(Vars0, Selection, Order, step, Consistency)
         ).
-choice_order_variable(enum, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(enum, Order, Var, Vars, _, Selection, Consistency) :-
         fd_get(Var, Dom0, _),
         domain_direction_element(Dom0, Order, Var),
         label(Vars, Selection, Order, enum, Consistency).
-choice_order_variable(bisect, Order, Var, Vars, Selection, Consistency) :-
+choice_order_variable(bisect, Order, Var, _, Vars0, Selection, Consistency) :-
         fd_get(Var, Dom, _),
         domain_infimum(Dom, n(I)),
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
         (   Var #=< Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ;   Var #> Mid,
-            label([Var|Vars], Selection, Order, bisect, Consistency)
+            label(Vars0, Selection, Order, bisect, Consistency)
         ).
 
 override(What, Prev, Value, Options, Result) :-
@@ -1272,6 +1295,9 @@ selection(ffc).
 selection(min).
 selection(max).
 selection(leftmost).
+selection(random_variable(Seed)) :-
+        must_be(integer, Seed),
+        set_random(seed(Seed)).
 
 choice(step).
 choice(enum).
@@ -1279,6 +1305,11 @@ choice(bisect).
 
 order(up).
 order(down).
+% TODO: random_variable and random_value currently both set the seed,
+% so exchanging the options can yield different results.
+order(random_value(Seed)) :-
+        must_be(integer, Seed),
+        set_random(seed(Seed)).
 
 consistency(upto_in(I), upto_in(1, I)).
 consistency(upto_in, upto_in).
@@ -1295,11 +1326,17 @@ select_var(max, [V|Vs], Var, RVars) :-
         find_max(Vs, V, Var),
         delete_eq([V|Vs], Var, RVars).
 select_var(ff, [V|Vs], Var, RVars) :-
-        find_ff(Vs, V, Var),
+        fd_size_(V, n(S)),
+        find_ff(Vs, V, S, Var),
         delete_eq([V|Vs], Var, RVars).
 select_var(ffc, [V|Vs], Var, RVars) :-
         find_ffc(Vs, V, Var),
         delete_eq([V|Vs], Var, RVars).
+select_var(random_variable(_), Vars0, Var, Vars) :-
+        length(Vars0, L),
+        I is random(L),
+        nth0(I, Vars0, Var),
+        delete_eq(Vars0, Var, Vars).
 
 find_min([], Var, Var).
 find_min([V|Vs], CM, Min) :-
@@ -1315,11 +1352,13 @@ find_max([V|Vs], CM, Max) :-
         ;   find_max(Vs, CM, Max)
         ).
 
-find_ff([], Var, Var).
-find_ff([V|Vs], CM, FF) :-
-        (   ff_lt(V, CM) ->
-            find_ff(Vs, V, FF)
-        ;   find_ff(Vs, CM, FF)
+find_ff([], Var, _, Var).
+find_ff([V|Vs], CM, S0, FF) :-
+        (   nonvar(V) -> find_ff(Vs, CM, S0, FF)
+        ;   (   fd_size_(V, n(S1)), S1 < S0 ->
+                find_ff(Vs, V, S1, FF)
+            ;   find_ff(Vs, CM, S0, FF)
+            )
         ).
 
 find_ffc([], Var, Var).
@@ -1329,16 +1368,6 @@ find_ffc([V|Vs], Prev, FFC) :-
         ;   find_ffc(Vs, Prev, FFC)
         ).
 
-ff_lt(X, Y) :-
-        (   fd_get(X, DX, _) ->
-            domain_num_elements(DX, n(NX))
-        ;   NX = 1
-        ),
-        (   fd_get(Y, DY, _) ->
-            domain_num_elements(DY, n(NY))
-        ;   NY = 1
-        ),
-        NX < NY.
 
 ffc_lt(X, Y) :-
         (   fd_get(X, XD, XPs) ->
@@ -1367,11 +1396,12 @@ bounds(X, L, U) :-
         ;   L = X, U = L
         ).
 
-delete_eq([],_,[]).
-delete_eq([X|Xs],Y,List) :-
-        (   X == Y -> List = Xs
+delete_eq([], _, []).
+delete_eq([X|Xs], Y, List) :-
+        (   nonvar(X) -> delete_eq(Xs, Y, List)
+        ;   X == Y -> List = Xs
         ;   List = [X|Tail],
-            delete_eq(Xs,Y,Tail)
+            delete_eq(Xs, Y, Tail)
         ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1443,7 +1473,9 @@ fds_sespsize([V|Vs], S0, S) :-
 optimise(Vars, Options, Whats) :-
         Whats = [What|WhatsRest],
         Extremum = extremum(none),
-        (   store_extremum(Vars, Options, What, Extremum)
+        (   catch(store_extremum(Vars, Options, What, Extremum),
+                  time_limit_exceeded,
+                  false)
         ;   Extremum = extremum(n(Val)),
             arg(1, What, Expr),
             append(WhatsRest, Options, Options1),
@@ -1455,18 +1487,17 @@ optimise(Vars, Options, Whats) :-
         ).
 
 store_extremum(Vars, Options, What, Extremum) :-
-        duplicate_term(Vars-What, Vars1-What1),
-        once(labeling(Options, Vars1)),
+        catch((labeling(Options, Vars), throw(w(What))), w(What1), true),
         functor(What, Direction, _),
         maplist(arg(1), [What,What1], [Expr,Expr1]),
         optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
 
 optimise(Direction, Options, Vars, Expr0, Expr, Extremum) :-
-        Val0 is Expr0,
-        nb_setarg(1, Extremum, n(Val0)),
-        duplicate_term(Vars-Expr, Vars1-Expr1),
-        tighten(Direction, Expr1, Val0),
-        once(labeling(Options, Vars1)),
+        must_be(ground, Expr0),
+        nb_setarg(1, Extremum, n(Expr0)),
+        catch((tighten(Direction, Expr, Expr0),
+               labeling(Options, Vars),
+               throw(v(Expr))), v(Expr1), true),
         optimise(Direction, Options, Vars, Expr1, Expr, Extremum).
 
 tighten(min, E, V) :- E #< V.
@@ -1480,20 +1511,22 @@ tighten(max, E, V) :- E #> V.
 
 all_different(Ls) :-
         must_be(list, Ls),
-        all_different(Ls, [], _),
+        maplist(fd_variable, Ls),
+        put_attr(Orig, clpfd_original, all_different(Ls)),
+        all_different(Ls, [], Orig),
         do_queue.
 
 all_different([], _, _).
-all_different([X|Right], Left, State) :-
+all_different([X|Right], Left, Orig) :-
         (   var(X) ->
-            make_propagator(pdifferent(Left,Right,X,State), Prop),
+            make_propagator(pdifferent(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
         ;   exclude_fire(Left, Right, X)
         ),
-        all_different(Right, [X|Left], State).
+        all_different(Right, [X|Left], Orig).
 
-%% sum(+Vars, +Rel, +Expr)
+%% sum(+Vars, +Rel, ?Expr)
 %
 % The sum of elements of the list Vars is in relation Rel to Expr. For
 % example:
@@ -1506,38 +1539,59 @@ all_different([X|Right], Left, State) :-
 % C in 0..100.
 % ==
 
-scalar_supported(#=).
-scalar_supported(#\=).
+sum(Vs, Op, Value) :-
+        must_be(list, Vs),
+        length(Vs, L),
+        length(Ones, L),
+        maplist(=(1), Ones),
+        scalar_product(Ones, Vs, Op, Value).
 
-sum(Ls, Op, Value) :-
-        must_be(list, Ls),
-        maplist(fd_variable, Ls),
+vars_plusterm([], _, T, T).
+vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
+
+%% scalar_product(+Cs, +Vs, +Rel, ?Expr)
+%
+% Cs is a list of integers, Vs is a list of variables and integers.
+% True if the scalar product of Cs and Vs is in relation Rel to Expr.
+
+scalar_product(Cs, Vs, Op, Value) :-
+        must_be(list(integer), Cs),
+        must_be(list, Vs),
         must_be(callable, Op),
-        (   scalar_supported(Op),
-            vars_plusterm(Ls, 0, Left),
-            left_right_linsum_const(Left, Value, Cs, Vs, Const) ->
-            scalar_product(Cs, Vs, Op, Const)
-        ;   sum(Ls, 0, Op, Value)
+        maplist(fd_variable, Vs),
+        \+ cyclic_term(Value),
+        (   memberchk(Op, [#=,#\=,#<,#>,#=<,#>=]) -> true
+        ;   domain_error(scalar_product_relation, Op)
+        ),
+        vars_plusterm(Cs, Vs, 0, Left),
+        (   left_right_linsum_const(Left, Value, Cs1, Vs1, Const) ->
+            scalar_product_(Op, Cs1, Vs1, Const)
+        ;   sum(Cs, Vs, 0, Op, Value)
         ).
 
-vars_plusterm([], T, T).
-vars_plusterm([V|Vs], T0, T) :- vars_plusterm(Vs, T0+V, T).
+sum([], _, Sum, Op, Value) :- call(Op, Sum, Value).
+sum([C|Cs], [X|Xs], Acc, Op, Value) :-
+        NAcc #= Acc + C*X,
+        sum(Cs, Xs, NAcc, Op, Value).
 
-scalar_product(Cs, Vs, Op, C) :-
-        make_propagator(scalar_product(Cs,Vs,Op,C), Prop),
-        vs_propagator(Vs, Prop),
-        trigger_prop(Prop),
-        do_queue.
+scalar_product_(#=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, C)).
+scalar_product_(#\=, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_neq(Cs, Vs, C)).
+scalar_product_(#=<, Cs, Vs, C) :-
+        propagator_init_trigger(Vs, scalar_product_leq(Cs, Vs, C)).
+scalar_product_(#<, Cs, Vs, C) :-
+        C1 is C - 1,
+        scalar_product_(#=<, Cs, Vs, C1).
+scalar_product_(#>, Cs, Vs, C) :-
+        C1 is C + 1,
+        scalar_product_(#>=, Cs, Vs, C1).
+scalar_product_(#>=, Cs, Vs, C) :-
+        maplist(negative, Cs, Cs1),
+        C1 is -C,
+        scalar_product_(#=<, Cs1, Vs, C1).
 
-vs_propagator([], _).
-vs_propagator([V|Vs], Prop) :-
-        init_propagator(V, Prop),
-        vs_propagator(Vs, Prop).
-
-sum([], Sum, Op, Value) :- call(Op, Sum, Value).
-sum([X|Xs], Acc, Op, Value) :-
-        NAcc #= Acc + X,
-        sum(Xs, NAcc, Op, Value).
+negative(X0, X) :- X is -X0.
 
 coeffs_variables_const([], [], [], [], I, I).
 coeffs_variables_const([C|Cs], [V|Vs], Cs1, Vs1, I0, I) :-
@@ -1606,6 +1660,24 @@ remove_dist_upper_lower([C|Cs], [V|Vs], D1, D2) :-
         ;   true
         ),
         remove_dist_upper_lower(Cs, Vs, D1, D2).
+
+
+remove_dist_upper_leq([], _, _).
+remove_dist_upper_leq([C|Cs], [V|Vs], D1) :-
+        (   fd_get(V, VD, VPs) ->
+            (   C < 0 ->
+                domain_supremum(VD, n(Sup)),
+                L is Sup + D1//C,
+                domain_remove_smaller_than(VD, L, VD1)
+            ;   domain_infimum(VD, n(Inf)),
+                G is Inf + D1//C,
+                domain_remove_greater_than(VD, G, VD1)
+            ),
+            fd_put(V, VD1, VPs)
+        ;   true
+        ),
+        remove_dist_upper_leq(Cs, Vs, D1).
+
 
 remove_dist_upper([], _).
 remove_dist_upper([C*V|CVs], D) :-
@@ -1684,34 +1756,34 @@ remove_lower([C*X|CXs], Min) :-
    new ones, until fixpoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-% % LIFO queue
-% make_queue :- nb_setval('$propagator_queue',[]).
-
-% push_queue(E) :-
-%         b_getval('$propagator_queue',Q),
-%         b_setval('$propagator_queue',[E|Q]).
-% pop_queue(E) :-
-%         b_getval('$propagator_queue',[E|Q]),
-%         b_setval('$propagator_queue',Q).
-
-
 % FIFO queue
-make_queue :- nb_setval('$clpfd_queue', Q-Q).
-push_queue(E) :-
-        b_getval('$clpfd_queue', H-[E|T]), b_setval('$clpfd_queue', H-T).
+
+make_queue :- nb_setval('$clpfd_queue', fast_slow(Q-Q, L-L)).
+
+push_fast_queue(E) :-
+        b_getval('$clpfd_queue', fast_slow(H-[E|T], L)),
+        b_setval('$clpfd_queue', fast_slow(H-T, L)).
+
+push_slow_queue(E) :-
+        b_getval('$clpfd_queue', fast_slow(L, H-[E|T])),
+        b_setval('$clpfd_queue', fast_slow(L, H-T)).
+
 pop_queue(E) :-
-        b_getval('$clpfd_queue', H-T),
-        nonvar(H), H = [E|NH], b_setval('$clpfd_queue', NH-T).
+        b_getval('$clpfd_queue', fast_slow(H-T, I-U)),
+        (   nonvar(H) ->
+            H = [E|NH],
+            b_setval('$clpfd_queue', fast_slow(NH-T, I-U))
+        ;   nonvar(I) ->
+            I = [E|NI],
+            b_setval('$clpfd_queue', fast_slow(H-T, NI-U))
+        ;   false
+        ).
 
 fetch_propagator(Prop) :-
         pop_queue(P),
         (   arg(2, P, S), S == dead -> fetch_propagator(Prop)
         ;   Prop = P
         ).
-
-:- thread_initialization((make_queue,
-                          nb_setval('$clpfd_current_propagator', []),
-                          nb_setval('$clpfd_queue_status', enabled))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Parsing a CLP(FD) expression has two important side-effects: First,
@@ -1736,55 +1808,110 @@ power_var_num(P, X, N) :-
             N is L + R
         ).
 
-parse_clpfd(Expr, Result) :-
-        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
-        ;   var(Expr) ->
-            constrain_to_integer(Expr),
-            Result = Expr
-        ;   integer(Expr) -> Result = Expr
-        ;   Expr = (L + R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            myplus(RL, RR, Result)
-        ;   power_var_num(Expr, Var, N) -> Var^N #= Result
-        ;   Expr = (L * R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mytimes(RL, RR, Result)
-        ;   Expr = (L - R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mytimes(-1, RR, RRR),
-            myplus(RL, RRR, Result)
-        ;   Expr = (- E) ->
-            parse_clpfd(E, RE),
-            mytimes(-1, RE, Result)
-        ;   Expr = max(L, R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mymax(RL, RR, Result)
-        ;   Expr = min(L,R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            mymin(RL, RR, Result)
-        ;   Expr = L mod R ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            RR #\= 0,
-            mymod(RL, RR, Result)
-        ;   Expr = abs(E) ->
-            parse_clpfd(E, RE),
-            myabs(RE, Result),
-            Result #>= 0
-        ;   Expr = (L / R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR), RR #\= 0,
-            mydiv(RL, RR, Result)
-        ;   Expr = (L ^ R) ->
-            parse_clpfd(L, RL), parse_clpfd(R, RR),
-            myexp(RL, RR, Result)
-        ;   domain_error(clpfd_expression, Expr)
-        ).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Given expression E, we obtain the finite domain variable R by
+   interpreting a simple committed-choice language that is a list of
+   conditions and bodies. In conditions, g(Goal) means literally Goal,
+   and m(Match) means that E can be decomposed as stated. The
+   variables are to be understood as the result of parsing the
+   subexpressions recursively. In the body, g(Goal) means again Goal,
+   and p(Propagator) means to attach and trigger once a propagator.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+parse_clpfd(E, R,
+            [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
+             g(var(E))         -> [g(constrain_to_integer(E)), g(E = R)],
+             g(integer(E))     -> [g(R = E)],
+             m(A+B)            -> [p(pplus(A, B, R))],
+             % power_var_num/3 must occur before */2 to be useful
+             g(power_var_num(E, V, N)) -> [p(pexp(V, N, R))],
+             m(A*B)            -> [p(ptimes(A, B, R))],
+             m(A-B)            -> [p(pplus(R,B,A))],
+             m(-A)             -> [p(ptimes(-1,A,R))],
+             m(max(A,B))       -> [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
+             m(min(A,B))       -> [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
+             m(mod(A,B))       -> [g(B #\= 0), p(pmod(A, B, R))],
+             m(abs(A))         -> [g(R #>= 0), p(pabs(A, R))],
+             m(A/B)            -> [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A^B)            -> [p(pexp(A, B, R))],
+             g(true)           -> [g(domain_error(clpfd_expression, E))]
+            ]).
+
+% Here, we compile the committed choice language to a single
+% predicate, parse_clpfd/2.
+
+make_parse_clpfd(Clauses) :-
+        parse_clpfd_clauses(Clauses0),
+        maplist(goals_goal, Clauses0, Clauses).
+
+goals_goal(Head :- Goals, Head :- Body) :-
+        list_goal(Goals, Body).
+
+parse_clpfd_clauses(Clauses) :-
+        parse_clpfd(E, R, Matchers),
+        maplist(parse_matcher(E, R), Matchers, Clauses).
+
+parse_matcher(E, R, Matcher, Clause) :-
+        Matcher = (Condition0 -> Goals0),
+        phrase((parse_condition(Condition0, E, Head),
+                parse_goals(Goals0)), Goals),
+        Clause = (parse_clpfd(Head, R) :- Goals).
+
+parse_condition(g(Goal), E, E) --> [Goal, !].
+parse_condition(m(Match), _, Match0) -->
+        { copy_term(Match, Match0) },
+        [!],
+        { term_variables(Match0, Vs0),
+          term_variables(Match, Vs)
+        },
+        parse_match_variables(Vs0, Vs).
+
+parse_match_variables([], []) --> [].
+parse_match_variables([V0|Vs0], [V|Vs]) -->
+        [parse_clpfd(V0, V)],
+        parse_match_variables(Vs0, Vs).
+
+parse_goals([]) --> [].
+parse_goals([G|Gs]) --> parse_goal(G), parse_goals(Gs).
+
+parse_goal(g(Goal)) --> [Goal].
+parse_goal(p(Prop)) -->
+        [make_propagator(Prop, P)],
+        { term_variables(Prop, Vs) },
+        parse_init(Vs, P),
+        [trigger_once(P)].
+
+parse_init([], _)     --> [].
+parse_init([V|Vs], P) --> [init_propagator(V, P)], parse_init(Vs, P).
+
+%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%   clpfd:parse_clpfd_clauses(Clauses), maplist(portray_clause, Clauses).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 trigger_once(Prop) :- trigger_prop(Prop), do_queue.
 
-neq(A, B) :-
-        make_propagator(pneq(A, B), Prop),
-        init_propagator(A, Prop), init_propagator(B, Prop),
-        trigger_once(Prop).
+neq(A, B) :- propagator_init_trigger(pneq(A, B)).
+
+propagator_init_trigger(P) -->
+        { term_variables(P, Vs) },
+        propagator_init_trigger(Vs, P).
+
+propagator_init_trigger(Vs, P) -->
+        [p(Prop)],
+        { make_propagator(P, Prop),
+          maplist(prop_init(Prop), Vs),
+          trigger_once(Prop) }.
+
+propagator_init_trigger(P) :-
+        phrase(propagator_init_trigger(P), _).
+
+propagator_init_trigger(Vs, P) :-
+        phrase(propagator_init_trigger(Vs, P), _).
+
+prop_init(Prop, V) :- init_propagator(V, Prop).
 
 geq(A, B) :-
         (   fd_get(A, AD, APs) ->
@@ -1792,10 +1919,7 @@ geq(A, B) :-
             (   fd_get(B, BD, _) ->
                 domain_supremum(BD, BS),
                 (   AI cis_geq BS -> true
-                ;   make_propagator(pgeq(A,B), Prop),
-                    init_propagator(A, Prop),
-                    init_propagator(B, Prop),
-                    trigger_once(Prop)
+                ;   propagator_init_trigger(pgeq(A,B))
                 )
             ;   domain_remove_smaller_than(AD, B, AD1),
                 fd_put(A, AD1, APs),
@@ -1808,48 +1932,6 @@ geq(A, B) :-
         ;   A >= B
         ).
 
-myplus(X, Y, Z) :-
-        make_propagator(pplus(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mytimes(X, Y, Z) :-
-        make_propagator(ptimes(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mydiv(X, Y, Z) :-
-        make_propagator(pdiv(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-myexp(X, Y, Z) :-
-        make_propagator(pexp(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-myabs(X, Y) :-
-        make_propagator(pabs(X,Y), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop), trigger_once(Prop).
-
-mymod(X, M, K) :-
-        make_propagator(pmod(X,M,K), Prop),
-        init_propagator(X, Prop), init_propagator(M, Prop),
-        init_propagator(K, Prop), trigger_once(Prop).
-
-mymax(X, Y, Z) :-
-        X #=< Z, Y #=< Z,
-        make_propagator(pmax(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
-mymin(X, Y, Z) :-
-        X #>= Z, Y #>= Z,
-        make_propagator(pmin(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), trigger_once(Prop).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Naive parsing of inequalities and disequalities can result in a lot
    of unnecessary work if expressions of non-trivial depth are
@@ -1860,7 +1942,167 @@ mymin(X, Y, Z) :-
    only extremal values are of interest in inequalities. Introducing
    auxiliary variables should be avoided when possible, and
    specialised propagators should be used for common constraints.
+
+   We again use a simple committed-choice language for matching
+   special cases of constraints. m_c(M,C) means that M matches and C
+   holds. d(X, Y) means decomposition, i.e., it is short for
+   g(parse_clpfd(X, Y)). r(X, Y) means to rematch with X and Y.
+
+   Two things are important: First, although the actual constraint
+   functors (#\=2, #=/2 etc.) are used in the description, they must
+   expand to the respective auxiliary predicates (match_expand/2)
+   because the actual constraints are subject to goal expansion.
+   Second, when specialised constraints (like scalar product) post
+   simpler constraints on their own, these simpler versions must be
+   handled separately and must occur before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+match_expand(#>=, clpfd_geq_).
+match_expand(#=, clpfd_equal_).
+match_expand(#\=, clpfd_neq).
+
+symmetric(#=).
+symmetric(#\=).
+
+matches([
+         m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
+            [g((   Cs = [1], Vs = [A] -> geq(A, Const)
+               ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
+               ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
+               ;   Cs = [1,-1], Vs = [A,B] ->
+                   (   Const =:= 0 -> geq(A, B)
+                   ;   C1 is -Const,
+                       propagator_init_trigger(x_leq_y_plus_c(B, A, C1))
+                   )
+               ;   Cs = [-1,1], Vs = [A,B] ->
+                   (   Const =:= 0 -> geq(B, A)
+                   ;   C1 is -Const,
+                       propagator_init_trigger(x_leq_y_plus_c(A, B, C1))
+                   )
+               ;   Cs = [-1,-1], Vs = [A,B] ->
+                   A+B #= S, Const1 is -Const, geq(Const1, S)
+               ;   scalar_product_(#>=, Cs, Vs, Const)
+               ))],
+         m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
+         m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
+         m(abs(any(X)-any(Y)) #>= integer(I))  -> [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
+         m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
+         m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
+         m(any(X) #>= any(Y))                  -> [d(X, RX), d(Y, RY), g(geq(RX, RY))],
+
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
+         m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
+         m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
+         m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
+         m(var(X) #= -var(Z))       -> [p(ptimes(-1, Z, X))],
+         m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+            [g((   Cs = [] -> S =:= 0
+               ;   Cs = [C|CsRest],
+                   gcd(CsRest, C, GCD),
+                   S mod GCD =:= 0,
+                   scalar_product_(#=, Cs, Vs, S)
+               ))],
+         m(var(X) #= any(Y))       -> [d(Y,X)],
+         m(any(X) #= any(Y))       -> [d(X, RX), d(Y, RX)],
+
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
+         m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
+         m(var(X) #\= var(Y) + var(Z))        -> [p(x_neq_y_plus_z(X, Y, Z))],
+         m(var(X) #\= var(Y) - var(Z))        -> [p(x_neq_y_plus_z(Y, X, Z))],
+         m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
+         m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
+         m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+            [g(scalar_product_(#\=, Cs, Vs, S))],
+         m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(X1, Y1, Z1))],
+         m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(Y1, X1, Z1))],
+         m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
+        ]).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   We again compile the committed-choice matching language to the
+   intended auxiliary predicates. We now must take care not to
+   unintentionally unify a variable with a complex term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_matches(Clauses) :-
+        matches(Ms),
+        findall(F, (member(M->_, Ms), arg(1, M, M1), functor(M1, F, _)), Fs0),
+        sort(Fs0, Fs),
+        maplist(prevent_cyclic_argument, Fs, PrevCyclicClauses),
+        phrase(matchers(Ms), Clauses0),
+        maplist(goals_goal, Clauses0, MatcherClauses),
+        append(PrevCyclicClauses, MatcherClauses, Clauses1),
+        sort_by_predicate(Clauses1, Clauses).
+
+sort_by_predicate(Clauses, ByPred) :-
+        map_list_to_pairs(predname, Clauses, Keyed),
+        keysort(Keyed, KeyedByPred),
+        pairs_values(KeyedByPred, ByPred).
+
+predname((H:-_), Key)   :- !, predname(H, Key).
+predname(M:H, M:Key)    :- !, predname(H, Key).
+predname(H, Name/Arity) :- !, functor(H, Name, Arity).
+
+prevent_cyclic_argument(F0, Clause) :-
+        match_expand(F0, F),
+        Head =.. [F,X,Y],
+        Clause = (Head :- (   cyclic_term(X) ->
+                              domain_error(clpfd_expression, X)
+                          ;   cyclic_term(Y) ->
+                              domain_error(clpfd_expression, Y)
+                          ;   false
+                          )).
+
+matchers([]) --> [].
+matchers([Condition->Goals|Ms]) -->
+        matcher(Condition, Goals),
+        matchers(Ms).
+
+matcher(m(M), Gs) --> matcher(m_c(M,true), Gs).
+matcher(m_c(Matcher,Cond), Gs) -->
+        [Head :- Goals0],
+        { Matcher =.. [F,A,B],
+          match_expand(F, Expand),
+          Head =.. [Expand,X,Y],
+          phrase((match(A, X), match(B, Y)), Goals0, [Cond,!|Goals1]),
+          phrase(match_goals(Gs, Expand), Goals1) },
+        (   { symmetric(F), \+ (subsumes_chk(A, B), subsumes_chk(B, A)) } ->
+            { Head1 =.. [Expand,Y,X] },
+            [Head1 :- Goals0]
+        ;   []
+        ).
+
+match(any(A), T)     --> [A = T].
+match(var(V), T)     --> [v_or_i(T), V = T].
+match(integer(I), T) --> [integer(T), I = T].
+match(-X, T)         --> [nonvar(T), T = -A], match(X, A).
+match(abs(X), T)     --> [nonvar(T), T = abs(A)], match(X, A).
+match(X+Y, T)        --> [nonvar(T), T = A + B], match(X, A), match(Y, B).
+match(X-Y, T)        --> [nonvar(T), T = A - B], match(X, A), match(Y, B).
+match(X*Y, T)        --> [nonvar(T), T = A * B], match(X, A), match(Y, B).
+
+match_goals([], _)     --> [].
+match_goals([G|Gs], F) --> match_goal(G, F), match_goals(Gs, F).
+
+match_goal(r(X,Y), F)  --> { G =.. [F,X,Y] }, [G].
+match_goal(d(X,Y), _)  --> [parse_clpfd(X, Y)].
+match_goal(g(Goal), _) --> [Goal].
+match_goal(p(Prop), _) -->
+        [make_propagator(Prop, P)],
+        { term_variables(Prop, Vs) },
+        parse_init(Vs, P),
+        [trigger_once(P)].
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 %% ?X #>= ?Y
 %
@@ -1869,31 +2111,6 @@ mymin(X, Y, Z) :-
 X #>= Y :- clpfd_geq(X, Y).
 
 clpfd_geq(X, Y) :- clpfd_geq_(X, Y), reinforce(X), reinforce(Y).
-
-clpfd_geq_(X, Y) :-
-        (   var(X), nonvar(Y), Y = Y1 - C, var(Y1), integer(C) ->
-            var_leq_var_plus_const(Y1, X, C)
-        ;   var(X), nonvar(Y), Y = Y1 + C, var(Y1), integer(C) ->
-            C1 is -C,
-            var_leq_var_plus_const(Y1, X, C1)
-        ;   nonvar(X), var(Y), X = X1 + C, var(X1), integer(C) ->
-            var_leq_var_plus_const(Y, X1, C)
-        ;   nonvar(X), var(Y), X = X1 - C, var(X1), integer(C) ->
-            C1 is - C,
-            var_leq_var_plus_const(Y, X1, C1)
-        ;   nonvar(Y), Y = Z+One, One == 1, integer(Z) ->
-            Y1 is Z + 1,
-            clpfd_geq_(X, Y1)
-        ;   integer(X), nonvar(Y), Y = Z+One, One == 1 ->
-            X1 is X - 1,
-            clpfd_geq_(X1, Z)
-        ;   parse_clpfd(X,RX), parse_clpfd(Y,RY), geq(RX,RY)
-        ).
-
-var_leq_var_plus_const(X, Y, C) :-
-        make_propagator(x_leq_y_plus_c(X,Y,C), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_once(Prop).
 
 %% ?X #=< ?Y
 %
@@ -1906,6 +2123,8 @@ X #=< Y :- Y #>= X.
 % X equals Y.
 
 X #= Y :- clpfd_equal(X, Y).
+
+clpfd_equal(X, Y) :- clpfd_equal_(X, Y), reinforce(X).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Conditions under which an equality can be compiled to built-in
@@ -1938,28 +2157,37 @@ expr_conds(A0^B0, A^B)           -->
 
 user:goal_expansion(X0 #= Y0, Equal) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(expr_conds(X0, X), CsX),
-        phrase(expr_conds(Y0, Y), CsY),
-        list_goal(CsX, CondX),
-        list_goal(CsY, CondY),
-        Equal = (   CondY ->
+        phrase(clpfd:expr_conds(X0, X), CsX),
+        phrase(clpfd:expr_conds(Y0, Y), CsY),
+        clpfd:list_goal(CsX, CondX),
+        clpfd:list_goal(CsY, CondY),
+        Equal = (   (CondX,CondY) -> X =:= Y
+                ;   CondX ->
+                    (   var(Y) -> Y is X
+                    ;   T is X, clpfd:clpfd_equal(T, Y0)
+                    )
+                ;   CondY ->
                     (   var(X) -> X is Y
-                    ;   CondX -> X =:= Y
-                    ;   clpfd:clpfd_equal(X0, Y0)
+                    ;   T is Y, clpfd:clpfd_equal(X0, T)
                     )
                 ;   clpfd:clpfd_equal(X0, Y0)
                 ).
 user:goal_expansion(X0 #>= Y0, Geq) :-
         \+ current_prolog_flag(clpfd_goal_expansion, false),
-        phrase(expr_conds(X0, X), Conds, Rest),
-        phrase(expr_conds(Y0, Y), Rest),
-        list_goal(Conds, Cond),
-        Geq = (   Cond -> X >= Y
+        phrase(clpfd:expr_conds(X0, X), CsX),
+        phrase(clpfd:expr_conds(Y0, Y), CsY),
+        clpfd:list_goal(CsX, CondX),
+        clpfd:list_goal(CsY, CondY),
+        Geq = (   (CondX,CondY) -> X >= Y
+              ;   CondX -> T is X, clpfd:clpfd_geq(T, Y0)
+              ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
               ).
 user:goal_expansion(X #=< Y,  Leq) :- user:goal_expansion(Y #>= X, Leq).
 user:goal_expansion(X #> Y, Gt)    :- user:goal_expansion(X #>= Y+1, Gt).
 user:goal_expansion(X #< Y, Lt)    :- user:goal_expansion(Y #> X, Lt).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 linsum(X, S, S)    --> { var(X) }, !, [vn(X,1)].
 linsum(I, S0, S)   --> { integer(I), !, S is S0 + I }.
@@ -1980,12 +2208,6 @@ v_or_i(V) :- var(V), !.
 v_or_i(I) :- integer(I).
 
 left_right_linsum_const(Left, Right, Cs, Vs, Const) :-
-        % omit constraints that scalar_product posts
-        \+ ( v_or_i(Left), v_or_i(Right) ),
-        \+ ( nonvar(Left), Left = A+B, maplist(v_or_i, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A+B, maplist(v_or_i, [A,B,Left]) ),
-        \+ ( nonvar(Left), Left = A*B, maplist(v_or_i, [A,B,Right]) ),
-        \+ ( nonvar(Right), Right = A*B, maplist(v_or_i, [A,B,Left]) ),
         phrase(linsum(Left, 0, CL), Lefts0, Rights),
         phrase(linsum(Right, 0, CR), Rights0),
         maplist(linterm_negate, Rights0, Rights),
@@ -2017,30 +2239,10 @@ filter_linsum([C0|Cs0], [V0|Vs0], Cs, Vs) :-
             filter_linsum(Cs0, Vs0, Cs1, Vs1)
         ).
 
-clpfd_equal(X, Y)  :-
-        (   left_right_linsum_const(X, Y, Cs, Vs, S) ->
-            (   Cs = [] -> S =:= 0
-            ;   Cs = [C|CsRest],
-                gcd(CsRest, C, GCD),
-                S mod GCD =:= 0,
-                scalar_product(Cs, Vs, #=, S)
-            )
-        ;   (   v_or_i(Y) -> parse_clpfd(X, Y), reinforce(Y)
-            ;   v_or_i(X) -> parse_clpfd(Y, X), reinforce(X)
-            ;   parse_clpfd(X, RX), parse_clpfd(Y, RX), reinforce(RX)
-            )
-        ).
-
 gcd([], G, G).
 gcd([N|Ns], G0, G) :-
-        gcd_(N, G0, G1),
+        G1 is gcd(N, G0),
         gcd(Ns, G1, G).
-
-gcd_(A, B, G) :-
-        (   B =:= 0 -> G = A
-        ;   R is A mod B,
-            gcd_(B, R, G)
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    k-th root of N, if N is a k-th power.
@@ -2060,14 +2262,14 @@ integer_kth_root(N, K, R) :-
         ).
 
 integer_kroot(L, U, N, K, R) :-
-        (   L =:= U -> N =:= L**K, R = L
+        (   L =:= U -> N =:= L^K, R = L
         ;   L + 1 =:= U ->
-            (   L**K =:= N -> R = L
-            ;   U**K =:= N -> R = U
+            (   L^K =:= N -> R = L
+            ;   U^K =:= N -> R = U
             ;   fail
             )
         ;   Mid is (L + U)//2,
-            (   Mid**K > N ->
+            (   Mid^K > N ->
                 integer_kroot(L, Mid, N, K, R)
             ;   integer_kroot(Mid, U, N, K, R)
             )
@@ -2078,85 +2280,12 @@ integer_kroot(L, U, N, K, R) :-
 %
 % X is not Y.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Some expressions are handled by special propagators, and we want to
-   recognise all their variations. A fact match(Expr, Call) describes
-   which specialised predicate can be applied for Expr.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-match(var(X) #\= integer(Y), neq_num(X, Y)).
-match(var(X) #\= var(Y) + var(Z), x_neq_y_plus_z(X, Y, Z)).
-match(var(X) #\= var(Y) - var(Z), x_neq_y_plus_z(Y, X, Z)).
-match(integer(X) #\= abs(var(Y)-var(Z)), absdiff_neq_const(Y, Z, X)).
-
-left_right_matcher(X, Y, M) :-
-        findall(Term-Pred, match(Term,Pred), TPs),
-        matcher(TPs, X, Y, M).
-
-matcher([], _, _, false).
-matcher([Term-Pred|TPs], X, Y, Matchers) :-
-        (   Term = (Left #\= Right) ->
-            Matchers = (Cond1 ->  Pred; Cond2 -> Pred ; Rest),
-            condition(Left, Right, X, Y, Cond1),
-            condition(Right, Left, X, Y, Cond2),
-            matcher(TPs, X, Y, Rest)
-        ;   domain_error(matcher_expression, Term)
-        ).
-
-condition(Left, Right, X, Y, Cond) :-
-        phrase((conditions(Left,X),conditions(Right,Y)), Cs),
-        list_goal(Cs, Cond).
-
-conditions(var(V), T)     --> [v_or_i(T), V = T].
-conditions(integer(I), T) --> [integer(T), I = T].
-conditions(X+Y, T)        -->
-        [nonvar(T), T = A + B],
-        conditions(X, A),
-        conditions(Y, B).
-conditions(X-Y, T)        -->
-        [nonvar(T), T = A - B],
-        conditions(X, A),
-        conditions(Y, B).
-conditions(abs(X), T)     -->
-        [nonvar(T), T = abs(A)],
-        conditions(X, A).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-X #\= Y :-
-        (
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %% matcher for specialised propagators, generated with:
-        %%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
-        %%   clpfd:left_right_matcher(X, Y, M).
-          ((v_or_i(X), M1481=X), integer(Y)), M1483=Y->neq_num(M1481, M1483); ((integer(X), M1483=X), v_or_i(Y)), M1481=Y->neq_num(M1481, M1483); ((((((v_or_i(X), M1459=X), nonvar(Y)), Y=M1674+M1675), v_or_i(M1674)), M1464=M1674), v_or_i(M1675)), M1466=M1675->x_neq_y_plus_z(M1459, M1464, M1466); ((((((nonvar(X), X=M1756+M1757), v_or_i(M1756)), M1464=M1756), v_or_i(M1757)), M1466=M1757), v_or_i(Y)), M1459=Y->x_neq_y_plus_z(M1459, M1464, M1466); ((((((v_or_i(X), M1437=X), nonvar(Y)), Y=M1872-M1873), v_or_i(M1872)), M1442=M1872), v_or_i(M1873)), M1444=M1873->x_neq_y_plus_z(M1442, M1437, M1444); ((((((nonvar(X), X=M1954-M1955), v_or_i(M1954)), M1442=M1954), v_or_i(M1955)), M1444=M1955), v_or_i(Y)), M1437=Y->x_neq_y_plus_z(M1442, M1437, M1444); ((((((((integer(X), M1413=X), nonvar(Y)), Y=abs(M2070)), nonvar(M2070)), M2070=M2083-M2084), v_or_i(M2083)), M1420=M2083), v_or_i(M2084)), M1422=M2084->absdiff_neq_const(M1420, M1422, M1413); ((((((((nonvar(X), X=abs(M2171)), nonvar(M2171)), M2171=M2184-M2185), v_or_i(M2184)), M1420=M2184), v_or_i(M2185)), M1422=M2185), integer(Y)), M1413=Y->absdiff_neq_const(M1420, M1422, M1413)
-        %% end of generated code
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ;   left_right_linsum_const(X, Y, Cs, Vs, S) ->
-            scalar_product(Cs, Vs, #\=, S)
-        ;   parse_clpfd(X, RX), parse_clpfd(Y, RY), neq(RX, RY)
-        ),
-        do_queue.
-
-% abs(X-Y) #\= C
-
-absdiff_neq_const(X, Y, C) :-
-        (   C >= 0 ->
-            make_propagator(absdiff_neq(X,Y,C), Prop),
-            init_propagator(X, Prop), init_propagator(Y, Prop),
-            trigger_once(Prop)
-        ;   constrain_to_integer(X), constrain_to_integer(Y)
-        ).
+X #\= Y :- clpfd_neq(X, Y), do_queue.
 
 % X #\= Y + Z
 
 x_neq_y_plus_z(X, Y, Z) :-
-        (   Z == 0 -> neq(X, Y)
-        ;   make_propagator(x_neq_y_plus_z(X,Y,Z), Prop),
-            init_propagator(X, Prop), init_propagator(Y, Prop),
-            init_propagator(Z, Prop), trigger_once(Prop)
-        ).
+        propagator_init_trigger(x_neq_y_plus_z(X,Y,Z)).
 
 % X is distinct from the number N. This is used internally, and does
 % not reinforce other constraints.
@@ -2217,13 +2346,28 @@ L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 %
 % P implies Q.
 
-L #==> R   :- reify(L, BL), reify(R, BR), myimpl(BL, BR), do_queue.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Implication is special in that created auxiliary constraints can be
+   retracted when the implication becomes entailed, for example:
+
+   %?- X + 1 #= Y #==> Z, Z #= 1.
+   %@ Z = 1,
+   %@ X in inf..sup,
+   %@ Y in inf..sup.
+
+   We cannot use propagator_init_trigger/1 here because the states of
+   auxiliary propagators are themselves part of the propagator.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+L #==> R   :-
+        phrase((reify(L, BL),reify(R, BR)), Ps),
+        propagator_init_trigger([BL,BR], pimpl(BL,BR,Ps)).
 
 %% ?P #<== ?Q
 %
 % Q implies P.
 
-L #<== R   :- reify(L, BL), reify(R, BR), myimpl(BR, BL), do_queue.
+L #<== R   :- R #==> L.
 
 %% ?P #/\ ?Q
 %
@@ -2242,30 +2386,10 @@ L #/\ R    :- reify(L, 1), reify(R, 1), do_queue.
 % Sum = 233168.
 % ==
 
-L #\/ R    :- reify(L, BL), reify(R, BR), myor(BL, BR, 1), do_queue.
-
-myor(X, Y, Z) :-
-        make_propagator(por(X,Y,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop),
-        trigger_prop(Prop).
-
-myimpl(X, Y) :-
-        make_propagator(pimpl(X,Y), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        trigger_prop(Prop).
-
-my_reified_div(X, Y, D, Z) :-
-        make_propagator(reified_div(X,Y,D,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_once(Prop).
-
-my_reified_mod(X, Y, D, Z) :-
-        make_propagator(reified_mod(X,Y,D,Z), Prop),
-        init_propagator(X, Prop), init_propagator(Y, Prop),
-        init_propagator(Z, Prop), init_propagator(D, Prop),
-        trigger_once(Prop).
+L #\/ R :-
+        reify(L, X, Ps1),
+        reify(R, Y, Ps2),
+        propagator_init_trigger([X,Y], reified_or(X,Ps1,Y,Ps2,1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A constraint that is being reified need not hold. Therefore, in
@@ -2273,116 +2397,201 @@ my_reified_mod(X, Y, D, Z) :-
    constrain the *result* of an expression (which does not appear
    explicitly in the expression and is not visible to the outside),
    but not the operands, except for requiring that they be integers.
+
    In contrast to parse_clpfd/2, the result of an expression can now
    also be undefined, in which case the constraint cannot hold.
+   Therefore, the committed-choice language is extended by an element
+   d(D) that states D is 1 iff all subexpressions are defined. a(V)
+   means that V is an auxiliary variable that was introduced while
+   parsing a compound expression. a(X,V) means V is auxiliary unless
+   it is ==/2 X, and a(X,Y,V) means V is auxiliary unless it is ==/2 X
+   or Y. l(L) means the literal L occurs in the described list.
+
+   When a constraint becomes entailed or subexpressions become
+   undefined, created auxiliary constraints are killed, and the
+   "clpfd" attribute is removed from auxiliary variables.
+
+   For (/)/2 and mod/2, we create a skeleton propagator and remember
+   it as an auxiliary constraint. The corresponding reified
+   propagators can use the skeleton when the constraint is defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-parse_reified_clpfd(Expr, Result, Defined) :-
-        (   cyclic_term(Expr) -> domain_error(clpfd_expression, Expr)
-        ;   var(Expr) ->
-            constrain_to_integer(Expr),
-            Result = Expr, Defined = 1
-        ;   integer(Expr) -> Result = Expr, Defined = 1
-        ;   Expr = (L + R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            myplus(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (L * R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mytimes(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (L - R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mytimes(-1, RR, RRR),
-            myplus(RL, RRR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = (- E) ->
-            parse_reified_clpfd(E, RE, Defined),
-            mytimes(-1, RE, Result)
-        ;   Expr = max(L, R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymax(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = min(L,R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            mymin(RL, RR, Result), DL #/\ DR #<==> Defined
-        ;   Expr = L mod R ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined1,
-            my_reified_mod(RL, RR, Defined2, Result),
-            Defined1 #/\ Defined2 #<==> Defined
-        ;   Expr = abs(E) ->
-            parse_reified_clpfd(E, RE, Defined),
-            myabs(RE, Result),
-            Result #>= 0
-        ;   Expr = (L / R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined1,
-            my_reified_div(RL, RR, Defined2, Result),
-            Defined1 #/\ Defined2 #<==> Defined
-        ;   Expr = (L ^ R) ->
-            parse_reified_clpfd(L, RL, DL), parse_reified_clpfd(R, RR, DR),
-            DL #/\ DR #<==> Defined,
-            myexp(RL, RR, Result)
-        ;   domain_error(clpfd_expression, Expr)
+parse_reified(E, R, D,
+              [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
+               g(var(E))     -> [g(constrain_to_integer(E)), g(R = E), g(D=1)],
+               g(integer(E)) -> [g(R=E), g(D=1)],
+               m(A+B)        -> [d(D), p(pplus(A,B,R)), a(A,B,R)],
+               m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(A,B,R)],
+               m(A-B)        -> [d(D), p(pplus(R,B,A)), a(A,B,R)],
+               m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
+               m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
+               m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
+               m(A mod B)    ->
+                  [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
+                   p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
+               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
+               m(A/B)        ->
+                  [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
+                   p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
+                   p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
+               m(A^B)        -> [d(D), p(pexp(A,B,R)), a(A,B,R)],
+               g(true)       -> [g(domain_error(clpfd_expression, E))]]
+             ).
+
+% Again, we compile this to a predicate, parse_reified_clpfd//3. This
+% time, it is a DCG that describes the list of auxiliary variables and
+% propagators for the given expression, in addition to relating it to
+% its reified (Boolean) finite domain variable and its Boolean
+% definedness.
+
+make_parse_reified(Clauses) :-
+        parse_reified_clauses(Clauses0),
+        maplist(goals_goal_dcg, Clauses0, Clauses).
+
+goals_goal_dcg(Head --> Goals, Clause) :-
+        list_goal(Goals, Body),
+        expand_term(Head --> Body, Clause).
+
+parse_reified_clauses(Clauses) :-
+        parse_reified(E, R, D, Matchers),
+        maplist(parse_reified(E, R, D), Matchers, Clauses).
+
+parse_reified(E, R, D, Matcher, Clause) :-
+        Matcher = (Condition0 -> Goals0),
+        phrase((reified_condition(Condition0, E, Head, Ds),
+                reified_goals(Goals0, Ds)), Goals, [a(D)]),
+        Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
+
+reified_condition(g(Goal), E, E, []) --> [{Goal}, !].
+reified_condition(m(Match), _, Match0, Ds) -->
+        { copy_term(Match, Match0) },
+        [!],
+        { term_variables(Match0, Vs0),
+          term_variables(Match, Vs)
+        },
+        reified_variables(Vs0, Vs, Ds).
+
+reified_variables([], [], []) --> [].
+reified_variables([V0|Vs0], [V|Vs], [D|Ds]) -->
+        [parse_reified_clpfd(V0, V, D)],
+        reified_variables(Vs0, Vs, Ds).
+
+reified_goals([], _) --> [].
+reified_goals([G|Gs], Ds) --> reified_goal(G, Ds), reified_goals(Gs, Ds).
+
+reified_goal(d(D), Ds) -->
+        (   { Ds = [X] } -> [{D=X}]
+        ;   { Ds = [X,Y] } ->
+            { phrase(reified_goal(p(reified_and(X,[],Y,[],D)), _), Gs),
+              list_goal(Gs, Goal) },
+            [( {X==1, Y==1} -> {D = 1} ; Goal )]
+        ;   { domain_error(one_or_two_element_list, Ds) }
+        ).
+reified_goal(g(Goal), _) --> [{Goal}].
+reified_goal(p(Vs, Prop), _) -->
+        [{make_propagator(Prop, P)}],
+        parse_init_dcg(Vs, P),
+        [{trigger_once(P)}],
+        [( { arg(2, P, S), S == dead } -> [] ; [p(P)])].
+reified_goal(p(Prop), Ds) -->
+        { term_variables(Prop, Vs) },
+        reified_goal(p(Vs,Prop), Ds).
+reified_goal(a(V), _)     --> [a(V)].
+reified_goal(a(X,V), _)   --> [a(X,V)].
+reified_goal(a(X,Y,V), _) --> [a(X,Y,V)].
+reified_goal(l(L), _)     --> [[L]].
+
+parse_init_dcg([], _)     --> [].
+parse_init_dcg([V|Vs], P) --> [{init_propagator(V, P)}], parse_init_dcg(Vs, P).
+
+%?- set_prolog_flag(toplevel_print_options, [portray(true)]),
+%   clpfd:parse_reified_clauses(Cs), maplist(portray_clause, Cs).
+
+reify(E, B) :- reify(E, B, _).
+
+reify(Expr, B, Ps) :- phrase(reify(Expr, B), Ps).
+
+reify(E, B) --> { B in 0..1 }, reify_(E, B).
+
+reify_(E, _) -->
+        { cyclic_term(E), !, domain_error(clpfd_reifiable_expression, E) }.
+reify_(E, B) --> { var(E), !, E = B }.
+reify_(E, B) --> { integer(E), !, E = B }.
+reify_(V in Drep, B) --> !,
+        { drep_to_domain(Drep, Dom), fd_variable(V) },
+        propagator_init_trigger(reified_in(V,Dom,B)),
+        a(B).
+reify_(finite_domain(V), B) --> !,
+        { fd_variable(V) },
+        propagator_init_trigger(reified_fd(V,B)),
+        a(B).
+reify_(L #>= R, B) --> !,
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
+        list(Ps),
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_geq(LD,LR,RD,RR,Ps,B)),
+        a(B).
+reify_(L #> R, B)  --> !, reify_(L #>= (R+1), B).
+reify_(L #=< R, B) --> !, reify_(R #>= L, B).
+reify_(L #< R, B)  --> !, reify_(R #>= (L+1), B).
+reify_(L #= R, B)  --> !,
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
+        list(Ps),
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_eq(LD,LR,RD,RR,Ps,B)),
+        a(B).
+reify_(L #\= R, B) --> !,
+        { phrase((parse_reified_clpfd(L, LR, LD),
+                  parse_reified_clpfd(R, RR, RD)), Ps) },
+        list(Ps),
+        propagator_init_trigger([LD,LR,RD,RR,B], reified_neq(LD,LR,RD,RR,Ps,B)),
+        a(B).
+reify_(L #==> R, B)  --> !, reify_((#\ L) #\/ R, B).
+reify_(L #<== R, B)  --> !, reify_(R #==> L, B).
+reify_(L #<==> R, B) --> !, reify_((L #==> R) #/\ (R #==> L), B).
+reify_(L #/\ R, B)   --> !,
+        { reify(L, LR, Ps1),
+          reify(R, RR, Ps2) },
+        list(Ps1), list(Ps2),
+        propagator_init_trigger([LR,RR,B], reified_and(LR,Ps1,RR,Ps2,B)),
+        a(LR, RR, B).
+reify_(L #\/ R, B) --> !,
+        { reify(L, LR, Ps1),
+          reify(R, RR, Ps2) },
+        list(Ps1), list(Ps2),
+        propagator_init_trigger([LR,RR,B], reified_or(LR,Ps1,RR,Ps2,B)),
+        a(LR, RR, B).
+reify_(#\ Q, B) --> !,
+        reify(Q, QR),
+        propagator_init_trigger(reified_not(QR,B)),
+        a(B).
+reify_(E, _) --> !, { domain_error(clpfd_reifiable_expression, E) }.
+
+list([])     --> [].
+list([L|Ls]) --> [L], list(Ls).
+
+a(X,Y,B) -->
+        (   { nonvar(X) } -> a(Y, B)
+        ;   { nonvar(Y) } -> a(X, B)
+        ;   [a(X,Y,B)]
         ).
 
-reify(Expr, B) :-
-        B in 0..1,
-        (   cyclic_term(Expr) -> domain_error(clpfd_reifiable_expression, Expr)
-        ;   var(Expr) -> B = Expr
-        ;   integer(Expr) -> B = Expr
-        ;   Expr = (V in Drep) ->
-            drep_to_domain(Drep, Dom),
-            fd_variable(V),
-            make_propagator(reified_in(V,Dom,B), Prop),
-            init_propagator(V, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
-        ;   Expr = finite_domain(V) ->
-            fd_variable(V),
-            make_propagator(reified_fd(V,B), Prop),
-            init_propagator(V, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
-        ;   Expr = (L #>= R) ->
-            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_geq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
-        ;   Expr = (L #> R)  -> reify(L #>= (R+1), B)
-        ;   Expr = (L #=< R) -> reify(R #>= L, B)
-        ;   Expr = (L #< R)  -> reify(R #>= (L+1), B)
-        ;   Expr = (L #= R)  ->
-            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_eq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
-        ;   Expr = (L #\= R) ->
-            parse_reified_clpfd(L, LR, LD), parse_reified_clpfd(R, RR, RD),
-            make_propagator(reified_neq(LD,LR,RD,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop), init_propagator(LD, Prop),
-            init_propagator(RD, Prop), trigger_prop(Prop)
-        ;   Expr = (L #==> R) -> reify((#\ L) #\/ R, B)
-        ;   Expr = (L #<== R) -> reify(R #==> L, B)
-        ;   Expr = (L #<==> R) -> reify((L #==> R) #/\ (R #==> L), B)
-        ;   Expr = (L #/\ R) ->
-            reify(L, LR), reify(R, RR),
-            make_propagator(reified_and(LR,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
-        ;   Expr = (L #\/ R) ->
-            reify(L, LR), reify(R, RR),
-            make_propagator(reified_or(LR,RR,B), Prop),
-            init_propagator(LR, Prop), init_propagator(RR, Prop),
-            init_propagator(B, Prop),
-            trigger_prop(Prop)
-        ;   Expr = (#\ Q) ->
-            reify(Q, QR),
-            make_propagator(reified_not(QR,B), Prop),
-            init_propagator(QR, Prop), init_propagator(B, Prop),
-            trigger_prop(Prop)
-        ;   domain_error(clpfd_reifiable_expression, Expr)
+a(X, B) -->
+        (   { var(X) } -> [a(X, B)]
+        ;   a(B)
         ).
 
+a(B) -->
+        (   { var(B) } -> [a(B)]
+        ;   []
+        ).
+
+% Match variables to created skeleton.
+
+skeleton(Vs, Vs-Prop) :-
+        maplist(prop_init(Prop), Vs),
+        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A drep is a user-accessible and visible domain representation. N,
@@ -2649,10 +2858,32 @@ trigger_prop(Propagator) :-
         ;   % passive
             % format("triggering: ~w\n", [Propagator]),
             put_attr(State, clpfd_aux, queued),
-            push_queue(Propagator)
+            (   arg(1, Propagator, C), functor(C, F, _), global_constraint(F) ->
+                push_slow_queue(Propagator)
+            ;   push_fast_queue(Propagator)
+            )
         ).
 
 kill(State) :- del_attr(State, clpfd_aux), State = dead.
+
+kill(State, Ps) :-
+        kill(State),
+        maplist(kill_entailed, Ps).
+
+kill_entailed(p(Prop)) :-
+        arg(2, Prop, State),
+        kill(State).
+kill_entailed(a(V)) :-
+        del_attr(V, clpfd).
+kill_entailed(a(X,B)) :-
+        (   X == B -> true
+        ;   del_attr(B, clpfd)
+        ).
+kill_entailed(a(X,Y,B)) :-
+        (   X == B -> true
+        ;   Y == B -> true
+        ;   del_attr(B, clpfd)
+        ).
 
 no_reactivation(rel_tuple(_,_)).
 %no_reactivation(scalar_product(_,_,_,_)).
@@ -2702,11 +2933,21 @@ constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
 constraint_wake(pdistinct, ground).
+constraint_wake(pexclude, ground).
+constraint_wake(scalar_product_neq, ground).
 
 constraint_wake(x_leq_y_plus_c, bounds).
-constraint_wake(scalar_product, bounds).
+constraint_wake(scalar_product_eq, bounds).
+constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
+constraint_wake(pgcc_check_single, bounds).
+
+global_constraint(regin).
+global_constraint(pgcc).
+global_constraint(pcircuit).
+%global_constraint(rel_tuple).
+%global_constraint(scalar_product_eq).
 
 insert_propagator(Prop, Ps0, Ps) :-
         Ps0 = fd_props(Gs,Bs,Os),
@@ -2727,23 +2968,15 @@ insert_propagator(Prop, Ps0, Ps) :-
 
 lex_chain(Lss) :-
         must_be(list(list), Lss),
+        maplist(maplist(fd_variable), Lss),
         make_propagator(presidual(lex_chain(Lss)), Prop),
         lex_chain_(Lss, Prop).
 
 lex_chain_([], _).
 lex_chain_([Ls|Lss], Prop) :-
-        lex_check_and_attach(Ls, Prop),
+        maplist(prop_init(Prop), Ls),
         lex_chain_lag(Lss, Ls),
         lex_chain_(Lss, Prop).
-
-lex_check_and_attach([], _).
-lex_check_and_attach([L|Ls], Prop) :-
-        fd_variable(L),
-        (   var(L) ->
-            init_propagator(L, Prop)
-        ;   true
-        ),
-        lex_check_and_attach(Ls, Prop).
 
 lex_chain_lag([], _).
 lex_chain_lag([Ls|Lss], Ls0) :-
@@ -2841,7 +3074,8 @@ take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
         take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
-        make_propagator(rel_tuple(mutable(Relation,_),Tuple), Prop),
+        put_attr(R, clpfd_relation, Relation),
+        make_propagator(rel_tuple(R, Tuple), Prop),
         tuple_freeze(Tuple, Tuple, Prop).
 
 tuple_freeze([],  _, _).
@@ -2895,9 +3129,56 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             true
         ).
 
+run_propagator(pexclude(Left,Right,X), _) :-
+        (   ground(X) ->
+            disable_queue,
+            exclude_fire(Left, Right, X),
+            enable_queue
+        ;   true
+        ).
+
+run_propagator(regin(Ls), _MState) :-
+        regin(Ls).
+
 run_propagator(check_distinct(Left,Right,X), _) :-
         \+ list_contains(Left, X),
         \+ list_contains(Right, X).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pelement(_, Is, V), MState) :-
+        (   ground(Is) -> kill(MState)
+        ;   true
+        ),
+        domains_union(Is, Dom),
+        (   fd_get(V, VD, Ps) ->
+            domains_intersection(VD, Dom, VD1),
+            fd_put(V, VD1, Ps)
+        ;   domain_contains(Dom, V)
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pgcc_check(_, _, Pairs), _) :-
+        disable_queue,
+        gcc_check(Pairs),
+        enable_queue.
+
+run_propagator(pgcc_check_single(Single), _) :-
+        disable_queue,
+        gcc_check(Single),
+        enable_queue.
+
+run_propagator(pgcc(Pairs), _) :-
+        disable_queue,
+        gcc_global(Pairs),
+        enable_queue.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_propagator(pcircuit(Vs), _MState) :-
+        regin(Vs),
+        propagate_circuit(Vs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pneq(A, B), MState) :-
@@ -2951,8 +3232,8 @@ run_propagator(pgeq(A,B), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(rel_tuple(Rel, Tuple), MState) :-
-        arg(1, Rel, Relation),
+run_propagator(rel_tuple(R, Tuple), MState) :-
+        get_attr(R, clpfd_relation, Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
         ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
@@ -2962,7 +3243,7 @@ run_propagator(rel_tuple(Rel, Tuple), MState) :-
             ),
             (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
-            ;   setarg(1, Rel, Us),
+            ;   put_attr(R, clpfd_relation, Us),
                 disable_queue,
                 tuple_domain(Tuple, Us),
                 enable_queue
@@ -2971,22 +3252,47 @@ run_propagator(rel_tuple(Rel, Tuple), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pserialized(Var,Duration,Left,SDs), _MState) :-
-        myserialized(Duration, Left, SDs, Var).
+run_propagator(pserialized(S_I, D_I, S_J, D_J, _), MState) :-
+        (   nonvar(S_I), nonvar(S_J) ->
+            kill(MState),
+            (   S_I + D_I =< S_J -> true
+            ;   S_J + D_J =< S_I -> true
+            ;   false
+            )
+        ;   serialize_lower_upper(S_I, D_I, S_J, D_J, MState),
+            serialize_lower_upper(S_J, D_J, S_I, D_I, MState)
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % abs(X-Y) #\= C
 run_propagator(absdiff_neq(X,Y,C), MState) :-
-        (   nonvar(X) ->
-            (   nonvar(Y) -> kill(MState), abs(X - Y) =\= C
-            ;   kill(MState),
-                V1 is X - C, neq_num(Y, V1),
+        (   C < 0 -> kill(MState)
+        ;   nonvar(X) ->
+            kill(MState),
+            (   nonvar(Y) -> abs(X - Y) =\= C
+            ;   V1 is X - C, neq_num(Y, V1),
                 V2 is C + X, neq_num(Y, V2)
             )
         ;   nonvar(Y) -> kill(MState),
             V1 is C + Y, neq_num(X, V1),
             V2 is Y - C, neq_num(X, V2)
+        ;   true
+        ).
+
+% abs(X-Y) #>= C
+run_propagator(absdiff_geq(X,Y,C), MState) :-
+        (   C =< 0 -> kill(MState)
+        ;   nonvar(X) ->
+            kill(MState),
+            (   nonvar(Y) -> abs(X-Y) >= C
+            ;   P1 is X - C, P2 is X + C,
+                Y in inf..P1 \/ P2..sup
+            )
+        ;   nonvar(Y) ->
+            kill(MState),
+            P1 is Y - C, P2 is Y + C,
+            X in inf..P1 \/ P2..sup
         ;   true
         ).
 
@@ -3003,8 +3309,10 @@ run_propagator(x_neq_y_plus_z(X,Y,Z), MState) :-
         ;   nonvar(Y) ->
             (   nonvar(Z) ->
                 kill(MState), YZ is Y + Z, neq_num(X, YZ)
+            ;   Y =:= 0 -> kill(MState), neq(X, Z)
             ;   true
             )
+        ;   Z == 0 -> kill(MState), neq(X, Y)
         ;   true
         ).
 
@@ -3049,71 +3357,84 @@ run_propagator(x_leq_y_plus_c(X,Y,C), MState) :-
             )
         ).
 
-run_propagator(scalar_product(Cs0,Vs0,Op,P0), MState) :-
+run_propagator(scalar_product_neq(Cs0,Vs0,P0), MState) :-
         coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
         P is P0 - I,
-        (   Op == (#\=) ->
-            (   Vs = [] -> kill(MState), P =\= 0
-            ;   P =:= 0, Cs = [1,1,-1] ->
-                kill(MState), Vs = [A,B,C],
-                x_neq_y_plus_z(C, A, B)
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B],
-                x_neq_y_plus_z(A, B, P)
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B],
-                x_neq_y_plus_z(B, A, P)
-            ;   Vs = [V], Cs = [C] ->
-                kill(MState),
-                (   C =:= 1 -> neq_num(V, P)
-                ;   C*V #\= P
+        (   Vs = [] -> kill(MState), P =\= 0
+        ;   Vs = [V], Cs = [C] ->
+            kill(MState),
+            (   C =:= 1 -> neq_num(V, P)
+            ;   C*V #\= P
+            )
+        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(A, B, P)
+        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], x_neq_y_plus_z(B, A, P)
+        ;   P =:= 0, Cs = [1,1,-1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(C, A, B)
+        ;   P =:= 0, Cs = [1,-1,1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(B, A, C)
+        ;   P =:= 0, Cs = [-1,1,1] ->
+            kill(MState), Vs = [A,B,C], x_neq_y_plus_z(A, B, C)
+        ;   true
+        ).
+
+run_propagator(scalar_product_leq(Cs0,Vs0,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Vs = [] -> kill(MState), P >= 0
+        ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
+            D1 is P - Inf,
+            disable_queue,
+            (   Infs == [], Sups == [] ->
+                Inf =< P,
+                (   Sup =< P -> kill(MState)
+                ;   remove_dist_upper_leq(Cs, Vs, D1)
                 )
+            ;   Infs == [] -> Inf =< P, remove_dist_upper(Sups, D1)
+            ;   Sups = [_], Infs = [_] ->
+                remove_upper(Infs, D1)
+            ;   Infs = [_] -> remove_upper(Infs, D1)
             ;   true
-            )
-        ;   Op == (#=) ->
-            (   Vs = [] -> kill(MState), P =:= 0
-            ;   Vs = [V], Cs = [C] ->
-                kill(MState),
-                P mod C =:= 0,
-                V is P // C
-            ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
-            ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
-            ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
-            ;   P =:= 0, Cs == [1,1,-1] ->
-                kill(MState), Vs = [A,B,C], A + B #= C
-            ;   P =:= 0, Cs == [1,-1,1] ->
-                kill(MState), Vs = [A,B,C], A + C #= B
-            ;   P =:= 0, Cs == [-1,1,1] ->
-                kill(MState), Vs = [A,B,C], B + C #= A
-            ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
-                % nl, write(Infs-Sups-Inf-Sup), nl,
-                D1 is P - Inf,
-                D2 is Sup - P,
-                disable_queue,
-                (   Infs == [], Sups == [] ->
-                    between(Inf, Sup, P),
-                    remove_dist_upper_lower(Cs, Vs, D1, D2)
-                ;   Sups = [] ->
-                    P =< Sup,
-                    remove_dist_lower(Infs, D2)
-                ;   Infs = [] ->
-                    Inf =< P,
-                    remove_dist_upper(Sups, D1)
-                ;   Sups = [_], Infs = [_] ->
-                    remove_lower(Sups, D2),
-                    remove_upper(Infs, D1)
-                ;   Infs = [_] ->
-                    remove_upper(Infs, D1)
-                ;   Sups = [_] ->
-                    remove_lower(Sups, D2)
-                ;   true
-                ),
-                enable_queue
-            )
+            ),
+            enable_queue
+        ).
+
+run_propagator(scalar_product_eq(Cs0,Vs0,P0), MState) :-
+        coeffs_variables_const(Cs0, Vs0, Cs, Vs, 0, I),
+        P is P0 - I,
+        (   Vs = [] -> kill(MState), P =:= 0
+        ;   Vs = [V], Cs = [C] -> kill(MState), P mod C =:= 0, V is P // C
+        ;   Cs == [1,1] -> kill(MState), Vs = [A,B], A + B #= P
+        ;   Cs == [1,-1] -> kill(MState), Vs = [A,B], A #= P + B
+        ;   Cs == [-1,1] -> kill(MState), Vs = [A,B], B #= P + A
+        ;   Cs == [-1,-1] -> kill(MState), Vs = [A,B], P1 is -P, A + B #= P1
+        ;   P =:= 0, Cs == [1,1,-1] -> kill(MState), Vs = [A,B,C], A + B #= C
+        ;   P =:= 0, Cs == [1,-1,1] -> kill(MState), Vs = [A,B,C], A + C #= B
+        ;   P =:= 0, Cs == [-1,1,1] -> kill(MState), Vs = [A,B,C], B + C #= A
+        ;   sum_finite_domains(Cs, Vs, Infs, Sups, 0, 0, Inf, Sup),
+            % nl, writeln(Infs-Sups-Inf-Sup),
+            D1 is P - Inf,
+            D2 is Sup - P,
+            disable_queue,
+            (   Infs == [], Sups == [] ->
+                between(Inf, Sup, P),
+                remove_dist_upper_lower(Cs, Vs, D1, D2)
+            ;   Sups = [] -> P =< Sup, remove_dist_lower(Infs, D2)
+            ;   Infs = [] -> Inf =< P, remove_dist_upper(Sups, D1)
+            ;   Sups = [_], Infs = [_] ->
+                remove_lower(Sups, D2),
+                remove_upper(Infs, D1)
+            ;   Infs = [_] -> remove_upper(Infs, D1)
+            ;   Sups = [_] -> remove_lower(Sups, D2)
+            ;   true
+            ),
+            enable_queue
         ).
 
 % X + Y = Z
 run_propagator(pplus(X,Y,Z), MState) :-
         (   nonvar(X) ->
             (   X =:= 0 -> kill(MState), Y = Z
+            ;   Y == Z -> kill(MState), X =:= 0
             ;   nonvar(Y) -> kill(MState), Z is X + Y
             ;   nonvar(Z) -> kill(MState), Y is Z - X
             ;   fd_get(Z, ZD, ZPs),
@@ -3147,6 +3468,8 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 )
             )
         ;   (   X == Y -> kill(MState), 2*X #= Z
+            ;   X == Z -> kill(MState), Y = 0
+            ;   Y == Z -> kill(MState), X = 0
             ;   fd_get(X, XD, XL, XU, XPs), fd_get(Y, YD, YL, YU, YPs),
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
@@ -3466,8 +3789,8 @@ run_propagator(pmax(X,Y,Z), MState) :-
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
             fd_get(Y, YD, YInf, YSup, _),
-            (   YInf cis_gt YSup -> Z = Y
-            ;   YSup cis_lt XInf -> Z = X
+            (   YInf cis_gt YSup -> kill(MState), Z = Y
+            ;   YSup cis_lt XInf -> kill(MState), Z = X
             ;   n(M) cis max(XSup, YSup) ->
                 domain_remove_greater_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
@@ -3501,8 +3824,8 @@ run_propagator(pmin(X,Y,Z), MState) :-
         ;   fd_get(Z, ZD, ZPs) ->
             fd_get(X, _, XInf, XSup, _),
             fd_get(Y, YD, YInf, YSup, _),
-            (   YSup cis_lt YInf -> Z = Y
-            ;   YInf cis_gt XSup -> Z = X
+            (   YSup cis_lt YInf -> kill(MState), Z = Y
+            ;   YInf cis_gt XSup -> kill(MState), Z = X
             ;   n(M) cis min(XInf, YInf) ->
                 domain_remove_smaller_than(ZD, M, ZD1),
                 fd_put(Z, ZD1, ZPs)
@@ -3521,7 +3844,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ;   nonvar(X), nonvar(Y) ->
             ( Y >= 0 -> true ; X =:= -1 ),
             kill(MState),
-            Z is X**Y
+            Z is X^Y
         ;   nonvar(Z), nonvar(Y) ->
             integer_kth_root(Z, Y, R),
             kill(MState),
@@ -3543,10 +3866,10 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   neq_num(Z, 0)
                 ),
                 (   XL = n(NXL), NXL >= 0 ->
-                    NZL is NXL ** Y,
+                    NZL is NXL ^ Y,
                     domain_remove_smaller_than(ZD, NZL, ZD1),
                     (   XU = n(NXU) ->
-                        NZU is NXU ** Y,
+                        NZU is NXU ^ Y,
                         domain_remove_greater_than(ZD1, NZU, ZD2)
                     ;   ZD2 = ZD1
                     ),
@@ -3625,31 +3948,31 @@ run_propagator(reified_fd(V,B), MState) :-
 
 % The result of X/Y and X mod Y is undefined iff Y is 0.
 
-run_propagator(reified_div(X,Y,D,Z), MState) :-
+run_propagator(reified_div(X,Y,D,Skel,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), Z #= X / Y
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, Z #= X / Y
+        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
+        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
         ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
             kill(MState),
-            D = 1, Z #= X / Y
+            D = 1, skeleton([X,Y,Z], Skel)
         ;   true
         ).
 
-run_propagator(reified_mod(X,Y,D,Z), MState) :-
+run_propagator(reified_mod(X,Y,D,Skel,Z), MState) :-
         (   Y == 0 -> kill(MState), D = 0
-        ;   D == 1 -> kill(MState), Z #= X mod Y
-        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, Z #= X mod Y
+        ;   D == 1 -> kill(MState), neq_num(Y, 0), skeleton([X,Y,Z], Skel)
+        ;   integer(Y), Y =\= 0 -> kill(MState), D = 1, skeleton([X,Y,Z], Skel)
         ;   fd_get(Y, YD, _), \+ domain_contains(YD, 0) ->
             kill(MState),
-            D = 1, Z #= X mod Y
+            D = 1, skeleton([X,Y,Z], Skel)
         ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, geq(X, Y)
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
@@ -3658,21 +3981,21 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
                         kill(MState),
                         (   X >= Y -> B = 1 ; B = 0 )
                     ;   fd_get(Y, _, YL, YU, _),
-                        (   n(X) cis_geq YU -> kill(MState), B = 1
-                        ;   n(X) cis_lt YL -> kill(MState), B = 0
+                        (   n(X) cis_geq YU -> kill(MState, Ps), B = 1
+                        ;   n(X) cis_lt YL -> kill(MState, Ps), B = 0
                         ;   true
                         )
                     )
                 ;   nonvar(Y) ->
                     fd_get(X, _, XL, XU, _),
-                    (   XL cis_geq n(Y) -> kill(MState), B = 1
-                    ;   XU cis_lt n(Y) -> kill(MState), B = 0
+                    (   XL cis_geq n(Y) -> kill(MState, Ps), B = 1
+                    ;   XU cis_lt n(Y) -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_geq YU -> kill(MState), B = 1
-                    ;   XU cis_lt YL -> kill(MState), B = 0
+                    (   XL cis_geq YU -> kill(MState, Ps), B = 1
+                    ;   XU cis_lt YL -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 )
@@ -3683,9 +4006,9 @@ run_propagator(reified_geq(DX,X,DY,Y,B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+run_propagator(reified_eq(DX,X,DY,Y,Ps,B), MState) :-
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, X = Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
@@ -3695,15 +4018,15 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
                         (   X =:= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   kill(MState), B = 0
+                        ;   kill(MState, Ps), B = 0
                         )
                     )
-                ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,B), MState)
+                ;   nonvar(Y) -> run_propagator(reified_eq(DY,Y,DX,X,Ps,B), MState)
                 ;   X == Y -> kill(MState), B = 1
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> kill(MState), B = 0
-                    ;   YL cis_gt XU -> kill(MState), B = 0
+                    (   XL cis_gt YU -> kill(MState, Ps), B = 0
+                    ;   YL cis_gt XU -> kill(MState, Ps), B = 0
                     ;   true
                     )
                 )
@@ -3713,9 +4036,9 @@ run_propagator(reified_eq(DX,X,DY,Y,B), MState) :-
         ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
-        (   DX == 0 -> kill(MState), B = 0
-        ;   DY == 0 -> kill(MState), B = 0
+run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
+        (   DX == 0 -> kill(MState, Ps), B = 0
+        ;   DY == 0 -> kill(MState, Ps), B = 0
         ;   B == 1 -> kill(MState), DX = 1, DY = 1, X #\= Y
         ;   DX == 1, DY == 1 ->
             (   var(B) ->
@@ -3725,15 +4048,16 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
                         (   X =\= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   B = 1
+                        ;   kill(MState, Ps),
+                            B = 1
                         )
                     )
-                ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,B), MState)
+                ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,Ps,B), MState)
                 ;   X == Y -> B = 0
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
-                    (   XL cis_gt YU -> kill(MState), B = 1
-                    ;   YL cis_gt XU -> kill(MState), B = 1
+                    (   XL cis_gt YU -> kill(MState, Ps), B = 1
+                    ;   YL cis_gt XU -> kill(MState, Ps), B = 1
                     ;   true
                     )
                 )
@@ -3743,39 +4067,27 @@ run_propagator(reified_neq(DX,X,DY,Y,B), MState) :-
         ;   true
         ).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_and(X,Y,B), MState) :-
-        (   var(B) ->
-            (   nonvar(X) ->
-                (   X =:= 0 -> B = 0
-                ;   X =:= 1 -> B = Y
-                )
-            ;   nonvar(Y) -> run_propagator(reified_and(Y,X,B), MState)
-            ;   true
+run_propagator(reified_and(X,Ps1,Y,Ps2,B), MState) :-
+        (   nonvar(X) ->
+            kill(MState),
+            (   X =:= 0 -> maplist(kill_entailed, Ps2), B = 0
+            ;   B = Y
             )
-        ;   B =:= 0 ->
-            (   X == 1 -> kill(MState), Y = 0
-            ;   Y == 1 -> kill(MState), X = 0
-            ;   true
-            )
-        ;   B =:= 1 -> kill(MState), X = 1, Y = 1
+        ;   nonvar(Y) -> run_propagator(reified_and(Y,Ps2,X,Ps1,B), MState)
+        ;   B == 1 -> kill(MState), X = 1, Y = 1
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(reified_or(X,Y,B), MState) :-
-        (   var(B) ->
-            (   nonvar(X) ->
-                (   X =:= 1 -> B = 1
-                ;   X =:= 0 -> B = Y
-                )
-            ;   nonvar(Y) -> run_propagator(reified_or(Y,X,B), MState)
-            ;   true
+run_propagator(reified_or(X,Ps1,Y,Ps2,B), MState) :-
+        (   nonvar(X) ->
+            kill(MState),
+            (   X =:= 1 -> maplist(kill_entailed, Ps2), B = 1
+            ;   B = Y
             )
-        ;   B =:= 0 -> kill(MState), X = 0, Y = 0
-        ;   B =:= 1 ->
-            (   X == 0 -> Y = 1
-            ;   Y == 0 -> X = 1
-            ;   true
-            )
+        ;   nonvar(Y) -> run_propagator(reified_or(Y,Ps2,X,Ps1,B), MState)
+        ;   B == 0 -> kill(MState), X = 0, Y = 0
+        ;   true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3788,26 +4100,17 @@ run_propagator(reified_not(X,Y), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(pimpl(X, Y), MState) :-
+run_propagator(pimpl(X, Y, Ps), MState) :-
         (   nonvar(X) ->
-            (   X =:= 1 -> kill(MState), Y = 1
-            ;   kill(MState)
+            kill(MState),
+            (   X =:= 1 -> Y = 1
+            ;   maplist(kill_entailed, Ps)
             )
         ;   nonvar(Y) ->
-            (   Y =:= 0 -> kill(MState), X = 0
-            ;   kill(MState)
+            kill(MState),
+            (   Y =:= 0 -> X = 0
+            ;   maplist(kill_entailed, Ps)
             )
-        ;   true
-        ).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-run_propagator(por(X, Y, Z), MState) :-
-        (   nonvar(X) ->
-            (   X =:= 0 -> Y = Z
-            ;   X =:= 1 -> Z = 1
-            )
-        ;   nonvar(Y) -> run_propagator(por(Y,X,Z), MState)
         ;   true
         ).
 
@@ -3846,6 +4149,353 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Régin's algorithm for constraints of difference
+
+regin_attach(Ls) :-
+         must_be(list, Ls),
+         maplist(fd_variable, Ls),
+         make_propagator(regin(Ls), Prop),
+         regin_attach(Ls, Prop, []),
+         trigger_prop(Prop),
+         do_queue.
+
+regin_attach([], _, _).
+regin_attach([X|Xs], Prop, Right) :-
+        (   var(X) ->
+            init_propagator(X, Prop),
+            make_propagator(pexclude(Xs,Right,X), P1),
+            init_propagator(X, P1),
+            trigger_prop(P1)
+        ;   exclude_fire(Xs, Right, X)
+        ),
+        regin_attach(Xs, Prop, [X|Right]).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   For each integer of the union of domains, an attributed variable is
+   introduced, to benefit from constant-time access. Attributes are:
+
+   value ... integer corresponding to the node
+   free  ... whether this (right) node is still free
+   edges ... [flow_from(F,From)] and [flow_to(F,To)] where F has an
+             attribute "flow" that is either 0 or 1 and an attribute "used"
+             if it is part of a maximum matching
+   parent ... used in breadth-first search
+   g0_edges ... [flow_to(F,To)] as above
+   visited ... true if node was visited in DFS
+   index, in_stack, lowlink ... used in Tarjan's SCC algorithm
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+difference_arcs(Vars, FreeLeft, FreeRight) :-
+        empty_assoc(E),
+        difference_arcs(Vars, FreeLeft, E, NumVar),
+        assoc_to_list(NumVar, LsNumVar),
+        pairs_values(LsNumVar, FreeRight).
+
+domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
+
+domain_to_list(split(_, Left, Right)) -->
+        domain_to_list(Left), domain_to_list(Right).
+domain_to_list(empty)                 --> [].
+domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
+
+difference_arcs([], [], NumVar, NumVar).
+difference_arcs([V|Vs], FL0, NumVar0, NumVar) :-
+        (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
+            FL0 = [V|FL],
+            enumerate(Ns, V, NumVar0, NumVar1),
+            difference_arcs(Vs, FL, NumVar1, NumVar)
+        ;   difference_arcs(Vs, FL0, NumVar0, NumVar)
+        ).
+
+enumerate([], _, NumVar, NumVar).
+enumerate([N|Ns], V, NumVar0, NumVar) :-
+        put_attr(F, flow, 0),
+        (   get_assoc(N, NumVar0, Y) ->
+            get_attr(Y, edges, Es),
+            put_attr(Y, edges, [flow_from(F,V)|Es]),
+            NumVar0 = NumVar1
+        ;   put_assoc(N, NumVar0, Y, NumVar1),
+            put_attr(Y, value, N),
+            put_attr(Y, edges, [flow_from(F,V)])
+        ),
+        (   get_attr(V, edges, Es1) ->
+            put_attr(V, edges, [flow_to(F,Y)|Es1])
+        ;   put_attr(V, edges, [flow_to(F,Y)])
+        ),
+        enumerate(Ns, V, NumVar1, NumVar).
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Strategy: Breadth-first search until we find a free right vertex in
+   the value graph, then find an augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+clear_parent(V) :- del_attr(V, parent).
+
+maximum_matching([]).
+maximum_matching([FL|FLs]) :-
+        augmenting_path_to(1, [[FL]], Levels, To),
+        phrase(augmenting_path(To, FL), Path),
+        maplist(maplist(clear_parent), Levels),
+        del_attr(To, free),
+        adjust_alternate_1(Path),
+        maximum_matching(FLs).
+
+reachables_right([]) --> [].
+reachables_right([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_right_(Es, V),
+        reachables_right(Vs).
+
+reachables_right_([], _) --> [].
+reachables_right_([flow_to(F,To)|Es], V) -->
+        (   { get_attr(F, flow, 0),
+              \+ get_attr(To, parent, _) } ->
+            { put_attr(To, parent, V-F) },
+            [To]
+        ;   []
+        ),
+        reachables_right_(Es, V).
+
+
+reachables_left([]) --> [].
+reachables_left([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_left_(Es, V),
+        reachables_left(Vs).
+
+reachables_left_([], _) --> [].
+reachables_left_([flow_from(F,From)|Es], V) -->
+        (   { get_attr(F, flow, 1),
+              \+ get_attr(From, parent, _) } ->
+            { put_attr(From, parent, V-F) },
+            [From]
+        ;   []
+        ),
+        reachables_left_(Es, V).
+
+augmenting_path_to(Level, Levels0, Levels, Right) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
+        (   Level mod 2 =:= 1 ->
+            phrase(reachables_right(Vs), Tos)
+        ;   phrase(reachables_left(Vs), Tos)
+        ),
+        Tos = [_|_],
+        (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
+            Right = Free, Levels = Levels1
+        ;   Level1 is Level + 1,
+            augmenting_path_to(Level1, Levels1, Levels, Right)
+        ).
+
+augmenting_path(N, To) -->
+        (   { N == To } -> []
+        ;   { get_attr(N, parent, P-F) },
+            [F],
+            augmenting_path(P, To)
+        ).
+
+adjust_alternate_1([A|Arcs]) :-
+        put_attr(A, flow, 1),
+        adjust_alternate_0(Arcs).
+
+adjust_alternate_0([]).
+adjust_alternate_0([A|Arcs]) :-
+        put_attr(A, flow, 0),
+        adjust_alternate_1(Arcs).
+
+remove_ground([], _).
+remove_ground([V|Vs], R) :-
+        neq_num(V, R),
+        remove_ground(Vs, R).
+
+% Instead of applying Berge's property directly, we can translate the
+% problem in such a way, that we have to search for the so-called
+% strongly connected components of the graph.
+
+g_g0(V) :-
+        get_attr(V, edges, Es),
+        maplist(g_g0_(V), Es).
+
+g_g0_(V, flow_to(F,To)) :-
+        (   get_attr(F, flow, 1) ->
+            (   get_attr(V, g0_edges, Es) ->
+                put_attr(V, g0_edges, [flow_to(F,To)|Es])
+            ;   put_attr(V, g0_edges, [flow_to(F,To)])
+            )
+        ;   (   get_attr(To, g0_edges, Es1) ->
+                put_attr(To, g0_edges, [flow_to(F,V)|Es1])
+            ;   put_attr(To, g0_edges, [flow_to(F,V)])
+            )
+        ).
+
+
+g0_successors(V, Tos) :-
+        (   get_attr(V, g0_edges, Tos0) ->
+            maplist(arg(2), Tos0, Tos)
+        ;   Tos = []
+        ).
+
+put_free(F) :- put_attr(F, free, true).
+
+free_node(F) :-
+        get_attr(F, free, true),
+        del_attr(F, free).
+
+regin(Vars) :-
+        difference_arcs(Vars, FreeLeft, FreeRight0),
+        length(FreeLeft, LFL),
+        length(FreeRight0, LFR),
+        LFL =< LFR,
+        maplist(put_free, FreeRight0),
+        maximum_matching(FreeLeft),
+        sublist(free_node, FreeRight0, FreeRight),
+        maplist(g_g0, FreeLeft),
+        phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
+        maplist(dfs_used, FreeRight),
+        phrase(regin_goals(FreeLeft), Gs),
+        maplist(regin_clear_attributes, FreeLeft),
+        disable_queue,
+        maplist(call, Gs),
+        enable_queue.
+
+regin_clear_attributes(V) :-
+        (   get_attr(V, edges, Es) ->
+            del_attr(V, edges),
+            % parent and in_stack are already cleared
+            maplist(del_attr(V), [index,lowlink,value,visited]),
+            maplist(clear_edge, Es),
+            (   get_attr(V, g0_edges, Es1) ->
+                del_attr(V, g0_edges),
+                maplist(clear_edge, Es1)
+            ;   true
+            )
+        ;   true
+        ).
+
+
+clear_edge(flow_to(F, To)) :-
+        del_attr(F, flow),
+        del_attr(F, used),
+        regin_clear_attributes(To).
+clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
+
+
+regin_goals([]) --> [].
+regin_goals([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        regin_edges(Es, V),
+        regin_goals(Vs).
+
+regin_edges([], _) --> [].
+regin_edges([flow_to(F,To)|Es], V) -->
+        (   { get_attr(F, flow, 0),
+              \+ get_attr(F, used, true),
+              get_attr(V, lowlink, L1),
+              get_attr(To, lowlink, L2),
+              L1 =\= L2 } ->
+            { get_attr(To, value, N) },
+            [neq_num(V, N)]
+        ;   []
+        ),
+        regin_edges(Es, V).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Mark used edges.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+dfs_used(V) :-
+        (   get_attr(V, visited, true) -> true
+        ;   put_attr(V, visited, true),
+            (   get_attr(V, g0_edges, Es) ->
+                dfs_used_edges(Es)
+            ;   true
+            )
+        ).
+
+dfs_used_edges([]).
+dfs_used_edges([flow_to(F,To)|Es]) :-
+        put_attr(F, used, true),
+        dfs_used(To),
+        dfs_used_edges(Es).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Tarjan's strongly connected components algorithm.
+
+   DCGs are used to implicitly pass around the global index, stack
+   and the predicate relating a vertex to its successors.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+scc([])     --> [].
+scc([V|Vs]) -->
+        (   vindex_defined(V) -> scc(Vs)
+        ;   scc_(V), scc(Vs)
+        ).
+
+vindex_defined(V) --> { get_attr(V, index, _) }.
+
+vindex_is_index(V) -->
+        state(s(Index,_,_)),
+        { put_attr(V, index, Index) }.
+
+vlowlink_is_index(V) -->
+        state(s(Index,_,_)),
+        { put_attr(V, lowlink, Index) }.
+
+index_plus_one -->
+        state(s(I,Stack,Succ), s(I1,Stack,Succ)),
+        { I1 is I+1 }.
+
+s_push(V)  -->
+        state(s(I,Stack,Succ), s(I,[V|Stack],Succ)),
+        { put_attr(V, in_stack, true) }.
+
+vlowlink_min_lowlink(V, VP) -->
+        { get_attr(V, lowlink, VL),
+          get_attr(VP, lowlink, VPL),
+          VL1 is min(VL, VPL),
+          put_attr(V, lowlink, VL1) }.
+
+successors(V, Tos) --> state(s(_,_,Succ)), { call(Succ, V, Tos) }.
+
+scc_(V) -->
+        vindex_is_index(V),
+        vlowlink_is_index(V),
+        index_plus_one,
+        s_push(V),
+        successors(V, Tos),
+        each_edge(Tos, V),
+        (   { get_attr(V, index, VI),
+              get_attr(V, lowlink, VI) } -> pop_stack_to(V, VI)
+        ;   []
+        ).
+
+pop_stack_to(V, N) -->
+        state(s(I,[First|Stack],Succ), s(I,Stack,Succ)),
+        { del_attr(First, in_stack) },
+        (   { First == V } -> []
+        ;   { put_attr(First, lowlink, N) },
+            pop_stack_to(V, N)
+        ).
+
+each_edge([], _) --> [].
+each_edge([VP|VPs], V) -->
+        (   vindex_defined(VP) ->
+            (   v_in_stack(VP) ->
+                vlowlink_min_lowlink(V, VP)
+            ;   []
+            )
+        ;   scc_(VP),
+            vlowlink_min_lowlink(V, VP)
+        ),
+        each_edge(VPs, V).
+
+state(S), [S] --> [S].
+
+state(S0, S), [S] --> [S0].
+
+v_in_stack(V) --> { get_attr(V, in_stack, true) }.
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent all_distinct/1 constraint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3854,17 +4504,20 @@ max_divide(L1,U1,L2,U2,Max) :-
 %
 % Like all_different/1, with stronger propagation.
 
-%all_distinct(Ls) :- all_different(Ls).
-all_distinct(Ls) :-
-        must_be(list, Ls),
-        all_distinct(Ls, [], _),
-        do_queue.
+all_distinct(Ls) :- regin_attach(Ls).
+
+% all_distinct(Ls) :- all_different(Ls).
+% all_distinct(Ls) :-
+%         must_be(list, Ls),
+%         put_attr(O, clpfd_original, all_distinct(Ls)),
+%         all_distinct(Ls, [], O),
+%         do_queue.
 
 all_distinct([], _, _).
-all_distinct([X|Right], Left, MState) :-
+all_distinct([X|Right], Left, Orig) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(pdistinct(Left,Right,X,MState), Prop),
+            make_propagator(pdistinct(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -3873,20 +4526,11 @@ all_distinct([X|Right], Left, MState) :-
         ;   exclude_fire(Left, Right, X)
         ),
         outof_reducer(Left, Right, X),
-        all_distinct(Right, [X|Left], MState).
+        all_distinct(Right, [X|Left], Orig).
 
 exclude_fire(Left, Right, E) :-
-        exclude_list(Left, E),
-        exclude_list(Right, E).
-
-exclude_list([], _).
-exclude_list([V|Vs], Val) :-
-        (   fd_get(V, VD, VPs) ->
-            domain_remove(VD, Val, VD1),
-            fd_put(V, VD1, VPs)
-        ;   V =\= Val
-        ),
-        exclude_list(Vs, Val).
+        remove_ground(Left, E),
+        remove_ground(Right, E).
 
 list_contains([X|Xs], Y) :-
         (   X == Y -> true
@@ -3960,35 +4604,24 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 serialized(Starts, Durations) :-
         must_be(list(integer), Durations),
-        pair_up(Starts, Durations, SDs),
-        serialize(SDs, []),
-        do_queue.
-
-pair_up([], [], []).
-pair_up([A|As], [B|Bs], [A-n(B)|ABs]) :- pair_up(As, Bs, ABs).
-
-% attribute: pserialized(Var, Duration, Left, Right)
-%   Left and Right are lists of Start-Duration pairs representing
-%   other tasks occupying the same resource
+        pairs_keys_values(SDs, Starts, Durations),
+        put_attr(Orig, clpfd_original, serialized(Starts, Durations)),
+        serialize(SDs, Orig).
 
 serialize([], _).
-serialize([Start-D|SDs], Left) :-
-        cis_geq_zero(D),
-        (   var(Start) ->
-            make_propagator(pserialized(Start,D,Left,SDs), Prop),
-            init_propagator(Start, Prop),
-            trigger_prop(Prop)
-        ;   true
-        ),
-        myserialized(D, Left, SDs, Start),
-        serialize(SDs, [Start-D|Left]).
+serialize([S-D|SDs], Orig) :-
+        D >= 0,
+        serialize(SDs, S, D, Orig),
+        serialize(SDs, Orig).
+
+serialize([], _, _, _).
+serialize([S-D|Rest], S0, D0, Orig) :-
+        D >= 0,
+        propagator_init_trigger([S0,S], pserialized(S,D,S0,D0,Orig)),
+        serialize(Rest, S0, D0, Orig).
 
 % consistency check / propagation
 % Currently implements 2-b-consistency
-
-myserialized(Duration, Left, Right, Start) :-
-        myserialized(Left, Start, Duration),
-        myserialized(Right, Start, Duration).
 
 earliest_start_time(Start, EST) :-
         (   fd_get(Start, D, _) ->
@@ -4002,45 +4635,40 @@ latest_start_time(Start, LST) :-
         ;   LST = n(Start)
         ).
 
-myserialized([], _, _).
-myserialized([S_I-D_I|SDs], S_J, D_J) :-
+serialize_lower_upper(S_I, D_I, S_J, D_J, MState) :-
         (   var(S_I) ->
-            serialize_lower_bound(S_I, D_I, Start, D_J),
-            (   var(S_I) -> serialize_upper_bound(S_I, D_I, Start, D_J)
+            serialize_lower_bound(S_I, D_I, S_J, D_J, MState),
+            (   var(S_I) -> serialize_upper_bound(S_I, D_I, S_J, D_J, MState)
             ;   true
             )
-        ;   var(S_J) ->
-            serialize_lower_bound(S_J, D_J, S, D_I),
-            (   var(S_J) -> serialize_upper_bound(S_J, D_J, S, D_I)
-            ;   true
-            )
-        ;   D_I = n(D_II), D_J = n(D_JJ),
-            (   S_I + D_II =< S_J -> true
-            ;   S_J + D_JJ =< S_I -> true
-            ;   fail
-            )
-        ),
-        myserialized(SDs, S_J, D_J).
+        ;   true
+        ).
 
-serialize_lower_bound(I, D_I, J, D_J) :-
+serialize_lower_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_infimum(DomI, EST_I),
-        latest_start_time(J, LST_J),
-        (   Sum cis EST_I + D_I, Sum cis_gt LST_J ->
-            earliest_start_time(J, EST_J),
-            EST cis EST_J+D_J,
+        (   domain_infimum(DomI, n(EST_I)),
+            latest_start_time(J, n(LST_J)),
+            EST_I + D_I > LST_J,
+            earliest_start_time(J, n(EST_J)) ->
+            (   nonvar(J) -> kill(MState)
+            ;   true
+            ),
+            EST is EST_J+D_J,
             domain_remove_smaller_than(DomI, EST, DomI1),
             fd_put(I, DomI1, Ps)
         ;   true
         ).
 
-serialize_upper_bound(I, D_I, J, D_J) :-
+serialize_upper_bound(I, D_I, J, D_J, MState) :-
         fd_get(I, DomI, Ps),
-        domain_supremum(DomI, LST_I),
-        earliest_start_time(J, EST_J),
-        (   Sum cis EST_J + D_J, Sum cis_gt LST_I ->
-            latest_start_time(J, LST_J),
-            LST cis LST_J-D_I,
+        (   domain_supremum(DomI, n(LST_I)),
+            earliest_start_time(J, n(EST_J)),
+            EST_J + D_J > LST_I,
+            latest_start_time(J, n(LST_J)) ->
+            (   nonvar(J) -> kill(MState)
+            ;   true
+            ),
+            LST is LST_J-D_I,
             domain_remove_greater_than(DomI, LST, DomI1),
             fd_put(I, DomI1, Ps)
         ;   true
@@ -4048,18 +4676,451 @@ serialize_upper_bound(I, D_I, J, D_J) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%    element(?N, +Is, ?I)
+%%    element(?N, +Vs, ?V)
 %
-%     The N-th element of the list of integers Is is I. Analogous to nth1/3.
+%     The N-th element of the list of finite domain variables Vs is V.
+%     Analogous to nth1/3.
 
-element(N, Is, I) :-
+element(N, Is, V) :-
         must_be(list, Is),
         length(Is, L),
-        numlist(1, L, Ns),
-        maplist(twolist, Ns, Is, Rs),
-        tuples_in([[N,I]], Rs).
+        N in 1..L,
+        element_(Is, 1, N, V),
+        propagator_init_trigger(Is, pelement(N,Is,V)).
 
-twolist(N, I, [N,I]).
+element_domain(V, VD) :-
+        (   fd_get(V, VD, _) -> true
+        ;   VD = from_to(n(V), n(V))
+        ).
+
+domains_union([V|Vs], Dom) :-
+        element_domain(V, VD),
+        domains_union_(Vs, VD, Dom).
+
+domains_union_([], D, D).
+domains_union_([V|Vs], D0, D) :-
+        element_domain(V, VD),
+        domains_union(VD, D0, D1),
+        domains_union_(Vs, D1, D).
+
+element_([], _, _, _).
+element_([I|Is], N0, N, V) :-
+        I #\= V #==> N #\= N0,
+        N1 is N0 + 1,
+        element_(Is, N1, N, V).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%    global_cardinality(+Vs, +Pairs)
+%
+%     Vs is a list of finite domain variables, Pairs is a list of
+%     Key-Num pairs, where Key is an integer and Num is a finite
+%     domain variable. The constraint holds iff each V in Vs is equal
+%     to some key, and for each Key-Num pair in Pairs, the number of
+%     occurrences of Key in Vs is Num.
+
+global_cardinality(Xs, Pairs) :-
+        must_be(list, Xs),
+        maplist(fd_variable, Xs),
+        must_be(list, Pairs),
+        maplist(gcc_pair, Pairs),
+        pairs_keys_values(Pairs, Keys, Nums),
+        (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
+        ;   domain_error(gcc_unique_key_pairs, Pairs)
+        ),
+        length(Xs, L),
+        Nums ins 0..L,
+        list_to_domain(Keys, Dom),
+        domain_to_drep(Dom, Drep),
+        Xs ins Drep,
+        gcc_pairs(Pairs, Xs, Pairs1),
+        propagator_init_trigger(Xs, pgcc_check(Xs, Pairs, Pairs1)),
+        propagator_init_trigger(Xs, pgcc(Pairs1)).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   For each Key-Num0 pair, we introduce an auxiliary variable Num and
+   attach the following attributes to it:
+
+   clpfd_gcc_num: equal Num0, the user-visible counter variable
+   clpfd_gcc_vs: the remaining variables in the constraint that can be
+   equal Key.
+   clpfd_gcc_occurred: stores how often Key already occurred in vs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_pairs([], _, []).
+gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
+        put_attr(Num, clpfd_gcc_num, Num0),
+        put_attr(Num, clpfd_gcc_vs, Vs),
+        put_attr(Num, clpfd_gcc_occurred, 0),
+        (   var(Num0) ->
+            make_propagator(pgcc_check_single([Key-Num]), Prop),
+            init_propagator(Num0, Prop)
+        ;   true
+        ),
+        gcc_pairs(KNs, Vs, Rest).
+
+
+gcc_global(KNs) :-
+        gcc_arcs(KNs, S, T, Vals),
+        (   get_attr(S, edges, Es) ->
+            put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
+            feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
+            maximum_flow(S, T),        % only then, maximize it.
+            gcc_consistent(T),
+            del_attr(S, parent),
+            phrase(scc(Vals), [s(0,[],gcc_successors)], _),
+            phrase(gcc_goals(Vals), Gs),
+            gcc_clear(S),
+            maplist(call, Gs)
+        ;   true
+        ).
+
+gcc_consistent(T) :-
+        get_attr(T, edges, Es),
+        length(Es, N),
+        total_flow(Es, 0, F),
+        N =:= F.
+
+total_flow([], F, F).
+total_flow([arc_from(_,_,_,Flow)|As], F0, F) :-
+        get_attr(Flow, flow, FF),
+        F1 is F0 + FF,
+        total_flow(As, F1, F).
+
+gcc_goals([]) --> [].
+gcc_goals([Val|Vals]) -->
+        { get_attr(Val, edges, Es) },
+        gcc_edges_goals(Es, Val),
+        gcc_goals(Vals).
+
+gcc_edges_goals([], _) --> [].
+gcc_edges_goals([E|Es], Val) -->
+        gcc_edge_goal(E, Val),
+        gcc_edges_goals(Es, Val).
+
+gcc_edge_goal(arc_from(_,_,_,_), _) --> [].
+gcc_edge_goal(arc_to(_,_,V,F), Val) -->
+        (   { get_attr(F, flow, 0),
+              get_attr(V, lowlink, L1),
+              get_attr(Val, lowlink, L2),
+              L1 =\= L2,
+              get_attr(Val, value, Value) } ->
+            [neq_num(V, Value)]
+        ;   []
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Like in all_distinct/1, first use breadth-first search, then
+   construct an augmenting path in reverse.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+maximum_flow(S, T) :-
+        (   gcc_augmenting_path([[S]], Levels, T) ->
+            phrase(gcc_augmenting_path(S, T), Path),
+            Path = [augment(_,First,_)|Rest],
+            path_minimum(Rest, First, Min),
+            maplist(gcc_augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            maximum_flow(S, T)
+        ;   true
+        ).
+
+feasible_flow([], _, _).
+feasible_flow([A|As], S, T) :-
+        make_arc_feasible(A, S, T),
+        feasible_flow(As, S, T).
+
+make_arc_feasible(A, S, T) :-
+        A = arc_to(L,_,V,F),
+        get_attr(F, flow, Flow),
+        (   Flow >= L -> true
+        ;   Diff is L - Flow,
+            put_attr(V, parent, S-augment(F,Diff,+)),
+            gcc_augmenting_path([[V]], Levels, T),
+            phrase(gcc_augmenting_path(S, T), Path),
+            path_minimum(Path, Diff, Min),
+            maplist(gcc_augment(Min), Path),
+            maplist(maplist(clear_parent), Levels),
+            make_arc_feasible(A, S, T)
+        ).
+
+gcc_augmenting_path(Levels0, Levels, T) :-
+        Levels0 = [Vs|_],
+        Levels1 = [Tos|Levels0],
+        phrase(gcc_reachables(Vs), Tos),
+        Tos = [_|_],
+        (   member(To, Tos), To == T -> Levels = Levels1
+        ;   gcc_augmenting_path(Levels1, Levels, T)
+        ).
+
+gcc_reachables([])     --> [].
+gcc_reachables([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        gcc_reachables_(Es, V),
+        gcc_reachables(Vs).
+
+gcc_reachables_([], _)     --> [].
+gcc_reachables_([E|Es], V) -->
+        gcc_reachable(E, V),
+        gcc_reachables_(Es, V).
+
+gcc_reachable(arc_from(_,_,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              Flow > 0 } ->
+            { put_attr(V, parent, P-augment(F,Flow,-)) },
+            [V]
+        ;   []
+        ).
+gcc_reachable(arc_to(_L,U,V,F), P) -->
+        (   { \+ get_attr(V, parent, _),
+              get_attr(F, flow, Flow),
+              Flow < U } ->
+            { Diff is U - Flow,
+              put_attr(V, parent, P-augment(F,Diff,+)) },
+            [V]
+        ;   []
+        ).
+
+
+path_minimum([], Min, Min).
+path_minimum([augment(_,A,_)|As], Min0, Min) :-
+        Min1 is min(Min0,A),
+        path_minimum(As, Min1, Min).
+
+gcc_augment(Min, augment(F,_,Sign)) :-
+        get_attr(F, flow, Flow0),
+        gcc_flow_(Sign, Flow0, Min, Flow),
+        put_attr(F, flow, Flow).
+
+gcc_flow_(+, F0, A, F) :- F is F0 + A.
+gcc_flow_(-, F0, A, F) :- F is F0 - A.
+
+gcc_augmenting_path(S, V) -->
+        (   { V == S } -> []
+        ;   { get_attr(V, parent, V1-Augment) },
+            [Augment],
+            gcc_augmenting_path(S, V1)
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Build value network for global cardinality constraint.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_arcs([], _, _, []).
+gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
+        (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
+            get_attr(Num0, clpfd_gcc_num, Num),
+            get_attr(Num0, clpfd_gcc_occurred, Occ),
+            (   nonvar(Num) -> U is Num - Occ, U = L
+            ;   fd_get(Num, _, n(L0), n(U0), _),
+                L is L0 - Occ, U is U0 - Occ
+            ),
+            put_attr(Val, value, Key),
+            Vals = [Val|Rest],
+            Edge = arc_to(L, U, Val, F),
+            put_attr(F, flow, 0),
+            (   get_attr(S, edges, SEs) ->
+                put_attr(S, edges, [Edge|SEs])
+            ;   put_attr(S, edges, [Edge])
+            ),
+            put_attr(Val, edges, [arc_from(L, U, S, F)]),
+            connect_vs_to_target(Vs, Val, T)
+        ;   Vals = Rest
+        ),
+        gcc_arcs(KNs, S, T, Rest).
+
+connect_vs_to_target([], _, _).
+connect_vs_to_target([V|Vs], Val, T) :-
+        put_attr(F2, flow, 0),
+        (   get_attr(V, edges, VarEs) -> true
+        ;   VarEs = []
+        ),
+        (   get_attr(V, arc_to_t, _) ->
+            put_attr(V, edges, [arc_from(0, 1, Val, F2)|VarEs])
+        ;   put_attr(V, arc_to_t, _),
+            put_attr(F1, flow, 0),
+            put_attr(V, edges, [arc_to(0, 1, T, F1), arc_from(0, 1, Val, F2)|VarEs]),
+            TE = arc_from(0, 1, V, F1),
+            (   get_attr(T, edges, TEs) ->
+                put_attr(T, edges, [TE|TEs])
+            ;   put_attr(T, edges, [TE])
+            )
+        ),
+        get_attr(Val, edges, VEs),
+        put_attr(Val, edges, [arc_to(0, 1, V, F2)|VEs]),
+        connect_vs_to_target(Vs, Val, T).
+
+gcc_clear(V) :-
+        (   get_attr(V, edges, Es) ->
+            maplist(del_attr(V), [arc_to_t,edges,index,lowlink,value]),
+            maplist(gcc_clear_edge, Es)
+        ;   true
+        ).
+
+gcc_clear_edge(arc_to(_,_,V,F)) :-
+        del_attr(F, flow),
+        gcc_clear(V).
+gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
+
+
+gcc_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        phrase(gcc_successors_(Tos0), Tos).
+
+gcc_successors_([])     --> [].
+gcc_successors_([E|Es]) --> gcc_succ_edge(E), gcc_successors_(Es).
+
+gcc_succ_edge(arc_to(_,U,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow < U } -> [V]
+        ;   []
+        ).
+gcc_succ_edge(arc_from(_,_,V,F)) -->
+        (   { get_attr(F, flow, Flow),
+              Flow > 0 } -> [V]
+        ;   []
+        ).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Simple consistency check, run before global propagation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gcc_done(Num) :-
+        del_attr(Num, clpfd_gcc_vs),
+        del_attr(Num, clpfd_gcc_num),
+        del_attr(Num, clpfd_gcc_occurred).
+
+gcc_check([]).
+gcc_check([Key-Num0|KNs]) :-
+        (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
+            get_attr(Num0, clpfd_gcc_num, Num),
+            get_attr(Num0, clpfd_gcc_occurred, Occ0),
+            vs_key_min_others(Vs, Key, 0, Min, Os),
+            put_attr(Num0, clpfd_gcc_vs, Os),
+            put_attr(Num0, clpfd_gcc_occurred, Occ1),
+            Occ1 is Occ0 + Min,
+            % The queue must be disabled when posting constraints
+            % here, otherwise the stored (new) occurrences can differ
+            % from the (old) ones used in the following.
+            geq(Num, Occ1),
+            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            ;   Os == [] -> gcc_done(Num0), Num = Occ1
+            ;   length(Os, L),
+                Max is Occ1 + L,
+                geq(Max, Num),
+                (   nonvar(Num) -> Diff is Num - Occ1
+                ;   fd_get(Num, ND, _),
+                    domain_infimum(ND, n(NInf)),
+                    Diff is NInf - Occ1
+                ),
+                L >= Diff,
+                (   L =:= Diff -> gcc_done(Num0), Num is Occ1 + Diff, maplist(=(Key), Os)
+                ;   true
+                )
+            )
+        ;   true
+        ),
+        gcc_check(KNs).
+
+vs_key_min_others([], _, Min, Min, []).
+vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
+        (   fd_get(V, VD, _) ->
+            (   domain_contains(VD, Key) ->
+                Others = [V|Rest],
+                vs_key_min_others(Vs, Key, Min0, Min, Rest)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
+            )
+        ;   (   V =:= Key ->
+                Min1 is Min0 + 1,
+                vs_key_min_others(Vs, Key, Min1, Min, Others)
+            ;   vs_key_min_others(Vs, Key, Min0, Min, Others)
+            )
+        ).
+
+all_neq([], _).
+all_neq([X|Xs], C) :-
+        neq_num(X, C),
+        all_neq(Xs, C).
+
+gcc_pair(Pair) :-
+        (   Pair = Key-Val ->
+            must_be(integer, Key),
+            fd_variable(Val)
+        ;   domain_error(gcc_pair, Pair)
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%    circuit(+Vs)
+%
+%     True if the list Vs of finite domain variables induces a
+%     Hamiltonian circuit, where the k-th element of Vs denotes the
+%     successor of node k. Node indexing starts with 1.
+
+circuit(Vs) :-
+        must_be(list, Vs),
+        maplist(fd_variable, Vs),
+        length(Vs, L),
+        Vs ins 1..L,
+        (   L =:= 1 -> true
+        ;   all_circuit(Vs, 1),
+            make_propagator(pcircuit(Vs), Prop),
+            regin_attach(Vs, Prop, []),
+            trigger_prop(Prop),
+            do_queue
+        ).
+
+all_circuit([], _).
+all_circuit([X|Xs], N) :-
+        neq_num(X, N),
+        N1 is N + 1,
+        all_circuit(Xs, N1).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Necessary condition for existence of a Hamiltonian circuit: The
+   graph has a single strongly connected component. If the list is
+   ground, the condition is also sufficient.
+
+   Ts are used as temporary variables to attach attributes:
+
+   lowlink, index: used for SCC
+   [arc_to(V)]: possible successors
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+propagate_circuit(Vs) :-
+        length(Vs, N),
+        length(Ts, N),
+        circuit_graph(Vs, Ts, Ts),
+        phrase(scc(Ts), [s(0,[],circuit_successors)], _),
+        (   maplist(single_component, Ts) -> Continuation = true
+        ;   Continuation = false
+        ),
+        maplist(del_attrs, Ts),
+        Continuation.
+
+single_component(V) :- get_attr(V, lowlink, 0).
+
+circuit_graph([], _, _).
+circuit_graph([V|Vs], Ts0, [T|Ts]) :-
+        put_attr(T, clpfd_var, V),
+        (   nonvar(V) -> Ns = [V]
+        ;   fd_get(V, Dom, _),
+            domain_to_list(Dom, Ns)
+        ),
+        phrase(circuit_edges(Ns, Ts0), Es),
+        put_attr(T, edges, Es),
+        circuit_graph(Vs, Ts0, Ts).
+
+circuit_edges([], _) --> [].
+circuit_edges([N|Ns], Ts) -->
+        { nth1(N, Ts, T) },
+        [arc_to(T)],
+        circuit_edges(Ns, Ts).
+
+circuit_successors(V, Tos) :-
+        get_attr(V, edges, Tos0),
+        maplist(arg(1), Tos0, Tos).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4090,10 +5151,7 @@ zcompare(Order, A, B) :-
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
-            make_propagator(pzcompare(Order, A, B), Prop),
-            init_propagator(A, Prop),
-            init_propagator(B, Prop),
-            trigger_once(Prop)
+            propagator_init_trigger(pzcompare(Order, A, B))
         ).
 
 zcompare_(=, A, B) :- A #= B.
@@ -4285,89 +5343,115 @@ attribute_goals(X) -->
         attributes_goals(Ps).
 
 clpfd_aux:attribute_goals(_) --> [].
+clpfd_aux:attr_unify_hook(_,_) :- false.
+
+clpfd_gcc_vs:attribute_goals(_) --> [].
+clpfd_gcc_vs:attr_unify_hook(_,_) :- false.
+
+clpfd_gcc_num:attribute_goals(_) --> [].
+clpfd_gcc_num:attr_unify_hook(_,_) :- false.
+
+clpfd_gcc_occurred:attribute_goals(_) --> [].
+clpfd_gcc_occurred:attr_unify_hook(_,_) :- false.
+
+clpfd_relation:attribute_goals(_) --> [].
+clpfd_relation:attr_unify_hook(_,_) :- false.
+
+clpfd_original:attribute_goals(_) --> [].
+clpfd_original:attr_unify_hook(_,_) :- false.
 
 attributes_goals([]) --> [].
 attributes_goals([propagator(P, State)|As]) -->
         (   { ground(State) } -> []
-        ;   { ( functor(P, pdifferent, _) ; functor(P, pdistinct, _) ),
-              arg(4, P, S), S == processed } -> []
-        ;   { attribute_goal_(P, G) } ->
+        ;   { phrase(attribute_goal_(P), Gs) } ->
             { del_attr(State, clpfd_aux), State = processed },
-            [clpfd:G]
+            with_clpfd(Gs)
         ;   [P] % possibly user-defined constraint
         ),
         attributes_goals(As).
 
-attribute_goal_(presidual(Goal), Goal).
-attribute_goal_(pgeq(A,B), A #>= B).
-attribute_goal_(pplus(X,Y,Z), X + Y #= Z).
-attribute_goal_(pneq(A,B), A #\= B).
-attribute_goal_(ptimes(X,Y,Z), X*Y #= Z).
-attribute_goal_(absdiff_neq(X,Y,C), abs(X-Y) #\= C).
-attribute_goal_(x_neq_y_plus_z(X,Y,Z), X #\= Y + Z).
-attribute_goal_(x_leq_y_plus_c(X,Y,C), X #=< Y + C).
-attribute_goal_(pdiv(X,Y,Z), X/Y #= Z).
-attribute_goal_(pexp(X,Y,Z), X^Y #= Z).
-attribute_goal_(pabs(X,Y), Y #= abs(X)).
-attribute_goal_(pmod(X,M,K), X mod M #= K).
-attribute_goal_(pmax(X,Y,Z), Z #= max(X,Y)).
-attribute_goal_(pmin(X,Y,Z), Z #= min(X,Y)).
-attribute_goal_(scalar_product(Cs,Vs,Op,C), Goal) :-
-        Cs = [FC|Cs1], Vs = [FV|Vs1],
-        coeff_var_term(FC, FV, T0),
-        unfold_product(Cs1, Vs1, T0, Left),
-        Goal =.. [Op,Left,C].
-attribute_goal_(pdifferent(Left, Right, X, Shared), all_different(Vs)) :-
-        append(Left, [X|Right], Vs0),
-        msort(Vs0, Vs),
-        Shared = processed.
-attribute_goal_(pdistinct(Left, Right, X, Shared), all_distinct(Vs)) :-
-        append(Left, [X|Right], Vs0),
-        msort(Vs0, Vs),
-        Shared = processed.
-attribute_goal_(pserialized(Var,D,Left,Right), serialized(Vs, Ds)) :-
-        append(Left, [Var-D|Right], VDs),
-        pair_up(Vs, Ds, VDs).
-attribute_goal_(rel_tuple(mutable(Rel,_), Tuple), tuples_in([Tuple], Rel)).
-attribute_goal_(pzcompare(O,A,B), zcompare(O,A,B)).
+with_clpfd([])     --> [].
+with_clpfd([G|Gs]) --> [clpfd:G], with_clpfd(Gs).
+
+attribute_goal_(presidual(Goal))       --> [Goal].
+attribute_goal_(pgeq(A,B))             --> [A #>= B].
+attribute_goal_(pplus(X,Y,Z))          --> [X + Y #= Z].
+attribute_goal_(pneq(A,B))             --> [A #\= B].
+attribute_goal_(ptimes(X,Y,Z))         --> [X*Y #= Z].
+attribute_goal_(absdiff_neq(X,Y,C))    --> [abs(X-Y) #\= C].
+attribute_goal_(absdiff_geq(X,Y,C))    --> [abs(X-Y) #>= C].
+attribute_goal_(x_neq_y_plus_z(X,Y,Z)) --> [X #\= Y + Z].
+attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [X #=< Y + C].
+attribute_goal_(pdiv(X,Y,Z))           --> [X/Y #= Z].
+attribute_goal_(pexp(X,Y,Z))           --> [X^Y #= Z].
+attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
+attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
+attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
+attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
+attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
+        [Left #\= C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
+        [Left #= C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
+        [Left #=< C],
+        { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
+attribute_goal_(pdifferent(_,_,_,O)) --> original_goal(O).
+attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
+attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
+attribute_goal_(pexclude(_,_,_))  --> [].
+attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
+attribute_goal_(pgcc(_))          --> [].
+attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
+        [global_cardinality(Vs, Pairs)].
+attribute_goal_(pgcc_check_single(_)) --> [].
+attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
+attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
+attribute_goal_(rel_tuple(R, Tuple)) -->
+        { get_attr(R, clpfd_relation, Rel) },
+        [tuples_in([Tuple], Rel)].
+attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
 % reified constraints
-attribute_goal_(reified_in(V, D, B), V in Drep #<==> B) :-
-        domain_to_drep(D, Drep).
-attribute_goal_(reified_fd(V,B), finite_domain(V) #<==> B).
-attribute_goal_(reified_neq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #\= Y) #<==> B).
-attribute_goal_(reified_eq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #= Y) #<==> B).
-attribute_goal_(reified_geq(DX, X, DY, Y, B), (DX #/\ DY #/\ X #>= Y) #<==> B).
-attribute_goal_(reified_div(X, Y, D, Z), (D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(reified_mod(X, Y, D, Z), (D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1)).
-attribute_goal_(por(X,Y,Z), X #\/ Y #<==> Z).
-attribute_goal_(reified_and(X, Y, B), X #/\ Y #<==> B).
-attribute_goal_(reified_or(X, Y, B), X #\/ Y #<==> B).
-attribute_goal_(reified_not(X, Y), #\ X #<==> Y).
-attribute_goal_(pimpl(X, Y), X #==> Y).
+attribute_goal_(reified_in(V, D, B)) -->
+        [V in Drep #<==> B],
+        { domain_to_drep(D, Drep) }.
+attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
+attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
+attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
+attribute_goal_(reified_geq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X #>= Y, B).
+attribute_goal_(reified_div(X,Y,D,_,Z)) -->
+        [D #= 1 #==> X / Y #= Z, Y #\= 0 #==> D #= 1].
+attribute_goal_(reified_mod(X,Y,D,_,Z)) -->
+        [D #= 1 #==> X mod Y #= Z, Y #\= 0 #==> D #= 1].
+attribute_goal_(reified_and(X,_,Y,_,B))    --> [X #/\ Y #<==> B].
+attribute_goal_(reified_or(X, _, Y, _, B)) --> [X #\/ Y #<==> B].
+attribute_goal_(reified_not(X, Y))         --> [#\ X #<==> Y].
+attribute_goal_(pimpl(X, Y, _))            --> [X #==> Y].
+
+conjunction(A, B, G, D) -->
+        (   { A == 1, B == 1 } -> [G #<==> D]
+        ;   { A == 1 } -> [(B #/\ G) #<==> D]
+        ;   { B == 1 } -> [(A #/\ G) #<==> D]
+        ;   [(A #/\ B #/\ G) #<==> D]
+        ).
 
 coeff_var_term(C, V, T) :- ( C =:= 1 -> T = V ; T = C*V ).
 
-unfold_product([], [], P, P).
-unfold_product([C|Cs], [V|Vs], P0, P) :-
+fold_product([], [], P, P).
+fold_product([C|Cs], [V|Vs], P0, P) :-
         coeff_var_term(C, V, T),
-        unfold_product(Cs, Vs, P0 + T, P).
+        fold_product(Cs, Vs, P0 + T, P).
+
+original_goal(V) -->
+        (   { get_attr(V, clpfd_original, Goal) } ->
+            { del_attr(V, clpfd_original) },
+            [Goal]
+        ;   []
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-%    Testing
-% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-% domain_to_list(Domain, List) :- phrase(domain_to_list(Domain), List).
-
-% domain_to_list(split(_, Left, Right)) -->
-%         domain_to_list(Left), domain_to_list(Right).
-% domain_to_list(empty)                 --> [].
-% domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, dlist(Ns).
-
-% dlist([])     --> [].
-% dlist([L|Ls]) --> [L], dlist(Ls).
 
 % %?- test_intersection([1,2,3,4,5], [1,5], I).
 
@@ -4384,9 +5468,48 @@ unfold_product([C|Cs], [V|Vs], P0, P) :-
 %         list_to_domain(L2, D2),
 %         domain_subdomain(D1, D2).
 
-:- (   current_prolog_flag(bounded, true) ->
-       format("\n--- WARNING: Using CLP(FD) with bounded arithmetic may yield wrong results.\n"),
-       format("--- Compile SWI-Prolog with the GMP library for unbounded integer arithmetic.\n\n")
-   ;   true
-   ).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Generated predicates
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+term_expansion(make_parse_clpfd, Clauses)   :- make_parse_clpfd(Clauses).
+term_expansion(make_parse_reified, Clauses) :- make_parse_reified(Clauses).
+term_expansion(make_matches, Clauses)       :- make_matches(Clauses).
+
+make_parse_clpfd.
+make_parse_reified.
+make_matches.
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Global variables
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+make_clpfd_var('$clpfd_queue') :-
+        make_queue.
+make_clpfd_var('$clpfd_current_propagator') :-
+        nb_setval('$clpfd_current_propagator', []).
+make_clpfd_var('$clpfd_queue_status') :-
+        nb_setval('$clpfd_queue_status', enabled).
+
+:- multifile user:exception/3.
+
+user:exception(undefined_global_variable, Name, retry) :-
+        make_clpfd_var(Name), !.
+
+warn_if_bounded_arithmetic :-
+        (   current_prolog_flag(bounded, true) ->
+            print_message(warning, clpfd(bounded))
+        ;   true
+        ).
+
+:- initialization(warn_if_bounded_arithmetic).
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Messages
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile prolog:message//1.
+
+prolog:message(clpfd(bounded)) -->
+        ['Using CLP(FD) with bounded arithmetic may yield wrong results.'-[]].

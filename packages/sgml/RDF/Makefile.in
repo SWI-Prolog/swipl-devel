@@ -39,7 +39,7 @@ LIBPL=		rdf.pl rdf_parser.pl rdf_triple.pl rewrite.pl \
 		rdf_ntriples.pl rdf_write.pl
 XPCEPL=		rdf_diagram.pl
 
-all:		
+all:
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL) xpce-install
@@ -67,8 +67,8 @@ uninstall:
 		$(PL) -f none -g make -t halt
 
 check::
-		$(PL) -f rdf_test.pl -g test,halt -t 'halt(1)'
-		$(PL) -q -f write_test.pl -g run_tests,halt -t 'halt(1)'
+		$(PL) -q -f test_rdf.pl -g true -t test_rdf
+		$(PL) -q -f test_write.pl -g true -t test_write
 
 ################################################################
 # CGI INSTALL

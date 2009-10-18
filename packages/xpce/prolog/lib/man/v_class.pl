@@ -32,7 +32,7 @@
 
 
 :- module(man_class,
-	[ 
+	[
 	]).
 
 :- use_module(library(pce)).
@@ -166,7 +166,7 @@ fill_picture(P) :-
 
 	send(P, append, new(I, man_inheritance_tree)),
 	send(I, name, inheritance).
-	
+
 
 show_initisation_method(CB) :->
 	"Show the ->initialise method of the class"::
@@ -271,7 +271,7 @@ apply(CB) :->
 	send(Browser, members, Matches),
 	send(CB, keyboard_focus, Browser),
 	send(Dialog?apply_member, active, @off).
-	
+
 
 activate_apply(CB) :->
 	"Activate the apply button"::

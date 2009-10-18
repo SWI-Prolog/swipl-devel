@@ -56,7 +56,7 @@ isProperGoal(PceGoal g)
   if ( isProperObject(g->implementation) &&
        isProperObject(g->receiver) )
     succeed;
-  
+
   fail;
 }
 
@@ -65,7 +65,7 @@ isProperGoal(PceGoal g)
 static int
 levelGoal(PceGoal g)
 { int i;
-  
+
   for(i=0; isProperGoal(g); g=g->parent)
     i++;
 
@@ -113,7 +113,7 @@ start:
       if ( *q != EOS )
 	*q++ = EOS;
     }
-	
+
     if ( argc >= 2 && isdigit(argv[1][0]) )
       numarg = toInt(atoi(argv[1]));
 

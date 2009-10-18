@@ -47,8 +47,7 @@
 		 *	  BASIC READ/WRITE	*
 		 *******************************/
 
-:- initialization 
-   load_foreign_library(foreign(serialize)).
+:- use_foreign_library(foreign(serialize)).
 
 
 		 /*******************************
@@ -56,7 +55,7 @@
 		 *******************************/
 
 %	cpp_server(+Options)
-%	
+%
 %	Run a CPP server in a seperate thread
 
 cpp_server(Options) :-
@@ -91,14 +90,14 @@ cpp_server(Socket, _Options) :-
 	    ;	handle_call(Read, Write, false),
 		fail
 	    ).
-	    
+
 
 		 /*******************************
 		 *	      CALL-IO		*
 		 *******************************/
 
 %	handle_call(+In, +Out, +Q)
-%	
+%
 %	Handle a call from a remote server, reading from In and writing
 %	to Out.
 
@@ -125,7 +124,7 @@ handle_call2(In, Out, Q) :-
 	).
 
 %	read_query_open(+Done, +In)
-%	
+%
 %	Queries start with a 'q' byte. `Done' indicates whether this has
 %	been read already. If true we skip this step. Otherwise we throw
 %	an error of the next byte is not 'q'.
@@ -144,12 +143,12 @@ det_goal(Attributes, Det) :-
 	).
 
 %	read_goal(+In, -Module, -Goal, -Types, -Attributes)
-%	
+%
 %	Read the next goal to execute from the input.  Goals are written
 %	on the stream as
-%	
+%
 %		<module><name><arity><input arguments>
-%	
+%
 %	Types specifies the type vector to be   used for the goal. It is
 %	returned as we need it after  executing   the  goal to write the
 %	output arguments.
@@ -181,7 +180,7 @@ input_args(I0, Arity, In, Module, Types, Goal) :-
 
 
 %	read_arg(+ArgSpec, +In, +Module, -Arg)
-%	
+%
 %	Read an argument.  Only +Type arguments must be filled.
 
 input_arg(+Type, In, Module, Arg) :- !,
@@ -190,7 +189,7 @@ input_arg(-_, _, _, _).
 
 
 %	read_cont(+Det, +In, +Out, -Continuation)
-%	
+%
 %	See whether the client wants another answer or is satisfied.  If
 %	the reply is non-deterministic, inserting `q' starts a new query
 %	(like entering a break from the toplevel).
@@ -213,7 +212,7 @@ read_cont(Det, In, Out, Cont) :-
 		 *******************************/
 
 %	read_type(+Type, +In, +Module, -Term)
-%	
+%
 %	Read data of given type from the input stream In.
 
 read_type(Type, In, Module, Term) :-
@@ -298,7 +297,7 @@ output_args(I0, Arity, In, Module, Types, Goal) :-
 	output_args(I, Arity, In, Module, Types, Goal).
 
 %	output_arg(+ArgSpec, +Out, +Module, +Arg)
-%	
+%
 %	Read an argument.  Only +Type arguments must be filled.
 
 output_arg(-Type, Out, Module, Arg) :- !,

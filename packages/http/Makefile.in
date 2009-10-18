@@ -1,6 +1,6 @@
 ################################################################
 # SWI-Prolog `HTTP' package
-# Author:    Jan Wielemaker. wielemak@science.uva.nl
+# Author:    Jan Wielemaker. J.Wielemaker@cs.vu.nl
 # Copyright: GPL (see COPYING or www.gnu.org
 ################################################################
 
@@ -51,11 +51,11 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_wrapper.pl http_open.pl http_session.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
-		http_path.pl http_hook.pl \
+		http_path.pl http_hook.pl html_head.pl http_exception.pl \
 		json.pl http_json.pl json_convert.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
-EXAMPLEEXE=	demo_inetd		
+EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 SOLIBS=		http_stream.@SO@ json.@SO@
 
@@ -99,8 +99,8 @@ uninstall::
 		$(PL) -f none -g make -t halt
 
 check::
-		$(PL) -q -f test_http.pl -g true -t run_tests
-		$(PL) -q -f test_json.pl -g true -t test_json
+		$(PL) -q -f test_http.pl -g test_http,halt -t 'halt(1)'
+		$(PL) -q -f test_json.pl -g test_json,halt -t 'halt(1)'
 		$(PL) -q -f test_cgi_stream.pl -g true -t test_cgi_stream
 
 ################################################################
@@ -111,7 +111,8 @@ doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
 html:		$(HTML)
 
-SUBTEX=		post.tex json.tex httplog.tex httppath.tex
+SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
+		httpsession.tex httpdispatch.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -135,6 +136,15 @@ httplog.tex:	http_log.pl
 httppath.tex:	http_path.pl
 		$(PLTOTEX) --subsection 'library(http/http_path)'
 
+htmlhead.tex:	html_head.pl
+		$(PLTOTEX) --subsection 'library(http/html_head)'
+
+httpsession.tex: http_session.pl
+		$(PLTOTEX) --subsection 'library(http/http_session)'
+
+httpdispatch.tex: http_dispatch.pl
+		$(PLTOTEX) --subsection 'library(http/http_dispatch)'
+
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
 
@@ -150,5 +160,4 @@ clean:
 		rm -rf html
 
 distclean:	clean
-		rm -f $(SOLIBS) config.cache config.status Makefile
-		
+		rm -f $(SOLIBS) config.cache config.status config.h Makefile

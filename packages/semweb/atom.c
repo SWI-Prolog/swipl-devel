@@ -93,12 +93,12 @@ cmpA(int c1, int c2, int *dl2)
   { int k1 = sort_pointA(c1);
     int k2 = sort_pointA(c2);
     int d;
-    
+
     if ( (d=((k1>>8)-(k2>>8))) == 0 )
     { if ( *dl2 == 0 )
 	*dl2 = (k1&0xff) - (k2&0xff);
     }
-    
+
     return d;
   }
 }
@@ -117,7 +117,7 @@ cmpW(int c1, int c2, int *dl2)
     { if ( *dl2 == 0 )
 	*dl2 = (k1&0xff) - (k2&0xff);
     }
-    
+
     return d;
   }
 }
@@ -129,7 +129,7 @@ cmp_atom_info(atom_info *info, atom_t a2)
   int i;
   int dl2 = 0;
   size_t n;
-  
+
   if ( info->handle == a2 )
     return 0;
 
@@ -161,7 +161,7 @@ cmp_atom_info(atom_info *info, atom_t a2)
     { if ( n-- == 0 )
       { if ( info->text.length == t2.length )
 	  goto eq;
-	
+
 	return info->text.length < t2.length ? -1 : 1;
       } else
       { int d;
@@ -171,12 +171,12 @@ cmp_atom_info(atom_info *info, atom_t a2)
       }
     }
   }
-  
+
   for(i=0; ; i++)
   { if ( n-- == 0 )
     { if ( info->text.length == t2.length )
 	  goto eq;
-	
+
       return info->text.length < t2.length ? -1 : 1;
     } else
     { wint_t c1 = fetch(&info->text, i);
@@ -299,12 +299,12 @@ first_atom(atom_t a, int match)
     int i;
     wint_t c;
     atom_t rc;
-    
+
     if ( len <= 256 )
       out = buf;
     else
       out = PL_malloc(len*sizeof(wchar_t));
-    
+
     for(s=out,i=0; (c=fetch(&t,i)); s++,i++)
     { if ( c == '*' && match == STR_MATCH_LIKE )
       { if ( i == 0 )			/* like '*...' */
@@ -362,7 +362,7 @@ matchA(int how, const charA *f, const charA *l)
       }
       if ( *l == '\0' && *f == '\0' )
 	return TRUE;
-  
+
       return FALSE;
     }
     case STR_MATCH_PREFIX:
@@ -372,13 +372,13 @@ matchA(int how, const charA *f, const charA *l)
       }
       if ( *f == '\0' )
 	return TRUE;
-  
+
       return FALSE;
     }
     case STR_MATCH_SUBSTRING:		/* use Boyle-More! */
     { const charA *h;
       const charA *f0 = f;
-  
+
       for(h=l; *h; h++)
       { for( l=h,f=f0; *l && *f; l++, f++ )
 	{ if ( cmp_pointA(*l) != cmp_pointA(*f) )
@@ -389,13 +389,13 @@ matchA(int how, const charA *f, const charA *l)
 	if ( *h == '\0' )
 	  return FALSE;
       }
-  
+
       return FALSE;
     }
     case STR_MATCH_WORD:
     { const charA *h;
       const charA *f0 = f;
-  
+
       for(h=l; *h; h = nextwordA(h))
       { for( l=h,f=f0; *l && *f; l++, f++ )
 	{ if ( cmp_pointA(*l) != cmp_pointA(*f) )
@@ -408,7 +408,7 @@ matchA(int how, const charA *f, const charA *l)
 	if ( *l == '\0' )
 	  return FALSE;
       }
-  
+
       return FALSE;
     }
     case STR_MATCH_LIKE:		/* SeRQL like: * --> wildcart */
@@ -449,7 +449,7 @@ matchA(int how, const charA *f, const charA *l)
       if ( *l == '\0' && (*f == '\0' ||
 			 (*f == '*' && f[1] == '\0')) )
 	return TRUE;
-  
+
 retry_like:
       if ( chn > 0 )
       { chn--;
@@ -488,7 +488,7 @@ match_atoms(int how, atom_t search, atom_t label)
   if ( !get_atom_text(label, &l) ||
        !get_atom_text(search, &f) )
     return FALSE;			/* error? */
-  
+
   if ( f.length == 0 )
     return TRUE;
 
@@ -507,7 +507,7 @@ match_atoms(int how, atom_t search, atom_t label)
 
         return TRUE;
       }
-  
+
       return FALSE;
     }
     case STR_MATCH_PREFIX:
@@ -520,7 +520,7 @@ match_atoms(int how, atom_t search, atom_t label)
 	}
 
 	return TRUE;
-      }  
+      }
 
       return FALSE;
     }
@@ -538,7 +538,7 @@ match_atoms(int how, atom_t search, atom_t label)
 	snext:;
 	}
       }
-  
+
       return FALSE;
     }
     case STR_MATCH_WORD:
@@ -556,7 +556,7 @@ match_atoms(int how, atom_t search, atom_t label)
 	wnext:;
 	}
       }
-  
+
       return FALSE;
     }
     case STR_MATCH_LIKE:		/* SeRQL like: * --> wildcart */
@@ -600,7 +600,7 @@ match_atoms(int how, atom_t search, atom_t label)
       if ( il == l.length && (ip == f.length ||
 			      (fetch(&f,ip) == '*' && ip+1 == f.length)) )
 	return TRUE;
-  
+
 retry_like:
       if ( chn > 0 )
       { chn--;

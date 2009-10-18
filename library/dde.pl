@@ -75,10 +75,10 @@ dde_poke(Handle, Item, Data) :-
 %
 %	Register a DDE service  in   this  SWI-Prolog instance. Template
 %	takes one of the formats
-%	
+%
 %		$ Service(Topic, Item, Value) :
 %		Register a service for dde_request/3
-%		
+%
 %		$ Service(Topic, Command) :
 %		Register a service for dde_execute/2
 %
@@ -112,7 +112,7 @@ dde_unregister_all_services :-
 	dde_current_service(Service, _),
 	dde_unregister_service(Service),
 	fail ; true.
-	
+
 :- at_halt(dde_unregister_all_services). % required by Windows!
 
 %%	dde_current_service(?Service, ?Topic)
@@ -123,7 +123,7 @@ dde_current_service(Service, Topic) :-
 	dde_service(Service, Topic, _, _, _, _).
 
 %%	dde_current_connection(?Service, ?Topic)
-%	
+%
 %	Unifies Service and Topic with the currently open server connections.
 
 dde_current_connection(Service, Topic) :-

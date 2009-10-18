@@ -38,6 +38,7 @@
 	    send_if_tracer/1,		% :Goal
 	    get_tracer/2,		% :Goal, -Result
 	    in_debug_thread/2,		% +ObjOrThread, :Goal
+	    thread_debug_queue/2,	% +Thread, -Queue
 	    prolog_frame_attribute/4	% +GUI, +Frame, +Attr, -Value
 	  ]).
 :- use_module(library(pce)).
@@ -75,8 +76,8 @@ register_directories :-
 			       HlpFile)
 	->  pce_help_file(pltracer, HlpFile)
 	).
-	    
-:- initialization register_directories.
+
+:- register_directories.
 
 version('2.0').
 
@@ -113,7 +114,7 @@ prolog_tracer(Thread, Ref, Create) :-
 %%	break_level(-Level)
 %
 %	Current break-level.
-%	
+%
 %	@bug	Breaks only work in the main thread. We need to change I/O
 %		handling and where the break-level is stored to fix
 %		this.
@@ -129,12 +130,13 @@ break_level(1).
 %%	get_tracer(+Thread, +Term, -Reply) is semidet.
 %
 %	Send messages to the XPCE tracer window.
-%	
+%
 %	@param Thread: calling thread.
 
 send_tracer(Term) :-
 	thread_self(Thread),
 	send_tracer(Thread, Term).
+
 send_tracer(GUI, Term) :-
 	object(GUI), !,
 	send_pce(send(GUI, Term)).
@@ -154,6 +156,7 @@ send_if_tracer(Thread, Term) :-
 get_tracer(Term, Result) :-
 	thread_self(Thread),
 	get_tracer(Thread, Term, Result).
+
 get_tracer(GUI, Term, Result) :-
 	object(GUI), !,
 	get(GUI, Term, Result).
@@ -170,11 +173,35 @@ get_tracer(Thread, Term, Result) :-
 	in_debug_thread(+, :),
 	send_pce(:).
 
+%%	thread_debug_queue(+Thread, -Queue) is det.
+%
+%	Queue is the debugging queue for Thread.  We do not use the main
+%	queue to avoid interference with user-messages.
+
+:- dynamic
+	thread_debug_queue_store/2.
+
+thread_debug_queue(Thread, Queue) :-
+	(   thread_debug_queue_store(Thread, Q)
+	->  Queue = Q
+	;   message_queue_create(Q),
+	    assert(thread_debug_queue_store(Thread, Q)),
+	    Queue = Q
+	).
+
+:- multifile
+	user:prolog_event_hook/1.
+
+user:prolog_event_hook(thread_finished(TID)) :-
+	thread_debug_queue_store(TID, Queue),
+	message_queue_destroy(Queue),
+	fail.				% allow other hooks
+
 %%	send_pce(:Goal)
 %
 %	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
 %	meanwhile, allow the XPCE thread to call in_debug_thread/1.
-%	
+%
 %	@bug	XPCE thread does not _need_ to be =main=.
 
 send_pce(Goal) :-
@@ -182,11 +209,11 @@ send_pce(Goal) :-
 	Goal.
 send_pce(Goal) :-
 	thread_self(Self),
-	strip_module(Goal, M, G),
-	term_variables(G, GVars),
-	in_pce_thread(run_pce(M:G, GVars, Self)),
+	term_variables(Goal, GVars),
+	in_pce_thread(run_pce(Goal, GVars, Self)),
+	thread_debug_queue(Self, Queue),
 	repeat,
-	thread_get_message('$trace'(Result)),
+	thread_get_message(Queue, '$trace'(Result)),
 	debug(' ---> send_pce: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
@@ -209,7 +236,8 @@ run_pce(Goal, Vars, Caller) :-
 	;   Result = false
 	),
 	debug('Ok, returning ~p~n', [Result]),
-	thread_send_message(Caller, '$trace'(Result)).
+	thread_debug_queue(Caller, Queue),
+	thread_send_message(Queue, '$trace'(Result)).
 
 %%	in_debug_thread(+Thread, :Goal) is semidet.
 %%	in_debug_thread(+Object, :Goal) is semidet.
@@ -227,12 +255,13 @@ in_debug_thread(Thread, Goal) :-
 	thread_self(Thread), !,
 	Goal, !.
 in_debug_thread(Thread, Goal) :-
-	strip_module(Goal, M, G),
 	thread_self(Self),
-	debug('Call [Thread ~p] ~p~n', [Thread, M:G]),
-	term_variables(G, GVars),
-	thread_send_message(Thread, '$trace'(call(M:G, GVars, Self))),
-	thread_get_message('$trace'(Result)),
+	debug('Call [Thread ~p] ~p~n', [Thread, Goal]),
+	term_variables(Goal, GVars),
+	thread_debug_queue(Thread, Queue),
+	thread_send_message(Queue, '$trace'(call(Goal, GVars, Self))),
+	thread_debug_queue(Self, MyQueue),
+	thread_get_message(MyQueue, '$trace'(Result)),
 	debug(' ---> in_debug_thread: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
@@ -314,7 +343,7 @@ initialise(F, Level:int, Thread0:'int|name') :->
 	send(S, name, stack),
 	ignore(send(F, frame_finished, 0)),	% FR_WATCHED issue
 	asserta(gui(Thread, Level, F)).
- 
+
 unlink(F) :->
 	retractall(gui(_, _, F)),
 	clear_clause_info_cache,	% safety first
@@ -325,6 +354,7 @@ quit(F) :->
 	(   (   get(F, mode, thread_finished)
 	    ;   get(F, mode, query_finished)
 	    ;   get(F, mode, aborted)
+	    ;	get(F, mode, replied)
 	    )
 	->  send(F, destroy)
 	;   get(F, tracer_quitted, Action),
@@ -479,14 +509,15 @@ return(Frame, Result:any) :->
 	(   get(Frame, mode, wait_user)
 	->  get(Frame, thread, Thread),
 	    send(Frame, mode, replied),
-	    (   Thread == main
-	    ->  send_super(Frame, return, Result)
+	    (	Thread == main
+	    ->	send_super(Frame, return, Result)
 	    ;   (   get(Frame, quitted, @on)
 		->  send(Frame, destroy)
 		;   true
 		),
 		debug(' ---> frame: result = ~p~n', [Result]),
-		thread_send_message(Thread, '$trace'(action(Result)))
+		thread_debug_queue(Thread, Queue),
+		thread_send_message(Queue, '$trace'(action(Result)))
 	    )
 	;   get(Frame, quitted, @on)
 	->  send(Frame, destroy)
@@ -593,7 +624,7 @@ nostop_or_spy(F) :->
 	;   send(F, report, warning,
 		 'No selected break or current spy-point')
 	).
-	    
+
 browse(_F) :->
 	"Provides overview for edit/spy/break"::
 	prolog_ide(open_navigator).
@@ -722,8 +753,8 @@ button(+edit,	       "e",   'edit.xpm',	     'Toggle read-only/edit-mode').
 
 tag_balloon(Balloon0, Keys, Balloon) :-
 	maplist(key_name, Keys, Names),
-	concat_atom(Names, ', ', Tag),
-	concat_atom([Balloon0, ' (', Tag, ')'], Balloon).
+	atomic_list_concat(Names, ', ', Tag),
+	atomic_list_concat([Balloon0, ' (', Tag, ')'], Balloon).
 
 key_name(10, return) :- !.
 key_name(32,  space) :- !.
@@ -731,7 +762,7 @@ key_name(C, A) :-
 	char_code(A, C).
 
 initialise(D) :->
-	send_super(D, initialise),	
+	send_super(D, initialise),
 	send(D, pen, 0),
 	send(D, gap, size(0,0)),
 	get(D, frame, Frame),
@@ -757,7 +788,7 @@ make_message(Action,  D, message(D, return, Action)).
 
 typed(D, Id:event_id, Delegate:[bool]) :->
 	"Handle typing"::
-	(   get(D, find, @default, 
+	(   get(D, find, @default,
 		and(message(@arg1, has_get_method, keys),
 		    message(@arg1?keys, member, Id)),
 		Button)
@@ -938,7 +969,7 @@ value(F, Value:prolog) :<-
 	get(View, prolog_frame, Frame), Frame \== @nil,
 	get(F, argn, ArgN),
 	prolog_frame_attribute(F, Frame, argument(ArgN), Value).
-	
+
 :- pce_end_class(prolog_frame_var_fragment).
 
 

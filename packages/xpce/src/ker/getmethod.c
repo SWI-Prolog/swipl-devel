@@ -94,7 +94,7 @@ static getdecl get_getMethod[] =
 #define rc_getMethod NULL
 /*
 static classvardecl rc_getMethod[] =
-{ 
+{
 };
 */
 

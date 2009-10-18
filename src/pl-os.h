@@ -41,7 +41,8 @@
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-extern Void Allocate(intptr_t);
+extern void *Allocate(intptr_t);
+
 
 		/********************************
 		*         MISCELLANEOUS         *
@@ -79,15 +80,8 @@ extern bool initOs(void);
 #endif
 #endif
 
+COMMON(char*)	canoniseFileName(char *path);
 
-#define Fflush(fd)		Sflush(fd)
-#define Fclose(fd)		Sclose(fd)
-#define Open(path, how, mode)	open(OsPath(path), how, mode)
-#define Read(fd, buf, size)	read(fd, buf, size)
-#define Write(fd, buf, size)	write(fd, buf, size)
-#define Getc(fd)		Sgetc(fd)
-#define Putw(w, fd)		Sputw((intptr_t)(w), fd)
-#define Getw(fd)		Sgetw(fd)
 
 		 /*******************************
 		 *      PAGE AND TABLE-SIZE	*
@@ -116,15 +110,6 @@ extern int	getdtablesize(void);
 #ifndef HAVE_GETPAGESIZE
 extern int	getpagesize(void);
 #endif
-
-		 /*******************************
-		 *	    FILE ACCESS		*
-		 *******************************/
-
-#define ACCESS_EXIST	0
-#define ACCESS_EXECUTE	1
-#define ACCESS_READ	2
-#define ACCESS_WRITE	4
 
 
 		/********************************

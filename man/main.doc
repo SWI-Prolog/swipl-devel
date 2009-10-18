@@ -45,22 +45,22 @@
 #endif
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{6}
-\newcommand{\vpatch}{63}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2008}
+\newcommand{\vminor}{7}
+\newcommand{\vpatch}{15}
+\newcommand{\vmonth}{September}
+\newcommand{\vyear}{2009}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl}	\\ 
-	Human-Computer Studies (HCS, formerly SWI)	\\ 
-	    Kruislaan 419, 1098 VA~~Amsterdam		\\ 
-		    The Netherlands			\\ 
+\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl}	\\
+	Human-Computer Studies (HCS, formerly SWI)	\\
+	    Kruislaan 419, 1098 VA~~Amsterdam		\\
+		    The Netherlands			\\
 		Tel. (+31) 20 5256121}
-	
+
 \begin{htmlonly}
 \maketitle
 
@@ -72,7 +72,7 @@ connectivity to the C-language, few system limits, comprehensive
 memory management, modules, multi-threading, coroutining, constraints
 and a fast and interactive development environment. Portable libraries
 for graphics, databases, networking, web-services, XML, RDF and many
-more complete the system. 
+more complete the system.
 
 SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
 it provides functionality compatible with Quintus, SICStus, LPA, Ciao and

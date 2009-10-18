@@ -35,9 +35,9 @@ static status	lazyBindingClass(Class class, Name which, Bool val);
 
 #define CLASS_PCE_SLOTS 42
 
-#define InstanceSize(c)	((int)(long) &((Instance) NULL)->slots[valInt((c)->slots)])
+#define InstanceSize(c)	((int)(intptr_t) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
-      ((sizeof(struct c) - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any))
+      ((sizeof(struct c) - ((intptr_t) &((Instance) NULL)->slots[0])) / sizeof(Any))
 
 static void
 resetSlotsClass(Class class, Name name)
@@ -98,7 +98,7 @@ nameToTypeClass(Name name)
 	fail;
       }
     }
-    
+
     return type->context;
   }
 
@@ -200,7 +200,7 @@ call_make_function(SendFunc f, Class class)
 #if O_CPLUSPLUS
   if ( onDFlag(class, D_CXX) )
     rval = callCPlusPlusProc(f, 1, (Any *)&class);
-  else 
+  else
 #endif
     rval = (*f)(class);
 
@@ -405,7 +405,7 @@ _bootClass(Name name, Name super_name,
   assign(cl, realised, ON);
   assign(cl, super_class, super);
   assign(cl, instance_size, toInt(size));
-  assign(cl, slots, toInt((size - ((int) &((Instance) NULL)->slots[0]))
+  assign(cl, slots, toInt((size - ((intptr_t) &((Instance) NULL)->slots[0]))
 			   / sizeof(Any)));
 
   { int i;
@@ -444,7 +444,7 @@ bootClass(Name name, Name super_name, int size, int slots,
   va_start(args, argc);
   class = _bootClass(name, super_name, size, slots, newF, argc, args);
   va_end(args);
-  
+
   return class;
 }
 
@@ -486,7 +486,7 @@ getConvertClass(Class class_class, Any obj)
 
   if ( instanceOfObject(obj, ClassType) )
   { Type t = obj;
-    
+
     if ( isClassType(t) )
       return t->context;
   }
@@ -658,7 +658,7 @@ getSubClassClass(Class super, Name name)
 	answer(sub);
     }
   }
-  
+
   answer(newObject(super->class, name, super, EAV));
 }
 
@@ -686,7 +686,7 @@ fixSubClassVariableClass(Class class, Variable old, Variable new)
       if ( old && notNil(class->sub_classes) )
       { for_cell(cell, class->sub_classes)
 	  fixSubClassVariableClass(cell->value, old, new);
-      } 
+      }
     }
   }
 }
@@ -706,7 +706,7 @@ getLocaliseInstanceVariableClass(Class class, Name name)
       if ( ClassDelegateVariable &&
 	   instanceOfObject(var2, ClassDelegateVariable) )
 	delegateClass(class, var2->name);
-    
+
       answer(var2);
     }
   }
@@ -734,7 +734,7 @@ instanceVariableClass(Class class, Variable var)
       if ( notNil(class->sub_classes) )
       { Cell cell;
 
-	for_cell(cell, class->sub_classes) 
+	for_cell(cell, class->sub_classes)
 	{ Class sub = cell->value;
 	  if ( sub->realised == ON )
 	    return errorPce(class, NAME_hasSubClasses);
@@ -998,7 +998,7 @@ _termClass(Class class, char *name, int argc, va_list args)
 	return;
       }
     }
-    
+
     assign(class, term_names, newObjectv(ClassVector, argc, names));
   }
 }
@@ -1046,7 +1046,7 @@ sendMethodv(Class class, Name name, Name group, int argc, va_list args)
   m = createSendMethod(name, tv, doc, f);
   if ( notDefault(group) )
     assign(m, group, group);
-  
+
   assign(m, context, class);
   appendChain(class->send_methods, m);
 
@@ -1152,7 +1152,7 @@ getMethodv(Class class, Name name, Name group,
   m = createGetMethod(name, rt, tv, doc, f);
   if ( notDefault(group) )
     assign(m, group, group);
-  
+
   assign(m, context, class);
   appendChain(class->get_methods, m);
   if ( isNil(m->summary) )
@@ -1271,11 +1271,11 @@ solidClass(Class class, Bool val)
 
 status
 sourceClass(Class class, SendFunc f, char *file, char *rcs)
-{ 
+{
 #ifndef O_RUNTIME
   assign(class, source, newObject(ClassSourceLocation, CtoName(file), EAV));
 #endif
-  
+
   if ( rcs )
   { static char rev[] = "$Revision: ";
     char *s, *q;
@@ -1288,7 +1288,7 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
     l = strlen(buf);
     if ( l >= 2 && streq(&buf[l-2], " $") )
       buf[l-2] = EOS;
-      
+
     assign(class, rcs_revision, CtoName(buf));
   }
 
@@ -1503,7 +1503,7 @@ boundSendMethodClass(Class class, Name name)
 
     for_cell(cell, class->send_methods)
     { SendMethod m = cell->value;
-    
+
       if ( m->name == name )
 	succeed;
     }
@@ -1526,7 +1526,7 @@ boundGetMethodClass(Class class, Name name)
 
     for_cell(cell, class->get_methods)
     { SendMethod m = cell->value;
-    
+
       if ( m->name == name )
 	succeed;
     }
@@ -1666,7 +1666,7 @@ bindMethod(Class class, Name code, Name selector)
   { Chain ch = (code == NAME_send ? class->send_methods : class->get_methods);
     Cell cell;
     Method m = getTailChain(ch);
-    
+
     if ( m && m->name == selector )	/* this will be the common case! */
       return m;
 
@@ -1680,14 +1680,14 @@ bindMethod(Class class, Name code, Name selector)
   { if ( cdecls )
     { if ( code == NAME_send )
       { const senddecl *sm;
-      
+
 	for( i = cdecls->nsend, sm = cdecls->send_methods; i-- > 0; sm++ )
 	{ if ( sm->name == selector )
 	    return attachLazySendMethodClass(class, sm);
 	}
       } else				/* get */
       { const getdecl *gm;
-	
+
 	for( i = cdecls->nget, gm = cdecls->get_methods; i-- > 0; gm++ )
 	{ if ( gm->name == selector )
 	    return attachLazyGetMethodClass(class, gm);
@@ -1769,7 +1769,7 @@ getResolveGetMethodClass(Class class, Name name)
   for(super = class; notNil(super); super = super->super_class)
   { Any gm;
     Cell cell;
-    
+
     if ( (gm = getMemberHashTable(super->get_table, name)) )
     { if ( cv && instanceOfObject(gm, ClassClassVariable) )
 	gm = cv;
@@ -1806,7 +1806,7 @@ getResolveGetMethodClass(Class class, Name name)
     if ( !cv )
     { for_cell(cell, super->class_variables)
       { ClassVariable v = cell->value;
-  
+
 	if ( v->name == name )
 	{ cv = v;
 	  break;
@@ -1838,7 +1838,7 @@ clearCacheClass(Class class)
 
     installClass(class);		/* Enter function special methods */
   }
-    
+
   succeed;
 }
 
@@ -1851,7 +1851,7 @@ deleteSendMethodClass(Class class, Name selector)
     deleteHashTable(class->send_table, selector);
     for_cell(cell, class->send_methods)
     { SendMethod sm = cell->value;
-    
+
       if ( sm->name == selector )
       { deleteChain(class->send_methods, sm);
 	break;
@@ -1876,7 +1876,7 @@ deleteGetMethodClass(Class class, Name selector)
     deleteHashTable(class->get_table, selector);
     for_cell(cell, class->get_methods)
     { GetMethod sm = cell->value;
-    
+
       if ( sm->name == selector )
       { deleteChain(class->get_methods, sm);
 	break;
@@ -1935,8 +1935,8 @@ createdClass(Class class, Any instance, Name how)
     for_cell(cell, class->created_messages)
       forwardCode(cell->value, class->name, instance, how, EAV);
     delCodeReference(instance);
-  } 
-     
+  }
+
   if ( notNil(class->instances) )
     appendHashTable(class->instances, instance, ON);
 
@@ -1957,7 +1957,7 @@ freedClass(Class class, Any instance)
       forwardCode(cell->value, class->name, instance, EAV);
     if ( !isFreedObj(instance) )
       delCodeReference(instance);
-  } 
+  }
 
   if ( notNil(class->instances) )
     deleteHashTable(class->instances, instance);
@@ -1994,7 +1994,7 @@ changedMessageClass(Class class, Code msg)
   { assign(class, changed_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
-  
+
   return addChain(class->changed_messages, msg);
 }
 
@@ -2007,7 +2007,7 @@ createdMessageClass(Class class, Code msg)
   { assign(class, created_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
-  
+
   return addChain(class->created_messages, msg);
 }
 
@@ -2020,7 +2020,7 @@ freedMessageClass(Class class, Code msg)
   { assign(class, freed_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
-  
+
   return addChain(class->freed_messages, msg);
 }
 
@@ -2065,7 +2065,7 @@ append_class_header(Class cl, TextBuffer tb)
   { CAppendTextBuffer(tb, "...object...");
   } else
   { int i;
-    
+
     for(i=1; i<=valInt(cl->term_names->size); i++)
     { if ( i != 1 )
     	CAppendTextBuffer(tb, ", ");
@@ -2221,7 +2221,7 @@ lazyBindingClass(Class class, Name which, Bool val)
     { bindMethod(class, which, DEFAULT);
       clearDFlag(class, mask);
     }
-  }    
+  }
 
   succeed;
 }
@@ -2320,7 +2320,7 @@ makeClassClass(Class class)
 
   localClass(class, NAME_makeClassMethod, NAME_realise, "code*", NAME_get,
 	     "Code object to ->realise the class");
-	     
+
   localClass(class, NAME_initialiseMethod, NAME_cache, "[send_method]",
 	     NAME_none,
 	     "Used to initialise a new instance");

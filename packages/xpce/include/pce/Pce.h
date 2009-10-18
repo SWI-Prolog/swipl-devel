@@ -122,7 +122,7 @@ Proper start ...
 #endif
 
 class PceArg
-{ 
+{
 public:
   Any self;
 
@@ -200,7 +200,7 @@ public:
   PceStatus send(const PceArg& sel, const PceArg& a1)
   { Any av[1];
     av[0] = a1.self;
-    return XPCE_sendv(self, sel.self, 1, (const Any *)av); 
+    return XPCE_sendv(self, sel.self, 1, (const Any *)av);
   }
   PceStatus send(const PceArg& sel, const PceArg& a1, const PceArg& a2)
   { Any av[2];
@@ -265,7 +265,7 @@ public:
   PceStatus free(void)			/* FREE */
   { return XPCE_free(self);
   }
-  
+
 					/* (Integer) Arithmetic */
   PceArg operator +(long i)		/* x + y */
   { return PceArg(PceValInt(self) + i);
@@ -363,7 +363,7 @@ public:					/* NEW */
   }
   PceObject(PceArg cl) : PceArg(XPCE_newv(cl.self, NULL,
 					  0, (const Any *)NULL))
-  { 
+  {
   }
   PceObject(const char *classname) :
     PceArg(XPCE_newv((Any)XPCE_to_name(classname), NULL,

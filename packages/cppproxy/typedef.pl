@@ -73,7 +73,7 @@ user:term_expansion((:- type TypeDecl), Clauses) :-
 		 *******************************/
 
 %	current_type(:Name, -Expanded)
-%	
+%
 %	Do alias expansion of the  type   Name  and  return the expanded
 %	types. Expanded is a list of allowed types (polymorphism).
 
@@ -92,7 +92,7 @@ current_type(Module, Name, Expanded) :-
 
 
 %	primitive(?Type)
-%	
+%
 %	True if type is a primitive type
 
 primitive(integer).

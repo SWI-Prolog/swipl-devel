@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -214,7 +214,7 @@ save_resources(RC, _SaveClass) :-
 
 mkrcname(user, Name, Name) :- !.
 mkrcname(M, Name, RcName) :-
-	concat_atom([M, :, Name], RcName).
+	atomic_list_concat([M, :, Name], RcName).
 
 save_resource(RC, Name, Class, FileSpec) :-
 	absolute_file_name(FileSpec,
@@ -323,14 +323,16 @@ save_module(M, SaveClass) :-
 	;   '$qlf_end_part',
 	    feedback('~n', [])
 	).
-	
+
 pred_attrib(indexed(Term), Head, index(M:Term)) :- !,
+	    strip_module(Head, M, _).
+pred_attrib(meta_predicate(Term), Head, meta_predicate(M:Term)) :- !,
 	    strip_module(Head, M, _).
 pred_attrib(Attrib, Head, '$set_predicate_attribute'(M:Name/Arity, AttName, Val)) :-
 	attrib_name(Attrib, AttName, Val),
 	strip_module(Head, M, Term),
 	functor(Term, Name, Arity).
-	
+
 attrib_name(dynamic,	   dynamic,	  1).
 attrib_name(volatile,	   volatile,	  1).
 attrib_name(thread_local,  thread_local,  1).
@@ -358,7 +360,7 @@ save_attributes(P) :-
 	    fail
 	;   true
 	).
-	    
+
 %	Save status of the unknown flag
 
 save_unknown(M) :-
@@ -422,7 +424,7 @@ save_imports :-
 	    '$add_directive_wic'(qsave:restore_import(M, I, F/A)),
 	    fail
 	;   true
-	).	    
+	).
 
 %%	restore_import(+TargetModule, +SourceModule, +PI) is det.
 %
@@ -465,48 +467,24 @@ restore_prolog_flag(Flag, Value) :-
 		 *	     OPERATORS		*
 		 *******************************/
 
+%%	save_operators(+Save) is det.
+%
+%	Save operators for all modules.   Operators for =system= are
+%	not saved because these are read-only anyway.
+
 save_operators(save) :- !,
 	feedback('~nOPERATORS~n', []),
-	findall(op(P, T, N), current_op(P, T, N), Ops),
-	findall(op(P, T, N), '$builtin_op'(P, T, N), SystemOps),
-	make_operators(Ops, SystemOps, Set),
-	deleted_operators(SystemOps, Ops, Deleted),
-	append(Set, Deleted, Modify),
-	forall(member(O, Modify),
-	       (   feedback('~n~t~8|~w ', [O]),
-		   '$add_directive_wic'(O),
-		   O)).
+	forall(current_module(M), save_module_operators(M)),
+	feedback('~n', []).
 save_operators(_).
 
-make_operators([], _, []).
-make_operators([Op|L0], SystemOps, [Op|L]) :-
-	\+ memberchk(Op, SystemOps), !,
-	make_operators(L0, SystemOps, L).
-make_operators([_|T], SystemOps, L) :-
-	make_operators(T, SystemOps, L).
+save_module_operators(system) :- !.
+save_module_operators(M) :-
+	forall('$local_op'(P,T,M:N),
+	       (   feedback('~n~t~8|~w ', [op(P,T,M:N)]),
+		   '$add_directive_wic'(op(P,T,M:N))
+	       )).
 
-deleted_operators([], _, []).
-deleted_operators([Op|L0], CurrentOps, [op(0, T, N)|L]) :-
-	Op = op(_, T, N),
-	\+ (  member(op(_, OT, N), CurrentOps),
-	      same_op_type(T, OT)
-	   ), !,
-	deleted_operators(L0, CurrentOps, L).
-deleted_operators([_|L0], CurrentOps, L) :-
-	deleted_operators(L0, CurrentOps, L).
-
-same_op_type(T, OT) :-
-	op_type(T, Type),
-	op_type(OT, Type).
-
-op_type(fx,  prefix).
-op_type(fy,  prefix).
-op_type(xfx, infix).
-op_type(xfy, infix).
-op_type(yfx, infix).
-op_type(yfy, infix).
-op_type(xf,  postfix).
-op_type(yf,  postfix).
 
 		 /*******************************
 		 *       FORMAT PREDICATES	*
@@ -572,7 +550,7 @@ option(List, Name/_Default, Value, Rest) :- % goal(Goal)
 	Term =.. [Name, Value],
 	select(Term, List, Rest), !.
 option(List, _Name/Default, Default, List).
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Option checking and exception generation.  This should be in a library!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -623,7 +601,7 @@ check_type(ground, V) :-
 	ground(V).
 check_type(bool, true).
 check_type(bool, false).
-	
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,8 +30,13 @@
 */
 
 #define O_DEBUG 1			/* provides time:time_debug(+Level) */
+//#define O_SAFE 1			/* extra safety checks */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
+#ifdef __WINDOWS__
+#include <windows.h>
 #endif
 
 #include <SWI-Stream.h>
@@ -48,9 +53,23 @@
 #include <errno.h>
 #include <assert.h>
 
+#ifdef SIGUSR2
+#define SIG_TIME SIGUSR2
+#else
+#define SIG_TIME SIGALRM
+#endif
+
 #ifdef _REENTRANT
+#ifdef O_SAFE
+#define __USE_GNU
+#endif
 #include <pthread.h>
 #endif
+
+typedef enum
+{ TIME_ABS,
+  TIME_REL
+} time_abs_rel;
 
 #ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -58,9 +77,8 @@ The __WINDOWS__ port uses the multimedia timers.   This  module must be linked
 with winmm.lib
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include <windows.h>
 #include <sys/timeb.h>
-#if (_MSC_VER < 1400) 
+#if (_MSC_VER < 1400)
 typedef DWORD DWORD_PTR;
 #endif
 
@@ -131,10 +149,10 @@ print_trace (void)
   size_t size;
   char **strings;
   size_t i;
-     
+
   size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
-     
+
 #ifdef _REENTRANT
   Sdprintf("on_alarm() Prolog-context [thread %d]:\n", PL_thread_self());
 #else
@@ -143,12 +161,12 @@ print_trace (void)
   PL_action(PL_ACTION_BACKTRACE, 3);
 
   Sdprintf("on_alarm() C-context:\n");
-  
+
   for(i = 0; i < size; i++)
   { if ( !strstr(strings[i], "checkData") )
       Sdprintf("\t[%d] %s\n", i, strings[i]);
   }
-       
+
   free(strings);
 }
 #endif /*BACKTRACE*/
@@ -168,16 +186,16 @@ The module contains three implementations:
 
 	* Windows
 	The Windows versions is based on multimedia timer objects.
-	
+
 	* Unix setitimer (single threaded)
-	This implementation uses setitimer() and SIGALRM.  Whenever
+	This implementation uses setitimer() and SIG_TIME.  Whenever
 	something is changed, re_schedule() is called to set the
 	alarm clock for the next wakeup.
 
 	* Unix scheduler thread
 	This implementation uses a table shared between all threads and
 	a thread that waits for the next signal to be send using
-	pthread_cond_timedwait().  The signal SIGALRM is then delivered
+	pthread_cond_timedwait().  The signal SIG_TIME is then delivered
 	using pthread_kill() to the scheduled thread.
 
 This module keeps a double-linked  list   of  `scheduled events' that is
@@ -219,7 +237,6 @@ typedef struct event
   struct event  *previous;		/* idem */
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
-  double	 time;			/* Specified time */
   struct timeval at;			/* Time to deliver */
 #ifdef SHARED_TABLE
   pthread_t	 thread_id;		/* Thread to call in */
@@ -241,13 +258,23 @@ typedef struct
 } schedule;
 
 #ifdef SHARED_TABLE
+#if defined(O_SAFE) && defined(PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP)
+#define CHECK_LOCK_RC
+static pthread_mutex_t mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
+#else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static pthread_cond_t cond   = PTHREAD_COND_INITIALIZER;
 static int scheduler_running = FALSE;	/* is scheduler running? */
 static pthread_t scheduler;		/* thread id of scheduler */
 
-#define LOCK()   pthread_mutex_lock(&mutex);
-#define UNLOCK() pthread_mutex_unlock(&mutex);
+#ifdef CHECK_LOCK_RC
+#define LOCK()   {int rc = pthread_mutex_lock(&mutex); assert(rc==0);}
+#define UNLOCK() {int rc = pthread_mutex_unlock(&mutex); assert(rc==0);}
+#else
+#define LOCK()   pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#endif
 #else
 #define LOCK()   (void)0
 #define UNLOCK() (void)0
@@ -287,14 +314,14 @@ static schedule the_schedule;		/* the schedule */
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
 
-static void uninstallEvent(Event ev);
+static int removeEvent(Event ev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the event, maintaining a time-sorted list of scheduled events.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Event
-allocEvent(struct timeval *at)
+allocEvent()
 { Event ev = malloc(sizeof(*ev));
 
   if ( !ev )
@@ -303,7 +330,6 @@ allocEvent(struct timeval *at)
   }
 
   memset(ev, 0, sizeof(*ev));
-  ev->at = *at;
   ev->magic = EV_MAGIC;
 
   return ev;
@@ -311,6 +337,35 @@ allocEvent(struct timeval *at)
 
 
 static void
+setTimeEventAbs(Event ev, double t)
+{ struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  tv.tv_usec = (long)((t-floor(t))*1000000);
+  tv.tv_sec  = (long)t;
+
+  ev->at = tv;
+}
+
+
+static void
+setTimeEvent(Event ev, double t)
+{ struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+  tv.tv_usec += (long)((t-floor(t))*1000000);
+  tv.tv_sec  += (long)t;
+  if ( tv.tv_usec >= 1000000 )
+  { tv.tv_usec -= 1000000;
+    tv.tv_sec++;
+  }
+
+  ev->at = tv;
+}
+
+
+
+static int
 insertEvent(Event ev)
 { schedule *sched = TheSchedule();
   Event e;
@@ -319,6 +374,9 @@ insertEvent(Event ev)
 
   for(e = sched->first; e; e = e->next)
   { struct timeval d;
+
+    if ( e == ev )
+      return ERR_PERMISSION;		/* already scheduled */
 
     d.tv_sec  = ev->at.tv_sec  - e->at.tv_sec;
     d.tv_usec = ev->at.tv_usec - e->at.tv_usec;
@@ -331,13 +389,14 @@ insertEvent(Event ev)
     { ev->next = e;
       ev->previous = e->previous;
       if ( e->previous )
-	e->previous->next = ev;
+      { e->previous->next = ev;
+      } else
+      { assert(sched->first == e);
+	sched->first = ev;
+      }
       e->previous = ev;
 
-      if ( sched->first == e )		/* allocated as first */
-	sched->first = ev;
-
-      return;
+      return TRUE;
     } else
     { if ( e->next )
 	continue;
@@ -345,16 +404,17 @@ insertEvent(Event ev)
       ev->previous = e;			/* end of the list */
       e->next = ev;
 
-      return;
+      return TRUE;
     }
   }
 
-  sched->first = ev;
+  sched->first = ev;			/* the very first one */
+  return TRUE;
 }
 
 
 static void
-freeEvent(Event ev)
+unlinkEvent(Event ev)
 { schedule *sched = TheSchedule();
 
   if ( sched->scheduled == ev )
@@ -367,6 +427,12 @@ freeEvent(Event ev)
 
   if ( ev->next )
     ev->next->previous = ev->previous;
+}
+
+
+static void
+freeEvent(Event ev)
+{ unlinkEvent(ev);
 
   if ( ev->goal )
     PL_erase(ev->goal);
@@ -383,7 +449,7 @@ callEvent(Event ev)
 { term_t goal = PL_new_term_ref();
 
   ev->flags |= EV_DONE;
-    
+
   PL_recorded(ev->goal, goal);
   PL_call_predicate(ev->module,
 		    PL_Q_PASS_EXCEPTION,
@@ -395,7 +461,7 @@ callEvent(Event ev)
 
 static void
 cleanupHandler()
-{ 
+{
 #ifndef __WINDOWS__
   struct itimerval v;
 
@@ -406,7 +472,7 @@ cleanupHandler()
 
   if ( signal_function_set )
   { signal_function_set = FALSE;
-    PL_signal(SIGALRM, signal_function);
+    PL_signal(SIG_TIME, signal_function);
   }
 }
 
@@ -414,7 +480,7 @@ cleanupHandler()
 static void
 installHandler()
 { if ( !signal_function_set )
-  { signal_function = PL_signal(SIGALRM|PL_SIGSYNC, on_alarm);
+  { signal_function = PL_signal(SIG_TIME|PL_SIGSYNC, on_alarm);
     signal_function_set = TRUE;
   }
 }
@@ -427,7 +493,7 @@ cleanup()
 
   for(ev=sched->first; ev; ev = next)
   { next = ev->next;
-    uninstallEvent(ev);
+    removeEvent(ev);
   }
 
   cleanupHandler();
@@ -463,20 +529,41 @@ callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 { Event ev = (Event)dwuser;
 
   ev->flags |= EV_FIRED;
-  PL_w32thread_raise(ev->tid, SIGALRM);
+  PL_w32thread_raise(ev->tid, SIG_TIME);
+}
+
+
+static long
+getTimeRelMillis(Event ev)
+{ struct timeval tv;
+  long   dsec, dusec;
+
+  gettimeofday(&tv, NULL);
+  dsec  = ev->at.tv_sec - tv.tv_sec;
+  dusec = ev->at.tv_usec - tv.tv_usec;
+  if ( dusec < 0 )
+  { dusec += 1000000;
+    dsec --;
+  }
+  return 1000*dsec + dusec/1000;
 }
 
 
 static int
 installEvent(Event ev)
 { MMRESULT rval;
+  int rc;
 
-  insertEvent(ev);
+  LOCK();
+  rc = insertEvent(ev);
+  UNLOCK();
+  if ( rc != TRUE )
+    return rc;
 
-  rval = timeSetEvent((int)(ev->time*1000),
+  rval = timeSetEvent(getTimeRelMillis(ev),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
-		      (DWORD)ev,
+		      (DWORD_PTR)ev,
 		      TIME_ONESHOT);
 
   if ( rval )
@@ -485,14 +572,36 @@ installEvent(Event ev)
 
     return TRUE;
   }
-    
-  return pl_error(NULL, 0, NULL, ERR_RESOURCE, "no_timers");
+
+  return ERR_RESOURCE;
 }
 
 
-static void
+static int
 uninstallEvent(Event ev)
-{ if ( TheSchedule()->scheduled == ev )
+{ LOCK();
+
+  if ( TheSchedule()->scheduled == ev )
+    ev->flags = EV_DONE;
+
+  if ( ev->mmid )
+  { timeKillEvent(ev->mmid);
+    ev->mmid = 0;
+  }
+
+  ev->flags &= ~(EV_DONE|EV_FIRED);
+
+  UNLOCK();
+
+  return TRUE;
+}
+
+
+static int
+removeEvent(Event ev)
+{ LOCK();
+
+  if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
 
   if ( ev->mmid )
@@ -501,6 +610,9 @@ uninstallEvent(Event ev)
   }
 
   freeEvent(ev);
+  UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -526,41 +638,77 @@ nextEvent(schedule *sched)
 static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
+  int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
+  char *signalled = alloca(mt);
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
+  DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
 
   for(;;)
   { Event ev = nextEvent(sched);
+    struct timeval now;
+
+    memset(signalled, 0, mt);
+    gettimeofday(&now, NULL);
+
+    for(; ev; ev = ev->next)
+    { struct timeval left;
+
+      left.tv_sec  = ev->at.tv_sec  - now.tv_sec;
+      left.tv_usec = ev->at.tv_usec - now.tv_usec;
+      if ( left.tv_usec < 0 )
+      { left.tv_sec--;
+	left.tv_usec += 1000000;
+      }
+
+      if ( left.tv_sec < 0 ||
+	   (left.tv_sec == 0 && left.tv_usec == 0) )
+      { if ( !signalled[ev->pl_thread_id] )
+	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d (= %ld) ...\n",
+			  (long)left.tv_sec,
+			  ev->pl_thread_id, (long)ev->thread_id));
+	  signalled[ev->pl_thread_id] = TRUE;
+	  pthread_kill(ev->thread_id, SIG_TIME);
+	}
+      } else
+	break;
+    }
 
     if ( ev )
     { struct timespec timeout;
-      int rc;
-
       timeout.tv_sec  = ev->at.tv_sec;
       timeout.tv_nsec = ev->at.tv_usec*1000;
+      int rc;
 
+    retry_timed_wait:
       DEBUG(1, Sdprintf("Waiting ...\n"));
       rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
 
       switch( rc )
       { case ETIMEDOUT:
-	  DEBUG(1, Sdprintf("Signalling %d (= %d) ...\n",
-			    ev->pl_thread_id, ev->thread_id));
-	  sched->scheduled = ev;
-	  ev->flags |= EV_FIRED;
-	  pthread_kill(ev->thread_id, SIGALRM);
-	  break;
 	case 0:
+	  continue;
 	case EINTR:
+	  goto retry_timed_wait;
+	default:
+	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
+	  assert(0);
+      }
+    } else
+    { int rc;
+
+    retry_wait:
+      DEBUG(1, Sdprintf("No waiting events\n"));
+      rc = pthread_cond_wait(&cond, &mutex);
+      switch(rc)
+      { case EINTR:
+	  goto retry_wait;
+	case 0:
 	  continue;
 	default:
 	  Sdprintf("alarm/4: pthread_cond_timedwait(): %s\n", strerror(rc));
+	  assert(0);
       }
-    } else
-    { int rc = pthread_cond_wait(&cond, &mutex);
-
-      if ( rc == EINTR )
-	continue;
     }
   }
 
@@ -573,87 +721,131 @@ on_alarm(int sig)
 { Event ev;
   schedule *sched = TheSchedule();
   pthread_t self = pthread_self();
-  term_t goal = 0;
-  module_t module = NULL;
 
-  DEBUG(1, Sdprintf("Signal received in %d (= %d)\n",
-		    PL_thread_self(), self));
+  DEBUG(1, Sdprintf("Signal received in %d (= %ld)\n",
+		    PL_thread_self(), (long)self));
 #ifdef BACKTRACE
   DEBUG(10, print_trace());
 #endif
 
-  LOCK();
-  for(ev = sched->first; ev; ev=ev->next)
-  { assert(ev->magic == EV_MAGIC);
+  for(;;)
+  { struct timeval now;
+    term_t goal = 0;
+    module_t module = NULL;
 
-    if ( (ev->flags & EV_FIRED) &&
-	 pthread_equal(self, ev->thread_id) )
-    { ev->flags &= ~EV_FIRED;
+    gettimeofday(&now, NULL);
 
-      DEBUG(1, Sdprintf("Calling event\n"));
-      ev->flags |= EV_DONE;
-      module = ev->module;
-      goal = PL_new_term_ref();
-      PL_recorded(ev->goal, goal);
+    LOCK();
+    for(ev = sched->first; ev; ev=ev->next)
+    { struct timeval left;
 
-      if ( ev->flags & EV_REMOVE )
-	freeEvent(ev);
-      break;
+      assert(ev->magic == EV_MAGIC);
+
+      if ( (ev->flags & (EV_DONE|EV_FIRED)) ||
+	   !pthread_equal(self, ev->thread_id) )
+	continue;
+
+      left.tv_sec  = ev->at.tv_sec - now.tv_sec;
+      left.tv_usec = ev->at.tv_usec - now.tv_usec;
+      if ( left.tv_usec < 0 )
+      { left.tv_sec--;
+	left.tv_usec += 1000000;
+      }
+
+      if ( left.tv_sec < 0 ||
+	   (left.tv_sec == 0 && left.tv_usec == 0) )
+      { DEBUG(1, Sdprintf("Calling event\n"));
+	ev->flags |= EV_DONE;
+	module = ev->module;
+	goal = PL_new_term_ref();
+	PL_recorded(ev->goal, goal);
+
+	if ( ev->flags & EV_REMOVE )
+	  freeEvent(ev);
+	break;
+      }
     }
-  }
-  UNLOCK();
+    UNLOCK();
 
-  if ( goal )
-  { PL_call_predicate(module,
-		      PL_Q_PASS_EXCEPTION,
-		      PREDICATE_call1,
-		      goal);
+    if ( goal )
+    { PL_call_predicate(module,
+			PL_Q_PASS_EXCEPTION,
+			PREDICATE_call1,
+			goal);
+    } else
+      break;
   }
+
+  DEBUG(1, Sdprintf("Processed pending events; signalling scheduler\n"));
+  pthread_cond_signal(&cond);
 }
 
 
 static int
 installEvent(Event ev)
-{ LOCK();
+{ int rc;
 
   ev->thread_id = pthread_self();
 #ifdef O_DEBUG
   ev->pl_thread_id = PL_thread_self();
 #endif
 
+  LOCK();
   if ( !scheduler_running )
   { pthread_attr_t attr;
-    int rc;
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_attr_setstacksize(&attr, 1024);
+    pthread_attr_setstacksize(&attr, 8192);
+    rc = pthread_create(&scheduler, &attr, alarm_loop, NULL);
+    pthread_attr_destroy(&attr);
 
-    if ( (rc=pthread_create(&scheduler, &attr, alarm_loop, NULL)) )
+    if ( rc != 0 )
+    { UNLOCK();
       return pl_error("alarm", 4, "Failed to start schedule thread",
 		      ERR_ERRNO, rc);
-    pthread_attr_destroy(&attr);
+    }
 
     DEBUG(1, Sdprintf("Started scheduler thread\n"));
     scheduler_running = TRUE;
   }
 
-  insertEvent(ev);
-  pthread_cond_signal(&cond);
+  rc = insertEvent(ev);
   UNLOCK();
+
+  if ( rc )
+    pthread_cond_signal(&cond);
+
+  return rc;
+}
+
+
+static int
+uninstallEvent(Event ev)
+{ LOCK();
+  if ( TheSchedule()->scheduled == ev )
+    ev->flags |= EV_DONE;
+  unlinkEvent(ev);
+  ev->flags &= ~(EV_FIRED|EV_DONE);
+  UNLOCK();
+
+  pthread_cond_signal(&cond);
 
   return TRUE;
 }
 
 
-static void
-uninstallEvent(Event ev)
+static int
+removeEvent(Event ev)
 { LOCK();
   if ( TheSchedule()->scheduled == ev )
     ev->flags |= EV_DONE;
   freeEvent(ev);
-  pthread_cond_signal(&cond);
   UNLOCK();
+
+  pthread_cond_signal(&cond);
+
+  return TRUE;
 }
 
 
@@ -664,7 +856,7 @@ re_schedule()
 { struct itimerval v;
   Event ev;
   schedule *sched = TheSchedule();
-  
+
   for(ev=sched->first; ev; ev = ev->next)
   { struct timeval now;
     struct timeval left;
@@ -686,7 +878,7 @@ re_schedule()
 
       callEvent(ev);		/* Time has passed.  What about exceptions? */
 
-      continue;		
+      continue;
     }
 
     sched->scheduled = ev;	/* This is the scheduled one */
@@ -737,21 +929,38 @@ on_alarm(int sig)
 
 static int
 installEvent(Event ev)
-{ insertEvent(ev);
-  re_schedule();
+{ int rc;
 
-  return TRUE;
+  if ( (rc=insertEvent(ev)) == TRUE )
+    re_schedule();
+
+  return rc;
 }
 
 
-static void
+static int
 uninstallEvent(Event ev)
 { if ( TheSchedule()->scheduled == ev )
   { ev->flags |= EV_DONE;
     re_schedule();
   }
 
+  ev->flags &= ~(EV_DONE|EV_FIRED);
+
+  return TRUE;
+}
+
+
+static int
+removeEvent(Event ev)
+{ if ( TheSchedule()->scheduled == ev )
+  { ev->flags |= EV_DONE;
+    re_schedule();
+  }
+
   freeEvent(ev);
+
+  return TRUE;
 }
 
 #endif /*SHARED_TABLE*/
@@ -761,6 +970,21 @@ uninstallEvent(Event ev)
 		 /*******************************
 		 *	PROLOG CONNECTION	*
 		 *******************************/
+
+int
+alarm_error(term_t alarm, int err)
+{ switch(err)
+  { case ERR_RESOURCE:
+      return pl_error(NULL, 0, NULL, ERR_RESOURCE, "timers");
+    case ERR_PERMISSION:
+      return pl_error(NULL, 0, "already installed", ERR_PERMISSION,
+		      alarm, "install", "alarm");
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
 
 static int
 unify_timer(term_t t, Event ev)
@@ -808,13 +1032,13 @@ pl_get_bool_ex(term_t arg, int *val)
 
 
 static foreign_t
-alarm4(term_t time, term_t callable, term_t id, term_t options)
+alarm4_gen(time_abs_rel abs_rel, term_t time, term_t callable,
+	   term_t id, term_t options)
 { Event ev;
   double t;
-  struct timeval tv;
   module_t m = NULL;
   unsigned long flags = 0L;
-    
+
   if ( options )
   { term_t tail = PL_copy_term_ref(options);
     term_t head = PL_new_term_ref();
@@ -854,20 +1078,18 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   if ( !PL_get_float(time, &t) )
     return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
 		    time, "number");
-		    
-  gettimeofday(&tv, NULL);
-  tv.tv_usec += (long)((t-floor(t))*1000000);
-  tv.tv_sec  += (long)t;
-  if ( tv.tv_usec >= 1000000 )
-  { tv.tv_usec -= 1000000;
-    tv.tv_sec++;
-  }
 
-  if ( !(ev = allocEvent(&tv)) )
+
+  if ( !(ev = allocEvent()) )
     return FALSE;
-  ev->time = t;
+
+  if (abs_rel==TIME_REL)
+	  setTimeEvent(ev, t);
+  else
+	  setTimeEventAbs(ev,t);
+
   if ( !unify_timer(id, ev) )
-  { freeEvent(ev);
+  { freeEvent(ev);			/* not linked: no need to lock */
     return FALSE;
   }
 
@@ -877,9 +1099,11 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   ev->goal = PL_record(callable);
 
   if ( !(ev->flags & EV_NOINSTALL) )
-  { if ( !installEvent(ev) )
-    { freeEvent(ev);
-      return FALSE;
+  { int rc;
+
+    if ( (rc=installEvent(ev)) != TRUE )
+    { freeEvent(ev);			/* not linked: no need to lock */
+      return alarm_error(id, rc);
     }
   }
 
@@ -888,24 +1112,69 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 
 
 static foreign_t
-alarm3(term_t time, term_t callable, term_t id)
-{ return alarm4(time, callable, id, 0);
+alarm4_abs(term_t time, term_t callable, term_t id, term_t options)
+{ return alarm4_gen(TIME_ABS,time,callable,id,options);
+}
+
+static foreign_t
+alarm4_rel(term_t time, term_t callable, term_t id, term_t options)
+{ return alarm4_gen(TIME_REL,time,callable,id,options);
+}
+
+static foreign_t
+alarm3_abs(term_t time, term_t callable, term_t id)
+{ return alarm4_gen(TIME_ABS,time, callable, id, 0);
+}
+
+static foreign_t
+alarm3_rel(term_t time, term_t callable, term_t id)
+{ return alarm4_gen(TIME_REL,time, callable, id, 0);
+}
+
+static foreign_t
+install_alarm(term_t alarm)
+{ Event ev = NULL;
+  int rc;
+
+  if ( !get_timer(alarm, &ev) )
+    return FALSE;
+
+  if ( (rc=installEvent(ev)) != TRUE )
+    return alarm_error(alarm, rc);
+
+  return TRUE;
 }
 
 
 static foreign_t
-install_alarm(term_t alarm)
+install_alarm2(term_t alarm, term_t time)
+{ Event ev = NULL;
+  double t;
+  int rc;
+
+  if ( !get_timer(alarm, &ev) )
+    return FALSE;
+
+  if ( !PL_get_float(time, &t) )
+    return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
+		    time, "number");
+
+  setTimeEvent(ev, t);
+  if ( (rc=installEvent(ev)) != TRUE )
+    return alarm_error(alarm, rc);
+
+  return TRUE;
+}
+
+
+static foreign_t
+uninstall_alarm(term_t alarm)
 { Event ev = NULL;
 
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  if ( !installEvent(ev) )
-  { freeEvent(ev);
-    return FALSE;
-  }
-
-  return TRUE;
+  return uninstallEvent(ev);
 }
 
 
@@ -916,9 +1185,7 @@ remove_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  uninstallEvent(ev);
-
-  return TRUE;
+  return removeEvent(ev);
 }
 
 
@@ -956,7 +1223,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
       s = ATOM_next;
     else
       s = ATOM_scheduled;
-    
+
     if ( !PL_unify_atom(status, s) )
       goto nomatch;
 
@@ -973,7 +1240,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
     if ( !unify_timer(id, ev) )
       goto nomatch;
-      
+
     PL_discard_foreign_frame(fid);
 
     PL_put_float(av+0, at);		/* time */
@@ -1018,10 +1285,14 @@ install()
 
   PREDICATE_call1 = PL_predicate("call", 1, "user");
 
-  PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
-  PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm_at",       4, alarm4_abs,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm",          4, alarm4_rel,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm_at",       3, alarm3_abs,     PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm",          3, alarm3_rel,     PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
+  PL_register_foreign("uninstall_alarm",1, uninstall_alarm,0);
   PL_register_foreign("install_alarm",  1, install_alarm,  0);
+  PL_register_foreign("install_alarm",  2, install_alarm2, 0);
   PL_register_foreign("remove_alarm_notrace",1, remove_alarm,   PL_FA_NOTRACE);
   PL_register_foreign("current_alarms", 5, current_alarms, 0);
 #ifdef O_DEBUG

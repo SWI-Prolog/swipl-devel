@@ -34,7 +34,7 @@
 	    barchart/0,
 	    barchart/1
 	  ]).
-:- use_module(library(pce)).	    
+:- use_module(library(pce)).
 :- use_module(library('plot/plotter')).
 :- use_module(library('plot/barchart')).
 :- use_module(library(autowin)).
@@ -67,7 +67,7 @@ plot_function(X, To, Step, Template, G) :-
 	send(G, append,	X, Y),
 	NewX is X + Step,
 	plot_function(NewX, To, Step, Template, G).
-	
+
 		 /*******************************
 		 *	      BARCHART		*
 		 *******************************/

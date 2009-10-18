@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,6 +34,7 @@
 	    http_read_reply_header/2,	% +Stream, -Reply
 	    http_reply/2,		% +What, +Stream
 	    http_reply/3,		% +What, +Stream, +HdrExtra
+	    http_reply/4,		% +What, +Stream, +HdrExtra, -Code
 	    http_reply_header/3,	% +Stream, +What, +HdrExtra
 
 	    http_timestamp/2,		% +Time, -HTTP string
@@ -56,6 +57,7 @@
 :- use_module(library(error)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
+:- use_module(http_exception).
 :- use_module(mimetype).
 :- use_module(mimepack).
 
@@ -118,67 +120,127 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %%	http_reply(+Data, +Out:stream, +HdrExtra) is det.
 %
 %	Data is one of
-%	
+%
 %		* html(HTML)
 %		HTML tokens as produced by html//1 from html_write.pl
-%		
+%
 %		* file(+MimeType, +FileName)
 %		Reply content of FileName using MimeType
-%		
+%
+%		* file(+MimeType, +FileName, +Range)
+%		Reply partial content of FileName with given MimeType
+%
 %		* tmp_file(+MimeType, +FileName)
 %		Same as =file=, but do not include modification time
-%		
+%
 %		* stream(+In, +Len)
 %		Reply content of stream.
-%		
+%
 %		* cgi_stream(+In, +Len)
 %		Reply content of stream, which should start with an
 %		HTTP header, followed by a blank line.  This is the
 %		typical output from a CGI script.
-%		
-%	@tbd	Complete documentation	
+%
+%		* Status
+%		HTTP status report and defined by http_status_reply/3.
+%
+%	@param HdrExtra provides additional reply-header fields, encoded
+%	       as Name(Value). It can also contain a field
+%	       content_length(-Len) to _retrieve_ the
+%	       value of the Content-length header that is replied.
+%
+%	@tbd	Complete documentation
 
 http_reply(What, Out) :-
-	http_reply(What, Out, [connection(close)]).
+	http_reply(What, Out, [connection(close)], _).
 
-http_reply(html(HTML), Out, HrdExtra) :- !,
-	phrase(reply_header(html(HTML), HrdExtra), Header),
+http_reply(Data, Out, HdrExtra) :-
+	http_reply(Data, Out, HdrExtra, _Code).
+
+http_reply(Data, Out, HdrExtra, Code) :-
+	byte_count(Out, C0),
+	catch(http_reply_data(Data, Out, HdrExtra, Code), E, true), !,
+	(   var(E)
+	->  true
+	;   E = error(io_error(write, _), _)
+	->  byte_count(Out, C1),
+	    Sent is C1 - C0,
+	    throw(error(http_write_short(Data, Sent), _))
+	;   map_exception_to_http_status(E, Status, NewHdr),
+	    http_status_reply(Status, Out, NewHdr, Code)
+	).
+http_reply(Status, Out, HdrExtra, Code) :-
+	http_status_reply(Status, Out, HdrExtra, Code).
+
+
+%%	http_reply_data(+Data, +Out, +HdrExtra, -Code) is semidet.
+%
+%	Fails if Data is not a defined   reply-data format, but a status
+%	term. See http_reply/3 and http_status_reply/3.
+%
+%	@error Various I/O errors.
+
+http_reply_data(html(HTML), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(html(HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_reply(file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(tmp_file(Type, File), Out, HrdExtra) :- !,
-	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
-	format(Out, '~s', [Header]),
-	open(File, read, In, [type(binary)]),
-	call_cleanup(copy_stream_data(In, Out),
-		     close(In)).
-http_reply(stream(In, Len), Out, HdrExtra) :- !,
-	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
-	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(cgi_stream(In, Len), Out, HrdExtra) :- !,
+http_reply_data(file(Type, File), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(file(Type, File), HrdExtra, Code), Header),
+	reply_file(Out, File, Header).
+http_reply_data(file(Type, File, Range), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(file(Type, File, Range), HrdExtra, Code), Header),
+	reply_file_range(Out, File, Header, Range).
+http_reply_data(tmp_file(Type, File), Out, HrdExtra, Code) :- !,
+	phrase(reply_header(tmp_file(Type, File), HrdExtra, Code), Header),
+	reply_file(Out, File, Header).
+http_reply_data(stream(In, Len), Out, HdrExtra, Code) :- !,
+	phrase(reply_header(cgi_data(Len), HdrExtra, Code), Header),
+	copy_stream(Out, In, Header, 0, end).
+http_reply_data(cgi_stream(In, Len), Out, HrdExtra, Code) :- !,
 	http_read_header(In, CgiHeader),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
 	http_join_headers(HrdExtra, CgiHeader, Hdr2),
-	phrase(reply_header(cgi_data(Size), Hdr2), Header),
+	phrase(reply_header(cgi_data(Size), Hdr2, Code), Header),
+	copy_stream(Out, In, Header, 0, end).
+
+reply_file(Out, File, Header) :-
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header, 0, end),
+			   close(In)).
+
+reply_file_range(Out, File, Header, bytes(From, To)) :- !,
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream(Out, In, Header, From, To),
+			   close(In)).
+
+copy_stream(Out, In, Header, From, To) :-
+	(   From == 0
+	->  true
+	;   seek(In, From, bof, _)
+	),
+	peek_byte(In, _),
 	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out).
-http_reply(Status, Out, HdrExtra) :-
-	set_stream(Out, encoding(utf8)),
-	call_cleanup(http_status_reply(Status, Out, HdrExtra),
-		     set_stream(Out, encoding(octet))), !.
+	(   To == end
+	->  copy_stream_data(In, Out)
+	;   Len is To - From,
+	    copy_stream_data(In, Out, Len)
+	),
+	flush_output(Out).
 
-%%	http_status_reply(+Status, +Out, +HdrExtra) is det.
+
+%%	http_status_reply(+Status, +Out, +HdrExtra, -Code) is det.
 %
-%	Emit HTML non-200 status reports.
+%	Emit HTML non-200 status reports. Such  requests are always sent
+%	as UTF-8 documents.
 
-http_status_reply(moved(To), Out, HrdExtra) :- !,
+http_status_reply(Status, Out, HdrExtra, Code) :-
+	setup_call_cleanup(set_stream(Out, encoding(utf8)),
+			   status_reply(Status, Out, HdrExtra, Code),
+			   set_stream(Out, encoding(octet))), !.
+
+
+status_reply(moved(To), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
 		    [ h1('Moved Permanently'),
@@ -188,10 +250,10 @@ http_status_reply(moved(To), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(moved(To, HTML), HrdExtra), Header),
+	phrase(reply_header(moved(To, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
+status_reply(moved_temporary(To), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('302 Moved Temporary')
 		    ],
 		    [ h1('Moved Temporary'),
@@ -201,10 +263,11 @@ http_status_reply(moved_temporary(To), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(moved_temporary(To, HTML), HrdExtra), Header),
+	phrase(reply_header(moved_temporary(To, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(see_other(To),Out,HdrExtra) :- !,
+status_reply(see_other(To),Out,HdrExtra, Code) :- !,
        phrase(page([ title('303 See Other')
                     ],
                     [ h1('See Other'),
@@ -214,10 +277,23 @@ http_status_reply(see_other(To),Out,HdrExtra) :- !,
                       \address
                     ]),
                HTML),
-        phrase(reply_header(see_other(To, HTML), HdrExtra), Header),
+        phrase(reply_header(see_other(To, HTML), HdrExtra, Code), Header),
         format(Out, '~s', [Header]),
         print_html(Out, HTML).
-http_status_reply(not_found(URL), Out, HrdExtra) :- !,
+status_reply(bad_request(ErrorTerm), Out, HdrExtra, Code) :- !,
+	'$messages':translate_message(ErrorTerm, Lines, []),
+	phrase(page([ title('400 Bad Request')
+		    ],
+		    [ h1('Bad Request'),
+		      p(\html_message_lines(Lines)),
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(status(bad_request, HTML),
+			    HdrExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
+status_reply(not_found(URL), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('404 Not Found')
 		    ],
 		    [ h1('Not Found'),
@@ -227,10 +303,10 @@ http_status_reply(not_found(URL), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(not_found, HTML), HrdExtra), Header),
+	phrase(reply_header(status(not_found, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
+status_reply(forbidden(URL), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('403 Forbidden')
 		    ],
 		    [ h1('Forbidden'),
@@ -240,10 +316,10 @@ http_status_reply(forbidden(URL), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(forbidden, HTML), HrdExtra), Header),
+	phrase(reply_header(status(forbidden, HTML), HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
+status_reply(authorise(Method, Realm), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('401 Authorization Required')
 		    ],
 		    [ h1('Authorization Required'),
@@ -257,13 +333,15 @@ http_status_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
+	phrase(reply_header(authorise(Method, Realm, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(not_modified, Out, HrdExtra) :- !,
-	phrase(reply_header(status(not_modified), HrdExtra), Header),
-	format(Out, '~s', [Header]).
-http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
+status_reply(not_modified, Out, HrdExtra, Code) :- !,
+	phrase(reply_header(status(not_modified), HrdExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	flush_output(Out).
+status_reply(server_error(ErrorTerm), Out, HrdExtra, Code) :-
 	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
@@ -272,10 +350,11 @@ http_status_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(server_error, HTML), HrdExtra), Header),
+	phrase(reply_header(status(server_error, HTML),
+			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
+status_reply(unavailable(WhyHTML), Out, HdrExtra, Code) :- !,
 	phrase(page([ title('503 Service Unavailable')
 		    ],
 		    [ h1('Service Unavailable'),
@@ -283,15 +362,17 @@ http_status_reply(unavailable(WhyHTML), Out, HdrExtra) :- !,
 		      \address
 		    ]),
 	       HTML),
-	phrase(reply_header(status(service_unavailable, HTML), HdrExtra), Header),
+	phrase(reply_header(status(service_unavailable, HTML), HdrExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
-http_status_reply(resource_error(ErrorTerm), Out, HdrExtra) :- !,
+status_reply(resource_error(ErrorTerm), Out, HdrExtra, Code) :- !,
 	'$messages':translate_message(ErrorTerm, Lines, []),
-	http_status_reply(unavailable(p(\html_message_lines(Lines))), Out, HdrExtra).
-http_status_reply(busy, Out, HdrExtra) :- !,
-	HTML = p(['The server is temporarily out of resources, please try again later']),
-	http_status_reply(unavailable(HTML), Out, HdrExtra).
+	status_reply(unavailable(p(\html_message_lines(Lines))),
+		     Out, HdrExtra, Code).
+status_reply(busy, Out, HdrExtra, Code) :- !,
+	HTML = p(['The server is temporarily out of resources, ',
+		  'please try again later']),
+	http_status_reply(unavailable(HTML), Out, HdrExtra, Code).
 
 
 html_message_lines([]) -->
@@ -313,7 +394,7 @@ html_message_lines([Fmt|T]) --> !,
 	html_message_lines(T).
 
 %%	http_join_headers(+Default, +Header, -Out)
-%	
+%
 %	Append headers from Default to Header if they are not
 %	already part of it.
 
@@ -328,7 +409,7 @@ http_join_headers([H|T], Hdr0, [H|Hdr]) :-
 
 
 %%	http_update_encoding(+HeaderIn, -Encoding, -HeaderOut)
-%	
+%
 %	Allow for rewrite of the  header,   adjusting  the  encoding. We
 %	distinguish three options. If  the   user  announces  `text', we
 %	always use UTF-8 encoding. If   the user announces charset=utf-8
@@ -383,7 +464,7 @@ join_connection(Keep1, Keep2, Connection) :-
 
 
 %%	connection(+Header, -Connection)
-%	
+%
 %	Extract the desired connection from a header.
 
 connection(Header, Close) :-
@@ -406,7 +487,7 @@ connection(Header, Close) :-
 %	=if_possible=, chunked encoding is  used   whenever  the  client
 %	allows for it, which is  interpreted   as  the client supporting
 %	HTTP 1.1 or higher.
-%	
+%
 %	Chunked encoding is more space efficient   and allows the client
 %	to start processing partial results. The drawback is that errors
 %	lead to incomplete pages instead of  a nicely formatted complete
@@ -437,7 +518,7 @@ join_transfer(_, _, none).
 
 
 %%	transfer(+Header, -Connection)
-%	
+%
 %	Extract the desired connection from a header.
 
 transfer(Header, Transfer) :-
@@ -451,7 +532,7 @@ transfer(Header, Transfer) :-
 
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)
-%	
+%
 %	Determine hom much bytes are required to represent the data from
 %	stream In using the given encoding.  Fails if the data cannot be
 %	represented with the given encoding.
@@ -482,37 +563,37 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	Send data on behalf on an HTTP   POST request. This predicate is
 %	normally called by http_post/4 from   http_client.pl to send the
 %	POST data to the server.  Data is one of:
-%	
+%
 %	  * html(+Tokens)
 %	  Result of html//1 from html_write.pl
-%	  
+%
 %	  * file(+File)
 %	  Send contents of a file. Mime-type is determined by
 %	  file_mime_type/2.
-%	  
+%
 %	  * file(+Type, +File)
 %	  Send file with content of indicated mime-type.
-%	  
+%
 %	  * codes(+Codes)
 %	  As string(text/plain, Codes).
-%	  
+%
 %	  * codes(+Type, +Codes)
 %	  Send Codes using the indicated MIME-type.
-%	  
+%
 %	  * cgi_stream(+Stream, +Len)
 %	  Read the input from Stream which, like CGI data starts with a partial
 %	  HTTP header. The fields of this header are merged with the provided
 %	  HdrExtra fields. The first Len characters of Stream are used.
-%	  
+%
 %	  * form(+ListOfParameter)
 %	  Send data of the MIME type application/x-www-form-urlencoded as
 % 	  produced by browsers issuing a POST request from an HTML form.
 %	  ListOfParameter is a list of Name=Value or Name(Value).
-%	  
+%
 %	  * form_data(+ListOfData)
 %	  Send data of the MIME type multipart/form-data.  ListOfData is the same
 %	  as for the List alternative described below.
-%	  
+%
 %	  * List
 %	  If the argument is a plain list, it is sent using the MIME type
 %	  multipart/mixed and packed using mime_pack/3. See mime_pack/3
@@ -608,24 +689,24 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 %	HTTP Content-length and Content-type fields.
 
 post_header(html(Tokens), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, Len),
+	content_length(html(Tokens), Len),
 	content_type(text/html),
-	"\r\n". 
+	"\r\n".
 post_header(file(Type, File), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	header_fields(HdrExtra, Len),
+	content_length(file(File), Len),
 	content_type(Type),
-	"\r\n". 
+	"\r\n".
 post_header(cgi_data(Size), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(Size),
-	"\r\n". 
+	header_fields(HdrExtra, Len),
+	content_length(Size, Len),
+	"\r\n".
 post_header(codes(Type, Codes), HdrExtra) -->
-	header_fields(HdrExtra),
-	content_length(ascii_string(Codes)),
+	header_fields(HdrExtra, Len),
+	content_length(ascii_string(Codes), Len),
 	content_type(Type),
-	"\r\n". 
+	"\r\n".
 
 
 		 /*******************************
@@ -638,135 +719,164 @@ post_header(codes(Type, Codes), HdrExtra) -->
 %	Stream.
 
 http_reply_header(Out, What, HdrExtra) :-
-	phrase(reply_header(What, HdrExtra), String), !,
+	phrase(reply_header(What, HdrExtra, _Code), String), !,
 	format(Out, '~s', [String]).
-	
 
-reply_header(string(String), HdrExtra) -->
-	reply_header(string(text/plain, String), HdrExtra).
-reply_header(string(Type, String), HdrExtra) -->
-	vstatus(ok),
+
+reply_header(string(String), HdrExtra, Code) -->
+	reply_header(string(text/plain, String), HdrExtra, Code).
+reply_header(string(Type, String), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(ascii_string(String)),
+	header_fields(HdrExtra, CLen),
+	content_length(ascii_string(String), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(html(Tokens), HdrExtra) -->
-	vstatus(ok),
+reply_header(html(Tokens), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html),
 	"\r\n".
-reply_header(file(Type, File), HdrExtra) -->
-	vstatus(ok),
+reply_header(file(Type, File), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
 	modified(file(File)),
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(tmp_file(Type, File), HdrExtra) -->
-	vstatus(ok),
+reply_header(file(Type, File, Range), HdrExtra, Code) -->
+	vstatus(partial_content, Code),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(file(File)),
+	modified(file(File)),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File, Range), CLen),
 	content_type(Type),
 	"\r\n".
-reply_header(cgi_data(Size), HdrExtra) -->
-	vstatus(ok),
+reply_header(tmp_file(Type, File), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(Size),
+	header_fields(HdrExtra, CLen),
+	content_length(file(File), CLen),
+	content_type(Type),
 	"\r\n".
-reply_header(chunked_data, HdrExtra) -->
-	vstatus(ok),
+reply_header(cgi_data(Size), HdrExtra, Code) -->
+	vstatus(ok, Code),
 	date(now),
-	header_fields(HdrExtra),
+	header_fields(HdrExtra, CLen),
+	content_length(Size, CLen),
+	"\r\n".
+reply_header(chunked_data, HdrExtra, Code) -->
+	vstatus(ok, Code),
+	date(now),
+	header_fields(HdrExtra, _),
 	(   {memberchk(transfer_encoding(_), HdrExtra)}
 	->  ""
 	;   transfer_encoding(chunked)
 	),
 	"\r\n".
-reply_header(moved(To, Tokens), HdrExtra) -->
-	vstatus(moved),
+reply_header(moved(To, Tokens), HdrExtra, Code) -->
+	vstatus(moved, Code),
 	date(now),
 	header_field('Location', To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(moved_temporary(To, Tokens), HdrExtra) -->
-	vstatus(moved_temporary),
+reply_header(moved_temporary(To, Tokens), HdrExtra, Code) -->
+	vstatus(moved_temporary, Code),
 	date(now),
 	header_field('Location', To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(see_other(To,Tokens),HdrExtra) -->
-	vstatus(see_other),
+reply_header(see_other(To,Tokens),HdrExtra, Code) -->
+	vstatus(see_other, Code),
 	date(now),
 	header_field('Location',To),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(status(Status), HdrExtra) --> % Empty messages: 1xx, 204 and 304
-	vstatus(Status),
-	header_fields(HdrExtra),
+reply_header(status(Status), HdrExtra, Code) --> % Empty messages: 1xx, 204 and 304
+	vstatus(Status, Code),
+	header_fields(HdrExtra, Clen),
+	{ Clen = 0 },
 	"\r\n".
-reply_header(status(Status, Tokens), HdrExtra) -->
-	vstatus(Status),
+reply_header(status(Status, Tokens), HdrExtra, Code) -->
+	vstatus(Status, Code),
 	date(now),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
-reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
-	vstatus(authorise),
+reply_header(authorise(Method, Realm, Tokens), HdrExtra, Code) -->
+	vstatus(authorise, Code),
 	date(now),
 	authenticate(Method, Realm),
-	header_fields(HdrExtra),
-	content_length(html(Tokens)),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
 
-vstatus(Status) -->
+vstatus(Status, Code) -->
 	"HTTP/1.1 ",
-	status_number(Status),
+	status_number(Status, Code),
 	" ",
 	status_comment(Status),
 	"\r\n".
 
-%%	status_number(-Code)//
+%%	status_number(?Status, ?Code)// is semidet.
 %
-%	Parse the HTTP status numbers and return them as a code (atom).
+%	Parse/generate the HTTP status numbers and return them as a code
+%	(atom).
 
-status_number(continue)		   --> "100".
-status_number(ok)		   --> "200".
-status_number(moved)		   --> "301".
-status_number(moved_temporary)	   --> "302".
-status_number(see_other)	   --> "303".
-status_number(not_modified)	   --> "304". 
-status_number(not_found)	   --> "404".
-status_number(forbidden)	   --> "403".
-status_number(authorise)	   --> "401".
-status_number(server_error)	   --> "500".
-status_number(service_unavailable) --> "503".
+status_number(Status, Code) -->
+	{ var(Status) }, !,
+	integer(Code),
+	{ status_number(Status, Code) }, !.
+status_number(Status, Code) -->
+	{ status_number(Status, Code) },
+	integer(Code).
+
+status_number(continue,		   100).
+status_number(ok,		   200).
+status_number(partial_content,	   206).
+status_number(moved,		   301).
+status_number(moved_temporary,	   302).
+status_number(see_other,	   303).
+status_number(not_modified,	   304).
+status_number(bad_request,	   400).
+status_number(not_found,	   404).
+status_number(forbidden,	   403).
+status_number(authorise,	   401).
+status_number(server_error,	   500).
+status_number(service_unavailable, 503).
+
+
+%%	status_comment(+Code:atom)// is det.
+%
+%	Emit standard HTTP human-readable comment on the reply-status.
 
 status_comment(continue) -->
 	"Continue".
 status_comment(ok) -->
 	"OK".
+status_comment(partial_content) -->
+	"Partial content".
 status_comment(moved) -->
 	"Moved Permanently".
 status_comment(moved_temporary) -->
 	"Moved Temporary".
 status_comment(see_other) -->
 	"See Other".
-status_comment(not_modified) --> 
+status_comment(not_modified) -->
 	"Not Modified".
+status_comment(bad_request) -->
+	"Bad Request".
 status_comment(not_found) -->
 	"Not Found".
 status_comment(forbidden) -->
@@ -792,10 +902,10 @@ date(Time) -->
 	;   rfc_date(Time)
 	),
 	"\r\n".
-	
+
 modified(file(File)) --> !,
 	{ time_file(File, Time)
-	}, 
+	},
 	modified(Time).
 modified(Time) -->
 	"Last-modified: ",
@@ -805,22 +915,51 @@ modified(Time) -->
 	),
 	"\r\n".
 
-content_length(ascii_string(String)) --> !,
-	{ length(String, Len)
+
+%%	content_length(+Object, ?Len)// is det.
+%
+%	Emit the content-length field and (optionally) the content-range
+%	field.
+%
+%	@param Len Number of bytes specified
+
+content_length(file(File, bytes(From, To)), Len) --> !,
+	{ size_file(File, Size),
+	  (   To == end
+	  ->  Len is Size - From,
+	      RangeEnd is Size - 1
+	  ;   Len is To+1 - From,	% To is index of last byte
+	      RangeEnd = To
+	  )
 	},
-	content_length(Len).
-content_length(file(File)) --> !,
-	{ size_file(File, Len)
+	content_range(bytes, From, RangeEnd, Size),
+	content_length(Len, Len).
+content_length(Reply, Len) -->
+	{ length_of(Reply, Len)
 	},
-	content_length(Len).
-content_length(html(Tokens)) --> !,
-	{ html_print_length(Tokens, Len)
-	},
-	content_length(Len).
-content_length(Len) -->
-	{ number_codes(Len, LenChars)
-	},
-	"Content-Length: ", string(LenChars),
+	"Content-Length: ", integer(Len),
+	"\r\n".
+
+
+length_of(_, Len) :-
+	nonvar(Len), !.
+length_of(ascii_string(String), Len) :- !,
+	length(String, Len).
+length_of(file(File), Len) :- !,
+	size_file(File, Len).
+length_of(html(Tokens), Len) :- !,
+	html_print_length(Tokens, Len).
+length_of(Len, Len).
+
+
+%%	content_range(+Unit:atom, +From:int, +RangeEnd:int, +Size:int)// is det
+%
+%	Emit the =|Content-Range|= header  for   partial  content  (206)
+%	replies.
+
+content_range(Unit, From, RangeEnd, Size) -->
+	"Content-Range: ", atom(Unit), " ",
+	integer(From), "-", integer(RangeEnd), "/", integer(Size),
 	"\r\n".
 
 transfer_encoding(Encoding) -->
@@ -843,7 +982,7 @@ ctype(Type) --> !,
 	"Content-Type: ",
 	atom(Type).
 
-charset(Var) --> 
+charset(Var) -->
 	{ var(Var) }, !.
 charset(utf8) --> !,
 	"; charset=UTF-8".
@@ -851,14 +990,24 @@ charset(CharSet) -->
 	"; charset=",
 	atom(CharSet).
 
+%%	header_field(-Name, -Value)// is det.
+%%	header_field(+Name, +Value) is det.
+%
+%	Process an HTTP request property. Request properties appear as a
+%	single line in an HTTP header.
+
 header_field(Name, Value) -->
-	{ var(Name) }, !,
+	{ var(Name) }, !,		% parsing
 	field_name(Name),
 	":",
 	whites,
 	read_field_value(ValueChars),
 	blanks_to_nl, !,
-	{ field_to_prolog(Name, ValueChars, Value) }.
+	{   field_to_prolog(Name, ValueChars, Value)
+	->  true
+	;   atom_codes(Value, ValueChars),
+	    domain_error(Name, Value)
+	}.
 header_field(Name, Value) -->
 	field_name(Name),
 	": ",
@@ -895,6 +1044,8 @@ field_to_prolog(host, ValueChars, Host) :- !,
 	    Host = HostName:Port
 	;   atom_codes(Host, ValueChars)
 	).
+field_to_prolog(range, ValueChars, Range) :-
+	phrase(range(Range), ValueChars), !.
 field_to_prolog(_, ValueChars, Atom) :-
 	atom_codes(Atom, ValueChars).
 
@@ -915,27 +1066,34 @@ set_cookie_options([Name=Value|T]) -->
 	set_cookie_options(T).
 
 
-%	Process a sequence of [Name(Value), ...] attributes for the
-%	header.
+%%	header_fields(+Fields, ?ContentLength)// is det.
+%
+%	Process a sequence of  [Name(Value),   ...]  attributes  for the
+%	header. A term content_length(Len) is   special. If instantiated
+%	it emits the header. If not   it just unifies ContentLength with
+%	the argument of the content_length(Len)   term.  This allows for
+%	both sending and retrieving the content-length.
 
-header_fields([]) -->
+header_fields([], _) -->
 	[].
-header_fields([H|T]) -->
-	{ H =.. [Name, Value]
-	},
-	field_name(Name),
-	whites,
-	": ",
-	field_value(Value),
-	"\r\n",
-	header_fields(T).
+header_fields([content_length(CLen)|T], CLen) --> !,
+	(   { var(CLen) }
+	->  ""
+	;   header_field(content_length, CLen)
+	),
+	header_fields(T, CLen).		% Continue or return first only?
+header_fields([H|T], CLen) -->
+	{ H =.. [Name, Value] },
+	header_field(Name, Value),
+	header_fields(T, CLen).
+
 
 %%	field_name(?PrologName)
 %
 %	Convert between prolog_name and HttpName.  Field names are,
 %	aoording to RFC 2616, considered tokens and covered by the
 %	following definition:
-%	
+%
 %	==
 %	token          = 1*<any CHAR except CTLs or separators>
 %       separators     = "(" | ")" | "<" | ">" | "@"
@@ -1006,18 +1164,18 @@ now -->
 	rfc_date(Time).
 
 %%	rfc_date(+Time)// is det.
-%	
+%
 %	Write time according to RFC1123 specification as required by the
-%	RFC2616 HTTP protocol specs. 
+%	RFC2616 HTTP protocol specs.
 
 rfc_date(Time, String, Tail) :-
 	stamp_date_time(Time, Date, 'UTC'),
 	format_time(codes(String, Tail),
 		    '%a, %d %b %Y %H:%M:%S GMT',
 		    Date, posix).
-	
+
 %%	http_timestamp(+Time:timestamp, -Text:atom) is det.
-%	
+%
 %	Generate a description of a Time in HTTP format (RFC1123)
 
 http_timestamp(Time, Atom) :-
@@ -1047,14 +1205,13 @@ request(Fd, [unknown(What)|Header]) -->
 	;   Header = ""
 	}.
 
-method(get) -->
-	"GET", !.
-method(put) -->
-	"PUT", !.
-method(head) -->
-	"HEAD", !.
-method(post) -->
-	"POST", !.
+method(get)     --> "GET", !.
+method(put)     --> "PUT", !.
+method(head)    --> "HEAD", !.
+method(post)    --> "POST", !.
+method(delete)  --> "DELETE", !.
+method(options) --> "OPTIONS", !.
+method(trace)   --> "TRACE", !.
 
 request_header(_, []) -->		% Old-style non-version header
 	blanks,
@@ -1083,7 +1240,9 @@ http_version_number(Major-Minor) -->
 		 *	      COOKIES		*
 		 *******************************/
 
-%	cookies are of the format NAME=Value; ...
+%%	cookies(-List) is semidet.
+%
+%	Translate a cookie description into a list Name=Value.
 
 cookies([Name=Value|T]) -->
 	blanks,
@@ -1093,6 +1252,8 @@ cookies([Name=Value|T]) -->
 	->  cookies(T)
 	;   { T = [] }
 	).
+cookies([]) -->
+	blanks.
 
 cookie(Name, Value) -->
 	cookie_name(Name),
@@ -1143,7 +1304,7 @@ cookie_options([]) -->
 %	cookie  options  use  the  syntax   <name>=<value>,  except  for
 %	=secure=.  M$  decided  to  extend  this  to  include  at  least
 %	=httponly= (only the Gods know what it means).
-%	
+%
 %	@param	Option	Term of the form Name=Value
 %	@bug	Incorrectly accepts options without = for M$ compatibility.
 
@@ -1167,6 +1328,21 @@ chars_to_semicolon([H|T]) -->
 chars_to_semicolon([]) -->
 	[].
 
+%%	range(-Range)// is semidet.
+%
+%	Process the range header value. Range is currently defined as:
+%
+%	    * bytes(From, To)
+%	    Where From is an integer and To is either an integer or
+%	    the atom =end=.
+
+range(bytes(From, To)) -->
+	"bytes", whites, "=", whites, integer(From), "-",
+	(   integer(To)
+	->  ""
+	;   { To = end }
+	).
+
 
 		 /*******************************
 		 *	     REPLY DCG		*
@@ -1178,16 +1354,16 @@ chars_to_semicolon([]) -->
 %	remainder  of  the  header  and    parse  it.  After  successful
 %	completion, Reply contains the following fields, followed by the
 %	fields produced by http_read_header/2.
-%	
+%
 %	    * http_version(Major-Minor)
 %	    * status(StatusCode, Comment)
-%	    
+%
 %	StatusCode is one of the values provided by status_number//1.
 
 reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 	http_version(HttpVersion),
 	blanks,
-	(   status_number(Status)
+	(   status_number(Status, _Code)
 	->  []
 	;   integer(Status)
 	),
@@ -1264,3 +1440,14 @@ address -->
 mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
 mkfield(Name, Value, [Att|Tail], Tail) :-
 	Att =.. [Name, Value].
+
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message//1.
+
+prolog:message(error(http_write_short(Data, Sent), _)) -->
+	[ '~p: remote hangup after ~D bytes'-[Data, Sent] ].

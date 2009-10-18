@@ -50,7 +50,7 @@ initialiseTile(TileObj t, Any object, Int w, Int h)
       w = get(object, NAME_width, EAV);
     if ( isDefault(h) )
       h = get(object, NAME_height, EAV);
-  } 
+  }
 
   assign(t, enforced,	 OFF);		/* building stage */
   assign(t, idealWidth,  w);		/* ideal size */
@@ -94,7 +94,7 @@ static status
 cleanTile(TileObj t)
 { if ( t->members->size == ONE )
   { TileObj child = getHeadChain(t->members);
-      
+
     if ( notNil(t->super) )
     { TileObj super = t->super;
 
@@ -154,10 +154,10 @@ computeTile(TileObj t)
     hst = ZERO;
     vsh = INFINITE;
     vst = INFINITE;
-    
+
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       w = add(w, t2->idealWidth);
       h = Max(h, t2->idealHeight);
       hsh = Max(hsh, t2->horShrink);
@@ -166,7 +166,7 @@ computeTile(TileObj t)
       vst = Min(vst, t2->verStretch);
       w = add(w, t->border);
     }
-    
+
     assign(t, idealWidth,  w);
     assign(t, horShrink,   hsh);
     assign(t, horStretch,  hst);
@@ -180,10 +180,10 @@ computeTile(TileObj t)
     vst = ZERO;
     hsh = INFINITE;
     hst = INFINITE;
-    
+
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       w = Max(w, t2->idealWidth);
       h = add(h, t2->idealHeight);
       hsh = Min(hsh, t2->horShrink);
@@ -192,7 +192,7 @@ computeTile(TileObj t)
       vst = Max(vst, t2->verStretch);
       h = add(h, t->border);
     }
-    
+
     assign(t, idealWidth,  w);
     assign(t, horShrink,   hsh);
     assign(t, horStretch,  hst);
@@ -200,7 +200,7 @@ computeTile(TileObj t)
     assign(t, verShrink,   vsh);
     assign(t, verStretch,  vst);
   }
-  
+
   DEBUG(NAME_tile,
 	if ( t->orientation == NAME_horizontal ||
 	     t->orientation == NAME_vertical )
@@ -235,7 +235,7 @@ nonDelegatingLeftRightTile(TileObj t, TileObj t2, Name where)
   { Chain ch;
 
     super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
-    
+
     if ( where == NAME_right )
       ch = newObject(ClassChain, t2, t, EAV);
     else
@@ -329,7 +329,7 @@ nonDelegatingAboveBelowTile(TileObj t, TileObj t2, Name where)
   { Chain ch;
 
     super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
-    
+
     if ( where == NAME_below )
       ch = newObject(ClassChain, t2, t, EAV);
     else
@@ -424,7 +424,7 @@ distribute_stretches(stretch *s, int n, int w)
 { int ok = FALSE;
   int i;
   int maxloop = n;
-  
+
   if ( w <= 0 )
   { for(i=0; i<n; i++)
       s[i].size = 0;
@@ -437,7 +437,7 @@ distribute_stretches(stretch *s, int n, int w)
     int grow, growed;
     int is_pos;
     Stretch sp;
-    
+
     for(i = 0; i < n; i++)
     { total_ideal   += s[i].ideal;
       total_stretch += s[i].stretch;
@@ -509,7 +509,7 @@ distribute_stretches(stretch *s, int n, int w)
 	     (do_grow ? s[j].stretch : s[i].shrink) > 0 )
 	{ int to_grow = (grow - growed < per_stretchable ? grow - growed
 							 : per_stretchable);
-	  
+
 					/* don't make negative */
 	  if ( !do_grow	&& to_grow > s[j].size )
 	    to_grow = s[j].size;
@@ -519,7 +519,7 @@ distribute_stretches(stretch *s, int n, int w)
 	}
       }
     }
-  
+
     ok = TRUE;
     for(sp=s, i = 0; i < n; i++, sp++)	/* Accept min and max */
     { if ( sp->size < sp->minimum )
@@ -598,7 +598,7 @@ join_stretches(stretch *stretches, int len, stretch *r)
 				sp->minimum, sp->maximum,
 				sp->shrink, sp->stretch));
   }
-    
+
   for(avg=0, sp=stretches, i=len; i-- > 0; sp++)
     avg += sp->ideal;
   avg /= len;
@@ -637,12 +637,12 @@ join_stretches(stretch *stretches, int len, stretch *r)
       w0 = (sp->stretch ? max(1000/sp->stretch, 1) : 100000);
       stretchavg += sp->stretch*w0;
       twstretch += w0;
-  
+
       w0 = (sp->shrink ? max(1000/sp->shrink, 1) : 100000);
       shrinkavg += sp->shrink*w0;
       twshrink += w0;
     }
-    
+
     r->shrink  = (stretchavg+twstretch/2)/twstretch;
     r->stretch = (shrinkavg+twshrink/2)/twshrink;
   }
@@ -785,7 +785,7 @@ enforceTile(TileObj t, Bool val)
   } else
   { if ( t->enforced == OFF )
     { assign(t, enforced, ON);
-    
+
       layoutTile(t, DEFAULT, DEFAULT, t->idealWidth, t->idealHeight);
     }
   }
@@ -804,7 +804,7 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
 
   if ( notDefault(aw) && valInt(aw) < 0 ) aw = ZERO;
   if ( notDefault(ah) && valInt(ah) < 0 ) ah = ZERO;
- 
+
   setArea(t->area, ax, ay, aw, ah);
   x = valInt(t->area->x);
   y = valInt(t->area->y);
@@ -830,11 +830,11 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
   { stretch s[MAX_TILE_MEMBERS];
     Stretch sp;
     Cell cell;
-    
+
     sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       sp->minimum = 0;
       sp->maximum = INT_MAX;
       sp->ideal   = valInt(t2->idealWidth);
@@ -842,13 +842,13 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
       sp->shrink  = valInt(t2->horShrink);
       sp++;
     }
-    
+
     distribute_stretches(s, sp-s, w - border*borders);
-    
+
     sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       layoutTile(t2, toInt(x), toInt(y), toInt(sp->size), toInt(h));
       x += sp->size + border;
       sp++;
@@ -857,11 +857,11 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
   { stretch s[MAX_TILE_MEMBERS];
     Stretch sp;
     Cell cell;
-    
+
     sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       sp->minimum = 0;
       sp->maximum = INT_MAX;
       sp->ideal   = valInt(t2->idealHeight);
@@ -869,19 +869,19 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
       sp->shrink  = valInt(t2->verShrink);
       sp++;
     }
-    
+
     distribute_stretches(s, sp-s, h - border*borders);
-    
+
     sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       layoutTile(t2, toInt(x), toInt(y), toInt(w), toInt(sp->size));
       y += sp->size + border;
       sp++;
     }
   }
-    
+
   DEBUG(NAME_tile, Cprintf("exit: layoutTile(%s)\n", pp(t)));
 
   succeed;
@@ -997,10 +997,10 @@ getCanResizeTile(TileObj t)
     { if ( ICanResizeTile(t, t->super->orientation) )
       { Cell cell;
 	int before = TRUE;
-	
+
 	for_cell(cell, t->super->members)
 	{ TileObj t2 = cell->value;
-	  
+
 	  if ( before )
 	  { if ( t == t2 )
 	      before = FALSE;
@@ -1028,7 +1028,7 @@ adjust_pos(Int H, int bh)
   int i1 = h*3/4;
   int i2 = h - 30;
   int i  = max(i1, i2);
-  
+
   return i;
 }
 
@@ -1067,7 +1067,7 @@ TileObj
 getSubTileToResizeTile(TileObj t, Point pos)
 { if ( pointInArea(t->area, pos) && notNil(t->members) )
   { Cell cell;
-    
+
     DEBUG(NAME_tile, Cprintf("getSubTileToResizeTile() at %s, %s: ",
 			     pp(pos->x), pp(pos->y)));
 
@@ -1075,7 +1075,7 @@ getSubTileToResizeTile(TileObj t, Point pos)
 					/* in the area of a sub-tile */
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
-      
+
       if ( pointInArea(t2->area, pos) && notNil(t2->members) )
       { TileObj t3 = getSubTileToResizeTile(t2, pos);
 
@@ -1220,7 +1220,7 @@ static getdecl get_tile[] =
 { GM(NAME_root, 0, "tile", NULL, getRootTile,
      NAME_organisation, "Root of the tile-hierarchy"),
   GM(NAME_subTileToResize, 1, "tile", "point", getSubTileToResizeTile,
-     NAME_event, "Tile above or left-of gap at point"), 
+     NAME_event, "Tile above or left-of gap at point"),
   GM(NAME_canResize, 0, "bool", NULL, getCanResizeTile,
      NAME_resize, NULL)
 };

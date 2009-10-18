@@ -62,7 +62,7 @@ make_resize_button_gesture(G) :-
 	send(G, attribute, hmode),
 	send(G, attribute, vmode),
 	send(G, cursor, fleur),
-	
+
 	new(Gr, @event?receiver?device),
 	new(Dev, Gr?device),
 	new(Display, Dev?display),
@@ -123,7 +123,7 @@ make_resize_button_gesture(G) :-
 	     send_method(terminate, vector(event),
 			 and(message(OutLine, detach, Gr)))).
 
-	     
+
 event(_RB, Ev:event) :->
 	"Invoke @resize_button_gesture"::
 	send(@resize_button_gesture, event, Ev).

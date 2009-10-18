@@ -116,7 +116,7 @@ cursor(G, Gr, Cursor:cursor) :<-
 		send(Gr, pointer, HotSpot),
 		send(G?offset, copy, HotSpot)
 	    ;   get(G, offset, HotSpot)
-	    ),  
+	    ),
 	    new(BM, image(@nil, W, H)),
 	    send(BM, draw_in, Gr, point(0,0)),
 	    send(BM, or, image('cross.bm'), point(HotSpot?x-8, HotSpot?y-8)),
@@ -192,7 +192,7 @@ target(G, Source:any, Ev:event*, Gr:graphical*) :->
 	;   true
 	),
 	send(G, slot, target, Gr).
-		
+
 
 terminate(G, Ev:event) :->
 	"->drop to <-target"::

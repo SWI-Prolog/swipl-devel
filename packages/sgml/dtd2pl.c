@@ -27,6 +27,7 @@
 #include <string.h>
 #include <wchar.h>
 #include "dtd.h"
+#include "util.h"
 #include "prolog.h"
 
 #define streq(s,q) strcmp((s), (q)) == 0
@@ -42,10 +43,12 @@ int
 main(int argc, char **argv)
 { dtd_dialect dialect = DL_SGML;
 
+  init_ring();
+
   program = argv[0];
   argv++;
   argc--;
-  
+
   while(argc > 0 && argv[0][0] == '-')
   { if ( streq(argv[0], "-xml") )
     { dialect = DL_XML;
@@ -63,7 +66,7 @@ main(int argc, char **argv)
 
   if ( argc == 1 )
   { int wl = mbstowcs(NULL, argv[0], 0);
-    
+
     if ( wl > 0 )
     { wchar_t *ws = malloc((wl+1)*sizeof(wchar_t));
       dtd *dtd;

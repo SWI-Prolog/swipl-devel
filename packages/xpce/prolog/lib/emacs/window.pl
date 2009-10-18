@@ -33,7 +33,7 @@
 :- use_module(library(pce)).
 :- use_module(prompt).
 :- require([ between/3
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , default/3
 	   , forall/2
 	   , ignore/1
@@ -323,7 +323,7 @@ append_item(P, Mode:emacs_mode, Item:any) :->
 	).
 
 %	accelerator(+Command, +Mode, -Accelerator)
-%	
+%
 %	Copy/cut are hacked due to the tricky combination of CUA and
 %	native Emacs mode.
 
@@ -446,7 +446,7 @@ make_emacs_mini_window_bindings(B) :-
 	send(B, function, '\\es', sticky_window),
 	send(B, function, '\\en', m_x_next),
 	send(B, function, '\\ep', m_x_previous).
-	      
+
 editor_event(D, Ev:event) :->
 	"Process event typed in the editor"::
 	(   get(D, prompter, Prompter),
@@ -597,7 +597,7 @@ prompt(V, Label:char_array, Default:[any], Type:[type], History:[chain],
 	->  send(Item, length, 60),
 	    send(Item, pen, 0)
 	),
-	
+
 	get(V, prompt_using, Item, RawRval),
 
 	fix_rval(Type, RawRval, Rval),
@@ -658,7 +658,7 @@ fill_arg_vector(ArgN, Mode, Impl, Argv) :-
 	Next is ArgN + 1,
 	fill_arg_vector(Next, Mode, Impl, Argv).
 fill_arg_vector(_, _, _, _).
-	
+
 
 make_arg_vector(Impl, Times, Argv) :-
 	new(Argv, code_vector),
@@ -812,7 +812,7 @@ mode(E, ModeName:mode_name) :->
 	    send(E, report, status, 'Switched to ``%s'''' mode', ModeName)
 	).
 
-	
+
 sticky_window(E, Val:[bool]) :->
 	"Change sticky status of window"::
 	send(E?frame, sticky_window, Val).
@@ -1091,7 +1091,7 @@ binding_name(ClassName, Name) :-
 
 convert(_, Name:name, Mode:emacs_mode) :<-
         "Convert name into a mode object"::
-        concat_atom([emacs_, Name, '_mode'], ModeClassName),
+        atomic_list_concat([emacs_, Name, '_mode'], ModeClassName),
 	get(@pce, convert, ModeClassName, class, _), % fail silently
         new(Mode, ModeClassName).
 
@@ -1238,7 +1238,7 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	"Handle typed character for editor"::
 	get(M, text_buffer, TB),
 	send(TB, check_auto_save),
-	
+
 					% send to mode rather than editor
 	(   get(M, focus_function, F), F \== @nil
  	->  (   send(M, F, Id)
@@ -1358,7 +1358,7 @@ m_x_previous(M, Value:any) :<-
 	    fail
 	).
 
-	
+
 m_x_next(M, Value:any) :<-
 	"Read previous value from the M-x history"::
 	get(M, m_x_index, Idx),
@@ -1370,7 +1370,7 @@ m_x_next(M, Value:any) :<-
 	get(M?m_x_history, nth1, Nidx, ArgVector),
 	get(ArgVector, element, M?m_x_argn, Value),
 	send(M, m_x_index, Nidx).
-	
+
 
 		 /*******************************
 		 *	      REPORT		*
@@ -1548,7 +1548,7 @@ args_available(N, Impl, KB, EvId) :-
 	NN is N + 1,
 	args_available(NN, Impl, KB, EvId).
 args_available(_, _, _, _).
-	
+
 execute(KB, Receiver:emacs_mode, Selector:name, Argv:any ...) :->
 	"Push history if available"::
 	(   get(Receiver, m_x_history, @nil)

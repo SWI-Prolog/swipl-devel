@@ -58,7 +58,7 @@ client(DE, Client:object, Ats:'name|tuple ...') :->
 	send(DE, append, button(quit)),
 	send(DE, evaluate_conditions),
 	send(DE, advance).
-	
+
 
 pce_class_name(Client, ClassName) :-
 	get(Client, class_name, N0),
@@ -167,7 +167,7 @@ make_item(Attr, Type, Client, Item) :-		% TYPE
 	send(Item, value_set, Ch).
 make_item(Attr, Type, Client, Item) :-		% CHAR_ARRAY|IMAGE (label)
 	send(Type, includes, char_array),
-	send(Type, includes, image), !,	
+	send(Type, includes, image), !,
 	new(Item, dia_label_item(Attr, Client?Attr, @att_generic)).
 make_item(Attr, Type, Client, Item) :-		% IMAGE
 	send(Type, includes, image), !,
@@ -197,7 +197,7 @@ make_item(Attr, Type, Client, Item) :-		% INT
 	send(Item, width, 5).
 make_item(Attr, Type, Client, Item) :-		% All the rest
 	new(Item, text_item(Attr, Client?Attr, @att_generic)),
-	send(Item, type, Type).	
+	send(Item, type, Type).
 
 unalias_type(Type, Type).
 unalias_type(Type, T2) :-
@@ -219,8 +219,8 @@ help(DE) :->
 	     message(Methods, append, ?(DE, method_from_item, @arg1))),
 	auto_call(manpce),
 	send(@manual, request_selection, @nil, Methods, @on).
-	     
-	
+
+
 method_from_item(DE, Item:graphical, Method:behaviour) :<-
 	\+ send(Item, instance_of, button),
 	\+ send(Item, instance_of, label),

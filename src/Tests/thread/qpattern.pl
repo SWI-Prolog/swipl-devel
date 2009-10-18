@@ -59,7 +59,7 @@ qpattern(N, Running) :-
 	setof(X, retract(seen(X)), Xs),
 	numlist(1, N, L),
 	Xs == L.
-	
+
 
 g(0, X, a(X)).
 g(1, X, b(X)).
@@ -74,7 +74,7 @@ do(Queue, T) :-
 	;   assert(seen(N)),
 	    fail
 	).
-	
+
 do1(Queue) :-
 	thread_get_message(Queue, T),
 	(   T == go_away

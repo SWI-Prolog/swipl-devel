@@ -174,7 +174,7 @@ link_fragment(Fragment f)
     { assign(f, next, b);		/* at the start */
       assign(b, prev, f);
       assign(tb, first_fragment, f);
-      
+
       succeed;
     }
 
@@ -190,7 +190,7 @@ link_fragment(Fragment f)
 #endif
 	  continue;			/* f must be before b */
 	}
-	
+
 	assign(f, next, b->next);
 	assign(f, prev, b);
 	if ( notNil(b->next) )
@@ -235,7 +235,7 @@ link_fragment(Fragment f)
 
     succeed;
   }
-  
+
   assign(tb, first_fragment, f);	/* the only one */
   assign(tb, last_fragment, f);
 
@@ -435,7 +435,7 @@ styleFragment(Fragment f, Name s)
 			    toInt(f->start),
 			    toInt(f->start + f->length));
   }
-  
+
   succeed;
 }
 
@@ -446,11 +446,11 @@ overlapFragment(Fragment f, Any obj)
 #define OVERLAPS(f, i) ( (i) >= f->start && (i) < f->start + f->length )
 
   if ( isInteger(obj) )
-  { if ( OVERLAPS(f, valInt(obj)) )	  
+  { if ( OVERLAPS(f, valInt(obj)) )
       succeed;
   } else if ( instanceOfObject(obj, ClassFragment) )
   { Fragment f2 = obj;
-    
+
     if ( max(f->start, f2->start) <
 	 min(f->start + f->length, f2->start + f2->length) )
       succeed;
@@ -458,7 +458,7 @@ overlapFragment(Fragment f, Any obj)
   { Point p = obj;
     int x = valInt(p->x);
     int y = valInt(p->y);
-	
+
     if ( max(f->start, x) < min(f->start + f->length, y) )
       succeed;
   }
@@ -671,7 +671,7 @@ static getdecl get_fragment[] =
 #define rc_fragment NULL
 /*
 static classvardecl rc_fragment[] =
-{ 
+{
 };
 */
 

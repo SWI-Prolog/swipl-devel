@@ -321,7 +321,7 @@ data_record(S, Record:string) :->
 	    send(S, slot, received, Rec),
 	    send(S, progress, Rec, bytes)
 	).
-	    
+
 end_of_file(S) :->
 	"Implicit completion"::
 	send(S, close),

@@ -112,10 +112,12 @@ called_by(on_signal(_,_,New), [New+1]) :-
 		 *******************************/
 
 %%	built_in_predicate(+Callable)
-%	
+%
 %	True if Callable is a built-in
 
 system_predicate(Goal) :-
+	functor(Goal, Name, Arity),
+	current_predicate(system:Name/Arity),	% avoid autoloading
 	predicate_property(system:Goal, built_in), !.
 
 
@@ -127,11 +129,11 @@ verbose :-
 	debugging(xref).
 
 %%	xref_source(+Source) is det.
-%	
+%
 %	Generate the cross-reference data  for   Source  if  not already
 %	done and the source is not modified.  Checking for modifications
 %	is only done for files.
-%	
+%
 %	@param Source	File specification or XPCE buffer
 
 xref_source(Source) :-
@@ -182,7 +184,7 @@ xref_input_stream(Stream) :-
 	Stream = Var.
 
 %%	xref_push_op(Source, +Prec, +Type, :Name)
-%	
+%
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
@@ -198,7 +200,7 @@ xref_push_op(Src, P, T, N0) :- !,
 
 
 %%	xref_clean(+Source) is det.
-%	
+%
 %	Reset the database for the given source.
 
 xref_clean(Source) :-
@@ -217,7 +219,7 @@ xref_clean(Source) :-
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
 	retractall(mode(_, Src)).
-	
+
 
 		 /*******************************
 		 *	    READ RESULTS	*
@@ -232,7 +234,7 @@ xref_current_source(Source) :-
 
 
 %%	xref_done(+Source, -Time) is det.
-%	
+%
 %	Cross-reference executed at Time
 
 xref_done(Source, Time) :-
@@ -241,7 +243,7 @@ xref_done(Source, Time) :-
 
 
 %%	xref_called(+Source, ?Called, ?By) is nondet.
-%	
+%
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
 
@@ -251,7 +253,7 @@ xref_called(Source, Called, By) :-
 
 
 %%	xref_defined(+Source, +Goal, ?How) is semidet.
-%	
+%
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
 %	this predicate does not deal with built-in or global predicates,
@@ -278,7 +280,7 @@ xref_defined2(imported(From), Src, Called) :-
 
 
 %%	xref_definition_line(+How, -Line)
-%	
+%
 %	If the 3th argument of xref_defined contains line info, return
 %	this in Line.
 
@@ -295,7 +297,7 @@ xref_exported(Source, Called) :-
 	exported(Called, Src).
 
 %%	xref_module(?Source, ?Module) is nondet.
-%	
+%
 %	True if Module is defined in Source.
 
 xref_module(Source, Module) :-
@@ -303,11 +305,11 @@ xref_module(Source, Module) :-
 	xmodule(Module, Src).
 
 %%	xref_op(?Source, Op) is nondet.
-%	
+%
 %	Give the operators active inside the module. This is intended to
 %	setup the environment for incremental parsing of a term from the
 %	source-file.
-%	
+%
 %	@param Op	Term of the form op(Priority, Type, Name)
 
 xref_op(Source, Op) :-
@@ -510,9 +512,9 @@ process_directive(set_prolog_flag(character_escapes, Esc), _) :-
 	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
 	'$set_source_module'(SM, SM),
-	pce_expansion:push_compile_operators(SM).
+	call(pce_expansion:push_compile_operators(SM)). % call to avoid xref
 process_directive(pce_expansion:pop_compile_operators, _) :-
-	pce_expansion:pop_compile_operators.
+	call(pce_expansion:pop_compile_operators).
 process_directive(meta_predicate(Meta), _) :-
 	process_meta_predicate(Meta).
 process_directive(arithmetic_function(FSpec), Src) :-
@@ -535,7 +537,7 @@ process_directive(Goal, Src) :-
 	process_body(Goal, '<directive>'(Line), Src).
 
 %%	process_meta_predicate(+Decl)
-%	
+%
 %	Create prolog:meta_goal/2 declaration from the meta-goal
 %	declaration.
 
@@ -556,13 +558,13 @@ process_meta_predicate(Decl) :-
 
 meta_args(I, Arity, _, _, []) :-
 	I > Arity, !.
-meta_args(I, Arity, Decl, Head, [H|T]) :- 		% :
-	arg(I, Decl, :), !,
+meta_args(I, Arity, Decl, Head, [H|T]) :- 		% 0
+	arg(I, Decl, 0), !,
 	arg(I, Head, H),
 	I2 is I + 1,
 	meta_args(I2, Arity, Decl, Head, T).
 meta_args(I, Arity, Decl, Head, [H+A|T]) :-		% I --> H+I
-	arg(I, Decl, A), 
+	arg(I, Decl, A),
 	integer(A), A > 0, !,
 	arg(I, Head, H),
 	I2 is I + 1,
@@ -610,6 +612,7 @@ xref_meta(\+(G),		[G]).
 xref_meta(ignore(G),		[G]).
 xref_meta(once(G),		[G]).
 xref_meta(initialization(G),	[G]).
+xref_meta(initialization(G,_),	[G]).
 xref_meta(retract(Rule),	[G]) :- head_of(Rule, G).
 xref_meta(clause(G, _),		[G]).
 xref_meta(clause(G, _, _),	[G]).
@@ -624,8 +627,8 @@ xref_meta(thread_initialization(A), [A]).
 xref_meta(predsort(A,_,_),	[A+3]).
 xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
-xref_meta(setup_and_call_cleanup(A, B, C),[A, B, C]).
-xref_meta(setup_and_call_cleanup(A, B, _, C),[A, B, C]).
+xref_meta(setup_call_cleanup(A, B, C),[A, B, C]).
+xref_meta(setup_call_catcher_cleanup(A, B, _, C),[A, B, C]).
 xref_meta(with_mutex(_,A),	[A]).
 xref_meta(assume(G),		[G]).	% library(debug)
 xref_meta(assertion(G),		[G]).	% library(debug)
@@ -638,6 +641,8 @@ xref_meta(profile(G),		[G]).
 xref_meta(at_halt(G),		[G]).
 xref_meta(call_with_time_limit(_, G), [G]).
 xref_meta(call_with_depth_limit(G, _, _), [G]).
+xref_meta(alarm(_, G, _),	[G]).
+xref_meta(alarm(_, G, _, _),	[G]).
 xref_meta('$add_directive_wic'(G), [G]).
 xref_meta(with_output_to(_, G),	[G]).
 xref_meta(if(G),		[G]).
@@ -659,7 +664,7 @@ xref_meta(G, Meta) :-			% Generated from :- meta_predicate
 
 
 %%	head_of(+Rule, -Head)
-%	
+%
 %	Get the head for a retract call.
 
 head_of(Var, _) :-
@@ -668,7 +673,7 @@ head_of((Head :- _), Head).
 head_of(Head, Head).
 
 %%	xref_hook(?Callable)
-%	
+%
 %	Definition of known hooks.  Hooks  that   can  be  called in any
 %	module are unqualified.  Other  hooks   are  qualified  with the
 %	module where they are called.
@@ -721,7 +726,7 @@ hook(user:prolog_exception_hook(_,_,_,_)).
 
 
 %%	arith_callable(+Spec, -Callable)
-%	
+%
 %	Translate argument of arithmetic_function/1 into a callable term
 
 arith_callable(Var, _) :-
@@ -734,7 +739,7 @@ arith_callable(Name/Arity, Goal) :-
 
 
 %%	process_body(+Body, +Origin, +Src)
-%	
+%
 %	Process a callable body (body of a clause or directive). Origin
 %	describes the origin of the call.
 
@@ -824,7 +829,7 @@ process_xpce_goal(G, Origin, Src) :-
 	    fail
 	;   true
 	).
-		
+
 process_xpce_arg(new, Term, Origin, Src) :-
 	callable(Term),
 	process_new(Term, Origin, Src).
@@ -920,7 +925,7 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
 
 %%	xref_public_list(+File, -Path, -Public, +Src)
-%	
+%
 %	Find File as  referenced  from  Src.   Unify  Path  with  the an
 %	absolute path to the  referenced  source   and  Public  with the
 %	export list of that (module) file.   Exports are produced by the
@@ -1029,7 +1034,7 @@ read_src_to_terms(File, Src, Terms) :-
 	prolog_open_source(Path, Fd),
 	call_cleanup(read_clauses(Fd, Terms),
 		     prolog_close_source(Fd)).
-	
+
 read_clauses(In, Terms) :-
 	read_clause(In, C0),
 	read_clauses(C0, In, Terms).
@@ -1041,7 +1046,7 @@ read_clauses(Term, In, [Term|T]) :-
 
 
 %%	process_foreign(+Spec, +Src)
-%	
+%
 %	Process a load_foreign_library/1 call.
 
 process_foreign(Spec, Src) :-
@@ -1191,7 +1196,7 @@ assert_called(Src, Origin, Goal) :-
 	assert(called(Term, Src, OTerm)).
 
 %%	hide_called(:Callable)
-%	
+%
 %	Goals that should not turn up as being called. Hack. Eventually
 %	we should deal with that using an XPCE plugin.
 
@@ -1221,7 +1226,7 @@ assert_foreign(Src, Goal) :-
 %	this need not be checked and  From   is  the file from which the
 %	public predicates come. If  Reexport   is  =true=, re-export the
 %	imported predicates.
-%	
+%
 %	@tbd	Tighter type-checking on Import.
 
 assert_import(_, [], _, _, _) :- !.
@@ -1275,7 +1280,7 @@ assert_op(Src, op(P,T,_:N)) :-
 	).
 
 %%	assert_module(+Src, +Module)
-%	
+%
 %	Assert we are loading code into Module.  This is also used to
 %	exploit local term-expansion and other rules.
 
@@ -1374,7 +1379,7 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 		********************************/
 
 %%	generalise(+Callable, -General)
-%	
+%
 %	Generalise a callable term.
 
 generalise(Var, Var) :-
@@ -1413,7 +1418,7 @@ hooking can be databases, (HTTP) URIs, etc.
 
 %%	xref_source_file(+Spec, -File, +Src) is semidet.
 %%	xref_source_file(+Spec, -File, +Src, +Options) is semidet.
-%	
+%
 %	Find named source file from Spec, relative to Src.
 
 xref_source_file(Plain, File, Source) :-
@@ -1427,7 +1432,7 @@ xref_source_file(Plain, File, Source, Options) :-
 	;   atom(Source),
 	    file_directory_name(Source, Dir)
 	),
-	concat_atom([Dir, /, Plain], Spec),
+	atomic_list_concat([Dir, /, Plain], Spec),
 	do_xref_source_file(Spec, File, Options), !.
 xref_source_file(Spec, File, _, Options) :-
 	do_xref_source_file(Spec, File, Options), !.

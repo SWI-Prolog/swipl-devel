@@ -13,7 +13,7 @@
 	    ftp/2			% ... and connect as user
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , ignore/1
 	   , maplist/3
 	   , reverse/2
@@ -261,7 +261,7 @@ path(N, Path:name) :<-
 	node_path(N, L0),
 	reverse(L0, L1),
 	insert_separator(L1, /, L2),
-	concat_atom(L2, Path).
+	atomic_list_concat(L2, Path).
 
 node_path(N, [Me|Above]) :-
 	get(N?image?string, value, Me),
@@ -440,7 +440,7 @@ for one matching the input (which is broken  in lines).  When a match is
 found, the action part is translated into a message:
 
 	* The functor is the selector on this class
-	
+
 	* The arguments are arguments to the message.  Arguments of the
 	form digit:type are replaced by the n-th register of the regular
 	expression converted to the indicated type.
@@ -458,7 +458,7 @@ input(P, Input:string) :->
 	maplist(map_pattern_arg(Regex, Input), Args, NArgs),
 	Message =.. [send, P, Selector | NArgs],
 	Message.
-	
+
 pattern(_,
 	'^ftp> $',
 	prompt).

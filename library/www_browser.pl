@@ -43,7 +43,7 @@
 %
 %	On Unix life is a bit harder as there is no established standard
 %	to figure out which browser to open.  We try:
-%	
+%
 %		* The start-program `open' (Mac and some Unix systems).
 %		* Prolog flag `browser'
 %		* Variable BROWSER
@@ -76,7 +76,7 @@ www_open_url(Spec) :-			% something we know
 %	Open a page using  a  browser.   Preferably  we  use an existing
 %	browser to to the job. Currently   only supports browsers with a
 %	netscape compatible remote interface.
-%	
+%
 %	@see http://www.mozilla.org/unix/remote.html
 
 www_open_url(Browser, URL) :-
@@ -91,7 +91,7 @@ www_open_url(Browser, URL) :-
 %
 %	Execute netscape remote command using =|-remote|=. Create the
 %	remote command using format/3 from Format and Args.
-%	
+%
 %	@bug	At least firefox gives always 0 exit code on -remote,
 %		so we must check the error message.  Grrrr.
 
@@ -105,7 +105,7 @@ netscape_remote(Browser, Fmt, Args) :-
 	->  !, fail
 	;   true
 	).
-	
+
 
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
@@ -127,7 +127,7 @@ known_browser(opera,     -).
 
 
 %%	has_command(+Command)
-%	
+%
 %	Succeeds if Command is in  $PATH.   Works  for Unix systems. For
 %	Windows we have to test for executable extensions.
 
@@ -145,10 +145,10 @@ has_command(Command) :-
 	    ->  Sep = (;)
 	    ;   Sep = (:)
 	    ),
-	    concat_atom(Parts, Sep, Path),
+	    atomic_list_concat(Parts, Sep, Path),
 	    member(Part, Parts),
 	    prolog_to_os_filename(PlPart, Part),
-	    concat_atom([PlPart, Command], /, Exe),
+	    atomic_list_concat([PlPart, Command], /, Exe),
 	    access_file(Exe, execute)
 	->  assert(command_cache(Command, Exe))
 	;   assert(command_cache(Command, -)),
@@ -199,7 +199,7 @@ expand_url_path(Spec, URL) :-
 	    ->	URL = URL0
 	    ;	sub_atom(Local, 0, _, _, #)
 	    ->	atom_concat(URL0, Local, URL)
-	    ;	concat_atom([URL0, Local], /, URL)
+	    ;	atomic_list_concat([URL0, Local], /, URL)
 	    )
 	;   throw(error(existence_error(url_path, Path), expand_url_path/2))
 	).

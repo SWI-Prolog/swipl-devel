@@ -52,6 +52,10 @@ user:file_search_path(foreign, pce(ArchLib)) :-
 	atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, pce(lib)).
 
+% We added a directory to the autoload directories: force reloading the
+% index
+:- reload_library_index.
+
 gui_setup_ :-
 	current_prolog_flag(gui, true), !.
 gui_setup_ :-
@@ -90,4 +94,4 @@ pce_setup_ :-
 	flag('$banner_goal', _, pce_welcome).
 pce_setup_.
 
-:- initialization pce_setup_. 
+:- initialization pce_setup_.

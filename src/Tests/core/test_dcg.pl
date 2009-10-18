@@ -29,7 +29,6 @@
 test_dcg :-
 	run_tests([ expand_goal,
 		    phrase,
-		    phrase_expansions,
 		    rule_expansions,
 		    dcg_rule_expansions,
 		    context
@@ -101,25 +100,6 @@ test(uwn4,[sto(finite_trees),fail]) :-
 	phrase([1],L,L).
 
 :- end_tests(phrase).
-
-:- begin_tests(phrase_expansions).
-
-test(1, [G == a(L,[])]) :-
-	expand_goal(phrase(a,L), G).
-test(2, [B == (b([x], []), []=[1])]) :-
-	expand_goal(phrase({phrase(b,[x])},[1]),B).
-test(3, []) :-
-	expand_goal(phrase(L,L,L),G),
-	(L,G) \== ([],[]=[]).
-test(nonlin, [G =@= phrase(Lc,Lc,Lc)]) :-
-	expand_goal(phrase(L,L,L),G).
-test(nonlin, [G =@= phrase(Lc,Lc)]) :-
-	expand_goal(phrase(L,L),G).
-test(5, [G == quoniam]) :-
-	expand_goal(quoniam,G).
-test(6,[G =@= spec(_Xs2c,[],_Xs1c,[])]) :-
-	expand_goal(phrase(spec(_Xs2,[]),_Xs1),G).
-:- end_tests(phrase_expansions).
 
 :- begin_tests(rule_expansions).
 

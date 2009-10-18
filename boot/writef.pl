@@ -42,7 +42,7 @@
 %   many times since then.
 %
 %   Changes for version 1.3.0:
-%	
+%
 %	- Format can be of type string.
 %	- Adjustment now allowed for arbitrary types.
 %	- Uses more appropriate SWI-Prolog built-in predicates.

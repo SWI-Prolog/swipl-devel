@@ -99,7 +99,7 @@ static senddecl send_rubber[] =
 #define get_rubber NULL
 /*
 static getdecl get_rubber[] =
-{ 
+{
 };
 */
 
@@ -108,7 +108,7 @@ static getdecl get_rubber[] =
 #define rc_rubber NULL
 /*
 static classvardecl rc_rubber[] =
-{ 
+{
 };
 */
 

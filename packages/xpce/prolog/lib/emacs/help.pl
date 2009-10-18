@@ -24,4 +24,4 @@
 emacs_help :-
 	help_file(HelpFile),
 	emacs(HelpFile).
-	
+

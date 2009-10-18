@@ -69,7 +69,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       int h = HIWORD(lParam);
       Area a = sw->area;
       Int ow = a->w, oh = a->h;
-      
+
       if ( notNil(sw->device) )		/* subwindow */
       { int p2 = valInt(sw->pen) * 2;
 
@@ -193,7 +193,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     AnswerMark mark;
     status rval = FALSE;
     markAnswerStack(mark);
-  
+
     if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
     { WsWindow w = sw->ws_ref;
 
@@ -269,7 +269,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
 		     valInt(sw->area->x), valInt(sw->area->y),
 		     valInt(sw->area->w), valInt(sw->area->h),
 		     parent_handle, NULL, PceHInstance, NULL);
-		     
+
   if ( !ref )
     return errorPce(sw, NAME_createFailed);
 
@@ -334,7 +334,7 @@ ws_invalidate_window(PceWindow sw, Area a)
       rect.right  = rect.left    + valInt(a->w);
       rect.top    = valInt(a->y) + valInt(sw->scroll_offset->y);
       rect.bottom = rect.top     + valInt(a->h);
-  
+
       InvalidateRect(hwnd, &rect, clear);
     }
   }
@@ -420,7 +420,7 @@ void
 ws_window_cursor(PceWindow sw, CursorObj c)
 { if ( ws_created_window(sw) )
   { WsWindow w = sw->ws_ref;
-    
+
     exit_big_cursor();			/* should there be one */
 
     if ( notNil(c->image) &&

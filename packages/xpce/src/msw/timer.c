@@ -67,7 +67,7 @@ ws_status_timer(Timer tm, Name status)
 
   if ( status != NAME_idle )
   { long msec = (long) (tm->interval->value * 1000.0);
-    
+
     id = new_timer_id();
 
     if ( (SetTimer(rlc_hwnd(), id, (UINT)msec, NULL)) )

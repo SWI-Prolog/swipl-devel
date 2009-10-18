@@ -11,8 +11,10 @@ libc6-dev
 libgmp3-dev
 libncursesw5-dev
 libreadline5-dev
+autoconf
 make
 sed
+curl
 
 List of packages needed to compile additional SWI Prolog packages on
 Debian 4.0 stable (Etch):
@@ -43,3 +45,43 @@ configure script found in jpl tests for a directory structure that can
 only match Sun's Java. I also do not know if the jpl package works
 with these other implementations. Now that Sun has open-sourced Java,
 this should be less of a concern.
+
+------------------------
+And now simple commands:
+------------------------
+
+To make life a bit easier for you we compiled a single-line apt-get
+command to get all SWI-Prolog's dependencies.  Simply copy-and-paste
+the command below in a terminal window and enter the sudo password
+to get everything installed.  Note that it does not matter than you
+may have some of these packages already present: apt-get will simply
+tell you they are installed and up-to-date.
+
+sudo apt-get install \
+	binutils coreutils gcc grep libc6-dev libncursesw5-dev \
+	libgmp3-dev \
+	libreadline5-dev \
+	make sed autoconf curl \
+	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
+	libxpm-dev libxt-dev pkg-config \
+	libssl-dev \
+	sun-java5-bin sun-java5-fonts sun-java5-jdk \
+	zlib1g-dev
+
+The provided build.templ works fine for Debian and Ubuntu. Copy it to
+"build" and edit the installation prefix if you do not wish to install
+in your own $HOME/bin directory.  Then run
+
+	./build
+
+--------------------------
+Building the documentation
+--------------------------
+
+If you want to build the documentation from source you also need the
+following packages:
+
+	sudo apt-get install \
+		texlive-latex-base \
+		texlive-latex-recommended \
+		texlive-fonts-recommended

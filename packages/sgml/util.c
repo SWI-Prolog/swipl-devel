@@ -49,7 +49,7 @@
 size_t
 istrlen(const ichar *s)
 { size_t len =0;
-  
+
   while(*s++)
     len++;
 
@@ -66,7 +66,7 @@ istrdup(const ichar *s)
     while(*s)
       *d++ = *s++;
     *d = 0;
-    
+
     return dup;
   } else
   { return NULL;
@@ -139,10 +139,10 @@ int
 istreq(const ichar *s1, const ichar *s2)
 { while(*s1 && *s1 == *s2)
     s1++, s2++;
-  
+
   if ( *s1 == 0 && *s2 == 0 )
     return TRUE;
-  
+
   return FALSE;
 }
 
@@ -151,10 +151,10 @@ int
 istrncaseeq(const ichar *s1, const ichar *s2, int len)
 { while(--len >= 0 && towlower(*s1) == towlower(*s2))
     s1++, s2++;
-  
+
   if ( len < 0 )
     return TRUE;
-  
+
   return FALSE;
 }
 
@@ -163,10 +163,10 @@ int
 istrprefix(const ichar *pref, const ichar *s)
 { while(*pref && *pref == *s)
     pref++, s++;
-  
+
   if ( *pref == 0 )
     return TRUE;
-  
+
   return FALSE;
 }
 
@@ -211,7 +211,7 @@ istrhash(const ichar *t, int tsize)
 
   while(*t)
   { unsigned int c = *t++;
-    
+
     c -= 'a';
     value ^= c << (shift & 0xf);
     shift ^= c;
@@ -230,7 +230,7 @@ istrcasehash(const ichar *t, int tsize)
 
   while(*t)
   { unsigned int c = towlower(*t++);	/* case insensitive */
-    
+
     c -= 'a';
     value ^= c << (shift & 0xf);
     shift ^= c;
@@ -300,7 +300,7 @@ __add_icharbuf(icharbuf *buf, int chr)
     else
       buf->data = sgml_malloc(buf->allocated*sizeof(ichar));
   }
-  
+
   buf->data[buf->size++] = chr;
 }
 
@@ -348,7 +348,7 @@ init_ocharbuf(ocharbuf *buf)
 ocharbuf *
 new_ocharbuf()
 { ocharbuf *buf = sgml_malloc(sizeof(*buf));
-  
+
   return init_ocharbuf(buf);
 }
 
@@ -435,24 +435,76 @@ empty_ocharbuf(ocharbuf *buf)
 		 *******************************/
 
 #define RINGSIZE 16
-static void *ring[RINGSIZE];
-static int  ringp;
+
+typedef struct ring
+{ void *ring[RINGSIZE];
+  int   ringp;
+} ring;
+
+#ifdef _REENTRANT
+#include <pthread.h>
+static pthread_key_t ring_key;
+
+static void
+free_ring(void *ptr)
+{ ring *r = ptr;
+  int i;
+  void **bp;
+
+  for(i=0, bp=r->ring; i<RINGSIZE; i++, bp++)
+  { if ( *bp )
+    { sgml_free(*bp);
+      *bp = NULL;
+    }
+  }
+
+  sgml_free(r);
+}
+
+
+static ring *
+my_ring()
+{ ring *r;
+
+  if ( (r=pthread_getspecific(ring_key)) )
+    return r;
+
+  if ( (r = sgml_calloc(1, sizeof(*r))) )
+    pthread_setspecific(ring_key, r);
+
+  return r;
+}
+
+void
+init_ring(void)
+{ pthread_key_create(&ring_key, free_ring);
+}
+
+#else
+static ring ring_store;
+#define my_ring() (&ring_store)
+
+void init_ring(void) {}
+#endif
+
 
 wchar_t *
 str2ring(const wchar_t *in)
-{ wchar_t *copy = sgml_malloc((wcslen(in)+1)*sizeof(wchar_t));
+{ ring *r;
+  wchar_t *copy;
 
-  if ( !copy )
+  if ( !(r=my_ring()) ||
+       !(copy = sgml_malloc((wcslen(in)+1)*sizeof(wchar_t))) )
   { sgml_nomem();
     return NULL;
   }
 
   wcscpy(copy, in);
-  if ( ring[ringp] )
-    sgml_free(ring[ringp]);
-  ring[ringp++] = copy;
-  if ( ringp == RINGSIZE )
-    ringp = 0;
+  if ( r->ring[r->ringp] )
+    sgml_free(r->ring[r->ringp]);
+  r->ring[r->ringp++] = copy;
+  if ( r->ringp == RINGSIZE )
+    r->ringp = 0;
 
   return copy;
 }
@@ -460,13 +512,19 @@ str2ring(const wchar_t *in)
 
 void *
 ringallo(size_t size)
-{ char *result = sgml_malloc(size);
-    
-  if ( ring[ringp] )
-    sgml_free(ring[ringp]);
-  ring[ringp++] = result;
-  if ( ringp == RINGSIZE )
-    ringp = 0;
+{ ring *r;
+  char *result;
+
+  if ( !(r=my_ring()) || !(result = sgml_malloc(size)) )
+  { sgml_nomem();
+    return NULL;
+  }
+
+  if ( r->ring[r->ringp] )
+    sgml_free(r->ring[r->ringp]);
+  r->ring[r->ringp++] = result;
+  if ( r->ringp == RINGSIZE )
+    r->ringp = 0;
 
   return result;
 }
@@ -528,7 +586,7 @@ wcstoutf8(const wchar_t *in)
     { size++;
     }
   }
-  
+
   rc = sgml_malloc(size+1);
   for(o=rc, s=in; *s; s++)
   { o = utf8_put_char(o, *s);
@@ -604,7 +662,7 @@ load_sgml_file_to_charp(const ichar *file, int normalise_rsre, size_t *length)
 
       if ( r )
       { char *s = r;
-	
+
 	while(len>0)
 	{ int n;
 
@@ -651,7 +709,7 @@ load_sgml_file_to_charp(const ichar *file, int normalise_rsre, size_t *length)
 
 	  if ( last_is_lf )
 	    r2[--len] = '\0';		/* delete last LF */
-	  
+
 	  if ( length )
 	    *length = len;
 	  sgml_free(r);

@@ -30,7 +30,7 @@ static status	unlinkHashTable(HashTable ht);
 static __inline void
 assign_symbol_value(HashTable ht, Symbol symbol, Any value)
 { if ( ht->refer == NAME_both || ht->refer == NAME_value )
-    assignField((Instance)(ht), &symbol->value, value); 
+    assignField((Instance)(ht), &symbol->value, value);
   else
     symbol->value = value;
 }
@@ -38,7 +38,7 @@ assign_symbol_value(HashTable ht, Symbol symbol, Any value)
 static __inline void
 assign_symbol_name(HashTable ht, Symbol symbol, Any name)
 { if ( ht->refer == NAME_both || ht->refer == NAME_name )
-    assignField((Instance)(ht), &symbol->name, name); 
+    assignField((Instance)(ht), &symbol->name, name);
   else
     symbol->name = name;
 }
@@ -125,7 +125,7 @@ unlinkHashTable(HashTable ht)
     unalloc(ht->buckets * sizeof(struct symbol), ht->symbols);
     ht->symbols = NULL;
   }
-  
+
   succeed;
 }
 
@@ -163,7 +163,7 @@ loadHashTable(HashTable ht, IOSTREAM *fd, ClassDef def)
   Symbol s;
 
   loadSlotsObject(ht, fd, def);
-  
+
   buckets = (isNil(ht->size) ? 5 : ((valInt(ht->size) * 4) / 3 + 4));
   buckets = nextBucketSize(buckets);
   if ( isNil(ht->refer) || isOn(ht->refer) )
@@ -261,7 +261,7 @@ infoHashTable(HashTable ht)
 
   Cprintf("%s: %d buckets holding %d members, %d shifts\n",
 	  pp(ht), ht->buckets, members, shifts);
-  
+
   succeed;
 }
 #endif /*O_RUNTIME*/
@@ -289,7 +289,7 @@ bucketsHashTable(HashTable ht, Int buckets)
   for( n = size, s = old; n-- > 0; s++)
     if ( s->name )
       appendHashTable(ht, s->name, s->value);
-  
+
   ht->refer = refer;
   unalloc(size * sizeof(struct symbol), old);
 
@@ -367,7 +367,7 @@ deleteHashTable(HashTable ht, Any name)
 
     if ( !ht->symbols[i].name )
       succeed;
-    
+
     r = hashKey(ht->symbols[i].name, ht->buckets);
     if ( (i >= r && r > j) || (r > j && j > i) || (j > i && i >= r) )
       continue;
@@ -608,7 +608,7 @@ static getdecl get_hashTable[] =
 #define rc_hashTable NULL
 /*
 static classvardecl rc_hashTable[] =
-{ 
+{
 };
 */
 

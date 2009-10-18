@@ -226,7 +226,7 @@ static getdecl get_style[] =
 #define rc_style NULL
 /*
 static classvardecl rc_style[] =
-{ 
+{
 };
 */
 

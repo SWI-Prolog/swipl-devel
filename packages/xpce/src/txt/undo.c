@@ -87,13 +87,13 @@ struct undo_delete
     charW	W[1];		/* Wide character text */
   } text;
 };
-  
+
 struct undo_insert
 { COMMON_CELL
   long		where;		/* start address of insert */
   long		len;		/* number of characters inserted there */
 };
-  
+
 struct undo_change
 { COMMON_CELL
   int		iswide;
@@ -173,7 +173,7 @@ getUndoTextBuffer(TextBuffer tb)
 
     if ( (cell = ub->current) == NULL )	/* No further undo's */
       fail;
-      
+
     while(cell != NULL)
     { DEBUG(NAME_undo, Cprintf("Undo using cell %d: ",
 			       Distance(cell, ub->buffer)));
@@ -181,7 +181,7 @@ getUndoTextBuffer(TextBuffer tb)
       { case UNDO_DELETE:
 	{ UndoDelete d = (UndoDelete) cell;
 	  string s;
-	  
+
 	  s.size = d->len;
 	  s.iswide = d->iswide;
 	  if ( d->iswide )
@@ -263,7 +263,7 @@ getUndoBufferTextBuffer(TextBuffer tb)
   { tb->undo_buffer = createUndoBuffer(valInt(tb->undo_buffer_size));
     tb->undo_buffer->client = tb;
   }
-    
+
   return tb->undo_buffer;
 }
 
@@ -275,7 +275,7 @@ undoBufferSizeTextBuffer(TextBuffer tb, Int size)
     { destroyUndoBuffer(tb->undo_buffer);
       tb->undo_buffer = NULL;
     }
-    
+
     assign(tb, undo_buffer_size, size);
   }
 
@@ -301,7 +301,7 @@ markUndoTextBuffer(TextBuffer tb)
     ub->undone = FALSE;
     ub->aborted = FALSE;
   }
-    
+
   succeed;
 }
 
@@ -323,7 +323,7 @@ checkpointUndoTextBuffer(TextBuffer tb)
 
   if ( (ub = getUndoBufferTextBuffer(tb)) )
     ub->checkpoint = ub->head;
-  
+
   succeed;
 }
 
@@ -346,11 +346,11 @@ destroy_oldest_undo(UndoBuffer ub)
       ub->tail->next->previous = NULL;
     ub->tail = ub->tail->next;
   }
-  
+
   if ( ub->tail == NULL )
     resetUndoBuffer(ub);
 }
-    
+
 
 		/********************************
 		*           ALLOCATION          *
@@ -377,7 +377,7 @@ new_undo_cell(UndoBuffer ub, unsigned int size)
     return NULL;
 
   size = AllocRound(size);
-  
+
   if ( size > ub->size/2 )		/* Too big: destroy all */
   { errorPce(ub->client, NAME_undoOverflow);
 
@@ -453,7 +453,7 @@ resize_undo_cell(UndoBuffer ub, UndoCell cell, unsigned int size)
 			     Distance(cell, ub->buffer), cell->size));
     return TRUE;
   }
-  
+
   DEBUG(NAME_undo,
 	if ( !ub->head )
 	  Cprintf("**** UNDO buffer overflow ****\n");
@@ -520,7 +520,7 @@ register_delete_textbuffer(TextBuffer tb, long where, long len)
 
     if ( tisendsline(tb->syntax, c) )
       tb->lines--;
-    
+
     if ( c > 0xff )
       need_wide = TRUE;
   }
@@ -626,7 +626,7 @@ register_change_textbuffer(TextBuffer tb, long int where, long int len)
 	if ( resize_undo_cell(ub, (UndoCell)uc,
 			      UndoChangeSize(cell_size)) )
 	{ copy_undo_chg(tb, where, len, uc, uc->len);
-      
+
 	  uc->len += len;
 	  DEBUG(NAME_undo,
 		Cprintf("Change at %ld grown forward to %ld bytes\n",

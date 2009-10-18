@@ -11,7 +11,7 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog C-library}
+\renewcommand{\runningtitle}{CLIB -- System interfaces}
 
 \begin{document}
 
@@ -170,7 +170,7 @@ See also \file{demo/pipe.pl} in the source-distribution of this package.
 
     \predicate{detach_IO}{0}{}
 This predicate is intended to create Unix deamon-processes. It preforms
-two actions.  First of all, the I/O streams \const{user_input}, 
+two actions.  First of all, the I/O streams \const{user_input},
 \const{user_output} and \const{user_error} are closed and rebound to
 a Prolog stream that returns end-of-file on any attempt to read and
 starts writing to a file named \file{/tmp/pl-out.pid} (where <pid> is
@@ -366,7 +366,7 @@ is unified with \arg{HostName}.
 
     \predicate{gethostname}{1}{-Hostname}
 Return the official fully qualified name of this host.  This is achieved
-by calling gethostname() followed by gethostbyname() and return the 
+by calling gethostname() followed by gethostbyname() and return the
 official name of the host (\const{h_name}) of the structure returned
 by the latter function.
 \end{description}
@@ -563,6 +563,7 @@ the client to send a broadcast message to an agreed port. The server
 receives this message and replies to the client with a message
 indicating further details to establish the communication.
 
+\input{uri.tex}
 
 \section{CGI Support library}
 
@@ -620,7 +621,7 @@ The CGI standard is very unclear about handling Unicode data. The above
 two declarations ensure the CGI script will send all data in UTF-8 and
 thus provide full support of Unicode. It is assumed that browsers
 generally send form-data using the same encoding as the page in which
-the form appears, UTF-8 or ISO Latin-1.  The current version of 
+the form appears, UTF-8 or ISO Latin-1.  The current version of
 cgi_get_form/2 assumes the CGI data is in UTF-8.
 
 
@@ -632,7 +633,7 @@ used for other applications such packaging multiple values using the
 HTTP POST request on web-servers.  Double Precision, Inc.\ has produced
 the C-libraries rfc822 (mail) and rfc2045 (MIME) for decoding and
 manipulating MIME messages. The \pllib{mime} library is a Prolog wrapper
-around the rfc2045 library for decoding MIME messages.	
+around the rfc2045 library for decoding MIME messages.
 
 The general name `mime' is used for this library as it is anticipated to
 add MIME-creation functionality to this library.
@@ -748,11 +749,12 @@ by FIPS (\jargon{Federal Information Processing Standard}). Quoting
 algorithms for computing a condensed digital representation (known as a
 message digest) that is, to a high degree of probability, unique for a
 given input data sequence (the message). These algorithms are called
-“secure” because (in the words of the standard), “for a given algorithm,
-it is computationally infeasible 1) to find a message that corresponds
-to a given message digest, or 2) to find two different messages that
-produce the same message digest. Any change to a message will, with a
-very high probability, result in a different message digest.”''}
+`secure' because (in the words of the standard), ``for a given
+algorithm, it is computationally infeasible 1) to find a message that
+corresponds to a given message digest, or 2) to find two different
+messages that produce the same message digest. Any change to a message
+will, with a very high probability, result in a different message
+digest.''}
 
 The current library supports all 5 approved algorithms, both computing
 the hash-key from data and the \jargon{hash Message Authentication Code}
@@ -872,6 +874,11 @@ represent UTF-8 streams, making them capable of storing arbitrary
 Unicode text. In practice the only alternative is \const{octet}, turning
 the memoryfile into binary mode.  Please study SWI-Prolog Unicode and
 encoding issues before using this option.
+    \termitem{free_on_close}{+Bool}
+If \const{true} (default \const{false} and the memory file is opened
+for reading, discard the file (see free_memory_file/1) if the input
+is closed.  This is used to realise open_chars_stream/2 in
+library(charsio).
 \end{description}
 
     \predicate{size_memory_file}{2}{+Handle, -Bytes}
@@ -906,7 +913,7 @@ in \arg{Codes}, pretending the data is in the given \arg{Encoding}.
 
 \section{Time and alarm library}
 
-The \pllib{time} provides timing and alarm functions.  
+The \pllib{time} provides timing and alarm functions.
 
 \begin{description}
     \predicate{alarm}{4}{+Time, :Callable, -Id, +Options}
@@ -924,7 +931,7 @@ Calling with a higher time value raises a \const{resource_error}
 exception.} Long-running foreign predicates that do not call
 PL_handle_signals() may further delay the alarm.
 
-\arg{Options} is a list of \term{\arg{Name}}{Value} terms.  Defined 
+\arg{Options} is a list of \term{\arg{Name}}{Value} terms.  Defined
 options are:
 
 \begin{description}
@@ -940,10 +947,24 @@ scheduled for execution.   It must be started later using install_alarm/1.
     \predicate{alarm}{3}{+Time, :Callable, -Id}
 Same as \term{alarm}{Time, Callable, Id, []}.
 
+    \predicate{alarm_at}{4}{+Time, :Callable, -Id, +Options}
+as alarm/3, but \arg{Time} is the specification of an absolute point in
+time. Absolute times are specified in seconds after the Jan 1, 1970
+epoch.  See also date_time_stamp/2.
+
     \predicate{install_alarm}{1}{+Id}
-Activate an alarm allocated usign alarm/4 with the option
-\term{install}{false}.  This is intended to reclaim alarms reliably
-using call_cleanup/2.  See the implementation of call_with_time_limit/2.
+Activate an alarm allocated using alarm/4 with the option
+\term{install}{false} or stopped using uninstall_alarm/1.
+
+    \predicate{install_alarm}{1}{+Id, +Time}
+As install_alarm/1, but specifies a new timeout value.
+
+    \predicate{uninstall_alarm}{1}{+Id}
+Deactivate a running alarm, but do not invalidate the alarm identifier.
+Later, the alarm can be reactivated using either install_alarm/1 or
+install_alarm/2. Reinstalled using install_alarm/1, it will fire at the
+originally scheduled time. Reinstalled using install_alarm/2 causes the
+alarm to fire at the specified time from now.
 
     \predicate{remove_alarm}{1}{+Id}
 Remove an alarm.  If it is not yet fired, it will not be fired
@@ -972,7 +993,7 @@ using the timeout option of read_term/3.
 The \pllib{rlimit} library provides an interface to the POSIX
 getrlimit()/setrlimit() API that control the maximum resource-usage
 of a process or group of processes.  This call is especially useful
-for server such as CGI scripts and inetd-controlled servers to avoid
+for servers such as CGI scripts and inetd-controlled servers to avoid
 an uncontrolled script claiming too much resources.
 
 \begin{description}
@@ -992,7 +1013,7 @@ should be guarded with catch/3.  The defined resources are:
 \const{stack}	& max stack size \\
 \const{core}	& max core file size \\
 \const{rss}	& max resident set size \\
-\const{nproc}	& max number of processes \\ 
+\const{nproc}	& max number of processes \\
 \const{nofile}	& max number of open files \\
 \const{memlock}	& max locked-in-memory address \\
 \end{tabular}

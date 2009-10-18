@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -58,6 +58,9 @@
 	    xml_quote_attribute/2,	% +In, -Quoted
 	    xml_quote_cdata/2,		% +In, -Quoted
 	    xml_name/1,			% +In
+	    xml_name/2,			% +In, +Encoding
+	    iri_xml_namespace/2,	% +IRI, -Namespace
+	    iri_xml_namespace/3,	% +IRI, -Namespace, -LocalName
 	    xml_is_dom/1		% +Term
 	  ]).
 :- use_module(library(lists)).
@@ -73,10 +76,7 @@ sgml_register_catalog_file(File, Location) :-
 	prolog_to_os_filename(File, OsFile),
 	'_sgml_register_catalog_file'(OsFile, Location).
 
-load_foreign :-
-	current_predicate(_, _:sgml_parse(_,_)), !.
-load_foreign :-
-	load_foreign_library(foreign(sgml2pl)).
+:- use_foreign_library(foreign(sgml2pl)).
 
 register_catalog(Base) :-
 	absolute_file_name(dtd(Base),
@@ -87,13 +87,9 @@ register_catalog(Base) :-
 			       SocFile),
 	sgml_register_catalog_file(SocFile, end).
 
-init :-
-	load_foreign,
+:- initialization
 	ignore(register_catalog('HTML4')).
 
-:- initialization
-	init.
-	
 
 		 /*******************************
 		 *	   DTD HANDLING		*
@@ -110,6 +106,10 @@ diagnosed to mess with the entity resolution by Fabien Todescato.
 	current_dtd/2.
 :- volatile
 	current_dtd/2.
+:- thread_local
+	registered_cleanup/0.
+:- volatile
+	registered_cleanup/0.
 
 :- multifile
 	dtd_alias/2.
@@ -129,16 +129,17 @@ dtd(Type, DTD) :-
 			     access(read)
 			   ], DtdFile),
 	load_dtd(DTD, DtdFile),
+	register_cleanup,
 	asserta(current_dtd(Type, DTD)).
 
-%	load_dtd(+DTD, +DtdFile, +Options)
-%	
+%%	load_dtd(+DTD, +DtdFile, +Options)
+%
 %	Load file into a DTD.  Defined options are:
-%	
-%		# dialect(+Dialect)
+%
+%		* dialect(+Dialect)
 %		Dialect to use (xml, xmlns, sgml)
 %
-%		# encoding(+Encoding)
+%		* encoding(+Encoding)
 %		Encoding of DTD file
 
 load_dtd(DTD, DtdFile) :-
@@ -161,8 +162,8 @@ split_dtd_options([H|T], TD, [H|S]) :-
 dtd_option(dialect(_)).
 
 
-%	destroy_dtds
-%	
+%%	destroy_dtds
+%
 %	Destroy  DTDs  cached  by  this  thread   as  they  will  become
 %	unreachable anyway.
 
@@ -173,9 +174,15 @@ destroy_dtds :-
 	;   true
 	).
 
-%	catch for if we do not have threads
+%%	register_cleanup
+%
+%	Register cleanup of DTDs created for this thread.
 
-:- catch(thread_at_exit(destroy_dtds), _, true).
+register_cleanup :-
+	registered_cleanup, !.
+register_cleanup :-
+	catch(thread_at_exit(destroy_dtds), _, true),
+	assert(registered_cleanup).
 
 
 		 /*******************************
@@ -250,7 +257,10 @@ set_parser_options(Parser, Options, RestOptions) :-
 set_parser_options(_, Options, Options).
 
 
-load_structure(stream(In), Term, Options) :- !,
+:- meta_predicate
+	load_structure(+, -, :).
+
+load_structure(stream(In), Term, M:Options) :- !,
 	(   select_option(offset(Offset), Options, Options1)
 	->  seek(In, Offset, bof, _)
 	;   Options1 = Options
@@ -263,8 +273,8 @@ load_structure(stream(In), Term, Options) :- !,
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
-	def_entities(Options2, DTD, Options3),
-	call_cleanup(parse(Parser, Options3, TermRead, In),
+	def_entities(Options2, Parser, Options3),
+	call_cleanup(parse(Parser, M:Options3, TermRead, In),
 		     free_sgml_parser(Parser)),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
@@ -278,33 +288,47 @@ load_structure(stream(In), Term, Options) :- !,
 load_structure(Stream, Term, Options) :-
 	is_stream(Stream), !,
 	load_structure(stream(Stream), Term, Options).
-load_structure(File, Term, Options) :-
+load_structure(File, Term, M:Options) :-
 	open(File, read, In, [type(binary)]),
-	load_structure(stream(In), Term, [file(File)|Options]),
+	load_structure(stream(In), Term, M:[file(File)|Options]),
 	close(In).
 
-parse(Parser, Options, Document, In) :-
+parse(Parser, M:Options, Document, In) :-
 	set_parser_options(Parser, Options, Options1),
+	parser_meta_options(Options1, M, Options2),
 	sgml_parse(Parser,
 		   [ document(Document),
 		     source(In)
-		   | Options1
+		   | Options2
 		   ]).
 
-def_entities([], _, []).
-def_entities([entity(Name, Value)|T], DTD, Opts) :- !,
-	def_entity(DTD, Name, Value),
-	def_entities(T, DTD, Opts).
-def_entities([H|T0], DTD, [H|T]) :-
-	def_entities(T0, DTD, T).
+parser_meta_options([], _, []).
+parser_meta_options([call(When, Closure)|T0], M, [call(When, M:Closure)|T]) :- !,
+	parser_meta_options(T0, M, T).
+parser_meta_options([H|T0], M, [H|T]) :-
+	parser_meta_options(T0, M, T).
 
-def_entity(DTD, Name, Value) :-
-	open_dtd(DTD, [], Stream),
+
+def_entities([], _, []).
+def_entities([H|T], Parser, Opts) :-
+	def_entity(H, Parser), !,
+	def_entities(T, Parser, Opts).
+def_entities([H|T0], Parser, [H|T]) :-
+	def_entities(T0, Parser, T).
+
+def_entity(entity(Name, Value), Parser) :-
+	get_sgml_parser(Parser, dtd(DTD)),
 	xml_quote_attribute(Value, QValue),
-	format(Stream, '<!ENTITY ~w "~w">~n', [Name, QValue]),
-	close(Stream).
-	
-	
+	setup_call_cleanup(open_dtd(DTD, [], Stream),
+			   format(Stream, '<!ENTITY ~w "~w">~n',
+				  [Name, QValue]),
+			   close(Stream)).
+def_entity(xmlns(URI), Parser) :-
+	set_sgml_parser(Parser, xmlns(URI)).
+def_entity(xmlns(NS, URI), Parser) :-
+	set_sgml_parser(Parser, xmlns(NS, URI)).
+
+
 		 /*******************************
 		 *	     UTILITIES		*
 		 *******************************/
@@ -330,7 +354,7 @@ load_html_file(File, Term) :-
 
 %	xml_quote_attribute(+In, -Quoted)
 %	xml_quote_cdata(+In, -Quoted)
-%	
+%
 %	Backward  compatibility  for  versions  that  allow  to  specify
 %	encoding. All characters that cannot fit the encoding are mapped
 %	to XML character entities (&#dd;).  Using   ASCII  is the safest
@@ -351,7 +375,7 @@ xml_name(In) :-
 		 *******************************/
 
 %	xml_is_dome(@Term)
-%	
+%
 %	True  if  term  statisfies   the    structure   as  returned  by
 %	load_structure/3 and friends.
 

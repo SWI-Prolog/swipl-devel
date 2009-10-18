@@ -111,25 +111,25 @@ typedef struct d_context *DContext;
 
 static struct d_context
 { DContext	parent;			/* saved parent context */
-  DrawContext	gcs;			/* The X GC's */                  
-  Display      *display;		/* Current drawing display */     
+  DrawContext	gcs;			/* The X GC's */
+  Display      *display;		/* Current drawing display */
   int		screen;			/* X screen */
   Visual       *visual;			/* X visual */
   Colormap      colormap;		/* X colourmap */
-  Drawable	drawable;		/* X Object we are drawing on */  
+  Drawable	drawable;		/* X Object we are drawing on */
 #ifdef USE_XFT
   XftDraw      *xft_draw;		/* XFT drawable */
 #endif
-  Name		kind;			/* Drawable kind */               
-  int		depth;			/* depth of drawable */           
-  DisplayObj	pceDisplay;		/* PCE display object */          
-  Image		cache;			/* Actually writing here */       
-  Window	window;			/* Window we are caching for */   
-  Any		default_background;	/* Default background colour */    
+  Name		kind;			/* Drawable kind */
+  int		depth;			/* depth of drawable */
+  DisplayObj	pceDisplay;		/* PCE display object */
+  Image		cache;			/* Actually writing here */
+  Window	window;			/* Window we are caching for */
+  Any		default_background;	/* Default background colour */
   Any		default_colour;		/* Colour for @default */
-  int		cache_x;		/* X-offset of cache */           
-  int		cache_y;		/* Y-offset of cache */           
-  int		cache_w;		/* Width of cache */              
+  int		cache_x;		/* X-offset of cache */
+  int		cache_y;		/* Y-offset of cache */
+  int		cache_w;		/* Width of cache */
   int		cache_h;		/* Height of cache */
   int		offset_x;		/* Paint offset in X direction */
   int		offset_y;		/* Paint offset in Y direction */
@@ -187,7 +187,7 @@ registerColour(Any *bin, Any c)
 static void
 d_push_context(void)
 { DContext ctx = alloc(sizeof(struct d_context));
-  
+
   if ( env->level > 0 )
   { registerColour(&context.colour, context.gcs->colour);
     registerColour(&context.background, context.gcs->background);
@@ -428,12 +428,12 @@ d_image(Image i, int x, int y, int w, int h)
   }
 
   image = (Pixmap) getXrefObject(i, d);
-  
+
   d_display(d);
   d_offset(0, 0);			/* Do we need this for images? */
 
   Translate(x, y);
-  
+
   context.cache_x	= 0;
   context.cache_y	= 0;
   context.cache		= NULL;
@@ -452,7 +452,7 @@ d_image(Image i, int x, int y, int w, int h)
   else
     context.default_colour = i->foreground;
   if ( isDefault(i->background) )
-    context.default_background = d->background;    
+    context.default_background = d->background;
   else
     context.default_background = i->background;
   context.drawable	     = (Drawable) image;
@@ -486,7 +486,7 @@ d_xwindow(DisplayObj d, Window win, int x, int y, int w, int h)
 
   d_push_context();
   d_display(d);
-  
+
   context.cache_x	     = 0;
   context.cache_y	     = 0;
   context.origin_x	     = 0;
@@ -672,7 +672,7 @@ intersection_iarea(IArea a, IArea b)
   w = (a->x + a->w < b->x + b->w ? a->x + a->w : b->x + b->w) - x;
   h = (a->y + a->h < b->y + b->h ? a->y + a->h : b->y + b->h) - y;
 
-  if ( w < 0 ) w = 0;  
+  if ( w < 0 ) w = 0;
   if ( h < 0 ) h = 0;
 
   a->x = x;
@@ -875,7 +875,7 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
 
 	if ( mono &&
 	     (pm = (Pixmap) getXrefObject(mono, context.pceDisplay)) )
-	{ 
+	{
 	  values.tile       = pm;
 	  values.fill_style = FillTiled;
 	  mask		    = (GCTile|GCFillStyle);
@@ -921,7 +921,7 @@ r_andpattern(Image i)
        (image = (Pixmap) getXrefObject(i, context.pceDisplay)) != 0 )
   { XGCValues values;
     unsigned long mask;
-    
+
     if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
     { values.stipple    = image;
       values.fill_style = FillOpaqueStippled;
@@ -969,14 +969,14 @@ r_unfix_colours(ColourContext ctx)
 Any
 r_default_colour(Any c)
 { Any old = context.default_colour;
-  
+
   if ( !context.fixed_colours )
   { if ( notDefault(c) )
       context.default_colour = c;
 
     r_colour(context.default_colour);
   }
-  
+
   return old;
 }
 
@@ -998,7 +998,7 @@ r_colour(Any c)
 
       if ( instanceOfObject(c, ClassColour) )
       { unsigned long pixel = getPixelColour(c, context.pceDisplay);
-	
+
 	values.foreground = pixel;
 	values.fill_style = FillSolid;
 	mask		  = (GCForeground|GCFillStyle);
@@ -1016,7 +1016,7 @@ r_colour(Any c)
       if ( instanceOfObject(context.gcs->fill, ClassImage) &&
 	   instanceOfObject(c, ClassColour))
 	XChangeGC(context.display, context.gcs->fillGC, GCForeground, &values);
-    } 
+    }
 
     old = registerColour(&context.gcs->colour, c);
   }
@@ -1042,7 +1042,7 @@ r_background(Any c)
 
       if ( instanceOfObject(c, ClassColour) )
       { unsigned long pixel = getPixelColour(c, context.pceDisplay);
-	
+
 	values.foreground = pixel;
 	values.fill_style = FillSolid;
 	mask		  = (GCForeground|GCFillStyle);
@@ -1114,7 +1114,7 @@ r_invert_mode(Bool val)
 { if ( context.gcs->invert_mode != val )
   { XGCValues values;
     int mask = GCFunction|GCPlaneMask;
-    
+
     if ( val == ON )
     { values.function   = GXinvert;
       values.plane_mask = AllPlanes;
@@ -1142,7 +1142,7 @@ void
 r_translate(int x, int y, int *ox, int *oy)
 { Translate(x, y);
 
-  *ox = x; 
+  *ox = x;
   *oy = y;
 }
 
@@ -1226,7 +1226,7 @@ r_box(int x, int y, int w, int h, int r, Any fill)
 	}
 
 	XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
-		     p, 8, Convex, CoordModeOrigin);  
+		     p, 8, Convex, CoordModeOrigin);
       }
 
       if ( n > 0 )
@@ -1344,7 +1344,7 @@ r_elevation(Elevation e)
 { if ( context.gcs->elevation != e )
   { Any relief = r_elevation_relief(e);
     Any shadow = r_elevation_shadow(e);
-  
+
     x11_set_gc_foreground(context.pceDisplay, relief,
 			  1, &context.gcs->reliefGC);
     x11_set_gc_foreground(context.pceDisplay, shadow,
@@ -1387,7 +1387,7 @@ r_elevation_fillpattern(Elevation e, int up)
     } else
       fail;
   }
-  
+
   r_fillpattern(fill, NAME_background);
 
   succeed;
@@ -1402,14 +1402,14 @@ r_3d_segments(int n, ISegment s, Elevation e, int light)
   int i;
 
   r_elevation(e);
-  
+
   for(i=0; i<n; i++, p++, xp++)
   { xp->x1 = X(p->x1);
     xp->y1 = Y(p->y1);
     xp->x2 = X(p->x2);
     xp->y2 = Y(p->y2);
   }
-    
+
   XDrawSegments(context.display, context.drawable,
 		light ? context.gcs->reliefGC : context.gcs->shadowGC,
 		xs, n);
@@ -1445,7 +1445,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     if ( shadow > MAX_SHADOW )
       shadow = MAX_SHADOW;
     r_box(x, y, w-shadow, h-shadow, radius-shadow, e->colour);
-    
+
     xt = x, yt = y;
     Translate(xt, yt);
 
@@ -1504,7 +1504,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 
     return;
   }
-  
+
   if ( !up  )
     shadow = -shadow;
   fill = r_elevation_fillpattern(e, up);
@@ -1521,13 +1521,13 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       BottomRightGC = context.gcs->reliefGC;
       shadow        = -shadow;
     }
-  
+
     if ( shadow > MAX_SHADOW )
       shadow = MAX_SHADOW;
-  
+
     xt = x, yt = y;
     Translate(xt, yt);
-  
+
     if ( radius > 0 )			/* with rounded corners */
     { XSegment sr[MAX_SHADOW * 2];	/* top, left */
       XArc     ar[MAX_SHADOW * 3];	/* idem */
@@ -1535,7 +1535,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       XArc     as[MAX_SHADOW * 3];	/* item */
       int      is=0, ir=0, ns=0, nr=0;	/* # items */
       int      os;
-  
+
       w--, h--;
 
       r_arcmode(NAME_pieSlice);
@@ -1547,16 +1547,16 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 
 	ar[0].angle1 = 90*64; ar[0].angle2 = 90*64; /* top-left */
 	ar[0].x = xt; ar[0].y = yt; ar[0].width = r2; ar[0].height = r2;
- 
+
 	ar[1].angle1 = 0*64; ar[1].angle2 = 90*64; /* top-right */
 	ar[1].x = xt+w-r2; ar[1].y = yt; ar[1].width = r2; ar[1].height = r2;
- 
+
 	ar[2].angle1 = 180*64; ar[2].angle2 = 90*64; /* bottom-left */
 	ar[2].x = xt; ar[2].y = yt+h-r2; ar[2].width = r2; ar[2].height = r2;
- 
+
 	ar[3].angle1 = 270*64; ar[3].angle2 = 90*64; /* bottom-left */
 	ar[3].x = xt+w-r2; ar[3].y = yt+h-r2; ar[3].width=r2; ar[3].height=r2;
- 
+
 /*top*/	rs[0].x = xt+r; rs[0].y = yt;     rs[0].width = w-r2; rs[0].height = r;
 /*bot*/	rs[1].x = xt+r; rs[1].y = yt+h-r; rs[1].width = w-r2; rs[1].height = r;
 /*body*/rs[2].x = xt;   rs[2].y = yt+r;   rs[2].width = w; rs[2].height = h-r2;
@@ -1568,7 +1568,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       for(os=0; os<shadow; os++)
       { int r     = radius-os;
 	short wh  = r*2;
-  
+
 	sr[ir].x1 = os+xt+r;	sr[ir].y1 = os+yt;	/* top */
 	sr[ir].x2 = -os+xt+w-r;	sr[ir].y2 = os+yt;
 	ir++;
@@ -1628,7 +1628,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	i++;
       }
       XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
-      
+
       for(i=0, os=0; os < shadow; os += pen)
       { s[i].x1 = xt+os;	s[i].y1 = yt+h-1-os;	/* bottom-side */
 	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
@@ -1639,7 +1639,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       }
       XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
     }
-  }  
+  }
 
   if ( fill )
     r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, NAME_current);
@@ -1750,7 +1750,7 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
     for(n=0; n<3;)
     { int f = n;
       int light = map & (1<<n);
-      
+
       do
       { n++;
       } while(n < 3 &&
@@ -1827,7 +1827,7 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
     { eax++;				/* ??? */
     }
   }
-      
+
   if ( r_elevation_fillpattern(e, up) )
   { XPoint p[4];
 
@@ -1874,7 +1874,7 @@ r_arc(int x, int y, int w, int h, int s, int e, Any fill)
   if ( fill != BLACK_IMAGE )
   { int done;
     r_thickness(drawpen);
-    
+
     for( done = 0; done < pen; done += drawpen )
     { XDrawArc(context.display, context.drawable, context.gcs->workGC,
 	       x, y, w, h, s, e);
@@ -1902,11 +1902,11 @@ r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)
 
   if ( !z || isNil(z) )
     r_ellipse(x, y, w, h, NIL);
-  
+
   shadow = valInt(z->height);
   if ( !up )
     shadow = -shadow;
-  
+
   if ( shadow > MAX_SHADOW )
     shadow = MAX_SHADOW;
 
@@ -1988,7 +1988,7 @@ r_polygon(IPoint pts, int n, int close)
     { points[i].x = X(pts[i].x);
       points[i].y = Y(pts[i].y);
     }
-  
+
     if ( close )
     { points[i].x = points[0].x;
       points[i].y = points[0].y;
@@ -2058,7 +2058,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
     if ( notNil(fill) )
     { r_fillpattern(fill, NAME_background);
       XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
-		   pts, i, Complex, CoordModeOrigin);  
+		   pts, i, Complex, CoordModeOrigin);
     }
 
     if ( context.gcs->pen )
@@ -2067,7 +2067,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
 		 pts, i, CoordModeOrigin);
     }
   } else
-  { 
+  {
 #if 0					/* TBD */
     XSegment *sgs = (XSegment *) alloca((npoints-1) * sizeof(XSegment));
     int pt = 0;
@@ -2088,11 +2088,11 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
       } else
       { x3 = x2; y3 = y2;
         x2 = x1; y2 = y1;
-	x1 = x;  y1 = y;	
+	x1 = x;  y1 = y;
 	sgs[seg].x1 = x3; sgs[seg].y1 = y3;
 	/* to be continued */
-      }     	
-	
+      }
+
       pt++;
     }
 #endif
@@ -2144,7 +2144,7 @@ r_image(Image image,
 	int x, int y, int w, int h,
 	Bool transparent)
 { XGCValues values;
-    
+
   if ( image->size->w == ZERO || image->size->h == ZERO )
     return;
 
@@ -2225,7 +2225,7 @@ r_image(Image image,
       { unsigned long fpixel, bpixel;
 	unsigned long plane = 1L;
 	unsigned int i;
-	
+
 	if ( isDefault(image->foreground) )
 	  assign(image, foreground, context.pceDisplay->foreground);
 	if ( isDefault(image->background) )
@@ -2330,9 +2330,9 @@ r_fill_polygon(IPoint pts, int n)
   { points[i].x = X(pts[i].x);
     points[i].y = Y(pts[i].y);
   }
-  
+
   XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
-	       points, n, Convex, CoordModeOrigin);  
+	       points, n, Convex, CoordModeOrigin);
 }
 
 
@@ -2355,7 +2355,7 @@ r_caret(int cx, int cy, FontObj font)
   r_thickness(1);
   r_dash(NAME_none);
   r_line(cx, cb-2, cx, cb-ch);
-    
+
   pts[0].x = cx - cw2;
   pts[0].y = cb;
   pts[1].x = cx + cw2;
@@ -2381,7 +2381,7 @@ r_fill_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
   p[2].y = Y(y3);
 
   XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
-	       p, 3, Convex, CoordModeOrigin);  
+	       p, 3, Convex, CoordModeOrigin);
 }
 
 
@@ -2393,7 +2393,7 @@ r_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Any fill)
   { r_fillpattern(fill, NAME_foreground);
     r_fill_triangle(x1, y1, x2, y2, x3, y3);
   }
-  
+
   s[0].x1 = X(x1);   s[0].y1 = Y(y1);   s[0].x2 = X(x2);   s[0].y2 = Y(y2);
   s[1].x1 = s[0].x2; s[1].y1 = s[0].y2; s[1].x2 = X(x3);   s[1].y2 = Y(y3);
   s[2].x1 = s[1].x2; s[2].y1 = s[1].y2; s[2].x2 = s[0].x1; s[2].y2 = s[0].y1;
@@ -2436,7 +2436,7 @@ r_complement_pixel(int x, int y)
 		********************************/
 
 static Drawable  last_drawable = 0;
-  
+
 void
 d_modify()
 { if ( last_drawable == context.drawable )
@@ -2467,12 +2467,12 @@ r_get_pixel(int x, int y)
       ix = iy = iw = ih = 0;
       move = TRUE;
     }
-    
+
     if ( x < ix )     { move = TRUE; dw *= 2; ix = x - dw - 1; }
     if ( x >= ix+iw ) { move = TRUE; dw *= 2; ix = x; }
     if ( y < iy )     { move = TRUE; dh *= 2; iy = y - dh - 1; }
     if ( y >= iy+ih ) { move = TRUE; dh *= 2; iy = y; }
-    
+
     if ( move )
     { if ( image != NULL )
         XDestroyImage(image);
@@ -2482,10 +2482,10 @@ r_get_pixel(int x, int y)
       image = XGetImage(last_display, last_drawable,
 			ix, iy, iw, ih, AllPlanes, ZPixmap);
     }
-    
+
     return XGetPixel(image, x-ix, y-iy);
   }
-  
+
   return NoPixel;
 }
 
@@ -2524,7 +2524,7 @@ s_font(FontObj f)
     if ( context.gcs->font != f )
     { XpceFontInfo info;
       context.gcs->font = f;
-    
+
       info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
       context.gcs->xft_font = info->xft_font;
     }
@@ -2592,13 +2592,13 @@ s_advance(String s, int from, int to)
     return 0;
 
   if ( isstrA(s) )
-  { XftTextExtents8(context.display, context.gcs->xft_font, 
+  { XftTextExtents8(context.display, context.gcs->xft_font,
 		    s->s_textA+from, len, &info);
   } else if ( sizeof(charW) == 2 )
-  { XftTextExtents16(context.display, context.gcs->xft_font, 
+  { XftTextExtents16(context.display, context.gcs->xft_font,
 		     (FcChar16*)s->s_textW+from, len, &info);
   } else if ( sizeof(charW) == 4 )
-  { XftTextExtents32(context.display, context.gcs->xft_font, 
+  { XftTextExtents32(context.display, context.gcs->xft_font,
 		     (FcChar32*)s->s_textW+from, len, &info);
   }
 
@@ -2612,7 +2612,7 @@ lbearing(wint_t c)
   FcChar32 s[1];
 
   s[0] = c;
-  XftTextExtents32(context.display, context.gcs->xft_font, 
+  XftTextExtents32(context.display, context.gcs->xft_font,
 		   s, 1, &info);
 
   return info.x;
@@ -2659,12 +2659,12 @@ s_printW(charW *s, int l, int x, int y, FontObj f)
     xft_color(&color);
     Translate(x, y);
     s_font(f);
-    
+
     if ( sizeof(charW) == 2 )
-    { XftDrawString16(xftDraw(), &color, context.gcs->xft_font, x, y, 
+    { XftDrawString16(xftDraw(), &color, context.gcs->xft_font, x, y,
 		      (FcChar16*)s, l);
     } else if ( sizeof(charW) == 4 )
-    { XftDrawString32(xftDraw(), &color, context.gcs->xft_font, x, y, 
+    { XftDrawString32(xftDraw(), &color, context.gcs->xft_font, x, y,
 		      (FcChar32*)s, l);
     } else
     { assert(0);
@@ -2688,7 +2688,7 @@ s_font(FontObj f)
     if ( context.gcs->font != f )
     { XpceFontInfo info;
       context.gcs->font = f;
-    
+
       info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
       context.gcs->font_set = info->font_set;
     }
@@ -2721,7 +2721,7 @@ s_ascent(FontObj font)
 
   s_font(font);
   exts = XExtentsOfFontSet(context.gcs->font_set);
-  
+
   return -exts->max_logical_extent.y;
 }
 
@@ -2732,7 +2732,7 @@ s_descent(FontObj font)
 
   s_font(font);
   exts = XExtentsOfFontSet(context.gcs->font_set);
-  
+
   return exts->max_logical_extent.y + exts->max_logical_extent.height;
 }
 
@@ -2760,7 +2760,7 @@ s_advance(String s, int from, int to)
     wchar_t *t = ws;
     const charA *f = &s->s_textA[from];
     const charA *e = &f[len];
-    
+
     while(f<e)
       *t++ = *f++;
 
@@ -2895,12 +2895,12 @@ s_font(FontObj f)
     if ( context.gcs->font != f )
     { XpceFontInfo info;
       context.gcs->font = f;
-  
+
       info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
       context.gcs->font_info   = info->info;
       context.gcs->char_widths = info->widths;
       context.gcs->maxchar     = info->maxchar;
-  
+
       XSetFont(context.display, context.gcs->workGC,
 	       context.gcs->font_info->fid);
     }
@@ -3062,10 +3062,10 @@ void
 s_print_aligned(String s, int x, int y, FontObj f)
 { if ( s->size > 0 )
   { s_font(f);
-    
+
     x += lbearing(str_fetch(s, 0));
     s_print(s, x, y, f);
-  } 
+  }
 }
 
 
@@ -3081,7 +3081,7 @@ str_draw_text(String s, int offset, int len, int x, int y)
 
   if ( offset + len > s->size )
     len = s->size - offset;
-  
+
   if ( s->size > 0 )
   { InvTranslate(x, y);			/* Hack */
 
@@ -3106,7 +3106,7 @@ str_stext(String s, int f, int len, int x, int y, Style style)
       if ( notDefault(style->background) )
       { int a = s_ascent(NULL);
 	int b = s_descent(NULL);
-	
+
 	r_fillpattern(style->background, NAME_foreground);
 	XFillRectangle(context.display, context.drawable, context.gcs->fillGC,
 		       x, y-a, w, b+a);
@@ -3240,12 +3240,12 @@ str_size(String s, FontObj font, int *width, int *height)
 
       lw = lbearing(str_fetch(&line->text, 0));
       lw += s_advance(&line->text, 0, line->text.size);
-    
+
       if ( w < lw )
 	w = lw;
     }
   }
-  
+
   *width  = w;
   *height = nlines * s_height(font);
 }
@@ -3316,7 +3316,7 @@ str_selected_string(String s, FontObj font,
       sf = (f <= here     ?      0 : f-here);
       sl = (t >= here+len ? len-sf : t-here-sf);
       sx = s_advance(&line->text, 0, sf);
-      
+
       str_stext(&line->text, 0,  sf, line->x,    line->y+baseline, NIL);
       str_stext(&line->text, sf, sl, line->x+sx, line->y+baseline, style);
       if ( sf+sl < len )
@@ -3449,7 +3449,7 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
       r_text_colour(old);
     } else
     { Any old = r_text_colour(GREY50_IMAGE);
-      
+
       str_draw_text_lines(acc, font, nlines, lines, 0, 0);
       r_text_colour(old);
     }

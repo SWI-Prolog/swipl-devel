@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,12 +32,15 @@
 :- module(check,
 	[ check/0,			% run all checks
 	  list_undefined/0,		% list undefined predicates
+	  list_undefined/1,		% +Options
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0		% list redefinitions
 	]).
 :- use_module(library(lists)).
+:- use_module(library(system)).
+:- use_module(library(option)).
 
-:- style_check(+dollar).		% lock these predicates
+:- system_mode(on).			% lock these predicates
 
 /** <module> Consistency checking
 
@@ -48,13 +51,13 @@ loaded Prolog program.
 */
 
 %%	check
-%	
+%
 %	Run all consistency checks defined in this library
 
 check :-
 	print_message(informational,
 		      check(pass(1, 'Undefined predicates'))),
-	list_undefined(silent),
+	list_undefined(silent, global),
 	print_message(informational,
 		      check(pass(2, 'Redefined system and global predicates'))),
 	list_redefined,
@@ -62,28 +65,42 @@ check :-
 		      check(pass(3, 'Predicates that need autoloading'))),
 	list_autoload.
 
-%%	list_undefined
-%	
+%%	list_undefined is det.
+%%	list_undefined(+Options) is det.
+%
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
-%	referencing tool.
-%	
+%	referencing tool.  Options:
+%
+%	    * scan(+Scan)
+%	    If =local=, only scan the module holding the undefined
+%	    predicate for references; if =global= (default), scan the
+%	    whole program.  Global scanning finds references through
+%	    qualified goals (i.e., M:G), but can take long on big
+%	    programs.
+%
 %	@see gxref/0 provides a graphical cross-referencer.
+%	@see make/0 calls list_undefined/1 using scan(local)
 
 list_undefined :-
-	list_undefined(informational).
+	list_undefined(informational, global).
 
-list_undefined(Level) :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
-	call_cleanup(list_undefined_(Level), '$style_check'(_, Old)).
+list_undefined(Options) :-
+	option(scan(Scan), Options, global),
+	list_undefined(informational, Scan).
 
-list_undefined_(Level) :-
+
+list_undefined(Level, How) :-
+	system_mode(Old),
+	system_mode(on),
+	call_cleanup(list_undefined_(Level, How), system_mode(Old)).
+
+list_undefined_(Level, How) :-
 	findall(Pred, undefined_predicate(Pred), Preds),
 	(   Preds == []
 	->  true
 	;   print_message(Level, check(find_references(Preds))),
-	    find_references(Preds, Pairs),
+	    find_references(Preds, How, Pairs),
 	    (	Pairs == []
 	    ->	true
 	    ;   print_message(warning, check(undefined_predicates)),
@@ -97,84 +114,100 @@ list_undefined_(Level) :-
 	).
 
 undefined_predicate(Module:Head) :-
-	predicate_property(Module:Head, undefined), 
-	\+ predicate_property(Module:Head, imported_from(_)),
-	functor(Head, Functor, Arity), 
-	\+ '$in_library'(Functor, Arity, _),
-	\+ system_undefined(Module:Functor/Arity).
+	predicate_property(Module:Head, undefined),
+	\+ predicate_property(Module:Head, imported_from(_)).
 
-system_undefined(user:prolog_trace_interception/4).
 
-%%	find_references(+Heads, -HeadRefs:list) is det.
-%	
+%%	find_references(+Heads, +How, -HeadRefs:list) is det.
+%
 %	Find references to the given  predicates.   For  speedup we only
 %	look for references from the  same   module.  This  isn't really
 %	correct, but as Module:Head  is  at   the  moment  only  handled
 %	through meta-calls, it isn't too bad either.
-%	
-%	@param HeadRefs List of Head-Refs
-
-find_references([], []).
-find_references([H|T0], [H-Refs|T]) :-
-	ignore(H = M:_),
-	findall(Ref, referenced(H, M, Ref), Refs),
-	Refs \== [], !,
-	find_references(T0, T).
-find_references([_|T0], T) :-
-	find_references(T0, T).
-
-%%	referenced(+Predicate, ?Module, -ClauseRef)
 %
-%	True if Clause ClauseRef references Predicate.
+%	@param HeadRefs List of Head-Refs
+%	@param How is one of =local= or =global=
+
+find_references([], _, []).
+find_references([H|T0], How, [H-Refs|T]) :-
+	(   ignore(H = M:_),
+	    findall(Ref, referenced(H, M, Ref), Refs)
+	;   How == global,
+	    findall(Ref, referenced(H, _, Ref), Refs)
+	),
+	Refs \== [], !,
+	find_references(T0, How, T).
+find_references([_|T0], How, T) :-
+	find_references(T0, How, T).
+
+%%	referenced(+Predicate, ?Module, -ClauseRef) is nondet.
+%
+%	True if clause ClauseRef references Predicate.
 
 referenced(Term, Module, Ref) :-
-	current_predicate(_, Module:Head),
-	\+ predicate_property(Module:Head, built_in),
-	\+ predicate_property(Module:Head, imported_from(_)),
-	nth_clause(Module:Head, _, Ref),
+	Goal = Module:_Head,
+	current_predicate(_, Goal),
+%	\+ predicate_property(Goal, built_in),
+%	\+ predicate_property(Goal, imported_from(_)),
+	'$get_predicate_attribute'(Goal, system, 0),
+	\+ '$get_predicate_attribute'(Goal, imported, _),
+	nth_clause(Goal, _, Ref),
 	'$xr_member'(Ref, Term).
 
 %%	list_autoload
-%	
-%	Show predicates that need be linked via the autoload mechanism
+%
+%	Show predicates that are not defined, but will be loaded on
+%	demand through the autoloader.
+%
+%	The behaviour of this predicate depends  on the system-mode (see
+%	system_mode/1): in normal  operation  it   only  lists  autoload
+%	requirements from user-module. In system-mode it also lists such
+%	requirements for the system modules.
 
 list_autoload :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
+	system_mode(Old),
+	system_mode(on),
 	current_prolog_flag(autoload, OldAutoLoad),
 	set_prolog_flag(autoload, false),
-	call_cleanup(list_autoload_, 
+	call_cleanup(list_autoload_(Old),
 		     (	 set_prolog_flag(autoload, OldAutoLoad),
-			 '$style_check'(_, Old)
+			 system_mode(Old)
 		     )).
-	
-list_autoload_ :-
-	(   setof(Lib-Pred, autoload_predicate(Module, Lib, Pred), Pairs),
+
+list_autoload_(SystemMode) :-
+	(   setof(Lib-Pred,
+		  autoload_predicate(Module, Lib, Pred, SystemMode),
+		  Pairs),
 	    print_message(informational,
 			  check(autoload(Module, Pairs))),
 	    fail
 	;   true
 	).
 
-autoload_predicate(Module, Library, Name/Arity) :-
-	predicate_property(Module:Head, undefined), 
-	(   \+ predicate_property(Module:Head, imported_from(_)), 
-	    functor(Head, Name, Arity), 
+autoload_predicate(Module, Library, Name/Arity, SystemMode) :-
+	predicate_property(Module:Head, undefined),
+	check_module_enabled(Module, SystemMode),
+	(   \+ predicate_property(Module:Head, imported_from(_)),
+	    functor(Head, Name, Arity),
 	    '$find_library'(Module, Name, Arity, _LoadModule, Library),
 	    referenced(Module:Head, Module, _)
 	->  true
 	).
 
+check_module_enabled(_, on) :- !.
+check_module_enabled(Module, _) :-
+	\+ import_module(Module, system).
+
 
 %%	list_redefined
-%	
+%
 %	Show redefined system predicates
 
 list_redefined :-
-	'$style_check'(Old, Old), 
-	style_check(+dollar), 
-	call_cleanup(list_redefined_, '$style_check'(_, Old)).
-	
+	system_mode(Old),
+	system_mode(on),
+	call_cleanup(list_redefined_, system_mode(Old)).
+
 list_redefined_ :-
 	current_module(Module),
 	Module \== system,
@@ -220,7 +253,7 @@ prolog:message(check(undefined(Pred, Refs))) -->
 	[ ', which is referenced by', nl ],
 	referenced_by(Refs).
 prolog:message(check(autoload(Module, Pairs))) -->
-	{ current_module(Module, Path)
+	{ module_property(Module, file(Path))
 	}, !,
 	[ 'Into module ~w ('-[Module] ],
 	short_filename(Path),
@@ -276,11 +309,18 @@ autoload([Lib-Pred|T]) -->
 referenced_by([]) -->
 	[].
 referenced_by([Ref|T]) -->
-	{ nth_clause(M:Head, N, Ref),
-	  suffix(N, Suff)
+	{ nth_clause(M:Head, N, Ref)
 	},
-	[ '        ~d-~w clause of '-[N, Suff] ],
-	predicate(M:Head),
+	(   { clause_property(Ref, file(Path)),
+	      clause_property(Ref, line_count(Line))
+	    }
+	->  ['\t'-[] ], predicate(M:Head),
+	    [' at ~w:~w'-[Path, Line] ]
+	;   { suffix(N, Suff)
+	    },
+	    [ '\t~d-~w clause of '-[N, Suff] ],
+	    predicate(M:Head)
+	),
 	[ nl ],
 	referenced_by(T).
 
@@ -301,9 +341,9 @@ short_filename(Path, Spec) :-
 	findall(LenAlias, aliased_path(Path, LenAlias), Keyed),
 	keysort(Keyed, [_-Spec|_]).
 short_filename(Path, Path).
-	
+
 aliased_path(Path, Len-Spec) :-
-	setof(Alias, Spec^file_search_path(Alias, Spec), Aliases),
+	setof(Alias, Spec^(user:file_search_path(Alias, Spec)), Aliases),
 	member(Alias, Aliases),
 	Term =.. [Alias, '.'],
 	absolute_file_name(Term,

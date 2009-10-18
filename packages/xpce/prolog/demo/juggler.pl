@@ -35,7 +35,7 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , forall/2
 	   , member/2
 	   , send_list/3
@@ -63,7 +63,7 @@ make_juggler_popup(P) :-
 		  , menu_item(speed, message(J, set_speed), @default, @on)
 		  , menu_item(quit,  message(J, free))
 		  ]).
-	       
+
 
 initialise(F) :->
 	"Create a juggler-window"::
@@ -77,7 +77,7 @@ initialise(F) :->
 	send(P, display, new(Fig, figure)),
 	send(Fig, status, 1),
 	forall(member(N, [1,2,3,4,5]),
-	       (concat_atom([juggler, N, '.bm'], IconName),
+	       (atomic_list_concat([juggler, N, '.bm'], IconName),
 		new(I, bitmap(IconName)),
 	        send(I, name, N),
 	        send(Fig, display, I))),
@@ -86,9 +86,9 @@ initialise(F) :->
 	send(T, start),
   	get(F, class_variable_value, speed, Speed),
 	send(F, speed, Speed),
-	
+
 	send(F, open).
-	
+
 unlink(F) :->
 	send(F?timer, stop),
 	send(F, send_super, unlink).

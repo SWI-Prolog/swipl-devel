@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,12 +35,15 @@
 	    encode_uri/3,		% +Text, -Codes, ?Tail
 	    encode_uri_component/3,	% +Text, -Codes, ?Tail
 	    decode_uri/2,		% +Text, -Atom
-	    decode_uri_component/2	% +Text, -Atom
+	    decode_uri_component/2,	% +Text, -Atom
+
+	    parse_uri/3,		% +Text, -Parts, +Options
+	    is_absolute_uri/1,		% +Text
+	    uri_iri/3			% +URI, -IRI, +Options
 	  ]).
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(uri)).
+:- use_foreign_library(foreign(uri)).
 
 /** <module> URI/URL handling library
 
@@ -57,3 +60,37 @@
 %%	decode_uri(+In, -Out) is det.
 %%	decode_uri_component(+In, -Out) is det.
 
+%%	parse_uri(+URI, -Parts, +Options) is det.
+%
+%	Parse a URI into its components.  Parts is a term uri/7:
+%
+%	    1. Schema (atom)
+%	    2. userInfo (atom)
+%	    3. hostname (atom)
+%	    4. port (integer)
+%	    5. path (atom)
+%	    6. query (atom)
+%	    7. fragment (atom)
+%
+%	Options include:
+%
+%	    * normalize(+Bool)
+%	    Normalise the URI
+%
+%	    * base(+BaseURI)
+%	    Decompose, relative to Base.
+
+%%	is_absolute_uri(+URI) is semidet.
+%
+%	True if URI contains a schema.
+
+%%	uri_iri(+URI, -IRI, +Options) is det.
+%
+%	Translate between URI and IRI. Notably   the  base and normalize
+%	options can be used to translate between a local URL to a global
+%	IRI as needed for -for example- RDF.  E.g.,
+%
+%	==
+%	?- uri_iri(cow, IRI, [base('http://example.com/ns/animals/')]).
+%	IRI = 'http://example.com/ns/animals/cow'.
+%	==

@@ -55,7 +55,7 @@
 %%	pce_to_method(+Spec, -Object) is semidet.
 %
 %	Object is the XPCE object described by Spec.  Spec is one of
-%	
+%
 %		* send(Receiver, Selector)
 %		* ->(Receiver, Selector)
 %		Find a send-method on Receiver
@@ -184,7 +184,7 @@ to_class_name(ClassObj, Name) :-
 	index_files/1.
 
 %%	pce_library_class(?Name, ?Super, ?Comment, ?File)
-%	
+%
 %	Examine the library index for defined classes.
 
 pce_library_class(Name, Super, Comment, library(File)) :-
@@ -213,7 +213,7 @@ index_file(File) :-
 			     file_errors(fail)
 			   ],
 			   File).
-	
+
 load_index_files([]).
 load_index_files([H|T]) :-
 	load_index_file(H),
@@ -237,7 +237,7 @@ read_index(class(Name, Super, Comment, File), In) :-
 
 %%	implements(?Class:atom, ?Method:atom) is nondet.
 %%	implements(?Class:atom, ?Method:atom, -MethodObj:object) is nondet.
-%	
+%
 %	True if Class implements the method.  If class is a variable,
 %	backtracking yields all classes
 %
@@ -246,7 +246,7 @@ read_index(class(Name, Super, Comment, File), In) :-
 %	implementation of the method,  while   using  root(What) returns
 %	only  those  classes  for   which    there   is  no  super-class
 %	implementing the requested method.
-%	
+%
 %	@param Class	Name of XPCE class
 %	@param Method	One of send(Name) or get(Name)
 %	@param MethodObj XPCE Object representing the method

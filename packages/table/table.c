@@ -272,7 +272,7 @@ get_size_ex(term_t t, size_t *v)
   if ( PL_get_int64(t, &i) )
   { if ( i < 0 )
       return domain_error(t, "nonneg");
-      
+
     *v = (size_t)i;			/* TBD: Check on 32-bit systems */
     return TRUE;
   }
@@ -288,7 +288,7 @@ get_offset_ex(term_t t, table_offset_t *v)
   if ( PL_get_int64(t, &i) )
   { if ( i < 0 )
       return domain_error(t, "nonneg");
-      
+
     *v = (table_offset_t)i;		/* TBD: Check on 32-bit systems */
     return TRUE;
   }
@@ -311,7 +311,7 @@ get_table_ex(term_t handle, Table *table)
 
     return existence_error(handle, "table");
   }
-    
+
   return type_error(handle, "table");
 }
 
@@ -377,7 +377,7 @@ default_escape_table(Table t)
   { PL_warning("Not enough memory");
     return;
   }
-  
+
   for(i=0; i<256; i++)
     t->escape_table[i] = i;
 
@@ -556,7 +556,7 @@ pl_new_table(term_t file, term_t columns, term_t options, term_t handle)
   table->nfields = nfields;
   table->fields = malloc(sizeof(struct fieldtag)*nfields);
   memcpy(&table->fields[0], fields, sizeof(struct fieldtag)*nfields);
-  
+
   if ( !table->record_functor )
   { int	maxarg=0;
     int i;
@@ -602,7 +602,7 @@ open_table(Table table)
 
     if ( !GetFileInformationByHandle(table->hfile, &info) )
       goto errio;
-    
+
     table->size = info.nFileSizeLow;
 
     table->hmap = CreateFileMapping(table->hfile,
@@ -618,10 +618,10 @@ open_table(Table table)
 				  FILE_MAP_READ,
 				  0L, 0L, /* offset */
 				  0L);	/* size (0=all) */
-				  
+
     if ( !table->buffer )
       goto errio;
-    
+
     table->window      = table->buffer;
     table->window_size = table->size;
 
@@ -657,7 +657,7 @@ open_table(Table table)
       goto errio;
 
     table->size = buf.st_size;
-    
+
     if ( (table->buffer = mmap(NULL, table->size,
 			       PROT_READ, MAP_SHARED|MAP_NORESERVE,
 			       table->fd, 0)) == (char *) -1 )
@@ -722,7 +722,7 @@ pl_get_table_attribute(term_t handle, term_t name, term_t value)
   if ( !get_table_ex(handle, &table) )
     return FALSE;
 
-  
+
   if ( PL_get_name_arity(name, &n, &arity) )
   { if ( n == ATOM_file && arity == 0 )
       return PL_unify_atom(value, table->file);
@@ -730,7 +730,7 @@ pl_get_table_attribute(term_t handle, term_t name, term_t value)
     if ( n == ATOM_field && arity == 1 )
     { term_t a = PL_new_term_ref();
       int i;
-      
+
       PL_get_arg(1, name, a);
       if ( PL_get_integer(a, &i) )
       { if ( i >= 1 && i <= table->nfields )
@@ -913,7 +913,7 @@ pl_free_table(term_t handle)
 
   if ( !get_table_ex(handle, &table) )
     return FALSE;
-  
+
   table->magic = 0;			/* so it won't be recognised */
   if ( table->escape_table )
     free(table->escape_table);
@@ -984,7 +984,7 @@ find_start_of_record(Table t, table_offset_t start)
       s--;
 
     return s-t->window;
-  }    
+  }
 }
 
 
@@ -992,7 +992,7 @@ static table_offset_t
 previous_record(Table t, table_offset_t start)
 { char *s;
   int er = t->record_sep;
-    
+
   if ( start < 0 || start > (table_offset_t)t->window_size )
     return -1;
 
@@ -1075,12 +1075,12 @@ pl_start_of_record(term_t handle,		/* table */
 					/* find start of search */
   if ( f <= 0 )
     start = table->window;
-  else 
+  else
     start = table->window + f;
-    
+
   if ( start > end )
     PL_fail;
-  
+
   er = table->record_sep;
 
   if ( start == table->window || start[-1] == er )
@@ -1096,10 +1096,10 @@ found:
     start++;
 
   n = start-table->window;
-  
+
   if ( PL_unify_integer(recstart, n) )
     PL_retry(n+1);
-  
+
   PL_fail;
 }
 
@@ -1207,7 +1207,7 @@ tab_memcpy(Table table, int flags, char *to, const char *from, size_t len)
   { strncpy(to, from, len);
     to[len] = EOS;
   }
-	
+
   if ( flags & FIELD_MAPSPACETOUNDERSCORE )
   { char *q;
 
@@ -1259,7 +1259,7 @@ unify_field_text(Table t, int flags, int type,
 #ifndef HAVE_ALLOCA
   if ( buf != tmp )
     free(tmp);
-#endif  
+#endif
   return rval;
 }
 
@@ -1354,7 +1354,7 @@ read_record(Table t, table_offset_t start, table_offset_t *end, term_t record)
 
   if ( !PL_unify_functor(record, t->record_functor) )
     return FALSE;
-  
+
   f = t->fields;
   for(n=1; n<=t->nfields; n++, f++)
   { if ( f->arg > 0 )
@@ -1459,7 +1459,7 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 
     if ( !PL_get_name_arity(head, &a, &arity) || arity != 1 )
       return error(ERR_INSTANTIATION, "read_fields/4", 4, fields);
-    
+
     for(i=0; i<table->nfields; i++)
     { if ( table->fields[i].name == a )
       { argv[i] = PL_new_term_ref();
@@ -1699,7 +1699,7 @@ match_record(Query q, table_offset_t start, table_offset_t *end, int flags)
       continue;
 
     match = match_field(t, f, qf, start, &start, (flags&MR_BIND));
-    
+
     switch(match)
     { case MATCH_NORECORD:
 	rval = match;
@@ -1762,7 +1762,7 @@ execute_binary_search(Query q)
 	  return here;
 	} else
 	{ table_offset_t first = here, prev = here;
-	
+
 	  while(prev > 0)		/* find the first */
 	  { prev = previous_record(t, prev);
 	    if ( match_record(q, prev, &next, MR_KEY_ONLY) == MATCH_EQ )
@@ -1827,7 +1827,7 @@ rebind_query_vars(Query q, term_t from)
       { atom_t name;
 	int arity;
 	int i;
-	
+
 	PL_get_name_arity(head, &name, &arity);
 	for(i=0; i<q->table->nfields; i++)
 	{ if ( q->table->fields[i].name == name )
@@ -1971,7 +1971,7 @@ unique_match(Query q)
   { if ( !(qf->flags & QUERY_DONTCARE) && f->flags & FIELD_UNIQUE )
       return TRUE;
   }
-  
+
   return FALSE;
 }
 
@@ -1987,7 +1987,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
   switch(PL_foreign_control(control))
   { case PL_FIRST_CALL:
     { Table t;
-      
+
       if ( !get_table_ex(handle, &t) )
 	return FALSE;
       if ( !open_table(t) )
@@ -2059,7 +2059,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 
     free_query(q);
     return FALSE;
-  } 
+  }
 
 
   while(q->offset < (table_offset_t)q->table->window_size)

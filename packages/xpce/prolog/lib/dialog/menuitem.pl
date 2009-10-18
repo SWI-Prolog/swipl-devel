@@ -163,7 +163,7 @@ append_item(ME, Item:menu_item) :->
 	->  send(DI, style, end_group)
 	;   true
 	).
-	
+
 
 		 /*******************************
 		 *	  PLAY DIALOG ITEM	*

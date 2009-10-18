@@ -89,7 +89,7 @@ clean :-
 	retractall(called(_)),
 	retractall(defined(_)),
 	retractall(current_require_declaration(_)).
-	
+
 
 collect(File) :-
 	find_source_file(File, Source),
@@ -326,7 +326,7 @@ assert_current_require_declaration([Name/Arity|Rest]) :-
 	functor(Head, Name, Arity),
 	assert(current_require_declaration(Head)),
 	assert_current_require_declaration(Rest).
-				   
+
 check_system_predicate(Head) :-
 	system_predicate(Head), !,
 	functor(Head, Name, Arity),

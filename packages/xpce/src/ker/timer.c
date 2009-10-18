@@ -34,7 +34,7 @@ static status
 initialiseTimer(Timer tm, Real interval, Code msg)
 { if ( isDefault(msg) )
     msg = NIL;
-  
+
   assign(tm, interval, CtoReal(0.0));
   assign(tm, message,  msg);
   assign(tm, status,   NAME_idle);
@@ -168,7 +168,7 @@ static senddecl send_timer[] =
 #define get_timer NULL
 /*
 static getdecl get_timer[] =
-{ 
+{
 };
 */
 
@@ -177,7 +177,7 @@ static getdecl get_timer[] =
 #define rc_timer NULL
 /*
 static classvardecl rc_timer[] =
-{ 
+{
 };
 */
 

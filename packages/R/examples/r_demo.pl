@@ -50,7 +50,7 @@ rs_5 :-
      r_print( x ),
           % also fails as restart doesnot replay the history. compare with reinstate
      r_close.
-     
+
 rs_6 :-
      r_open( [at_r_halt(reinstate)] ),
      r_in( x <- c(10.4, 5.6, 3.1, 6.4, 21.7) ),
@@ -61,14 +61,14 @@ rs_6 :-
           % succeeds
      r_close.
 
-rs_7 :- 
+rs_7 :-
      r_open( [copy(both,both)] ),
      r_in( x <- c(10.4, 5.6, 3.1, 6.4, 21.7) ),
      r_print( x ),
      r_print( y ),
      r_close.
 
-rs_8 :- 
+rs_8 :-
      r_open( [copy(out_only,out)] ),
      r_in( x <- c(10.4, 5.6, 3.1, 6.4, 21.7) ),
      r_print( x ),

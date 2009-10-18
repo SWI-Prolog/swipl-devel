@@ -33,11 +33,12 @@
 	  [ search_form/3,		% +Options, //
 	    search_reply/4		% +Search, +Options, //
 	  ]).
-:- use_module(library('http/html_write')).
+:- use_module(library(http/html_write)).
+:- use_module(library(http/html_head)).
+:- use_module(library(http/dcg_basics)).
 :- use_module(library(occurs)).
 :- use_module(library(option)).
 :- use_module(doc_process).
-:- use_module(library('http/dcg_basics')).
 :- use_module(doc_html).
 :- use_module(doc_index).
 :- use_module(library(doc_http)).
@@ -55,7 +56,7 @@
 %
 %	Create  a  search  input  field.  The   input  field  points  to
 %	=|/search?for=String|= on the current server.  Options:
-%	
+%
 %		* title(Title)
 
 search_form(Options) -->
@@ -67,10 +68,10 @@ search_form(Options) -->
 	  option(search_match(Match), Options, summary)
 	},
 	html(form(action(location_by_id(pldoc_search)),
-		  [ div([ input([ name(for),
-				  size(36)
-				| Extra
-				], []),
+		  [ div([ \search_field([ name(for),
+					  size(36)
+					| Extra
+					]),
 			  input([ type(submit),
 				  value('Search')
 				])
@@ -92,6 +93,17 @@ search_form(Options) -->
 			])
 		  ])).
 
+%%	search_field(+Options)// is det.
+%
+%	Hookable predicate to display the   search field. Hookability is
+%	provided  to  experiment  with    auto-completion  outside  this
+%	package.
+
+search_field(Options) -->
+	prolog:doc_search_field(Options), !.
+search_field(Options) -->
+	html(input(Options, [])).
+
 radio(Radio, Field, Label, In) -->
 	{   Field == In
 	->  Extra = [checked]
@@ -108,15 +120,15 @@ radio(Radio, Field, Label, In) -->
 %%	search_reply(+For, +Options)// is det.
 %
 %	Generate a reply searching for For.  Options include
-%	
+%
 %		* resultFormat(Format)
 %		If =summary= (default), produce a summary-table.  If
 %		=long=, produce full object descriptions.
-%		
+%
 %		* search_in(In)
 %		Determine which databases to search.  One of
 %		=all=, =app=, =man=
-%		
+%
 %		* search_match(Match)
 %		What part of the object to match. One of =name=,
 %		=summary=
@@ -127,7 +139,8 @@ search_reply(For, Options) -->
 	  option(resultFormat(Format), Options, summary),
 	  count_matches(PerCategory, Matches)
 	}, !,
-	html([ \doc_links('', [for(For)|Options]),
+	html([ \html_requires(pldoc),
+	       \doc_links('', [for(For)|Options]),
 	       div(class('search-results'),
 		   ['Search results for ', span(class(for), ['"', For, '"'])]),
 	       div(class('search-counts'),
@@ -137,7 +150,8 @@ search_reply(For, Options) -->
 	     | \matches(Format, PerCategory, Options)
 	     ]).
 search_reply(For, Options) -->
-	html([ \doc_links('', [for(For)|Options]),
+	html([ \html_requires(pldoc),
+	       \doc_links('', [for(For)|Options]),
 	       h1(class(search), 'No matches')
 	     ]).
 
@@ -168,7 +182,7 @@ count_category([_-Objs|T], Count) :-
 	count_category(T, Count0),
 	length(Objs, N),
 	Count is Count0 + N.
-		 
+
 %%	matches(+Format, +PerCategory, +Options)// is det
 %
 %	Display search matches according to Format.
@@ -180,8 +194,8 @@ matches(long, PerCategory, Options) -->
 matches(summary, PerCategory, Options) -->
 	html(table(class(summary),
 		   \short_matches_by_type(PerCategory, Options))).
-			 
-	
+
+
 long_matches_by_type([], _) -->
 	[].
 long_matches_by_type([Category-PerFile|T], Options) -->
@@ -284,16 +298,22 @@ collect_by_key(_, L, [], L).
 %%	matching_object(+SearchString, -Object, +Options) is nondet.
 %
 %	Object matches SearchString.  Options include
-%	
+%
 %		* search_in(In)
 %		One of =all=, =app=, =man=.
-%		
+%
 %		* search_match(Match)
 %		One of =name=, =summary=
-%	
+%
 %	@param Object	Term of the form File-Item
 %	@tbd Deal with search syntax
 
+matching_object(Search, Type-(Section-Obj), Options) :-
+	atom_concat(Function, '()', Search),
+	Obj = c(Function),
+	option(search_in(In), Options, all),
+	prolog:doc_object_summary(Obj, Type, Section, _),
+	matching_category(In, Type).
 matching_object(Search, Type-(Section-Obj), Options) :-
 	catch(atom_to_term(Search, Obj, _), _, fail),
 	nonvar(Obj),
@@ -324,10 +344,10 @@ optimise_search(A, A).
 %%	exec_search(+Spec, -Match, +Options) is nondet.
 %
 %	Spec is one of
-%	
+%
 %		* and(Spec, Spec)
 %		Intersection of the specification
-%		
+%
 %		* not(Spec)
 %		Negation of the specification
 
@@ -355,7 +375,7 @@ exec_search(Search, Type-(Section-Obj), Options) :-
 		apropos_match(Search, S)
 	    )
 	).
-	
+
 
 matching_category(all, _).
 matching_category(app, application).
@@ -387,7 +407,7 @@ prim_search_spec(Spec) -->
 	;   Codes \== "",
 	    atom_codes(Spec, Codes)
 	}.
-	  
+
 
 %%	object_summary(?Object, ?Category, ?Section, ?Summary) is nondet.
 %
@@ -395,7 +415,7 @@ prim_search_spec(Spec) -->
 %	predicate can be extended  with   other  search  mechanisms. The
 %	returned objects must be  handled   by  object_summaries//2  and
 %	objects//2.
-%	
+%
 %	@param Category	Atom describing the source.
 %	@param Section  Reference to the context of Object.
 
@@ -411,15 +431,15 @@ prolog:doc_object_summary(Obj, Category, File, Summary) :-
 	->  Category = library
 	;   Category = application
 	).
-	
+
 
 %%	doc_category(Name, SortOrder, Description) is nondet.
 %
 %	Describe the various  categories  of   search  results.  Used to
 %	create the category headers  as  well   as  the  advanced search
 %	dialog.
-%	
-%	@param SortOrder	Ranges 0..100.  Lower values come first 
+%
+%	@param SortOrder	Ranges 0..100.  Lower values come first
 
 prolog:doc_category(application, 20, 'Application').
 prolog:doc_category(library,     80, 'System Libraries').
@@ -433,7 +453,7 @@ prolog:doc_category(library,     80, 'System Libraries').
 %
 %	True if Needle can be found   as a case-insensitive substring in
 %	Haystick.
-%	
+%
 %	@tbd	Use public predicates for that.
 
 apropos_match(Needle, Haystack) :-

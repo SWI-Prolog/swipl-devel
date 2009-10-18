@@ -38,6 +38,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(library(edit)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User extension hooks.
@@ -93,15 +94,18 @@ reload_styles(M) :->
 	;   true
 	).
 
-colourise_term(M, Term:prolog, TermPos:prolog) :->
+colourise_term(M, Term:prolog, TermPos:prolog, Comments:prolog) :->
 	"Colourise the given term"::
 	send(M, setup_styles),
 	get(M, text_buffer, TB),
 	arg(1, TermPos, From),
 	arg(2, TermPos, To),
 	send(M, remove_syntax_fragments, From, To),
-	send(M, colourise_comments, From, To),
-	colourise_term(Term, TB, TermPos).
+	(   Comments == (-)
+	->  send(M, colourise_comments, From, To)
+	;   true
+	),
+	colourise_term(Term, TB, TermPos, Comments).
 
 colourise_buffer(M) :->
 	"Do cross-referencing and colourising of the whole buffer"::
@@ -112,17 +116,24 @@ colourise_buffer(M) :->
 	send_super(M, colourise_buffer),
 	send(M, setup_styles),
 	send(M, xref_buffer),
+	send(M, slot, warnings, 0),
+	send(M, slot, errors, 0),
 	send(M, report, progress, 'Colourising buffer ...'),
 	colourise_buffer(M),
-	send(M, colourise_comments),
+	get(M, errors, Errors),
 	statistics(runtime, [_,UsedMilliSeconds]),
 	Used is UsedMilliSeconds/1000,
 	get(Class, no_created, @on, NewCreated),
 	Created is NewCreated - OldCreated,
-	send(M, report, done,
-	     'done, %.2f seconds, %d fragments', Used, Created).
+	(   Errors =:= 0
+	->  send(M, report, done,
+		 'done, %.2f seconds, %d fragments', Used, Created)
+	;   send(M, report, status,
+		 'File contains %d errors', Errors)
+	).
 
 colourise_comments(M, From:[int], To:[int]) :->
+	debug(emacs, 'Colourising comments in ~p..~p', [From, To]),
 	get(M, text_buffer, TB),
 	send(TB, for_all_comments,
 	     message(@prolog, colour_item, comment, TB, @arg1, @arg2),
@@ -134,6 +145,11 @@ colourise_or_recenter(M) :->
 	->  send(M, recenter)
 	;   send(M, colourise_buffer)
 	).
+
+show_syntax_error(M, Where:int, Message:name) :->
+	"Show syntax error position"::
+	get(M, text_buffer, TB),
+	show_syntax_error(TB, Where:Message).
 
 xref_buffer(M, Always:[bool]) :->
 	"Run the cross-referencer on buffer"::
@@ -172,15 +188,17 @@ colourise_buffer(Fd, M) :-
 	TB = @Src,
 	repeat,
 	    '$set_source_module'(SM, SM),
+	    character_count(Fd, Start),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
-			      module(SM)
+			      module(SM),
+			      comments(Comments)
 			    ]),
 		  E,
-		  syntax_error(E)),
+		  syntax_error(M, Fd, Start, E)),
 	    fix_operators(Term, Src),
-	    (	colourise_term(Term, TB, TermPos),
+	    (	colourise_term(Term, TB, TermPos, Comments),
 		send(M, mark_singletons, Term, Singletons, TermPos)
 	    ->	true
 	    ;	arg(1, TermPos, From),
@@ -202,7 +220,7 @@ restore_settings(state(Fd, Style, Esc)) :-
 	close(Fd).
 
 %	emacs_push_op(+Prec, +Type, :Name)
-%	
+%
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
@@ -215,11 +233,28 @@ emacs_push_op(P, T, N0) :-
 	push_op(P, T, N),
 	debug(emacs, ':- ~w.', [op(P,T,N)]).
 
-%	syntax_error(+Error)
-%	
-%	Print syntax errors if the debugging topic emacs is active.
+%%	syntax_error(+Mode, +Stream, +Start, +Error)
+%
+%	Deal with syntax errors while colouring the whole buffer.
+%	Performs the following tasks:
+%
+%	    * Colourise comments using shallow syntax
+%	    * Indicate the error position
+%	    * If debug =emacs= is active, print the message
 
-syntax_error(E) :-
+syntax_error(M, Stream, Start, E) :-
+	character_count(Stream, End),
+	send(M, colourise_comments, Start, End),
+	(   \+ get(M, show_syntax_errors, never),
+	    E = error(syntax_error(_), stream(_S, _Line, _LinePos, CharNo))
+	->  message_to_string(E, Msg),
+	    get(M, text_buffer, TB),
+	    show_syntax_error(TB, CharNo:Msg)
+	;   true
+	),
+	get(M, errors, E0),
+	E1 is E0 + 1,
+	send(M, slot, errors, E1),
 	(   debugging(emacs)
 	->  print_message(error, E)
 	;   true
@@ -227,7 +262,7 @@ syntax_error(E) :-
 	fail.
 
 %	fix_operators(+Term, +Src)
-%	
+%
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
@@ -256,7 +291,7 @@ process_directive(Directive, _) :-
 	erase(Ref).
 
 %	process_use_module(+Imports, +Src)
-%	
+%
 %	Get the exported operators from the referenced files.
 
 process_use_module([], _).
@@ -270,7 +305,7 @@ process_use_module(File, Src) :-
 	;   true
 	).
 
-%	colourise(+TB, +Stream)
+%%	colourise(+TB, +Stream)
 %
 %	Read next term from the text_buffer and  colourise the syntax
 
@@ -280,16 +315,31 @@ colourise(TB, Fd) :-
 						Term,
 						Error,
 						_Singletons,
-						TermPos),
+						TermPos, Comments),
 	(   Error == none
-	->  colourise_term(Term, TB, TermPos)
+	->  colourise_term(Term, TB, TermPos, Comments)
 	;   show_syntax_error(TB, Error)
 	).
-	
-show_syntax_error(TB, Pos:_Message) :-
-	get(TB, scan, Pos, line, 0, start, BOL),
-	get(TB, scan, Pos, line, 0, end, EOL),
-	colour_item(syntax_error, TB, BOL-EOL).
+
+show_syntax_error(TB, Pos:Message) :-
+	End is Pos + 1,
+	colour_item(syntax_error(Message), TB, Pos-End).
+
+colourise_term(Term, TB, TermPos, Comments) :-
+	colourise_comments(Comments, TB),
+	colourise_term(Term, TB, TermPos).
+
+colourise_comments(-, _).
+colourise_comments([], _).
+colourise_comments([H|T], TB) :-
+	colourise_comment(H, TB),
+	colourise_comments(T, TB).
+
+colourise_comment(Pos-Comment, TB) :-
+	stream_position_data(char_count, Pos, Start),
+	string_length(Comment, Len),
+	End is Start + Len + 1,
+	colour_item(comment, TB, Start-End).
 
 colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
@@ -335,18 +385,29 @@ colourise_term(Fact, TB, Pos) :- !,
 	colour_item(clause, TB,	Pos),
 	colourise_clause_head(Fact, TB, Pos).
 
+%%	colourise_extended_head(+Head, +ExtraArgs, +TB, +Pos) is det.
+%
+%	Colourise a clause-head that  is   extended  by  term_expansion,
+%	getting ExtraArgs more  arguments  (e.g.,   DCGs  add  two  more
+%	arguments.
+
 colourise_extended_head(Head, N, TB, Pos) :-
-	functor_position(Pos, FPos, _),
+	extend(Head, N, TheHead),
+	colourise_clause_head(TheHead, TB, Pos).
+
+extend(M:Head, N, M:ExtHead) :-
+	nonvar(Head), !,
+	extend(Head, N, ExtHead).
+extend(Head, N, ExtHead) :-
+	callable(Head), !,
 	Head =.. List,
 	length(Extra, N),
 	append(List, Extra, List1),
-	TheHead =.. List1,
-	classify_head(TB, TheHead, Class),
-	colour_item(head(Class), TB, FPos),
-	colourise_term_args(Head, TB, Pos).
+	ExtHead =.. List1.
+extend(Head, _, Head).
+
 
 colourise_clause_head(Head, TB, Pos) :-
-	nonvar(Head),
 	head_colours(Head, ClassSpec-ArgSpecs), !,
 	functor_position(Pos, FPos, ArgPos),
 	(   ClassSpec == classify
@@ -362,7 +423,7 @@ colourise_clause_head(Head, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %	colourise_extern_head(+Head, +Module, +TB, +Pos)
-%	
+%
 %	Colourise the head specified as Module:Head. Normally used for
 %	adding clauses to multifile predicates in other modules.
 
@@ -379,7 +440,7 @@ colour_method_head(SGHead, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 %	functor_position(+Term, -FunctorPos, -ArgPosList)
-%	
+%
 %	Get the position of a functor   and  its argument. Unfortunately
 %	this goes wrong for lists, who have two `functor-positions'.
 
@@ -390,7 +451,7 @@ functor_position(Pos, Pos, []).
 
 
 %	colourise_directive(+Body, +TB, +Pos)
-%	
+%
 %	Colourise the body of a directive.
 
 colourise_directive(Body, TB, Pos) :-
@@ -398,7 +459,7 @@ colourise_directive(Body, TB, Pos) :-
 
 
 %	colourise_body(+Body, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_goal/3.
 
 colourise_body(Body, TB, Pos) :-
@@ -409,7 +470,7 @@ colourise_body(Body, Origin, TB, Pos) :-
 	colourise_goals(Body, Origin, TB, Pos).
 
 %	colourise_method_body(+MethodBody, +TB, +Pos)
-%	
+%
 %	Colourise the optional "comment":: as pce(comment) and proceed
 %	with the body.
 
@@ -448,7 +509,7 @@ colourise_subgoals([Pos|T], N, Body, Origin, TB) :-
 	colourise_subgoals(T, NN, Body, Origin, TB).
 
 %	colourise_dcg(+Body, +Head, +TB, +Pos)
-%	
+%
 %	Breaks down to colourise_dcg_goal/3.
 
 colourise_dcg(Body, Head, TB, Pos) :-
@@ -504,7 +565,7 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 
 
 %	colourise_goal(+Goal, +Origin, +TB, +Pos)
-%	
+%
 %	Colourise access to a single goal.
 
 					% Deal with list as goal (consult)
@@ -542,7 +603,7 @@ colourise_goal(Goal, Origin, TB, Pos) :-
 	colourise_goal_args(Goal, TB, Pos).
 
 %	colourise_goal_args(+Goal, +TB, +Pos)
-%	
+%
 %	Colourise the arguments to a goal. This predicate deals with
 %	meta- and database-access predicates.
 
@@ -564,13 +625,13 @@ colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
 	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
 
 %	meta_args(+Goal, -ArgSpec)
-%	
+%
 %	Return a copy of Goal, where each meta-argument is an integer
 %	representing the number of extra arguments. The non-meta
 %	arguments are unbound variables.
-%	
+%
 %	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
-%	
+%
 %	NOTE: this could be cached if performance becomes an issue.
 
 meta_args(Goal, VarGoal) :-
@@ -590,7 +651,7 @@ instantiate_meta([H|T]) :-
 	instantiate_meta(T).
 
 %	expand_meta(+MetaSpec, +Goal, -Expanded)
-%	
+%
 %	Add extra arguments to the goal if the meta-specifier is an
 %	integer (see above).
 
@@ -608,7 +669,7 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 	Expanded =.. List.
 
 %	colourise_db(+Arg, +TB, +Pos)
-%	
+%
 %	Colourise database modification calls (assert/1, retract/1 and
 %	friends.
 
@@ -667,7 +728,7 @@ colourise_directory(Spec, TB, Pos) :-
 
 %	colourise_class(ClassName, TB, Pos)
 %
-%	Colourise an XPCE class.  
+%	Colourise an XPCE class.
 
 colourise_class(ClassName, TB, Pos) :-
 	classify_class(TB, ClassName, Classification),
@@ -695,7 +756,7 @@ colourise_term_arg(Var, TB, Pos) :-			% variable
 colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	atom(Atom),
 	arg(1, Pos, From),
-	get(TB, character, From, 39), !, 	
+	get(TB, character, From, 39), !,
 	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
@@ -706,7 +767,7 @@ colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 	colour_item(string, TB, F-T).
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
-	
+
 colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 	specified_item(How, H, TB, HP),
 	colourise_list_args(TP, Tail, T, TB, How).
@@ -716,7 +777,7 @@ colourise_list_args([], TP, T, TB, How) :-
 
 
 %	colourise_exports(+List, +TB, +Pos)
-%	
+%
 %	Colourise the module export-list (or any other list holding
 %	terms of the form Name/Arity referring to predicates).
 
@@ -737,7 +798,7 @@ colourise_exports2(_, _, _).
 
 
 %	colourise_imports(+List, +File, +TB, +Pos)
-%	
+%
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
@@ -759,7 +820,7 @@ colourise_imports(except(Except), File, Public, TB,
 	colour_item(keyword(except), TB, FF-FT),
 	colourise_imports(Except, File, Public, TB, LP).
 colourise_imports(_, _, _, TB, Pos) :-
-	colour_item(type_error(list), TB, Pos).	
+	colour_item(type_error(list), TB, Pos).
 
 colourise_imports2([G0|GT], File, Public, TB, [P0|PT]) :- !,
 	colourise_import(G0, File, TB, P0),
@@ -780,7 +841,7 @@ colourise_import(PI, _, TB, Pos) :-
 
 
 %	colourise_declarations(+Term, +TB, +Pos)
-%	
+%
 %	Colourise the Predicate indicator lists of dynamic, multifile, etc
 %	declarations.
 
@@ -813,7 +874,7 @@ pi_to_term(Name//Arity0, Term) :-
 	Arity is Arity0 + 2,
 	functor(Term, Name, Arity).
 
-%	colour_item(+Class, +TB, +Pos)
+%%	colour_item(+Class, +TB, +Pos)
 %
 %	colourise region if a style is defined for this class.
 
@@ -824,12 +885,12 @@ colour_item(Class, TB, Pos) :-
 	L is T - F,
 	make_fragment(Class, TB, F, L, Name).
 colour_item(_, _, _).
-	
+
 colour_item(Class, TB, F, T) :-
 	colour_item(Class, TB, F-T).
 
 %	make_fragment(+Class, +TB, +From, +Len, +StyleName)
-%	
+%
 %	Actually create the fragment.
 
 make_fragment(goal(Class, Goal), TB, F, L, Style) :-
@@ -878,7 +939,7 @@ body_compiled((_;_)).
 body_compiled(\+_).
 
 %	goal_classification(+TB, +Goal, +Origin, -Class)
-%	
+%
 %	Classify Goal appearing in TB and called from a clause with head
 %	Origin.  For directives Origin is [].
 
@@ -895,7 +956,7 @@ goal_classification(_TB, Goal, _, Class) :-
 goal_classification(_TB, _Goal, _, undefined).
 
 %	goal_classification(+Goal, -Class)
-%	
+%
 %	Multifile hookable classification for non-local goals.
 
 goal_classification(Goal, built_in) :-
@@ -909,7 +970,7 @@ goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, send_super, A),
 	A >= 2, !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
-	functor(SS, get_super, A), 
+	functor(SS, get_super, A),
 	A >= 3, !.
 
 classify_head(TB, Goal, exported) :-
@@ -946,6 +1007,7 @@ goal_colours(reexport(_),	     built_in-[file]).
 goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
+goal_colours(module_transparent(_),  built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
@@ -992,6 +1054,9 @@ head_colours(file_search_path(_,_), hook-[identifier,classify]).
 head_colours(library_directory(_),  hook-[file]).
 head_colours(resource(_,_,_),	    hook-[identifier,classify,file]).
 
+head_colours(Var, _) :-
+	var(Var), !,
+	fail.
 head_colours(M:H, Colours) :-
 	atom(M), callable(H),
 	xref_hook(M:H), !,
@@ -1001,7 +1066,7 @@ head_colours(M:H, Colours) :-
 	head_colours(H, HC),
 	HC = hook - _, !,
 	Colours = hook - [ hook, HC ].
-head_colours(M:_,		    meta-[module(M),extern(M)]).
+head_colours(M:_, meta-[module(M),extern(M)]).
 
 
 		 /*******************************
@@ -1079,7 +1144,7 @@ def_style(hook,			style(colour := blue,
 
 def_style(error,		style(background := orange)).
 def_style(type_error(_),	style(background := orange)).
-def_style(syntax_error,	  	style(background := red)).
+def_style(syntax_error(_),	style(background := orange)).
 
 :- dynamic
 	style_name/2.
@@ -1387,7 +1452,7 @@ popup(_GF, Popup:popup) :<-
 	      make_prolog_mode_goal_popup).
 
 %	make_prolog_mode_goal_popup(-Popup)
-%	
+%
 %	Create the popup and define actions for handling the right-menu
 %	on goals.
 
@@ -1462,7 +1527,7 @@ has_source(F) :->
 	), !.
 
 %	->edit
-%	
+%
 %	Find the predicate and invoke ->find_definition on the
 %	@emacs_mode, which is the mode object of the current editor.
 
@@ -1473,7 +1538,7 @@ edit(F, NewWindow:[bool]) :->
 
 
 %	->listing
-%	
+%
 %	List the predicate in an XPCE buffer
 
 listing(F) :->
@@ -1525,7 +1590,7 @@ identify(F) :->
 	send(TB, report, status, Report).
 
 %	identify_pred(+XrefClass, +Fragment, -Summary)
-%	
+%
 %	Generate an identifying description for the predicate.
 
 identify_pred(Term, _, Summary) :-
@@ -1748,7 +1813,7 @@ classify_class(_, Name, user(File)) :-
 classify_class(_, Name, user) :-
 	get(@classes, member, Name, _), !.
 classify_class(_, _, undefined).
-	
+
 :- pce_end_class(emacs_class_fragment).
 
 
@@ -1790,7 +1855,7 @@ file(F, File:name) :<-
 	(   get(F, classification, file)
 	->  File = Context
 	;   get(F, classification, module)
-	->  current_module(Context, File)
+	->  module_property(Context, file(File))
 	).
 
 
@@ -1814,8 +1879,10 @@ identify_fragment(directory(Path), _, Summary) :-
 	new(Summary, string('Directory %s', Path)).
 identify_fragment(type_error(Type), _, Summary) :-
 	new(Summary, string('Type error: argument must be a %s', Type)).
+identify_fragment(syntax_error(Message), _, Summary) :-
+	new(Summary, string('%s', Message)).
 identify_fragment(module(Module), _, Summary) :-
-	current_module(Module, Path),
+	module_property(Module, file(Path)),
 	new(Summary, string('Module %s loaded from %s', Module, Path)).
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
@@ -1830,4 +1897,4 @@ identify_fragment(Class, _, Summary) :-
 	term_to_atom(Class, Summary).
 
 :- pce_end_class(emacs_prolog_fragment).
-		   
+

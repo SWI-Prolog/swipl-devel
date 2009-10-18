@@ -83,7 +83,7 @@ static senddecl send_while[] =
 #define get_while NULL
 /*
 static getdecl get_while[] =
-{ 
+{
 };
 */
 
@@ -92,7 +92,7 @@ static getdecl get_while[] =
 #define rc_while NULL
 /*
 static classvardecl rc_while[] =
-{ 
+{
 };
 */
 

@@ -81,7 +81,7 @@ load_all(_).
 %	True if file or directory should not   be loaded. Note that file
 %	from the directory chr are  already   loaded  by chr.pl. Similar
 %	arguments apply for a few others.
-%	
+%
 %	@bug	We force lowercase to make it also work on Windows
 
 blocked('/chr').
@@ -93,3 +93,7 @@ blocked('/checklast.pl').
 %blocked('/jpl.pl').			% should be added
 blocked('/pldoc.pl').
 blocked('/index.pl').
+
+blocked('/ciao.pl').			% is an include-file.  We must
+					% find a more general solution here
+blocked('/commons.pl').

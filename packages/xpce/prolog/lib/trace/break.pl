@@ -79,7 +79,7 @@ range([], Pos, A, Z) :-
 range([H|T], term_position(_, _, _, _, PosL), A, Z) :-
 	nth1(H, PosL, Pos),
 	range(T, Pos, A, Z).
-	
+
        		 /*******************************
 		 *	      FEEDBACK		*
 		 *******************************/
@@ -137,5 +137,5 @@ clause_location(ClauseRef) -->
 	{ clause_name(ClauseRef, Name)
 	},
 	['~w'-[Name] ].
-	
-	
+
+

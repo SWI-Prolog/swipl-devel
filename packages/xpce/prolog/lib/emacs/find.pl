@@ -111,7 +111,7 @@ open(D) :->
 	CX is DX+EW//2,
 	CY is DY+EH//2,
 	send(D, open_centered, point(CX, CY)).
-	
+
 cancel(D) :->
 	"Cancel search dialog"::
 	(   get(D, search_origin, Origin),
@@ -220,7 +220,7 @@ found(D, Start:int, End:int, Dir:{forwards,backwards}) :->
 	->  send(D, report, status, 'Wrapped')
 	;   send(D, report, status, '')
 	).
-		
+
 
 forwards(D) :->
 	"Execute search forwards"::

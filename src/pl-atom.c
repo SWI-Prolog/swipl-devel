@@ -39,7 +39,7 @@ the address of the structure.
 
 Next, there is a hash-table, which is a normal `open' hash-table mapping
 char * to the atom structure. This   thing is dynamically rehashed. This
-table is used by lookupAtom() below. 
+table is used by lookupAtom() below.
 
 Atom garbage collection
 -----------------------
@@ -252,7 +252,7 @@ PL_unregister_blob_type(PL_blob_t *type)
     if ( (atom = *ap) )
     { if ( atom->type == type )
       { atom->type = &unregistered_blob_atom;
-	
+
 	atom->name = "<discarded blob>";
 	atom->length = strlen(atom->name);
 
@@ -367,7 +367,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	if ( length == a->length &&
 	     type == a->type &&
 	     memcmp(s, a->name, length) == 0 )
-	{ 
+	{
 #ifdef O_ATOMGC
 	  if ( indexAtom(a->atom) >= GD->atoms.builtin )
 	    a->references++;
@@ -385,7 +385,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 	if ( length == a->length &&
 	     type == a->type &&
 	     s == a->name )
-	{ 
+	{
 #ifdef O_ATOMGC
 	  a->references++;
 #endif
@@ -409,7 +409,7 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
   } else
   { a->name = (char *)s;
   }
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
   a->hash_value = v0;
 #endif
 #ifdef O_ATOMGC
@@ -431,14 +431,14 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
       PL_raise(SIG_ATOM_GC);
   }
 #endif
-    
+
   if ( atom_buckets * 2 < GD->statistics.atoms )
     rehashAtoms();
 
   GD->statistics.atomspace += (GD->statistics.heap - oldheap);
 
   UNLOCK();
-  
+
   *new = TRUE;
   if ( type->acquire )
     (*type->acquire)(a->atom);
@@ -620,13 +620,13 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
 
   for( ; ; ap2 = &(*ap2)->next )
   { assert(*ap2);			/* MT: TBD: failed a few times!? */
-	
+
     if ( *ap2 == a )
     { *ap2 = a->next;
       break;
     }
   }
-      
+
   *ap = NULL;			/* delete from index array */
   GD->atoms.collected++;
   GD->statistics.atoms--;
@@ -686,7 +686,7 @@ pl_garbage_collect_atoms()
   double t;
   sigset_t set;
 
-  PL_LOCK(L_GC);			
+  PL_LOCK(L_GC);
   if ( gc_status.blocked )		/* Tricky things; avoid problems. */
   { PL_UNLOCK(L_GC);
     succeed;
@@ -703,7 +703,7 @@ pl_garbage_collect_atoms()
 
   gc_status.blocked++;			/* avoid recursion */
 
-  if ( (verbose = trueFeature(TRACE_GC_FEATURE)) )
+  if ( (verbose = truePrologFlag(PLFLAG_TRACE_GC)) )
   {
 #ifdef O_DEBUG_ATOMGC
 /*
@@ -744,7 +744,7 @@ pl_garbage_collect_atoms()
   PL_UNLOCK(L_THREAD);
   gc_status.blocked--;
   PL_UNLOCK(L_GC);
-    
+
   if ( verbose )
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "agc", 1,
@@ -773,13 +773,13 @@ PL_agc_hook(PL_agc_hook_t new)
 
 void
 resetAtoms()
-{ 
+{
 }
 
 
 void
 PL_register_atom(atom_t a)
-{ 
+{
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
 
@@ -796,7 +796,7 @@ PL_register_atom(atom_t a)
 
 void
 PL_unregister_atom(atom_t a)
-{ 
+{
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
 
@@ -836,7 +836,7 @@ rehashAtoms()
   mask = atom_buckets-1;
   atomTable = allocHeap(atom_buckets * sizeof(Atom));
   memset(atomTable, 0, atom_buckets * sizeof(Atom));
-  
+
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
 
   for(ap = GD->atoms.array, ep = ap+mx;
@@ -859,7 +859,7 @@ pl_atom_hashstat(term_t idx, term_t n)
 { GET_LD
   long i, m;
   Atom a;
-  
+
   if ( !PL_get_long(idx, &i) || i < 0 || i >= (long)atom_buckets )
     fail;
   for(m = 0, a = atomTable[i]; a; a = a->next)
@@ -889,7 +889,7 @@ registerBuiltinAtoms()
 #ifdef O_ATOMGC
     a->references = 0;
 #endif
-#ifdef O_HASHTERM
+#ifdef O_TERMHASH
     a->hash_value = v0;
 #endif
     a->next       = atomTable[v];
@@ -951,7 +951,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	  return PL_unify_atom(type, bt->atom_name);
 	else if ( false(bt, PL_BLOB_TEXT) )
 	  fail;
-	  
+
 	succeed;
       }
       if ( !PL_is_variable(a) )
@@ -977,14 +977,20 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
   { Atom atom;
 
     if ( (atom = GD->atoms.array[i]) )
-    { if ( type )
+    {
+#ifdef LIFE_GC				/* see linkVal__LD() check */
+      if ( atom->atom == ATOM_garbage_collected )
+	continue;
+#endif
+
+      if ( type )
       { if ( type_name && type_name != atom->type->atom_name )
 	  continue;
 
 	PL_unify_atom(type, atom->type->atom_name);
       } else if ( false(atom->type, PL_BLOB_TEXT) )
 	continue;
-	
+
       PL_unify_atom(a, atom->atom);
       ForeignRedoInt(i+1);
     }
@@ -1054,7 +1060,7 @@ extendAtom(char *prefix, bool *unique, char *common)
   bool first = TRUE;
   int lp = (int) strlen(prefix);
   Atom *ap = GD->atoms.array;
-  
+
   *unique = TRUE;
 
   for(i=0; i<mx; i++, ap++)
@@ -1085,7 +1091,7 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
   bool u;
   char buf[LINESIZ];
   char cmm[LINESIZ];
-    
+
   if ( !PL_get_chars_ex(prefix, &p, CVT_ALL) )
     fail;
   strcpy(buf, p);
@@ -1122,7 +1128,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
   for(i=0; i<mx; i++, ap++)
   { if ( !(a=*ap) )
       continue;
-    
+
     as = a->name;
     if ( strprefix(as, prefix) &&
 	 allAlpha(as) &&
@@ -1134,7 +1140,7 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 	break;
     }
   }
-  
+
   qsort(altv, *altn, sizeof(struct match), compareMatch);
 
   succeed;
@@ -1157,7 +1163,7 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   strcpy(buf, p);
 
   extend_alternatives(buf, altv, &altn);
-  
+
   for(i=0; i<altn; i++)
   { if ( !PL_unify_list(alts, head, alts) ||
 	 !PL_unify_atom(head, altv[i].name->atom) )
@@ -1165,13 +1171,13 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   }
 
   return PL_unify_nil(alts);
-} 
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Completeness generation for the GNU readline library. This function uses
 a state variable to indicate  the   generator  should maintain/reset its
-state. Horrible! 
+state. Horrible!
 
 We must use thread-local data here.  Worse   is  we can't use the normal
 Prolog one as there might  not  be   a  Prolog  engine associated to the
@@ -1242,7 +1248,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 
     if ( !(a = *ap) )
       continue;
-    
+
     if ( is_signalled() )		/* Notably allow windows version */
       PL_handle_signals();		/* to break out on ^C */
 
@@ -1253,10 +1259,10 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
     {
 #ifdef O_PLMT
       pthread_setspecific(key, (void *)(i+1));
-#else   
+#else
       LD->atoms.generator = i+1;
 #endif
-  
+
       return TRUE;
     }
   }
@@ -1304,7 +1310,7 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
       { const unsigned char *s = (const unsigned char *)hit.text.t;
 	const unsigned char *e = &s[hit.length];
 	pl_wchar_t *o;
-	
+
 	for(o=buffer; s<e;)
 	  *o++ = *s++;
 	*o = EOS;

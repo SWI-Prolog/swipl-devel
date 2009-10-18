@@ -70,4 +70,4 @@ method(<-(Receiver, Selector), Method) :- !,
 	->  get(Receiver, get_method, Selector, tuple(_, Method))
 	).
 
-	
+

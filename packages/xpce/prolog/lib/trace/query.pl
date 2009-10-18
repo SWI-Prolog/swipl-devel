@@ -30,7 +30,7 @@
 */
 
 :- module(prolog_query,
-	  [ 
+	  [
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_report)).
@@ -56,7 +56,7 @@ initialise(QF) :->
 :- pce_begin_class(prolog_query, dialog,
 		   "Ask a Prolog query").
 
-variable(qstatus, {fill,ready,run,alt}, get, "Current status").	
+variable(qstatus, {fill,ready,run,alt}, get, "Current status").
 
 initialise(PQ) :->
 	send_super(PQ, initialise, 'Prolog Query'),
@@ -141,7 +141,7 @@ run(PQ) :->
 	;   send(PQ, report, warning, 'No'),
 	    send(PQ, qstatus, ready)
 	).
-	
+
 prolog_user_run([], Query) :- !,
 	Query.
 prolog_user_run([debug], Query) :- !,
@@ -264,7 +264,7 @@ qstatus(QI, Status:{empty,syntax_error,undefined,ready}) :->
 	    ;	true
 	    )
 	).
-	
+
 qstatus_style(empty,	    normal, @default).
 qstatus_style(syntax_error, normal, red).
 qstatus_style(undefined,    normal, @default).

@@ -221,7 +221,7 @@ html_decode_tag(const char *data, HtmlTagDef spec, void *dest)
 
     if ( *ei == '=' )
     { sv = ei+1;
-      
+
       if ( *sv == '"' )
       { ev = ++sv;
 	while(*ev && *ev != '"')

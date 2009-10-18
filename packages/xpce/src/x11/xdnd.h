@@ -84,14 +84,14 @@ typedef struct _DndClass DndClass;
 
 struct _DndClass {
 /* insert chars sequentionally into the target widget, type will be the same as `desired_type'
-   returned from widget_apply_position. This may be called several times in succession 
+   returned from widget_apply_position. This may be called several times in succession
    with sequention blocks of data. Must return non-zero on failure */
     int (*widget_insert_drop) (DndClass * dnd, unsigned char *data, int length, int remaining, Window into, Window from, Atom type);
 
 /* In response to DELETE requests : FIXME - not yet used */
     int (*widget_delete_selection) (DndClass * dnd, Window window, Window from);
 
-/* returns 1 if widget exists, zero otherwise. If this method is not 
+/* returns 1 if widget exists, zero otherwise. If this method is not
    set then the code assumes that no widgets have support for recieving drops.
    In this case none of the widget methods need be set. */
     int (*widget_exists) (DndClass * dnd, Window window);

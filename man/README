@@ -18,16 +18,15 @@ expand_file/2.
 Handling weird characters
 -------------------------
 
-Predicate names that cannot be handled by   TeX  due to weird characters
-are translated by doc2tex if they appear as plain LaTeX argument. We use
-the URL quoting mechanism for this, producing  sequences that can be use
-in any TeX environment (unlike \verb). The sequences are named \S<name>.
-If you add such a sequence you must:
+Predicate names that cannot  be  handled   by  TeX  because they contain
+TeX-special characters are translated by doc2tex if they appear as plain
+LaTeX argument. We use the  URL   quoting  mechanism for this, producing
+sequences that can be use in  any   TeX  environment (unlike \verb). The
+sequences are named \S<name>. If you add such a sequence you must:
 
 	* Add it to doc2tex
 	* Add it to pl.sty
 	* Add it to ../packages/ltx2htm/pl.cmd
-	* Add it to ../packages/ltx2htm/pl.pl
 	* Run "make install" in ../packages/ltx2html
 
 Summaries
@@ -49,9 +48,10 @@ for your library.
 Generating the documentation
 ----------------------------
 
-You need a recent latex installation,  including pdflatex. We use teTeX.
-You also need to install the fixed-width font libraries available in the
-txt subdirectory. The README there explains how this must be installed.
+You need a recent latex installation,   including pdflatex. We use teTeX
+and the more recent `TeX Live' distribution.   You  also need to install
+the fixed-width font libraries available in   the  txt subdirectory. The
+README there explains how this must be installed.
 
 For the HTML, you also need to install the Prolog based latex2html. This
 is available in ../packages/ltx2html. After   installing Prolog and with

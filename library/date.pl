@@ -37,7 +37,7 @@
 %%	date_time_value(?Field:atom, +Struct:datime, -Value) is nondet.
 %
 %	Extract values from a date-time structure.  Provided fields are
-%	
+%
 %		| year | integer | |
 %		| month | 1..12 | |
 %		| day | 1..31 | |
@@ -114,7 +114,7 @@ int2digit(N) -->
 	digit(D0),
 	digit(D1),
 	{ N is D0*10+D1 }.
-	  
+
 year(Y) -->
 	digit(D0),
 	digit(D1),

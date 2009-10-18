@@ -84,7 +84,7 @@ families(List) :-
 family_classes(Family, Classes) :-
 	jasmine(SH),
 	ensure_transaction,
-	odql(SH, 
+	odql(SH,
 	     [ cBag:'Bag<Composite class>',
 	       cc:'Composite class',
 	       cname:'String'
@@ -102,7 +102,7 @@ object_name(SH, Class, Name) :-
 	       'cname = cc.getClassName();',
 	       get(cname, Name)
 	     ]).
-	
+
 :- style_check(-atom).
 
 class_properties(Class, Properties) :-

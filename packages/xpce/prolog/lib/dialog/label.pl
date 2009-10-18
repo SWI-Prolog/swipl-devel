@@ -37,7 +37,7 @@
 :- pce_begin_class(dia_label_item, device).
 
 variable(align,		graphical,	get,  "Aligned item").
-variable(message,	code*,		both, "Message ran on ->apply"). 
+variable(message,	code*,		both, "Message ran on ->apply").
 variable(default,	'any|function*',get,  "Function for ->restore").
 
 initialise(LI, Label:name, Default:'[any|function]*', Message:[code]*) :->
@@ -80,7 +80,7 @@ selection(LI, Value:'char_array|image') :<-
 	    )
 	;   get(?(LI, member, string), selection, Value)
 	).
-		
+
 
 :- pce_global(@path_regex, new(regex('[^:]+'))).
 
@@ -134,14 +134,14 @@ modified(LI, Modified:bool) :<-
 	).
 
 
-apply(LI, Always:[bool]) :->	    
+apply(LI, Always:[bool]) :->
 	(   (Always == @on ; get(LI, modified, @on)),
 	    get(LI, message, Msg),
 	    Msg \== @nil
 	->  send(Msg, forward_receiver, LI, LI?selection)
 	;   true
 	).
-	    
+
 
 restore(LI) :->
 	get(LI, default, Function),

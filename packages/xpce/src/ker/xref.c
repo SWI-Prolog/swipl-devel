@@ -135,7 +135,7 @@ unregisterXrefObject(Any obj, DisplayObj d)
 
 void
 closeAllXrefs()
-{ int i;  
+{ int i;
 
   for(i=0; i<XREF_TABLESIZE; i++)
   { Xref r = XrefTable[i];

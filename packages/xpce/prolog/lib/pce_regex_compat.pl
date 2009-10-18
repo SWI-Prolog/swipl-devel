@@ -43,10 +43,10 @@ This file deals with translating  old-style   (<  6.5.12)  EMACS regular
 expressions into new style ones. Typically, a file is converted using
 
 	?- regex_convert_file(+File)
-	
+
 Creating a file <File>.new after  the   conversion.  Check the file, for
 example using mgdiff or another (visual)   diff  tool before overwriting
-the old file! 
+the old file!
 
 Differences
 ===========
@@ -84,11 +84,11 @@ which can cause this module to raise an exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	regex_main
-%	
+%
 %	By adding the  following  line  to   the  start  of  this  file,
 %	adjusting the path, you turn this file into a PrologScript (Unix
 %	only).
-%	
+%
 %	#!/usr/bin/pl -q -g regex_main -s
 
 regex_main :-
@@ -98,7 +98,7 @@ regex_main :-
 	halt.
 
 %%	regex_convert_file(+File)
-%	
+%
 %	Convert a single file, creating  <File>.new   on  success. It is
 %	adviced the inspect the changes before   moving  the .new to the
 %	original file.
@@ -117,7 +117,7 @@ regex_convert_file(File) :-
 	send(TB, save, NewFile),
 	send(V, destroy),
 	format(user_error, ' done~n', []).
-	
+
 substitute(Substitutions, TB) :-
 	sort(Substitutions, S1),
 	reverse(S1, S2),
@@ -225,7 +225,7 @@ requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
 requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 
 %%	looks_like_regex(+Atom)
-%	
+%
 %	Succeeds if we think Atom is a regumar expression
 
 looks_like_regex(Atom) :-
@@ -240,7 +240,7 @@ re_pattern('\\w').
 
 
 %%	regex_emacs_to_advanced(+Old, -New)
-%	
+%
 %	Convert a single regular expression.
 
 regex_emacs_to_advanced(Emacs, Advanced) :-
@@ -295,7 +295,7 @@ piece(repeat(Min, Max, Atom)) -->
 	qualifier(Min, Max).
 piece(Atom) -->
 	atom(Atom).
-	
+
 qualifier(0, 1) --> "?".
 qualifier(0, infinite) --> "*".
 qualifier(1, infinite) --> "+".
@@ -336,7 +336,7 @@ constraint(wordsep) -->
 backref(N) -->
 	"\\",
 	digitval(N).
-	
+
 char_class(Atom) -->
 	char_class_esc(Atom), !.
 char_class(Atom) -->
@@ -426,14 +426,14 @@ escape_char(C) -->
 special(0'.).
 special(0'\\).
 special(0'?).
-special(0'*).	
-special(0'+).	
-special(0'{) :- nb_getval(syntax, advanced).	
-special(0'}) :- nb_getval(syntax, advanced).	
+special(0'*).
+special(0'+).
+special(0'{) :- nb_getval(syntax, advanced).
+special(0'}) :- nb_getval(syntax, advanced).
 special(0'() :- nb_getval(syntax, advanced).
-special(0')) :- nb_getval(syntax, advanced).	
-special(0'[).	
-special(0']).	
+special(0')) :- nb_getval(syntax, advanced).
+special(0'[).
+special(0']).
 special(0'|) :- nb_getval(syntax, advanced).
 
 wild_card_esc(Set) -->

@@ -59,7 +59,7 @@ get_bag(term_t t, findall_bag **bag ARG_LD)
 }
 
 
-static 
+static
 PRED_IMPL("$new_findall_bag", 1, new_findall_bag, 0)
 { PRED_LD
   findall_bag *bag = allocHeap(sizeof(*bag));
@@ -114,7 +114,7 @@ popSegStack and copyRecordToGlobal(). Alternatively  we   could  make an
 interface that gets the top of the stack, processed it and then pops it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static 
+static
 PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
 { PRED_LD
   findall_bag *bag;
@@ -156,7 +156,7 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
   findall_bag *bag;
 
   if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
-  { Record r; 
+  { Record r;
 
     while(popSegStack(&bag->answers, &r))
       freeRecord(r);
@@ -193,7 +193,7 @@ PRED_IMPL("$bind_bagof_keys", 2, bind_bagof_keys, 0)
   for(i=1; i<=arity; i++)
   { _PL_get_arg(i, A1, vars+i-1);
   }
-  
+
   while(PL_get_list(list, head, list))
   { if ( !PL_get_arg(1, head, key) )
       fail;

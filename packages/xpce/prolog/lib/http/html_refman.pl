@@ -104,7 +104,7 @@ fetch_description(Obj, Description) :-
 	Obj = @Ref,
 	assert(fetched_description(Ref, S0)),
 	Description = S0.
-	    
+
 
 :- pce_extend_class(object).
 
@@ -148,7 +148,7 @@ substitute(S, [Search, Replace | Rest]) :-
 	),
 	done_regex(Search, Re),
 	substitute(S, Rest).
-	
+
 
 desc_to_html(S, Obj) :-
 	send(S, ensure_nl),
@@ -194,7 +194,7 @@ html_lists(S) :-
 		     '\n+((\n+\t.*)+)',
 		     	call(example)
 		   ]).
-	
+
 
 example(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -228,7 +228,7 @@ list(itemize, Re, String) :-
 	send(S0, ensure_nl),
 	send(S0, prepend, string('<li>\n')),
 	send(Re, register_value, String, S0).
-	
+
 
 itemize(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -252,7 +252,7 @@ description(Re, String) :-
 	send(S2, prepend, string('\n<dl>\n')),
 	send(S2, append, string('</dl>\n')),
 	send(Re, register_value, String, S2).
-	
+
 
 enumerate(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -264,7 +264,7 @@ enumerate(Re, String) :-
 	send(S2, prepend, string('\n<ol>\n')),
 	send(S2, append, string('</ol>\n')),
 	send(Re, register_value, String, S2).
-	
+
 
 table(Re, String) :-
 	get(Re, register_value, String, 1, S2),
@@ -315,7 +315,7 @@ make_link(Re, String) :-
 	get(Spec, value, Atom),
 	atom_to_method(Atom, _), !,
 	www_form_encode(Atom, Encoded),
-	send(Re, register_value, String, 
+	send(Re, register_value, String,
 	    string('<a href="/man?for=%s">%s</a>', Encoded, Spec), 1).
 make_link(_, _).
 

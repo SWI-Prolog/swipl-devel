@@ -34,7 +34,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , file_directory_name/2
 	   , forall/2
 	   , member/2
@@ -95,7 +95,7 @@ module_file(S, Module:name, File:file) :<-
 	    get(Class, creator, host),
 	    get(Class, source, source_location(Path, _)),
 	    file_directory_name(Path, SrcDir),
-	    concat_atom([SrcDir, '/doc'], DocDirName),
+	    atomic_list_concat([SrcDir, '/doc'], DocDirName),
 	    new(DocDir, directory(DocDirName)),
 	    send(DocDir, exists)
 	->  true
@@ -189,7 +189,7 @@ variable(modified,	bool,		get,	"Indicate has changed").
 variable(current_id,	number,		both,	"Numeric id for next card").
 
 initialise(M, Space:man_space, Name:name) :->
-	"Create from space and name"::	      
+	"Create from space and name"::
 	(   get(Space?modules, member, Name, _)
 	->  send(@display, inform, 'Module %s already exists', Name)
 	;   send(M, slot, name,     Name),
@@ -351,7 +351,7 @@ rel_id(C, To:man_card, Id:'int|name') :<-
 	->  get(To, identifier, Id)
 	;   get(ToModule, name, ToName),
 	    get(To, identifier, ToId),
-	    concat_atom([$, ToName, $, ToId], Id)
+	    atomic_list_concat([$, ToName, $, ToId], Id)
 	).
 
 
@@ -425,7 +425,7 @@ renamed_module_relation(Ch, Id, Old, New) :-
 	get(Id, scan, '$%[^$]$%s', vector(OldString, LocalIdString)),
 	send(Old, equal, OldString), !,
 	get(LocalIdString, value, LocalId),
-	concat_atom(['$', New, '$', LocalId], NewId),
+	atomic_list_concat(['$', New, '$', LocalId], NewId),
 	send(Ch, replace, Id, NewId).
 renamed_module_relation(_, _, _, _).
 

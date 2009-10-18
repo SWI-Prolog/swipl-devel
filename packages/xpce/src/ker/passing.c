@@ -173,7 +173,7 @@ pceMTTryLock(int lock)
   { if ( mutex.owner != pthread_self() )
     { if ( pthread_mutex_trylock(&(mutex.lock)) != 0 )
 	return FALSE;
-	   
+
       mutex.owner = pthread_self();
       mutex.count = 1;
     } else
@@ -323,7 +323,7 @@ getCatchAllMethodGoal(PceGoal g)
     } else
       assignField((Instance)cl, (Any *)mp, NIL);
   }
-  
+
   if ( notNil(m) )
     return m;
 
@@ -395,7 +395,7 @@ resolveImplementationGoal(PceGoal g)
     m = getSendMethodClass(g->class, g->selector);
   else
     m = getGetMethodClass(g->class, g->selector);
-      
+
   if ( m )
   { g->implementation = m;
     succeed;
@@ -407,11 +407,11 @@ resolveImplementationGoal(PceGoal g)
     for_cell(cell, delegate)
     { Variable var = cell->value;
       Any val;
-  
+
       if ( (val = getGetVariable(var, obj)) )
       { g->receiver = val;
 	g->class    = NULL;
-	
+
 	if ( resolveImplementationGoal(g) && !(g->flags & PCE_GF_CATCHALL) )
 	  succeed;
 	g->flags &= ~PCE_GF_CATCHALL;
@@ -517,7 +517,7 @@ pceVaAddArgGoal(PceGoal g, Any value)
   { if ( g->va_allocated )
     { int nsize = g->va_allocated*2;
       Any *nav  = alloc(nsize * sizeof(Any));
-      
+
       cpdata(nav, g->va_argv, Any, g->va_allocated);
       unalloc(g->va_allocated*sizeof(Any), g->va_argv);
       g->va_argv = nav;
@@ -623,7 +623,7 @@ pcePushNamedArgument(PceGoal g, PceName name, Any arg)
 	}
 	fail;
       }
-    } 
+    }
   }
 
   pceSetErrorGoal(g, PCE_ERR_NO_NAMED_ARGUMENT, name);
@@ -651,7 +651,7 @@ fillDefaultsGoal(PceGoal g)
       }
     }
   }
-  
+
   succeed;
 }
 
@@ -664,7 +664,7 @@ status pceExecuteGoal(g)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_RUNTIME
-#define DEBUGGER(g) 
+#define DEBUGGER(g)
 #else
 #define DEBUGGER(g) if ( PCEdebugging ) g
 #endif
@@ -811,10 +811,10 @@ pceExecuteGoal(PceGoal g)
 	      av[i] = g->argv[i];
 	    av[i] = cv;
 	    addCodeReference(cv);
-  
+
 	    withReceiver(g->receiver, m->context,
 			 fval = getForwardFunctionv(f, i, av));
-  
+
 	    delCodeReference(cv);
 	    doneCodeVector(cv);
 	  } else
@@ -839,15 +839,15 @@ pceExecuteGoal(PceGoal g)
 	  { Any cv = createCodeVectorv(g->va_argc, g->va_argv);
 	    ArgVector(av, g->argc+1);
 	    int i;
-  
+
 	    for(i=0; i<g->argc; i++)
 	      av[i] = g->argv[i];
 	    av[i] = cv;
 	    addCodeReference(cv);
-    
+
 	    withReceiver(g->receiver, m->context,
 			 rval = forwardCodev(m->message, i, av));
-    
+
 	    delCodeReference(cv);
 	    doneCodeVector(cv);
 	  } else
@@ -959,7 +959,7 @@ pceReportErrorGoal(PceGoal g)
     case PCE_ERR_ARGTYPE:
     { int an = g->argn;
       Type t = g->types[an];
-  
+
       errorTypeMismatch(g->receiver, g->implementation, an+1, t, g->errc1);
       break;
     }
@@ -992,7 +992,7 @@ pceReportErrorGoal(PceGoal g)
 
       errorPce(g->implementation, NAME_missingArgument,
 	       toInt(an+1), argname, getNameType(t));
-		      
+
       break;
     }
     case PCE_ERR_FUNCTION_FAILED:	/* this is not (yet) reported */
@@ -1012,7 +1012,7 @@ status
 vm_send(Any receiver, Name selector, Class class, int argc, const Any argv[])
 { pce_goal g;
 
-  g.va_argc  = 0; 
+  g.va_argc  = 0;
   g.flags    = PCE_GF_SEND;
   g.receiver = receiver;
   g.class    = class;
@@ -1061,7 +1061,7 @@ Any
 vm_get(Any receiver, Name selector, Class class, int argc, const Any argv[])
 { pce_goal g;
 
-  g.va_argc  = 0; 
+  g.va_argc  = 0;
   g.flags    = PCE_GF_GET;
   g.receiver = receiver;
   g.class    = class;
@@ -1110,7 +1110,7 @@ sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv[])
 				/* this is pceResolveImplementation() */
   g.selector       = sm->name;
   g.va_allocated   = 0;
-  g.va_argc        = 0; 
+  g.va_argc        = 0;
   g.argn	   = 0;
   g.flags	   = PCE_GF_SEND;
   g.receiver       = receiver;
@@ -1167,7 +1167,7 @@ getGetGetMethod(GetMethod gm, Any receiver, int argc, const Any argv[])
 					/* this is pceResolveSend() */
   g.selector       = gm->name;
   g.va_allocated   = 0;
-  g.va_argc        = 0; 
+  g.va_argc        = 0;
   g.argn	   = 0;
   g.flags	   = PCE_GF_GET;
   g.receiver       = receiver;
@@ -1315,7 +1315,7 @@ Any					/* QuickAndDirtyGet */
 qadGetv(Any r, Name selector, int ac, Any *av)
 { GetMethod implementation = getGetMethodClass(classOfObject(r), selector);
   Func f;
-  
+
   if ( instanceOfObject(implementation, ClassGetMethod) &&
        (f=implementation->function) &&
        offDFlag(implementation, D_CXX|D_TRACE|D_BREAK) )

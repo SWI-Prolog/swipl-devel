@@ -61,7 +61,7 @@ initialise(W) :->
 	send(Frame?tile, border, 0),
 	send(W, gap, size(5, 2)),
 	(   get(@pce, window_system, windows) % Hack
-	->  send(W, pen, 1)		
+	->  send(W, pen, 1)
 	;   send(W, pen, 0)
 	),
 	send(W, append, new(L, label(feedback, '', normal))),
@@ -78,7 +78,7 @@ owner(W, Owner:[any]*) :->
 	).
 owner(W, Owner:any) :<-
 	get(W, hypered, owner, Owner).
-		
+
 
 try_hide(W, Ev:event) :->
 	get(W, owner, Owner),

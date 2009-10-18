@@ -45,7 +45,7 @@
 %	these options that are passed from starting PlDoc. If PlDoc runs
 %	on  top  of   an   external    dispatch   loop,   the  predicate
 %	host_access_options/2 can be used to specify access rights.
-%	
+%
 %	    * allow(+IP)
 %	    * deny(+IP)
 %	    * edit(+Bool)
@@ -91,7 +91,7 @@ host_access_option(edit(Bool)) :-
 %	ip(A,B,C,D). RuleSet is a predicate with   one  argument that is
 %	either  a  partial  ip  term,  a    hostname  or  a  domainname.
 %	Domainnames start with a '.'.
-%	
+%
 %	@param PlusMin	Positive/negative test.  If IP->Host fails, a
 %		       	positive test fails, while a negative succeeds.
 %			I.e. deny('.com') succeeds for unknown IP
@@ -114,7 +114,7 @@ match_peer(Spec, PM, Peer) :-
 	    ;	true
 	    )
 	).
-	
+
 %%	allowed_peer(+Peer) is semidet.
 %
 %	True if Peer is allowed according to the rules.

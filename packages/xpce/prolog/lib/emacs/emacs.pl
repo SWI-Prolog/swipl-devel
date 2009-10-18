@@ -54,10 +54,10 @@ user:file_search_path(emacs_user_library,
 		 *           PROLOG		*
 		 *******************************/
 
-:- initialization new(@loading_emacs, object).
+:- new(@loading_emacs, object).
 					% SWI-Prolog extensions
 pce_ifhostproperty(prolog(swi),
-		   (:- ensure_loaded(user:library('emacs/swi_prolog')))). 
+		   (:- ensure_loaded(user:library('emacs/swi_prolog')))).
 
 
 		 /*******************************
@@ -152,7 +152,7 @@ make_emacs_mode_list(Sheet) :-
 	    fail
 	;   true
 	).
-	
+
 %%	default_emacs_mode(+Regex, -Mode) is nondet.
 %
 %	True if Mode is the PceEmacs mode   associated  with a file that
@@ -181,9 +181,9 @@ default_emacs_mode('.*\\.idl$',			   cpp).
 default_emacs_mode('.*\\.txt~?$',		   text).
 default_emacs_mode('[Cc]ompose|README|\\.article', text).
 default_emacs_mode(Pattern, prolog) :-
-	prolog_file_type(Ext, prolog),
+	user:prolog_file_type(Ext, prolog),
 	Ext \== pl,
-	concat_atom(['.*\\.', Ext, '~?$'], Pattern).
+	atomic_list_concat(['.*\\.', Ext, '~?$'], Pattern).
 
 make_emacs_interpreter_mode_list(Sheet) :-
 	new(Sheet, sheet),
@@ -204,7 +204,7 @@ emacs_interpreter_mode('.*/perl',			c).
 emacs_interpreter_mode('.*/awk',			c).
 
 %%	emacs_content_mode(+Regex, +SearchLimit, +Mode)
-%	
+%
 %	Select Mode if Regex matches in the first SearchLimit characters
 %	of the file.
 

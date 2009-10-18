@@ -70,7 +70,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
   assign(f, newline_mode, NAME_posix);
 #endif
   f->fd = NULL;
-  
+
   kindFile(f, encoding);
 
   if ( isDefault(name) )
@@ -144,14 +144,14 @@ expandFileName(Name in)
 #if O_XOS
      wchar_t lng[MAXPATHLEN];
      char buf[MAXPATHLEN];
-  
+
      if ( _xos_long_file_nameW(expanded, lng, MAXPATHLEN) &&
 	  _xos_canonical_filenameW(lng, buf, sizeof(buf), 0) )
      { return UTF8ToName(buf);
      } else
      { errorPce(in, NAME_representation, NAME_nameTooLong);
        fail;
-     }    
+     }
 #else
      return WCToName(expanded, len);
 #endif
@@ -178,7 +178,7 @@ kindFile(FileObj f, Name encoding)
   { assign(f, encoding, encoding);
     assign(f, kind, NAME_text);
   }
-  
+
   succeed;
 }
 
@@ -365,7 +365,7 @@ open_file(FileObj f, int access, ...)
 { va_list args;
   int mode;
   int fd = -1;
-  
+
   va_start(args, access);
   mode = va_arg(args, int);
   va_end(args);
@@ -387,7 +387,7 @@ copyFile(FileObj to, FileObj from)
   char buf[CPBUFSIZE];
   status rval;
   int n;
-  
+
   if ( (fdfrom = open_file(from, O_RDONLY|O_BINARY)) < 0 )
     fail;
   if ( (fdto = open_file(to, O_WRONLY|O_BINARY|O_CREAT|O_TRUNC, 0666)) < 0 )
@@ -508,7 +508,7 @@ accessFile(FileObj f, Name mode)
     else /*if ( mode == NAME_execute )*/
       m = X_OK;
 #endif
-  
+
     if ( access(strName(name), m) == 0 )
       succeed;
   }
@@ -559,13 +559,13 @@ doBOMFile(FileObj f)
     { if ( f->bom != OFF )
       { if ( ScheckBOM(f->fd) < 0 )
 	{ error:
-  
+
 	  reportErrorFile(f);
 	  closeFile(f);
-  
+
 	  fail;
 	}
-  
+
 	assign(f, bom, (f->fd->flags & SIO_BOM) ? ON : OFF);
 	if ( f->bom == ON )
 	  assign(f, encoding, encoding_to_name(f->fd->encoding));
@@ -588,7 +588,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
 { CharArray path;
   Name name = getOsNameFile(f);
   char fdmode[3];
-  
+
   if ( f->status == NAME_tmpWrite )
   { if ( mode == NAME_write || mode == NAME_append )
     { assign(f, status, NAME_write);
@@ -698,7 +698,7 @@ removeFile(FileObj f)
     succeed;
   if ( existsFile(f, OFF) )
     return errorPce(f, NAME_removeFile, getOsErrorPce(PCE));
-  
+
   fail;
 }
 
@@ -782,14 +782,14 @@ append_file(FileObj f, String str)
   if ( f->encoding == NAME_octet )
   { if ( Sfwrite(str->s_text,
 		 isstrA(str) ? sizeof(charA) : sizeof(charW),
-		 str->size, 
+		 str->size,
 		 f->fd) != str->size )
       return reportErrorFile(f);
   } else
   { if ( isstrA(str) )
     { const charA *s = str->s_textA;
       const charA *e = &s[str->size];
-  
+
       for(; s<e; s++)
       { if ( Sputcode(*s, f->fd) < 0 )
 	  return reportErrorFile(f);
@@ -797,13 +797,13 @@ append_file(FileObj f, String str)
     } else
     { const charW *s = str->s_textW;
       const charW *e = &s[str->size];
-  
+
       for(; s<e; s++)
       { if ( Sputcode(*s, f->fd) < 0 )
 	  return reportErrorFile(f);
       }
     }
-  }  
+  }
 
   succeed;
 }
@@ -851,7 +851,7 @@ only slow ...
 
 static int
 statFile(FileObj f, STAT_TYPE *buf)
-{ 
+{
 #ifndef __WINDOWS__
   int fno;
 
@@ -891,7 +891,7 @@ getTimeFile(FileObj f, Name which)
   { errorPce(f, NAME_cannotStat, getOsErrorPce(PCE));
     fail;
   }
-  
+
   if ( which == NAME_modified )
     answer(CtoDate(buf.st_mtime));
   else
@@ -939,7 +939,7 @@ getReadLineFile(FileObj f)
     if ( c == '\n' )
       break;
   }
-      
+
   rval = StringToString(&tmp.s);
   str_tmp_done(&tmp);
 
@@ -1009,7 +1009,7 @@ getCharacterFile(FileObj f)
     fail;
 
   chr = Sgetcode(f->fd);
-  
+
   answer(toInt(chr));
 }
 
@@ -1144,7 +1144,7 @@ storeStringFile(FileObj f, String s)
 
     DEBUG(NAME_save, Cprintf("Saved wide string, %ld chars\n", s->size));
   }
-  
+
   return checkErrorFile(f);
 }
 
@@ -1172,7 +1172,7 @@ waccess(const wchar_t *name, int m)
 
   str_set_n_wchar(&s, wcslen(name), (wchar_t *)name);
   ufn = stringToFN(&s);
-  
+
   DEBUG(NAME_find, Cprintf("find: trying \"%s\"\n", ufn));
 
   return access(ufn, m);
@@ -1197,7 +1197,7 @@ findFile(FileObj f, CharArray path, Name mode)
   base = charArrayToWC((CharArray)f->name, &bl);
   if ( base[0] == '.' )
     succeed;
-  
+
   if ( isDefault(mode) || mode == NAME_read )
     m = R_OK;
   else if ( mode == NAME_write || mode == NAME_append )
@@ -1379,7 +1379,7 @@ static getdecl get_file[] =
 #define rc_file NULL
 /*
 static classvardecl rc_file[] =
-{ 
+{
 };
 */
 

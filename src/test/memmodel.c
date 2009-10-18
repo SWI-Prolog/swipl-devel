@@ -73,7 +73,7 @@ char *argv[];
   printf("\tLocal variable at 0x%x\n", buf);
   printf("\tmalloc() at 0x%x\n", malloc(10));
   printf("\tC-Stack grows %sward\n", stack_up ? "Up" : "Down");
-#endif	 
+#endif
 
   if      ( (gva & 0xf0000000L) == 0x80000000L )
     decl[ndecl++] = "DATA_AT_0X8=1;";
@@ -87,7 +87,7 @@ char *argv[];
   { printf("PROBLEM: Memory model not supported; see \"pl-incl.h\"\n");
     exit(1);
   }
-  
+
   if ( stack_up )
     decl[ndecl++] = "STACK_DIRECTION=1;";
   else

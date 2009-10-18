@@ -10,7 +10,7 @@
 %	atoms XXX<N> over the queue and   validate them at the receiving
 %	end. If atom-gc picks one of them   we will not receive a proper
 %	sequence.
-%	
+%
 %	For testing purposes we use a   rather  small number of messages
 %	and frequent atom-gc.
 
@@ -29,7 +29,7 @@ test(N) :-
 	       )),
 	thread_join(Id, Exit),
 	assertion(Exit == true).
-	
+
 eat(Q, I, N) :-
 	thread_get_message(Q, A),
 	atom_concat('XXX', NA, A),

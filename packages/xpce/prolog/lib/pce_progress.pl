@@ -267,7 +267,7 @@ abort(PD) :->
 		 *******************************/
 
 %%	progress_checklist(:Goal, +List, +Options)
-%	
+%
 %	As checklist/2, but show a progress-bar while processing the
 %	elements of the list.
 
@@ -297,7 +297,7 @@ do_progress_checklist(Goal, List, Options) :-
 	;   premove(PB),
 	    fail
 	).
-		
+
 option(Term, List, _Default) :-
 	memberchk(Term, List), !.
 option(Term, _, Default) :-
@@ -311,7 +311,7 @@ premove(_).
 
 pchecklist([], _, _, _, _).
 pchecklist([Elem|Tail], Goal, N, Step, PB) :-
-	call(Goal, Elem), 
+	call(Goal, Elem),
 	NN is N + 1,
 	(   0 =:= NN mod Step
 	->  send(PB, value, NN)

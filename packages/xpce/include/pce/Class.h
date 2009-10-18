@@ -51,7 +51,7 @@ Any 		XPCE_fetch(Any in, const Any var);
 }
 
 class PceVariable :public PceArg
-{ 
+{
 public:
   PceVariable(Any p)
   { self = p;
@@ -240,13 +240,13 @@ public:
   PceVariable* defvar(PceArg name, PceArg group, PceArg summary,
 		      PceArg type, PceArg access, PceArg init)
   { return new PceVariable(XPCE_defvar(self,
-				       name.self, group.self, summary.self, 
+				       name.self, group.self, summary.self,
 				       type.self, access.self, init.self));
   }
   PceVariable* defvar(PceArg name, PceArg group, PceArg summary,
 		      PceArg type, PceArg access)
   { return new PceVariable(XPCE_defvar(self,
-				       name.self, group.self, summary.self, 
+				       name.self, group.self, summary.self,
 				       type.self, access.self, TheNil));
   }
 

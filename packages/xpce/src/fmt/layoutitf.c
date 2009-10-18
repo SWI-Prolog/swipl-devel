@@ -80,7 +80,7 @@ static vardecl var_layoutitf[] =
   IV(NAME_image, "graphical", IV_GET,
      NAME_appearance, "Image managed")
 };
-  
+
 /* Send Methods */
 
 static senddecl send_layoutitf[] =

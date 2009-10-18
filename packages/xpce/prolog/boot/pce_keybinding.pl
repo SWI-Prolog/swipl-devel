@@ -47,7 +47,7 @@ message_level(silent).
 %%	binding(+ModeName, +TableName, +Modifications)
 %
 %	Specify bindings for alternative key-binding-styles.
-%	
+%
 %	@param ModeName		Name of the key-binding-style
 %	@param TableName	Syntax table to modify
 %	@param Modifications	List of Key-Method
@@ -69,7 +69,7 @@ binding(cua, 'emacs$fundamental',
 		 *******************************/
 
 %%	set_keybinding_style(+Id)
-%	
+%
 %	Runtime modification of the current key-binding style.
 
 set_keybinding_style(Mode) :-
@@ -112,7 +112,7 @@ modify1(delete(Key), KB) :-
 	get(KB, name, Table),
 	message_level(Level),
 	print_message(Level, format('~w: deleted ~w', [Table, Key])).
-	
+
 
 		 /*******************************
 		 *	  DYNAMIC TABLES	*
@@ -120,7 +120,7 @@ modify1(delete(Key), KB) :-
 
 :- pce_extend_class(key_binding).
 
-class_variable(style, name, 
+class_variable(style, name,
 	       [ 'X'(emacs),
 		 windows(cua)
 	       ],
@@ -128,7 +128,7 @@ class_variable(style, name,
 
 %%	current_style(-Style) is det.
 %%	set_style(+Style) is det.
-%	
+%
 %	Manipulate the style.  The style is stored in the class-variable
 %	key_binding.style, so it can be set in the users preferences
 %	file.
@@ -174,7 +174,7 @@ save_default(KB, Key:name) :->
 	    ;   send(Undo, value, Key, @nil)
 	    )
 	).
-		   
+
 unmodify(KB) :->
 	"Replay recorded modifications"::
 	(   get(KB, attribute, modified, Undo)
@@ -198,10 +198,10 @@ unbind(KB, Key:name, Command:[name|code]*) :->
 			  format('~w (~p): ~w --> ~w',
 				 [Table, KB, Key, Command]))
 	).
-	
+
 :- pce_end_class(key_binding).
 
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Runtime switching is connected to @pce as the operation influences an
 unknown number of unknown key_binding objects.

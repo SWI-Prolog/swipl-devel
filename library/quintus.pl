@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(quintus, 
+:- module(quintus,
 	[ unix/1,
 %	  file_exists/1,
 
@@ -54,7 +54,6 @@
 
 	  (mode)/1,
 	  (public)/1,
-	  (meta_predicate)/1,
 	  no_style_check/1,
 	  otherwise/0,
 	  simple/1,
@@ -180,7 +179,7 @@ sign(X, V) :-	  V is sign(X).
 		 *******************************/
 
 %%	genarg(?Index, +Term, ?Arg) is nondet.
-%	
+%
 %	Generalised version of ISO arg/3.  SWI-Prolog's arg/3 is already
 %	genarg/3.
 
@@ -195,14 +194,14 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 %%	prolog_flag(?Flag, ?Value) is nondet.
 %
 %	Same as ISO current_prolog_flag/2.  Maps =version=.
-%	
+%
 %	@bug	Should map relevant Quintus flag identifiers.
 
 prolog_flag(version, Version) :- !,
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
 	current_prolog_flag(arch, Arch),
 	current_prolog_flag(compiled_at, Compiled),
-	concat_atom(['SWI-Prolog ',
+	atomic_list_concat(['SWI-Prolog ',
 		     Major, '.', Minor, '.', Patch,
 		     ' (', Arch, '): ', Compiled], Version).
 prolog_flag(Flag, Value) :-
@@ -214,7 +213,7 @@ prolog_flag(Flag, Value) :-
 		 *******************************/
 
 %	Here used to be a definition of Quintus statistics/2 in traditional
-%	SWI-Prolog statistics/2.  The current built-in emulates Quintus 
+%	SWI-Prolog statistics/2.  The current built-in emulates Quintus
 %	almost completely.
 
 
@@ -240,14 +239,14 @@ date(Date) :-
 %
 %	Same as SWI-Prolog =|style_check(-Style)|=.   The Quintus option
 %	=single_var= is mapped to =singleton=.
-%	
+%
 %	@see style_check/1.
 
 q_style_option(single_var, singleton) :- !.
 q_style_option(Option, Option).
 
 no_style_check(QOption) :-
-	q_style_option(QOption, SWIOption), 
+	q_style_option(QOption, SWIOption),
 	style_check(-SWIOption).
 
 
@@ -275,33 +274,6 @@ simple(X) :-
 	;   var(X)
 	).
 
-		/********************************
-		*            MODULES            *
-		*********************************/
-
-:- initialization op(1150, fx, user:(meta_predicate)).
-
-:- module_transparent
-	(meta_predicate)/1.
-
-meta_predicate((Head, More)) :- !, 
-	meta_predicate(Head), 
-	meta_predicate(More).
-meta_predicate(Spec) :-
-	strip_module(Spec, M, Head),
-	meta_predicate(M, Head).
-
-meta_predicate(M, Head) :-
-	Head =.. [Name|Arguments], 
-	member(Arg, Arguments), 
-	module_expansion_argument(Arg), !, 
-	functor(Head, Name, Arity), 
-	module_transparent(M:Name/Arity).
-meta_predicate(_, _).		% just a mode declaration
-
-module_expansion_argument(:).
-module_expansion_argument(N) :- integer(N).
-
 
 		 /*******************************
 		 *	      STREAMS		*
@@ -315,12 +287,13 @@ module_expansion_argument(N) :- integer(N).
 current_stream(Object, Mode, Stream) :-
 	stream_property(Stream, mode(FullMode)),
 	stream_mode(FullMode, Mode),
-	(   stream_property(Stream, file_name(Object))
+	(   stream_property(Stream, file_name(Object0))
 	->  true
-	;   stream_property(Stream, file_no(Object))
+	;   stream_property(Stream, file_no(Object0))
 	->  true
-	;   Object = []
-	).
+	;   Object0 = []
+	),
+	Object = Object0.
 
 stream_mode(read,   read).
 stream_mode(write,  write).
@@ -354,7 +327,7 @@ skip_line(Stream) :-
 %
 %	Compile   files.   SWI-Prolog   doesn't    distinguish   between
 %	compilation and consult.
-%	
+%
 %	@see load_files/2.
 
 :- meta_predicate
@@ -400,7 +373,7 @@ midstring(ABC, B, AC, LenA, LenB, LenC) :-	% -ABC, +B, +AC
 	LenC is LenAC - LenA,
 	sub_atom(AC, _, LenC, 0, C),
 	atom_length(B, LenB),
-	concat_atom([A,B,C], ABC).
+	atomic_list_concat([A,B,C], ABC).
 midstring(ABC, B, AC, LenA, LenB, LenC) :-
 	sub_atom(ABC, LenA, LenB, LenC, B),
 	sub_atom(ABC, 0, LenA, _, A),
@@ -422,7 +395,7 @@ raise_exception(Term) :-
 %%	on_exception(+Template, :Goal, :Recover)
 
 :- meta_predicate
-	on_exception(+, :, :).
+	on_exception(+, 0, 0).
 
 on_exception(Except, Goal, Recover) :-
 	catch(Goal, Except, Recover).

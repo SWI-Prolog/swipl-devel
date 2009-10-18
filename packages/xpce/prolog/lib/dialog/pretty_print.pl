@@ -32,6 +32,7 @@
 :- module(dia_pretty_print,
 	  [ pretty_print/1
 	  ]).
+:- use_module(library(pce)).
 
 :- require([ atom_length/2
 	   , between/3
@@ -185,10 +186,10 @@ max(A, B, M) :-
 
 
 varname(N, [C]) :-
-	N < 26, !, 
+	N < 26, !,
 	C is N + 0'A.
 varname(N, [C1, C2]) :-
-	C1 is N // 26 + 0'A, 
+	C1 is N // 26 + 0'A,
 	C2 is N mod 26 + 0'A.
 
 indent(I) :-

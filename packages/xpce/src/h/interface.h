@@ -31,7 +31,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "6.6.63, December 2008"
+#define PCE_VERSION "6.6.66, July 2009"
 #endif
 
 #ifndef OS_VERSION
@@ -157,7 +157,7 @@ typedef union
 #define PCE_INTEGER	1
 #define PCE_NAME	2
 #define PCE_REFERENCE	3
-#define PCE_ASSOC	4 
+#define PCE_ASSOC	4
 #define PCE_REAL	5
 #define PCE_HOSTDATA	6
 

@@ -10,7 +10,7 @@ maxruns=4
 quiet=false
 
 function texclean
-{ rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
+{ rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc *.blg
 }
 
 # make runtex --clean work without GNU getopt
@@ -70,36 +70,30 @@ function addbibinput
   fi
 }
 
+function usage
+{ echo "Usage:"
+  echo ""
+  echo "    $program [options] file"
+  echo ""
+  echo "Options:"
+  echo ""
+  echo "    --pdf        Use pdflatex and make .pdf images"
+  echo "    --dvi        Use latex"
+  echo "    --help       Print this message"
+  echo "    --maxruns=#  Specify maximum # runs"
+  echo "    --clean      Just remove TeX temporary files"
+}
+
+
+
 if [ -d $appbase ]; then
   addinput $appbase
   addbstinput $appbase
   addbibinput $appbase
 fi
 
-case "`uname`" in
-   *Darwin*)	PATH=/opt/local/bin:$PATH 	# We need getopt from Darwinports
-		;;
-esac
-
-if [ "x`getopt --test`" = "x--" ]; then
-   case "$1" in
-     --clean)
-	texclean
-	exit 0
-	;;
-     *)
-        echo "ERROR: runtex requires GNU getopt"
-	exit 1
-	;;
-   esac
-fi
-
-TEMP=`getopt -o n --long tex:,pdf,help,dvi,quiet,clean,maxruns,inputs: \
-     -n $program -- "$@"`
-if [ $? != 0 ] ; then echo "$program: use $program --help for options" >&2 ; exit 1 ; fi
-eval set -- "$TEMP"
-
-while true ; do
+argp=true
+while [ $argp = true ] ; do
     case "$1" in
         --pdf)
 	    tex=pdflatex
@@ -112,35 +106,32 @@ while true ; do
 	--quiet)
 	    quiet=true;
 	    shift ;;
-	--maxruns)
-	    maxruns="$2"
-	    shift 2 ;;
-	--inputs)
-	    addinput "$2"
-	    shift 2 ;;
+	--maxruns=*)
+	    maxruns="`echo $1 | sed 's/--maxruns=//'`"
+	    shift ;;
+	--inputs=*)
+	    addinput "`echo $1 | sed 's/--inputs=//'`"
+	    shift ;;
 	--help)
-	    echo "Usage:"
-	    echo ""
-	    echo "    $program [options] file"
-	    echo ""
-	    echo "Options:"
-	    echo ""
-	    echo "    --pdf        Use pdflatex and make .pdf images"
-	    echo "    --dvi        Use latex"
-	    echo "    --help       Print this message"
-	    echo "    --maxruns=#  Specify maximum # runs"
-	    echo "    --clean      Just remove TeX temporary files"
+	    usage
 	    exit 0 ;;
 	--clean)
 	    texclean
 	    exit 0
 	    ;;
-        --)
-	    shift ; break ;;
+        --*)
+	    usage
+	    exit 1 ;;
 	*)
-	    echo "Internal error!" ; exit 1 ;;
+	    argp=false;
+	    ;;
     esac
 done
+
+if [ -z "$1" ]; then
+  usage
+  exit 1
+fi
 
 file="$1"
 
@@ -172,7 +163,7 @@ while [ $cont != "no" ]; do
 	else
 	    makeindex $doc
 	fi
-    fi 
+    fi
     if test -r $doc.aux && grep -qw bibdata $doc.aux; then
 	if [ -f $doc.bbl ]; then cp $doc.bbl $doc.bbl$$; fi
 	echo "%%% Running Bibtex"

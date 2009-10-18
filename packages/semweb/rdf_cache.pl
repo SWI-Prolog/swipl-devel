@@ -28,20 +28,20 @@ set_setfault_options :-
 %%	rdf_set_cache_options(+Options)
 %
 %	Change the cache policy.  Provided options are:
-%	
+%
 %	  * enabled(Boolean)
 %	  If =true=, caching is enabled.
-%		
+%
 %	  * local_directory(Name).
 %	  Plain name of local directory.  Default =|.cache|=
 %	  (=|_cache|= on Windows).
-%	  
+%
 %	  * create_local_directory(Bool)
 %	  If =true=, try to create local cache directories
-%	  
+%
 %	  * global_directory(Dir)
 %	  Writeable directory for storing cached parsed files.
-%	  
+%
 %	  * create_global_directory(Bool)
 %	  If =true=, try to create the global cache directory.
 
@@ -86,7 +86,7 @@ rdf_cache_file(URL, read, File) :- !,
 	    cache_option(local_directory(Local)),
 	    file_directory_name(Path, Dir),
 	    local_cache_file(URL, LocalFile),
-	    concat_atom([Dir, Local, LocalFile], /, File)
+	    atomic_list_concat([Dir, Local, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
 	    url_cache_file(URL, Dir, trp, read, File)
 	),
@@ -101,7 +101,7 @@ rdf_cache_file(URL, write, File) :- !,
 	    ),
 	    ensure_dir(Dir, Local, RWDir, CacheDir),
 	    local_cache_file(URL, LocalFile),
-	    concat_atom([CacheDir, LocalFile], /, File)
+	    atomic_list_concat([CacheDir, LocalFile], /, File)
 	;   cache_option(global_directory(Dir)),
 	    ensure_global_cache(Dir),
 	    url_cache_file(URL, Dir, trp, write, File)
@@ -143,7 +143,7 @@ local_cache_file(URL, File) :-
 %	Determine location of cache-file for the   given  URL in Dir. If
 %	Ext is provided, the  returned  Path   is  ensured  to  have the
 %	specified extension.
-%	
+%
 %	@param RW	If =read=, no directories are created and the call
 %			fails if URL is not in the cache.
 
@@ -157,10 +157,10 @@ url_cache_file(URL, Dir, Ext, RW, Path) :-
 	ensure_dir(Dir1, L2, RW, Dir2),
 	url_to_file(URL, File),
 	ensure_ext(File, Ext, FileExt),
-	concat_atom([Dir2, /, FileExt], Path).
+	atomic_list_concat([Dir2, /, FileExt], Path).
 
 ensure_dir(D0, Sub, RW, Dir) :-
-	concat_atom([D0, /, Sub], Dir),
+	atomic_list_concat([D0, /, Sub], Dir),
 	(   exists_directory(Dir)
 	->  true
 	;   RW == write
@@ -174,7 +174,7 @@ ensure_ext(File, Ext, FileExt) :-
 	file_name_extension(File, Ext, FileExt).
 
 %%	url_to_file(+URL, -File)
-%	
+%
 %	Convert a URL in something that fits  in a file, i.e. avoiding /
 %	and :. We  simply  replace  these  by   -.  We  could  also  use
 %	www_form_encode/2, but confusion when to replace  as well as the

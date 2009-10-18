@@ -30,19 +30,18 @@
 */
 
 :- module('$toplevel',
-	[ '$initialise'/0		% start Prolog (does not return)
-	, '$toplevel'/0			% Prolog top-level (re-entrant)
-	, '$abort'/0 			% restart after an abort
-	, '$break'/0 			% live in a break
-	, '$compile'/0 			% `-c' toplevel
-	, '$welcome'/0			% banner
-	, prolog/0 			% user toplevel predicate
-	, '$set_prompt'/1			% set the main prompt
-	, at_initialization/1		% goals to run at initialization
-	, (initialization)/1		% initialization goal (directive)
-	, '$thread_init'/0		% initialise thread
-	, (thread_initialization)/1	% thread initialization goal
-	]).
+	  [ '$initialise'/0,		% start Prolog (does not return)
+	    '$toplevel'/0,		% Prolog top-level (re-entrant)
+	    '$abort'/0,			% restart after an abort
+	    '$break'/0,			% live in a break
+	    '$compile'/0,		% `-c' toplevel
+	    '$welcome'/0,		% banner
+	    prolog/0, 			% user toplevel predicate
+	    '$set_prompt'/1,		% set the main prompt
+	    (initialization)/1,		% initialization goal (directive)
+	    '$thread_init'/0,		% initialise thread
+	    (thread_initialization)/1	% thread initialization goal
+	    ]).
 
 
 		/********************************
@@ -78,7 +77,7 @@
 	->  asserta(loaded_init_file(system))
 	;   current_prolog_flag(home, Home),
 	    file_name_extension(Base, rc, Name),
-	    concat_atom([Home, '/', Name], File),
+	    atomic_list_concat([Home, '/', Name], File),
 	    access_file(File, read),
 	    asserta(loaded_init_file(system)),
 	    load_files(user:File, [silent(true)]), !
@@ -111,57 +110,69 @@
 		 *	 AT_INITIALISATION	*
 		 *******************************/
 
-:- module_transparent
-	at_initialization/1,
-	(initialization)/1.
-:- dynamic
-	'$at_initialization'/1.
+:- meta_predicate
+	initialization(0).
 
-at_initialization(Spec) :-
-	strip_module(Spec, Module, Goal),
-	'$toplevel':assert('$at_initialization'(Module:Goal)).
+:- '$iso'((initialization)/1).
 
-'$run_at_initialization' :-
-	\+ current_prolog_flag(saved_program, true), !.
-'$run_at_initialization' :-
-	(   '$at_initialization'(Goal),
-	    (   catch(Goal, E,
-		      print_message(error, initialization_exception(Goal, E)))
-	    ->  fail
-	    ;   print_message(warning, goal_failed(at_initialization, Goal)),
-		fail
-	    )
-	;   true
-	),
-	'$thread_init'.
-
-%	initialization(+Goal)
+%%	initialization(:Goal)
 %
-%	Runs `Goal' both a load and initialization time.
+%	Runs Goal after loading the file in which this directive
+%	appears as well as after restoring a saved state.
+%
+%	@see initialization/2
 
 initialization(Goal) :-
-	at_initialization(Goal),
-	Goal.
+	Goal = _:G,
+	prolog:initialize_now(G, Use), !,
+	print_message(warning, initialize_now(G, Use)),
+	initialization(Goal, now).
+initialization(Goal) :-
+	initialization(Goal, after_load).
+
+:- multifile
+	prolog:initialization_now/2,
+	prolog:message//1.
+
+prolog:initialize_now(load_foreign_library(_),
+		      'use :- use_foreign_library/1 instead').
+prolog:initialize_now(load_foreign_library(_,_),
+		      'use :- use_foreign_library/2 instead').
+
+prolog:message(initialize_now(Goal, Use)) -->
+	[ 'Initialization goal ~p will be executed'-[Goal],nl,
+	  'immediately for backward compatibility reasons', nl,
+	  '~w'-[Use]
+	].
+
+'$run_initialization' :-
+	'$run_initialization'(_),
+	'$thread_init'.
 
 
 		 /*******************************
 		 *     THREAD INITIALIZATION	*
 		 *******************************/
 
-:- module_transparent
-	(thread_initialization)/1.
+:- meta_predicate
+	thread_initialization(0).
 :- dynamic
 	'$at_thread_initialization'/1.
 
-thread_initialization(Spec) :-
-	strip_module(Spec, Module, Goal),
-	'$toplevel':assert('$at_thread_initialization'(Module:Goal)),
-	Spec.
+%%	thread_initialization(:Goal)
+%
+%	Run Goal now and everytime a new thread is created.
+
+thread_initialization(Goal) :-
+	assert('$at_thread_initialization'(Goal)),
+	call(Goal), !.
 
 '$thread_init' :-
 	(   '$at_thread_initialization'(Goal),
-	    Goal,
-	    fail
+	    (	call(Goal)
+	    ->	fail
+	    ;	fail
+	    )
 	;   true
 	).
 
@@ -228,7 +239,7 @@ path_sep -->
 		 *******************************/
 
 %%	set_associated_file
-%	
+%
 %	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %	the extension registered for associated files, set the Prolog
 %	flag associated_file, switch to the directory holding the file
@@ -259,7 +270,7 @@ set_associated_file.
 
 %%	start_pldoc
 %
-%	If the option  =|--pldoc[=port]|=  is   given,  load  the PldDoc
+%	If the option  =|--pldoc[=port]|=  is   given,  load  the  PlDoc
 %	system.
 
 start_pldoc :-
@@ -282,7 +293,7 @@ start_pldoc.
 
 
 %%	load_associated_file
-%	
+%
 %	Load  the  file-name  set  by   set_associated_file/0  from  the
 %	commandline arguments. Note the expand(false) to avoid expanding
 %	special characters in the filename.
@@ -332,7 +343,7 @@ initialise_prolog :-
 	set_prolog_flag(prompt_alternatives_on, determinism),
 	set_prolog_flag(toplevel_extra_white_line, true),
 	'$set_debugger_print_options'(print),
-	'$run_at_initialization',
+	'$run_initialization',
 	'$load_system_init_file',
 	'$load_gnu_emacs_interface',
 	'$option'(init_file, OsFile, OsFile),
@@ -341,8 +352,8 @@ initialise_prolog :-
 	start_pldoc,
 	'$load_script_file',
 	load_associated_file,
-	'$option'(goal, GoalAtom, GoalAtom), 
-	term_to_atom(Goal, GoalAtom), 
+	'$option'(goal, GoalAtom, GoalAtom),
+	term_to_atom(Goal, GoalAtom),
 	(   Goal == '$welcome'
 	->  flag('$banner_goal', TheGoal, TheGoal)
 	;   TheGoal = Goal
@@ -350,24 +361,24 @@ initialise_prolog :-
 	ignore(user:TheGoal).
 
 '$abort' :-
-	see(user), 
-	tell(user), 
-	flag('$break_level', _, 0), 
+	see(user),
+	tell(user),
+	flag('$break_level', _, 0),
 	flag('$compilation_level', _, 0),
 	'$calleventhook'(abort),
 	print_message(informational, '$aborted'),
 	'$toplevel'.
 
 '$break' :-
-	flag('$break_level', Old, Old+1), 
-	flag('$break_level', New, New), 
+	flag('$break_level', Old, Old+1),
+	flag('$break_level', New, New),
 	print_message(informational, break(enter(New))),
 	'$runtoplevel',
 	print_message(informational, break(exit(New))),
 	flag('$break_level', _, Old), !.
 
-:- '$hide'('$toplevel', 0).			% avoid in the GUI stacktrace
-:- '$hide'('$abort', 0).			% same after an abort
+:- '$hide'('$toplevel'/0).		% avoid in the GUI stacktrace
+:- '$hide'('$abort'/0).			% same after an abort
 
 '$toplevel' :-
 	'$runtoplevel',
@@ -380,7 +391,7 @@ initialise_prolog :-
 %	crashing in a loop?
 
 '$runtoplevel' :-
-	'$option'(toplevel, TopLevelAtom, TopLevelAtom), 
+	'$option'(toplevel, TopLevelAtom, TopLevelAtom),
 	catch(term_to_atom(TopLevel, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
@@ -390,7 +401,7 @@ initialise_prolog :-
 %	Toplevel called when invoked with -c option.
 
 '$compile' :-
-	'$run_at_initialization',
+	'$run_initialization',
 	'$load_system_init_file',
 	'$set_file_search_paths',
 	catch('$compile_wic', E, (print_message(error, E), halt(1))).
@@ -401,10 +412,10 @@ initialise_prolog :-
 		*********************************/
 
 prolog :-
-	flag('$tracing', _, off), 
-	flag('$break_level', BreakLev, BreakLev), 
-	repeat, 
-	    (   '$module'(TypeIn, TypeIn), 
+	flag('$tracing', _, off),
+	flag('$break_level', BreakLev, BreakLev),
+	repeat,
+	    (   '$module'(TypeIn, TypeIn),
 		(   stream_property(user_input, tty(true))
 		->  '$system_prompt'(TypeIn, BreakLev, Prompt),
 		    prompt(Old, '|    ')
@@ -448,8 +459,8 @@ read_query(Prompt, Goal, Bindings) :-
 	'$save_history'(Line).
 read_query(Prompt, Goal, Bindings) :-
 	seeing(Old), see(user_input),
-	(   read_history(h, '!h', 
-			 [trace, end_of_file], 
+	(   read_history(h, '!h',
+			 [trace, end_of_file],
 			 Prompt, Goal, Bindings)
 	->  see(Old)
 	;   see(Old),
@@ -467,7 +478,7 @@ clean_history_prompt_chars([], []).
 clean_history_prompt_chars(['%', !|T], T) :- !.
 clean_history_prompt_chars([H|T0], [H|T]) :-
 	clean_history_prompt_chars(T0, T).
- 
+
 delete_leading_blanks([' '|T0], T) :- !,
 	delete_leading_blanks(T0, T).
 delete_leading_blanks(L, L).
@@ -482,6 +493,32 @@ set_default_history :-
 	).
 
 :- initialization set_default_history.
+
+
+		 /*******************************
+		 *	  TOPLEVEL DEBUG	*
+		 *******************************/
+
+save_debug :-
+	(   tracing,
+	    notrace
+	->  Tracing = true
+	;   Tracing = false
+	),
+	current_prolog_flag(debug, Debugging),
+	set_prolog_flag(debug, false),
+	set_prolog_flag(query_debug_settings, debug(Debugging, Tracing)).
+
+restore_debug :-
+	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
+	set_prolog_flag(debug, Debugging),
+	(   Tracing == true
+	->  trace
+	;   true
+	).
+
+:- initialization
+	set_prolog_flag(query_debug_settings, debug(false, false)).
 
 
 		/********************************
@@ -509,14 +546,15 @@ set_default_history :-
 	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
 	;    '$substitute'("%l", [], P1, P2)
 	),
-	(    tracing
+	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
+	(    Tracing == true
 	->   '$substitute'("%d", ["[trace] "], P2, P3)
-	;    current_prolog_flag(debug, true)
+	;    Debugging == true
 	->   '$substitute'("%d", ["[debug] "], P2, P3)
 	;    '$substitute'("%d", [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
-	
+
 '$substitute'(From, T, Old, New) :-
 	phrase(subst_chars(T), T0),
 	'$append'(Pre, S0, Old),
@@ -524,7 +562,7 @@ set_default_history :-
 	'$append'(Pre, T0, S1),
 	'$append'(S1, Post, New), !.
 '$substitute'(_, _, Old, Old).
-	
+
 subst_chars([]) -->
 	[].
 subst_chars([H|T]) -->
@@ -549,48 +587,42 @@ subst_chars([H|T]) -->
 '$execute'(end_of_file, _) :- !,
 	print_message(query, query(eof)).
 '$execute'(Goal, Bindings) :-
-	'$module'(TypeIn, TypeIn), 
+	'$module'(TypeIn, TypeIn),
 	expand_goal(Goal, Expanded),
-	TypeIn:'$dwim_correct_goal'(Expanded, Bindings, Corrected), !, 
-	'$execute_goal'(Corrected, Bindings).
+	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !,
+	print_message(silent, toplevel_goal(Goal, Bindings)),
+	'$execute_goal2'(Corrected, Bindings).
 '$execute'(_, _) :-
-	notrace, 
+	notrace,
 	print_message(query, query(no)),
 	fail.
 
-'$execute_goal'(trace, []) :-
-	trace, 
-	print_message(query, query(yes)), !,
-	fail.
-'$execute_goal'(Goal, Bindings) :-
-	'$module'(TypeIn, TypeIn),
-	print_message(silent, toplevel_goal(TypeIn:Goal, Bindings)),
-	'$execute_goal2'(TypeIn:Goal, Bindings).
-
 '$execute_goal2'(Goal, Bindings) :-
+	restore_debug,
 	Goal,
-	flush_output(user_output),
 	deterministic(Det),
+	(   save_debug
+	;   restore_debug, fail
+	),
+	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
 	(    write_bindings(NewBindings, Det)
-	->   !,
-	     notrace,
-	     fail
+	->   !, fail
 	).
 '$execute_goal2'(_, _) :-
-	notrace, 
+	save_debug,
 	print_message(query, query(no)),
 	fail.
 
 %%	write_bindings(+Bindings, +Deterministic)
-%	
+%
 %	Write   bindings   resulting   from   a     query.    The   flag
 %	prompt_alternatives_on determines whether the   user is prompted
 %	for alternatives. =groundness= gives   the  classical behaviour,
 %	=determinism= is considered more adequate and informative.
 
 write_bindings(Bindings, Det) :-
-	'$attributed'(Bindings), !,
+	\+ term_attvars(Bindings, []), !,
 	copy_term(Bindings, Bindings1, Residuals0),
 	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
@@ -649,6 +681,8 @@ omit_qualifier(M:G0, _, M:G) :-
 omit_qualifier(G0, TypeIn, G) :-
 	omit_meta_qualifiers(G0, TypeIn, G).
 
+omit_meta_qualifiers(V, _, V) :-
+	var(V), !.
 omit_meta_qualifiers((QA,QB), TypeIn, (A,B)) :- !,
 	omit_qualifier(QA, TypeIn, A),
 	omit_qualifier(QB, TypeIn, B).
@@ -662,7 +696,7 @@ omit_meta_qualifiers(G, _, G).
 
 
 %%	bind_vars(+Bindings)
-%	
+%
 %	Bind variables to '$VAR'(Name), so they are printed by the names
 %	used in the query. Note that by   binding  in the reverse order,
 %	variables bound to one another come out in the natural order.
@@ -676,7 +710,7 @@ bind_vars([Name=Var|T]) :-
 	).
 
 %%	filter_bindings(+Bindings0, -Bindings)
-%	
+%
 %	Remove bindings that must not be printed.
 
 filter_bindings([], []).
@@ -728,13 +762,11 @@ answer_respons(-1, show_again) :- !,
 answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
-print_predicate(0'w, [write], [ quoted(true),
-				priority(699)
+print_predicate(0'w, [write], [ quoted(true)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
-				max_depth(10),
-				priority(699)
+				max_depth(10)
 			      ]).
 
 

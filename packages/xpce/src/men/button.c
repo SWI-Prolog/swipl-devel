@@ -44,7 +44,7 @@ int
 accelerator_code(Name a)
 { if ( isName(a) )
   { char *s = strName(a);
-    
+
     if ( s[0] == '\\' && s[1] == 'e' && isalpha(s[2]) && s[3] == EOS )
       return s[2];
     if ( s[1] == EOS && isalpha(s[0]) )
@@ -63,7 +63,7 @@ RedrawMenuBarButton(Button b, Area a)
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
-  
+
   if ( b->status == NAME_preview )
   { Elevation e;
 
@@ -114,7 +114,7 @@ draw_generic_button_face(Button b,
 
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
-     
+
     if ( b->look == NAME_motif ||
 	 b->look == NAME_gtk ||
 	 b->look == NAME_win )
@@ -122,7 +122,7 @@ draw_generic_button_face(Button b,
 
       if ( b->look == NAME_motif ||
 	   b->look == NAME_gtk )
-      { 
+      {
 	if ( b->show_focus_border == ON )
 	{ PceWindow sw = getWindowGraphical((Graphical)b);
 	  Graphical kbfocus = (sw ? sw->keyboard_focus : NIL);
@@ -131,10 +131,10 @@ draw_generic_button_face(Button b,
 	       kbfocus == (Graphical) b ||	/* inactive focus */
 	       (defb && !instanceOfObject(kbfocus, ClassButton)) )
 	  { static Elevation e = NULL;
-	    
+
 	    if ( !e )
 	      e = newObject(ClassElevation, ONE, EAV);
-  
+
 	    bx -= GTK_BUTTON_MARGIN;
 	    by -= GTK_BUTTON_MARGIN;
 	    bw += GTK_BUTTON_MARGIN * 2;
@@ -154,7 +154,7 @@ draw_generic_button_face(Button b,
       } else
       { if ( defb )
 	{ int pen = valInt(b->pen);
-  
+
 	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
 	  r_thickness(pen);
 	  r_box(bx, by, bw, bh, r, NIL);
@@ -193,7 +193,7 @@ draw_generic_button_face(Button b,
 
     if ( swapc )
       r_swap_background_and_foreground();
-  
+
     if ( defb && b->look == NAME_openLook )
       r_box(x+pen, y+pen, w-2*pen-shadow, h-2*pen-shadow, radius, NIL);
 
@@ -226,11 +226,11 @@ draw_button_popup_indicator(Button b, int x, int y, int w, int h, int up)
     { int th = 8;
       int tw = 9;
       int tx, ty;
-  
+
       rm = tw+8;
       tx = x+w-rm;
       ty = y + (h-th)/2;
-  
+
       r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
       rm = tw;
     }
@@ -311,7 +311,7 @@ computeButton(Button b)
          b->look == NAME_gtkMenuBar )
     { if ( !isimage )
       { w += valInt(getExFont(b->label_font)) * 2;
-	
+
 	if ( b->look == NAME_gtkMenuBar )
 	  h += 4;
       } else
@@ -369,7 +369,7 @@ getReferenceButton(Button b)
 
     ref = answerObject(ClassPoint, toInt(rx), toInt((h - fh)/2 + ascent), EAV);
   }
-  
+
   answer(ref);
 }
 
@@ -436,7 +436,7 @@ eventButton(Button b, EventObj ev)
     { send(b, NAME_execute, EAV);
       succeed;
     }
-    
+
     if ( isAEvent(ev, NAME_msLeftDown) && !infocus )
       send(b, NAME_keyboardFocus, ON, EAV);
 
@@ -488,7 +488,7 @@ executeButton(Button b)
 
   succeed;
 }
-  
+
 
 static status
 forwardButton(Button b)
@@ -707,7 +707,7 @@ static classvardecl rc_button[] =
   RC(NAME_elevation, RC_REFINE,
      UXWIN("when(@colour_display, button, @nil)",
 	   "elevation(@nil, 2, @_dialog_bg)"),
-     NULL)  
+     NULL)
 };
 
 /* Class Declaration */

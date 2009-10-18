@@ -1,12 +1,21 @@
+[Aug 18 2009]
+
+ * CLEANUP: Bug#413: Complete 'make distclean'.  Feliks Kluzniak
+
+[Mar 19 2009]
+
+ * CLEANUP: Removed all trailing whitespace from all source-files.
+   This avoids many GIT (merge) warnings.
+
 [Sep 11 2008]
 
  * PORT: Add AC_PREREQ to configure.h for systems that auto-select autoconf
    versions.  After tip by Ulrich Neumerkel.
-   
+
 [Aug 11 2008]
 
  * INSTALL: Remove all configure files from the git repository
-   
+
 
 Mon Apr  5 00:58:37 EDT 1999
 

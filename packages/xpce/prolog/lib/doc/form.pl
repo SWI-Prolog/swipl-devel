@@ -54,7 +54,7 @@ variable(action,	name,		both, "Script URL").
 variable(hidden,	sheet*,		get,  "Hidden fields").
 variable(enctype,	name := 'application/x-www-form-urlencoded',
 					both, "Field-encoding used").
-					       
+
 initialise(F, Attrs:prolog, PB:parbox) :->
 	"Create from HTML attributes"::
 	send_super(F, initialise),

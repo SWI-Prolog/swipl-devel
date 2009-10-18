@@ -68,7 +68,7 @@ initialise(W, L:label=[name], D:display=[display]) :->
 	    ->	send(W, scrollbars, horizontal)
 	    ;	true
 	    )
-	),   
+	),
 	send(W, size, size(WW, WH)).
 
 :- pce_end_class.

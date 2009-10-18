@@ -42,7 +42,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 pce_load_cxx(+Spec)
     Load a Unix shared object or Windows DLL or somilar object, containing
-    XPCE/C++ code.  This call deals with OS and Prolog incompatibilities. 
+    XPCE/C++ code.  This call deals with OS and Prolog incompatibilities.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pce_load_cxx(File) :-

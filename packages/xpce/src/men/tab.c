@@ -76,14 +76,14 @@ computeTab(Tab t)
     obtainClassVariablesObject(t);
     computeLabelTab(t);
     computeGraphicalsDevice((Device) t);
-    
+
     if ( isDefault(t->size) )		/* implicit size */
     { Cell cell;
 
       clearArea(a);
       for_cell(cell, t->graphicals)
       { Graphical gr = cell->value;
-	
+
 	unionNormalisedArea(a, gr->area);
       }
       relativeMoveArea(a, t->offset);
@@ -151,7 +151,7 @@ changedLabelImageTab(Tab t)
 			t->label_size->w,
 			add(t->label_size->h, eh));
   t->displayed = old;
-  
+
   succeed;
 }
 
@@ -196,7 +196,7 @@ tab_stack handle the redraw?
 static status
 statusTab(Tab t, Name stat)
 { assignGraphical(t, NAME_status, stat);
-  
+
   displayedGraphical(t, stat == NAME_hidden ? OFF : ON);
 
   succeed;
@@ -230,7 +230,7 @@ RedrawAreaTab(Tab t, Area a)
   if ( t->status == NAME_onTop )
   { ipoint pts[10];
     IPoint p = pts;
-    
+
     if ( loff == 0 )
     { GOTO(p, x, y+r);			/* top-left of label */
     } else
@@ -266,7 +266,7 @@ RedrawAreaTab(Tab t, Area a)
       d_clip(x+eh, y+eh, w-2*eh, h-2*eh); /* check if needed! */
       for_cell(cell, t->graphicals)
 	RedrawArea(cell->value, a);
-      d_clip_done();	     
+      d_clip_done();
 
       r_offset(-ox, -oy);
       assign(a, x, ax);
@@ -411,7 +411,7 @@ static char *T_geometry[] =
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
 static char *T_advance[] =
-	{ "from=[graphical]*", 
+	{ "from=[graphical]*",
 	  "propagate=[bool]",
 	  "direction=[{forwards,backwards}]"
 	};

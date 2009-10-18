@@ -137,7 +137,7 @@ getImageDictItem(DictItem di)
     answer(browser);
 
   fail;
-}  
+}
 
 
 static Point
@@ -229,7 +229,7 @@ static getdecl get_dictItem[] =
 #define rc_dictItem NULL
 /*
 static classvardecl rc_dictItem[] =
-{ 
+{
 };
 */
 

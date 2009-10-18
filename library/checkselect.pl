@@ -44,11 +44,11 @@ the wrong argument order to 3.4.
 %	When compiling, print calls to select/3 that may use the wrong
 %	argument order.  Upto version 3.3.x the argument order of select/3
 %	as
-%	
+%
 %		select(+List, ?Element, ?RestList).
 %
 %	Later versions use the compatible version
-%	
+%
 %		select(?Element, +List, ?RestList).
 
 check_old_select :-

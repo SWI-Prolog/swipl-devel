@@ -184,7 +184,7 @@ openWindow(PceWindow sw, Point pos, Bool normalise)
 
 static status
 openCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
-{ if ( send(sw, NAME_create, EAV) && 
+{ if ( send(sw, NAME_create, EAV) &&
        send(getFrameWindow(sw, DEFAULT), NAME_openCentered,
 	    pos, grab, mon, EAV) )
     succeed;
@@ -239,7 +239,7 @@ createWindow(PceWindow sw, PceWindow parent)
       assign(sw, colour, parent->colour);
     if ( isDefault(sw->background) )
       assign(sw, background, parent->background);
-  } else 
+  } else
   { DisplayObj d;
 
     if ( notNil(sw->frame) )
@@ -444,7 +444,7 @@ resizeMessageWindow(PceWindow sw, Code msg)
   succeed;
 }
 
-  
+
 static Monitor
 getMonitorWindow(PceWindow sw)
 { if ( isNil(sw->device) )
@@ -454,7 +454,7 @@ getMonitorWindow(PceWindow sw)
     { FrameObj fr;
       int dx, dy;
       struct area a;
-    
+
       frame_offset_window(sw, &fr, &dx, &dy);
       a = *fr->area;
       a.x = toInt(valInt(a.x)+dx);
@@ -516,31 +516,31 @@ frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y)
     { if ( notNil(w->device) )
       { PceWindow w2 = DEFAULT;
 	Int ox, oy;
-  
+
 	get_absolute_xy_graphical((Graphical)w, (Device *)&w2, &ox, &oy);
 	if ( instanceOfObject(w2, ClassWindow) )
 	{ int ox2, oy2;
-  
+
 	  offset_window(w2, &ox2, &oy2);
 	  x += valInt(ox) + ox2;
 	  y += valInt(oy) + oy2;
-  
+
 	  w = w2;
 	  continue;
 	}
       }
-  
+
       fail;
     }
-  
+
     x += valInt(w->area->x);
     y += valInt(w->area->y);
-  
+
     *fr = w->frame, *X = x, *Y = y;
     DEBUG(NAME_position,
 	  Cprintf("frame_offset_window(%s) --> fr = %s, offset = %d,%d\n",
 		  pp(obj), pp(*fr), x, y));
-  
+
     succeed;
   }
 }
@@ -607,7 +607,7 @@ inspectWindow(PceWindow sw, EventObj ev)
 
     for_cell(cell, d->inspect_handlers)
     { Handler h = cell->value;
-      
+
       if ( isAEvent(ev, h->event) )
 	return inspectDevice((Device) sw, ev);
     }
@@ -704,10 +704,10 @@ postEventWindow(PceWindow sw, EventObj ev)
       obj = sb->object;
     else
       obj = sw;
-      
+
     rval = mapWheelMouseEvent(ev, obj);
   }
-    
+
   if ( !rval && isDownEvent(ev) )
     rval = postEvent(ev, (Graphical) sw, popupGesture());
 
@@ -736,7 +736,7 @@ typedWindow(PceWindow sw, EventId id, Bool delegate)
 
   for_chain(sw->graphicals, gr,
 	    if ( send(gr, NAME_key, key, EAV) )
-	      succeed); 
+	      succeed);
 
   if ( delegate == ON )
    { if ( notNil(sw->frame) )
@@ -768,7 +768,7 @@ inputFocusWindow(PceWindow sw, Bool val)
 
   if ( instanceOfObject(sw, ClassWindowDecorator) )
   { WindowDecorator dw = (WindowDecorator)sw;
-	
+
     sw = dw->window;
     inputFocusWindow(sw, val);
   }
@@ -786,10 +786,10 @@ status
 keyboardFocusWindow(PceWindow sw, Graphical gr)
 { if ( !isNil(gr) && sw->input_focus == OFF )
   { FrameObj fr = getFrameWindow(sw, OFF);
-  
+
     if ( fr )
       send(fr, NAME_keyboardFocus, sw, EAV);
-    
+
   }
 
   if ( sw->keyboard_focus != gr )
@@ -939,7 +939,7 @@ intersect_iarea(IArea a, IArea b)	/* shrink a with b; fail of empty */
 
   if ( w < 0 || h < 0 )
     fail;
-  
+
   a->x = x;
   a->y = y;
   a->w = w;
@@ -1094,7 +1094,7 @@ redrawWindow(PceWindow sw, Area a)
     succeed;
 
   compute_window(sw, &ox, &oy, &dw, &dh);
-  
+
   if ( isDefault(a) )
   { ia.x = 0;
     ia.y = 0;
@@ -1272,12 +1272,12 @@ scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
 #ifdef WIN32_GRAPHICS
     ws_scroll_window(sw, nx-ox, ny-oy);
 #else
-  { int x, y, w, h; 
+  { int x, y, w, h;
     int p = valInt(sw->pen);
 
     compute_window(sw, &x, &y, &w, &h);
     x -= valInt(sw->scroll_offset->x) + p;
-    y -= valInt(sw->scroll_offset->y) + p; 
+    y -= valInt(sw->scroll_offset->y) + p;
 
 					/* should use block-move and only */
 					/* consider a small part changed */
@@ -1388,7 +1388,7 @@ normaliseWindow(PceWindow sw, Any obj, Name mode)
 	unionNormalisedArea(a, a2);
 	doneObject(a2);
       }
-    
+
     if ( a->w != ZERO && a->h != ZERO )
       normalise_window(sw, a, xy);
     considerPreserveObject(a);
@@ -1442,7 +1442,7 @@ scrollVerticalWindow(PceWindow sw,
 
     if ( dir == NAME_goto )
     { int h = ((valInt(bb->h)-valInt(sw->area->h)) * valInt(amount)) / 1000;
-      
+
       scrollWindow(sw, DEFAULT, toInt(h + valInt(bb->y)), ON, ON);
     }
   } else if ( unit == NAME_page )
@@ -1491,7 +1491,7 @@ view_region(int x, int w, int rx, int rw)
 
   return w < 0 ? 2 : w;
 }
-	
+
 
 static status				/* update bubble of scroll_bar */
 bubbleScrollBarWindow(PceWindow sw, ScrollBar sb)
@@ -1506,7 +1506,7 @@ bubbleScrollBarWindow(PceWindow sw, ScrollBar sb)
   x -= valInt(sw->scroll_offset->x);
   y -= valInt(sw->scroll_offset->y);
 					/* x, y, w, h: visible area */
-  
+
   view = view_region(start, length,
 		     hor ? -valInt(sw->scroll_offset->x)
 			 : -valInt(sw->scroll_offset->y),
@@ -1558,8 +1558,8 @@ getDisplayedCursorWindow(PceWindow sw)
       answer(sw->focus_cursor);
     if ( notNil(sw->focus->cursor) )
       answer(sw->focus->cursor);
-  }    
-  
+  }
+
   if ( (rval = getDisplayedCursorDevice((Device) sw)) &&
        notNil(rval) )
     answer(rval);
@@ -1646,7 +1646,7 @@ get_display_position_window(PceWindow sw, int *X, int *Y)
   TRY(frame_offset_window(sw, &fr, &x, &y));
   x += valInt(fr->area->x);
   y += valInt(fr->area->y);
-  
+
   *X = x; *Y = y;
 
   succeed;
@@ -1724,7 +1724,7 @@ for_all_tile(TileObj tile, SendFunc f, Any arg)
 
     for_chain(tile->members, st,
 	      TRY(for_all_tile(st, f, arg)));
-    
+
     succeed;
   }
 }
@@ -1789,13 +1789,13 @@ getTileWindow(PceWindow sw)
 FrameObj
 getFrameWindow(PceWindow sw, Bool create)
 { PceWindow root = (PceWindow) getRootGraphical((Graphical) sw);
-  
+
   if ( instanceOfObject(root, ClassWindow) )
   { if ( create != OFF )
       frameWindow(root, DEFAULT);
     if ( notNil(root->frame) )
       answer(root->frame);
-  }    
+  }
 
   fail;
 }
@@ -1823,7 +1823,7 @@ mergeFramesWindow(PceWindow w1, PceWindow w2)
     frameWindow(w2, w1->frame);
   else
     frameWindow(w1, w2->frame);
-  
+
   succeed;
 }
 
@@ -1838,7 +1838,7 @@ relateWindow(PceWindow sw, Name how, Any to)
     return relateWindow(sw->decoration, how, to);
   if ( notNil(w2) && notNil(w2->decoration) )
     return relateWindow(sw, how, w2->decoration);
-  
+
   DeviceGraphical((Graphical)sw, NIL);
   if ( notNil(w2) )
   { DeviceGraphical((Graphical)w2, NIL);
@@ -1847,7 +1847,7 @@ relateWindow(PceWindow sw, Name how, Any to)
 
   if ( createdWindow(sw) && notNil(sw->frame) )
     send(sw->frame, NAME_delete, sw, EAV);
-  
+
   tileWindow(sw, DEFAULT);
 
   if ( isNil(wto) )
@@ -1874,7 +1874,7 @@ relateWindow(PceWindow sw, Name how, Any to)
 
     w2 = t2->object;
   }
-  
+
   mergeFramesWindow(sw, w2);
 
   if ( (fr=getFrameWindow(sw, OFF)) && createdFrame(fr) )
@@ -1921,7 +1921,7 @@ penWindow(PceWindow sw, Int pen)
     if ( ws_created_window(sw) )
     { int x, y, w, h;
       int pen = valInt(sw->pen);
-      
+
       x = valInt(sw->area->x);
       y = valInt(sw->area->y);
       w = valInt(sw->area->w);
@@ -2021,7 +2021,7 @@ status
 flashWindow(PceWindow sw, Area a, Int time)
 { if ( sw->displayed == ON && createdWindow(sw) )
   { int t;
-    
+
     if ( isDefault(time) )
       time = getClassVariableValueObject(sw, NAME_visualBellDuration);
     t = (isInteger(time) ? valInt(time) : 250);
@@ -2057,7 +2057,7 @@ exposeWindow(PceWindow sw)
   if ( notNil(sw->frame) )
     return exposeFrame(sw->frame);
 
-  ws_raise_window(sw); 
+  ws_raise_window(sw);
 
   succeed;
 }
@@ -2116,7 +2116,7 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
       return sendv(fr, selector, argc, argv);
     else
       fail;
-  }	
+  }
 
   if ( getSendMethodClass(ClassTile, selector) )
   { if ( notNil(sw->decoration) )

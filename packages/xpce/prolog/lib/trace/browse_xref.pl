@@ -31,7 +31,7 @@
 
 :- module(prolog_xbrowse,
 	  [ x_browse_analyse/1,		% +file
-	    x_browse_info/2,		% +File, +Key(-Value ...) 
+	    x_browse_info/2,		% +File, +Key(-Value ...)
 	    x_browse_free/1,		% +File
 	    system_predicate/1,		% +Head
 	    global_predicate/1		% +Head
@@ -91,7 +91,7 @@ clean :-
 x_browse_free(Key) :-
 	retractall(x_public(Key, _)),
 	retractall(x_entity(Key, _, _)).
- 
+
 assert_entity(Entity) :-
 	current_id(Key), !,
 	assert_entity(Key, Entity).
@@ -274,11 +274,11 @@ xpce_map(draw_end_shape,
 	 pce_end_class(_)).
 xpce_map(emacs_begin_mode(Mode, SuperMode, Doc, _, _),
 	 pce_begin_class(Class, Super, Doc)) :-
-	concat_atom([emacs, Mode, mode], '_', Class),
-	concat_atom([emacs, SuperMode, mode], '_', Super).
+	atomic_list_concat([emacs, Mode, mode], '_', Class),
+	atomic_list_concat([emacs, SuperMode, mode], '_', Super).
 xpce_map(emacs_extend_mode(Mode, _),
 	 pce_extend_class(Class)) :-
-	concat_atom([emacs, Mode, mode], '_', Class).
+	atomic_list_concat([emacs, Mode, mode], '_', Class).
 xpce_map(emacs_end_mode,
 	 pce_end_class(_)).
 
@@ -341,7 +341,7 @@ process_directive(Goal) :-
 	      ********************************/
 
 %	xpce_message_goal(+Goal, -Called)
-%	
+%
 %	Find calls due to message(@prolog, ...) terms.  We donot try to
 %	find out whether it just concerns a data object, or is actually
 %	an argument in the proper place from send, get or new.  This to
@@ -485,7 +485,7 @@ assert_require([Name/Arity|Rest]) :-
 	;   assert_import(Head)
 	),
 	assert_require(Rest).
-				   
+
 
 		/********************************
 		*	  POST ANALYSYS		*

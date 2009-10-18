@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -34,8 +34,8 @@
 	    win_has_menu/0		% Test whether we have menus
 	  ]).
 
-:- module_transparent
-	win_insert_menu_item/4.
+:- meta_predicate
+	win_insert_menu_item(+,+,+,:).
 :- multifile
 	prolog:on_menu/1.
 :- dynamic
@@ -49,7 +49,7 @@ prolog:on_menu(Label) :-
 	      print_message(error, Error)).
 
 %	win_has_menu
-%	
+%
 %	Test whether the system provides the menu interface
 
 win_has_menu :-
@@ -63,8 +63,7 @@ win_has_menu :-
 win_insert_menu_item(Popup, --, Before, _Goal) :- !,
 	call('$win_insert_menu_item'(Popup, --, Before)). % fool check/0
 win_insert_menu_item(Popup, Item, Before, Goal) :-
-	strip_module(Goal, Module, PlainGoal),
-	insert_menu_item(Popup, Item, Before, Module:PlainGoal).
+	insert_menu_item(Popup, Item, Before, Goal).
 
 insert_menu_item(Popup, Item, Before, Goal) :-
 	(   menu_action(Item, OldGoal),

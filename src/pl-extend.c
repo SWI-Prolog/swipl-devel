@@ -23,7 +23,7 @@
 */
 
 #include <stdio.h>
-#include "pl-itf.h"
+#include "SWI-Prolog.h"
 
 #define READLINE 1			/* use readline interface */
 

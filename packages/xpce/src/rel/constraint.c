@@ -116,7 +116,7 @@ static status
 relationConstraint(Constraint c, Relation relation)
 { if (c->relation == relation)
     succeed;
-  
+
   assign(c, relation, relation);
   forwardCreateConstraint(c);
 
@@ -145,8 +145,8 @@ executeConstraint(Constraint c, Any obj)
 			  equalName(c->locked, NAME_back)) )
     fail;
 
-  return send(c->relation, 
-	      obj == c->from ? NAME_forwards : NAME_backwards, 
+  return send(c->relation,
+	      obj == c->from ? NAME_forwards : NAME_backwards,
 	      c->from, c->to, EAV);
 }
 
@@ -227,7 +227,7 @@ static senddecl send_constraint[] =
 #define get_constraint NULL
 /*
 static getdecl get_constraint[] =
-{ 
+{
 };
 */
 
@@ -236,7 +236,7 @@ static getdecl get_constraint[] =
 #define rc_constraint NULL
 /*
 static classvardecl rc_constraint[] =
-{ 
+{
 };
 */
 

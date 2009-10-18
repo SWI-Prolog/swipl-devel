@@ -219,7 +219,7 @@ getCapitaliseCharArray(CharArray n)
 
     for(; i < size; i++, o++)
     { wint_t c = str_fetch(d, i);
-      
+
       if ( iswordsep(c) )
       { if ( ++i < size )
 	  str_store(buf, o, towupper(str_fetch(d, i)));
@@ -385,7 +385,7 @@ getSplitCharArray(CharArray in, CharArray br)
 	i++;
     }
   }
-	   
+
   if ( isstrA(s1) )
     buf.s_textA = s1->s_textA+last;
   else
@@ -424,13 +424,13 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
     if ( argv[i]->data.iswide )
       iswide = TRUE;
   }
-       
+
   { LocalString(buf, iswide, l);
     int d;
 
     str_ncpy(buf, 0, &ca->data, 0, ca->data.size);
     d = ca->data.size;
-    
+
     for( i=0; i<argc; i++ )
     { str_ncpy(buf, d, &argv[i]->data, 0, argv[i]->data.size);
       d += argv[i]->data.size;
@@ -503,7 +503,7 @@ getSubCharArray(CharArray n, Int start, Int end)
     s.s_textA = &n->data.s_textA[x];
   else
     s.s_textW = &n->data.s_textW[x];
-  
+
   answer(ModifiedCharArray(n, &s));
 }
 
@@ -581,7 +581,7 @@ getBase64DecodeCharArray(CharArray in)
   LocalString(buf, FALSE, (size/4)*3);
   int i, o = 0;
   unsigned long v = 0L;
-    
+
   for(i=0; i+3<size; )
   { int c;
 
@@ -643,7 +643,7 @@ getReadAsFileCharArray(CharArray n, Int from, Int size)
       str.s_textA = &n->data.s_textA[f];
     else
       str.s_textW = &n->data.s_textW[f];
-    
+
     answer((CharArray)StringToString(&str));
   }
 }
@@ -665,7 +665,7 @@ static Int
 getCharacterCharArray(CharArray n, Int idx)
 { int i = valInt(idx);
 
-  if ( i < 0 || i >= n->data.size )	
+  if ( i < 0 || i >= n->data.size )
     fail;
 
   answer(toInt(str_fetch(&n->data, i)));
@@ -715,7 +715,7 @@ getScanCharArray(CharArray n, CharArray fmt)
     TRY(argc = scanstr((char *)n->data.s_textA,
 		       (char *)fmt->data.s_textA,
 		       argv));
-    
+
     answer(answerObjectv(ClassVector, valInt(argc), argv));
   } else
   { errorPce(n, NAME_notSupportedForChar16);
@@ -819,7 +819,7 @@ CharArray
 CtoCharArray(char *s)
 { CharArray name = CtoScratchCharArray(s);
   CharArray rval = answerObject(ClassCharArray, name, EAV);
-  
+
   doneScratchCharArray(name);
   return rval;
 }
@@ -829,7 +829,7 @@ static CharArray
 stringToCharArray(String s)
 { CharArray name = StringToScratchCharArray(s);
   CharArray rval = answerObject(ClassCharArray, name, EAV);
-  
+
   doneScratchCharArray(name);
   return rval;
 }
@@ -946,7 +946,7 @@ static getdecl get_charArray[] =
 #define rc_charArray NULL
 /*
 static classvardecl rc_charArray[] =
-{ 
+{
 };
 */
 

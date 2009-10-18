@@ -82,8 +82,9 @@ activateProfiler(int active ARG_LD)
 
   if ( active )
   { /* consider using thread-time? */
-    LD->profile.time_at_start = CpuTime(CPU_USER); 
+    LD->profile.time_at_start = CpuTime(CPU_USER);
   }
+  updateAlerted(LD);
 
   sum_ok = FALSE;
 }
@@ -237,7 +238,7 @@ startProfiler(void)
   value.it_interval.tv_usec = 1000;	/* see (*) above */
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1000;
-  
+
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
   activateProfiler(TRUE PASS_LD);
@@ -252,7 +253,7 @@ stopItimer(void)
   value.it_interval.tv_usec = 0;
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 0;
-  
+
   if ( !LD->profile.active )
     return;
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
@@ -281,7 +282,7 @@ stopProfiler(void)
 }
 
 
-static 
+static
 PRED_IMPL("profiler", 2, profiler, 0)
 { PRED_LD
   int val;
@@ -299,7 +300,7 @@ PRED_IMPL("profiler", 2, profiler, 0)
   else
     return stopProfiler();
 }
-	
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Prolog query API:
@@ -361,7 +362,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 	  sibling = roots;
 	else if ( get_node(A2, &parent PASS_LD) )
 	  sibling = parent->siblings;
-	else 
+	else
 	  fail;
       }
 
@@ -399,7 +400,7 @@ unify_node_id(term_t t, call_node *n)
   { return (*n->type->unify)(t, n->handle);
   } else
   { GET_LD
-  
+
     return PL_unify_pointer(t, n->handle);
   }
 }
@@ -694,7 +695,7 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
   memset(&sum, 0, sizeof(sum));
   for(n=roots; n; n=n->next)
     count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
-  
+
   if ( count == 0 )
     fail;				/* nothing known about this one */
 
@@ -796,7 +797,7 @@ clear the flags again.
 static void
 #ifdef __WINDOWS__
 profile(intptr_t count, PL_local_data_t *__PL_ld)
-{ 
+{
 #else /*__WINDOWS__*/
 profile(int sig)
 { GET_LD
@@ -817,7 +818,7 @@ profile(int sig)
 
 #endif /*__WINDOWS__*/
   LD->profile.ticks += count;
-  
+
   if ( accounting )
   { LD->profile.accounting_ticks += count;
   } else if ( current )
@@ -943,7 +944,7 @@ code.  Considering this is development only, we'll leave this for now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-profExit(struct call_node *node ARG_LD)
+profResumeParent(struct call_node *node ARG_LD)
 { call_node *n;
 
   if ( node && node->magic != PROFNODE_MAGIC )
@@ -960,6 +961,15 @@ profExit(struct call_node *node ARG_LD)
 
 
 void
+profExit(struct call_node *node ARG_LD)
+{ if ( !node || node->magic != PROFNODE_MAGIC )
+    return;
+
+  profResumeParent(node->parent PASS_LD);
+}
+
+
+void
 profRedo(struct call_node *node ARG_LD)
 { if ( node && node->magic != PROFNODE_MAGIC )
     return;
@@ -968,6 +978,12 @@ profRedo(struct call_node *node ARG_LD)
   { node->redos++;
   }
   current = node;
+}
+
+
+void
+profSetHandle(struct call_node *node, void *handle)
+{ node->handle = handle;
 }
 
 
@@ -1008,7 +1024,7 @@ PL_prof_exit(void *node)
 { GET_LD
   struct call_node *n = node;
 
-  profExit(n->parent PASS_LD);
+  profResumeParent(n->parent PASS_LD);
 }
 
 
@@ -1034,10 +1050,10 @@ collectSiblingsNode(call_node *n)
 static void
 collectSiblingsTime()
 { GET_LD
-    
+
   if ( !sum_ok )
   { call_node *n;
-    
+
     for(n=roots; n; n=n->next)
       collectSiblingsNode(n);
 
@@ -1064,7 +1080,7 @@ static void
 freeProfileData()
 { GET_LD
   call_node *n;
-  
+
   for(n=roots; n; n=n->next)
   { freeProfileNode(n PASS_LD);
   }
@@ -1086,7 +1102,7 @@ stopItimer()
 {
 }
 
-static 
+static
 PRED_IMPL("profiler", 2, profiler, 0)
 { return notImplemented("profile", 2);
 }
@@ -1104,7 +1120,7 @@ PRED_IMPL("$prof_node", 7, prof_node, 0)
 static
 PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 { return notImplemented("profile_sibling_of", 2);
-} 
+}
 
 static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)

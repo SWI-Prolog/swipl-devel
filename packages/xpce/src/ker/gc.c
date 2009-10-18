@@ -77,7 +77,7 @@ deleteAnswerObject(Any obj)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: deletion of the  head  is  avoided   to  ensure  this  routine  is
 reentrant. This may be  necessary  if   unlinking  an  object causes new
-mark/rewind actions. 
+mark/rewind actions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 export void
@@ -88,16 +88,16 @@ _rewindAnswerStack(AnswerMark *mark, Any obj)
   if ( c->index > index )
   { ToCell n, preserve = NULL;
     int freehead = FALSE;
-    
+
     for( ; c->index > index; c = n )
     { n = c->next;
       DEBUG(NAME_gc, Cprintf("Cell at 0x%lx\n", (unsigned long)c));
       if ( c->value )
       { if ( c->value != obj )
 	{ Any o = c->value;
-  
+
 	  if ( noRefsObj(o) && !onFlag(o, F_LOCKED|F_PROTECTED) )
-	  { DEBUG(NAME_gc, 
+	  { DEBUG(NAME_gc,
 		  Cprintf("Removing %s from AnswerStack\n", pp(o)));
 	    clearAnswerObj(c->value);
 	    freeObject(o);
@@ -115,12 +115,12 @@ _rewindAnswerStack(AnswerMark *mark, Any obj)
 	  freehead = TRUE;
       }
     }
-    
+
     if ( freehead )
       unalloc(sizeof(struct to_cell), AnswerStack);
-  
+
     AnswerStack = c;
-  
+
     if ( preserve )
     { preserve->next  = AnswerStack;
       preserve->index = AnswerStack->index + 1;

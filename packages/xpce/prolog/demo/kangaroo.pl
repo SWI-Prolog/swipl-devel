@@ -39,7 +39,7 @@ Left-click in the drawing area adds a kangaroo to the diagram.
 
 :- module(kangaroo, [ kangaroo/0]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ atomic_list_concat/2
 	   , forall/2
 	   , between/3
 	   ]).
@@ -91,7 +91,7 @@ set_speed(T, N) :-
 image(R, N, File) :-
 	between(1, 11, N),
 	atom_concat(kangaroo_, N, R),
-	concat_atom([kangro, N, '.bm'], File).
+	atomic_list_concat([kangro, N, '.bm'], File).
 
 resource(R, image, image(File)) :-
 	image(R, _N, File).

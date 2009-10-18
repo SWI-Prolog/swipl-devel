@@ -35,18 +35,17 @@
 	  ]).
 :- use_module(library(shlib)).
 
-:- initialization
-   load_foreign_library(foreign(sha4pl)).
+:- use_foreign_library(foreign(sha4pl)).
 
 %%	sha_hash(+Data, -Hash, +Options) is det
 %
 %	Hash is the SHA hash of Data, The conversion is controlled
 %	by Options:
-%	
+%
 %	  * algorithm(+Algorithm)
 %	  One of =sha1= (default), =sha224=, =sha256=, =sha384= or
 %	  =sha512=
-%	  
+%
 %	@param	Data is either an atom, string or code-list
 %	@param  Hash is a packed string
 

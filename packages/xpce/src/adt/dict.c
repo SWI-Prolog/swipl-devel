@@ -48,7 +48,7 @@ unlinkDict(Dict dict)
     send(dict->browser, NAME_dict, NIL, EAV);
 
   clearDict(dict);
-  
+
   if ( notNil(dict->table) )
   { freeObject(dict->table);
     assign(dict, table, NIL);
@@ -57,7 +57,7 @@ unlinkDict(Dict dict)
   succeed;
 }
 
-  
+
 		 /*******************************
 		 *	      TABLE		*
 		 *******************************/
@@ -127,7 +127,7 @@ getMemberDict(Dict dict, Any obj)
 
     for_cell(cell, dict->members)
     { DictItem di = cell->value;
-      
+
       if ( di->key == obj )
 	answer(di);
     }
@@ -275,7 +275,7 @@ getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case)
       }
     }
   }
-     
+
   fail;
 }
 
@@ -299,12 +299,12 @@ compare_dict_items(const void *d1, const void *d2)
     if ( sort_ignore_blanks )
     { LocalString(t1, s1->iswide, s1->size);
       LocalString(t2, s2->iswide, s2->size);
-  
+
       str_cpy(t1, s1);
       str_cpy(t2, s2);
       str_strip(t1);
       str_strip(t2);
-  
+
       if ( sort_ignore_case == TRUE )
 	return str_icase_cmp(t1, t2);
       else
@@ -350,7 +350,7 @@ insertDict(Dict dict, DictItem di)
 
 					/* after the last: use append */
   di2 = getTailChain(dict->members);
-  cmp = codesort ? qsortCompareObjects(&di, &di2) 
+  cmp = codesort ? qsortCompareObjects(&di, &di2)
 	         : compare_dict_items(&di, &di2);
   if ( cmp >= 0 )
     return appendDict(dict, di);
@@ -359,12 +359,12 @@ insertDict(Dict dict, DictItem di)
   assign(di, dict, dict);
   if ( notNil(dict->table) )
     appendHashTable(dict->table, di->key, di);
-  
+
 					/* find its place */
   for_cell(cell, dict->members)
   { di2 = cell->value;
 
-    cmp = codesort ? qsortCompareObjects(&di, &di2) 
+    cmp = codesort ? qsortCompareObjects(&di, &di2)
 		   : compare_dict_items(&di, &di2);
     if ( cmp < 0 )
     { dict->members->current = cell;
@@ -374,7 +374,7 @@ insertDict(Dict dict, DictItem di)
   }
 
   renumberDict(dict);
-  
+
   if ( notNil(dict->browser) )
     send(dict->browser, NAME_InsertItem, di, EAV);
 
@@ -436,7 +436,7 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   old = dict->members;
   lockObject(old, ON);
   assign(dict, members, newObject(ClassChain, EAV));
-  
+
   if ( notNil(dict->table) )
   { clearHashTable(dict->table);
     assign(dict, table, NIL);
@@ -474,7 +474,7 @@ getMatchDict(Dict dict, CharArray name)
   for_cell(cell, dict->members)
   { DictItem di = cell->value;
     CharArray label = getLabelDictItem(di);
-    
+
     if ( label && str_sub(&label->data, &name->data) )
       appendChain(matching, di);
   }
@@ -486,7 +486,7 @@ getMatchDict(Dict dict, CharArray name)
 status
 clearDict(Dict dict)
 { Cell cell;
-  
+
   if ( dict->members->size == ZERO )
     succeed;
 

@@ -124,7 +124,7 @@ initialise(F, M:name) :->
 	send(D2, append, button(restore, message(F, defaults))),
 	send(D2, append, button(save, 	 message(F, save))),
 	send(TOC, expand_root).
-	
+
 :- pce_group(user_actions).
 
 
@@ -145,7 +145,7 @@ ok(F) :->
 	get(F, module, M),
 	forall(retract(tmp_config(M:Path, Value, Type)),
 	       pce_config:set_config_term(M, Path, Value, Type)). % export?
-	
+
 
 config_base_name(_/Base, Base) :- !.
 config_base_name(Base, Base).

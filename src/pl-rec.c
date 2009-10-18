@@ -25,6 +25,7 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-termwalk.c"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
@@ -228,10 +229,10 @@ addInt64(CompileInfo info, int64_t v)
   }
 
   addBuffer(&info->code, i, uchar);
-  
+
   while( --i >= 0 )
   { int b = (int)(v>>(i*8)) & 0xff;
-    
+
     addBuffer(&info->code, b, uchar);
   }
 }
@@ -310,7 +311,7 @@ addFunctor(CompileInfo info, functor_t f)
   } else
   { if ( info->external )
     { FunctorDef fd = valueFunctor(f);
-  
+
       addOpCode(info, PL_TYPE_EXT_COMPOUND);
       addSizeInt(info, fd->arity);
       addAtomValue(info, fd->name);
@@ -332,155 +333,156 @@ typedef struct
 #define isAttVarP(p)  ((word)(p) & 0x1)
 #define valAttVarP(p) ((Word)((word)(p) & ~0x1L))
 
-static void
-compile_term_to_heap(Word p, CompileInfo info ARG_LD)
-{ word w;
+static int
+compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
+{ Word p;
 
-right_recursion:
-  w = *p;
+  while( (p=nextTermAgenda(agenda)) )
+  { word w;
 
-  switch(tag(w))
-  { case TAG_VAR:
-    { intptr_t n = info->nvars++;
+  again:
+    w = *p;
 
-      *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-      addBuffer(&info->vars, p, Word);
-      addOpCode(info, PL_TYPE_VARIABLE);
-      addSizeInt(info, n);
+    switch(tag(w))
+    { case TAG_VAR:
+      { intptr_t n = info->nvars++;
 
-      return;
-    }
-#if O_ATTVAR
-    case TAG_ATTVAR:
-    { intptr_t n = info->nvars++;
-      Word ap = valPAttVar(w);
-
-      if ( isEmptyBuffer(&info->code) )
-      { addOpCode(info, PL_REC_ALLOCVAR); 	/* only an attributed var */
-	info->size++;
-      }
-
-      addBuffer(&info->vars, *p, word);		/* save value */
-      *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-      addBuffer(&info->vars, mkAttVarP(p), Word);
-      addOpCode(info, PL_TYPE_ATTVAR);
-      addSizeInt(info, n);
-      info->size++;
-      DEBUG(9, Sdprintf("Added attvar %d\n", n));
-
-      p = ap;
-      goto right_recursion;
-    }
-#endif
-    case TAG_ATOM:
-    { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
-      { intptr_t n = ((intptr_t)(w) >> 7);
-
+	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	addBuffer(&info->vars, p, Word);
 	addOpCode(info, PL_TYPE_VARIABLE);
 	addSizeInt(info, n);
-	DEBUG(9, Sdprintf("Added var-link %d\n", n));
-      } else
-      { addAtom(info, w);
-	DEBUG(9, Sdprintf("Added '%s'\n", stringAtom(w)));
+
+	continue;
       }
+  #if O_ATTVAR
+      case TAG_ATTVAR:
+      { intptr_t n = info->nvars++;
+	Word ap = valPAttVar(w);
 
-      return;
-    }
-    case TAG_INTEGER:
-    { int64_t val;
-
-      if ( isTaggedInt(w) )
-      { val = valInt(w);
-	addOpCode(info, PL_TYPE_TAGGED_INTEGER);
-	addInt64(info, val);
-      } else
-      { number n;
-
-	info->size += wsizeofIndirect(w) + 2;
-
-	get_integer(w, &n);
-	switch(n.type)
-	{ case V_INTEGER:
-	    addOpCode(info, PL_TYPE_INTEGER);
-	    addInt64(info, n.value.i);
-	    break;
-#ifdef O_GMP
-	  case V_MPZ:
-	    addOpCode(info, PL_REC_MPZ);
-	    addMPZToBuffer((Buffer)&info->code, n.value.mpz);
-	    break;
-#endif
-  	  default:
-	    assert(0);
+	if ( isEmptyBuffer(&info->code) )
+	{ addOpCode(info, PL_REC_ALLOCVAR); 	/* only an attributed var */
+	  info->size++;
 	}
+
+	addBuffer(&info->vars, *p, word);		/* save value */
+	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	addBuffer(&info->vars, mkAttVarP(p), Word);
+	addOpCode(info, PL_TYPE_ATTVAR);
+	addSizeInt(info, n);
+	info->size++;
+	DEBUG(9, Sdprintf("Added attvar %d\n", n));
+
+	p = ap;
+	goto again;
       }
-      
-      return;
-    }
-    case TAG_STRING:
-    { Word f     = addressIndirect(w);
-      size_t n   = wsizeofInd(*f);
-      size_t pad = padHdr(*f);		/* see also getCharsString() */
-      size_t l   = n*sizeof(word)-pad;
+  #endif
+      case TAG_ATOM:
+      { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
+	{ intptr_t n = ((intptr_t)(w) >> 7);
 
-      info->size += n+2;
-      addOpCode(info, PL_TYPE_STRING);
-      addChars(info, l, (const char *)(f+1)); /* +1 to skip header */
-      
-      return;
-    }
-    case TAG_FLOAT:
-    { info->size += WORDS_PER_DOUBLE + 2;
-      addFloat(info, valIndirectP(w));
+	  addOpCode(info, PL_TYPE_VARIABLE);
+	  addSizeInt(info, n);
+	  DEBUG(9, Sdprintf("Added var-link %d\n", n));
+	} else
+	{ addAtom(info, w);
+	  DEBUG(9, Sdprintf("Added '%s'\n", stringAtom(w)));
+	}
 
-      return;
-    }
-    case TAG_COMPOUND:
-    { Functor f = valueTerm(w);
-      int arity;
-      word functor;
-
-#if O_CYCLIC
-      if ( isInteger(f->definition) )
-      { addOpCode(info, PL_REC_CYCLE);
-	addSizeInt(info, valInt(f->definition));
-
-	DEBUG(1, Sdprintf("Added cycle for offset = %d\n",
-			  valInt(f->definition)));
-
-	return;
-      } else
-      { cycle_mark mark;
-
-	arity   = arityFunctor(f->definition);
-	functor = f->definition;
-
-	requireStack(argument, sizeof(Word)*2);
-	mark.term = f;
-	mark.fdef = f->definition;
-	pushSegStack(&LD->cycle.stack, &mark);
-	f->definition = (functor_t)consInt(info->size);
-	assert(valInt(f->definition) == (intptr_t)info->size); /* overflow test */
+	continue;
       }
-#endif
-      
-      info->size += arity+1;
-      addFunctor(info, functor);
-      DEBUG(9, if ( GD->io_initialised )
-	         Sdprintf("Added %s/%d\n",
-			  stringAtom(valueFunctor(functor)->name),
-			  arityFunctor(functor)));
-      p = f->arguments;
-      for(; --arity > 0; p++)
-	compile_term_to_heap(p, info PASS_LD);
-      goto right_recursion;
+      case TAG_INTEGER:
+      { int64_t val;
+
+	if ( isTaggedInt(w) )
+	{ val = valInt(w);
+	  addOpCode(info, PL_TYPE_TAGGED_INTEGER);
+	  addInt64(info, val);
+	} else
+	{ number n;
+
+	  info->size += wsizeofIndirect(w) + 2;
+
+	  get_integer(w, &n);
+	  switch(n.type)
+	  { case V_INTEGER:
+	      addOpCode(info, PL_TYPE_INTEGER);
+	      addInt64(info, n.value.i);
+	      break;
+  #ifdef O_GMP
+	    case V_MPZ:
+	      addOpCode(info, PL_REC_MPZ);
+	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
+	      break;
+  #endif
+	    default:
+	      assert(0);
+	  }
+	}
+
+	continue;
+      }
+      case TAG_STRING:
+      { Word f     = addressIndirect(w);
+	size_t n   = wsizeofInd(*f);
+	size_t pad = padHdr(*f);		/* see also getCharsString() */
+	size_t l   = n*sizeof(word)-pad;
+
+	info->size += n+2;
+	addOpCode(info, PL_TYPE_STRING);
+	addChars(info, l, (const char *)(f+1)); /* +1 to skip header */
+
+	continue;
+      }
+      case TAG_FLOAT:
+      { info->size += WORDS_PER_DOUBLE + 2;
+	addFloat(info, valIndirectP(w));
+
+	continue;
+      }
+      case TAG_COMPOUND:
+      { Functor f = valueTerm(w);
+	int arity;
+	word functor;
+
+  #if O_CYCLIC
+	if ( isInteger(f->definition) )
+	{ addOpCode(info, PL_REC_CYCLE);
+	  addSizeInt(info, valInt(f->definition));
+
+	  DEBUG(1, Sdprintf("Added cycle for offset = %d\n",
+			    valInt(f->definition)));
+
+	  continue;
+	} else
+	{ cycle_mark mark;
+
+	  arity   = arityFunctor(f->definition);
+	  functor = f->definition;
+
+	  mark.term = f;
+	  mark.fdef = f->definition;
+	  pushSegStack(&LD->cycle.stack, &mark);
+	  f->definition = (functor_t)consInt(info->size);
+					  /* overflow test */
+	  assert(valInt(f->definition) == (intptr_t)info->size);
+	}
+  #endif
+
+	info->size += arity+1;
+	addFunctor(info, functor);
+	DEBUG(9, if ( GD->io_initialised )
+		   Sdprintf("Added %s/%d\n",
+			    stringAtom(valueFunctor(functor)->name),
+			    arityFunctor(functor)));
+	pushWorkAgenda(agenda, arity, f->arguments);
+	continue;
+      }
+      default:
+	assert(0);
     }
-    case TAG_REFERENCE:
-      p = unRef(w);
-      goto right_recursion;
-    default:
-      assert(0);
   }
+
+  return TRUE;
 }
 
 
@@ -516,10 +518,11 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   Word *p;
   size_t size;
   size_t rsize = SIZERECORD(flags);
-  init_cycle(PASS_LD1);
+  term_agenda agenda;
 
   SECURE(checkData(valTermRef(t)));
 
+  init_cycle(PASS_LD1);
   initBuffer(&info.code);
   initBuffer(&info.vars);
   info.size = 0;
@@ -527,7 +530,10 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   info.external = (flags & R_EXTERNAL);
   info.lock = !(info.external || (flags&R_NOLOCK));
 
-  compile_term_to_heap(valTermRef(t), &info PASS_LD);
+  initTermAgenda(&agenda, valTermRef(t));
+  compile_term_to_heap(&agenda, &info PASS_LD);
+  clearTermAgenda(&agenda);
+
   p = topBuffer(&info.vars, Word);
   while(p > baseBuffer(&info.vars, Word))
   { p--;
@@ -538,9 +544,9 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
       setVar(**p);
   }
   discardBuffer(&info.vars);
-  
+
   unvisit(PASS_LD1);
-  
+
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
   record->gsize = (unsigned int)info.size; /* only 28-bit */
@@ -592,6 +598,7 @@ PL_record_external(term_t t, size_t *len)
   int scode, shdr;
   char *rec;
   int first = REC_HDR;
+  term_agenda agenda;
 
   SECURE(checkData(valTermRef(t)));
   p = valTermRef(t);
@@ -607,7 +614,7 @@ PL_record_external(term_t t, size_t *len)
       v = valInt(*p);
     else
       v = valBignum(*p);
-    
+
     first |= (REC_INT|REC_GROUND);
     addOpCode(&info, first);
     addInt64(&info, v);
@@ -619,20 +626,24 @@ PL_record_external(term_t t, size_t *len)
     discardBuffer(&info.code);
     *len = scode;
     return rec;
-  } else if ( isAtom(*p) )
+  } else if ( isAtom(*p) )		/* atom-only record */
   { first |= (REC_ATOM|REC_GROUND);
     addOpCode(&info, first);
     addAtomValue(&info, *p);
     goto ret_primitive;
   }
 
+					/* the real stuff */
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
   info.external = TRUE;
   info.lock = FALSE;
 
-  compile_term_to_heap(p, &info PASS_LD);
+  initTermAgenda(&agenda, p);
+  compile_term_to_heap(&agenda, &info PASS_LD);
+  clearTermAgenda(&agenda);
+
   n = info.nvars;
   vp = (Word *)info.vars.base;
   while(--n >= 0)
@@ -651,7 +662,7 @@ PL_record_external(term_t t, size_t *len)
   if ( info.nvars > 0 )
     addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
   shdr = (int)sizeOfBuffer(&hdr);
-  
+
   rec = allocHeap(shdr + scode);
   memcpy(rec, hdr.base, shdr);
   memcpy(rec+shdr, info.code.base, scode);
@@ -742,7 +753,7 @@ fetchSizeInt(CopyInfo b)
 
   do
   { uint d = *b->data++;
-    
+
     end = !(d & 0x80);
     r = (r<<7)|(d&0x7f);
   } while(!end);
@@ -834,7 +845,7 @@ right_recursion:
       {	setVar(*p);
 	b->vars[n] = p;
       }
-      
+
       return;
     }
     case PL_REC_ALLOCVAR:
@@ -1024,7 +1035,7 @@ skipLong(CopyInfo b)
 
 static void
 scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
-{ 
+{
 right_recursion:
 
   switch( fetchOpCode(b) )
@@ -1257,7 +1268,7 @@ unref_cont:
 	fetchAtom((CopyInfo)info, &name);	/* TBD: optimise */
 	if ( name != fd->name )
 	  fail;
-	
+
 	p = f->arguments;
 	for(; --arity > 0; p++)
 	{ if ( !se_record(p, info PASS_LD) )
@@ -1266,7 +1277,7 @@ unref_cont:
         goto right_recursion;
       } else if ( stag == PL_TYPE_CONS )
       { Functor f = valueTerm(w);
-	
+
 	if ( f->definition == FUNCTOR_dot2 )
 	{ p = f->arguments;
 	  if ( !se_record(p, info PASS_LD) )
@@ -1298,7 +1309,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   DEBUG(3, Sdprintf("structuralEqualArg1OfRecord() of ");
 	   PL_write_term(Serror, t, 1200, PL_WRT_ATTVAR_WRITE);
 	   Sdprintf("\n"));
-  
+
   info.base = info.data = dataRecord(r);
   info.nvars = 0;
   INITCOPYVARS(info, r->nvars);
@@ -1404,7 +1415,7 @@ PL_recorded_external(const char *rec, term_t t)
   if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
   { if ( m & REC_INT )
     { int64_t v = fetchInt64(&b);
-      
+
       return PL_unify_int64(t, v);
     } else
     { atom_t a;
@@ -1429,7 +1440,7 @@ PL_recorded_external(const char *rec, term_t t)
   assert(b.gstore == gTop);
 
   SECURE(checkData(valTermRef(t)));
-  
+
   return TRUE;
 }
 
@@ -1641,7 +1652,7 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
     }
     case FRG_CUTTED:
     { record = ForeignContextPtr(h);
-      
+
       if ( record )
       { rl = record->list;
 
@@ -1711,14 +1722,14 @@ pl_erase(term_t ref)
   if ( isClause(record) )
   { Clause clause = (Clause) record;
     Definition def = getProcDefinition(clause->procedure);
-  
+
     if ( !true(def, DYNAMIC) )
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 
     return retractClauseDefinition(def, clause PASS_LD);
   }
-  
+
   LOCK();
   if ( isRecordRef(record) )
   {
@@ -1780,7 +1791,7 @@ right_recursion:
 
   if ( isAttVar(*t) )
   { Word p = valPAttVar(*t);
-    
+
     assert(onStackArea(global, p));
     t = p;
     goto right_recursion;

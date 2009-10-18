@@ -30,7 +30,7 @@ initialiseBinaryCondition(BinaryCondition c, Any l, Any r)
 { initialiseCode((Code) c);
   assign(c, left, l);
   assign(c, right, r);
-  
+
   succeed;
 }
 
@@ -65,7 +65,7 @@ static senddecl send_binaryCondition[] =
 #define get_binaryCondition NULL
 /*
 static getdecl get_binaryCondition[] =
-{ 
+{
 };
 */
 
@@ -74,7 +74,7 @@ static getdecl get_binaryCondition[] =
 #define rc_binaryCondition NULL
 /*
 static classvardecl rc_binaryCondition[] =
-{ 
+{
 };
 */
 
@@ -233,7 +233,7 @@ getVarEquationv(Equation e, Var var, int argc, Equation *argv)
 static status
 ExecuteEquation(Equation e)
 { numeric_value vl, vr;
-  
+
   if ( evaluateExpression(LEFTHAND(e), &vl) &&
        evaluateExpression(LEFTHAND(e), &vr) )
   { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
@@ -265,7 +265,7 @@ static char *T_var[] =
 #define var_equation NULL
 /*
 vardecl var_equation[] =
-{ 
+{
 };
 */
 
@@ -288,7 +288,7 @@ static getdecl get_equation[] =
 #define rc_equation NULL
 /*
 static classvardecl rc_equation[] =
-{ 
+{
 };
 */
 
@@ -312,7 +312,7 @@ makeClassEquation(Class class)
 static status
 ExecuteLess(Equation e)
 { numeric_value vl, vr;
-  
+
   if ( evaluateExpression(LEFTHAND(e), &vl) &&
        evaluateExpression(RIGHTHAND(e), &vr) )
   { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
@@ -332,7 +332,7 @@ ExecuteLess(Equation e)
 static status
 ExecuteLessEqual(Equation e)
 { numeric_value vl, vr;
-  
+
   if ( evaluateExpression(LEFTHAND(e), &vl) &&
        evaluateExpression(RIGHTHAND(e), &vr) )
   { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
@@ -352,7 +352,7 @@ ExecuteLessEqual(Equation e)
 static status
 ExecuteGreater(Equation e)
 { numeric_value vl, vr;
-  
+
   if ( evaluateExpression(LEFTHAND(e), &vl) &&
        evaluateExpression(RIGHTHAND(e), &vr) )
   { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
@@ -372,7 +372,7 @@ ExecuteGreater(Equation e)
 static status
 ExecuteGreaterEqual(Equation e)
 { numeric_value vl, vr;
-  
+
   if ( evaluateExpression(LEFTHAND(e), &vl) &&
        evaluateExpression(RIGHTHAND(e), &vr) )
   { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
@@ -402,7 +402,7 @@ ExecuteGreaterEqual(Equation e)
 #define var_less NULL
 /*
 vardecl var_less[] =
-{ 
+{
 };
 */
 
@@ -418,7 +418,7 @@ static senddecl send_less[] =
 #define get_less NULL
 /*
 static getdecl get_less[] =
-{ 
+{
 };
 */
 
@@ -427,7 +427,7 @@ static getdecl get_less[] =
 #define rc_less NULL
 /*
 static classvardecl rc_less[] =
-{ 
+{
 };
 */
 
@@ -453,7 +453,7 @@ makeClassLess(Class class)
 #define var_lessEqual NULL
 /*
 vardecl var_lessEqual[] =
-{ 
+{
 };
 */
 
@@ -469,7 +469,7 @@ static senddecl send_lessEqual[] =
 #define get_lessEqual NULL
 /*
 static getdecl get_lessEqual[] =
-{ 
+{
 };
 */
 
@@ -478,7 +478,7 @@ static getdecl get_lessEqual[] =
 #define rc_lessEqual NULL
 /*
 static classvardecl rc_lessEqual[] =
-{ 
+{
 };
 */
 
@@ -508,7 +508,7 @@ makeClassLessEqual(Class class)
 #define var_greater NULL
 /*
 vardecl var_greater[] =
-{ 
+{
 };
 */
 
@@ -524,7 +524,7 @@ static senddecl send_greater[] =
 #define get_greater NULL
 /*
 static getdecl get_greater[] =
-{ 
+{
 };
 */
 
@@ -533,7 +533,7 @@ static getdecl get_greater[] =
 #define rc_greater NULL
 /*
 static classvardecl rc_greater[] =
-{ 
+{
 };
 */
 
@@ -563,7 +563,7 @@ makeClassGreater(Class class)
 #define var_greaterEqual NULL
 /*
 vardecl var_greaterEqual[] =
-{ 
+{
 };
 */
 
@@ -579,7 +579,7 @@ static senddecl send_greaterEqual[] =
 #define get_greaterEqual NULL
 /*
 static getdecl get_greaterEqual[] =
-{ 
+{
 };
 */
 
@@ -588,7 +588,7 @@ static getdecl get_greaterEqual[] =
 #define rc_greaterEqual NULL
 /*
 static classvardecl rc_greaterEqual[] =
-{ 
+{
 };
 */
 

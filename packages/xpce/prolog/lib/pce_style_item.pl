@@ -108,7 +108,7 @@ font(SI, Font:[font]) :<-
 	;   get(SI, member, font, FontItem),
 	    get(FontItem, selection, Font)
 	).
-	
+
 icon(SI, Icon:image*) :->
 	get(SI, member, has_icon, Box),
 	get(SI, member, icon, ImageItem),
@@ -126,7 +126,7 @@ icon(SI, Icon:image*) :<-
 	;   get(SI, member, icon, ImageItem),
 	    get(ImageItem, selection, Icon)
 	).
-	
+
 
 selection(SI, Style:style) :->
 	"Set the currently edited style object"::

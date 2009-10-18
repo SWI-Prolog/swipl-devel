@@ -16,12 +16,12 @@ queue_max_size(Max, MaxSize) :-
 	numlist(0, Max, List),
 	thread_join(Reader, true),
 	message_queue_destroy(Q).
-	
+
 send(Q, Term, MaxSize) :-
 	message_queue_property(Q, size(M)),
 	assertion(M =< MaxSize),
 	thread_send_message(Q, Term).
-	  
+
 reader(Q, Sender) :-
 	thread_get_message(Q, T0),
 	collect(T0, Q, List),

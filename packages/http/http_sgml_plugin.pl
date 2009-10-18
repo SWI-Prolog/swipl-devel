@@ -82,7 +82,7 @@ delete_white([H|T0], [H|T]) :-
 
 
 %%	default_markup_type(+MimeType, -ParseOptions)
-%	
+%
 %	State that the HTTP contents should be parsed with
 %	load_structure/3 using the returned options. This predicate may
 %	be hooked using the multifile predicate markup_type/2.
@@ -107,7 +107,7 @@ markup_options(Fields, Opt0, Options) :-
 	).
 
 %%	merge_options(+Defaults, +GivenOptions, -Options)
-%	
+%
 %	If an option is not in GivenOptions, use the one from
 %	Defaults.
 

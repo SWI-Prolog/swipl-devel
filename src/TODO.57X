@@ -1,162 +1,161 @@
 ---+ Planning for kernel revision 5.7.X
 
----++ VMI Restructuring [MOSTLY OK]
+================================================================
+---++ Supervisors
 
-Use a single definition:
-Open ends:
-
-	BEGIN_VMI(Param, ...)
-	{
-	}
-	- VMIs sharing variables.  See BEGIN_SHAREDVARS ... END_SHAREDVARS
-		- Does this harm optimization?
-
-VMI Info:
----++ Supervisor instructions
-
-	Name
-	# args
-	argtype
-	* Type-specific header
-	* Generic header
-		- Type
-		- Size (header and body)
-		- Functions?
-	* Code
-
-Generate:
----+++ Supervisors
-
-	* Table in pl-comp.c
-	* Enum for type `code' (now in pl-inc.h)
-	* GCC-2 Labels in VM switch
-	* Undefined
-	* Foreign
-		- Deterministic
-		- Non-deterministic
+	* Generic
+		- S_VIRGIN (unknow)		[OK]
 	* Dynamic
-		- Thread-local
-		- Normal
+		- Thread-local			[OK, TBD: tests]
+		- Reindex (current autoindex)
+		- All clauses (generation)
+		- Fast lookup (indexed)
+		    - first arg
+		    - multi arg
+		- Hashed (1st argument)
+		    - normal
+		    - unique
+		- Dynamic multi-arg indexing a-la YAP
 	* Static
-		- Generic (current model)
-		- 1 clause
-		- Simple type-switch
-		- Hashed
+	  + Indexing can be `clean'; retract/abolish inserts a
+	    `dirty' supervisor
+		- S_UNDEF (undefined)		[OK]
+		- S_TRUSTME (1 clause)		[OK]
+		- S_LIST ([] and [_|_])		[OK]
+		- All clauses (clean)
+		- Fast lookup (indexed, clean)
+		- Hashed (1st argument)
+			- Normal
 			- Unique
 			- Unique+Var
 			- Var+Unique
+		- Dynamic multi-arg indexing a-la YAP
 
-Loose ends:
-================================================================
----+ Current setup
-
-	- VMIs sharing variables (TBD: Untangle)
-	- Variable sharing in calling variations
-Module:
-	* Table functor -> procedure
-
-Procedure:
-	* -> Definition
-
-Definition:
-	* Module
-	* -> ClauseRefList
-	   | Func
-	   | LocalDefinitions
-
-LocalDefinitions
-	* [Per Thread] -> Definition
-
-ClauseRefList
-	* Linked list of clause_ref
-
-ClauseRef
-	* -> Clause
-
-Clause
-	* -> Procedure
-	* -> Code
-
-VM-Code:
-	* I_CALL <Procedure>
-================================================================
 
 ================================================================
----+ New Setup
+---++ Instruction merging
 
-Demands:
-	* I_CALL must point to
-		- Procedure (fixed from func+module)
-		- recursive: implementation
-	* We must be able to `hot-swap' the implementation
-
-Suppose:
-	* Current `definition' becomes `new supervisor'
-Then
-	- I_CALL: goto proc->definition; [GOOD]
-	- Supervisor will contain meta-data (module, etc).
-		- Swap needs to copy meta-data [OK]
-================================================================
-
-Simple way forward:
-
-	* Keep Definition around and get things out one-by-one?
-	* Create alternative compiler?
-		- I_CALL must be same?
-================================================================
----+ Debugging
-
-	* Debug-mode
-		- Patch VM dispatching?
-		VMI(I_CALL)
-		{ goto *LD->vmi.I_CALL;
-		}
-
-	* Spy: 
-		- Patch code?
-		- Run on top of advice?
+	* List sequences (S = singleton/void)
+		- H_LIST_VS (1st clause, member)
+		Probably not worthwhile
+		- H_LIST_SF (2nd clause, member)
+		- H_LIST_CF (DCG: h --> "x", ...)
+	* If-then-else with simple tests?
+	No need for C_MARK if all before -> is det.
+		- ==
+		- =
+		- =:=, <, >, =<, >=
 
 ================================================================
-Normal Prolog Supervisor:
+---++ Last-call optimization
 
-	* S_FIRSTCLAUSE
-		- Find first possibly interesting clause
-		- If nondet
-			Create choicepoint for next
-		- Jump to clause
-	* S_NEXTCLAUSE
-
-Frame:
-	* Implementation
-	* Clause
-
-================================================================
-Logical update behaviour:
-
-	* Dynamic code: based on created/erased; 
-	* Static code: replace entire supervisor;
-		- Compilation creates new one
-		- At end of def: replace
-		++ Recompilation of running code
-		- Compiler for static code
-			If name/arity == current
-				Add clause
-			else if have-current
-				Install
-		- Multifile/discontiguous/dynamic?
+	* Avoid double copy of arguments to new frame.
+		- Identify args shared with last goal.
+		- If enough, create sequence *before*
+		pushing args.
+		    - if-ndet <goto normal code>
+		    - Tweak args
+		    - Depart
+	* <Tweak args>
+		- Args at the same place (no-op!)
+		- Constants (ground): a normal body pushing
+		- Arg vars
+		- Normal Vars
 
 ================================================================
-Problems:
+---++ Debugging
+
+	* Introduce Quintus-like advice?
+
+================================================================
+---++ Problems:
 
 	* Additional local info?
 		- Profiling (prof-node)
 		- Generation (dynamic code)
 	- Use registers?
-	- Clauses 
 
 ================================================================
-Prolog representation of VM
+---++ Cleanup:
 
-	* Instruction:
-	name(Arg, ...)
-	* Branching: c_or(Left, Right)
+	- Associate all special conditions under one test (LD->alerted):
+		- Profiling		[OK]
+		- Debugging		[OK]
+		- Signalled		[OK]
+		- OutOfStack		[OK]
+		- GC requested		[OK]
+		- Coroutining wakeup	[OK]
+
+================================================================
+---++ Meta predicates:
+
+	- Fast module:callable calls	[OK]
+		- Resolve to target
+		- Set context to <module>
+		- I_CALLM <m> <pred>
+	- Proper :- meta_predicate directive implementation
+		- Use transparent
+		- Mark meta-arguments (part of supervisor)
+			- S_META <N>
+		- Reset context to definition module.
+		- Can we `chain' supervisors?  I.e.:
+			S_META <n>, S_LASTMETA <n>, S_VIRGIN
+
+================================================================
+---++ Testing and debugging:
+
+ * Verify clear/mark of all new instructions.  This can be done
+ using a generic testing framework that creates clause and an
+ explicit GC goal.
+
+ * Realise a testing framework for the debugger, indicating what
+ must be visible in the trace.  This can be done using the
+ trace interception hook.
+
+ * Realise a testing framework to locate positions in clauses as
+ needed by the graphical debugger.	[OK]
+
+ * Integrate supervisor generation such that it is called as generated
+ to avoid unnecessary choicepoints.
+
+================================================================
+---++ bench_peirera(1) on 5.6.59
+	- using pl -O -g bench_peirera
+	- AMD Athlon X2/5400+, gcc -O3
+----------------------------------------------------------------
+tail_call_atom_atom    took 1.05-0.13=0.92/145946 =      6.3 usec/iter.
+binary_call_atom_atom  took 1.04-0.08=0.96/94737 =      10.1 usec/iter.
+cons_list              took 1.00-0.09=0.91/91525 =       9.9 usec/iter.
+walk_list              took 1.12-0.12=1.00/122727 =      8.1 usec/iter.
+walk_list_rec          took 1.14-0.12=1.02/125581 =      8.1 usec/iter.
+args(1)                took 1.11-0.11=1.00/120000 =      8.3 usec/iter.
+args(2)                took 1.08-0.08=1.00/81818 =      12.2 usec/iter.
+args(4)                took 1.11-0.05=1.06/54545 =      19.4 usec/iter.
+args(8)                took 1.05-0.03=1.02/33333 =      30.6 usec/iter.
+args(16)               took 1.05-0.02=1.03/19355 =      53.2 usec/iter.
+cons_term              took 1.04-0.08=0.96/84375 =      11.4 usec/iter.
+walk_term              took 1.08-0.11=0.97/110204 =      8.8 usec/iter.
+walk_term_rec          took 1.15-0.12=1.03/122727 =      8.4 usec/iter.
+shallow_backtracking   took 1.48-0.47=1.01/415385 =      2.4 usec/iter.
+deep_backtracking      took 1.05-0.07=0.98/59341 =      16.5 usec/iter.
+choice_point           took 1.15-0.11=1.04/94737 =      11.0 usec/iter.
+trail_variables        took 1.06-0.10=0.96/87097 =      11.0 usec/iter.
+medium_unify           took 1.68-0.75=0.93/771429 =      1.2 usec/iter.
+deep_unify             took 1.21-0.23=0.98/235161 =      4.2 usec/iter.
+integer_add            took 0.99-0.05=0.94/49091 =      19.1 usec/iter.
+floating_add           took 0.97-0.04=0.93/40909 =      22.7 usec/iter.
+arg(1)                 took 1.04-0.04=1.00/40000 =      25.0 usec/iter.
+arg(2)                 took 1.06-0.04=1.02/40909 =      24.9 usec/iter.
+arg(4)                 took 0.97-0.03=0.94/37500 =      25.1 usec/iter.
+arg(8)                 took 0.98-0.04=0.94/38217 =      24.6 usec/iter.
+arg(16)                took 0.99-0.04=0.95/38298 =      24.8 usec/iter.
+index                  took 1.18-0.09=1.09/100000 =     10.9 usec/iter.
+assert_unit            took 1.09-0.00=1.09/1525 =      714.8 usec/iter.
+access_unit            took 1.05-0.02=1.03/26471 =      38.9 usec/iter.
+slow_access_unit       took 0.96-0.00=0.96/1607 =      597.4 usec/iter.
+setof                  took 1.02-0.01=1.01/7692 =      131.3 usec/iter.
+pair_setof             took 1.00-0.00=1.00/6522 =      153.3 usec/iter.
+double_setof           took 0.98-0.01=0.97/1837 =      528.0 usec/iter.
+bagof                  took 1.02-0.00=1.02/10112 =     100.9 usec/iter.
+================================================================
+

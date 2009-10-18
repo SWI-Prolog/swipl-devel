@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        J.Wielemaker@uva.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -47,10 +47,9 @@ reexports the content of these files.
 	  [ new/2, free/1,		% pce_principal predicates
 
 	    send/2, send/3, send/4, send/5, send/6, send/7,
-	    send/8, send/9, send/10, send/11, send/12,
+	    send/8,
 
 	    get/3, get/4, get/5, get/6, get/7, get/8,
-	    get/9, get/10, get/11, get/12, get/13,
 
 	    send_class/3,
 	    get_class/4,
@@ -79,7 +78,11 @@ reexports the content of these files.
 	    pce_call/1,			% :Goal
 	    in_pce_thread/1,		% :Goal
 
-	    pce_welcome/0
+	    pce_welcome/0,
+
+	    op(200, fy,  @),
+	    op(250, yfx, ?),
+	    op(990, xfx, :=)
 	  ]).
 
 :- system_module.
@@ -118,7 +121,7 @@ set_version :-
 	send(@prolog, system, PlId).
 
 :- initialization set_version.
-   
+
 get_pce_version :-
 	(   current_prolog_flag(xpce_version, _)
 	->  true
@@ -186,23 +189,23 @@ prolog:locate_clauses(Term, Refs) :-
 
 match_id(->(Class, Method), Id) :-
 	atomic(Class), atomic(Method), !,
-	concat_atom([Class, (->), Method], Id).
+	atomic_list_concat([Class, (->), Method], Id).
 match_id(->(_Class, _Method), _Id).
 match_id(<-(Class, Method), Id) :-
 	atomic(Class), atomic(Method), !,
-	concat_atom([Class, (<-), Method], Id).
+	atomic_list_concat([Class, (<-), Method], Id).
 match_id(<-(_Class, _Method), _Id).
 
 method_clause(->(Class, Send), Ref) :-
 	match_id((Class->Send), Id),
 	clause(pce_principal:send_implementation(Id, _M, _O), _B, Ref),
 	atom(Id),
-	concat_atom([Class,Send], '->', Id).
+	atomic_list_concat([Class,Send], '->', Id).
 method_clause(<-(Class, Get), Ref) :-
 	match_id(<-(Class, Get), Id),
 	clause(pce_principal:get_implementation(Id, _M, _O, _R), _B, Ref),
 	atom(Id),
-	concat_atom([Class,Get], '->', Id).
+	atomic_list_concat([Class,Get], '->', Id).
 
 
 		/********************************

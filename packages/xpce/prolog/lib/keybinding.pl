@@ -34,7 +34,7 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ auto_call/1
-	   , concat_atom/2
+	   , atomic_list_concat/2
 	   , portray_object/2
 	   , send_list/3
 	   , term_to_atom/2
@@ -163,9 +163,9 @@ new_leader(_, '', 'Local') :- !.
 new_leader(Table, Leader, NewLeader) :-
 	get(Table, name, Name),
 	Name \== @nil,
-	concat_atom([Leader, /, Name], NewLeader).
+	atomic_list_concat([Leader, /, Name], NewLeader).
 new_leader(_, Leader, NewLeader) :-
-	concat_atom([Leader, /, anonymous], NewLeader).
+	atomic_list_concat([Leader, /, anonymous], NewLeader).
 
 
 display_binding(Editor, Key, Function, Pattern, View) :-
@@ -219,4 +219,4 @@ reserved_binding(keyboard_quit,		'Abort current sequence').
 reserved_binding(prefix,		'Prefix for multikey command').
 reserved_binding(digit_argument,	'Construct numeric argument').
 reserved_binding(universal_argument,	'Start numeric argument').
-	
+

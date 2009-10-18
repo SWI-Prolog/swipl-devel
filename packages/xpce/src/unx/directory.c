@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
-          
+
 #if HAVE_DIRENT_H
 # include <dirent.h>
 # define NAMLEN(dirent) strlen((dirent)->d_name)
@@ -196,7 +196,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
   if ( notDefault(pattern) )
   { if ( getFeatureClass(ClassFile, NAME_caseSensitive) == OFF )
       ignoreCaseRegex(pattern, ON);
-  } 
+  }
 
   if ( files != dirs )
   { TRY(pushDirectory(d));
@@ -247,7 +247,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
       return errorPce(d, NAME_readDirectory, getOsErrorPce(PCE));
     for (dp=readdir(dirp); dp!=NULL; dp=readdir(dirp))
     { char *name = dp->d_name;
-      
+
       if ( notDefault(pattern) )
       { CharArray ca = CtoScratchCharArray(name);
 					/* TBD: UNICODE */
@@ -334,7 +334,7 @@ getRootsDirectory(Directory dir)
 #else
   appendChain(ch, CtoName("/"));
 #endif
-  
+
   answer(ch);
 }
 
@@ -413,7 +413,7 @@ accessDirectory(Directory d, Name mode)
     m = R_OK;
   else /*if ( mode == NAME_write )*/
     m = W_OK;
-  
+
   if ( access(nameToFN(d->path), m) == 0 )
     succeed;
 
@@ -431,7 +431,7 @@ changedDirectory(Directory d)
   if ( d->modified == MODIFIED_NOT_SET )
   { d->modified = buf.st_mtime;
     fail;
-  } 
+  }
   if ( buf.st_mtime > d->modified )
   { d->modified = buf.st_mtime;
     succeed;
@@ -529,7 +529,7 @@ static getdecl get_directory[] =
 #define rc_directory NULL
 /*
 static classvardecl rc_directory[] =
-{ 
+{
 };
 */
 
@@ -644,7 +644,7 @@ dirName(const char *f, char *dir, size_t dirlen)
     { strncpy(dir, f, base-f);
       dir[base-f] = EOS;
     }
-  
+
 #ifdef O_XOS
     if ( isalpha(dir[0]) && dir[1] == ':' && dir[2] == EOS )
     { dir[2] = '/';
@@ -654,7 +654,7 @@ dirName(const char *f, char *dir, size_t dirlen)
 
     return dir;
   }
-  
+
   return NULL;
 }
 
@@ -722,7 +722,7 @@ getWorkingDirectoryPce(Pce pce)
 #endif
 
   return FNToName(CWDdir);
-} 
+}
 
 
 
@@ -747,9 +747,9 @@ absolutePath(const char *file, char *path, size_t buflen)
 
 int
 absolutePath(const char *file, char *path, size_t buflen)
-{ if ( !file ) 
+{ if ( !file )
     return -1;				/* propagate error */
-  
+
   if ( !isAbsolutePath(file) )
   { Name cwd;
     const char *ucwd;
@@ -793,7 +793,7 @@ takeWord(const wchar_t *s)
   while( *s && (iswalnum(*s) || *s == '_') )
   { n++, s++;
   }
-  
+
   return n;
 }
 
@@ -847,13 +847,13 @@ expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
 	if ( !myhome)
 	  myhome = CtoName("/");
       }
-	
+
       value = charArrayToWC((CharArray)myhome, NULL);
     } else				/* ~fred */
 #ifdef HAVE_GETPWNAM
     { struct passwd *pwent;
       Name user;
-      
+
       user = WCToName(s, l);
 
       if ( fred != user )
@@ -865,7 +865,7 @@ expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
 	fredLogin = MBToName(pwent->pw_dir);
       }
       value = charArrayToWC((CharArray)fredLogin, NULL);
-    }	  
+    }
 #else
     { ExpandProblem = CtoName("Unknown user");
       return -1;

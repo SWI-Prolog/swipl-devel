@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@scienc.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -46,7 +46,7 @@
 %
 %	Translate a message Term into message lines. The produced lines
 %	is a list of
-%	
+%
 %	    * nl
 %	    Emit a newline
 %	    * Fmt-Args
@@ -216,7 +216,7 @@ swi_message(limit_exceeded(Limit, MaxVal)) -->
 	[ 'Exceeded ~w limit (~w)'-[Limit, MaxVal] ].
 swi_message(goal_failed(Goal)) -->
 	[ 'goal unexpectedly failed: ~p'-[Goal] ].
-swi_message(shared_object(_Action, Message)) --> % Message = dlerror() 
+swi_message(shared_object(_Action, Message)) --> % Message = dlerror()
 	[ '~w'-[Message] ].
 swi_message(system_error(Error)) -->
 	[ 'error in system call: ~w'-[Error]
@@ -298,9 +298,21 @@ swi_extra(_) -->
 		 *	  NORMAL MESSAGES	*
 		 *******************************/
 
-prolog_message(initialization_exception(Goal, E)) -->
+prolog_message(initialization_error(_, E, File:Line)) --> !,
+	[ '~w:~d: '-[File, Line],
+	  'Initialization goal raised exception:', nl
+	],
+	translate_message(E).
+prolog_message(initialization_error(Goal, E, _)) -->
 	[ 'Initialization goal ~p raised exception:'-[Goal], nl ],
 	translate_message(E).
+prolog_message(initialization_failure(_Goal, File:Line)) --> !,
+	[ '~w:~d: '-[File, Line],
+	  'Initialization goal failed'-[]
+	].
+prolog_message(initialization_failure(Goal, _)) -->
+	[ 'Initialization goal failed: ~p'-[Goal]
+	].
 prolog_message(initialization_exception(E)) -->
 	[ 'Prolog initialisation failed:', nl ],
 	translate_message(E).
@@ -386,7 +398,7 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
-	[ 'Undefined procedure: ~p'-[Pred], nl, 
+	[ 'Undefined procedure: ~p'-[Pred], nl,
 	  '    However, there are definitions for:', nl
 	],
 	dwim_message(Alternatives).
@@ -410,7 +422,7 @@ used_search([]) -->
 used_search([Alias=Expanded|T]) -->
 	[ '        file_search_path(~p, ~p)'-[Alias, Expanded], nl ],
 	used_search(T).
-	
+
 load_file(file(Spec, _Path)) -->
 	(   {atomic(Spec)}
 	->  [ '~w'-[Spec] ]
@@ -522,7 +534,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2008 University of Amsterdam.', nl,
+	[ 'Copyright (c) 1990-2009 University of Amsterdam.', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'
@@ -571,19 +583,15 @@ query_result(yes([])) --> !,	% prompt_alternatives_on: groundness
 	[ 'true.'-[] ],
 	extra_line.
 query_result(yes(Residuals)) -->
-	residuals(Residuals),
+	result([], Residuals),
 	extra_line.
 query_result(done) -->		% user typed <CR>
 	extra_line.
 query_result(yes(Bindings, Residuals)) -->
-	bindings(Bindings),
-	bind_res_sep(Bindings, Residuals),
-	residuals(Residuals),
+	result(Bindings, Residuals),
 	prompt(yes, Bindings, Residuals).
 query_result(more(Bindings, Residuals)) -->
-	bindings(Bindings),
-	bind_res_sep(Bindings, Residuals),
-	residuals(Residuals),
+	result(Bindings, Residuals),
 	prompt(more, Bindings, Residuals).
 query_result(help) -->
 	[ nl, 'Actions:'-[], nl, nl,
@@ -618,30 +626,32 @@ prompt(more, empty) --> !,
 prompt(more, _) --> !,
 	[ ' '-[], flush ].
 
-bindings([]) -->
-	[].
-bindings([Name = Value|T]) -->
-	{ current_prolog_flag(toplevel_print_options, Options),
-	  (   T == []
-	  ->  Cont = ''
-	  ;   Cont = (,)
-	  )
+result(Bindings, Residuals) -->
+	{ current_prolog_flag(toplevel_print_options, Options0),
+	  Options = [partial(true)|Options0]
 	},
-	[ '~w = ~W~a'-[Name, Value, [partial(true)|Options], Cont] ],
-	(   {T == []}
-	->  []
-	;   [nl]
-	),
-	bindings(T).
+	bindings(Bindings, [priority(699)|Options]),
+	bind_res_sep(Bindings, Residuals),
+	residuals(Residuals, [priority(999)|Options]).
 
-residuals([]) --> !, [].
-residuals([G|Gs]) -->
-	(   { Gs \== [] }
-	->  [ '~q,'-[G], nl ],
-	    residuals(Gs)
-	;   [ '~q'-[G] ]
+bindings([], _) -->
+	[].
+bindings([Name = Value|T], Options) -->
+	(   { T \== [] }
+	->  [ '~w = ~W,'-[Name, Value, Options], nl ],
+	    bindings(T, Options)
+	;   [ '~w = ~W'-[Name, Value, Options] ]
 	).
-	
+
+residuals([], _) -->
+	[].
+residuals([G|Gs], Options) -->
+	(   { Gs \== [] }
+	->  [ '~W,'-[G, Options], nl ],
+	    residuals(Gs, Options)
+	;   [ '~W'-[G, Options] ]
+	).
+
 bind_res_sep(_, []) --> !,
 	[].
 bind_res_sep([], _) --> !,
@@ -666,16 +676,16 @@ prolog_message(no_action(Char)) -->
 	[ 'Unknown action: ~c (h for help)'-[Char], nl ].
 
 prolog_message(history(help(Show, Help))) -->
-	[ 'History Commands:', nl, 
-	  '    !!.              Repeat last query', nl, 
-	  '    !nr.             Repeat query numbered <nr>', nl, 
-	  '    !str.            Repeat last query starting with <str>', nl, 
-	  '    !?str.           Repeat last query holding <str>', nl, 
-	  '    ^old^new.        Substitute <old> into <new> of last query', nl, 
-	  '    !nr^old^new.     Substitute in query numbered <nr>', nl, 
-	  '    !str^old^new.    Substitute in query starting with <str>', nl, 
-	  '    !?str^old^new.   Substitute in query holding <str>', nl, 
-	  '    ~w.~21|Show history list'-[Show], nl, 
+	[ 'History Commands:', nl,
+	  '    !!.              Repeat last query', nl,
+	  '    !nr.             Repeat query numbered <nr>', nl,
+	  '    !str.            Repeat last query starting with <str>', nl,
+	  '    !?str.           Repeat last query holding <str>', nl,
+	  '    ^old^new.        Substitute <old> into <new> of last query', nl,
+	  '    !nr^old^new.     Substitute in query numbered <nr>', nl,
+	  '    !str^old^new.    Substitute in query starting with <str>', nl,
+	  '    !?str^old^new.   Substitute in query holding <str>', nl,
+	  '    ~w.~21|Show history list'-[Show], nl,
 	  '    ~w.~21|Show this list'-[Help], nl, nl
 	].
 prolog_message(history(no_event)) -->
@@ -813,7 +823,7 @@ frame_flags(Frame) -->
 	  )
 	},
 	[ '~w~w '-[T, S] ].
-	  
+
 port(Port) -->
 	{ port_name(Port, Name)
 	}, !,
@@ -854,6 +864,7 @@ prolog_message(abnormal_thread_completion(Goal, fail)) -->
 	[ 'Thread running "~p" died due to failure'-[Goal] ].
 prolog_message(threads_not_died(Count)) -->
 	[ '~D threads wouldn\'t die'-[Count] ].
+
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*
@@ -909,7 +920,7 @@ print_system_message(_, Level, Lines) :-
 	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
-	
+
 prefix(error,	      'ERROR: ~w:~d:~n',   '\t', '', 0.5, user_error).
 prefix(warning,	      'Warning: ~w:~d:~n', '\t', '', 0,   user_error).
 
@@ -920,13 +931,13 @@ prefix(warning,	      Prefix,      user_error) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = 'Warning: '
-	;   concat_atom(['Warning: [Thread ', Id, '] '], Prefix)
+	;   atomic_list_concat(['Warning: [Thread ', Id, '] '], Prefix)
 	).
 prefix(error,	      Prefix,   user_error) :-
 	thread_self(Id),
 	(   Id == main
 	->  Prefix = 'ERROR: '
-	;   concat_atom(['ERROR: [Thread ', Id, '] '], Prefix)
+	;   atomic_list_concat(['ERROR: [Thread ', Id, '] '], Prefix)
 	).
 prefix(banner,	      '',	   user_error).
 prefix(informational, '% ',        user_error).
@@ -999,13 +1010,13 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 	printed/2.
 
 %	print_once(Message, Level)
-%	
+%
 %	True for messages that must be printed only once.
 
 print_once(compatibility(_), _).
 
 %	must_print(+Level, +Message)
-%	
+%
 %	True if the message must be printed.
 
 must_print(Level, Message) :-
@@ -1014,4 +1025,4 @@ must_print(Level, Message) :-
 	\+ printed(Message, Level),
 	assert(printed(Message, Level)).
 must_print(_, _).
-	
+

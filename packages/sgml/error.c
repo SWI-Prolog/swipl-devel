@@ -43,7 +43,7 @@ sgml2pl_error(plerrorid id, ...)
   switch(id)
   { case ERR_ERRNO:
     { int err = va_arg(args, int);
-      
+
       msg = strerror(err);
 
       switch(err)
@@ -142,7 +142,7 @@ sgml2pl_error(plerrorid id, ...)
 
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
-      
+
       PL_unify_term(formal,
 		    PL_FUNCTOR_CHARS, "miscellaneous", 1,
 		      PL_CHARS, id);

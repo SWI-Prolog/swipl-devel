@@ -68,7 +68,7 @@ ml_file(sgml).
 ml_file(html).
 
 %%	blocked(+File)
-%	
+%
 %	List of test-files that are blocked.  These are either negative
 %	tests or tests involving SDATA.
 
@@ -140,12 +140,12 @@ cat(File, Encoding) :-
 	open(File, read, In, [encoding(Encoding)]),
 	copy_stream_data(In, current_output),
 	close(In).
-	
+
 %	eq(M1, M2)
-%	
+%
 %	Test two terms for equivalence.  The following mismatches are
 %	allowed:
-%	
+%
 %		* Order of attributes
 %		* Layout in `element-only' content
 

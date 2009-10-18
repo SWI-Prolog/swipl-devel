@@ -27,7 +27,7 @@
 /* FN will include the following names from this comment.  Donot remove
    it!
 
-NAME_northWest 
+NAME_northWest
 NAME_southWest
 NAME_northEast
 NAME_southEast
@@ -77,7 +77,7 @@ intersectionArea(Area a, Area b)
 { int x, y, w, h;
   Name orientation;
 
-  InitAreaA;	
+  InitAreaA;
   InitAreaB;
 
   orientation = OrientationArea(aw, ah);
@@ -532,7 +532,7 @@ orientationArea(Area a, Name orientation)
 { InitAreaA;
   OrientateArea(ax, ay, aw, ah, orientation);
   ExitAreaA;
-	  
+
   succeed;
 }
 
@@ -832,7 +832,7 @@ static getdecl get_area[] =
 #define rc_area NULL
 /*
 static classvardecl rc_area[] =
-{ 
+{
 };
 */
 

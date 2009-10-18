@@ -202,7 +202,7 @@ static getdecl get_joint[] =
 #define rc_joint NULL
 /*
 static classvardecl rc_joint[] =
-{ 
+{
 };
 */
 

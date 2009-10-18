@@ -14,7 +14,7 @@
 
 void
 ws_flush_display(DisplayObj d)
-{ 
+{
 }
 
 
@@ -206,7 +206,7 @@ static void
 init_area_enter_exit_handling(DisplayObj d)
 { Name dllname;
   FARPROC hookf;
-  
+
   if ( isName(dllname = getResourceValueObject(d, NAME_whMouseDll)) )
   { HINSTANCE hlib;
 
@@ -227,7 +227,7 @@ init_area_enter_exit_handling(DisplayObj d)
       return;
     } else
       errorPce(d, NAME_failedToLoadDll, dllname, toInt(hlib));
-  } 
+  }
 
   if ( isDefault(dllname) )
   { if ( !(hookf = MakeProcInstance(xpce_mouse_hook, PceHInstance)) )
@@ -235,7 +235,7 @@ init_area_enter_exit_handling(DisplayObj d)
     if ( !(defhook = SetWindowsHookEx(WH_MOUSE, hookf, PceHInstance,
 				      GetCurrentTask())) )
       sysPce("Failed to install xpce_mouse_hook()");
-    
+
     atexit(unhook_xpce_mouse_hook);
   }
 }
@@ -365,7 +365,7 @@ ws_get_cutbuffer(DisplayObj d, int n)
     }
     CloseClipboard();
 
-    return rval; 
+    return rval;
   }
 
   Cprintf("Cannot access cut-buffers other than 0\n");
@@ -394,7 +394,7 @@ ws_get_selection(DisplayObj d, Name which, Name target)
 static void
 ws_renderall()
 { HWND hwnd = rlc_hwnd();
-  
+
   OpenClipboard(hwnd);
   EmptyClipboard();
   CloseClipboard();
@@ -442,7 +442,7 @@ ws_provide_selection(int format)
 status
 ws_own_selection(DisplayObj d, Name selection)
 { HWND hwnd = rlc_hwnd();
-  
+
   OpenClipboard(hwnd);
   EmptyClipboard();
   SetClipboardData(CF_TEXT, NULL);
@@ -481,7 +481,7 @@ ws_postscript_display(DisplayObj d)
   d_hdc(hdc, DEFAULT, DEFAULT);
   postscriptDrawable(0, 0, w, h);
   d_done();
-  
+
   succeed;
 }
 
@@ -559,7 +559,7 @@ load_resource_file(char *file)
 	  s++;
 	  continue;
 	}
-	  
+
 	if ( *s == '.' )		/* field separator */
 	{ s++;
 	  continue;
@@ -605,13 +605,13 @@ load_resource_file(char *file)
 		goto out;
 	      }
 	      s = line;
-	      
+
 	      continue;
 	    }
 
 	    break;
 	  }
-	  
+
 	  str_set_n_ascii(&str, size, buf);
 	  value = StringToString(&str);
 	  DEBUG(NAME_resource, Cprintf("Value = %s\n", pp(value)));

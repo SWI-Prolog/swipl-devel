@@ -1,0 +1,149 @@
+---+ Transparent Inter-Process Communications (TIPC)
+
+These pages are not intended as a   comprehensive tutorial in the use of
+TIPC      services.      The       TIPC        Programmer's       Guide,
+<http://tipc.sf.net/doc/Programmers_Guide.txt>, provides assistance   to
+developers who are creating applications that utilize TIPC services. The
+TIPC User's Guide, <http://tipc.sf.net/doc/Users_Guide.txt>, provides an
+administrator of a TIPC cluster with   the information needed to operate
+one. A TIPC server loadable module, that  may   be  used  to make a host
+available as a TIPC enabled node, has been   a  part of the Linux kernel
+since 2.6.16. Please see: <http://tipc.sf.net>
+
+---++ Overview
+
+In a TIPC network, a Node is   comprised  of a collection of lightweight
+threads of execution operating  in  the   same  process,  or heavyweight
+processes operating on the same machine. A   Cluster  is a collection of
+Nodes operating on different machines, and   operating indirectly by way
+of a local Ethernet or other networking  medium. Clusters may be further
+aggregated into Zones, and Zones into Networks. The address space of two
+TIPC networks is completely disjoint. Zones   on  different networks may
+coexist on the same LAN but they   may not communicate directly with one
+another. 
+
+TIPC  provides  connectionless,  connection-oriented,    reliable,   and
+unreliable forwarding strategies for both   stream  and message oriented
+applications. But not all strategies can   be used in every application.
+For example, there is no such  thing   as  a  multicast byte stream. The
+strategy is selected by the user for  the application when the socket is
+instantiated. 
+
+TIPC is not TCP/IP based. Consequently, it  cannot signal beyond a local
+network span without some kind of  tunneling mechanism. TIPC is designed
+to facilitate deployment of  distributed   applications,  where  certain
+aspects of the application may be  segregated, and then delegated and/or
+duplicated over several machines on  the   same  LAN. The application is
+unaware of the topology of the network on  which it is running. It could
+be a few threads  operating  in   the  same  process,  several processes
+operating on the same machine, or it could be dozens or even hundreds of
+machines operating on the same LAN, all operating as a unit. TIPC
+manages all of this complexity so that the programmer doesn't have to. 
+
+Unlike TCP/IP, TIPC  does  not  assign   network  addresses  to  network
+interfaces; it assigns addresses (e.g. port-ids)   to  sockets when they
+are instantiated. The address is unique and persists only as long as the
+socket persists. A single Node therefore,   may typically have many TIPC
+addresses active at any one time,  each   assigned  to an active socket.
+TIPC also provides a means that a process can  use to bind a socket to a
+well-known address (e.g. a service). Several peers  may bind to the same
+well-known address, thereby enabling multi-server topologies. And server
+members may exist anywhere in the Zone. TIPC manages the distribution
+of client requests among the membership of   the  server group. A server
+instance responds to two addresses: its   public well-known address that
+it is bound to, and that a client   may use to establish a communication
+with a service, and its private address that the server instance may use
+to directly interact with a client instance. 
+
+TIPC also enables multicast and  "publish   and  subscribe" regimes that
+applications may use to facilitate   asynchronous  exchange of datagrams
+with a number of anonymous sources that may   come and go over time. One
+such regime is implemented as a naming  service managed by a distributed
+topology server. The  topology  server   provides  surveillance  on  the
+comings and goings of publishers, with  advice to interested subscribers
+in the form of event notifications,   emitted  when a publisher's status
+changes. For example, when a server application  binds to a TIPC address
+, that address is automatically associated  with that server instance in
+topology server's name table. This has  the   side  effect  of causing a
+"published"  event  to  be  emitted    to  all  interested  subscribers.
+Conversely, when the server's socket  is  closed   or  when  one  of its
+addresses is released using the  "no-scope"   option  of  tipc_bind/3, a
+"withdrawn" event is emitted. See tipc_service_port_monitor/2. 
+
+A client application may connect to  the   topology  server  in order to
+interrogate the name table to determine  whether   or  not  a service is
+present before actually committing to access it. See
+tipc_service_exists/2 and tipc_service_probe/2. Another way that the
+topology server can be applied is exemplified in Erlang's
+"worker/supervisor" behavioral pattern. A supervisor thread has no other
+purpose than to monitor a collection of worker threads in order to
+ensure that a service is available and able to serve a common goal. When
+a worker under the supervisor's care dies, the supervisor receives the
+worker's "withdrawn" event, and takes some action to instantiate a
+replacement. The predicate, tipc_service_port_monitor/2, is provided
+specifically for this purpose. Using the service is optional. It has
+applications in distributed, high-availability, fault-tolerant,
+and non-stop systems. 
+
+Adding capacity to a cluster becomes  an administrative function whereby
+new server hardware is  added  to  a   TIPC  network,  then  the desired
+application is launched on the new server. The application binds to
+its well-known address, thereby joining in the Cluster. TIPC will
+automatically begin sending work to it. An administrator has tools for
+gracefully removing a server from a Cluster, without effecting the
+traffic moving on the Cluster.
+
+An administrator may configure a  Node  to   have  two  or  more network
+interfaces. Provided that each interface is invisible to the other, TIPC
+will manage them as a redundant   group,  thus enabling high-reliability
+network features such as automatic link fail-over and hot-swap.
+
+---++ TIPC Address Structures
+
+    * name(+Type, +Instance, +Domain)
+    A TIPC name address is used by   servers  to advertise themselves as
+    services in unicast applications, and is  used by clients to connect
+    to unicast services. Type, Instance, and Domain are positive
+    integers that are unique to a service.
+    
+    * name_seq(+Type, +Lower, +Upper)
+    A TIPC name-sequence address is used by servers to advertise
+    themselves as services in multicast and "publish and subscribe"
+    applications. Lower and Upper represent a range of instance
+    addresses. Each server will receive exactly one datagram from a
+    client that sends a name-sequence address that matches the server's
+    Type, and where its Lower and Upper instance range intersects the
+    Lower and Upper instance range bound to the server. Clients may send
+    a datagram to any and all interested servers by providing an
+    appropriate name-sequence address to tipc_send/4. 
+    
+    * port_id(+Ref, +Node)
+    A TIPC port-id is the socket's private   address. It is ephemeral in
+    nature. It persists only as long   as  the socket instance persists.
+    Port ids are generally provided  to applications via tipc_receive/4.
+    An application may discover  its  own   port_id  for  a socket using
+    tipc_get_name/2. Generally, others cannot discover  the port-id of a
+    socket, except by receiving messages originated   from  it. A server
+    responds to a client by providing the received port-id as the sender
+    address in a reply message.  The   client  will receive the server's
+    port-id via his own tipc_receive/4.  The   client  can then interact
+    with a specific server  instance  without   having  to  perform  any
+    additional  address  resolution.  The  client    simply   sends  all
+    subsequent messages related to a specific  transaction to the server
+    instance using the port-id received from the server in its replies.
+    
+    Sometimes the socket's port-id  alone  is   enough  to  establish an
+    ad-hoc session anonymously between parent   and child processes. The
+    parent instantiates a socket, then  forks   into  two processes. The
+    child retrieves the port-id of the parent from the socket inherited
+    from the parent using tipc_get_name/2, then closes the socket and
+    instantiates a socket of its own. The child sends a message to the
+    parent, on its own socket, using the parent's port-id as the
+    destination address. The port-id received by the parent is unique to
+    a specific instance of child. The handshake is complete; each side
+    knows who the other is, and two-way communication may now proceed. A
+    one-way communication (e.g. a message oriented pipe or mailbox) is
+    also possible using only the socket inherited from the parent,
+    provided that there is exactly one sender and one receiver on the
+    socket. Both parent and child use the socket's own port-id, one side
+    adopts the role of sender, and the other of receiver.

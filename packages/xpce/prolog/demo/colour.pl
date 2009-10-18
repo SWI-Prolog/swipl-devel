@@ -144,7 +144,7 @@ append_colour(CB, Name, RGB) :-
 	G is (RGB >> 8) /\ 255,
 	R is (RGB /\ 255),
 	send(CB, append, string('%s\t%d\t%d\t%d', Name, R, G, B)).
-	
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A colour was selected.  Change the colour attribute of the picture window.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

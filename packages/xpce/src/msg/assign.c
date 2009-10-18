@@ -84,7 +84,7 @@ static senddecl send_assign[] =
 #define get_assign NULL
 /*
 static getdecl get_assign[] =
-{ 
+{
 };
 */
 
@@ -93,7 +93,7 @@ static getdecl get_assign[] =
 #define rc_assign NULL
 /*
 static classvardecl rc_assign[] =
-{ 
+{
 };
 */
 

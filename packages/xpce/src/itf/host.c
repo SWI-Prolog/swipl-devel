@@ -48,7 +48,7 @@ callHostv(Host host, Name selector, int argc, Any *argv)
       addCodeReference(argv[n]);
 
   rval = hostSend(host, selector, argc, argv);
-  
+
   for(n=0; n<argc; n++)
     if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
       delCodeReference(argv[n]);
@@ -107,7 +107,7 @@ getCatchAllHostv(Host h, Name selector, int argc, Any *argv)
   { errorPce(h, NAME_noCallBack);
     fail;
   }
-  
+
   if ( !(rval = getCallHostv(h, selector, argc, argv)) &&
         PCE->last_error == NAME_noBehaviour )
     assign(PCE, last_error, NIL);
@@ -193,7 +193,7 @@ static getdecl get_host[] =
 #define rc_host NULL
 /*
 static classvardecl rc_host[] =
-{ 
+{
 };
 */
 

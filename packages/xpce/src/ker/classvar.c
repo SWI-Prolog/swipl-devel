@@ -63,7 +63,7 @@ contextClassVariable(ClassVariable cv, Class context)
     if ( isDefault(cv->type) )
       assign(cv, type, var ? var->type : TypeAny);
   }
-  
+
   succeed;
 }
 
@@ -93,10 +93,10 @@ convertFunctionRequiresName(Type t)
 { if ( t->kind == NAME_class )
   { Class cl = t->context;
     GetMethod m = getGetMethodClass(cl, NAME_convert);
-    
+
     if ( m && m->types->size == ONE )
     { Type at = m->types->elements[0];
-    
+
       if ( at == TypeName || at->kind == NAME_nameOf )
 	succeed;
     }
@@ -110,7 +110,7 @@ static struct TAGop
 { char *name;
   int  priority;
   Name kind;
-} operators[] = 
+} operators[] =
 { { "?",    150, NAME_yfx},
   { ":=",   990, NAME_xfx},
   { "@=",   990, NAME_xfx},
@@ -139,9 +139,9 @@ TheObjectParser()
   { SyntaxTable  st = newObject(ClassSyntaxTable, EAV);
     Tokeniser     t = newObject(ClassTokeniser, st, EAV);
     struct TAGop *o = operators;
- 
+
     p = globalObject(NAME_objectParser, ClassParser, t, EAV);
-    
+
     send(p, NAME_active, CtoName("@"),
 	 newObject(ClassObtain, PCE, NAME_objectFromReference,
 		   newObject(ClassObtain, RECEIVER, NAME_token, EAV),
@@ -267,7 +267,7 @@ getValueClassVariable(ClassVariable cv)
     if ( str )
       doneObject(str);
   }
-  
+
   answer(cv->value);
 }
 
@@ -339,10 +339,10 @@ getClassVariableClass(Class class, Name name)
     assign(class, class_variable_table, newObject(ClassHashTable, EAV));
   else if ( (cv=getMemberHashTable(class->class_variable_table, name)) )
     answer(cv);
- 
+
   for_cell(cell, class->class_variables)
   { cv = cell->value;
-    
+
     if ( cv->name == name )
     { appendHashTable(class->class_variable_table, name, cv);
       answer(cv);
@@ -358,7 +358,7 @@ getClassVariableClass(Class class, Name name)
       answer(cv);
     }
   }
-  
+
   fail;
 }
 
@@ -420,10 +420,10 @@ refine_class_variable(Class cl, const char *name_s, const char *def)
 
   for( super = cl->super_class; notNil(super); super = super->super_class)
   { Cell cell;
-    
+
     for_cell(cell, super->class_variables)
     { ClassVariable cv = cell->value;
-      
+
       if ( cv->name == name )		/* found it! */
       { ClassVariable cv2;
 
@@ -438,7 +438,7 @@ refine_class_variable(Class cl, const char *name_s, const char *def)
       }
     }
   }
-				       
+
   sysPce("Could not find super-class-variable to refine %s.%s\n",
 	 pp(cl->name), name_s);
   fail;					/* NOTREACHED */
@@ -522,7 +522,7 @@ getPrintNameClassVariable(ClassVariable cv)
   Name ctx = ((Class)cv->context)->name;
   size_t len;
   Name rc;
-  
+
   len = 2 + ctx->data.size + cv->name->data.size;
   if ( len < LINESIZE )
     nm = buf;
@@ -622,7 +622,7 @@ static getdecl get_class_variable[] =
 #define rc_class_variable NULL
 /*
 static classvardecl rc_class_variable[] =
-{ 
+{
 };
 */
 
@@ -743,7 +743,7 @@ loadDefaultClassVariables(SourceSink f)
 	  if ( s )
 	  { StringObj fn = restline(s);
 	    Any fincluded = newObject(ClassFile, fn, NAME_utf8, EAV);
-	    
+
 	    if ( send(fincluded, NAME_exists, EAV) )
 	      loadDefaultClassVariables(fincluded);
 
@@ -772,7 +772,7 @@ loadDefaultClassVariables(SourceSink f)
 	  s++;
 	  continue;
 	}
-	  
+
 	if ( *s == '.' )		/* field separator */
 	{ s++;
 	  continue;
@@ -817,17 +817,19 @@ loadDefaultClassVariables(SourceSink f)
 		goto out;
 	      }
 	      s = line;
-	      
+
 	      continue;
 	    }
 
 	    break;
 	  }
-	  
+
 	  str_set_n_ascii(&str, size, buf);
 	  value = StringToString(&str);
 	  DEBUG(NAME_default, Cprintf("Value = %s\n", pp(value)));
 	  add_class_variable(nfields, fields, value);
+	  if ( buf != localbuf )
+	    pceFree(buf);
 	  goto next;
 	} else
 	{ errorPce(PCE, NAME_defaultSyntaxError, f, toInt(lineno));
@@ -894,7 +896,7 @@ getDefault(Class class, Name name, int accept_default)
 
     if ( !ClassVariableTable )
       loadDefaultsPce(PCE, DEFAULT);
-    
+
     if ( (code = getClassVariableValueObject(PCE, NAME_initialise)) &&
 	 instanceOfObject(code, ClassCode) )
       forwardReceiverCodev(code, PCE, 0, NULL);

@@ -75,7 +75,7 @@ test(free, [setup(start),cleanup(stop),X==0]) :-
 	thread_pool_property(test, backlog(X)).
 test(loop, [setup(start([])),cleanup(stop), L == Vs]) :-
 	numlist(0, 10, L),
-	findall(Id, 
+	findall(Id,
 		(   between(0, 10, I),
 		    thread_create_in_pool(test, run(I), Id, [])
 		), Ids),

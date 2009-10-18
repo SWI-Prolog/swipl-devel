@@ -108,7 +108,7 @@ open_undo_group(UB) :->
 	;   true
 	),
 	NC is OC + 1,
-	send(UB, slot, open_count, NC).   
+	send(UB, slot, open_count, NC).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -210,7 +210,7 @@ class_args(N, Arity, M, In, Out) :-
 	Goal,
 	arg(NN, Out, Val),
 	class_args(NN, Arity, M, In, Out).
-	
+
 merge(do_set(G), do_set(G)).
 merge(set_point(G, P), set_point(G, P)).
 
@@ -401,7 +401,7 @@ initialise(UV, UB:draw_undo_manager) :->
 				    message(UV, destroy)))),
 	send(UV, modal, transient),
 	send(UB, start_undo).
-	    
+
 
 undo_buffer(UV, UB:draw_undo_manager) :<-
 	"Find the buffer I am showing"::
@@ -426,7 +426,7 @@ undo(UV) :->
 	    NHere is Here - 1,
 	    send(UV, index, NHere)
 	).
-	
+
 redo(UV) :->
 	get(UV, member, undo, Slider),
 	get(Slider, high, High),
@@ -439,7 +439,7 @@ redo(UV) :->
 	    NHere is Here + 1,
 	    send(UV, index, NHere)
 	).
-	
+
 goto(UV, Goto:int) :->
 	goto(UV, Goto).
 
@@ -453,7 +453,7 @@ goto(UV, Goto) :-
 	    goto(UV, Goto)
 	;   true
 	).
-	
+
 :- pce_end_class.
 
 

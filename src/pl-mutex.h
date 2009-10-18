@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2008, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This  file  defines  just  the   mutexes    needed   by  the  SWI-Prolog
 multi-threading support. It is in a separate file because it needs to be
-included before pl-stream.h, which in turn   needs to be included early.
+included before SWI-Stream.h, which in turn  needs to be included early.
 The remainder of the thread support must be at the end to exploit access
 to the other Prolog data-types.
 
@@ -63,6 +63,7 @@ controlled using the following macros:
 
 #ifdef USE_CRITICAL_SECTIONS
 #define WINDOWS_LEAN_AND_MEAN
+#include <winsock2.h>
 #include <windows.h>
 #define RECURSIVE_MUTEXES 1
 

@@ -268,7 +268,7 @@ rlc_check_assertions(RlcData b)
   assert(b->caret_x >= 0 && b->caret_x < b->width);
 					/* TBD: debug properly */
 /*assert(rlc_between(b, b->window_start, window_last, b->caret_y));*/
-  
+
   for(y=0; y<b->height; y++)
   { TextLine tl = &b->lines[y];
 
@@ -492,8 +492,8 @@ rlc_create_window(RlcData b)
   SetScrollPos(hwnd, SB_VERT, b->sb_start, TRUE);
 
   b->queue    = rlc_make_queue(256);
-  b->sb_lines = rlc_count_lines(b, b->first, b->last); 
-  b->sb_start = rlc_count_lines(b, b->first, b->window_start); 
+  b->sb_lines = rlc_count_lines(b, b->first, b->last);
+  b->sb_start = rlc_count_lines(b, b->first, b->window_start);
 
   b->foreground = GetSysColor(COLOR_WINDOWTEXT);
   b->background = GetSysColor(COLOR_WINDOW);
@@ -668,7 +668,7 @@ reg_get_int(HKEY key, const TCHAR *name, int mn, int def, int mx, int *value)
 	  else if ( v > mx )
 	    v = mx;
 	}
-	  
+
 	*value = v;
       }
     }
@@ -834,8 +834,8 @@ rlc_breakargs(TCHAR *line, TCHAR **argv)
   argv[argc] = NULL;			/* add trailing NULL pointer to argv */
 
   return argc;
-}      
-    
+}
+
 
 		 /*******************************
 		 *	     ATTRIBUTES		*
@@ -910,7 +910,7 @@ rlc_kill(RlcData b)
 	      return FALSE;
 	  }
 	  TerminateThread(b->application_thread, 1);
-    
+
 	  return TRUE;
 	}
       }
@@ -982,7 +982,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       placement.length = sizeof(placement);
       GetWindowPlacement(hwnd, &placement);
-      
+
       if ( placement.showCmd == SW_SHOWNORMAL )
       { b->win_x = placement.rcNormalPosition.left;
   	b->win_y = placement.rcNormalPosition.top;
@@ -1045,7 +1045,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
       break;
     }
 
-  { int chr; 
+  { int chr;
 
     case WM_KEYDOWN:			/* up is sent only once */
     { switch((int) wParam)
@@ -1132,7 +1132,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
       return 0;
     }
-    
+
     case WM_LBUTTONUP:
     case WM_RBUTTONUP:
     if ( emu_hwnd == hwnd )
@@ -1532,7 +1532,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
 
     for(i=10; --i > 0; m=(f+t)/2)
     { int w;
-     
+
       w = text_width(b, hdc, s, m);
       if ( x > w )
       { int cw;
@@ -1547,7 +1547,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
       { t = m;
       }
     }
-	
+
     *chr = m;
   }
 }
@@ -1579,7 +1579,7 @@ rlc_end_selection(RlcData b, int x, int y)
 
 
 static int				/* v >= f && v <= t */
-rlc_between(RlcData b, int f, int t, int v) 
+rlc_between(RlcData b, int f, int t, int v)
 { int h = rlc_count_lines(b, b->first, v);
 
   if ( h >= rlc_count_lines(b, b->first, f) &&
@@ -1674,7 +1674,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 	buf[i++] = tl->text[sc++];
       }
     }
-      
+
     if ( sl == el || sl == b->last )
     { buf[i++] = '\0';
       return buf;
@@ -1702,7 +1702,7 @@ rlc_selection(RlcData b)
   return rlc_read_from_window(b,
 			      b->sel_start_line, b->sel_start_char,
 			      b->sel_end_line,   b->sel_end_char);
-} 
+}
 
 
 static void
@@ -1789,12 +1789,12 @@ rlc_update_scrollbar(RlcData b)
 { if ( b->window )
   { int nsb_lines = rlc_count_lines(b, b->first, b->last);
     int nsb_start = rlc_count_lines(b, b->first, b->window_start);
-  
+
     if ( nsb_lines != b->sb_lines ||
 	 nsb_start != b->sb_start )
     { SetScrollRange(b->window, SB_VERT, 0, nsb_lines, FALSE);
       SetScrollPos(  b->window, SB_VERT, nsb_start, TRUE);
-  
+
       b->sb_lines = nsb_lines;
       b->sb_start = nsb_start;
     }
@@ -1818,7 +1818,7 @@ rlc_redraw(RlcData b)
   SelectObject(hdc, b->hfont);
   SetTextColor(hdc, b->foreground);
   SetBkColor(hdc, b->background);
-  
+
   if ( b->background == RGB(255, 255, 255) )
   { bg = GetStockObject(WHITE_BRUSH);
     stockbg = TRUE;
@@ -1951,10 +1951,10 @@ rlc_request_redraw(RlcData b)
 
     rect.left = b->cw;
     rect.right = (b->width+1) * b->cw;
-    
+
     for(; y < b->window_size; y++, i = NextLine(b, i))
     { TextLine l = &b->lines[i];
-      
+
       if ( l->changed & CHG_CHANGED )
       { if ( first )
 	{ rect.top = y * b->ch;
@@ -1992,7 +1992,7 @@ static void
 rlc_resize_pixel_units(RlcData b, int w, int h)
 { int nw = max(20, w/b->cw)-2;		/* 1 character space for margins */
   int nh = max(1, h/b->ch);
-  
+
   DEBUG(Dprintf(_T("rlc_resize_pixel_units(%p, %d, %d) (%dx%d)\n"),
 		b, w, h, nw, nh));
 
@@ -2000,7 +2000,7 @@ rlc_resize_pixel_units(RlcData b, int w, int h)
     return;				/* no real change */
 
   rlc_resize(b, nw, nh);
-  
+
   if ( _rlc_resize_hook )
     (*_rlc_resize_hook)(b->width, b->window_size);
   else
@@ -2030,15 +2030,15 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
       b->hfont = GetStockObject(ANSI_FIXED_FONT);
     else
     { LOGFONT lfont;
-  
+
       memset(&lfont, 0, sizeof(lfont));
-  
+
       lfont.lfHeight          = a->font_size;
       lfont.lfWeight          = a->font_weight;
       lfont.lfPitchAndFamily  = a->font_family;
       lfont.lfCharSet	      = a->font_char_set;
       _tcsncpy(lfont.lfFaceName, a->face_name, 31);
-    
+
       if ( !(b->hfont = CreateFontIndirect(&lfont)) )
 	b->hfont = GetStockObject(ANSI_FIXED_FONT);
     }
@@ -2161,7 +2161,7 @@ rlc_make_buffer(int w, int h)
   b->imodeswitch    = FALSE;
   b->lhead 	    = NULL;
   b->ltail 	    = NULL;
-    
+
   memset(b->lines, 0, sizeof(text_line) * h);
   for(i=0; i<h; i++)
     b->lines[i].adjusted = TRUE;
@@ -2226,7 +2226,7 @@ rlc_resize(RlcData b, int w, int h)
 
   b->window_size = h;
   b->width = w;
-  
+
   for(i = b->first; /*i != b->last*/; i = NextLine(b, i))
   { TextLine tl = &b->lines[i];
 
@@ -2266,7 +2266,7 @@ rlc_resize(RlcData b, int w, int h)
 	memmove(nl->text, &tl->text[w], move*sizeof(TCHAR));
 	nl->size += move;
 	tl->size = w;
-      }	
+      }
     } else if ( tl->text && tl->softreturn && tl->size < w )
     { TextLine nl;
 
@@ -2476,7 +2476,7 @@ rlc_cariage_return(RlcData b)
 { b->caret_x = 0;
 
   b->changed |= CHG_CARET;
-} 
+}
 
 
 static void
@@ -2629,7 +2629,7 @@ rlc_putansi(RlcData b, int chr)
 	}
 
 	break;
-      } 
+      }
       if ( !b->argstat && chr == '-' )
       { b->argstat = -1;		/* negative */
 	break;
@@ -2700,7 +2700,7 @@ rlc_paste(RlcData b)
     { wchar_t *data = GlobalLock(mem);
       int i;
       RlcQueue q = b->queue;
-  
+
       if ( q )
       { for(i=0; data[i]; i++)
 	{ rlc_add_queue(b, q, data[i]);
@@ -2708,13 +2708,13 @@ rlc_paste(RlcData b)
 	    i++;
 	}
       }
-  
+
       GlobalUnlock(mem);
     } else if ( (mem = GetClipboardData(CF_TEXT)) )
     { char far *data = GlobalLock(mem);
       int i;
       RlcQueue q = b->queue;
-  
+
       if ( q )
       { for(i=0; data[i]; i++)
 	{ rlc_add_queue(b, q, data[i]);
@@ -2722,7 +2722,7 @@ rlc_paste(RlcData b)
 	    i++;
 	}
       }
-  
+
       GlobalUnlock(mem);
     }
     CloseClipboard();
@@ -2745,7 +2745,7 @@ rlc_get_mark(rlc_console c, RlcMark m)
 void
 rlc_goto_mark(rlc_console c, RlcMark m, const TCHAR *data, size_t offset)
 { RlcData b = rlc_get_data(c);
-  
+
   b->caret_x = m->mark_x;
   b->caret_y = m->mark_y;
 
@@ -2841,10 +2841,10 @@ window_loop(LPVOID arg)
 
 	if ( line != RL_CANCELED_CHARP )
 	{ LQueued lq = rlc_malloc(sizeof(lqueued));
-    
+
 	  lq->next = NULL;
 	  lq->line = line;
-    
+
 	  if ( b->ltail )
 	  { b->ltail->next = lq;
 	    b->ltail = lq;
@@ -2859,7 +2859,7 @@ window_loop(LPVOID arg)
       }
       case IMODE_RAW:
       { MSG msg;
-      
+
 	if ( rlc_get_message(&msg, NULL, 0, 0) )
 	{ TranslateMessage(&msg);
 	  DispatchMessage(&msg);
@@ -2878,7 +2878,7 @@ window_loop(LPVOID arg)
   { MSG msg;
     TCHAR *waiting = _T("\r\nWaiting for Prolog. ")
       		     _T("Close again to force termination ..");
-      
+
     rlc_write(b, waiting, _tcslen(waiting));
 
     while ( b->closing <= 2 && rlc_get_message(&msg, NULL, 0, 0) )
@@ -3039,7 +3039,7 @@ rlc_free_queue(RlcQueue q)
       rlc_free(q->buffer);
     rlc_free(q);
   }
-} 
+}
 
 
 static int
@@ -3075,7 +3075,7 @@ rlc_add_queue(RlcData b, RlcQueue q, int chr)
   { if ( QN(q, q->last) != q->first )
     { q->buffer[q->last] = chr;
       q->last = QN(q, q->last);
-      
+
       if ( empty )
 	PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
 
@@ -3248,7 +3248,7 @@ rlc_write(rlc_console c, TCHAR *buf, size_t count)
   if ( b->window )
   { if ( SendMessageTimeout(b->window,
 			    WM_RLC_WRITE,
-			    (WPARAM)count, 
+			    (WPARAM)count,
 			    (LPARAM)buf,
 			    SMTO_NORMAL,
 			    10000,
@@ -3334,7 +3334,7 @@ rlc_prompt(rlc_console c, const TCHAR *new)
 
     return b->prompt;
   }
-  
+
   return _T("");
 }
 

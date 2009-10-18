@@ -36,6 +36,7 @@ is supposed to give the POSIX standard one.
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
 #include <stdio.h>
+#include <ctype.h>
 
 #if defined(__WINDOWS__) || defined (__CYGWIN__)
 #define timezone _timezone
@@ -159,7 +160,7 @@ origin;
 static int
 unify_taia(term_t t, struct taia *taia)
 { double d = (double)((int64_t)taia->sec.x - TAI_UTC_OFFSET);
-  
+
   d += taia->nano / 1e9;
 
   return PL_unify_float(t, d);
@@ -334,15 +335,15 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
       { time_t unixt;
 	int64_t ut64;
 	struct tm tm;
-  
+
 	utcoffset = tz_offset();
-  
+
 	ut64 = taia.sec.x - TAI_UTC_OFFSET;
 	unixt = (time_t) ut64;
-  
+
 	if ( (int64_t)unixt == ut64 )
 	{ double ip;
-  
+
 	  localtime_r(&unixt, &tm);
 	  sec = (double)tm.tm_sec + modf(argsec, &ip);
 	  ct.date.year  = tm.tm_year+1900;
@@ -508,7 +509,7 @@ foutstra(const char *str, IOSTREAM *fd)
 { wchar_t wbuf[256];
   size_t n;
 
-  if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wbuf[0])-1)) != (size_t)-1 ) 
+  if ( (n = mbstowcs(wbuf, str, sizeof(wbuf)/sizeof(wbuf[0])-1)) != (size_t)-1 )
   { wchar_t *p;
 
     for(p=wbuf; n-- > 0; p++)
@@ -521,7 +522,7 @@ static const char *abbred_weekday[] =
 { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 static const char *weekday[] =
 { "Sunday", "Monday", "Tuesday", "Wednesday",
-  "Thursday", "Friday", "Satuerday" };
+  "Thursday", "Friday", "Saturday" };
 static const char *abbred_month[] =
 { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -531,14 +532,19 @@ static const char *month[] =
   "July", "August", "September", "October", "November", "December"
 };
 
+#define NOARG (-1)
 
 static int
 format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 { wint_t c;
 
   while((c = *format++))
-  { switch(c)
+  { int arg = NOARG;
+
+    switch(c)
     { case '%':
+	arg = NOARG;
+      fmt_next:
 	switch((c = *format++))
 	{ case 'a':			/* %a: abbreviated weekday */
 	  case 'A':			/* %A: weekday */
@@ -578,7 +584,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  { char fmt[3];
 	    char buf[256];
 	    size_t n;
-  
+
 	    fmt[0] = '%';
 	    fmt[1] = (char)c;
 	    fmt[2] = EOS;
@@ -618,7 +624,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case 'g':
 	  case 'V':
 	  { int year, days;
-	    
+
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
 	    year = ftm->tm.tm_year+1900;
 	    days = iso_week_days(ftm->tm.tm_yday, ftm->tm.tm_wday);
@@ -636,7 +642,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 		days = d;
 	      }
 	    }
-	    
+
 	    switch(c)
 	    { case 'g':
 		OUT2DIGITS(fd, (year % 100 + 100) % 100);
@@ -686,6 +692,20 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case 'R':
 	    SUBFORMAT(L"%H:%M");
 	    break;
+	  case 'f':			/* Microseconds */
+	  { int digits = (arg == NOARG ? 6 : arg);
+
+	    if ( digits > 0 )
+	    { double ip;
+	      char fmt[64];
+
+	      cal_ftm(ftm, HAS_STAMP);
+	      Ssprintf(fmt, "%%0%dlld", digits);
+	      OUTNUMBER(fd, fmt, (long)(modf(ftm->stamp, &ip) *
+					pow(10, digits)));
+	    }
+	    break;
+	  }
 	  case 's':			/* Seconds since 1970 */
 	    cal_ftm(ftm, HAS_STAMP);
 	    OUTNUMBER(fd, "%.0f", ftm->stamp);
@@ -709,7 +729,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  }
 	  case 'U':			/* 00..53 weeknumber */
 	  { int wk;
-  
+
 	    cal_ftm(ftm, HAS_WYDAY);
 	    wk = (ftm->tm.tm_yday - (ftm->tm.tm_yday - ftm->tm.tm_wday + 7) % 7 + 7) / 7;
 	    OUT2DIGITS(fd, wk);
@@ -721,7 +741,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    break;
 	  case 'W':			/* 00..53 monday-based week number */
 	  { int wk;
-  
+
 	    cal_ftm(ftm, HAS_WYDAY);
 	    wk = (ftm->tm.tm_yday - (ftm->tm.tm_yday - ftm->tm.tm_wday + 8) % 7 + 7) / 7;
 	    OUT2DIGITS(fd, wk);
@@ -765,6 +785,14 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case '%':
 	    OUTCHR(fd, '%');
 	    break;
+	  default:
+	    if ( isdigit(c) )
+	    { if ( arg == NOARG )
+		arg = c - '0';
+	      else
+		arg = arg*10+(c-'0');
+	      goto fmt_next;
+	    }
 	}
         break;
       default:

@@ -62,28 +62,28 @@ than compensated for by using block reads based on read_pending_input/3.
 %	are reclaimed by the  garbage  collector,   while  the  list  is
 %	extended on demand.  Here  is  a   very  simple  definition  for
 %	searching a string in a file:
-%	
+%
 %	==
 %	... --> []|[_],... .
-%	
+%
 %	file_contains(File, Pattern) :-
 %		phrase_from_file((..., Pattern, ...), File).
-%	
+%
 %	match_count(File, Pattern, Count) :-
 %		findall(x, file_contains(File, Pattern), Xs),
 %		length(Xs, Count).
 %	==
-%	
+%
 %	This can be called as (note that   the  pattern must be a string
 %	(code list)):
-%	
+%
 %	==
 %	?- match_count('pure_input.pl', "file", Count).
 %	==
 
-:- module_transparent
-	phrase_from_file/2,
-	phrase_from_file/3.
+:- meta_predicate
+	phrase_from_file(:, +),
+	phrase_from_file(:, +, +).
 
 phrase_from_file(Grammar, File) :-
 	phrase_from_file(Grammar, File, []).
@@ -107,7 +107,7 @@ phrase_from_file(Grammar, File, Options) :-
 
 
 qphrase_file(QGrammar, File, BS, Options) :-
-	setup_and_call_cleanup(open(File, read, In, Options),
+	setup_call_cleanup(open(File, read, In, Options),
 			       qphrase_stream(QGrammar, In, BS),
 			       close(In)).
 
@@ -124,11 +124,11 @@ qphrase_stream(QGrammar, In, BuffserSize) :-
 %	ends  in  a  delayed  goal.  List   can  be  unified  completely
 %	transparent to a (partial)  list   and  processed  transparently
 %	using DCGs, but please be aware that a lazy list is not the same
-%	as a materialized list in all respects. 
-%	
+%	as a materialized list in all respects.
+%
 %	Typically, this predicate is used as   a building block for more
 %	high level safe predicates such as phrase_from_file/2.
-%	
+%
 %	@tbd	Enhance of lazy list throughout the system.
 
 stream_to_lazy_list(Stream, List) :-
@@ -142,3 +142,19 @@ read_to_input_stream(Stream, Pos, List) :-
 	;   read_pending_input(Stream, List, Tail),
 	    stream_to_lazy_list(Stream, Tail)
 	).
+
+
+		 /*******************************
+		 *	       IDE		*
+		 *******************************/
+
+% Using meta_predicate phrase_from_file(2, +)   is inappropriate because
+% the first argument is an  arbitrary  grammar.   With  :,  we make less
+% promises. We tell the IDE that we call   G+2. This is not complete and
+% should be fixed at some point.
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(phrase_from_file(G, _File), [G+2]).
+prolog:called_by(phrase_from_file(G, _File, _Options), [G+2]).

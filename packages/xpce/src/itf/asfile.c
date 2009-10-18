@@ -90,10 +90,10 @@ allocFileHandle()
 	     sizeof(PceFileHandle) * (n-max_handles));
       max_handles = n;
       handles = newhandles;
-      
+
       return rval;
     }
-    
+
     errno = ENOMEM;
     return -1;
   }
@@ -221,19 +221,19 @@ pceWrite(int handle, const char *buf, size_t size)
     { str_set_n_ascii(&s, size, (char*)buf);
     } else
     { assert(size%sizeof(wchar_t) == 0);
-    
+
       for(f=wbuf; f<end; f++)
       { if ( *f > 0xff )
 	  break;
       }
-    
+
       if ( f == end )
       { charA *asc = alloca(size);
 	charA *t = asc;
-    
+
 	for(f=wbuf; f<end; )
 	  *t++ = (charA)*f++;
-    
+
 	str_set_n_ascii(&s, size/sizeof(wchar_t), (char*)asc);
       } else
       { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
@@ -328,24 +328,24 @@ pceRead(int handle, char *buf, size_t size)
 
     argv[0] = toInt(h->point);
     argv[1] = toInt(size/sizeof(wchar_t));
-  
+
     if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
 	 instanceOfObject(sub, ClassCharArray) )
     { String s = &sub->data;
-  
+
       assert(s->size <= size/sizeof(wchar_t));
-  
+
       if ( isstrA(s) )
       { charW *dest = (charW*)buf;
 	const charA *f = s->s_textA;
 	const charA *e = &f[s->size];
-	
+
 	while(f<e)
 	  *dest++ = *f++;
       } else
       { memcpy(buf, s->s_textW, s->size*sizeof(charW));
       }
-  
+
       chread = s->size * sizeof(wchar_t);
       h->point += s->size;
     } else

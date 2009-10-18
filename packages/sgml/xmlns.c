@@ -29,35 +29,36 @@
 
 #ifdef XMLNS
 
-static xmlns *
+xmlns *
 xmlns_push(dtd_parser *p, const ichar *ns, const ichar *url)
 { sgml_environment *env = p->environments;
   dtd_symbol *n = (*ns ? dtd_add_symbol(p->dtd, ns) : (dtd_symbol *)NULL);
   dtd_symbol *u = dtd_add_symbol(p->dtd, url); /* TBD: ochar/ichar */
+  xmlns *x = sgml_malloc(sizeof(*x));
 
-  if ( p->on_xmlns )
-    (*p->on_xmlns)(p, n, u);
+  x->name = n;
+  x->url  = u;
 
   if ( env )
-  { xmlns *x = sgml_malloc(sizeof(*n));
+  { if ( p->on_xmlns )
+      (*p->on_xmlns)(p, n, u);
 
-    x->name = n;
-    x->url  = u;
     x->next = env->xmlns;
     env->xmlns = x;
-
-    return x;
+  } else
+  { x->next = p->xmlns;
+    p->xmlns = x;
   }
 
-  return NULL;
+  return x;
 }
 
 
 void
-xmlns_free(sgml_environment *env)
-{ xmlns *n, *next;
+xmlns_free(xmlns *n)
+{ xmlns *next;
 
-  for(n = env->xmlns; n; n = next)
+  for(; n; n = next)
   { next = n->next;
 
     sgml_free(n);
@@ -66,14 +67,20 @@ xmlns_free(sgml_environment *env)
 
 
 xmlns *
-xmlns_find(sgml_environment *env, dtd_symbol *ns)
-{ for(; env; env = env->parent)
-  { xmlns *n;
+xmlns_find(dtd_parser *p, dtd_symbol *ns)
+{ sgml_environment *env = p->environments;
+  xmlns *n;
 
-    for(n=env->xmlns; n; n = n->next)
+  for(; env; env = env->parent)
+  { for(n=env->xmlns; n; n = n->next)
     { if ( n->name == ns )
 	return n;
     }
+  }
+
+  for (n=p->xmlns; n; n = n->next)
+  { if ( n->name == ns )
+      return n;
   }
 
   return NULL;
@@ -97,7 +104,7 @@ void
 update_xmlns(dtd_parser *p, dtd_element *e, int natts, sgml_attribute *atts)
 { dtd_attr_list *al;
   int nschr = p->dtd->charfunc->func[CF_NS]; /* : */
-       
+
   for(al=e->attributes; al; al=al->next)
   { dtd_attr *a = al->attribute;
     const ichar *name = a->name->name;
@@ -123,7 +130,7 @@ update_xmlns(dtd_parser *p, dtd_element *e, int natts, sgml_attribute *atts)
 xmlns_resolve()
     Convert a symbol as returned by the XML level-1.0 parser to its namespace
     tuple {url}localname.  This function is not used internally, but provided
-    for use from the call-back functions of the parser.  
+    for use from the call-back functions of the parser.
 
     It exploits the stack of namespace-environments managed by the parser
     itself (see update_xmlns())
@@ -150,7 +157,7 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
       if ( istrprefix(L"xml", buf) )	/* XML reserved namespaces */
       { *url = n->name;
         return TRUE;
-      } else if ( (ns = xmlns_find(p->environments, n)) )
+      } else if ( (ns = xmlns_find(p, n)) )
       { if ( ns->url->name[0] )
 	  *url = ns->url->name;
 	else
@@ -158,7 +165,9 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
 	return TRUE;
       } else
       { *url = n->name;			/* undefined namespace */
-	gripe(ERC_EXISTENCE, L"namespace", n->name);
+	if ( p->xml_no_ns == NONS_QUIET )
+	  return TRUE;
+	gripe(p, ERC_EXISTENCE, L"namespace", n->name);
 	return FALSE;
       }
     }
@@ -195,16 +204,16 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
     ichar *o = buf;
     const ichar *s;
     xmlns *ns;
-  
+
     for(s=id->name; *s; s++)
     { if ( *s == nschr )		/* explicit namespace */
       { dtd_symbol *n;
-  
+
 	*o = '\0';
 	*local = s+1;
 	n = dtd_add_symbol(dtd, buf);
 
-	if ( (ns = xmlns_find(p->environments, n)) )
+	if ( (ns = xmlns_find(p, n)) )
 	{ if ( ns->url->name[0] )
 	    *url = ns->url->name;
 	  else
@@ -213,17 +222,19 @@ xmlns_resolve_element(dtd_parser *p, const ichar **local, const ichar **url)
 	  return TRUE;
 	} else
 	{ *url = n->name;		/* undefined namespace */
-	  gripe(ERC_EXISTENCE, "namespace", n->name);
 	  e->thisns = xmlns_push(p, n->name, n->name); /* define implicitly */
+	  if ( p->xml_no_ns == NONS_QUIET )
+	    return TRUE;
+	  gripe(p, ERC_EXISTENCE, L"namespace", n->name);
 	  return FALSE;
 	}
       }
       *o++ = *s;
     }
-  
+
     *local = id->name;
-  
-    if ( (ns = xmlns_find(p->environments, NULL)) )
+
+    if ( (ns = xmlns_find(p, NULL)) )
     { if ( ns->url->name[0] )
 	*url = ns->url->name;
       else

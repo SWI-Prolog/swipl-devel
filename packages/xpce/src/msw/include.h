@@ -315,17 +315,17 @@ extern HashTable	MsObjectTable(void);
 
 #else /*DEBUG_GRAPHICS*/
 
-#define ZSelectObject(hdc, obj)	SelectObject(hdc, obj)	
-#define ZDeleteObject(obj) DeleteObject(obj) 
-#define ZSetCursor(h) SetCursor(h) 
-#define ZCreatePatternBrush(bm) CreatePatternBrush(bm) 
-#define ZCreateSolidBrush(rgb) CreateSolidBrush(rgb) 
-#define ZCreateCompatibleBitmap(hdc, w, h) CreateCompatibleBitmap(hdc, w, h) 
-#define ZCreateDIBitmap(a, b, c, d, e, f) CreateDIBitmap(a, b, c, d, e, f) 
-#define ZCreateBitmap(a, b, c, d, e) CreateBitmap(a, b, c, d, e) 
-#define ZCreateRectRgn(x, y, w, h) CreateRectRgn(x, y, w, h) 
-#define ZCreateRectRgnIndirect(r) CreateRectRgnIndirect(r) 
-#define ZCreatePen(s, t, c) CreatePen(s, t, c) 
+#define ZSelectObject(hdc, obj)	SelectObject(hdc, obj)
+#define ZDeleteObject(obj) DeleteObject(obj)
+#define ZSetCursor(h) SetCursor(h)
+#define ZCreatePatternBrush(bm) CreatePatternBrush(bm)
+#define ZCreateSolidBrush(rgb) CreateSolidBrush(rgb)
+#define ZCreateCompatibleBitmap(hdc, w, h) CreateCompatibleBitmap(hdc, w, h)
+#define ZCreateDIBitmap(a, b, c, d, e, f) CreateDIBitmap(a, b, c, d, e, f)
+#define ZCreateBitmap(a, b, c, d, e) CreateBitmap(a, b, c, d, e)
+#define ZCreateRectRgn(x, y, w, h) CreateRectRgn(x, y, w, h)
+#define ZCreateRectRgnIndirect(r) CreateRectRgnIndirect(r)
+#define ZCreatePen(s, t, c) CreatePen(s, t, c)
 #define ZExtCreatePen(s, w, b, n, p) ExtCreatePen(s, w, b, n, p)
 
 #endif /*DEBUG_GRAPHICS*/

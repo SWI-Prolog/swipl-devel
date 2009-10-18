@@ -52,7 +52,7 @@ install_lib(Base) :-
 
 lib_dest(Lib) :-
 	current_prolog_flag(home, PlHome),
-	concat_atom([PlHome, library], /, Lib).
+	atomic_list_concat([PlHome, library], /, Lib).
 
 install_dlls :-
 	forall(dll(Base), install_dll(Base)).
@@ -68,7 +68,7 @@ install_dll(Base) :-
 
 dll_dest(Dir) :-
 	current_prolog_flag(home, PlHome),
-	concat_atom([PlHome, bin], /, Dir).
+	atomic_list_concat([PlHome, bin], /, Dir).
 
 
 %	cp(From, To)
@@ -84,7 +84,7 @@ cpbin(Src, Dest) :-
 cp(Src, Dir, Options) :-
 	exists_directory(Dir), !,
 	file_base_name(Src, Base),
-	concat_atom([Dir, Base], /, Dest),
+	atomic_list_concat([Dir, Base], /, Dest),
 	cp(Src, Dest, Options).
 cp(Src, Dest, Options) :-
 	open(Src, read, In, Options),

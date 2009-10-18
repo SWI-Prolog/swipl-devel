@@ -48,12 +48,12 @@ static Any
 getExecuteProgn(Progn p)
 { Cell cell;
   Any rval = FAIL;
-  
+
   if ( emptyChain(p->members) )
   { errorPce(p, NAME_lastIsNoFunction);
     fail;
   }
-  
+
   withLocalVars(for_cell(cell, p->members)
 	      { if ( notNil(cell->next) )
 		{ if ( !instanceOfObject(cell->value, ClassCode) )
@@ -135,7 +135,7 @@ static getdecl get_progn[] =
 #define rc_progn NULL
 /*
 static classvardecl rc_progn[] =
-{ 
+{
 };
 */
 

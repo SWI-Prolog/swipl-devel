@@ -189,7 +189,7 @@ foot :-
 	emit([ '</body>\n',
 	       '</html>\n'
 	     ]).
-	     
+
 
 pre(Text) :-
 	sgml_quote(Text, Quoted),
@@ -221,7 +221,7 @@ all_alnum([]).
 all_alnum([H|T]) :-
 	char_type(H, csymf),
 	all_alnum(T).
-	    
+
 sgml_quote_chars(L, ['"'|T]) :-
 	sgml_quote2(L, T, ['"']).
 
@@ -232,11 +232,11 @@ sgml_quote2([H|T0], List, Rest) :-
 sgml_quote2([H|T0], [H|T], Rest) :-
 	sgml_quote2(T0, T, Rest).
 
-sgml_quote_char('<', [&, l, t, ;|T], T).	
-sgml_quote_char('>', [&, g, t, ;|T], T).	
-sgml_quote_char('&', [&, a, m, p, ;|T], T).	
-sgml_quote_char('"', [&, q, u, o, t, ;|T], T).	
-%sgml_quote_char('\'', [&, a, p, o, s, ;|T], T).	
+sgml_quote_char('<', [&, l, t, ;|T], T).
+sgml_quote_char('>', [&, g, t, ;|T], T).
+sgml_quote_char('&', [&, a, m, p, ;|T], T).
+sgml_quote_char('"', [&, q, u, o, t, ;|T], T).
+%sgml_quote_char('\'', [&, a, p, o, s, ;|T], T).
 
 sgml_quote(Text, Quoted) :-
 	atom_chars(Text, Chars),
@@ -339,21 +339,21 @@ request_location('Online-requests').
 
 save_request(Text, Id) :-
 	request_dir(Dir, Date),
-	concat_atom([Dir, /, Date], DateDir),
+	atomic_list_concat([Dir, /, Date], DateDir),
 	ensure_dir(DateDir),
 	between(1, 10000, N),
-	    concat_atom([DateDir, /, N, '.rdf'], File),
+	    atomic_list_concat([DateDir, /, N, '.rdf'], File),
 	    \+ exists_file(File), !,
 	    open(File, write, Fd),
 	    format(Fd, '~w~n', [Text]),
 	    close(Fd),
-	    concat_atom([Date, /, N], Id).
-	    
+	    atomic_list_concat([Date, /, N], Id).
+
 request_dir(BaseDir, Date) :-
 	get_time(Time),
 	convert_time(Time, Y, M, D, _, _, _, _),
 	request_location(BaseDir),
-	concat_atom([D, -, M, -, Y], Date).
+	atomic_list_concat([D, -, M, -, Y], Date).
 
 ensure_dir(Dir) :-
 	exists_directory(Dir), !.
@@ -362,7 +362,7 @@ ensure_dir(Dir) :-
 
 save_comment(Id, Mail, Comment) :-
 	request_location(Base),
-	concat_atom([Base, '/', Id], FileBase),
+	atomic_list_concat([Base, '/', Id], FileBase),
 	absolute_file_name(FileBase, AbsFileBase),
 	absolute_file_name(Base, AbsBase),
 	sub_atom(AbsFileBase, 0, _, _, AbsBase), 	% verify in tree

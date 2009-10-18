@@ -69,22 +69,22 @@ indexing only on the first argument as this is default.
 				 ((i2).key & (i1).varmask))
 
 static uintptr_t variable_mask[][4] =
-  { { 0,        0,        0,        0 }, 
+  { { 0,        0,        0,        0 },
 #ifdef DONOT_AVOID_SHIFT_WARNING
     { VM(1, 0), 0,        0,        0 },
 #else
     { ~(word)0, 0,        0,        0 },
 #endif
-    { VM(2, 0), VM(2, 1), 0,        0 }, 
-    { VM(3, 0), VM(3, 1), VM(3, 2), 0 }, 
+    { VM(2, 0), VM(2, 1), 0,        0 },
+    { VM(3, 0), VM(3, 1), VM(3, 2), 0 },
     { VM(4, 0), VM(4, 1), VM(4, 2), VM(4, 3) }
   };
 
 static int mask_shift[][4] =
-  { { 0,           0,           0,           0 }, 
-    { SHIFT(1, 0), 0,           0,           0 }, 
-    { SHIFT(2, 0), SHIFT(2, 1), 0,           0 }, 
-    { SHIFT(3, 0), SHIFT(3, 1), SHIFT(3, 2), 0 }, 
+  { { 0,           0,           0,           0 },
+    { SHIFT(1, 0), 0,           0,           0 },
+    { SHIFT(2, 0), SHIFT(2, 1), 0,           0 },
+    { SHIFT(3, 0), SHIFT(3, 1), SHIFT(3, 2), 0 },
     { SHIFT(4, 0), SHIFT(4, 1), SHIFT(4, 2), SHIFT(4, 3) }
   };
 
@@ -117,7 +117,7 @@ of buckets. This used to be simple, but now that our tag bits are on the
 left side, simply masking will put most things on the same hash-entry as
 it is very common for all clauses of   a predicate to have the same type
 of object. Hence, we now use exclusive or of the real value part and the
-tag-bits. 
+tag-bits.
 
 NOTE: this function must be kept consistent with arg1Key() in pl-comp.c!
 NOTE: This function returns 0 on non-indexable   fields, which is why we
@@ -156,12 +156,13 @@ indexOfWord(word w ARG_LD)
 	    key++;
           return key;
 	}
+        /*FALLTHROUGH*/
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_FLOAT:
       { Word p = valIndirectP(w);
 	word key;
-	
+
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
 	    key = p[0]^p[1];
@@ -249,7 +250,7 @@ nextClauseMultiIndexed(ClauseRef cref, uintptr_t generation,
 	 visibleClause(cref->clause, generation))
     { ClauseRef result = cref;
       int maxsearch = MAXSEARCH;
-    
+
       for( cref = cref->next; cref; cref = cref->next )
       { if ( (matchIndex(idx, cref->clause->index) &&
 	      visibleClause(cref->clause, generation)) ||
@@ -289,7 +290,7 @@ nextClauseArg1(ClauseRef cref, uintptr_t generation,
 	      visibleClause(clause, generation)) ||
 	     --maxsearch == 0 )
 	{ *next = cref;
-	
+
 	  return result;
 	}
       }
@@ -401,16 +402,14 @@ part of the stacks (e.g. backtrailing is not needed).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-reindexClause(Clause clause, Definition def)
-{ unsigned long pattern = def->indexPattern & ~NEED_REINDEX;
-
-  if ( pattern == 0x0 )
+reindexClause(Clause clause, Definition def, unsigned long pattern)
+{ if ( pattern == 0x0 )
     succeed;
   if ( false(clause, ERASED) )
   { if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
     { word key;
 
-      if ( arg1Key(clause, &key) )
+      if ( arg1Key(clause, FALSE, &key) )
       { clause->index.key     = key;
 	clause->index.varmask = (uintptr_t)~0L;
       } else
@@ -419,7 +418,7 @@ reindexClause(Clause clause, Definition def)
       }
     } else
     { GET_LD
-  
+
       fid_t fid = PL_open_foreign_frame();
       term_t head = PL_new_term_ref();
 
@@ -481,7 +480,7 @@ newClauseIndexTable(int buckets)
   ci->size     = 0;
   ci->alldirty = FALSE;
   ci->entries  = allocHeap(sizeof(struct clause_chain) * buckets);
-  
+
   for(ch = ci->entries; buckets; buckets--, ch++)
   { ch->head = ch->tail = NULL;
     ch->dirty = 0;
@@ -505,7 +504,7 @@ unallocClauseIndexTable(ClauseIndex ci)
       freeHeap(cr, sizeof(*cr));
     }
   }
-  
+
   freeHeap(ci->entries, ci->buckets * sizeof(struct clause_chain));
   freeHeap(ci, sizeof(struct clause_index));
 }
@@ -558,7 +557,7 @@ gcClauseChain(ClauseChain ch, int dirty ARG_LD)
   while( cref && dirty != 0 )
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
-      
+
       if ( dirty > 0 )
       { assert(c->clause->index.varmask != 0); /* must be indexed */
 	deleted++;
@@ -595,7 +594,7 @@ void
 gcClauseIndex(ClauseIndex ci ARG_LD)
 { ClauseChain ch = ci->entries;
   int n = ci->buckets;
-    
+
   if ( ci->alldirty )
   { for(; n; n--, ch++)
       ci->size -= gcClauseChain(ch, -1 PASS_LD); /* do them all */
@@ -630,9 +629,9 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
   { int n = ci->buckets;
 
     SECURE({ word k;
-	     assert(!arg1Key(cl, &k));
+	     assert(!arg1Key(cl, FALSE, &k));
 	   });
-    
+
     DEBUG(1,
 	  if ( def->indexPattern == 0x1 )
 	    Sdprintf("*** Adding unindexed clause to index of %s\n",
@@ -642,7 +641,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
       appendClauseChain(ch, cl, where PASS_LD);
   } else
   { int hi = hashIndex(cl->index.key, ci->buckets);
-    
+
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
     appendClauseChain(&ch[hi], cl, where PASS_LD);
     ci->size++;
@@ -657,12 +656,12 @@ delClauseFromIndex(Definition def, Clause cl)
 
   if ( cl->index.varmask == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
-    
+
     for(; n; n--, ch++)
       deleteClauseChain(ch, cl);
   } else
   { int hi = hashIndex(cl->index.key, ci->buckets);
-    
+
     deleteClauseChain(&ch[hi], cl);
     ci->size--;
     if ( false(def, NEEDSREHASH) && ci->size*4 < ci->buckets )
@@ -703,7 +702,8 @@ pl_hash(term_t pred)
 { Procedure proc;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
-  { Definition def = getProcDefinition(proc);
+  { GET_LD
+    Definition def = getProcDefinition(proc);
     int size, minsize;
 
     if ( def->hash_info )		/* already hashed; won't change */
@@ -711,11 +711,11 @@ pl_hash(term_t pred)
 
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_hash, ATOM_foreign, def);
+		      ATOM_hash, ATOM_foreign, proc);
 
     LOCKDEF(def);
     indexDefinition(def, 0x1L);		/* index in 1st argument */
-    
+
     minsize = def->number_of_clauses / 4,
     size = 64;
     while (size < minsize)
@@ -729,8 +729,8 @@ pl_hash(term_t pred)
 
       def->indexCardinality = 1;
       for(cref = def->definition.clauses; cref; cref = cref->next)
-	reindexClause(cref->clause, def);
-      def->indexPattern = 0x1;
+	reindexClause(cref->clause, def, 0x1L);
+      def->indexPattern = 0x1L;
     }
 
     hashDefinition(def, size);

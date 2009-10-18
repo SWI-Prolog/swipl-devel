@@ -87,7 +87,7 @@ check_loaded_class(ClassName) :-
 	send(Class, instance_of, class), !,
 	pce_realise_class(ClassName).
 check_loaded_class(_).
-		
+
 
 		 /*******************************
 		 *	  REALISE-CLASS		*
@@ -182,7 +182,7 @@ create_class(ClassName, MetaClassName, SuperName, Class) :-
 
 
 %	attach_variables(+VariableList, +Class)
-%	
+%
 %	Attach the instance variables.  Error checking is done by the
 %	XPCE kernel.
 
@@ -192,7 +192,7 @@ attach_variables([V|T], Class) :-
 	attach_variables(T, Class).
 
 %	attach_class_variables(+ClassVarList, +Class)
-%	
+%
 %	Attach the class variables
 
 attach_class_variables([], _).
@@ -212,7 +212,7 @@ run_directives([]).
 run_directives([H|T]) :-
 	H,
 	run_directives(T).
-	
+
 delete_prolog_methods(Class) :-
 	get(Class, name, ClassName),
 	(   pce_lazy_send_method(Selector, ClassName, _Binder),
@@ -242,7 +242,7 @@ resolve_method_message(X) :-
 	).
 
 pce_ifhostproperty(prolog(swi),
-		   (:- '$hide'('_bind_lazy', 3))).
+		   (:- '$hide'('_bind_lazy'/3))).
 
 '_bind_lazy'(Type, ClassName, Selector) :-
 %	format('bind_lazy(~p, ~p, ~p)~n', [Type, ClassName, Selector]),
@@ -299,7 +299,7 @@ pce_bind_send_method(Types, Doc, Loc, Group, ClassName, Selector) :-
 	pce_method_implementation('->', ClassName, Selector, Message),
 	send(Class, send_method,
 	     send_method(Selector, Types, Message, Doc, Loc, Group)).
-	
+
 pce_bind_get_method(RType, Types, Doc, Loc, Group, ClassName, Selector) :-
 	get(@pce, convert, ClassName, class, Class),
 	pce_method_implementation('<-', ClassName, Selector, Message),

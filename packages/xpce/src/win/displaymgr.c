@@ -29,7 +29,7 @@ static status
 initialiseDisplayManager(DisplayManager dm)
 { assign(dm, members, newObject(ClassChain, EAV));
   assign(dm, current, newObject(ClassChain, EAV));
-  
+
   protectObject(dm);
 
   succeed;
@@ -71,7 +71,7 @@ static DisplayObj
 getCurrentDisplayManager(DisplayManager dm)
 { if ( emptyChain(dm->current) )
   { realiseClass(ClassDisplay);
-    
+
     if ( emptyChain(dm->current) )
     { errorPce(dm, NAME_noCurrentDisplay);
       fail;
