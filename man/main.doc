@@ -57,8 +57,8 @@
 \title{SWI-Prolog \versionshort{} Reference Manual}
 \author{\email[Jan Wielemaker]{J.Wielemaker@cs.vu.nl}	\\
 	Department of Computer Science			\\
-	VU University					\\
-	De Boelelaan 1081a, 1081 HV~~Amsterdam 		\\[5pt]
+	VU University Amsterdam				\\
+	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}\\
 	Human-Computer Studies (HCS, formerly SWI)	\\
 	    Kruislaan 419, 1098 VA~~Amsterdam		\\
 		    The Netherlands}
@@ -113,7 +113,7 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 \begin{titlepage}
 
 \newlength{\uvawidth}
-\settowidth{\uvawidth}{\LARGE University of Amsterdam}
+\settowidth{\uvawidth}{\LARGE VU University Amsterdam}
 
 \newcommand{\uvaaddress}{%
 \parbox[b]{\uvawidth}{%
@@ -121,10 +121,12 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 	\LARGE
 	      University of Amsterdam			\\[3mm]
 	\small
-	Human-Computer Studies (HCS, formerly SWI) 	\\%
 	   Kruislaan 419, 1098 VA~~Amsterdam		\\%
+	\LARGE
+	      VU University Amsterdam			\\[3mm]
+	\small
+	   De Boelelaan 1081a, 1081 HV~~Amsterdam	\\%
 		    The Netherlands			\\%
-		Tel. (+31) 20 5256121
     \end{center}}}
 
 \raisebox{4cm}{
@@ -140,7 +142,7 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 	 \LARGE Reference Manual}		\\[3mm]
         {\it Updated for version \versionlong}	\\[10mm]
 	{\large \it Jan Wielemaker}		\\[0mm]
-	{\large \email{wielemak@science.uva.nl}} \\[0mm]
+	{\large \email{J.Wielemaker@cs.vu.nl}}  \\[0mm]
 	{\large	http://www.swi-prolog.org}
 \end{center}
 
