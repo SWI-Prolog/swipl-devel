@@ -447,7 +447,7 @@ PL_EXPORT(int)		PL_put_float(term_t t, double f) WUNUSED;
 PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
 PL_EXPORT(int)		PL_put_list(term_t l) WUNUSED;
 PL_EXPORT(void)		PL_put_nil(term_t l);
-PL_EXPORT(void)		PL_put_term(term_t t1, term_t t2);
+PL_EXPORT(int)		PL_put_term(term_t t1, term_t t2);
 
 			/* construct a functor or list-cell */
 PL_EXPORT(int)		PL_cons_functor(term_t h, functor_t f, ...) WUNUSED;
