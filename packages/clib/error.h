@@ -26,14 +26,14 @@
 #define H_ERROR_INCLUDED
 #include <stdarg.h>
 
-#define ERR_ERRNO		-1
-#define ERR_TYPE		-2
-#define ERR_ARGTYPE		-3
-#define ERR_DOMAIN		-4
-#define ERR_EXISTENCE		-5
-#define ERR_PERMISSION		-6
-#define ERR_NOTIMPLEMENTED	-7
-#define ERR_RESOURCE		-8
+#define ERR_ERRNO	0
+#define ERR_TYPE	1
+#define ERR_ARGTYPE	2
+#define ERR_DOMAIN	3
+#define ERR_EXISTENCE	4
+#define ERR_PERMISSION	5
+#define ERR_NOTIMPLEMENTED 6
+#define ERR_RESOURCE	7
 
 int		pl_error(const char *name, int arity,
 			 const char *msg, int id, ...);

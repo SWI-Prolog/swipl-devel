@@ -120,7 +120,7 @@ trap_ref(Ref) :-
 	    GoalTerm =.. GoalList,
 	    (	Module:GoalTerm
 	    ->  true
-	    ;   print_message(error, make_global_failed(Module:GoalTerm)),
+	    ;   print_message(error, goal_failed(Module:GoalTerm)),
 		trace,
 		fail
 	    )

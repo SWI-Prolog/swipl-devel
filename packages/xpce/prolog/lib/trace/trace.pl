@@ -57,14 +57,8 @@
 
 user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	current_prolog_flag(gui_tracer, true),
-	(   notrace(intercept(Port, Frame, CHP, GuiAction)),
-	    map_action(GuiAction, Frame, Action)
-	->  true
-	;   print_message(warning,
-			  guitracer(intercept_failed(Port, Frame,
-						     CHP, Action))),
-	    Action = continue
-	).
+	notrace(intercept(Port, Frame, CHP, GuiAction)),
+	map_action(GuiAction, Frame, Action).
 
 
 %%	map_action(+GuiAction, +Frame, -Action) is det.
@@ -117,6 +111,9 @@ traceall :-
 %
 %	Toplevel of the tracer interception.  Runs in debugged thread.
 
+intercept(_, _, _, _) :-
+	setting(active, false), !,
+	fail.
 intercept(Port, Frame, CHP, Action) :-
 	send_tracer(current_break(@nil)),
 	debug('*** do_intercept(~w, ~w, ~w, _) ...~n', [Port, Frame, CHP]), 
@@ -393,7 +390,7 @@ show_source(Frame, Attributes) :-
 	    attribute(Attributes, port(Port), call),
 	    attribute(Attributes, style(Style), Port),
 	    debug('Show source, PC = ~w, Port = ~w~n', [PC, Port]),
-	    (   atom(PC)		% PC is a port-name
+	    (   (PC == call ; PC == fail ; PC == exception )
 	    ->  prolog_frame_attribute(GUI, Frame, goal, Goal),
 		find_source(Goal, File, Line),
 		debug('At ~w:~d~n', [File, Line]),

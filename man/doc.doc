@@ -1,3 +1,4 @@
+
 \documentclass[11pt,twoside]{report}
 \usepackage{pl}
 \usepackage{html}
@@ -9,10 +10,10 @@
 
 % Configure latex2html
 
-\htmloutput{Manual}				% Output directory
-\htmlmainfile{index}				% Main document file
-\bodycolor{white}				% Page colour
-\linkimage{home}{home.gif}			% Images for links
+\htmloutput{Manual} % Output directory
+\htmlmainfile{index} % Main document file
+\bodycolor{white} % Page colour
+\linkimage{home}{home.gif} % Images for links
 \linkimage{index}{yellow_pages.gif}
 \linkimage{contents}{index.gif}
 \linkimage{up}{up.gif}
@@ -22,12 +23,6 @@
 
 %\includeonly{ide}
 
-#ifdef ONLINE
-\usepackage{txt}
-\usepackage{plonline}
-\setcounter{secnumdepth}{3}
-\sloppy
-#else
 \usepackage{times}
 \usepackage{fancyheadings}
 \renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
@@ -42,7 +37,6 @@
 \rfoot[]{\tiny \runningtitle}
 \cfoot{}
 \pagestyle{fancyplain}
-#endif
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
@@ -55,24 +49,20 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl}	\\ 
-	Human-Computer Studies (HCS, formerly SWI)	\\ 
-	    Kruislaan 419, 1098 VA~~Amsterdam		\\ 
-		    The Netherlands			\\ 
-		Tel. (+31) 20 5256121}
-	
+\author{\email[Jan Wielemaker]{J.Wielemaker@uva.nl} \ Human-Computer Studies (HCS, formerly SWI) \ Kruislaan 419, 1098 VA~~Amsterdam \ The Netherlands \ Tel. (+31) 20 5256121}
+
 \begin{htmlonly}
 \maketitle
 
 \begin{abstract}
 SWI-Prolog started life in 1986 as a Prolog in the Edinburgh tradition.
 Its development has been guided from the very beginning by the desire to
-build large scale applications in Prolog.  For this reason it stresses
+build large scale applications in Prolog. For this reason it stresses
 connectivity to the C-language, few system limits, comprehensive
 memory management, modules, multi-threading, coroutining, constraints
 and a fast and interactive development environment. Portable libraries
 for graphics, databases, networking, web-services, XML, RDF and many
-more complete the system. 
+more complete the system.
 
 SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
 it provides functionality compatible with Quintus, SICStus, LPA, Ciao and
@@ -98,13 +88,11 @@ in the library directory) as well as the PDF version. Sources, binaries
 and documentation can be downloaded from the \url[SWI-Prolog download
 page]{http://www.swi-prolog.org/download.html}.
 
-
 The SWI-Prolog project {\bf home page} is located
 \url[here]{http://www.swi-prolog.org}
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}
-
 
 \begin{document}
 
@@ -116,30 +104,30 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 \newcommand{\uvaaddress}{%
 \parbox[b]{\uvawidth}{%
     \begin{center}
-	\LARGE
-	      University of Amsterdam			\\[3mm]
-	\small
-	Human-Computer Studies (HCS, formerly SWI) 	\\%
-	   Kruislaan 419, 1098 VA~~Amsterdam		\\%
-		    The Netherlands			\\%
-		Tel. (+31) 20 5256121
+ \LARGE
+       University of Amsterdam \\[3mm]
+ \small
+ Human-Computer Studies (HCS, formerly SWI) \\%
+    Kruislaan 419, 1098 VA~~Amsterdam \\%
+      The Netherlands \\%
+  Tel. (+31) 20 5256121
     \end{center}}}
 
 \raisebox{4cm}{
 \parbox{\textwidth}{%
     \makebox[\textwidth]{%
         \includegraphics{figs/swipl}
-	\hfill%
-	\raisebox{15mm}{\uvaaddress}}
+ \hfill%
+ \raisebox{15mm}{\uvaaddress}}
 }}
 \vfil\vfil\vfil
 \begin{center}
-	{\Huge \bf SWI-Prolog \versionshort	\\[3mm]
-	 \LARGE Reference Manual}		\\[3mm]
-        {\it Updated for version \versionlong}	\\[10mm]
-	{\large \it Jan Wielemaker}		\\[0mm]
-	{\large \email{wielemak@science.uva.nl}} \\[0mm]
-	{\large	http://www.swi-prolog.org}
+ {\Huge \bf SWI-Prolog \versionshort \\[3mm]
+  \LARGE Reference Manual} \\[3mm]
+        {\it Updated for version \versionlong} \\[10mm]
+ {\large \it Jan Wielemaker} \\[0mm]
+ {\large \email{wielemak@science.uva.nl}} \\[0mm]
+ {\large http://www.swi-prolog.org}
 \end{center}
 
 \vfil

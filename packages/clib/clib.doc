@@ -872,11 +872,6 @@ represent UTF-8 streams, making them capable of storing arbitrary
 Unicode text. In practice the only alternative is \const{octet}, turning
 the memoryfile into binary mode.  Please study SWI-Prolog Unicode and
 encoding issues before using this option.
-    \termitem{free_on_close}{+Bool}
-If \const{true} (default \const{false} and the memory file is opened
-for reading, discard the file (see free_memory_file/1) if the input
-is closed.  This is used to realise open_chars_stream/2 in
-library(charsio).
 \end{description}
 
     \predicate{size_memory_file}{2}{+Handle, -Bytes}

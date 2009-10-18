@@ -2168,10 +2168,15 @@ next_choice:
       Undo(ch->mark);
       callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
     case CHP_DEBUG:			/* Just for debugging purposes */
-#ifdef O_DEBUGGER
-      ch0 = ch;
+      BFR  = ch->parent;
+#if 0
+      for(; (void *)FR > (void *)ch; FR = FR->parent)
+      { /*Profile(FR->predicate->profile_fails++);*/
+	leaveFrame(FR PASS_LD);
+	if ( exception_term )
+	  goto b_throw;
+      }
 #endif
-      BFR = ch->parent;
       goto next_choice;
   }
 }

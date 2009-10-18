@@ -765,50 +765,30 @@ PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
 }
 
 
-/** '$undefined_export'(+Module, -UndefExport:list(pi)) is det.
+word
+pl_check_export()
+{ GET_LD
+  Module module = contextModule(environment_frame);
 
-Unify UndefExport with predicate indicators   of undefined predicates in
-Module.
-*/
+  for_table(module->public, s,
+	    { Procedure proc = (Procedure) s->value;
+	      Definition def = proc->definition;
+	      FunctorDef fd = def->functor;
 
-static
-PRED_IMPL("$undefined_export", 2, undefined_export, 0)
-{ PRED_LD
-  atom_t mname;
-  Module module;
-  TableEnum e;
-  Symbol symb;
-  term_t tail = PL_copy_term_ref(A2);
-  term_t head = PL_new_term_ref();
+	      if ( !isDefinedProcedure(proc) &&			/* not defined */
+		   def->module == module &&			/* not imported */
+		   !autoImport(fd->functor, module) )
+	      { printMessage(ATOM_error,
+			     PL_FUNCTOR_CHARS, "undefined_export", 2,
+			       PL_ATOM, module->name,
+			       PL_FUNCTOR, FUNCTOR_divide2,
+			         PL_ATOM, fd->name,
+			         PL_INT, fd->arity);
+	      }
+	    })
 
-  if ( !PL_get_atom_ex(A1, &mname) )
-    return FALSE;
-  if ( !(module = isCurrentModule(mname)) )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_module, A1);
-  
-  e = newTableEnum(module->public);
-
-  while( (symb = advanceTableEnum(e)) )
-  { Procedure proc = (Procedure) symb->value;
-    Definition def = proc->definition;
-    FunctorDef fd = def->functor;
-
-    if ( !isDefinedProcedure(proc) &&			/* not defined */
-	 def->module == module &&			/* not imported */
-	 !autoImport(fd->functor, module) )
-    { if ( !PL_unify_list(tail, head, tail) ||
-	   !unify_definition(head, proc->definition,
-			     0, GP_QUALIFY|GP_NAMEARITY) )
-      { freeTableEnum(e);
-	return FALSE;
-      }
-    }
-  }
-  
-  freeTableEnum(e);
-  return PL_unify_nil(tail);
+  succeed;
 }
-
 
 word
 pl_context_module(term_t module)
@@ -945,5 +925,4 @@ BeginPredDefs(module)
   PRED_DEF("$module_property", 2, module_property, 0)
   PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
-  PRED_DEF("$undefined_export", 2, undefined_export, 0)
 EndPredDefs

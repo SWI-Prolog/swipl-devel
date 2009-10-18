@@ -1271,18 +1271,8 @@ load_files(Files, Options) :-
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
 	'$consult_stream'(In, File),
-	'$check_export'(Module),
+	Module:'$check_export',
 	'$ifcompiling'('$qlf_end_part').
-
-'$check_export'(Module) :-
-	'$undefined_export'(Module, UndefList),
-	(   '$member'(Undef, UndefList),
-	    strip_module(Undef, _, Local),
-	    print_message(error,
-			  undefined_export(Module, Local)),
-	    fail
-	;   true
-	).
 
 
 %%	'$import_list'(+TargetModule, +FromModule, +Import, +Reexport) is det.

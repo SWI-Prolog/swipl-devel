@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -57,15 +57,13 @@ static atom_t ATOM_unicode_le;
 static atom_t ATOM_wchar_t;
 static atom_t ATOM_read;
 static atom_t ATOM_write;
-static atom_t ATOM_free_on_close;
 
 #define MEMFILE_MAGIC	0x5624a6b3L
-#define NOSIZE ((size_t)-1)
+#define NOSIZE ((unsigned int)-1)
 
 typedef struct
 { long		magic;			/* MEMFILE_MAGIC */
   IOENC		encoding;		/* encoding of the data */
-  int		free_on_close;		/* free if it is closed */
   char	       *data;			/* data of the file */
   size_t	data_size;		/* byte-size of data */
   size_t	size;			/* size in characters */
@@ -111,8 +109,7 @@ new_memory_file(term_t handle)
 { memfile *m = calloc(1, sizeof(*m));
 
   if ( !m )
-    return pl_error(NULL, 0, NULL, ERR_ERRNO, errno,
-		    "create", "memory_file", handle);
+    return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "create", "memory_file", handle);
 
   m->magic = MEMFILE_MAGIC;
   m->encoding = ENC_UTF8;
@@ -128,27 +125,22 @@ new_memory_file(term_t handle)
 }
 
 
-static int
-destroy_memory_file(memfile *m)
-{ if ( m->stream )
-    Sclose(m->stream);
-  if ( m->atom )
-    PL_unregister_atom(m->atom);
-  else if ( m->data )
-    Sfree(m->data);			/* MS-Windows: malloc by other DLL! */
-  m->magic = 0;
-  free(m);
-
-  return TRUE;
-} 
-
-
 static foreign_t
 free_memory_file(term_t handle)
 { memfile *m;
 
   if ( get_memfile(handle, &m) )
-    return destroy_memory_file(m);
+  { if ( m->stream )
+      Sclose(m->stream);
+    if ( m->atom )
+      PL_unregister_atom(m->atom);
+    else if ( m->data )
+      Sfree(m->data);			/* MS-Windows: malloc by other DLL! */
+    m->magic = 0;
+    free(m);
+
+    return TRUE;
+  }
 
   return FALSE;
 }
@@ -159,8 +151,6 @@ closehook(void *closure)
 { memfile *m = closure;
 
   m->stream = NULL;
-  if ( m->free_on_close )
-    destroy_memory_file(m);
 }
 
 
@@ -226,7 +216,6 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
   atom_t iom;
   IOSTREAM *fd;
   IOENC encoding;
-  int free_on_close = FALSE;
 
   if ( !get_memfile(handle, &m) )
     return FALSE;
@@ -249,14 +238,8 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
       { term_t arg = PL_new_term_ref();
 
 	PL_get_arg(1, head, arg);
-	if ( name == ATOM_encoding )
-	{ if ( !get_encoding(arg, &encoding) )
-	    return FALSE;
-	} else if ( name == ATOM_free_on_close )
-	{ if ( !PL_get_bool(arg, &free_on_close) )
-	    return pl_error("open_memory_file", 4, NULL, ERR_TYPE, 
-			    arg, "boolean");
-	}
+	if ( !get_encoding(arg, &encoding) )
+	  return FALSE;
       } else
 	return pl_error("open_memory_file", 4, NULL, ERR_TYPE, head, "option");
     }
@@ -278,7 +261,6 @@ open_memory_file4(term_t handle, term_t mode, term_t stream, term_t options)
     m->encoding = encoding;
   } else if ( iom == ATOM_read )
   { x = "r";
-    m->free_on_close = free_on_close;
   } else
   { return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
 		    mode, "io_mode");
@@ -496,7 +478,6 @@ install_memfile()
   MKATOM(wchar_t);
   MKATOM(read);
   MKATOM(write);
-  MKATOM(free_on_close);
 
   PL_register_foreign("new_memory_file",      1, new_memory_file,      0);
   PL_register_foreign("free_memory_file",     1, free_memory_file,     0);
