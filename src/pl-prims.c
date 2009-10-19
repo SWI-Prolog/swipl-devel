@@ -2159,13 +2159,8 @@ start:
     }
     gTop += 2;
 
-
     v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-    if ( isAttVar(*p) )
-    { assignAttVar(p, &v PASS_LD);
-    } else
-    { Trail(p, v);
-    }
+    bindConst(p, v);
   } else if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
     int arity;
