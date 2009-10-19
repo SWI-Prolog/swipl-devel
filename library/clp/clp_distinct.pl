@@ -29,10 +29,6 @@
     the GNU General Public License.
 */
 
-%%%%%%% clp_distinct.pl - Weak arc consistent all_distinct/1 constraint %%%%%
-
-% For details, see Neng-Fa Zhou, 2005:
-%      "Programming Finite-Domain Constraint Propagators in Action Rules"
 
 :- module(clp_distinct,
 	[
@@ -41,6 +37,15 @@
 		all_distinct/1
 	]).
 :- use_module(library(lists)).
+
+/** <module> Weak arc consistent all_distinct/1 constraint
+
+@deprecated	Superseded by library(clpfd)'s all_distinct/1.
+@author		Markus Triska
+*/
+
+% For details, see Neng-Fa Zhou, 2005:
+%      "Programming Finite-Domain Constraint Propagators in Action Rules"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library uses the following arribute value:
