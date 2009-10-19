@@ -2923,7 +2923,6 @@ constraint_wake(pneq, ground).
 constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
-constraint_wake(pdistinct, ground).
 constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
@@ -3113,11 +3112,10 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             disable_queue,
             exclude_fire(Left, Right, X),
             enable_queue
-        ;   %outof_reducer(Left, Right, X)
+        ;   outof_reducer(Left, Right, X)
             %(   var(X) -> kill_if_isolated(Left, Right, X, MState)
             %;   true
-            %),
-            true
+            %)
         ).
 
 run_propagator(pexclude(Left,Right,X), _) :-
@@ -4497,12 +4495,11 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 all_distinct(Ls) :- regin_attach(Ls).
 
-% all_distinct(Ls) :- all_different(Ls).
-% all_distinct(Ls) :-
-%         must_be(list, Ls),
-%         put_attr(O, clpfd_original, all_distinct(Ls)),
-%         all_distinct(Ls, [], O),
-%         do_queue.
+weak_arc_all_distinct(Ls) :-
+        must_be(list, Ls),
+        put_attr(O, clpfd_original, weak_arc_all_distinct(Ls)),
+        all_distinct(Ls, [], O),
+        do_queue.
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, Orig) :-
