@@ -4139,8 +4139,8 @@ max_divide(L1,U1,L2,U2,Max) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- J-C. Régin: "A filtering algorithm for constraints of difference in
- CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
+   J-C. Régin: "A filtering algorithm for constraints of difference in
+   CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 regin_attach(Ls) :-
@@ -4498,9 +4498,9 @@ all_distinct(Ls) :- regin_attach(Ls).
    Weak arc consistent constraint of difference, currently only
    available internally. Candidate for all_different/2 option.
 
-   See Neng-Fa Zhou, "Programming Finite-Domain Constraint Propagators
+   See Neng-Fa Zhou: "Programming Finite-Domain Constraint Propagators
    in Action Rules", Theory and Practice of Logic Programming, Vol.6,
-   No.5, pp. 483-508, 2006
+   No.5, pp 483-508, 2006
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 weak_arc_all_distinct(Ls) :-
@@ -4755,6 +4755,10 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         ),
         gcc_pairs(KNs, Vs, Rest).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    J.-C. Régin: "Generalized Arc Consistency for Global Cardinality
+    Constraint", AAAI-96 Portland, OR, USA, pp 209--215, 1996
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
         gcc_arcs(KNs, S, T, Vals),
