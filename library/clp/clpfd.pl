@@ -61,18 +61,9 @@
 
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-   Many things can be improved; if you want to help, feel free to
-   e-mail me. A good starting point is taking a propagation algorithm
-   from the literature and adding it - for example:
-
-   J-C. Régin: "A filtering algorithm for constraints of difference in
-   CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
-
-   You can implement this algorithm without any knowledge of Prolog or
-   this library. Just write an efficient predicate that, given a set
-   of variables and their list of domain elements, uses the described
-   algorithm to compute the set of arcs that can be safely removed
-   from the value graph.
+   Many things can be improved; if you need any additional features or
+   want to help, please e-mail me. A good starting point is taking a
+   propagation algorithm from the literature and adding it.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2932,7 +2923,6 @@ constraint_wake(pneq, ground).
 constraint_wake(x_neq_y_plus_z, ground).
 constraint_wake(absdiff_neq, ground).
 constraint_wake(pdifferent, ground).
-constraint_wake(pdistinct, ground).
 constraint_wake(pexclude, ground).
 constraint_wake(scalar_product_neq, ground).
 
@@ -3122,11 +3112,10 @@ run_propagator(pdistinct(Left,Right,X,_), _MState) :-
             disable_queue,
             exclude_fire(Left, Right, X),
             enable_queue
-        ;   %outof_reducer(Left, Right, X)
+        ;   outof_reducer(Left, Right, X)
             %(   var(X) -> kill_if_isolated(Left, Right, X, MState)
             %;   true
-            %),
-            true
+            %)
         ).
 
 run_propagator(pexclude(Left,Right,X), _) :-
@@ -4149,7 +4138,10 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Régin's algorithm for constraints of difference
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   J-C. Régin: "A filtering algorithm for constraints of difference in
+   CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 regin_attach(Ls) :-
          must_be(list, Ls),
@@ -4496,22 +4488,26 @@ state(S0, S), [S] --> [S0].
 
 v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Weak arc consistent all_distinct/1 constraint.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 %% all_distinct(+Ls).
 %
 % Like all_different/1, with stronger propagation.
 
 all_distinct(Ls) :- regin_attach(Ls).
 
-% all_distinct(Ls) :- all_different(Ls).
-% all_distinct(Ls) :-
-%         must_be(list, Ls),
-%         put_attr(O, clpfd_original, all_distinct(Ls)),
-%         all_distinct(Ls, [], O),
-%         do_queue.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Weak arc consistent constraint of difference, currently only
+   available internally. Candidate for all_different/2 option.
+
+   See Neng-Fa Zhou: "Programming Finite-Domain Constraint Propagators
+   in Action Rules", Theory and Practice of Logic Programming, Vol.6,
+   No.5, pp 483-508, 2006
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+weak_arc_all_distinct(Ls) :-
+        must_be(list, Ls),
+        put_attr(O, clpfd_original, weak_arc_all_distinct(Ls)),
+        all_distinct(Ls, [], O),
+        do_queue.
 
 all_distinct([], _, _).
 all_distinct([X|Right], Left, Orig) :-
@@ -4759,6 +4755,10 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         ),
         gcc_pairs(KNs, Vs, Rest).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    J.-C. Régin: "Generalized Arc Consistency for Global Cardinality
+    Constraint", AAAI-96 Portland, OR, USA, pp 209--215, 1996
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
         gcc_arcs(KNs, S, T, Vals),
