@@ -4138,7 +4138,10 @@ max_divide(L1,U1,L2,U2,Max) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Régin's algorithm for constraints of difference
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ J-C. Régin: "A filtering algorithm for constraints of difference in
+ CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 regin_attach(Ls) :-
          must_be(list, Ls),
@@ -4485,15 +4488,20 @@ state(S0, S), [S] --> [S0].
 
 v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Weak arc consistent all_distinct/1 constraint.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 %% all_distinct(+Ls).
 %
 % Like all_different/1, with stronger propagation.
 
 all_distinct(Ls) :- regin_attach(Ls).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Weak arc consistent constraint of difference, currently only
+   available internally. Candidate for all_different/2 option.
+
+   See Neng-Fa Zhou, "Programming Finite-Domain Constraint Propagators
+   in Action Rules", Theory and Practice of Logic Programming, Vol.6,
+   No.5, pp. 483-508, 2006
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 weak_arc_all_distinct(Ls) :-
         must_be(list, Ls),
