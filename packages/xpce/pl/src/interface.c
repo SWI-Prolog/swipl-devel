@@ -720,13 +720,16 @@ static int
 ThrowException(int id, ...)
 { va_list args;
   fid_t fid;
+  term_t et;
+  term_t err;
+  term_t ctx;
 
   if ( !(fid = PL_open_foreign_frame()) )
     return FALSE;
 
-  term_t et  = PL_new_term_ref();	/* the error term */
-  term_t err = PL_new_term_ref();	/* the 1-st argument */
-  term_t ctx = PL_new_term_ref();	/* the 2-nd (context) argument */
+  et  = PL_new_term_ref();	/* the error term */
+  err = PL_new_term_ref();	/* the 1-st argument */
+  ctx = PL_new_term_ref();	/* the 2-nd (context) argument */
 
   va_start(args, id);
   switch(id)

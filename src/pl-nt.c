@@ -329,7 +329,8 @@ get_showCmd(term_t show, int *cmd)
 
 static int
 win_exec(size_t len, const wchar_t *cmd, UINT show)
-{ STARTUPINFOW startup;
+{ GET_LD
+  STARTUPINFOW startup;
   PROCESS_INFORMATION info;
   int rval;
   wchar_t *wcmd;
@@ -683,7 +684,8 @@ unify_csidl_path(term_t t, int csidl)
 
 static
 PRED_IMPL("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
-{ int n;
+{ GET_LD
+  int n;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -798,7 +800,8 @@ reg_open_key(const wchar_t *which, int create)
 
 static
 PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0)
-{ DWORD type;
+{ GET_LD
+  DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
   size_t klen, namlen;
@@ -849,7 +852,6 @@ static struct regdef
 { { "localSize",    &GD->defaults.local },
   { "globalSize",   &GD->defaults.global },
   { "trailSize",    &GD->defaults.trail },
-  { "argumentSize", &GD->defaults.argument },
   { NULL,           NULL }
 };
 
@@ -885,11 +887,6 @@ getDefaultsFromRegistry()
   { setStacksFromKey(key);
     RegCloseKey(key);
   }
-
-#ifdef O_CYCLIC
-  if ( GD->defaults.argument == DEFARGUMENT )
-    GD->defaults.argument = GD->defaults.global/4;
-#endif
 }
 
 		 /*******************************
