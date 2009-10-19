@@ -325,7 +325,8 @@ getModuleFunction(const char *module, const char *name)
 
 word
 pl_tty_size(term_t r, term_t c)
-{ int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
+{ GET_LD
+  int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
   int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
 
   if ( ScreenCols && ScreenRows )

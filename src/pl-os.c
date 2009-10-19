@@ -750,7 +750,8 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
+{ GET_LD
+  int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
 
   return _xos_canonical_filename(p, buf, len, flags);
 }
@@ -1906,7 +1907,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf)
-{ ttymode = buf->mode;
+{ GET_LD
+  ttymode = buf->mode;
   if ( ttymode != TTY_RAW )
     LD->prompt.next = TRUE;
 
