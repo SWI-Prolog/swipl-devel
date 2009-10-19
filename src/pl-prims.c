@@ -2115,15 +2115,19 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 		 *	     NUMBERVARS		*
 		 *******************************/
 
-static int
-do_number_vars(term_t t, nv_options *options, int n ARG_LD)
-{ Word p;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns	>= 0: Number for next variable variable
+	  -1: Error
+	< -1: Out of stack error
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+do_number_vars(Word p, nv_options *options, int n ARG_LD)
+{
 start:
   if ( n < 0 )
     return n;				/* error */
 
-  p = valTermRef(t);
   deRef(p);
 
   if ( canBind(*p) )
@@ -2142,13 +2146,7 @@ start:
     }
 
     if ( !hasGlobalSpace(2) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != TRUE )
-	return raiseStackOverflow(rc);
-      p = valTermRef(t);
-      deRef(p);
-    }
+      return GLOBAL_OVERFLOW;
 
     a = gTop;
     a[0] = options->functor;
@@ -2185,42 +2183,49 @@ start:
       return n;
 
     arity = arityFunctor(f->definition);
-    if ( arity == 1 )
-    { _PL_get_arg(1, t, t);
-      goto start;
-    } else
-    { term_t a = PL_new_term_ref();
-      int i;
 
-      for(i=1; ; i++)
-      { if ( i == arity )
-	{ PL_reset_term_refs(a);
-	  _PL_get_arg(i, t, t);
-	  goto start;			/* right-recursion optimisation */
-	} else
-	{ _PL_get_arg(i, t, a);
-	  n = do_number_vars(a, options, n PASS_LD);
-	}
-      }
+    for(p=argTermP(*p, 0); --arity > 0; p++)
+    { if ( (n=do_number_vars(p, options, n PASS_LD)) < 0 )
+	return n;
     }
+    goto start;				/* right-argument recursion */
   }
 
-  return n;			/* anything else */
+  return n;				/* anything else */
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns	>= 0: Number for next variable variable
+	  -1: Error
+	< -1: Out of stack error
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 numberVars(term_t t, nv_options *options, int n ARG_LD)
-{ term_t h2 = PL_copy_term_ref(t);
-  int rval;
+{ for(;;)
+  { mark m;
+    int rc;
 
-  initvisited(PASS_LD1);
-  rval = do_number_vars(h2, options, n PASS_LD);
-  unvisit(PASS_LD1);
+    Mark(m);
+    initvisited(PASS_LD1);
+    rc = do_number_vars(valTermRef(t), options, n PASS_LD);
+    unvisit(PASS_LD1);
+    if ( rc >= 0 )			/* all ok */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == -1 )		/* error */
+    { DiscardMark(m);
+      return rc;
+    } else				/* stack overflow */
+    { int rc2;
 
-  PL_reset_term_refs(h2);
-
-  return rval;
+      Undo(m);
+      DiscardMark(m);
+      if ( !(rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT)) )
+	return rc;
+    }
+  }
 }
 
 
@@ -2287,6 +2292,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
   if ( n == -1 )
     return PL_error(NULL, 0, NULL,
 		    ERR_TYPE, ATOM_free_of_attvar, A1);
+  else if ( n < 0 )
+    return raiseStackOverflow(n);
 
   return PL_unify_integer(end, n);
 }
