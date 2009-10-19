@@ -40,6 +40,10 @@ case "$since" in
 	;;
 esac
 
+pattern=${PATTERN-^[A-Z][A-Z]+:}
+
+echo $pattern
+
 git log ${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
@@ -48,7 +52,7 @@ BEGIN		{ doprint="false";
 		  doprint="false";
 		  next;
 	        }
-/^[A-Z][A-Z]+:/	{ if ( dateprinted != date && "'$printdate'" == "true" )
+/'$pattern'/	{ if ( dateprinted != date && "'$printdate'" == "true" )
 		  { printf("%s\n\n", date);
 		    dateprinted = date;
 		  }
