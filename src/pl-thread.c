@@ -176,7 +176,9 @@ static sem_t sem_mark;			/* used for atom-gc */
 		 *******************************/
 
 static Table threadTable;		/* name --> integer-id */
-static PL_thread_info_t threads[MAX_THREADS];
+static int thread_highest_id;		/* Highest handed thread-id */
+static int thread_max = MAX_THREADS;
+static PL_thread_info_t *threads[MAX_THREADS];
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
@@ -489,7 +491,7 @@ free_prolog_thread(void *data)
   acknowledge = (info->status == PL_THREAD_CANCELED);
   UNLOCK();
   DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
-		    info-threads, info->status));
+		    info->pl_tid, info->status));
 
 #if O_DEBUGGER
   callEventHook(PL_EV_THREADFINISHED, info);
@@ -557,21 +559,26 @@ initPrologThreads()
   }
   TLD_set(PL_ldata, &PL_local_data);
   PL_local_data.magic = LD_MAGIC;
-  info = &threads[1];
-  info->pl_tid = 1;
-  info->thread_data = &PL_local_data;
-  info->status = PL_THREAD_RUNNING;
-  PL_local_data.thread.info = info;
-  PL_local_data.thread.magic = PL_THREAD_MAGIC;
-  set_system_thread_id(info);
-  init_message_queue(&PL_local_data.thread.messages, -1);
+  { GET_LD
 
-  GD->statistics.thread_cputime = 0.0;
-  GD->statistics.threads_created = 1;
-  GD->thread.mutexTable = newHTable(16);
-  GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
-  link_mutexes();
-  threads_ready = TRUE;
+    info = threads[1] = allocHeap(sizeof(*info));
+    memset(info, 0, sizeof(*info));
+    info->pl_tid = 1;
+    thread_highest_id = 1;
+    info->thread_data = &PL_local_data;
+    info->status = PL_THREAD_RUNNING;
+    PL_local_data.thread.info = info;
+    PL_local_data.thread.magic = PL_THREAD_MAGIC;
+    set_system_thread_id(info);
+    init_message_queue(&PL_local_data.thread.messages, -1);
+
+    GD->statistics.thread_cputime = 0.0;
+    GD->statistics.threads_created = 1;
+    GD->thread.mutexTable = newHTable(16);
+    GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
+    link_mutexes();
+    threads_ready = TRUE;
+  }
   UNLOCK();
 }
 
@@ -608,7 +615,7 @@ There are a lot of problems however.
 
 void
 exitPrologThreads()
-{ PL_thread_info_t *t;
+{ PL_thread_info_t **t;
   int i;
   int me = PL_thread_self();
   int canceled = 0;
@@ -617,48 +624,50 @@ exitPrologThreads()
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
-  for(t=&threads[1], i=1; i<MAX_THREADS; i++, t++)
-  { if ( t->thread_data && i != me )
-    { switch(t->status)
+  for(t=&threads[1], i=1; i<= thread_highest_id; i++, t++)
+  { PL_thread_info_t *info = *t;
+
+    if ( info->thread_data && i != me )
+    { switch(info->status)
       { case PL_THREAD_FAILED:
 	case PL_THREAD_EXITED:
 	case PL_THREAD_EXCEPTION:
 	{ void *r;
 	  int rc;
 
-	  if ( (rc=pthread_join(t->tid, &r)) )
+	  if ( (rc=pthread_join(info->tid, &r)) )
 	    Sdprintf("Failed to join thread %d: %s\n", i, ThError(rc));
 
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	{ t->thread_data->exit_requested = TRUE;
+	{ info->thread_data->exit_requested = TRUE;
 
-	  if ( t->cancel )
-	  { if ( (*t->cancel)(i) == TRUE )
+	  if ( info->cancel )
+	  { if ( (*info->cancel)(i) == TRUE )
 	      break;			/* done so */
 	  }
 
 #ifdef __WINDOWS__
-	  raiseSignal(t->thread_data, SIGINT);
-	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
+	  raiseSignal(info->thread_data, SIGINT);
+	  PostThreadMessage(info->w32id, WM_QUIT, 0, 0);
 	  DEBUG(1, Sdprintf("Cancelled %d\n", i));
 	  canceled++;
 #else
-  	  if ( t->tid )
+  	  if ( info->tid )
 	  { int rc;
-	    int oldstat = t->status;
+	    int oldstat = info->status;
 
-	    t->status = PL_THREAD_CANCELED;
-	    if ( (rc=pthread_cancel(t->tid)) == 0 )
+	    info->status = PL_THREAD_CANCELED;
+	    if ( (rc=pthread_cancel(info->tid)) == 0 )
 	    { canceled++;
 	    } else
-	    { t->status = oldstat;
+	    { info->status = oldstat;
 	      Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
 	    }
 	  } else
 	  { DEBUG(1, Sdprintf("Destroying engine %d\n", i));
-	    PL_destroy_engine(t->thread_data);
+	    PL_destroy_engine(info->thread_data);
 	  }
 #endif
 	  break;
@@ -719,7 +728,7 @@ aliasThread(int tid, atom_t name)
 
   addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
   PL_register_atom(name);
-  threads[tid].name = name;
+  threads[tid]->name = name;
 
   UNLOCK();
 
@@ -746,22 +755,31 @@ unaliasThread(atom_t name)
 
 static PL_thread_info_t *
 alloc_thread()
-{ int i;
+{ GET_LD
+  int i;
 
-  for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].status == PL_THREAD_UNUSED )
+  for(i=1; i<=thread_max; i++)
+  { if ( !threads[i] )
+    { threads[i] = allocHeap(sizeof(*threads[i]));
+      memset(threads[i], 0, sizeof(*threads[i]));
+    }
+
+    if ( threads[i]->status == PL_THREAD_UNUSED )
     { GET_LD
       PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
 
-      threads[i].pl_tid = i;
-      threads[i].thread_data = ld;
-      threads[i].status = PL_THREAD_CREATED;
-      ld->thread.info = &threads[i];
+      threads[i]->pl_tid = i;
+      threads[i]->thread_data = ld;
+      threads[i]->status = PL_THREAD_CREATED;
+      ld->thread.info = threads[i];
       ld->thread.magic = PL_THREAD_MAGIC;
 
-      return &threads[i];
+      if ( i > thread_highest_id )
+	thread_highest_id = i;
+
+      return threads[i];
     }
   }
 
@@ -783,10 +801,12 @@ PL_thread_self()
 
 int
 PL_unify_thread_id(term_t t, int i)
-{ if ( i < 0 || i >= MAX_THREADS || threads[i].status == PL_THREAD_UNUSED )
+{ if ( i < 0 ||
+       i > thread_highest_id ||
+       threads[i]->status == PL_THREAD_UNUSED )
     return -1;				/* error */
 
-  return unify_thread_id(t, &threads[i]);
+  return unify_thread_id(t, threads[i]);
 }
 
 
@@ -815,14 +835,14 @@ PL_w32thread_raise(DWORD id, int sig)
 
 int
 PL_w32thread_raise(DWORD id, int sig)
-{ PL_thread_info_t *info;
+{ PL_thread_info_t **info;
   int i;
 
   if ( sig < 0 || sig > MAXSIGNAL )
     return FALSE;			/* illegal signal */
 
   LOCK();
-  for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
+  for(i = 0, info = threads; i <= thread_highest_id; i++, info++)
   { if ( info->w32id == id && info->thread_data )
     { raiseSignal(info->thread_data, sig);
 #ifdef __WINDOWS__
@@ -852,12 +872,12 @@ PL_thread_raise(int tid, int sig)
 { PL_thread_info_t *info;
 
   LOCK();
-  if ( tid < 0 || tid >= MAX_THREADS )
+  if ( tid < 0 || tid > thread_highest_id )
   { error:
     UNLOCK();
     return FALSE;
   }
-  info = &threads[tid];
+  info = threads[tid];
   if ( info->status == PL_THREAD_UNUSED )
     goto error;
 
@@ -883,7 +903,7 @@ threadName(int id)
   if ( id < 0 )
     return "[Not a prolog thread]";
 
-  info = &threads[id];
+  info = threads[id];
 
   if ( info->name )
     return PL_atom_chars(info->name);
@@ -1155,7 +1175,9 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 || i >= MAX_THREADS || threads[i].status == PL_THREAD_UNUSED )
+  if ( i < 0 ||
+       i > thread_highest_id ||
+       threads[i]->status == PL_THREAD_UNUSED )
   { if ( warn )
       return PL_error(NULL, 0, "no info record",
 		      ERR_EXISTENCE, ATOM_thread, t);
@@ -1163,7 +1185,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
       return FALSE;
   }
 
-  *info = &threads[i];
+  *info = threads[i];
 
   return TRUE;
 }
@@ -1267,6 +1289,16 @@ free_thread_info(PL_thread_info_t *info)
   if ( info->name )
     unaliasThread(info->name);
 
+  if ( info->pl_tid == thread_highest_id )
+  { int i;
+
+    for(i=info->pl_tid-1; i>1; i--)
+    { PL_thread_info_t *ih = threads[i];
+      if ( ih->status != PL_THREAD_UNUSED )
+	break;
+    }
+    thread_highest_id = i;
+  }
   memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
 }
 
@@ -1325,7 +1357,7 @@ pl_thread_exit(term_t retcode)
   info->return_value = PL_record(retcode);
   UNLOCK();
 
-  DEBUG(1, Sdprintf("thread_exit(%d)\n", info-threads));
+  DEBUG(1, Sdprintf("thread_exit(%d)\n", info->pl_tid));
 
   pthread_exit(NULL);
   assert(0);
@@ -1450,9 +1482,9 @@ advance_state(tprop_enum *state)
   if ( state->enum_threads )
   { do
     { state->tid++;
-      if ( state->tid >= MAX_THREADS )
+      if ( state->tid > thread_highest_id )
 	fail;
-    } while ( threads[state->tid].status == PL_THREAD_UNUSED );
+    } while ( threads[state->tid]->status == PL_THREAD_UNUSED );
 
     succeed;
   }
@@ -1528,7 +1560,7 @@ enumerate:
       _PL_get_arg(1, property, arg);
 
     for(;;)
-    { PL_thread_info_t *info = &threads[state->tid];
+    { PL_thread_info_t *info = threads[state->tid];
 
       if ( (*state->p->function)(info, arg PASS_LD) )
       { if ( state->enum_properties )
@@ -1574,14 +1606,14 @@ Sum the amount of heap allocated through all threads allocation-pools.
 size_t
 threadLocalHeapUsed(void)
 { int i;
-  PL_thread_info_t *info;
+  PL_thread_info_t **info;
   intptr_t heap = 0;
 
   LOCK();
-  for(i=0, info=threads; i<MAX_THREADS; i++, info++)
+  for(i=1, info=&threads[1]; i<=thread_highest_id; i++, info++)
   { PL_local_data_t *ld;
 
-    if ( (ld = info->thread_data) )
+    if ( (ld = (*info)->thread_data) )
     { heap += ld->alloc_pool.allocated;
     }
   }
@@ -2558,12 +2590,12 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
       id = consInt(i);
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
-    if ( tid < 0 || tid >= MAX_THREADS ||
-	 threads[tid].status == PL_THREAD_UNUSED ||
-	 !threads[tid].thread_data )
+    if ( tid < 0 || tid > thread_highest_id ||
+	 threads[tid]->status == PL_THREAD_UNUSED ||
+	 !threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
 
-    *queue = &threads[tid].thread_data->thread.messages;
+    *queue = &threads[tid]->thread_data->thread.messages;
     return TRUE;
   }
   if ( !id )
@@ -3135,7 +3167,7 @@ unify_mutex(term_t t, pl_mutex *m)
 static int
 unify_mutex_owner(term_t t, int owner)
 { if ( owner )
-    return unify_thread_id(t, &threads[owner]);
+    return unify_thread_id(t, threads[owner]);
   else
     return PL_unify_nil(t);
 }
@@ -3639,7 +3671,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   if ( !info )
     return -1;				/* out of threads */
 
-  ldmain = threads[1].thread_data;
+  ldmain = threads[1]->thread_data;
   ldnew = info->thread_data;
 
   if ( attr )
@@ -4274,15 +4306,15 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 { int i;
   int me = PL_thread_self();
 
-  for(i=0; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me &&
-	 threads[i].status == PL_THREAD_RUNNING )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
+  for(i=1; i<=thread_highest_id; i++)
+  { if ( threads[i]->thread_data && i != me &&
+	 threads[i]->status == PL_THREAD_RUNNING )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i]->tid);
 
       if ( SuspendThread(win_thread) != -1L )
-      { (*func)(threads[i].thread_data);
+      { (*func)(threads[i]->thread_data);
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
-	  threads[i].status = PL_THREAD_SUSPENDED;
+	  threads[i]->status = PL_THREAD_SUSPENDED;
 	else
 	  ResumeThread(win_thread);
       }
@@ -4300,13 +4332,13 @@ resumeThreads(void)
 { int i;
   int me = PL_thread_self();
 
-  for(i=0; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me &&
-	 threads[i].status == PL_THREAD_SUSPENDED )
+  for(i=0; i<=thread_highest_id; i++)
+  { if ( threads[i]->thread_data && i != me &&
+	 threads[i]->status == PL_THREAD_SUSPENDED )
     { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
 
       ResumeThread(win_thread);
-      threads[i].status = PL_THREAD_RUNNING;
+      threads[i]->status = PL_THREAD_RUNNING;
     }
   }
 }
@@ -4326,7 +4358,7 @@ wait_resume(PL_thread_info_t *t)
   } while(t->status != PL_THREAD_RESUMING);
   t->status = PL_THREAD_RUNNING;
 
-  DEBUG(1, Sdprintf("Resuming %d\n", t-threads));
+  DEBUG(1, Sdprintf("Resuming %d\n", t->pl_tid));
 }
 
 
@@ -4341,7 +4373,7 @@ resumeThreads(void)
 { struct sigaction old;
   struct sigaction new;
   int i;
-  PL_thread_info_t *t;
+  PL_thread_info_t **t;
   int signalled = 0;
 
   memset(&new, 0, sizeof(new));
@@ -4351,14 +4383,16 @@ resumeThreads(void)
 
   sem_init(sem_mark_ptr, USYNC_THREAD, 0);
 
-  for(t = threads, i=0; i<MAX_THREADS; i++, t++)
-  { if ( t->status == PL_THREAD_SUSPENDED )
+  for(t = &threads[1], i=1; i<=thread_highest_id; i++, t++)
+  { PL_thread_info_t *info = *t;
+
+    if ( info->status == PL_THREAD_SUSPENDED )
     { int rc;
 
-      t->status = PL_THREAD_RESUMING;
+      info->status = PL_THREAD_RESUMING;
 
       DEBUG(1, Sdprintf("Sending SIG_RESUME to %d\n", i));
-      if ( (rc=pthread_kill(t->tid, SIG_RESUME)) == 0 )
+      if ( (rc=pthread_kill(info->tid, SIG_RESUME)) == 0 )
 	signalled++;
       else
 	Sdprintf("resumeThreads(): Failed to signal %d: %s\n", i, ThError(rc));
@@ -4453,7 +4487,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   struct sigaction new;
   int me = PL_thread_self();
   int signalled = 0;
-  PL_thread_info_t *th;
+  PL_thread_info_t **th;
   sigset_t sigmask;
 
   DEBUG(1, Sdprintf("Calling forThreadLocalData() from %d\n", me));
@@ -4473,15 +4507,17 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   new.sa_mask    = sigmask;
   sigaction(SIG_FORALL, &new, &old);
 
-  for(th = &threads[1]; th < &threads[MAX_THREADS]; th++)
-  { if ( th->thread_data && th->pl_tid != me &&
-	 th->status == PL_THREAD_RUNNING )
+  for(th = &threads[1]; th <= &threads[thread_highest_id]; th++)
+  { PL_thread_info_t *info = *th;
+
+    if ( info->thread_data && info->pl_tid != me &&
+	 info->status == PL_THREAD_RUNNING )
     { int rc;
 
-      DEBUG(1, Sdprintf("Signalling %d\n", th->pl_tid));
-      th->thread_data->thread.forall_flags = flags;
-      th->ldata_status = LDATA_SIGNALLED;
-      if ( (rc=pthread_kill(th->tid, SIG_FORALL)) == 0 )
+      DEBUG(1, Sdprintf("Signalling %d\n", info->pl_tid));
+      info->thread_data->thread.forall_flags = flags;
+      info->ldata_status = LDATA_SIGNALLED;
+      if ( (rc=pthread_kill(info->tid, SIG_FORALL)) == 0 )
       { signalled++;
       } else if ( rc != ESRCH )
 	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", ThError(rc));
@@ -4501,8 +4537,10 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   }
 
   sem_destroy(&sem_mark);
-  for(th = &threads[1]; th < &threads[MAX_THREADS]; th++)
-    th->ldata_status = LDATA_IDLE;
+  for(th = &threads[1]; th <= &threads[thread_highest_id]; th++)
+  { PL_thread_info_t *info = *th;
+    info->ldata_status = LDATA_IDLE;
+  }
 
   DEBUG(1, Sdprintf(" All done!\n"));
 
@@ -4551,11 +4589,11 @@ void
 markAtomsThreads(void)
 { int i;
 
-  for(i=1; i<MAX_THREADS; i++)
+  for(i=1; i<=thread_highest_id; i++)
   { PL_local_data_t *ld;
 
-    if ( (threads[i].status != PL_THREAD_UNUSED) &&
-	 (ld=threads[i].thread_data) )
+    if ( (threads[i]->status != PL_THREAD_UNUSED) &&
+	 (ld=threads[i]->thread_data) )
     { markAtomsMessageQueue(&ld->thread.messages);
       markAtomsFindall(ld);
     }
