@@ -562,6 +562,8 @@ initPrologThreads()
     GD->thread.thread_max = MAX_THREADS;
     GD->thread.threads = allocHeap(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
+    memset(GD->thread.threads, 0,
+	   GD->thread.thread_max * sizeof(*GD->thread.threads));
     info = GD->thread.threads[1] = allocHeap(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;

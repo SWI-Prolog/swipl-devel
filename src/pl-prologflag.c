@@ -847,9 +847,7 @@ initPrologFlags()
 #ifdef O_PLMT
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
-#ifdef MAX_THREADS
-  setPrologFlag("max_threads", FT_INTEGER|FF_READONLY, MAX_THREADS);
-#endif
+  setPrologFlag("max_threads", FT_INTEGER|FF_READONLY, GD->thread.thread_max);
 #else
   setPrologFlag("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif

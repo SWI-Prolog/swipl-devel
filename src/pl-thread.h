@@ -32,7 +32,7 @@
 #include <synch.h>
 #endif
 
-#define MAX_THREADS 100			/* for now */
+#define MAX_THREADS 512			/* for now */
 
 typedef enum
 { LDATA_IDLE = 0,

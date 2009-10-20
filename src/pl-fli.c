@@ -4229,7 +4229,7 @@ PL_query(int query)
       return PLVERSION;
     case PL_QUERY_MAX_THREADS:
 #ifdef O_PLMT
-      return MAX_THREADS;
+      return GD->thread.thread_max;
 #else
       return 1;
 #endif
