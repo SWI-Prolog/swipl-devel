@@ -133,12 +133,11 @@ if "%VCXX%" GEQ "VC08" (SET "PL~VC_VERSION=VC8_OR_MORE") else (SET "PL~VC_VERSIO
 :: in ../pl/x86/bin, ../pl/x86/include and ../pl/x86/lib (../pl/x64/bin, ../pl/x64/include and ../pl/x64/lib)."
 :: The whole tree gets copied to the ../pl/ directory...
 :clean_and_copy_libs
-echo Cleaning...
 nmake /f makefile.mak distclean > nul
-del %PL~HOME%\bin\*.* /Q /S > nul
-del %PL~HOME%\include\*.* /Q /S > nul
-del %PL~HOME%\lib\*.* /Q /S > nul
-xcopy ..\..\pl\%PL~TARGET_OS_ARCH%\*.* ..\..\pl\ /E /I /Q /R /Y
+del "%PL~HOME%\bin\*.*" /Q /S > nul
+del "%PL~HOME%\include\*.*" /Q /S > nul
+del "%PL~HOME%\lib\*.*" /Q /S > nul
+xcopy "%PL~HOME%\%PL~TARGET_OS_ARCH%\*.*" "%PL~HOME%\" /E /I /Q /R /Y
 :end_clean_and_copy_libs
 
 

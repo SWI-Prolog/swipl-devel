@@ -10,3 +10,6 @@
 [submodule "packages/inclpr"]
 	path = packages/inclpr
 	url = ../inclpr.git
+[submodule "packages/space"]
+	path = packages/space
+	url = ../space.git
