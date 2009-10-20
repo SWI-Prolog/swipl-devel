@@ -177,8 +177,6 @@ static sem_t sem_mark;			/* used for atom-gc */
 
 static Table threadTable;		/* name --> integer-id */
 static int thread_highest_id;		/* Highest handed thread-id */
-static int thread_max = MAX_THREADS;
-static PL_thread_info_t *threads[MAX_THREADS];
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
@@ -561,7 +559,10 @@ initPrologThreads()
   PL_local_data.magic = LD_MAGIC;
   { GET_LD
 
-    info = threads[1] = allocHeap(sizeof(*info));
+    GD->thread.thread_max = MAX_THREADS;
+    GD->thread.threads = allocHeap(GD->thread.thread_max *
+				   sizeof(*GD->thread.threads));
+    info = GD->thread.threads[1] = allocHeap(sizeof(*info));
     memset(info, 0, sizeof(*info));
     info->pl_tid = 1;
     thread_highest_id = 1;
@@ -585,14 +586,17 @@ initPrologThreads()
 
 void
 cleanupThreads()
-{ /*TLD_free(PL_ldata);*/		/* this causes crashes */
+{ GET_LD
+  /*TLD_free(PL_ldata);*/		/* this causes crashes */
 
   if ( queueTable )
   { destroyHTable(queueTable);		/* removes shared queues */
     queueTable = NULL;
   }
   threadTable = NULL;
-  memset(&threads, 0, sizeof(threads));
+  freeHeap(GD->thread.threads,
+	   GD->thread.thread_max * sizeof(*GD->thread.threads));
+  GD->thread.threads = NULL;
   threads_ready = FALSE;
   queue_id = 0;
 }
@@ -624,7 +628,7 @@ exitPrologThreads()
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
-  for(t=&threads[1], i=1; i<= thread_highest_id; i++, t++)
+  for(t=&GD->thread.threads[1], i=1; i<= thread_highest_id; i++, t++)
   { PL_thread_info_t *info = *t;
 
     if ( info->thread_data && i != me )
@@ -728,7 +732,7 @@ aliasThread(int tid, atom_t name)
 
   addHTable(threadTable, (void *)name, (void *)(intptr_t)tid);
   PL_register_atom(name);
-  threads[tid]->name = name;
+  GD->thread.threads[tid]->name = name;
 
   UNLOCK();
 
@@ -758,28 +762,30 @@ alloc_thread()
 { GET_LD
   int i;
 
-  for(i=1; i<=thread_max; i++)
-  { if ( !threads[i] )
-    { threads[i] = allocHeap(sizeof(*threads[i]));
-      memset(threads[i], 0, sizeof(*threads[i]));
+  for(i=1; i<=GD->thread.thread_max; i++)
+  { PL_thread_info_t *info;
+
+    if ( !(info=GD->thread.threads[i]) )
+    { info = GD->thread.threads[i] = allocHeap(sizeof(*info));
+      memset(info, 0, sizeof(*info));
     }
 
-    if ( threads[i]->status == PL_THREAD_UNUSED )
+    if ( info->status == PL_THREAD_UNUSED )
     { GET_LD
       PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
 
-      threads[i]->pl_tid = i;
-      threads[i]->thread_data = ld;
-      threads[i]->status = PL_THREAD_CREATED;
-      ld->thread.info = threads[i];
+      info->pl_tid = i;
+      info->thread_data = ld;
+      info->status = PL_THREAD_CREATED;
+      ld->thread.info = info;
       ld->thread.magic = PL_THREAD_MAGIC;
 
       if ( i > thread_highest_id )
 	thread_highest_id = i;
 
-      return threads[i];
+      return info;
     }
   }
 
@@ -803,10 +809,10 @@ int
 PL_unify_thread_id(term_t t, int i)
 { if ( i < 0 ||
        i > thread_highest_id ||
-       threads[i]->status == PL_THREAD_UNUSED )
+       GD->thread.threads[i]->status == PL_THREAD_UNUSED )
     return -1;				/* error */
 
-  return unify_thread_id(t, threads[i]);
+  return unify_thread_id(t, GD->thread.threads[i]);
 }
 
 
@@ -877,7 +883,7 @@ PL_thread_raise(int tid, int sig)
     UNLOCK();
     return FALSE;
   }
-  info = threads[tid];
+  info = GD->thread.threads[tid];
   if ( info->status == PL_THREAD_UNUSED )
     goto error;
 
@@ -903,7 +909,7 @@ threadName(int id)
   if ( id < 0 )
     return "[Not a prolog thread]";
 
-  info = threads[id];
+  info = GD->thread.threads[id];
 
   if ( info->name )
     return PL_atom_chars(info->name);
@@ -1177,7 +1183,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
   if ( i < 0 ||
        i > thread_highest_id ||
-       threads[i]->status == PL_THREAD_UNUSED )
+       GD->thread.threads[i]->status == PL_THREAD_UNUSED )
   { if ( warn )
       return PL_error(NULL, 0, "no info record",
 		      ERR_EXISTENCE, ATOM_thread, t);
@@ -1185,7 +1191,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
       return FALSE;
   }
 
-  *info = threads[i];
+  *info = GD->thread.threads[i];
 
   return TRUE;
 }
@@ -1293,7 +1299,7 @@ free_thread_info(PL_thread_info_t *info)
   { int i;
 
     for(i=info->pl_tid-1; i>1; i--)
-    { PL_thread_info_t *ih = threads[i];
+    { PL_thread_info_t *ih = GD->thread.threads[i];
       if ( ih->status != PL_THREAD_UNUSED )
 	break;
     }
@@ -1484,7 +1490,7 @@ advance_state(tprop_enum *state)
     { state->tid++;
       if ( state->tid > thread_highest_id )
 	fail;
-    } while ( threads[state->tid]->status == PL_THREAD_UNUSED );
+    } while ( GD->thread.threads[state->tid]->status == PL_THREAD_UNUSED );
 
     succeed;
   }
@@ -1560,7 +1566,7 @@ enumerate:
       _PL_get_arg(1, property, arg);
 
     for(;;)
-    { PL_thread_info_t *info = threads[state->tid];
+    { PL_thread_info_t *info = GD->thread.threads[state->tid];
 
       if ( (*state->p->function)(info, arg PASS_LD) )
       { if ( state->enum_properties )
@@ -1610,7 +1616,7 @@ threadLocalHeapUsed(void)
   intptr_t heap = 0;
 
   LOCK();
-  for(i=1, info=&threads[1]; i<=thread_highest_id; i++, info++)
+  for(i=1, info=&GD->thread.threads[1]; i<=thread_highest_id; i++, info++)
   { PL_local_data_t *ld;
 
     if ( (ld = (*info)->thread_data) )
@@ -2591,11 +2597,11 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
     if ( tid < 0 || tid > thread_highest_id ||
-	 threads[tid]->status == PL_THREAD_UNUSED ||
-	 !threads[tid]->thread_data )
+	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
+	 !GD->thread.threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
 
-    *queue = &threads[tid]->thread_data->thread.messages;
+    *queue = &GD->thread.threads[tid]->thread_data->thread.messages;
     return TRUE;
   }
   if ( !id )
@@ -3167,7 +3173,7 @@ unify_mutex(term_t t, pl_mutex *m)
 static int
 unify_mutex_owner(term_t t, int owner)
 { if ( owner )
-    return unify_thread_id(t, threads[owner]);
+    return unify_thread_id(t, GD->thread.threads[owner]);
   else
     return PL_unify_nil(t);
 }
@@ -3671,7 +3677,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   if ( !info )
     return -1;				/* out of threads */
 
-  ldmain = threads[1]->thread_data;
+  ldmain = GD->thread.threads[1]->thread_data;
   ldnew = info->thread_data;
 
   if ( attr )
@@ -4383,7 +4389,7 @@ resumeThreads(void)
 
   sem_init(sem_mark_ptr, USYNC_THREAD, 0);
 
-  for(t = &threads[1], i=1; i<=thread_highest_id; i++, t++)
+  for(t = &GD->thread.threads[1], i=1; i<=thread_highest_id; i++, t++)
   { PL_thread_info_t *info = *t;
 
     if ( info->status == PL_THREAD_SUSPENDED )
@@ -4507,7 +4513,9 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   new.sa_mask    = sigmask;
   sigaction(SIG_FORALL, &new, &old);
 
-  for(th = &threads[1]; th <= &threads[thread_highest_id]; th++)
+  for( th = &GD->thread.threads[1];
+       th <= &GD->thread.threads[thread_highest_id];
+       th++ )
   { PL_thread_info_t *info = *th;
 
     if ( info->thread_data && info->pl_tid != me &&
@@ -4537,7 +4545,9 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   }
 
   sem_destroy(&sem_mark);
-  for(th = &threads[1]; th <= &threads[thread_highest_id]; th++)
+  for( th = &GD->thread.threads[1];
+       th <= &GD->thread.threads[thread_highest_id];
+       th++)
   { PL_thread_info_t *info = *th;
     info->ldata_status = LDATA_IDLE;
   }
@@ -4592,8 +4602,8 @@ markAtomsThreads(void)
   for(i=1; i<=thread_highest_id; i++)
   { PL_local_data_t *ld;
 
-    if ( (threads[i]->status != PL_THREAD_UNUSED) &&
-	 (ld=threads[i]->thread_data) )
+    if ( (GD->thread.threads[i]->status != PL_THREAD_UNUSED) &&
+	 (ld=GD->thread.threads[i]->thread_data) )
     { markAtomsMessageQueue(&ld->thread.messages);
       markAtomsFindall(ld);
     }

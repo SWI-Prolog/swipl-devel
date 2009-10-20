@@ -299,6 +299,8 @@ struct PL_global_data
     HINSTANCE	    	instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */
+    int			thread_max;	/* Maximum # threads */
+    PL_thread_info_t  **threads;	/* Pointers to thread-info */
   } thread;
 #endif /*O_PLMT*/
 };
