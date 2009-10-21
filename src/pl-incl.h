@@ -1473,6 +1473,8 @@ struct alloc_pool
 			    } while(0)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
+#define NO_MARK_BAR	(Word)(~(uintptr_t)0)
+
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
 			     assert((b).saved_bar >= gBase && \

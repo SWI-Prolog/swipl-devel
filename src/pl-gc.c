@@ -3011,6 +3011,7 @@ garbageCollect(void)
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+  int no_mark_bar;
   int rc;
   fid_t gvars, astack;
   Word *saved_bar_at;
@@ -3043,6 +3044,9 @@ garbageCollect(void)
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
+
+  if ( (no_mark_bar=(LD->mark_bar == NO_MARK_BAR)) )
+    LD->mark_bar = gTop;		/* otherwise we cannot relocate */
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -3144,6 +3148,8 @@ garbageCollect(void)
 #endif
 
   restore_vmi_state(&state);
+  if ( no_mark_bar )
+    LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
   unblockGC(0 PASS_LD);
 #ifndef UNBLOCKED_GC
@@ -3656,7 +3662,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     update_pointer(&LD->foreign_environment, ls);
     update_pointer(&LD->choicepoints,        ls);
   }
-  if ( gs )
+  if ( gs && LD->mark_bar != NO_MARK_BAR )
   { update_pointer(&LD->mark_bar, gs);
   }
 }

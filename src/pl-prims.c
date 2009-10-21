@@ -2665,6 +2665,44 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Same as unify_ptrs(), but ensures that   all  assignments are trailed by
+setting LD->mark_bar to the top  of   the  memory. Note that NO_MARK_BAR
+also needs support in garbageCollect() and growStacks().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
+{ for(;;)
+  { mark m;
+    int rc;
+
+    Mark(m);
+    LD->mark_bar = NO_MARK_BAR;
+    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { int rc2;
+
+      Undo(m);
+      DiscardMark(m);
+      PushPtr(t1); PushPtr(t2);
+      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
+      PopPtr(t2); PopPtr(t1);
+      if ( !rc2 )
+	return FALSE;
+    }
+  }
+}
+
+
 static ssize_t
 unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 { fid_t fid;
@@ -2699,7 +2737,8 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
   if ( !(fid = PL_open_foreign_frame()) )
     return FALSE;
 
-  if ( PL_unify(t1, t2) )		/* can do shift/gc */
+  if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
+			    valTermRef(t2) PASS_LD) )
   { FliFrame fr = (FliFrame)valTermRef(fid);
     TrailEntry tt = tTop;
     TrailEntry mt = fr->mark.trailtop;
