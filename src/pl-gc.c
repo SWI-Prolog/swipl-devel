@@ -371,6 +371,10 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 #endif /*HAVE_EXECINFO_H*/
 
+#else
+
+#define save_backtrace()
+
 #endif /*O_DEBUG*/
 
 #if O_SECURE
@@ -3011,6 +3015,7 @@ garbageCollect(void)
   intptr_t tgar, ggar;
   double t = CpuTime(CPU_USER);
   int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+  int no_mark_bar;
   int rc;
   fid_t gvars, astack;
   Word *saved_bar_at;
@@ -3029,7 +3034,9 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  DEBUG(0, save_backtrace());
+#ifdef O_MAINTENANCE
+  save_backtrace();
+#endif
 
   get_vmi_state(LD->query, &state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
@@ -3043,6 +3050,9 @@ garbageCollect(void)
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
+
+  if ( (no_mark_bar=(LD->mark_bar == NO_MARK_BAR)) )
+    LD->mark_bar = gTop;		/* otherwise we cannot relocate */
 
   if ( verbose )
     printMessage(ATOM_informational,
@@ -3118,7 +3128,6 @@ garbageCollect(void)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks(LD->trim_stack_requested PASS_LD);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);
@@ -3138,12 +3147,16 @@ garbageCollect(void)
 		     PL_INTPTR, roomStack(global),
 		     PL_INTPTR, roomStack(trail));
 
+  trimStacks(LD->trim_stack_requested PASS_LD);
+
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
     profExit(prof_node PASS_LD);
 #endif
 
   restore_vmi_state(&state);
+  if ( no_mark_bar )
+    LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
   unblockGC(0 PASS_LD);
 #ifndef UNBLOCKED_GC
@@ -3656,7 +3669,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     update_pointer(&LD->foreign_environment, ls);
     update_pointer(&LD->choicepoints,        ls);
   }
-  if ( gs )
+  if ( gs && LD->mark_bar != NO_MARK_BAR )
   { update_pointer(&LD->mark_bar, gs);
   }
 }
@@ -3952,7 +3965,9 @@ growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
 
-  DEBUG(0, save_backtrace());
+#ifdef O_MAINTENANCE
+  save_backtrace();
+#endif
 
   gBase--;
   include_spare_stack((Stack)&LD->stacks.local,  &l);
@@ -3972,9 +3987,10 @@ growStacks(size_t l, size_t g, size_t t)
 
 static size_t
 tight(Stack s)
-{ size_t min_room = sizeStackP(s)/4;
+{ size_t min_room  = sizeStackP(s)/4;
+  size_t spare_gap = s->def_spare - s->spare;
 
-  if ( roomStackP(s) < min_room )
+  if ( roomStackP(s) < min_room + spare_gap )
     return 1;
 
   return 0;

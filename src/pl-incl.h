@@ -1473,6 +1473,8 @@ struct alloc_pool
 			    } while(0)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
+#define NO_MARK_BAR	(Word)(~(uintptr_t)0)
+
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
 			     assert((b).saved_bar >= gBase && \
@@ -1710,6 +1712,9 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
 	(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && tTop+BIND_TRAIL_SPACE <= tMax)
+#define overflowCode(n) \
+	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
+					      : TRAIL_OVERFLOW )
 
 
 		 /*******************************

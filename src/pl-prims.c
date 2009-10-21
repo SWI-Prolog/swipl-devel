@@ -256,13 +256,13 @@ right_recursion:
 #ifdef O_ATTVAR
   if ( isAttVar(w1) )
   { if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
+      return overflowCode(0);
     assignAttVar(t1, t2 PASS_LD);
     return TRUE;
   }
   if ( isAttVar(w2) )
   { if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
+      return overflowCode(0);
     assignAttVar(t2, t1 PASS_LD);
     return TRUE;
   }
@@ -2638,6 +2638,12 @@ can only be the case if one of the arguments is a plain variable) things
 get very complicated. Therefore we test   these  cases before going into
 the trouble. Note that unifying attributed   variables  is no problem as
 these always live on the global stack.
+
+(*) Unfortunately, we cannot handle  shift/GC   during  this process. In
+particular, if we  need  space  for   the  result-list,  we  cannot call
+allocGlobal(), because the resulting  GC  will   do  early-reset  on the
+trailed variables and thus invalidate our nice   and clean trail. So, if
+there is no space we rewind and retry the whole process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2661,6 +2667,44 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
     default:
       assert(0);
       fail;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Same as unify_ptrs(), but ensures that   all  assignments are trailed by
+setting LD->mark_bar to the top  of   the  memory. Note that NO_MARK_BAR
+also needs support in garbageCollect() and growStacks().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+unify_all_trail_ptrs(Word t1, Word t2 ARG_LD)
+{ for(;;)
+  { mark m;
+    int rc;
+
+    Mark(m);
+    LD->mark_bar = NO_MARK_BAR;
+    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    if ( rc == TRUE )			/* Terms unified */
+    { DiscardMark(m);
+      return rc;
+    } else if ( rc == FALSE )		/* Terms did not unify */
+    { if ( !exception_term )		/* Check for occurs error */
+	Undo(m);
+      DiscardMark(m);
+      return rc;
+    } else				/* Stack overflow */
+    { int rc2;
+
+      Undo(m);
+      DiscardMark(m);
+      PushPtr(t1); PushPtr(t2);
+      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
+      PopPtr(t2); PopPtr(t1);
+      if ( !rc2 )
+	return FALSE;
+    }
   }
 }
 
@@ -2696,23 +2740,32 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 			   PL_ATOM, ATOM_nil);
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
 
-  if ( PL_unify(t1, t2) )		/* can do shift/gc */
+retry:
+  if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
+			    valTermRef(t2) PASS_LD) )
   { FliFrame fr = (FliFrame)valTermRef(fid);
     TrailEntry tt = tTop;
     TrailEntry mt = fr->mark.trailtop;
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
-      Word list = allocGlobal(needed);	/* can do shift/gc */
-      Word gp = list+1;
-      Word tail = list;
+      Word list, gp, tail;
 
-					/* reload for shift/gc */
-      FliFrame fr = (FliFrame)valTermRef(fid);
-      tt = tTop;
-      mt = fr->mark.trailtop;
+      if ( !hasGlobalSpace(needed) )	/* See (*) */
+      { int rc = overflowCode(needed);
+
+	PL_rewind_foreign_frame(fid);
+	rc = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
+	if ( rc )
+	  goto retry;
+	return FALSE;
+      }
+
+      tail = list = gTop;
+      gp = list+1;
 
       *list = ATOM_nil;
       while(--tt >= mt)
@@ -2766,11 +2819,16 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
       gTop = gp;			/* may not have used all space */
       tTop = fr->mark.trailtop;
 
+      PL_close_foreign_frame(fid);
       return PL_unify(wordToTermRef(list), subst);
     } else
+    { PL_close_foreign_frame(fid);
       return PL_unify_atom(subst, ATOM_nil);
+    }
   } else
-    fail;
+  { PL_close_foreign_frame(fid);
+    return FALSE;
+  }
 }
 
 
