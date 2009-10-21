@@ -3122,7 +3122,6 @@ garbageCollect(void)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks(LD->trim_stack_requested PASS_LD);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.global_left      += usedStack(global);
@@ -3141,6 +3140,8 @@ garbageCollect(void)
 		     PL_INTPTR, usedStack(trail),
 		     PL_INTPTR, roomStack(global),
 		     PL_INTPTR, roomStack(trail));
+
+  trimStacks(LD->trim_stack_requested PASS_LD);
 
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
@@ -3978,9 +3979,10 @@ growStacks(size_t l, size_t g, size_t t)
 
 static size_t
 tight(Stack s)
-{ size_t min_room = sizeStackP(s)/4;
+{ size_t min_room  = sizeStackP(s)/4;
+  size_t spare_gap = s->def_spare - s->spare;
 
-  if ( roomStackP(s) < min_room )
+  if ( roomStackP(s) < min_room + spare_gap )
     return 1;
 
   return 0;
