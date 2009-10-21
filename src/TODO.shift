@@ -9,9 +9,9 @@
 		- Wins for foreign-frames
 		- Also for !
 	- Remove max_threads
-	- Check unused return values in all packages
 	- Verify that calls to PL_open_foreign_frame() and PL_open_query()
 	  are non-zero.
+	- Graphical tracer often GCs variable bindings  :-(
 
 ================================================================
 Static analysis of the C-program:
