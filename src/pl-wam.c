@@ -2084,17 +2084,19 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
       umode = uread;
 
       if ( ch == (Choice)argFrameP(FR, CL->clause->variables) )
-      { if ( next )
+      { DiscardMark(ch->mark);
+	if ( next )
 	{ ch->value.clause = next;
-	  lTop = addPointer(ch, sizeof(*ch));
+	  Mark(ch->mark);
+	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	} else if ( debugstatus.debugging )
 	{ ch->type = CHP_DEBUG;
-	  lTop = addPointer(ch, sizeof(*ch));
+	  Mark(ch->mark);
+	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
 	}
 
-	DiscardMark(ch->mark);
 	BFR = ch->parent;
 	lTop = (LocalFrame)ch;
 	NEXT_INSTRUCTION;
