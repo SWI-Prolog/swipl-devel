@@ -920,7 +920,21 @@ VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 }
 
 VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
-{ *ARGP++ = globalIndirectFromCode(&PC);
+{ size_t sz = gsizeIndirectFromCode(PC);
+
+  if ( !hasGlobalSpace(sz) )
+  { int rc;
+
+    SAVE_REGISTERS(qid);
+    rc = ensureGlobalSpace(sz, ALLOW_GC);
+    LOAD_REGISTERS(qid);
+    if ( rc != TRUE )
+    { raiseStackOverflow(rc);
+      goto b_throw;
+    }
+  }
+
+  *ARGP++ = globalIndirectFromCode(&PC);
   NEXT_INSTRUCTION;
 }
 
