@@ -371,6 +371,10 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 
 #endif /*HAVE_EXECINFO_H*/
 
+#else
+
+#define save_backtrace()
+
 #endif /*O_DEBUG*/
 
 #if O_SECURE
@@ -3030,7 +3034,9 @@ garbageCollect(void)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  DEBUG(0, save_backtrace());
+#ifdef O_MAINTENANCE
+  save_backtrace();
+#endif
 
   get_vmi_state(LD->query, &state);
   if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
@@ -3959,7 +3965,9 @@ growStacks(size_t l, size_t g, size_t t)
 { GET_LD
   int rc;
 
-  DEBUG(0, save_backtrace());
+#ifdef O_MAINTENANCE
+  save_backtrace();
+#endif
 
   gBase--;
   include_spare_stack((Stack)&LD->stacks.local,  &l);
