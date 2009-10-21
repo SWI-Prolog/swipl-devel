@@ -2696,7 +2696,8 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 			   PL_ATOM, ATOM_nil);
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
 
   if ( PL_unify(t1, t2) )		/* can do shift/gc */
   { FliFrame fr = (FliFrame)valTermRef(fid);
@@ -2709,6 +2710,10 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
       Word gp = list+1;
       Word tail = list;
 
+      if ( !list )
+      { PL_close_foreign_frame(fid);
+	return FALSE;			/* out of (global) stack */
+      }
 					/* reload for shift/gc */
       FliFrame fr = (FliFrame)valTermRef(fid);
       tt = tTop;
@@ -2766,11 +2771,16 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
       gTop = gp;			/* may not have used all space */
       tTop = fr->mark.trailtop;
 
+      PL_close_foreign_frame(fid);
       return PL_unify(wordToTermRef(list), subst);
     } else
+    { PL_close_foreign_frame(fid);
       return PL_unify_atom(subst, ATOM_nil);
+    }
   } else
-    fail;
+  { PL_close_foreign_frame(fid);
+    return FALSE;
+  }
 }
 
 
