@@ -256,13 +256,13 @@ right_recursion:
 #ifdef O_ATTVAR
   if ( isAttVar(w1) )
   { if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
+      return overflowCode(0);
     assignAttVar(t1, t2 PASS_LD);
     return TRUE;
   }
   if ( isAttVar(w2) )
   { if ( !hasGlobalSpace(0) )
-      return GLOBAL_OVERFLOW;
+      return overflowCode(0);
     assignAttVar(t2, t1 PASS_LD);
     return TRUE;
   }
@@ -2755,10 +2755,10 @@ retry:
       Word list, gp, tail;
 
       if ( !hasGlobalSpace(needed) )	/* See (*) */
-      { int rc;
+      { int rc = overflowCode(needed);
 
 	PL_rewind_foreign_frame(fid);
-	rc = makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT);
+	rc = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
 	if ( rc )
 	  goto retry;
 	return FALSE;
