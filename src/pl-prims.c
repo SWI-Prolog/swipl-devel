@@ -2638,6 +2638,12 @@ can only be the case if one of the arguments is a plain variable) things
 get very complicated. Therefore we test   these  cases before going into
 the trouble. Note that unifying attributed   variables  is no problem as
 these always live on the global stack.
+
+(*) Unfortunately, we cannot handle  shift/GC   during  this process. In
+particular, if we  need  space  for   the  result-list,  we  cannot call
+allocGlobal(), because the resulting  GC  will   do  early-reset  on the
+trailed variables and thus invalidate our nice   and clean trail. So, if
+there is no space we rewind and retry the whole process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2737,6 +2743,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
   if ( !(fid = PL_open_foreign_frame()) )
     return FALSE;
 
+retry:
   if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
 			    valTermRef(t2) PASS_LD) )
   { FliFrame fr = (FliFrame)valTermRef(fid);
@@ -2745,18 +2752,20 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 
     if ( tt > mt )
     { ssize_t needed = (tt-mt)*6+1;
-      Word list = allocGlobal(needed);	/* can do shift/gc */
-      Word gp = list+1;
-      Word tail = list;
+      Word list, gp, tail;
 
-      if ( !list )
-      { PL_close_foreign_frame(fid);
-	return FALSE;			/* out of (global) stack */
+      if ( !hasGlobalSpace(needed) )	/* See (*) */
+      { int rc;
+
+	PL_rewind_foreign_frame(fid);
+	rc = makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT);
+	if ( rc )
+	  goto retry;
+	return FALSE;
       }
-					/* reload for shift/gc */
-      FliFrame fr = (FliFrame)valTermRef(fid);
-      tt = tTop;
-      mt = fr->mark.trailtop;
+
+      tail = list = gTop;
+      gp = list+1;
 
       *list = ATOM_nil;
       while(--tt >= mt)
