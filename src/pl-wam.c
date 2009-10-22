@@ -1173,7 +1173,8 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
       { LocalFrame cfr = (LocalFrame)valTermRef(catchfr_ref);
 	cfr = parentFrame(cfr);
 	PL_put_frame(av+3, cfr);
-      }
+      } else
+	PL_put_frame(av+3, NULL);	/* puts 'none' */
 
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
 			  PROCEDURE_exception_hook4, av);
