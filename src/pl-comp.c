@@ -2976,10 +2976,12 @@ decompile(Clause clause, term_t term, term_t bindings)
 
 
   for(;;)
-  { fid_t fid = PL_open_foreign_frame();
+  { fid_t fid;
     Code PCsave = di->pc;
     int rc;
 
+    if ( !(fid = PL_open_foreign_frame()) )
+      return FALSE;
     vbody = PL_new_term_ref();
     ARGP = valTermRef(vbody);
     rc = decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
@@ -3038,6 +3040,12 @@ area is not in use during decompilation.
 #define BUILD_TERM(f) \
 	{ int rc; \
 	  if ( (rc=build_term((f), di PASS_LD)) != TRUE ) \
+	    return rc; \
+	}
+#define TRY_DECOMPILE(di, end, until) \
+	{ int rc; \
+	  rc = decompileBody(di, end, until PASS_LD); \
+	  if ( rc != TRUE ) \
 	    return rc; \
 	}
 
@@ -3362,7 +3370,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 #if O_COMPILE_OR
 #define DECOMPILETOJUMP { int to_jump = (int) *PC++; \
-			  decompileBody(di, (code)-1, PC+to_jump PASS_LD); \
+			  TRY_DECOMPILE(di, (code)-1, PC+to_jump); \
 			}
       case C_CUT:
       case C_VAR:
@@ -3378,7 +3386,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
       case C_NOT:				/* \+ A */
 			  { PC += 2;		/* skip the two arguments */
-			    decompileBody(di, C_CUT, (Code)NULL PASS_LD);   /* A */
+			    TRY_DECOMPILE(di, C_CUT, NULL);   /* A */
 			    PC += 3;		/* skip C_CUT <n> and C_FAIL */
 			    BUILD_TERM(FUNCTOR_not_provable1);
 			    pushed++;
@@ -3400,9 +3408,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    jmp  = (int) *PC++;
 			    adr1 = PC+jmp;
 
-			    decompileBody(di, icut, (Code)NULL PASS_LD);   /* A */
+			    TRY_DECOMPILE(di, icut, NULL);   /* A */
 			    PC += 2;		/* skip the cut */
-			    decompileBody(di, (code)-1, adr1 PASS_LD);	    /* B */
+			    TRY_DECOMPILE(di, (code)-1, adr1);	    /* B */
 			    BUILD_TERM(f);
 			    PC--;
 			    DECOMPILETOJUMP;	/* C */
@@ -3412,9 +3420,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			  }
       case C_IFTHEN:				/* A -> B */
 			    PC++;
-			    decompileBody(di, C_CUT, (Code)NULL PASS_LD);   /* A */
+			    TRY_DECOMPILE(di, C_CUT, NULL);   /* A */
 			    PC += 2;
-			    decompileBody(di, C_END, (Code)NULL PASS_LD);   /* B */
+			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
 			    PC++;
 			    BUILD_TERM(FUNCTOR_ifthen2);
 			    pushed++;
