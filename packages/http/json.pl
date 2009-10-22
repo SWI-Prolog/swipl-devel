@@ -391,7 +391,7 @@ json_write(Stream, Term) :-
 	json_write(Stream, Term, []).
 json_write(Stream, Term, Options) :-
 	make_json_write_state(Options, State, Options1),
-	make_json_options(Options1, OptionTerm),
+	make_json_options(Options1, OptionTerm, _RestOptions),
 	json_write_term(Term, Stream, State, OptionTerm).
 
 json_write_term(Var, _, _, _) :-
