@@ -995,6 +995,10 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
     assert(fp == (Word)(fr+1) + fr->size);
     assert(uwc == state->uwrite_count);
 
+#ifdef O_SECURE
+    if ( onStackArea(local, LD->query->registers.argp) )
+      assert(LD->query->registers.argp == aTop[-1]);
+#endif
     LD->query->registers.argp = *--aTop;
     PL_close_foreign_frame(fid);
   }

@@ -685,7 +685,6 @@ VMI(H_RLIST, 0, 0, ())
 	  goto b_throw;
 	}
 	deRef2(ARGP, p);
-	w = *p;
       }
 
       ap = gTop;
@@ -1032,6 +1031,9 @@ create a frame for =/2 and call it.
 
 TBD: B_UNIFY_CONST <var>, <const>
      B_UNIFY_VAR <var1>, <var2>
+
+Note  that  the  B_UNIFY_FIRSTVAR  assumes  write   mode,  but  this  is
+unimportant because the compiler generates write (B_*) instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_UNIFY_FIRSTVAR, 0, 1, (CA1_VAR))
@@ -1052,7 +1054,7 @@ unify_var_cont:
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = linkVal(k);
     setVar(*ARGP);
-    umode = uread;
+    umode = uwrite;			/* must write for GC to work */
     NEXT_INSTRUCTION;
   }
 #endif
