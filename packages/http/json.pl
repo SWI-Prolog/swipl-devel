@@ -159,7 +159,7 @@ json_read(Stream, Term) :-
 	json_value(Stream, Term, _, Options).
 
 json_read(Stream, Term, Options) :-
-	make_json_options(Options, OptionTerm),
+	make_json_options(Options, OptionTerm, _RestOptions),
 	json_value(Stream, Term, _, OptionTerm).
 
 
@@ -610,7 +610,7 @@ is_json_term(Term) :-
 	is_json_term2(Options, Term).
 
 is_json_term(Term, Options) :-
-	make_json_options(Options, OptionTerm),
+	make_json_options(Options, OptionTerm, _RestOptions),
 	is_json_term2(OptionTerm, Term).
 
 is_json_term2(_, Var) :-
