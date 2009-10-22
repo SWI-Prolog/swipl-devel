@@ -838,12 +838,13 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
 
     if ( !hasGlobalSpace(3) )
     { int rc;
-      size_t offset = (Word)fr - (Word)lBase;
+      term_t fref = consTermRef(fr);
 
+      lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
       if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
 	return rc;
 
-      fr = (LocalFrame)((Word)lBase + offset);
+      fr = (LocalFrame)valTermRef(fref);
       k = varFrameP(fr, arg);
       deRef2(k, p);
     }
