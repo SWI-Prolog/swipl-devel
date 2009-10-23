@@ -3641,12 +3641,24 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     for( fr = state->frame,
 	 ch = state->choice
        ; fr
-       ; fr = qf->saved_environment,
-	 ch = qf->saved_bfr
+       ;
        )
     { qf = update_environments(fr, ls, gs, ts);
+      assert(qf->magic == QID_MAGIC);
 
       update_choicepoints(ch, ls, gs, ts);
+
+      if ( qf->parent )
+      { QueryFrame pqf = qf->parent;
+
+	if ( (fr = pqf->registers.fr) )
+	{ fr = addPointer(fr, ls);	/* parent is not yet shifted */
+	} else
+	{ fr = qf->saved_environment;
+	}
+	ch = qf->saved_bfr;
+      } else
+	break;
     }
 
     DEBUG(2, Sdprintf("%d frames, %d choice-points ...",
