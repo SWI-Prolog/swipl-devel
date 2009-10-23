@@ -2152,9 +2152,9 @@ user:goal_expansion(X0 #= Y0, Equal) :-
         phrase(clpfd:expr_conds(Y0, Y), CsY),
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
-        Equal = (   (CondX,CondY) -> X =:= Y
-                ;   CondX ->
+        Equal = (   CondX ->
                     (   var(Y) -> Y is X
+                    ;   CondY ->  X =:= Y
                     ;   T is X, clpfd:clpfd_equal(T, Y0)
                     )
                 ;   CondY ->
@@ -2169,8 +2169,10 @@ user:goal_expansion(X0 #>= Y0, Geq) :-
         phrase(clpfd:expr_conds(Y0, Y), CsY),
         clpfd:list_goal(CsX, CondX),
         clpfd:list_goal(CsY, CondY),
-        Geq = (   (CondX,CondY) -> X >= Y
-              ;   CondX -> T is X, clpfd:clpfd_geq(T, Y0)
+        Geq = (   CondX ->
+                  (   CondY -> X >= Y
+                  ;   T is X, clpfd:clpfd_geq(T, Y0)
+                  )
               ;   CondY -> T is Y, clpfd:clpfd_geq(X0, T)
               ;   clpfd:clpfd_geq(X0, Y0)
               ).
