@@ -3001,8 +3001,16 @@ gcEnsureSpace(vm_state *state ARG_LD)
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
 
-  if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
-    return ensureLocalSpace(lneeded, ALLOW_SHIFT);
+  if ( (char*)lTop + lneeded > (char*)lMax )
+  { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
+    { int rc;
+
+      if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+	return rc;
+    } else
+    { enableSpareStack((Stack)&LD->stacks.local);
+    }
+  }
   if ( gTop+1 > gMax )
     enableSpareStack((Stack)&LD->stacks.global);
   if ( tTop+1 > tMax )
@@ -3011,6 +3019,12 @@ gcEnsureSpace(vm_state *state ARG_LD)
   return TRUE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+garbageCollect()  returns  one  of  TRUE    (ok),   FALSE  (blocked)  or
+LOCAL_OVERFLOW if the local stack  cannot accomodate the term-references
+for saving ARGP and global variables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 garbageCollect(void)
