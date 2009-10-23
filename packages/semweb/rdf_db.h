@@ -68,7 +68,7 @@
 #define MAX_HASH_FACTOR 8		/* factor to trigger re-hash */
 #define MIN_HASH_FACTOR 4		/* factor after re-hash */
 
-#define NO_LINE	((unsigned long)-1L)
+#define NO_LINE	(0)
 
 typedef struct cell
 { void *	value;			/* represented resource */
