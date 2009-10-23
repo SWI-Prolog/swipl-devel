@@ -2453,7 +2453,6 @@ get_vmi_state(QueryFrame qf, vm_state *state)
 
   if ( qf && qf->registers.fr )
   { state->frame     = qf->registers.fr;
-    state->save_argp = (state->frame->clause != NULL);
 
     if ( lTop <= state->frame )
     { int arity = state->frame->predicate->functor->arity;
@@ -2989,10 +2988,14 @@ leaveGC()
 
 #endif /*O_PLMT*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns: < 0: (local) overflow; TRUE: ok; FALSE: shifted;
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 gcEnsureSpace(vm_state *state ARG_LD)
-{ size_t lneeded = 0;
+{ int rc = TRUE;
+  size_t lneeded = 0;
 
   if ( LD->gvar.grefs )
     lneeded += sizeof(struct fliFrame) + LD->gvar.grefs*sizeof(word);
@@ -3003,10 +3006,11 @@ gcEnsureSpace(vm_state *state ARG_LD)
 
   if ( (char*)lTop + lneeded > (char*)lMax )
   { if ( (char*)lTop + lneeded > (char*)lMax + LD->stacks.local.spare )
-    { int rc;
+    { int rc2;
 
-      if ( (rc=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
-	return rc;
+      if ( (rc2=ensureLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
+	return rc2;
+      rc = FALSE;
     } else
     { enableSpareStack((Stack)&LD->stacks.local);
     }
@@ -3016,7 +3020,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
   if ( tTop+1 > tMax )
     enableSpareStack((Stack)&LD->stacks.trail);
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -3057,8 +3061,11 @@ garbageCollect(void)
 #endif
 
   get_vmi_state(LD->query, &state);
-  if ( (rc=gcEnsureSpace(&state PASS_LD)) != TRUE )
-    return rc;
+  if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
+  { return rc;
+  } else if ( rc == FALSE )		/* shifted; reload */
+  { get_vmi_state(LD->query, &state);
+  }
 
   enterGC();
 #ifndef UNBLOCKED_GC
