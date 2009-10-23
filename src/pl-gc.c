@@ -3726,6 +3726,31 @@ size_t
 nextStackSizeAbove(size_t n)
 { size_t size;
 
+#ifdef O_SECURE
+  static int got_incr = FALSE;
+  static size_t increment = 0;
+  static __thread unsigned int seed = 0;
+
+  if ( !got_incr )
+  { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
+
+    if ( incr )
+      increment = atol(incr);
+    got_incr = TRUE;
+  }
+
+  if ( increment )
+  { size_t sz;
+
+    if ( increment == 1 )
+      sz = n+rand_r(&seed)%10000;
+    else
+      sz = n+increment;
+
+    return sz & ~(size_t)(sizeof(word)-1); /* align on words */
+  }
+#endif
+
   if ( n < 4 MB )
   { size = 8192;
     while ( size <= n )
