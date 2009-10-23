@@ -3444,7 +3444,7 @@ update_lg_pointer(void *p, intptr_t ls, intptr_t gs ARG_LD)
 
 
 static QueryFrame
-update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t ts)
+update_environments(LocalFrame fr, intptr_t ls, intptr_t gs, intptr_t ts)
 { GET_LD
   if ( fr == NULL )
     return NULL;
@@ -3464,7 +3464,6 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
     if ( ls )				/* update frame pointers */
     { update_pointer(&fr->parent, ls);
 
-      DEBUG(2, Sdprintf("PC=%p ", fr->programPointer));
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
       if ( fr->predicate == PROCEDURE_dcall1->definition && fr->clause )
@@ -3478,8 +3477,6 @@ update_environments(LocalFrame fr, Code PC, intptr_t ls, intptr_t gs, intptr_t t
       DEBUG(2, Sdprintf("ok\n"));
     }
 
-
-    PC = fr->programPointer;
     if ( fr->parent )
       fr = fr->parent;
     else				/* Prolog --> C --> Prolog calls */
@@ -3519,9 +3516,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
 		      chp_chars(ch),
 		      predicateName(ch->frame->predicate)));
 
-    update_environments(ch->frame,
-		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
-			ls, gs, ts);
+    update_environments(ch->frame, ls, gs, ts);
     choice_count++;
     DEBUG(3, Sdprintf("ok\n"));
   }
@@ -3632,7 +3627,6 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
   { LocalFrame fr;
     Choice ch;
     QueryFrame qf;
-    Code PC;
 
     local_frames = 0;
     choice_count = 0;
@@ -3644,15 +3638,13 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     update_local_pointer(&state->lSave, ls);
     update_local_pointer(&LD->query, ls);
 
-    for( PC = state->pc_start_vmi,
-	 fr = state->frame,
+    for( fr = state->frame,
 	 ch = state->choice
        ; fr
        ; fr = qf->saved_environment,
-	 ch = qf->saved_bfr,
-	 PC = NULL
+	 ch = qf->saved_bfr
        )
-    { qf = update_environments(fr, PC, ls, gs, ts);
+    { qf = update_environments(fr, ls, gs, ts);
 
       update_choicepoints(ch, ls, gs, ts);
     }
