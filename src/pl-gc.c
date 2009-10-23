@@ -170,6 +170,7 @@ typedef struct vm_state
   Code		pc;			/* Current PC */
   Code		pc_start_vmi;		/* PC at start of current VMI */
   Word		argp;			/* Argument pointer */
+  Word		argp0;			/* Arg-pointer for nested term */
   int		adepth;			/* FUNCTOR/POP nesting depth */
   LocalFrame	lSave;			/* Saved local top */
   int		save_argp;		/* Need to safe ARGP? */
@@ -2402,7 +2403,7 @@ setStartOfVMI(vm_state *state)
 	case H_FUNCTOR:
 	case H_LIST:
 	  if ( state->adepth == 0 )
-	    state->argp++;
+	    state->argp0 = state->argp++;
 	  /*FALLTHROUGH*/
 	case B_FUNCTOR:
 	case B_LIST:
@@ -2410,7 +2411,8 @@ setStartOfVMI(vm_state *state)
 	  break;
 	case H_POP:
 	case B_POP:
-	  state->adepth--;
+	  if ( --state->adepth == 0 )
+	    state->argp0 = NULL;
 	  break;
 	case B_UNIFY_EXIT:
 	  assert(state->adepth == 0);
@@ -2433,6 +2435,7 @@ startOfVMI(QueryFrame qf)
   state.frame  = qf->registers.fr;
   state.adepth = 0;
   state.argp   = argFrameP(state.frame, 0);
+  state.argp0  = NULL;
   state.pc     = qf->registers.pc;
 
   setStartOfVMI(&state);
@@ -2461,6 +2464,7 @@ get_vmi_state(QueryFrame qf, vm_state *state)
     }
 
     state->argp		= argFrameP(state->frame, 0);
+    state->argp0	= NULL;
     state->pc           = qf->registers.pc;
     state->save_argp    = (state->frame->clause != NULL);
     setStartOfVMI(state);

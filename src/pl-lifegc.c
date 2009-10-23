@@ -533,6 +533,11 @@ install_t
 install()
 { PL_register_foreign("c_bind", 1, bind, 0);
 }
+
+(**)  If  we  are  in  head-unification  mode,  (saved)ARGP  are  nicely
+relocated. However, we must also ensure that the term in which it points
+is not GC-ed. This applies  for   head-arguments  as well as B_UNIFY_VAR
+instructions. See get_vmi_state().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -558,16 +563,20 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 			levelFrame(fr), predicateName(fr->predicate)));
       mark_arguments(fr PASS_LD);
     } else
-    { state.frame    = fr;
+    { Word argp0;
+      state.frame    = fr;
       state.unmarked = slotsInFrame(fr, PC);
       state.envtop   = argFrameP(fr, state.unmarked);
       state.c0       = fr->clause->clause->codes;
 
       if ( fr == mstate->vm_state->frame &&
 	   PC == mstate->vm_state->pc_start_vmi )
-      { state.ARGP   = mstate->vm_state->argp;
+      { argp0        = mstate->vm_state->argp0;
+	state.ARGP   = mstate->vm_state->argp;
 	state.adepth = mstate->vm_state->adepth;
 	mark_new_arguments(mstate->vm_state PASS_LD);
+      } else
+      { argp0 = NULL;
       }
 
       DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
@@ -575,6 +584,11 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 			PC-state.c0));
 
       walk_and_mark(&state, PC, I_EXIT PASS_LD);
+
+      if ( argp0 && !is_marked(argp0) )		/* see (**) */
+      { assert(onStackArea(local, argp0));
+	mark_local_variable(argp0 PASS_LD);
+      }
     }
 
     if ( !(state.flags&GCM_CLEAR) )	/* from choicepoint */
