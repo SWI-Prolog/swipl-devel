@@ -5148,8 +5148,8 @@ circuit_successors(V, Tos) :-
 %  a list of integers, of the same length as Counters. Counter
 %  arithmetic on the transitions map the values in Initials to Finals.
 %
-%  In the following example, a list of finite domain variables is
-%  constrained to contain at least two consecutive ones:
+%  In the following example, a list of binary finite domain variables
+%  is constrained to contain at least two consecutive ones:
 %
 %  ==
 %  two_consecutive_ones(Vs) :-
@@ -5158,7 +5158,7 @@ circuit_successors(V, Tos) :-
 %                     arc(b,0,a), arc(b,1,c),
 %                     arc(c,0,c), arc(c,1,c)], [], [], []).
 %
-%  ?- length(Vs, 3), two_consecutive_ones(Vs), Vs ins 0..1, label(Vs).
+%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
 %  Vs = [0, 1, 1] ;
 %  Vs = [1, 1, 0] ;
 %  Vs = [1, 1, 1].
