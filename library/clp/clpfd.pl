@@ -111,6 +111,7 @@
                   global_cardinality/2,
                   circuit/1,
                   element/3,
+                  automaton/8,
                   zcompare/3,
                   chain/2,
                   fd_var/1,
@@ -5123,6 +5124,81 @@ circuit_edges([N|Ns], Ts) -->
 circuit_successors(V, Tos) :-
         get_attr(V, edges, Tos0),
         maplist(arg(1), Tos0, Tos).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, -Finals)
+%
+%  True if the finite deterministic automaton induced by Nodes and
+%  Arcs (extended with Counters) accepts Signature. Sequence is a list
+%  of terms, all of the same shape. In addition to using automaton/8,
+%  you must specify constraints that link Sequence to Signature, a
+%  list of finite domain variables and integers of the same length as
+%  Sequence. Nodes is a list of source(Atom) and sink(Atom) terms.
+%  Arcs is a list of arc(Node,Integer,Node) and
+%  arc(Node,Integer,Exprs) terms that denote the automaton's
+%  transitions. Transitions that are not mentioned go to an implicit
+%  failure node. Exprs is a list of arithmetic expressions, of the
+%  same length as Counters. In each expression, variables occurring in
+%  Counters correspond to old counter values, and variables occurring
+%  in Template correspond to the current element of Sequence. When a
+%  transition containing expressions is taken, counters are updated as
+%  stated. By default, counters remain unchanged. Counters is a list
+%  of variables that must not occur anywhere outside of the constraint
+%  goal. Initials is a list of integers, of the same length as
+%  Counters. Counter arithmetic on the transitions map the values in
+%  Initials to Finals.
+
+automaton(Seqs, Template, Sigs, Ns, As, Cs, Is, Fs) :-
+        must_be(list(list), [Sigs,Ns,As,Cs,Is]),
+        must_be(ground, Is),
+        (   Cs = [] -> regular(Sigs, Ns, As)
+        ;   representation_error(counters_not_yet_implemented-Seqs-Template-Fs)
+        ).
+
+regular(Sigs, Ns, As) :-
+        memberchk(source(Source), Ns),
+        phrase((arcs_relation(As, Relation)), [[]-0], S),
+        include(sink, Ns, Sinks0),
+        maplist(arg(1), Sinks0, Sinks),
+        phrase(nodes_nums(Sinks, SinkNums0), S, _),
+        list_to_domain(SinkNums0, SinkDom),
+        domain_to_drep(SinkDom, SinkDrep),
+        phrase(node_num(Source, Start), S, _),
+        phrase(transitions(Sigs, Start, End), Tuples),
+        tuples_in(Tuples, Relation),
+        End in SinkDrep.
+
+transitions([], S, S) --> [].
+transitions([Sig|Sigs], S0, S) --> [[S0,Sig,S1]], transitions(Sigs, S1, S).
+
+nodes_nums([], []) --> [].
+nodes_nums([Node|Nodes], [Num|Nums]) -->
+        node_num(Node, Num),
+        nodes_nums(Nodes, Nums).
+
+arcs_relation([], []) --> [].
+arcs_relation([arc(S0,L,S1)|As], [[From,L,To]|Rs]) -->
+        node_num(S0, From),
+        node_num(S1, To),
+        arcs_relation(As, Rs).
+
+node_num(Node, Num), [Nodes-C] -->
+        [Nodes0-C0],
+        { (   member(N-I, Nodes0), N == Node -> Num = I, C = C0, Nodes = Nodes0
+          ;   Num = C0, C is C0 + 1, Nodes = [Node-C0|Nodes0]
+          )
+        }.
+
+sink(sink(_)).
+
+
+% arc_normalized(Cs, Arc0, Arc) :-
+% 	arc_normalized_(Arc0, Cs, Arc).
+
+% arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
+% arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
