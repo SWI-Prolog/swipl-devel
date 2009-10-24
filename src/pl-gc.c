@@ -338,32 +338,84 @@ print_backtrace() from GDB to find the last stack-trace.
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
 #include <string.h>
+
 #define SAVE_TRACES 10
-__thread char **mark_backtrace[SAVE_TRACES];
-__thread size_t trace_frames[SAVE_TRACES];
-__thread int trace;
+typedef struct
+{ char **symbols[SAVE_TRACES];
+  size_t sizes[SAVE_TRACES];
+  int    current;
+} btrace;
+
+static pthread_key_t trace_key;
+static pthread_once_t trace_key_once = PTHREAD_ONCE_INIT;
+
+static void
+trace_destroy(void *buf)
+{ btrace *bt = buf;
+  int i;
+
+  for(i=0; i<SAVE_TRACES; i++)
+  { if ( bt->symbols[i] )
+      free(bt->symbols[i]);
+  }
+
+  free(bt);
+}
+
+static void
+trace_key_alloc(void)
+{ pthread_key_create(&trace_key, trace_destroy);
+}
+
+static btrace *
+get_trace_store(void)
+{ btrace *bt;
+
+  pthread_once(&trace_key_once, trace_key_alloc);
+  if ( (bt=(btrace*)pthread_getspecific(trace_key)) )
+    return bt;
+  if ( (bt = malloc(sizeof(btrace))) )
+    memset(bt, 0, sizeof(*bt));
+
+  pthread_setspecific(trace_key, bt);
+
+  return bt;
+}
+
 
 static void
 save_backtrace(void)
-{ void *array[100];
+{ btrace *bt = get_trace_store();
 
-  trace_frames[trace] = backtrace(array, sizeof(array)/sizeof(void *));
-  if ( mark_backtrace[trace] )
-    free(mark_backtrace[trace]);
-  mark_backtrace[trace] = backtrace_symbols(array, trace_frames[trace]);
-  if ( ++trace == SAVE_TRACES )
-    trace = 0;
+  if ( bt )
+  { void *array[100];
+    size_t frames;
+
+    frames = backtrace(array, sizeof(array)/sizeof(void *));
+    bt->sizes[bt->current] = frames;
+    if ( bt->symbols[bt->current] )
+      free(bt->symbols[bt->current]);
+    bt->symbols[bt->current] = backtrace_symbols(array, frames);
+    if ( ++bt->current == SAVE_TRACES )
+      bt->current = 0;
+  }
 }
 
 void
 print_backtrace(int last)		/* 1..SAVE_TRACES */
-{ int i;
-  int me = trace-last;
-  if ( me < 0 )
-    me += SAVE_TRACES;
+{ btrace *bt = get_trace_store();
 
-  for(i=0; i<trace_frames[me]; i++)
-    Sdprintf("[%d] %s\n", i, mark_backtrace[me][i]);
+  if ( bt )
+  { int i;
+    int me = bt->current-last;
+    if ( me < 0 )
+      me += SAVE_TRACES;
+
+    for(i=0; i<bt->sizes[me]; i++)
+      Sdprintf("[%d] %s\n", i, bt->symbols[me][i]);
+  } else
+  { Sdprintf("No backtrace store?\n");
+  }
 }
 
 #else
