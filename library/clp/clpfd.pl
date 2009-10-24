@@ -4589,14 +4589,14 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%      serialized(+Starts, +Durations)
+%%  serialized(+Starts, +Durations)
 %
-%       Constrain a set of intervals to a non-overlapping sequence.
-%       Starts = [S_1,...,S_n], is a list of variables or integers,
-%       Durations = [D_1,...,D_n] is a list of non-negative integers.
-%       Constrains Starts and Durations to denote a set of
-%       non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
-%       S_i for all 1 =< i < j =< n.
+%   Constrain a set of intervals to a non-overlapping sequence.
+%   Starts = [S_1,...,S_n], is a list of variables or integers,
+%   Durations = [D_1,...,D_n] is a list of non-negative integers.
+%   Constrains Starts and Durations to denote a set of
+%   non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
+%   S_i for all 1 =< i < j =< n.
 %
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
 %       Disjunctive Scheduling Problem"
