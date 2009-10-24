@@ -5129,25 +5129,40 @@ circuit_successors(V, Tos) :-
 
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, -Finals)
 %
-%  True if the finite deterministic automaton induced by Nodes and
-%  Arcs (extended with Counters) accepts Signature. Sequence is a list
-%  of terms, all of the same shape. In addition to using automaton/8,
-%  you must specify constraints that link Sequence to Signature, a
-%  list of finite domain variables and integers of the same length as
-%  Sequence. Nodes is a list of source(Atom) and sink(Atom) terms.
-%  Arcs is a list of arc(Node,Integer,Node) and
-%  arc(Node,Integer,Exprs) terms that denote the automaton's
-%  transitions. Transitions that are not mentioned go to an implicit
-%  failure node. Exprs is a list of arithmetic expressions, of the
-%  same length as Counters. In each expression, variables occurring in
-%  Counters correspond to old counter values, and variables occurring
-%  in Template correspond to the current element of Sequence. When a
-%  transition containing expressions is taken, counters are updated as
-%  stated. By default, counters remain unchanged. Counters is a list
-%  of variables that must not occur anywhere outside of the constraint
-%  goal. Initials is a list of integers, of the same length as
-%  Counters. Counter arithmetic on the transitions map the values in
-%  Initials to Finals.
+%  True if the finite automaton induced by Nodes and Arcs (extended
+%  with Counters) accepts Signature. Sequence is a list of terms, all
+%  of the same shape. Additional constraints must link Sequence to
+%  Signature, a list of finite domain variables and integers of the
+%  same length as Sequence. Nodes is a list of source(Node) and
+%  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
+%  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
+%  transitions. Nodes are denoted by atoms. Transitions that are not
+%  mentioned go to an implicit failure node. Exprs is a list of
+%  arithmetic expressions, of the same length as Counters. In each
+%  expression, variables occurring in Counters correspond to old
+%  counter values, and variables occurring in Template correspond to
+%  the current element of Sequence. When a transition containing
+%  expressions is taken, counters are updated as stated. By default,
+%  counters remain unchanged. Counters is a list of variables that
+%  must not occur anywhere outside of the constraint goal. Initials is
+%  a list of integers, of the same length as Counters. Counter
+%  arithmetic on the transitions map the values in Initials to Finals.
+%
+%  In the following example, a list of finite domain variables is
+%  constrained to contain at least two consecutive ones:
+%
+%  ==
+%  two_consecutive_ones(Vs) :-
+%          automaton(Vs, _, Vs, [source(a),sink(c)],
+%                    [arc(a,0,a), arc(a,1,b),
+%                     arc(b,0,a), arc(b,1,c),
+%                     arc(c,0,c), arc(c,1,c)], [], [], []).
+%
+%  ?- length(Vs, 3), two_consecutive_ones(Vs), Vs ins 0..1, label(Vs).
+%  Vs = [0, 1, 1] ;
+%  Vs = [1, 1, 0] ;
+%  Vs = [1, 1, 1].
+%  ==
 
 automaton(Seqs, Template, Sigs, Ns, As, Cs, Is, Fs) :-
         must_be(list(list), [Sigs,Ns,As,Cs,Is]),
