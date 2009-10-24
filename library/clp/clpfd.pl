@@ -2333,6 +2333,37 @@ X #< Y  :- Y #> X.
 % B = 0,
 % X in inf..3\/5..sup.
 % ==
+% The following example uses reified constraints to relate a list of
+% finite domain variables to the number of occurrences of a given value:
+%
+% ==
+% :- use_module(library(clpfd)).
+%
+% vs_n_num(Vs, N, Num) :-
+%         vs_n_bs(Vs, N, Bs),
+%         sum(Bs, #=, Num).
+%
+% vs_n_bs([], _, []).
+% vs_n_bs([V|Vs], N, [B|Bs]) :-
+%         V #= N #<==> B,
+%         vs_n_bs(Vs, N, Bs).
+% ==
+%
+% Sample queries and their results:
+%
+% ==
+% ?- Vs = [X,Y,Z], Vs ins 0..1, vs_n_num(Vs, 4, Num).
+% Vs = [X, Y, Z],
+% Num = 0,
+% X in 0..1,
+% Y in 0..1,
+% Z in 0..1.
+%
+% ?- vs_n_num([X,Y,Z], 2, 3).
+% X = 2,
+% Y = 2,
+% Z = 2.
+% ==
 
 L #<==> R  :- reify(L, B), reify(R, B), do_queue.
 
