@@ -5176,9 +5176,8 @@ circuit_successors(V, Tos) :-
 %  expressions is taken, counters are updated as stated. By default,
 %  counters remain unchanged. Counters is a list of variables that
 %  must not occur anywhere outside of the constraint goal. Initials is
-%  a list of integers, of the same length as Counters. Counter
-%  arithmetic on the transitions maps the counter values in Initials
-%  to Finals.
+%  a list of the same length as Counters. Counter arithmetic on the
+%  transitions relates the counter values in Initials to Finals.
 %
 %  In the following example, a list of binary finite domain variables
 %  is constrained to contain at least two consecutive ones:
@@ -5253,7 +5252,6 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         (   var(Seqs) -> Seqs = Sigs
         ;   must_be(list, Seqs)
         ),
-        must_be(ground, Is),
         memberchk(source(Source), Ns),
         maplist(arc_normalized(Cs), As0, As),
         include(sink, Ns, Sinks0),
