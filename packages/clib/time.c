@@ -635,11 +635,64 @@ nextEvent(schedule *sched)
 }
 
 
+typedef struct
+{ int		*bits;
+  size_t	size;
+  size_t	high;
+} bitvector;
+
+#define BITSPERINT (8*sizeof(int))
+
+static int
+set_bit(bitvector *v, size_t bit)
+{ size_t offset = bit/BITSPERINT;
+  int bi = bit%BITSPERINT;
+
+  while ( offset >= v->size )
+  { size_t osize = v->size * sizeof(int);
+    int *newbits = realloc(v->bits, osize*2);
+
+    if ( !newbits )
+      return FALSE;
+    memset((char*)newbits+osize, 0, osize);
+    v->bits  = newbits;
+    v->size *= 2;
+  }
+
+  while ( bit > v->high )		/* TBD: zero entire ints */
+  { size_t ho = v->high/BITSPERINT;
+    int    b  = v->high%BITSPERINT;
+
+    v->bits[ho] &= ~(1<<(b-1));
+    v->high++;
+  }
+
+  v->bits[offset] |= 1<<(bi-1);
+  return TRUE;
+}
+
+
+static int
+is_set(bitvector *v, size_t bit)
+{ if ( bit <= v->high )
+  { size_t offset = bit/BITSPERINT;
+    int bi = bit%BITSPERINT;
+
+    return (v->bits[offset] & (1<<(bi-1))) != 0;
+  }
+
+  return FALSE;
+}
+
+
 static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
-  int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
-  char *signalled = alloca(mt);
+  bitvector signalled;
+
+  signalled.size = 4;
+  signalled.bits = malloc(signalled.size*sizeof(int));
+  signalled.high = 0;
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
   DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
@@ -648,7 +701,7 @@ alarm_loop(void * closure)
   { Event ev = nextEvent(sched);
     struct timeval now;
 
-    memset(signalled, 0, mt);
+    signalled.high = 0;
     gettimeofday(&now, NULL);
 
     for(; ev; ev = ev->next)
@@ -663,11 +716,11 @@ alarm_loop(void * closure)
 
       if ( left.tv_sec < 0 ||
 	   (left.tv_sec == 0 && left.tv_usec == 0) )
-      { if ( !signalled[ev->pl_thread_id] )
+      { if ( !is_set(&signalled, ev->pl_thread_id) )
 	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d (= %ld) ...\n",
 			  (long)left.tv_sec,
 			  ev->pl_thread_id, (long)ev->thread_id));
-	  signalled[ev->pl_thread_id] = TRUE;
+	  set_bit(&signalled, ev->pl_thread_id);
 	  pthread_kill(ev->thread_id, SIG_TIME);
 	}
       } else
