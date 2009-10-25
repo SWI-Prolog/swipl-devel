@@ -4229,7 +4229,8 @@ PL_query(int query)
       return PLVERSION;
     case PL_QUERY_MAX_THREADS:
 #ifdef O_PLMT
-      return GD->thread.thread_max;
+      Sdprintf("PL_query(PL_QUERY_MAX_THREADS) is no longer supported\n");
+      return 100000;
 #else
       return 1;
 #endif

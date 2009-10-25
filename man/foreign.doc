@@ -2376,10 +2376,6 @@ The  options are given in \tabref{query}.
                               $M$ is the major, $m$ the minor version number
                               and $p$ the patch-level.  For example,
                               \exam{20717} means \exam{2.7.17}. \\
-\const{PL_QUERY_MAX_THREADS} & Return the maximum number of threads that
-			       can be created in this version.  Return
-			       values of PL_thread_self() are between 0
-			       and this number. \\
 \const{PL_QUERY_ENCODING}    & Return the default stream encoding of
 			       Prolog (of type \ctype{IOENC}). \\
 \const{PL_QUERY_USER_CPU}    & Get amount of user CPU time of the
