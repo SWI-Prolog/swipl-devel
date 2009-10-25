@@ -5163,8 +5163,7 @@ circuit_successors(V, Tos) :-
 %  True if the finite automaton induced by Nodes and Arcs (extended
 %  with Counters) accepts Signature. Sequence is a list of terms, all
 %  of the same shape. Additional constraints must link Sequence to
-%  Signature, a list of finite domain variables and integers of the
-%  same length as Sequence. Nodes is a list of source(Node) and
+%  Signature, if necessary. Nodes is a list of source(Node) and
 %  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
 %  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
 %  transitions. Each node is represented by a ground term. Transitions
@@ -5194,6 +5193,46 @@ circuit_successors(V, Tos) :-
 %  Vs = [0, 1, 1] ;
 %  Vs = [1, 1, 0] ;
 %  Vs = [1, 1, 1].
+%  ==
+%
+%  The following example is taken from Beldiceanu, Carlsson, Debruyne
+%  and Petit: "Reformulation of Global Constraints Based on
+%  Constraints Checkers", Constraints 10(4), pp 339-362 (2005). It
+%  relates a sequence of integers and finite domain variables to its
+%  number of inflexions, which are switches between strictly ascending
+%  and strictly descending subsequences:
+%
+%  ==
+%  sequence_inflexions(Vs, N) :-
+%          variables_signature(Vs, Sigs),
+%          Sigs ins 0..2,
+%          automaton(_, _, Sigs,
+%                    [source(s),sink(i),sink(j),sink(s)],
+%                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
+%                     arc(i,0,i), arc(i,1,j,[C+1]), arc(i,2,i),
+%                     arc(j,0,j), arc(j,1,j), arc(j,2,i,[C+1])], [C], [0], [N]).
+%
+%  variables_signature([], []).
+%  variables_signature([V|Vs], Sigs) :-
+%          variables_signature_(Vs, V, Sigs).
+%
+%  variables_signature_([], _, []).
+%  variables_signature_([V|Vs], Prev, [S|Sigs]) :-
+%          V #= Prev #<==> S #= 0,
+%          Prev #< V #<==> S #= 1,
+%          Prev #> V #<==> S #= 2,
+%          variables_signature_(Vs, V, Sigs).
+%  ==
+%
+%  Example queries:
+%
+%  ==
+%  ?- sequence_inflexions([1,2,3,3,2,1,3,0], N).
+%  N = 3.
+%
+%  ?- length(Ls, 5), Ls ins 0..1, sequence_inflexions(Ls, 3), label(Ls).
+%  Ls = [0, 1, 0, 1, 0] ;
+%  Ls = [1, 0, 1, 0, 1].
 %  ==
 
 template_var_path(V, Var, []) :- var(V), !, V == Var.
