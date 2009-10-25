@@ -5277,23 +5277,23 @@ expr0_expr(Es0-_, Es) :-
 transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
 transitions([Seq|Seqs], Template, [Sig|Sigs], S0, S, Exprs, Counters, Cs0, Cs) -->
         [[S0,Sig,S1|Is]],
-        { phrase(exprs_counters_next(Exprs, Is, Cs1), [s(Seq,Template,Counters,Cs0)], _) },
+        { phrase(exprs_next(Exprs, Is, Cs1), [s(Seq,Template,Counters,Cs0)], _) },
         transitions(Seqs, Template, Sigs, S1, S, Exprs, Counters, Cs1, Cs).
 
-exprs_counters_next([], [], []) --> [].
-exprs_counters_next([Es|Ess], [I|Is], [C|Cs]) -->
-        exprs_counters_values(Es, Vs),
+exprs_next([], [], []) --> [].
+exprs_next([Es|Ess], [I|Is], [C|Cs]) -->
+        exprs_values(Es, Vs),
         { element(I, Vs, C) },
-        exprs_counters_next(Ess, Is, Cs).
+        exprs_next(Ess, Is, Cs).
 
-exprs_counters_values([], []) --> [].
-exprs_counters_values([E0|Es], [V|Vs]) -->
+exprs_values([], []) --> [].
+exprs_values([E0|Es], [V|Vs]) -->
         { term_variables(E0, EVs0),
           copy_term(E0, E),
           term_variables(E, EVs),
           V #= E },
         match_variables(EVs0, EVs),
-        exprs_counters_values(Es, Vs).
+        exprs_values(Es, Vs).
 
 match_variables([], _) --> [].
 match_variables([V0|Vs0], [V|Vs]) -->
