@@ -30,9 +30,7 @@
 */
 
 :- module(pldoc_htmlsrc,
-	  [ source_to_html/3,		% +Source, +OutStream, +Options
-	    write_source_css/0,		% Create pllisting.css
-	    write_source_css/1		% +Stream
+	  [ source_to_html/3		% +Source, +OutStream, +Options
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(lists)).
@@ -383,82 +381,4 @@ css_class(Term, Class) :-
 
 element/3.
 
-%%	write_source_css is det.
-%%	write_source_css(+Out:stream) is det.
-%
-%	Create   a   style-sheet   from    the   style-declarations   in
-%	doc_colour.pl    and    the    element     declaration    above.
-%	write_source_css/0 writes the style-sheet to =|pllisting.css|=.
-
-:- op(990, xfx, :=).
-
-write_source_css :-
-	open('pllisting.css', write, Out),
-	call_cleanup(write_source_css(Out),
-		     close(Out)).
-
-write_source_css(Out) :-
-	(   prolog_src_style(Term, Style0),
-	    (	html_style(Term, Style)
-	    ->	true
-	    ;	Style = Style0
-	    ),
-	    element(Term2, Tag, Class),
-	    Term2 =@= Term,
-	    findall(Name=Value, style_attr(Style, Name, Value),
-		    [N=V|NV]),
-	    format(Out, '~w.~w~n', [Tag, Class]),
-	    format(Out, '{ ~w: ~w;~n', [N, V]),
-	    forall(member(N2=V2, NV),
-		   format(Out, '  ~w: ~w;~n', [N2, V2])),
-	    format(Out, '}~n~n', []),
-	    fail
-	;   true
-	).
-
-style_attr(Style, Name, Value) :-
-	arg(_, Style, PceName := PceValue),
-	pce_to_css_attr(PceName, Name),
-	pce_to_css_value(Name, PceValue, Value).
-
-pce_to_css_attr(colour, color).
-pce_to_css_attr(background, 'background-color').
-pce_to_css_attr(underline, 'text-decoration').
-pce_to_css_attr(bold, 'font-weight').
-pce_to_css_attr('font-style', 'font-style').
-pce_to_css_attr(display, display).
-
-pce_to_css_value(color, Name, RGB) :-
-	x11_colour_name_to_rgb(Name, RGB).
-pce_to_css_value('background-color', Name, RGB) :-
-	x11_colour_name_to_rgb(Name, RGB).
-pce_to_css_value('text-decoration', @(on), underline).
-pce_to_css_value('font-weight', @(on), bold).
-pce_to_css_value('font-style', Style, Style).
-
-x11_colour_name_to_rgb(red, red) :- !.
-x11_colour_name_to_rgb(blue, blue) :- !.
-x11_colour_name_to_rgb(Name, RGB) :-
-	get(@(pce), convert, Name, colour, Obj),
-	get(Obj, red, R),
-	get(Obj, green, G),
-	get(Obj, blue, B),
-	R256 is R//256,
-	G256 is G//256,
-	B256 is B//256,
-	format(atom(RGB),
-	       '#~|~`0t~16r~2+~`0t~16r~2+~`0t~16r~2+',
-	       [R256, G256, B256]).
-
-%%	html_style(+Term, -Style) is semidet.
-%
-%	Redefine styles from prolog_src_style/2 for better ones on
-%	HTML output.
-
-html_style(var,
-	   style(colour := red4,
-		 'font-style' := italic)).
-html_style(directive,
-	   style(background := grey90,
-		 'display' := block)).
 
