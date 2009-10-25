@@ -655,14 +655,21 @@ reportStreamError(IOSTREAM *s)
 
     if ( (s->flags & SIO_FERR) )
     { if ( s->exception )
-      { fid_t fid = PL_open_foreign_frame();
-	term_t ex = PL_new_term_ref();
-	PL_recorded(s->exception, ex);
+      { fid_t fid;
+	term_t ex;
+	int rc;
+
+	LD->exception.processing = TRUE;	/* allow using spare stack */
+	if ( !(fid = PL_open_foreign_frame()) )
+	  return FALSE;
+	ex = PL_new_term_ref();
+	rc = PL_recorded(s->exception, ex);
 	PL_erase(s->exception);
 	s->exception = NULL;
-	PL_raise_exception(ex);
+	if ( rc )
+	  rc = PL_raise_exception(ex);
 	PL_close_foreign_frame(fid);
-	return FALSE;
+	return rc;
       }
 
       if ( s->flags & SIO_INPUT )
@@ -3448,7 +3455,15 @@ PRED_IMPL("stream_property", 2, stream_property,
   }
 
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { error:
+
+    if ( pe->e )
+      freeTableEnum(pe->e);
+
+    freeHeap(pe, sizeof(*pe));
+    return FALSE;
+  }
 
   for(;;)
   { if ( pe->s )				/* given stream */
@@ -3459,7 +3474,8 @@ PRED_IMPL("stream_property", 2, stream_property,
 	  goto enum_e;
       }
 
-      fid2 = PL_open_foreign_frame();
+      if ( !(fid2 = PL_open_foreign_frame()) )
+	goto error;
       for( ; pe->p->functor ; pe->p++ )
       { if ( PL_unify_functor(property, pe->p->functor) )
 	{ int rval;
@@ -3487,6 +3503,9 @@ PRED_IMPL("stream_property", 2, stream_property,
 	  }
 	}
 
+	if ( exception_term )
+	  goto error;
+
 	if ( pe->fixed_p )
 	  break;
 	PL_rewind_foreign_frame(fid2);
@@ -3507,6 +3526,8 @@ PRED_IMPL("stream_property", 2, stream_property,
 	    pe->p = sprop_list;
 	  break;
 	}
+	if ( exception_term )
+	  goto error;
       }
     }
 
