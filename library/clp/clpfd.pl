@@ -5397,7 +5397,10 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
 %  ==
 
-transpose(Ms, Ts) :- Ms = [F|_], transpose(F, Ms, Ts).
+transpose(Ms, Ts) :-
+        must_be(list(list), Ms),
+        Ms = [F|_],
+        transpose(F, Ms, Ts).
 
 transpose([], _, []).
 transpose([_|Rs], Ms, [Ts|Tss]) :-
