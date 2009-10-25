@@ -2725,9 +2725,12 @@ a_var_n:
 
       SAVE_REGISTERS(qid);
       lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
-      fid = PL_open_foreign_frame();
-      rc = valueExpression(consTermRef(p), &result PASS_LD);
-      PL_close_foreign_frame(fid);
+      if ( (fid = PL_open_foreign_frame()) )
+      { rc = valueExpression(consTermRef(p), &result PASS_LD);
+	PL_close_foreign_frame(fid);
+      } else
+      { rc = FALSE;
+      }
       lTop = addPointer(lBase, lsafe);
       LOAD_REGISTERS(qid);
 
@@ -2931,17 +2934,19 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
     int rc;
 
     SAVE_REGISTERS(qid);
-    fid = PL_open_foreign_frame();
-    rc = valueExpression(wordToTermRef(np), &n PASS_LD);
-    if ( rc )
-    { ensureWritableNumber(&n);
-      if ( (rc=ar_add_ui(&n, add)) )
-      { if ( (rc=put_number(&w, &n, ALLOW_GC PASS_LD)) != TRUE )
-	  rc = raiseStackOverflow(rc);
+    if ( (fid = PL_open_foreign_frame()) )
+    { rc = valueExpression(wordToTermRef(np), &n PASS_LD);
+      if ( rc )
+      { ensureWritableNumber(&n);
+	if ( (rc=ar_add_ui(&n, add)) )
+	{ if ( (rc=put_number(&w, &n, ALLOW_GC PASS_LD)) != TRUE )
+	    rc = raiseStackOverflow(rc);
+	}
+	clearNumber(&n);
       }
-      clearNumber(&n);
-    }
-    PL_close_foreign_frame(fid);
+      PL_close_foreign_frame(fid);
+    } else
+      rc = FALSE;
     LOAD_REGISTERS(qid);
     if ( !rc )
       goto b_throw;
@@ -4139,6 +4144,7 @@ atom is referenced by the goal-term anyway.
   { fid_t fid;
 
   call_type_error:
+    LD->exception.processing = TRUE;	/* allow using spare stack */
     lTop = (LocalFrame)argFrameP(NFR, 1);
     fid = PL_open_foreign_frame();
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
