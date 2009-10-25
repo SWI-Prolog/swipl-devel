@@ -624,8 +624,7 @@ There are a lot of problems however.
 
 void
 exitPrologThreads()
-{ PL_thread_info_t **t;
-  int i;
+{ int i;
   int me = PL_thread_self();
   int canceled = 0;
 
@@ -633,10 +632,10 @@ exitPrologThreads()
 
   sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
-  for(t=&GD->thread.threads[1], i=1; i<= thread_highest_id; i++, t++)
-  { PL_thread_info_t *info = *t;
+  for(i=1; i<= thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
 
-    if ( info->thread_data && i != me )
+    if ( info && info->thread_data && i != me )
     { switch(info->status)
       { case PL_THREAD_FAILED:
 	case PL_THREAD_EXITED:
