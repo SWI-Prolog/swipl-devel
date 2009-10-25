@@ -369,9 +369,12 @@ writeAttVar(term_t av, write_options *options)
   if ( (options->flags & PL_WRT_ATTVAR_DOTS) )
   { return PutString("{...}", options->out);
   } else if ( (options->flags & PL_WRT_ATTVAR_WRITE) )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t a = PL_new_term_ref();
+  { fid_t fid;
+    term_t a;
     visited v;
+
+    if ( !(fid = PL_open_foreign_frame()) )
+      return FALSE;
 
     v.address = address_of(av);
     if ( has_visited(options->visited, v.address) )
@@ -379,6 +382,7 @@ writeAttVar(term_t av, write_options *options)
     v.next = options->visited;
     options->visited = &v;
     Sputc('{', options->out);
+    a = PL_new_term_ref();
     PL_get_attr(av, a);
     if ( !writeTerm(a, 1200, options) )
       goto error;
@@ -393,9 +397,12 @@ writeAttVar(term_t av, write_options *options)
     fail;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { fid_t fid   = PL_open_foreign_frame();
+  { fid_t fid;
     predicate_t pred;
     IOSTREAM *old;
+
+    if ( !(fid = PL_open_foreign_frame()) )
+      return FALSE;
 
     pred = _PL_predicate("portray_attvar", 1, "$attvar",
 			 &GD->procedures.portray_attvar1);
@@ -834,7 +841,10 @@ static bool
 writeArgTerm(term_t t, int prec, write_options *options, bool arg)
 { int rval;
   int levelSave = options->depth;
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
+
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
 
   if ( PL_handle_signals() < 0 )
   { rval = FALSE;
@@ -1282,10 +1292,12 @@ pl_print2(term_t stream, term_t term)
 word
 pl_write_canonical2(term_t stream, term_t term)
 { GET_LD
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
   nv_options options;
   word rc;
 
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
   options.functor = FUNCTOR_isovar1;
   options.on_attvar = AV_SKIP;
   options.singletons = TRUE;

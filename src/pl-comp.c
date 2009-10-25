@@ -3722,7 +3722,9 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
   { cref = findClause(cref, argv, fr, def, &next PASS_LD);
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
   while(cref)
   { if ( decompile(cref->clause, term, bindings) )
     { get_head_and_body_clause(term, h, b, NULL PASS_LD);
@@ -5072,7 +5074,12 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
   while( (symb = advanceTableEnum(e)) )
   { BreakPoint bp = (BreakPoint) symb->value;
 
-    { fid_t cid = PL_open_foreign_frame();
+    { fid_t cid;
+
+      if ( !(cid=PL_open_foreign_frame()) )
+      { freeTableEnum(e);
+	return FALSE;
+      }
 
       if ( PL_unify_pointer(A1, bp->clause) &&
 	   PL_unify_integer(A2, bp->offset) )

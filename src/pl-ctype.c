@@ -390,7 +390,9 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    goto error;
+
   for(;;)
   { int rval;
 
@@ -423,6 +425,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       break;
   }
 
+error:
   freeHeap(gen, sizeof(*gen));
   fail;
 }

@@ -86,7 +86,10 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
 { GET_LD
   term_t h = PL_new_term_ref();
   term_t l = PL_copy_term_ref(A2);
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
 
   for(;;)
   { if ( !PL_unify_list(l, h, l) )

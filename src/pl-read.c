@@ -119,7 +119,9 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
   for( ; ctx < 256; ctx++)
   { if ( PL_unify_char(in, ctx, PL_CHAR) &&
 	 PL_unify_char(out, char_conversion_table[ctx], PL_CHAR) )
@@ -3058,7 +3060,10 @@ int
 read_clause(IOSTREAM *s, term_t term ARG_LD)
 { read_data rd;
   int rval;
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
 
 retry:
   init_read_data(&rd, s PASS_LD);
