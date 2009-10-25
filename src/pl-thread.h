@@ -289,7 +289,7 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern void		exitPrologThreads(void);
+extern int		exitPrologThreads(void);
 extern bool		aliasThread(int tid, atom_t name);
 extern word		pl_thread_create(term_t goal, term_t id,
 					 term_t options);

@@ -1182,6 +1182,7 @@ int
 PL_cleanup(int rval)
 { GET_LD
   OnHalt h;
+  int rc = TRUE;
 
   LOCK();
   if ( GD->cleaning != CLN_NORMAL )
@@ -1202,7 +1203,7 @@ PL_cleanup(int rval)
   resetProfiler();			/* don't do profiling anymore */
 #endif
 #ifdef O_PLMT
-  exitPrologThreads();
+  rc = exitPrologThreads();
 #endif
 
   Scurout = Soutput;			/* reset output stream to user */
@@ -1272,7 +1273,8 @@ PL_cleanup(int rval)
 #endif
   cleanupForeign();
   cleanupCodeToAtom();
-  cleanupMemAlloc();
+  if ( rc )
+    cleanupMemAlloc();
 
   UNLOCK();				/* requires GD->thread.enabled */
 

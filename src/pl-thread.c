@@ -482,14 +482,14 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
+  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
+		    info->pl_tid, info->status));
 
   LOCK();
   if ( info->status == PL_THREAD_RUNNING )
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowledge = (info->status == PL_THREAD_CANCELED);
   UNLOCK();
-  DEBUG(1, Sdprintf("Freeing prolog thread %d (status = %d)\n",
-		    info->pl_tid, info->status));
 
 #if O_DEBUGGER
   callEventHook(PL_EV_THREADFINISHED, info);
@@ -622,9 +622,10 @@ There are a lot of problems however.
       to have the process working properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 exitPrologThreads()
-{ int i;
+{ int rc;
+  int i;
   int me = PL_thread_self();
   int canceled = 0;
 
@@ -702,14 +703,17 @@ exitPrologThreads()
   { printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
 		   PL_INT, canceled);
+    rc = FALSE;
   } else
   { DEBUG(1, Sdprintf("done\n"));
 #ifndef WIN64			/* FIXME: Hangs if nothing is printed */
     sem_destroy(sem_canceled_ptr);
 #endif
+    rc = TRUE;
   }
 
   threads_ready = FALSE;
+  return rc;
 }
 
 
@@ -1774,12 +1778,16 @@ Q: What to do with exceptions?
 Q: Should we limit the passes?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 run_exit_hooks(at_exit_goal *eg, int free)
 { GET_LD
   at_exit_goal *next;
-  term_t goal = PL_new_term_ref();
-  fid_t fid = PL_open_foreign_frame();
+  term_t goal;
+  fid_t fid;
+
+  if ( !(goal = PL_new_term_ref()) ||
+       !(fid = PL_open_foreign_frame()) )
+    return FALSE;
 
   for( ; eg; eg = next)
   { next = eg->next;
@@ -1790,7 +1798,13 @@ run_exit_hooks(at_exit_goal *eg, int free)
         if ( free )
 	  PL_erase(eg->goal.prolog.goal);
 	if ( rc )
+	{ DEBUG(1, { Sdprintf("Calling exit goal: ");
+		     PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED);
+		     Sdprintf("\n");
+		   });
+
 	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
+	}
 	PL_rewind_foreign_frame(fid);
 	break;
       }
@@ -1807,6 +1821,8 @@ run_exit_hooks(at_exit_goal *eg, int free)
 
   PL_discard_foreign_frame(fid);
   PL_reset_term_refs(goal);
+
+  return TRUE;
 }
 
 
