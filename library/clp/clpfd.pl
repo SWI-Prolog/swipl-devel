@@ -5276,33 +5276,34 @@ expr0_expr(Es0-_, Es) :-
 transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
 transitions([Seq|Seqs], Template, [Sig|Sigs], S0, S, Exprs, Counters, Cs0, Cs) -->
         [[S0,Sig,S1|Is]],
-        { exprs_counters_next(Exprs, Seq, Template, Counters, Cs0, Is, Cs1) },
+        { phrase(exprs_counters_next(Exprs, Is, Cs1), [s(Seq,Template,Counters,Cs0)], _) },
         transitions(Seqs, Template, Sigs, S1, S, Exprs, Counters, Cs1, Cs).
 
-exprs_counters_next([], _, _, _, _, [], []).
-exprs_counters_next([Es|Ess], Seq, Template, Counters, Cs0, [I|Is], [C|Cs]) :-
-        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs),
-        element(I, Vs, C),
-        exprs_counters_next(Ess, Seq, Template, Counters, Cs0, Is, Cs).
+exprs_counters_next([], [], []) --> [].
+exprs_counters_next([Es|Ess], [I|Is], [C|Cs]) -->
+        exprs_counters_values(Es, Vs),
+        { element(I, Vs, C) },
+        exprs_counters_next(Ess, Is, Cs).
 
-exprs_counters_values([], _, _, _, _, []).
-exprs_counters_values([E0|Es], Seq, Template, Counters, Cs0, [V|Vs]) :-
-        term_variables(E0, EVs0),
-        copy_term(E0, E),
-        term_variables(E, EVs),
-        match_variables(EVs0, EVs, Seq, Template, Counters, Cs0),
-        V #= E,
-        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs).
+exprs_counters_values([], []) --> [].
+exprs_counters_values([E0|Es], [V|Vs]) -->
+        { term_variables(E0, EVs0),
+          copy_term(E0, E),
+          term_variables(E, EVs),
+          V #= E },
+        match_variables(EVs0, EVs),
+        exprs_counters_values(Es, Vs).
 
-match_variables([], _, _, _, _, _).
-match_variables([V0|Vs0], [V|Vs], Seq, Template, Counters, Cs0) :-
-        (   template_var_path(Template, V0, Ps) ->
-            path_term_variable(Ps, Seq, V)
-        ;   template_var_path(Counters, V0, Ps) ->
-            path_term_variable(Ps, Cs0, V)
-        ;   domain_error(variable_from_template_or_counters, V0)
-        ),
-        match_variables(Vs0, Vs, Seq, Template, Counters, Cs0).
+match_variables([], _) --> [].
+match_variables([V0|Vs0], [V|Vs]) -->
+        state(s(Seq,Template,Counters,Cs0)),
+        { (   template_var_path(Template, V0, Ps) ->
+              path_term_variable(Ps, Seq, V)
+          ;   template_var_path(Counters, V0, Ps) ->
+              path_term_variable(Ps, Cs0, V)
+          ;   domain_error(variable_from_template_or_counters, V0)
+          ) },
+        match_variables(Vs0, Vs).
 
 nodes_nums([], []) --> [].
 nodes_nums([Node|Nodes], [Num|Nums]) -->
