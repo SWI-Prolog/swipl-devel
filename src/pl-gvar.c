@@ -26,9 +26,6 @@
 #include "pl-incl.h"
 #ifdef O_GVAR
 
-#undef LD
-#define LD LOCAL_LD
-
 
 		 /*******************************
 		 * NON-BACKTRACKABLE GLOBAL VARS*
@@ -176,13 +173,16 @@ static gvar_action
 auto_define_gvar(atom_t name)
 { GET_LD
   static predicate_t pred;
-  fid_t fid = PL_open_foreign_frame();
-  term_t av = PL_new_term_refs(3);
+  fid_t fid;
+  term_t av;
   gvar_action rc = gvar_error;
 
   if ( !pred )
     pred = PL_predicate("exception", 3, "user");
 
+  if ( !(fid = PL_open_foreign_frame()) )
+    return gvar_error;
+  av = PL_new_term_refs(3);
   PL_put_atom(av+0, ATOM_undefined_global_variable);
   PL_put_atom(av+1, name);
 
@@ -329,7 +329,10 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
       fail;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { freeTableEnum(e);
+    return FALSE;
+  }
   while( (s=advanceTableEnum(e)) )
   { atom_t name = (atom_t)s->name;
     word   val = (word)s->value;

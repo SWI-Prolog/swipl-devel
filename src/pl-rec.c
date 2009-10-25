@@ -1546,16 +1546,23 @@ pl_current_key(term_t k, control_t h)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { freeTableEnum(e);
+    return FALSE;
+  }
+
   while( (s=advanceTableEnum(e)) )
   { RecordList l = s->value;
 
     if ( l->firstRecord && unifyKey(k, l->key) )
+    { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
+    }
 
     PL_rewind_foreign_frame(fid);
   }
 
+  PL_close_foreign_frame(fid);
   freeTableEnum(e);
   fail;
 }
@@ -1688,8 +1695,11 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 { GET_LD
   fid_t fid;
 
-  copy = PL_new_term_ref();
-  fid = PL_open_foreign_frame();
+  if ( !(copy = PL_new_term_ref()) ||
+       !(fid = PL_open_foreign_frame()) )
+  { UNLOCK();
+    return FALSE;
+  }
 
   for( ; record; record = record->next )
   { int rc;
