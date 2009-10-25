@@ -3364,10 +3364,13 @@ PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
 int
 PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 { int rval;
+  qid_t qid;
 
-  qid_t qid = PL_open_query(ctx, flags, pred, h0);
-  rval = PL_next_solution(qid);
-  PL_cut_query(qid);
+  if ( (qid = PL_open_query(ctx, flags, pred, h0)) )
+  { rval = PL_next_solution(qid);
+    PL_cut_query(qid);
+  } else
+    rval = FALSE;
 
   return rval;
 }

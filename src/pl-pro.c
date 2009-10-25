@@ -65,7 +65,7 @@ pl_break1(term_t goal)
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
-  intptr_t skipSave     = debugstatus.skiplevel;
+  intptr_t skipSave = debugstatus.skiplevel;
   int  suspSave     = debugstatus.suspendTrace;
   int  traceSave;
   debug_type debugSave;
@@ -79,11 +79,17 @@ pl_break1(term_t goal)
   resetTracer();
 
   for(;;)
-  { fid_t cid = PL_open_foreign_frame();
+  { fid_t cid;
     term_t ex;
 
-    rval = callProlog(MODULE_user, goal,
-		      PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
+    if ( (cid=PL_open_foreign_frame()) )
+    { rval = callProlog(MODULE_user, goal,
+			PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
+    } else
+    { ex = exception_term;
+      rval = FALSE;
+    }
+
     if ( !rval && ex )
     { printMessage(ATOM_error,
 		   PL_FUNCTOR_CHARS, "unhandled_exception", 1,
@@ -95,7 +101,8 @@ pl_break1(term_t goal)
     { break;
     }
 
-    PL_discard_foreign_frame(cid);
+    if ( cid )
+      PL_discard_foreign_frame(cid);
   }
 
   debugstatus.suspendTrace = suspSave;
@@ -165,13 +172,19 @@ like for the Prolog predicate call/1.
 
 int
 callProlog(Module module, term_t goal, int flags, term_t *ex)
-{ term_t g = PL_new_term_ref();
+{ term_t g;
   functor_t fd;
   Procedure proc;
 
   if ( ex )
     *ex = 0;
 
+  if ( !(g=PL_new_term_ref()) )
+  { error:
+    if ( ex )
+      *ex = exception_term;
+    return FALSE;
+  }
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -185,15 +198,21 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
   proc = lookupProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
-    term_t args = PL_new_term_refs(arity);
-    qid_t qid;
+    term_t args;
+    qid_t qid = 0;
     int n, rval;
 
-    for(n=0; n<arity; n++)
-      _PL_get_arg(n+1, g, args+n);
+    if ( (args = PL_new_term_refs(arity)) )
+    { for(n=0; n<arity; n++)
+	_PL_get_arg(n+1, g, args+n);
 
-    qid  = PL_open_query(module, flags, proc, args);
-    rval = PL_next_solution(qid);
+      if ( (qid = PL_open_query(module, flags, proc, args)) )
+      { rval = PL_next_solution(qid);
+      } else
+	goto error;
+    } else
+      goto error;
+
     if ( !rval && ex )
       *ex = PL_exception(qid);
     PL_cut_query(qid);
@@ -343,6 +362,7 @@ bool
 prologToplevel(volatile atom_t goal)
 { bool rval;
   volatile int aborted = FALSE;
+  int loop = TRUE;
 
 #ifndef O_ABORT_WITH_THROW
   if ( setjmp(abort_context) != 0 )
@@ -355,15 +375,16 @@ prologToplevel(volatile atom_t goal)
   { debugstatus.debugging = DBG_OFF;
   }
 
-  for(;;)
+  while(loop)
   { fid_t fid;
-    qid_t qid;
+    qid_t qid = 0;
     term_t except = 0;
     Procedure p;
     word gn;
 
     resetProlog();
-    fid = PL_open_foreign_frame();
+    if ( !(fid = PL_open_foreign_frame()) )
+      goto error;
 
     if ( aborted )
     { aborted = FALSE;
@@ -373,8 +394,14 @@ prologToplevel(volatile atom_t goal)
 
     p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
 
-    qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
-    rval = PL_next_solution(qid);
+    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
+    { rval = PL_next_solution(qid);
+    } else
+    { error:
+      except = exception_term;
+      loop = rval = FALSE;		/* Won't get any better */
+    }
+
     if ( !rval && (except = PL_exception(qid)) )
     { atom_t a;
 
@@ -389,8 +416,9 @@ prologToplevel(volatile atom_t goal)
 		       PL_TERM, except);
       }
     }
-    PL_close_query(qid);
-    PL_discard_foreign_frame(fid);
+
+    if ( qid ) PL_close_query(qid);
+    if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
   }
