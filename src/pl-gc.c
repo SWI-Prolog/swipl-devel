@@ -3413,6 +3413,13 @@ ensureTrailSpace(size_t cells)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ensureLocalSpace() ensures sufficient local stack space.
+
+NOTE: This is often called from ENSURE_LOCAL_SPACE(), where lTop > lMax.
+The stack-shifter must be able to deal with this.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 ensureLocalSpace(size_t bytes, int flags)
 { GET_LD
@@ -3694,12 +3701,16 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
     local_frames = 0;
     choice_count = 0;
 
-    update_local_pointer(&state->pc, ls);
-    update_local_pointer(&state->pc_start_vmi, ls);
-    update_local_pointer(&state->frame, ls);
-    update_local_pointer(&state->choice, ls);
-    update_local_pointer(&state->lSave, ls);
-    update_local_pointer(&LD->query, ls);
+    if ( ls )
+    {					/* sometimes on local stack */
+      update_local_pointer(&state->pc, ls);
+      update_local_pointer(&state->pc_start_vmi, ls);
+					/* always on local stack */
+      update_pointer(&state->frame, ls);
+      update_pointer(&state->choice, ls);
+      update_pointer(&state->lSave, ls);
+      update_pointer(&LD->query, ls);
+    }
 
     for( fr = state->frame,
 	 ch = state->choice
