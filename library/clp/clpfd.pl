@@ -112,6 +112,7 @@
                   circuit/1,
                   element/3,
                   automaton/8,
+                  transpose/2,
                   zcompare/3,
                   chain/2,
                   fd_var/1,
@@ -5338,6 +5339,28 @@ arc_normalized(Cs, Arc0, Arc) :- arc_normalized_(Arc0, Cs, Arc).
 
 arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
 arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% transpose(+Matrix, ?Transpose)
+%
+%  Transpose a list of lists of the same length. Example:
+%
+%  ==
+%  ?- transpose([[1,2,3],[4,5,6],[7,8,9]], Ts).
+%  Ts = [[1, 4, 7], [2, 5, 8], [3, 6, 9]].
+%  ==
+
+transpose(Ms, Ts) :- Ms = [F|_], transpose(F, Ms, Ts).
+
+transpose([], _, []).
+transpose([_|Rs], Ms, [Ts|Tss]) :-
+        lists_firsts_rests(Ms, Ts, Ms1),
+        transpose(Rs, Ms1, Tss).
+
+lists_firsts_rests([], [], []).
+lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
+        lists_firsts_rests(Rest, Fs, Oss).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
