@@ -61,6 +61,25 @@ permission_error(const char *op, const char *type, const char *obj,
 
 
 		 /*******************************
+		 *	   COMMON STUFF		*
+		 *******************************/
+
+static void
+register_reader(rwlock *lock, int tid)
+{ while ( tid >= lock->thread_max )
+  { size_t osize = lock->thread_max*sizeof(lock->read_by_thread[0]);
+
+    lock->read_by_thread = realloc(lock->read_by_thread, osize*2);
+    memset((char*)lock->read_by_thread+osize, 0, osize);
+    lock->thread_max *= 2;
+  }
+
+  lock->read_by_thread[tid]++;
+}
+
+
+
+		 /*******************************
 		 *	 WINDOWS VERSION	*
 		 *******************************/
 
@@ -152,7 +171,7 @@ rdlock(rwlock *lock)
   { ok:
 
     lock->readers++;
-    lock->read_by_thread[self]++;
+    register_reader(lock, self);
     LeaveCriticalSection(&lock->mutex);
 
     return TRUE;
@@ -203,7 +222,7 @@ wrlock(rwlock *lock, int allow_readers)
     return TRUE;
   }
 
-  if ( lock->read_by_thread[self] > 0 )
+  if ( self < lock->thread_max && lock->read_by_thread[self] > 0 )
   { LeaveCriticalSection(&lock->mutex);
     return permission_error("write", "rdf_db", "default",
 			    "Operation would deadlock");
@@ -340,9 +359,7 @@ unlock_misc(rwlock *lock)
 
 int
 init_lock(rwlock *lock)
-{ size_t bytes;
-
-  InitializeCriticalSection(&lock->mutex);
+{ InitializeCriticalSection(&lock->mutex);
   InitializeCriticalSection(&lock->misc_mutex);
 
   if ( !win32_cond_init(&lock->wrcondvar) == 0 ||
@@ -360,11 +377,10 @@ init_lock(rwlock *lock)
   lock->waiting_upgrade = 0;
   lock->lock_level      = 0;
 
-  bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
-
-  if ( !(lock->read_by_thread = malloc(bytes)) )
+  lock->thread_max = 4;
+  if ( !(lock->read_by_thread = malloc(lock->thread_max*sizeof(int))) )
     return FALSE;
-  memset(lock->read_by_thread, 0, bytes);
+  memset(lock->read_by_thread, 0, lock->thread_max*sizeof(int));
 
   return TRUE;
 }
@@ -407,7 +423,7 @@ rdlock(rwlock *lock)
   { ok:
 
     lock->readers++;
-    lock->read_by_thread[self]++;
+    register_reader(lock, self);
     pthread_mutex_unlock(&lock->mutex);
 
     return TRUE;
@@ -469,7 +485,7 @@ wrlock(rwlock *lock, int allow_readers)
     return TRUE;
   }
 
-  if ( lock->read_by_thread[self] > 0 )
+  if ( self < lock->thread_max && lock->read_by_thread[self] > 0 )
   { DEBUG(1, Sdprintf("SELF(%d) has %d readers\n",
 		      self, lock->read_by_thread[self]));
     pthread_mutex_unlock(&lock->mutex);
@@ -611,10 +627,7 @@ unlock_misc(rwlock *lock)
 
 int
 init_lock(rwlock *lock)
-{ int bytes;
-  int maxthreads;
-
-  if ( !pthread_mutex_init(&lock->mutex, NULL) == 0 ||
+{ if ( !pthread_mutex_init(&lock->mutex, NULL) == 0 ||
        !pthread_mutex_init(&lock->misc_mutex, NULL) == 0 ||
        !pthread_cond_init(&lock->wrcondvar, NULL) == 0 ||
        !pthread_cond_init(&lock->rdcondvar, NULL) == 0 ||
@@ -624,19 +637,17 @@ init_lock(rwlock *lock)
   }
 
   lock->writer          = -1;
-  lock->readers	      = 0;
+  lock->readers	        = 0;
   lock->allow_readers   = TRUE;
   lock->waiting_readers = 0;
   lock->waiting_writers = 0;
   lock->waiting_upgrade = 0;
   lock->lock_level      = 0;
 
-  maxthreads = PL_query(PL_QUERY_MAX_THREADS);
-  bytes = sizeof(int)*maxthreads;
-  DEBUG(1, Sdprintf("MAX_THREADS = %d\n", maxthreads));
-  if ( !(lock->read_by_thread = malloc(bytes)) )
+  lock->thread_max = 4;
+  if ( !(lock->read_by_thread = malloc(lock->thread_max*sizeof(int))) )
     return FALSE;
-  memset(lock->read_by_thread, 0, bytes);
+  memset(lock->read_by_thread, 0, lock->thread_max*sizeof(int));
 
   return TRUE;
 }
