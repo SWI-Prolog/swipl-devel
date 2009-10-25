@@ -5158,7 +5158,7 @@ circuit_successors(V, Tos) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, -Finals)
+%% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  True if the finite automaton induced by Nodes and Arcs (extended
 %  with Counters) accepts Signature. Sequence is a list of terms, all
@@ -5167,27 +5167,28 @@ circuit_successors(V, Tos) :-
 %  same length as Sequence. Nodes is a list of source(Node) and
 %  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
 %  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
-%  transitions. Nodes are denoted by atoms. Transitions that are not
-%  mentioned go to an implicit failure node. Exprs is a list of
-%  arithmetic expressions, of the same length as Counters. In each
-%  expression, variables occurring in Counters correspond to old
+%  transitions. Each node is represented by a ground term. Transitions
+%  that are not mentioned go to an implicit failure node. Exprs is a
+%  list of arithmetic expressions, of the same length as Counters. In
+%  each expression, variables occurring in Counters correspond to old
 %  counter values, and variables occurring in Template correspond to
 %  the current element of Sequence. When a transition containing
 %  expressions is taken, counters are updated as stated. By default,
 %  counters remain unchanged. Counters is a list of variables that
 %  must not occur anywhere outside of the constraint goal. Initials is
 %  a list of integers, of the same length as Counters. Counter
-%  arithmetic on the transitions map the values in Initials to Finals.
+%  arithmetic on the transitions maps the counter values in Initials
+%  to Finals.
 %
 %  In the following example, a list of binary finite domain variables
 %  is constrained to contain at least two consecutive ones:
 %
 %  ==
 %  two_consecutive_ones(Vs) :-
-%          automaton(Vs, _, Vs, [source(a),sink(c)],
+%          automaton(_, _, Vs, [source(a),sink(c)],
 %                    [arc(a,0,a), arc(a,1,b),
 %                     arc(b,0,a), arc(b,1,c),
-%                     arc(c,0,c), arc(c,1,c)], [], [], []).
+%                     arc(c,0,c), arc(c,1,c)], [], [], _).
 %
 %  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
 %  Vs = [0, 1, 1] ;
@@ -5195,28 +5196,74 @@ circuit_successors(V, Tos) :-
 %  Vs = [1, 1, 1].
 %  ==
 
-automaton(Seqs, Template, Sigs, Ns, As, Cs, Is, Fs) :-
-        must_be(list(list), [Sigs,Ns,As,Cs,Is]),
-        must_be(ground, Is),
-        (   Cs = [] -> regular(Sigs, Ns, As)
-        ;   representation_error(counters_not_yet_implemented-Seqs-Template-Fs)
-        ).
+template_var_path(V, Var, []) :- var(V), !, V == Var.
+template_var_path(T, Var, [N|Ns]) :-
+        arg(N, T, Arg),
+        template_var_path(Arg, Var, Ns).
 
-regular(Sigs, Ns, As) :-
+path_term_variable([], V, V).
+path_term_variable([P|Ps], T, V) :-
+        arg(P, T, Arg),
+        path_term_variable(Ps, Arg, V).
+
+initial_expr(_, []-1).
+
+automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
+        must_be(list(list), [Sigs,Ns,As0,Cs,Is]),
+        (   var(Seqs) -> Seqs = Sigs
+        ;   must_be(list, Seqs)
+        ),
+        must_be(ground, Is),
         memberchk(source(Source), Ns),
-        phrase((arcs_relation(As, Relation)), [[]-0], S),
+        maplist(arc_normalized(Cs), As0, As),
         include(sink, Ns, Sinks0),
         maplist(arg(1), Sinks0, Sinks),
-        phrase(nodes_nums(Sinks, SinkNums0), S, _),
+        maplist(initial_expr, Cs, Exprs0),
+        phrase((arcs_relation(As, Relation),
+                nodes_nums(Sinks, SinkNums0),
+                node_num(Source, Start)),
+               [s([]-0, Exprs0)], [s(_,Exprs1)]),
+        maplist(expr0_expr, Exprs1, Exprs),
+        phrase(transitions(Seqs, Template, Sigs, Start, End, Exprs, Cs, Is, Fs), Tuples),
         list_to_domain(SinkNums0, SinkDom),
         domain_to_drep(SinkDom, SinkDrep),
-        phrase(node_num(Source, Start), S, _),
-        phrase(transitions(Sigs, Start, End), Tuples),
         tuples_in(Tuples, Relation),
         End in SinkDrep.
 
-transitions([], S, S) --> [].
-transitions([Sig|Sigs], S0, S) --> [[S0,Sig,S1]], transitions(Sigs, S1, S).
+expr0_expr(Es0-_, Es) :-
+        pairs_keys_values(Es0, Es1, _),
+        reverse(Es1, Es).
+
+transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
+transitions([Seq|Seqs], Template, [Sig|Sigs], S0, S, Exprs, Counters, Cs0, Cs) -->
+        [[S0,Sig,S1|Is]],
+        { exprs_counters_next(Exprs, Seq, Template, Counters, Cs0, Is, Cs1) },
+        transitions(Seqs, Template, Sigs, S1, S, Exprs, Counters, Cs1, Cs).
+
+exprs_counters_next([], _, _, _, _, [], []).
+exprs_counters_next([Es|Ess], Seq, Template, Counters, Cs0, [I|Is], [C|Cs]) :-
+        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs),
+        element(I, Vs, C),
+        exprs_counters_next(Ess, Seq, Template, Counters, Cs0, Is, Cs).
+
+exprs_counters_values([], _, _, _, _, []).
+exprs_counters_values([E0|Es], Seq, Template, Counters, Cs0, [V|Vs]) :-
+        term_variables(E0, EVs0),
+        copy_term(E0, E),
+        term_variables(E, EVs),
+        match_variables(EVs0, EVs, Seq, Template, Counters, Cs0),
+        V #= E,
+        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs).
+
+match_variables([], _, _, _, _, _).
+match_variables([V0|Vs0], [V|Vs], Seq, Template, Counters, Cs0) :-
+        (   template_var_path(Template, V0, Ps) ->
+            path_term_variable(Ps, Seq, V)
+        ;   template_var_path(Counters, V0, Ps) ->
+            path_term_variable(Ps, Cs0, V)
+        ;   domain_error(variable_from_template_or_counters, V0)
+        ),
+        match_variables(Vs0, Vs, Seq, Template, Counters, Cs0).
 
 nodes_nums([], []) --> [].
 nodes_nums([Node|Nodes], [Num|Nums]) -->
@@ -5224,27 +5271,33 @@ nodes_nums([Node|Nodes], [Num|Nums]) -->
         nodes_nums(Nodes, Nums).
 
 arcs_relation([], []) --> [].
-arcs_relation([arc(S0,L,S1)|As], [[From,L,To]|Rs]) -->
+arcs_relation([arc(S0,L,S1,Es)|As], [[From,L,To|Ns]|Rs]) -->
         node_num(S0, From),
         node_num(S1, To),
+        state(s(Nodes, Exprs0), s(Nodes, Exprs)),
+        { exprs_nums(Es, Ns, Exprs0, Exprs) },
         arcs_relation(As, Rs).
 
-node_num(Node, Num), [Nodes-C] -->
-        [Nodes0-C0],
-        { (   member(N-I, Nodes0), N == Node -> Num = I, C = C0, Nodes = Nodes0
+exprs_nums([], [], [], []).
+exprs_nums([E|Es], [N|Ns], [Ex0-C0|Exs0], [Ex-C|Exs]) :-
+        (   member(Exp-N, Ex0), Exp == E -> C = C0, Ex = Ex0
+        ;   N = C0, C is C0 + 1, Ex = [E-C0|Ex0]
+        ),
+        exprs_nums(Es, Ns, Exs0, Exs).
+
+node_num(Node, Num) -->
+        state(s(Nodes0-C0, Exprs), s(Nodes-C, Exprs)),
+        { (   member(N-Num, Nodes0), N == Node -> C = C0, Nodes = Nodes0
           ;   Num = C0, C is C0 + 1, Nodes = [Node-C0|Nodes0]
           )
         }.
 
 sink(sink(_)).
 
+arc_normalized(Cs, Arc0, Arc) :- arc_normalized_(Arc0, Cs, Arc).
 
-% arc_normalized(Cs, Arc0, Arc) :-
-% 	arc_normalized_(Arc0, Cs, Arc).
-
-% arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
-% arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
-
+arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
+arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
