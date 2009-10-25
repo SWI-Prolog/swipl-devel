@@ -766,27 +766,35 @@ eval_expression(term_t t, Number r, int recursion ARG_LD)
 
 #if O_PROLOG_FUNCTIONS
   if ( f->proc )
-  { int rval, n, arity = arityFunctor(functor);
-    fid_t fid = PL_open_foreign_frame();
-    term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
+  { fid_t fid;
 
-    for(n=0; n<arity; n++)
-    { number n1;
+    if ( (fid=PL_open_foreign_frame()) )
+    { int rval, n, arity = arityFunctor(functor);
+      term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
 
-      _PL_get_arg(n+1, t, h0+n);
-      if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
-      { _PL_put_number(h0+n, &n1);
-	clearNumber(&n1);
-      } else
-      { PL_close_foreign_frame(fid);
-	fail;
+      if ( !h0 )
+	return FALSE;
+
+      for(n=0; n<arity; n++)
+      { number n1;
+
+	_PL_get_arg(n+1, t, h0+n);
+	if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
+	{ _PL_put_number(h0+n, &n1);
+	  clearNumber(&n1);
+	} else
+	{ PL_close_foreign_frame(fid);
+	  fail;
+	}
       }
+
+      rval = prologFunction(f, h0, r PASS_LD);
+      PL_close_foreign_frame(fid);
+
+      return rval;
     }
 
-    rval = prologFunction(f, h0, r PASS_LD);
-    PL_close_foreign_frame(fid);
-
-    return rval;
+    return FALSE;
   }
 #endif
 
@@ -3078,7 +3086,9 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
   tmp = PL_new_term_ref();
   mx = (int)entriesBuffer(function_array, ArithFunction);
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
   for( ; i<mx; i++ )
   { ArithFunction f = FunctionFromIndex(i);
 
