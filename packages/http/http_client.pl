@@ -275,7 +275,7 @@ x_header(range(Spec), Out) :-
 	;   must_be(integer, To),
 	    ToT = To
 	),
-	format(Out, 'Range: ~d=~d-~w\r\n', [Unit, From, ToT]).
+	format(Out, 'Range: ~w=~d-~w\r\n', [Unit, From, ToT]).
 
 proxy_auth_header(basic(User, Password), Out) :- !,
 	format(codes(Codes), '~w:~w', [User, Password]),
