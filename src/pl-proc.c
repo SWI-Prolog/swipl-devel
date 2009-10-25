@@ -1602,17 +1602,14 @@ found:
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Call the autoloader for the given definition   that is to be executed in
-the given frame. PC is the program   pointer of the current environment.
-Before we call Prolog, we need to fill enough of the frame to use it for
-the garbage collector to scan this frame.
+Call the autoloader for the given definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static atom_t
 autoLoader(Definition def)
 { GET_LD
-  fid_t  cid  = PL_open_foreign_frame();
-  term_t argv = PL_new_term_refs(4);
+  fid_t  cid;
+  term_t argv;
   qid_t qid;
   atom_t sfn = source_file_name;	/* needs better solution! */
   int  sln = source_line_no;
@@ -1622,16 +1619,21 @@ autoLoader(Definition def)
     GD->procedures.undefinterc4 = PL_pred(FUNCTOR_undefinterc4,
 					  MODULE_system);
 
+  if ( !(cid  = PL_open_foreign_frame()) ||
+       !(argv = PL_new_term_refs(4)) )
+    return answer;
+
   PL_put_atom(    argv+0, def->module->name);
   PL_put_atom(    argv+1, def->functor->name);
   PL_put_integer( argv+2, def->functor->arity);
 
   LD->autoload_nesting++;
-  qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
-		      GD->procedures.undefinterc4, argv);
-  if ( PL_next_solution(qid) )
-    PL_get_atom(argv+3, &answer);
-  PL_close_query(qid);
+  if ( (qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
+			    GD->procedures.undefinterc4, argv)) )
+  { if ( PL_next_solution(qid) )
+      PL_get_atom(argv+3, &answer);
+    PL_close_query(qid);
+  }
   LD->autoload_nesting--;
   source_file_name = sfn;
   source_line_no   = sln;
