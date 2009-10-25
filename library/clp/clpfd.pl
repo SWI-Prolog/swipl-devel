@@ -112,6 +112,7 @@
                   circuit/1,
                   element/3,
                   automaton/8,
+                  transpose/2,
                   zcompare/3,
                   chain/2,
                   fd_var/1,
@@ -5276,33 +5277,34 @@ expr0_expr(Es0-_, Es) :-
 transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
 transitions([Seq|Seqs], Template, [Sig|Sigs], S0, S, Exprs, Counters, Cs0, Cs) -->
         [[S0,Sig,S1|Is]],
-        { exprs_counters_next(Exprs, Seq, Template, Counters, Cs0, Is, Cs1) },
+        { phrase(exprs_next(Exprs, Is, Cs1), [s(Seq,Template,Counters,Cs0)], _) },
         transitions(Seqs, Template, Sigs, S1, S, Exprs, Counters, Cs1, Cs).
 
-exprs_counters_next([], _, _, _, _, [], []).
-exprs_counters_next([Es|Ess], Seq, Template, Counters, Cs0, [I|Is], [C|Cs]) :-
-        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs),
-        element(I, Vs, C),
-        exprs_counters_next(Ess, Seq, Template, Counters, Cs0, Is, Cs).
+exprs_next([], [], []) --> [].
+exprs_next([Es|Ess], [I|Is], [C|Cs]) -->
+        exprs_values(Es, Vs),
+        { element(I, Vs, C) },
+        exprs_next(Ess, Is, Cs).
 
-exprs_counters_values([], _, _, _, _, []).
-exprs_counters_values([E0|Es], Seq, Template, Counters, Cs0, [V|Vs]) :-
-        term_variables(E0, EVs0),
-        copy_term(E0, E),
-        term_variables(E, EVs),
-        match_variables(EVs0, EVs, Seq, Template, Counters, Cs0),
-        V #= E,
-        exprs_counters_values(Es, Seq, Template, Counters, Cs0, Vs).
+exprs_values([], []) --> [].
+exprs_values([E0|Es], [V|Vs]) -->
+        { term_variables(E0, EVs0),
+          copy_term(E0, E),
+          term_variables(E, EVs),
+          V #= E },
+        match_variables(EVs0, EVs),
+        exprs_values(Es, Vs).
 
-match_variables([], _, _, _, _, _).
-match_variables([V0|Vs0], [V|Vs], Seq, Template, Counters, Cs0) :-
-        (   template_var_path(Template, V0, Ps) ->
-            path_term_variable(Ps, Seq, V)
-        ;   template_var_path(Counters, V0, Ps) ->
-            path_term_variable(Ps, Cs0, V)
-        ;   domain_error(variable_from_template_or_counters, V0)
-        ),
-        match_variables(Vs0, Vs, Seq, Template, Counters, Cs0).
+match_variables([], _) --> [].
+match_variables([V0|Vs0], [V|Vs]) -->
+        state(s(Seq,Template,Counters,Cs0)),
+        { (   template_var_path(Template, V0, Ps) ->
+              path_term_variable(Ps, Seq, V)
+          ;   template_var_path(Counters, V0, Ps) ->
+              path_term_variable(Ps, Cs0, V)
+          ;   domain_error(variable_from_template_or_counters, V0)
+          ) },
+        match_variables(Vs0, Vs).
 
 nodes_nums([], []) --> [].
 nodes_nums([Node|Nodes], [Num|Nums]) -->
@@ -5337,6 +5339,77 @@ arc_normalized(Cs, Arc0, Arc) :- arc_normalized_(Arc0, Cs, Arc).
 
 arc_normalized_(arc(S0,L,S,Cs), _, arc(S0,L,S,Cs)).
 arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% transpose(+Matrix, ?Transpose)
+%
+%  Transpose a list of lists of the same length. Example:
+%
+%  ==
+%  ?- transpose([[1,2,3],[4,5,6],[7,8,9]], Ts).
+%  Ts = [[1, 4, 7], [2, 5, 8], [3, 6, 9]].
+%  ==
+%
+%  This predicate is useful in many constraint programs. Consider for
+%  instance Sudoku:
+%
+%  ==
+%  sudoku(Rows) :-
+%          length(Rows, 9), maplist(length_(9), Rows),
+%          append(Rows, Vs), Vs ins 1..9,
+%          maplist(all_distinct, Rows),
+%          transpose(Rows, Columns), maplist(all_distinct, Columns),
+%          Rows = [A,B,C,D,E,F,G,H,I],
+%          blocks(A, B, C), blocks(D, E, F), blocks(G, H, I).
+%
+%  length_(L, Ls) :- length(Ls, L).
+%
+%  blocks([], [], []).
+%  blocks([A,B,C|Bs1], [D,E,F|Bs2], [G,H,I|Bs3]) :-
+%          all_distinct([A,B,C,D,E,F,G,H,I]),
+%          blocks(Bs1, Bs2, Bs3).
+%
+%  problem(1, [[_,_,_,_,_,_,_,_,_],
+%              [_,_,_,_,_,3,_,8,5],
+%              [_,_,1,_,2,_,_,_,_],
+%              [_,_,_,5,_,7,_,_,_],
+%              [_,_,4,_,_,_,1,_,_],
+%              [_,9,_,_,_,_,_,_,_],
+%              [5,_,_,_,_,_,_,7,3],
+%              [_,_,2,_,1,_,_,_,_],
+%              [_,_,_,_,4,_,_,_,9]]).
+%  ==
+%
+%  Sample query:
+%
+%  ==
+%  ?- problem(1, Rows), sudoku(Rows), maplist(writeln, Rows).
+%  [9, 8, 7, 6, 5, 4, 3, 2, 1]
+%  [2, 4, 6, 1, 7, 3, 9, 8, 5]
+%  [3, 5, 1, 9, 2, 8, 7, 4, 6]
+%  [1, 2, 8, 5, 3, 7, 6, 9, 4]
+%  [6, 3, 4, 8, 9, 2, 1, 5, 7]
+%  [7, 9, 5, 4, 6, 1, 8, 3, 2]
+%  [5, 1, 9, 2, 8, 6, 4, 7, 3]
+%  [4, 7, 2, 3, 1, 9, 5, 6, 8]
+%  [8, 6, 3, 7, 4, 5, 2, 1, 9]
+%  Rows = [[9, 8, 7, 6, 5, 4, 3, 2|...], ... , [...|...]].
+%  ==
+
+transpose(Ms, Ts) :-
+        must_be(list(list), Ms),
+        Ms = [F|_],
+        transpose(F, Ms, Ts).
+
+transpose([], _, []).
+transpose([_|Rs], Ms, [Ts|Tss]) :-
+        lists_firsts_rests(Ms, Ts, Ms1),
+        transpose(Rs, Ms1, Tss).
+
+lists_firsts_rests([], [], []).
+lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
+        lists_firsts_rests(Rest, Fs, Oss).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
