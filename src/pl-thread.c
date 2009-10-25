@@ -504,7 +504,10 @@ free_prolog_thread(void *data)
   freeLocalData(ld);
 
   if ( ld->prolog_flag.table )
+  { PL_LOCK(PLFLAG_L);
     destroyHTable(ld->prolog_flag.table);
+    PL_UNLOCK(PLFLAG_L);
+  }
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
