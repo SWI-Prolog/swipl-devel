@@ -256,6 +256,13 @@ stream raises an exception. Default is to wait forever
 Defines the value of the \const{User-Agent} field of the HTTP header.
 Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
 
+	\termitem{range}{+Range}
+Ask for partial content. \arg{Range} is a term \term{\arg{Unit}}{From,
+To}, where \arg{From} is an integer and \arg{To} is either an integer
+or the atom \const{end}. HTTP 1.1 only supports \arg{Unit} =
+\const{bytes}.  E.g., to ask for bytes 1000-1999, use the option
+\exam{range(bytes(1000,1999))}.
+
 	\termitem{request_header}{Name = Value}
 Add a line "\arg{Name}: \arg{Value}" to the HTTP request header. Both
 name and value are added uninspected and literally to the request

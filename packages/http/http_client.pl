@@ -249,7 +249,6 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 		     Connection: ~w\r\n', [Agent, Connection]),
 	x_headers(Options3, Out, RestOptions).
 
-
 %%	x_headers(+Options, +Out, -RestOptions) is det.
 %
 %	Pass additional request options.  For example:
@@ -259,15 +258,24 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
 
-x_headers(Options0, Out, Options) :-
-	select(request_header(Name=Value), Options0, Options1), !,
-	format(Out, '~w: ~w\r\n', [Name, Value]),
-	x_headers(Options1, Out, Options).
-x_headers(Options0, Out, Options) :-
-	select(proxy_authorization(ProxyAuthorization), Options0, Options1), !,
-	proxy_auth_header(ProxyAuthorization, Out),
-	x_headers(Options1, Out, Options).
-x_headers(Options, _, Options).
+x_headers([H|T0], Out, Options) :-
+	x_header(H, Out), !,
+	x_headers(T0, Out, Options).
+x_headers([H|T0], Out, [H|T]) :-
+	x_headers(T0, Out, T).
+
+x_header(request_header(Name=Value), Out) :-
+	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(proxy_authorization(ProxyAuthorization), Out) :-
+	proxy_auth_header(ProxyAuthorization, Out).
+x_header(range(Spec), Out) :-
+	Spec =.. [Unit, From, To],
+	(   To == end
+	->  ToT = ''
+	;   must_be(integer, To),
+	    ToT = To
+	),
+	format(Out, 'Range: ~d=~d-~w\r\n', [Unit, From, ToT]).
 
 proxy_auth_header(basic(User, Password), Out) :- !,
 	format(codes(Codes), '~w:~w', [User, Password]),
