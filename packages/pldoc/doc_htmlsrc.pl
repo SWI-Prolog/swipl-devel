@@ -171,19 +171,26 @@ html_fragment(fragment(Start, End, structured_comment, []),
 html_fragment(fragment(Start, End, Class, Sub),
 	      In, Out, State0, State, Options) :-
 	copy_to(In, Start, Out, State0, State1),
-	start_fragment(Class, Out, State1, State2),
+	start_fragment(Class, In, Out, State1, State2),
 	html_fragments(Sub, In, Out, State2, State3, Options),
 	copy_to(In, End, Out, State3, State4),	% TBD: pop-to?
 	end_fragment(Out, In, State4, State).
 
-start_fragment(Class, Out, State, [Push|State]) :-
+start_fragment(atom, In, Out, State0, State) :- !,
+	(   peek_code(In, C),
+	    C == 39
+	->  start_fragment(quoted_atom, In, Out, State0, State)
+	;   State = [nop|State0]
+	).
+start_fragment(Class, _, Out, State, [Push|State]) :-
 	element(Class, Tag, CSSClass), !,
 	Push =.. [Tag,class(CSSClass)],
 	format(Out, '<~w class="~w">', [Tag, CSSClass]).
-start_fragment(Class, Out, State, [span(class(SpanClass))|State]) :-
+start_fragment(Class, _, Out, State, [span(class(SpanClass))|State]) :-
 	functor(Class, SpanClass, _),
 	format(Out, '<span class="~w">', [SpanClass]).
 
+end_fragment(_, _, [nop|State], State) :- !.
 end_fragment(Out, In, [span(class(directive))|State], State) :- !,
 	format(Out, '</span>', []),
 	(   peek_code(In, 10),
