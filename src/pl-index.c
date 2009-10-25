@@ -418,16 +418,20 @@ reindexClause(Clause clause, Definition def, unsigned long pattern)
       }
     } else
     { GET_LD
+      fid_t fid;
+      term_t head;
 
-      fid_t fid = PL_open_foreign_frame();
-      term_t head = PL_new_term_ref();
+      if ( !(fid=PL_open_foreign_frame()) ||
+	   !(head = PL_new_term_ref()) ||
+	   !decompileHead(clause, head) )
+	return FALSE;
 
-      decompileHead(clause, head);
       getIndex(argTermP(*valTermRef(head), 0),
 	       pattern,
 	       def->indexCardinality,
 	       &clause->index
 	       PASS_LD);
+
       PL_discard_foreign_frame(fid);
     }
   }
@@ -729,7 +733,11 @@ pl_hash(term_t pred)
 
       def->indexCardinality = 1;
       for(cref = def->definition.clauses; cref; cref = cref->next)
-	reindexClause(cref->clause, def, 0x1L);
+      { if ( !reindexClause(cref->clause, def, 0x1L) )
+	{ UNLOCKDEF(def);
+	  return FALSE;			/* No space; what to do? */
+	}
+      }
       def->indexPattern = 0x1L;
     }
 

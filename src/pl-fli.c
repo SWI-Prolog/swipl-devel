@@ -3645,9 +3645,9 @@ PL_open_resource(Module m,
 		 const char *mode)
 { GET_LD
   IOSTREAM *s = NULL;
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
   static predicate_t MTOK_pred;
-  term_t t0 = PL_new_term_refs(4);
+  term_t t0;
 
   if ( !m )
     m = MODULE_user;
@@ -3655,6 +3655,11 @@ PL_open_resource(Module m,
   if ( !MTOK_pred )
     MTOK_pred = PL_predicate("open_resource", 4, "system");
 
+  if ( !(fid = PL_open_foreign_frame()) )
+  { errno = ENOENT;
+    return s;
+  }
+  t0 = PL_new_term_refs(4);
   PL_put_atom_chars(t0+0, name);
 
   if ( rc_class )

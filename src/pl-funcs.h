@@ -550,7 +550,7 @@ COMMON(word) 		pl_abolish1(term_t pred);
 COMMON(word) 		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 COMMON(word) 		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(word) 		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
-COMMON(void) 		reindexDefinition(Definition def);
+COMMON(int) 		reindexDefinition(Definition def);
 COMMON(int) 		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(void) 		startConsult(SourceFile f);

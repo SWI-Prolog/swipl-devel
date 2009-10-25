@@ -2331,7 +2331,7 @@ calling conventions for the various cases.
 TBD: Clear NEED_REINDEX at the end?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 reindexDefinition(Definition def)
 { ClauseRef cref;
   int do_hash = 0;
@@ -2342,7 +2342,7 @@ reindexDefinition(Definition def)
   LOCKDEF(def);
   if ( !(def->indexPattern & NEED_REINDEX) )
   { UNLOCKDEF(def);
-    return;
+    return TRUE;
   }
 
   assert(def->references == 1 || !def->hash_info);
@@ -2378,7 +2378,11 @@ reindexDefinition(Definition def)
 
   def->indexCardinality = cardinalityPattern(pattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
-    reindexClause(cref->clause, def, pattern);
+  { if ( !reindexClause(cref->clause, def, pattern) )
+    { UNLOCKDEF(def);
+      return FALSE;			/* no space; what to do? */
+    }
+  }
 
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
@@ -2387,6 +2391,8 @@ reindexDefinition(Definition def)
 
   def->indexPattern = pattern;
   UNLOCKDEF(def);
+
+  return TRUE;
 }
 
 

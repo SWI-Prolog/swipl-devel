@@ -249,16 +249,21 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { freeTableEnum(e);
+    return FALSE;
+  }
   while( (s=advanceTableEnum(e)) )
   { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
-    { ForeignRedoPtr(e);
+    { PL_close_foreign_frame(fid);
+      ForeignRedoPtr(e);
     }
 
     PL_rewind_foreign_frame(fid);
   }
 
+  PL_close_foreign_frame(fid);
   freeTableEnum(e);
   fail;
 }
