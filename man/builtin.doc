@@ -6522,6 +6522,11 @@ table below describes the \arg{Key}/\arg{Value} pairs.
 Do not perform GC below this amount (bytes).
     \termitem{factor}{}
 Run next GC if memory exceeds $max(low,checked) \times factor$.
+    \termitem{limit}{}
+Set the limit to which the stack is allowed to grow.  If the specified
+value is lower than the current usage a permission_error is raised.  If
+the limit is larger than supported, the system silently reduces the
+requested limit to the system limit.
     \termitem{spare}{}
 All stacks trigger overflow before actually reaching the limit, so the
 resulting error can be handled gracefully. The spare stack is used for

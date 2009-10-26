@@ -1426,6 +1426,27 @@ PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
     if ( k == ATOM_factor )
       return (PL_unify_integer(old, stack->factor) &&
 	      PL_get_integer_ex(value, &stack->factor));
+    if ( k == ATOM_limit )
+    { size_t newlimit;
+
+      if ( PL_unify_int64(old, stack->size_limit) &&
+	   PL_get_size_ex(value, &newlimit) )
+      { trim_stack(stack);
+
+	if ( newlimit < sizeStackP(stack) )
+	  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			  ATOM_stack, ATOM_limit, value);
+
+	newlimit += stack->spare;
+	if ( newlimit > MAXTAGGEDPTR+1 )
+	  newlimit = MAXTAGGEDPTR+1;
+
+	stack->size_limit = newlimit;
+	return TRUE;
+      }
+
+      return FALSE;
+    }
     if ( k == ATOM_spare )
     { size_t spare = stack->def_spare/sizeof(word);
 
