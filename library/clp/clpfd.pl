@@ -5419,8 +5419,10 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 
 transpose(Ms, Ts) :-
         must_be(list(list), Ms),
-        Ms = [F|_],
-        transpose(F, Ms, Ts).
+        (   Ms = [] -> Ts = []
+        ;   Ms = [F|_],
+            transpose(F, Ms, Ts)
+        ).
 
 transpose([], _, []).
 transpose([_|Rs], Ms, [Ts|Tss]) :-
