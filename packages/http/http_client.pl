@@ -258,6 +258,7 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
 
+x_headers([], _, []).
 x_headers([H|T0], Out, Options) :-
 	x_header(H, Out), !,
 	x_headers(T0, Out, Options).
