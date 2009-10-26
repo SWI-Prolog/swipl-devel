@@ -556,11 +556,9 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 colourise_term_arg(Var, TB, Pos) :-			% variable
 	var(Var), !,
 	colour_item(var, TB, Pos).
-colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
-	atom(Atom),
-	arg(1, Pos, From),
-	get(TB, character, From, 39), !,
-	colour_item(quoted_atom, TB, Pos).
+colourise_term_arg(Atom, TB, Pos) :-			% atom
+	atom(Atom), !,
+	colour_item(atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(Compound, TB, Pos) :- 		% compound
@@ -868,6 +866,7 @@ def_style(method(_),	  	style(bold := @on)).
 
 def_style(var,		  	style(colour := red4)).
 def_style(unbound,		style(bold := @on, colour := red)).
+def_style(atom,			@default).		% ensure it passed.
 def_style(quoted_atom,        	style(colour := navy_blue)).
 def_style(string,		style(colour := navy_blue)).
 def_style(nofile,		style(colour := red)).
