@@ -4525,7 +4525,14 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 
 %% all_distinct(+Ls).
 %
-% Like all_different/1, with stronger propagation.
+%  Like all_different/1, with stronger propagation. For example,
+%  all_distinct/1 can detect that not all variables can assume distinct
+%  values given the following domains:
+%
+%  ==
+%  ?- maplist(in, Vs, [1..3, 1..3, 1..2\/4, 1..2\/4, 1\/3..4]), all_distinct(Vs).
+%  false.
+%  ==
 
 all_distinct(Ls) :- regin_attach(Ls).
 
@@ -4749,6 +4756,15 @@ element_([I|Is], N0, N, V) :-
 %     domain variable. The constraint holds iff each V in Vs is equal
 %     to some key, and for each Key-Num pair in Pairs, the number of
 %     occurrences of Key in Vs is Num.
+%
+%     Example:
+%
+%     ==
+%     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
+%     Vs = [1, 1, 3] ;
+%     Vs = [1, 3, 1] ;
+%     Vs = [3, 1, 1].
+%     ==
 
 global_cardinality(Xs, Pairs) :-
         must_be(list, Xs),
@@ -5091,7 +5107,17 @@ gcc_pair(Pair) :-
 %
 %     True if the list Vs of finite domain variables induces a
 %     Hamiltonian circuit, where the k-th element of Vs denotes the
-%     successor of node k. Node indexing starts with 1.
+%     successor of node k. Node indexing starts with 1. Examples:
+%
+%     ==
+%     ?- length(Vs, _), circuit(Vs), label(Vs).
+%     Vs = [] ;
+%     Vs = [1] ;
+%     Vs = [2, 1] ;
+%     Vs = [2, 3, 1] ;
+%     Vs = [3, 1, 2] ;
+%     Vs = [2, 3, 4, 1] .
+%     ==
 
 circuit(Vs) :-
         must_be(list, Vs),
@@ -5176,9 +5202,8 @@ circuit_successors(V, Tos) :-
 %  expressions is taken, counters are updated as stated. By default,
 %  counters remain unchanged. Counters is a list of variables that
 %  must not occur anywhere outside of the constraint goal. Initials is
-%  a list of integers, of the same length as Counters. Counter
-%  arithmetic on the transitions maps the counter values in Initials
-%  to Finals.
+%  a list of the same length as Counters. Counter arithmetic on the
+%  transitions relates the counter values in Initials to Finals.
 %
 %  In the following example, a list of binary finite domain variables
 %  is constrained to contain at least two consecutive ones:
@@ -5253,7 +5278,6 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         (   var(Seqs) -> Seqs = Sigs
         ;   must_be(list, Seqs)
         ),
-        must_be(ground, Is),
         memberchk(source(Source), Ns),
         maplist(arc_normalized(Cs), As0, As),
         include(sink, Ns, Sinks0),

@@ -172,7 +172,7 @@ Reconsulting is implied automatically by the fact that a file is
 consulted which is already loaded.
 
 \begin{description}
-    \predicate{load_files}{2}{+Files, +Options}
+    \predicate{load_files}{2}{:Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
 predicates except for include/1. It currently supports a subset
 of the options of Quintus load_files/2. \arg{Files} is either
@@ -295,7 +295,7 @@ The predicate consult/1 is equivalent to load_files(Files, []), except
 for handling the special file \const{user}, which reads clauses from the
 terminal. See also the \term{stream}{Input} option of load_files/2.
 
-    \predicate{ensure_loaded}{1}{+File}
+    \predicate{ensure_loaded}{1}{:File}
 If the file is not already loaded, this is equivalent to consult/1.
 Otherwise, if the file defines a module, import all public predicates.
 Finally, if the file is already loaded, is not a module file and the
