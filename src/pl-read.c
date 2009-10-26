@@ -1234,7 +1234,7 @@ bind_variable_names(ReadData _PL_rd ARG_LD)
   term_t a    = PL_new_term_ref();
 
   for_vars(var,
-	   /*if ( var->name[0] != '_' ) Just _ isn't in this table */
+	   if ( !(var->name[0] == '_' && !var->name[1]) )
 	   { PL_chars_t txt;
 
 	     txt.text.t    = var->name;
