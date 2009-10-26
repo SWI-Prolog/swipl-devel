@@ -537,6 +537,7 @@ COMMON(bool) 		abolishProcedure(Procedure proc, Module module);
 COMMON(bool) 		retractClauseDefinition(Definition def, Clause clause ARG_LD);
 COMMON(void) 		freeClause(Clause c ARG_LD);
 COMMON(void) 		freeClauseRef(ClauseRef c ARG_LD);
+COMMON(void)		freeClauseList(ClauseRef cref);
 COMMON(ClauseRef) 	newClauseRef(Clause cl ARG_LD);
 COMMON(void) 		gcClausesDefinition(Definition def);
 COMMON(void) 		gcClausesDefinitionAndUnlock(Definition def);

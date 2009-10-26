@@ -1574,6 +1574,8 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
+#define SIG_FREECLAUSES	  (SIG_PROLOG_OFFSET+4)
+
 
 		 /*******************************
 		 *	      EVENTS		*

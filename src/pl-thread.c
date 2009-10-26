@@ -496,6 +496,12 @@ free_prolog_thread(void *data)
 #endif
   run_thread_exit_hooks(ld);
   cleanupLocalDefinitions(ld);
+  if ( ld->freed_clauses )
+  { GET_LD
+
+    if ( LD )
+      freeClauseList(ld->freed_clauses);
+  }
 
   DEBUG(2, Sdprintf("Destroying data\n"));
   ld->magic = 0;

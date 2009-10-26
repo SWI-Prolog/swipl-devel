@@ -1136,21 +1136,53 @@ cleanDefinition(Definition def, ClauseRef garbage)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Free a list of clauses as returned by gcClausesDefinition();
+Free a list of clauses as returned by gcClausesDefinition(); This may be
+called from dangerous places. We detect   this by discovering that there
+are no saved registers for the current query.   In that case we link the
+clauses to LD->freed_clauses and raise SIG_FREECLAUSES.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+void
 freeClauseList(ClauseRef cref)
 { GET_LD
   ClauseRef next;
+#if O_DEBUGGER
+  int hooked;
+  int savely_hooked;
 
+  if ( PROCEDURE_event_hook1 && isDefinedProcedure(PROCEDURE_event_hook1) )
+  { hooked = TRUE;
+    savely_hooked = (LD->query->registers.fr != NULL);
+  } else
+  { hooked = FALSE;
+    savely_hooked = FALSE;
+  }
+
+  if ( hooked && !savely_hooked )
+  { if ( !LD->freed_clauses )
+    { LD->freed_clauses = cref;
+      PL_raise(SIG_FREECLAUSES);
+      return;
+    } else
+    { ClauseRef ce;
+
+      for(ce=cref; ce; ce = ce->next)
+      { if ( !ce->next )
+	{ ce->next = LD->freed_clauses;
+	  LD->freed_clauses = cref;
+	  return;
+	}
+      }
+    }
+  }
+#endif
 
   for( ; cref; cref = next)
   { Clause cl = cref->clause;
     next = cref->next;
 
 #if O_DEBUGGER
-    if ( PROCEDURE_event_hook1 &&
+    if ( savely_hooked &&
 	 cl->procedure->definition != PROCEDURE_event_hook1->definition )
       callEventHook(PLEV_ERASED, cl);
 #endif
@@ -1194,7 +1226,8 @@ destroyDefinition(Definition def)
 
   if ( def->hash_info )
     unallocClauseIndexTable(def->hash_info);
-  freeClauseList(def->definition.clauses);
+  if ( def->definition.clauses )
+    freeClauseList(def->definition.clauses);
 
   freeHeap(def, sizeof(*def));
 }

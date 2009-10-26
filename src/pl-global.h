@@ -340,6 +340,7 @@ struct PL_local_data
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
+  ClauseRef	freed_clauses;		/* List of pending freeable clauses */
 
   struct
   { int		active;			/* doing pipe I/O */

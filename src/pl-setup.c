@@ -598,6 +598,18 @@ gc_handler(int sig)
 
 
 static void
+free_clauses_handler(int sig)
+{ GET_LD
+  ClauseRef cref;
+
+  if ( (cref=LD->freed_clauses) )
+  { LD->freed_clauses = NULL;
+    freeClauseList(cref);
+  }
+}
+
+
+static void
 initSignals(void)
 { struct signame *sn = signames;
 
@@ -614,6 +626,7 @@ initSignals(void)
 
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
+  PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
 
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
