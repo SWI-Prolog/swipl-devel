@@ -89,6 +89,10 @@ manual_directory(packages, swi('doc/packages')).
 index_manual :-
 	man_index(_,_,_,_,_), !.
 index_manual :-
+	with_mutex(pldoc_man,
+		   locked_index_manual).
+
+locked_index_manual :-
 	(   manual_directory(Class, Dir),
 	    index_man_directory(Dir,
 				[ class(Class),
