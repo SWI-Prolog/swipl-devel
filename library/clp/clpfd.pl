@@ -3082,7 +3082,7 @@ tuples_domain([Tuple|Tuples], Relation) :-
 
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
-        take_firsts(Relation0, Firsts, Relation1),
+        lists_firsts_rests(Relation0, Firsts, Relation1),
         ( var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
@@ -3093,10 +3093,6 @@ tuple_domain([T|Ts], Relation0) :-
         ;   true
         ),
         tuple_domain(Ts, Relation1).
-
-take_firsts([], [], []).
-take_firsts([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
-        take_firsts(Rest, Fs, Oss).
 
 tuple_freeze(Tuple, Relation) :-
         put_attr(R, clpfd_relation, Relation),
