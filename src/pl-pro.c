@@ -223,102 +223,39 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Abort and toplevel. At the  moment,   prologToplevel()  sets a longjmp()
-context and abortProlog() jumps to this   context and resets the SWI-Prolog
-engine.
-
-Using the multi-threaded version, this is   not  acceptable. Each thread
-needs such a context, but worse  is   that  we cannot properly reset the
-reference count and ensure locks are all in a sane state.
-
-A cleaner solution is to  map  an   abort  onto  a Prolog exception. The
-exception-handling   code   should    ensure     proper    handling   of
-reference-counts and locks anyhow. Small disadvantage   is  that the old
-abort()   mechanism   was   capable   of     recovering   from   serious
-data-inconsistencies, while the throw-based requires   the Prolog engine
-to be in a sane state.  Anyhow,   in  the multi-threaded version we have
-little choice.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_PLMT
-#define O_ABORT_WITH_THROW 1
-#endif
-
-static int
-pl_throw_abort(abort_type type)
+int
+abortProlog(abort_type type)
 { pl_notrace();
   Sreset();
 
-  if ( LD->critical > 0 )		/* abort in critical region: delay */
-  { LD->aborted = type;
-    succeed;
+  if ( LD->critical > 0 && type != ABORT_RAISE )
+  { LD->aborted = type;			/* longjmp from critical region */
+    succeed;				/* we must delay */
   } else
-  { fid_t fid = PL_open_foreign_frame();
-    term_t ex = PL_new_term_ref();
+  { fid_t fid;
+    term_t ex;
     int rc;
 
-    clearSegStack(&LD->cycle.stack);	/* can do no harm */
+    LD->exception.processing = TRUE;	/* allow using spare stack */
 
-    PL_put_atom(ex, ATOM_aborted);
-    if ( type == ABORT_RAISE )
-      rc = PL_raise_exception(ex);
-    else
-      rc = PL_throw(ex);		/* use longjmp() to ensure */
+    if ( (fid = PL_open_foreign_frame()) &&
+	 (ex = PL_new_term_ref()) )
+    { clearSegStack(&LD->cycle.stack);	/* can do no harm */
 
-    PL_close_foreign_frame(fid);
+      PL_put_atom(ex, ATOM_aborted);
+      if ( type == ABORT_RAISE )
+	rc = PL_raise_exception(ex);
+      else
+	rc = PL_throw(ex);		/* use longjmp() to ensure */
+
+      PL_close_foreign_frame(fid);
+    } else
+      rc = FALSE;
 
     return rc;
   }
 }
 
-
-#ifdef O_ABORT_WITH_THROW
-
-int
-abortProlog(abort_type type)
-{ return pl_throw_abort(type);
-}
-
-#else /*O_ABORT_WITH_THROW*/
-
-static jmp_buf abort_context;		/* jmp buffer for abort() */
-static int can_abort;			/* embeded code can't abort */
-
-int
-abortProlog(abort_type type)
-{ if ( !can_abort ||
-       (truePrologFlag(PLFLAG_EX_ABORT) && type == ABORT_NORMAL) )
-    return pl_throw_abort(type);
-
-  if ( LD->critical > 0 )		/* abort in critical region: delay */
-  { pl_notrace();
-    LD->aborted = type;
-    succeed;
-  }
-
-  if ( !truePrologFlag(PLFLAG_READLINE) )
-    PopTty(Sinput, &ttytab);
-  LD->outofstack = NULL;
-  clearSegStack(&LD->cycle.stack);
-  closeFiles(FALSE);
-  resetReferences();
-#ifdef O_PROFILE
-  resetProfiler();
-#endif
-  resetStacks();
-  resetTracer();
-  resetSignals();
-  resetForeign();
-  resetAtoms();
-  updateAlerted(LD);
-
-  longjmp(abort_context, 1);
-  /*NOTREACHED*/
-  fail;
-}
-
-#endif /*O_ABORT_WITH_THROW*/
 
 static
 PRED_IMPL("abort", 0, abort, 0)
@@ -350,10 +287,6 @@ resetProlog()
   debugmode(DBG_OFF, NULL);
   debugstatus.suspendTrace = 0;
 
-#ifndef O_ABORT_WITH_THROW
-  can_abort = TRUE;
-#endif
-
   updateAlerted(LD);
 }
 
@@ -364,16 +297,7 @@ prologToplevel(volatile atom_t goal)
   volatile int aborted = FALSE;
   int loop = TRUE;
 
-#ifndef O_ABORT_WITH_THROW
-  if ( setjmp(abort_context) != 0 )
-  { if ( LD->current_signal )
-      unblockSignal(LD->current_signal);
-
-    aborted = TRUE;
-  } else
-#endif
-  { debugstatus.debugging = DBG_OFF;
-  }
+  debugstatus.debugging = DBG_OFF;
 
   while(loop)
   { fid_t fid;
@@ -422,9 +346,6 @@ prologToplevel(volatile atom_t goal)
     if ( !except )
       break;
   }
-#ifndef O_ABORT_WITH_THROW
-  can_abort = FALSE;
-#endif
 
   return rval;
 }
