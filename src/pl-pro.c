@@ -161,9 +161,6 @@ PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   return rval;
 }
 
-#undef LD
-#define LD GLOBAL_LD
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
@@ -172,7 +169,8 @@ like for the Prolog predicate call/1.
 
 int
 callProlog(Module module, term_t goal, int flags, term_t *ex)
-{ term_t g;
+{ GET_LD
+  term_t g;
   functor_t fd;
   Procedure proc;
 
@@ -225,7 +223,9 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
 int
 abortProlog(abort_type type)
-{ pl_notrace();
+{ GET_LD
+
+  pl_notrace();
   Sreset();
 
   if ( LD->critical > 0 && type != ABORT_RAISE )
@@ -271,7 +271,8 @@ machine interpreter with the toplevel goal.
 
 static void
 resetProlog()
-{
+{ GET_LD
+
   if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
     emptyStacks();
 
@@ -293,7 +294,8 @@ resetProlog()
 
 bool
 prologToplevel(volatile atom_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
   volatile int aborted = FALSE;
   int loop = TRUE;
 
@@ -406,7 +408,7 @@ static intptr_t check_marked;
 #define unmark(p)	(*(p) &= ~MARK_MASK, check_marked--)
 
 static void
-unmark_data(Word p)
+unmark_data(Word p ARG_LD)
 {
 last_arg:
   deRef(p);
@@ -423,7 +425,7 @@ last_arg:
     f = valueTerm(*p);
     arity = arityFunctor(f->definition);
     for(n=0; n<arity-1; n++)
-      unmark_data(&f->arguments[n]);
+      unmark_data(&f->arguments[n] PASS_LD);
     p = &f->arguments[n];
     goto last_arg;
   }
@@ -442,7 +444,7 @@ is_ht_capacity(int arity)
 
 
 static word
-check_data(Word p, int *recursive)
+check_data(Word p, int *recursive ARG_LD)
 { int arity; int n;
   Word p2;
   word key = 0L;
@@ -597,7 +599,7 @@ last_arg:
     else if ( arity > 256 && !is_ht_capacity(arity) )
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
-      key += check_data(&f->arguments[n], recursive);
+      key += check_data(&f->arguments[n], recursive PASS_LD);
 
     p = &f->arguments[n];
     goto last_arg;
@@ -607,11 +609,12 @@ last_arg:
 
 word
 checkData(Word p)
-{ int recursive = 0;
+{ GET_LD
+  int recursive = 0;
   word key;
 
-  key = check_data(p, &recursive);
-  unmark_data(p);
+  key = check_data(p, &recursive PASS_LD);
+  unmark_data(p PASS_LD);
 
   return key;
 }
