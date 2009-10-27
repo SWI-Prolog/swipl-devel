@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -48,10 +48,27 @@
 
 :- multifile
 	http_convert_data/4,		% http_read_data plugin-hook
-	post_data_hook/3.		% http_post_data/3 hook
+	post_data_hook/3,		% http_post_data/3 hook
+	open_connection/4,		% do_connect/5 hook
+	close_connection/4.
+
+%%	open_connection(+Scheme, +Address, -In, -Out) is semidet.
+%
+%	Hook to open a connection for the  given URL-scheme to the given
+%	address. If successful, In and  Out   must  be  two valid Prolog
+%	streams that connect to the server.
+%
+%	@param Scheme is the URL schema (=http= or =https=)
+%	@param Address is a term Host:Port as used by tcp_connect/2.
+
+%%	close_connection(+Scheme, +Address, +In, +Out) is semidet.
+%
+%	Hook to close a specific connection.   If the hook succeeds, the
+%	HTTP client assumes that In and Out are no longer to be used. If
+%	the hook fails, the client calls close/2 on both streams.
 
 :- dynamic
-	connection/4.			% Host:Port, ThreadId, In, Out
+	connection/5.			% Host:Port, Protocol, Thread, In, Out
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
@@ -63,51 +80,58 @@ user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 connect(Parts, Read, Write, _) :-
 	memberchk(socket(Read, Write), Parts), !.
 connect(Parts, Read, Write, Options) :-
-	address(Parts, Address, Options),
+	address(Parts, Address, Protocol, Options),
 	with_mutex(http_client_connect,
-		   connect2(Address, Read, Write, Options)).
+		   connect2(Address, Protocol, Read, Write, Options)).
 
-connect2(Address, In, Out, _) :-
+connect2(Address, Protocol, In, Out, _) :-
 	thread_self(Self),
-	connection(Address, Self, In, Out), !.
-connect2(Address, In, Out, Options) :-
+	connection(Address, Protocol, Self, In, Out), !.
+connect2(Address, Protocol, In, Out, Options) :-
 	thread_self(Self),
-	do_connect(Address, In, Out, Options),
-	assert(connection(Address, Self, In, Out)).
+	do_connect(Address, Protocol, In, Out, Options),
+	assert(connection(Address, Protocol, Self, In, Out)).
 
-do_connect(Address, In, Out, Options) :-
+do_connect(Address, Protocol, In, Out, Options) :-
 	debug(http(client), 'http_client: Connecting to ~p ...', [Address]),
-	tcp_socket(Socket),
-	catch(tcp_connect(Socket, Address),
-	      E,
-	      (	  tcp_close_socket(Socket),
-		  throw(E)
-	      )),
-	tcp_open_socket(Socket, In, Out),
+	(   open_connection(Protocol, Address, In, Out)
+	->  true
+	;   tcp_socket(Socket),
+	    catch(tcp_connect(Socket, Address),
+		  E,
+		  (   tcp_close_socket(Socket),
+		      throw(E)
+		  )),
+	    tcp_open_socket(Socket, In, Out)
+	),
 	debug(http(client), '\tok ~p --> ~p', [In, Out]),
 	(   memberchk(timeout(Timeout), Options)
         ->  set_stream(In, timeout(Timeout))
         ;   true
 	), !.
-do_connect(Address, _, _, _) :-		% can this happen!?
+do_connect(Address, _, _, _, _) :-		% can this happen!?
 	throw(error(failed(connect, Address), _)).
 
 
 disconnect(Parts) :-
-	address(Parts, Address, []), !,
-	with_mutex(http_client_connect, disconnect2(Address)).
-disconnect(Address) :-
-	with_mutex(http_client_connect, disconnect2(Address)).
+	protocol(Parts, Protocol),
+	address(Parts, Protocol, Address, []), !,
+	disconnect(Address, Protocol).
 
+disconnect(Address, Protocol) :-
+	with_mutex(http_client_connect,
+		   disconnect_locked(Address, Protocol)).
 
-disconnect2(Address) :-
+disconnect_locked(Address, Protocol) :-
 	thread_self(Me),
 	debug(connection, '~w: Closing connection to ~w~n', [Me, Address]),
 	thread_self(Self),
-	retract(connection(Address, Self, In, Out)), !,
-	close_socket(In, Out).
+	retract(connection(Address, Protocol, Self, In, Out)), !,
+	disconnect(Protocol, Address, In, Out).
 
-close_socket(In, Out) :-
+disconnect(Protocol, Address, In, Out) :-
+	close_connection(Protocol, Address, In, Out), !.
+disconnect(_, _, In, Out) :-
 	close(Out, [force(true)]),
 	close(In,  [force(true)]).
 
@@ -118,22 +142,31 @@ close_socket(In, Out) :-
 
 http_disconnect(all) :-
 	(   thread_self(Self),
-	    connection(Address, Self, _, _),
-	    disconnect(Address),
+	    connection(Address, Protocol, Self, _, _),
+	    disconnect(Address, Protocol),
 	    fail
 	;   true
 	).
 
-address(_Parts, Host:Port, Options) :-
-	memberchk(proxy(Host, Port), Options), !.
-address(Parts, Host:Port, _Options) :-
+address(_Parts, Host:Port, Protocol, Options) :-
+	(   memberchk(proxy(Host, Port, Protocol), Options)
+	->  true
+	;   memberchk(proxy(Host, Port), Options),
+	    Protocol = http
+	).
+address(Parts, Host:Port, Protocol, _Options) :-
 	memberchk(host(Host), Parts),
-	port(Parts, Port).
+	port(Parts, Port),
+	protocol(Parts, Protocol).
 
 port(Parts, Port) :-
 	memberchk(port(Port), Parts), !.
 port(Parts, 80) :-
 	memberchk(protocol(http), Parts).
+
+protocol(Parts, Protocol) :-
+	memberchk(protocol(Protocol), Parts), !.
+protocol(_, http).
 
 		 /*******************************
 		 *	        GET		*
@@ -158,10 +191,10 @@ http_get(Parts, Data, Options) :-
 		  fail
 	      )), !.
 http_get(Parts, Data, Options) :-
-	address(Parts, Address, Options),
-	do_connect(Address, Read, Write, Options),
+	address(Parts, Address, Protocol, Options),
+	do_connect(Address, Protocol, Read, Write, Options),
 	call_cleanup(http_do_get([socket(Read, Write)|Parts], Data, Options),
-		     close_socket(Read, Write)).
+		     disconnect(Protocol, Address, Read, Write)).
 
 http_do_get(Parts, Data, Options) :-
 	connect(Parts, Read, Write, Options),
@@ -206,8 +239,8 @@ http_read_reply(In, Data, Options) :-
 	    downcase_atom(Connection, 'keep-alive')
 	->  true
 	;   thread_self(Self),
-	    connection(Address, Self, In, _Out)
-	->  disconnect(Address)
+	    connection(Address, Protocol, Self, In, _Out)
+	->  disconnect(Address, Protocol)
 	;   true
 	).
 http_read_reply(In, _Data, _Options) :-
@@ -385,11 +418,11 @@ http_post(Parts, In, Out, Options) :-
 		  fail
 	      )), !.
 http_post(Parts, In, Out, Options) :-
-	address(Parts, Address, Options),
-	do_connect(Address, Read, Write, Options),
+	address(Parts, Address, Protocol, Options),
+	do_connect(Address, Protocol, Read, Write, Options),
 	call_cleanup(http_do_post([socket(Read, Write)|Parts],
 				  In, Out, Options),
-		     close_socket(Read, Write)).
+		     disconnect(Protocol, Address, Read, Write)).
 
 http_do_post(Parts, In, Out, Options) :-
 	connect(Parts, Read, Write, Options),
