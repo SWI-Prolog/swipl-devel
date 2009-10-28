@@ -3692,7 +3692,8 @@ VMI(B_THROW, 0, 0, ())
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
 b_throw:
-  aTop = aFloor;
+  QF  = QueryFromQid(qid);
+  aTop = QF->aSave;
   assert(exception_term);
 
   SECURE(checkData(valTermRef(exception_term)));

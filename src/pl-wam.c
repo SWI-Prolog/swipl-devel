@@ -1825,7 +1825,6 @@ PL_next_solution(qid_t qid)
   Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
-  Word *     aFloor = aTop;		/* don't overwrite old arguments */
   exception_frame throw_env;		/* PL_thow() environment */
 #define	     CL (FR->clause)		/* clause of current frame */
 
@@ -2068,7 +2067,8 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 
   if ( FR == ch->frame )
   { Undo(ch->mark);
-    aTop = aFloor;
+    QF = QueryFromQid(qid);
+    aTop = QF->aSave;
 
     if ( ch->type == CHP_JUMP )
     { DiscardMark(ch->mark);
@@ -2189,7 +2189,8 @@ next_choice:
 
   environment_frame = FR = ch->frame;
   Undo(ch->mark);
-  aTop = aFloor;			/* reset to start, for interrupts */
+  QF = QueryFromQid(qid);
+  aTop = QF->aSave;
   DEF  = FR->predicate;
 #ifdef O_DEBUG_BACKTRACK
   last_choice = ch->type;
