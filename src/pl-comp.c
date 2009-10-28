@@ -2995,6 +2995,7 @@ decompile(Clause clause, term_t term, term_t bindings)
     } else
     { PL_discard_foreign_frame(fid);
       di->pc = PCsave;
+      aTop = LD->query->aSave;		/* reset to base */
       if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return FALSE;
     }
@@ -3206,7 +3207,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	  if ( (rc=put_functor(&w, fdef PASS_LD)) != TRUE )
 	    return rc;
 	  *ARGP++ = w;
-	  *aTop++ = ARGP;
+	  pushArgumentStack(ARGP);
 	  ARGP = argTermP(w, 0);
 	}
         nested++;
