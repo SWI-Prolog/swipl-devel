@@ -37,6 +37,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(library(prolog_source)).
 :- use_module(doc_process).
 
 /** <module> Source colouring support
