@@ -1877,6 +1877,11 @@ install()
 relocated. However, we must also ensure that the term in which it points
 is not GC-ed. This applies  for   head-arguments  as well as B_UNIFY_VAR
 instructions. See get_vmi_state().
+
+(***) When debugging, we must  avoid   GC-ing  local variables of frames
+that  are  watched  by  the  debugger.    FR_WATCHED  is  also  used  by
+setup_call_cleanup/3. We avoid full marking here. Maybe we should use an
+alternate flag for these two cases?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -1927,6 +1932,19 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       if ( argp0 && !is_marked(argp0) )		/* see (**) */
       { assert(onStackArea(local, argp0));
 	mark_local_variable(argp0 PASS_LD);
+      }
+
+      if ( true(fr, FR_WATCHED) &&		/* (***) */
+	   fr->predicate != PROCEDURE_setup_call_catcher_cleanup4->definition )
+      { int slots;
+	Word sp;
+
+	slots  = slotsInFrame(fr, PC);
+	sp = argFrameP(fr, 0);
+	for( ; slots-- > 0; sp++ )
+	{ if ( !is_marked(sp) )
+	    mark_local_variable(sp PASS_LD);
+	}
       }
     }
 

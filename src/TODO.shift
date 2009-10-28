@@ -8,7 +8,6 @@
 	- Cleanup unneeded trail entries when discarding a choicepoint
 		- Wins for foreign-frames
 		- Also for !
-	- Graphical tracer often GCs variable bindings  :-(
  	- pl-gc.c calls save_backtrace() if -g is used.  Must be removed
 	if all is stable.
 	- Use QF for SAVE_REGISTERS().  I guess we only have to reload
