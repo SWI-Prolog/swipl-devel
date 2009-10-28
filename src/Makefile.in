@@ -300,7 +300,6 @@ pl-rec.o:	pl-termwalk.c
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-pl-gc.o:	pl-lifegc.c
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi
 		./mkvmi "$(srcdir)"

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemake@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -188,9 +188,6 @@ forwards void		mark_variable(Word ARG_LD);
 static void		mark_local_variable(Word p ARG_LD);
 forwards void		sweep_foreign(void);
 static void		sweep_global_mark(Word *m ARG_LD);
-#ifndef LIFE_GC
-forwards QueryFrame	mark_environments(LocalFrame, Code PC);
-#endif
 forwards void		update_relocation_chain(Word, Word ARG_LD);
 forwards void		into_relocation_chain(Word, int stg ARG_LD);
 forwards void		alien_into_relocation_chain(void *addr,
@@ -1168,61 +1165,6 @@ check_call_residue(LocalFrame fr ARG_LD)
 }
 
 
-#ifndef LIFE_GC
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Mark environments and all data that can   be  reached from them. Returns
-the QueryFrame that started this environment,  which provides use access
-to the parent `foreign' environment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static QueryFrame
-mark_environments(LocalFrame fr, Code PC)
-{ GET_LD
-  if ( !fr )
-    return NULL;
-
-  for( ; ; )
-  { int slots;
-    Word sp;
-#if O_SECURE
-    int oslots;
-#endif
-
-    if ( true(fr, FR_MARKED) )
-      return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
-
-    DEBUG(3, Sdprintf("Marking [%ld] %s\n",
-		      levelFrame(fr), predicateName(fr->predicate)));
-
-    clearUninitialisedVarsFrame(fr, PC);
-    check_call_residue(fr PASS_LD);
-
-    slots  = slotsInFrame(fr, PC);
-#if O_SECURE
-    oslots = slots;
-#endif
-    sp = argFrameP(fr, 0);
-    for( ; slots-- > 0; sp++ )
-    { if ( !is_marked(sp) )
-      { if ( isGlobalRef(*sp) )
-	  mark_variable(sp PASS_LD);
-	else
-	  ldomark(sp);
-      }
-    }
-
-    PC = fr->programPointer;
-    if ( fr->parent != NULL )
-      fr = fr->parent;
-    else
-      return queryOfFrame(fr);
-  }
-}
-
-#endif /*not LIFE_GC*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If multiple TrailAssignment() calls happen on  the same address within a
 choicepoint we only need to keep the  first. Therefore we scan the trail
@@ -1419,89 +1361,652 @@ mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
 }
 
 
-#ifndef LIFE_GC
-static GCTrailEntry
-mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
-{ GET_LD
+#define MARK_ALT_CLAUSES 1		/* also walk and mark alternate clauses */
 
-  for( ; ch; ch = ch->parent )
-  { LocalFrame fr = ch->frame;
-    Word top;
+		 /*******************************
+		 *	     MARK STACKS	*
+		 *******************************/
 
-    while((char*)*flictx > (char*)ch)
-    { FliFrame fr = *flictx;
+typedef struct mark_state
+{ vm_state     *vm_state;		/* Virtual machine locations */
+  FliFrame	flictx;			/* foreign context for early reset */
+  GCTrailEntry	reset_entry;		/* Walk trail stack for early reset */
+} mark_state;
 
-      te = mark_foreign_frame(fr, te PASS_LD);
-      *flictx = fr->parent;
-    }
 
-    if ( ch->type == CHP_CLAUSE )
-      top = argFrameP(fr, fr->predicate->functor->arity);
-    else
-    { assert(ch->type == CHP_TOP || (void *)ch > (void *)fr);
-      top = (Word)ch;
-    }
+typedef struct walk_state
+{ LocalFrame frame;			/* processing node */
+  int flags;				/* general flags */
+  Code c0;				/* start of code list */
+  Word envtop;				/* just above environment */
+  int unmarked;				/* left when marking alt clauses */
+#ifdef MARK_ALT_CLAUSES
+  Word ARGP;				/* head unify instructions */
+  int  adepth;				/* ARGP nesting */
+#endif
+} walk_state;
 
-    te = early_reset_vars(&ch->mark, top, te PASS_LD);
+#define GCM_CLEAR	0x1		/* Clear uninitialised data */
+#define GCM_ALTCLAUSE	0x2		/* Marking alternative clauses */
 
-    needsRelocation(&ch->mark.trailtop);
-    check_relocation(&ch->mark.trailtop);
-    alien_into_relocation_chain(&ch->mark.trailtop,
-				STG_TRAIL, STG_LOCAL PASS_LD);
-    SECURE(trailtops_marked--);
-    mark_environments(fr, ch->type == CHP_JUMP ? ch->value.PC : NULL);
+#define NO_ADEPTH 1234567
+
+static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
+static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD);
+
+
+		 /*******************************
+		 *	     STATISTICS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: Compile with  -DGC_COUNTING  to   get  gc_statistics/1  as defined
+below. This predicate is NOT THREAD-SAFE!!!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef GC_COUNTING
+typedef struct life_count
+{ int64_t	marked_envs;		/* environments marked */
+  int64_t	marked_cont;		/* continuations followed */
+  int64_t	c_scanned;		/* Scanned clauses */
+  int64_t	vm_scanned;		/* #VM codes scanned */
+} life_count;
+
+static life_count counts;
+#define COUNT(f) counts.f++
+
+static
+PRED_IMPL("gc_statistics", 1, gc_statistics, 0)
+{ int rc = PL_unify_term(A1,
+			 PL_FUNCTOR_CHARS, "gc", 4,
+			   PL_INT64, counts.marked_envs,
+			   PL_INT64, counts.marked_cont,
+			   PL_INT64, counts.c_scanned,
+			   PL_INT64, counts.vm_scanned);
+
+  memset(&counts, 0, sizeof(counts));
+
+  return rc;
+}
+
+#else
+#define COUNT(f) ((void)0)
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mark_local_variable()
+
+As long as we are a reference link along the local stack, keep marking.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+mark_local_variable(Word p ARG_LD)
+{ while ( tagex(*p) == (TAG_REFERENCE|STG_LOCAL) )
+  { Word p2;
+
+    p2 = unRef(*p);
+    ldomark(p);
+    if ( is_marked(p2) )
+      return;
+    p = p2;
   }
 
-  return te;
+  if ( isGlobalRef(*p) )
+    mark_variable(p PASS_LD);
+  else
+    ldomark(p);
 }
-#endif
+
+
+static void
+mark_arguments(LocalFrame fr ARG_LD)
+{ Word sp = argFrameP(fr, 0);
+  int slots = fr->predicate->functor->arity;
+
+  for( ; slots-- > 0; sp++ )
+  { if ( !is_marked(sp) )
+      mark_local_variable(sp PASS_LD);
+  }
+}
+
+
+static void
+mark_new_arguments(vm_state *state ARG_LD)
+{ Word sp = argFrameP(state->lSave, 0);
+  int slots = state->new_args;
+
+  for( ; slots-- > 0; sp++ )
+  { SECURE(assert(*sp != FLI_MAGIC));
+    if ( !is_marked(sp) )
+      mark_local_variable(sp PASS_LD);
+  }
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-mark_stacks() marks all  data  that  is   reachable  from  any  frame or
-choicepoint. In addition, it  will  do   `early  reset'  on variables of
-choicepoints that will be  reset  anyway   if  backtracking  reaches the
-choicepoint. Also, it  will  insert  all   trailtops  of  marks  in  the
-relocation chains. A small problem is  the   top-goal  of  a query, This
-frame may not be a  choicepoint,  but   its  mark  is  needed anyhow for
-PL_close_query(), so it has to be relocated.  `te' in the function below
-has to be updated as none of these variables should be reset
+walk_and_mark(walk_state *state, Code PC, code end, Code until)
+    Walk along the byte code starting at PC and continuing until either
+    it finds instruction `end' or the `until' address in code.  Returns
+    the next instruction to process,
 
-We must first mark all environments,   including  those in outer queries
-(Prolog -> C -> Prolog calls) as mark_choicepoints() can otherwise reset
-variables in outer queries.
+See decompileBody for details on handling the branch instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef LIFE_GC
-#include "pl-lifegc.c"
+static inline void
+mark_frame_var(walk_state *state, code v ARG_LD)
+{ Word sp = varFrameP(state->frame, v);
+
+  if ( sp < state->envtop && !is_marked(sp) )
+  { mark_local_variable(sp PASS_LD);
+    state->unmarked--;
+  }
+}
+
+
+static inline void
+clear_frame_var(walk_state *state, Code PC ARG_LD)
+{ if ( (state->flags & GCM_CLEAR) )
+  { LocalFrame fr = state->frame;
+    DEBUG(3, Sdprintf("Clear var %d at %d\n",
+		      PC[0]-VAROFFSET(0), (PC-state->c0)-1));
+#ifdef O_SECURE
+    { Word vp = varFrameP(fr, PC[0]);
+
+      if ( !isVar(*vp & ~MARK_MASK) )
+      { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
+		 levelFrame(fr), predicateName(fr->predicate),
+		 PC[0]-VAROFFSET(0),
+		 (PC-state->c0)-1);
+      }
+    }
 #else
-static void
-mark_stacks(vm_state *state)
-{ GET_LD
-  QueryFrame qf;
-  LocalFrame fr = state->frame;
-  Code PC = state->pc_start_vmi;
-  GCTrailEntry te = (GCTrailEntry)tTop - 1;
-  FliFrame flictx = fli_context;
+    setVar(varFrame(fr, PC[0]));
+#endif
+  }
+}
 
-  trailcells_deleted = 0;
 
-  for( ; fr; fr = qf->saved_environment, PC=NULL )
-  { qf = mark_environments(fr, PC);
+static inline void
+mark_argp(walk_state *state ARG_LD)
+{
+#ifdef MARK_ALT_CLAUSES
+  if ( state->adepth == 0 )
+  { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
+    { mark_local_variable(state->ARGP PASS_LD);
+      state->unmarked--;
+    }
+    state->ARGP++;
+  }
+#endif
+}
 
-    assert(qf->magic == QID_MAGIC);
+
+static Code
+walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
+{ code op;
+
+  COUNT(marked_cont);
+
+  for( ; ; PC += (codeTable[op].arguments))
+  { op = decode(*PC++);
+
+  again:
+    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
+    COUNT(vm_scanned);
+    if ( op == end )
+    { PC--;
+      return PC;
+    }
+
+    switch( op )
+    {
+#if O_DEBUGGER
+      case D_BREAK:
+	op = decode(replacedBreak(PC-1));
+        goto again;
+#endif
+					/* dynamically sized objects */
+      case H_STRING:			/* only skip the size of the */
+      case H_MPZ:
+	mark_argp(state PASS_LD);
+	/*FALLTHROUGH*/
+      case B_STRING:			/* string + header */
+      case A_MPZ:
+      case B_MPZ:
+      { word m = *PC;
+	PC += wsizeofInd(m)+1;
+	assert(codeTable[op].arguments == VM_DYNARGC);
+	PC -= VM_DYNARGC;		/* compensate for for-step */
+	break;
+      }
+
+      case I_EXITQUERY:
+      case I_EXITFACT:
+      case I_FEXITDET:
+      case I_FEXITNDET:
+      case S_TRUSTME:			/* Consider supervisor handling! */
+      case S_LIST:
+	return PC-1;
+      case S_NEXTCLAUSE:
+	mark_alt_clauses(state->frame, state->frame->clause->next PASS_LD);
+        return PC-1;
+      case I_FREDO:
+	mark_arguments(state->frame PASS_LD);
+        return PC-1;
+
+      case C_JMP:			/* unconditional jump */
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+	PC += (int)PC[0]+1;
+        op = decode(*PC++);
+        goto again;
+					/* Control-structures */
+      case C_OR:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+      { Code alt = PC+PC[0]+1;
+	DEBUG(3, Sdprintf("C_OR at %d\n", PC-state->c0-1));
+	PC++;				/* skip <n> */
+	walk_and_mark(state, PC, C_JMP PASS_LD);
+	PC = alt;
+	op = decode(*PC++);
+        goto again;
+      }
+      case C_NOT:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+      { Code alt = PC+PC[1]+2;
+	DEBUG(3, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	PC += 2;			/* skip the two arguments */
+	walk_and_mark(state, PC, C_CUT PASS_LD);
+	PC = alt;
+	op = decode(*PC++);
+        goto again;
+      }
+      case C_SOFTIF:
+      case C_IFTHENELSE:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+      { Code alt = PC+PC[1]+2;
+	DEBUG(3, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
+	PC += 2;			/* skip the 'MARK' variable and jmp */
+	walk_and_mark(state, PC, C_JMP PASS_LD);
+	PC = alt;
+	op = decode(*PC++);
+        goto again;
+      }
+
+					/* variable access */
+
+      case B_UNIFY_VAR:			/* Var = Term */
+	mark_frame_var(state, PC[0] PASS_LD);
+        state->adepth = NO_ADEPTH;
+	break;
+      case B_UNIFY_FIRSTVAR:
+	state->adepth = NO_ADEPTH;	/* never need to mark over ARGP */
+        /*FALLTHROUGH*/
+      case B_FIRSTVAR:
+      case B_ARGFIRSTVAR:
+      case A_FIRSTVAR_IS:
+      case B_UNIFY_FC:
+      case C_VAR:
+	clear_frame_var(state, PC PASS_LD);
+	break;
+      case H_LIST_FF:
+	mark_argp(state PASS_LD);
+        /*FALLTHROUGH*/
+      case B_UNIFY_FF:
+	clear_frame_var(state, PC+0 PASS_LD);
+	clear_frame_var(state, PC+1 PASS_LD);
+	break;
+      case A_ADD_FC:
+      case B_UNIFY_FV:
+	clear_frame_var(state, PC+0 PASS_LD);
+	mark_frame_var(state, PC[1] PASS_LD);
+	break;
+      case B_UNIFY_VV:
+      case B_EQ_VV:
+	mark_frame_var(state, PC[0] PASS_LD);
+        mark_frame_var(state, PC[1] PASS_LD);
+	break;
+
+      { size_t index;			/* mark variable access */
+
+	case B_UNIFY_VC:
+	case B_EQ_VC:
+	case B_ARGVAR:
+	case A_VAR:
+	case B_VAR:	    index = *PC;		goto var_common;
+	case A_VAR0:
+	case B_VAR0:	    index = VAROFFSET(0);	goto var_common;
+	case A_VAR1:
+	case B_VAR1:	    index = VAROFFSET(1);	goto var_common;
+	case A_VAR2:
+	case B_VAR2:	    index = VAROFFSET(2);	var_common:
+	  mark_frame_var(state, index PASS_LD);
+	  break;
+      }
+	case I_CALLCLEANUP:
+	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* main goal */
+	  break;
+	case I_EXITCLEANUP:
+	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* The ball */
+	  mark_frame_var(state, VAROFFSET(3) PASS_LD); /* cleanup goal */
+	  break;
+	case I_EXITCATCH:
+	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
+	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
+	  break;
+#ifdef MARK_ALT_CLAUSES
+	case H_FIRSTVAR:
+	  if ( (state->flags & GCM_CLEAR) )
+	  { clear_frame_var(state, PC PASS_LD);
+	    break;
+	  }
+	  mark_argp(state PASS_LD);
+	  break;
+	case H_VAR:
+	  mark_frame_var(state, PC[0] PASS_LD);
+	  /*FALLTHROUGH*/
+	case H_CONST:
+	case H_NIL:
+	case H_INTEGER:
+	case H_INT64:
+	case H_FLOAT:
+	  mark_argp(state PASS_LD);
+	  break;
+	case H_FUNCTOR:
+	case H_LIST:
+	  mark_argp(state PASS_LD);
+	  /*FALLTHROUGH*/
+	case B_FUNCTOR:
+	case B_LIST:
+	  state->adepth++;
+	  break;
+	case H_VOID:
+	  assert(state->adepth == 0);
+	  state->ARGP++;
+	  break;
+	case H_POP:
+	case B_POP:
+	  state->adepth--;
+	  break;
+	case B_UNIFY_EXIT:
+	  assert(state->adepth == 0 || state->adepth == NO_ADEPTH);
+	  break;
+	case I_ENTER:
+	  assert(state->adepth==0);
+	  break;
+#endif /*MARK_ALT_CLAUSES*/
+    }
   }
 
-  te = mark_choicepoints(state->choice, te, &flictx);
-  for(qf=LD->queery; qf; qf=qf->parent)
-    te = mark_choicepoints(qf->saved_bfr, te, &flictx);
+  return PC;
+}
 
-  for( ; flictx; flictx = flictx->parent)
-    te = mark_foreign_frame(flictx, te PASS_LD);
+
+#ifdef MARK_ALT_CLAUSES
+static void
+mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
+{ Word sp = argFrameP(fr, 0);
+  int argc = fr->predicate->functor->arity;
+  int i;
+  walk_state state;
+  state.unmarked = 0;
+
+  for(i=0; i<argc; i++ )
+  { if ( !is_marked(&sp[i]) )
+      state.unmarked++;
+  }
+
+  if ( !state.unmarked )
+    return;
+
+  state.frame	     = fr;
+  state.flags        = GCM_ALTCLAUSE;
+  state.adepth       = 0;
+  state.ARGP	     = argFrameP(fr, 0);
+  state.envtop	     = state.ARGP + argc;
+
+  DEBUG(2, Sdprintf("Scanning clauses for %s\n", predicateName(fr->predicate)));
+  for(; cref && state.unmarked > 0; cref=cref->next)
+  { if ( visibleClause(cref->clause, fr->generation) )
+    { COUNT(c_scanned);
+      state.c0 = cref->clause->codes;
+      DEBUG(3, Sdprintf("Scanning clause %p\n", cref->clause));
+      walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
+    }
+
+    state.adepth     = 0;
+    state.ARGP	     = argFrameP(fr, 0);
+  }
+}
+
+#else /*MARK_ALT_CLAUSES*/
+
+static void
+mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
+{ mark_arguments(fr PASS_LD);
+}
+
+#endif /*MARK_ALT_CLAUSES*/
+
+static void
+early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
+{ LocalFrame fr = ch->frame;
+  Word top;
+
+  while((char*)state->flictx > (char*)ch)
+  { FliFrame fli = state->flictx;
+
+    state->reset_entry = mark_foreign_frame(fli, state->reset_entry PASS_LD);
+    state->flictx = fli->parent;
+  }
+
+  if ( ch->type == CHP_CLAUSE )
+  { top = argFrameP(fr, fr->predicate->functor->arity);
+  } else
+  { assert(ch->type == CHP_TOP || (void *)ch > (void *)fr);
+    top = (Word)ch;
+  }
+
+  state->reset_entry = early_reset_vars(&ch->mark, top, state->reset_entry PASS_LD);
+  needsRelocation(&ch->mark.trailtop);
+  alien_into_relocation_chain(&ch->mark.trailtop,
+			      STG_TRAIL, STG_LOCAL PASS_LD);
+  SECURE(trailtops_marked--);
+}
+
+
+static QueryFrame mark_environments(mark_state *state,
+				    LocalFrame fr, Code PC ARG_LD);
+
+static void
+mark_choicepoints(mark_state *state, Choice ch ARG_LD)
+{ for(; ch; ch=ch->parent)
+  { early_reset_choicepoint(state, ch PASS_LD);
+
+    switch(ch->type)
+    { case CHP_JUMP:
+	mark_environments(state, ch->frame, ch->value.PC PASS_LD);
+	break;
+      case CHP_CLAUSE:
+      { LocalFrame fr = ch->frame;
+
+	mark_alt_clauses(fr, ch->value.clause PASS_LD);
+        if ( false(fr, FR_MARKED) )
+	{ set(fr, FR_MARKED);
+	  COUNT(marked_envs);
+	  check_call_residue(fr PASS_LD);
+	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
+	}
+	break;
+      }
+      case CHP_DEBUG:
+      case CHP_CATCH:
+	mark_environments(state, ch->frame, NULL PASS_LD);
+	break;
+      case CHP_TOP:
+	break;
+    }
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We need to mark  the  top   frame  to  deal  with foreign predicates
+calling  Prolog  back  that  can  leak    term-handles   of  the  parent
+environment. This came from Roberto Bagnara   and was simplified to this
+program, which must write foo(0).
+
+test :- c_bind(X), writeln(X).
+bind(X) :- X = foo(0), garbage_collect.
+
+static foreign_t
+bind(term_t arg)
+{ predicate_t pred = PL_predicate("bind", 1, "user");
+
+  return PL_call_predicate(NULL, PL_Q_NORMAL, pred, arg);
+}
+
+install_t
+install()
+{ PL_register_foreign("c_bind", 1, bind, 0);
+}
+
+(**)  If  we  are  in  head-unification  mode,  (saved)ARGP  are  nicely
+relocated. However, we must also ensure that the term in which it points
+is not GC-ed. This applies  for   head-arguments  as well as B_UNIFY_VAR
+instructions. See get_vmi_state().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static QueryFrame
+mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
+{ QueryFrame qf = NULL;
+  int first     = TRUE;
+
+  for(; fr; first=FALSE)
+  { walk_state state;
+
+    if ( false(fr, FR_MARKED) )
+    { set(fr, FR_MARKED);
+      state.flags = GCM_CLEAR;
+
+      COUNT(marked_envs);
+      check_call_residue(fr PASS_LD);
+    } else
+    { state.flags = 0;
+    }
+
+    if ( true(fr->predicate, FOREIGN) || PC == NULL || !fr->clause )
+    { DEBUG(2, Sdprintf("Marking arguments for [%d] %s\n",
+			levelFrame(fr), predicateName(fr->predicate)));
+      mark_arguments(fr PASS_LD);
+    } else
+    { Word argp0;
+      state.frame    = fr;
+      state.unmarked = slotsInFrame(fr, PC);
+      state.envtop   = argFrameP(fr, state.unmarked);
+      state.c0       = fr->clause->clause->codes;
+
+      if ( fr == mstate->vm_state->frame &&
+	   PC == mstate->vm_state->pc_start_vmi )
+      { argp0        = mstate->vm_state->argp0;
+	state.ARGP   = mstate->vm_state->argp;
+	state.adepth = mstate->vm_state->adepth;
+	mark_new_arguments(mstate->vm_state PASS_LD);
+      } else
+      { argp0 = NULL;
+      }
+
+      DEBUG(2, Sdprintf("Walking code for [%d] %s from PC=%d\n",
+			levelFrame(fr), predicateName(fr->predicate),
+			PC-state.c0));
+
+      walk_and_mark(&state, PC, I_EXIT PASS_LD);
+
+      if ( argp0 && !is_marked(argp0) )		/* see (**) */
+      { assert(onStackArea(local, argp0));
+	mark_local_variable(argp0 PASS_LD);
+      }
+    }
+
+    if ( !(state.flags&GCM_CLEAR) )	/* from choicepoint */
+      return NULL;
+
+    if ( fr->parent )
+    { PC = fr->programPointer;
+      fr = fr->parent;
+    } else
+    { qf = queryOfFrame(fr);
+
+      if ( qf->saved_environment )
+	mark_arguments(qf->saved_environment PASS_LD); /* (*) */
+
+      break;
+    }
+  }
+
+  return qf;
+}
+
+
+
+static QueryFrame
+mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch, Code PC ARG_LD)
+{ QueryFrame qf;
+
+  qf = mark_environments(state, fr, PC PASS_LD);
+  mark_choicepoints(state, ch PASS_LD);
+
+  return qf;
+}
+
+
+static void
+mark_stacks(vm_state *vmstate)
+{ GET_LD
+  QueryFrame qf=NULL;
+  mark_state state;
+  LocalFrame fr = vmstate->frame;
+  Choice ch     = vmstate->choice;
+  Code PC       = vmstate->pc_start_vmi;
+
+  memset(&state, 0, sizeof(state));
+  state.vm_state     = vmstate;
+  state.reset_entry  = (GCTrailEntry)tTop - 1;
+  state.flictx       = fli_context;
+  trailcells_deleted = 0;
+
+  while(fr)
+  { vm_state sub_state;
+
+    DEBUG(1, Sdprintf("Marking query %p\n", qf));
+    qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
+
+    if ( qf->parent )			/* same code in checkStacks() */
+    { QueryFrame pqf = qf->parent;
+
+      if ( (fr = pqf->registers.fr) )
+      { get_vmi_state(pqf, &sub_state);
+	sub_state.choice = qf->saved_bfr;
+
+	state.vm_state = &sub_state;
+	PC = sub_state.pc_start_vmi;
+      } else
+      { fr = qf->saved_environment;
+	PC = NULL;
+      }
+      ch = qf->saved_bfr;
+    } else
+      break;
+  }
+
+  for( ; state.flictx; state.flictx = state.flictx->parent)
+    state.reset_entry = mark_foreign_frame(state.flictx,
+					   state.reset_entry PASS_LD);
 
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
-#endif
 
 
 #if O_SECURE
@@ -1957,9 +2462,7 @@ sweep_environments(LocalFrame fr, Code PC)
 	  check_relocation(sp);
 	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
-      }
-#ifdef LIFE_GC
-      else
+      } else
       { if ( isGlobalRef(*sp) )
 	{ DEBUG(1, char b[64];
 		Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
@@ -1969,7 +2472,6 @@ sweep_environments(LocalFrame fr, Code PC)
 	  *sp = ATOM_garbage_collected;
 	}
       }
-#endif
     }
 
     PC = fr->programPointer;
