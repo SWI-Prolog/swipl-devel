@@ -199,7 +199,7 @@ use_agregates(Paths, Aggregated, AggregatedBy) :-
 	use_agregates(Paths, Aggregated, AggregatedBy0, AggregatedBy).
 
 use_agregates(Paths, Aggregated, AggregatedBy0, AggregatedBy) :-
-	aggregate(Aggregate, Parts, Size),
+	current_aggregate(Aggregate, Parts, Size),
 	ord_subtract(Paths, Parts, NotCovered),
 	length(Paths, Len0),
 	length(NotCovered, Len1),
@@ -226,16 +226,16 @@ add_aggregated_by([H|T], Assoc0, V, Assoc) :-
 clean_aggregate_cache :-
 	retractall(aggregate_cache_filled).
 
-%%	aggregate(-Aggregate, -Parts, -Size) is nondet.
+%%	current_aggregate(-Aggregate, -Parts, -Size) is nondet.
 %
 %	True if Aggregate is a defined   aggregate  with Size Parts. All
 %	parts are canonical absolute HTTP locations  and Parts is sorted
 %	to allow for processing using ordered set predicates.
 
-aggregate(Path, Parts, Size) :-
+current_aggregate(Path, Parts, Size) :-
 	aggregate_cache_filled, !,
 	aggregate_cache(Path, Parts, Size).
-aggregate(Path, Parts, Size) :-
+current_aggregate(Path, Parts, Size) :-
 	retractall(aggregate_cache(_,_, _)),
 	forall(uncached_aggregate(Path, Parts, Size),
 	       assert(aggregate_cache(Path, Parts, Size))),
