@@ -5,8 +5,12 @@ SETLOCAL
 
 call call_vcvars.cmd
 
+rem always cleanup, not always necessary, TBD
+nmake /c /f makefile.mak distclean > nul
+
 rem Build default multi-threaded version
 nmake /f makefile.mak
+
 rem And install it
 nmake /f makefile.mak install
 
