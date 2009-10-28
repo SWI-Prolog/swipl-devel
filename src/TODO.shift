@@ -8,11 +8,11 @@
 	- Cleanup unneeded trail entries when discarding a choicepoint
 		- Wins for foreign-frames
 		- Also for !
-	- Verify that calls to PL_open_foreign_frame() and PL_open_query()
-	  are non-zero.
 	- Graphical tracer often GCs variable bindings  :-(
  	- pl-gc.c calls save_backtrace() if -g is used.  Must be removed
 	if all is stable.
+	- Use QF for SAVE_REGISTERS().  I guess we only have to reload
+	QF in LOAD_REGISTERS() and can remove all the other reloads?
 
 ================================================================
 Static analysis of the C-program:
