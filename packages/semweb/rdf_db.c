@@ -4925,6 +4925,10 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 
   if ( t.indexed == BY_NONE )
   { c = db->created - db->erased;		/* = totale triple count */
+#if 0
+  } else if ( t.indexed == BY_P )
+  { c = t.predicate.r->triple_count;		/* must sum over children */
+#endif
   } else
   { c = db->counts[t.indexed][triple_hash(db, &t, t.indexed)];
   }
