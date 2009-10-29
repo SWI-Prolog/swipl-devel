@@ -3696,6 +3696,9 @@ b_throw:
   aTop = QF->aSave;
   assert(exception_term);
 
+  if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
+    lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+
   SECURE(checkData(valTermRef(exception_term)));
   DEBUG(1, { fid_t fid = PL_open_foreign_frame();
 	     Sdprintf("[%d] Throwing ", PL_thread_self());
