@@ -1306,7 +1306,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(label) do { backtrack_from_line = __LINE__; goto label; } while(0);
+#define GO(label) do { backtrack_from_line = __LINE__; goto label; } while(0)
 #else
 #define GO(label) goto label
 #endif
@@ -1314,6 +1314,8 @@ choice_type last_choice;
 #define FRAME_FAILED		GO(frame_failed)
 #define CLAUSE_FAILED		GO(clause_failed)
 #define BODY_FAILED		GO(body_failed)
+#define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
+				     goto b_throw; } while(0)
 
 #ifdef O_PROFILE
 #define Profile(g) if ( LD->profile.active ) g
@@ -1794,7 +1796,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
- 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw); \
+ 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( debugstatus.debugging ) \
 	  newChoice(CHP_DEBUG, FR PASS_LD); \
 	PC    = cref->clause->codes; \
@@ -1803,7 +1805,7 @@ typedef enum
 	umode = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->clause->variables); \
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw); \
+	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
  	  ch->value.PC = altpc; \
@@ -1826,6 +1828,7 @@ PL_next_solution(qid_t qid)
   Definition DEF = NULL;		/* definition of current procedure */
   unify_mode umode = uread;		/* Unification mode */
   exception_frame throw_env;		/* PL_thow() environment */
+  int	     throwed_from_line;		/* Debugging: line we came from */
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1937,7 +1940,7 @@ variables used in the B_THROW instruction.
       LD->current_signal = 0;	/* TBD: saved? */
     }
 
-    goto b_throw;
+    THROW_EXCEPTION;
   } else				/* installation */
   { throw_env.magic = THROW_MAGIC;
     LD->exception.throw_environment = &throw_env;
@@ -2164,7 +2167,7 @@ next_choice:
 	    clear(FR, FR_CATCHED);
 	    goto retry_continue;
 	    case ACTION_ABORT:
-	      goto b_throw;
+	      THROW_EXCEPTION;
 	}
       } else
       { DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
@@ -2183,7 +2186,7 @@ next_choice:
       LOAD_REGISTERS(qid);
       ch = BFR;			/* can be shifted */
       if ( exception_term )
-	goto b_throw;
+	THROW_EXCEPTION;
     }
   }
 
@@ -2240,7 +2243,7 @@ next_choice:
 	    case ACTION_RETRY:
 	      goto retry_continue;
 	    case ACTION_ABORT:
-	      goto b_throw;
+	      THROW_EXCEPTION;
 	  }
 	}
       }
@@ -2264,11 +2267,11 @@ next_choice:
 	handleSignals(PASS_LD1);
 	LOAD_REGISTERS(qid);
 	if ( exception_term )
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
 
 			/* require space for the args of the next frame */
-      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
+      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
       NEXT_INSTRUCTION;
     }
     case CHP_TOP:			/* Query toplevel */
@@ -2292,7 +2295,7 @@ next_choice:
 	LOAD_REGISTERS(qid);
 	ch = BFR;			/* can be shifted */
 	if ( exception_term )
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
       /*FALLTHROUGH*/
     case CHP_DEBUG:			/* Just for debugging purposes */
