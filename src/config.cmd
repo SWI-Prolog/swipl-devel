@@ -236,13 +236,13 @@ if exist "%PL!HOME%\bin" (rd /S /Q "%PL!HOME%\bin")
 md "%PL!HOME%\bin"
 if exist "%PL!HOME%\include" (rd /S /Q "%PL!HOME%\include")
 md "%PL!HOME%\include"
-expand reqs%BITS%.cab -F:include.cab "%PL!HOME%\include" > nul
-expand %PL!HOME%\include\include.cab -F:* %PL!HOME%\include > nul
+expand "reqs%BITS%.cab" -F:include.cab "%PL!HOME%\include" > nul
+expand "%PL!HOME%\include\include.cab" -F:* "%PL!HOME%\include" > nul
 if exist "%PL!HOME%\include\include.cab" (del /Q "%PL!HOME%\include\include.cab") > nul
 if exist "%PL!HOME%\lib" (rd /S /Q "%PL!HOME%\lib")
 md "%PL!HOME%\lib"
-expand reqs%BITS%.cab -F:lib.cab "%PL!HOME%\lib" > nul
-expand %PL!HOME%\lib\lib.cab -F:* "%PL!HOME%\lib" > nul
+expand "reqs%BITS%.cab" -F:lib.cab "%PL!HOME%\lib" > nul
+expand "%PL!HOME%\lib\lib.cab" -F:* "%PL!HOME%\lib" > nul
 if exist "%PL!HOME%\lib\lib.cab" (del /Q "%PL!HOME%\lib\lib.cab") > nul
 echo Expanded the Pre-requisites...
 echo.
