@@ -3764,6 +3764,7 @@ b_throw:
 
       if ( ch )
       { int printed = PL_same_term(exception_printed, exception_term);
+	term_t chref = consTermRef(ch);
 	int rc;
 
 	lTop = (LocalFrame)(ch+1);
@@ -3774,7 +3775,7 @@ b_throw:
 	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	LOAD_REGISTERS(qid);
-	ch = BFR;			/* Verify? */
+	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
 	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
@@ -3783,6 +3784,7 @@ b_throw:
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(FR, ch, NULL);
 		 LOAD_REGISTERS(qid);
+		 ch = (Choice)valTermRef(chref);
 	       });
 
 	SAVE_REGISTERS(qid);
