@@ -128,9 +128,15 @@ PL_unify_char(term_t chr, int c, int how)
 int
 allocList(size_t maxcells, list_ctx *ctx)
 { GET_LD
-  ctx->lp = ctx->gstore = allocGlobal(1+maxcells*3);
+  Word p = allocGlobal(1+maxcells*3);
 
-  return TRUE;
+  if ( p )
+  { ctx->lp = ctx->gstore = p;
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 int

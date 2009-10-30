@@ -193,7 +193,7 @@ VMI(H_CONST, 0, 1, (CA1_DATA))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -230,7 +230,7 @@ VMI(H_NIL, 0, 0, ())
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -271,7 +271,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -323,7 +323,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -379,7 +379,7 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -450,7 +450,7 @@ VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, k);
     }
@@ -523,7 +523,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
 	    LOAD_REGISTERS(qid);
 	    if ( rc != TRUE )
 	    { raiseStackOverflow(rc);
-	      goto b_throw;
+	      THROW_EXCEPTION;
 	    }
 	    k = varFrameP(FR, (int)PC[-1]);
 	    deRef(k);
@@ -554,7 +554,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     NEXT_INSTRUCTION;
   }
   if ( exception_term )
-    goto b_throw;
+    THROW_EXCEPTION;
   CLAUSE_FAILED;
 }
 
@@ -618,7 +618,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       deRef2(ARGP, p);
     }
@@ -682,7 +682,7 @@ VMI(H_RLIST, 0, 0, ())
 	LOAD_REGISTERS(qid);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
-	  goto b_throw;
+	  THROW_EXCEPTION;
 	}
 	deRef2(ARGP, p);
       }
@@ -752,7 +752,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_VAR,CA1_VAR))
 	LOAD_REGISTERS(qid);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
-	  goto b_throw;
+	  THROW_EXCEPTION;
 	}
 	if ( umode == uwrite )
 	  p = ARGP;
@@ -825,7 +825,7 @@ VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -857,7 +857,7 @@ VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -890,7 +890,7 @@ VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -929,7 +929,7 @@ VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -963,7 +963,7 @@ VMI(B_ARGVAR, 0, 1, (CA1_VAR))
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
 	  assert(exception_term);
-	  goto b_throw;
+	  THROW_EXCEPTION;
 	}
 	k = varFrameP(FR, (int)PC[-1]);
 	deRef(k);
@@ -1154,7 +1154,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     NEXT_INSTRUCTION;
   }
   if ( exception_term )
-    goto b_throw;
+    THROW_EXCEPTION;
 
   BODY_FAILED;
 }
@@ -1213,7 +1213,7 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
       k = varFrameP(FR, (int)PC[-2]);
       deRef(k);
@@ -1352,7 +1352,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -1387,7 +1387,7 @@ VMI(B_RLIST, 0, 0, ())
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -1451,7 +1451,7 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
 	case ACTION_FAIL:
 	  FRAME_FAILED;
 	case ACTION_ABORT:
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1532,7 +1532,7 @@ possible to be able to call-back to Prolog.
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { rc = raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -1572,7 +1572,7 @@ retry_continue:
 	if ( FR->predicate == PROCEDURE_catch3->definition )
 	  set(FR, FR_CATCHED);
 
-	goto b_throw;
+	THROW_EXCEPTION;
       }
     }
 
@@ -1613,7 +1613,7 @@ retry_continue:
       switch( rc )
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
-	case ACTION_ABORT:  goto b_throw;
+	case ACTION_ABORT:  THROW_EXCEPTION;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1751,7 +1751,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 	  discardChoicesAfter(FR PASS_LD);
 	  FRAME_FAILED;
 	case ACTION_ABORT:
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
 
       if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
@@ -1809,7 +1809,7 @@ VMI(I_EXITFACT, 0, 0, ())
       { case ACTION_RETRY:
 	  goto retry;
 	case ACTION_ABORT:
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
     }
 #endif /*O_DEBUGGER*/
@@ -1901,7 +1901,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
       case ACTION_FAIL:
 	FRAME_FAILED;
       case ACTION_ABORT:
-	goto b_throw;
+	THROW_EXCEPTION;
     }
 
     if ( (ch = findStartChoice(FR, BFR)) )
@@ -1918,7 +1918,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     }
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
 
     SAVE_REGISTERS(qid);
     rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD);
@@ -1929,7 +1929,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
       case ACTION_FAIL:
 	FRAME_FAILED;
       case ACTION_ABORT:
-	goto b_throw;
+	THROW_EXCEPTION;
     }
   } else
 #endif
@@ -1939,7 +1939,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
@@ -1976,7 +1976,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
     LOAD_REGISTERS(qid);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 
@@ -2117,7 +2117,7 @@ c_cut:
 	  fr  = addPointer(fr,  offset);
 	}
 	if ( exception_term )
-	  goto b_throw;
+	  THROW_EXCEPTION;
       }
     }
 
@@ -2311,7 +2311,7 @@ VMI(S_UNDEF, 0, 0, ())
 
       enterDefinition(DEF);		/* will be left in exception code */
 
-      goto b_throw;
+      THROW_EXCEPTION;
     }
     case UNKNOWN_WARNING:
     { fid_t fid;
@@ -2332,7 +2332,7 @@ VMI(S_UNDEF, 0, 0, ())
 	PL_close_foreign_frame(fid);
       }
       if ( exception_term )
-	goto b_throw;
+	THROW_EXCEPTION;
       /*FALLTHROUGH*/
     }
     case UNKNOWN_FAIL:
@@ -2364,7 +2364,7 @@ VMI(S_STATIC, 0, 0, ())
 
   PC = CL->clause->codes;
   lTop = (LocalFrame)(ARGP + CL->clause->variables);
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, goto b_throw);
+  ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
@@ -2489,7 +2489,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
 	    case ACTION_RETRY:
 	      goto retry_continue;
 	    case ACTION_ABORT:
-	      goto b_throw;
+	      THROW_EXCEPTION;
 	  }
 	}
 
@@ -2549,7 +2549,7 @@ VMI(S_MQUAL, 0, 1, (CA1_VAR))
   LOAD_REGISTERS(qid);
   if ( rc != TRUE )
   { raiseStackOverflow(rc);
-    goto b_throw;
+    THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
@@ -2565,7 +2565,7 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
   LOAD_REGISTERS(qid);
   if ( rc != TRUE )
   { raiseStackOverflow(rc);
-    goto b_throw;
+    THROW_EXCEPTION;
   }
   setContextModule(FR, FR->predicate->module);
 
@@ -2739,7 +2739,7 @@ a_var_n:
 	NEXT_INSTRUCTION;
       } else
       { resetArithStack(PASS_LD1);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
     }
   }
@@ -2806,7 +2806,7 @@ common_an:
   LOAD_REGISTERS(qid);
   if ( !rc )
   { resetArithStack(PASS_LD1);
-    goto b_throw;
+    THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;
@@ -2833,7 +2833,7 @@ VMI(A_ADD, 0, 0, ())
   }
 
   resetArithStack(PASS_LD1);
-  goto b_throw;
+  THROW_EXCEPTION;
 }
 
 
@@ -2856,7 +2856,7 @@ VMI(A_MUL, 0, 0, ())
   }
 
   resetArithStack(PASS_LD1);
-  goto b_throw;
+  THROW_EXCEPTION;
 }
 
 
@@ -2885,7 +2885,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
-	goto b_throw;
+	THROW_EXCEPTION;
       }
 
       np = varFrameP(FR, PC[-2]);
@@ -2923,7 +2923,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
       rc = put_int64(&w, r, ALLOW_GC|ALLOW_SHIFT PASS_LD);
       LOAD_REGISTERS(qid);
       if ( rc != TRUE )
-	goto b_throw;
+	THROW_EXCEPTION;
       *rp = w;
     }
     NEXT_INSTRUCTION;
@@ -2949,7 +2949,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_VAR, CA1_VAR, CA1_INTEGER))
       rc = FALSE;
     LOAD_REGISTERS(qid);
     if ( !rc )
-      goto b_throw;
+      THROW_EXCEPTION;
 
     rp = varFrameP(FR, PC[-3]);		/* may have shifted */
     *rp = w;
@@ -3079,7 +3079,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     AR_END();
 
     if ( !rc )
-      goto b_throw;
+      THROW_EXCEPTION;
 
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
@@ -3135,7 +3135,7 @@ VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_VAR)) /* A is B */
   { *varFrameP(FR, *PC++) = w;
     NEXT_INSTRUCTION;
   } else
-    goto b_throw;
+    THROW_EXCEPTION;
 }
 
 
@@ -3338,7 +3338,7 @@ VMI(I_FEXITDET, 0, 0, ())
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
-	goto b_throw;
+	THROW_EXCEPTION;
       FRAME_FAILED;
     default:
     { fid_t fid = PL_open_foreign_frame();
@@ -3348,7 +3348,7 @@ VMI(I_FEXITDET, 0, 0, ())
       PL_error(NULL, 0, NULL, ERR_DOMAIN,
 	       ATOM_foreign_return_value, ex);
       PL_close_foreign_frame(fid);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
   }
 }
@@ -3536,7 +3536,7 @@ VMI(I_FEXITNDET, 0, 0, ())
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
-	goto b_throw;
+	THROW_EXCEPTION;
       SECURE(assert(BFR->value.PC == PC+1));
       BFR = BFR->parent;
       FRAME_FAILED;
@@ -3561,7 +3561,7 @@ VMI(I_FREDO, 0, 0, ())
     handleSignals(PASS_LD1);
     LOAD_REGISTERS(qid);
     if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
   }
 
   context.context = (word)FR->clause;
@@ -3601,7 +3601,7 @@ We set FR_WATCHED to get a cleanup call if the frame fails or is cutted.
 
 VMI(I_CALLCLEANUP, 0, 0, ())
 { if ( !mustBeCallable(consTermRef(argFrameP(FR, 3)) PASS_LD) )
-    goto b_throw;
+    THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR PASS_LD);
   set(FR, FR_WATCHED);
@@ -3628,7 +3628,7 @@ VMI(I_EXITCLEANUP, 0, 0, ())
     frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
     LOAD_REGISTERS(qid);
     if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
   }
 
   NEXT_INSTRUCTION;			/* goto i_exit? */
@@ -3696,9 +3696,13 @@ b_throw:
   aTop = QF->aSave;
   assert(exception_term);
 
+  if ( lTop < (LocalFrame)argFrameP(FR, FR->predicate->functor->arity) )
+    lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+
   SECURE(checkData(valTermRef(exception_term)));
   DEBUG(1, { fid_t fid = PL_open_foreign_frame();
-	     Sdprintf("[%d] Throwing ", PL_thread_self());
+	     Sdprintf("[%d] Throwing (from line %d): ",
+		      PL_thread_self(), throwed_from_line);
 	     PL_write_term(Serror, exception_term, 1200, 0);
 	     Sdprintf("\n");
 	     PL_discard_foreign_frame(fid);
@@ -3760,6 +3764,7 @@ b_throw:
 
       if ( ch )
       { int printed = PL_same_term(exception_printed, exception_term);
+	term_t chref = consTermRef(ch);
 	int rc;
 
 	lTop = (LocalFrame)(ch+1);
@@ -3770,7 +3775,7 @@ b_throw:
 	SAVE_REGISTERS(qid);
 	dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	LOAD_REGISTERS(qid);
-	ch = BFR;			/* Verify? */
+	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
 	PL_put_term(LD->exception.pending, exception_term);
 	if ( printed )
@@ -3779,6 +3784,7 @@ b_throw:
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(FR, ch, NULL);
 		 LOAD_REGISTERS(qid);
+		 ch = (Choice)valTermRef(chref);
 	       });
 
 	SAVE_REGISTERS(qid);
@@ -3794,7 +3800,7 @@ b_throw:
 	    DEF = FR->predicate;
 	    goto retry_continue;
 	  case ACTION_ABORT:
-	    goto b_throw;
+	    THROW_EXCEPTION;
 	}
 
 	setVar(*valTermRef(LD->exception.pending));
@@ -3926,7 +3932,7 @@ VMI(B_EXIT, 0, 0, ())
   LOAD_REGISTERS(qid);
   if ( !blockfr )
   { if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
 
     BODY_FAILED;
   }
@@ -3992,7 +3998,7 @@ VMI(I_CUT_BLOCK, 0, 0, ())
   LOAD_REGISTERS(qid);
   if ( !cutfr )
   { if ( exception_term )
-      goto b_throw;
+      THROW_EXCEPTION;
     BODY_FAILED;
   }
 
@@ -4108,7 +4114,7 @@ atom is referenced by the goal-term anyway.
       setNextFrameFlags(NFR, FR);
       rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module PASS_LD);
       if ( rc == FALSE )
-	goto b_throw;
+	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )
       { size_t room = roomStack(local);
 
@@ -4117,7 +4123,7 @@ atom is referenced by the goal-term anyway.
 	LOAD_REGISTERS(qid);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
-	  goto b_throw;
+	  THROW_EXCEPTION;
 	}
 	VMI_GOTO(I_USERCALL0);
       }
@@ -4150,7 +4156,7 @@ atom is referenced by the goal-term anyway.
     fid = PL_open_foreign_frame();
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
     PL_close_foreign_frame(fid);
-    goto b_throw;
+    THROW_EXCEPTION;
   }
   goto i_usercall_common;
 }
@@ -4185,7 +4191,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   } else
   { lTop = (LocalFrame)argFrameP(NFR, 1);
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(argFrameP(NFR, 0)));
-    goto b_throw;
+    THROW_EXCEPTION;
   }
 
   if ( arity != 1 )
@@ -4233,7 +4239,7 @@ frame.
       fid = PL_open_foreign_frame();
       PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_arity);
       PL_close_foreign_frame(fid);
-      goto b_throw;
+      THROW_EXCEPTION;
     }
 
     ARGP = argFrameP(NFR, 0);
