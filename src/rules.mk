@@ -7,12 +7,20 @@
 
 !include config.dat
 
+# Setup the environment.  Use this to additional libraries and include
+# files to the path.  In particular provide access to the jpeg and xpm
+# libraries required to build XPCE
+
+PATH=$(PATH);$(HOME)\$(TARGET_OS_ARCH)\bin;$(HOME)\bin;$(HOME)\$(TARGET_OS_ARCH)\lib;$(HOME)\lib
+INCLUDE=$(PLHOME)\include;$(INCLUDE);$(HOME)\$(TARGET_OS_ARCH)\include;$(HOME)\include
+LIB=$(LIB);$(HOME)\$(TARGET_OS_ARCH)\lib;$(HOME)\lib
+
 # Installation target directory.  At the moment, the build will probably
 # fail if there is whitespace in the $prefix directory.  You can however
 # copy the result to wherever you want.
 
 prefix=$(TARGET_PROGRAM_FILES)
-PLBASE=$(prefix)\pl
+PLBASE=$(TARGET_PROGRAM_FILES)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
@@ -23,19 +31,12 @@ EXTRAINCDIR=$(HOME)\include
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
-OPENSSL=$(prefix)\OpenSSL
-OPENSSLLIBDIR=$(OPENSSL)\lib\VC
+OPENSSL=$(TARGET_PROGRAM_FILES)\OpenSSL
+OPENSSLLIBDIR=$(OPENSSL)\lib;$(OPENSSL)\lib\VC
 OPENSSLINCDIR=$(OPENSSL)\include
 
 # NullSoft installer
 NSISDEFS=$(NSISDEFS) /DPTHREAD=$(LIBPTHREAD) /DZLIB=$(LIBZLIB) /DBOOT=$(PLBOOTFILE)
-
-# Setup the environment.  Use this to additional libraries and include
-# files to the path.  In particular provide access to the jpeg and xpm
-# libraries required to build XPCE
-
-INCLUDE=$(PLHOME)\include;$(INCLUDE);$(HOME)\include
-LIB=$(LIB);$(HOME)\lib
 
 # Configuration selection
 
@@ -72,8 +73,8 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc
-PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) 
-#jpl
+PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL)
+
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
