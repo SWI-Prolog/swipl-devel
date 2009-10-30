@@ -396,17 +396,12 @@ mk_global(X, X) :-
 mk_global(X, X) :-
 	atom(X), !.
 mk_global(NS:Local, Global) :-
-	must_be_atom(NS),
-	must_be_atom(Local),
+	must_be(atom, NS),
+	must_be(atom, Local),
 	(   ns(NS, Full)
 	->  atom_concat(Full, Local, Global)
-	;   throw(error(existence_error(namespace, NS), _))
+	;   existence_error(namespace, NS)
 	).
-
-must_be_atom(X) :-
-	atom(X), !.
-must_be_atom(X) :-
-	throw(error(type_error(atom, X), _)).
 
 :- rdf_meta
 	rdf(r,r,o),
