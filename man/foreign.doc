@@ -2038,17 +2038,15 @@ function to the innermost PL_next_solution().
 If PL_next_solution() fails, this can be due to normal failure of the
 Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
-raised, or 0 if the Prolog goal simply failed.%
+raised, or 0 if the Prolog goal simply failed. If there is an exception,
+PL_exception() allocates a term-handle using PL_new_term_ref() that is
+used to return the exception term.%
     \footnote{This interface differs in two ways from Quintus.  The
 	      calling predicates simply signal failure if an exception
 	      was raised, and a term referenced is returned, rather
 	      passed and filled with the error term.   Exceptions
 	      can only be handled using the PL_next_solution() interface,
 	      as a handle to the query is required.}
-    \footnote{The scoping of the returned exception is poorly defined.
-	      This API will be reconsidered.  Applications using this
-	      API must process the term immediately and not touch it
-	      afterwards.}
 \end{description}
 
 

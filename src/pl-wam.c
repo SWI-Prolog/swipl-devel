@@ -1755,12 +1755,29 @@ PL_close_query(qid_t qid)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_exception(qid) is used to extract exceptions   from an query executed
+using  PL_next_solution().  The  term-reference  itself   is  no  longer
+referenced and therefore we must create a new one and copy the term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 term_t
 PL_exception(qid_t qid)
 { GET_LD
   QueryFrame qf = QueryFromQid(qid);
 
-  return qf->exception;
+  if ( qf->exception )
+  { term_t ex;
+
+    if ( (void*)fli_context <= (void*)environment_frame )
+      fatalError("PL_exception(): No foreign environment");
+
+    ex = PL_new_term_ref();
+    PL_put_term(ex, qf->exception);
+    return ex;
+  }
+
+  return 0;
 }
 
 
