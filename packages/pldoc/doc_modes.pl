@@ -435,7 +435,7 @@ head_to_pi(Head, Name/Arity) :-
 %	@param FilePos	Term of the form File:Line, where File is a
 %			canonical filename.
 
-compile_clause(Term, FilePos) :-
+compile_clause(Term, File:Line) :-
 	'$set_source_module'(SM, SM),
 	strip_module(SM:Term, M, Plain),
 	clause_head(Plain, Head),
@@ -445,9 +445,10 @@ compile_clause(Term, FilePos) :-
 	;   discontiguous(M:(Name/Arity))
 	),
 	(   M == SM
-	->  '$record_clause'(Term, FilePos, _)
-	;   '$record_clause'(M:Term, FilePos, _)
-	).
+	->  Clause = Term
+	;   Clause = M:Term
+	),
+	'$store_clause'('$source_location'(File, Line):Clause, File).
 
 clause_head((Head :- _Body), Head) :- !.
 clause_head(Head, Head).
