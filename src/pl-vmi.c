@@ -3865,6 +3865,7 @@ b_throw:
     PC = findCatchExit();
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
+      ARGP = (Word)lTop;
       SAVE_REGISTERS(qid);
       resumeAfterException();		/* trim/GC to recover space */
       LOAD_REGISTERS(qid);
