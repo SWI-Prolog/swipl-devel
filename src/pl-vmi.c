@@ -3782,7 +3782,7 @@ b_throw:
 	  PL_put_term(exception_printed, exception_term);
 
 	SECURE({ SAVE_REGISTERS(qid);
-	         checkStacks(FR, ch, NULL);
+	         checkStacks(NULL);
 		 LOAD_REGISTERS(qid);
 		 ch = (Choice)valTermRef(chref);
 	       });

@@ -4896,7 +4896,7 @@ pl_with_mutex(term_t mutex, term_t goal)
 
   if ( !rval && ex )
   { SECURE({ GET_LD
-	     checkData(valTermRef(ex))
+	     checkData(valTermRef(ex));
 	   });
     PL_raise_exception(ex);
   }
