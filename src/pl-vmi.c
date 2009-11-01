@@ -3531,13 +3531,13 @@ VMI(I_FEXITNDET, 0, 0, ())
       { exception_term = 0;
 	setVar(*valTermRef(exception_bin));
       }
-      SECURE(assert(BFR->value.PC == PC+1)); /* +1 because we use VMI_GOTO */
+      SECURE(assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       goto exit_checking_wakeup;
     case FALSE:
       if ( exception_term )
 	THROW_EXCEPTION;
-      SECURE(assert(BFR->value.PC == PC+1));
+      SECURE(assert(BFR->value.PC == PC));
       BFR = BFR->parent;
       FRAME_FAILED;
     default:
