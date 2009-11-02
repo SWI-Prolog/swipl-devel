@@ -36,8 +36,8 @@ set "REDIR_TO_NUL=> nul"
 
 :what_host
 set "EP!WINDIR=%SystemRoot%"
-if defined ProgramFiles(x86) (set "EP!HOST_OS_ARCH=X64") ELSE (set "EP!HOST_OS_ARCH=X86")
-if "%EP!HOST_OS_ARCH%"=="X64" (set "EP!PROGRAM_FILES_32=%ProgramFiles(x86)%") else (set "EP!PROGRAM_FILES_32=%ProgramFiles%")
+if exist "%SystemDrive%\Program Files (x86)" (set "EP!HOST_OS_ARCH=X64") ELSE (set "EP!HOST_OS_ARCH=X86")
+if "%EP!HOST_OS_ARCH%"=="X64" (set "EP!PROGRAM_FILES_32=%SystemDrive%\Program Files (x86)") else (set "EP!PROGRAM_FILES_32=%SystemDrive%\Program Files")
 :end_what_host
 
 
@@ -57,11 +57,11 @@ type welcome.txt
 set /P "BITS=Would you like to do a 32bit or 64bit build? (32 or 64): "
 if "%BITS%"=="32" (goto what_target_bits_oke)
 if "%BITS%"=="64" (goto what_target_bits_oke)
-echo The only choices possible are 32 and 64!
+echo Error: the only choices possible are 32 and 64!
 goto what_target
 :what_target_bits_oke
 if "%BITS%"=="32" (set "EP!TARGET_OS_ARCH=X86") else (set "EP!TARGET_OS_ARCH=X64")
-if "%BITS%"=="32" (set "EP!TARGET_PROGRAM_FILES=%EP!PROGRAM_FILES_32%") else (set "EP!TARGET_PROGRAM_FILES=%ProgramFiles%")
+if "%BITS%"=="32" (set "EP!TARGET_PROGRAM_FILES=%EP!PROGRAM_FILES_32%") else (set "EP!TARGET_PROGRAM_FILES=%SystemDrive%\Program Files")
 if "%BITS%"=="32" (set "EP!MD=WIN32") else (set "EP!MD=WIN64")
 :end_what_target
 
@@ -70,7 +70,7 @@ if "%BITS%"=="32" (set "EP!MD=WIN32") else (set "EP!MD=WIN64")
 if not "%EP!HOST_OS_ARCH%%EP!TARGET_OS_ARCH%"=="X86X64" (goto end_sanity_check)
 cls
 type welcome.txt
-echo A 64-bit target install cannot be built on a 32-bit host operating system, exiting...
+echo Error: a 64-bit target can not be built on a 32-bit host operating system, exiting...
 goto end
 :end_sanity_check
 
@@ -79,7 +79,7 @@ goto end
 ::determine_vc_version
 set "VCXX=UNKNOWN"
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio\VC98\" (set "VCXX=VC06")
-if exist "%ProgramFiles%\Microsoft Platform SDK for Windows Server 2003 R2\" (set "VCXX=VC08")
+if exist "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\" (set "VCXX=VC08")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\" (set "VCXX=VC08")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\" (set "VCXX=VC09")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\" (set "VCXX=VC10")
@@ -87,9 +87,9 @@ if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\" (set "VCXX=VC10")
 if "%VCXX%_%BITS%"=="VC06_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio\VC98\Bin\VCVARS32.BAT" ^> nul > call_vcvars.cmd)
 if "%VCXX%_%BITS%"=="VC06_64" (goto this_build_is_not_possible)
 ::set_vc8_or_sdk2003_R2_environment_file
-if exist "%ProgramFiles%\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" (set "TYPE=SDK")
+if exist "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" (set "TYPE=SDK")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" (set "TYPE=STU")
-if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (@echo call "%ProgramFiles%\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" /X64 /RETAIL ^> nul > call_vcvars.cmd)
+if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (@echo call "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" /X64 /RETAIL ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_32" (goto this_build_is_not_possible)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
@@ -106,12 +106,12 @@ if "%VCXX%_%BITS%"=="VC10_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visua
 if not "%VCXX%"=="UNKNOWN" (goto set_vc_environment)
 cls
 type welcome.txt
-echo VC version could not be determined, exiting...
+echo Error: Visual Studio or Windows SDK version could not be determined, exiting...
 goto end
 :this_build_is_not_possible
 cls
 type welcome.txt
-echo The requested %BITS%-bits build is not possible on %VCXX%, exiting...
+echo Error: the requested %BITS%-bits build is not possible on %VCXX%, exiting...
 goto end
 :set_vc_environment
 call call_vcvars.cmd
@@ -127,7 +127,8 @@ if "%EP!MTEXE%"=="rem" (goto end_set_manifest_tool)
 @for %%i in (mt.exe) do @if NOT "%%!$PATH:i"=="" (goto end_set_manifest_tool)
 cls
 type welcome.txt
-echo mt.exe cannot be found in the current path, exiting...
+echo Error: mt.exe (Microsoft (tm) Manifest Tool) cannot be found in the current
+echo path, exiting...
 goto end
 :end_set_manifest_tool
 
@@ -156,7 +157,7 @@ set "EP!EXTRALIBS=%EP!GMP_LIB% %BUFFEROVERFLOW%"
 :: MSVC Runtime(s)
 :msvcrt8_sdk
 if not "%VCXX%"=="VC08_SDK" (goto end_msvcrt8_sdk)
-set "EP!MSVCRTDIR=%ProgramFiles%\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64"
+set "EP!MSVCRTDIR=%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64"
 set "EP!MSVCRT=msvcr80.dll"
 :end_msvcrt8_sdk
 :msvcrt8_studio
@@ -194,9 +195,19 @@ echo to be downloaded from %PRE-REQ_LOCA%
 echo You could also provide these (or some of them) yourself, you will be prompted
 echo for this.
 echo.
-echo This archive will be placed in the following directory:
+echo The archive %PRE-REQ_FILE% will be placed in the following directory:
 echo.
 echo %EP!HOME%\src
+:have_connection_to_swi-prolog.org
+ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
+cls
+type welcome.txt
+echo Error: can not connect to www.swi-prolog.org at the moment, the site might be 
+echo experiencing problems, or your internet connection might be down.
+echo.
+echo Please, check your internet connection, and/or try again later, exiting...
+goto end
+:get_pre-requisites_ask
 set "ANSWER=enter"
 :get_pre-requisites_ask_again
 echo.
@@ -207,16 +218,17 @@ if "%ANSWER%"=="Y" (goto get_pre-requisites_start)
 if "%ANSWER%"=="N" (goto get_pre-requisites_answer_no)
 if "%ANSWER%"=="enter" (goto get_pre-requisites_start)
 echo.
-echo The only choices possible are y/Y and n/N or [enter]!
+echo Error: the only choices possible are y/Y and n/N or [enter]!
 goto get_pre-requisites_ask_again
 :get_pre-requisites_answer_no
 cls
 type welcome.txt
-echo You have chosen not to download the pre-requisites for your target-
-echo build (%PRE-REQ_FILE%). Without the libraries and headers included in this
-echo package, the build process cannot proceed. The build-process will now be ended,
-echo exiting...
-goto end
+echo Warning: you have chosen to provide the required pre-requisites for your target-
+echo build yourself. 
+echo.
+echo Continuing in 2 seconds...
+ping -n 2 localhost > nul
+goto create_user_lib_dirs
 :get_pre-requisites_start
 echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.vbs
 echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.vbs
@@ -238,24 +250,24 @@ if exist %PRE-REQ_FILE% (goto get_pre-requisites_succes)
 set /A NO_TRIES+=1
 cls
 type welcome.txt
-echo Download of the SWI-Prolog %BITS%-bit Pre-requisites failed on try %NO_TRIES% (of 3),
+echo Error: download of the SWI-Prolog %BITS%-bit pre-requisites failed on try %NO_TRIES% (of 3),
 echo trying again in about 5 seconds...
 echo.
 if %NO_TRIES% LEQ 3 (goto execute_get_pre-requisites_script_wait)
 cls
 type welcome.txt
-echo Download of the SWI-Prolog %BITS%-bit Pre-requisites failed permanently, exiting...
+echo Error: download of the SWI-Prolog %BITS%-bit pre-requisites failed permanently, exiting...
 goto end
 :get_pre-requisites_succes
 cls
 type welcome.txt
-echo Successfully downloaded the SWI-Prolog %BITS%-bit Pre-requisites...
+echo Successfully downloaded the SWI-Prolog %BITS%-bit pre-requisites...
 if exist reqs%BITS%.vbs (del /Q reqs%BITS%.vbs)
 goto end_get_pre-requisites
 :have_pre-requisites
 cls
 type welcome.txt
-echo Already downloaded the SWI-Prolog %BITS%-bit Pre-requisites...
+echo Already downloaded the SWI-Prolog %BITS%-bit pre-requisites...
 :end_get_pre-requisites
 
 
@@ -273,7 +285,7 @@ expand "reqs%BITS%.cab" -F:lib.cab "%EP!HOME%\lib" %REDIR_TO_NUL%
 expand "%EP!HOME%\lib\lib.cab" -F:* "%EP!HOME%\lib" %REDIR_TO_NUL%
 if exist "%EP!HOME%\lib\lib.cab" (del /Q "%EP!HOME%\lib\lib.cab")
 echo.
-echo Expanded the Pre-Requisites Package header files to %EP!HOME%\include
+echo Expanded the pre-requisites Package header files to %EP!HOME%\include
 echo and the libraries to %EP!HOME%\lib
 echo.
 pause
@@ -297,7 +309,7 @@ if "%ANSWER%"=="Y" (goto create_user_lib_dirs_answer_yes)
 if "%ANSWER%"=="N" (goto end_create_user_lib_dirs)
 if "%ANSWER%"=="enter" (goto end_create_user_lib_dirs)
 echo.
-echo The only choices possible are y/Y and n/N or [enter]!
+echo Error: the only choices possible are y/Y and n/N or [enter]!
 goto create_user_lib_dirs_ask_again
 :create_user_lib_dirs_answer_yes
 cls
@@ -318,7 +330,7 @@ echo      %EP!HOME%\X64\bin
 echo      %EP!HOME%\X64\include
 echo      %EP!HOME%\X64\lib
 echo.
-echo Those folders will now be created.
+echo The above folders will now be created on your computer.
 echo.
 :make_user_lib_dirs
 if not exist "%EP!HOME%\X86" (md "%EP!HOME%\X86")
@@ -344,7 +356,7 @@ if "%ANSWER%"=="Y" (goto assumed_user_lib_dirs_complete_answer_yes)
 if "%ANSWER%"=="N" (goto assumed_user_lib_dirs_complete_answer_no)
 if "%ANSWER%"=="enter" (goto assumed_user_lib_dirs_complete_answer_yes)
 echo.
-echo The only choices possible are y/Y and n/N or [enter]!
+echo Error: the only choices possible are y/Y and n/N or [enter]!
 goto assumed_user_lib_dirs_complete_ask_again
 :assumed_user_lib_dirs_complete_answer_no
 echo.
@@ -357,6 +369,7 @@ ping -n 2 localhost > nul
 :end_create_user_lib_dirs
 
 
+:: set pl install dir and ask for deletion!
 :delete_previous_install
 if exist "%EP!TARGET_PROGRAM_FILES%\pl" (rd /S /Q "%EP!TARGET_PROGRAM_FILES%\pl" %REDIR_TO_NUL%)
 :end_delete_previous_install
@@ -369,7 +382,7 @@ goto detect_gmp_detected
 :detect_gmp_not_detected
 cls
 type welcome.txt
-echo GMP (or one of its' components) not found...
+echo Warning: GMP (or one of its' components) not found...
 echo.
 echo The build will continue without GMP, it's functionality will not be
 echo available. If GMP is required, install GMP and run this script again.
@@ -392,7 +405,7 @@ goto detect_zlib_detected
 :detect_zlib_not_detected
 cls
 type welcome.txt
-echo ZLIB (or one of its' components) not found...
+echo Warning: ZLIB (or one of its' components) not found...
 echo.
 echo The build will continue without ZLIB, it's functionality will not be
 echo available. If ZLIB is required, install ZLIB and run this script again.
@@ -407,21 +420,21 @@ set "EP!BUILD_ZLIB=zlib"
 
 :detect_ssl
 if exist "%EP!TARGET_PROGRAM_FILES%\OpenSSL" (goto detect_ssl_pf_detected)
-if exist "%SystemDrive%\OpenSSL" (goto detect_ssl_sd_detected)
 cls
 type welcome.txt
-echo OpenSSl must be installed in "Program Files". For building a 32-bit target on a
+echo OpenSSL must be installed in "Program Files". For building a 32-bit target on a
 echo 64-bit host OS, OpenSSL must be installed in "Program Files (x86)". During
 echo installation, you are asked where to install the executables. They should
 echo be installed in the OpenSSL directory. This is NOT the default!
 echo.
-echo OpenSSL not found, OpenSSL must be installed in %EP!TARGET_PROGRAM_FILES%\OpenSSL.
+echo Warning: OpenSSL not found, OpenSSL must be installed 
+echo in %EP!TARGET_PROGRAM_FILES%\OpenSSL.
 echo.
 echo The OpenSSL for Windows packages can be downloaded at:
 echo http://www.slproweb.com/products/Win32OpenSSL.html.
 echo Please, choose the full (i.e. not the light) distribution package.
 echo.
-echo The build will continue without OpenSSL, it's functionality will not be
+echo Warning: the build will continue without OpenSSL, it's functionality will not be
 echo available. If OpenSSL is required, please install OpenSSL following the above
 echo instructions and run this script again.
 echo.
@@ -445,7 +458,7 @@ if exist "%SystemDrive%\Java\jdk*" (goto detect_java_sd_detected)
 if exist "%SystemDrive%\jdk*" (goto detect_java_sdnjd_detected)
 cls
 type welcome.txt
-echo Java JDK not found...
+echo Warning: Java JDK not found...
 echo.
 echo The build will continue without the SWI-Prolog Java Package, it's functionality
 echo will not be available. If Java is required, install the Java JDK and run this
@@ -476,9 +489,9 @@ cls
 type welcome.txt
 echo Java %EP!JAVA_JDK_VERSION% found, but %EP!HOME%\lib\junit.jar not found...
 echo.
-echo The build will continue without the SWI-Prolog Java Package, it's functionality
-echo will not be available. If Java is required, install the Java JDK and run this
-echo script again.
+echo Warning: the build will continue without the SWI-Prolog Java Package, it's 
+echo functionality will not be available. If Java is required, install 
+echo the Java JDK and run this script again.
 echo.
 pause
 set "EP!BUILD_JPL="
@@ -501,7 +514,7 @@ if "%ANSWER%"=="n" (goto build_now_answer_no)
 if "%ANSWER%"=="Y" (goto build_now_answer_yes)
 if "%ANSWER%"=="N" (goto build_now_answer_no)
 if "%ANSWER%"=="enter" (goto build_now_answer_yes)
-echo The only choices possible are y/Y and n/N or [enter]!
+echo Error: the only choices possible are y/Y and n/N or [enter]!
 goto build_now
 :build_now_answer_no
 cls
