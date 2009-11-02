@@ -250,9 +250,13 @@ take_label(Resource, Lang, Label) :-
 	).
 
 after_char(Atom, Char, Rest) :-
-	sub_atom(Atom, _, _, L, Char), !,
+	State = last(-),
+	(   sub_atom(Atom, _, _, L, Char),
+	    nb_setarg(1, State, L),
+	    fail
+	;   arg(1, State, L)
+	),
 	sub_atom(Atom, _, L, 0, Rest).
-
 
 
 %%	label_of(+Resource, ?Lang, ?Label) is nondet.
