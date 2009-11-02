@@ -1150,7 +1150,9 @@ freeClauseList(ClauseRef cref)
   int hooked;
   int savely_hooked;
 
-  if ( PROCEDURE_event_hook1 && isDefinedProcedure(PROCEDURE_event_hook1) )
+  if ( LD && LD->query &&
+       PROCEDURE_event_hook1 &&
+       hasClausesDefinition(PROCEDURE_event_hook1->definition) )
   { hooked = TRUE;
     savely_hooked = (LD->query->registers.fr != NULL);
   } else
@@ -1182,7 +1184,7 @@ freeClauseList(ClauseRef cref)
     next = cref->next;
 
 #if O_DEBUGGER
-    if ( savely_hooked &&
+    if ( hooked && savely_hooked &&
 	 cl->procedure->definition != PROCEDURE_event_hook1->definition )
       callEventHook(PLEV_ERASED, cl);
 #endif
