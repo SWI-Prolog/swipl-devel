@@ -170,12 +170,18 @@ like for the Prolog predicate call/1.
 int
 callProlog(Module module, term_t goal, int flags, term_t *ex)
 { GET_LD
-  term_t g;
+  term_t reset, g, ex2;
   functor_t fd;
   Procedure proc;
 
   if ( ex )
+  { if ( !(ex2=PL_new_term_ref()) )
+      goto error;
+    reset = ex2;
     *ex = 0;
+  } else
+  { reset = 0;
+  }
 
   if ( !(g=PL_new_term_ref()) )
   { error:
@@ -183,6 +189,9 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       *ex = exception_term;
     return FALSE;
   }
+  if ( !reset )
+    reset = g;
+
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -212,10 +221,19 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
       goto error;
 
     if ( !rval && ex )
-      *ex = PL_exception(qid);
+    { term_t qex = PL_exception(qid);
+
+      if ( qex )
+      { PL_put_term(ex2, qex);
+	*ex = ex2;
+	reset = g;
+      } else
+      { *ex = 0;
+      }
+    }
     PL_cut_query(qid);
 
-    PL_reset_term_refs(g);
+    PL_reset_term_refs(reset);
     return rval;
   }
 }
