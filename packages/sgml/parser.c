@@ -90,7 +90,7 @@ static void		for_elements_in_model(dtd_model *m,
 					      void (*f)(dtd_element *e,
 							void *closure),
 					      void *closure);
-void			putchar_dtd_parser(dtd_parser *p, int chr);
+int			putchar_dtd_parser(dtd_parser *p, int chr);
 void			free_dtd_parser(dtd_parser *p);
 static const ichar *	isee_character_entity(dtd *dtd, const ichar *in,
 					      int *chr);
@@ -3408,6 +3408,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     dtd_element *e = find_element(dtd, id);
     int empty = FALSE;
     int conref = FALSE;
+    int rc = TRUE;
 
     if ( !e->structure )
     { dtd_edef *def;
@@ -3461,7 +3462,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
       p->empty_element = NULL;
 
     if ( p->on_begin_element )
-      (*p->on_begin_element)(p, e, natts, atts);
+      rc = (*p->on_begin_element)(p, e, natts, atts);
 
     free_attribute_values(natts, atts);
 
@@ -3472,7 +3473,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 	p->cdata_state = p->state = S_PCDATA;
     }
 
-    return TRUE;
+    return rc;
   }
 
   return gripe(p, ERC_SYNTAX_ERROR, L"Bad open-element tag", decl);
@@ -4716,7 +4717,7 @@ setlocation(dtd_srcloc *d, dtd_srcloc *loc, int line, int lpos)
 }
 
 
-void
+int
 putchar_dtd_parser(dtd_parser *p, int chr)
 { dtd *dtd = p->dtd;
   const ichar *f = dtd->charfunc->func;
@@ -4735,11 +4736,11 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     { chr = p->utf8_char;
       p->state = p->utf8_saved_state;
     } else
-    { return;
+    { return TRUE;
     }
   } else if ( ISUTF8_MB(chr) && p->utf8_decode )
   { process_utf8(p, chr);
-    return;
+    return TRUE;
   }
 #endif
 
@@ -4760,19 +4761,19 @@ reprocess:
       { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_DECL0;
 	empty_icharbuf(p->buffer);
-	return;
+	return TRUE;
       }
       if ( p->dmode == DM_DTD )
       { if ( f[CF_PERO] == chr )	/* % */
 	{ setlocation(&p->startloc, &p->location, line, lpos);
 	  p->state = S_PENT;
-	  return;
+	  return TRUE;
 	}
       } else
       { if ( f[CF_ERO] == chr )		/* & */
 	{ setlocation(&p->startloc, &p->location, line, lpos);
 	  p->state = S_ENT0;
-	  return;
+	  return TRUE;
 	}
       }
 
@@ -4780,13 +4781,13 @@ reprocess:
       { empty_icharbuf(p->buffer);
 	p->state = S_EMSC1;
 	p->saved = chr;			/* for recovery */
-	return;
+	return TRUE;
       }
 
       if ( p->waiting_for_net && f[CF_ETAGO2] == chr ) /* shorttag */
       { setlocation(&p->startloc, &p->location, line, lpos);
 	process_net(p);
-	return;
+	return TRUE;
       }
 
 					/* Real character data */
@@ -4794,7 +4795,7 @@ reprocess:
         setlocation(&p->startcdata, &p->location, line, lpos);
 
       add_cdata(p, chr);
-      return;
+      return TRUE;
     }
     case S_ECDATA2:			/* Seen </ in CDATA/RCDATA */
     { if ( f[CF_MDC] == chr &&
@@ -4819,7 +4820,7 @@ reprocess:
 	} else
 	  add_icharbuf(p->buffer, chr);
       }
-      return;
+      return TRUE;
     }
     case S_ECDATA1:			/* seen < in CDATA */
     { add_verbatim_cdata(p, chr);
@@ -4828,13 +4829,13 @@ reprocess:
 	p->state = S_ECDATA2;
       } else if ( f[CF_ETAGO1] != chr )	/* <: do not change state */
 	p->state = p->cdata_state;
-      return;
+      return TRUE;
     }
     case S_RCDATA:
     { if ( f[CF_ERO] == chr ) /* & */
       { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_ENT0;
-	return;
+	return TRUE;
       }
       /*FALLTHROUGH*/
     }
@@ -4861,13 +4862,13 @@ reprocess:
 	p->cdata_state = p->state = S_PCDATA;
       }
 
-      return;
+      return TRUE;
     }
     case S_MSCDATA:
     { add_verbatim_cdata(p, chr);
       if ( f[CF_DSC] == chr )		/* ] */
         p->state = S_EMSCDATA1;
-      return;
+      return TRUE;
     }
     case S_EMSCDATA1:
     { add_verbatim_cdata(p, chr);
@@ -4875,7 +4876,7 @@ reprocess:
         p->state = S_EMSCDATA2;
       else
         p->state = S_MSCDATA;
-      return;
+      return TRUE;
     }
     case S_EMSCDATA2:
     { add_verbatim_cdata(p, chr);
@@ -4885,27 +4886,27 @@ reprocess:
 	p->state = S_PCDATA;
       } else if ( f[CF_DSC] != chr )	/* if ]]], stay in this state */
         p->state = S_MSCDATA;
-      return;
+      return TRUE;
     }
     case S_EMSC1:
     { if ( f[CF_DSC] == chr )		/* ]] in marked section */
       { p->state = S_EMSC2;
-	return;
+	return TRUE;
       } else
       { add_icharbuf(p->buffer, chr);
 	recover_parser(p);
-	return;
+	return TRUE;
       }
     }
     case S_EMSC2:
     { if ( f[CF_MDC] == chr )		/* ]]> in marked section */
       { pop_marked_section(p);
 	p->state = S_PCDATA;
-	return;
+	return TRUE;
       } else
       { add_icharbuf(p->buffer, chr);
 	recover_parser(p);
-	return;
+	return TRUE;
       }
     }
     case S_PENT:			/* %parameter entity; */
@@ -4916,16 +4917,16 @@ reprocess:
 	{ process_include(p, p->buffer->data);
 	}
 	empty_icharbuf(p->buffer);
-	return;
+	return TRUE;
       }
       if ( HasClass(dtd, (wint_t)chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
-	return;
+	return TRUE;
       }
 
       terminate_icharbuf(p->buffer);
-      gripe(p, ERC_SYNTAX_ERROR, L"Illegal parameter entity", p->buffer->data);
-      break;
+      return gripe(p, ERC_SYNTAX_ERROR,
+		   L"Illegal parameter entity", p->buffer->data);
     }
     case S_ENT0:			/* Seen & */
     { if ( chr == '#' || HasClass(dtd, (wint_t)chr, CH_NAME) )
@@ -4946,12 +4947,12 @@ reprocess:
 	goto reprocess;
       }
 
-      return;
+      return TRUE;
     }
     case S_ENT:				/* &entity; */
     { if ( HasClass(dtd, (wint_t)chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
-	return;
+	return TRUE;
       }
 
       terminate_icharbuf(p->buffer);
@@ -4966,14 +4967,14 @@ reprocess:
       else if ( f[CF_ERC] != chr && chr != '\n' )
 	goto reprocess;
 
-      break;
+      return TRUE;
     }
     case S_ENTCR:			/* seen &entCR, eat the LF */
     { p->state = p->cdata_state;
       if ( chr != LF )
 	goto reprocess;
 
-      break;
+      return TRUE;
     }
     case S_DECL0:			/* Seen < */
     { if ( f[CF_ETAGO2] == chr )	/* </ */
@@ -4992,17 +4993,17 @@ reprocess:
 	p->state = S_PCDATA;
       }
 
-      return;
+      return TRUE;
     }
     case S_MDECL0:			/* Seen <! */
     { if ( f[CF_CMT] == chr )		/* <!- */
       { p->state = S_CMTO;
-	return;
+	return TRUE;
       }
       add_icharbuf(p->buffer, f[CF_MDO2]);
       add_icharbuf(p->buffer, chr);
       p->state = S_DECL;
-      return;
+      return TRUE;
     }
     case S_DECL:			/* <...> */
     { if ( f[CF_MDC] == chr )		/* > */
@@ -5013,7 +5014,7 @@ reprocess:
 	{ process_declaration(p, p->buffer->data);
 	}
 	empty_icharbuf(p->buffer);
-	return;
+	return TRUE;
       }
       if ( dtd->shorttag && f[CF_ETAGO2] == chr && p->buffer->size > 0 )
       { prepare_cdata(p);
@@ -5025,7 +5026,7 @@ reprocess:
 	}
 	empty_icharbuf(p->buffer);
 	p->waiting_for_net = TRUE;
-	return;
+	return TRUE;
       }
 
       add_icharbuf(p->buffer, chr);
@@ -5038,7 +5039,7 @@ reprocess:
       { p->state = S_STRING;
 	p->saved = chr;
 	p->lit_saved_state = S_DECL;
-	return;
+	return TRUE;
       } else if ( f[CF_CMT] == chr &&	/* - */
 		  p->buffer->data[0] == f[CF_MDO2] ) /* Started <! */
       { p->state = S_DECLCMT0;
@@ -5048,7 +5049,7 @@ reprocess:
 	process_marked_section(p);
       }
 
-      break;
+      return TRUE;
     }
     case S_DECLCMT0:			/* <...- */
     { if ( f[CF_CMT] == chr )
@@ -5058,19 +5059,19 @@ reprocess:
       { add_icharbuf(p->buffer, chr);
 	p->state = S_DECL;
       }
-      break;
+      return TRUE;
     }
     case S_DECLCMT:			/* <...--.. */
     { if ( f[CF_CMT] == chr )
 	p->state = S_DECLCMTE0;
-      break;
+      return TRUE;
     }
     case S_DECLCMTE0:			/* <...--..- */
     { if ( f[CF_CMT] == chr )
 	p->state = S_DECL;
       else
 	p->state = S_DECLCMT;
-      break;
+      return TRUE;
     }
     case S_PI:
     { add_icharbuf(p->buffer, chr);
@@ -5078,7 +5079,7 @@ reprocess:
 	p->state = S_PI2;
       if ( f[CF_PRC] == chr )		/* no ? is ok too (XML/SGML) */
 	goto pi;
-      return;
+      return TRUE;
     }
     case S_PI2:
     { if ( f[CF_PRC] == chr )
@@ -5091,29 +5092,29 @@ reprocess:
 	{ process_pi(p, p->buffer->data);
 	}
 	empty_icharbuf(p->buffer);
-	return;
+	return TRUE;
       }
       add_icharbuf(p->buffer, chr);
       p->state = S_PI;
-      return;
+      return TRUE;
     }
     case S_STRING:
     { add_icharbuf(p->buffer, chr);
       if ( chr == p->saved )
 	p->state = p->lit_saved_state;
-      break;
+      return TRUE;
     }
     case S_CMTO:			/* Seen <!- */
     { if ( f[CF_CMT] == chr )		/* - */
       { p->state = S_CMT1;
-	return;
+	return TRUE;
       } else
       { add_cdata(p, f[CF_MDO1]);
 	add_cdata(p, f[CF_MDO2]);
 	add_cdata(p, f[CF_CMT]);
 	add_cdata(p, chr);
 	p->state = S_PCDATA;
-	return;
+	return TRUE;
       }
     }
     case S_CMT1:			/* <!-- */
@@ -5122,19 +5123,19 @@ reprocess:
 	  gripe(p, ERC_SYNTAX_ERROR, L"Illegal comment", L"<!---");
       }
       p->state = S_CMT;
-      break;
+      return TRUE;
     }
     case S_CMT:
     { if ( f[CF_CMT] == chr )
 	p->state = S_CMTE0;		/* <!--...- */
-      break;
+      return TRUE;
     }
     case S_CMTE0:			/* <!--... -- */
     { if ( f[CF_CMT] == chr )
 	p->state = S_CMTE1;
       else
 	p->state = S_CMT;
-      break;
+      return TRUE;
     }
     case S_CMTE1:			/* <!--...-- seen */
     { if ( f[CF_MDC] == chr )		/* > */
@@ -5147,7 +5148,7 @@ reprocess:
 	if ( f[CF_CMT] != chr )
 	  p->state = S_CMT;
       }
-      break;
+      return TRUE;
     }
     case S_GROUP:			/* [...] in declaration */
     { add_icharbuf(p->buffer, chr);
@@ -5164,15 +5165,16 @@ reprocess:
       { p->state = S_STRING;
 	p->saved = chr;
 	p->lit_saved_state = S_GROUP;
-	return;
+	return TRUE;
       }
-      break;
+      return TRUE;
     }
 #ifdef UTF8
     case S_UTF8:
-      assert(0);
-      break;
 #endif
+    default:
+      assert(0);
+      return FALSE;
   }
 }
 

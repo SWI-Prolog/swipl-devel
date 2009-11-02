@@ -1063,9 +1063,11 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 
       pd->tail = content;
       PL_reset_term_refs(alist);
+
+      return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
   }
 
   if ( pd->on_begin )

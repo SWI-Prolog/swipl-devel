@@ -466,7 +466,7 @@ dtd *		new_dtd(const ichar *doctype);
 int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
 int		set_option_dtd(dtd *dtd, dtd_option option, int set);
 
-void		putchar_dtd_parser(dtd_parser *p, int chr);
+int		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
 void		reset_document_dtd_parser(dtd_parser *p);
