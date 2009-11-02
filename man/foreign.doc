@@ -2047,6 +2047,11 @@ used to return the exception term.%
 	      passed and filled with the error term.   Exceptions
 	      can only be handled using the PL_next_solution() interface,
 	      as a handle to the query is required.}
+
+Additionally, \verb$PL_exception(0)$ returns the pending exception in
+the current query or 0 if no exception is pending. This can be used to
+check the error-status after a failing call to e.g., one of the
+unification functions.
 \end{description}
 
 
