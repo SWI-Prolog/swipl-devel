@@ -1051,7 +1051,9 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 			  PL_TERM, h,
 			  PL_TERM, alist,
 			  PL_TERM, content) )
+    { pd->exception = PL_exception(0);
       return FALSE;
+    }
 
     if ( PL_unify_list(pd->tail, h, pd->tail) &&
 	 PL_unify(h, et) )
@@ -1067,6 +1069,7 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
       return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1084,9 +1087,11 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 	   );
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1114,9 +1119,11 @@ on_end(dtd_parser *p, dtd_element *e)
 	   );
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1169,9 +1176,11 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 	     );
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1181,7 +1190,9 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 
     if ( !h ||
 	 !PL_unify_list(pd->tail, h, pd->tail) )
+    { pd->exception = PL_exception(0);
       return FALSE;
+    }
 
     if ( e )
       rc = PL_unify_term(h,
@@ -1193,6 +1204,8 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 			   PL_INT, chr);
 
     PL_reset_term_refs(h);
+    if ( !rc )
+      pd->exception = PL_exception(0);
 
     return rc;
   }
@@ -1217,9 +1230,11 @@ on_data(dtd_parser *p, data_type type, int len, const wchar_t *data)
 	     call_prolog(pd, pd->on_cdata, av) );
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1259,6 +1274,8 @@ on_data(dtd_parser *p, data_type type, int len, const wchar_t *data)
       if ( rval )
       { PL_reset_term_refs(h);
 	return TRUE;
+      } else
+      { pd->exception = PL_exception(0);
       }
     }
   }
@@ -1337,8 +1354,10 @@ on_error(dtd_parser *p, dtd_error *error)
 	     call_prolog(pd, pd->on_error, av)
 	   );
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
+    pd->exception = PL_exception(0);
     return FALSE;
   } else if ( pd->error_mode != EM_QUIET )
   { fid_t fid;
@@ -1378,9 +1397,11 @@ on_error(dtd_parser *p, dtd_error *error)
 	rc = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1396,18 +1417,34 @@ on_xmlns(dtd_parser *p, dtd_symbol *ns, dtd_symbol *url)
     return TRUE;
 
   if ( pd->on_xmlns )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t av = PL_new_term_refs(3);
+  { fid_t fid;
+    term_t av;
 
-    if ( ns )
-      put_atom_wchars(av+0, ns->name);
-    else
-      PL_put_nil(av+0);
-    put_atom_wchars(av+1, url->name);
-    unify_parser(av+2, p);
+    if ( (fid = PL_open_foreign_frame()) &&
+	 (av = PL_new_term_refs(3)) )
+    { int rc;
 
-    call_prolog(pd, pd->on_xmlns, av);
-    end_frame(fid, pd->exception);
+      if ( ns )
+      { rc = put_atom_wchars(av+0, ns->name);
+      } else
+      { PL_put_nil(av+0);
+	rc = TRUE;
+      }
+
+      if ( rc )
+      { rc = ( put_atom_wchars(av+1, url->name) &&
+	       unify_parser(av+2, p) &&
+	       call_prolog(pd, pd->on_xmlns, av)
+	     );
+      }
+      end_frame(fid, pd->exception);
+      PL_discard_foreign_frame(fid);
+      if ( rc )
+	return TRUE;
+    }
+
+    pd->exception = PL_exception(0);
+    return FALSE;
   }
 
   return TRUE;
@@ -1434,9 +1471,11 @@ on_pi(dtd_parser *p, const ichar *pi)
 	   );
 
       PL_discard_foreign_frame(fid);
-      return rc;
+      if ( rc )
+	return TRUE;
     }
 
+    pd->exception = PL_exception(0);
     return FALSE;
   }
 
@@ -1445,12 +1484,16 @@ on_pi(dtd_parser *p, const ichar *pi)
 
     if ( !(h = PL_new_term_ref()) ||
 	 !PL_unify_list(pd->tail, h, pd->tail) )
+    { pd->exception = PL_exception(0);
       return FALSE;
+    }
 
     if ( !PL_unify_term(h,
 			PL_FUNCTOR, FUNCTOR_pi1,
 			  PL_NWCHARS, wcslen(pi), pi) )
+    { pd->exception = PL_exception(0);
       return FALSE;
+    }
 
     PL_reset_term_refs(h);
   }
@@ -1467,14 +1510,25 @@ on_decl(dtd_parser *p, const ichar *decl)
     return TRUE;
 
   if ( pd->on_decl )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t av = PL_new_term_refs(2);
+  { fid_t fid;
+    term_t av;
 
-    put_atom_wchars(av+0, decl);
-    unify_parser(av+1, p);
+    if ( (fid = PL_open_foreign_frame()) &&
+	 (av = PL_new_term_refs(2)) )
+    { int rc;
 
-    call_prolog(pd, pd->on_decl, av);
-    end_frame(fid, pd->exception);
+      rc = ( put_atom_wchars(av+0, decl) &&
+	     unify_parser(av+1, p) &&
+	     call_prolog(pd, pd->on_decl, av)
+	   );
+      end_frame(fid, pd->exception);
+      PL_discard_foreign_frame(fid);
+      if ( rc )
+	return TRUE;
+    }
+
+    pd->exception = PL_exception(0);
+    return FALSE;
   }
 
   if ( pd->stopat == SA_DECL )
@@ -1501,7 +1555,10 @@ write_parser(void *h, char *buf, int len)
   }
 
   for(; s<e; s++)
-    putchar_dtd_parser(pd->parser, *s);
+  { putchar_dtd_parser(pd->parser, *s);
+    if ( pd->exception )
+      break;
+  }
 
   return len;
 }
