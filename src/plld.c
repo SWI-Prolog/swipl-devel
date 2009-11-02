@@ -676,6 +676,12 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-pg") )		/* -pg* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
+    } else if ( streq(opt, "-g3") )		/* -g3 */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
+    } else if ( strprefix(opt, "gdwarf-") ) 	/* -gdwarf-* */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( strprefix(opt, "-O") )		/* -O* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
