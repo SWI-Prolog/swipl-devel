@@ -5189,17 +5189,18 @@ circuit_successors(V, Tos) :-
 %  Signature, if necessary. Nodes is a list of source(Node) and
 %  sink(Node) terms. Arcs is a list of arc(Node,Integer,Node) and
 %  arc(Node,Integer,Node,Exprs) terms that denote the automaton's
-%  transitions. Each node is represented by a ground term. Transitions
-%  that are not mentioned go to an implicit failure node. Exprs is a
-%  list of arithmetic expressions, of the same length as Counters. In
-%  each expression, variables occurring in Counters correspond to old
-%  counter values, and variables occurring in Template correspond to
-%  the current element of Sequence. When a transition containing
-%  expressions is taken, counters are updated as stated. By default,
-%  counters remain unchanged. Counters is a list of variables that
-%  must not occur anywhere outside of the constraint goal. Initials is
-%  a list of the same length as Counters. Counter arithmetic on the
-%  transitions relates the counter values in Initials to Finals.
+%  transitions. Each node is represented by an arbitrary term.
+%  Transitions that are not mentioned go to an implicit failure node.
+%  Exprs is a list of arithmetic expressions, of the same length as
+%  Counters. In each expression, variables occurring in Counters
+%  correspond to old counter values, and variables occurring in
+%  Template correspond to the current element of Sequence. When a
+%  transition containing expressions is taken, counters are updated as
+%  stated. By default, counters remain unchanged. Counters is a list
+%  of variables that must not occur anywhere outside of the constraint
+%  goal. Initials is a list of the same length as Counters. Counter
+%  arithmetic on the transitions relates the counter values in
+%  Initials to Finals.
 %
 %  In the following example, a list of binary finite domain variables
 %  is constrained to contain at least two consecutive ones:
