@@ -89,10 +89,15 @@ bagof(Templ, Goal, List) :-
 	->  findall(Templ, Goal, List),
 	    List \== []
 	;   findall(Vars-Templ, Goal, Answers),
-	    '$bind_bagof_keys'(Vars, Answers),
+	    bind_bagof_keys(Answers,_),
 	    keysort(Answers, Sorted),
 	    pick(Sorted, Vars, List, _)
 	).
+
+bind_bagof_keys([], _).
+bind_bagof_keys([W-_|WTs], Vars) :-
+	term_variables(W, Vars, _),
+	bind_bagof_keys(WTs, Vars).
 
 pick(Bags, Vars1, Bag1, Resort1) :-
 	pick_first(Bags, Vars0, Bag0, RestBags, Resort0),
@@ -125,16 +130,10 @@ unify_bag(Vars, Bag, Resort, Vars, Bag, Resort).
 pick_first([Vars-Templ|T0], Vars, [Templ|T], RestBag, ReSort) :-
 	pick_same(T0, Vars, T, RestBag, ReSort).
 
-pick_same([V-H|T0], Vars, [H|T], Bag, ReSort) :-
-	V == Vars, !,
-	pick_same(T0, Vars, T, Bag, ReSort).
+
 pick_same([V-H|T0], Vars, [H|T], Bag, true) :-
-	V =@= Vars, !,			% variant
+	V == Vars, !,			% variant
 	pick_same(T0, Vars, T, Bag, _).
-pick_same([H|T0], Vars, Bag1, [H|Bag], true) :-
-	arg(1, H, Key),
-	\+ Vars \= Key, !,
-	pick_same(T0, Vars, Bag1, Bag, _).
 pick_same(Bag, _, [], Bag, false).
 
 
@@ -151,12 +150,8 @@ setof(Templ, Goal, List) :-
 	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
-	     '$bind_bagof_keys'(Vars, Answers),
+	    bind_bagof_keys(Answers,_),
 	    sort(Answers, Sorted),
-	    pick(Sorted, Vars, List0, ReSort),
-	    re_sort(ReSort, List0, List)
+	    pick(Sorted, Vars, Listu, _),
+	    sort(Listu,List)
 	).
-
-re_sort(true, List0, List) :- !,
-	sort(List0, List).
-re_sort(_, List, List).
