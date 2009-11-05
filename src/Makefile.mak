@@ -103,6 +103,8 @@ MANDIR= "$(PLBASE)\doc\Manual"
 
 all:	lite packages
 
+remake-all: distclean all install
+
 lite:	banner \
 	headers	swipl subdirs vmi \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \

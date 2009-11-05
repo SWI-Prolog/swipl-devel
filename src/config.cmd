@@ -181,8 +181,8 @@ set "EP!MSVCRT=msvcr100.dll"
 
 if "%VCXX%_%TYPE%" GEQ "VC08_STU" (SET "EP!VC_VERSION=VC8_OR_MORE") else (SET "EP!VC_VERSION=VC7_OR_LESS")
 :: What about this here?
-if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")
-if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSISDEFS=/DWIN%BITS% /DMSVCRT=$(MSVCRT)")
+if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")
+if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSISDEFS=/DWIN%BITS% /DMSVCRT=$(MSVCRT)")
 :end_set_additional_variables
 
 
@@ -205,7 +205,7 @@ echo      %EP!HOME%\src
 ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
 cls
 type welcome.txt
-echo Error: can not connect to www.swi-prolog.org at the moment, the site might be 
+echo Error: can not connect to www.swi-prolog.org at the moment, the site might be
 echo experiencing problems, or your internet connection might be down.
 echo.
 echo Please, check your internet connection, and/or try again later, exiting...
@@ -226,10 +226,10 @@ goto get_pre-requisites_ask_again
 :get_pre-requisites_answer_no
 cls
 type welcome.txt
-echo Warning: you have chosen to provide the required pre-requisites for your 
-echo target-build yourself. 
+echo Warning: you have chosen to provide the required pre-requisites for your
+echo target-build yourself.
 echo.
-<nul (set/p _=Continuing in about 3 seconds ) 
+<nul (set/p _=Continuing in about 3 seconds )
 for /l %%A in (1,1,3) do (
 <nul (set/p _=.)
 >nul ping 127.0.0.1 -n 2)
@@ -370,7 +370,7 @@ echo Re-Run this script again after providing all pre-requisites, exiting...
 goto end
 :assumed_user_lib_dirs_complete_answer_yes
 echo.
-<nul (set/p _=Continuing in about 3 seconds ) 
+<nul (set/p _=Continuing in about 3 seconds )
 for /l %%A in (1,1,3) do (
 <nul (set/p _=.)
 >nul ping 127.0.0.1 -n 2)
@@ -410,7 +410,7 @@ echo.
 echo Error: the only choices possible are y/Y and n/N or [enter]!
 goto deal_with_install_dir_different_ask_again
 :deal_with_install_dir_different_answer_no
-<nul (set/p _=Exiting in about 3 seconds ) 
+<nul (set/p _=Exiting in about 3 seconds )
 for /l %%A in (1,1,3) do (
 <nul (set/p _=.)
 >nul ping 127.0.0.1 -n 2)
@@ -479,7 +479,7 @@ echo 64-bit host OS, OpenSSL must be installed in "Program Files (x86)". During
 echo installation, you are asked where to install the executables. They should
 echo be installed in the OpenSSL directory. This is NOT the default!
 echo.
-echo Warning: OpenSSL not found, OpenSSL must be installed 
+echo Warning: OpenSSL not found, OpenSSL must be installed
 echo in %EP!TARGET_PROGRAM_FILES%\OpenSSL.
 echo.
 echo The OpenSSL for Windows packages can be downloaded at:
@@ -521,15 +521,15 @@ set "PLBUILD_JPL="
 goto end_detect_java
 :detect_java_pf_detected
 for /F %%_ in ('dir "%EP!TARGET_PROGRAM_FILES%\Java\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%EP!TARGET_PROGRAM_FILES%\Java\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%EP!TARGET_PROGRAM_FILES%\Java\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_sd_detected
 for /F %%_ in ('dir "%SystemDrive%\Java\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%SystemDrive%\Java\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%SystemDrive%\Java\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_sdnjd_detected
 for /F %%_ in ('dir "%SystemDrive%\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%SystemDrive%\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%SystemDrive%\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_detected
 if not exist "%EP!HOME%\lib\junit.jar" (goto detect_junit_jar_not_detected)
@@ -541,8 +541,8 @@ cls
 type welcome.txt
 echo Java %EP!JAVA_JDK_VERSION% found, but %EP!HOME%\lib\junit.jar not found...
 echo.
-echo Warning: the build will continue without the SWI-Prolog Java Package, it's 
-echo functionality will not be available. If Java is required, install 
+echo Warning: the build will continue without the SWI-Prolog Java Package, it's
+echo functionality will not be available. If Java is required, install
 echo the Java JDK and run this script again.
 echo.
 pause
@@ -583,7 +583,7 @@ type config.dat
 echo.
 goto end_build_now
 :build_now_answer_yes
-call automake.cmd
+call make.cmd remake-all
 goto end_no_pause
 :end_build_now
 
