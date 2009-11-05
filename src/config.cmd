@@ -181,8 +181,8 @@ set "EP!MSVCRT=msvcr100.dll"
 
 if "%VCXX%_%TYPE%" GEQ "VC08_STU" (SET "EP!VC_VERSION=VC8_OR_MORE") else (SET "EP!VC_VERSION=VC7_OR_LESS")
 :: What about this here?
-if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")
-if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSISDEFS=/DWIN%BITS% /DMSVCRT=$(MSVCRT)")
+if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")
+if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSISDEFS=/DWIN%BITS% /DMSVCRT=$(MSVCRT)")
 :end_set_additional_variables
 
 
