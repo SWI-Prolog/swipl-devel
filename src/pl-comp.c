@@ -2799,13 +2799,19 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
 	}
       case H_INT64:
-        { int64_t *p = (int64_t*)PC;
-	  int64_t v = *p++;
-	  p++;
-	  PC = (Code)p;
-	  TRY(PL_unify_int64(argp, v));
-	  NEXTARG;
-	  continue;
+        { Word p = allocGlobal(2+WORDS_PER_INT64);
+	  word w;
+
+	  if ( p )
+	  { w = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	    cpInt64Data(p, PC);
+	    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	    TRY(_PL_unify_atomic(argp, w));
+	    NEXTARG;
+	    continue;
+	  } else
+	    return FALSE;
 	}
       case H_FLOAT:
         { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
