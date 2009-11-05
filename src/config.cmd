@@ -20,7 +20,7 @@
 SETLOCAL
 
 :debugging
-:: (Un-)comment as appropriate
+:: (un-)comment as appropriate
 :: Normal operation
 set "REDIR_TO_NUL=> nul"
 :: Debugging
@@ -36,8 +36,12 @@ set "REDIR_TO_NUL=> nul"
 
 :what_host
 set "EP!WINDIR=%SystemRoot%"
-if exist "%SystemDrive%\Program Files (x86)" (set "EP!HOST_OS_ARCH=X64") ELSE (set "EP!HOST_OS_ARCH=X86")
-if "%EP!HOST_OS_ARCH%"=="X64" (set "EP!PROGRAM_FILES_32=%SystemDrive%\Program Files (x86)") else (set "EP!PROGRAM_FILES_32=%SystemDrive%\Program Files")
+:32bit_cmd.exe_on_64bit_OS
+if defined ProgramW6432 (set "EP!HOST_OS_ARCH=X64" & set "EP!PROGRAM_FILES_32=%ProgramFiles(x86)%" & set "EP!PROGRAM_FILES_64=%ProgramW6432%" & goto end_what_host)
+:64bit_cmd.exe_on_64bit_OS
+if defined ProgramFiles(x86) (set "EP!HOST_OS_ARCH=X64" & set "EP!PROGRAM_FILES_32=%ProgramFiles(x86)%" & set "EP!PROGRAM_FILES_64=%ProgramFiles%" & goto end_what_host)
+:32bit_OS
+if not defined EP!HOST_OS_ARCH (set "EP!HOST_OS_ARCH=X86" & set "EP!PROGRAM_FILES_32=%ProgramFiles%" & set "EP!PROGRAM_FILES_64=%EP!PROGRAM_FILES_32%" & goto end_what_host)
 :end_what_host
 
 
@@ -54,15 +58,14 @@ echo. >> welcome.txt
 :what_target
 cls
 type welcome.txt
-set /P "BITS=Would you like to do a 32bit or 64bit build? (32 or 64): "
+set /P "BITS=Would you like to do a 32-bit or 64-bit build? (32 or 64): "
 if "%BITS%"=="32" (goto what_target_bits_oke)
 if "%BITS%"=="64" (goto what_target_bits_oke)
 echo Error: the only choices possible are 32 and 64!
 goto what_target
 :what_target_bits_oke
-if "%BITS%"=="32" (set "EP!TARGET_OS_ARCH=X86") else (set "EP!TARGET_OS_ARCH=X64")
-if "%BITS%"=="32" (set "EP!TARGET_PROGRAM_FILES=%EP!PROGRAM_FILES_32%") else (set "EP!TARGET_PROGRAM_FILES=%SystemDrive%\Program Files")
-if "%BITS%"=="32" (set "EP!MD=WIN32") else (set "EP!MD=WIN64")
+if "%BITS%"=="32" (set "EP!TARGET_OS_ARCH=X86" & set "EP!TARGET_PROGRAM_FILES=%EP!PROGRAM_FILES_32%") else (set "EP!TARGET_OS_ARCH=X64" & set "EP!TARGET_PROGRAM_FILES=%EP!PROGRAM_FILES_64%")
+set "EP!MD=WIN%BITS%"
 :end_what_target
 
 
@@ -79,7 +82,7 @@ goto end
 ::determine_vc_version
 set "VCXX=UNKNOWN"
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio\VC98\" (set "VCXX=VC06")
-if exist "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\" (set "VCXX=VC08")
+if exist "%EP!PROGRAM_FILES_64%\Microsoft Platform SDK for Windows Server 2003 R2\" (set "VCXX=VC08")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\" (set "VCXX=VC08")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\" (set "VCXX=VC09")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\" (set "VCXX=VC10")
@@ -87,9 +90,9 @@ if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\" (set "VCXX=VC10")
 if "%VCXX%_%BITS%"=="VC06_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio\VC98\Bin\VCVARS32.BAT" ^> nul > call_vcvars.cmd)
 if "%VCXX%_%BITS%"=="VC06_64" (goto this_build_is_not_possible)
 ::set_vc8_or_sdk2003_R2_environment_file
-if exist "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" (set "TYPE=SDK")
+if exist "%EP!PROGRAM_FILES_64%\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" (set "TYPE=SDK")
 if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" (set "TYPE=STU")
-if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (@echo call "%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" /X64 /RETAIL ^> nul > call_vcvars.cmd)
+if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (@echo call "%EP!PROGRAM_FILES_64%\Microsoft Platform SDK for Windows Server 2003 R2\SetEnv.Cmd" /X64 /RETAIL ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_32" (goto this_build_is_not_possible)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
@@ -157,7 +160,7 @@ set "EP!EXTRALIBS=%EP!GMP_LIB% %BUFFEROVERFLOW%"
 :: MSVC Runtime(s)
 :msvcrt8_sdk
 if not "%VCXX%"=="VC08_SDK" (goto end_msvcrt8_sdk)
-set "EP!MSVCRTDIR=%SystemDrive%\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64"
+set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_64%\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64"
 set "EP!MSVCRT=msvcr80.dll"
 :end_msvcrt8_sdk
 :msvcrt8_studio
@@ -176,10 +179,10 @@ if "%BITS%"=="32" (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Stud
 set "EP!MSVCRT=msvcr100.dll"
 :end_msvcrt10
 
-
+if "%VCXX%_%TYPE%" GEQ "VC08_STU" (SET "EP!VC_VERSION=VC8_OR_MORE") else (SET "EP!VC_VERSION=VC7_OR_LESS")
+:: What about this here?
 if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")
 if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "NSISDEFS=/DWIN%BITS% /DMSVCRT=$(MSVCRT)")
-if "%VCXX%_%TYPE%" GEQ "VC08_STU" (SET "EP!VC_VERSION=VC8_OR_MORE") else (SET "EP!VC_VERSION=VC7_OR_LESS")
 :end_set_additional_variables
 
 
@@ -195,9 +198,9 @@ echo to be downloaded from %PRE-REQ_LOCA%
 echo You could also provide these (or some of them) yourself, you will be prompted
 echo for this.
 echo.
-echo The archive %PRE-REQ_FILE% will be placed in the following directory:
+echo The archive %PRE-REQ_FILE% will be placed in the following folder:
 echo.
-echo %EP!HOME%\src
+echo      %EP!HOME%\src
 :have_connection_to_swi-prolog.org
 ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
 cls
@@ -223,13 +226,16 @@ goto get_pre-requisites_ask_again
 :get_pre-requisites_answer_no
 cls
 type welcome.txt
-echo Warning: you have chosen to provide the required pre-requisites for your target-
-echo build yourself. 
+echo Warning: you have chosen to provide the required pre-requisites for your 
+echo target-build yourself. 
 echo.
-echo Continuing in 2 seconds...
-ping -n 2 localhost > nul
+<nul (set/p _=Continuing in about 3 seconds ) 
+for /l %%A in (1,1,3) do (
+<nul (set/p _=.)
+>nul ping 127.0.0.1 -n 2)
 goto create_user_lib_dirs
 :get_pre-requisites_start
+set "NO_TRIES=0"
 echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.vbs
 echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.vbs
 echo oHTTP.send >> reqs%BITS%.vbs
@@ -241,9 +247,10 @@ echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.vbs
 echo set oStream = nothing >> reqs%BITS%.vbs
 echo set oHTTP = nothing >> reqs%BITS%.vbs
 goto execute_get_pre-requisites_script
-set "NO_TRIES=0"
 :execute_get_pre-requisites_script_wait
-ping -n 5 localhost > nul
+for /l %%A in (1,1,5) do (
+<nul (set/p _=.)
+>nul ping 127.0.0.1 -n 2)
 :execute_get_pre-requisites_script
 reqs%BITS%.vbs
 if exist %PRE-REQ_FILE% (goto get_pre-requisites_succes)
@@ -251,8 +258,7 @@ set /A NO_TRIES+=1
 cls
 type welcome.txt
 echo Error: download of the SWI-Prolog %BITS%-bit pre-requisites failed on try %NO_TRIES% (of 3),
-echo trying again in about 5 seconds...
-echo.
+<nul (set/p _=trying again in about 5 seconds )
 if %NO_TRIES% LEQ 3 (goto execute_get_pre-requisites_script_wait)
 cls
 type welcome.txt
@@ -302,7 +308,7 @@ type welcome.txt
 set "ANSWER=enter"
 :create_user_lib_dirs_ask_again
 echo.
-set /P "ANSWER=Would you like to provide your own libraries/header-files? (y or n/[enter]): "
+set /P "ANSWER=Would you like to provide own libraries/header-files? (y or n/[enter]): "
 if "%ANSWER%"=="y" (goto create_user_lib_dirs_answer_yes)
 if "%ANSWER%"=="n" (goto end_create_user_lib_dirs)
 if "%ANSWER%"=="Y" (goto create_user_lib_dirs_answer_yes)
@@ -318,7 +324,7 @@ echo The pre-requisites provided by you, should be placed in the sub-folders of
 echo      %EP!HOME%\X86
 echo and
 echo      %EP!HOME%\X64
-echo for 32- and 64-bit libraries respectively.
+echo for the 32- and 64-bit libraries, respectively.
 echo.
 echo The 32-bit files should be placed in:
 echo      %EP!HOME%\X86\bin
@@ -364,15 +370,61 @@ echo Re-Run this script again after providing all pre-requisites, exiting...
 goto end
 :assumed_user_lib_dirs_complete_answer_yes
 echo.
-echo Continuing (in 2 secs)...
-ping -n 2 localhost > nul
+<nul (set/p _=Continuing in about 3 seconds ) 
+for /l %%A in (1,1,3) do (
+<nul (set/p _=.)
+>nul ping 127.0.0.1 -n 2)
 :end_create_user_lib_dirs
 
 
-:: set pl install dir and ask for deletion!
-:delete_previous_install
+:deal_with_install_dir
+if not exist "%EP!TARGET_PROGRAM_FILES%\pl" (goto deal_with_install_dir_set_default)
+:deal_with_install_dir_remove_ask_again
+cls
+type welcome.txt
+set "ANSWER=enter"
+echo A previous build exists in "%EP!TARGET_PROGRAM_FILES%\pl"
+echo.
+echo Would you like to completely delete and overwrite this
+set /P "ANSWER=installed build (ALL will be deleted)? (y/[enter] or n): "
+if "%ANSWER%"=="y" (goto deal_with_install_dir_remove_answer_yes)
+if "%ANSWER%"=="n" (goto deal_with_install_dir_remove_answer_no)
+if "%ANSWER%"=="Y" (goto deal_with_install_dir_remove_answer_yes)
+if "%ANSWER%"=="N" (goto deal_with_install_dir_remove_answer_no)
+if "%ANSWER%"=="enter" (goto deal_with_install_dir_remove_answer_yes)
+echo.
+echo Error: the only choices possible are y/Y and n/N or [enter]!
+goto deal_with_install_dir_remove_ask_again
+:deal_with_install_dir_remove_answer_no
+cls
+type welcome.txt
+set "ANSWER=enter"
+:deal_with_install_dir_different_ask_again
+set /P "ANSWER=Would you like to install in a different directory? (y or n/[enter]): "
+if "%ANSWER%"=="y" (goto deal_with_install_dir_different_answer_yes)
+if "%ANSWER%"=="n" (goto deal_with_install_dir_different_answer_no)
+if "%ANSWER%"=="Y" (goto deal_with_install_dir_different_answer_yes)
+if "%ANSWER%"=="N" (goto deal_with_install_dir_different_answer_no)
+if "%ANSWER%"=="enter" (goto deal_with_install_dir_different_answer_no)
+echo.
+echo Error: the only choices possible are y/Y and n/N or [enter]!
+goto deal_with_install_dir_different_ask_again
+:deal_with_install_dir_different_answer_no
+<nul (set/p _=Exiting in about 3 seconds ) 
+for /l %%A in (1,1,3) do (
+<nul (set/p _=.)
+>nul ping 127.0.0.1 -n 2)
+goto end
+:deal_with_install_dir_different_answer_yes
+cls
+type welcome.txt
+set /P "EP!PL_DIR_NAME=What folder name would you like to create? (name[enter]): "
+if not "%EP!PL_DIR_NAME%"=="" (goto end_deal_with_install_dir) else (goto deal_with_install_dir_different_answer_yes)
+:deal_with_install_dir_remove_answer_yes
 if exist "%EP!TARGET_PROGRAM_FILES%\pl" (rd /S /Q "%EP!TARGET_PROGRAM_FILES%\pl" %REDIR_TO_NUL%)
-:end_delete_previous_install
+:deal_with_install_dir_set_default
+set "EP!PL_DIR_NAME=pl"
+:end_deal_with_install_dir
 
 
 :detect_gmp

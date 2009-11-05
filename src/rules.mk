@@ -20,7 +20,7 @@ LIB=$(LIB);$(HOME)\$(TARGET_OS_ARCH)\lib;$(HOME)\lib
 # copy the result to wherever you want.
 
 prefix=$(TARGET_PROGRAM_FILES)
-PLBASE=$(TARGET_PROGRAM_FILES)\pl
+PLBASE=$(TARGET_PROGRAM_FILES)\$(PL_DIR_NAME)
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
