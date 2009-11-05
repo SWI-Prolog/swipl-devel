@@ -181,6 +181,7 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     *ex = 0;
   } else
   { reset = 0;
+    ex2 = 0;				/* keep compiler happy */
   }
 
   if ( !(g=PL_new_term_ref()) )
