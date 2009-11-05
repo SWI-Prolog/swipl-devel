@@ -85,7 +85,7 @@ fa_loop(Templ, Goal, Bag, List, Tail) :-
 
 bagof(Templ, Goal, List) :-
 	'$e_free_variables'(Templ^Goal, Vars),
-	(   Vars == []
+	(   Vars == v
 	->  findall(Templ, Goal, List),
 	    List \== []
 	;   findall(Vars-Templ, Goal, Answers),
@@ -142,7 +142,7 @@ pick_same(Bag, _, [], Bag).
 
 setof(Templ, Goal, List) :-
 	'$e_free_variables'(Templ^Goal, Vars),
-	(   Vars == []
+	(   Vars == v
 	->  findall(Templ, Goal, Answers),
 	    Answers \== [],
 	    sort(Answers, List)
