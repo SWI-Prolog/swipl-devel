@@ -104,13 +104,11 @@ pick(Bags, Vars1, Bag1) :-
 	select_bag(RestBags, Vars0, Bag0, Vars1, Bag1).
 
 select_bag([], Vars0, Bag0, Vars1, Bag1) :- !, % last one: deterministic
-	unify_bag(Vars0, Bag0, Vars1, Bag1).
-select_bag(_, Vars0, Bag0, Vars1, Bag1) :-
-	unify_bag(Vars0, Bag0, Vars1, Bag1).
+	Vars0 = Vars1,
+	Bag0 = Bag1.
+select_bag(_, Vars, Bag, Vars, Bag).
 select_bag(RestBags, _, _, Vars1, Bag1) :-
 	pick(RestBags, Vars1, Bag1).
-
-unify_bag(Vars, Bag, Vars, Bag).
 
 
 %%	pick_first(+Bags, +Vars, -Bag1, -RestBags) is semidet.
