@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -69,8 +69,8 @@ findall(Templ, Goal, List) :-
 
 findall(Templ, Goal, List, Tail) :-
 	setup_call_cleanup('$new_findall_bag'(Bag),
-			       fa_loop(Templ, Goal, Bag, List, Tail),
-			       '$destroy_findall_bag'(Bag)).
+			   fa_loop(Templ, Goal, Bag, List, Tail),
+			   '$destroy_findall_bag'(Bag)).
 
 fa_loop(Templ, Goal, Bag, List, Tail) :-
 	\+ (Goal, \+ '$add_findall_bag'(Bag, Templ)),
