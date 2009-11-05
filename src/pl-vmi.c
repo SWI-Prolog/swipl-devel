@@ -313,7 +313,6 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
   if ( canBind(*k) )
   { Word p;
     word c;
-    size_t i;
 
     if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
     { int rc;
@@ -333,8 +332,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
     c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
     *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
-    for(i=0; i<WORDS_PER_INT64; i++)
-      *p++ = (word)*PC++;
+    cpInt64Data(p, PC);
     *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 
     bindConst(k, c);
