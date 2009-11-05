@@ -154,3 +154,8 @@ boot64.prc
 doc-version
 .doc-action
 pl-doc-*.tar.gz
+*.manifest
+config.dat
+call_vcvars.cmd
+src/reqs64.cab
+src/reqs32.cab
