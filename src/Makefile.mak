@@ -103,10 +103,7 @@ MANDIR= "$(PLBASE)\doc\Manual"
 
 all:	lite packages
 
-remake-all:
-	$(MAKE) /f makefile.mak distclean > nul
-	$(MAKE) /f makefile.mak all
-	$(MAKE) /f makefile.mak install
+remake-all: distclean all install
 
 lite:	banner \
 	headers	swipl subdirs vmi \
