@@ -521,15 +521,15 @@ set "PLBUILD_JPL="
 goto end_detect_java
 :detect_java_pf_detected
 for /F %%_ in ('dir "%EP!TARGET_PROGRAM_FILES%\Java\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%EP!TARGET_PROGRAM_FILES%\Java\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%EP!TARGET_PROGRAM_FILES%\Java\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_sd_detected
 for /F %%_ in ('dir "%SystemDrive%\Java\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%SystemDrive%\Java\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%SystemDrive%\Java\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_sdnjd_detected
 for /F %%_ in ('dir "%SystemDrive%\jdk*" /A:D /B') do (set "EP!JAVA_JDK_VERSION=%%_")
-set "EP!JAVA_HOME=%SystemDrive%\%EP!JAVA_SDK_VERSION%"
+set "EP!JAVA_HOME=%SystemDrive%\%EP!JAVA_JDK_VERSION%"
 goto detect_java_detected
 :detect_java_detected
 if not exist "%EP!HOME%\lib\junit.jar" (goto detect_junit_jar_not_detected)
