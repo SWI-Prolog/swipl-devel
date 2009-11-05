@@ -434,9 +434,9 @@ goto detect_gmp_detected
 :detect_gmp_not_detected
 cls
 type welcome.txt
-echo Warning: GMP (or one of its' components) not found...
+echo Warning: GMP (or one of its components) not found...
 echo.
-echo The build will continue without GMP, it's functionality will not be
+echo The build will continue without GMP, its functionality will not be
 echo available. If GMP is required, install GMP and run this script again.
 echo.
 pause
@@ -457,9 +457,9 @@ goto detect_zlib_detected
 :detect_zlib_not_detected
 cls
 type welcome.txt
-echo Warning: ZLIB (or one of its' components) not found...
+echo Warning: ZLIB (or one of its components) not found...
 echo.
-echo The build will continue without ZLIB, it's functionality will not be
+echo The build will continue without ZLIB, its functionality will not be
 echo available. If ZLIB is required, install ZLIB and run this script again.
 echo.
 pause
@@ -486,7 +486,7 @@ echo The OpenSSL for Windows packages can be downloaded at:
 echo http://www.slproweb.com/products/Win32OpenSSL.html.
 echo Please, choose the full (i.e. not the light) distribution package.
 echo.
-echo Warning: the build will continue without OpenSSL, it's functionality will not be
+echo Warning: the build will continue without OpenSSL, its functionality will not be
 echo available. If OpenSSL is required, please install OpenSSL following the above
 echo instructions and run this script again.
 echo.
@@ -512,7 +512,7 @@ cls
 type welcome.txt
 echo Warning: Java JDK not found...
 echo.
-echo The build will continue without the SWI-Prolog Java Package, it's functionality
+echo The build will continue without the SWI-Prolog Java Package, its functionality
 echo will not be available. If Java is required, install the Java JDK and run this
 echo script again.
 echo.
@@ -541,7 +541,7 @@ cls
 type welcome.txt
 echo Java %EP!JAVA_JDK_VERSION% found, but %EP!HOME%\lib\junit.jar not found...
 echo.
-echo Warning: the build will continue without the SWI-Prolog Java Package, it's
+echo Warning: the build will continue without the SWI-Prolog Java Package, its
 echo functionality will not be available. If Java is required, install
 echo the Java JDK and run this script again.
 echo.
