@@ -1778,7 +1778,18 @@ load_files(Module:Files, Options) :-
 %	discontiguous  warnings  are  not  issued.    The   clauses  are
 %	associated with the current file and  therefore wiped out if the
 %	file is reloaded.
+%
+%	If the cross-referencer is active, we should not (re-)assert the
+%	clauses.  Actually,  we  should   make    them   known   to  the
+%	cross-referencer. How do we do that?   Maybe we need a different
+%	API, such as in:
+%
+%	  ==
+%	  expand_term_aux(Goal, NewGoal, Clauses)
+%	  ==
 
+compile_aux_clauses(_Clauses) :-
+	current_prolog_flag(xref, true), !.
 compile_aux_clauses(Clauses) :-
 	source_location(File, _Line),
 	'$start_aux'(File, Context),

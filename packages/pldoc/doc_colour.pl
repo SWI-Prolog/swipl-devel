@@ -127,13 +127,25 @@ sub_fragments([F|R0], End, Sub, Rest) :-
 %
 %	Process input from Src, calling :Handler on identified
 %	fragments.
+%
+%	Note that we set the =xref= flag to avoid asserting clauses from
+%	compile_aux_clauses/1.  This API needs rethinking.
 
 process_source(Src, Handler) :-
 	prolog_open_source(Src, Fd),
+	(   current_prolog_flag(xref, Xref)
+	->  true
+	;   Xref = false
+	),
+	set_prolog_flag(xref, true),
 	b_setval(doc_colour_handler, Handler),
 	call_cleanup(process_input(Fd, Src),
-		     (	 prolog_close_source(Fd),
-			 nb_delete(doc_colour_handler))).
+		     cleanup_source(Xref, Fd)).
+
+cleanup_source(Xref, Fd) :-
+	set_prolog_flag(xref, Xref),
+	prolog_close_source(Fd),
+	nb_delete(doc_colour_handler).
 
 process_input(In, Context) :-
 	repeat,
