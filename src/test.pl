@@ -1071,11 +1071,25 @@ sets(bagof-1) :-
 	List = [_,_,_],
 	bagof(X, member(X, List), Xs),
 	Xs == List.
-sets(setof-3) :-
+sets(setof-3001) :-
+	List = [_,_,_],
+	setof(X, member(X, List), Xs),
+	Xs = List.
+sets(setof-3002) :-
 	List = [_,_,_],
 	setof(X, member(X, List), Xs),
 	sort(List, LS),
 	Xs == LS.
+sets(setof-4) :-
+	findall(f(X,Y,Z), setof(t,(X=Y;Y=Z;Z=X),_), Fs),
+	Fs = [_,_,_],
+	Ms = [f(X,X,_),f(_,Y,Y),f(X,_,X)],
+	\+ ( member(M, Ms), \+ ( member(F, Fs), F =@= M ) ).
+sets(setof-5) :- % Bart Demoen's example
+	findall(f(X,Z,A,B,Out), ( Given = [f(X,1),f(2,Z)], bagof(A,member(f(A,B),Given),Out) ), Fs),
+	Fs = [_,_],
+	Ms = [f(X, Z, A, Z, [2]), f(X, Z, A, 1, [X])],
+	\+ ( member(M, Ms), \+ ( member(F, Fs), F =@= M ) ).
 
 
 		 /*******************************

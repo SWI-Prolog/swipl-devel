@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -69,8 +69,8 @@ findall(Templ, Goal, List) :-
 
 findall(Templ, Goal, List, Tail) :-
 	setup_call_cleanup('$new_findall_bag'(Bag),
-			       fa_loop(Templ, Goal, Bag, List, Tail),
-			       '$destroy_findall_bag'(Bag)).
+			   fa_loop(Templ, Goal, Bag, List, Tail),
+			   '$destroy_findall_bag'(Bag)).
 
 fa_loop(Templ, Goal, Bag, List, Tail) :-
 	\+ (Goal, \+ '$add_findall_bag'(Bag, Templ)),
@@ -85,57 +85,51 @@ fa_loop(Templ, Goal, Bag, List, Tail) :-
 
 bagof(Templ, Goal, List) :-
 	'$e_free_variables'(Templ^Goal, Vars),
-	(   Vars == []
+	(   Vars == v
 	->  findall(Templ, Goal, List),
 	    List \== []
 	;   findall(Vars-Templ, Goal, Answers),
-	    '$bind_bagof_keys'(Vars, Answers),
+	    bind_bagof_keys(Answers,_),
 	    keysort(Answers, Sorted),
-	    pick(Sorted, Vars, List, _)
+	    pick(Sorted, Vars, List)
 	).
 
-pick(Bags, Vars1, Bag1, Resort1) :-
-	pick_first(Bags, Vars0, Bag0, RestBags, Resort0),
-	select_bag(RestBags, Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
+bind_bagof_keys([], _).
+bind_bagof_keys([W-_|WTs], Vars) :-
+	term_variables(W, Vars, _),
+	bind_bagof_keys(WTs, Vars).
 
-select_bag([], Vars0, Bag0, Resort0, Vars1, Bag1, Resort1) :- !, % last one: deterministic
-	unify_bag(Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
-select_bag(_, Vars0, Bag0, Resort0, Vars1, Bag1, Resort1) :-
-	unify_bag(Vars0, Bag0, Resort0, Vars1, Bag1, Resort1).
-select_bag(RestBags, _, _, _, Vars1, Bag1, Resort1) :-
-	pick(RestBags, Vars1, Bag1, Resort1).
+pick(Bags, Vars1, Bag1) :-
+	pick_first(Bags, Vars0, Bag0, RestBags),
+	select_bag(RestBags, Vars0, Bag0, Vars1, Bag1).
 
-unify_bag(Vars, Bag, Resort, Vars, Bag, Resort).
+select_bag([], Vars0, Bag0, Vars1, Bag1) :- !, % last one: deterministic
+	Vars0 = Vars1,
+	Bag0 = Bag1.
+select_bag(_, Vars, Bag, Vars, Bag).
+select_bag(RestBags, _, _, Vars1, Bag1) :-
+	pick(RestBags, Vars1, Bag1).
 
 
-%%	pick_first(+Bags, +Vars, -Bag1, -RestBags, -ReSort) is semidet.
+%%	pick_first(+Bags, +Vars, -Bag1, -RestBags) is semidet.
 %
 %	Pick the first result-bag from the   list  of Templ-Answer. Note
-%	that we pick all elements that are equal under =@=, but the keys
-%	are sorted using sort/2 (standard order   of  terms). This means
-%	that our results are not all  subsequent.   If  we can no longer
-%	unify however, we are are too far and we can stop.
+%	that we pick all elements that are  equal under =@=, but because
+%	the witness variables are unified this is the same as ==.
 %
 %	@param Bags	List of Templ-Answer
 %	@param Vars	Initial Templ (for rebinding variables)
 %	@param Bag1	First bag of results
 %	@param RestBags	Remaining Templ-Answer
-%	@param ReSort	If =true=, elements are picked out of order
 
-pick_first([Vars-Templ|T0], Vars, [Templ|T], RestBag, ReSort) :-
-	pick_same(T0, Vars, T, RestBag, ReSort).
+pick_first([Vars-Templ|T0], Vars, [Templ|T], RestBag) :-
+	pick_same(T0, Vars, T, RestBag).
 
-pick_same([V-H|T0], Vars, [H|T], Bag, ReSort) :-
+
+pick_same([V-H|T0], Vars, [H|T], Bag) :-
 	V == Vars, !,
-	pick_same(T0, Vars, T, Bag, ReSort).
-pick_same([V-H|T0], Vars, [H|T], Bag, true) :-
-	V =@= Vars, !,			% variant
-	pick_same(T0, Vars, T, Bag, _).
-pick_same([H|T0], Vars, Bag1, [H|Bag], true) :-
-	arg(1, H, Key),
-	\+ Vars \= Key, !,
-	pick_same(T0, Vars, Bag1, Bag, _).
-pick_same(Bag, _, [], Bag, false).
+	pick_same(T0, Vars, T, Bag).
+pick_same(Bag, _, [], Bag).
 
 
 %%      setof(+Var, +Goal, -Set) is semidet.
@@ -146,17 +140,13 @@ pick_same(Bag, _, [], Bag, false).
 
 setof(Templ, Goal, List) :-
 	'$e_free_variables'(Templ^Goal, Vars),
-	(   Vars == []
+	(   Vars == v
 	->  findall(Templ, Goal, Answers),
 	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
-	     '$bind_bagof_keys'(Vars, Answers),
+	    bind_bagof_keys(Answers, _),
 	    sort(Answers, Sorted),
-	    pick(Sorted, Vars, List0, ReSort),
-	    re_sort(ReSort, List0, List)
+	    pick(Sorted, Vars, Listu),
+	    sort(Listu,List)
 	).
-
-re_sort(true, List0, List) :- !,
-	sort(List0, List).
-re_sort(_, List, List).

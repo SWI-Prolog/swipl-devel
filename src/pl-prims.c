@@ -2477,10 +2477,16 @@ subsumes(term_t general, term_t specific ARG_LD)
 { term_t v0;
   size_t i, n;
   term_t ex = 0;
+  int rc;
+  int omode;
 
   n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
-  if ( PL_unify(general, specific) &&
-       foreignWakeup(&ex PASS_LD) )
+  omode = LD->prolog_flag.occurs_check;
+  LD->prolog_flag.occurs_check = OCCURS_CHECK_FALSE;
+  rc = PL_unify(general, specific);
+  LD->prolog_flag.occurs_check = omode;
+
+  if ( rc && foreignWakeup(&ex PASS_LD) )
   { int rc = TRUE;
 
     startCritical;
