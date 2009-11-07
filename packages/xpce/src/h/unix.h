@@ -110,7 +110,7 @@ End;
 NewClass(directory)
   Name		name;			/* name of directory */
   Name		path;			/* full path name */
-  time_t        modified;		/* time stamp */
+  intptr_t      modified;		/* time stamp (was: time_t) */
 End;
 
 

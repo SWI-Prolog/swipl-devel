@@ -1011,7 +1011,7 @@ End;
 
 NewClass(date)
   union
-  { time_t	date;			/* Unix view of time */
+  { intptr_t	date;			/* Unix view of time */
     Any		slot;			/* dummy */
   } date;
 End;
