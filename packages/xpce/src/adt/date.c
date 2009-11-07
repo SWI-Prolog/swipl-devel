@@ -191,10 +191,11 @@ equalDate(Date d1, Date d2)
 static status
 setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 { struct tm *tm;
-  time_t t;
+  time_t t, now;
   int v;
 
-  tm = localtime(&d->unix_date);
+  now = d->unix_date;
+  tm = localtime(&now);
   if ( notDefault(s) && (v=valInt(s)) >= 0    && v <= 59   ) tm->tm_sec  = v;
   if ( notDefault(m) && (v=valInt(m)) >= 0    && v <= 59   ) tm->tm_min  = v;
   if ( notDefault(h) && (v=valInt(h)) >= 0    && v <= 23   ) tm->tm_hour = v;
@@ -295,49 +296,56 @@ yearDate(Date d, Int Y)
 
 static Int
 getSecondDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_sec));
 }
 
 
 static Int
 getMinuteDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_min));
 }
 
 
 static Int
 getHourDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_hour));
 }
 
 
 static Int
 getDayDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_mday));
 }
 
 
 static Int
 getMonthDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_mon + 1));
 }
 
 
 static Int
 getYearDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_year + 1900));
 }
 
 
 static Int
 getWeekDayDate(Date d)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
   answer(toInt(tm->tm_wday));
 }
 
@@ -362,7 +370,8 @@ static char * shortMonthName[] =
 
 static Name
 getDayNameDate(Date d, Bool shrt)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
 
   answer(shrt == ON ? CtoName(shortDayName[tm->tm_wday])
 		    : CtoName(dayName[tm->tm_wday]));
@@ -371,7 +380,8 @@ getDayNameDate(Date d, Bool shrt)
 
 static Name
 getMonthNameDate(Date d, Bool shrt)
-{ struct tm *tm = localtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = localtime(&now);
 
   answer(shrt == ON ? CtoName(shortMonthName[tm->tm_mon])
 	            : CtoName(monthName[tm->tm_mon]));
@@ -380,7 +390,8 @@ getMonthNameDate(Date d, Bool shrt)
 
 static StringObj
 getStringDate(Date d)
-{ char *s = ctime(&d->unix_date);
+{ time_t now = d->unix_date;
+  char *s = ctime(&now);
   s[24] = '\0';
 
   answer(CtoString(s));
@@ -389,7 +400,8 @@ getStringDate(Date d)
 
 static StringObj
 getRfcStringDate(Date d)
-{ char *s = ctime(&d->unix_date);
+{ time_t now = d->unix_date;
+  char *s = ctime(&now);
   char date[30];
 
   date[0] = '\0';
@@ -411,7 +423,8 @@ getRfcStringDate(Date d)
 
 static StringObj
 getXMLStringDate(Date d)
-{ struct tm *tm = gmtime(&d->unix_date);
+{ time_t now = d->unix_date;
+  struct tm *tm = gmtime(&now);
   char date[30];
 
   sprintf(date, "%04d-%02d-%02dT%02d:%02d:%02dZ",
@@ -620,7 +633,7 @@ ClassDecl(date_decls,
 
 status
 makeClassDate(Class class)
-{ assert(sizeof(time_t) <= sizeof(Any));
+{ // assert(sizeof(time_t) <= sizeof(Any)); /* On Win32, time_t > void* */
   declareClass(class, &date_decls);
 
   setLoadStoreFunctionClass(class, loadDate, storeDate);
