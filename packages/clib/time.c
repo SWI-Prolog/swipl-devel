@@ -157,41 +157,6 @@ print_trace (void)
 #define DEBUG(n, g) ((void)0)
 #endif /*O_DEBUG*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines support for timing during execution. Most of this is
-highly system dependent.
-
-Design
-======
-
-The module contains three implementations:
-
-	* Windows
-	The Windows versions is based on multimedia timer objects.
-
-	* Unix setitimer (single threaded)
-	This implementation uses setitimer() and SIG_TIME.  Whenever
-	something is changed, re_schedule() is called to set the
-	alarm clock for the next wakeup.
-
-	* Unix scheduler thread
-	This implementation uses a table shared between all threads and
-	a thread that waits for the next signal to be send using
-	pthread_cond_timedwait().  The signal SIG_TIME is then delivered
-	using pthread_kill() to the scheduled thread.
-
-This module keeps a double-linked  list   of  `scheduled events' that is
-tagged with and annotated using  the   absolute  time  it should happen.
-These  times  are  represented  using   the  struct  timeval,  providing
-microsecond   resolution.   If   the     SHARED_TABLE    version   (Unix
-multithreaded), there is one table for all  events. In the other designs
-each thread has its own table.
-
-The  signal  handler  uses  the  PL_SIGSYNC    option  to  be  scheduled
-synchronous with the Prolog activity  and   eb  able to throw exceptions
-(the most common alarm activity).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void	on_alarm(int sig);
 
 static module_t	   MODULE_user;
