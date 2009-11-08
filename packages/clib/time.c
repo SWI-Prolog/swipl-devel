@@ -398,7 +398,7 @@ nextEvent(schedule *sched)
 static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
-  int mt = PL_query(PL_QUERY_MAX_THREADS)+1;
+  int mt = (int)PL_query(PL_QUERY_MAX_THREADS)+1;
   char *signalled = alloca(mt);
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
@@ -424,9 +424,9 @@ alarm_loop(void * closure)
       if ( left.tv_sec < 0 ||
 	   (left.tv_sec == 0 && left.tv_usec == 0) )
       { if ( !signalled[ev->pl_thread_id] )
-	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d (= %ld) ...\n",
-			  (long)left.tv_sec,
-			  ev->pl_thread_id, (long)ev->thread_id));
+	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d ...\n",
+			    (long)left.tv_sec,
+			    ev->pl_thread_id));
 	  signalled[ev->pl_thread_id] = TRUE;
 #ifdef __WINDOWS__
 	  PL_thread_raise(ev->pl_thread_id, SIG_TIME);
@@ -486,8 +486,8 @@ on_alarm(int sig)
   schedule *sched = TheSchedule();
   pthread_t self = pthread_self();
 
-  DEBUG(1, Sdprintf("Signal received in %d (= %ld)\n",
-		    PL_thread_self(), (long)self));
+  DEBUG(1, Sdprintf("Signal received in %d\n",
+		    PL_thread_self()));
 #ifdef BACKTRACE
   DEBUG(10, print_trace());
 #endif
