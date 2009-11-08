@@ -517,6 +517,19 @@ set_sighandler(int sig, handler_t func)
   else
     return SIG_DFL;
 #else
+#ifdef __WINDOWS__
+  switch( sig )				/* Current Windows versions crash */
+  { case SIGABRT:			/* when given a non-supported value */
+    case SIGFPE:
+    case SIGILL:
+    case SIGINT:
+    case SIGSEGV:
+    case SIGTERM:
+      break;
+    default:
+      return SIG_IGN;
+  }
+#endif
   return signal(sig, func);
 #endif
 }
