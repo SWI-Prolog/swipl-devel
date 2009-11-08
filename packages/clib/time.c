@@ -35,10 +35,6 @@
 #include <config.h>
 #endif
 
-#ifdef __WINDOWS__
-#include <windows.h>
-#endif
-
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <error.h>
@@ -59,12 +55,11 @@
 #define SIG_TIME SIGALRM
 #endif
 
-#ifdef _REENTRANT
 #ifdef O_SAFE
 #define __USE_GNU
 #endif
+
 #include <pthread.h>
-#endif
 
 typedef enum
 { TIME_ABS,
@@ -72,26 +67,17 @@ typedef enum
 } time_abs_rel;
 
 #ifdef __WINDOWS__
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The __WINDOWS__ port uses the multimedia timers.   This  module must be linked
-with winmm.lib
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 #include <sys/timeb.h>
-#if (_MSC_VER < 1400)
-typedef DWORD DWORD_PTR;
-#endif
+#include <malloc.h>
 
 #ifndef SIGALRM
 #define SIGALRM 14
 #endif
 
-/* Seems to be there
 struct timeval
-{ long tv_usec;
-  long tv_sec;
+{ long tv_sec;
+  long tv_usec;
 };
-*/
 
 struct timezone
 { int zone;
@@ -110,10 +96,6 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 
 
 #else /*__WINDOWS__*/
-
-#ifdef _REENTRANT
-#define SHARED_TABLE 1
-#endif
 
 #include <time.h>
 #include <sys/time.h>
@@ -175,41 +157,6 @@ print_trace (void)
 #define DEBUG(n, g) ((void)0)
 #endif /*O_DEBUG*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines support for timing during execution. Most of this is
-highly system dependent.
-
-Design
-======
-
-The module contains three implementations:
-
-	* Windows
-	The Windows versions is based on multimedia timer objects.
-
-	* Unix setitimer (single threaded)
-	This implementation uses setitimer() and SIG_TIME.  Whenever
-	something is changed, re_schedule() is called to set the
-	alarm clock for the next wakeup.
-
-	* Unix scheduler thread
-	This implementation uses a table shared between all threads and
-	a thread that waits for the next signal to be send using
-	pthread_cond_timedwait().  The signal SIG_TIME is then delivered
-	using pthread_kill() to the scheduled thread.
-
-This module keeps a double-linked  list   of  `scheduled events' that is
-tagged with and annotated using  the   absolute  time  it should happen.
-These  times  are  represented  using   the  struct  timeval,  providing
-microsecond   resolution.   If   the     SHARED_TABLE    version   (Unix
-multithreaded), there is one table for all  events. In the other designs
-each thread has its own table.
-
-The  signal  handler  uses  the  PL_SIGSYNC    option  to  be  scheduled
-synchronous with the Prolog activity  and   eb  able to throw exceptions
-(the most common alarm activity).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static void	on_alarm(int sig);
 
 static module_t	   MODULE_user;
@@ -238,16 +185,8 @@ typedef struct event
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
   struct timeval at;			/* Time to deliver */
-#ifdef SHARED_TABLE
   pthread_t	 thread_id;		/* Thread to call in */
-#ifdef O_DEBUG
   int		 pl_thread_id;		/* Prolog thread ID */
-#endif
-#endif
-#ifdef __WINDOWS__
-  UINT		 mmid;			/* MultiMedia timer id */
-  DWORD		 tid;			/* thread-id of Prolog thread */
-#endif
 } event, *Event;
 
 typedef void (*handler_t)(int);
@@ -257,59 +196,16 @@ typedef struct
   Event scheduled;			/* The one we scheduled for */
 } schedule;
 
-#ifdef SHARED_TABLE
-#if defined(O_SAFE) && defined(PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP)
-#define CHECK_LOCK_RC
-static pthread_mutex_t mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
-#else
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 static pthread_cond_t cond   = PTHREAD_COND_INITIALIZER;
 static int scheduler_running = FALSE;	/* is scheduler running? */
 static pthread_t scheduler;		/* thread id of scheduler */
 
-#ifdef CHECK_LOCK_RC
-#define LOCK()   {int rc = pthread_mutex_lock(&mutex); assert(rc==0);}
-#define UNLOCK() {int rc = pthread_mutex_unlock(&mutex); assert(rc==0);}
-#else
 #define LOCK()   pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
-#endif
-#else
-#define LOCK()   (void)0
-#define UNLOCK() (void)0
-#endif /*SHARED_TABLE*/
-
-#if defined(_REENTRANT) && !defined(SHARED_TABLE)
-
-static pthread_key_t key;
-
-static schedule *
-TheSchedule()
-{ schedule *s;
-
-  if ( !(s=pthread_getspecific(key)) )
-  { s = PL_malloc(sizeof(schedule));
-    memset(s, 0, sizeof(*s));
-    pthread_setspecific(key, s);
-  }
-
-  return s;
-}
-
-static void
-free_schedule(void *closure)
-{ schedule *s = closure;
-
-  PL_free(s);
-}
-
-#else /*defined(_REENTRANT) && !defined(SHARED_TABLE)*/
 
 static schedule the_schedule;		/* the schedule */
 #define TheSchedule() (&the_schedule)	/* current schedule */
-
-#endif  /*defined(_REENTRANT) && !defined(SHARED_TABLE)*/
 
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
@@ -443,22 +339,6 @@ freeEvent(Event ev)
 }
 
 
-#ifndef SHARED_TABLE
-static void
-callEvent(Event ev)
-{ term_t goal = PL_new_term_ref();
-
-  ev->flags |= EV_DONE;
-
-  PL_recorded(ev->goal, goal);
-  PL_call_predicate(ev->module,
-		    PL_Q_PASS_EXCEPTION,
-		    PREDICATE_call1,
-		    goal);
-}
-#endif
-
-
 static void
 cleanupHandler()
 {
@@ -499,126 +379,6 @@ cleanup()
   cleanupHandler();
 }
 
-
-#ifdef __WINDOWS__
-
-static void
-on_alarm(int sig)
-{ Event ev, next;
-
-  for(ev=TheSchedule()->first; ev; ev = next)
-  { assert(ev->magic == EV_MAGIC);
-
-    if ( ev->flags & EV_FIRED )
-    { ev->flags &= ~EV_FIRED;
-
-      callEvent(ev);
-      ev->mmid = 0;			/* TIME_ONESHOT */
-
-      next = ev->next;
-      if ( ev->flags & EV_REMOVE )
-	freeEvent(ev);
-    } else
-      next = ev->next;
-  }
-}
-
-
-static void CALLBACK
-callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
-{ Event ev = (Event)dwuser;
-
-  ev->flags |= EV_FIRED;
-  PL_w32thread_raise(ev->tid, SIG_TIME);
-}
-
-
-static long
-getTimeRelMillis(Event ev)
-{ struct timeval tv;
-  long   dsec, dusec;
-
-  gettimeofday(&tv, NULL);
-  dsec  = ev->at.tv_sec - tv.tv_sec;
-  dusec = ev->at.tv_usec - tv.tv_usec;
-  if ( dusec < 0 )
-  { dusec += 1000000;
-    dsec --;
-  }
-  return 1000*dsec + dusec/1000;
-}
-
-
-static int
-installEvent(Event ev)
-{ MMRESULT rval;
-  int rc;
-
-  LOCK();
-  rc = insertEvent(ev);
-  UNLOCK();
-  if ( rc != TRUE )
-    return rc;
-
-  rval = timeSetEvent(getTimeRelMillis(ev),
-		      50,			/* resolution (milliseconds) */
-		      callTimer,
-		      (DWORD_PTR)ev,
-		      TIME_ONESHOT);
-
-  if ( rval )
-  { ev->tid = GetCurrentThreadId();
-    ev->mmid = rval;
-
-    return TRUE;
-  }
-
-  return ERR_RESOURCE;
-}
-
-
-static int
-uninstallEvent(Event ev)
-{ LOCK();
-
-  if ( TheSchedule()->scheduled == ev )
-    ev->flags = EV_DONE;
-
-  if ( ev->mmid )
-  { timeKillEvent(ev->mmid);
-    ev->mmid = 0;
-  }
-
-  ev->flags &= ~(EV_DONE|EV_FIRED);
-
-  UNLOCK();
-
-  return TRUE;
-}
-
-
-static int
-removeEvent(Event ev)
-{ LOCK();
-
-  if ( TheSchedule()->scheduled == ev )
-    ev->flags |= EV_DONE;
-
-  if ( ev->mmid )
-  { timeKillEvent(ev->mmid);
-    ev->mmid = 0;
-  }
-
-  freeEvent(ev);
-  UNLOCK();
-
-  return TRUE;
-}
-
-
-#else /*__WINDOWS__*/
-
-#ifdef SHARED_TABLE
 
 static Event
 nextEvent(schedule *sched)
@@ -721,17 +481,21 @@ alarm_loop(void * closure)
 			  (long)left.tv_sec,
 			  ev->pl_thread_id, (long)ev->thread_id));
 	  set_bit(&signalled, ev->pl_thread_id);
+#ifdef __WINDOWS__
+	  PL_thread_raise(ev->pl_thread_id, SIG_TIME);
+#else
 	  pthread_kill(ev->thread_id, SIG_TIME);
+#endif
 	}
       } else
 	break;
     }
 
     if ( ev )
-    { struct timespec timeout;
+    { int rc;
+      struct timespec timeout;
       timeout.tv_sec  = ev->at.tv_sec;
       timeout.tv_nsec = ev->at.tv_usec*1000;
-      int rc;
 
     retry_timed_wait:
       DEBUG(1, Sdprintf("Waiting ...\n"));
@@ -839,9 +603,7 @@ installEvent(Event ev)
 { int rc;
 
   ev->thread_id = pthread_self();
-#ifdef O_DEBUG
   ev->pl_thread_id = PL_thread_self();
-#endif
 
   LOCK();
   if ( !scheduler_running )
@@ -900,124 +662,6 @@ removeEvent(Event ev)
 
   return TRUE;
 }
-
-
-#else /*SHARED_TABLE*/
-
-static void
-re_schedule()
-{ struct itimerval v;
-  Event ev;
-  schedule *sched = TheSchedule();
-
-  for(ev=sched->first; ev; ev = ev->next)
-  { struct timeval now;
-    struct timeval left;
-
-    if ( ev->flags & EV_DONE )
-      continue;
-
-    gettimeofday(&now, NULL);
-    left.tv_sec  = ev->at.tv_sec  - now.tv_sec;
-    left.tv_usec = ev->at.tv_usec - now.tv_usec;
-    if ( left.tv_usec < 0 )
-    { left.tv_sec--;
-      left.tv_usec += 1000000;
-    }
-
-    if ( left.tv_sec < 0 ||
-	 (left.tv_sec == 0 && left.tv_usec == 0) )
-    { DEBUG(1, Sdprintf("Passed\n"));
-
-      callEvent(ev);		/* Time has passed.  What about exceptions? */
-
-      continue;
-    }
-
-    sched->scheduled = ev;	/* This is the scheduled one */
-    DEBUG(1, Sdprintf("Scheduled for %d.%06d\n", ev->at.tv_sec, ev->at.tv_usec));
-
-    v.it_value            = left;
-    v.it_interval.tv_sec  = 0;
-    v.it_interval.tv_usec = 0;
-
-    setitimer(ITIMER_REAL, &v, NULL);	/* Store old? */
-
-    return;
-  }
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This one is  asynchronously  called  from   the  hook  registered  using
-PL_signal(). Throwing an exception is normally   safe,  but some foreign
-code might not leave the  system   unstable  after resulting long_jmp().
-This should all nicely be protected,  but   most  likely  this isn't the
-case.
-
-The alternative is to delay the signal to a safe place using PL_raise();
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-on_alarm(int sig)
-{ Event ev;
-  schedule *sched = TheSchedule();
-
-#ifdef BACKTRACE
-  DEBUG(10, print_trace());
-#endif
-
-  if ( (ev=sched->scheduled) )
-  { assert(ev->magic == EV_MAGIC);
-    sched->scheduled = NULL;
-
-    callEvent(ev);
-
-    if ( ev->flags & EV_REMOVE )
-      freeEvent(ev);
-  }
-
-  re_schedule();
-}
-
-
-static int
-installEvent(Event ev)
-{ int rc;
-
-  if ( (rc=insertEvent(ev)) == TRUE )
-    re_schedule();
-
-  return rc;
-}
-
-
-static int
-uninstallEvent(Event ev)
-{ if ( TheSchedule()->scheduled == ev )
-  { ev->flags |= EV_DONE;
-    re_schedule();
-  }
-
-  ev->flags &= ~(EV_DONE|EV_FIRED);
-
-  return TRUE;
-}
-
-
-static int
-removeEvent(Event ev)
-{ if ( TheSchedule()->scheduled == ev )
-  { ev->flags |= EV_DONE;
-    re_schedule();
-  }
-
-  freeEvent(ev);
-
-  return TRUE;
-}
-
-#endif /*SHARED_TABLE*/
-#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -1251,9 +895,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
   term_t tail = PL_copy_term_ref(matching);
   term_t head = PL_new_term_ref();
   term_t av   = PL_new_term_refs(4);
-#ifdef SHARED_TABLE
   pthread_t self = pthread_self();
-#endif
 
   LOCK();
   ev = TheSchedule()->first;
@@ -1263,10 +905,8 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
     double at;
     fid_t fid;
 
-#ifdef SHARED_TABLE
     if ( !pthread_equal(self, ev->thread_id) )
       continue;
-#endif
 
     fid = PL_open_foreign_frame();
 
@@ -1356,9 +996,6 @@ install()
   PL_register_foreign("time_debug",	1, pl_time_debug,  0);
 #endif
 
-#if defined(_REENTRANT) && !defined(SHARED_TABLE)
-  pthread_key_create(&key, free_schedule);
-#endif
   installHandler();
 }
 
@@ -1366,8 +1003,4 @@ install()
 install_t
 uninstall()
 { cleanup();
-
-#if defined(_REENTRANT) && !defined(SHARED_TABLE)
-  pthread_key_delete(key);
-#endif
 }
