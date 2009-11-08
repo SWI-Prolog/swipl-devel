@@ -828,10 +828,8 @@ PL_w32thread_raise(DWORD id, int sig)
   for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
   { if ( info->w32id == id && info->thread_data )
     { raiseSignal(info->thread_data, sig);
-#ifdef __WINDOWS__
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
-#endif
       UNLOCK();
       DEBUG(1, Sdprintf("Signalled %d to thread %d\n", sig, i));
       return TRUE;
