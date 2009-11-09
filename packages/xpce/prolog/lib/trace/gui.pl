@@ -199,13 +199,12 @@ user:prolog_event_hook(thread_finished(TID)) :-
 
 %%	send_pce(:Goal)
 %
-%	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
-%	meanwhile, allow the XPCE thread to call in_debug_thread/1.
-%
-%	@bug	XPCE thread does not _need_ to be =main=.
+%	Run Goal in XPCE thread. Wait  for completion. In the meanwhile,
+%	allow the XPCE thread to call in_debug_thread/1.
 
 send_pce(Goal) :-
-	thread_self(main), !,
+	thread_self(Me),
+	pce_thread(Me), !,
 	Goal.
 send_pce(Goal) :-
 	thread_self(Self),
@@ -312,9 +311,11 @@ variable(current_break,	tuple*,		both, "tuple(ClauseRef, PC)").
 variable(quitted,	bool := @off,   both, "Asked to quit").
 variable(mode,		name := created,both, "Current mode").
 
-initialise(F, Level:int, Thread0:'int|name') :->
-	assertion(thread_self(main)),
-	default(Thread0, main, Thread),
+running_in_pce_thread :-
+	pce_thread(Pce), thread_self(Pce).
+
+initialise(F, Level:int, Thread:'int|name') :->
+	assertion(running_in_pce_thread),
 	send(F, slot, break_level, Level),
 	send(F, slot, thread, Thread),
 	send_super(F, initialise, 'SWI-Prolog debugger', application := @prolog_gui),
@@ -509,7 +510,7 @@ return(Frame, Result:any) :->
 	(   get(Frame, mode, wait_user)
 	->  get(Frame, thread, Thread),
 	    send(Frame, mode, replied),
-	    (	Thread == main
+	    (	pce_thread(Thread)
 	    ->	send_super(Frame, return, Result)
 	    ;   (   get(Frame, quitted, @on)
 		->  send(Frame, destroy)

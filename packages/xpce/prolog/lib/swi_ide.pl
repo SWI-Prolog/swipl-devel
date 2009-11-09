@@ -66,7 +66,7 @@ the IDE components to the autoloading of one single predicate.
 %	Development Environment.
 
 prolog_ide(Action) :-
-	send(@prolog_ide, Action).
+	in_pce_thread(send(@prolog_ide, Action)).
 
 
 		 /*******************************
