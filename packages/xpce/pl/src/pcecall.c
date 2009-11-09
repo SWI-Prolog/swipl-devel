@@ -81,7 +81,9 @@ typedef struct
 
 
 typedef struct
-{
+{ int		pce_thread;
+  PL_dispatch_hook_t input_hook;
+  int		input_hook_saved;
 #ifdef __WINDOWS__
   HINSTANCE	hinstance;
   HWND		window;
@@ -336,22 +338,50 @@ call_prolog_goal(prolog_goal *g)
 }
 
 
+static foreign_t
+set_pce_thread()
+{ int tid = PL_thread_self();
+
+  if ( tid != context.pce_thread )
+  { context.pce_thread = tid;
+
+    if ( context.input_hook_saved )
+    { PL_dispatch_hook(context.input_hook);
+      context.input_hook_saved = FALSE;
+    }
+
+#ifdef __WINDOWS__
+    if ( context.window )
+    { DestroyWindow(context.window);
+      context.window = 0;
+    }
+    setup();
+#endif
+
+    if ( context.pce_thread != 1 )
+    { context.input_hook_saved = PL_dispatch_hook(NULL);
+      context.input_hook_saved = TRUE;
+    }
+  }
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *	       INSTALL		*
 		 *******************************/
 
 install_t
 install_pcecall()
-{
-#ifdef __WINDOWS__
-  int tid = PL_thread_self();
+{ context.pce_thread = PL_thread_self();
 
-  if ( tid >= 0 && PL_thread_self() != 1 )
-    PL_warning("in_pce_thread/1 must be loaded from main thread");
+#ifdef __WINDOWS__
   setup();
 #else
   context.pipe[0] = context.pipe[1] = -1;
 #endif
 
-  PL_register_foreign("in_pce_thread", 1, pl_pce_call, PL_FA_TRANSPARENT);
+  PL_register_foreign("in_pce_thread",  1, pl_pce_call, PL_FA_TRANSPARENT);
+  PL_register_foreign("set_pce_thread", 0, set_pce_thread, 0);
 }
