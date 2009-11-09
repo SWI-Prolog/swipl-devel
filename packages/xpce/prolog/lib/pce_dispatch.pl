@@ -52,6 +52,9 @@ pce_dispatch(Options) :-
 
 pce_dispatcher :-
 	set_pce_thread,
+	thread_self(Me),
+	retractall(pce:pce_thread(_)),
+	assert(pce:pce_thread(Me)),
 	repeat,
 	    catch(send(@display, dispatch), E, true),
 	    (	var(E)
@@ -72,7 +75,10 @@ pce_end_dispatch :-
 	thread_self(Me),
 	in_pce_thread(end(Me)),
 	thread_get_message(end_pce_dispatcher),
-	set_pce_thread.
+	set_pce_thread,
+	thread_self(Me),
+	retractall(pce:pce_thread(_)),
+	assert(pce:pce_thread(Me)).
 
 %%	pce_call(:Goal)
 %
