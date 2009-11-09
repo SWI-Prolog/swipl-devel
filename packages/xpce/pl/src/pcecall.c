@@ -321,13 +321,17 @@ call_prolog_goal(prolog_goal *g)
 { fid_t fid = PL_open_foreign_frame();
   term_t t = PL_new_term_ref();
   static predicate_t pred = NULL;
+  int rc;
 
   if ( !pred )
     pred = PL_predicate("call", 1, "user");
 
-  PL_recorded(g->goal, t);
+  rc = PL_recorded(g->goal, t);
   PL_erase(g->goal);
-  PL_call_predicate(g->module, PL_Q_NORMAL, pred, t);
+  if ( rc )
+    PL_call_predicate(g->module, PL_Q_NORMAL, pred, t);
+  else
+    PL_warning("ERROR: pce: out of global stack");
   PL_discard_foreign_frame(fid);
 }
 
