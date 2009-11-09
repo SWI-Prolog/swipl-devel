@@ -110,12 +110,11 @@ select_bag(_, Vars, Bag, Vars, Bag).
 select_bag(RestBags, _, _, Vars1, Bag1) :-
 	pick(RestBags, Vars1, Bag1).
 
-
 %%	pick_first(+Bags, +Vars, -Bag1, -RestBags) is semidet.
 %
 %	Pick the first result-bag from the   list  of Templ-Answer. Note
 %	that we pick all elements that are  equal under =@=, but because
-%	the witness variables are unified this is the same as ==.
+%	the variables in the witness are canonized this is the same as ==.
 %
 %	@param Bags	List of Templ-Answer
 %	@param Vars	Initial Templ (for rebinding variables)
@@ -145,8 +144,11 @@ setof(Templ, Goal, List) :-
 	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
-	    bind_bagof_keys(Answers, _),
+	    bind_bagof_keys(Answers,VDict),
 	    sort(Answers, Sorted),
-	    pick(Sorted, Vars, Listu),
-	    sort(Listu,List)
+	    (	nonvar(VDict) % Listu ordering may be nixed by Vars
+	    ->	pick(Sorted, Vars, Listu),
+		sort(Listu,List)
+	    ;	pick(Sorted, Vars, List)
+	    )
 	).
