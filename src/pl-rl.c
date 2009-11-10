@@ -355,7 +355,7 @@ reentrant access is tried.
 static int
 event_hook()
 { if ( Sinput->position )
-  { intptr_t c0 = Sinput->position->charno;
+  { int64_t c0 = Sinput->position->charno;
 
     while( !input_on_fd(0) )
     { PL_dispatch(0, PL_DISPATCH_NOWAIT);
