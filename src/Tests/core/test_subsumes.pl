@@ -111,6 +111,8 @@ test(min, [fail]) :-
        fail.
 test(sharing,[fail]) :-
 	subsumes_chk(f(A, A), f(_, f(_, _))).
+test(occurs, fail) :-
+	subsumes_chk(X, f(X)).
 
 :- end_tests(subsumes_chk).
 

@@ -5,7 +5,7 @@ Last update: Aug 12, 2008
 
 It   is   strongly   adviced    to     install    the    binaries   from
 http://www.swi-prolog.org. They are shipped  with   a  readme  file that
-explains specific issues on the Windows platform. 
+explains specific issues on the Windows platform.
 
 The  source  of  this   readme   is    in   man/windows.doc,   which  is
 --contradicting  Windows  users'  expectations--,   *not*  an  MS-office
@@ -15,4 +15,4 @@ Building from source requires a  lot   of  hard-to-get  prerequisites on
 Windows and is only  adviced  for  serious   users  that  intend  to use
 SWI-Prolog for a longer period intensively, and in particular those that
 plan to write foreign  extensions  and/or   embed  SWI-Prolog  in  C/C++
-applications. See http://www.swi-prolog.org/buildwin.html.
+applications. See http://www.swi-prolog.org/build/windows.html.

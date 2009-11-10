@@ -575,27 +575,36 @@ or using the \const{w}, \const{p} and \const{d} commands of the tracer.
 
 \begin{figure}
 \begin{code}
-1 ?- visible(+all), leash(-exit).
+min_numlist([H|T], Min) :-
+	min_numlist(T, H, Min).
 
-Yes
-2 ?- trace, min([3, 2], X).
-  Call:  ( 3) min([3, 2], G235) ? creep
-  Unify: ( 3) min([3, 2], G235)
-  Call:  ( 4) min([2], G244) ? creep
-  Unify: ( 4) min([2], 2)
-  Exit:  ( 4) min([2], 2)
-  Call:  ( 4) min(3, 2, G235) ? creep
-  Unify: ( 4) min(3, 2, G235)
-  Call:  ( 5) 3 < 2 ? creep
-  Fail:  ( 5) 3 < 2 ? creep
-  Redo:  ( 4) min(3, 2, G235) ? creep
-  Exit:  ( 4) min(3, 2, 2)
-  Exit:  ( 3) min([3, 2], 2)
-
-Yes
-[trace] 3 ?-
+min_numlist([], Min, Min).
+min_numlist([H|T], Min0, Min) :-
+	Min1 is min(H, Min0),
+	min_numlist(T, Min1, Min).
 \end{code}
-    \caption{Example trace}
+
+\begin{code}
+1 ?- visible(+all), leash(-exit).
+true.
+
+2 ?- trace, min_numlist([3, 2], X).
+   Call: (7) min_numlist([3, 2], _G0) ? creep
+   Unify: (7) min_numlist([3, 2], _G0)
+   Call: (8) min_numlist([2], 3, _G0) ? creep
+   Unify: (8) min_numlist([2], 3, _G0)
+^  Call: (9) _G54 is min(2, 3) ? creep
+^  Exit: (9) 2 is min(2, 3)
+   Call: (9) min_numlist([], 2, _G0) ? creep
+   Unify: (9) min_numlist([], 2, 2)
+   Exit: (9) min_numlist([], 2, 2)
+   Exit: (8) min_numlist([2], 3, 2)
+   Exit: (7) min_numlist([3, 2], 2)
+X = 2.
+\end{code}
+    \caption{Example trace of the program above showing all ports.
+	     The lines marked \chr{^} indicate calls to
+	     \jargon{transparent} predicates.  See \secref{modules}.}
     \label{fig:tracer}
 \end{figure}
 

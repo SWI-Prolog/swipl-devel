@@ -78,7 +78,7 @@ users of the library are:
 %%	prolog_read_source_term(+In, -Term, -Expanded, +Options) is det.
 %
 %	Read a term from a Prolog source-file.  Options is a option list
-%	as normally provided to read_term/3.
+%	that is forwarded to read_term/3.
 %
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term

@@ -3851,24 +3851,41 @@ get_graph(term_t src, triple *t)
 
 static int
 unify_graph(term_t src, triple *t)
-{ if ( t->line == NO_LINE )
-  { if ( !PL_unify_atom(src, t->graph) )
-      return PL_unify_term(src,
-			   PL_FUNCTOR, FUNCTOR_colon2,
-			     PL_ATOM, t->graph,
-			     PL_VARIABLE);
-    return TRUE;
-  } else
-    return PL_unify_term(src,
-			 PL_FUNCTOR, FUNCTOR_colon2,
-			   PL_ATOM, t->graph,
-			   PL_LONG, t->line);
+{ switch( PL_term_type(src) )
+  { case PL_VARIABLE:
+    { if ( t->line == NO_LINE )
+	return PL_unify_atom(src, t->graph);
+      else
+	goto full_term;
+    }
+    case PL_ATOM:
+    { atom_t a;
+      return (PL_get_atom(src, &a) &&
+	      a == t->graph);
+    }
+    case PL_TERM:
+    { if ( t->line == NO_LINE )
+      { return PL_unify_term(src,
+			     PL_FUNCTOR, FUNCTOR_colon2,
+			       PL_ATOM, t->graph,
+			       PL_VARIABLE);
+      } else
+      { full_term:
+	return PL_unify_term(src,
+			     PL_FUNCTOR, FUNCTOR_colon2,
+			       PL_ATOM, t->graph,
+			       PL_LONG, t->line);
+      }
+    }
+    default:
+      return type_error(src, "rdf_graph");
+  }
 }
 
 
 static int
 same_graph(triple *t1, triple *t2)
-{ return t1->line   == t2->line &&
+{ return t1->line  == t2->line &&
          t1->graph == t2->graph;
 }
 

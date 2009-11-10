@@ -37,6 +37,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(library(prolog_source)).
 :- use_module(doc_process).
 
 /** <module> Source colouring support
@@ -126,13 +127,25 @@ sub_fragments([F|R0], End, Sub, Rest) :-
 %
 %	Process input from Src, calling :Handler on identified
 %	fragments.
+%
+%	Note that we set the =xref= flag to avoid asserting clauses from
+%	compile_aux_clauses/1.  This API needs rethinking.
 
 process_source(Src, Handler) :-
 	prolog_open_source(Src, Fd),
+	(   current_prolog_flag(xref, Xref)
+	->  true
+	;   Xref = false
+	),
+	set_prolog_flag(xref, true),
 	b_setval(doc_colour_handler, Handler),
 	call_cleanup(process_input(Fd, Src),
-		     (	 prolog_close_source(Fd),
-			 nb_delete(doc_colour_handler))).
+		     cleanup_source(Xref, Fd)).
+
+cleanup_source(Xref, Fd) :-
+	set_prolog_flag(xref, Xref),
+	prolog_close_source(Fd),
+	nb_delete(doc_colour_handler).
 
 process_input(In, Context) :-
 	repeat,
@@ -556,11 +569,9 @@ colourise_term_args([Pos|T], N, Term, TB) :-
 colourise_term_arg(Var, TB, Pos) :-			% variable
 	var(Var), !,
 	colour_item(var, TB, Pos).
-colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
-	atom(Atom),
-	arg(1, Pos, From),
-	get(TB, character, From, 39), !,
-	colour_item(quoted_atom, TB, Pos).
+colourise_term_arg(Atom, TB, Pos) :-			% atom
+	atom(Atom), !,
+	colour_item(atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(Compound, TB, Pos) :- 		% compound
@@ -868,6 +879,7 @@ def_style(method(_),	  	style(bold := @on)).
 
 def_style(var,		  	style(colour := red4)).
 def_style(unbound,		style(bold := @on, colour := red)).
+def_style(atom,			@default).		% ensure it passed.
 def_style(quoted_atom,        	style(colour := navy_blue)).
 def_style(string,		style(colour := navy_blue)).
 def_style(nofile,		style(colour := red)).

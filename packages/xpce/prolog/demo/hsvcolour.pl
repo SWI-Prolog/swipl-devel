@@ -32,6 +32,7 @@
 :- module(pce_hsv_browser,
 	  [ hsv_browser/0
 	  ]).
+:- use_module(library(pce)).
 
 hsv_browser :-
 	send(new(hsv_browser), open).

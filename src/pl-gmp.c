@@ -999,8 +999,15 @@ PL_unify_mpq(term_t t, mpq_t mpq)
 		 *               WIN64		*
 		 *******************************/
 
-#ifdef WIN64
-#if (_MSC_VER < 1400)
+
+#if defined(WIN64) && _MSC_VER <= 1400 && !defined(_CRT_ASSEMBLY_VERSION)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+"#if (_MSC_VER <= 1400)" should suffice,   but  although both the VS2005
+(VC8) and the Microsoft Server 2003   R2 (VC8 SDK) define _MSC_VER=1400,
+VC8 SDK does not define the below functions, while VC8 does... The macro
+below distinguishes the two.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 size_t
 strnlen(const char *s, size_t maxlen)
 { size_t len = 0;
@@ -1010,13 +1017,11 @@ strnlen(const char *s, size_t maxlen)
 
   return len;
 }
-#endif
 
 void
 __GSHandlerCheck()
 {
 }
-
 #endif
 
 #endif /*O_GMP*/

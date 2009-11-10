@@ -5,24 +5,22 @@
 # destination path, compiler, library search-path, etc.
 ################################################################
 
-# Target architecture.  One of WIN32 or WIN64
+!include config.dat
 
-MD=WIN32
+# Setup the environment.  Use this to additional libraries and include
+# files to the path.  In particular provide access to the jpeg and xpm
+# libraries required to build XPCE
 
-!if "$(MD)" == "WIN64"
-!include rules64.mk
-!else
-!include rules32.mk
-!endif
+PATH=$(PATH);$(HOME)\$(TARGET_OS_ARCH)\bin;$(HOME)\bin;$(HOME)\$(TARGET_OS_ARCH)\lib;$(HOME)\lib
+INCLUDE=$(PLHOME)\include;$(INCLUDE);$(HOME)\$(TARGET_OS_ARCH)\include;$(HOME)\include
+LIB=$(LIB);$(HOME)\$(TARGET_OS_ARCH)\lib;$(HOME)\lib
 
 # Installation target directory.  At the moment, the build will probably
 # fail if there is whitespace in the $prefix directory.  You can however
 # copy the result to wherever you want.
 
-# prefix=C:\Program Files
-#HOME=$(USERPROFILE)
-prefix=$(HOME)\installed-57x
-PLBASE=$(prefix)\pl
+prefix=$(TARGET_PROGRAM_FILES)
+PLBASE=$(TARGET_PROGRAM_FILES)\$(PL_DIR_NAME)
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
@@ -33,19 +31,12 @@ EXTRAINCDIR=$(HOME)\include
 
 # The OpenSSL library and include files
 # http://www.slproweb.com/products/Win32OpenSSL.html
-OPENSSL=C:\OpenSSL
-OPENSSLLIBDIR=$(OPENSSL)\lib\VC
+OPENSSL=$(TARGET_PROGRAM_FILES)\OpenSSL
+OPENSSLLIBDIR=$(OPENSSL)\lib;$(OPENSSL)\lib\VC
 OPENSSLINCDIR=$(OPENSSL)\include
 
 # NullSoft installer
 NSISDEFS=$(NSISDEFS) /DPTHREAD=$(LIBPTHREAD) /DZLIB=$(LIBZLIB) /DBOOT=$(PLBOOTFILE)
-
-# Setup the environment.  Use this to additional libraries and include
-# files to the path.  In particular provide access to the jpeg and xpm
-# libraries required to build XPCE
-
-INCLUDE=$(PLHOME)\include;$(INCLUDE);$(HOME)\include
-LIB=$(LIB);$(HOME)\lib
 
 # Configuration selection
 
@@ -56,7 +47,7 @@ LIB=$(LIB);$(HOME)\lib
 CFG=dev
 DBG=false
 MT=true
-GMP=true
+#GMP=true
 PDB=false
 SYMOPT=
 SYMBOLS=true
@@ -82,7 +73,8 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc
-PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp zlib ssl jpl
+PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL)
+
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
@@ -93,10 +85,15 @@ PKGDOC=$(PLBASE)\doc\packages
 # faster linking pl2xpce.dll from the XPCE package
 
 CC=cl.exe
+!IF "$(VC_VERSION)" == "VC8_OR_MORE"
+VC8_OR_MORE_LFLAGS=/MACHINE:$(TARGET_OS_ARCH)
+!ELSE 
+VC8_OR_MORE_LFLAGS=
+!ENDIF
 !IF "$(LNK)" == "inc"
-LD=link.exe /nologo /incremental:yes
+LD=link.exe /nologo /incremental:yes $(VC8_OR_MORE_LFLAGS)
 !ELSE
-LD=link.exe /nologo
+LD=link.exe /nologo $(VC8_OR_MORE_LFLAGS)
 !ENDIF
 AR=lib.exe
 RSC=rc.exe
@@ -118,7 +115,14 @@ PLLIB=$(PLHOME)\lib\libpl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
-CFLAGS=/MD /W3 $(SYMOPT) /EHsc /D__WINDOWS__ /D$(MD) /nologo /c
+!IF "$(VC_VERSION)" == "VC8_OR_MORE"
+VC8_OR_MORE_CFLAGS=/D_$(MD) /D_CRT_SECURE_NO_WARNINGS /wd4996
+!ELSE 
+VC8_OR_MORE_CFLAGS=
+!ENDIF
+
+CFLAGS=/MD /W3 $(SYMOPT) /EHsc /D__WINDOWS__ $(VC8_OR_MORE_CFLAGS) /D$(MD) /nologo /c
+
 LDFLAGS=/DEBUG /NODEFAULTLIB:libcmt.lib
 
 !IF "$(DBG)" == "false"
@@ -137,7 +141,7 @@ CFLAGS=/DO_PLMT /D_REENTRANT $(CFLAGS)
 !ENDIF
 !IF "$(GMP)" == "true"
 CFLAGS=/DO_GMP $(CFLAGS)
-GMPLIB=gmp.lib
+GMPLIB=$(GMP_LIB)
 !ELSE
 GMPLIB=
 !ENDIF

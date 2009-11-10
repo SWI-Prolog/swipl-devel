@@ -126,14 +126,14 @@ doc_server(Port, _) :-
 doc_server(Port, Options) :-
 	prepare_editor,
 	host_access_options(Options, ServerOptions),
-	append(ServerOptions,		% Put provides options first,
-	       [ port(Port),		% so they override our defaults
-		 timeout(60),
-		 keep_alive_timeout(1),
-		 local(4000),		% keep stack sizes independent
-		 global(4000),		% from main application
-		 trail(4000)
-	       ], HTTPOptions),
+	merge_options(ServerOptions,
+		      [ port(Port),
+			timeout(60),
+			keep_alive_timeout(1),
+			local(4000),	% small stacks for now
+			global(4000),
+			trail(4000)
+		      ], HTTPOptions),
 	http_server(http_dispatch, HTTPOptions),
 	assert(doc_server_port(Port)),
 	print_message(informational, pldoc(server_started(Port))).

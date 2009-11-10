@@ -606,7 +606,7 @@ subst_chars([H|T]) -->
 	),
 	flush_output(user_output),
 	call_expand_answer(Bindings, NewBindings),
-	(    write_bindings(NewBindings, Det)
+	(    \+ \+ write_bindings(NewBindings, Det)
 	->   !, fail
 	).
 '$execute_goal2'(_, _) :-

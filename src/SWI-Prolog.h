@@ -54,7 +54,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50800
+#define PLVERSION 50900
 #endif
 
 		 /*******************************
@@ -914,6 +914,7 @@ PL_EXPORT(int)	PL_thread_destroy_engine(void);
 PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 				  void *closure,
 				  int global);
+PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_)			/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
 #endif
