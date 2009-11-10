@@ -3925,7 +3925,7 @@ PL_dispatch(int fd, int wait)
 { if ( wait == PL_DISPATCH_INSTALLED )
     return GD->foreign.dispatch_events ? TRUE : FALSE;
 
-  if ( GD->foreign.dispatch_events )
+  if ( GD->foreign.dispatch_events && PL_thread_self() == 1 )
   { if ( wait == PL_DISPATCH_WAIT )
     { while( !input_on_fd(fd) )
       { if ( PL_handle_signals() < 0 )
