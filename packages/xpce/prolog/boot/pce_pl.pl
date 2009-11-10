@@ -120,7 +120,9 @@ init_pce :-
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
-	->  set_prolog_flag(xpce, true)
+	->  set_prolog_flag(xpce, true),
+	    thread_self(Me),
+	    assert(pce:pce_thread(Me))
 	;   print_message(error,
 			  format('Failed to initialise XPCE', [])),
 	    abort

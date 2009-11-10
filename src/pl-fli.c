@@ -3887,14 +3887,11 @@ PL_add_to_protocol(const char *buf, size_t n)
 		 *	   DISPATCHING		*
 		 *******************************/
 
-#define dispatch_events (LD->fli._dispatch_events)
-
 PL_dispatch_hook_t
 PL_dispatch_hook(PL_dispatch_hook_t hook)
-{ GET_LD
-  PL_dispatch_hook_t old = dispatch_events;
+{ PL_dispatch_hook_t old = GD->foreign.dispatch_events;
 
-  dispatch_events = hook;
+  GD->foreign.dispatch_events = hook;
   return old;
 }
 
@@ -3925,20 +3922,18 @@ input_on_fd(int fd)
 
 int
 PL_dispatch(int fd, int wait)
-{ GET_LD
+{ if ( wait == PL_DISPATCH_INSTALLED )
+    return GD->foreign.dispatch_events ? TRUE : FALSE;
 
-  if ( wait == PL_DISPATCH_INSTALLED )
-    return dispatch_events ? TRUE : FALSE;
-
-  if ( dispatch_events )
+  if ( GD->foreign.dispatch_events )
   { if ( wait == PL_DISPATCH_WAIT )
     { while( !input_on_fd(fd) )
       { if ( PL_handle_signals() < 0 )
 	  return FALSE;
-	(*dispatch_events)(fd);
+	(*GD->foreign.dispatch_events)(fd);
       }
     } else
-    { (*dispatch_events)(fd);
+    { (*GD->foreign.dispatch_events)(fd);
       if ( PL_handle_signals() < 0 )
 	  return FALSE;
     }

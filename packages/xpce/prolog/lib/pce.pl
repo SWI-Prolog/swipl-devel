@@ -73,10 +73,10 @@ reexports the content of these files.
 
 	    pce_catch_error/2,		% pce_error
 	    pce_open/3,
-	    pce_dispatch/1,		% +Options
-	    pce_end_dispatch/0,		% break dispatch loop
-	    pce_call/1,			% :Goal
 	    in_pce_thread/1,		% :Goal
+	    set_pce_thread/0,
+	    pce_thread/1,		% -Thread
+	    pce_dispatch/0,
 
 	    pce_welcome/0,
 
@@ -112,6 +112,16 @@ reexports the content of these files.
 	      [ qcompile(true),
 		silent(true)
 	      ]).
+
+%%	pce_thread(-Thread) is det.
+%
+%	True if Thread is the Prolog thread that runs the graphics
+%	message loop.
+%
+%	@see pce_dispatch/1.
+
+:- dynamic
+	pce_thread/1.
 
 set_version :-
 	current_prolog_flag(version_data, swi(Major, Minor, Patch, _)),
@@ -174,7 +184,7 @@ prolog_edit:load :-
 		 *	    LIST HOOKS		*
 		 *******************************/
 
-%	prolog:locate_clauses(Term, Refs)
+%%	prolog:locate_clauses(Term, Refs)
 %
 %	Locate a list of clause-references from a method-specification
 %	like Class->Method.

@@ -46,8 +46,12 @@
 %
 %	Display parent environments and choicepoints.
 
+running_in_pce_thread :-
+	pce_thread(Pce),
+	thread_self(Pce).
+
 display_stack(Window, Call, Choice) :-
-	assertion(thread_self(main)),
+	assertion(running_in_pce_thread),
 	get(@pce, convert, normal, font, Font),
 	get(Font, height, FH),
 	merge_choices(Choice, Call, AllFrames),
@@ -219,7 +223,7 @@ clean_level(Text) :-
 variable(members,       hash_table,  get, "Frame --> Visualiser table").
 
 initialise(B) :->
-	assertion(thread_self(main)),
+	assertion(running_in_pce_thread),
 	get(@pce, convert, normal, font, Font),
 	get(Font, ex, Ex),
 	send_super(B, initialise, size := size(20 * Ex, 100)),

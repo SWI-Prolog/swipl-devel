@@ -185,6 +185,7 @@ struct PL_global_data
 
     InitialiseHandle initialise_head;	/* PL_initialise_hook() */
     InitialiseHandle initialise_tail;
+    PL_dispatch_hook_t dispatch_events; /* PL_dispatch_hook() */
 
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
@@ -493,8 +494,6 @@ struct PL_local_data
   struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;
-
-    PL_dispatch_hook_t _dispatch_events; /* PL_dispatch_hook() */
 
     buffer	_discardable_buffer;	/* PL_*() character buffers */
     buffer	_buffer_ring[BUFFER_RING_SIZE];
