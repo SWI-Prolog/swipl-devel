@@ -4106,9 +4106,10 @@ PRED_IMPL("string_to_atom", 2, string_to_atom, 0)
 
   if ( PL_get_text(str, &t, CVT_ALL) )
     rc = PL_unify_text(a, 0, &t, PL_ATOM);
-  if ( PL_get_text(a, &t, CVT_ALL) )
+  else if ( PL_get_text(a, &t, CVT_ALL) )
     rc = PL_unify_text(str, 0, &t, PL_STRING);
-  else return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+  else
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   PL_free_text(&t);
 

@@ -1176,6 +1176,13 @@ string_handling(cmp-1) :-
 
 :- set_prolog_flag(backquoted_string, false).
 
+string_handling(atom-1) :-
+	string_to_atom(an_atom, X),
+	X == an_atom.
+string_handling(list-1) :-
+	string_to_atom("a_list", X),
+	X == a_list.
+
 
 		 /*******************************
 		 *	       DYNAMIC		*
