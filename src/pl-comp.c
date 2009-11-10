@@ -2706,13 +2706,39 @@ next_arg_ref(term_t argp ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note:  unifyVar()  is  used  to    (re-)create  sharing  variables  when
+decompiling.  Because  compiled  clauses    cannot   contain  attributed
+variables, these to not exist in this context.
+
+The vars argument is an array of  term_t types (di->variables). TBD: Use
+PL_new_term_refs() here! The var itself is always (?) a pointer into the
+global stack. This means that the   term-reference  is trailed. This may
+seem wasteful, but is  needed  for   the  stack-resizing  loop  used for
+body-compilation. Even undoing the  head-unification   is  not an option
+because this is a true unification that may share with older variables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 unifyVar(Word var, term_t *vars, size_t i ARG_LD)
-{ DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
+{ Word v;
+  DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
+
+  if ( tTop+1 >= tMax )
+    return TRAIL_OVERFLOW;
 
   assert(vars[i]);
+  v = valTermRef(vars[i]);
+  deRef(v);
+  deRef(var);
+  assert(isVar(*v) && isVar(*var));
+  if ( v < var )
+  { Trail(var, makeRef(v));
+  } else
+  { Trail(v, makeRef(var));
+  }
 
-  return unify_ptrs(var, valTermRef(vars[i]), 0 PASS_LD);
+  return TRUE;
 }
 
 
@@ -3458,7 +3484,7 @@ put_functor(Word p, functor_t f ARG_LD)
 { int arity = arityFunctor(f);
   Word a, t;
 
-  if ( !hasGlobalSpace(1+arity) )
+  if ( gTop+1+arity > gMax )
     return GLOBAL_OVERFLOW;
 
   a = t = gTop;
