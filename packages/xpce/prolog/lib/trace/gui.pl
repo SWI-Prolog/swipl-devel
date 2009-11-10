@@ -516,7 +516,8 @@ return(Frame, Result:any) :->
 		->  send(Frame, destroy)
 		;   true
 		),
-		debug(' ---> frame: result = ~p~n', [Result]),
+		debug(' ---> frame for thread = ~p: result = ~p~n',
+		      [Thread, Result]),
 		thread_debug_queue(Thread, Queue),
 		thread_send_message(Queue, '$trace'(action(Result)))
 	    )
