@@ -56,7 +56,7 @@ pce_dispatcher :-
 	retractall(pce:pce_thread(_)),
 	assert(pce:pce_thread(Me)),
 	repeat,
-	    catch(send(@display, dispatch), E, true),
+	    catch(pce_dispatch, E, true),
 	    (	var(E)
 	    ->	true
 	    ;	print_message(error, E)

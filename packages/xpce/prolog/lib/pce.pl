@@ -76,6 +76,7 @@ reexports the content of these files.
 	    in_pce_thread/1,		% :Goal
 	    set_pce_thread/0,
 	    pce_thread/1,		% -Thread
+	    pce_dispatch/0,
 
 	    pce_welcome/0,
 

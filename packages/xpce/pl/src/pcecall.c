@@ -368,6 +368,18 @@ set_pce_thread()
 }
 
 
+static foreign_t
+pl_pce_dispatch()
+{ pceDispatch(-1, 250);
+
+  if ( PL_exception(0) )
+    return FALSE;
+
+  return TRUE;
+}
+
+
+
 		 /*******************************
 		 *	       INSTALL		*
 		 *******************************/
@@ -384,4 +396,5 @@ install_pcecall()
 
   PL_register_foreign("in_pce_thread",  1, pl_pce_call, PL_FA_TRANSPARENT);
   PL_register_foreign("set_pce_thread", 0, set_pce_thread, 0);
+  PL_register_foreign("pce_dispatch",   0, pl_pce_dispatch, 0);
 }

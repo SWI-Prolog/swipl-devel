@@ -52,6 +52,7 @@
 	    pce_open/3,			% +Object, +Mode, -Stream
 	    in_pce_thread/1,		% :Goal
 	    set_pce_thread/0,
+	    pce_dispatch/0,
 
 	    op(200, fy,  @),
 	    op(250, yfx, ?),
