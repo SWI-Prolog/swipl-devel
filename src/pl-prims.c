@@ -2146,7 +2146,7 @@ start:
     }
 
     if ( !hasGlobalSpace(2) )
-      return GLOBAL_OVERFLOW;
+      return overflowCode(2);
 
     a = gTop;
     a[0] = options->functor;
