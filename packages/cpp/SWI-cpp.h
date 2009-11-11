@@ -415,18 +415,25 @@ public:
 
   PlTail(const PlTerm &l)
   { if ( PL_is_variable(l.ref) || PL_is_list(l.ref) )
-      ref = PL_copy_term_ref(l.ref);
-    else
+    { if ( !(ref = PL_copy_term_ref(l.ref)) )
+	throw PlResourceError();
+    } else
       throw PlTypeError("list", l.ref);
   }
 
 					/* building */
   int append(const PlTerm &e)
-  { term_t tmp = PL_new_term_ref();
+  { term_t tmp, ex;
 
-    if ( PL_unify_list(ref, tmp, ref) &&
+    if ( (tmp = PL_new_term_ref()) &&
+	 PL_unify_list(ref, tmp, ref) &&
 	 PL_unify(tmp, e.ref) )
+    { PL_reset_term_refs(tmp);
       return TRUE;
+    }
+
+    if ( (ex = PL_exception(0)) )
+      throw PlResourceError(ex);
 
     return FALSE;
   }
