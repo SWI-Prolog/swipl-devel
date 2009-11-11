@@ -3100,6 +3100,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       break;
     }
 
+    if ( !nested && ARGP+2 > (Word)lMax ) /* ARGP builds temp refs on local stack */
+      return LOCAL_OVERFLOW;
+    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
+
     switch( op )
     {
 #if O_DEBUGGER
