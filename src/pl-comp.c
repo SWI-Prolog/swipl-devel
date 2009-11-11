@@ -4946,6 +4946,7 @@ BeginPredDefs(comp)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
+#ifdef O_DEBUGGER
   PRED_DEF("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
@@ -4953,4 +4954,5 @@ BeginPredDefs(comp)
   PRED_DEF("$break_at", 3, break_at, 0)
   PRED_DEF("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
+#endif /*O_DEBUGGER*/
 EndPredDefs
