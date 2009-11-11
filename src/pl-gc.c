@@ -4369,7 +4369,7 @@ nextStackSize(Stack s, size_t minfree)
 
   if ( minfree == GROW_TRIM )
   { size = nextStackSizeAbove(usedStackP(s) + s->def_spare);
-    if ( size > sizeStackP(s) )
+    if ( size > (size_t)sizeStackP(s) )
       size = sizeStackP(s);
   } else
   { size = nextStackSizeAbove(sizeStackP(s) + minfree + s->def_spare + 1024);
@@ -4631,7 +4631,7 @@ tight(Stack s)
 { size_t min_room  = sizeStackP(s)/4;
   size_t spare_gap = s->def_spare - s->spare;
 
-  if ( roomStackP(s) < min_room + spare_gap )
+  if ( (size_t)roomStackP(s) < min_room + spare_gap )
     return 1;
 
   return 0;

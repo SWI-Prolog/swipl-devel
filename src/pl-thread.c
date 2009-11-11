@@ -884,15 +884,16 @@ PL_w32thread_raise(DWORD id, int sig)
 
 int
 PL_w32thread_raise(DWORD id, int sig)
-{ PL_thread_info_t **info;
-  int i;
+{ int i;
 
   if ( sig < 0 || sig > MAXSIGNAL )
     return FALSE;			/* illegal signal */
 
   LOCK();
-  for(i = 0, info = threads; i <= thread_highest_id; i++, info++)
-  { if ( info->w32id == id && info->thread_data )
+  for(i = 1; i <= thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+
+    if ( info && info->w32id == id && info->thread_data )
     { raiseSignal(info->thread_data, sig);
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
@@ -4366,14 +4367,16 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   int me = PL_thread_self();
 
   for(i=1; i<=thread_highest_id; i++)
-  { if ( threads[i]->thread_data && i != me &&
-	 threads[i]->status == PL_THREAD_RUNNING )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i]->tid);
+  { PL_thread_info_t *info = GD->thread.threads[i];
+
+    if ( info && info->thread_data && i != me &&
+	 info->status == PL_THREAD_RUNNING )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
 
       if ( SuspendThread(win_thread) != -1L )
-      { (*func)(threads[i]->thread_data);
+      { (*func)(info->thread_data);
         if ( (flags & PL_THREAD_SUSPEND_AFTER_WORK) )
-	  threads[i]->status = PL_THREAD_SUSPENDED;
+	  info->status = PL_THREAD_SUSPENDED;
 	else
 	  ResumeThread(win_thread);
       }
@@ -4391,13 +4394,15 @@ resumeThreads(void)
 { int i;
   int me = PL_thread_self();
 
-  for(i=0; i<=thread_highest_id; i++)
-  { if ( threads[i]->thread_data && i != me &&
-	 threads[i]->status == PL_THREAD_SUSPENDED )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
+  for(i=1; i<=thread_highest_id; i++)
+  { PL_thread_info_t *info = GD->thread.threads[i];
+
+    if ( info && info->thread_data && i != me &&
+	 info->status == PL_THREAD_SUSPENDED )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
 
       ResumeThread(win_thread);
-      threads[i]->status = PL_THREAD_RUNNING;
+      info->status = PL_THREAD_RUNNING;
     }
   }
 }

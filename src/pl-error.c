@@ -749,7 +749,7 @@ PL_get_size_ex(term_t t, size_t *i)
 #endif
 #endif
 
-  *i = val;
+  *i = (size_t)val;
 
   return TRUE;
 }

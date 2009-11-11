@@ -1459,7 +1459,7 @@ PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
 	   PL_get_size_ex(value, &newlimit) )
       { trim_stack(stack);
 
-	if ( newlimit < sizeStackP(stack) )
+	if ( newlimit < (size_t)sizeStackP(stack) )
 	  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 			  ATOM_stack, ATOM_limit, value);
 
