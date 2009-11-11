@@ -228,12 +228,8 @@ class PlString : public PlTerm
 {
 public:
 
-  PlString(const char *text) : PlTerm()
-  { PL_put_string_chars(ref, text);
-  }
-  PlString(const char *text, int len) : PlTerm()
-  { PL_put_string_nchars(ref, len, text);
-  }
+  PlString(const char *text);
+  PlString(const char *text, int len);
 };
 
 
@@ -241,9 +237,7 @@ class PlCodeList : public PlTerm
 {
 public:
 
-  PlCodeList(const char *text) : PlTerm()
-  { PL_put_list_codes(ref, text);
-  }
+  PlCodeList(const char *text);
 };
 
 
@@ -251,9 +245,7 @@ class PlCharList : public PlTerm
 {
 public:
 
-  PlCharList(const char *text) : PlTerm()
-  { PL_put_list_chars(ref, text);
-  }
+  PlCharList(const char *text);
 };
 
 
@@ -399,6 +391,35 @@ PlTerm::PlTerm(void *ptr)
 }
 
 		 /*******************************
+		 *  SPECIALISED IMPLEMENTATIONS *
+		 *******************************/
+
+__inline
+PlString::PlString(const char *text) : PlTerm()
+{ if ( !PL_put_string_chars(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlString::PlString(const char *text, int len) : PlTerm()
+{ if ( !PL_put_string_nchars(ref, len, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlCodeList::PlCodeList(const char *text) : PlTerm()
+{ if ( !PL_put_list_codes(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlCharList::PlCharList(const char *text) : PlTerm()
+{ if ( !PL_put_list_chars(ref, text) )
+    throw PlResourceError();
+}
+
+
+		 /*******************************
 		 *             LISTS		*
 		 *******************************/
 
@@ -506,6 +527,8 @@ public:
   { predicate_t p = PL_predicate(name, av.size, "user");
 
     qid = PL_open_query((module_t)0, PL_Q_CATCH_EXCEPTION, p, av.a0);
+    if ( !qid )
+      throw PlResourceError();
   }
   PlQuery(const char *module, const char *name, const PlTermv &av)
   { atom_t ma = PL_new_atom(module);
@@ -517,6 +540,8 @@ public:
     PL_unregister_atom(na);
 
     qid = PL_open_query(m, PL_Q_CATCH_EXCEPTION, p, av.a0);
+    if ( !qid )
+      throw PlResourceError();
   }
 
   ~PlQuery()
@@ -640,7 +665,8 @@ PlTerm::operator [](int index) const
   if ( !PL_is_compound(ref) )
     throw PlTypeError("compound", ref);
   else
-  { PL_put_integer(t.ref, index);
+  { if ( !PL_put_integer(t.ref, index) )
+      throw PlResourceError();
 
     if ( index < 1 )
       throw PlDomainError("not_less_than_zero", t.ref);
@@ -780,9 +806,10 @@ PlCompound::PlCompound(const char *text) : PlTerm()
 
 __inline
 PlCompound::PlCompound(const char *functor, const PlTermv &args) : PlTerm()
-{ PL_cons_functor_v(ref,
-		    PL_new_functor(PL_new_atom(functor), args.size),
-		    args.a0);
+{ if ( !PL_cons_functor_v(ref,
+			  PL_new_functor(PL_new_atom(functor), args.size),
+			  args.a0) )
+    throw PlResourceError();
 }
 
 		 /*******************************
@@ -797,14 +824,16 @@ __inline PlTermv::PlTermv(PlTerm m0)
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1)
 { size = 2;
-  a0 = PL_new_term_refs(2);
+  if ( !(a0 = PL_new_term_refs(2)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
 }
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2)
 { size = 3;
-  a0 = PL_new_term_refs(3);
+  if ( !(a0 = PL_new_term_refs(3)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -812,7 +841,8 @@ __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2)
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3)
 { size = 4;
-  a0 = PL_new_term_refs(4);
+  if ( !(a0 = PL_new_term_refs(4)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -823,7 +853,8 @@ __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3)
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2,
 			  PlTerm m3, PlTerm m4)
 { size = 5;
-  a0 = PL_new_term_refs(5);
+  if ( !(a0 = PL_new_term_refs(5)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -880,6 +911,8 @@ PlException::cppThrow()
       throw PlTypeError(ref);
     if ( strcmp(s, "domain_error") == 0 )
       throw PlDomainError(ref);
+    if ( strcmp(s, "resource_error") == 0 )
+      throw PlResourceError(ref);
   }
 
   throw *this;
