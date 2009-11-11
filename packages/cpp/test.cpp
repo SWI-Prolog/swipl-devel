@@ -131,12 +131,22 @@ PREDICATE(call_atom, 1)
 }
 
 
-PREDICATE(gen_error, 2)
+/* The purpose of this predicate is mostly to show that
+   resource errors are dealt with appropriately: with large
+   enough argument, this will overflow the stacks.  The Prolog
+   error is mapped to a C++ exception and back again when
+   control is passed back to Prolog.  So this is just fine:
+
+   ?- square_roots(1000000000, L)
+   ERROR: Out of global stack
+*/
+
+PREDICATE(square_roots, 2)
 { int end = A1;
   PlTail list(A2);
 
   for(int i=0; i<end; i++)
     list.append(sqrt((double)i));
 
-  return TRUE;
+  return list.close();
 }
