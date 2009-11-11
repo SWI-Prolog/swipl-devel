@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -286,6 +286,13 @@ public:
 class PlException : public PlTerm
 {
 public:
+  PlException()
+  { term_t ex = PL_exception(0);
+    if ( ex )
+      ref = ex;
+    else
+      PL_fatal_error("No exception");
+  }
 
   PlException(const PlTerm &t)
   { ref = t.ref;
@@ -327,6 +334,23 @@ public:
     PlException(PlCompound("error",
 			   PlTermv(PlCompound("domain_error",
 					      PlTermv(expected, actual)),
+				   PlTerm())))
+  {
+  }
+};
+
+
+class PlResourceError : public PlException
+{
+public:
+  PlResourceError() : PlException() {}
+
+  PlResourceError(const PlTerm &t) : PlException(t) {}
+
+  PlResourceError(const char *resource) :
+    PlException(PlCompound("error",
+			   PlTermv(PlCompound("resource_error",
+					      PlTermv(PlTerm(resource))),
 				   PlTerm())))
   {
   }
