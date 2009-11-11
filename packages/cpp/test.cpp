@@ -9,6 +9,7 @@
 #define PROLOG_MODULE "user"
 #include "SWI-cpp.h"
 #include <iostream>
+#include <math.h>
 using namespace std;
 
 PREDICATE(hello, 1)
@@ -129,3 +130,13 @@ PREDICATE(call_atom, 1)
   }
 }
 
+
+PREDICATE(gen_error, 2)
+{ int end = A1;
+  PlTail list(A2);
+
+  for(int i=0; i<end; i++)
+    list.append(sqrt((double)i));
+
+  return TRUE;
+}
