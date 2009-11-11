@@ -3423,11 +3423,13 @@ PL_raise_exception(term_t exception)
 { GET_LD
 
   LD->exception.processing = TRUE;
-  setVar(*valTermRef(exception_bin));
-  if ( !duplicate_term(exception, exception_bin PASS_LD) )
-    fatalError("Failed to copy exception term");
+  if ( exception != exception_bin )	/* re-throwing */
+  { setVar(*valTermRef(exception_bin));
+    if ( !duplicate_term(exception, exception_bin PASS_LD) )
+      fatalError("Failed to copy exception term");
+    freezeGlobal(PASS_LD1);
+  }
   exception_term = exception_bin;
-  freezeGlobal(PASS_LD1);
 
   fail;
 }
