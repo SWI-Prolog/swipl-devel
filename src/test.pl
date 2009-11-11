@@ -1248,6 +1248,7 @@ tcl(b) :- true.
 tcl(c) :- write(hello).
 tcl(a(X)) :- b(X).
 tcl(x(G)) :- G.
+tcl(a(X,X)) :- a(X).
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
@@ -1266,6 +1267,10 @@ cl(clause-4) :-
 cl(clause-5) :-
 	clause(tcl(H), b(a)), H == a(a).
 cl(clause-6) :-
+	clause(tcl(a(a,X)), B),
+	X == a,
+	B == a(a).
+cl(clause-7) :-
 	clause(mtcl:tcl(H), user:a), H == a.
 
 

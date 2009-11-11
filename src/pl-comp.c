@@ -2731,7 +2731,7 @@ unifyVar(Word var, term_t *vars, size_t i ARG_LD)
   v = valTermRef(vars[i]);
   deRef(v);
   deRef(var);
-  assert(isVar(*v) && isVar(*var));
+  assert(isVar(*v) && isVar(*var));	/* is this true? */
   if ( v < var )
   { Trail(var, makeRef(v));
   } else
