@@ -8,7 +8,8 @@
 
 #define PROLOG_MODULE "user"
 #include "SWI-cpp.h"
-#include <iostream.h>
+#include <iostream>
+using namespace std;
 
 PREDICATE(hello, 1)
 { cout << "Hello " << (char *)A1 << endl;
