@@ -2636,7 +2636,7 @@ typedef struct
 { Code	 pc;				/* pc for decompilation */
   Word   argp;				/* argument pointer */
   int	 nvars;				/* size of var block */
-  term_t *variables;			/* variable table */
+  term_t variables;			/* variable table (PL_new_term_refs() array) */
   term_t bindings;			/* [Offset = Var, ...] */
 } decompileInfo;
 
@@ -2665,11 +2665,20 @@ bool
 decompileHead(Clause clause, term_t head)
 { GET_LD
   decompileInfo di;
-  di.nvars     = VAROFFSET(1) + clause->prolog_vars;
-  di.variables = alloca(di.nvars * sizeof(term_t));
-  di.bindings  = 0;
+  int rc;
 
-  return decompile_head(clause, head, &di PASS_LD);
+  di.nvars    = VAROFFSET(1) + clause->prolog_vars;
+  di.bindings = 0;
+  if ( clause->prolog_vars )
+  { if ( !(di.variables = PL_new_term_refs(clause->prolog_vars)) )
+      return FALSE;
+  } else
+    di.variables = 0;
+
+  rc = decompile_head(clause, head, &di PASS_LD);
+  if ( di.variables )
+    PL_reset_term_refs(di.variables);
+  return rc;
 }
 
 
@@ -2720,15 +2729,16 @@ because this is a true unification that may share with older variables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-unifyVar(Word var, term_t *vars, size_t i ARG_LD)
+unifyVar(Word var, term_t vars, size_t i ARG_LD)
 { Word v;
-  DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
+
+  i -= VAROFFSET(0);
+  DEBUG(3, Sdprintf("unifyVar(%p, %ld(=%ld))\n", var, i, vars+i));
 
   if ( tTop+1 >= tMax )
     return TRAIL_OVERFLOW;
 
-  assert(vars[i]);
-  v = valTermRef(vars[i]);
+  v = valTermRef(vars+i);
   deRef(v);
   deRef(var);
   assert(isVar(*v) && isVar(*var));	/* is this true? */
@@ -2742,6 +2752,16 @@ unifyVar(Word var, term_t *vars, size_t i ARG_LD)
 }
 
 
+static int
+unifyVarGC(Word var, term_t vars, size_t i ARG_LD)
+{ i -= VAROFFSET(0);
+
+  DEBUG(3, Sdprintf("unifyVarGC(%p, %ld(=%ld))\n", var, i, vars+i));
+
+  return unify_ptrs(var, valTermRef(vars+i), ALLOW_GC|ALLOW_SHIFT PASS_LD);
+}
+
+
 static bool
 decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 { int arity;
@@ -2751,27 +2771,18 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   Definition def = getProcDefinition(clause->procedure);
 
   if ( di->bindings )
-  { term_t *p = &di->variables[VAROFFSET(0)];
-    term_t tail = PL_copy_term_ref(di->bindings);
+  { term_t tail = PL_copy_term_ref(di->bindings);
     term_t head = PL_new_term_ref();
     int n;
 
     for(n=0; n<clause->prolog_vars; n++)
-    { p[n] = PL_new_term_ref();
-
-      if ( !PL_unify_list(tail, head, tail) ||
+    { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
 			  	    PL_INT, n,
-			            PL_TERM, p[n]) )
+			            PL_TERM, di->variables+n) )
 	fail;
     }
     TRY(PL_unify_nil(tail));
-  } else
-  { term_t *p = &di->variables[VAROFFSET(0)];
-    int n;
-
-    for(n=0; n<clause->prolog_vars; n++)
-      p[n] = PL_new_term_ref();
   }
 
   PC = clause->codes;
@@ -2860,15 +2871,15 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
       case H_FIRSTVAR:
       case H_VAR:
-	  TRY(unifyVar(valTermRef(argp), di->variables,
-		       *PC++ PASS_LD) );
+	  TRY(unifyVarGC(valTermRef(argp), di->variables,
+			 *PC++ PASS_LD) );
           NEXTARG;
 	  continue;
       case H_VOID:
       case H_ARGVOID:
 	{ if ( !pushed )		/* FIRSTVAR in the head */
-	    TRY(unifyVar(valTermRef(argp), di->variables,
-			 VAROFFSET(argn) PASS_LD) );
+	    TRY(unifyVarGC(valTermRef(argp), di->variables,
+			   VAROFFSET(argn) PASS_LD) );
 	  NEXTARG;
 	  continue;
 	}
@@ -2918,8 +2929,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	p = valTermRef(argp);
 	deRef(p);
 	p = argTermP(*p, 0);
-        TRY(unifyVar(p+0, di->variables, *PC++ PASS_LD) );
-        TRY(unifyVar(p+1, di->variables, *PC++ PASS_LD) );
+        TRY(unifyVarGC(p+0, di->variables, *PC++ PASS_LD) );
+        TRY(unifyVarGC(p+1, di->variables, *PC++ PASS_LD) );
 	NEXTARG;
 	continue;
       }
@@ -2931,8 +2942,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  if ( argp )
 	  { for(; argn < arity; argn++)
-	    { TRY(unifyVar(valTermRef(argp), di->variables,
-			   VAROFFSET(argn) PASS_LD));
+	    { TRY(unifyVarGC(valTermRef(argp), di->variables,
+			     VAROFFSET(argn) PASS_LD));
 	      next_arg_ref(argp PASS_LD);
 	    }
 	    PL_reset_term_refs(argp);
@@ -2960,9 +2971,13 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileInfo *di = &dinfo;
   term_t body, vbody;
 
-  di->nvars        = VAROFFSET(1) + clause->prolog_vars;
-  di->variables    = alloca(di->nvars * sizeof(term_t));
-  di->bindings     = bindings;
+  di->nvars    = VAROFFSET(1) + clause->prolog_vars;
+  di->bindings = bindings;
+  if ( clause->prolog_vars )
+  { if ( !(di->variables = PL_new_term_refs(clause->prolog_vars)) )
+      return FALSE;
+  } else
+    di->variables = 0;
 
 #ifdef O_RUNTIME
   if ( false(getProcDefinition(clause->procedure), DYNAMIC|P_THREAD_LOCAL) )
@@ -2971,8 +2986,10 @@ decompile(Clause clause, term_t term, term_t bindings)
 
   if ( true(clause, UNIT_CLAUSE) )	/* fact */
   { if ( decompile_head(clause, term, di PASS_LD) )
+    { if ( di->variables )
+	PL_reset_term_refs(di->variables);
       succeed;
-
+    }
 					/* deal with a :- A */
     if ( PL_is_functor(term, FUNCTOR_prove2) )
     { term_t b = PL_new_term_ref();
