@@ -403,7 +403,7 @@ odbc-install:
 # Redistributable Requirements .cab files
 ################################################################
 
-!IF "$(MD)" == WIN32
+!IF "$(MD)" == "WIN32"
 BITS=32
 !ELSE
 BITS=64
