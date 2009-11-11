@@ -790,9 +790,12 @@ rdf_load_db(File) :-
 %	    that are relative to the base uri.  Default is the source
 %	    URL.
 %
-%	    * db(+DB)
+%	    * graph(+Graph)
 %	    Named graph in which to load the data.  It is *not* allowed
 %	    to load two sources into the same named graph.
+%
+%	    * db(+Graph)
+%	    Deprecated.  New code must use graph(Graph).
 %
 %	    * if(Condition)
 %	    When to load the file. One of =true=, =changed= (default) or
@@ -832,8 +835,12 @@ rdf_load(Spec, M:Options0) :-
 	select_option(blank_nodes(ShareMode), Options3, Options4, noshare),
 	select_option(cache(Cache), Options4, Options5, true),
 	select_option(if(If), Options5, Options6, changed),
-	select_option(db(DB), Options6, Options7, SourceURL),
-	select_option(register_namespaces(RegNS), Options7, RDFOptions0, false),
+	select_option(register_namespaces(RegNS), Options6, Options7, false),
+	(   select_option(graph(Graph), Options7, RDFOptions0)
+	->  true
+	;   select_option(db(Graph), Options7, RDFOptions0, SourceURL)
+	),
+
 	(   var(BaseURI)
 	->  BaseURI = SourceURL
 	;   true
@@ -842,28 +849,28 @@ rdf_load(Spec, M:Options0) :-
 	->  RDFOptions = [ namespaces(NSList)|RDFOptions0]
 	;   RDFOptions = RDFOptions0
 	),
-	(   must_load(If, DB, Modified)
-	->  do_unload(DB),		% unload old
+	(   must_load(If, Graph, Modified)
+	->  do_unload(Graph),		% unload old
 	    (   Cache == true,
 		read_cache(SourceURL, Modified, CacheFile),
-	        catch(rdf_load_db_no_admin(CacheFile, cache(DB), Graphs), _, fail),
-		check_loaded_cache(DB, Graphs, Modified)
+	        catch(rdf_load_db_no_admin(CacheFile, cache(Graph), Graphs), _, fail),
+		check_loaded_cache(Graph, Graphs, Modified)
 	    ->  Action = load
 	    ;   rdf_input_open(Input, Stream, Format),
 		must_be(ground, Format),
 		rdf_format(Format, RDFFormat),
-		rdf_set_graph_source(DB, SourceURL, Modified),
+		rdf_set_graph_source(Graph, SourceURL, Modified),
 		call_cleanup(rdf_load_stream(RDFFormat, Stream,
 					     M:[ base_uri(BaseURI),
 						 blank_nodes(ShareMode),
-						 db(DB)
+						 db(Graph)
 					       | RDFOptions
 					       ]),
 			     close_input(Input, Stream)), !,
 		register_file_ns(NSList),
 		(   Cache == true,
 		    rdf_cache_file(SourceURL, write, CacheFile)
-		->  catch(save_cache(DB, CacheFile), E,
+		->  catch(save_cache(Graph, CacheFile), E,
 			  print_message(warning, E))
 		;   true
 		),
@@ -872,13 +879,13 @@ rdf_load(Spec, M:Options0) :-
 		;   Action = parsed
 		)
 	    ),
-	    rdf_statistics_(triples(DB, Triples)),
-	    rdf_md5(DB, MD5),
-	    assert(rdf_source(DB, SourceURL, Modified, Triples, MD5))
+	    rdf_statistics_(triples(Graph, Triples)),
+	    rdf_md5(Graph, MD5),
+	    assert(rdf_source(Graph, SourceURL, Modified, Triples, MD5))
 	;   Action = none,
-	    rdf_source(DB, _, _, Triples, MD5)
+	    rdf_source(Graph, _, _, Triples, MD5)
 	),
-	report_loaded(Action, Input, DB, Triples, T0, Options).
+	report_loaded(Action, Input, Graph, Triples, T0, Options).
 
 %%	fix_options(+Spec, -Options) is det.
 %
