@@ -94,39 +94,17 @@ class PlTerm
 public:
   term_t ref;
 
-  PlTerm()
-  { ref = PL_new_term_ref();
-  }
+  PlTerm();
   PlTerm(term_t t)
   { ref = t;
   }
 
 					/* C --> PlTerm */
-  PlTerm(const char *text)
-  { ref = PL_new_term_ref();
-
-    PL_put_atom_chars(ref, text);
-  }
-  PlTerm(long val)
-  { ref = PL_new_term_ref();
-
-    PL_put_integer(ref, val);
-  }
-  PlTerm(double val)
-  { ref = PL_new_term_ref();
-
-    PL_put_float(ref, val);
-  }
-  PlTerm(const PlAtom &a)
-  { ref = PL_new_term_ref();
-
-    PL_put_atom(ref, a.handle);
-  }
-  PlTerm(void *ptr)
-  { ref = PL_new_term_ref();
-
-    PL_put_pointer(ref, ptr);
-  }
+  PlTerm(const char *text);
+  PlTerm(long val);
+  PlTerm(double val);
+  PlTerm(const PlAtom &a);
+  PlTerm(void *ptr);
 
 					/* PlTerm --> C */
   operator term_t(void) const
@@ -372,6 +350,53 @@ public:
   }
 };
 
+
+		 /*******************************
+		 *     PLTERM IMPLEMENTATION	*
+		 *******************************/
+
+__inline
+PlTerm::PlTerm()
+{ if ( !(ref = PL_new_term_ref()) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(const char *text)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_atom_chars(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(long val)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_integer(ref, val) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(double val)
+{ ref = PL_new_term_ref();
+
+  if ( !PL_put_float(ref, val) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(const PlAtom &a)
+{ if ( !(ref = PL_new_term_ref()) )
+    throw PlResourceError();
+
+  PL_put_atom(ref, a.handle);
+}
+
+__inline
+PlTerm::PlTerm(void *ptr)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_pointer(ref, ptr) )
+    throw PlResourceError();
+}
 
 		 /*******************************
 		 *             LISTS		*
