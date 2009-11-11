@@ -127,27 +127,13 @@ public:
   const char *name();
 
 					/* UNIFY */
-  int operator =(const PlTerm &t2)	/* term */
-  { return PL_unify(ref, t2.ref);
-  }
-  int operator =(const PlAtom &a)	/* atom */
-  { return PL_unify_atom(ref, a.handle);
-  }
-  int operator =(const char *v)		/* atom (from char *) */
-  { return PL_unify_atom_chars(ref, v);
-  }
-  int operator =(long v)		/* integer */
-  { return PL_unify_integer(ref, v);
-  }
-  int operator =(int v)			/* integer */
-  { return PL_unify_integer(ref, v);
-  }
-  int operator =(double v)		/* float */
-  { return PL_unify_float(ref, v);
-  }
-  int operator =(const PlFunctor &f)	/* functor */
-  { return PL_unify_functor(ref, f.functor);
-  }
+  int operator =(const PlTerm &t2);	/* term */
+  int operator =(const PlAtom &a);	/* atom */
+  int operator =(const char *v);	/* atom (from char *) */
+  int operator =(long v);		/* integer */
+  int operator =(int v);		/* integer */
+  int operator =(double v);		/* float */
+  int operator =(const PlFunctor &f);	/* functor */
 
 					/* Comparison standard order terms */
   int operator ==(const PlTerm &t2)
@@ -700,6 +686,72 @@ PlTerm::name()
 
   throw PlTypeError("compound", ref);
   PL_THROWN(NULL);
+}
+
+
+					/* Unification */
+
+__inline int PlTerm::operator =(const PlTerm &t2)	/* term = term */
+{ int rc = PL_unify(ref, t2.ref);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const PlAtom &a) 	/* term = atom */
+{ int rc = PL_unify_atom(ref, a.handle);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const char *v)		/* term = atom */
+{ int rc = PL_unify_atom_chars(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(long v)
+{ int rc = PL_unify_integer(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(int v)
+{ int rc = PL_unify_integer(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(double v)
+{ int rc = PL_unify_float(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const PlFunctor &f)
+{ int rc = PL_unify_functor(ref, f.functor);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
 }
 
 					/* comparison */
