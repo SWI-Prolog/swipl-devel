@@ -128,27 +128,33 @@ typedef struct _plsocket *plsocket_ptr;	/* wrapped socket */
 		 *	 BASIC FUNCTIONS	*
 		 *******************************/
 
-extern int	nbio_init(const char *module);
-extern int	nbio_cleanup(void);
-extern int	nbio_debug(int level);
+#ifdef HAVE_DECLSPEC
+#define NBIO_EXPORT(type)		__declspec(dllexport) type
+#else
+#define NBIO_EXPORT(type)	 	extern type
+#endif
 
-extern nbio_sock_t
+NBIO_EXPORT(int)	nbio_init(const char *module);
+NBIO_EXPORT(int)	nbio_cleanup(void);
+NBIO_EXPORT(int)	nbio_debug(int level);
+
+NBIO_EXPORT(nbio_sock_t)
 		nbio_socket(int domain, int type, int protocol);
-extern int	nbio_connect(nbio_sock_t socket,
+NBIO_EXPORT(int)	nbio_connect(nbio_sock_t socket,
 			     const struct sockaddr *serv_addr,
 			     size_t addrlen);
-extern int	nbio_bind(nbio_sock_t socket,
+NBIO_EXPORT(int)	nbio_bind(nbio_sock_t socket,
 			  struct sockaddr *my_addr,
 			  size_t addrlen);
-extern int	nbio_listen(nbio_sock_t socket, int backlog);
-extern nbio_sock_t
+NBIO_EXPORT(int)	nbio_listen(nbio_sock_t socket, int backlog);
+NBIO_EXPORT(nbio_sock_t)
 		nbio_accept(nbio_sock_t master,
 			    struct sockaddr *addr,
 			    socklen_t *addrlen);
 
 extern ssize_t	nbio_read(nbio_sock_t socket, char *buf, size_t bufSize);
 extern ssize_t 	nbio_write(nbio_sock_t socket, char *buf, size_t bufSize);
-extern int	nbio_closesocket(nbio_sock_t socket);
+NBIO_EXPORT(int) nbio_closesocket(nbio_sock_t socket);
 extern int 	nbio_close_input(nbio_sock_t socket);
 extern int 	nbio_close_output(nbio_sock_t socket);
 extern ssize_t	nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
@@ -156,8 +162,8 @@ extern ssize_t	nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
 extern ssize_t	nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
 			    const struct sockaddr *to, socklen_t tolen);
 
-extern int	nbio_wait(nbio_sock_t socket, nbio_request);
-extern SOCKET	nbio_fd(nbio_sock_t socket);
+NBIO_EXPORT(int)	nbio_wait(nbio_sock_t socket, nbio_request);
+NBIO_EXPORT(SOCKET)	nbio_fd(nbio_sock_t socket);
 extern int	nbio_select(int n,
 			    fd_set *readfds,
 			    fd_set *writefds,
@@ -170,7 +176,7 @@ extern int	nbio_get_ip(term_t ip4, struct in_addr *ip);
 extern int	nbio_error(int code, nbio_error_map map);
 extern const char*
 		nbio_last_error(nbio_sock_t socket);
-extern int	nbio_setopt(int socket, nbio_option opt, ...);
+NBIO_EXPORT(int)	nbio_setopt(int socket, nbio_option opt, ...);
 extern int	nbio_get_flags(int socket);
 
 					/* support tipc_setopt() */

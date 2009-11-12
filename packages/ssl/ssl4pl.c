@@ -609,6 +609,44 @@ pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
 
 
 static foreign_t
+pl_ssl_negotiate(term_t config, term_t socket, term_t in, term_t out)
+{ PL_SSL *conf;
+  int si;
+  IOSTREAM *i, *o;
+  PL_SSL_INSTANCE * instance = NULL;
+  
+  if ( !get_conf(config, &conf) )
+    return FALSE;
+
+  if ( !tcp_get_socket(socket, &si) ) /* Note that this is not quite the same as get_sock! */
+     return FALSE;
+  
+  if ( !(instance = ssl_ssl(conf, si)) )
+    return FALSE;			/* TBD: error */
+  
+  if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+    return FALSE;
+  instance->close_needed++;
+
+  if ( !PL_unify_stream(in, i) )
+  { Sclose(i);
+    return FALSE;
+  }
+
+  if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+    return FALSE;
+  instance->close_needed++;
+
+  if ( !PL_unify_stream(out, o) )
+  { Sclose(i);
+    Sclose(o);
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+static foreign_t
 pl_ssl_debug(term_t level)
 { int l;
 
@@ -654,6 +692,7 @@ install_ssl4pl()
   PL_register_foreign("ssl_accept",     3, pl_ssl_accept,  0);
   PL_register_foreign("ssl_open",       4, pl_ssl_open,    0);
   PL_register_foreign("ssl_exit",       1, pl_ssl_exit,    0);
+  PL_register_foreign("ssl_negotiate",  4, pl_ssl_negotiate,    0);
   PL_register_foreign_in_module("user", "ssl_debug", 1, pl_ssl_debug,   0);
 
   /*

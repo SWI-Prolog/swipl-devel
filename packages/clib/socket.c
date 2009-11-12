@@ -74,7 +74,7 @@ static functor_t FUNCTOR_socket1;	/* $socket(Id) */
 		 *	     CONVERSION		*
 		 *******************************/
 
-static int
+NBIO_EXPORT(int)
 tcp_get_socket(term_t Socket, int *id)
 { IOSTREAM *s;
   int socket;

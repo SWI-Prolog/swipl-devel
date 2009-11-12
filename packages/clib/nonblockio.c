@@ -256,7 +256,7 @@ need_retry(int error)
 #ifdef O_DEBUG
 static int debugging;
 
-int
+NBIO_EXPORT(int)
 nbio_debug(int level)
 { int old = debugging;
 
@@ -1201,7 +1201,7 @@ nbio_to_plsocket(nbio_sock_t socket)
 }
 
 
-SOCKET
+NBIO_EXPORT(SOCKET)
 nbio_fd(nbio_sock_t socket)
 { plsocket *p;
 
@@ -1525,7 +1525,7 @@ nbio_last_error(nbio_sock_t socket)
 		 *	  INITIALISATION	*
 		 *******************************/
 
-int
+NBIO_EXPORT(int)
 nbio_init(const char *module)
 { INITLOCK();				/* is this ok? */
 
@@ -1568,7 +1568,7 @@ nbio_init(const char *module)
 }
 
 
-int
+NBIO_EXPORT(int)
 nbio_cleanup(void)
 { if ( initialised )
   {
@@ -1587,7 +1587,7 @@ socket(-Socket)
     the format $socket(Id).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-nbio_sock_t
+NBIO_EXPORT(nbio_sock_t)
 nbio_socket(int domain, int type, int protocol)
 { SOCKET sock;
   plsocket *s;
@@ -1598,7 +1598,6 @@ nbio_socket(int domain, int type, int protocol)
   { nbio_error(errno, TCP_ERRNO);
     return -1;
   }
-
   if ( !(s=allocSocket(sock)) )		/* register it */
   { closesocket(sock);
     return -1;
@@ -1613,7 +1612,7 @@ nbio_socket(int domain, int type, int protocol)
 }
 
 
-int
+NBIO_EXPORT(int)
 nbio_closesocket(nbio_sock_t socket)
 { plsocket *s;
 
@@ -1648,7 +1647,7 @@ nbio_closesocket(nbio_sock_t socket)
   return 0;
 }
 
-int
+NBIO_EXPORT(int)
 nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 { plsocket *s;
   va_list args;
