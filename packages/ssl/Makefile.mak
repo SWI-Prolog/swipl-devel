@@ -52,7 +52,7 @@ ilib::
 xpce-install::
 
 html-install:	install-examples
-
+		copy ssl.html "$(PKGDOC)"
 
 install-examples::
 		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
