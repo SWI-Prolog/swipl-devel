@@ -67,44 +67,10 @@ static atom_t ATOM_atom;		/* "atom" */
 static atom_t ATOM_string;		/* "string" */
 static atom_t ATOM_codes;		/* "codes" */
 
-static functor_t FUNCTOR_socket1;	/* $socket(Id) */
-
 
 		 /*******************************
 		 *	     CONVERSION		*
 		 *******************************/
-
-NBIO_EXPORT(int)
-tcp_get_socket(term_t Socket, int *id)
-{ IOSTREAM *s;
-  int socket;
-
-  if ( PL_is_functor(Socket, FUNCTOR_socket1) )
-  { term_t a = PL_new_term_ref();
-
-    _PL_get_arg(1, Socket, a);
-    if ( PL_get_integer(a, id) )
-      return TRUE;
-  }
-
-  if ( PL_get_stream_handle(Socket, &s) )
-  { socket = (int)(intptr_t)s->handle;
-
-    *id = socket;
-    return TRUE;
-  }
-
-  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, -1, Socket, "socket");
-}
-
-
-static int
-tcp_unify_socket(term_t Socket, int id)
-{ return PL_unify_term(Socket,
-		       PL_FUNCTOR, FUNCTOR_socket1,
-		         IntArg(id));
-}
-
 
 static foreign_t
 pl_host_to_address(term_t Host, term_t Ip)
@@ -618,8 +584,6 @@ install_socket()
   ATOM_atom	      =	PL_new_atom("atom");
   ATOM_string	      =	PL_new_atom("string");
   ATOM_codes	      =	PL_new_atom("codes");
-
-  FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
 
 #ifdef O_DEBUG
   PL_register_foreign_in_module("user", "tcp_debug", 1, pl_debug, 0);
