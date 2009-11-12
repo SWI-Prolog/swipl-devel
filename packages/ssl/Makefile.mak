@@ -2,7 +2,7 @@
 # Build the SWI-Prolog SSL package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -52,7 +52,7 @@ ilib::
 xpce-install::
 
 html-install:	install-examples
-
+		copy ssl.html "$(PKGDOC)"
 
 install-examples::
 		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
