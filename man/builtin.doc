@@ -3394,7 +3394,7 @@ syntax.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
-as eclipse (\ldots).  A 0 (zero) value (default) imposes no depth limit.
+as ellipses (\ldots).  A 0 (zero) value (default) imposes no depth limit.
 This option also delimits the number of printed for a list.  Example:
 
 \begin{code}
