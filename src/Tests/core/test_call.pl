@@ -225,6 +225,20 @@ test(cleanup, error(instantiation_error)) :-
 test(cleanup, true) :-
 	setup_call_cleanup(X=true, true, X).
 
+test(error_choice, [E+Xs =@= x+[x(1,_,_)]]) :-
+	catch(test_error_choice, E, true),
+	findall(X, retract(v(X)), Xs).
+
+% this should undo the bindings of G and B before calling the
+% cleanup handler.  I.e., S must be 1 and G and B must be var.
+
+test_error_choice :-
+	setup_call_cleanup(S=1,
+			   (G=2;G=3),
+			   assert(v(x(S,G,B)))),
+	B = 4,
+	throw(x).
+
 a(_).
 
 :- end_tests(setup_call_cleanup).
