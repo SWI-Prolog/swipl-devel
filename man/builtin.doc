@@ -1496,6 +1496,19 @@ if-then-else).
 
     \termitem{exception}{Exception}
 \arg{Goal} raised the given \arg{Exception}.
+
+    \termitem{external_exception}{Exception}
+\arg{Goal} succeeded with choice-points and these are now discarded
+due to an exception.  For example:
+
+\begin{code}
+?- setup_call_catcher_cleanup(true, (X=1;X=2),
+			      Catcher, writeln(Catcher)),
+   throw(ball).
+external_exception(ball)
+ERROR: Unhandled exception: Unknown message: ball
+\end{code}
+
 \end{description}
 
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}

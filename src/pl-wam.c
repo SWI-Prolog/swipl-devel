@@ -535,6 +535,7 @@ enum finished
 { FINISH_EXIT = 0,
   FINISH_FAIL,
   FINISH_CUT,
+  FINISH_EXTERNAL_EXCEPT,
   FINISH_EXCEPT,
   FINISH_EXITCLEANUP
 };
@@ -549,14 +550,19 @@ unify_finished(term_t catcher, enum finished reason)
     ATOM_fail,
     ATOM_cut,
     ATOM_exception,
+    ATOM_external_exception,
     ATOM_exit
   };
 
-  if ( reason == FINISH_EXCEPT )
-  { SECURE(checkData(valTermRef(exception_bin)));
+  if ( reason == FINISH_EXCEPT ||
+       reason == FINISH_EXTERNAL_EXCEPT )
+  { functor_t f = (reason == FINISH_EXCEPT ? FUNCTOR_exception1
+					   : FUNCTOR_external_exception1);
+
+    SECURE(checkData(valTermRef(exception_bin)));
 
     return PL_unify_term(catcher,
-			 PL_FUNCTOR, FUNCTOR_exception1,
+			 PL_FUNCTOR, f,
 			   PL_TERM, exception_bin);
   } else if ( reason == FINISH_EXIT )
   { fail;
@@ -593,7 +599,9 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     { term_t clean;
       term_t ex;
       int rval;
-      int set_env = (reason == FINISH_CUT || reason == FINISH_EXCEPT);
+      int set_env = (reason == FINISH_CUT ||
+		     reason == FINISH_EXCEPT ||
+		     reason == FINISH_EXTERNAL_EXCEPT);
       term_t esave;
       wakeup_state wstate;
 
@@ -1404,7 +1412,8 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       { discardFrame(fr2 PASS_LD);
 	if ( true(fr2, FR_WATCHED) )
 	{ lTop = (LocalFrame)(me+1);
-	  if ( reason == FINISH_EXCEPT )
+	  if ( reason == FINISH_EXCEPT ||
+	       reason == FINISH_EXTERNAL_EXCEPT )
 	    Undo(me->mark);
 	  frameFinished(fr2, reason PASS_LD);
 	  if ( me != BFR )		/* shifted */
@@ -1450,7 +1459,7 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
     assert(!isVar(*p));
     PushPtr(p);
     exception_term = 0;
-    ch = discardChoicesAfter(fr, FINISH_EXCEPT PASS_LD);
+    ch = discardChoicesAfter(fr, FINISH_EXTERNAL_EXCEPT PASS_LD);
     PopPtr(p);
     *valTermRef(exception_bin) = *p;
     exception_term = exception_bin;

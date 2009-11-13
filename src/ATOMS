@@ -205,6 +205,7 @@ A exported		"exported"
 A exports		"exports"
 A expression		"expression"
 A externals		"externals"
+A external_exception	"external_exception"
 A fact			"fact"
 A factor		"factor"
 A fail			"fail"
@@ -707,6 +708,7 @@ F existence_error	2
 F exited		1
 F exp			1
 F exports		1
+F external_exception	1
 F fail			0
 F failure_error		1
 F file			1
