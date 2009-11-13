@@ -3065,13 +3065,17 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
   { word c;
     int rc;
 
-    SAVE_REGISTERS(qid);
-    if ( (rc=put_number(&c, n, ALLOW_GC PASS_LD)) == TRUE )
+    ARGP++;				/* new_args must become 1 in */
+    SAVE_REGISTERS(qid);		/* get_vmi_state() */
+    rc=put_number(&c, n, ALLOW_GC PASS_LD);
+    LOAD_REGISTERS(qid);
+    ARGP--;
+
+    if ( rc == TRUE )
     { deRef2(ARGP, k);			/* may be shifted */
       bindConst(k, c);
     } else
       rc = raiseStackOverflow(rc);
-    LOAD_REGISTERS(qid);
 
     popArgvArithStack(1 PASS_LD);
     AR_END();
