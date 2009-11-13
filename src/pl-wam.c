@@ -1391,7 +1391,7 @@ created after fr was created or NULL if this doesn't exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
-discardChoicesAfter(LocalFrame fr ARG_LD)
+discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 { if ( (LocalFrame)BFR > fr )
   { for(;;)
     { Choice me = BFR;
@@ -1404,7 +1404,7 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
       { discardFrame(fr2 PASS_LD);
 	if ( true(fr2, FR_WATCHED) )
 	{ lTop = (LocalFrame)(me+1);
-	  frameFinished(fr2, FINISH_CUT PASS_LD);
+	  frameFinished(fr2, reason PASS_LD);
 	  if ( me != BFR )		/* shifted */
 	  { intptr_t offset = (char*)BFR - (char*)me;
 
@@ -1448,13 +1448,13 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
     assert(!isVar(*p));
     PushPtr(p);
     exception_term = 0;
-    ch = discardChoicesAfter(fr PASS_LD);
+    ch = discardChoicesAfter(fr, FINISH_EXCEPT PASS_LD);
     PopPtr(p);
     *valTermRef(exception_bin) = *p;
     exception_term = exception_bin;
     return ch;
   } else
-    return discardChoicesAfter(fr PASS_LD);
+    return discardChoicesAfter(fr, FINISH_CUT PASS_LD);
 }
 
 
@@ -1670,7 +1670,7 @@ static void
 discard_query(qid_t qid ARG_LD)
 { QueryFrame qf = QueryFromQid(qid);
 
-  discardChoicesAfter(&qf->frame PASS_LD);
+  discardChoicesAfter(&qf->frame, FINISH_CUT PASS_LD);
   qf = QueryFromQid(qid);		/* may be shifted */
   discardFrame(&qf->frame PASS_LD);
   if ( true(&qf->frame, FR_WATCHED) )
@@ -2062,7 +2062,7 @@ do_retry:
 	   (Word)rframe - (Word)lBase,
 	   predicateName(rframe->predicate));
 
-  discardChoicesAfter(rframe PASS_LD);
+  discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
   environment_frame = FR = rframe;
   DEF = FR->predicate;
   Undo(m);

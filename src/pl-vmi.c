@@ -1746,7 +1746,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
       { case ACTION_RETRY:
 	  goto retry;
 	case ACTION_FAIL:
-	  discardChoicesAfter(FR PASS_LD);
+	  discardChoicesAfter(FR, FINISH_CUT PASS_LD);
 	  FRAME_FAILED;
 	case ACTION_ABORT:
 	  THROW_EXCEPTION;
@@ -1932,7 +1932,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
   } else
 #endif
   { SAVE_REGISTERS(qid);
-    discardChoicesAfter(FR PASS_LD);
+    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
     LOAD_REGISTERS(qid);
     lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
     ARGP = argFrameP(lTop, 0);
@@ -3809,7 +3809,7 @@ b_throw:
 	{ case ACTION_RETRY:
 	    PL_clear_exception();
 	    SAVE_REGISTERS(qid);
-	    discardChoicesAfter(FR PASS_LD);
+	    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
 	    LOAD_REGISTERS(qid);
 	    DEF = FR->predicate;
 	    goto retry_continue;
@@ -3960,7 +3960,7 @@ VMI(B_EXIT, 0, 0, ())
   if ( rc )
   { for( ; ; FR = FR->parent )
     { SAVE_REGISTERS(qid);
-      discardChoicesAfter(FR PASS_LD);
+      discardChoicesAfter(FR, FINISH_CUT PASS_LD);
       LOAD_REGISTERS(qid);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
@@ -3976,7 +3976,7 @@ VMI(B_EXIT, 0, 0, ())
     }
     environment_frame = FR = blockfr;
     SAVE_REGISTERS(qid);
-    discardChoicesAfter(FR PASS_LD); /* delete possible CHP_DEBUG */
+    discardChoicesAfter(FR, FINISH_CUT PASS_LD); /* delete CHP_DEBUG */
     LOAD_REGISTERS(qid);
     DEF = FR->predicate;
     lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
@@ -4018,7 +4018,7 @@ VMI(I_CUT_BLOCK, 0, 0, ())
   }
 
   SAVE_REGISTERS(qid);
-  discardChoicesAfter(cutfr PASS_LD);
+  discardChoicesAfter(cutfr, FINISH_CUT PASS_LD);
   LOAD_REGISTERS(qid);
 
   lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
