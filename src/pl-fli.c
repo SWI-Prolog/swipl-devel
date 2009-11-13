@@ -3423,7 +3423,7 @@ PL_raise_exception(term_t exception)
 { GET_LD
 
   LD->exception.processing = TRUE;
-  if ( exception != exception_bin )	/* re-throwing */
+  if ( !PL_same_term(exception, exception_bin) ) /* re-throwing */
   { setVar(*valTermRef(exception_bin));
     if ( !duplicate_term(exception, exception_bin PASS_LD) )
       fatalError("Failed to copy exception term");
