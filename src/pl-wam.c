@@ -1404,7 +1404,8 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       { discardFrame(fr2 PASS_LD);
 	if ( true(fr2, FR_WATCHED) )
 	{ lTop = (LocalFrame)(me+1);
-	  Undo(me->mark);
+	  if ( reason == FINISH_EXCEPT )
+	    Undo(me->mark);
 	  frameFinished(fr2, reason PASS_LD);
 	  if ( me != BFR )		/* shifted */
 	  { intptr_t offset = (char*)BFR - (char*)me;
