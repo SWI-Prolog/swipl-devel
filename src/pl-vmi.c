@@ -3065,9 +3065,19 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
   { word c;
     int rc;
 
+    if ( n->type == V_INTEGER )		/* Speedup the 99% case a bit */
+    { c = consInt(n->value.i);
+      if ( valInt(c) == n->value.i &&
+	   hasGlobalSpace(0) )
+      { rc = TRUE;
+	bindConst(k, c);
+	goto a_is_ok;
+      }
+    }
+
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
-    rc=put_number(&c, n, ALLOW_GC PASS_LD);
+    rc = put_number(&c, n, ALLOW_GC PASS_LD);
     LOAD_REGISTERS(qid);
     ARGP--;
 
@@ -3075,13 +3085,15 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     { deRef2(ARGP, k);			/* may be shifted */
       bindConst(k, c);
     } else
-      rc = raiseStackOverflow(rc);
+    { raiseStackOverflow(rc);
+      popArgvArithStack(1 PASS_LD);
+      AR_END();
+      THROW_EXCEPTION;
+    }
 
+  a_is_ok:
     popArgvArithStack(1 PASS_LD);
     AR_END();
-
-    if ( !rc )
-      THROW_EXCEPTION;
 
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
