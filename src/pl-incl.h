@@ -1531,11 +1531,19 @@ Temporary store/restore pointers to make them safe over GC/shift
 
 #define TMP_PTR_SIZE	(4)
 #define PushPtr(p)	do { int i = LD->tmp.top++; \
-			     assert(i<=TMP_PTR_SIZE); \
+			     assert(i<TMP_PTR_SIZE); \
 			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
 			   } while(0)
 #define PopPtr(p)	do { int i = --LD->tmp.top; \
 			     p = unRef(*valTermRef(LD->tmp.h[i])); \
+			     setVar(*valTermRef(LD->tmp.h[i])); \
+			   } while(0)
+#define PushVal(w)	do { int i = LD->tmp.top++; \
+			     assert(i<TMP_PTR_SIZE); \
+			     *valTermRef(LD->tmp.h[i]) = w; \
+			   } while(0)
+#define PopVal(w)	do { int i = --LD->tmp.top; \
+			     w = *valTermRef(LD->tmp.h[i]); \
 			     setVar(*valTermRef(LD->tmp.h[i])); \
 			   } while(0)
 

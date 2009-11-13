@@ -225,6 +225,14 @@ test(cleanup, error(instantiation_error)) :-
 test(cleanup, true) :-
 	setup_call_cleanup(X=true, true, X).
 
+test(error_choice, [throws(first)]) :-
+	setup_call_cleanup(true, (G=1;G=2), throw(second)),
+	throw(first).
+
+test(error_choice, [throws(a(first))]) :-
+	setup_call_cleanup(true, (G=1;G=2), throw(a(second))),
+	throw(a(first)).
+
 test(error_choice, [E+Xs =@= x+[x(1,_,_)]]) :-
 	catch(test_error_choice, E, true),
 	findall(X, retract(v(X)), Xs).

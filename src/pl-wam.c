@@ -1451,18 +1451,21 @@ static Choice
 dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
+    word w;
     Choice ch;
 
     DEBUG(3, Sdprintf("dbg_discardChoicesAfter(): saving exception: ");
 	     pl_writeln(exception_term));
     deRef(p);
-    assert(!isVar(*p));
-    PushPtr(p);
+    w = *p;
+    assert(!isVar(w));
+    PushVal(w);
     exception_term = 0;
     ch = discardChoicesAfter(fr, FINISH_EXTERNAL_EXCEPT PASS_LD);
-    PopPtr(p);
-    *valTermRef(exception_bin) = *p;
+    PopVal(w);
+    *valTermRef(exception_bin) = w;
     exception_term = exception_bin;
+
     return ch;
   } else
     return discardChoicesAfter(fr, FINISH_CUT PASS_LD);
