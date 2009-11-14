@@ -2656,6 +2656,15 @@ IOFUNCTIONS Sttyfunctions =
 };
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*)  Windows  isatty()  is  totally  broken   since  VC9;  crashing  the
+application instead of returning EINVAL on  wrong   values  of fd. As we
+provide  the  socket-id  through   Sfileno,    this   code   crashes  on
+tcp_open_socket(). As ttys and its detection is   of no value on Windows
+anyway, we skip this. Second, Windows doesn't have fork(), so FD_CLOEXEC
+is of no value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
@@ -2688,6 +2697,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     recursiveMutexInit(s->mutex);
   }
 #endif
+
+#ifndef __WINDOWS__			/* (*) */
   if ( (fd = Sfileno(s)) >= 0 )
   { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
@@ -2695,6 +2706,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
   }
+#endif
 
   return s;
 }
