@@ -954,7 +954,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
     succeed;
 
   if ( PL_get_atom(t, &a) )
-  { if ( !arg && priorityOperator(NULL, a) > prec )
+  { if ( !arg && prec < 1200 && priorityOperator(NULL, a) > 0 )
     { if ( PutOpenBrace(out) &&
 	   writeAtom(a, options) &&
 	   PutCloseBrace(out) )
