@@ -2151,10 +2151,15 @@ END_SHAREDVARS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_SOFTIF: A *-> B ; C is translated to C_SOFIF <A> C_SOFTCUT <B> C_JMP
-end <C>. See pl-comp.c and C_SOFTCUT implementation for details.
+end <C>.
+
+C_SOFTIF <choice-var> <skip> is  the  same   as  C_OR  <skip>, storing a
+reference to the choice-point in <choice-var>
+
+See pl-comp.c and C_SOFTCUT implementation for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
-{ varFrame(FR, *PC++) = (word) lTop; /* see C_SOFTCUT */
+{ varFrame(FR, *PC++) = consTermRef(lTop);	/* see C_SOFTCUT */
 
   VMI_GOTO(C_OR);
 }
@@ -2165,7 +2170,8 @@ C_SOFTCUT: Handle the commit-to of A *-> B; C. Simply invalidate the
 choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
-{ Choice ch = (Choice) varFrame(FR, *PC);
+{ word ch_ref = varFrame(FR, *PC);
+  Choice ch = (Choice) valTermRef(ch_ref);
   Choice bfr = BFR;
 
   PC++;
