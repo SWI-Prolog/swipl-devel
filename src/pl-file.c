@@ -2189,7 +2189,12 @@ PRED_IMPL("get_single_char", 1, get_single_char, 0)
   int c = getSingleChar(s, TRUE);
 
   if ( c == EOF )
-  { PL_unify_integer(A1, -1);
+  { if ( PL_exception(0) )
+    { releaseStream(s);
+      return FALSE;
+    }
+
+    PL_unify_integer(A1, -1);
     return streamStatus(s);
   }
 
