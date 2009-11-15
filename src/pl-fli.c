@@ -3705,6 +3705,7 @@ int
 PL_clearsig__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
   { LD->pending_signals &= ~((int64_t)1 << (sig-1));
+    updateAlerted(LD);
     return TRUE;
   }
 
