@@ -29,10 +29,8 @@
 #include <string.h>
 #ifdef __WINDOWS__
 #  include <io.h>
-#  include <winsock2.h>
 #else
 #  include <sys/types.h>
-#  include <sys/socket.h>
 #  include <netinet/in.h>
 #  include <unistd.h>
 #endif
@@ -246,15 +244,6 @@ get_conf(term_t config, PL_SSL **conf)
 
 
 static int
-get_sock(term_t t, int *s)
-{ if ( !PL_get_integer(t, s) )
-    return type_error(t, "socket");
-
-  return TRUE;
-}
-
-
-static int
 tcp_unify_ip(term_t t, struct in_addr *ip)
 { unsigned long hip;
 
@@ -339,26 +328,13 @@ pl_cert_verify_hook(PL_SSL *config,
 static BOOL initialised  = FALSE;
 
 static int
-tcp_init()
+threads_init()
 { LOCK();
   if ( initialised )
   { UNLOCK();
     return TRUE;
   }
   initialised = TRUE;
-
-#ifdef __WINDOWS__
-{ WSADATA WSAData;
-
-  if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
-  { UNLOCK();
-    return PL_warning("tcp_init() - WSAStartup failed.");
-  }
-  /*
-   * startSocketThread();
-   */
-}
-#endif /*__WINDOWS__*/
 
 #ifdef _REENTRANT
   if ( !ssl_thread_setup() )
@@ -373,6 +349,7 @@ tcp_init()
   return TRUE;
 }
 
+
 static foreign_t
 pl_ssl_init(term_t config, term_t role, term_t options)
 { atom_t a;
@@ -384,21 +361,18 @@ pl_ssl_init(term_t config, term_t role, term_t options)
   if ( !get_atom_ex(role, &a) )
     return FALSE;
   if ( a == ATOM_server )
-    r = TRUE;
+    r = PL_SSL_SERVER;
   else if ( a == ATOM_client )
-    r = FALSE;
+    r = PL_SSL_CLIENT;
   else
-    return domain_error(a, "ssl_role");
+    return domain_error(a, "ssl_role"); 
 
-  /*
-   * Initialize the (Windows) socket stream library
-   */
-  if ( !tcp_init() )
+ if ( !threads_init() )
     return FALSE;
 
+  
   if ( !(conf = ssl_init(r)) )
     return resource_error("memory");
-
   while( PL_get_list(tail, head, tail) )
   { atom_t name;
     int arity;
@@ -482,33 +456,7 @@ pl_ssl_init(term_t config, term_t role, term_t options)
 
   if ( !PL_get_nil(tail) )
     return type_error(tail, "list");
-
-  if ( ssl_socket(conf) < 0 )
-    return FALSE;			/* TBD: error */
-
   return unify_conf(config, conf);
-}
-
-
-static foreign_t
-pl_ssl_accept(term_t config, term_t sock_inst, term_t peer)
-{ PL_SSL *conf;
-  int si;
-  struct sockaddr_in sa_client;
-  socklen_t          client_len = sizeof(sa_client);
-
-  if ( !get_conf(config, &conf) )
-    return FALSE;
-
-  if ( (si = ssl_accept(conf, &sa_client, &client_len)) < 0 )
-    return FALSE;			/* TBD: error */
-
-  if ( PL_unify_integer(sock_inst, si) &&
-       tcp_unify_ip(peer, &sa_client.sin_addr) )
-    return TRUE;
-
-  close(si);
-  return FALSE;				/* exception? */
 }
 
 
@@ -566,82 +514,70 @@ static IOFUNCTIONS ssl_funcs =
 
 
 static foreign_t
-pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
+pl_ssl_put_socket(term_t config, term_t data)
 { PL_SSL *conf;
-  PL_SSL_INSTANCE *instance;
-  int si;
-  IOSTREAM *i, *o;
-
   if ( !get_conf(config, &conf) )
     return FALSE;
-
-  if ( conf->pl_ssl_role == PL_SSL_SERVER )
-  { if ( !get_sock(socket, &si) )
-      return FALSE;
-  } else
-  { if ( (si=ssl_connect(conf)) < 0 )
-      return FALSE;			/* TBD: error */
-  }
-  if ( !(instance = ssl_ssl(conf, si)) )
-    return FALSE;			/* TBD: error */
-
-  if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
-    return FALSE;
-  instance->close_needed++;
-
-  if ( !PL_unify_stream(in, i) )
-  { Sclose(i);
-    return FALSE;
-  }
-
-  if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
-    return FALSE;
-  instance->close_needed++;
-
-  if ( !PL_unify_stream(out, o) )
-  { Sclose(i);
-    Sclose(o);
-    return FALSE;
-  }
-
-  return TRUE;
+  return PL_get_integer(data, &conf->sock);
 }
 
-
 static foreign_t
-pl_ssl_negotiate(term_t config, term_t socket, term_t in, term_t out)
+pl_ssl_get_socket(term_t config, term_t data)
 { PL_SSL *conf;
-  int si;
-  IOSTREAM *i, *o;
-  PL_SSL_INSTANCE * instance = NULL;
-  
   if ( !get_conf(config, &conf) )
     return FALSE;
+  return PL_unify_integer(data, conf->sock);
+}
 
-  if ( !tcp_get_socket(socket, &si) ) /* Note that this is not quite the same as get_sock! */
+static foreign_t
+pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t out)
+{ PL_SSL *conf;
+  IOSTREAM *sorg_in, *sorg_out;
+  IOSTREAM *i, *o;
+  PL_SSL_INSTANCE * instance = NULL;
+  if ( !get_conf(config, &conf) )
+    return FALSE;
+  if ( !PL_get_stream_handle(org_in, &sorg_in) )
      return FALSE;
-  
-  if ( !(instance = ssl_ssl(conf, si)) )
-    return FALSE;			/* TBD: error */
+  if ( !PL_get_stream_handle(org_out, &sorg_out) )
+     return FALSE;
+
+  if ( !(instance = ssl_ssl_bio(conf, sorg_in, sorg_out)) )
+  {  PL_release_stream(sorg_in);
+     PL_release_stream(sorg_out);
+     return FALSE;			/* TBD: error */
+  }
   
   if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+  {  PL_release_stream(sorg_in);
+     PL_release_stream(sorg_out);
     return FALSE;
+  }
   instance->close_needed++;
 
   if ( !PL_unify_stream(in, i) )
   { Sclose(i);
+    PL_release_stream(sorg_in);
+    PL_release_stream(sorg_out);
     return FALSE;
   }
-
+  Sset_filter(sorg_in, i);
+  PL_release_stream(sorg_in);
   if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+  {  PL_release_stream(sorg_out);
     return FALSE;
+  }
   instance->close_needed++;
 
   if ( !PL_unify_stream(out, o) )
   { Sclose(i);
+    Sset_filter(sorg_in, NULL);
+    PL_release_stream(sorg_out);
     Sclose(o);
     return FALSE;
   }
+  Sset_filter(sorg_out, o);
+  PL_release_stream(sorg_out);
 
   return TRUE;
 }
@@ -689,10 +625,10 @@ install_ssl4pl()
   FUNCTOR_ip4		  = PL_new_functor(PL_new_atom("ip"), 4);
 
   PL_register_foreign("ssl_init",       3, pl_ssl_init,    PL_FA_TRANSPARENT);
-  PL_register_foreign("ssl_accept",     3, pl_ssl_accept,  0);
-  PL_register_foreign("ssl_open",       4, pl_ssl_open,    0);
   PL_register_foreign("ssl_exit",       1, pl_ssl_exit,    0);
-  PL_register_foreign("ssl_negotiate",  4, pl_ssl_negotiate,    0);
+  PL_register_foreign("ssl_put_socket", 2, pl_ssl_put_socket,     0);
+  PL_register_foreign("ssl_get_socket", 2, pl_ssl_get_socket,     0);
+  PL_register_foreign("ssl_negotiate",  5, pl_ssl_negotiate,    0);
   PL_register_foreign_in_module("user", "ssl_debug", 1, pl_ssl_debug,   0);
 
   /*

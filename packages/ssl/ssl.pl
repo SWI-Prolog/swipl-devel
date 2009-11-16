@@ -31,13 +31,45 @@
 
 :- module(ssl,
 	  [ ssl_init/3,			% -Config, +Role, +Options
-	    ssl_accept/3,		% +Config, -Socket, -Peer
-	    ssl_open/3,			% +Config, -In, -Out
-	    ssl_open/4,			% +Config, +Socket, -In, -Out
+            ssl_initx/3,                % -Config, +Role, +Options
+            ssl_accept/3,               % +Config, -Socket, -Peer
+            ssl_open/3,                 % +Config, -Read, -Write
+            ssl_open/4,                 % +Config, +Socket, -Read, -Write
+            ssl_negotiate/5,            % +Config, +PlainRead, +PlainWrite, -SSLRead, -SSLWrite
 	    ssl_exit/1			% +Config
 	  ]).
 
 :- use_foreign_library(foreign(ssl4pl)).
 
-ssl_open(Config, In, Out) :-
-	ssl_open(Config, -, In, Out).
+ssl_initx(SSL, server, Options):-
+        memberchk(port(Port), Options),
+        tcp_socket(Socket),
+        tcp_bind(Socket, Port),
+        tcp_listen(Socket, 5),
+        ssl_init(SSL, server, Options),
+        Socket = '$socket'(S),
+        ssl_put_socket(SSL, S).
+
+ssl_initx(SSL, client, Options):-
+        memberchk(port(Port), Options),
+        memberchk(host(Host), Options),
+        writeln(Host:Port),
+        tcp_socket(Socket),
+        tcp_connect(Socket, Host:Port),
+        ssl_init(SSL, client, Options),
+        Socket = '$socket'(S),
+        ssl_put_socket(SSL, S).
+
+
+ssl_accept(SSL, Socket, Peer):-
+        ssl_get_socket(SSL, S),
+        tcp_accept('$socket'(S), Socket, Peer).
+
+ssl_open(SSL, Socket, In, Out):-
+        tcp_open_socket(Socket, Read, Write),
+        ssl_negotiate(SSL, Read, Write, In, Out).
+
+ssl_open(SSL, In, Out):-
+        ssl_get_socket(SSL, S),
+        tcp_open_socket('$socket'(S), Read, Write),
+        ssl_negotiate(SSL, Read, Write, In, Out).
