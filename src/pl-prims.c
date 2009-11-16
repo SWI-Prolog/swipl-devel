@@ -2122,7 +2122,7 @@ Returns	>= 0: Number for next variable variable
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-do_number_vars(Word p, nv_options *options, int n ARG_LD)
+do_number_vars(Word p, nv_options *options, int n, mark *m ARG_LD)
 {
 start:
   if ( n < 0 )
@@ -2165,7 +2165,9 @@ start:
   { Functor f = valueTerm(*p);
     int arity;
 
-    if ( options->singletons && f->definition == options->functor )
+    if ( options->singletons &&
+	 f->definition == options->functor &&
+	 (Word)f >= m->globaltop )	/* new one we created ourselves */
     { Word p = &f->arguments[0];
 
       if ( *p == ATOM_anonvar )
@@ -2180,7 +2182,7 @@ start:
     arity = arityFunctor(f->definition);
 
     for(p=argTermP(*p, 0); --arity > 0; p++)
-    { if ( (n=do_number_vars(p, options, n PASS_LD)) < 0 )
+    { if ( (n=do_number_vars(p, options, n, m PASS_LD)) < 0 )
 	return n;
     }
     goto start;				/* right-argument recursion */
@@ -2204,7 +2206,7 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
 
     Mark(m);
     initvisited(PASS_LD1);
-    rc = do_number_vars(valTermRef(t), options, n PASS_LD);
+    rc = do_number_vars(valTermRef(t), options, n, &m PASS_LD);
     unvisit(PASS_LD1);
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
