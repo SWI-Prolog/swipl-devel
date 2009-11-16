@@ -2010,7 +2010,11 @@ copy_term(nat-2) :-			% cyclic term
 		 *******************************/
 
 term_hash(simple-1) :-
-	term_hash(aap, 9270206).
+	term_hash(aap, X),
+	memberchk(X, [ 9270206,		% little endian
+		       16674642		% big endian
+		     ]).
+
 term_hash(simple-2) :-			% small int
 	term_hash(42, X),
 	memberchk(X, [ 12280004,	% little endian
@@ -2031,12 +2035,21 @@ term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
-	term_hash(hello(world), 12599352).
+	term_hash(hello(world), X),
+	memberchk(X, [ 12599352,	% little endian
+		       13811310		% big endian
+		     ]).
 term_hash(compound-2) :-
-	X = x(a),
-	term_hash(hello(X, X), 5826661).
+	A = x(a),
+	term_hash(hello(A, A), X),
+	memberchk(X, [ 5826661,		% little endian
+		       13137004		% big endian
+		     ]).
 term_hash(compound-3) :-
-	term_hash(hello(x(a), x(a)), 5826661).
+	term_hash(hello(x(a), x(a)), X),
+	memberchk(X, [ 5826661,		% little endian
+		       13137004		% big endian
+		     ]).
 
 
 		 /*******************************
