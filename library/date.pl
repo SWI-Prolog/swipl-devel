@@ -72,6 +72,55 @@ parse_time(Text, Stamp) :-
 	phrase(date(Y,Mon,D,H,Min,S,UTCOffset), Codes),
 	date_time_stamp(date(Y,Mon,D,H,Min,S,UTCOffset,-,-), Stamp).
 
+% TIMEX2 ISO: "2006-12-08T15:29:44 UTC" or "20061208T"
+% FIXME: deal with time zones, negative years, with week numbers,
+%        with ordinal dates, and with leap seconds.
+iso_time(Hr,Min,Sec) -->
+	hour(H), ":", minute(M), ":", second(S),
+	timezone(DH,DM,DS),
+	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
+iso_time(Hr,Min,Sec) -->
+	hour(H), ":", minute(M),
+	timezone(DH,DM,DS),
+	{ Hr is H + DH, Min is M + DM, Sec is DS }.
+iso_time(Hr,Min,Sec) -->
+	hour(H), minute(M), second(S),
+	timezone(DH,DM,DS),
+	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
+iso_time(Hr,Min,Sec) -->
+	hour(H), minute(M),
+	timezone(DH,DM,DS),
+	{ Hr is H + DH, Min is M + DM, Sec is DS }.
+iso_time(Hr,Min,Sec) -->
+	hour(H),
+	timezone(DH,DM,DS),
+	{ Hr is H + DH, Min is DM, Sec is DS }.
+
+% FIXME: deal with timezones and leap seconds
+timezone(0,0,0) --> "+", hour(_H), ":", minute(_M).
+timezone(0,0,0) --> "+", hour(_H), minute(_M).
+timezone(0,0,0) --> "+", hour(_H).
+timezone(0,0,0) --> "-", hour(_H), ":", minute(_M).
+timezone(0,0,0) --> "-", hour(_H), minute(_M).
+timezone(0,0,0) --> "-", hour(_H).
+timezone(0,0,0) --> "Z".
+timezone(0,0,0) --> ws, "UTC".
+timezone(0,0,0) --> ws, "GMT". % remove this?
+timezone(0,0,0) --> [].
+
+date(Y,Mon,D,H,Min,S,0) -->
+	year(Y), "-", month(Mon), "-", day(D),
+	"T", iso_time(H,Min,S).
+date(Y,Mon,D,0,0,0,0) -->
+	year(Y), "-", month(Mon), "-", day(D).
+date(Y,Mon,0,0,0,0,0) -->
+	year(Y), "-", month(Mon).
+date(Y,Mon,D,H,Min,S,0) -->
+	year(Y), month(Mon), day(D),
+	"T", iso_time(H,Min,S).
+date(Y,Mon,D,0,0,0,0) -->
+	year(Y), month(Mon), day(D).
+
 % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
 date(Y,Mon,D,H,Min,S,0) -->
 	day_name(_), ",", ws,
@@ -106,6 +155,8 @@ month_name(11) --> "Nov".
 month_name(12) --> "Dec".
 
 day_of_the_month(N) --> int2digit(N), { between(1, 31, N) }.
+month(M)            --> int2digit(M), { between(1,12,M) }.
+day(D)              --> int2digit(D), { between(1,31,D) }.
 hour(N)             --> int2digit(N), { between(0, 23, N) }.
 minute(N)	    --> int2digit(N), { between(0, 59, N) }.
 second(N)           --> int2digit(N), { between(0, 60, N) }. % leap second
