@@ -177,7 +177,7 @@ This section provides a very brief overview of important or
 commonly used SWI-Prolog predicates to control the environment.
 
 \begin{description}
-    \predicate{consult}{1}{+File}
+    \predicate{consult}{1}{:File}
 Load a source-file. On Windows folders may be specified with the
 DOS/Windows \chr{\}, which must be escaped or using the POSIX standard
 \chr{/}.  Especially when used in source-code \chr{/} is to be preferred
