@@ -1750,6 +1750,7 @@ typedef struct
 
 #define WAKEUP_STATE_WAKEUP    0x1
 #define WAKEUP_STATE_EXCEPTION 0x2
+#define WAKEUP_STATE_SKIP_EXCEPTION 0x4
 
 typedef struct wakeup_state
 { fid_t		fid;			/* foreign frame reference */

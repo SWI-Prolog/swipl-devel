@@ -1198,13 +1198,13 @@ exception_hook(LocalFrame fr, term_t catchfr_ref ARG_LD)
       }
 
       if ( rc )
-      { PL_raise_exception(av+1);	/* copy term again */
-      } else
-      { PL_put_term(exception_bin, av+0);
-	exception_term = exception_bin;
+	rc = !PL_is_variable(av+1);
+      if ( rc )
+      {	PL_raise_exception(av+1);	/* copy term again */
+	wstate.flags |= WAKEUP_STATE_SKIP_EXCEPTION;
       }
-
       restoreWakeup(&wstate PASS_LD);
+
       LD->exception.in_hook--;
 
       return rc;

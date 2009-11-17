@@ -478,7 +478,8 @@ restoreWakeup(wakeup_state *state ARG_LD)
       Word p = (Word)(fr+1);
 
       if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
-      { restore_exception(p PASS_LD);
+      { if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
+	  restore_exception(p PASS_LD);
         p++;
       }
       if ( (state->flags & WAKEUP_STATE_WAKEUP) )
