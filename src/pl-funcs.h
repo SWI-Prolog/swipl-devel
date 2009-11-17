@@ -672,6 +672,7 @@ COMMON(void) 		initTracer(void);
 COMMON(void) 		resetTracer(void);
 COMMON(int) 		tracemode(int new, int *old);
 COMMON(int) 		debugmode(debug_type new, debug_type *old);
+COMMON(int)		trace_if_space(void);
 COMMON(word) 		pl_trace(void);
 COMMON(word) 		pl_notrace(void);
 COMMON(word) 		pl_tracing(void);

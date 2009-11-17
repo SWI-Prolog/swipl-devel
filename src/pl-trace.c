@@ -1525,6 +1525,31 @@ tracemode(int doit, int *old)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Enable the tracer if we have a safe amount of available space. This is
+used to start tracing uncaught overflow exceptions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+trace_if_space(void)
+{ GET_LD;
+
+  if ( debugstatus.tracing == TRUE )
+    return debugstatus.tracing;
+
+  if ( LD->outofstack )
+  { if ( spaceStack(local) > 10000 * sizeof(void*) &&
+	 spaceStack(global) > 10000 * sizeof(void*) &&
+	 spaceStack(trail) > 10000 * sizeof(void*) )
+      tracemode(TRUE, NULL);
+  } else
+  { tracemode(TRUE, NULL);
+  }
+
+  return debugstatus.tracing;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 debugmode(debug_type new, debug_type *old)
 
 Set the current debug mode. If DBG_ALL,  debugging in switched on in all

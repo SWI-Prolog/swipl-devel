@@ -3709,6 +3709,7 @@ immune for undo operations.
 
 VMI(B_THROW, 0, 0, ())
 { term_t catchfr_ref;
+  int start_tracer;
 
   PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
 b_throw:
@@ -3753,6 +3754,7 @@ b_throw:
   }
 
 #if O_DEBUGGER
+  start_tracer = FALSE;
   if ( !catchfr_ref &&
        PL_is_functor(exception_term, FUNCTOR_error2) &&
        !PL_same_term(exception_term, exception_printed) &&
@@ -3767,7 +3769,8 @@ b_throw:
     if ( !rc )
     { SAVE_REGISTERS(qid);
       printMessage(ATOM_error, PL_TERM, exception_term);
-      pl_trace();
+      start_tracer = TRUE;
+      trace_if_space();
       LOAD_REGISTERS(qid);
     }
   }
@@ -3836,6 +3839,8 @@ b_throw:
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
 	LOAD_REGISTERS(qid);
       }
+      if ( start_tracer )
+         trace_if_space();
     }
   } else
 #endif /*O_DEBUGGER*/
