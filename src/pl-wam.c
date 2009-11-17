@@ -1396,6 +1396,8 @@ chp_chars(Choice ch)
 discardChoicesAfter() discards all choicepoints created  after fr, while
 calling possible hooks on the frames.   It return the oldest choicepoint
 created after fr was created or NULL if this doesn't exist.
+
+Note that we cannot put discardFrame() in the first loop. See C_CUT.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
@@ -1409,10 +1411,8 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       for(fr2 = me->frame;
 	  fr2 && fr2->clause && fr2 > fr;
 	  fr2 = fr2->parent)
-      { discardFrame(fr2 PASS_LD);
-	if ( true(fr2, FR_WATCHED) )
-	{ lTop = (LocalFrame)(me+1);
-	  if ( reason == FINISH_EXCEPT ||
+      { if ( true(fr2, FR_WATCHED) )
+	{ if ( reason == FINISH_EXCEPT ||
 	       reason == FINISH_EXTERNAL_EXCEPT )
 	    Undo(me->mark);
 	  frameFinished(fr2, reason PASS_LD);
@@ -1423,9 +1423,17 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	    fr  = addPointer(fr, offset);
 	    fr2 = addPointer(fr2, offset);
 	  }
-	  if ( exception_term )
+#if 0					/* What to do if we have multiple */
+	  if ( exception_term )		/* handlers and multiple exceptions? */
 	    break;
+#endif
 	}
+      }
+
+      for(fr2 = me->frame;		/* (*) */
+	  fr2 && fr2->clause && fr2 > fr;
+	  fr2 = fr2->parent)
+      { discardFrame(fr2 PASS_LD);
       }
 
       BFR = me->parent;
