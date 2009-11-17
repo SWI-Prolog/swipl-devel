@@ -38,10 +38,26 @@ test_db :-
 :- begin_tests(assert2).
 
 :- dynamic
-	term/0.
+	term/0,
+	f/1, f/2.
 
 test(bound, error(_)) :-
 	assert(term,noref).
+test(right_cyclic_head, [ sto(rational_trees),
+			  error(representation_error(cyclic_term))
+			]) :-
+	X = f(X),
+	assert(X).
+test(cyclic_head, [ sto(rational_trees),
+			  error(representation_error(cyclic_term))
+			]) :-
+	X = f(X, 1),
+	assert(X).
+test(cyclic_body, [ sto(rational_trees),
+		    error(representation_error(cyclic_term))
+		  ]) :-
+	X = f(X),
+	assert((f(a) :- X)).
 
 :- end_tests(assert2).
 

@@ -333,11 +333,13 @@ are made variables again.
 When compiling in `islocal' mode, we  count the compound terms appearing
 as arguments to subclauses in ci->argvars and   there is no need to look
 inside these terms.
+
+Returns the number of variables found or -1 if the term is cyclic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-analyseVariables2(Word head, int nvars, int arity, int argn,
-		  CompileInfo ci ARG_LD)
+analyseVariables2(Word head, int nvars, int argn,
+		  CompileInfo ci, int depth ARG_LD)
 {
 right_recursion:
 
@@ -345,7 +347,7 @@ right_recursion:
 
   if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
   { VarDef vd;
-    int index = ((argn >= 0 && argn < arity) ? argn : (arity + nvars++));
+    int index = ((argn >= 0 && argn < ci->arity) ? argn : (ci->arity + nvars++));
 
     vd = getVarDef(index PASS_LD);
     vd->saved = *head;
@@ -367,6 +369,9 @@ right_recursion:
   { Functor f = valueTerm(*head);
     FunctorDef fd = valueFunctor(f->definition);
 
+    if ( ++depth == 10000 && !PL_is_acyclic(wordToTermRef(head)) )
+      return -1;
+
     if ( ci->islocal )
     { if ( ci->subclausearg )
       { ci->argvars++;
@@ -379,8 +384,8 @@ right_recursion:
 	{ int ar = fd->arity;
 
 	  ci->subclausearg++;
-	  for(head = f->arguments, argn = arity; --ar >= 0; head++, argn++)
-	    nvars = analyseVariables2(head, nvars, arity, argn, ci PASS_LD);
+	  for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
+	    nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
 	  ci->subclausearg--;
 	}
 
@@ -391,10 +396,13 @@ right_recursion:
     { int ar = fd->arity;
 
       head = f->arguments;
-      argn = ( argn < 0 ? 0 : arity );
+      argn = ( argn < 0 ? 0 : ci->arity );
 
       for(; --ar > 0; head++, argn++)
-	nvars = analyseVariables2(head, nvars, arity, argn, ci PASS_LD);
+      { nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+	if ( nvars < 0 )
+	  return nvars;
+      }
 
       goto right_recursion;
     }
@@ -407,7 +415,15 @@ right_recursion:
 }
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns TRUE on success and CYCLIC_* or *_OVERFLOW on errors (*_OVERFLOW
+has not been implemented yet)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define CYCLIC_HEAD -10
+#define CYCLIC_BODY -11
+
+static int
 analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
 { int nvars = 0;
   int n;
@@ -418,9 +434,13 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     resetVarDefs(arity PASS_LD);
 
   if ( head )
-    nvars = analyseVariables2(head, 0, arity, -1, ci PASS_LD);
+  { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0 PASS_LD)) < 0 )
+      return CYCLIC_HEAD;
+  }
   if ( body )
-    nvars = analyseVariables2(body, nvars, arity, arity, ci PASS_LD);
+  { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0 PASS_LD)) < 0 )
+      return CYCLIC_BODY;
+  }
 
   for(n=0; n<arity+nvars; n++)
   { VarDef vd = LD->comp.vardefs[n];
@@ -442,6 +462,8 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   ci->clause->prolog_vars = nvars + arity + ci->argvars - body_voids;
   ci->clause->variables   = ci->clause->prolog_vars;
   ci->vartablesize = (ci->clause->prolog_vars + BITSPERINT-1)/BITSPERINT;
+
+  return TRUE;
 }
 
 
@@ -744,7 +766,15 @@ compileClause(Clause *cp, Word head, Word body,
   ci.clause = &clause;
   ci.module = module;
 
-  analyse_variables(head, body, &ci PASS_LD);
+  if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
+  { switch ( rc )
+    { case CYCLIC_HEAD:
+      case CYCLIC_BODY:
+	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_cyclic_term);
+      default:
+	assert(0);
+    }
+  }
   ci.cut.var = 0;
   ci.cut.instruction = 0;
   if ( !ci.islocal )
