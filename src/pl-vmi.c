@@ -3770,6 +3770,7 @@ b_throw:
     { SAVE_REGISTERS(qid);
       printMessage(ATOM_error, PL_TERM, exception_term);
       start_tracer = TRUE;
+      debugmode(TRUE, NULL);
       trace_if_space();
       LOAD_REGISTERS(qid);
     }
@@ -3840,7 +3841,7 @@ b_throw:
 	LOAD_REGISTERS(qid);
       }
       if ( start_tracer )
-         trace_if_space();
+	trace_if_space();
     }
   } else
 #endif /*O_DEBUGGER*/
