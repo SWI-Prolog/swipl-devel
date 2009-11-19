@@ -144,11 +144,12 @@ setof(Templ, Goal, List) :-
 	    Answers \== [],
 	    sort(Answers, List)
 	;   findall(Vars-Templ, Goal, Answers),
-	    bind_bagof_keys(Answers,VDict),
-	    sort(Answers, Sorted),
-	    (	nonvar(VDict) % Listu ordering may be nixed by Vars
-	    ->	pick(Sorted, Vars, Listu),
-		sort(Listu,List)
-	    ;	pick(Sorted, Vars, List)
+	    (	ground(Answers)
+	    ->	sort(Answers,Sorted),
+		pick(Sorted,Vars,List)
+	    ;	bind_bagof_keys(Answers,_VDict),
+		sort(Answers, Sorted),
+		pick(Sorted, Vars, Listu),
+		sort(Listu,List) % Listu ordering may be nixed by Vars
 	    )
 	).
