@@ -5869,11 +5869,24 @@ formats for \arg{Text} are:
 \bf Name & \bf Example \\
 \hline
 RFC 1123 & \tt Fri, 08 Dec 2006 15:29:44 GMT \\
+ISO 8601 & \tt 2006-12-08T17:29:44+02:00 \\
+         & \tt 20061208T172944+0200 \\
+         & \tt 2006-12-08T15:29Z \\
+         & \tt 2006-12-08 \\
+         & \tt 20061208 \\
+         & \tt 2006-12 \\
+         & \tt 2006-W49-5 \\
+         & \tt 2006-342 \\
 \hline
 \end{tabular}
 \end{center}
-\end{description}
 
+    \predicate{day_of_the_week}{2}{+Date,-DayOfTheWeek}
+Computes the day of the week for a given date.
+\exam{\arg{Date} = date(\arg{Year},\arg{Month},\arg{Day})},
+Days of the week are numbered from one to seven: monday = 1, tuesday =
+2, \ldots, sunday = 7.
+\end{description}
 
 \subsection{Controlling the \program{PLWIN.EXE} console window}
 \label{sec:plwin}

@@ -32,7 +32,7 @@
 :- module(date,
 	  [ date_time_value/3,		% ?Field, ?DaTime, ?Value
 	    parse_time/2,		% +Date, -Stamp
-	    day_of_the_week/4           % +Year, +Month, +Day, -DayOfTheWeek
+	    day_of_the_week/2           % +Date, -DayOfTheWeek
 	  ]).
 
 %%	date_time_value(?Field:atom, +Struct:datime, -Value) is nondet.
@@ -226,7 +226,7 @@ centuries_table(2,2).
 centuries_table(3,0).
 
 centuries_code(Year,Code) :-
-	Cent is integer(Year / 100),
+	Cent is floor(Year / 100),
 	Cmod4 is Cent mod 4,
 	centuries_table(Cmod4,Code).
 
@@ -265,20 +265,22 @@ months_code(_,M,Code) :-
 days_table(0,7) :- !.
 days_table(M,M).
 
-%%	day_of_the_week(+Year,+Month,+Day,-DayOfTheWeek) is det.
+%%	day_of_the_week(+Date,-DayOfTheWeek) is det.
 %
-%	Computes the day of the week for a given date:
-%	monday = 1, tuesday = 2, ..., sunday = 7.
+%	Computes the day of the week for a given date.
+%       Date = date(+Year,+Month,+Day),
+%	Days of the week are numbered from one to seven:
+%       monday = 1, tuesday = 2, ..., sunday = 7.
 
-day_of_the_week(Y,M,D,DotW) :-
+day_of_the_week(date(Y,M,D),DotW) :-
 	centuries_code(Y,CCode),
 	Crem is Y mod 100,
-	Cdiv4 is integer(Crem / 4),
+	Cdiv4 is floor(Crem / 4),
 	months_code(Y,M,MCode),
 	X is (CCode + Crem + Cdiv4 + MCode + D) mod 7,
 	days_table(X,DotW).
 
 week_ordinal(Year,Week,Day,Ordinal) :-
-	day_of_the_week(Year,1,1,DotW),
+	day_of_the_week(date(Year,1,1),DotW),
 	days_table(DotW0,DotW),
 	Ordinal is ((Week-1) * 7) - DotW0 + Day + 1.
