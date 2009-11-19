@@ -1202,10 +1202,6 @@ PL_cleanup(int rval)
 #ifdef O_PROFILE
   resetProfiler();			/* don't do profiling anymore */
 #endif
-#ifdef O_PLMT
-  rc = exitPrologThreads();
-#endif
-
   Scurout = Soutput;			/* reset output stream to user */
 
   GD->cleaning = CLN_PROLOG;
@@ -1225,6 +1221,10 @@ PL_cleanup(int rval)
 					/* run PL_on_halt() hooks */
   for(h = GD->os.on_halt_list; h; h = h->next)
     (*h->function)(rval, h->argument);
+
+#ifdef O_PLMT
+  rc = exitPrologThreads();
+#endif
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
