@@ -45,10 +45,20 @@ windowing!
 #endif
 
 #undef clear				/* conflicts */
-#include <curses.h>
-#include <term.h>
 
-#define MAX_TERMBUF	1024		/* Confirming manual */
+#ifdef HAVE_CURSES_H
+#include <curses.h>
+#elif HAVE_NCURSES_CURSES_H
+#include <ncurses/curses.h>
+#endif
+
+#ifdef HAVE_TERM_H
+#include <term.h>
+#elif HAVE_NCURSES_TERM_H
+#include <ncurses/term.h>
+#endif
+
+#define MAX_TERMBUF	1024		/* Conforming manual */
 #define STAT_START	0
 #define STAT_OK		1
 #define STAT_ERROR	2
