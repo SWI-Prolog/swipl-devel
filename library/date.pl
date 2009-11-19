@@ -2,7 +2,7 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
+    Author:        Jan Wielemaker and Willem Robert van Hage
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2005, University of Amsterdam
@@ -31,7 +31,8 @@
 
 :- module(date,
 	  [ date_time_value/3,		% ?Field, ?DaTime, ?Value
-	    parse_time/2		% +Date, -Stamp
+	    parse_time/2,		% +Date, -Stamp
+	    day_of_the_week/4           % +Year, +Month, +Day, -DayOfTheWeek
 	  ]).
 
 %%	date_time_value(?Field:atom, +Struct:datime, -Value) is nondet.
@@ -65,7 +66,8 @@ date_time_value(time,		 date(_,_,_,H,M,S,_,_,_), time(H,M,S)).
 %%	parse_time(+Text, -Stamp) is det.
 %
 %	Stamp is a timestamp created from   parsing Text. Currently only
-%	deals with RFC1123 from the HTTP protocol.
+%	deals with RFC1123 from the HTTP protocol and ISO 8601 time
+%	specifications.
 
 parse_time(Text, Stamp) :-
 	atom_codes(Text, Codes),
@@ -73,8 +75,6 @@ parse_time(Text, Stamp) :-
 	date_time_stamp(date(Y,Mon,D,H,Min,S,UTCOffset,-,-), Stamp).
 
 % TIMEX2 ISO: "2006-12-08T15:29:44 UTC" or "20061208T"
-% FIXME: deal with time zones, negative years, with week numbers,
-%        with ordinal dates, and with leap seconds.
 iso_time(Hr,Min,Sec) -->
 	hour(H), ":", minute(M), ":", second(S),
 	timezone(DH,DM,DS),
@@ -96,18 +96,21 @@ iso_time(Hr,Min,Sec) -->
 	timezone(DH,DM,DS),
 	{ Hr is H + DH, Min is DM, Sec is DS }.
 
-% FIXME: deal with timezones and leap seconds
-timezone(0,0,0) --> "+", hour(_H), ":", minute(_M).
-timezone(0,0,0) --> "+", hour(_H), minute(_M).
-timezone(0,0,0) --> "+", hour(_H).
-timezone(0,0,0) --> "-", hour(_H), ":", minute(_M).
-timezone(0,0,0) --> "-", hour(_H), minute(_M).
-timezone(0,0,0) --> "-", hour(_H).
+% FIXME: deal with leap seconds
+timezone(Hr,Min,0) --> "+", hour(H), ":", minute(M), { Hr is -1 * H, Min is -1 * M }.
+timezone(Hr,Min,0) --> "+", hour(H), minute(M), { Hr is -1 * H, Min is -1 * M }.
+timezone(Hr,0,0) --> "+", hour(H), { Hr is -1 * H }.
+timezone(Hr,Min,0) --> "-", hour(H), ":", minute(M), { Hr is H, Min is M }.
+timezone(Hr,Min,0) --> "-", hour(H), minute(M), { Hr is H, Min is M }.
+timezone(Hr,0,0) --> "-", hour(H), { Hr is H }.
 timezone(0,0,0) --> "Z".
 timezone(0,0,0) --> ws, "UTC".
 timezone(0,0,0) --> ws, "GMT". % remove this?
 timezone(0,0,0) --> [].
 
+date(Yr,Mon,D,H,Min,S,0) --> % BC
+	"-", date(Y,Mon,D,H,Min,S,0),
+	{ Yr is -1 * Y }.
 date(Y,Mon,D,H,Min,S,0) -->
 	year(Y), "-", month(Mon), "-", day(D),
 	"T", iso_time(H,Min,S).
@@ -120,6 +123,31 @@ date(Y,Mon,D,H,Min,S,0) -->
 	"T", iso_time(H,Min,S).
 date(Y,Mon,D,0,0,0,0) -->
 	year(Y), month(Mon), day(D).
+date(Yr,1,D,0,0,0,0) -->
+	year(Yr), "-", ordinal(D).
+date(Yr,1,D,H,Min,S,0) -->
+	year(Yr), "-", ordinal(D),
+	"T", iso_time(H,Min,S).
+date(Yr,1,D,H,Min,S,0) -->
+	year(Yr), "-W", week(W), "-", day_of_the_week(DW),
+	"T", iso_time(H,Min,S),
+	{ week_ordinal(Yr,W,DW,D) }.
+date(Yr,1,D,0,0,0,0) -->
+	year(Yr), "-W", week(W), "-", day_of_the_week(DW),
+	{ week_ordinal(Yr,W,DW,D) }.
+date(Yr,1,D,0,0,0,0) -->
+	year(Yr), "-W", week(W),
+	{ week_ordinal(Yr,W,1,D) }.
+date(Yr,1,D,H,Min,S,0) -->
+	year(Yr), "W", week(W), day_of_the_week(DW),
+	"T", iso_time(H,Min,S),
+	{ week_ordinal(Yr,W,DW,D) }.
+date(Yr,1,D,0,0,0,0) -->
+	year(Yr), "W", week(W), day_of_the_week(DW),
+	{ week_ordinal(Yr,W,DW,D) }.
+date(Yr,1,D,0,0,0,0) -->
+	year(Yr), "W", week(W),
+	{ week_ordinal(Yr,W,1,D) }.
 
 % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
 date(Y,Mon,D,H,Min,S,0) -->
@@ -155,8 +183,10 @@ month_name(11) --> "Nov".
 month_name(12) --> "Dec".
 
 day_of_the_month(N) --> int2digit(N), { between(1, 31, N) }.
-month(M)            --> int2digit(M), { between(1,12,M) }.
-day(D)              --> int2digit(D), { between(1,31,D) }.
+day_of_the_week(N)  --> digit(N),     { between(1,  7, N) }.
+month(M)            --> int2digit(M), { between(1, 12, M) }.
+week(W)		    --> int2digit(W), { between(1, 53, W) }.
+day(D)              --> int2digit(D), { between(1, 31, D) }.
 hour(N)             --> int2digit(N), { between(0, 23, N) }.
 minute(N)	    --> int2digit(N), { between(0, 59, N) }.
 second(N)           --> int2digit(N), { between(0, 60, N) }. % leap second
@@ -173,6 +203,12 @@ year(Y) -->
 	digit(D3),
 	{ Y is D0*1000+D1*100+D2*10+D3 }.
 
+ordinal(N) --> % Nth day of the year, jan 1 = 1, dec 31 = 365 or 366
+	digit(D0),
+	digit(D1),
+	digit(D2),
+	{ N is D0*100+D1*10+D2, between(1,366, N) }.
+
 digit(D) -->
 	[C],
 	{ code_type(C, digit(D)) }.
@@ -182,3 +218,67 @@ ws -->
 	ws.
 ws -->
 	[].
+
+% week day computation
+centuries_table(0,6).
+centuries_table(1,4).
+centuries_table(2,2).
+centuries_table(3,0).
+
+centuries_code(Year,Code) :-
+	Cent is integer(Year / 100),
+	Cmod4 is Cent mod 4,
+	centuries_table(Cmod4,Code).
+
+leap_year(Y) :-
+	(   FC is Y mod 400,
+	    FC =:= 0
+	->  true
+	;   F is Y mod 4,
+	    F =:= 0,
+	    C is Y mod 100,
+	    C =\= 0
+	).
+
+months_table(1,0).
+months_table(2,3).
+months_table(3,3).
+months_table(4,6).
+months_table(5,1).
+months_table(6,4).
+months_table(7,6).
+months_table(8,2).
+months_table(9,5).
+months_table(10,0).
+months_table(11,3).
+months_table(12,5).
+leap_months_table(1,6) :- !.
+leap_months_table(2,2) :- !.
+leap_months_table(M,C) :- months_table(M,C).
+
+months_code(Y,M,Code) :-
+	leap_year(Y),
+	leap_months_table(M,Code), !.
+months_code(_,M,Code) :-
+	months_table(M,Code).
+
+days_table(0,7) :- !.
+days_table(M,M).
+
+%%	day_of_the_week(+Year,+Month,+Day,-DayOfTheWeek) is det.
+%
+%	Computes the day of the week for a given date:
+%	monday = 1, tuesday = 2, ..., sunday = 7.
+
+day_of_the_week(Y,M,D,DotW) :-
+	centuries_code(Y,CCode),
+	Crem is Y mod 100,
+	Cdiv4 is integer(Crem / 4),
+	months_code(Y,M,MCode),
+	X is (CCode + Crem + Cdiv4 + MCode + D) mod 7,
+	days_table(X,DotW).
+
+week_ordinal(Year,Week,Day,Ordinal) :-
+	day_of_the_week(Year,1,1,DotW),
+	days_table(DotW0,DotW),
+	Ordinal is ((Week-1) * 7) - DotW0 + Day + 1.
