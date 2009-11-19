@@ -774,7 +774,7 @@ Function UserInfo
 FunctionEnd
 
 Function .onInstSuccess
-  MessageBox MB_YESNO "Installation complete. View readme?" /SD IDNO NoReadme
+  MessageBox MB_YESNO "Installation complete. View readme?" /SD IDNO IDNO NoReadme
   ExecShell "open" "$INSTDIR\doc\windows.html"
   NoReadme:
 FunctionEnd
