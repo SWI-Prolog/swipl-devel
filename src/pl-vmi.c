@@ -3782,6 +3782,7 @@ b_throw:
 	 PC = FR->programPointer,
 	 FR = FR->parent )
     { Choice ch = findStartChoice(FR, LD->choicepoints);
+      void *l_top;
 
       environment_frame = FR;
       ARGP = argFrameP(FR, 0);	/* otherwise GC might see `new' arguments */
@@ -3830,7 +3831,11 @@ b_throw:
 	setVar(*valTermRef(LD->exception.pending));
       }
 
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
+      l_top = argFrameP(FR, FR->predicate->functor->arity);
+      if ( l_top < (void*)(BFR+1) )
+        l_top = (void*)(BFR+1);
+      lTop = l_top;
+
       SAVE_REGISTERS(qid);
       dbg_discardChoicesAfter(FR PASS_LD);
       LOAD_REGISTERS(qid);
