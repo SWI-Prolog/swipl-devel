@@ -90,6 +90,8 @@ http_parms(Request, Params, DeclGoal, Search) :-
 	),
 	fill_parameters(Params, Search, DeclGoal).
 
+:- multifile
+	form_data_content_type/1.
 
 form_data_content_type('application/x-www-form-urlencoded').
 
