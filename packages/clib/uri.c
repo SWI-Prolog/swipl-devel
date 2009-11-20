@@ -756,8 +756,10 @@ uri_components(term_t URI, term_t components)
     }
 					/* query */
     if ( (rc=get_text_arg(components, 4, &len, &s, TXT_EX_TEXT)) == TRUE )
-    { add_charbuf(&b, '?');
-      add_nchars_charbuf(&b, len, s);
+    { if ( len > 0 )
+      { add_charbuf(&b, '?');
+	add_nchars_charbuf(&b, len, s);
+      }
     } else if ( rc == -1 )
     { free_charbuf(&b);
       return FALSE;
