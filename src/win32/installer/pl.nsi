@@ -520,6 +520,9 @@ Section "Shell Extensions" SecShell
   WriteRegStr HKCR .${EXT} "" "PrologFile"
 
   ReadRegStr $0 HKCR "PrologFile" ""
+  IfErrors 0 readOK
+    StrCpy $0 "";
+  readOK:
   StrCmp $0 "" 0 skipNSIAssoc
 	WriteRegStr HKCR "PrologFile" "" "Prolog Source"
 	WriteRegStr HKCR "PrologFile\shell" "" "open"
