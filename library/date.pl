@@ -161,13 +161,14 @@ date(Y,Mon,D,H,Min,S,0) -->
 	;   []
 	).
 
-day_name(1) --> "Sun".
-day_name(2) --> "Mon".
-day_name(3) --> "Tue".
-day_name(4) --> "Wed".
-day_name(5) --> "Thu".
-day_name(6) --> "Fri".
-day_name(7) --> "Sat".
+day_name(0) --> "Sun".
+day_name(1) --> "Mon".
+day_name(2) --> "Tue".
+day_name(3) --> "Wed".
+day_name(4) --> "Thu".
+day_name(5) --> "Fri".
+day_name(6) --> "Sat".
+day_name(7) --> "Sun".
 
 month_name(1) --> "Jan".
 month_name(2) --> "Feb".
@@ -219,68 +220,18 @@ ws -->
 ws -->
 	[].
 
-% week day computation
-centuries_table(0,6).
-centuries_table(1,4).
-centuries_table(2,2).
-centuries_table(3,0).
-
-centuries_code(Year,Code) :-
-	Cent is floor(Year / 100),
-	Cmod4 is Cent mod 4,
-	centuries_table(Cmod4,Code).
-
-leap_year(Y) :-
-	(   FC is Y mod 400,
-	    FC =:= 0
-	->  true
-	;   F is Y mod 4,
-	    F =:= 0,
-	    C is Y mod 100,
-	    C =\= 0
-	).
-
-months_table(1,0).
-months_table(2,3).
-months_table(3,3).
-months_table(4,6).
-months_table(5,1).
-months_table(6,4).
-months_table(7,6).
-months_table(8,2).
-months_table(9,5).
-months_table(10,0).
-months_table(11,3).
-months_table(12,5).
-leap_months_table(1,6) :- !.
-leap_months_table(2,2) :- !.
-leap_months_table(M,C) :- months_table(M,C).
-
-months_code(Y,M,Code) :-
-	leap_year(Y),
-	leap_months_table(M,Code), !.
-months_code(_,M,Code) :-
-	months_table(M,Code).
-
-days_table(0,7) :- !.
-days_table(M,M).
-
 %%	day_of_the_week(+Date,-DayOfTheWeek) is det.
 %
 %	Computes the day of the week for a given date.
 %       Date = date(+Year,+Month,+Day),
 %	Days of the week are numbered from one to seven:
 %       monday = 1, tuesday = 2, ..., sunday = 7.
-
-day_of_the_week(date(Y,M,D),DotW) :-
-	centuries_code(Y,CCode),
-	Crem is Y mod 100,
-	Cdiv4 is floor(Crem / 4),
-	months_code(Y,M,MCode),
-	X is (CCode + Crem + Cdiv4 + MCode + D) mod 7,
-	days_table(X,DotW).
+day_of_the_week(date(Year,Mon,Day),DotW) :-
+	format_time(atom(A),'%u',date(Year,Mon,Day,0,0,0,0,-,-)),
+	atom_number(A,DotW).
 
 week_ordinal(Year,Week,Day,Ordinal) :-
-	day_of_the_week(date(Year,1,1),DotW),
-	days_table(DotW0,DotW),
+	format_time(atom(A),'%w',date(Year,1,1,0,0,0,0,-,-)),
+	atom_number(A,DotW0),
 	Ordinal is ((Week-1) * 7) - DotW0 + Day + 1.
+
