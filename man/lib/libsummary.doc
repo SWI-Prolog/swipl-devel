@@ -52,6 +52,8 @@
 \predicatesummary{list_redefined}{0}{List locally redefined predicates}
 \end{summarylist}
 
+\input{summaries.d/csv.tex}
+
 \subsection{\pllib{lists}}
 
 \begin{summarylist}{ll}
