@@ -66,6 +66,7 @@
 	    open_shared_object/3,
 	    format/1,
 	    garbage_collect/0,
+	    set_prolog_stack/2,
 	    arithmetic_function/1,
 	    absolute_file_name/2,
 	    require/1,
@@ -873,15 +874,32 @@ absolute_file_name(Term, Abs) :-
 
 
 		/********************************
-		*         MISCELLENEOUS         *
+		*	 MEMORY MANAGEMENT      *
 		*********************************/
 
-%	Invoke the garbage collector.  The argument is the debugging level
-%	to use during garbage collection.  This only works if the system
-%	is compiled with the -DODEBUG cpp flag.  Only to simplify maintenance.
+%%	garbage_collect is det.
+%
+%	Invoke the garbage collector.  The   argument  of the underlying
+%	'$garbage_collect'/1  is  the  debugging  level  to  use  during
+%	garbage collection. This only works if   the  system is compiled
+%	with the -DODEBUG cpp flag. Only to simplify maintenance.
 
 garbage_collect :-
 	'$garbage_collect'(0).
+
+%%	set_prolog_stack(+Name, +Option) is det.
+%
+%	Set a parameter for one of the Prolog stacks.
+
+set_prolog_stack(Stack, Option) :-
+	Option =.. [Name,Value0],
+	Value is Value0,
+	'$set_prolog_stack'(Stack, Name, _Old, Value).
+
+
+		 /*******************************
+		 *	     ARITHMETIC		*
+		 *******************************/
 
 %%	arithmetic_function(:Spec)
 %

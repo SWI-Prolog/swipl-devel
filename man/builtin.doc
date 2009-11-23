@@ -6538,27 +6538,34 @@ loop :-
 The prolog top level loop is written this way, reclaiming memory
 resources after every user query.
 
-    \predicate{set_prolog_stack}{4}{+Stack, +Key, -Old, +Value}
-Set a parameter for a runtime stack. \arg{Stack} is one of
-\const{local}, \const{global}, \const{trail} or \const{argument}. The
-table below describes the \arg{Key}/\arg{Value} pairs.
+    \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
+Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
+of \const{local}, \const{global}, \const{trail} or \const{argument}. The
+table below describes the \arg{Key}(arg{Value}) pairs.  \arg{Value} can
+be an arithmetic integer expression.  E.g., to specify a 2Gb limit for
+the global stack one can use:
+
+\begin{code}
+?- set_prolog_stack(global, limit(2*10**9)).
+\end{code}
 
 \begin{description}
-    \termitem{low}{}
-Do not perform GC below this amount (bytes).
-    \termitem{factor}{}
-Run next GC if memory exceeds $max(low,checked) \times factor$.
-    \termitem{limit}{}
+    \termitem{limit}{+Bytes}
 Set the limit to which the stack is allowed to grow.  If the specified
 value is lower than the current usage a permission_error is raised.  If
 the limit is larger than supported, the system silently reduces the
 requested limit to the system limit.
-    \termitem{spare}{}
+
+    \termitem{spare}{+Cells}
 All stacks trigger overflow before actually reaching the limit, so the
 resulting error can be handled gracefully. The spare stack is used for
 print_message/2 from the garbage collector and for handling exceptions.
 The default suffices, unless the user redefines related hooks.  The
-spare stack amount is reported and specified in `cells'.
+spare stack amount is reported and specified in `cells'.  A cell is
+4 bytes in the 32-bit version and 8-bytes on the 64-bit version. See
+\prologflag{address_bits}.  Do \textbf{not} specify large values for
+this because it reduces the amount of memory available for your real
+task.
 
 Related hooks are: message_hook/3 (redefining GC messages),
 prolog_trace_interception/4 and prolog_exception_hook/4.

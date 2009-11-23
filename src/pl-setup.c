@@ -1422,7 +1422,7 @@ freeLocalData(PL_local_data_t *ld)
 		 *******************************/
 
 static
-PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
+PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 { PRED_LD
   atom_t a, k;
   Stack stack = NULL;
@@ -1497,7 +1497,7 @@ PRED_IMPL("set_prolog_stack", 4, set_prolog_stack, 0)
 		 *******************************/
 
 BeginPredDefs(setup)
-  PRED_DEF("set_prolog_stack", 4, set_prolog_stack, 0)
+  PRED_DEF("$set_prolog_stack", 4, set_prolog_stack, 0)
   PRED_DEF("$on_signal", 4, on_signal, 0)
   PRED_DEF("trim_stacks", 0, trim_stacks, 0)
 EndPredDefs

@@ -104,7 +104,8 @@ pairs_keys([K-_|T0], [K|T]) :-
 
 %%	group_pairs_by_key(+Pairs, -Joined:list(Key-Values)) is det.
 %
-%	Group values with the same key.  For example:
+%	Group values with the same key. Pairs must be a key-sorted list.
+%	For example:
 %
 %	==
 %	?- group_pairs_by_key([a-2, a-1, b-4], X).

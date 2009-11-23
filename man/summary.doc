@@ -491,7 +491,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}
-\predicatesummary{set_prolog_stack}{3}{Modify stack characteristics}
+\predicatesummary{set_prolog_stack}{2}{Modify stack characteristics}
 \predicatesummary{set_random}{1}{Control random number generation}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
