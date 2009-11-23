@@ -890,14 +890,14 @@ subject_triples(URI, State, Pairs) :-
 %	State.
 
 subjects(State, Subjects) :-
-	setof(Subject, subject(State, Subject), Subjects), !.
-subjects(_, []).
+	findall(Subject, subject(State, Subject), AllSubjects),
+	sort(AllSubjects, Subjects).
 
 subject(State, Subject) :-
 	tw_state_graph(State, Graph),
 	(   atom(Graph)
 	->  rdf_subject(Subject),
-	    (   rdf(Subject, _, _, Graph:_)
+	    (   rdf(Subject, _, _, Graph)
 	    ->  true
 	    )
 	;   rdf_subject(Subject)
