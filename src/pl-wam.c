@@ -1716,6 +1716,8 @@ restore_after_query(QueryFrame qf)
   if ( qf->exception && !exception_term )
     *valTermRef(exception_printed) = 0;
 
+  DiscardMark(qf->choice.mark);
+
   LD->query         = qf->parent;
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
