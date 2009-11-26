@@ -1242,6 +1242,9 @@ static void
 free_base_cache(void *cache)
 { base_cache *base = cache;
 
+  if ( PL_query(PL_QUERY_HALTING) )
+    return;
+
   if ( base->atom )
   { PL_unregister_atom(base->atom);
     PL_free(base->text);

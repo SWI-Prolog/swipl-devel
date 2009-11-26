@@ -4251,6 +4251,9 @@ PL_query(int query)
     { double cpu = CpuTime(CPU_USER);
       return (intptr_t)(cpu*1000.0);
     }
+    case PL_QUERY_HALTING:
+    { return (GD->cleaning == CLN_NORMAL ? FALSE : TRUE);
+    }
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/
