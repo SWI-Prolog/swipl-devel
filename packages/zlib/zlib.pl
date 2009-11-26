@@ -34,17 +34,18 @@
 	    gzopen/3,			% +File, +Mode, -Stream
 	    gzopen/4			% +File, +Mode, -Stream, +Options
 	  ]).
+:- use_module(library(shlib)).
+:- use_module(library(error)).
+
 
 /** <module> Zlib wrapper for SWI-Prolog
 
-For details, see http://www.swi-prolog.org/packages/zlib.html
+Read/write compressed data based on the zlib library.
 
 @author Jan Wielemaker
+@see	http://www.zlib.net/
+@see	http://www.swi-prolog.org/packages/zlib.html
 */
-
-%%	zset_stream(+Stream, +Option) is det.
-%
-%	Prepare compressed I/O on Stream.
 
 :- use_foreign_library(foreign(zlib4pl)).
 
@@ -54,11 +55,15 @@ For details, see http://www.swi-prolog.org/packages/zlib.html
 %	Open a file compatible with the  gzip   program.  Note that if a
 %	file is opened in =append= mode,  a   second  gzip image will be
 %	added to the end of the file.
+%
+%	@tbd	Later versions may actually append to an existing
+%		compressed file.
 
 gzopen(File, Mode, Stream) :-
 	gzopen(File, Mode, Stream, []).
 
 gzopen(File, Mode, Stream, Options) :-
+	must_be(oneof([read,write,append]), Mode),
 	zoptions(Options, ZOptions, OpenOptions),
 	open(File, Mode, Stream0, OpenOptions),
 	zopen(Stream0, Stream,
