@@ -1211,21 +1211,7 @@ executed.
 Succeeds, if the syntactic equality of \arg{Term1} and \arg{Term2}
 can be decided safely, i.e.\ if the result of \exam{Term1 == Term2}
 will not change due to further instantiation of either term.  It is
-defined similar to \verb$?=(X,Y) :- once((X==Y ; X \= Y)).$ However,
-attributed variables are not considered.  A case of different behaviour
-is:
-
-\begin{code}
-?- freeze(X,X=1),Y=2, ?=(X,Y).
-false.
-
-?- freeze(X,X=1), Y=2, once((X==Y ; X \= Y)).
-Y = 2,
-freeze(X, X=1).
-\end{code}
-
-\end{description}
-
+defined likes \verb$?=(X,Y) :- \+ unifiable(X,Y,[_|_]).$
 
 \section{Control Predicates}		\label{sec:control}
 
