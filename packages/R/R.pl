@@ -23,7 +23,7 @@
                r_session_data/3, r_streams_data/3,
                r_history/0, r_history/1, r_history/2,
                r_session_version/1,
-	   op( 950, xfx, user:(<-) )
+	   op( 950, xfx, (<-) )
           ] ).
 
 :- use_module( library(lists) ).
