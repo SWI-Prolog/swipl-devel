@@ -3792,7 +3792,7 @@ b_throw:
 	term_t chref = consTermRef(ch);
 	int rc;
 
-	lTop = (LocalFrame)(ch+1);
+	lTop = (LocalFrame)(BFR+1);
 	SECURE({ SAVE_REGISTERS(qid);
 	         checkStacks(NULL);
 		 LOAD_REGISTERS(qid);
