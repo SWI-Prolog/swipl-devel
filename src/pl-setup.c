@@ -623,6 +623,12 @@ free_clauses_handler(int sig)
 
 
 static void
+abort_handler(int sig)
+{ abortProlog(ABORT_RAISE);
+}
+
+
+static void
 initSignals(void)
 { struct signame *sn = signames;
 
@@ -640,6 +646,7 @@ initSignals(void)
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
   PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
+  PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);

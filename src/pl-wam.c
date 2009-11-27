@@ -271,13 +271,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
 static inline int
 is_signalled(ARG1_LD)
-{
-#ifdef O_PLMT
-  if ( LD->exit_requested )
-    pthread_testcancel();
-#endif
-
-  return (LD->pending_signals != 0);
+{ return (LD->pending_signals != 0);
 }
 
 

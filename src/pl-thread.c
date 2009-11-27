@@ -488,7 +488,7 @@ free_prolog_thread(void *data)
   LOCK();
   if ( info->status == PL_THREAD_RUNNING )
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-  acknowledge = (info->status == PL_THREAD_CANCELED);
+  acknowledge = info->thread_data->exit_requested;
   UNLOCK();
 
 #if O_DEBUGGER
@@ -663,28 +663,9 @@ exitPrologThreads()
 	      break;			/* done so */
 	  }
 
-#ifdef __WINDOWS__
-	  raiseSignal(info->thread_data, SIGINT);
-	  PostThreadMessage(info->w32id, WM_QUIT, 0, 0);
-	  DEBUG(1, Sdprintf("Cancelled %d\n", i));
-	  canceled++;
-#else
-  	  if ( info->tid )
-	  { int rc;
-	    int oldstat = info->status;
+	  if ( PL_thread_raise(i, SIG_PLABORT) )
+	    canceled++;
 
-	    info->status = PL_THREAD_CANCELED;
-	    if ( (rc=pthread_cancel(info->tid)) == 0 )
-	    { canceled++;
-	    } else
-	    { info->status = oldstat;
-	      Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
-	    }
-	  } else
-	  { DEBUG(1, Sdprintf("Destroying engine %d\n", i));
-	    PL_destroy_engine(info->thread_data);
-	  }
-#endif
 	  break;
 	}
       }
@@ -1308,8 +1289,6 @@ unify_thread_status(term_t status, PL_thread_info_t *info, int lock)
 			         PL_ATOM, ATOM_memory,
 			       PL_VARIABLE);
     }
-    case PL_THREAD_CANCELED:
-      return PL_unify_atom(status, ATOM_canceled);
     default:
       DEBUG(1, Sdprintf("info->status = %d\n", info->status));
       fail;				/* can happen in current_thread/2 */
@@ -1398,10 +1377,7 @@ pl_thread_exit(term_t retcode)
   PL_thread_info_t *info = LD->thread.info;
 
   LOCK();
-  if ( LD->exit_requested )
-    info->status = PL_THREAD_CANCELED;
-  else
-    info->status = PL_THREAD_EXITED;
+  info->status = PL_THREAD_EXITED;
   info->return_value = PL_record(retcode);
   UNLOCK();
 

@@ -1583,6 +1583,7 @@ typedef struct
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
 #define SIG_FREECLAUSES	  (SIG_PROLOG_OFFSET+4)
+#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+5)
 
 
 		 /*******************************
