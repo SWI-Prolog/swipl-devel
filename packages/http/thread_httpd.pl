@@ -213,13 +213,16 @@ accept_server2(Goal, Options) :-
 	      ->  debug(http(connection), 'New HTTP connection from ~p', [Peer]),
 		  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
 		  fail
-	      ;   E == http_stop
-	      ->  throw(http_stop)
+	      ;   accept_rethrow_error(E)
+	      ->  throw(E)
 	      ;   print_message(error, E),
 		  fail
 	      )
 	  ;   print_message(error, goal_failed(tcp_accept(Socket, Client, Peer)))
 	  ).
+
+accept_rethrow_error(http_stop).
+accept_rethrow_error('$aborted').
 
 
 %%	close_server_socket(+Options)
