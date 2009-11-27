@@ -1210,8 +1210,9 @@ executed.
     \predicate{?=}{2}{{@}Term1, {@}Term2}
 Succeeds, if the syntactic equality of \arg{Term1} and \arg{Term2}
 can be decided safely, i.e.\ if the result of \exam{Term1 == Term2}
-will not change due to further instantiation of either term.  It is
-defined likes \verb$?=(X,Y) :- \+ unifiable(X,Y,[_|_]).$
+will not change due to further instantiation of either term.  It 
+behaves as if defined by \verb$?=(X,Y) :- \+ unifiable(X,Y,[_|_]).$
+\end{description}
 
 \section{Control Predicates}		\label{sec:control}
 
