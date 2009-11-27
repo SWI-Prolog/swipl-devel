@@ -185,8 +185,6 @@ This library is only available on Windows systems.
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
 
-\subsection{\pllib{clp/clp_distinct}}
-
 \begin{summarylist}{ll}
 \predicatesummary{all_distinct}{1}{Demand distinct values}
 \predicatesummary{vars_in}{2}{Declare domain of variable as set}
