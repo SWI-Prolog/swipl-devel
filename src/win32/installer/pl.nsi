@@ -13,7 +13,7 @@
 !define REGKEY SOFTWARE\SWI\Prolog
 !endif
 
-!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMSVCRT=${MSVCRT}" = 0
+!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
 
 RequestExecutionLevel admin
@@ -228,9 +228,6 @@ Section "Base system (required)"
   File pl\bin\plterm.dll
   File pl\bin\plregtry.dll
   File pl\bin\${PTHREAD}.dll
-!ifdef MSVCRT
-  File pl\bin\${MSVCRT}
-!endif
 
   SetOutPath $INSTDIR
   File /r pl\custom
