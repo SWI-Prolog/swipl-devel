@@ -342,16 +342,7 @@ freeEvent(Event ev)
 
 static void
 cleanupHandler()
-{
-#ifndef __WINDOWS__
-  struct itimerval v;
-
-  DEBUG(1, Sdprintf("Removed timer\n"));
-  memset(&v, 0, sizeof(v));
-  setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
-#endif
-
-  if ( signal_function_set )
+{ if ( signal_function_set )
   { signal_function_set = FALSE;
     PL_signal(SIG_TIME, signal_function);
   }
@@ -368,13 +359,12 @@ installHandler()
 
 
 static void
-cleanup()
-{ Event ev, next;
+cleanup(int rc, void *arg)
+{ Event ev;
   schedule *sched = TheSchedule();
 
-  for(ev=sched->first; ev; ev = next)
-  { next = ev->next;
-    removeEvent(ev);
+  while( (ev=sched->first) )
+  { removeEvent(ev);
   }
 
   cleanupHandler();
@@ -977,7 +967,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
 
 install_t
-install()
+install_time()
 { MODULE_user	  = PL_new_module(PL_new_atom("user"));
 
   FUNCTOR_alarm1  = PL_new_functor(PL_new_atom("$alarm"), 1);
@@ -1007,10 +997,11 @@ install()
 #endif
 
   installHandler();
+  PL_on_halt(cleanup, NULL);
 }
 
 
 install_t
-uninstall()
-{ cleanup();
+uninstall_time()
+{ cleanup(0, NULL);
 }
