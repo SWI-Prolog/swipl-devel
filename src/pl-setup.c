@@ -628,6 +628,21 @@ abort_handler(int sig)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The idea behind alert_handler() is to  make blocking system calls return
+with EINTR and thus make them interruptable for thread-signals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef SIG_ALERT
+static void
+alert_handler(int sig)
+{ GET_LD
+
+  updateAlerted(LD);
+}
+#endif
+
+
 static void
 initSignals(void)
 { struct signame *sn = signames;
@@ -648,6 +663,9 @@ initSignals(void)
   PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
+#ifdef SIG_ALERT
+  PL_signal(SIG_ALERT, alert_handler);
+#endif
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
 #endif
@@ -655,7 +673,7 @@ initSignals(void)
   PL_signal(SIG_ATOM_GC|PL_SIGSYNC, agc_handler);
 #endif
 #ifdef SIGHUP
-  PL_signal(SIGHUP, hupHandler);
+  PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
 #endif
 }
 

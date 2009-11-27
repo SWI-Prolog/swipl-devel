@@ -161,13 +161,6 @@ static sem_t sem_mark;			/* used for atom-gc */
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
-
-#if defined(__APPLE__)
-#define SIG_FORALL SIGUSR1
-#else
-#define SIG_FORALL SIGHUP
-#endif
-#define SIG_RESUME SIG_FORALL
 #endif /*!__WINDOWS__*/
 
 
@@ -890,6 +883,18 @@ PL_w32thread_raise(DWORD id, int sig)
 
 #endif /*__WINDOWS__*/
 
+static int
+alertThread(PL_thread_info_t *info)
+{
+#ifdef __WINDOWS__
+  if ( info->w32id )
+    return PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L) != 0;
+  return FALSE;
+#else
+  return pthread_kill(info->tid, SIG_ALERT) == 0;
+#endif
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_thread_raise() is used  for  re-routing   interrupts  in  the Windows
 version, where the signal handler is running  from a different thread as
@@ -910,12 +915,10 @@ PL_thread_raise(int tid, int sig)
   if ( info->status == PL_THREAD_UNUSED )
     goto error;
 
-  if ( !raiseSignal(info->thread_data, sig) )
+  if ( !raiseSignal(info->thread_data, sig) ||
+       !alertThread(info) )
     goto error;
-#ifdef __WINDOWS__
-  if ( info->w32id )
-    PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
-#endif
+
   UNLOCK();
 
   return TRUE;
@@ -1867,7 +1870,8 @@ pl_thread_signal(term_t thread, term_t goal)
     fail;
   }
   if ( !is_alive(info->status) )
-  { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
+  { error:
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
     UNLOCK();
     fail;
   }
@@ -1885,11 +1889,8 @@ pl_thread_signal(term_t thread, term_t goal)
     ld->thread.sig_tail = sg;
   }
   raiseSignal(ld, SIG_THREAD_SIGNAL);
-
-#ifdef __WINDOWS__
-  if ( ld->thread.info->w32id )
-    PostThreadMessage(ld->thread.info->w32id, WM_SIGNALLED, 0, 0L);
-#endif
+  if ( !alertThread(info) )
+    goto error;
 
   UNLOCK();
 
