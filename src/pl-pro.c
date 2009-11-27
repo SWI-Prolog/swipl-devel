@@ -45,7 +45,7 @@ pl_break()
 
   if ( saveWakeup(&wstate, TRUE PASS_LD) )
   { term_t goal = PL_new_term_ref();
-    int rc;
+    word rc;
 
     PL_put_atom_chars(goal, "$break");
     rc = pl_break1(goal);

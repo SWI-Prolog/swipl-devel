@@ -2547,7 +2547,7 @@ variable is marked but not added to the list.
 */
 
 static size_t
-free_variables_loop(Word t, term_t l, int n, int existential ARG_LD)
+free_variables_loop(Word t, term_t l, size_t n, int existential ARG_LD)
 {
 right_recursion:
   deRef(t);

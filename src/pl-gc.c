@@ -3051,7 +3051,7 @@ get_vmi_state(QueryFrame qf, vm_state *state)
 	{ assert(ap >= argFrameP(state->frame, 0));
 
 	  if ( ap > argFrameP(lTop, 0) )
-	  { state->new_args = ap - argFrameP(lTop, 0);
+	  { state->new_args = (int)(ap - argFrameP(lTop, 0));
 	    lTop = (LocalFrame)ap;
 	  }
 	  break;

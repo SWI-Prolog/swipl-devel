@@ -92,13 +92,13 @@ following arguments are to be provided:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-indexOfBoolMask(uintptr_t mask)
+indexOfBoolMask(unsigned int mask)
 { int i=1;
 
   if ( !mask )
     return -1;
 
-  while(!(mask & 0x1L))
+  while(!(mask & 0x1))
   { i++;
     mask >>= 1;
   }
@@ -135,8 +135,8 @@ setPrologFlag(const char *name, int flags, ...)
   va_start(args, flags);
   switch(type)
   { case FT_BOOL:
-    { int  val           = va_arg(args, int);
-      uintptr_t mask = va_arg(args, uintptr_t);
+    { int           val = va_arg(args, int);
+      unsigned int mask = va_arg(args, unsigned int);
 
       if ( s && mask && f->index < 0 )		/* type definition */
       { f->index = indexOfBoolMask(mask);
@@ -148,7 +148,7 @@ setPrologFlag(const char *name, int flags, ...)
 
       f->value.a = (val ? ATOM_true : ATOM_false);
       if ( f->index >= 0 )
-      { mask = 1L << (f->index-1);
+      { mask = (unsigned int)1 << (f->index-1);
 
 	if ( val )
 	  setPrologFlagMask(mask);

@@ -2180,7 +2180,8 @@ qlfSourceInfo(IOSTREAM *s, size_t offset, term_t list ARG_LD)
   term_t head = PL_new_term_ref();
   atom_t fname;
 
-  if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
+  assert((long)offset >= 0);
+  if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");

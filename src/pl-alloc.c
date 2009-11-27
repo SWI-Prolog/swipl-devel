@@ -636,7 +636,7 @@ enableSpareStack(Stack s)
 }
 
 
-word
+int
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
