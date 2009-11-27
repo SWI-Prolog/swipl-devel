@@ -636,9 +636,7 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{ GET_LD
-
-  updateAlerted(LD);
+{
 }
 #endif
 
