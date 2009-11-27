@@ -39,6 +39,174 @@ InstType "Typical (all except debug symbols)"	# 1
 InstType "Minimal (no graphics)"		# 2
 InstType "Full"					# 3
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Make sure we have the VC8 runtime environment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!ifdef WIN64
+!define MACHTYPE "amd"
+!define REDISTFILE "vcredist_x64.exe"
+!define VCRT_URL "http://download.microsoft.com/download/d/2/4/d242c3fb-da5a-4542-ad66-f9661d0a8d19/vcredist_x64.exe"
+!else
+!define MACHTYPE "x86"
+!define REDISTFILE "vcredist_x32.exe"
+!define VCRT_URL "http://download.microsoft.com/download/d/d/9/dd9a82d0-52ef-40db-8dab-795376989c03/vcredist_x86.exe"
+!endif
+
+
+!macro CallFindFiles DIR FILE CBFUNC
+Push "${DIR}"
+Push "${FILE}"
+Push $0
+GetFunctionAddress $0 "${CBFUNC}"
+Exch $0
+Call FindFiles
+!macroend
+
+Section "Microsoft VC runtime libraries"
+  SectionIn 1 2 3
+  ; Only checking the Windows Side-by-Side folder for occurences of mcvcr90.dll
+  ; Change msvcr90.dll into something non-existen to force download for testing
+  ; purposes.
+  !insertmacro CallFindFiles "$WINDIR\WinSxS" msvcr90.dll FindVCRT
+  ; have to check again, now to deteremine to launch the downloader (or not)...
+  StrCmp $0 ${MACHTYPE} found not_found
+    found:
+    Return
+    not_found:
+    ; for debug
+    ; MessageBox MB_OK "Couldn't find msvcr_90.dll"
+    call GetVCRT
+SectionEnd
+
+
+Function GetVCRT
+        MessageBox MB_YESNO "Microsoft Visual C++ 2008 SP1 Redistributable will now be$\r$\n\
+                             downloaded and installed.$\r$\n$\n\
+                             Administrative rights might be required! Do you want \
+                             to continue?"\
+                   IDYES download_install IDNO abort_install
+
+        download_install:
+        StrCpy $2 "$TEMP\${REDISTFILE}"
+        nsisdl::download /TIMEOUT=30000 ${VCRT_URL} $2
+        Pop $R0 ;Get the return value
+                StrCmp $R0 "success" +3
+                MessageBox MB_OK "Download failed: $R0"
+                Quit
+        ClearErrors
+        ExecWait "$2 /q"
+        IfErrors failure dl_ok
+
+        failure:
+        MessageBox MB_OK "An error has occured, Microsoft Visual C++ 2008 SP1 \
+                          Redistributable$\r$\n\
+                          has not been installed"
+        goto abort_install
+
+        dl_ok:
+        MessageBox MB_YESNO "Microsoft Visual C++ 2008 SP1 Redistributable$\r$\n\
+                             has been installed successfully to your system,$\r$\n\
+                             in order to finalise the installation, a reboot is \
+                             required.$\r$\n$\n\
+                             Would you like to reboot now?"\
+                   IDYES re_boot IDNO abort_install
+
+        re_boot:
+        MessageBox MB_OK "After your system has rebooted, you will have to re-start the$\r$\n\
+                          the SWI-Prolog installation process by clicking on the installer."
+        Delete $2
+        Reboot
+        Return
+
+        abort_install:
+        Abort "Installation has been interupted"
+FunctionEnd
+
+
+Function FindVCRT
+  Pop $0
+
+  ; Checking for the first 3 characters of the WinSxS sub-dirs, they start with
+  ; either amd64_ or x86_, so first get those 3 characters:
+  StrCpy $0 $0 -12 18
+  StrCpy $0 $0 3
+  ; and then compare
+  StrCmp $0 ${MACHTYPE} found not_found
+
+  found:
+  ; set the stop criterium
+  Push "stop"
+  Return
+
+  not_found:
+  ; avoid stack corruption
+  Push "continue"
+FunctionEnd
+
+; Function taken from here: http://nsis.sourceforge.net/Search_For_a_File
+
+Function FindFiles
+  Exch $R5 # callback function
+  Exch
+  Exch $R4 # file name
+  Exch 2
+  Exch $R0 # directory
+  Push $R1
+  Push $R2
+  Push $R3
+  Push $R6
+
+  Push $R0 # first dir to search
+
+  StrCpy $R3 1
+
+  nextDir:
+    Pop $R0
+    IntOp $R3 $R3 - 1
+    ClearErrors
+    FindFirst $R1 $R2 "$R0\*.*"
+    nextFile:
+      StrCmp $R2 "." gotoNextFile
+      StrCmp $R2 ".." gotoNextFile
+
+      StrCmp $R2 $R4 0 isDir
+        Push "$R0\$R2"
+        Call $R5
+        Pop $R6
+        StrCmp $R6 "stop" 0 isDir
+          loop:
+            StrCmp $R3 0 done
+            Pop $R0
+            IntOp $R3 $R3 - 1
+            Goto loop
+
+      isDir:
+        IfFileExists "$R0\$R2\*.*" 0 gotoNextFile
+          IntOp $R3 $R3 + 1
+          Push "$R0\$R2"
+
+  gotoNextFile:
+    FindNext $R1 $R2
+    IfErrors 0 nextFile
+
+  done:
+    FindClose $R1
+    StrCmp $R3 0 0 nextDir
+
+  Pop $R6
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
+  Pop $R5
+  Pop $R4
+FunctionEnd
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; End MSVCRT check/install
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 !ifdef WIN64
 Page custom Check64 "" ": Checking for AMD64 architecture"
 !endif
