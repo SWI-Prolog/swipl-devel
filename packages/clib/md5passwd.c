@@ -66,7 +66,7 @@ md5_crypt(pw, salt)
 	static char     passwd[120], *p;
 	static const char *sp,*ep;
 	unsigned char	final[16];
-	int sl,pl,i,j;
+	size_t sl,pl,i,j;
 	MD5_CTX	ctx,ctx1;
 	unsigned long l;
 

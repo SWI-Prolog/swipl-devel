@@ -83,8 +83,8 @@ typedef struct list
 
 
 typedef struct bitmatrix
-{ int width;
-  int heigth;
+{ size_t width;
+  size_t heigth;
   int bits[1];
 } bitmatrix;
 
@@ -117,8 +117,8 @@ typedef struct predicate
 typedef struct predicate_cloud
 { predicate   **members;		/* member predicates */
   unsigned int  hash;			/* hash-code */
-  int		size;			/* size of the cloud */
-  int		deleted;		/* See erase_predicates() */
+  size_t	size;			/* size of the cloud */
+  size_t	deleted;		/* See erase_predicates() */
   bitmatrix    *reachable;		/* cloud reachability matrix */
   unsigned	dirty : 1;		/* predicate hash not synchronised */
 } predicate_cloud;

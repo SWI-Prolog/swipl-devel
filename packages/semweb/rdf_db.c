@@ -1060,18 +1060,18 @@ Reachability matrix.
 
 #define WBITSIZE (sizeof(int)*8)
 
-static int
-byte_size_bitmatrix(int w, int h)
-{ int wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
+static size_t
+byte_size_bitmatrix(size_t w, size_t h)
+{ size_t wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
 
-  return (int)(intptr_t)&((bitmatrix*)NULL)->bits[wsize];
+  return (size_t)(intptr_t)&((bitmatrix*)NULL)->bits[wsize];
 }
 
 
 static bitmatrix *
-alloc_bitmatrix(rdf_db *db, int w, int h)
-{ int size = byte_size_bitmatrix(w, h);
-  bitmatrix *m = PL_malloc(size);
+alloc_bitmatrix(rdf_db *db, size_t w, size_t h)
+{ size_t size = byte_size_bitmatrix(w, h);
+  bitmatrix *m = rdf_malloc(db, size);
 
   memset(m, 0, size);
   m->width = w;
@@ -1083,7 +1083,7 @@ alloc_bitmatrix(rdf_db *db, int w, int h)
 
 static void
 free_bitmatrix(rdf_db *db, bitmatrix *bm)
-{ int size = byte_size_bitmatrix(bm->width, bm->heigth);
+{ size_t size = byte_size_bitmatrix(bm->width, bm->heigth);
 
   rdf_free(db, bm, size);
 }
@@ -1093,8 +1093,8 @@ free_bitmatrix(rdf_db *db, bitmatrix *bm)
 
 static void
 setbit(bitmatrix *m, int i, int j)
-{ int ij = m->width*i+j;
-  int word = ij/WBITSIZE;
+{ size_t ij = m->width*i+j;
+  size_t word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
   m->bits[word] |= 1<<bit;
@@ -1103,8 +1103,8 @@ setbit(bitmatrix *m, int i, int j)
 
 static int
 testbit(bitmatrix *m, int i, int j)
-{ int ij = m->width*i+j;
-  int word = ij/WBITSIZE;
+{ size_t ij = m->width*i+j;
+  size_t word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
   return ((m->bits[word] & (1<<bit)) != 0);
@@ -2057,7 +2057,7 @@ literal_hash(literal *lit)
         break;
       case OBJ_TERM:
 	hash = rdf_murmer_hash(lit->value.term.record,
-			       lit->value.term.len,
+			       (int)lit->value.term.len,
 			       MURMUR_SEED);
 	break;
       default:

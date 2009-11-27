@@ -87,7 +87,7 @@ typedef struct _parser_data
   int	      max_warnings;		/* warning limit */
   errormode   error_mode;		/* how to handle errors */
   int	      positions;		/* report file-positions */
-  int         exception;		/* pending exception from callback */
+  term_t      exception;		/* pending exception from callback */
 
   predicate_t on_begin;			/* begin element */
   predicate_t on_end;			/* end element */
@@ -744,7 +744,7 @@ call_prolog(parser_data *pd, predicate_t pred, term_t av)
 
 
 static void
-end_frame(fid_t fid, int ex)
+end_frame(fid_t fid, term_t ex)
 { if ( ex )
     PL_close_foreign_frame(fid);
   else
