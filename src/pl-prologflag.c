@@ -430,7 +430,7 @@ set_prolog_flag_unlocked(term_t key, term_t value)
       { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
       }
       if ( f->index > 0 )
-      { uintptr_t mask = 1L << (f->index-1);
+      { unsigned int mask = (unsigned int)1 << (f->index-1);
 
 	if ( val )
 	  setPrologFlagMask(mask);
@@ -581,7 +581,7 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
       if ( f->index >= 0 )
-      { uintptr_t mask = 1L << (f->index-1);
+      { unsigned int mask = (unsigned int)1 << (f->index-1);
 
 	return PL_unify_bool_ex(val, truePrologFlag(mask) != FALSE);
       }

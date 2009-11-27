@@ -2600,7 +2600,7 @@ PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
   for(;;)
   { Word t2 = valTermRef(A1);
     term_t v0 = PL_new_term_refs(0);
-    int i, n;
+    size_t i, n;
 
     startCritical;
     initvisited(PASS_LD1);
@@ -2615,9 +2615,9 @@ PRED_IMPL("$e_free_variables", 2, e_free_variables, 0)
       continue;
     }
 
-    if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, n)) )
+    if ( PL_unify_functor(A2, PL_new_functor(ATOM_v, (int)n)) )
     { for(i=0; i<n; i++)
-      { if ( !PL_unify_arg(i+1, A2, v0+i) )
+      { if ( !PL_unify_arg((int)i+1, A2, v0+i) )
 	  return FALSE;
       }
 
