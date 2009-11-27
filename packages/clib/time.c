@@ -194,6 +194,7 @@ typedef void (*handler_t)(int);
 typedef struct
 { Event first;				/* first in list */
   Event scheduled;			/* The one we scheduled for */
+  int   stop;				/* stop alarm-loop */
 } schedule;
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -204,7 +205,7 @@ static pthread_t scheduler;		/* thread id of scheduler */
 #define LOCK()   pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
 
-static schedule the_schedule;		/* the schedule */
+static schedule the_schedule = {0};	/* the schedule */
 #define TheSchedule() (&the_schedule)	/* current schedule */
 
 int signal_function_set = FALSE;	/* signal function is set */
@@ -377,6 +378,14 @@ cleanup()
   }
 
   cleanupHandler();
+
+  if ( scheduler_running )
+  { sched->stop = TRUE;
+    pthread_cond_signal(&cond);
+
+    pthread_join(scheduler, NULL);
+    scheduler_running = FALSE;
+  }
 }
 
 
@@ -457,7 +466,7 @@ alarm_loop(void * closure)
   pthread_mutex_lock(&mutex);		/* for condition variable */
   DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
 
-  for(;;)
+  while( !sched->stop )
   { Event ev = nextEvent(sched);
     struct timeval now;
 
@@ -609,6 +618,7 @@ installEvent(Event ev)
   if ( !scheduler_running )
   { pthread_attr_t attr;
 
+    TheSchedule()->stop = FALSE;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_attr_setstacksize(&attr, 8192);
