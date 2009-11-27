@@ -193,8 +193,8 @@ thread_debug_queue(Thread, Queue) :-
 	user:prolog_event_hook/1.
 
 user:prolog_event_hook(thread_finished(TID)) :-
-	thread_debug_queue_store(TID, Queue),
-	message_queue_destroy(Queue),
+	forall(retract(thread_debug_queue_store(TID, Queue)),
+	       message_queue_destroy(Queue)),
 	fail.				% allow other hooks
 
 %%	send_pce(:Goal)
