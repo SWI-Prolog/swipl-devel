@@ -629,6 +629,13 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 #endif
   { long v = mpz_get_si(mpz);
 
+    if ( !hasGlobalSpace(0) )		/* ensure we have room for bindConst */
+    { int rc = ensureGlobalSpace(0, flags);
+
+      if ( rc != TRUE )
+	return rc;
+    }
+
     *at = consInt(v);
     return TRUE;
   } else if ( mpz_to_int64(mpz, &v) )
@@ -643,7 +650,15 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 put_number()   translates   a   number   structure   into   its   Prolog
 representation and ensures there  is  enough   space  for  a  subsequent
-bindConst() call.
+bindConst() call. Note that `at' must point   to  an address that is not
+affected by GC/shift.  The intented scenario is:
+
+  { word c;
+
+    if ( (rc=put_number(&c, n, ALLOW_GC PASS_LD)) == TRUE )
+      bindConst(<somewhere>, c);
+    ...
+  }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
