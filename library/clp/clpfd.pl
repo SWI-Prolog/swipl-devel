@@ -4264,46 +4264,36 @@ maximum_matching([FL|FLs]) :-
         adjust_alternate_1(Path),
         maximum_matching(FLs).
 
-reachables_right([]) --> [].
-reachables_right([V|Vs]) -->
+reachables([]) --> [].
+reachables([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_right_(Es, V),
-        reachables_right(Vs).
+        reachables_(Es, V),
+        reachables(Vs).
 
-reachables_right_([], _) --> [].
-reachables_right_([flow_to(F,To)|Es], V) -->
+reachables_([], _) --> [].
+reachables_([E|Es], V) -->
+        edge_reachable(E, V),
+        reachables_(Es, V).
+
+edge_reachable(flow_to(F,To), V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(To, parent, _) } ->
             { put_attr(To, parent, V-F) },
             [To]
         ;   []
-        ),
-        reachables_right_(Es, V).
-
-
-reachables_left([]) --> [].
-reachables_left([V|Vs]) -->
-        { get_attr(V, edges, Es) },
-        reachables_left_(Es, V),
-        reachables_left(Vs).
-
-reachables_left_([], _) --> [].
-reachables_left_([flow_from(F,From)|Es], V) -->
+        ).
+edge_reachable(flow_from(F,From), V) -->
         (   { get_attr(F, flow, 1),
               \+ get_attr(From, parent, _) } ->
             { put_attr(From, parent, V-F) },
             [From]
         ;   []
-        ),
-        reachables_left_(Es, V).
+        ).
 
 augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
-        (   Level mod 2 =:= 1 ->
-            phrase(reachables_right(Vs), Tos)
-        ;   phrase(reachables_left(Vs), Tos)
-        ),
+        phrase(reachables(Vs), Tos),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
             Right = Free, Levels = Levels1
