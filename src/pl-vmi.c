@@ -3876,6 +3876,7 @@ b_throw:
 
   if ( catchfr_ref )
   { Choice ch;
+    word w;
 
     assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
@@ -3888,7 +3889,20 @@ b_throw:
 					/* re-unify */
     PL_unify(consTermRef(argFrameP(FR, 1)), exception_term);
     lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
-    argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
+    if ( (w=uncachableException(exception_term PASS_LD)) )
+    { Word p = gTop;
+
+      if ( !hasGlobalSpace(3) )
+	fatalError("Cannot wrap abort exception\n");
+
+      argFrame(lTop, 0) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      p[0] = FUNCTOR_drecover_and_rethrow2;
+      p[1] = argFrame(FR, 2);
+      p[2] = w;
+      gTop = p+3;
+    } else
+    { argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
+    }
     *valTermRef(exception_printed) = 0;   /* consider it handled */
     *valTermRef(exception_bin)     = 0;
     exception_term		   = 0;

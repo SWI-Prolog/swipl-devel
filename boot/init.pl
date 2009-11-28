@@ -241,6 +241,18 @@ fail(Label) :-
 catch(_Goal, _Catcher, _Recover) :-
 	'$catch'.
 
+%%	'$recover_and_rethrow'(:Goal, +Term)
+%
+%	This goal is used to wrap  the   catch/3  recover handler if the
+%	exception is not supposed to be   `catchable'.  An example of an
+%	uncachable exception is '$aborted', used   by abort/0. Note that
+%	we cut to ensure  that  the   exception  is  not delayed forever
+%	because the recover handler leaves a choicepoint.
+
+'$recover_and_rethrow'(Goal, Exception) :-
+	call_cleanup(Goal, throw(Exception)), !.
+
+
 %%	setup_call_cleanup(:Setup, :Goal, :Cleanup).
 %%	setup_call_catcher_cleanup(:Setup, :Goal, +Catcher, :Cleanup).
 %%	call_cleanup(:Goal, :Cleanup)

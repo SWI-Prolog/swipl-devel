@@ -168,6 +168,7 @@ A dots			"dots"
 A double_quotes		"double_quotes"
 A doublestar		"**"
 A dprof_node		"$profile_node"
+A drecover_and_rethrow	"$recover_and_rethrow"
 A dstream		"$stream"
 A dthread_init		"$thread_init"
 A dthrow		"$throw"
@@ -688,6 +689,7 @@ F domain_error		2
 F dot			2
 F doublestar		2
 F dprof_node		1
+F drecover_and_rethrow	2
 F dstream		1
 F dthread_init		0
 F dthrow		1

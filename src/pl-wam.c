@@ -1110,6 +1110,19 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 }
 
 
+static word
+uncachableException(term_t t ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( *p == ATOM_aborted )
+    return *p;
+
+  return 0;
+}
+
+
+
 static inline int
 slotsInFrame(LocalFrame fr, Code PC)
 { Definition def = fr->predicate;
