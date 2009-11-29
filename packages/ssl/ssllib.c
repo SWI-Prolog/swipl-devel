@@ -25,16 +25,6 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#ifdef __WINDOWS__
-#  include <io.h>
-#else
-#  include <unistd.h>
-#  include <sys/types.h>
-#  include <netinet/in.h>
-#  include <arpa/inet.h>
-#  include <netdb.h>
-#endif
-
 #include "ssllib.h"
 #include <openssl/rand.h>
 
@@ -140,6 +130,11 @@ ssl_inspect_status(SSL *ssl, int ssl_ret)
     code=SSL_get_error(ssl, ssl_ret);
 
     switch (code) {
+       /* I am not sure what to do here - specifically, I am not sure if our underlying BIO
+          will block if there is not enough data to complete a handshake. If it will, we should
+          never get these return values. If it wont, then we presumably need to simply try again
+          which is why I am returning SSL_PL_RETRY
+       */
 	case SSL_ERROR_WANT_READ:
            return SSL_PL_RETRY;
 
@@ -202,10 +197,10 @@ ssl_cert_print(X509 *cert, const char *role)
 
     i = X509_get_signature_type(cert);
     ssl_deb(1, "\t signature type: %d\n", i);
-#endif
+#endif /* DEBUG */
 }
 
-#endif
+#endif /* SSL_CERT_VERIFY_MORE */
 
 #if SSL_CERT_VERIFY_MORE
 
@@ -240,7 +235,7 @@ ssl_verify_cert(PL_SSL *config)
     }
 }
 
-#endif
+#endif /* SSL_CERT_VERIFY_MORE */
 
 static PL_SSL *
 ssl_new(void)
@@ -254,6 +249,7 @@ ssl_new(void)
         new->pl_ssl_role                = PL_SSL_NONE;
 
 	new->sock			= -1;
+        new->closeparent	       	= 0;
 
         new->pl_ssl_peer_cert           = NULL;
         new->pl_ssl_ctx                 = NULL;
@@ -610,6 +606,16 @@ ssl_cb_pem_passwd(char *buf, int size, int rwflag, void *userdata)
     return len;
 }
 
+BOOL
+ssl_set_close_parent(PL_SSL *config, int closeparent)
+/*
+ * Should we close the parent streams?
+ */
+{
+    return config->closeparent = closeparent;
+}
+
+
 int
 ssl_close(PL_SSL_INSTANCE *instance)
 /*
@@ -632,20 +638,23 @@ ssl_close(PL_SSL_INSTANCE *instance)
         if (instance->sock >= 0) {
            /* If the socket has been stored, then we ought to close it if the SSL is being closed */
            ret = closesocket(instance->sock);
+           instance->sock = -1;
         }
 
         if (instance->sread != NULL) {
            /* Indicate we are no longer filtering the stream */
            Sset_filter(instance->sread, NULL);
-           /* TODO: Only if close_parent */
-           Sclose(instance->sread);
+           /* Close the stream if requested */
+           if (instance->config->closeparent)
+              Sclose(instance->sread);
         }
 
         if (instance->swrite != NULL) {
            /* Indicate we are no longer filtering the stream */
            Sset_filter(instance->swrite, NULL);
-           /* TODO: Only if close_parent */
-           Sclose(instance->swrite);
+           /* Close the stream if requested */
+           if (instance->config->closeparent)
+              Sclose(instance->swrite);
         }
         
         free(instance);
@@ -922,6 +931,14 @@ ssl_lib_exit(void)
     return 0;
 }
 
+/*
+ * BIO routines for SSL over streams
+ */
+
+/*
+ * Read function
+ */
+
 int bio_read(BIO* bio, char* buf, int len)
 {
    IOSTREAM* stream;
@@ -934,6 +951,10 @@ int bio_read(BIO* bio, char* buf, int len)
       return -1;
 }
 
+/*
+ * Write function
+ */
+
 int bio_write(BIO* bio, const char* buf, int len)
 {
    IOSTREAM* stream;
@@ -945,6 +966,11 @@ int bio_write(BIO* bio, const char* buf, int len)
    else
       return -1;
 }
+
+/*
+ * Control function
+ * (Currently only supports flush. There are several mandatory, but as-yet unsupported functions...)
+ */
 
 long bio_control(BIO* bio, int cmd, long num, char* ptr)
 {
@@ -960,6 +986,11 @@ long bio_control(BIO* bio, int cmd, long num, char* ptr)
    return 0;
 }
 
+/*
+ * Create function. Called when a new BIO is created
+ * It is our responsibility to set init to 1 here
+ */
+
 int bio_create(BIO* bio)
 {
    bio->shutdown = 1;
@@ -969,6 +1000,10 @@ int bio_create(BIO* bio)
    return 1;
 }
 
+/*
+ * Destroy function. Called when a BIO is freed
+ */
+
 int bio_destroy(BIO* bio)
 {
    if (bio == NULL)
@@ -977,6 +1012,10 @@ int bio_destroy(BIO* bio)
    }
    return 1;
 }
+
+/*
+ * Specify the BIO read and write function structures
+ */
 
 BIO_METHOD bio_read_functions = {BIO_TYPE_MEM,
                                  "read",
@@ -998,6 +1037,9 @@ BIO_METHOD bio_write_functions = {BIO_TYPE_MEM,
                                   &bio_create,
                                   &bio_destroy};
                                  
+/*
+ * Establish an SSL session using the given read and write streams and the role
+ */
 
 PL_SSL_INSTANCE *
 ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
@@ -1092,7 +1134,7 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
 int
 ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
 /*
- * Perform read on SSL socket, establish it first if necessary.
+ * Perform read on SSL session
  */
 {
     SSL *ssl = instance->ssl;
@@ -1118,7 +1160,7 @@ ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
 int
 ssl_write(PL_SSL_INSTANCE *instance, const char *buf, int size)
 /*
- * Perform write on SSL socket, establish it first if necessary.
+ * Perform write on SSL session
  */
 {
     SSL *ssl = instance->ssl;
