@@ -30,8 +30,8 @@
 */
 
 :- module(ssl,
-	  [ ssl_init/3,			% -Config, +Role, +Options
-            ssl_initx/3,                % -Config, +Role, +Options
+	  [ ssl_context/3,		% +Role, +Options, -Config
+            ssl_init/3,                 % -Config, +Role, +Options
             ssl_accept/3,               % +Config, -Socket, -Peer
             ssl_open/3,                 % +Config, -Read, -Write
             ssl_open/4,                 % +Config, +Socket, -Read, -Write
@@ -41,22 +41,27 @@
 
 :- use_foreign_library(foreign(ssl4pl)).
 
-ssl_initx(SSL, server, Options):-
+/*
+  These predicates are here to support backward compatability with the previous
+  incarnation of the SSL library. No changes should be required for legacy code.
+*/
+
+ssl_init(SSL, server, Options):-
         memberchk(port(Port), Options),
         tcp_socket(Socket),
         tcp_bind(Socket, Port),
         tcp_listen(Socket, 5),
-        ssl_init(SSL, server, Options),
+        ssl_context(server, Options, SSL),
         Socket = '$socket'(S),
         ssl_put_socket(SSL, S).
 
-ssl_initx(SSL, client, Options):-
+ssl_init(SSL, client, Options):-
         memberchk(port(Port), Options),
         memberchk(host(Host), Options),
         writeln(Host:Port),
         tcp_socket(Socket),
         tcp_connect(Socket, Host:Port),
-        ssl_init(SSL, client, Options),
+        ssl_context(client, Options, SSL),
         Socket = '$socket'(S),
         ssl_put_socket(SSL, S).
 
