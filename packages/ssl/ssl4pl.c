@@ -27,13 +27,6 @@
 #include <SWI-Prolog.h>
 #include <assert.h>
 #include <string.h>
-#ifdef __WINDOWS__
-#  include <io.h>
-#else
-#  include <sys/types.h>
-#  include <netinet/in.h>
-#  include <unistd.h>
-#endif
 #include "ssllib.h"
 
 #ifdef _REENTRANT
@@ -59,6 +52,7 @@ static atom_t ATOM_certificate_file;
 static atom_t ATOM_key_file;
 static atom_t ATOM_pem_password_hook;
 static atom_t ATOM_cert_verify_hook;
+static atom_t ATOM_close_parent;
 
 static functor_t FUNCTOR_ssl1;
 static functor_t FUNCTOR_error2;
@@ -351,7 +345,7 @@ threads_init()
 
 
 static foreign_t
-pl_ssl_init(term_t config, term_t role, term_t options)
+pl_ssl_context(term_t role, term_t options, term_t config)
 { atom_t a;
   PL_SSL *conf;
   int r;
@@ -450,6 +444,13 @@ pl_ssl_init(term_t config, term_t role, term_t options)
 	return FALSE;
 
       ssl_set_cb_cert_verify(conf, pl_cert_verify_hook, (void *)hook);
+    } else if ( name == ATOM_close_parent && arity == 1 )
+    { char* s;
+
+      if ( !get_char_arg(1, head, &s) )
+	return FALSE;
+
+      ssl_set_close_parent(conf, strcmp(s, "true") == 0);
     } else
       return domain_error(head, "ssl_option");
   }
@@ -475,7 +476,7 @@ static int
 pl_ssl_control(PL_SSL_INSTANCE *instance, int action, void *data)
 { switch(action)
   { case SIO_GETFILENO:
-    { int *p = data;
+    { SOCKET *p = data;
       nbio_sock_t ns = instance->sock;
 
       if ( (*p = nbio_fd(ns)) >= 0 )
@@ -615,6 +616,7 @@ install_ssl4pl()
   ATOM_key_file           = PL_new_atom("key_file");
   ATOM_pem_password_hook  = PL_new_atom("pem_password_hook");
   ATOM_cert_verify_hook   = PL_new_atom("cert_verify_hook");
+  ATOM_close_parent       = PL_new_atom("close_parent");
 
   FUNCTOR_ssl1            = PL_new_functor(PL_new_atom("$ssl"), 1);
   FUNCTOR_error2          = PL_new_functor(PL_new_atom("error"), 2);
@@ -624,7 +626,7 @@ install_ssl4pl()
   FUNCTOR_permission_error3=PL_new_functor(PL_new_atom("permission_error"), 3);
   FUNCTOR_ip4		  = PL_new_functor(PL_new_atom("ip"), 4);
 
-  PL_register_foreign("ssl_init",       3, pl_ssl_init,    PL_FA_TRANSPARENT);
+  PL_register_foreign("ssl_context",    3, pl_ssl_context,    PL_FA_TRANSPARENT);
   PL_register_foreign("ssl_exit",       1, pl_ssl_exit,    0);
   PL_register_foreign("ssl_put_socket", 2, pl_ssl_put_socket,     0);
   PL_register_foreign("ssl_get_socket", 2, pl_ssl_get_socket,     0);
