@@ -504,9 +504,11 @@ accessFile(FileObj f, Name mode)
       m = R_OK;
     else if ( mode == NAME_write || mode == NAME_append )
       m = W_OK;
-#ifdef X_OK
     else /*if ( mode == NAME_execute )*/
+#ifdef X_OK
       m = X_OK;
+#else
+      m = R_OK;
 #endif
 
     if ( access(strName(name), m) == 0 )
