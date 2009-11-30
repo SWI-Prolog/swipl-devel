@@ -365,6 +365,8 @@ expand(end_of_file, _) :-
 	loading_unit(Unit, _, _, _), !,
 	end_tests(Unit),		% warn?
 	fail.
+expand((:-end_tests(_)), _) :- !,
+	fail.
 expand(_Term, []) :-
 	\+ loading_tests.
 expand((test(Name) :- Body), Clauses) :- !,
