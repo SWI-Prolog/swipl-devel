@@ -181,6 +181,7 @@ http_get(URL, Data, Options) :-
 	parse_url(URL, Parts),
         http_get(Parts, Data, Options).
 http_get(Parts, Data, Options) :-
+	must_be(list, Options),
 	memberchk(connection(Connection), Options),
 	downcase_atom(Connection, 'keep-alive'), !,
 	between(0, 1, _),
