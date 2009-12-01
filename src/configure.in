@@ -678,7 +678,7 @@ if test "$checkucb" = "yes"; then
 fi
 
 dnl Hacks for MacOS handling of libreadline.  We want to prefer the MacOS X
-dnl libraries, but we need to get libreadline from Darwinports, as the BSD
+dnl libraries, but we need to get libreadline from Macports, as the BSD
 dnl version is severely limited.
 
 case "$ARCH" in
