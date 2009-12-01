@@ -43,125 +43,147 @@ pl_error(plerrorid id, ...)
   switch(id)
   { case ERR_ERRNO:
     { int err = va_arg(args, int);
+      int rc;
 
       msg = strerror(err);
 
       switch(err)
       { case ENOMEM:
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "resource_error", 1,
-			  PL_CHARS, "no_memory");
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "resource_error", 1,
+			       PL_CHARS, "no_memory");
 	  break;
 	case EACCES:
 	{ const char *file = va_arg(args,   const char *);
 	  const char *action = va_arg(args, const char *);
 
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "permission_error", 3,
-			  PL_CHARS, action,
-			  PL_CHARS, "file",
-			  PL_CHARS, file);
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "permission_error", 3,
+			       PL_CHARS, action,
+			       PL_CHARS, "file",
+			       PL_CHARS, file);
 	  break;
 	}
 	case ENOENT:
 	{ const char *file = va_arg(args, const char *);
 
-	  PL_unify_term(formal,
-			PL_FUNCTOR_CHARS, "existence_error", 2,
-			  PL_CHARS, "file",
-			  PL_CHARS, file);
+	  rc = PL_unify_term(formal,
+			     PL_FUNCTOR_CHARS, "existence_error", 2,
+			       PL_CHARS, "file",
+			       PL_CHARS, file);
 	  break;
 	}
 	default:
-	  PL_unify_atom_chars(formal, "system_error");
+	  rc = PL_unify_atom_chars(formal, "system_error");
 	  break;
       }
+
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_TYPE:
     { const char *expected = va_arg(args, const char*);
       term_t actual        = va_arg(args, term_t);
+      int rc;
 
       if ( PL_is_variable(actual) &&
 	   strcmp(expected, "variable") != 0 )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      PL_FUNCTOR_CHARS, "type_error", 2,
-		      PL_CHARS, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR_CHARS, "type_error", 2,
+			     PL_CHARS, expected,
+			     PL_TERM, actual);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_DOMAIN:
     { const char *expected = va_arg(args, const char*);
       term_t actual        = va_arg(args, term_t);
+      int rc;
 
       if ( PL_is_variable(actual) )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      PL_FUNCTOR_CHARS, "domain_error", 2,
-		      PL_CHARS, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR_CHARS, "domain_error", 2,
+			     PL_CHARS, expected,
+			     PL_TERM, actual);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_EXISTENCE:
     { const char *type = va_arg(args, const char *);
       term_t obj  = va_arg(args, term_t);
+      int rc;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "existence_error", 2,
-		    PL_CHARS, type,
-		    PL_TERM, obj);
-
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "existence_error", 2,
+			   PL_CHARS, type,
+			   PL_TERM, obj);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_FAIL:
     { term_t goal  = va_arg(args, term_t);
+      int rc;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "goal_failed", 1,
-		    PL_TERM, goal);
-
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "goal_failed", 1,
+			   PL_TERM, goal);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_LIMIT:
     { const char *limit = va_arg(args, const char *);
       long maxval  = va_arg(args, long);
+      int rc;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "limit_exceeded", 2,
-		    PL_CHARS, limit,
-		    PL_LONG, maxval);
-
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "limit_exceeded", 2,
+			   PL_CHARS, limit,
+			   PL_LONG, maxval);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_PACKAGE_INT:
     { const char *pkg = va_arg(args, const char *);
       int          id = va_arg(args, int);
       const char *fmt = va_arg(args, const char *);
+      int rc;
 
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "package", 2,
-		      PL_CHARS, pkg,
-		      PL_INT, id);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "package", 2,
+			   PL_CHARS, pkg,
+			   PL_INT, id);
+      if ( !rc )
+	return FALSE;
       break;
     }
     case ERR_PACKAGE_ID:
     { const char *pkg = va_arg(args, const char *);
       const char * id = va_arg(args, const char *);
       const char *fmt = va_arg(args, const char *);
+      int rc;
 
       vsprintf(msgbuf, fmt, args);
       msg = msgbuf;
 
-      PL_unify_term(formal,
-		    PL_FUNCTOR_CHARS, "package", 2,
-		      PL_CHARS, pkg,
-		      PL_CHARS, id);
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR_CHARS, "package", 2,
+			   PL_CHARS, pkg,
+			   PL_CHARS, id);
+      if ( !rc )
+	return FALSE;
       break;
     }
     default:
@@ -177,17 +199,18 @@ pl_error(plerrorid id, ...)
     { PL_put_atom_chars(msgterm, msg);
     }
 
-    PL_unify_term(swi,
-		  PL_FUNCTOR_CHARS, "context", 2,
-		    PL_TERM, predterm,
-		    PL_TERM, msgterm);
+    if ( !PL_unify_term(swi,
+			PL_FUNCTOR_CHARS, "context", 2,
+			  PL_TERM, predterm,
+			  PL_TERM, msgterm) )
+      return FALSE;
   }
 
-  PL_unify_term(except,
-		PL_FUNCTOR_CHARS, "error", 2,
-		  PL_TERM, formal,
-		  PL_TERM, swi);
-
+  if ( !PL_unify_term(except,
+		      PL_FUNCTOR_CHARS, "error", 2,
+		        PL_TERM, formal,
+		        PL_TERM, swi) )
+    return FALSE;
 
   return PL_raise_exception(except);
 }
