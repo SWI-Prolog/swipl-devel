@@ -71,12 +71,12 @@ have the same name and arity.
 %	Suppose we want to create a predicate   table/6  from a CSV file
 %	that we know contains 6 fields  per   record.  This  can be done
 %	using the code below. Without the   option  arity(6), this would
-%	generate a predicate table/N, where N is the number of fiels per
-%	record in the data.
+%	generate a predicate table/N, where N   is  the number of fields
+%	per record in the data.
 %
 %	    ==
 %	    ?- csv_read_file(File, Rows, [functor(table), arity(6)]),
-%	       maplist(assert(Rows)).
+%	       maplist(assert, Rows).
 %	    ==
 
 
@@ -95,16 +95,21 @@ csv_read_file(File, Rows, Options) :-
 %
 %	    * separator(+Code)
 %	    The comma-separator.  Must be a character code.  Default is
-%	    (of course) the comma.
+%	    (of course) the comma. Character codes can be specified
+%	    using the 0' notion. E.g., =|separator(0';)|=.
+%
 %	    * strip(+Boolean)
 %	    If =true= (default =false=), strip leading and trailing
 %	    blank-space.  RFC4180 says that blank space is part of the
 %	    data.
+%
 %	    * convert(+Boolean)
 %	    if =true= (Default), use name/2 on the field-data.  This
 %	    translates the field into a number if possible.
+%
 %	    * functor(+Atom)
 %	    Functor to use for creating row-terms.  Default is =row=.
+%
 %	    * arity(?Arity)
 %	    Number of fields in each row.  This predicate raises
 %	    a domain_error(row_arity(Expected), Found) if a row is
