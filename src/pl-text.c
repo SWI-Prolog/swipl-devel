@@ -222,7 +222,7 @@ maybe_write:
     goto case_write;
 
 error:
-  if ( isVar(w) && (flags & CVT_VARNOFAIL) )
+  if ( canBind(w) && (flags & CVT_VARNOFAIL) )
     return 2;
 
   if ( (flags & CVT_EXCEPTION) )
