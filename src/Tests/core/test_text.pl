@@ -73,6 +73,9 @@ test(shared, X == '') :-
 	atom_concat(X, X, '').
 test(shared, fail) :-
 	atom_concat(X, X, abac).
+test(attvar, X-Y == ab-ok) :-
+	freeze(X, Y = ok),
+	atom_concat(a, b, X).
 
 :- end_tests(atom_concat).
 
