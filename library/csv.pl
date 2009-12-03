@@ -40,7 +40,7 @@
 :- use_module(library(pure_input)).
 :- use_module(library(debug)).
 
-/** <module> Process CSV (Comman-Separated Values) data
+/** <module> Process CSV (Comma-Separated Values) data
 
 This library parses and generates CSV data.   CSV data is represented in
 Prolog as a list of rows. Each row   is  a compound term, where all rows
