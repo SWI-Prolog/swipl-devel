@@ -62,7 +62,7 @@ gui_setup_ :-
 	(   getenv('DISPLAY', _)
 	;   current_prolog_flag(windows, true)
 	), !,
-	set_prolog_flag(gui, true),
+	create_prolog_flag(gui, true, []),
 	menu_setup_,
 	editor_setup,
 	use_module(user:library(swi_hooks)).	% help, etc.

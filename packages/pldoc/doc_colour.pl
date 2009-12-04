@@ -70,6 +70,8 @@ User extension hooks.
 :- thread_local
 	fragment/3.			% Start, Length, Class
 
+:- create_prolog_flag(xref, false, [type(boolean)]).
+
 %	XPCE operators
 
 :- op(200, fy, @).

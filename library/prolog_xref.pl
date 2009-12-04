@@ -76,6 +76,7 @@
 	defined_class/5,		% Name, Super, Summary, Src, Line
 	(mode)/2.			% Mode, Src
 
+:- create_prolog_flag(xref, false, [type(boolean)]).
 
 		 /*******************************
 		 *	      HOOKS		*

@@ -387,8 +387,6 @@ default_module(Me, Super) :-
 %	to give a DWIM warning. Otherwise fail. C will print an error
 %	message.
 
-:- set_prolog_flag(autoload, true).
-:- set_prolog_flag(verbose_autoload, false).
 :- flag('$autoloading', _, 0).
 
 '$undefined_procedure'(Module, Name, Arity, Action) :-
@@ -431,25 +429,25 @@ default_module(Me, Super) :-
 %	 handle debugger 'w', 'p' and <N> depth options.
 
 '$set_debugger_print_options'(write) :- !,
-	set_prolog_flag(debugger_print_options,
-			[ quoted(true),
-			  attributes(write)
-			]).
+	create_prolog_flag(debugger_print_options,
+			   [ quoted(true),
+			     attributes(write)
+			   ], []).
 '$set_debugger_print_options'(print) :- !,
-	set_prolog_flag(debugger_print_options,
-			[ quoted(true),
-			  portray(true),
-			  max_depth(10),
-			  attributes(portray)
-			]).
+	create_prolog_flag(debugger_print_options,
+			   [ quoted(true),
+			     portray(true),
+			     max_depth(10),
+			     attributes(portray)
+			   ], []).
 '$set_debugger_print_options'(Depth) :-
 	current_prolog_flag(debugger_print_options, Options0),
 	(   '$select'(max_depth(_), Options0, Options)
 	->  true
 	;   Options = Options0
 	),
-	set_prolog_flag(debugger_print_options,
-			[max_depth(Depth)|Options]).
+	create_prolog_flag(debugger_print_options,
+			   [max_depth(Depth)|Options], []).
 
 
 		/********************************
@@ -707,8 +705,6 @@ user:prolog_file_type(Ext,	executable) :-
 	'$search_path_file_cache'/5.
 :- volatile
 	'$search_path_file_cache'/5.
-
-:- set_prolog_flag(verbose_file_search, false).
 
 '$chk_alias_file'(Spec, Exts, Cond, CWD, FullFile) :-
 	'$search_path_file_cache'(Spec, Cond, CWD, FullFile, Exts),
@@ -1320,7 +1316,7 @@ load_files(Module:Files, Options) :-
 	'$restore_lex_state'(LexState),
 	'$set_source_module'(_, OldModule).	% Restore old module
 
-:- set_prolog_flag(emulated_dialect, swi).
+:- create_prolog_flag(emulated_dialect, swi, [type(atom)]).
 
 '$save_lex_state'(lexstate(Style, Dialect)) :-
 	'$style_check'(Style, Style),

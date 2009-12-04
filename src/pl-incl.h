@@ -1911,8 +1911,10 @@ typedef struct debuginfo
 #define FT_ATOM		0		/* atom feature */
 #define FT_BOOL		1		/* boolean feature (true, false) */
 #define FT_INTEGER	2		/* integer feature */
-#define FT_TERM		3		/* term feature */
-#define FT_INT64	4		/* passed as int64_t */
+#define FT_FLOAT	3		/* float feature */
+#define FT_TERM		4		/* term feature */
+#define FT_INT64	5		/* passed as int64_t */
+#define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
 #define PLFLAG_CHARESCAPE	    0x000001 /* handle \ in atoms */

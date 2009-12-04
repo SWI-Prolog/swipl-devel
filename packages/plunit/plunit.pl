@@ -92,7 +92,7 @@ current_test_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
 
 set_test_flag(Name, Value) :-
-	set_prolog_flag(Name, Value).
+	create_prolog_flag(Name, Value, []).
 :- endif.
 
 :- if(sicstus).

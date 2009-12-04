@@ -136,7 +136,7 @@ get_pce_version :-
 	(   current_prolog_flag(xpce_version, _)
 	->  true
 	;   get(@pce, version, name, Version),
-	    set_prolog_flag(xpce_version, Version)
+	    create_prolog_flag(xpce_version, Version, [])
 	).
 
 :- initialization get_pce_version.

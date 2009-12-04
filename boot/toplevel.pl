@@ -259,7 +259,7 @@ set_associated_file :-
 	access_file(File, read), !,
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
-	set_prolog_flag(associated_file, File),
+	create_prolog_flag(associated_file, File, []),
 	(   current_predicate(system:window_title/2)
 	->  atom_concat('SWI-Prolog -- ', File, Title),
 	    system:window_title(_, Title)
@@ -316,7 +316,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	->  true
 	;   Ext = Ext0
 	),
-	set_prolog_flag(associate, Ext).
+	create_prolog_flag(associate, Ext, []).
 '$set_prolog_file_extension'.
 
 
@@ -339,9 +339,9 @@ initialise_prolog :-
 	set_associated_file,
 	'$set_file_search_paths',
 	once(print_predicate(_, [print], PrintOptions)),
-	set_prolog_flag(toplevel_print_options, PrintOptions),
-	set_prolog_flag(prompt_alternatives_on, determinism),
-	set_prolog_flag(toplevel_extra_white_line, true),
+	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(prompt_alternatives_on, determinism, []),
+	create_prolog_flag(toplevel_extra_white_line, true, []),
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
@@ -488,8 +488,8 @@ set_default_history :-
 	(   (   current_prolog_flag(readline, true)
 	    ;	current_prolog_flag(emacs_inferior_process, true)
 	    )
-	->  set_prolog_flag(history, 0)
-	;   set_prolog_flag(history, 25)
+	->  create_prolog_flag(history, 0, [])
+	;   create_prolog_flag(history, 25)
 	).
 
 :- initialization set_default_history.
@@ -518,7 +518,7 @@ restore_debug :-
 	).
 
 :- initialization
-	set_prolog_flag(query_debug_settings, debug(false, false)).
+	create_prolog_flag(query_debug_settings, debug(false, false), []).
 
 
 		/********************************

@@ -953,7 +953,7 @@ utf8_cont([]) -->
 %	@tbd	Having a global flag is highly inconvenient, but a
 %		work-around for old sites using ISO Latin 1 encoding.
 
-:- set_prolog_flag(url_encoding, utf8).
+:- create_prolog_flag(url_encoding, utf8, [type(atom)]).
 
 set_url_encoding(Old, New) :-
 	current_prolog_flag(url_encoding, Old),
