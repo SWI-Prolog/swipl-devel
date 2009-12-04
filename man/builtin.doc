@@ -2296,26 +2296,68 @@ flag/3).
 Successively unifies \arg{Key} with all keys used for records (see
 recorda/3, etc.).
 
-    \predicate{current_predicate}{2}{?Name, ?Head}
-Successively unifies \arg{Name} with the name of predicates currently
-defined and \arg{Head} with the most general term built from \arg{Name}
-and the arity of the predicate. This predicate succeeds for all
-predicates defined in the specified module, imported to it, or in one of
-the modules from which the predicate will be imported if it is called.
-
     \predicate[ISO]{current_predicate}{1}{:PredicateIndicator}
-ISO compliant implementation of current_predicate/2.  Unlike
-current_predicate/2, the current implementation of current_predicate/1
-does not consider predicates that can be autoloaded `current'.
+True if \arg{PredicateIndicator} is a currently defined predicate. A
+predicate is considered defined if it exists in the specified module, is
+imported into the module or is defined in one of the modules from which
+the predicate will be imported if it is called (see
+\secref{importmodule}). Note that current_predicate/1 does \emph{not}
+succeed for predicates that can be \jargon{autoloaded}.  See also
+current_predicate/2 and predicate_property/2.
+
+If \arg{PredicateIndicator} is not fully specified, the predicate only
+generates values that are defined in or already imported into the target
+module. Generating all callable predicates therefore requires
+enumerating modules using current_module/1. Generating predicates
+callable in a given module requires enumerating the import modules
+using import_module/2 and the auto-loadable predicates using the
+predicate_property/2 \const{autoload}.
+
+    \predicate{current_predicate}{2}{?Name, :Head}
+Classical pre-ISO implementation of current_predicate/1, where the
+predicate is represented by the head-term.  The advantage is that
+this can be used for checking existence of a predicate before calling
+it without the need for functor/3:
+
+\begin{code}
+call_if_exists(G) :-
+	current_predicate(_, G),
+	call(G).
+\end{code}
+
+Because of this intended usage, current_predicate/2 also succeeds if the
+predicate can be autoloaded.  Unfortunately, checking the autoloader
+makes this predicate relatively slow; in particular because a failed
+lookup of the autoloader will cause the autoloader to verify that its
+index is up-to-date.
 
     \predicate{predicate_property}{2}{:Head, ?Property}
 True if \arg{Head} refers to a predicate that has property
-\arg{Property}. Can be used to test whether a predicate has a certain
-property, obtain all properties known for \arg{Head}, find all
-predicates having \arg{property} or even obtaining all information
-available about the current program. \arg{Property} is one of:
+\arg{Property}. With sufficiently instantiated \arg{Head},
+predicate_property/2 tries to resolve the predicate the same way as
+calling it would do: if the predicate is not defined it scans the
+auto-import modules and finally tries the autoloader. Unlike calling,
+failure to find the target predicate causes predicate_property/2 to fail
+silently. If \arg{Head} is not sufficiently bound, only currently
+locally defined and already imported predicates are enumerated. See
+current_predicate/1 for enumerating all predicates. A common issue
+concerns \emph{generating} all built-in predicates. This can be achieved
+using the code below.
+
+\begin{code}
+generate_built_in(Name/Arity) :-
+	predicate_property(system:Head, built_in),
+	functor(Head, Name, Arity),
+	\+ sub_atom(Name, 0, _, _, $).	% discard reserved names
+\end{code}
+
+\arg{Property} is one of:
 
 \begin{description}
+    \termitem{autoload}{}
+Is true if the predicate can be autoloaded. Like \const{undefined}, this
+property is \emph{not} generated.
+
     \termitem{built_in}{}
 Is true if the predicate is locked as a built-in predicate. This
 implies it cannot be redefined in its definition module and it can
