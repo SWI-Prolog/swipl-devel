@@ -795,5 +795,4 @@ clustered_binding([B|BR], [B|BT], Value, C) :-
 	clustered_binding(BR, BT, Value, C).
 
 
-:- initialization
-   set_prolog_flag(gui_tracer, true).
+:- create_prolog_flag(gui_tracer, true, []).
