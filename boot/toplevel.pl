@@ -489,7 +489,7 @@ set_default_history :-
 	    ;	current_prolog_flag(emacs_inferior_process, true)
 	    )
 	->  create_prolog_flag(history, 0, [])
-	;   create_prolog_flag(history, 25)
+	;   create_prolog_flag(history, 25, [])
 	).
 
 :- initialization set_default_history.
