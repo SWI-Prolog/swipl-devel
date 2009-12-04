@@ -401,7 +401,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     f = allocHeap(sizeof(*f));
     f->index = -1;
 
-    switch( (f->flags & FT_MASK) )
+    switch( (flags & FT_MASK) )
     { case FT_FROM_VALUE:
       { if ( PL_get_atom(value, &a) )
 	{ if ( a == ATOM_true || a == ATOM_false ||
@@ -419,8 +419,11 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 	  f->value.f = d;
 	} else
 	{ f->flags = FT_TERM;
-	  if ( !PL_is_ground(value) ||
-	       !(f->value.t = PL_record(value)) )
+	  if ( !PL_is_ground(value) )
+	  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	    goto wrong_type;
+	  }
+	  if ( !(f->value.t = PL_record(value)) )
 	    goto wrong_type;
 	  f->value.t = PL_record(value);
 	}
@@ -454,8 +457,11 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
         f->flags = FT_FLOAT;
 	break;
       case FT_TERM:
-	if ( !PL_is_ground(value) ||
-	     !(f->value.t = PL_record(value)) )
+	if ( !PL_is_ground(value) )
+	{ PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	  goto wrong_type;
+	}
+        if ( !(f->value.t = PL_record(value)) )
 	  goto wrong_type;
         f->flags = FT_TERM;
 	break;

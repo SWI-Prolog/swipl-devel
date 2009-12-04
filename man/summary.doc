@@ -140,6 +140,7 @@ suggest predicates from a keyword.
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
 \predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}
+\predicatesummary{create_prolog_flag}{3}{Create a new Prolog flag}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}
 \predicatesummary{current_blob}{2}{Examine typed blobs}

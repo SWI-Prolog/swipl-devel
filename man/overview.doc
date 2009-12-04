@@ -1446,6 +1446,31 @@ value is one of \const{false}, \const{true}, \const{on} or \const{off}),
 the value is an integer that can be expressed as a 64-bit signed value.
 Any other initial value results in an untyped flag that can represent
 any valid Prolog term.
+
+Originally, SWI-Prolog's set_prolog_flag/2 created a new Prolog flag if
+the flag \arg{Key} did not exist. It still does this, but now prints a
+warning. New code must use create_prolog_flag/3 to introduce new flags.
+Future versions are likely to replace this printed warning with an
+existence error.
+
+    \predicate[YAP]{create_prolog_flag}{3}{+Key, +Value, +Options}
+Create a new Prolog flag.  The ISO standard does not foresee creation
+of new flags, but many libraries introduce new flags.  \arg{Options}
+is a list of the following options:
+
+    \begin{description}
+	\termitem{access}{+Access}
+	Define access-rights for the flag. Values are \const{read_write}
+	and \const{read_only}.  The default is \const{read_write}.
+
+	\termitem{type}{+Atom}
+	Define a type-restriction.  Possible values are
+	\const{boolean}, \const{atom}, \const{integer}, \const{float}
+	and \const{term}.  The default is determined from the initial
+	value.  Note that \const{term} restricts the term to be ground.
+    \end{description}
+
+This predicate behaves as set_prolog_flag/2 if the flag already exists.
 \end{description}
 
 
