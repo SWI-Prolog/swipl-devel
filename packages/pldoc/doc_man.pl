@@ -521,6 +521,7 @@ man_page(Obj, Options) -->
 	    html(p([]))
 	;   []
 	),
+	object_synopsis(Obj),
 	man_matches(Matches).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
