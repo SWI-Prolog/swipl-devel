@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -120,7 +120,7 @@ init_pce :-
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
-	->  set_prolog_flag(xpce, true)
+	->  create_prolog_flag(xpce, true, [])
 	;   print_message(error,
 			  format('Failed to initialise XPCE', [])),
 	    abort
