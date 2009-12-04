@@ -501,6 +501,17 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
+predicate_property(_:Head, Property) :-
+	Property == autoload, !,
+	current_prolog_flag(autoload, true),
+	(   callable(Head)
+	->  functor(Head, Name, Arity),
+	    (	'$find_library'(_, Name, Arity, _, _)
+	    ->	true
+	    )
+	;   '$find_library'(_, Name, Arity, _, _),
+	    functor(Head, Name, Arity)
+	).
 predicate_property(Pred, Property) :-
 	Pred = M:_,
 	M == system, !,				% do not autoload into system
