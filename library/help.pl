@@ -213,10 +213,11 @@ Set the write_help_with_overstrike feature.
 set_overstrike_feature :-
 	current_prolog_flag(write_help_with_overstrike, _), !.
 set_overstrike_feature :-
-	getenv('TERM', xterm), !,
-	set_prolog_flag(write_help_with_overstrike, true).
-set_overstrike_feature :-
-	set_prolog_flag(write_help_with_overstrike, false).
+	(   getenv('TERM', xterm)
+	->  Flag = true
+	;   Flag = false
+	),
+	create_prolog_flag(write_help_with_overstrike, Flag, []).
 
 :- initialization set_overstrike_feature.
 
