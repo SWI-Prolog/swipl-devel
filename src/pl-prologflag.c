@@ -517,12 +517,15 @@ set_prolog_flag_unlocked(term_t key, term_t value)
 }
 
 
-word
-pl_set_prolog_flag(term_t key, term_t value)
+/** set_prolog_flag(+Key, +Value) is det.
+*/
+
+static
+PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 { word rc;
 
   LOCK();
-  rc = set_prolog_flag_unlocked(key, value);
+  rc = set_prolog_flag_unlocked(A1, A2);
   UNLOCK();
 
   return rc;
@@ -990,3 +993,11 @@ setVersionPrologFlag(void)
 
   setGITVersion();
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(prologflag)
+  PRED_DEF("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
+EndPredDefs

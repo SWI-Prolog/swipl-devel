@@ -500,7 +500,6 @@ COMMON(word) 		pl_prolog_flag(term_t key, term_t value, control_t h);
 COMMON(word) 		pl_prolog_flag5(term_t key, term_t value,
 					term_t local, term_t access, term_t type,
 					control_t h);
-COMMON(word) 		pl_set_prolog_flag(term_t key, term_t value);
 COMMON(int) 		setDoubleQuotes(atom_t a, unsigned int *flagp);
 COMMON(void) 		initPrologFlagTable(void);
 COMMON(void) 		initPrologFlags(void);

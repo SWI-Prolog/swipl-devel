@@ -217,7 +217,6 @@ static const PL_extension foreigns[] = {
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
   FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
   FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
-  FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
@@ -411,6 +410,7 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(prologflag);
 DECL_PLIST(trace);
 DECL_PLIST(pro);
 DECL_PLIST(read);
@@ -447,6 +447,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(prologflag);
   REG_PLIST(trace);
   REG_PLIST(pro);
   REG_PLIST(read);
