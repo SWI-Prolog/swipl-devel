@@ -134,7 +134,7 @@ iso_message(permission_error(Action, Type, Object)) -->
 iso_message(evaluation_error(Which)) -->
 	[ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
-	[ 'Undefined procedure: ~p'-[Proc] ],
+	[ 'Undefined procedure: ~q'-[Proc] ],
 	{ dwim_predicates(Proc, Dwims) },
 	(   {Dwims \== []}
 	->  [nl, '    However, there are definitions for:', nl],
@@ -188,17 +188,20 @@ dwim_predicates(Name/_Arity, Dwims) :-
 	findall(Dwim, dwim_predicate(user:Name, Dwim), Dwims).
 
 dwim_message([]) --> [].
-dwim_message([user:Head|T]) --> !,
-	{functor(Head, Name, Arity)},
-	[ '        ~w/~d'-[Name, Arity], nl ],
+dwim_message([M:Head|T]) --> !,
+	{ hidden_module(M),
+	  functor(Head, Name, Arity)
+	},
+	[ '        ~q'-[Name/Arity], nl ],
 	dwim_message(T).
 dwim_message([Module:Head|T]) --> !,
-	{functor(Head, Name, Arity)},
-	[ '        ~w:~w/~d'-[Module, Name, Arity], nl],
+	{ functor(Head, Name, Arity)
+	},
+	[ '        ~q'-[Module:Name/Arity], nl],
 	dwim_message(T).
 dwim_message([Head|T]) -->
 	{functor(Head, Name, Arity)},
-	[ '        ~w/~d'-[Name, Arity], nl],
+	[ '        ~q'-[Name/Arity], nl],
 	dwim_message(T).
 
 
@@ -398,7 +401,7 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
-	[ 'Undefined procedure: ~p'-[Pred], nl,
+	[ 'Undefined procedure: ~q'-[Pred], nl,
 	  '    However, there are definitions for:', nl
 	],
 	dwim_message(Alternatives).
