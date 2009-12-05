@@ -4912,7 +4912,7 @@ modules.  The built-in functions described above can be redefined as
 well.
 
 \begin{description}
-    \predicate{arithmetic_function}{1}{+Head}
+    \predicate{arithmetic_function}{1}{:Head}
 Register a Prolog predicate as an arithmetic function (see is/2,
 \predref{>}{2}, etc.). The Prolog predicate should have one more
 argument than specified by \arg{Head}, which it either a term
@@ -4936,9 +4936,17 @@ Yes
 
 A = 4.500000
 \end{code}
-    \predicate{current_arithmetic_function}{1}{?Head}
-Successively unifies all arithmetic functions that are visible from
-the context module with \arg{Head}.
+
+    \predicate{current_arithmetic_function}{1}{:Head}
+True if \arg{Head} is a function that is visible from the current
+module.  Built-in functions are visible from all modules, while
+user-defined functions (see arithmetic_function/1) obey the module
+visibility rules. E.g.,
+
+\begin{code}
+?- current_arithmetic_function(sin(_)).
+true.
+\end{code}
 \end{description}
 
 
