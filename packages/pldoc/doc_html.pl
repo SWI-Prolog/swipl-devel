@@ -597,6 +597,10 @@ object_synopsis(_:Name/Arity) -->
 			\object_ref(is/2, []),
 			')'
 		      ])).
+object_synopsis(c(Func)) -->
+	{ sub_atom(Func, 0, _, _, 'PL_')
+	}, !,
+	synopsis([span(class(cfunc), 'C-language interface function')]).
 object_synopsis(_) --> [].
 
 synopsis(Text) -->

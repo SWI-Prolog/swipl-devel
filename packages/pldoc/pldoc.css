@@ -225,7 +225,7 @@ div.synopsis code
 { background-color: #e0e0e0;
 }
 
-span.autoload, span.builtin
+span.autoload, span.builtin, span.cfunc
 { margin-left: 5pt;
   font-style: italic;
 }
