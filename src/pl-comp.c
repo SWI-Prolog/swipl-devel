@@ -1936,6 +1936,11 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   { int f1 = isFirstVarSet(ci->used_var, i1);
     int f2 = isFirstVarSet(ci->used_var, i2);
 
+    if ( i1 == i2 )			/* unify a var with itself? */
+    { Output_0(ci, I_TRUE);
+      return TRUE;
+    }
+
     if ( f1 && f2 )
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
     else if ( f1 )
