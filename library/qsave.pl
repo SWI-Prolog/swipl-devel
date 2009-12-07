@@ -76,8 +76,8 @@ qsave_program(FileSpec, Options0) :-
 	;   true
 	),
 	open_map(Map),
-	set_prolog_flag(saved_program, true),
-	set_prolog_flag(saved_program_class, SaveClass),
+	create_prolog_flag(saved_program, true, []),
+	create_prolog_flag(saved_program_class, SaveClass, []),
 	(   exists_file(File)
 	->  delete_file(File)
 	;   true
