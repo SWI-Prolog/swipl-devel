@@ -317,15 +317,19 @@ numlist_(L, U, [L|Ns]) :-
 
 %%	is_set(@Set) is det.
 %
-%	True if Set is a proper list without duplicates.
+%	True if Set is a proper  list without duplicates. Equivalence is
+%	based on ==/2. The  implementation   uses  sort/2, which implies
+%	that the complexity is N*log(N) and   the  predicate may cause a
+%	resource-error. There are no other error conditions.
 
-is_set(0) :- !, fail.		% catch variables
-is_set([]) :- !.
-is_set([H|T]) :-
-	memberchk(H, T), !,
-	fail.
-is_set([_|T]) :-
-	is_set(T).
+is_set(Set) :-
+	is_list(Set),
+	sort(Set, Sorted),
+	same_length(Set, Sorted).
+
+same_length([], []).
+same_length([_|T1], [_|T2]) :-
+	same_length(T1, T2).
 
 
 %%	list_to_set(+List, ?Set) is det.
