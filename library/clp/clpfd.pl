@@ -4516,7 +4516,7 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, Vs, [1..3, 1..3, 1..2\/4, 1..2\/4, 1\/3..4]), all_distinct(Vs).
+%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
 %  false.
 %  ==
 
