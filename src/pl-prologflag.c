@@ -962,13 +962,6 @@ initPrologFlags()
   setPrologFlag("generate_debug_info", FT_BOOL,
 	     truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
-#ifdef O_PLMT
-  setPrologFlag("abort_with_exception", FT_BOOL|FF_READONLY,
-	     TRUE, PLFLAG_EX_ABORT);
-#else
-  setPrologFlag("abort_with_exception", FT_BOOL,
-	     FALSE, PLFLAG_EX_ABORT);
-#endif
   setPrologFlag("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   setPrologFlag("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   setPrologFlag("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);

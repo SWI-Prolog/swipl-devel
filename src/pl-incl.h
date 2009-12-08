@@ -1934,11 +1934,10 @@ typedef struct debuginfo
 #define PLFLAG_AUTOLOAD	  	    0x004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
 #define PLFLAG_LASTCALL	  	    0x010000 /* Last call optimization enabled? */
-#define PLFLAG_EX_ABORT	  	    0x020000 /* abort with exception */
-#define PLFLAG_BACKQUOTED_STRING    0x040000 /* `a string` */
-#define PLFLAG_SIGNALS		    0x080000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	    0x100000 /* generate debug info */
-#define PLFLAG_FILEERRORS	    0x200000 /* Edinburgh file errors */
+#define PLFLAG_BACKQUOTED_STRING    0x020000 /* `a string` */
+#define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
+#define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
+#define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

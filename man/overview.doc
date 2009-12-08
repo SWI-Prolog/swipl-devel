@@ -938,10 +938,6 @@ such flags should be written as below.
 
 
 \begin{description}
-    \prologflagitem{abort_with_exception}{bool}{rw}
-Determines how abort/0 is realised.  See the description of abort/0
-for details.
-
     \prologflagitem{address_bits}{integer}{r}
 Address-size of the hosting machine.  Typically 32 or 64.  Except for
 the maximum stack limit, this has few implications to the user.  See
