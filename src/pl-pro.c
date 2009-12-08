@@ -269,7 +269,9 @@ abortProlog(abort_type type)
 
       PL_close_foreign_frame(fid);
     } else
+    { LD->aborted = type;
       rc = FALSE;
+    }
 
     return rc;
   }

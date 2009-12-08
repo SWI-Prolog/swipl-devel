@@ -1184,18 +1184,14 @@ PL_cleanup(int rval)
   OnHalt h;
   int rc = TRUE;
 
-  LOCK();
   if ( GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
     return FALSE;
-  }
 #ifdef O_PLMT
   if ( PL_thread_self() != 1 )
-  { UNLOCK();
     return FALSE;
-  }
 #endif
 
+  LOCK();
   GD->cleaning = CLN_ACTIVE;
 
   pl_notrace();				/* avoid recursive tracing */
@@ -1211,7 +1207,7 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_PROLOG;
 
   qlfCleanup();				/* remove errornous .qlf files */
-  if ( GD->initialised )
+  if ( GD->initialised && !LD->aborted )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
 
@@ -1223,8 +1219,10 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_FOREIGN;
 
 					/* run PL_on_halt() hooks */
-  for(h = GD->os.on_halt_list; h; h = h->next)
-    (*h->function)(rval, h->argument);
+  if ( !LD->aborted )
+  { for(h = GD->os.on_halt_list; h; h = h->next)
+      (*h->function)(rval, h->argument);
+  }
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1236,7 +1234,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_SHARED;
 
-  if ( GD->initialised )
+  if ( GD->initialised && !LD->aborted )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
