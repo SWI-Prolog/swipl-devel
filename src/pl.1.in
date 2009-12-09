@@ -79,7 +79,7 @@ by the
 .I current_prolog_flag home.
 .TP
 .B PLARCH
-The architecture identifier used.  Together with 
+The architecture identifier used.  Together with
 .B PLBASE
 this defines the location of various components.  For example,
 the library for embedding is in
@@ -120,16 +120,6 @@ if Prolog was compiled for multi-threading and
 .B no
 otherwise.
 .RE
-.TP
-.BI \-A size [kmg]
-Sets the argument stack size to
-.I size.
-The default is 1 Mbytes.  The argument-size determines the maximum
-term-nesting of terms that can be compiled and executed.  Both the compiler
-and virtual machine use `last-argument optimisation', so -for example- intptr_t
-lists do not require the argument stack. See also the
-.B \-L
-option.
 .TP
 .BI \-G size [kmg]
 Sets the global stack size to
@@ -279,7 +269,7 @@ option, or created using
 .B qsave_program/[1,2].
 .TP
 .RB [ \+ | \- ] tty
-Switches tty control (using 
+Switches tty control (using
 .BR ioctl (2))
 on
 .RB ( \+tty ") or off ("  \-tty ")."
@@ -387,7 +377,7 @@ SWI-Prolog library for embedding.  See also
 .SH SEE ALSO
 .PP
 The SWI-Prolog web-home at
-.I http://www.swi-prolog.org 
+.I http://www.swi-prolog.org
 .PP
 Jan\ Wielemaker
 .IR "SWI-Prolog Reference Manual" at
