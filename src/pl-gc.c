@@ -3057,8 +3057,10 @@ get_vmi_state(QueryFrame qf, vm_state *state)
 	  break;
 	}
 	if ( at > ab )
+	{ uintptr_t uwrite = 0x1;	/* TBD: Share with def in pl-wam.c */
 	  ap = *--at;
-	else
+	  ap = (Word)((intptr_t)ap&~uwrite); /* see H_POP */
+	} else
 	  break;
       }
     }
