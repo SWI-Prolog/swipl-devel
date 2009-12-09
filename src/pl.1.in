@@ -381,7 +381,7 @@ The SWI-Prolog web-home at
 .PP
 Jan\ Wielemaker
 .IR "SWI-Prolog Reference Manual" at
-.I http://gollem.science.uva.nl/SWI-Prolog/Manual/
+.I http://www.swi-prolog.org/pldoc/index.html
 .PP
 Documentation on the add-on packages in
 .I @prefix@/lib/@PL@-@PLVERSION@/boot/doc
@@ -408,7 +408,7 @@ The license terms are in the file
 or on the GNU website at
 .I http://www.gnu.org.
 .SH COPYRIGHT
-Copyright (c) 1986\-2007 University of Amsterdam.
+Copyright (c) 1986\-2009 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker
 
