@@ -521,7 +521,7 @@ man_page(Obj, Options) -->
 	    html(p([]))
 	;   []
 	),
-	object_synopsis(Obj),
+	man_synopsis(Obj),
 	man_matches(Matches).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
@@ -532,6 +532,22 @@ man_page(Obj, Options) -->
 	->  man_links([], [])
 	;   html(p(['No manual entry for ', Atom]))
 	).
+
+%%	man_synopsis(+Text)
+%
+%	Give synopsis details for a fully specified predicate indicator.
+%
+%	@tbd Give this for each match on the basis of the manual link.
+
+man_synopsis(Text) -->
+	{ sub_atom(Text, Pre, _, Post, /),
+	  sub_atom(Text, _, Post, 0, AA),
+	  catch(atom_number(AA, Arity), _, fail), !,
+	  sub_atom(Text, 0, Pre, _, Name)
+	},
+	object_synopsis(Name/Arity).
+man_synopsis(_) --> [].
+
 
 man_matches([]) -->
 	[].
