@@ -1106,7 +1106,6 @@ nbio_select(int n,
 static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_ip4;
 static functor_t FUNCTOR_ip1;
-static functor_t FUNCTOR_socket1;	/* $socket(Id) */
 static atom_t ATOM_any;
 static atom_t ATOM_broadcast;
 static atom_t ATOM_loopback;
@@ -1315,41 +1314,6 @@ freeSocket(plsocket *s)
   }
 
   return rval;
-}
-
-		 /*******************************
-		 *	   SOCKET HANDLES	*
-		 *******************************/
-
-NBIO_EXPORT(int)
-tcp_get_socket(term_t Socket, int *id)
-{ IOSTREAM *s;
-  int socket;
-
-  if ( PL_is_functor(Socket, FUNCTOR_socket1) )
-  { term_t a = PL_new_term_ref();
-
-    _PL_get_arg(1, Socket, a);
-    if ( PL_get_integer(a, id) )
-      return TRUE;
-  }
-
-  if ( PL_get_stream_handle(Socket, &s) )
-  { socket = (int)(intptr_t)s->handle;
-
-    *id = socket;
-    return TRUE;
-  }
-
-  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, -1, Socket, "socket");
-}
-
-
-NBIO_EXPORT(int)
-tcp_unify_socket(term_t Socket, int id)
-{ return PL_unify_term(Socket,
-		       PL_FUNCTOR, FUNCTOR_socket1,
-		         IntArg(id));
 }
 
 
@@ -1578,7 +1542,6 @@ nbio_init(const char *module)
   FUNCTOR_module2  = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4	   = PL_new_functor(PL_new_atom("ip"), 4);
   FUNCTOR_ip1	   = PL_new_functor(PL_new_atom("ip"), 1);
-  FUNCTOR_socket1  = PL_new_functor(PL_new_atom("$socket"), 1);
   ATOM_any	   = PL_new_atom("any");
   ATOM_broadcast   = PL_new_atom("broadcast");
   ATOM_loopback	   = PL_new_atom("loopback");

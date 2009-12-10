@@ -34,7 +34,6 @@
 	    ssl_accept/3,		% +Config, -Socket, -Peer
 	    ssl_open/3,			% +Config, -In, -Out
 	    ssl_open/4,			% +Config, +Socket, -In, -Out
-	    ssl_negotiate/4,		% +Config, +Socket, -In, -Out
 	    ssl_exit/1			% +Config
 	  ]).
 
