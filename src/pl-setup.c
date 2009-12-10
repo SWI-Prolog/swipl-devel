@@ -980,6 +980,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     } else if ( a == ATOM_throw )
     { sh = prepareSignal(sign);
       set(sh, PLSIG_THROW);
+      clear(sh, PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else
@@ -992,6 +993,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
       sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
+      set(sh, PLSIG_SYNC);
       sh->handler = NULL;
       sh->predicate = pred;
     }
@@ -1003,7 +1005,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
     if ( PL_get_pointer(a, &f) )
     { sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW);
+      clear(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler = (handler_t)f;
       sh->predicate = NULL;
 

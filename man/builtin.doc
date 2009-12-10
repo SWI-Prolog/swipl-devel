@@ -1756,56 +1756,6 @@ has the structure
 error(signal(<SigName>, <SigNum>), <Context>)
 \end{quote}
 
-One possible usage of this is, for example, to limit the time spent
-on proving a goal.  This requires a little C-code for setting the
-alarm timer (see \chapref{foreign}):
-
-\begin{code}
-#include <SWI-Prolog.h>
-#include <unistd.h>
-
-foreign_t
-pl_alarm(term_t time)
-{ double t;
-
-  if ( PL_get_float(time, &t) )
-  { alarm((long)(t+0.5));
-
-    PL_succeed;
-  }
-
-  PL_fail;
-}
-
-
-install_t
-install()
-{ PL_register_foreign("alarm", 1, pl_alarm, 0);
-}
-\end{code}
-
-Next, we can define the Prolog below.  This will run \arg{Goal} just
-as once/1, throwing the exception \term{error}{signal(alrm, _), _} if
-a timeout occurs.%
-	\footnote{Note that call_with_time_limit/2 is defined in
-		  \pllib{time}, part of the `clib' package.  The
-		  version provided in the library runs on POSIX
-		  systems as well as MS-Windows and can schedule
-		  multiple concurrent alarms.}
-
-\begin{code}
-:- load_foreign_library(alarm).
-
-:- on_signal(alrm, _, throw).
-
-:- meta_predicate
-	call_with_time_limit(+, 0).
-
-call_with_time_limit(MaxTime, Goal) :-
-	alarm(MaxTime),
-	call_cleanup(Goal, _, alarm(0)), !.
-\end{code}
-
 The signal names are defined by the POSIX standard as symbols of the
 form {\tt SIG}<SIGNAME>. The Prolog name for a signal is the lowercase
 version of <SIGNAME>. The predicate current_signal/3 may be used to map
@@ -1813,8 +1763,7 @@ between names and signals.
 
 Initially, some signals are mapped to \const{throw}, while all other
 signals are \const{default}. The following signals throw an exception:
-\const{ill}, \const{fpe}, \const{segv}, \const{pipe}, \const{alrm},
-\const{bus}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
+\const{fpe}, \const{alrm}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
 
     \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
 Enumerate the currently defined signal handling.  \arg{Name} is the
@@ -1832,32 +1781,31 @@ consider the following:
     \item[Portability]
 On MS-Windows, the signal interface is severely limited. Different Unix
 brands support different sets of signals, and the relation between
-signal name and number may vary.
+signal name and number may vary. Currently, the system only supports
+signals numbered 1 to 32\footnote{TBD: the system should support the
+Unix realtime signals}. Installing a signal outside the limited set of
+supported signals in MS-Windows crashes the application.
 
     \item[Safety]
-Signal handling is not completely safe in the current implementation,
-especially if \const{throw} is used in combination with external foreign
-code. The system will use the C longjmp() construct to direct control to
-the innermost PL_next_solution(), thus forcing an external procedure to
-be abandoned at an arbitrary moment. Most likely not all SWI-Prolog's own
-foreign code is (yet) safe too.  For the multi-threaded versions this
-is even worse: signals can easily violate thread synchronisation
-consistency.
+Immediately delivered signals (see below) are unsafe. This implies that
+foreign functions called from a handler cannot safely use the SWI-Prolog
+API and	cannot use C longjmp().  Handlers defined as \const{throw} are
+unsafe.  Handlers defined to call a predicate are safe.  Note that the
+predicate can call throw/1, but the delivery is delayed until Prolog
+is in a safe state.
 
 The C-interface described in \secref{csignal} provides the option
-\const{PL_SIGSYNC} for registering a signal handler that delays delivery
-of signals to a safe point.  Unfortunately this may cause signals to be
-delayed for a long time if Prolog is executing foreign code.
-
-    \item[Garbage Collection]
-The garbage collector will block all signals that are handled by Prolog.
-While handling a signal, the garbage-collector is disabled.
+\const{PL_SIGSYNC} to select either safe synchronous or unsafe
+asynchronous delivery.
 
     \item[Time of delivery]
-Normally delivery is immediate (or as defined by the operating system
-used).  Signals are blocked when the garbage collector is active, and
-internally delayed if they occur within a `critical section'.  The
-critical sections are generally very short.
+Using \const{throw} or a foreign handler, signals are delivered
+immediately (as defined by the OS). When using a Prolog predicate,
+delivery is delayed to a safe moment.  Blocking system calls or
+foreign loops may cause long delays.  Foreign code can improve
+on that by calling PL_handle_signals().
+
+Signals are blocked when the garbage collector is active.
 \end{itemlist}
 
 

@@ -800,7 +800,8 @@ shell :-
 		 *******************************/
 
 :- meta_predicate
-	on_signal(+, :, :).
+	on_signal(+, :, :),
+	current_signal(?, ?, :).
 
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,
