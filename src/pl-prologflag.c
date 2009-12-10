@@ -69,6 +69,7 @@ too much.
 static void setArgvPrologFlag();
 static void setTZPrologFlag();
 static void setVersionPrologFlag(void);
+static atom_t lookupAtomFlag(atom_t key);
 
 typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
@@ -485,15 +486,16 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
     succeed;
   } else
-  {
-#if 0
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-		    ATOM_prolog_flag, key);
-#else
-    Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
-	     "create_prolog_flag/3\n", stringAtom(k));
+  { atom_t how = lookupAtomFlag(ATOM_user_flags);
+
+    if ( how == ATOM_error )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+		      ATOM_prolog_flag, key);
+    else if ( how == ATOM_warning )
+      Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
+	       "create_prolog_flag/3\n", stringAtom(k));
+
     goto anyway;
-#endif
   }
 
   switch(f->flags & FT_MASK)
@@ -606,7 +608,7 @@ PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 { word rc;
 
   LOCK();
-  rc = set_prolog_flag_unlocked(A1, A2, FF_NOCREATE);
+  rc = set_prolog_flag_unlocked(A1, A2, FF_NOCREATE|FT_FROM_VALUE);
   UNLOCK();
 
   return rc;
@@ -666,6 +668,31 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   UNLOCK();
 
   return rc;
+}
+
+
+static atom_t
+lookupAtomFlag(atom_t key)
+{ GET_LD
+  Symbol s;
+  prolog_flag *f = NULL;
+
+#ifdef O_PLMT
+  if ( LD->prolog_flag.table &&
+       (s = lookupHTable(LD->prolog_flag.table, (void *)key)) )
+  { f = s->value;
+  } else
+#endif
+  { if ( (s = lookupHTable(GD->prolog_flag.table, (void *)key)) )
+      f = s->value;
+  }
+
+  if ( f )
+  { assert((f->flags&FT_MASK) == FT_ATOM);
+    return f->value.a;
+  }
+
+  return NULL_ATOM;
 }
 
 
@@ -1004,7 +1031,8 @@ initPrologFlags()
   setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
   setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
-  setPrologFlag("editor",		   FT_ATOM, "default");
+  setPrologFlag("user_flags", FT_ATOM, "silent");
+  setPrologFlag("editor", FT_ATOM, "default");
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
   setPrologFlag("autoload",  FT_BOOL, TRUE,  PLFLAG_AUTOLOAD);
 #ifndef O_GMP

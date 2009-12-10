@@ -1363,6 +1363,16 @@ application modules or for a specific module.  It is strongly adviced
 to keep the \const{error} default and use dynamic/1 and/or multifile/1
 to specify possible non-existence of a predicate.
 
+    \prologflagitem{user_flags}{Atom}{rw}
+Define the behaviour of set_prolog_flag/2 if the flag is not known.
+Values are \const{silent}, \const{warning} and \const{error}. The first
+two create the flag on-the-fly, where \const{warning} prints a message.
+The value \const{error} is consistent with ISO: it raises an existence
+error and does not create the flag. See also create_prolog_flag/3.  The
+default is \const{silent}, but future versions may change that.
+Developers are encouraged to use another value and ensure proper use
+of create_prolog_flag/3 to create flags for their library.
+
     \prologflagitem{verbose}{Atom}{rw}
 This flags is used by print_message/2.  If its value is \const{silent},
 messages of type \const{informational} and \const{banner} are suppressed.
@@ -1467,6 +1477,7 @@ is a list of the following options:
     \end{description}
 
 This predicate behaves as set_prolog_flag/2 if the flag already exists.
+See also \prologflag{user_flags}.
 \end{description}
 
 
