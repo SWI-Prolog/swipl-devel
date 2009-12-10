@@ -540,13 +540,15 @@ man_page(Obj, Options) -->
 %	@tbd Give this for each match on the basis of the manual link.
 
 man_synopsis(Text) -->
-	{ sub_atom(Text, Pre, _, Post, /),
+	{ atom(Text),
+	  sub_atom(Text, Pre, _, Post, /),
 	  sub_atom(Text, _, Post, 0, AA),
 	  catch(atom_number(AA, Arity), _, fail), !,
 	  sub_atom(Text, 0, Pre, _, Name)
 	},
 	object_synopsis(Name/Arity).
-man_synopsis(_) --> [].
+man_synopsis(Object) -->
+	object_synopsis(Object).
 
 
 man_matches([]) -->
