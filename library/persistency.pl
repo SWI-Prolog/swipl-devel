@@ -96,11 +96,12 @@ set_user_role(Name, Role) :-
 	must wrap all exported predicates.  That might better be done
 	outside this library.
 @tbd	Transaction management?
+@tbd	Should assert_<name> only assert if the database does not
+	contain a variant?
 */
 
 :- meta_predicate
 	db_attach(:, +),
-	db_retractall(:),
 	db_sync(:).
 
 
