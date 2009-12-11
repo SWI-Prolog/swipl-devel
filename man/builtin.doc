@@ -1731,6 +1731,74 @@ Primarily intended to write messages to Windows in XPCE (see
 \end{description}
 
 
+\subsubsection{Printing from libraries}		\label{sec:libprintmsg}
+
+Libraries should \emph{not} use format/3 or other output predicates
+directly. Libraries that print informational output directory to the
+console are hard to use from code that depend on your textual output,
+such as a GI script. The predicates in \secref{printmsg} define the API
+for dealing with messages. The idea behind this is that a library that
+wants to provide information about its status, progress, events or
+problems calls print_message/2. The first argument is the
+\jargon{level}. The supported levels are described with print_message/2.
+Libraries typically use \const{informational} and \const{warning}, while
+libraries should use exceptions for errors (see throw/1, type_error/2,
+etc.).
+
+The second argument is an arbitrary Prolog term that carries te
+information of the message, but \emph{not} the precise text. The text is
+defined by the grammar rule prolog:message//1. This distinction is made
+to allow for translations and to allow hooks processing the information
+in a different way (e.g., translate progress messages into a
+progress-bar).
+
+For example, suppose we have a library that must download data from the
+internet (e.g., based on http_open/3). The library wants to print the
+progress after each downloaded file.  The code below is a good skeleton:
+
+\begin{code}
+download_urls(List) :-
+	length(List, Total),
+	forall(nth1(I, List, URL),
+	       (   download_url(URL),
+		   print_message(informational,
+				 download_url(URL, I, Total)))).
+\end{code}
+
+The programmer can now specify the default textual output using the rule
+below. Note that this rule may be in the same file or anywhere else.
+Notably, the application may come with several rule-sets for different
+languages. This, and the user-hook example below are the reason to
+represent the message as a compound term rather than a string. This is
+similar to using message-numbers in non-symbolic languages. The
+documentation of print_message_lines/3 describes the elements that may
+appear in the output list.
+
+\begin{code}
+:- multifile
+	prolog:message//1.
+
+prolog:message(download_url(URL, I, Total)) -->
+	{ Perc is round(I*100/Total) },
+	[ 'Downloaded ~w; ~D from ~D (~d%)'-[URL, I, Total, Perc] ].
+\end{code}
+
+A \emph{user} of the library may define rules for message_hook/3.   The
+rule below acts on the message-content.  Other applications can act on
+the message-level and, for example, popup a message-box for warnings and
+errors.
+
+\begin{code}
+:- multifile user:message_hook/3.
+
+message_hook(download_url(URL, I, Total), _Kind, _Lines) :-
+	<send this information to a GUI component>
+\end{code}
+
+In addition, using the commandline option \cmdlineoption{-q}, the user
+can disable all \jargon{informational} messages.
+
+
 \section{Handling signals}			\label{sec:signal}
 
 As of version 3.1.0, SWI-Prolog is capable to handle software interrupts
