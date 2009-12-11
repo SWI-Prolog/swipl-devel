@@ -28,14 +28,14 @@
 */
 
 :- module(persistency,
-	  [ (db_term)/1,		% +Declarations
+	  [ (persistent)/1,		% +Declarations
 
 	    db_attach/2,		% :File, +Options
 
 	    db_sync/1,			% :What
 	    db_sync_all/1,		% +What
 
-	    op(1150, fx, (db_term))
+	    op(1150, fx, (persistent))
 	  ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
@@ -45,9 +45,9 @@
 This module provides simple persistent storage   for one or more dynamic
 predicates. A database is always associated with a module. A module that
 wishes to maintain a database must declare  the terms that can be placed
-in the database using the directive db_term/1.
+in the database using the directive persistent/1.
 
-The db_term/1 expands each declaration into four predicates:
+The persistent/1 expands each declaration into four predicates:
 
 	* name(Arg, ...)
 	* assert_name(Arg, ...)
@@ -68,7 +68,7 @@ Below is a simple example:
 	    set_user_role/2		% +User, +Role
 	  ]).
 
-:- db_term
+:- persistent
 	user_role(name:atom, role:oneof([user,administrator])).
 
 attach_user_db(File) :-
@@ -118,20 +118,20 @@ set_user_role(Name, Role) :-
 	db_stream/2.
 
 :- multifile
-	(db_term)/3.			% Module, Generic, Term
+	(persistent)/3.			% Module, Generic, Term
 
 
 		 /*******************************
 		 *	   DECLARATIONS		*
 		 *******************************/
 
-%%	db_term(+Spec)
+%%	persistent(+Spec)
 %
 %	Declare dynamic database terms. Declarations appear in a
 %	directive and have the following format:
 %
 %	==
-%	:- db_term
+%	:- persistent
 %		<callable>,
 %		<callable>,
 %		...
@@ -144,23 +144,23 @@ set_user_role(Name, Role) :-
 %
 %	Types are defined by library(error).
 
-db_term(Spec) :-
-	throw(error(context_error(nodirective, db_term(Spec)), _)).
+persistent(Spec) :-
+	throw(error(context_error(nodirective, persistent(Spec)), _)).
 
-compile_db_term(Var, _) -->
+compile_persistent(Var, _) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
 	}.
-compile_db_term((A,B), Module) --> !,
-	compile_db_term(A, Module),
-	compile_db_term(B, Module).
-compile_db_term(Term, Module) -->
+compile_persistent((A,B), Module) --> !,
+	compile_persistent(A, Module),
+	compile_persistent(B, Module).
+compile_persistent(Term, Module) -->
 	{ functor(Term, Name, Arity),		% Validates Term as callable
 	  functor(Generic, Name, Arity)
 	},
 	[ :- dynamic(Name/Arity),
 
-	  persistency:db_term(Module, Generic, Term)
+	  persistency:persistent(Module, Generic, Term)
 	],
 	assert_clause(Term, Module),
 	retract_clause(Term, Module),
@@ -212,9 +212,9 @@ retractall_clause(Term, Module) -->
 :- multifile
 	user:term_expansion/2.
 
-user:term_expansion((:- db_term(Spec)), Clauses) :-
+user:term_expansion((:- persistent(Spec)), Clauses) :-
 	prolog_load_context(module, Module),
-	phrase(compile_db_term(Spec, Module), Clauses).
+	phrase(compile_persistent(Spec, Module), Clauses).
 
 
 		 /*******************************
@@ -224,7 +224,7 @@ user:term_expansion((:- db_term(Spec)), Clauses) :-
 %%	attach_db(:File, +Options)
 %
 %	Use File as persistent database  for   the  calling  module. The
-%	calling module must defined db_term/1   to  declare the database
+%	calling module must defined persistent/1   to  declare the database
 %	terms.  Defined options:
 %
 %		* sync(+Sync)
@@ -266,18 +266,18 @@ db_load(Module, File) :-
 
 load_db(end_of_file, _, _) :- !.
 load_db(assert(Term), In, Module) :-
-	db_term(Module, Term, _Types), !,
+	persistent(Module, Term, _Types), !,
 	assert(Module:Term),
 	read_action(In, T1),
 	load_db(T1, In, Module).
 load_db(retractall(Term, Count), In, Module) :-
-	db_term(Module, Term, _Types), !,
+	persistent(Module, Term, _Types), !,
 	retractall(Module:Term),
 	set_dirty(Module, Count),
 	read_action(In, T1),
 	load_db(T1, In, Module).
 load_db(retract(Term), In, Module) :-
-	db_term(Module, Term, _Types), !,
+	persistent(Module, Term, _Types), !,
 	(   retract(Module:Term)
 	->  set_dirty(Module, 1)
 	;   true
@@ -291,7 +291,7 @@ load_db(Term, In, Module) :-
 
 db_clean(Module) :-
 	retractall(db_dirty(Module, _)),
-	(   db_term(Module, Term, _Types),
+	(   persistent(Module, Term, _Types),
 	    retractall(Module:Term),
 	    fail
 	;   true
@@ -302,10 +302,10 @@ db_clean(Module) :-
 %	Terms is the total number of terms in the DB for Module.
 
 db_size(Module, Total) :-
-	aggregate_all(sum(Count), db_term_size(Module, Count), Total).
+	aggregate_all(sum(Count), persistent_size(Module, Count), Total).
 
-db_term_size(Module, Count) :-
-	db_term(Module, Term, _Types),
+persistent_size(Module, Count) :-
+	persistent(Module, Term, _Types),
 	predicate_property(Module:Term, number_of_clauses(Count)).
 
 %%	db_assert(:Term) is det.
@@ -369,12 +369,12 @@ write_action(Stream, Action) :-
 %%	db_retractall(:Term) is det.
 %
 %	Retract all matching facts and do the   same in the database. If
-%	Term is unbound, db_term/1 from the   calling  module is used as
+%	Term is unbound, persistent/1 from the   calling  module is used as
 %	generator.
 
 db_retractall(Module:Term) :-
 	(   var(Term)
-	->  forall(db_term(Module, Term, _Types),
+	->  forall(persistent(Module, Term, _Types),
 		   db_retractall(Module:Term))
 	;   State = count(0),
 	    (	retract(Module:Term),
@@ -462,7 +462,7 @@ db_sync(Module, gc(When)) :-
 	atom_concat(File, '.new', NewFile),
 	debug(db, 'Database ~w is dirty; cleaning', [File]),
 	open(NewFile, write, Out, [encoding(utf8)]),
-	(   db_term(Module, Term, _Types),
+	(   persistent(Module, Term, _Types),
 	    Module:Term,
 	    write_action(Out, assert(Term)),
 	    fail
