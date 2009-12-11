@@ -328,6 +328,7 @@ Section "Base system (required)"
   File pl\library\date.pl
   File pl\library\main.pl
   File pl\library\csv.pl
+  File pl\library\persistency.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
