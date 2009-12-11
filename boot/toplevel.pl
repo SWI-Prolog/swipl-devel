@@ -48,15 +48,18 @@
 		*         INITIALISATION        *
 		*********************************/
 
+%	note: loaded_init_file/2 is used by prolog_load_context/2 to
+%	confirm we are loading a script.
+
 :- dynamic
-	loaded_init_file/1.		% already loaded init files
+	loaded_init_file/2.		% already loaded init files
 
 '$welcome' :-
 	print_message(banner, welcome).
 
 '$load_init_file'(none) :- !.
 '$load_init_file'(Base) :-
-	loaded_init_file(Base), !.
+	loaded_init_file(Base, _), !.
 '$load_init_file'(InitFile) :-
 	is_absolute_file_name(InitFile), !,
 	ensure_loaded(user:InitFile).
@@ -65,34 +68,40 @@
 			   [ access(read),
 			     file_errors(fail)
 			   ], InitFile),
-	asserta(loaded_init_file(Base)),
+	asserta(loaded_init_file(Base, InitFile)),
 	ensure_loaded(user:InitFile).
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
-	loaded_init_file(system), !.
+	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
 	'$option'(system_init_file, Base, Base),
-	(   Base == none
-	->  asserta(loaded_init_file(system))
-	;   current_prolog_flag(home, Home),
-	    file_name_extension(Base, rc, Name),
-	    atomic_list_concat([Home, '/', Name], File),
-	    access_file(File, read),
-	    asserta(loaded_init_file(system)),
-	    load_files(user:File, [silent(true)]), !
-	).
+	Base \== none,
+	current_prolog_flag(home, Home),
+	file_name_extension(Base, rc, Name),
+	atomic_list_concat([Home, '/', Name], File),
+	absolute_file_name(File, Path,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ]),
+	asserta(loaded_init_file(system, Path)),
+	load_files(user:Path, [silent(true)]), !.
 '$load_system_init_file'.
 
 '$load_script_file' :-
-	loaded_init_file(script), !.
+	loaded_init_file(script, _), !.
 '$load_script_file' :-
 	'$option'(script_file, OsFile, OsFile),
 	OsFile \== '',
 	prolog_to_os_filename(File, OsFile),
-	(   exists_file(File)		% avoid expanding on extensions
-	->  asserta(loaded_init_file(script)),
-	    load_files(user:File, [expand(false)])
+	(   absolute_file_name(File, Path,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ])
+	->  asserta(loaded_init_file(script, Path)),
+	    load_files(user:Path, [])
 	;   throw(error(existence_error(script_file, File), _))
 	).
 '$load_script_file'.

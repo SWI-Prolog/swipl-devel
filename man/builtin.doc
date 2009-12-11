@@ -435,8 +435,8 @@ See also clause_property/2.
     \predicate{prolog_load_context}{2}{?Key, ?Value}
 Obtain context information during compilation.  This predicate can be
 used from directives appearing in a source file to get information about
-the file being loaded.  See also source_location/2. The following keys
-are defined:
+the file being loaded. See also source_location/2 and if/1. The
+following keys are defined:
 
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
@@ -456,9 +456,29 @@ are defined:
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
+\const{script}	      & Boolean that indicates whether the file is
+			loaded as a script file (see
+			\cmdlineoption{-s}). \\
 \hline
 \end{tabular}
 \end{center}
+
+The \const{directory} is commonly used add rules to file_search_path/2,
+setting up a search-path for finding files with absolute_file_name/3.
+E.g.,
+
+\begin{code}
+:- dynamic user:file_search_path/2.
+:- multifile user:file_search_path/2.
+
+:- prolog_load_context(directory, Dir),
+   asserta(user:file_search_path(my_program_home, Dir)).
+
+	...
+	absolute_file_name(my_program_home('README.TXT'), ReadMe,
+			   [ access(read) ]),
+	...
+\end{code}
 
     \predicate{source_location}{2}{-File, -Line}
 If the last term has been read from a physical file (i.e., not from the

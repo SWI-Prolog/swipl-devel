@@ -393,6 +393,13 @@ prolog_load_context(dialect, D) :-
 	current_prolog_flag(emulated_dialect, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
+prolog_load_context(script, Bool) :-
+	(   '$toplevel':loaded_init_file(script, Path),
+	    source_location(Path, _)
+	->  Bool = true
+	;   Bool = false
+	).
+
 
 		 /*******************************
 		 *	      STREAMS		*
