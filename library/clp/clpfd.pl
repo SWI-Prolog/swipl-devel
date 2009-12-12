@@ -109,6 +109,7 @@
                   lex_chain/1,
                   serialized/2,
                   global_cardinality/2,
+                  global_cardinality/3,
                   circuit/1,
                   element/3,
                   automaton/8,
@@ -3194,6 +3195,18 @@ run_propagator(pgcc(Pairs), _) :-
         gcc_global(Pairs),
         enable_queue.
 
+run_propagator(pvar_keys_cost(V,Row,Keys,C), _) :-
+        (   fd_get(V, Dom, _) ->
+            keys_dom_costs(Keys, Row, Dom, Costs),
+            (   fd_get(C, CDom, CPs) ->
+                list_to_domain(Costs, Dom1),
+                domains_intersection(CDom, Dom1, CDom1),
+                fd_put(C, CDom1, CPs)
+            ;   memberchk(C, Costs)
+            )
+        ;   keys_cost(Keys, V, Row, C)
+        ).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(pcircuit(Vs), _MState) :-
@@ -5079,6 +5092,45 @@ gcc_pair(Pair) :-
             must_be(integer, Key),
             fd_variable(Val)
         ;   domain_error(gcc_pair, Pair)
+        ).
+
+%%    global_cardinality(+Vs, +Pairs, +Options)
+%
+%     Like global_cardinality/2, with Options a list of options.
+%     Currently, the only supported option is
+%
+%     * cost(Cost, Matrix)
+%     Matrix is a list of rows, one for each variable, in the order
+%     they occur in Vs. Each of these rows is a list of integers, one
+%     for each key, in the order these keys occur in Pairs. When
+%     variable v_i is assigned the value of key k_j, then the
+%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
+
+
+global_cardinality(Xs, Pairs, Options) :-
+        global_cardinality(Xs, Pairs),
+        Options = [cost(Cost, Matrix)],
+        must_be(list(list(integer)), Matrix),
+        pairs_keys_values(Pairs, Keys, _),
+        vars_matrix_keys_costs(Xs, Matrix, Keys, Costs),
+        sum(Costs, #=, Cost).
+
+vars_matrix_keys_costs([], [], _, []).
+vars_matrix_keys_costs([V|Vs], [Row|Rows], Keys, [C|Cs]) :-
+        propagator_init_trigger([V,C], pvar_keys_cost(V,Row,Keys,C)),
+        vars_matrix_keys_costs(Vs, Rows, Keys, Cs).
+
+keys_dom_costs([], _, _, []).
+keys_dom_costs([K|Ks], [C|Cs], Dom, Cs0) :-
+        (   domain_contains(Dom, K) ->
+            Cs0 = [C|Rest]
+        ;   Cs0 = Rest
+        ),
+        keys_dom_costs(Ks, Cs, Dom, Rest).
+
+keys_cost([K|Ks], V, [C|Cs], Cost) :-
+        (   K =:= V -> C = Cost
+        ;   keys_cost(Ks, V, Cs, Cost)
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
