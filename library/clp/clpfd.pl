@@ -4814,15 +4814,9 @@ gcc_global(KNs) :-
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
-        length(Es, N),
-        total_flow(Es, 0, F),
-        N =:= F.
+        maplist(flow_1, Es).
 
-total_flow([], F, F).
-total_flow([arc_from(_,_,_,Flow)|As], F0, F) :-
-        get_attr(Flow, flow, FF),
-        F1 is F0 + FF,
-        total_flow(As, F1, F).
+flow_1(arc_from(_,_,_,Flow)) :- get_attr(Flow, flow, 1).
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
