@@ -3196,21 +3196,6 @@ run_propagator(pgcc(Pairs), _) :-
         gcc_global(Pairs),
         enable_queue.
 
-run_propagator(pvar_keys_cost(V,Row,Keys,C), _) :-
-        (   fd_get(V, Dom, VPs) ->
-            (   fd_get(C, CDom, CPs) ->
-                keys_dom_costs(Keys, Row, Dom, Costs),
-                list_to_domain(Costs, Dom1),
-                domains_intersection(CDom, Dom1, CDom1),
-                fd_put(C, CDom1, CPs)
-            ;   keys_cost_remaining(Keys, Row, C, Rs),
-                list_to_domain(Rs, Dom1),
-                domains_intersection(Dom, Dom1, Dom2),
-                fd_put(V, Dom2, VPs)
-            )
-        ;   keys_cost(Keys, V, Row, C)
-        ).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(pcircuit(Vs), _MState) :-
@@ -5130,28 +5115,9 @@ global_cardinality(Xs, Pairs, Options) :-
 
 vars_matrix_keys_costs([], [], _, []).
 vars_matrix_keys_costs([V|Vs], [Row|Rows], Keys, [C|Cs]) :-
-        propagator_init_trigger([V,C], pvar_keys_cost(V,Row,Keys,C)),
+        element(N, Keys, V),
+        element(N, Row, C),
         vars_matrix_keys_costs(Vs, Rows, Keys, Cs).
-
-keys_dom_costs([], [], _, []).
-keys_dom_costs([K|Ks], [C|Cs], Dom, Cs0) :-
-        (   domain_contains(Dom, K) ->
-            Cs0 = [C|Rest]
-        ;   Cs0 = Rest
-        ),
-        keys_dom_costs(Ks, Cs, Dom, Rest).
-
-keys_cost_remaining([], [], _, []).
-keys_cost_remaining([K|Ks], [C|Cs], Cost, Rs0) :-
-        (   C =:= Cost -> Rs0 = [K|Rest]
-        ;   Rs0 = Rest
-        ),
-        keys_cost_remaining(Ks, Cs, Cost, Rest).
-
-keys_cost([K|Ks], V, [C|Cs], Cost) :-
-        (   K =:= V -> C = Cost
-        ;   keys_cost(Ks, V, Cs, Cost)
-        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
