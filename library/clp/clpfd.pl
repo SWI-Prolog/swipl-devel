@@ -3170,8 +3170,7 @@ run_propagator(check_distinct(Left,Right,X), _) :-
 run_propagator(pelement(N, Is, V), MState) :-
         (   fd_get(N, NDom, _) ->
             (   fd_get(V, VDom, VPs) ->
-                integers_remaining(Is, 1, NDom, Rs),
-                list_to_domain(Rs, VDom1),
+                integers_remaining(Is, 1, NDom, empty, VDom1),
                 domains_intersection(VDom, VDom1, VDom2),
                 fd_put(V, VDom2, VPs)
             ;   true
@@ -4719,30 +4718,21 @@ element_domain(V, VD) :-
         ;   VD = from_to(n(V), n(V))
         ).
 
-domains_union([V|Vs], Dom) :-
-        element_domain(V, VD),
-        domains_union_(Vs, VD, Dom).
-
-domains_union_([], D, D).
-domains_union_([V|Vs], D0, D) :-
-        element_domain(V, VD),
-        domains_union(VD, D0, D1),
-        domains_union_(Vs, D1, D).
-
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
         I #\= V #==> N #\= N0,
         N1 is N0 + 1,
         element_(Is, N1, N, V).
 
-integers_remaining([], _, _, []).
-integers_remaining([I|Is], N0, Dom, Rs0) :-
+integers_remaining([], _, _, D, D).
+integers_remaining([V|Vs], N0, Dom, D0, D) :-
         (   domain_contains(Dom, N0) ->
-            Rs0 = [I|Rest]
-        ;   Rs0 = Rest
+            element_domain(V, VD),
+            domains_union(D0, VD, D1)
+        ;   D1 = D0
         ),
         N1 is N0 + 1,
-        integers_remaining(Is, N1, Dom, Rest).
+        integers_remaining(Vs, N1, Dom, D1, D).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
