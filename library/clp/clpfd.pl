@@ -3196,13 +3196,16 @@ run_propagator(pgcc(Pairs), _) :-
         enable_queue.
 
 run_propagator(pvar_keys_cost(V,Row,Keys,C), _) :-
-        (   fd_get(V, Dom, _) ->
-            keys_dom_costs(Keys, Row, Dom, Costs),
+        (   fd_get(V, Dom, VPs) ->
             (   fd_get(C, CDom, CPs) ->
+                keys_dom_costs(Keys, Row, Dom, Costs),
                 list_to_domain(Costs, Dom1),
                 domains_intersection(CDom, Dom1, CDom1),
                 fd_put(C, CDom1, CPs)
-            ;   memberchk(C, Costs)
+            ;   keys_cost_remaining(Keys, Row, C, Rs),
+                list_to_domain(Rs, Dom1),
+                domains_intersection(Dom, Dom1, Dom2),
+                fd_put(V, Dom2, VPs)
             )
         ;   keys_cost(Keys, V, Row, C)
         ).
@@ -5120,13 +5123,20 @@ vars_matrix_keys_costs([V|Vs], [Row|Rows], Keys, [C|Cs]) :-
         propagator_init_trigger([V,C], pvar_keys_cost(V,Row,Keys,C)),
         vars_matrix_keys_costs(Vs, Rows, Keys, Cs).
 
-keys_dom_costs([], _, _, []).
+keys_dom_costs([], [], _, []).
 keys_dom_costs([K|Ks], [C|Cs], Dom, Cs0) :-
         (   domain_contains(Dom, K) ->
             Cs0 = [C|Rest]
         ;   Cs0 = Rest
         ),
         keys_dom_costs(Ks, Cs, Dom, Rest).
+
+keys_cost_remaining([], [], _, []).
+keys_cost_remaining([K|Ks], [C|Cs], Cost, Rs0) :-
+        (   C =:= Cost -> Rs0 = [K|Rest]
+        ;   Rs0 = Rest
+        ),
+        keys_cost_remaining(Ks, Cs, Cost, Rest).
 
 keys_cost([K|Ks], V, [C|Cs], Cost) :-
         (   K =:= V -> C = Cost
