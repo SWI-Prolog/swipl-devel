@@ -3167,15 +3167,16 @@ run_propagator(check_distinct(Left,Right,X), _) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pelement(_, Is, V), MState) :-
-        (   ground(Is) -> kill(MState)
-        ;   true
-        ),
-        domains_union(Is, Dom),
-        (   fd_get(V, VD, Ps) ->
-            domains_intersection(VD, Dom, VD1),
-            fd_put(V, VD1, Ps)
-        ;   domain_contains(Dom, V)
+run_propagator(pelement(N, Is, V), MState) :-
+        (   fd_get(N, NDom, _) ->
+            (   fd_get(V, VDom, VPs) ->
+                integers_remaining(Is, 1, NDom, Rs),
+                list_to_domain(Rs, VDom1),
+                domains_intersection(VDom, VDom1, VDom2),
+                fd_put(V, VDom2, VPs)
+            ;   true
+            )
+        ;   kill(MState), nth1(N, Is, V)
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4726,7 +4727,7 @@ element(N, Is, V) :-
         length(Is, L),
         N in 1..L,
         element_(Is, 1, N, V),
-        propagator_init_trigger(Is, pelement(N,Is,V)).
+        propagator_init_trigger([N|Is], pelement(N,Is,V)).
 
 element_domain(V, VD) :-
         (   fd_get(V, VD, _) -> true
@@ -4748,6 +4749,15 @@ element_([I|Is], N0, N, V) :-
         I #\= V #==> N #\= N0,
         N1 is N0 + 1,
         element_(Is, N1, N, V).
+
+integers_remaining([], _, _, []).
+integers_remaining([I|Is], N0, Dom, Rs0) :-
+        (   domain_contains(Dom, N0) ->
+            Rs0 = [I|Rest]
+        ;   Rs0 = Rest
+        ),
+        N1 is N0 + 1,
+        integers_remaining(Is, N1, Dom, Rest).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
