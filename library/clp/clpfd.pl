@@ -5100,14 +5100,12 @@ global_cardinality(Xs, Pairs, Options) :-
         Options = [cost(Cost, Matrix)],
         must_be(list(list(integer)), Matrix),
         pairs_keys_values(Pairs, Keys, _),
-        vars_matrix_keys_costs(Xs, Matrix, Keys, Costs),
+        maplist(keys_costs(Keys), Xs, Matrix, Costs),
         sum(Costs, #=, Cost).
 
-vars_matrix_keys_costs([], [], _, []).
-vars_matrix_keys_costs([V|Vs], [Row|Rows], Keys, [C|Cs]) :-
-        element(N, Keys, V),
-        element(N, Row, C),
-        vars_matrix_keys_costs(Vs, Rows, Keys, Cs).
+keys_costs(Keys, X, Row, C) :-
+        element(N, Keys, X),
+        element(N, Row, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
