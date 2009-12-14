@@ -160,6 +160,13 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 			 CompoundArg("resource_error", 1),
 			 AtomArg(res));
     }
+    case ERR_SYNTAX:
+    { const char *culprit = va_arg(args, const char *);
+
+      rc = PL_unify_term(formal,
+			 CompoundArg("syntax_error", 1),
+			 AtomArg(culprit));
+    }
     default:
       assert(0);
   }

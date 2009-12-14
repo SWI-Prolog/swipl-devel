@@ -34,6 +34,7 @@
 #include <unistd.h>
 #endif
 #include <string.h>
+#include <assert.h>
 #include "form.h"
 #ifdef __WINDOWS__
 #include <io.h>
@@ -97,38 +98,53 @@ form_argument_decode(const char *in, size_t inlen, char *out, size_t outlen)
 }
 
 
+#define SHORTVALUE 512
+
 int
 break_form_argument(const char *formdata,
 		    int (*func)(const char* name,
+				size_t namelen,
 				const char *value,
+				size_t valuelen,
 				void *closure),
 		    void *closure)
 { while ( *formdata )
-  { char name[MAXNAME];
-    char value[MAXVALUE];
+  { char value[SHORTVALUE];
     char *eq = strchr(formdata, '=');
 
     if ( eq )
-    { size_t len = eq-formdata;
+    { size_t nlen = eq-formdata;
       char *end;
       size_t vlen;
-
-      if ( len > MAXNAME-1 )
-	return ERROR_NAME_TOO_LONG;
-      strncpy(name, formdata, len);
-      name[len] = '\0';
 
       eq++;
       end = strchr(eq, '&');
       if ( !end )
 	end = eq+strlen(eq);		/* end of the string */
 
-      if ( (vlen=form_argument_decode(eq, end-eq, value, MAXVALUE)) >= MAXVALUE )
-	return ERROR_VALUE_TOO_LONG;
-      if ( vlen == (size_t)-1 )
-	return ERROR_SYNTAX_ERROR;
+      if ( (vlen=form_argument_decode(eq, end-eq, value, SHORTVALUE)) >= SHORTVALUE )
+      { char *buf;
 
-      (func)(name, value, closure);
+	if ( (buf=malloc(vlen+1)) )
+	{ size_t vlen2 = form_argument_decode(eq, end-eq, buf, vlen+1);
+	  int rc;
+
+	  assert(vlen2 == vlen);
+	  rc = (func)(formdata, nlen, buf, vlen2, closure);
+	  free(buf);
+
+	  if ( !rc )
+	    return rc;
+	} else
+	  return ERROR_NOMEM;
+      } else if ( vlen == (size_t)-1 )
+      { return ERROR_SYNTAX_ERROR;
+      } else
+      { int rc = (func)(formdata, nlen, value, vlen, closure);
+
+	if ( !rc )
+	  return rc;
+      }
 
       if ( *end )
 	formdata = end+1;
@@ -227,6 +243,7 @@ int
 break_multipart(char *formdata, size_t len,
 		const char *boundary,
 		int (*func)(const char *name,
+			    size_t namelen,
 			    const char *value,
 			    size_t valuelen,
 			    const char *filename,
@@ -275,7 +292,7 @@ break_multipart(char *formdata, size_t len,
       end--;
     end[0] = '\0';
 
-    if ( !(func)(name, data, end-data, filename, closure) )
+    if ( !(func)(name, strlen(name), data, end-data, filename, closure) )
       return FALSE;
   }
 
@@ -348,31 +365,6 @@ get_raw_form_data(size_t *lenp)
   }
 
   return NULL;
-}
-
-
-static int
-fill_arg(const char *name, const char *value, void *closure)
-{ form_arg *args = closure;
-
-  for(; args->name; args++)
-  { if ( strcmp(name, args->name) == 0 )
-    { args->ptr = malloc(strlen(value)+1);
-      if ( args->ptr )
-      { strcpy(args->ptr, value);
-
-	return TRUE;
-      }
-    }
-  }
-
-  return FALSE;
-}
-
-
-int
-decode_form_arguments(const char *data, form_arg *args)
-{ return break_form_argument(data, fill_arg, args);
 }
 
 

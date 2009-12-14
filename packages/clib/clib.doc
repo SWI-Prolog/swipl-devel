@@ -20,7 +20,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@cs.vu.nl}}
 
 \maketitle
 
@@ -595,34 +595,42 @@ main :-
 	set_stream(current_output, encoding(utf8)),
 	cgi_get_form(Arguments),
 	format('Content-type: text/html; charset=UTF-8~n~n', []),
-	format('<HTML>~n', []),
-	format('<HEAD>~n', []),
-	format('<TITLE>Simple SWI-Prolog CGI script</TITLE>~n', []),
-	format('</HEAD>~n~n', []),
-	format('<BODY>~n', []),
-	format('<P>', []),
+	format('<html>~n', []),
+	format('<head>~n', []),
+	format('<title>Simple SWI-Prolog CGI script</title>~n', []),
+	format('</head>~n~n', []),
+	format('<body>~n', []),
+	format('<p>', []),
 	print_args(Arguments),
-	format('</BODY>~n</HTML>~n', []).
+	format('</body>~n</html>~n', []).
 
 print_args([]).
 print_args([A0|T]) :-
 	A0 =.. [Name, Value],
-	format('<B>~w</B>=<EM>~w</EM><BR>~n', [Name, Value]),
+	format('<b>~w</b>=<em>~w</em><br>~n', [Name, Value]),
 	print_args(T).
 \end{code}
 
 \subsection{Some considerations}
 
-Printing an HTML document using format/2 is not really a neat way
-of producing HTML.  A high-level alternative is provided by
-\pllib{http/html_write} from the HTTP library.
+Printing an HTML document using format/2 is not a neat way of producing
+HTML because it is vulnerable to required escape sequences. A high-level
+alternative is provided by \pllib{http/html_write} from the HTTP
+library.
 
-The CGI standard is very unclear about handling Unicode data. The above
-two declarations ensure the CGI script will send all data in UTF-8 and
-thus provide full support of Unicode. It is assumed that browsers
-generally send form-data using the same encoding as the page in which
-the form appears, UTF-8 or ISO Latin-1.  The current version of
-cgi_get_form/2 assumes the CGI data is in UTF-8.
+The startup-time of Prolog is relatively long, in particular if the
+program is large. In many cases it is much better to use the
+SWI-Prolog HTTP server library and make the main web-server relay
+requests to the SWI-Prolog webserver. See the SWI-Prolog \url[HTTP
+package]{http://www.swi-prolog.org/pldoc/package/http.html} for details.
+
+
+The CGI standard is unclear about handling Unicode data. The above two
+declarations ensure the CGI script will send all data in UTF-8 and thus
+provide full support of Unicode. It is assumed that browsers generally
+send form-data using the same encoding as the page in which the form
+appears, UTF-8 or ISO Latin-1. The current version of cgi_get_form/1
+assumes the CGI data is in UTF-8.
 
 
 \section{MIME decoding library}

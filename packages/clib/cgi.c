@@ -25,6 +25,7 @@
 #include <SWI-Prolog.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "clib.h"
 #include "form.h"
 
@@ -63,14 +64,16 @@ isfloat(const char *s, double *val, size_t len)
 
 
 static int
-add_to_form(const char *name, const char *value, void *closure)
+add_to_form(const char *name, size_t nlen,
+	    const char *value, size_t len,
+	    void *closure)
 { term_t head = PL_new_term_ref();
   term_t tail = (term_t) closure;
   term_t val  = PL_new_term_ref();
   long vl;
   double vf;
-  size_t len = strlen(value);		/* TBD: pass this in */
   int rc;
+  atom_t aname = 0;
 
   if ( isinteger(value, &vl, len) )
     rc = PL_put_integer(val, vl);
@@ -79,19 +82,23 @@ add_to_form(const char *name, const char *value, void *closure)
   else
     rc = PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
-  if ( !rc ||
-       !PL_unify_list(tail, head, tail) ||
-       !PL_unify_term(head,
-		      PL_FUNCTOR, PL_new_functor(PL_new_atom(name), 1),
-		      PL_TERM, val) )
-    return FALSE;
+  rc = ( rc &&
+	 PL_unify_list(tail, head, tail) &&
+	 (aname = PL_new_atom_nchars(nlen, name)) &&
+	 PL_unify_term(head,
+		       PL_FUNCTOR, PL_new_functor(aname, 1),
+		       PL_TERM, val) );
 
-  return TRUE;
+  if ( aname )
+    PL_unregister_atom(aname);
+
+  return rc;
 }
 
 
 static int
-mp_add_to_form(const char *name, const char *value, size_t len,
+mp_add_to_form(const char *name, size_t nlen,
+	       const char *value, size_t len,
 	       const char *file, void *closure)
 { term_t head = PL_new_term_ref();
   term_t tail = (term_t) closure;
@@ -99,6 +106,7 @@ mp_add_to_form(const char *name, const char *value, size_t len,
   long vl;
   double vf;
   int rc;
+  atom_t aname = 0;
 
   if ( isinteger(value, &vl, len) )
     rc = PL_put_integer(val, vl);
@@ -107,14 +115,17 @@ mp_add_to_form(const char *name, const char *value, size_t len,
   else
     rc = PL_unify_chars(val, PL_ATOM|REP_UTF8, len, value);
 
-  if ( !rc ||
-       !PL_unify_list(tail, head, tail) ||
-       !PL_unify_term(head,
-		      PL_FUNCTOR, PL_new_functor(PL_new_atom(name), 1),
-		      PL_TERM, val) )
-    return FALSE;
+  rc = ( rc &&
+	 PL_unify_list(tail, head, tail) &&
+	 (aname = PL_new_atom_nchars(nlen, name)) &&
+	 PL_unify_term(head,
+			PL_FUNCTOR, PL_new_functor(aname, 1),
+			PL_TERM, val) );
 
-  return TRUE;
+  if ( aname )
+    PL_unregister_atom(aname);
+
+  return rc;
 }
 
 
@@ -139,7 +150,21 @@ pl_cgi_get_form(term_t form)
 
     break_multipart(data, len, boundary, mp_add_to_form, (void *)list);
   } else
-  { break_form_argument(data, add_to_form, (void *)list);
+  { switch( break_form_argument(data, add_to_form, (void *)list) )
+    { case FALSE:
+	return FALSE;
+      case TRUE:
+	break;
+      case ERROR_NOMEM:
+	return pl_error("cgi_get_form", 1, NULL,
+			ERR_RESOURCE, "memory");
+      case ERROR_SYNTAX_ERROR:
+	return pl_error("cgi_get_form", 1, NULL,
+			ERR_SYNTAX, "cgi_value");
+      default:
+	assert(0);
+        return FALSE;
+    }
   }
 
   return PL_unify_nil(list);
