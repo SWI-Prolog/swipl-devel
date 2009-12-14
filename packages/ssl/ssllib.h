@@ -58,7 +58,7 @@ typedef struct pl_ssl {
     PL_SSL_ROLE         pl_ssl_role;
 
     int			sock;		/* the listening/connected socket */
-
+    int                 closeparent;
     /*
      * Context, Certificate, SSL info
      */
@@ -106,6 +106,8 @@ typedef struct ssl_instance {
     PL_SSL              *config;
     SSL                 *ssl;
     nbio_sock_t          sock;
+    IOSTREAM            *sread;
+    IOSTREAM            *swrite;
     int                  close_needed;
 } PL_SSL_INSTANCE;
 
