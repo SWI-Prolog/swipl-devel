@@ -26,10 +26,12 @@
 #include <config.h>
 #endif
 
+#include <SWI-Prolog.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -39,6 +41,8 @@
 #ifdef __WINDOWS__
 #include <io.h>
 #endif
+
+#include "error.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Breaks a string holding data from a WWW form into its values.  Outputs a
@@ -277,11 +281,10 @@ break_multipart(char *formdata, size_t len,
       break;
 
     if ( !(name = attribute_of_multipart_header("name", header, data)) )
-    {
-#ifdef UTIL_H_INCLUDED
-      error("Cannot find field \"name\" in multipart message");
-#endif
-      return FALSE;
+    { term_t t = PL_new_term_ref();
+      PL_put_atom_chars(t, "name");
+
+      return pl_error(NULL, 0, NULL, ERR_EXISTENCE, "field", t);
     }
     filename = attribute_of_multipart_header("filename", header, data);
 
@@ -306,8 +309,8 @@ provided, it is filled with the length  of the contents. The input value
 for lenp is the maximum acceptable content-length.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-char *
-get_raw_form_data(size_t *lenp)
+int
+get_raw_form_data(char **data, size_t *lenp, int *must_free)
 { char *method;
   char *s;
 
@@ -318,34 +321,36 @@ get_raw_form_data(size_t *lenp)
     long len;
 
     if ( !lenvar )
-      return NULL;
+    { term_t env = PL_new_term_ref();
+      PL_put_atom_chars(env, "CONTENT_LENGTH");
+
+      return pl_error(NULL, 0, NULL, ERR_EXISTENCE, "environment", env);
+    }
     len = atol(lenvar);
     if ( len < 0 )
-    {
-#ifdef UTIL_H_INCLUDED
-	error("Negative content length");
-#endif
-	return NULL;
+    { term_t t = PL_new_term_ref();
+
+      if ( !PL_put_integer(t, len) )
+	return FALSE;
+      return pl_error(NULL, 0, "< 0", ERR_DOMAIN, t, "content_length");
     }
     if ( lenp )
     { if ( *lenp && (size_t)len > *lenp )
-      {
-#ifdef UTIL_H_INCLUDED
-	error("Contents too long (accept max. %d Kbytes)", *lenp/1024);
-#endif
-	return NULL;
+      { term_t t = PL_new_term_ref();
+	char msg[100];
+
+	if ( !PL_put_integer(t, len) )
+	  return FALSE;
+	sprintf(msg, "> %ld", *lenp);
+
+	return pl_error(NULL, 0, msg, ERR_DOMAIN, t, "content_length");
       }
       *lenp = len;
     }
 
     q = s = malloc(len+1);
     if ( !q )
-    {
-#ifdef UTIL_H_INCLUDED
-      error("Not enough memory");
-#endif
-      return NULL;
-    }
+      return pl_error(NULL, 0, NULL, ERR_RESOURCE, "memory");
     while(len > 0)
     { int done;
 
@@ -353,18 +358,37 @@ get_raw_form_data(size_t *lenp)
       { q+=done;
 	len-=done;
       }
+      if ( done < 0 )
+      { int e;
+
+      no_data:
+	e = errno;
+	term_t obj = PL_new_term_ref();
+
+	free(s);
+	PL_put_nil(obj);
+	return pl_error(NULL, 0, NULL, ERR_ERRNO, e, "read", "cgi_data", obj);
+      }
     }
     if ( len == 0 )
     { *q = '\0';
-      return s;
-    }
+      *data = s;
+      *must_free = TRUE;
+      return TRUE;
+    } else
+      goto no_data;
   } else if ( (s = getenv("QUERY_STRING")) )
   { if ( lenp )
       *lenp = strlen(s);
-    return s;
-  }
+    *data = s;
+    *must_free = FALSE;
+    return TRUE;
+  } else
+  { term_t env = PL_new_term_ref();
+    PL_put_atom_chars(env, "QUERY_STRING");
 
-  return NULL;
+    return pl_error(NULL, 0, NULL, ERR_EXISTENCE, "environment", env);
+  }
 }
 
 

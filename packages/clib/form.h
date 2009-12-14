@@ -54,4 +54,4 @@ int		break_multipart(char *formdata, size_t len,
 					    const char *filename,
 					    void *closure),
 				void *closure);
-char *		get_raw_form_data(size_t *lenp);
+int		get_raw_form_data(char **data, size_t *lenp, int *must_free);

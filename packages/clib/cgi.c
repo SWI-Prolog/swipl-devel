@@ -132,23 +132,28 @@ mp_add_to_form(const char *name, size_t nlen,
 static foreign_t
 pl_cgi_get_form(term_t form)
 { size_t len = 0;
-  char *data = get_raw_form_data(&len);
+  char *data;
+  int must_free = FALSE;
   term_t list = PL_copy_term_ref(form);
   char *ct, *boundary;
 
-  if ( !data )
-  { term_t ctx = PL_new_term_ref();
-
-    PL_put_nil(ctx);
-    return pl_error("cgi_get_form", 1, "no data?",
-		    ERR_EXISTENCE, "cgi_form", ctx);
-  }
+  if ( !get_raw_form_data(&data, &len, &must_free) )
+    return FALSE;
 
   if ( (ct = getenv("CONTENT_TYPE")) &&
        (boundary = strstr(ct, "boundary=")) )
   { boundary = strchr(boundary, '=')+1;
 
-    break_multipart(data, len, boundary, mp_add_to_form, (void *)list);
+    switch( break_multipart(data, len, boundary,
+			    mp_add_to_form, (void *)list) )
+    { case FALSE:
+	return FALSE;
+      case TRUE:
+	break;
+      default:
+	assert(0);
+        return FALSE;
+    }
   } else
   { switch( break_form_argument(data, add_to_form, (void *)list) )
     { case FALSE:
@@ -166,6 +171,9 @@ pl_cgi_get_form(term_t form)
         return FALSE;
     }
   }
+
+  if ( must_free )
+    free(data);
 
   return PL_unify_nil(list);
 }
