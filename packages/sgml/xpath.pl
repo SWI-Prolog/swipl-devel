@@ -1,10 +1,7 @@
 /*  This file is part of ClioPatria.
 
-    Author:	Jan Wielemaker <wielemak@science.uva.nl>
+    Author:	Jan Wielemaker <J.Wielemaker@cs.vu.nl>
     HTTP:	http://e-culture.multimedian.nl/
-    GITWEB:	http://gollem.science.uva.nl/git/ClioPatria.git
-    GIT:	git://gollem.science.uva.nl/home/git/ClioPatria.git
-    GIT:	http://gollem.science.uva.nl/home/git/ClioPatria.git
     Copyright:  2007, E-Culture/MultimediaN
 
     ClioPatria is free software: you can redistribute it and/or modify
@@ -60,33 +57,89 @@ xpath_chk(DOM, Spec, Content) :-
 %	XPath, using () rather than  []   to  select  inside an element.
 %	First we can construct paths using / and //:
 %
-%	    * //Term
+%	    $ =|//|=Term :
 %	    Select any node in the DOM matching term.
-%	    * /Term
-%	    Match the root against Term
-%	    * Term
-%	    Select the immediate children of the root matching Term
+%	    $ =|/|=Term :
+%	    Match the root against Term.
+%	    $ Term :
+%	    Select the immediate children of the root matching Term.
 %
 %	The Terms above are of type   _callable_.  The functor specifies
-%	the element name. The element name '*' refers to any element and
-%	a term NS:Term refers to  an  XML   name  in  the  namespace NS.
-%	Optional arguments specify additional constraints and functions.
-%	The  arguments  are  processed  from   left  to  right.  Defined
-%	conditional argument values are:
+%	the element name. The element name   '*'  refers to any element.
+%	The name =self= refers to the   top-element  itself and is often
+%	used for processing matches of an  earlier xpath/3 query. A term
+%	NS:Term refers to an XML  name   in  the  namespace NS. Optional
+%	arguments specify additional  constraints   and  functions.  The
+%	arguments are processed from left  to right. Defined conditional
+%	argument values are:
 %
-%	    * Integer
+%	    $ Integer :
 %	    The N-th element with the given name
-%	    * last
+%	    $ last :
 %	    The last element with the given name.
-%	    * last-IntExpr
+%	    $ last-IntExpr :
 %	    The IntExpr-th element counting from the last (0-based)
 %
 %	Defined function argument values are:
 %
+%	    * self
+%	    Evaluate to the entire element
 %	    * text
 %	    Evaluates to all text from the sub-tree as an atom
+%	    * normalize_space
+%	    As =text=, but uses normalize_space/2 to normalise
+%	    white-space in the output
+%	    * number
+%	    Extract an integer or float from the value.  Ignores
+%	    leading and trailing white-space
 %	    * @Attribute
 %	    Evaluates to the value of the given attribute
+%
+%	In addition, the argument-list can be _conditions_:
+%
+%	    * Left = Right
+%	    Succeeds if the left-hand unifies with the right-hand.
+%	    E.g. normalize_space = 'euro'
+%	    * contains(Haystack, Needle)
+%	    Succeeds if Needle is a sub-string of Haystack.
+%
+%	Examples:
+%
+%	Get all table-rows from a DOM:
+%
+%	    ==
+%	    xpath(DOM, //tr, TR)
+%	    ==
+%
+%	Get the last  cell  of  each   tablerow  in  DOM.  This  example
+%	illustrates that a result can be the input of subsequent xpath/3
+%	queries. Using multiple queries  on   the  intermediate  TR term
+%	guarantee that all results come from the same table-row:
+%
+%	    ==
+%	    xpath(DOM, //tr, TR),
+%	    xpath(TR,  /td(last), TD)
+%	    ==
+%
+%	Get all =href= attributes from all <a> elements
+%
+%	    ==
+%	    xpath(DOM, //a(@href), HREF)
+%	    ==
+%
+%	Suppose we have a table containing  rows where each first column
+%	is the name of a product with a   link to details and the second
+%	is the price (a number). The   following  predicate extracts the
+%	name, URL and price:
+%
+%	    ==
+%	    product(DOM, Name, URL, Price) :-
+%	    	xpath(DOM, //tr, TR),
+%	    	xpath(TR, td(1), C1),
+%	    	xpath(C1, /self(normalize_space), Name),
+%	    	xpath(C1, a(@href), URL),
+%	    	xpath(TR, td(2, number), Price).
+%	    ==
 
 xpath(DOM, Spec, Content) :-
 	in_dom(Spec, DOM, Content).
@@ -276,32 +329,3 @@ text_of_1(element(_,_,Content)) --> !,
 text_of_1(Data) -->
 	{ assertion(atom(Data)) },
 	[Data].
-
-
-		 /*******************************
-		 *	        KEEP		*
-		 *******************************/
-
-end_of_file.
-
-%%	xpath(+DOM, -Node, -Ancestors, -PrecedingSiblings, -FollowingSiblings) is nondet.
-%
-%	True if Node is a node in DOM.
-
-xpath(DOM, DOM, [], [], []).
-xpath(DOM, Node, Ancestors, PrecedingSiblings, FollowingSiblings) :-
-	xpath_sub(DOM, Node, Ancestors, PrecedingSiblings, FollowingSiblings).
-
-
-xpath_sub(DOM, Node, [DOM|Ancestors], PrecedingSiblings, FollowingSiblings) :-
-	DOM = element(_,_,Siblings),
-	append(Prefix, [SubDOM|Postfix], Siblings),
-	(   Node = SubDOM,
-	    PrecedingSiblings = Prefix,
-	    FollowingSiblings = Postfix,
-	    Ancestors = []
-	;   xpath_sub(SubDOM, Node, Ancestors, PrecedingSiblings, FollowingSiblings)
-	).
-
-
-
