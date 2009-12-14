@@ -3768,7 +3768,8 @@ garbageCollect(void)
   LD->gc.inferences = LD->statistics.inferences;
   leaveGC();
 
-  assert(!LD->query->registers.fr ||
+  assert(!LD->query ||
+	 !LD->query->registers.fr ||
 	 state.frame == LD->query->registers.fr);
   shiftTightStacks();
 
