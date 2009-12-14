@@ -34,6 +34,7 @@
 #define ERR_PERMISSION		-6
 #define ERR_NOTIMPLEMENTED	-7
 #define ERR_RESOURCE		-8
+#define ERR_SYNTAX		-9
 
 int		pl_error(const char *name, int arity,
 			 const char *msg, int id, ...);

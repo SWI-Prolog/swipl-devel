@@ -18,11 +18,12 @@ PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
 DESTDIR=
 SO=@SO@
 
+PUBLICPL=pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 LATEX=latex
 DOC=sgml
-TEX=$(DOC).tex
+TEX=$(DOC).tex xpath.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 HTML=$(DOC).html
@@ -132,6 +133,9 @@ $(PDF):		$(TEX)
 		../../man/runtex --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
+
+xpath.tex:	xpath.pl
+		$(PLTOTEX) --out=$@ --section 'library(xpath)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

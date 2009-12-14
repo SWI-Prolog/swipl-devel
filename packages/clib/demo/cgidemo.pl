@@ -12,19 +12,19 @@
 main :-
 	cgi_get_form(Arguments),
 	format('Content-type: text/html~n~n', []),
-	format('<HTML>~n', []),
-	format('<HEAD>~n', []),
-	format('<TITLE>Simple SWI-Prolog CGI script output</TITLE>~n', []),
-	format('</HEAD>~n~n', []),
-	format('<BODY>~n', []),
-	format('<H1>Form arguments</H1>'),
-	format('<P>', []),
+	format('<html>~n', []),
+	format('<head>~n', []),
+	format('<title>Simple SWI-Prolog CGI script output</title>~n', []),
+	format('</head>~n~n', []),
+	format('<body>~n', []),
+	format('<h1>Form arguments</h1>'),
+	format('<p>', []),
 	print_args(Arguments),
-	format('<BODY>~n</HTML>~n', []),
+	format('<body>~n</html>~n', []),
 	halt.
 
 print_args([]).
 print_args([A0|T]) :-
 	A0 =.. [Name, Value],
-	format('<B>~w</B>=<EM>~w</EM><BR>~n', [Name, Value]),
+	format('<b>~w</b>=<em>~w</em><br>~n', [Name, Value]),
 	print_args(T).

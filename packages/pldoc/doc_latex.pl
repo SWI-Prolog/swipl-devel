@@ -336,12 +336,18 @@ latex(code(CodeList)) -->
 	{ is_list(CodeList), !,
 	  atomic_list_concat(CodeList, Atom)
 	},
-	[ verb(Atom) ].
+	(   {fragile}
+	->  latex(cmd(const(Atom)))
+	;   [ verb(Atom) ]
+	).
 latex(code(Code)) -->
 	{ identifier(Code) }, !,
 	latex(cmd(const(Code))).
 latex(code(Code)) -->
-	[ verb(Code) ].
+	(   {fragile}
+	->  latex(cmd(const(Code)))
+	;   [ verb(Code) ]
+	).
 latex(b(Code)) -->
 	latex(cmd(textbf(Code))).
 latex(i(Code)) -->
