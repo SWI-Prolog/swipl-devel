@@ -37,6 +37,11 @@ The library xpath.pl provides predicates to select nodes from an XML DOM
 tree as produced by library(sgml) based  on descriptions inspired by the
 XPATH language.
 
+The   predicate   xpath/3   selects   a   sub-structure   of   the   DOM
+non-deterministically based on an  xpath-like   specification.  Not  all
+selectors of XPATH are implemented, but the ability to mix xpath/3 calls
+with arbitrary Prolog code  provides  a   powerful  tool  for extracting
+information from XML parse-trees.
 
 @see http://www.w3.org/TR/xpath
 */
@@ -53,7 +58,7 @@ xpath_chk(DOM, Spec, Content) :-
 
 %%	xpath(+DOM, +Spec, ?Content) is nondet.
 %
-%	Find an element in a DOM structure.   The  syntax is inspired by
+%	Match an element in a DOM structure.   The syntax is inspired by
 %	XPath, using () rather than  []   to  select  inside an element.
 %	First we can construct paths using / and //:
 %
@@ -75,43 +80,43 @@ xpath_chk(DOM, Spec, Content) :-
 %
 %	    $ Integer :
 %	    The N-th element with the given name
-%	    $ last :
+%	    $ =last= :
 %	    The last element with the given name.
-%	    $ last-IntExpr :
+%	    $ =last= - IntExpr :
 %	    The IntExpr-th element counting from the last (0-based)
 %
 %	Defined function argument values are:
 %
-%	    * self
+%	    $ =self= :
 %	    Evaluate to the entire element
-%	    * text
+%	    $ =text= :
 %	    Evaluates to all text from the sub-tree as an atom
-%	    * normalize_space
+%	    $ =normalize_space= :
 %	    As =text=, but uses normalize_space/2 to normalise
 %	    white-space in the output
-%	    * number
+%	    $ =number= :
 %	    Extract an integer or float from the value.  Ignores
 %	    leading and trailing white-space
-%	    * @Attribute
+%	    $ =|@|=Attribute :
 %	    Evaluates to the value of the given attribute
 %
 %	In addition, the argument-list can be _conditions_:
 %
-%	    * Left = Right
+%	    $ Left = Right :
 %	    Succeeds if the left-hand unifies with the right-hand.
 %	    E.g. normalize_space = 'euro'
-%	    * contains(Haystack, Needle)
+%	    $ contains(Haystack, Needle) :
 %	    Succeeds if Needle is a sub-string of Haystack.
 %
 %	Examples:
 %
-%	Get all table-rows from a DOM:
+%	Match each table-row in DOM:
 %
 %	    ==
 %	    xpath(DOM, //tr, TR)
 %	    ==
 %
-%	Get the last  cell  of  each   tablerow  in  DOM.  This  example
+%	Match the last cell  of  each   tablerow  in  DOM.  This example
 %	illustrates that a result can be the input of subsequent xpath/3
 %	queries. Using multiple queries  on   the  intermediate  TR term
 %	guarantee that all results come from the same table-row:
@@ -121,7 +126,7 @@ xpath_chk(DOM, Spec, Content) :-
 %	    xpath(TR,  /td(last), TD)
 %	    ==
 %
-%	Get all =href= attributes from all <a> elements
+%	Match each =href= attribute in an <a> element
 %
 %	    ==
 %	    xpath(DOM, //a(@href), HREF)
@@ -129,7 +134,7 @@ xpath_chk(DOM, Spec, Content) :-
 %
 %	Suppose we have a table containing  rows where each first column
 %	is the name of a product with a   link to details and the second
-%	is the price (a number). The   following  predicate extracts the
+%	is the price (a number).  The   following  predicate matches the
 %	name, URL and price:
 %
 %	    ==
