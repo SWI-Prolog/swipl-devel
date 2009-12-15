@@ -297,7 +297,7 @@ db_clean(Module) :-
 	;   true
 	).
 
-%%	db_size(+Module, -Terms) is det,
+%%	db_size(+Module, -Terms) is det.
 %
 %	Terms is the total number of terms in the DB for Module.
 
