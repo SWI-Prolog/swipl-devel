@@ -71,8 +71,8 @@ type_error(term_t val, const char *type)
        PL_unify_term(ex,
 		     PL_FUNCTOR, FUNCTOR_error2,
 		       PL_FUNCTOR, FUNCTOR_type_error2,
-		         PL_TERM, val,
 		         PL_CHARS, type,
+		         PL_TERM, val,
 		       PL_VARIABLE) )
     return PL_raise_exception(ex);
 
@@ -189,9 +189,8 @@ get_file_arg(int a, term_t t, char **f)
 
 
 static int
-get_predicate_arg(int a, term_t t, int arity, predicate_t *pred)
+get_predicate_arg(int a, module_t m, term_t t, int arity, predicate_t *pred)
 { term_t t2 = PL_new_term_ref();
-  module_t m = NULL;
   atom_t name;
 
   _PL_get_arg(a, t, t2);
@@ -203,9 +202,6 @@ get_predicate_arg(int a, term_t t, int arity, predicate_t *pred)
 
   return TRUE;
 }
-
-
-
 
 
 static int
@@ -329,12 +325,16 @@ threads_init()
 
 
 static foreign_t
-pl_ssl_context(term_t role, term_t options, term_t config)
+pl_ssl_context(term_t role, term_t config, term_t options)
 { atom_t a;
   PL_SSL *conf;
   int r;
-  term_t tail = PL_copy_term_ref(options);
+  term_t tail;
   term_t head = PL_new_term_ref();
+  module_t module = NULL;
+
+  PL_strip_module(options, &module, options);
+  tail = PL_copy_term_ref(options);
 
   if ( !get_atom_ex(role, &a) )
     return FALSE;
@@ -417,14 +417,14 @@ pl_ssl_context(term_t role, term_t options, term_t config)
     } else if ( name == ATOM_pem_password_hook && arity == 1 )
     { predicate_t hook;
 
-      if ( !get_predicate_arg(1, head, 2, &hook) )
+      if ( !get_predicate_arg(1, module, head, 2, &hook) )
 	return FALSE;
 
       ssl_set_cb_pem_passwd(conf, pl_pem_passwd_hook, (void *)hook);
     } else if ( name == ATOM_cert_verify_hook && arity == 1 )
     { predicate_t hook;
 
-      if ( !get_predicate_arg(1, head, 3, &hook) )
+      if ( !get_predicate_arg(1, module, head, 3, &hook) )
 	return FALSE;
 
       ssl_set_cb_cert_verify(conf, pl_cert_verify_hook, (void *)hook);
@@ -441,6 +441,7 @@ pl_ssl_context(term_t role, term_t options, term_t config)
 
   if ( !PL_get_nil(tail) )
     return type_error(tail, "list");
+
   return unify_conf(config, conf);
 }
 
@@ -611,12 +612,12 @@ install_ssl4pl()
   FUNCTOR_permission_error3=PL_new_functor(PL_new_atom("permission_error"), 3);
   FUNCTOR_ip4		  = PL_new_functor(PL_new_atom("ip"), 4);
 
-  PL_register_foreign("ssl_context",    3, pl_ssl_context,    PL_FA_TRANSPARENT);
-  PL_register_foreign("ssl_exit",       1, pl_ssl_exit,    0);
-  PL_register_foreign("ssl_put_socket", 2, pl_ssl_put_socket,     0);
-  PL_register_foreign("ssl_get_socket", 2, pl_ssl_get_socket,     0);
-  PL_register_foreign("ssl_negotiate",  5, pl_ssl_negotiate,    0);
-  PL_register_foreign_in_module("user", "ssl_debug", 1, pl_ssl_debug,   0);
+  PL_register_foreign("_ssl_context",	3, pl_ssl_context,    0);
+  PL_register_foreign("ssl_exit",	1, pl_ssl_exit,	      0);
+  PL_register_foreign("ssl_put_socket",	2, pl_ssl_put_socket, 0);
+  PL_register_foreign("ssl_get_socket",	2, pl_ssl_get_socket, 0);
+  PL_register_foreign("ssl_negotiate",	5, pl_ssl_negotiate,  0);
+  PL_register_foreign("ssl_debug",	1, pl_ssl_debug,      0);
 
   /*
    * Initialize ssllib
