@@ -38,6 +38,9 @@
             ssl_negotiate/5,            % +Config, +PlainRead, +PlainWrite, -SSLRead, -SSLWrite
 	    ssl_exit/1			% +Config
 	  ]).
+:- use_module(library(socket)).
+:- use_module(library(error)).
+:- use_module(library(option)).
 
 :- use_foreign_library(foreign(ssl4pl)).
 
@@ -46,20 +49,24 @@
   incarnation of the SSL library. No changes should be required for legacy code.
 */
 
-ssl_init(SSL, server, Options):-
-        memberchk(port(Port), Options),
+ssl_init(SSL, Role, Options) :-
+	must_be(oneof([client,server]), Role),
+	ssl_init2(Role, SSL, Options).
+
+ssl_init2(server, SSL, Options) :-
+	option(port(Port), Options),
         tcp_socket(Socket),
+	tcp_setopt(Socket, reuseaddr),
         tcp_bind(Socket, Port),
         tcp_listen(Socket, 5),
         ssl_context(server, Options, SSL),
         Socket = '$socket'(S),
         ssl_put_socket(SSL, S).
-
-ssl_init(SSL, client, Options):-
-        memberchk(port(Port), Options),
-        memberchk(host(Host), Options),
-        writeln(Host:Port),
+ssl_init2(client, SSL, Options) :-
+        option(port(Port), Options),
+        option(host(Host), Options),
         tcp_socket(Socket),
+	tcp_setopt(Socket, reuseaddr),
         tcp_connect(Socket, Host:Port),
         ssl_context(client, Options, SSL),
         Socket = '$socket'(S),
