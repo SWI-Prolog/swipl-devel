@@ -520,6 +520,7 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
   IOSTREAM *sorg_in, *sorg_out;
   IOSTREAM *i, *o;
   PL_SSL_INSTANCE * instance = NULL;
+
   if ( !get_conf(config, &conf) )
     return FALSE;
   if ( !PL_get_stream_handle(org_in, &sorg_in) )
