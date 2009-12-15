@@ -656,7 +656,7 @@ ssl_close(PL_SSL_INSTANCE *instance)
            if (instance->config->closeparent)
               Sclose(instance->swrite);
         }
-        
+
         free(instance);
     }
     ERR_free_strings();
@@ -945,7 +945,7 @@ int bio_read(BIO* bio, char* buf, int len)
    stream  = BIO_get_ex_data(bio, 0);
    if ( stream->functions->read )
    {
-      return (*stream->functions->read)(stream->handle, buf, len);      
+      return (*stream->functions->read)(stream->handle, buf, len);
    }
    else
       return -1;
@@ -972,16 +972,16 @@ int bio_write(BIO* bio, const char* buf, int len)
  * (Currently only supports flush. There are several mandatory, but as-yet unsupported functions...)
  */
 
-long bio_control(BIO* bio, int cmd, long num, char* ptr)
+long bio_control(BIO* bio, int cmd, long num, void* ptr)
 {
    IOSTREAM* stream;
    stream  = BIO_get_ex_data(bio, 0);
-   
+
    switch(cmd)
    {
      case BIO_CTRL_FLUSH:
         Sflush(stream);
-        return 1;        
+        return 1;
    }
    return 0;
 }
@@ -1036,7 +1036,7 @@ BIO_METHOD bio_write_functions = {BIO_TYPE_MEM,
                                   &bio_control,
                                   &bio_create,
                                   &bio_destroy};
-                                 
+
 /*
  * Establish an SSL session using the given read and write streams and the role
  */
@@ -1069,7 +1069,7 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
     BIO_set_ex_data(rbio, 0, sread);
     wbio = BIO_new(&bio_write_functions);
     BIO_set_ex_data(wbio, 0, swrite);
-    
+
     /*
      * Prepare SSL layer
      */
@@ -1100,7 +1100,7 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
                     case SSL_PL_RETRY:
                         continue;
 
-                    case SSL_PL_ERROR:                      
+                    case SSL_PL_ERROR:
                        return NULL;
                 }
             } while (1);
