@@ -29,9 +29,12 @@
     the GNU General Public License.
 */
 
+:- asserta(user:file_search_path(library, '.')).
+:- asserta(user:file_search_path(library, '../clib')).
 :- asserta(user:file_search_path(foreign, '.')).
+:- asserta(user:file_search_path(foreign, '../clib')).
 
-:- use_module(ssl).
+:- use_module(library(ssl)).
 :- use_module(library(debug)).
 :- use_module(library(readutil)).
 
