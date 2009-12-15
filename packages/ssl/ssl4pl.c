@@ -237,22 +237,6 @@ get_conf(term_t config, PL_SSL **conf)
 }
 
 
-static int
-tcp_unify_ip(term_t t, struct in_addr *ip)
-{ unsigned long hip;
-
-  hip = ntohl(ip->s_addr);
-
-  return PL_unify_term(t,
-		       PL_FUNCTOR, FUNCTOR_ip4,
-		         PL_LONG, (hip >> 24) & 0xffL,
-		         PL_LONG, (hip >> 16) & 0xffL,
-		         PL_LONG, (hip >>  8) & 0xffL,
-		         PL_LONG, (hip >>  0) & 0xffL);
-}
-
-
-
 		 /*******************************
 		 *	      CALLBACK		*
 		 *******************************/
@@ -359,12 +343,12 @@ pl_ssl_context(term_t role, term_t options, term_t config)
   else if ( a == ATOM_client )
     r = PL_SSL_CLIENT;
   else
-    return domain_error(a, "ssl_role"); 
+    return domain_error(a, "ssl_role");
 
  if ( !threads_init() )
     return FALSE;
 
-  
+
   if ( !(conf = ssl_init(r)) )
     return resource_error("memory");
   while( PL_get_list(tail, head, tail) )
@@ -548,7 +532,7 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
      PL_release_stream(sorg_out);
      return FALSE;			/* TBD: error */
   }
-  
+
   if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
   {  PL_release_stream(sorg_in);
      PL_release_stream(sorg_out);
