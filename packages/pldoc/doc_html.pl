@@ -1081,6 +1081,12 @@ predref(Name/Arity, _, Options) -->		% Builtin; cannot be overruled
 	  manref(Name/Arity, HREF, Options)
 	},
 	html(a([class=builtin, href=HREF], [Name, /, Arity])).
+predref(Name/Arity, _, Options) -->		% From packages
+	{ option(prefer(manual), Options),
+	  prolog:doc_object_summary(Name/Arity, Category, _, _), !,
+	  manref(Name/Arity, HREF, Options)
+	},
+	html(a([class=Category, href=HREF], [Name, /, Arity])).
 predref(Obj, Module, Options) -->		% Local
 	{ doc_comment(Module:Obj, _, _, _)
 	}, !,

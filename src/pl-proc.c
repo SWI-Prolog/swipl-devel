@@ -1744,6 +1744,9 @@ This must be  executed  holding  the   Prolog  mutex  '$load'  to  avoid
 race-conditions between threads trapping undefined   code. At the moment
 there is no neat way to share   mutexes  between C and Prolog, something
 that should be considered.
+
+Note that in the  multi-threaded  case,   we  first  try auto-import and
+unknown=fail before locking.  This enhances concurrency during startup.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
@@ -1751,6 +1754,16 @@ trapUndefined(Definition undef ARG_LD)
 { Definition def;
 
 #ifdef O_PLMT
+  Module module = undef->module;
+  FunctorDef functor = undef->functor;
+					/* Auto import */
+  if ( (def = autoImport(functor->functor, module)) )
+    return def;
+					/* Pred/Module does not want to trap */
+  if ( true(undef, PROC_DEFINED) ||
+       getUnknownModule(module) == UNKNOWN_FAIL )
+    return undef;
+
   PL_mutex_lock(GD->thread.MUTEX_load);
 #endif
   def = trapUndefined_unlocked(undef PASS_LD);
