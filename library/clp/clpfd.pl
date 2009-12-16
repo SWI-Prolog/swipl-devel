@@ -2343,13 +2343,10 @@ X #< Y  :- Y #> X.
 % :- use_module(library(clpfd)).
 %
 % vs_n_num(Vs, N, Num) :-
-%         vs_n_bs(Vs, N, Bs),
+%         maplist(eq_b(N), Vs, Bs),
 %         sum(Bs, #=, Num).
 %
-% vs_n_bs([], _, []).
-% vs_n_bs([V|Vs], N, [B|Bs]) :-
-%         V #= N #<==> B,
-%         vs_n_bs(Vs, N, Bs).
+% eq_b(X, Y, B) :- X #= Y #<==> B.
 % ==
 %
 % Sample queries and their results:
