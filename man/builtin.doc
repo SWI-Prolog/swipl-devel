@@ -1354,11 +1354,11 @@ subclauses, which is identical to call/1.
     \predicate{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
-will call plus/3, binding \arg{X} to 3.
+will call \exam{plus(1, 2, X)}, binding \arg{X} to 3.
 
 The call/[2..] construct is handled by the compiler, which implies that
 redefinition as a predicate has no effect.  The predicates call/[2-6]
-are defined as true predicates, so they can be handled by interpreted
+are defined as real predicates, so they can be handled by interpreted
 code.
 
     \predicate{apply}{2}{:Goal, +List}
