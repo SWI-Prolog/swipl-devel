@@ -3491,7 +3491,8 @@ notify_registered_foreign(functor_t fd, Module m)
       PL_put_atom(argv+0, m->name);
       if ( !(PL_put_functor(argv+1, fd) &&
 	     PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, argv)) )
-	Sdprintf("Failed to notify new foreign predicate\n");
+	; /*Sdprintf("Failed to notify new foreign predicate\n");*/
+	  /*note that the hook may not be defined*/
       PL_discard_foreign_frame(cid);
     }
   }
