@@ -7,7 +7,7 @@ body and the three documented server instantiations.
 	Run threaded server. Requires SWI-Prolog with thread-support.
 	The server is started at port 3000 using server/0.  server/2
 	allows to specify options. tm/0 provides a graphical display
-	of the runing threads.  See source-file. 
+	of the runing threads.  See source-file.
 
 	$ demo_xpce.pl :
 	Run XPCE-based event-driven server.  Requires XPCE.  Use
@@ -26,6 +26,11 @@ body and the three documented server instantiations.
 	Multi-threaded server with session management using the
 	html_write.pl library.  See source for usage.
 
+---+ File serving demo:
+
+	$ demo_files.pl :
+	Is a multi-threaded server that serves static files and
+	directory indices.
 
 ---+ Client demo
 
@@ -42,10 +47,10 @@ locations  and  stress_client.pl  will  contain    client  code  to  run
 individual tests as well as doing multi-threaded tests.
 
 	$ stress_server.pl :
-	Server platform.  
+	Server platform.
 
 	$ stress_client.pl :
-	Client.  
+	Client.
 
 
 

@@ -52,7 +52,8 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
-		json.pl http_json.pl json_convert.pl
+		json.pl http_json.pl json_convert.pl http_dirindex.pl \
+		http_server_files.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd
@@ -74,8 +75,12 @@ install:	$(LIBPL)
 		rm -f $(DESTDIR)$(PLBASE)/lib/$(PLARCH)/http_chunked.@SO@
 		$(INSTALL_PROGRAM) $(SOLIBS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		mkdir -p $(DESTDIR)$(LIBDIR)
+		mkdir -p $(DESTDIR)$(LIBDIR)/web/icons
+		mkdir -p $(DESTDIR)$(LIBDIR)/web/css
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) web/icons/*.png $(DESTDIR)$(LIBDIR)/web/icons
+		$(INSTALL_DATA) web/css/*.css $(DESTDIR)$(LIBDIR)/web/css
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)

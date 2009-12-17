@@ -28,10 +28,12 @@
 */
 
 :- module(http_dirindex,
-	  [ http_dirindex/3		% +Request, +PhysicalDir, +Options
+	  [ http_reply_dirindex/3	% +PhysicalDir, +Options, +Request
 	  ]).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_server_files)).
 :- use_module(library(http/html_head)).
 :- use_module(library(apply)).
 :- use_module(library(option)).
@@ -46,16 +48,21 @@ http:file_extension_icon/2.
 @tbd	Provide more options (sorting, selecting columns, hiding files)
 */
 
-%%	http_dirindex(+Request, +Dir, +Options) is det.
+%%	http_reply_dirindex(+DirSpec, +Options, +Request) is det.
 %
 %	Provide a directory listing for Request, assuming it is an index
 %	for the physical directrory Dir. If   the  request-path does not
 %	end with /, first return a moved (301 Moved Permanently) reply.
 %
-%	Note that the caller  is  responsible   for  validating  that  a
-%	web-user may view the contents of the provided directory.
+%	The  calling  conventions  allows  for    direct   calling  from
+%	http_handler/3.
 
-http_dirindex(Request, Dir, Options) :-
+http_reply_dirindex(DirSpec, Options, Request) :-
+	http_safe_file(DirSpec, Options),
+	absolute_file_name(DirSpec, Dir,
+			   [ file_type(directory),
+			     access(read)
+			   ]),
 	memberchk(path(Path), Request),
 	(   atom_concat(PlainPath, /, Path),
 	    merge_options(Options,

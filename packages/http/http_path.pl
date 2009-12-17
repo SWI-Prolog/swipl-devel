@@ -65,10 +65,6 @@ files that belong to the server infrastructure (e.g., http_dirindex/2).
     * root
     The root of the server.  Default is /, but this may be overruled
     the the setting (see setting/2) =|http:prefix|=
-    * icons
-    Defaults to root(icons)
-    * css
-    Defaults to root(css)
 
 Here is an example that binds =|/login|=  to login/1. The user can reuse
 this application while moving all locations  using   a  new rule for the
@@ -101,16 +97,6 @@ http:location(root, Root, [priority(-100)]) :-
 	->  Root = Prefix
 	;   Root = (/)
 	).
-http:location(icons, root(icons), [ priority(-100) ]).
-http:location(css,   root(css),   [ priority(-100) ]).
-
-:- multifile
-	user:file_search_path/2.
-:- dynamic
-	user:file_search_path/2.
-
-file_search_path(icons, library('http/web/icons')).
-file_search_path(css,   library('http/web/css')).
 
 
 %%	http_absolute_location(+Spec, -Path, +Options) is det.

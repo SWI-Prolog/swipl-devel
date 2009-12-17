@@ -2,7 +2,7 @@
 # Install the SWI-Prolog HTTP package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -21,10 +21,11 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
-		json.pl http_json.pl json_convert.pl
+		json.pl http_json.pl json_convert.pl http_dirindex.pl \
+		http_server_files.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
-EXAMPLEEXE=	demo_inetd		
+EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 
 OBJ=		http_stream.obj
@@ -38,7 +39,7 @@ json.dll:	json.obj
 
 http_stream.obj:	http_error.c http_chunked.c cgi_stream.c stream_range.c
 
-all:		
+all:
 
 !IF "$(CFG)" == "rt"
 install::
@@ -48,6 +49,7 @@ install::
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
+		copy /r web "$(LIBDIR)\web"
 		copy http_stream.dll "$(BINDIR)"
 		copy json.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
