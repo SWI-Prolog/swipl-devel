@@ -53,6 +53,23 @@ additional argument with options. Currently only one option is defined:
     priorities is needed because we want to be able to overrule
     paths, but we do not want to become dependent on clause ordering.
 
+    The default priority is 0. Note however that notably libraries may
+    decide to provide a fall-back using a negative priority.  We suggest
+    -100 for such cases.
+
+This library predefines three locations at   priority  -100: The =icons=
+and =css= aliases are intended for images   and css files and are backed
+up by file a file-search-path that  allows   finding  the  icons and css
+files that belong to the server infrastructure (e.g., http_dirindex/2).
+
+    * root
+    The root of the server.  Default is /, but this may be overruled
+    the the setting (see setting/2) =|http:prefix|=
+    * icons
+    Defaults to root(icons)
+    * css
+    Defaults to root(css)
+
 Here is an example that binds =|/login|=  to login/1. The user can reuse
 this application while moving all locations  using   a  new rule for the
 admin location with the option =|[priority(10)]|=.
@@ -78,12 +95,23 @@ login(Request) :-
 :- dynamic
 	http:location/3.		% Alias, Expansion, Options
 
-http:location(root, Root, []) :-
+http:location(root, Root, [priority(-100)]) :-
 	(   catch(setting(http:prefix, Prefix), _, fail),
 	    Prefix \== ''
 	->  Root = Prefix
 	;   Root = (/)
 	).
+http:location(icons, root(icons), [ priority(-100) ]).
+http:location(css,   root(css),   [ priority(-100) ]).
+
+:- multifile
+	user:file_search_path/2.
+:- dynamic
+	user:file_search_path/2.
+
+file_search_path(icons, library('http/web/icons')).
+file_search_path(css,   library('http/web/css')).
+
 
 %%	http_absolute_location(+Spec, -Path, +Options) is det.
 %
