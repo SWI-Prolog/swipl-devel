@@ -28,24 +28,40 @@
 */
 
 :- module(http_dirindex,
-	  [ http_dirindex/2		% +Request, +PhysicalDir
+	  [ http_dirindex/3		% +Request, +PhysicalDir, +Options
 	  ]).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_path)).
-:- use_module(library(apply)).
 :- use_module(library(http/html_head)).
+:- use_module(library(apply)).
+:- use_module(library(option)).
 
+/** <module> HTTP directory listings
 
-%%	http_dirindex(+Request, +Dir) is det.
+This module provides a simple API to   generate  an index for a physical
+directory. The index can be customised   by  overruling the dirindex.css
+CSS file and by defining  additional  rules   for  icons  using the hook
+http:file_extension_icon/2.
+
+@tbd	Provide more options (sorting, selecting columns, hiding files)
+*/
+
+%%	http_dirindex(+Request, +Dir, +Options) is det.
 %
 %	Provide a directory listing for Request, assuming it is an index
 %	for the physical directrory Dir. If   the  request-path does not
-%	end with /, first return a moved reply.
+%	end with /, first return a moved (301 Moved Permanently) reply.
+%
+%	Note that the caller  is  responsible   for  validating  that  a
+%	web-user may view the contents of the provided directory.
 
-http_dirindex(Request, Dir) :-
+http_dirindex(Request, Dir, Options) :-
 	memberchk(path(Path), Request),
-	(   atom_concat(PlainPath, /, Path)
-	->  dir_index(Dir, [title(['Index of ', PlainPath])])
+	(   atom_concat(PlainPath, /, Path),
+	    merge_options(Options,
+			  [ title(['Index of ', PlainPath]) ],
+			  Options1)
+	->  dir_index(Dir, Options1)
 	;   atom_concat(Path, /, NewLocation),
 	    throw(http_reply(moved(NewLocation)))
 	).
@@ -146,15 +162,27 @@ size(Name) -->
 	},
 	html('~D'-[Size]).
 
+%%	file_type_icon(+Extension, -Icon) is det.
+%
+%	Determine the icon that is used  to   show  a  file of the given
+%	extension. This predicate can  be   hooked  using  the multifile
+%	http:file_extension_icon/2 hook with the same signature. Icon is
+%	the  plain  name  of  an  image    file   that  appears  in  the
+%	file-search-path =icons=.
+
 file_type_icon(Ext, Icon) :-
-	ext_icon(Ext, Icon), !.
+	http:file_extension_icon(Ext, Icon), !.
 file_type_icon(_, 'generic.png').
 
-ext_icon(pdf, 'layout.png').
-ext_icon(c, 'c.png').
-ext_icon(gz, 'compressed.png').
-ext_icon(tgz, 'compressed.png').
-ext_icon(zip, 'compressed.png').
+:- multifile
+	http:file_extension_icon/2.
+
+http:file_extension_icon(pdf, 'layout.png').
+http:file_extension_icon(c,   'c.png').
+http:file_extension_icon(gz,  'compressed.png').
+http:file_extension_icon(tgz, 'compressed.png').
+http:file_extension_icon(zip, 'compressed.png').
+
 
 		 /*******************************
 		 *	      RESOURCES		*
