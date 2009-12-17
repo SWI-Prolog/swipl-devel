@@ -1080,7 +1080,7 @@ so called ``standard order''. This order is defined as follows:
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
-    	  as floats. If the comparison is equal, the float is considered
+	  as floats. If the comparison is equal, the float is considered
 	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
 	  all floating point numbers precede all integers.
     \item \arg{Compound} terms are first checked on their arity, then
