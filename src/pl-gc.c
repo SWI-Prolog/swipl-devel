@@ -4630,9 +4630,12 @@ growStacks(size_t l, size_t g, size_t t)
 
 
 static size_t
-tight(Stack s)
+tight(Stack s ARG_LD)
 { size_t min_room  = sizeStackP(s)/4;
   size_t spare_gap = s->def_spare - s->spare;
+
+  if ( debugstatus.debugging && min_room < 32*1024 )
+    min_room = 32*1024;
 
   if ( (size_t)roomStackP(s) < min_room + spare_gap )
     return 1;
@@ -4644,9 +4647,9 @@ tight(Stack s)
 static int
 shiftTightStacks()
 { GET_LD
-  size_t l = tight((Stack)&LD->stacks.local);
-  size_t g = tight((Stack)&LD->stacks.global);
-  size_t t = tight((Stack)&LD->stacks.trail);
+  size_t l = tight((Stack)&LD->stacks.local PASS_LD);
+  size_t g = tight((Stack)&LD->stacks.global PASS_LD);
+  size_t t = tight((Stack)&LD->stacks.trail PASS_LD);
 
   if ( (l|g|t) )
     return growStacks(l, g, t);
