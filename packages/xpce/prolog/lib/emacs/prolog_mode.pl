@@ -823,7 +823,7 @@ alternate_syntax(pce_class,
 		 pce_expansion:pop_compile_operators).
 
 :- dynamic
-	syntax_error/1.
+	last_syntax_error/1.
 
 check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	"Check clause, returning the end of it"::
@@ -882,7 +882,7 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 %		produce information about comments.
 
 read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
-	retractall(syntax_error(_)),
+	retractall(last_syntax_error(_)),
 	alternate_syntax(_Name, Setup, Restore),
 	findall(Op, xref_op(TB, Op), Ops),
 	push_operators(Ops),
@@ -893,11 +893,11 @@ read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
 	pop_operators,
 	(   Error == none
 	->  true
-	;   assert(syntax_error(Error)),
+	;   assert(last_syntax_error(Error)),
 	    fail
 	), !.
 read_term_from_stream(_, _, _, _, Error, _, _, _) :-
-	setof(E, retract(syntax_error(E)), Es),
+	setof(E, retract(last_syntax_error(E)), Es),
 	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),
