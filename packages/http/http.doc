@@ -53,22 +53,10 @@ standard name/value pairs in the header are used to split the stream
 into messages and communicate about the connection-status. Many
 languages have client and or server libraries to deal with the HTTP
 protocol, making it a suitable candidate for general purpose
-client-server applications. It is the basis of popular agent protocols
-such as \url[SOAP]{http://www.w3.org/TR/SOAP} and
-\url[FIPA]{http://www.fipa.org}.
+client-server applications.
 
 In this document we describe a modular infra-structure to access
-web-servers from SWI-Prolog and turn Prolog into a web-server. The
-server code is designed to allow the same `body' to be used from an
-interactive server for debugging or providing services from otherwise
-interactive applications, run the body from an \emph{inetd} super-server
-or as a CGI script behind a generic web-server.
-
-The design of this module is different from the competing XPCE-based
-HTTP server located in \pllib{http/httpd.pl}, which intensively
-uses XPCE functionality to reach its goals. Using XPCE is not very
-suitable for CGI or inetd-driven servers due to required X11 connection
-and much larger footprint.
+web-servers from SWI-Prolog and turn Prolog into a web-server.
 
 
 \subsection*{Acknowledgements}
@@ -76,11 +64,13 @@ and much larger footprint.
 This work has been carried out under the following projects:
 \url[GARP]{http://hcs.science.uva.nl/projects/GARP/},
 \url[MIA]{http://www.ins.cwi.nl/projects/MIA/},
-\url[IBROW]{http://hcs.science.uva.nl/projects/ibrow/home.html}
-and \url[KITS]{http://kits.edte.utwente.nl/}. The following people have
-pioneered parts of this library and contributed with bug-report and
-suggestions for improvements: Anjo Anjewierden, Bert Bredeweg, Wouter
-Jansweijer and Bob Wielinga.
+\url[IBROW]{http://hcs.science.uva.nl/projects/ibrow/home.html},
+\url[KITS]{http://kits.edte.utwente.nl/} and
+\url[MultiMediaN]{http://e-culture.multimedian.nl/}
+The following people have pioneered parts of this library and
+contributed with bug-report and suggestions for improvements: Anjo
+Anjewierden, Bert Bredeweg, Wouter Jansweijer, Bob Wielinga, Jacco
+van Ossenbruggen, Michiel Hildebrandt, Matt Lilley and Keri Harris.
 
 
 \section{The HTTP client libraries}
