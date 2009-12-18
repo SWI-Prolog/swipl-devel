@@ -1161,6 +1161,8 @@ In the future we will design a call-back mechanism for locating and
 processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
 
+\input{pwp.tex}
+
 \section{Writing markup}
 
 \subsection{Writing documents}

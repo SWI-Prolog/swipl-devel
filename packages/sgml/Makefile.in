@@ -23,7 +23,7 @@ DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 LATEX=latex
 DOC=sgml
-TEX=$(DOC).tex xpath.tex
+TEX=$(DOC).tex xpath.tex pwp.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 HTML=$(DOC).html
@@ -55,7 +55,8 @@ ALLCSRC=	$(LIBOBJ:.o=.c) \
 		$(PLOBJ:.o=.c) $(SGMLOBJ:.o=.c) $(DTD2PLOBJ:.o=.c) \
 		$(HDRS)
 
-LIBPL=		sgml.pl xsdp_types.pl iso_639.pl sgml_write.pl xpath.pl
+LIBPL=		sgml.pl xsdp_types.pl iso_639.pl sgml_write.pl xpath.pl \
+		pwp.pl
 TARGETS=	sgml2pl.@SO@
 PROGRAMS=	dtd2pl sgml
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
@@ -136,6 +137,9 @@ $(TEX):		$(DOCTOTEX)
 
 xpath.tex:	xpath.pl
 		$(PLTOTEX) --out=$@ --section 'library(xpath)'
+
+pwp.tex:	pwp.pl
+		$(PLTOTEX) --out=$@ --section 'library(pwp)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

@@ -46,6 +46,7 @@ ilib::
 		copy iso_639.pl "$(PLBASE)\library"
 		copy sgml_write.pl "$(PLBASE)\library"
 		copy xpath.pl "$(PLBASE)\library"
+		copy pwp.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 idtd::
@@ -62,6 +63,7 @@ uninstall::
 		del "$(PLBASE)\library\iso_639.pl"
 		del "$(PLBASE)\library\sgml_write.pl"
 		del "$(PLBASE)\library\xpath.pl"
+		del "$(PLBASE)\library\pwp.pl"
 		$(MAKEINDEX)
 
 html-install::

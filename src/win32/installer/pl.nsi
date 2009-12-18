@@ -541,6 +541,7 @@ Section "SGML/XML/HTML parser"
   File pl\library\xsdp_types.pl
   File pl\library\iso_639.pl
   File pl\library\xpath.pl
+  File pl\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\sgml.html
 SectionEnd
