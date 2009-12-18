@@ -360,10 +360,11 @@ get_raw_form_data(char **data, size_t *lenp, int *must_free)
       }
       if ( done < 0 )
       { int e;
+	term_t obj;
 
       no_data:
 	e = errno;
-	term_t obj = PL_new_term_ref();
+	obj = PL_new_term_ref();
 
 	free(s);
 	PL_put_nil(obj);
