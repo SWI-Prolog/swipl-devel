@@ -42,8 +42,6 @@ packages/ssl/config.h.in
 packages/ssl/configure
 packages/table/config.h.in
 packages/table/configure
-packages/uri/config.h.in
-packages/uri/configure
 packages/xpce/src/config.h.in
 packages/xpce/src/configure
 packages/zlib/config.h.in
