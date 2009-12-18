@@ -5,9 +5,11 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_pwp)).
 
-user:file_search_path(pwp, pwp).
+user:file_search_path(pwp_demo, pwp).
 
-:- http_handler(root(.), pwp_handler([path_alias(pwp), view(true)]), [prefix]).
+:- http_handler(root(.),
+		pwp_handler([path_alias(pwp_demo), view(true)]),
+		[prefix]).
 
 server(Port) :-
 	http_server(http_dispatch, [port(Port)]).

@@ -201,6 +201,15 @@ ensure_slash(Path, Dir) :-
 %	    * CONTENT_LENGTH
 %	    Content-length provided with HTTP POST and PUT requests
 %
+%	While processing the script, the file-search-path pwp includes
+%	the current location of the script.  I.e., the following will
+%	find myprolog in the same directory as where the PWP file
+%	resides.
+%
+%	    ==
+%	    pwp:ask="ensure_loaded(pwp(myprolog))"
+%	    ==
+%
 %	@tbd complete the initial context, as far as possible from CGI
 %	     variables.  See http://hoohoo.ncsa.illinois.edu/docs/cgi/env.html
 %	@see pwp_handler/2.
@@ -221,11 +230,13 @@ reply_pwp_page(M:File, Options, Request) :-
 	->  PWP_M = Path
 	;   PWP_M = M
 	),
-	pwp_xml(PWP_M:Contents, Transformed,
-		[ 'REQUEST_METHOD' = Method,
-		  'SCRIPT_DIRECTORY' = Dir
-		| Context
-		]),
+	setup_call_cleanup(asserta(script_dir(Dir), Ref),
+			   pwp_xml(PWP_M:Contents, Transformed,
+				   [ 'REQUEST_METHOD' = Method,
+				     'SCRIPT_DIRECTORY' = Dir
+				   | Context
+				   ]),
+			   erase(Ref)),
 	option(mime_type(Type), Options, text/html),
 	format('Content-type: ~w~n~n', [Type]),
 	xml_write(current_output, Transformed, []).
@@ -240,3 +251,12 @@ pwp_context(Request, 'CONTENT_TYPE' = ContentType) :-
 	memberchk(content_type(ContentType), Request).
 pwp_context(Request, 'CONTENT_LENGTH' = Length) :-
 	memberchk(content_length(Length), Request).
+
+:- multifile user:file_search_path/2.
+:- dynamic   user:file_search_path/2.
+:- thread_local script_dir/1.
+
+user:file_search_path(pwp, ScriptDir) :-
+	script_dir(ScriptDir).
+
+
