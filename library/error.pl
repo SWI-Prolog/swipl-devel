@@ -36,6 +36,7 @@
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
 	    representation_error/1, 	% +Reason
+	    syntax_error/1, 		% +Culprit
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -136,6 +137,18 @@ instantiation_error(_Term) :-
 
 representation_error(Reason) :-
 	throw(error(representation_error(Reason), _)).
+
+%%	syntax_error(+Culprit)
+%
+%	A text has invalid syntax.  The error is described by Culprit.
+%
+%	@tbd	Deal with proper description of the location of the
+%		error.  For short texts, we allow for Type(Text), meaning
+%		Text is not a valid Type.  E.g. syntax_error(number('1a'))
+%		means that =1a= is not a valid number.
+
+syntax_error(Culprit) :-
+	throw(error(syntax_error(Culprit), _)).
 
 
 		 /*******************************

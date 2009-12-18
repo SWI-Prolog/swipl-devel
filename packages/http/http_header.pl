@@ -87,8 +87,8 @@ http_read_request(In, Request) :-
 	    Request =  [input(In)|Request1],
 	    phrase(request(In, Request1), Codes),
 	    (	Request1 = [unknown(Text)|_]
-	    ->	string_to_list(S, Text),
-		domain_error(http_request, S)
+	    ->	atom_codes(S, Text),
+		syntax_error(http_request(S))
 	    ;	true
 	    )
 	).
@@ -107,7 +107,8 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 	;   debug(http(header), 'First line: ~s~n', [Codes]),
 	    (   phrase(reply(In, Reply), Codes)
 	    ->  true
-	    ;   throw(error(syntax(http_reply_header, Codes), _))
+	    ;   atom_codes(Header, Codes),
+		syntax_error(http_reply_header(Header))
 	    )
 	).
 
@@ -1402,6 +1403,13 @@ read_header_data(_, Fd, Tail) :-
 	read_line_to_codes(Fd, Tail, NewTail),
 	read_header_data(Tail, Fd, NewTail).
 
+%%	http_parse_header(+Text:codes, -Header:list) is det.
+%
+%	Header is a list of Name(Value)-terms representing the structure
+%	of the HTTP header in Text.
+%
+%	@error domain_error(http_request_line, Line)
+
 http_parse_header(Text, Header) :-
 	phrase(header(Header), Text),
 	debug(http(header), 'Fields: ~w~n', [Header]).
@@ -1414,7 +1422,12 @@ header(List) -->
 	header(Tail).
 header([]) -->
 	blanks,
-	[].
+	eos, !.
+header(_) -->
+	string(S), blanks_to_nl, !,
+	{ atom_codes(Line, S),
+	  syntax_error(http_request_line(Line))
+	}.
 
 %%	address//
 %
@@ -1435,7 +1448,9 @@ address -->
 	http:http_address, !.
 address -->
 	{ gethostname(Host) },
-	html(address(['SWI-Prolog httpd at ', Host])).
+	html(address([ a(href('http://www.swi-prolog.org'), 'SWI-Prolog'),
+		       ' httpd at ', Host
+		     ])).
 
 mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
 mkfield(Name, Value, [Att|Tail], Tail) :-
