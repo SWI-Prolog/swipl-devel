@@ -93,6 +93,9 @@ predicates:
 %	    If a directory has no index-file, pwp_handler/2 calls
 %	    Hook(PhysicalDir, Options, Request).  If this semidet
 %	    predicate succeeds, the request is considered handled.
+%	    * hide_extensions(+List)
+%	    Hide files of the given extensions.  The default is to
+%	    hide .pl files.
 %
 %	@see reply_pwp_page/3
 %	@error permission_error(index, http_location, Location) is
@@ -151,7 +154,13 @@ server_file(File, Request, Options) :-
 	    reply_pwp_page(File, [unsafe(true)|Opts], Request)
 	).
 server_file(File, Request, Options) :-
-	http_reply_file(File, Options, Request).
+	option(hide_extensions(Exts), Options, [pl]),
+	file_name_extension(_, Ext, File),
+	(   memberchk(Ext, Exts)
+	->  memberchk(path(Location), Request),
+	    permission_error(read, http_location, Location)
+	;   http_reply_file(File, [unsafe(true)|Options], Request)
+	).
 
 
 ensure_slash(Path, Dir) :-

@@ -398,7 +398,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 %	The  library  http_authenticate.pl  provides  an  implementation
 %	thereof.
 %
-%	@error	permission_error(http_location, access, Location)
+%	@error	permission_error(access, http_location, Location)
 
 :- multifile
 	http:authenticate/3.
@@ -409,7 +409,7 @@ authentication([authentication(Type)|Options], Request, Fields) :- !,
 	->  append(XFields, More, Fields),
 	    authentication(Options, Request, More)
 	;   memberchk(path(Path), Request),
-	    throw(error(permission_error(http_location, access, Path), _))
+	    throw(error(permission_error(access, http_location, Path), _))
 	).
 authentication([_|Options], Request, Fields) :-
 	authentication(Options, Request, Fields).

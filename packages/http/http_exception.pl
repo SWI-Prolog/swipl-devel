@@ -66,7 +66,7 @@ map_exception_to_http_status(http_reply(Reply, HdrExtra0),
 map_exception_to_http_status(error(existence_error(http_location, Location), _),
 	      not_found(Location),
 	      [connection(close)]) :- !.
-map_exception_to_http_status(error(permission_error(http_location, access, Location), _),
+map_exception_to_http_status(error(permission_error(_, http_location, Location), _),
 	      forbidden(Location),
 	      [connection(close)]) :- !.
 map_exception_to_http_status(error(threads_in_pool(_Pool), _),
