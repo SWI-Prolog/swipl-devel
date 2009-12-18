@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE html>
+
+<html xmlns:pwp="http://www.cs.otago.ac.nz/staffpriv/ok/pwp.pl">
+
+<head>
+  <title>Index for PWP demos</title>
+</head>
+<body pwp:ask="atom_concat(SCRIPT_DIRECTORY, /, Prefix),
+	       atom_concat(Prefix, '*.pwp', Pattern),
+	       expand_file_name(Pattern, Paths),
+	       maplist(atom_concat(Prefix), Files, Paths)">
+
+<h1>PWP scripts in this directory</h1>
+
+  <ul>
+    <li pwp:ask="member(F, Files), F \== 'index.pwp'">
+	<a pwp:use="F" pwp:att="$" href="$(F)$"/>
+	<a pwp:att="$" href="$(F)$?view=source">source</a>
+    </li>
+  </ul>
+</body>
+
+</html>
+

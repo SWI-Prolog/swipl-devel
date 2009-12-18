@@ -109,7 +109,7 @@ pwp_handler(QOptions, Request) :-
 	;   Spec = '.'
 	),
 	(   option(path_alias(Alias), Options)
-	->  Term =.. [Alias,Path]
+	->  Term =.. [Alias,Spec]
 	;   Term = Spec
 	),
 	http_safe_file(Term, Options),

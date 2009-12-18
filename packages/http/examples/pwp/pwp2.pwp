@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<html
+  xmlns:pwp="http://www.cs.otago.ac.nz/staffpriv/ok/pwp.pl">
+  <head><title>Example 2</title></head>
+  <body pwp:ask="Hello = 'Hello world', A = 20, B = 22">
+    <h1 pwp:use="Hello"/>
+    <p>The answer is <span pwp:tag='-' pwp:use="C" pwp:ask="C is A+B"/>.</p>
+  </body>
+</html>
