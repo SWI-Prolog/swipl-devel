@@ -53,7 +53,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
 		json.pl http_json.pl json_convert.pl http_dirindex.pl \
-		http_server_files.pl
+		http_server_files.pl http_pwp.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
 		calc.pl
 EXAMPLEEXE=	demo_inetd
@@ -117,7 +117,7 @@ pdf:		$(PDF)
 html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
-		httpsession.tex httpdispatch.tex
+		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -149,6 +149,12 @@ httpsession.tex: http_session.pl
 
 httpdispatch.tex: http_dispatch.pl
 		$(PLTOTEX) --subsection 'library(http/http_dispatch)'
+
+httpdirindex.tex: http_dirindex.pl
+		$(PLTOTEX) --subsection 'library(http/http_dirindex)'
+
+httppwp.tex:	http_pwp.pl
+		$(PLTOTEX) --subsection 'library(http/http_pwp)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

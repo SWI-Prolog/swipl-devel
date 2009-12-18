@@ -505,6 +505,7 @@ last time.
 
 
 \input{httpdispatch.tex}
+\input{httpdirindex.tex}
 \input{httpsession.tex}
 
 
@@ -1769,6 +1770,7 @@ that can be done at compile-time.
 
 \input{httppath}
 \input{htmlhead}
+\input{httppwp}
 
 \subsection{Security}
 
