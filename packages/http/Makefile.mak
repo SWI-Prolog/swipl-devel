@@ -24,7 +24,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		json.pl http_json.pl json_convert.pl http_dirindex.pl \
 		http_server_files.pl http_pwp.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl
+		calc.pl demo_files.pl demo_pwp.pl
 EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 
@@ -70,6 +70,7 @@ install-examples::
 		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
 		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
 		cd examples & copy $(EXAMPLEEXE) "$(EXDIR)"
+		cd examples & copy /r pwp "$(EXDIR)"
 
 xpce-install::
 

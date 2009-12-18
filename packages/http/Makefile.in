@@ -55,7 +55,7 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		json.pl http_json.pl json_convert.pl http_dirindex.pl \
 		http_server_files.pl http_pwp.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl
+		calc.pl demo_files.pl demo_pwp.pl
 EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 SOLIBS=		http_stream.@SO@ json.@SO@
@@ -96,7 +96,9 @@ html-install:	install-examples
 
 install-examples::
 		mkdir -p $(DESTDIR)$(EXDIR)
+		mkdir -p $(DESTDIR)$(EXDIR)/pwp
 		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
+		(cd examples/pwp && $(INSTALL_DATA) *.pwp *.pl $(DESTDIR)$(EXDIR)/pwp)
 		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
 
 uninstall::
