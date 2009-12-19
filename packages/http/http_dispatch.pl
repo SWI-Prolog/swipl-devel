@@ -36,6 +36,7 @@
 	    http_current_handler/2,	% ?Path, ?Pred
 	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2,	% +ID, -Location
+	    http_link_to_id/3,		% +ID, +Parameters, -HREF
 	    http_safe_file/2		% +Spec, +Options
 	  ]).
 :- use_module(library(option)).
@@ -43,6 +44,7 @@
 :- use_module(library(time)).
 :- use_module(library(error)).
 :- use_module(library(settings)).
+:- use_module(library(uri)).
 :- use_module(library(http/mimetype)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_header)).
@@ -379,6 +381,20 @@ location_by_id_raw(ID, Location, Priority) :-
 	(   ID = M:PN
 	;   ID = PN
 	), !.
+
+
+%%	http_link_to_id(+HandleID, +Parameters, -HREF)
+%
+%	HREF is a link on the local server to a handler with given ID,
+%	passing the given Parameters.
+
+http_link_to_id(HandleID, Parameters, HREF) :-
+	http_location_by_id(HandleID, Location),
+	uri_data(path, Components, Location),
+	uri_query_components(String, Parameters),
+	uri_data(search, Components, String),
+	uri_components(HREF, Components).
+
 
 %	hook into html_write:attribute_value//1.
 
