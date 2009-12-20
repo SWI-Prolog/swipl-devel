@@ -817,8 +817,8 @@ rdf_load([], _) :- !.
 rdf_load([H|T], Options) :- !,
 	rdf_load(H, Options),
 	rdf_load(T, Options).
-rdf_load(Spec, M:Options0) :-
-	fix_options(Options0, Options),
+rdf_load(Spec, M:Options) :-
+	must_be(list, Options),
 	statistics(cputime, T0),
 	(   select(result(Action, Triples, MD5), Options, Options1)
 	->  true
@@ -886,15 +886,6 @@ rdf_load(Spec, M:Options0) :-
 	    rdf_source(Graph, _, _, Triples, MD5)
 	),
 	report_loaded(Action, Input, Graph, Triples, T0, Options).
-
-%%	fix_options(+Spec, -Options) is det.
-%
-%	Fix options for old format
-
-fix_options(DB, Options) :-
-	atom(DB), DB \== [], !,
-	Options = [db(DB)].
-fix_options(Options, Options).
 
 %%	rdf_format(+FormatIn, -Format)
 %
