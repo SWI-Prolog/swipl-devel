@@ -1602,7 +1602,14 @@ retry_continue:
       SAVE_REGISTERS(qid);
       DEF = getProcDefinedDefinition(DEF PASS_LD);
       LOAD_REGISTERS(qid);
-      FR->predicate = DEF;
+      if ( FR->predicate != DEF )		/* auto imported/loaded */
+      { FR->predicate = DEF;
+#ifdef O_PROFILE
+        if ( FR->prof_node )
+	  profSetHandle(FR->prof_node, DEF);
+#endif
+        goto retry_continue;
+      }
       set(FR, FR_INBOX);
 
       SAVE_REGISTERS(qid);
