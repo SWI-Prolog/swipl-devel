@@ -1441,6 +1441,8 @@ AbsoluteFile(const char *spec, char *path)
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
 
+  if ( !file )
+     return (char *) NULL;
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = ExpandOneFile(buf, tmp)) )
       return (char *) NULL;
