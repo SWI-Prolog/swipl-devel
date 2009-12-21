@@ -762,13 +762,12 @@ rdf_load_db(File) :-
 		 *******************************/
 
 :- multifile
-	rdf_open_hook/3,
-	rdf_load_stream/3,
-	rdf_input_info_hook/3,
-	rdf_file_type/2,
-	rdf_storage_encoding/2,
-	url_protocol/1,
-	exists_url/1.
+	rdf_open_hook/8,
+	rdf_open_decode/4,		% +Encoding, +File, -Stream, -Cleanup
+	rdf_load_stream/3,		% +Format, +Stream, +Options
+	rdf_file_type/2,		% ?Extension, ?Format
+	rdf_storage_encoding/2,		% ?Extension, ?Encoding
+	url_protocol/1.			% ?Protocol
 
 %%	rdf_load(+FileOrList) is det.
 %%	rdf_load(+FileOrList, +Options) is det.
@@ -820,153 +819,244 @@ rdf_load([H|T], Options) :- !,
 rdf_load(Spec, M:Options) :-
 	must_be(list, Options),
 	statistics(cputime, T0),
-	(   select(result(Action, Triples, MD5), Options, Options1)
-	->  true
-	;   Options1 = Options
-	),
-	rdf_input(Spec, Input, SourceURL),
-	(   rdf_input_info(Input, Modified, DefFormat)
-	->  true
-	;   Modified = 0,
-	    DefFormat = xml
-	),
-	select_option(base_uri(BaseURI), Options1, Options2, SourceURL),
-	select_option(format(Format), Options2, Options3, DefFormat),
-	select_option(blank_nodes(ShareMode), Options3, Options4, noshare),
-	select_option(cache(Cache), Options4, Options5, true),
-	select_option(if(If), Options5, Options6, changed),
-	select_option(register_namespaces(RegNS), Options6, Options7, false),
-	(   select_option(graph(Graph), Options7, RDFOptions0)
-	->  true
-	;   select_option(db(Graph), Options7, RDFOptions0, SourceURL)
-	),
-
-	(   var(BaseURI)
-	->  BaseURI = SourceURL
-	;   true
-	),
-	(   RegNS == true
-	->  RDFOptions = [ namespaces(NSList)|RDFOptions0]
-	;   RDFOptions = RDFOptions0
-	),
-	(   must_load(If, Graph, Modified)
-	->  do_unload(Graph),		% unload old
-	    (   Cache == true,
-		read_cache(SourceURL, Modified, CacheFile),
-	        catch(rdf_load_db_no_admin(CacheFile, cache(Graph), Graphs), _, fail),
-		check_loaded_cache(Graph, Graphs, Modified)
-	    ->  Action = load
-	    ;   rdf_input_open(Input, Stream, Format),
-		must_be(ground, Format),
-		rdf_format(Format, RDFFormat),
-		rdf_set_graph_source(Graph, SourceURL, Modified),
-		call_cleanup(rdf_load_stream(RDFFormat, Stream,
-					     M:[ base_uri(BaseURI),
-						 blank_nodes(ShareMode),
-						 db(Graph)
-					       | RDFOptions
-					       ]),
-			     close_input(Input, Stream)), !,
-		register_file_ns(NSList),
-		(   Cache == true,
-		    rdf_cache_file(SourceURL, write, CacheFile)
-		->  catch(save_cache(Graph, CacheFile), E,
-			  print_message(warning, E))
-		;   true
-		),
-		(   Format = triples
-		->  Action = load
-		;   Action = parsed
-		)
-	    ),
+	rdf_open_input(Spec, In, Cleanup, SourceURL, Graph, Modified,
+		       Format, Options),
+	(   Modified == not_modified
+	->  Action = none
+	;   Modified = cached(CacheFile)
+	->  do_unload(Graph),
+	    catch(rdf_load_db_no_admin(CacheFile, cache(Graph), Graphs), _, fail),
+	    check_loaded_cache(Graph, Graphs, Modified),
+	    rdf_statistics_(triples(Graph, Triples)),
+	    Action = load
+	;   option(base_uri(BaseURI), Options, Graph),
+	    phrase(derived_options(Options, NSList), Extra),
+	    merge_options([ base_uri(BaseURI),
+			    graph(Graph),
+			    format(Format)
+			  | Extra
+			  ], Options, RDFOptions),
+	    do_unload(Graph),
+	    graph_modified(Modified, ModifiedStamp),
+	    rdf_set_graph_source(Graph, SourceURL, ModifiedStamp),
+	    call_cleanup(rdf_load_stream(Format, In, M:RDFOptions),
+			 Cleanup),
+	    save_cache(Graph, SourceURL, Options),
+	    register_file_ns(NSList),
 	    rdf_statistics_(triples(Graph, Triples)),
 	    rdf_md5(Graph, MD5),
-	    assert(rdf_source(Graph, SourceURL, Modified, Triples, MD5))
-	;   Action = none,
-	    rdf_source(Graph, _, _, Triples, MD5)
+	    assert(rdf_source(Graph, SourceURL, Modified, Triples, MD5)),
+	    format_action(Format, Action)
 	),
-	report_loaded(Action, Input, Graph, Triples, T0, Options).
+	report_loaded(Action, SourceURL, Graph, Triples, T0, Options).
 
-%%	rdf_format(+FormatIn, -Format)
+format_action(triples, load) :- !.
+format_action(_, parsed).
+
+save_cache(Graph, SourceURL, Options) :-
+	option(cache(true), Options, true),
+	rdf_cache_file(SourceURL, write, CacheFile), !,
+	catch(save_cache(Graph, CacheFile), E,
+	      print_message(warning, E)).
+save_cache(_, _, _).
+
+derived_options([], _) -->
+	[].
+derived_options([H|T], NSList) -->
+	(   {   H == register_namespaces(true)
+	    ;   H == (register_namespaces = true)
+	    },
+	    [ namespaces(NSList) ]
+	;   []
+	),
+	derived_options(T, _).
+
+graph_modified(last_modified(Stamp), Stamp).
+graph_modified(unknown, Stamp) :-
+	get_time(Stamp).
+
+
+		 /*******************************
+		 *	  INPUT HANDLING	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This section deals with pluggable input sources.  The task of the input
+layer is
+
+    * Decide on the graph-name
+    * Decide on the source-location
+    * Decide whether loading is needed (if-modified)
+    * Decide on the serialization in the input
+
+The protocol must ensure minimal  overhead,   in  particular for network
+protocols. E.g. for HTTP we want to make a single call on the server and
+use If-modified-since to verify that we need not reloading this file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%%	rdf_open_input(+Spec, -Stream, -Cleanup,
+%%		       -Source, -Graph, -Modified, -Format,
+%%		       +Options)
 %
-%	Remove format envelopes, such as gzip(Format).
-
-rdf_format(Format, Format) :-
-	atom(Format), !.
-rdf_format(Format0, Format) :-
-	arg(1, Format0, Format1),
-	rdf_format(Format1, Format).
-
-%%	close_input(+Input, +Stream) is det.
+%	Open an input source.
 %
-%	Close input if it was not specified as a stream.
-
-close_input(stream(_), _) :- !.
-close_input(_, Stream) :-
-	close(Stream).
-
-%%	rdf_input(+Term, -Input, -BaseURI) is semidet.
+%	Options processed:
 %
-%	Resolve input description Term.  Unify   Input  with a canonical
-%	description of the input, which is one of:
+%	    * graph(Graph)
+%	    * db(Graph)
+%	    * if(Condition)
+%	    * cache(Cache)
+%	    * format(Format)
 %
-%	  * stream(Stream)
-%	  * file(AbsolutePath)
-%	  * url(Protocol, URL)
-%
-%	BaseURI is unified with a default base   URI. Note that this may
-%	be overruled from the options of rdf_load/2.
+%	@param	Modified is one of =not_modified=, last_modified(Time),
+%		cached(CacheFile) or =unknown=
 
-rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
-	(   stream_property(Stream, file_name(File))
-	->  uri_file_name(BaseURI, File)
-	;   gensym('stream://', BaseURI)
-	).
-rdf_input(Stream, stream(Stream), BaseURI) :-
-	is_stream(Stream), !,
-	rdf_input(stream(Stream), _, BaseURI).
-rdf_input(FileURL, file(File), BaseURI) :-
-	atom(FileURL),
-	uri_file_name(FileURL, File0), !,
-	file_input(File0, File, BaseURI).
-rdf_input(URL0, url(Protocol, URL), URL0) :-
-	is_url(URL0, Protocol), !,
-	(   storage_extend(URL0, URL),
-	    exists_url(url(Protocol, URL))
+rdf_open_input(Spec, Stream, Cleanup,
+	       SourceURL, Graph, Modified, Format,
+	       Options) :-
+	source_url(Spec, Protocol, SourceURL),
+	load_graph(SourceURL, Graph, Options),
+	option(if(If), Options, changed),
+	(   If == true
 	->  true
-	;   URL=URL0
+	;   rdf_graph_source_(Graph, SourceURL, HaveModified)
+	->  true
+	;   option(cache(true), Options, true),
+	    rdf_cache_file(SourceURL, read, CacheFile)
+	->  time_file(CacheFile, HaveModified)
+	;   true
+	),
+	option(format(Format), Options, _),
+	open_input_if_modified(Protocol, SourceURL, HaveModified,
+			       Stream, Cleanup, Modified0, Format, Options),
+	(   Modified0 == not_modified
+	->  (   nonvar(CacheFile)
+	    ->	Modified = cached(CacheFile)
+	    ;	Modified = not_modified
+	    )
+	;   Modified = Modified0
 	).
-rdf_input(Spec, file(Path), BaseURI) :-
-	file_input(Spec, Path, BaseURI).
 
-file_input(Spec, Path, BaseURI) :-
+
+%%	source_url(+Spec, -Class, -SourceURL) is det.
+%
+%	Determine class and url of the source.  Class is one of
+%
+%	    * stream(Stream)
+%	    * file
+%	    * a url-protocol (e.g., =http=)
+
+source_url(stream(In), stream(In), SourceURL) :- !,
+	(   stream_property(In, file_name(File))
+	->  to_url(File, SourceURL)
+	;   gensym('stream://', SourceURL)
+	).
+source_url(Stream, Class, SourceURL) :-
+	is_stream(Stream), !,
+	source_url(stream(Stream), Class, SourceURL).
+source_url(Spec, Protocol, SourceURL) :-
+	compound(Spec), !,
+	source_file(Spec, Protocol, SourceURL).
+source_url(FileURL, Protocol, SourceURL) :-		% or return FileURL?
+	uri_file_name(FileURL, File), !,
+	source_file(File, Protocol, SourceURL).
+source_url(SourceURL, Protocol, SourceURL) :-
+	is_url(SourceURL, Protocol), !.
+source_url(File, Protocol, SourceURL) :-
+	source_file(File, Protocol, SourceURL).
+
+source_file(Spec, file(SExt), SourceURL) :-
 	findall(Ext, valid_extension(Ext), Exts),
-	absolute_file_name(Spec, Path,
-			   [ access(read),
-			     extensions(Exts)
-			   ]),
-	uri_file_name(BaseURI0, Path),
-	clean_base_uri(BaseURI0, BaseURI).
+	absolute_file_name(Spec, File, [access(read), extensions(Exts)]),
+	storage_extension(Plain, SExt, File),
+	uri_file_name(SourceURL, Plain).
+
+to_url(URL, URL) :-
+	is_url(URL, _Protocol), !.
+to_url(File, URL) :-
+	absolute_file_name(File, Path),
+	uri_file_name(URL, Path).
+
+storage_extension(Plain, SExt, File) :-
+	file_name_extension(Plain, SExt, File),
+	SExt \== '',
+	rdf_storage_encoding(SExt, _), !.
+storage_extension(File, '', File).
+
+%%	rdf_input(URL, Source, _BaseURI) is semidet.
+%
+%	@deprecated Only exists to make old ClioPatria rdf_library.pl
+%	work
+
+rdf_input(Spec, Source, _BaseURI) :-
+	source_url(Spec, Class, SourceURL),
+	compat_input(Class, SourceURL, Source).
+
+compat_input(file(Ext), SourceURL, file(Path)) :-
+	uri_file_name(SourceURL, File),
+	file_name_extension(File, Ext, Path).
+compat_input(http, SourceURL, url(http, SourceURL)).
+
+%%	load_graph(+SourceURL, -Graph, +Options) is det.
+%
+%	Graph is the graph into which we load the data.
+
+load_graph(_, Graph, Options) :-
+	option(graph(Graph), Options), !.
+load_graph(_, Graph, Options) :-
+	option(db(Graph), Options), !.
+load_graph(SourceURL, BaseURI, _) :-
+	file_name_extension(BaseURI, Ext, SourceURL),
+	rdf_storage_encoding(Ext, _), !.
+load_graph(SourceURL, SourceURL, _).
+
+
+open_input_if_modified(stream(In), SourceURL, _, In, true,
+		       unknown, Format, _) :- !,
+	(   var(Format)
+	->  guess_format(SourceURL, Format)
+	;   true
+	).
+open_input_if_modified(file(SExt), SourceURL, HaveModified, Stream, Cleanup,
+		       Modified, Format, _) :- !,
+	uri_file_name(SourceURL, File0),
+	file_name_extension(File0, SExt, File),
+	time_file(File, LastModified),
+	(   nonvar(HaveModified),
+	    HaveModified >= LastModified
+	->  Modified = not_modified,
+	    Cleanup = true
+	;   storage_open(SExt, File, Stream, Cleanup),
+	    Modified = last_modified(LastModified),
+	    (	var(Format)
+	    ->	guess_format(File0, Format)
+	    ;	true
+	    )
+	).
+open_input_if_modified(file, SourceURL, HaveModified, Stream, Cleanup,
+		       Modified, Format, Options) :- !,
+	open_input_if_modified(file(''), SourceURL, HaveModified,
+			       Stream, Cleanup,
+			       Modified, Format, Options).
+open_input_if_modified(Protocol, SourceURL, HaveModified, Stream, Cleanup,
+		       Modified, Format, Options) :-
+	rdf_open_hook(Protocol, SourceURL, HaveModified, Stream, Cleanup,
+		      Modified, Format, Options).
+
+guess_format(File, Format) :-
+	file_name_extension(_, Ext, File),
+	rdf_file_type(Ext, Format).
+
+storage_open('', File, Stream, close(Stream)) :- !,
+	open(File, read, Stream).
+storage_open(Ext, File, Stream, Cleanup) :-
+	rdf_storage_encoding(Ext, Encoding),
+	rdf_open_decode(Encoding, File, Stream, Cleanup).
 
 valid_extension(Ext) :-
 	rdf_file_type(Ext, _).
 valid_extension(Ext) :-
 	rdf_storage_encoding(Ext, _).
-
-
-storage_extend(Path, Path).
-storage_extend(Path0, Path) :-
-	rdf_storage_encoding(Ext, _), Ext \== '',
-	file_name_extension(Path0, Ext, Path).
-
-%%	clean_base_uri(+BaseURI0, -BaseURI) is det.
-%
-%	BaseURI  is  BaseURI0  after    removing  storage  extensions.
-
-clean_base_uri(BaseURI0, BaseURI) :-
-	rdf_storage_encoding(Ext, _), Ext \== '',
-	file_name_extension(BaseURI, Ext, BaseURI0), !.
-clean_base_uri(BaseURI, BaseURI).
 
 %%	is_url(+Term, -Protocol) is semidet.
 %
@@ -981,46 +1071,7 @@ is_url(URL, Protocol) :-
 	downcase_atom(RawProtocol, Protocol),
 	url_protocol(Protocol).
 
-%%	exists_url(+URL) is semidet.
-%
-%	True if URL exists.
-
-%	(no default clauses)
-
-%%	url_protocol(+Protocol) is det.
-%
-%	True  if  Protocol  is  the  (lowercase)  name  of  a  supported
-%	protocol.  New  protocols  can  be    added  to  this  multifile
-%	predicate. In addition the plugin must define rdf_open_hook/3 to
-%	create a stream from the added protocol.
-
-%	(no default clauses)
-
-%%	rdf_input_info(+Input, -Modified, -Format) is semidet.
-%
-%	Return the last modification  time  of   Input  as  a POSIX time
-%	stamp as well as the format of the input.
-
-rdf_input_info(Input, Modified, Format) :-
-	rdf_input_info_hook(Input, Modified, Format), !.
-rdf_input_info(file(File), Modified, Format) :-
-	time_file(File, Modified),
-	file_name_extension(_, Ext, File),
-	(   rdf_file_type(Ext, Format)
-	->  true
-	;   Format = xml
-	).
-
-%%	rdf_input_open(+Input, -Stream, ?Format) is det.
-%
-%	Open given input as a stream.
-
-rdf_input_open(Input, Stream, Format) :-
-	rdf_open_hook(Input, Stream, Format), !.
-rdf_input_open(stream(Stream), Stream, _) :- !.
-rdf_input_open(file(File), Stream, _) :-
-	open(File, read, Stream, [type(binary)]).
-
+url_protocol(file).			% built-in
 
 %%	rdf_file_type(+Extension, -Format) is semidet.
 %
@@ -1063,32 +1114,6 @@ rdf_load_stream(triples, Stream, Options) :- !,
 	rdf_load_db_(Stream, Graph, _Graphs).
 
 
-%%	read_cache(+BaseURI, +SourceModified, -CacheFile) is semidet.
-%
-%	True if CacheFile is a cache-file modified after SourceModified.
-
-read_cache(BaseURI, Modified, CacheFile) :-
-	rdf_cache_file(BaseURI, read, CacheFile),
-	time_file(CacheFile, CacheModified),
-	CacheModified >= Modified.
-
-
-%%	must_load(+Condition, +DB, +ModifiedSrc) is semidet.
-%
-%	True if source must be reloaded.
-
-must_load(true, _, _) :- !.
-must_load(changed, DB, ModifiedSrc) :- !,
-	(   rdf_graph_source_(DB, _SourceURL, ModifiedLoaded)
-	->  ModifiedSrc > ModifiedLoaded
-	;   true
-	).
-must_load(not_loaded, DB, _) :- !,
-	\+ rdf_source(DB).
-must_load(Cond, _, _) :-
-	throw(eror(domain_error(condition, Cond), _)).
-
-
 %%	report_loaded(+Action, +Source, +DB, +Triples, +StartCPU, +Options)
 
 report_loaded(none, _, _, _, _, _) :- !.
@@ -1103,26 +1128,23 @@ report_loaded(Action, Source, DB, Triples, T0, Options) :-
 		      rdf(loaded(Action, Source, DB, Triples, Time))).
 
 
-
-%%	rdf_unload(+Spec)
+%%	rdf_unload(+Spec) is det.
 %
 %	Remove the triples loaded from the specified source and remove
 %	the source from the database.
 
-rdf_unload(DB) :-
-	atom(DB),
-	rdf_statistics_(triples(DB, _)),
-	(   rdf(_,_,_,DB)
-	;   rdf(_,_,_,DB:_)
-	), !,
-	do_unload(DB).
+rdf_unload(Graph) :-
+	atom(Graph),
+	rdf_statistics_(triples(Graph, _)), !,
+	do_unload(Graph).
 rdf_unload(Spec) :-
-	rdf_input(Spec, _, BaseURI),
-	do_unload(BaseURI).
+	source_url(Spec, _Protocol, SourceURL),
+	rdf_graph_source_(Graph, SourceURL, _), !,
+	do_unload(Graph).
+rdf_unload(_).
 
 do_unload(DB) :-
-	rdf_transaction((rdf_retractall(_,_,_,DB:_),
-			 rdf_retractall(_,_,_,DB)),
+	rdf_transaction(rdf_retractall(_,_,_,DB),
 			unload(DB)),
 	retractall(rdf_source(DB, _, _, _, _)),
 	rdf_unset_graph_source(DB).
@@ -1143,13 +1165,13 @@ rdf_graph(DB) :-
 	rdf_statistics_(triples(DB, Triples)),
 	Triples > 0.
 
-%%	rdf_source(?DB, ?Source) is nondet.
+%%	rdf_source(?Graph, ?SourceURL) is nondet.
 %
-%	True if named graph DB is loaded from Source.
+%	True if named Graph is loaded from SourceURL.
 
-rdf_source(DB, SourceURL) :-
-	rdf_graph(DB),
-	rdf_graph_source_(DB, SourceURL, _Modified).
+rdf_source(Graph, SourceURL) :-
+	rdf_graph(Graph),
+	rdf_graph_source_(Graph, SourceURL, _Modified).
 
 %%	rdf_source(?Source)
 %
@@ -1157,14 +1179,8 @@ rdf_source(DB, SourceURL) :-
 %
 %	@deprecated	Use rdf_graph/1 or rdf_source/2.
 
-rdf_source(DB) :-
-	rdf_source(DB,_,_,_,_).		% loaded files
-rdf_source(DB) :-
-	rdf_graphs_(Sources),		% other sources
-	member(DB, Sources),
-	\+ rdf_source(DB,_,_,_,_),
-	rdf_statistics_(triples(DB, Triples)),
-	Triples > 0.
+rdf_source(SourceURL) :-
+	rdf_source(_Graph, SourceURL).
 
 %%	rdf_make
 %
@@ -2004,20 +2020,13 @@ prolog:message(rdf(inconsistent_cache(DB, Graphs))) -->
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].
 
-source(stream(Stream)) -->
-	{ stream_property(Stream, file_name(Path)), !,
-	  file_base_name(Path, Base)
+source(SourceURL) -->
+	{ uri_file_name(SourceURL, File), !,
+	  file_base_name(File, Base)	% TBD: relative file?
 	},
-	[ ' "~w"'-[Base] ].
-source(file(Path)) -->
-	{ atom(Path), !,
-	  file_base_name(Path, Base)
-	},
-	[ ' "~w"'-[Base] ].
-source(url(_Protocol, URL)) -->
-	[ ' "~w"'-[URL] ].
-source(Spec) -->
-	[ ' "~p"'-[Spec] ].
+	[ ' "~p"'-[Base] ].
+source(SourceURL) -->
+	[ ' "~p"'-[SourceURL] ].
 
 into(_, _) --> [].			% TBD
 

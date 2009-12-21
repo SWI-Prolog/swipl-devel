@@ -31,24 +31,34 @@
 
 
 :- module(rdf_http_plugin, []).
-:- use_module(library('http/http_open')).
-:- use_module(library('semweb/rdf_db')).
+:- use_module(library(http/http_open)).
+:- use_module(library(http/http_header)).
+:- use_module(library(semweb/rdf_db)).
 :- use_module(library(date)).
+:- use_module(library(error)).
+
 
 /** <module> RDF HTTP Plugin
 
-This module allows loading data into the semantic web library directly
-from an HTTP server.
+This module allows loading data into   the semantic web library directly
+from an HTTP server. The following example  loads the RDF core data into
+the RDF database.
 
-@tbd	Loading a single URL gives four requests, (1) through
-	rdf_db:exists_url/1, (2) through rdf_db:rdf_input_info_hook/3
-	and (3) for the actual loading.
+    ==
+    :- use_module(library(semweb/rdf_db)).
+    :- use_module(library(semweb/rdf_http_plugin)).
+
+	...,
+	rdf_load('http://www.w3.org/1999/02/22-rdf-syntax-ns')
+    ==
 */
 
 :- multifile
-	rdf_db:rdf_open_hook/3,
-	rdf_db:rdf_input_info_hook/3,
+	rdf_db:rdf_open_hook/8,
 	rdf_db:url_protocol/1.
+
+rdf_db:url_protocol(http).
+
 
 %%	rdf_extra_headers(-List)
 %
@@ -63,70 +73,88 @@ rdf_extra_headers(
 				     text/turtle,\
 				     application/x-turtle; q=0.8, \
 				     */*; q=0.1')
-	      ]).
+	]).
 
 
-rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
-	atom(Format), !,
+rdf_db:rdf_open_hook(http, SourceURL, HaveModified, Stream, Cleanup,
+		     Modified, Format, Options) :-
+	modified_since_header(HaveModified, Header),
+	TypeHdr = [ header(content_type, ContentType),
+		    header(last_modified, ModifiedText)
+		  ],
 	rdf_extra_headers(Extra),
-	http_open(URL, Stream,
-		  [ header(content_type, Type)
-		  | Extra
-		  ]),
-	(   ground(Format)
-	->  true
-	;   guess_format(Type, URL, Format)
+	append([Extra, TypeHdr, Header, Options], OpenOptions),
+	catch(http_open(SourceURL, Stream0, OpenOptions), E, true),
+	(   var(E)
+	->  (   open_envelope(ContentType, SourceURL,
+			      Stream0, Stream, Format)
+	    ->	Cleanup = close(Stream),
+		(   nonvar(ModifiedText),
+		    parse_time(ModifiedText, ModifiedStamp)
+		->  Modified = last_modified(ModifiedStamp)
+		;   Modified = unknown
+		)
+	    ;	close(Stream0),
+		domain_error(content_type, ContentType)
+	    )
+	;   subsumes_chk(error(_, context(_, status(304, _))), E)
+	->  Modified = not_modified,
+	    Cleanup = true
+	;   throw(E)
 	).
 
 
-%%	guess_format(+ContentType, +URL, -Format)
+%%	modified_since_header(+LastModified, -ExtraHeaders) is det.
 %
-%	Guess the file format. We first try the official mime-types, but
-%	as it is  quite  likely  many   web-servers  do  not  have these
-%	registered, we use the filename extension as a backup.
+%	Add an =|If-modified-since|= if we have a version with the given
+%	time-stamp.
+
+modified_since_header(HaveModified, []) :-
+	var(HaveModified), !.
+modified_since_header(HaveModified,
+		      [ request_header('If-modified-since' =
+				       Modified)
+		      ]) :-
+	http_timestamp(HaveModified, Modified).
+
+%%	open_envelope(+ContentType, +SourceURL, +Stream0, -Stream,
+%%		      ?Format) is semidet.
+%
+%	Open possible envelope formats.
+
+open_envelope('application/x-gzip', SourceURL, Stream0, Stream, Format) :-
+	rdf_db:rdf_storage_encoding(_, gzip), !,
+	(   var(Format)
+	->  file_name_extension(BaseURL, _GzExt, SourceURL),
+	    file_name_extension(_, Ext, BaseURL),
+	    rdf_db:rdf_file_type(Ext, Format)
+	;   true
+	),
+	rdf_zlib_plugin:zopen(Stream0, Stream, []).
+open_envelope(_, _, Stream, Stream, Format) :-
+	nonvar(Format), !.
+open_envelope(ContentType, _, Stream, Stream, Format) :-
+	major_content_type(ContentType, Major),
+	content_type_format(Major, Format).
+
+major_content_type(ContentType, Major) :-
+	sub_atom(ContentType, Pre, _, _, (;)), !,
+	sub_atom(ContentType, 0, Pre, _, Major).
+major_content_type(Major, Major).
+
+%%	content_type_format(+ContentType, +URL)
+%
+%	Deduce the RDF encoding from the mime-type.
 %
 %	@bug	The turtle parser only parses a subset of n3.
 
-guess_format('text/rdf+xml',	      _, xml).
-guess_format('application/rdf+xml',   _, xml).
-guess_format('application/x-turtle',  _, turtle).
-guess_format('application/turtle',    _, turtle).
-guess_format('text/turtle',	      _, turtle).
-guess_format('text/rdf+n3',	      _, turtle). % Bit dubious
-guess_format('text/html',	      _, xhtml).
-guess_format('application/xhtml+xml', _, xhtml).
-guess_format(_Mime, URL, Format) :-
-	zip_extension(URL, PlainUrl, Format, PlainFormat),
-	file_name_extension(_Base, Ext, PlainUrl),
-	rdf_db:rdf_file_type(Ext, PlainFormat).
-
-
-zip_extension(URL0, URL, gzip(Format), Format) :-
-	file_name_extension(URL, gz, URL0), !.
-zip_extension(URL, URL, Format, Format).
-
-
-rdf_db:rdf_input_info_hook(url(http, URL), Modified, Format) :-
-	rdf_extra_headers(Extra),
-	http_open(URL, Stream,
-		  [ header(content_type, Type),
-		    header(last_modified, Date),
-		    method(head)
-		  | Extra
-		  ]),
-	close(Stream),
-	guess_format(Type, URL, Format),
-	(   Date == ''
-	->  get_time(Modified)
-	;   parse_time(Date, Modified)
-	).
-
-rdf_db:url_protocol(http).
-
-rdf_db:exists_url(url(http, URL)) :-
-	rdf_extra_headers(Extra),
-	catch(http_open(URL, Stream,
-			[ method(head)
-			| Extra
-			]), _, fail),
-	close(Stream).
+content_type_format('text/rdf',	     	     xml).
+content_type_format('text/rdf+xml',	     xml).
+content_type_format('application/rdf+xml',   xml).
+content_type_format('application/x-turtle',  turtle).
+content_type_format('application/turtle',    turtle).
+content_type_format('text/turtle',	     turtle).
+content_type_format('text/rdf+n3',	     turtle).	% Bit dubious
+content_type_format('text/html',	     xhtml).
+content_type_format('application/xhtml+xml', xhtml).
+content_type_format('application/x-gzip',    gzip).
