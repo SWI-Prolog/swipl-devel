@@ -839,6 +839,7 @@ PL_EXPORT(PL_agc_hook_t)      	PL_agc_hook(PL_agc_hook_t);
 		*********************************/
 
 #define PL_SIGSYNC	0x00010000	/* call handler synchronously */
+#define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
 PL_EXPORT(void) PL_interrupt(int sig);

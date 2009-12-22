@@ -176,6 +176,7 @@ some day.
 #define PLSIG_PREPARED 0x01		/* signal is prepared */
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */
 #define PLSIG_SYNC     0x04		/* call synchronously */
+#define PLSIG_NOFRAME  0x08		/* Do not create a Prolog frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -392,6 +393,11 @@ dispatch_signal(int sig, int sync)
   DEBUG(1, Sdprintf("Got signal %d %s\n",
 		    sig, sync ? " (sync)" : " (async)"));
 #endif
+
+  if ( true(sh, PLSIG_NOFRAME) && sh->handler )
+  { (*sh->handler)(sig);
+    return;
+  }
 
   lTopSave = consTermRef(lTop);
   saved_current_signal = LD->current_signal;
@@ -662,7 +668,7 @@ initSignals(void)
   PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
 #ifdef SIG_ALERT
-  PL_signal(SIG_ALERT, alert_handler);
+  PL_signal(SIG_ALERT|PL_SIGNOFRAME, alert_handler);
 #endif
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
@@ -826,6 +832,10 @@ PL_signal(int sigandflags, handler_t func)
       set(sh, PLSIG_SYNC);
     else
       clear(sh, PLSIG_SYNC);
+    if ( (sigandflags & PL_SIGNOFRAME) )
+      set(sh, PLSIG_NOFRAME);
+    else
+      clear(sh, PLSIG_NOFRAME);
 
     return old;
   } else
