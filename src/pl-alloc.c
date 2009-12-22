@@ -274,7 +274,7 @@ do locking to access the left_over_pool and allocBigHeap().
 static void *
 allocate(AllocPool pool, size_t n)
 { char *p;
-  int mustlock = (pool != &GD->alloc_pool);
+  int mustlock = (pool != &GD->alloc_pool); /* See comment above */
   int welocked = FALSE;
 
   if ( n <= pool->free )
@@ -477,7 +477,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 	  *t = *f;
 	}
       } else
-	*t = *f;
+	*t = *f;			/* Unsafe according to helgrind? */
 
       to->free_count[i] += from->free_count[i];
       from->free_count[i] = 0;
