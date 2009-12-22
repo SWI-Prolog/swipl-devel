@@ -109,6 +109,7 @@
                   lex_chain/1,
                   serialized/2,
                   global_cardinality/2,
+                  global_cardinality/3,
                   circuit/1,
                   element/3,
                   automaton/8,
@@ -3166,15 +3167,15 @@ run_propagator(check_distinct(Left,Right,X), _) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pelement(_, Is, V), MState) :-
-        (   ground(Is) -> kill(MState)
-        ;   true
-        ),
-        domains_union(Is, Dom),
-        (   fd_get(V, VD, Ps) ->
-            domains_intersection(VD, Dom, VD1),
-            fd_put(V, VD1, Ps)
-        ;   domain_contains(Dom, V)
+run_propagator(pelement(N, Is, V), MState) :-
+        (   fd_get(N, NDom, _) ->
+            (   fd_get(V, VDom, VPs) ->
+                integers_remaining(Is, 1, NDom, empty, VDom1),
+                domains_intersection(VDom, VDom1, VDom2),
+                fd_put(V, VDom2, VPs)
+            ;   true
+            )
+        ;   kill(MState), nth1(N, Is, V)
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4264,46 +4265,36 @@ maximum_matching([FL|FLs]) :-
         adjust_alternate_1(Path),
         maximum_matching(FLs).
 
-reachables_right([]) --> [].
-reachables_right([V|Vs]) -->
+reachables([]) --> [].
+reachables([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_right_(Es, V),
-        reachables_right(Vs).
+        reachables_(Es, V),
+        reachables(Vs).
 
-reachables_right_([], _) --> [].
-reachables_right_([flow_to(F,To)|Es], V) -->
+reachables_([], _) --> [].
+reachables_([E|Es], V) -->
+        edge_reachable(E, V),
+        reachables_(Es, V).
+
+edge_reachable(flow_to(F,To), V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(To, parent, _) } ->
             { put_attr(To, parent, V-F) },
             [To]
         ;   []
-        ),
-        reachables_right_(Es, V).
-
-
-reachables_left([]) --> [].
-reachables_left([V|Vs]) -->
-        { get_attr(V, edges, Es) },
-        reachables_left_(Es, V),
-        reachables_left(Vs).
-
-reachables_left_([], _) --> [].
-reachables_left_([flow_from(F,From)|Es], V) -->
+        ).
+edge_reachable(flow_from(F,From), V) -->
         (   { get_attr(F, flow, 1),
               \+ get_attr(From, parent, _) } ->
             { put_attr(From, parent, V-F) },
             [From]
         ;   []
-        ),
-        reachables_left_(Es, V).
+        ).
 
 augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
-        (   Level mod 2 =:= 1 ->
-            phrase(reachables_right(Vs), Tos)
-        ;   phrase(reachables_left(Vs), Tos)
-        ),
+        phrase(reachables(Vs), Tos),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
             Right = Free, Levels = Levels1
@@ -4526,7 +4517,7 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, Vs, [1..3, 1..3, 1..2\/4, 1..2\/4, 1\/3..4]), all_distinct(Vs).
+%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
 %  false.
 %  ==
 
@@ -4720,28 +4711,28 @@ element(N, Is, V) :-
         length(Is, L),
         N in 1..L,
         element_(Is, 1, N, V),
-        propagator_init_trigger(Is, pelement(N,Is,V)).
+        propagator_init_trigger([N|Is], pelement(N,Is,V)).
 
 element_domain(V, VD) :-
         (   fd_get(V, VD, _) -> true
         ;   VD = from_to(n(V), n(V))
         ).
 
-domains_union([V|Vs], Dom) :-
-        element_domain(V, VD),
-        domains_union_(Vs, VD, Dom).
-
-domains_union_([], D, D).
-domains_union_([V|Vs], D0, D) :-
-        element_domain(V, VD),
-        domains_union(VD, D0, D1),
-        domains_union_(Vs, D1, D).
-
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
         I #\= V #==> N #\= N0,
         N1 is N0 + 1,
         element_(Is, N1, N, V).
+
+integers_remaining([], _, _, D, D).
+integers_remaining([V|Vs], N0, Dom, D0, D) :-
+        (   domain_contains(Dom, N0) ->
+            element_domain(V, VD),
+            domains_union(D0, VD, D1)
+        ;   D1 = D0
+        ),
+        N1 is N0 + 1,
+        integers_remaining(Vs, N1, Dom, D1, D).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4824,15 +4815,9 @@ gcc_global(KNs) :-
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
-        length(Es, N),
-        total_flow(Es, 0, F),
-        N =:= F.
+        maplist(flow_1, Es).
 
-total_flow([], F, F).
-total_flow([arc_from(_,_,_,Flow)|As], F0, F) :-
-        get_attr(Flow, flow, FF),
-        F1 is F0 + FF,
-        total_flow(As, F1, F).
+flow_1(arc_from(_,_,_,Flow)) :- get_attr(Flow, flow, 1).
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
@@ -5096,6 +5081,31 @@ gcc_pair(Pair) :-
             fd_variable(Val)
         ;   domain_error(gcc_pair, Pair)
         ).
+
+%%    global_cardinality(+Vs, +Pairs, +Options)
+%
+%     Like global_cardinality/2, with Options a list of options.
+%     Currently, the only supported option is
+%
+%     * cost(Cost, Matrix)
+%     Matrix is a list of rows, one for each variable, in the order
+%     they occur in Vs. Each of these rows is a list of integers, one
+%     for each key, in the order these keys occur in Pairs. When
+%     variable v_i is assigned the value of key k_j, then the
+%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
+
+
+global_cardinality(Xs, Pairs, Options) :-
+        global_cardinality(Xs, Pairs),
+        Options = [cost(Cost, Matrix)],
+        must_be(list(list(integer)), Matrix),
+        pairs_keys_values(Pairs, Keys, _),
+        maplist(keys_costs(Keys), Xs, Matrix, Costs),
+        sum(Costs, #=, Cost).
+
+keys_costs(Keys, X, Row, C) :-
+        element(N, Keys, X),
+        element(N, Row, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
