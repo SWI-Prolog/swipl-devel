@@ -1794,26 +1794,27 @@ pl_require(term_t pred)
 		*            RETRACT            *
 		*********************************/
 
+typedef struct
+{ Definition def;
+  ClauseRef  cref;
+} retract_context;
+
 static
 PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 { PRED_LD
   term_t term = A1;
+  retract_context ctxbuf;
+  retract_context *ctx;
 
   if ( CTX_CNTRL == FRG_CUTTED )
-  { ClauseRef cref = CTX_PTR;
+  { ctx = CTX_PTR;
 
-    if ( cref )
-    { Definition def = getProcDefinition(cref->clause->procedure);
+    leaveDefinition(ctx->def);
+    freeHeap(ctx, sizeof(*ctx));
 
-      leaveDefinition(def);
-    }
-
-    succeed;
+    return TRUE;
   } else
-  { Procedure proc;
-    Definition def;
-    Module m = (Module) NULL;
-    ClauseRef cref;
+  { Module m = (Module) NULL;
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
@@ -1836,6 +1837,9 @@ PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
     if ( CTX_CNTRL == FRG_FIRST_CALL )
     { functor_t fd;
+      Procedure proc;
+      Definition def;
+      ClauseRef cref;
 
       if ( !PL_get_functor(head, &fd) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
@@ -1869,34 +1873,69 @@ PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	endCritical;
 	fail;
       }
+
+      ctx = &ctxbuf;
+      ctx->def = def;
+      ctx->cref = cref;
     } else
-    { cref = CTX_PTR;
-      proc = cref->clause->procedure;
-      def  = getProcDefinition(proc);
-      cref = findClause(cref, argv, environment_frame, def, &next PASS_LD);
+    { ctx  = CTX_PTR;
+      ctx->cref = findClause(ctx->cref, argv, environment_frame,
+			     ctx->def, &next PASS_LD);
       startCritical;
     }
 
-    fid = PL_open_foreign_frame();
-    while( cref )
-    { if ( decompile(cref->clause, cl, 0) )
-      { retractClauseDefinition(getProcDefinition(proc), cref->clause PASS_LD);
-	if ( !next )
-	{ leaveDefinition(def);
-	  return endCritical;
-	}
+    if ( !(fid = PL_open_foreign_frame()) )
+    { leaveDefinition(ctx->def);
+      if ( ctx != &ctxbuf )
+	freeHeap(ctx, sizeof(*ctx));
+
+      endCritical;
+      return FALSE;
+    }
+
+    /* ctx->cref is the first candidate; next is the next one */
+
+    while( ctx->cref )
+    { if ( decompile(ctx->cref->clause, cl, 0) )
+      { retractClauseDefinition(ctx->def, ctx->cref->clause PASS_LD);
 
 	if ( !endCritical )
-	  fail;
-	ForeignRedoPtr(next);
+	{ leaveDefinition(ctx->def);
+	  if ( ctx != &ctxbuf )
+	    freeHeap(ctx, sizeof(*ctx));
+	  PL_close_foreign_frame(fid);
+
+	  return FALSE;
+	}
+
+	if ( !next )			/* deterministic last one */
+	{ leaveDefinition(ctx->def);
+	  if ( ctx != &ctxbuf )
+	    freeHeap(ctx, sizeof(*ctx));
+	  PL_close_foreign_frame(fid);
+	  return TRUE;
+	}
+
+	if ( ctx == &ctxbuf )		/* non-determinisic; save state */
+	{ ctx = allocHeap(sizeof(*ctx));
+	  *ctx = ctxbuf;
+	}
+	ctx->cref = next;
+
+	PL_close_foreign_frame(fid);
+	ForeignRedoPtr(ctx);
       }
 
       PL_rewind_foreign_frame(fid);
 
-      cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
+      ctx->cref = findClause(next, argv, environment_frame,
+			     ctx->def, &next PASS_LD);
     }
 
-    leaveDefinition(def);
+    PL_close_foreign_frame(fid);
+    leaveDefinition(ctx->def);
+    if ( ctx != &ctxbuf )
+      freeHeap(ctx, sizeof(*ctx));
     endCritical;
     fail;
   }
