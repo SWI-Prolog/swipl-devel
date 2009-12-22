@@ -48,10 +48,8 @@ thr_local_1 :-
 thr_local_1(Threads, Asserts) :-
 	thread_create(join(Threads), Id, []),
 	forall(between(1, Threads, _),
-	       thread_create(test_foo(Asserts, Id), _,
-			     [ local(1000),
-			       global(1000),
-			       trail(1000)
+	       thread_create(test_foo(Asserts), _,
+			     [ at_exit(done(Id))
 			     ])),
 	join_ok(Id).
 
@@ -70,13 +68,11 @@ join_ok(Id) :-
 	).
 
 
-test_foo(N, Report) :-
+test_foo(N) :-
 	forall(between(0, N, X),
 	       assert(foo(X))),
 	findall(X, retract(foo(X)), List),
-	check(0, N, List),
-	thread_self(Me),
-	thread_send_message(Report, done(Me)).
+	check(0, N, List).
 
 check(I, N, _) :-
 	I > N, !.
@@ -84,3 +80,6 @@ check(I, N, [I|T]) :- !,
 	NI is I + 1,
 	check(NI, N, T).
 
+done(Report) :-
+	thread_self(Me),
+	thread_send_message(Report, done(Me)).
