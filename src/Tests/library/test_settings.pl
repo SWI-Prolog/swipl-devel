@@ -51,8 +51,8 @@ test_settings :-
 %	Hack to cleanup setting defaults
 
 reset :-
-	retractall(settings:default(_,_,_)),
-	retractall(settings:value(_,_,_)),
+	retractall(settings:st_default(_,_,_)),
+	retractall(settings:st_value(_,_,_)),
 	retractall(settings:local_file(_)).
 
 %================================================================
