@@ -543,7 +543,7 @@ available to the Prolog user based on these functions.  These  functions
 are  in  this  module as non-UNIX OS probably don't have getpid() or put
 temporaries on /tmp.
 
-    atom_t TemporaryFile(const char *id)
+    atom_t TemporaryFile(const char *id, int *fdp)
 
     The return value of this call is an atom,  whose  string  represents
     the  path  name of a unique file that can be used as temporary file.
@@ -587,11 +587,16 @@ void_free_tmp_symbol(Symbol s)
 }
 
 
+#ifndef O_EXCL
+#define O_EXCL 0
+#endif
+
 atom_t
-TemporaryFile(const char *id)
+TemporaryFile(const char *id, int *fdp)
 { char temp[MAXPATHLEN];
   static char *tmpdir = NULL;
   atom_t tname;
+  int retries = 0;
 
   if ( !tmpdir )
   { LOCK();
@@ -608,6 +613,7 @@ TemporaryFile(const char *id)
     UNLOCK();
   }
 
+retry:
 #ifdef __unix__
 { static int MTOK_temp_counter = 0;
 
@@ -641,6 +647,19 @@ TemporaryFile(const char *id)
   } else
     Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
+
+  if ( fdp )
+  { int fd;
+
+    if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY, 0600)) < 0 )
+    { if ( ++retries < 10000 )
+	goto retry;
+      else
+	return NULL_ATOM;
+    }
+
+    *fdp = fd;
+  }
 
   tname = PL_new_atom(temp);		/* locked: ok! */
 

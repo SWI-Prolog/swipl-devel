@@ -648,7 +648,7 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   if ( !PL_get_chars(base, &n, CVT_ALL) )
     return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
 
-  return PL_unify_atom(name, TemporaryFile(n));
+  return PL_unify_atom(name, TemporaryFile(n, NULL));
 }
 
 
