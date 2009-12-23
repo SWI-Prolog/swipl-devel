@@ -1117,9 +1117,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   MK_KBYTES(info->trail_size);
   MK_KBYTES(stack);
 
-  info->goal = PL_record(goal);
-  info->module = PL_context();
-
   if ( alias )
   { if ( !aliasThread(info->pl_tid, alias) )
     { free_thread_info(info);
@@ -1127,6 +1124,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     }
   }
   unify_thread_id(id, info);
+
+  info->goal = PL_record(goal);
+  info->module = PL_context();
 
 					/* copy settings */
 
@@ -1158,6 +1158,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( stack )
     pthread_attr_setstacksize(&attr, stack);
   LOCK();
+  assert(info->goal);
   rc = pthread_create(&info->tid, &attr, start_thread, info);
   UNLOCK();
   pthread_attr_destroy(&attr);
