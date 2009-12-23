@@ -590,13 +590,23 @@ void_free_tmp_symbol(Symbol s)
 atom_t
 TemporaryFile(const char *id)
 { char temp[MAXPATHLEN];
-  char envbuf[MAXPATHLEN];
-  char *tmpdir;
+  static char *tmpdir = NULL;
   atom_t tname;
 
-  if ( !((tmpdir = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
-	 (tmpdir = Getenv("TMP",  envbuf, sizeof(envbuf)))) )
-    tmpdir = DEFTMPDIR;
+  if ( !tmpdir )
+  { LOCK();
+    if ( !tmpdir )
+    { char envbuf[MAXPATHLEN];
+      char *td;
+
+      if ( (td = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
+	   (td = Getenv("TMP",  envbuf, sizeof(envbuf))) )
+	tmpdir = strdup(td);
+      else
+	tmpdir = DEFTMPDIR;
+    }
+    UNLOCK();
+  }
 
 #ifdef __unix__
 { static int MTOK_temp_counter = 0;
