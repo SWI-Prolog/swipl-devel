@@ -124,7 +124,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       char buf[50];
       /*term_t bound =*/ va_arg(args, term_t);
 
-      if ( !msg )
+      if ( !msg && argn > 0 )
       { Ssprintf(buf, "%d-%s argument",
 		 argn, argn == 1 ? "st" : argn == 2 ? "nd" : "th");
 	msg = buf;

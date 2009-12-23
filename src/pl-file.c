@@ -514,6 +514,9 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   }
   UNLOCK();
 
+  if ( !rval && !PL_is_variable(t) )
+    return PL_error(NULL, 0, "stream-argument", ERR_MUST_BE_VAR, 0);
+
   return rval;
 }
 
