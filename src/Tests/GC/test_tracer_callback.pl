@@ -112,7 +112,11 @@ intercept(Port, Frame, _Choice, continue) :-
 shift :-
 	flag(shift, N, N+1),
 	I is N mod 4,
-	action(I).
+	(   action(I)
+	->  true
+	;   format(user_error, '~p failed~n', [action(I)])
+	).
+
 
 action(0) :- gshift.
 action(1) :- tshift.
@@ -131,7 +135,9 @@ tshift :- shift(trail_shifts).
 shift(Stat) :-
 	statistics(Stat, S0),
 	shift(S0, Stat, X),
-	nonvar(X).
+	a(X).				% ensure term is used.
+
+a(_).
 
 shift(S0, Stat, s(X)) :-
 	statistics(Stat, S0), !,
