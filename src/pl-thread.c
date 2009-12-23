@@ -420,10 +420,6 @@ static int
 initialise_thread(PL_thread_info_t *info, int emergency)
 { assert(info->thread_data);
 
-  LOCK();
-  GD->statistics.threads_created++;
-  UNLOCK();
-
   TLD_set(PL_ldata, info->thread_data);
 
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
@@ -433,26 +429,15 @@ initialise_thread(PL_thread_info_t *info, int emergency)
   if ( !initPrologStacks(info->local_size,
 			 info->global_size,
 			 info->trail_size) )
-  { PL_local_data_t *ld = info->thread_data;
-
-    info->status = PL_THREAD_NOMEM;
-
-#define K *1024
-    memset(&ld->stacks, 0, sizeof(ld->stacks));
-    if ( emergency &&
-	 initPrologStacks(8 K,		/* local */
-			  8 K,		/* global */
-			  8 K) )	/* trail */
-    { DEBUG(1, Sdprintf("Using small emergency stacks\n"));
-    } else
-    { memset(&ld->stacks, 0, sizeof(ld->stacks));
-      fail;
-    }
-#undef K
+  { info->status = PL_THREAD_NOMEM;
+    return FALSE;
   }
 
   initPrologLocalData();
   info->thread_data->magic = LD_MAGIC;
+  LOCK();
+  GD->statistics.threads_created++;
+  UNLOCK();
 
   return TRUE;
 }
@@ -1011,11 +996,6 @@ start_thread(void *closure)
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-
-  if ( info->status == PL_THREAD_NOMEM )
-  { free_prolog_thread(info->thread_data);
-    return (void *)FALSE;
-  }
 
   { GET_LD
     pthread_cleanup_push(free_prolog_thread, info->thread_data);
