@@ -659,7 +659,13 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
 
 static
 PRED_IMPL("delete_file", 1, delete_file, 0)
-{ char *n;
+{ PRED_LD
+  char *n;
+  atom_t aname;
+
+  if ( PL_get_atom(A1, &aname) &&
+       DeleteTemporaryFile(aname) )
+    return TRUE;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
@@ -668,7 +674,7 @@ PRED_IMPL("delete_file", 1, delete_file, 0)
     return TRUE;
 
   return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_delete, ATOM_file, A1);
+		  ATOM_delete, ATOM_file, A1);
 }
 
 

@@ -458,6 +458,7 @@ COMMON(char *) 		BaseName(const char *f);
 COMMON(char *) 		DirName(const char *f, char *buf);
 COMMON(bool) 		ChDir(const char *path);
 COMMON(atom_t) 		TemporaryFile(const char *id);
+COMMON(int) 		DeleteTemporaryFile(atom_t name);
 COMMON(int) 		hasConsole(void);
 COMMON(struct tm *)	LocalTime(long *t, struct tm *r);
 COMMON(Char) 		GetChar(void);
