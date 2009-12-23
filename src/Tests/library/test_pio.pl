@@ -102,6 +102,9 @@ test_pe(N, BF, Enc) :-
 test_pe(N, BF, Enc, Tmp) :-
 	max_char(Enc, MaxChar),
 	random_list(N, MaxChar, List),
+	test_list(List, BF, Enc, Tmp).
+
+test_list(List, BF, Enc, Tmp) :-
 	save_list(Tmp, List, Enc),
 	open(Tmp, read, In, [encoding(Enc)]),
 	set_stream(In, buffer_size(BF)),
