@@ -66,7 +66,7 @@ handling times must be cleaned, but that not only holds for this module.
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
-static int	bad_encoding(atom_t name);
+static int	bad_encoding(const char *msg, atom_t name);
 static int	noprotocol(void);
 
 const atom_t standardStreams[] =
@@ -1465,7 +1465,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &val) )
 	  goto error;
 	if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
-	{ bad_encoding(val);
+	{ bad_encoding(NULL, val);
 	  goto error;
 	}
 
@@ -2492,12 +2492,12 @@ encoding_to_atom(IOENC enc)
 
 
 static int
-bad_encoding(atom_t name)
+bad_encoding(const char *msg, atom_t name)
 { GET_LD
   term_t t = PL_new_term_ref();
 
   PL_put_atom(t, name);
-  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, t);
+  return PL_error(NULL, 0, msg, ERR_DOMAIN, ATOM_encoding, t);
 }
 
 
@@ -2596,9 +2596,22 @@ openStream(term_t file, term_t mode, term_t options)
   if ( encoding != NULL_ATOM )
   { enc = atom_to_encoding(encoding);
     if ( enc == ENC_UNKNOWN )
-    { bad_encoding(encoding);
-
+    { bad_encoding(NULL, encoding);
       return NULL;
+    }
+    if ( type == ATOM_binary && enc != ENC_OCTET )
+    { bad_encoding("type(binary) implies encoding(octet)", encoding);
+      return NULL;
+    }
+    switch(enc)				/* explicitely specified: do not */
+    { case ENC_OCTET:			/* switch to Unicode.  For implicit */
+      case ENC_ASCII:			/* and unicode types we must detect */
+      case ENC_ISO_LATIN_1:		/* and skip the BOM */
+      case ENC_WCHAR:
+	bom = FALSE;
+        break;
+      default:
+	;
     }
   } else if ( type == ATOM_binary )
   { enc = ENC_OCTET;
