@@ -435,9 +435,6 @@ initialise_thread(PL_thread_info_t *info, int emergency)
 
   initPrologLocalData();
   info->thread_data->magic = LD_MAGIC;
-  LOCK();
-  GD->statistics.threads_created++;
-  UNLOCK();
 
   return TRUE;
 }
@@ -500,6 +497,7 @@ free_prolog_thread(void *data)
   LOCK();
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
+  assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
   GD->statistics.thread_cputime += time;
 
   info->thread_data = NULL;
@@ -755,6 +753,8 @@ resizeThreadMax(void)
 }
 
 
+/* MT: Caller must lock */
+
 static PL_thread_info_t *
 alloc_thread()				/* called with L_THREAD locked */
 { GET_LD
@@ -783,6 +783,8 @@ retry:
 
       if ( i > thread_highest_id )
 	thread_highest_id = i;
+
+      GD->statistics.threads_created++;
 
       return info;
     }
