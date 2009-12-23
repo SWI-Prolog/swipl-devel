@@ -629,7 +629,6 @@ typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
 typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */
 typedef struct initialise_handle * InitialiseHandle;
-typedef struct tempfile *	TempFile; 	/* pl-os.c */
 typedef struct canonical_dir *	CanonicalDir;	/* pl-os.c */
 typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData; 	/* pl-trace.c */

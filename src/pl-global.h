@@ -220,8 +220,7 @@ struct PL_global_data
   } exceptions;
 
   struct
-  { TempFile		_tmpfile_head;
-    TempFile		_tmpfile_tail;
+  { Table		tmp_files;	/* Known temporary files */
     CanonicalDir	_canonical_dirlist;
     char *		myhome;		/* expansion of ~ */
     char *		fred;		/* last expanded ~user */

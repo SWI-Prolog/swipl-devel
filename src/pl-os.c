@@ -557,14 +557,6 @@ temporaries on /tmp.
     not be created at all, or might already have been deleted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-struct tempfile
-{ atom_t	name;
-  TempFile	next;
-};					/* chain of temporary files */
-
-#define tmpfile_head (GD->os._tmpfile_head)
-#define tmpfile_tail (GD->os._tmpfile_tail)
-
 #ifndef DEFTMPDIR
 #ifdef __WINDOWS__
 #define DEFTMPDIR "c:/tmp"
@@ -573,14 +565,26 @@ struct tempfile
 #endif
 #endif
 
+static void
+free_tmp_symbol(Symbol s)
+{ atom_t tname = (atom_t)s->name;
+  PL_chars_t txt;
+
+  get_atom_text(tname, &txt);
+  PL_mb_text(&txt, REP_FN);
+  RemoveFile(txt.text.t);
+  PL_free_text(&txt);
+
+  PL_unregister_atom(tname);
+}
+
+
 atom_t
 TemporaryFile(const char *id)
-{ GET_LD
-
-  char temp[MAXPATHLEN];
-  TempFile tf = allocHeap(sizeof(struct tempfile));
+{ char temp[MAXPATHLEN];
   char envbuf[MAXPATHLEN];
   char *tmpdir;
+  atom_t tname;
 
   if ( !((tmpdir = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
 	 (tmpdir = Getenv("TMP",  envbuf, sizeof(envbuf)))) )
@@ -620,35 +624,33 @@ TemporaryFile(const char *id)
     Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
 
-  tf->name = PL_new_atom(temp);		/* locked: ok! */
-  tf->next = NULL;
+  tname = PL_new_atom(temp);		/* locked: ok! */
 
-  startCritical;
-  if ( !tmpfile_tail )
-  { tmpfile_head = tmpfile_tail = tf;
-  } else
-  { tmpfile_tail->next = tf;
-    tmpfile_tail = tf;
+  LOCK();
+  if ( !GD->os.tmp_files )
+  { GD->os.tmp_files = newHTable(4);
+    GD->os.tmp_files->free_symbol = free_tmp_symbol;
   }
-  endCritical;
+  UNLOCK();
 
-  return tf->name;
+  addHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
+
+  return tname;
 }
+
 
 void
 RemoveTemporaryFiles(void)
-{ GET_LD
-  TempFile tf, tf2;
+{ LOCK();
+  if ( GD->os.tmp_files )
+  { Table t = GD->os.tmp_files;
 
-  startCritical;
-  for(tf = tmpfile_head; tf; tf = tf2)
-  { RemoveFile(stringAtom(tf->name));
-    tf2 = tf->next;
-    freeHeap(tf, sizeof(struct tempfile));
+    GD->os.tmp_files = NULL;
+    UNLOCK();
+    destroyHTable(t);
+  } else
+  { UNLOCK();
   }
-
-  tmpfile_head = tmpfile_tail = NULL;
-  endCritical;
 }
 
 
