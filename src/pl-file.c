@@ -254,9 +254,13 @@ freeStream(IOSTREAM *s)
   if ( (symb=lookupHTable(streamContext, s)) )
   { stream_context *ctx = symb->value;
 
-    if ( ctx->filename == source_file_name )
-    { source_file_name = NULL_ATOM;	/* TBD: pop? */
-      source_line_no = -1;
+    if ( ctx->filename != NULL_ATOM )
+    { PL_unregister_atom(ctx->filename);
+
+      if ( ctx->filename == source_file_name )
+      { source_file_name = NULL_ATOM;	/* TBD: pop? */
+	source_line_no = -1;
+      }
     }
 
     freeHeap(ctx, sizeof(*ctx));
@@ -282,10 +286,18 @@ freeStream(IOSTREAM *s)
 
 
 /* MT: locked by caller (openStream()) */
+/* name must be registered by the caller */
 
 static void
 setFileNameStream(IOSTREAM *s, atom_t name)
-{ getStreamContext(s)->filename = name;
+{ stream_context *ctx = getStreamContext(s);
+
+  if ( ctx->filename )
+  { PL_unregister_atom(ctx->filename);
+    ctx->filename = NULL_ATOM;
+  }
+  if ( name != NULL_ATOM )
+    ctx->filename = name;
 }
 
 
@@ -1439,6 +1451,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	if ( !PL_get_atom_ex(a, &fn) )
 	  goto error;
 
+	PL_register_atom(fn);
 	LOCK();
 	setFileNameStream(s, fn);
 	UNLOCK();
