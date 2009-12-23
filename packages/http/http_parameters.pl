@@ -64,6 +64,7 @@ http_parameters(Request, Params) :-
 	http_parameters(Request, Params, []).
 
 http_parameters(Request, Params, Options) :-
+	must_be(list, Params),
 	meta_options(is_meta, Options, QOptions),
 	option(attribute_declarations(DeclGoal), QOptions, -),
 	http_parms(Request, Params, DeclGoal, Form),
