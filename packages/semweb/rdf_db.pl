@@ -1105,9 +1105,10 @@ rdf_load_stream(xml, Stream, Options) :- !,
 	graph(Options, Graph),
 	rdf_transaction(process_rdf(Stream, assert_triples, Options),
 			parse(Graph)).
-rdf_load_stream(xhtml, Stream, Options) :- !,
+rdf_load_stream(xhtml, Stream, M:Options) :- !,
 	graph(Options, Graph),
-	rdf_transaction(process_rdf(Stream, assert_triples, [embedded(true)|Options]),
+	rdf_transaction(process_rdf(Stream, assert_triples,
+				    M:[embedded(true)|Options]),
 			parse(Graph)).
 rdf_load_stream(triples, Stream, Options) :- !,
 	graph(Options, Graph),
