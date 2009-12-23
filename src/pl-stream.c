@@ -2843,8 +2843,8 @@ Sopen_file(const char *path, const char *how)
 
 IOSTREAM *
 Sfdopen(int fd, const char *type)
-{ int flags;
-  intptr_t lfd;
+{ intptr_t lfd;
+  int flags = SIO_FILE|SIO_RECORDPOS|SIO_FBUF;
 
   if ( fd < 0 )
   { errno = EINVAL;
@@ -2856,9 +2856,15 @@ Sfdopen(int fd, const char *type)
 #endif
 
   if ( *type == 'r' )
-    flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
-  else
-    flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
+  { flags |= SIO_INPUT;
+  } else if ( *type == 'w' )
+  { flags |= SIO_OUTPUT;
+  } else
+  { errno = EINVAL;
+    return NULL;
+  }
+  if ( type[1] != 'b' )
+    flags |= SIO_TEXT;
 
   lfd = (intptr_t)fd;
 

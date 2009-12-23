@@ -590,6 +590,9 @@ void_free_tmp_symbol(Symbol s)
 #ifndef O_EXCL
 #define O_EXCL 0
 #endif
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 atom_t
 TemporaryFile(const char *id, int *fdp)
@@ -616,9 +619,10 @@ TemporaryFile(const char *id, int *fdp)
 retry:
 #ifdef __unix__
 { static int MTOK_temp_counter = 0;
+  const char *sep = id[0] ? "_" : "";
 
-  Ssprintf(temp, "%s/pl_%s_%d_%d",
-	   tmpdir, id, (int) getpid(), MTOK_temp_counter++);
+  Ssprintf(temp, "%s/pl_%s%s%d_%d",
+	   tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
 }
 #endif
 
@@ -633,25 +637,17 @@ retry:
 #endif
   { PrologPath(tmp, temp, sizeof(temp));
   } else
-    Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
+  { const char *sep = id[0] ? "_" : "";
+
+    Ssprintf(temp, "%s/pl_%s%s%d", tmpdir, id, sep, temp_counter++);
+  }
 }
-#endif
-
-#if EMX
-  static int temp_counter = 0;
-  char *foo;
-
-  if ( (foo = tempnam(".", (const char *)id)) )
-  { strcpy(temp, foo);
-    free(foo);
-  } else
-    Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
 
   if ( fdp )
   { int fd;
 
-    if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY, 0600)) < 0 )
+    if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
     { if ( ++retries < 10000 )
 	goto retry;
       else

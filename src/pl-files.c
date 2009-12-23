@@ -651,6 +651,48 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   return PL_unify_atom(name, TemporaryFile(n, NULL));
 }
 
+/** tmp_file_stream(+Mode, -File, -Stream)
+*/
+
+static
+PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
+{ PRED_LD
+  atom_t fn;
+  int fd;
+  IOENC enc;
+  atom_t encoding;
+  const char *mode;
+
+  if ( !PL_get_atom_ex(A1, &encoding) )
+    return FALSE;
+  if ( (enc = atom_to_encoding(encoding)) == ENC_UNKNOWN )
+  { if ( encoding == ATOM_binary )
+    { enc = ENC_OCTET;
+      mode = "wb";
+    } else
+    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, A1);
+    }
+  } else
+  { mode = "w";
+  }
+
+  if ( (fn=TemporaryFile("", &fd)) )
+  { IOSTREAM *s;
+
+    if ( !PL_unify_atom(A2, fn) )
+    { close(fd);
+      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2);
+    }
+
+    s = Sfdopen(fd, mode);
+    s->encoding = enc;
+    return PL_unify_stream(A3, s);
+  } else
+  { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_temporary_files);
+  }
+}
+
+
 
 		 /*******************************
 		 *	CHANGE FILESYSTEM	*
@@ -953,6 +995,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
+  PRED_DEF("tmp_file_stream", 3, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)
   PRED_DEF("make_directory", 1, make_directory, 0)

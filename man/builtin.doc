@@ -6200,7 +6200,7 @@ value of the link and \arg{Target} to the file the link is pointing to.
 file system, but never to a link.  Fails if \arg{File} is not a link.
 Fails always on systems that do not support symbolic links.
 
-    \predicate{tmp_file}{2}{+Base, -TmpName}
+    \predicate[deprecated]{tmp_file}{2}{+Base, -TmpName}
 Create a name for a temporary file. \arg{Base} is an identifier for the
 category of file. The \arg{TmpName} is guaranteed to be unique. If the
 system halts, it will automatically remove all created temporary files.
@@ -6209,9 +6209,35 @@ should limit themselves to alphanumerical characters.
 
 Because it is possible to guess the generated filename, attackers may
 create the filesystem entry as a link and possibly create a security
-issue.  This call must be replaced with a new predicate that combines
-generating the filename and creating the file, based on mkstemp() or
-tmpfile().
+issue.  New code should use tmp_file_stream/3.
+
+    \predicate{tmp_file_stream}{3}{+Encoding, -FileName, -Stream}
+Create a temporary file name \arg{FileName} and open it for writing in
+the given \arg{Encoding}. \arg{Encoding} is a text-encoding name or
+\const{binary}. \arg{Stream} is the output stream. If the OS supports
+it, the created file is only accessible to the current user. If the OS
+supports it, the file is created using the open()-flag \const{O_EXCL},
+which guarantees that the file did not exist before this call. This
+predicate is a safe replacement of tmp_file/2. Note that in those cases
+where the temporary file is needed to store output from an external
+command, the file must be closed first. E.g., the following downloads a
+file from a URL to a temporary file and opens the file for reading (On
+Unix systems you can delete the file after opening it for reading for
+cleanup):
+
+\begin{code}
+open_url(URL, In) :-
+	tmp_file_stream(text, File, Stream),
+	close(Stream),
+	process_create(curl, ['-o', File, URL], []),
+	open(File, read, In),
+	delete_file(File).		% Unix-only
+\end{code}
+
+Temporary files created using this call are removed if the Prolog
+process terminates. Calling delete_file/1 using \arg{FileName} removes
+the file and removes the entry from the administration of
+files-to-be-deleted.
 
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception

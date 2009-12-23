@@ -572,6 +572,7 @@ suggest predicates from a keyword.
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
 \predicatesummary{tmp_file}{2}{Create a temporary filename}
+\predicatesummary{tmp_file_stream}{3}{Create a temporary file and open it}
 \predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
 \predicatesummary{tnodebug}{1}{Switch off debug mode in a thread}
 \predicatesummary{told}{0}{Close current output}
