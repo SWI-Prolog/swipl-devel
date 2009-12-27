@@ -3023,7 +3023,7 @@ Swrite_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
   if ( mf->here + size + 1 >= mf->allocated )
-  { intptr_t ns = S__memfile_nextsize(mf->here + size + 1);
+  { size_t ns = S__memfile_nextsize(mf->here + size + 1);
     char *nb;
 
     if ( mf->allocated == 0 || !mf->malloced )
