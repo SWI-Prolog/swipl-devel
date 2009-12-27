@@ -1369,7 +1369,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
 	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
+	{ mpz_clear(r->value.mpz);
 	  return (int)outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	}
 #endif /*O_GMP_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
       } else
