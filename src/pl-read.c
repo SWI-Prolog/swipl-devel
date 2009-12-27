@@ -3253,7 +3253,7 @@ atom_to_term(term_t atom, term_t term, term_t bindings)
 
     Sclose(stream);
     if ( s != buf )
-      free(s);
+      Sfree(s);
 
     return rval;
   }

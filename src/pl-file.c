@@ -1053,7 +1053,7 @@ closeOutputRedirect(redir_context *ctx)
       rval = PL_unify(tail, diff);
 
     if ( ctx->data != ctx->buffer )
-      free(ctx->data);
+      Sfree(ctx->data);
   }
 
   return rval;
@@ -1075,7 +1075,7 @@ discardOutputRedirect(redir_context *ctx)
   } else
   { closeStream(ctx->stream);
     if ( ctx->data != ctx->buffer )
-      free(ctx->data);
+      Sfree(ctx->data);
   }
 }
 
