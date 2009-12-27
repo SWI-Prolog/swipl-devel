@@ -2027,7 +2027,7 @@ decrease).
 #undef try
 #endif
 
-#ifdef DDMALLOC
+#ifdef DMALLOC
 #include <dmalloc.h>
 #endif
 

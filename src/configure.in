@@ -976,9 +976,12 @@ dnl Setup DMALLOC
 
 if test "$dmalloc" = "yes"; then
   AC_CHECK_LIB(dmalloc, main,
-	       AC_DEFINE(DMALLOC, [], [Define if you want to use dmalloc])
-	       AC_DEFINE(DMALLOC_FUNC_CHECK, [],
-			 [Define if you want to check string functions]),
+	       AC_DEFINE(DMALLOC, 1,
+			 [Define if you want to use dmalloc])
+	       AC_DEFINE(DMALLOC_FUNC_CHECK, 1,
+			 [Define if you want to check string functions])
+	       AC_DEFINE(O_MYALLOC, 1,
+			 [Use system malloc instead of our own allocator])
 	       LIBS="$LIBS -ldmalloc",
 	       true)
 fi
