@@ -2027,4 +2027,8 @@ decrease).
 #undef try
 #endif
 
+#ifdef DDMALLOC
+#include <dmalloc.h>
+#endif
+
 #endif /*_PL_INCLUDE_H*/
