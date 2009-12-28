@@ -2964,7 +2964,7 @@ constraint_wake(scalar_product_eq, bounds).
 constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
-constraint_wake(pgcc_check_single, bounds).
+constraint_wake(pgcc_single, bounds).
 
 global_constraint(regin).
 global_constraint(pgcc).
@@ -3177,7 +3177,7 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_check_single(Single), _) :-
+run_propagator(pgcc_single(Single), _) :-
         disable_queue,
         gcc_check(Single),
         enable_queue.
@@ -4779,7 +4779,7 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_vs, Vs),
         put_attr(Num, clpfd_gcc_occurred, 0),
         (   var(Num0) ->
-            make_propagator(pgcc_check_single([Key-Num]), Prop),
+            make_propagator(pgcc_single([Key-Num]), Prop),
             init_propagator(Num0, Prop)
         ;   true
         ),
@@ -5726,9 +5726,9 @@ attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
 attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(Vs, Pairs, _))   --> [global_cardinality(Vs, Pairs)].
-attribute_goal_(pgcc_check_single(_)) --> [].
-attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
+attribute_goal_(pgcc(Vs, Pairs, _)) --> [global_cardinality(Vs, Pairs)].
+attribute_goal_(pgcc_single(_))     --> [].
+attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
