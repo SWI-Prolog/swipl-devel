@@ -3177,18 +3177,14 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_check(_, _, Pairs), _) :-
-        disable_queue,
-        gcc_check(Pairs),
-        enable_queue.
-
 run_propagator(pgcc_check_single(Single), _) :-
         disable_queue,
         gcc_check(Single),
         enable_queue.
 
-run_propagator(pgcc(Pairs), _) :-
+run_propagator(pgcc(_, _, Pairs), _) :-
         disable_queue,
+        gcc_check(Pairs),
         gcc_global(Pairs),
         enable_queue.
 
@@ -4765,8 +4761,7 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
-        propagator_init_trigger(Xs, pgcc_check(Xs, Pairs, Pairs1)),
-        propagator_init_trigger(Xs, pgcc(Pairs1)).
+        propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
@@ -5731,9 +5726,7 @@ attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
 attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(_))          --> [].
-attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
-        [global_cardinality(Vs, Pairs)].
+attribute_goal_(pgcc(Vs, Pairs, _))   --> [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_check_single(_)) --> [].
 attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
