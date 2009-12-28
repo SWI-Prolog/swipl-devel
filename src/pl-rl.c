@@ -50,7 +50,12 @@ SWI-Prolog.h and SWI-Stream.h
 #include <config.h>
 #endif
 
-#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
+/* Disabled if dmalloc() is used because the readline library is full of
+   leaks and freeing the line returned by readline is considered an
+   error by the dmalloc library
+*/
+
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) && !defined(DMALLOC)
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

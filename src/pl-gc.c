@@ -330,9 +330,12 @@ The BACKTRACE code below can only  be   compiled  on systems using glibc
 (the GNU C-library). It saves the  stack-trace   of  the  latest call to
 markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
 print_backtrace() from GDB to find the last stack-trace.
+
+Disabled of dmalloc is used because the  free of the memory allocated by
+backtrace_symbols() is considered an error by dmalloc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef HAVE_EXECINFO_H
+#if defined(HAVE_EXECINFO_H) && !defined(DMALLOC)
 #include <execinfo.h>
 #include <string.h>
 
