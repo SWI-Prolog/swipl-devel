@@ -112,6 +112,7 @@
                   global_cardinality/3,
                   circuit/1,
                   element/3,
+                  automaton/3,
                   automaton/8,
                   transpose/2,
                   zcompare/3,
@@ -2967,7 +2968,7 @@ constraint_wake(scalar_product_eq, bounds).
 constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
-constraint_wake(pgcc_check_single, bounds).
+constraint_wake(pgcc_single, bounds).
 
 global_constraint(regin).
 global_constraint(pgcc).
@@ -3180,18 +3181,15 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_check(_, _, Pairs), _) :-
+run_propagator(pgcc_single(Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
+        gcc_global(Pairs),
         enable_queue.
 
-run_propagator(pgcc_check_single(Single), _) :-
+run_propagator(pgcc(_, _, Pairs), _) :-
         disable_queue,
-        gcc_check(Single),
-        enable_queue.
-
-run_propagator(pgcc(Pairs), _) :-
-        disable_queue,
+        gcc_check(Pairs),
         gcc_global(Pairs),
         enable_queue.
 
@@ -4768,8 +4766,8 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
-        propagator_init_trigger(Xs, pgcc_check(Xs, Pairs, Pairs1)),
-        propagator_init_trigger(Xs, pgcc(Pairs1)).
+        propagator_init_trigger(Nums, pgcc_single(Pairs1)),
+        propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
@@ -4786,11 +4784,6 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_num, Num0),
         put_attr(Num, clpfd_gcc_vs, Vs),
         put_attr(Num, clpfd_gcc_occurred, 0),
-        (   var(Num0) ->
-            make_propagator(pgcc_check_single([Key-Num]), Prop),
-            init_propagator(Num0, Prop)
-        ;   true
-        ),
         gcc_pairs(KNs, Vs, Rest).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5023,8 +5016,14 @@ gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_num),
         del_attr(Num, clpfd_gcc_occurred).
 
-gcc_check([]).
-gcc_check([Key-Num0|KNs]) :-
+gcc_check(Pairs) :-
+        gcc_check(Pairs, false, Change),
+        (   Change -> gcc_check(Pairs)
+        ;   true
+        ).
+
+gcc_check([], Change, Change).
+gcc_check([Key-Num0|KNs], Change0, Change) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ0),
@@ -5036,8 +5035,8 @@ gcc_check([Key-Num0|KNs]) :-
             % here, otherwise the stored (new) occurrences can differ
             % from the (old) ones used in the following.
             geq(Num, Occ1),
-            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
-            ;   Os == [] -> gcc_done(Num0), Num = Occ1
+            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key), Change1 = true
+            ;   Os == [] -> gcc_done(Num0), Num = Occ1, Change1 = Change0
             ;   length(Os, L),
                 Max is Occ1 + L,
                 geq(Max, Num),
@@ -5047,13 +5046,17 @@ gcc_check([Key-Num0|KNs]) :-
                     Diff is NInf - Occ1
                 ),
                 L >= Diff,
-                (   L =:= Diff -> gcc_done(Num0), Num is Occ1 + Diff, maplist(=(Key), Os)
-                ;   true
+                (   L =:= Diff ->
+                    gcc_done(Num0),
+                    Num is Occ1 + Diff,
+                    maplist(=(Key), Os),
+                    Change1 = true
+                ;   Change1 = Change0
                 )
             )
-        ;   true
+        ;   Change1 = Change0
         ),
-        gcc_check(KNs).
+        gcc_check(KNs, Change1, Change).
 
 vs_key_min_others([], _, Min, Min, []).
 vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
@@ -5191,6 +5194,29 @@ circuit_successors(V, Tos) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% automaton(+Signature, +Nodes, +Arcs)
+%
+%  Equivalent to automaton(_, _, Signature, Nodes, Arcs, [], [], _), a
+%  common use case of automaton/8. In the following example, a list of
+%  binary finite domain variables is constrained to contain at least
+%  two consecutive ones:
+%
+%  ==
+%  two_consecutive_ones(Vs) :-
+%          automaton(Vs, [source(a),sink(c)],
+%                    [arc(a,0,a), arc(a,1,b),
+%                     arc(b,0,a), arc(b,1,c),
+%                     arc(c,0,c), arc(c,1,c)]).
+%
+%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
+%  Vs = [0, 1, 1] ;
+%  Vs = [1, 1, 0] ;
+%  Vs = [1, 1, 1].
+%  ==
+
+automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
+
+
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  True if the finite automaton induced by Nodes and Arcs (extended
@@ -5211,22 +5237,6 @@ circuit_successors(V, Tos) :-
 %  goal. Initials is a list of the same length as Counters. Counter
 %  arithmetic on the transitions relates the counter values in
 %  Initials to Finals.
-%
-%  In the following example, a list of binary finite domain variables
-%  is constrained to contain at least two consecutive ones:
-%
-%  ==
-%  two_consecutive_ones(Vs) :-
-%          automaton(_, _, Vs, [source(a),sink(c)],
-%                    [arc(a,0,a), arc(a,1,b),
-%                     arc(b,0,a), arc(b,1,c),
-%                     arc(c,0,c), arc(c,1,c)], [], [], _).
-%
-%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
-%  Vs = [0, 1, 1] ;
-%  Vs = [1, 1, 0] ;
-%  Vs = [1, 1, 1].
-%  ==
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5724,11 +5734,9 @@ attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
 attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(_))          --> [].
-attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
-        [global_cardinality(Vs, Pairs)].
-attribute_goal_(pgcc_check_single(_)) --> [].
-attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
+attribute_goal_(pgcc(Vs, Pairs, _)) --> [global_cardinality(Vs, Pairs)].
+attribute_goal_(pgcc_single(_))     --> [].
+attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
