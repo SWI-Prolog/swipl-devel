@@ -575,6 +575,28 @@ initGMP()
   }
 }
 
+
+void
+cleanupGMP()
+{ if ( GD->gmp.initialised )
+  { GD->gmp.initialised = FALSE;
+
+#ifdef O_MY_GMP_ALLOC
+    if ( !GD->gmp.keep_alloc_functions )
+      mp_set_memory_functions(NULL, NULL, NULL);
+#endif
+    mpz_clear(MPZ_MIN_TAGGED);
+    mpz_clear(MPZ_MAX_TAGGED);
+    mpz_clear(MPZ_MIN_PLINT);
+    mpz_clear(MPZ_MAX_PLINT);
+#if SIZEOF_LONG < SIZEOF_VOIDP
+    mpz_clear(MPZ_MIN_LONG);
+    mpz_clear(MPZ_MAX_LONG);
+#endif
+  }
+}
+
+
 		 /*******************************
 		 *	   NUMBER HANDLING      *
 		 *******************************/
