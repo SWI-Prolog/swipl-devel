@@ -1498,6 +1498,9 @@ nbio_error(int code, nbio_error_map mapid)
   term_t except = PL_new_term_ref();
   error_codes *map;
 
+  if ( code == EPLEXCEPTION )
+    return FALSE;
+
   switch( mapid )
   { case TCP_HERRNO:
       map = h_errno_codes;
