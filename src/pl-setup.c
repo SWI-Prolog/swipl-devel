@@ -2020,11 +2020,7 @@ freeLocalData(PL_local_data_t *ld)
   for(i=0; i<BUFFER_RING_SIZE; i++)
     discardBuffer(&ld->fli._buffer_ring[i]);
 
-  if ( ld->comp.vardefs )
-  { free(ld->comp.vardefs);
-
-    memset(&ld->comp, 0, sizeof(ld->comp));
-  }
+  freeVarDefs(ld);
 
 #ifdef O_GVAR
   if ( ld->gvar.nb_vars )

@@ -281,6 +281,28 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
 
 
 void
+freeVarDefs(PL_local_data_t *ld)
+{ if ( ld->comp.vardefs )
+  { GET_LD
+    VarDef *vardefs = ld->comp.vardefs;
+    int i, count=ld->comp.nvardefs;
+
+    assert(LD==ld);
+
+    for(i=0; i<count; i++)
+    { if ( vardefs[i] )
+	freeHeap(vardefs[i], sizeof(vardef));
+    }
+
+    free(ld->comp.vardefs);
+    ld->comp.vardefs = NULL;
+    ld->comp.nvardefs = 0;
+    ld->comp.filledVars = 0;
+  }
+}
+
+
+void
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m ARG_LD)
 { Module m0;
