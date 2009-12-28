@@ -891,7 +891,11 @@ Heuristics functions to determine whether an integer reference passed to
 erase and assert/2, clause/3, etc.  really points to a clause or record.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef DMALLOC
+#define inCore(a)	TRUE
+#else
 #define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
+#endif
 #define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
 #define isClause(c)	((inCore(c) || onStack(local, (c))) && \
@@ -2029,6 +2033,8 @@ decrease).
 
 #ifdef DMALLOC
 #include <dmalloc.h>
+#define allocHeap(n)  xmalloc(n)
+#define freeHeap(ptr, n) xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/
