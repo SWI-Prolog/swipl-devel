@@ -12,24 +12,22 @@ of signalling and broadcasting the queue condition variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- dynamic
-	seen/1.
+	seen/1,
+	tid/1.
 
 qpattern :-
 	qpattern(100).
 
 qpattern(N) :-
-	findall(Th, thread_property(Th, status(_)), Ths),
-	qpattern(N, Ths).
-
-qpattern(N, Running) :-
 	message_queue_create(Queue),
 	thread_create(do(Queue, a(_)), T1, []),
 	thread_create(do(Queue, b(_)), T2, []),
 	thread_create(do(Queue, c(_)), T3, []),
 	(   between(1, N, X),
-	    (	X mod 5 =:= 0
-	    ->	catch(thread_create(do1(Queue), _, [detached(true)]),
-		      _, true)
+	    (	X mod 5 =:= 0,
+		catch(thread_create(do1(Queue), Id, []),
+		      _, fail)
+	    ->	assert(tid(Id))
 	    ;	true
 	    ),
 	    A is random(3),
@@ -38,28 +36,23 @@ qpattern(N, Running) :-
 	    fail
 	;   true
 	),
-	(   repeat,
-	    findall(Th, thread_property(Th, status(_)), Ths0),
-	    subtract(Ths0, Running, Ths),
-%	    writeln(Ths),
-	    (	length(Ths, 3)
-	    ->	true
-	    ;	thread_send_message(Queue, go_away),
-	        sleep(0.1),
-		fail
-	    )
-	->  true
-	),
+	forall(tid(_),
+	       thread_send_message(Queue, go_away)),
+	forall(retract(tid(TID)), join(TID)),
 	thread_send_message(Queue, a(done)),
 	thread_send_message(Queue, b(done)),
 	thread_send_message(Queue, c(done)),
-	thread_join(T1, true),
-	thread_join(T2, true),
-	thread_join(T3, true),
+	join(T1),
+	join(T2),
+	join(T3),
+	message_queue_destroy(Queue),
 	setof(X, retract(seen(X)), Xs),
 	numlist(1, N, L),
 	Xs == L.
 
+join(TID) :-
+	thread_join(TID, Status),
+	assertion(Status == true).
 
 g(0, X, a(X)).
 g(1, X, b(X)).
