@@ -153,6 +153,7 @@ COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
 
 /* pl-comp.c */
 COMMON(void) 		initWamTable(void);
+COMMON(void)		freeVarDefs(PL_local_data_t *ld);
 COMMON(void) 		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
 					 Module *m ARG_LD);
