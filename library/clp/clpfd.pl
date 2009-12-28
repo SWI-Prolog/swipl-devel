@@ -3177,9 +3177,10 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_single(Single), _) :-
+run_propagator(pgcc_single(Pairs), _) :-
         disable_queue,
-        gcc_check(Single),
+        gcc_check(Pairs),
+        gcc_global(Pairs),
         enable_queue.
 
 run_propagator(pgcc(_, _, Pairs), _) :-
@@ -4761,6 +4762,7 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
+        propagator_init_trigger(Nums, pgcc_single(Pairs1)),
         propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4778,11 +4780,6 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_num, Num0),
         put_attr(Num, clpfd_gcc_vs, Vs),
         put_attr(Num, clpfd_gcc_occurred, 0),
-        (   var(Num0) ->
-            make_propagator(pgcc_single([Key-Num]), Prop),
-            init_propagator(Num0, Prop)
-        ;   true
-        ),
         gcc_pairs(KNs, Vs, Rest).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
