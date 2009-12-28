@@ -112,6 +112,7 @@
                   global_cardinality/3,
                   circuit/1,
                   element/3,
+                  automaton/3,
                   automaton/8,
                   transpose/2,
                   zcompare/3,
@@ -5193,6 +5194,29 @@ circuit_successors(V, Tos) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% automaton(+Signature, +Nodes, +Arcs)
+%
+%  Equivalent to automaton(_, _, Signature, Nodes, Arcs, [], [], _), a
+%  common use case of automaton/8. In the following example, a list of
+%  binary finite domain variables is constrained to contain at least
+%  two consecutive ones:
+%
+%  ==
+%  two_consecutive_ones(Vs) :-
+%          automaton(Vs, [source(a),sink(c)],
+%                    [arc(a,0,a), arc(a,1,b),
+%                     arc(b,0,a), arc(b,1,c),
+%                     arc(c,0,c), arc(c,1,c)]).
+%
+%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
+%  Vs = [0, 1, 1] ;
+%  Vs = [1, 1, 0] ;
+%  Vs = [1, 1, 1].
+%  ==
+
+automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
+
+
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  True if the finite automaton induced by Nodes and Arcs (extended
@@ -5213,22 +5237,6 @@ circuit_successors(V, Tos) :-
 %  goal. Initials is a list of the same length as Counters. Counter
 %  arithmetic on the transitions relates the counter values in
 %  Initials to Finals.
-%
-%  In the following example, a list of binary finite domain variables
-%  is constrained to contain at least two consecutive ones:
-%
-%  ==
-%  two_consecutive_ones(Vs) :-
-%          automaton(_, _, Vs, [source(a),sink(c)],
-%                    [arc(a,0,a), arc(a,1,b),
-%                     arc(b,0,a), arc(b,1,c),
-%                     arc(c,0,c), arc(c,1,c)], [], [], _).
-%
-%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
-%  Vs = [0, 1, 1] ;
-%  Vs = [1, 1, 0] ;
-%  Vs = [1, 1, 1].
-%  ==
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
