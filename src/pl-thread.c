@@ -1595,6 +1595,8 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
+	if ( state != &statebuf )
+	  freeHeap(state, sizeof(*state));
 	succeed;
       }
 
