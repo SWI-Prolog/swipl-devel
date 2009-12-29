@@ -401,10 +401,11 @@ floattest(float-1) :-
 floattest(float-2) :-
 	ftest.
 floattest(float-3) :-
-	erase_all(f),
-	recorda(f, 6.7),
+	erase_all(f),			% play safe
+	recorda(f, 6.7, Ref),
 	recorded(f, X),
-	X == 6.7.
+	X == 6.7,
+	erase(Ref).
 floattest(float-4) :-
 	X is 10.67,
 	X == 10.67.
