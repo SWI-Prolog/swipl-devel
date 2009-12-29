@@ -1304,40 +1304,46 @@ erase_all(_).
 record(recorda-1) :-
 	erase_all(r1),
 	mkterm(T0),
-	recorda(r1, T0),
+	recorda(r1, T0, Ref),
 	recorded(r1, T1),
-	T0 =@= T1.
+	T0 =@= T1,
+	erase(Ref).
 record(recorda-2) :-
 	erase_all(r2),
 	mkterm(T0),
 	recorda(r2, T0, Ref),
 	recorded(K, T1, Ref),
 	K == r2,
-	T0 =@= T1.
+	T0 =@= T1,
+	erase(Ref).
 record(recorda-3) :-
 	erase_all(r3),
 	\+ current_key(r3),
-	recorda(r3, test),
-	current_key(r3).
+	recorda(r3, test, Ref),
+	current_key(r3),
+	erase(Ref).
 record(recorda-4) :-
 	erase_all(r4),
-	recorda(r4, aap),
-	recorda(r4, noot),
-	recordz(r4, mies),
+	recorda(r4, aap, R1),
+	recorda(r4, noot, R2),
+	recordz(r4, mies, R3),
 	findall(X, recorded(r4, X), Xs),
-	Xs = [noot, aap, mies].
+	Xs = [noot, aap, mies],
+	erase(R1), erase(R2), erase(R3).
 record(recorda-5) :-
-	recorda(bla,sign(a,(b,c),d)),
+	recorda(bla,sign(a,(b,c),d), Ref),
 	\+ recorded(bla, sign(_,(B,B),_)),
 	\+ (recorded(bla,S),
-	    S=sign(_,(B,B),_)).
+	    S=sign(_,(B,B),_)),
+	erase(Ref).
 record(erase-1) :-
 	erase_all(r5),
 	recorda(r5, aap, R),
-	recorda(r5, noot),
+	recorda(r5, noot, R2),
 	erase(R),
 	findall(X, recorded(r5, X), Xs),
-	Xs = [noot].
+	Xs = [noot],
+	erase(R2).
 record(erase-2) :-
 	retractall(a(_)),
 	assert(a(1), Ref),
@@ -1388,8 +1394,9 @@ compiler(assert-6) :-
 	numlist(0, 100, L),
 	append(L, [_], A),
 	T =.. [x|A],
-	assert(T),
-	T.
+	assert(T, Ref),
+	once(T),
+	erase(Ref).
 compiler(assert-7) :-
 	Body = (a(A), A=[B|C], a(B), a(C)),
 	Clause = (at:-Body),
@@ -1430,7 +1437,8 @@ update(assert-1) :-
 	     a(X),
 	     assert(a(3)),
 	     X = 3
-	   ).
+	   ),
+	retractall(a(_)).
 update(retract-1) :-
 	retractall(a(_)),
 	(   assert(a(1)),
@@ -1440,14 +1448,16 @@ update(retract-1) :-
 	    fail
 	;   findall(X, a(X), Xs),
 	    Xs = [3,3]
-	).
+	),
+	retractall(a(_)).
 update(retract-2) :-
 	retractall(a(_)),
 	assert(a(1)),
 	assert(a(2)),
 	a(X),
 	ignore(retract(a(2))),
-	X = 2.
+	X = 2,
+	retractall(a(_)).
 
 
 		 /*******************************
