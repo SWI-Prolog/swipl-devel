@@ -974,6 +974,7 @@ verify_entry(CanonicalDir d)
 
     d->inode  = buf.st_ino;
     d->device = buf.st_dev;
+    return TRUE;
   } else
   { DEBUG(1, Sdprintf("%s: no longer exists\n", d->canonical));
 
@@ -990,6 +991,9 @@ verify_entry(CanonicalDir d)
       }
     }
 
+    free(d->name);
+    if ( d->canonical != d->name )
+      free(d->canonical);
     free(d);
   }
 
