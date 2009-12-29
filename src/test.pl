@@ -2745,7 +2745,7 @@ report_failed :-
 
 :- if(current_predicate(dmalloc/3)).
 call_test(Goal, Line) :-
-	dmalloc(Goal, '*** Line ~d ***', [Line]).
+	dmalloc((Goal->true), '*** Line ~d: ~p ***', [Line, Goal]).
 :- else.
 call_test(Goal, _Line) :-
 	Goal.
