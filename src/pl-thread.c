@@ -1899,16 +1899,19 @@ executeThreadSignals(int sig)
 
   for( ; sg; sg = next)
   { term_t goal = PL_new_term_ref();
+    Module gm;
     term_t ex;
     int rval;
 
     next = sg->next;
     rval = PL_recorded(sg->goal, goal);
     PL_erase(sg->goal);
+    gm = sg->module;
     freeHeap(sg, sizeof(*sg));
+
     DEBUG(1, Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
     if ( rval )
-    { rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    { rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
     } else
     { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
       ex = exception_term;
