@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2495,14 +2495,16 @@ mutex(trylock-1) :-
 	thread_get_message(locked),
 	\+ mutex_trylock(Mutex),
 	thread_send_message(Id, done),
-	thread_join(Id, true).
+	thread_join(Id, true),
+	mutex_destroy(Mutex).
 mutex(unlock-1) :-
 	gensym(mutex, Mutex),
 	mutex_lock(Mutex),
 	mutex_unlock(Mutex),
 	catch(mutex_unlock(Mutex), E, true),
 	E == error(permission_error(mutex, unlock, Mutex),
-		   context(mutex_unlock/1, 'not locked')).
+		   context(mutex_unlock/1, 'not locked')),
+	mutex_destroy(Mutex).
 mutex(destroy-1) :-
 	gensym(mutex, Mutex),
 	mutex_create(Mutex),
