@@ -2556,7 +2556,7 @@ run_test_script(Script) :-
 	->  format('(~w)', [Base]), flush_output
 	;   true
 	),
-	Pred.
+	call_test(Pred, script).
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
