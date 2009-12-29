@@ -4617,7 +4617,14 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %   Durations = [D_1,...,D_n] is a list of non-negative integers.
 %   Constrains Starts and Durations to denote a set of
 %   non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
-%   S_i for all 1 =< i < j =< n.
+%   S_i for all 1 =< i < j =< n. Example:
+%
+%   ==
+%   ?- length(Vs, 3), Vs ins 0..3, serialized(Vs, [1,2,3]), label(Vs).
+%   Vs = [0, 1, 3] ;
+%   Vs = [2, 0, 3] ;
+%   false.
+%   ==
 %
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
 %       Disjunctive Scheduling Problem"
