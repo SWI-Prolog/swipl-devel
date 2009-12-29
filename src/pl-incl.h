@@ -2032,6 +2032,8 @@ decrease).
 #endif
 
 #ifdef DMALLOC
+#define DMALLOC_FUNC_CHECK 1
+#define O_MYALLOC 0
 #include <dmalloc.h>
 #define allocHeap(n)  xmalloc(n)
 #define freeHeap(ptr, n) xfree(ptr)
