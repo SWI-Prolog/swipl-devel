@@ -2929,6 +2929,8 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
+	if ( state != &statebuf )
+	  free_qstate(state);
 	succeed;
       }
 
