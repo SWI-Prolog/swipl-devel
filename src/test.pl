@@ -2722,6 +2722,24 @@ report_failed :-
         ;   format('~nAll tests passed~n', [])
 	).
 
+%%	call_test(:Goal, +Line)
+%
+%	Call the actual test. If dmalloc/3 is provided, call through
+%	this leak-detection hook.
+%
+%	@see test/dmalloc.pl
+
+:- meta_predicate
+	call_test(0, +).
+
+:- if(current_predicate(dmalloc/3)).
+call_test(Goal, Line) :-
+	dmalloc(Goal, '*** Line ~d ***', [Line]).
+:- else.
+call_test(Goal, _Line) :-
+	Goal.
+:- endif.
+
 runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
 	flush,
@@ -2729,12 +2747,12 @@ runtest(Name) :-
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
+	clause_property(R, line_count(Line)),
 	(   current_prolog_flag(verbose, normal)
-	->  clause_property(R, line_count(Line)),
-	    format('(~w)', [Line]), flush_output
+	->  format('(~w)', [Line]), flush_output
 	;   true
 	),
-	(   catch(Head, Except, true)
+	(   catch(call_test(Head, Line), Except, true)
 	->  (   var(Except)
 	    ->  put(.), flush_output
 	    ;   Except = blocked(Reason)
