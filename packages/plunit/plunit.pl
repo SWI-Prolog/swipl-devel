@@ -176,6 +176,11 @@ user:term_expansion((:- thread_local(PI)), (:- dynamic(PI))) :-
 %		If =true= and supported by the hosting Prolog, code
 %		is run in all supported unification mode and reported
 %		if the results are inconsistent.
+%
+%		* cleanup(+Bool)
+%		If =true= (default =false), cleanup report at the end
+%		of run_tests/1.  Used to improve cooperation with
+%		memory debuggers such as dmalloc.
 
 set_test_options(Options) :-
 	valid_options(Options, global_test_option),
@@ -188,6 +193,8 @@ global_test_option(run(When)) :-
 global_test_option(silent(Bool)) :-
 	must_be(boolean, Bool).
 global_test_option(sto(Bool)) :-
+	must_be(boolean, Bool).
+global_test_option(cleanup(Bool)) :-
 	must_be(boolean, Bool).
 
 
@@ -490,12 +497,14 @@ run_tests :-
 	cleanup,
 	forall(current_test_set(Set),
 	       run_unit(Set)),
-	report.
+	report,
+	cleanup_after_test.
 
 run_tests(Set) :-
 	cleanup,
 	run_unit(Set),
-	report.
+	report,
+	cleanup_after_test.
 
 run_unit([]) :- !.
 run_unit([H|T]) :- !,
@@ -546,6 +555,14 @@ cleanup :-
 	retractall(sto(_, _, _, _)),
 	retractall(fixme(_, _, _, _, _)),
 	retractall(running(_,_,_,_,Me)).
+
+cleanup_after_test :-
+	current_test_flag(test_options, Options),
+	option(cleanup(Cleanup), Options, false),
+	(   Cleanup == true
+	->  cleanup
+	;   true
+	).
 
 
 %%	run_tests_in_files(+Files:list)	is det.
