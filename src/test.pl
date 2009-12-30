@@ -2551,7 +2551,7 @@ follow_links(File, File).
 run_test_script(Script) :-
 	file_base_name(Script, Base),
 	file_name_extension(Pred, _, Base),
-	load_files(Script, [silent(true)]),
+	load_files(Script, [silent(true), if(changed)]),
 	(   current_prolog_flag(verbose, normal)
 	->  format('(~w)', [Base]), flush_output
 	;   true
@@ -2744,6 +2744,8 @@ report_failed :-
 	call_test(0, +).
 
 :- if(current_predicate(dmalloc/3)).
+call_test(Goal, script) :- !,
+	dmalloc((Goal->true), '*** Script ~w ***', [Goal]).
 call_test(Goal, Line) :-
 	dmalloc((Goal->true), '*** Line ~d: ~p ***', [Line, Goal]).
 :- else.
