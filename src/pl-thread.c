@@ -3656,6 +3656,8 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
+	if ( state != &statebuf )
+	  free_mstate__LD(state PASS_LD);
 	succeed;
       }
 
