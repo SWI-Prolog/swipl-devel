@@ -3829,6 +3829,18 @@ int
 makeMoreStackSpace(int overflow, int flags)
 { GET_LD
 
+  if ( LD->exception.processing )
+  { if ( overflow == GLOBAL_OVERFLOW &&
+	 enableSpareStack((Stack)&LD->stacks.global) )
+      return TRUE;
+    if ( overflow == TRAIL_OVERFLOW &&
+	 enableSpareStack((Stack)&LD->stacks.trail) )
+      return TRUE;
+    if ( overflow == LOCAL_OVERFLOW &&
+	 enableSpareStack((Stack)&LD->stacks.local) )
+      return TRUE;
+  }
+
   if ( LD->gc.inferences != LD->statistics.inferences &&
        (flags & ALLOW_GC) &&
        garbageCollect() )
