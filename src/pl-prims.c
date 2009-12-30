@@ -465,10 +465,16 @@ right_recursion:
 
 static int
 failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
-{ if ( mode == OCCURS_CHECK_TRUE )
+{ int rc;
+
+  if ( mode == OCCURS_CHECK_TRUE )
     fail;
 
-  return PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
+  blockGC(0 PASS_LD);
+  rc = PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
+  unblockGC(0 PASS_LD);
+
+  return rc;
 }
 
 
