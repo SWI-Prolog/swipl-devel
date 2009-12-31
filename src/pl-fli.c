@@ -3468,6 +3468,8 @@ PL_clear_exception(void)
     setVar(*valTermRef(LD->exception.printed));
     setVar(*valTermRef(LD->exception.pending));
   }
+
+  LD->exception.processing = FALSE;
 }
 
 

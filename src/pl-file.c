@@ -2680,9 +2680,11 @@ openStream(term_t file, term_t mode, term_t options)
   }
 #ifdef HAVE_POPEN
   else if ( PL_is_functor(file, FUNCTOR_pipe1) )
-  { term_t a = PL_new_term_ref();
+  { term_t a;
     char *cmd;
 
+    PL_clear_exception();
+    a = PL_new_term_ref();
     _PL_get_arg(1, file, a);
     if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING|REP_FN) )
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
