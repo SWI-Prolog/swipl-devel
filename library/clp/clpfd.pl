@@ -3178,17 +3178,14 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_single(Pairs), _) :-
+run_propagator(pgcc_single(Pairs), _) :- gcc_global(Pairs).
+
+run_propagator(pgcc_check(Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
-        gcc_global(Pairs),
         enable_queue.
 
-run_propagator(pgcc(_, _, Pairs), _) :-
-        disable_queue,
-        gcc_check(Pairs),
-        gcc_global(Pairs),
-        enable_queue.
+run_propagator(pgcc(_, _, Pairs), _) :- gcc_global(Pairs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4771,6 +4768,7 @@ global_cardinality(Xs, Pairs) :-
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
         propagator_init_trigger(Nums, pgcc_single(Pairs1)),
+        propagator_init_trigger(Xs, pgcc_check(Pairs1)),
         propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4796,6 +4794,9 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
+        disable_queue,
+        gcc_check(KNs),
+        enable_queue,
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
@@ -4806,7 +4807,9 @@ gcc_global(KNs) :-
             phrase(scc(Vals), [s(0,[],gcc_successors)], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
-            maplist(call, Gs)
+            disable_queue,
+            maplist(call, Gs),
+            enable_queue
         ;   true
         ).
 
@@ -5020,14 +5023,8 @@ gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_num),
         del_attr(Num, clpfd_gcc_occurred).
 
-gcc_check(Pairs) :-
-        gcc_check(Pairs, false, Change),
-        (   Change -> gcc_check(Pairs)
-        ;   true
-        ).
-
-gcc_check([], Change, Change).
-gcc_check([Key-Num0|KNs], Change0, Change) :-
+gcc_check([]).
+gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ0),
@@ -5039,8 +5036,8 @@ gcc_check([Key-Num0|KNs], Change0, Change) :-
             % here, otherwise the stored (new) occurrences can differ
             % from the (old) ones used in the following.
             geq(Num, Occ1),
-            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key), Change1 = true
-            ;   Os == [] -> gcc_done(Num0), Num = Occ1, Change1 = Change0
+            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
                 Max is Occ1 + L,
                 geq(Max, Num),
@@ -5053,14 +5050,13 @@ gcc_check([Key-Num0|KNs], Change0, Change) :-
                 (   L =:= Diff ->
                     gcc_done(Num0),
                     Num is Occ1 + Diff,
-                    maplist(=(Key), Os),
-                    Change1 = true
-                ;   Change1 = Change0
+                    maplist(=(Key), Os)
+                ;   true
                 )
             )
-        ;   Change1 = Change0
+        ;   true
         ),
-        gcc_check(KNs, Change1, Change).
+        gcc_check(KNs).
 
 vs_key_min_others([], _, Min, Min, []).
 vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
@@ -5740,6 +5736,7 @@ attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(Vs, Pairs, _)) --> [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_single(_))     --> [].
+attribute_goal_(pgcc_check(_))      --> [].
 attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
