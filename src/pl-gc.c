@@ -202,6 +202,7 @@ forwards void		compact_global(void);
 static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static int		shiftTightStacks();
+static size_t		tight(Stack s ARG_LD);
 
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
@@ -3903,8 +3904,18 @@ ensureGlobalSpace(size_t cells, int flags)
       return TRUE;
   }
 
-  { size_t gmin = cells*sizeof(word);
-    size_t tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
+  { size_t gmin;
+    size_t tmin;
+
+    if ( gTop+cells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
+      gmin = cells*sizeof(word);
+    else
+      gmin = 0;
+
+    if ( tight((Stack)&LD->stacks.trail PASS_LD) )
+      tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
+    else
+      tmin = 0;
 
     growStacks(0, gmin, tmin);
     if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
