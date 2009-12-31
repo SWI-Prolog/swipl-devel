@@ -1163,7 +1163,7 @@ init_stack(Stack s, char *name,
   s->size_limit	= limit;
   s->spare      = spare;
   s->def_spare  = spare;
-  s->min_free   = 1024;
+  s->min_free   = 256*sizeof(word);
   s->max	= addPointer(s->base, size - spare);
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
