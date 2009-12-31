@@ -41,6 +41,8 @@ static int	removeClausesProcedure(Procedure proc, int sfindex, int file);
 static atom_t	autoLoader(Definition def);
 static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
+static void	detachMutexAndUnlock(Definition def);
+static ClauseRef cleanDefinition(Definition def, ClauseRef garbage);
 
 Procedure
 lookupProcedure(functor_t f, Module m)
@@ -880,14 +882,20 @@ abolishProcedure(Procedure proc, Module module)
 
     if ( true(def, DYNAMIC) )
     { if ( def->references == 0 )
-      { resetProcedure(proc, FALSE);
-	gcClausesDefinitionAndUnlock(def);
-	return endCritical;
+      { ClauseRef cref;
+
+	resetProcedure(proc, FALSE);
+	cref = cleanDefinition(def, NULL);
+#ifdef O_PLMT
+	detachMutexAndUnlock(def);
+#endif
+	if ( cref )
+	  freeClauseList(cref);
       } else				/* dynamic --> static */
       { UNLOCKDYNDEF(def);		/* release private lock */
 	setDynamicProcedure(proc, FALSE);
-	return endCritical;
       }
+      return endCritical;
     } else if ( true(def, NEEDSCLAUSEGC) )
     { registerDirtyDefinition(def);
     }
