@@ -2906,7 +2906,7 @@ enumerate:
     { state->q = s->value;
     } else
     { freeTableEnum(state->e);
-      assert(state != &statebuf);
+      assert(state == &statebuf);
       fail;
     }
   }
