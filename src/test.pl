@@ -2705,6 +2705,9 @@ test :-
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
 	scripts,
+	garbage_collect,
+	garbage_collect_atoms,
+	trim_stacks,
 	statistics,
 	report_blocked,
 	report_failed.
