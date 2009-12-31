@@ -991,9 +991,9 @@ verify_entry(CanonicalDir d)
       }
     }
 
-    free(d->name);
+    remove_string(d->name);
     if ( d->canonical != d->name )
-      free(d->canonical);
+      remove_string(d->canonical);
     free(d);
   }
 
