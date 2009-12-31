@@ -3184,6 +3184,11 @@ run_propagator(pgcc_single(Pairs), _) :-
         gcc_global(Pairs),
         enable_queue.
 
+run_propagator(pgcc_check(Pairs), _) :-
+        disable_queue,
+        gcc_check(Pairs),
+        enable_queue.
+
 run_propagator(pgcc(_, _, Pairs), _) :-
         disable_queue,
         gcc_check(Pairs),
@@ -4771,6 +4776,7 @@ global_cardinality(Xs, Pairs) :-
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
         propagator_init_trigger(Nums, pgcc_single(Pairs1)),
+        propagator_init_trigger(Xs, pgcc_check(Pairs1)),
         propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5740,6 +5746,7 @@ attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(Vs, Pairs, _)) --> [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_single(_))     --> [].
+attribute_goal_(pgcc_check(_))      --> [].
 attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
