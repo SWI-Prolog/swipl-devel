@@ -1022,11 +1022,21 @@ start_thread(void *closure)
 
     if ( !rval && info->detached )
     { if ( ex )
-      { printMessage(ATOM_warning,
-		     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
-		       PL_TERM, goal,
-		       PL_FUNCTOR, FUNCTOR_exception1,
-			 PL_TERM, ex);
+      { int print = TRUE;
+
+	if ( LD->exit_requested )
+	{ atom_t a;
+
+	  if ( PL_get_atom(ex, &a) && a == ATOM_aborted )
+	    print = FALSE;
+	}
+
+	if ( print )
+	  printMessage(ATOM_warning,
+		       PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
+			 PL_TERM, goal,
+			 PL_FUNCTOR, FUNCTOR_exception1,
+			   PL_TERM, ex);
       } else
       { printMessage(ATOM_warning,
 		     PL_FUNCTOR_CHARS, "abnormal_thread_completion", 2,
