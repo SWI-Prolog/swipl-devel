@@ -101,6 +101,28 @@ pushSegStack(segstack *stack, void *data)
 }
 
 
+int
+pushRecordSegStack(segstack *stack, Record r)
+{ if ( stack->top + sizeof(r) <= stack->max )
+  { Record *rp = (Record*)stack->top;
+
+    *rp++ = r;
+    stack->top = (char*)rp;
+    stack->count++;
+
+    return TRUE;
+  } else
+  { int rc;
+
+    PL_LOCK(L_AGC);
+    rc = pushSegStack(stack, &r);
+    PL_UNLOCK(L_AGC);
+
+    return rc;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Pop data. Note that we leave the first chunk associated with the stack
 to speedup frequent small usage.

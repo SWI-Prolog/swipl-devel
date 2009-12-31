@@ -86,7 +86,7 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
     return FALSE;
 
   r = compileTermToHeap(A2, R_NOLOCK);
-  pushSegStack(&bag->answers, &r);
+  pushRecordSegStack(&bag->answers, r);
   bag->gsize += r->gsize;
   bag->solutions++;
 
