@@ -3180,7 +3180,6 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 run_propagator(pgcc_single(Pairs), _) :-
         disable_queue,
-        gcc_check(Pairs),
         gcc_global(Pairs),
         enable_queue.
 
@@ -3191,7 +3190,6 @@ run_propagator(pgcc_check(Pairs), _) :-
 
 run_propagator(pgcc(_, _, Pairs), _) :-
         disable_queue,
-        gcc_check(Pairs),
         gcc_global(Pairs),
         enable_queue.
 
@@ -4802,6 +4800,7 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
+        gcc_check(KNs),
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
