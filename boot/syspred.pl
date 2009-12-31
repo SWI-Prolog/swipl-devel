@@ -67,6 +67,7 @@
 	    format/1,
 	    garbage_collect/0,
 	    set_prolog_stack/2,
+	    prolog_stack_property/2,
 	    arithmetic_function/1,
 	    absolute_file_name/2,
 	    require/1,
@@ -914,6 +915,24 @@ set_prolog_stack(Stack, Option) :-
 	Option =.. [Name,Value0],
 	Value is Value0,
 	'$set_prolog_stack'(Stack, Name, _Old, Value).
+
+%%	prolog_stack_property(?Stack, ?Property) is nondet.
+%
+%	Examine stack properties.
+
+prolog_stack_property(Stack, Property) :-
+	stack_property(P),
+	stack_name(Stack),
+	Property =.. [P,Value],
+	'$set_prolog_stack'(Stack, P, Value, Value).
+
+stack_name(local).
+stack_name(global).
+stack_name(trail).
+
+stack_property(limit).
+stack_property(spare).
+stack_property(min_free).
 
 
 		 /*******************************

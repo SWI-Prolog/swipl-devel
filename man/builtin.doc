@@ -6622,11 +6622,10 @@ happen as there may always be threads performing garbage collection.
 
     \predicate{trim_stacks}{0}{}
 Release stack memory resources that are not in use at this moment,
-returning them to the operating system.  Trim stack is a relatively
-cheap call.  It can be used to release memory resources in a
-backtracking loop, where the iterations require typically seconds of
-execution time and very different, potentially large, amounts of
-stack space.  Such a loop should be written as follows:
+returning them to the operating system. It can be used to release memory
+resources in a backtracking loop, where the iterations require typically
+seconds of execution time and very different, potentially large, amounts
+of stack space. Such a loop can be written as follows:
 
 \begin{code}
 loop :-
@@ -6650,6 +6649,8 @@ the global stack one can use:
 ?- set_prolog_stack(global, limit(2*10**9)).
 \end{code}
 
+Current settings can be retrieved with prolog_stack_property/2.
+
 \begin{description}
     \termitem{limit}{+Bytes}
 Set the limit to which the stack is allowed to grow.  If the specified
@@ -6657,23 +6658,29 @@ value is lower than the current usage a permission_error is raised.  If
 the limit is larger than supported, the system silently reduces the
 requested limit to the system limit.
 
+    \termitem{min_free}{+Cells}
+Minimum amount of free space after trimming or shifting the stack.
+Setting this value higher can reduce the number of garbage collections
+and stack-shifts at the cost of higher memory usage. The spare stack
+amount is reported and specified in `cells'. A cell is 4 bytes in the
+32-bit version and 8-bytes on the 64-bit version. See
+\prologflag{address_bits}. See also trim_stacks/0.
+
     \termitem{spare}{+Cells}
 All stacks trigger overflow before actually reaching the limit, so the
 resulting error can be handled gracefully. The spare stack is used for
 print_message/2 from the garbage collector and for handling exceptions.
-The default suffices, unless the user redefines related hooks.  The
-spare stack amount is reported and specified in `cells'.  A cell is
-4 bytes in the 32-bit version and 8-bytes on the 64-bit version. See
-\prologflag{address_bits}.  Do \textbf{not} specify large values for
-this because it reduces the amount of memory available for your real
-task.
+The default suffices, unless the user redefines related hooks. Do
+\textbf{not} specify large values for this because it reduces the amount
+of memory available for your real task.
 
 Related hooks are: message_hook/3 (redefining GC messages),
 prolog_trace_interception/4 and prolog_exception_hook/4.
 \end{description}
 
-Not all flags have impact for all stacks and the current implementation
-lacks proper checking for sensible values.  Use with extreme care.
+    \predicate{prolog_stack_property}{2}{?Stack, ?KeyValue}
+True if \arg{KeyValue} is a current property of \arg{Stack}.  See
+set_prolog_stack/2 for defined properties.
 \end{description}
 
 

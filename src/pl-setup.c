@@ -1163,6 +1163,7 @@ init_stack(Stack s, char *name,
   s->size_limit	= limit;
   s->spare      = spare;
   s->def_spare  = spare;
+  s->min_free   = 1024;
   s->max	= addPointer(s->base, size - spare);
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
@@ -1206,6 +1207,8 @@ allocStacks(size_t local, size_t global, size_t trail)
 	     "trail",    itrail,  trail,   mintrail, 256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.argument,
 	     "argument", argument, argument, minargument, 0);
+
+  LD->stacks.local.min_free = LOCAL_MARGIN;
 
   succeed;
 }
@@ -1510,6 +1513,17 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
       if ( PL_unify_int64(old, spare) &&
 	   PL_get_size_ex(value, &spare) )
       { stack->def_spare = spare*sizeof(word);
+	trim_stack(stack);
+	return TRUE;
+      }
+      return FALSE;
+    }
+    if ( k == ATOM_min_free )
+    { size_t minfree = stack->min_free/sizeof(word);
+
+      if ( PL_unify_int64(old, minfree) &&
+	   PL_get_size_ex(value, &minfree) )
+      { stack->min_free = minfree*sizeof(word);
 	trim_stack(stack);
 	return TRUE;
       }

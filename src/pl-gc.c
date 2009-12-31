@@ -4389,7 +4389,7 @@ nextStackSizeAbove(size_t n)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Return next size for the stack that ensures minfree bytes of free space.
-We add another 1024 to give some freedom.
+We add another s->min_free to give some freedom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 size_t
@@ -4397,11 +4397,11 @@ nextStackSize(Stack s, size_t minfree)
 { size_t size;
 
   if ( minfree == GROW_TRIM )
-  { size = nextStackSizeAbove(usedStackP(s) + s->def_spare);
+  { size = nextStackSizeAbove(usedStackP(s) + s->min_free + s->def_spare);
     if ( size > (size_t)sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { size = nextStackSizeAbove(sizeStackP(s) + minfree + s->def_spare + 1024);
+  { size = nextStackSizeAbove(sizeStackP(s) + minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
       size = 0;				/* passed limit */

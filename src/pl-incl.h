@@ -403,7 +403,10 @@ them.  Descriptions:
 #define MAXSYMBOLLEN		256	/* max size of foreign symbols */
 #define MAXVARIABLES		65536	/* number of variables/clause */
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */
-#define SMALLSTACK		200 * 1024 /* GC policy */
+#define SMALLSTACK		32 * 1024 /* GC policy */
+
+#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
+		      sizeof(struct choice))
 
 #define WORDBITSIZE		(8 * sizeof(word))
 #define LONGBITSIZE		(8 * sizeof(long))
@@ -1627,6 +1630,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  size_t	small;		/* Do not GC below this size */	    \
 	  size_t	spare;		/* Current reserved area */ 	    \
 	  size_t	def_spare;	/* Desired reserved area */	    \
+	  size_t	min_free;	/* Free left when trimming */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \

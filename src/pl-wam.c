@@ -312,9 +312,6 @@ Brief description of the local stack-layout.  This stack contains:
 
 /* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
 
-#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
-		      sizeof(struct choice))
-
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
 	if ( addPointer(lTop, (bytes)) > (void*)lMax ) \
         { int rc; \
