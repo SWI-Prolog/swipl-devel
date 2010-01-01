@@ -112,8 +112,12 @@ intercept(Port, Frame, _Choice, continue) :-
 shift :-
 	flag(shift, N, N+1),
 	I is N mod 4,
-	(   action(I)
-	->  true
+	(   catch(action(I), E, true)
+	->  (   var(E)
+	    ->	true
+	    ;	message_to_string(E, Msg),
+		format(user_error, '~p: ~s~n', [action(I), Msg])
+	    )
 	;   format(user_error, '~p failed~n', [action(I)])
 	).
 
