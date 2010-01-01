@@ -1450,6 +1450,7 @@ pl_garbage_collect_clauses(void)
   if ( GD->procedures.dirty && !gc_status.blocked )
   { DefinitionChain c, cell, next, last;
     sigset_t set;
+    ClauseRef garbage = NULL;
 
     DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
 
@@ -1488,7 +1489,7 @@ pl_garbage_collect_clauses(void)
 	  continue;
 	} else
 	{ DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
-	  gcClausesDefinition(def);
+	  garbage = cleanDefinition(def, garbage);
 	}
       }
 
@@ -1507,8 +1508,10 @@ pl_garbage_collect_clauses(void)
     unblockSignals(&set);
     PL_UNLOCK(L_THREAD);
     UNLOCK();
-  }
 
+    if ( garbage )
+      freeClauseList(garbage);
+  }
 
   succeed;
 }
