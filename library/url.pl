@@ -879,7 +879,7 @@ percent_encode(C, Extra) -->
 	[C].
 %percent_encode(0' , _) --> !, "+".	% Deprecated: use %20
 percent_encode(C, _) -->
-	{ C =< 128 }, !,
+	{ C =< 127 }, !,
 	percent_byte(C).
 percent_encode(C, _) -->		% Unicode characters
 	{ current_prolog_flag(url_encoding, utf8), !,
@@ -887,7 +887,11 @@ percent_encode(C, _) -->		% Unicode characters
 	},
 	percent_bytes(Bytes).
 percent_encode(C, _) -->
+	{ C =< 255 }, !,
 	percent_byte(C).
+percent_encode(_C, _) -->
+	{ representation_error(url_character)
+	}.
 
 percent_bytes([]) -->
 	"".
