@@ -333,7 +333,7 @@ $(srcdir)/TAGS:	$(SRC)
 cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
 check::
-		$(DEVPL) -q -f $(srcdir)/test.pl -G2M -L2M -O -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -q -f $(srcdir)/test.pl -O -F none -g test,halt -t 'halt(1)'
 
 ln-install::
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install
