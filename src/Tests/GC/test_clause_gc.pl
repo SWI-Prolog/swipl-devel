@@ -11,9 +11,12 @@
 %	parts of this process.
 
 test_clause_gc :-
-	gspace(Cells),
-	MaxLen is max(20000, (Cells//2)//3),	% Use upto half the stacks
-	test_clause_gc(MaxLen).
+	setup_call_cleanup(( prolog_stack_property(global, limit(GLimit)),
+			     set_prolog_stack(global, limit(2*1024*1024)),
+			     gspace(Cells),
+			     MaxLen is max(20000, (Cells//2)//3)),
+			   test_clause_gc(MaxLen),
+			   set_prolog_stack(global, limit(GLimit))).
 
 test_clause_gc(N) :-
 	run(N, L),
