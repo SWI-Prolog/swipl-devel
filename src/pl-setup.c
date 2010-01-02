@@ -1491,11 +1491,16 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 
       if ( PL_unify_int64(old, stack->size_limit) &&
 	   PL_get_size_ex(value, &newlimit) )
-      { trim_stack(stack);
+      { if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
+	{ if ( stack->gc )
+	  { garbageCollect();
+	    trimStacks(TRUE PASS_LD);
+	  }
 
-	if ( newlimit < (size_t)sizeStackP(stack) )
-	  return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-			  ATOM_stack, ATOM_limit, value);
+	  if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
+	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			    ATOM_limit, ATOM_stack, name);
+	}
 
 	newlimit += stack->spare;
 	if ( newlimit > MAXTAGGEDPTR+1 )
