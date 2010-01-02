@@ -471,18 +471,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     if ( (flags & FF_READONLY) )
       f->flags |= FF_READONLY;
 
-#ifdef O_PLMT
-    if ( GD->statistics.threads_created > 1 )
-    { if ( !LD->prolog_flag.table )
-      { LD->prolog_flag.table = newHTable(4);
-
-	LD->prolog_flag.table->copy_symbol = copySymbolPrologFlagTable;
-	LD->prolog_flag.table->free_symbol = freeSymbolPrologFlagTable;
-      }
-      addHTable(LD->prolog_flag.table, (void *)k, f);
-    } else
-#endif
-      addHTable(GD->prolog_flag.table, (void *)k, f);
+    addHTable(GD->prolog_flag.table, (void *)k, f);
 
     succeed;
   } else
