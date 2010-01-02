@@ -1522,6 +1522,8 @@ one has a programPointer pointing to  I_EXITQUERY, doing the return from
 a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define NDEBUG_SAVE_FLAGS (PLFLAG_LASTCALL)
+
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 { GET_LD
@@ -1644,10 +1646,12 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     debugstatus.suspendTrace++;
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
+    qf->flags_saved = (LD->prolog_flag.mask.flags & NDEBUG_SAVE_FLAGS);
+    setPrologFlagMask(PLFLAG_LASTCALL);
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = depth_limit;
     qf->saved_depth_reached = depth_reached;
-    depth_limit = (uintptr_t)DEPTH_NO_LIMIT;
+    depth_limit = DEPTH_NO_LIMIT;
 #endif
   }
   fr->predicate      = def;
@@ -1732,6 +1736,8 @@ restore_after_query(QueryFrame qf)
   if ( true(qf, PL_Q_NODEBUG) )
   { debugstatus.suspendTrace--;
     debugstatus.debugging = qf->debugSave;
+    LD->prolog_flag.mask.flags &= (~NDEBUG_SAVE_FLAGS);
+    LD->prolog_flag.mask.flags |= qf->flags_saved;
 #ifdef O_LIMIT_DEPTH
     depth_limit   = qf->saved_depth_limit;
     depth_reached = qf->saved_depth_reached;

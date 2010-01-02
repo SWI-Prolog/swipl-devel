@@ -1301,6 +1301,7 @@ struct queryFrame
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
   unsigned int	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
+  unsigned int	flags_saved;		/* Saved boolean Prolog flags */
   int		solutions;		/* # of solutions produced */
   Word	       *aSave;			/* saved argument-stack */
   Choice	saved_bfr;		/* Saved choice-point */
