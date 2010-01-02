@@ -5,7 +5,7 @@
 :- encoding(utf8).
 :- use_module(library(url)).
 
-:- dynamic
+:- thread_local
 	error/2.
 
 test_url :-
