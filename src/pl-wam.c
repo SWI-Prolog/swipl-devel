@@ -1722,9 +1722,11 @@ restore_after_query(QueryFrame qf)
 
   DiscardMark(qf->choice.mark);
 
+  PL_LOCK(L_AGC);		/* see Tests/thread/test_agc_callback.pl */
   LD->query         = qf->parent;
   LD->choicepoints  = qf->saved_bfr;
   environment_frame = qf->saved_environment;
+  PL_UNLOCK(L_AGC);
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
