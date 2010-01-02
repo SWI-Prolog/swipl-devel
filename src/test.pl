@@ -2707,9 +2707,20 @@ call_test(Goal, script) :- !,
 	dmalloc((Goal->true), '*** Script ~w ***', [Goal]).
 call_test(Goal, Line) :-
 	dmalloc((Goal->true), '*** Line ~d: ~p ***', [Line, Goal]).
+:- elif(current_prolog_flag(test_concurrent, true)).
+call_test(Goal, _Line) :-
+	test_name(Goal, Name),
+	with_mutex(Name, Goal).
+
+test_name(M:G, Name) :- !,
+	functor(G, Pred, Arity),
+	format(atom(Name), 'test ~w:~w/~d', [M,Pred,Arity]).
+test_name(G, Name) :- !,
+	functor(G, Pred, Arity),
+	format(atom(Name), 'test ~w/~d', [Pred,Arity]).
 :- else.
 call_test(Goal, _Line) :-
-	Goal.
+	Goal, !.
 :- endif.
 
 runtest(Name) :-
