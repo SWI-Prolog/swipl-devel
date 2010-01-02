@@ -1629,50 +1629,6 @@ exception(catch-gc) :-
 
 
 		 /*******************************
-		 *	  RESOURCE ERRORS	*
-		 *******************************/
-
-choice.
-choice.
-
-local_overflow :-
-	choice,
-	local_overflow.
-
-global_overflow(X) :-			% Causes gracefully signalled overflow
-	global_overflow(s(X)).
-
-string_overflow(StringList) :-
-	string_overflow2(StringList),
-	is_list(StringList).		% avoid GC of list
-
-string_overflow2([H|T]) :-		% Causes PL_throw() overflow
-	format(string(H), '~txx~1000000|', []),
-	string_overflow2(T).
-
-
-resource(stack-1) :-
-	catch(local_overflow, E, true),
-	E = error(resource_error(stack), local).
-resource(stack-2) :-			% VERY slow with -DO_SECURE
-	catch(global_overflow(0), E, true),
-	E = error(resource_error(stack), global).
-resource(stack-3) :-
-	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
-	catch(string_overflow(_), E2, true),
-	E2 = error(resource_error(stack), global).
-resource(stack-4) :-
-	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
-	catch(global_overflow(_), E2, true),
-	E2 = error(resource_error(stack), global).
-resource(stack-5) :-
-	catch(length(_L,10000000), E, true),
-	E = error(resource_error(stack), global).
-
-
-		 /*******************************
 		 *	       GC		*
 		 *******************************/
 

@@ -18,7 +18,7 @@ Note that '$sig_atomic'/1 is used by setup_call_cleanup/3.
 */
 
 test_agc_callback :-
-	tagc(10000).
+	tagc(5000).
 
 tagc(N) :-
 	thread_create(call_loop, Id, []),
