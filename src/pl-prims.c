@@ -216,10 +216,8 @@ right_recursion:
     w2 = *t2;
   }
 
-#ifdef LIFE_GC
   SECURE(assert(w1 != ATOM_garbage_collected);
 	 assert(w2 != ATOM_garbage_collected));
-#endif
 
   if ( isVar(w1) )
   { if ( tTop+1 >= tMax )

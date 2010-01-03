@@ -109,9 +109,8 @@ linkVal__LD(Word p ARG_LD)
     w = *p;
   }
 
-#ifdef LIFE_GC
   SECURE(assert(w != ATOM_garbage_collected));
-#endif
+
   return w;
 }
 
