@@ -3210,6 +3210,14 @@ unify_mutex_owner(term_t t, int owner)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We must lock the atom, but   threads are initialised before the atom
+infrastructure :-( Note that this is hacky, but safe: m->id is an ATOM_*
+built-in atom and  needs  not  to  be   locked.  Putting  this  test  in
+PL_register_atom() would be cleaner, but that  routine is much more time
+critical.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static pl_mutex *
 mutexCreate(atom_t name)
 { GET_LD
@@ -3221,6 +3229,8 @@ mutexCreate(atom_t name)
   m->owner = 0;
   m->id    = name;
   addHTable(GD->thread.mutexTable, (void *)name, m);
+  if ( isAtom(m->id) && GD->atoms.builtin ) 		/* (*) */
+    PL_register_atom(m->id);
 
   return m;
 }
@@ -3465,6 +3475,7 @@ pl_mutex_destroy(term_t mutex)
 { GET_LD
   pl_mutex *m;
   Symbol s;
+  atom_t aid = NULL_ATOM;
 
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
@@ -3479,11 +3490,16 @@ pl_mutex_destroy(term_t mutex)
 		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
   }
 
+  if ( isAtom(m->id) )
+    aid = m->id;
   pthread_mutex_destroy(&m->mutex);
   s = lookupHTable(GD->thread.mutexTable, (void *)m->id);
   deleteSymbolHTable(GD->thread.mutexTable, s);
   freeHeap(m, sizeof(*m));
   UNLOCK();
+
+  if ( aid )
+    PL_unregister_atom(aid);
 
   succeed;
 }
