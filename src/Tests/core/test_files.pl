@@ -53,12 +53,32 @@ test(tmp_cleanup, Atoms0 == Atoms1) :-
 	).
 
 tmp_atoms(List) :-
-	garbage_collect_atoms,
+	agc,
 	findall(X, tmp_atom(X), Xs),
 	sort(Xs, List).
 
 tmp_atom(X) :-
 	current_atom(X),
 	sub_atom(X, _, _, _, magic_sjwefrbas).
+
+%%	agc/0
+%
+%	If   other   threads   are   active,   it   is   possible   that
+%	garbage_collect_atoms/0 succeeds without doing anything: the AGC
+%	request is scheduled, but  executed  at   a  time  that no other
+%	threads execute slow calls that block AGC.
+%
+%	This predicate loops until AGC has really been performed.
+
+agc :-
+	statistics(agc, AGC0),
+	repeat,
+	    garbage_collect_atoms,
+	    statistics(agc, AGC1),
+ 	(   AGC1 > AGC0
+	->  !
+	;   sleep(0.01),
+	    fail
+	).
 
 :- end_tests(files).
