@@ -2634,7 +2634,6 @@ testset(thread) :-
 	current_prolog_flag(threads, true).
 testset(mutex) :-
 	current_prolog_flag(threads, true).
-testset(resource).
 
 %	unicode_file_locale/0
 %
