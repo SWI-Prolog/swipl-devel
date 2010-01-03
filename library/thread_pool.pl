@@ -214,10 +214,7 @@ pool_manager('__thread_pool_manager') :-
 create_pool_manager :-
 	rb_new(State0),
 	thread_create(manage_thread_pool(State0), _,
-		      [ alias('__thread_pool_manager'),
-			local(1000),
-			global(2000),
-			trail(2000)
+		      [ alias('__thread_pool_manager')
 		      ]).
 
 
