@@ -973,7 +973,8 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
       fail;
   }
 
-  for( ; i < (int)GD->atoms.count; i++ )
+  PL_LOCK(L_AGC);
+  for( ; i < (intptr_t)GD->atoms.count; i++ )
   { Atom atom;
 
     if ( (atom = GD->atoms.array[i]) )
@@ -989,9 +990,11 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	continue;
 
       PL_unify_atom(a, atom->atom);
+      PL_UNLOCK(L_AGC);
       ForeignRedoInt(i+1);
     }
   }
+  PL_UNLOCK(L_AGC);
 
   fail;
 }
