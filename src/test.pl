@@ -2553,10 +2553,10 @@ run_scripts([]).
 run_scripts([H|T]) :-
 	(   catch(run_test_script(H), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush
+	    ->  put_ok
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(H, Reason)),
-		put(!), flush
+		put_blocked
 	    ;   script_failed(H, Except)
 	    )
 	;   script_failed(H, fail)
@@ -2758,10 +2758,10 @@ runtest(Name) :-
 	),
 	(   catch(call_test(Head, Line), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush_output
+	    ->  put_ok
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(Head, Reason)),
-		put(!), flush_output
+		put_blocked
 	    ;   test_failed(R, Except)
 	    )
 	;   test_failed(R, fail)
@@ -2790,6 +2790,18 @@ check_uniqye([Head-R1,Head-R2|T]) :- !,
 check_uniqye([_|T]) :-
 	check_uniqye(T).
 
+
+:- if(current_prolog_flag(test_concurrent, true)).
+put_ok :-
+	thread_self(Me),
+	atom_concat(tester_, Id, Me), !,
+	write(user_error, Id).
+:- endif.
+put_ok :-
+	write(user_error, .).
+
+put_blocked :-
+	write(user_error, !).
 
 test_failed(R, Except) :-
 	clause(Head, _, R),
