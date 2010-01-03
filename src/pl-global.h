@@ -337,6 +337,7 @@ struct PL_local_data
   int		exit_requested;		/* Thread is asked to exit */
 #endif
   int		in_arithmetic;		/* doing arithmetic */
+  int		in_print_message;	/* Inside printMessage() */
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */

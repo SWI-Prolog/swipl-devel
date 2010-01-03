@@ -304,6 +304,7 @@ resetProlog()
   gc_status.blocked        = 0;
   LD->shift_status.blocked = 0;
   LD->in_arithmetic        = 0;
+  LD->in_print_message     = 0;
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);

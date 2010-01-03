@@ -618,6 +618,8 @@ PL_unify_term(). This predicate saves possible   pending  exceptions and
 restores them to make the call from B_THROW possible.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define OK_RECURSIVE 10
+
 int
 printMessage(atom_t severity, ...)
 { GET_LD
@@ -627,27 +629,34 @@ printMessage(atom_t severity, ...)
   va_list args;
   int rc;
 
+  if ( ++LD->in_print_message >= OK_RECURSIVE*3 )
+    fatalError("printMessage(): recursive call\n");
   if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  { LD->in_print_message--;
     return FALSE;
+  }
 
   av = PL_new_term_refs(2);
   va_start(args, severity);
   PL_put_atom(av+0, severity);
   rc = PL_unify_termv(av+1, args);
   va_end(args);
-  if ( !rc )
-    goto out;
 
-  if ( isDefinedProcedure(pred) )
-  { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
-  } else
-  { Sfprintf(Serror, "Message: ");
-    rc = PL_write_term(Serror, av+1, 1200, 0);
-    Sfprintf(Serror, "\n");
+  if ( rc )
+  { if ( isDefinedProcedure(pred) && LD->in_print_message <= OK_RECURSIVE )
+    { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+			     pred, av);
+    } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
+    { Sfprintf(Serror, "Message: ");
+      rc = PL_write_term(Serror, av+1, 1200, 0);
+      Sfprintf(Serror, "\n");
+    } else				/* in_print_message == 2 */
+    { Sfprintf(Serror, "printMessage(): recursive call\n");
+    }
   }
 
-out:
   restoreWakeup(&wstate PASS_LD);
+  LD->in_print_message--;
 
   return rc;
 }
