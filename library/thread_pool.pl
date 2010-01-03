@@ -199,22 +199,34 @@ thread_create_in_pool(Pool, Goal, Id, Options) :-
 %	ThreadID is the thread (alias) identifier of the manager. Starts
 %	the manager if it is not running.
 
-pool_manager('__thread_pool_manager') :-
-	catch(thread_property('__thread_pool_manager', status(Status)),
-	      _, fail),
-	(   Status == running
-	->  !
-	;   thread_join('__thread_pool_manager', Status),
-	    print_message(warning, thread_pool(manager_died(Status))),
-	    fail
+pool_manager(TID) :-
+	TID = '__thread_pool_manager',
+	(   thread_running(TID)
+	->  true
+	;   with_mutex('__thread_pool', create_pool_manager(TID))
 	).
-pool_manager('__thread_pool_manager') :-
-	with_mutex('__thread_pool', create_pool_manager).
 
-create_pool_manager :-
+thread_running(Thread) :-
+	catch(thread_property(Thread, status(Status)),
+	      E, true),
+	(   var(E)
+	->  (   Status == running
+	    ->  true
+	    ;	thread_join(Thread, _),
+		print_message(warning, thread_pool(manager_died(Status))),
+		fail
+	    )
+	;   E = error(existence_error(thread, Thread), _)
+	->  fail
+	;   throw(E)
+	).
+
+create_pool_manager(Thread) :-
+	thread_running(Thread), !.
+create_pool_manager(Thread) :-
 	rb_new(State0),
 	thread_create(manage_thread_pool(State0), _,
-		      [ alias('__thread_pool_manager')
+		      [ alias(Thread)
 		      ]).
 
 
