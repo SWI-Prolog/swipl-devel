@@ -2180,18 +2180,37 @@ collect_data(C, Fd, [C|T]) :-
 timeout(pipe-1) :-
 	(   current_prolog_flag(pipe, true),
 	    \+ current_prolog_flag(windows, true) % cannot wait on pipes
-	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In,
+	->  open(pipe('echo + && sleep 1 && echo xx.'), read, In,
 		 [ bom(false)
 		 ]),
-	    set_stream(In, timeout(1)),
+	    set_stream(In, timeout(0.2)),
 	    wait_for_input([In], [In], infinite),
 	    catch(read(In, _), E1, true),
-	    E1 = error(timeout_error(read, _), _),
-	    wait_for_input([In], [In], infinite),
-	    catch(read(In, Term), E2, true),
-	    var(E2),
-	    Term == xx,
-	    close(In)
+	    (	E1 = error(timeout_error(read, _), _)
+	    ->	wait_for_input([In], [In], infinite),
+		catch(read(In, Term), E2, true),
+		(   var(E2)
+		->  (   Term == xx
+		    ->	close(In)
+		    ;	format(user_error, 'Term == ~q~n', [Term]),
+			true
+		    )
+		;   format(user_error, 'E2 == ~q~n', [E2]),
+		    fail
+		)
+	    ;   var(E1)
+	    ->	(   Term == (+ xx)
+		->  close(In),
+		    format(user_error,
+			   'timeout(pipe-1): ~q (machine heavy loaded?)~n',
+			   [Term])
+		;   format(user_error,
+			   'var(E1) && Term == ~q~n', [Term]),
+		    fail
+		)
+	    ;	format(user_error, 'E1 == ~q~n', [E1]),
+		fail
+	    )
 	;   true
 	).
 
