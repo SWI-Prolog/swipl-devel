@@ -2457,7 +2457,7 @@ thread(at_exit-1) :-
 	retract(at_exit_called).
 thread(status-1) :-
 	thread_create(true, Id, []),
-	between(0, 10, _),
+	between(0, 100, _),
 	sleep(0.01),
 	thread_property(Id2, status(Status)),
 	Id2 == Id,
