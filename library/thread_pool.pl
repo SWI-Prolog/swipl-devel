@@ -182,11 +182,11 @@ thread_pool_property(Name, Property) :-
 %		is =false= or the backlog limit has been reached.
 
 thread_create_in_pool(Pool, Goal, Id, Options) :-
-	strip_module(Goal, M, G),
 	select_option(wait(Wait), Options, ThreadOptions, true),
 	pool_manager(Manager),
 	thread_self(Me),
-	thread_send_message(Manager, create(Pool, M:G, Me, Wait, ThreadOptions)),
+	thread_send_message(Manager,
+			    create(Pool, Goal, Me, Wait, ThreadOptions)),
 	wait_reply(Id).
 
 
