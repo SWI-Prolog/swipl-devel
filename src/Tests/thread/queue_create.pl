@@ -38,7 +38,8 @@ test :-
 	    format(user_error,
 		   'Failed to send message to client: ~s~n', [Msg]),
 	    thread_join(Id, Status),
-	    format(user_error, 'Client terminated with ~q~n', [Status])
+	    format(user_error, 'Client terminated with ~q~n', [Status]),
+	    fail
 	).
 
 client :-
