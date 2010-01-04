@@ -32,6 +32,7 @@
 :- module(date,
 	  [ date_time_value/3,		% ?Field, ?DaTime, ?Value
 	    parse_time/2,		% +Date, -Stamp
+	    parse_time/3,		% +Date, ?Format, -Stamp
 	    day_of_the_week/2           % +Date, -DayOfTheWeek
 	  ]).
 
@@ -63,95 +64,36 @@ date_time_value(daylight_saving, date(_,_,_,_,_,_,_,_,D), D) :- D \== (-).
 date_time_value(date,		 date(Y,M,D,_,_,_,_,_,_), date(Y,M,D)).
 date_time_value(time,		 date(_,_,_,H,M,S,_,_,_), time(H,M,S)).
 
-%%	parse_time(+Text, -Stamp) is det.
+%%	parse_time(+Text, -Stamp) is semidet.
+%%	parse_time(+Text, ?Format, -Stamp) is semidet.
 %
-%	Stamp is a timestamp created from   parsing Text. Currently only
-%	deals with RFC1123 from the HTTP protocol and ISO 8601 time
-%	specifications.
+%	Stamp is a  timestamp  created  from   parsing  Text  using  the
+%	representation Format. Currently supported formats are:
+%
+%	    * rfc_1123
+%	    Used for the HTTP protocol to represent time-stamps
+%	    * iso_8601
+%	    Commonly used in XML documents.
 
 parse_time(Text, Stamp) :-
+	parse_time(Text, _Format, Stamp).
+
+parse_time(Text, Format, Stamp) :-
 	atom_codes(Text, Codes),
-	phrase(date(Y,Mon,D,H,Min,S,UTCOffset), Codes),
+	phrase(date(Format, Y,Mon,D,H,Min,S,UTCOffset), Codes), !,
 	date_time_stamp(date(Y,Mon,D,H,Min,S,UTCOffset,-,-), Stamp).
 
-% TIMEX2 ISO: "2006-12-08T15:29:44 UTC" or "20061208T"
-iso_time(Hr,Min,Sec) -->
-	hour(H), ":", minute(M), ":", second(S),
-	timezone(DH,DM,DS),
-	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
-iso_time(Hr,Min,Sec) -->
-	hour(H), ":", minute(M),
-	timezone(DH,DM,DS),
-	{ Hr is H + DH, Min is M + DM, Sec is DS }.
-iso_time(Hr,Min,Sec) -->
-	hour(H), minute(M), second(S),
-	timezone(DH,DM,DS),
-	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
-iso_time(Hr,Min,Sec) -->
-	hour(H), minute(M),
-	timezone(DH,DM,DS),
-	{ Hr is H + DH, Min is M + DM, Sec is DS }.
-iso_time(Hr,Min,Sec) -->
-	hour(H),
-	timezone(DH,DM,DS),
-	{ Hr is H + DH, Min is DM, Sec is DS }.
-
-% FIXME: deal with leap seconds
-timezone(Hr,Min,0) --> "+", hour(H), ":", minute(M), { Hr is -1 * H, Min is -1 * M }.
-timezone(Hr,Min,0) --> "+", hour(H), minute(M), { Hr is -1 * H, Min is -1 * M }.
-timezone(Hr,0,0) --> "+", hour(H), { Hr is -1 * H }.
-timezone(Hr,Min,0) --> "-", hour(H), ":", minute(M), { Hr is H, Min is M }.
-timezone(Hr,Min,0) --> "-", hour(H), minute(M), { Hr is H, Min is M }.
-timezone(Hr,0,0) --> "-", hour(H), { Hr is H }.
-timezone(0,0,0) --> "Z".
-timezone(0,0,0) --> ws, "UTC".
-timezone(0,0,0) --> ws, "GMT". % remove this?
-timezone(0,0,0) --> [].
-
-date(Yr,Mon,D,H,Min,S,0) --> % BC
-	"-", date(Y,Mon,D,H,Min,S,0),
+date(iso_8601, Yr, Mon, D, H, Min, S, 0) --> % BC
+	"-", date(iso_8601, Y, Mon, D, H, Min, S, 0),
 	{ Yr is -1 * Y }.
-date(Y,Mon,D,H,Min,S,0) -->
+date(iso_8601, Y, Mon, D, H, Min, S, 0) -->
+	year(Y),
+	iso_8601_rest(Y, Mon, D, H, Min, S),
 	year(Y), "-", month(Mon), "-", day(D),
-	"T", iso_time(H,Min,S).
-date(Y,Mon,D,0,0,0,0) -->
-	year(Y), "-", month(Mon), "-", day(D).
-date(Y,Mon,0,0,0,0,0) -->
-	year(Y), "-", month(Mon).
-date(Y,Mon,D,H,Min,S,0) -->
-	year(Y), month(Mon), day(D),
-	"T", iso_time(H,Min,S).
-date(Y,Mon,D,0,0,0,0) -->
-	year(Y), month(Mon), day(D).
-date(Yr,1,D,0,0,0,0) -->
-	year(Yr), "-", ordinal(D).
-date(Yr,1,D,H,Min,S,0) -->
-	year(Yr), "-", ordinal(D),
-	"T", iso_time(H,Min,S).
-date(Yr,1,D,H,Min,S,0) -->
-	year(Yr), "-W", week(W), "-", day_of_the_week(DW),
-	"T", iso_time(H,Min,S),
-	{ week_ordinal(Yr,W,DW,D) }.
-date(Yr,1,D,0,0,0,0) -->
-	year(Yr), "-W", week(W), "-", day_of_the_week(DW),
-	{ week_ordinal(Yr,W,DW,D) }.
-date(Yr,1,D,0,0,0,0) -->
-	year(Yr), "-W", week(W),
-	{ week_ordinal(Yr,W,1,D) }.
-date(Yr,1,D,H,Min,S,0) -->
-	year(Yr), "W", week(W), day_of_the_week(DW),
-	"T", iso_time(H,Min,S),
-	{ week_ordinal(Yr,W,DW,D) }.
-date(Yr,1,D,0,0,0,0) -->
-	year(Yr), "W", week(W), day_of_the_week(DW),
-	{ week_ordinal(Yr,W,DW,D) }.
-date(Yr,1,D,0,0,0,0) -->
-	year(Yr), "W", week(W),
-	{ week_ordinal(Yr,W,1,D) }.
-
+	"T", iso_time(H, Min, S).
 % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
-date(Y,Mon,D,H,Min,S,0) -->
-	day_name(_), ",", ws,
+date(rfc_1123, Y, Mon, D, H, Min, S, 0) -->
+	day_name(_), ", ", ws,
 	day_of_the_month(D), ws,
 	month_name(Mon), ws,
 	year(Y), ws,
@@ -160,6 +102,81 @@ date(Y,Mon,D,H,Min,S,0) -->
 	->  []
 	;   []
 	).
+
+%%	iso_8601_rest(+Year:int, -Mon, -Day, -H, -M, -S)
+%
+%	Process ISO 8601 time-values after parsing the 4-digit year.
+
+iso_8601_rest(_, Mon, D, 0, 0, 0) -->
+	"-", month(Mon), "-", day(D).
+iso_8601_rest(_, Mon, 0, 0, 0, 0) -->
+	"-", month(Mon).
+iso_8601_rest(_, Mon, D, H, Min, S) -->
+	month(Mon), day(D),
+	opt_time(H, Min, S).
+iso_8601_rest(_, 1, D, H, Min, S) -->
+	"-", ordinal(D),
+	opt_time(H, Min, S).
+iso_8601_rest(Yr, 1, D, H, Min, S) -->
+	"-W", week(W), "-", day_of_the_week(DW),
+	opt_time(H, Min, S),
+	{ week_ordinal(Yr, W, DW, D) }.
+iso_8601_rest(Yr, 1, D, H, Min, S) -->
+	"W", week(W), day_of_the_week(DW),
+	opt_time(H, Min, S),
+	{ week_ordinal(Yr, W, DW, D) }.
+iso_8601_rest(Yr, 1, D, 0, 0, 0) -->
+	"W", week(W),
+	{ week_ordinal(Yr, W, 1, D) }.
+
+opt_time(Hr, Min, Sec) -->
+	"T", !, iso_time(Hr, Min, Sec).
+opt_time(0, 0, 0) --> "".
+
+
+% TIMEX2 ISO: "2006-12-08T15:29:44 UTC" or "20061208T"
+iso_time(Hr, Min, Sec) -->
+	hour(H), ":", minute(M), ":", second(S),
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
+iso_time(Hr, Min, Sec) -->
+	hour(H), ":", minute(M),
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is M + DM, Sec is DS }.
+iso_time(Hr, Min, Sec) -->
+	hour(H), minute(M), second(S),
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is M + DM, Sec is S + DS }.
+iso_time(Hr, Min, Sec) -->
+	hour(H), minute(M),
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is M + DM, Sec is DS }.
+iso_time(Hr, Min, Sec) -->
+	hour(H),
+	timezone(DH, DM, DS),
+	{ Hr is H + DH, Min is DM, Sec is DS }.
+
+% FIXME: deal with leap seconds
+timezone(Hr, Min, 0) -->
+	"+", hour(H), ":", minute(M), { Hr is -1 * H, Min is -1 * M }.
+timezone(Hr, Min, 0) -->
+	"+", hour(H), minute(M), { Hr is -1 * H, Min is -1 * M }.
+timezone(Hr, 0, 0) -->
+	"+", hour(H), { Hr is -1 * H }.
+timezone(Hr, Min, 0) -->
+	"-", hour(H), ":", minute(M), { Hr is H, Min is M }.
+timezone(Hr, Min, 0) -->
+	"-", hour(H), minute(M), { Hr is H, Min is M }.
+timezone(Hr, 0, 0) -->
+	"-", hour(H), { Hr is H }.
+timezone(0, 0, 0) -->
+	"Z".
+timezone(0, 0, 0) -->
+	ws, "UTC".
+timezone(0, 0, 0) -->
+	ws, "GMT". % remove this?
+timezone(0, 0, 0) -->
+	[].
 
 day_name(0) --> "Sun".
 day_name(1) --> "Mon".
@@ -208,7 +225,7 @@ ordinal(N) --> % Nth day of the year, jan 1 = 1, dec 31 = 365 or 366
 	digit(D0),
 	digit(D1),
 	digit(D2),
-	{ N is D0*100+D1*10+D2, between(1,366, N) }.
+	{ N is D0*100+D1*10+D2, between(1, 366, N) }.
 
 digit(D) -->
 	[C],
@@ -220,18 +237,20 @@ ws -->
 ws -->
 	[].
 
-%%	day_of_the_week(+Date,-DayOfTheWeek) is det.
+%%	day_of_the_week(+Date, -DayOfTheWeek) is det.
 %
 %	Computes the day of the week for a given date.
-%       Date = date(+Year,+Month,+Day),
 %	Days of the week are numbered from one to seven:
 %       monday = 1, tuesday = 2, ..., sunday = 7.
-day_of_the_week(date(Year,Mon,Day),DotW) :-
-	format_time(atom(A),'%u',date(Year,Mon,Day,0,0,0,0,-,-)),
-	atom_number(A,DotW).
+%
+%       @param Date is a term of the form date(+Year, +Month, +Day)
 
-week_ordinal(Year,Week,Day,Ordinal) :-
-	format_time(atom(A),'%w',date(Year,1,1,0,0,0,0,-,-)),
-	atom_number(A,DotW0),
+day_of_the_week(date(Year, Mon, Day), DotW) :-
+	format_time(atom(A), '%u', date(Year, Mon, Day, 0, 0, 0, 0, -, -)),
+	atom_number(A, DotW).
+
+week_ordinal(Year, Week, Day, Ordinal) :-
+	format_time(atom(A), '%w', date(Year, 1, 1, 0, 0, 0, 0, -, -)),
+	atom_number(A, DotW0),
 	Ordinal is ((Week-1) * 7) - DotW0 + Day + 1.
 
