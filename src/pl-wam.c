@@ -1665,8 +1665,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->prof_node = NULL;			/* true? */
 #endif
   Mark(qf->choice.mark);
-					/* publish environment */
-  LD->choicepoints  = &qf->choice;
 
   if ( true(def, FOREIGN) )
   { fr->clause = NULL;			/* initial context */
@@ -1686,9 +1684,14 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
       setContextModule(fr, MODULE_user);
   }
 
+					/* publish environment */
+  PL_LOCK(L_AGC);			/* see restore_after_query() */
+  LD->choicepoints  = &qf->choice;
   environment_frame = fr;
   qf->parent = LD->query;
   LD->query = qf;
+  PL_UNLOCK(L_AGC);
+
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
   updateAlerted(LD);
 
