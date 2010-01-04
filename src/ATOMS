@@ -681,6 +681,7 @@ F curl			1
 F cut_call		1
 F cut_exit		1
 F dand			2
+F date			3
 F date			9
 F dcall			1
 F dcut			1

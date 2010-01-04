@@ -270,6 +270,7 @@ get_ftm(term_t t, ftm *ftm)
 	 get_bool_arg (9, t, tmp, &ftm->isdst) )
     { double fp, ip;
 
+    fixup:
       fp = modf(ftm->sec, &ip);
       if ( fp < 0.0 )
       { fp += 1.0;
@@ -282,6 +283,15 @@ get_ftm(term_t t, ftm *ftm)
 
       succeed;
     }
+  } else if ( PL_is_functor(t, FUNCTOR_date3) )
+  { term_t tmp = PL_new_term_ref();
+
+    memset(ftm, 0, sizeof(*ftm));
+
+    if ( get_int_arg  (1, t, tmp, &ftm->tm.tm_year) &&
+	 get_int_arg  (2, t, tmp, &ftm->tm.tm_mon)  &&
+	 get_int_arg  (3, t, tmp, &ftm->tm.tm_mday) )
+      goto fixup;
   }
 
   fail;
@@ -872,7 +882,7 @@ pl_format_time(term_t out, term_t format, term_t time, int posix)
       tb.utcoff     = 0;
     }
   } else if ( !get_ftm(time, &tb) )
-  { fail;
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_time, time);
   }
 
   if ( !setupOutputRedirect(out, &ctx, FALSE) )
