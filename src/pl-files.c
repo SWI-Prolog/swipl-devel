@@ -670,7 +670,7 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
     { enc = ENC_OCTET;
       mode = "wb";
     } else
-    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, A1);
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, A1);
     }
   } else
   { mode = "w";
