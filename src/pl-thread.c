@@ -1312,6 +1312,7 @@ free_thread_info(PL_thread_info_t *info)
   if ( info->name )
     unaliasThread(info->name);
 
+  LOCK();
   if ( info->pl_tid == thread_highest_id )
   { int i;
 
@@ -1320,8 +1321,11 @@ free_thread_info(PL_thread_info_t *info)
       if ( ih->status != PL_THREAD_UNUSED )
 	break;
     }
+
     thread_highest_id = i;
   }
+  UNLOCK();
+
   memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
 }
 
@@ -1388,6 +1392,7 @@ pl_thread_exit(term_t retcode)
 static
 PRED_IMPL("thread_detach", 1, thread_detach, 0)
 { PL_thread_info_t *info;
+  PL_thread_info_t *release = NULL;
 
   LOCK();
   if ( !get_thread(A1, &info, TRUE) )
@@ -1402,16 +1407,20 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
       if ( (rc=pthread_detach(info->tid)) )
       { assert(rc == ESRCH);
 
-	free_thread_info(info);
+	release = info;
       } else
 	info->detached = TRUE;
     } else
     { pthread_detach(info->tid);
-      free_thread_info(info);
+      release = info;
     }
   }
 
   UNLOCK();
+
+  if ( release )
+    free_thread_info(release);
+
   succeed;
 }
 
