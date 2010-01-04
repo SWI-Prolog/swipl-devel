@@ -765,21 +765,21 @@ retry:
   { PL_thread_info_t *info;
 
     if ( !(info=GD->thread.threads[i]) )
-    { info = GD->thread.threads[i] = allocHeap(sizeof(*info));
+    { info = allocHeap(sizeof(*info));
       memset(info, 0, sizeof(*info));
+      GD->thread.threads[i] = info;
     }
 
     if ( info->status == PL_THREAD_UNUSED )
-    { GET_LD
-      PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
+    { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
 
       info->pl_tid = i;
-      info->thread_data = ld;
-      info->status = PL_THREAD_CREATED;
       ld->thread.info = info;
       ld->thread.magic = PL_THREAD_MAGIC;
+      info->thread_data = ld;
+      info->status = PL_THREAD_CREATED;
 
       if ( i > thread_highest_id )
 	thread_highest_id = i;
@@ -989,6 +989,7 @@ start_thread(void *closure)
   term_t ex, goal;
   int rval;
 
+  assert(info->goal);
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
   set_system_thread_id(info);		/* early to get exit code ok */
@@ -996,10 +997,8 @@ start_thread(void *closure)
   if ( !initialise_thread(info, TRUE) )
     return (void *)FALSE;
 
-  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-
   { GET_LD
+
     pthread_cleanup_push(free_prolog_thread, info->thread_data);
 
     LOCK();
@@ -1083,7 +1082,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   LOCK();
-
   if ( !GD->thread.enabled )
   { UNLOCK();
     return PL_error(NULL, 0, "threading disabled",
@@ -1133,7 +1131,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
       fail;
     }
   }
-  unify_thread_id(id, info);
+  if ( !unify_thread_id(id, info) )
+  { free_thread_info(info);
+    fail;
+  }
 
   info->goal = PL_record(goal);
   info->module = PL_context();
@@ -1219,11 +1220,17 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 int
 unify_thread_id(term_t id, PL_thread_info_t *info)
 { GET_LD
+  int rc;
 
   if ( info->name )
-    return PL_unify_atom(id, info->name);
+    rc = PL_unify_atom(id, info->name);
+  else
+    rc = PL_unify_integer(id, info->pl_tid);
 
-  return PL_unify_integer(id, info->pl_tid);
+  if ( !rc && !PL_is_variable(id) )
+    return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
+
+  return TRUE;
 }
 
 
