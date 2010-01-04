@@ -2,23 +2,26 @@
 	  [ test_date/0
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(plunit)).
+:- use_module(library(date)).
 
 :- dynamic
 	error/1.
 
 test_date :-
+	non_unit_tests,
+	run_tests([ parse_time
+		  ]).
+
+non_unit_tests :-
 	retractall(error(_)),
-	(   catch(run_tests, E, true)
+	(   catch((test_format, test_trip), E, true)
 	->  (   var(E)
 	    ->  \+ error(_)
 	    ;	print_message(error, E),
 		fail
 	    )
 	).
-
-run_tests :-
-	test_format,
-	test_trip.
 
 
 		 /*******************************
@@ -158,3 +161,29 @@ error(Fmt, Args) :-
 	assert(error(Fmt-Args)),
 	format(user_error, Fmt, Args),
 	nl(user_error).
+
+
+		 /*******************************
+		 *	     UNIT TESTS		*
+		 *******************************/
+
+:- begin_tests(parse_time).
+
+test(iso_8601, T =:= 1165591784) :-
+	parse_time('2006-12-08T17:29:44+02:00', iso_8601, T).
+test(iso_8601, T =:= 1165591784) :-
+	parse_time('20061208T172944+0200', iso_8601, T).
+test(iso_8601, T =:= 1165591740) :-
+	parse_time('2006-12-08T15:29Z', iso_8601, T).
+test(iso_8601, T =:= 1165536000) :-
+	parse_time('2006-12-08', iso_8601, T).
+test(iso_8601, T =:= 1165536000) :-
+	parse_time('20061208', iso_8601, T).
+test(iso_8601, T =:= 1164844800) :-
+	parse_time('2006-12', iso_8601, T).
+test(iso_8601, T =:= 1165536000) :-
+	parse_time('2006-W49-5', iso_8601, T).
+test(iso_8601, T =:= 1165536000) :-
+	parse_time('2006-342', iso_8601, T).
+
+:- end_tests(parse_time).

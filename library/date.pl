@@ -88,11 +88,8 @@ date(iso_8601, Yr, Mon, D, H, Min, S, 0) --> % BC
 	{ Yr is -1 * Y }.
 date(iso_8601, Y, Mon, D, H, Min, S, 0) -->
 	year(Y),
-	iso_8601_rest(Y, Mon, D, H, Min, S),
-	year(Y), "-", month(Mon), "-", day(D),
-	"T", iso_time(H, Min, S).
-% RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
-date(rfc_1123, Y, Mon, D, H, Min, S, 0) -->
+	iso_8601_rest(Y, Mon, D, H, Min, S).
+date(rfc_1123, Y, Mon, D, H, Min, S, 0) --> % RFC 1123: "Fri, 08 Dec 2006 15:29:44 GMT"
 	day_name(_), ", ", ws,
 	day_of_the_month(D), ws,
 	month_name(Mon), ws,
@@ -107,8 +104,9 @@ date(rfc_1123, Y, Mon, D, H, Min, S, 0) -->
 %
 %	Process ISO 8601 time-values after parsing the 4-digit year.
 
-iso_8601_rest(_, Mon, D, 0, 0, 0) -->
-	"-", month(Mon), "-", day(D).
+iso_8601_rest(_, Mon, D, H, Min, S) -->
+	"-", month(Mon), "-", day(D),
+	opt_time(H, Min, S).
 iso_8601_rest(_, Mon, 0, 0, 0, 0) -->
 	"-", month(Mon).
 iso_8601_rest(_, Mon, D, H, Min, S) -->
