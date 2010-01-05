@@ -73,7 +73,7 @@ mime_extension(rdf,  application/'rdf+xml').
 mime_extension(rdfs, application/'rdf+xml').
 mime_extension(owl,  application/'rdf+xml').
 					% Prolog source
-mime_extension(pl,   application/'x-prolog').
+mime_extension(pl,   text/plain).
 					% Packaged formats
 mime_extension(gz,   application/'x-gzip').
 mime_extension(zip,  application/zip).
