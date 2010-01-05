@@ -5016,14 +5016,8 @@ gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_num),
         del_attr(Num, clpfd_gcc_occurred).
 
-gcc_check(Pairs) :-
-        gcc_check(Pairs, false, Change),
-        (   Change -> gcc_check(Pairs)
-        ;   true
-        ).
-
-gcc_check([], Change, Change).
-gcc_check([Key-Num0|KNs], Change0, Change) :-
+gcc_check([]).
+gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ0),
@@ -5035,8 +5029,8 @@ gcc_check([Key-Num0|KNs], Change0, Change) :-
             % here, otherwise the stored (new) occurrences can differ
             % from the (old) ones used in the following.
             geq(Num, Occ1),
-            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key), Change1 = true
-            ;   Os == [] -> gcc_done(Num0), Num = Occ1, Change1 = Change0
+            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
                 Max is Occ1 + L,
                 geq(Max, Num),
@@ -5046,17 +5040,13 @@ gcc_check([Key-Num0|KNs], Change0, Change) :-
                     Diff is NInf - Occ1
                 ),
                 L >= Diff,
-                (   L =:= Diff ->
-                    gcc_done(Num0),
-                    Num is Occ1 + Diff,
-                    maplist(=(Key), Os),
-                    Change1 = true
-                ;   Change1 = Change0
+                (   L =:= Diff -> gcc_done(Num0), Num is Occ1 + Diff, maplist(=(Key), Os)
+                ;   true
                 )
             )
-        ;   Change1 = Change0
+        ;   true
         ),
-        gcc_check(KNs, Change1, Change).
+        gcc_check(KNs).
 
 vs_key_min_others([], _, Min, Min, []).
 vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
