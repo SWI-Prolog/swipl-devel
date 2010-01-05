@@ -159,6 +159,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
+\predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
 \predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
