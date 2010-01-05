@@ -5238,6 +5238,10 @@ Equivalent to \exam{swritef(String, Format, []).}
 
 \subsection{Format}
 
+The format-family of predicates is the most versatile and
+portable\footnote{Unfortunately not coverted by any standard.} way to
+produce textual output.
+
 \begin{description}
     \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
@@ -5245,8 +5249,8 @@ Defined as `\exam{format(Format) :- format(Format, []).}'
     \predicate{format}{2}{+Format, +Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
-specification. If only one argument is required and this is not a list
-of character codes the argument need not be put in a list. Otherwise the
+specification. If only one argument is required and this single argument
+is not a list the argument need not be put in a list. Otherwise the
 arguments are put in a list.
 
 Special sequences start with the tilde (\chr{~}), followed by an
@@ -5254,15 +5258,29 @@ optional numeric argument, followed by a character describing the action
 to be undertaken. A numeric argument is either a sequence of digits,
 representing a positive decimal number, a sequence \exam{`<character>},
 representing the character code value of the character (only useful
-for \fmtseq{~t}) or a asterisk (\chr{*}), in when the numeric argument
-is taken from the next argument of the argument list, which should be a
-positive integer.
+for \fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric
+argument is taken from the next argument of the argument list, which
+should be a positive integer. E.g., the following three examples all
+pass 46 (\chr{.}) to \verb$~t$:
+
+\begin{code}
+?- format('~w ~46t ~w~72|~n', ['Title', 'Page']).
+?- format('~w ~`.t ~w~72|~n', ['Title', 'Page']).
+?- format('~w ~*t ~w~72|~n', ['Title', 46, 'Page']).
+\end{code}
 
 Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
 and \chr{G}) accept an arithmetic expression as argument. This is
 introduced to handle rational numbers transparently (see
 \secref{rational}.  The floating point conversions allow for unlimited
-precision for printing rational numbers in decimal form.
+precision for printing rational numbers in decimal form.  E.g., the
+following will write as many 3-s as you want by changing the `70'.
+
+\begin{code}
+?- format('~70f', [10 rdiv 3]).
+3.3333333333333333333333333333333333333333333333333333333333333333333333
+\end{code}
+
 
 \begin{itemize}
     \fmtchar{~}
