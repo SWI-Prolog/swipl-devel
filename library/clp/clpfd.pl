@@ -2966,6 +2966,7 @@ constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
 constraint_wake(pgcc_single, bounds).
+constraint_wake(pgcc_check_single, bounds).
 
 global_constraint(regin).
 global_constraint(pgcc).
