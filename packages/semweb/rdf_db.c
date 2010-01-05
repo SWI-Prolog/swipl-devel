@@ -2325,15 +2325,19 @@ Hence we need a seperate lock.
 
 static int
 WANT_GC(rdf_db *db)
-{ long dirty = db->erased - db->freed;
-  long count = db->created - db->erased;
+{ if ( db->gc_blocked )
+  { return FALSE;
+  } else
+  { long dirty = db->erased - db->freed;
+    long count = db->created - db->erased;
 
-  if ( dirty > 1000 && dirty > count )
-    return TRUE;
-  if ( count > db->table_size[1]*MAX_HASH_FACTOR )
-    return TRUE;
+    if ( dirty > 1000 && dirty > count )
+      return TRUE;
+    if ( count > db->table_size[1]*MAX_HASH_FACTOR )
+      return TRUE;
 
-  return FALSE;
+    return FALSE;
+  }
 }
 
 
@@ -4348,7 +4352,7 @@ access?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-commit_transaction(rdf_db *db, term_t id)
+commit_transaction_int(rdf_db *db, term_t id)
 { transaction_record *tr, *next;
   int tr_level = 0;			/* nesting level */
 
@@ -4477,6 +4481,18 @@ commit_transaction(rdf_db *db, term_t id)
   }
 
   return TRUE;
+}
+
+
+static int
+commit_transaction(rdf_db *db, term_t id)
+{ int rc;
+
+  db->gc_blocked++;
+  rc = commit_transaction_int(db, id);
+  db->gc_blocked--;
+
+  return rc;
 }
 
 

@@ -243,6 +243,7 @@ typedef struct rdf_db
   long		indexed[8];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
+  int		gc_blocked;		/* GC is blocked; */
   double	rehash_time;		/* time spent in rehash */
   double	gc_time;		/* time spent in GC */
   size_t	core;			/* core in use */
@@ -255,7 +256,7 @@ typedef struct rdf_db
   long		agenda_created;		/* #visited nodes in agenda */
   long		duplicates;		/* #duplicate triples */
   long		generation;		/* generation-id of the database */
-  graph      **graph_table;		/* Hash table of sources */
+  graph       **graph_table;		/* Hash table of sources */
   int      	graph_table_size;	/* Entries in table */
 
   graph	*last_graph;		/* last accessed graph */
