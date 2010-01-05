@@ -4226,7 +4226,7 @@ record_update_src_transaction(rdf_db *db, triple *t,
 
 
 static void
-free_transaction(rdf_db *db, transaction_record *tr)
+void_transaction(rdf_db *db, transaction_record *tr)
 { switch(tr->type)
   { case TR_ASSERT:
       free_triple(db, tr->triple);
@@ -4242,7 +4242,50 @@ free_transaction(rdf_db *db, transaction_record *tr)
       break;
   }
 
+  tr->type = TR_VOID;
+}
+
+
+static void
+free_transaction(rdf_db *db, transaction_record *tr)
+{ void_transaction(db, tr);
+
   rdf_free(db, tr, sizeof(*tr));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This must deal  with  multiple  operations   on  the  same  triple. Most
+probably the most important thing is to   merge  update records. We must
+also make-up our mind with regard to  updated records that are erased or
+records that are erased after updating, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+clean_transaction(rdf_db *db, transaction_record *tr0)
+{
+#if 0
+  transaction_record *tr;
+
+  for(tr=tr0; tr; tr=tr->next)
+  { if ( TR_RETRACT )
+    { transaction_record *tr2;
+
+      for(tr2=tr->next; tr2; tr2=tr2->next)
+      { if ( tr2->triple == tr->triple )
+	{ switch(tr2->type)
+	  { case TR_RETRACT:
+	    case TR_UPDATE:
+	    case TR_UPDATE_SRC:
+	      void_transaction(db, tr2);
+	    default:
+	      ;
+	  }
+	}
+      }
+    }
+  }
+#endif
 }
 
 
@@ -4345,6 +4388,7 @@ commit_transaction(rdf_db *db, term_t id)
   while( (tr=db->tr_first) )		/* See above (*) */
   { db->tr_first = db->tr_last = NULL;
 
+    clean_transaction(db, tr);
 					/* real commit */
     for(; tr; tr = next)
     { next = tr->next;
@@ -4383,22 +4427,28 @@ commit_transaction(rdf_db *db, term_t id)
 	  }
 	  break;
 	case TR_UPDATE:
-	  if ( !broadcast(EV_UPDATE, tr->triple, tr->update.triple) )
-	    return FALSE;
-	  erase_triple_silent(db, tr->triple);
-	  link_triple_silent(db, tr->update.triple);
-	  db->generation++;
+	  if ( !tr->triple->erased )
+	  { if ( !broadcast(EV_UPDATE, tr->triple, tr->update.triple) )
+	      return FALSE;		/* TBD: how to handle? */
+	    if ( !tr->triple->erased )
+	    { erase_triple_silent(db, tr->triple);
+	      link_triple_silent(db, tr->update.triple);
+	      db->generation++;
+	    }
+	  }
 	  break;
 	case TR_UPDATE_SRC:
-	  if ( tr->triple->graph != tr->update.src.atom )
-	  { if ( tr->triple->graph )
-	      unregister_graph(db, tr->triple);
-	    tr->triple->graph = tr->update.src.atom;
-	    if ( tr->triple->graph )
-	      register_graph(db, tr->triple);
+	  if ( !tr->triple->erased )
+	  { if ( tr->triple->graph != tr->update.src.atom )
+	    { if ( tr->triple->graph )
+		unregister_graph(db, tr->triple);
+	      tr->triple->graph = tr->update.src.atom;
+	      if ( tr->triple->graph )
+		register_graph(db, tr->triple);
+	    }
+	    tr->triple->line = tr->update.src.line;
+	    db->generation++;
 	  }
-	  tr->triple->line = tr->update.src.line;
-	  db->generation++;
 	  break;
 	case TR_UPDATE_MD5:
 	{ graph *src = tr->update.md5.graph;
@@ -4415,6 +4465,8 @@ commit_transaction(rdf_db *db, term_t id)
 	case TR_RESET:
 	  db->tr_reset = FALSE;
 	  reset_db(db);
+	  break;
+	case TR_VOID:
 	  break;
 	default:
 	  assert(0);

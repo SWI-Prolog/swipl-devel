@@ -199,7 +199,8 @@ typedef enum
   TR_UPDATE,				/* rdf_update */
   TR_UPDATE_SRC,			/* rdf_update */
   TR_UPDATE_MD5,			/* update md5 src */
-  TR_RESET				/* rdf_reset_db */
+  TR_RESET,				/* rdf_reset_db */
+  TR_VOID				/* no-op */
 } tr_type;
 
 
