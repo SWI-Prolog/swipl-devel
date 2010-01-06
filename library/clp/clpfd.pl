@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2009 Markus Triska
+    Copyright (C): 2007-2010 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -4796,6 +4796,9 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
+        gcc_check(KNs),
+        % reach fix-point: all elements of clpfd_gcc_vs must be variables
+        do_queue,
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
