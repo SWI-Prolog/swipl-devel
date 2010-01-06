@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2009 Markus Triska
+    Copyright (C): 2007-2010 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -3125,9 +3125,6 @@ all_in_domain([A|As], [T|Ts]) :-
         ),
         all_in_domain(As, Ts).
 
-all_eq([], []).
-all_eq([X|Xs], [X|Ys]) :- all_eq(Xs, Ys).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % trivial propagator, used only to remember pending constraints
@@ -3258,7 +3255,7 @@ run_propagator(rel_tuple(R, Tuple), MState) :-
                 kill(MState)
             ;   true
             ),
-            (   Us = [Single] -> kill(MState), all_eq(Single, Tuple)
+            (   Us = [Single] -> kill(MState), Single = Tuple
             ;   Changed =:= 0 -> true
             ;   put_attr(R, clpfd_relation, Us),
                 disable_queue,
@@ -4799,6 +4796,9 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_global(KNs) :-
+        gcc_check(KNs),
+        % reach fix-point: all elements of clpfd_gcc_vs must be variables
+        do_queue,
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
@@ -5018,6 +5018,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
+   Importantly, it removes all ground values from clpfd_gcc_vs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
