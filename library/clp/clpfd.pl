@@ -5018,6 +5018,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
+   Importantly, it removes all ground values from clpfd_gcc_vs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
