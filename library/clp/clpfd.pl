@@ -4798,7 +4798,7 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
 gcc_global(KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
-        do_queue, 
+        do_queue,
         gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
@@ -5018,6 +5018,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
+   Importantly, it removes all ground values from clpfd_gcc_vs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
