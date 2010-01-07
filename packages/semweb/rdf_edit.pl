@@ -211,18 +211,22 @@ rdfe_load(File, Options) :-
 			   [ access(read),
 			     extensions([rdf,rdfs,owl,''])
 			   ], Path),
-	atom_concat('file://', Path, BaseURI),
 	rdf_load(Path,
-		 [ base_uri(BaseURI),
-		   result(Action, Triples, MD5)
+		 [ graph(Graph),
+		   modified(Modified)
 		 | Options
 		 ]),
-	(   Action == none		% load, reload, none
+	(   Modified == not_modified
 	->  true
 	;   absolute_file_name('.', PWD),
 	    size_file(Path, Size),
-	    time_file(Path, Modified),
-	    SecTime is round(Modified),
+	    (	Modified = last_modified(Stamp)
+	    ->	true
+	    ;	time_file(Path, Stamp)
+	    ),
+	    SecTime is round(Stamp),
+	    rdf_statistics(triples_by_file(Graph, Triples)),
+	    rdf_md5(Graph, MD5),
 	    assert_action(TID, load_file(Path), -, -, -),
 	    journal(rdf_load(TID,
 			     Path,

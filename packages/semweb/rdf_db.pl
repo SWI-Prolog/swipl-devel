@@ -775,11 +775,6 @@ rdf_load_db(File) :-
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
 %
-%	    * result(-Action, -Triples, -MD5)
-%	    Return action taken (load, reload, none) and number
-%	    of triples loaded from the file as well as the MD5
-%	    digest.
-%
 %	    * blank_nodes(+ShareMode)
 %	    How to handle equivalent blank nodes.  If =share= (default),
 %	    equivalent blank nodes are shared in the same resource.
@@ -789,16 +784,22 @@ rdf_load_db(File) :-
 %	    that are relative to the base uri.  Default is the source
 %	    URL.
 %
-%	    * graph(+Graph)
+%	    * graph(?Graph)
 %	    Named graph in which to load the data.  It is *not* allowed
-%	    to load two sources into the same named graph.
+%	    to load two sources into the same named graph.  If Graph is
+%	    unbound, it is unified to the graph into which the data is
+%	    loaded.
 %
-%	    * db(+Graph)
+%	    * db(?Graph)
 %	    Deprecated.  New code must use graph(Graph).
 %
 %	    * if(Condition)
 %	    When to load the file. One of =true=, =changed= (default) or
 %	    =not_loaded=.
+%
+%	    * modified(-Modified)
+%	    Unify Modified with one of =not_modified=, cached(File),
+%	    last_modified(Stamp) or =unknown=.
 %
 %	    * cache(Bool)
 %	    If =false=, do not use or create a cache file.
@@ -821,6 +822,7 @@ rdf_load(Spec, M:Options) :-
 	statistics(cputime, T0),
 	rdf_open_input(Spec, In, Cleanup, SourceURL, Graph, Modified,
 		       Format, Options),
+	return_modified(Modified, Options),
 	(   Modified == not_modified
 	->  Action = none
 	;   Modified = cached(CacheFile)
@@ -874,6 +876,11 @@ derived_options([H|T], NSList) -->
 graph_modified(last_modified(Stamp), Stamp).
 graph_modified(unknown, Stamp) :-
 	get_time(Stamp).
+
+return_modified(Modified, Options) :-
+	option(modified(M0), Options), !,
+	M0 = Modified.
+return_modified(_, _).
 
 
 		 /*******************************
@@ -999,16 +1006,25 @@ compat_input(http, SourceURL, url(http, SourceURL)).
 
 %%	load_graph(+SourceURL, -Graph, +Options) is det.
 %
-%	Graph is the graph into which we load the data.
+%	Graph is the graph into which we load the data.  Processes
+%	the graph(?Graph) option.
 
-load_graph(_, Graph, Options) :-
-	option(graph(Graph), Options), !.
-load_graph(_, Graph, Options) :-
-	option(db(Graph), Options), !.
-load_graph(SourceURL, BaseURI, _) :-
+load_graph(Source, Graph, Options) :-
+	(   option(graph(Graph), Options)
+	->  true
+	;   option(db(Graph), Options)
+	), !,
+	(   ground(Graph)
+	->  true
+	;   load_graph(Source, Graph)
+	).
+load_graph(Source, Graph, _) :-
+	load_graph(Source, Graph).
+
+load_graph(SourceURL, BaseURI) :-
 	file_name_extension(BaseURI, Ext, SourceURL),
 	rdf_storage_encoding(Ext, _), !.
-load_graph(SourceURL, SourceURL, _).
+load_graph(SourceURL, SourceURL).
 
 
 open_input_if_modified(stream(In), SourceURL, _, In, true,
