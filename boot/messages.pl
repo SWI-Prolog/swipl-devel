@@ -188,8 +188,8 @@ dwim_predicates(Name/_Arity, Dwims) :-
 	findall(Dwim, dwim_predicate(user:Name, Dwim), Dwims).
 
 dwim_message([]) --> [].
-dwim_message([M:Head|T]) --> !,
-	{ hidden_module(M),
+dwim_message([M:Head|T]) -->
+	{ hidden_module(M), !,
 	  functor(Head, Name, Arity)
 	},
 	[ '        ~q'-[Name/Arity], nl ],
