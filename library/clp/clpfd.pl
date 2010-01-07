@@ -3072,7 +3072,7 @@ tuples_in(Tuples, Relation) :-
 
 tuples_domain([], _).
 tuples_domain([Tuple|Tuples], Relation) :-
-        relation_unifiable(Relation, Tuple, Us, 0, _),
+        relation_unifiable(Relation, Tuple, Us, _, _),
         (   ground(Tuple) -> memberchk(Tuple, Relation)
         ;   tuple_domain(Tuple, Us),
             (   Tuple = [_,_|_] -> tuple_freeze(Tuple, Us)
@@ -3114,7 +3114,7 @@ relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
         (   all_in_domain(R, Tuple) ->
             Us = [R|Rest],
             relation_unifiable(Rs, Tuple, Rest, Changed0, Changed)
-        ;   relation_unifiable(Rs, Tuple, Us, 1, Changed)
+        ;   relation_unifiable(Rs, Tuple, Us, true, Changed)
         ).
 
 all_in_domain([], []).
@@ -3249,18 +3249,19 @@ run_propagator(pgeq(A,B), MState) :-
 run_propagator(rel_tuple(R, Tuple), MState) :-
         get_attr(R, clpfd_relation, Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
-        ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
+        ;   relation_unifiable(Relation, Tuple, Us, false, Changed),
             Us = [_|_],
             (   Tuple = [First,Second], ( ground(First) ; ground(Second) ) ->
                 kill(MState)
             ;   true
             ),
             (   Us = [Single] -> kill(MState), Single = Tuple
-            ;   Changed =:= 0 -> true
-            ;   put_attr(R, clpfd_relation, Us),
+            ;   Changed ->
+                put_attr(R, clpfd_relation, Us),
                 disable_queue,
                 tuple_domain(Tuple, Us),
                 enable_queue
+            ;   true
             )
         ).
 
