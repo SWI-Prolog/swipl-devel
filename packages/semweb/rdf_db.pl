@@ -1189,9 +1189,15 @@ rdf_source(SourceURL) :-
 %	time they were loaded.
 
 rdf_make :-
-	forall((rdf_source(DB, SourceURL, Time, _Triples, _),
-		Time \== 0),
-	       catch(rdf_load(SourceURL, [db(DB)]), _, true)).
+	findall(Source-Graph, modified_graph(Source, Graph), Modified),
+	forall(member(Source-Graph, Modified),
+	       catch(rdf_load(Source, [graph(Graph), if(changed)]), E,
+		     print_message(error, E))).
+
+modified_graph(SourceURL, Graph) :-
+	rdf_graph(Graph),
+	rdf_graph_source_(Graph, SourceURL, Modified),
+	Modified > 0.
 
 %%	save_cache(+DB, +Cache) is det.
 %
