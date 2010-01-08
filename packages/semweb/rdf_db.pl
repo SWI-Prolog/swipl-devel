@@ -1061,7 +1061,10 @@ open_input_if_modified(Protocol, SourceURL, HaveModified, Stream, Cleanup,
 
 guess_format(File, Format) :-
 	file_name_extension(_, Ext, File),
-	rdf_file_type(Ext, Format).
+	(   rdf_file_type(Ext, Format)
+	->  true
+	;   domain_error(rdf_file_extension, Ext)
+	).
 
 storage_open('', File, Stream, close(Stream)) :- !,
 	open(File, read, Stream).
@@ -1095,6 +1098,7 @@ url_protocol(file).			% built-in
 %	extension.  This predicate is multifile and can thus be extended
 %	by plugins.
 
+rdf_file_type(xml,   xml).
 rdf_file_type(rdf,   xml).
 rdf_file_type(rdfs,  xml).
 rdf_file_type(owl,   xml).
