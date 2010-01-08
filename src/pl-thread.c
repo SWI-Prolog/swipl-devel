@@ -1133,6 +1133,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   if ( !unify_thread_id(id, info) )
   { free_thread_info(info);
+
+    if ( !PL_is_variable(id) )
+      return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
+
     fail;
   }
 
@@ -1227,10 +1231,7 @@ unify_thread_id(term_t id, PL_thread_info_t *info)
   else
     rc = PL_unify_integer(id, info->pl_tid);
 
-  if ( !rc && !PL_is_variable(id) )
-    return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
-
-  return TRUE;
+  return rc;
 }
 
 
