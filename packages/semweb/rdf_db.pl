@@ -550,7 +550,7 @@ rdf_statistics(literals(Count)) :-
 	rdf_statistics_(literals(Count)).
 rdf_statistics(triples_by_file(File, Count)) :-
 	(   var(File)
-	->  rdf_source(File),
+	->  rdf_graph(File),
 	    rdf_statistics_(triples(File, Count))
 	;   rdf_statistics_(triples(File, Count))
 	).
