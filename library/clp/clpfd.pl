@@ -2968,7 +2968,7 @@ constraint_wake(pgeq, bounds).
 constraint_wake(pgcc_single, bounds).
 constraint_wake(pgcc_check_single, bounds).
 
-global_constraint(regin).
+global_constraint(pdistinct).
 global_constraint(pgcc).
 global_constraint(pgcc_single).
 global_constraint(pcircuit).
@@ -3139,7 +3139,7 @@ run_propagator(pdifferent(Left,Right,X,_), _MState) :-
         ;   true
         ).
 
-run_propagator(pdistinct(Left,Right,X,_), _MState) :-
+run_propagator(weak_distinct(Left,Right,X,_), _MState) :-
         (   ground(X) ->
             disable_queue,
             exclude_fire(Left, Right, X),
@@ -3158,8 +3158,8 @@ run_propagator(pexclude(Left,Right,X), _) :-
         ;   true
         ).
 
-run_propagator(regin(Ls), _MState) :-
-        regin(Ls).
+run_propagator(pdistinct(Ls), _MState) :-
+        distinct(Ls).
 
 run_propagator(check_distinct(Left,Right,X), _) :-
         \+ list_contains(Left, X),
@@ -3191,7 +3191,7 @@ run_propagator(pgcc(_, _, Pairs), _) :- gcc_global(Pairs).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(pcircuit(Vs), _MState) :-
-        regin(Vs),
+        distinct(Vs),
         propagate_circuit(Vs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4169,16 +4169,16 @@ max_divide(L1,U1,L2,U2,Max) :-
    CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-regin_attach(Ls) :-
+distinct_attach(Ls) :-
          must_be(list, Ls),
          maplist(fd_variable, Ls),
-         make_propagator(regin(Ls), Prop),
-         regin_attach(Ls, Prop, []),
+         make_propagator(pdistinct(Ls), Prop),
+         distinct_attach(Ls, Prop, []),
          trigger_prop(Prop),
          do_queue.
 
-regin_attach([], _, _).
-regin_attach([X|Xs], Prop, Right) :-
+distinct_attach([], _, _).
+distinct_attach([X|Xs], Prop, Right) :-
         (   var(X) ->
             init_propagator(X, Prop),
             make_propagator(pexclude(Xs,Right,X), P1),
@@ -4186,7 +4186,7 @@ regin_attach([X|Xs], Prop, Right) :-
             trigger_prop(P1)
         ;   exclude_fire(Xs, Right, X)
         ),
-        regin_attach(Xs, Prop, [X|Right]).
+        distinct_attach(Xs, Prop, [X|Right]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each integer of the union of domains, an attributed variable is
@@ -4350,7 +4350,7 @@ free_node(F) :-
         get_attr(F, free, true),
         del_attr(F, free).
 
-regin(Vars) :-
+distinct(Vars) :-
         difference_arcs(Vars, FreeLeft, FreeRight0),
         length(FreeLeft, LFL),
         length(FreeRight0, LFR),
@@ -4361,13 +4361,13 @@ regin(Vars) :-
         maplist(g_g0, FreeLeft),
         phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
         maplist(dfs_used, FreeRight),
-        phrase(regin_goals(FreeLeft), Gs),
-        maplist(regin_clear_attributes, FreeLeft),
+        phrase(distinct_goals(FreeLeft), Gs),
+        maplist(distinct_clear_attributes, FreeLeft),
         disable_queue,
         maplist(call, Gs),
         enable_queue.
 
-regin_clear_attributes(V) :-
+distinct_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
             del_attr(V, edges),
             % parent and in_stack are already cleared
@@ -4385,18 +4385,18 @@ regin_clear_attributes(V) :-
 clear_edge(flow_to(F, To)) :-
         del_attr(F, flow),
         del_attr(F, used),
-        regin_clear_attributes(To).
+        distinct_clear_attributes(To).
 clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
 
 
-regin_goals([]) --> [].
-regin_goals([V|Vs]) -->
+distinct_goals([]) --> [].
+distinct_goals([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        regin_edges(Es, V),
-        regin_goals(Vs).
+        distinct_edges(Es, V),
+        distinct_goals(Vs).
 
-regin_edges([], _) --> [].
-regin_edges([flow_to(F,To)|Es], V) -->
+distinct_edges([], _) --> [].
+distinct_edges([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(F, used, true),
               get_attr(V, lowlink, L1),
@@ -4406,7 +4406,7 @@ regin_edges([flow_to(F,To)|Es], V) -->
             [neq_num(V, N)]
         ;   []
         ),
-        regin_edges(Es, V).
+        distinct_edges(Es, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Mark used edges.
@@ -4515,7 +4515,7 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 %  false.
 %  ==
 
-all_distinct(Ls) :- regin_attach(Ls).
+all_distinct(Ls) :- distinct_attach(Ls).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent constraint of difference, currently only
@@ -4536,7 +4536,7 @@ all_distinct([], _, _).
 all_distinct([X|Right], Left, Orig) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(pdistinct(Left,Right,X,Orig), Prop),
+            make_propagator(weak_distinct(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -5145,7 +5145,7 @@ circuit(Vs) :-
         (   L =:= 1 -> true
         ;   all_circuit(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
-            regin_attach(Vs, Prop, []),
+            distinct_attach(Vs, Prop, []),
             trigger_prop(Prop),
             do_queue
         ).
@@ -5738,9 +5738,9 @@ attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
 attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
         [Left #=< C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(pdifferent(_,_,_,O)) --> original_goal(O).
-attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
-attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
+attribute_goal_(pdifferent(_,_,_,O))    --> original_goal(O).
+attribute_goal_(weak_distinct(_,_,_,O)) --> original_goal(O).
+attribute_goal_(pdistinct(Vs))          --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(Vs, Pairs, _))   --> [global_cardinality(Vs, Pairs)].
