@@ -89,11 +89,13 @@ change in future versions of this library.
 session_setting(timeout(600)).		% timeout in seconds
 session_setting(cookie('swipl_session')).
 session_setting(path(/)).
+session_setting(enabled(true)).
 
 session_option(timeout, integer).
 session_option(cookie, atom).
 session_option(path, atom).
 session_option(route, atom).
+session_option(enabled, boolean).
 
 %%	http_set_session_options(+Options) is det.
 %
@@ -115,6 +117,10 @@ session_option(route, atom).
 %		Set the route name. Default is the unqualified
 %		hostname. To cancel adding a route, use the empty
 %		atom.  See route/1.
+%
+%		* enabled(+Boolean)
+%		Enable/disable session management.  Sesion management
+%		is enabled by default after loading this file.
 
 http_set_session_options([]).
 http_set_session_options([H|T]) :-
@@ -210,6 +216,7 @@ http_session(Request0, Request, SessionID) :-
 	http:request_expansion/2.
 
 http:request_expansion(Request0, Request) :-
+	session_setting(enabled(true)),
 	http_session(Request0, Request, _SessionID).
 
 %%	peer(+Request, -Peer)
