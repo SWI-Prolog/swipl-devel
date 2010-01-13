@@ -483,6 +483,7 @@ current_predicate(Name, Module:Head) :-
 	'$defined_predicate'(DefModule:Head), !.
 current_predicate(Name, Module:Head) :-
 	current_prolog_flag(autoload, true),
+	\+ current_prolog_flag(Module:unknown, fail),
 	functor(Head, Name, Arity),
 	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 

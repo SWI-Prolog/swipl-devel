@@ -95,6 +95,7 @@
 	Term = Module:Head,
 	functor(Head, Name, Arity),
 	current_prolog_flag(autoload, true),
+	\+ current_prolog_flag(Module:unknown, fail),
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
 	flag('$autoloading', Old, Old+1),
 	(   Module == LoadModule

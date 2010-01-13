@@ -72,6 +72,7 @@ correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
 	correct_literal(M:Goal0, Bindings, DWIMs, Goal1),
 	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
+	\+ current_prolog_flag(Module:unknown, fail),
 	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
 	(   Action == error
@@ -348,7 +349,7 @@ find_definition(Head, _, Def) :-
 %	Find a head that is in a `Do What I Mean' sence the same as `Head'.
 %	backtracking produces more such predicates.  If searches for:
 %
-%	    * predicates with a simlar name in an import module
+%	    * predicates with a similar name in an import module
 %	    * predicates in a similar module with the same name
 %	    * predicates in any module with the same name
 
@@ -362,9 +363,10 @@ dwim_predicate_list(M:Head, DWIMs) :-
 	setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, '$similar_module'(Head, DWIM), DWIMs), !.
-dwim_predicate_list(_:Goal, DWIMs) :-
+dwim_predicate_list(M:Goal, DWIMs) :-
 	setof(Module:Goal,
 	      ( current_module(Module),
+		default_module(Module, M),
 		current_predicate(_, Module:Goal)
 	      ), DWIMs).
 
