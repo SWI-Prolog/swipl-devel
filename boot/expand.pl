@@ -193,6 +193,7 @@ expand_goal(M:G, M:EG, _M, _MList) :-
 			   '$expand':expand_goal(G, EG, M, MList),
 			   '$set_source_module'(_, Old)).
 expand_goal(G0, G, M, MList) :-
+	callable(G0),
 	functor(G0, N, A),
 	(   default_module(M, M2),
 	    current_predicate(M2:N/A)

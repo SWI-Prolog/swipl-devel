@@ -73,6 +73,7 @@ correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
 	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
 	\+ current_prolog_flag(Module:unknown, fail),
+	callable(Goal), !,
 	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
 	(   Action == error
@@ -82,6 +83,7 @@ correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
 	->  NewGoal = Goal
 	;   NewGoal = fail
 	).
+correct_goal(Goal, M, _, M:Goal).
 
 existence_error(PredSpec) :-
 	strip_module(PredSpec, M, _),
