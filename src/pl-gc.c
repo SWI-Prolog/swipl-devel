@@ -4662,6 +4662,8 @@ tight(Stack s ARG_LD)
 
   if ( debugstatus.debugging && min_room < 32*1024 )
     min_room = 32*1024;
+  if ( min_room < s->min_free )
+    min_room = s->min_free;
 
   if ( (size_t)roomStackP(s) < min_room + spare_gap )
     return 1;
