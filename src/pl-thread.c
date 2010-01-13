@@ -1332,9 +1332,9 @@ free_thread_info(PL_thread_info_t *info)
 
     thread_highest_id = i;
   }
-  UNLOCK();
 
   memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
+  UNLOCK();
 }
 
 
