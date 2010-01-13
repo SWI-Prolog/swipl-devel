@@ -58,6 +58,7 @@
 :- use_module(library(shlib), [current_foreign_library/2]).
 :- use_module(library(prolog_source)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -335,7 +336,7 @@ xref_defined_class(Source, Class, file(File)) :-
 collect(Src, In) :-
 	repeat,
 	    catch(read_source_term(Src, In, Term, TermPos),
-		  E, syntax_error(E)),
+		  E, report_syntax_error(E)),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !
@@ -379,7 +380,7 @@ read_source_term(_, In, Term, TermPos) :-
 		  ]).
 
 
-syntax_error(E) :-
+report_syntax_error(E) :-
 	(   verbose
 	->  print_message(error, E)
 	;   true
@@ -748,10 +749,7 @@ process_body(Var, _, _) :-
 	var(Var), !.
 process_body(Goal, Origin, Src) :-
 	called_by(Goal, Called), !,
-	(   is_list(Called)
-	->  true
-	;   throw(error(type_error(list, Called), _))
-	),
+	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
 process_body(Goal, Origin, Src) :-
