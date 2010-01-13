@@ -2593,9 +2593,14 @@ simple_term(bool must_be_op, term_t term, bool *name,
   { case T_FULLSTOP:
       syntaxError("end_of_clause", _PL_rd);
     case T_VOID:
+      if ( must_be_op )
+      { not_an_op:
+	syntaxError("operator_expected", _PL_rd);
+      }
       setHandle(term, 0L);		/* variable */
       goto atomic_out;
     case T_VARIABLE:
+      if ( must_be_op ) goto not_an_op;
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       goto atomic_out;
@@ -2605,6 +2610,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
       Unlock(token->value.atom);
       goto atomic_out;
     case T_NUMBER:
+      if ( must_be_op ) goto not_an_op;
       if ( !_PL_put_number(term, &token->value.number) )
 	return FALSE;
       clearNumber(&token->value.number);
@@ -2618,6 +2624,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
       }
       succeed;
     case T_STRING:
+      if ( must_be_op ) goto not_an_op;
       PL_put_term(term,	token->value.term);
       if ( positions )
       { if ( !PL_unify_term(positions,
@@ -2708,6 +2715,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    { int rc;
 	      size_t start = token->start;
 
+	      if ( must_be_op ) goto not_an_op;
+
 	      rc = complex_term(")", term, positions, _PL_rd PASS_LD);
 	      if ( rc != TRUE )
 		return rc;
@@ -2724,8 +2733,12 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    }
 	  case '{':
 	    { int rc;
-	      term_t arg = PL_new_term_ref();
+	      term_t arg;
 	      term_t pa, pe;
+
+	      if ( must_be_op ) goto not_an_op;
+	      if ( !(arg = PL_new_term_ref()) )
+		return FALSE;
 
 	      if ( positions )
 	      { if ( !(pa = PL_new_term_ref()) ||
@@ -2753,6 +2766,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    { term_t tail, tmp;
 	      term_t pa, pe, pt, p2;
 
+	      if ( must_be_op ) goto not_an_op;
 	      if ( !(tail = PL_new_term_ref()) ||
 		   !(tmp  = PL_new_term_ref()) )
 		return FALSE;
