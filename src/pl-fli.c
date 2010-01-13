@@ -833,7 +833,7 @@ normally 0). longToPointer() does the inverse operation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline uintptr_t
-pointerToLong(void *ptr)
+pointerToInt(void *ptr)
 { uintptr_t p   = (uintptr_t) ptr;
   uintptr_t low = p & 0x3L;
 
@@ -846,7 +846,7 @@ pointerToLong(void *ptr)
 
 
 static inline void *
-longToPointer(uintptr_t p)
+intToPointer(uintptr_t p)
 { uintptr_t low = p >> (sizeof(uintptr_t)*8-2);
 
   p <<= 2;
@@ -1445,7 +1445,7 @@ PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
       fail;
 #endif
 
-    *ptr = longToPointer((uintptr_t)p);
+    *ptr = intToPointer((uintptr_t)p);
 
     succeed;
   }
@@ -2179,8 +2179,9 @@ _PL_put_number__LD(term_t t, Number n ARG_LD)
 int
 PL_put_pointer(term_t t, void *ptr)
 { GET_LD
+  uint64_t i = pointerToInt(ptr);
 
-  return PL_put_int64__LD(t, pointerToLong(ptr) PASS_LD);
+  return PL_put_int64__LD(t, (int64_t)i PASS_LD);
 }
 
 
@@ -2638,9 +2639,9 @@ PL_unify_int64(term_t t, int64_t i)
 
 int
 PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
-{ intptr_t i = pointerToLong(ptr);
+{ uint64_t i = pointerToInt(ptr);
 
-  return PL_unify_int64__LD(t, i, FALSE PASS_LD);
+  return PL_unify_int64__LD(t, (int64_t)i, FALSE PASS_LD);
 }
 
 
