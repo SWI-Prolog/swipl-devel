@@ -90,7 +90,7 @@ setupProlog(void)
 			 GD->options.globalSize,
 			 GD->options.trailSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
-  initPrologLocalData();
+  initPrologLocalData(PASS_LD1);
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -135,18 +135,15 @@ setupProlog(void)
 
 
 void
-initPrologLocalData(void)
-{ GET_LD
-
+initPrologLocalData(ARG1_LD)
+{
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
-  depth_reached = 0;
 #endif
 
-  environment_frame = (LocalFrame) NULL;
-  LD->statistics.inferences = 0;
   LD->float_format = "%g";
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
+  simpleMutexInit(&LD->signal.lock);
   updateAlerted(LD);
 }
 
@@ -1447,6 +1444,9 @@ freeLocalData(PL_local_data_t *ld)
 #endif
 
   freeArithLocalData(ld);
+#ifdef O_PLMT
+  simpleMutexDelete(&ld->signal.lock);
+#endif
 }
 
 

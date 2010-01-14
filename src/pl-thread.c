@@ -433,7 +433,7 @@ initialise_thread(PL_thread_info_t *info, int emergency)
     return FALSE;
   }
 
-  initPrologLocalData();
+  initPrologLocalData(info->thread_data);
   info->thread_data->magic = LD_MAGIC;
 
   return TRUE;
