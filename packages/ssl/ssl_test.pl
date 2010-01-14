@@ -39,7 +39,7 @@
 :- use_module(library(readutil)).
 
 %:- debug(connection).
-:- debug(_).
+%:- debug(_).
 
 :- dynamic
 	option/1,			% Options to test
