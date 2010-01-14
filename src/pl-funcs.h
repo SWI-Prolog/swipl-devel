@@ -648,7 +648,7 @@ COMMON(void)		resumeAfterException(void);
 COMMON(void) 		resetStacks(void);
 COMMON(void) 		emptyStacks(void);
 COMMON(void) 		freeStacks(ARG1_LD);
-COMMON(void) 		freeLocalData(PL_local_data_t *ld);
+COMMON(void) 		freePrologLocalData(PL_local_data_t *ld);
 COMMON(int) 		ensure_room_stack(Stack s, size_t n, int ex);
 COMMON(int)		trim_stack(Stack s);
 COMMON(void *)		stack_malloc(size_t size);

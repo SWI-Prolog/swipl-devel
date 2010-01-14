@@ -482,7 +482,7 @@ free_prolog_thread(void *data)
   ld->magic = 0;
   if ( ld->stacks.global.base )		/* otherwise assume they are not */
     freeStacks(ld);			/* initialised */
-  freeLocalData(ld);
+  freePrologLocalData(ld);
 
   if ( ld->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);

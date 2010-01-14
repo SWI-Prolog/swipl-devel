@@ -1424,7 +1424,7 @@ of work to do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-freeLocalData(PL_local_data_t *ld)
+freePrologLocalData(PL_local_data_t *ld)
 { int i;
 
   discardBuffer(&ld->fli._discardable_buffer);

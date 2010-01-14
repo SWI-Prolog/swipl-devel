@@ -1257,7 +1257,7 @@ PL_cleanup(int rval)
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
-  freeLocalData(LD);
+  freePrologLocalData(LD);
   cleanupSourceFiles();
   cleanupAtoms();
   cleanupFunctors();
