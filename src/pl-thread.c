@@ -2079,7 +2079,7 @@ win32_cond_wait(win32_cond_t *cv,
       DispatchMessage(&msg);
     }
 
-    if ( LD->pending_signals )
+    if ( LD->signal.pending )
     { EnterCriticalSection(external_mutex);
       return EINTR;
     }
@@ -2302,7 +2302,7 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 
     switch( rc )
     { case ETIMEDOUT:
-	if ( LD->pending_signals )
+	if ( LD->signal.pending )
 	  return EINTR;
 
 	return 0;
@@ -2426,7 +2426,7 @@ retry:
 	exit(1);
       }
 
-      if ( LD->pending_signals )	/* thread-signal */
+      if ( LD->signal.pending )	/* thread-signal */
       { queue->waiting--;
 	queue->waiting_var -= isvar;
 	signalled = TRUE;

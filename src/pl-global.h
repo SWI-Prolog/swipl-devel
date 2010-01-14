@@ -325,10 +325,6 @@ struct PL_local_data
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */
-  int64_t	pending_signals;	/* PL_raise() pending signals */
-  record_t	pending_exception;	/* Pending exception from signal */
-  int		current_signal;		/* Currently handled signal */
-  int		sync_signal;		/* Current signal is synchronous */
   int		critical;		/* heap is being modified */
   abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
   Stack		outofstack;		/* thread is out of stack */
@@ -342,6 +338,13 @@ struct PL_local_data
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
   ClauseRef	freed_clauses;		/* List of pending freeable clauses */
+
+  struct
+  { int64_t	pending;		/* PL_raise() pending signals */
+    int		current;		/* currently processing signal */
+    int		is_sync;		/* current signal is synchronous */
+    record_t	exception;		/* Pending exception from signal */
+  } signal;
 
   struct
   { int		active;			/* doing pipe I/O */

@@ -233,7 +233,7 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  if ( ld->pending_signals )			mask |= ALERT_SIGNAL;
+  if ( ld->signal.pending )			mask |= ALERT_SIGNAL;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -260,7 +260,7 @@ updateAlerted(PL_local_data_t *ld)
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
-  { ld->pending_signals |= ((int64_t)1 << (sig-1));
+  { ld->signal.pending |= ((int64_t)1 << (sig-1));
     updateAlerted(ld);
     return TRUE;
   }
@@ -271,7 +271,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
 static inline int
 is_signalled(ARG1_LD)
-{ return (LD->pending_signals != 0);
+{ return (LD->signal.pending != 0);
 }
 
 
@@ -1997,9 +1997,9 @@ variables used in the B_THROW instruction.
 
     AR_CLEANUP();
 
-    if ( LD->current_signal )
-    { unblockSignal(LD->current_signal);
-      LD->current_signal = 0;	/* TBD: saved? */
+    if ( LD->signal.current )
+    { unblockSignal(LD->signal.current);
+      LD->signal.current = 0;	/* TBD: saved? */
     }
 
     THROW_EXCEPTION;

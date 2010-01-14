@@ -1400,7 +1400,7 @@ interruptHandler(int sig)
 #endif
 
 #if __unix__				/* actually, asynchronous signal handling */
-  if ( !LD->sync_signal )
+  if ( !LD->signal.is_sync )
   { if ( PL_pending(sig) )
     { PL_clearsig(sig);
       safe = FALSE;

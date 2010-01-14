@@ -71,7 +71,7 @@ setupProlog(void)
 
   LD->critical = 0;
   LD->aborted = ABORT_NONE;
-  LD->pending_signals = 0;
+  LD->signal.pending = 0;
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
@@ -400,8 +400,8 @@ dispatch_signal(int sig, int sync)
   }
 
   lTopSave = consTermRef(lTop);
-  saved_current_signal = LD->current_signal;
-  saved_sync = LD->sync_signal;
+  saved_current_signal = LD->signal.current;
+  saved_sync = LD->signal.is_sync;
 
   switch(sig)
   { case SIGFPE:
@@ -409,7 +409,7 @@ dispatch_signal(int sig, int sync)
 #if defined(SIGBUS) && SIGBUS != SIGSEGV
     case SIGBUS:
 #endif
-      if ( sig == LD->current_signal )
+      if ( sig == LD->signal.current )
 	sysError("Recursively received fatal signal %d", sig);
   }
 
@@ -430,8 +430,8 @@ dispatch_signal(int sig, int sync)
 
   if ( !sync )
     blockGC(0 PASS_LD);
-  LD->current_signal = sig;
-  LD->sync_signal = sync;
+  LD->signal.current = sig;
+  LD->signal.is_sync = sync;
 
   DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
 		    sig, sh->predicate, sh->handler));
@@ -480,14 +480,14 @@ dispatch_signal(int sig, int sync)
   { (*sh->handler)(sig);
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
-    { LD->pending_exception = PL_record(exception_term);
+    { LD->signal.exception = PL_record(exception_term);
       PL_raise(SIG_EXCEPTION);
       exception_term = 0;
     }
   }
 
-  LD->current_signal = saved_current_signal;
-  LD->sync_signal = saved_sync;
+  LD->signal.current = saved_current_signal;
+  LD->signal.is_sync = saved_sync;
   if ( sync )
     PL_close_foreign_frame(fid);
   else
@@ -585,10 +585,10 @@ static void
 sig_exception_handler(int sig)
 { GET_LD
 
-  if ( LD && LD->pending_exception )
-  { record_t ex = LD->pending_exception;
+  if ( LD && LD->signal.exception )
+  { record_t ex = LD->signal.exception;
 
-    LD->pending_exception = 0;
+    LD->signal.exception = 0;
 
     PL_put_variable(exception_bin);
     PL_recorded(ex, exception_bin);
@@ -695,8 +695,8 @@ void
 resetSignals()
 { GET_LD
 
-  LD->current_signal = 0;
-  LD->pending_signals = 0L;
+  LD->signal.current = 0;
+  LD->signal.pending = 0L;
 }
 
 #if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
@@ -850,7 +850,7 @@ int
 PL_handle_signals()
 { GET_LD
 
-  if ( !LD || LD->critical || !LD->pending_signals )
+  if ( !LD || LD->critical || !LD->signal.pending )
     return 0;
 
   return handleSignals(PASS_LD1);
@@ -864,13 +864,13 @@ handleSignals(ARG1_LD)
   if ( !LD || LD->critical )
     return 0;
 
-  while(LD->pending_signals)
+  while(LD->signal.pending)
   { int64_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
-    { if ( LD->pending_signals & mask )
-      { LD->pending_signals &= ~mask;	/* reset the signal */
+    { if ( LD->signal.pending & mask )
+      { LD->signal.pending &= ~mask;	/* reset the signal */
 
 	done++;
 	dispatch_signal(sig, TRUE);
