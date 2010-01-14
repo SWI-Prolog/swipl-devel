@@ -222,7 +222,7 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_TABLE"),
   COUNT_MUTEX_INITIALIZER("L_BREAK"),
   COUNT_MUTEX_INITIALIZER("L_FILE"),
-  COUNT_MUTEX_INITIALIZER("PLFLAG_L"),
+  COUNT_MUTEX_INITIALIZER("L_PLFLAG"),
   COUNT_MUTEX_INITIALIZER("L_OP"),
   COUNT_MUTEX_INITIALIZER("L_INIT"),
   COUNT_MUTEX_INITIALIZER("L_TERM"),
@@ -485,9 +485,9 @@ free_prolog_thread(void *data)
   freeLocalData(ld);
 
   if ( ld->prolog_flag.table )
-  { PL_LOCK(PLFLAG_L);
+  { PL_LOCK(L_PLFLAG);
     destroyHTable(ld->prolog_flag.table);
-    PL_UNLOCK(PLFLAG_L);
+    PL_UNLOCK(L_PLFLAG);
   }
   /*PL_unregister_atom(ld->prompt.current);*/
 
@@ -1159,9 +1159,9 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   ldnew->_debugstatus.retryFrame = NULL;
   ldnew->prolog_flag.mask	 = LD->prolog_flag.mask;
   if ( LD->prolog_flag.table )
-  { PL_LOCK(PLFLAG_L);
+  { PL_LOCK(L_PLFLAG);
     ldnew->prolog_flag.table	 = copyHTable(LD->prolog_flag.table);
-    PL_UNLOCK(PLFLAG_L);
+    PL_UNLOCK(L_PLFLAG);
   }
   init_message_queue(&info->thread_data->thread.messages, -1);
   if ( at_exit )
@@ -3775,9 +3775,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   if ( ldmain->prolog_flag.table )
   { TLD_set(PL_ldata, info->thread_data);
 
-    PL_LOCK(PLFLAG_L);
+    PL_LOCK(L_PLFLAG);
     ldnew->prolog_flag.table	 = copyHTable(ldmain->prolog_flag.table);
-    PL_UNLOCK(PLFLAG_L);
+    PL_UNLOCK(L_PLFLAG);
   }
 
   if ( !initialise_thread(info, FALSE) )

@@ -30,8 +30,8 @@
 #include <process.h>			/* getpid() */
 #endif
 
-#define LOCK()   PL_LOCK(PLFLAG_L)
-#define UNLOCK() PL_UNLOCK(PLFLAG_L)
+#define LOCK()   PL_LOCK(L_PLFLAG)
+#define UNLOCK() PL_UNLOCK(L_PLFLAG)
 
 
 		 /*******************************
