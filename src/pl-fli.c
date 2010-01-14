@@ -3707,7 +3707,9 @@ PL_pending__LD(int sig ARG_LD)
 int
 PL_clearsig__LD(int sig ARG_LD)
 { if ( sig > 0 && sig <= MAXSIGNAL && LD )
-  { LD->signal.pending &= ~((int64_t)1 << (sig-1));
+  { simpleMutexLock(&LD->signal.lock);
+    LD->signal.pending &= ~((int64_t)1 << (sig-1));
+    simpleMutexUnlock(&LD->signal.lock);
     updateAlerted(LD);
     return TRUE;
   }

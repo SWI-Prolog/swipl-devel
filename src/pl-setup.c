@@ -861,13 +861,15 @@ handleSignals(ARG1_LD)
   if ( !LD || LD->critical )
     return 0;
 
-  while(LD->signal.pending)
+  while( LD->signal.pending )
   { int64_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
     { if ( LD->signal.pending & mask )
-      { LD->signal.pending &= ~mask;	/* reset the signal */
+      { simpleMutexLock(&LD->signal.lock);
+	LD->signal.pending &= ~mask;	/* reset the signal */
+	simpleMutexUnlock(&LD->signal.lock);
 
 	done++;
 	dispatch_signal(sig, TRUE);
