@@ -76,26 +76,33 @@ predicate calls:
 \hline 
     SSL server    &     SSL client \\
 \hline 
-    ssl_init/3    &     ssl_init/3 \\
-    ssl_accept/3  &     \\
-    ssl_open/4    &     ssl_open/3 \\
+    ssl_context/3    &     ssl_context/3 \\
+    tcp_socket/1     &    tcp_socket/1 \\
+    tcp_accept/3     &    tcp_connect/2 \\
+    tcp_open_socket/3     &    tcp_open_socket/3 \\
+    ssl_negotiatate/5    &     ssl_negotiate/5 \\
     \ldots        &     \ldots \\
     ssl_exit/1      &   ssl_exit/1 \\
 \hline
 \end{tabular}
 \end{center}
 
+The library is abstracted to communication over streams, and is not 
+reliant on those streams being directly attached to sockets. The tcp_\ldots
+calls here are simply the most common way to use the library. In UNIX, pipes
+could just as easily be used, for example.
+
 What follows is a description of each of these functions and the
 arguments they accept.
 
 \begin{description}
-    \predicate{ssl_init}{3}{-SSL, +Server, +Options}
-Server with legal values \const{server} or \const{client} denotes
-whether the SSL socket will have a server or client role in the
+    \predicate{ssl_context}{3}{+Role, +Options, -SSL}
+Role with legal values \const{server} or \const{client} denotes
+whether the SSL instance will have a server or client role in the
 established connection. With \arg{Options} various properties of the
-TCP/IP + SSL connection can be defined, some of which required, some
-optional. An overview is given below. The handle of the connection is
-returned in \arg{SSL}.
+SSL session can be defined, some of which required, some optional. 
+An overview is given below. The handle of the connection is returned 
+in \arg{SSL}.
 
 Below is an overview of the \arg{Options} argument.  Some options are only
 required by the client (C), some are required by the server (marked S),
@@ -147,27 +154,36 @@ some by both server as client (marked CS).
 	SSL socket.
 \end{description}
 
-    \predicate{ssl_accept}{3}{+SSL, -Socket, -Peer} 
-This predicate is used in the server to accept new connections.
-\arg{Socket} is unified to a socket that must be passed to ssl_open/4
-and \arg{Peer} is unified with a term \functor{ip}{4} denoting the IP
-address of the peer. The format is compatible to the format used by the
-TCP/IP library \file{socket.pl} provided by the clib package.
-
-    \predicate{ssl_open}{4}{+SSL, +Socket, -In, -Out}
-Server side.  Attach a Prolog input and output stream to the socket. The
-\arg{Socket} is automatically closed after both streams are closed.
-Please note that the output stream is fully buffered and therefore
-flush_output/1 is required to actually send the data to the peer.
-
-    \predicate{ssl_open}{3}{+SSL, -In, -Out}
-Client side. Establish the connection based on the data passed to
-ssl_init/3 and create the Prolog I/O streams.
+    \predicate{ssl_negotiate}{5}{+SSL, +PlainRead, +PlainWrite, -SSLRead, -SSLWrite} 
+Once a connection is established and a read/write stream pair is available, 
+(\arg{PlainRead} and \arg{PlainWrite}), this predicate can be called to 
+negotiate an SSL session over the streams. If the negotiation is successful,
+ \arg{SSLRead} and \arg{SSLWrite} are returned.
 
     \predicate{ssl_exit}{1}{+SSL}
-Clean up all resources related to the SSL + TCP/IP socket layers.
+Clean up all resources related to the SSLinstance.
 \end{description}
 
+\section{Backward compatibility}
+
+There are some predicates included  to provide an API similar to the one exposed
+ by a previous version of the library.
+
+  \predicate{ssl_init}{3}{-SSL, +Role, +Options}
+        Analogous to ssl_context/3.
+
+  \predicate{ssl_accept}{3}{+SSL, -Socket, -Peer}
+        Blocks until a connection is made to the host on the port specified by the
+        SSL object. \arg{Socket} and \arg{Peer} are then returned.
+
+  \predicate{ssl_open/3}{3}{+SSL, -Read, -Write} (Client)
+        Connect to the host and port specified by the SSL object, negotiate an SSL
+        connection and return Read and Write streams if successful
+        
+  \predicate{ssl_open/4}{3}{+SSL, +Socket -Read, -Write} (Server)
+        Given the \arg{Socket} returned from \predicate{ssl_accept/3}, negotiate the connection
+        on the accepted socket and return Read and Write streams if successful.
+        
 
 \section{Using SSL to provide HTTPS}
 
