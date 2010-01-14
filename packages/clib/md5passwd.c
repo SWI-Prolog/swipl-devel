@@ -101,8 +101,13 @@ md5_crypt(pw, salt)
 	MD5Update(&ctx1,sp,sl);
 	MD5Update(&ctx1,pw,strlen(pw));
 	MD5Final(final,&ctx1);
-	for(pl = strlen(pw); pl > 0; pl -= 16)
-		MD5Update(&ctx,final,pl>16 ? 16 : pl);
+	for(pl = strlen(pw); pl > 0; )
+	{	MD5Update(&ctx,final,pl>16 ? 16 : pl);
+		if ( pl > 16 )
+		    pl -= 16;
+		else
+		    break;
+	}
 
 	/* Don't leave anything around in vm they could use. */
 	memset(final,0,sizeof final);
