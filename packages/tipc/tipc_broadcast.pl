@@ -29,7 +29,7 @@
 
 :- module(tipc_broadcast,
              [
-	      % there are no publicly exposed predicates
+	     tipc_initialize/0
 	     ]).
 
 /** <module> A TIPC Broadcast Bridge
@@ -244,7 +244,7 @@ and subtle differences that must be taken into consideration:
 	   , thread_create/3
 	   ]).
 
-:- export(tipc_initialize/0).
+:- meta_predicate safely(0), eventually_implies(0,0), ~>(0,0).
 
 tipc_broadcast_service(node,            name_seq(20005, 0, 0)).
 tipc_broadcast_service(cluster,         name_seq(20005, 1, 1)).
@@ -265,27 +265,33 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %  No additional multiplexing is required.
 %
 
-%%  try_finally(?Setup, +Cleanup) is multi.
-%  succeeds nondeterministically if Setup succeeds.
-%  It executes Cleanup under one of three conditions:
-%     * backtracking on failure into try_finally/2,
-%     * An uncaught exception is thrown subsequent to
-%     Setup, but before choice-points are cut, or
-%     * Cut (!) of choice-points.
+safely(Predicate) :-
+	catch(Predicate, Err, (print_message(error, Err), fail)).
+
+%%	~>(:P, :Q) is semidet.
+%%	eventually_implies(:P, :Q) is semidet.
+%    asserts temporal Liveness (something good happens, eventually) and
+%    Safety (nothing bad ever happens) properties. Analogous to the
+%    "leads-to" operator of Owicki and Lamport, 1982. Provides a sort of
+%    lazy implication described informally as:
 %
-%     try_finally/2 is used to protect a   fixed  resource (e.g. socket,
-%     mutex, stream, etc.) against leakage  under adverse circumstances.
-%     Any variables that are bound in   Setup  are available to Cleanup,
-%     and remain in scope going forward.  The   cut  is used to indicate
-%     that the fixed resource is no longer needed and may be released.
-%     It is released at the time of the cut, so any further usage of
-%     the (formerly) allocated resource is likely to cause you
-%     considerable trouble.
+%    * Liveness: For all possible outcomes, P -> Q, eventually.
+%    * Safety: For all possible outcomes, (\+P ; Q), is invariant.
+%
+%  Described practically:
+%
+%    P ~> Q, declares that if P is true, then Q must be true, now or at
+%    some point in the future.
 %
 
-try_finally(Setup, Cleanup) :-
-	setup_call_cleanup(Setup, ( Solution = yes ; Solution = no ), Cleanup),
+eventually_implies(P, Q) :-
+	setup_call_cleanup(P, ( Solution = yes ; Solution = no ), assertion(Q)),
 	Solution = yes.
+
+:- op(950, xfy, ~>).
+
+~>(P, Q) :-
+	eventually_implies(P, Q).
 
 ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_get_name(S, Name),
@@ -293,18 +299,17 @@ ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
 	tipc_send(S, Atom, From, []).
 
 ld_dispatch(S, '$tipc_request'(Term), From) :-
-	forall(catch(broadcast_request(Term), _, fail),
+	forall(safely(broadcast_request(Term)),
 	           (   term_to_atom(Term, Atom),
 		       tipc_send(S, Atom, From, [])
 	           )),
 	!.
 
 ld_dispatch(_S, Term, _From) :-
-	catch(broadcast(Term),_, fail).
+	safely(broadcast(Term)).
 
 tipc_listener_daemon :-
-	try_finally(tipc_socket(S, rdm),
-		    tipc_close_socket(S)),
+	tipc_socket(S, rdm) ~> tipc_close_socket(S),
 
 	tipc_setopt(S, importance(medium)),
 	tipc_setopt(S, dest_droppable(true)),  % discard if not deliverable
@@ -312,17 +317,21 @@ tipc_listener_daemon :-
 	forall(tipc_broadcast_service(Scope, Address),
 	     tipc_bind(S, Address, scope(Scope))),
 
-	try_finally(listen(tipc_broadcast, Head, broadcast_listener(Head)),
-		    unlisten(tipc_broadcast)),
+	listen(tipc_broadcast, Head, broadcast_listener(Head))
+	     ~> unlisten(tipc_broadcast),
 
 	repeat,
-	     tipc_receive(S, Data, From, [as(atom)]),
-	     term_to_atom(Term, Data),
-	     once(ld_dispatch(S, Term, From)),
-	fail.
+	dispatch_traffic(S).
+
+dispatch_traffic(S) :-
+	tipc_receive(S, Data, From, [as(atom)]),
+	term_to_atom(Term, Data),
+	once(ld_dispatch(S, Term, From)), !,
+	dispatch_traffic(S).
 
 start_tipc_listener_daemon :-
-	catch(thread_property(tipc_listener_daemon, status(running)), _, fail), !.
+	catch(thread_property(tipc_listener_daemon, status(running)),_, fail),
+	!.
 
 start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
@@ -354,7 +363,7 @@ broadcast_listener(tipc_zone(X, Timeout)) :-
 %
 
 tipc_basic_broadcast(S, Term, Address) :-
-	try_finally(tipc_socket(S, rdm), tipc_close_socket(S)),
+	tipc_socket(S, rdm) ~> tipc_close_socket(S),
 	tipc_setopt(S, importance(medium)),
 	term_to_atom(Term, Atom),
 	tipc_send(S, Atom, Address, []).
@@ -389,8 +398,7 @@ tipc_broadcast(Term, Scope, Timeout) :-
 	tipc_broadcast(Term:_, Scope, Timeout).
 
 tipc_br_send_timeout(Port) :-
-	try_finally(tipc_socket(S, rdm),
-		    tipc_close_socket(S)),
+	tipc_socket(S, rdm) ~> tipc_close_socket(S),
 
 	tipc_setopt(S, importance(critical)),
 	tipc_send(S, '$tipc_br_timeout', Port, []),
@@ -398,14 +406,17 @@ tipc_br_send_timeout(Port) :-
 
 tipc_br_collect_replies(S, Timeout, Term:From) :-
 	tipc_get_name(S, Port),
-	try_finally(alarm(Timeout, tipc_br_send_timeout(Port), Id),
-		    remove_alarm(Id)),
+	alarm(Timeout, tipc_br_send_timeout(Port), Id)
+	     ~> remove_alarm(Id),
 	repeat,
         tipc_receive(S, Atom, From1, [as(atom)]),
         (   (Atom \== '$tipc_br_timeout')
-  	    -> (From1 = From, term_to_atom(Term, Atom))
+  	    -> (From1 = From, safely(term_to_atom(Term, Atom)))
 	    ;  (!, fail)).
 
+%%	tipc_initialize is semidet.
+%   See tipc:tipc_initialize/0
+%
 :- multifile tipc:tipc_stack_initialize/0.
 
 %   tipc_stack_initialize() is det. causes any required runtime

@@ -33,12 +33,11 @@
 	   tipc_paxos_set/1,         % ?Term
 	   tipc_paxos_set/2,         % ?Term,  +Retries
 	   tipc_paxos_replicate/1,   % ?Term
-	   tipc_paxos_on_change/2    % ?Term,  +Goal
+	   tipc_paxos_on_change/2,   % ?Term,  +Goal
+	   tipc_initialize/0
 	  ]).
 
 :- use_module(tipc_broadcast).
-
-:- export(tipc_initialize/0).
 
 /** <module> A Replicated Data Store
 This module provides a replicated data store that is coordinated using a
@@ -274,6 +273,10 @@ tipc_basic_paxos_on_change(Owner, Term, Goal) :-
 	listen(Owner, paxos_changed(Term),
 	       thread_create(Goal, _, [detached(true)])).
 
+%%	tipc_initialize is semidet.
+%   See tipc:tipc_initialize/0.
+%
+
 :- multifile tipc:tipc_stack_initialize/0.
 
 %   tipc_stack_initialize is det. called as a side-effect of
@@ -281,7 +284,3 @@ tipc_basic_paxos_on_change(Owner, Term, Goal) :-
 %
 tipc:tipc_stack_initialize :-
       tipc_paxos_initialize, !.
-
-
-
-
