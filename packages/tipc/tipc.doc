@@ -48,6 +48,7 @@ pattern.
 \input{tipcpl.tex}
 \input{tipcbroadcast.tex}
 \input{tipcpaxos.tex}
+\input{tipclinda.tex}
 
 \printindex
 
