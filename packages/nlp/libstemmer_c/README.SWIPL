@@ -1,0 +1,5 @@
+This is an unpacked version of "The C version of the libstemmer library"
+from http://snowball.tartarus.org, copied at Jan 16, 2010.
+
+The file Makefile.pl has been added to build the library. The file strip
+was used to delete things we do not use.
