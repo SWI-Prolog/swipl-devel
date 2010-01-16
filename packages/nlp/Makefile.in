@@ -27,10 +27,11 @@ CIFLAGS=
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 
+PUBLICPL=pl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=nlp
-TEX=$(DOC).tex
+TEX=$(DOC).tex snowball.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
