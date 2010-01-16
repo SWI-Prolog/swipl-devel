@@ -21,6 +21,7 @@
 */
 
 #include <SWI-Prolog.h>
+#include <SWI-Stream.h>
 #include "libstemmer_c/include/libstemmer.h"
 #include <pthread.h>
 #include <string.h>
@@ -93,7 +94,9 @@ typedef struct
 } stem_cache;
 
 static pthread_key_t stem_key;
+#ifndef __WINDOWS__
 static pthread_once_t stem_key_once = PTHREAD_ONCE_INIT;
+#endif
 
 static void
 stem_destroy_cache(void *buf)
@@ -119,7 +122,10 @@ static stem_cache *
 get_cache(void)
 { stem_cache *cache;
 
+#ifndef __WINDOWS__
   pthread_once(&stem_key_once, stem_key_alloc);
+#endif
+
   if ( (cache=(stem_cache*)pthread_getspecific(stem_key)) )
     return cache;
   if ( (cache = PL_malloc(sizeof(stem_cache))) )
@@ -148,9 +154,9 @@ get_lang_stemmer(term_t t, struct sb_stemmer **stemmer)
   }
   for(i=0; i<CACHE_SIZE; i++)
   { if ( !cache->stemmers[i].stemmer )
-    { struct sb_stemmer *st = sb_stemmer_new(PL_atom_chars(lang), NULL);
+    { struct sb_stemmer *st;
 
-      if ( !st )
+      if ( !(st= sb_stemmer_new(PL_atom_chars(lang), NULL)) )
       { if ( errno == ENOMEM )
 	  return resource_error("memory");
 	else
@@ -220,4 +226,8 @@ install_snowball()
 
   PL_register_foreign("snowball", 3, snowball, 0);
   PL_register_foreign("snowball_algorithms", 1, snowball_algorithms, 0);
+
+#ifdef __WINDOWS__
+  stem_key_alloc();
+#endif
 }
