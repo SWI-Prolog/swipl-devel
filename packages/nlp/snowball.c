@@ -166,15 +166,14 @@ get_lang_stemmer(term_t t, struct sb_stemmer **stemmer)
     }
   }
 
-  assert(0);
+  assert(0);				/* TBD: clean cache */
   return FALSE;
 }
 
 
 static foreign_t
 snowball(term_t lang, term_t in, term_t out)
-{ atom_t lc;
-  struct sb_stemmer *stemmer;
+{ struct sb_stemmer *stemmer = NULL;
   char *s;
   size_t len, olen;
   const sb_symbol *stemmed;
@@ -185,11 +184,11 @@ snowball(term_t lang, term_t in, term_t out)
 		      CVT_ATOM|CVT_STRING|CVT_LIST|REP_UTF8|CVT_EXCEPTION) )
     return FALSE;
 
-  if ( !(stemmed = sb_stemmer_stem(stemmer, s, (int)len)) )
+  if ( !(stemmed = sb_stemmer_stem(stemmer, (const sb_symbol*)s, (int)len)) )
     return resource_error("memory");
   olen = sb_stemmer_length(stemmer);
 
-  return PL_unify_chars(out, PL_ATOM|REP_UTF8, olen, stemmed);
+  return PL_unify_chars(out, PL_ATOM|REP_UTF8, olen, (const char*)stemmed);
 }
 
 
