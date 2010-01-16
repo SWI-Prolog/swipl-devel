@@ -42,11 +42,16 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@
-TARGETS=	@TARGETS@
+TARGETS=	double_metaphone.@SO@ \
+		porter_stem.@SO@ \
+		snowball.@SO@
+LIBPL=		double_metaphone.pl \
+		porter_stem.pl \
+		snowball.pl
 
 DMPOBJ=		double_metaphone.o
 STEMOBJ=	porter_stem.o
+SBOBJ=		snowball.o libstemmer_c/libstemmer.a
 
 all:		$(TARGETS)
 
@@ -55,6 +60,12 @@ double_metaphone.@SO@:	$(DMPOBJ)
 
 porter_stem.@SO@:	$(STEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
+
+snowball.@SO@:	$(STEMOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
+
+libstemmer_c/libstemmer.a:
+		$(MAKE) -C libstemmer_c -f Makefile.pl
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
