@@ -78,8 +78,10 @@ xpce-install::
 clean::
 		if exist *.obj del *.obj
 		if exist *~ del *~
+		chdir libstemmer_c & $(MAKE) clean
 
 distclean:	clean
 		-DEL *.dll *.lib *.exp *.ilk *.pdb 2>nul
+		chdir libstemmer_c & $(MAKE) distclean
 
 
