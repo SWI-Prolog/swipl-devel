@@ -52,7 +52,7 @@ Here is an example:
 @see http://snowball.tartarus.org/
 */
 
-:- use_foreign_library(snowball).
+:- use_foreign_library(foreign(snowball)).
 
 %%	snowball(+Algorithm, +Input, -Stem) is det.
 %

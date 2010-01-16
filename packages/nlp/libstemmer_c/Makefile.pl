@@ -1,5 +1,5 @@
 include mkinc_utf8.mak
-CFLAGS=-Iinclude
+CFLAGS+=-Iinclude
 
 all: libstemmer.a
 

@@ -21,7 +21,7 @@
 */
 
 #include <SWI-Prolog.h>
-#include <libstemmer.h>
+#include "libstemmer_c/include/libstemmer.h"
 #include <pthread.h>
 #include <string.h>
 #include <assert.h>

@@ -61,11 +61,12 @@ double_metaphone.@SO@:	$(DMPOBJ)
 porter_stem.@SO@:	$(STEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
 
-snowball.@SO@:	$(STEMOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
+snowball.@SO@:	$(SBOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(SBOBJ)
 
 libstemmer_c/libstemmer.a:
-		$(MAKE) -C libstemmer_c -f Makefile.pl
+		$(MAKE) CFLAGS="$(CFLAGS)" CC="$(CC)" \
+			-C libstemmer_c -f Makefile.pl
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
