@@ -596,9 +596,11 @@ Section "NLP package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\porter_stem.dll
+  File pl\bin\snowball.dll
   File pl\bin\double_metaphone.dll
   SetOutPath $INSTDIR\library
   File pl\library\porter_stem.pl
+  File pl\library\snowball.pl
   File pl\library\double_metaphone.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\nlp.html
@@ -665,6 +667,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\uri.pdb
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
+  File pl\bin\snowball.pdb
 SectionEnd
 
 Section "Sources for system predicates"
