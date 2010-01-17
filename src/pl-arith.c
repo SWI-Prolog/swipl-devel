@@ -2282,7 +2282,7 @@ ar_lsb(Number n1, Number r)
 
 
 static int
-popcount64(int64_t i)
+my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
 { int c;
   size_t j;
   int64_t m = LL(1);
@@ -2306,7 +2306,7 @@ ar_popcount(Number n1, Number r)
       if (  n1->value.i < 0 )
 	return notLessThanZero("popcount", 1, n1);
 
-      r->value.i = popcount64(n1->value.i);
+      r->value.i = my_popcount64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
