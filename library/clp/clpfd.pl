@@ -4152,6 +4152,7 @@ min_divide(L1,U1,L2,U2,Min) :-
         (   L2 = n(NL2), NL2 > 0, U2 = n(_), cis_geq_zero(L1) ->
             Min cis div(L1+U2-n(1),U2)
                                 % TODO: cover more cases
+        ;   L1 = n(NL1), NL1 > 0 -> Min cis min(L1,-U1)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
@@ -4159,6 +4160,7 @@ max_divide(L1,U1,L2,U2,Max) :-
         (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Max cis div(U1,L2)
                                 % TODO: cover more cases
+        ;   L1 = n(NL1), NL1 > 0 -> Max cis max(-L1,U1)
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
