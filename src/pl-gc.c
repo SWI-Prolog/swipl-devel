@@ -312,7 +312,7 @@ print_val(word val, char *buf)
     { strcpy(o, s);
     }
   } else
-  { long offset = (val>>(LMASK_BITS-2))/sizeof(word);
+  { size_t offset = (val>>(LMASK_BITS-2))/sizeof(word);
 
     if ( storage(val) == STG_GLOBAL )
       offset -= gBase - (Word)base_addresses[STG_GLOBAL];
@@ -320,7 +320,7 @@ print_val(word val, char *buf)
     Ssprintf(o, "%s at %s(%ld)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
-	     offset);
+	     (long)offset);
   }
 
   return buf;
@@ -3184,7 +3184,7 @@ static void
 set_start(Word m ARG_LD)
 { size_t i = m-gBase;
   int bit = i % INTBITS;
-  int at  = i / INTBITS;
+  size_t at  = i / INTBITS;
 
   start_map[at] |= 1<<(bit-1);
 }
@@ -3194,7 +3194,7 @@ static int
 is_start(Word m ARG_LD)
 { size_t i = m-gBase;
   int bit = i % INTBITS;
-  int at  = i / INTBITS;
+  size_t at  = i / INTBITS;
 
   return (start_map[at] & 1<<(bit-1)) != 0;
 }
