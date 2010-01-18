@@ -544,6 +544,7 @@ initPrologThreads()
   PL_local_data.magic = LD_MAGIC;
   { GET_LD
 
+    simpleMutexInit(&LD->signal.sig_lock);
     GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.threads = allocHeap(GD->thread.thread_max *
 				   sizeof(*GD->thread.threads));
@@ -774,6 +775,7 @@ retry:
     { PL_local_data_t *ld = allocHeap(sizeof(PL_local_data_t));
 
       memset(ld, 0, sizeof(PL_local_data_t));
+      simpleMutexInit(&ld->signal.sig_lock);
 
       info->pl_tid = i;
       ld->thread.info = info;

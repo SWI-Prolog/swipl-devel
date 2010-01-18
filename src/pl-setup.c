@@ -143,7 +143,6 @@ initPrologLocalData(ARG1_LD)
 
   LD->float_format = "%g";
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
-  simpleMutexInit(&LD->signal.sig_lock);
   updateAlerted(LD);
 }
 
