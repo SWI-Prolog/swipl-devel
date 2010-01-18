@@ -65,8 +65,14 @@ porter_stem.@SO@:	$(STEMOBJ)
 snowball.@SO@:	$(SBOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SBOBJ)
 
+ifeq ($(CC),../plld.sh)
+SUBCC=../$(CC)
+else
+SUBCC=$(CC)
+endif
+
 libstemmer_c/libstemmer.a:
-		$(MAKE) CFLAGS="$(CFLAGS)" CC="$(CC)" \
+		$(MAKE) CFLAGS="$(CFLAGS)" CC="$(SUBCC)" \
 			-C libstemmer_c -f Makefile.pl
 
 install:	$(TARGETS) $(LIBPL)
