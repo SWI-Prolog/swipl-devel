@@ -877,7 +877,10 @@ alertThread(PL_thread_info_t *info)
 {
 #ifdef __WINDOWS__
   if ( info->w32id )
-    return PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L) != 0;
+  { PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
+    return TRUE;			/* NOTE: PostThreadMessage() can */
+					/* fail if thread is being created */
+  }
   return FALSE;
 #else
   return pthread_kill(info->tid, SIG_ALERT) == 0;
@@ -1903,7 +1906,7 @@ pl_thread_signal(term_t thread, term_t goal)
     ld->thread.sig_tail = sg;
   }
   raiseSignal(ld, SIG_THREAD_SIGNAL);
-  if ( !alertThread(info) )
+  if ( info->has_tid && !alertThread(info) )
     goto error;
 
   UNLOCK();
