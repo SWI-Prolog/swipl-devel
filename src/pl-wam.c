@@ -260,9 +260,9 @@ updateAlerted(PL_local_data_t *ld)
 int
 raiseSignal(PL_local_data_t *ld, int sig)
 { if ( sig > 0 && sig <= MAXSIGNAL && ld )
-  { simpleMutexLock(&ld->signal.lock);
+  { simpleMutexLock(&ld->signal.sig_lock);
     ld->signal.pending |= ((int64_t)1 << (sig-1));
-    simpleMutexUnlock(&ld->signal.lock);
+    simpleMutexUnlock(&ld->signal.sig_lock);
     updateAlerted(ld);
     return TRUE;
   }

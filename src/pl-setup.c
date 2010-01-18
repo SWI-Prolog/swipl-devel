@@ -143,7 +143,7 @@ initPrologLocalData(ARG1_LD)
 
   LD->float_format = "%g";
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
-  simpleMutexInit(&LD->signal.lock);
+  simpleMutexInit(&LD->signal.sig_lock);
   updateAlerted(LD);
 }
 
@@ -867,9 +867,9 @@ handleSignals(ARG1_LD)
 
     for( ; mask ; mask <<= 1, sig++ )
     { if ( LD->signal.pending & mask )
-      { simpleMutexLock(&LD->signal.lock);
+      { simpleMutexLock(&LD->signal.sig_lock);
 	LD->signal.pending &= ~mask;	/* reset the signal */
-	simpleMutexUnlock(&LD->signal.lock);
+	simpleMutexUnlock(&LD->signal.sig_lock);
 
 	done++;
 	dispatch_signal(sig, TRUE);
@@ -1447,7 +1447,7 @@ freePrologLocalData(PL_local_data_t *ld)
 
   freeArithLocalData(ld);
 #ifdef O_PLMT
-  simpleMutexDelete(&ld->signal.lock);
+  simpleMutexDelete(&ld->signal.sig_lock);
 #endif
 }
 
