@@ -10,6 +10,9 @@ libstemmer.lib: $(SOBJ)
 	$(AR) /out:$@ /nologo $(SOBJ)
 
 clean:
-	rm -f stemwords *.obj src_c/*.obj runtime/*.obj libstemmer/*.obj *~
+	if exist stemwords del stemwords
+	if exist src_c\*.obj del src_c\*.obj
+	if exist runtime\*.obj del runtime\*.obj
+	if exist libstemmer\*.obj del libstemmer\*.obj
 distclean: clean
-	rm -f libstemmer.lib
+	if exist libstemmer.lib del libstemmer.lib
