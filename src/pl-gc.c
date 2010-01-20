@@ -4882,6 +4882,11 @@ are marked.
 Predicates marked with P_FOREIGN_CREF are   foreign  predicates that use
 the frame->clause choicepoint info for  storing the clause-reference for
 the next clause. Amoung these are retract/1, clause/2, etc.
+
+(*) we must *not* use  getProcDefinition()  here   because  we  are in a
+signal handler and thus the locking there for thread-local predicates is
+not safe. That is no problem however,  because we are only interested in
+static predicates.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -4899,10 +4904,9 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 
 					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
-    { GET_LD				/* Is this save? */
-      ClauseRef cref = (ClauseRef)fr->clause;
+    { ClauseRef cref = (ClauseRef)fr->clause;
 
-      def = getProcDefinition(cref->clause->procedure);
+      def = cref->clause->procedure->definition; /* See (*) above */
     } else
       def = fr->predicate;
 
