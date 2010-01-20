@@ -403,6 +403,12 @@ pattern. For an overview, please see: tipc_overview.txt.
 %	 private. Its use in user programs is strongly discouraged.|_
 %
 
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(socket_error(Message), _)) -->
+	[ 'Socket error: ~w'-[Message] ].
+
 tipc_event(Data, Event, Residue) :-
 	phrase(struct_tipc_event(Event), Data, Residue), !.
 
