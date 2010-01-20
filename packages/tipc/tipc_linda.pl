@@ -44,8 +44,8 @@
 	   rd/2,                     % +List, ?Term
 	   bagof_rd_noblock/3,       % +Template, ?Term, -Bag
 	   bagof_in_noblock/3,	     % +Template, ?Term, -Bag
-	   eval/1,                   % :Head
-	   eval/2,		     % ?Head, :Body
+	   linda_eval/1,             % :Head
+	   linda_eval/2,	     % ?Head, :Body
 	   tuple/1,                  % :Goal
 	   tuple/2,		     % ?Head, :Body
 	   tipc_initialize/0
@@ -246,7 +246,7 @@ Programs: A First Course.|_ The MIT Press, Cambridge, MA, 1990.
 @compat tipc_broadcast library
 */
 
-:- meta_predicate eventually(0,0), ~>(0,0), safely(0).
+:- meta_predicate eventually_implies(0,0), ~>(0,0), safely(0).
 
 safely(Goal) :-
 	catch(Goal, Err, (print_message(error, Err), fail)).
@@ -266,7 +266,7 @@ eventually_implies(P, Q) :-
 %    This is the backend state machine
 %
 
-linda_action(listening) :- !.
+linda_action(rd(listening)) :- !.
 
 linda_action(in(TupleList, Tuple)) :-
 	member(Tuple, TupleList),
@@ -286,17 +286,17 @@ linda_action(rd(Tuple)) :-
 	linda_data(Tuple).
 
 linda_action(bagof_rd_noblock(Template,	Var^Tuple, Bag)) :-
-	!, bagof(Template, Var^linda_data(Tuple), Bag).
+	!, bagof(Template, Var^linda_data(Tuple), Bag), !.
 
 linda_action(bagof_rd_noblock(Template, Tuple, Bag)) :-
-	!, bagof(Template, linda_data(Tuple), Bag).
+	!, bagof(Template, linda_data(Tuple), Bag), !.
 
 linda_action(bagof_in_noblock(Template,	Var^Tuple, Bag)) :-
 	Datum = linda_data(Tuple),
-	!, bagof(Template, Var^(Datum, retract(Datum)), Bag).
+	!, bagof(Template, Var^(Datum, retract(Datum)), Bag), !.
 
 linda_action(bagof_in_noblock(Template, Tuple, Bag)) :-
-	!, bagof(Template, retract(linda_data(Tuple)), Bag).
+	!, bagof(Template, retract(linda_data(Tuple)), Bag), !.
 
 %
 %    This is the user interface
@@ -331,13 +331,17 @@ linda_action(bagof_in_noblock(Template, Tuple, Bag)) :-
 % ==
 %
 
+linda_listening(Addr) :-
+	basic_request(rd(listening), Addr), !.
+
 linda :-
-	broadcast_request(tipc_cluster('$linda'(listening):Addr)), !,
+	linda_timeout(_, 0.250),
+	linda_listening(Addr), !,
 	format('TIPC Linda server still listening at: ~p~n', [Addr]).
 
 linda :-
 	listen(tipc_linda, '$linda'(Action), linda_action(Action)),
-	broadcast_request(tipc_cluster('$linda'(listening):Addr)), !,
+	linda_listening(Addr), !,
 	format('TIPC Linda server now listening at: ~p~n', [Addr]).
 
 :- meta_predicate linda(0).
@@ -357,9 +361,9 @@ linda(Hook) :-
 %
 
 linda_client(global) :-
-	broadcast_request(tipc_cluster('$linda'(listening):Addr)), !,
-	format('TIPC Linda server listening at: ~p~n', [Addr]),
-	linda_timeout(_, 0.250).
+	linda_timeout(_, 0.250),
+	linda_listening(Addr), !,
+	format('TIPC Linda server listening at: ~p~n', [Addr]).
 
 %%	close_client is det.
 %
@@ -384,7 +388,7 @@ close_client :- true.   % Presently a noop
 % small may result in substantial  network   traffic  that  is of little
 % value.|_
 %
-% @throws 'Feature not supported' SICStus Linda can
+% @throws error(feature_not_supported). SICStus Linda can
 % disable the timeout by specifying =off= as NewTime. This feature does
 % not exist for safety reasons.
 %
@@ -394,7 +398,7 @@ linda_timeout(Time, Time) :-
 
 linda_timeout(_OldTime, NewTime) :-
 	NewTime == off,
-	throw('Feature not supported').
+	throw(error(feature_not_supported)).
 
 linda_timeout(OldTime, NewTime) :-
 	ground(NewTime),
@@ -421,8 +425,11 @@ linda_timeout(NewTime) :-
 	    linda_timeout(NewTime, OldTime).
 
 basic_request(Action) :-
+	basic_request(Action, _Addr).
+
+basic_request(Action, Addr) :-
 	flag(linda_timeout, Time, Time),
-	broadcast_request(tipc_cluster('$linda'(Action):_Addr, Time)).
+	broadcast_request(tipc_cluster('$linda'(Action):Addr, Time)).
 
 %%	out(+Tuple) is det.
 %
@@ -524,25 +531,25 @@ bagof_rd_noblock(Template,  Tuple, Bag) :-
 bagof_in_noblock(Template,  Tuple, Bag) :-
 	!, basic_request(bagof_in_noblock(Template, Tuple, Bag)), !.
 
-:- meta_predicate eval(?, 0), eval(0).
+:- meta_predicate linda_eval(?, 0), linda_eval(0).
 
-%%	eval(:Goal) is det.
-%%	eval(?Head, :Goal) is det.
+%%	linda_eval(:Goal) is det.
+%%	linda_eval(?Head, :Goal) is det.
 %
 %  Causes Goal to be evaluated in parallel  with a parent predicate. The
 %  child  thread  is  a  full-fledged    client,   possessing  the  same
 %  capabilities as the  parent.  Upon   successful  completion  of Goal,
 %  unbound variables are unified and the  result   is  sent to the Linda
-%  server via out/1, where  it  is   made  available  to  others. eval/2
+%  server via out/1, where  it  is   made  available  to  others. linda_eval/2
 %  evaluates Goal, then unifies the result  with Head, providing a means
-%  of customizing the resulting output structure.   In eval/1, Head, and
+%  of customizing the resulting output structure.   In linda_eval/1, Head, and
 %  Goal are identical, except that the module  name for Head is stripped
 %  before output. If the child fails  or receives an uncaught exception,
 %  no such output occurs.
 %
-%  *|Joining Threads:|* Threads created using eval/(1-2) are not allowed
+%  *|Joining Threads:|* Threads created using linda_eval/(1-2) are not allowed
 %  to linger. They are joined (blocking  the parent, if necessary) under
-%  three conditions: backtracking on failure into an eval/(1-2), receipt
+%  three conditions: backtracking on failure into an linda_eval/(1-2), receipt
 %  of an uncaught  exception,  and  cut   of  choice-points.  Goals  are
 %  evaluated   using   forall/2.   They   are    expected   to   provide
 %  nondeterministic behavior. That is they  may   succeed  zero  or more
@@ -560,16 +567,16 @@ bagof_in_noblock(Template,  Tuple, Bag) :-
 %
 % qksort([X | List], Sorted) :-
 %	partition(@>(X), List, Less, More),
-%	eval(qksort(More, SortedMore)),
+%	linda_eval(qksort(More, SortedMore)),
 %	qksort(Less, SortedLess), !,
 %	in_noblock(qksort(More, SortedMore)),
 %	append(SortedLess, [X | SortedMore], Sorted).
 % ==
 %
-eval(Head) :-
-	eval(Head, Head).
+linda_eval(Head) :-
+	linda_eval(Head, Head).
 
-eval(Head, Body) :-
+linda_eval(Head, Body) :-
 	must_be(callable, Body),
 	strip_module(Head, _Module, Plain),
 	thread_create(forall(Body, out(Plain)), Id, []) ~>
@@ -583,7 +590,7 @@ eval(Head, Body) :-
 %  using rd/1 or rd_noblock/1.  On  reference,   Goal  is  executed by a
 %  separate thread of execution in the host client's Prolog process. The
 %  result is unified with Head, which  is   then  returned  to the guest
-%  client. As in eval/(1-2) above, Goal is evaluated using forall/2. The
+%  client. As in linda_eval/(1-2) above, Goal is evaluated using forall/2. The
 %  virtual tuple is unregistered  on   backtracking  into a tuple/(1-2),
 %  receipt of uncaught exception, or cut   of choice-points. In tuple/1,
 %  Head and Goal are identical, except that  the module name is stripped
