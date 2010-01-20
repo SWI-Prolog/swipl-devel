@@ -294,16 +294,14 @@ eventually_implies(P, Q) :-
 	eventually_implies(P, Q).
 
 ld_dispatch(S, '$tipc_request'(wru(Name)), From) :-
-	tipc_get_name(S, Name),
+	!, tipc_get_name(S, Name),
 	term_to_atom(wru(Name), Atom),
 	tipc_send(S, Atom, From, []).
 
 ld_dispatch(S, '$tipc_request'(Term), From) :-
-	forall(safely(broadcast_request(Term)),
-	           (   term_to_atom(Term, Atom),
-		       tipc_send(S, Atom, From, [])
-	           )),
-	!.
+	!, forall(broadcast_request(Term),
+	      (   term_to_atom(Term, Atom),
+		  tipc_send(S, Atom, From, []))).
 
 ld_dispatch(_S, Term, _From) :-
 	safely(broadcast(Term)).
@@ -321,12 +319,12 @@ tipc_listener_daemon :-
 	     ~> unlisten(tipc_broadcast),
 
 	repeat,
-	dispatch_traffic(S).
+	safely(dispatch_traffic(S)).
 
 dispatch_traffic(S) :-
 	tipc_receive(S, Data, From, [as(atom)]),
 	term_to_atom(Term, Data),
-	once(ld_dispatch(S, Term, From)), !,
+	ld_dispatch(S, Term, From), !,
 	dispatch_traffic(S).
 
 start_tipc_listener_daemon :-
@@ -366,7 +364,7 @@ tipc_basic_broadcast(S, Term, Address) :-
 	tipc_socket(S, rdm) ~> tipc_close_socket(S),
 	tipc_setopt(S, importance(medium)),
 	term_to_atom(Term, Atom),
-	tipc_send(S, Atom, Address, []).
+	safely(tipc_send(S, Atom, Address, [])).
 
 % directed broadcast to a single listener
 tipc_broadcast(Term:To, _Scope, _Timeout) :-
