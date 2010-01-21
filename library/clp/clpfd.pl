@@ -4157,7 +4157,7 @@ min_divide(L1,U1,L2,U2,Min) :-
                                 % TODO: cover more cases
         ;   L1 = n(NL1), NL1 > 0, U2 cis_leq n(-1) -> Min cis div(U1,U2)
         ;   L1 = n(NL1), NL1 > 0 -> Min cis -U1
-        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(0) -> Min cis div(U1+L2+n(1),L2)
+        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(0) -> Min cis div(U1,L2)
         ;   U1 = n(NU1), NU1 < 0, cis_geq_zero(L2) -> Min cis div(L1,L2)
         ;   U1 = n(NU1), NU1 < 0 -> Min = L1
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
