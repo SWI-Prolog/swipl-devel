@@ -163,7 +163,7 @@ Example: Waiting for any one of several events
        ...,
 ==
 
-Example: Producers and Consumers in the same process using =eval=
+Example: Producers and Consumers in the same process using =linda_eval=
 threads and/or =tuple= predicates
 
 ==
@@ -177,7 +177,7 @@ threads and/or =tuple= predicates
 	forall(between(1,40, X), out(p(X))).
 
   producer_consumer1 :-
-	eval(consumer1),
+	linda_eval(consumer1),
 	call_cleanup(producer1, out(quit)), !.
 %
 %
@@ -188,11 +188,11 @@ threads and/or =tuple= predicates
        consumer2.
 
   producer2 :-
-	eval(p(X), between(1,40, X)).
+	linda_eval(p(X), between(1,40, X)).
 
   producer_consumer2 :-
 	producer2,
-	eval(consumer2), !.
+	linda_eval(consumer2), !.
 %
 %
   consumer3 :-
@@ -203,7 +203,7 @@ threads and/or =tuple= predicates
 
   producer_consumer3 :-
 	producer3,
-	eval(done, consumer3),
+	linda_eval(done, consumer3),
 	in(done), !.
 ==
 
