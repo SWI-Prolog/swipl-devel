@@ -2,10 +2,16 @@
 
 # This script is used to start Prolog in the development environment
 # when its shared libraries are not yet installed
+#
+# Typically, this must be done  using   LD_LIBRARY_PATH  on ELF systems.
+# According to the docs, the compiled-in   runpath is overruled by this.
+# Unfortunately, this doesn't work on all platforms, which is why we use
+# LD_PRELOAD
 
 srcdir=@srcdir@
 lib=$srcdir/../lib/@ARCH@
 bdir=$srcdir/../@BUILDDIR@
+libso=$lib/libpl.so
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$lib
@@ -15,4 +21,4 @@ fi
 
 export @DLLIBVAR@
 
-$bdir/@PL@ "$@"
+LD_PRELOAD=$libso $bdir/@PL@ "$@"
