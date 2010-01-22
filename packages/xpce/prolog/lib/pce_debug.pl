@@ -53,6 +53,7 @@
 	   , between/3
 	   , genarg/3
 	   ]).
+:- set_prolog_flag(generate_debug_info, false).
 
 % leave this to the user
 % :- op(100, xfx, user:(<-)).
