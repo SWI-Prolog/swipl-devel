@@ -23,6 +23,10 @@
 #	* make install-lman	Install man files in Prolog lib hierarchy
 #	* make check		Run some tests
 #
+# Building a profile-based version using gcc:
+#
+#       * make OPTIMISE=prof [PROFILE_SRC=<file>] [PROFILE_GOAL=<goal>]
+#
 # Copyright (C) University of Amsterdam, all rights reserved
 #
 # Copyright policy:
@@ -72,8 +76,9 @@ COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
 CMFLAGS=@CMFLAGS@
-CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=@LDFLAGS@
+CPFLAGS=
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
+LDFLAGS=@LDFLAGS@ $(CPFLAGS)
 
 PLFOREIGN=@PLFOREIGN@
 
@@ -161,8 +166,20 @@ UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 
-all:	banner gitversion dirs \
-	headers rc-lib tai-lib $(MKLIBS) system startup index plld
+OPTIMISE=noprof
+PROFILE_SRC=none
+PROFILE_GOAL=true
+
+all:	banner gitversion dirs $(OPTIMISE) headers startup index plld
+
+noprof:	rc-lib tai-lib $(MKLIBS) system
+prof:
+		$(MAKE) clean profclean
+		$(MAKE) CPFLAGS=-fprofile-generate noprof
+		$(DEVPL) -f $(PROFILE_SRC) -q -g '$(PROFILE_GOAL),halt' -t 'halt(1)'
+		$(MAKE) clean
+		$(MAKE) CPFLAGS=-fprofile-use noprof
+		$(MAKE) profclean
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
@@ -535,7 +552,12 @@ clean:
 		@(cd libtai && $(MAKE) clean)
 		rm -f *.o a.out core *~ #* parms.h
 
-distclean:	clean
+profclean:
+		@(cd rc && $(MAKE) profclean)
+		@(cd libtai && $(MAKE) profclean)
+		rm -f *.gcda
+
+distclean:	clean profclean
 		@(cd rc && $(MAKE) distclean)
 		@(cd libtai && $(MAKE) distclean)
 		@(cd ../man && $(MAKE) distclean)

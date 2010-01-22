@@ -1,6 +1,6 @@
 ################################################################
 # Makefile for the SWI-Prolog resource database
-# 
+#
 # Author: Jan Wielemaker
 # E-mail: wielemak@science.uva.nl
 #
@@ -29,8 +29,9 @@ COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
 CMFLAGS=@CMFLAGS@
-LDFLAGS=@PROGLDFLAGS@
-CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+CPFLAGS=
+LDFLAGS=@PROGLDFLAGS@ $(CPFLAGS)
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -73,7 +74,10 @@ rc.tex:	rc.doc
 clean:
 	rm -f *% *~ $(LIBOBJ) rc.o
 
-distclean:	clean
+profclean:
+	rm -f *.gcda
+
+distclean: clean profclean
 	rm -f Makefile
 	rm -f plrc librc.a
 
