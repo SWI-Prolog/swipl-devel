@@ -106,15 +106,15 @@ dwim_existence_error(Unknown, PredSpec) :-
 %	Correct possible meta-arguments. This performs a recursive check
 %	on meta-arguments specified as `0' using :- meta_predicate/1. As
 %	a special exception, the arment of call/1 is not checked, so you
-%	can use call(X) as an escape for the DWIM system.
+%	can use call(X) as an escape from the DWIM system.
 
-correct_meta_arguments(call(Goal), _, _, Goal) :- !.
+correct_meta_arguments(call(Goal), _, _, call(Goal)) :- !.
 correct_meta_arguments(Goal0, M, Bindings, Goal) :-
 	predicate_property(M:Goal0, meta_predicate(MHead)), !,
 	functor(Goal0, Name, Arity),
 	functor(Goal, Name, Arity),
 	correct_margs(0, Arity, MHead, Goal0, Goal, M, Bindings).
-correct_meta_arguments(Goal, _, _, Goal) :- !.
+correct_meta_arguments(Goal, _, _, Goal).
 
 correct_margs(Arity, Arity, _, _, _, _, _) :- !.
 correct_margs(A, Arity, MHead, GoalIn, GoalOut, M, Bindings) :-
