@@ -203,6 +203,7 @@ typedef struct
 
 typedef struct
 { int		var;			/* Variable for local cuts */
+  int		nextvar;
   code		instruction;		/* Instruction to use: C_CUT/C_LCUT */
 } cutInfo;
 
@@ -499,6 +500,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
 
   ci->clause->prolog_vars = nv;
   ci->clause->variables   = ci->clause->prolog_vars;
+  ci->cut.nextvar	  = ci->clause->variables;
   ci->vartablesize = (ci->clause->prolog_vars + BITSPERINT-1)/BITSPERINT;
 
   return TRUE;
@@ -728,6 +730,21 @@ isFirstVarP(Word p, compileInfo *ci, int *i ARG_LD)
   }
 
   fail;
+}
+
+
+static int
+allocChoiceVar(CompileInfo ci)
+{ int var = VAROFFSET(ci->cut.nextvar);
+
+  if ( ++ci->cut.nextvar > ci->clause->variables )
+  { ci->clause->variables = ci->cut.nextvar;
+    if ( ci->clause->variables == 0 )
+      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		      ATOM_max_frame_size);
+  }
+
+  return var;
 }
 
 
@@ -1071,14 +1088,13 @@ right_argument:
 	deRef(a0);
 	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
 	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
-	{ int var = VAROFFSET(ci->clause->variables);
+	{ int var;
 	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
 
-	  if ( ++ci->clause->variables == 0 )
-	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-			    ATOM_max_frame_size);
+	  if ( !(var=allocChoiceVar(ci)) )
+	    return FALSE;
 
 	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	  tc_or = PC(ci);
@@ -1131,13 +1147,12 @@ right_argument:
 
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
-      { int var = VAROFFSET(ci->clause->variables);
+      { int var;
 	int rv;
 	cutInfo cutsave = ci->cut;
 
-	if ( ++ci->clause->variables == 0 )
-	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-			  ATOM_max_frame_size);
+	if ( !(var=allocChoiceVar(ci)) )
+	  return FALSE;
 
 	Output_1(ci, C_IFTHEN, var);
 	ci->cut.var = var;		/* Cut locally in the condition */
@@ -1158,15 +1173,14 @@ right_argument:
 	  return rv;
 	return compileBody(argTermP(*body, 1), call, ci PASS_LD);
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
-      { int var = VAROFFSET(ci->clause->variables);
+      { int var;
 	size_t tc_or;
 	VarTable vsave;
 	int rv;
 	cutInfo cutsave = ci->cut;
 
-	if ( ++ci->clause->variables == 0 )
-	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
-			  ATOM_max_frame_size);
+	if ( !(var=allocChoiceVar(ci)) )
+	  return FALSE;
 
 	if ( !ci->islocal )
 	  vsave = mkCopiedVarTable(ci->used_var);
