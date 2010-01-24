@@ -3965,8 +3965,8 @@ ensureTrailSpace(size_t cells)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ensureLocalSpace() ensures sufficient local stack space.
 
-NOTE: This is often called from ENSURE_LOCAL_SPACE(), where lTop > lMax.
-The stack-shifter must be able to deal with this.
+NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
+> lMax. The stack-shifter must be able to deal with this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -4401,7 +4401,11 @@ nextStackSize(Stack s, size_t minfree)
     if ( size > (size_t)sizeStackP(s) )
       size = sizeStackP(s);
   } else
-  { size = nextStackSizeAbove(sizeStackP(s) + minfree + s->min_free + s->def_spare);
+  { if ( s->top > s->max )
+      minfree += s->top - s->max;
+
+    size = nextStackSizeAbove(sizeStackP(s) +
+			      minfree + s->min_free + s->def_spare);
 
     if ( size >= s->size_limit + s->size_limit/2 )
       size = 0;				/* passed limit */
