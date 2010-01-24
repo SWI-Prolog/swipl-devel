@@ -1124,7 +1124,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  if ( varFrameP(fr, PC[1]) <
 	       argFrameP(fr, fr->predicate->functor->arity) )
 	    sysError("Reset instruction on argument");
-	  assert(varFrame(fr, PC[1]) != QID_MAGIC);
+	  /*assert(varFrame(fr, PC[1]) != QID_MAGIC); is possible */
 #endif
 	  setVar(varFrame(fr, PC[1]));
 	  break;
