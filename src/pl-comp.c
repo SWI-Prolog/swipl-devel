@@ -356,8 +356,13 @@ When compiling in `islocal' mode, we  count the compound terms appearing
 as arguments to subclauses in ci->argvars and   there is no need to look
 inside these terms.
 
-Returns the number of variables found or -1 if the term is cyclic.
+Returns the number  of  variables  found   or  one  of  AVARS_CYCLIC  or
+AVARS_MAX
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MAX_VARIABLES USHRT_MAX
+#define AVARS_CYCLIC -1
+#define AVARS_MAX    -12
 
 static int
 analyseVariables2(Word head, int nvars, int argn,
@@ -369,7 +374,11 @@ right_recursion:
 
   if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
   { VarDef vd;
-    int index = ((argn >= 0 && argn < ci->arity) ? argn : (ci->arity + nvars++));
+    int index = ((argn >= 0 && argn < ci->arity)
+			? argn : (ci->arity + nvars++));
+
+    if ( nvars > MAX_VARIABLES )
+      return AVARS_MAX;
 
     vd = getVarDef(index PASS_LD);
     vd->saved = *head;
@@ -392,7 +401,7 @@ right_recursion:
     FunctorDef fd = valueFunctor(f->definition);
 
     if ( ++depth == 10000 && !PL_is_acyclic(wordToTermRef(head)) )
-      return -1;
+      return AVARS_CYCLIC;
 
     if ( ci->islocal )
     { if ( ci->subclausearg )
@@ -407,7 +416,10 @@ right_recursion:
 
 	  ci->subclausearg++;
 	  for(head = f->arguments, argn = ci->arity; --ar >= 0; head++, argn++)
-	    nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+	  { nvars = analyseVariables2(head, nvars, argn, ci, depth PASS_LD);
+	    if ( nvars < 0 )
+	      return nvars;
+	  }
 	  ci->subclausearg--;
 	}
 
@@ -444,10 +456,11 @@ has not been implemented yet)
 
 #define CYCLIC_HEAD -10
 #define CYCLIC_BODY -11
+/*	AVARS_MAX   -12 */
 
 static int
 analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
-{ int nvars = 0;
+{ int nv, nvars = 0;
   int n;
   int body_voids = 0;
   int arity = ci->arity;
@@ -457,11 +470,11 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
 
   if ( head )
   { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0 PASS_LD)) < 0 )
-      return CYCLIC_HEAD;
+      return nvars == AVARS_CYCLIC ? CYCLIC_HEAD : AVARS_MAX;
   }
   if ( body )
   { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0 PASS_LD)) < 0 )
-      return CYCLIC_BODY;
+      return nvars == AVARS_CYCLIC ? CYCLIC_BODY : AVARS_MAX;
   }
 
   for(n=0; n<arity+nvars; n++)
@@ -481,7 +494,10 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
 
   LD->comp.filledVars = arity + nvars;
 
-  ci->clause->prolog_vars = nvars + arity + ci->argvars - body_voids;
+  if ( (nv = nvars + arity + ci->argvars - body_voids) > MAX_VARIABLES )
+    return AVARS_MAX;
+
+  ci->clause->prolog_vars = nv;
   ci->clause->variables   = ci->clause->prolog_vars;
   ci->vartablesize = (ci->clause->prolog_vars + BITSPERINT-1)/BITSPERINT;
 
@@ -792,7 +808,11 @@ compileClause(Clause *cp, Word head, Word body,
   { switch ( rc )
     { case CYCLIC_HEAD:
       case CYCLIC_BODY:
-	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_cyclic_term);
+	return PL_error(NULL, 0, NULL,
+			ERR_REPRESENTATION, ATOM_cyclic_term);
+      case AVARS_MAX:
+	return PL_error(NULL, 0, NULL,
+			ERR_REPRESENTATION, ATOM_max_frame_size);
       default:
 	assert(0);
     }
