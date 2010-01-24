@@ -2355,16 +2355,20 @@ VMI(S_UNDEF, 0, 0, ())
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Generic calling code.  This needs to be specialised.
+
+Note that FR->clause is still NULL. We need to keep that while doing the
+possible stack-expansion in ENSURE_LOCAL_SPACE(), which   is  why we use
+the temporary variable `cl' for storing the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_STATIC, 0, 0, ())
-{ ClauseRef nextcl;
+{ ClauseRef cl, nextcl;
   ARGP = argFrameP(FR, 0);
   lTop = (LocalFrame)ARGP+DEF->functor->arity;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
-  if ( !(CL = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
+  if ( !(cl = firstClause(ARGP, FR, DEF, &nextcl PASS_LD)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
     if ( debugstatus.debugging )
       newChoice(CHP_DEBUG, FR PASS_LD);
@@ -2373,9 +2377,10 @@ VMI(S_STATIC, 0, 0, ())
   }
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
-  PC = CL->clause->codes;
-  lTop = (LocalFrame)(ARGP + CL->clause->variables);
+  PC = cl->clause->codes;
+  lTop = (LocalFrame)(ARGP + cl->clause->variables);
   ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
+  CL = cl;
 
   if ( nextcl )
   { Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
