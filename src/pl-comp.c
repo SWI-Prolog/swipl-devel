@@ -1051,10 +1051,14 @@ right_argument:
 	deRef(a0);
 	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
 	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
-	{ int var = VAROFFSET(ci->clause->variables++);
+	{ int var = VAROFFSET(ci->clause->variables);
 	  size_t tc_or, tc_jmp;
 	  int rv;
 	  cutInfo cutsave = ci->cut;
+
+	  if ( ++ci->clause->variables == 0 )
+	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+			    ATOM_max_frame_size);
 
 	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	  tc_or = PC(ci);
@@ -1107,9 +1111,13 @@ right_argument:
 
 	succeed;
       } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
-      { int var = VAROFFSET(ci->clause->variables++);
+      { int var = VAROFFSET(ci->clause->variables);
 	int rv;
 	cutInfo cutsave = ci->cut;
+
+	if ( ++ci->clause->variables == 0 )
+	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+			  ATOM_max_frame_size);
 
 	Output_1(ci, C_IFTHEN, var);
 	ci->cut.var = var;		/* Cut locally in the condition */
@@ -1130,11 +1138,15 @@ right_argument:
 	  return rv;
 	return compileBody(argTermP(*body, 1), call, ci PASS_LD);
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
-      { int var = VAROFFSET(ci->clause->variables++);
+      { int var = VAROFFSET(ci->clause->variables);
 	size_t tc_or;
 	VarTable vsave;
 	int rv;
 	cutInfo cutsave = ci->cut;
+
+	if ( ++ci->clause->variables == 0 )
+	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+			  ATOM_max_frame_size);
 
 	if ( !ci->islocal )
 	  vsave = mkCopiedVarTable(ci->used_var);
