@@ -220,7 +220,7 @@ right_recursion:
 	 assert(w2 != ATOM_garbage_collected));
 
   if ( isVar(w1) )
-  { if ( tTop+1 >= tMax )
+  { if ( unlikely(tTop+1 >= tMax) )
       return TRAIL_OVERFLOW;
 
     if ( isVar(w2) )
@@ -241,7 +241,7 @@ right_recursion:
     return TRUE;
   }
   if ( isVar(w2) )
-  { if ( tTop+1 >= tMax )
+  { if ( unlikely(tTop+1 >= tMax) )
       return TRAIL_OVERFLOW;
 #ifdef O_ATTVAR
     if ( isAttVar(w1) )
@@ -379,8 +379,8 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
     if ( rc == TRUE )			/* Terms unified */
     { DiscardMark(m);
       return rc;
-    } else if ( rc == FALSE )		/* Terms did not unify */
-    { if ( !exception_term )		/* Check for occurs error */
+    } else if ( likely(rc == FALSE) )	/* Terms did not unify */
+    { if ( unlikely(!exception_term) )	/* Check for occurs error */
 	Undo(m);
       DiscardMark(m);
       return rc;

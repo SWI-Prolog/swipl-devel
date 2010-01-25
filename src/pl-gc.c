@@ -568,7 +568,7 @@ offset_cell(Word p)
 { word m = *p;				/* was get_value(p) */
   size_t offset;
 
-  if ( storage(m) == STG_LOCAL )
+  if ( unlikely(storage(m) == STG_LOCAL) )
     offset = wsizeofInd(m) + 1;
   else
     offset = 0;

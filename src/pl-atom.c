@@ -1189,7 +1189,7 @@ thread.
 static pthread_key_t key;
 #endif
 
-#define is_signalled() (LD && LD->signal.pending != 0)
+#define is_signalled() unlikely(LD && LD->signal.pending != 0)
 
 static int
 alnum_text(PL_chars_t *txt)

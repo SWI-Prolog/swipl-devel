@@ -1432,7 +1432,7 @@ backtrack without showing the fail ports explicitely.
 VMI(I_ENTER, VIF_BREAK, 0, ())
 { ARGP = argFrameP(lTop, 0);
 
-  if ( LD->alerted )
+  if ( unlikely(LD->alerted) )
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -1521,7 +1521,7 @@ possible to be able to call-back to Prolog.
   NFR->clause         = NULL;		/* for save atom-gc */
   environment_frame = FR = NFR;		/* open the frame */
 
-  if ( addPointer(lTop, LOCAL_MARGIN) > (void*)lMax )
+  if ( unlikely(addPointer(lTop, LOCAL_MARGIN) > (void*)lMax) )
   { int rc;
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
@@ -1553,7 +1553,7 @@ retry_continue:
 }
 #endif
 
-  if ( LD->alerted )
+  if ( unlikely(LD->alerted) )
   {					/* play safe */
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
@@ -1625,7 +1625,6 @@ retry_continue:
   }
 
   PC = DEF->codes;
-  assert(PC);
   NEXT_INSTRUCTION;
 }
 
@@ -1739,7 +1738,7 @@ from C.
 VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
-  if ( LD->alerted )
+  if ( unlikely(LD->alerted) )
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -1800,7 +1799,7 @@ interception. Second, there should be some room for optimisation here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_EXITFACT, 0, 0, ())
-{ if ( LD->alerted )
+{ if ( unlikely(LD->alerted) )
   {
 #if O_DEBUGGER
     if ( debugstatus.debugging )

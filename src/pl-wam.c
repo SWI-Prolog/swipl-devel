@@ -273,7 +273,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
 static inline int
 is_signalled(ARG1_LD)
-{ return (LD->signal.pending != 0);
+{ return unlikely(LD->signal.pending != 0);
 }
 
 
@@ -898,7 +898,7 @@ Can perform GC/shift and may leave overflow exceptions.
 
 bool
 foreignWakeup(term_t *ex ARG_LD)
-{ if ( LD->alerted & ALERT_WAKEUP )
+{ if ( unlikely(LD->alerted & ALERT_WAKEUP) )
   { LD->alerted &= ~ALERT_WAKEUP;
 
     if ( *valTermRef(LD->attvar.head) )
@@ -1332,7 +1332,7 @@ choice_type last_choice;
 				     goto b_throw; } while(0)
 
 #ifdef O_PROFILE
-#define Profile(g) if ( LD->profile.active ) g
+#define Profile(g) if ( unlikely(LD->profile.active) ) g
 #else
 #define Profile(g) (void)0
 #endif
@@ -2161,7 +2161,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	  Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
 	  NEXT_INSTRUCTION;
-	} else if ( debugstatus.debugging )
+	} else if ( unlikely(debugstatus.debugging) )
 	{ ch->type = CHP_DEBUG;
 	  Mark(ch->mark);
 	  lTop = (LocalFrame)(ch+1);
@@ -2179,7 +2179,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
 	if ( next )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	  ch->value.clause = next;
-	} else if ( debugstatus.debugging )
+	} else if ( unlikely(debugstatus.debugging) )
 	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
 	}
 	NEXT_INSTRUCTION;
@@ -2322,7 +2322,7 @@ next_choice:
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = next;
-      } else if ( debugstatus.debugging )
+      } else if ( unlikely(debugstatus.debugging) )
       { newChoice(CHP_DEBUG, FR PASS_LD);
       }
 

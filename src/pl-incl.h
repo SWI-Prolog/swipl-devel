@@ -324,8 +324,8 @@ A common basis for C keywords.
 #endif
 
 #ifdef HAVE___BUILTIN_EXPECT
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
+#define likely(x)       (!__builtin_expect(!(x), 0))
+#define unlikely(x)     __builtin_expect((x),  0)
 #else
 #define likely(x)	(x)
 #define unlikely(x)	(x)
@@ -878,13 +878,13 @@ introduce a garbage collector (TBD).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define enterDefinition(def) \
-	if ( true(def, DYNAMIC) ) \
+	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  def->references++; \
 	  UNLOCKDYNDEF(def); \
 	}
 #define leaveDefinition(def) \
-	if ( true(def, DYNAMIC) ) \
+	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
