@@ -23,6 +23,11 @@
 #	* LGPL (see file COPYING or http://www.gnu.org/)
 ################################################################
 
+# NOTE: The Unix/GCC versions use profile-based optimization.  This is
+# also available for MSVC2005, but not for the Express version. It is
+# called `POGO'. See
+# http://blogs.msdn.com/vcblog/archive/2008/11/12/pogo.aspx
+
 STACK=4000000
 
 PLHOME=..
