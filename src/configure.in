@@ -36,6 +36,7 @@ AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
 AC_SUBST(DLLIBVAR)
 AC_SUBST(RLPREFIX)
+AC_SUBST(OPTIMISE)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -100,16 +101,6 @@ if test "x$ARCH" = "x"; then
 fi
 changequote([,])dnl
 
-AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
-	      [case "$enableval" in
-		   yes) AC_DEFINE(O_RUNTIME, 1,
-				  [Define to make runtime version])
-		        runtime=yes
-			RT=rt
-			INSTALLTARGET=rt-install ;;
-		   *)  ;;
-	       esac])
-
 AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
 	      [case "$enableval" in
 		   yes) MKSHARED=yes
@@ -142,6 +133,12 @@ AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
 AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 	      dmalloc="$enableval",
 	      dmalloc=no)
+
+AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
+	      useprofile="$enableval",
+	      useprofile=no)
+
+OPTIMISE=noprof
 
 
 dnl ****************************************************************
@@ -208,6 +205,16 @@ AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",
 AC_ISC_POSIX
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
+
+if test "x$useprofile" = "xyes"; then
+  AC_MSG_CHECKING("whether to use GCC -fprofile-use")
+  if test "$GCC" = "yes"; then
+    AC_MSG_RESULT(yes)
+    OPTIMISE=prof
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi
 
 AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build optimization flags],
 	custom_flags=$enableval,

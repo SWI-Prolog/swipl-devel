@@ -40,9 +40,10 @@ MAKE=make
 # Leaving an option blank leaves the  choice to configure. The commented
 # values below enable much better C-level debugging with almost the same
 # performance on GCC based systems (the default is to compile using -O3)
+# For optiomal performance, see also --enable-useprofile below.
 
 # export CC=
-# export COFLAGS="-O2 -g -fno-strict-aliasing"
+# export COFLAGS="-O2 -gdwarf-2 -g3 -fno-strict-aliasing"
 # export CMFLAGS=
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
@@ -83,7 +84,17 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 
 # [EDIT] Extra options to pass to the toplevel configure.
 
+# [EDIT] Using --link, the system is installed using symbolic links.
+# This means you cannot remove or clean the sources, but it largely
+# simplifies editing the system Prolog files during development.
+#
+# The config --enable-useprofile exploits GCC -fprofile-use option.
+# The system is compiled, profiled and re-compiled to get better
+# branch-prediction.  This makes the system approx. 10% faster.
+# Do not use this for developing the kernel because it complicates
+# maintenance.
 # EXTRACFG="--link"
+# EXTRACFG="--enable-useprofile"
 
 ################################################################
 # No edit should be needed below this line

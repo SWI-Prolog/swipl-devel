@@ -166,9 +166,12 @@ UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 
-OPTIMISE=noprof
-PROFILE_SRC=none
-PROFILE_GOAL=true
+# OPTIMISE=noprof: normal build; prof: build twice, using profiling
+# information to optimise branches.  Normally set through
+# configure --enable-useprofile
+OPTIMISE=@OPTIMISE@
+PROFILE_SRC=../bench/run.pl
+PROFILE_GOAL=run(0.5)
 
 all:	banner gitversion dirs $(OPTIMISE) headers startup index plld
 

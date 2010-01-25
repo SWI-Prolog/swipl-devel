@@ -14,7 +14,6 @@
 
 TARGET=lite
 configoptions=""
-mtoptions="--enable-mt"
 
 usage()
 { cat << _EOM_
@@ -72,7 +71,7 @@ if [ -d .git ]; then
   fi
 fi
 
-(cd $BUILDARCH && ../src/configure $configoptions $mtoptions)
+(cd $BUILDARCH && ../src/configure $configoptions)
 
 case $TARGET in
   world)
