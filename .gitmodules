@@ -13,3 +13,6 @@
 [submodule "packages/space"]
 	path = packages/space
 	url = ../space.git
+[submodule "bench"]
+	path = bench
+	url = ../bench.git
