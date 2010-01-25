@@ -31,7 +31,7 @@ static inline code
 fetchop(Code PC)
 { code op = decode(*PC);
 
-  if ( op == D_BREAK )
+  if ( unlikely(op == D_BREAK) )
     op = decode(replacedBreak(PC));
 
   return op;
@@ -42,7 +42,7 @@ static inline Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
 
-  if ( codeTable[op].arguments == VM_DYNARGC )
+  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
     return stepDynPC(PC, &codeTable[op]);
   else
     return PC + codeTable[op].arguments;
@@ -58,7 +58,7 @@ Note that the local stack is always _above_ the global stack.
 
 static inline void
 Trail__LD(Word p, word v ARG_LD)
-{ assert(tTop+1 <= tMax);
+{ SECURE(assert(tTop+1 <= tMax));
 
   if ( p >= (Word)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
@@ -68,7 +68,7 @@ Trail__LD(Word p, word v ARG_LD)
 
 static inline void
 bindConst__LD(Word p, word c ARG_LD)
-{ assert(hasGlobalSpace(0));
+{ SECURE(assert(hasGlobalSpace(0)));
 
 #ifdef O_ATTVAR
   if ( isVar(*p) )

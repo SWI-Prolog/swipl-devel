@@ -324,8 +324,8 @@ A common basis for C keywords.
 #endif
 
 #ifdef HAVE___BUILTIN_EXPECT
-#define likely(x)       (!__builtin_expect(!(x), 0))
-#define unlikely(x)     __builtin_expect((x),  0)
+#define likely(x)       __builtin_expect((x), 1)
+#define unlikely(x)     __builtin_expect((x), 0)
 #else
 #define likely(x)	(x)
 #define unlikely(x)	(x)
@@ -1735,8 +1735,8 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
-	likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && \
-	       tTop+BIND_TRAIL_SPACE <= tMax)
+	(likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax) && \
+	 likely(tTop+BIND_TRAIL_SPACE <= tMax))
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
