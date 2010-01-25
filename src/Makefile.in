@@ -173,9 +173,9 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
-all:	banner gitversion dirs $(OPTIMISE) headers startup index plld
+all:	banner gitversion dirs $(OPTIMISE) plld
 
-noprof:	rc-lib tai-lib $(MKLIBS) system
+noprof:	rc-lib tai-lib $(MKLIBS) system headers startup index
 prof:
 		$(MAKE) clean profclean
 		$(MAKE) CPFLAGS=-fprofile-generate noprof
