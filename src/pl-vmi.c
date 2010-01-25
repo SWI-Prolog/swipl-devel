@@ -111,7 +111,7 @@ code into functions.
 
 #ifdef O_ATTVAR
 #define CHECK_WAKEUP \
-	if ( LD->alerted & ALERT_WAKEUP ) \
+	if ( unlikely(LD->alerted & ALERT_WAKEUP) ) \
 	{ LD->alerted &= ~ALERT_WAKEUP; \
 	  if ( *valTermRef(LD->attvar.head) ) \
 	    goto wakeup; \

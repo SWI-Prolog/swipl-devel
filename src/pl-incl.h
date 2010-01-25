@@ -302,6 +302,7 @@ A common basis for C keywords.
 #if __GNUC__ && !__STRICT_ANSI__
 #define HAVE_INLINE 1
 #define HAVE_VOLATILE 1
+#define HAVE___BUILTIN_EXPECT 1
 #endif
 
 #if !defined(HAVE_INLINE) && !defined(inline)
@@ -322,8 +323,12 @@ A common basis for C keywords.
 #define NORETURN
 #endif
 
-#if __STRICT_ANSI__
-#undef TAGGED_LVALUE
+#ifdef HAVE___BUILTIN_EXPECT
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
+#else
+#define likely(x)	(x)
+#define unlikely(x)	(x)
 #endif
 
 #if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
@@ -1484,8 +1489,8 @@ struct alloc_pool
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
 			     (b).saved_bar = LD->mark_bar; \
-			     assert((b).saved_bar >= gBase && \
-				    (b).saved_bar <= gTop); \
+			     SECURE(assert((b).saved_bar >= gBase && \
+					   (b).saved_bar <= gTop)); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
 #define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
@@ -1715,7 +1720,7 @@ typedef enum
 } stack_overflow_action;
 
 #define pushArgumentStack(p) \
-	do { if ( aTop+1 < aMax ) \
+	do { if ( likely(aTop+1 < aMax) ) \
 	       *aTop++ = (p); \
 	     else \
 	       pushArgumentStack__LD((p) PASS_LD); \
@@ -1730,7 +1735,8 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
-	(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && tTop+BIND_TRAIL_SPACE <= tMax)
+	likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax && \
+	       tTop+BIND_TRAIL_SPACE <= tMax)
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
