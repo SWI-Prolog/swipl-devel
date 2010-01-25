@@ -265,11 +265,9 @@ and while loading .wic files.  It comes at no price.
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
 			/* == (isInteger(w) && storage(w) == STG_INLINE) */
-#define isBignum(w)	(isInteger(w) && \
-			 storage(w) != STG_INLINE && \
+#define isBignum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
 			 wsizeofIndirect(w) == sizeof(int64_t)/sizeof(word))
-#define isMPZNum(w)	(isInteger(w) && \
-			 storage(w) != STG_INLINE && \
+#define isMPZNum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
 			 wsizeofIndirect(w) > sizeof(int64_t)/sizeof(word))
 #ifndef INT64_ALIGNMENT
 #define valBignum(w)	(*(int64_t *)valIndirectP(w))
