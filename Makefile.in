@@ -55,14 +55,14 @@ distclean::
 # Build the whole default set of tools
 ################################################################
 
-world:	lite .pkg-config packages
+world:	packages
 ln-world: world
 
-.pkg-config:
+.pkg-config: lite
 	cd packages && ./configure $(CONFIG_OPTIONS)
 	touch $@
 
-packages::
+packages: lite .pkg-config
 	cd packages && $(MAKE)
 
 install-world::
