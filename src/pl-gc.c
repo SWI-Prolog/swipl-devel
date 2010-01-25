@@ -4450,7 +4450,7 @@ new_stack_size(Stack s, size_t *request, size_t *newsize ARG_LD)
 static int
 grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 { sigset_t mask;
-  size_t lsize, gsize, tsize;
+  size_t lsize=0, gsize=0, tsize=0;
   vm_state state;
   Stack fatal = NULL;	/* stack we couldn't expand due to lack of memory */
   int rc;
