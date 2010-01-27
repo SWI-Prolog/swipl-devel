@@ -735,7 +735,9 @@ isFirstVarP(Word p, compileInfo *ci, int *i ARG_LD)
 
 static int
 allocChoiceVar(CompileInfo ci)
-{ int var = VAROFFSET(ci->cut.nextvar);
+{
+#if 0
+  int var = VAROFFSET(ci->cut.nextvar);
 
   if ( ++ci->cut.nextvar > ci->clause->variables )
   { ci->clause->variables = ci->cut.nextvar;
@@ -743,6 +745,13 @@ allocChoiceVar(CompileInfo ci)
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		      ATOM_max_frame_size);
   }
+#else
+  int var = VAROFFSET(ci->clause->variables++);
+
+  if ( ci->clause->variables == 0 )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
+		    ATOM_max_frame_size);
+#endif
 
   return var;
 }
