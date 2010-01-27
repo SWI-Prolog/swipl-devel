@@ -499,9 +499,9 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     return AVARS_MAX;
 
   ci->clause->prolog_vars = nv;
-  ci->clause->variables   = ci->clause->prolog_vars;
-  ci->cut.nextvar	  = ci->clause->variables;
-  ci->vartablesize = (ci->clause->prolog_vars + BITSPERINT-1)/BITSPERINT;
+  ci->clause->variables   = nv;
+  ci->cut.nextvar	  = nv;
+  ci->vartablesize = (nv + BITSPERINT-1)/BITSPERINT;
 
   return TRUE;
 }
