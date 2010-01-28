@@ -46,6 +46,8 @@
 	   bagof_in_noblock/3,	     % +Template, ?Term, -Bag
 	   linda_eval/1,             % :Head
 	   linda_eval/2,	     % ?Head, :Body
+	   linda_eval_detached/1,    % :Head
+	   linda_eval_detached/2,    % ?Head, :Body
 	   tuple/1,                  % :Goal
 	   tuple/2,		     % ?Head, :Body
 	   tipc_initialize/0
@@ -531,10 +533,16 @@ bagof_rd_noblock(Template,  Tuple, Bag) :-
 bagof_in_noblock(Template,  Tuple, Bag) :-
 	!, basic_request(bagof_in_noblock(Template, Tuple, Bag)), !.
 
-:- meta_predicate linda_eval(?, 0), linda_eval(0).
+:- meta_predicate
+      linda_eval(?, 0),
+      linda_eval(0),
+      linda_eval_detached(?, 0),
+      linda_eval_detached(0).
 
 %%	linda_eval(:Goal) is det.
 %%	linda_eval(?Head, :Goal) is det.
+%%	linda_eval_detached(:Goal) is det.
+%%	linda_eval_detached(?Head, :Goal) is det.
 %
 %  Causes Goal to be evaluated in parallel  with a parent predicate. The
 %  child  thread  is  a  full-fledged    client,   possessing  the  same
@@ -559,6 +567,9 @@ bagof_in_noblock(Template,  Tuple, Bag) :-
 %  parent's body has the effect of joining   all children created by the
 %  parent. This provides a  barrier  that   guarantees  that  all  child
 %  instances of Goal have run to completion before the parent proceeds.
+%  Detached threads behave as above, except that they operate
+%  independently and cannot be joined. They will continue to run while
+%  the host process continues to run.
 %
 % Here is an example of a parallel quicksort:
 %
@@ -581,6 +592,14 @@ linda_eval(Head, Body) :-
 	strip_module(Head, _Module, Plain),
 	thread_create(forall(Body, out(Plain)), Id, []) ~>
 	   thread_join(Id, true).
+
+linda_eval_detached(Head) :-
+	linda_eval_detached(Head, Head).
+
+linda_eval_detached(Head, Body) :-
+	must_be(callable, Body),
+	strip_module(Head, _Module, Plain),
+	thread_create(forall(Body, out(Plain)), _Id, [detach(true)]).
 
 %%	tuple(:Goal) is det.
 %%      tuple(?Head, :Goal) is det.
