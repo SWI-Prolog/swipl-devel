@@ -165,10 +165,7 @@ blanks_to_nl(_).
 
 structured_comment(["%"]) -->
 	"%%", space,
-	\+ blanks_to_nl,
-	\+ contains(" SWI "),
-	\+ contains(" SICStus "),
-	\+ contains(" Mats ").
+	\+ separator_line.
 structured_comment(Prefixes) -->
 	"/**", space,
 	{ Prefixes = ["/**", " *"]
@@ -178,25 +175,28 @@ space -->
 	[H],
 	{ code_type(H, space) }.
 
-blanks_to_nl -->
-	blank_or_percents,
-	"\n".
+%%	separator_line// is semidet.
+%
+%	Matches a line like %% SWI or %%%%%%%%%%%%%%%%%%%%%%%%%, etc.
 
-blank_or_percents -->
-	space, !,
-	blank_or_percents.
-blank_or_percents -->
-	"%", !,
-	blank_or_percents.
-blank_or_percents -->
-	"".
+separator_line -->
+	string(S), "\n", !,
+	{   maplist(blank_or_percent, S)
+	;   contains(S, " SWI ")
+	;   contains(S, " SICStus ")
+	;   contains(S, " Mats ")
+	}.
 
-contains(String) -->
-	...,
-	String, !.
+string([]) --> [].
+string([H|T]) --> [H], string(T).
 
-... --> "".
-... --> [_], ... .
+blank_or_percent(0'%) :- !.
+blank_or_percent(C) :-
+	code_type(C, space).
+
+contains(Haystack, Needle) :-
+	append(_, Start, Haystack),
+	append(Needle, _, Start), !.
 
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
