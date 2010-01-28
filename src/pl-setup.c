@@ -1214,8 +1214,8 @@ allocStacks(size_t local, size_t global, size_t trail)
 
 void
 freeStacks(ARG1_LD)
-{ gBase--;
-  if ( gBase ) { stack_free(gBase); gBase = NULL; lBase = NULL; }
+{ if ( gBase ) { gBase--;
+		 stack_free(gBase); gBase = NULL; lBase = NULL; }
   if ( tBase ) { stack_free(tBase); tBase = NULL; }
   if ( aBase ) { stack_free(aBase); aBase = NULL; }
 }
