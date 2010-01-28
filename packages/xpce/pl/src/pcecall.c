@@ -359,7 +359,7 @@ set_pce_thread()
 #endif
 
     if ( context.pce_thread != 1 )
-    { context.input_hook_saved = PL_dispatch_hook(NULL);
+    { context.input_hook = PL_dispatch_hook(NULL);
       context.input_hook_saved = TRUE;
     }
   }
