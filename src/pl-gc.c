@@ -4402,7 +4402,7 @@ nextStackSize(Stack s, size_t minfree)
       size = sizeStackP(s);
   } else
   { if ( s->top > s->max )
-      minfree += s->top - s->max;
+      minfree += (char*)s->top - (char*)s->max;
 
     size = nextStackSizeAbove(sizeStackP(s) +
 			      minfree + s->min_free + s->def_spare);
