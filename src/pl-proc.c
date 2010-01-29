@@ -1815,7 +1815,8 @@ typedef struct
 } retract_context;
 
 static
-PRED_IMPL("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+PRED_IMPL("retract", 1, retract,
+	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 { PRED_LD
   term_t term = A1;
   retract_context ctxbuf;
@@ -3222,5 +3223,6 @@ BeginPredDefs(proc)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
-  PRED_DEF("retract", 1, retract, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+  PRED_DEF("retract", 1, retract,
+	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 EndPredDefs
