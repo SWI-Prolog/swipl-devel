@@ -9,7 +9,7 @@ AC_SUBST(PLTARGETS)
 AC_SUBST(NETLIBS)
 AC_SUBST(CRYPTLIBS)
 
-m4_include([../ac_swi.m4])
+m4_include([../ac_swi_c.m4])
 
 TARGETS="random.$SO unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO crypt.$SO"
 

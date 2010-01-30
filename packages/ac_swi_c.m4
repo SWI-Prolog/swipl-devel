@@ -1,4 +1,4 @@
-dnl Common autoconf handling SWI-Prolog packages
+dnl Common autoconf handling SWI-Prolog packages that require C/C++
 
 AC_SUBST(PL)
 AC_SUBST(PLLIBS)

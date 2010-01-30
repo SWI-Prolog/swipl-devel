@@ -12,18 +12,12 @@ PLARCH=@PLARCH@
 PL=@PL@
 XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
-PCEHOME=../../xpce
+PCEHOME=../xpce
 DESTDIR=
-
-CGISCRIPT=rdf-parser
-CGIDIR=/etc/httpd/cgi-bin
-CGIURL=http://gollem.science.uva.nl/cgi-bin
-WEBPAGE=/swi40/prolog/packages/rdf-online.html
-CGIGRP=www
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
-RUNTEX=../../../man/runtex
+RUNTEX=../../man/runtex
 LATEX=latex
 DOC=rdf2pl
 TEX=$(DOC).tex
@@ -69,29 +63,6 @@ uninstall:
 check::
 		$(PL) -q -f test_rdf.pl -g true -t test_rdf
 		$(PL) -q -f test_write.pl -g true -t test_write
-
-################################################################
-# CGI INSTALL
-################################################################
-
-cgi-install:	$(CGIDIR)/$(CGISCRIPT) \
-		Online-requests \
-		$(WEBPAGE)
-
-cgi-uninstall:
-		rm -f $(CGIDIR)/$(CGISCRIPT) $(WEBPAGE)
-
-Online-requests:
-		mkdir $@
-		chmod 775 $@
-		chgrp $(CGIGRP) $@
-
-$(WEBPAGE):	online.html
-		sed 's%@ACTION@%$(CGIURL)/$(CGISCRIPT)%' online.html > $@
-
-$(CGIDIR)/$(CGISCRIPT): rdf-parser Makefile
-		sed -e "s%@BASEDIR@%`pwd`%" -e s%@SWI@%$(PL)% rdf-parser > $@
-		chmod 755 $@
 
 ################################################################
 # Documentation
