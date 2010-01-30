@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
 
@@ -32,7 +32,6 @@ typedef struct
   int  local;				/* default local stack size (K) */
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
-  int  heap;				/* default heap size (K) */
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
   bool notty;				/* use tty? */
@@ -44,7 +43,6 @@ typedef struct
 { size_t	localSize;		/* size of local stack */
   size_t	globalSize;		/* size of global stack */
   size_t	trailSize;		/* size of trail stack */
-  size_t	heapSize;		/* size of the heap */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
@@ -77,11 +75,20 @@ typedef struct
 #define OS "unknown"
 #endif
 
-#define DEF_DEFLOCAL	(4096*SIZEOF_VOIDP)
-#define DEF_DEFGLOBAL	(8192*SIZEOF_VOIDP) /* 32MB on 32-bit hardware */
-#define DEF_DEFTRAIL	(8192*SIZEOF_VOIDP)
-#define DEF_DEFARGUMENT (250*SIZEOF_VOIDP)
-#define DEF_DEFHEAP     0		/* unlimited */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Default stack-limits. On 32-bit systems, SWI-Prolog  is limited to 128Mb
+per stack due to the tagging   and  data-representation choices. 3*128Mb
+can be handled with ease by almost any  PC still in use and therefore we
+use the maximum as the limit.  64-bit   systems  can  handle limits that
+typically exceed the capabilities of the   hardware (i.e., the amount of
+physical memory). We use the same limit   counted in `cells' for maximal
+portability.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define DEF_DEFLOCAL	(32*1024*SIZEOF_VOIDP)
+#define DEF_DEFGLOBAL	(32*1024*SIZEOF_VOIDP)
+#define DEF_DEFTRAIL	(32*1024*SIZEOF_VOIDP)
 
 #ifndef DEFLOCAL
 #define DEFLOCAL    DEF_DEFLOCAL
