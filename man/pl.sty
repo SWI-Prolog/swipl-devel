@@ -101,8 +101,8 @@
 
 \makeatletter
 \def\cmdlineoptionitem{\@ifstar{\@gluedcmdoptitem}{\@cmdoptitem}}
-\def\@gluedcmdoptitem#1#2{\definition{#1\var{#2}}}
-\def\@cmdoptitem#1#2{\definition{#1 \var{#2}}}
+\def\@gluedcmdoptitem#1#2{\definition{\texttt{#1}\var{#2}}}
+\def\@cmdoptitem#1#2{\definition{\texttt{#1} \var{#2}}}
 \makeatother
 \newcommand{\longoptionitem}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
