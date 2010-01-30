@@ -2,11 +2,11 @@
 # Makefile for the SWI-Prolog resource database
 #
 # Author: Jan Wielemaker
-# E-mail: wielemak@science.uva.nl
+# E-mail: J.Wielemaker@cs.vu.nl
 #
 # Copying: LGPL-2
 #
-# Copyright (c) 1996-2006, University of Amsterdam
+# Copyright (c) 1996-2010, University of Amsterdam
 # ###############################################################
 
 prefix=@prefix@
@@ -39,9 +39,9 @@ INSTALL_DATA=@INSTALL_DATA@
 
 LIBOBJ=	html.o access.o build.o util.o
 
-all:	plrc
+all:	swipl-rc
 
-plrc:	librc.a rc.o
+swipl-rc:	librc.a rc.o
 	$(CC) $(LDFLAGS) -o $@ rc.o -L. -lrc
 
 librc.a:	$(LIBOBJ)
@@ -79,5 +79,5 @@ profclean:
 
 distclean: clean profclean
 	rm -f Makefile
-	rm -f plrc librc.a
+	rm -f swipl-rc librc.a
 

@@ -50,7 +50,7 @@ fi
 EXTRAOBJ=""
 EXTRAHDR=""
 INSTALLTARGET=dv-install
-if test -z "$PL"; then PL=pl; fi
+if test -z "$PL"; then PL=swipl; fi
 PLLIB=libpl.a
 MKLIBS=staticlib
 RT=""
@@ -487,7 +487,6 @@ case "$ARCH" in
 	if test "x$MKSHARED" = "x"; then
 	    MKSHARED=yes
 	fi
-	PL=swipl
 	SO_EXT=dylib
 	SO_pic="-fno-common"
 	SO_PIC="-fno-common"
@@ -1547,7 +1546,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile libtai/Makefile pl.1 pl.sh pl.pc"
+OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
 dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
 dnl around making this variable global.

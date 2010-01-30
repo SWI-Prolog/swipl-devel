@@ -50,9 +50,9 @@ lmandir=$(mandir)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
-PL=@PL@@RT@
-PLV=@PL@@RT@-@PLVERSION@
-PLBASE=$(libdir)/@PL@@RT@-@PLVERSION@
+PL=@PL@
+PLV=@PL@-@PLVERSION@
+PLBASE=$(libdir)/@PL@-@PLVERSION@
 BOOTFILE=@BOOTFILE@
 
 CC=@CC@
@@ -173,7 +173,7 @@ OPTIMISE=@OPTIMISE@
 PROFILE_SRC=../bench/run.pl
 PROFILE_GOAL=run(0.5)
 
-all:	banner gitversion dirs $(OPTIMISE) plld
+all:	banner gitversion dirs $(OPTIMISE) swipl-ld
 
 noprof:	rc-lib tai-lib $(MKLIBS) system headers startup index
 prof:
@@ -342,8 +342,8 @@ $(srcdir)/.defatom-sentinel: $(srcdir)/ATOMS defatom
 defatom:	defatom.c
 		$(CC) $(CFLAGS) -o $@ $(srcdir)/defatom.c
 
-plld:		$(srcdir)/plld.c parms.h $(srcdir)/pl-vmi.h
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
+swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c
 
 tags:		$(srcdir)/TAGS
 
@@ -365,19 +365,19 @@ dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-		for f in $(PL) plld plrc; do \
+		for f in $(PL) swipl-ld swipl-rc; do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-vbins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 		$(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$(PL) $(DESTDIR)$(bindir)/$(PLV)
-		for f in plld plrc; do \
+		for f in swipl-ld swpl-rc; do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
-		for f in $(PL) plld rc/plrc; do \
+		for f in $(PL) swipl-ld rc/swipl-rc; do \
 		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
 		done
 
@@ -480,20 +480,19 @@ iinclude:	idirs
 		done
 
 ipkgconfig:	idirs
-		$(INSTALL_DATA) pl.pc $(DESTDIR)$(libdir)/pkgconfig/
+		$(INSTALL_DATA) swipl.pc $(DESTDIR)$(libdir)/pkgconfig/
 
 iman::
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
 		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
 		-$(INSTALL_DATA) pl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
-		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(smandir)/plrc.$(mansec)
-		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(smandir)/plld.$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(smandir)/swipl-rc.$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(smandir)/swipl-ld.$(mansec)
 
 install-lman:	idirs
 		$(INSTALL_DATA) pl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(plmandir)/plrc.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(plmandir)/plld.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)$(plmandir)/readline.$(lmansec)
+		$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(plmandir)/swipl-rc.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
 
 html-install::
 		if [ -d ../man/Manual ]; then \
@@ -530,22 +529,6 @@ rt-install:
 		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
 		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
 
-PACKAGE_TMPDIR := pkg.tmp
-
-#
-# Target to create Slackware packages
-#
-pkg: all slack-desc
-		@echo "****************"
-		@echo "Creating Slackware package"
-		@echo "****************"
-		rm -rf $(PACKAGE_TMPDIR)/*
-		mkdir -p $(PACKAGE_TMPDIR)/install
-		cp slack-desc $(PACKAGE_TMPDIR)/install/slack-desc
-		$(MAKE) DESTDIR="$(srcdir)/$(PACKAGE_TMPDIR)" install
-		strip --strip-unneeded pl plld rc/plrc
-		@(cd $(PACKAGE_TMPDIR) && makepkg --chown y --linkadd y ../pl-$(PLVERSION)-i486-1.tgz)
-
 #
 # Cleanup
 #
@@ -571,8 +554,8 @@ distclean:	clean profclean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile pl.sh config.h config.status parms.h version.h
 		rm -f swipl swiplbin $(STARTUPPATH)
-		rm -f $(PL) plld pl.1 $(PL).exe plld.exe libplimp.a $(DEF)
-		rm -f config.log config.cache pl.pc
+		rm -f $(PL) swipl-ld swipl.1 $(PL).exe swipl-ld.exe libplimp.a $(DEF)
+		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
 
 realclean:	clean
