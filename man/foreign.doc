@@ -2930,37 +2930,32 @@ only way to get these environments together in one process image. Java
 applications however are by nature multi-threaded and appear to do
 signal-handling (software interrupts).
 
-\index{--disable-segv-handling}%
-To make Prolog operate smoothly in such environments it must be told
-not to alter the process environment. This is partly done at build-time
-and partly execution time.  At build-time we must specify the use of
-software stack-overflow rather then the default hardware checks.  This
-is done using
+On Unix systems, SWI-Prolog uses three signals:
 
-\begin{code}
-sh configure --disable-segv-handling
-\end{code}
+\begin{description}
+    \item[SIGUSR1] is used to sychronise atom- and clause garbage
+    collection.  The handler is installed at the start of GC and
+    reverted to the old setting after completing.
 
-The resulting Prolog executable is about 10\% slower than the normal
-executable, but behaves much more reliable in complicated embedded
-situations.  In addition, as the process no longer handles segmentation
-violations, debugging foreign code linked to it is much easier.
+    \item[SIGUSR2] has an empty signal handler.   This signal is
+    sent to a thread after sending a thread-signal (see
+    thread_signal/2).  It causes blocking system calls to return
+    with \const{EINTR}, which gives them to opportunity to react
+    on thread-signals.
 
-At runtime, it is advised to pass the flag \cmdlineoption{-nosignals},
-which inhibits all default signal handling.  This has a few consequences
-though:
+    \item[SIGINT] is used by the toplevel to activate the tracer
+    (typically bound to control-C).  The first control-C posts a
+    request for	starting the tracer in a safe synchronous fashion.
+    If control-C is hit again before the safe route is executed,
+    it prompts the user whether or not a forced interrupt is
+    desired.
+\end{description}
 
-\begin{itemize}
-    \item It is no longer possible to break into the tracer using
-          an interrupt signal (Control-C).
-    \item \const{SIGPIPE} is normally set to be ignored.  Prolog uses
-          return-codes to diagnose broken pipes.  Depending on the
-	  situation one should take appropriate action if Prolog
-	  streams are connected to pipes.
-    \item Fatal errors normally cause Prolog to call PL_cleanup() and
-          exit().  It is advised to call PL_cleanup() as part of the
-	  exit-procedure of your application.
-\end{itemize}
+The \cmdlineoption{--nosignals} option can be used to inhibit processing
+of \const{SIGINT}. The other signals are vital for the functioning of
+SWI-Prolog. If they conflict with other applications, signal handling of
+either component must be modified. The SWI-Prolog signals are defined in
+\file{pl-thread.h} of the source-distribution.
 
 
 \section{Linking embedded applications using plld}	\label{sec:plld}
