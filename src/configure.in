@@ -506,7 +506,7 @@ case "$ARCH" in
 	DLLIBVAR=PATH
 	;;
 # Seems we can simple add the executable add the end.  This is arranged
-# in plld.c based on the the __BEOS__ symbol.
+# in swipl-ld.c based on the the __BEOS__ symbol.
 # *beos*)
 #	AC_DEFINE(SO_FORMAT_LDFLAGS,
 #		  ["-nostart -Xlinker -soname=\"%s\"", soout])
@@ -1556,7 +1556,7 @@ srcdir=`cd $srcdir && pwd`
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
-  OutputFiles="$OutputFiles ../man/Makefile ../packages/Makefile ../packages/plld.sh ../packages/pl.sh"
+  OutputFiles="$OutputFiles ../man/Makefile ../packages/Makefile ../packages/swipl-ld.sh ../packages/swipl.sh"
 fi
 
 if test -r ../packages/configure.in; then
@@ -1566,8 +1566,8 @@ fi
 AC_CONFIG_COMMANDS([exe],
 		   [ if test -r ../packages/configure; then
 		       chmod +x ../packages/configure
-		       chmod +x ../packages/plld.sh
-		       chmod +x ../packages/pl.sh
+		       chmod +x ../packages/swipl-ld.sh
+		       chmod +x ../packages/swipl.sh
 		     fi
 		     chmod +x pl.sh
 		   ])
