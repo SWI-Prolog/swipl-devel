@@ -14,5 +14,5 @@ PLSOEXT=@SO_EXT@
 Name: pl
 Description: ISO/Edinburgh-style Prolog compiler
 Version: @PLVERSION@
-Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@ARCH@ -lpl
+Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@ARCH@ -lswipl
 Cflags: -I${includedir}

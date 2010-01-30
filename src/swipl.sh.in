@@ -11,7 +11,7 @@
 srcdir=@srcdir@
 lib=$srcdir/../lib/@ARCH@
 bdir=$srcdir/../@BUILDDIR@
-libso=$lib/libpl.so
+libso=$lib/libswipl.@SO_EXT@
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$lib

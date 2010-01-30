@@ -103,7 +103,7 @@ SHAREDV=$(SHARED).$(PLVERSION)
 SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
 MKLIBS=@MKLIBS@
-DEVPL=./pl.sh
+DEVPL=./swipl.sh
 
 # MacOS
 LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
@@ -205,7 +205,7 @@ banner::
 
 
 $(PL):		$(MKLIBS) $(PLOBJ)
-		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lpl $(LNLIBS)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lswipl $(LNLIBS)
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
@@ -409,7 +409,7 @@ else
 ifeq ($(SOEXT),dll)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
 		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(ARCH) ; \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/libpl.dll.a $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libswipl.dll.a $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
@@ -420,7 +420,7 @@ endif
 endif
 
 install-implib:	idirs
-		$(INSTALL_DATA) libplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
+		$(INSTALL_DATA) libswiplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
 
 idirs::
 		if [ ! -d $(DESTDIR)$(libdir)  ]; then $(MKDIR) $(DESTDIR)$(libdir); fi
@@ -552,9 +552,9 @@ distclean:	clean profclean
 		rm -f defatom mkvmi
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
-		rm -f Makefile pl.sh config.h config.status parms.h version.h
-		rm -f swipl swiplbin $(STARTUPPATH)
-		rm -f $(PL) swipl-ld swipl.1 $(PL).exe swipl-ld.exe libplimp.a $(DEF)
+		rm -f Makefile config.h config.status parms.h version.h
+		rm -f $(DEVPL) swipl swiplbin $(STARTUPPATH)
+		rm -f $(PL) swipl-ld swipl.1 $(PL).exe swipl-ld.exe libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
 

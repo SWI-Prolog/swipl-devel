@@ -23,10 +23,10 @@ AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
-AC_SUBST(PLLIB)			dnl libpl.a
-AC_SUBST(PLSO)			dnl libpl.so
+AC_SUBST(PLLIB)			dnl libswipl.a
+AC_SUBST(PLSO)			dnl libswipl.so
 AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
-AC_SUBST(USEPLLIB)		dnl -lpl
+AC_SUBST(USEPLLIB)		dnl -lswipl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
@@ -51,7 +51,7 @@ EXTRAOBJ=""
 EXTRAHDR=""
 INSTALLTARGET=dv-install
 if test -z "$PL"; then PL=swipl; fi
-PLLIB=libpl.a
+PLLIB=libswipl.a
 MKLIBS=staticlib
 RT=""
 PLVERSION=`cat ../VERSION`
@@ -532,10 +532,10 @@ AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 case "$ARCH" in
   *cygwin*)
 	PLSO=cygpl.$SO_EXT
-	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
+	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libswipl.dll.a $(DEF)'
 	;;
   *)
-	PLSO=libpl.$SO_EXT
+	PLSO=libswipl.$SO_EXT
 	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
 	;;
 esac
@@ -1569,7 +1569,7 @@ AC_CONFIG_COMMANDS([exe],
 		       chmod +x ../packages/swipl-ld.sh
 		       chmod +x ../packages/swipl.sh
 		     fi
-		     chmod +x pl.sh
+		     chmod +x swipl.sh
 		   ])
 AC_OUTPUT($OutputFiles)
 
