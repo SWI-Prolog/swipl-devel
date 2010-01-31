@@ -166,7 +166,7 @@ if test "$swipl" != "no"; then
     fi
     plcandidates="plrt"
   else
-    plcandidates="swi-prolog swipl pl"
+    plcandidates="swipl swi-prolog pl"
   fi
   AC_CHECK_PROGS(PL, $plcandidates, "none")
   if test $PL = "none"; then
@@ -181,10 +181,10 @@ if test "$swipl" != "no"; then
          AC_CHECKING("Running $PL -dump-runtime-variables")
          eval `$PL -dump-runtime-variables`
 	 PLBUILD="$PL"
-	 PLLD=plld
+	 PLLD=swipl-ld
      else
-         PLLD="`(cd ../.. && pwd)`/plld.sh"
-         PLBUILD="`(cd ../.. && pwd)`/pl.sh"
+         PLLD="`(cd ../.. && pwd)`/swipl-ld.sh"
+         PLBUILD="`(cd ../.. && pwd)`/swipl.sh"
      fi
   fi
   PLNAME=`basename $PL`
@@ -428,14 +428,14 @@ EOF
 	XINCLUDES="-I/home/jan/cygwin/include"
 	XLIBS="-lwsock32 -lcomdlg32 -lkernel32 -luser32 -lgdi32"
 	XLIB=/home/jan/cygwin/lib
-	LD=plld
+	LD=swipl-ld
 	GCCLIB=""
 	LDSOFLAGS="-shared"
 	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC//'`
 	AC_MSG_RESULT(ok)
 	;;
     *darwin*)
-	LD=plld
+	LD=swipl-ld
 	LDSOFLAGS="-shared"
 	DLLIBVAR=DYLD_LIBRARY_PATH
 	GCCLIB=""
