@@ -17,8 +17,8 @@ AC_SUBST(ARCH)
 AC_SUBST(PLSHARED)
 AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
-AC_SUBST(RT)
 AC_SUBST(PLVERSION)
+AC_SUBST(PLLIBDIR)		dnl either @PL@-@PLVERSION@ or @PL@
 AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
@@ -54,7 +54,6 @@ INSTALLTARGET=dv-install
 if test -z "$PL"; then PL=swipl; fi
 PLLIB=libswipl.a
 MKLIBS=staticlib
-RT=""
 PLVERSION=`cat ../VERSION`
 CNFG=""				dnl Package configuration options
 
@@ -135,6 +134,15 @@ AC_ARG_ENABLE(dmalloc, [  --enable-dmalloc	  Enable DMALLOC debugging],
 AC_ARG_ENABLE(useprofile, [  --enable-useprofile	  GCC: recompile with profile],
 	      useprofile="$enableval",
 	      useprofile=no)
+AC_ARG_ENABLE(libdirversion, [  --disable-libdirversion	Do not version installation dir],
+	      libdirversion="$enableval",
+	      libdirversion=yes)
+
+if test "$libdirversion" = no; then
+   PLLIBDIR="$PL"
+else
+   PLLIBDIR="$PL-$PLVERSION"
+fi
 
 OPTIMISE=noprof
 
@@ -144,7 +152,7 @@ dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
 dnl ****************************************************************
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-PLBASE=$libdir/$PL-$PLVERSION
+PLBASE=$libdir/$PLLIBDIR
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct
@@ -684,7 +692,6 @@ case "$ARCH" in
 esac
 
 if test -a "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
-
   if test ! -z "$RLPREFIX"; then
     AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
     if test -f $RLPREFIX/include/readline/readline.h -a \

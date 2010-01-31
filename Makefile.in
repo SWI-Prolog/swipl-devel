@@ -7,6 +7,8 @@
 BUILDARCH=@BUILDARCH@
 CONFIG_OPTIONS=@CONFIG_OPTIONS@
 
+.PHONY:	lite world packages
+
 all:		@TARGET@
 
 install:	install-@TARGET@

@@ -50,7 +50,7 @@ plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
 PL=@PL@
-PLBASE=$(libdir)/@PL@-@PLVERSION@
+PLBASE=$(libdir)/@PLLIBDIR@
 BOOTFILE=@BOOTFILE@
 
 CC=@CC@
