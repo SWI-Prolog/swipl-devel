@@ -876,12 +876,12 @@ dv-pl-files:	rt-home
 # (for now) only build the quick load files if we actually install into
 # the target location.  If not, the paths will be wrong anyway.
 
-dv-qlf-clean::
+dv-qlf-clean:	dv-pl-files
 ifeq ($(DESTDIR),)
 		cd $(PLBASE); $(MAKE) clean
 endif
 
-dv-qlf::
+dv-qlf:		dv-pl-files
 ifeq ($(DESTDIR),)
 		cd $(PLBASE); $(MAKE) xpce-qlfs
 endif
