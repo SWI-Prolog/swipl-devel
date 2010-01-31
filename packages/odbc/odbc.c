@@ -1615,7 +1615,9 @@ find:
 	  PL_put_atom_nchars(val, len, buf);
 	  break;
 	case sword:
-	{ SQLSMALLINT v = *((SQLSMALLINT*)buf);
+	{ SQLSMALLINT *p = (SQLSMALLINT*)buf;
+	  SQLSMALLINT v = *p;
+
 	  if ( !PL_put_integer(val, v) )
 	    return FALSE;
 	  break;
