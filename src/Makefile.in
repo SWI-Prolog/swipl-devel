@@ -16,7 +16,6 @@
 #
 #	* make			Simply makes all programs in the current tree
 #	* make install		Installs the libraries and public executables
-#	* make install-version  Installs pl as pl-x.y.z in public directory
 #	* make install-bins	Link executables from $(bindir)
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
@@ -51,7 +50,6 @@ plmandir=$(PLBASE)/man
 
 PLVERSION=@PLVERSION@
 PL=@PL@
-PLV=@PL@-@PLVERSION@
 PLBASE=$(libdir)/@PL@-@PLVERSION@
 BOOTFILE=@BOOTFILE@
 
@@ -359,20 +357,12 @@ ln-install::
 		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install
 
 install:	@INSTALLTARGET@
-install-version: install-arch install-libs install-vbins
 
 dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 		for f in $(PL) swipl-ld swipl-rc; do \
-		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
-		done
-
-install-vbins:	install-arch
-		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
-		$(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$(PL) $(DESTDIR)$(bindir)/$(PLV)
-		for f in swipl-ld swpl-rc; do \
 		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
