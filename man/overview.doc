@@ -6,21 +6,15 @@
 
 \subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
 
-By default, SWI-Prolog is installed as `pl', though some administrators
-call it `swipl' or `swi-prolog'. The command-line arguments of
-SWI-Prolog itself and its utility programs are documented using standard
-Unix \program{man} pages. SWI-Prolog is normally operated as an
-interactive application simply by starting the program:
+By default, SWI-Prolog is installed as `swipl'. The command-line
+arguments of SWI-Prolog itself and its utility programs are documented
+using standard Unix \program{man} pages. SWI-Prolog is normally operated
+as an interactive application simply by starting the program:
 
 \begin{code}
-machine% pl
-Welcome to SWI-Prolog (Version 5.6.42)
-Copyright (c) 1990-2007 University of Amsterdam.
-SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
-and you are welcome to redistribute it under certain conditions.
-Please visit http://www.swi-prolog.org for details.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
+machine% swipl
+Welcome to SWI-Prolog (Version \plversion)
+...
 
 1 ?-
 \end{code}
@@ -148,7 +142,7 @@ is a typical example for starting an application directly from the
 command-line.
 
 \begin{code}
-machine% pl -s load.pl -g go -t halt
+machine% swipl -s load.pl -g go -t halt
 \end{code}
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
@@ -187,13 +181,13 @@ When given as the only option, it prints the architecture identifier
     \cmdlineoptionitem{--dump-runtime-variables}{}
 When given as the only option, it prints a sequence of variable settings
 that can be used in shell-scripts to deal with Prolog parameters.  This
-feature is also used by \program{plld} (see \secref{plld}).  Below is
+feature is also used by \program{swipl-ld} (see \secref{plld}).  Below is
 a typical example of using this feature. Also available as
 \cmdlineoption{-dump-runtime-variables}.
 
 \begin{code}
-eval `pl --dump-runtime-variables`
-cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
+eval `swipl --dump-runtime-variables`
+cc -I$PLBASE/include -L$PLBASE/lib/$PLARCH ...
 \end{code}
 
 The option can be followed by \const{=sh} to dump in POSIX shell format
@@ -259,8 +253,8 @@ the local stack limit to catch unbounded recursion really quickly and
 the second using a really big (32Gb) global limit on a 64-bit machine:
 
 \begin{code}
-$ pl -L8m
-$ pl -G32g
+$ swipl -L8m
+$ swipl -G32g
 \end{code}
 
 \begin{description}
@@ -291,7 +285,7 @@ quotes are normally needed to protect it from being expanded by the
 shell. A safe way to run a goal non-interactively is here:
 
 \begin{code}
-% pl <options> -g go,halt -t 'halt(1)'
+% swipl <options> -g go,halt -t 'halt(1)'
 \end{code}
 
     \cmdlineoptionitem{-t}{goal}
@@ -389,7 +383,7 @@ the following rules to your Emacs initialisation file:
       (append
        '(("\\.pl" . prolog-mode))
        auto-mode-alist))
-(setq prolog-program-name "pl")
+(setq prolog-program-name "swipl")
 (setq prolog-consult-string "[user].\n")
 ;If you want this.  Indentation is either poor or I don't use
 ;it as intended.
@@ -728,7 +722,7 @@ This file is often called \file{load.pl}.  If the entry-point is called
 {\em go}, a typical session starts as:
 
 \begin{code}
-% pl
+% swipl
 <banner>
 
 1 ?- [load].
@@ -874,7 +868,7 @@ file.
 For larger programs, as well as for programs that are required to run on
 systems that do not have the SWI-Prolog development system installed,
 creating a saved state is the best solution. A saved state is created
-using qsave_program/[1,2] or using the linker plld(1). A saved state is
+using qsave_program/[1,2] or using the linker swipl-ld(1). A saved state is
 a file containing machine-independent intermediate code in a format
 dedicated for fast loading. Optionally, the emulator may be integrated
 in the saved state, creating a single-file, but machine-dependent,
@@ -888,7 +882,7 @@ This mechanism loads a series of Prolog source files and then creates
 a saved-state as qsave_program/2 does.  The command syntax is:
 
 \begin{code}
-% pl [option ...] [-o output] -c file ...
+% swipl [option ...] [-o output] -c file ...
 \end{code}
 
 The \arg{options} argument are options to qsave_program/2 written in
@@ -904,14 +898,15 @@ For example, to create a stand-alone executable that starts by executing
 \file{load.pl}, use the command
 
 \begin{code}
-% pl --goal=main --stand_alone=true -o myprog -c load.pl
+% swipl --goal=main --stand_alone=true -o myprog -c load.pl
 \end{code}
 
 This performs exactly the same as executing
 
 \begin{code}
-% pl
+% swipl
 <banner>
+
 ?- [load].
 ?- qsave_program(myprog,
 		 [ goal(main),
@@ -1592,8 +1587,8 @@ Below is an example creating a completely indexed library directory.
 
 \begin{code}
 % mkdir ~/lib/prolog
-% cd !$
-% pl -g true -t 'make_library_index(.)'
+% cd ~/lib/prolog
+% swipl -g true -t 'make_library_index(.)'
 \end{code}
 
 If there are more than one library files containing the desired predicate

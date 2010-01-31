@@ -76,7 +76,7 @@ All described approaches have their advantages and disadvantages. Static
 linking is portable and allows for debugging on all platforms. It is
 relatively cumbersome and the libraries you need to pass to the linker
 may vary from system to system, though the utility program
-\program{plld} described in \secref{plld} often hides these problems
+\program{swipl-ld} described in \secref{plld} often hides these problems
 from the user.
 
 Loading shared objects (DLL files on Windows) provides sharing and
@@ -142,7 +142,7 @@ using the Prolog flag \prologflag{arch}.
 
 \begin{center}
 \begin{tabular}{ll}
-\file{.../pl/runtime/<arch>/libpl.a}    & SWI-Library \\
+\file{.../pl/runtime/<arch>/libswipl.a} & SWI-Library \\
 \file{.../pl/include/SWI-Prolog.h}      & Include file \\
 \file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
 \file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
@@ -188,7 +188,7 @@ main(int argc, char **argv)
 Now, a new executable may be created by compiling this file and linking
 it to \file{libpl.a} from the runtime directory and the libraries
 required by both the extensions and the SWI-Prolog kernel. This may be
-done by hand, or using the \program{plld} utility described in
+done by hand, or using the \program{swipl-ld} utility described in
 secref{plld}. If the linking is performed `by hand', the command-line
 option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
@@ -2855,7 +2855,7 @@ is used.
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved-state, or
 \verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
-to a DLL (see the \cmdlineoption{-dll} option of \program{plld}, pass
+to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}, pass
 the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
@@ -2958,11 +2958,11 @@ either component must be modified. The SWI-Prolog signals are defined in
 \file{pl-thread.h} of the source-distribution.
 
 
-\section{Linking embedded applications using plld}	\label{sec:plld}
+\section{Linking embedded applications using swipl-ld}	\label{sec:plld}
 
-The utility program \program{plld} (Win32: plld.exe) may be used to link
+The utility program \program{swipl-ld} (Win32: swipl-ld.exe) may be used to link
 a combination of C-files and Prolog files into a stand-alone executable.
-\program{plld} automates most of what is described in the previous
+\program{swipl-ld} automates most of what is described in the previous
 sections.
 
 In the normal usage, a copy is made of the default embedding template
@@ -2970,14 +2970,14 @@ In the normal usage, a copy is made of the default embedding template
 your application. PL_initialise() \strong{must} be passed the
 program-name (\arg{argv[0]}) (Win32: the executing program can be
 obtained using GetModuleFileName()). The other elements of the
-command-line may be modified. Next, \program{plld} is typically invoked
+command-line may be modified. Next, \program{swipl-ld} is typically invoked
 as:
 
 \begin{code}
-plld -o output stubfile.c [other-c-or-o-files] [plfiles]
+swipl-ld -o output stubfile.c [other-c-or-o-files] [plfiles]
 \end{code}
 
-\program{plld} will first split the options into various groups for both
+\program{swipl-ld} will first split the options into various groups for both
 the C-compiler and the Prolog compiler. Next, it will add various
 default options to the C-compiler and call it to create an executable
 holding the user's C-code and the Prolog kernel. Then, it will call the
@@ -3013,7 +3013,7 @@ Just relink the kernel, do not add any Prolog code to the new kernel.
 This is used to create a new kernel holding additional foreign predicates
 on machines that do not support the shared-library (DLL) interface, or if
 building the state cannot be handled by the default procedure used by
-\program{plld}.  In the latter case the state is created separately and
+\program{swipl-ld}.  In the latter case the state is created separately and
 appended to the kernel using \exam{cat <kernel> <state> > <out>}
 (Win32: \exam{copy /b <kernel>+<state> <out>})
 
@@ -3029,12 +3029,12 @@ executable.
 
     \cmdlineoptionitem{-c}{}
 Compile C or C++ source-files into object files. This turns
-\program{plld} into a replacement for the C or C++ compiler where proper
+\program{swipl-ld} into a replacement for the C or C++ compiler where proper
 options such as the location of the include directory are passed
 automatically to the compiler.
 
     \cmdlineoptionitem{-E}{}
-Invoke the C preprocessor. Used to make \program{plld} a replacement for
+Invoke the C preprocessor. Used to make \program{swipl-ld} a replacement for
 the C or C++ compiler.
 
     \cmdlineoptionitem{-pl-options}{,\ldots}
@@ -3052,7 +3052,7 @@ Select verbose operation, showing the various programs and their options.
     \cmdlineoptionitem{-o}{outfile}
 Reserved to specify the final output file.
     \cmdlineoptionitem*{-l}{library}
-Specifies a library for the C-compiler.  By default, \clib{-lpl}
+Specifies a library for the C-compiler.  By default, \clib{-lswipl}
 (Win32: libpl.lib) and the libraries needed by the Prolog kernel are given.
     \cmdlineoptionitem*{-L}{library-directory}
 Specifies a library directory for the C-compiler.  By default the
@@ -3062,7 +3062,7 @@ is passed.
 		       \cmdlineoption{-I\arg{include-directory}} \bnfor{}
 		       \cmdlineoption{-D\arg{definition}}}{}
 These options are passed to the C-compiler.  By default, the include
-directory containing \file{SWI-Prolog.h} is passed.  \program{plld} adds
+directory containing \file{SWI-Prolog.h} is passed.  \program{swipl-ld} adds
 two additional \argoption*{-D}{def} flags:
 \begin{description}
 \cmdlineoptionitem*{-D}{\const{__SWI_PROLOG__}}
@@ -3160,7 +3160,7 @@ main(int argc, char **argv)
 The application is now created using the following command-line:
 
 \begin{code}
-% plld -o calc calc.c calc.pl
+% swipl-ld -o calc calc.c calc.pl
 \end{code}
 
 \noindent
@@ -3259,11 +3259,9 @@ install()
 \begin{code}
 % gcc -I/usr/local/lib/pl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
-% pl
+% swipl
 Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
+...
 
 1 ?- load_foreign_library(lowercase).
 
@@ -3343,7 +3341,7 @@ valgrind can deal with code loaded through dlopen().
 
 The \program{callgrind} tool can be used to profile foreign code loaded
 under SWI-Prolog. Compile the foreign library adding \cmdlineoption{-g}
-option to \program{gcc} or \program{plld}. By setting the environment
+option to \program{gcc} or \program{swipl-ld}. By setting the environment
 variable \env{VALGRIND} to \const{yes}, SWI-Prolog will \emph{not}
 release loaded shared objects using dlclose(). This trick is required to
 get source information on the loaded library. Without, valgrind claims

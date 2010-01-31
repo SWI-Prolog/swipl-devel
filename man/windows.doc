@@ -299,9 +299,9 @@ produced by MSVC and the generated saved-state.
 \end{code}
 
 
-\subsection{Using plld.exe}
+\subsection{Using swipl-ld.exe}
 
-The \program{plld.exe} automates most of the above complications and
+The \program{swipl-ld.exe} automates most of the above complications and
 provides compatibility for common tasks on many platforms supported
 by SWI-Prolog.  To use it with MSVC, set the PATH, INCLUDE and LIB
 environment to find the DevStudio tools, headers and libraries as
@@ -309,13 +309,13 @@ well as the Prolog ones described above. Now, an extension
 \file{myext.dll} is created from the source \file{myext.c} using
 
 \begin{code}
-> plld -shared -o myext myext.c
+> swipl-ld -shared -o myext myext.c
 \end{code}
 
 An embedded executable is created from C, C++ and Prolog files using
 
 \begin{code}
-> plld -o myexe file.c ... file.pl ...
+> swipl-ld -o myexe file.c ... file.pl ...
 \end{code}
 
 
@@ -372,7 +372,7 @@ probably be synchronised in the future.
 \hline
 \multicolumn{2}{|c|}{Utilities} \\
 \hline
-\verb$bin\plld.exe$	& Linker front-end to make single-file mixed
+\verb$bin\swipl-ld.exe$	& Linker front-end to make single-file mixed
 			  Prolog/C/C++ executables. \\
 \verb$bin\plrc.exe$	& Manipulate Prolog resource files. \\
 \hline
