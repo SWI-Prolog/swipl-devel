@@ -37,7 +37,7 @@ DOC=ssl
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
-RUNTEX=@RUNTEX@
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
@@ -100,7 +100,7 @@ uninstall::
 
 servercert:
 	openssl x509 -inform PEM -text -noout -in etc/server/server-cert.pem
- 
+
 clientcert:
 	openssl x509 -inform PEM -text -noout -in etc/client/client-cert.pem
 
