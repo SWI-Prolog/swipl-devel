@@ -22,9 +22,10 @@ SUDO=
 
 # [EDIT] Version of make  to  use.  This   must  be  GNU-make.  On  many
 # proprietary Unix systems this is installed   as  'gmake'. On most open
-# systems make is GNU-make. In you have  multi-core hardware you can use
-# 'make  -j'  to  build  the  system    faster   using  all  your  cores
-# (experimental).
+# systems make is GNU-make. You can   use  'make --jbobs=<max>' to build
+# the system faster using all your cores.   The  optimal value depends a
+# lot on your hardware. Using  4  jobs   on  a  dual-core machines seems
+# enough to keep both cores busy. (experimental).
 
 MAKE=make
 # MAKE='make --jobs=4'
@@ -84,17 +85,28 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 
 # [EDIT] Extra options to pass to the toplevel configure.
 
-# [EDIT] Using --link, the system is installed using symbolic links.
-# This means you cannot remove or clean the sources, but it largely
-# simplifies editing the system Prolog files during development.
+# --link
+# Using --link, the system is installed using symbolic links. This means
+# you cannot remove or clean  the   sources,  but  it largely simplifies
+# editing the system Prolog files during development.
 #
-# The config --enable-useprofile exploits GCC -fprofile-use option.
-# The system is compiled, profiled and re-compiled to get better
-# branch-prediction.  This makes the system approx. 10% faster.
-# Do not use this for developing the kernel because it complicates
-# maintenance.
-# EXTRACFG="--link"
-# EXTRACFG="--enable-useprofile"
+# --enable-useprofile
+# The config --enable-useprofile exploits GCC  -fprofile-use option. The
+# system  is  compiled,  profiled   and    re-compiled   to  get  better
+# branch-prediction. This makes the system approx.   10%  faster. Do not
+# use this for developing the kernel because it complicates maintenance.
+#
+# --disable-libdirversion
+# By default, the system is  installed in $libdir/swipl-<version>. Using
+# this option drops <version>. Using versions,  you can install multiple
+# versions side-by-site and run old  versions   at  any time by starting
+# $libdir/swipl-<version>/bin/$arch/swipl. Without, the system is always
+# at a nice stable place, so external foreign objects linked against the
+# binary need not be updated with a Prolog update.
+#
+# EXTRACFG+=" --link"
+# EXTRACFG+=" --enable-useprofile"
+# EXTRACFG+=" --disable-libdirversion"
 
 ################################################################
 # No edit should be needed below this line
