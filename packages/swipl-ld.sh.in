@@ -9,8 +9,8 @@
 
 BUILDDIR=@BUILDDIR@
 srcdir=`echo @srcdir@ | sed 's=/../packages=='`
-ARCH=@RT@@ARCH@
-PL=@PL@@RT@
+ARCH=@ARCH@
+PL=@PL@
 bdir=$srcdir/../$BUILDDIR
 ldir=$srcdir/../lib/$ARCH
 
@@ -21,4 +21,4 @@ else
 fi
 export @DLLIBVAR@
 
-$bdir/plld -pl $bdir/$PL "$@"
+$bdir/swipl-ld -pl $bdir/$PL "$@"

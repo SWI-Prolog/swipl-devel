@@ -41,7 +41,7 @@ install:	$(LIBPL) xpce-install
 		$(PL) -f none -g make -t halt
 
 ln-install::
-		@$(MAKE) INSTALL_DATA=../../ln-install install
+		@$(MAKE) INSTALL_DATA=../ln-install install
 
 xpce-install:	$(XPCEPL)
 		if [ -d $(DESTDIR)$(XPCEBASE) ]; then \

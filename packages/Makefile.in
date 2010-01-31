@@ -12,9 +12,7 @@
 
 PKG=	clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib
 
-# Define additional config options.  If you wish to build the multi-threaded
-# version of SWI-Prolog and pl-mt to the same install-base, you must provide
-# --enable-mt here.
+# Define additional config options shared by all packages here.
 
 CNFG=@CNFG@
 
@@ -28,7 +26,7 @@ MAKE=@MAKE@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
-PL=@PL@@RT@
+PL=@PL@
 PLVERSION=@PLVERSION@
 PLBASE=@libdir@/@PL@-$(PLVERSION)
 PKGDOC=$(PLBASE)/doc/packages
@@ -85,8 +83,8 @@ install::
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
@@ -94,7 +92,7 @@ rpm-install: html-install
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
+	./swipl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
 
 pdf-install::
 	for p in $(PKG); do \
@@ -113,8 +111,8 @@ ln-install::
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 configure::
 	@echo "**********************"
@@ -138,7 +136,7 @@ distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
-	rm -f pl.sh plld.sh
+	rm -f swipl.sh swipl-ld.sh
 	rm -f Makefile configure
 
 clean::

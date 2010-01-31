@@ -17,4 +17,4 @@ export @DLLIBVAR@
 XPCEHOME=$PCEHOME
 export XPCEHOME
 
-@PLBUILD@ -F none -f $PCEHOME/pl/src/plrc "$@"
+@PLBUILD@ -F none -f $PCEHOME/pl/src/swipl-rc "$@"

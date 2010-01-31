@@ -182,6 +182,7 @@ MANINDEX=../man/reference/index.obj
 # MAIN TARGETS
 ################################################################
 
+.PHONY: all banner xpce-pl
 all:		banner ./xpce-install @ALLTARGET@
 
 everything:	proto tags xpce-pl
@@ -194,7 +195,7 @@ banner:
 		@echo "Making XPCE $(VERSION) for $(ARCH)-$(OS)"
 		@echo "****************"
 
-.PHONY: xpce
+.PHONY:		xpce prepare libXPCE
 xpce:		prepare libXPCE xpce-client
 
 xpce-pl:	xpce pl-itf
@@ -223,7 +224,7 @@ pl:
 $(MANINDEX):	$(shell find ../man/reference -name '*.doc')
 		-./xpce.sh \
 		  -F none \
-		  -f ../pl/src/plrc \
+		  -f ../pl/src/swipl-rc \
 		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
 		  -t halt
 
@@ -244,6 +245,7 @@ SONAMEFLAG=	@SONAMEFLAG@
 MKSOFLAGS=	$(LDSOFLAGS) @SOWHOLEARCHIVE@ -L$(XLIB)
 SOLIBS=		$(SOEXTRAOBJ) libXPCE.a $(GCCLIB) $(XLIBS) $(NETLIBS) -lm
 
+.PHONY:		so
 so:		$(LIBXPCESO) $(LIBXPCEMAIN)
 
 so-clean:
@@ -703,14 +705,17 @@ DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons lib/trace/icons/16x16 \
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog
 RTMISC=		Defaults Defaults.user COPYING README
-
-install:	dv-install
-
-rt-install:	$(INSTALL) rt-home rt-misc rt-bitmaps rt-bins rt-link
-
-dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
+DVINSTALL=	rt-install dv-home dv-lib dv-boot dv-help \
 	        rt-link dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins dv-online dv-classindex
+RTINSTALL=	home rt-misc rt-bitmaps rt-bins rt-link
+
+.PHONY:		install dv-install $(DVINSTALL) $(RTINSTALL)
+install:	dv-install
+
+rt-install:	$(INSTALL) $(RTINSTALL)
+
+dv-install:	$(DVINSTALL)
 
 rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help rt-link dv-link dv-pl-files dv-manual dv-man \
@@ -724,8 +729,9 @@ rpm-link::
 
 # ln-install installs the system by creating a link from the installed
 # Prolog to the XPCE build-tree. Such installations enable development
-# of xpce considerably using the normal IDE tools.
+# of xpce using the normal IDE tools.
 
+.PHONY:		ln-install link-dev-tree dv-link dv-qlf-clean
 ln-install:	$(INSTALL) link-dev-tree dv-link dv-qlf-clean \
 		dv-qlf manindex ln-classindex
 
@@ -858,14 +864,14 @@ rt-link:
 		cd $(DESTDIR)$(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
 
 dv-link::
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/$(PLNAME).rc
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/xpce.rc
+		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(PLBASE)/$(PLNAME).rc
+		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(PLBASE)/Makefile
 
 dv-pl-files:	rt-home
 		if [ ! -d $(DESTDIR)$(RTHOME)/pl ]; then mkdir $(DESTDIR)$(RTHOME)/pl; fi
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/pl.rc
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/xpce.rc
+		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(RTHOME)/pl/swipl.rc
+		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(RTHOME)/pl/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(RTHOME)/pl/Makefile
 
 # (for now) only build the quick load files if we actually install into

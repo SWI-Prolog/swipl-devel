@@ -182,6 +182,9 @@ if test "$swipl" != "no"; then
          eval `$PL -dump-runtime-variables`
 	 PLBUILD="$PL"
 	 PLLD=swipl-ld
+	 if test "x$PLTHREADS" = xyes; then
+	     MT=true
+	 fi
      else
          PLLD="`(cd ../.. && pwd)`/swipl-ld.sh"
          PLBUILD="`(cd ../.. && pwd)`/swipl.sh"

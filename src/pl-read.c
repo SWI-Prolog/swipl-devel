@@ -906,7 +906,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { IOPOS p, *pp;
+		    { IOPOS p = {0};	/* silence the compiler */
+		      IOPOS *pp;
 		      if ( (pp=rb.stream->position) )
 			p = *pp;
 
