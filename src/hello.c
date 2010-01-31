@@ -26,8 +26,8 @@
 Very small test and demo to check the foreign interface. After
 installing SWI-Prolog, run
 
-	% plld -o hello -shared hello.c
-	% pl
+	% swipl-ld -o hello -shared hello.c
+	% swipl
 	?- load_foreign_library(hello).
 	?- hello(world).
 	Hello World

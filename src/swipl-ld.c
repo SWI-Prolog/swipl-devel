@@ -23,8 +23,8 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is the source-file for  plld,   the  SWI-Prolog linker for embedded
-applications. See plld(1) for details.  Feel   free  to comment and send
+This is the source-file for  swipl-ld,   the  SWI-Prolog linker for embedded
+applications. See swipl-ld(1) for details.  Feel   free  to comment and send
 contributions.
 
 The    file    pl-extend.c,    copied    by    the    installation    to
@@ -581,7 +581,7 @@ static void
 usage()
 { fprintf(stderr,
 	  "SWI-Prolog linker utility\n"
-	  "plld comes with ABSOLUTELY NO WARRANTY. This is free software,\n"
+	  "swipl-ld comes with ABSOLUTELY NO WARRANTY. This is free software,\n"
 	  "and you are welcome to redistribute it under certain conditions.\n"
 	  "Please visit http://www.swi-prolog.org for details.\n\n"
 	  "usage: %s -help\n"
@@ -1534,7 +1534,7 @@ main(int argc, char **argv)
     special = 2;
   else
     special = 0;
-					/* plld [-pl x] -E ...: behave as cpp */
+					/* swipl-ld [-pl x] -E ...: behave as cpp */
   if ( argc-special > 0 && streq(argv[special], "-E") )
   { arglist cppoptions;
     int i;
@@ -1547,7 +1547,7 @@ main(int argc, char **argv)
 
     return 0;
   }
-					  /* plld [-pl x] -v: verbose */
+					  /* swipl-ld [-pl x] -v: verbose */
   if ( argc-special == 1 && streq(argv[special], "-v") )
   { arglist coptions;
     int i;

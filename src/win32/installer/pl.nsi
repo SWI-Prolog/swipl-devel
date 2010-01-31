@@ -445,8 +445,8 @@ Section "C/C++ Interface"
   SetOutPath $INSTDIR
   File /r pl\include
   SetOutPath $INSTDIR\bin
-  File pl\bin\plld.exe
-  File pl\bin\plrc.exe
+  File pl\bin\swipl-ld.exe
+  File pl\bin\swipl-rc.exe
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\pl2cpp.html
 SectionEnd

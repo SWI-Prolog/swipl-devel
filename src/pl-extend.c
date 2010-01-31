@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
 
@@ -43,12 +43,12 @@ In the latter case, proceed as follows:
   4) Normally #undef READLINE (above), unless your embedded version
      provided access to the Prolog toplevel for which you want to
      use readline.
-  5) Use plld(1) to link this file, and possible Prolog sources to
+  5) Use swipl-ld(1) to link this file, and possible Prolog sources to
      a single executable:
 
-	plld -o myprog myprog.c myprog.pl
+	swipl-ld -o myprog myprog.c myprog.pl
 
-     See man plld and/or the SWI-Prolog manuals for further details.
+     See man swipl-ld and/or the SWI-Prolog manuals for further details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static const PL_extension predicates[] =

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,8 +25,8 @@
 #ifndef _FLI_H_INCLUDED
 #define _FLI_H_INCLUDED
 
-#ifndef __SWI_PROLOG__		/* use this to switch on Prolog dialect */
-#define __SWI_PROLOG__		/* normally defined by the plld compiler driver */
+#ifndef __SWI_PROLOG__	/* use this to switch on Prolog dialect */
+#define __SWI_PROLOG__	/* normally defined by the swipl-ld compiler driver */
 #endif
 
 #if defined(_MSC_VER) && !defined(__WINDOWS__)

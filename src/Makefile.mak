@@ -36,9 +36,9 @@ PLHOME=..
 PL=pl
 PLCON=$(PLHOME)\bin\plcon.exe
 PLWIN=$(PLHOME)\bin\plwin.exe
-PLLD=$(PLHOME)\bin\plld.exe
-PLRC=$(PLHOME)\bin\plrc.exe
-PLDLL=$(PLHOME)\bin\libpl.dll
+PLLD=$(PLHOME)\bin\swipl-ld.exe
+PLRC=$(PLHOME)\bin\swipl-rc.exe
+PLDLL=$(PLHOME)\bin\swipl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
 OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
 
@@ -117,7 +117,6 @@ lite:	banner \
 
 plcon:	$(PLCON)
 plwin:	$(PLWIN)
-plld:	$(PLLD)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
@@ -202,8 +201,8 @@ defatom.exe:	defatom.obj
 mkvmi.exe:	mkvmi.obj
 		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
 
-$(PLLD):	plld.obj
-		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
+$(PLLD):	swipl-ld.obj
+		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
 		$(MTEXE) -manifest $(PLLD).manifest -outputresource:$(PLLD);1
 
 tags:		TAGS

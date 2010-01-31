@@ -46,7 +46,7 @@ The SWI-Prolog kernel and our foreign libraries are distributed under
 the %href(lgpl, Lesser GNU Public License), also called the
 \textbf{LGPL}. A Prolog executable consists of the combination of these
 `native' code components and Prolog virtual machine code. The SWI-Prolog
-\program{plrc} utility allows for disassembling and re-assembling these
+\program{swipl-rc} utility allows for disassembling and re-assembling these
 parts, a process satisfying article \textbf{6b} of the LGPL.
 
 Under the LGPL SWI-Prolog can be linked to code distributed under
