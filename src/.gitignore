@@ -1,10 +1,10 @@
 parms.h
-pl
-pl.1
-pl.prc
-pl.pc
-plld
-rc/plrc
+swipl
+swipl.1
+swipl.prc
+swipl.pc
+swipl-ld
+rc/swipl-rc
 pl-atom.ic
 pl-atom.ih
 pl-funct.ic
