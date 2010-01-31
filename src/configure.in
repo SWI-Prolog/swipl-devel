@@ -689,7 +689,7 @@ case "$ARCH" in
 	;;
 esac
 
-if test ! "$runtime" = "yes" -a "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
+if test -a "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
 
   if test ! -z "$RLPREFIX"; then
     AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)

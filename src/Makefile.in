@@ -504,32 +504,6 @@ html-install::
 		fi
 
 #
-# runtime-only environment installation
-#
-
-RTHOME=		$(DESTDIR)$(libdir)/$(PLV)
-RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
-		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
-
-rt-install:
-		@echo "****************"
-		@echo "Creating runtime environment in $(RTHOME)"
-		@echo "****************"
-		@for d in $(RTDIRS); do \
-		    if [ ! -d $$d ]; then \
-			echo $(MKDIR) $$d; \
-			$(MKDIR) $$d; \
-		    fi; \
-		done
-		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/$(PL)
-		$(INSTALL_DATA) pl.1 $(RTHOME)/man/$(PL).1
-		echo . > $(RTHOME)/swipl.home
-		echo .. > $(RTHOME)/bin/swipl.home
-		$(INSTALL_DATA) ../README.RT $(RTHOME)
-		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
-		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
-
-#
 # Cleanup
 #
 
