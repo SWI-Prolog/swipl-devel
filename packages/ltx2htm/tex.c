@@ -114,7 +114,7 @@ typedef struct _token *Token;
 typedef struct _input *Input;
 typedef struct _output *Output;
 
-typedef void (*CallBack)(Token token, void *context);
+typedef int (*CallBack)(Token token, void *context);
 typedef void (*CmdFunc)(Command cmd, Input fd, CallBack func, void *ctx);
 typedef void (*EnvFunc)(Environment cmd, Input fd, CallBack func, void *ctx);
 typedef void *AnyFunc;
@@ -174,7 +174,7 @@ typedef struct _input
 
 static Input	curin;			/* current input (file) */
 
-static void cmd_prolog(Command g, Input fd, CallBack func, void *ctx);
+static int cmd_prolog(Command g, Input fd, CallBack func, void *ctx);
 
 		 /*******************************
 		 *	       TOKENS		*
@@ -1761,7 +1761,7 @@ main(int argc, char **argv)
 
 #include <SWI-Prolog.h>
 
-static void build_list(Token t, void *context);
+static int build_list(Token t, void *context);
 
 typedef struct
 { term_t list;				/* list we are working on */
@@ -1922,18 +1922,18 @@ pl_put_tex_token(term_t term)
       }
 
       if ( ismod )
-      { PL_get_arg(2, term, arg);
+      { _PL_get_arg(2, term, arg);
 	if ( PL_get_atom(arg, &atom) && atom == ATOM_star )
 	{ if ( isenv )
 	    e.flags |= CMD_MODIFY;
 	  else
 	    g.flags |= CMD_MODIFY;
 	}
-	PL_get_arg(3, term, alist);
+	_PL_get_arg(3, term, alist);
       } else
-	PL_get_arg(2, term, alist);
+	_PL_get_arg(2, term, alist);
 
-      PL_get_arg(1, term, arg);
+      _PL_get_arg(1, term, arg);
       if ( PL_get_atom_chars(arg, &cname) )
       { int n;
 	term_t a2 = PL_new_term_ref();
@@ -2023,31 +2023,34 @@ pl_tex_atom_to_tokens(term_t txt, term_t tokens)
 
 
 
-static void
+static int
 build_arguments(term_t alist, int nargs, CmdArg argspec, char **args)
 { int ga = 0;				/* goal argument */
   term_t tmp = PL_new_term_ref();
 
   for( ; ga < nargs; ga++ )
-  { PL_unify_list(alist, tmp, alist);
+  { int rc;
+
+    if ( !PL_unify_list(alist, tmp, alist) )
+      return FALSE;
 
     if ( argspec[ga].flags & CA_OPTIONAL )
     { if ( args[ga] == NULL )
-      { PL_unify_atom(tmp, ATOM_nil);
+      { rc = PL_unify_atom(tmp, ATOM_nil);
       } else
       { if ( argspec[ga].flags & CA_TEXT )
 	{ term_t arg = PL_new_term_ref();
 
 	  tex2pl_from_string(args[ga], arg);
-	  PL_unify_term(tmp,		/* [text] */
-			PL_FUNCTOR, FUNCTOR_dot2,
-			PL_TERM,    arg,
-			PL_ATOM,    ATOM_nil);
+	  rc = PL_unify_term(tmp,		/* [text] */
+			     PL_FUNCTOR, FUNCTOR_dot2,
+			     PL_TERM,    arg,
+			     PL_ATOM,    ATOM_nil);
 	} else
-	{ PL_unify_term(tmp,		/* [text] */
-			PL_FUNCTOR, FUNCTOR_dot2,
-			PL_CHARS,   args[ga],
-			PL_ATOM,    ATOM_nil);
+	{ rc = PL_unify_term(tmp,		/* [text] */
+			     PL_FUNCTOR, FUNCTOR_dot2,
+			     PL_CHARS,   args[ga],
+			     PL_ATOM,    ATOM_nil);
 	}
       }
     } else
@@ -2055,19 +2058,22 @@ build_arguments(term_t alist, int nargs, CmdArg argspec, char **args)
       { term_t arg = PL_new_term_ref();
 
 	tex2pl_from_string(args[ga], arg);
-	PL_unify_term(tmp,		/* {text} */
-		      PL_FUNCTOR, FUNCTOR_brace1,
-		      PL_TERM,   arg);
+	rc = PL_unify_term(tmp,		/* {text} */
+			   PL_FUNCTOR, FUNCTOR_brace1,
+			   PL_TERM,   arg);
 
       } else
-      { PL_unify_term(tmp,		/* {text} */
-		      PL_FUNCTOR, FUNCTOR_brace1,
-		      PL_CHARS,   args[ga]);
+      { rc = PL_unify_term(tmp,		/* {text} */
+			   PL_FUNCTOR, FUNCTOR_brace1,
+			   PL_CHARS,   args[ga]);
       }
     }
+
+    if ( !rc )
+      return rc;
   }
 
-  PL_unify_nil(alist);
+  return PL_unify_nil(alist);
 }
 
 
@@ -2080,7 +2086,7 @@ popStack(PlContext ctx)
 }
 
 
-static void
+static int
 build_list(Token t, void *context)
 { PlContext ctx = context;
 
@@ -2088,8 +2094,7 @@ build_list(Token t, void *context)
 
   switch(t->type)
   { case TOK_EOF:
-      PL_unify_nil(ctx->list);
-      return;
+      return PL_unify_nil(ctx->list);
     case TOK_SPACE:
     case TOK_LINE:
       if ( !emit_space )
@@ -2101,20 +2106,23 @@ build_list(Token t, void *context)
 	 (ctx->prev_type1 != TOK_WORD || t->type != TOK_WORD) )
     { atom_t a = (ctx->prev_type0 == TOK_SPACE ? ATOM_space : ATOM_nl);
 
-      PL_unify_list(ctx->list, ctx->head, ctx->list);
-      PL_unify_atom(ctx->head, a);
+      if ( !PL_unify_list(ctx->list, ctx->head, ctx->list) ||
+	   !PL_unify_atom(ctx->head, a) )
+	return FALSE;
     }
   }
 
   switch(t->type)
   { case TOK_END_GROUP:
     case TOK_END_ENV:
-      PL_unify_nil(ctx->list);
+      if ( !PL_unify_nil(ctx->list) )
+	return FALSE;
       popStack(ctx);
       goto out;
   }
 
-  PL_unify_list(ctx->list, ctx->head, ctx->list);
+  if ( !PL_unify_list(ctx->list, ctx->head, ctx->list) )
+    return FALSE;
 
   switch(t->type)
   { case TOK_BEGIN_ENV:
@@ -2122,26 +2130,31 @@ build_list(Token t, void *context)
       atom_t modified = (e->flags & CMD_MODIFY ? ATOM_star : ATOM_minus);
       term_t clist    = PL_new_term_ref();
       term_t alist    = PL_new_term_ref();
+      int rc;
 
       if ( e->environment->flags & CMD_MODIFY )
-      { PL_unify_term(ctx->head,
-		      PL_FUNCTOR, FUNCTOR_env4,
-		      PL_CHARS,   e->environment->name,
-		      PL_ATOM,	  modified,
-		      PL_TERM,	  alist,
-		      PL_TERM,	  clist);
+      { rc = PL_unify_term(ctx->head,
+			   PL_FUNCTOR, FUNCTOR_env4,
+			   PL_CHARS,   e->environment->name,
+			   PL_ATOM,	  modified,
+			   PL_TERM,	  alist,
+			   PL_TERM,	  clist);
       } else
-      { PL_unify_term(ctx->head,
-		      PL_FUNCTOR, FUNCTOR_env3,
-		      PL_CHARS,   e->environment->name,
-		      PL_TERM,	  alist,
-		      PL_TERM,	  clist);
+      { rc = PL_unify_term(ctx->head,
+			   PL_FUNCTOR, FUNCTOR_env3,
+			   PL_CHARS,   e->environment->name,
+			   PL_TERM,	  alist,
+			   PL_TERM,	  clist);
       }
 
-      build_arguments(alist,		/* environment arguments */
-		      e->environment->arg_count,
-		      e->environment->arguments,
-		      e->arguments);
+      if ( rc )
+	rc = build_arguments(alist,	/* environment arguments */
+			     e->environment->arg_count,
+			     e->environment->arguments,
+			     e->arguments);
+
+      if ( !rc )
+	return FALSE;
 
       PL_reset_term_refs(alist);
 					/* contents of the environment */
@@ -2156,33 +2169,35 @@ build_list(Token t, void *context)
     { Command g       = t->value.cmd;
       term_t alist    = PL_new_term_ref();
       term_t modified = (g->flags & CMD_MODIFY ? ATOM_star : ATOM_minus);
+      int rc;
 
       if ( g->command->flags & CMD_MODIFY )
-      { PL_unify_term(ctx->head,
-		      PL_FUNCTOR, FUNCTOR_cmd3,
-		      PL_CHARS,   g->command->name,
-		      PL_ATOM,	  modified,
-		      PL_TERM,	  alist);
+      { rc = PL_unify_term(ctx->head,
+			   PL_FUNCTOR, FUNCTOR_cmd3,
+			   PL_CHARS,   g->command->name,
+			   PL_ATOM,	  modified,
+			   PL_TERM,	  alist);
       } else
       { if ( g->command->arg_count == 0 )
-	{ PL_unify_term(ctx->head,
-			PL_FUNCTOR, FUNCTOR_cmd1,
-			PL_CHARS,   g->command->name);
+	{ rc = PL_unify_term(ctx->head,
+			     PL_FUNCTOR, FUNCTOR_cmd1,
+			     PL_CHARS,   g->command->name);
 	  PL_reset_term_refs(alist);
 
 	  break;
 	} else
-	{ PL_unify_term(ctx->head,
-			PL_FUNCTOR, FUNCTOR_cmd2,
-			PL_CHARS,   g->command->name,
-			PL_TERM,    alist);
+	{ rc = PL_unify_term(ctx->head,
+			     PL_FUNCTOR, FUNCTOR_cmd2,
+			     PL_CHARS,   g->command->name,
+			     PL_TERM,    alist);
 	}
       }
 
-      build_arguments(alist,
-		      g->command->arg_count,
-		      g->command->arguments,
-		      g->arguments);
+      if ( rc )
+	rc = build_arguments(alist,
+			     g->command->arg_count,
+			     g->command->arguments,
+			     g->arguments);
 
       PL_reset_term_refs(alist);
       break;
@@ -2194,44 +2209,53 @@ build_list(Token t, void *context)
       ctx->list = PL_copy_term_ref(ctx->head);
       break;
     case TOK_MATH:
-      PL_unify_term(ctx->head,
-		    PL_FUNCTOR, FUNCTOR_math1,
-		    PL_STRING,  t->value.string);
+      if ( !PL_unify_term(ctx->head,
+			  PL_FUNCTOR, FUNCTOR_math1,
+			  PL_STRING,  t->value.string) )
+	return FALSE;
       break;
     case TOK_MATH_ENV:
-      PL_unify_term(ctx->head,
-		    PL_FUNCTOR, FUNCTOR_mathenv1,
-		    PL_STRING,  t->value.string);
+      if ( !PL_unify_term(ctx->head,
+			  PL_FUNCTOR, FUNCTOR_mathenv1,
+			  PL_STRING,  t->value.string) )
+	return FALSE;
       break;
     case TOK_VERB:
-      PL_unify_term(ctx->head,
-		    PL_FUNCTOR, FUNCTOR_verb2,
-		    PL_CHARS,	t->context,
-		    PL_STRING,  t->value.string);
+      if ( !PL_unify_term(ctx->head,
+			  PL_FUNCTOR, FUNCTOR_verb2,
+			  PL_CHARS,   t->context,
+			  PL_STRING,  t->value.string) )
+	return FALSE;
       break;
     case TOK_VERBATIM:
-      PL_unify_term(ctx->head,
-		    PL_FUNCTOR, FUNCTOR_verbatim2,
-		    PL_CHARS,	t->context,
-		    PL_STRING,  t->value.string);
+      if ( !PL_unify_term(ctx->head,
+			  PL_FUNCTOR, FUNCTOR_verbatim2,
+			  PL_CHARS,   t->context,
+			  PL_STRING,  t->value.string) )
+	return FALSE;
       break;
     case TOK_PAR:
-      PL_unify_term(ctx->head,
-		    PL_FUNCTOR, FUNCTOR_cmd1,
-		    PL_ATOM,	ATOM_par);
+      if ( !PL_unify_term(ctx->head,
+			  PL_FUNCTOR, FUNCTOR_cmd1,
+			  PL_ATOM,	ATOM_par) )
+	return FALSE;
       break;
     case TOK_WORD:
-      PL_unify_atom_chars(ctx->head, t->value.string);
+      if ( !PL_unify_atom_chars(ctx->head, t->value.string) )
+	return FALSE;
       break;
     case TOK_SPACE:
     case TOK_LINE:
-      PL_unify_atom(ctx->head, ATOM_space);
+      if ( !PL_unify_atom(ctx->head, ATOM_space) )
+	return FALSE;
       break;
   }
 
 out:
   ctx->prev_type1 = ctx->prev_type0;
   ctx->prev_type0 = t->type;
+
+  return TRUE;
 }
 
 
@@ -2239,42 +2263,49 @@ out:
 Calls tex:prolog_function(cmd([Star], [Args]))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 cmd_prolog(Command g, Input fd, CallBack func, void *ctx)
 { fid_t  f        = PL_open_foreign_frame();
   term_t t0       = PL_new_term_ref();
   term_t alist    = PL_new_term_ref();
   term_t modified = (g->flags & CMD_MODIFY ? ATOM_star : ATOM_minus);
   predicate_t p   = PL_predicate("prolog_function", 1, "tex");
+  int rc;
 
   if ( g->command->flags & CMD_MODIFY )
-  { PL_unify_term(t0,
-		  PL_FUNCTOR, FUNCTOR_cmd3,
-		  PL_CHARS,   g->command->name,
-		  PL_ATOM,    modified,
-		  PL_TERM,    alist);
+  { rc = PL_unify_term(t0,
+		       PL_FUNCTOR, FUNCTOR_cmd3,
+		       PL_CHARS,   g->command->name,
+		       PL_ATOM,    modified,
+		       PL_TERM,    alist);
   } else
   { if ( g->command->arg_count == 0 )
-    { PL_unify_term(t0,
-		    PL_FUNCTOR, FUNCTOR_cmd1,
-		    PL_CHARS,   g->command->name);
+    { rc = PL_unify_term(t0,
+			 PL_FUNCTOR, FUNCTOR_cmd1,
+			 PL_CHARS,   g->command->name);
     } else
-    { PL_unify_term(t0,
-		    PL_FUNCTOR, FUNCTOR_cmd2,
-		    PL_CHARS,   g->command->name,
-		    PL_TERM,    alist);
+    { rc = PL_unify_term(t0,
+			 PL_FUNCTOR, FUNCTOR_cmd2,
+			 PL_CHARS,   g->command->name,
+			 PL_TERM,    alist);
     }
   }
 
-  build_arguments(alist,
-		  g->command->arg_count,
-		  g->command->arguments,
-		  g->arguments);
+  if ( rc )
+    rc = build_arguments(alist,
+			 g->command->arg_count,
+			 g->command->arguments,
+			 g->arguments);
+
+  if ( !rc )
+    return FALSE;
 
   PL_call_predicate(NULL, TRUE, p, t0);
   PL_discard_foreign_frame(f);
 
   cmd_normal(g, fd, func, ctx);
+
+  return TRUE;
 }
 
 
