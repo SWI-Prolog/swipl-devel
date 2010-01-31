@@ -62,7 +62,7 @@ a form defined by
 Defines formats are
 .BR sh " (default, bourne shell) and " cmd " (Windows CMD)" .
 This option is used by
-.B plld (1)
+.B swipl-ld (1)
 to fetch necessary information about Prolog.  It is normally invoked as
 .I eval `@PL@ -dump-runtime-variables`,
 which assigns the following shell variables:
@@ -83,11 +83,11 @@ The architecture identifier used.  Together with
 .B PLBASE
 this defines the location of various components.  For example,
 the library for embedding is in
-.B $PLBASE/runtime/$PLARCH/libpl.a
+.B $PLBASE/lib/$PLARCH/libswipl.a
 .TP
 .B PLLIBS
 The required libraries for linking
-.B libpl.a
+.B libswipl.a
 .TP
 .B PLCFLAGS
 Flags that need to be passed to the C-compiler to generate compatible

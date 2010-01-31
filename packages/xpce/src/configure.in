@@ -109,15 +109,9 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 			RTSUFFIX=rt ;;
 		   no)  runtime=no ;;
 	       esac])
-AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
-	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT, 1,
-				  "Define to prepare for multi-threading")
-			MT=true
-			;;
-		   *)   MT=false
-		        ;;
-	       esac])
+AC_ARG_ENABLE(mt, [  --disable-mt		  Disable Multi-threading],
+	      MT="$enableval",
+	      MT=true)
 
 
 if test ! -z "$CFLAGS"; then
@@ -182,9 +176,6 @@ if test "$swipl" != "no"; then
          eval `$PL -dump-runtime-variables`
 	 PLBUILD="$PL"
 	 PLLD=swipl-ld
-	 if test "x$PLTHREADS" = xyes; then
-	     MT=true
-	 fi
      else
          PLLD="`(cd ../.. && pwd)`/swipl-ld.sh"
          PLBUILD="`(cd ../.. && pwd)`/swipl.sh"
@@ -192,14 +183,18 @@ if test "$swipl" != "no"; then
   fi
   PLNAME=`basename $PL`
   if test "$swipl" = yes; then
+    if test "x$PLTHREADS" = xyes; then
+        MT=true
+    fi
     if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
-       MAKE_SHARED_OBJECT=yes
+        MAKE_SHARED_OBJECT=yes
     fi
     AC_MSG_RESULT("		PLBASE=$PLBASE")
     AC_MSG_RESULT("		PLARCH=$PLARCH")
     AC_MSG_RESULT("		PLLIBS=$PLLIBS")
     AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
     AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
+    AC_MSG_RESULT("		PLTHREADS=$PLTHREADS")
     AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
 
     case "$PLARCH" in
@@ -219,6 +214,8 @@ if test "$MT" = true; then
       *freebsd*)	AC_DEFINE(_THREAD_SAFE, 1,
 				  [Define for threaded code on FreeBSD])
 			;;
+      *)		AC_DEFINE(_REENTRANT, 1,
+				  "Define to prepare for multi-threading")
   esac
 fi
 

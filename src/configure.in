@@ -15,6 +15,7 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(PROGLDFLAGS)
 AC_SUBST(ARCH)
 AC_SUBST(PLSHARED)
+AC_SUBST(PLTHREADS)
 AC_SUBST(PL)
 AC_SUBST(RT)
 AC_SUBST(PLVERSION)
@@ -548,6 +549,7 @@ changequote(,)dnl
 USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
 changequote([,])dnl
 
+PLTHREADS=no
 if test "$MT" = "yes"; then
 pthread_ok=false
 
@@ -594,6 +596,7 @@ esac
   if test "$pthread_ok" = "true"; then
     AC_DEFINE(O_PLMT, 1,
 	      [Define to include support for multi-threading])
+    PLTHREADS=yes
   fi
 
   AC_CHECK_LIB(rt, sem_init)

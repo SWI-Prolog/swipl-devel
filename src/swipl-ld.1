@@ -1,17 +1,17 @@
 .TH SWI 1 "Feb 8, 2006"
 .SH NAME
-plld \- Create a SWI-Prolog embedded executable
+swipl-ld \- Create a SWI-Prolog embedded executable
 .SH SYNOPSIS
-.BR plld
+.BR swipl-ld
 .B "options c-files o-files pl-files
 .br
 .SH DESCRIPTION
 The utility
-.BI plld
+.BI swipl-ld
 is a front-end for the C-compiler and linker to create a stand-alone
 executable from a series of C/C++ and Prolog input files. It extracts
 information from the SWI-Prolog executable
-.B pl,
+.B swipl,
 after which it scans the arguments and breaks them into several
 categories.  It then calls the C-compiler to create an executable
 containing the user's C-code and the SWI-Prolog kernel.  After this,
@@ -26,7 +26,7 @@ from the
 .TP
 .BI \-pl " prolog"
 Specifies the prolog version to use.  The default is
-.BI pl.
+.BI swipl.
 This flag may be used to choose between different versions installed
 on your system, or to specify a modified version.  A modified version
 should understands the flags
@@ -52,14 +52,14 @@ dynamic loading is not supported on your system.
 .TP
 .B \-c
 Compile C or C++ source-files into object files.  This turns
-.B plld
+.B swipl-ld
 into a replacement for the C or C++ compiler where proper options such
 as the location of the include directory are passed automatically to the
 compiler.
 .TP
 .B \-E
 Invoke the C preprocessor.  Used to make
-.B plld
+.B swipl-ld
 a replacement for the C or C++ compiler.
 .TP
 .B \-shared
@@ -84,7 +84,7 @@ Backward compatibility.
 .BI \-F " base"
 By default,
 .I none
-is passed to the pl command to create the saved state.  Using
+is passed to the swipl command to create the saved state.  Using
 .I "\-F xpce"
 you can specify loading
 .IR xpce.rc ,
@@ -124,7 +124,7 @@ in the
 .BI \-v
 Verbose operation.  This echos the commands before executing them.
 Note that some commands are printed as shell commands, but actually
-executed by plld itself for compatibility with the Win32 platforms.
+executed by swipl-ld itself for compatibility with the Win32 platforms.
 .TP
 .BI \-f
 Fake operation.  Together with
@@ -167,7 +167,7 @@ platforms, the default is
 .TP
 .BI \-l "library"
 Specifies a C-library for linking the application.  By default,
-.BR \-lpl " (" \-lplmt " if " pl " supports threading)"
+.BR \-lswipl
 as well as the libraries required by the SWI-Prolog kernel will be
 passed to the C-compiler.
 .TP
@@ -178,11 +178,11 @@ default, the runtime directory for the current architecture is passed.
 .BI \-g|-I*|-D*|-U*|-O*|-W*
 Passed to the compiler as c-flags.  By default, the SWI-Prolog include
 directory is passed as additional include directory.  The following \-D
-flags are added by plld: \-D__SWI_PROLOG__ and \-D__SWI_EMBEDDED__.
+flags are added by swipl-ld: \-D__SWI_PROLOG__ and \-D__SWI_EMBEDDED__.
 .TP
 .BI \-pl-options*
 Specify additional options for
-.BI pl.
+.BI swipl.
 The first character following
 .BI \-pl-options
 determines the option-separator.  The remainder of the argument is
@@ -214,7 +214,7 @@ Passed as Prolog input files
 Parsing the options and distributing them over the various programs is
 probably incomplete. Feel free to modify it and please forward generally
 useful modifications to
-.BI prolog-bugs@swi.psy.uva.nl.
+.BI bugs@swi-prolog.org.
 
 Some care has to be taken that the state created with
 .BI qsave_program/2
@@ -223,10 +223,10 @@ Also, as the state is created using the development environment rather
 then the user's emulator, the Prolog code cannot use directives that
 rely on the C-code added by the user.
 .SH "SEE ALSO"
-.I pl(1)
+.I swipl(1)
 .I SWI-Prolog Reference Manual,
 .I http://www.swi-prolog.org
 .SH COPYRIGHT
-Copyright (C) 1991-2006, HCS, University of Amsterdam
+Copyright (C) 1991-2010, University of Amsterdam, VU University, Amsterdam
 .SH AUTHOR
 Jan Wielemaker

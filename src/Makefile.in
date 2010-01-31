@@ -485,12 +485,12 @@ ipkgconfig:	idirs
 iman::
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
 		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
-		-$(INSTALL_DATA) pl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
+		-$(INSTALL_DATA) swipl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(smandir)/swipl-rc.$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(smandir)/swipl-ld.$(mansec)
 
 install-lman:	idirs
-		$(INSTALL_DATA) pl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
+		$(INSTALL_DATA) swipl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/swipl-rc.1 $(DESTDIR)$(plmandir)/swipl-rc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/swipl-ld.1 $(DESTDIR)$(plmandir)/swipl-ld.$(mansec)
 
