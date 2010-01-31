@@ -5,6 +5,7 @@ AC_PREREQ([2.50])
 AC_CONFIG_HEADER(config.h)
 
 m4_include([../ac_swi_c.m4])
+PL=swipl				dnl HACK ...
 
 AC_CONFIG_COMMANDS([exe],
 		   [ chmod +x latex2html
