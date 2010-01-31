@@ -129,20 +129,27 @@ findHome(const char *symbols, int argc, const char **argv)
        (home = PrologPath(val, plp, sizeof(plp))) )
     return store_string(home);
 
-  if ( !(home = Getenv("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
-    home = Getenv("SWIPL", envbuf, sizeof(envbuf));
+#ifdef PLHOMEVAR_1
+  if ( !(home = Getenv(PLHOMEVAR_1, envbuf, sizeof(envbuf))) )
+  {
+#ifdef PLHOMEVAR_2
+    home = Getenv(PLHOMEVAR_2, envbuf, sizeof(envbuf));
+#endif
+  }
   if ( home &&
        (home = PrologPath(home, plp, sizeof(plp))) &&
        ExistsDirectory(home) )
     return store_string(home);
+#endif
 
+#ifdef PLHOMEFILE
   if ( (home = symbols) )
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
 
     strcpy(parent, DirName(DirName(AbsoluteFile(home, buf), buf), buf));
-    Ssprintf(buf, "%s/swipl", parent);
+    Ssprintf(buf, "%s/" PLHOMEFILE, parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
@@ -175,6 +182,7 @@ findHome(const char *symbols, int argc, const char **argv)
       Sclose(fd);
     }
   }
+#endif /*PLHOMEFILE*/
 
   if ( (home = PrologPath(PLHOME, plp, sizeof(plp))) &&
        ExistsDirectory(home) )

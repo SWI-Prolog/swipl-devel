@@ -102,3 +102,9 @@ portability.
 #ifndef DEFHEAP
 #define DEFHEAP     DEF_DEFHEAP
 #endif
+
+/* Parameters that control findHome() */
+
+#define PLHOMEVAR_1	"SWI_HOME_DIR"
+#define PLHOMEVAR_2	"SWIPL"
+#define PLHOMEFILE	"swipl.home"

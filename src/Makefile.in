@@ -383,8 +383,8 @@ install-arch:	idirs iruntime
 
 install-libs:	idirs iboot ilib iruntime iinclude ipkgconfig iman idot install-demo
 		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
-		echo . > $(DESTDIR)$(PLBASE)/swipl
-		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl
+		echo . > $(DESTDIR)$(PLBASE)/swipl.home
+		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl.home
 		$(DEVPL) -f none -F none \
 			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
 			-t halt
@@ -523,8 +523,8 @@ rt-install:
 		done
 		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/$(PL)
 		$(INSTALL_DATA) pl.1 $(RTHOME)/man/$(PL).1
-		echo . > $(RTHOME)/swipl
-		echo .. > $(RTHOME)/bin/swipl
+		echo . > $(RTHOME)/swipl.home
+		echo .. > $(RTHOME)/bin/swipl.home
 		$(INSTALL_DATA) ../README.RT $(RTHOME)
 		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
 		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
@@ -553,7 +553,7 @@ distclean:	clean profclean
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h version.h
-		rm -f $(DEVPL) swipl swiplbin $(STARTUPPATH)
+		rm -f $(DEVPL) swipl.home swiplbin $(STARTUPPATH)
 		rm -f $(PL) swipl-ld swipl.1 $(PL).exe swipl-ld.exe libswiplimp.a $(DEF)
 		rm -f config.log config.cache swipl.pc
 		rm -rf $(PACKAGE_TMPDIR)
