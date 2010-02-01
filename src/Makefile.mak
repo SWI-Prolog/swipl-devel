@@ -35,7 +35,7 @@ PLHOME=..
 
 PL=pl
 PLCON=$(PLHOME)\bin\swipl.exe
-PLWIN=$(PLHOME)\bin\plwin.exe
+PLWIN=$(PLHOME)\bin\swipl-win.exe
 PLLD=$(PLHOME)\bin\swipl-ld.exe
 PLRC=$(PLHOME)\bin\swipl-rc.exe
 PLDLL=$(PLHOME)\bin\swipl.dll

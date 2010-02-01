@@ -223,7 +223,7 @@ Section "Base system (required)"
 
   SetOutPath $INSTDIR\bin
   File pl\bin\swipl.exe
-  File pl\bin\plwin.exe
+  File pl\bin\swipl-win.exe
   File pl\bin\libpl.dll
   File pl\bin\plterm.dll
   File pl\bin\plregtry.dll
@@ -470,7 +470,7 @@ Section "XPCE graphics library"
   SetOutPath $INSTDIR
   Delete $INSTDIR\xpce\prolog\lib\pce_common.pl
   File /r pl\xpce
-  File pl\plwin.rc
+  File pl\swipl-win.rc
   SetOutPath $INSTDIR\bin
   File pl\bin\pl2xpce.dll
   File pl\bin\xpce-stub.exe
@@ -655,7 +655,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\odbc4pl.pdb
   File pl\bin\swipl.pdb
   File pl\bin\plterm.pdb
-  File pl\bin\plwin.pdb
+  File pl\bin\swipl-win.pdb
   File pl\bin\sgml2pl.pdb
   File pl\bin\socket.pdb
   File pl\bin\time.pdb
@@ -697,13 +697,13 @@ Section "Shell Extensions" SecShell
   StrCmp $0 "" 0 skipNSIAssoc
 	WriteRegStr HKCR "PrologFile" "" "Prolog Source"
 	WriteRegStr HKCR "PrologFile\shell" "" "open"
-	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\plwin.exe,0
+	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\swipl-win.exe,0
   skipNSIAssoc:
   ; OPEN
-  WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
+  WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\swipl-win.exe" "%1"'
   ; Bind `edit' to call PceEmacs
   WriteRegStr HKCR "PrologFile\shell\pceEmacs" "" "Open in PceEmacs"
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\plwin.exe" -g start_emacs,send(@(pce),show_console,iconic),send(@(emacs),show_buffer_menu)'
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\swipl-win.exe" -g start_emacs,send(@(pce),show_console,iconic),send(@(emacs),show_buffer_menu)'
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "" "edit %1"
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Application" "" "PceEmacs"
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Topic" "" "control"
@@ -711,7 +711,7 @@ Section "Shell Extensions" SecShell
   ; EDIT (these are not yet correct)
   ; CONSULT
   WriteRegStr HKCR "PrologFile\shell\consult" "" "Load Prolog Source"
-  WriteRegStr HKCR "PrologFile\shell\consult\command" "" '"$INSTDIR\bin\plwin.exe'
+  WriteRegStr HKCR "PrologFile\shell\consult\command" "" '"$INSTDIR\bin\swipl-win.exe'
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "" "consult('%1')"
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "Application" "prolog"
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "ifexec" ""
@@ -748,9 +748,9 @@ Section "Start Menu shortcuts"
     Delete "$SMPROGRAMS\${GRP}\XPCE.lnk"
   NoOldXPCE:
   CreateShortCut "$SMPROGRAMS\${GRP}\Prolog.lnk" \
-		 "$INSTDIR\bin\plwin.exe" \
+		 "$INSTDIR\bin\swipl-win.exe" \
 		 "--win_app" \
-		 "$INSTDIR\bin\plwin.exe" \
+		 "$INSTDIR\bin\swipl-win.exe" \
 		 0
   SetOutPath $INSTDIR
   CreateShortCut "$SMPROGRAMS\${GRP}\Readme.lnk" \
@@ -774,13 +774,13 @@ SectionEnd
 
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "make_library_index(swi(library)),halt"'
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "win_flush_filetypes,halt"'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "make_library_index(swi(library)),halt"'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "win_flush_filetypes,halt"'
 SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g wise_install_xpce,halt'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g wise_install_xpce,halt'
 SectionEnd
 
 ################################################################
@@ -821,7 +821,7 @@ Section "Uninstall"
     RMDir /r "$SMPROGRAMS\${GRP}"
   NoGrp:
 
-  IfFileExists "$INSTDIR\bin\plwin.exe" 0 NoDir
+  IfFileExists "$INSTDIR\bin\swipl-win.exe" 0 NoDir
     RMDir /r "$INSTDIR"
     goto Done
 

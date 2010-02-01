@@ -672,7 +672,7 @@ On Windows this is simply passed as below.   We have to analyse the file
 ourselves. Unfortunately this needs to be done  in C as it might contain
 stack-parameters.
 
-	{plwin.exe <file>}
+	{swipl-win.exe <file>}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef MAXLINE
