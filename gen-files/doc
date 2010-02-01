@@ -11,7 +11,7 @@
 ./packages/clib/clib.pdf
 ./packages/http/http.pdf
 ./packages/odbc/odbc.pdf
-./packages/sgml/RDF/rdf2pl.pdf
+./packages/RDF/rdf2pl.pdf
 ./packages/sgml/sgml.pdf
 ./packages/tipc/tipc.pdf
 ./packages/zlib/zlib.pdf
@@ -31,7 +31,7 @@
 ./packages/http/http.html
 ./packages/http/httpserver.gif
 ./packages/odbc/odbc.html
-./packages/sgml/RDF/rdf2pl.html
+./packages/RDF/rdf2pl.html
 ./packages/sgml/sgml.html
 ./packages/tipc/tipc.html
 ./packages/zlib/zlib.html

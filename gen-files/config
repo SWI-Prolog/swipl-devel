@@ -34,8 +34,8 @@ packages/pldoc/configure
 packages/plunit/configure
 packages/semweb/config.h.in
 packages/semweb/configure
-packages/sgml/RDF/config.h.in
-packages/sgml/RDF/configure
+packages/RDF/config.h.in
+packages/RDF/configure
 packages/sgml/config.h.in
 packages/sgml/configure
 packages/ssl/config.h.in
