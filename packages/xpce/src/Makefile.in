@@ -865,7 +865,6 @@ rt-link:
 
 dv-link::
 		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(PLBASE)/$(PLNAME).rc
-		$(INSTALL_DATA) ../pl/src/swipl-rc $(DESTDIR)$(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(PLBASE)/Makefile
 
 dv-pl-files:	rt-home
@@ -888,8 +887,6 @@ ifeq ($(DESTDIR),)
 endif
 
 dv-bins:
-		rm -f $(DESTDIR)$(bindir)/xpce
-		$(REL_LN) $(DESTDIR)$(bindir)/$(PL) $(DESTDIR)$(bindir)/xpce
 		$(INSTALL_PROGRAM) xpce-client $(DESTDIR)$(bindir)
 
 pdf-install::
