@@ -111,7 +111,7 @@ all:	lite packages
 remake-all: distclean all install
 
 lite:	banner \
-	headers	swipl subdirs vmi \
+	headers	swipl.home subdirs vmi \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \
 	dlldemos
 
@@ -210,7 +210,7 @@ tags:		TAGS
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 
-swipl:
+swipl.home:
 		echo . > $@
 
 check:
@@ -242,9 +242,9 @@ iprog::
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(TERMDLL) "$(BINDIR)"
 !IF "$(PDB)" == "true"
-		$(INSTALL_PROGRAM) ..\bin\plwin.pdb "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\plcon.pdb "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\libpl.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl-win.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl.pdb "$(BINDIR)"
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
 !IF "$(MT)" == "true"
@@ -259,7 +259,7 @@ iprog::
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"
-		$(INSTALL_DATA) swipl "$(PLBASE)\swipl"
+		$(INSTALL_DATA) swipl.home "$(PLBASE)"
 		chdir "$(PLBASE)\library" & \
 		   $(PLCON) \
 			-f none \
@@ -441,7 +441,7 @@ distclean:	clean distclean_packages
 		@chdir win32\foreign & $(MAKE) distclean
 		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul
-		-del swipl swiplbin 2>nul
+		-del swipl.home swiplbin 2>nul
 
 realclean:	clean
 		del $(STARTUPPATH)

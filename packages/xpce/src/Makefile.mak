@@ -268,7 +268,7 @@ OBJECTS=	$(ADTOBJS) \
 
 $(XPCEDLL):	$(OBJECTS)
 		$(LD) $(LDFLAGS) /out:$@ /dll $(OBJECTS) $(LIBS) $(XLIBS)
-	
+
 ################################################################
 # Names
 ################################################################
@@ -379,7 +379,7 @@ ITRG=	xpce-install.exe \
 !ENDIF
 
 install:	$(ITRG)
-		
+
 html-install::
 
 ibindir::
@@ -406,32 +406,32 @@ ilib::
 
 iindex::
 		chdir "$(IBASE)\prolog\lib" & \
-		  "$(PLBASE)\bin\plcon.exe" \
+		  "$(PLBASE)\bin\swipl.exe" \
 			-f none -F none \
 			-g make_library_index('.') \
 			-t halt
 
 classindex::
 		chdir "$(IBASE)\prolog\lib" & \
-		  "$(PLBASE)\bin\plwin.exe" \
+		  "$(PLBASE)\bin\swipl-win.exe" \
 			-f none \
 			-g pce_make_library_index('.') \
 			-t halt
 irc::
-		$(INSTALL) ..\pl\src\plrc "$(PLBASE)\plwin.rc"
+		$(INSTALL) ..\pl\src\swipl-rc "$(PLBASE)\swipl-win.rc"
 
 ireadme::
 		$(INSTALL) -C .. $(README) "$(IBASE)"
-		
+
 ################################################################
 # Manual index
 ################################################################
 
 imanidx:	"$(MANINDEX)"
-		
+
 "$(MANINDEX)":	..\man\reference\*.doc ..\man\reference\class\*.doc
 		chdir "$(IBASE)\man\reference" & \
-		"$(PLBASE)\bin\plwin.exe" \
+		"$(PLBASE)\bin\swipl-win.exe" \
 		  -g "[library('man/man_index')],pce_make_manual_index('index.obj')" \
 		  -t halt
 
@@ -441,7 +441,7 @@ imanidx:	"$(MANINDEX)"
 
 uninstall::
 		del $(PLBASE)\bin\pl2xpce.dll
-		del $(PLBASE)\plwin.rc
+		del $(PLBASE)\swipl.rc
 		rmdir /s /d $(PLBASE)\xpce
 
 ################################################################
@@ -462,4 +462,4 @@ clean::
 
 distclean:	clean
 		-del *.dll *.lib *.exp *.dbg *.ilk *.pdb 2>nul
-		
+

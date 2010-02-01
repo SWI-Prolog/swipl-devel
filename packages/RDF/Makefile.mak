@@ -3,16 +3,16 @@
 # NOTE: This package requires the SGML package
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
 ################################################################
 
-PLHOME=..\..\..
+PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 
-all:		
+all:
 
 !IF "$(CFG)" == "rt"
 install::

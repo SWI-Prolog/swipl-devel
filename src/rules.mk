@@ -73,7 +73,7 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PLPKG=chr clpqr http plunit pldoc
-PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL)
+PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL)
 
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
@@ -87,7 +87,7 @@ PKGDOC=$(PLBASE)\doc\packages
 CC=cl.exe
 !IF "$(VC_VERSION)" == "VC8_OR_MORE"
 VC8_OR_MORE_LFLAGS=/MACHINE:$(TARGET_OS_ARCH)
-!ELSE 
+!ELSE
 VC8_OR_MORE_LFLAGS=
 !ENDIF
 !IF "$(LNK)" == "inc"
@@ -111,13 +111,13 @@ LIBS=$(LIBS) $(LIBPTHREAD).lib
 
 # Some libraries used by various packages
 
-PLLIB=$(PLHOME)\lib\libpl.lib
+PLLIB=$(PLHOME)\lib\swipl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
 !IF "$(VC_VERSION)" == "VC8_OR_MORE"
 VC8_OR_MORE_CFLAGS=/D_$(MD) /D_CRT_SECURE_NO_WARNINGS /wd4996
-!ELSE 
+!ELSE
 VC8_OR_MORE_CFLAGS=
 !ENDIF
 

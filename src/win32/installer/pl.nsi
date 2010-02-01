@@ -224,7 +224,7 @@ Section "Base system (required)"
   SetOutPath $INSTDIR\bin
   File pl\bin\swipl.exe
   File pl\bin\swipl-win.exe
-  File pl\bin\libpl.dll
+  File pl\bin\swipl.dll
   File pl\bin\plterm.dll
   File pl\bin\plregtry.dll
   File pl\bin\${PTHREAD}.dll
@@ -235,7 +235,7 @@ Section "Base system (required)"
   File pl\COPYING.TXT
   File pl\README.TXT
   File pl\VERSION
-  File pl\swipl
+  File pl\swipl.home
 
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
@@ -439,7 +439,7 @@ SectionEnd
 Section "C/C++ Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\lib
-  File pl\lib\libpl.lib
+  File pl\lib\swipl.lib
   File pl\lib\plterm.lib
   File pl\lib\${PTHREAD}.lib
   SetOutPath $INSTDIR
@@ -649,11 +649,10 @@ Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin
   File pl\bin\cgi.pdb
-  File pl\bin\libpl.pdb
+  File pl\bin\swipl.pdb
   File pl\bin\memfile.pdb
   File pl\bin\mime.pdb
   File pl\bin\odbc4pl.pdb
-  File pl\bin\swipl.pdb
   File pl\bin\plterm.pdb
   File pl\bin\swipl-win.pdb
   File pl\bin\sgml2pl.pdb

@@ -212,14 +212,14 @@ defaultSystemInitFile(const char *a0)
   char buf[256];
   char *s = buf;
 
-  while(*base && isAlpha(*base))
+  while( *base && isAlpha(*base) || *base == '-' )
     *s++ = *base++;
   *s = EOS;
 
   if ( buf[0] != EOS )
     return store_string(buf);
 
-  return store_string("pl");
+  return store_string("swipl");
 }
 
 
