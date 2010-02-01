@@ -51,10 +51,10 @@ xpce-install:	$(XPCEPL)
 rpm-install:	install
 
 pdf-install::
-		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
+		-$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
-		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
+		-$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
