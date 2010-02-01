@@ -159,12 +159,12 @@ GMPLIB=
 # packages
 ################################################################
 
-MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\plcon.exe \
+MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\swipl.exe \
 			-f none -F none \
 			-g make_library_index(library) \
 			-t halt
 
-PLCON=$(PLBASE)\bin\plcon.exe
+PLCON=$(PLBASE)\bin\swipl.exe
 
 ################################################################
 # Windows-versions garbage.  Most likely this won't work on Windows 98

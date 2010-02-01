@@ -34,7 +34,7 @@ PLHOME=..
 !include rules.mk
 
 PL=pl
-PLCON=$(PLHOME)\bin\plcon.exe
+PLCON=$(PLHOME)\bin\swipl.exe
 PLWIN=$(PLHOME)\bin\plwin.exe
 PLLD=$(PLHOME)\bin\swipl-ld.exe
 PLRC=$(PLHOME)\bin\swipl-rc.exe

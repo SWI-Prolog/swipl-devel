@@ -1,7 +1,7 @@
 BUGS:
 -----
 
-	* plcon.exe to delay Control-C in garbage collections.
+	* swipl.exe to delay Control-C in garbage collections.
 
 
 SCRIPT

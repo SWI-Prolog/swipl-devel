@@ -13,7 +13,7 @@
 !define REGKEY SOFTWARE\SWI\Prolog
 !endif
 
-!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
+!system "pl\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
 
 RequestExecutionLevel admin
@@ -222,7 +222,7 @@ Section "Base system (required)"
   Delete $INSTDIR\bin\*.pdb
 
   SetOutPath $INSTDIR\bin
-  File pl\bin\plcon.exe
+  File pl\bin\swipl.exe
   File pl\bin\plwin.exe
   File pl\bin\libpl.dll
   File pl\bin\plterm.dll
@@ -653,7 +653,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\memfile.pdb
   File pl\bin\mime.pdb
   File pl\bin\odbc4pl.pdb
-  File pl\bin\plcon.pdb
+  File pl\bin\swipl.pdb
   File pl\bin\plterm.pdb
   File pl\bin\plwin.pdb
   File pl\bin\sgml2pl.pdb

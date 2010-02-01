@@ -62,7 +62,7 @@ typedef unsigned long uintptr_t;
 #define O_BINARY _O_BINARY
 
 #ifndef PROG_PL
-#define PROG_PL "plcon.exe"
+#define PROG_PL "swipl.exe"
 #endif
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
