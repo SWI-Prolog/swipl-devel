@@ -30,7 +30,7 @@ NETLIBS=@NETLIBS@
 CRYPTLIBS=@CRYPTLIBS@
 MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a
 
-PUBLICPL=       pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=clib

@@ -18,7 +18,7 @@ PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
 DESTDIR=
 SO=@SO@
 
-PUBLICPL=pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 LATEX=latex

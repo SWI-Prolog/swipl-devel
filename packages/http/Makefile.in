@@ -27,7 +27,7 @@ LIBS=@LIBS@
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
 
-PUBLICPL=       pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 RUNTEX=../../man/runtex
