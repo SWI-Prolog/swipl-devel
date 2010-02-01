@@ -3,13 +3,19 @@
 ################################################################
 
 .SUFFIXES: .pl .qlf
+.PHONY: all qlf checkwd
 
-PL=	pl
+PL=	swipl
 
 QLF=	pce.qlf pce_manual.qlf pcedraw.qlf dialog/dialog.qlf \
 	emacs/emacs.qlf trace/trace.qlf emacs/prolog_mode.qlf
 
-all:	checkwd INDEX.pl $(QLF)
+
+all:	
+	$(MAKE) checkwd
+	$(MAKE) INDEX.pl qlf
+
+qlf:	$(QLF)
 
 clean:
 	rm -f $(QLF)
@@ -18,7 +24,12 @@ checkwd:
 		@pwd > .pwd%
 		@if cmp -s .pwd% .pwd; then rm .pwd%; else mv .pwd% .pwd; fi
 
-pce.qlf:	.pwd pce.pl ../boot/pce_expand.pl ../boot/pce_pl.pl \
+.pwd:		checkwd
+
+$(QLF):		INDEX.pl
+
+pce.qlf:	pce.pl \
+		../boot/pce_expand.pl ../boot/pce_pl.pl \
 		english/pce_messages.pl ../boot/pce_principal.pl \
 		../boot/pce_error.pl \
 		../boot/pce_global.pl ../boot/pce_expansion.pl \
