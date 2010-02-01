@@ -212,7 +212,7 @@ defaultSystemInitFile(const char *a0)
   char buf[256];
   char *s = buf;
 
-  while( *base && isAlpha(*base) || *base == '-' )
+  while( *base && (isAlpha(*base) || *base == '-') )
     *s++ = *base++;
   *s = EOS;
 
