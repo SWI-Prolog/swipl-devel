@@ -652,8 +652,8 @@ before gtrace/0 can be called from a thread.
 If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
 window. On Unix systems the console is an \program{xterm} application.
-On Windows systems this requires the GUI version \program{plwin.exe}
-rather than the console based \program{plcon.exe}.
+On Windows systems this requires the GUI version \program{swipl-win.exe}
+rather than the console based \program{swipl.exe}.
 
 This predicate has a couple of useful applications.  One is to separate
 (debugging) I/O of different threads.  Another is to start debugging a

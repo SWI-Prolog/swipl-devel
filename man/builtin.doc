@@ -2975,7 +2975,7 @@ Another example of using the \functor{pipe}{1} construct is shown
 below.%
 	\footnote{As of version 5.3.15, the pipe construct is supported
 		  in the MS-Windows version, both for
-		  \program{plcon.exe} and \program{plwin.exe}. The
+		  \program{swipl.exe} and \program{swipl-win.exe}. The
 		  implementation uses code from the LUA programming
 		  language (\url{http://www.lua.org}).}
 Note that the \functor{pipe}{1} construct is not part of
@@ -5494,7 +5494,7 @@ this case the reported size reflects the size at the first call and is
 not updated after a user-initiated resize of the terminal.
 
     \item[Windows]
-Getting the size of the terminal is provided for \program{plwin.exe}.
+Getting the size of the terminal is provided for \program{swipl-win.exe}.
 The requested value reflects the current size. For the
 multi-threaded version the console that is associated with the
 \const{user_input} stream is used.

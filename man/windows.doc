@@ -40,7 +40,7 @@ material.
 
 \subsection{Starting Prolog and loading a program}
 
-The SWI-Prolog executable \program{plwin.exe} can be started from the
+The SWI-Prolog executable \program{swipl-win.exe} can be started from the
 \emph{StartMenu} or by opening a \fileext{pl} file holding Prolog
 program text from the Windows explorer.%
 	\footnote{The .PL file extension can be changed
@@ -94,7 +94,7 @@ No
 
 \subsection{Menu commands}		\label{sec:menu}
 
-The SWI-Prolog console provided by \program{plwin.exe} has a menu for
+The SWI-Prolog console provided by \program{swipl-win.exe} has a menu for
 accessing the most commonly used commands. We assume not all menu
 entries need to be explained in details.  We make some exceptions:
 
@@ -366,9 +366,9 @@ probably be synchronised in the future.
 \hline
 \multicolumn{2}{|c|}{Programs} \\
 \hline
-\verb$bin\plwin.exe$	& Default Windows application for interactive
+\verb$bin\swipl-win.exe$	& Default Windows application for interactive
 			  use. \\
-\verb$bin\plcon.exe$    & Console-based version for scripting purposes. \\
+\verb$bin\swipl.exe$    & Console-based version for scripting purposes. \\
 \hline
 \multicolumn{2}{|c|}{Utilities} \\
 \hline
@@ -391,7 +391,7 @@ probably be synchronised in the future.
 \verb$boot32.prc$       & Initial Prolog state (32-bits) \\
 \verb$boot64.prc$       & Initial Prolog state (64-bits) \\
 \verb$\bin\libpl.dll$	& The Prolog kernel \\
-\verb$\bin\plterm.dll$	& The window for \program{plwin.exe} \\
+\verb$\bin\plterm.dll$	& The window for \program{swipl-win.exe} \\
 \verb$\bin\pthreadVC.dll$& POSIX thread runtime library (32-bits) \\
 \verb$\bin\pthreadVC2.dll$& POSIX thread runtime library (64-bits) \\
 \verb$\bin\msvcr80.dll$ & Microsoft C runtime library (64-bits) \\
@@ -422,7 +422,7 @@ probably be synchronised in the future.
 \subsection{Installed Registry keys and menus}
 
 The filetype \fileext{pl} or chosen alternative (see \secref{ext}) is
-associated to \program{plwin.exe}. A chosen folder (default SWI-Prolog)
+associated to \program{swipl-win.exe}. A chosen folder (default SWI-Prolog)
 is added to the start-menu holding shortcuts to Prolog and some related
 utilities. The following registry keys are in use. The 64-bit version
 uses \texttt{Prolog64} instead of \texttt{Prolog} as a key to accomodate
@@ -467,7 +467,7 @@ able to write shortcuts and registry keys.
 \subsection{Creating a desktop menu item}
 
 If you want a desktop entry for SWI-Prolog, right-drag
-\program{plwin.exe} to the desktop and select `Create shortcut'. Then
+\program{swipl-win.exe} to the desktop and select `Create shortcut'. Then
 edit the properties and add \const{--win_app} to the commandline to make
 the application start in \file{My Documents\bsl{}Prolog}.
 

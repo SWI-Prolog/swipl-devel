@@ -614,8 +614,8 @@ suggest predicates from a keyword.
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
-\predicatesummary{win_insert_menu}{2}{plwin.exe: add menu}
-\predicatesummary{win_insert_menu_item}{4}{plwin.exe: add item to menu}
+\predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
+\predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_shell}{3}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}

@@ -46,12 +46,12 @@ important new things are available to the user:
 	  document) called \file{pl} containing the executables,
 	  libraries, etc. of the system.  No files are installed
 	  outside this directory.
-    \item A program \program{plwin.exe}, providing a window for interaction
-          with Prolog. The program \program{plcon.exe} is a version of
+    \item A program \program{swipl-win.exe}, providing a window for interaction
+          with Prolog. The program \program{swipl.exe} is a version of
 	  SWI-Prolog that runs in a DOS-box.
     \item The file-extension \fileext{pl} is associated with the program
-          \program{plwin.exe}.  Opening a \fileext{pl} file will cause
-	  \program{plwin.exe} to start, change directory to the
+          \program{swipl-win.exe}.  Opening a \fileext{pl} file will cause
+	  \program{swipl-win.exe} to start, change directory to the
 	  directory in which the file-to-open resides and load this
 	  file.
 \end{itemize}
@@ -229,7 +229,7 @@ When given as the only option, it summarises the version and the
 architecture identifier.  Also available as \cmdlineoption{-v}.
 
     \cmdlineoptionitem{--win_app}{}
-This option is available only in \program{plwin.exe} and is used for the
+This option is available only in \program{swipl-win.exe} and is used for the
 start-menu item. If causes \program{plwin} to start in the folder
 \verb$...\My Documents\Prolog$ or local equivalent thereof (see
 win_folder/2).  The \file{Prolog} subdirectory is created if it
@@ -734,7 +734,7 @@ Yes
 \end{code}
 
 When using Windows, the user may open \file{load.pl} from the Windows
-explorer, which will cause \program{plwin.exe} to be started in the
+explorer, which will cause \program{swipl-win.exe} to be started in the
 directory holding \file{load.pl}.  Prolog loads \file{load.pl} before
 entering the top-level.
 
@@ -984,7 +984,7 @@ on. Used to select foreign files for the right architecture. See also
     \prologflagitem{associate}{atom}{rw}
 On Windows systems, this is set to the filename extension (\const{pl}
 (default) or \const{pro} (can be selected in the installer)) associated
-with \program{plwin.exe}.
+with \program{swipl-win.exe}.
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
@@ -1027,7 +1027,7 @@ C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
 macros.
 
     \prologflagitem{console_menu}{bool}{r}
-Set to \const{true} in \program{plwin.exe} to indicate the console
+Set to \const{true} in \program{swipl-win.exe} to indicate the console
 supports menus.  See also \secref{plwin}.
 
     \prologflagitem{cpu_count}{integer}{rw}
@@ -1165,7 +1165,7 @@ directory to find its startup file as
 \file{<home>/library}.
 
     \prologflagitem{hwnd}{integer}{r}
-In \program{plwin.exe}, this refers to the MS-Windows window-handle of
+In \program{swipl-win.exe}, this refers to the MS-Windows window-handle of
 the console window.
 
     \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
@@ -1265,7 +1265,7 @@ and only if the query contains variables.
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done
 by default if you have this library installed on your system.  It is
-also true for the Win32 plwin.exe version of SWI-Prolog, which realises
+also true for the Win32 swipl-win.exe version of SWI-Prolog, which realises
 a subset of the readline functionality.
 
     \prologflagitem{resource_database}{atom}{r}
