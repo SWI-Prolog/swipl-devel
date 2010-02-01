@@ -704,9 +704,10 @@ DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons lib/trace/icons/16x16 \
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog
 RTMISC=		Defaults Defaults.user COPYING README
-DVINSTALL=	rt-install dv-home dv-lib dv-boot dv-help \
+DVFILES=	rt-install dv-home dv-lib dv-boot dv-help \
 	        rt-link dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install dv-qlf dv-bins dv-online dv-classindex
+		dv-misc cxx-install
+DVINSTALL=	$(DVFILES) dv-qlf dv-bins dv-online dv-classindex
 RTINSTALL=	home rt-misc rt-bitmaps rt-bins rt-link
 
 .PHONY:		install dv-install $(DVINSTALL) $(RTINSTALL)
@@ -881,7 +882,7 @@ ifeq ($(DESTDIR),)
 		cd $(PLBASE); $(MAKE) clean
 endif
 
-dv-qlf:		dv-pl-files
+dv-qlf:		$(DVFILES) dv-pl-files
 ifeq ($(DESTDIR),)
 		cd $(PLBASE); $(MAKE) xpce-qlfs
 endif
