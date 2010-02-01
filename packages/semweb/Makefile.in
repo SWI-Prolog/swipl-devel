@@ -41,7 +41,7 @@ TEX=$(DOC).tex	rdfturtle.tex rdfturtlewrite.tex rdfcompare.tex \
 		rdfportray.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
-RUNTEX=@RUNTEX@
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
