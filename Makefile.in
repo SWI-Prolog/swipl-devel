@@ -47,9 +47,11 @@ clean::
 distclean::
 	rm -f .pkg-config
 	@if [ -f packages/Makefile ]; then \
-	   cd packages && $(MAKE) distclean; \
+	    cd packages && $(MAKE) distclean; \
 	fi
-	@cd $(BUILDARCH) && $(MAKE) $@
+	@if [ -f $(BUILDARCH)/Makefile ]; then \
+	    cd $(BUILDARCH) && $(MAKE) $@; \
+        fi
 	rm -f configure.out make.out
 	rm -f Makefile
 
