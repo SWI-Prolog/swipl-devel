@@ -3905,6 +3905,9 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 	}
 
 	ForeignRedoPtr(next);
+      } else
+      { PL_put_variable(h);		/* otherwise they point into */
+	PL_put_variable(b);		/* term, which is removed */
       }
     }
 
