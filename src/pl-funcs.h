@@ -319,6 +319,7 @@ COMMON(int) 		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int) 		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int)		PL_unify_int64_ex__LD(term_t t1, int64_t ARG_LD);
 COMMON(int) 		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
+COMMON(int) 		PL_put_variable__LD(term_t t1 ARG_LD);
 COMMON(void) 		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
 COMMON(int) 		PL_put_integer__LD(term_t t1, long i ARG_LD);
 COMMON(int) 		PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);

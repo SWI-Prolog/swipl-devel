@@ -400,6 +400,7 @@ extern void		initPrologThreads(void);
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
 #define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 #define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
+#define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)
 #define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
 #define PL_put_integer(t, i) 	PL_put_integer__LD(t, i PASS_LD)
 #define PL_put_intptr(t, i) 	PL_put_intptr__LD(t, i PASS_LD)

@@ -1977,13 +1977,22 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 		 *******************************/
 
 int
-PL_put_variable(term_t t)
-{ GET_LD
-  Word p = valTermRef(t);
+PL_put_variable__LD(term_t t ARG_LD)
+{ Word p = valTermRef(t);
 
   setVar(*p);
   return TRUE;
 }
+
+
+#undef PL_put_variable
+int
+PL_put_variable(term_t t)
+{ GET_LD
+
+  return PL_put_variable__LD(t PASS_LD);
+}
+#define PL_put_variable(t) PL_put_variable__LD(t PASS_LD)
 
 
 void
