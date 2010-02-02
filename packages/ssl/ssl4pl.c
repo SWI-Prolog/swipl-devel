@@ -457,17 +457,23 @@ pl_ssl_close(PL_SSL_INSTANCE *instance)
 }
 
 
-static int
+static int 
 pl_ssl_control(PL_SSL_INSTANCE *instance, int action, void *data)
 { switch(action)
   { case SIO_GETFILENO:
-    { SOCKET *p = data;
-      nbio_sock_t ns = instance->sock;
-
-      if ( (*p = nbio_fd(ns)) >= 0 )
-	return 0;
-      return -1;
+    { if (instance->sread != NULL)
+    {  SOCKET fd = Sfileno(instance->sread);
+       SOCKET *fdp = data;
+       *fdp = fd;
+       return 0;
+    } else if (instance->swrite != NULL)
+    {  SOCKET fd = Sfileno(instance->swrite); 
+       SOCKET *fdp = data;
+       *fdp = fd;
+       return 0;
     }
+    }
+    return -1;
     case SIO_SETENCODING:
     case SIO_FLUSHOUTPUT:
       return 0;
