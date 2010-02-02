@@ -1723,14 +1723,6 @@ re-definition.
 	else
 	  Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
-#if O_BLOCK
-      } else if ( functor == FUNCTOR_dcut1 )
-      { Output_0(ci, I_CUT_BLOCK);
-	succeed;
-      } else if ( functor == FUNCTOR_dexit2 )
-      { Output_0(ci, B_EXIT);
-	succeed;
-#endif
       }
     }
   } else if ( isTextAtom(*arg) )
@@ -3481,10 +3473,6 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    /*FALLTHROUGH*/
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
 #endif /* O_COMPILE_ARITH */
-#if O_BLOCK
-	case I_CUT_BLOCK:   f = FUNCTOR_dcut1;		goto f_common;
-	case B_EXIT:	    f = FUNCTOR_dexit2;		goto f_common;
-#endif
 #if O_CATCHTHROW
 	case B_THROW:	    f = FUNCTOR_dthrow1;	goto f_common;
 #endif

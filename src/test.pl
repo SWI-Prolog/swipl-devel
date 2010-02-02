@@ -1475,24 +1475,6 @@ softcut2(A) :-
 	;   A = 1
 	).
 
-do_block :-
-	exit(notmyblock, ok).
-
-bb(a) :-
-	!(myblock).
-bb(b).
-
-b1 :- b2.
-b1.
-
-b2 :- exit(test, b).
-
-b3 :- b4.
-b3.
-
-b4 :-
-	!(test).
-
 /* c*: tests for handling !
 */
 
@@ -1534,23 +1516,6 @@ control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
 	findall(A, softcut2(A), [1]).
-control(block-1) :-
-	catch(block(myblock, do_block, _), E, true),
-	error(E, existence_error(block, notmyblock)).
-control(block-2) :-
-	block(notmyblock, do_block, X),
-	X == ok.
-control(block-3) :-
-	\+ (   block(myblock, bb(X), _),
-	       X == b
-	   ).
-control(block-4) :-
-	block(test, b1, B),
-	B == b,
-	'$get_predicate_attribute'(b1, references, 0).
-control(block-5) :-
-	block(test, b3, _),
-	'$get_predicate_attribute'(b3, references, 0).
 control(cut-1) :-
 	c1.
 control(cut-2) :-

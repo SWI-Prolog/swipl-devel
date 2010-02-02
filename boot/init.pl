@@ -216,24 +216,6 @@ _Var^Goal :-					% setof/3, bagof/3
 false :-					% SICStus compatibility
 	fail.
 
-%	block/3, !/1, exit/2, fail/1
-%	`longjmp' like control-structures.  See manual.  The predicate
-%	system:block/3 is used by the VMI's I_CUT_BLOCK and B_EXIT.
-%	'$exit' and '$cut' are interpreted by the compiler/decompiler.
-
-block(_Label, Goal, _RVal) :-
-	Goal.
-
-!(Label) :-
-	'$cut'(Label).				% handled by compiler
-
-exit(Label, RVal) :-
-	'$exit'(Label, RVal).			% handled by compiler
-
-fail(Label) :-
-	'$cut'(Label),				% handled by compiler
-	fail.
-
 %%	catch(:Goal, +Catcher, :Recover)
 %
 %	ISO compliant exception handling.

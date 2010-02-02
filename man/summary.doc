@@ -17,7 +17,6 @@ suggest predicates from a keyword.
 
 \begin{summarylist}{ll}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
-\predicatesummary{!}{1}{Cut block. See block/3}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
@@ -92,7 +91,6 @@ suggest predicates from a keyword.
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
-\predicatesummary{block}{3}{Start a block (`catch'/`throw')}
 \predicatesummary{break}{0}{Start interactive top-level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
@@ -205,7 +203,6 @@ suggest predicates from a keyword.
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
 \predicatesummary{exists_source}{1}{Check existence of a Prolog source}
-\predicatesummary{exit}{2}{Exit from named block. See block/3}
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
@@ -218,7 +215,6 @@ suggest predicates from a keyword.
 \predicatesummary{export}{1}{Export a predicate from a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
-\predicatesummary{fail}{1}{Immediately fail named block. See block/3}
 \predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}

@@ -941,34 +941,6 @@ foreignWakeup(term_t *ex ARG_LD)
 
 #include "pl-fli.c"
 
-#if O_BLOCK
-		/********************************
-		*         BLOCK SUPPORT         *
-		*********************************/
-
-static LocalFrame
-findBlock(LocalFrame fr, term_t id ARG_LD)
-{ for(; fr; fr = fr->parent)
-  { if ( fr->predicate == PROCEDURE_block3->definition )
-    { int rc;
-      term_t frref;
-
-      frref = consTermRef(fr);
-      rc = PL_unify(consTermRef(argFrameP(fr, 0)), id);
-      fr = (LocalFrame)valTermRef(frref);
-
-      if ( rc )
-	return fr;
-    }
-  }
-
-  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_block, id);
-
-  return NULL;
-}
-
-#endif /*O_BLOCK*/
-
 #ifdef O_DEBUGGER
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 findStartChoice(LocalFrame fr, Choice ch)

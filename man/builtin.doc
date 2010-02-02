@@ -1897,36 +1897,6 @@ Signals are blocked when the garbage collector is active.
 \end{itemlist}
 
 
-\section{The `block' control-structure}		\label{sec:block3}
-
-The block/3 predicate and friends have been introduced before ISO
-compatible catch/3 exception handling for compatibility with some
-Prolog implementation.  The only feature not covered by catch/3
-and throw/1 is the possibility to execute global cuts.  New code
-should use catch/3 and throw/1 to deal with exceptions.
-
-\begin{description}
-    \predicate{block}{3}{+Label, :Goal, -ExitValue}
-Execute \arg{Goal} in a \jargon{block}.  \arg{Label} is the name of the
-block.  \arg{Label} is normally an atom, but the system imposes
-no type constraints and may even be a variable.  \arg{ExitValue}
-is normally unified to the second argument of an exit/2 call
-invoked by \arg{Goal}.
-    \predicate{exit}{2}{+Label, +Value}
-Calling exit/2 makes the innermost \arg{block} which \arg{Label} unifies
-exit. The block's \arg{ExitValue} is unified with \arg{Value}. If this
-unification fails the block fails.
-    \predicate{fail}{1}{+Label}
-Calling fail/1 makes the innermost \arg{block} which \arg{Label}
-unifies fail immediately.  Implemented as
-\begin{code}
-fail(Label) :- !(Label), fail.
-\end{code}
-    \predicate{!}{1}{+Label}
-Cut all choice-points created since the entry of the innermost
-\arg{block} which \arg{Label} unifies.
-\end{description}
-
 \section{DCG Grammar rules}			\label{sec:DCG}
 
 \index{DCG}%
