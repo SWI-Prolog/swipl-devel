@@ -6436,19 +6436,31 @@ is continued without asking for further information.  Examples:
 \end{center}
 
 The predicate debugging/0 shows all currently defined trace-points.
+
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
 The current implementation cuts the choice-points of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
+
     \predicate{debug}{0}{}
 Start debugger. In debug mode, Prolog stops at spy- and trace-points,
 disables last-call optimisation and aggressive destruction of
 choice points to make debugging information accessible.  Implemented
 by the Prolog flag \prologflag{debug}.
+
+Note that the \const{min_free} parameters of all stacks is enlarged to
+8~K-cells if debugging is switched off to avoid excessive GC. GC
+complicates tracing because it renames the \textit{_G<NNN>} variables
+and replaces unreachable variables with the atom
+\verb$<garbage_collected>$. Calling nodebug/0 does \emph{not} reset the
+initial free-margin because several parts of the toplevel and debugger
+disable debugging of system code-regions.  See also set_prolog_stack/2.
+
     \predicate{nodebug}{0}{}
 Stop debugger.  Implemented by the Prolog flag \prologflag{debug}.  See
 also debug/0.
+
     \predicate{debugging}{0}{}
 Print debug status and spy points on current output stream.  See also
 the Prolog flag \prologflag{debug}.
@@ -6690,7 +6702,7 @@ Setting this value higher can reduce the number of garbage collections
 and stack-shifts at the cost of higher memory usage. The spare stack
 amount is reported and specified in `cells'. A cell is 4 bytes in the
 32-bit version and 8-bytes on the 64-bit version. See
-\prologflag{address_bits}. See also trim_stacks/0.
+\prologflag{address_bits}. See also trim_stacks/0 and debug/0.
 
     \termitem{spare}{+Cells}
 All stacks trigger overflow before actually reaching the limit, so the

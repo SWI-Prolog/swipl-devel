@@ -201,7 +201,6 @@ forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 static Code		startOfVMI(QueryFrame qf);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
-static int		shiftTightStacks();
 static size_t		tight(Stack s ARG_LD);
 
 #if O_SECURE
@@ -4664,8 +4663,6 @@ tight(Stack s ARG_LD)
 { size_t min_room  = sizeStackP(s)/4;
   size_t spare_gap = s->def_spare - s->spare;
 
-  if ( debugstatus.debugging && min_room < 32*1024 )
-    min_room = 32*1024;
   if ( min_room < s->min_free )
     min_room = s->min_free;
 
@@ -4676,8 +4673,8 @@ tight(Stack s ARG_LD)
 }
 
 
-static int
-shiftTightStacks()
+int
+shiftTightStacks(void)
 { GET_LD
   size_t l = tight((Stack)&LD->stacks.local PASS_LD);
   size_t g = tight((Stack)&LD->stacks.global PASS_LD);

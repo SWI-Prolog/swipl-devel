@@ -1550,6 +1550,26 @@ trace_if_space(void)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+enlargeMinFreeStacks() sets the minimum free space   of all stacks a bit
+higher to accomodate debugging. This causes less  GC calls and thus less
+cases where debugging is harmed due to <garbage_collected> atoms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
+{ if ( LD->stacks.local.min_free < l )
+    LD->stacks.local.min_free = l;
+  if ( LD->stacks.global.min_free < g )
+    LD->stacks.global.min_free = g;
+  if ( LD->stacks.trail.min_free < l )
+    LD->stacks.trail.min_free = t;
+
+  shiftTightStacks();			/* no GC: we want to keep variables! */
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 debugmode(debug_type new, debug_type *old)
 
 Set the current debug mode. If DBG_ALL,  debugging in switched on in all
@@ -1585,6 +1605,11 @@ debugmode(debug_type doit, debug_type *old)
     } else
     { setPrologFlagMask(PLFLAG_LASTCALL);
     }
+    if ( doit )
+      enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
+			   8*1024*SIZEOF_VOIDP,
+			   8*1024*SIZEOF_VOIDP
+			   PASS_LD);
     debugstatus.debugging = doit;
     updateAlerted(LD);
     printMessage(ATOM_silent,
