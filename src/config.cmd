@@ -527,6 +527,28 @@ pause
 set "EP!BUILD_JPL="
 :end_detect_java
 
+:detect_space
+if not exist "%EP!HOME%\lib\%EP!GEOS%.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\%EP!GEOS%.dll" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX_I%.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX1%.dll" (goto detect_space_not_detected)
+goto detect_space_detected
+:detect_space_not_detected
+cls
+type welcome.txt
+echo Warning: GEOS/SPATIALINDEX (or one of its components) not found...
+echo.
+echo The build will continue without SPACE, its functionality will not be
+echo available. If SPACE is required, install GEOS and SPATIALINDEX and run
+echo this script again.
+echo.
+pause
+set "EP!BUILD_SPACE="
+goto end_detect_space
+:detect_space_detected
+set "EP!BUILD_SPACE=space"
+:end_detect_space
+
 
 :export_environment
 if exist "config.dat" (del /Q "config.dat")
