@@ -47,7 +47,7 @@ if not defined EP!HOST_OS_ARCH (set "EP!HOST_OS_ARCH=X86" & set "EP!PROGRAM_FILE
 
 :start_create_welcome
 echo Welcome to SWI-Prolog Windows Build Environment Configuration Utility > welcome.txt
-echo Copyright (c) 1990-2009 University of Amsterdam. >> welcome.txt
+echo Copyright (c) 1990-2010 University of Amsterdam. >> welcome.txt
 echo SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software, >> welcome.txt
 echo and you are welcome to redistribute it under certain conditions. >> welcome.txt
 echo Please visit http://www.swi-prolog.org for details. >> welcome.txt
@@ -97,12 +97,12 @@ if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_32" (goto this_build_is_not_possible)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
 ::set_vc9_or_sdk2008_sdkwin7_environment_file
-if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" (set "TYPE=STU")
-if "%VCXX%_%TYPE%_%BITS%"=="VC09_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
-if "%VCXX%_%TYPE%_%BITS%"=="VC09_STU_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
-if "%VCXX%_%BITS%"=="VC09_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvarsx86_amd64.bat" ^> nul > call_vcvars.cmd)
+if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\vcvarsx86_amd64.bat" (set "TYPE=SDK") else (set "TYPE=STU")
+if "%VCXX%_%TYPE%_%BITS%"=="VC09_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat" ^> nul > call_vcvars.cmd)
+if "%VCXX%_%TYPE%_%BITS%"=="VC09_SDK_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvarsx86_amd64.bat" ^> nul > call_vcvars.cmd)
 if "%VCXX%_%BITS%"=="VC09_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvars32.bat" ^> nul > call_vcvars.cmd)
 ::set_vc10_or_sdkwin7_environment_file
+if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" (set "TYPE=STU")
 if "%VCXX%_%BITS%"=="VC10_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
 if "%VCXX%_%BITS%"=="VC10_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
 :is_vc_version_determined

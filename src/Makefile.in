@@ -498,21 +498,21 @@ html-install::
 #
 
 clean:
-		@(cd rc && $(MAKE) clean)
-		@(cd libtai && $(MAKE) clean)
+		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.o a.out core *~ #* parms.h
 
 profclean:
-		@(cd rc && $(MAKE) profclean)
-		@(cd libtai && $(MAKE) profclean)
+		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
 		rm -f *.gcda
 
 distclean:	clean profclean
-		@(cd rc && $(MAKE) distclean)
-		@(cd libtai && $(MAKE) distclean)
-		@(cd ../man && $(MAKE) distclean)
-		(cd $(srcdir) && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
-		(cd $(srcdir) && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic .vmi-sentinel)
+		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
+		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
+		[ ! -f ../man/Makefile ] || $(MAKE) -C ../man $@
+		(cd ../src && rm -f pl-atom.ic pl-atom.ih pl-funct.ic pl-funct.ih .defatom-sentinel)
+		(cd ../src && rm -f pl-codetable.c pl-vmi.h pl-jumptable.ic .vmi-sentinel)
 		rm -f defatom mkvmi
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
