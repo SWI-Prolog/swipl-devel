@@ -2958,9 +2958,11 @@ cont:
 
     case PL_FUNCTOR_CHARS:
     { const char *s = va_arg(args, const char *);
+      atom_t a = PL_new_atom(s);
 
       arity = va_arg(args, int);
-      ft = PL_new_functor(PL_new_atom(s), arity);
+      ft = PL_new_functor(a, arity);
+      PL_unregister_atom(a);
       goto common_f;
     }
     case PL_FUNCTOR:
