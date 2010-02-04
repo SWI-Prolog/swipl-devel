@@ -233,6 +233,42 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 }
 
 
+#ifdef O_MEMSTATS
+		 /*******************************
+		 *	    STATISTICS		*
+		 *******************************/
+
+int
+unifyFreeStatsPool(term_t term, AllocPool pool)
+{ GET_LD
+  size_t i;
+  Chunk *t;
+  static atom_t a;
+  term_t tmp = PL_new_term_ref();
+
+  if ( !a )
+    a = PL_new_atom("pool");
+
+  if ( !PL_unify_functor(term, PL_new_functor(a, ALLOCFAST/ALIGN_SIZE)) )
+    return FALSE;
+
+  for(i=0, t=pool->free_chains; i < (ALLOCFAST/ALIGN_SIZE); i++, t++)
+  { Chunk f;
+    int c;
+
+    for(c=0, f=*t; f; f=f->next)
+      c++;
+
+    _PL_get_arg(i+1, term, tmp);
+    if ( !PL_unify_integer(tmp, c) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+#endif
+
+
 		 /*******************************
 		 *	     ALLOCATE		*
 		 *******************************/

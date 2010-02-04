@@ -43,6 +43,7 @@ COMMON(void *) 		allocHeap__LD(size_t n ARG_LD);
 COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
 COMMON(void) 		initMemAlloc(void);
 COMMON(void) 		cleanupMemAlloc(void);
+COMMON(int)		unifyFreeStatsPool(term_t term, AllocPool pool);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
 COMMON(word) 		globalString(size_t len, const char *s);
 COMMON(word) 		globalWString(size_t len, const pl_wchar_t *s);

@@ -4652,6 +4652,92 @@ PRED_IMPL("statistics", 2, statistics, 0)
 }
 
 
+static int
+addNameValue(term_t list, const char *name, term_t val)
+{ GET_LD
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_unify_list(list, head, list) )
+    return FALSE;
+  if ( !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
+		      PL_CHARS, name, PL_TERM, val) )
+    return FALSE;
+
+  PL_reset_term_refs(head);
+
+  return TRUE;
+}
+
+static int
+addNameInteger(term_t list, const char *name, intptr_t val)
+{ GET_LD
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_unify_list(list, head, list) )
+    return FALSE;
+  if ( !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
+		      PL_CHARS, name, PL_INTPTR, val) )
+    return FALSE;
+
+  PL_reset_term_refs(head);
+
+  return TRUE;
+}
+
+
+#ifdef O_MEMSTATS
+/** memory_statistics(-Stats) is det.
+
+Provide statistics on memory  allocation,   and  particularly  on wasted
+memory due to not-reused freed memory. Stats   is  a list of Name=Value.
+Provided values are:
+
+    * local_pool  = pool(FreeCount1, FreeCount2, ...)
+    * global_pool = pool(FreeCount1, FreeCount2, ...)
+
+Where  FreeCount1  is  the  number   of    not-reused   chunks  of  size
+sizeof(double); FreeCount2 of size 2*sizeof(double), etc.
+
+If the system provides mallinfo(),  the   values  of  this structure are
+added to the list. See "info mallinfo" for a the defined names and their
+meaning. Unused values are not included.
+*/
+
+static
+PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
+{ PRED_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t val = PL_new_term_ref();
+
+  PL_put_variable(val);
+  unifyFreeStatsPool(val, &LD->alloc_pool);
+  if ( !addNameValue(tail, "local_pool", val) )
+    return FALSE;
+
+  PL_put_variable(val);
+  PL_LOCK(L_ALLOC);
+  unifyFreeStatsPool(val, &GD->alloc_pool);
+  PL_UNLOCK(L_ALLOC);
+  if ( !addNameValue(tail, "global_pool", val) )
+    return FALSE;
+
+#ifdef HAVE_MALLINFO
+  { struct mallinfo info = mallinfo();
+
+    addNameInteger(tail, "arena", info.arena);
+    addNameInteger(tail, "ordblks", info.ordblks);
+    addNameInteger(tail, "hblks", info.hblks);
+    addNameInteger(tail, "hblkhd", info.hblkhd);
+    addNameInteger(tail, "uordblks", info.uordblks);
+    addNameInteger(tail, "fordblks", info.fordblks);
+    addNameInteger(tail, "keepcost", info.keepcost);
+  }
+#endif
+
+  return PL_unify_nil(tail);
+}
+#endif
+
 
 		/********************************
 		*            OPTIONS            *
@@ -4943,4 +5029,7 @@ BeginPredDefs(prims)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
+#ifdef O_MEMSTATS
+  PRED_DEF("memory_statistics", 1, memory_statistics, 0)
+#endif
 EndPredDefs

@@ -781,6 +781,7 @@ AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
 AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
 AC_CHECK_FUNCS(setenv posix_openpt wcsxfrm sysctlbyname mbsnrtowcs)
+AC_CHECK_FUNCS(mallinfo)
 AC_CHECK_DECLS([mbsnrtowcs])
 AC_HEADER_TIME
 AC_HEADER_DIRENT
