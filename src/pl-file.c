@@ -4066,10 +4066,15 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 { PRED_LD
   IOSTREAM *in = NULL, *out = NULL, *error = NULL;
   int rval = FALSE;
+  int wrapin;
 
-  if ( !PL_get_stream_handle(A1, &in) ||
-       !PL_get_stream_handle(A2, &out) )
+  if ( !get_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) ||
+       !get_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS) )
     goto out;
+
+  wrapin = (LD->IO.streams[0] != in);
+  if ( wrapin )
+    in = getStream(in);			/* lock it */
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
   { error = getStream(Snew(out->handle, out->flags, out->functions));
@@ -4084,20 +4089,22 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   out->flags &= ~SIO_ABUF;		/* output: line buffered */
   out->flags |= SIO_LBUF;
 
-  LD->IO.streams[0] = in;		/* user_input */
   LD->IO.streams[1] = out;		/* user_output */
   LD->IO.streams[2] = error;		/* user_error */
-  LD->IO.streams[3] = in;		/* current_input */
   LD->IO.streams[4] = out;		/* current_output */
 
-  wrapIO(in, Sread_user, NULL);
-  LD->prompt.next = TRUE;
+  if ( wrapin )
+  { LD->IO.streams[3] = in;		/* current_input */
+    LD->IO.streams[0] = in;		/* user_input */
+    wrapIO(in, Sread_user, NULL);
+    LD->prompt.next = TRUE;
+  }
 
   UNLOCK();
   rval = TRUE;
 
 out:
-  if ( in )
+  if ( wrapin && in )
     releaseStream(in);
   if ( out )
     releaseStream(out);
