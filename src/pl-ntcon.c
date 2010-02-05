@@ -27,7 +27,9 @@
 #include "SWI-Prolog.h"
 #include <signal.h>
 
-#if 0
+#define O_CTRLC 1
+
+#if O_CTRLC
 static DWORD main_thread_id;
 
 static BOOL
@@ -45,7 +47,7 @@ consoleHandlerRoutine(DWORD id)
 int
 main(int argc, char **argv)
 {
-#if 0
+#if O_CTRLC
   main_thread_id = GetCurrentThreadId();
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
 #endif
