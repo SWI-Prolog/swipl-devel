@@ -3180,13 +3180,13 @@ run_propagator(pelement(N, Is, V), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_single(Pairs), _) :- gcc_global(Pairs).
+run_propagator(pgcc_single(Vs, Pairs), _) :- gcc_global(Vs, Pairs).
 
 run_propagator(pgcc_check_single(Pairs), _) :- gcc_check(Pairs).
 
 run_propagator(pgcc_check(Pairs), _) :- gcc_check(Pairs).
 
-run_propagator(pgcc(_, _, Pairs), _) :- gcc_global(Pairs).
+run_propagator(pgcc(Vs, _, Pairs), _) :- gcc_global(Vs, Pairs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4769,9 +4769,11 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
-        propagator_init_trigger(Nums, pgcc_single(Pairs1)),
-        propagator_init_trigger(Nums, pgcc_check_single(Pairs1)),
+        % pgcc_check must be installed before triggering other
+        % propagators
         propagator_init_trigger(Xs, pgcc_check(Pairs1)),
+        propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
+        propagator_init_trigger(Nums, pgcc_check_single(Pairs1)),
         propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4796,11 +4798,13 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
     Constraint", AAAI-96 Portland, OR, USA, pp 209--215, 1996
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_global(KNs) :-
+gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        gcc_arcs(KNs, S, T, Vals),
+        gcc_arcs(KNs, S, Vals),
+        variables_with_num_occurrences(Vs, VNs),
+        maplist(target_to_v(T), VNs),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
             feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
@@ -4818,9 +4822,9 @@ gcc_global(KNs) :-
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
-        maplist(flow_1, Es).
+        maplist(positive_flow, Es).
 
-flow_1(arc_from(_,_,_,Flow)) :- get_attr(Flow, flow, 1).
+positive_flow(arc_from(_,_,_,Flow)) :- get_attr(Flow, flow, F), F > 0.
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
@@ -4942,8 +4946,8 @@ gcc_augmenting_path(S, V) -->
    Build value network for global cardinality constraint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_arcs([], _, _, []).
-gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
+gcc_arcs([], _, []).
+gcc_arcs([Key-Num0|KNs], S, Vals) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ),
@@ -4960,35 +4964,56 @@ gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
             ;   put_attr(S, edges, [Edge])
             ),
             put_attr(Val, edges, [arc_from(L, U, S, F)]),
-            connect_vs_to_target(Vs, Val, T)
+            variables_with_num_occurrences(Vs, VNs),
+            maplist(val_to_v(Val), VNs)
         ;   Vals = Rest
         ),
-        gcc_arcs(KNs, S, T, Rest).
+        gcc_arcs(KNs, S, Rest).
 
-connect_vs_to_target([], _, _).
-connect_vs_to_target([V|Vs], Val, T) :-
-        put_attr(F2, flow, 0),
+variables_with_num_occurrences(Vs0, VNs) :-
+        include(var, Vs0, Vs1),
+        msort(Vs1, Vs),
+        (   Vs == [] -> VNs = []
+        ;   Vs = [V|Rest],
+            variables_with_num_occurrences(Rest, V, 1, VNs)
+        ).
+
+variables_with_num_occurrences([], Prev, Count, [Prev-Count]).
+variables_with_num_occurrences([V|Vs], Prev, Count0, VNs) :-
+        (   V == Prev ->
+            Count1 is Count0 + 1,
+            variables_with_num_occurrences(Vs, Prev, Count1, VNs)
+        ;   VNs = [Prev-Count0|Rest],
+            variables_with_num_occurrences(Vs, V, 1, Rest)
+        ).
+
+
+target_to_v(T, V-Count) :-
         (   get_attr(V, edges, VarEs) -> true
         ;   VarEs = []
         ),
-        (   get_attr(V, arc_to_t, _) ->
-            put_attr(V, edges, [arc_from(0, 1, Val, F2)|VarEs])
-        ;   put_attr(V, arc_to_t, _),
-            put_attr(F1, flow, 0),
-            put_attr(V, edges, [arc_to(0, 1, T, F1), arc_from(0, 1, Val, F2)|VarEs]),
-            TE = arc_from(0, 1, V, F1),
-            (   get_attr(T, edges, TEs) ->
-                put_attr(T, edges, [TE|TEs])
-            ;   put_attr(T, edges, [TE])
-            )
+        put_attr(F, flow, 0),
+        put_attr(V, edges, [arc_to(0, Count, T, F)|VarEs]),
+        TE = arc_from(0, Count, V, F),
+        (   get_attr(T, edges, TEs) ->
+            put_attr(T, edges, [TE|TEs])
+        ;   put_attr(T, edges, [TE])
+        ).
+
+
+val_to_v(Val, V-Count) :-
+        put_attr(F, flow, 0),
+        (   get_attr(V, edges, VarEs) -> true
+        ;   VarEs = []
         ),
+        put_attr(V, edges, [arc_from(0, Count, Val, F)|VarEs]),
         get_attr(Val, edges, VEs),
-        put_attr(Val, edges, [arc_to(0, 1, V, F2)|VEs]),
-        connect_vs_to_target(Vs, Val, T).
+        put_attr(Val, edges, [arc_to(0, Count, V, F)|VEs]).
+
 
 gcc_clear(V) :-
         (   get_attr(V, edges, Es) ->
-            maplist(del_attr(V), [arc_to_t,edges,index,lowlink,value]),
+            maplist(del_attr(V), [edges,index,lowlink,value]),
             maplist(gcc_clear_edge, Es)
         ;   true
         ).
@@ -5744,7 +5769,7 @@ attribute_goal_(pdistinct(Vs))          --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
 attribute_goal_(pgcc(Vs, Pairs, _))   --> [global_cardinality(Vs, Pairs)].
-attribute_goal_(pgcc_single(_))       --> [].
+attribute_goal_(pgcc_single(_,_))     --> [].
 attribute_goal_(pgcc_check_single(_)) --> [].
 attribute_goal_(pgcc_check(_))        --> [].
 attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
