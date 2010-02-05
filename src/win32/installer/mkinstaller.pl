@@ -2,10 +2,10 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,6 +70,11 @@ outfile :-
 	outfile(File),
 	format('OutFile "~w"~n', [File]).
 
+%packages :-
+%	exists_source(library(space/space)),
+%	format('!define PKG_SPATIAL 1~n').
+packages.
+
 copy_script :-
 	daily, !,
 	tell('copypl.bat'),
@@ -88,6 +93,7 @@ run :-
 	tell('version.nsi'),
 	name,
 	outfile,
+	forall(packages, true),
 	told,
 	copy_script.
 
@@ -289,6 +295,7 @@ ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('double_metaphone.pdb').
 ignore_file('porter_stem.pdb').
+ignore_file('space.pdb').
 ignore_file('Support SWI-Prolog development.url').
 ignore_file('SWI-Prolog website.url').
 ignore_file('uninstall.exe').
