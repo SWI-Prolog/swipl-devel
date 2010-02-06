@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,6 +35,8 @@
 #endif
 #ifdef HAVE_CRYPT_H
 #include <crypt.h>
+#else
+extern char *crypt(const char *key, const char *setting);
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -89,9 +91,7 @@ pl_crypt(term_t passwd, term_t encrypted)
 	return FALSE;
       }
     } else
-    {
-#ifdef HAVE_CRYPT
-      int rval;
+    { int rval;
 
       salt[0] = e[0];
       salt[1] = e[1];
@@ -103,9 +103,6 @@ pl_crypt(term_t passwd, term_t encrypted)
       UNLOCK();
 
       return rval;
-#else
-      return PL_warning("Password encryption not supported");
-#endif
     }
   } else
   { term_t tail = PL_copy_term_ref(encrypted);
@@ -139,10 +136,6 @@ pl_crypt(term_t passwd, term_t encrypted)
 	break;
     }
 
-#ifndef HAVE_CRYPT
-    slen = 8;
-#endif
-
     for( ; n < slen; n++ )
     { int c = 'a'+(int)(26.0*rand()/(RAND_MAX+1.0));
 
@@ -156,10 +149,7 @@ pl_crypt(term_t passwd, term_t encrypted)
     if ( slen > 2 )
     { s2 = md5_crypt(pw, salt);
     } else
-    {
-#ifdef HAVE_CRYPT
-      s2 = crypt(pw, salt);
-#endif
+    { s2 = crypt(pw, salt);
     }
     rval = (*unify)(encrypted, s2);
     UNLOCK();
