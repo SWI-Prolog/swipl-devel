@@ -49,12 +49,13 @@ MAKE=make
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# [EDIT] On MacOS you need this to get some libraries from Macports
-# export LIBRARY_PATH=/opt/local/lib
-# export CPATH=/opt/local/include
-
-# [EDIT] On MacOS you need this to compile the C++ code of the space package
-# export CXXCPP="g++ -E"
+# On MacOS you need this to get some libraries from Macports
+if [ "`uname`" = Darwin ]; then
+  export LIBRARY_PATH=/usr/lib:/opt/local/lib
+  export CPATH=/usr/include:/opt/local/include
+  export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
+  export CXXCPP="g++ -E"
+fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
 # export CIFLAGS=-I/opt/csw/include/ncurses
