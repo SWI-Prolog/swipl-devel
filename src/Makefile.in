@@ -58,6 +58,7 @@ LDEXE=@LDEXE@
 LIBS=@LIBS@
 AWK=@AWK@
 SED=sed
+CHRPATH=@CHRPATH@
 ETAGS=@ETAGS@
 AR=@AR@
 RANLIB=@RANLIB@
@@ -202,8 +203,13 @@ banner::
 		@echo "****************"
 
 
+# $(CHRPATH) -c changes ELF DT_RPATH into DT_RUNPATH.  The latter can
+# be overruled using LD_LIBRARY_PATH, which is what we need to be able
+# to run our local copy of SWI-Prolog.
+
 $(PL):		$(MKLIBS) $(PLOBJ)
 		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lswipl $(LNLIBS)
+		$(CHRPATH) -c $(PL)
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
