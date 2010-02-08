@@ -87,6 +87,7 @@ has the following properties:
 		 tab_distance:nonneg=8,	% Tab distance
 		 subject_white_lines:nonneg=1,%Extra lines between subjects
 		 align_prefixes:boolean=true,%Align prefix declarations
+		 user_prefixes:boolean=true,% Use rdf_current_ns/2?
 		 comment:boolean=true,	% write some comments into the file
 		 group:boolean=true,	% Group using ; and ,
 		 single_line_bnodes:boolean=false, % No newline after ;
@@ -112,6 +113,9 @@ has the following properties:
 %	    Nicely align the @prefix declarations
 %	    * base(+Base)
 %	    Save relative to the given Base
+%	    * canonize_numbers(+Boolean)
+%	    If =true= (default =false=), emit numeric datatypes using
+%	    Prolog's write to achieve canonical output.
 %	    * comment(+Boolean)
 %	    It =true= (default), write some informative comments
 %	    between the output segments
@@ -133,9 +137,8 @@ has the following properties:
 %	    * tab_distance(+Tab)
 %	    Distance between tab-stops.  `0' forces the library to
 %	    use only spaces for layout.  Default is 8.
-%	    * canonize_numbers(+Boolean)
-%	    If =true= (default =false=), emit numeric datatypes using
-%	    Prolog's write to achieve canonical output.
+%	    * user_prefixes(+Boolean)
+%	    If =true= (default), use prefixes from rdf_current_ns/2.
 %
 %	@param	Out is one of stream(Stream), a stream handle, a file-URL
 %		or an atom that denotes a filename.
@@ -168,6 +171,7 @@ rdf_save_turtle(Spec, Options) :-
 %	    * tab_distance(0),
 %	    * subject_white_lines(1),
 %	    * align_prefixes(false),
+%	    * user_prefixes(false)
 %	    * comment(false),
 %	    * group(false),
 %	    * single_line_bnodes(true)
@@ -182,6 +186,7 @@ rdf_save_canonical_turtle(Spec, Options) :-
 			  tab_distance(0),
 			  subject_white_lines(1),
 			  align_prefixes(false),
+			  user_prefixes(false),
 			  comment(false),
 			  group(false),
 			  single_line_bnodes(true),
@@ -230,7 +235,7 @@ init_prefix_map(State0, State) :-
 	tw_state_graph(State0, Graph),
 	rdf_graph_prefixes(Graph, Prefixes, turtle_prefix),
 	remove_base(State0, Prefixes, Prefixes2),
-	prefix_names(Prefixes2, Pairs),
+	prefix_names(Prefixes2, State0, Pairs),
 	transpose_pairs(Pairs, URI_Abrevs),
 	reverse(URI_Abrevs, RURI_Abrevs),
 	flip_pairs(RURI_Abrevs, PrefixMap),
@@ -261,20 +266,20 @@ flip_pairs([], []).
 flip_pairs([Key-Val|Pairs], [Val-Key|Flipped]) :-
 	flip_pairs(Pairs, Flipped).
 
-prefix_names(URIs, Prefixes) :-
-	prefix_names(URIs, 1, Prefixes, []).
+prefix_names(URIs, State, Prefixes) :-
+	prefix_names(URIs, State, 1, Prefixes, []).
 
-prefix_names([], _, List, List) :- !.
-prefix_names(URIs, Len, Prefixes, Tail) :-
-	prefix_names(URIs, Len, Prefixes, PTail, Rest),
+prefix_names([], _, _, List, List) :- !.
+prefix_names(URIs, State, Len, Prefixes, Tail) :-
+	prefix_names(URIs, State, Len, Prefixes, PTail, Rest),
 	Len1 is Len + 1,
-	prefix_names(Rest, Len1, PTail, Tail).
+	prefix_names(Rest, State, Len1, PTail, Tail).
 
-prefix_names(URIs, Len, Prefixes, PTail, Rest) :-
-	map_list_to_pairs(propose_abbrev(Len), URIs, Pairs), !,
+prefix_names(URIs, State, Len, Prefixes, PTail, Rest) :-
+	map_list_to_pairs(propose_abbrev(State, Len), URIs, Pairs), !,
 	keysort(Pairs, Sorted),
 	unique(Sorted, Prefixes, PTail, Rest).
-prefix_names(URIs, _, Prefixes, PTail, []) :-
+prefix_names(URIs, _, _, Prefixes, PTail, []) :-
 	number_prefixes(URIs, 1, Prefixes, PTail).
 
 number_prefixes([], _, PL, PL).
@@ -296,14 +301,17 @@ strip_keys([A-U|T0], A, T, [U|R0], R) :- !,
 strip_keys(L, _, L, R, R).
 
 
-%%	propose_abbrev(+Len, +URI, -Abbrev) is multi.
+%%	propose_abbrev(+State, +Len, +URI, -Abbrev) is multi.
 %
 %	Propose an abbreviation for URI.  Backtracking yields longer
 %	ones.
 
-propose_abbrev(_, URI, Abbrev) :-
+propose_abbrev(_, _, URI, Abbrev) :-
 	well_known_ns(Abbrev, URI), !.
-propose_abbrev(Len, URI, Abbrev) :-
+propose_abbrev(State, _, URI, Abbrev) :-
+	tw_state_user_prefixes(State, true),
+	rdf_current_ns(Abbrev, URI), !.
+propose_abbrev(_, Len, URI, Abbrev) :-
 	namespace_parts(URI, Parts),
 	include(abbrev_part, Parts, Names),
 	reverse(Names, RevNames),
