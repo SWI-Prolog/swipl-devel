@@ -1009,6 +1009,10 @@ consult(List) :-
 load_files(Files) :-
 	load_files(Files, []).
 load_files(Module:Files, Options) :-
+	(   is_list(Options)
+	->  true
+	;   throw(error(type_error(list, Options), _))
+	),
         '$load_files'(Files, Module, Options).
 
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
