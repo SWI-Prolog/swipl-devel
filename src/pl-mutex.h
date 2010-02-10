@@ -62,7 +62,9 @@ controlled using the following macros:
 #include <pthread.h>
 
 #ifdef USE_CRITICAL_SECTIONS
+#ifndef WINDOWS_LEAN_AND_MEAN
 #define WINDOWS_LEAN_AND_MEAN
+#endif
 #include <winsock2.h>
 #include <windows.h>
 #define RECURSIVE_MUTEXES 1
