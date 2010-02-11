@@ -390,11 +390,15 @@ the following rules to your Emacs initialisation file:
 ;(setq prolog-indent-width 8)
 \end{code}
 
-Unfortunately the default Prolog mode of GNU-Emacs is not very good. An
-alternative \file{prolog.el} file for GNU-Emacs 20 is available from
-\url{http://www.freesoft.cz/~pdm/software/emacs/prolog-mode/} and for
-GNU-Emacs 19 from
-\url{http://w1.858.telia.com/~u85810764/Prolog-mode/index.html}
+Unfortunately the default Prolog mode of GNU-Emacs is not very good.
+There are several alternatives though:
+
+\begin{shortlist}
+    \item \url{http://turing.ubishops.ca/home/bruda/emacs-prolog/}
+    \item \url{http://stud4.tuwien.ac.at/~e0225855/ediprolog/ediprolog.html}
+    \item \url{http://stud4.tuwien.ac.at/~e0225855/pceprolog/pceprolog.html}
+    \item \url{http://stud4.tuwien.ac.at/~e0225855/etrace/etrace.html}
+\end{shortlist}
 
 
 \section{Online Help}				\label{sec:help}
