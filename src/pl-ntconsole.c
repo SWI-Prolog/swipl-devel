@@ -418,16 +418,11 @@ wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
 }
 
 
-static int
-init_output(void *handle)
+static void
+init_output(void *handle, CONSOLE_SCREEN_BUFFER_INFO *info)
 { ansi_stream *as = handle;
-  CONSOLE_SCREEN_BUFFER_INFO info;
 
-  if ( !GetConsoleScreenBufferInfo(as->hConsole, &info) )
-    return FALSE;
-
-  as->def_attr = info.wAttributes;
-  return TRUE;
+  as->def_attr = info->wAttributes;
 }
 
 
@@ -436,10 +431,12 @@ PL_w32_wrap_ansi_console(void)
 { HANDLE hIn    = GetStdHandle(STD_INPUT_HANDLE);
   HANDLE hOut   = GetStdHandle(STD_OUTPUT_HANDLE);
   HANDLE hError = GetStdHandle(STD_ERROR_HANDLE);
+  CONSOLE_SCREEN_BUFFER_INFO info;
 
   if ( hIn    == INVALID_HANDLE_VALUE ||
        hOut   == INVALID_HANDLE_VALUE ||
-       hError == INVALID_HANDLE_VALUE )
+       hError == INVALID_HANDLE_VALUE ||
+       !GetConsoleScreenBufferInfo(hOut, &info) )
     return FALSE;
 
   saved_functions       = Sinput->functions;
@@ -454,8 +451,8 @@ PL_w32_wrap_ansi_console(void)
   wrap_console(hOut,   Soutput, &con_functions);
   wrap_console(hError, Serror,  &con_functions);
 
-  init_output(Soutput->handle);
-  init_output(Serror->handle);
+  init_output(Soutput->handle, &info);
+  init_output(Serror->handle, &info);
 
   PL_set_prolog_flag("tty_control", PL_BOOL, TRUE);
   return TRUE;
