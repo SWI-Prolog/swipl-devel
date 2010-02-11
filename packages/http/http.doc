@@ -753,6 +753,13 @@ the contacting host.
     \termitem{port}{Port}
 Port requested.  See \const{host} for details.
 
+    \termitem{request_uri}{RequestURI}
+This is the untranslated string that follows the method in the
+request header.  It is used to construct the path and search fields
+of the \arg{Request}.  It is provided because reconstructing this
+string from the path and search fields may yield a different value
+due to different usage of percent encoding.
+
     \termitem{search}{ListOfNameValue}
 Search-specification of URI. This is the part after the \chr{?},
 normally used to transfer data from HTML forms that use the
