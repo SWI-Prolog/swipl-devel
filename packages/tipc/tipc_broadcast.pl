@@ -29,6 +29,7 @@
 
 :- module(tipc_broadcast,
              [
+	     tipc_host_to_address/2,    % ? Host, ? Address
 	     tipc_initialize/0
 	     ]).
 
@@ -266,7 +267,9 @@ tipc_broadcast_service(zone,            name_seq(20005, 2, 2)).
 %
 
 safely(Predicate) :-
-	catch(Predicate, Err, (print_message(error, Err), fail)).
+	catch(Predicate, Err,
+	      (Err == '$aborted' -> (!, fail);
+	      print_message(error, Err), fail)).
 
 %%	~>(:P, :Q) is semidet.
 %%	eventually_implies(:P, :Q) is semidet.
@@ -335,7 +338,11 @@ start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
 	       [alias(tipc_listener_daemon), detached(true)]).
 
+:- multifile tipc:host_to_address/2.
 %
+broadcast_listener(tipc_host_to_address(Host, Addr)) :-
+	tipc:host_to_address(Host, Addr).
+
 broadcast_listener(tipc_broadcast_service(Class, Addr)) :-
 	tipc_broadcast_service(Class, Addr).
 
@@ -412,10 +419,27 @@ tipc_br_collect_replies(S, Timeout, Term:From) :-
   	    -> (From1 = From, safely(term_to_atom(Term, Atom)))
 	    ;  (!, fail)).
 
+%%	tipc_host_to_address(?Service, ?Address) is nondet.
+%
+%   locates a TIPC service by name. Service  is an atom or grounded term
+%   representing the common name  of  the   service.  Address  is a TIPC
+%   address structure. A server may advertise   its  services by name by
+%   including  the  fact,    tipc:host_to_address(+Service,   +Address),
+%   somewhere in its source. This predicate can  also be used to perform
+%   reverse searches. That is it  will  also   resolve  an  Address to a
+%   Service name. The search is zone-wide. Locating a service however,
+%   does not imply that the service is actually reachable from any
+%   particular node within the zone.
+%
+
+tipc_host_to_address(Host, Address) :-
+	broadcast_request(tipc_zone(tipc_host_to_address(Host, Address))).
+
 %%	tipc_initialize is semidet.
 %   See tipc:tipc_initialize/0
 %
 :- multifile tipc:tipc_stack_initialize/0.
+
 
 %   tipc_stack_initialize() is det. causes any required runtime
 %   initialization to occur. This called as a side-effect of
