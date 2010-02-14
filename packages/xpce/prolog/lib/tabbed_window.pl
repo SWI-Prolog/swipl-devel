@@ -96,6 +96,12 @@ on_top(W, Name:name) :->
 	->  send(Window, expose)
 	).
 
+current(W, Window:window) :<-
+	"Window of currently selected tab"::
+	get_super(W, member, tab_stack, TS),
+	get(TS, on_top, Tab),
+	get(Tab, window, Window).
+
 :- pce_group(members).
 
 %	->append: Window, Label, [Expose]

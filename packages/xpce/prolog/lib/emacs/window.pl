@@ -117,9 +117,7 @@ buffer(F, B:emacs_buffer) :->
 view(F, View:emacs_view) :<-
 	"Currently active view"::
 	get(F, member, tabbed_window, TW),
-	get(TW, member, tab_stack, TS),	% TBD: Move to tabbed_window
-	get(TS, on_top, Tab),
-	get(Tab, window, View).
+	get(TW, current, View).
 
 
 editor(F, Editor:emacs_editor) :<-
