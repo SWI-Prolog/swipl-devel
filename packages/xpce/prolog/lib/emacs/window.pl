@@ -72,7 +72,9 @@ initialise(F, B:emacs_buffer) :->
 	send(new(emacs_mini_window), below, TW),
 
 	get(F, class_variable_value, size, Size),
-	send(TW, append, new(V, emacs_view(B, Size?width, Size?height))),
+	send(TW, append,
+	     new(V, emacs_view(B, Size?width, Size?height)),
+	     B?name),
 	get(V, editor, E),
 	send(E, recogniser, handler(keyboard,
 				    message(E?frame, editor_event, @arg1))),
@@ -103,8 +105,9 @@ tab(F, B:emacs_buffer) :->
 	get(F, member, tabbed_window, TW),
 	send(TW, append, new(V, emacs_view(B))),
 	get(V, editor, E),
-	send(E, recogniser, handler(keyboard,
-				    message(E?frame, editor_event, @arg1))).
+	send(E, recogniser,
+	     handler(keyboard, message(E?frame, editor_event, @arg1))),
+	send(B, update_label).
 
 
 buffer(F, B:emacs_buffer) :->
