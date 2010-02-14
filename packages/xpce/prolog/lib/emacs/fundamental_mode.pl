@@ -821,9 +821,7 @@ annotate(M) :->
 split_window(M) :->
 	"Create another window for this buffer"::
 	get(M, text_buffer, Buffer),
-	new(W2, emacs_frame(Buffer)),
-	send(W2?editor, caret, M?caret).
-
+	send(M?frame, tab, Buffer).
 
 only_window(M) :->
 	"Quit other windows on this buffer"::

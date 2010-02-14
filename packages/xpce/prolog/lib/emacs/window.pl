@@ -31,6 +31,7 @@
 
 :- module(emacs_frame, []).
 :- use_module(library(pce)).
+:- use_module(library(tabbed_window)).
 :- use_module(prompt).
 :- require([ between/3
 	   , atomic_list_concat/2
@@ -64,16 +65,17 @@ variable(pool,		[name], both, "Window pool I belong too").
 initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, B?name, application := @emacs),
-	send(F, fix_colour_map),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
+	send(new(TW, tabbed_window), below, MBD),
+	send(new(emacs_mini_window), below, TW),
+
 	get(F, class_variable_value, size, Size),
-	send(new(V, emacs_view(B, Size?width, Size?height)), below, MBD),
-	send(new(MW, emacs_mini_window), below, V),
+	send(TW, append, new(V, emacs_view(B, Size?width, Size?height))),
 	get(V, editor, E),
 	send(E, recogniser, handler(keyboard,
-				    message(MW, editor_event, @arg1))),
+				    message(E?frame, editor_event, @arg1))),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
@@ -82,15 +84,10 @@ initialise(F, B:emacs_buffer) :->
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
 
-
-fix_colour_map(F) :->
-	"Set colour-map to @nil on mapped displays"::
-	(   get(@display, depth, Depth),
-	    Depth =< 8
-	->  send(F, colour_map, @nil)
-	;   true
-	).
-
+editor_event(F, Ev:event) :->
+	"Delegate to the mini-window"::
+	get(F, member, emacs_mini_window, MW),
+	send(MW, editor_event, Ev).
 
 input_focus(F, Val:bool) :->
 	"Activate the window"::
@@ -101,6 +98,15 @@ input_focus(F, Val:bool) :->
 	).
 
 
+tab(F, B:emacs_buffer) :->
+	"Add new tab holding buffer"::
+	get(F, member, tabbed_window, TW),
+	send(TW, append, new(V, emacs_view(B))),
+	get(V, editor, E),
+	send(E, recogniser, handler(keyboard,
+				    message(E?frame, editor_event, @arg1))).
+
+
 buffer(F, B:emacs_buffer) :->
 	"Switch to the given emacs buffer"::
 	get(F, editor, E),
@@ -109,12 +115,16 @@ buffer(F, B:emacs_buffer) :->
 
 
 view(F, View:emacs_view) :<-
-	get(F, member, emacs_view, View).
+	"Currently active view"::
+	get(F, member, tabbed_window, TW),
+	get(TW, member, tab_stack, TS),	% TBD: Move to tabbed_window
+	get(TS, on_top, Tab),
+	get(Tab, window, View).
 
 
 editor(F, Editor:emacs_editor) :<-
 	"Editor component of the frame"::
-	get(F, member, emacs_view, V),
+	get(F, view, V),
 	get(V, editor, Editor).
 
 
@@ -554,6 +564,16 @@ initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	get(E, mode, Mode),		% the mode object
 	ignore(send(Mode, new_buffer)).
 
+label(V, Label:name) :->
+	"Set label of frame/tab"::
+	get(V, device, Dev),
+	(   send(Dev, has_send_method, label)
+	->  send(Dev, label, Label)
+	;   get(V, frame, Frame),
+	    Frame \== @nil
+	->  send(Frame, label, Label)
+	;   true
+	).
 
 drop_files(V, Files:chain, _At:point) :->
 	"Accept files dropped on me"::
@@ -891,6 +911,12 @@ last_buffer(E, TB:text_buffer) :<-
 		 /*******************************
 		 *          UTILITIES		*
 		 *******************************/
+
+label(E, Label:name) :->
+	"Delegate to view"::
+	get(E, device, View),
+	send(View, label, Label).
+
 
 looking_at(E, Re:regex, Where:[int], End:[int]) :->
 	"Test if regex macthes from the caret"::

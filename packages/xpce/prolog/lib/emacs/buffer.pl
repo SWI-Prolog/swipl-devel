@@ -488,7 +488,7 @@ update_label(B) :->
 		EditorLabel = Name
 	    ),
 	    send(B?editors, for_all,
-		 message(@arg1?frame, label, EditorLabel))
+		 message(@arg1, label, EditorLabel))
 	;   true
 	).
 
