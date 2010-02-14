@@ -59,6 +59,8 @@ initialise(W, Label:label=[name], Size:size=[size],
 	send_super(W, initialise, Label, Size, Display),
 	send(W, hor_stretch, 100),
 	send(W, ver_stretch, 100),
+	send(W, hor_shrink, 100),
+	send(W, ver_shrink, 100),
 	send(W, pen, 0),
 	send(W, border, size(0,0)),
 	send_super(W, append, new(tab_stack)).
