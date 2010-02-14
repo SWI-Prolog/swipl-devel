@@ -158,7 +158,8 @@ changedLabelImageTab(Tab t)
 
 static status
 ChangedLabelTab(Tab t)
-{ assign(t, request_compute, ON);
+{ changedLabelImageTab(t);
+  assign(t, request_compute, ON);
   computeTab(t);
 
   return changedLabelImageTab(t);
