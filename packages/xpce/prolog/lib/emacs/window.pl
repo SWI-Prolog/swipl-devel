@@ -52,6 +52,21 @@ various others.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_global(@current_emacs_mode, new(var)).
+:- pce_global(@emacs_tab_popup, make_emacs_tab_popup).
+
+make_emacs_tab_popup(P) :-
+	new(P, popup),
+	Tab = @arg1,
+	Cond = (Tab?device?graphicals?size \== 1),
+	send_list(P, append,
+		  [ menu_item(delete,
+			      message(Tab, destroy),
+			      condition := Cond),
+		    menu_item(detach,
+			      message(Tab, untab),
+			      condition := Cond)
+		  ]).
+
 
 :- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
 
@@ -69,6 +84,7 @@ initialise(F, B:emacs_buffer) :->
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
 	send(new(TW, tabbed_window), below, MBD),
+	send(TW, label_popup, @emacs_tab_popup),
 	send(new(emacs_mini_window), below, TW),
 
 	get(F, class_variable_value, size, Size),
