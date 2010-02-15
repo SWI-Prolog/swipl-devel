@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -116,10 +116,10 @@ input_focus(F, Val:bool) :->
 	).
 
 
-tab(F, B:emacs_buffer) :->
+tab(F, B:emacs_buffer, Expose:expose=[bool]) :->
 	"Add new tab holding buffer"::
 	get(F, member, tabbed_window, TW),
-	send(TW, append, new(V, emacs_view(B))),
+	send(TW, append, new(V, emacs_view(B)), @default, Expose),
 	get(V, editor, E),
 	send(E, recogniser,
 	     handler(keyboard, message(E?frame, editor_event, @arg1))),
