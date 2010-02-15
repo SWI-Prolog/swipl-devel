@@ -102,6 +102,15 @@ current(W, Window:window) :<-
 	get(TS, on_top, Tab),
 	get(Tab, window, Window).
 
+current(W, Window:window) :->
+	"Window of currently selected tab"::
+	get(Window, container, window_tab, Tab),
+	(   get(Tab, status, on_top)
+	->  send(W, resize, Tab)
+	;   get_super(W, member, tab_stack, TS),
+	    send(TS, on_top, Tab)
+	).
+
 :- pce_group(members).
 
 %	->append: Window, Label, [Expose]
@@ -241,7 +250,7 @@ status(T, Status:{on_top,hidden}) :->
 	(   Status == on_top,
 	    get(T, is_displayed, @on),
 	    get(T, container, tabbed_window, TabbedWindow)
-	->  send(TabbedWindow, resize, T)
+	->  send(TabbedWindow, current, T?window)
 	;   true
 	).
 
@@ -322,7 +331,7 @@ untab(Tab) :->
 
 %	->close_other_tabs
 %
-%	Close all tabs but be. To work   around scheduled resize for the
+%	Close all tabs but me. To work   around scheduled resize for the
 %	subwindows we first indicate we are about to close the tabs. See
 %	also ->size.
 
