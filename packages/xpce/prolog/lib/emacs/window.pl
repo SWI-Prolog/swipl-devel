@@ -52,6 +52,10 @@ various others.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_global(@current_emacs_mode, new(var)).
+
+:- pce_begin_class(emacs_tabbed_window, tabbed_window,
+		   "Emacs editor tabs").
+
 :- pce_global(@emacs_tab_popup, make_emacs_tab_popup).
 
 make_emacs_tab_popup(P) :-
@@ -66,6 +70,17 @@ make_emacs_tab_popup(P) :-
 			      message(Tab, untab),
 			      condition := Cond)
 		  ]).
+
+current(TW, Window:window) :->
+	"Make the given window the current one"::
+	send_super(TW, current, Window),
+	(   get(TW, frame, Frame),
+	    send(Frame, has_send_method, setup_mode)
+	->  send(TW?frame, setup_mode, Window)
+	;   true
+	).
+
+:- pce_end_class.
 
 
 :- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
@@ -83,7 +98,7 @@ initialise(F, B:emacs_buffer) :->
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
-	send(new(TW, tabbed_window), below, MBD),
+	send(new(TW, emacs_tabbed_window), below, MBD),
 	send(TW, label_popup, @emacs_tab_popup),
 	send(new(emacs_mini_window), below, TW),
 
@@ -118,12 +133,13 @@ input_focus(F, Val:bool) :->
 
 tab(F, B:emacs_buffer, Expose:expose=[bool]) :->
 	"Add new tab holding buffer"::
-	get(F, member, tabbed_window, TW),
+	get(F, member, emacs_tabbed_window, TW),
 	send(TW, append, new(V, emacs_view(B)), @default, Expose),
 	get(V, editor, E),
 	send(E, recogniser,
 	     handler(keyboard, message(E?frame, editor_event, @arg1))),
-	send(B, update_label).
+	send(B, update_label),
+	send(F, setup_mode, V).
 
 
 buffer(F, B:emacs_buffer) :->
@@ -135,7 +151,7 @@ buffer(F, B:emacs_buffer) :->
 
 view(F, View:emacs_view) :<-
 	"Currently active view"::
-	get(F, member, tabbed_window, TW),
+	get(F, member, emacs_tabbed_window, TW),
 	get(TW, current, View).
 
 
