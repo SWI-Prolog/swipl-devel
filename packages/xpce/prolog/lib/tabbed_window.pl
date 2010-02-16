@@ -170,6 +170,13 @@ tab(W, Name:name, Tab:tab) :<-
 	get_super(W, member, tab_stack, TS),
 	get(TS, member, Name, Tab).
 
+:- pce_group(frame).
+
+frame_window(TW, Window:window, Name:name, Rank:'1..', Frame:frame) :<-
+	"After un-tabbing, give the window a new frame"::
+	new(Frame, window_tab_frame(Window, Name, Rank)),
+	new(_, partof_hyper(TW, Window, toplevel, tab)).
+
 :- pce_end_class(tabbed_window).
 
 
@@ -326,8 +333,8 @@ untab(Tab) :->
 	get(Tab, container, dialog, TabbedWindow),
 	get(Tab, display_position, point(X, Y)),
 	get(Tab, untab, Window),
-	send(new(window_tab_frame(Window, Name, Rank)), open, point(X, Y+20)),
-	new(_, partof_hyper(TabbedWindow, Window, toplevel, tab)).
+	get(TabbedWindow, frame_window, Window, Name, Rank, Frame),
+	send(Frame, open, point(X, Y+20)).
 
 %	->close_other_tabs
 %

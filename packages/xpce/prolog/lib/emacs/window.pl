@@ -80,6 +80,10 @@ current(TW, Window:window) :->
 	;   true
 	).
 
+frame_window(_TW, Window:window, _Name:name, _Rank:'1..', Frame:frame) :<-
+	"After un-tabbing, give the window a new frame"::
+	new(Frame, emacs_frame(Window)).
+
 :- pce_end_class.
 
 
@@ -92,9 +96,9 @@ class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
 
-initialise(F, B:emacs_buffer) :->
+initialise(F, For:'emacs_buffer|emacs_view') :->
 	"Create window for buffer"::
-	send(F, send_super, initialise, B?name, application := @emacs),
+	send(F, send_super, initialise, 'PceEmacs', application := @emacs),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
@@ -102,13 +106,16 @@ initialise(F, B:emacs_buffer) :->
 	send(TW, label_popup, @emacs_tab_popup),
 	send(new(emacs_mini_window), below, TW),
 
-	get(F, class_variable_value, size, Size),
-	send(TW, append,
-	     new(V, emacs_view(B, Size?width, Size?height)),
-	     B?name),
+	(   send(For, instance_of, emacs_view)
+	->  V = For,
+	    get(For, text_buffer, B)
+	;   B = For,
+	    get(F, class_variable_value, size, Size),
+	    new(V, emacs_view(B, Size?width, Size?height))
+	),
+
+	send(TW, append, V, B?name),
 	get(V, editor, E),
-	send(E, recogniser, handler(keyboard,
-				    message(E?frame, editor_event, @arg1))),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
@@ -131,13 +138,10 @@ input_focus(F, Val:bool) :->
 	).
 
 
-tab(F, B:emacs_buffer, Expose:expose=[bool]) :->
+tab(F, B:buffer=emacs_buffer, Expose:expose=[bool]) :->
 	"Add new tab holding buffer"::
 	get(F, member, emacs_tabbed_window, TW),
 	send(TW, append, new(V, emacs_view(B)), @default, Expose),
-	get(V, editor, E),
-	send(E, recogniser,
-	     handler(keyboard, message(E?frame, editor_event, @arg1))),
 	send(B, update_label),
 	send(F, setup_mode, V).
 
@@ -592,6 +596,11 @@ initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	send_super(V, initialise, @default, @default, @default,
 		   new(E, emacs_editor(Buffer, Width, Height))),
 	send(E?image, recogniser, @emacs_image_recogniser),
+	send(E, recogniser,
+	     handler(keyboard,
+		     if(message(E?frame, has_send_method, editor_event),
+			message(E?frame, editor_event, @arg1)))),
+
 	get(Buffer, mode, ModeName),
 	send(E, mode, ModeName),
 	get(E, mode, Mode),		% the mode object
