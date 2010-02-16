@@ -1462,11 +1462,14 @@ make_prolog_mode_goal_popup(G) :-
 	new(HasSource, message(Fragment, has_source)),
 	new(HasListing, message(Fragment, has_listing)),
 	send_list(G, append,
-		  [ menu_item(edit,
-			      message(Fragment, edit),
+		  [ menu_item(edit_in_tab,
+			      message(Fragment, edit, tab),
 			      condition := HasSource),
-		    menu_item(edit_other_window,
-			      message(Fragment, edit, @on),
+		    menu_item(edit_here,
+			      message(Fragment, edit, here),
+			      condition := HasSource),
+		    menu_item(edit_in_window,
+			      message(Fragment, edit, window),
 			      condition := HasSource),
 		    gap,
 		    menu_item(listing,
@@ -1531,10 +1534,10 @@ has_source(F) :->
 %	Find the predicate and invoke ->find_definition on the
 %	@emacs_mode, which is the mode object of the current editor.
 
-edit(F, NewWindow:[bool]) :->
+edit(F, Where:[{here,tab,window}]) :->
 	"Open Prolog predicate [in new window]"::
 	get(F, predicate, Pred),
-	send(@emacs_mode, find_definition, Pred, NewWindow).
+	send(@emacs_mode, find_definition, Pred, Where).
 
 
 %	->listing
@@ -1843,10 +1846,12 @@ popup(F, Popup:popup) :<-
 make_prolog_mode_file_popup(G) :-
 	new(G, popup(file_actions)),
 	send_list(G, append,
-		  [ menu_item(open,
-			      message(@emacs, open_file, @arg1?file)),
-		    menu_item(open_other_window,
-			      message(@emacs, open_file, @arg1?file, @on))
+		  [ menu_item(open_in_tab,
+			      message(@emacs, open_file, @arg1?file, tab)),
+		    menu_item(open_in_window,
+			      message(@emacs, open_file, @arg1?file, window)),
+		    menu_item(open_here,
+			      message(@emacs, open_file, @arg1?file, here))
 		  ]).
 
 file(F, File:name) :<-

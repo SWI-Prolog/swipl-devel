@@ -552,26 +552,22 @@ confirm_reload(_, File) :-
 		 *          OPEN WINDOW		*
 		 *******************************/
 
-open(B, New:[bool], Window:emacs_frame) :<-
+open(B, How:[{here,tab,window}], Frame:emacs_frame) :<-
 	"Create window for buffer"::
-	(   New == @on
-	->  send(new(Window, emacs_frame(B)), open)
-	;   (   get(B?editors, find,
-		    and(message(@arg1, instance_of, emacs_editor),
-			@arg1?window?reuse == @on),
-		    Editor)
-	    ->  get(Editor, frame, Window),
-		send(Window, expose)
-	    ;	get(@emacs, free_window, B?pool, Window)
-	    ->	send(Window, buffer, B)
-	    ;	send(new(Window, emacs_frame(B)), open)
-	    )
+	(   How == window
+	->  send(new(Frame, emacs_frame(B)), open)
+	;   How == tab
+	->  get(@emacs, current_frame, Frame),
+	    send(Frame, tab, B, @on)
+	;   get(@emacs, current_frame, Frame)
+	->  send(Frame, buffer, B)
+	;   send(new(Frame, emacs_frame(B)), open)
 	),
 	send(B, check_modified_file).
 
-open(B, New:[bool]) :->
+open(B, How:[{here,tab,window}]) :->
 	"Create window for buffer"::
-	get(B, open, New, _).
+	get(B, open, How, _).
 
 
 properties(Buffer) :->

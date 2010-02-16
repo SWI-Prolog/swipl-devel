@@ -120,10 +120,10 @@ buffers(Emacs, Buffers:chain) :<-
 	get(Emacs?buffer_list?members, map, @arg1?object, Buffers).
 
 
-open_file(_Emacs, File:file, NewWindow:new_window=[bool]) :->
+open_file(_Emacs, File:file, How:[{here,tab,window}]) :->
 	"Open a file"::
 	new(B, emacs_buffer(File)),
-	send(B, open, NewWindow).
+	send(B, open, How).
 
 
 find_file(Emacs, Dir:[directory]) :->
@@ -133,11 +133,11 @@ find_file(Emacs, Dir:[directory]) :->
 
 goto_source_location(_Emacs,
 		     Location:source_location,
-		     NewWindow:new_window=[bool]) :->
+		     Where:where=[{here,tab,window}]) :->
 	"Visit the indicated source-location"::
 	get(Location, file_name, File),
 	new(B, emacs_buffer(File)),
-	send(B, open, NewWindow),
+	send(B, open, Where),
 	send(B, check_modified_file),
 	(   get(Location, line_no, Line),
 	    Line \== @nil
@@ -211,6 +211,14 @@ check_saved_at_exit(BM) :->
 		 *	      WINDOWS		*
 		 *******************************/
 :- pce_group(window).
+
+current_frame(_BM, Frame:emacs_frame) :<-
+	"PceEmacs frame the user is working in"::
+	send(@event, instance_of, event),
+	get(@event, window, Window),
+	get(Window, frame, Frame),
+	send(Frame, instance_of, emacs_frame).
+
 
 free_window(BM, Pool:[name], Frame:emacs_frame) :<-
 	"Return the first non-sticky window"::

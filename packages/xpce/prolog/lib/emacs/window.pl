@@ -141,9 +141,16 @@ input_focus(F, Val:bool) :->
 tab(F, B:buffer=emacs_buffer, Expose:expose=[bool]) :->
 	"Add new tab holding buffer"::
 	get(F, member, emacs_tabbed_window, TW),
-	send(TW, append, new(V, emacs_view(B)), @default, Expose),
-	send(B, update_label),
-	send(F, setup_mode, V).
+	(   get(TW, members, Windows),
+	    get(Windows, find, @arg1?text_buffer == B, Window)
+	->  (   Expose == @on
+	    ->	send(TW, on_top, Window)
+	    ;	true
+	    )
+	;   send(TW, append, new(V, emacs_view(B)), @default, Expose),
+	    send(B, update_label),
+	    send(F, setup_mode, V)
+	).
 
 
 buffer(F, B:emacs_buffer) :->

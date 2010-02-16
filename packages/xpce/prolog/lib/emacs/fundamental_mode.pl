@@ -406,10 +406,10 @@ save_some_buffers(_M, Arg:[int]) :->
 	).
 
 
-find_file(M, File:file) :->
+find_file(_M, File:file) :->
 	"Find existing file or create new one"::
 	new(Buffer, emacs_buffer(File)),
-	send(M?frame, tab, Buffer, @on).
+	send(Buffer, open, tab).
 
 new(M, File:save_file) :->
 	"Create a new file"::
@@ -821,7 +821,7 @@ annotate(M) :->
 split_window(M) :->
 	"Create another window for this buffer"::
 	get(M, text_buffer, Buffer),
-	send(M?frame, tab, Buffer).
+	send(Buffer, open, window).
 
 only_window(M) :->
 	"Quit other windows on this buffer"::
