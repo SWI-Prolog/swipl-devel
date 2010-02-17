@@ -4066,7 +4066,7 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 { PRED_LD
   IOSTREAM *in = NULL, *out = NULL, *error = NULL;
   int rval = FALSE;
-  int wrapin;
+  int wrapin = FALSE;
 
   if ( !get_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) ||
        !get_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS) )

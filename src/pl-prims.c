@@ -4652,6 +4652,8 @@ PRED_IMPL("statistics", 2, statistics, 0)
 }
 
 
+#ifdef O_MEMSTATS
+
 static int
 addNameValue(term_t list, const char *name, term_t val)
 { GET_LD
@@ -4685,7 +4687,6 @@ addNameInteger(term_t list, const char *name, intptr_t val)
 }
 
 
-#ifdef O_MEMSTATS
 /** memory_statistics(-Stats) is det.
 
 Provide statistics on memory  allocation,   and  particularly  on wasted
