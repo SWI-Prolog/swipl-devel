@@ -87,14 +87,19 @@ layout_dialog(W, _Gap:[size], _Size:[size], _Border:[size]) :->
 
 :- pce_group(stack).
 
-on_top(W, Name:name) :->
-	"Put the named tab on top"::
+on_top(W, Top:'name|window') :->
+	"Put the named tab or tab containing Window on top"::
 	get_super(W, member, tab_stack, TS),
-	(   get(TS, member, Name, Tab)
+	(   atom(Top)
+	->  (   get(TS, member, Name, Tab)
+	    ->  send(TS, on_top, Tab)
+	    ;   get(W, hypered, tab, @arg3?name == Name, Window)
+	    ->  send(Window, expose)
+	    )
+	;   get(Top, container, window_tab, Tab)
 	->  send(TS, on_top, Tab)
-	;   get(W, hypered, tab, @arg3?name == Name, Window)
-	->  send(Window, expose)
 	).
+
 
 current(W, Window:window) :<-
 	"Window of currently selected tab"::
