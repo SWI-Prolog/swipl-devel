@@ -439,7 +439,9 @@ find_definition(M, For:prolog_predicate, Where:[{here,tab,window}]) :->
 	    ;	xref_defined(TB, Head, constraint(Line))
 	    ;   xref_defined(TB, Head, foreign(Line))
 	    )
-	->  send(TB, open, Where)
+	->  get(TB, open, Where, Frame),
+	    get(Frame, editor, Editor),
+	    send(Editor, goto_line, Line)
 	;   xref_defined(TB, Head, imported(File))	% imported
 	->  new(B, emacs_buffer(File)),
 	    get(B, open, Where, EmacsFrame),
