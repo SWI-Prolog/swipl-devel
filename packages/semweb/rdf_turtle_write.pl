@@ -1047,14 +1047,15 @@ tw_literal(literal(type(Type, Value)), State, Out) :- !,
 	tw_typed_literal(Type, Value, State, Out).
 tw_literal(literal(lang(Lang, Value)), State, Out) :- !,
 	tw_quoted_string(Value, State, Out),
-	format(Out, '@~w', [Lang]).
+	downcase_atom(Lang, TurtleLang), 	% Turtle lang = [a-z]+('-'[a-z0-9]+)*
+	format(Out, '@~w', [TurtleLang]).
 tw_literal(literal(Value), State, Out) :-
 	atom(Value), !,
 	tw_quoted_string(Value, State, Out).
 tw_literal(literal(Value), State, Out) :-
 	atom(Value), !,
 	tw_quoted_string(Value, State, Out).
-					% Add types automatically
+						% Add types automatically
 tw_literal(literal(Value), State, Out) :-
 	integer(Value), !,
 	rdf_equal(Type, xsd:integer),
