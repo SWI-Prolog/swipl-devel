@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -54,8 +54,9 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	debug(sgml_plugin, 'Content type: ~w', [Type]),
 	(   markup_type(Type, ParseOptions)
 	->  true
-	;   major_type(Type, Major),
-	    default_markup_type(Major, ParseOptions)
+	;   type_major_props(Type, Major, Props),
+	    default_markup_type(Major, ParseOptions0),
+	    type_props(Props, ParseOptions0, ParseOptions)
 	),
 	merge_options([ max_errors(-1),
 			syntax_errors(quiet)
@@ -66,19 +67,25 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	load_structure(stream(In), Data, MarkupOptions).
 
 
-major_type(Type0, Type) :-
-	sub_atom(Type0, B, _, _, ;), !,
+type_major_props(Type0, Type, Props) :-
+	sub_atom(Type0, B, _, A, ;), !,
 	sub_atom(Type0, 0, B, _, Major),
-	atom_codes(Major, Codes),
-	delete_white(Codes, NonWhite),
-	atom_codes(Type, NonWhite).
-major_type(Type, Type).
+	sub_atom(Type0, _, A, 0, Props),
+	normalize_space(atom(Type), Major).
+type_major_props(Type, Type, '').
 
-delete_white([], []).
-delete_white([H|_], []) :-
-	code_type(H, white), !.
-delete_white([H|T0], [H|T]) :-
-	delete_white(T0, T).
+type_props('', L, L).
+type_props(Props, L0, L) :-
+	sub_atom(Props, _, _, A, 'charset='),
+	sub_atom(Props, _, A, 0, CharSet0),
+	downcase_atom(CharSet0, CharSet),
+	known_charset(CharSet),
+	L = [encoding(CharSet)|L0].
+type_props(_, L, L).
+
+known_charset('iso-8859-1').
+known_charset('us-ascii').
+known_charset('utf-8').
 
 
 %%	default_markup_type(+MimeType, -ParseOptions)
