@@ -112,7 +112,7 @@ update_label(B) :->
 	    send(DictItem, label, string('%s\t%s', Name, Indicator)),
 	    new(FrameLabel, string('%s [%s]', Name, Status)),
 	    send(B?editors, for_all,
-		 message(@arg1?frame, label, FrameLabel))
+		 message(@arg1, label, FrameLabel))
 	;   true
 	).
 
@@ -294,23 +294,11 @@ start_process(B) :->
 	).
 
 
-open(B, New:[bool]) :->
+open(B, Where:[{here,tab,window}]) :->
 	"Create window for buffer"::
-	(   New == @on
-	->  send(new(Window, emacs_frame(B)), open)
-	;   (	\+ send(B?editors, empty)
-	    ->	send(B?editors?head?frame, expose)
-	    ;	get(@emacs, free_window, B?pool, Window)
-	    ->	send(Window, buffer, B)
-	    ;	send(emacs_frame(B), open)
-	    )
-	),
-	(   nonvar(Window)
-	->  send(Window?editor, caret, @default)
-	;   true
-	),
+	get(B, open, Where, Frame),
+	send(Frame?editor, caret, @default),
 	send(B, update_label).
-
 
 :- pce_end_class.
 
@@ -613,10 +601,10 @@ goto_error(M) :->
 		and(message(@arg1, instance_of, emacs_link_fragment),
 		    message(@arg1, overlap, Caret)),
 		Fragment)
-	->  send(Fragment, follow)
+	->  send(Fragment, follow, tab)
 	;   get(M, error, Caret, tuple(File, Line))
 	->  new(B, emacs_buffer(File)),
-	    send(B, open),
+	    send(B, open, tab),
 	    send(B?editors?head, line_number, Line)
 	;   send(M, report, warning, 'No error on this line')
 	).
@@ -662,11 +650,11 @@ link(F, F2:emacs_link_fragment) :->
 	send(F2, slot, link, F).
 
 
-follow(F) :->
+follow(F, Where:[{here,tab,window}]) :->
 	"Goto other end of link"::
 	get(F, link, F2),
 	get(F2, text_buffer, B),
-	send(B, open),
+	send(B, open, Where),
 	send(B?editors?head, caret, F2?start).
 
 :- pce_end_class.

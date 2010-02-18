@@ -158,10 +158,29 @@ changedLabelImageTab(Tab t)
 
 static status
 ChangedLabelTab(Tab t)
-{ assign(t, request_compute, ON);
-  computeTab(t);
+{ Int lw, lh;
 
-  return changedLabelImageTab(t);
+  if ( isDefault(t->label_size) )
+  { lw = lh = ZERO;
+  } else
+  { lw = t->label_size->w;
+    lh = t->label_size->h;
+  }
+
+  changedLabelImageTab(t);
+  assign(t, request_compute, ON);
+  computeTab(t);
+  changedLabelImageTab(t);
+
+  if ( notDefault(t->label_size) &&
+       ( t->label_size->w != lw ||
+	 t->label_size->h != lh
+       ) &&
+       instanceOfObject(t->device, ClassTabStack) )
+  { send(t->device, NAME_layoutLabels, EAV);
+  }
+
+  succeed;
 }
 
 

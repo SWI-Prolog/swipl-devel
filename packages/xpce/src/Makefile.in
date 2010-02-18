@@ -731,9 +731,9 @@ rpm-link::
 # Prolog to the XPCE build-tree. Such installations enable development
 # of xpce using the normal IDE tools.
 
-.PHONY:		ln-install link-dev-tree dv-link dv-qlf-clean
-ln-install:	$(INSTALL) link-dev-tree dv-link dv-qlf-clean \
-		dv-qlf manindex ln-classindex
+.PHONY:		ln-install link-dev-tree dv-link ln-dv-qlf
+ln-install:	$(INSTALL) link-dev-tree dv-link \
+		ln-dv-qlf manindex ln-classindex
 
 link-dev-tree::
 		rm -f $(DESTDIR)$(PLBASE)/xpce
@@ -876,13 +876,14 @@ dv-pl-files:	rt-home
 # (for now) only build the quick load files if we actually install into
 # the target location.  If not, the paths will be wrong anyway.
 
-dv-qlf-clean:	dv-pl-files
-ifeq ($(DESTDIR),)
-		cd $(PLBASE); $(MAKE) clean
-endif
-
 dv-qlf:		$(DVFILES) dv-pl-files
 ifeq ($(DESTDIR),)
+		cd $(PLBASE); $(MAKE) xpce-qlfs
+endif
+
+ln-dv-qlf::
+ifeq ($(DESTDIR),)
+		-cd $(PLBASE); $(MAKE) clean
 		cd $(PLBASE); $(MAKE) xpce-qlfs
 endif
 
