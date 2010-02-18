@@ -723,7 +723,7 @@ compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 	send(B, directory, Dir),
 	send(B, process, P),
 	send(B, start_process),
-	send(B, open),
+	send(B, open, tab),
 	send(B?editors, for_some,
 	     and(message(@arg1, report, status, 'Running ...'),
 		 message(@arg1, scroll_to, 0),
