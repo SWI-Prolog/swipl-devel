@@ -232,14 +232,17 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 
 unlink(Tab) :->
 	"Trap if I'm the last tab"::
-	get(Tab?device?graphicals, size, Count),
-	(   Count == 1
-	->  get(Tab, container, tabbed_window, TabbedWindow),
-	    send_super(Tab, unlink),
-	    send(TabbedWindow, empty)
+	(   get(Tab, device, Dev),
+	    Dev \== @nil
+	->  get(Dev?graphicals, size, Count),
+	    (   Count == 1
+	    ->  get(Tab, container, tabbed_window, TabbedWindow),
+		send_super(Tab, unlink),
+		send(TabbedWindow, empty)
+	    ;   send_super(Tab, unlink)
+	    )
 	;   send_super(Tab, unlink)
 	).
-
 
 :- pce_group(resize).
 

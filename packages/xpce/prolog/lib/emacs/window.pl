@@ -93,7 +93,6 @@ empty(TW) :->
 
 :- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
 
-class_variable(confirm_done, bool, false,       "Donot confirm emacs-windows").
 class_variable(size,         size, size(80,32), "Size of text-field").
 class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 
@@ -103,6 +102,7 @@ variable(pool,		[name], both, "Window pool I belong too").
 initialise(F, For:'emacs_buffer|emacs_view') :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, 'PceEmacs', application := @emacs),
+	send(F, done_message, message(F, quit)),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
@@ -127,6 +127,17 @@ initialise(F, For:'emacs_buffer|emacs_view') :->
 	send(F, pool, B?pool),
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
+
+quit(F) :->
+	"User-initiated quit"::
+	get(F, member, emacs_tabbed_window, TW),
+	get(TW?members, size, Count),
+	(   Count == 1
+	->  send(F, destroy)
+	;   send(@display, confirm, 'Close %d tabs?', Count)
+	->  send(F, destroy)
+	;   true
+	).
 
 editor_event(F, Ev:event) :->
 	"Delegate to the mini-window"::
