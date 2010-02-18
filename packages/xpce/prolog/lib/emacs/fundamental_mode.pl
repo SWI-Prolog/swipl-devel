@@ -683,7 +683,7 @@ split_command_string(String, List) :-
 	     message(Ch, append, ?(@arg1, register_value, @arg2, 0, name))),
 	chain_list(Ch, List).
 
-compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
+compile(M, Command:shell_command=string, Label:[name]) :->
 	"Run Unix (compilation) process in buffer"::
 	send(M, save_some_buffers),
 	send(M, has_processes),
@@ -714,8 +714,6 @@ compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 	    Process =.. [process|Args]
 	),
 	new(P, Process),
-	default(Pool, compile, ThePool),
-	send(B, pool, ThePool),
 	send(P, directory, Dir),
 	send(B, clear),
 	send(B, format, 'cd %s\n%s\n', Dir?path, Command),
@@ -734,8 +732,7 @@ grep(M, GrepArgs:grep_arguments=string) :->
 	get(M, grep_command, GrepCommad),
 	send(M, compile,
 	     string(GrepCommad, GrepArgs),
-	     string('grep %s', GrepArgs),
-	     grep).
+	     string('grep %s', GrepArgs)).
 
 
 shell(M) :->
@@ -754,10 +751,9 @@ shell(M) :->
 	    get(M, directory, Dir),
 	    send(P, directory, Dir),
 	    new(B, emacs_process_buffer(P, '*shell*')),
-	    send(B, pool, shell),
 	    send(B, directory, Dir),
 	    send(B, start_process),
-	    send(B, open)
+	    send(B, open, tab)
 	).
 
 better_shell('/bin/tcsh', '/bin/csh') :- !.
@@ -767,7 +763,6 @@ manual_entry(M, Spec:unix_manual_entry_for=name) :->
 	"Lookup Unix manual entry"::
 	send(M, has_processes),
 	new(B, emacs_buffer(@nil, Spec)),
-	send(B, pool, manual_entry),
 	send(B, (mode), man),
 	send(B, open),
 	send(B?editors?head, man, Spec).
@@ -809,7 +804,6 @@ annotate(M) :->
 	    send(B, contents, OB?contents)
 	),
 	send(B, (mode), annotate),
-	send(B, pool, wysiwyg),
 	send(B, open).
 
 

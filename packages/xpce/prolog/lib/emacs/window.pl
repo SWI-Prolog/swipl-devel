@@ -96,8 +96,6 @@ empty(TW) :->
 class_variable(size,         size, size(80,32), "Size of text-field").
 class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 
-variable(pool,		[name], both, "Window pool I belong too").
-
 initialise(F, For:'emacs_buffer|emacs_view') :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, 'PceEmacs', application := @emacs),
@@ -122,7 +120,6 @@ initialise(F, For:'emacs_buffer|emacs_view') :->
 	send(F, setup_mode, V),
 
 	send(F, open),
-	send(F, pool, B?pool),
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
 
@@ -169,7 +166,6 @@ tab(F, B:buffer=emacs_buffer, Expose:expose=[bool]) :->
 buffer(F, B:emacs_buffer) :->
 	"Switch to the given emacs buffer"::
 	get(F, editor, E),
-	send(F, pool, B?pool),
 	send(E, text_buffer, B).
 
 
