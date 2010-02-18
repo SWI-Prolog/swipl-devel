@@ -214,7 +214,8 @@ active(F, Val:bool) :->
 	"Indicate active status"::
 	get(F, view, View),
 	(   Val == @on
-	->  send(@emacs, selection, View?text_buffer)
+	->  send(@emacs, first, F),
+	    send(@emacs, selection, View?text_buffer)
 	;   send(@emacs, selection, @nil)
 	).
 

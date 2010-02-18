@@ -49,6 +49,7 @@
 variable(buffer_list,	dict,	get, "List of buffers maintained").
 variable(exit_message,	message,get, "Registered exit message").
 
+
 		 /*******************************
 		 *	      CREATE		*
 		 *******************************/
@@ -212,13 +213,15 @@ check_saved_at_exit(BM) :->
 		 *******************************/
 :- pce_group(window).
 
-current_frame(_BM, Frame:emacs_frame) :<-
+current_frame(Emacs, Frame:emacs_frame) :<-
 	"PceEmacs frame the user is working in"::
-	send(@event, instance_of, event),
-	get(@event, window, Window),
-	get(Window, frame, Frame),
-	send(Frame, instance_of, emacs_frame).
-
+	(   send(@event, instance_of, event),
+	    get(@event, window, Window),
+	    get(Window, frame, Frame),
+	    send(Frame, instance_of, emacs_frame)
+	->  true
+	;   get(Emacs?members, head, Frame)
+	).
 
 free_window(BM, Pool:[name], Frame:emacs_frame) :<-
 	"Return the first non-sticky window"::

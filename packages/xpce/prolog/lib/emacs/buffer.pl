@@ -556,9 +556,9 @@ open(B, How:[{here,tab,window}], Frame:emacs_frame) :<-
 	"Create window for buffer"::
 	(   How == window
 	->  send(new(Frame, emacs_frame(B)), open)
-	;   How == tab
-	->  get(@emacs, current_frame, Frame),
-	    send(Frame, tab, B, @on)
+	;   How == tab,
+	    get(@emacs, current_frame, Frame)
+	->  send(Frame, tab, B, @on)
 	;   get(@emacs, current_frame, Frame)
 	->  send(Frame, buffer, B)
 	;   send(new(Frame, emacs_frame(B)), open)

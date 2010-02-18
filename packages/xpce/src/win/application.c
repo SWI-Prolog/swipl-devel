@@ -103,6 +103,21 @@ deleteApplication(Application app, FrameObj fr)
 }
 
 
+static status
+firstApplication(Application app, FrameObj fr)
+{ if ( fr->application == app )
+  { addCodeReference(fr);
+    deleteChain(app->members, fr);
+    prependChain(app->members, fr);
+    delCodeReference(fr);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
 static FrameObj
 getMemberApplication(Application app, Name name)
 { Cell cell;
@@ -193,6 +208,8 @@ static senddecl send_application[] =
      NAME_organisation, "Add frame to the application"),
   SM(NAME_delete, 1, "frame", deleteApplication,
      NAME_organisation, "Remove frame from the application"),
+  SM(NAME_first, 1, "frame", firstApplication,
+     NAME_organisation, "Move frame to be the first in <-members"),
   SM(NAME_reset, 0, NULL, resetApplication,
      DEFAULT, "Reset <-modal to @nil"),
   SM(NAME_modal, 1, "frame", modalApplication,
