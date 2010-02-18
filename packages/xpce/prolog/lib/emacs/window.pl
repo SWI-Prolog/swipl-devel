@@ -622,7 +622,8 @@ initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	send(E, recogniser,
 	     handler(keyboard,
 		     if(message(E?frame, has_send_method, editor_event),
-			message(E?frame, editor_event, @arg1)))),
+			message(E?frame, editor_event, @arg1),
+			new(or)))),
 
 	get(Buffer, mode, ModeName),
 	send(E, mode, ModeName),
