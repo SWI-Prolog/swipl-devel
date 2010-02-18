@@ -220,7 +220,7 @@ remove_condition(From, To, Style,
 quit(M) :->
 	"Destroy the editor"::
 	ignore(send(M?text_buffer, save_if_modified)),
-	send(M?frame, destroy).
+	send(M, destroy).
 
 
 		 /*******************************

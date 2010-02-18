@@ -114,12 +114,14 @@ initialise(F, For:'emacs_buffer|emacs_view') :->
 	    new(V, emacs_view(B, Size?width, Size?height))
 	),
 
-	send(TW, append, V, B?name),
+	send(TW, append, V),
 	get(V, editor, E),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
 	send(F, open),
+	send(B, update_label),
+
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
 

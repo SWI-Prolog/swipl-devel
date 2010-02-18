@@ -1718,18 +1718,15 @@ class_source(_, ClassName, Source) :-
 	pce_library_class(ClassName, _, _Summary, Source).
 
 
-edit(F, NewWindow:[bool]) :->
-	"Open XPCE class [in new window]"::
+edit(F, Where:[{here,tab,window}]) :->
+	"Open XPCE class"::
 	get(F, referenced_class, ClassName),
 	get(F, text_buffer, TB),
 	class_source(TB, ClassName, Source),
 	(   Source = line(Line)
-	->  (   NewWindow == @on
-	    ->	get(F, text_buffer, TB),
-		new(W2, emacs_frame(TB)),
-		send(W2?editor, goto_line, Line)
-	    ;	send(@emacs_mode, goto_line, Line)
-	    )
+	->  get(F, text_buffer, TB),
+	    get(TB, open, Where, Frame),
+	    send(Frame?editor, goto_line, Line)
 	;   ensure_loaded(library(edit)),
 	    prolog_edit:locate(Source, _, Location),
 	    memberchk(file(File), Location),
@@ -1738,7 +1735,7 @@ edit(F, NewWindow:[bool]) :->
 	    ;	Line = @default
 	    ),
 	    send(@emacs, goto_source_location,
-		 source_location(File, Line), NewWindow)
+		 source_location(File, Line), Where)
 	).
 
 documentation(F) :->
