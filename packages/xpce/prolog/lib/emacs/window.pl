@@ -84,6 +84,10 @@ frame_window(_TW, Window:window, _Name:name, _Rank:'1..', Frame:frame) :<-
 	"After un-tabbing, give the window a new frame"::
 	new(Frame, emacs_frame(Window)).
 
+empty(TW) :->
+	"Last window-tab disappeared"::
+	send(TW?frame, destroy).
+
 :- pce_end_class.
 
 

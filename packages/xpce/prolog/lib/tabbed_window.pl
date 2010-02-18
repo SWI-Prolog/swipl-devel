@@ -175,6 +175,10 @@ tab(W, Name:name, Tab:tab) :<-
 	get_super(W, member, tab_stack, TS),
 	get(TS, member, Name, Tab).
 
+empty(_W) :->
+	"Abstract method.  Called if last window disappears"::
+	true.
+
 :- pce_group(frame).
 
 frame_window(TW, Window:window, Name:name, Rank:'1..', Frame:frame) :<-
@@ -225,6 +229,16 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 	get(Decor, unlock, _),
 	send(T, slot, window, W),
 	new(_, mutual_dependency_hyper(T, W, window, tab)).
+
+unlink(Tab) :->
+	"Trap if I'm the last tab"::
+	get(Tab?device?graphicals, size, Count),
+	(   Count == 1
+	->  get(Tab, container, tabbed_window, TabbedWindow),
+	    send_super(Tab, unlink),
+	    send(TabbedWindow, empty)
+	;   send_super(Tab, unlink)
+	).
 
 
 :- pce_group(resize).
