@@ -96,14 +96,12 @@ empty(TW) :->
 class_variable(size,         size, size(80,32), "Size of text-field").
 class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 
-variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
 
 initialise(F, For:'emacs_buffer|emacs_view') :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, 'PceEmacs', application := @emacs),
 	send(F, done_message, message(F, quit)),
-	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
 	send(new(TW, emacs_tabbed_window), below, MBD),
@@ -217,18 +215,6 @@ active(F, Val:bool) :->
 	->  send(@emacs, first, F),
 	    send(@emacs, selection, View?text_buffer)
 	;   send(@emacs, selection, @nil)
-	).
-
-
-sticky_window(F, Val:[bool]) :->
-	"[toggle] sticky status"::
-	default(Val, F?sticky_window?negate, V2),
-	send(F, slot, sticky_window, V2),
-	get(F, member, mini_window, WM),
-	get(WM, member, sticky_indicator, Bitmap),
-	(   get(F, sticky_window, @on)
-	->  send(Bitmap, image, resource(pinned))
-	;   send(Bitmap, image, resource(not_pinned))
 	).
 
 
@@ -437,12 +423,7 @@ initialise(D) :->
 	send(D, slot, report_count, number(0)),
 	send(D, gap, size(10, 2)),
 	send(D, pen, 0),
-	send(D, display, new(StickyIndicator, bitmap(resource(not_pinned)))),
-	send(StickyIndicator, name, sticky_indicator),
-	send(StickyIndicator, recogniser,
-	     click_gesture(left, '', single,
-			   message(@receiver?frame, sticky_window))),
-	send(D, display, label(reporter), point(25, 2)),
+	send(D, display, label(reporter), point(0, 2)),
 	send(D, display, new(T, text('', right, normal)), point(100, 2)),
 	send(T, name, line),
 	get(text_item(''), height, MH),
@@ -491,7 +472,7 @@ report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 		send(RC, value, 0)
 	    ;   (   get(D, prompter, Prompter), Prompter \== @nil
 		->  send(Label, x, Prompter?width + 10)
-		;   send(Label, x, 25)
+		;   send(Label, x, 0)
 		),
 		send(Label, displayed, @on),
 		Msg =.. [report, Type, Fmt|Args],
@@ -513,7 +494,6 @@ ok_to_overrule(error, _).
 
 make_emacs_mini_window_bindings(B) :-
 	new(B, key_binding(emacs_mini_window)),
-	send(B, function, '\\es', sticky_window),
 	send(B, function, '\\en', m_x_next),
 	send(B, function, '\\ep', m_x_previous).
 
@@ -897,11 +877,6 @@ mode(E, ModeName:mode_name) :->
 	    send(E?device, setup_mode),
 	    send(E, report, status, 'Switched to ``%s'''' mode', ModeName)
 	).
-
-
-sticky_window(E, Val:[bool]) :->
-	"Change sticky status of window"::
-	send(E?frame, sticky_window, Val).
 
 
 preview_drop(E, Obj:object*) :->

@@ -223,30 +223,6 @@ current_frame(Emacs, Frame:emacs_frame) :<-
 	;   get(Emacs?members, head, Frame)
 	).
 
-free_window(BM, Pool:[name], Frame:emacs_frame) :<-
-	"Return the first non-sticky window"::
-	(   send(@event, instance_of, event),
-	    get(@event?receiver, frame, Frame),
-	    send(Frame, instance_of, emacs_frame),
-	    (Pool == @default ; get(Frame, pool, Pool)),
-	    get(Frame, sticky_window, @off)
-	->  true
-	;   get(BM, buffer_list, Dict),
-	    new(Ed, var),
-	    get(Dict, find,
-		and(assign(new(B, var), @arg1?object),
-		    assign(Ed, ?(B?editors, find,
-				 and(message(@arg1?frame, instance_of,
-					     emacs_frame),
-				     or(@arg1?frame?pool == Pool,
-					@arg1?frame?pool == @default),
-				     @arg1?frame?sticky_window == @off)),
-			   global)),
-		_),
-	    get(Ed, frame, Frame),
-	    send(Frame, expose)
-	).
-
 
 		 /*******************************
 		 *	       MODE		*

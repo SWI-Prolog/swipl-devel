@@ -53,7 +53,6 @@
 	  justify_paragraph        = key('\\eQ'),
 	  bookmark_line            = key('\\e@'),
 	  execute_extended_command = key('\\ex'),
-	  sticky_window		   = key('\\es'),
 	  write_region		   = key('\\e\\C-w'),
 	  compile		   = key('\\C-x\\C-m'),
 
