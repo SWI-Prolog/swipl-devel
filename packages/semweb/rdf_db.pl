@@ -1418,24 +1418,26 @@ graph(Options0, DB) :-
 %	This predicate also sets up the namespace notation.
 
 rdf_save_header(Out, Options) :-
+	rdf_save_header(Out, Options, _).
+
+rdf_save_header(Out, Options, OptionsOut) :-
 	is_list(Options), !,
 	stream_property(Out, encoding(Enc)),
 	xml_encoding(Enc, Encoding),
 	format(Out, '<?xml version=\'1.0\' encoding=\'~w\'?>~n', [Encoding]),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
-	header_namespaces(Options, NSList),
-	(   member(Id, NSList),
-	    ns(Id, NS),
-	    rdf_quote_uri(NS, QNS),
-	    xml_quote_attribute(QNS, NSText0, Enc),
-	    xml_escape_parameter_entity(NSText0, NSText),
-	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NSText]),
-	    fail
-	;   true
-	),
+	header_namespaces(Options, NSIdList),
+	nsmap(NSIdList, NsMap),
+	append(Options, [nsmap(NsMap)], OptionsOut),
+	forall(member(Id=URI, NsMap),
+	       (   rdf_quote_uri(URI, QURI),
+		   xml_quote_attribute(QURI, NSText0, Enc),
+		   xml_escape_parameter_entity(NSText0, NSText),
+		   format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NSText])
+	       )),
 	format(Out, '~N]>~n~n', []),
 	format(Out, '<rdf:RDF', []),
-	(   member(Id, NSList),
+	(   member(Id, NSIdList),
 	    format(Out, '~N    xmlns:~w="&~w;"~n', [Id, Id]),
 	    fail
 	;   true
@@ -1452,9 +1454,9 @@ rdf_save_header(Out, Options) :-
 	;   true
 	),
 	format(Out, '>~n', []).
-rdf_save_header(Out, FileRef) :-	% compatibility
+rdf_save_header(Out, FileRef, OptionsOut) :-	% compatibility
 	atom(FileRef),
-	rdf_save_header(Out, [graph(FileRef)]).
+	rdf_save_header(Out, [graph(FileRef)], OptionsOut).
 
 xml_encoding(Enc, Encoding) :-
 	(   xml_encoding_name(Enc, Encoding)
@@ -1466,6 +1468,15 @@ xml_encoding_name(ascii,       'US-ASCII').
 xml_encoding_name(iso_latin_1, 'ISO-8859-1').
 xml_encoding_name(utf8,        'UTF-8').
 
+%%	nsmap(+NSIds, -Map:list(id=uri)) is det.
+%
+%	Create a namespace-map that is compatible to xml_write/2
+%	for dealing with XML-Literals
+
+nsmap([], []).
+nsmap([Id|T0], [Id=URI|T]) :-
+	ns(Id, URI),
+	nsmap(T0, T).
 
 %%	xml_escape_parameter_entity(+In, -Out) is det.
 %
@@ -1842,29 +1853,7 @@ save_attribute(body, Name=literal(Literal0), BaseURI, Out, Indent, Options) :- !
 	->  Literal = type(Type, Content)
 	;   Literal = Literal0
 	),
-	format(Out, '~N~*|<', [Indent]),
-	rdf_write_id(Out, NameText),
-	(   Literal = lang(Lang, Value)
-	->  (   memberchk(document_language(Lang), Options)
-	    ->  write(Out, '>')
-	    ;   rdf_id(Lang, BaseURI, LangText),
-		format(Out, ' xml:lang="~w">', [LangText])
-	    )
-	;   Literal = type(Type, Value)
-	->  (   rdf_equal(Type, rdf:'XMLLiteral')
-	    ->	write(Out, ' rdf:parseType="Literal">')
-	    ;	stream_property(Out, encoding(Encoding)),
-		rdf_value(Type, BaseURI, QVal, Encoding),
-		format(Out, ' rdf:datatype="~w">', [QVal])
-	    )
-	;   atomic(Literal)
-	->  write(Out, '>'),
-	    Value = Literal
-	;   write(Out, ' rdf:parseType="Literal">'),
-	    Value = Literal
-	),
-	save_attribute_value(Value, Out, Indent),
-	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
+	save_body_literal(Literal, NameText, BaseURI, Out, Indent, Options).
 save_attribute(body, Name=Value, BaseURI, Out, Indent, Options) :-
 	rdf_is_bnode(Value), !,
 	rdf_id(Name, BaseURI, NameText),
@@ -1900,6 +1889,37 @@ save_attribute(body, Name=Value, BaseURI, Out, Indent, _DB) :-
 	rdf_write_id(Out, NameText),
 	format(Out, ' rdf:resource="~w"/>', [QVal]).
 
+%%	save_body_literal(+Literal, +NameText, +BaseURI,
+%%			  +Out, +Indent, +Options).
+
+save_body_literal(Literal, NameText, BaseURI, Out, Indent, Options) :-
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
+	(   Literal = lang(Lang, Value)
+	->  (   memberchk(document_language(Lang), Options)
+	    ->  write(Out, '>')
+	    ;   rdf_id(Lang, BaseURI, LangText),
+		format(Out, ' xml:lang="~w">', [LangText])
+	    ),
+	    save_attribute_value(Value, Out, Indent)
+	;   Literal = type(Type, Value)
+	->  (   rdf_equal(Type, rdf:'XMLLiteral')
+	    ->	write(Out, ' rdf:parseType="Literal"'),
+		save_xml_literal(Value, Out, Indent, Options)
+	    ;	stream_property(Out, encoding(Encoding)),
+		rdf_value(Type, BaseURI, QVal, Encoding),
+		format(Out, ' rdf:datatype="~w">', [QVal]),
+		save_attribute_value(Value, Out, Indent)
+	    )
+	;   atomic(Literal)
+	->  write(Out, '>'),
+	    save_attribute_value(Literal, Out, Indent)
+	;   write(Out, ' rdf:parseType="Literal"'),
+	    save_xml_literal(Literal, Out, Indent, Options)
+	),
+	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
+
+
 save_attribute_value(Value, Out, _) :-	% strings
 	atom(Value), !,
 	stream_property(Out, encoding(Encoding)),
@@ -1908,15 +1928,33 @@ save_attribute_value(Value, Out, _) :-	% strings
 save_attribute_value(Value, Out, _) :-	% numbers
 	number(Value), !,
 	writeq(Out, Value).		% quoted: preserve floats
-save_attribute_value(Value, Out, Indent) :-
-	xml_is_dom(Value), !,
+save_attribute_value(Value, _Out, _) :-
+	throw(error(save_attribute_value(Value), _)).
+
+%%	save_xml_literal(+DOM, +Out, +Indent, +Options) is det.
+%
+%	Save an XMLLiteral value. We already emitted
+%
+%		==
+%		<prop parseType="literal"
+%		==
+%
+%	but  not  the  terminating  =|>|=.  We  need  to  establish  the
+%	namespaces used in the DOM. The   namespaces in the rdf document
+%	are in the nsmap-option of Options.
+
+save_xml_literal(DOM, Out, Indent, Options) :-
+	xml_is_dom(DOM), !,
+	memberchk(nsmap(_NsMap), Options),
 	XMLIndent is Indent+2,
-	xml_write(Out, Value,
+	xml_write(Out, DOM,
 		  [ header(false),
 		    indent(XMLIndent)
 		  ]).
-save_attribute_value(Value, _Out, _) :-
-	throw(error(save_attribute_value(Value), _)).
+save_xml_literal(NoDOM, _, _, _) :-
+	must_be(xml_dom, NoDOM).
+
+%%	rdf_save_list(+Out, +List, +BaseURI, +Indent, +Options)
 
 rdf_save_list(_, List, _, _, _) :-
 	rdf_equal(List, rdf:nil), !.
