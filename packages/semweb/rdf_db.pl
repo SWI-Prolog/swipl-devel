@@ -1379,8 +1379,8 @@ cleanup_save(Reason,
 	;   format(user_error, 'Reason = ~w~n', [Reason])
 	).
 
-rdf_do_save(Out, Options) :-
-	rdf_save_header(Out, Options),
+rdf_do_save(Out, Options0) :-
+	rdf_save_header(Out, Options0, Options),
 	(   option(sorted(true), Options, false)
 	->  setof(Subject, rdf_subject(Subject, Options), Subjects),
 	    forall(member(Subject, Subjects),
@@ -1892,33 +1892,43 @@ save_attribute(body, Name=Value, BaseURI, Out, Indent, _DB) :-
 %%	save_body_literal(+Literal, +NameText, +BaseURI,
 %%			  +Out, +Indent, +Options).
 
-save_body_literal(Literal, NameText, BaseURI, Out, Indent, Options) :-
+save_body_literal(lang(Lang, Value),
+		  NameText, BaseURI, Out, Indent, Options) :- !,
 	format(Out, '~N~*|<', [Indent]),
 	rdf_write_id(Out, NameText),
-	(   Literal = lang(Lang, Value)
-	->  (   memberchk(document_language(Lang), Options)
-	    ->  write(Out, '>')
-	    ;   rdf_id(Lang, BaseURI, LangText),
-		format(Out, ' xml:lang="~w">', [LangText])
-	    ),
-	    save_attribute_value(Value, Out, Indent)
-	;   Literal = type(Type, Value)
-	->  (   rdf_equal(Type, rdf:'XMLLiteral')
-	    ->	write(Out, ' rdf:parseType="Literal"'),
-		save_xml_literal(Value, Out, Indent, Options)
-	    ;	stream_property(Out, encoding(Encoding)),
-		rdf_value(Type, BaseURI, QVal, Encoding),
-		format(Out, ' rdf:datatype="~w">', [QVal]),
-		save_attribute_value(Value, Out, Indent)
-	    )
-	;   atomic(Literal)
-	->  write(Out, '>'),
-	    save_attribute_value(Literal, Out, Indent)
-	;   write(Out, ' rdf:parseType="Literal"'),
-	    save_xml_literal(Literal, Out, Indent, Options)
+	(   memberchk(document_language(Lang), Options)
+	->  write(Out, '>')
+	;   rdf_id(Lang, BaseURI, LangText),
+	    format(Out, ' xml:lang="~w">', [LangText])
 	),
+	save_attribute_value(Value, Out, Indent),
 	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
-
+save_body_literal(type(Type, DOM),
+		  NameText, _BaseURI, Out, Indent, Options) :-
+	rdf_equal(Type, rdf:'XMLLiteral'), !,
+	save_xml_literal(DOM, NameText, Out, Indent, Options).
+save_body_literal(type(Type, Value),
+		  NameText, BaseURI, Out, Indent, _) :- !,
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
+	stream_property(Out, encoding(Encoding)),
+	rdf_value(Type, BaseURI, QVal, Encoding),
+	format(Out, ' rdf:datatype="~w">', [QVal]),
+	save_attribute_value(Value, Out, Indent),
+	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
+save_body_literal(Literal,
+		  NameText, _, Out, Indent, _) :-
+	atomic(Literal), !,
+	format(Out, '~N~*|<', [Indent]),
+	rdf_write_id(Out, NameText),
+	write(Out, '>'),
+	save_attribute_value(Literal, Out, Indent),
+	write(Out, '</'), rdf_write_id(Out, NameText), write(Out, '>').
+save_body_literal(DOM,
+		  NameText, BaseURI, Out, Indent, Options) :-
+	rdf_equal(Type, rdf:'XMLLiteral'),
+	save_body_literal(type(Type, DOM),
+			  NameText, BaseURI, Out, Indent, Options).
 
 save_attribute_value(Value, Out, _) :-	% strings
 	atom(Value), !,
@@ -1931,7 +1941,7 @@ save_attribute_value(Value, Out, _) :-	% numbers
 save_attribute_value(Value, _Out, _) :-
 	throw(error(save_attribute_value(Value), _)).
 
-%%	save_xml_literal(+DOM, +Out, +Indent, +Options) is det.
+%%	save_xml_literal(+DOM, +Attr, +Out, +Indent, +Options) is det.
 %
 %	Save an XMLLiteral value. We already emitted
 %
@@ -1943,16 +1953,23 @@ save_attribute_value(Value, _Out, _) :-
 %	namespaces used in the DOM. The   namespaces in the rdf document
 %	are in the nsmap-option of Options.
 
-save_xml_literal(DOM, Out, Indent, Options) :-
+save_xml_literal(DOM, Attr, Out, Indent, Options) :-
 	xml_is_dom(DOM), !,
-	memberchk(nsmap(_NsMap), Options),
-	XMLIndent is Indent+2,
-	xml_write(Out, DOM,
+	memberchk(nsmap(NsMap), Options),
+	id_to_atom(Attr, Atom),
+	xml_write(Out,
+		  element(Atom, ['rdf:parseType'='Literal'], DOM),
 		  [ header(false),
-		    indent(XMLIndent)
+		    indent(Indent),
+		    nsmap(NsMap)
 		  ]).
-save_xml_literal(NoDOM, _, _, _) :-
+save_xml_literal(NoDOM, _, _, _, _) :-
 	must_be(xml_dom, NoDOM).
+
+id_to_atom(NS:Local, Atom) :- !,
+	atomic_list_concat([NS,Local], :, Atom).
+id_to_atom(ID, ID).
+
 
 %%	rdf_save_list(+Out, +List, +BaseURI, +Indent, +Options)
 
