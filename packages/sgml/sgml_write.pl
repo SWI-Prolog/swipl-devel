@@ -298,6 +298,9 @@ emit([], _, _) :- !.
 emit([H|T], Out, State) :- !,
 	emit(H, Out, State),
 	emit(T, Out, State).
+emit(CDATA, Out, State) :-
+	atom(CDATA), !,
+	sgml_write_content(Out, CDATA, State).
 emit(Element, Out, State) :-
 	\+ \+ emit_element(Element, Out, State).
 
@@ -571,6 +574,7 @@ generate_ns(_, NS) :-
 	rdf_db:ns/2.
 
 default_ns('http://www.w3.org/2001/XMLSchema-instance', xsi).
+default_ns('http://www.w3.org/1999/xhtml', xhtml).
 default_ns(URI, NS) :-
 	rdf_db:ns(NS, URI).
 
