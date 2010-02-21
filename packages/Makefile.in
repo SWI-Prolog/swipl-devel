@@ -43,7 +43,6 @@ INSTALL_DATA=@INSTALL_DATA@
 SO=@SO_EXT@
 BUILDDIR=@BUILDDIR@
 PLLIB=$(PLBASE)/library
-DESTDIR=
 
 # These programs should use prolog from the (already installed) $(bindir)
 

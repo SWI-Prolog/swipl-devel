@@ -52,7 +52,6 @@ mandir=@mandir@
 smandir=$(mandir)/man$(mansec)
 libdir=@libdir@
 bindir=@bindir@
-DESTDIR=
 
 PCEHOME=@PCEHOME@
 XINCLUDES=@XINCLUDES@
