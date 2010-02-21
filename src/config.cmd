@@ -214,23 +214,23 @@ for /l %%A in (1,1,3) do (
 goto create_user_lib_dirs
 :get_pre-requisites_start
 set "NO_TRIES=0"
-echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.vbs
-echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.vbs
-echo oHTTP.send >> reqs%BITS%.vbs
-echo set oStream = createobject("adodb.stream") >> reqs%BITS%.vbs
-echo oStream.type = 1 >> reqs%BITS%.vbs
-echo oStream.open >> reqs%BITS%.vbs
-echo oStream.write oHTTP.responseBody >> reqs%BITS%.vbs
-echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.vbs
-echo set oStream = nothing >> reqs%BITS%.vbs
-echo set oHTTP = nothing >> reqs%BITS%.vbs
+echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.swi
+echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.swi
+echo oHTTP.send >> reqs%BITS%.swi
+echo set oStream = createobject("adodb.stream") >> reqs%BITS%.swi
+echo oStream.type = 1 >> reqs%BITS%.swi
+echo oStream.open >> reqs%BITS%.swi
+echo oStream.write oHTTP.responseBody >> reqs%BITS%.swi
+echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.swi
+echo set oStream = nothing >> reqs%BITS%.swi
+echo set oHTTP = nothing >> reqs%BITS%.swi
 goto execute_get_pre-requisites_script
 :execute_get_pre-requisites_script_wait
 for /l %%A in (1,1,5) do (
 <nul (set/p _=.)
 >nul ping 127.0.0.1 -n 2)
 :execute_get_pre-requisites_script
-reqs%BITS%.vbs
+cscript.exe //B //E:vbs reqs%BITS%.swi
 if exist %PRE-REQ_FILE% (goto get_pre-requisites_succes)
 set /A NO_TRIES+=1
 cls
@@ -246,7 +246,7 @@ goto end
 cls
 type welcome.txt
 echo Successfully downloaded the SWI-Prolog %BITS%-bit pre-requisites...
-if exist reqs%BITS%.vbs (del /Q reqs%BITS%.vbs)
+if exist reqs%BITS%.swi (del /Q reqs%BITS%.swi)
 goto end_get_pre-requisites
 :have_pre-requisites
 cls
