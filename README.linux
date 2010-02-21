@@ -101,4 +101,5 @@ zypper install \
 	git-core \
 	readline-devel \
 	unixODBC-devel \
-	libjpeg-devel
+	libjpeg-devel \
+	java-1_6_0-openjdk-devel
