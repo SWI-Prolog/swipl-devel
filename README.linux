@@ -1,5 +1,8 @@
-Debian dependency list as compiled by Nicolas Pelletier
--------------------------------------------------------
+Please search the section for your Linux distribution
+
+################################################################
+# Debian dependency list as compiled by Nicolas Pelletier
+################################################################
 
 List of packages needed to compile SWI Prolog on Debian 4.0 stable (Etch):
 
@@ -86,3 +89,16 @@ following packages:
 		texlive-latex-base \
 		texlive-latex-recommended \
 		texlive-fonts-recommended
+
+################################################################
+# OpenSUSE 11.2
+################################################################
+
+For OpenSuSE 11.2, you need the following installed in addition
+to the basic X11/C/C++ development profile:
+
+zypper install \
+	git-core \
+	readline-devel \
+	unixODBC-devel \
+	libjpeg-devel
