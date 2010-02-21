@@ -256,18 +256,19 @@ echo Already downloaded the SWI-Prolog %BITS%-bit pre-requisites...
 
 
 :start_expanding_pre-requisites
-if exist "%EP!HOME%\bin" (rd /S /Q "%EP!HOME%\bin")
-md "%EP!HOME%\bin"
-if exist "%EP!HOME%\include" (rd /S /Q "%EP!HOME%\include")
-md "%EP!HOME%\include"
-expand "reqs%BITS%.cab" -F:include.cab "%EP!HOME%\include" %REDIR_TO_NUL%
-expand "%EP!HOME%\include\include.cab" -F:* "%EP!HOME%\include" %REDIR_TO_NUL%
-if exist "%EP!HOME%\include\include.cab" (del /Q "%EP!HOME%\include\include.cab")
-if exist "%EP!HOME%\lib" (rd /S /Q "%EP!HOME%\lib")
-md "%EP!HOME%\lib"
-expand "reqs%BITS%.cab" -F:lib.cab "%EP!HOME%\lib" %REDIR_TO_NUL%
-expand "%EP!HOME%\lib\lib.cab" -F:* "%EP!HOME%\lib" %REDIR_TO_NUL%
-if exist "%EP!HOME%\lib\lib.cab" (del /Q "%EP!HOME%\lib\lib.cab")
+goto :start_main_exp
+:expand_file_list
+if not exist "%~dp1" (md "%~dp1")
+expand "%EP!HOME%\src\reqs%BITS%.cab" -F:%1 "%~dp1\" > nul
+goto:eof
+:start_main_exp
+echo.
+echo Busy expanding package... This might take some time...
+pushd %EP!HOME%
+expand "%EP!HOME%\src\reqs%BITS%.cab" -F:files.txt "%EP!HOME%" > nul
+for /F %%1 in (files.txt) do (call :expand_file_list %%1)
+if exist files.txt (del /Q files.txt)
+popd
 echo.
 echo Expanded the pre-requisites Package header files to %EP!HOME%\include
 echo and the libraries to %EP!HOME%\lib
