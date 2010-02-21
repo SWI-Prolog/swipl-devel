@@ -529,10 +529,10 @@ set "EP!BUILD_JPL="
 :end_detect_java
 
 :detect_space
-if not exist "%EP!HOME%\lib\%EP!GEOS%.lib" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!GEOS%.dll" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX_I%.lib" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX1%.dll" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\geos.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\geos.dll" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\spatialindex_i.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\spatialindex1.dll" (goto detect_space_not_detected)
 goto detect_space_detected
 :detect_space_not_detected
 cls
