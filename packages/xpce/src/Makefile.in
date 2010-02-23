@@ -852,7 +852,7 @@ dv-online:	manindex dv-manual
 		fi
 
 dv-man:		dv-manual
-		for f in xpce-client xpce; do \
+		for f in xpce-client; do \
 		    $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(DVHOME)/man; \
 		    if test -w $(smandir); then \
 		        $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(smandir)/$$f.$(mansec); \
