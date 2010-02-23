@@ -267,6 +267,9 @@ check_covered(File) :-
 check_covered(Path) :-
 	ignore_file(File),
 	file_base_name(Path, File), !.
+check_covered(Path) :-
+	file_directory_name(Path, Dir),
+	ignore_dir(Dir), !.
 check_covered(File) :-
 	flag(errors, E, E+1),
 	print_message(error, format('File ~w is not covered by installer',
@@ -295,10 +298,18 @@ ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('double_metaphone.pdb').
 ignore_file('porter_stem.pdb').
-ignore_file('space.pdb').
 ignore_file('Support SWI-Prolog development.url').
 ignore_file('SWI-Prolog website.url').
 ignore_file('uninstall.exe').
+
+% ignore the space-package
+ignore_file('space.pdb').
+ignore_file('space.dll').
+ignore_file('geos.dll').
+ignore_file('spatialindex1.dll').
+ignore_file('space.html').
+
+ignore_dir('pl/library/space').
 
 
 		 /*******************************
