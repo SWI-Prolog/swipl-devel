@@ -27,6 +27,10 @@ set "REDIR_TO_NUL=> nul"
 :: set "REDIR_TO_NUL="
 :end_debugging
 
+:: Update if the requirements change
+set "REQBASE=reqs-2-"
+
+
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::                                                                            ::
 :: EP! is the Export Prefix, all & any variable prefixed in this way          ::
@@ -165,7 +169,7 @@ if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSISDEFS=/DWIN%BITS%
 
 
 :get_pre-requisites
-set "PRE-REQ_FILE=reqs%BITS%.cab"
+set "PRE-REQ_FILE=%REQBASE%%BITS%.cab"
 if exist "%PRE-REQ_FILE%" (goto have_pre-requisites)
 set "PRE-REQ_LOCA=http://www.swi-prolog.org/download/MS-Windows/"
 cls
