@@ -111,6 +111,7 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 # EXTRACFG+=" --link"
 # EXTRACFG+=" --enable-useprofile"
 # EXTRACFG+=" --disable-libdirversion"
+export EXTRACFG
 
 ################################################################
 # No edit should be needed below this line
@@ -151,7 +152,7 @@ done
 if [ "$setvars" = "false" ]; then
 
   if [ "$config" = "true" ]; then
-    ./configure --prefix=$PREFIX --with-world $CONFIGOPTS 2>&1 | tee configure.out
+    ./configure --prefix=$PREFIX --with-world $EXTRACFG 2>&1 | tee configure.out
     if [ $? != 0 ]; then exit 1; fi
   fi
 

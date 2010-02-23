@@ -41,6 +41,7 @@ while [ "$done" = false ]; do
 	;;
     --all)
 	SUBMODULES=
+	shift
 	;;
     *)
 	done=true
