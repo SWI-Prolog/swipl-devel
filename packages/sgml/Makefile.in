@@ -15,7 +15,6 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 PLLIB=$(PLBASE)/library
 PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
-DESTDIR=
 SO=@SO@
 
 PUBLICPL=swipl

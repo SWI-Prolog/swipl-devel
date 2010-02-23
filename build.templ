@@ -49,12 +49,13 @@ MAKE=make
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# [EDIT] On MacOS you need this to get some libraries from Macports
-# export LIBRARY_PATH=/opt/local/lib
-# export CPATH=/opt/local/include
-
-# [EDIT] On MacOS you need this to compile the C++ code of the space package
-# export CXXCPP="g++ -E"
+# On MacOS you need this to get some libraries from Macports
+if [ "`uname`" = Darwin ]; then
+  export LIBRARY_PATH=/usr/lib:/opt/local/lib
+  export CPATH=/usr/include:/opt/local/include
+  export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
+  export CXXCPP="g++ -E"
+fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
 # export CIFLAGS=-I/opt/csw/include/ncurses
@@ -116,19 +117,53 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 ################################################################
 
 V=`cat VERSION`
-makeonly=false
+config=true
+make=true
+install=true
+done=false
+setvars=false
 
+while test "$done" = false; do
 case "$1" in
-   --make)	makeonly=true
+   --config)	make=false
+		install=false
+		shift
 		;;
-   *)		;;
+   --make)	config=false
+		install=false
+		shift
+		;;
+   --install)	config=false
+		make=false
+		shift
+		;;
+   --prefix=*)  PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   		shift
+		;;
+   --setvars)	setvars=true
+   		shift
+		;;
+   *)		done=true
+		;;
 esac
+done
 
-if [ "$makeonly" = false ]; then
-  ./configure --prefix=$PREFIX --with-world  $EXTRACFG 2>&1 | tee configure.out
-  if [ $? != 0 ]; then exit 1; fi
-fi
+if [ "$setvars" = "false" ]; then
 
-$MAKE 2>&1 | tee make.out || exit 1
-$SUDO $MAKE install 2>&1 | tee make-install.out
+  if [ "$config" = "true" ]; then
+    ./configure --prefix=$PREFIX --with-world $CONFIGOPTS 2>&1 | tee configure.out
+    if [ $? != 0 ]; then exit 1; fi
+  fi
+
+  if [ "$make" = "true" ]; then
+    $MAKE 2>&1 | tee make.out
+    if [ $? != 0 ]; then exit 1; fi
+  fi
+
+  if [ "$install" = "true" ]; then
+    $MAKE install 2>&1 | tee make-install.out
+    if [ $? != 0 ]; then exit 1; fi
+  fi
+
+fi # setvars
 

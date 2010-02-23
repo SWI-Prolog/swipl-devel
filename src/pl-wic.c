@@ -239,7 +239,7 @@ static void
 pushXrIdTable(ARG1_LD)
 { XrTable t = allocHeap(sizeof(struct xr_table));
 
-  if ( !(t->table = malloc(ALLOCSIZE)) )
+  if ( !(t->table = allocHeap(ALLOCSIZE)) )
     outOfCore();
   SECURE(memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
@@ -258,9 +258,9 @@ popXrIdTable(ARG1_LD)
   loadedXrs = t->previous;		/* pop the stack */
 
   for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
-    free(t->table[i]);
+    freeHeap(t->table[i], ALLOCSIZE);
 
-  free(t->table);
+  freeHeap(t->table, ALLOCSIZE);
   freeHeap(t, sizeof(*t));
 }
 
@@ -284,7 +284,8 @@ storeXrId(long id, word value)
   long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { Word a = malloc(ALLOCSIZE);
+  { GET_LD
+    Word a = allocHeap(ALLOCSIZE);
 
     if ( !a )
       outOfCore();

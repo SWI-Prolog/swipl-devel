@@ -431,7 +431,7 @@ default(M, For:type, Default:unchecked) :<-
 	).
 
 
-find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
+find_definition(M, For:prolog_predicate, Where:[{here,tab,window}]) :->
 	"Find definition of predicate [in new window]"::
 	get(M, text_buffer, TB),
 	get(For, head, @off, Head),
@@ -439,20 +439,17 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	    ;	xref_defined(TB, Head, constraint(Line))
 	    ;   xref_defined(TB, Head, foreign(Line))
 	    )
-	->  (   NewWindow == @on
-	    ->	get(M, text_buffer, TB),
-		new(W2, emacs_frame(TB)),
-		send(W2?editor, goto_line, Line)
-	    ;	send(M, goto_line, Line)
-	    )
+	->  get(TB, open, Where, Frame),
+	    get(Frame, editor, Editor),
+	    send(Editor, goto_line, Line)
 	;   xref_defined(TB, Head, imported(File))	% imported
 	->  new(B, emacs_buffer(File)),
-	    get(B, open, NewWindow, EmacsFrame),
+	    get(B, open, Where, EmacsFrame),
 	    get(EmacsFrame, mode, Mode),
 	    send(Mode, instance_of, emacs_prolog_mode),
 	    send(Mode, find_local_definition, For)
 	;   get(For, source, SourceLocation) 		% From Prolog DB
-	->  send(@emacs, goto_source_location, SourceLocation, NewWindow)
+	->  send(@emacs, goto_source_location, SourceLocation, Where)
 	;   send(For, has_property, foreign)
 	->  send(M, report, warning,
 		 'Predicate is defined in a foreign language')

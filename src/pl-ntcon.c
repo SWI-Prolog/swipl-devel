@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,10 +24,29 @@
 
 #include <winsock2.h>
 #include <windows.h>
+#include "SWI-Stream.h"
 #include "SWI-Prolog.h"
 #include <signal.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is the simple main  program   of  swipl.exe; the SWI-Prolog console
+application. It can be used as   a  basis for console-based applications
+that have SWI-Prolog embedded.
+
+The default version does Control-C  processing   and  decodes ANSI color
+sequences to support colors in the console window.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef O_CTRLC
 #define O_CTRLC 1
+#endif
+#ifndef O_ANSI_COLORS
+#define O_ANSI_COLORS 1
+#endif
+
+		 /*******************************
+		 *	     INTERRUPT		*
+		 *******************************/
 
 #if O_CTRLC
 static DWORD main_thread_id;
@@ -44,12 +63,21 @@ consoleHandlerRoutine(DWORD id)
 }
 #endif
 
+
+		 /*******************************
+		 *	       MAIN		*
+		 *******************************/
+
 int
 main(int argc, char **argv)
 {
 #if O_CTRLC
   main_thread_id = GetCurrentThreadId();
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
+#endif
+
+#if O_ANSI_COLORS
+  PL_w32_wrap_ansi_console();		/* decode ANSI color sequences (ESC[...m) */
 #endif
 
   if ( !PL_initialise(argc, argv) )

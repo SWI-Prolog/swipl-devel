@@ -22,7 +22,6 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/semweb
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@

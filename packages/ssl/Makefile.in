@@ -19,7 +19,6 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 EXDIR=$(PKGDOC)/examples/ssl
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@

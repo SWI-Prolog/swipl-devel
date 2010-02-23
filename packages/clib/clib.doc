@@ -33,9 +33,8 @@ libraries.
 
 On Windows systems, the \pllib{unix} library can only be used if the
 whole SWI-Prolog suite is compiled using
-\url[Cywin]{http://www.cygwin.com}. The \pllib{crypt} library does not
-support DES encryption. The other libraries have been ported to native
-Windows.
+\url[Cywin]{http://www.cygwin.com}. The other libraries have been ported
+to native Windows.
 \end{abstract}
 
 \vfill
@@ -719,12 +718,14 @@ fully instantiated. To generate a default encrypted version of
 \arg{Plain}, run with unbound \arg{Encrypted} and this argument is
 unified to a list of character codes holding an encrypted version.
 
-The library supports two encryption formats: traditional Unix DES hashes
-(Unix only) and FreeBSD compatible MD5 hashes (all platforms).  MD5
-hashes start with the magic sequence \verb|$1$|, followed by an up to
-8 character \jargon{salt}. DES hashes start with a 2 character
+The library supports two encryption formats: traditional Unix
+DES-hashes%\footnote{On non-Unix systems, crypt() is provided by the
+NetBSD library. The license header is added at the end of this
+document.} and FreeBSD compatible MD5 hashes (all platforms). MD5 hashes
+start with the magic sequence \verb|$1$|, followed by an up to 8
+character \jargon{salt}. DES hashes start with a 2 character
 \jargon{salt}. Note that a DES hash considers only the first 8
-characters.  The MD5 considers the whole string.
+characters. The MD5 considers the whole string.
 
 Salt and algorithm can be forced by instantiating the start of
 \arg{Encrypted} with it.  This is typically used to force MD5 hashes:
@@ -1047,26 +1048,39 @@ cpu_exceeded(_Sig) :-
 \end{code}
 \end{description}
 
-\section{Installation}
-
-\subsection{Unix systems}
-
-Installation on Unix system uses the commonly found {\em configure},
-{\em make} and {\em make install} sequence. SWI-Prolog should be
-installed before building this package. If SWI-Prolog is not installed
-as \program{pl}, the environment variable \env{PL} must be set to the
-name of the SWI-Prolog executable. Installation is now accomplished
-using:
+\section*{NetBSD Crypt license}
 
 \begin{code}
-% ./configure
-% make
-% make install
+ * Copyright (c) 1989, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Tom Truscott.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
 \end{code}
-
-This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
-the Prolog library files in \file{$PLBASE/library}, where
-\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
 \printindex
 

@@ -27,6 +27,10 @@ set "REDIR_TO_NUL=> nul"
 :: set "REDIR_TO_NUL="
 :end_debugging
 
+:: Update if the requirements change
+set "REQBASE=reqs-2-"
+
+
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::                                                                            ::
 :: EP! is the Export Prefix, all & any variable prefixed in this way          ::
@@ -165,7 +169,7 @@ if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSISDEFS=/DWIN%BITS%
 
 
 :get_pre-requisites
-set "PRE-REQ_FILE=reqs%BITS%.cab"
+set "PRE-REQ_FILE=%REQBASE%%BITS%.cab"
 if exist "%PRE-REQ_FILE%" (goto have_pre-requisites)
 set "PRE-REQ_LOCA=http://www.swi-prolog.org/download/MS-Windows/"
 cls
@@ -180,7 +184,8 @@ echo The archive %PRE-REQ_FILE% will be placed in the following folder:
 echo.
 echo      %EP!HOME%\src
 :have_connection_to_swi-prolog.org
-ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
+:: ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
+goto get_pre-requisites_ask
 cls
 type welcome.txt
 echo Error: can not connect to www.swi-prolog.org at the moment, the site might be
@@ -214,23 +219,23 @@ for /l %%A in (1,1,3) do (
 goto create_user_lib_dirs
 :get_pre-requisites_start
 set "NO_TRIES=0"
-echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.vbs
-echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.vbs
-echo oHTTP.send >> reqs%BITS%.vbs
-echo set oStream = createobject("adodb.stream") >> reqs%BITS%.vbs
-echo oStream.type = 1 >> reqs%BITS%.vbs
-echo oStream.open >> reqs%BITS%.vbs
-echo oStream.write oHTTP.responseBody >> reqs%BITS%.vbs
-echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.vbs
-echo set oStream = nothing >> reqs%BITS%.vbs
-echo set oHTTP = nothing >> reqs%BITS%.vbs
+echo set oHTTP = WScript.CreateObject("Microsoft.XMLHTTP") > reqs%BITS%.swi
+echo oHTTP.open "GET"^, "%PRE-REQ_LOCA%" ^& "%PRE-REQ_FILE%"^, False >> reqs%BITS%.swi
+echo oHTTP.send >> reqs%BITS%.swi
+echo set oStream = createobject("adodb.stream") >> reqs%BITS%.swi
+echo oStream.type = 1 >> reqs%BITS%.swi
+echo oStream.open >> reqs%BITS%.swi
+echo oStream.write oHTTP.responseBody >> reqs%BITS%.swi
+echo oStream.savetofile "%PRE-REQ_FILE%"^, 2 >> reqs%BITS%.swi
+echo set oStream = nothing >> reqs%BITS%.swi
+echo set oHTTP = nothing >> reqs%BITS%.swi
 goto execute_get_pre-requisites_script
 :execute_get_pre-requisites_script_wait
 for /l %%A in (1,1,5) do (
 <nul (set/p _=.)
 >nul ping 127.0.0.1 -n 2)
 :execute_get_pre-requisites_script
-reqs%BITS%.vbs
+cscript.exe //B //E:vbs reqs%BITS%.swi
 if exist %PRE-REQ_FILE% (goto get_pre-requisites_succes)
 set /A NO_TRIES+=1
 cls
@@ -246,7 +251,7 @@ goto end
 cls
 type welcome.txt
 echo Successfully downloaded the SWI-Prolog %BITS%-bit pre-requisites...
-if exist reqs%BITS%.vbs (del /Q reqs%BITS%.vbs)
+if exist reqs%BITS%.swi (del /Q reqs%BITS%.swi)
 goto end_get_pre-requisites
 :have_pre-requisites
 cls
@@ -256,18 +261,19 @@ echo Already downloaded the SWI-Prolog %BITS%-bit pre-requisites...
 
 
 :start_expanding_pre-requisites
-if exist "%EP!HOME%\bin" (rd /S /Q "%EP!HOME%\bin")
-md "%EP!HOME%\bin"
-if exist "%EP!HOME%\include" (rd /S /Q "%EP!HOME%\include")
-md "%EP!HOME%\include"
-expand "reqs%BITS%.cab" -F:include.cab "%EP!HOME%\include" %REDIR_TO_NUL%
-expand "%EP!HOME%\include\include.cab" -F:* "%EP!HOME%\include" %REDIR_TO_NUL%
-if exist "%EP!HOME%\include\include.cab" (del /Q "%EP!HOME%\include\include.cab")
-if exist "%EP!HOME%\lib" (rd /S /Q "%EP!HOME%\lib")
-md "%EP!HOME%\lib"
-expand "reqs%BITS%.cab" -F:lib.cab "%EP!HOME%\lib" %REDIR_TO_NUL%
-expand "%EP!HOME%\lib\lib.cab" -F:* "%EP!HOME%\lib" %REDIR_TO_NUL%
-if exist "%EP!HOME%\lib\lib.cab" (del /Q "%EP!HOME%\lib\lib.cab")
+goto :start_main_exp
+:expand_file_list
+if not exist "%~dp1" (md "%~dp1")
+expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:%1 "%~dp1\" > nul
+goto:eof
+:start_main_exp
+echo.
+echo Busy expanding package... This might take some time...
+pushd %EP!HOME%
+expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:files.txt "%EP!HOME%" > nul
+for /F %%1 in (files.txt) do (call :expand_file_list %%1)
+if exist files.txt (del /Q files.txt)
+popd
 echo.
 echo Expanded the pre-requisites Package header files to %EP!HOME%\include
 echo and the libraries to %EP!HOME%\lib
@@ -528,10 +534,10 @@ set "EP!BUILD_JPL="
 :end_detect_java
 
 :detect_space
-if not exist "%EP!HOME%\lib\%EP!GEOS%.lib" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!GEOS%.dll" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX_I%.lib" (goto detect_space_not_detected)
-if not exist "%EP!HOME%\lib\%EP!SPATIALINDEX1%.dll" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\geos.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\geos.dll" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\spatialindex_i.lib" (goto detect_space_not_detected)
+if not exist "%EP!HOME%\lib\spatialindex1.dll" (goto detect_space_not_detected)
 goto detect_space_detected
 :detect_space_not_detected
 cls

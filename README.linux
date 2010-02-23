@@ -1,5 +1,8 @@
-Debian dependency list as compiled by Nicolas Pelletier
--------------------------------------------------------
+Please search the section for your Linux distribution
+
+################################################################
+# Debian dependency list as compiled by Nicolas Pelletier
+################################################################
 
 List of packages needed to compile SWI Prolog on Debian 4.0 stable (Etch):
 
@@ -15,6 +18,7 @@ autoconf
 make
 sed
 curl
+chrpath
 
 List of packages needed to compile additional SWI Prolog packages on
 Debian 4.0 stable (Etch):
@@ -58,9 +62,9 @@ may have some of these packages already present: apt-get will simply
 tell you they are installed and up-to-date.
 
 sudo apt-get install \
-	binutils coreutils gcc grep libc6-dev libncursesw5-dev \
+	binutils coreutils gcc grep chrpath \
+	libc6-dev libncursesw5-dev libreadline5-dev \
 	libgmp3-dev \
-	libreadline5-dev \
 	make sed autoconf curl \
 	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
 	libxpm-dev libxt-dev pkg-config \
@@ -85,3 +89,17 @@ following packages:
 		texlive-latex-base \
 		texlive-latex-recommended \
 		texlive-fonts-recommended
+
+################################################################
+# OpenSUSE 11.2
+################################################################
+
+For OpenSuSE 11.2, you need the following installed in addition
+to the basic X11/C/C++ development profile:
+
+zypper install \
+	git-core \
+	readline-devel \
+	unixODBC-devel \
+	libjpeg-devel \
+	java-1_6_0-openjdk-devel

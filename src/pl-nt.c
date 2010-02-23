@@ -45,7 +45,7 @@
 
 
 		 /*******************************
-		 *	    MESSAGE BOX		*
+		 *	       CONSOLE		*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,6 +72,38 @@ hasConsole(void)
   fail;
 }
 
+
+int
+PL_wait_for_console_input(void *handle)
+{ BOOL rc;
+  HANDLE hConsole = handle;
+
+  for(;;)
+  { rc = MsgWaitForMultipleObjects(1,
+				   &hConsole,
+				   FALSE,	/* wait for either event */
+				   INFINITE,
+				   QS_ALLINPUT);
+
+    if ( rc == WAIT_OBJECT_0+1 )
+    { MSG msg;
+
+      while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+      { TranslateMessage(&msg);
+	DispatchMessage(&msg);
+      }
+    } else if ( rc == WAIT_OBJECT_0 )
+    { return TRUE;
+    } else
+    { Sdprintf("MsgWaitForMultipleObjects(): 0x%x\n", rc);
+    }
+  }
+}
+
+
+		 /*******************************
+		 *	    MESSAGE BOX		*
+		 *******************************/
 
 void
 PlMessage(const char *fm, ...)

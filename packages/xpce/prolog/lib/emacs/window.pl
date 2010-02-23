@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 
 :- module(emacs_frame, []).
 :- use_module(library(pce)).
+:- use_module(library(tabbed_window)).
 :- use_module(prompt).
 :- require([ between/3
 	   , atomic_list_concat/2
@@ -52,45 +53,93 @@ various others.
 
 :- pce_global(@current_emacs_mode, new(var)).
 
+:- pce_begin_class(emacs_tabbed_window, tabbed_window,
+		   "Emacs editor tabs").
+
+:- pce_global(@emacs_tab_popup, make_emacs_tab_popup).
+
+make_emacs_tab_popup(P) :-
+	new(P, popup),
+	Tab = @arg1,
+	Cond = (Tab?device?graphicals?size \== 1),
+	send_list(P, append,
+		  [ menu_item(delete,
+			      message(Tab, destroy),
+			      condition := Cond),
+		    menu_item(detach,
+			      message(Tab, untab),
+			      condition := Cond)
+		  ]).
+
+current(TW, Window:window) :->
+	"Make the given window the current one"::
+	send_super(TW, current, Window),
+	(   get(TW, frame, Frame),
+	    send(Frame, has_send_method, setup_mode)
+	->  send(TW?frame, setup_mode, Window)
+	;   true
+	).
+
+frame_window(_TW, Window:window, _Name:name, _Rank:'1..', Frame:frame) :<-
+	"After un-tabbing, give the window a new frame"::
+	new(Frame, emacs_frame(Window)).
+
+empty(TW) :->
+	"Last window-tab disappeared"::
+	send(TW?frame, destroy).
+
+:- pce_end_class.
+
+
 :- pce_begin_class(emacs_frame, frame, "Frame for the PceEmacs editor").
 
-class_variable(confirm_done, bool, false,       "Donot confirm emacs-windows").
 class_variable(size,         size, size(80,32), "Size of text-field").
 class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 
-variable(sticky_window, bool,   get,  "When @on, window won't be killed").
-variable(pool,		[name], both, "Window pool I belong too").
-
-initialise(F, B:emacs_buffer) :->
+initialise(F, For:'emacs_buffer|emacs_view') :->
 	"Create window for buffer"::
-	send(F, send_super, initialise, B?name, application := @emacs),
-	send(F, fix_colour_map),
-	send(F, slot, sticky_window, @off),
+	send(F, send_super, initialise, 'PceEmacs', application := @emacs),
+	send(F, done_message, message(F, quit)),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
-	get(F, class_variable_value, size, Size),
-	send(new(V, emacs_view(B, Size?width, Size?height)), below, MBD),
-	send(new(MW, emacs_mini_window), below, V),
+	send(new(TW, emacs_tabbed_window), below, MBD),
+	send(TW, label_popup, @emacs_tab_popup),
+	send(new(emacs_mini_window), below, TW),
+
+	(   send(For, instance_of, emacs_view)
+	->  V = For,
+	    get(For, text_buffer, B)
+	;   B = For,
+	    get(F, class_variable_value, size, Size),
+	    new(V, emacs_view(B, Size?width, Size?height))
+	),
+
+	send(TW, append, V),
 	get(V, editor, E),
-	send(E, recogniser, handler(keyboard,
-				    message(MW, editor_event, @arg1))),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
 	send(F, open),
-	send(F, pool, B?pool),
+	send(B, update_label),
+
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
 
-
-fix_colour_map(F) :->
-	"Set colour-map to @nil on mapped displays"::
-	(   get(@display, depth, Depth),
-	    Depth =< 8
-	->  send(F, colour_map, @nil)
+quit(F) :->
+	"User-initiated quit"::
+	get(F, member, emacs_tabbed_window, TW),
+	get(TW?members, size, Count),
+	(   Count == 1
+	->  send(F, destroy)
+	;   send(@display, confirm, 'Close %d tabs?', Count)
+	->  send(F, destroy)
 	;   true
 	).
 
+editor_event(F, Ev:event) :->
+	"Delegate to the mini-window"::
+	get(F, member, emacs_mini_window, MW),
+	send(MW, editor_event, Ev).
 
 input_focus(F, Val:bool) :->
 	"Activate the window"::
@@ -100,21 +149,45 @@ input_focus(F, Val:bool) :->
 	;   send(F, active, Val)
 	).
 
+on_current_desktop(F) :->
+	"True if F for more than half on the current desktop"::
+	get(F, area, FArea),
+	get(F?display, size, size(DW,DH)),
+	get(FArea, intersection, area(0,0,DW,DH), Intersection),
+	get(FArea, measure, MA),
+	get(Intersection, measure, IA),
+	IA > MA/2.
+
+tab(F, B:buffer=emacs_buffer, Expose:expose=[bool]) :->
+	"Add new tab holding buffer"::
+	get(F, member, emacs_tabbed_window, TW),
+	(   get(TW, members, Windows),
+	    get(Windows, find, @arg1?text_buffer == B, Window)
+	->  (   Expose == @on
+	    ->	send(TW, on_top, Window)
+	    ;	true
+	    )
+	;   send(TW, append, new(V, emacs_view(B)), @default, Expose),
+	    send(B, update_label),
+	    send(F, setup_mode, V)
+	).
+
 
 buffer(F, B:emacs_buffer) :->
 	"Switch to the given emacs buffer"::
 	get(F, editor, E),
-	send(F, pool, B?pool),
 	send(E, text_buffer, B).
 
 
 view(F, View:emacs_view) :<-
-	get(F, member, emacs_view, View).
+	"Currently active view"::
+	get(F, member, emacs_tabbed_window, TW),
+	get(TW, current, View).
 
 
 editor(F, Editor:emacs_editor) :<-
 	"Editor component of the frame"::
-	get(F, member, emacs_view, V),
+	get(F, view, V),
 	get(V, editor, Editor).
 
 
@@ -145,20 +218,9 @@ active(F, Val:bool) :->
 	"Indicate active status"::
 	get(F, view, View),
 	(   Val == @on
-	->  send(@emacs, selection, View?text_buffer)
+	->  send(@emacs, first, F),
+	    send(@emacs, selection, View?text_buffer)
 	;   send(@emacs, selection, @nil)
-	).
-
-
-sticky_window(F, Val:[bool]) :->
-	"[toggle] sticky status"::
-	default(Val, F?sticky_window?negate, V2),
-	send(F, slot, sticky_window, V2),
-	get(F, member, mini_window, WM),
-	get(WM, member, sticky_indicator, Bitmap),
-	(   get(F, sticky_window, @on)
-	->  send(Bitmap, image, resource(pinned))
-	;   send(Bitmap, image, resource(not_pinned))
 	).
 
 
@@ -367,12 +429,7 @@ initialise(D) :->
 	send(D, slot, report_count, number(0)),
 	send(D, gap, size(10, 2)),
 	send(D, pen, 0),
-	send(D, display, new(StickyIndicator, bitmap(resource(not_pinned)))),
-	send(StickyIndicator, name, sticky_indicator),
-	send(StickyIndicator, recogniser,
-	     click_gesture(left, '', single,
-			   message(@receiver?frame, sticky_window))),
-	send(D, display, label(reporter), point(25, 2)),
+	send(D, display, label(reporter), point(0, 2)),
 	send(D, display, new(T, text('', right, normal)), point(100, 2)),
 	send(T, name, line),
 	get(text_item(''), height, MH),
@@ -421,7 +478,7 @@ report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 		send(RC, value, 0)
 	    ;   (   get(D, prompter, Prompter), Prompter \== @nil
 		->  send(Label, x, Prompter?width + 10)
-		;   send(Label, x, 25)
+		;   send(Label, x, 0)
 		),
 		send(Label, displayed, @on),
 		Msg =.. [report, Type, Fmt|Args],
@@ -443,7 +500,6 @@ ok_to_overrule(error, _).
 
 make_emacs_mini_window_bindings(B) :-
 	new(B, key_binding(emacs_mini_window)),
-	send(B, function, '\\es', sticky_window),
 	send(B, function, '\\en', m_x_next),
 	send(B, function, '\\ep', m_x_previous).
 
@@ -549,11 +605,27 @@ initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	send_super(V, initialise, @default, @default, @default,
 		   new(E, emacs_editor(Buffer, Width, Height))),
 	send(E?image, recogniser, @emacs_image_recogniser),
+	send(E, recogniser,
+	     handler(keyboard,
+		     if(message(E?frame, has_send_method, editor_event),
+			message(E?frame, editor_event, @arg1),
+			new(or)))),
+
 	get(Buffer, mode, ModeName),
 	send(E, mode, ModeName),
 	get(E, mode, Mode),		% the mode object
 	ignore(send(Mode, new_buffer)).
 
+label(V, Label:name) :->
+	"Set label of frame/tab"::
+	get(V, device, Dev),
+	(   send(Dev, has_send_method, label)
+	->  send(Dev, label, Label)
+	;   get(V, frame, Frame),
+	    Frame \== @nil
+	->  send(Frame, label, Label)
+	;   true
+	).
 
 drop_files(V, Files:chain, _At:point) :->
 	"Accept files dropped on me"::
@@ -813,11 +885,6 @@ mode(E, ModeName:mode_name) :->
 	).
 
 
-sticky_window(E, Val:[bool]) :->
-	"Change sticky status of window"::
-	send(E?frame, sticky_window, Val).
-
-
 preview_drop(E, Obj:object*) :->
 	"Delegate to mode"::
 	get(E, mode, Mode),
@@ -891,6 +958,12 @@ last_buffer(E, TB:text_buffer) :<-
 		 /*******************************
 		 *          UTILITIES		*
 		 *******************************/
+
+label(E, Label:name) :->
+	"Delegate to view"::
+	get(E, device, View),
+	send(View, label, Label).
+
 
 looking_at(E, Re:regex, Where:[int], End:[int]) :->
 	"Test if regex macthes from the caret"::

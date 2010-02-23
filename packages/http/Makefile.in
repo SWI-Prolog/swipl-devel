@@ -15,7 +15,6 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/http
 EXDIR=$(PKGDOC)/examples/http
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@

@@ -43,8 +43,7 @@ initialise(B, Target:file, Pid:[int]) :->
 	->  new(P, process(gdb, '-fullname', Target?name))
 	;   new(P, process(gdb, '-fullname', Target?name, Pid))
 	),
-	send(B, send_super, initialise, P, string('*gdb-%s*', Target?name)),
-	send(B, pool, gdb),
+	send_super(B, initialise, P, string('*gdb-%s*', Target?name)),
 	send(B, prompt_regex, '(gdb) ').
 
 :- pce_global(@gdb_fullname_regex,	% 032 ==26 == Ctrl-Z!

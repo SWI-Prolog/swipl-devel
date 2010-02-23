@@ -63,7 +63,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
 	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj \
-	pl-supervisor.obj pl-option.obj pl-files.obj
+	pl-supervisor.obj pl-option.obj pl-files.obj pl-ntconsole.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -138,10 +138,14 @@ $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
 		$(MTEXE) -manifest $(PLDLL).manifest -outputresource:$(PLDLL);2
 
+# We first create plcon.exe to avoid overriding the debug and manifest
+# files of swipl.dll.  Maybe using the same name for a dll and exe is a
+# bad idea afterall?
 $(PLCON):	$(PLLIB) pl-ntcon.obj
-		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
-		editbin /stack:$(STACK) $(PLCON)
-		$(MTEXE) -manifest $(PLCON).manifest -outputresource:$(PLCON);1
+		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
+		editbin /stack:$(STACK) plcon.exe
+		$(MTEXE) -manifest plcon.exe.manifest -outputresource:plcon.exe;1
+		copy plcon.exe $@
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)

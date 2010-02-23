@@ -13,7 +13,6 @@ PL=@PL@
 XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
-DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex

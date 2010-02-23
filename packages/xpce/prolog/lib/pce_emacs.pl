@@ -97,7 +97,7 @@ emacs_server :-
 emacs :-
 	start_emacs,
 	new(Scratch, emacs_buffer(@nil, '*scratch*')),
-	send(Scratch, open).
+	send(Scratch, open, tab).
 
 %%	emacs(+Location) is det.
 %
@@ -110,10 +110,10 @@ emacs(File:Line) :-
 	integer(Line),
 	atom(File), !,
 	start_emacs,
-	send(@emacs, goto_source_location, source_location(File, Line)).
+	send(@emacs, goto_source_location, source_location(File, Line), tab).
 emacs(File) :-
 	start_emacs,
-	send(@emacs, goto_source_location, source_location(File)).
+	send(@emacs, goto_source_location, source_location(File), tab).
 
 %%	emacs_toplevel is det.
 %

@@ -24,8 +24,6 @@ packages/jpl/config.h.in
 packages/jpl/configure
 packages/ltx2htm/config.h.in
 packages/ltx2htm/configure
-packages/mp/config.h.in
-packages/mp/configure
 packages/nlp/config.h.in
 packages/nlp/configure
 packages/odbc/config.h.in

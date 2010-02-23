@@ -35,7 +35,7 @@
 :- asserta(file_search_path(library, '../sgml')).
 :- asserta(file_search_path(library, '../clib')).
 :- asserta(file_search_path(library, '../zlib')).
-:- asserta(file_search_path(library, '../sgml/RDF')).
+:- asserta(file_search_path(library, '../RDF')).
 :- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(library, '..')).
 :- asserta(user:file_search_path(foreign, '.')).

@@ -4658,10 +4658,25 @@ growStacks(size_t l, size_t g, size_t t)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Some programs have a log of global and hardly any trail requirement.
+This means we gets lots of GCs for trail, which works fine, but they are
+expensive due to the size of the global stack. As long as we do not have
+generational GC, we make the trail free space proportional to the global
+stack usage. This too isn't ideal; it is possible that simply nothing is
+trailed and therefore it can be low.   Ideally, I think that the margins
+should depend on the percentage of the   time spent in GC's triggered by
+the stack. One of the problems we are   faced with is that not all OS'es
+allow us to get per-thread CPU statistics.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static size_t
 tight(Stack s ARG_LD)
-{ size_t min_room  = sizeStackP(s)/4;
+{ size_t min_room  = sizeStackP(s)/3;
   size_t spare_gap = s->def_spare - s->spare;
+
+  if ( s == (Stack)&LD->stacks.trail )	/* See (*) */
+    min_room += sizeStack(global)/6;
 
   if ( min_room < s->min_free )
     min_room = s->min_free;

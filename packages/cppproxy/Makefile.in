@@ -18,7 +18,6 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 EXDIR=$(PKGDOC)/examples/cppproxy
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@

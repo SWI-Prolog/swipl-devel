@@ -80,15 +80,15 @@ server_action(edit(File), Socket) :- !,
 	server_action(edit(File, []), Socket).
 server_action(edit(File, Line), Socket) :- !,
 	new(B, emacs_buffer(File)),
-	new(W, emacs_frame(B)),
-	send(W, sticky_window),
-	get(W, editor, Editor),
+	get(B, open, tab, Frame),
+	send(Frame, expose),
+	get(Frame, editor, Editor),
 	new(H, hyper(Socket, Editor, editor, server)),
 	send(H, send_method, @emacs_server_method),
 	send(B, check_modified_file),
 	(   Line == []
 	->  true
-	;   send(W?editor, goto_line, Line)
+	;   send(Editor, goto_line, Line)
 	).
 server_action(gdb(File, Pid), Socket) :- !,
 	file_directory_name(File, Dir),
@@ -106,7 +106,7 @@ server_action(gdb(File, Pid), Socket) :- !,
 	new(H, hyper(Socket, Editor, editor, server)),
 	send(H, send_method, @emacs_server_method),
 	send(X, start_process),
-	send(X, open).
+	send(X, open, tab).
 server_action(gdb(File), Socket) :- !,
 	server_action(gdb(File, @default), Socket).
 

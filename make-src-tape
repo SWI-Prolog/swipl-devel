@@ -2,12 +2,12 @@
 #
 # Make the SWI-Prolog source archives by running this script. Before
 # you start:
-# 
+#
 # 	* Update VERSION
 # 	* Run ./newversion, which creates a GIT tag VN.N.N
 # 	* Run ./make-src-tape
-# 	
-# This script required GNU-tar!
+#
+# This script requires GNU-tar!
 
 version=`cat VERSION`
 out=pl-$version.tar
@@ -42,7 +42,7 @@ git archive --format=tar --prefix=pl-$version/ "$TAG" > ../$out
 for sm in `git submodule status | awk '{printf "%s:%s\n", $1, $2}'`; do
     sha1=`echo $sm | awk -F: '{print $1}'`
     path=`echo $sm | awk -F: '{print $2}'`
-    echo -n "adding module $path at $sha1 ... " 
+    echo -n "adding module $path at $sha1 ... "
     git --git-dir $path/.git archive --format=tar --prefix=pl-$version/$path/ $sha1 > tmp.tar
     tar -Af ../$out tmp.tar
     rm tmp.tar

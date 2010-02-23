@@ -1190,11 +1190,12 @@ http_timestamp(Time, Atom) :-
 		 *	   REQUEST DCG		*
 		 *******************************/
 
-request(Fd, [method(Method)|Header]) -->
+request(Fd, [method(Method),request_uri(ReqURI)|Header]) -->
 	method(Method),
 	blanks,
 	nonblanks(Query),
-	{ http_location(Parts, Query),
+	{ atom_codes(ReqURI, Query),
+	  http_location(Parts, Query),
 	  append(Parts, Header0, Header)
 	},
 	request_header(Fd, Header0), !.
