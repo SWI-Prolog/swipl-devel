@@ -142,7 +142,7 @@ download_docs()
 
 eval_doc()
 { doc=unknown
-  if [ ! -d man/Manual ]; then
+  if [ ! -r man/Manual/index.html ]; then
     doc=absent
   else
     if [ -f doc-version ]; then
