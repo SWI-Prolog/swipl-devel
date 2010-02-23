@@ -184,7 +184,8 @@ echo The archive %PRE-REQ_FILE% will be placed in the following folder:
 echo.
 echo      %EP!HOME%\src
 :have_connection_to_swi-prolog.org
-ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
+:: ping.exe -n 2 -w 7500 www.swi-prolog.org | find "TTL=" %REDIR_TO_NUL% && goto get_pre-requisites_ask
+goto get_pre-requisites_ask
 cls
 type welcome.txt
 echo Error: can not connect to www.swi-prolog.org at the moment, the site might be
@@ -263,13 +264,13 @@ echo Already downloaded the SWI-Prolog %BITS%-bit pre-requisites...
 goto :start_main_exp
 :expand_file_list
 if not exist "%~dp1" (md "%~dp1")
-expand "%EP!HOME%\src\reqs%BITS%.cab" -F:%1 "%~dp1\" > nul
+expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:%1 "%~dp1\" > nul
 goto:eof
 :start_main_exp
 echo.
 echo Busy expanding package... This might take some time...
 pushd %EP!HOME%
-expand "%EP!HOME%\src\reqs%BITS%.cab" -F:files.txt "%EP!HOME%" > nul
+expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:files.txt "%EP!HOME%" > nul
 for /F %%1 in (files.txt) do (call :expand_file_list %%1)
 if exist files.txt (del /Q files.txt)
 popd
