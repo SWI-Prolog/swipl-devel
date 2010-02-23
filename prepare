@@ -1,4 +1,5 @@
 #!/bin/sh
+#
 # ./prepare
 #
 # Prepare sources obtained from GIT for   compilation. Runs GNU autoconf
@@ -14,10 +15,18 @@
 # On Windows installations, this script may be run from the MsysGit bash
 # shell to initialise the submodules and download the documentation.
 
+# default submodules to pull.  Use --all to get all registered submodule
+# You can also create a file modules in this directory, listing the
+# desired modules one-per-line
+
+if [ -r modules ]; then
+  SUBMODULES="`cat modules`"
+else
+  SUBMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
+fi
+
 version="`cat VERSION`"
-#server="http://gollem.science.uva.nl"
-#serverpath="/cgi-bin/nph-download/SWI-Prolog"
-server="http://prolog.cs.vu.nl"
+server="http://www.swi-prolog.org"
 serverpath="/download"
 serverurl="$server$serverpath"
 yes=ask
@@ -29,6 +38,9 @@ while [ "$done" = false ]; do
     --yes)
 	yes=yes
 	shift
+	;;
+    --all)
+	SUBMODULES=
 	;;
     *)
 	done=true
@@ -82,22 +94,22 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
-if git submodule | grep '^-' > /dev/null; then
+if git submodule $SUBMODULES | grep '^-' > /dev/null; then
   echo "Not (all) submodules have been initialised."
   if confirm "Do you want me to initialize and download the submodules? "; then
-    git submodule init
-    git submodule update
+    git submodule init $SUBMODULES
+    git submodule update $SUBMODULES
   fi
 fi
 
-outofdate=`git submodule | grep '^[-+]' | awk '{print $2}'`
+outofdate=`git submodule $SUBMODULES | grep '^[-+]' | awk '{print $2}'`
 if [ -z "$outofdate" ]; then
   echo "All submodules are up-to-date"
 else
   echo "The following submodules are not up-to-date"
   echo "   $outofdate"
   if confirm "Do you want me to run git submodule update? "; then
-    git submodule update
+    git submodule update $SUBMODULES
   fi
 fi
 
