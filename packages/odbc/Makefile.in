@@ -33,7 +33,7 @@ DOC=odbc
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
-RUNTEX=@RUNTEX@
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
