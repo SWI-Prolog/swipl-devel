@@ -719,7 +719,7 @@ fully instantiated. To generate a default encrypted version of
 unified to a list of character codes holding an encrypted version.
 
 The library supports two encryption formats: traditional Unix
-DES-hashes%\footnote{On non-Unix systems, crypt() is provided by the
+DES-hashes\footnote{On non-Unix systems, crypt() is provided by the
 NetBSD library. The license header is added at the end of this
 document.} and FreeBSD compatible MD5 hashes (all platforms). MD5 hashes
 start with the magic sequence \verb|$1$|, followed by an up to 8
