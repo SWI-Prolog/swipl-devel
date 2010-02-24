@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,7 +32,9 @@
 
 :- module(http_client,
 	  [ http_get/3,			% +URL, -Reply, +Options
+	    http_delete/3,		% +URL, -Reply, +Options
 	    http_post/4,		% +URL, +In, -Reply, +Options
+	    http_put/4,			% +URL, +In, -Reply, +Options
 	    http_read_data/3,		% +Header, -Data, +Options
 	    http_disconnect/1		% +What
 	  ]).
@@ -44,6 +46,7 @@
 :- use_module(library(memfile)).
 :- use_module(library(lists)).
 :- use_module(library(error)).
+:- use_module(library(option)).
 :- use_module(dcg_basics).
 
 :- multifile
@@ -172,6 +175,16 @@ protocol(_, http).
 		 *	        GET		*
 		 *******************************/
 
+%%	http_delete(+URL, -Data, +Options) is det.
+%
+%	Execute a DELETE method on the server.
+%
+%	@tbd Properly map the 201, 202 and 204 replies.
+
+http_delete(URL, Data, Options) :-
+	http_get(URL, Data, [method('DELETE')|Options]).
+
+
 %%	http_get(+URL, -Data, +Options) is det.
 %
 %	Get data from an HTTP server.
@@ -205,7 +218,8 @@ http_do_get(Parts, Data, Options) :-
 	    Options1 = Options
 	),
 	memberchk(host(Host), Parts),
-	http_write_header(Write, 'GET', Location, Host,
+	option(method(Method), Options, 'GET'),
+	http_write_header(Write, Method, Location, Host,
 			  Options1, ReplyOptions),
 	write(Write, '\r\n'),
 	flush_output(Write),
@@ -396,6 +410,14 @@ encoding(_, octet).
 		 *	       POST		*
 		 *******************************/
 
+%%	http_put(+URL, +In, -Out, +Options)
+%
+%	Issue an HTTP PUT request.
+
+http_put(URL, In, Out, Options) :-
+	http_post(URL, In, Out, [method('PUT')|Options]).
+
+
 %%	http_post(+URL, +In, -Out, +Options)
 %
 %	Issue an HTTP POST request, In is modelled after the reply
@@ -437,7 +459,8 @@ http_do_post(Parts, In, Out, Options) :-
 	http_read_reply(Read, Out, ReplyOptions).
 
 write_post_header(Out, Location, Host, In, Options) :-
-	http_write_header(Out, 'POST', Location, Host, Options, DataOptions),
+	option(method(Method), Options, 'POST'),
+	http_write_header(Out, Method, Location, Host, Options, DataOptions),
 	http_post_data(In, Out, DataOptions),
 	flush_output(Out).
 

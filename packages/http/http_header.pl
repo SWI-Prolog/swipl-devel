@@ -241,6 +241,23 @@ http_status_reply(Status, Out, HdrExtra, Code) :-
 			   set_stream(Out, encoding(octet))), !.
 
 
+status_reply(no_content, Out, HrdExtra, Code) :- !,
+	phrase(reply_header(status(no_content), HrdExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	flush_output(Out).
+status_reply(created(Location), Out, HrdExtra, Code) :- !,
+	phrase(page([ title('201 Created')
+		    ],
+		    [ h1('Created'),
+		      p(['The document was created ',
+			 a(href(Location), ' Here')
+			]),
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(created(Location, HTML), HrdExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 status_reply(moved(To), Out, HrdExtra, Code) :- !,
 	phrase(page([ title('301 Moved Permanently')
 		    ],
@@ -786,6 +803,14 @@ reply_header(moved(To, Tokens), HdrExtra, Code) -->
 	content_length(html(Tokens), CLen),
 	content_type(text/html, utf8),
 	"\r\n".
+reply_header(created(Location, Tokens), HdrExtra, Code) -->
+	vstatus(moved, Code),
+	date(now),
+	header_field('Location', Location),
+	header_fields(HdrExtra, CLen),
+	content_length(html(Tokens), CLen),
+	content_type(text/html, utf8),
+	"\r\n".
 reply_header(moved_temporary(To, Tokens), HdrExtra, Code) -->
 	vstatus(moved_temporary, Code),
 	date(now),
@@ -845,6 +870,9 @@ status_number(Status, Code) -->
 
 status_number(continue,		   100).
 status_number(ok,		   200).
+status_number(created,		   201).
+status_number(accepted,		   202).
+status_number(no_content,	   204).
 status_number(partial_content,	   206).
 status_number(moved,		   301).
 status_number(moved_temporary,	   302).
@@ -866,6 +894,14 @@ status_comment(continue) -->
 	"Continue".
 status_comment(ok) -->
 	"OK".
+status_comment(created) -->
+	"Created".
+status_comment(accepted) -->
+	"Accepted".
+status_comment(no_content) -->
+	"No Content".
+status_comment(created) -->
+	"Created".
 status_comment(partial_content) -->
 	"Partial content".
 status_comment(moved) -->
