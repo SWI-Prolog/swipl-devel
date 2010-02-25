@@ -27,4 +27,109 @@
     the GNU General Public License.
 */
 
+:- module(sicstus,
+	  [ (block)/1,			% +Heads
+	    (public)/1,			% +Heads
+	    use_module/3,		% ?Module, ?File, +Imports
+	    bb_put/2,			% :Key, +Value
+	    bb_get/2,			% :Key, -Value
+	    bb_delete/2,		% :Key, -Value
+	    bb_update/3,		% :Key, -Old, +New
+
+	    op(1150, fx, (block)),
+	    op(1150, fx, (public))
+	  ]).
+
 :- use_module(sicstus/block).
+
+:- multifile
+	system:goal_expansion/2.
+
+% SICStus use_module/1 does not require the target to be a module.
+
+system:goal_expansion(use_module(File), load_files(File, [if(changed)])).
+
+%%	use_module(+Module, -File, +Imports) is det.
+%%	use_module(-Module, +File, +Imports) is det.
+%
+%	This predicate can be used to import   from a named module while
+%	the file-location of the module is unknown   or to get access to
+%	the module-name loaded from a file.
+
+use_module(Module, File, Imports) :-
+	ground(File), !,
+	absolute_file_name(File, Path,
+			   [ file_type(prolog),
+			     access(read)
+			   ]),
+	use_module(Path, Imports),
+	module_property(Module, file(Path)).
+use_module(Module, Path, Imports) :-
+	atom(Module), !,
+	module_property(Module, file(Path)),
+	use_module(Path, Imports).
+
+%%	public(+Heads)
+%
+%	Seems to be used in e.g., :- public user:help_pred/3.
+
+public(_).
+
+		 /*******************************
+		 *	       BB_*		*
+		 *******************************/
+
+:- meta_predicate
+	bb_put(:, +),
+	bb_get(:, -),
+	bb_delete(:, -),
+	bb_update(:, -, +).
+
+system:goal_expansion(bb_put(Key, Value), nb_setval(Atom, Value)) :-
+	bb_key(Key, Atom).
+system:goal_expansion(bb_get(Key, Value), nb_getval(Atom, Value)) :-
+	bb_key(Key, Atom).
+system:goal_expansion(bb_delete(Key, Value),
+		      (	  nb_getval(Atom, Value),
+			  nb_delete(Atom)
+		      )) :-
+	bb_key(Key, Atom).
+system:goal_expansion(bb_update(Key, Old, New),
+		      (	  nb_getval(Atom, Old),
+			  nb_setval(Atom, New)
+		      )) :-
+	bb_key(Key, Atom).
+
+bb_key(Module:Key, Atom) :-
+	atom(Module), !,
+	atomic(Key),
+	atomic_list_concat([Module, Key], :, Atom).
+bb_key(Key, Atom) :-
+	atomic(Key),
+	prolog_load_context(module, Module),
+	atomic_list_concat([Module, Key], :, Atom).
+
+%%	bb_put(:Name, +Value) is det.
+%%	bb_get(:Name, -Value) is semidet.
+%%	bb_delete(:Name, -Value) is semidet.
+%%	bb_update(:Name, -Old, +New) is semidet.
+%
+%	SICStus compatible blackboard routines. The implementations only
+%	deal with cases where the module-sensitive   key  is unknown and
+%	meta-calling. Simple cases are  directly   mapped  to SWI-Prolog
+%	non-backtrackable global variables.
+
+bb_put(Key, Value) :-
+	bb_key(Key, Name),
+	nb_setval(Name, Value).
+bb_get(Key, Value) :-
+	bb_key(Key, Name),
+	nb_getval(Name, Value).
+bb_delete(Key, Value) :-
+	bb_key(Key, Name),
+	nb_getval(Name, Value),
+	nb_delete(Name).
+bb_update(Key, Old, New) :-
+	bb_key(Key, Name),
+	nb_getval(Name, Old),
+	nb_setval(Name, New).
