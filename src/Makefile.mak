@@ -100,8 +100,9 @@ PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON=
-DIALECT=yap.pl hprolog.pl
+DIALECT=yap.pl hprolog.pl sicstus.pl
 YAP=	README.TXT
+SICSTUS=block.pl
 ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
@@ -279,6 +280,7 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
+		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
@@ -290,7 +292,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap iiso iunicode
+ilib:		iclp idialect iyap isicstus iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -305,6 +307,10 @@ idialect:	iyap
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
 			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
+
+isicstus::
+		chdir $(PLHOME)\library\dialect\sicstus & \
+			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\sicstus"
 
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \
