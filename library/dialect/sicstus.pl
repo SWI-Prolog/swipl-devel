@@ -30,20 +30,56 @@
 :- module(sicstus,
 	  [ (block)/1,			% +Heads
 	    (public)/1,			% +Heads
+
+	    if/3,			% :If, :Then, :Else
+
 	    use_module/3,		% ?Module, ?File, +Imports
+
 	    bb_put/2,			% :Key, +Value
 	    bb_get/2,			% :Key, -Value
 	    bb_delete/2,		% :Key, -Value
 	    bb_update/3,		% :Key, -Old, +New
+
+	    call_residue/2,		% :Goal, -Residue
 
 	    op(1150, fx, (block)),
 	    op(1150, fx, (public))
 	  ]).
 
 :- use_module(sicstus/block).
+:- use_module(library(occurs)).
 
 :- multifile
 	system:goal_expansion/2.
+
+
+		 /*******************************
+		 *	      CONTROL		*
+		 *******************************/
+
+:- meta_predicate
+	if(0,0,0).
+
+system:goal_expansion(if(If,Then,Else),
+		      (If *-> Then ; Else)) :-
+	\+ (sub_term(X, [If,Then,Else]), X == !).
+
+%%	if(:If, :Then, :Else)
+%
+%	Same  as  SWI-Prolog  soft-cut  construct.   Normally,  this  is
+%	translated using goal-expansion. If either term contains a !, we
+%	use meta-calling for full compatibility (i.e., scoping the cut).
+
+if(If, Then, Else) :-
+	(   If
+	*-> Then
+	;   Else
+	).
+
+
+		 /*******************************
+		 *	     MODULES		*
+		 *******************************/
 
 % SICStus use_module/1 does not require the target to be a module.
 
@@ -133,3 +169,31 @@ bb_update(Key, Old, New) :-
 	bb_key(Key, Name),
 	nb_current(Name, Old),
 	nb_setval(Name, New).
+
+
+		 /*******************************
+		 *  COROUTINING & CONSTRAINTS	*
+		 *******************************/
+
+%%	call_residue(:Goal, -Residue) is nondet.
+%
+%	Residue is a list of VarSet-Goal.  Note that this implementation
+%	is   incomplete.   Please   consult     the   documentation   of
+%	call_residue_vars/2 for known issues.
+
+:- meta_predicate
+	call_residue(0, -).
+
+call_residue(Goal, Residue) :-
+	call_residue_vars(Goal, Vars),
+	copy_term(Vars, _AllVars, Goals),
+	phrase(vars_by_goal(Goals), Residue).
+
+vars_by_goal((A,B)) --> !,
+	vars_by_goal(A),
+	vars_by_goal(B).
+vars_by_goal(Goal) -->
+	{ term_attvars(Goal, AttVars),
+	  sort(AttVars, VarSet)
+	},
+	[ VarSet-Goal ].
