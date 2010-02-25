@@ -87,15 +87,15 @@ public(_).
 
 system:goal_expansion(bb_put(Key, Value), nb_setval(Atom, Value)) :-
 	bb_key(Key, Atom).
-system:goal_expansion(bb_get(Key, Value), nb_getval(Atom, Value)) :-
+system:goal_expansion(bb_get(Key, Value), nb_current(Atom, Value)) :-
 	bb_key(Key, Atom).
 system:goal_expansion(bb_delete(Key, Value),
-		      (	  nb_getval(Atom, Value),
+		      (	  nb_current(Atom, Value),
 			  nb_delete(Atom)
 		      )) :-
 	bb_key(Key, Atom).
 system:goal_expansion(bb_update(Key, Old, New),
-		      (	  nb_getval(Atom, Old),
+		      (	  nb_current(Atom, Old),
 			  nb_setval(Atom, New)
 		      )) :-
 	bb_key(Key, Atom).
@@ -124,12 +124,12 @@ bb_put(Key, Value) :-
 	nb_setval(Name, Value).
 bb_get(Key, Value) :-
 	bb_key(Key, Name),
-	nb_getval(Name, Value).
+	nb_current(Name, Value).
 bb_delete(Key, Value) :-
 	bb_key(Key, Name),
-	nb_getval(Name, Value),
+	nb_current(Name, Value),
 	nb_delete(Name).
 bb_update(Key, Old, New) :-
 	bb_key(Key, Name),
-	nb_getval(Name, Old),
+	nb_current(Name, Old),
 	nb_setval(Name, New).
