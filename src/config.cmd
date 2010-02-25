@@ -101,7 +101,7 @@ if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_32" (goto this_build_is_not_possible)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86_amd64 ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC08_STU_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\vcvarsall.bat" x86 ^> nul > call_vcvars.cmd)
 ::set_vc9_or_sdk2008_sdkwin7_environment_file
-if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\vcvarsx86_amd64.bat" (set "TYPE=SDK") else (set "TYPE=STU")
+if exist "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvarsx86_amd64.bat" (set "TYPE=SDK") else (set "TYPE=STU")
 if "%VCXX%_%TYPE%_%BITS%"=="VC09_STU_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat" ^> nul > call_vcvars.cmd)
 if "%VCXX%_%TYPE%_%BITS%"=="VC09_SDK_64" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvarsx86_amd64.bat" ^> nul > call_vcvars.cmd)
 if "%VCXX%_%BITS%"=="VC09_32" (@echo call "%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\bin\vcvars32.bat" ^> nul > call_vcvars.cmd)
