@@ -138,7 +138,7 @@ quit(F) :->
 
 editor_event(F, Ev:event) :->
 	"Delegate to the mini-window"::
-	get(F, member, emacs_mini_window, MW),
+	get(F, member, mini_window, MW),
 	send(MW, editor_event, Ev).
 
 input_focus(F, Val:bool) :->
