@@ -161,6 +161,7 @@ COMMON= README
 DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl
+CIAO=	assertions.pl
 ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
@@ -443,7 +444,7 @@ iclp:		idirs
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
-idialect:	idirs iyap iiso isicstus
+idialect:	idirs iyap iiso isicstus iciao
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -456,6 +457,11 @@ iyap:		idirs
 isicstus:	idirs
 		for f in $(SICSTUS); do \
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
+		done
+
+iciao:	idirs
+		for f in $(CIAO); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
 		done
 
 iiso:		idirs

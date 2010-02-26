@@ -27,3 +27,62 @@
     the GNU General Public License.
 */
 
+:- module(ciao,
+	  [
+	  ]).
+
+:- multifile
+	system:goal_expansion/2.
+:- multifile
+	system:term_expansion/2.
+
+:- multifile
+	declaration/1.			% Head
+
+system:term_expansion((:- module(Name, Public, Packages)),
+		      [ (:- module(Name, Public))
+		      |	Directives
+		      ]) :-
+	maplist(package_directive, Packages, Directives).
+system:term_expansion((:- use_package(Name)),
+		      (:- include(library(Name)))).
+system:term_expansion((:- new_declaration(Name/Arity)),
+		      ciao:declaration(Head)) :-
+	functor(Head, Name, Arity).
+system:term_expansion((:- Decl), Exp) :-
+	declaration(Decl),
+	(   functor(Decl, Name, Arity),
+	    prolog_load_context(module, Module),
+	    current_predicate(Module:Name/Arity)
+	->  Exp = (:- Decl)
+	;   Exp = []
+	).
+
+package_directive(Package, Directive) :-
+	expand_term((:- use_package(Package)), Directive).
+
+
+		 /*******************************
+		 *	    LIBRARY SETUP	*
+		 *******************************/
+
+%%	push_ciao_library
+%
+%	Pushes searching for dialect/ciao in   front of every library
+%	directory that contains such as sub-directory.
+
+push_ciao_library :-
+	(   absolute_file_name(library(dialect/ciao), Dir,
+			       [ file_type(directory),
+				 access(read),
+				 solutions(all),
+				 file_errors(fail)
+			       ]),
+	    asserta((user:file_search_path(library, Dir) :-
+		    prolog_load_context(dialect, ciao))),
+	    fail
+	;   true
+	).
+
+
+:- push_ciao_library.
