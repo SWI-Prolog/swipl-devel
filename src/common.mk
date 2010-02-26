@@ -6,5 +6,5 @@
 DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl
 YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl
-CIAO=	assertions.pl isomodes.pl
+CIAO=	assertions.pl isomodes.pl regtypes.pl
 ISO=	iso_predicates.pl
