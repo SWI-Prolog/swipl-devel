@@ -42,12 +42,17 @@
 
 	    call_residue/2,		% :Goal, -Residue
 
+	    prolog_flag/3,		% +Flag, -Old, +New
+	    version/0,
+	    version/1,			% +Message
+
 	    op(1150, fx, (block)),
 	    op(1150, fx, (public))
 	  ]).
 
 :- use_module(sicstus/block).
 :- use_module(library(occurs)).
+:- use_module(library(debug)).
 
 :- multifile
 	system:goal_expansion/2.
@@ -186,8 +191,11 @@ bb_update(Key, Old, New) :-
 
 call_residue(Goal, Residue) :-
 	call_residue_vars(Goal, Vars),
-	copy_term(Vars, _AllVars, Goals),
-	phrase(vars_by_goal(Goals), Residue).
+	(   Vars == []
+	->  Residue = []
+	;   copy_term(Vars, _AllVars, Goals),
+	    phrase(vars_by_goal(Goals), Residue)
+	).
 
 vars_by_goal((A,B)) --> !,
 	vars_by_goal(A),
@@ -197,3 +205,39 @@ vars_by_goal(Goal) -->
 	  sort(AttVars, VarSet)
 	},
 	[ VarSet-Goal ].
+
+
+		 /*******************************
+		 *	       FLAGS		*
+		 *******************************/
+
+%%	prolog_flag(+Flag, -Old, +New) is semidet.
+%
+%	Query and set a Prolog flag. Use the debug/1 topic =prolog_flag=
+%	to find the flags accessed using this predicate.
+
+prolog_flag(Flag, Old, New) :-
+	debug(prolog_flag, 'prolog_flag(~q, ~q, ~q)', [Flag, Old, New]),
+	current_prolog_flag(Flag, Old),
+	set_prolog_flag(Flag, New).
+
+:- dynamic
+	version_msg/1.
+
+%%	version is det.
+%
+%	Print welcome message.
+%
+%	@tbd	This should be merged into the message-system
+
+version :-
+	'$welcome',
+	forall(version_msg(Msg),
+	       print_message(banner, format('~w', [Msg]))).
+
+%%	version(+Message) is det.
+%
+%	Add message to version/0
+
+version(Message) :-
+	assertz(version_msg(Message)).
