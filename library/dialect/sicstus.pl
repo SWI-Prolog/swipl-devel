@@ -296,3 +296,20 @@ version :-
 
 version(Message) :-
 	assertz(version_msg(Message)).
+
+
+		 /*******************************
+		 *	     ARITHMETIC		*
+		 *******************************/
+
+% Provide (#)/2 as arithmetic function.  Ideally, we should be able to
+% bind multiple names to built-in functions.  This is rather slow.  We
+% could also consider adding # internally, but not turning it into an
+% operator.
+
+:- op(500, yfx, #).
+
+:- arithmetic_function((#)/2).
+
+#(X,Y,R) :-
+	R is xor(X,Y).
