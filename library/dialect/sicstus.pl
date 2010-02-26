@@ -99,6 +99,21 @@ push_sicstus_library :-
 
 
 		 /*******************************
+		 *	      OPERATORS		*
+		 *******************************/
+
+%	declare all operators globally
+
+system:goal_expansion(op(Pri,Ass,Name),
+		      op(Pri,Ass,user:Name)) :-
+	\+ qualified(Name),
+	prolog_load_context(dialect, sicstus).
+
+qualified(Var) :- var(Var), !, fail.
+qualified(_:_).
+
+
+		 /*******************************
 		 *	      CONTROL		*
 		 *******************************/
 
