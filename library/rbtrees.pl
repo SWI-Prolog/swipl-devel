@@ -325,7 +325,7 @@ lookupall(<, K, V, Tree) :-
 
 % We don't use parent nodes, so we may have to fix the root.
 
-%%	rb_insert(+T0, +Key, ?Value, -TN)
+%%	rb_insert(+T0, +Key, ?Value, -TN) is det.
 %
 %	Add an element with key Key and Value  to the tree T0 creating a
 %	new red-black tree TN. Duplicated elements are not allowed.
@@ -379,7 +379,7 @@ insert2(black(L,K0,V0,R), K, V, Nil, NT, Flag) :-
 	    fix_right(Flag0, black(L,K0,V0,IR), NT, Flag)
 	).
 
-%%	rb_insert_new(+T0, +Key, ?Value, -TN)
+%%	rb_insert_new(+T0, +Key, ?Value, -TN) is semidet.
 %
 %	Add a new element with key Key and Value  to the tree T0 creating a
 %	new red-black tree TN. Fails if Key is already in T0.
