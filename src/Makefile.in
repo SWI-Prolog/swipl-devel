@@ -135,6 +135,8 @@ SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 
+include $(srcdir)/common.mk
+
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
 	../boot/writef.pl ../boot/history.pl ../boot/attvar.pl \
@@ -158,11 +160,6 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	charsio.pl portray_text.pl csv.pl persistency.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
-DIALECT=yap.pl hprolog.pl commons.pl ciao.pl sicstus.pl
-YAP=	README.TXT
-SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl
-CIAO=	assertions.pl
-ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)

@@ -73,6 +73,8 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 
+!include common.mk
+
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
 	../boot/writef.pl ../boot/history.pl \
@@ -99,12 +101,6 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
-COMMON=
-DIALECT=yap.pl hprolog.pl sicstus.pl
-YAP=	README.TXT
-SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl
-CIAO=	assertions.pl
-ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 
