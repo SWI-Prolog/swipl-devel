@@ -391,7 +391,8 @@ install-demo:	idirs
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
 		library/clp library/unicode include dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/dialect/ciao library/dialect/sicstus
+		library/dialect/ciao library/dialect/ciao/engine \
+		library/dialect/sicstus
 
 iruntime:	idirs
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
@@ -456,9 +457,12 @@ isicstus:	idirs
 			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
 		done
 
-iciao:	idirs
+iciao:		idirs
 		for f in $(CIAO); do \
 			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
+		done
+		for f in $(CIAO_ENGINE); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
 		done
 
 iiso:		idirs

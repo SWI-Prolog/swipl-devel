@@ -32,15 +32,28 @@
 	  ]).
 
 :- multifile
-	system:goal_expansion/2.
-:- multifile
-	system:term_expansion/2.
+	system:goal_expansion/2,
+	system:term_expansion/2,
+	user:file_search_path/2.
+
+
+		 /*******************************
+		 *	       PATHS		*
+		 *******************************/
+
+user:file_search_path(engine, library(dialect/ciao/engine)).
+
+
+		 /*******************************
+		 *    MODULES & DECLARATIONS	*
+		 *******************************/
 
 :- multifile
 	declaration/1.			% Head
 
 system:term_expansion((:- module(Name, Public, Packages)),
-		      [ (:- module(Name, Public))
+		      [ (:- module(Name, Public)),
+			(:- style_check(-atom))
 		      |	Directives
 		      ]) :-
 	maplist(package_directive, Packages, Directives).

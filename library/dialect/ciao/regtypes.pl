@@ -7,6 +7,7 @@
 
 :- op(1150, fx,(regtype)).
 :- op(1150,xfx,(regtype)).
+:- op(500, yfx,#).			% JW: Added
 
 % :- meta_predicate regtype(goal).
 

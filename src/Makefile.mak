@@ -279,6 +279,7 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\library\dialect\iso" \
 		"$(PLBASE)\library\dialect\sicstus" \
 		"$(PLBASE)\library\dialect\ciao" \
+		"$(PLBASE)\library\dialect\ciao\engine" \
 		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
@@ -313,6 +314,8 @@ isicstus::
 iciao::
 		chdir $(PLHOME)\library\dialect\ciao & \
 			for %f in ($(CIAO)) do copy %f "$(PLBASE)\library\dialect\ciao"
+		chdir $(PLHOME)\library\dialect\ciao\engine & \
+			for %f in ($(CIAO_ENGINE)) do copy %f "$(PLBASE)\library\dialect\ciao\engine"
 
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \
