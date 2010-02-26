@@ -27,8 +27,31 @@
     the GNU General Public License.
 */
 
-:- module(ciao_internals,
-	  [
+:- module(ciao_lists,
+	  [ nth/3,			% ?Index, ?List, ?Element
+	    list_insert/2		% -List, +Term
 	  ]).
+:- reexport('../../lists').
 
-:- new_declaration(impl_defined/1).
+%%	nth(?Index, ?List, ?Element) is nondet.
+%
+%	True if Element is the N-th element  in List. Counting starts at
+%	1.
+%
+%	@deprecated use nth1/3.
+
+nth(Index, List, Element) :-
+	nth1(Index, List, Element).
+
+%%	list_insert(-List, +Term)
+%
+%	Adds Term to the end of List  if   there  is  no element in List
+%	identical to Term.
+
+list_insert(List, Term) :-
+        var(List), !,
+        List=[Term|_].
+list_insert([Term0|_], Term) :-
+        Term0==Term, !.
+list_insert([_|List], Term) :-
+        list_insert(List, Term).

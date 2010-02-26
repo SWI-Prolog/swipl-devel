@@ -30,6 +30,9 @@
 :- module(ciao,
 	  [
 	  ]).
+:- use_module('../error').
+:- use_module('../apply').
+:- use_module('../debug').
 
 :- multifile
 	system:goal_expansion/2,
@@ -70,9 +73,70 @@ system:term_expansion((:- Decl), Exp) :-
 	->  Exp = (:- Decl)
 	;   Exp = []
 	).
+system:term_expansion((:- meta_predicate(CiaoSpec)),
+		      [ (:- meta_predicate(SWISpec))
+		      | Wrappers
+		      ]) :-
+	prolog_load_context(dialect, ciao),
+	(   phrase(map_metaspecs(CiaoSpec, SWISpec), Wrappers)
+	->  true
+	;   debug(ciao, 'Failed to translate ~q',
+		  [(:- meta_predicate(CiaoSpec))]),
+	    fail
+	).
 
 package_directive(Package, Directive) :-
 	expand_term((:- use_package(Package)), Directive).
+
+%%	map_metaspecs(+CiaoSpec, -SWISpec)// is det.
+%
+%	Map a Ciao meta-predicate to a SWI-Prolog one.
+%
+%	@see http://clip.dia.fi.upm.es/Software/Ciao/ciao_html/ciao_14.html
+
+map_metaspecs(Var, _) -->
+	{ var(Var), !,
+	  instantiation_error(Var)
+	}.
+map_metaspecs((A0,B0), (A,B)) --> !,
+	map_metaspecs(A0, A),
+	map_metaspecs(B0, B).
+map_metaspecs(Head0, Head) -->
+	{ \+ (arg(_, Head0, S), S==addmodule), !,
+	  Head0 =.. [Name|Args0],
+	  maplist(map_metaspec, Args0, Args),
+	  Head =.. [Name|Args]
+	}.
+map_metaspecs(Head0, Head) -->
+	{ functor(Head0, Name, Arity),
+	  functor(HeadIn, Name, Arity),
+	  HeadIn =.. [Name|ArgsIn],
+	  Head0 =.. [Name|Args0],
+	  map_mspec_list(Args0, Args, M, ArgsIn, ArgsOut),
+	  Head =.. [Name|Args],
+	  HeadOut =.. [Name|ArgsOut]
+	},
+	[ (:- module_transparent(Name/Arity)),
+	  (HeadIn :- context_module(M), HeadOut)
+	].
+
+map_metaspec(Var, ?) :-
+	var(Var), !.
+map_metaspec(goal, 0).
+map_metaspec(clause, :).
+map_metaspec(fact, :).
+map_metaspec(spec, :).
+map_metaspec(pred(N), N).
+map_metaspec(?, ?).
+map_metaspec(+, +).
+map_metaspec(-, -).
+
+map_mspec_list([], [], _, [], []).
+map_mspec_list([S0|TA0], [S|TA], M, [O|OT0], [O|OT]) :-
+	map_metaspec(S0, S), !,
+	map_mspec_list(TA0, TA, M, OT0, OT).
+map_mspec_list([addmodule|TA0], TA, M, [O|OT0], [O,M|OT]) :- !,
+	map_mspec_list(TA0, TA, M, OT0, OT).
 
 
 		 /*******************************
