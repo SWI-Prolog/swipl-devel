@@ -54,8 +54,48 @@
 :- use_module(library(occurs)).
 :- use_module(library(debug)).
 
+/** <module> SICStus compatibility library
+
+This library is intended to be activated   using  the directive below in
+files that are designed for use with  SICStus Prolog. The changes are in
+effect until the end of the file and in each file loaded from this file.
+
+    ==
+    :- expects_dialect(sicstus).
+    ==
+
+@tbd	The dialect-compatibility packages are developed in a
+	`demand-driven' fashion.  Please contribute to this package.
+*/
+
 :- multifile
 	system:goal_expansion/2.
+
+
+		 /*******************************
+		 *	    LIBRARY SETUP	*
+		 *******************************/
+
+%%	push_sicstus_library
+%
+%	Pushes searching for dialect/sicstus in   front of every library
+%	directory that contains such as sub-directory.
+
+push_sicstus_library :-
+	(   absolute_file_name(library(dialect/sicstus), Dir,
+			       [ file_type(directory),
+				 access(read),
+				 solutions(all),
+				 file_errors(fail)
+			       ]),
+	    asserta((user:file_search_path(library, Dir) :-
+		    prolog_load_context(dialect, sicstus))),
+	    fail
+	;   true
+	).
+
+
+:- push_sicstus_library.
 
 
 		 /*******************************
