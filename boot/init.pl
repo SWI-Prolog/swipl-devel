@@ -619,10 +619,10 @@ user:prolog_file_type(Ext,	executable) :-
 	functor(Spec, _, 1), !,
 	'$relative_to'(Cond, cwd, CWD),
 	'$chk_alias_file'(Spec, Extensions, Cond, Cache, CWD, FullName).
-'$chk_file'(Segments, Ext, Cond, _, FullName) :-	% allow a/b/...
+'$chk_file'(Segments, Ext, Cond, Cache, FullName) :-	% allow a/b/...
 	\+ atomic(Segments), !,
 	'$segments_to_atom'(Segments, Atom),
-	'$chk_file'(Atom, Ext, Cond, FullName).
+	'$chk_file'(Atom, Ext, Cond, Cache, FullName).
 '$chk_file'(File, Exts, Cond, _, FullName) :-
 	is_absolute_file_name(File), !,
 	'$extend_file'(File, Exts, Extended),
