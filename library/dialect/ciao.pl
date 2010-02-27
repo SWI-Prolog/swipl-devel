@@ -34,6 +34,22 @@
 :- use_module('../apply').
 :- use_module('../debug').
 
+/** <module> Ciao Prolog compatibility module
+
+This module sets up support for loading   Ciao Prolog modules that start
+with a :- module(Name, Exports,   Packages) directive. Upon encountering
+this directive, it is rewritten into   a  SWI-Prolog module declaration,
+followed by a series of directives to setup Ciao compatibility.
+
+Typical usage for loading Ciao code is:
+
+    ==
+    :- use_module(library(dialect/ciao)).
+    ==
+
+@tbd	Create much more of the Ciao infrastructure.
+*/
+
 :- multifile
 	system:goal_expansion/2,
 	system:term_expansion/2,
@@ -56,7 +72,9 @@ user:file_search_path(engine, library(dialect/ciao/engine)).
 
 system:term_expansion((:- module(Name, Public, Packages)),
 		      [ (:- module(Name, Public)),
-			(:- style_check(-atom))
+			(:- style_check(-atom)),
+			(:- style_check(-singleton)),
+			(:- expects_dialect(ciao))
 		      |	Directives
 		      ]) :-
 	maplist(package_directive, Packages, Directives).
