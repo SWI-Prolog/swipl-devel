@@ -34,12 +34,13 @@
 :- new_declaration(impl_defined/1).
 
 :- meta_predicate
-	module_concat(+, :, -),
-	'$meta_call'(0).
+	module_concat(+, :, -).
 
 
 %%	module_concat(+Module, +Goal0, -Goal)
 %
-%	Not clear what this should do.
+%	Not clear what this should do.   This  makes library(tcltk) work
+%	...
 
-module_concat(Module, Goal, Module:Goal).
+module_concat(Module, Goal, Module:Plain) :-
+	strip_module(Goal, _, Plain).
