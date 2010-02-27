@@ -887,10 +887,10 @@ absolute_file_name(Name, Abs) :-
 	atomic(Name), !,
 	'$absolute_file_name'(Name, Abs).
 absolute_file_name(Term, Abs) :-
-	'$chk_file'(Term, [''], [access(read)], File), !,
+	'$chk_file'(Term, [''], [access(read)], true, File), !,
 	'$absolute_file_name'(File, Abs).
 absolute_file_name(Term, Abs) :-
-	'$chk_file'(Term, [''], [], File), !,
+	'$chk_file'(Term, [''], [], true, File), !,
 	'$absolute_file_name'(File, Abs).
 
 
