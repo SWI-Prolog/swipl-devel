@@ -27,19 +27,13 @@
     the GNU General Public License.
 */
 
-:- module(ciao_internals,
-	  [ module_concat/3		% +Module, :Goal, -NewGoal
+:- module(hiord_rt,
+	  [ '$meta_call'/1              % :Goal
 	  ]).
 
-:- new_declaration(impl_defined/1).
-
-:- meta_predicate
-	module_concat(+, :, -),
-	'$meta_call'(0).
-
-
-%%	module_concat(+Module, +Goal0, -Goal)
+%%      '$meta_call'(:Goal)
 %
-%	Not clear what this should do.
+%       Not clear what this should do.
 
-module_concat(Module, Goal, Module:Goal).
+'$meta_call'(Goal) :-
+        call(Goal).

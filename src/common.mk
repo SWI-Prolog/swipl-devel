@@ -8,6 +8,6 @@ YAP=	README.TXT
 SICSTUS=block.pl timeout.pl system.pl arrays.pl lists.pl
 CIAO=	assertions.pl isomodes.pl regtypes.pl sockets.pl \
 	read.pl write.pl strings.pl format.pl lists.pl \
-	terms.pl
-CIAO_ENGINE=internals.pl
+	terms.pl system.pl iso_misc.pl
+CIAO_ENGINE=internals.pl hiord_rt.pl
 ISO=	iso_predicates.pl
