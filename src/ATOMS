@@ -478,6 +478,7 @@ A round			"round"
 A rshift		">>"
 A running		"running"
 A runtime		"runtime"
+A rw_stream		"rw_stream"
 A save_class		"save_class"
 A save_option		"save_option"
 A seed			"seed"
@@ -799,6 +800,7 @@ F resource_error	1
 F retry			1
 F round			1
 F rshift		2
+F rw_stream		2
 F semicolon		2
 F setup_call_catcher_cleanup 4
 F shared_object		2

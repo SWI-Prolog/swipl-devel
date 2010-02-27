@@ -590,7 +590,13 @@ getOutputStream(term_t t, IOSTREAM **stream)
   { *stream = getStream(Suser_output);
     return TRUE;
   } else
-  { *stream = NULL;			/* make compiler happy */
+  { if ( PL_is_functor(t, FUNCTOR_rw_stream2) )
+    { term_t a = PL_new_term_ref();
+
+      _PL_get_arg(2, t, a);
+      t = a;
+    }
+    *stream = NULL;			/* make compiler happy */
   }
 
   if ( !PL_get_stream_handle(t, &s) )
@@ -619,7 +625,13 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   { *stream = getStream(Suser_input);
     return TRUE;
   } else
-  { *stream = NULL;			/* make compiler happy */
+  { if ( PL_is_functor(t, FUNCTOR_rw_stream2) )
+    { term_t a = PL_new_term_ref();
+
+      _PL_get_arg(1, t, a);
+      t = a;
+    }
+    *stream = NULL;			/* make compiler happy */
   }
 
   if ( !get_stream_handle(t, &s, SH_ERRORS|SH_ALIAS) )
@@ -3000,14 +3012,48 @@ PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
 }
 
 
-static
-PRED_IMPL("close", 1, close, PL_FA_ISO)
+static int
+pl_close(term_t stream, int recurse, int force ARG_LD)
 { IOSTREAM *s;
 
-  if ( PL_get_stream_handle(A1, &s) )
-    return closeStream(s);
+  if ( recurse && PL_is_functor(stream, FUNCTOR_rw_stream2) )
+  { term_t a = PL_new_term_ref();
+    int rc;
 
-  return FALSE;
+    _PL_get_arg(2, stream, a);
+    rc = pl_close(a, FALSE, force PASS_LD);
+    _PL_get_arg(1, stream, a);
+    rc = rc && pl_close(a, FALSE, force PASS_LD);
+
+    return rc;
+  } else
+  { if ( !PL_get_stream_handle(stream, &s) )
+      return FALSE;
+
+    if ( force )
+    { if ( s == Sinput )
+	Sclearerr(s);
+      else if ( s == Soutput || s == Serror )
+      { Sflush(s);
+	Sclearerr(s);
+      } else
+      { Sflush(s);
+	Sclose(s);
+      }
+
+      return TRUE;
+    } else
+    { return closeStream(s);
+    }
+  }
+}
+
+
+static
+PRED_IMPL("close", 1, close, PL_FA_ISO)
+{ PRED_LD
+
+  return pl_close(A1, TRUE, FALSE PASS_LD);
 }
 
 
@@ -3019,28 +3065,13 @@ static const opt_spec close2_options[] =
 
 static
 PRED_IMPL("close", 2, close2, PL_FA_ISO)
-{ IOSTREAM *s;
+{ PRED_LD
   int force = FALSE;
 
   if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
     return FALSE;
 
-  if ( !PL_get_stream_handle(A1, &s) )
-    return FALSE;
-  if ( !force )
-    return closeStream(s);
-
-  if ( s == Sinput )
-    Sclearerr(s);
-  else if ( s == Soutput || s == Serror )
-  { Sflush(s);
-    Sclearerr(s);
-  } else
-  { Sflush(s);
-    Sclose(s);
-  }
-
-  return TRUE;
+  return pl_close(A1, TRUE, force PASS_LD);
 }
 
 
