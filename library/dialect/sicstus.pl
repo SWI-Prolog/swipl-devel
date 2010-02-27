@@ -43,6 +43,7 @@
 	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
+	    prolog_flag/2,		% +Flag, -Value
 	    version/0,
 	    version/1,			% +Message
 
@@ -276,6 +277,27 @@ prolog_flag(Flag, Old, New) :-
 	current_prolog_flag(Flag, Old),
 	set_prolog_flag(Flag, New).
 
+%%	prolog_flag(+Flag, -Value) is semidet.
+%
+%	Query a Prolog flag, mapping SICSTus flags to SWI-Prolog flags
+
+prolog_flag(Flag, Value) :-
+	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
+	sictus_flag(Flag, Value).
+
+sictus_flag(argv, Argv) :- !,
+	current_prolog_flag(argv, AllArgs),
+	append(_, [--|Argv0], AllArgs),	!,
+	Argv = Argv0.
+sictus_flag(system_type, Type) :- !,
+	(   current_prolog_flag(saved_program, true)
+	->  Type = runtime
+	;   Type = development
+	).
+sictus_flag(Name, Value) :-
+	current_prolog_flag(Name, Value).
+
+
 :- dynamic
 	version_msg/1.
 
@@ -313,3 +335,15 @@ version(Message) :-
 
 #(X,Y,R) :-
 	R is xor(X,Y).
+
+
+		 /*******************************
+		 *	       HACKS		*
+		 *******************************/
+
+%%	prolog:'$breaklevel'(-BreakLevel, Unknown)
+%
+%	Query the current break-level
+
+prolog:'$breaklevel'(BreakLevel, _) :-
+	system:flag('$break_level', BreakLevel, BreakLevel).

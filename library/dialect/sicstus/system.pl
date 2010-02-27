@@ -28,7 +28,8 @@
 */
 
 :- module(sics_system,
-	  [ exec/3,
+	  [ environ/2,			% ?Name, ?Value
+	    exec/3,
 	    working_directory/2,
 	    wait/2
 	  ]).
@@ -39,6 +40,16 @@
 
 @tbd	This library is incomplete
 */
+
+%%	environ(?Name, ?Value) is nondet.
+%
+%	True if Value an atom associated   with the environment variable
+%	Name.
+%
+%	@tbd	Mode -Name is not supported
+
+environ(Name, Value) :-
+	getenv(Name, Value).
 
 %%	exec(+Command, +Streams, -PID)
 %
@@ -52,7 +63,7 @@ exec(Command, Streams, PID) :-
 		       [ stdin(In),
 			 stdout(Out),
 			 stderr(Error),
-			 pid(PID)
+			 process(PID)
 		       ]).
 
 shell('cmd.exe', Command, ['/C', Command]) :-
