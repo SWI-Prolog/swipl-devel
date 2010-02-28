@@ -35,9 +35,9 @@
 	    load_foreign_files/3,		% +Object, +Files, +Libs
 	    make_shared_object/3,		% +Object, +Files, +Libs
 	    make_foreign_wrapper_file/1,	% +OutBase
-	    make_foreign_wrapper_file/2		% +OFiles, +OutBase
+	    make_foreign_wrapper_file/2,	% +OFiles, +OutBase
 						% SICStus stuff
-%	    make_foreign_resource_wrapper/2     % +Resource, +OutBase
+	    make_foreign_resource_wrapper/2     % +Resource, +OutBase
 	  ]).
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
@@ -112,7 +112,9 @@ Supported types:
 	load_foreign_files(+, :, +),
 	make_shared_object(+, :, +),
 	make_foreign_wrapper_file(:),
-	make_foreign_wrapper_file(:, +).
+	make_foreign_wrapper_file(:, +),
+					% SICStus
+	make_foreign_resource_wrapper(:, +).
 
 setting(linker, 'swipl-ld').
 
@@ -342,7 +344,7 @@ make_C_footer(Out) :-
 		 *	  INIT STATEMENT	*
 		 *******************************/
 
-%%	make_C_init(+Stream, +InstallFunc, +Module, +PredList)
+%%	make_C_init(+Stream, +InstallFunc, +InitFunc, +Module, +PredList)
 %
 %	Generate an array of PL_extension structures,   that may be used
 %	to create a statically  linked  image   as  well  as through the
@@ -352,7 +354,7 @@ make_C_footer(Out) :-
 %	looking at the transparent  (meta_predivate)   attribute  of the
 %	predicate.
 
-make_C_init(Out, InstallFunc, M, Preds) :-
+make_C_init(Out, InstallFunc, Init, M, Preds) :-
 	format(Out, '~n~nstatic PL_extension predicates [] =~n{~n', []),
 	format(Out, '/*{ "name", arity, function, PL_FA_<flags> },*/~n', []),
 	(   member(Pred, Preds),
@@ -369,8 +371,12 @@ make_C_init(Out, InstallFunc, M, Preds) :-
 	format(Out, '  { NULL, 0, NULL, 0 } /* terminator */~n};~n~n', []),
 	format(Out, 'install_t~n~w()~n{ PL_load_extensions(predicates);~n',
 	       [InstallFunc]),
+	sicstus_init_function(Out, Init),
 	format(Out, '}~n', []).
 
+sicstus_init_function(_, -) :- !.
+sicstus_init_function(Out, Init) :-
+	format(Out, '~w(0);~n', [Init]).
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
@@ -378,6 +384,18 @@ foreign_attributes(Head, Atts) :-
 
 foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 	predicate_property(Head, transparent).
+
+%%	make_C_deinit(+Stream, +UninstallFunc, +DeInitFunc) is det.
+%
+%	Write the uninstall function
+
+make_C_deinit(_, _, -) :- !.
+make_C_deinit(Out, Func, DeInit) :-
+	format(Out, 'uninstall_t~n', []),
+	format(Out, '~w()~n', [Func]),
+	format(Out, '{ ~w(0);~n', [DeInit]),
+	format(Out, '}~n', []).
+
 
 %%	make_C_file_header(+Stream)
 %
@@ -455,7 +473,7 @@ make_foreign_wrapper_file(M:OFiles, Base) :-
 	open(CFile, write, Out),
 	make_C_file_header(Out),
 	make_wrappers(Preds, M, Out),
-	make_C_init(Out, InstallFunc, M, Preds),
+	make_C_init(Out, InstallFunc, -, M, Preds),
 	close(Out).
 
 
@@ -474,6 +492,35 @@ build_shared_object(Object, Files, Libs) :-
 	format(string(Command),
 	       '~w -shared -o ~w ~w', [Linker, SharedObject, InputAtom]),
 	shell(Command).
+
+
+		 /*******************************
+		 *	      SICSTUS		*
+		 *******************************/
+
+%%	make_foreign_resource_wrapper(:Resource, +OutBase) is det.
+%
+%	Create a wrapper-file for the given foreign resource
+
+make_foreign_resource_wrapper(M:Resource, Base) :-
+	hook(M:foreign_resource(Resource, Functions)),
+	take(init(Init), Functions, Functions1, -),
+	take(deinit(DeInit), Functions1, Preds, -),
+	file_name_extension(Base, c, CFile),
+	atom_concat(install_, Base, InstallFunc),
+	atom_concat(uninstall_, Base, UninstallFunc),
+	open(CFile, write, Out),
+	make_C_file_header(Out),
+	make_wrappers(Preds, M, Out),
+	make_C_init(Out, InstallFunc, Init, M, Preds),
+	make_C_deinit(Out, UninstallFunc, DeInit),
+	close(Out).
+
+take(Term, List, Rest, Default) :-
+	(   select(Term, List, Rest)
+	->  true
+	;   arg(1, Term, Default)
+	).
 
 
 		 /*******************************
