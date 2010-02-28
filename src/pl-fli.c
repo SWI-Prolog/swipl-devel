@@ -641,6 +641,12 @@ PL_cvt_i_string(term_t p, char **c)
 
 
 bool
+PL_cvt_i_codes(term_t p, char **c)
+{ return PL_get_chars(p, c, CVT_LIST|CVT_EXCEPTION);
+}
+
+
+bool
 PL_cvt_i_atom(term_t p, atom_t *c)
 { return PL_get_atom_ex(p, c);
 }
@@ -668,6 +674,12 @@ PL_cvt_o_single(float c, term_t p)
 bool
 PL_cvt_o_string(const char *c, term_t p)
 { return PL_unify_atom_chars(p, c);
+}
+
+
+bool
+PL_cvt_o_codes(const char *c, term_t p)
+{ return PL_unify_chars(p, PL_CODE_LIST, (size_t)-1, c);
 }
 
 

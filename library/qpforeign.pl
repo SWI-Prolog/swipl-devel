@@ -185,7 +185,11 @@ valid_type(integer).
 valid_type(float).
 valid_type(single).
 valid_type(string).
+valid_type(chars).			% actually, `codes'!
 valid_type(atom).
+
+cvt_name(chars, codes) :- !.
+cvt_name(Type,  Type).
 
 
 %%	make_C_header(+Stream, +WrapperName, +Arity)
@@ -276,7 +280,8 @@ make_C_input_conversions(Out, _:Head) :-
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
 		atom_concat(i, AName, IName),
-		format(Out, '!PL_cvt_i_~w(~w, &~w)', [T, AName, IName]),
+		cvt_name(T, CVT),
+		format(Out, '!PL_cvt_i_~w(~w, &~w)', [CVT, AName, IName]),
 		fail
 	    ;	true
 	    ),
@@ -329,7 +334,8 @@ make_C_output_conversions(Out, _:Head) :-
 		    atom_concat(o, AName, OName)
 		),
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
-		format(Out, '!PL_cvt_o_~w(~w, ~w)', [T, OName, AName]),
+		cvt_name(T, CVT),
+		format(Out, '!PL_cvt_o_~w(~w, ~w)', [CVT, OName, AName]),
 		fail
 	    ;	true
 	    ),
@@ -546,6 +552,7 @@ map_C_type(X, X).
 map_C_type_(integer, 'long ').
 map_C_type_(float,   'double ').
 map_C_type_(string,  'char *').
+map_C_type_(chars,   'char *').
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).
