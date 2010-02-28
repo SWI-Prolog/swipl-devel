@@ -25,12 +25,12 @@
 	user:file_search_path/2.
 
 user:file_search_path(library, .).
-user:file_search_path(library, ..).
-user:file_search_path(library, '../../clib').
-user:file_search_path(library, '../..').
-user:file_search_path(foreign, ..).
-user:file_search_path(foreign, '../../clib').
-user:file_search_path(foreign, '../../semweb').
+user:file_search_path(library, '../sgml').
+user:file_search_path(library, '../clib').
+user:file_search_path(library, '..').
+user:file_search_path(foreign, '../sgml').
+user:file_search_path(foreign, '../clib').
+user:file_search_path(foreign, '../semweb').
 
 :- use_module(library(sgml)).
 :- use_module(library(semweb/rdf_compare)).
