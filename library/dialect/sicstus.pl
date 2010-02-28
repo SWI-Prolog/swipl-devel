@@ -54,6 +54,7 @@
 :- use_module(sicstus/block).
 :- use_module(library(occurs)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 
 /** <module> SICStus compatibility library
 
@@ -152,7 +153,17 @@ system:goal_expansion(use_module(File), load_files(File, [if(changed)])).
 %	This predicate can be used to import   from a named module while
 %	the file-location of the module is unknown   or to get access to
 %	the module-name loaded from a file.
+%
+%	If both Module and File are  given,   we  use  Module and try to
+%	unify File with the absolute  canonical   path  to the file from
+%	which Module was loaded. However, we   succeed regardless of the
+%	success of this unification.
 
+use_module(Module, File, Imports) :-
+	atom(Module), !,
+	module_property(Module, file(Path)),
+	use_module(Path, Imports),
+	ignore(File = Path).
 use_module(Module, File, Imports) :-
 	ground(File), !,
 	absolute_file_name(File, Path,
@@ -161,10 +172,8 @@ use_module(Module, File, Imports) :-
 			   ]),
 	use_module(Path, Imports),
 	module_property(Module, file(Path)).
-use_module(Module, Path, Imports) :-
-	atom(Module), !,
-	module_property(Module, file(Path)),
-	use_module(Path, Imports).
+use_module(Module, _, _Imports) :-
+	instantiation_error(Module).
 
 %%	public(+Heads)
 %
