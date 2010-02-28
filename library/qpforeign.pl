@@ -37,8 +37,10 @@
 	    make_foreign_wrapper_file/1,	% +OutBase
 	    make_foreign_wrapper_file/2,	% +OFiles, +OutBase
 						% SICStus stuff
-	    make_foreign_resource_wrapper/2     % +Resource, +OutBase
+	    make_foreign_resource_wrapper/2,    % +Resource, +OutBase
+	    load_foreign_resource/2		% +Resource, +Dir
 	  ]).
+
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
 :- use_module(library(lists)).
@@ -114,7 +116,8 @@ Supported types:
 	make_foreign_wrapper_file(:),
 	make_foreign_wrapper_file(:, +),
 					% SICStus
-	make_foreign_resource_wrapper(:, +).
+	make_foreign_resource_wrapper(:, +),
+	load_foreign_resource(:, +).
 
 setting(linker, 'swipl-ld').
 
@@ -382,7 +385,8 @@ make_C_init(Out, InstallFunc, Init, M, Preds) :-
 
 sicstus_init_function(_, -) :- !.
 sicstus_init_function(Out, Init) :-
-	format(Out, '~w(0);~n', [Init]).
+	format(Out, '  extern void ~w(int);~n', [Init]),
+	format(Out, '  ~w(0);~n', [Init]).
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
@@ -397,9 +401,10 @@ foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 
 make_C_deinit(_, _, -) :- !.
 make_C_deinit(Out, Func, DeInit) :-
-	format(Out, 'uninstall_t~n', []),
+	format(Out, '~ninstall_t~n', []),
 	format(Out, '~w()~n', [Func]),
-	format(Out, '{ ~w(0);~n', [DeInit]),
+	format(Out, '{ extern void ~w(int);~n', [DeInit]),
+	format(Out, '  ~w(0);~n', [DeInit]),
 	format(Out, '}~n', []).
 
 
@@ -527,6 +532,23 @@ take(Term, List, Rest, Default) :-
 	->  true
 	;   arg(1, Term, Default)
 	).
+
+
+%%	load_foreign_resource(:Resource, +Dir)
+%
+%	Load a foreign module. First try to  load from the same direcory
+%	as the Prolog file. Otherwise   load  using SWI-Prolog's default
+%	search path.
+
+load_foreign_resource(M:Resource, Source) :-
+	absolute_file_name(Resource, Object,
+			   [ file_type(executable),
+			     relative_to(Source),
+			     file_errors(fail)
+			   ]), !,
+	load_foreign_library(M:Object).
+load_foreign_resource(M:Resource, _) :-
+	load_foreign_library(M:foreign(Resource)).
 
 
 		 /*******************************

@@ -182,6 +182,25 @@ use_module(Module, _, _Imports) :-
 public(_).
 
 		 /*******************************
+		 *	 FOREIGN RESOURCES      *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SICStus uses foreign_resource(Name, Functions) and predicate definitions
+similar to Quintus. qpforeign can generate  the   glue  code that can be
+linked with swipl-ld. This  part  of   the  emulation  merely  skips the
+declarations and Maps load_foreign_resource   to load_foreign_resource/2
+from library(qpforeign).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+system:term_expansion(
+	(:- load_foreign_resource(Base)),
+	(:- load_foreign_resource(M:Base, Source))) :-
+	prolog_load_context(source, Source),
+	prolog_load_context(module, M).
+
+
+		 /*******************************
 		 *	       BB_*		*
 		 *******************************/
 
