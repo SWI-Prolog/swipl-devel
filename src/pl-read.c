@@ -915,6 +915,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      if ( c == '%' )
 		      { if ( something_read )
 			{ addToBuffer('\n', _PL_rd);
+			  addToBuffer(' ', _PL_rd);
 			}
 			addUTF8Buffer(cbuf, '\n');
 			addUTF8Buffer(cbuf, '%');

@@ -27,54 +27,6 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(iso_misc,
+	  [
 	  ]).
-:- use_module(library(process)).
-
-/** <module> SICStus-3 library system
-
-
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
-%
-%	True if Value an atom associated   with the environment variable
-%	Name.
-%
-%	@tbd	Mode -Name is not supported
-
-environ(Name, Value) :-
-	getenv(Name, Value).
-
-%%	exec(+Command, +Streams, -PID)
-%
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
-
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).

@@ -22,7 +22,7 @@
    working_directory(_, CWD).
 
 :- asserta(user:file_search_path(library, '..')).
-:- asserta(user:file_search_path(library, '../RDF')).
+:- asserta(user:file_search_path(library, '../../RDF')).
 :- asserta(user:file_search_path(foreign, '..')).
 :- use_module(library(sgml)).
 :- use_module(library(pretty_print)).

@@ -27,54 +27,31 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(ciao_lists,
+	  [ nth/3,			% ?Index, ?List, ?Element
+	    list_insert/2		% -List, +Term
 	  ]).
-:- use_module(library(process)).
+:- reexport('../../lists').
 
-/** <module> SICStus-3 library system
-
-
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
+%%	nth(?Index, ?List, ?Element) is nondet.
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	True if Element is the N-th element  in List. Counting starts at
+%	1.
 %
-%	@tbd	Mode -Name is not supported
+%	@deprecated use nth1/3.
 
-environ(Name, Value) :-
-	getenv(Name, Value).
+nth(Index, List, Element) :-
+	nth1(Index, List, Element).
 
-%%	exec(+Command, +Streams, -PID)
+%%	list_insert(-List, +Term)
 %
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
+%	Adds Term to the end of List  if   there  is  no element in List
+%	identical to Term.
 
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).
+list_insert(List, Term) :-
+        var(List), !,
+        List=[Term|_].
+list_insert([Term0|_], Term) :-
+        Term0==Term, !.
+list_insert([_|List], Term) :-
+        list_insert(List, Term).

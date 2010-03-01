@@ -27,54 +27,47 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(aggregates,
+	  [ setof/3,
+	    bagof/3,
+	    findall/3,
+	    findall/4,
+	    findnsols/4,		% +N, ?Template, :Generator, -List
+	    findnsols/5,		% +N, ?Template, :Generator, -List, -Tail
+	    (^)/2
 	  ]).
-:- use_module(library(process)).
 
-/** <module> SICStus-3 library system
+:- meta_predicate
+	findnsols(+, ?, :, -),
+	findnsols(+, ?, :, -, ?).
 
-
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
+%%	findnsols(+N, ?Template, :Generator, -List)
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	As findall/3, but generating at most   N solutions of Generator.
+%	Thus, the length of List will not   be  greater than N. If N=<0,
+%	returns directly an empty  list.   This  predicate is especially
+%	useful if Generator may have an infinite number of solutions.
 %
-%	@tbd	Mode -Name is not supported
+%	@compat ciao
 
-environ(Name, Value) :-
-	getenv(Name, Value).
+findnsols(N, Template, Generator, List) :-
+	findnsols(N, Template, Generator, List, []).
 
-%%	exec(+Command, +Streams, -PID)
+%%	findnsols(+N, ?Template, :Generator, -List, -Tail)
 %
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
-
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
+%	As findnsols/4, but returning in Tail the tail of List.
 %
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
+%	@compat ciao
 
-wait(PID, Status) :-
-	process_wait(PID, Status).
+findnsols(N, Template, Generator, List, Tail) :-
+	findall(Template, maxsols(N, Generator), List, Tail).
+
+maxsols(N, Generator) :-
+	State = count(0),
+	Generator,
+	arg(1, State, C0),
+	C1 is C0+1,
+	(   C1 == N
+	->  !
+	;   nb_setarg(1, State, C1)
+	).

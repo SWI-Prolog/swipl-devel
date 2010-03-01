@@ -43,6 +43,7 @@
 	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
+	    prolog_flag/2,		% +Flag, -Value
 	    version/0,
 	    version/1,			% +Message
 
@@ -53,6 +54,7 @@
 :- use_module(sicstus/block).
 :- use_module(library(occurs)).
 :- use_module(library(debug)).
+:- use_module(library(error)).
 
 /** <module> SICStus compatibility library
 
@@ -151,7 +153,17 @@ system:goal_expansion(use_module(File), load_files(File, [if(changed)])).
 %	This predicate can be used to import   from a named module while
 %	the file-location of the module is unknown   or to get access to
 %	the module-name loaded from a file.
+%
+%	If both Module and File are  given,   we  use  Module and try to
+%	unify File with the absolute  canonical   path  to the file from
+%	which Module was loaded. However, we   succeed regardless of the
+%	success of this unification.
 
+use_module(Module, File, Imports) :-
+	atom(Module), !,
+	module_property(Module, file(Path)),
+	use_module(Path, Imports),
+	ignore(File = Path).
 use_module(Module, File, Imports) :-
 	ground(File), !,
 	absolute_file_name(File, Path,
@@ -160,16 +172,33 @@ use_module(Module, File, Imports) :-
 			   ]),
 	use_module(Path, Imports),
 	module_property(Module, file(Path)).
-use_module(Module, Path, Imports) :-
-	atom(Module), !,
-	module_property(Module, file(Path)),
-	use_module(Path, Imports).
+use_module(Module, _, _Imports) :-
+	instantiation_error(Module).
 
 %%	public(+Heads)
 %
 %	Seems to be used in e.g., :- public user:help_pred/3.
 
 public(_).
+
+		 /*******************************
+		 *	 FOREIGN RESOURCES      *
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SICStus uses foreign_resource(Name, Functions) and predicate definitions
+similar to Quintus. qpforeign can generate  the   glue  code that can be
+linked with swipl-ld. This  part  of   the  emulation  merely  skips the
+declarations and Maps load_foreign_resource   to load_foreign_resource/2
+from library(qpforeign).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+system:term_expansion(
+	(:- load_foreign_resource(Base)),
+	(:- load_foreign_resource(M:Base, Source))) :-
+	prolog_load_context(source, Source),
+	prolog_load_context(module, M).
+
 
 		 /*******************************
 		 *	       BB_*		*
@@ -276,6 +305,27 @@ prolog_flag(Flag, Old, New) :-
 	current_prolog_flag(Flag, Old),
 	set_prolog_flag(Flag, New).
 
+%%	prolog_flag(+Flag, -Value) is semidet.
+%
+%	Query a Prolog flag, mapping SICSTus flags to SWI-Prolog flags
+
+prolog_flag(Flag, Value) :-
+	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
+	sictus_flag(Flag, Value).
+
+sictus_flag(argv, Argv) :- !,
+	current_prolog_flag(argv, AllArgs),
+	append(_, [--|Argv0], AllArgs),	!,
+	Argv = Argv0.
+sictus_flag(system_type, Type) :- !,
+	(   current_prolog_flag(saved_program, true)
+	->  Type = runtime
+	;   Type = development
+	).
+sictus_flag(Name, Value) :-
+	current_prolog_flag(Name, Value).
+
+
 :- dynamic
 	version_msg/1.
 
@@ -313,3 +363,15 @@ version(Message) :-
 
 #(X,Y,R) :-
 	R is xor(X,Y).
+
+
+		 /*******************************
+		 *	       HACKS		*
+		 *******************************/
+
+%%	prolog:'$breaklevel'(-BreakLevel, Unknown)
+%
+%	Query the current break-level
+
+prolog:'$breaklevel'(BreakLevel, _) :-
+	system:flag('$break_level', BreakLevel, BreakLevel).

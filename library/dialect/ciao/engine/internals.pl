@@ -27,54 +27,20 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(ciao_internals,
+	  [ module_concat/3		% +Module, :Goal, -NewGoal
 	  ]).
-:- use_module(library(process)).
 
-/** <module> SICStus-3 library system
+:- new_declaration(impl_defined/1).
+
+:- meta_predicate
+	module_concat(+, :, -).
 
 
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
+%%	module_concat(+Module, +Goal0, -Goal)
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
-%
-%	@tbd	Mode -Name is not supported
+%	Not clear what this should do.   This  makes library(tcltk) work
+%	...
 
-environ(Name, Value) :-
-	getenv(Name, Value).
-
-%%	exec(+Command, +Streams, -PID)
-%
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
-
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).
+module_concat(Module, Goal, Module:Plain) :-
+	strip_module(Goal, _, Plain).

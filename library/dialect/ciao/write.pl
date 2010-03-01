@@ -27,54 +27,47 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
-	  ]).
-:- use_module(library(process)).
+:- module(write,
+	  [ write_term/3,
+	    write_term/2,
+%	    write_option/1,		(type)
+	    write/2, write/1,
+	    writeq/2, writeq/1,
+	    write_canonical/2, write_canonical/1,
+	    print/2, print/1, write_list1/1,
+	    portray_clause/2, portray_clause/1,
+	    numbervars/3, prettyvars/1,
+	    printable_char/1
+        ]).
 
-/** <module> SICStus-3 library system
+:- use_module('../../listing').
+:- use_module('../../error').
+:- use_module('../../apply').
 
-
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
+%%	write_list(+List) is det.
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	Writes a list to current output one element in each line.
+
+write_list1(List) :-
+	must_be(list, List),
+	maplist(writeln, List).
+
+%%	prettyvars(?Term)
 %
-%	@tbd	Mode -Name is not supported
+%	Similar to numbervars(Term,0,_), except that singleton variables
+%	in Term are unified with '$VAR'('_'), so that when the resulting
+%	term is output with a  write   option  numbervars(true),  in the
+%	place of singleton variables _  is   written.  This predicate is
+%	used by portray_clause/2.
 
-environ(Name, Value) :-
-	getenv(Name, Value).
+prettyvars(Term) :-
+	numbervars(Term, 0, _, [singleton(true)]).
 
-%%	exec(+Command, +Streams, -PID)
+%%	printable_char(+Char) is semidet.
 %
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
+%	Char is the code of a character which can be printed. Not really
+%	sure what this means. Mapped to code_type/2 using type =graph=.
 
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
+printable_char(Char) :-
+	code_type(Char, graph).
 
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).

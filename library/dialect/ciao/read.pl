@@ -27,54 +27,21 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(read,
+	  [ read/1,
+	    read/2,
+	    read_term/2,
+	    read_term/3,
+	    read_top_level/3
+%	    second_prompt/2
 	  ]).
-:- use_module(library(process)).
 
-/** <module> SICStus-3 library system
-
-
-@tbd	This library is incomplete
-*/
-
-%%	environ(?Name, ?Value) is nondet.
+%%	read_top_level(Stream, Data, Variables)
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	Predicate used to read in the Top Level.
 %
-%	@tbd	Mode -Name is not supported
+%	@tbd	Use read_history/6?
 
-environ(Name, Value) :-
-	getenv(Name, Value).
+read_top_level(Stream, Data, Variables) :-
+	read_term(Stream, Data, [variables(Variables)]).
 
-%%	exec(+Command, +Streams, -PID)
-%
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
-
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).

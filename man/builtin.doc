@@ -2522,8 +2522,8 @@ specification, new code is encouraged to use these predicates for
 manipulation of I/O streams.
 
 \Secref{edinburghIO} describes tell/1, see/1 and friends, providing I/O
-in the spirit of the outdated Edinburgh standard. These predicates are
-layered on top of the ISO predicates. Both packages are fully
+in the spirit of the traditional Edinburgh standard. These predicates
+are layered on top of the ISO predicates. Both packages are fully
 integrated; the user may switch freely between them.
 
 
@@ -2535,8 +2535,15 @@ resulting stream identifier is then passed as a parameter to the reading
 and writing predicates to specify the source or destination of the data.
 
 This schema is not vulnerable to filename and stream ambiguities as
-well as changes to the working directory.  New code is advised to use
-these predicates to manage input and output streams.
+well as changes to the working directory.  On the other hand, using
+the notion of current-I/O simplifies reusability of code without the
+need to pass arguments around.  E.g., see with_output_to/2.
+
+SWI-Prolog streams are, compatible to the ISO standard, either input
+or output streams.  To accomodate portability to other systems, a
+pair of streams can be packed into a term \term{rw_stream}{In, Out}.
+SWI-Prolog's I/O operations choose the appropriate stream.  The
+predicates close/1 and close/2 close both streams.
 
 
 \begin{description}

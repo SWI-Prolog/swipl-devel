@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -35,10 +35,15 @@
 	    load_foreign_files/3,		% +Object, +Files, +Libs
 	    make_shared_object/3,		% +Object, +Files, +Libs
 	    make_foreign_wrapper_file/1,	% +OutBase
-	    make_foreign_wrapper_file/2		% +OFiles, +OutBase
+	    make_foreign_wrapper_file/2,	% +OFiles, +OutBase
+						% SICStus stuff
+	    make_foreign_resource_wrapper/2,    % +Resource, +OutBase
+	    load_foreign_resource/2		% +Resource, +Dir
 	  ]).
-:- use_module(shlib).
-:- use_module(gensym).
+
+:- use_module(library(shlib)).
+:- use_module(library(gensym)).
+:- use_module(library(lists)).
 
 /** <module> Quintus compatible foreign loader
 
@@ -102,34 +107,39 @@ Supported types:
 */
 
 :- module_transparent
-	load_foreign_files/0,
-	load_foreign_files/2,
-	load_foreign_files/3,
-	make_shared_object/3,
-	make_C_prototype/2,
-	make_C_init/3,
-	make_wrappers/2,
-	make_wrapper/2,
-	get_foreign_head/3,
-	make_foreign_wrapper_file/1,
-	make_foreign_wrapper_file/2,
-	collect_foreign_predicates/2.
+	load_foreign_files/0.
 
-%%	make_wrapper(+Stream, +PrologHead)
+:- meta_predicate
+	load_foreign_files(:, +),
+	load_foreign_files(+, :, +),
+	make_shared_object(+, :, +),
+	make_foreign_wrapper_file(:),
+	make_foreign_wrapper_file(:, +),
+					% SICStus
+	make_foreign_resource_wrapper(:, +),
+	load_foreign_resource(:, +).
+
+setting(linker, 'swipl-ld').
+
+hook(M:Goal) :-
+	M:Goal.
+
+%%	make_wrappers(+PrologHeads, +Module, +OutStream)
+
+make_wrappers([], _, _).
+make_wrappers([H|T], M, Out) :-
+	make_wrapper(Out, M:H),
+	make_wrappers(T, M, Out).
+
+%%	make_wrapper(+Stream, :PrologHead)
 %
 %	Generates a C-wrapper function for the given foreign defined
 %	Prolog predicate.  The wrapper is called _plw_<predname><arity>.
 
-make_wrappers([], _).
-make_wrappers([H|T], Out) :-
-	make_wrapper(Out, H),
-	make_wrappers(T, Out).
-
 make_wrapper(Out, Spec) :-
 	get_foreign_head(Spec, Func, Head),
 	(   check_head(Head)
-	->  functor(Head, _Name, ArgN),
-	    wrapper_name(Head, WrapName),
+	->  wrapper_name(Head, WrapName, ArgN),
 	    make_C_header(Out, WrapName, ArgN),
 	    make_C_decls(Out, Head),
 	    make_C_prototype(Out, Head),
@@ -140,24 +150,24 @@ make_wrapper(Out, Spec) :-
 	;   fail
 	).
 
-%%	get_foreign_head(+Spec, -Func, -Head)
+%%	get_foreign_head(:Spec, -Func, -Head)
 %
 %	Get 3rd argument of relevant foreign/3 clause.
 
-get_foreign_head(Spec, Func, Head) :-
+get_foreign_head(M:Spec, Func, M:Head) :-
 	(   atom(Spec),
-	    call(foreign(Func, c, Head)),
+	    hook(M:foreign(Func, c, Head)),
 	    functor(Head, Spec, _)
 	->  true
 	;   Spec = Name/Arity
 	->  functor(Head, Name, Arity),
-	    call(foreign(Func, c, Head))
+	    hook(M:foreign(Func, c, Head))
 	;   Head = Spec,
-	    call(foreign(Func, c, Head))
+	    hook(M:foreign(Func, c, Head))
 	).
 
 
-check_head(Head) :-
+check_head(_:Head) :-
 	functor(Head, _, Arity),
 	(   arg(N, Head, [-T]),
 	    \+ valid_type(T)
@@ -178,7 +188,11 @@ valid_type(integer).
 valid_type(float).
 valid_type(single).
 valid_type(string).
+valid_type(chars).			% actually, `codes'!
 valid_type(atom).
+
+cvt_name(chars, codes) :- !.
+cvt_name(Type,  Type).
 
 
 %%	make_C_header(+Stream, +WrapperName, +Arity)
@@ -197,25 +211,25 @@ make_C_header(Out, WrapName, ArgN) :-
 	       )),
 	format(Out, ')~n{ ', []).
 
-%%	make_C_decls(+Stream, +PrologHead)
+%%	make_C_decls(+Stream, :PrologHead)
 %
 %	Writes the C variable declarations.  If the return value is
 %	used a variable named `rval' is created.  For each input parameter
 %	a C variable named i<argname> is created; for each output variable
 %	o<argname>.
 
-make_C_decls(Out, Head) :-
+make_C_decls(Out, _:Head) :-
 	arg(_, Head, [-PlType]),
 	map_C_type(PlType, CType),
 	format(Out, '~wrval;~n  ', [CType]),
 	fail.
-make_C_decls(Out, Head) :-
+make_C_decls(Out, _:Head) :-
 	arg(N, Head, -PlType),
 	map_C_type(PlType, CType),
 	arg_name(N, AName),
 	format(Out, '~wo~w;~n  ', [CType, AName]),
 	fail.
-make_C_decls(Out, Head) :-
+make_C_decls(Out, _:Head) :-
 	arg(N, Head, +PlType),
 	map_C_type(PlType, CType),
 	arg_name(N, AName),
@@ -224,18 +238,18 @@ make_C_decls(Out, Head) :-
 make_C_decls(Out, _) :-
 	format(Out, '~n', []).
 
-%%	make_C_prototype(+Stream, +PrologHead)
+%%	make_C_prototype(+Stream, :PrologHead)
 %
 %	If the function handles floats or doubles, make	a prototype
 %	declaration for it to avoid unwanted conversions.
 
-make_C_prototype(Out, Head) :-
+make_C_prototype(Out, M:Head) :-
 	(   arg(_, Head, [-Type])
 	->  map_C_type(Type, CType)
 	;   CType = ''
 	),
 	copy_term(Head, H2),		% don't bind Head
-	call(foreign(CFunc, c, H2)),
+	hook(M:foreign(CFunc, c, H2)), !,
 	format(Out, '  extern ~w~w(', [CType, CFunc]),
 	(   arg(N, Head, AType),
 	    (   AType = +T2
@@ -253,14 +267,14 @@ make_C_prototype(Out, Head) :-
 make_C_prototype(_, _).
 
 
-%%	make_C_input_conversions(+Stream, +PrologHead)
+%%	make_C_input_conversions(+Stream, :PrologHead)
 %
 %	Generate the input checking and conversion code.  Assumes
 %	boolean functions that take a Prolog term_t as first argument
 %	and a pointer to the requested C-type as a second argument.
 %	Function returns 0 if the conversion fails.
 
-make_C_input_conversions(Out, Head) :-
+make_C_input_conversions(Out, _:Head) :-
 	findall(N-T, arg(N, Head, +T), IArgs),
 	(   IArgs == []
 	->  true
@@ -269,7 +283,8 @@ make_C_input_conversions(Out, Head) :-
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
 		atom_concat(i, AName, IName),
-		format(Out, '!PL_cvt_i_~w(~w, &~w)', [T, AName, IName]),
+		cvt_name(T, CVT),
+		format(Out, '!PL_cvt_i_~w(~w, &~w)', [CVT, AName, IName]),
 		fail
 	    ;	true
 	    ),
@@ -277,12 +292,12 @@ make_C_input_conversions(Out, Head) :-
 	).
 
 
-%%	make_C_call(+Stream, +Prolog, +CFunction)
+%%	make_C_call(+Stream, :PrologHead, +CFunction)
 %
 %	Generate the actual call to the foreign function.  Input variables
 %	may be handed directly; output variables as a pointer to the o<var>.
 
-make_C_call(Out, Head, CFunc) :-
+make_C_call(Out, _:Head, CFunc) :-
 	(   arg(_, Head, [-_])
 	->  format(Out, '  rval = ~w(', [CFunc])
 	;   format(Out, '  (void) ~w(', [CFunc])
@@ -299,12 +314,12 @@ make_C_call(Out, Head, CFunc) :-
 make_C_call(Out, _, _) :-
 	format(Out, ');~n', []).
 
-%%	make_C_output_conversions(+Stream, +PrologHead)
+%%	make_C_output_conversions(+Stream, :PrologHead)
 %
 %	Generate conversions for the output arguments and unify them
 %	with the Prolog term_t arguments.
 
-make_C_output_conversions(Out, Head) :-
+make_C_output_conversions(Out, _:Head) :-
 	findall(N-T, arg(N, Head, -T), OArgs0),
 	(   arg(_, Head, [-T])
 	->  OArgs = [rval-T|OArgs0]
@@ -322,7 +337,8 @@ make_C_output_conversions(Out, Head) :-
 		    atom_concat(o, AName, OName)
 		),
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
-		format(Out, '!PL_cvt_o_~w(~w, ~w)', [T, OName, AName]),
+		cvt_name(T, CVT),
+		format(Out, '!PL_cvt_o_~w(~w, ~w)', [CVT, OName, AName]),
 		fail
 	    ;	true
 	    ),
@@ -337,23 +353,24 @@ make_C_footer(Out) :-
 		 *	  INIT STATEMENT	*
 		 *******************************/
 
-%%	make_C_init(+Stream, +PredList)
+%%	make_C_init(+Stream, +InstallFunc, +InitFunc, +Module, +PredList)
 %
-%	Generate an array of PL_extension structures, that may be used to
-%	create a statically linked image as well as through the
-%%	PL_load_extensions() call.
+%	Generate an array of PL_extension structures,   that may be used
+%	to create a statically  linked  image   as  well  as through the
+%	PL_load_extensions() call.
 %
-%	Of the supported PL_FA_<FLAGS>, TRANSPARENT may be declared by looking
-%	at the transparent (meta_predivate) attribute of the predicate.
+%	Of the supported PL_FA_<FLAGS>, TRANSPARENT   may be declared by
+%	looking at the transparent  (meta_predivate)   attribute  of the
+%	predicate.
 
-make_C_init(Out, InstallFunc, Preds) :-
+make_C_init(Out, InstallFunc, Init, M, Preds) :-
 	format(Out, '~n~nstatic PL_extension predicates [] =~n{~n', []),
 	format(Out, '/*{ "name", arity, function, PL_FA_<flags> },*/~n', []),
 	(   member(Pred, Preds),
-	    get_foreign_head(Pred, _Func, Head),
-	    functor(Head, Name, Arity),
-	    wrapper_name(Head, Wrapper),
-	    strip_module(Head, M, H),
+	    get_foreign_head(M:Pred, _Func, Head),
+	    Head = M:H,
+	    functor(H, Name, Arity),
+	    wrapper_name(Head, Wrapper, Arity),
 	    foreign_attributes(M:H, Atts),
 	    format(Out, '  { "~w", ~d, ~w, ~w },~n',
 		   [Name, Arity, Wrapper, Atts]),
@@ -363,8 +380,13 @@ make_C_init(Out, InstallFunc, Preds) :-
 	format(Out, '  { NULL, 0, NULL, 0 } /* terminator */~n};~n~n', []),
 	format(Out, 'install_t~n~w()~n{ PL_load_extensions(predicates);~n',
 	       [InstallFunc]),
+	sicstus_init_function(Out, Init),
 	format(Out, '}~n', []).
 
+sicstus_init_function(_, -) :- !.
+sicstus_init_function(Out, Init) :-
+	format(Out, '  extern void ~w(int);~n', [Init]),
+	format(Out, '  ~w(0);~n', [Init]).
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
@@ -372,6 +394,19 @@ foreign_attributes(Head, Atts) :-
 
 foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 	predicate_property(Head, transparent).
+
+%%	make_C_deinit(+Stream, +UninstallFunc, +DeInitFunc) is det.
+%
+%	Write the uninstall function
+
+make_C_deinit(_, _, -) :- !.
+make_C_deinit(Out, Func, DeInit) :-
+	format(Out, '~ninstall_t~n', []),
+	format(Out, '~w()~n', [Func]),
+	format(Out, '{ extern void ~w(int);~n', [DeInit]),
+	format(Out, '  ~w(0);~n', [DeInit]),
+	format(Out, '}~n', []).
+
 
 %%	make_C_file_header(+Stream)
 %
@@ -384,7 +419,7 @@ make_C_file_header(Out) :-
 	format(Out, '/*  SWI-Prolog link wrapper~n', []),
 	format(Out, '    Generated by SWI-Prolog version ~w.~w.~w~n',
 	       [Major, Minor, Patch]),
-	format(Out, '    At ~s', [When]),
+	format(Out, '    At ~s~n', [When]),
 	(   source_location(File, Line)
 	->  format(Out, '    Source context ~w:~d~n', [File, Line])
 	;   true
@@ -401,60 +436,62 @@ make_C_file_header(Out) :-
 		 *******************************/
 
 %%	load_foreign_files is det.
-%%	load_foreign_files(+Files, +Libs) is det.
-%%	load_foreign_files(+SharedObject, +Files, +Libs) is det.
+%%	load_foreign_files(:Files, +Libs) is det.
+%%	load_foreign_files(+SharedObject, :Files, +Libs) is det.
 %
 %	Calls make_foreign_wrapper_file(+File), compiles the wrapper
 %	and loads the predicates.
 
 load_foreign_files :-
-	findall(File, foreign_file(File, _), OFiles),
-	load_foreign_files(OFiles, []).
+	context_module(M),
+	findall(File, hook(M:foreign_file(File, _)), OFiles),
+	load_foreign_files(M:OFiles, []).
 load_foreign_files(OFiles, Libs) :-
 	gensym(link, LinkBase),
 	load_foreign_files(LinkBase, OFiles, Libs).
 
-load_foreign_files(LinkBase, _, _) :-
-	catch(load_foreign_library(LinkBase), _, fail), !.
+load_foreign_files(LinkBase, M:_, _) :-
+	catch(load_foreign_library(M:LinkBase), _, fail), !.
 load_foreign_files(LinkBase, OFiles, Libs) :-
 	make_shared_object(LinkBase, OFiles, Libs),
-	load_foreign_library(LinkBase).
+	OFiles = M:_List,
+	load_foreign_library(M:LinkBase).
 
-%%	make_shared_object(+Object, +Files, +Libs) is det.
+%%	make_shared_object(+Object, :Files, +Libs) is det.
 %
 %	Generate  a  wrapper  and  link  it  using  plld  to  the  given
 %	SharedObject.
 
-make_shared_object(LinkBase, OFiles, Libs) :-
-	make_foreign_wrapper_file(OFiles, LinkBase),
+make_shared_object(LinkBase, M:OFiles, Libs) :-
+	make_foreign_wrapper_file(M:OFiles, LinkBase),
 	file_name_extension(LinkBase, c, CFile),
 	build_shared_object(LinkBase, [CFile|OFiles], Libs).
 
-%%	make_foreign_wrapper_file(+OutFile) is det.
-%%	make_foreign_wrapper_file(+Files, +OutFile) is det.
+%%	make_foreign_wrapper_file(:OutFile) is det.
+%%	make_foreign_wrapper_file(:Files, +OutFile) is det.
 %
 %	Just output the wrapper file to the named .c file.  May be used
 %	to prepare for static linking or the preparation of the native
 %	SWI-Prolog foreign-file.
 
-make_foreign_wrapper_file(CFile) :-
-	findall(File, foreign_file(File, _), OFiles),
-	make_foreign_wrapper_file(OFiles, CFile).
-make_foreign_wrapper_file(OFiles, Base) :-
+make_foreign_wrapper_file(M:CFile) :-
+	findall(File, hook(M:foreign_file(File, _)), OFiles),
+	make_foreign_wrapper_file(M:OFiles, CFile).
+make_foreign_wrapper_file(M:OFiles, Base) :-
 	file_name_extension(Base, c, CFile),
 	atom_concat(install_, Base, InstallFunc),
-	collect_foreign_predicates(OFiles, Preds),
+	collect_foreign_predicates(OFiles, M, Preds),
 	open(CFile, write, Out),
 	make_C_file_header(Out),
-	make_wrappers(Preds, Out),
-	make_C_init(Out, InstallFunc, Preds),
+	make_wrappers(Preds, M, Out),
+	make_C_init(Out, InstallFunc, -, M, Preds),
 	close(Out).
 
 
-collect_foreign_predicates([], []).
-collect_foreign_predicates([File|Files], Preds) :-
-	call(foreign_file(File, P0)),
-	collect_foreign_predicates(Files, P1),
+collect_foreign_predicates([], _, []).
+collect_foreign_predicates([File|Files], M, Preds) :-
+	hook(M:foreign_file(File, P0)),
+	collect_foreign_predicates(Files, M, P1),
 	append(P0, P1, Preds).
 
 build_shared_object(Object, Files, Libs) :-
@@ -462,8 +499,56 @@ build_shared_object(Object, Files, Libs) :-
 	file_name_extension(Object, Ext, SharedObject),
 	append(Files, Libs, Input),
 	atomic_list_concat(Input, ' ', InputAtom),
-	format(string(Command), 'plld -shared -o ~w ~w', [SharedObject, InputAtom]),
+	setting(linker, Linker),
+	format(string(Command),
+	       '~w -shared -o ~w ~w', [Linker, SharedObject, InputAtom]),
 	shell(Command).
+
+
+		 /*******************************
+		 *	      SICSTUS		*
+		 *******************************/
+
+%%	make_foreign_resource_wrapper(:Resource, +OutBase) is det.
+%
+%	Create a wrapper-file for the given foreign resource
+
+make_foreign_resource_wrapper(M:Resource, Base) :-
+	hook(M:foreign_resource(Resource, Functions)),
+	take(init(Init), Functions, Functions1, -),
+	take(deinit(DeInit), Functions1, Preds, -),
+	file_name_extension(Base, c, CFile),
+	atom_concat(install_, Base, InstallFunc),
+	atom_concat(uninstall_, Base, UninstallFunc),
+	open(CFile, write, Out),
+	make_C_file_header(Out),
+	make_wrappers(Preds, M, Out),
+	make_C_init(Out, InstallFunc, Init, M, Preds),
+	make_C_deinit(Out, UninstallFunc, DeInit),
+	close(Out).
+
+take(Term, List, Rest, Default) :-
+	(   select(Term, List, Rest)
+	->  true
+	;   arg(1, Term, Default)
+	).
+
+
+%%	load_foreign_resource(:Resource, +Dir)
+%
+%	Load a foreign module. First try to  load from the same direcory
+%	as the Prolog file. Otherwise   load  using SWI-Prolog's default
+%	search path.
+
+load_foreign_resource(M:Resource, Source) :-
+	absolute_file_name(Resource, Object,
+			   [ file_type(executable),
+			     relative_to(Source),
+			     file_errors(fail)
+			   ]), !,
+	load_foreign_library(M:Object).
+load_foreign_resource(M:Resource, _) :-
+	load_foreign_library(M:foreign(Resource)).
 
 
 		 /*******************************
@@ -472,9 +557,9 @@ build_shared_object(Object, Files, Libs) :-
 
 arg_name(N, Name) :-
 	C is N + 0'a - 1,
-	name(Name, [C]).
+	atom_codes(Name, [C]).
 
-wrapper_name(Head, Wrapper) :-
+wrapper_name(_:Head, Wrapper, Arity) :-
 	functor(Head, Name, Arity),
 	atomic_list_concat(['_plw_', Name, Arity], Wrapper).
 
@@ -489,6 +574,7 @@ map_C_type(X, X).
 map_C_type_(integer, 'long ').
 map_C_type_(float,   'double ').
 map_C_type_(string,  'char *').
+map_C_type_(chars,   'char *').
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).

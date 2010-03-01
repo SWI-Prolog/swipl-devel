@@ -27,54 +27,42 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
-	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+:- module(ciao_terms,
+	  [ copy_args/3,		% +N, ?Term, ?Copy
+	    arg/2,			% +Term, ?Arg
+	    atom_concat/2		% +Atms, -Atm
 	  ]).
-:- use_module(library(process)).
 
-/** <module> SICStus-3 library system
+/** <module> Ciao Prolog compatible library(terms)
 
-
-@tbd	This library is incomplete
+@deprecated	A library with the same name is used in SWI and other
+		systems with very different functionality.
 */
 
-%%	environ(?Name, ?Value) is nondet.
+%%	copy_args(+N, ?Term, ?Copy) is semidet.
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	Term and Copy have the same first N arguments.
+
+copy_args(N, Term, Copy) :-
+	N >= 1, !,
+	arg(N, Term, A),
+	arg(N, Copy, A),
+	N2 is N - 1,
+	copy_args(N2, Term, Copy).
+copy_args(_, _, _).
+
+%%	arg(+Term, ?Arg) is nondet.
 %
-%	@tbd	Mode -Name is not supported
+%	Arg is an argument of  Term.  Gives   each  of  the arguments on
+%	backtracking.
 
-environ(Name, Value) :-
-	getenv(Name, Value).
+arg(Term, Arg) :-
+	arg(_, Term, Arg).
 
-%%	exec(+Command, +Streams, -PID)
+%%	atom_concat(+Atms, -Atm) is det.
 %
-%	SICStus 3 compatible implementation of  exec/3   on  top  of the
-%	SICStus 4 compatible process_create/3.
+%	Atm is the atom resulting from   concatenating  all atoms in the
+%	list Atms in the order in which they appear.
 
-exec(Command, Streams, PID) :-
-	Streams = [In, Out, Error],
-	shell(Shell, Command, Argv),
-	process_create(Shell, Argv,
-		       [ stdin(In),
-			 stdout(Out),
-			 stderr(Error),
-			 process(PID)
-		       ]).
-
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
-shell('/bin/sh', Command, ['-c', Command]).
-
-%%	wait(+PID, -Status)
-%
-%	Wait for processes created using exec/3.
-%
-%	@see exec/3
-
-wait(PID, Status) :-
-	process_wait(PID, Status).
+atom_concat(Atms, Atm) :-
+	atomic_list_concat(Atms, Atm).
