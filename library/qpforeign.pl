@@ -240,6 +240,7 @@ make_C_decls(Out, _:Head) :-
 	fail.
 make_C_decls(Out, _:Head) :-
 	arg(N, Head, +PlType),
+	PlType \== term,
 	map_C_type(PlType, CType),
 	CType \== term,
 	arg_name(N, AName),
@@ -262,6 +263,7 @@ make_C_prototype(Out, M:Head) :-
 	hook(M:foreign(CFunc, c, H2)), !,
 	format(Out, '  extern ~w~w(', [CType, CFunc]),
 	(   arg(N, Head, AType),
+	    AType \= [_],		% return-type
 	    (N > 1 -> format(Out, ', ', []) ; true),
 	    (   AType = +T2
 	    ->  map_C_type(T2, CT2),
@@ -287,7 +289,7 @@ make_C_prototype(_, _).
 
 make_C_input_conversions(Out, _:Head) :-
 	findall(N-T, arg(N, Head, +T), IArgs),
-	(   maplist(=(term), IArgs)
+	(   forall(member(_-T, IArgs), T == term)
 	->  true
 	;   format(Out, '  if ( ', []),
 	    (	member(N-T, IArgs),
@@ -323,6 +325,8 @@ make_C_call(Out, _:Head, CFunc) :-
 	->  format(Out, 'o~w', [AName])
 	;   Arg = -_
 	->  format(Out, '&o~w', [AName])
+	;   Arg = +term
+	->  format(Out, '~w', [AName])
 	;   format(Out, 'i~w', [AName])
 	),
 	fail.

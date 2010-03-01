@@ -62,6 +62,8 @@ typedef predicate_t SP_pred_ref;
 #define SP_put_integer(t,i) PL_put_integer(t,i)
 #define SP_put_float(t,f) PL_put_float(t,f)
 #define SP_put_string(t,f) PL_put_atom_chars(t,f)
+#define SP_get_string(t,s) PL_get_atom_chars(t,s)
+
 
 		 /*******************************
 		 * RETURN CODES AND EXCEPTIONS	*
@@ -88,16 +90,17 @@ typedef predicate_t SP_pred_ref;
 inline int
 SP_query(SP_pred_ref predicate, ...)
 { atom_t name;
-  int arity;
+  int i, arity;
   module_t module;
   fid_t fid;
+  qid_t qid;
   term_t t0;
   va_list args;
 
   if ( !(fid = PL_open_foreign_frame()) )
     return SP_ERROR;
 
-  PL_predicate_info(predicate, &name, &arity, &module)
+  PL_predicate_info(predicate, &name, &arity, &module);
 
   if ( !(t0 = PL_new_term_refs(arity)) )
   { PL_close_foreign_frame(fid);
