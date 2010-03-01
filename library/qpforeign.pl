@@ -190,6 +190,7 @@ valid_type(single).
 valid_type(string).
 valid_type(chars).			% actually, `codes'!
 valid_type(atom).
+valid_type(term).
 
 cvt_name(chars, codes) :- !.
 cvt_name(Type,  Type).
@@ -276,7 +277,7 @@ make_C_prototype(_, _).
 
 make_C_input_conversions(Out, _:Head) :-
 	findall(N-T, arg(N, Head, +T), IArgs),
-	(   IArgs == []
+	(   maplist(=(term), IArgs)
 	->  true
 	;   format(Out, '  if ( ', []),
 	    (	member(N-T, IArgs),
