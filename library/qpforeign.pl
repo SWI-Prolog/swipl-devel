@@ -37,7 +37,7 @@
 	    make_foreign_wrapper_file/1,	% +OutBase
 	    make_foreign_wrapper_file/2,	% +OFiles, +OutBase
 						% SICStus stuff
-	    make_foreign_resource_wrapper/2,    % +Resource, +OutBase
+	    make_foreign_resource_wrapper/3,    % +Resource, +ResBase, +FileBase
 	    load_foreign_resource/2		% +Resource, +Dir
 	  ]).
 
@@ -152,11 +152,16 @@ make_wrapper(Out, Spec) :-
 
 %%	get_foreign_head(:Spec, -Func, -Head)
 %
-%	Get 3rd argument of relevant foreign/3 clause.
+%	Get 3rd argument of relevant foreign/3   clause. Seems there are
+%	two versions. In Quintus Spec was  a predicate specification and
+%	in SICStus it seems to be a (C) function name.
 
+get_foreign_head(M:Function, Function, M:Head) :-
+	prolog_load_context(dialect, sicstus), !,
+	hook(M:foreign(Function, c, Head)).
 get_foreign_head(M:Spec, Func, M:Head) :-
 	(   atom(Spec),
-	    hook(M:foreign(Func, c, Head)),
+	    hook(M:foreign(Spec, c, Head)),
 	    functor(Head, Spec, _)
 	->  true
 	;   Spec = Name/Arity
@@ -214,9 +219,9 @@ make_C_header(Out, WrapName, ArgN) :-
 
 %%	make_C_decls(+Stream, :PrologHead)
 %
-%	Writes the C variable declarations.  If the return value is
-%	used a variable named `rval' is created.  For each input parameter
-%	a C variable named i<argname> is created; for each output variable
+%	Writes the C variable declarations. If  the return value is used
+%	a variable named `rval' is created. For each input parameter a C
+%	variable named i<argname> is created;   for each output variable
 %	o<argname>.
 
 make_C_decls(Out, _:Head) :-
@@ -226,13 +231,17 @@ make_C_decls(Out, _:Head) :-
 	fail.
 make_C_decls(Out, _:Head) :-
 	arg(N, Head, -PlType),
-	map_C_type(PlType, CType),
 	arg_name(N, AName),
-	format(Out, '~wo~w;~n  ', [CType, AName]),
+	(   PlType == term
+	->  format(Out, 'term_t o~w = PL_new_term_ref();~n  ', [AName])
+	;   map_C_type(PlType, CType),
+	    format(Out, '~wo~w;~n  ', [CType, AName])
+	),
 	fail.
 make_C_decls(Out, _:Head) :-
 	arg(N, Head, +PlType),
 	map_C_type(PlType, CType),
+	CType \== term,
 	arg_name(N, AName),
 	format(Out, '~wi~w;~n  ', [CType, AName]),
 	fail.
@@ -253,13 +262,14 @@ make_C_prototype(Out, M:Head) :-
 	hook(M:foreign(CFunc, c, H2)), !,
 	format(Out, '  extern ~w~w(', [CType, CFunc]),
 	(   arg(N, Head, AType),
+	    (N > 1 -> format(Out, ', ', []) ; true),
 	    (   AType = +T2
-	    ->  (N > 1 -> format(Out, ', ', []) ; true),
-		map_C_type(T2, CT2),
+	    ->  map_C_type(T2, CT2),
 		format(Out, '~w', [CT2])
+	    ;	AType == -term
+	    ->	format(Out, term_t, [])
 	    ;   AType = -T2
-	    ->  (N > 1 -> format(Out, ', ', []) ; true),
-		map_C_type(T2, CT2),
+	    ->  map_C_type(T2, CT2),
 		format(Out, '~w *', [CT2])
 	    ),
 	    fail
@@ -281,6 +291,7 @@ make_C_input_conversions(Out, _:Head) :-
 	->  true
 	;   format(Out, '  if ( ', []),
 	    (	member(N-T, IArgs),
+		T \== term,
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
 		atom_concat(i, AName, IName),
@@ -295,8 +306,9 @@ make_C_input_conversions(Out, _:Head) :-
 
 %%	make_C_call(+Stream, :PrologHead, +CFunction)
 %
-%	Generate the actual call to the foreign function.  Input variables
-%	may be handed directly; output variables as a pointer to the o<var>.
+%	Generate  the  actual  call  to   the  foreign  function.  Input
+%	variables may be handed directly; output  variables as a pointer
+%	to the o<var>, except for output-variables of type term.
 
 make_C_call(Out, _:Head, CFunc) :-
 	(   arg(_, Head, [-_])
@@ -307,7 +319,9 @@ make_C_call(Out, _:Head, CFunc) :-
 	Arg \= [_],
 	(N \== 1 -> format(Out, ', ', []) ; true),
 	arg_name(N, AName),
-	(   Arg = -_
+	(   Arg = -term
+	->  format(Out, 'o~w', [AName])
+	;   Arg = -_
 	->  format(Out, '&o~w', [AName])
 	;   format(Out, 'i~w', [AName])
 	),
@@ -338,8 +352,11 @@ make_C_output_conversions(Out, _:Head) :-
 		    atom_concat(o, AName, OName)
 		),
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
-		cvt_name(T, CVT),
-		format(Out, '!PL_cvt_o_~w(~w, ~w)', [CVT, OName, AName]),
+		(   T == term
+		->  format(Out, '!PL_unify(~w, ~w)', [OName, AName])
+		;   cvt_name(T, CVT),
+		    format(Out, '!PL_cvt_o_~w(~w, ~w)', [CVT, OName, AName])
+		),
 		fail
 	    ;	true
 	    ),
@@ -510,17 +527,17 @@ build_shared_object(Object, Files, Libs) :-
 		 *	      SICSTUS		*
 		 *******************************/
 
-%%	make_foreign_resource_wrapper(:Resource, +OutBase) is det.
+%%	make_foreign_resource_wrapper(:Resource, +ResBase, +FileBase)
 %
 %	Create a wrapper-file for the given foreign resource
 
-make_foreign_resource_wrapper(M:Resource, Base) :-
+make_foreign_resource_wrapper(M:Resource, ResBase, FileBase) :-
 	hook(M:foreign_resource(Resource, Functions)),
 	take(init(Init), Functions, Functions1, -),
 	take(deinit(DeInit), Functions1, Preds, -),
-	file_name_extension(Base, c, CFile),
-	atom_concat(install_, Base, InstallFunc),
-	atom_concat(uninstall_, Base, UninstallFunc),
+	file_name_extension(FileBase, c, CFile),
+	atom_concat(install_, ResBase, InstallFunc),
+	atom_concat(uninstall_, ResBase, UninstallFunc),
 	open(CFile, write, Out),
 	make_C_file_header(Out),
 	make_wrappers(Preds, M, Out),
@@ -531,7 +548,8 @@ make_foreign_resource_wrapper(M:Resource, Base) :-
 take(Term, List, Rest, Default) :-
 	(   select(Term, List, Rest)
 	->  true
-	;   arg(1, Term, Default)
+	;   arg(1, Term, Default),
+	    Rest = List
 	).
 
 
@@ -576,6 +594,7 @@ map_C_type_(integer, 'long ').
 map_C_type_(float,   'double ').
 map_C_type_(string,  'char *').
 map_C_type_(chars,   'char *').
+map_C_type_(term,    'term_t ').
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).
