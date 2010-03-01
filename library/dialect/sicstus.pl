@@ -311,18 +311,18 @@ prolog_flag(Flag, Old, New) :-
 
 prolog_flag(Flag, Value) :-
 	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
-	sictus_flag(Flag, Value).
+	sicstus_flag(Flag, Value).
 
-sictus_flag(argv, Argv) :- !,
+sicstus_flag(argv, Argv) :- !,
 	current_prolog_flag(argv, AllArgs),
 	append(_, [--|Argv0], AllArgs),	!,
 	Argv = Argv0.
-sictus_flag(system_type, Type) :- !,
+sicstus_flag(system_type, Type) :- !,
 	(   current_prolog_flag(saved_program, true)
 	->  Type = runtime
 	;   Type = development
 	).
-sictus_flag(Name, Value) :-
+sicstus_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
 
 
