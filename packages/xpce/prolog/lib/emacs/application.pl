@@ -220,8 +220,10 @@ current_frame(Emacs, Frame:emacs_frame) :<-
 	    get(Window, frame, Frame),
 	    send(Frame, instance_of, emacs_frame)
 	->  true
-	;   get(Emacs?members, head, Frame),
-	    send(Frame, on_current_desktop)
+	;   get(Emacs?members, find,
+		and(message(@arg1, instance_of, emacs_frame),
+		    message(@arg1, on_current_desktop)),
+		Frame)
 	).
 
 
