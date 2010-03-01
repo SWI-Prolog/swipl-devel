@@ -48,6 +48,7 @@ PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)\SWI-Stream.h
+SICSTUSH=$(INCLUDEDIR)\sicstus.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
@@ -122,7 +123,7 @@ plwin:	$(PLWIN)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
-headers:	$(CINCLUDE) $(STREAMH)
+headers:	$(CINCLUDE) $(STREAMH) $(SICSTUSH)
 
 banner:
 		@echo ****************
@@ -180,6 +181,9 @@ $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 
 $(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
 		copy SWI-Stream.h $@
+
+$(SICSTUSH):	compat\sicstus.h $(INCLUDEDIR)
+		copy compat\sicstus.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
@@ -329,6 +333,7 @@ iunicode::
 iinclude:
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
+		$(INSTALL_DATA) $(PLHOME)\include\sicstus.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"
 !IF "$(MT)" == "true"
 		$(INSTALL_DATA) "$(EXTRAINCDIR)\pthread.h" "$(PLBASE)\include"
