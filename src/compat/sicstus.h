@@ -34,8 +34,6 @@ library(dialect/sicstus).
 Most should be(come) fully compatible. Some  issues are hard to emulate.
 Please checks the notes for:
 
-	* SP_raise_exception()
-	* SP_fail()
 	* SP_to_os()
 	* SP_from_os()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -69,16 +67,22 @@ typedef predicate_t SP_pred_ref;
 		 * RETURN CODES AND EXCEPTIONS	*
 		 *******************************/
 
-/* Note: In SICSTus, these functions put something into the
-   environment that is picked up by the wrapper.  These versions
-   return immediately!  The SICStus route is quite complicated
-   because of the multi-threading nature of SWI-Prolog.  With
-   some care, it should be possible to to place these calls such
-   that both SICStus and SWI are happy.
-*/
+#ifndef SP_WRAPPER
+extern
+#endif
+__thread int SP_wrapper_state;		/* __thread is C99 */
 
-#define SP_raise_exception(t) do { PL_raise_exception(t); return 0; } while(0)
-#define SP_fail()	      return FALSE
+
+#define SP_raise_exception(t) do { PL_raise_exception(t); \
+				   SP_wrapper_state = SP_ERROR; \
+				 } while(0)
+#define SP_fail()	      do { SP_wrapper_state = SP_FAILURE; \
+				 } while(0)
+#define SP_WRAP_INIT() \
+	(SP_wrapper_state = SP_SUCCESS)
+#define SP_WRAP_CHECK_STATE() \
+	if ( SP_wrapper_state != SP_SUCCESS ) \
+	  return FALSE
 
 
 		 /*******************************
@@ -87,7 +91,8 @@ typedef predicate_t SP_pred_ref;
 
 #define SP_predicate(name,arity,module) PL_predicate(name,arity,module)
 
-inline int
+#ifdef SP_WRAPPER
+static int
 SP_query(SP_pred_ref predicate, ...)
 { atom_t name;
   int i, arity;
@@ -130,7 +135,9 @@ SP_query(SP_pred_ref predicate, ...)
 
   return SP_SUCCESS;
 }
-
+#else  /*SP_WRAPPER*/
+extern int SP_query(SP_pred_ref predicate, ...);
+#endif /*SP_WRAPPER*/
 
 #define SP_malloc(n) PL_malloc(n)
 #define SP_realloc(p,n) PL_realloc(p,n)

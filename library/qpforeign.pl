@@ -144,7 +144,9 @@ make_wrapper(Out, Spec) :-
 	    make_C_decls(Out, Head),
 	    make_C_prototype(Out, Head),
 	    make_C_input_conversions(Out, Head),
+	    make_C_wrapper_setup(Out),
 	    make_C_call(Out, Head, Func),
+	    make_C_wrapper_check(Out),
 	    make_C_output_conversions(Out, Head),
 	    make_C_footer(Out)
 	;   fail
@@ -333,6 +335,28 @@ make_C_call(Out, _:Head, CFunc) :-
 make_C_call(Out, _, _) :-
 	format(Out, ');~n', []).
 
+%%	make_C_wrapper_setup(+Stream)
+%
+%	Call SP_WRAP_INIT() when  running  on   SICStus.  This  supports
+%	SP_fail() and SP_raise_exception().
+
+make_C_wrapper_setup(Stream) :-
+	prolog_load_context(dialect, sicstus), !,
+	format(Stream, '  SP_WRAP_INIT();~n', []).
+make_C_wrapper_setup(_).
+
+
+%%	make_C_wrapper_check(+Stream)
+%
+%	Call  SP_WRAP_CHECK_STATE()  when  running    on  SICStus.  This
+%	supports SP_fail() and SP_raise_exception().
+
+make_C_wrapper_check(Stream) :-
+	prolog_load_context(dialect, sicstus), !,
+	format(Stream, '  SP_WRAP_CHECK_STATE();~n', []).
+make_C_wrapper_check(_).
+
+
 %%	make_C_output_conversions(+Stream, :PrologHead)
 %
 %	Generate conversions for the output arguments and unify them
@@ -448,9 +472,17 @@ make_C_file_header(Out) :-
 	),
 	format(Out, '*/~n~n', []),
 	format(Out, '#include <SWI-Prolog.h>~n', []),
+	make_C_compat_file_header(Out),
 	format(Out, '#ifndef NULL~n', []),
 	format(Out, '#define NULL ((void *)0)~n', []),
 	format(Out, '#endif~n~n', []).
+
+
+make_C_compat_file_header(Out) :-
+	prolog_load_context(dialect, sicstus), !,
+	format(Out, '#define SP_WRAPPER 1~n', []),
+	format(Out, '#include <sicstus.h>~n', []).
+make_C_compat_file_header(_).
 
 
 		 /*******************************
