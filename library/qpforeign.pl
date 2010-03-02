@@ -44,6 +44,7 @@
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 
 /** <module> Quintus compatible foreign loader
 
@@ -202,6 +203,7 @@ valid_type(address).
 valid_type(address(_)).
 
 cvt_name(chars, codes) :- !.
+cvt_name(address(_), address) :- !.
 cvt_name(Type,  Type).
 
 
@@ -292,8 +294,9 @@ make_C_prototype(_, _).
 %	Function returns 0 if the conversion fails.
 
 make_C_input_conversions(Out, _:Head) :-
-	findall(N-T, arg(N, Head, +T), IArgs),
-	(   forall(member(_-T, IArgs), T == term)
+	findall(N-T, arg(N, Head, +T), IArgs0),
+	exclude(term_arg, IArgs0, IArgs),
+	(   IArgs == []
 	->  true
 	;   format(Out, '  if ( ', []),
 	    (	member(N-T, IArgs),
@@ -308,6 +311,8 @@ make_C_input_conversions(Out, _:Head) :-
 	    ),
 	    format(Out, ' )~n    return FALSE;~n~n', [])
 	).
+
+term_arg(_-term).
 
 
 %%	make_C_call(+Stream, :PrologHead, +CFunction)

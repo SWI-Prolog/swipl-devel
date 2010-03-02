@@ -613,7 +613,7 @@ PL_EXPORT(int)		PL_cvt_i_single(term_t p, float *c);
 PL_EXPORT(int)		PL_cvt_i_string(term_t p, char **c);
 PL_EXPORT(int)		PL_cvt_i_codes(term_t p, char **c);
 PL_EXPORT(int)		PL_cvt_i_atom(term_t p, atom_t *c);
-PL_EXPORT(int)		PL_cvt_i_address(term_t p, void **c);
+PL_EXPORT(int)		PL_cvt_i_address(term_t p, void *c);
 PL_EXPORT(int)		PL_cvt_o_integer(long c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_float(double c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_single(float c, term_t p);

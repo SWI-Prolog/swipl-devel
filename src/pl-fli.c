@@ -653,8 +653,10 @@ PL_cvt_i_atom(term_t p, atom_t *c)
 
 
 bool
-PL_cvt_i_address(term_t p, void **address)
-{ return PL_get_pointer_ex(p, address);
+PL_cvt_i_address(term_t p, void *address)
+{ void **addrp = address;
+
+  return PL_get_pointer_ex(p, addrp);
 }
 
 
