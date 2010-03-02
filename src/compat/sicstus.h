@@ -59,6 +59,8 @@ typedef predicate_t SP_pred_ref;
 
 #define SP_new_term_ref() PL_new_term_ref()
 
+#define SP_is_list(t) PL_is_list(t)
+
 #define SP_cons_list(l,h,t) PL_cons_list(l,h,t)
 
 #define SP_put_variable(t) PL_put_variable(t)
@@ -85,6 +87,24 @@ SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
 
   return rc;
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copies into the byte array s the  initial elements of term, which should
+hold a list of integers in the range   [0,255],  so that at most n bytes
+are used. The number of bytes actually   written is assigned to *w. tail
+is set to the remainder of the list. The   array s must have room for at
+least n bytes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static __inline int
+SP_get_list_n_bytes(SP_term_ref term,
+		    SP_term_ref tail,
+		    size_t n,
+		    size_t *w,
+		    unsigned char *s)
+{ assert(0);				/* TBD */
+}
+
 
 
 		 /*******************************
