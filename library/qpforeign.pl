@@ -198,6 +198,8 @@ valid_type(string).
 valid_type(chars).			% actually, `codes'!
 valid_type(atom).
 valid_type(term).
+valid_type(address).
+valid_type(address(_)).
 
 cvt_name(chars, codes) :- !.
 cvt_name(Type,  Type).
@@ -630,6 +632,9 @@ map_C_type_(integer, 'long ').
 map_C_type_(float,   'double ').
 map_C_type_(string,  'char *').
 map_C_type_(chars,   'char *').
+map_C_type_(address, 'void *').
+map_C_type_(address(Of), Type) :-
+	atom_concat(Of, ' *', Type).
 map_C_type_(term,    'term_t ').
 
 warning(Fmt, Args) :-

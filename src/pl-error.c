@@ -792,6 +792,16 @@ PL_get_char_ex(term_t t, int *p, int eof)
 
 
 int
+PL_get_pointer_ex(term_t t, void **addrp)
+{ GET_LD
+  if ( PL_get_pointer(t, addrp) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_address, t);
+}
+
+
+int
 PL_unify_list_ex(term_t l, term_t h, term_t t)
 { GET_LD
 

@@ -244,6 +244,7 @@ COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
 COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
 COMMON(int) 		PL_get_float_ex(term_t t, double *f);
 COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
+COMMON(int) 		PL_get_pointer_ex(term_t t, void **addrp);
 COMMON(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
 COMMON(int) 		PL_unify_nil_ex(term_t l);
 COMMON(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);

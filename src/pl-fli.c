@@ -653,6 +653,12 @@ PL_cvt_i_atom(term_t p, atom_t *c)
 
 
 bool
+PL_cvt_i_address(term_t p, void **address)
+{ return PL_get_pointer_ex(p, address);
+}
+
+
+bool
 PL_cvt_o_integer(long c, term_t p)
 { GET_LD
   return PL_unify_integer(p, c);
@@ -687,6 +693,13 @@ bool
 PL_cvt_o_atom(atom_t c, term_t p)
 { GET_LD
   return PL_unify_atom(p, c);
+}
+
+
+bool
+PL_cvt_o_address(void *address, term_t p)
+{ GET_LD
+  return PL_unify_pointer(p, address);
 }
 
 
