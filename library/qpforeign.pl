@@ -239,9 +239,9 @@ make_C_decls(Out, _:Head) :-
 	arg(N, Head, -PlType),
 	arg_name(N, AName),
 	(   PlType == term
-	->  format(Out, 'term_t o~w = PL_new_term_ref();~n  ', [AName])
+	->  format(Out, 'term_t o_~w = PL_new_term_ref();~n  ', [AName])
 	;   map_C_type(PlType, CType),
-	    format(Out, '~wo~w;~n  ', [CType, AName])
+	    format(Out, '~wo_~w;~n  ', [CType, AName])
 	),
 	fail.
 make_C_decls(Out, _:Head) :-
@@ -250,7 +250,7 @@ make_C_decls(Out, _:Head) :-
 	map_C_type(PlType, CType),
 	CType \== term,
 	arg_name(N, AName),
-	format(Out, '~wi~w;~n  ', [CType, AName]),
+	format(Out, '~wi_~w;~n  ', [CType, AName]),
 	fail.
 make_C_decls(Out, _) :-
 	format(Out, '~n', []).
@@ -303,7 +303,7 @@ make_C_input_conversions(Out, _:Head) :-
 		T \== term,
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
-		atom_concat(i, AName, IName),
+		atom_concat(i_, AName, IName),
 		cvt_name(T, CVT),
 		format(Out, '!PL_cvt_i_~w(~w, &~w)', [CVT, AName, IName]),
 		fail
@@ -331,12 +331,12 @@ make_C_call(Out, _:Head, CFunc) :-
 	(N \== 1 -> format(Out, ', ', []) ; true),
 	arg_name(N, AName),
 	(   Arg = -term
-	->  format(Out, 'o~w', [AName])
+	->  format(Out, 'o_~w', [AName])
 	;   Arg = -_
-	->  format(Out, '&o~w', [AName])
+	->  format(Out, '&o_~w', [AName])
 	;   Arg = +term
 	->  format(Out, '~w', [AName])
-	;   format(Out, 'i~w', [AName])
+	;   format(Out, 'i_~w', [AName])
 	),
 	fail.
 make_C_call(Out, _, _) :-
@@ -384,7 +384,7 @@ make_C_output_conversions(Out, _:Head) :-
 		    arg(RN, Head, [-_]),
 		    arg_name(RN, AName)
 		;   arg_name(N, AName),
-		    atom_concat(o, AName, OName)
+		    atom_concat(o_, AName, OName)
 		),
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
 		(   T == term

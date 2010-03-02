@@ -58,14 +58,20 @@ typedef predicate_t SP_pred_ref;
 		 *******************************/
 
 #define SP_new_term_ref() PL_new_term_ref()
-#define SP_get_list(l,h,t) PL_get_list(l,h,t)
+
 #define SP_cons_list(l,h,t) PL_cons_list(l,h,t)
+
 #define SP_put_variable(t) PL_put_variable(t)
 #define SP_put_integer(t,i) PL_put_integer(t,i)
 #define SP_put_float(t,f) PL_put_float(t,f)
 #define SP_put_string(t,f) PL_put_atom_chars(t,f)
 #define SP_put_list(t) PL_put_list(t)
+
+#define SP_get_list(l,h,t) PL_get_list(l,h,t)
 #define SP_get_string(t,s) PL_get_atom_chars(t,s)
+#define SP_get_integer(t,pi) PL_get_long(t, pi)
+#define SP_get_arg(i,t,a) PL_get_arg(i,t,a)
+
 #define SP_unify(x,y) PL_unify(x,y)
 
 		 /*******************************
