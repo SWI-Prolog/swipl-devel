@@ -126,6 +126,7 @@
 
 
 :- use_module(library(apply)).
+:- use_module(library(assoc)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
@@ -4380,7 +4381,7 @@ distinct(Vars) :-
         LFL =< LFR,
         maplist(put_free, FreeRight0),
         maximum_matching(FreeLeft),
-        sublist(free_node, FreeRight0, FreeRight),
+        include(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
         phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
         maplist(dfs_used, FreeRight),
