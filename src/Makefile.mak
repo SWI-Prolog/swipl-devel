@@ -142,8 +142,8 @@ $(PLLIB):	$(OBJ) $(LOCALLIB)
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
-		rename plcon.exe $@
-		rename plcon.exe.manifest $@.manifest
+		copy plcon.exe $@
+		copy plcon.exe.manifest $@.manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
