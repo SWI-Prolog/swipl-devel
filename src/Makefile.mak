@@ -135,21 +135,19 @@ banner:
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
-		$(MTEXE) -manifest $(PLDLL).manifest -outputresource:$(PLDLL);2
 
-# We first create plcon.exe to avoid overriding the debug and manifest
-# files of swipl.dll.  Maybe using the same name for a dll and exe is a
-# bad idea afterall?
+# We first create plcon.exe to avoid overriding the debug files of swipl.dll.
+# Maybe using the same name for a dll and exe is a bad idea afterall?
+
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
-		$(MTEXE) -manifest plcon.exe.manifest -outputresource:plcon.exe;1
-		copy plcon.exe $@
+		rename plcon.exe $@
+		rename plcon.exe.manifest $@.manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
-		$(MTEXE) -manifest $(PLWIN).manifest -outputresource:$(PLWIN);1
 
 pl.res:		pl.rc pl.ico xpce.ico
 		$(RSC) /fo$@ pl.rc
@@ -209,7 +207,6 @@ mkvmi.exe:	mkvmi.obj
 
 $(PLLD):	swipl-ld.obj
 		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
-		$(MTEXE) -manifest $(PLLD).manifest -outputresource:$(PLLD);1
 
 tags:		TAGS
 
@@ -227,12 +224,12 @@ check:
 # normal development version
 ################################################################
 
-!IF "$(CFG)" == "rt"
-install:	$(BINDIR) iprog install_packages
-!ELSE
-install:	install-arch install-libs install-readme install_packages \
+install:	embed-manifests \
+		install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
-!ENDIF
+
+embed-manifests::
+		win32\embed_manifests.cmd
 
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
