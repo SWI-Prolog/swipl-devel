@@ -66,6 +66,7 @@ typedef predicate_t SP_pred_ref;
 #define SP_put_float(t,f) PL_put_float(t,f)
 #define SP_put_string(t,f) PL_put_atom_chars(t,f)
 #define SP_put_list(t) PL_put_list(t)
+#define SP_put_term(t1, t2) PL_put_term(t1, t2)
 
 #define SP_get_list(l,h,t) PL_get_list(l,h,t)
 #define SP_get_string(t,s) PL_get_atom_chars(t,s)
@@ -73,6 +74,18 @@ typedef predicate_t SP_pred_ref;
 #define SP_get_arg(i,t,a) PL_get_arg(i,t,a)
 
 #define SP_unify(x,y) PL_unify(x,y)
+
+static __inline int
+SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
+		    size_t len, char *buf)
+{ term_t t0 = PL_new_term_refs(2);
+  int rc = PL_unify_nchars(t0, PL_CODE_LIST|PL_DIFF_LIST, len, buf);
+  PL_put_term(list, t0);
+  PL_put_term(tail, t0+1);
+
+  return rc;
+}
+
 
 		 /*******************************
 		 * RETURN CODES AND EXCEPTIONS	*
