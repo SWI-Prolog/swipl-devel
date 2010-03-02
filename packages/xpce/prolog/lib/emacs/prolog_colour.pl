@@ -294,8 +294,8 @@ process_directive(Directive, _) :-
 %
 %	Get the exported operators from the referenced files.
 
-process_use_module([], _).
-process_use_module([H|T], Src) :-
+process_use_module([], _) :- !.
+process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(File, Src) :-
