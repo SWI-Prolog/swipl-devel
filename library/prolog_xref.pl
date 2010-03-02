@@ -1440,6 +1440,10 @@ xref_source_file(Spec, _, _, _) :-
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
+do_xref_source_file(Spec, _, _) :-
+	var(Spec), !, fail.
+do_xref_source_file(_:Spec, File, Options) :-
+	do_xref_source_file(Spec, File, Options).
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec,
