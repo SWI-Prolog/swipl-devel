@@ -48,7 +48,6 @@ PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)\SWI-Stream.h
-SICSTUSH=$(INCLUDEDIR)\sicstus.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
@@ -119,7 +118,7 @@ plwin:	$(PLWIN)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
-headers:	$(CINCLUDE) $(STREAMH) $(SICSTUSH)
+headers:	$(CINCLUDE) $(STREAMH)
 
 banner:
 		@echo ****************
@@ -175,9 +174,6 @@ $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 
 $(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
 		copy SWI-Stream.h $@
-
-$(SICSTUSH):	compat\sicstus.h $(INCLUDEDIR)
-		copy compat\sicstus.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
@@ -274,6 +270,7 @@ install-demo:	idirs
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
+		"$(PLBASE)\include\sicstus" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
@@ -311,6 +308,7 @@ iyap::
 isicstus::
 		chdir $(PLHOME)\library\dialect\sicstus & \
 			for %f in ($(SICSTUS)) do copy %f "$(PLBASE)\library\dialect\sicstus"
+		copy compat\sicstus.h "$(PLBASE)\include\sicstus\sicstus.h"
 
 iciao::
 		chdir $(PLHOME)\library\dialect\ciao & \
@@ -329,7 +327,6 @@ iunicode::
 iinclude:
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
-		$(INSTALL_DATA) $(PLHOME)\include\sicstus.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"
 !IF "$(MT)" == "true"
 		$(INSTALL_DATA) "$(EXTRAINCDIR)\pthread.h" "$(PLBASE)\include"

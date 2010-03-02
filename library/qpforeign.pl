@@ -481,7 +481,7 @@ make_C_file_header(Out) :-
 make_C_compat_file_header(Out) :-
 	prolog_load_context(dialect, sicstus), !,
 	format(Out, '#define SP_WRAPPER 1~n', []),
-	format(Out, '#include <sicstus.h>~n', []).
+	format(Out, '#include <sicstus/sicstus.h>~n', []).
 make_C_compat_file_header(_).
 
 
