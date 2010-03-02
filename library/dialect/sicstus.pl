@@ -55,6 +55,8 @@
 :- use_module(library(occurs)).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(lists)).
+
 
 /** <module> SICStus compatibility library
 
@@ -315,8 +317,10 @@ prolog_flag(Flag, Value) :-
 
 sicstus_flag(argv, Argv) :- !,
 	current_prolog_flag(argv, AllArgs),
-	append(_, [--|Argv0], AllArgs),	!,
-	Argv = Argv0.
+	(   append(_, [--|Argv0], AllArgs)
+	->  Argv = Argv0
+	;   Argv = []
+	).
 sicstus_flag(system_type, Type) :- !,
 	(   current_prolog_flag(saved_program, true)
 	->  Type = runtime
