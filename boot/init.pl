@@ -491,7 +491,7 @@ user:file_search_path(app_preferences, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
 
 
-%	expand_file_search_path(+Spec, -Expanded)
+%	expand_file_search_path(+Spec, -Expanded) is nondet.
 %
 %	Expand a search path.  The system uses depth-first search upto a
 %	specified depth.  If this depth is exceeded an exception is raised.
@@ -503,7 +503,7 @@ expand_file_search_path(Spec, Expanded) :-
 	      throw(error(loop_error(Spec), file_search(Used)))).
 
 '$expand_file_search_path'(Spec, Expanded, N, Used) :-
-	functor(Spec, Alias, 1),
+	functor(Spec, Alias, 1), !,
 	user:file_search_path(Alias, Exp0),
 	NN is N + 1,
 	(   NN > 16
@@ -511,32 +511,17 @@ expand_file_search_path(Spec, Expanded) :-
 	;   true
 	),
 	'$expand_file_search_path'(Exp0, Exp1, NN, [Alias=Exp0|Used]),
-	arg(1, Spec, Base),
-	'$make_path'(Exp1, Base, Expanded).
-'$expand_file_search_path'(A/B, Expanded, _, _) :- !,
-	'$make_path_from_slash'(A/B, Parts, []),
-	atomic_list_concat(Parts, Expanded).
-'$expand_file_search_path'(Spec, Spec, _, _) :-
-	atomic(Spec).
+	arg(1, Spec, Segments),
+	'$segments_to_atom'(Segments, File),
+	'$make_path'(Exp1, File, Expanded).
+'$expand_file_search_path'(Spec, Path, _, _) :-
+	'$segments_to_atom'(Spec, Path).
 
 '$make_path'(Dir, File, Path) :-
 	atom_concat(_, /, Dir), !,
 	atom_concat(Dir, File, Path).
 '$make_path'(Dir, File, Path) :-
-	'$make_path_from_slash'(File, Parts, []),
-	'$append'([Dir, /], Parts, AllParts),
-	atomic_list_concat(AllParts, Path).
-
-
-%%	'$make_path_from_slash'(+SlashPath, -Parts, ?Tail) is det.
-%
-%	Translate a/b/c into [a,/,b,/,c]. We cannot   use DCG as the DCG
-%	compiler is not yet defined.
-
-'$make_path_from_slash'(A/B, P0, P) :- !,
-	'$make_path_from_slash'(A, P0, [/|P1]),
-	'$make_path_from_slash'(B, P1, P).
-'$make_path_from_slash'(A, [A|T], T).
+	atomic_list_concat([Dir, /, File], Path).
 
 
 		/********************************
@@ -571,6 +556,7 @@ absolute_file_name(Spec, Args, Path) :-
 	;   Conditions = Args,
 	    Exts = ['']
 	),
+	'$canonise_extensions'(Exts, Extensions),
 	(   '$select'(solutions(Sols), Conditions, C1)
 	->  true
 	;   Sols = first,
@@ -588,15 +574,15 @@ absolute_file_name(Spec, Args, Path) :-
 	;   Spec1 = Spec,
 	    C3 = C2
 	),
-	(   '$chk_file'(Spec1, Exts, C3, Path)
-	*-> (   Sols == first
-	    ->  !
-	    ;   true
+	(   Sols == first
+	->  (	'$chk_file'(Spec1, Extensions, C3, true, Path)
+	    ->	true
+	    ;	(   FileErrors == fail
+		->  fail
+		;   throw(error(existence_error(source_sink, Spec), _))
+		)
 	    )
-	;   (   FileErrors == fail
-	    ->  fail
-	    ;   throw(error(existence_error(source_sink, Spec), _))
-	    )
+	;   '$chk_file'(Spec1, Extensions, C3, false, Path)
 	).
 
 '$file_type_extensions'(source, Exts) :- !, 	% SICStus 3.9 compatibility
@@ -613,8 +599,8 @@ absolute_file_name(Spec, Args, Path) :-
 %	absolute_file_name/3 and may be used to extend the list of
 %	extensions used for some type.
 
-:- multifile(user:prolog_file_type/2),
-   dynamic(user:prolog_file_type/2).
+:- multifile(user:prolog_file_type/2).
+:- dynamic(user:prolog_file_type/2).
 
 user:prolog_file_type(pl,	prolog).
 user:prolog_file_type(Ext,	prolog) :-
@@ -628,38 +614,47 @@ user:prolog_file_type(Ext,	executable) :-
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
 
-'$chk_file'(Spec, Extensions, Cond, FullName) :-
-	'$canonise_extensions'(Extensions, Exts),
-	'$dochk_file'(Spec, Exts, Cond, FullName).
-
-'$dochk_file'(Spec, Extensions, Cond, FullName) :-
+'$chk_file'(Spec, Extensions, Cond, Cache, FullName) :-
 	compound(Spec),
-	functor(Spec, Alias, 1),
-	user:file_search_path(Alias, _), !,
+	functor(Spec, _, 1), !,
 	'$relative_to'(Cond, cwd, CWD),
-	'$chk_alias_file'(Spec, Extensions, Cond, CWD, FullName).
-'$dochk_file'(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
-	\+ atomic(Term), !,
-	term_to_atom(Term, Raw),
-	atom_chars(Raw, S0),
-	'$delete'(S0, ' ', S1),
-	atom_chars(Atom, S1),
-	'$dochk_file'(Atom, Ext, Cond, FullName).
-'$dochk_file'(File, Exts, Cond, FullName) :-
+	'$chk_alias_file'(Spec, Extensions, Cond, Cache, CWD, FullName).
+'$chk_file'(Segments, Ext, Cond, Cache, FullName) :-	% allow a/b/...
+	\+ atomic(Segments), !,
+	'$segments_to_atom'(Segments, Atom),
+	'$chk_file'(Atom, Ext, Cond, Cache, FullName).
+'$chk_file'(File, Exts, Cond, _, FullName) :-
 	is_absolute_file_name(File), !,
 	'$extend_file'(File, Exts, Extended),
 	'$file_condition'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
-'$dochk_file'(File, Exts, Cond, FullName) :-
+'$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$relative_to'(Cond, source, Dir),
 	atomic_list_concat([Dir, /, File], AbsFile),
 	'$extend_file'(AbsFile, Exts, Extended),
 	'$file_condition'(Cond, Extended), !,
 	'$absolute_file_name'(Extended, FullName).
-'$dochk_file'(File, Exts, Cond, FullName) :-
+'$chk_file'(File, Exts, Cond, _, FullName) :-
 	'$extend_file'(File, Exts, Extended),
 	'$file_condition'(Cond, Extended),
 	'$absolute_file_name'(Extended, FullName).
+
+'$segments_to_atom'(Atom, Atom) :-
+	atomic(Atom), !.
+'$segments_to_atom'(Segments, Atom) :-
+	'$segments_to_list'(Segments, List, []), !,
+	atomic_list_concat(List, /, Atom).
+'$segments_to_atom'(Segments, _) :-
+	throw(error(type_error(file_path, Segments), _)).
+
+'$segments_to_list'(Var, _, _) :-
+	var(Var), !, fail.
+'$segments_to_list'(A/B, H, T) :-
+	'$segments_to_list'(A, H, T0),
+	'$segments_to_list'(B, T0, T).
+'$segments_to_list'(A, [A|T], T) :-
+	atomic(A).
+
 
 %	'$relative_to'(+Condition, +Default, -Dir)
 %
@@ -683,26 +678,38 @@ user:prolog_file_type(Ext,	executable) :-
 	    file_directory_name(ContextFile, Dir)
 	).
 
-:- dynamic
-	'$search_path_file_cache'/5.
-:- volatile
-	'$search_path_file_cache'/5.
+%%	'$chk_alias_file'(+Spec, +Exts, +Cond, +Cache, +CWD,
+%%			  -FullFile) is nondet.
 
-'$chk_alias_file'(Spec, Exts, Cond, CWD, FullFile) :-
-	'$search_path_file_cache'(Spec, Cond, CWD, FullFile, Exts),
-	'$file_condition'(Cond, FullFile),
-	'$search_message'(file_search(cache(Spec, Cond), FullFile)).
-'$chk_alias_file'(Spec, Exts, Cond, CWD, FullFile) :-
+:- dynamic
+	'$search_path_file_cache'/4.	% Spec, Hash, Cache, Path
+:- volatile
+	'$search_path_file_cache'/4.
+
+'$chk_alias_file'(Spec, Exts, Cond, true, CWD, FullFile) :- !,
+	findall(Exp, expand_file_search_path(Spec, Exp), Expansions),
+	Cache = cache(Exts, Cond, CWD, Expansions),
+	term_hash(Cache, Hash),
+	(   '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
+	    '$file_condition'(Cond, FullFile)
+	->  '$search_message'(file_search(cache(Spec, Cond), FullFile))
+	;   '$member'(Expanded, Expansions),
+	    '$extend_file'(Expanded, Exts, LibFile),
+	    (   '$file_condition'(Cond, LibFile),
+		'$absolute_file_name'(LibFile, FullFile),
+		\+ '$search_path_file_cache'(Spec, Hash, Cache, FullFile),
+		assert('$search_path_file_cache'(Spec, Hash, Cache, FullFile))
+	    ->  '$search_message'(file_search(found(Spec, Cond), FullFile))
+	    ;   '$search_message'(file_search(tried(Spec, Cond), LibFile)),
+		fail
+	    )
+	).
+'$chk_alias_file'(Spec, Exts, Cond, false, _CWD, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	'$extend_file'(Expanded, Exts, LibFile),
-	(   '$file_condition'(Cond, LibFile),
-	    '$absolute_file_name'(LibFile, FullFile),
-	    \+ '$search_path_file_cache'(Spec, Cond, CWD, FullFile, Exts),
-	    assert('$search_path_file_cache'(Spec, Cond, CWD, FullFile, Exts))
-	->  '$search_message'(file_search(found(Spec, Cond), FullFile))
-	;   '$search_message'(file_search(tried(Spec, Cond), LibFile)),
-	    fail
-	).
+	'$file_condition'(Cond, LibFile),
+	'$absolute_file_name'(LibFile, FullFile).
+
 
 '$search_message'(Term) :-
 	current_prolog_flag(verbose_file_search, true), !,

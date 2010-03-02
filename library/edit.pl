@@ -110,13 +110,13 @@ locate(FileBase, file(File), [file(File)]) :-
 			   File),
 	\+ exists_directory(File).
 locate(FileSpec, file(File), [file(File)]) :-
-	ground(FileSpec),
-	absolute_file_name(FileSpec,
-			   [ file_type(prolog),
-			     access(read),
-			     file_errors(fail)
-			   ],
-			   File).
+	catch(absolute_file_name(FileSpec,
+				 [ file_type(prolog),
+				   access(read),
+				   file_errors(fail)
+				 ],
+				 File),
+	      _, fail).
 locate(FileBase, source_file(Path), [file(Path)]) :-
 	atom(FileBase),
 	source_file(Path),

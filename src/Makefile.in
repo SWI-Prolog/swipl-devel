@@ -89,6 +89,7 @@ EXPORTS=$(INCLUDEDIR)/SWI-Exports
 DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
+SICSTUSH=$(INCLUDEDIR)/sicstus.h
 STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
 RUNTIMEDIR=../lib/$(ARCH)
@@ -135,6 +136,8 @@ SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 
+include $(srcdir)/common.mk
+
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
 	../boot/writef.pl ../boot/history.pl ../boot/attvar.pl \
@@ -158,9 +161,6 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	charsio.pl portray_text.pl csv.pl persistency.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
-DIALECT=yap.pl hprolog.pl commons.pl ciao.pl
-YAP=	README.TXT
-ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
@@ -190,7 +190,7 @@ prof:
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
-headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
+headers:	parms.h $(CINCLUDE) $(STREAMH) $(SICSTUSH) $(STUBC) @EXTRAHDR@
 staticlib:	$(RUNTIME)
 sharedlib:	$(RUNTIMEDIR)/$(SHARED)
 index:		../library/INDEX.pl
@@ -293,6 +293,9 @@ $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 $(STREAMH):	$(srcdir)/SWI-Stream.h $(INCLUDEDIR)
 		cp $(srcdir)/SWI-Stream.h $@
 
+$(SICSTUSH):	$(srcdir)/compat/sicstus.h $(INCLUDEDIR)
+		cp $(srcdir)/compat/sicstus.h $@
+
 $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
 
@@ -392,7 +395,8 @@ install-demo:	idirs
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man demo boot library \
 		library/clp library/unicode include dotfiles \
 		library/dialect library/dialect/yap library/dialect/iso \
-		library/commons library/ciao
+		library/dialect/ciao library/dialect/ciao/engine \
+		library/dialect/sicstus
 
 iruntime:	idirs
 		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
@@ -442,7 +446,7 @@ iclp:		idirs
 			$(INSTALL_DATA) ../library/clp/$$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
-idialect:	idirs iyap iiso
+idialect:	idirs iyap iiso isicstus iciao
 		for f in $(DIALECT); do \
 			$(INSTALL_DATA) ../library/dialect/$$f $(DESTDIR)$(PLBASE)/library/dialect; \
 		done
@@ -450,6 +454,19 @@ idialect:	idirs iyap iiso
 iyap:		idirs
 		for f in $(YAP); do \
 			$(INSTALL_DATA) ../library/dialect/yap/$$f $(DESTDIR)$(PLBASE)/library/dialect/yap; \
+		done
+
+isicstus:	idirs
+		for f in $(SICSTUS); do \
+			$(INSTALL_DATA) ../library/dialect/sicstus/$$f $(DESTDIR)$(PLBASE)/library/dialect/sicstus; \
+		done
+
+iciao:		idirs
+		for f in $(CIAO); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao; \
+		done
+		for f in $(CIAO_ENGINE); do \
+			$(INSTALL_DATA) ../library/dialect/ciao/engine/$$f $(DESTDIR)$(PLBASE)/library/dialect/ciao/engine; \
 		done
 
 iiso:		idirs
@@ -469,7 +486,7 @@ idot:		idirs
 		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
 
 iinclude:	idirs
-		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c sicstus.h; do \
 		    if [ -f ../include/$$f ]; then \
 			$(INSTALL_DATA) ../include/$$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \

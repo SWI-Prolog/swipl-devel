@@ -802,7 +802,7 @@ colourise_exports2(_, _, _).
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
-	(   xref_public_list(File, Path, Public, TB)
+	(   catch(xref_public_list(File, Path, Public, TB), _, fail)
 	->  true
 	;   Public = []
 	),

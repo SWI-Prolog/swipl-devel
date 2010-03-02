@@ -511,11 +511,13 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
     ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     config = SSL_get_ex_data(ssl, ssl_idx);
 
+   
+
     ssl_deb(1, " ---- INIT Handling certificate verification\n");
     if (!preverify_ok) {
         X509 *cert = NULL;
         int   err;
-        const char *error;
+        const char *error;        
 
         /* At this point, we have a slight divergence from what happens in web
          * browsers. Verisign (at least) has cross-signed certificates, which
@@ -556,9 +558,10 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
          */
         top_server_supplied = sk_X509_pop(ctx->chain);
         top_untrusted = sk_X509_pop(ctx->untrusted);
-        
+       
         /* Next examine to see if we're at the bottom of the chain */
-        if ((next_certificate = sk_X509_pop(ctx->chain)) != NULL)
+        next_certificate = sk_X509_pop(ctx->chain);
+        if (next_certificate != NULL && next_certificate != ctx->cert)
         {
            /* We're not, so put the certificate back on (this could be avoided if
               there were an sk_X509_peek, obviously
@@ -578,12 +581,13 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
         /* We failed to pre-verify, so put the certs we removed back and continue */
         sk_X509_push(ctx->chain, top_server_supplied); 
         sk_X509_push(ctx->untrusted, top_untrusted);
-        
+
         /*
          * Get certificate
          */
         cert = X509_STORE_CTX_get_current_cert(ctx);
 
+        
         /*
          * Get error specification
          */

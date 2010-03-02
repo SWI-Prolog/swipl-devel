@@ -48,6 +48,7 @@ PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)\SWI-Stream.h
+SICSTUSH=$(INCLUDEDIR)\sicstus.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
@@ -72,6 +73,8 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
+
+!include common.mk
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
@@ -99,10 +102,6 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
-COMMON=
-DIALECT=yap.pl hprolog.pl
-YAP=	README.TXT
-ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 
@@ -120,7 +119,7 @@ plwin:	$(PLWIN)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
-headers:	$(CINCLUDE) $(STREAMH)
+headers:	$(CINCLUDE) $(STREAMH) $(SICSTUSH)
 
 banner:
 		@echo ****************
@@ -136,21 +135,19 @@ banner:
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
-		$(MTEXE) -manifest $(PLDLL).manifest -outputresource:$(PLDLL);2
 
-# We first create plcon.exe to avoid overriding the debug and manifest
-# files of swipl.dll.  Maybe using the same name for a dll and exe is a
-# bad idea afterall?
+# We first create plcon.exe to avoid overriding the debug files of swipl.dll.
+# Maybe using the same name for a dll and exe is a bad idea afterall?
+
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
-		$(MTEXE) -manifest plcon.exe.manifest -outputresource:plcon.exe;1
-		copy plcon.exe $@
+		rename plcon.exe $@
+		rename plcon.exe.manifest $@.manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
-		$(MTEXE) -manifest $(PLWIN).manifest -outputresource:$(PLWIN);1
 
 pl.res:		pl.rc pl.ico xpce.ico
 		$(RSC) /fo$@ pl.rc
@@ -178,6 +175,9 @@ $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 
 $(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
 		copy SWI-Stream.h $@
+
+$(SICSTUSH):	compat\sicstus.h $(INCLUDEDIR)
+		copy compat\sicstus.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
@@ -207,7 +207,6 @@ mkvmi.exe:	mkvmi.obj
 
 $(PLLD):	swipl-ld.obj
 		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
-		$(MTEXE) -manifest $(PLLD).manifest -outputresource:$(PLLD);1
 
 tags:		TAGS
 
@@ -225,12 +224,12 @@ check:
 # normal development version
 ################################################################
 
-!IF "$(CFG)" == "rt"
-install:	$(BINDIR) iprog install_packages
-!ELSE
-install:	install-arch install-libs install-readme install_packages \
+install:	embed-manifests \
+		install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
-!ENDIF
+
+embed-manifests::
+		win32\embed_manifests.cmd
 
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
@@ -279,6 +278,9 @@ IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
+		"$(PLBASE)\library\dialect\sicstus" \
+		"$(PLBASE)\library\dialect\ciao" \
+		"$(PLBASE)\library\dialect\ciao\engine" \
 		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
@@ -290,7 +292,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap iiso iunicode
+ilib:		iclp idialect iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -306,6 +308,16 @@ iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
 			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
 
+isicstus::
+		chdir $(PLHOME)\library\dialect\sicstus & \
+			for %f in ($(SICSTUS)) do copy %f "$(PLBASE)\library\dialect\sicstus"
+
+iciao::
+		chdir $(PLHOME)\library\dialect\ciao & \
+			for %f in ($(CIAO)) do copy %f "$(PLBASE)\library\dialect\ciao"
+		chdir $(PLHOME)\library\dialect\ciao\engine & \
+			for %f in ($(CIAO_ENGINE)) do copy %f "$(PLBASE)\library\dialect\ciao\engine"
+
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \
 			for %f in ($(ISO)) do copy %f "$(PLBASE)\library\dialect\iso"
@@ -317,6 +329,7 @@ iunicode::
 iinclude:
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
+		$(INSTALL_DATA) $(PLHOME)\include\sicstus.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"
 !IF "$(MT)" == "true"
 		$(INSTALL_DATA) "$(EXTRAINCDIR)\pthread.h" "$(PLBASE)\include"

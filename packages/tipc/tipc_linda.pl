@@ -46,6 +46,8 @@
 	   bagof_in_noblock/3,	     % +Template, ?Term, -Bag
 	   linda_eval/1,             % :Head
 	   linda_eval/2,	     % ?Head, :Body
+	   linda_eval_detached/1,    % :Head
+	   linda_eval_detached/2,    % ?Head, :Body
 	   tuple/1,                  % :Goal
 	   tuple/2,		     % ?Head, :Body
 	   tipc_initialize/0
@@ -335,7 +337,6 @@ linda_listening(Addr) :-
 	basic_request(rd(listening), Addr), !.
 
 linda :-
-	linda_timeout(_, 0.250),
 	linda_listening(Addr), !,
 	format('TIPC Linda server still listening at: ~p~n', [Addr]).
 
@@ -361,7 +362,6 @@ linda(Hook) :-
 %
 
 linda_client(global) :-
-	linda_timeout(_, 0.250),
 	linda_listening(Addr), !,
 	format('TIPC Linda server listening at: ~p~n', [Addr]).
 
@@ -380,21 +380,23 @@ close_client :- true.   % Presently a noop
 % ignored. OldTime is unified with the old   timeout and then timeout is
 % set to NewTime.  NewTime  is  of   the  form  Seconds:Milliseconds.  A
 % non-negative real number, seconds, is also  recognized. The default is
-% 0.250 seconds.
+% 0.250 seconds. This timeout is thread local and is _not_  inherited
+% from its parent. New threads are initialized to the default.
 %
-% _|Please note that the synchronous behavior  afforded by in/1 and rd/1
+% *|Note:|* The synchronous behavior  afforded by in/1 and rd/1
 % is implemented by periodically polling the   server.  The poll rate is
-% set according to this timeout  value.   Setting  the timeout value too
-% small may result in substantial  network   traffic  that  is of little
-% value.|_
+% set according to this timeout. Setting the timeout too small may
+% result in substantial network traffic that is of little value.
 %
 % @throws error(feature_not_supported). SICStus Linda can
 % disable the timeout by specifying =off= as NewTime. This feature does
 % not exist for safety reasons.
 %
 
+:- thread_local linda_time_out/1.
+
 linda_timeout(Time, Time) :-
-	flag(linda_timeout, Time, Time), !.
+	linda_time_out(Time), !.
 
 linda_timeout(_OldTime, NewTime) :-
 	NewTime == off,
@@ -404,11 +406,18 @@ linda_timeout(OldTime, NewTime) :-
 	ground(NewTime),
 	NewTime = Seconds:Milliseconds,
 	NewTime1 is float(Seconds + (Milliseconds / 1000.0)),
-	linda_timeout(OldTime, NewTime1).
+	linda_timeout(OldTime, NewTime1), !.
 
 linda_timeout(OldTime, NewTime) :-
-	flag(linda_timeout, OldTime, NewTime),
-	NewTime > 0.020.
+	ground(NewTime),
+	NewTime >= 0.020,
+	clause(linda_time_out(OldTime), true, Ref),
+	asserta(linda_time_out(NewTime)) -> erase(Ref), !.
+
+linda_timeout(0.250, NewTime) :-
+	NewTime >= 0.020,
+	asserta(linda_time_out(NewTime)).
+
 
 %%	linda_timeout(+NewTime) is semidet.
 %
@@ -416,8 +425,6 @@ linda_timeout(OldTime, NewTime) :-
 % saved and then the timeout is set  to NewTime. NewTime is as described
 % in linda_timeout/2. The original timeout  is restored automatically on
 % cut of choice points, failure on backtracking, or uncaught exception.
-%
-% @bug This should provide thread-local behavior. It presently does not.
 %
 
 linda_timeout(NewTime) :-
@@ -428,7 +435,7 @@ basic_request(Action) :-
 	basic_request(Action, _Addr).
 
 basic_request(Action, Addr) :-
-	flag(linda_timeout, Time, Time),
+	linda_timeout(Time, Time),
 	broadcast_request(tipc_cluster('$linda'(Action):Addr, Time)).
 
 %%	out(+Tuple) is det.
@@ -531,10 +538,16 @@ bagof_rd_noblock(Template,  Tuple, Bag) :-
 bagof_in_noblock(Template,  Tuple, Bag) :-
 	!, basic_request(bagof_in_noblock(Template, Tuple, Bag)), !.
 
-:- meta_predicate linda_eval(?, 0), linda_eval(0).
+:- meta_predicate
+      linda_eval(?, 0),
+      linda_eval(0),
+      linda_eval_detached(?, 0),
+      linda_eval_detached(0).
 
 %%	linda_eval(:Goal) is det.
 %%	linda_eval(?Head, :Goal) is det.
+%%	linda_eval_detached(:Goal) is det.
+%%	linda_eval_detached(?Head, :Goal) is det.
 %
 %  Causes Goal to be evaluated in parallel  with a parent predicate. The
 %  child  thread  is  a  full-fledged    client,   possessing  the  same
@@ -559,6 +572,9 @@ bagof_in_noblock(Template,  Tuple, Bag) :-
 %  parent's body has the effect of joining   all children created by the
 %  parent. This provides a  barrier  that   guarantees  that  all  child
 %  instances of Goal have run to completion before the parent proceeds.
+%  Detached threads behave as above, except that they operate
+%  independently and cannot be joined. They will continue to run while
+%  the host process continues to run.
 %
 % Here is an example of a parallel quicksort:
 %
@@ -582,6 +598,14 @@ linda_eval(Head, Body) :-
 	thread_create(forall(Body, out(Plain)), Id, []) ~>
 	   thread_join(Id, true).
 
+linda_eval_detached(Head) :-
+	linda_eval_detached(Head, Head).
+
+linda_eval_detached(Head, Body) :-
+	must_be(callable, Body),
+	strip_module(Head, _Module, Plain),
+	thread_create(forall(Body, out(Plain)), _Id, [detach(true)]).
+
 %%	tuple(:Goal) is det.
 %%      tuple(?Head, :Goal) is det.
 %
@@ -596,8 +620,8 @@ linda_eval(Head, Body) :-
 %  Head and Goal are identical, except that  the module name is stripped
 %  from Head.
 %
-%  *|Note:|* A virtual tuple is an extension  of the server, even though
-%  it is operating in the client's  Prolog environment. It is restricted
+%  *|Note:|* A virtual tuple is an extension  of the server. Even though
+%  it is operating in the client's  Prolog environment, it is restricted
 %  in the server operations that it may   perform.  It is generally safe
 %  for tuple predicates to perform out/1   operations,  but it is unsafe
 %  for them to perform any variant of   =in= or =rd=, either directly or

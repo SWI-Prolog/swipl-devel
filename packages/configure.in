@@ -114,4 +114,4 @@ else
    mv Makefile.pkg Makefile
 fi
 
-$MAKE CNFGPASSED="$configoptions" configure
+$MAKE CNFGPASSED="$configoptions" configure || exit 1

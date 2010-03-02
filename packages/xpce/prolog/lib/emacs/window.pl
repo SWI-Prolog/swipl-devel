@@ -74,6 +74,8 @@ make_emacs_tab_popup(P) :-
 current(TW, Window:window) :->
 	"Make the given window the current one"::
 	send_super(TW, current, Window),
+	get(Window, text_buffer, TB),
+	send(TB, check_modified_file, @on),
 	(   get(TW, frame, Frame),
 	    send(Frame, has_send_method, setup_mode)
 	->  send(TW?frame, setup_mode, Window)
@@ -138,7 +140,7 @@ quit(F) :->
 
 editor_event(F, Ev:event) :->
 	"Delegate to the mini-window"::
-	get(F, member, emacs_mini_window, MW),
+	get(F, member, mini_window, MW),
 	send(MW, editor_event, Ev).
 
 input_focus(F, Val:bool) :->
