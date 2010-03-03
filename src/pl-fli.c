@@ -229,6 +229,27 @@ PL_new_term_ref()
   return PL_new_term_ref__LD(PASS_LD1);
 }
 
+
+/* PL_new_term_nil_ref() is for compatibility with SICStus and other
+   prologs that create the initial term-reference as [] instead of
+   using a variable.
+*/
+
+term_t
+PL_new_term_nil_ref(void)
+{ GET_LD
+  term_t t;
+
+  if ( (void*)fli_context <= (void*)environment_frame )
+    fatalError("PL_new_term_ref(): No foreign environment");
+
+  if ( (t=PL_new_term_ref__LD(PASS_LD1)) )
+    setHandle(t, ATOM_nil);
+
+  return t;
+}
+
+
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 

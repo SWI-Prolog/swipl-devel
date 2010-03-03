@@ -57,7 +57,7 @@ typedef predicate_t SP_pred_ref;
 		 *  READING AND WRITING TERMS	*
 		 *******************************/
 
-#define SP_new_term_ref() PL_new_term_ref()
+#define SP_new_term_ref() PL_new_nil_ref()
 
 #define SP_is_list(t) PL_is_list(t)
 
