@@ -94,6 +94,9 @@ hold a list of integers in the range   [0,255],  so that at most n bytes
 are used. The number of bytes actually   written is assigned to *w. tail
 is set to the remainder of the list. The   array s must have room for at
 least n bytes.
+
+TBD: This implementation is a bit slow, but   it should do the trick for
+now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static __inline int
@@ -102,7 +105,23 @@ SP_get_list_n_bytes(SP_term_ref term,
 		    size_t n,
 		    size_t *w,
 		    unsigned char *s)
-{ assert(0);				/* TBD */
+{ size_t written = 0;
+  term_t head = PL_new_term_ref();
+
+  PL_put_term(tail, term);
+  while( written < n && PL_get_list(tail, head, tail) )
+  { int i;
+
+    if ( PL_get_integer(head, &i) && i >= 0 && i <= 255 )
+    { s[written++] = i;
+    } else
+    { *w = written;
+      return SP_ERROR;			/* Is this ok? */
+    }
+  }
+
+  *w = written;
+  return SP_SUCCESS;
 }
 
 
