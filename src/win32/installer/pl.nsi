@@ -285,7 +285,6 @@ Section "Base system (required)"
   File pl\library\record.pl
   File pl\library\settings.pl
   File pl\library\terms.pl
-  File pl\library\dialect.pl
   File pl\library\apply_macros.pl
   File pl\library\apply.pl
   File pl\library\aggregate.pl
@@ -413,18 +412,11 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File pl\library\clp\clpq.pl
 SectionEnd
 
-Section "YAP Portability support"
+Section "Portability (YAP, SICStus, Ciao) support"
   SectionIn 1 3
-  SetOutPath $INSTDIR\library\dialect
-  File pl\library\dialect\yap.pl
-  File pl\library\dialect\hprolog.pl
-  File /r pl\library\dialect\yap
-SectionEnd
-
-Section "ISO information support"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library\dialect
-  File /r pl\library\dialect\iso
+  SetOutPath $INSTDIR\library
+  File pl\library\dialect.pl
+  File /r pl\library\dialect
 SectionEnd
 
 Section "Demo files"
