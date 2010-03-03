@@ -230,13 +230,13 @@ PL_new_term_ref()
 }
 
 
-/* PL_new_term_nil_ref() is for compatibility with SICStus and other
+/* PL_new_nil_ref() is for compatibility with SICStus and other
    prologs that create the initial term-reference as [] instead of
    using a variable.
 */
 
 term_t
-PL_new_term_nil_ref(void)
+PL_new_nil_ref(void)
 { GET_LD
   term_t t;
 
