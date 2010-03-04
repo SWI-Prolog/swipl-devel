@@ -619,7 +619,6 @@ COMMON(void)		unallocRecordRef(RecordRef r ARG_LD);
 COMMON(bool) 		unifyKey(term_t key, word val);
 COMMON(int) 		getKeyEx(term_t key, word *k ARG_LD);
 COMMON(word) 		pl_current_key(term_t k, control_t h);
-COMMON(word) 		pl_erase(term_t ref);
 COMMON(word) 		pl_term_complexity(term_t t, term_t mx, term_t count);
 COMMON(void)		markAtomsRecord(Record record);
 

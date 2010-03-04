@@ -1750,14 +1750,16 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 }
 
 
-word
-pl_erase(term_t ref)
-{ GET_LD
+static
+PRED_IMPL("erase", 1, erase, 0)
+{ PRED_LD
   void *ptr;
   RecordRef prev, r;
   RecordList l;
   word rval;
   db_ref_type type;
+
+  term_t ref = A1;
 
   if ( !(ptr=PL_get_dbref(ref, &type)) )
     return FALSE;
@@ -1886,4 +1888,5 @@ BeginPredDefs(rec)
   PRED_SHARE("recordz", 3, recordz, 0)
   PRED_SHARE("recorda", 2, recorda, 0)
   PRED_SHARE("recorda", 3, recorda, 0)
+  PRED_DEF("erase", 1, erase, 0)
 EndPredDefs
