@@ -711,6 +711,8 @@ resetVars(ARG1_LD)
     { *vd->address = vd->saved;
     }
   }
+
+  LD->comp.filledVars = 0;
 }
 
 
@@ -905,7 +907,8 @@ that have an I_CONTEXT because we need to reset the context.
     bi = PC(&ci);
     if ( (rc=compileBody(body, I_DEPART, &ci PASS_LD)) != TRUE )
     { if ( rc == NOT_CALLABLE )
-      {	rc = PL_error(NULL, 0, NULL, ERR_TYPE,
+      {	resetVars(PASS_LD1);
+	rc = PL_error(NULL, 0, NULL, ERR_TYPE,
 		      ATOM_callable, wordToTermRef(body));
       }
 
