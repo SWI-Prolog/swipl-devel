@@ -25,13 +25,14 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #include "pl-termwalk.c"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
 static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word);
-static void freeRecordRef(RecordRef r);
+static void freeRecordRef(RecordRef r ARG_LD);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -91,16 +92,16 @@ isCurrentRecordList(word key)
 */
 
 static void
-cleanRecordList(RecordList rl)
+cleanRecordList(RecordList rl ARG_LD)
 { RecordRef *p;
   RecordRef r, prev=NULL;
 
   for(p = &rl->firstRecord; (r=*p); )
-  { if ( true(r->record, ERASED) )
+  { if ( true(r->record, R_ERASED) )
     { *p = r->next;
       if ( r == rl->lastRecord )
 	rl->lastRecord = prev;
-      freeRecordRef(r);
+      freeRecordRef(r PASS_LD);
     } else
     { prev = r;
       p = &r->next;
@@ -1399,11 +1400,19 @@ freeRecord__LD(Record record ARG_LD)
 }
 
 
+void
+unallocRecordRef(RecordRef r ARG_LD)
+{ freeHeap(r, sizeof(*r));
+}
+
+
 static void
-freeRecordRef(RecordRef r)
-{ GET_LD
-  freeRecord(r->record);
-  freeHeap(r, sizeof(*r));
+freeRecordRef(RecordRef r ARG_LD)
+{ freeRecord(r->record);
+  if ( false(r->record, R_DBREF) )
+    freeHeap(r, sizeof(*r));
+  else
+    r->record = NULL;
 }
 
 
@@ -1582,13 +1591,14 @@ record(term_t key, term_t term, term_t ref, int az)
 
   if ( !getKeyEx(key, &k PASS_LD) )
     fail;
-  if ( !PL_is_variable(ref) )
+  if ( ref && !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
   copy = compileTermToHeap(term, 0);
   r = allocHeap(sizeof(*r));
   r->record = copy;
-  PL_unify_pointer(ref, r);
+  if ( ref && !PL_unify_recref(ref, r) )
+    return FALSE;
 
   LOCK();
   l = lookupRecordList(k);
@@ -1612,38 +1622,38 @@ record(term_t key, term_t term, term_t ref, int az)
 }
 
 
-word
-pl_recorda(term_t key, term_t term, term_t ref)
-{ return record(key, term, ref, RECORDA);
+static
+PRED_IMPL("recorda", va, recorda, 0)
+{ return record(A1, A2, CTX_ARITY == 3 ? A3 : 0, RECORDA);
 }
 
 
-word
-pl_recordz(term_t key, term_t term, term_t ref)
-{ return record(key, term, ref, RECORDZ);
+static
+PRED_IMPL("recordz", va, recordz, 0)
+{ return record(A1, A2, CTX_ARITY == 3 ? A3 : 0, RECORDZ);
 }
 
 
-word
-pl_recorded(term_t key, term_t term, term_t ref, control_t h)
-{ RecordList rl;
+static
+PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  RecordList rl;
   RecordRef record;
   word k = 0L;
   term_t copy;
   word rval;
 
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-    { GET_LD
-      void *ptr;
+  term_t key  = A1;
+  term_t term = A2;
+  term_t ref  = (CTX_ARITY == 3 ? A3 : 0);
 
-      if ( PL_get_pointer(ref, &ptr) )
-      { record = ptr;
-	LOCK();
-	if ( isRecordRef(record) )
-	{ if ( unifyKey(key, record->list->key) )
-	  { GET_LD
-	    int rc;
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { if ( ref && !PL_is_variable(ref) )
+      { if ( PL_get_recref(ref, &record) )
+	{ LOCK();
+	  if ( unifyKey(key, record->list->key) )
+	  { int rc;
 
 	    copy = PL_new_term_ref();
 	    if ( (rc=copyRecordToGlobal(copy, record->record,
@@ -1653,10 +1663,11 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 	      rval = PL_unify(term, copy);
 	  } else
 	    rval = FALSE;
-	} else
-	  rval = PL_error("recorded", 3, NULL, ERR_TYPE, ATOM_record, record);
-	UNLOCK();
-	return rval;
+	  UNLOCK();
+
+	  return rval;
+	}
+	return FALSE;
       }
       if ( !getKeyEx(key, &k PASS_LD) ||
 	   !(rl = isCurrentRecordList(k)) )
@@ -1667,7 +1678,7 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
       break;
     }
     case FRG_REDO:
-    { record = ForeignContextPtr(h);
+    { record = CTX_PTR;
       rl = record->list;
 
       assert(rl->references > 0);
@@ -1676,14 +1687,14 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
       break;
     }
     case FRG_CUTTED:
-    { record = ForeignContextPtr(h);
+    { record = CTX_PTR;
 
       if ( record )
       { rl = record->list;
 
 	LOCK();
-	if ( --rl->references == 0 && true(rl, R_DIRTY) )
-	  cleanRecordList(rl);
+	if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+	  cleanRecordList(rl PASS_LD);
 	UNLOCK();
       }
     }
@@ -1692,8 +1703,7 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
       succeed;
   }
 
-{ GET_LD
-  fid_t fid;
+{ fid_t fid;
 
   if ( !(copy = PL_new_term_ref()) ||
        !(fid = PL_open_foreign_frame()) )
@@ -1704,19 +1714,20 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
   for( ; record; record = record->next )
   { int rc;
 
-    if ( true(record->record, ERASED) )
+    if ( true(record->record, R_ERASED) )
       continue;
 
     if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
     { UNLOCK();
       return raiseStackOverflow(rc);
     }
-    if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
+    if ( PL_unify(term, copy) &&
+	 (!ref || PL_unify_recref(ref, record)) )
     { PL_close_foreign_frame(fid);
 
       if ( !record->next )
-      { if ( --rl->references == 0 && true(rl, R_DIRTY) )
-	  cleanRecordList(rl);
+      { if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+	  cleanRecordList(rl PASS_LD);
 	UNLOCK();
 	succeed;
       } else
@@ -1731,8 +1742,8 @@ pl_recorded(term_t key, term_t term, term_t ref, control_t h)
   PL_close_foreign_frame(fid);
 }
 
-  if ( --rl->references == 0 && true(rl, R_DIRTY) )
-    cleanRecordList(rl);
+  if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+    cleanRecordList(rl PASS_LD);
 
   UNLOCK();
   fail;
@@ -1743,17 +1754,16 @@ word
 pl_erase(term_t ref)
 { GET_LD
   void *ptr;
-  RecordRef record;
   RecordRef prev, r;
   RecordList l;
   word rval;
+  db_ref_type type;
 
-  if ( !PL_get_pointer(ref, &ptr) || !inCore(ptr))
-    return PL_error("erase", 1, NULL, ERR_TYPE, ATOM_db_reference, ref);
+  if ( !(ptr=PL_get_dbref(ref, &type)) )
+    return FALSE;
 
-  record = ptr;
-  if ( isClause(record) )
-  { Clause clause = (Clause) record;
+  if ( type == DB_REF_CLAUSE )
+  { Clause clause = ptr;
     Definition def = getProcDefinition(clause->procedure);
 
     if ( !true(def, DYNAMIC) )
@@ -1761,24 +1771,23 @@ pl_erase(term_t ref)
 		      ATOM_clause, ATOM_erase, ref);
 
     return retractClauseDefinition(def, clause PASS_LD);
-  }
+  } else
+  { RecordRef record = ptr;
 
-  LOCK();
-  if ( isRecordRef(record) )
-  {
 #if O_DEBUGGER
     callEventHook(PLEV_ERASED, record);
 #endif
 
+    LOCK();
     l = record->list;
     if ( l->references )		/* a recorded has choicepoints */
-    { set(record->record, ERASED);
-      set(l, R_DIRTY);
+    { set(record->record, R_ERASED);
+      set(l, RL_DIRTY);
     } else if ( record == l->firstRecord )
     { if ( !record->next )
 	l->lastRecord = NULL;
       l->firstRecord = record->next;
-      freeRecordRef(record);
+      freeRecordRef(record PASS_LD);
     } else
     { prev = l->firstRecord;
       r = prev->next;
@@ -1789,20 +1798,17 @@ pl_erase(term_t ref)
 	    l->lastRecord = prev;
 	  }
 	  prev->next = r->next;
-	  freeRecordRef(r);
+	  freeRecordRef(r PASS_LD);
 	  goto ok;
 	}
       }
-      goto nok;
+      assert(0);
     }
 
   ok:
+    UNLOCK();
     rval = TRUE;
-  } else
-  { nok:
-    rval = PL_error("erase", 1, NULL, ERR_DOMAIN, ATOM_db_reference, ref);
   }
-  UNLOCK();
 
   return rval;
 }
@@ -1868,3 +1874,16 @@ pl_term_complexity(term_t t, term_t mx, term_t count)
 
   return PL_unify_integer(count, c);
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(rec)
+  PRED_SHARE("recorded", 2, recorded, PL_FA_NONDETERMINISTIC)
+  PRED_SHARE("recorded", 3, recorded, PL_FA_NONDETERMINISTIC)
+  PRED_SHARE("recordz", 2, recordz, 0)
+  PRED_SHARE("recordz", 3, recordz, 0)
+  PRED_SHARE("recorda", 2, recorda, 0)
+  PRED_SHARE("recorda", 3, recorda, 0)
+EndPredDefs

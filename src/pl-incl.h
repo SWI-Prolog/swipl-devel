@@ -797,6 +797,8 @@ with one operation, it turns out to be faster as well.
 #define HAS_BREAKPOINTS		(0x0004) /* Clause has breakpoints */
 #define GOAL_CLAUSE		(0x0008) /* Dummy for meta-calling */
 #define COMMIT_CLAUSE		(0x0010) /* This clause will commit */
+#define DBREF_CLAUSE		(0x0020) /* Clause has db-reference */
+#define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
 
 #define CHARESCAPE		(0x0004) /* module */
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
@@ -812,10 +814,13 @@ with one operation, it turns out to be faster as well.
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
 
-#define R_DIRTY			(0x0001) /* recordlist */
+#define RL_DIRTY		(0x0001) /* recordlist */
+
+#define R_ERASED		(0x0001) /* record: record is erased */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
 #define R_DUPLICATE		(0x0004) /* record: include references */
 #define R_NOLOCK		(0x0008) /* record: do not lock atoms */
+#define R_DBREF			(0x0010) /* record: has DB-reference */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -1064,6 +1069,7 @@ struct clause
 		/* HAS_BREAKPOINTS Break-instructions in the clause */
 		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
 		/* COMMIT_CLAUSE   Clause will commit (execute !) */
+  		/* DBREF_CLAUSE    Clause has a db-reference */
   code		code_size;		/* size of ->codes */
   code		codes[1];		/* VM codes of clause */
 };
@@ -1333,13 +1339,14 @@ struct fliFrame
 
 struct record
 { int		size;			/* # bytes of the record */
-  int		nvars;			/* # variables in the term */
-  unsigned	gsize : 28;		/* Stack space required (words) */
-  unsigned	flags : 4;		/* Flags, holding */
-					/* ERASED */
+  unsigned      gsize;			/* Size on global stack */
+  unsigned	nvars : 27;		/* # variables in the term */
+  unsigned	flags : 5;		/* Flags, holding */
+					/* R_ERASED */
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
-					/* R_LIST */
+					/* R_NOLOCK */
+  					/* R_DBREF */
 #ifdef REC_MAGIC
   int		magic;			/* REC_MAGIC */
 #endif
@@ -1348,12 +1355,12 @@ struct record
 };
 
 struct recordList
-{ int		type;		/* RECORD_TYPE */
-  int		references;	/* choicepoints reference count */
-  word		key;		/* key of record */
-  RecordRef	firstRecord;	/* first record associated with key */
-  RecordRef	lastRecord;	/* last record associated with key */
-  unsigned int  flags;		/* R_DIRTY */
+{ int		type;			/* RECORD_TYPE */
+  int		references;		/* choicepoints reference count */
+  word		key;			/* key of record */
+  RecordRef	firstRecord;		/* first record associated with key */
+  RecordRef	lastRecord;		/* last record associated with key */
+  unsigned int  flags;			/* RL_DIRTY */
 };
 
 struct recordRef

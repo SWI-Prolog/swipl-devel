@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-dbref.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General  handling  of  procedures:  creation;  adding/removing  clauses;
@@ -1010,10 +1011,11 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     succeed;
   }
 
+  set(clause, ERASED);
+
   if ( def->references ||
        def->number_of_clauses > 16 )
-  { set(clause, ERASED);
-    if ( def->hash_info )
+  { if ( def->hash_info )
     { markDirtyClauseIndex(def->hash_info, clause);
       if ( false(def, NEEDSREHASH) &&
 	   def->hash_info->size * 4 < def->hash_info->buckets )
@@ -1053,6 +1055,13 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 
 
 void
+unallocClause(Clause c ARG_LD)
+{ GD->statistics.codes -= c->code_size;
+  freeHeap(c, sizeofClause(c->code_size));
+}
+
+
+void
 freeClause(Clause c ARG_LD)
 {
 #if O_DEBUGGER
@@ -1060,11 +1069,16 @@ freeClause(Clause c ARG_LD)
     clearBreakPointsClause(c);
 #endif
 
-  GD->statistics.codes -= c->code_size;
 #ifdef O_ATOMGC
   forAtomsInClause(c, PL_unregister_atom);
 #endif
-  freeHeap(c, sizeofClause(c->code_size));
+
+  if ( true(c, DBREF_CLAUSE) )
+  { set(c, DBREF_ERASED_CLAUSE);
+    return;
+  }
+
+  unallocClause(c PASS_LD);
 }
 
 
@@ -2573,10 +2587,9 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
   Clause clause;
   atom_t a;
 
-  if ( !get_clause_ptr_ex(ref, &clause) )
-    fail;
-  if ( !PL_get_atom(att, &a) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
+  if ( !PL_get_clref(ref, &clause) ||
+       !PL_get_atom_ex(att, &a) )
+    return FALSE;
 
   if ( a == ATOM_line_count )
   { if ( clause->line_no )

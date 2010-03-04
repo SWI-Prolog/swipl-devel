@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #include "pl-inline.h"
 #include <limits.h>
 #ifdef HAVE_DLADDR
@@ -2477,7 +2478,7 @@ PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   if ( !(clause = assert_term(A1, CL_END, NULL PASS_LD)) )
     fail;
 
-  return PL_unify_pointer(A2, clause);
+  return PL_unify_clref(A2, clause);
 }
 
 
@@ -2491,7 +2492,7 @@ PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   if ( !(clause = assert_term(A1, CL_START, NULL PASS_LD)) )
     fail;
 
-  return PL_unify_pointer(A2, clause);
+  return PL_unify_clref(A2, clause);
 }
 
 
@@ -2514,7 +2515,7 @@ record_clause(term_t term, term_t file, term_t ref ARG_LD)
   }
 
   if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
-    return PL_unify_pointer(ref, clause);
+    return PL_unify_clref(ref, clause);
 
   fail;
 }
@@ -3804,17 +3805,11 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 
   switch( ForeignControl(ctx) )
   { case FRG_FIRST_CALL:
-    { void *ptr;
-      Clause clause;
+    { Clause clause;
 
-      if ( ref )
-      { if ( PL_get_pointer(ref, &ptr) )
+      if ( ref && !PL_is_variable(ref) )
+      { if ( PL_get_clref(ref, &clause) )
 	{ term_t tmp;
-
-	  clause = ptr;
-	  if ( !isClause(clause) )
-	    return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-			    ATOM_clause_reference, ref);
 
 	  decompile(clause, term, bindings);
 	  proc = clause->procedure;
@@ -3829,10 +3824,9 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 	  get_head_and_body_clause(term, h, b, NULL PASS_LD);
 	  if ( unify_head(tmp, h PASS_LD) && PL_unify(body, b) )
 	    succeed;
-	  fail;
 	}
-	if ( !PL_is_variable(ref) )
-	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
+
+	fail;
       }
       if ( !get_procedure(head, &proc, 0, GP_FIND) )
 	fail;
@@ -3889,7 +3883,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
     { get_head_and_body_clause(term, h, b, NULL PASS_LD);
       if ( unify_head(head, h PASS_LD) &&
 	   PL_unify(b, body) &&
-	   (!ref || PL_unify_pointer(ref, cref->clause)) )
+	   (!ref || PL_unify_clref(ref, cref->clause)) )
       { if ( !next )
 	{ leaveDefinition(def);
 	  succeed;
@@ -3932,7 +3926,6 @@ typedef struct
 word
 pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 { GET_LD
-  void *ptr;
   Clause clause;
   ClauseRef cref;
   Procedure proc;
@@ -3953,13 +3946,8 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     succeed;
   }
 
-  if ( PL_get_pointer(ref, &ptr) )
+  if ( PL_get_clref(ref, &clause) )
   { int i;
-
-    clause = ptr;
-    if ( !isClause(clause) )
-      return PL_error(NULL, 0, "Invalid integer reference", ERR_DOMAIN,
-		      ATOM_clause_reference, ref);
 
     if ( true(clause, GOAL_CLAUSE) )
       fail;				/* I don't belong to a predicate */
@@ -3979,7 +3967,8 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     }
 
     fail;
-  }
+  } else if ( !PL_is_variable(ref) )
+    return FALSE;
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
   { int i;
@@ -4007,7 +3996,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 	i--;
       }
       if ( i == 0 && cref )
-	return PL_unify_pointer(ref, cref->clause);
+	return PL_unify_clref(ref, cref->clause);
       fail;
     }
 
@@ -4021,7 +4010,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   }
 
   PL_unify_integer(n, cr->index);
-  PL_unify_pointer(ref, cr->clause->clause);
+  PL_unify_clref(ref, cr->clause->clause);
 
   cref = cr->clause->next;
   while ( cref && !visibleClause(cref->clause, generation) )
@@ -4039,22 +4028,6 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   succeed;
 }
 
-
-int
-get_clause_ptr_ex(term_t ref, Clause *cl)
-{ GET_LD
-  void *ptr;
-  Clause clause;
-
-  if ( !PL_get_pointer(ref, &ptr) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
-  clause = ptr;
-  if ( !isClause(clause) )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
-
-  *cl = clause;
-  succeed;
-}
 
 #if O_DEBUGGER				/* to the end of the file */
 
@@ -4108,7 +4081,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
   if ( CTX_CNTRL == FRG_CUTTED )
     succeed;
 
-  if ( !get_clause_ptr_ex(A1, &clause) )
+  if ( !PL_get_clref(A1, &clause) )
     fail;
 
   PC  = clause->codes;
@@ -4426,8 +4399,8 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   term_t noffset = A3;
   term_t instruction = A4;
 
-  if ( PL_is_integer(from) )
-  { if ( !get_clause_ptr_ex(from, &clause) )
+  if ( PL_is_dbref(from) )
+  { if ( !PL_get_clref(from, &clause) )
       fail;
     base = clause->codes;
     len  = (size_t)clause->code_size;
@@ -4707,7 +4680,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   if ( !assertProcedure(proc, cl, CL_END PASS_LD) )
     fail;
 
-  return PL_unify_pointer(A3, cl);
+  return PL_unify_clref(A3, cl);
 }
 
 
@@ -4839,7 +4812,7 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(A3);
 
-  if ( !get_clause_ptr_ex(A1, &clause) ||
+  if ( !PL_get_clref(A1, &clause) ||
        !PL_get_integer_ex(A2, &pcoffset) )
     fail;
   if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
@@ -5057,7 +5030,7 @@ PRED_IMPL("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
       offset = CTX_INT;
   }
 
-  if ( !get_clause_ptr_ex(A1, &clause) )
+  if ( !PL_get_clref(A1, &clause) )
     fail;
   PC = clause->codes + offset;
   end = clause->codes + clause->code_size;
@@ -5192,9 +5165,8 @@ PRED_IMPL("$break_at", 3, break_at, 0)
 { Clause clause = NULL;
   int offset, doit, rc;
 
-  if ( !get_clause_ptr_ex(A1, &clause) )
-    fail;
-  if ( !PL_get_bool_ex(A3, &doit) ||
+  if ( !PL_get_clref(A1, &clause) ||
+       !PL_get_bool_ex(A3, &doit) ||
        !PL_get_integer_ex(A2, &offset) )
     fail;
   if ( offset < 0 || offset >= (int)clause->code_size )
@@ -5243,7 +5215,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 	return FALSE;
       }
 
-      if ( PL_unify_pointer(A1, bp->clause) &&
+      if ( PL_unify_clref(A1, bp->clause) &&
 	   PL_unify_integer(A2, bp->offset) )
       { ForeignRedoPtr(e);
       }

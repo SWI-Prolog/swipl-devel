@@ -40,7 +40,6 @@
 	    nospyall/0,
 	    debugging/0,
 	    rational/3,
-	    atomic_list_concat/2,
 	    atom_prefix/2,
 	    dwim_match/2,
 	    source_file/1,
@@ -53,7 +52,6 @@
 	    clause_property/2,
 	    recorda/2,
 	    recordz/2,
-	    recorded/2,
 	    current_module/1,
 	    module_property/2,
 	    module/1,
@@ -609,14 +607,6 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
-
-
-recorda(Key, Value) :-
-	recorda(Key, Value, _).
-recordz(Key, Value) :-
-	recordz(Key, Value, _).
-recorded(Key, Value) :-
-	recorded(Key, Value, _).
 
 
 		 /*******************************

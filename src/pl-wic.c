@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -2738,9 +2739,8 @@ pl_qlf_assert_clause(term_t ref, term_t saveclass)
     IOSTREAM *s = wicFd;
     atom_t sclass;
 
-    if ( !get_clause_ptr_ex(ref, &clause) )
-      fail;
-    if ( !PL_get_atom_ex(saveclass, &sclass) )
+    if ( !PL_get_clref(ref, &clause) ||
+	 !PL_get_atom_ex(saveclass, &sclass) )
       fail;
 
     openProcedureWic(clause->procedure, s, sclass PASS_LD);

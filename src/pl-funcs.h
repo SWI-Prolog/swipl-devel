@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -181,7 +181,6 @@ COMMON(int) 		unify_definition(term_t head, Definition def,
 				 term_t thehead, int flags);
 COMMON(code) 		replacedBreak(Code PC);
 COMMON(void) 		clearBreakPointsClause(Clause clause);
-COMMON(int) 		get_clause_ptr_ex(term_t ref, Clause *cl);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 
 /* pl-dump.c */
@@ -541,6 +540,7 @@ COMMON(ClauseRef) 	assertProcedure(Procedure proc, Clause clause,
 COMMON(bool) 		abolishProcedure(Procedure proc, Module module);
 COMMON(bool) 		retractClauseDefinition(Definition def, Clause clause ARG_LD);
 COMMON(void) 		freeClause(Clause c ARG_LD);
+COMMON(void) 		unallocClause(Clause c ARG_LD);
 COMMON(void) 		freeClauseRef(ClauseRef c ARG_LD);
 COMMON(void)		freeClauseList(ClauseRef cref);
 COMMON(ClauseRef) 	newClauseRef(Clause cl ARG_LD);
@@ -615,12 +615,10 @@ COMMON(int) 		copyRecordToGlobal(term_t copy, Record term,
 					   int flags ARG_LD);
 COMMON(int) 		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 COMMON(bool) 		freeRecord__LD(Record record ARG_LD);
+COMMON(void)		unallocRecordRef(RecordRef r ARG_LD);
 COMMON(bool) 		unifyKey(term_t key, word val);
 COMMON(int) 		getKeyEx(term_t key, word *k ARG_LD);
 COMMON(word) 		pl_current_key(term_t k, control_t h);
-COMMON(word) 		pl_recorda(term_t key, term_t term, term_t ref);
-COMMON(word) 		pl_recordz(term_t key, term_t term, term_t ref);
-COMMON(word) 		pl_recorded(term_t key, term_t term, term_t ref, control_t h);
 COMMON(word) 		pl_erase(term_t ref);
 COMMON(word) 		pl_term_complexity(term_t t, term_t mx, term_t count);
 COMMON(void)		markAtomsRecord(Record record);

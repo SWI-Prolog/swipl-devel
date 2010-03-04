@@ -1974,11 +1974,16 @@ queries to the database are faster than querying the recorded database
 discussed below.  See also dynamic/1.
 
 The second way of storing arbitrary terms in the database is using the
-``recorded database''. In this database terms are associated with a
+`recorded database'. In this database terms are associated with a
 \arg{key}. A key can be an atom, small integer or term. In the last case
 only the functor and arity determine the key. Each key has a chain of
 terms associated with it. New terms can be added either at the head or
 at the tail of this chain.
+
+Following the Edinburgh tradition, SWI-Prolog provides database keys to
+clauses and records in the recorded database.  As of 5.9.10, these keys
+are represented by non-textual atoms (`blobs', see \secref{blob}), which
+makes accessing the database through references safe.
 
 The third mechanism is a special purpose one. It associates an integer
 or atom with a key, which is an atom, integer or term. Each key can only
@@ -2052,7 +2057,7 @@ Assert \arg{Term} in the recorded database under key \arg{Key}.
 \arg{Key} is a small integer (range \prologflag{min_tagged_integer}
 \ldots \prologflag{max_tagged_integer}, atom or compound term. If the
 key is a compound term, only the name and arity define the key.
-\arg{Reference} is unified with a unique reference to the record (see
+\arg{Reference} is unified with an opaque handle to the record (see
 erase/1).
 
     \predicate{recorda}{2}{+Key, +Term}
@@ -2067,21 +2072,17 @@ Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
 
     \predicate{recorded}{3}{+Key, -Value, -Reference}
 Unify \arg{Value} with the first term recorded under \arg{Key} which does
-unify. \arg{Reference} is unified with the memory location of the record.
+unify. \arg{Reference} is unified with an opaque handle to the database
+record.
 
     \predicate{recorded}{2}{+Key, -Value}
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
 
     \predicate{erase}{1}{+Reference}
 Erase a record or clause from the database.  \arg{Reference} is an
-integer returned by recorda/3 or recorded/3, clause/3, assert/2,
-asserta/2 or assertz/2.  Other integers might conflict with the internal
-consistency of the system.  Erase can only be called once on a record or
-clause.  A second call also might conflict with the internal consistency
-of the system.%
-\bug{The system should have a special type for pointers, thus avoiding
-the Prolog user having to worry about consistency matters. Currently some
-simple heuristics are used to determine whether a reference is valid.}
+db-reference returned by recorda/3 or recorded/3, clause/3, assert/2,
+asserta/2 or assertz/2.  Fail silently if the referenced object no
+longer exists.
 
     \predicate{flag}{3}{+Key, -Old, +New}
 \arg{Key} is an atom, integer or term. As with the recorded database, if

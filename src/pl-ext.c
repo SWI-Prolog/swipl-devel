@@ -141,9 +141,6 @@ static const PL_extension foreigns[] = {
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
 
-  FRG("recorda",		3, pl_recorda,			0),
-  FRG("recordz",		3, pl_recordz,			0),
-  FRG("recorded",		3, pl_recorded,		     NDET),
   FRG("erase",			1, pl_erase,			0),
   FRG("$term_complexity",	3, pl_term_complexity,		0),
   FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
@@ -432,6 +429,7 @@ DECL_PLIST(write);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
 DECL_PLIST(op);
+DECL_PLIST(rec);
 
 void
 initBuildIns(void)
@@ -466,6 +464,7 @@ initBuildIns(void)
   REG_PLIST(dlopen);
   REG_PLIST(system);
   REG_PLIST(op);
+  REG_PLIST(rec);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

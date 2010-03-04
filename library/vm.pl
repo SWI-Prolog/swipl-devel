@@ -21,7 +21,7 @@ instructions.
 vm_list(_:Ref) :-
 	integer(Ref), !,
 	(   nth_clause(_Head, N, Ref),
-	    format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
+	    format('~40c~nclause ~d (~w):~n~40c~n', [0'-, N, Ref, 0'-]),
 	    vm_list_clause(Ref),
 	    fail
 	;   true
@@ -40,7 +40,7 @@ vm_list(Spec) :-
 	    (   nth_clause(Head, N, Ref),
 		clause(MHead, _, Ref),
 		same_head(Head, MHead),
-		format('~40c~nclause ~d (~d):~n~40c~n', [0'-, N, Ref, 0'-]),
+		format('~40c~nclause ~d (~w):~n~40c~n', [0'-, N, Ref, 0'-]),
 		vm_list_clause(Ref),
 		fail
 	    ;   true
