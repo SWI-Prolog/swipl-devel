@@ -3811,7 +3811,8 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       { if ( PL_get_clref(ref, &clause) )
 	{ term_t tmp;
 
-	  decompile(clause, term, bindings);
+	  if ( decompile(clause, term, bindings) != TRUE )
+	    return FALSE;
 	  proc = clause->procedure;
 	  def = getProcDefinition(proc);
 	  if ( true(clause, GOAL_CLAUSE) )

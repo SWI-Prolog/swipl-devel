@@ -1750,6 +1750,53 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 }
 
 
+/** instance(+Ref, -Term)
+*/
+
+static
+PRED_IMPL("instance", 2, instance, 0)
+{ PRED_LD
+  void *ptr;
+  db_ref_type type;
+
+  term_t ref  = A1;
+  term_t term = A2;
+
+  if ( !(ptr=PL_get_dbref(ref, &type)) )
+    return FALSE;
+
+  if ( type == DB_REF_CLAUSE )
+  { Clause clause = ptr;
+    uintptr_t generation = environment_frame->generation;
+
+    if ( true(clause, GOAL_CLAUSE) ||
+	 !visibleClause(clause, generation) )
+      return FALSE;
+
+    if ( true(clause, UNIT_CLAUSE) )
+    { term_t head = PL_new_term_ref();
+
+      return ( decompile(clause, head, 0) &&
+	       PL_unify_term(term,
+			     PL_FUNCTOR, FUNCTOR_prove2,
+			       PL_TERM, head,
+			       PL_ATOM, ATOM_true) );
+    } else
+    { return decompile(clause, term, 0);
+    }
+  } else
+  { RecordRef rref = ptr;
+    term_t t = PL_new_term_ref();
+
+    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC PASS_LD) == TRUE )
+      return PL_unify(term, t);
+  }
+
+  return FALSE;
+}
+
+
+
 static
 PRED_IMPL("erase", 1, erase, 0)
 { PRED_LD
@@ -1889,4 +1936,5 @@ BeginPredDefs(rec)
   PRED_SHARE("recorda", 2, recorda, 0)
   PRED_SHARE("recorda", 3, recorda, 0)
   PRED_DEF("erase", 1, erase, 0)
+  PRED_DEF("instance", 2, instance, 0)
 EndPredDefs
