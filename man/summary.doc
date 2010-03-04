@@ -287,6 +287,7 @@ suggest predicates from a keyword.
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{initialization}{2}{Initialization directive}
+\predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}

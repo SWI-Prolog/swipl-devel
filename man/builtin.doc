@@ -2084,6 +2084,10 @@ db-reference returned by recorda/3 or recorded/3, clause/3, assert/2,
 asserta/2 or assertz/2.  Fail silently if the referenced object no
 longer exists.
 
+    \predicate{instance}{2}{+Reference, -Term}
+Unify \arg{Term} with the referenced clause or database record.  Unit
+clauses are represented as \arg{Head} :- \arg{Body}.
+
     \predicate{flag}{3}{+Key, -Old, +New}
 \arg{Key} is an atom, integer or term. As with the recorded database, if
 \arg{Key} is a term, only the name and arity are used to locate the
