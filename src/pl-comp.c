@@ -3947,29 +3947,30 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     succeed;
   }
 
-  if ( PL_get_clref(ref, &clause) )
-  { int i;
+  if ( !PL_is_variable(ref) )
+  { if ( PL_get_clref(ref, &clause) )
+    { int i;
 
-    if ( true(clause, GOAL_CLAUSE) )
-      fail;				/* I don't belong to a predicate */
+      if ( true(clause, GOAL_CLAUSE) )
+	fail;				/* I do not belong to a predicate */
 
-    proc = clause->procedure;
-    def  = getProcDefinition(proc);
-    for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
-    { if ( cref->clause == clause )
-      { if ( !PL_unify_integer(n, i) ||
-	     !unify_definition(p, def, 0, 0) )
-	  fail;
+      proc = clause->procedure;
+      def  = getProcDefinition(proc);
+      for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
+      { if ( cref->clause == clause )
+	{ if ( !PL_unify_integer(n, i) ||
+	       !unify_definition(p, def, 0, 0) )
+	    fail;
 
-	succeed;
+	  succeed;
+	}
+	if ( visibleClause(cref->clause, generation) )
+	  i++;
       }
-      if ( visibleClause(cref->clause, generation) )
-	i++;
     }
 
     fail;
-  } else if ( !PL_is_variable(ref) )
-    return FALSE;
+  }
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
   { int i;
