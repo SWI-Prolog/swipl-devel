@@ -133,9 +133,14 @@ open_envelope('application/x-gzip', SourceURL, Stream0, Stream, Format) :-
 	rdf_zlib_plugin:zopen(Stream0, Stream, []).
 open_envelope(_, _, Stream, Stream, Format) :-
 	nonvar(Format), !.
-open_envelope(ContentType, _, Stream, Stream, Format) :-
+open_envelope(ContentType, SourceURL, Stream, Stream, Format) :-
 	major_content_type(ContentType, Major),
-	content_type_format(Major, Format).
+	(   content_type_format(Major, Format)
+	->  true
+	;   Major == 'text/plain'	% server is not properly configured
+	->  file_name_extension(_, Ext, SourceURL),
+	    rdf_db:rdf_file_type(Ext, Format)
+	).
 
 major_content_type(ContentType, Major) :-
 	sub_atom(ContentType, Pre, _, _, (;)), !,
