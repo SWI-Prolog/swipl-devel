@@ -511,12 +511,27 @@ static void unvisit(ARG1_LD) {}
 
 #endif
 
+static void
+restoreVars(compile_info *info)
+{ Word *p = topBuffer(&info->vars, Word);
+  Word *b = baseBuffer(&info->vars, Word);
+
+  while(p > b)
+  { p--;
+    if (isAttVarP(*p) )
+    { *valAttVarP(*p) = (word)p[-1];
+      p--;
+    } else
+      setVar(**p);
+  }
+  discardBuffer(&info->vars);
+}
+
 
 Record
 compileTermToHeap__LD(term_t t, int flags ARG_LD)
 { compile_info info;
   Record record;
-  Word *p;
   size_t size;
   size_t rsize = SIZERECORD(flags);
   term_agenda agenda;
@@ -534,18 +549,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   initTermAgenda(&agenda, valTermRef(t));
   compile_term_to_heap(&agenda, &info PASS_LD);
   clearTermAgenda(&agenda);
-
-  p = topBuffer(&info.vars, Word);
-  while(p > baseBuffer(&info.vars, Word))
-  { p--;
-    if (isAttVarP(*p) )
-    { *valAttVarP(*p) = (word)p[-1];
-      p--;
-    } else
-      setVar(**p);
-  }
-  discardBuffer(&info.vars);
-
+  restoreVars(&info);
   unvisit(PASS_LD1);
 
   size = rsize + sizeOfBuffer(&info.code);
@@ -596,8 +600,7 @@ char *
 PL_record_external(term_t t, size_t *len)
 { GET_LD
   compile_info info;
-  Word p, *vp;
-  int n;
+  Word p;
   tmp_buffer hdr;
   int scode, shdr;
   char *rec;
@@ -647,17 +650,11 @@ PL_record_external(term_t t, size_t *len)
   initTermAgenda(&agenda, p);
   compile_term_to_heap(&agenda, &info PASS_LD);
   clearTermAgenda(&agenda);
-
-  n = info.nvars;
-  vp = (Word *)info.vars.base;
-  while(--n >= 0)
-    setVar(**vp++);
-  discardBuffer(&info.vars);
-  scode = (int)sizeOfBuffer(&info.code);
   if ( info.nvars == 0 )
     first |= REC_GROUND;
-
+  restoreVars(&info);
   unvisit(PASS_LD1);
+  scode = (int)sizeOfBuffer(&info.code);
 
   initBuffer(&hdr);
   addBuffer(&hdr, first, uchar);		/* magic code */
