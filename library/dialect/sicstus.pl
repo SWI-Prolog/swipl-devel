@@ -40,6 +40,9 @@
 	    bb_delete/2,		% :Key, -Value
 	    bb_update/3,		% :Key, -Old, +New
 
+	    read_line/1,		% -Codes
+	    read_line/2,		% +Stream, -Codes
+
 	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
@@ -260,6 +263,27 @@ bb_update(Key, Old, New) :-
 	bb_key(Key, Name),
 	nb_current(Name, Old),
 	nb_setval(Name, New).
+
+
+		 /*******************************
+		 *	   LINE READING		*
+		 *******************************/
+
+%%	read_line(-Codes) is det.
+%%	read_line(+Stream, -Codes) is det.
+%
+%	Read a line from the given or  current input. The line read does
+%	_not_ include the line-termination character. Unifies Codes with
+%	=end_of_file= if the end of the input is reached.
+%
+%	@compat sicstus
+%	@see	The SWI-Prolog primitive is read_line_to_codes/2.
+
+read_line(Codes) :-
+    read_line_to_codes(current_input, Codes).
+
+read_line(Stream, Codes) :-
+    read_line_to_codes(Stream, Codes).
 
 
 		 /*******************************
