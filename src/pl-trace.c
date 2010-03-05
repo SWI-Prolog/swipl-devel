@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-inline.h"
+#include "pl-dbref.h"
 
 #define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
@@ -1836,7 +1837,7 @@ prolog_frame_attribute(term_t frame, term_t what,
   { if ( false(fr->predicate, FOREIGN) &&
 	 fr->clause &&
 	 fr->predicate != PROCEDURE_dc_call_prolog->definition )
-    { if ( !PL_put_pointer(result, fr->clause->clause) )
+    { if ( !PL_unify_clref(result, fr->clause->clause) )
 	return FALSE;
     } else
     { return FALSE;
