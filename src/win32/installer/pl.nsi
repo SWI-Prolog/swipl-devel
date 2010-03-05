@@ -415,6 +415,7 @@ SectionEnd
 Section "Portability (YAP, SICStus, Ciao) support"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
+  File pl\library\fastrw.pl
   File pl\library\dialect.pl
   File /r pl\library\dialect
 SectionEnd
