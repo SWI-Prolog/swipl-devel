@@ -409,7 +409,6 @@ kind of heuristic.
 
 #define onGlobal(p) onStack(global, p)
 #define onLocal(p) onStack(local, p)
-#define onHeap(p) ((char *)p >= (char *)hBase && (char *)p <= (char *)hTop)
 
 static void
 printk(char *fm, ...)

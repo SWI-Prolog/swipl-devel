@@ -821,24 +821,10 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(__WINDOWS__) && 0
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
-		 _CRTDBG_CHECK_CRT_DF|
-		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
-		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
-		 //_CRTDBG_LEAK_CHECK_DF|
-		 0);
-#endif
-
-#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
-  if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
-    mtrace();
-#endif
-
   if ( GD->initialised )
-  { succeed;
-  }
+    succeed;
 
+  initAlloc();
   initPrologThreads();			/* initialise thread system */
   SinitStreams();			/* before anything else */
 
@@ -856,20 +842,6 @@ PL_initialise(int argc, char **argv)
       Sdprintf(" %s", argv[i]);
     Sdprintf("\n");
   });
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
-allocate memory starting from a specific   address.  Probably only works
-properly on Linux. Don't bother with it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef FORCED_MALLOC_BASE
-  start_memory((void *)FORCED_MALLOC_BASE);
-  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
-#endif
-#if O_MALLOC_DEBUG
-  malloc_debug(O_MALLOC_DEBUG);
-#endif
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */

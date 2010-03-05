@@ -99,13 +99,9 @@ long clock_wait_ticks;
 This module is a contraction of functions that used to be all  over  the
 place.   together  with  pl-os.h  (included  by  pl-incl.h) this file
 should define a basic  layer  around  the  OS,  on  which  the  rest  of
-SWI-Prolog  is  based.   SWI-Prolog  has  been developed on SUN, running
-SunOs 3.4 and later 4.0.
+SWI-Prolog  is  based.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Unfortunately some OS's simply do not offer  an  equivalent  to  SUN  os
-features.   In  most  cases part of the functionality of the system will
-have to be dropped. See the header of pl-incl.h for details.
-- - - - - - - - - - -  - - - - - */
 
 		/********************************
 		*         INITIALISATION        *

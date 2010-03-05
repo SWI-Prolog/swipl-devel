@@ -559,15 +559,6 @@ allocBigHeap(size_t size)
   big_heaps = h;
   h++;					/* point to user-data */
 
-  if ( !hTop )
-  { hBase = (char *)h;
-    hTop = (char *)h + size;
-    heap_base = (uintptr_t)h & ~(uintptr_t)0x007fffff; /* 8MB */
-  } else
-  { SetHBase(h);
-    SetHTop((char *)h + size);
-  }
-
   return (void *)h;
 }
 
@@ -615,14 +606,6 @@ allocHeap__LD(size_t n ARG_LD)
       outOfCore();
 
     GD->statistics.heap += n;
-    if ( !hTop )
-    { hBase = mem;
-      hTop = (char *)mem + n;
-      heap_base = (uintptr_t)mem & ~(uintptr_t)0x007fffff; /* 8MB */
-    } else
-    { SetHBase(mem);
-      SetHTop((char *)mem + n);
-    }
 
     return mem;
   }
@@ -1375,6 +1358,55 @@ PL_realloc(void *mem, size_t size)
   }
 
   return PL_malloc(size);
+}
+
+
+		 /*******************************
+		 *	       INIT		*
+		 *******************************/
+
+static void
+initHBase(void)
+{ void *p = malloc(sizeof(void*));
+  uintptr_t base = (uintptr_t)p;
+
+  base &= ~0xfffff;			/* round down 1m */
+  GD->heap_base = base;			/* for pointer <-> int conversion */
+}
+
+
+void
+initAlloc(void)
+{
+#if defined(_DEBUG) && defined(__WINDOWS__) && 0
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
+		 _CRTDBG_CHECK_CRT_DF|
+		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
+		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
+		 //_CRTDBG_LEAK_CHECK_DF|
+		 0);
+#endif
+
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+  if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
+    mtrace();
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
+allocate memory starting from a specific   address.  Probably only works
+properly on Linux. Don't bother with it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef FORCED_MALLOC_BASE
+  start_memory((void *)FORCED_MALLOC_BASE);
+  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
+#endif
+#if O_MALLOC_DEBUG
+  malloc_debug(O_MALLOC_DEBUG);
+#endif
+
+  initHBase();
 }
 
 

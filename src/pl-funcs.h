@@ -32,6 +32,7 @@ symbol lookup and relocations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* pl-alloc.c */
+COMMON(void)		initAlloc(void);
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
 COMMON(int)		enableSpareStack(Stack s);
 COMMON(int) 		outOfStack(void *stack, stack_overflow_action how);

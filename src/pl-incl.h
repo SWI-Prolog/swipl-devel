@@ -896,23 +896,6 @@ introduce a garbage collector (TBD).
 	  } \
 	}
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Heuristics functions to determine whether an integer reference passed to
-erase and assert/2, clause/3, etc.  really points to a clause or record.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef DMALLOC
-#define inCore(a)	TRUE
-#else
-#define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
-#endif
-#define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
-#define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-#define isClause(c)	((inCore(c) || onStack(local, (c))) && \
-			 inCore(((Clause)(c))->procedure) && \
-			 isProcedure(((Clause)(c))->procedure))
-#define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
-			 isRecordList(((RecordRef)(r))->list))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
@@ -1676,9 +1659,6 @@ typedef struct
 #define aMax	(LD->stacks.argument.max)
 
 #define tSpare	(LD->stacks.trail.spare)
-
-#define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
-#define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
 
 #define onStack(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \

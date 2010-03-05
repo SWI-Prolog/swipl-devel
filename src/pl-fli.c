@@ -885,7 +885,7 @@ pointerToInt(void *ptr)
 { uintptr_t p   = (uintptr_t) ptr;
   uintptr_t low = p & 0x3L;
 
-  p -= heap_base;
+  p -= GD->heap_base;
   p >>= 2;
   p |= low<<(sizeof(uintptr_t)*8-2);
 
@@ -899,7 +899,7 @@ intToPointer(uintptr_t p)
 
   p <<= 2;
   p |= low;
-  p += heap_base;
+  p += GD->heap_base;
 
   return (void *) p;
 }

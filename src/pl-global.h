@@ -75,11 +75,9 @@ typedef struct
 		 *******************************/
 
 struct PL_global_data
-{ char *top_of_heap;			/* highest allocated heap address */
-  char *base_of_heap;			/* lowest allocated heap address */
-  uintptr_t rounded_heap_base;		/* heap-base rounded downwards */
-  pl_defaults_t	    defaults;		/* system default settings */
-  pl_options_t	    options;		/* command-line options */
+{ uintptr_t	heap_base;		/* heap-base rounded downwards */
+  pl_defaults_t	defaults;		/* system default settings */
+  pl_options_t	options;		/* command-line options */
   State		stateList;		/* list of loaded states */
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
@@ -92,7 +90,7 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation;		/* generation of the database */
+  uintptr_t generation;			/* generation of the database */
 #endif
 
   struct
@@ -590,9 +588,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 
-#define hTop			(GD->top_of_heap)
-#define hBase			(GD->base_of_heap)
-#define heap_base		(GD->rounded_heap_base)
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
 

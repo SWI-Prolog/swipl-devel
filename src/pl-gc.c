@@ -4586,9 +4586,6 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    SetHTop(LD->stacks.local.max);
-    SetHTop(LD->stacks.trail.max);
-
     time = CpuTime(CPU_USER) - time;
     LD->shift_status.time += time;
     SECURE({ gBase++;
