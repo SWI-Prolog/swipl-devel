@@ -5333,7 +5333,9 @@ Same as {\bf r}, but uses upper case letters for digits above 9.
 
     \fmtchar{s}
 Output text from a list of character codes or a string (see string/1 and
-\secref{strings}) from the next argument.
+\secref{strings}) from the next argument.\footnote{The \textbf{s}
+modifier also accept an atom for compatibility.  This is deprecated
+due to the ambiguity of \texttt{[]}.}
 
     \fmtchar{@}
 Interpret the next argument as a goal and execute it.  Output written

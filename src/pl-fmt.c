@@ -540,7 +540,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) )
+		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) &&
+		       !PL_get_text(argv, &txt, CVT_ATOM) ) /* SICStus compat */
 		    FMT_ARG("s", argv);
 		  outtext(&state, &txt);
 		  SHIFT;
