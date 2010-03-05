@@ -81,7 +81,7 @@ static __inline int
 SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
 		    size_t len, char *buf)
 { term_t t0 = PL_new_term_refs(2);
-  int rc = PL_unify_nchars(t0, PL_CODE_LIST|PL_DIFF_LIST, len, buf);
+  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST, len, buf);
   PL_put_term(list, t0);
   PL_put_term(tail, t0+1);
 
@@ -154,8 +154,7 @@ __thread int SP_wrapper_state;		/* __thread is C99 */
 
 #define SP_predicate(name,arity,module) PL_predicate(name,arity,module)
 
-#ifdef SP_WRAPPER
-static int
+static __inline int
 SP_query(SP_pred_ref predicate, ...)
 { atom_t name;
   int i, arity;
@@ -198,9 +197,7 @@ SP_query(SP_pred_ref predicate, ...)
 
   return SP_SUCCESS;
 }
-#else  /*SP_WRAPPER*/
-extern int SP_query(SP_pred_ref predicate, ...);
-#endif /*SP_WRAPPER*/
+
 
 #define SP_malloc(n) PL_malloc(n)
 #define SP_realloc(p,n) PL_realloc(p,n)
