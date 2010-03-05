@@ -88,6 +88,7 @@ blocked('/chr').
 blocked('/clpq').
 blocked('/clpr').
 blocked('/pldoc').
+blocked('/ciao').
 blocked('/checkselect.pl').
 blocked('/checklast.pl').
 %blocked('/jpl.pl').			% should be added
