@@ -83,6 +83,7 @@ valHandle__LD(term_t r ARG_LD)
 
 #define valHandle(r) valHandle__LD(r PASS_LD)
 
+static int	PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
@@ -631,8 +632,20 @@ PL_atom_wchars(atom_t a, size_t *len)
 		 *******************************/
 
 bool
-PL_cvt_i_integer(term_t p, long *c)
+PL_cvt_i_int(term_t p, int *c)
+{ return PL_get_integer_ex(p, c);
+}
+
+
+bool
+PL_cvt_i_long(term_t p, long *c)
 { return PL_get_long_ex(p, c);
+}
+
+
+bool
+PL_cvt_i_size_t(term_t p, size_t *c)
+{ return PL_get_size_ex(p, c);
 }
 
 
@@ -682,9 +695,9 @@ PL_cvt_i_address(term_t p, void *address)
 
 
 bool
-PL_cvt_o_integer(long c, term_t p)
+PL_cvt_o_int64(int64_t c, term_t p)
 { GET_LD
-  return PL_unify_integer(p, c);
+  return PL_unify_int64__LD(p, c, TRUE PASS_LD);
 }
 
 
@@ -2628,7 +2641,7 @@ PL_unify_chars(term_t t, int flags, size_t len, const char *s)
 }
 
 
-int
+static int
 PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD)
 { word w = consInt(i);
   Word p = valHandleP(t);

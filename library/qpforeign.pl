@@ -45,6 +45,7 @@
 :- use_module(library(gensym)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- use_module(library(error)).
 
 /** <module> Quintus compatible foreign loader
 
@@ -138,7 +139,7 @@ make_wrappers([H|T], M, Out) :-
 %	Prolog predicate.  The wrapper is called _plw_<predname><arity>.
 
 make_wrapper(Out, Spec) :-
-	get_foreign_head(Spec, Func, Head),
+	get_foreign_head(Spec, Func, Head), !,
 	(   check_head(Head)
 	->  wrapper_name(Head, WrapName, ArgN),
 	    make_C_header(Out, WrapName, ArgN),
@@ -152,6 +153,8 @@ make_wrapper(Out, Spec) :-
 	    make_C_footer(Out)
 	;   fail
 	).
+make_wrapper(_, Spec) :-
+	existence_error(foreign_declaration, Spec).
 
 %%	get_foreign_head(:Spec, -Func, -Head)
 %
@@ -192,7 +195,9 @@ check_head(_:Head) :-
 	;   true
 	).
 
+valid_type(int).
 valid_type(integer).
+valid_type(size_t).
 valid_type(float).
 valid_type(single).
 valid_type(string).
@@ -202,9 +207,15 @@ valid_type(term).
 valid_type(address).
 valid_type(address(_)).
 
-cvt_name(chars, codes) :- !.
-cvt_name(address(_), address) :- !.
-cvt_name(Type,  Type).
+%%	cvt_name(+Type, +I/O, -Suffix) is det.
+
+cvt_name(chars,	     _,	codes) :- !.
+cvt_name(address(_), _,	address) :- !.
+cvt_name(int,	     o,	int64) :- !.
+cvt_name(integer,    o,	int64) :- !.
+cvt_name(size_t,     o,	int64) :- !.
+cvt_name(integer,    i,	long) :- !.
+cvt_name(Type,	     _,	Type).
 
 
 %%	make_C_header(+Stream, +WrapperName, +Arity)
@@ -304,7 +315,7 @@ make_C_input_conversions(Out, _:Head) :-
 		(IArgs \= [N-T|_] -> format(Out, ' ||~n       ', []) ; true),
 		arg_name(N, AName),
 		atom_concat(i_, AName, IName),
-		cvt_name(T, CVT),
+		cvt_name(T, i, CVT),
 		format(Out, '!PL_cvt_i_~w(~w, &~w)', [CVT, AName, IName]),
 		fail
 	    ;	true
@@ -371,8 +382,8 @@ make_C_wrapper_check(_).
 
 make_C_output_conversions(Out, _:Head) :-
 	findall(N-T, arg(N, Head, -T), OArgs0),
-	(   arg(_, Head, [-T])
-	->  OArgs = [rval-T|OArgs0]
+	(   arg(_, Head, [-RT])
+	->  OArgs = [rval-RT|OArgs0]
 	;   OArgs = OArgs0
 	),
 	(   OArgs == []
@@ -389,7 +400,7 @@ make_C_output_conversions(Out, _:Head) :-
 		(OArgs = [N-T|_] -> true ; format(Out, ' ||~n       ', [])),
 		(   T == term
 		->  format(Out, '!PL_unify(~w, ~w)', [OName, AName])
-		;   cvt_name(T, CVT),
+		;   cvt_name(T, o, CVT),
 		    format(Out, '!PL_cvt_o_~w(~w, ~w)', [CVT, OName, AName])
 		),
 		fail
@@ -636,7 +647,9 @@ map_C_type(X, Y) :-
 	map_C_type_(X, Y), !.
 map_C_type(X, X).
 
+map_C_type_(int, 'int ').
 map_C_type_(integer, 'long ').
+map_C_type_(size_t, 'size_t ').
 map_C_type_(float,   'double ').
 map_C_type_(string,  'char *').
 map_C_type_(chars,   'char *').
