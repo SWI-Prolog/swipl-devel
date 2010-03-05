@@ -79,7 +79,7 @@ typedef predicate_t SP_pred_ref;
 
 static __inline int
 SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
-		    size_t len, char *buf)
+		    size_t len, const char *buf)
 { term_t t0 = PL_new_term_refs(2);
   int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST, len, buf);
   PL_put_term(list, t0);
