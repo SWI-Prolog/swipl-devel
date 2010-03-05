@@ -263,7 +263,7 @@ make_C_decls(Out, _) :-
 make_C_prototype(Out, M:Head) :-
 	(   arg(_, Head, [-Type])
 	->  map_C_type(Type, CType)
-	;   CType = ''
+	;   CType = 'void '
 	),
 	copy_term(Head, H2),		% don't bind Head
 	hook(M:foreign(CFunc, c, H2)), !,
@@ -443,7 +443,10 @@ sicstus_init_function(Out, Init) :-
 
 foreign_attributes(Head, Atts) :-
 	findall(A, foreign_attribute(Head, A), A0),
-	atomic_list_concat(A0, '|', Atts).
+	(   A0 == []
+	->  Atts = 0
+	;   atomic_list_concat(A0, '|', Atts)
+	).
 
 foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 	predicate_property(Head, transparent).
