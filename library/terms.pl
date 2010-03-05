@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,8 +36,10 @@
 	    subsumes/2,			% +Generic, @Specific
 	    subsumes_chk/2,		% +Generic, @Specific
 	    cyclic_term/1,		% @Term
-	    acyclic_term/1		% @Term
+	    acyclic_term/1,		% @Term
+	    term_subsumer/3		% +Special1, +Special2, -General
 	  ]).
+:- use_module(library(rbtrees)).
 
 /** <module> Term manipulation
 
@@ -56,3 +58,83 @@ in this library are provided as SWI-Prolog built-ins.
 variant(X, Y) :-
 	X =@= Y.
 
+
+%%	term_subsumer(+Special1, +Special2, -General) is det.
+%
+%	General is the most specific term   that  is a generalisation of
+%	Special1 and Special2. The  implementation   can  handle  cyclic
+%	terms.
+%
+%	@compat SICStus
+%	@author Inspired by LOGIC.PRO by Stephen Muggleton
+
+%	It has been rewritten by  Jan   Wielemaker  to use the YAP-based
+%	red-black-trees as mapping rather than flat  lists and use arg/3
+%	to map compound terms rather than univ and lists.
+
+term_subsumer(S1, S2, G) :-
+	cyclic_term(S1),
+	cyclic_term(S2), !,
+	rb_empty(Map),
+	lgg_safe(S1, S2, G, Map, _).
+term_subsumer(S1, S2, G) :-
+	rb_empty(Map),
+	lgg(S1, S2, G, Map, _).
+
+lgg(S1, S2, G, Map0, Map) :-
+	(   S1 == S2
+	->  G = S1,
+	    Map = Map0
+	;   compound(S1),
+	    compound(S2)
+	->  functor(S1, Name, Arity),
+	    functor(S2, Name, Arity),
+	    functor(G, Name, Arity),
+	    lgg(0, Arity, S1, S2, G, Map0, Map)
+	;   rb_lookup(S1+S2, G0, Map0)
+	->  G = G0,
+	    Map	= Map0
+	;   rb_insert(Map0, S1+S2, G, Map)
+	).
+
+lgg(Arity, Arity, _, _, _, Map, Map) :- !.
+lgg(I0, Arity, S1, S2, G, Map0, Map) :-
+	I is I0 + 1,
+	arg(I, S1, Sa1),
+	arg(I, S2, Sa2),
+	arg(I, G, Ga),
+	lgg(Sa1, Sa2, Ga, Map0, Map1),
+	lgg(I, Arity, S1, S2, G, Map1, Map).
+
+
+%%	lgg_safe(+S1, +S2, -G, +Map0, -Map) is det.
+%
+%	Cycle-safe version of the  above.  The   difference  is  that we
+%	insert compounds into the mapping table   and  check the mapping
+%	table before going into a compound.
+
+lgg_safe(S1, S2, G, Map0, Map) :-
+	(   S1 == S2
+	->  G = S1,
+	    Map = Map0
+	;   rb_lookup(S1+S2, G0, Map0)
+	->  G = G0,
+	    Map	= Map0
+	;   compound(S1),
+	    compound(S2)
+	->  functor(S1, Name, Arity),
+	    functor(S2, Name, Arity),
+	    functor(G, Name, Arity),
+	    rb_insert(Map0, S1+S2, G, Map1),
+	    lgg_safe(0, Arity, S1, S2, G, Map1, Map)
+	;   rb_insert(Map0, S1+S2, G, Map)
+	).
+
+lgg_safe(Arity, Arity, _, _, _, Map, Map) :- !.
+lgg_safe(I0, Arity, S1, S2, G, Map0, Map) :-
+	I is I0 + 1,
+	arg(I, S1, Sa1),
+	arg(I, S2, Sa2),
+	arg(I, G, Ga),
+	lgg_safe(Sa1, Sa2, Ga, Map0, Map1),
+	lgg_safe(I, Arity, S1, S2, G, Map1, Map).

@@ -1214,6 +1214,11 @@ subsumes(General, Specific) :-
     \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
 Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
 
+    \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
+\arg{General} is the most specific term that is a generalisation of
+\arg{Special1} and \arg{Special2}. The implementation can handle cyclic
+terms.
+
     \predicate{unifiable}{3}{{@}X, {@}Y, -Unifier}
 If \arg{X} and \arg{Y} can unify, unify \arg{Unifier} with a list of
 \mbox{\arg{Var} = \arg{Value}}, representing the bindings required to
