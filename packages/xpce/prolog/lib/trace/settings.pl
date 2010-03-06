@@ -49,9 +49,6 @@ setting(show_unbound,
 setting(cluster_variables,
 	[true, false],
 	'`Bindings'' window clusters variables with the same value').
-setting(attributes,
-	[ignore, dots, write, portray],
-	'How to display attributed variables in the bindings window').
 setting(stack_depth,
 	int(2, infinite),
 	'Number of stack-frames displayed').
