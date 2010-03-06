@@ -1749,10 +1749,12 @@ Sread_terminal(void *handle, char *buf, size_t size)
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
-  if ( LD->prompt.next && ttymode != TTY_RAW )
-    PL_write_prompt(TRUE);
-  else
-    Sflush(Suser_output);
+  if ( Soutput && true(Soutput, SIO_ISATTY) )
+  { if ( LD->prompt.next && ttymode != TTY_RAW )
+      PL_write_prompt(TRUE);
+    else
+      Sflush(Suser_output);
+  }
 
   PL_dispatch(fd, PL_DISPATCH_WAIT);
   size = (*GD->os.org_terminal.read)(handle, buf, size);
