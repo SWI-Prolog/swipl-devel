@@ -45,7 +45,7 @@ static void freeRecordRef(RecordRef r ARG_LD);
 
 void
 initRecords(void)
-{ GD->tables.record_lists = newHTable(8);
+{ GD->recorded_db.record_lists = newHTable(8);
 }
 
 
@@ -56,7 +56,7 @@ static RecordList
 lookupRecordList(word key)
 { Symbol s;
 
-  if ( (s = lookupHTable(GD->tables.record_lists, (void *)key)) )
+  if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
   { return s->value;
   } else
   { GET_LD
@@ -70,7 +70,14 @@ lookupRecordList(word key)
     l->references = 0;
     l->flags = 0;
     l->firstRecord = l->lastRecord = NULL;
-    addHTable(GD->tables.record_lists, (void *)key, l);
+    l->next = NULL;
+    addHTable(GD->recorded_db.record_lists, (void *)key, l);
+    if ( !GD->recorded_db.head )
+    { GD->recorded_db.head = GD->recorded_db.tail = l;
+    } else
+    { GD->recorded_db.tail->next = l;
+      GD->recorded_db.tail = l;
+    }
 
     return l;
   }
@@ -81,7 +88,7 @@ static RecordList
 isCurrentRecordList(word key)
 { Symbol s;
 
-  if ( (s = lookupHTable(GD->tables.record_lists, (void *)key)) )
+  if ( (s = lookupHTable(GD->recorded_db.record_lists, (void *)key)) )
     return s->value;
 
   return NULL;
@@ -1540,7 +1547,7 @@ pl_current_key(term_t k, control_t h)
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      e = newTableEnum(GD->tables.record_lists);
+      e = newTableEnum(GD->recorded_db.record_lists);
       break;
     case FRG_REDO:
       e = ForeignContextPtr(h);
@@ -1646,7 +1653,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { if ( ref && !PL_is_variable(ref) )
+    { if ( ref && !PL_is_variable(ref) )		/* recorded(?,?,+) */
       { if ( PL_get_recref(ref, &record) )
 	{ LOCK();
 	  if ( unifyKey(key, record->list->key) )

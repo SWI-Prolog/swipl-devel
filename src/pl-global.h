@@ -135,8 +135,13 @@ struct PL_global_data
 
   struct
   { Table	modules;		/* atom --> module */
-    Table	record_lists;		/* Available record lists */
   } tables;
+
+  struct
+  { Table	record_lists;		/* Available record lists */
+    RecordList	head;			/* first record list */
+    RecordList	tail;			/* last record list */
+  } recorded_db;
 
   struct
   { buffer	functions;		/* index --> function */

@@ -1343,6 +1343,7 @@ struct recordList
   word		key;			/* key of record */
   RecordRef	firstRecord;		/* first record associated with key */
   RecordRef	lastRecord;		/* last record associated with key */
+  struct recordList *next;		/* Next recordList */
   unsigned int  flags;			/* RL_DIRTY */
 };
 
