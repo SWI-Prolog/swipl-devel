@@ -554,7 +554,8 @@ make_foreign_wrapper_file(M:CFile) :-
 	make_foreign_wrapper_file(M:OFiles, CFile).
 make_foreign_wrapper_file(M:OFiles, Base) :-
 	file_name_extension(Base, c, CFile),
-	atom_concat(install_, Base, InstallFunc),
+	file_base_name(Base, FuncBase),
+	atom_concat(install_, FuncBase, InstallFunc),
 	collect_foreign_predicates(OFiles, M, Preds),
 	open(CFile, write, Out),
 	make_C_file_header(Out),
@@ -593,8 +594,9 @@ make_foreign_resource_wrapper(M:Resource, ResBase, FileBase) :-
 	take(init(Init), Functions, Functions1, -),
 	take(deinit(DeInit), Functions1, Preds, -),
 	file_name_extension(FileBase, c, CFile),
-	atom_concat(install_, ResBase, InstallFunc),
-	atom_concat(uninstall_, ResBase, UninstallFunc),
+	file_base_name(ResBase, FuncBase),
+	atom_concat(install_, FuncBase, InstallFunc),
+	atom_concat(uninstall_, FuncBase, UninstallFunc),
 	open(CFile, write, Out),
 	make_C_file_header(Out),
 	make_wrappers(Preds, M, Out),
