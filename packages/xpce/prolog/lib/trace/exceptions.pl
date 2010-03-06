@@ -122,10 +122,15 @@ general_exception(E, E).
 %%	new_exception(+Term, +Where) is det.
 %%	new_exception(+Term, +NotCaught, +Caught, +Where) is det.
 %
-%	Add a new exception
+%	Add a new exception. If the new  exception is a specilisation of
+%	an already registered exception, copy the properties.
 
 new_exception(Ex, Where) :-
-	(   \+ Ex = error(_,_)
+	exception(_, Gen, NotCaught, Caught),
+	subsumes_chk(Gen, Ex), !,
+	new_exception(Ex, NotCaught, Caught, Where).
+new_exception(Ex, Where) :-
+	(   Ex \= error(_,_)
 	->  new_exception(Ex, false, false, Where)
 	;   new_exception(Ex, true,  false, Where)
 	).
