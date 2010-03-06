@@ -161,7 +161,10 @@ side-effects.
     \predicate{term_attvars}{2}{+Term, -AttVars}
 \arg{AttVars} is a list of all attributed variables in \arg{Term} and
 its attributes. I.e., term_attvars/2 works recursively through
-attributes.  This predicate is Cycle-safe.
+attributes.  This predicate is Cycle-safe.  It should be noted that
+\term{term_attvars}{Term, []} in an efficient test that \arg{Term}
+has \emph{no} attributes.  I.e., scanning the term is aborted after
+the first attributed variable is found.
 
     \predicate{copy_term}{3}{+Term, -Copy, -Gs}
 Create a regular term \arg{Copy} as a copy of \arg{Term} (without
