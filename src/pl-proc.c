@@ -3109,8 +3109,8 @@ listGenerations(Definition def)
   for(cl=def->definition.clauses; cl; cl=cl->next)
   { Clause clause = cl->clause;
 
-    Sdprintf("%8u: %8u-%10u %s\n",
-	     ((uintptr_t)clause - heap_base)>>2,
+    Sdprintf("%p: %8u-%10u %s\n",
+	     clause,
 	     clause->generation.created,
 	     clause->generation.erased,
 	     visibleClause(clause, gen) ? "ok" : "erased");
@@ -3134,8 +3134,8 @@ listGenerations(Definition def)
       for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
       { Clause clause = cl->clause;
 
-	Sdprintf("%8u: %8u-%10u %s\n",
-		 ((uintptr_t)clause - heap_base)>>2,
+	Sdprintf("%p: %8u-%10u %s\n",
+		 clause,
 		 clause->generation.created,
 		 clause->generation.erased,
 		 visibleClause(clause, gen) ? "ok" : "erased");
