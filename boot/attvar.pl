@@ -200,18 +200,25 @@ call_det(Goal, Det) :-
 	Goal,
 	deterministic(Det).
 
-%%    copy_term(+Term, -Copy, -Gs) is det.
+%%	copy_term(+Term, -Copy, -Gs) is det.
 %
-%    Creates a regular term Copy as a copy of Term (without any
-%    attributes), and a list Gs of goals that when executed reinstate
-%    all attributes onto Copy. The nonterminal attribute_goals//1, as
-%    defined in the modules the attributes stem from, is used to
-%    convert attributes to lists of goals.
+%	Creates a regular term Copy  as  a   copy  of  Term (without any
+%	attributes), and a list Gs of goals that when executed reinstate
+%	all attributes onto Copy. The nonterminal attribute_goals//1, as
+%	defined in the modules the  attributes   stem  from,  is used to
+%	convert attributes to lists of goals.
 
 copy_term(Term, Copy, Gs) :-
-	findall(Term-Gs, (term_attvars(Term, Vs),
-			     phrase(attvars_residuals(Vs), Gs),
-			     delete_attributes(Term)), [Copy-Gs]).
+	term_attvars(Term, Vs),
+	(   Vs == []
+	->  Gs = [],
+	    copy_term(Term, Copy)
+	;   findall(Term-Gs,
+		    ( phrase(attvars_residuals(Vs), Gs),
+		      delete_attributes(Term)
+		    ),
+		    [Copy-Gs])
+	).
 
 attvars_residuals([]) --> [].
 attvars_residuals([V|Vs]) -->
