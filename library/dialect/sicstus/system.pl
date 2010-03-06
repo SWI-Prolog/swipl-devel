@@ -29,9 +29,30 @@
 
 :- module(sics_system,
 	  [ environ/2,			% ?Name, ?Value
-	    exec/3,
-	    working_directory/2,
-	    wait/2
+
+	    exec/3,			% +Command, -Streams, -PID
+	    wait/2,			% +PID, -Status
+	    pid/1,			% -PID
+
+	    sleep/1,			% +Seconds
+
+	    shell/0,
+	    shell/1,			% +Command
+	    shell/2,			% +Command, -Status
+
+	    system/0,
+	    system/1,			% +Command
+	    system/2,			% +Command, -Status
+
+	    popen/3,			% +Command, +Mode, -Stream
+
+	    working_directory/2,	% -Old, +New
+	    make_directory/1,		% +DirName
+	    file_exists/1,		% +FileName
+	    delete_file/1,		% +FileName
+	    rename_file/2,		% +Old, +New
+	    mkstemp/2,			% +Template, -FileName
+	    tmpnam/1			% -FileName
 	  ]).
 :- use_module(library(process)).
 
@@ -50,6 +71,11 @@
 
 environ(Name, Value) :-
 	getenv(Name, Value).
+
+
+		 /*******************************
+		 *	      PROCESSES		*
+		 *******************************/
 
 %%	exec(+Command, +Streams, -PID)
 %
@@ -78,3 +104,66 @@ shell('/bin/sh', Command, ['-c', Command]).
 
 wait(PID, Status) :-
 	process_wait(PID, Status).
+
+%%	pid(-PID)
+%
+%	Process ID of the current process.
+%
+%	@compat sicstus.
+
+pid(PID) :-
+	current_prolog_flag(pid, PID).
+
+%%	system.
+%%	system(+Command).
+%%	system(+Command, -Status).
+%
+%	Synomyms for shell/0, shell/1 and shell/2.
+%
+%	@compat sicstus.
+
+system :- shell.
+system(Command) :- shell(Command).
+system(Command, Status) :- shell(Command, Status).
+
+%%	popen(+Command, +Mode, ?Stream)
+%
+%	@compat sicstus
+
+popen(Command, Mode, Stream) :-
+	open(pipe(Command), Mode, Stream).
+
+
+		 /*******************************
+		 *	 FILE OPERATIONS	*
+		 *******************************/
+
+%%	mkstemp(+Template, -File) is det.
+%
+%	Interface to the Unix function.  This emulation uses
+%	tmp_file/2 and ignoress Template.
+%
+%	@deprecated This interface is a security-risc.  Use
+%	tmp_file_stream/3.
+
+mkstemp(_Template, File) :-
+	tmp_file(mkstemp, File).
+
+%%	tmpnam(-FileName)
+%
+%	Interface to tmpnam(). This emulation uses tmp_file/2.
+%
+%	@deprecated This interface is a security-risc.  Use
+%	tmp_file_stream/3.
+
+tmpnam(File) :-
+	tmp_file(tmpnam, File).
+
+%%	file_exists(+FileName) is semidet.
+%
+%	True if a file named FileName exists.
+%
+%	@compat sicstus
+
+file_exists(FileName) :-
+	exists_file(FileName).
