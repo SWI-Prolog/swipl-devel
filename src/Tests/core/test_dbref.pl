@@ -69,5 +69,12 @@ test(double_erase, true) :-
 	recorded(test, a),
 	erase(Ref),
 	\+ erase(Ref).
+test(recorded_vt, [true([K1,K2] == [test_1,test_2]), nondet]) :-
+	recorda(test_1, a1, R1),
+	recorda(test_2, a2, R2),
+	recorded(K2, a2),
+	recorded(K1, a1),
+	erase(R1),
+	erase(R2).
 
 :- end_tests(recorded).

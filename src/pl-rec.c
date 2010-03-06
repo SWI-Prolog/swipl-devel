@@ -1650,6 +1650,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   word k = 0L;
   term_t copy;
   word rval;
+  fid_t fid;
+  int varkey;
 
   term_t key  = A1;
   term_t term = A2;
@@ -1677,9 +1679,15 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	}
 	return FALSE;
       }
-      if ( !getKeyEx(key, &k PASS_LD) ||
-	   !(rl = isCurrentRecordList(k)) )
-	fail;
+      if ( getKeyEx(key, &k PASS_LD) )
+      { if ( !(rl = isCurrentRecordList(k)) )
+	  fail;
+	varkey = FALSE;
+      } else if ( PL_is_variable(key) )
+      { if ( !(rl = GD->recorded_db.head) )
+	  fail;
+	varkey = TRUE;
+      }
       LOCK();
       rl->references++;
       record = rl->firstRecord;
@@ -1688,6 +1696,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
     { record = CTX_PTR;
       rl = record->list;
+      varkey = PL_is_variable(key);
 
       assert(rl->references > 0);
 
@@ -1711,47 +1720,74 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       succeed;
   }
 
-{ fid_t fid;
-
   if ( !(copy = PL_new_term_ref()) ||
        !(fid = PL_open_foreign_frame()) )
   { UNLOCK();
     return FALSE;
   }
 
-  for( ; record; record = record->next )
-  { int rc;
+  while( rl )
+  { for( ; record; record = record->next )
+    { int rc;
 
-    if ( true(record->record, R_ERASED) )
-      continue;
+      if ( true(record->record, R_ERASED) )
+	continue;
 
-    if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
-    { UNLOCK();
-      return raiseStackOverflow(rc);
-    }
-    if ( PL_unify(term, copy) &&
-	 (!ref || PL_unify_recref(ref, record)) )
-    { PL_close_foreign_frame(fid);
-
-      if ( !record->next )
-      { if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-	  cleanRecordList(rl PASS_LD);
-	UNLOCK();
-	succeed;
-      } else
+      if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
       { UNLOCK();
-	ForeignRedoPtr(record->next);
+	return raiseStackOverflow(rc);
+      }
+      if ( PL_unify(term, copy) &&
+	   (!ref || PL_unify_recref(ref, record)) )
+      { PL_close_foreign_frame(fid);
+
+	if ( varkey && !unifyKey(key, rl->key) ) 	/* stack overflow */
+	{ UNLOCK();
+	  fail;
+	}
+
+	if ( record->next )
+	{ UNLOCK();
+	  ForeignRedoPtr(record->next);
+	} else
+	{ if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+	    cleanRecordList(rl PASS_LD);
+
+	  if ( varkey )
+	  { for( rl=rl->next; rl; rl=rl->next )
+	    { if ( rl->firstRecord )
+	      { rl->references++;
+		UNLOCK();
+		ForeignRedoPtr(rl->firstRecord);
+	      }
+	    }
+	  }
+
+	  UNLOCK();
+	  succeed;
+	}
+      }
+
+      PL_rewind_foreign_frame(fid);
+    }
+
+    if ( --rl->references == 0 && true(rl, RL_DIRTY) )
+      cleanRecordList(rl PASS_LD);
+
+    if ( varkey )
+    { if ( rl->next )
+      { rl = rl->next;
+	rl->references++;
+	record = rl->firstRecord;
+
+	continue;
       }
     }
 
-    PL_rewind_foreign_frame(fid);
+    break;
   }
 
   PL_close_foreign_frame(fid);
-}
-
-  if ( --rl->references == 0 && true(rl, RL_DIRTY) )
-    cleanRecordList(rl PASS_LD);
 
   UNLOCK();
   fail;

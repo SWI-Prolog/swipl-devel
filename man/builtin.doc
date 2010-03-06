@@ -2075,10 +2075,19 @@ recorded under \arg{Key}.
     \predicate{recordz}{2}{+Key, +Term}
 Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
 
-    \predicate{recorded}{3}{+Key, -Value, -Reference}
-Unify \arg{Value} with the first term recorded under \arg{Key} which does
-unify. \arg{Reference} is unified with an opaque handle to the database
-record.
+    \predicate{recorded}{3}{?Key, ?Value, ?Reference}
+True if \arg{Value} is recorded under \arg{Key} and has the given
+database \arg{Reference}. If \arg{Reference} is given, this predicate is
+semi-deterministic. Otherwise, it must be considered non-deterministic.
+If neither \arg{Reference} nor \arg{Key} is given, the triples are
+generated as in the code snippet below.\footnote{Note that, without a
+given \arg{Key}, some implementations return triples in the order
+defined by recorda/2 and recordz/2.}
+
+\begin{code}
+	current_key(Key),
+	recorded(Key, Value, Reference)
+\end{code}
 
     \predicate{recorded}{2}{+Key, -Value}
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
