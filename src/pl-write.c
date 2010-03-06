@@ -1275,7 +1275,7 @@ do_write2(term_t stream, term_t term, int flags)
 
 word
 pl_write2(term_t stream, term_t term)
-{ return do_write2(stream, term, 0);
+{ return do_write2(stream, term, PL_WRT_NUMBERVARS);
 }
 
 word
