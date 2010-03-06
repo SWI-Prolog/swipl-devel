@@ -1539,44 +1539,48 @@ getKeyEx(term_t key, word *w ARG_LD)
 }
 
 
-word
-pl_current_key(term_t k, control_t h)
-{ TableEnum e;
-  Symbol s;
+static
+PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   fid_t fid;
+  RecordList rl = NULL;
+  word k = 0L;
 
-  switch( ForeignControl(h) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      e = newTableEnum(GD->recorded_db.record_lists);
-      break;
+    { if ( PL_is_variable(A1) )
+      { rl = GD->recorded_db.head;
+	break;
+      } else if ( getKeyEx(A1, &k PASS_LD) &&
+		  isCurrentRecordList(k) )
+	succeed;
+
+      fail;
+    }
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+      rl = CTX_PTR;
       break;
     case FRG_CUTTED:
     default:				/* fool gcc */
-      e = ForeignContextPtr(h);
-      freeTableEnum(e);
       succeed;
   }
 
   if ( !(fid = PL_open_foreign_frame()) )
-  { freeTableEnum(e);
     return FALSE;
-  }
 
-  while( (s=advanceTableEnum(e)) )
-  { RecordList l = s->value;
-
-    if ( l->firstRecord && unifyKey(k, l->key) )
+  for( ; rl; rl = rl->next )
+  { if ( rl->firstRecord && unifyKey(A1, rl->key) )
     { PL_close_foreign_frame(fid);
-      ForeignRedoPtr(e);
+      if ( rl->next )
+	ForeignRedoPtr(rl->next);
+      else
+	succeed;
     }
 
     PL_rewind_foreign_frame(fid);
   }
 
   PL_close_foreign_frame(fid);
-  freeTableEnum(e);
   fail;
 }
 
@@ -1941,4 +1945,5 @@ BeginPredDefs(rec)
   PRED_SHARE("recorda", 3, recorda, 0)
   PRED_DEF("erase", 1, erase, 0)
   PRED_DEF("instance", 2, instance, 0)
+  PRED_DEF("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
 EndPredDefs

@@ -221,7 +221,6 @@ static const PL_extension foreigns[] = {
   FRG("track_atom",		2, pl_track_atom,		0),
 #endif
 #endif
-  FRG("current_key",		1, pl_current_key,	     NDET),
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
   FRG("nl",			1, pl_nl1,		      ISO),
