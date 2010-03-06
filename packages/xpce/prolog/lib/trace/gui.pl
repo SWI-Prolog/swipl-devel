@@ -918,13 +918,19 @@ bindings(B, Bindings:prolog) :->
 	close(Fd),
 	send(B, caret, 0).
 
-append_binding(B, Names:prolog, ValueTerm:prolog, Fd:prolog) :->
+append_binding(B, Names0:prolog, ValueTerm:prolog, Fd:prolog) :->
 	"Add a binding to the browser"::
-	ValueTerm = value(Value),	% protect :=, ?, etc.
-	(   var(Value),
+	ValueTerm = value(Value0),	% protect :=, ?, etc.
+	(   var(Value0), Names0 = [_],
 	    setting(show_unbound, false)
 	->  true
-	;   get(B, text_buffer, TB),
+	;   (   var(Value0), Names0 = [_,_|_]
+	    ->	append(Names, [VarN:_], Names0),
+		Value = '$VAR'(VarN)
+	    ;	Names = Names0,
+		Value = Value0
+	    ),
+	    get(B, text_buffer, TB),
 	    get(TB, size, S0),
 	    (   Names = VarName:ArgN
 	    ->	format(Fd, '~w', [VarName])
