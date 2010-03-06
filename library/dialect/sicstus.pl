@@ -43,7 +43,7 @@
 	    read_line/1,		% -Codes
 	    read_line/2,		% +Stream, -Codes
 
-	    call_residue/2,		% :Goal, -Residue
+%	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
 	    prolog_flag/2,		% +Flag, -Value
@@ -290,6 +290,9 @@ read_line(Stream, Codes) :-
 		 *  COROUTINING & CONSTRAINTS	*
 		 *******************************/
 
+/* This is more complicated.  Gertjan van Noord decided to use
+   copy_term/3 in Alpino.
+
 %%	call_residue(:Goal, -Residue) is nondet.
 %
 %	Residue is a list of VarSet-Goal.  Note that this implementation
@@ -315,6 +318,7 @@ vars_by_goal(Goal) -->
 	  sort(AttVars, VarSet)
 	},
 	[ VarSet-Goal ].
+*/
 
 
 		 /*******************************
