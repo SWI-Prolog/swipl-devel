@@ -4432,8 +4432,16 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     vn = 2;
   } else if ( key == ATOM_real_time )
   { v[0] = (int64_t)WallTime();
-    v[1] = v[0] - LD->statistics.last_walltime;
-    LD->statistics.last_walltime = (intptr_t)v[0];
+    v[1] = v[0] - LD->statistics.last_real_time;
+    LD->statistics.last_real_time = (intptr_t)v[0];
+    vn = 2;
+  } else if ( key == ATOM_walltime )
+  { double wt = WallTime();
+    if ( !LD->statistics.last_walltime )
+      LD->statistics.last_walltime = GD->statistics.start_time;
+    v[0] = (int64_t)((wt - GD->statistics.start_time) * 1000.0);
+    v[1] = (int64_t)((wt - LD->statistics.last_walltime) * 1000.0);
+    LD->statistics.last_walltime = wt;
     vn = 2;
   } else if ( key == ATOM_memory || key == ATOM_core )
   { v[0] = UsedMemory();

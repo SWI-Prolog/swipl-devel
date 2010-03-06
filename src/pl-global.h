@@ -121,6 +121,7 @@ struct PL_global_data
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
     intptr_t	codes;			/* No. of byte codes generated */
+    double	start_time;		/* When Prolog was started */
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
@@ -405,7 +406,8 @@ struct PL_local_data
   { int64_t	inferences;		/* inferences in this thread */
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
-    uintptr_t	last_walltime;		/* milliseconds last Wall time */
+    uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
+    double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
   } statistics;

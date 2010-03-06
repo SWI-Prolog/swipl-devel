@@ -116,6 +116,9 @@ SWI-Prolog  is  based.
 bool
 initOs(void)
 { GET_LD
+
+  GD->statistics.start_time = WallTime();
+
   DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
   initExpand();
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));

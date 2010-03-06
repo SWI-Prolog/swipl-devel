@@ -6593,7 +6593,10 @@ runtime		& [ CPU time, CPU time since last ]
 		   garbage collection) \\
 system_time	& [ System CPU time, System CPU time since last ]
 		  (milliseconds)\\
-real_time	& [ Wall time, Wall time since last ] (see get_time/1) \\
+real_time	& [ Wall time, Wall time since last ]
+		  (integer seconds. See get_time/1) \\
+walltime	& [ Wall time since start, Wall time since last]
+		  (milliseconds, SICStus compatibility) \\
 memory		& [ Total unshared data, free memory ]
 		  (Uses getrusage() if available, otherwise incomplete own
 		  statistics.) \\
