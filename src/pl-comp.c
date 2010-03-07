@@ -3788,10 +3788,15 @@ unify_head(term_t h, term_t d ARG_LD)
 }
 
 
-word
-pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
-	   control_t ctx)
-{ GET_LD
+/** clause(H, B).
+    clause(H, B, Ref).
+    clause(H, B, Ref, Bindings).
+*/
+
+
+static
+PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   Procedure proc;
   Definition def;
   ClauseRef cref, next;
@@ -3803,7 +3808,12 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
   LocalFrame fr = environment_frame;
   fid_t fid;
 
-  switch( ForeignControl(ctx) )
+  term_t head     = A1;
+  term_t body     = A2;
+  term_t ref      = (CTX_ARITY >= 3 ? A3 : 0);
+  term_t bindings = (CTX_ARITY >= 4 ? A4 : 0);
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { Clause clause;
 
@@ -3845,14 +3855,14 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       break;
     }
     case FRG_REDO:
-    { cref = ForeignContextPtr(ctx);
+    { cref = CTX_PTR;
       proc = cref->clause->procedure;
       def  = getProcDefinition(proc);
       break;
     }
     case FRG_CUTTED:
     default:
-    { cref = ForeignContextPtr(ctx);
+    { cref = CTX_PTR;
 
       if ( cref )
       { def  = getProcDefinition(cref->clause->procedure);
@@ -3903,18 +3913,6 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 
   leaveDefinition(def);
   fail;
-}
-
-
-word
-pl_clause3(term_t p, term_t term, term_t ref, control_t h)
-{ return pl_clause4(p, term, ref, 0, h);
-}
-
-
-word
-pl_clause2(term_t p, term_t term, control_t h)
-{ return pl_clause4(p, term, 0, 0, h);
 }
 
 
@@ -5236,24 +5234,30 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define META PL_FA_TRANSPARENT
+#define NDET PL_FA_NONDETERMINISTIC
+
 BeginPredDefs(comp)
   PRED_DEF("$record_clause", 3, record_clause, 0)
   PRED_DEF("$start_aux", 2, start_aux, 0)
   PRED_DEF("$end_aux", 2, end_aux, 0)
-  PRED_DEF("assert",  1, assertz1, PL_FA_TRANSPARENT)
-  PRED_DEF("assertz", 1, assertz1, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("asserta", 1, asserta1, PL_FA_TRANSPARENT|PL_FA_ISO)
-  PRED_DEF("assert",  2, assertz2, PL_FA_TRANSPARENT)
-  PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
-  PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
-  PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
+  PRED_DEF("assert",  1, assertz1, META)
+  PRED_DEF("assertz", 1, assertz1, META|PL_FA_ISO)
+  PRED_DEF("asserta", 1, asserta1, META|PL_FA_ISO)
+  PRED_DEF("assert",  2, assertz2, META)
+  PRED_DEF("assertz", 2, assertz2, META)
+  PRED_DEF("asserta", 2, asserta2, META)
+  PRED_DEF("compile_predicates",  1, compile_predicates, META)
+  PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
+  PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)
+  PRED_SHARE("$clause", 4, clause, META|NDET|PL_FA_CREF)
 #ifdef O_DEBUGGER
-  PRED_DEF("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
-  PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
-  PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$fetch_vm", 4, fetch_vm, META)
+  PRED_DEF("$vm_assert", 3, vm_assert, META)
+  PRED_DEF("$break_pc", 3, break_pc, NDET)
   PRED_DEF("$clause_term_position", 3, clause_term_position, 0)
   PRED_DEF("$break_at", 3, break_at, 0)
-  PRED_DEF("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$current_break", 2, current_break, NDET)
+  PRED_DEF("$xr_member", 2, xr_member, NDET)
 #endif /*O_DEBUGGER*/
 EndPredDefs
