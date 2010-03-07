@@ -46,7 +46,7 @@
 	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
 					% Non-Quintus extensions
 	    ord_empty/1,		% ?Set
-	    ord_memberchk/2		% +Element, +Set,
+	    ord_memberchk/2,		% +Element, +Set,
 	    ord_symdiff/3               % +Set1, +Set2, ?Diff
 	  ]).
 :- use_module(library(oset)).
