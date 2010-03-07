@@ -173,8 +173,8 @@ COMMON(word) 		pl_nth_clause(term_t p, term_t n, term_t ref,
 				      control_t h);
 COMMON(void) 		wamListClause(Clause clause);
 COMMON(Code) 		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
-COMMON(int) 		unify_definition(term_t head, Definition def,
-				 term_t thehead, int flags);
+COMMON(int) 		unify_definition(Module ctx, term_t head, Definition def,
+					 term_t thehead, int flags);
 COMMON(code) 		replacedBreak(Code PC);
 COMMON(void) 		clearBreakPointsClause(Clause clause);
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);

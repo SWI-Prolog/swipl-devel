@@ -3063,7 +3063,7 @@ cont:
     case _PL_PREDICATE_INDICATOR:
     { predicate_t proc = va_arg(args, predicate_t);
 
-      return unify_definition(t, proc->definition,
+      return unify_definition(MODULE_user, t, proc->definition,
 			      0, GP_HIDESYSTEM|GP_NAMEARITY);
     }
     default:

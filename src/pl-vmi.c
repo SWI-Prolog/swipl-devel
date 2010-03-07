@@ -2331,7 +2331,7 @@ VMI(S_UNDEF, 0, 0, ())
       if ( (fid = PL_open_foreign_frame()) )
       { term_t pred = PL_new_term_ref();
 
-	if ( !unify_definition(pred, DEF, 0, GP_NAMEARITY) )
+	if ( !unify_definition(MODULE_user, pred, DEF, 0, GP_NAMEARITY) )
 	{ printMessage(ATOM_warning,
 		       PL_FUNCTOR, FUNCTOR_error2,
 		         PL_FUNCTOR, FUNCTOR_existence_error2,

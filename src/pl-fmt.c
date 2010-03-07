@@ -255,7 +255,8 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
   }
   while( (s=advanceTableEnum(e)) )
   { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
-	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
+	 unify_definition(contextModule(LD->environment),
+			  descr, ((Procedure)s->value)->definition, 0, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     }

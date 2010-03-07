@@ -2529,6 +2529,10 @@ PRED_IMPL("$record_clause", 3, record_clause, 0)
 }
 
 
+/** '$start_aux'(+File, -CurrentPred) is det.
+    '$end_aux'(+File, +CurrentPred) is det.
+*/
+
 static
 PRED_IMPL("$start_aux", 2, start_aux, 0)
 { atom_t filename;
@@ -2539,7 +2543,7 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 
   sf = lookupSourceFile(filename, TRUE);
   if ( sf->current_procedure )
-  { if ( unify_definition(A2, sf->current_procedure->definition, 0,
+  { if ( unify_definition(NULL, A2, sf->current_procedure->definition, 0,
 			  GP_QUALIFY|GP_NAMEARITY) )
     { sf->current_procedure = NULL;
       succeed;
@@ -3679,7 +3683,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 #undef ARGP
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unify_definition(?Head, +Def, -TheHead, flags)
+unify_definition(+Module, ?Head, +Def, -TheHead, flags)
     Given some definition, unify its Prolog reference (i.e. its head with
     optional module specifier) with ?Head.  If TheHead is specified, the
     plain head (i.e. without module specifier) will be referenced from
@@ -3705,17 +3709,17 @@ unify_functor(term_t t, functor_t fd, int how)
 
 int
 PL_unify_predicate(term_t head, predicate_t pred, int how)
-{ return unify_definition(head, pred->definition, 0, how);
+{ return unify_definition(MODULE_user, head, pred->definition, 0, how);
 }
 
 
 int
-unify_definition(term_t head, Definition def, term_t thehead, int how)
+unify_definition(Module ctx, term_t head, Definition def, term_t thehead, int how)
 { GET_LD
 
   if ( PL_is_variable(head) )
   { if ( !(how&GP_QUALIFY) &&
-	 (def->module == MODULE_user ||
+	 (def->module == ctx ||
 	  ((how&GP_HIDESYSTEM) && true(def->module, SYSTEM))) )
     { if ( !unify_functor(head, def->functor->functor, how) )
 	return FALSE;
@@ -3829,7 +3833,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	  { tmp = head;
 	  } else
 	  { tmp = PL_new_term_ref();
-	    if ( !unify_definition(head, def, tmp, 0) )
+	    if ( !unify_definition(contextModule(LD->environment), head, def, tmp, 0) )
 	      fail;
 	  }
 	  get_head_and_body_clause(term, h, b, NULL PASS_LD);
@@ -3957,7 +3961,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
       { if ( cref->clause == clause )
 	{ if ( !PL_unify_integer(n, i) ||
-	       !unify_definition(p, def, 0, 0) )
+	       !unify_definition(contextModule(LD->environment), p, def, 0, 0) )
 	    fail;
 
 	  succeed;
@@ -4110,7 +4114,7 @@ PRED_IMPL("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
 	{ case CA1_PROC:
 	  { size_t i;
 	    Procedure proc = (Procedure) PC[an];
-	    rc = unify_definition(term, getProcDefinition(proc), 0, 0);
+	    rc = unify_definition(MODULE_user, term, getProcDefinition(proc), 0, 0);
 	  hit:
 	    if ( !rc )
 	      return FALSE;		/* out of stack */
@@ -4298,7 +4302,7 @@ unify_vmi(term_t t, Clause clause, Code bp)
 	case CA1_PROC:
 	{ Procedure proc = (Procedure)*bp++;
 
-	  rc = unify_definition(av+an, proc->definition, 0,
+	  rc = unify_definition(MODULE_user, av+an, proc->definition, 0,
 				GP_HIDESYSTEM|GP_NAMEARITY);
 	  break;
 	}

@@ -2842,7 +2842,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
     Definition def = proc->definition;
     fid_t cid = PL_open_foreign_frame();
 
-    if ( unify_definition(descr, def, 0, 0) )
+    if ( unify_definition(MODULE_user, descr, def, 0, 0) )
     { PL_close_foreign_frame(cid);
 
       if ( cell->next )

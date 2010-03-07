@@ -661,7 +661,7 @@ pl_set_prolog_hook(term_t module, term_t old, term_t new)
   m = lookupModule(mname);
 
   if ( m->hook )
-  { if ( !unify_definition(old, m->hook->definition, 0, GP_HIDESYSTEM) )
+  { if ( !unify_definition(MODULE_user, old, m->hook->definition, 0, GP_HIDESYSTEM) )
       return FALSE;
   } else
   { if ( !PL_unify_nil(old) )
@@ -790,7 +790,7 @@ declareModule(atom_t name, atom_t super,
 		  }
 
 		  PL_unify_list(rtail, tmp, rtail);
-		  unify_definition(tmp, def, 0, GP_NAMEARITY);
+		  unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
 		}
 		abolishProcedure(proc, module);
 	      }
@@ -984,7 +984,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
 	 def->module == module &&			/* not imported */
 	 !autoImport(fd->functor, module) )
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !unify_definition(head, proc->definition,
+	   !unify_definition(MODULE_user, head, proc->definition,
 			     0, GP_QUALIFY|GP_NAMEARITY) )
       { freeTableEnum(e);
 	return FALSE;

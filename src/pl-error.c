@@ -218,8 +218,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();
 
-      rc = (unify_definition(pred, proc->definition, 0,
-			    GP_NAMEARITY|GP_HIDESYSTEM) &&
+      rc = (unify_definition(MODULE_user, pred, proc->definition, 0,
+			     GP_NAMEARITY|GP_HIDESYSTEM) &&
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_permission_error3,
 			    PL_ATOM, ATOM_modify,
@@ -231,7 +231,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();
 
-      rc = (unify_definition(pred, proc->definition, 0,
+      rc = (unify_definition(MODULE_user, pred, proc->definition, 0,
 			     GP_NAMEARITY|GP_HIDESYSTEM) &&
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_permission_error3,
@@ -248,7 +248,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       if ( clr )
 	caller = clr;
 
-      rc = (unify_definition(pred, def, 0, GP_NAMEARITY) &&
+      rc = (unify_definition(MODULE_user, pred, def, 0, GP_NAMEARITY) &&
 	    PL_unify_term(formal,
 			  PL_FUNCTOR, FUNCTOR_existence_error2,
 			    PL_ATOM, ATOM_procedure,
@@ -558,7 +558,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 			   PL_CHARS, pred,
 			   PL_INT, arity);
     } else if ( caller )
-    { rc = unify_definition(predterm, caller, 0, GP_NAMEARITY);
+    { rc = unify_definition(MODULE_user, predterm, caller, 0, GP_NAMEARITY);
     }
 
     if ( rc && msg )

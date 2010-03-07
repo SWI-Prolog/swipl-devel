@@ -1889,7 +1889,7 @@ prolog_frame_attribute(term_t frame, term_t what,
       }
     }
   } else if ( key == ATOM_predicate_indicator )
-  { if ( !unify_definition(result, fr->predicate, 0, GP_NAMEARITY) )
+  { if ( !unify_definition(MODULE_user, result, fr->predicate, 0, GP_NAMEARITY) )
       return FALSE;
   } else if ( key == ATOM_parent_goal )
   { Procedure proc;
