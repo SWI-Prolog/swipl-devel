@@ -40,6 +40,10 @@
 	    bb_delete/2,		% :Key, -Value
 	    bb_update/3,		% :Key, -Old, +New
 
+	    create_mutable/2,		% ?Value, -Mutable
+	    get_mutable/2,		% ?Value, +Mutable
+	    update_mutable/2,		% ?Value, !Mutable
+
 	    read_line/1,		% -Codes
 	    read_line/2,		% +Stream, -Codes
 
@@ -263,6 +267,41 @@ bb_update(Key, Old, New) :-
 	bb_key(Key, Name),
 	nb_current(Name, Old),
 	nb_setval(Name, New).
+
+
+		 /*******************************
+		 *	     MUTABLES		*
+		 *******************************/
+
+%%	create_mutable(?Value, -Mutable) is det.
+%
+%	Create a mutable term with the given initial Value.
+%
+%	@compat sicstus
+
+create_mutable(Value, '$mutable'(Value,_)).
+
+%%	get_mutable(?Value, +Mutable) is semidet.
+%
+%	True if Value unifies with the current value of Mutable.
+%
+%	@compat sicstus
+
+get_mutable(Value, '$mutable'(Value,_)).
+
+%%	update_mutable(?Value, !Mutable) is det.
+%
+%	Set the value of Mutable to Value.  The old binding is
+%	restored on backtracking.
+%
+%	@see setarg/3.
+%	@compat sicstus
+
+update_mutable(Value, Mutable) :-
+	functor(Mutable, '$mutable', 2), !,
+	setarg(1, Mutable, Value).
+update_mutable(_, Mutable) :-
+	type_error(mutable, Mutable).
 
 
 		 /*******************************
