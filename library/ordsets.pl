@@ -46,7 +46,8 @@
 	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
 					% Non-Quintus extensions
 	    ord_empty/1,		% ?Set
-	    ord_memberchk/2		% +Element, +Set
+	    ord_memberchk/2		% +Element, +Set,
+	    ord_symdiff/3               % +Set1, +Set2, ?Diff
 	  ]).
 :- use_module(library(oset)).
 :- set_prolog_flag(generate_debug_info, false).
@@ -281,4 +282,25 @@ ord_union_2([], H2, T2, [H2|T2], [H2|T2]).
 ord_union_2([H|T], H2, T2, Union, New) :-
 	compare(Order, H, H2),
 	ord_union(Order, H, T, H2, T2, Union, New).
+
+
+%%      ord_symdiff(+Set1, +Set2, ?Difference)
+%
+%       is true when Difference is the symmetric difference of Set1 and Set2.
+
+ord_symdiff([], Set2, Set2).
+ord_symdiff([H1|T1], Set2, Difference) :-
+	ord_symdiff(Set2, H1, T1, Difference).
+
+ord_symdiff([], H1, T1, [H1|T1]).
+ord_symdiff([H2|T2], H1, T1, Difference) :-
+	compare(Order, H1, H2),
+	ord_symdiff(Order, H1, T1, H2, T2, Difference).
+
+ord_symdiff(<, H1, Set1, H2, T2, [H1|Difference]) :-
+	ord_symdiff(Set1, H2, T2, Difference).
+ord_symdiff(=, _, T1, _, T2, Difference) :-
+	ord_symdiff(T1, T2, Difference).
+ord_symdiff(>, H1, T1, H2, Set2, [H2|Difference]) :-
+	ord_symdiff(Set2, H1, T1, Difference).
 
