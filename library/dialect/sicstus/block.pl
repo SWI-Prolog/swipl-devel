@@ -171,8 +171,17 @@ when_cond([H|T], Args, (C1,C2)) :-
 	when_cond(T, Args, C2).
 
 one_cond(Vars, Spec, Cond) :-
-	bagof(V, (nth1(I, Vars, V), arg(I, Spec, -)), CondVars),
+	cond_vars(Vars, 1, Spec, CondVars),
 	nonvar_or(CondVars, Cond).
+
+cond_vars([], _, _, []).
+cond_vars([H|T0], I, Spec, L) :-
+	(   arg(I, Spec, -)
+	->  L = [H|T]
+	;   L = T
+	),
+	I2 is I + 1,
+	cond_vars(T0, I2, Spec, T).
 
 nonvar_or([V], nonvar(V)).
 nonvar_or([V|T], (nonvar(V);C)) :-
