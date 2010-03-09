@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, University of Amsterdam
+    Copyright (C): 2010, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -27,8 +27,10 @@
     the GNU General Public License.
 */
 
-:- module(block_directive,
+:- module(block,
 	  [ (block)/1,			% +Heads
+	    (block)/2,			% +Vars, :Goal
+	    block_suspend/2,		% +Vars, :Goal
 	    op(1150, fx, (block))
 	  ]).
 
@@ -68,17 +70,16 @@ head(H, Head) :-
 %	specified as `-' are unbound.
 %
 %	Multiple BlockSpecs for a single predicate  can appear in one or
-%	more :- block declarations. The   predicate  is suspended untill
-%	all mode patterns that apply to it are satisfied.
+%	more :- block declarations. The  predicate   block  on the first
+%	matching  pattern  and  unblock  as  soon  as  this  pattern  is
+%	satisfied. I.e. it is possible that   after binding an argument,
+%	it will unblock while the declaration   still holds a pattern to
+%	block.
 %
 %	The implementation is realised by creating   a wrapper that uses
 %	when/2 to realize suspension of the renamed predicate.
 %
 %	@compat SICStus Prolog
-%	@compat If the predicate is blocked on multiple conditions, it
-%		will not unblock before _all_ conditions are satisfied.
-%		SICStus unblocks when one arbitrary condition is
-%		satisfied.
 %	@bug	It is not possible to block on a dynamic predicate
 %		because we cannot wrap assert/1.  Likewise, we cannot
 %		block foreign predicates, although it would be easier
@@ -115,7 +116,7 @@ expand_specs(Head, Module) -->
 	->  [ Clause ]
 	;   [ Module:Clause ]
 	),
-	[ block_directive:block_declaration(GenHead, Module) ].
+	[ (block):block_declaration(GenHead, Module) ].
 
 valid_head(Head) :-
 	callable(Head),
@@ -146,7 +147,7 @@ block_arg(A) :-
 wrap_block(Pred, Term, Clause) :-
 	current_predicate(_, Pred), !,
 	rename_clause(Term, 'block ', Clause).
-wrap_block(Pred, Term, [Wrapper,FirstClause]) :-
+wrap_block(Pred, Term, [Blocker,Link,FirstClause]) :-
 	block_declarations(Pred, Modes),
 	Pred = _:Head,
 	functor(Head, Name, Arity),
@@ -154,9 +155,10 @@ wrap_block(Pred, Term, [Wrapper,FirstClause]) :-
 	GenHead =.. [Name|Args],
 	atom_concat('block ', Name, WrappedName),
 	WrappedHead =.. [WrappedName|Args],
-	when_cond(Modes, Args, Cond),
-	simplify_coroute(when(Cond, WrappedHead), Coroute),
-	Wrapper = (GenHead :- Coroute),
+	block_vars(Modes, Args, Vars),
+	Pred = M:_,
+	Blocker = (GenHead :- (block):block_suspend(Vars, M:WrappedHead), !),
+	Link = (GenHead :- WrappedHead),
 	rename_clause(Term, 'block ', FirstClause).
 
 block_declarations(M:P, Modes) :-
@@ -164,15 +166,13 @@ block_declarations(M:P, Modes) :-
 	functor(H, Name, Arity),
 	findall(H, M:'$block_pred'(H), Modes).
 
-when_cond([Head], Args, Cond) :- !,
-	one_cond(Args, Head, Cond).
-when_cond([H|T], Args, (C1,C2)) :-
-	one_cond(Args, H, C1),
-	when_cond(T, Args, C2).
+block_vars([], _, []).
+block_vars([H|T0], Args, [Vs|T]) :-
+	one_cond(Args, H, Vs),
+	block_vars(T0, Args, T).
 
-one_cond(Vars, Spec, Cond) :-
-	cond_vars(Vars, 1, Spec, CondVars),
-	nonvar_or(CondVars, Cond).
+one_cond(Vars, Spec, BVars) :-
+	cond_vars(Vars, 1, Spec, BVars).
 
 cond_vars([], _, _, []).
 cond_vars([H|T0], I, Spec, L) :-
@@ -182,13 +182,6 @@ cond_vars([H|T0], I, Spec, L) :-
 	),
 	I2 is I + 1,
 	cond_vars(T0, I2, Spec, T).
-
-nonvar_or([V], nonvar(V)).
-nonvar_or([V|T], (nonvar(V);C)) :-
-	nonvar_or(T, C).
-
-simplify_coroute(when(nonvar(X), C), freeze(X, C)).
-simplify_coroute(Coroute, Coroute).
 
 
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
@@ -203,6 +196,108 @@ rename_clause(Head, Prefix, NewHead) :-
         Head =.. [Name|Args],
         atom_concat(Prefix, Name, WrapName),
         NewHead =.. [WrapName|Args].
+
+
+		 /*******************************
+		 *	   COROUTINING		*
+		 *******************************/
+
+:- meta_predicate
+	block(+, 0),
+	block_suspend(+, 0).
+
+%%	block(+Guard, :Goal).
+%
+%	Guard is a list of lists, where a the innner lists are lists of
+%	variables.  E.g.
+%
+%	    ==
+%	    :- block hello(-,-,?), hello(-,?,-).
+%	    ==
+%
+%	Is translated into
+%
+%	    ==
+%	    hello(A,B,C) :-
+%	    	block([[A,B], [A,C]], hello_impl(A,B,C)).
+%	    ==
+
+block_suspend(Guards, Goal) :-
+	member(Guard, Guards),
+	all_vars(Guard), !,
+	put_block(Guard, Guard-Goal).
+
+block(Guards, Goal) :-
+	block_suspend(Guards, Goal), !.
+block(_, Goal) :-
+	Goal.
+
+
+attr_unify_hook(Att, Other) :-
+	(   get_attr(Other, block, B0)
+	->  put_attr(Other, block, [Att|B0])
+	;   del_blocks(Att, Goals),
+	    call_goals(Goals)
+	).
+
+call_goals([]).
+call_goals([G|T]) :-
+	call(G),
+	call_goals(T).
+
+del_blocks([], []).
+del_blocks([Vars-Goal|T], [Goal|TG]) :-
+	del_block(Vars, Vars),
+	del_blocks(T, TG).
+
+del_block([], _).
+del_block([H|T], Vars) :-
+	(   get_attr(H, block, List)
+	->  del_vars_eq(Vars, List, Rest),
+	    (   Rest == []
+	    ->  del_attr(H, block)
+	    ;   put_attr(H, block, Rest)
+	    )
+	;   true
+	),
+	del_block(T, Vars).
+
+
+put_block([], _).
+put_block([H|T], Att) :-
+	(   get_attr(H, block, B0)
+	->  put_attr(H, block, [Att|B0])
+	;   put_attr(H, block, [Att])
+	),
+	put_block(T, Att).
+
+all_vars([]).
+all_vars([H|T]) :-
+	var(H),
+	all_vars(T).
+
+del_vars_eq(X, [Vars-_|T], T) :-
+	X == Vars, !.
+del_vars_eq(X, [H|T0], [H|T]) :-
+	del_vars_eq(X, T0, T).
+
+
+%%	attribute_goals(+Var)// is semidet.
+%
+%	Support copy_term/3.
+%
+%	@tbd Ducplicates constraints when blocking on multiple
+%	variables.
+
+attribute_goals(V) -->
+	{ get_attr(V, block, Attr) },
+	block_goals(Attr).
+
+block_goals([]) -->
+	[].
+block_goals([Vars-Goal|T]) -->
+	[ (block):block([Vars], Goal) ],
+	block_goals(T).
 
 
 		 /*******************************
