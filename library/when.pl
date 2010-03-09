@@ -72,8 +72,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
 	when_condition(Condition),
-	strip_module(Goal, M, G),
-	trigger(Condition, M:G).
+	trigger(Condition, Goal).
 
 when_condition(C)	  :- var(C), !, instantiation_error(C).
 when_condition(?=(_,_))	  :- !.
