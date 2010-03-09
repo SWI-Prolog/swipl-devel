@@ -46,6 +46,8 @@
 
 	    popen/3,			% +Command, +Mode, -Stream
 
+	    host_name/1,		% -HostName
+
 	    working_directory/2,	% -Old, +New
 	    make_directory/1,		% +DirName
 	    file_exists/1,		% +FileName
@@ -55,6 +57,7 @@
 	    tmpnam/1			% -FileName
 	  ]).
 :- use_module(library(process)).
+:- use_module(library(socket)).
 
 /** <module> SICStus-3 library system
 
@@ -132,6 +135,14 @@ system(Command, Status) :- shell(Command, Status).
 
 popen(Command, Mode, Stream) :-
 	open(pipe(Command), Mode, Stream).
+
+%%	host_name(-HostName)
+%
+%	@compat sicstus
+%	@see gethostname/1
+
+host_name(HostName) :-
+	gethostname(HostName).
 
 
 		 /*******************************
