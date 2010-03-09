@@ -34,6 +34,7 @@
 	    wait/2,			% +PID, -Status
 	    pid/1,			% -PID
 
+	    datime/1,			% -DaTime
 	    sleep/1,			% +Seconds
 
 	    shell/0,
@@ -116,6 +117,20 @@ wait(PID, Status) :-
 
 pid(PID) :-
 	current_prolog_flag(pid, PID).
+
+%%	datime(-Datime)
+%
+%	Unifies Datime with the current  date   and  time  as a datime/6
+%	record  of  the  form  datime(Year,Month,Day,Hour,Min,Sec).  All
+%	fields are integers.
+%
+%	@compat sicstus
+
+datime(datime(Year,Month,Day,Hour,Min,Sec)) :-
+	get_time(Now),
+	stamp_date_time(Now, date(Year,Month,Day,Hour,Min,SecF,_,_,_), local),
+	Sec is integer(SecF).
+
 
 %%	system.
 %%	system(+Command).
