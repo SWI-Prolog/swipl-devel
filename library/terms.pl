@@ -86,10 +86,10 @@ lgg(S1, S2, G, Map0, Map) :-
 	->  G = S1,
 	    Map = Map0
 	;   compound(S1),
-	    compound(S2)
-	->  functor(S1, Name, Arity),
-	    functor(S2, Name, Arity),
-	    functor(G, Name, Arity),
+	    compound(S2),
+	    functor(S1, Name, Arity),
+	    functor(S2, Name, Arity)
+	->  functor(G, Name, Arity),
 	    lgg(0, Arity, S1, S2, G, Map0, Map)
 	;   rb_lookup(S1+S2, G0, Map0)
 	->  G = G0,
@@ -121,10 +121,10 @@ lgg_safe(S1, S2, G, Map0, Map) :-
 	->  G = G0,
 	    Map	= Map0
 	;   compound(S1),
-	    compound(S2)
-	->  functor(S1, Name, Arity),
-	    functor(S2, Name, Arity),
-	    functor(G, Name, Arity),
+	    compound(S2),
+	    functor(S1, Name, Arity),
+	    functor(S2, Name, Arity)
+	->  functor(G, Name, Arity),
 	    rb_insert(Map0, S1+S2, G, Map1),
 	    lgg_safe(0, Arity, S1, S2, G, Map1, Map)
 	;   rb_insert(Map0, S1+S2, G, Map)
