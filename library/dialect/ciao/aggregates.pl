@@ -60,7 +60,9 @@ findnsols(N, Template, Generator, List) :-
 %	@compat ciao
 
 findnsols(N, Template, Generator, List, Tail) :-
+	N > 0, !,
 	findall(Template, maxsols(N, Generator), List, Tail).
+findnsols(_, _, _, Tail, Tail).
 
 maxsols(N, Generator) :-
 	State = count(0),
