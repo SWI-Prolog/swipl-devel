@@ -29,7 +29,8 @@
 
 :- module(sics_lists,
 	  [ substitute/4,		% +Elem, +List, +NewElem, -List
-	    nth/3
+	    nth/3,
+	    sublist/2			% ?Sub, +List
 	  ]).
 :- reexport('../../lists').
 
@@ -59,3 +60,28 @@ substitute_([O|T0], Old, New, [V|T]) :-
 
 nth(Index, List, Element) :-
 	nth1(Index, List, Element).
+
+
+%%	sublist(?Sub, +List)
+%
+%	True when all members of Sub  are   members  of List in the same
+%	order.
+%
+%	@compat sicstus.  The order of generating sublists differs.
+%	@compat This predicate is known in many Prolog implementations,
+%		but the semantics differ. E.g. In YAP it is a continuous
+%		sub-list.
+
+sublist(Sub, List) :-
+	sublist_(List, Sub).
+
+sublist_([], []).
+sublist_([H|T], Sub) :-
+	sublist__(T, H, Sub).
+
+sublist__([], H, [H]).
+sublist__([], _, []).
+sublist__([H|T], X, [X|Sub]) :-
+	sublist__(T, H, Sub).
+sublist__([H|T], _, Sub) :-
+	sublist__(T, H, Sub).
