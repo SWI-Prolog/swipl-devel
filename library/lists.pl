@@ -33,6 +33,7 @@
 	[ member/2,
 	  append/2,			% +ListOfLists, -List
 	  append/3,
+	  prefix/2,			% ?Part, ?Whole
 	  select/3,
 	  selectchk/3,
 	  nextto/3,			% ?X, ?Y, ?List
@@ -95,6 +96,16 @@ append_([], []).
 append_([L|Ls], As) :-
 	append(L, Ws, As),
 	append_(Ls, Ws).
+
+
+%%	prefix(?Part, ?Whole)
+%
+%	True iff Part is a leading substring of Whole.  This is the same
+%	as append(Part, _, Whole).
+
+prefix([], _).
+prefix([E|T0], [E|T]) :-
+	prefix(T0, T).
 
 
 %%	select(?Elem, ?List1, ?List2)

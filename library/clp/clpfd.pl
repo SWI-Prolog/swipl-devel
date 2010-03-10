@@ -2548,6 +2548,19 @@ reify_(V in Drep, B) --> !,
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
+reify_(tuples_in(Tuples, Relation), B) --> !,
+        { must_be(list, Tuples),
+          append(Tuples, Vs),
+          maplist(fd_variable, Vs),
+          must_be(list(list(integer)), Relation),
+          maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
+          (   Bs == [] -> B = 1
+          ;   Bs = [B1|Rest],
+              bs_and(Rest, B1, And),
+              And #<==> B
+          ) },
+        list(Ps),
+        as([B|Bs]).
 reify_(finite_domain(V), B) --> !,
         { fd_variable(V) },
         propagator_init_trigger(reified_fd(V,B)),
@@ -2612,6 +2625,19 @@ a(B) -->
         (   { var(B) } -> [a(B)]
         ;   []
         ).
+
+as([])     --> [].
+as([B|Bs]) --> a(B), as(Bs).
+
+bs_and([], A, A).
+bs_and([B|Bs], A0, A) :-
+        bs_and(Bs, A0#/\B, A).
+
+relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
+        put_attr(R, clpfd_relation, Relation),
+        make_propagator(reified_tuple_in(Tuple, R, B), Prop),
+        tuple_freeze(Tuple, Tuple, Prop),
+        init_propagator(B, Prop).
 
 % Match variables to created skeleton.
 
@@ -3068,19 +3094,17 @@ tuples_in(Tuples, Relation) :-
         append(Tuples, Vs),
         maplist(fd_variable, Vs),
         must_be(list(list(integer)), Relation),
-        tuples_domain(Tuples, Relation),
+        maplist(relation_tuple(Relation), Tuples),
         do_queue.
 
-tuples_domain([], _).
-tuples_domain([Tuple|Tuples], Relation) :-
+relation_tuple(Relation, Tuple) :-
         relation_unifiable(Relation, Tuple, Us, _, _),
         (   ground(Tuple) -> memberchk(Tuple, Relation)
         ;   tuple_domain(Tuple, Us),
             (   Tuple = [_,_|_] -> tuple_freeze(Tuple, Us)
             ;   true
             )
-        ),
-        tuples_domain(Tuples, Relation).
+        ).
 
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
@@ -3950,6 +3974,21 @@ run_propagator(reified_in(V,Dom,B), MState) :-
                 ;   true
                 )
             ;   kill(MState), B = 0
+            )
+        ).
+
+run_propagator(reified_tuple_in(Tuple, R, B), MState) :-
+        get_attr(R, clpfd_relation, Relation),
+        (   B == 1 -> kill(MState), tuples_in([Tuple], Relation)
+        ;   (   ground(Tuple) ->
+                kill(MState),
+                (   memberchk(Tuple, Relation) -> B = 1
+                ;   B = 0
+                )
+            ;   relation_unifiable(Relation, Tuple, Us, _, _),
+                (   Us = [] -> kill(MState), B = 0
+                ;   true
+                )
             )
         ).
 
@@ -5806,6 +5845,9 @@ attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
 attribute_goal_(reified_in(V, D, B)) -->
         [V in Drep #<==> B],
         { domain_to_drep(D, Drep) }.
+attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
+        { get_attr(R, clpfd_relation, Rel) },
+        [tuples_in([Tuple], Rel) #<==> B].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
 attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
 attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).
