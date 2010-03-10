@@ -2553,12 +2553,13 @@ reify_(tuples_in(Tuples, Relation), B) --> !,
           append(Tuples, Vs),
           maplist(fd_variable, Vs),
           must_be(list(list(integer)), Relation),
-          maplist(relation_tuple_b(Relation), Tuples, Bs),
+          maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
           (   Bs == [] -> B = 1
           ;   Bs = [B1|Rest],
               bs_and(Rest, B1, And),
               And #<==> B
           ) },
+        list(Ps),
         as([B|Bs]).
 reify_(finite_domain(V), B) --> !,
         { fd_variable(V) },
@@ -2632,7 +2633,7 @@ bs_and([], A, A).
 bs_and([B|Bs], A0, A) :-
         bs_and(Bs, A0#/\B, A).
 
-relation_tuple_b(Relation, Tuple, B) :-
+relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
         put_attr(R, clpfd_relation, Relation),
         make_propagator(reified_tuple_in(Tuple, R, B), Prop),
         tuple_freeze(Tuple, Tuple, Prop),
