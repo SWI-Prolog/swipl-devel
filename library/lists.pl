@@ -386,7 +386,7 @@ union([H|T], L, [H|R]) :-
 	union(T, L, R).
 
 
-%%	subset(+SubSet, +Set) is det.
+%%	subset(+SubSet, +Set) is semidet.
 %
 %	True if all elements of SubSet belong to Set as well. Membership
 %	test is based on memberchk/2.  The complexity is |SubSet|*|Set|.
