@@ -21,6 +21,10 @@ must be a list of -possibly- partial lists.
 Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. The predicate can be used with any instantiation
 pattern.
 
+    \predicate{prefix}{2}{?Prefix, ?List}
+True iff \arg{Prefix} is a leading substring of \arg{List}. This is
+the same as \term{append}{Prefix, _, List}.
+
     \predicate{nextto}{3}{?X, ?Y, ?List}
 Succeeds when \arg{Y} immediatly follows \arg{X} in \arg{List}.
 
