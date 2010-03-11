@@ -235,7 +235,8 @@ block(_, Goal) :-
 
 attr_unify_hook(Att, Other) :-
 	(   get_attr(Other, block, B0)
-	->  put_attr(Other, block, [Att|B0])
+	->  append(Att, B0, AllAtt),
+	    put_attr(Other, block, AllAtt)
 	;   del_blocks(Att, Goals),
 	    call_goals(Goals)
 	).
@@ -282,15 +283,25 @@ del_vars_eq(X, [H|T0], [H|T]) :-
 	del_vars_eq(X, T0, T).
 
 
+block_attr(List) :-
+	is_list(List),
+	maplist(block_attr_1, List).
+
+block_attr_1(Vars-Goal) :-
+	is_list(Vars),
+	callable(Goal).
+
+
 %%	attribute_goals(+Var)// is semidet.
 %
 %	Support copy_term/3.
 %
-%	@tbd Ducplicates constraints when blocking on multiple
+%	@tbd Duplicates constraints when blocking on multiple
 %	variables.
 
 attribute_goals(V) -->
-	{ get_attr(V, block, Attr) },
+	{ get_attr(V, block, Attr)
+	},
 	block_goals(Attr).
 
 block_goals([]) -->
