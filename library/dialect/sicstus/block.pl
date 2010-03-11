@@ -308,6 +308,7 @@ block_goals([]) -->
 	[].
 block_goals([Vars-Goal|T]) -->
 	[ (block):block([Vars], Goal) ],
+	{ del_block(Vars, Vars) },
 	block_goals(T).
 
 
