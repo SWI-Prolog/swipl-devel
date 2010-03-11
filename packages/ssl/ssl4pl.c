@@ -436,7 +436,7 @@ pl_ssl_context(term_t role, term_t config, term_t options)
 
       ssl_set_close_parent(conf, strcmp(s, "true") == 0);
     } else
-      return domain_error(head, "ssl_option");
+      continue;
   }
 
   if ( !PL_get_nil(tail) )

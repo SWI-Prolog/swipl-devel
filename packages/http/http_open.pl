@@ -58,6 +58,8 @@ client support is provided by http_client.pl
 	http:encoding_filter/3.		% +Encoding, +In0,  -In
 :- multifile
 	http:current_transfer_encoding/1. % ?Encoding
+:- multifile
+	http:http_protocol_hook/7. % +Protocol, +Parts, +In, +Out, -NewIn, -NewOut, +Options
 
 
 %%	http_open(+Url, -Stream, +Options) is det.
@@ -81,7 +83,9 @@ client support is provided by http_client.pl
 %		* request_header(Name=Value)
 %		  Extra header field
 %		* method(+Method)
-%		  One of =get= (default) or =head=
+%		  One of =get= (default), =head= or =post=
+%		* post(+Data)
+%		  See the In argument of http_post/4
 %		* final_url(-URL)
 %		  Unified with the final URL to deal with
 %		  redirections.
@@ -106,13 +110,21 @@ http_open(Parts, Stream, Options0) :-
 http_open(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
 	option(port(Port), Parts, 80),
+        option(protocol(Protocol), Parts, http),
 	http_location(Parts, Location),
 	Options = [visited(Parts)|Options0],
-	open_socket(Host:Port, In, Out, Options),
+	open_socket(Host:Port, SocketIn, SocketOut, Options),
+        (   http:http_protocol_hook(Protocol, Parts, SocketIn, SocketOut, In, Out, Options)
+        ->  true
+        ;   In = SocketIn,
+            Out = SocketOut
+        ),
 	host_and_port(Host, Port, HostPort),
 	add_authorization(Parts, Options, Options1),
 	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
 	return_final_url(Options).
+
+http:http_protocol_hook(http, _, In, Out, In, Out, _).
 
 host_and_port(Host, 80, Host) :- !.
 host_and_port(Host, Port, Host:Port).
@@ -148,6 +160,11 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       [MNAME, Location, Version, Host, Agent]),
 	x_headers(Options, Out),
 	format(Out, '\r\n', []),
+        (   MNAME == 'POST',
+            memberchk(post(PostData), Options)
+        ->  http_post_data(PostData, Out, Options)
+        ;   true
+        ),
 	flush_output(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
@@ -168,10 +185,12 @@ force_close(S1, S2) :-
 
 method(Options, MNAME) :-
 	option(method(M), Options, get),
-	must_be(oneof([get,head]), M),
+	must_be(oneof([get,head,post]), M),
 	(   M == get
 	->  MNAME = 'GET'
-	;   MNAME = 'HEAD'
+        ;   M == head
+        ->  MNAME = 'HEAD'
+	;   MNAME = 'POST'
 	).
 
 %%	x_headers(+Options, +Out) is det.
