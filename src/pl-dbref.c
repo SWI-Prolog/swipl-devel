@@ -48,7 +48,6 @@ acquire_clause(atom_t aref)
 { clref *ref = PL_blob_data(aref, NULL, NULL);
 
   set(ref->clause, DBREF_CLAUSE);
-  return TRUE;
 }
 
 
@@ -90,7 +89,6 @@ acquire_record(atom_t aref)
 { recref *ref = PL_blob_data(aref, NULL, NULL);
 
   set(ref->record->record, R_DBREF);
-  return TRUE;
 }
 
 
