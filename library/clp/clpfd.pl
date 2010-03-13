@@ -4291,12 +4291,14 @@ enumerate([N|Ns], V, NumVar0, NumVar) :-
             put_attr(Y, value, N),
             put_attr(Y, edges, [flow_from(F,V)])
         ),
-        (   get_attr(V, edges, Es1) ->
-            put_attr(V, edges, [flow_to(F,Y)|Es1])
-        ;   put_attr(V, edges, [flow_to(F,Y)])
-        ),
+        append_edge(V, edges, flow_to(F,Y)),
         enumerate(Ns, V, NumVar1, NumVar).
 
+append_edge(V, Attr, E) :-
+        (   get_attr(V, Attr, Es) ->
+            put_attr(V, Attr, [E|Es])
+        ;   put_attr(V, Attr, [E])
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Strategy: Breadth-first search until we find a free right vertex in
@@ -4382,14 +4384,8 @@ g_g0(V) :-
 
 g_g0_(V, flow_to(F,To)) :-
         (   get_attr(F, flow, 1) ->
-            (   get_attr(V, g0_edges, Es) ->
-                put_attr(V, g0_edges, [flow_to(F,To)|Es])
-            ;   put_attr(V, g0_edges, [flow_to(F,To)])
-            )
-        ;   (   get_attr(To, g0_edges, Es1) ->
-                put_attr(To, g0_edges, [flow_to(F,V)|Es1])
-            ;   put_attr(To, g0_edges, [flow_to(F,V)])
-            )
+            append_edge(V, g0_edges, flow_to(F,To))
+        ;   append_edge(To, g0_edges, flow_to(F,V))
         ).
 
 
@@ -5017,12 +5013,8 @@ gcc_arcs([Key-Num0|KNs], S, Vals) :-
             ),
             put_attr(Val, value, Key),
             Vals = [Val|Rest],
-            Edge = arc_to(L, U, Val, F),
             put_attr(F, flow, 0),
-            (   get_attr(S, edges, SEs) ->
-                put_attr(S, edges, [Edge|SEs])
-            ;   put_attr(S, edges, [Edge])
-            ),
+            append_edge(S, edges, arc_to(L, U, Val, F)),
             put_attr(Val, edges, [arc_from(L, U, S, F)]),
             variables_with_num_occurrences(Vs, VNs),
             maplist(val_to_v(Val), VNs)
@@ -5049,24 +5041,13 @@ variables_with_num_occurrences([V|Vs], Prev, Count0, VNs) :-
 
 
 target_to_v(T, V-Count) :-
-        (   get_attr(V, edges, VarEs) -> true
-        ;   VarEs = []
-        ),
         put_attr(F, flow, 0),
-        put_attr(V, edges, [arc_to(0, Count, T, F)|VarEs]),
-        TE = arc_from(0, Count, V, F),
-        (   get_attr(T, edges, TEs) ->
-            put_attr(T, edges, [TE|TEs])
-        ;   put_attr(T, edges, [TE])
-        ).
-
+        append_edge(V, edges, arc_to(0, Count, T, F)),
+        append_edge(T, edges, arc_from(0, Count, V, F)).
 
 val_to_v(Val, V-Count) :-
         put_attr(F, flow, 0),
-        (   get_attr(V, edges, VarEs) -> true
-        ;   VarEs = []
-        ),
-        put_attr(V, edges, [arc_from(0, Count, Val, F)|VarEs]),
+        append_edge(V, edges, arc_from(0, Count, Val, F)),
         get_attr(Val, edges, VEs),
         put_attr(Val, edges, [arc_to(0, Count, V, F)|VEs]).
 
