@@ -58,6 +58,10 @@
 % Simple implementation. Does not clean up redundant attributes.
 % Now deals with cyclic terms.
 %
+% Currently, redundant constraints are skipped for copy_term/3. We could
+% also   considering   to   implement   the   approach   of   block   in
+% library(dialect/sicstus/block).
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(when,
 	  [ when/2			% +Condition, :Goal
@@ -148,6 +152,15 @@ trigger_disj(G1,G2,Goal) :-
 	trigger(G1,when:check_disj(Disj,Goal)),
 	trigger(G2,when:check_disj(Disj,Goal)).
 
+%%	check_disj(DisjVar, Goal)
+%
+%	If there is a disjunctive condition, we share a variable between
+%	the disjunctions. If the  goal  is  fired   due  to  one  of the
+%	conditions, the shared variable is boud   to (-). Note that this
+%	implies that the attributed  variable  is   left  in  place. The
+%	predicate  when_goal//1  skips  such   goals    on   behalfe  of
+%	copy_term/3.
+
 check_disj(Disj,Goal) :-
 	( var(Disj) ->
 		Disj = (-),
@@ -195,6 +208,17 @@ attribute_goals(V) -->
 when_goals([])	   --> [].
 when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
 
-when_goal(trigger_ground(X, G)) --> [when(ground(X), G)].
-when_goal(trigger_nonvar(X, G)) --> [when(nonvar(X), G)].
-when_goal(wake_det(_))		--> []. % ignore
+when_goal(trigger_ground(X, G)) -->
+	(   { fired_disj(G) }
+	->  []
+	;   [when(ground(X), G)]
+	).
+when_goal(trigger_nonvar(X, G)) -->
+	(   { fired_disj(G) }
+	->  []
+	;   [when(nonvar(X), G)]
+	).
+when_goal(wake_det(_)) -->
+	[].				% ignore
+
+fired_disj(when:check_disj(X, _)) :- X == (-).
