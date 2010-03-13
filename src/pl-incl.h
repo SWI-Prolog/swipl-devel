@@ -1042,8 +1042,8 @@ struct clause
     uintptr_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  unsigned short	variables;	/* # of variables for frame */
-  unsigned short	prolog_vars;	/* # real Prolog variables */
+  unsigned int		variables;	/* # of variables for frame */
+  unsigned int		prolog_vars;	/* # real Prolog variables */
   unsigned int		line_no; 	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */

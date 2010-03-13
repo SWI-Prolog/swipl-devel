@@ -362,7 +362,7 @@ Returns the number  of  variables  found   or  one  of  AVARS_CYCLIC  or
 AVARS_MAX
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAX_VARIABLES USHRT_MAX
+#define MAX_VARIABLES 1000000000	/* stay safely under signed int */
 #define AVARS_CYCLIC -1
 #define AVARS_MAX    -12
 
@@ -834,7 +834,9 @@ compileClause(Clause *cp, Word head, Word body,
   ci.module = module;
 
   if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
-  { switch ( rc )
+  { resetVars(PASS_LD1);
+
+    switch ( rc )
     { case CYCLIC_HEAD:
       case CYCLIC_BODY:
 	return PL_error(NULL, 0, NULL,
