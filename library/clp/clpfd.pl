@@ -4885,9 +4885,9 @@ gcc_global(Vs, KNs) :-
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
-        maplist(positive_flow, Es).
+        maplist(saturated_arc, Es).
 
-positive_flow(arc_from(_,_,_,Flow)) :- get_attr(Flow, flow, F), F > 0.
+saturated_arc(arc_from(_,U,_,Flow)) :- get_attr(Flow, flow, U).
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
