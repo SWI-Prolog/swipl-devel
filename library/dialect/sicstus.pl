@@ -133,6 +133,7 @@ qualified(_:_).
 
 system:goal_expansion(if(If,Then,Else),
 		      (If *-> Then ; Else)) :-
+	prolog_load_context(dialect, sicstus),
 	\+ (sub_term(X, [If,Then,Else]), X == !).
 
 %%	if(:If, :Then, :Else)
