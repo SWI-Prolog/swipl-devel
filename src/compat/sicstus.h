@@ -85,7 +85,7 @@ SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
 
   if ( rc )
   { PL_put_term(list, t0);
-    PL_unify(tail, t0+1);
+    rc = PL_unify(tail, t0+1);
   }
 
   return rc;
