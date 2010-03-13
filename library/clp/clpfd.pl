@@ -4232,14 +4232,6 @@ max_divide(L1,U1,L2,U2,Max) :-
    CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-distinct_attach(Ls) :-
-         must_be(list, Ls),
-         maplist(fd_variable, Ls),
-         make_propagator(pdistinct(Ls), Prop),
-         distinct_attach(Ls, Prop, []),
-         trigger_prop(Prop),
-         do_queue.
-
 distinct_attach([], _, _).
 distinct_attach([X|Xs], Prop, Right) :-
         (   var(X) ->
@@ -4432,9 +4424,8 @@ distinct(Vars) :-
 
 distinct_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
-            del_attr(V, edges),
             % parent and in_stack are already cleared
-            maplist(del_attr(V), [index,lowlink,value,visited]),
+            maplist(del_attr(V), [edges,index,lowlink,value,visited]),
             maplist(clear_edge, Es),
             (   get_attr(V, g0_edges, Es1) ->
                 del_attr(V, g0_edges),
@@ -4578,7 +4569,13 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 %  false.
 %  ==
 
-all_distinct(Ls) :- distinct_attach(Ls).
+all_distinct(Ls) :-
+        must_be(list, Ls),
+        maplist(fd_variable, Ls),
+        make_propagator(pdistinct(Ls), Prop),
+        distinct_attach(Ls, Prop, []),
+        trigger_prop(Prop),
+        do_queue.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent constraint of difference, currently only
