@@ -413,14 +413,16 @@ default_module(Me, Super) :-
 '$set_debugger_print_options'(write) :- !,
 	create_prolog_flag(debugger_print_options,
 			   [ quoted(true),
-			     attributes(write)
+			     attributes(write),
+			     spacing(next_argument)
 			   ], []).
 '$set_debugger_print_options'(print) :- !,
 	create_prolog_flag(debugger_print_options,
 			   [ quoted(true),
 			     portray(true),
 			     max_depth(10),
-			     attributes(portray)
+			     attributes(portray),
+			     spacing(next_argument)
 			   ], []).
 '$set_debugger_print_options'(Depth) :-
 	current_prolog_flag(debugger_print_options, Options0),
