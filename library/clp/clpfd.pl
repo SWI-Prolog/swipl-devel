@@ -4282,9 +4282,9 @@ difference_arcs([V|Vs], FL0) -->
 
 enumerate([], _) --> [].
 enumerate([N|Ns], V) -->
-        state(NumVar0, NumVar1),
-        { (   get_assoc(N, NumVar0, Y) -> NumVar0 = NumVar1
-          ;   put_assoc(N, NumVar0, Y, NumVar1),
+        state(NumVar0, NumVar),
+        { (   get_assoc(N, NumVar0, Y) -> NumVar0 = NumVar
+          ;   put_assoc(N, NumVar0, Y, NumVar),
               put_attr(Y, value, N)
           ),
           put_attr(F, flow, 0),
