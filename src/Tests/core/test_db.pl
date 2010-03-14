@@ -90,18 +90,10 @@ link_clause(N, V0, V, (succ(V0, V1), G)) :-
         N2 is N - 1,
         link_clause(N2, V1, V, G).
 
-% (*) Variable count is represented as an unsigned short.  Note that
-% this error may disappear if we do smarter variable allocation.
-
 test(big_clause,
      [ true,
        cleanup(trim_stacks)
      ]) :-
 	test_big_clause(60000).
-test(too_big_clause,			% (*)
-     [ error(representation_error(max_frame_size)),
-       cleanup(trim_stacks)
-     ]) :-
-	test_big_clause(80000).
 
 :- end_tests(res_compiler).
