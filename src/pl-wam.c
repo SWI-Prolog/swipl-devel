@@ -2285,11 +2285,12 @@ next_choice:
       }
 #endif
 
+      umode  = uread;
       clause = CL->clause;
       PC     = clause->codes;
       Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      umode  = uread;
+      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
