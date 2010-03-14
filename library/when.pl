@@ -208,17 +208,14 @@ attribute_goals(V) -->
 when_goals([])	   --> [].
 when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
 
-when_goal(trigger_ground(X, G)) -->
+when_goal(trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
+when_goal(trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
+when_goal(wake_det(_))		--> []. % ignore
+
+unless_fired(G, Goal) -->
 	(   { fired_disj(G) }
 	->  []
-	;   [when(ground(X), G)]
+	;   [Goal]
 	).
-when_goal(trigger_nonvar(X, G)) -->
-	(   { fired_disj(G) }
-	->  []
-	;   [when(nonvar(X), G)]
-	).
-when_goal(wake_det(_)) -->
-	[].				% ignore
 
 fired_disj(when:check_disj(X, _)) :- X == (-).
