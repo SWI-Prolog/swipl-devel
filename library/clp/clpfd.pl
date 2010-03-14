@@ -5046,8 +5046,7 @@ target_to_v(T, V-Count) :-
 val_to_v(Val, V-Count) :-
         put_attr(F, flow, 0),
         append_edge(V, edges, arc_from(0, Count, Val, F)),
-        get_attr(Val, edges, VEs),
-        put_attr(Val, edges, [arc_to(0, Count, V, F)|VEs]).
+        append_edge(Val, edges, arc_to(0, Count, V, F)).
 
 
 gcc_clear(V) :-
