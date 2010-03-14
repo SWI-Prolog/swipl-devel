@@ -219,3 +219,5 @@ unless_fired(G, Goal) -->
 	).
 
 fired_disj(when:check_disj(X, _)) :- X == (-).
+fired_disj(when:check_disj(_, Goal)) :-
+	fired_disj(Goal).
