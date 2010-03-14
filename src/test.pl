@@ -144,7 +144,7 @@ write_test(q-8) :-
 	term_to_atom(p(a|b), X), X == 'p((a\'|\'b))'.
 write_test(c-1) :-
 	T = [a,b,c|T],
-	term_to_atom(T, X), X == '[a, b, c|**]'.
+	term_to_atom(T, X), X == '[a,b,c|**]'.
 
 
 		 /*******************************

@@ -3514,6 +3514,13 @@ the argument to an operator.  For example:
     \termitem{quoted}{Bool}
 If \const{true}, atoms and functors that needs quotes will be quoted.
 The default is \const{false}.
+
+    \termitem{spacing}{+Spacing}
+Determines whether and where extra white-space is added to enhance
+readability. The default is \const{standard}, adding only space where
+needed for proper tokenization by read_term/3.  Currently, the only
+other value is \const{next_argument}, adding a space after a comma
+used to separate arguments in a term or list.
 \end{description}
 
     \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}

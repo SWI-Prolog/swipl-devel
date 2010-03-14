@@ -49,6 +49,7 @@ typedef struct
 { int   flags;				/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
+  atom_t spacing;			/* Where to insert spaces */
   Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
   visited *visited;			/* visited (attributed-) variables */
@@ -176,6 +177,15 @@ PutString(const char *str, IOSTREAM *s)
   }
 
   return TRUE;
+}
+
+
+static bool
+PutComma(write_options *options)
+{ if ( options->spacing == ATOM_next_argument )
+    return PutString(", ", options->out);
+  else
+    return PutString(",", options->out);
 }
 
 
@@ -916,7 +926,7 @@ writeList2(term_t list, write_options *options, int cyclic)
       }
     }
 
-    TRY(PutString(", ", options->out));
+    TRY(PutComma(options));
   }
 
   return Putc(']', options->out);
@@ -1011,7 +1021,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	      break;
 	    _PL_get_arg(1, arg, a);
 	    TRY(writeTerm(a, 999, options) &&
-		PutString(", ", out));
+		PutComma(options));
 	    _PL_get_arg(2, arg, arg);
 	  }
 	  TRY(writeTerm(arg, 999, options) &&
@@ -1089,7 +1099,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 				? op_pri-1 : op_pri,
 			options));
 	  if ( functor == ATOM_comma )
-	  { TRY(PutString(", ", out));
+	  { TRY(PutComma(options));
 	  } else
 	  { switch(writeAtom(functor, options))
 	    { case FALSE:
@@ -1115,7 +1125,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  Putc('(', out));
       for(n=0; n<arity; n++)
       { if (n > 0)
-	  TRY(PutString(", ", out));
+	  TRY(PutComma(options));
 	_PL_get_arg(n+1, t, a);
 	TRY(writeArgTerm(a, 999, options, TRUE));
       }
@@ -1152,6 +1162,7 @@ static const opt_spec write_term_options[] =
   { ATOM_attributes,	    OPT_ATOM },
   { ATOM_priority,	    OPT_INT },
   { ATOM_partial,	    OPT_BOOL },
+  { ATOM_spacing,	    OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1172,11 +1183,12 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   write_options options;
 
   memset(&options, 0, sizeof(options));
+  options.spacing = ATOM_standard;
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray,
 		     &charescape, &options.max_depth, &mname,
-		     &bqstring, &attr, &priority, &partial) )
+		     &bqstring, &attr, &priority, &partial, &options.spacing) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1195,6 +1207,18 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_priority, t);
   }
+  switch( options.spacing )
+  { case ATOM_standard:
+    case ATOM_next_argument:
+      break;
+    default:
+    { term_t t = PL_new_term_ref();
+      PL_put_atom(t, options.spacing);
+
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_spacing, t);
+    }
+  }
+
   if ( !getOutputStream(stream, &s) )
     fail;
 
