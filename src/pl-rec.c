@@ -1645,13 +1645,13 @@ PRED_IMPL("recordz", va, recordz, 0)
 static
 PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  RecordList rl;
+  RecordList rl = NULL;			/* make compiler happy */
   RecordRef record;
   word k = 0L;
   term_t copy;
   word rval;
   fid_t fid;
-  int varkey;
+  int varkey = FALSE;			/* make compiler happy */
 
   term_t key  = A1;
   term_t term = A2;
