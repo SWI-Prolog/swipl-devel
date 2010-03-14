@@ -4260,7 +4260,7 @@ distinct_attach([X|Xs], Prop, Right) :-
 
 difference_arcs(Vars, FreeLeft, FreeRight) :-
         empty_assoc(E),
-        difference_arcs(Vars, FreeLeft, E, NumVar),
+        phrase(difference_arcs(Vars, FreeLeft), [E], [NumVar]),
         assoc_to_list(NumVar, LsNumVar),
         pairs_values(LsNumVar, FreeRight).
 
@@ -4271,28 +4271,26 @@ domain_to_list(split(_, Left, Right)) -->
 domain_to_list(empty)                 --> [].
 domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
-difference_arcs([], [], NumVar, NumVar).
-difference_arcs([V|Vs], FL0, NumVar0, NumVar) :-
-        (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
-            FL0 = [V|FL],
-            enumerate(Ns, V, NumVar0, NumVar1),
-            difference_arcs(Vs, FL, NumVar1, NumVar)
-        ;   difference_arcs(Vs, FL0, NumVar0, NumVar)
+difference_arcs([], []) --> [].
+difference_arcs([V|Vs], FL0) -->
+        (   { fd_get(V, Dom, _), domain_to_list(Dom, Ns) } ->
+            { FL0 = [V|FL] },
+            enumerate(Ns, V),
+            difference_arcs(Vs, FL)
+        ;   difference_arcs(Vs, FL0)
         ).
 
-enumerate([], _, NumVar, NumVar).
-enumerate([N|Ns], V, NumVar0, NumVar) :-
-        put_attr(F, flow, 0),
-        (   get_assoc(N, NumVar0, Y) ->
-            get_attr(Y, edges, Es),
-            put_attr(Y, edges, [flow_from(F,V)|Es]),
-            NumVar0 = NumVar1
-        ;   put_assoc(N, NumVar0, Y, NumVar1),
-            put_attr(Y, value, N),
-            put_attr(Y, edges, [flow_from(F,V)])
-        ),
-        append_edge(V, edges, flow_to(F,Y)),
-        enumerate(Ns, V, NumVar1, NumVar).
+enumerate([], _) --> [].
+enumerate([N|Ns], V) -->
+        state(NumVar0, NumVar1),
+        { (   get_assoc(N, NumVar0, Y) -> NumVar0 = NumVar1
+          ;   put_assoc(N, NumVar0, Y, NumVar1),
+              put_attr(Y, value, N)
+          ),
+          put_attr(F, flow, 0),
+          append_edge(Y, edges, flow_from(F,V)),
+          append_edge(V, edges, flow_to(F,Y)) },
+        enumerate(Ns, V).
 
 append_edge(V, Attr, E) :-
         (   get_attr(V, Attr, Es) ->
@@ -5048,8 +5046,7 @@ target_to_v(T, V-Count) :-
 val_to_v(Val, V-Count) :-
         put_attr(F, flow, 0),
         append_edge(V, edges, arc_from(0, Count, Val, F)),
-        get_attr(Val, edges, VEs),
-        put_attr(Val, edges, [arc_to(0, Count, V, F)|VEs]).
+        append_edge(Val, edges, arc_to(0, Count, V, F)).
 
 
 gcc_clear(V) :-
