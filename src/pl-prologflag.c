@@ -399,6 +399,7 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
     double d;
 
   anyway:
+    PL_register_atom(k);
     f = allocHeap(sizeof(*f));
     f->index = -1;
 
