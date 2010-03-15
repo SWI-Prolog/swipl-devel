@@ -219,3 +219,9 @@ PL_get_recref(term_t t, RecordRef *rec)
 }
 
 
+void
+initDBRef(void)
+{ PL_register_blob_type(&record_blob);
+  PL_register_blob_type(&clause_blob);
+}
+

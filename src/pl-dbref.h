@@ -33,3 +33,4 @@ COMMON(void*) PL_get_dbref(term_t t, db_ref_type *type);
 COMMON(int)   PL_get_clref(term_t t, Clause *cl);
 COMMON(int)   PL_get_recref(term_t t, RecordRef *rec);
 COMMON(int)   PL_is_dbref(term_t t);
+COMMON(void)  initDBRef(void);

@@ -26,6 +26,7 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -106,6 +107,7 @@ setupProlog(void)
   LD->modules.typein = MODULE_user;
   LD->modules.source = MODULE_user;
   DEBUG(1, Sdprintf("Records ...\n"));
+  initDBRef();
   initRecords();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
