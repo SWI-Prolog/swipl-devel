@@ -418,6 +418,12 @@ prolog_message(minus_in_identifier) -->
 	].
 prolog_message(qlf(removed_after_error(File))) -->
 	[ 'Removed incomplete QLF file ~w'-[File] ].
+prolog_message(redefine_module(Module, OldFile, File)) -->
+	[ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
+	  'Wipe and reload from ~w? '-[File], flush
+	].
+prolog_message(redefine_module_reply) -->
+	[ 'Please answer y(es), n(o) or a(bort)' ].
 
 
 used_search([]) -->

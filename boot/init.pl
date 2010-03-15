@@ -1438,7 +1438,8 @@ load_files(Module:Files, Options) :-
 	source_location(_File, Line),
 	'$get_option'(redefine_module(Action), Options, false),
 	'$super_module'(File, Super),
-	'$declare_module'(Module, Super, File, Line, Action),
+	'$redefine_module'(Module, File, Action),
+	'$declare_module'(Module, Super, File, Line, false),
 	'$export_list'(Public, Module, Ops),
 	'$ifcompiling'('$qlf_start_module'(Module)),
 	'$export_ops'(Ops, Module, File),
@@ -1446,6 +1447,46 @@ load_files(Module:Files, Options) :-
 	'$consult_stream'(In, File),
 	'$check_export'(Module),
 	'$ifcompiling'('$qlf_end_part').
+
+%%	'$redefine_module'(+Module, +File, -Redefine)
+
+'$redefine_module'(_Module, _, false) :- !.
+'$redefine_module'(Module, File, true) :- !,
+	(   module_property(Module, file(OldFile)),
+	    File \== OldFile
+	->  unload_file(OldFile)
+	;   true
+	).
+'$redefine_module'(Module, File, ask) :-
+	(   stream_property(user_input, tty(true)),
+	    module_property(Module, file(OldFile)),
+	    File \== OldFile,
+	    '$rdef_response'(Module, OldFile, File, true)
+	->  '$redefine_module'(Module, File, true)
+	;   true
+	).
+
+'$rdef_response'(Module, OldFile, File, Ok) :-
+	repeat,
+	print_message(query, redefine_module(Module, OldFile, File)),
+	get_single_char(Char),
+	'$rdef_response'(Char, Ok0), !,
+	Ok = Ok0.
+
+'$rdef_response'(Char, true) :-
+	memberchk(Char, "yY"),
+	format(user_error, 'yes~n', []).
+'$rdef_response'(Char, false) :-
+	memberchk(Char, "nN"),
+	format(user_error, 'no~n', []).
+'$rdef_response'(Char, _) :-
+	memberchk(Char, "a"),
+	format(user_error, 'abort~n', []),
+	abort.
+'$rdef_response'(_, _) :-
+	print_message(help, redefine_module_reply),
+	fail.
+
 
 %%	'$super_module'(+File, -Super) is det.
 %

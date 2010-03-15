@@ -413,6 +413,8 @@ COMMON(void)		cleanupForeign(void);
 COMMON(Module) 		lookupModule(atom_t name);
 COMMON(Module) 		isCurrentModule(atom_t name);
 COMMON(void) 		initModules(void);
+COMMON(Module)		moduleFromFile(SourceFile sf);
+COMMON(int)		setSuperModule(Module m, Module s);
 COMMON(int) 		isSuperModule(Module s, Module m);
 COMMON(int)		addSuperModule(Module m, Module s, int where);
 COMMON(int)		getUnknownModule(Module m);

@@ -249,6 +249,15 @@ Quick Load Format using qcompile/1 and this flag is \const{true}, the
 contents of the argument files are included in the \fileext{qlf} file
 instead of the loading directive.
 
+    \termitem{redefine_module}{+Action}
+Defines what to do if a file is loaded that provides a module that is
+already loaded from another file. \arg{Action} is one of \const{false}
+(default), which prints an error and refuses to load the file, or
+\const{true}, which uses unload_file/1 on the old file and then proceeds
+loading the new file. Finally, there is \const{ask} that starts
+interaction with the user. Ask is only provided if user_input is
+associated with a terminal.
+
     \termitem{reexport}{Bool}
 If \const{true} re-export the imported predicate.  Used by reexport/1
 and reexport/2.
@@ -431,6 +440,17 @@ Is true if the predicate specified by \arg{Pred} was loaded from file
 absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
+
+    \predicate{unload_file}{+File}
+Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
+module, clear the module's export-list and disassociates it from the
+file.  \arg{File} is a canonical file-name.  See source_file/1,
+module_property/2 and absolute_file_name/3.
+
+This predicare shall be used with care. The multi-threaded nature of
+SWI-Prolog makes removing static code unsafe. Attempts to do this should
+be reserved to development or situations where the application can
+guarantee that none of the clauses associated to \arg{File} are active.
 
     \predicate{prolog_load_context}{2}{?Key, ?Value}
 Obtain context information during compilation.  This predicate can be

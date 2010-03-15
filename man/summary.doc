@@ -594,6 +594,7 @@ suggest predicates from a keyword.
 \predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
+\predicatesummary{unload_file}{1}{Unload a source-file}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}

@@ -305,7 +305,7 @@ clearSupersModule(Module m)
 }
 
 
-static int
+int
 setSuperModule(Module m, Module s)
 { if ( s == m )
     cannotSetSuperModule(m, s);
@@ -525,6 +525,28 @@ get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
 
   *sfp = NULL;
   return TRUE;
+}
+
+
+Module
+moduleFromFile(SourceFile sf)
+{ TableEnum e;
+  Symbol symb;
+
+  for(e = newTableEnum(GD->tables.modules),
+      symb = advanceTableEnum(e);
+      symb;
+      symb = advanceTableEnum(e))
+  { Module m = symb->value;
+
+    if ( m->file == sf )
+    { freeTableEnum(e);
+      return m;
+    }
+  }
+
+  freeTableEnum(e);
+  return NULL;
 }
 
 

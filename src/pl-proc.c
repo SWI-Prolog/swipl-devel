@@ -2920,6 +2920,135 @@ clearInitialization(SourceFile sf)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unloadFile(SourceFile sf)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+unloadFile(SourceFile sf)
+{ GET_LD
+  ListCell cell, next;
+  sigset_t set;
+  ClauseRef garbage = NULL;
+
+  clearInitialization(sf);
+
+  LOCK();
+  PL_LOCK(L_THREAD);
+  blockSignals(&set);
+
+  GD->procedures.active_marked = 0;
+  GD->procedures.reloading = sf;
+  markPredicatesInEnvironments(LD);
+#ifdef O_PLMT
+  forThreadLocalData(markPredicatesInEnvironments,
+		     PL_THREAD_SUSPEND_AFTER_WORK);
+#endif
+  GD->procedures.reloading = NULL;
+
+				      /* remove the clauses */
+  for(cell = sf->procedures; cell; cell = cell->next)
+  { int deleted;
+
+    Procedure proc = cell->value;
+    Definition def = proc->definition;
+
+    DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
+		      predicateName(def), def->references));
+
+    deleted = removeClausesProcedure(proc,
+				     true(def, MULTIFILE) ? sf->index : 0,
+				     TRUE);
+
+    if ( deleted )
+    { if ( def->references == 0 )
+      { freeCodesDefinition(def);
+	garbage = cleanDefinition(def, garbage);
+      } else if ( false(def, DYNAMIC) )
+      { registerDirtyDefinition(def);
+	freeCodesDefinition(def);
+      }
+    }
+
+    if ( false(def, MULTIFILE) )
+      clear(def, FILE_ASSIGNED);
+  }
+
+				      /* unmark the marked predicates */
+  for(cell = sf->procedures; cell; cell = cell->next)
+  { Procedure proc = cell->value;
+    Definition def = proc->definition;
+
+    if ( false(def, DYNAMIC) && def->references )
+    { assert(def->references == 1);
+      def->references = 0;
+      GD->procedures.active_marked--;
+    }
+  }
+
+				      /* cleanup the procedure list */
+  for(cell = sf->procedures; cell; cell = next)
+  { next = cell->next;
+    freeHeap(cell, sizeof(struct list_cell));
+  }
+  sf->procedures = NULL;
+  assert(GD->procedures.active_marked == 0);
+
+#ifdef O_PLMT
+  resumeThreads();
+#endif
+
+  unblockSignals(&set);
+  PL_UNLOCK(L_THREAD);
+  UNLOCK();
+
+  if ( garbage )
+    freeClauseList(garbage);
+
+  return TRUE;
+}
+
+
+/** unload_file(+Name) is det.
+
+Remove all traces of a loaded file.
+*/
+
+static
+PRED_IMPL("unload_file", 1, unload_file, 0)
+{ SourceFile sf;
+  atom_t name;
+
+  if ( !PL_get_atom_ex(A1, &name) )
+    return FALSE;
+
+  if ( (sf = lookupSourceFile(name, FALSE)) )
+  { Module m;
+
+    if ( sf->system )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		      ATOM_unload, ATOM_file, A1);
+
+    if ( !unloadFile(sf) )
+      return FALSE;
+
+    if ( (m=moduleFromFile(sf)) )
+    { LOCKMODULE(m);
+      m->file = NULL;
+      m->line_no = 0;
+      sf->module_count--;
+      clearHTable(m->public);
+      setSuperModule(m, MODULE_user);
+      UNLOCKMODULE(m);
+    }
+
+    sf->count = 0;
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 startConsult(SourceFile sf)
 
 This function is called when starting the consult a file. Its task is to
@@ -2936,87 +3065,8 @@ There are two options.
 
 void
 startConsult(SourceFile f)
-{ GET_LD
-
-  if ( f->count++ > 0 )			/* This is a re-consult */
-  { ListCell cell, next;
-    sigset_t set;
-    ClauseRef garbage = NULL;
-
-    clearInitialization(f);
-
-    LOCK();
-    PL_LOCK(L_THREAD);
-    blockSignals(&set);
-
-    GD->procedures.active_marked = 0;
-    GD->procedures.reloading = f;
-    markPredicatesInEnvironments(LD);
-#ifdef O_PLMT
-    forThreadLocalData(markPredicatesInEnvironments,
-		       PL_THREAD_SUSPEND_AFTER_WORK);
-#endif
-    GD->procedures.reloading = NULL;
-
-					/* remove the clauses */
-    for(cell = f->procedures; cell; cell = cell->next)
-    { int deleted;
-
-      Procedure proc = cell->value;
-      Definition def = proc->definition;
-
-      DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-			predicateName(def), def->references));
-
-      deleted = removeClausesProcedure(proc,
-				       true(def, MULTIFILE) ? f->index : 0,
-				       TRUE);
-
-      if ( deleted )
-      { if ( def->references == 0 )
-	{ freeCodesDefinition(def);
-	  garbage = cleanDefinition(def, garbage);
-	} else if ( false(def, DYNAMIC) )
-	{ registerDirtyDefinition(def);
-	  freeCodesDefinition(def);
-	}
-      }
-
-      if ( false(def, MULTIFILE) )
-	clear(def, FILE_ASSIGNED);
-    }
-
-					/* unmark the marked predicates */
-    for(cell = f->procedures; cell; cell = cell->next)
-    { Procedure proc = cell->value;
-      Definition def = proc->definition;
-
-      if ( false(def, DYNAMIC) && def->references )
-      { assert(def->references == 1);
-	def->references = 0;
-	GD->procedures.active_marked--;
-      }
-    }
-
-					/* cleanup the procedure list */
-    for(cell = f->procedures; cell; cell = next)
-    { next = cell->next;
-      freeHeap(cell, sizeof(struct list_cell));
-    }
-    f->procedures = NULL;
-    assert(GD->procedures.active_marked == 0);
-
-#ifdef O_PLMT
-    resumeThreads();
-#endif
-
-    unblockSignals(&set);
-    PL_UNLOCK(L_THREAD);
-    UNLOCK();
-
-    if ( garbage )
-      freeClauseList(garbage);
-  }
+{ if ( f->count++ > 0 )			/* This is a re-consult */
+    unloadFile(f);
 
   f->current_procedure = NULL;
 }
@@ -3238,4 +3288,5 @@ BeginPredDefs(proc)
   PRED_DEF("$clause_from_source", 3, clause_from_source, 0)
   PRED_DEF("retract", 1, retract,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("unload_file", 1, unload_file, 0)
 EndPredDefs
