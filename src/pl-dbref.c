@@ -64,6 +64,20 @@ release_clause(atom_t aref)
 }
 
 
+static int
+save_clause_ref(atom_t aref, IOSTREAM *fd)
+{ clref *ref = PL_blob_data(aref, NULL, NULL);
+
+  return PL_warning("Cannot save reference to <clause>(%p)", ref->clause);
+}
+
+
+static atom_t
+load_clause_ref(IOSTREAM *fd)
+{ return PL_new_atom("<saved-clause-ref>");
+}
+
+
 static PL_blob_t clause_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
@@ -71,7 +85,9 @@ static PL_blob_t clause_blob =
   release_clause,
   NULL,
   write_clause_ref,
-  acquire_clause
+  acquire_clause,
+  save_clause_ref,
+  load_clause_ref
 };
 
 
