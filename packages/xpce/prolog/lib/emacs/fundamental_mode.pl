@@ -443,7 +443,7 @@ show_buffer_menu(_M) :->
 
 switch_to_buffer(_, Buffer:emacs_buffer) :->
 	"Switch this window to named buffer"::
-	send(Buffer, open).
+	send(Buffer, open, tab).
 %	send(M, text_buffer, Buffer).		% Always in same window
 
 
