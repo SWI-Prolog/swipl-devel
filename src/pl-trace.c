@@ -2048,12 +2048,26 @@ callEventHook(int ev, ...)
 
     va_start(args, ev);
     switch(ev)
-    { case PLEV_ERASED:
-      {	void *ptr = va_arg(args, void *); 	/* object erased */
+    { case PLEV_ERASED_CLAUSE:
+      {	Clause cl = va_arg(args, Clause); 	/* object erased */
+	term_t dbref = PL_new_term_ref();
 
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_erased1,
-			     PL_POINTER, ptr);
+	rc = (  PL_unify_clref(dbref, cl) &&
+		PL_unify_term(arg,
+			      PL_FUNCTOR, FUNCTOR_erased1,
+			        PL_TERM, dbref)
+	     );
+	break;
+      }
+      case PLEV_ERASED_RECORD:
+      {	RecordRef r = va_arg(args, RecordRef); 	/* object erased */
+	term_t dbref = PL_new_term_ref();
+
+	rc = (  PL_unify_recref(dbref, r) &&
+		PL_unify_term(arg,
+			      PL_FUNCTOR, FUNCTOR_erased1,
+			        PL_TERM, dbref)
+	     );
 	break;
       }
       case PLEV_DEBUGGING:
@@ -2076,13 +2090,17 @@ callEventHook(int ev, ...)
       case PLEV_NOBREAK:
       { Clause clause = va_arg(args, Clause);
 	int offset = va_arg(args, int);
+	term_t cref = PL_new_term_ref();
 
-	rc = PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_break3,
-			     PL_POINTER, clause,
-		             PL_INT, offset,
-			     PL_ATOM, ev == PLEV_BREAK ? ATOM_true
-						       : ATOM_false);
+
+	rc = ( PL_unify_clref(cref, clause) &&
+	       PL_unify_term(arg,
+			     PL_FUNCTOR, FUNCTOR_break3,
+			       PL_TERM, cref,
+			       PL_INT, offset,
+			       PL_ATOM, ev == PLEV_BREAK ? ATOM_true
+						         : ATOM_false)
+	     );
 	break;
       }
       case PLEV_FRAMEFINISHED:

@@ -1045,7 +1045,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
 #if O_DEBUGGER
   if ( PROCEDURE_event_hook1 &&
        def != PROCEDURE_event_hook1->definition )
-    callEventHook(PLEV_ERASED, clause);
+    callEventHook(PLEV_ERASED_CLAUSE, clause);
 #endif
 
   freeClause(clause PASS_LD);
@@ -1212,7 +1212,7 @@ freeClauseList(ClauseRef cref)
 #if O_DEBUGGER
     if ( hooked && savely_hooked &&
 	 cl->procedure->definition != PROCEDURE_event_hook1->definition )
-      callEventHook(PLEV_ERASED, cl);
+      callEventHook(PLEV_ERASED_CLAUSE, cl);
 #endif
 
     freeClause(cl PASS_LD);
@@ -3131,7 +3131,7 @@ PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
   }
 
   if ( c )
-    return PL_unify_pointer(clause, c);
+    return PL_unify_clref(clause, c);
 
   fail;
 }

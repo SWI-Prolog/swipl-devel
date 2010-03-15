@@ -1590,14 +1590,15 @@ typedef struct
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED	   0 		/* clause or record was erased */
-#define PLEV_DEBUGGING	   1		/* changed debugging mode */
-#define PLEV_TRACING	   2		/* changed tracing mode */
-#define PLEV_SPY	   3		/* changed spypoint */
-#define PLEV_BREAK	   4		/* a break-point was set */
-#define PLEV_NOBREAK	   5		/* a break-point was cleared */
-#define PLEV_FRAMEFINISHED 6		/* A watched frame was discarded */
-#define PL_EV_THREADFINISHED 7		/* A thread has finished */
+#define PLEV_ERASED_CLAUSE   0 		/* clause was erased */
+#define PLEV_ERASED_RECORD   1 		/* record was erased */
+#define PLEV_DEBUGGING	     2		/* changed debugging mode */
+#define PLEV_TRACING	     3		/* changed tracing mode */
+#define PLEV_SPY	     4		/* changed spypoint */
+#define PLEV_BREAK	     5		/* a break-point was set */
+#define PLEV_NOBREAK	     6		/* a break-point was cleared */
+#define PLEV_FRAMEFINISHED   7 		/* A watched frame was discarded */
+#define PL_EV_THREADFINISHED 8		/* A thread has finished */
 
 
 		/********************************
