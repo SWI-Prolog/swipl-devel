@@ -288,17 +288,17 @@ linda_action(rd(Tuple)) :-
 	linda_data(Tuple).
 
 linda_action(bagof_rd_noblock(Template,	Var^Tuple, Bag)) :-
-	!, bagof(Template, Var^linda_data(Tuple), Bag), !.
+	!, bagof(Template, Var^linda_data(Tuple), Bag).
 
 linda_action(bagof_rd_noblock(Template, Tuple, Bag)) :-
-	!, bagof(Template, linda_data(Tuple), Bag), !.
+	!, bagof(Template, linda_data(Tuple), Bag).
 
 linda_action(bagof_in_noblock(Template,	Var^Tuple, Bag)) :-
 	Datum = linda_data(Tuple),
-	!, bagof(Template, Var^(Datum, retract(Datum)), Bag), !.
+	!, bagof(Template, Var^(Datum, retract(Datum)), Bag).
 
 linda_action(bagof_in_noblock(Template, Tuple, Bag)) :-
-	!, bagof(Template, retract(linda_data(Tuple)), Bag), !.
+	!, bagof(Template, retract(linda_data(Tuple)), Bag).
 
 %
 %    This is the user interface
@@ -505,8 +505,8 @@ rd(TupleList, Tuple) :-
 	repeat,
 	basic_request(rd(TupleList, Tuple)).
 
-%%	bagof_in_noblock(?Template, ?Tuple, -Bag) is semidet.
-%%	bagof_rd_noblock(?Template, ?Tuple, -Bag) is semidet.
+%%	bagof_in_noblock(?Template, ?Tuple, -Bag) is nondet.
+%%	bagof_rd_noblock(?Template, ?Tuple, -Bag) is nondet.
 %
 %    Bag is the list of all instances of Template such that Tuple exists
 %    in the tuple-space. The behavior of variables in Tuple and Template
@@ -533,10 +533,10 @@ rd(TupleList, Tuple) :-
 %  ==
 
 bagof_rd_noblock(Template,  Tuple, Bag) :-
-	!, basic_request(bagof_rd_noblock(Template, Tuple, Bag)), !.
+	!, basic_request(bagof_rd_noblock(Template, Tuple, Bag)).
 
 bagof_in_noblock(Template,  Tuple, Bag) :-
-	!, basic_request(bagof_in_noblock(Template, Tuple, Bag)), !.
+	!, basic_request(bagof_in_noblock(Template, Tuple, Bag)).
 
 :- meta_predicate
       linda_eval(?, 0),
