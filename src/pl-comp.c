@@ -223,6 +223,8 @@ typedef struct
 } compileInfo, *CompileInfo;
 
 
+static void	resetVars(ARG1_LD);
+
 static VarDef
 getVarDef(int i ARG_LD)
 { VarDef vd;
@@ -376,11 +378,19 @@ right_recursion:
 
   if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
   { VarDef vd;
-    int index = ((argn >= 0 && argn < ci->arity)
-			? argn : (ci->arity + nvars++));
+    int index;
 
-    if ( nvars > MAX_VARIABLES )
-      return AVARS_MAX;
+    if ( argn >= 0 && argn < ci->arity )
+    { index = argn;
+    } else
+    { if ( nvars >= MAX_VARIABLES )
+      { LD->comp.filledVars = ci->arity+nvars;
+	resetVars(PASS_LD1);
+	return AVARS_MAX;
+      }
+
+      index = ci->arity + nvars++;
+    }
 
     vd = getVarDef(index PASS_LD);
     vd->saved = *head;
@@ -403,7 +413,11 @@ right_recursion:
     FunctorDef fd = valueFunctor(f->definition);
 
     if ( ++depth == 10000 && !PL_is_acyclic(wordToTermRef(head)) )
+    { LD->comp.filledVars = ci->arity+nvars;
+      resetVars(PASS_LD1);
+
       return AVARS_CYCLIC;
+    }
 
     if ( ci->islocal )
     { if ( ci->subclausearg )
@@ -834,9 +848,7 @@ compileClause(Clause *cp, Word head, Word body,
   ci.module = module;
 
   if ( (rc=analyse_variables(head, body, &ci PASS_LD)) < 0 )
-  { resetVars(PASS_LD1);
-
-    switch ( rc )
+  { switch ( rc )
     { case CYCLIC_HEAD:
       case CYCLIC_BODY:
 	return PL_error(NULL, 0, NULL,
