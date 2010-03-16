@@ -54,7 +54,7 @@
 	    file_exists/1,		% +FileName
 	    delete_file/1,		% +FileName
 	    rename_file/2,		% +Old, +New
-	    mkstemp/2,			% +Template, -FileName
+	    mktemp/2,			% +Template, -FileName
 	    tmpnam/1			% -FileName
 	  ]).
 :- use_module(library(process)).
@@ -164,21 +164,23 @@ host_name(HostName) :-
 		 *	 FILE OPERATIONS	*
 		 *******************************/
 
-%%	mkstemp(+Template, -File) is det.
+%%	mktemp(+Template, -File) is det.
 %
 %	Interface to the Unix function.  This emulation uses
-%	tmp_file/2 and ignoress Template.
+%	tmp_file/2 and ignores Template.
 %
+%	@compat sicstus
 %	@deprecated This interface is a security-risc.  Use
 %	tmp_file_stream/3.
 
-mkstemp(_Template, File) :-
+mktemp(_Template, File) :-
 	tmp_file(mkstemp, File).
 
 %%	tmpnam(-FileName)
 %
 %	Interface to tmpnam(). This emulation uses tmp_file/2.
 %
+%	@compat sicstus
 %	@deprecated This interface is a security-risc.  Use
 %	tmp_file_stream/3.
 

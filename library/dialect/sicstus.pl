@@ -47,6 +47,8 @@
 	    read_line/1,		% -Codes
 	    read_line/2,		% +Stream, -Codes
 
+	    trimcore/0,
+
 %	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
@@ -359,6 +361,14 @@ vars_by_goal(Goal) -->
 	},
 	[ VarSet-Goal ].
 */
+
+%%	trimcore
+%
+%	Trims the stacks.  Other tasks of the SICStus trimcore/0 are
+%	automatically scheduled by SWI-Prolog.
+
+trimcore :-
+	trim_stacks.
 
 
 		 /*******************************
