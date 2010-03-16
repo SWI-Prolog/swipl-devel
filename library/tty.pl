@@ -34,7 +34,7 @@
 	, tty_flash/0
 	, menu/3
 	]).
-:- use_module(library(lists)).
+:- use_module(library(lists), [append/3, nth1/3]).
 
 /** <module> Terminal operations
 

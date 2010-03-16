@@ -207,7 +207,7 @@ valid_type(term).
 valid_type(address).
 valid_type(address(_)).
 
-%%	cvt_name(+Type, +I/O, -Suffix) is det.
+%%	cvt_name(+Type, +IO, -Suffix) is det.
 
 cvt_name(chars,	     _,	codes) :- !.
 cvt_name(address(_), _,	address) :- !.
