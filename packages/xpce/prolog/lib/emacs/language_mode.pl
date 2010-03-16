@@ -576,7 +576,7 @@ find_tag(M, Tag:emacs_tag, Where:[{here,tab,window}], Editor:editor) :<-
 
 find_tag(M, Tag:emacs_tag) :->
 	"Jump to entry from TAG table"::
-	ignore(get(M, find_tag, Tag, _)). % avoid delegation to menu-bar
+	ignore(get(M, find_tag, Tag, tab, _)). % avoid delegation to menu-bar
 
 
 adjust_tag(E, Tag) :-
