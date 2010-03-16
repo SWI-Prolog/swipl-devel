@@ -244,17 +244,20 @@ xref_done(Source, Time) :-
 	source(Src, Time).
 
 
-%%	xref_called(+Source, ?Called, ?By) is nondet.
+%%	xref_called(?Source, ?Called, ?By) is nondet.
 %
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
 
 xref_called(Source, Called, By) :-
-	prolog_canonical_source(Source, Src),
+	(   ground(Source)
+	->  prolog_canonical_source(Source, Src)
+	;   Source = Src
+	),
 	called(Called, Src, By).
 
 
-%%	xref_defined(+Source, +Goal, ?How) is semidet.
+%%	xref_defined(?Source, +Goal, ?How) is semidet.
 %
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
@@ -262,7 +265,10 @@ xref_called(Source, Called, By) :-
 %	just locally defined and imported ones.
 
 xref_defined(Source, Called, How) :-
-	prolog_canonical_source(Source, Src),
+	(   ground(Source)
+	->  prolog_canonical_source(Source, Src)
+	;   Source = Src
+	),
 	xref_defined2(How, Src, Called).
 
 xref_defined2(dynamic(Line), Src, Called) :-
