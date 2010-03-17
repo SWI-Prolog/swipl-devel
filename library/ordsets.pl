@@ -246,7 +246,7 @@ ord_memberchk(Element, Set) :-
 ord_member(Element, [H|T]) :-
 	(   Element = H
 	->  true
-	;   Element @=< H,
+	;   Element @>= H,
 	    ord_member(Element, T)
 	).
 
