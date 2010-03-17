@@ -166,7 +166,7 @@ rename_module(lists,   sicstus_lists).
 rename_module(sockets, sicstus_sockets).
 rename_module(system,  sicstus_system).
 
-system:goal_expansion(M:Goal, SicstusM:Goal) :- fail,
+system:goal_expansion(M:Goal, SicstusM:Goal) :-
 	atom(M),
 	rename_module(M, SicstusM),
 	prolog_load_context(dialect, sicstus).
