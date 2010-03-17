@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(time_out,
+:- module(timeout,
 	  [ time_out/3			% :Goal, +Time, -Result
 	  ]).
 :- use_module(library(time)).

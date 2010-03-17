@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(sics_system,
+:- module(sicstus_system,
 	  [ environ/2,			% ?Name, ?Value
 
 	    exec/3,			% +Command, -Streams, -PID

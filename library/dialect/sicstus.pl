@@ -152,6 +152,27 @@ if(If, Then, Else) :-
 
 
 		 /*******************************
+		 *	  LIBRARY MODULES	*
+		 *******************************/
+
+%%	rename_module(?SICStusModule, ?RenamedSICSTusModule) is nondet.
+%
+%	True if RenamedSICSTusModule is the  name   that  we use for the
+%	SICStus native module SICStusModule. We do  this in places where
+%	the module-name conflicts. All explicitely   qualified goals are
+%	mapped to the SICStus equivalent of the module.
+
+rename_module(lists,   sicstus_lists).
+rename_module(sockets, sicstus_sockets).
+rename_module(system,  sicstus_system).
+
+system:goal_expansion(M:Goal, SicstusM:Goal) :- fail,
+	atom(M),
+	rename_module(M, SicstusM),
+	prolog_load_context(dialect, sicstus).
+
+
+		 /*******************************
 		 *	     MODULES		*
 		 *******************************/
 

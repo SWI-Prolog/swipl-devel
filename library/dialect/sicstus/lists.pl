@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(sics_lists,
+:- module(sicstus_lists,
 	  [ substitute/4,		% +Elem, +List, +NewElem, -List
 	    nth/3,
 	    sublist/2			% ?Sub, +List
