@@ -91,9 +91,9 @@ on_top(W, Top:'name|window') :->
 	"Put the named tab or tab containing Window on top"::
 	get_super(W, member, tab_stack, TS),
 	(   atom(Top)
-	->  (   get(TS, member, Name, Tab)
+	->  (   get(TS, member, Top, Tab)
 	    ->  send(TS, on_top, Tab)
-	    ;   get(W, hypered, tab, @arg3?name == Name, Window)
+	    ;   get(W, hypered, tab, @arg3?name == Top, Window)
 	    ->  send(Window, expose)
 	    )
 	;   get(Top, container, window_tab, Tab)
