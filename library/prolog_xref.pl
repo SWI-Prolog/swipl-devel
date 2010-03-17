@@ -474,6 +474,8 @@ process_directive(List, Src) :-
 process_directive(use_module(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, false).
+process_directive(expects_dialect(Dialect), Src) :-
+	process_directive(use_module(library(dialect/Dialect)), Src).
 process_directive(reexport(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, true).
