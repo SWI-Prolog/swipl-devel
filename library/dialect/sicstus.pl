@@ -462,9 +462,9 @@ version(Message) :-
 
 :- op(500, yfx, #).
 
-:- arithmetic_function((#)/2).
+:- arithmetic_function(user:(#)/2).
 
-#(X,Y,R) :-
+user:(#(X,Y,R)) :-
 	R is xor(X,Y).
 
 
