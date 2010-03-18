@@ -69,21 +69,23 @@ socket_bind(Socket, Address) :-
 	),
 	tcp_bind(Socket, Port).
 
-socket_connect(Socket, Address, rw_stream(Read, Write)) :-
+socket_connect(Socket, Address, StreamPair) :-
 	(   Address = 'AF_INET'(Host, Port)
 	->  true
 	;   type_error(socket_address, Address)
 	),
 	tcp_connect(Socket, Host:Port),
-	tcp_open_socket(Socket, Read, Write).
+	tcp_open_socket(Socket, Read, Write),
+	stream_pair(StreamPair, Read, Write).
 
 socket_listen(Socket, Length) :-
 	tcp_listen(Socket, Length).
 
-socket_accept(Socket, Client, rw_stream(Read, Write)) :-
+socket_accept(Socket, Client, StreamPair) :-
 	tcp_accept(Socket, Socket2, Peer),
 	peer_to_client(Peer, Client),
-	tcp_open_socket(Socket2, Read, Write).
+	tcp_open_socket(Socket2, Read, Write),
+	stream_pair(StreamPair, Read, Write).
 
 socket_accept(Socket, Stream) :-
 	socket_accept(Socket, _Client, Stream).

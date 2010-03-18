@@ -2580,9 +2580,12 @@ need to pass arguments around.  E.g., see with_output_to/2.
 
 SWI-Prolog streams are, compatible to the ISO standard, either input
 or output streams.  To accomodate portability to other systems, a
-pair of streams can be packed into a term \term{rw_stream}{In, Out}.
-SWI-Prolog's I/O operations choose the appropriate stream.  The
-predicates close/1 and close/2 close both streams.
+pair of streams can be packed into a \jargon{stream-pair}.  See
+stream_pair/3 for details.
+
+SWI-Prolog stream-handles are unique symbols that have no syntactical
+representation. They are written as \verb$<stream>(hex-number)$, which
+is not valid input for read/1.
 
 
 \begin{description}
@@ -2826,6 +2829,14 @@ stream or the atom \const{[]} if the stream refers to some other object.
 True if \arg{Term} is a stream name or valid stream handle.  This
 predicate realises a safe test for the existence of a stream alias
 or handle.
+
+    \predicate{stream_pair}{3}{?StreamPair, ?Read, ?Write}
+This predicate can be used in mode (-,+,+) to create a
+\jargon{stream-pair} from an input stream and an output stream.
+Stream-pairs can be used by all I/O operations on streams, where the
+operation selects the appropriate member of the pair. The predicate
+close/1 closes both streams of the pair. Mode (+,-,-) can be used to get
+access to the underlying streams.
 
     \predicate[ISO]{set_stream_position}{2}{+Stream, +Pos}
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is

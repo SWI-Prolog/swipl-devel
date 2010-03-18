@@ -92,6 +92,10 @@ COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
 COMMON(Module)		contextModule(LocalFrame fr);
 COMMON(void)		setContextModule(LocalFrame fr, Module context);
 
+/* pl-stream.c */
+
+COMMON(void)		unallocStream(IOSTREAM *s);
+
 /* pl-supervisor.c */
 
 COMMON(void)		freeCodesDefinition(Definition def);

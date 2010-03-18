@@ -68,6 +68,7 @@ handling times must be cleaned, but that not only holds for this module.
 
 static int	bad_encoding(const char *msg, atom_t name);
 static int	noprotocol(void);
+static PL_blob_t stream_blob;
 
 const atom_t standardStreams[] =
 { ATOM_user_input,			/* 0 */
@@ -321,6 +322,7 @@ initIO()
 
   streamAliases = newHTable(16);
   streamContext = newHTable(16);
+  PL_register_blob_type(&stream_blob);
 #ifdef __unix__
 { int fd;
 
@@ -357,6 +359,7 @@ initIO()
 
   GD->io_initialised = TRUE;
 }
+
 
 		 /*******************************
 		 *	     GET HANDLES	*
@@ -406,56 +409,131 @@ PL_release_stream(IOSTREAM *s)
 }
 
 
+		 /*******************************
+		 *	  PROLOG HANDLES	*
+		 *******************************/
+
+typedef struct stream_ref
+{ IOSTREAM *read;
+  IOSTREAM *write;
+} stream_ref;
+
+
+static int
+write_stream_ref(IOSTREAM *s, atom_t aref, int flags)
+{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+
+  if ( ref->read && ref->write )
+    Sfprintf(s, "<stream>(%p,%p)", ref->read, ref->write);
+  else if ( ref->read )
+    Sfprintf(s, "<stream>(%p)", ref->read);
+  else
+    Sfprintf(s, "<stream>(%p)", ref->write);
+
+  return TRUE;
+}
+
+
+static void
+acquire_stream_ref(atom_t aref)
+{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+
+  if ( ref->read )
+    ref->read->references++;
+  if ( ref->write )
+    ref->write->references++;
+}
+
+
+static int
+release_stream_ref(atom_t aref)
+{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+
+  if ( ref->read )
+  { if ( --ref->read->references == 0 && ref->read->erased )
+      unallocStream(ref->read);
+  }
+  if ( ref->write )
+  { if ( --ref->write->references == 0 && ref->write->erased )
+      unallocStream(ref->write);
+  }
+
+  return TRUE;
+}
+
+
+static int
+save_stream_ref(atom_t aref, IOSTREAM *fd)
+{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+
+  return PL_warning("Cannot save reference to <stream>(%p,%p)",
+		    ref->read, ref->write);
+}
+
+
+static atom_t
+load_stream_ref(IOSTREAM *fd)
+{ return PL_new_atom("<saved-stream-ref>");
+}
+
+
+static PL_blob_t stream_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE,
+  "stream_ref",
+  release_stream_ref,
+  NULL,
+  write_stream_ref,
+  acquire_stream_ref,
+  save_stream_ref,
+  load_stream_ref
+};
+
+
 #define SH_ERRORS   0x01		/* generate errors */
 #define SH_ALIAS    0x02		/* allow alias */
 #define SH_UNLOCKED 0x04		/* don't lock the stream */
-#define SH_SAFE	    0x08		/* Lookup in table */
+#define SH_OUTPUT   0x08		/* We want an output stream */
+#define SH_INPUT    0x10		/* We want an input stream */
 
 static int
-get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
-{ atom_t alias;
+get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
+{ stream_ref *ref;
+  PL_blob_t *type;
+  IOSTREAM *s;
 
-  if ( PL_is_functor(t, FUNCTOR_dstream1) )
-  { void *p;
-    term_t a = PL_new_term_ref();
+  ref = PL_blob_data(a, NULL, &type);
+  if ( type == &stream_blob )
+  { if ( ref->read )
+    { if ( ref->write && (flags&SH_OUTPUT) )
+	s = ref->write;
+      else
+	s = ref->read;
+    } else
+      s = ref->write;
 
-    _PL_get_arg(1, t, a);
-    if ( PL_get_pointer(a, &p) )
-    { if ( flags & SH_SAFE )
-      { Symbol symb;
+    if ( s->erased )
+       goto noent;
 
-	LOCK();
-	symb = lookupHTable(streamContext, p);
-	UNLOCK();
+    assert(s->magic == SIO_MAGIC);
 
-	if ( !symb )
-	  goto noent;
-      }
+    if ( flags & SH_UNLOCKED )
+      *sp = s;
+    else
+      *sp = getStream(s);
 
-      if ( flags & SH_UNLOCKED )
-      { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
-	{ *s = p;
-	  return TRUE;
-	}
-	goto noent;
-      }
-
-      if ( (*s = getStream(p)) )
-	return TRUE;
-
-      goto noent;
-    }
-  } else if ( PL_get_atom(t, &alias) )
+    return TRUE;
+  } else
   { Symbol symb;
 
     if ( !(flags & SH_UNLOCKED) )
       LOCK();
-    if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
+    if ( (symb=lookupHTable(streamAliases, (void *)a)) )
     { IOSTREAM *stream;
       uintptr_t n = (uintptr_t)symb->value;
 
       if ( n < 6 )			/* standard stream! */
-      { stream = LD->IO.streams[n];
+      { stream = LD->IO.streams[n];	/* TBD: No need to lock for std-streams */
       } else
 	stream = symb->value;
 
@@ -465,10 +543,10 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
       if ( stream )
       { if ( (flags & SH_UNLOCKED) )
 	{ if ( stream->magic == SIO_MAGIC )
-	  { *s = stream;
+	  { *sp = stream;
 	    return TRUE;
 	  }
-	} else if ( (*s = getStream(stream)) )
+	} else if ( (*sp = getStream(stream)) )
 	  return TRUE;
 	goto noent;
       }
@@ -480,24 +558,64 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
   }
 
   if ( flags & SH_ERRORS )
+  { term_t t = PL_new_term_ref();
+    PL_put_atom(t, a);
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
+  }
 
   return FALSE;
 
 noent:
   if ( flags & SH_ERRORS )
+  { term_t t = PL_new_term_ref();
+    PL_put_atom(t, a);
     PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+  }
+
   return FALSE;
 }
 
 #define get_stream_handle(t, sp, flags) \
 	get_stream_handle__LD(t, sp, flags PASS_LD)
 
+
+static int
+not_a_stream(term_t t)
+{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
+}
+
+
 int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
 { GET_LD
-  return get_stream_handle(t, s, SH_ERRORS|SH_ALIAS);
+  atom_t a;
+
+  if ( !PL_get_atom(t, &a) )
+    return not_a_stream(t);
+
+  return get_stream_handle(a, s, SH_ERRORS|SH_ALIAS);
+}
+
+
+static int
+unify_stream_ref(term_t t, IOSTREAM *s)
+{ GET_LD
+  stream_ref ref;
+  int rval;
+
+  memset(&ref, 0, sizeof(ref));
+  if ( s->flags & SIO_INPUT )
+    ref.read = s;
+  else
+    ref.write = s;
+
+  rval = PL_unify_blob(t, &ref, sizeof(ref), &stream_blob);
+
+  if ( !rval && !PL_is_variable(t) )
+    return PL_error(NULL, 0, "stream-argument", ERR_MUST_BE_VAR, 0);
+
+  return rval;
 }
 
 
@@ -514,20 +632,11 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
   LOCK();
   ctx = getStreamContext(s);
   if ( ctx->alias_head )
-  { rval = PL_unify_atom(t, ctx->alias_head->name);
-  } else
-  { term_t a;
-
-    rval = ( (a=PL_new_term_ref()) &&
-	     PL_put_pointer(a, s) &&
-	     PL_cons_functor(a, FUNCTOR_dstream1, a) &&
-	     PL_unify(t, a)
-	   );
-  }
+    rval = PL_unify_atom(t, ctx->alias_head->name);
+  else
+    rval = unify_stream_ref(t, s);
   UNLOCK();
 
-  if ( !rval && !PL_is_variable(t) )
-    return PL_error(NULL, 0, "stream-argument", ERR_MUST_BE_VAR, 0);
 
   return rval;
 }
@@ -535,25 +644,13 @@ PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 
 int
 PL_unify_stream(term_t t, IOSTREAM *s)
-{ GET_LD
-  stream_context *ctx;
-  term_t a = PL_new_term_ref();
+{ stream_context *ctx;
 
   LOCK();
   ctx = getStreamContext(s);
   UNLOCK();
 
-  if ( !(a = PL_new_term_ref()) ||
-       !PL_put_pointer(a, s) ||
-       !PL_cons_functor(a, FUNCTOR_dstream1, a) )
-    return FALSE;			/* resource error */
-
-  if ( PL_unify(t, a) )
-    return TRUE;
-  if ( PL_is_functor(t, FUNCTOR_dstream1) )
-    return FALSE;
-
-  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream, t);
+  return unify_stream_ref(t, s);
 }
 
 
@@ -586,23 +683,20 @@ getOutputStream(term_t t, IOSTREAM **stream)
   if ( t == 0 )
   { *stream = getStream(Scurout);
     return TRUE;
-  } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *stream = getStream(Suser_output);
-    return TRUE;
-  } else
-  { if ( PL_is_functor(t, FUNCTOR_rw_stream2) )
-    { term_t a = PL_new_term_ref();
-
-      _PL_get_arg(2, t, a);
-      t = a;
-    }
-    *stream = NULL;			/* make compiler happy */
   }
 
-  if ( !PL_get_stream_handle(t, &s) )
+  if ( !PL_get_atom(t, &a) )
+    return not_a_stream(t);
+
+  if ( a == ATOM_user )
+  { *stream = getStream(Suser_output);
+    return TRUE;
+  }
+
+  if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
     return FALSE;
 
-  if ( !(s->flags &SIO_OUTPUT) )
+  if ( !(s->flags&SIO_OUTPUT) )
   { releaseStream(s);
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		    ATOM_output, ATOM_stream, t);
@@ -621,20 +715,17 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   if ( t == 0 )
   { *stream = getStream(Scurin);
     return TRUE;
-  } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *stream = getStream(Suser_input);
-    return TRUE;
-  } else
-  { if ( PL_is_functor(t, FUNCTOR_rw_stream2) )
-    { term_t a = PL_new_term_ref();
-
-      _PL_get_arg(1, t, a);
-      t = a;
-    }
-    *stream = NULL;			/* make compiler happy */
   }
 
-  if ( !get_stream_handle(t, &s, SH_ERRORS|SH_ALIAS) )
+  if ( !PL_get_atom(t, &a) )
+    return not_a_stream(t);
+
+  if ( a == ATOM_user )
+  { *stream = getStream(Suser_input);
+    return TRUE;
+  }
+
+  if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
     return FALSE;
 
   if ( !(s->flags &SIO_INPUT) )
@@ -645,6 +736,51 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 
   *stream = s;
   return TRUE;
+}
+
+
+/** stream_pairs(+Pair, -Read, -Write)
+    stream_pairs(-Pair, +Read, +Write)
+*/
+
+static
+PRED_IMPL("stream_pair", 3, stream_pair, 0)
+{ PRED_LD
+  IOSTREAM *in = NULL, *out = NULL;
+  int rc = FALSE;
+
+  if ( !PL_is_variable(A1) )
+  { stream_ref *ref;
+    atom_t a;
+    PL_blob_t *type;
+
+    if ( !PL_get_atom(A1, &a) ||
+	 !(ref=PL_blob_data(a, NULL, &type)) ||
+	 type != &stream_blob ||
+	 !ref->read ||
+	 !ref->write )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
+
+    return ( PL_unify_stream_or_alias(A2, ref->read) &&
+	     PL_unify_stream_or_alias(A3, ref->write) );
+  }
+
+  if ( getInputStream(A2, &in) &&
+       getOutputStream(A3, &out) )
+  { stream_ref ref;
+
+    ref.read = in;
+    ref.write = out;
+
+    rc = PL_unify_blob(A1, &ref, sizeof(ref), &stream_blob);
+  }
+
+  if ( in )
+    releaseStream(in);
+  if ( out )
+    releaseStream(out);
+
+  return rc;
 }
 
 
@@ -978,17 +1114,19 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
   if ( to == 0 )
   { ctx->stream = getStream(Scurout);
     ctx->is_stream = TRUE;
-  } else if ( PL_get_atom(to, &a) && a == ATOM_user )
-  { ctx->stream = getStream(Suser_output);
-    ctx->is_stream = TRUE;
-  } else if ( get_stream_handle(to, &ctx->stream, SH_SAFE) )
-  { if ( !(ctx->stream->flags &SIO_OUTPUT) )
-    { releaseStream(ctx->stream);
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		      ATOM_output, ATOM_stream, to);
-    }
+  } else if ( PL_get_atom(to, &a) )
+  { if ( a == ATOM_user )
+    { ctx->stream = getStream(Suser_output);
+      ctx->is_stream = TRUE;
+    } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT) )
+    { if ( !(ctx->stream->flags &SIO_OUTPUT) )
+      { releaseStream(ctx->stream);
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_output, ATOM_stream, to);
+      }
 
-    ctx->is_stream = TRUE;
+      ctx->is_stream = TRUE;
+    }
   } else
   { if ( PL_is_functor(to, FUNCTOR_codes2) )
     { ctx->out_format = PL_CODE_LIST;
@@ -2812,13 +2950,15 @@ pl_see(term_t f)
   atom_t a;
   term_t mode;
 
+  if ( !PL_get_atom_ex(f, &a) )
+    return FALSE;
+
   LOCK();
-  if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
+  if ( get_stream_handle(a, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurin = s;
     goto ok;
   }
-
-  if ( PL_get_atom(f, &a) && a == ATOM_user )
+  if ( a == ATOM_user )
   { Scurin = Suser_input;
     goto ok;
   }
@@ -2890,17 +3030,18 @@ do_tell(term_t f, atom_t m)
   atom_t a;
   term_t mode;
 
+  if ( !PL_get_atom_ex(f, &a) )
+    return FALSE;
+
   LOCK();
-  if ( get_stream_handle(f, &s, SH_UNLOCKED) )
+  if ( get_stream_handle(a, &s, SH_UNLOCKED) )
   { Scurout = s;
     goto ok;
   }
-
-  if ( PL_get_atom(f, &a) && a == ATOM_user )
+  if ( a == ATOM_user )
   { Scurout = Suser_output;
     goto ok;
   }
-
   if ( (s = findStreamFromFile(a, IO_TELL)) )
   { Scurout = s;
     goto ok;
@@ -3013,39 +3154,51 @@ PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
 
 
 static int
-pl_close(term_t stream, int recurse, int force ARG_LD)
+do_close(IOSTREAM *s, int force)
+{ if ( force )
+  { if ( s == Sinput )
+      Sclearerr(s);
+    else if ( s == Soutput || s == Serror )
+    { Sflush(s);
+      Sclearerr(s);
+    } else
+    { Sflush(s);
+      Sclose(s);
+    }
+
+    return TRUE;
+  } else
+  { return closeStream(s);
+  }
+}
+
+
+static int
+pl_close(term_t stream, int force ARG_LD)
 { IOSTREAM *s;
+  atom_t a;
+  stream_ref *ref;
+  PL_blob_t *type;
 
-  if ( recurse && PL_is_functor(stream, FUNCTOR_rw_stream2) )
-  { term_t a = PL_new_term_ref();
-    int rc;
+  if ( !PL_get_atom(stream, &a) )
+    return not_a_stream(stream);
 
-    _PL_get_arg(2, stream, a);
-    rc = pl_close(a, FALSE, force PASS_LD);
-    _PL_get_arg(1, stream, a);
-    rc = rc && pl_close(a, FALSE, force PASS_LD);
+  ref = PL_blob_data(a, NULL, &type);
+  if ( type == &stream_blob )
+  { int rc = TRUE;
+
+    if ( ref->read )
+      rc = do_close(getStream(ref->read), force);
+    if ( ref->write )
+      rc = rc && do_close(getStream(ref->write), force);
 
     return rc;
-  } else
-  { if ( !PL_get_stream_handle(stream, &s) )
-      return FALSE;
-
-    if ( force )
-    { if ( s == Sinput )
-	Sclearerr(s);
-      else if ( s == Soutput || s == Serror )
-      { Sflush(s);
-	Sclearerr(s);
-      } else
-      { Sflush(s);
-	Sclose(s);
-      }
-
-      return TRUE;
-    } else
-    { return closeStream(s);
-    }
   }
+
+  if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS) )
+    return do_close(s, force);
+
+  return FALSE;
 }
 
 
@@ -3053,7 +3206,7 @@ static
 PRED_IMPL("close", 1, close, PL_FA_ISO)
 { PRED_LD
 
-  return pl_close(A1, TRUE, FALSE PASS_LD);
+  return pl_close(A1, FALSE PASS_LD);
 }
 
 
@@ -3071,7 +3224,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
   if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
     return FALSE;
 
-  return pl_close(A1, TRUE, force PASS_LD);
+  return pl_close(A1, force PASS_LD);
 }
 
 
@@ -3414,6 +3567,7 @@ PRED_IMPL("stream_property", 2, stream_property,
   prop_enum *pe;
   fid_t fid;
   term_t a1;
+  atom_t a;
 
   term_t stream = A1;
   term_t property = A2;
@@ -3449,8 +3603,11 @@ PRED_IMPL("stream_property", 2, stream_property,
 	break;
       }
 
+      if ( !PL_get_atom(stream, &a) )
+	return not_a_stream(stream);
+
       LOCK();				/* given stream */
-      if ( get_stream_handle(stream, &s, SH_ERRORS|SH_UNLOCKED) )
+      if ( get_stream_handle(a, &s, SH_ERRORS|SH_UNLOCKED) )
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
@@ -3614,7 +3771,7 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 { GET_LD
   IOSTREAM *s;
 
-  if ( get_stream_handle(A1, &s, SH_SAFE) )
+  if ( get_stream_handle(A1, &s, 0) )
   { releaseStream(s);
     return TRUE;
   }
@@ -3676,8 +3833,12 @@ static int
 getRepositionableStream(term_t stream, IOSTREAM **sp)
 { GET_LD
   IOSTREAM *s;
+  atom_t a;
 
-  if ( get_stream_handle(stream, &s, SH_ERRORS) )
+  if ( !PL_get_atom(stream, &a) )
+    return not_a_stream(stream);
+
+  if ( get_stream_handle(a, &s, SH_ERRORS) )
   { if ( !s->position || !s->functions || !s->functions->seek )
     { PL_error(NULL, 0, NULL, ERR_PERMISSION,
 	       ATOM_reposition, ATOM_stream, stream);
@@ -4313,6 +4474,7 @@ BeginPredDefs(file)
   PRED_DEF("source_location", 2, source_location, 0)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)
+  PRED_DEF("stream_pair", 3, stream_pair, 0)
 
 					/* SWI internal */
   PRED_DEF("$push_input_context", 0, push_input_context, 0)

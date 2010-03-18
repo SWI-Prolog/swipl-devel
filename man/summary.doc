@@ -526,6 +526,7 @@ suggest predicates from a keyword.
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
+\predicatesummary{stream_pair}{3}{Create/examine a bi-directional stream}
 \predicatesummary{stream_position_data}{3}{Access fields from stream position}
 \predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}

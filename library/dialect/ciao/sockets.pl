@@ -16,11 +16,8 @@
 
 This library emulates library(sockets) from  CIAO   Prolog.  One  of the
 problems we are faced with  here  is   that  CIAO  streams  appear to be
-read/write, while SWI-Prolog streams are  either   input  or  output. We
-solve this problem by wrapping both streams in rw_stream(Read, Write).
-
-This implies that socket streams can only be used with the socket-stream
-operations.
+read/write, while SWI-Prolog streams are  either   input  or output. For
+this reason, SWI-Prolog introduced stream_pair/3.
 */
 
 %%	connect_to_socket(+Host, +Port, -Stream) is det,
@@ -29,10 +26,11 @@ operations.
 %	This is the connection type you want in order to use the write/2
 %	and read/2 predicates (and other stream IO related predicates).
 
-connect_to_socket(Host, Port, rw_stream(Read, Write)) :-
+connect_to_socket(Host, Port, StreamPair) :-
 	tcp_socket(Socket),
 	tcp_connect(Socket, Host:Port),
-	tcp_open_socket(Socket, Read, Write).
+	tcp_open_socket(Socket, Read, Write),
+	stream_pair(StreamPair, Read, Write).
 
 
 %%	hostname_address(+HostName, -Address) is det.
@@ -55,7 +53,8 @@ address_to_atom(ip(A,B,C,D), Address) :-
 %	read_write  should  be  used  to  denote  the  type  of  closing
 %	required.
 
-socket_shutdown(rw_stream(Read, Write), How) :-
+socket_shutdown(StreamPair, How) :-
+	stream_pair(StreamPair, Read, Write),
 	must_be(oneof([read,write,read_write]), How),
 	(   How == read
 	->  close(Read)
@@ -82,11 +81,11 @@ socket_recv(Stream, String) :-
 %	Receives a String from the  socket   associated  to  Stream, and
 %	returns its Length. If Length is -1, no more data is available.
 
-socket_recv_code(rw_stream(Read, _Write), String, Length) :-
-	(   at_end_of_stream(Read)
+socket_recv_code(StreamPair, String, Length) :-
+	(   at_end_of_stream(StreamPair)
 	->  String = "",
 	    Length = -1
-	;   read_pending_input(Read, String, []),
+	;   read_pending_input(StreamPair, String, []),
 	    length(String, Length)
 	).
 
@@ -99,9 +98,9 @@ socket_recv_code(rw_stream(Read, _Write), String, Length) :-
 %	string is needed at the other  side,   it  has  to be explicitly
 %	created in Prolog.
 
-socket_send(rw_stream(_Read, Write), String) :-
-	format(Write, '~s', [String]),
-	flush_output(Write).
+socket_send(StreamPair, String) :-
+	format(StreamPair, '~s', [String]),
+	flush_output(StreamPair).
 
 %%	bind_socket(?Port, +Length, -Socket) is det.
 %
@@ -120,6 +119,7 @@ bind_socket(Port, Length, Socket) :-
 %
 %	Creates a new Stream connected to Sock.
 
-socket_accept(Socket, rw_stream(Read, Write)) :-
+socket_accept(Socket, StreamPair) :-
 	tcp_accept(Socket, Client, _Peer),
-	tcp_open_socket(Client, Read, Write).
+	tcp_open_socket(Client, Read, Write),
+	stream_pair(StreamPair, Read, Write).

@@ -1700,6 +1700,13 @@ Stell(IOSTREAM *s)
 		 *	      CLOSE		*
 		 *******************************/
 
+void
+unallocStream(IOSTREAM *s)
+{ if ( !(s->flags & SIO_STATIC) )
+    free(s);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) Sclose() can be called recursively. For example if an XPCE object is
 only referenced from an open stream,  the close-function will delete the
@@ -1768,8 +1775,9 @@ Sclose(IOSTREAM *s)
   s->magic = SIO_CMAGIC;
   if ( s->message )
     free(s->message);
-  if ( !(s->flags & SIO_STATIC) )
-    free(s);
+  if ( s->references == 0 )
+    unallocStream(s);
+  else s->erased = TRUE;
 
   return rval;
 }
