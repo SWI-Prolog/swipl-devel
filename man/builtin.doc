@@ -6012,10 +6012,10 @@ Days of the week are numbered from one to seven: monday = 1, tuesday =
 2, \ldots, sunday = 7.
 \end{description}
 
-\subsection{Controlling the \program{PLWIN.EXE} console window}
+\subsection{Controlling the \program{swipl-win.exe} console window}
 \label{sec:plwin}
 
-The Windows executable \program{PLWIN.EXE} console has a number of
+The Windows executable \program{swipl-win.exe} console has a number of
 predicates to control the appearance of the console. Being totally
 non-portable, we do not advice using it for your own application, but
 use XPCE or another portable GUI platform instead. We give the
