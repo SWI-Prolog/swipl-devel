@@ -98,7 +98,8 @@ save_reload :-
 	rdf_reset_db,
 	rdf_load(File,
 		 [ base_uri([]),	% do not qualify
-		   convert_typed_literal(convert_typed)
+		   convert_typed_literal(convert_typed),
+		   format(xml)
 		 ]),
 	delete_file(File).
 
@@ -108,7 +109,8 @@ save_reload(Encoding) :-
 	rdf_reset_db,
 	rdf_load(File,
 		 [ base_uri([]),	% do not qualify
-		   convert_typed_literal(convert_typed)
+		   convert_typed_literal(convert_typed),
+		   format(xml)
 		 ]),
 	delete_file(File).
 
