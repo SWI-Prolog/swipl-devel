@@ -3770,8 +3770,10 @@ static
 PRED_IMPL("is_stream", 1, is_stream, 0)
 { GET_LD
   IOSTREAM *s;
+  atom_t a;
 
-  if ( get_stream_handle(A1, &s, 0) )
+  if ( PL_get_atom(A1, &a) &&
+       get_stream_handle(a, &s, 0) )
   { releaseStream(s);
     return TRUE;
   }
