@@ -202,6 +202,10 @@ typed(save) :-
 	;   format('TV2 = ~q~n', [TV2]),
 	    fail
 	).
+typed(match) :-
+	rdf_assert(x, a, literal(c)),
+	\+ rdf(x, a, literal(type(t, c))),
+	\+ rdf(x, a, literal(type(t, _))).
 
 
 		 /*******************************

@@ -2434,14 +2434,19 @@ match_object(triple *t, triple *p, unsigned flags)
     { literal *plit = p->object.literal;
       literal *tlit = t->object.literal;
 
-      if ( !plit->objtype )
+      if ( !plit->objtype && !plit->qualifier )
 	return TRUE;
 
-      if ( plit->objtype != tlit->objtype )
+      if ( plit->objtype && plit->objtype != tlit->objtype )
 	return FALSE;
 
       switch( plit->objtype )
-      { case OBJ_STRING:
+      { case 0:
+	  if ( plit->qualifier &&
+	       tlit->qualifier != plit->qualifier )
+	    return FALSE;
+	  return TRUE;
+	case OBJ_STRING:
 	  if ( (flags & MATCH_QUAL) ||
 	       p->match == STR_MATCH_PLAIN )
 	  { if ( tlit->qualifier != plit->qualifier )
