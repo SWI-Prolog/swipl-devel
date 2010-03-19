@@ -301,6 +301,11 @@ int
 Slock(IOSTREAM *s)
 { SLOCK(s);
 
+  if ( s->erased )
+  { SUNLOCK(s);
+    return -1;
+  }
+
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 2 )
   { printf("  Lock [%d]: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
@@ -321,6 +326,11 @@ int
 StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
+
+  if ( s->erased )
+  { SUNLOCK(s);
+    return -1;
+  }
 
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
@@ -1702,7 +1712,16 @@ Stell(IOSTREAM *s)
 
 void
 unallocStream(IOSTREAM *s)
-{ if ( !(s->flags & SIO_STATIC) )
+{
+#ifdef O_PLMT
+  if ( s->mutex )
+  { recursiveMutexDelete(s->mutex);
+    free(s->mutex);
+    s->mutex = NULL;
+  }
+#endif
+
+  if ( !(s->flags & SIO_STATIC) )
     free(s);
 }
 
@@ -1764,20 +1783,13 @@ Sclose(IOSTREAM *s)
   run_close_hooks(s);			/* deletes Prolog registration */
   SUNLOCK(s);
 
-#ifdef O_PLMT
-  if ( s->mutex )
-  { recursiveMutexDelete(s->mutex);
-    free(s->mutex);
-    s->mutex = NULL;
-  }
-#endif
-
   s->magic = SIO_CMAGIC;
   if ( s->message )
     free(s->message);
   if ( s->references == 0 )
     unallocStream(s);
-  else s->erased = TRUE;
+  else
+    s->erased = TRUE;
 
   return rval;
 }

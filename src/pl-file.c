@@ -369,10 +369,8 @@ initIO()
 
 static inline IOSTREAM *
 getStream(IOSTREAM *s)
-{ if ( s && s->magic == SIO_MAGIC )	/* TBD: ensure visibility? */
-  { Slock(s);
+{ if ( s && s->magic == SIO_MAGIC && Slock(s) == 0 )
     return s;
-  }
 
   return NULL;
 }
@@ -407,6 +405,38 @@ PL_release_stream(IOSTREAM *s)
   releaseStream(s);
   return TRUE;
 }
+
+
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
+
+static int
+no_stream(term_t t)
+{ return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+}
+
+static int
+not_a_stream(term_t t)
+{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
+}
+
+static int
+symbol_no_stream(atom_t symbol)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, symbol);
+  return no_stream(t);
+}
+
+static int
+symbol_not_a_stream(atom_t symbol)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+  PL_put_atom(t, symbol);
+  return not_a_stream(t);
+}
+
 
 
 		 /*******************************
@@ -518,11 +548,14 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
     assert(s->magic == SIO_MAGIC);
 
     if ( flags & SH_UNLOCKED )
-      *sp = s;
-    else
-      *sp = getStream(s);
+    { *sp = s;
+      return TRUE;
+    } else if ( (s=getStream(s)) )
+    { *sp = s;
+      return TRUE;
+    }
 
-    return TRUE;
+    return symbol_no_stream(a);
   } else
   { Symbol symb;
 
@@ -558,32 +591,19 @@ get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
   }
 
   if ( flags & SH_ERRORS )
-  { term_t t = PL_new_term_ref();
-    PL_put_atom(t, a);
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
-  }
+    symbol_not_a_stream(a);
 
   return FALSE;
 
 noent:
   if ( flags & SH_ERRORS )
-  { term_t t = PL_new_term_ref();
-    PL_put_atom(t, a);
-    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
-  }
+    symbol_no_stream(a);
 
   return FALSE;
 }
 
 #define get_stream_handle(t, sp, flags) \
 	get_stream_handle__LD(t, sp, flags PASS_LD)
-
-
-static int
-not_a_stream(term_t t)
-{ return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
-}
 
 
 int
@@ -681,16 +701,18 @@ getOutputStream(term_t t, IOSTREAM **stream)
   IOSTREAM *s;
 
   if ( t == 0 )
-  { *stream = getStream(Scurout);
-    return TRUE;
+  { if ( (*stream = getStream(Scurout)) )
+      return TRUE;
+    return no_stream(t);
   }
 
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { *stream = getStream(Suser_output);
-    return TRUE;
+  { if ( (*stream = getStream(Suser_output)) )
+      return TRUE;
+    return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_OUTPUT) )
@@ -713,16 +735,18 @@ getInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
   IOSTREAM *s;
 
   if ( t == 0 )
-  { *stream = getStream(Scurin);
-    return TRUE;
+  { if ( (*stream = getStream(Scurin)) )
+      return TRUE;
+    return no_stream(t);
   }
 
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
   if ( a == ATOM_user )
-  { *stream = getStream(Suser_input);
-    return TRUE;
+  { if ( (*stream = getStream(Suser_input)) )
+      return TRUE;
+    return no_stream(t);
   }
 
   if ( !get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_INPUT) )
@@ -1012,7 +1036,7 @@ protocol(const char *str, size_t n)
 { GET_LD
   IOSTREAM *s;
 
-  if ( LD && (s = getStream(Sprotocol)) )
+  if ( LD && Sprotocol && (s = getStream(Sprotocol)) )
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);
@@ -1112,11 +1136,13 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
   ctx->redirected = redir;
 
   if ( to == 0 )
-  { ctx->stream = getStream(Scurout);
+  { if ( !(ctx->stream = getStream(Scurout)) )
+      return no_stream(to);
     ctx->is_stream = TRUE;
   } else if ( PL_get_atom(to, &a) )
   { if ( a == ATOM_user )
-    { ctx->stream = getStream(Suser_output);
+    { if ( !(ctx->stream = getStream(Suser_output)) )
+	return no_stream(to);
       ctx->is_stream = TRUE;
     } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT) )
     { if ( !(ctx->stream->flags &SIO_OUTPUT) )
@@ -1433,7 +1459,7 @@ noprotocol(void)
 { GET_LD
   IOSTREAM *s;
 
-  if ( (s = getStream(Sprotocol)) )
+  if ( Sprotocol && (s = getStream(Sprotocol)) )
   { TableEnum e;
     Symbol symb;
 
@@ -2362,8 +2388,12 @@ static
 PRED_IMPL("get_single_char", 1, get_single_char, 0)
 { GET_LD
   IOSTREAM *s = getStream(Suser_input);
-  int c = getSingleChar(s, TRUE);
+  int c;
 
+  if ( !s )
+    return symbol_no_stream(ATOM_user_input);
+
+  c = getSingleChar(s, TRUE);
   if ( c == EOF )
   { if ( PL_exception(0) )
     { releaseStream(s);
@@ -2491,9 +2521,13 @@ PRED_IMPL("ttyflush", 0, ttyflush, 0)
 { PRED_LD
   IOSTREAM *s = getStream(Suser_output);
 
-  Sflush(s);
+  if ( s )
+  { Sflush(s);
 
-  return streamStatus(s);
+    return streamStatus(s);
+  }
+
+  return symbol_no_stream(ATOM_user_output);
 }
 
 
@@ -2991,10 +3025,13 @@ pl_seen()
 
   pop_input_context();
 
-  if ( s->flags & SIO_NOFEOF )
+  if ( s && s->flags & SIO_NOFEOF )
     return TRUE;
 
-  return closeStream(s);
+  if ( s )
+    return closeStream(s);
+
+  return symbol_no_stream(ATOM_current_input);
 }
 
 static
@@ -3090,10 +3127,13 @@ PRED_IMPL("told", 0, told, 0)
 
   popOutputContext();
 
-  if ( s->flags & SIO_NOFEOF )
+  if ( s && s->flags & SIO_NOFEOF )
     return TRUE;
 
-  return closeStream(s);
+  if ( s )
+    return closeStream(s);
+
+  return symbol_no_stream(ATOM_current_output);
 }
 
 		 /*******************************
@@ -3156,7 +3196,9 @@ PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
 static int
 do_close(IOSTREAM *s, int force)
 { if ( force )
-  { if ( s == Sinput )
+  { if ( !s )
+      return TRUE;
+    if ( s == Sinput )
       Sclearerr(s);
     else if ( s == Soutput || s == Serror )
     { Sflush(s);
@@ -3167,8 +3209,10 @@ do_close(IOSTREAM *s, int force)
     }
 
     return TRUE;
-  } else
+  } else if ( s )
   { return closeStream(s);
+  } else
+  { return FALSE;
   }
 }
 
@@ -4268,10 +4312,14 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 
   wrapin = (LD->IO.streams[0] != in);
   if ( wrapin )
-    in = getStream(in);			/* lock it */
+  { if ( !(in = getStream(in)) )	/* lock it */
+      goto out;
+  }
 
   if ( PL_compare(A2, A3) == 0 )	/* == */
   { error = getStream(Snew(out->handle, out->flags, out->functions));
+    if ( !error )
+      goto out;
     error->flags &= ~SIO_ABUF;		/* disable buffering */
     error->flags |= SIO_NBUF;
   } else
