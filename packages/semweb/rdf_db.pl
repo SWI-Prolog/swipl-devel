@@ -1156,7 +1156,8 @@ report_loaded(Action, Source, DB, Triples, T0, Options) :-
 
 rdf_unload(Graph) :-
 	atom(Graph),
-	rdf_statistics_(triples(Graph, _)), !,
+	rdf_statistics_(triples(Graph, Triples)),
+	Triples > 0, !,
 	do_unload(Graph).
 rdf_unload(Spec) :-
 	source_url(Spec, _Protocol, SourceURL),
