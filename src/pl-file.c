@@ -1152,7 +1152,8 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
       }
 
       ctx->is_stream = TRUE;
-    }
+    } else
+      return FALSE;
   } else
   { if ( PL_is_functor(to, FUNCTOR_codes2) )
     { ctx->out_format = PL_CODE_LIST;
