@@ -1326,6 +1326,9 @@ do_create_process(p_options *info)
 
     PL_cleanup_fork();
 
+    if ( info->detached )
+      setsid();
+
     if ( info->cwd )
     { if ( chdir(info->cwd) )
       { perror(info->cwd);
