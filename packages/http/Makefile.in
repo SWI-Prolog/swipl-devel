@@ -118,7 +118,8 @@ pdf:		$(PDF)
 html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
-		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex
+		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex \
+		httpopen.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -141,6 +142,9 @@ httplog.tex:	http_log.pl
 
 httppath.tex:	http_path.pl
 		$(PLTOTEX) --subsection 'library(http/http_path)'
+
+httpopen.tex:	http_open.pl
+		$(PLTOTEX) --subsection 'library(http/http_open)'
 
 htmlhead.tex:	html_head.pl
 		$(PLTOTEX) --subsection 'library(http/html_head)'

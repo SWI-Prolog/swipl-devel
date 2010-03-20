@@ -47,48 +47,126 @@ user_agent('SWI-Prolog <http://www.swi-prolog.org>').
 
 /** <module> Simple HTTP client
 
-This library provides a simple-minded   light-weight HTTP client library
-to get the data from an  URL   using  the GET-method. More advanced HTTP
-client support is provided by http_client.pl
+This library provides a light-weight HTTP client library to get the data
+from a URL. The functionality of the  library can be extended by loading
+two additional modules that acts as plugins:
 
-@author	Jan Wielemaker
+    * library(http/http_chunked)
+    Loading this library causes http_open/3 to support chunked
+    transfer encoding.
+
+    * library(http/http_header)
+    Loading this library causes http_open/3 to support the =POST= method
+    in addition to =GET= and =HEAD=.
+
+Here is a simple example to fetch a web-page:
+
+  ==
+  ?- http_open('http://www.google.com/search?q=prolog', In, []),
+     copy_stream_data(In, user_output),
+     close(In).
+  <!doctype html><head><title>prolog - Google Search</title><script>
+  ...
+  ==
+
+The example below fetches the modification time of a web-page. Note that
+Modified is '' if the web-server does not provide a time-stamp for the
+resource. See also parse_time/2.
+
+  ==
+  modified(URL, Stamp) :-
+	  http_open(URL, In,
+		    [ method(head),
+		      header(last_modified, Modified)
+		    ]),
+	  close(In),
+	  Modified \== '',
+	  parse_time(Modified, Stamp).
+  close(In).
+  ==
+
+@see xpath/3
+@see http_get/3
+@see http_post/4
 */
 
 :- multifile
-	http:encoding_filter/3.		% +Encoding, +In0,  -In
-:- multifile
-	http:current_transfer_encoding/1. % ?Encoding
-:- multifile
-	http:http_protocol_hook/7. % +Protocol, +Parts, +In, +Out, -NewIn, -NewOut, +Options
+	http:encoding_filter/3,		  % +Encoding, +In0,  -In
+	http:current_transfer_encoding/1, % ?Encoding
+	http:http_protocol_hook/7.	  % +Protocol, +Parts, +In, +Out,
+					  % -NewIn, -NewOut, +Options
 
 
-%%	http_open(+Url, -Stream, +Options) is det.
+%%	http_open(+URL, -Stream, +Options) is det.
 %
-%	Open a HTTP url as a (binary) stream. Uses HTTP 1.0 protocol
-%	revision to deal with virtual hosts and to be able to interpret
-%	the header.  Supported options:
+%	Open the data at the HTTP  server   as  a  Prolog stream. URL is
+%	either an atom  specifying  a  URL   or  a  list  representing a
+%	broken-down URL compatible to parse_url/2.  After this predicate
+%	succeeds the data can be read from Stream. After completion this
+%	stream must be  closed  using   the  built-in  Prolog  predicate
+%	close/1. Options provides additional options:
 %
-%		* size(-Size)
-%		  Return size of the resource
-%		* header(Name, -Atom)
-%		  Return headerfield as atom
-%		* timeout(+Timeout)
-%		  Raise exception on timeout
-%		* proxy(+Host, +Port)
-%		  Use an HTTP proxy server
-%		* user_agent(+Agent)
-%		  User agent for identifying
-%		* authorization(+Term)
-%		  Currently Term is basic(User, Password)
-%		* request_header(Name=Value)
-%		  Extra header field
-%		* method(+Method)
-%		  One of =get= (default), =head= or =post=
-%		* post(+Data)
-%		  See the In argument of http_post/4
-%		* final_url(-URL)
-%		  Unified with the final URL to deal with
-%		  redirections.
+%	  * authorization(+Term)
+%	  Send authorization.  Currently only supports basic(User,Password).
+%	  See also http_set_authorization/2.
+%
+%	  * final_url(-FinalURL)
+%	  Unify FinalURL} with the final  destination. This differs from
+%	  the  original  URL  if  the  returned  head  of  the  original
+%	  indicates an HTTP redirect (codes 301,  302 or 303). Without a
+%	  redirect, FinalURL is unified with   the  canonical version of
+%	  URL using:
+%
+%	      ==
+%	      parse_url(URL, Parts),
+%	      parse_url(FinalURL, Parts)
+%	      ==
+%
+%	  * header(Name, -AtomValue)
+%	  If provided, AtomValue is  unified  with   the  value  of  the
+%	  indicated  field  in  the  reply    header.  Name  is  matched
+%	  case-insensitive and the underscore  (_)   matches  the hyphen
+%	  (-). Multiple of these options  may   be  provided  to extract
+%	  multiple  header  fields.  If  the  header  is  not  available
+%	  AtomValue is unified to the empty atom ('').
+%
+%	  * method(+Method)
+%	  One of =get= (default) or =head=.   The  =head= message can be
+%	  used in combination with  the   header(Name,  Value) option to
+%	  access information on the resource   without actually fetching
+%	  the resource itself.  The  returned   stream  must  be  closed
+%	  immediately.   If   library(http/http_header)     is   loaded,
+%	  http_open/3 also supports =post=. See the post(Data) option.
+%
+%	  * size(-Size)
+%	  Size is unified with the   integer value of =|Content-Length|=
+%	  in the reply header.
+%
+%	  * timeout(+Timeout)
+%	  If provided, set a timeout on   the stream using set_stream/2.
+%	  With this option if no new data arrives within Timeout seconds
+%	  the stream raises an exception.  Default   is  to wait forever
+%	  (=infinite=).
+%
+%	  * post(+Data)
+%	  Provided if library(http/http_header) is also loaded.  Data is
+%	  handed to http_post_data/3.
+%
+%	  * proxy(+Host, +Port)
+%	  Use an HTTP proxy to connect to the outside world.
+%
+%	  * proxy_authorization(+Authorization)
+%	  Send authorization to the proxy.  Otherwise   the  same as the
+%	  =authorization= option.
+%
+%	  * request_header(Name = Value)
+%	  Additional  name-value  parts  are  added   in  the  order  of
+%	  appearance to the HTTP request   header.  No interpretation is
+%	  done.
+%
+%	  * user_agent(+Agent)
+%	  Defines the value of the  =|User-Agent|=   field  of  the HTTP
+%	  header. Default is =|SWI-Prolog (http://www.swi-prolog.org)|=.
 %
 %	@error	existence_error(url, Id)
 
@@ -160,15 +238,15 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       [MNAME, Location, Version, Host, Agent]),
 	x_headers(Options, Out),
 	format(Out, '\r\n', []),
-        (   MNAME == 'POST',
-            memberchk(post(PostData), Options)
-        ->  http_post_data(PostData, Out, Options)
+        (   option(post(PostData), Options)
+        ->  http_header:http_post_data(PostData, Out, Options)
         ;   true
         ),
 	flush_output(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
+
 
 %%	http_version(-Version:atom) is det.
 %
@@ -184,14 +262,24 @@ force_close(S1, S2) :-
 	close(S2, [force(true)]).
 
 method(Options, MNAME) :-
-	option(method(M), Options, get),
-	must_be(oneof([get,head,post]), M),
-	(   M == get
-	->  MNAME = 'GET'
-        ;   M == head
-        ->  MNAME = 'HEAD'
-	;   MNAME = 'POST'
+	option(post(_), Options), !,
+	option(method(M), Options, post),
+	(   map_method(M, MNAME0)
+	->  MNAME = MNAME0
+	;   domain_error(method, M)
 	).
+method(Options, MNAME) :-
+	option(method(M), Options, get),
+	(   map_method(M, MNAME0)
+	->  MNAME = MNAME0
+	;   domain_error(method, M)
+	).
+
+map_method(get,  'GET').
+map_method(head, 'HEAD').
+map_method(post, 'POST') :-
+	current_predicate(http_header:http_post_data/3).
+
 
 %%	x_headers(+Options, +Out) is det.
 %
