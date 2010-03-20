@@ -718,30 +718,32 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
     fi
   fi
 
-  oldlibs="$LIBS"
-  AC_CHECK_LIB(readline, main)
+  if test -z "$RLPREFIX"; then
+    oldlibs="$LIBS"
+    AC_CHECK_LIB(readline, main)
 
-  AC_CHECK_HEADERS(readline/readline.h)
-  if test "$ac_cv_header_readline_readline_h" = no; then
-      unset ac_cv_header_readline_readline_h
-      CFLAGS="$CFLAGS -I/usr/local/include"
-      AC_CHECK_HEADERS(readline/readline.h)
-      if test "$ac_cv_header_readline_readline_h" = yes; then
-          CIFLAGS="$CIFLAGS -I/usr/local/include"
-      else
-	  LIBS="$oldlibs"
+    AC_CHECK_HEADERS(readline/readline.h)
+    if test "$ac_cv_header_readline_readline_h" = no; then
+	unset ac_cv_header_readline_readline_h
+	CFLAGS="$CFLAGS -I/usr/local/include"
+	AC_CHECK_HEADERS(readline/readline.h)
+	if test "$ac_cv_header_readline_readline_h" = yes; then
+	    CIFLAGS="$CIFLAGS -I/usr/local/include"
+	else
+	    LIBS="$oldlibs"
+	fi
+    fi
+
+    if test "$ac_cv_lib_readline_main" = "yes"; then
+      dnl rl_readline_state and rl_done are a variables!
+      AC_CHECK_HEADERS(readline/history.h)
+      if test "$ac_cv_header_readline_history_h" = yes; then
+	readline_ok=yes
+	AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+	AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+	AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+	AC_CHECK_FUNCS(rl_filename_completion_function)
       fi
-  fi
-
-  if test "$ac_cv_lib_readline_main" = "yes"; then
-    dnl rl_readline_state and rl_done are a variables!
-    AC_CHECK_HEADERS(readline/history.h)
-    if test "$ac_cv_header_readline_history_h" = yes; then
-      readline_ok=yes
-      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
-      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
-      AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
-      AC_CHECK_FUNCS(rl_filename_completion_function)
     fi
   fi
 else
