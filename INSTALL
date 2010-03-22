@@ -38,10 +38,10 @@ want to compile on Windows). Notably, one needs:
 Tools:
     * gcc (with some effort, other C compilers may work as well)
     * GNU-make
-    * autoconf (when building from GIT/CVS, see README.git)
+    * autoconf (when building from GIT, see README.git)
     * LaTeX (optional for documentation, see README.doc)
     * perl (optional for documentation, see README.doc)
-    
+
 Libraries (core system):
     * gmp (http://gmplib.org/)
     Provides unbounded integers and rational numbers.  Optional,
@@ -61,14 +61,14 @@ Libraries (packages):
     Optional for building JPL (Java interface).  Note that auto-detection
     of JPL prerequisites often fails.  See DISABLE_PKGS in build.templ
     * libXt, X11 core libraries, libjpeg and libxpm
-    Required libraries for XPCE, the SWI-Prolog graphics layer that 
-    provides the built-in editor, graphical debugger and many other 
+    Required libraries for XPCE, the SWI-Prolog graphics layer that
+    provides the built-in editor, graphical debugger and many other
     developers tools.
     * libXft, libfontconfig and pkg-config
     Provide proper Unicode font support for XPCE.  Without, XPCE may work
     or not, depending on locale and installed fonts.
-    
-    
+
+
 Using the build.templ script
 ----------------------------
 
@@ -125,9 +125,9 @@ X and Linux on x86_64 (AMD64)).
 
 	./configure --enable-shared
 
-This creates $PLBASE/lib/$ARCH/libpl.so.<version> and   a  symbolic link
-from $PLBASE/lib/$ARCH/libpl.so to  this  file.   The  executable  pl is
-linked using -rpath=$PLBASE/lib/$ARCH.  This schema is likely to work on
+This creates $PLBASE/lib/$ARCH/libswipl.so.<version> and a symbolic link
+from $PLBASE/lib/$ARCH/libswipl.so to this file.   The  executable pl is
+linked using -rpath=$PLBASE/lib/$ARCH. This schema is  likely to work on
 other ELF-based platforms using GCC and GNU-ld.
 
 Doing this causes the Prolog sources to be compiled with -fPIC (position
