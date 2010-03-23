@@ -2306,7 +2306,6 @@ integer_kth_root_leq(N, K, R) :-
         ).
 
 integer_kroot_leq(L, U, N, K, R) :-
-        %portray_clause(at-L-U),
         (   L =:= U -> R = L
         ;   L + 1 =:= U ->
             (   U^K =< N -> R = U
@@ -3959,39 +3958,34 @@ run_propagator(pexp(X,Y,Z), MState) :-
                     ;   NZL = n(0)
                     ),
                     NZU cis max(abs(XL),abs(XU))^Y,
-                    domains_intersection(ZD1, from_to(NZL,NZU), ZD2),
-                    fd_put(Z, ZD2, ZPs)
+                    domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
                 ;   (   finite(XL) ->
                         NZL cis XL^Y,
                         NZU cis XU^Y,
-                        domains_intersection(ZD1, from_to(NZL,NZU), ZD2),
-                        fd_put(Z, ZD2, ZPs)
-                    ;   true
+                        domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
+                    ;   ZD2 = ZD1
                     )
                 ),
+                fd_put(Z, ZD2, ZPs),
                 (   even(Y), ZU = n(Num) ->
-                    integer_kth_root_leq(Num, Y, R),
-                    (   XL = n(NXL), NXL >= 0, ZL = n(Num1) ->
-                        integer_kth_root_leq(Num1, Y, R1)
-                    ;   R1 is -R
+                    integer_kth_root_leq(Num, Y, RU),
+                    (   cis_geq_zero(XL), ZL = n(Num1) ->
+                        integer_kth_root_leq(Num1, Y, RL)
+                    ;   RL is -RU
                     ),
-                    (   fd_get(X, XD2, XPs) ->
-                        domains_intersection(XD2, XD1, XD3),
-                        domains_intersection(XD3, from_to(n(R1),n(R)), XD4),
-                        fd_put(X, XD4, XPs)
-                    ;   true
-                    )
+                    NXD = from_to(n(RL),n(RU))
                 ;   odd(Y), cis_geq_zero(ZL), ZU = n(Num) ->
-                    integer_kth_root_leq(Num, Y, R),
+                    integer_kth_root_leq(Num, Y, RU),
                     ZL = n(Num1),
-                    integer_kth_root_leq(Num1, Y, R1),
-                    (   fd_get(X, XD2, XPs) ->
-                        domains_intersection(XD2, XD1, XD3),
-                        domains_intersection(XD3, from_to(n(R1),n(R)), XD4),
-                        fd_put(X, XD4, XPs)
-                    ;   true
-                    )
-                ;   true        % TODO: propagate more
+                    integer_kth_root_leq(Num1, Y, RL),
+                    NXD = from_to(n(RL),n(RU))
+                ;   NXD = XD1   % TODO: propagate more
+                ),
+                (   fd_get(X, XD2, XPs) ->
+                    domains_intersection(XD2, XD1, XD3),
+                    domains_intersection(XD3, NXD, XD4),
+                    fd_put(X, XD4, XPs)
+                ;   true
                 )
             ;   true
             )
