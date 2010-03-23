@@ -180,8 +180,10 @@ http_open(Parts, Stream, Options0) :-
 	parse_url_ex(Location, Parts),
 	Options = [visited(Parts)|Options0],
 	open_socket(Host:ProxyPort, In, Out, Options),
-	option(port(Port), Parts, 80),
-	host_and_port(Host, Port, HostPort),
+        option(protocol(Protocol), Parts, http),
+	default_port(Protocol, DefPort),
+	option(port(Port), Parts, DefPort),
+	host_and_port(Host, DefPort, Port, HostPort),
 	add_authorization(Parts, Options, Options1),
 	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
 	return_final_url(Options).
@@ -189,23 +191,30 @@ http_open(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
 	option(port(Port), Parts, 80),
         option(protocol(Protocol), Parts, http),
+	default_port(Protocol, DefPort),
+	option(port(Port), Parts, DefPort),
 	http_location(Parts, Location),
 	Options = [visited(Parts)|Options0],
 	open_socket(Host:Port, SocketIn, SocketOut, Options),
-        (   http:http_protocol_hook(Protocol, Parts, SocketIn, SocketOut, In, Out, Options)
+        (   http:http_protocol_hook(Protocol, Parts,
+				    SocketIn, SocketOut,
+				    In, Out, Options)
         ->  true
         ;   In = SocketIn,
             Out = SocketOut
         ),
-	host_and_port(Host, Port, HostPort),
+	host_and_port(Host, DefPort, Port, HostPort),
 	add_authorization(Parts, Options, Options1),
 	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
 	return_final_url(Options).
 
 http:http_protocol_hook(http, _, In, Out, In, Out, _).
 
-host_and_port(Host, 80, Host) :- !.
-host_and_port(Host, Port, Host:Port).
+default_port(https, 443) :- !.
+default_port(_,	    80).
+
+host_and_port(Host, DefPort, DefPort, Host) :- !.
+host_and_port(Host, _,       Port,    Host:Port).
 
 %%	send_rec_header(+Out, +In, -InStream,
 %%			+Host, +Location, +Parts, +Options) is det.
