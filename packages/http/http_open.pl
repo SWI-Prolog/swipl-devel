@@ -247,7 +247,7 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       [MNAME, Location, Version, Host, Agent]),
 	x_headers(Options, Out),	
         (   option(post(PostData), Options)
-        ->  http_header:http_post_data(PostData, Out, Options)
+        ->  http_header:http_post_data(PostData, Out, [])
         ;   format(Out, '\r\n', [])
         ),
 	flush_output(Out),
