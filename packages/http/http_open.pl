@@ -245,11 +245,10 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
 	       [MNAME, Location, Version, Host, Agent]),
-	x_headers(Options, Out),
-	format(Out, '\r\n', []),
+	x_headers(Options, Out),	
         (   option(post(PostData), Options)
         ->  http_header:http_post_data(PostData, Out, Options)
-        ;   true
+        ;   format(Out, '\r\n', [])
         ),
 	flush_output(Out),
 					% read the reply header
