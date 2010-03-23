@@ -189,7 +189,6 @@ http_open(Parts, Stream, Options0) :-
 	return_final_url(Options).
 http_open(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
-	option(port(Port), Parts, 80),
         option(protocol(Protocol), Parts, http),
 	default_port(Protocol, DefPort),
 	option(port(Port), Parts, DefPort),
