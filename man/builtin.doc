@@ -441,7 +441,7 @@ absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
-    \predicate{unload_file}{+File}
+    \predicate{unload_file}{1}{+File}
 Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
 module, clear the module's export-list and disassociates it from the
 file.  \arg{File} is a canonical file-name.  See source_file/1,
