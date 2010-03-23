@@ -624,11 +624,11 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-    bindConst(p, c);
     *ap++ = f;
     ARGP = ap;
     while(--arity>=0)			/* must clear if we want to do GC */
       setVar(*ap++);
+    bindConst(p, c);
     umode = uwrite;
     NEXT_INSTRUCTION;
   }
