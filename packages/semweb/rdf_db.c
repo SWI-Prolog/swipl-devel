@@ -6086,7 +6086,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	}
 	is_det = PL_is_ground(obj);
 	target_term = obj;
-      } else if ( PL_is_atom(obj) )		/* obj .... subj */
+      } else if ( !PL_is_variable(obj) )	/* obj .... subj */
       {	switch(get_partial_triple(db, 0, pred, obj, 0, &a.pattern))
 	{ case 0:
 	    return directly_attached(pred, obj, subj);
