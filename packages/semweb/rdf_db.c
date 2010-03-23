@@ -6093,6 +6093,8 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  case -1:
 	    return FALSE;
 	}
+	if ( a.pattern.object_is_literal )
+	  return FALSE;			/* rdf_reachable(-,+,literal(...)) */
 	target_term = subj;
       } else
 	return instantiation_error(subj);
