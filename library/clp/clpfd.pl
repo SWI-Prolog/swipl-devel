@@ -434,6 +434,13 @@ cis_times_(inf, A, P)     :- cis_times(inf, n(A), P).
 cis_times_(sup, A, P)     :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
+cis_exp(inf, Y, R) :-
+        (   Y mod 2 =:= 0 -> R = sup
+        ;   R = inf
+        ).
+cis_exp(sup, _, sup).
+cis_exp(n(N), Y, n(R)) :- R is N^Y.
+
 % compactified is/2 for expressions of interest
 
 goal_expansion(A cis B, Expansion) :-
@@ -475,6 +482,10 @@ cis_goals(A0//B0, R)     -->
         cis_goals(A0, A),
         cis_goals(B0, B),
         [cis_slash(A, B, R)].
+cis_goals(A0^B0, R)      -->
+        cis_goals(A0, A),
+        cis_goals(B0, B),
+        [cis_exp(A, B, R)].
 
 list_goal([], true).
 list_goal([C|Cs], Goal) :- list_goal_(Cs, C, Goal).
@@ -2242,6 +2253,10 @@ gcd([N|Ns], G0, G) :-
         G1 is gcd(N, G0),
         gcd(Ns, G1, G).
 
+even(N) :- N mod 2 =:= 0.
+
+odd(N) :- \+ even(N).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    k-th root of N, if N is a k-th power.
 
@@ -2249,12 +2264,12 @@ gcd([N|Ns], G0, G) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 integer_kth_root(N, K, R) :-
-        (   K mod 2 =:= 0 ->
+        (   even(K) ->
             N >= 0
         ;   true
         ),
         (   N < 0 ->
-            K mod 2 =:= 1,
+            odd(K),
             integer_kroot(N, 0, N, K, R)
         ;   integer_kroot(0, N, N, K, R)
         ).
@@ -2273,6 +2288,35 @@ integer_kroot(L, U, N, K, R) :-
             )
         ).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Largest R such that R^K =< N.
+
+   TODO: Replace this when the GMP function becomes available.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+integer_kth_root_leq(N, K, R) :-
+        (   even(K) ->
+            N >= 0
+        ;   true
+        ),
+        (   N < 0 ->
+            odd(K),
+            integer_kroot_leq(N, 0, N, K, R)
+        ;   integer_kroot_leq(0, N, N, K, R)
+        ).
+
+integer_kroot_leq(L, U, N, K, R) :-
+        (   L =:= U -> R = L
+        ;   L + 1 =:= U ->
+            (   U^K =< N -> R = U
+            ;   R = L
+            )
+        ;   Mid is (L + U)//2,
+            (   Mid^K > N ->
+                integer_kroot_leq(L, Mid, N, K, R)
+            ;   integer_kroot_leq(Mid, U, N, K, R)
+            )
+        ).
 
 %% ?X #\= ?Y
 %
@@ -3492,7 +3536,7 @@ run_propagator(pplus(X,Y,Z), MState) :-
             )
         ;   nonvar(Y) -> run_propagator(pplus(Y,X,Z), MState)
         ;   nonvar(Z) ->
-            (   X == Y -> kill(MState), Z mod 2 =:= 0, X is Z // 2
+            (   X == Y -> kill(MState), even(Z), X is Z // 2
             ;   fd_get(X, XD, _),
                 fd_get(Y, YD, YPs),
                 domain_negate(XD, XDN),
@@ -3891,33 +3935,57 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ;   nonvar(Z), nonvar(Y) ->
             integer_kth_root(Z, Y, R),
             kill(MState),
-            (   Y mod 2 =:= 0 ->
+            (   even(Y) ->
                 N is -R,
                 X in N \/ R
             ;   X = R
             )
         ;   nonvar(Y), Y > 0 ->
-            (   Y mod 2 =:= 0 ->
+            (   even(Y) ->
                 geq(Z, 0)
             ;   true
             ),
-            (   fd_get(X, XD, XL, XU, _), fd_get(Z, ZD, ZPs) ->
-                (   domain_contains(ZD, 0) -> true
-                ;   neq_num(X, 0)
+            (   fd_get(X, XD, XL, XU, _), fd_get(Z, ZD, ZL, ZU, ZPs) ->
+                (   domain_contains(ZD, 0) -> XD1 = XD
+                ;   domain_remove(XD, 0, XD1)
                 ),
-                (   domain_contains(XD, 0) -> true
-                ;   neq_num(Z, 0)
+                (   domain_contains(XD, 0) -> ZD1 = ZD
+                ;   domain_remove(ZD, 0, ZD1)
                 ),
-                (   XL = n(NXL), NXL >= 0 ->
-                    NZL is NXL ^ Y,
-                    domain_remove_smaller_than(ZD, NZL, ZD1),
-                    (   XU = n(NXU) ->
-                        NZU is NXU ^ Y,
-                        domain_remove_greater_than(ZD1, NZU, ZD2)
-                    ;   ZD2 = ZD1
+                (   even(Y) ->
+                    (   cis_geq_zero(XL) ->
+                        NZL cis XL^Y
+                    ;   NZL = n(0)
                     ),
-                    fd_put(Z, ZD2, ZPs)
-                ;   true        % TODO: propagate more
+                    NZU cis max(abs(XL),abs(XU))^Y,
+                    domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
+                ;   (   finite(XL) ->
+                        NZL cis XL^Y,
+                        NZU cis XU^Y,
+                        domains_intersection(ZD1, from_to(NZL,NZU), ZD2)
+                    ;   ZD2 = ZD1
+                    )
+                ),
+                fd_put(Z, ZD2, ZPs),
+                (   even(Y), ZU = n(Num) ->
+                    integer_kth_root_leq(Num, Y, RU),
+                    (   cis_geq_zero(XL), ZL = n(Num1) ->
+                        integer_kth_root_leq(Num1, Y, RL)
+                    ;   RL is -RU
+                    ),
+                    NXD = from_to(n(RL),n(RU))
+                ;   odd(Y), cis_geq_zero(ZL), ZU = n(Num) ->
+                    integer_kth_root_leq(Num, Y, RU),
+                    ZL = n(Num1),
+                    integer_kth_root_leq(Num1, Y, RL),
+                    NXD = from_to(n(RL),n(RU))
+                ;   NXD = XD1   % TODO: propagate more
+                ),
+                (   fd_get(X, XD2, XPs) ->
+                    domains_intersection(XD2, XD1, XD3),
+                    domains_intersection(XD3, NXD, XD4),
+                    fd_put(X, XD4, XPs)
+                ;   true
                 )
             ;   true
             )
@@ -4345,7 +4413,7 @@ augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels1 = [Tos|Levels0],
         phrase(reachables(Vs), Tos),
         Tos = [_|_],
-        (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
+        (   odd(Level), member(Free, Tos), get_attr(Free, free, true) ->
             Right = Free, Levels = Levels1
         ;   Level1 is Level + 1,
             augmenting_path_to(Level1, Levels1, Levels, Right)

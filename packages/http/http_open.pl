@@ -189,7 +189,6 @@ http_open(Parts, Stream, Options0) :-
 	return_final_url(Options).
 http_open(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
-	option(port(Port), Parts, 80),
         option(protocol(Protocol), Parts, http),
 	default_port(Protocol, DefPort),
 	option(port(Port), Parts, DefPort),
@@ -245,11 +244,10 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
 	       [MNAME, Location, Version, Host, Agent]),
-	x_headers(Options, Out),
-	format(Out, '\r\n', []),
+	x_headers(Options, Out),	
         (   option(post(PostData), Options)
-        ->  http_header:http_post_data(PostData, Out, Options)
-        ;   true
+        ->  http_header:http_post_data(PostData, Out, [])
+        ;   format(Out, '\r\n', [])
         ),
 	flush_output(Out),
 					% read the reply header
