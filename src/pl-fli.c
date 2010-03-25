@@ -628,8 +628,30 @@ PL_atom_wchars(atom_t a, size_t *len)
 
 
 		 /*******************************
-		 *    QUINTUS WRAPPER SUPPORT   *
+		 *    QUINTUS/SICSTUS WRAPPER   *
 		 *******************************/
+
+static int sp_encoding = REP_UTF8;
+
+int
+PL_cvt_encoding(void)
+{ return sp_encoding;
+}
+
+int
+PL_cvt_set_encoding(int enc)
+{ switch(enc)
+  { case REP_ISO_LATIN_1:
+    case REP_UTF8:
+    case REP_MB:
+      sp_encoding = enc;
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+#define REP_SP (sp_encoding)
 
 bool
 PL_cvt_i_int(term_t p, int *c)
@@ -670,13 +692,13 @@ PL_cvt_i_single(term_t p, float *c)
 
 bool
 PL_cvt_i_string(term_t p, char **c)
-{ return PL_get_chars(p, c, CVT_ATOM|CVT_STRING|CVT_EXCEPTION);
+{ return PL_get_chars(p, c, CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_SP);
 }
 
 
 bool
 PL_cvt_i_codes(term_t p, char **c)
-{ return PL_get_chars(p, c, CVT_LIST|CVT_EXCEPTION);
+{ return PL_get_chars(p, c, CVT_LIST|CVT_EXCEPTION|REP_SP);
 }
 
 
@@ -715,13 +737,13 @@ PL_cvt_o_single(float c, term_t p)
 
 bool
 PL_cvt_o_string(const char *c, term_t p)
-{ return PL_unify_atom_chars(p, c);
+{ return PL_unify_chars(p, PL_ATOM|REP_SP, (size_t)-1, c);
 }
 
 
 bool
 PL_cvt_o_codes(const char *c, term_t p)
-{ return PL_unify_chars(p, PL_CODE_LIST, (size_t)-1, c);
+{ return PL_unify_chars(p, PL_CODE_LIST|REP_SP, (size_t)-1, c);
 }
 
 

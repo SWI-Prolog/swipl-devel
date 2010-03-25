@@ -57,6 +57,8 @@ typedef predicate_t SP_pred_ref;
 		 *  READING AND WRITING TERMS	*
 		 *******************************/
 
+#define REP_SP PL_cvt_encoding()
+
 #define SP_new_term_ref() PL_new_nil_ref()
 
 #define SP_is_list(t) PL_is_list(t)
@@ -66,22 +68,30 @@ typedef predicate_t SP_pred_ref;
 #define SP_put_variable(t) PL_put_variable(t)
 #define SP_put_integer(t,i) PL_put_integer(t,i)
 #define SP_put_float(t,f) PL_put_float(t,f)
-#define SP_put_string(t,f) PL_put_atom_chars(t,f)
 #define SP_put_list(t) PL_put_list(t)
 #define SP_put_term(t1, t2) PL_put_term(t1, t2)
 
 #define SP_get_list(l,h,t) PL_get_list(l,h,t)
-#define SP_get_string(t,s) PL_get_atom_chars(t,s)
+#define SP_get_string(t,s) PL_get_chars(t,s,CVT_ATOM|REP_SP)
 #define SP_get_integer(t,pi) PL_get_long(t, pi)
 #define SP_get_arg(i,t,a) PL_get_arg(i,t,a)
 
 #define SP_unify(x,y) PL_unify(x,y)
 
 static __inline int
+SP_put_string(term_t t, const char *s)
+{ PL_put_variable(t);
+
+  return PL_unify_chars(t, PL_ATOM|REP_SP, (size_t)-1, s);
+}
+
+
+static __inline int
 SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
 		    size_t len, unsigned char const *buf)
 { term_t t0 = PL_new_term_refs(2);
-  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST, len, (const char*)buf);
+  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST|REP_SP,
+			  len, (const char*)buf);
 
   if ( rc )
   { PL_put_term(list, t0);
