@@ -42,6 +42,7 @@
 :- system_mode(on).
 
 :- dynamic verbose/1.
+:- volatile verbose/1.			% contains a stream-handle
 
 %%	qsave_program(+File) is det.
 %%	qsave_program(+File, +Options) is det.
