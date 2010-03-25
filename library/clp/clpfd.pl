@@ -4118,6 +4118,7 @@ run_propagator(reified_geq(DX,X,DY,Y,Ps,B), MState) :-
                     ;   XU cis_lt n(Y) -> kill(MState, Ps), B = 0
                     ;   true
                     )
+                ;   X == Y -> kill(MState, Ps), B = 1
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
                     (   XL cis_geq YU -> kill(MState, Ps), B = 1
