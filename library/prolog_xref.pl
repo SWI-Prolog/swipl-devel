@@ -418,8 +418,6 @@ xref_expand(Term, _) :-
 	fail.
 xref_expand(Term, Term) :-
 	chr_expandable(Term), !.
-xref_expand('$:-'(X), '$:-'(X)) :- !,	% boot module
-	style_check(+dollar).
 xref_expand(Term, T) :-
 	catch(expand_term(Term, Expanded), _, Expanded=Term),
 	(   is_list(Expanded)
