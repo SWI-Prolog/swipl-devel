@@ -173,8 +173,8 @@ prolog_open_source(Src, Fd) :-
 	),
 	push_operators([]),
 	'$set_source_module'(SM, SM),
-	'$style_check'(Style, Style),
-	asserta(open_source(Fd, state(Style, SM))).
+	'$save_lex_state'(LexState),
+	asserta(open_source(Fd, state(LexState, SM))).
 
 
 %%	prolog_close_source(+In:stream) is det.
@@ -184,8 +184,8 @@ prolog_open_source(Src, Fd) :-
 
 prolog_close_source(In) :-
 	pop_operators,
-	(   retract(open_source(In, state(Style, SM)))
-	->  '$style_check'(_, Style),
+	(   retract(open_source(In, state(LexState, SM)))
+	->  '$restore_lex_state'(LexState),
 	    '$set_source_module'(_, SM)
 	;   assertion(fail)
 	),
