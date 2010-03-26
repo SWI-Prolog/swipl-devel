@@ -132,6 +132,8 @@ update_directive(op(P,T,N)) :- !,
 	push_op(P,T,SM:N).
 update_directive(style_check(Style)) :-
 	style_check(Style), !.
+update_directive(expects_dialect(sicstus)) :-
+	style_check(-atom), !.
 update_directive(_).
 
 public_operators([]).
