@@ -90,8 +90,23 @@ static __inline int
 SP_put_list_n_bytes(SP_term_ref list, SP_term_ref tail,
 		    size_t len, unsigned char const *buf)
 { term_t t0 = PL_new_term_refs(2);
-  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST|REP_SP,
+  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST|REP_ISO_LATIN_1,
 			  len, (const char*)buf);
+
+  if ( rc )
+  { PL_put_term(list, t0);
+    rc = PL_unify(tail, t0+1);
+  }
+
+  return rc;
+}
+
+
+static __inline int
+SP_put_list_chars(SP_term_ref list, SP_term_ref tail, const char *s)
+{ term_t t0 = PL_new_term_refs(2);
+  int rc = PL_unify_chars(t0, PL_CODE_LIST|PL_DIFF_LIST|REP_SP,
+			  (size_t)-1, s);
 
   if ( rc )
   { PL_put_term(list, t0);
