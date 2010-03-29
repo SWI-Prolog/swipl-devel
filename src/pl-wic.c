@@ -2698,15 +2698,25 @@ pl_close_wic()
 }
 
 
-word
-pl_add_directive_wic(term_t term)
+static
+PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 { if ( wicFd )
-  { GET_LD
-    if ( !(PL_is_compound(term) || PL_is_atom(term)) )
-      return PL_error("$add_directive_wic", 1, NULL, ERR_TYPE,
-		      ATOM_callable, term);
+  { PRED_LD
+    Module m = MODULE_system;
+    term_t term = PL_new_term_ref();
+    term_t qterm = PL_new_term_ref();
 
-    return addDirectiveWic(term, wicFd PASS_LD);
+    PL_strip_module(A1, &m, term);
+    if ( !(PL_is_callable(term)) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, A1);
+
+    if ( !PL_unify_term(qterm,
+			PL_FUNCTOR, FUNCTOR_colon2,
+			  PL_ATOM, m->name,
+			  PL_TERM, term) )
+      return FALSE;
+
+    return addDirectiveWic(qterm, wicFd PASS_LD);
   }
 
   succeed;
@@ -2948,4 +2958,5 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 BeginPredDefs(wic)
   PRED_DEF("$qlf_info", 5, qlf_info, 0)
   PRED_DEF("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
+  PRED_DEF("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 EndPredDefs

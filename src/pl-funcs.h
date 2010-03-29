@@ -719,7 +719,6 @@ COMMON(int)		mbscasecoll(const char *s1, const char *s2);
 COMMON(bool) 		loadWicFromStream(IOSTREAM *fd);
 COMMON(word) 		pl_open_wic(term_t name);
 COMMON(word) 		pl_close_wic(void);
-COMMON(word) 		pl_add_directive_wic(term_t term);
 COMMON(word) 		pl_import_wic(term_t module, term_t head);
 COMMON(bool) 		compileFileList(IOSTREAM *out, int argc, char **argv);
 COMMON(void) 		qlfCleanup(void);

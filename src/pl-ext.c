@@ -110,7 +110,6 @@ static const PL_extension foreigns[] = {
 
   FRG("$open_wic",		1, pl_open_wic,			0),
   FRG("$close_wic",		0, pl_close_wic,		0),
-  FRG("$add_directive_wic",	1, pl_add_directive_wic,	0),
   FRG("$import_wic",		2, pl_import_wic,		0),
 
   FRG("$rc_handle",		1, pl_rc_handle,		0),
