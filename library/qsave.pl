@@ -42,6 +42,7 @@
 :- system_mode(on).
 
 :- dynamic verbose/1.
+:- volatile verbose/1.			% contains a stream-handle
 
 %%	qsave_program(+File) is det.
 %%	qsave_program(+File, +Options) is det.
@@ -452,6 +453,7 @@ save_prolog_flags :-
 save_prolog_flags.
 
 no_save_flag(argv).
+no_save_flag(readline).
 no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
 					% from user-code

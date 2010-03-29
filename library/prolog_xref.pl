@@ -418,8 +418,6 @@ xref_expand(Term, _) :-
 	fail.
 xref_expand(Term, Term) :-
 	chr_expandable(Term), !.
-xref_expand('$:-'(X), '$:-'(X)) :- !,	% boot module
-	style_check(+dollar).
 xref_expand(Term, T) :-
 	catch(expand_term(Term, Expanded), _, Expanded=Term),
 	(   is_list(Expanded)
@@ -475,7 +473,8 @@ process_directive(use_module(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, false).
 process_directive(expects_dialect(Dialect), Src) :-
-	process_directive(use_module(library(dialect/Dialect)), Src).
+	process_directive(use_module(library(dialect/Dialect)), Src),
+	expects_dialect(Dialect).
 process_directive(reexport(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, true).

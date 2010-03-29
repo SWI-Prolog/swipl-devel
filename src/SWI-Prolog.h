@@ -625,6 +625,13 @@ PL_EXPORT(int)		PL_cvt_o_atom(atom_t c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_address(void *address, term_t p);
 PL_EXPORT(term_t)	PL_new_nil_ref(void);
 
+/* set/get encoding for PL_cvt_*_string() functions.  The default
+   is UTF-8 (REP_UTF8)
+*/
+
+PL_EXPORT(int)		PL_cvt_encoding(void);
+PL_EXPORT(int)		PL_cvt_set_encoding(int enc);
+
 
 		 /*******************************
 		 *	     COMPARE		*

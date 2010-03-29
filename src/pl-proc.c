@@ -1981,6 +1981,7 @@ pl_retractall(term_t head)
   ClauseRef cref;
   ClauseRef next;
   Word argv;
+  int allvars = TRUE;
   fid_t fid;
 
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
@@ -2000,37 +2001,57 @@ pl_retractall(term_t head)
   argv = valTermRef(thehead);
   deRef(argv);
   if ( isTerm(*argv) )			/* retract(foobar(a1, ...)) */
+  { int i, arity = arityTerm(*argv);
+
     argv = argTermP(*argv, 0);
-  else
-    argv = NULL;			/* retract(foobar) */
+    for(i=0; i<arity && allvars; i++)
+    { Word p2;
+
+      deRef2(argv+i, p2);
+      if ( !isVar(*p2) )
+	allvars = FALSE;
+    }
+  } else
+  { argv = NULL;			/* retract(foobar) */
+  }
 
   startCritical;
   enterDefinition(def);
   fid = PL_open_foreign_frame();
 
-  if ( !(cref = firstClause(argv, environment_frame, def, &next PASS_LD)) )
-  { int rc = endCritical;
-    leaveDefinition(def);
-    return rc;
-  }
+  if ( allvars )
+  { uintptr_t gen = environment_frame->generation;
 
-  while( cref )
-  { if ( decompileHead(cref->clause, thehead) )
-      retractClauseDefinition(def, cref->clause PASS_LD);
-
-    PL_rewind_foreign_frame(fid);
-
-    if ( !next )
-    { leaveDefinition(def);
-      return endCritical;
+    for(cref = def->definition.clauses; cref; cref = cref->next)
+    { if ( visibleClause(cref->clause, gen) )
+      { retractClauseDefinition(def, cref->clause PASS_LD);
+      }
+    }
+  } else
+  { if ( !(cref = firstClause(argv, environment_frame, def, &next PASS_LD)) )
+    { int rc = endCritical;
+      leaveDefinition(def);
+      return rc;
     }
 
-    if ( argv )				/* may be shifted */
-    { argv = valTermRef(thehead);
-      argv = argTermP(*argv, 0);
-    }
+    while( cref )
+    { if ( decompileHead(cref->clause, thehead) )
+	retractClauseDefinition(def, cref->clause PASS_LD);
 
-    cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
+      PL_rewind_foreign_frame(fid);
+
+      if ( !next )
+      { leaveDefinition(def);
+	return endCritical;
+      }
+
+      if ( argv )				/* may be shifted */
+      { argv = valTermRef(thehead);
+	argv = argTermP(*argv, 0);
+      }
+
+      cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
+    }
   }
   leaveDefinition(def);
   return endCritical;
@@ -3094,8 +3115,7 @@ pl_start_consult(term_t file)
 
 static
 PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
-{ PRED_LD
-  atom_t name;
+{ atom_t name;
   SourceFile f;
   int ln;
   ListCell cell;
