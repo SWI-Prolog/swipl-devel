@@ -1063,7 +1063,8 @@ guess_format(File, Format) :-
 	file_name_extension(_, Ext, File),
 	(   rdf_file_type(Ext, Format)
 	->  true
-	;   domain_error(rdf_file_extension, Ext)
+	;   Format = xml,
+	    print_message(warning, rdf(guess_format(Ext)))
 	).
 
 storage_open('', File, Stream, close(Stream)) :- !,
@@ -2099,6 +2100,8 @@ prolog:message(rdf(inconsistent_cache(DB, Graphs))) -->
 	[ 'RDF cache file for ~w contains the following graphs'-[DB], nl,
 	  '~t~8|~p'-[Graphs]
 	].
+prolog:message(rdf(guess_format(Ext))) -->
+	[ 'Unknown file-extension: ~w.  Assuming RDF/XML'-[Ext] ].
 
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].
