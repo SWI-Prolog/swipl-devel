@@ -44,6 +44,10 @@
 :- use_module(library(error)).
 :- use_module(library(apply)).
 
+:- multifile sisctus:rename_module/2.
+
+sisctus:rename_module(sockets, sicstus_sockets).
+
 /** <module> SICStus compatible socket library
 
 @tbd Our implementation does not support AF_UNIX sockets.

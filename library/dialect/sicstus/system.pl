@@ -60,7 +60,12 @@
 :- use_module(library(process)).
 :- use_module(library(socket)).
 
+:- multifile sisctus:rename_module/2.
+
+sisctus:rename_module(system, sicstus_system).
+
 /** <module> SICStus-3 library system
+
 
 
 @tbd	This library is incomplete

@@ -34,6 +34,10 @@
 	  ]).
 :- reexport('../../lists').
 
+:- multifile sisctus:rename_module/2.
+
+sisctus:rename_module(lists, sicstus_lists).
+
 %%	substitute(+OldElem, +List, +NewElem, -NewList) is det.
 %
 %	NewList is as List with all value that are identical (==) to OldElem

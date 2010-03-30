@@ -171,9 +171,8 @@ if(If, Then, Else) :-
 %	the module-name conflicts. All explicitely   qualified goals are
 %	mapped to the SICStus equivalent of the module.
 
-rename_module(lists,   sicstus_lists).
-rename_module(sockets, sicstus_sockets).
-rename_module(system,  sicstus_system).
+:- multifile
+	rename_module/2.
 
 system:goal_expansion(M:Goal, SicstusM:Goal) :-
 	atom(M),
