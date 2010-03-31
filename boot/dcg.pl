@@ -55,14 +55,16 @@ resulting code is simply the same), I've removed that.
 
 dcg_translate_rule(((LP,MNT)-->RP),(H:-B)) :- !,
 	( var(LP) -> throw(error(instantiation_error,_)) ; true ),
+	'$set_source_module'(M, M),
 	'$extend'(LP, S0, SR, H),
-	'$t_body'(RP, S0, S1, B0),
-	'$t_body'(MNT, SR, S1,M),
-	'$body_optimized'((B0,M),B1,S0),
-	'$body_optimized'(B1,B,SR).
+	'$t_body'(RP, M:M, S0, S1, B0),
+	'$t_body'(MNT, M:M, SR, S1, B1),
+	'$body_optimized'((B0,B1),B2,S0),
+	'$body_optimized'(B2,B,SR).
 dcg_translate_rule((LP-->RP), (H:-B)) :-
 	'$extend'(LP, S0, S, H),
-	'$t_body'(RP, S0, S, B0),
+	'$set_source_module'(M, M),
+	'$t_body'(RP, M:M, S0, S, B0),
 	'$body_optimized'(B0,B,S0).
 
 '$body_optimized'(B0,B,S0) :-
@@ -132,10 +134,14 @@ is supposed to. If the first clause is translated as
 then the call p([a], [a]) will succeed, which is quite definitely wrong.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-'$t_body'(Var, S, SR, phrase(Var, S, SR)) :-
-	var(Var), !.
-'$t_body'([], S, SR, S=SR) :- !.		% inline lists
-'$t_body'(List, S, SR, C) :-
+'$t_body'(Var, Q, S, SR, phrase(QVar, S, SR)) :-
+	var(Var), !,
+	qualify(Q, Var, QVar).
+'$t_body'(M:X, _:C, S, SR, Ct) :- !,
+	'$t_body'(X, M:C, S, SR, Ct).
+
+'$t_body'([], _, S, SR, S=SR) :- !.		% inline lists
+'$t_body'(List, _, S, SR, C) :-
 	(   List = [_|_]
 	->  !,
 	    (   is_list(List)
@@ -143,41 +149,46 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 		C = (S = OL)
 	    ;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
 	    )
-	;   string(List)
+	;   string(List)			% double_quotes = string
 	->  !,
 	    string_to_list(List, Codes),
 	    '$append'(Codes, SR, OL),
 	    C = (S = OL)
 	).
-'$t_body'(!, S, S, !) :- !.
-'$t_body'({}, S, S, true) :- !.
-'$t_body'({T}, S, SR, (T, SR = S)) :- !.		% (*)
+'$t_body'(!, _, S, S, !) :- !.
+'$t_body'({}, _, S, S, true) :- !.
+'$t_body'({T}, Q, S, SR, (QT, SR = S)) :- !,	% (*)
+	qualify(Q, T, QT).
 %'$t_body'({T}, S, S, T) :- !.			% (*)
-'$t_body'((T, R), S, SR, (Tt, Rt)) :- !,
-	'$t_body'(T, S, SR1, Tt),
-	'$t_body'(R, SR1, SR, Rt).
-'$t_body'((T;R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((T|R), S, SR, (Tt;Rt)) :- !,
-	'$t_body'(T, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
-	'$t_body'(R, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
-'$t_body'((C->T), S, SR, (Ct->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((C*->T), S, SR, (Ct*->Tt)) :- !,
-	'$t_body'(C, S, SR1, Ct),
-	'$t_body'(T, SR1, SR, Tt).
-'$t_body'((\+ C), S, S, (\+ Ct)) :- !,
-	'$t_body'(C, S, _, Ct).
-'$t_body'(T, S, SR, Tt) :-
-	'$extend'(T, S, SR, Tt).
-
+'$t_body'((T, R), Q, S, SR, (Tt, Rt)) :- !,
+	'$t_body'(T, Q, S, SR1, Tt),
+	'$t_body'(R, Q, SR1, SR, Rt).
+'$t_body'((T;R), Q, S, SR, (Tt;Rt)) :- !,
+	'$t_body'(T, Q, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
+	'$t_body'(R, Q, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
+'$t_body'((T|R), Q, S, SR, (Tt;Rt)) :- !,
+	'$t_body'(T, Q, S, S1, T1), '$t_fill'(S, SR, S1, T1, Tt),
+	'$t_body'(R, Q, S, S2, R1), '$t_fill'(S, SR, S2, R1, Rt).
+'$t_body'((C->T), Q, S, SR, (Ct->Tt)) :- !,
+	'$t_body'(C, Q, S, SR1, Ct),
+	'$t_body'(T, Q, SR1, SR, Tt).
+'$t_body'((C*->T), Q, S, SR, (Ct*->Tt)) :- !,
+	'$t_body'(C, Q, S, SR1, Ct),
+	'$t_body'(T, Q, SR1, SR, Tt).
+'$t_body'((\+ C), Q, S, S, (\+ Ct)) :- !,
+	'$t_body'(C, Q, S, _, Ct).
+'$t_body'(T, Q, S, SR, QTt) :-
+	'$extend'(T, S, SR, Tt),
+	qualify(Q, Tt, QTt).
 
 '$t_fill'(S, SR, S1, T, (T, SR=S)) :-
 	S1 == S, !.
 '$t_fill'(_S, SR, SR, T, T).
 
+qualify(M:C, X0, X) :-
+	M == C, !,
+	X = X0.
+qualify(M:_, X, M:X).
 
 %	'$extend'(+Head, +Extra1, +Extra2, -NewHead)
 %
@@ -250,7 +261,7 @@ phrase(RuleSet, Input) :-
 phrase(RuleSet, Input, Rest) :-
 	strip_module(RuleSet, M, Plain),
 	( var(Plain) -> throw(error(instantiation_error,_)) ; true ),
-	'$t_body'(Plain, S0, S, Body),
+	'$t_body'(Plain, M:M, S0, S, Body),
 	Input = S0, Rest = S,
 	M:Body.
 
