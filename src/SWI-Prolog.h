@@ -631,6 +631,8 @@ PL_EXPORT(term_t)	PL_new_nil_ref(void);
 
 PL_EXPORT(int)		PL_cvt_encoding(void);
 PL_EXPORT(int)		PL_cvt_set_encoding(int enc);
+PL_EXPORT(void)		SP_set_state(int state);
+PL_EXPORT(int)		SP_get_state(void);
 
 
 		 /*******************************

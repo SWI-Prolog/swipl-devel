@@ -633,6 +633,22 @@ PL_atom_wchars(atom_t a, size_t *len)
 
 static int sp_encoding = REP_UTF8;
 
+void
+SP_set_state(int state)
+{ GET_LD
+
+  LD->fli.SP_state = state;
+}
+
+
+int
+SP_get_state(void)
+{ GET_LD
+
+  return LD->fli.SP_state;
+}
+
+
 int
 PL_cvt_encoding(void)
 { return sp_encoding;

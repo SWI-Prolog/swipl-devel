@@ -158,21 +158,15 @@ SP_get_list_n_bytes(SP_term_ref term,
 		 * RETURN CODES AND EXCEPTIONS	*
 		 *******************************/
 
-#ifndef SP_WRAPPER
-extern
-#endif
-__thread int SP_wrapper_state;		/* __thread is C99 */
-
-
 #define SP_raise_exception(t) do { PL_raise_exception(t); \
-				   SP_wrapper_state = SP_ERROR; \
+				   SP_set_state(SP_ERROR); \
 				 } while(0)
-#define SP_fail()	      do { SP_wrapper_state = SP_FAILURE; \
+#define SP_fail()	      do { SP_set_state(SP_FAILURE); \
 				 } while(0)
 #define SP_WRAP_INIT() \
-	(SP_wrapper_state = SP_SUCCESS)
+	SP_set_state(SP_SUCCESS)
 #define SP_WRAP_CHECK_STATE() \
-	if ( SP_wrapper_state != SP_SUCCESS ) \
+	if ( SP_get_state() != SP_SUCCESS ) \
 	  return FALSE
 
 

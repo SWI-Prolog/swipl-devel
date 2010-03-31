@@ -509,6 +509,8 @@ struct PL_local_data
     buffer	_discardable_buffer;	/* PL_*() character buffers */
     buffer	_buffer_ring[BUFFER_RING_SIZE];
     int		_current_buffer_id;
+
+    int		SP_state;		/* For SICStus interface */
   } fli;
 
   struct				/* Local IO stuff */
