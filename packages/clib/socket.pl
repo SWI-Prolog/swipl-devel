@@ -33,7 +33,8 @@
 	  [ tcp_socket/1,		% -Socket
 	    tcp_close_socket/1,		% +Socket
 	    tcp_open_socket/3,		% +Socket, -Read, -Write
-	    tcp_connect/2,		% +Socket, -Address
+	    tcp_connect/2,		% +Socket, +Address
+	    tcp_connect/4,		% +Socket, +Address, -Read, -Write)
 	    tcp_bind/2,			% +Socket, +Address
 	    tcp_accept/3,		% +Master, -Slave, -PeerName
 	    tcp_listen/2,		% +Socket, +BackLog
@@ -55,6 +56,39 @@ These predicates are documented in the source-distribution of the package
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_foreign_library(foreign(socket), install_socket).
+
+
+		 /*******************************
+		 *	HOOKABLE CONNECT	*
+		 *******************************/
+
+%%	tcp_connect(+Socket, +Address, -Read, -Write) is det.
+%
+%	Connect a (client) socket to Address and return a bi-directional
+%	connection through the  stream-handles  Read   and  Write.  This
+%	predicate may be hooked   by  defining socket:tcp_connect_hook/4
+%	with the same signature. Hooking can be  used to deal with proxy
+%	connections. E.g.,
+%
+%	    ==
+%	    :- multifile socket:tcp_connect_hook/4.
+%
+%	    socket:tcp_connect_hook(Socket, Address, Read, Write) :-
+%	        proxy(ProxyAdress),
+%	    	tcp_connect(Socket, ProxyAdress),
+%		tcp_open_socket(Socket, Read, Write),
+%		proxy_connect(Address, Read, Write).
+%	    ==
+
+:- multifile
+	tcp_connect_hook/4.
+
+tcp_connect(Socket, Address, Read, Write) :-
+	tcp_connect_hook(Socket, Address, Read, Write), !.
+tcp_connect(Socket, Address, Read, Write) :-
+	tcp_connect(Socket, Address),
+	tcp_open_socket(Socket, Read, Write).
+
 
 		 /*******************************
 		 *	   COMPATIBILITY	*

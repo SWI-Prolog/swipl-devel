@@ -244,7 +244,7 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
 	       [MNAME, Location, Version, Host, Agent]),
-	x_headers(Options, Out),	
+	x_headers(Options, Out),
         (   option(post(PostData), Options)
         ->  http_header:http_post_data(PostData, Out, [])
         ;   format(Out, '\r\n', [])
@@ -378,18 +378,17 @@ redirect_code(303).			% see also
 %	    Sets timeout on the stream, *after* connecting the
 %	    socket.
 %
-%	@tbd	Make timeout also work on tcp_connect/2.
+%	@tbd	Make timeout also work on tcp_connect/4.
 %	@tbd	This is the same as do_connect/4 in http_client.pl
 
 open_socket(Address, In, Out, Options) :-
 	debug(http(open), 'http_open: Connecting to ~p ...', [Address]),
 	tcp_socket(Socket),
-	catch(tcp_connect(Socket, Address),
+	catch(tcp_connect(Socket, Address, In, Out),
 	      E,
 	      (	  tcp_close_socket(Socket),
 		  throw(E)
 	      )),
-	tcp_open_socket(Socket, In, Out),
 	debug(http(open), '\tok ~p --> ~p', [In, Out]),
 	set_stream(In, record_position(false)),
 	(   memberchk(Options, timeout(Timeout))

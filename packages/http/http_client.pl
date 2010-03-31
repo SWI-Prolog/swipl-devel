@@ -62,7 +62,7 @@
 %	streams that connect to the server.
 %
 %	@param Scheme is the URL schema (=http= or =https=)
-%	@param Address is a term Host:Port as used by tcp_connect/2.
+%	@param Address is a term Host:Port as used by tcp_connect/4.
 
 %%	close_connection(+Scheme, +Address, +In, +Out) is semidet.
 %
@@ -100,12 +100,11 @@ do_connect(Address, Protocol, In, Out, Options) :-
 	(   open_connection(Protocol, Address, In, Out)
 	->  true
 	;   tcp_socket(Socket),
-	    catch(tcp_connect(Socket, Address),
+	    catch(tcp_connect(Socket, Address, In, Out),
 		  E,
 		  (   tcp_close_socket(Socket),
 		      throw(E)
-		  )),
-	    tcp_open_socket(Socket, In, Out)
+		  ))
 	),
 	debug(http(client), '\tok ~p --> ~p', [In, Out]),
 	(   memberchk(timeout(Timeout), Options)
