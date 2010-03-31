@@ -758,6 +758,7 @@ answer_respons(Char, redo) :-
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
+	save_debug,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
 	memberchk(Char, "ca\n\ryY."), !,
