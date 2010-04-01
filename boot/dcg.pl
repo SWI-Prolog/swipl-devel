@@ -54,7 +54,6 @@ resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 dcg_translate_rule(((LP,MNT)-->RP),(H:-B)) :- !,
-	( var(LP) -> throw(error(instantiation_error,_)) ; true ),
 	'$set_source_module'(M, M),
 	'$extend'(LP, S0, SR, H),
 	'$t_body'(RP, M:M, S0, S1, B0),
