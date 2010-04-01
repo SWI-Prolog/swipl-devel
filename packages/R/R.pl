@@ -1,10 +1,3 @@
-/*  Part of SWI-Prolog
-
-    Author:        Nicos Angelopoulos
-    WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, Nicos Angelopoulos
-*/
-
 :- module( r_session,
           [
                r_open/0, r_open/1,
@@ -23,30 +16,34 @@
                r_session_data/3, r_streams_data/3,
                r_history/0, r_history/1, r_history/2,
                r_session_version/1,
-	   op( 950, xfx, (<-) )
+               r_bin/1,
+               r_verbosity/1,
+               op( 950, xfx, (<-) )
           ] ).
 
 :- use_module( library(lists) ).
 :- use_module( library(readutil) ). % read_line_to_codes/2.
 
-% Swi declaration:
-:- use_module( library(process) ).   % process_create/3.
-:- at_halt( r_close(all) ).
-% end of Swi declaration.
+:- ( current_predicate(r_verbosity_level/1) -> true; 
+          assert(r_verbosity_level(0)) ).
 
-
+:- dynamic( r_bin_location/1 ).
 :- dynamic( r_session/3 ).
 :- dynamic( r_session_history/2 ).
 
+% Swi declaration:
+:- ensure_loaded( library(process) ).   % process_create/3.
+:- at_halt( r_close(all) ).
+% end of Swi declaration.
 
 /** <module> R session
 
 This library facilitates interaction with an R session. On the Yap
 system it depends on library(System) and on SWI on library(process)-
-part of the clib package. Currently it only works on Linux systems. It
-assumes an R executable in $PATH or can be given a location to a
-functioning R executable. R is run as a slave with Prolog writing and
-reading on/off the associated streams.
+part of the clib package. It assumes an R executable in $PATH or can
+be given a location to a functioning R executable (see r_open/1 for
+details on how R is located). R is ran as a slave with Prolog writing
+and reading on/from the associated streams.
 
 Multiple session can be managed simultaneously. Each has 3 main
 components: a name or alias, a term structure holding the communicating
@@ -56,15 +53,45 @@ The library attempts to ease the translation between prolog terms and R
 inputs. Thus, Prolog term =|x <- c(1,2,3)|= is translated to atomic =|'x
 <- c(1,2,3)'|= which is then passed on to R. That is, =|<-|= is a
 defined/recognised operator. =|X <- c(1,2,3)|=, where X is a variable,
-instantiates X to the list =|[1,2,3]|=. Currently only vectors can be
+instantiates X to the list =|[1,2,3]|=. Also 'Atom' <- [x1,...,xn]
+translates to R code: Atom <- c(x1,...,xn). Currently only vectors can be
 translated in this fashion.
 
+For example :
+
+==
+rtest :-
+     % for MS Windows uncomment and change the following to point to Rterm location
+     % r_bin( 'C:\\Program Files\\R\\R-2.10.1\\bin\\Rterm' ).
+     r_open,
+     r_in( y <- rnorm(50) ),
+     r_print( y ),
+     r_in( x <- rnorm(y) ),
+     r_in( x11(width=5,height=3.5) ),
+     r_in( plot(x,y)),
+     write( 'Press Return to continue...' ),
+     nl,
+     write( read_line_to_codes( user, _ ) ), nl,
+     read_line_to_codes( user, _ ),
+     r_print( 'dev.off()' ),
+     r_in( Y <- y ),
+     write( y(Y) ), nl,
+     Z = [1,2,3,4,5,6,7,8,9],
+     r_in( z <- Z ),        
+     r_print( z ),
+     r_close.
+==
+
+See r_demo.pl for more examples.
+
+
 @author 	Nicos Angelopoulos
-@version	0:0:1
+@version	0:0:2
 @copyright	Nicos Angelopoulos
 @license	YAP: Artistic
 @see		examples/R/r_demo.pl, http://www.r-project.org/
-@tbd		Fix starting the R process on Windows.
+@adaptation for swi-windows : JAB
+
 */
 
 %%% Section: Interface predicates
@@ -75,8 +102,6 @@ translated in this fashion.
 %
 r_open :-
      r_open( [] ).
-
-/* Opts = [alias/1,assert/1,at_r_halt/1,copy/2,rbin/1,with/1] */
 
 %% r_open( +Opts )
 %
@@ -107,22 +132,27 @@ r_open :-
 %	one   of   =null=,   stream(Stream),   OpenStream,   AtomicFile,
 %	once(File) or many(File). In the  case   of  many(File), file is
 %	opened and closed at each write   operation.  CopyWhat should be
-%	one of =both=, =in=, =out= or =none=.   In  all cases apart from
-%	when CopyTo is =null=, error stream is copied to CopyTo. Default
-%	is no recording (CopyTo = =null=).
+%	one of =both=, =in=, =out= or =none=. Default is no recording
+%    (CopyTo = =null=).
 %
 %       * ssh(Host)
 %       * ssh(Host,Dir)
 %       Run R on Host with start directory Dir. Dir defaults to /tmp.
+%       Not supported on MS Windows.
+%  
 %
 %       * rbin(Rbin)
-%       R executable location. Default is 'R'.
+%       R executable location. In non MS Windows OSes, default is 'R'. 
+%       In MS Windows there is no default. If the option is not present
+%       binary registered with r_bin/1 and environment variable R_BIN 
+%       are examined for the full location of the R binary. In MS windows
+%       Rbin should point to Rterm.exe. Also see r_bin/1.
 %
 %       * with(With)
-%	With is in [environ,restore,save]. The   default behaviour is to
-%	start the R executable  is   started  with  flags =|--no-environ
-%	--no-restore --no-save|=. For each With value  found in Opts the
-%	corresponding =|--no-|= flag is removed.
+%       With is in [environ,restore,save]. The   default behaviour is to
+%       start the R executable  with  flags =|--no-environ --no-restore
+%       --no-save|=. For each With value  found in Opts the corresponding
+%       =|--no-|= flag is removed.
 %
 r_open( Opts ) :-
      r_open_1( Opts, _R, false ).
@@ -146,7 +176,7 @@ r_close( All ) :-
      All == all,
      !,
      findall( Alias, ( retract( r_session(Alias,Streams,Data) ),
-                       r_close_session( Alias, Streams, Data ) ), _All ).
+                       r_close_session( Alias, Streams, Data ) ), _AllAls ).
      % write( closed_all(All) ), nl.
 r_close( Alias ) :-
      ( retract( r_session(Alias,Streams,Data) ) ->
@@ -324,12 +354,12 @@ r_flush_onto( RinStreamS, OntoS ) :-
 %
 %         As r_flush_onto/2 for specified session R.
 %
-r_flush_onto( R, RinStreamS, OntoS ) :-
-     ( is_list(RinStreamS) -> RinStreams = RinStreamS; RinStreams=[RinStreams] ),
+r_flush_onto( R, RinStreams, Ontos ) :-
+     ( is_list(RinStreams) -> RStreams = RinStreams; RStreams=[RinStreams] ),
      % to_list( RinStreamS, RinStreams ),
-     r_input_streams_list( RinStreams ),
-     r_flush_onto_1( RinStreams, R, Ontos ),
-     ( is_list(RinStreamS) -> OntoS = Ontos; Ontos=[OntoS] ).
+     r_input_streams_list( RStreams ),
+     r_flush_onto_1( RStreams, R, ROntos ),
+     ( is_list(RinStreams) -> Ontos = ROntos; Ontos=[ROntos] ).
 
 %%   current_r_session(?R)
 %         True if R is the name of current R session.
@@ -428,38 +458,118 @@ r_history( R, History ) :-
 %         Installed version. Version is of the form Major:Minor:Fix,
 %         where all three are integers.
 %
-r_session_version( 0:0:1 ).
+r_session_version( 0:0:2 ).
+
+%% r_bin( ?Rbin )
+%
+%   Register the default R location, +Rbin, or interrogate the current
+%   location: -Rbin. There is no default value. The value Rbin == retract
+%   retracts the current default location. Rbin == test, succeeds if an
+%   R location has been registered.
+%
+r_bin( Rbin ) :-
+     var( Rbin ),
+     !,
+     ( r_bin_location(Rbin) ->
+          true
+          ;
+          fail_term( 'There is no registered R executatble. Use, r_bin(+Rbin).' )
+     ).
+r_bin( retract ) :-
+     !,
+     retractall( r_bin_location(_) ).
+r_bin( test ) :-
+     !,
+     r_bin_location(_).
+r_bin( Rbin ) :-
+     retractall( r_bin_location(_) ),
+     assert( r_bin_location(Rbin) ).
+
+%% r_verbose( What, CutOff )
+%
+r_verbose( What, CutOff ) :-
+     r_verbosity_level( Level ),
+     ( CutOff > Level ->
+          true
+          ;
+          write( What ), nl
+     ).
+
+%% r_verbosity( ?Level )
+% 
+%    Set, +Level, or interrogate, -Level, the verbosity level. +Level could be
+%    false (=0), true (=3) or an integer in {0,1,2,3}. 3 being the most verbose.
+%    The default is 0. -Level will instantiate to the current verbosity level, 
+%    an integer in {0,1,2,3}.
+% 
+r_verbosity( Level ) :-
+     var( Level ),
+     !,
+     r_verbosity_level( Level ).
+r_verbosity( Level ) :-
+     ( Level == true -> 
+          Numeric is 3
+          ;
+          ( Level == false -> 
+               Numeric is 0
+               ;
+               ( integer(Level) -> 
+                    ( Level < 0 -> 
+                         write( 'Adjusting verbosity level to = 0. ' ), nl,
+                         Numeric is 0
+                         ;
+                         ( Level > 3 ->
+                              write( 'Adjusting verbosity level to = 3. ' ), nl,
+                              Numeric is 3
+                              ;
+                              Numeric is Level
+                         )
+                    )
+                    ;
+                    fail_term( 'Unknown verbosity level. Use : true, false, 0-3' )
+               )
+          )
+     ),
+     retractall( r_verbosity_level(_) ),
+     assert( r_verbosity_level(Numeric) ).
 
 %%% Section: Auxiliary predicates
 
 % Rcv == true iff r_open_1/3 is called from recovery.
 %
 r_open_1( Opts, Alias, Rcv ) :-
-     ( memberchk(rbin(RBin),Opts)->
-          ( options_have_ssh(Opts,Host,Dir) ->
-               atoms_concat( ['ssh ', Host,' "cd ',Dir,'; ',RBin], RPfx ),
-               RPsf = '"'
+     ( options_have_ssh(Opts,Host,Dir) ->
+          ( current_prolog_flag(windows,true) ->
+               fail_term( ssh_option_not_supported_on_ms_windows )
                ;
-               RPfx = RBin,
-               RPsf = ''
+               which( ssh, Ssh )
           )
           ;
-          ( options_have_ssh(Opts,Host,Dir) ->
-               atoms_concat( ['ssh ', Host,' "cd ',Dir,'; R '], RPfx ),
-               RPsf = '"'
-               ;
-               ( shell('sh -c "which R &> /dev/null"  ') ->
-                    RPfx = 'R',
-                    RPsf = ''
-                    ;
-                    fail_term( cannot_locate_r_executable )
-               )
-          )
+          true
      ),
-     r_opt_with_exec( RPfx, Opts, PrvExec ),
-     atom_concat( PrvExec, RPsf, Exec ),
-     r_process( Exec, Ri, Ro, Re ),
-     R = r(Ri,Ro,Re),
+     ( (memberchk(rbin(Rbin),Opts);locate_rbin(Ssh,Rbin)) ->
+          true
+          ;
+          fail_term( 'Use rbin/1 in r_open/n, or r_bin(\'Rbin\') or set R_BIN.' )
+     ),
+     r_bin_arguments( Opts, OptRArgs ),
+     % ( var(Harg) -> RArgs = OptRArgs; RArgs = [Host,Harg|OptRArgs] ),
+     ( var(Ssh) -> 
+          Exec = Rbin,
+          Args = OptRArgs
+          ;
+          Exec = Ssh,
+          % atoms_concat( [' "cd ',Dir,'; ',Rbin,'"'], Harg ),
+          atoms_concat( ['cd ',Dir,'; '], Cd ),
+          PreArgs = [Cd,Rbin|OptRArgs],
+          double_quote_on_yap( PreArgs, TailArgs ),
+          Args = [Host|TailArgs]
+          % atoms_concat( ['ssh ', Host,' "cd ',Dir,'; ',RBin,'"'], R )
+     ),
+     % atom_concat( PrvExec, RPsf, Exec ),
+     r_verbose( r_process( Exec, Args, Ri, Ro, Re ), 3 ),
+     r_process( Exec, Args, Ri, Ro, Re ),
+     RStreams = r(Ri,Ro,Re),
      r_streams_set( Ri, Ro, Re ),
      r_process_was_successful( Ri, Ro, Re ),
      r_open_opt_copy( Opts, CpOn, CpWh, Rcv ),
@@ -480,16 +590,16 @@ r_open_1( Opts, Alias, Rcv ) :-
      RData = rsdata(CpOn,CpWh,RHalt,Opts),
      ( memberchk(assert(Assert),Opts) ->
           ( Assert == a ->
-               asserta( r_session(Alias,R,RData) )
+               asserta( r_session(Alias,RStreams,RData) )
                ;
                ( Assert == z ->
-                    assertz( r_session(Alias,R,RData) )
+                    assertz( r_session(Alias,RStreams,RData) )
                     ;
                     fail_term( 'Cannot decipher argument to assert/1 option':Assert )
                )
           )
           ;
-          asserta( r_session(Alias,R,RData) )
+          asserta( r_session(Alias,RStreams,RData) )
      ),
      AtRH = at_r_halt(reinstate),
      ( (memberchk(history(false),Opts),\+memberchk(AtRH,Opts)) ->
@@ -543,7 +653,8 @@ r_push( R, RCmd, Rplc, RoLns, ReLns, Halt, HCall ) :-
           r_lines( Streams, output, RoLns )
      ),
      r_record_lines( RoLns, output, CopyTo ),
-     r_record_lines( ReLns, error, CopyTo ).
+     r_record_lines( ReLns, error, CopyTo ),
+     ( (Halt==true,CopyTo=stream(Cl)) -> close(Cl); true ).
 
 r_out_halted_record( true, _Alias, [] ).
 r_out_halted_record( false, _Alias, Lines ) :-
@@ -597,6 +708,14 @@ r_input_normative( (A;B), R, I, This, Rplc, OutI ) :-
      atoms_concat( [ThisA,'; ',ThisB], This ),
      append( RplcA, RplcB, Rplc ).
 
+% r_input_normative( Obj<-List, _R, I, This, Rplc, NxI ) :-
+     % % atomic( Obj ),
+     % is_list( List ),
+     % !,
+     % Rplc = [],
+     % NxI is I,
+     % pl_list_to_r_combine( List, 
+
 r_input_normative( Obj<-Call, R, I, This, Rplc, NxI ) :-
      !,
      ( var(Obj) ->
@@ -625,6 +744,10 @@ r_input_normative( Opt=Val, This ) :-
      r_input_normative( Val, ThisVal ),
      atoms_concat( [ThisOpt,'=',ThisVal], This ).
 % 2008ac06, careful! we are changing behaviour here
+r_input_normative( List, This ) :-
+     is_list( List ),
+     pl_list_to_r_combine( List, This ),
+     !.
 r_input_normative( PrvThis, This ) :-
      ( (\+ var(PrvThis),(PrvThis = [_|_];PrvThis=[])) ->
           append( PrvThis, [0'"], ThisRight ),
@@ -660,6 +783,32 @@ r_input_normative_tuple( [H|T], Tuple ) :-
      ( Psf == '' -> Tuple = HNorm
         ; atoms_concat([HNorm,',',Psf], Tuple) ).
 
+pl_list_to_r_combine( [H|T], This ) :-
+     number_atom_to_atom( H, Hatm ),
+     atom_concat( 'c(', Hatm, Pfx ),
+     pl_list_to_r_combine( T, Pfx, This ).
+
+pl_list_to_r_combine( [], Pfx, This ) :-
+     atom_concat( Pfx, ')', This ).
+pl_list_to_r_combine( [H|T], Pfx, This ) :-
+     number_atom_to_atom( H, Hatm ),
+     atom_concat( Pfx, ',', PfxComma ),
+     atom_concat( PfxComma, Hatm, Nxt ),
+     pl_list_to_r_combine( T, Nxt, This ).
+
+number_atom_to_atom( NorA, Atom ) :-
+     number_atom_to_codes( NorA, Codes ),
+     atom_codes( Atom, Codes ).
+
+number_atom_to_codes( NorA, Codes ) :-
+     number( NorA ),
+     !,
+     number_codes( NorA, Codes ).
+number_atom_to_codes( NorA, Codes ) :-
+     atom( NorA ),
+     !,
+     atom_codes( NorA, Codes ).
+
 r_read_lines( Ro, TermLine, Lines ) :-
      read_line_to_codes( Ro, Line ),
      r_read_lines_1( Line, TermLine, Ro, Lines ).
@@ -688,14 +837,19 @@ r_halted_recovery( [rs(AliasH,StreamsH,DataH)|T], R, Which ) :-
      ),
      r_halted_recovery( T, R, Which ).
 
-r_halted_recovery_action( restart, Alias, _Streams, Data, true ) :-
-     write( user_error, 'at_r_halt(restart): restarting r_session ':Alias ), nl( user_error ),
+r_halted_recovery_action( restart, Alias, _Streams, Data, RecCall ) :-
+     Mess = 'at_r_halt(restart): restarting r_session ':Alias,
+     RecCall = (write( user_error, Mess ),nl( user_error )),
      r_session_data( opts, Data, Opts ),
-     ( memberchk(copy(CopyTo,_),Opts) -> r_halted_restart_copy(CopyTo); true ),
+     ( memberchk(copy(CopyTo,_),Opts) ->
+          r_halted_restart_copy(CopyTo)
+          ;
+          true
+     ),
      r_open_1( Opts, Alias, true ),
      current_r_session( Alias, Streams, _ ),
      r_lines( Streams, output, _ReLines ).
-r_halted_recovery_action( reinstate, Alias, _Streams, Data, true ) :-
+r_halted_recovery_action( reinstate, Alias, _Streams, Data, RecCall ) :-
      ( r_session_history(Alias,History) ->
           r_session_data( opts, Data, Opts ),
           r_open_1( Opts, Alias, true ),
@@ -703,12 +857,24 @@ r_halted_recovery_action( reinstate, Alias, _Streams, Data, true ) :-
           r_halted_recovery_rollback( Hicory, Alias )
           ;
           fail_term( 'at_r_halt(reinstate): cannnot locate history for':Alias )
-     ).
-r_halted_recovery_action( abort, _Alias, _Streams, _Data, abort ) :-
-     write( user_error, 'at_r_halt(abort): R session halted by slave' ), nl( user_error ).
+     ),
+     Mess = 'at_r_halt(reinstate): reinstating r_session ':Alias,
+     RecCall = (write( user_error, Mess ), nl( user_error ) ).
+r_halted_recovery_action( abort, _Alias, _Streams, _Data, RecCall ) :-
+     Mess = 'at_r_halt(abort): R session halted by slave',
+     RecCall = (write( user_error, Mess ),nl( user_error ),abort).
 r_halted_recovery_action( fail, Alias, _Streams, _Data, Call ) :-
      retractall( r_session_history(Alias,_) ),
-     Call = fail_term( 'at_r_halt(fail): failure due to execution halted by slave on r_session':Alias ).
+     % % r_session_data( copy_to, Data, CopyTo ),
+     % write( copy_to(CopyTo) ), nl,
+     % ( CopyTo = stream(Stream) -> 
+          % close(Stream)
+          % ;
+          % true
+     % ),
+     % trace,
+     L='at_r_halt(fail): failure due to execution halted by slave on r_session',
+     Call = fail_term( L:Alias ).
 r_halted_recovery_action( call(Call), _Alias, Streams, _Data, Call ) :-
      Call = call( Call, Streams ).
 r_halted_recovery_action( call_ground(Call), _Alias, _Streams, _Data, Call) :-
@@ -722,7 +888,7 @@ r_halted_restart_copy( CopyTo ) :-
      stream_property( Dummy, file_name(Full) ),
      close( Dummy ),
      ( stream_property(OpenStream,file_name(Full)) ->
-          write( close( OpenStream ) ), nl,
+          write( close(OpenStream) ), nl,
           close( OpenStream )
           ;
           true
@@ -860,7 +1026,8 @@ r_open_opt_copy( Opts, CpTerm, What, Rcv ) :-
 
 r_open_opt_at_r_halt( Opts, RHalt ) :-
      ( memberchk(at_r_halt(RHalt),Opts) ->
-          ( memberchk(RHalt,[restart,reinstate,fail,abort,call(_),call_ground(_)]) ->
+          Poss = [restart,reinstate,fail,abort,call(_),call_ground(_)],
+          ( memberchk(RHalt,Poss) ->
                true
                ;
                fail_term( 'Cannot decipher argument to at_r_halt option':RHalt )
@@ -869,19 +1036,23 @@ r_open_opt_at_r_halt( Opts, RHalt ) :-
           RHalt = fail
      ).
 
-r_opt_with_exec( _RBin, Opts, _Exec ) :-
+r_bin_arguments( Opts, _RArgs ) :-
      member( with(With), Opts ),
      \+ memberchk(With, [environ,restore,save] ),
      !,
      fail_term( 'Cannot decipher argument to option with/1': With ).
-r_opt_with_exec( RBin, Opts, Exec ) :-
+r_bin_arguments( Opts, Args ) :-
+     ( current_prolog_flag(windows,true) ->
+          Args = ['--ess','--slave'|RArgs]
+          ; % assuming unix here, --interactive is only supported on these
+          Args = ['--interactive','--slave'|RArgs]
+     ),
      findall( W, member(with(W),Opts), Ws ),
      sort( Ws, Sr ),
      length( Ws, WsL ),
      length( Sr, SrL ),
      ( WsL =:= SrL ->
-          atom_concat( RBin, ' --slave ', Pfx ),
-          r_opt_with_concat( [environ,restore,save], Ws, Pfx, Exec )
+          r_bin_arguments_complement( [environ,restore,save], Ws, RArgs )
           ;
           fail_term( 'Multiple identical args in with/1 option': Ws )
      ).
@@ -892,20 +1063,21 @@ r_opt_exec_no( [H|T], Ws, Exec ) :-
      ( memberchk(H,Ws) ->
           TExec=Exec
           ;
-          atom_concat( ' --no-', H, NoH ),
+          atom_concat( '--no-', H, NoH ),
           Exec=[NoH|TExec]
      ),
      r_opt_exec_no( T, Ws, TExec ).
 
-r_opt_with_concat( [], _Ws, Exec, Exec ).
-r_opt_with_concat( [H|T], Ws, Pfx, Exec ) :-
+r_bin_arguments_complement( [], _Ws, [] ).
+r_bin_arguments_complement( [H|T], Ws, Args ) :-
      ( memberchk(H,Ws) ->
-          Nxt = Pfx
+          % we could add explicit --with- here ?
+          Args = TArgs
           ;
-          atom_concat( ' --no-', H, NoH ),
-          atom_concat( Pfx, NoH, Nxt )
+          atom_concat( '--no-', H, NoH ),
+          Args = [NoH|TArgs]
      ),
-     r_opt_with_concat( T, Ws, Nxt, Exec ).
+     r_bin_arguments_complement( T, Ws, TArgs ).
 
 r_record_lines( [], _Type, _CopyTo ) :- !.
 r_record_lines( Lines, Type, CopyTo ) :-
@@ -930,8 +1102,21 @@ copy_stream_open( stream(CopyStream), CopyStream ).
 copy_stream_open( file(File), CopyStream ) :-
      open( File, append, CopyStream ).
 
-copy_stream_close( file(CopyTo) ) :- close( CopyTo ).
-copy_stream_close( stream(_) ).
+copy_stream_close( Atom ) :-
+     atomic( Atom ), 
+     !,
+     ( Atom == user -> 
+          true
+          ;
+          close( Atom )
+     ).
+copy_stream_close( CopyTo ) :-
+     copy_stream_close_non_atomic( CopyTo ).
+
+copy_stream_close_non_atomic( file(CopyTo) ) :- close( CopyTo ).
+copy_stream_close_non_atomic( once(CopyTo) ) :- close( CopyTo ).
+copy_stream_close_non_atomic( many(CopyTo) ) :- close( CopyTo ).
+copy_stream_close_non_atomic( stream(_) ).
 
 /*
 write_list_to_comma_separated( [], _Sep, _Out ).
@@ -1028,6 +1213,29 @@ options_have_ssh( Opts, Host, Dir ) :-
           memberchk( ssh(Host,Dir), Opts )
      ).
 
+locate_rbin( Ssh, RBin ) :-
+     locate_rbin_file( File ),
+     ( var(Ssh) ->
+          ( current_prolog_flag(windows,true) -> Exe='exe'; Exe='' ),
+          file_name_extension( File, Exe, RBin ),
+          exists_file( RBin )
+          ;
+          % currently when we using ssh, there is no check for existance
+          % of the binary on the remote host
+          File = RBin
+     ),
+     r_verbose( using_R_bin(RBin), 1 ).
+
+% order of clauses matters. only first existing one to succeed is considered.
+locate_rbin_file( RBin ) :-
+     % current_predicate( r_bin/1 ),
+     r_bin_location( RBin ).
+locate_rbin_file( RBin ) :-
+     environ( 'R_BIN', RBin ).
+locate_rbin_file( RBin ) :-
+     current_prolog_flag( unix, true ),
+     which( 'R', RBin ).
+
 % Section: Swi Specifics.
 
 /*
@@ -1049,12 +1257,30 @@ r_lines( Streams, ROstream, Lines ) :-
 atoms_concat( Atoms, Concat ) :-
      atomic_list_concat( Atoms, Concat ).
 
+which( Which, This ) :-
+     Streams = [stdin(null),stdout(pipe(SshWhc)),stderr(null)],
+     atom_concat( 'which ', Which, ProcWhich ),
+     process_create( '/bin/sh', ['-c',ProcWhich], Streams ),
+     read_line_to_codes( SshWhc, Codes),
+     atom_codes( This, Codes ),
+     r_verbose( which(Which,This), 2 ).
+
 r_streams_set( Ri, Ro, Re ) :-
      set_stream( Ri, buffer(false) ), set_stream( Ri, close_on_abort(true) ),
      set_stream( Ro, buffer(false) ), set_stream( Ro, close_on_abort(true) ),
      set_stream( Re, buffer(false) ), set_stream( Re, close_on_abort(true) ).
 
-r_process( Exec, Ri, Ro, Re ) :-
+r_process( R, Args, Ri, Ro, Re ) :-
      Streams = [stdin(pipe(Ri)),stdout(pipe(Ro)),stderr(pipe(Re))],
-     process_create( '/bin/sh', ['-c',Exec], Streams ).
+     process_create( R, Args, Streams ),
+     r_verbose( created(R,Args,Streams), 3 ).
 
+environ( Var, Val ) :-
+     \+ var(Var),
+     ( var(Val) -> 
+          getenv(Var,Val)
+          ;
+          setenv(Var,Val)
+     ).
+
+double_quote_on_yap( A, A ).
