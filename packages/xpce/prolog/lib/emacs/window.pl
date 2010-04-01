@@ -213,7 +213,11 @@ setup_mode(F, V:emacs_view) :->
 	;   true
 	),
 	get(F, menu_bar, MB),
-	ignore(send(V, fill_menu_bar, MB)).
+	ignore(send(V, fill_menu_bar, MB)),
+	(   get(V, label, Label)
+	->  send(F, label, Label)
+	;   true
+	).
 
 
 active(F, Val:bool) :->
@@ -628,6 +632,11 @@ label(V, Label:name) :->
 	->  send(Frame, label, Label)
 	;   true
 	).
+label(V, Label:name) :<-
+	"Fetch the current label"::
+	get(V, device, Dev),
+	send(Dev, has_get_method, label),
+	get(Dev, label, Label).
 
 drop_files(V, Files:chain, _At:point) :->
 	"Accept files dropped on me"::
