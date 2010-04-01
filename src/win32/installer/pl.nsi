@@ -598,6 +598,16 @@ Section "NLP package"
   File pl\doc\packages\nlp.html
 SectionEnd
 
+Section "R-project interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\R.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\R.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\R
+SectionEnd
+
 Section "ZLIB package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin

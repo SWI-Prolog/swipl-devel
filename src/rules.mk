@@ -72,7 +72,7 @@ BINDIR=$(PLBASE)\runtime
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
 
-PLPKG=chr clpqr http plunit pldoc
+PLPKG=chr clpqr http plunit pldoc R
 PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE)
 
 PKGDIR=$(PLHOME)\packages

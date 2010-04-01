@@ -1,4 +1,4 @@
-% :- use_module(library('R')).
+:- use_module(library('R')).
 :- use_module(library(lists)).     % member/2.
 :- use_module(library(readutil)).     % read_line_to_codes/2.
 
@@ -34,7 +34,7 @@ r_demo_clauses :-
      nl, nl,
      Rdemos = [r_demo_1,r_demo_2,r_demo_3,r_demo_4,r_demo_5,r_demo_6,r_demo_7,r_demo_8,r_demo_9,r_demo_10],
      r_demo( Rdemos, true ).
-     
+
 r_demo( Rdemos, Clauses ) :-
      member(Wh, Rdemos ),
      write( doing-Wh ), nl,
@@ -45,9 +45,9 @@ r_demo( Rdemos, Clauses ) :-
           ;
           true
      ),
-     ( call(Wh) -> 
+     ( call(Wh) ->
           true
-          ; 
+          ;
           write( 'Demo ended with failure.' ), nl
      ),
      nl, nl,

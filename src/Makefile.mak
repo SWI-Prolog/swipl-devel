@@ -1,13 +1,12 @@
 ################################################################
 # Makefile for SWI-Prolog on MS-Windows
 #
-# Author:	Jan Wielemaker
-#		J.Wielemaker@uva.nl
-#		HCS (formerly SWI)
-#		University of Amsterdam
-#    		Kruislaan 419
-#		1098 VA  Amsterdam
-#		The Netherlands
+# Author:			Jan Wielemaker
+#			     J.Wielemaker@cs.vu.nl
+#		University of Amsterdam  VU University Amsterdam
+#    		Kruislaan 419		 De Boelelaan 181a
+#		1098 VA  Amsterdam	 1081 HV Amsterdam
+#			       The Netherlands
 #
 # Public targets:
 #

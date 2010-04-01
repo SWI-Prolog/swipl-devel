@@ -1257,11 +1257,10 @@ atoms_concat( Atoms, Concat ) :-
      atomic_list_concat( Atoms, Concat ).
 
 which( Which, This ) :-
-     Streams = [stdin(null),stdout(pipe(SshWhc)),stderr(null)],
-     atom_concat( 'which ', Which, ProcWhich ),
-     process_create( '/bin/sh', ['-c',ProcWhich], Streams ),
-     read_line_to_codes( SshWhc, Codes),
-     atom_codes( This, Codes ),
+     absolute_file_name( path(Which), This,
+			 [ extensions(['',exe]),
+			   access(exist)
+			 ]),
      r_verbose( which(Which,This), 2 ).
 
 r_streams_set( Ri, Ro, Re ) :-
