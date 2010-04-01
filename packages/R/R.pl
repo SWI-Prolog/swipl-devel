@@ -24,7 +24,7 @@
 :- use_module( library(lists) ).
 :- use_module( library(readutil) ). % read_line_to_codes/2.
 
-:- ( current_predicate(r_verbosity_level/1) -> true; 
+:- ( current_predicate(r_verbosity_level/1) -> true;
           assert(r_verbosity_level(0)) ).
 
 :- dynamic( r_bin_location/1 ).
@@ -77,7 +77,7 @@ rtest :-
      r_in( Y <- y ),
      write( y(Y) ), nl,
      Z = [1,2,3,4,5,6,7,8,9],
-     r_in( z <- Z ),        
+     r_in( z <- Z ),
      r_print( z ),
      r_close.
 ==
@@ -90,8 +90,7 @@ See r_demo.pl for more examples.
 @copyright	Nicos Angelopoulos
 @license	YAP: Artistic
 @see		examples/R/r_demo.pl, http://www.r-project.org/
-@adaptation for swi-windows : JAB
-
+@author		Windows-compatibility is based on work by `JAB'
 */
 
 %%% Section: Interface predicates
@@ -139,12 +138,12 @@ r_open :-
 %       * ssh(Host,Dir)
 %       Run R on Host with start directory Dir. Dir defaults to /tmp.
 %       Not supported on MS Windows.
-%  
+%
 %
 %       * rbin(Rbin)
-%       R executable location. In non MS Windows OSes, default is 'R'. 
+%       R executable location. In non MS Windows OSes, default is 'R'.
 %       In MS Windows there is no default. If the option is not present
-%       binary registered with r_bin/1 and environment variable R_BIN 
+%       binary registered with r_bin/1 and environment variable R_BIN
 %       are examined for the full location of the R binary. In MS windows
 %       Rbin should point to Rterm.exe. Also see r_bin/1.
 %
@@ -496,25 +495,25 @@ r_verbose( What, CutOff ) :-
      ).
 
 %% r_verbosity( ?Level )
-% 
+%
 %    Set, +Level, or interrogate, -Level, the verbosity level. +Level could be
 %    false (=0), true (=3) or an integer in {0,1,2,3}. 3 being the most verbose.
-%    The default is 0. -Level will instantiate to the current verbosity level, 
+%    The default is 0. -Level will instantiate to the current verbosity level,
 %    an integer in {0,1,2,3}.
-% 
+%
 r_verbosity( Level ) :-
      var( Level ),
      !,
      r_verbosity_level( Level ).
 r_verbosity( Level ) :-
-     ( Level == true -> 
+     ( Level == true ->
           Numeric is 3
           ;
-          ( Level == false -> 
+          ( Level == false ->
                Numeric is 0
                ;
-               ( integer(Level) -> 
-                    ( Level < 0 -> 
+               ( integer(Level) ->
+                    ( Level < 0 ->
                          write( 'Adjusting verbosity level to = 0. ' ), nl,
                          Numeric is 0
                          ;
@@ -554,7 +553,7 @@ r_open_1( Opts, Alias, Rcv ) :-
      ),
      r_bin_arguments( Opts, OptRArgs ),
      % ( var(Harg) -> RArgs = OptRArgs; RArgs = [Host,Harg|OptRArgs] ),
-     ( var(Ssh) -> 
+     ( var(Ssh) ->
           Exec = Rbin,
           Args = OptRArgs
           ;
@@ -714,7 +713,7 @@ r_input_normative( (A;B), R, I, This, Rplc, OutI ) :-
      % !,
      % Rplc = [],
      % NxI is I,
-     % pl_list_to_r_combine( List, 
+     % pl_list_to_r_combine( List,
 
 r_input_normative( Obj<-Call, R, I, This, Rplc, NxI ) :-
      !,
@@ -867,7 +866,7 @@ r_halted_recovery_action( fail, Alias, _Streams, _Data, Call ) :-
      retractall( r_session_history(Alias,_) ),
      % % r_session_data( copy_to, Data, CopyTo ),
      % write( copy_to(CopyTo) ), nl,
-     % ( CopyTo = stream(Stream) -> 
+     % ( CopyTo = stream(Stream) ->
           % close(Stream)
           % ;
           % true
@@ -1103,9 +1102,9 @@ copy_stream_open( file(File), CopyStream ) :-
      open( File, append, CopyStream ).
 
 copy_stream_close( Atom ) :-
-     atomic( Atom ), 
+     atomic( Atom ),
      !,
-     ( Atom == user -> 
+     ( Atom == user ->
           true
           ;
           close( Atom )
@@ -1277,7 +1276,7 @@ r_process( R, Args, Ri, Ro, Re ) :-
 
 environ( Var, Val ) :-
      \+ var(Var),
-     ( var(Val) -> 
+     ( var(Val) ->
           getenv(Var,Val)
           ;
           setenv(Var,Val)
