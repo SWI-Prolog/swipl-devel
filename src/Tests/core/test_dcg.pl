@@ -107,8 +107,8 @@ test(1, [R == (a :- b([1],[]))]) :-
 	expand_term((a :- phrase(b,[1])),R).
 test(2, [R =@= (alleq(Ys1) :- spec(Ys2,[],Ys1,[]), alleq(Ys2))]) :-
 	expand_term(( alleq(Xs1) :- phrase(spec(Xs2,[]),Xs1),	alleq(Xs2) ), R).
-test(3, [R0 == R]) :- % too dangerous
-	R0 = (r(X,L) :-phrase(([1],x:X,[3]),L)),
+test(3, [R =@= (r(X,L) :- L=[1|C],phrase(x:X,C,D),D=[3])]) :-
+	R0 = (r(X,L) :- phrase(([1],x:X,[3]),L)),
 	expand_term(R0, R).
 
 :- end_tests(rule_expansions).
