@@ -1555,7 +1555,7 @@ listing(F) :->
 	close(Out),
 	send(Tmp, modified, @off),
 %	send(Tmp, mode, prolog),
-	send(Tmp, open).
+	send(Tmp, open, tab).
 
 
 has_listing(F) :->
