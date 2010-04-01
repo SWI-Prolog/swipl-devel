@@ -399,10 +399,6 @@ COMMON(word) 		checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);
 #endif
 
-/* pl-glob.c */
-COMMON(word) 		pl_wildcard_match(term_t pattern, term_t string);
-COMMON(word) 		pl_expand_file_name(term_t f, term_t l);
-
 /* pl-itf.c */
 COMMON(void) 		resetForeign(void);
 

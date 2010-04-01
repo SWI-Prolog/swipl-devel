@@ -318,20 +318,23 @@ match_pattern(matchcode *p, char *str)
 }
 
 
-word
-pl_wildcard_match(term_t pattern, term_t string)
+/** wildcard_match(+Pattern, +Name) is semidet.
+*/
+
+static
+PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
 { char *p, *s;
   compiled_pattern buf;
 
-  if ( !PL_get_chars_ex(pattern, &p, CVT_ALL) ||
-       !PL_get_chars_ex(string,  &s, CVT_ALL) )
+  if ( !PL_get_chars_ex(A1, &p, CVT_ALL) ||
+       !PL_get_chars_ex(A2,  &s, CVT_ALL) )
     fail;
 
   if ( compilePattern(p, &buf) )
   { return matchPattern(s, &buf);
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_pattern, pattern);
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pattern, A1);
 }
 
 
@@ -566,21 +569,21 @@ sort_expand(GlobInfo info)
 }
 
 
-word
-pl_expand_file_name(term_t f, term_t list)
-{ GET_LD
+static
+PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
+{ PRED_LD
   char spec[MAXPATHLEN];
   char *s;
   glob_info info;
-  term_t l    = PL_copy_term_ref(list);
+  term_t l    = PL_copy_term_ref(A2);
   term_t head = PL_new_term_ref();
   int i;
 
-  if ( !PL_get_chars_ex(f, &s, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars_ex(A1, &s, CVT_ALL|REP_FN) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
     return PL_error(NULL, 0, "File name too intptr_t",
-		    ERR_DOMAIN, ATOM_pattern, f);
+		    ERR_DOMAIN, ATOM_pattern, A1);
 
   if ( !expandVars(s, spec, sizeof(spec)) )
     fail;
@@ -605,3 +608,12 @@ pl_expand_file_name(term_t f, term_t list)
   free_expand_info(&info);
   succeed;
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(glob)
+  PRED_DEF("expand_file_name", 2, expand_file_name, 0)
+  PRED_DEF("wildcard_match",   2, wildcard_match,   0)
+EndPredDefs

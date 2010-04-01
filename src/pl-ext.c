@@ -70,7 +70,6 @@ static const PL_extension foreigns[] = {
   FRG("crash",			0, pl_crash,			0),
 #endif
   FRG("nl",			0, pl_nl,			ISO),
-  FRG("expand_file_name",	2, pl_expand_file_name,		0),
 #ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
@@ -80,7 +79,6 @@ static const PL_extension foreigns[] = {
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
-  FRG("wildcard_match",		2, pl_wildcard_match,		0),
   FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
@@ -413,6 +411,7 @@ DECL_PLIST(gvar);
 DECL_PLIST(win);
 DECL_PLIST(file);
 DECL_PLIST(files);
+DECL_PLIST(glob);
 DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
@@ -448,6 +447,7 @@ initBuildIns(void)
   REG_PLIST(wic);
   REG_PLIST(file);
   REG_PLIST(files);
+  REG_PLIST(glob);
   REG_PLIST(btree);
   REG_PLIST(ctype);
   REG_PLIST(tai);
