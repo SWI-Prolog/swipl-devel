@@ -1352,7 +1352,7 @@ rdf_save2(File, Options) :-
 				  Close)).
 
 open_output(stream(Out), Encoding, Out,
-	    set_stream(Out, encoding(Old))) :-
+	    set_stream(Out, encoding(Old))) :- !,
 	stream_property(Out, encoding(Old)),
 	set_stream(Out, encoding(Encoding)).
 open_output(File, Encoding, Out,
