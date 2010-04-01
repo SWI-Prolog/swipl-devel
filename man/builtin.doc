@@ -6222,6 +6222,16 @@ properties in a portable manner.  If the file system is case-insensitive,
 testing for an extension will be done case-insensitive too. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
 If an \arg{Extension} is generated, it will not have a leading dot.
 
+    \predicate{directory_files}{2}{+Directory, -Entries}
+Unifies \arg{Entries} with a list of entries in \arg{Directory}.
+Each member of \arg{Entries} is an atom denoting an entry relative
+to \arg{Directory}. \arg{Entries} contains all entries, including hidden
+files and, if supplied by the OS, the special entries \const{.} and
+\const{..}.  See also expand_file_name/2.\footnote{This predicate should
+be considered a misnomer because it returns entries rather than files.
+We stick to this name for compatibility with e.g., SICStus, Ciao and
+YAP.
+
     \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching
 \arg{WildCard}. The normal Unix wildcard constructs `\const{?}',

@@ -609,6 +609,45 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
   succeed;
 }
 
+
+/** directory_files(+Dir, -Files) is det.
+
+Files is a list of atoms that describe the entries in Dir.
+*/
+
+static
+PRED_IMPL("directory_files", 2, directory_files, 0)
+{ PRED_LD
+  char *dname;
+  DIR *dir;
+
+  if ( !PL_get_file_name(A1, &dname, PL_FILE_READ|PL_FILE_OSPATH) )
+    return FALSE;
+
+  if ( (dir=opendir(dname)) )
+  { struct dirent *e;
+    term_t tail = PL_copy_term_ref(A2);
+    term_t head = PL_new_term_ref();
+
+    for(e=readdir(dir); e; e = readdir(dir))
+    { PL_put_variable(head);
+      if ( PL_handle_signals() < 0 ||
+	   !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, e->d_name) )
+      { closedir(dir);
+	return FALSE;
+      }
+    }
+    closedir(dir);
+
+    return PL_unify_nil(tail);
+  }
+
+  return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		  ATOM_open, ATOM_directory, A1);
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -616,4 +655,5 @@ PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
 BeginPredDefs(glob)
   PRED_DEF("expand_file_name", 2, expand_file_name, 0)
   PRED_DEF("wildcard_match",   2, wildcard_match,   0)
+  PRED_DEF("directory_files",  2, directory_files,  0)
 EndPredDefs

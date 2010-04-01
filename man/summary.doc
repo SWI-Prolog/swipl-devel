@@ -181,6 +181,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
 \predicatesummary{dif}{2}{Constrain two terms to be different}
+\predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}

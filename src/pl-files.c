@@ -433,7 +433,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
       op = ATOM_execute;
 
     if ( op )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_file, op, n);
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION, op, ATOM_file, n);
 
     if ( (flags & PL_FILE_EXIST) && !AccessFile(name, ACCESS_EXIST) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
