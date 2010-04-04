@@ -393,7 +393,7 @@ writeAttVar(term_t av, write_options *options)
     options->visited = &v;
     Sputcode('{', options->out);
     a = PL_new_term_ref();
-    PL_get_attr(av, a);
+    PL_get_attr__LD(av, a PASS_LD);
     if ( !writeTerm(a, 1200, options) )
       goto error;
     Sputcode('}', options->out);

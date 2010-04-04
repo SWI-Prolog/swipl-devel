@@ -55,6 +55,23 @@ vName(Word adr)
 #endif
 
 
+int
+PL_get_attr__LD(term_t t, term_t a ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isAttVar(*p) )
+  { Word ap = valPAttVar(*p);
+
+    *valTermRef(a) = makeRef(ap);	/* reference, so we can assign */
+    succeed;
+  }
+
+  fail;
+}
+
+#define PL_get_attr(t, a) PL_get_attr__LD(t, a PASS_LD)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) Although this is an assignment from var   to value, we use a trailed
 assignment  to  exploit  mergeTrailedAssignments()   in  GC,  discarding

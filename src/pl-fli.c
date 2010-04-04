@@ -1676,26 +1676,10 @@ PL_get_arg(int index, term_t t, term_t a)
 
 #ifdef O_ATTVAR
 int
-PL_get_attr__LD(term_t t, term_t a ARG_LD)
-{ word w = valHandle(t);
-
-  if ( isAttVar(w) )
-  { Word p = valPAttVar(w);
-
-    setHandle(a, makeRef(p));		/* reference, so we can assign */
-    succeed;
-  }
-
-  fail;
-}
-
-#undef PL_get_attr
-int
 PL_get_attr(term_t t, term_t a)
 { GET_LD
   return PL_get_attr__LD(t, a PASS_LD);
 }
-#define PL_get_attr(l, a) PL_get_attr__LD(l, a PASS_LD)
 #endif
 
 

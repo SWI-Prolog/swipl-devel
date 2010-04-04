@@ -1472,7 +1472,7 @@ static Choice
 newChoice(choice_type type, LocalFrame fr ARG_LD)
 { Choice ch = (Choice)lTop;
 
-  assert(ch+1 <= (Choice)lMax);
+  SECURE(assert(ch+1 <= (Choice)lMax));
   lTop = (LocalFrame)(ch+1);
 
   ch->type = type;
