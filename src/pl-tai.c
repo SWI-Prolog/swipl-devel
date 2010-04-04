@@ -901,7 +901,8 @@ PRED_IMPL("format_time", 3, format_time3, 0)
 
 static
 PRED_IMPL("format_time", 4, format_time4, 0)
-{ int posix = FALSE;
+{ PRED_LD
+  int posix = FALSE;
   atom_t locale;
 
   if ( !PL_get_atom_ex(A4, &locale) )

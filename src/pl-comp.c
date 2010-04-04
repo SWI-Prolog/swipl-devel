@@ -2549,7 +2549,8 @@ PRED_IMPL("$record_clause", 3, record_clause, 0)
 
 static
 PRED_IMPL("$start_aux", 2, start_aux, 0)
-{ atom_t filename;
+{ PRED_LD
+  atom_t filename;
   SourceFile sf;
 
   if ( !PL_get_atom_ex(A1, &filename) )
@@ -2571,7 +2572,8 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
 
 static
 PRED_IMPL("$end_aux", 2, end_aux, 0)
-{ atom_t filename;
+{ PRED_LD
+  atom_t filename;
   SourceFile sf;
   Procedure proc;
 

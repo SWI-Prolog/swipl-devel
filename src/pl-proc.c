@@ -3036,7 +3036,8 @@ Remove all traces of a loaded file.
 
 static
 PRED_IMPL("unload_file", 1, unload_file, 0)
-{ SourceFile sf;
+{ PRED_LD
+  SourceFile sf;
   atom_t name;
 
   if ( !PL_get_atom_ex(A1, &name) )
@@ -3115,7 +3116,8 @@ pl_start_consult(term_t file)
 
 static
 PRED_IMPL("$clause_from_source", 3, clause_from_source, 0)
-{ atom_t name;
+{ PRED_LD
+  atom_t name;
   SourceFile f;
   int ln;
   ListCell cell;

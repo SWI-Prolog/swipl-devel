@@ -306,9 +306,8 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
 
 
 static int
-get_attr(term_t list, atom_t name, term_t value)
-{ GET_LD
-  Word l = valTermRef(list);
+get_attr(term_t list, atom_t name, term_t value ARG_LD)
+{ Word l = valTermRef(list);
 
   for(;;)
   { deRef(l);
@@ -523,7 +522,7 @@ PRED_IMPL("get_attrs", 2, get_attrs, 0)
 
 
 static
-PRED_IMPL("get_attr", 3, get_attr3, 0) /* +Var, +Name, -Value */
+PRED_IMPL("get_attr", 3, get_attr, 0) /* +Var, +Name, -Value */
 { PRED_LD
   term_t al = PL_new_term_ref();
   atom_t name;
@@ -533,12 +532,12 @@ PRED_IMPL("get_attr", 3, get_attr3, 0) /* +Var, +Name, -Value */
   if ( !PL_get_attr(A1, al) )
     fail;
 
-  return get_attr(al, name, A3);
+  return get_attr(al, name, A3 PASS_LD);
 }
 
 
 static
-PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
+PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
 { PRED_LD
   Word av, vp;
   atom_t name;
@@ -941,8 +940,8 @@ grow:
 
 BeginPredDefs(attvar)
   PRED_DEF("attvar",    1, attvar,    0)
-  PRED_DEF("put_attr",  3, put_attr3, 0)
-  PRED_DEF("get_attr",  3, get_attr3, 0)
+  PRED_DEF("put_attr",  3, put_attr,  0)
+  PRED_DEF("get_attr",  3, get_attr,  0)
   PRED_DEF("del_attr",  2, del_attr2, 0)
   PRED_DEF("del_attrs", 1, del_attrs, 0)
   PRED_DEF("get_attrs", 2, get_attrs, 0)

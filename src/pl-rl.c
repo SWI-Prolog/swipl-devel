@@ -154,7 +154,8 @@ sure this is true, but is certainly covers most installations.
 
 static foreign_t
 pl_rl_add_history(term_t text)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
   static atom_t last = 0;
 
   if ( PL_get_atom_ex(text, &a) )

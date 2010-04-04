@@ -416,7 +416,8 @@ isPublicModule(Module module, Procedure proc)
 
 static int
 get_module(term_t t, Module *m, int create)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
 
   if ( !PL_get_atom_ex(t, &name) )
     fail;
@@ -480,7 +481,8 @@ PRED_IMPL("import_module", 2, import_module,
 
 static
 PRED_IMPL("add_import_module", 3, add_import_module, 0)
-{ Module me, super;
+{ PRED_LD
+  Module me, super;
   atom_t where;
 
   if ( !get_module(A1, &me, TRUE) ||
@@ -851,7 +853,8 @@ Start a new (source-)module
 
 static
 PRED_IMPL("$declare_module", 5, declare_module, 0)
-{ SourceFile sf;
+{ PRED_LD
+  SourceFile sf;
   atom_t mname, sname, fname;
   int line_no, rdef;
 

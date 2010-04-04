@@ -206,7 +206,8 @@ out:
 
 word
 pl_tty_get_capability(term_t name, term_t type, term_t value)
-{ Entry e;
+{ GET_LD
+  Entry e;
   atom_t n, t;
 
   if ( !PL_get_atom_ex(name, &n) || !PL_get_atom_ex(type, &t) )

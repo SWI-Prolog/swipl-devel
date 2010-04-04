@@ -114,7 +114,8 @@ foreign_t
 pl_rc_open(term_t rc_h,
 	   term_t name, term_t class, term_t rw,
 	   term_t handle)
-{ char *n, *c;
+{ GET_LD
+  char *n, *c;
   RcArchive rc = NULL;
   atom_t how;
   int flags = 0, sflags = 0;		/* compiler isn't smart enough */

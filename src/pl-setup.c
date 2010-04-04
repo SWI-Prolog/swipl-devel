@@ -923,7 +923,8 @@ get_meta_arg(term_t arg, term_t m, term_t t)
 
 static int
 get_module(term_t t, Module *m)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( !PL_get_atom_ex(t, &a) )
     return FALSE;

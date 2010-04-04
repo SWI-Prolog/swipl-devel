@@ -679,10 +679,8 @@ PL_get_chars_ex(term_t t, char **s, unsigned int flags)
 
 
 int
-PL_get_atom_ex(term_t t, atom_t *a)
-{ GET_LD
-
-  if ( PL_get_atom(t, a) )
+PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
+{ if ( PL_get_atom(t, a) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, t);

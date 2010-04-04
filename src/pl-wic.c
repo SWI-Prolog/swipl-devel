@@ -2604,7 +2604,8 @@ pl_qlf_end_part()
 
 word
 pl_qlf_open(term_t file)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( PL_get_atom_ex(file, &a) )
     return qlfOpen(a);
