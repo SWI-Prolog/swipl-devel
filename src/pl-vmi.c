@@ -2254,17 +2254,23 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
 }
 
 
+BEGIN_SHAREDVARS
+functor_t fpred;
+Word p;
 /** var(@Term)
 */
 
 VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
-{ Word p = varFrameP(FR, (int)*PC++);
+{ p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
   if ( unlikely(debugstatus.debugging) )
-  { NFR = lTop;
+  { fpred = FUNCTOR_var1;
+  debug_pred1:
+
+    NFR = lTop;
     setNextFrameFlags(NFR, FR);
-    DEF  = lookupProcedure(FUNCTOR_var1, MODULE_system)->definition;
+    DEF  = lookupProcedure(fpred, MODULE_system)->definition;
     ARGP = argFrameP(NFR, 0);
     *ARGP++ = linkVal(p);
 
@@ -2277,6 +2283,28 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
     NEXT_INSTRUCTION;
   BODY_FAILED;
 }
+
+
+/** nonvar(@Term)
+*/
+
+VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
+{ p = varFrameP(FR, (int)*PC++);
+
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+  { fpred = FUNCTOR_nonvar1;
+    goto debug_pred1;
+  }
+#endif
+
+  deRef(p);
+  if ( !canBind(*p) )
+    NEXT_INSTRUCTION;
+  BODY_FAILED;
+}
+
+END_SHAREDVARS
 
 		 /*******************************
 		 *	    SUPERVISORS		*

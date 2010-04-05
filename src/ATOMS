@@ -377,6 +377,7 @@ A no_memory		"no_memory"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
 A none			"none"
+A nonvar		"nonvar"
 A noprofile		"noprofile"
 A normal		"normal"
 A not			"not"
@@ -779,6 +780,7 @@ F mode			1
 F msb			1
 F newline		1
 F nlink			1
+F nonvar		1
 F not_implemented	2
 F not_provable		1
 F occurs_check		2

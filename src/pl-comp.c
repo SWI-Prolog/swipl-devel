@@ -585,6 +585,7 @@ forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
 forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
+forwards int	compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -1702,6 +1703,11 @@ compile, but they are related to meta-calling anyway.
 
 	if ( (rc=compileBodyVar1(arg, call, ci PASS_LD)) != FALSE )
 	  return rc;
+      } else if ( functor == FUNCTOR_nonvar1 )
+      { int rc;
+
+	if ( (rc=compileBodyNonVar1(arg, call, ci PASS_LD)) != FALSE )
+	  return rc;
       }
     }
 #endif
@@ -2267,6 +2273,46 @@ compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
 
   if ( truePrologFlag(PLFLAG_OPTIMISE) )
   { Output_0(ci, I_FAIL);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton == ?: always false */
+  { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_FAIL);
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  if ( i1 >=0 )
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 )
+    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      { Output_0(ci, I_FAIL);
+	return TRUE;
+      }
+    }
+
+    Output_1(ci, I_NONVAR, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { Output_0(ci, I_TRUE);
     return TRUE;
   }
 
@@ -3560,6 +3606,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
       case I_VAR:	    *ARGP++ = makeVarRef((int)*PC++);
 			    BUILD_TERM(FUNCTOR_var1);
+			    pushed++;
+			    continue;
+      case I_NONVAR:	    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(FUNCTOR_nonvar1);
 			    pushed++;
 			    continue;
       case C_LCUT:	    PC++;
