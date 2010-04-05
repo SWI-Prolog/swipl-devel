@@ -170,11 +170,12 @@ typedef struct
 
 static
 PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
-{ GET_LD
+{ PRED_LD
   between_state *state;
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
+  int rc = TRUE;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -238,7 +239,10 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
       { state = CTX_PTR;
 
 	ar_add_ui(&state->low, 1);
-	PL_unify_number(n, &state->low);
+	if ( !PL_unify_number(n, &state->low) )
+	{ rc = FALSE;
+	  goto cleanup;
+	}
 	if ( !state->hinf &&
 	     cmpNumbers(&state->low, &state->high) == 0 )
 	  goto cleanup;
@@ -252,7 +256,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	freeHeap(state, sizeof(*state));
       }
     default:;
-      succeed;
+      return rc;
   }
 }
 
