@@ -183,7 +183,7 @@ with  a  structure  that  mimics  a term, but isn't one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct _varDef
-{ word		functor;		/* mimic a functor (FUNCTOR_var1) */
+{ word		functor;		/* mimic a functor (FUNCTOR_dvard1) */
   word		saved;			/* saved value */
   Word		address;		/* address of the variable */
   int		times;			/* occurences */
@@ -256,7 +256,7 @@ getVarDef(int i ARG_LD)
   if ( !(vd = vardefs[i]) )
   { vd = vardefs[i] = allocHeap(sizeof(vardef));
     memset(vd, 0, sizeof(*vd));
-    vd->functor = FUNCTOR_var1;
+    vd->functor = FUNCTOR_dvard1;
   }
 
   return vd;
@@ -280,7 +280,7 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
     } else
     { *vd = v = allocHeap(sizeof(vardef));
       memset(v, 0, sizeof(vardef));
-      v->functor = FUNCTOR_var1;
+      v->functor = FUNCTOR_dvard1;
     }
   }
 }
@@ -496,7 +496,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
   for(n=0; n<arity+nvars; n++)
   { VarDef vd = LD->comp.vardefs[n];
 
-    assert(vd->functor == FUNCTOR_var1);
+    assert(vd->functor == FUNCTOR_dvard1);
     if ( !vd->address )
       continue;
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
@@ -584,6 +584,7 @@ forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 forwards int	compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD);
 forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
+forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -1696,6 +1697,11 @@ compile, but they are related to meta-calling anyway.
 
 	if ( (rc=compileBodyEQ(arg, call, ci PASS_LD)) != FALSE )
 	  return rc;
+      } else if ( functor == FUNCTOR_var1 )
+      { int rc;
+
+	if ( (rc=compileBodyVar1(arg, call, ci PASS_LD)) != FALSE )
+	  return rc;
       }
     }
 #endif
@@ -2226,6 +2232,46 @@ compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD)
   return FALSE;
 }
 #endif /*O_COMPILE_IS*/
+
+
+static int
+compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
+{ Word a1;
+  int i1;
+
+  a1 = argTermP(*arg, 0);
+  deRef(a1);
+  if ( isVar(*a1) )			/* Singleton == ?: always true */
+  { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+    { Output_0(ci, I_TRUE);
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  i1 = isIndexedVarTerm(*a1 PASS_LD);
+  if ( i1 >=0 )
+  { int f1 = isFirstVar(ci->used_var, i1);
+
+    if ( f1 )
+    { if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      { Output_0(ci, I_TRUE);
+	return TRUE;
+      }
+    }
+
+    Output_1(ci, I_VAR, VAROFFSET(i1));
+    return TRUE;
+  }
+
+  if ( truePrologFlag(PLFLAG_OPTIMISE) )
+  { Output_0(ci, I_FAIL);
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 
 		 /*******************************
@@ -3510,6 +3556,10 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       case I_TRUE:	    *ARGP++ = ATOM_true;
+			    pushed++;
+			    continue;
+      case I_VAR:	    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(FUNCTOR_var1);
 			    pushed++;
 			    continue;
       case C_LCUT:	    PC++;

@@ -2254,6 +2254,30 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
 }
 
 
+/** var(@Term)
+*/
+
+VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
+{ Word p = varFrameP(FR, (int)*PC++);
+
+#ifdef O_DEBUGGER
+  if ( unlikely(debugstatus.debugging) )
+  { NFR = lTop;
+    setNextFrameFlags(NFR, FR);
+    DEF  = lookupProcedure(FUNCTOR_var1, MODULE_system)->definition;
+    ARGP = argFrameP(NFR, 0);
+    *ARGP++ = linkVal(p);
+
+    goto normal_call;
+  }
+#endif
+
+  deRef(p);
+  if ( canBind(*p) )
+    NEXT_INSTRUCTION;
+  BODY_FAILED;
+}
+
 		 /*******************************
 		 *	    SUPERVISORS		*
 		 *******************************/
