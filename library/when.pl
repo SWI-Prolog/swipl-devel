@@ -69,7 +69,8 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	when(?, 0).
+	when(+, 0),
+	suspend(-, 0).
 
 :- use_module(library(error)).
 
@@ -205,42 +206,39 @@ suspend_list([V=W|Unifier],Goal) :-
 	( var(W) -> suspend(W,Goal) ; true),
 	suspend_list(Unifier,Goal).
 
-suspend(V,Goal) :-
-	( get_attr(V,when,List) ->
-		put_attr(V,when,[Goal|List])
-	;
-		put_attr(V,when,[Goal])
+suspend(V, Goal) :-
+	(   get_attr(V, when, call(Goal0))
+	->  put_attr(V, when, call((Goal,Goal0)))
+	;   put_attr(V, when, call(Goal))
 	).
 
-attr_unify_hook(List,Other) :-
-	List = [_|_],
-	( get_attr(Other,when,List2) ->
-		del_attr(Other,when),
-		call_list(List),
-		call_list(List2)
-	;
-		call_list(List)
+attr_unify_hook(call(Goal), Other) :-
+	(   get_attr(Other, when, call(GOTher))
+	->  del_attr(Other, when),
+	    Goal, GOTher
+	;   Goal
 	).
 
-call_list([]).
-call_list([G|Gs]) :-
-	call(G),
-	call_list(Gs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 attribute_goals(V) -->
 	{ get_attr(V, when, Attr) },
-	(   { Attr = det(trigger_determined(X, Y, G)) } ->
-	    [when(?=(X,Y), G)]
-	;   when_goals(Attr)
-	).
+	when_goals(Attr).
 
-when_goals([])	   --> [].
-when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
+when_goals(det(trigger_determined(X, Y, G))) --> !,
+	[when(?=(X,Y), G)].
+when_goals(call(Conj)) -->
+	when_conj_goals(Conj).
 
-when_goal(trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
-when_goal(trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
-when_goal(wake_det(_))		--> []. % ignore
+when_conj_goals((A,B)) --> !,
+	when_conj_goals(A),
+	when_conj_goals(B).
+when_conj_goals(G) -->
+	when_goal(G).
+
+when_goal(when:trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
+when_goal(when:trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
+when_goal(when:wake_det(_))	     --> []. % ignore
 
 unless_fired(G, Goal) -->
 	(   { fired_disj(G) }
