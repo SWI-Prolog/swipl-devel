@@ -78,7 +78,9 @@ when(Condition, Goal) :-
 	when_condition(Condition, Optimised),
 	trigger(Optimised, Goal).
 
-when_condition(C, _) :- var(C), !, instantiation_error(C).
+when_condition(C, _) :-
+	var(C), !,
+	instantiation_error(C).
 when_condition(?=(X,Y), C) :- !,
 	(   ?=(X,Y)
 	->  C = true
@@ -100,18 +102,20 @@ when_condition((C1,C2), C) :- !,
 	conj(T1,T2,C).
 when_condition((C1;C2), C) :- !,
 	when_condition(C1, T1),
-	when_condition(C2, T2),
-	disj(T1,T2,C).
+	(   T1 == true
+	->  when_condition(C2, C)
+	;   when_condition(C2, T2),
+	    (	T2 == true
+	    ->	C = true
+	    ;	C = (T1;T2)
+	    )
+	).
 when_condition(C, _) :-
 	domain_error(when_condition, C).
 
 conj(true, C, C) :- !.
 conj(C, true, C) :- !.
 conj(C1, C2, (C1,C2)).
-
-disj(true, _, true) :- !.
-disj(_, true, true) :- !.
-disj(C1, C2, (C1;C2)) :- !.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
