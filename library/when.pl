@@ -69,67 +69,36 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	when(+, 0),
-	suspend(-, 0).
+	when(?, 0).
 
 :- use_module(library(error)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-	when_condition(Condition, Optimised),
-	trigger(Optimised, Goal).
+	when_condition(Condition),
+	trigger(Condition, Goal).
 
-when_condition(C, _) :-
-	var(C), !,
-	instantiation_error(C).
-when_condition(?=(X,Y), C) :- !,
-	(   ?=(X,Y)
-	->  C = true
-	;   C = ?=(X,Y)
-	).
-when_condition(nonvar(X), C) :- !,
-	(   nonvar(X)
-	->  C = true
-	;   C = nonvar(X)
-	).
-when_condition(ground(X), C) :- !,
-	(   ground(X)
-	->  C = true
-	;   C = ground(X)
-	).
-when_condition((C1,C2), C) :- !,
-	when_condition(C1, T1),
-	when_condition(C2, T2),
-	conj(T1,T2,C).
-when_condition((C1;C2), C) :- !,
-	when_condition(C1, T1),
-	(   T1 == true
-	->  when_condition(C2, C)
-	;   when_condition(C2, T2),
-	    (	T2 == true
-	    ->	C = true
-	    ;	C = (T1;T2)
-	    )
-	).
-when_condition(C, _) :-
-	domain_error(when_condition, C).
-
-conj(true, C, C) :- !.
-conj(C, true, C) :- !.
-conj(C1, C2, (C1,C2)).
+when_condition(C)	  :- var(C), !, instantiation_error(C).
+when_condition(?=(_,_))	  :- !.
+when_condition(nonvar(_)) :- !.
+when_condition(ground(_)) :- !.
+when_condition((C1,C2))	  :- !, when_condition(C1), when_condition(C2).
+when_condition((C1;C2))	  :- !, when_condition(C1), when_condition(C2).
+when_condition(C)	  :- domain_error(when_condition, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-trigger(true,Goal) :-
-	call(Goal).
 trigger(nonvar(X),Goal) :-
 	trigger_nonvar(X,Goal).
+
 trigger(ground(X),Goal) :-
 	trigger_ground(X,Goal).
+
 trigger(?=(X,Y),Goal) :-
 	trigger_determined(X,Y,Goal).
+
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
+
 trigger((G1;G2),Goal) :-
 	trigger_disj(G1,G2,Goal).
 
@@ -206,39 +175,42 @@ suspend_list([V=W|Unifier],Goal) :-
 	( var(W) -> suspend(W,Goal) ; true),
 	suspend_list(Unifier,Goal).
 
-suspend(V, Goal) :-
-	(   get_attr(V, when, call(Goal0))
-	->  put_attr(V, when, call((Goal,Goal0)))
-	;   put_attr(V, when, call(Goal))
+suspend(V,Goal) :-
+	( get_attr(V,when,List) ->
+		put_attr(V,when,[Goal|List])
+	;
+		put_attr(V,when,[Goal])
 	).
 
-attr_unify_hook(call(Goal), Other) :-
-	(   get_attr(Other, when, call(GOTher))
-	->  del_attr(Other, when),
-	    Goal, GOTher
-	;   Goal
+attr_unify_hook(List,Other) :-
+	List = [_|_],
+	( get_attr(Other,when,List2) ->
+		del_attr(Other,when),
+		call_list(List),
+		call_list(List2)
+	;
+		call_list(List)
 	).
 
+call_list([]).
+call_list([G|Gs]) :-
+	call(G),
+	call_list(Gs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 attribute_goals(V) -->
 	{ get_attr(V, when, Attr) },
-	when_goals(Attr).
+	(   { Attr = det(trigger_determined(X, Y, G)) } ->
+	    [when(?=(X,Y), G)]
+	;   when_goals(Attr)
+	).
 
-when_goals(det(trigger_determined(X, Y, G))) --> !,
-	[when(?=(X,Y), G)].
-when_goals(call(Conj)) -->
-	when_conj_goals(Conj).
+when_goals([])	   --> [].
+when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
 
-when_conj_goals((A,B)) --> !,
-	when_conj_goals(A),
-	when_conj_goals(B).
-when_conj_goals(G) -->
-	when_goal(G).
-
-when_goal(when:trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
-when_goal(when:trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
-when_goal(when:wake_det(_))	     --> []. % ignore
+when_goal(trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
+when_goal(trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
+when_goal(wake_det(_))		--> []. % ignore
 
 unless_fired(G, Goal) -->
 	(   { fired_disj(G) }
