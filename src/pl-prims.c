@@ -3465,18 +3465,24 @@ concat(term_t a1, term_t a2, term_t a3,
        !PL_get_text(a3, &t3, accept|CVT_EXCEPTION|CVT_VARNOFAIL) )
     fail;
 
-  if (t1.text.t && t2.text.t)
-  { PL_chars_t c;
-    PL_chars_t *v[2];
+  if ( t1.text.t && t2.text.t )
+  { if ( t3.text.t )
+    { rc = ( PL_cmp_text(&t1, 0, &t3, 0, t1.length) == 0 &&
+	     PL_cmp_text(&t2, 0, &t3, t1.length, t2.length) == 0 );
+      goto out;
+    } else
+    { PL_chars_t c;
+      PL_chars_t *v[2];
 
-    v[0] = &t1;
-    v[1] = &t2;
+      v[0] = &t1;
+      v[1] = &t2;
 
-    PL_concat_text(2, v, &c);
+      PL_concat_text(2, v, &c);
 
-    rc = PL_unify_text(a3, 0, &c, otype);
-    PL_free_text(&c);
-    goto out;
+      rc = PL_unify_text(a3, 0, &c, otype);
+      PL_free_text(&c);
+      goto out;
+    }
   }
 
   if ( !t3.text.t )
