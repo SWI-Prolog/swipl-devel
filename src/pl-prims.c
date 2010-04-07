@@ -2530,13 +2530,12 @@ PRED_IMPL("subsumes", 2, subsumes, 0)
 static
 PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
 { PRED_LD
-  mark m;
   int rc;
+  fid_t fid;
 
-  Mark(m);
+  fid = PL_open_foreign_frame();
   rc = subsumes(A1, A2 PASS_LD);
-  Undo(m);
-  DiscardMark(m);
+  PL_discard_foreign_frame(fid);
 
   return rc;
 }
