@@ -44,9 +44,9 @@
 :- use_module(library(error)).
 :- use_module(library(apply)).
 
-:- multifile sisctus:rename_module/2.
+:- multifile sicstus:rename_module/2.
 
-sisctus:rename_module(sockets, sicstus_sockets).
+sicstus:rename_module(sockets, sicstus_sockets).
 
 /** <module> SICStus compatible socket library
 

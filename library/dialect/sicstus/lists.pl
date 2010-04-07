@@ -34,9 +34,9 @@
 	  ]).
 :- reexport('../../lists').
 
-:- multifile sisctus:rename_module/2.
+:- multifile sicstus:rename_module/2.
 
-sisctus:rename_module(lists, sicstus_lists).
+sicstus:rename_module(lists, sicstus_lists).
 
 %%	substitute(+OldElem, +List, +NewElem, -NewList) is det.
 %
