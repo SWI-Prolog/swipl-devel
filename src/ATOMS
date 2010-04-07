@@ -9,6 +9,7 @@
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -174,6 +175,7 @@ A dstream		"$stream"
 A dthread_init		"$thread_init"
 A dthrow		"$throw"
 A dtime			"$time"
+A dvard			"$VAR$"
 A dwakeup		"$wakeup"
 A dynamic		"dynamic"
 A e			"e"
@@ -338,10 +340,10 @@ A max_arity		"max_arity"
 A max_dde_handles	"max_dde_handles"
 A max_depth		"max_depth"
 A max_files		"max_files"
+A max_frame_size	"max_frame_size"
 A max_path_length	"max_path_length"
 A max_size		"max_size"
 A max_variable_length	"max_variable_length"
-A max_frame_size	"max_frame_size"
 A memory		"memory"
 A message		"message"
 A message_lines		"message_lines"
@@ -375,6 +377,7 @@ A no_memory		"no_memory"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
 A none			"none"
+A nonvar		"nonvar"
 A noprofile		"noprofile"
 A normal		"normal"
 A not			"not"
@@ -617,7 +620,7 @@ A user_output		"user_output"
 A utc			"UTC"
 A utf8			"utf8"
 A v			"v"
-A var			"$VAR$"
+A var			"var"
 A variable		"variable"
 A variable_names	"variable_names"
 A variables		"variables"
@@ -692,6 +695,7 @@ F cut_exit		1
 F dand			2
 F date			3
 F date			9
+F dc_call_prolog	0
 F dcall			1
 F dcut			1
 F dde_error		2
@@ -713,13 +717,14 @@ F dstream		1
 F dthread_init		0
 F dthrow		1
 F dtime			2
+F dvard			1
 F dwakeup		1
 F e			0
 F encoding		1
 F end_of_stream		1
 F eof_action		1
-F equals		2
 F epsilon		0
+F equals		2
 F erased		1
 F error			2
 F eval			1
@@ -764,7 +769,6 @@ F log			1
 F log10			1
 F lsb			1
 F lshift		2
-F nlink			1
 F max			2
 F max_size		1
 F message_lines		1
@@ -775,6 +779,8 @@ F mod			2
 F mode			1
 F msb			1
 F newline		1
+F nlink			1
+F nonvar		1
 F not_implemented	2
 F not_provable		1
 F occurs_check		2
@@ -826,6 +832,7 @@ F star			2
 F status		1
 F stream		4
 F stream_position	4
+F strict_equal		2
 F string		1
 F string		2
 F string_position	2
@@ -850,5 +857,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F dc_call_prolog	0
-F strict_equal		2

@@ -1808,7 +1808,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd ARG_LD)
   if ( isTerm(*t) )
   { functor_t f = functorTerm(*t);
 
-    if ( f == FUNCTOR_var1 )
+    if ( f == FUNCTOR_dvard1 )
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
@@ -1841,7 +1841,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
-  options.functor = FUNCTOR_var1;
+  options.functor = FUNCTOR_dvard1;
   options.on_attvar = AV_SKIP;
   options.singletons = FALSE;		/* TBD: TRUE may be better! */
   nvars = numberVars(t, &options, 0 PASS_LD);
