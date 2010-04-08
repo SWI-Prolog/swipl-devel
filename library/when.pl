@@ -75,30 +75,60 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-	when_condition(Condition),
-	trigger(Condition, Goal).
+	when_condition(Condition, Optimised),
+	trigger(Optimised, Goal).
 
-when_condition(C)	  :- var(C), !, instantiation_error(C).
-when_condition(?=(_,_))	  :- !.
-when_condition(nonvar(_)) :- !.
-when_condition(ground(_)) :- !.
-when_condition((C1,C2))	  :- !, when_condition(C1), when_condition(C2).
-when_condition((C1;C2))	  :- !, when_condition(C1), when_condition(C2).
-when_condition(C)	  :- domain_error(when_condition, C).
+when_condition(C, _) :-
+	var(C), !,
+	instantiation_error(C).
+when_condition(?=(X,Y), C) :- !,
+	(   ?=(X,Y)
+	->  C = true
+	;   C = ?=(X,Y)
+	).
+when_condition(nonvar(X), C) :- !,
+	(   nonvar(X)
+	->  C = true
+	;   C = nonvar(X)
+	).
+when_condition(ground(X), C) :- !,
+	(   ground(X)
+	->  C = true
+	;   C = ground(X)
+	).
+when_condition((C1,C2), C) :- !,
+	when_condition(C1, T1),
+	when_condition(C2, T2),
+	conj(T1,T2,C).
+when_condition((C1;C2), C) :- !,
+	when_condition(C1, T1),
+	(   T1 == true
+	->  C = true
+	;   when_condition(C2, T2),
+	    (	T2 == true
+	    ->	C = true
+	    ;	C = (T1;T2)
+	    )
+	).
+when_condition(C, _) :-
+	domain_error(when_condition, C).
+
+conj(true, C, C) :- !.
+conj(C, true, C) :- !.
+conj(C1, C2, (C1,C2)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+trigger(true,Goal) :-
+	call(Goal).
 trigger(nonvar(X),Goal) :-
 	trigger_nonvar(X,Goal).
-
 trigger(ground(X),Goal) :-
 	trigger_ground(X,Goal).
-
 trigger(?=(X,Y),Goal) :-
 	trigger_determined(X,Y,Goal).
-
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
-
 trigger((G1;G2),Goal) :-
 	trigger_disj(G1,G2,Goal).
 
