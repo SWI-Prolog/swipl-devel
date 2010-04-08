@@ -396,7 +396,7 @@ right_recursion:
     vd->saved = *head;
     vd->address = head;
     vd->times = 1;
-    *head = (index<<LMASK_BITS)|TAG_ATOM|STG_GLOBAL; /* special mark */
+    *head = (((word)index)<<LMASK_BITS)|TAG_ATOM|STG_GLOBAL; /* special mark */
 
     return nvars;
   }
