@@ -3466,7 +3466,8 @@ concat(term_t a1, term_t a2, term_t a3,
 
   if ( t1.text.t && t2.text.t )
   { if ( t3.text.t )
-    { rc = ( PL_cmp_text(&t1, 0, &t3, 0, t1.length) == 0 &&
+    { rc = ( t1.length + t2.length == t3.length &&
+	     PL_cmp_text(&t1, 0, &t3, 0, t1.length) == 0 &&
 	     PL_cmp_text(&t2, 0, &t3, t1.length, t2.length) == 0 );
       goto out;
     } else
