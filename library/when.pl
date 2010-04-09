@@ -108,7 +108,7 @@ when_condition((C1;C2), C) :- !,
 	;   when_condition(C2, T2),
 	    (	T2 == true
 	    ->	C = true
-	    ;	C = (T1;T2)
+	    ;	disj(T1,T2,C)
 	    )
 	).
 when_condition(C, _) :-
@@ -117,6 +117,13 @@ when_condition(C, _) :-
 conj(true, C, C) :- !.
 conj(C, true, C) :- !.
 conj(C1, C2, (C1,C2)).
+
+disj(or(D,DT),or(DT,DT2),or(D,DT2)) :- !.
+disj(or(D,DT),C,or(D,DT2)) :- !,
+	DT = [C|DT2].
+disj(C,or(D,DT),or([C|D],DT)) :- !.
+disj(C1,C2,or([C1,C2|DT], DT)).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -130,8 +137,9 @@ trigger(?=(X,Y),Goal) :-
 	trigger_determined(X,Y,Goal).
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
-trigger((G1;G2),Goal) :-
-	trigger_disj(G1,G2,Goal).
+trigger(or(GL,[]),Goal) :-
+	G = when:check_disj(_DisjID,GL,Goal),
+	trigger_disj(GL,G).
 
 trigger_nonvar(X,Goal) :-
 	( nonvar(X) ->
@@ -179,11 +187,13 @@ wake_det(Det) :-
 trigger_conj(G1,G2,Goal) :-
 	trigger(G1,when:trigger(G2,Goal)).
 
-trigger_disj(G1,G2,Goal) :-
-	trigger(G1,when:check_disj(Disj,Goal)),
-	trigger(G2,when:check_disj(Disj,Goal)).
+trigger_disj([],_).
+trigger_disj([H|T], G) :-
+	trigger(H, G),
+	trigger_disj(T, G).
 
-%%	check_disj(DisjVar, Goal)
+
+%%	check_disj(DisjVar, Disj, Goal)
 %
 %	If there is a disjunctive condition, we share a variable between
 %	the disjunctions. If the  goal  is  fired   due  to  one  of the
@@ -192,7 +202,7 @@ trigger_disj(G1,G2,Goal) :-
 %	predicate  when_goal//1  skips  such   goals    on   behalfe  of
 %	copy_term/3.
 
-check_disj(Disj,Goal) :-
+check_disj(Disj,_,Goal) :-
 	( var(Disj) ->
 		Disj = (-),
 		call(Goal)
@@ -226,8 +236,8 @@ attribute_goals(V) -->
 	when_goals(Attr).
 
 when_goals(det(trigger_determined(X, Y, G))) --> !,
-	(   { fired_disj(G) }
-	->  []
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
 	;   { G = when:trigger(C, Goal) }
 	->  [ when((?=(X,Y),C), Goal) ]
 	;   [ when(?=(X,Y), G) ]
@@ -242,15 +252,15 @@ when_conj_goals(when:G) -->
 	when_goal(G).
 
 when_goal(trigger_nonvar(X, G)) -->
-	(   { fired_disj(G) }
-	->  []
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
 	;   { G = when:trigger(C, Goal) }
 	->  [ when((nonvar(X),C), Goal) ]
 	;   [ when(nonvar(X),G) ]
 	).
 when_goal(trigger_ground(X, G)) -->
-	(   { fired_disj(G) }
-	->  []
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
 	;   { G = when:trigger(C, Goal) }
 	->  [ when((ground(X),C), Goal) ]
 	;   [ when(ground(X),G) ]
@@ -258,6 +268,14 @@ when_goal(trigger_ground(X, G)) -->
 when_goal(wake_det(_)) -->
 	[].
 
-fired_disj(when:check_disj(X, _)) :- X == (-).
-fired_disj(when:check_disj(_, Goal)) :-
-	fired_disj(Goal).
+disj_goal(when:check_disj(X, _, _), [], -) :- X == (-).
+disj_goal(when:check_disj(-, Or, DG), Or, DG).
+
+disj_or([], _) --> [].
+disj_or(List, DG) -->
+	{ or_list(List, Or) },
+	[when(Or, DG)].
+
+or_list([H], H) :- !.
+or_list([H|T], (H;OT)) :-
+	or_list(T, OT).
