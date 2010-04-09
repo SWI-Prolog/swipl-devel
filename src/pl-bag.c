@@ -140,13 +140,6 @@ PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
   }
   assert(bag->answers.count == 0);
 
-  assert(LD->bags.bags == bag);
-  PL_LOCK(L_AGC);
-  LD->bags.bags = bag->parent;
-  PL_UNLOCK(L_AGC);
-
-  freeBag(bag PASS_LD);
-
   return PL_unify(A2, list);
 }
 
@@ -175,9 +168,11 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
     PL_UNLOCK(L_AGC);
 
     freeBag(bag PASS_LD);
+    succeed;
   }
 
-  succeed;
+  assert(0);
+  fail;
 }
 
 

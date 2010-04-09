@@ -1412,8 +1412,10 @@ unallocRecordRef(RecordRef r ARG_LD)
 
 static void
 freeRecordRef(RecordRef r ARG_LD)
-{ freeRecord(r->record);
-  if ( false(r->record, R_DBREF) )
+{ int reclaim_now = false(r->record, R_DBREF);
+
+  freeRecord(r->record);
+  if ( reclaim_now )
     freeHeap(r, sizeof(*r));
   else
     r->record = NULL;
