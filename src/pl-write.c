@@ -216,6 +216,7 @@ needSpace(int c, IOSTREAM *s)
   } else if ( s->lastc != EOF &&
 	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
 	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
+	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(') ||
 	       (c == '\'' && isDigit(s->lastc))) )
   { return TRUE;
   }
