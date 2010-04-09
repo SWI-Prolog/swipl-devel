@@ -66,7 +66,7 @@
 :- module(when,
 	  [ when/2			% +Condition, :Goal
 	  ]).
-:- set_prolog_flag(generate_debug_info, false).
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	when(+, 0),
@@ -226,7 +226,12 @@ attribute_goals(V) -->
 	when_goals(Attr).
 
 when_goals(det(trigger_determined(X, Y, G))) --> !,
-	[when(?=(X,Y), G)].
+	(   { fired_disj(G) }
+	->  []
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((?=(X,Y),C), Goal) ]
+	;   [ when(?=(X,Y), G) ]
+	).
 when_goals(call(Conj)) -->
 	when_conj_goals(Conj).
 
@@ -236,15 +241,22 @@ when_conj_goals((A,B)) --> !,
 when_conj_goals(when:G) -->
 	when_goal(G).
 
-when_goal(trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
-when_goal(trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
-when_goal(wake_det(_))	        --> []. % ignore
-
-unless_fired(G, Goal) -->
+when_goal(trigger_nonvar(X, G)) -->
 	(   { fired_disj(G) }
 	->  []
-	;   [Goal]
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((nonvar(X),C), Goal) ]
+	;   [ when(nonvar(X),G) ]
 	).
+when_goal(trigger_ground(X, G)) -->
+	(   { fired_disj(G) }
+	->  []
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((ground(X),C), Goal) ]
+	;   [ when(ground(X),G) ]
+	).
+when_goal(wake_det(_)) -->
+	[].
 
 fired_disj(when:check_disj(X, _)) :- X == (-).
 fired_disj(when:check_disj(_, Goal)) :-
