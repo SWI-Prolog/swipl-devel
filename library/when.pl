@@ -66,7 +66,7 @@
 :- module(when,
 	  [ when/2			% +Condition, :Goal
 	  ]).
-%:- set_prolog_flag(generate_debug_info, false).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	when(+, 0),
@@ -138,8 +138,7 @@ trigger(?=(X,Y),Goal) :-
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
 trigger(or(GL,[]),Goal) :-
-	G = when:check_disj(_DisjID,GL,Goal),
-	trigger_disj(GL,G).
+	trigger_disj(GL, when:check_disj(_DisjID,GL,Goal)).
 
 trigger_nonvar(X,Goal) :-
 	( nonvar(X) ->
