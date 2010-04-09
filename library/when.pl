@@ -233,12 +233,12 @@ when_goals(call(Conj)) -->
 when_conj_goals((A,B)) --> !,
 	when_conj_goals(A),
 	when_conj_goals(B).
-when_conj_goals(G) -->
+when_conj_goals(when:G) -->
 	when_goal(G).
 
-when_goal(when:trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
-when_goal(when:trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
-when_goal(when:wake_det(_))	     --> []. % ignore
+when_goal(trigger_ground(X, G)) --> unless_fired(G, when(ground(X), G)).
+when_goal(trigger_nonvar(X, G)) --> unless_fired(G, when(nonvar(X), G)).
+when_goal(wake_det(_))	        --> []. % ignore
 
 unless_fired(G, Goal) -->
 	(   { fired_disj(G) }
