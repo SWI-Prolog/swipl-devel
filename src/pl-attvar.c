@@ -323,10 +323,8 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
 
 
 static int
-get_attr(term_t list, atom_t name, term_t value ARG_LD)
-{ Word l = valTermRef(list);
-
-  for(;;)
+get_attr(Word l, atom_t name, term_t value ARG_LD)
+{ for(;;)
   { deRef(l);
 
     if ( isTerm(*l) )
@@ -541,15 +539,21 @@ PRED_IMPL("get_attrs", 2, get_attrs, 0)
 static
 PRED_IMPL("get_attr", 3, get_attr, 0) /* +Var, +Name, -Value */
 { PRED_LD
-  term_t al = PL_new_term_ref();
-  atom_t name;
+  Word a1;
 
-  if ( !PL_get_atom_ex(A2, &name) )
-    fail;
-  if ( !PL_get_attr(A1, al) )
-    fail;
+  a1 = valTermRef(A1);
+  deRef(a1);
+  if ( isAttVar(*a1) )
+  { Word p = valPAttVar(*a1);
+    atom_t name;
 
-  return get_attr(al, name, A3 PASS_LD);
+    if ( !PL_get_atom_ex(A2, &name) )
+      fail;
+
+    return get_attr(p, name, A3 PASS_LD);
+  }
+
+  fail;
 }
 
 
