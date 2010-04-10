@@ -1650,7 +1650,6 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   RecordList rl = NULL;			/* make compiler happy */
   RecordRef record;
   word k = 0L;
-  term_t copy;
   word rval;
   fid_t fid;
   int varkey = FALSE;			/* make compiler happy */
@@ -1666,8 +1665,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	{ LOCK();
 	  if ( unifyKey(key, record->list->key) )
 	  { int rc;
+	    term_t copy = PL_new_term_ref();
 
-	    copy = PL_new_term_ref();
 	    if ( (rc=copyRecordToGlobal(copy, record->record,
 					ALLOW_GC PASS_LD)) < 0 )
 	      rval = raiseStackOverflow(rc);
@@ -1722,8 +1721,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       succeed;
   }
 
-  if ( !(copy = PL_new_term_ref()) ||
-       !(fid = PL_open_foreign_frame()) )
+  if ( !(fid = PL_open_foreign_frame()) )
   { UNLOCK();
     return FALSE;
   }
@@ -1731,10 +1729,12 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
   while( rl )
   { for( ; record; record = record->next )
     { int rc;
+      term_t copy;
 
       if ( true(record->record, R_ERASED) )
 	continue;
 
+      copy = PL_new_term_ref();
       if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
       { UNLOCK();
 	return raiseStackOverflow(rc);
