@@ -83,11 +83,13 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 
     switch(tag(w))
     { case TAG_VAR:
-      { word i = state->var_count++;
+      { if ( isVar(w) )
+	{ word i = state->var_count++;
 
-	if ( !push_var(p, state) )
-	  return E_RESOURCE;
-	*p = (i<<LMASK_BITS)|MARK_MASK;
+	  if ( !push_var(p, state) )
+	    return E_RESOURCE;
+	  *p = (i<<LMASK_BITS)|MARK_MASK;
+	}
         HASH("V", 1);
 	HASH(p, sizeof(word));
 	continue;
