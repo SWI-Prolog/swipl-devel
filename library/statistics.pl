@@ -51,16 +51,16 @@
 
 time(Goal0) :-
 	expand_goal(Goal0, Goal),
-	get_time(OldWall),
-	statistics(cputime, OldTime),
-	statistics(inferences, OldInferences),
-	(   catch(Goal, E, true)
+	time_state(State0),
+	(   catch(Goal, E, (report(State0), throw(E)))
 	->  Result = yes
 	;   Result = no
 	),
-	statistics(inferences, NewInferences),
-	statistics(cputime, NewTime),
-	get_time(NewWall),
+	report(State0),
+	Result == yes.
+
+report(t(OldWall, OldTime, OldInferences)) :-
+	time_state(t(NewWall, NewTime, NewInferences)),
 	UsedTime is NewTime - OldTime,
 	UsedInf  is NewInferences - OldInferences - 3,
 	Wall     is NewWall - OldWall,
@@ -68,11 +68,12 @@ time(Goal0) :-
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
 	),
-	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)),
-	(   nonvar(E)
-	->  throw(E)
-	;   Result == yes
-	).
+	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)).
+
+time_state(t(Wall, Time, Inferences)) :-
+	get_time(Wall),
+	statistics(cputime, Time),
+	statistics(inferences, Inferences).
 
 
 		 /*******************************
