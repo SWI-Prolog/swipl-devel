@@ -3904,7 +3904,7 @@ getRepositionableStream(term_t stream, IOSTREAM **sp)
 static
 PRED_IMPL("set_stream_position", 2, set_stream_position, PL_FA_ISO)
 { PRED_LD
-  IOSTREAM *s;
+  IOSTREAM *s = NULL;			/* make compiler happy */
   int64_t charno, byteno;
   long linepos, lineno;
   term_t a = PL_new_term_ref();

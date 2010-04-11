@@ -2202,6 +2202,27 @@ as term_hash/2, hashing ground terms to the full depth.
 
 \arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
 must be in the range $[1 \ldots 2147483647]$
+
+    \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
+Compute an SHA1-hash from \arg{Term}. The hash is represented as a
+40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
+produces a hash-key for non-ground terms. The hash is invariant over
+variable-renaming (see \predref{=@=}{2}) and constants over different
+invocations of Prolog.\bug{The hash depends on word-order
+(big/little-endian) and the wordsize (32/64 bits).}
+
+This predicate raises an exeption when trying to compute the hash on
+a cyclic term or attributed term.  Attributed terms are not handled
+because subsumes_chk/2 is not considered well defined for attributed
+terms.  Cyclic terms are not supported because this would require
+establishing a canonical cycle.  I.e., given A=[a|A] and B=[a,a|B],
+\arg{A} and \arg{B} should produce the same hash.  This is not
+(yet) implemented.
+
+This hash was developed for lookup of solutions to a goal stored in a
+table.  By using a cryptographic hash, heuristic algorithms can often
+ignore the possibility of hash-colisions and thus avoid storing the
+goal-term itself as well as testing using \predref{=@=}{2}.
 \end{description}
 
 
@@ -6230,7 +6251,7 @@ files and, if supplied by the OS, the special entries \const{.} and
 \const{..}.  See also expand_file_name/2.\footnote{This predicate should
 be considered a misnomer because it returns entries rather than files.
 We stick to this name for compatibility with e.g., SICStus, Ciao and
-YAP.
+YAP.}
 
     \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching

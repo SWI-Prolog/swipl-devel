@@ -423,6 +423,7 @@ DECL_PLIST(dlopen);
 DECL_PLIST(system);
 DECL_PLIST(op);
 DECL_PLIST(rec);
+DECL_PLIST(termhash);
 
 void
 initBuildIns(void)
@@ -459,6 +460,7 @@ initBuildIns(void)
   REG_PLIST(system);
   REG_PLIST(op);
   REG_PLIST(rec);
+  REG_PLIST(termhash);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

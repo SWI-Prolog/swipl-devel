@@ -35,6 +35,8 @@ a compound and sometimes we do not  care.   In  the  latter case, we can
 simply jump to the last argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if !AC_TERM_WALK
+
 typedef struct aNode
 { Word		location;
   size_t 	size;
@@ -121,6 +123,90 @@ pushTermAgendaIfNotVisited__LD(term_agenda *a, word w ARG_LD)
   return pushWorkAgenda(a, arityFunctor(f->definition), f->arguments);
 }
 #endif /*HAVE_VISITED*/
+
+#endif /*!AC_TERM_WALK*/
+
+
+#if AC_TERM_WALK
+
+		 /*******************************
+		 *	 WALK ACYCLIC TERM	*
+		 *******************************/
+
+typedef struct acNode
+{ Functor	term;
+  Word		location;
+  size_t 	size;
+} acNode;
+
+typedef struct ac_term_agenda
+{ acNode	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[64*sizeof(acNode)];
+} ac_term_agenda;
+
+
+static void
+ac_initTermAgenda(ac_term_agenda *a, Word p)
+{ initSegStack(&a->stack, sizeof(acNode),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.term     = NULL;
+  a->work.location = p;
+  a->work.size     = 1;
+}
+
+
+static void
+ac_clearTermAgenda(ac_term_agenda *a)
+{ do
+  { if ( a->work.term )
+      clear_marked((Word)&a->work.term->definition);
+  } while(popSegStack(&a->stack, &a->work));
+}
+
+
+#define ac_nextTermAgenda(a) \
+	ac_nextTermAgenda__LD(a PASS_LD)
+
+static Word
+ac_nextTermAgenda__LD(ac_term_agenda *a ARG_LD)
+{ Word p;
+
+  while ( a->work.size == 0 )
+  { if ( a->work.term )
+      clear_marked((Word)&a->work.term->definition);
+    if ( !popSegStack(&a->stack, &a->work) )
+      return NULL;
+  }
+  a->work.size--;
+
+  p = a->work.location++;
+  deRef(p);
+
+  return p;
+}
+
+#define ac_pushTermAgenda(a, w, fp) \
+	ac_pushTermAgenda__LD(a, w, fp PASS_LD)
+
+static int
+ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
+{ Functor term = valueTerm(w);
+
+  if ( is_marked((Word)&term->definition) )
+    return FALSE;			/* hit cycle */
+  if ( !pushSegStack(&a->stack, &a->work) )
+    return -1;				/* no memory */
+  a->work.term     = term;
+  a->work.location = term->arguments;
+  a->work.size     = arityFunctor(term->definition);
+  *fp              = term->definition;
+  set_marked((Word)&term->definition);
+
+  return TRUE;
+}
+
+#endif /*AC_TERM_WALK*/
 
 
 #if 0

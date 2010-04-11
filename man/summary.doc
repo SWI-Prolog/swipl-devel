@@ -606,6 +606,7 @@ suggest predicates from a keyword.
 \predicatesummary{use_module}{1}{Import a module}
 \predicatesummary{use_module}{2}{Import predicates from a module}
 \predicatesummary{var}{1}{Type check for unbound variable}
+\predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
 \predicatesummary{visible}{1}{Ports that are visible in the tracer}
 \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
