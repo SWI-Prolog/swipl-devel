@@ -44,25 +44,38 @@
 	profile(0),
 	profile(0, +, +).
 
-%%	time(:Goal)
+%%	time(:Goal) is nondet.
 %
-%	Time the execution of Goal.  Possible choice-points of Goal are
-%	removed.
+%	Execute Goal, reporting statistics to the user. If Goal succeeds
+%	non-deterministically,  retrying  reports  the   statistics  for
+%	providing the next answer.
+%
+%	Statistics  are  retrieved  using   thread_statistics/3  on  the
+%	calling   thread.   Note   that   not    all   systems   support
+%	thread-specific CPU time. Notable, this is lacking on MacOS X.
+%
+%	@bug Inference statistics are often a few off.
+%	@see statistics/2 for obtaining statistics in your program and
+%	     understanding the reported values.
 
 time(Goal0) :-
 	expand_goal(Goal0, Goal),
 	time_state(State0),
-	(   catch(Goal, E, (report(State0), throw(E)))
-	->  Result = yes
-	;   Result = no
-	),
-	report(State0),
-	Result == yes.
+	(   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
+			 Det = true),
+	    time_true(State0),
+	    (	Det == true
+	    ->	!
+	    ;	true
+	    )
+	;   report(State0, 11),
+	    fail
+	).
 
-report(t(OldWall, OldTime, OldInferences)) :-
+report(t(OldWall, OldTime, OldInferences), Sub) :-
 	time_state(t(NewWall, NewTime, NewInferences)),
 	UsedTime is NewTime - OldTime,
-	UsedInf  is NewInferences - OldInferences - 3,
+	UsedInf  is NewInferences - OldInferences - Sub,
 	Wall     is NewWall - OldWall,
 	(   UsedTime =:= 0
 	->  Lips = 'Infinite'
@@ -72,8 +85,22 @@ report(t(OldWall, OldTime, OldInferences)) :-
 
 time_state(t(Wall, Time, Inferences)) :-
 	get_time(Wall),
-	statistics(cputime, Time),
-	statistics(inferences, Inferences).
+	thread_self(Me),
+	thread_statistics(Me, cputime, Time),
+	thread_statistics(Me, inferences, Inferences).
+
+time_true(State0) :-
+	report(State0, 12).		% leave choice-point
+time_true(State) :-
+	get_time(Wall),
+	thread_self(Me),
+	thread_statistics(Me, cputime, Time),
+	thread_statistics(Me, inferences, Inferences0),
+	plus(Inferences0, -3, Inferences),
+	nb_setarg(1, State, Wall),
+	nb_setarg(2, State, Time),
+	nb_setarg(3, State, Inferences),
+	fail.
 
 
 		 /*******************************
