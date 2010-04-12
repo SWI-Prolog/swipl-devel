@@ -291,9 +291,24 @@ put_attr(Word attvar, atom_t name, Word value)
 
 Destructive assignment or adding in a list  of the form att(Name, Value,
 Rest).
-
+Word
 SHIFT-SAFE: Requires max 5 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+put_att_value(Word vp, atom_t name, Word value ARG_LD)
+{ Word at = gTop;
+
+  gTop += 4;
+  at[0] = FUNCTOR_att3;
+  at[1] = name;
+  at[2] = linkVal(value);
+  at[3] = ATOM_nil;
+
+  TrailAssignment(vp);
+  *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+}
+
 
 static int
 put_attr(Word av, atom_t name, Word value ARG_LD)
@@ -305,16 +320,7 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
   { TrailAssignment(vp);
     *vp = linkVal(value);
   } else if ( vp )
-  { Word at = gTop;
-
-    gTop += 4;
-    at[0] = FUNCTOR_att3;
-    at[1] = name;
-    at[2] = linkVal(value);
-    at[3] = ATOM_nil;
-
-    TrailAssignment(vp);
-    *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+  { put_att_value(vp, name, value PASS_LD);
   } else
     return FALSE;			/* Bad attribute list */
 
@@ -959,6 +965,103 @@ retry:
   return PL_unify(A2, cond);
 }
 
+
+/** '$suspend'(+Var, +Attr, :Goal) is semidet.
+
+Add Goal to an attribute with the value call(Goal).  This is the same
+as:
+
+    ==
+    '$suspend'(Var, Attr, Goal) :-
+	(   get_attr(Var, Attr, call(G0))
+	->  put_attr(Var, Attr, call((G0,Goal)))
+	;   put_attr(Var, Attr, call(Goal))
+	).
+    ==
+*/
+
+static
+PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
+{ PRED_LD
+  atom_t name;
+  Word v, g;
+
+  if ( !hasGlobalSpace(6) )		/* 0 means enough for attvars */
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  if ( !PL_get_atom_ex(A2, &name) )
+    return FALSE;
+
+  g = valTermRef(A3);
+  if ( !isTerm(*g) || functorTerm(*g) != FUNCTOR_colon2 )
+  { Word t = gTop;
+    term_t g2 = PL_new_term_ref();
+
+    gTop += 3;
+    t[0] = FUNCTOR_colon2;
+    t[1] = contextModule(PL__ctx->engine->environment)->name;
+    t[2] = linkVal(g);
+    g = valTermRef(g2);
+    *g = consPtr(t, STG_GLOBAL|TAG_COMPOUND);
+  }
+
+  v = valTermRef(A1); deRef(v);
+
+  if ( isVar(*v) )
+  { Word t = gTop;
+
+    gTop += 3;
+    t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+    t[1] = FUNCTOR_call1,
+    t[2] = linkVal(g);
+    put_new_attvar(v, name, t PASS_LD);
+    return TRUE;
+  } else if ( isAttVar(*v) )
+  { Word vp;
+
+    if ( find_attr(v, name, &vp PASS_LD) )
+    { Word g0;
+
+      deRef2(vp, g0);
+      if ( isTerm(*g0) && functorTerm(*g0) == FUNCTOR_call1 )
+      { Word t = gTop;
+	Word ap = argTermP(*g0,0);
+
+	gTop += 3;
+	t[0] = FUNCTOR_comma2;
+	t[1] = linkVal(ap);
+	t[2] = linkVal(g);
+	TrailAssignment(ap);
+	*ap = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+
+	return TRUE;
+      }
+
+      return FALSE;
+    } else if ( vp )
+    { Word t = gTop;
+
+      gTop += 3;
+      t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+      t[1] = FUNCTOR_call1,
+      t[2] = linkVal(g);
+
+      put_att_value(vp, name, t PASS_LD);
+      return TRUE;
+    }
+  } else
+    return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 1, A1);
+
+  assert(0);
+  return FALSE;
+}
+
+
+
 #ifdef O_CALL_RESIDUE
 
 		 /*******************************
@@ -1164,6 +1267,7 @@ BeginPredDefs(attvar)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    0)
   PRED_DEF("$eval_when_condition", 2, eval_when_condition, 0)
+  PRED_DEF("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 #ifdef O_CALL_RESIDUE
   PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
