@@ -77,7 +77,7 @@ delayes the execution of =:=/2 until the expression is instantiated.
 
 when(Condition, Goal) :-
 	'$eval_when_condition'(Condition, Optimised),
-	trigger(Optimised, Goal).
+	trigger_first(Optimised, Goal).
 
 %%	'$eval_when_condition'(+Condition, -Optimised)
 %
@@ -88,10 +88,14 @@ when(Condition, Goal) :-
 %	Optimised to =true= if  there  is   no  need  to suspend. Nested
 %	disjunctions are reported as or(List).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-trigger(true,Goal) :-
+trigger_first(true, Goal) :- !,
 	call(Goal).
+trigger_first(nonvar(X), Goal) :- !,
+	suspend(X, trigger_nonvar(X, Goal)).
+trigger_first(Cond, Goal) :-
+	trigger(Cond, Goal).
+
 trigger(nonvar(X),Goal) :-
 	trigger_nonvar(X,Goal).
 trigger(ground(X),Goal) :-
@@ -103,35 +107,30 @@ trigger((G1,G2),Goal) :-
 trigger(or(GL),Goal) :-
 	trigger_disj(GL, when:check_disj(_DisjID,GL,Goal)).
 
-trigger_nonvar(X,Goal) :-
-	( nonvar(X) ->
-		call(Goal)
-	;
-		suspend(X,trigger_nonvar(X,Goal))
+trigger_nonvar(X, Goal) :-
+	(   nonvar(X)
+	->  call(Goal)
+	;   suspend(X, trigger_nonvar(X, Goal))
 	).
 
-trigger_ground(X,Goal) :-
-	term_variables(X,Vs),
-	( Vs = [H] ->
-		suspend(H,trigger_ground(H,Goal))
-	; Vs = [H|_] ->
-		T =.. [f|Vs],
-		suspend(H,trigger_ground(T,Goal))
-	;
-		call(Goal)
+trigger_ground(X, Goal) :-
+	term_variables(X, Vs),
+	(   Vs = [H]
+	->  suspend(H,trigger_ground(H, Goal))
+	;   Vs = [H|_]
+	->  T =.. [f|Vs],
+	    suspend(H,trigger_ground(T, Goal))
+	;   call(Goal)
 	).
 
-trigger_determined(X,Y,Goal) :-
-	unifiable(X,Y,Unifier),
-	!,
-	( Unifier == [] ->
-		call(Goal)
-	;
-		put_attr(Det,when,det(trigger_determined(X,Y,Goal))),
-		suspend_list(Unifier,wake_det(Det))
+trigger_determined(X, Y, Goal) :-
+	unifiable(X, Y, Unifier), !,
+	(   Unifier == []
+	->  call(Goal)
+	;   put_attr(Det, when, det(trigger_determined(X,Y,Goal))),
+	    suspend_list(Unifier, wake_det(Det))
 	).
-
-trigger_determined(_,_,Goal) :-
+trigger_determined(_, _, Goal) :-
 	call(Goal).
 
 
@@ -165,11 +164,10 @@ trigger_disj([H|T], G) :-
 %	copy_term/3.
 
 check_disj(Disj,_,Goal) :-
-	( var(Disj) ->
-		Disj = (-),
-		call(Goal)
-	;
-		true
+	(   Disj == (-)
+	->  true
+	;   Disj = (-),
+	    call(Goal)
 	).
 
 suspend_list([],_Goal).
