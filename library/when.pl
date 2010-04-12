@@ -29,40 +29,6 @@
     the GNU General Public License.
 */
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This module implements the when/2 co-routine.
-%
-%%	when(+Condition, :Goal)
-%
-%		Condition should be one of
-%			?=(X,Y)
-%%			nonvar(X)
-%%			ground(X)
-%			(Condition,Condition)
-%			(Condition;Condition)
-%
-%	Author: 	Tom Schrijvers, K.U.Leuven
-% 	E-mail: 	Tom.Schrijvers@cs.kuleuven.ac.be
-%	Copyright:	2003-2004, K.U.Leuven
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% History:
-%
-%	Apr 9, 2004
-%	* JW: Supressed debugging this module
-%	* JW: Made when/2 module-aware.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Simple implementation. Does not clean up redundant attributes.
-% Now deals with cyclic terms.
-%
-% Currently, redundant constraints are skipped for copy_term/3. We could
-% also   considering   to   implement   the   approach   of   block   in
-% library(dialect/sicstus/block).
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(when,
 	  [ when/2			% +Condition, :Goal
 	  ]).
@@ -72,12 +38,55 @@
 	when(+, 0),
 	suspend(-, 0).
 
-:- use_module(library(error)).
+/** <module> Conditional coroutining
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+This library implements the when/2 constraint, delaying a goal until its
+arguments are sufficiently instantiated.  For   example,  the  following
+delayes the execution of =:=/2 until the expression is instantiated.
+
+    ==
+	...
+	when(ground(Expr), 0 =:= Expr),
+    ==
+
+@author Tom Schrijvers (initial implementation)
+@author Jan Wielemaker
+*/
+
+%%	when(+Condition, :Goal)
+%
+%	Execute Goal when Condition is satisfied. I.e., Goal is executed
+%	as by call/1  if  Condition  is   true  when  when/2  is called.
+%	Otherwise  Goal  is  _delayed_  until  Condition  becomes  true.
+%	Condition is one of the following:
+%
+%	    * nonvar(X)
+%	    * ground(X)
+%	    * ?=(X,Y)
+%	    * (Cond1,Cond2)
+%	    * (Cond2;Cond2)
+%
+%	For example (note the order =a= and =b= are written):
+%
+%	    ==
+%	    ?- when(nonvar(X), writeln(a)), writeln(b), X = x.
+%	    b
+%	    a
+%	    X = x
+%	    ==
+
 when(Condition, Goal) :-
 	'$eval_when_condition'(Condition, Optimised),
 	trigger(Optimised, Goal).
+
+%%	'$eval_when_condition'(+Condition, -Optimised)
+%
+%	C-building block defined in pl-attvar.c.   It  pre-processes the
+%	when-condition, checks it  for   errors  (instantiation  errors,
+%	domain-errors and cyclic terms) and   simplifies it. Notably, it
+%	removes already satisfied conditions   from  Condition, unifying
+%	Optimised to =true= if  there  is   no  need  to suspend. Nested
+%	disjunctions are reported as or(List).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
