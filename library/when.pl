@@ -35,8 +35,7 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	when(+, 0),
-	suspend(-, 0).
+	when(+, 0).
 
 /** <module> Conditional coroutining
 
@@ -92,7 +91,7 @@ when(Condition, Goal) :-
 trigger_first(true, Goal) :- !,
 	call(Goal).
 trigger_first(nonvar(X), Goal) :- !,
-	suspend(X, trigger_nonvar(X, Goal)).
+	'$suspend'(X, when, trigger_nonvar(X, Goal)).
 trigger_first(Cond, Goal) :-
 	trigger(Cond, Goal).
 
@@ -110,16 +109,16 @@ trigger(or(GL),Goal) :-
 trigger_nonvar(X, Goal) :-
 	(   nonvar(X)
 	->  call(Goal)
-	;   suspend(X, trigger_nonvar(X, Goal))
+	;   '$suspend'(X, when, trigger_nonvar(X, Goal))
 	).
 
 trigger_ground(X, Goal) :-
 	term_variables(X, Vs),
 	(   Vs = [H]
-	->  suspend(H,trigger_ground(H, Goal))
+	->  '$suspend'(H, when, trigger_ground(H, Goal))
 	;   Vs = [H|_]
 	->  T =.. [f|Vs],
-	    suspend(H,trigger_ground(T, Goal))
+	    '$suspend'(H, when, trigger_ground(T, Goal))
 	;   call(Goal)
 	).
 
@@ -172,15 +171,12 @@ check_disj(Disj,_,Goal) :-
 
 suspend_list([],_Goal).
 suspend_list([V=W|Unifier],Goal) :-
-	suspend(V,Goal),
-	( var(W) -> suspend(W,Goal) ; true),
+	'$suspend'(V, when, Goal),
+	(   var(W)
+	->  '$suspend'(W, when, Goal)
+	;   true
+	),
 	suspend_list(Unifier,Goal).
-
-suspend(V, Goal) :-
-	(   get_attr(V, when, call(Goal0))
-	->  put_attr(V, when, call((Goal,Goal0)))
-	;   put_attr(V, when, call(Goal))
-	).
 
 attr_unify_hook(call(Goal), Other) :-
 	(   get_attr(Other, when, call(GOTher))
