@@ -3151,7 +3151,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_sign1,		ar_sign),
 
   ADD(FUNCTOR_and2,		ar_conjunct),
-  ADD(FUNCTOR_or2,		ar_disjunct),
+  ADD(FUNCTOR_bitor2,		ar_disjunct),
   ADD(FUNCTOR_rshift2,		ar_shift_right),
   ADD(FUNCTOR_lshift2,		ar_shift_left),
   ADD(FUNCTOR_xor2,		ar_xor),

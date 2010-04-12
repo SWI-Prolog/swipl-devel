@@ -764,6 +764,201 @@ PRED_IMPL("$freeze", 2, freeze, 0)
   fail;
 }
 
+
+		 /*******************************
+		 *	      WHEN		*
+		 *******************************/
+
+typedef enum
+{ E_NOSPACE = -4,
+  E_CYCLIC = -3,
+  E_DOMAIN_ERROR = -2,
+  E_INSTANTIATION_ERROR = -1,
+  E_OK = 0
+} when_status;
+
+typedef struct
+{ Word gSave;				/* Saved global top */
+  int  depth;				/* Recursion depth */
+} when_state;
+
+
+static when_status
+add_to_list(word c, Word *tailp ARG_LD)
+{ Word t;
+
+  if(isTerm(c) && functorTerm(c) == FUNCTOR_semicolon2)
+  { Word p = argTermP(c, 0);
+    int rc;
+
+    if ( (rc=add_to_list(p[0], tailp PASS_LD)) < 0 )
+      return rc;
+    return add_to_list(p[1], tailp PASS_LD);
+  }
+
+  if ( (t=allocGlobalNoShift(3)) )
+  { t[0] = FUNCTOR_dot2;
+    t[1] = c;
+    t[2] = ATOM_nil;
+    **tailp = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+    *tailp = &t[2];
+
+    return E_OK;
+  }
+
+  return E_NOSPACE;
+}
+
+
+static when_status
+or_to_list(word c1, word c2, Word list ARG_LD)
+{ int rc;
+  Word tailp = list;
+
+  if ( (rc=add_to_list(c1, &tailp PASS_LD)) < 0 )
+    return rc;
+  return add_to_list(c2, &tailp PASS_LD);
+}
+
+
+static when_status
+when_condition(Word cond, Word result, int top_or, when_state *state ARG_LD)
+{ deRef(cond);
+
+  if ( state->depth++ == 100 &&
+       !PL_is_acyclic(wordToTermRef(cond)) )
+    return E_CYCLIC;
+
+  if ( isTerm(*cond) )
+  { Functor term = valueTerm(*cond);
+    functor_t f = term->definition;
+
+    if ( f == FUNCTOR_unify_determined2 ) /* ?=/2 */
+    { *result = *cond;
+    } else if ( f == FUNCTOR_nonvar1 )
+    { Word a1;
+
+      deRef2(&term->arguments[0], a1);
+      if ( canBind(*a1) )
+	*result = *cond;
+      else
+	*result = ATOM_true;
+    } else if ( f == FUNCTOR_ground1 )
+    { Word a1;
+
+      deRef2(&term->arguments[0], a1);
+      if ( ground__LD(a1 PASS_LD) )
+	*result = ATOM_true;
+      else
+	*result = *cond;
+    } else if ( f == FUNCTOR_comma2 )
+    { word c1, c2;
+      int rc;
+
+      if ( (rc=when_condition(&term->arguments[0], &c1, TRUE, state PASS_LD)) < 0 )
+	return rc;
+      if ( (rc=when_condition(&term->arguments[1], &c2, TRUE, state PASS_LD)) < 0 )
+	return rc;
+
+      if ( c1 == ATOM_true )
+      { *result = c2;
+      } else if ( c2 == ATOM_true )
+      { *result = c1;
+      } else if ( cond < state->gSave )
+      { *result = *cond;
+      } else
+      { Word t;
+
+	if ( (t = allocGlobalNoShift(3)) )
+	{ t[0] = FUNCTOR_comma2;
+	  t[1] = c1;
+	  t[2] = c2;
+
+	  *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	} else
+	  return E_NOSPACE;
+      }
+    } else if ( f == FUNCTOR_semicolon2 )
+    { word c1, c2;
+      int rc;
+
+      if ( (rc=when_condition(&term->arguments[0], &c1, FALSE, state PASS_LD)) < 0 )
+	return rc;
+      if ( c1 == ATOM_true )
+      { *result = c1;
+      } else
+      { if ( (rc=when_condition(&term->arguments[1], &c2, FALSE, state PASS_LD)) < 0 )
+	  return rc;
+	if ( c2 == ATOM_true )
+	{ *result = c2;
+	} else if ( top_or )
+	{ Word t;
+
+	  if ( (t = allocGlobalNoShift(2)) )
+	  { t[0] = FUNCTOR_or1;
+	    if ( (rc=or_to_list(c1,c2,&t[1] PASS_LD)) < 0 )
+	      return rc;
+	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  }
+	} else
+	{ Word t;
+
+	  if ( (t = allocGlobalNoShift(3)) )
+	  { t[0] = FUNCTOR_semicolon2;
+	    t[1] = c1;
+	    t[2] = c2;
+	    *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  }
+	}
+      }
+    } else
+      return E_DOMAIN_ERROR;
+
+    return E_OK;
+  }
+
+  if ( isVar(*cond) )
+    return E_INSTANTIATION_ERROR;
+
+  return E_DOMAIN_ERROR;
+}
+
+
+static
+PRED_IMPL("$eval_when_condition", 2, eval_when_condition, 0)
+{ PRED_LD
+  when_state state;
+  term_t cond;
+  int rc;
+
+retry:
+  cond = PL_new_term_ref();
+  state.gSave = gTop;
+  state.depth = 0;
+
+  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), TRUE, &state PASS_LD)) < 0 )
+  { gTop = state.gSave;
+    PL_put_variable(cond);
+
+    switch( rc )
+    { case E_INSTANTIATION_ERROR:
+	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+      case E_DOMAIN_ERROR:
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_when_condition, A1);
+      case E_CYCLIC:
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, A1);
+      case E_NOSPACE:
+	if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
+	  return FALSE;
+        goto retry;
+      default:
+	assert(0);
+    }
+  }
+
+  return PL_unify(A2, cond);
+}
+
 #ifdef O_CALL_RESIDUE
 
 		 /*******************************
@@ -968,6 +1163,7 @@ BeginPredDefs(attvar)
   PRED_DEF("get_attrs", 2, get_attrs, 0)
   PRED_DEF("put_attrs", 2, put_attrs, 0)
   PRED_DEF("$freeze",   2, freeze,    0)
+  PRED_DEF("$eval_when_condition", 2, eval_when_condition, 0)
 #ifdef O_CALL_RESIDUE
   PRED_DEF("$get_choice_point", 1, get_choice_point, 0)
   PRED_DEF("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)

@@ -747,8 +747,8 @@ last:
 }
 
 
-static int
-ground(Word p ARG_LD)
+int
+ground__LD(Word p ARG_LD)
 { int rc1, rc2;
 
   startCritical;
@@ -765,7 +765,7 @@ int
 PL_is_ground(term_t t)
 { GET_LD
 
-  return ground(valTermRef(t) PASS_LD);
+  return ground__LD(valTermRef(t) PASS_LD);
 }
 
 
@@ -773,7 +773,7 @@ static
 PRED_IMPL("ground", 1, ground, 0)
 { PRED_LD
 
-  return ground(valTermRef(A1) PASS_LD);
+  return ground__LD(valTermRef(A1) PASS_LD);
 }
 
 

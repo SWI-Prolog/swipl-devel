@@ -63,6 +63,7 @@ A bar			"|"
 A begin			"begin"
 A binary		"binary"
 A bind			"bind"
+A bitor			"\\/"
 A block			"block"
 A bof			"bof"
 A bom			"bom"
@@ -262,6 +263,7 @@ A goal			"goal"
 A goal_expansion	"goal_expansion"
 A grammar		"-->"
 A graph			"graph"
+A ground		"ground"
 A gvar			"gvar"
 A halt			"halt"
 A has_alternatives	"has_alternatives"
@@ -402,7 +404,7 @@ A operator		"operator"
 A operator_priority	"operator_priority"
 A operator_specifier	"operator_specifier"
 A optimise		"optimise"
-A or			"\\/"
+A or			"or"
 A order			"order"
 A output		"output"
 A pair			"pair"
@@ -604,6 +606,7 @@ A undefinterc		"$undefined_procedure"
 A unicode_be		"unicode_be"
 A unicode_le		"unicode_le"
 A unify			"unify"
+A unify_determined	"?="
 A unique		"unique"
 A univ			"=.."
 A unknown		"unknown"
@@ -632,6 +635,7 @@ A wakeup		"wakeup"
 A walltime		"walltime"
 A warning		"warning"
 A wchar_t		"wchar_t"
+A when_condition	"when_condition"
 A white			"white"
 A write			"write"
 A write_attributes	"write_attributes"
@@ -664,6 +668,7 @@ F atom			1
 F att			3
 F backslash		1
 F bar			2
+F bitor			2
 F block			3
 F bom			1
 F brace_term_position	3
@@ -752,6 +757,7 @@ F frame			3
 F frame_finished	1
 F gcd			2
 F goal_expansion	2
+F ground		1
 F hat			2
 F ifthen		2
 F input			0
@@ -785,7 +791,7 @@ F nonvar		1
 F not_implemented	2
 F not_provable		1
 F occurs_check		2
-F or			2
+F or			1
 F output		0
 F permission_error	3
 F pi			0
@@ -853,6 +859,7 @@ F tty			1
 F type			1
 F type_error		2
 F undefinterc		4
+F unify_determined	2
 F var			1
 F wakeup		3
 F warning		3

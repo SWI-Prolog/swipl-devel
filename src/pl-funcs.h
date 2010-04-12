@@ -498,6 +498,7 @@ COMMON(int) 		pl_statistics_ld(term_t k, term_t value,
 				 PL_local_data_t *ld ARG_LD);
 COMMON(int) 		set_pl_option(const char *name, const char *value);
 COMMON(word) 		pl_novice(term_t old, term_t new);
+COMMON(int)		ground__LD(Word p ARG_LD);
 
 /* pl-prologflag.c */
 COMMON(void) 		setPrologFlag(const char *name, int flags, ...);

@@ -619,7 +619,7 @@ static const opdef operators[] = {
   OP(ATOM_at_larger_eq,		 OP_XFX, 700),	/* @>= */
   OP(ATOM_backslash,		 OP_FY,	 200),	/* \ */
   OP(ATOM_not_provable,		 OP_FY,	 900),	/* \+ */
-  OP(ATOM_or,			 OP_YFX, 500),	/* \/ */
+  OP(ATOM_bitor,		 OP_YFX, 500),	/* \/ */
   OP(ATOM_bw_xor,		 OP_YFX, 500),	/* >< */
   OP(ATOM_not_equals,		 OP_XFX, 700),	/* \= */
   OP(ATOM_not_strickt_equals,	 OP_XFX, 700),	/* \== */

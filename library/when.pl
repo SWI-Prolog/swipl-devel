@@ -76,54 +76,8 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 when(Condition, Goal) :-
-	when_condition(Condition, Optimised),
+	'$eval_when_condition'(Condition, Optimised),
 	trigger(Optimised, Goal).
-
-when_condition(C, _) :-
-	var(C), !,
-	instantiation_error(C).
-when_condition(?=(X,Y), C) :- !,
-	(   ?=(X,Y)
-	->  C = true
-	;   C = ?=(X,Y)
-	).
-when_condition(nonvar(X), C) :- !,
-	(   nonvar(X)
-	->  C = true
-	;   C = nonvar(X)
-	).
-when_condition(ground(X), C) :- !,
-	(   ground(X)
-	->  C = true
-	;   C = ground(X)
-	).
-when_condition((C1,C2), C) :- !,
-	when_condition(C1, T1),
-	when_condition(C2, T2),
-	conj(T1,T2,C).
-when_condition((C1;C2), C) :- !,
-	when_condition(C1, T1),
-	(   T1 == true
-	->  C = true
-	;   when_condition(C2, T2),
-	    (	T2 == true
-	    ->	C = true
-	    ;	disj(T1,T2,C)
-	    )
-	).
-when_condition(C, _) :-
-	domain_error(when_condition, C).
-
-conj(true, C, C) :- !.
-conj(C, true, C) :- !.
-conj(C1, C2, (C1,C2)).
-
-disj(or(D,DT),or(DT,DT2),or(D,DT2)) :- !.
-disj(or(D,DT),C,or(D,DT2)) :- !,
-	DT = [C|DT2].
-disj(C,or(D,DT),or([C|D],DT)) :- !.
-disj(C1,C2,or([C1,C2|DT], DT)).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -137,7 +91,7 @@ trigger(?=(X,Y),Goal) :-
 	trigger_determined(X,Y,Goal).
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
-trigger(or(GL,[]),Goal) :-
+trigger(or(GL),Goal) :-
 	trigger_disj(GL, when:check_disj(_DisjID,GL,Goal)).
 
 trigger_nonvar(X,Goal) :-
