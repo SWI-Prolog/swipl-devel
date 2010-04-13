@@ -6000,8 +6000,16 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
   p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found = (indexed & BY_S) ? p->object.resource : p->subject;
+    { atom_t found;
       visited *v;
+
+      if ( indexed & BY_S )
+      { if ( p->object_is_literal )
+	  continue;
+	found = p->object.resource;
+      } else
+      { found = p->subject;
+      }
 
       v = append_agenda(db, a, found);
       if ( !rc )
