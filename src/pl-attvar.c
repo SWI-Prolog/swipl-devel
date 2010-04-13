@@ -569,10 +569,10 @@ PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
   Word av, vp;
   atom_t name;
 
-  if ( !hasGlobalSpace(0) )		/* 0 means enough for attvars */
+  if ( !hasGlobalSpace(1) )		/* 0 means enough for attvars */
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
   }
 
@@ -989,7 +989,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   if ( !hasGlobalSpace(6) )		/* 0 means enough for attvars */
   { int rc;
 
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+    if ( (rc=ensureGlobalSpace(6, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
   }
 
