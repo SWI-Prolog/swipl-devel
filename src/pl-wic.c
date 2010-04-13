@@ -461,7 +461,7 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Sgetc(fd);
+  first = Snpgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
@@ -476,7 +476,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Sgetc(fd) & 0xff;
+      first |= Snpgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -488,7 +488,7 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Sgetc(fd) & 0xff;
+      first |= Snpgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
@@ -532,7 +532,7 @@ getFloat(IOSTREAM *fd)
   unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
-  { int c = Sgetc(fd);
+  { int c = Snpgetc(fd);
 
     if ( c == -1 )
       fatalError("Unexpected end-of-file in QLT file");
