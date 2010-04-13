@@ -2147,6 +2147,7 @@ START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
       { DiscardMark(ch->mark);
 	BFR = ch->parent;
 	lTop = (LocalFrame)argFrameP(FR, CL->clause->variables);
+	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
 
 	if ( next )
 	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
