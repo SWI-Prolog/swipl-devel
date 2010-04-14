@@ -210,13 +210,17 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 
 test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
 	(   setup_call_catcher_cleanup(true,
-				       (member(X,[a,b]),
+				       (ndet(X),
 					assert(v(X))),
 				       Exit,
 				       assert(v(Exit))),
 	    fail
 	;   findall(V, retract(v(V)), Vs)
 	).
+
+ndet(a).
+ndet(b).
+ndet(_) :- 1 =:= 0.
 
 test(cleanup, error(instantiation_error)) :-
 	a(X),
