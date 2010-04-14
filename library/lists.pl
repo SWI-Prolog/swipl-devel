@@ -67,11 +67,23 @@ the DEC-10 Prolog library (LISTRO.PL). Contributed by Richard O'Keefe.
 
 %%	member(?Elem, ?List)
 %
-%	True if Elem is a member of List
+%	True if Elem is a  member   of  List.  The SWI-Prolog definition
+%	differs from the classical one.  Our definition avoids unpacking
+%	each list element twice and  provides   determinism  on the last
+%	element.  E.g. this is deterministic:
+%
+%	    ==
+%	    	member(X, [One]).
+%	    ==
+%
+%	@author Gertjan van Noord
 
-member(X, [X|_]).
-member(X, [_|T]) :-
-	member(X, T).
+member(El, [H|T]) :-
+    member_(T, El, H).
+
+member_(_, El, El).
+member_([H|T], El, _) :-
+    member_(T, El, H).
 
 %%	append(?List1, ?List2, ?List1AndList2)
 %
