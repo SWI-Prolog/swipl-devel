@@ -406,27 +406,38 @@ create_server(Port) :-
 	<dispatch>
 \end{code}
 
-There are various options for <dispatch>. One is to keep track of active
-clients and server-sockets using wait_for_input/3. If input arrives at a
-server socket, use tcp_accept/3 and add the new connection to the active
-clients. Otherwise deal with the input from the client.  Another is
-to use (Unix) fork/1 to deal with the client in a separate process.
+There are various options for <dispatch>. The most commonly used option
+is to start a Prolog thread to handle the connection. Alternatively,
+input from multiple clients can be handled in a single thread by
+listening to these clients using wait_for_input/3. Finally, on Unix
+systems, we can use fork/1 to handle the connection in a new process.
+Note that fork/1 and threads do not cooperate well. Combinations can be
+realised but require good understanding of POSIX thread and
+fork-semantics.
 
-Using fork/1, <dispatch> may be implemented as:
+Below is the typical example using a thread. Note the use of
+setup_call_cleanup/3 to guarantee that all resources are reclaimed, also
+in case of failure or exceptions.
 
 \begin{code}
 dispatch(AcceptFd) :-
 	tcp_accept(AcceptFd, Socket, _Peer),
-	fork(Pid)
-	(   Pid == child
-	->  tcp_open_socket(Socket, In, Out),
-	    handle_service(In, Out),
-	    close(In),
-	    close(Out),
-	    halt
-	;   tcp_close_socket(Socket)
-	),
+	thread_create(process_client(Socket, Peer), _,
+		      [ detached(true)
+		      ]),
 	dispatch(AcceptFd).
+
+process_client(Socket, Peer) :-
+	setup_call_cleanup(tcp_open_socket(Socket, In, Out),
+			   handle_service(In, Out),
+			   close_connection(In, Out)).
+
+close_connection(In, Out) :-
+	close(In, [force(true)]),
+	close(Out, [force(true)]).
+
+handle_service(In, Out) :-
+	...
 \end{code}
 
 
@@ -436,12 +447,19 @@ The skeleton for client-communication is given below.
 
 \begin{code}
 create_client(Host, Port) :-
-	tcp_socket(Socket),
-	tcp_connect(Socket, Host:Port),
-	tcp_open_socket(Socket, ReadFd, WriteFd),
-	<handle I/O using the two streams>
-	close(ReadFd),
-	close(WriteFd).
+	setup_call_cleanup(tcp_socket(Socket),
+			   tcp_connect(Socket, Host:Port),
+			   tcp_close_socket(Socket)),
+	setup_call_cleanup(tcp_open_socket(Socket, In, Out),
+			   chat_to_server(In, Out),
+			   close_connection(In, Out)).
+
+close_connection(In, Out) :-
+	close(In, [force(true)]),
+	close(Out, [force(true)]).
+
+chat_to_server(In, Out) :-
+	...
 \end{code}
 
 To deal with timeouts and multiple connections, wait_for_input/3 and/or
