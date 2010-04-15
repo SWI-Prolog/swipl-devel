@@ -705,7 +705,7 @@ DVMISCFILES=	ChangeLog
 RTMISC=		Defaults Defaults.user COPYING README
 DVFILES=	rt-install dv-home dv-lib dv-boot dv-help \
 	        rt-link dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install
+		dv-misc
 DVINSTALL=	$(DVFILES) dv-qlf dv-bins dv-online dv-classindex
 RTINSTALL=	home rt-misc rt-bitmaps rt-bins rt-link
 
@@ -718,7 +718,7 @@ dv-install:	$(DVINSTALL)
 
 rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help rt-link dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install dv-bins dv-online dv-classindex
+		dv-misc dv-bins dv-online dv-classindex
 
 manindex:	$(MANINDEX)
 
@@ -892,27 +892,6 @@ dv-bins:
 pdf-install::
 html-install::
 
-################################################################
-# CXX interface installation
-################################################################
-
-CXXDEMO=	DEMOS Makefile Makefile.in README bnode.cxx dir.cxx \
-		dispatch.cxx dispatch.pl drawBoxes.cxx east.cxx getenv.cxx \
-		global.cxx hello.cxx home.cxx multi3.bm multi5.bm onexit.cxx \
-		open.bm pcerc.c persist.cxx persist.pl person.cxx \
-		showinst.cxx super.cxx test.cxx view.cxx yesno.bm
-
-cxx-install:	cxx-headers cxx-demos cxx-misc
-
-cxx-headers:	dv-home
-		$(INSTALL_DATA) -p1 ../include/pce/*.h $(DESTDIR)$(DVHOME)
-
-cxx-demos:	dv-home
-		$(INSTALL_DATA) -pC ../CXX/demo $(CXXDEMO) $(DESTDIR)$(DVHOME)/CXX/demo
-
-cxx-misc:	dv-home
-		$(INSTALL_DATA) -C .. README.CXX $(DESTDIR)$(DVHOME)
-		$(INSTALL_DATA) -p1 ../src/itf/main.cxx $(DESTDIR)$(DVHOME)
 
 ################################################################
 # CHECK
