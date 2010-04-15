@@ -9,10 +9,6 @@
 
 gsave
 
-%	PostScript header file for PCE version 3.6
-%	Copyright Jan Wielemaker, Anjo Anjewierden
-%	Last Modified: May 3, 1989
-
 %	PCE line attributes
 
 /dotted
@@ -73,7 +69,7 @@ gsave
 	} def
 
 %	Create a path for a PCE box without rounded corners. Stack:
-%	
+%
 %	pen x y w h radius BOXPATH path
 
 /boxpath
@@ -83,7 +79,7 @@ gsave
 	  /y exch def
 	  /x exch def
 	  /p exch def
-	  
+
 	  r 0 eq
 	  { 2 setlinecap newpath
 	    x p pspen add y p pspen add moveto
@@ -100,7 +96,7 @@ gsave
 	    x pr add		y h add pr sub  r 90 180 arc
 	    x pr add		y pr add	r 180 270 arc
 	  } ifelse
-	  
+
 	  p pen
 	} def
 
@@ -115,7 +111,7 @@ gsave
 
 	  newpath
 	  x r add y r add r p pspen sub 0 360 arc
-	  
+
 	  p pen
 	} def
 
@@ -179,7 +175,7 @@ gsave
 /text
 	{ /s exch def
 	  /w exch def
-	  
+
 	  gsave
 	    1 eq { invert } if
 	    moveto s stringwidth pop w exch div -1 scale s show
@@ -206,7 +202,7 @@ gsave
 	  {currentfile picstr readhexstring pop} image
 	  grestore
 	} def
-	  
+
 
 %	x y w h pw ph pattern FILL
 %	Fill path with a repetitive pattern <pattern> which is sized (pw, ph).
@@ -220,9 +216,9 @@ gsave
 	  /w exch def
 	  /y exch def
 	  /x exch def
-	  
+
 	  /pw8 pw 7 add 8 idiv 8 mul def
-	  
+
 	  /putpattern
 	  { translate 1 -1 scale
 	    newpath 0 0 moveto 1 0 rlineto 0 1 rlineto -1 0 rlineto closepath
@@ -242,7 +238,7 @@ gsave
 	  } for
 	  grestore
 	} def
-	      
+
 70 70 translate
 1.00 -1.00 scale
 -52 -327 translate
