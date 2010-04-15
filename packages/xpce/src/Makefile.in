@@ -60,7 +60,6 @@ XLIB=@XLIB@
 # PROGRAMS
 
 CC=@CC@
-CXX=@CXX@
 LD=@LD@
 RANLIB=@RANLIB@
 LDCONFIG=@LDCONFIG@
@@ -171,11 +170,6 @@ MANINDEX=../man/reference/index.obj
 		@$(AR) r $@ $(*F).o
 		@$(RM) $(*F).o
 
-.cxx.a:
-		$(CXX) -c -I../include $(CFLAGS) $< -o $(*F).o
-		@$(AR) r $@ $(*F).o
-		@$(RM) $(*F).o
-
 ################################################################
 # MAIN TARGETS
 ################################################################
@@ -267,12 +261,6 @@ $(LIBXPCESO):	libXPCE.a $(SOEXTRAOBJ)
 		rm -f $(LIBXPCESOM) $(LIBXPCESO)
 		ln -s $(LIBXPCESOMM) $(LIBXPCESOM)
 		ln -s $(LIBXPCESOM) $(LIBXPCESO)
-
-$(LIBXPCEMAIN):	$(srcdir)/itf/main.cxx
-		$(CXX) -c -I../include $(CFLAGS) $< -o main.o
-		rm -f $@
-		ar r $@ main.o
-		$(RANLIB) $@
 
 # On SunOs using MIT X11R5 the symbol __XtInherit will be reported
 # unititialized it this file isn't included explicitely.
@@ -413,15 +401,10 @@ $(srcdir)/gra/proto.h:	$(GRASRC)
 # ITF 		--- Host Interface Layer
 ################################################################
 
-ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
+ITFOBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
 		stub.o xmalloc.o iostream.o srcsink.o rc.o hostdata.o \
 		public.o
-ITF2OBJS=	@CXXTARGETS@
-ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
-ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
-
-itf/cpp.o:	itf/cpp.cxx
-		$(CXX) -c -I../include $(CFLAGS) $< -o $@
+ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITFOBJS:.o=.c))
 
 ################################################################
 # KER 		--- Kernel modules
@@ -924,7 +907,7 @@ distclean:	clean
 		$(RM) -f $(LIB)
 		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
 		$(RM) -f Makefile config.h config.status config.cache
-		$(RM) -f ../CXX/Makefile ../pl/src/Makefile.bin
+		$(RM) -f ../pl/src/Makefile.bin
 		$(RM) -f ../prolog/lib/Makefile
 		$(RM) -f ../prolog/pwboot/Makefile
 		$(RM) -f ../sicstus/src/Makefile

@@ -17,7 +17,6 @@ AC_SUBST(PLINCL)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
-AC_SUBST(CXXLIBHACK)
 AC_SUBST(PCEHOME)
 AC_SUBST(CIFLAGS)
 AC_SUBST(COFLAGS)
@@ -34,7 +33,6 @@ AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
 AC_SUBST(SONAMEFLAG)
 AC_SUBST(SOWHOLEARCHIVE)
-AC_SUBST(CXXTARGETS)
 AC_SUBST(GCCLIB)
 AC_SUBST(SOEXTRAOBJ)
 AC_SUBST(PLTARGET)
@@ -62,7 +60,6 @@ RTSUFFIX=""
 QPENTRIES=""
 QPBIN="sun4-5"
 QPPATH="/usr/quintus"
-CXXLIBHACK=""
 
 LD=ld
 AC_PROG_CC
@@ -359,9 +356,6 @@ EOF
 	    CMFLAGS="$CMFLAGS -KPIC"
 	fi
 	;;
-    *linux*)
-	CXXLIBHACK="-lc -Wl,-Bstatic"
-	;;
     *irix*)
 	;;
     *osf*)
@@ -506,18 +500,7 @@ AC_CHECK_PROGS(MAKESHELL, bash sh, "/bin/sh")
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_CHECK_PROGS(RSYNC, rsync ./rsync.sh)
-if test "$CONFIG_CXX" = "yes"; then
-  AC_CHECK_PROGS(GXX, g++, "NONE")
-  if test "$GXX" != "NONE"; then
-    AC_DEFINE(O_CPLUSPLUS, 1,
-	      "Define if you want to include the C++ interface")
-    CXXTARGETS=cpp.o
-    CXX="$GXX"
-  else
-    CXXTARGETS=""
-  fi
-fi
-AC_PROG_LN_S
+C_PROG_LN_S
 AC_PROG_CPP
 AC_PROG_CXX
 AC_ISC_POSIX
@@ -1030,7 +1013,7 @@ dnl See which parts of the sources are there, and check the Makefiles we
 dnl need to update.  You cannot call AC_OUTPUT more then once!
 
 Makefiles="Makefile xpce.sh"
-Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src ../prolog/lib"
+Makedirs="../quintus/src ../prolog/pwboot ../sicstus/src ../prolog/lib"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do
     if test -r $d/Makefile.in; then
