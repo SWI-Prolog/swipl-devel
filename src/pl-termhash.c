@@ -26,6 +26,10 @@
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
 
+#ifdef __WINDOWS__
+typedef unsigned int uint32_t;
+#endif
+
 /* type to hold the SHA256 context  */
 
 #define SHA1_DIGEST_SIZE 20
@@ -101,9 +105,8 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
       { Atom av = atomValue(w);
 	HASH("A", 1);
 	HASH(&av->length, sizeof(av->length));
-	HASH(av->name, av->length);
-	HASH(av->type->name,
-	     strlen(av->type->name));
+	HASH(av->name, (unsigned long)av->length);
+	HASH(av->type->name, (unsigned long)strlen(av->type->name));
 
 					/* TBD: Include type */
 	continue;
@@ -124,7 +127,7 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 	size_t n = wsizeofInd(*d);
 
 	HASH("X", 1);
-	HASH(d, n*sizeof(word));
+	HASH(d, (unsigned long)(n*sizeof(word)));
 	continue;
       }
       case TAG_COMPOUND:
@@ -143,7 +146,7 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 
 	    HASH("T", 1);
 	    HASH(&fn->length, sizeof(fn->length));
-	    HASH(fn->name, fn->length);
+	    HASH(fn->name, (unsigned long)fn->length);
 	    HASH(&arity, sizeof(arity));
 	  }
 	}
