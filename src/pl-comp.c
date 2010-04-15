@@ -2995,7 +2995,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   if ( di->bindings )
   { term_t tail = PL_copy_term_ref(di->bindings);
     term_t head = PL_new_term_ref();
-    int n;
+    unsigned int n;
 
     for(n=0; n<clause->prolog_vars; n++)
     { if ( !PL_unify_list(tail, head, tail) ||
@@ -4624,7 +4624,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	  switch(ats[an])
 	  { case CA1_VAR:
 	    case CA1_CHP:
-	    { int vn, i;
+	    { unsigned int vn, i;
 
 	      if ( !PL_get_integer_ex(a, &vn) )
 		fail;
