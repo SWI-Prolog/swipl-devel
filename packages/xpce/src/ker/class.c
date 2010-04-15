@@ -41,8 +41,8 @@ static status	lazyBindingClass(Class class, Name which, Bool val);
 
 static void
 resetSlotsClass(Class class, Name name)
-{ int i;
-  int slots = SlotsClass(class);
+{ size_t i;
+  size_t slots = SlotsClass(class);
 
   setProtectedObj(class);
 
@@ -197,12 +197,7 @@ static inline status
 call_make_function(SendFunc f, Class class)
 { status rval;
 
-#if O_CPLUSPLUS
-  if ( onDFlag(class, D_CXX) )
-    rval = callCPlusPlusProc(f, 1, (Any *)&class);
-  else
-#endif
-    rval = (*f)(class);
+  rval = (*f)(class);
 
   return rval;
 }
