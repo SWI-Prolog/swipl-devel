@@ -1,13 +1,30 @@
-/*  $Id$
+/*  Part of SWI-Prolog
 
-    Part of SWI-Prolog SGML/XML parser
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2010, University of Amsterdam
 
-    Author:  Jan Wielemaker
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
-    Copying: LGPL-2.  See the file COPYING or http://www.gnu.org
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
 
-    Copyright (C) 1990-2002 SWI, University of Amsterdam. All rights reserved.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
 */
 
 :- module(rdf_diagram,
