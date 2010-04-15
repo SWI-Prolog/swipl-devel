@@ -146,6 +146,7 @@ has the following properties:
 rdf_save_turtle(Spec, Options) :-
 	thread_self(Me),
 	thread_statistics(Me, cputime, T0),
+	must_be(list, Options),
 	make_tw_state(Options, State0, _Rest),
 	init_base(State0, State1),
 	init_prefix_map(State1, State),
