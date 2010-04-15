@@ -115,96 +115,6 @@ getCallCv(CObj host, CPointer function, int argc, Any *argv)
   return rval;
 }
 
-#if O_CPLUSPLUS
-
-status callCPlusPlusMethodProc(void *, void *, int ac, const Any av[]);
-Any    callCPlusPlusMethodFunc(void *, void *, int ac, const Any av[]);
-status callCPlusPlusProc(void *, int ac, const Any av[]);
-Any    callCPlusPlusFunc(void *, int ac, const Any av[]);
-
-static status
-callCPlusPlusMethodv(CObj host, CPointer function,
-		     CPointer cppobject, int argc, Any *argv)
-{ status rval;
-  void *f    = function->pointer;
-  void *obj  = cppobject->pointer;
-  int n;
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) )
-      addCodeReference(argv[n]);
-
-  rval = callCPlusPlusMethodProc(obj, f, argc, argv);
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
-      delCodeReference(argv[n]);
-
-  return rval ? SUCCEED : FAIL;
-}
-
-
-static Any
-getCallCPlusPlusMethodv(CObj host, CPointer function,
-			CPointer cppobject, int argc, Any *argv)
-{ Any rval;
-  void *f   = function->pointer;
-  void *obj = cppobject->pointer;
-  int n;
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) )
-      addCodeReference(argv[n]);
-
-  rval = callCPlusPlusMethodFunc(obj, f, argc, argv);
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
-      delCodeReference(argv[n]);
-
-  return rval;
-}
-
-static status
-callCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
-{ status rval;
-  void *f = function->pointer;
-  int n;
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) )
-      addCodeReference(argv[n]);
-
-  rval = callCPlusPlusProc(f, argc, argv);
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
-      delCodeReference(argv[n]);
-
-  return rval ? SUCCEED : FAIL;
-}
-
-
-static Any
-getCallCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
-{ Any rval;
-  void *f = function->pointer;
-  int n;
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) )
-      addCodeReference(argv[n]);
-
-  rval = callCPlusPlusFunc(f, argc, argv);
-
-  for(n=0; n<argc; n++)
-    if ( isObject(argv[n]) && !isFreedObj(argv[n]) )
-      delCodeReference(argv[n]);
-
-  return rval;
-}
-
-#endif /*O_CPLUSPLUS*/
 
 status
 makeClassC(Class class)
@@ -222,27 +132,6 @@ makeClassC(Class class)
 	    "c_pointer", "unchecked ...",
 	    "Invoke a C-function get_method",
 	    getCallCv);
-
-#if O_CPLUSPLUS
-  sendMethod(class, NAME_callCPlusPlusMethod, NAME_callback, 3,
-	     "c_pointer", "c_pointer", "unchecked ...",
-	     "Invoke C++ method on C++ object",
-	     callCPlusPlusMethodv);
-  sendMethod(class, NAME_callCPlusPlus, NAME_callback, 2,
-	     "c_pointer", "unchecked ...",
-	     "Invoke a C++-function",
-	     callCPlusPlusCv);
-
-  getMethod(class, NAME_callCPlusPlusMethod, NAME_callback, "unchecked", 3,
-	    "c_pointer", "c_pointer", "unchecked ...",
-	    "Invoke C++ method on C++ object",
-	    getCallCPlusPlusMethodv);
-  getMethod(class, NAME_callCPlusPlus, NAME_callback, "unchecked" , 2,
-	    "c_pointer", "unchecked ...",
-	    "Invoke a C++-function",
-	    getCallCPlusPlusCv);
-
-#endif /*O_CPLUSPLUS*/
 
   initClass(class);
 
