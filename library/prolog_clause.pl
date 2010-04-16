@@ -35,7 +35,6 @@
 	    predicate_name/2,		% +Head, -Name
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
-:- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
