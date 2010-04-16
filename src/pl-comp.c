@@ -4624,9 +4624,9 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	  switch(ats[an])
 	  { case CA1_VAR:
 	    case CA1_CHP:
-	    { unsigned int vn, i;
+	    { size_t vn, i;
 
-	      if ( !PL_get_integer_ex(a, &vn) )
+	      if ( !PL_get_size_ex(a, &vn) )
 		fail;
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
