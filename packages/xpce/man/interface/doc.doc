@@ -13,7 +13,7 @@
 \vfil\vfil\vfil
 \begin{center}
 	{\Huge \bf Interfacing PCE to a \\
-	       	Programming Language} 		\\ [7mm] 
+	       	Programming Language} 		\\ [7mm]
 	{\large \it Jan Wielemaker}		\\
 	{\large \it Anjo Anjewierden}		\\[7mm]
 	{\large \{jan,anjo\}@swi.psy.uva.nl}
@@ -29,9 +29,6 @@ a symbolic language.
 \end{quote}
 \vfil
 \vfil
-\begin{quote}
-Copyright \copyright\ 1992 University of Amsterdam
-\end{quote}
 \end{titlepage}
 
 \pagestyle{esprit}

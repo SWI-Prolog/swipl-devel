@@ -9,7 +9,7 @@
 @author by Jan Wielemaker and Anjo Anjewierden
 
 @comment   Include the Distribution inside the titlepage so
-@c that headings are turned off. 
+@c that headings are turned off.
 
 @page
 This edition @value{edition} of the XPCE Reference manual covers the
@@ -19,9 +19,6 @@ errors that cannot easily be found by running spell is welcome: unclear
 descriptions, lacking relations, lacking information, suggestions for
 better organisation, etc.  Please E-mail such suggestions to
 jan@@swi.psy.uva.nl
-
-@vskip 0pt plus 1filll
-Copyright @copyright{} 1993-1995 University of Amsterdam
 
 @sp 2
 This is the @value{edition}-th edition of the XPCE-4 reference documentation. @*
