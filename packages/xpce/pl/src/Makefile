@@ -1,13 +1,5 @@
 #   Makefile for SWI-Prolog <-> PCE interface
 #
-#   Copyright in the whole and every part of this software is owned  by  the
-#   University  of  Amsterdam.   No reproduction of the whole or any part of
-#   this software is to be made without the authority of the  University  of
-#   Amsterdam.
-#
-#   Copyright (c) 1991, University of Amsterdam
-#
-
 ################################################################
 # NOTE NOTE NOTE
 #
