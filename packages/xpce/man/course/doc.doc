@@ -15,18 +15,15 @@
 \begin{center}
 	{\Huge \bf XPCE/Prolog\\Course Notes}		\\[1.5cm]
 	{\large \it Jan Wielemaker}			\\
-	{\large wielemak@science.uva.nl}
+	{\large J.Wielemaker@cs.vu.nl}
 \end{center}
 \vfil
 \begin{quote}
 This document provides background reading material and exercises
-for a course in programming XPCE/Prolog.  
+for a course in programming XPCE/Prolog.
 \end{quote}
 \vfil
 \vfil
-\begin{quote}
-Copyright \copyright\ 1994-1996 University of Amsterdam
-\end{quote}
 \end{titlepage}
 
 \begin{titlepage}
