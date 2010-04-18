@@ -693,7 +693,8 @@ DVINSTALL=	$(DVFILES) dv-qlf dv-bins dv-online dv-classindex
 RTINSTALL=	home rt-misc rt-bitmaps rt-bins rt-link
 
 .PHONY:		install dv-install $(DVINSTALL) $(RTINSTALL)
-install:	dv-install
+install:
+		$(MAKE) -j 1 dv-install
 
 rt-install:	$(INSTALL) $(RTINSTALL)
 
@@ -713,8 +714,10 @@ rpm-link::
 # Prolog to the XPCE build-tree. Such installations enable development
 # of xpce using the normal IDE tools.
 
-.PHONY:		ln-install link-dev-tree dv-link ln-dv-qlf
-ln-install:	$(INSTALL) link-dev-tree dv-link \
+.PHONY:		ln-install ln-install-1 link-dev-tree dv-link ln-dv-qlf
+ln-install:
+		$(MAKE) -j 1 ln-install-1
+ln-install-1:	$(INSTALL) link-dev-tree dv-link \
 		ln-dv-qlf manindex ln-classindex
 
 link-dev-tree::
