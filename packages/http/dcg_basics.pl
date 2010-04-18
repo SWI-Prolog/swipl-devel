@@ -56,6 +56,7 @@
 					% generation (TBD)
 	    atom//1			% generate atom
 	  ]).
+:- use_module(library(lists)).
 
 
 /** <module> Various general DCG utilities
@@ -279,7 +280,7 @@ number(N) -->
 	    {E=[0'e|DI]}
 	;   {E = ""}
 	),
-	{ flatten([I, F, E], Codes),
+	{ append([I, F, E], Codes),
 	  number_codes(N, Codes)
 	}.
 

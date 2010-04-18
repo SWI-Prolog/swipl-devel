@@ -1,13 +1,5 @@
 #   Makefile for SWI-Prolog <-> PCE interface
 #
-#   Copyright in the whole and every part of this software is owned  by  the
-#   University  of  Amsterdam.   No reproduction of the whole or any part of
-#   this software is to be made without the authority of the  University  of
-#   Amsterdam.
-#
-#   Copyright (c) 1991, University of Amsterdam
-# 
-
 ################################################################
 # NOTE NOTE NOTE
 #
@@ -37,7 +29,7 @@ CPLIFLAGS=	-I$(PLINCL) -I../../$(builddir) -I../../src
 PL=     	pl
 PLLD=		plld -pl $(PL)
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o pcecall.o)
-ITFSRC=		interface.c table.c dispatch.c
+ITFSRC=		interface.c table.c
 SOITF=		$(addprefix $(OBJDIR)/, so-interface.o pcecall.o)
 OBJ=		$(ITFOBJ)
 XPCE=		$(BINDIR)/xpce
@@ -103,7 +95,7 @@ $(QLF):		$(XPCE)
 $(OBJDIR)/so-interface.o: interface.c
 		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/Initialize.o:	
+$(OBJDIR)/Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
@@ -140,7 +132,7 @@ bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
 
 ../../prolog/lib/pce.qlf: $(addprefix ../../prolog/boot/, $(PCEPLS))
 		$(PL) -g "qcompile('../../prolog/lib/pce.pl')" -t halt
-		
+
 .pl.qlf:
 		$(PL) -g "pce_welcome,qcompile('$*')" -t halt
 
@@ -181,7 +173,7 @@ domangle:	mangle mlist xpce.base
 # Cleanup
 ################################################################
 
-clean:		
+clean:
 		$(RM) -f *.o core a.out shitf.c *~
 
 distclean:	clean

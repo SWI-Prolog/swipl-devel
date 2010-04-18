@@ -64,6 +64,7 @@ http_parameters(Request, Params) :-
 	http_parameters(Request, Params, []).
 
 http_parameters(Request, Params, Options) :-
+	must_be(list, Params),
 	meta_options(is_meta, Options, QOptions),
 	option(attribute_declarations(DeclGoal), QOptions, -),
 	http_parms(Request, Params, DeclGoal, Form),
@@ -90,6 +91,8 @@ http_parms(Request, Params, DeclGoal, Search) :-
 	),
 	fill_parameters(Params, Search, DeclGoal).
 
+:- multifile
+	form_data_content_type/1.
 
 form_data_content_type('application/x-www-form-urlencoded').
 
@@ -167,40 +170,40 @@ check_type([H|T], Field, Value0, Value) :-
 check_type_no_error(Type, In, Out) :-
 	http:convert_parameter(Type, In, Out), !.
 check_type_no_error(Type, In, Out) :-
-	check_type3(Type, In, Out), !.
-check_type_no_error(Type, In, In) :-
-	check_type2(Type, In).
+	check_type3(Type, In, Out).
 
 %%	check_type3(+Type, +ValueIn, -ValueOut) is semidet.
 %
 %	HTTP parameter type-check for types that need converting.
 
-check_type3((T1;T2), In, Out) :-
+check_type3((T1;T2), In, Out) :- !,
 	(   check_type_no_error(T1, In, Out)
 	->  true
 	;   check_type_no_error(T2, In, Out)
 	).
-check_type3(number, Atom, Number) :-
+check_type3(number, Atom, Number) :- !,
 	catch(atom_number(Atom, Number), _, fail).
-check_type3(integer, Atom, Integer) :-
+check_type3(integer, Atom, Integer) :- !,
 	catch(atom_number(Atom, Integer), _, fail),
 	integer(Integer).
-check_type3(nonneg, Atom, Integer) :-
+check_type3(nonneg, Atom, Integer) :- !,
 	catch(atom_number(Atom, Integer), _, fail),
 	integer(Integer),
 	Integer >= 0.
-check_type3(float, Atom, Float) :-
+check_type3(float, Atom, Float) :- !,
 	catch(atom_number(Atom, Number), _, fail),
 	Float is float(Number).
-check_type3(between(Low, High), Atom, Value) :-
+check_type3(between(Low, High), Atom, Value) :- !,
 	atom_number(Atom, Number),
 	(   (float(Low) ; float(High))
 	->  Value is float(Number)
 	;   Value = Number
 	),
 	must_be(between(Low, High), Value).
-check_type3(boolean, Atom, Bool) :-
-	thruth(Atom, Bool).
+check_type3(boolean, Atom, Bool) :- !,
+	truth(Atom, Bool).
+check_type3(Type, Atom, Atom) :-
+	check_type2(Type, Atom).
 
 %%	check_type2(+Type, +ValueIn) is semidet.
 %
@@ -222,20 +225,20 @@ check_type2(length =< N, Value) :- !,
 	Len =< N.
 check_type2(_, _).
 
-%%	thruth(+In, -Boolean) is semidet.
+%%	truth(+In, -Boolean) is semidet.
 %
 %	Translate some commonly used textual   representations  for true
 %	and false into their canonical representation.
 
-thruth(true,  true).
-thruth(yes,   true).
-thruth(on,    true).
-thruth('1',   true).
+truth(true,  true).
+truth(yes,   true).
+truth(on,    true).
+truth('1',   true).
 
-thruth(false, false).
-thruth(no,    false).
-thruth(off,   false).
-thruth('0',   false).
+truth(false, false).
+truth(no,    false).
+truth(off,   false).
+truth('0',   false).
 
 
 		 /*******************************

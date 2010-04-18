@@ -50,7 +50,7 @@ X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
 This module combines libpl.dll and plterm.dll  with some glue to produce
-the final executable plwin.exe.
+the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 __declspec(dllexport) rlc_console	PL_current_console();
@@ -178,7 +178,7 @@ Srlc_read(void *handle, char *buffer, size_t size)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The user streams for plwin.exe  run   using  the  'wchar' encoding. This
+The user streams for swipl-win.exe run  using the 'wchar' encoding. This
 means size must be a multiple of   sizeof(wchar_t),  but not if the user
 cheats and either switches the encoding   or uses put_byte/1 or similar.
 The flushing code will remember `half'   characters  and re-send them as

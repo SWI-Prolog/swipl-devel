@@ -15,13 +15,13 @@ PCE is an object-oriented  library for the development of user
 interfaces, meant to be connected to symbolic languages.<p>
 
  The authors of XPCE are <b>Anjo Anjewierden</b> and <b>Jan Wielemaker</b>
-at the Department of Social Science Informatics, 
+at the Department of Social Science Informatics,
  University of Amsterdam (<a
 href="http://swi.psy.uva.nl/">SWI</a>).<p>
 
 This is not the only FAQ list for XPCE.  <A
 HREF="http://swi.psy.uva.nl/projects/xpce/xpcefaq.html">Another one
-</A> 
+</A>
 is maintained by Jan Wielemaker and describes general
 things such as `What is XPCE?' and `How do I get XPCE for ...?'.
 <p>
@@ -37,9 +37,9 @@ consequentia rerum :-).
     <li> <A HREF="#documentpath">Which path through the documentation
 	 should a beginner follow?</A>
     <li> <A HREF="#askquestions">Where can I ask questions about
-	 XPCE?</A>	 
+	 XPCE?</A>
     <li> <A HREF="#singleuser">Is it possible to have a single-user PC
-	 version of XPCE ?</A> 
+	 version of XPCE ?</A>
     <li> <A HREF="#clispversion">Is there an XPCE version which
 	 interfaces with Clisp?</A>
     <li> <A HREF="#postscriptdoc">Is it possible to get the PostScript
@@ -49,13 +49,13 @@ consequentia rerum :-).
     <li> <A HREF="#prowinpce">What is the difference between XPCE and
 	 ProWindows 3.0?</A>
     <li> <A HREF="#pcequintus">Would it be possible to take XPCE for
-	 SICStus and adapt it to Quintus?</A> 
+	 SICStus and adapt it to Quintus?</A>
     <li> <A HREF="#licencecond">What are the licencing conditions for
 	 XPCE for an academic institution?</A>
     <li> <A HREF="#prowincomp">Is XPCE upward compatible with
-	 ProWindows 2.1?</A> 
+	 ProWindows 2.1?</A>
     <li> <A HREF="#multiplatforms">Can XPCE really work on such an
-	 heterogeneous system of different platforms?</A> 
+	 heterogeneous system of different platforms?</A>
     <li> <A HREF="#guiconform">Do XPCE applications conform to the GUI
 	 standards defined for the various platforms (OSF/Motif style
 	 guide, CUA, and so on)?</A>
@@ -67,7 +67,7 @@ consequentia rerum :-).
 
   <li> <b>Runtime and related issues</b><br>
           generating stand-alone applications, runtime systems
-   <OL>     
+   <OL>
     <li> <A HREF="#makestandalone">
 	 How do I make stand-alone executable?</A><br>
 	 (three options:)
@@ -76,7 +76,7 @@ consequentia rerum :-).
 	<li><A HREF="#createcompiled">Create a compiled program</A>
 	<li><A HREF="#createsavedstate>Create a saved-state</A>
       </UL>
-    <li> <A HREF="#runtimelicence"> Runtime licenses </A>      
+    <li> <A HREF="#runtimelicence"> Runtime licenses </A>
    </OL>
 
   <li> <b>General Programming issues</b><br>
@@ -104,7 +104,7 @@ consequentia rerum :-).
 	     string as an atom (and not as an XPCE reference)?</A>
     <li> <A HREF="#messageprologlist">How can I invoke a Prolog
 	 predicates from a message and give it a Prolog list as
-	 a parameter?</A> 
+	 a parameter?</A>
       <UL>
 	<li><A HREF="#chaintoprolog">How can I turn a <b>chain</b> into
 	     a Prolog list?</A>
@@ -132,7 +132,7 @@ consequentia rerum :-).
 	<li> <A HREF="#simpleeditor">How do I make a simple editor for
 	     editing a file?</A>
 	<li> <A HREF="#identitymisc">I have a few questions about
-	     <b>identities</b>.</A> 
+	     <b>identities</b>.</A>
 	<li> <A HREF="#classvar">Class Variables </A>
 	<li> <A HREF="#chaintable">Can I use an XPCE object reference
 	     as the key for a <b>chain_table</b>?</A>
@@ -141,9 +141,9 @@ consequentia rerum :-).
              ?(Graphical, handles, @default, @arg1?from), Match)</b></A>
  	<li> <A HREF="#catchall">I cannot understand how
 	     "send(Draw?dialog?feedback_member, selection, Str)"
-	     works</A> 
+	     works</A>
 	<li> <A HREF="#assignprologvar">How can I assign the selection
-	     string of a text_item to a Prolog variable</A> 
+	     string of a text_item to a Prolog variable</A>
 	<li> <A HREF="#readfromfile">How do I read the content of
 		 file?</A>
 	<li> <A HREF="#getusage">Why "get(I, mode, draw_proto)"?
@@ -154,31 +154,31 @@ consequentia rerum :-).
 	     <b>@receiver</b>?</A>
 	<li> <A HREF="#pcefromprolog">I need to build a graph by
 	     querying facts in the Prolog database.
-	     How can I do that?</A> 
+	     How can I do that?</A>
 	<li> <A HREF="#prologfrompce">I have a graph made of icons and
 	     connections. How can I "assert" it into the Prolog
 	     database as Prolog facts?</A>
 	<li> <A HREF="#checklink">How do I get to know the kind of
-	     connection in a graph with different kinds of arcs?</A>     
+	     connection in a graph with different kinds of arcs?</A>
 	<li> <A HREF="#object2">Can I use object/2 for testing the
 	     existence of an object?</A>
 	<li> <A HREF="#askpopup">Is there any way of asking a popup
 	     what object, if any, it is attached to (as in
-	     ProWindows-2's <b>get_ref(Popup,object,Host)</b>?</A> 
+	     ProWindows-2's <b>get_ref(Popup,object,Host)</b>?</A>
 	<li> <A HREF="#changestyle">Changing family and style of
 	     existing text is a bit tricky. Do "shortcut methods"
-	     exist?</A> 
+	     exist?</A>
 	<li> <A HREF="#instancetrack">How do I keep track of all
-	     instances of a class?</A> 
+	     instances of a class?</A>
       </OL>
 
   <li> <b>Graphics</b><br>
-	making weird graphical objects 
+	making weird graphical objects
       <OL>
 	 <li> <A HREF="#beginnerscorner">How to make a simple
-	      popup</A> 
+	      popup</A>
 	 <li> <A HREF="#beginnerscorner">How to define a dialog with a
-	      drawing area</A> 
+	      drawing area</A>
 	 <li> <A HREF="#beginnerscorner">How to invoke a Prolog
 	      predicate as a reaction to an user action</A>
 	 <li> <A HREF="#separator">How can I get a separator line in
@@ -188,11 +188,11 @@ consequentia rerum :-).
 	      correspondingly to a carriage return?</A>
 	 <li> <A HREF="#waitdialog">How do I wait for the user to
 	      perform some action, for example to fill out a dialog
-	      window and press OK or CANCEL?</A>  
+	      window and press OK or CANCEL?</A>
 	 <li> <A HREF="#editormisc">I have problems with editors</A>.
 	      (little <b>editor</b> misc)
 	 <li> <A HREF="#editorsinrow">How can I put three editors in a
-	      row?</A> 
+	      row?</A>
 	 <li> <A HREF="#conditionmenuitem">How can I activate a
 	      <b>menu_item</b> conditionally to a Prolog clause?</A><br>
 	      (MN: or condition in general).
@@ -213,7 +213,7 @@ consequentia rerum :-).
 	 <li> <A HREF="#specializeconnect">I'd like to define a
 	      connect_gesture subclass which performs some other
 	      action than establishing the connection itself at the
-	      end</A> 
+	      end</A>
 	 <li> <A HREF="#multipleconnections">How can I define multiple
 	      connections and discriminate among them depending on the
 	      connected graphicals?</A>
@@ -227,13 +227,13 @@ consequentia rerum :-).
 	      text_item in such a way that changing the value or
 	      content of one object automatically updates the
 	      corresponding value in the other object. Is it
-	      possible?</A> 
+	      possible?</A>
 	 <li> <A HREF="#editbrowse">How can I make an editor
 	      distinguishably different from a browser?</A>
 	 <li> <A HREF="#windowpix">How can I manipulate the pixels in
 	      a window?</A>
 	 <li> <A HREF="#colorimages">Can I read coloured images in
-	      XPCE?</A> 
+	      XPCE?</A>
       </OL>
 
   <li> <b>Sensitive graphicals</b><br>
@@ -242,7 +242,7 @@ consequentia rerum :-).
 	 <li> <A HREF="#beginnerscorner">How to tell the position in
 	      which a mouse click takes place</A>
 	 <li> <A HREF="#beginnerscorner">How to attach gestures and
-	      recognizers to a graphical</A>	      
+	      recognizers to a graphical</A>
 	 <li> <A HREF="#clicklabel">How do I simulate a button with a
 	     label?</A>
 	 <li> <A HREF="#popuptograph">How do I attach a popup menu to
@@ -251,14 +251,14 @@ consequentia rerum :-).
 	      connection?</A>
 	 <li> <A HREF="#deadeditors">I have a dialog with three
 	      editors, but two of them are completely "dead"</A>
-      </OL>  
+      </OL>
 
   <li> <b>Performance and Errors</b><br>
         diagnostics for errors and performance issues.
      <OL>
       <li> <A HREF="#penperformance">Why are graphical operations so
 	   incredibly slowed down on my machine when I use <b>pen &gt;
-	   1</b>?</A>	  
+	   1</b>?</A>
       <li> <A HREF="#manyequals"><b>@arg1?product_name == Name</b>,
 	   always fails, but it shouldn't?</A>
       <li> <A HREF="#messagelosesdefault">This dialog items has lost
@@ -275,14 +275,14 @@ consequentia rerum :-).
       <li> <A HREF="#hash_tableinit">I cannot use <b>append</b> with
 	   this <b>hash_table</b>. Any idea?</a>
       <li> <A HREF="#filenopen">I cannot understand why XPCE tells me
-	   "file -&gt; open" is not implemented</A>	  
+	   "file -&gt; open" is not implemented</A>
       <li> <A HREF="#postscriptbutton">I tried to print a PostScript
 	   screen-dump of a dialog by using the methods provided, but
-	   I got this error message</A>  
+	   I got this error message</A>
       <li> <A HREF="#outoflockstack">I get an "Out of lock stack"
-	   error. What does that mean?</A>  
+	   error. What does that mean?</A>
     </OL>
-    
+
   <li><b>Tricks and Hacks</b><br>
       simple tricks which might come handy.
      <OL>
@@ -293,16 +293,16 @@ consequentia rerum :-).
       <li> <A HREF="#poormouse">My mouse has only two buttons. Is
 	   there a way to use XPCE for me?</A>
     </OL>
-    		 
+
   <li> <b>Miscellaneous</b><br>
         whatever doesn't fit anywhere else
      <OL>
       <li> <A HREF="#aixondos">Is it really true that applications
 	   developed on, let's say AIX, will run without modifications
-	   on, e.g., DOS/Windows?</A>   
+	   on, e.g., DOS/Windows?</A>
       <li> <A HREF="#godsavethequeen">Why are recognizers spelt
-	   recogni*s*ers?</A> 
-     </OL>	   
+	   recogni*s*ers?</A>
+     </OL>
 </UL>
 
 
@@ -323,7 +323,7 @@ consequentia rerum :-).
 </OL>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -338,7 +338,7 @@ not to post on <a href="news:comp.lang.prolog">comp.lang.prolog</A>.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="singleuser"><H2>Is it possible to have a single-user PC
@@ -358,7 +358,7 @@ personal use.  It is not unlikely there will be a student version
 of Quintus/XPCE in the future.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="clispversion"><h2>Is there an XPCE version which
@@ -386,7 +386,7 @@ If you come across something, please inform me.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="postscriptdoc"><h2>Is it possible to get the PostScript
@@ -401,7 +401,7 @@ If you come across something, please inform me.
 directory pub/xpce/doc.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="revisions"><h2>Where can I get revisions, bug reports
@@ -429,7 +429,7 @@ http://www.stud.unit.no/~passani/FAQ.html</a>
 <p>and is maintained by Luca Passani (University of Pisa, Italy).
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="prowinpce"><h2>What is the difference between XPCE and
@@ -441,27 +441,27 @@ fixed.  So, XPCE offers more functionality and more bugs :-)
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="pcequintus"><h2>Would it be possible to take XPCE for
 	 SICStus and adapt it to Quintus?</h2></A>
 
 <p>Yes, but you'll have to write the interface yourself.  This is not
-a lot of 
+a lot of
 code, but requires good knowledge of C, XPCE and the foreign interface of
 Quintus.  It requires Quintus 3.14 or later (due to bugs there).
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="licencecond"><h2>What are the licencing conditions for
 	 XPCE for an academic institution?</h2></A>
 
 <p>A licence including the whole lot (sources, interfaces and SWI-Prolog)
-costs 500 ECU (about $600).  This is `as-is' basis; you'll have to 
+costs 500 ECU (about $600).  This is `as-is' basis; you'll have to
 compile and install the system yourself.  You can only use this system
 for `non-comercial' purposes, which implies you cannot sell products
 that include it.  Documentation is only on-line and in PostScript
@@ -469,7 +469,7 @@ format.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="prowincomp"><h2>Is XPCE upward compatible with
@@ -503,7 +503,7 @@ site (ftp.swi.psy.uva.nl:/pub/xpce/doc/...).
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="multiplatforms"><h2>Can XPCE really work on such an
@@ -533,7 +533,7 @@ is strict ANSI C and should be easily ported.  So it all depends on
 how much copies you want to have :-)
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="guiconform"><h2>Do XPCE applications conform to the GUI
@@ -549,10 +549,10 @@ do nitty-gritty low-level manipulations, but these may give strange
 results if the user switches UI preferences).
 <p>
 Future versions are supposed to conform much closer to established
-GUI standards.  Motif will be the first supported in much more detail. 
+GUI standards.  Motif will be the first supported in much more detail.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="todolist"><h2>I'd like to know about XPCE further
@@ -561,7 +561,7 @@ GUI standards.  Motif will be the first supported in much more detail.
 <a href="todo.html">Here</a> is Jan Wielemaker's <i>ToDo</i> list.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -584,7 +584,7 @@ GUI standards.  Motif will be the first supported in much more detail.
 
         xpce -g '[/usr/local/src/myprog],startmyprog'
 </xmp>
-     
+
 See SWI-Prolog command-line options for details.    This is often a good
      choice, but requires your adience to have access to the XPCE
      development environment.  It will automatically pick the  most
@@ -634,12 +634,12 @@ at the moment the display is opened.
 saved state.  Notably, you should  not  create   any  graphical objects
 using Prolog directives as this will request the associated resources and
 thus requires XPCE to open the connection to the X-server (that maintains
-the X11 resource database).  
+the X11 resource database).
 Use the  :-   pce_global/2  directive  for such cases, which will
 delay the creation of   the  object till the object is referred too.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <p><a name="runtimelicence"><h2>Runtime licenses</h2></a>
@@ -659,7 +659,7 @@ try to get to an acceptable  solution.   In   most  cases  this will
 involve creating some sort of saved-state of the program.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <h1>General Programming issues</h1>
@@ -676,9 +676,9 @@ involve creating some sort of saved-state of the program.
 &gt; manipulating the graph.<br>
 &gt; <br>
 &gt;  Even though response to user events is still good, I suspect that<br>
-&gt; it is a bad programming habit.<br> 
+&gt; it is a bad programming habit.<br>
 &gt;  Furthermore, if I keep implementing complex responses to user<br>
-&gt; events this way, I'm afraid problems might eventually show up.<br> 
+&gt; events this way, I'm afraid problems might eventually show up.<br>
 &gt; <br>
 &gt;  A better approach might be to concentrate on the graphical part<br>
 &gt; without bothering about the Prolog database. At the right moment, the<br>
@@ -710,7 +710,7 @@ caching mechanisms here for speedup if necessary.
 
 This has been discussed in a paper for the UIST 89 by me and Anjo
 Anjewierden, which you can obtain <a href="uims.uist89.ps.gz">here</a>
-or from: 
+or from:
 <center>
 	<A href="ftp://swi.psy.uva.nl/pub/xpce/doc/uims.uist89.ps.gz">
 	ftp://swi.psy.uva.nl/pub/xpce/doc/uims.uist89.ps.gz</A>
@@ -727,7 +727,7 @@ href="#prologfrompce">continuation</a>
 about a related technical problem you might find interesting.</i>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <p><a name="hiddeninfo"><h2>How do I attach hidden information
@@ -772,7 +772,7 @@ the graph, a single self-contained database representing the combination
 might be a better solution.  In that case it might be logical to store
 the node attribute values with the graphical representation.
 
-<p><b> 
+<p><b>
 &gt;  What's the best way to achieve this?</b>
 <p>
 There are essentially three natural ways to store such information with
@@ -801,13 +801,13 @@ cases, the additional data will automatically be GC'ed if the graphical
 is destroyed.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="seenosolution"><h2>I know I cannot invoke a Prolog
 	 predicate from within a message by passing it Prolog data
 	 structure in the usual Prolog syntax, but what is the
-	 alternative?</h2></A>  
+	 alternative?</h2></A>
 <p><b>
 &gt;  Pag. 33 of the Programming Manual. You warn against confusing PCE<br>
 &gt; data structure with Prolog data structure. You point out that XPCE<br>
@@ -815,7 +815,7 @@ is destroyed.
 &gt; object, thus preventing the passage of all of those Prolog<br>
 &gt; argument which lack a simple XPCE onject counterpart.<br>
 &gt; The manuals fail to give the right solution, though.</b>
-<xmp> 
+<xmp>
 > new(D, dialog('bug')),
 > send(D, append, button(verbose,
 >                     message(@prolog, assert,
@@ -828,7 +828,7 @@ is destroyed.
 >                     message(@prolog, verbose, on))),
 </xmp>
 <b>&gt; but I can't get a confirmation since verbose is note defined.</b>
-<p>  
+<p>
 Your suspicion is accurate, but you have to define a Prolog predicate
 <b>verbose/1</b>, of course.
 Verbose is supposed to be something of your application.  For
@@ -853,18 +853,18 @@ verbose(Val) :-
 	retractall(verbose(_)),
 	assert(verbose(Val)).
 </xmp>
-  
+
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
-  
+
 <A NAME="assertasint"><h2>How can I assert a text_item
 	     selection as a Prolog integer?</h2></A>
 
 <p><b>
 &gt; Below 'Npwg' is text_item extracted using <- selection.<br>
 &gt;    I want to assert it as an iteger to perform some arithmatic
-operations.<br> 
+operations.<br>
 &gt;    Could you tell me how to make the type conversion?<br>
 &gt;<br>
 &gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -890,12 +890,12 @@ Once you have an atom, you can either use the Prolog primitives name/2
 and/or number_chars/2 or explicitely invoke XPCE's type testing:
 <xmp>
 	?- get(type(int), check, '45', X).
-	
+
 	X = 45
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="assertgeneralxpce"><h2>How can I assert an XPCE
@@ -905,7 +905,7 @@ and/or number_chars/2 or explicitely invoke XPCE's type testing:
 &gt; I'm trying to regain a string value from the text attached<br>
 &gt; to a device and, then, to assert it in the<br>
 &gt; database as a Prolog fact.</b>
-<xmp> 
+<xmp>
 >  db_new_task(Device) :-
 > 	get(Device, member, text, Text),
 > 	get(Text, string, Name),
@@ -926,13 +926,13 @@ The first works for all subclasses of char_array, the second for
 anything that may be translated into something textual.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
 <a name="messageprologlist"><h2>How can I invoke a Prolog
 	 predicates from a message and give it a Prolog list as
-	 a parameter?</h2></A> 
+	 a parameter?</h2></A>
 
 <p><b>Maintainer's note</b>: <i>The problem is not simple to solve and many
 cases must be considered. <br>
@@ -953,7 +953,7 @@ Try the Browsers/Prolog Predicates list from the online manual.  The
 predicate is called <b>chain_list(+Chain, -List)</b>.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="prologtochain"><h2>How can I build a <b>chain</b> out of
@@ -972,7 +972,7 @@ the arity is limited.
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="listasargument"><h2>I'd like to do something like
@@ -1029,7 +1029,7 @@ implementation</a> of this proposal. <br>
 If you have a better suggestion it would be welcome anyway.</i>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -1102,7 +1102,7 @@ prolog_to_pce(Prolog, Pce) :-
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <h1> Language issues</h1>
@@ -1120,7 +1120,7 @@ prolog_to_pce(Prolog, Pce) :-
      user-guide</a>.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="sendlist"><h2>I'd like to do something like
@@ -1128,19 +1128,19 @@ prolog_to_pce(Prolog, Pce) :-
 	     repeating <b>send</b> many times</h2></A>
 
  There are two predicates available from the "pce_util" library which
-do exactly this: <tt><b>send_list/2</b></tt> and 
-<b><tt>send_list/3</tt></b><br> 
+do exactly this: <tt><b>send_list/2</b></tt> and
+<b><tt>send_list/3</tt></b><br>
 Users of SWI-prolog can activate this predicate
 without explicitly importing them. Users of SICStus Prolog should
 declare these predicates by using the <b><tt>require/1</tt></b>
-directive. 
+directive.
 <p>
 The above two predicates invoke send-behaviour as
 <b><tt>send[2-12]</tt></b>. Each of the arguments is either as
 accepted by <b><tt>send[2-12]</tt></b> or a list of such arguments.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 <A NAME="simpleeditor"><h2>How do I make a simple editor for
 	 editing a file?</h2></A>
@@ -1165,7 +1165,7 @@ so you don't have to be concerned with the difference in 99% of the
 cases.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <p><a name="identitymisc"><h2>I have a few questions about
@@ -1214,7 +1214,7 @@ On initialisation, the constraint is executed in the `forwards'
 direction: the second object is made consistent with the first.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <p><a name="classvar"><h2>Class Variables</h2></a>
@@ -1225,7 +1225,7 @@ There are three ways to represent common data at the class level:
 <p><ul><li> Using resources.  This is normally used if the shared
      data concerns some sort of user-preferences.  See class resource.
 
-<p><li> Using attributes at the class-level: 
+<p><li> Using attributes at the class-level:
 
 <p>     <xmp>send(@class, attribute, my_attribute, my_value).</xmp>
 
@@ -1261,7 +1261,7 @@ class (instance of class class).
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="chaintable"><h2>Can I use an XPCE object reference
@@ -1285,7 +1285,7 @@ No, that is perfectly valid.  Note however that identity means the
 	...,
 </xmp>
 won't work, but the following will:
-<xmp>	
+<xmp>
 	...,
 	new(S, string(foo)),
 	send(Table, append, S, something),
@@ -1294,7 +1294,7 @@ won't work, but the following will:
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="obtainwork"><h2>How does the following obtainer work? </h2>
@@ -1342,10 +1342,10 @@ matching handles can be found (instead of returning an empty chain.
 &gt;order to find the information by myself?</b>
 <p>
 You should be able to find your info from chain<-find and graphical
-<-handles. 
+<-handles.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="catchall"><h2>I cannot understand how
@@ -1357,12 +1357,12 @@ You should be able to find your info from chain<-find and graphical
 
 <xmp>
  PceDraw, file draw.pl  line 200
- 
+
  feedback(Draw, Str:string) :->
          "Print feedback message in dialog"::
          send(Draw?dialog?feedback_member, selection, Str).
                           ^^^^^^^^^^^^^^^
-</xmp> 
+</xmp>
 <b>&gt; I know that it concerns the feedback label, but how does it
 work?</b>
 
@@ -1379,11 +1379,11 @@ which does the same, but is easier to understand.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="assignprologvar"><h2>How can I assign the selection
-	     string of a text_item to a Prolog variable</h2></A> 
+	     string of a text_item to a Prolog variable</h2></A>
 
 Prolog has only logical variables, so you'll have to wait for the user
 to complete the dialog window.  This is achieved with the <-confirm
@@ -1401,11 +1401,11 @@ to complete the dialog window.  This is achieved with the <-confirm
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
-<A NAME="readfromfile"><H2>How do I read the content of file</H2></A> 
+<A NAME="readfromfile"><H2>How do I read the content of file</H2></A>
 
 <P><b>
 &gt; I have some text printed to a unix-file, and I don't know how I<br>
@@ -1418,7 +1418,7 @@ to complete the dialog window.  This is achieved with the <-confirm
                 writef("I really want to get this information!!!"),
                 nl,
                 told,
-        
+
 
                 .....
                         /* Here should I add some code for reading the file
@@ -1451,7 +1451,7 @@ This would simplify your problem to:<br>
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="getusage"><h2>Why "get(I, mode, draw_proto)"?</h2></A>
@@ -1480,10 +1480,10 @@ Prolog programmers :-) The general case is a bit more complicated:
 <xmp>
 	?- get(area(20,20,30,40), size, size(X, Y)).
 </xmp>
-to give an example. 
+to give an example.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="stringflaw"><h2>How do I keep <b>string</b> from
@@ -1495,7 +1495,7 @@ to give an example.
 <xmp>
    :- pce_global(@open,
                new(click_gesture(left, '', single,
-  			     and(message(?(?(@receiver?frame, 
+  			     and(message(?(?(@receiver?frame,
  			                      member, dialog),
  					      member, feedback),
  			                    selection,
@@ -1516,7 +1516,7 @@ to give an example.
 
 <p>
 The problem is the moment of evaluation.  In your case the
-<b>@receiver?name</b> 
+<b>@receiver?name</b>
 will be evaluated at the moment the string is created, which is when the
 pce_global trap is executed (i.e. the first reference to the object
 @open (b.t.w. a bit too general name for a global reference).  The
@@ -1541,7 +1541,7 @@ attach a recognizer to a label to simulate a button</b>):</a>
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="pcefromprolog"><h2>I need to build a graph by
@@ -1552,7 +1552,7 @@ attach a recognizer to a label to simulate a button</b>):</a>
 &gt;   check whether a particular node is already in the window,<br>
 &gt;   before displaying a particular node. For this purpose<br>
 &gt;   perhaps I have to assert (and fetch)  an xpce object to<br>
-&gt;   a prolog data base.</b> 
+&gt;   a prolog data base.</b>
 
 <p>
 ??? Just assert the reference if you want.  So:
@@ -1561,7 +1561,7 @@ attach a recognizer to a label to simulate a button</b>):</a>
         send(Window, display, new(Node, text(hello))),
         assert(node(hello, Node)),
         ...
-</xmp>        
+</xmp>
 You can also keep the references in a Prolog list (which is much better
 style):
 <xmp>
@@ -1582,7 +1582,7 @@ style):
                 send(Ref, handle, handle(w/2, h/2, link)).
 </xmp>
 
-I gues you can addapt this.             
+I gues you can addapt this.
 <p><b>
 &gt;   Is there any other simple way of loading a graph from<br>
 &gt;   an associated  prolog data base?</b>
@@ -1590,7 +1590,7 @@ I gues you can addapt this.
 Altogether it should not be much more than one page.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="prologfrompce"><h2>I have a graph made of icons and
@@ -1640,11 +1640,11 @@ href="#consistentgraph">one</a>.  The <a href="#checklink">next</a>
 concerns a particular case which might occur in a situation like this.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="checklink"><h2>How do I get to know the kind of
-     connection in a graph with different kinds of arcs?</h2></A> 
+     connection in a graph with different kinds of arcs?</h2></A>
 
 <p><b>
 &gt; My application builds graph with different kinds of
@@ -1662,28 +1662,28 @@ Simplest way is to test the link used to instantiate the connection:
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="object2"><h2>Can I use object/2 for testing the
-	     existence of an object?</h2></A> 
+	     existence of an object?</h2></A>
 <xmp>
  >| ?- object(@a,L).
- > 
+ >
  > no                            !!??
-</xmp> 
+</xmp>
  No, you can't.  This may be called a bug, although I don't consider it
  a serious one.  object/1 is a valid test for object-existence.  object/2
  is first of all meant to simplify debugging by providing a description
  of an object.  Using object/2 in sourcecode should be limited to
  instances that have all (most) status information in their
  initialisation arguments:
-<xmp> 
+<xmp>
          get(Graphical, size, size(W, H))
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="askpopup"><h2>Is there any way of asking a popup
@@ -1704,12 +1704,12 @@ for details on the context arguments passed to the message.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="changestyle"><h2>Changing family and style of
 	     existing text is a bit tricky. Do "shortcut methods"
-	     exist?</h2></A> 
+	     exist?</h2></A>
 <p><b>
 &gt; I wonder if there is some shortcut that I have not yet detected.<br>
 &gt; <br>
@@ -1739,7 +1739,7 @@ for details on the context arguments passed to the message.
 be though).  Of course you can define a method yourself ...
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="instancetrack"><h2>How do I keep track of all
@@ -1766,11 +1766,11 @@ three alternatives:
 </OL>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="separator"><h2>How can I get a separator line in
-	      a complex dialog box?</h2></A> 
+	      a complex dialog box?</h2></A>
 <p><b>
 &gt;  Fast question. Is there any way to have a line which works as<br>
 &gt; a separator in a complex dialog box? I'm thinking about something<br>
@@ -1787,7 +1787,7 @@ or so.  The only thing you cannot accomplish is to make the line ending
 is easy: just make it ridiculously long.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="defaultbutton"><h2>How can I make a dialog button
@@ -1799,7 +1799,7 @@ is easy: just make it ridiculously long.
 </center>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="waitdialog"><h2>How do I wait for the user to
@@ -1809,9 +1809,9 @@ is easy: just make it ridiculously long.
 <p>It's not that hard. Try the following:
 <xmp>
          ...
-         new(D, dialog('Test Dialog')), 
-         send(D, append, text_item(name)), 
-         send(D, append, button('OK', message(D, return, ok))), 
+         new(D, dialog('Test Dialog')),
+         send(D, append, text_item(name)),
+         send(D, append, button('OK', message(D, return, ok))),
          get(D, confirm, Ok),
          send(D, destroy),
          ...
@@ -1819,10 +1819,10 @@ is easy: just make it ridiculously long.
 See frame->return and frame <-confirm for details.  Actually, you could
 also have implemented this using (not tested):
 
-<xmp> 
-         new(D, dialog('Test Dialog')), 
-         send(D, append, text_item('Vorname')), 
-         send(D, append, button('OK', message(D, destroy))), 
+<xmp>
+         new(D, dialog('Test Dialog')),
+         send(D, append, text_item('Vorname')),
+         send(D, append, button('OK', message(D, destroy))),
          send(D, open),
          repeat,
               send(@display, dispatch),
@@ -1836,13 +1836,13 @@ given.  These coursenotes are on anonymous ftp
 HREF="ftp://swi.psy.uva.nl/pub/xpce/doc/coursenotes/coursenotes.ps.gz">
 ftp://swi.psy.uva.nl/pub/xpce/doc/coursenotes/coursenotes.ps.gz</A>
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="editormisc"><h2>I have problems with editors</h2></A>.
 
 <b>&gt;  I declared a text_buffer as an object variable. </b>
-<xmp> 
+<xmp>
 > variable(trigger_code,
 > 	           text_buffer,    both,   "code of the trigger").
 </xmp><b>
@@ -1861,7 +1861,7 @@ TextBuffers are a far too specific class for storing just plain text
 <xmp>
 > 	send(TD, append, new(ED, editor(@default, 30, 6))),
 > 	send(ED, text_buffer, Task?trigger_code),
-> 
+>
 > %	get(Task, trigger_code, TCode),
 > %	(TCode \== @ nil -> send(ED, text_buffer, TCode?contents) ; true),
 </xmp>
@@ -1883,7 +1883,7 @@ message(Editor, newline_and_indent)
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="editorsinrow"><h2>How can I put three editors in a
@@ -1906,7 +1906,7 @@ The following works fine in this case:
 	new(D, dialog('code attribute editor')),
         send(D, append, new(Pre, editor(@default,20,12))),
         send(D, append, new(Main, editor(@default,20,12)), right),
-        send(D, append, new(Post, editor(@default,20,12)), right),     
+        send(D, append, new(Post, editor(@default,20,12)), right),
         send(D, append, new(L2,line(0, 0, 600, 0)), below),
         send(L2, pen, 4),
         send(D, append, button(quit, message(D, destroy)), below),
@@ -1914,7 +1914,7 @@ The following works fine in this case:
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -1925,9 +1925,9 @@ The following works fine in this case:
 &gt; how can I make menu_item 'metaphoric'  active  only if the prolog<br>
 &gt; clause session/1 is bound as 'session(um)'?<br>
 &gt; <br>
-&gt; &nbsp;&nbsp;send(MIL, append, menu_item(metaphoric,<br> 
+&gt; &nbsp;&nbsp;send(MIL, append, menu_item(metaphoric,<br>
 &gt;  &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;message(@prolog, metaphorical,
-                   @arg1, P, Root, Dh))),</b> 
+                   @arg1, P, Root, Dh))),</b>
 
 <p>
 use the condition argument of menu_item:
@@ -1940,7 +1940,7 @@ use the condition argument of menu_item:
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="draganddropgesture"><h2>How do I implement a
@@ -1963,15 +1963,6 @@ only accept objects of specified type (but of course, you can also
 just fail in ->drop if you don't like the object).
 
 <xmp>
-/*  $Id$
-
-    Part of XPCE
-    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    E-mail: jan@swi.psy.uva.nl
-
-    Copyright (C) 1995 University of Amsterdam. All rights reserved.
-*/
-
 :- pce_autoload(drag_and_drop_gesture,
                 library(pce_drag_and_drop)).
 
@@ -2010,7 +2001,7 @@ dragging, this could be performed by specializing the ->drop method.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="multlistbrowser"><h2>How can I implement a
@@ -2025,7 +2016,7 @@ the clicked object. For example:
 <xmp>
 go :-
         new(D, dialog(test)),
-	new(TI, text_item(send_mail_to, '', 
+	new(TI, text_item(send_mail_to, '',
 			  message(@prolog, true))),
         new(B, browser(browser)),
         send(B, multiple_selection, @on),
@@ -2046,7 +2037,7 @@ list_to_text_item(TI, List) :-
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <a name="editscroll"><h2>
@@ -2063,7 +2054,7 @@ which will effectively delete the scrollbar.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -2099,7 +2090,7 @@ compute(C) :->
 	    ;   send(C, displayed, @off)
 	    )
 	).
-	    
+
 :- pce_end_class.
 
 </xmp>
@@ -2113,18 +2104,18 @@ connection is hidden behind the connected graphicals.  See graphical
 -&gt; hide.  This will work regardless of the shape of the graphical!
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <p><A NAME="scrolldouble"><h2>How do I scroll two windows with
-	      one scrollbar?</h2></A>	
+	      one scrollbar?</h2></A>
 
 <P><b>
 &gt; How can I scroll two different picture-windows (in one frame) with one<br>
 &gt; scrollbar? I have one window containing a timeline and one window
-containing<br> 
+containing<br>
 &gt; a schedule and I don't want the timeline to disappear when
-scrolling the<br> 
+scrolling the<br>
 &gt; schedule vertically....</b>
 
 <p>
@@ -2152,13 +2143,13 @@ scroll_vertical(P, How:name, Unit:name, Amount:int) :->
 	get(P, visible, Area),
 	get(Area, position, TopLeft),
 	send(P, send_hyper, scroll_client, scroll_to, TopLeft).
-	    
+
 scroll_horizontal(P, How:name, Unit:name, Amount:int) :->
 	send(P, send_super, scroll_horizontal, How, Unit, Amount),
 	get(P, visible, Area),
 	get(Area, position, TopLeft),
 	send(P, send_hyper, scroll_client, scroll_to, TopLeft).
-	    
+
 scroll_client(P, P2:window) :->
 	"Associate a window that follows scroll operations"::
 	new(_, hyper(P, P2, scroll_client, scroll_server)).
@@ -2176,7 +2167,7 @@ test :-
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <P><A NAME="mixedfont"><h2>How can I make the dict_item's of a
@@ -2205,7 +2196,7 @@ A bold item is appended using:
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <P><A NAME="windowlayout"><h2>How can I layout four windows in a square?</h2>
@@ -2251,7 +2242,7 @@ with all horizontal and vertical swapped in the alignment explanation.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="specializeconnect"><h2>I'd like to define a connect_gesture
@@ -2278,7 +2269,7 @@ From the manual, I read:
 indicatorbitmaps<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	from the <-<b>device</b> and finally invokes -><b>connect</b> using the
-following<br> 
+following<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	arguments:<br>
 
@@ -2309,7 +2300,7 @@ releases.  The ->connect of the generic class simply makes an instance
 of the link (a connection), but you can do anything you like instead.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="multipleconnections"><h2>How can I define multiple
@@ -2326,7 +2317,7 @@ of the link (a connection), but you can do anything you like instead.
 
 <p>
 <b>Maintainer's Note:</b> <i>Jan Wielemaker really showed what kind of
-good hearted 
+good hearted
 fellow he is on that occasion and replied:</i>
 
 <P>The example I prepared for you is a bit too long for the mailing
@@ -2343,7 +2334,7 @@ them.  Including comments the example is 250 lines long.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="connectedmeth"><h2>I need to discrimanate
@@ -2365,7 +2356,7 @@ This is where the problem should be ...
 > cond_dialog(G) :-
 > 	new(D, dialog('What kind of box am I ?')),
 > 	send(D, append, new(Lab, label)),
-> 	(send(G, connected, @default, 
+> 	(send(G, connected, @default,
 >           @decomp_link, north_tdd, south_tdu)
 </xmp>
 So, according to the not-so-good documentation of this method, this
@@ -2395,17 +2386,17 @@ This can be written as:
 The first line picks all connections from the proper link.  The second
 checks whether there is one that has G as its <-from side.
 <xmp>
->          -> send(Lab, selection, 
+>          -> send(Lab, selection,
 >                       'I am a box at the beginning of the connection')
 >          ; send(Lab, selection,
-> 	    'I am either a lonely box or a box at the end of 
+> 	    'I am either a lonely box or a box at the end of
 > 	             the connection')),
 > 	send(D, append, button(quit, message(D, destroy))),
 > 	send(D, open).
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="slidergraph"><H2>How can I resize an arbitrarily
@@ -2440,7 +2431,7 @@ with graphical primitives for a much wider range of applications.
 	      possible?</h2></A>
 
 <p><b>
-&gt; What I need is to automatically update the GUI if the data change<br> 
+&gt; What I need is to automatically update the GUI if the data change<br>
 &gt; (because of a manual modification or the concurrent access of the<br>
 &gt; data by two different editors, for example) and not only the opposite<br>
 &gt; way. <br>
@@ -2497,7 +2488,7 @@ Depending on your total architecture, you can also use the class
 - &gt; changed_message for trapping object changes.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="editbrowse"><H2>How can I make an editor
@@ -2511,11 +2502,11 @@ not.  Also note that most browsers are small and high, while most
 editors are wide and low.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="colorimages"><h2>Can I read coloured images in
-	      XPCE?</h2></A> 
+	      XPCE?</h2></A>
 
 <p><b>
 &gt; Do you know how I can load quickly a great (1100x900) X11 Pixmap<br>
@@ -2531,7 +2522,7 @@ problems) and maybe ppm (portable pixmap).  I hope you can wait a couple
 of weeks.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -2569,7 +2560,7 @@ After which image <-pixel wil finish the job.
 the picture and write the pixels in the bitmap.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -2579,7 +2570,7 @@ the picture and write the pixels in the bitmap.
 	      a graphical?</h2></A>
 
  <A NAME="beginnerscorner">
-This snippet of code is actually an example of numerous XPCE 
+This snippet of code is actually an example of numerous XPCE
 features which might might interest absolute beginners. That is why I
 decided to make this question a reference for many "<i>simple</i>"
 questions:</A>
@@ -2588,7 +2579,7 @@ questions:</A>
   <li><b>How to attach gestures and recognizers to a graphical</b>
   <li><b>How to tell the position at which a mouse click takes
        place</b>
-  <li><b>How to make a simple popup</b>      
+  <li><b>How to make a simple popup</b>
   <li><b>How to define a dialog with a drawing area</b>
   <li><b>How to invoke a Prolog predicate as a reaction to an user action</b>
 </UL>
@@ -2602,14 +2593,14 @@ for self-destruction and message forwarding to the Prolog interpreter.
  *    Talking Boxes: an XPCE example   *
  ***************************************/
 
-/* This is a rather standard way to define a complex recognizer 
- * This recognizer will be attached to each box as soon as it is 
+/* This is a rather standard way to define a complex recognizer
+ * This recognizer will be attached to each box as soon as it is
  * generated. The recognizer is made of two gestures:
  *
  *  1) A move_gesture which allows for the dragging of each box
  *     with the middle button (default)
  *  2) A popup_gesture which attaches a simple two item popup menu
- *     to each box. It is activated when the right button is 
+ *     to each box. It is activated when the right button is
  *     pressed (default)
  */
 
@@ -2622,44 +2613,44 @@ make_icon_recogniser(G) :-
         Graphical = @arg1,
         send_list(Pop, append,
                   [ menu_item(delete, message(Graphical, free))
-                  , menu_item(who_am_I, 
-		          and(message(@prolog, write, 
+                  , menu_item(who_am_I,
+		          and(message(@prolog, write,
 			                'Hi! I''m a little box'),
 		              message(@prolog, nl)))
-		      
+
 		  ]),
 	new(G, handler_group(M, P)).
 
-/* This is the main part of the application. First it generates a frame 
+/* This is the main part of the application. First it generates a frame
  * which will function as a container for the other windows.
  * Secondly it will attach a picture window for displaying the boxes
- * and a simple dialog above it. The dialog contains a button for 
+ * and a simple dialog above it. The dialog contains a button for
  * self-destruction and a label with a welcome message.
- * Lastly a recognizer is attached to the picture. It intercepts single 
+ * Lastly a recognizer is attached to the picture. It intercepts single
  * left buttons clicks and delegates the actual creation of the box
  * to a prolog predicate defined below
- */ 
+ */
 
 make_talking_boxes :-
         new(F, frame('My Boxes Talk')),
 	send(F, append, new(P, picture)),
         send(new(D, dialog), above, P),
 	send(D, append, button(quit, message(F, destroy))),
-	send(D, append, label(feedback, 
+	send(D, append, label(feedback,
                   'Welcome to the wonderful world of talking boxes'),
 		  right),
 	send(P, recogniser,
 	      click_gesture(left, '', single,
-                           message(@prolog, 
-			           make_box, 
-			           P,          
+                           message(@prolog,
+			           make_box,
+			           P,
 				   @event?position))),
 	send(F, open).
-                  
+
 /* This is the Prolog predicates in charge of generating each box
- * It simply generates a box, attaches (an instance of) the recognizer 
+ * It simply generates a box, attaches (an instance of) the recognizer
  * to it and orders the picture to display it*/
-                  
+
 make_box(P, Position) :-
 	new(Box, box(50, 25)),
 	send(Box, recogniser, @icon_recogniser),
@@ -2667,7 +2658,7 @@ make_box(P, Position) :-
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="clickline"><h2>How can I attach a Popup menu to a
@@ -2680,14 +2671,14 @@ make_box(P, Position) :-
 > 	new(FI, link(prod_form_in, task_form_in, new(Line, line))),
 > 	send(Line, recogniser, @link_recognizer),
 >         send(Line, arrows, second).
-> 
+>
 > :-  pce_global(@link_recognizer, make_link_recognizer).
-> 
+>
 > make_link_recognizer(LR) :-
 > 	new(LR, popup_gesture(new(Pop, popup))),
 > 	Line = @arg1,
 > 	send_list(Pop, append,
->                   [menu_item(delete, message(Line, free))  
+>                   [menu_item(delete, message(Line, free))
 >                   ]).
 </xmp>
 <p>
@@ -2711,7 +2702,7 @@ event(C, Ev:event) :->
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <hr><A NAME="deadeditors"><h2>I have a dialog with three
@@ -2721,7 +2712,7 @@ event(C, Ev:event) :->
 &gt; The first editor gets the focus naturally (i.e. I can write in it),<br>
 &gt; but there's no way for having the other two perform the same
 service.<br>
-&gt;<br> 
+&gt;<br>
 &gt; Do I have to redefine the some method to achieve this?</b>
 <p>
 Just click in the one you want to activate?  This didn't work in older
@@ -2740,7 +2731,7 @@ is a trick to make an always failing object, so
 event-handling will do this, but continue with the predefined stuff.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <H1>Performance and Errors</H1>
@@ -2751,13 +2742,13 @@ event-handling will do this, but continue with the predefined stuff.
 <p><b>
 &gt; Your last remark seems to be quite relevant here. I.e. having a<br>
 &gt; stippled line with pen &gt; 1 does slow down things
-&gt; significantly. Moving<br> 
+&gt; significantly. Moving<br>
 &gt; a miniwindow interactively is not smooth at all but distinctly<br>
 &gt; "jumpy". It does seem to require a lot of processing power.<br>
 &gt; <br>
 &gt; MORAL: one should avoid stippled lines with pen &gt; 1. Having pen = 1<br>
 &gt; does not seem to have any noticable performance impact on the graphic<br>
-&gt; operations. Is this true in general, i.e. having pen &gt; 1 costs<br> 
+&gt; operations. Is this true in general, i.e. having pen &gt; 1 costs<br>
 &gt; a lot while pen = 1 does not have this cost (regardless of the texture)?
 </b>
 
@@ -2774,7 +2765,7 @@ which will be hard to distinguish from what X11 use and are probably
 <p>Actually the only server I've seen that lacks this nonsense is the
 Xfree 2.1 server used by Linux and most PC-based Unix systems.
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="manyequals"><h2><b>@arg1?product_name == Name</b>,
@@ -2786,14 +2777,14 @@ Xfree 2.1 server used by Linux and most PC-based Unix systems.
 &gt; I'm trying to understand if there's a product on the picture with the<br>
 &gt; same product_name attribute, but the standard and most obvious way to<br>
 &gt; do it, doesn't seem to work:</b>
-<xmp> 
+<xmp>
 > :- pce_begin_class(product, device, "graphical with a lot of info").
-> 
+>
 > variable(product_name,   string,    both,   "name of the product").
-> 
+>
 >  :
 >  :
->  
+>
 > dup_prod(Product, Name) :->
 > 	"check if this product has already been defined"::
 >         get(Product, canvas, C),
@@ -2801,7 +2792,7 @@ Xfree 2.1 server used by Linux and most PC-based Unix systems.
 > 	if(and(message(@arg1, instance_of, product),
 > 	       @arg1?product_name == Name),
 > 	       message(@prolog, conf_dialog, Product, @arg1))).
-</xmp><b> 
+</xmp><b>
 &gt;  I traced it and I have noticed that the "@arg1?product_name == Name"<br>
 &gt; condition always fails (after I've just created two objects with the<br>
 &gt; same product_name.</b>
@@ -2821,7 +2812,7 @@ for storing the identification name.  In that case you can use the
 device &lt;-member message to locate the object.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="messagelosesdefault"><h2>This dialog items has lost
@@ -2872,7 +2863,7 @@ Here is an example and the easily extensible solution</i>
 
 <p>
 I think you should make sure the message of the text item succeeds, your
-implementation of the thing only succeeds if there *is* as duplicate 
+implementation of the thing only succeeds if there *is* as duplicate
 product object. This will do:
 <xmp>
 dup_prod(Product, Name) :->
@@ -2889,7 +2880,7 @@ dup_prod(Product, Name) :->
 </xmp>
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="initialerror"><h2>I always get this initialization
@@ -2902,7 +2893,7 @@ dup_prod(Product, Name) :->
 >  ^ Call:  (  6) pce_principal:new(L392, constraint(@ 849216, @ 825207, identity(product_status, pro> duct_status))) ? creep
 > [PCE error: product <->product_status: Argument 1 (string) should be a string
 >         in: V @825207/product <->product_status: @nil/constant]
-> PCE: 15 fail: V @825207/product <->product_status: @nil/constant ? 
+> PCE: 15 fail: V @825207/product <->product_status: @nil/constant ?
 >  ^ Exit:  (  6) pce_principal:new(@ 87615
 </xmp>
 <p>
@@ -2911,7 +2902,7 @@ able to leave the slot value to its initial @nil value, you must postfix
 the type declaration with the `*' sign: string*
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="nograbpointer"><h2>XPCE complains that it fails to
@@ -2943,7 +2934,7 @@ This is not supposed to lead to a crash, so please inform Jan
 Wielemaker if you have anything that might be reproduced.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="hash_tableinit"><h2>I cannot use <b>append</b> with
@@ -2951,18 +2942,18 @@ Wielemaker if you have anything that might be reproduced.
 <p><b>
 &gt;  I need to use an hash table which dinamically associates an XPCE<br>
 &gt; reference (key) to a text_buffer (I need it to store an editor content<br>
-&gt; throughout the life of the application). I'm trying this:</b> 
+&gt; throughout the life of the application). I'm trying this:</b>
 <xmp>
 > variable(feedback_table,      hash_table*,    both,
-> 	                "list of feedbacks produced by task"). 
+> 	                "list of feedbacks produced by task").
 >  :
 >  :
 > adjust_feedback(Generator, Receiver) :-
 > 	get_name_of_feedback(Name),
-> 	send(Generator?feedback_table, append, Receiver, new(text_buffer)), 
-> 
+> 	send(Generator?feedback_table, append, Receiver, new(text_buffer)),
+>
 > Now, the error I get is:
-> 
+>
 > 3 ?- [PCE warning: send: No implementation for: @nil/constant -&gt;append]
 </xmp>
 Not unreasonable.  By making a variable of type hash_table*, you don't
@@ -2996,7 +2987,7 @@ blabla(R, .....) :->
 	;   T1 = T
 	),
 	send(T1, append, bla, gnat).
-</xmp>	
+</xmp>
 <b>
 &gt; BTW Are there examples somewhere about the use of hash_tables?<br>
 &gt;     If not, I think that it would be useful.</b>
@@ -3005,11 +2996,11 @@ No short ones.  There is code using them in the libraries.  Just grep
 for hash_table and you'll find it.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="filenopen"><h2>I cannot understand why XPCE tells me
-	   "file -&gt; open" is not implemented</h2></A>	  
+	   "file -&gt; open" is not implemented</h2></A>
 <p><b>
 &gt;  I have some problem with the production of a Postscript dump of<br>
 &gt; what's in my tool's picture<br>
@@ -3046,7 +3037,7 @@ explicit:
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="postscriptbutton"><H2>I tried to print a PostScript
@@ -3056,7 +3047,7 @@ explicit:
 <xmp>
 >[PCE error: send: No implementation for: @2661737/scroll_bar ->_draw_post_script
 >         in: send(@2661737/scroll_bar, _draw_post_script)]
-> PCE: 39 fail: send(@2661737/scroll_bar, _draw_post_script) ?  
+> PCE: 39 fail: send(@2661737/scroll_bar, _draw_post_script) ?
 </xmp>
 
 <P>No, the generation of PostScript is not supported for these classes.
@@ -3067,7 +3058,7 @@ hard to generate images for these objects.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="outoflockstack"><h2>I get an "Out of lock stack"
@@ -3075,12 +3066,12 @@ hard to generate images for these objects.
 
 <p><b>&gt; I get the message:</b>
 <xmp>
-> 
+>
 >   [WARNING: Out of lock stack]
-> 
+>
 >   Execution Aborted
-> 
->   23 ?-     
+>
+>   23 ?-
 </xmp>
 
 <p>This is generally another word for `Segmentation fault', occurring in
@@ -3099,7 +3090,7 @@ gdb, the symbol table should be xpce/pl/sparc-.../xpce.base.
 
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <h1>Tricks and Hacks</h1>
@@ -3128,12 +3119,12 @@ test :-
 			      message(@receiver?frame, destroy))),
 	     open),
 	my_loop.
-	
+
 	my_loop :-
 		send(@display, synchronise),
 		retract(stopped), !.
 	my_loop :-
-		my_loop.		
+		my_loop.
 </xmp>
 
 <b>send(@display, synchronise)</b>, is not particulary fast (about 2000 calls
@@ -3146,7 +3137,7 @@ at some central points in the code, but nevertheless can loop such that
 it doesn't check.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="alwaysfail"><h2>How can I implement an always failing
@@ -3166,15 +3157,15 @@ So, how to create an object that always succeeds (no, I don't buy
 not(new(or)), although it works :-)
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 <A NAME="poormouse"><h2>My mouse has only two buttons. Is
-	   there a way to use XPCE for me?</h2></A> 
+	   there a way to use XPCE for me?</h2></A>
 <p><b>
 &gt; The major problem I have with the Windows port is that I don't<br>
 &gt; have a 3-button mouse.  So I can't do anything with the dialog
-editor!<br> 
+editor!<br>
 &gt; Any suggestions (apart from "go and buy a 3-button mouse")?</b>
 
 <p>For the time being this is about the best I can think of.  Mice are
@@ -3192,7 +3183,7 @@ As long as the code doesn't explicitely assign buttons to gestures
 you can play this trick with all of the gestures.
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
@@ -3201,7 +3192,7 @@ you can play this trick with all of the gestures.
 
 <A NAME="aixondos"><h2>Is it really true that applications
 	   developed on, let's say AIX, will run without modifications
-	   on, e.g., DOS/Windows?</h2></A>  
+	   on, e.g., DOS/Windows?</h2></A>
 
 <p>Yes, with the exception of minor things that cannot be emulated in a
 sensible way.  For example class process (dealing with inferior
@@ -3211,28 +3202,28 @@ are unlimited.  The MS-Windows version will scale the icon for you,
 but whether it gets pretier this way ...
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
 <A NAME="godsavethequeen"><h2>Why are recognizers spelt
-	   recogni*s*ers?</h2></A> 
+	   recogni*s*ers?</h2></A>
 
 <p>Because Jan Wielemaker still loves Good Ol' Britain (certainly more
 than the Webster dictionary does).
 
 <P><A HREF="#contents"><em>(Up to Table of Contents)</em></A>
-       
+
 <hr>
 
 
 Luca Passani maintains this document. Feedback can be sent to him by
-Email:<br> 
+Email:<br>
 
 <A HREF="mailto:passani@idt.unit.no">
 <IMG HSPACE=5 BORDER=0 ALIGN=right SRC="posta.gif">
 <i>passani@idt.unit.no</I></A><br>
 
-<p><ADDRESS>The Humble Scribe</ADDRESS> 
+<p><ADDRESS>The Humble Scribe</ADDRESS>
 <b>Luca Passani</b>
 </BODY>

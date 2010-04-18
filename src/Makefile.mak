@@ -1,13 +1,12 @@
 ################################################################
 # Makefile for SWI-Prolog on MS-Windows
 #
-# Author:	Jan Wielemaker
-#		J.Wielemaker@uva.nl
-#		HCS (formerly SWI)
-#		University of Amsterdam
-#    		Kruislaan 419
-#		1098 VA  Amsterdam
-#		The Netherlands
+# Author:			Jan Wielemaker
+#			     J.Wielemaker@cs.vu.nl
+#		University of Amsterdam  VU University Amsterdam
+#    		Kruislaan 419		 De Boelelaan 181a
+#		1098 VA  Amsterdam	 1081 HV Amsterdam
+#			       The Netherlands
 #
 # Public targets:
 #
@@ -23,17 +22,22 @@
 #	* LGPL (see file COPYING or http://www.gnu.org/)
 ################################################################
 
+# NOTE: The Unix/GCC versions use profile-based optimization.  This is
+# also available for MSVC2005, but not for the Express version. It is
+# called `POGO'. See
+# http://blogs.msdn.com/vcblog/archive/2008/11/12/pogo.aspx
+
 STACK=4000000
 
 PLHOME=..
 !include rules.mk
 
 PL=pl
-PLCON=$(PLHOME)\bin\plcon.exe
-PLWIN=$(PLHOME)\bin\plwin.exe
-PLLD=$(PLHOME)\bin\plld.exe
-PLRC=$(PLHOME)\bin\plrc.exe
-PLDLL=$(PLHOME)\bin\libpl.dll
+PLCON=$(PLHOME)\bin\swipl.exe
+PLWIN=$(PLHOME)\bin\swipl-win.exe
+PLLD=$(PLHOME)\bin\swipl-ld.exe
+PLRC=$(PLHOME)\bin\swipl-rc.exe
+PLDLL=$(PLHOME)\bin\swipl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
 OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
 
@@ -58,7 +62,8 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
 	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj \
 	pl-segstack.obj pl-hash.obj pl-version.obj pl-codetable.obj \
-	pl-supervisor.obj pl-option.obj pl-files.obj
+	pl-supervisor.obj pl-option.obj pl-files.obj pl-ntconsole.obj \
+	pl-dbref.obj pl-termhash.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -67,6 +72,8 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
+
+!include common.mk
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/bags.pl ../boot/apply.pl ../boot/expand.pl ../boot/dcg.pl \
@@ -88,16 +95,12 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_source.pl broadcast.pl pairs.pl base64.pl record.pl \
 	rbtrees.pl settings.pl dialect.pl apply_macros.pl apply.pl \
 	nb_rbtrees.pl aggregate.pl pure_input.pl pio.pl terms.pl \
-	charsio.pl portray_text.pl \
+	charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
-COMMON=
-DIALECT=yap.pl hprolog.pl
-YAP=	README.TXT
-ISO=	iso_predicates.pl
 UNICODE=blocks.pl unicode_data.pl
 MANDIR= "$(PLBASE)\doc\Manual"
 
@@ -106,13 +109,12 @@ all:	lite packages
 remake-all: distclean all install
 
 lite:	banner \
-	headers	swipl subdirs vmi \
+	headers	swipl.home subdirs vmi \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \
 	dlldemos
 
 plcon:	$(PLCON)
 plwin:	$(PLWIN)
-plld:	$(PLLD)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
@@ -132,17 +134,19 @@ banner:
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
 		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(GMPLIB) $(LIBS) winmm.lib $(DBGLIBS)
-		$(MTEXE) -manifest $(PLDLL).manifest -outputresource:$(PLDLL);2
+
+# We first create plcon.exe to avoid overriding the debug files of swipl.dll.
+# Maybe using the same name for a dll and exe is a bad idea afterall?
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
-		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
-		editbin /stack:$(STACK) $(PLCON)
-		$(MTEXE) -manifest $(PLCON).manifest -outputresource:$(PLCON);1
+		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
+		editbin /stack:$(STACK) plcon.exe
+		copy plcon.exe $@
+		copy plcon.exe.manifest $@.manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
 		editbin /stack:$(STACK) $(PLWIN)
-		$(MTEXE) -manifest $(PLWIN).manifest -outputresource:$(PLWIN);1
 
 pl.res:		pl.rc pl.ico xpce.ico
 		$(RSC) /fo$@ pl.rc
@@ -197,16 +201,15 @@ defatom.exe:	defatom.obj
 mkvmi.exe:	mkvmi.obj
 		$(LD) /out:$@ /subsystem:console mkvmi.obj $(LIBS)
 
-$(PLLD):	plld.obj
-		$(LD) /out:$@ /subsystem:console plld.obj $(LIBS)
-		$(MTEXE) -manifest $(PLLD).manifest -outputresource:$(PLLD);1
+$(PLLD):	swipl-ld.obj
+		$(LD) /out:$@ /subsystem:console swipl-ld.obj $(LIBS)
 
 tags:		TAGS
 
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 
-swipl:
+swipl.home:
 		echo . > $@
 
 check:
@@ -217,12 +220,12 @@ check:
 # normal development version
 ################################################################
 
-!IF "$(CFG)" == "rt"
-install:	$(BINDIR) iprog install_packages
-!ELSE
-install:	install-arch install-libs install-readme install_packages \
+install:	embed-manifests \
+		install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo html-install
-!ENDIF
+
+embed-manifests::
+		win32\embed_manifests.cmd
 
 install-arch:	idirs iprog
 		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
@@ -238,9 +241,9 @@ iprog::
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(TERMDLL) "$(BINDIR)"
 !IF "$(PDB)" == "true"
-		$(INSTALL_PROGRAM) ..\bin\plwin.pdb "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\plcon.pdb "$(BINDIR)"
-		$(INSTALL_PROGRAM) ..\bin\libpl.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl-win.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\swipl.pdb "$(BINDIR)"
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
 !IF "$(MT)" == "true"
@@ -255,7 +258,7 @@ iprog::
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"
-		$(INSTALL_DATA) swipl "$(PLBASE)\swipl"
+		$(INSTALL_DATA) swipl.home "$(PLBASE)"
 		chdir "$(PLBASE)\library" & \
 		   $(PLCON) \
 			-f none \
@@ -267,10 +270,14 @@ install-demo:	idirs
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
+		"$(PLBASE)\include\sicstus" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
 		"$(PLBASE)\library\dialect" "$(PLBASE)\library\dialect\yap" \
 		"$(PLBASE)\library\dialect\iso" \
+		"$(PLBASE)\library\dialect\sicstus" \
+		"$(PLBASE)\library\dialect\ciao" \
+		"$(PLBASE)\library\dialect\ciao\engine" \
 		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
@@ -282,7 +289,7 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		iclp idialect iyap iiso iunicode
+ilib:		iclp idialect iyap isicstus iciao iiso iunicode
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
@@ -297,6 +304,17 @@ idialect:	iyap
 iyap::
 		chdir $(PLHOME)\library\dialect\yap & \
 			for %f in ($(YAP)) do copy %f "$(PLBASE)\library\dialect\yap"
+
+isicstus::
+		chdir $(PLHOME)\library\dialect\sicstus & \
+			for %f in ($(SICSTUS)) do copy %f "$(PLBASE)\library\dialect\sicstus"
+		copy compat\sicstus.h "$(PLBASE)\include\sicstus\sicstus.h"
+
+iciao::
+		chdir $(PLHOME)\library\dialect\ciao & \
+			for %f in ($(CIAO)) do copy %f "$(PLBASE)\library\dialect\ciao"
+		chdir $(PLHOME)\library\dialect\ciao\engine & \
+			for %f in ($(CIAO_ENGINE)) do copy %f "$(PLBASE)\library\dialect\ciao\engine"
 
 iiso::
 		chdir $(PLHOME)\library\dialect\iso & \
@@ -403,7 +421,7 @@ odbc-install:
 # Redistributable Requirements .cab files
 ################################################################
 
-!IF "$(MD)" == WIN32
+!IF "$(MD)" == "WIN32"
 BITS=32
 !ELSE
 BITS=64
@@ -437,7 +455,7 @@ distclean:	clean distclean_packages
 		@chdir win32\foreign & $(MAKE) distclean
 		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul
-		-del swipl swiplbin 2>nul
+		-del swipl.home swiplbin 2>nul
 
 realclean:	clean
 		del $(STARTUPPATH)

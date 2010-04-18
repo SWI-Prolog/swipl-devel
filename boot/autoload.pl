@@ -95,6 +95,7 @@
 	Term = Module:Head,
 	functor(Head, Name, Arity),
 	current_prolog_flag(autoload, true),
+	\+ current_prolog_flag(Module:unknown, fail),
 	'$find_library'(Module, Name, Arity, LoadModule, Library),
 	flag('$autoloading', Old, Old+1),
 	(   Module == LoadModule
@@ -172,7 +173,8 @@ load_library_index(_, _) :-
 	get_time(Now),
 	Now-Time < 60, !.
 load_library_index(_, _) :-
-	findall(Index, index_file_name(Index, [access(read)]), List),
+	findall(Index, index_file_name(Index, [access(read)]), List0),
+	list_set(List0, List),
 	retractall(index_checked_at(_)),
 	get_time(Now),
 	assert(index_checked_at(Now)),
@@ -183,6 +185,17 @@ load_library_index(_, _) :-
 	    read_index(List),
 	    assert(autoload_directories(List))
 	).
+
+list_set([], R) :-			% == list_to_set/2 from library(lists)
+	closel(R).
+list_set([H|T], R) :-
+	memberchk(H, R), !,
+	list_set(T, R).
+
+closel([]) :- !.
+closel([_|T]) :-
+	closel(T).
+
 
 index_file_name(IndexFile, Options) :-
 	absolute_file_name(library('INDEX'),

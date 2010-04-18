@@ -18,7 +18,7 @@
 ################################################################
 
 PUBLICPL=	@PL@
-PL=		../@BUILDDIR@/pl.sh
+PL=		../@BUILDDIR@/swipl.sh
 
 CP=		cp
 CPP=		@CPP@
@@ -41,12 +41,13 @@ BETAMAN=	~www/SWI-Prolog/BETA/Manual
 LIBFILES=	lib/library.tex lib/readutil.tex lib/wwwbrowser.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
 		lib/lists.tex lib/bounds.tex lib/clpqr.tex lib/gensym.tex \
-		lib/nbset.tex lib/clpdistinct.tex lib/libsummary.tex \
+		lib/nbset.tex lib/libsummary.tex \
 		lib/simplex.tex lib/assoc.tex lib/prologxref.tex \
 		lib/ugraphs.tex lib/ordsets.tex lib/broadcast.tex \
 		lib/record.tex lib/clpfd.tex lib/pairs.tex lib/option.tex \
 		lib/apply.tex lib/aggregate.tex lib/threadpool.tex \
-		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex
+		lib/pio.tex lib/pureinput.tex lib/charsio.tex lib/shlib.tex \
+		lib/csv.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
@@ -197,6 +198,8 @@ lib/threadpool.tex: ../library/thread_pool.pl
 		$(LIBTOTEX) 'library(thread_pool)'
 lib/charsio.tex: ../library/charsio.pl
 		$(LIBTOTEX) 'library(charsio)'
+lib/csv.tex: ../library/csv.pl
+		$(LIBTOTEX) 'library(csv)'
 
 
 ################################################################

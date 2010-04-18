@@ -22,7 +22,6 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/semweb
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -33,7 +32,7 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 
-PUBLICPL=pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=semweb
@@ -41,7 +40,7 @@ TEX=$(DOC).tex	rdfturtle.tex rdfturtlewrite.tex rdfcompare.tex \
 		rdfportray.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
-RUNTEX=@RUNTEX@
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@

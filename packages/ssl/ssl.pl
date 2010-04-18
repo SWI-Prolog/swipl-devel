@@ -30,14 +30,68 @@
 */
 
 :- module(ssl,
-	  [ ssl_init/3,			% -Config, +Role, +Options
-	    ssl_accept/3,		% +Config, -Socket, -Peer
-	    ssl_open/3,			% +Config, -In, -Out
-	    ssl_open/4,			% +Config, +Socket, -In, -Out
+	  [ ssl_context/3,		% +Role, -Config, +Options
+            ssl_init/3,                 % -Config, +Role, +Options
+            ssl_accept/3,               % +Config, -Socket, -Peer
+            ssl_open/3,                 % +Config, -Read, -Write
+            ssl_open/4,                 % +Config, +Socket, -Read, -Write
+            ssl_negotiate/5,            % +Config, +PlainRead, +PlainWrite, -SSLRead, -SSLWrite
 	    ssl_exit/1			% +Config
 	  ]).
+:- use_module(library(socket)).
+:- use_module(library(error)).
+:- use_module(library(option)).
 
 :- use_foreign_library(foreign(ssl4pl)).
 
-ssl_open(Config, In, Out) :-
-	ssl_open(Config, -, In, Out).
+:- meta_predicate
+	ssl_init(-, +, :),
+	ssl_context(+, -, :).
+
+
+ssl_context(Role, SSL, Options) :-
+	'_ssl_context'(Role, SSL, Options).
+
+/*
+  These predicates are here to support backward compatability with the previous
+  incarnation of the SSL library. No changes should be required for legacy code.
+*/
+
+ssl_init(SSL, Role, Options) :-
+	must_be(oneof([client,server]), Role),
+	ssl_init2(Role, SSL, Options).
+
+ssl_init2(server, SSL, Options) :-
+	Options = _:Options1,
+	option(port(Port), Options1),
+        tcp_socket(Socket),
+	tcp_setopt(Socket, reuseaddr),
+        tcp_bind(Socket, Port),
+        tcp_listen(Socket, 5),
+        ssl_context(server, SSL, Options),
+        Socket = '$socket'(S),
+        ssl_put_socket(SSL, S).
+ssl_init2(client, SSL, Options) :-
+	Options = _:Options1,
+        option(port(Port), Options1),
+        option(host(Host), Options1),
+        tcp_socket(Socket),
+	tcp_setopt(Socket, reuseaddr),
+        tcp_connect(Socket, Host:Port),
+        ssl_context(client, SSL, Options),
+        Socket = '$socket'(S),
+        ssl_put_socket(SSL, S).
+
+
+ssl_accept(SSL, Socket, Peer):-
+        ssl_get_socket(SSL, S),
+        tcp_accept('$socket'(S), Socket, Peer).
+
+ssl_open(SSL, Socket, In, Out):-
+        tcp_open_socket(Socket, Read, Write),
+        ssl_negotiate(SSL, Read, Write, In, Out).
+
+ssl_open(SSL, In, Out):-
+        ssl_get_socket(SSL, S),
+        tcp_open_socket('$socket'(S), Read, Write),
+        ssl_negotiate(SSL, Read, Write, In, Out).

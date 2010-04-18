@@ -1,0 +1,105 @@
+Please search the section for your Linux distribution
+
+################################################################
+# Debian dependency list as compiled by Nicolas Pelletier
+################################################################
+
+List of packages needed to compile SWI Prolog on Debian 4.0 stable (Etch):
+
+binutils
+coreutils
+gcc
+grep
+libc6-dev
+libgmp3-dev
+libncursesw5-dev
+libreadline5-dev
+autoconf
+make
+sed
+curl
+chrpath
+
+List of packages needed to compile additional SWI Prolog packages on
+Debian 4.0 stable (Etch):
+
+For clib: no other package required
+For cpp: no other package required
+For odbc: unixodbc-dev
+For table: no other package required
+For xpce: libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev
+libxpm-dev libxt-dev pkg-config
+For sgml: no other package required
+For sgml/RDF: no other package required
+For semweb: no other package required
+For http: no other package required
+For chr: no other package required
+For clpqr: no other package required
+For nlp: no other package required
+For ssl: libssl-dev
+For pldoc: no other package required
+For plunit: no other package required
+For jpl: sun-java5-bin sun-java5-fonts sun-java5-jdk
+For zlib: zlib1g-dev
+
+Note 1: installing these packages triggers the automatic installation
+of other needed (dependent) packages.
+Note 2: Debian includes other Java implementations; however, the
+configure script found in jpl tests for a directory structure that can
+only match Sun's Java. I also do not know if the jpl package works
+with these other implementations. Now that Sun has open-sourced Java,
+this should be less of a concern.
+
+------------------------
+And now simple commands:
+------------------------
+
+To make life a bit easier for you we compiled a single-line apt-get
+command to get all SWI-Prolog's dependencies.  Simply copy-and-paste
+the command below in a terminal window and enter the sudo password
+to get everything installed.  Note that it does not matter than you
+may have some of these packages already present: apt-get will simply
+tell you they are installed and up-to-date.
+
+sudo apt-get install \
+	binutils coreutils gcc grep chrpath \
+	libc6-dev libncursesw5-dev libreadline5-dev \
+	libgmp3-dev \
+	make sed autoconf curl \
+	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
+	libxpm-dev libxt-dev pkg-config \
+	libssl-dev \
+	sun-java5-bin sun-java5-fonts sun-java5-jdk \
+	zlib1g-dev
+
+The provided build.templ works fine for Debian and Ubuntu. Copy it to
+"build" and edit the installation prefix if you do not wish to install
+in your own $HOME/bin directory.  Then run
+
+	./build
+
+--------------------------
+Building the documentation
+--------------------------
+
+If you want to build the documentation from source you also need the
+following packages:
+
+	sudo apt-get install \
+		texlive-latex-base \
+		texlive-latex-recommended \
+		texlive-fonts-recommended
+
+################################################################
+# OpenSUSE 11.2
+################################################################
+
+For OpenSuSE 11.2, you need the following installed in addition
+to the basic X11/C/C++ development profile:
+
+zypper install \
+	git-core \
+	readline-devel \
+	unixODBC-devel \
+	libjpeg-devel \
+	java-1_6_0-openjdk-devel

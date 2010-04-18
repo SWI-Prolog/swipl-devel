@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -36,6 +36,7 @@
 	    permission_error/3,		% +Action, +Type, +Term
 	    instantiation_error/1,	% +Term
 	    representation_error/1, 	% +Reason
+	    syntax_error/1, 		% +Culprit
 
 	    must_be/2,			% +Type, +Term
 	    is_of_type/2		% +Type, +Term
@@ -52,33 +53,107 @@ most common ISO error terms.
 
 @author Jan Wielemaker
 @author Richard O'Keefe
+@author Ulrich Neumerkel
 @see	library(debug) and library(prolog_stack).
+@see	print_message/2 is used to print (uncaught) error terms.
 */
 
 :- multifile
 	has_type/2.
 
+		 /*******************************
+		 *	     ISO ERRORS		*
+		 *******************************/
+
 %%	type_error(+Type, +Term).
-%%	domain_error(+Type, +Term).
-%%	existence_error(+Type, +Term).
-%%	permission_error(+Action, +Type, +Term).
-%%	instantiation_error(+Term).
-%%	representation_error(+Reason).
 %
-%	Throw ISO compliant error messages.
+%	Tell the user that Term is not  of the expected Type. This error
+%	is closely related to domain_error/2 because the notion of types
+%	is  not  really  set  in  stone  in  Prolog.  We  introduce  the
+%	difference using a simple example.
+%
+%	Suppose an argument must  be  a   non-negative  integer.  If the
+%	actual argument is not an integer, this is a _type_error_. If it
+%	is a negative integer, it is a _domain_error_.
+%
+%	Typical borderline cases are  predicates   accepting  a compound
+%	term, e.g., point(X,Y). One could argument   that the basic type
+%	is a compound-term and  any  other   compound  term  is a domain
+%	error. Most Prolog programmers consider each  compound as a type
+%	and  would  consider  a  compoint  that   is  not  point(_,_)  a
+%	_type_error_.
 
 type_error(Type, Term) :-
 	throw(error(type_error(Type, Term), _)).
+
+%%	domain_error(+Type, +Term).
+%
+%	The argument is of the proper  type,   but  has  a value that is
+%	outside the supported  values.  See   type_error/2  for  a  more
+%	elaborate  discussion  of  the  distinction  between  type-  and
+%	domain-errors.
+
 domain_error(Type, Term) :-
 	throw(error(domain_error(Type, Term), _)).
+
+%%	existence_error(+Type, +Term).
+%
+%	Term is of the correct type and  correct domain, but there is no
+%	existing (external) resource that is represented by it.
+
 existence_error(Type, Term) :-
 	throw(error(existence_error(Type, Term), _)).
+
+%%	permission_error(+Action, +Type, +Term).
+%
+%	It is not allowed to perform Action   on the object Term that is
+%	of the given Type.
+
 permission_error(Action, Type, Term) :-
 	throw(error(permission_error(Action, Type, Term), _)).
+
+%%	instantiation_error(+Term).
+%
+%	An argument is under-instantiated. I.e. it  is not acceptable as
+%	it is, but if some variables are  bound to appropriate values it
+%	would be acceptable.
+%
+%	@param	Term is the term that needs (further) instantiation.
+%		Unfortunately, the ISO error does not allow for passing
+%		this term along with the error, but we pass it to this
+%		predicate for documentation purposes and to allow for
+%		future enhancement.
+
 instantiation_error(_Term) :-
 	throw(error(instantiation_error, _)).
+
+%%	representation_error(+Reason).
+%
+%	A  representation  error  indicates   a    limitation   of   the
+%	implementation. SWI-Prolog has  no  such   limits  that  are not
+%	covered by other errors, but  an   example  of  a representation
+%	error in another Prolog implementation could   be  an attempt to
+%	create a term with an arity higher than supported by the system.
+
 representation_error(Reason) :-
 	throw(error(representation_error(Reason), _)).
+
+%%	syntax_error(+Culprit)
+%
+%	A text has invalid syntax.  The error is described by Culprit.
+%
+%	@tbd	Deal with proper description of the location of the
+%		error.  For short texts, we allow for Type(Text), meaning
+%		Text is not a valid Type.  E.g. syntax_error(number('1a'))
+%		means that =1a= is not a valid number.
+
+syntax_error(Culprit) :-
+	throw(error(syntax_error(Culprit), _)).
+
+
+		 /*******************************
+		 *	      MUST-BE		*
+		 *******************************/
 
 %%	must_be(+Type, @Term) is det.
 %

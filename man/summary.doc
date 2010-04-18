@@ -17,7 +17,6 @@ suggest predicates from a keyword.
 
 \begin{summarylist}{ll}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
-\predicatesummary{!}{1}{Cut block. See block/3}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
@@ -92,7 +91,6 @@ suggest predicates from a keyword.
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
-\predicatesummary{block}{3}{Start a block (`catch'/`throw')}
 \predicatesummary{break}{0}{Start interactive top-level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
@@ -140,6 +138,7 @@ suggest predicates from a keyword.
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
 \predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}
+\predicatesummary{create_prolog_flag}{3}{Create a new Prolog flag}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}
 \predicatesummary{current_blob}{2}{Examine typed blobs}
@@ -158,6 +157,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
+\predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}
 \predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
 \predicatesummary{date_time_value}{3}{Extract info from a date structure}
 \predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
@@ -181,6 +181,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
 \predicatesummary{dif}{2}{Constrain two terms to be different}
+\predicatesummary{directory_files}{2}{Get entries of a directory/folder}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
@@ -203,7 +204,6 @@ suggest predicates from a keyword.
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
 \predicatesummary{exists_source}{1}{Check existence of a Prolog source}
-\predicatesummary{exit}{2}{Exit from named block. See block/3}
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
@@ -216,7 +216,6 @@ suggest predicates from a keyword.
 \predicatesummary{export}{1}{Export a predicate from a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
-\predicatesummary{fail}{1}{Immediately fail named block. See block/3}
 \predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
@@ -289,6 +288,7 @@ suggest predicates from a keyword.
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{initialization}{2}{Initialization directive}
+\predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
@@ -386,6 +386,7 @@ suggest predicates from a keyword.
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
 \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
 \predicatesummary{parse_time}{2}{Parse text to a time-stamp}
+\predicatesummary{parse_time}{3}{Parse text to a time-stamp}
 \predicatesummary{pce_dispatch}{1}{Run XPCE GUI in separate thread}
 \predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
 \predicatesummary{peek_byte}{1}{Read byte without removing}
@@ -428,6 +429,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
+\predicatesummary{prolog_stack_property}{2}{Query properties of the stacks}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}
 \predicatesummary{prompt1}{1}{Change prompt for 1 line}
@@ -491,7 +493,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}
-\predicatesummary{set_prolog_stack}{3}{Modify stack characteristics}
+\predicatesummary{set_prolog_stack}{2}{Modify stack characteristics}
 \predicatesummary{set_random}{1}{Control random number generation}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
@@ -525,6 +527,7 @@ suggest predicates from a keyword.
 \predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
+\predicatesummary{stream_pair}{3}{Create/examine a bi-directional stream}
 \predicatesummary{stream_position_data}{3}{Access fields from stream position}
 \predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}
@@ -571,6 +574,7 @@ suggest predicates from a keyword.
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
 \predicatesummary{tmp_file}{2}{Create a temporary filename}
+\predicatesummary{tmp_file_stream}{3}{Create a temporary file and open it}
 \predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
 \predicatesummary{tnodebug}{1}{Switch off debug mode in a thread}
 \predicatesummary{told}{0}{Close current output}
@@ -592,6 +596,7 @@ suggest predicates from a keyword.
 \predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
+\predicatesummary{unload_file}{1}{Unload a source-file}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}
@@ -601,6 +606,7 @@ suggest predicates from a keyword.
 \predicatesummary{use_module}{1}{Import a module}
 \predicatesummary{use_module}{2}{Import predicates from a module}
 \predicatesummary{var}{1}{Type check for unbound variable}
+\predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
 \predicatesummary{visible}{1}{Ports that are visible in the tracer}
 \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
@@ -609,8 +615,8 @@ suggest predicates from a keyword.
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
 \predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
-\predicatesummary{win_insert_menu}{2}{plwin.exe: add menu}
-\predicatesummary{win_insert_menu_item}{4}{plwin.exe: add item to menu}
+\predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
+\predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_shell}{3}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}

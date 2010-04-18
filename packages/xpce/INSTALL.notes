@@ -39,11 +39,11 @@ Required tools
 	The X11 XPM (XPixMap) format libary for handling coloured and
 	masked images.  XPM is an X11 contrib package.
 	You can fetch the sources from many places on the net, or from
-	
+
 	    ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz
 
 	# libjpeg
-	The JPEG group library for handling JPEG images. 
+	The JPEG group library for handling JPEG images.
 	The sources for this library are in:
 
 	    ftp://swi.psy.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
@@ -230,7 +230,6 @@ try:
 	SWI-Prolog version 5.3.9 for i686-linux
 	% make -v
 	GNU Make 3.80
-	Copyright (C) 2002  Free Software Foundation, Inc.
 	...
 	% gcc -v
 	gcc -v
@@ -243,7 +242,7 @@ Now, run configure:
 	% cd xpce-<version>
 	% mkdir linux
 	% ../src/configure <options>
-					     
+
 Building the library
 ====================
 
@@ -262,7 +261,7 @@ Building the interface:
 
 With write premission to the Prolog home directory, now do the following
 to make the interface.
-					     
+
 	% make pl-itf
 
 This command will run  either  `make   pl-shared'  or  `make pl-static',

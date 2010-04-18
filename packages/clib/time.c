@@ -194,6 +194,7 @@ typedef void (*handler_t)(int);
 typedef struct
 { Event first;				/* first in list */
   Event scheduled;			/* The one we scheduled for */
+  int   stop;				/* stop alarm-loop */
 } schedule;
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -204,7 +205,7 @@ static pthread_t scheduler;		/* thread id of scheduler */
 #define LOCK()   pthread_mutex_lock(&mutex)
 #define UNLOCK() pthread_mutex_unlock(&mutex)
 
-static schedule the_schedule;		/* the schedule */
+static schedule the_schedule = {0};	/* the schedule */
 #define TheSchedule() (&the_schedule)	/* current schedule */
 
 int signal_function_set = FALSE;	/* signal function is set */
@@ -341,16 +342,7 @@ freeEvent(Event ev)
 
 static void
 cleanupHandler()
-{
-#ifndef __WINDOWS__
-  struct itimerval v;
-
-  DEBUG(1, Sdprintf("Removed timer\n"));
-  memset(&v, 0, sizeof(v));
-  setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
-#endif
-
-  if ( signal_function_set )
+{ if ( signal_function_set )
   { signal_function_set = FALSE;
     PL_signal(SIG_TIME, signal_function);
   }
@@ -367,16 +359,23 @@ installHandler()
 
 
 static void
-cleanup()
-{ Event ev, next;
+cleanup(int rc, void *arg)
+{ Event ev;
   schedule *sched = TheSchedule();
 
-  for(ev=sched->first; ev; ev = next)
-  { next = ev->next;
-    removeEvent(ev);
+  while( (ev=sched->first) )
+  { removeEvent(ev);
   }
 
   cleanupHandler();
+
+  if ( scheduler_running )
+  { sched->stop = TRUE;
+    pthread_cond_signal(&cond);
+
+    pthread_join(scheduler, NULL);
+    scheduler_running = FALSE;
+  }
 }
 
 
@@ -395,20 +394,73 @@ nextEvent(schedule *sched)
 }
 
 
+typedef struct
+{ int		*bits;
+  size_t	size;
+  size_t	high;
+} bitvector;
+
+#define BITSPERINT (8*sizeof(int))
+
+static int
+set_bit(bitvector *v, size_t bit)
+{ size_t offset = bit/BITSPERINT;
+  int bi = bit%BITSPERINT;
+
+  while ( offset >= v->size )
+  { size_t osize = v->size * sizeof(int);
+    int *newbits = realloc(v->bits, osize*2);
+
+    if ( !newbits )
+      return FALSE;
+    memset((char*)newbits+osize, 0, osize);
+    v->bits  = newbits;
+    v->size *= 2;
+  }
+
+  while ( bit > v->high )		/* TBD: zero entire ints */
+  { size_t ho = v->high/BITSPERINT;
+    int    b  = v->high%BITSPERINT;
+
+    v->bits[ho] &= ~(1<<(b-1));
+    v->high++;
+  }
+
+  v->bits[offset] |= 1<<(bi-1);
+  return TRUE;
+}
+
+
+static int
+is_set(bitvector *v, size_t bit)
+{ if ( bit <= v->high )
+  { size_t offset = bit/BITSPERINT;
+    int bi = bit%BITSPERINT;
+
+    return (v->bits[offset] & (1<<(bi-1))) != 0;
+  }
+
+  return FALSE;
+}
+
+
 static void *
 alarm_loop(void * closure)
 { schedule *sched = TheSchedule();
-  int mt = (int)PL_query(PL_QUERY_MAX_THREADS)+1;
-  char *signalled = alloca(mt);
+  bitvector signalled;
+
+  signalled.size = 4;
+  signalled.bits = malloc(signalled.size*sizeof(int));
+  signalled.high = 0;
 
   pthread_mutex_lock(&mutex);		/* for condition variable */
   DEBUG(1, Sdprintf("Iterating alarm_loop()\n"));
 
-  for(;;)
+  while( !sched->stop )
   { Event ev = nextEvent(sched);
     struct timeval now;
 
-    memset(signalled, 0, mt);
+    signalled.high = 0;
     gettimeofday(&now, NULL);
 
     for(; ev; ev = ev->next)
@@ -423,11 +475,11 @@ alarm_loop(void * closure)
 
       if ( left.tv_sec < 0 ||
 	   (left.tv_sec == 0 && left.tv_usec == 0) )
-      { if ( !signalled[ev->pl_thread_id] )
+      { if ( !is_set(&signalled, ev->pl_thread_id) )
 	{ DEBUG(1, Sdprintf("Signalling (left = %ld) %d ...\n",
 			    (long)left.tv_sec,
 			    ev->pl_thread_id));
-	  signalled[ev->pl_thread_id] = TRUE;
+	  set_bit(&signalled, ev->pl_thread_id);
 #ifdef __WINDOWS__
 	  PL_thread_raise(ev->pl_thread_id, SIG_TIME);
 #else
@@ -556,6 +608,7 @@ installEvent(Event ev)
   if ( !scheduler_running )
   { pthread_attr_t attr;
 
+    TheSchedule()->stop = FALSE;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_attr_setstacksize(&attr, 8192);
@@ -647,7 +700,7 @@ get_timer(term_t t, Event *ev)
   { term_t a = PL_new_term_ref();
     void *p;
 
-    PL_get_arg(1, t, a);
+    _PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
     { Event e = p;
 
@@ -695,7 +748,7 @@ alarm4_gen(time_abs_rel abs_rel, term_t time, term_t callable,
       { if ( arity == 1 )
 	{ term_t arg = PL_new_term_ref();
 
-	  PL_get_arg(1, head, arg);
+	  _PL_get_arg(1, head, arg);
 
 	  if ( name == ATOM_remove )
 	  { int t = FALSE;
@@ -883,12 +936,16 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
     PL_discard_foreign_frame(fid);
 
-    PL_put_float(av+0, at);		/* time */
-    PL_recorded(ev->goal, av+1);	/* goal */
-    PL_put_variable(av+2);		/* id */
-    unify_timer(av+2, ev);
-    PL_put_atom(av+3, s);		/* status */
-    PL_cons_functor_v(next, FUNCTOR_alarm4, av);
+    if ( !PL_put_float(av+0, at) ||		/* time */
+	 !PL_recorded(ev->goal, av+1) ||	/* goal */
+	 !PL_put_variable(av+2) ||		/* id */
+	 !unify_timer(av+2, ev) ||
+	 !PL_put_atom(av+3, s) ||		/* status */
+	 !PL_cons_functor_v(next, FUNCTOR_alarm4, av) )
+    { PL_close_foreign_frame(fid);
+      UNLOCK();
+      return FALSE;
+    }
 
     if ( PL_unify_list(tail, head, tail) &&
 	 PL_unify(head, next) )
@@ -910,7 +967,7 @@ current_alarms(term_t time, term_t goal, term_t id, term_t status,
 
 
 install_t
-install()
+install_time()
 { MODULE_user	  = PL_new_module(PL_new_atom("user"));
 
   FUNCTOR_alarm1  = PL_new_functor(PL_new_atom("$alarm"), 1);
@@ -940,10 +997,11 @@ install()
 #endif
 
   installHandler();
+  PL_on_halt(cleanup, NULL);
 }
 
 
 install_t
-uninstall()
-{ cleanup();
+uninstall_time()
+{ cleanup(0, NULL);
 }

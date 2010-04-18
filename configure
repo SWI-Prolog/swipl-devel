@@ -14,7 +14,7 @@
 
 TARGET=lite
 configoptions=""
-mtoptions="--enable-mt"
+kerneloptions=""
 
 usage()
 { cat << _EOM_
@@ -49,6 +49,10 @@ while [ "$1" != "" ]; do
     --help)		usage
     			exit 0
 			;;
+    --*-libdirversion*|--*-useprofile*)
+			kerneloptions="$kerneloptions $1"
+			shift
+			;;
     *)			configoptions="$configoptions $1"
 			shift
 			;;
@@ -72,7 +76,7 @@ if [ -d .git ]; then
   fi
 fi
 
-(cd $BUILDARCH && ../src/configure $configoptions $mtoptions)
+(cd $BUILDARCH && ../src/configure $kerneloptions $configoptions)
 
 case $TARGET in
   world)

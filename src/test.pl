@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@
 %:- set_prolog_flag(trace_gc, true).
 :- asserta(user:file_search_path(library, '../packages/plunit')).
 :- [library(plunit)].
-:- set_test_options([load(always), silent(true), sto(true)]).
+:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
 
 :- use_module(library(lists)).
 
@@ -144,7 +144,7 @@ write_test(q-8) :-
 	term_to_atom(p(a|b), X), X == 'p((a\'|\'b))'.
 write_test(c-1) :-
 	T = [a,b,c|T],
-	term_to_atom(T, X), X == '[a, b, c|**]'.
+	term_to_atom(T, X), X == '[a,b,c|**]'.
 
 
 		 /*******************************
@@ -258,6 +258,22 @@ unifiable(unifiable-1) :-
 unifiable(unifiable-2) :-
 	unifiable(a(X,X), a(Y,Z), S),
 	S == [Z=X, Y=X].
+unifiable(gc-1) :-
+	trim_stacks,
+	(   between(2, 10, N),
+	    Len is 1<<N,
+	    numlist(1, Len, L1),
+	    attvar_list(Len, L2),
+	    unifiable(L1, L2, _Unifier),
+	    fail
+	;   true
+	).
+
+attvar_list(0, []) :- !.
+attvar_list(N, [H|T]) :-
+	freeze(H, integer(H)),
+	N2 is N - 1,
+	attvar_list(N2, T).
 
 
 		 /*******************************
@@ -385,10 +401,11 @@ floattest(float-1) :-
 floattest(float-2) :-
 	ftest.
 floattest(float-3) :-
-	erase_all(f),
-	recorda(f, 6.7),
+	erase_all(f),			% play safe
+	recorda(f, 6.7, Ref),
 	recorded(f, X),
-	X == 6.7.
+	X == 6.7,
+	erase(Ref).
 floattest(float-4) :-
 	X is 10.67,
 	X == 10.67.
@@ -843,7 +860,7 @@ cleanup(clean-4) :-
 	E == a.
 cleanup(clean-5) :-
 	catch(call_cleanup(throw(a), throw(b)), E, true),
-	E == b.
+	E == a.				% ISO Proposal
 cleanup(clean-6) :-
 	catch(call_cleanup(true, throw(b)), E, true),
 	E == b.
@@ -1160,6 +1177,13 @@ string_handling(cmp-1) :-
 
 :- set_prolog_flag(backquoted_string, false).
 
+string_handling(atom-1) :-
+	string_to_atom(an_atom, X),
+	X == an_atom.
+string_handling(list-1) :-
+	string_to_atom("a_list", X),
+	X == a_list.
+
 
 		 /*******************************
 		 *	       DYNAMIC		*
@@ -1224,11 +1248,15 @@ tcl(a).
 tcl(b) :- true.
 tcl(c) :- write(hello).
 tcl(a(X)) :- b(X).
+tcl(x(G)) :- G.
+tcl(a(X,X)) :- a(X).
 
 mtcl:tcl(a) :- a.
 mtcl:tcl(b) :- a, b.
 mtcl:(tcl(c) :- a, b).
 
+cl(call-1) :-
+	clause(tcl(x(G)), X), X == call(G).
 cl(clause-1) :-
 	clause(tcl(a), X), X == true.
 cl(clause-2) :-
@@ -1240,6 +1268,10 @@ cl(clause-4) :-
 cl(clause-5) :-
 	clause(tcl(H), b(a)), H == a(a).
 cl(clause-6) :-
+	clause(tcl(a(a,X)), B),
+	X == a,
+	B == a(a).
+cl(clause-7) :-
 	clause(mtcl:tcl(H), user:a), H == a.
 
 
@@ -1272,40 +1304,46 @@ erase_all(_).
 record(recorda-1) :-
 	erase_all(r1),
 	mkterm(T0),
-	recorda(r1, T0),
+	recorda(r1, T0, Ref),
 	recorded(r1, T1),
-	T0 =@= T1.
+	T0 =@= T1,
+	erase(Ref).
 record(recorda-2) :-
 	erase_all(r2),
 	mkterm(T0),
 	recorda(r2, T0, Ref),
 	recorded(K, T1, Ref),
 	K == r2,
-	T0 =@= T1.
+	T0 =@= T1,
+	erase(Ref).
 record(recorda-3) :-
 	erase_all(r3),
 	\+ current_key(r3),
-	recorda(r3, test),
-	current_key(r3).
+	recorda(r3, test, Ref),
+	current_key(r3),
+	erase(Ref).
 record(recorda-4) :-
 	erase_all(r4),
-	recorda(r4, aap),
-	recorda(r4, noot),
-	recordz(r4, mies),
+	recorda(r4, aap, R1),
+	recorda(r4, noot, R2),
+	recordz(r4, mies, R3),
 	findall(X, recorded(r4, X), Xs),
-	Xs = [noot, aap, mies].
+	Xs = [noot, aap, mies],
+	erase(R1), erase(R2), erase(R3).
 record(recorda-5) :-
-	recorda(bla,sign(a,(b,c),d)),
+	recorda(bla,sign(a,(b,c),d), Ref),
 	\+ recorded(bla, sign(_,(B,B),_)),
 	\+ (recorded(bla,S),
-	    S=sign(_,(B,B),_)).
+	    S=sign(_,(B,B),_)),
+	erase(Ref).
 record(erase-1) :-
 	erase_all(r5),
 	recorda(r5, aap, R),
-	recorda(r5, noot),
+	recorda(r5, noot, R2),
 	erase(R),
 	findall(X, recorded(r5, X), Xs),
-	Xs = [noot].
+	Xs = [noot],
+	erase(R2).
 record(erase-2) :-
 	retractall(a(_)),
 	assert(a(1), Ref),
@@ -1356,8 +1394,9 @@ compiler(assert-6) :-
 	numlist(0, 100, L),
 	append(L, [_], A),
 	T =.. [x|A],
-	assert(T),
-	T.
+	assert(T, Ref),
+	once(T),
+	erase(Ref).
 compiler(assert-7) :-
 	Body = (a(A), A=[B|C], a(B), a(C)),
 	Clause = (at:-Body),
@@ -1398,7 +1437,8 @@ update(assert-1) :-
 	     a(X),
 	     assert(a(3)),
 	     X = 3
-	   ).
+	   ),
+	retractall(a(_)).
 update(retract-1) :-
 	retractall(a(_)),
 	(   assert(a(1)),
@@ -1408,14 +1448,16 @@ update(retract-1) :-
 	    fail
 	;   findall(X, a(X), Xs),
 	    Xs = [3,3]
-	).
+	),
+	retractall(a(_)).
 update(retract-2) :-
 	retractall(a(_)),
 	assert(a(1)),
 	assert(a(2)),
 	a(X),
 	ignore(retract(a(2))),
-	X = 2.
+	X = 2,
+	retractall(a(_)).
 
 
 		 /*******************************
@@ -1432,24 +1474,6 @@ softcut2(A) :-
 	*-> true
 	;   A = 1
 	).
-
-do_block :-
-	exit(notmyblock, ok).
-
-bb(a) :-
-	!(myblock).
-bb(b).
-
-b1 :- b2.
-b1.
-
-b2 :- exit(test, b).
-
-b3 :- b4.
-b3.
-
-b4 :-
-	!(test).
 
 /* c*: tests for handling !
 */
@@ -1492,23 +1516,6 @@ control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
 	findall(A, softcut2(A), [1]).
-control(block-1) :-
-	catch(block(myblock, do_block, _), E, true),
-	error(E, existence_error(block, notmyblock)).
-control(block-2) :-
-	block(notmyblock, do_block, X),
-	X == ok.
-control(block-3) :-
-	\+ (   block(myblock, bb(X), _),
-	       X == b
-	   ).
-control(block-4) :-
-	block(test, b1, B),
-	B == b,
-	'$get_predicate_attribute'(b1, references, 0).
-control(block-5) :-
-	block(test, b3, _),
-	'$get_predicate_attribute'(b3, references, 0).
 control(cut-1) :-
 	c1.
 control(cut-2) :-
@@ -1587,50 +1594,6 @@ exception(catch-gc) :-
 
 
 		 /*******************************
-		 *	  RESOURCE ERRORS	*
-		 *******************************/
-
-choice.
-choice.
-
-local_overflow :-
-	choice,
-	local_overflow.
-
-global_overflow(X) :-			% Causes gracefully signalled overflow
-	global_overflow(s(X)).
-
-string_overflow(StringList) :-
-	string_overflow2(StringList),
-	is_list(StringList).		% avoid GC of list
-
-string_overflow2([H|T]) :-		% Causes PL_throw() overflow
-	format(string(H), '~txx~1000000|', []),
-	string_overflow2(T).
-
-
-resource(stack-1) :-
-	catch(local_overflow, E, true),
-	E = error(resource_error(stack), local).
-resource(stack-2) :-			% VERY slow with -DO_SECURE
-	catch(global_overflow(0), E, true),
-	E = error(resource_error(stack), global).
-resource(stack-3) :-
-	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
-	catch(string_overflow(_), E2, true),
-	E2 = error(resource_error(stack), global).
-resource(stack-4) :-
-	catch(string_overflow(_), E1, true),
-	E1 = error(resource_error(stack), global),
-	catch(global_overflow(_), E2, true),
-	E2 = error(resource_error(stack), global).
-resource(stack-5) :-
-	catch(length(_L,10000000), E, true),
-	E = error(resource_error(stack), global).
-
-
-		 /*******************************
 		 *	       GC		*
 		 *******************************/
 
@@ -1639,12 +1602,6 @@ make_data(N, s(X)) :-
 	NN is N - 1,
 	make_data(NN, X).
 
-gc(shift-1) :-
-	(   current_prolog_flag(dynamic_stacks, true)
-	->  true
-	;   MinFree is 400 * 1024,
-	    set_prolog_stack(global, min_free, MinFree)
-	).
 gc(gc-1) :-
 	garbage_collect.
 gc(gc-2) :-			% Beautiful crash.  See compilation of \+
@@ -1664,9 +1621,11 @@ gc(gc-6) :-
 	catch(1.25,_,garbage_collect).
 gc(agc-1) :-
 	garbage_collect_atoms.
-gc(agc-2) :-
+gc(agc-2) :-				% not if concurrent: this is too simple.  There
+					% are enough tests for AGC in the rest of the suite.
 	(   current_prolog_flag(agc_margin, Margin),
-	    Margin > 0
+	    Margin > 0,
+	    \+ current_prolog_flag(test_concurrent, true)
 	->  UpTo is Margin*2,
 	    statistics(agc_gained, Gained0),
 	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
@@ -1985,7 +1944,11 @@ copy_term(nat-2) :-			% cyclic term
 		 *******************************/
 
 term_hash(simple-1) :-
-	term_hash(aap, 9270206).
+	term_hash(aap, X),
+	memberchk(X, [ 9270206,		% little endian
+		       16674642		% big endian
+		     ]).
+
 term_hash(simple-2) :-			% small int
 	term_hash(42, X),
 	memberchk(X, [ 12280004,	% little endian
@@ -2006,12 +1969,21 @@ term_hash(simple-5) :-
 	string_to_list(S, "hello world"),
 	term_hash(S, 13985775).
 term_hash(compound-1) :-
-	term_hash(hello(world), 12599352).
+	term_hash(hello(world), X),
+	memberchk(X, [ 12599352,	% little endian
+		       13811310		% big endian
+		     ]).
 term_hash(compound-2) :-
-	X = x(a),
-	term_hash(hello(X, X), 5826661).
+	A = x(a),
+	term_hash(hello(A, A), X),
+	memberchk(X, [ 5826661,		% little endian
+		       13137004		% big endian
+		     ]).
 term_hash(compound-3) :-
-	term_hash(hello(x(a), x(a)), 5826661).
+	term_hash(hello(x(a), x(a)), X),
+	memberchk(X, [ 5826661,		% little endian
+		       13137004		% big endian
+		     ]).
 
 
 		 /*******************************
@@ -2175,18 +2147,37 @@ collect_data(C, Fd, [C|T]) :-
 timeout(pipe-1) :-
 	(   current_prolog_flag(pipe, true),
 	    \+ current_prolog_flag(windows, true) % cannot wait on pipes
-	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In,
+	->  open(pipe('echo + && sleep 1 && echo xx.'), read, In,
 		 [ bom(false)
 		 ]),
-	    set_stream(In, timeout(1)),
+	    set_stream(In, timeout(0.2)),
 	    wait_for_input([In], [In], infinite),
 	    catch(read(In, _), E1, true),
-	    E1 = error(timeout_error(read, _), _),
-	    wait_for_input([In], [In], infinite),
-	    catch(read(In, Term), E2, true),
-	    var(E2),
-	    Term == xx,
-	    close(In)
+	    (	E1 = error(timeout_error(read, _), _)
+	    ->	wait_for_input([In], [In], infinite),
+		catch(read(In, Term), E2, true),
+		(   var(E2)
+		->  (   Term == xx
+		    ->	close(In)
+		    ;	format(user_error, 'Term == ~q~n', [Term]),
+			true
+		    )
+		;   format(user_error, 'E2 == ~q~n', [E2]),
+		    fail
+		)
+	    ;   var(E1)
+	    ->	(   Term == (+ xx)
+		->  close(In),
+		    format(user_error,
+			   'timeout(pipe-1): ~q (machine heavy loaded?)~n',
+			   [Term])
+		;   format(user_error,
+			   'var(E1) && Term == ~q~n', [Term]),
+		    fail
+		)
+	    ;	format(user_error, 'E1 == ~q~n', [E1]),
+		fail
+	    )
 	;   true
 	).
 
@@ -2431,7 +2422,7 @@ thread(at_exit-1) :-
 	retract(at_exit_called).
 thread(status-1) :-
 	thread_create(true, Id, []),
-	between(0, 10, _),
+	between(0, 100, _),
 	sleep(0.01),
 	thread_property(Id2, status(Status)),
 	Id2 == Id,
@@ -2457,14 +2448,16 @@ mutex(trylock-1) :-
 	thread_get_message(locked),
 	\+ mutex_trylock(Mutex),
 	thread_send_message(Id, done),
-	thread_join(Id, true).
+	thread_join(Id, true),
+	mutex_destroy(Mutex).
 mutex(unlock-1) :-
 	gensym(mutex, Mutex),
 	mutex_lock(Mutex),
 	mutex_unlock(Mutex),
 	catch(mutex_unlock(Mutex), E, true),
 	E == error(permission_error(mutex, unlock, Mutex),
-		   context(mutex_unlock/1, 'not locked')).
+		   context(mutex_unlock/1, 'not locked')),
+	mutex_destroy(Mutex).
 mutex(destroy-1) :-
 	gensym(mutex, Mutex),
 	mutex_create(Mutex),
@@ -2500,8 +2493,12 @@ follow_links(File, File).
 run_test_script(Script) :-
 	file_base_name(Script, Base),
 	file_name_extension(Pred, _, Base),
-	load_files(Script, [silent(true)]),
-	Pred.
+	load_files(Script, [silent(true), if(changed)]),
+	(   current_prolog_flag(verbose, normal)
+	->  format('(~w)', [Base]), flush_output
+	;   true
+	),
+	call_test(Pred, script).
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
@@ -2521,10 +2518,10 @@ run_scripts([]).
 run_scripts([H|T]) :-
 	(   catch(run_test_script(H), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush
+	    ->  put_ok
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(H, Reason)),
-		put(!), flush
+		put_blocked
 	    ;   script_failed(H, Except)
 	    )
 	;   script_failed(H, fail)
@@ -2602,7 +2599,6 @@ testset(thread) :-
 	current_prolog_flag(threads, true).
 testset(mutex) :-
 	current_prolog_flag(threads, true).
-testset(resource).
 
 %	unicode_file_locale/0
 %
@@ -2637,6 +2633,7 @@ testdir('Tests/attvar').
 testdir('Tests/library').
 testdir('Tests/charset').
 testdir('Tests/clp').
+testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 
@@ -2649,6 +2646,9 @@ test :-
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
 	scripts,
+	garbage_collect,
+	garbage_collect_atoms,
+	trim_stacks,
 	statistics,
 	report_blocked,
 	report_failed.
@@ -2677,6 +2677,37 @@ report_failed :-
         ;   format('~nAll tests passed~n', [])
 	).
 
+%%	call_test(:Goal, +Line)
+%
+%	Call the actual test. If dmalloc/3 is provided, call through
+%	this leak-detection hook.
+%
+%	@see test/dmalloc.pl
+
+:- meta_predicate
+	call_test(0, +).
+
+:- if(current_predicate(dmalloc/3)).
+call_test(Goal, script) :- !,
+	dmalloc((Goal->true), '*** Script ~w ***', [Goal]).
+call_test(Goal, Line) :-
+	dmalloc((Goal->true), '*** Line ~d: ~p ***', [Line, Goal]).
+:- elif(current_prolog_flag(test_concurrent, true)).
+call_test(Goal, _Line) :-
+	test_name(Goal, Name),
+	with_mutex(Name, Goal).
+
+test_name(M:G, Name) :- !,
+	functor(G, Pred, Arity),
+	format(atom(Name), 'test ~w:~w/~d', [M,Pred,Arity]).
+test_name(G, Name) :- !,
+	functor(G, Pred, Arity),
+	format(atom(Name), 'test ~w/~d', [Pred,Arity]).
+:- else.
+call_test(Goal, _Line) :-
+	Goal, !.
+:- endif.
+
 runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
 	flush,
@@ -2684,17 +2715,17 @@ runtest(Name) :-
 	findall(Head-R, nth_clause_head(Head, R), Heads),
 	unique_heads(Heads),
 	member(Head-R, Heads),
+	clause_property(R, line_count(Line)),
 	(   current_prolog_flag(verbose, normal)
-	->  clause_property(R, line_count(Line)),
-	    format('(~w)', [Line]), flush_output
+	->  format('(~w)', [Line]), flush_output
 	;   true
 	),
-	(   catch(Head, Except, true)
+	(   catch(call_test(Head, Line), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush_output
+	    ->  put_ok
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(Head, Reason)),
-		put(!), flush_output
+		put_blocked
 	    ;   test_failed(R, Except)
 	    )
 	;   test_failed(R, fail)
@@ -2723,6 +2754,18 @@ check_uniqye([Head-R1,Head-R2|T]) :- !,
 check_uniqye([_|T]) :-
 	check_uniqye(T).
 
+
+:- if(current_prolog_flag(test_concurrent, true)).
+put_ok :-
+	thread_self(Me),
+	atom_concat(tester_, Id, Me), !,
+	write(user_error, Id).
+:- endif.
+put_ok :-
+	write(user_error, .).
+
+put_blocked :-
+	write(user_error, !).
 
 test_failed(R, Except) :-
 	clause(Head, _, R),

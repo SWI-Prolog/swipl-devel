@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,8 +25,8 @@
 #ifndef _FLI_H_INCLUDED
 #define _FLI_H_INCLUDED
 
-#ifndef __SWI_PROLOG__		/* use this to switch on Prolog dialect */
-#define __SWI_PROLOG__		/* normally defined by the plld compiler driver */
+#ifndef __SWI_PROLOG__	/* use this to switch on Prolog dialect */
+#define __SWI_PROLOG__	/* normally defined by the swipl-ld compiler driver */
 #endif
 
 #if defined(_MSC_VER) && !defined(__WINDOWS__)
@@ -54,7 +54,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50900
+#define PLVERSION 50911
 #endif
 
 		 /*******************************
@@ -111,12 +111,7 @@ duplicated this stuff.
 		 *	  GCC ATTRIBUTES	*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Compile with -DPL59X_CHECK to force  return-type   checks  that  will be
-enabled in the SWI-Prolog 5.9.x series.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(PL59X_CHECK) && __GNUC__ >= 4
+#if __GNUC__ >= 4
 #define WUNUSED __attribute__((warn_unused_result))
 #else
 #define WUNUSED
@@ -226,8 +221,9 @@ typedef union
 
 /* Or'ed flags for PL_set_prolog_flag() */
 /* MUST fit in a short int! */
-#define FF_READONLY	 0x1000	/* Read-only prolog flag */
-#define FF_KEEP		 0x2000	/* keep prolog flag if already set */
+#define FF_READONLY	 0x1000		/* Read-only prolog flag */
+#define FF_KEEP		 0x2000		/* keep prolog flag if already set */
+#define FF_NOCREATE	 0x4000		/* Fail if flag is non-existent */
 #define FF_MASK		 0xf000
 
 
@@ -353,6 +349,7 @@ PL_EXPORT(int)		PL_call_predicate(module_t m, int debug,
 PL_EXPORT(term_t)	PL_exception(qid_t qid);
 PL_EXPORT(int)		PL_raise_exception(term_t exception);
 PL_EXPORT(int)		PL_throw(term_t exception);
+PL_EXPORT(void)		PL_clear_exception(void);
 
 
 		 /*******************************
@@ -607,19 +604,35 @@ PL_EXPORT(const char *) PL_cwd(void);
 
 
 		 /*******************************
-		 *   QUINTUS WRAPPER SUPPORT	*
+		 *    QUINTUS/SICSTUS WRAPPER	*
 		 *******************************/
 
-PL_EXPORT(int)		PL_cvt_i_integer(term_t p, long *c);
+PL_EXPORT(int)		PL_cvt_i_int(term_t p, int *c);
+PL_EXPORT(int)		PL_cvt_i_long(term_t p, long *c);
+PL_EXPORT(int)		PL_cvt_i_size_t(term_t p, size_t *c);
 PL_EXPORT(int)		PL_cvt_i_float(term_t p, double *c);
 PL_EXPORT(int)		PL_cvt_i_single(term_t p, float *c);
 PL_EXPORT(int)		PL_cvt_i_string(term_t p, char **c);
+PL_EXPORT(int)		PL_cvt_i_codes(term_t p, char **c);
 PL_EXPORT(int)		PL_cvt_i_atom(term_t p, atom_t *c);
-PL_EXPORT(int)		PL_cvt_o_integer(long c, term_t p);
+PL_EXPORT(int)		PL_cvt_i_address(term_t p, void *c);
+PL_EXPORT(int)		PL_cvt_o_int64(int64_t c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_float(double c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_single(float c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_string(const char *c, term_t p);
+PL_EXPORT(int)		PL_cvt_o_codes(const char *c, term_t p);
 PL_EXPORT(int)		PL_cvt_o_atom(atom_t c, term_t p);
+PL_EXPORT(int)		PL_cvt_o_address(void *address, term_t p);
+PL_EXPORT(term_t)	PL_new_nil_ref(void);
+
+/* set/get encoding for PL_cvt_*_string() functions.  The default
+   is UTF-8 (REP_UTF8)
+*/
+
+PL_EXPORT(int)		PL_cvt_encoding(void);
+PL_EXPORT(int)		PL_cvt_set_encoding(int enc);
+PL_EXPORT(void)		SP_set_state(int state);
+PL_EXPORT(int)		SP_get_state(void);
 
 
 		 /*******************************
@@ -842,6 +855,7 @@ PL_EXPORT(PL_agc_hook_t)      	PL_agc_hook(PL_agc_hook_t);
 		*********************************/
 
 #define PL_SIGSYNC	0x00010000	/* call handler synchronously */
+#define PL_SIGNOFRAME	0x00020000	/* Do not create a Prolog frame */
 
 PL_EXPORT(void) (*PL_signal(int sig, void (*func)(int)))(int);
 PL_EXPORT(void) PL_interrupt(int sig);
@@ -887,6 +901,7 @@ PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_MAX_THREADS	11	/* maximum thread count */
 #define PL_QUERY_ENCODING	12	/* I/O encoding */
 #define PL_QUERY_USER_CPU	13	/* User CPU in milliseconds */
+#define PL_QUERY_HALTING	14	/* If TRUE, we are in PL_cleanup() */
 
 PL_EXPORT(intptr_t)	PL_query(int);	/* get information from Prolog */
 
@@ -917,6 +932,8 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 PL_EXPORT(int)	PL_thread_raise(int tid, int sig);
 #if defined(_WINDOWS_)			/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
+PL_EXPORT(int) PL_wait_for_console_input(void *handle);
+PL_EXPORT(int) PL_w32_wrap_ansi_console(void);
 #endif
 
 		 /*******************************

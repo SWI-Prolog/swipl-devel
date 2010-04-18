@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<html
+  xmlns:pwp="http://www.cs.otago.ac.nz/staffpriv/ok/pwp.pl">
+  <head><title>$SHELL</title></head>
+  <body>
+    <p pwp:ask="getenv('SHELL', Shell)"
+    >The default shell is <span pwp:tag="-" pwp:use="Shell"/>.</p>
+    <p pwp:ask="\+getenv('SHELL',_)">There is no default shell.</p>
+  </body>
+</html>

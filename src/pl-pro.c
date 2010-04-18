@@ -40,27 +40,32 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 
 word
 pl_break()
-{ fid_t wake = saveWakeup(PASS_LD1);
-  fid_t cid = PL_open_foreign_frame();
-  term_t goal = PL_new_term_ref();
-  word rval;
+{ GET_LD
+  wakeup_state wstate;
 
-  PL_put_atom_chars(goal, "$break");
-  rval = pl_break1(goal);
-  PL_discard_foreign_frame(cid);
-  restoreWakeup(wake PASS_LD);
+  if ( saveWakeup(&wstate, TRUE PASS_LD) )
+  { term_t goal = PL_new_term_ref();
+    word rc;
 
-  return rval;
+    PL_put_atom_chars(goal, "$break");
+    rc = pl_break1(goal);
+    restoreWakeup(&wstate PASS_LD);
+
+    return rc;
+  }
+
+  return FALSE;
 }
 
 
 word
 pl_break1(term_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
 
   IOSTREAM *inSave  = Scurin;
   IOSTREAM *outSave = Scurout;
-  intptr_t skipSave     = debugstatus.skiplevel;
+  intptr_t skipSave = debugstatus.skiplevel;
   int  suspSave     = debugstatus.suspendTrace;
   int  traceSave;
   debug_type debugSave;
@@ -74,11 +79,17 @@ pl_break1(term_t goal)
   resetTracer();
 
   for(;;)
-  { fid_t cid = PL_open_foreign_frame();
+  { fid_t cid;
     term_t ex;
 
-    rval = callProlog(MODULE_user, goal,
-		      PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
+    if ( (cid=PL_open_foreign_frame()) )
+    { rval = callProlog(MODULE_user, goal,
+			PL_Q_NORMAL|PL_Q_CATCH_EXCEPTION, &ex);
+    } else
+    { ex = exception_term;
+      rval = FALSE;
+    }
+
     if ( !rval && ex )
     { printMessage(ATOM_error,
 		   PL_FUNCTOR_CHARS, "unhandled_exception", 1,
@@ -90,7 +101,8 @@ pl_break1(term_t goal)
     { break;
     }
 
-    PL_discard_foreign_frame(cid);
+    if ( cid )
+      PL_discard_foreign_frame(cid);
   }
 
   debugstatus.suspendTrace = suspSave;
@@ -107,7 +119,8 @@ pl_break1(term_t goal)
 
 word
 pl_notrace1(term_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
 
   uintptr_t  skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
@@ -148,9 +161,6 @@ PRED_IMPL("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
   return rval;
 }
 
-#undef LD
-#define LD GLOBAL_LD
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
@@ -159,12 +169,29 @@ like for the Prolog predicate call/1.
 
 int
 callProlog(Module module, term_t goal, int flags, term_t *ex)
-{ term_t g = PL_new_term_ref();
+{ GET_LD
+  term_t reset, g, ex2;
   functor_t fd;
   Procedure proc;
 
   if ( ex )
+  { if ( !(ex2=PL_new_term_ref()) )
+      goto error;
+    reset = ex2;
     *ex = 0;
+  } else
+  { reset = 0;
+    ex2 = 0;				/* keep compiler happy */
+  }
+
+  if ( !(g=PL_new_term_ref()) )
+  { error:
+    if ( ex )
+      *ex = exception_term;
+    return FALSE;
+  }
+  if ( !reset )
+    reset = g;
 
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
@@ -172,126 +199,84 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     if ( ex )
       *ex = exception_term;
 
+    PL_reset_term_refs(g);
     fail;
   }
 
   proc = lookupProcedure(fd, module);
 
   { int arity = arityFunctor(fd);
-    term_t args = PL_new_term_refs(arity);
-    qid_t qid;
+    term_t args;
+    qid_t qid = 0;
     int n, rval;
 
-    for(n=0; n<arity; n++)
-      _PL_get_arg(n+1, g, args+n);
+    if ( (args = PL_new_term_refs(arity)) )
+    { for(n=0; n<arity; n++)
+	_PL_get_arg(n+1, g, args+n);
 
-    qid  = PL_open_query(module, flags, proc, args);
-    rval = PL_next_solution(qid);
+      if ( (qid = PL_open_query(module, flags, proc, args)) )
+      { rval = PL_next_solution(qid);
+      } else
+	goto error;
+    } else
+      goto error;
+
     if ( !rval && ex )
-      *ex = PL_exception(qid);
+    { term_t qex = PL_exception(qid);
+
+      if ( qex )
+      { PL_put_term(ex2, qex);
+	*ex = ex2;
+	reset = g;
+      } else
+      { *ex = 0;
+      }
+    }
     PL_cut_query(qid);
 
+    PL_reset_term_refs(reset);
     return rval;
   }
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Abort and toplevel. At the  moment,   prologToplevel()  sets a longjmp()
-context and abortProlog() jumps to this   context and resets the SWI-Prolog
-engine.
+int
+abortProlog(abort_type type)
+{ GET_LD
 
-Using the multi-threaded version, this is   not  acceptable. Each thread
-needs such a context, but worse  is   that  we cannot properly reset the
-reference count and ensure locks are all in a sane state.
-
-A cleaner solution is to  map  an   abort  onto  a Prolog exception. The
-exception-handling   code   should    ensure     proper    handling   of
-reference-counts and locks anyhow. Small disadvantage   is  that the old
-abort()   mechanism   was   capable   of     recovering   from   serious
-data-inconsistencies, while the throw-based requires   the Prolog engine
-to be in a sane state.  Anyhow,   in  the multi-threaded version we have
-little choice.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_PLMT
-#define O_ABORT_WITH_THROW 1
-#endif
-
-static int
-pl_throw_abort(abort_type type)
-{ pl_notrace();
+  pl_notrace();
   Sreset();
 
-  if ( LD->critical > 0 )		/* abort in critical region: delay */
-  { LD->aborted = type;
-    succeed;
+  if ( LD->critical > 0 && type != ABORT_RAISE )
+  { LD->aborted = type;			/* longjmp from critical region */
+    succeed;				/* we must delay */
   } else
-  { fid_t fid = PL_open_foreign_frame();
-    term_t ex = PL_new_term_ref();
+  { fid_t fid;
+    term_t ex;
     int rc;
 
-    clearSegStack(&LD->cycle.stack);	/* can do no harm */
+    LD->exception.processing = TRUE;	/* allow using spare stack */
 
-    PL_put_atom(ex, ATOM_aborted);
-    if ( type == ABORT_RAISE )
-      rc = PL_raise_exception(ex);
-    else
-      rc = PL_throw(ex);		/* use longjmp() to ensure */
+    if ( (fid = PL_open_foreign_frame()) &&
+	 (ex = PL_new_term_ref()) )
+    { clearSegStack(&LD->cycle.stack);	/* can do no harm */
 
-    PL_close_foreign_frame(fid);
+      PL_put_atom(ex, ATOM_aborted);
+      if ( type == ABORT_RAISE )
+	rc = PL_raise_exception(ex);
+      else
+	rc = PL_throw(ex);		/* use longjmp() to ensure */
+
+      PL_close_foreign_frame(fid);
+    } else
+    { LD->aborted = type;
+      rc = FALSE;
+    }
 
     return rc;
   }
 }
 
-
-#ifdef O_ABORT_WITH_THROW
-
-int
-abortProlog(abort_type type)
-{ return pl_throw_abort(type);
-}
-
-#else /*O_ABORT_WITH_THROW*/
-
-static jmp_buf abort_context;		/* jmp buffer for abort() */
-static int can_abort;			/* embeded code can't abort */
-
-int
-abortProlog(abort_type type)
-{ if ( !can_abort ||
-       (truePrologFlag(PLFLAG_EX_ABORT) && type == ABORT_NORMAL) )
-    return pl_throw_abort(type);
-
-  if ( LD->critical > 0 )		/* abort in critical region: delay */
-  { pl_notrace();
-    LD->aborted = type;
-    succeed;
-  }
-
-  if ( !truePrologFlag(PLFLAG_READLINE) )
-    PopTty(Sinput, &ttytab);
-  LD->outofstack = NULL;
-  clearSegStack(&LD->cycle.stack);
-  closeFiles(FALSE);
-  resetReferences();
-#ifdef O_PROFILE
-  resetProfiler();
-#endif
-  resetStacks();
-  resetTracer();
-  resetSignals();
-  resetForeign();
-  resetAtoms();
-  updateAlerted(LD);
-
-  longjmp(abort_context, 1);
-  /*NOTREACHED*/
-  fail;
-}
-
-#endif /*O_ABORT_WITH_THROW*/
 
 static
 PRED_IMPL("abort", 0, abort, 0)
@@ -307,7 +292,8 @@ machine interpreter with the toplevel goal.
 
 static void
 resetProlog()
-{
+{ GET_LD
+
   if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
     emptyStacks();
 
@@ -315,19 +301,14 @@ resetProlog()
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
-  gc_status.blocked    = 0;
-#if O_SHIFT_STACKS
+  gc_status.blocked        = 0;
   LD->shift_status.blocked = 0;
-#endif
-  LD->in_arithmetic    = 0;
+  LD->in_arithmetic        = 0;
+  LD->in_print_message     = 0;
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);
   debugstatus.suspendTrace = 0;
-
-#ifndef O_ABORT_WITH_THROW
-  can_abort = TRUE;
-#endif
 
   updateAlerted(LD);
 }
@@ -335,29 +316,23 @@ resetProlog()
 
 bool
 prologToplevel(volatile atom_t goal)
-{ bool rval;
+{ GET_LD
+  bool rval;
   volatile int aborted = FALSE;
+  int loop = TRUE;
 
-#ifndef O_ABORT_WITH_THROW
-  if ( setjmp(abort_context) != 0 )
-  { if ( LD->current_signal )
-      unblockSignal(LD->current_signal);
+  debugstatus.debugging = DBG_OFF;
 
-    aborted = TRUE;
-  } else
-#endif
-  { debugstatus.debugging = DBG_OFF;
-  }
-
-  for(;;)
+  while(loop)
   { fid_t fid;
-    qid_t qid;
+    qid_t qid = 0;
     term_t except = 0;
     Procedure p;
     word gn;
 
     resetProlog();
-    fid = PL_open_foreign_frame();
+    if ( !(fid = PL_open_foreign_frame()) )
+      goto error;
 
     if ( aborted )
     { aborted = FALSE;
@@ -367,8 +342,14 @@ prologToplevel(volatile atom_t goal)
 
     p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
 
-    qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
-    rval = PL_next_solution(qid);
+    if ( (qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0)) )
+    { rval = PL_next_solution(qid);
+    } else
+    { error:
+      except = exception_term;
+      loop = rval = FALSE;		/* Won't get any better */
+    }
+
     if ( !rval && (except = PL_exception(qid)) )
     { atom_t a;
 
@@ -383,14 +364,12 @@ prologToplevel(volatile atom_t goal)
 		       PL_TERM, except);
       }
     }
-    PL_close_query(qid);
-    PL_discard_foreign_frame(fid);
+
+    if ( qid ) PL_close_query(qid);
+    if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
   }
-#ifndef O_ABORT_WITH_THROW
-  can_abort = FALSE;
-#endif
 
   return rval;
 }
@@ -413,6 +392,12 @@ trap_gdb()
 { return 0;
 }
 
+static
+PRED_IMPL("$trap_gdb", 0, trap_gdb, 0)
+{ trap_gdb();
+  return TRUE;
+}
+
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -424,7 +409,6 @@ kind of heuristic.
 
 #define onGlobal(p) onStack(global, p)
 #define onLocal(p) onStack(local, p)
-#define onHeap(p) ((char *)p >= (char *)hBase && (char *)p <= (char *)hTop)
 
 static void
 printk(char *fm, ...)
@@ -445,7 +429,7 @@ static intptr_t check_marked;
 #define unmark(p)	(*(p) &= ~MARK_MASK, check_marked--)
 
 static void
-unmark_data(Word p)
+unmark_data(Word p ARG_LD)
 {
 last_arg:
   deRef(p);
@@ -462,7 +446,7 @@ last_arg:
     f = valueTerm(*p);
     arity = arityFunctor(f->definition);
     for(n=0; n<arity-1; n++)
-      unmark_data(&f->arguments[n]);
+      unmark_data(&f->arguments[n] PASS_LD);
     p = &f->arguments[n];
     goto last_arg;
   }
@@ -481,7 +465,7 @@ is_ht_capacity(int arity)
 
 
 static word
-check_data(Word p, int *recursive)
+check_data(Word p, int *recursive ARG_LD)
 { int arity; int n;
   Word p2;
   word key = 0L;
@@ -521,7 +505,8 @@ last_arg:
     p2 = valPAttVar(*p);
     mark(p);
 
-    if ( !onGlobal(p) )
+					/* See argument_stack_to_term_refs() */
+    if ( !onGlobal(p) && (!gc_status.active || p < (Word)environment_frame) )
       printk("attvar: not on global stack: 0x%x", p);
     if ( !onGlobal(p2) )
       printk("attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
@@ -603,6 +588,13 @@ last_arg:
       printk("Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
+  if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
+  { if ( LD->read.active )
+      return key + *p;
+    else
+      printk("read() variable reference at %p", p);
+  }
+
 					/* now it should be a term */
   if ( tag(*p) != TAG_COMPOUND ||
        storage(*p) != STG_GLOBAL )
@@ -628,7 +620,7 @@ last_arg:
     else if ( arity > 256 && !is_ht_capacity(arity) )
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
-      key += check_data(&f->arguments[n], recursive);
+      key += check_data(&f->arguments[n], recursive PASS_LD);
 
     p = &f->arguments[n];
     goto last_arg;
@@ -638,11 +630,12 @@ last_arg:
 
 word
 checkData(Word p)
-{ int recursive = 0;
+{ GET_LD
+  int recursive = 0;
   word key;
 
-  key = check_data(p, &recursive);
-  unmark_data(p);
+  key = check_data(p, &recursive PASS_LD);
+  unmark_data(p PASS_LD);
 
   return key;
 }
@@ -656,4 +649,5 @@ checkData(Word p)
 BeginPredDefs(pro)
   PRED_DEF("abort", 0, abort, 0)
   PRED_DEF("$sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+  PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
 EndPredDefs

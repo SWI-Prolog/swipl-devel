@@ -45,10 +45,20 @@ windowing!
 #endif
 
 #undef clear				/* conflicts */
-#include <curses.h>
-#include <term.h>
 
-#define MAX_TERMBUF	1024		/* Confirming manual */
+#ifdef HAVE_CURSES_H
+#include <curses.h>
+#elif HAVE_NCURSES_CURSES_H
+#include <ncurses/curses.h>
+#endif
+
+#ifdef HAVE_TERM_H
+#include <term.h>
+#elif HAVE_NCURSES_TERM_H
+#include <ncurses/term.h>
+#endif
+
+#define MAX_TERMBUF	1024		/* Conforming manual */
 #define STAT_START	0
 #define STAT_OK		1
 #define STAT_ERROR	2
@@ -73,7 +83,9 @@ typedef struct
 
 void
 resetTerm()
-{ LOCK();
+{ GET_LD
+
+  LOCK();
   if ( capabilities == NULL )
   { capabilities = newHTable(16);
   } else
@@ -91,7 +103,9 @@ resetTerm()
 
 static int
 initTerm(void)
-{ if ( term_initialised == STAT_START )
+{ GET_LD
+
+  if ( term_initialised == STAT_START )
   { char term[100];
 
     term_initialised = STAT_ERROR;
@@ -142,7 +156,8 @@ out:
 
 static Entry
 lookupEntry(atom_t name, atom_t type)
-{ Symbol s;
+{ GET_LD
+  Symbol s;
   Entry e;
 
   LOCK();
@@ -191,7 +206,8 @@ out:
 
 word
 pl_tty_get_capability(term_t name, term_t type, term_t value)
-{ Entry e;
+{ GET_LD
+  Entry e;
   atom_t n, t;
 
   if ( !PL_get_atom_ex(name, &n) || !PL_get_atom_ex(type, &t) )
@@ -208,13 +224,15 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
 
 static int
 tputc(int chr)
-{ return Sputc(chr, Suser_output);
+{ GET_LD
+  return Sputc(chr, Suser_output);
 }
 
 
 word
 pl_tty_goto(term_t x, term_t y)
-{ Entry e;
+{ GET_LD
+  Entry e;
   char *s;
   int ix, iy;
 
@@ -257,7 +275,8 @@ pl_tty_put(term_t a, term_t affcnt)
 
 word
 pl_tty_size(term_t r, term_t c)
-{ int rows, cols;
+{ GET_LD
+  int rows, cols;
 
 #ifdef __unix__
   int iorval;
@@ -317,7 +336,8 @@ getModuleFunction(const char *module, const char *name)
 
 word
 pl_tty_size(term_t r, term_t c)
-{ int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
+{ GET_LD
+  int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
   int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
 
   if ( ScreenCols && ScreenRows )

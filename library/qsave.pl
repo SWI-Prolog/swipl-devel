@@ -42,6 +42,7 @@
 :- system_mode(on).
 
 :- dynamic verbose/1.
+:- volatile verbose/1.			% contains a stream-handle
 
 %%	qsave_program(+File) is det.
 %%	qsave_program(+File, +Options) is det.
@@ -76,8 +77,8 @@ qsave_program(FileSpec, Options0) :-
 	;   true
 	),
 	open_map(Map),
-	set_prolog_flag(saved_program, true),
-	set_prolog_flag(saved_program_class, SaveClass),
+	create_prolog_flag(saved_program, true, []),
+	create_prolog_flag(saved_program_class, SaveClass, []),
 	(   exists_file(File)
 	->  delete_file(File)
 	;   true
@@ -439,12 +440,12 @@ restore_import(To, From, PI) :-
 	To:import(From:PI).
 
 		 /*******************************
-		 *	      FEATURES		*
+		 *	   PROLOG FLAGS		*
 		 *******************************/
 
 save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
-	'$current_prolog_flag'(Feature, Value, global, write, _Type),
+	'$current_prolog_flag'(Feature, Value, _Scope, write, _Type),
 	\+ no_save_flag(Feature),
 	feedback('~t~8|~w: ~w~n', [Feature, Value]),
 	'$add_directive_wic'(qsave:restore_prolog_flag(Feature, Value)),
@@ -452,6 +453,7 @@ save_prolog_flags :-
 save_prolog_flags.
 
 no_save_flag(argv).
+no_save_flag(readline).
 no_save_flag(associated_file).
 no_save_flag(hwnd).			% should be read-only, but comes
 					% from user-code

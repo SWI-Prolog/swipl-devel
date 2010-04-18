@@ -128,9 +128,15 @@ PL_unify_char(term_t chr, int c, int how)
 int
 allocList(size_t maxcells, list_ctx *ctx)
 { GET_LD
-  ctx->lp = ctx->gstore = allocGlobal(1+maxcells*3);
+  Word p = allocGlobal(1+maxcells*3);
 
-  return TRUE;
+  if ( p )
+  { ctx->lp = ctx->gstore = p;
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 int
@@ -143,7 +149,7 @@ unifyList(term_t term, list_ctx *ctx)
 
   a = valTermRef(term);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  if ( !unify_ptrs(a, ctx->lp, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }
@@ -161,13 +167,13 @@ unifyDiffList(term_t head, term_t tail, list_ctx *ctx)
 
   a = valTermRef(head);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->lp PASS_LD) )
+  if ( !unify_ptrs(a, ctx->lp, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }
   a = valTermRef(tail);
   deRef(a);
-  if ( !unify_ptrs(a, ctx->gstore PASS_LD) )
+  if ( !unify_ptrs(a, ctx->gstore, 0 PASS_LD) )
   { gTop = ctx->lp;
     return FALSE;
   }

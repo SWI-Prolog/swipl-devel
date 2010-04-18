@@ -210,7 +210,7 @@ test(error_debug, [ true([X,E] == [42,error(x)]),
 
 test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
 	(   setup_call_catcher_cleanup(true,
-				       (member(X,[a,b]),
+				       (ndet(X),
 					assert(v(X))),
 				       Exit,
 				       assert(v(Exit))),
@@ -218,12 +218,38 @@ test(nondet, [Vs == [a,b,fail], cleanup(retractall(v(_)))]) :-
 	;   findall(V, retract(v(V)), Vs)
 	).
 
+ndet(a).
+ndet(b).
+ndet(_) :- 1 =:= 0.
+
 test(cleanup, error(instantiation_error)) :-
 	a(X),
 	setup_call_cleanup(true, true, X).
 
 test(cleanup, true) :-
 	setup_call_cleanup(X=true, true, X).
+
+test(error_choice, [throws(first)]) :-
+	setup_call_cleanup(true, (G=1;G=2), throw(second)),
+	throw(first).
+
+test(error_choice, [throws(a(first))]) :-
+	setup_call_cleanup(true, (G=1;G=2), throw(a(second))),
+	throw(a(first)).
+
+test(error_choice, [E+Xs =@= x+[x(1,_,_)]]) :-
+	catch(test_error_choice, E, true),
+	findall(X, retract(v(X)), Xs).
+
+% this should undo the bindings of G and B before calling the
+% cleanup handler.  I.e., S must be 1 and G and B must be var.
+
+test_error_choice :-
+	setup_call_cleanup(S=1,
+			   (G=2;G=3),
+			   assert(v(x(S,G,B)))),
+	B = 4,
+	throw(x).
 
 a(_).
 

@@ -39,11 +39,25 @@ test_unify :-
 
 :- begin_tests(unify).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 blam([]).
 blam([L|L]) :- blam(L).
 
 test(blam, X == [[[]], []]) :-
 	blam(X),
 	length(X, 2), !.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+p(X,Y):-				% Bug#436
+  U=U,
+  V=V,
+  findall(_C,
+          q(X,Y,U,V),
+          _Cs).
+
+q(_,_,_,_).
+
+test(unify_self, true) :-
+	p(_,_).
 
 :- end_tests(unify).

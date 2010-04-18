@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -94,39 +94,17 @@ class PlTerm
 public:
   term_t ref;
 
-  PlTerm()
-  { ref = PL_new_term_ref();
-  }
+  PlTerm();
   PlTerm(term_t t)
   { ref = t;
   }
 
 					/* C --> PlTerm */
-  PlTerm(const char *text)
-  { ref = PL_new_term_ref();
-
-    PL_put_atom_chars(ref, text);
-  }
-  PlTerm(long val)
-  { ref = PL_new_term_ref();
-
-    PL_put_integer(ref, val);
-  }
-  PlTerm(double val)
-  { ref = PL_new_term_ref();
-
-    PL_put_float(ref, val);
-  }
-  PlTerm(const PlAtom &a)
-  { ref = PL_new_term_ref();
-
-    PL_put_atom(ref, a.handle);
-  }
-  PlTerm(void *ptr)
-  { ref = PL_new_term_ref();
-
-    PL_put_pointer(ref, ptr);
-  }
+  PlTerm(const char *text);
+  PlTerm(long val);
+  PlTerm(double val);
+  PlTerm(const PlAtom &a);
+  PlTerm(void *ptr);
 
 					/* PlTerm --> C */
   operator term_t(void) const
@@ -149,27 +127,13 @@ public:
   const char *name();
 
 					/* UNIFY */
-  int operator =(const PlTerm &t2)	/* term */
-  { return PL_unify(ref, t2.ref);
-  }
-  int operator =(const PlAtom &a)	/* atom */
-  { return PL_unify_atom(ref, a.handle);
-  }
-  int operator =(const char *v)		/* atom (from char *) */
-  { return PL_unify_atom_chars(ref, v);
-  }
-  int operator =(long v)		/* integer */
-  { return PL_unify_integer(ref, v);
-  }
-  int operator =(int v)			/* integer */
-  { return PL_unify_integer(ref, v);
-  }
-  int operator =(double v)		/* float */
-  { return PL_unify_float(ref, v);
-  }
-  int operator =(const PlFunctor &f)	/* functor */
-  { return PL_unify_functor(ref, f.functor);
-  }
+  int operator =(const PlTerm &t2);	/* term */
+  int operator =(const PlAtom &a);	/* atom */
+  int operator =(const char *v);	/* atom (from char *) */
+  int operator =(long v);		/* integer */
+  int operator =(int v);		/* integer */
+  int operator =(double v);		/* float */
+  int operator =(const PlFunctor &f);	/* functor */
 
 					/* Comparison standard order terms */
   int operator ==(const PlTerm &t2)
@@ -250,12 +214,8 @@ class PlString : public PlTerm
 {
 public:
 
-  PlString(const char *text) : PlTerm()
-  { PL_put_string_chars(ref, text);
-  }
-  PlString(const char *text, int len) : PlTerm()
-  { PL_put_string_nchars(ref, len, text);
-  }
+  PlString(const char *text);
+  PlString(const char *text, int len);
 };
 
 
@@ -263,9 +223,7 @@ class PlCodeList : public PlTerm
 {
 public:
 
-  PlCodeList(const char *text) : PlTerm()
-  { PL_put_list_codes(ref, text);
-  }
+  PlCodeList(const char *text);
 };
 
 
@@ -273,9 +231,7 @@ class PlCharList : public PlTerm
 {
 public:
 
-  PlCharList(const char *text) : PlTerm()
-  { PL_put_list_chars(ref, text);
-  }
+  PlCharList(const char *text);
 };
 
 
@@ -286,6 +242,13 @@ public:
 class PlException : public PlTerm
 {
 public:
+  PlException()
+  { term_t ex = PL_exception(0);
+    if ( ex )
+      ref = ex;
+    else
+      PL_fatal_error("No exception");
+  }
 
   PlException(const PlTerm &t)
   { ref = t.ref;
@@ -333,6 +296,23 @@ public:
 };
 
 
+class PlResourceError : public PlException
+{
+public:
+  PlResourceError() : PlException() {}
+
+  PlResourceError(const PlTerm &t) : PlException(t) {}
+
+  PlResourceError(const char *resource) :
+    PlException(PlCompound("error",
+			   PlTermv(PlCompound("resource_error",
+					      PlTermv(PlTerm(resource))),
+				   PlTerm())))
+  {
+  }
+};
+
+
 class PlTermvDomainError : public PlException
 {
 public:
@@ -350,6 +330,82 @@ public:
 
 
 		 /*******************************
+		 *     PLTERM IMPLEMENTATION	*
+		 *******************************/
+
+__inline
+PlTerm::PlTerm()
+{ if ( !(ref = PL_new_term_ref()) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(const char *text)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_atom_chars(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(long val)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_integer(ref, val) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(double val)
+{ ref = PL_new_term_ref();
+
+  if ( !PL_put_float(ref, val) )
+    throw PlResourceError();
+}
+
+__inline
+PlTerm::PlTerm(const PlAtom &a)
+{ if ( !(ref = PL_new_term_ref()) )
+    throw PlResourceError();
+
+  PL_put_atom(ref, a.handle);
+}
+
+__inline
+PlTerm::PlTerm(void *ptr)
+{ if ( !(ref = PL_new_term_ref()) ||
+       !PL_put_pointer(ref, ptr) )
+    throw PlResourceError();
+}
+
+		 /*******************************
+		 *  SPECIALISED IMPLEMENTATIONS *
+		 *******************************/
+
+__inline
+PlString::PlString(const char *text) : PlTerm()
+{ if ( !PL_put_string_chars(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlString::PlString(const char *text, int len) : PlTerm()
+{ if ( !PL_put_string_nchars(ref, len, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlCodeList::PlCodeList(const char *text) : PlTerm()
+{ if ( !PL_put_list_codes(ref, text) )
+    throw PlResourceError();
+}
+
+__inline
+PlCharList::PlCharList(const char *text) : PlTerm()
+{ if ( !PL_put_list_chars(ref, text) )
+    throw PlResourceError();
+}
+
+
+		 /*******************************
 		 *             LISTS		*
 		 *******************************/
 
@@ -359,18 +415,25 @@ public:
 
   PlTail(const PlTerm &l)
   { if ( PL_is_variable(l.ref) || PL_is_list(l.ref) )
-      ref = PL_copy_term_ref(l.ref);
-    else
+    { if ( !(ref = PL_copy_term_ref(l.ref)) )
+	throw PlResourceError();
+    } else
       throw PlTypeError("list", l.ref);
   }
 
 					/* building */
   int append(const PlTerm &e)
-  { term_t tmp = PL_new_term_ref();
+  { term_t tmp, ex;
 
-    if ( PL_unify_list(ref, tmp, ref) &&
+    if ( (tmp = PL_new_term_ref()) &&
+	 PL_unify_list(ref, tmp, ref) &&
 	 PL_unify(tmp, e.ref) )
+    { PL_reset_term_refs(tmp);
       return TRUE;
+    }
+
+    if ( (ex = PL_exception(0)) )
+      throw PlResourceError(ex);
 
     return FALSE;
   }
@@ -457,6 +520,8 @@ public:
   { predicate_t p = PL_predicate(name, av.size, "user");
 
     qid = PL_open_query((module_t)0, PL_Q_CATCH_EXCEPTION, p, av.a0);
+    if ( !qid )
+      throw PlResourceError();
   }
   PlQuery(const char *module, const char *name, const PlTermv &av)
   { atom_t ma = PL_new_atom(module);
@@ -468,6 +533,8 @@ public:
     PL_unregister_atom(na);
 
     qid = PL_open_query(m, PL_Q_CATCH_EXCEPTION, p, av.a0);
+    if ( !qid )
+      throw PlResourceError();
   }
 
   ~PlQuery()
@@ -591,7 +658,8 @@ PlTerm::operator [](int index) const
   if ( !PL_is_compound(ref) )
     throw PlTypeError("compound", ref);
   else
-  { PL_put_integer(t.ref, index);
+  { if ( !PL_put_integer(t.ref, index) )
+      throw PlResourceError();
 
     if ( index < 1 )
       throw PlDomainError("not_less_than_zero", t.ref);
@@ -625,6 +693,72 @@ PlTerm::name()
 
   throw PlTypeError("compound", ref);
   PL_THROWN(NULL);
+}
+
+
+					/* Unification */
+
+__inline int PlTerm::operator =(const PlTerm &t2)	/* term = term */
+{ int rc = PL_unify(ref, t2.ref);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const PlAtom &a) 	/* term = atom */
+{ int rc = PL_unify_atom(ref, a.handle);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const char *v)		/* term = atom */
+{ int rc = PL_unify_atom_chars(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(long v)
+{ int rc = PL_unify_integer(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(int v)
+{ int rc = PL_unify_integer(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(double v)
+{ int rc = PL_unify_float(ref, v);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
+}
+
+__inline int PlTerm::operator =(const PlFunctor &f)
+{ int rc = PL_unify_functor(ref, f.functor);
+  term_t ex;
+
+  if ( !rc && (ex=PL_exception(0)) )
+    throw PlResourceError(ex);
+  return rc;
 }
 
 					/* comparison */
@@ -731,9 +865,10 @@ PlCompound::PlCompound(const char *text) : PlTerm()
 
 __inline
 PlCompound::PlCompound(const char *functor, const PlTermv &args) : PlTerm()
-{ PL_cons_functor_v(ref,
-		    PL_new_functor(PL_new_atom(functor), args.size),
-		    args.a0);
+{ if ( !PL_cons_functor_v(ref,
+			  PL_new_functor(PL_new_atom(functor), args.size),
+			  args.a0) )
+    throw PlResourceError();
 }
 
 		 /*******************************
@@ -748,14 +883,16 @@ __inline PlTermv::PlTermv(PlTerm m0)
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1)
 { size = 2;
-  a0 = PL_new_term_refs(2);
+  if ( !(a0 = PL_new_term_refs(2)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
 }
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2)
 { size = 3;
-  a0 = PL_new_term_refs(3);
+  if ( !(a0 = PL_new_term_refs(3)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -763,7 +900,8 @@ __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2)
 
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3)
 { size = 4;
-  a0 = PL_new_term_refs(4);
+  if ( !(a0 = PL_new_term_refs(4)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -774,7 +912,8 @@ __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3)
 __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2,
 			  PlTerm m3, PlTerm m4)
 { size = 5;
-  a0 = PL_new_term_refs(5);
+  if ( !(a0 = PL_new_term_refs(5)) )
+    throw PlResourceError();
   PL_put_term(a0+0, m0);
   PL_put_term(a0+1, m1);
   PL_put_term(a0+2, m2);
@@ -831,6 +970,8 @@ PlException::cppThrow()
       throw PlTypeError(ref);
     if ( strcmp(s, "domain_error") == 0 )
       throw PlDomainError(ref);
+    if ( strcmp(s, "resource_error") == 0 )
+      throw PlResourceError(ref);
   }
 
   throw *this;

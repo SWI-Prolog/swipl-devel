@@ -58,6 +58,7 @@
 :- use_module(library(shlib), [current_foreign_library/2]).
 :- use_module(library(prolog_source)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -76,6 +77,7 @@
 	defined_class/5,		% Name, Super, Summary, Src, Line
 	(mode)/2.			% Mode, Src
 
+:- create_prolog_flag(xref, false, [type(boolean)]).
 
 		 /*******************************
 		 *	      HOOKS		*
@@ -242,17 +244,20 @@ xref_done(Source, Time) :-
 	source(Src, Time).
 
 
-%%	xref_called(+Source, ?Called, ?By) is nondet.
+%%	xref_called(?Source, ?Called, ?By) is nondet.
 %
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
 
 xref_called(Source, Called, By) :-
-	prolog_canonical_source(Source, Src),
+	(   ground(Source)
+	->  prolog_canonical_source(Source, Src)
+	;   Source = Src
+	),
 	called(Called, Src, By).
 
 
-%%	xref_defined(+Source, +Goal, ?How) is semidet.
+%%	xref_defined(?Source, +Goal, ?How) is semidet.
 %
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
@@ -260,7 +265,10 @@ xref_called(Source, Called, By) :-
 %	just locally defined and imported ones.
 
 xref_defined(Source, Called, How) :-
-	prolog_canonical_source(Source, Src),
+	(   ground(Source)
+	->  prolog_canonical_source(Source, Src)
+	;   Source = Src
+	),
 	xref_defined2(How, Src, Called).
 
 xref_defined2(dynamic(Line), Src, Called) :-
@@ -334,7 +342,7 @@ xref_defined_class(Source, Class, file(File)) :-
 collect(Src, In) :-
 	repeat,
 	    catch(read_source_term(Src, In, Term, TermPos),
-		  E, syntax_error(E)),
+		  E, report_syntax_error(E)),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !
@@ -378,7 +386,7 @@ read_source_term(_, In, Term, TermPos) :-
 		  ]).
 
 
-syntax_error(E) :-
+report_syntax_error(E) :-
 	(   verbose
 	->  print_message(error, E)
 	;   true
@@ -410,8 +418,6 @@ xref_expand(Term, _) :-
 	fail.
 xref_expand(Term, Term) :-
 	chr_expandable(Term), !.
-xref_expand('$:-'(X), '$:-'(X)) :- !,	% boot module
-	style_check(+dollar).
 xref_expand(Term, T) :-
 	catch(expand_term(Term, Expanded), _, Expanded=Term),
 	(   is_list(Expanded)
@@ -466,6 +472,9 @@ process_directive(List, Src) :-
 process_directive(use_module(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, false).
+process_directive(expects_dialect(Dialect), Src) :-
+	process_directive(use_module(library(dialect/Dialect)), Src),
+	expects_dialect(Dialect).
 process_directive(reexport(Spec, Import), Src) :-
 	xref_public_list(Spec, Path, Public, Src),
 	assert_import(Src, Import, Public, Path, true).
@@ -686,6 +695,7 @@ xref_hook(Hook) :-
 
 hook(attr_portray_hook(_,_)).
 hook(attr_unify_hook(_,_)).
+hook(attribute_goals(_,_,_)).
 hook(goal_expansion(_,_)).
 hook(term_expansion(_,_)).
 hook(resource(_,_,_)).
@@ -747,10 +757,7 @@ process_body(Var, _, _) :-
 	var(Var), !.
 process_body(Goal, Origin, Src) :-
 	called_by(Goal, Called), !,
-	(   is_list(Called)
-	->  true
-	;   throw(error(type_error(list, Called), _))
-	),
+	must_be(list, Called),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
 process_body(Goal, Origin, Src) :-
@@ -1441,6 +1448,10 @@ xref_source_file(Spec, _, _, _) :-
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
+do_xref_source_file(Spec, _, _) :-
+	var(Spec), !, fail.
+do_xref_source_file(_:Spec, File, Options) :-
+	do_xref_source_file(Spec, File, Options).
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec,

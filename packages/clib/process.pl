@@ -75,9 +75,9 @@ following finds the executable for =ls=:
     supports arbitrary OS multibyte interaction using the default
     locale.
 
-    * The detached(Bool) option is implemented, but not processed.  It
-    is unclear what it is supposed to do.  Disable signals in the child?
-    Use setsid() to detach from the session?
+    * It is unclear what the detached(true) option is supposed to do. Disable
+    signals in the child? Use setsid() to detach from the session?  The
+    current implementation uses setsid()
 
     * An extra option env([Name=Value, ...]) is added to
     process_create/3.
@@ -152,6 +152,7 @@ user:file_search_path(path, Dir) :-
 %	    Unify PID with the process id of the created process.
 %	    * detached(+Bool)
 %	    If =true=, detach the process from the terminal (Unix only)
+%	    Currently mapped to setsid();
 %	    * window(+Bool)
 %	    If =true=, create a window for the process (Windows only)
 %

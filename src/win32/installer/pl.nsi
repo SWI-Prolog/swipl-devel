@@ -13,7 +13,7 @@
 !define REGKEY SOFTWARE\SWI\Prolog
 !endif
 
-!system "pl\bin\plcon.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT} /DMSVCRT=${MSVCRT}" = 0
+!system "pl\bin\swipl.exe -f mkinstaller.pl -g true -t main -- /DPTHREAD=${PTHREAD} /DZLIB=${ZLIB} /DBOOT=${BOOT}" = 0
 !include "version.nsi"
 
 RequestExecutionLevel admin
@@ -39,6 +39,174 @@ InstType "Typical (all except debug symbols)"	# 1
 InstType "Minimal (no graphics)"		# 2
 InstType "Full"					# 3
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Make sure we have the VC8 runtime environment
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!ifdef WIN64
+!define MACHTYPE "amd"
+!define REDISTFILE "vcredist_x64.exe"
+!define VCRT_URL "http://download.microsoft.com/download/d/2/4/d242c3fb-da5a-4542-ad66-f9661d0a8d19/vcredist_x64.exe"
+!else
+!define MACHTYPE "x86"
+!define REDISTFILE "vcredist_x32.exe"
+!define VCRT_URL "http://download.microsoft.com/download/d/d/9/dd9a82d0-52ef-40db-8dab-795376989c03/vcredist_x86.exe"
+!endif
+
+
+!macro CallFindFiles DIR FILE CBFUNC
+Push "${DIR}"
+Push "${FILE}"
+Push $0
+GetFunctionAddress $0 "${CBFUNC}"
+Exch $0
+Call FindFiles
+!macroend
+
+Section "Microsoft VC runtime libraries"
+  SectionIn 1 2 3
+  ; Only checking the Windows Side-by-Side folder for occurences of mcvcr90.dll
+  ; Change msvcr90.dll into something non-existen to force download for testing
+  ; purposes.
+  !insertmacro CallFindFiles "$WINDIR\WinSxS" msvcr90.dll FindVCRT
+  ; have to check again, now to deteremine to launch the downloader (or not)...
+  StrCmp $0 ${MACHTYPE} found not_found
+    found:
+    Return
+    not_found:
+    ; for debug
+    ; MessageBox MB_OK "Couldn't find msvcr_90.dll"
+    call GetVCRT
+SectionEnd
+
+
+Function GetVCRT
+        MessageBox MB_YESNO "Microsoft Visual C++ 2008 SP1 Redistributable will now be$\r$\n\
+                             downloaded and installed.$\r$\n$\n\
+                             Administrative rights might be required! Do you want \
+                             to continue?"\
+                   IDYES download_install IDNO abort_install
+
+        download_install:
+        StrCpy $2 "$TEMP\${REDISTFILE}"
+        nsisdl::download /TIMEOUT=30000 ${VCRT_URL} $2
+        Pop $R0 ;Get the return value
+                StrCmp $R0 "success" +3
+                MessageBox MB_OK "Download failed: $R0"
+                Quit
+        ClearErrors
+        ExecWait "$2 /q"
+        IfErrors failure dl_ok
+
+        failure:
+        MessageBox MB_OK "An error has occured, Microsoft Visual C++ 2008 SP1 \
+                          Redistributable$\r$\n\
+                          has not been installed"
+        goto abort_install
+
+        dl_ok:
+        MessageBox MB_YESNO "Microsoft Visual C++ 2008 SP1 Redistributable$\r$\n\
+                             has been installed successfully to your system,$\r$\n\
+                             in order to finalise the installation, a reboot is \
+                             required.$\r$\n$\n\
+                             Would you like to reboot now?"\
+                   IDYES re_boot IDNO abort_install
+
+        re_boot:
+        MessageBox MB_OK "After your system has rebooted, you will have to re-start the$\r$\n\
+                          the SWI-Prolog installation process by clicking on the installer."
+        Delete $2
+        Reboot
+        Return
+
+        abort_install:
+        Abort "Installation has been interupted"
+FunctionEnd
+
+
+Function FindVCRT
+  Pop $0
+
+  ; Checking for the first 3 characters of the WinSxS sub-dirs, they start with
+  ; either amd64_ or x86_, so first get those 3 characters:
+  StrCpy $0 $0 -12 18
+  StrCpy $0 $0 3
+  ; and then compare
+  StrCmp $0 ${MACHTYPE} found not_found
+
+  found:
+  ; set the stop criterium
+  Push "stop"
+  Return
+
+  not_found:
+  ; avoid stack corruption
+  Push "continue"
+FunctionEnd
+
+; Function taken from here: http://nsis.sourceforge.net/Search_For_a_File
+
+Function FindFiles
+  Exch $R5 # callback function
+  Exch
+  Exch $R4 # file name
+  Exch 2
+  Exch $R0 # directory
+  Push $R1
+  Push $R2
+  Push $R3
+  Push $R6
+
+  Push $R0 # first dir to search
+
+  StrCpy $R3 1
+
+  nextDir:
+    Pop $R0
+    IntOp $R3 $R3 - 1
+    ClearErrors
+    FindFirst $R1 $R2 "$R0\*.*"
+    nextFile:
+      StrCmp $R2 "." gotoNextFile
+      StrCmp $R2 ".." gotoNextFile
+
+      StrCmp $R2 $R4 0 isDir
+        Push "$R0\$R2"
+        Call $R5
+        Pop $R6
+        StrCmp $R6 "stop" 0 isDir
+          loop:
+            StrCmp $R3 0 done
+            Pop $R0
+            IntOp $R3 $R3 - 1
+            Goto loop
+
+      isDir:
+        IfFileExists "$R0\$R2\*.*" 0 gotoNextFile
+          IntOp $R3 $R3 + 1
+          Push "$R0\$R2"
+
+  gotoNextFile:
+    FindNext $R1 $R2
+    IfErrors 0 nextFile
+
+  done:
+    FindClose $R1
+    StrCmp $R3 0 0 nextDir
+
+  Pop $R6
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
+  Pop $R5
+  Pop $R4
+FunctionEnd
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; End MSVCRT check/install
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 !ifdef WIN64
 Page custom Check64 "" ": Checking for AMD64 architecture"
 !endif
@@ -54,15 +222,12 @@ Section "Base system (required)"
   Delete $INSTDIR\bin\*.pdb
 
   SetOutPath $INSTDIR\bin
-  File pl\bin\plcon.exe
-  File pl\bin\plwin.exe
-  File pl\bin\libpl.dll
+  File pl\bin\swipl.exe
+  File pl\bin\swipl-win.exe
+  File pl\bin\swipl.dll
   File pl\bin\plterm.dll
   File pl\bin\plregtry.dll
   File pl\bin\${PTHREAD}.dll
-!ifdef MSVCRT
-  File pl\bin\${MSVCRT}
-!endif
 
   SetOutPath $INSTDIR
   File /r pl\custom
@@ -70,7 +235,7 @@ Section "Base system (required)"
   File pl\COPYING.TXT
   File pl\README.TXT
   File pl\VERSION
-  File pl\swipl
+  File pl\swipl.home
 
   SetOutPath $INSTDIR\library
 ; SYSTEM STUFF
@@ -120,7 +285,6 @@ Section "Base system (required)"
   File pl\library\record.pl
   File pl\library\settings.pl
   File pl\library\terms.pl
-  File pl\library\dialect.pl
   File pl\library\apply_macros.pl
   File pl\library\apply.pl
   File pl\library\aggregate.pl
@@ -162,6 +326,8 @@ Section "Base system (required)"
   File pl\library\option.pl
   File pl\library\date.pl
   File pl\library\main.pl
+  File pl\library\csv.pl
+  File pl\library\persistency.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
@@ -220,7 +386,6 @@ Section "Constraint Handling Rules"
   File pl\library\chr\chr_compiler_utility.pl
   File pl\library\chr\chr_compiler_errors.pl
   File pl\library\chr\chr_integertable_store.pl
-  File pl\library\chr\chr_support.dll
   File pl\library\chr\README.TXT
   SetOutPath $INSTDIR\doc\packages\examples
   File /r pl\doc\packages\examples\chr
@@ -247,18 +412,12 @@ Section "CLP on real and rational numbers: CLP(Q,R)"
   File pl\library\clp\clpq.pl
 SectionEnd
 
-Section "YAP Portability support"
+Section "Portability (YAP, SICStus, Ciao) support"
   SectionIn 1 3
-  SetOutPath $INSTDIR\library\dialect
-  File pl\library\dialect\yap.pl
-  File pl\library\dialect\hprolog.pl
-  File /r pl\library\dialect\yap
-SectionEnd
-
-Section "ISO information support"
-  SectionIn 1 3
-  SetOutPath $INSTDIR\library\dialect
-  File /r pl\library\dialect\iso
+  SetOutPath $INSTDIR\library
+  File pl\library\fastrw.pl
+  File pl\library\dialect.pl
+  File /r pl\library\dialect
 SectionEnd
 
 Section "Demo files"
@@ -272,14 +431,14 @@ SectionEnd
 Section "C/C++ Interface"
   SectionIn 1 3
   SetOutPath $INSTDIR\lib
-  File pl\lib\libpl.lib
+  File pl\lib\swipl.lib
   File pl\lib\plterm.lib
   File pl\lib\${PTHREAD}.lib
   SetOutPath $INSTDIR
   File /r pl\include
   SetOutPath $INSTDIR\bin
-  File pl\bin\plld.exe
-  File pl\bin\plrc.exe
+  File pl\bin\swipl-ld.exe
+  File pl\bin\swipl-rc.exe
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\pl2cpp.html
 SectionEnd
@@ -303,7 +462,7 @@ Section "XPCE graphics library"
   SetOutPath $INSTDIR
   Delete $INSTDIR\xpce\prolog\lib\pce_common.pl
   File /r pl\xpce
-  File pl\plwin.rc
+  File pl\swipl-win.rc
   SetOutPath $INSTDIR\bin
   File pl\bin\pl2xpce.dll
   File pl\bin\xpce-stub.exe
@@ -374,6 +533,7 @@ Section "SGML/XML/HTML parser"
   File pl\library\xsdp_types.pl
   File pl\library\iso_639.pl
   File pl\library\xpath.pl
+  File pl\library\pwp.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\sgml.html
 SectionEnd
@@ -428,12 +588,24 @@ Section "NLP package"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
   File pl\bin\porter_stem.dll
+  File pl\bin\snowball.dll
   File pl\bin\double_metaphone.dll
   SetOutPath $INSTDIR\library
   File pl\library\porter_stem.pl
+  File pl\library\snowball.pl
   File pl\library\double_metaphone.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\nlp.html
+SectionEnd
+
+Section "R-project interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\R.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\R.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\R
 SectionEnd
 
 Section "ZLIB package"
@@ -479,13 +651,12 @@ Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin
   File pl\bin\cgi.pdb
-  File pl\bin\libpl.pdb
+  File pl\bin\swipl.pdb
   File pl\bin\memfile.pdb
   File pl\bin\mime.pdb
   File pl\bin\odbc4pl.pdb
-  File pl\bin\plcon.pdb
   File pl\bin\plterm.pdb
-  File pl\bin\plwin.pdb
+  File pl\bin\swipl-win.pdb
   File pl\bin\sgml2pl.pdb
   File pl\bin\socket.pdb
   File pl\bin\time.pdb
@@ -497,6 +668,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\uri.pdb
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
+  File pl\bin\snowball.pdb
 SectionEnd
 
 Section "Sources for system predicates"
@@ -520,16 +692,19 @@ Section "Shell Extensions" SecShell
   WriteRegStr HKCR .${EXT} "" "PrologFile"
 
   ReadRegStr $0 HKCR "PrologFile" ""
+  IfErrors 0 readOK
+    StrCpy $0 "";
+  readOK:
   StrCmp $0 "" 0 skipNSIAssoc
 	WriteRegStr HKCR "PrologFile" "" "Prolog Source"
 	WriteRegStr HKCR "PrologFile\shell" "" "open"
-	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\plwin.exe,0
+	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\swipl-win.exe,0
   skipNSIAssoc:
   ; OPEN
-  WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
+  WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\swipl-win.exe" "%1"'
   ; Bind `edit' to call PceEmacs
   WriteRegStr HKCR "PrologFile\shell\pceEmacs" "" "Open in PceEmacs"
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\plwin.exe" -g start_emacs,send(@(pce),show_console,iconic),send(@(emacs),show_buffer_menu)'
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\swipl-win.exe" -g start_emacs,send(@(pce),show_console,iconic),send(@(emacs),show_buffer_menu)'
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "" "edit %1"
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Application" "" "PceEmacs"
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Topic" "" "control"
@@ -537,7 +712,7 @@ Section "Shell Extensions" SecShell
   ; EDIT (these are not yet correct)
   ; CONSULT
   WriteRegStr HKCR "PrologFile\shell\consult" "" "Load Prolog Source"
-  WriteRegStr HKCR "PrologFile\shell\consult\command" "" '"$INSTDIR\bin\plwin.exe'
+  WriteRegStr HKCR "PrologFile\shell\consult\command" "" '"$INSTDIR\bin\swipl-win.exe'
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "" "consult('%1')"
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "Application" "prolog"
   WriteRegStr HKCR "PrologFile\shell\consult\ddeexec" "ifexec" ""
@@ -574,9 +749,9 @@ Section "Start Menu shortcuts"
     Delete "$SMPROGRAMS\${GRP}\XPCE.lnk"
   NoOldXPCE:
   CreateShortCut "$SMPROGRAMS\${GRP}\Prolog.lnk" \
-		 "$INSTDIR\bin\plwin.exe" \
+		 "$INSTDIR\bin\swipl-win.exe" \
 		 "--win_app" \
-		 "$INSTDIR\bin\plwin.exe" \
+		 "$INSTDIR\bin\swipl-win.exe" \
 		 0
   SetOutPath $INSTDIR
   CreateShortCut "$SMPROGRAMS\${GRP}\Readme.lnk" \
@@ -600,13 +775,13 @@ SectionEnd
 
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "make_library_index(swi(library)),halt"'
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "win_flush_filetypes,halt"'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "make_library_index(swi(library)),halt"'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g "win_flush_filetypes,halt"'
 SectionEnd
 
 Section "Precompiled libraries"
   SectionIn RO			# do not allow to delete this
-  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g wise_install_xpce,halt'
+  ExecWait '"$INSTDIR\bin\swipl-win.exe" -f none -g wise_install_xpce,halt'
 SectionEnd
 
 ################################################################
@@ -647,7 +822,7 @@ Section "Uninstall"
     RMDir /r "$SMPROGRAMS\${GRP}"
   NoGrp:
 
-  IfFileExists "$INSTDIR\bin\plwin.exe" 0 NoDir
+  IfFileExists "$INSTDIR\bin\swipl-win.exe" 0 NoDir
     RMDir /r "$INSTDIR"
     goto Done
 
@@ -774,7 +949,7 @@ Function UserInfo
 FunctionEnd
 
 Function .onInstSuccess
-  MessageBox MB_YESNO "Installation complete. View readme?" IDNO NoReadme
+  MessageBox MB_YESNO "Installation complete. View readme?" /SD IDNO IDNO NoReadme
   ExecShell "open" "$INSTDIR\doc\windows.html"
   NoReadme:
 FunctionEnd

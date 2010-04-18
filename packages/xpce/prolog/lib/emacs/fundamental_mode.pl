@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -53,7 +53,6 @@
 	  justify_paragraph        = key('\\eQ'),
 	  bookmark_line            = key('\\e@'),
 	  execute_extended_command = key('\\ex'),
-	  sticky_window		   = key('\\es'),
 	  write_region		   = key('\\e\\C-w'),
 	  compile		   = key('\\C-x\\C-m'),
 
@@ -221,7 +220,7 @@ remove_condition(From, To, Style,
 quit(M) :->
 	"Destroy the editor"::
 	ignore(send(M?text_buffer, save_if_modified)),
-	send(M?frame, destroy).
+	send(M, destroy).
 
 
 		 /*******************************
@@ -408,8 +407,8 @@ save_some_buffers(_M, Arg:[int]) :->
 
 find_file(_M, File:file) :->
 	"Find existing file or create new one"::
-	new(B, emacs_buffer(File)),
-	send(B, open).
+	new(Buffer, emacs_buffer(File)),
+	send(Buffer, open, tab).
 
 new(M, File:save_file) :->
 	"Create a new file"::
@@ -444,7 +443,7 @@ show_buffer_menu(_M) :->
 
 switch_to_buffer(_, Buffer:emacs_buffer) :->
 	"Switch this window to named buffer"::
-	send(Buffer, open).
+	send(Buffer, open, tab).
 %	send(M, text_buffer, Buffer).		% Always in same window
 
 
@@ -684,7 +683,7 @@ split_command_string(String, List) :-
 	     message(Ch, append, ?(@arg1, register_value, @arg2, 0, name))),
 	chain_list(Ch, List).
 
-compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
+compile(M, Command:shell_command=string, Label:[name]) :->
 	"Run Unix (compilation) process in buffer"::
 	send(M, save_some_buffers),
 	send(M, has_processes),
@@ -715,15 +714,13 @@ compile(M, Command:shell_command=string, Label:[name], Pool:[name]) :->
 	    Process =.. [process|Args]
 	),
 	new(P, Process),
-	default(Pool, compile, ThePool),
-	send(B, pool, ThePool),
 	send(P, directory, Dir),
 	send(B, clear),
 	send(B, format, 'cd %s\n%s\n', Dir?path, Command),
 	send(B, directory, Dir),
 	send(B, process, P),
 	send(B, start_process),
-	send(B, open),
+	send(B, open, tab),
 	send(B?editors, for_some,
 	     and(message(@arg1, report, status, 'Running ...'),
 		 message(@arg1, scroll_to, 0),
@@ -735,8 +732,7 @@ grep(M, GrepArgs:grep_arguments=string) :->
 	get(M, grep_command, GrepCommad),
 	send(M, compile,
 	     string(GrepCommad, GrepArgs),
-	     string('grep %s', GrepArgs),
-	     grep).
+	     string('grep %s', GrepArgs)).
 
 
 shell(M) :->
@@ -755,10 +751,9 @@ shell(M) :->
 	    get(M, directory, Dir),
 	    send(P, directory, Dir),
 	    new(B, emacs_process_buffer(P, '*shell*')),
-	    send(B, pool, shell),
 	    send(B, directory, Dir),
 	    send(B, start_process),
-	    send(B, open)
+	    send(B, open, tab)
 	).
 
 better_shell('/bin/tcsh', '/bin/csh') :- !.
@@ -768,7 +763,6 @@ manual_entry(M, Spec:unix_manual_entry_for=name) :->
 	"Lookup Unix manual entry"::
 	send(M, has_processes),
 	new(B, emacs_buffer(@nil, Spec)),
-	send(B, pool, manual_entry),
 	send(B, (mode), man),
 	send(B, open),
 	send(B?editors?head, man, Spec).
@@ -810,7 +804,6 @@ annotate(M) :->
 	    send(B, contents, OB?contents)
 	),
 	send(B, (mode), annotate),
-	send(B, pool, wysiwyg),
 	send(B, open).
 
 
@@ -821,9 +814,7 @@ annotate(M) :->
 split_window(M) :->
 	"Create another window for this buffer"::
 	get(M, text_buffer, Buffer),
-	new(W2, emacs_frame(Buffer)),
-	send(W2?editor, caret, M?caret).
-
+	send(Buffer, open, window).
 
 only_window(M) :->
 	"Quit other windows on this buffer"::

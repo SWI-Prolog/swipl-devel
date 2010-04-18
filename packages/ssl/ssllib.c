@@ -25,18 +25,6 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#ifdef __WINDOWS__
-#  include <io.h>
-#  include <winsock2.h>
-#else
-#  include <unistd.h>
-#  include <sys/types.h>
-#  include <sys/socket.h>
-#  include <netinet/in.h>
-#  include <arpa/inet.h>
-#  include <netdb.h>
-#endif
-
 #include "ssllib.h"
 #include <openssl/rand.h>
 
@@ -50,11 +38,6 @@
  * Remap socket related calls to nonblockio library
  */
 #include "../clib/nonblockio.h"
-#define socket          nbio_socket
-#define connect         nbio_connect
-#define bind            nbio_bind
-#define listen          nbio_listen
-#define accept          nbio_accept
 #define closesocket     nbio_closesocket
 #else   /* __SWI_PROLOG__ */
 #define Soutput         stdout
@@ -69,10 +52,10 @@ static int PL_handle_signals(void) { return 0; }
 #include <openssl/rsa.h>
 
 typedef enum
-{ SSL_SOCK_OK
-, SSL_SOCK_RETRY
-, SSL_SOCK_ERROR
-} SSL_SOCK_STATUS;
+{ SSL_PL_OK
+, SSL_PL_RETRY
+, SSL_PL_ERROR
+} SSL_PL_STATUS;
 
 #define SSL_CERT_VERIFY_MORE 0
 #define SSL_WAIT_CHILD       1
@@ -136,54 +119,47 @@ ssl_error(SSL *ssl, int ssl_ret, int code)
 	   );
 }
 
-static SSL_SOCK_STATUS
-ssl_inspect_status(SSL *ssl, int sock, int ssl_ret)
+static SSL_PL_STATUS
+ssl_inspect_status(SSL *ssl, int ssl_ret)
 {   int code;
 
     if (ssl_ret >= 0) {
-        return SSL_SOCK_OK;
+        return SSL_PL_OK;
     }
 
     code=SSL_get_error(ssl, ssl_ret);
 
     switch (code) {
+       /* I am not sure what to do here - specifically, I am not sure if our underlying BIO
+          will block if there is not enough data to complete a handshake. If it will, we should
+          never get these return values. If it wont, then we presumably need to simply try again
+          which is why I am returning SSL_PL_RETRY
+       */
 	case SSL_ERROR_WANT_READ:
-	    if (nbio_wait(sock, REQ_READ) == 0) {
-		return SSL_SOCK_RETRY;
-	    }
-	    break;
+           return SSL_PL_RETRY;
 
 	case SSL_ERROR_WANT_WRITE:
-	    if (nbio_wait(sock, REQ_WRITE) == 0) {
-		return SSL_SOCK_RETRY;
-	    }
-	    break;
+           return SSL_PL_RETRY;
 
 #ifdef SSL_ERROR_WANT_CONNECT
 	case SSL_ERROR_WANT_CONNECT:
-	    if (nbio_wait(sock, REQ_CONNECT) == 0) {
-		return SSL_SOCK_RETRY;
-	    }
-	    break;
+           return SSL_PL_RETRY;
 #endif
 
 #ifdef SSL_ERROR_WANT_ACCEPT
 	case SSL_ERROR_WANT_ACCEPT:
-	    if (nbio_wait(sock, REQ_ACCEPT) == 0) {
-		return SSL_SOCK_RETRY;
-	    }
-	    break;
+           return SSL_PL_RETRY;
 #endif
 
 	case SSL_ERROR_ZERO_RETURN:
-	    return SSL_SOCK_OK;
+	    return SSL_PL_OK;
 
 	default:
 	    break;
     }
 
     ssl_error(ssl, ssl_ret, code);
-    return SSL_SOCK_ERROR;
+    return SSL_PL_ERROR;
 }
 
 static char *
@@ -221,10 +197,10 @@ ssl_cert_print(X509 *cert, const char *role)
 
     i = X509_get_signature_type(cert);
     ssl_deb(1, "\t signature type: %d\n", i);
-#endif
+#endif /* DEBUG */
 }
 
-#endif
+#endif /* SSL_CERT_VERIFY_MORE */
 
 #if SSL_CERT_VERIFY_MORE
 
@@ -259,7 +235,7 @@ ssl_verify_cert(PL_SSL *config)
     }
 }
 
-#endif
+#endif /* SSL_CERT_VERIFY_MORE */
 
 static PL_SSL *
 ssl_new(void)
@@ -273,6 +249,7 @@ ssl_new(void)
         new->pl_ssl_role                = PL_SSL_NONE;
 
 	new->sock			= -1;
+        new->closeparent	       	= 0;
 
         new->pl_ssl_peer_cert           = NULL;
         new->pl_ssl_ctx                 = NULL;
@@ -534,17 +511,83 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
     ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     config = SSL_get_ex_data(ssl, ssl_idx);
 
+   
+
     ssl_deb(1, " ---- INIT Handling certificate verification\n");
     if (!preverify_ok) {
         X509 *cert = NULL;
         int   err;
-        const char *error;
+        const char *error;        
+
+        /* At this point, we have a slight divergence from what happens in web
+         * browsers. Verisign (at least) has cross-signed certificates, which
+         * apparently means that we can have more than one certification path.
+         * For example, the server may supply:
+         * peer -> intermediate CA 1 -> intermediate CA 2 -> Root CA
+         * OpenSSL will respect this supplied chain.
+         * Firefox and IE (at least) have a different version of
+         * intermediate CA 2, which is self-signed and trusted, but has the same
+         * public key as the intermediate CA 2 which is issued by the Root CA.
+         * The result is that if you supply the intermediate CA 2 as known to
+         * the web broswer via cacert_file in ssl_init, OpenSSL will fail to
+         * authenticate.
+         *
+         * There are two solutions. Obviously, we can supply the Root CA as the
+         * server is clearly expecting. Another is to progressively truncate the
+         * certificate chain if we encounter an error. After one step, in this
+         * case, OpenSSL will inject the trusted CA in at the top of the chain
+         * and approve the chain.
+         *
+         * Some people might argue this constitutes a security hole, since if
+         * the Intermediate CA 2 which is signed by the Root CA is revoked or
+         * expires, we will still authenticate the chain if we trust the self-
+         * signed intermediate 2 CA. I contend that if we really do trust the
+         * self-signed CA, then intermediate CA 1, which is signed by the same
+         * public key as our self-signed CA should also be trusted, regardless
+         * of what has happened to its brother who was signed by the Root CA.
+         *
+         * Because this change is localised, it could ultimately be controlled
+         * by a flag?
+         */
+        
+        X509 *top_server_supplied, *top_untrusted, *next_certificate;
+
+        /* Remove the top certificates from each chain and keep them for later
+         * Note that we aren't supposed to access ctx->chain and ctx->untrusted
+         * directly, but there appears to be no other way to access them?
+         */
+        top_server_supplied = sk_X509_pop(ctx->chain);
+        top_untrusted = sk_X509_pop(ctx->untrusted);
+       
+        /* Next examine to see if we're at the bottom of the chain */
+        next_certificate = sk_X509_pop(ctx->chain);
+        if (next_certificate != NULL && next_certificate != ctx->cert)
+        {
+           /* We're not, so put the certificate back on (this could be avoided if
+              there were an sk_X509_peek, obviously
+           */
+           sk_X509_push(ctx->chain, next_certificate);
+
+           /* Set the top certificate to be the next certificate down */
+           X509_STORE_CTX_set_cert(ctx, next_certificate);
+
+           /* And try validating the resulting chain */
+           if (X509_verify_cert(ctx) == 1)
+           {
+              return 1;
+           }
+        }
+        
+        /* We failed to pre-verify, so put the certs we removed back and continue */
+        sk_X509_push(ctx->chain, top_server_supplied); 
+        sk_X509_push(ctx->untrusted, top_untrusted);
 
         /*
          * Get certificate
          */
         cert = X509_STORE_CTX_get_current_cert(ctx);
 
+        
         /*
          * Get error specification
          */
@@ -629,6 +672,16 @@ ssl_cb_pem_passwd(char *buf, int size, int rwflag, void *userdata)
     return len;
 }
 
+BOOL
+ssl_set_close_parent(PL_SSL *config, int closeparent)
+/*
+ * Should we close the parent streams?
+ */
+{
+    return config->closeparent = closeparent;
+}
+
+
 int
 ssl_close(PL_SSL_INSTANCE *instance)
 /*
@@ -636,7 +689,6 @@ ssl_close(PL_SSL_INSTANCE *instance)
  */
 {
     int ret = 0;
-
     if (instance) {
         if (instance->config->pl_ssl_role != PL_SSL_SERVER) {
             /*
@@ -650,7 +702,25 @@ ssl_close(PL_SSL_INSTANCE *instance)
         }
 
         if (instance->sock >= 0) {
-            ret = closesocket(instance->sock);
+           /* If the socket has been stored, then we ought to close it if the SSL is being closed */
+           ret = closesocket(instance->sock);
+           instance->sock = -1;
+        }
+
+        if (instance->sread != NULL) {
+           /* Indicate we are no longer filtering the stream */
+           Sset_filter(instance->sread, NULL);
+           /* Close the stream if requested */
+           if (instance->config->closeparent)
+              Sclose(instance->sread);
+        }
+
+        if (instance->swrite != NULL) {
+           /* Indicate we are no longer filtering the stream */
+           Sset_filter(instance->swrite, NULL);
+           /* Close the stream if requested */
+           if (instance->config->closeparent)
+              Sclose(instance->swrite);
         }
 
         free(instance);
@@ -670,7 +740,8 @@ ssl_exit(PL_SSL *config)
 {
     if (config)
     { if ( config->pl_ssl_role == PL_SSL_SERVER && config->sock >= 0 )
-      { closesocket(config->sock);
+      { /* If the socket has been stored, then we ought to close it if the SSL is being closed */
+        closesocket(config->sock);
 	config->sock = -1;
       }
 
@@ -848,7 +919,6 @@ ssl_config(PL_SSL *config)
         }
         ssl_deb(1, "certificate installed successfully\n");
     }
-
     (void) SSL_CTX_set_verify( config->pl_ssl_ctx
                              , (config->pl_ssl_peer_cert_required)
                                ? SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT
@@ -861,13 +931,15 @@ ssl_config(PL_SSL *config)
 }
 
 PL_SSL_INSTANCE *
-ssl_instance_new(PL_SSL *config, int sock)
+ssl_instance_new(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
 {
     PL_SSL_INSTANCE *new = NULL;
 
     if ((new = malloc(sizeof(PL_SSL_INSTANCE))) != NULL) {
         new->config       = config;
-        new->sock         = sock;
+        new->sock         = -1;
+        new->sread        = sread;
+        new->swrite       = swrite;
         new->close_needed = 0;
     }
     return new;
@@ -925,25 +997,126 @@ ssl_lib_exit(void)
     return 0;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) We use sockets from  the   ../clib/nonblockio.c.  These  sockets are
-integers like Unix file descriptors, but  not the filedescriptor itself.
-nbio_fd() returns the corresponding file/socket descriptor.
+/*
+ * BIO routines for SSL over streams
+ */
 
-Probably this is fine, surely  for   Unix.  Nevertheless,  a much better
-solution would be to wrap the nbio_* functions into an SSL BIO. See "man
-BIO_new", etc.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/*
+ * Read function
+ */
+
+int bio_read(BIO* bio, char* buf, int len)
+{
+   IOSTREAM* stream;
+   stream  = BIO_get_ex_data(bio, 0);
+   if ( stream->functions->read )
+   {
+      return (*stream->functions->read)(stream->handle, buf, len);
+   }
+   else
+      return -1;
+}
+
+/*
+ * Write function
+ */
+
+int bio_write(BIO* bio, const char* buf, int len)
+{
+   IOSTREAM* stream;
+   stream  = BIO_get_ex_data(bio, 0);
+   if ( stream->functions->write )
+   {
+      return (*stream->functions->write)(stream->handle, (char*)buf, len);
+   }
+   else
+      return -1;
+}
+
+/*
+ * Control function
+ * (Currently only supports flush. There are several mandatory, but as-yet unsupported functions...)
+ */
+
+long bio_control(BIO* bio, int cmd, long num, void* ptr)
+{
+   IOSTREAM* stream;
+   stream  = BIO_get_ex_data(bio, 0);
+
+   switch(cmd)
+   {
+     case BIO_CTRL_FLUSH:
+        Sflush(stream);
+        return 1;
+   }
+   return 0;
+}
+
+/*
+ * Create function. Called when a new BIO is created
+ * It is our responsibility to set init to 1 here
+ */
+
+int bio_create(BIO* bio)
+{
+   bio->shutdown = 1;
+   bio->init = 1;
+   bio->num = -1;
+   bio->ptr = NULL;
+   return 1;
+}
+
+/*
+ * Destroy function. Called when a BIO is freed
+ */
+
+int bio_destroy(BIO* bio)
+{
+   if (bio == NULL)
+   {
+      return 0;
+   }
+   return 1;
+}
+
+/*
+ * Specify the BIO read and write function structures
+ */
+
+BIO_METHOD bio_read_functions = {BIO_TYPE_MEM,
+                                 "read",
+                                 NULL,
+                                 &bio_read,
+                                 NULL,
+                                 NULL,
+                                 &bio_control,
+                                 &bio_create,
+                                 &bio_destroy};
+
+BIO_METHOD bio_write_functions = {BIO_TYPE_MEM,
+                                  "write",
+                                  &bio_write,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  &bio_control,
+                                  &bio_create,
+                                  &bio_destroy};
+
+/*
+ * Establish an SSL session using the given read and write streams and the role
+ */
 
 PL_SSL_INSTANCE *
-ssl_ssl(PL_SSL *config, int sock_inst)
+ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
 /*
- * Establish the SSL layer using the supplied TCP socket descriptor.
+ * Establish the SSL layer using the supplied streams
  */
 {
     PL_SSL_INSTANCE * instance = NULL;
-
-    if ((instance = ssl_instance_new(config, sock_inst)) == NULL) {
+    BIO* rbio = NULL;
+    BIO* wbio = NULL;
+    if ((instance = ssl_instance_new(config, sread, swrite)) == NULL) {
         ssl_deb(1, "ssl instance malloc failed\n");
         return NULL;
     }
@@ -954,6 +1127,14 @@ ssl_ssl(PL_SSL *config, int sock_inst)
     if (ssl_config(config) < 0) {
         return NULL;
     }
+
+    /*
+     * Create BIOs
+     */
+    rbio = BIO_new(&bio_read_functions);
+    BIO_set_ex_data(rbio, 0, sread);
+    wbio = BIO_new(&bio_write_functions);
+    BIO_set_ex_data(wbio, 0, swrite);
 
     /*
      * Prepare SSL layer
@@ -968,9 +1149,7 @@ ssl_ssl(PL_SSL *config, int sock_inst)
      */
     SSL_set_ex_data(instance->ssl, ssl_idx, config);
 
-    if (SSL_set_fd(instance->ssl, nbio_fd(sock_inst)) == 0) 	/* See (*) above */
-    { return NULL;
-    }
+    SSL_set_bio(instance->ssl, rbio, wbio); /* No return value */
     ssl_deb(1, "allocated ssl fd\n");
 
     switch (config->pl_ssl_role) {
@@ -978,23 +1157,17 @@ ssl_ssl(PL_SSL *config, int sock_inst)
             ssl_deb(1, "setting up SSL server side\n");
             do {
                 int ssl_ret = SSL_accept(instance->ssl);
-                switch(ssl_inspect_status(instance->ssl, sock_inst, ssl_ret)) {
-                    case SSL_SOCK_OK:
+                switch(ssl_inspect_status(instance->ssl, ssl_ret)) {
+                    case SSL_PL_OK:
                         /* success */
                         ssl_deb(1, "established ssl server side\n");
                         return instance;
 
-                    case SSL_SOCK_RETRY:
+                    case SSL_PL_RETRY:
                         continue;
 
-                    case SSL_SOCK_ERROR:
-                       if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_READ)
-                       {
-                          nbio_wait(sock_inst, REQ_READ);
-                          continue;
-                       }
-                       else
-                          return NULL;
+                    case SSL_PL_ERROR:
+                       return NULL;
                 }
             } while (1);
             break;
@@ -1004,218 +1177,30 @@ ssl_ssl(PL_SSL *config, int sock_inst)
 	   ssl_deb(1, "setting up SSL client side\n");
 	   do {
 	      int ssl_ret = SSL_connect(instance->ssl);
-	      switch(ssl_inspect_status(instance->ssl, sock_inst, ssl_ret)) {
-	         case SSL_SOCK_OK:
+	      switch(ssl_inspect_status(instance->ssl, ssl_ret)) {
+	         case SSL_PL_OK:
 	            /* success */
 	            ssl_deb(1, "established ssl client side\n");
 	            return instance;
 
-	         case SSL_SOCK_RETRY:
+	         case SSL_PL_RETRY:
 	            continue;
 
-	         case SSL_SOCK_ERROR:
-	            if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_READ)
-	            {
-	               nbio_wait(sock_inst, REQ_READ);
-	               continue;
-	            }
-	            else if (SSL_get_error(instance->ssl, ssl_ret) == SSL_ERROR_WANT_WRITE)
-	            {
-	               nbio_wait(sock_inst, REQ_WRITE);
-	               continue;
-	            }
-	            else
-	            {
-	               Sdprintf("Unrecoverable error: %d\n", SSL_get_error(instance->ssl, ssl_ret));
-	               Sdprintf("Additionally, get_error returned %d\n", ERR_get_error());
-	               return NULL;
-	            }
-	      }
+	         case SSL_PL_ERROR:
+                    Sdprintf("Unrecoverable error: %d\n", SSL_get_error(instance->ssl, ssl_ret));
+                    Sdprintf("Additionally, get_error returned %d\n", ERR_get_error());
+                    return NULL;
+                    }
 	   } while (1);
 	   break;
     }
     return NULL;
 }
 
-static struct sockaddr_in *
-ssl_hostaddr(struct sockaddr_in *sa_client, const char *host, int port)
-/*
- * Initialize a socket address with supplied host and port.
- */
-{
-    memset(sa_client, '\0', sizeof(*sa_client));
-
-    if (host) {
-        struct in_addr sa_addr = {0};
-        struct hostent *hp     = NULL;
-
-        if ((hp = gethostbyname(host)) == NULL) {
-            ssl_err("Couldn't resolve host: '%s'\n", host);
-            return NULL;
-        }
-        if ((int) sizeof(sa_client->sin_addr) < hp->h_length) {
-            ssl_err("host address too long: %d > %d\n"
-                   , hp->h_length
-                   , (int) sizeof(sa_client->sin_addr)
-                   ) ;
-            return NULL;
-        }
-        memcpy(&sa_client->sin_addr, hp->h_addr_list[0], hp->h_length);
-        memcpy(&sa_addr.s_addr, hp->h_addr_list[0], hp->h_length);
-        if (strcmp(host, hp->h_name)) {
-            ssl_deb(1,  "host '%s' (%s) resolved to '%s'\n"
-                   , host
-                   , hp->h_name
-                   , inet_ntoa(sa_addr)
-                   ) ;
-        } else {
-            ssl_deb(1,  "host '%s' resolved to '%s'\n"
-                   , host
-                   , inet_ntoa(sa_addr)
-                   ) ;
-        }
-    } else {
-        sa_client->sin_addr.s_addr = INADDR_ANY;
-    }
-    sa_client->sin_family = AF_INET;
-    sa_client->sin_port   = htons((unsigned short) port);
-
-    return sa_client;
-}
-
-static int
-ssl_tcp_listen(PL_SSL *config)
-/*
- * Establish TCP server socket
- */
-{
-    struct sockaddr_in sa_server;
-    int                sock    = -1;
-
-    if ((sock = nbio_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("socket");
-        return -1;
-    }
-
-    nbio_setopt(sock, TCP_NONBLOCK);
-    if ( config->pl_ssl_reuseaddr )
-        nbio_setopt(sock, TCP_REUSEADDR);
-
-    if (!ssl_hostaddr(&sa_server, config->pl_ssl_host, config->pl_ssl_port)) {
-	closesocket(sock);
-        return -1;
-    }
-
-    if ( nbio_bind(sock,
-		  (struct sockaddr *) &sa_server,
-		  sizeof (sa_server)) < 0)
-    { nbio_closesocket(sock);
-      perror("bind");
-      return -3;
-    }
-
-    /*
-     * Receive a TCP connection.
-     */
-
-    if ( nbio_listen(sock, SSL_TCP_QUEUE_MAX) < 0)
-    { closesocket(sock);
-      perror("listen");
-      return -4;
-    }
-
-    ssl_deb(1, "established tcp server socket\n");
-
-    config->sock = sock;
-
-    return sock;
-}
-
-static int
-ssl_tcp_connect(PL_SSL *config)
-/*
- * Establish TCP client socket
- */
-{
-    int  sock;
-
-    if ( (sock = nbio_socket(AF_INET, SOCK_STREAM, 0)) < 0 )
-    { perror("socket");
-      return -1;
-    }
-    config->sock = sock;
-
-    ssl_deb(1, "established tcp client socket\n");
-
-    return sock;
-}
-
-int
-ssl_socket(PL_SSL *config)
-/*
- * Establish TCP layer and listen or connect,
- * depending on server/client mode.
- */
-{
-    int sock;
-
-    switch (config->pl_ssl_role) {
-        case PL_SSL_SERVER:
-            sock = ssl_tcp_listen(config);
-            break;
-        case PL_SSL_NONE:
-        case PL_SSL_CLIENT:
-            sock = ssl_tcp_connect(config);
-            break;
-	default:
-	    assert(0);
-	    sock = -1;
-    }
-
-    return sock;
-}
-
-int
-ssl_accept(PL_SSL *config, void *addr, socklen_t *addrlen)
-/*
- * We set the TCP layer to accept mode,
- */
-{
-    struct sockaddr_in sa_client;
-    socklen_t          client_len;
-
-    if ( !addr ) {
-	addr = (struct  sockaddr *)&sa_client;
-	client_len = sizeof(sa_client);
-	addrlen = &client_len;
-    }
-
-    return nbio_accept(config->sock, addr, addrlen);
-}
-
-int
-ssl_connect(PL_SSL *config)
-/*
- * We set the TCP layer to connect mode.
- */
-{
-    struct sockaddr_in sa_client = {0};
-    int sock = config->sock;
-
-    if (!ssl_hostaddr(&sa_client, config->pl_ssl_host, config->pl_ssl_port)) {
-        return -1;
-    }
-
-    if ( nbio_connect(sock, (struct sockaddr*) &sa_client, sizeof(sa_client)) < 0)
-      return -1;
-
-    return sock;
-}
-
 int
 ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
 /*
- * Perform read on SSL socket, establish it first if necessary.
+ * Perform read on SSL session
  */
 {
     SSL *ssl = instance->ssl;
@@ -1224,21 +1209,15 @@ ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
 
     do {
         int rbytes = SSL_read(ssl, buf, size);
-        switch(ssl_inspect_status(ssl, instance->sock, rbytes)) {
-            case SSL_SOCK_OK:
+        switch(ssl_inspect_status(ssl, rbytes)) {
+            case SSL_PL_OK:
                 /* success */
                 return rbytes;
 
-            case SSL_SOCK_RETRY:
+            case SSL_PL_RETRY:
                 continue;
 
-            case SSL_SOCK_ERROR:
-            if (SSL_get_error(instance->ssl, rbytes) == SSL_ERROR_WANT_READ)
-            {
-               nbio_wait(instance->sock, REQ_READ);
-               continue;
-            }
-            else
+            case SSL_PL_ERROR:
                return -1;
        }
     } while (1);
@@ -1247,7 +1226,7 @@ ssl_read(PL_SSL_INSTANCE *instance, char *buf, int size)
 int
 ssl_write(PL_SSL_INSTANCE *instance, const char *buf, int size)
 /*
- * Perform write on SSL socket, establish it first if necessary.
+ * Perform write on SSL session
  */
 {
     SSL *ssl = instance->ssl;
@@ -1256,22 +1235,16 @@ ssl_write(PL_SSL_INSTANCE *instance, const char *buf, int size)
 
     do {
         int wbytes = SSL_write(ssl, buf, size);
-        switch(ssl_inspect_status(ssl, instance->sock, wbytes)) {
-            case SSL_SOCK_OK:
+        switch(ssl_inspect_status(ssl, wbytes)) {
+            case SSL_PL_OK:
                 /* success */
                 return wbytes;
 
-            case SSL_SOCK_RETRY:
+            case SSL_PL_RETRY:
                 continue;
 
-            case SSL_SOCK_ERROR:
-               if (SSL_get_error(instance->ssl, wbytes) == SSL_ERROR_WANT_WRITE)
-               {
-                  nbio_wait(instance->sock, REQ_WRITE);
-                  continue;
-               }
-               else
-                  return -1;
+            case SSL_PL_ERROR:
+               return -1;
         }
     } while (1);
 }

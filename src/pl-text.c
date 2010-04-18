@@ -94,6 +94,31 @@ PL_save_text(PL_chars_t *text, int flags)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_from_stack_text() moves a string from  the   stack,  so  it won't get
+corrupted if GC/shift comes along.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+PL_from_stack_text(PL_chars_t *text)
+{ if ( text->storage == PL_CHARS_STACK )
+  { size_t bl = bufsize_text(text, text->length+1);
+
+    if ( bl < sizeof(text->buf) )
+    { memcpy(text->buf, text->text.t, bl);
+      text->text.t = text->buf;
+      text->storage = PL_CHARS_LOCAL;
+    } else
+    { Buffer b = findBuffer(BUF_RING);
+
+      addMultipleBuffer(b, text->text.t, bl, char);
+      text->text.t = baseBuffer(b, char);
+      text->storage = PL_CHARS_RING;
+    }
+  }
+}
+
+
 int
 PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 { word w = valHandle(l);
@@ -104,6 +129,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
       goto maybe_write;
+    PL_from_stack_text(text);
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { number n;
 
@@ -222,7 +248,7 @@ maybe_write:
     goto case_write;
 
 error:
-  if ( isVar(w) && (flags & CVT_VARNOFAIL) )
+  if ( canBind(w) && (flags & CVT_VARNOFAIL) )
     return 2;
 
   if ( (flags & CVT_EXCEPTION) )
@@ -279,7 +305,10 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
     case PL_STRING:
     { word w = textToString(text);
 
-      return _PL_unify_atomic(term, w);
+      if ( w )
+	return _PL_unify_atomic(term, w);
+      else
+	return FALSE;
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
@@ -301,7 +330,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
 
-	    p0 = p = allocGlobal(text->length*3);
+	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+	      return FALSE;
+
 	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
@@ -317,7 +348,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-	    p0 = p = allocGlobal(text->length*3);
+	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+	      return FALSE;
+
 	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
@@ -334,7 +367,9 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    const char *e = &s[text->length];
 	    size_t len = utf8_strlen(s, text->length);
 
-	    p0 = p = allocGlobal(len*3);
+	    if ( !(p0 = p = allocGlobal(len*3)) )
+	      return FALSE;
+
 	    while(s<e)
 	    { int chr;
 
@@ -363,7 +398,8 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      s += rc;
 	    }
 
-	    p0 = p = allocGlobal(len*3);
+	    if ( !(p0 = p = allocGlobal(len*3)) )
+	      return FALSE;
 	    memset(&mbs, 0, sizeof(mbs));
 	    n = text->length;
 

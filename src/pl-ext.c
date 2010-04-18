@@ -70,7 +70,6 @@ static const PL_extension foreigns[] = {
   FRG("crash",			0, pl_crash,			0),
 #endif
   FRG("nl",			0, pl_nl,			ISO),
-  FRG("expand_file_name",	2, pl_expand_file_name,		0),
 #ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
@@ -80,7 +79,6 @@ static const PL_extension foreigns[] = {
   FRG("getenv",			2, pl_getenv,			0),
   FRG("setenv",			2, pl_setenv,			0),
   FRG("unsetenv",		1, pl_unsetenv,			0),
-  FRG("wildcard_match",		2, pl_wildcard_match,		0),
   FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		 NDET|ISO),
   FRG("sleep",			1, pl_sleep,			0),
@@ -107,11 +105,9 @@ static const PL_extension foreigns[] = {
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET|ISO),
 
   FRG("!",			0, pl_metacut,		      ISO),
-  FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
   FRG("$close_wic",		0, pl_close_wic,		0),
-  FRG("$add_directive_wic",	1, pl_add_directive_wic,	0),
   FRG("$import_wic",		2, pl_import_wic,		0),
 
   FRG("$rc_handle",		1, pl_rc_handle,		0),
@@ -132,9 +128,6 @@ static const PL_extension foreigns[] = {
 
   FRG("abolish",    		1, pl_abolish1,		     META|ISO),
   FRG("abolish",    		2, pl_abolish,		     META),
-  FRG("clause",    		2, pl_clause2,	        NDET|META|CREF|ISO),
-  FRG("clause",    		3, pl_clause3,	        NDET|META|CREF),
-  FRG("$clause",	        4, pl_clause4,	        NDET|META|CREF),
   FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
   FRG("retractall",		1, pl_retractall,	 META|ISO),
 #ifdef O_MAINTENANCE
@@ -142,10 +135,6 @@ static const PL_extension foreigns[] = {
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
 
-  FRG("recorda",		3, pl_recorda,			0),
-  FRG("recordz",		3, pl_recordz,			0),
-  FRG("recorded",		3, pl_recorded,		     NDET),
-  FRG("erase",			1, pl_erase,			0),
   FRG("$term_complexity",	3, pl_term_complexity,		0),
   FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
 							     META),
@@ -218,7 +207,6 @@ static const PL_extension foreigns[] = {
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		0),
   FRG("$current_prolog_flag",	5, pl_prolog_flag5,	     NDET),
   FRG("current_prolog_flag",	2, pl_prolog_flag,	 NDET|ISO),
-  FRG("set_prolog_flag",	2, pl_set_prolog_flag,	      ISO),
   FRG("$garbage_collect",	1, pl_garbage_collect,		0),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
@@ -227,7 +215,6 @@ static const PL_extension foreigns[] = {
   FRG("track_atom",		2, pl_track_atom,		0),
 #endif
 #endif
-  FRG("current_key",		1, pl_current_key,	     NDET),
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
   FRG("nl",			1, pl_nl1,		      ISO),
@@ -412,6 +399,7 @@ DECL_PLIST(flag);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
+DECL_PLIST(prologflag);
 DECL_PLIST(trace);
 DECL_PLIST(pro);
 DECL_PLIST(read);
@@ -423,6 +411,7 @@ DECL_PLIST(gvar);
 DECL_PLIST(win);
 DECL_PLIST(file);
 DECL_PLIST(files);
+DECL_PLIST(glob);
 DECL_PLIST(btree);
 DECL_PLIST(ctype);
 DECL_PLIST(tai);
@@ -433,6 +422,8 @@ DECL_PLIST(write);
 DECL_PLIST(dlopen);
 DECL_PLIST(system);
 DECL_PLIST(op);
+DECL_PLIST(rec);
+DECL_PLIST(termhash);
 
 void
 initBuildIns(void)
@@ -448,6 +439,7 @@ initBuildIns(void)
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
+  REG_PLIST(prologflag);
   REG_PLIST(trace);
   REG_PLIST(pro);
   REG_PLIST(read);
@@ -456,6 +448,7 @@ initBuildIns(void)
   REG_PLIST(wic);
   REG_PLIST(file);
   REG_PLIST(files);
+  REG_PLIST(glob);
   REG_PLIST(btree);
   REG_PLIST(ctype);
   REG_PLIST(tai);
@@ -466,6 +459,8 @@ initBuildIns(void)
   REG_PLIST(dlopen);
   REG_PLIST(system);
   REG_PLIST(op);
+  REG_PLIST(rec);
+  REG_PLIST(termhash);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

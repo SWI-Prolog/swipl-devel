@@ -165,7 +165,8 @@ dwimMatch(const char *str1, const char *str2)
 
 word
 pl_dwim_match(term_t a1, term_t a2, term_t mm)
-{ char *s1, *s2;
+{ GET_LD
+  char *s1, *s2;
   atom_t type;
 
   if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
@@ -185,7 +186,8 @@ predicate head.
 
 word
 pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
-{ functor_t fdef;
+{ GET_LD
+  functor_t fdef;
   Module module = (Module) NULL;
   Procedure proc;
   Symbol symb;
@@ -201,7 +203,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
   if ( !PL_strip_module(pred, &module, head) )
     fail;
   if ( !PL_get_functor(head, &fdef) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
+    fail;				/* silent: leave errors for later */
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
     e = newTableEnum(module->procedures);

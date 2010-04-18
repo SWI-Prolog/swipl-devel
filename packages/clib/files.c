@@ -54,8 +54,8 @@ add_time_option(term_t list, functor_t f, time_t time)
   { if ( PL_unify_functor(head, f) )
     { term_t a = PL_new_term_ref();
 
-      PL_get_arg(1, head, a);
-      return PL_unify_float(a, (double)time);
+      return (PL_get_arg(1, head, a) &&
+	      PL_unify_float(a, (double)time));
     }
   }
 
@@ -88,7 +88,7 @@ get_time_option(term_t list, functor_t f, time_t def, time_t *tme)
     { term_t a = PL_new_term_ref();
       double f;
 
-      PL_get_arg(1, head, a);
+      _PL_get_arg(1, head, a);
       if ( !PL_get_float(a, &f) )
       { atom_t now;
 

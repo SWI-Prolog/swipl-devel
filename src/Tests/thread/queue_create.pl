@@ -30,9 +30,17 @@ elapsed_time(G, T) :-
 test :-
 	thread_self(Me),
 	thread_create(client, Id, []),
-	thread_send_message(Id, hello(Me)),
-	thread_get_message(ok),
-	thread_join(Id, true).
+	catch(thread_send_message(Id, hello(Me)), E, true),
+	(   var(E)
+	->  thread_get_message(ok),
+	    thread_join(Id, true)
+	;   message_to_string(E, Msg),
+	    format(user_error,
+		   'Failed to send message to client: ~s~n', [Msg]),
+	    thread_join(Id, Status),
+	    format(user_error, 'Client terminated with ~q~n', [Status]),
+	    fail
+	).
 
 client :-
 	thread_get_message(hello(From)),

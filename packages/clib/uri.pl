@@ -79,7 +79,7 @@ processing tools.
 %	    ==
 %
 %	@param Components is a term uri_components(Scheme, Authority,
-%	Path, Search, Fragment).  See uri_data/5 for accessing this
+%	Path, Search, Fragment).  See uri_data/3 for accessing this
 %	structure.
 
 %%	uri_data(?Field, +Components, ?Data) is semidet.
@@ -233,12 +233,34 @@ uri_file_name(URI, FileName) :-
 	;   uri_data(authority, Components, localhost)
 	),
 	uri_data(path, Components, FileNameEnc),
-	uri_encoded(path, FileName, FileNameEnc).
+	uri_encoded(path, FileName0, FileNameEnc),
+	delete_leading_slash(FileName0, FileName).
 uri_file_name(URI, FileName) :-
 	nonvar(FileName), !,
-	absolute_file_name(FileName, Path),
+	absolute_file_name(FileName, Path0),
+	ensure_leading_slash(Path0, Path),
 	uri_encoded(path, Path, PathEnc),
 	uri_data(scheme, Components, file),
 	uri_data(authority, Components, ''),
 	uri_data(path, Components, PathEnc),
 	uri_components(URI, Components).
+
+%%	ensure_leading_slash(+WinPath, -Path).
+%%	delete_leading_slash(+Path, -WinPath).
+%
+%	Deal with the fact that absolute paths   in Windows start with a
+%	drive letter rather than a  /.  For   URIs  we  need a path that
+%	starts with a /.
+
+ensure_leading_slash(Path, SlashPath) :-
+	(   sub_atom(Path, 0, _, _, /)
+	->  SlashPath = Path
+	;   atom_concat(/, Path, SlashPath)
+	).
+
+:- if(current_prolog_flag(windows, true)).
+delete_leading_slash(Path, WinPath) :-
+	atom_concat(/, WinPath, Path),
+	is_absolute_file_name(WinPath), !.
+:- endif.
+delete_leading_slash(Path, Path).

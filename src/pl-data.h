@@ -185,7 +185,7 @@ and while loading .wic files.  It comes at no price.
 
 /*#define isVar(w)	(tag(w)   == TAG_VAR)*/
 #define isVar(w)	((w)      == (word)0)
-#define isAtom(w)	(tagex(w) == TAG_ATOM)
+#define isAtom(w)	(tagex(w) == (TAG_ATOM|STG_STATIC))
 #define isTextAtom(w)	(isAtom(w) && true(atomValue(w)->type, PL_BLOB_TEXT))
 #define isInteger(w)	(tag(w)   == TAG_INTEGER)
 #define isFloat(w)	(tag(w)   == TAG_FLOAT)
@@ -236,18 +236,7 @@ and while loading .wic files.  It comes at no price.
 #define valPAttVar(w)	((Word)valPtr2(w, STG_GLOBAL))
 
 #define canBind(w)	needsRef(w)
-#ifdef O_ATTVAR
-#define bindConst(p, c) if ( isVar(*p) ) \
-			{ *p = (c); \
-    			  Trail(p); \
-			} else \
-			{ assignAttVar(p, &(c) PASS_LD); \
-			}
-#else
-#define bindConst(p, c) { *p = (c); \
-			  Trail(p); \
-			}
-#endif
+
 
 		 /*******************************
 		 *	      INDIRECTS		*
@@ -276,11 +265,9 @@ and while loading .wic files.  It comes at no price.
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
 			/* == (isInteger(w) && storage(w) == STG_INLINE) */
-#define isBignum(w)	(isInteger(w) && \
-			 storage(w) != STG_INLINE && \
+#define isBignum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
 			 wsizeofIndirect(w) == sizeof(int64_t)/sizeof(word))
-#define isMPZNum(w)	(isInteger(w) && \
-			 storage(w) != STG_INLINE && \
+#define isMPZNum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
 			 wsizeofIndirect(w) > sizeof(int64_t)/sizeof(word))
 #ifndef INT64_ALIGNMENT
 #define valBignum(w)	(*(int64_t *)valIndirectP(w))
@@ -312,8 +299,9 @@ and while loading .wic files.  It comes at no price.
 #define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
 #define valueFunctor(w) fetchBuffer(&functor_array,indexFunctor(w),FunctorDef)
 #define _arityFunc_(w)	((int)(((w) >> LMASK_BITS) & F_ARITY_MASK))
-#define arityFunctor(w) (_arityFunc_(w)!=F_ARITY_MASK ? _arityFunc_(w) \
-						      : valueFunctor(w)->arity)
+#define arityFunctor(w) (unlikely(_arityFunc_(w) == F_ARITY_MASK) \
+				? valueFunctor(w)->arity \
+				: _arityFunc_(w) )
 #define isAtomFunctor(w) (arityFunctor(w) == 0)
 #define nameFunctor(w)	(valueFunctor(w)->name)
 
@@ -333,6 +321,5 @@ and while loading .wic files.  It comes at no price.
 #define MAXTAGGEDPTR	(((word)1<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
-#define consPtr(p,ts)	((word)((((word)(p)-base_addresses[(ts)&STG_MASK])<<5)|(ts)))
 
 

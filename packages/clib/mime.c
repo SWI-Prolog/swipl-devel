@@ -176,8 +176,8 @@ mime_unify(term_t result, struct rfc2045 *rfc, const char *buffer)
     return FALSE;
 
   if ( rfc->isdummy )
-  { PL_unify_nil(data);			/* dubious */
-    if ( !PL_unify_nil(atts) )
+  { if ( !PL_unify_nil(data) ||
+	 !PL_unify_nil(atts) )
       return FALSE;
   } else
   { term_t at = PL_copy_term_ref(atts);
@@ -256,7 +256,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
     { IOSTREAM *stream;
       term_t arg = PL_new_term_ref();
 
-      PL_get_arg(1, from, arg);
+      _PL_get_arg(1, from, arg);
       if ( !PL_get_stream_handle(arg, &stream) )
 	return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, from, "stream");
 
@@ -288,7 +288,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	long done;
 	int c;
 
-	PL_get_arg(2, from, arg);
+	_PL_get_arg(2, from, arg);
 	if ( !PL_get_long(arg, &size) || size < 0 )
 	  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "natural");
 
@@ -352,13 +352,15 @@ void
 rfc2045_error(const char *errmsg)
 { term_t e = PL_new_term_ref();
 
-  PL_unify_term(e,
-		PL_FUNCTOR_CHARS, "error", 2,
-		  PL_FUNCTOR_CHARS, "mime", 1,
-		    PL_CHARS, errmsg,
-		  PL_VARIABLE);
+  if ( (e=PL_new_term_ref()) &&
+       PL_unify_term(e,
+		     PL_FUNCTOR_CHARS, "error", 2,
+		       PL_FUNCTOR_CHARS, "mime", 1,
+		         PL_CHARS, errmsg,
+		       PL_VARIABLE) )
+    PL_throw(e);
 
-  PL_throw(e);
+  PL_fatal_error("Could not recover from rfc2045 error");
 }
 
 		 /*******************************

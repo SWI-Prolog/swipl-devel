@@ -48,10 +48,8 @@ thr_local_1 :-
 thr_local_1(Threads, Asserts) :-
 	thread_create(join(Threads), Id, []),
 	forall(between(1, Threads, _),
-	       thread_create(test_foo(Asserts, Id), _,
-			     [ local(1000),
-			       global(1000),
-			       trail(1000)
+	       thread_create(test_foo(Asserts), _,
+			     [ at_exit(done(Id))
 			     ])),
 	join_ok(Id).
 
@@ -70,17 +68,46 @@ join_ok(Id) :-
 	).
 
 
-test_foo(N, Report) :-
+test_foo(N) :-
 	forall(between(0, N, X),
 	       assert(foo(X))),
+	predicate_property(foo(_), number_of_clauses(Count)),
+	(   Count =:= N+1
+	->  true
+	;   format(user_error, '~D clauses!?~n', [Count])
+	),
 	findall(X, retract(foo(X)), List),
-	check(0, N, List),
-	thread_self(Me),
-	thread_send_message(Report, done(Me)).
+	(   check(0, N, List)
+	->  true
+	;   numlist(0, N, OkList),
+	    ord_subtract(OkList, List, Missing),
+	    compact(Missing, Ranges),
+	    thread_self(TID),
+	    format(user_error, '~N[~w] MISSING: ~q~n', [TID, Ranges]),
+	    fail
+	).
 
-check(I, N, _) :-
+check(I, N, []) :-
 	I > N, !.
-check(I, N, [I|T]) :- !,
+check(I, N, [I|T]) :-
 	NI is I + 1,
 	check(NI, N, T).
 
+compact([], []).
+compact([H|T0], [Range|T]) :-
+	subsequent(T0, H, E, T1),
+	(   H == E
+	->  Range = H
+	;   Range = (H-E)
+	),
+	compact(T1, T).
+
+subsequent([H|T], X, E, R) :-
+	H =:= X+1, !,
+	subsequent(T, H, E, R).
+subsequent(L, X, X, L).
+
+
+done(Report) :-
+	thread_self(Me),
+	thread_send_message(Report, done(Me)).

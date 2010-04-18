@@ -1,0 +1,2 @@
+rm `find . -name '*ISO_8859*'`
+rm `find . -name '*KOI8*'`

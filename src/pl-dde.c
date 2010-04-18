@@ -233,7 +233,7 @@ findServerHandle(HCONV handle)
 static HDDEDATA CALLBACK
 DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
             HDDEDATA hData, DWORD dwData1, DWORD dwData2)
-{
+{ GET_LD
   switch(type)
   {  case XTYP_CONNECT:
      { fid_t cid = PL_open_foreign_frame();
@@ -318,7 +318,6 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 PL_put_integer( argv+0, plhandle);
 	 unify_hsz(	 argv+1, hsz1);	/* topic */
 	 unify_hsz(      argv+2, hsz2);	/* item */
-	 PL_put_variable(argv+3);
 
 	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 { wchar_t *s;
@@ -404,7 +403,8 @@ pl_dde_register_service(term_t topic, term_t onoff)
 
 word
 pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
-{ UINT i;
+{ GET_LD
+  UINT i;
   HSZ Hservice, Htopic;
 
   if ( !dde_initialise() )
@@ -434,7 +434,8 @@ pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
 
 static int
 get_conv_handle(term_t handle, int *theh)
-{ int h;
+{ GET_LD
+  int h;
 
   if ( !PL_get_integer(handle, &h) || h < 0 || h >= MAX_CONVERSATIONS )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_dde_handle, handle);

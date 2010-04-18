@@ -1,14 +1,14 @@
 /*  $Id$
 
     Part of SWI-Prolog
-    Designed and implemented by Jan Wielemaker
 
-    Copyright (C) 1999 SWI, University of Amsterdam. All rights reserved.
+    This example code is in the public domain
 */
 
 
 #include "SWI-cpp.h"
-#include <iostream.h>
+#include <iostream>
+using namespace std;
 
 /* Usage:
 
@@ -61,12 +61,12 @@ int
 main(int argc, char **argv)
 { PlEngine e(argv[0]);
 
-  try 
+  try
   { return body(argc-1, argv+1);
   } catch ( PlException &ex )
   { cerr << (char *) ex << endl;
     exit(1);
   }
 }
- 
+
 

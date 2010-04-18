@@ -48,15 +48,18 @@
 		*         INITIALISATION        *
 		*********************************/
 
+%	note: loaded_init_file/2 is used by prolog_load_context/2 to
+%	confirm we are loading a script.
+
 :- dynamic
-	loaded_init_file/1.		% already loaded init files
+	loaded_init_file/2.		% already loaded init files
 
 '$welcome' :-
 	print_message(banner, welcome).
 
 '$load_init_file'(none) :- !.
 '$load_init_file'(Base) :-
-	loaded_init_file(Base), !.
+	loaded_init_file(Base, _), !.
 '$load_init_file'(InitFile) :-
 	is_absolute_file_name(InitFile), !,
 	ensure_loaded(user:InitFile).
@@ -65,34 +68,40 @@
 			   [ access(read),
 			     file_errors(fail)
 			   ], InitFile),
-	asserta(loaded_init_file(Base)),
+	asserta(loaded_init_file(Base, InitFile)),
 	ensure_loaded(user:InitFile).
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
-	loaded_init_file(system), !.
+	loaded_init_file(system, _), !.
 '$load_system_init_file' :-
 	'$option'(system_init_file, Base, Base),
-	(   Base == none
-	->  asserta(loaded_init_file(system))
-	;   current_prolog_flag(home, Home),
-	    file_name_extension(Base, rc, Name),
-	    atomic_list_concat([Home, '/', Name], File),
-	    access_file(File, read),
-	    asserta(loaded_init_file(system)),
-	    load_files(user:File, [silent(true)]), !
-	).
+	Base \== none,
+	current_prolog_flag(home, Home),
+	file_name_extension(Base, rc, Name),
+	atomic_list_concat([Home, '/', Name], File),
+	absolute_file_name(File, Path,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ]),
+	asserta(loaded_init_file(system, Path)),
+	load_files(user:Path, [silent(true)]), !.
 '$load_system_init_file'.
 
 '$load_script_file' :-
-	loaded_init_file(script), !.
+	loaded_init_file(script, _), !.
 '$load_script_file' :-
 	'$option'(script_file, OsFile, OsFile),
 	OsFile \== '',
 	prolog_to_os_filename(File, OsFile),
-	(   exists_file(File)		% avoid expanding on extensions
-	->  asserta(loaded_init_file(script)),
-	    load_files(user:File, [expand(false)])
+	(   absolute_file_name(File, Path,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ])
+	->  asserta(loaded_init_file(script, Path)),
+	    load_files(user:Path, [])
 	;   throw(error(existence_error(script_file, File), _))
 	).
 '$load_script_file'.
@@ -259,7 +268,7 @@ set_associated_file :-
 	access_file(File, read), !,
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
-	set_prolog_flag(associated_file, File),
+	create_prolog_flag(associated_file, File, []),
 	(   current_predicate(system:window_title/2)
 	->  atom_concat('SWI-Prolog -- ', File, Title),
 	    system:window_title(_, Title)
@@ -316,7 +325,7 @@ hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 	->  true
 	;   Ext = Ext0
 	),
-	set_prolog_flag(associate, Ext).
+	create_prolog_flag(associate, Ext, []).
 '$set_prolog_file_extension'.
 
 
@@ -339,9 +348,9 @@ initialise_prolog :-
 	set_associated_file,
 	'$set_file_search_paths',
 	once(print_predicate(_, [print], PrintOptions)),
-	set_prolog_flag(toplevel_print_options, PrintOptions),
-	set_prolog_flag(prompt_alternatives_on, determinism),
-	set_prolog_flag(toplevel_extra_white_line, true),
+	create_prolog_flag(toplevel_print_options, PrintOptions, []),
+	create_prolog_flag(prompt_alternatives_on, determinism, []),
+	create_prolog_flag(toplevel_extra_white_line, true, []),
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
@@ -488,8 +497,8 @@ set_default_history :-
 	(   (   current_prolog_flag(readline, true)
 	    ;	current_prolog_flag(emacs_inferior_process, true)
 	    )
-	->  set_prolog_flag(history, 0)
-	;   set_prolog_flag(history, 25)
+	->  create_prolog_flag(history, 0, [])
+	;   create_prolog_flag(history, 25, [])
 	).
 
 :- initialization set_default_history.
@@ -507,7 +516,8 @@ save_debug :-
 	),
 	current_prolog_flag(debug, Debugging),
 	set_prolog_flag(debug, false),
-	set_prolog_flag(query_debug_settings, debug(Debugging, Tracing)).
+	create_prolog_flag(query_debug_settings,
+			   debug(Debugging, Tracing), []).
 
 restore_debug :-
 	current_prolog_flag(query_debug_settings, debug(Debugging, Tracing)),
@@ -518,7 +528,7 @@ restore_debug :-
 	).
 
 :- initialization
-	set_prolog_flag(query_debug_settings, debug(false, false)).
+	create_prolog_flag(query_debug_settings, debug(false, false), []).
 
 
 		/********************************
@@ -588,7 +598,9 @@ subst_chars([H|T]) -->
 	print_message(query, query(eof)).
 '$execute'(Goal, Bindings) :-
 	'$module'(TypeIn, TypeIn),
-	expand_goal(Goal, Expanded),
+	setup_call_cleanup('$set_source_module'(M0, TypeIn),
+			   expand_goal(Goal, Expanded),
+			   '$set_source_module'(_, M0)),
 	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !,
 	print_message(silent, toplevel_goal(Goal, Bindings)),
 	'$execute_goal2'(Corrected, Bindings).
@@ -746,6 +758,7 @@ answer_respons(Char, redo) :-
 answer_respons(Char, redo) :-
 	memberchk(Char, "tT"), !,
 	trace,
+	save_debug,
 	print_message(query, if_tty('; [trace]')).
 answer_respons(Char, continue) :-
 	memberchk(Char, "ca\n\ryY."), !,
@@ -762,11 +775,13 @@ answer_respons(-1, show_again) :- !,
 answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
-print_predicate(0'w, [write], [ quoted(true)
+print_predicate(0'w, [write], [ quoted(true),
+				spacing(next_argument)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
-				max_depth(10)
+				max_depth(10),
+				spacing(next_argument)
 			      ]).
 
 

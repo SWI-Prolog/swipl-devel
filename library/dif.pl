@@ -50,6 +50,7 @@
 
 :- module(dif,[dif/2]).
 :- use_module(library(lists)).
+:- set_prolog_flag(generate_debug_info, false).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dif(X,Y) :-

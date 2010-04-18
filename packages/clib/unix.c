@@ -260,8 +260,8 @@ pl_environ(term_t l)
       name[len] = '\0';
       PL_put_atom_chars(nt, name);
       PL_put_atom_chars(vt, s+1);
-      PL_cons_functor(nt, FUNCTOR_equal2, nt, vt);
-      if ( !PL_unify_list(t, t2, t) ||
+      if ( !PL_cons_functor(nt, FUNCTOR_equal2, nt, vt) ||
+	   !PL_unify_list(t, t2, t) ||
 	   !PL_unify(t2, nt) )
 	return FALSE;
     }
@@ -288,7 +288,7 @@ static ssize_t
 write_null(void *handle, char *buf, size_t count)
 { if ( error_fd )
   { if ( error_fd >= 0 )
-      write(error_fd, buf, count);
+      return write(error_fd, buf, count);
   } else if ( error_file )
   { error_fd = open(PL_atom_chars(error_file), O_WRONLY|O_CREAT|O_TRUNC, 0644);
     return write_null(handle, buf, count);

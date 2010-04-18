@@ -2,7 +2,7 @@
 # Build the SWI-Prolog SSL package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -23,13 +23,13 @@ INCLUDE=$(INCLUDE);$(OPENSSLINCDIR)
 
 EXAMPLES=	client.pl server.pl https.pl
 
-OBJ=		ssl4pl.obj ssllib.obj ..\clib\nonblockio.obj ..\clib\error.obj
+OBJ=		ssl4pl.obj ssllib.obj ..\clib\error.obj
 
 all:		$(PKGDLL).dll
 
-$(PKGDLL).dll:	$(OBJ)
+$(PKGDLL).dll:	$(OBJ) ..\clib\socket.lib
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS) \
-		ssleay32.lib libeay32.lib
+		ssleay32.lib libeay32.lib ..\clib\socket.lib
 
 !IF "$(CFG)" == "rt"
 install:	all idll

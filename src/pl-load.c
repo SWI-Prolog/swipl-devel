@@ -153,7 +153,8 @@ under_valgrind()
 
 static
 PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
-{ void *dlhandle;
+{ PRED_LD
+  void *dlhandle;
   char *fn;
   atom_t afile;
   DlEntry e;
@@ -202,7 +203,8 @@ PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
 
 static DlEntry
 find_dl_entry(term_t h)
-{ DlEntry e;
+{ GET_LD
+  DlEntry e;
   int id;
 
   if ( PL_get_integer(h, &id) )
@@ -285,7 +287,8 @@ the cleanup, it should be safe now.
 
 void
 cleanupForeign(void)
-{ DlEntry e, next;
+{ GET_LD
+  DlEntry e, next;
 
   for(e = dl_head; e; e = next)
   { next = e->next;

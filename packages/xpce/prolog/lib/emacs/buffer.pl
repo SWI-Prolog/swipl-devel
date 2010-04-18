@@ -50,7 +50,6 @@ variable(auto_save_mode,  bool,		both, "Auto-save?").
 variable(auto_save_count, number,	get,  "Auto-save at expiration").
 variable(saved_caret,	  int,		both, "Saved caret on last quit").
 variable(saved_fill,	  bool := @off,	both, "Saved fill_mode on quit").
-variable(pool,		  [name],	both, "Window pool I belong too").
 variable(margin_width,	  '0..' := 0,	get,  "Margin width of editors").
 variable(coloured_generation,
 	 int := -1,
@@ -84,19 +83,16 @@ initialise(B, File:file*, Name:[name]) :->
 	    default(Name, '*scratch*', BufBaseName),
 	    (	BufBaseName == '*scratch*'
 	    ->	send(B, slot, mode, prolog),
-	        send(B, pool, @default),
 		scratch_text(Text),
 		send(B, insert, 0, Text),
 		send(B, saved_caret, B?size)
-	    ;	send(B, slot, mode, fundamental),
-		send(B, pool, other)
+	    ;	send(B, slot, mode, fundamental)
 	    ),
 	    send(B, directory, directory('.'))
 	;   send(File, absolute_path),
 	    get(File, base_name, FileBaseName),
 	    default(Name, FileBaseName, BufBaseName),
 	    send(B, file, File),
-	    send(B, pool, file),
 	    send(B, auto_save_mode, @on),
 	    send(@emacs_base_names, append, FileBaseName, B),
 	    send(B, determine_initial_mode),
@@ -488,7 +484,7 @@ update_label(B) :->
 		EditorLabel = Name
 	    ),
 	    send(B?editors, for_all,
-		 message(@arg1?frame, label, EditorLabel))
+		 message(@arg1, label, EditorLabel))
 	;   true
 	).
 
@@ -552,26 +548,22 @@ confirm_reload(_, File) :-
 		 *          OPEN WINDOW		*
 		 *******************************/
 
-open(B, New:[bool], Window:emacs_frame) :<-
+open(B, How:[{here,tab,window}], Frame:emacs_frame) :<-
 	"Create window for buffer"::
-	(   New == @on
-	->  send(new(Window, emacs_frame(B)), open)
-	;   (   get(B?editors, find,
-		    and(message(@arg1, instance_of, emacs_editor),
-			@arg1?window?reuse == @on),
-		    Editor)
-	    ->  get(Editor, frame, Window),
-		send(Window, expose)
-	    ;	get(@emacs, free_window, B?pool, Window)
-	    ->	send(Window, buffer, B)
-	    ;	send(new(Window, emacs_frame(B)), open)
-	    )
+	(   How == window
+	->  send(new(Frame, emacs_frame(B)), open)
+	;   How == tab,
+	    get(@emacs, current_frame, Frame)
+	->  send(Frame, tab, B, @on)
+	;   get(@emacs, current_frame, Frame)
+	->  send(Frame, buffer, B)
+	;   send(new(Frame, emacs_frame(B)), open)
 	),
 	send(B, check_modified_file).
 
-open(B, New:[bool]) :->
+open(B, How:[{here,tab,window}]) :->
 	"Create window for buffer"::
-	get(B, open, New, _).
+	get(B, open, How, _).
 
 
 properties(Buffer) :->
@@ -585,13 +577,11 @@ properties(Buffer, V:view) :<-
 	get(Buffer, size, Size),
 	get(Buffer, line_number, Lines),
 	get(Buffer, mode, Mode),
-	get(Buffer, pool, Pool),
 	new(V, view(string('Buffer %s', Name), size(60, 8))),
 	send(V, confirm_done, @off),
 	send(V, tab_stops, vector(200)),
 	send(V, appendf, 'Buffer Name:\t%s\n', Name),
 	send(V, appendf, 'Mode:\t%s\n', Mode),
-	send(V, appendf, 'Window Pool:\t%s\n', Pool),
 	send(V, appendf, 'Modified:\t%s\n', Modified?name),
 	send(V, appendf, 'Size:\t%d characters; %d lines\n', Size, Lines-1),
 	get(Buffer, file, File),

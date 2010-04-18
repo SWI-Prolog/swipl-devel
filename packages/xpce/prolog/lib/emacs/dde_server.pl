@@ -60,8 +60,7 @@ handle_request(Item) :-
 	atom_concat('edit ', WinFile, Item), !,
 	prolog_to_os_filename(File, WinFile),
 	new(B, emacs_buffer(File)),
-	new(W, emacs_frame(B)),
-	send(W, sticky_window),
+	send(B, open, tab),
 	send(B, check_modified_file).
 handle_request('close-server') :-
 	dde_unregister_service('PceEmacs'),

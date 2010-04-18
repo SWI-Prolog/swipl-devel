@@ -72,6 +72,8 @@ correct_goal(Goal0, M, Bindings, Goal) :-	% correct the goal
 	correct_literal(M:Goal0, Bindings, DWIMs, Goal1),
 	correct_meta_arguments(Goal1, M, Bindings, Goal).
 correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
+	\+ current_prolog_flag(Module:unknown, fail),
+	callable(Goal), !,
 	functor(Goal, Name, Arity),
 	'$undefined_procedure'(Module, Name, Arity, Action),
 	(   Action == error
@@ -81,6 +83,7 @@ correct_goal(Goal, Module, _, NewGoal) :-	% try to autoload
 	->  NewGoal = Goal
 	;   NewGoal = fail
 	).
+correct_goal(Goal, M, _, M:Goal).
 
 existence_error(PredSpec) :-
 	strip_module(PredSpec, M, _),
@@ -103,15 +106,15 @@ dwim_existence_error(Unknown, PredSpec) :-
 %	Correct possible meta-arguments. This performs a recursive check
 %	on meta-arguments specified as `0' using :- meta_predicate/1. As
 %	a special exception, the arment of call/1 is not checked, so you
-%	can use call(X) as an escape for the DWIM system.
+%	can use call(X) as an escape from the DWIM system.
 
-correct_meta_arguments(call(Goal), _, _, Goal) :- !.
+correct_meta_arguments(call(Goal), _, _, call(Goal)) :- !.
 correct_meta_arguments(Goal0, M, Bindings, Goal) :-
 	predicate_property(M:Goal0, meta_predicate(MHead)), !,
 	functor(Goal0, Name, Arity),
 	functor(Goal, Name, Arity),
 	correct_margs(0, Arity, MHead, Goal0, Goal, M, Bindings).
-correct_meta_arguments(Goal, _, _, Goal) :- !.
+correct_meta_arguments(Goal, _, _, Goal).
 
 correct_margs(Arity, Arity, _, _, _, _, _) :- !.
 correct_margs(A, Arity, MHead, GoalIn, GoalOut, M, Bindings) :-
@@ -139,7 +142,10 @@ correct_literal(Goal, Bindings, [Dwim], DwimGoal) :-
 	G1 =.. [_|Arguments],
 	G2 =.. [Name|Arguments],
 	'$module'(TypeIn, TypeIn),
-	(   '$prefix_module'(DM, TypeIn, G2, ConfirmGoal),
+	(   (   current_predicate(TypeIn:Name/Arity)
+	    ->	ConfirmGoal = G2
+	    ;	'$prefix_module'(DM, TypeIn, G2, ConfirmGoal)
+	    ),
 	    goal_name(ConfirmGoal, Bindings, String),
 	    '$confirm'(dwim_correct(String))
 	->  DwimGoal = DM:G2
@@ -345,7 +351,7 @@ find_definition(Head, _, Def) :-
 %	Find a head that is in a `Do What I Mean' sence the same as `Head'.
 %	backtracking produces more such predicates.  If searches for:
 %
-%	    * predicates with a simlar name in an import module
+%	    * predicates with a similar name in an import module
 %	    * predicates in a similar module with the same name
 %	    * predicates in any module with the same name
 
@@ -359,9 +365,10 @@ dwim_predicate_list(M:Head, DWIMs) :-
 	setof(DWIM, dwim_pred(M:Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, '$similar_module'(Head, DWIM), DWIMs), !.
-dwim_predicate_list(_:Goal, DWIMs) :-
+dwim_predicate_list(M:Goal, DWIMs) :-
 	setof(Module:Goal,
 	      ( current_module(Module),
+		default_module(Module, M),
 		current_predicate(_, Module:Goal)
 	      ), DWIMs).
 

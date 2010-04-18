@@ -431,7 +431,7 @@ default(M, For:type, Default:unchecked) :<-
 	).
 
 
-find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
+find_definition(M, For:prolog_predicate, Where:[{here,tab,window}]) :->
 	"Find definition of predicate [in new window]"::
 	get(M, text_buffer, TB),
 	get(For, head, @off, Head),
@@ -439,20 +439,17 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	    ;	xref_defined(TB, Head, constraint(Line))
 	    ;   xref_defined(TB, Head, foreign(Line))
 	    )
-	->  (   NewWindow == @on
-	    ->	get(M, text_buffer, TB),
-		new(W2, emacs_frame(TB)),
-		send(W2?editor, goto_line, Line)
-	    ;	send(M, goto_line, Line)
-	    )
+	->  get(TB, open, Where, Frame),
+	    get(Frame, editor, Editor),
+	    send(Editor, goto_line, Line)
 	;   xref_defined(TB, Head, imported(File))	% imported
 	->  new(B, emacs_buffer(File)),
-	    get(B, open, NewWindow, EmacsFrame),
+	    get(B, open, Where, EmacsFrame),
 	    get(EmacsFrame, mode, Mode),
 	    send(Mode, instance_of, emacs_prolog_mode),
 	    send(Mode, find_local_definition, For)
 	;   get(For, source, SourceLocation) 		% From Prolog DB
-	->  send(@emacs, goto_source_location, SourceLocation, NewWindow)
+	->  send(@emacs, goto_source_location, SourceLocation, Where)
 	;   send(For, has_property, foreign)
 	->  send(M, report, warning,
 		 'Predicate is defined in a foreign language')
@@ -823,7 +820,7 @@ alternate_syntax(pce_class,
 		 pce_expansion:pop_compile_operators).
 
 :- dynamic
-	syntax_error/1.
+	last_syntax_error/1.
 
 check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	"Check clause, returning the end of it"::
@@ -882,7 +879,7 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 %		produce information about comments.
 
 read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
-	retractall(syntax_error(_)),
+	retractall(last_syntax_error(_)),
 	alternate_syntax(_Name, Setup, Restore),
 	findall(Op, xref_op(TB, Op), Ops),
 	push_operators(Ops),
@@ -893,11 +890,11 @@ read_term_from_stream(TB, Fd, Start, T, Error, S, P, C) :-
 	pop_operators,
 	(   Error == none
 	->  true
-	;   assert(syntax_error(Error)),
+	;   assert(last_syntax_error(Error)),
 	    fail
 	), !.
 read_term_from_stream(_, _, _, _, Error, _, _, _) :-
-	setof(E, retract(syntax_error(E)), Es),
+	setof(E, retract(last_syntax_error(E)), Es),
 	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),

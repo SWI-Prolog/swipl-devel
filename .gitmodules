@@ -13,3 +13,9 @@
 [submodule "packages/space"]
 	path = packages/space
 	url = ../space.git
+[submodule "bench"]
+	path = bench
+	url = ../bench.git
+[submodule "packages/utf8proc"]
+	path = packages/utf8proc
+	url = ../utf8proc.git

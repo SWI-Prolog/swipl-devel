@@ -24,9 +24,6 @@ PCE/Prolog.
 \end{quote}
 \vfil
 \vfil
-\begin{quote}
-Copyright \copyright\ 1991 Jan Wielemaker
-\end{quote}
 \end{titlepage}
 
 \pagestyle{esprit}
@@ -34,7 +31,7 @@ Copyright \copyright\ 1991 Jan Wielemaker
 \newcommand{\bottomright}{\mbox{}}
 
 \tableofcontents
-	
+
 \chapter{Introduction}
 
 One of the aims of writing PceDraw is to provide users of PCE who have
@@ -49,16 +46,16 @@ documentation consists of:
 
 \begin{itemize}
     \tick{Programming in PCE/Prolog \cite{PCE:Prolog}}
-This document is an introduction to programming in PCE/Prolog.  It 
+This document is an introduction to programming in PCE/Prolog.  It
 provides the background material to understand the other
-documentation. 
+documentation.
     \tick{PCE-4 Functional Overview \cite{PCE:overview}}
 This document provides an overview of the functionality provided by PCE.
 It may be used to find relevant PCE material to satisfy a particular
 functionality in your program.
     \tick{PCE-4 User Defined Classes Manual \cite{PCE:udc}}
 This document describes the definition of PCE classes from Prolog.  PceDraw
-is implemented as a set of user-defined classes.  
+is implemented as a set of user-defined classes.
     \tick{The online PCE Reference Manual}
 The paper documents are intended to provide an overview of the
 functionality and architecture of PCE.  The online manual provides
@@ -455,7 +452,7 @@ allows for the management of a sequence of button-events, starting
 with a mouse-down and ending with the corresponding mouse-up.  PCE
 defines several standard gestures.  The file gesture.pl creates
 subclasses to implement the specific user-interface needed by
-PceDraw. 
+PceDraw.
 
 \chapter{The Sources}				\label{sec:sources}
 
@@ -483,7 +480,7 @@ files.
 	are linked to the shapes to process user events.
     \tick{menu.pl}
 	Defines the menu at the right of the drawing area and
-	the (prototype) icons displayed on them. 
+	the (prototype) icons displayed on them.
     \tick{attribute.pl}
 	Defines the attribute editor  that can be  used to modify  the
 	attributes of graphical objects.
@@ -578,7 +575,7 @@ invoked by the PCE vitual machine (VM) operation new() that creates
 an instance.  Messages and predicates that only support the
 initialisation method (if it is very complicated; long
 initialisation methods can often be found for dialog windows) are
-defined right below the method. 
+defined right below the method.
     \tick{Unlink method}
 The unlink method is invoked from the PCE VM operation that
 destroyes an instance.  It is normally declared right after the
@@ -632,7 +629,7 @@ initialise(\F{Self}, ...\F{Arg}:\F{Type}...) :->
         \F{CheckArguments},
         send(\F{Self}, send_super, initialise, ...\F{SuperInitArgs}...),
         \F{SpecificInitialisation}.
-        
+
 unlink(\F{Self}) :->
         "\F{Documentation}"::
         \F{SpecificUnlink},
@@ -740,7 +737,7 @@ explicit.
 
 \begin{itemize}
     \item Do not use too many obligatory arguments.  If possible try
-	  to limit the number of obligatory arguments to 1 or 2.  
+	  to limit the number of obligatory arguments to 1 or 2.
 	  `Name' or similar arguments in general come first.  `Values'
 	  (e.g. `dialog_item <->selection') come second.  If there is
 	  a sensible default or the user might not want to specify the

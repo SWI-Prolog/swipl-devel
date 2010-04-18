@@ -265,7 +265,8 @@ init_state(In, Stream, Options, State) :-
 	->  true
 	;   In = stream(_)
 	->  BaseURI = []
-	;   uri_is_global(In)
+	;   uri_is_global(In),
+	    \+ is_absolute_file_name(In) 	% Avoid C:Path in Windows
 	->  uri_normalized(In, BaseURI)
 	;   uri_file_name(BaseURI, In)
 	),

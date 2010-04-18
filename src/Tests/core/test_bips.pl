@@ -154,9 +154,9 @@ test(when2,[error(instantiation_error)]) :-
 	when((_,_),1=2).
 test(when3,[error(instantiation_error)]) :-
 	when((nonvar(_),_),1=2).
-%test(when4_inf,[sto(infinite_trees), blocked(trop)]) :-
-%	C=(C,C),
-%	when(C,1=2).
+test(when4_inf,[sto(rational_trees), error(type_error(_,_))]) :-
+	C=(C,C),
+	when(C,1=2).
 test(when5_r,[true(X==2)]) :-
 	when(ground(g),X=2).
 test(when6,[error(domain_error(_,_))]) :-

@@ -34,7 +34,7 @@
 	, tty_flash/0
 	, menu/3
 	]).
-:- use_module(library(lists)).
+:- use_module(library(lists), [append/3, nth1/3]).
 
 /** <module> Terminal operations
 
@@ -113,9 +113,7 @@ tty_action(center(Text)) :- !,
 	tty_size(W, _),
 	format('~t~a~t~*|', [Text, W]).
 tty_action(back(N)) :- !,
-	between(1, N, _),
-	    put(8),
-	fail ; true.
+	forall(between(1, N, _), put_code(8)).
 tty_action(Long) :-
 	abbreviation(Long, Short), !,
 	string_action(Short).
@@ -130,10 +128,10 @@ tty_nl(default) :- !,
 	tty_nl(1).
 tty_nl(N) :-
 	tty_get_capability(ce, string, Ce),
-	between(1, N, _),
-	    tty_put(Ce, 1),
-	    nl,
-	fail ; true.
+	forall(between(1, N, _),
+	       (   tty_put(Ce, 1),
+		   nl)).
+
 
 		 /*******************************
 		 *	       MENU		*
@@ -211,8 +209,18 @@ to_text(Fmt/Args, Text) :- !,
 	format(string(Text), Fmt, Args).
 to_text(Text, Text).
 
+:- dynamic
+	menu_indent/1.
+
+menu_indent(Old, New) :-
+	(   retract(menu_indent(Old0))
+	->  Old = Old0
+	;   Old = 0
+	),
+	assert(menu_indent(New)).
+
 get_answer(List, Choice) :-
-	flag('$menu_feedback', _, 0),
+	menu_indent(_, 0),
 	get_answer(List, [], Choice).
 
 get_answer(List, Prefix, Choice) :-
@@ -279,9 +287,9 @@ common_prefix_strings(_, _, []).
 feedback(Text) :-
 	atomic(Text), !,
 	atom_length(Text, New),
-	flag('$menu_feedback', Old, New),
+	menu_indent(Old, New),
 	format('~T~a~T', [back(Old), Text, clear_line]).
 feedback(Text) :-
 	length(Text, New),
-	flag('$menu_feedback', Old, New),
+	menu_indent(Old, New),
 	format('~T~s~T', [back(Old), Text, clear_line]).

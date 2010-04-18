@@ -50,7 +50,12 @@ SWI-Prolog.h and SWI-Stream.h
 #include <config.h>
 #endif
 
-#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
+/* Disabled if dmalloc() is used because the readline library is full of
+   leaks and freeing the line returned by readline is considered an
+   error by the dmalloc library
+*/
+
+#if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H) && !defined(DMALLOC)
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -149,7 +154,8 @@ sure this is true, but is certainly covers most installations.
 
 static foreign_t
 pl_rl_add_history(term_t text)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
   static atom_t last = 0;
 
   if ( PL_get_atom_ex(text, &a) )
@@ -355,7 +361,7 @@ reentrant access is tried.
 static int
 event_hook()
 { if ( Sinput->position )
-  { intptr_t c0 = Sinput->position->charno;
+  { int64_t c0 = Sinput->position->charno;
 
     while( !input_on_fd(0) )
     { PL_dispatch(0, PL_DISPATCH_NOWAIT);
@@ -390,7 +396,8 @@ reset_readline()
 
 static ssize_t
 Sread_readline(void *handle, char *buf, size_t size)
-{ intptr_t h = (intptr_t)handle;
+{ GET_LD
+  intptr_t h = (intptr_t)handle;
   int fd = (int) h;
   int ttymode = PL_ttymode(Suser_input); /* Not so nice */
   int rval;
@@ -554,7 +561,8 @@ prolog_completion(const char *text, int start, int end)
 
 install_t
 PL_install_readline()
-{ bool old;
+{ GET_LD
+  bool old;
 
 #ifndef __WINDOWS__
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) || !isatty(0) )

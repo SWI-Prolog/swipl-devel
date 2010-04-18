@@ -52,6 +52,8 @@
 \predicatesummary{list_redefined}{0}{List locally redefined predicates}
 \end{summarylist}
 
+\input{summaries.d/csv.tex}
+
 \subsection{\pllib{lists}}
 
 \begin{summarylist}{ll}
@@ -70,6 +72,7 @@
 \predicatesummary{nth1}{3}{N-th element of a list (1-based)}
 \predicatesummary{numlist}{3}{Create list of integers in interval}
 \predicatesummary{permutation}{2}{Test/generate permutations of a list}
+\predicatesummary{prefix}{2}{Leading substring of a list}
 \predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
 \predicatesummary{select}{3}{Select element of a list}
 \predicatesummary{selectchk}{3}{Semi-deterministic selection from a list}
@@ -181,14 +184,6 @@ This library is only available on Windows systems.
 
 \begin{summarylist}{ll}
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}
-\end{summarylist}
-
-\subsection{\pllib{clp/clp_distinct}}
-
-\begin{summarylist}{ll}
-\predicatesummary{all_distinct}{1}{Demand distinct values}
-\predicatesummary{vars_in}{2}{Declare domain of variable as set}
-\predicatesummary{vars_in}{3}{Declare domain of variable as interval}
 \end{summarylist}
 
 \subsection{\pllib{clp/clpfd}}

@@ -352,15 +352,19 @@ unifyTime(term_t t, time_t time)
 }
 
 
-static void
+static int
 add_option(term_t options, functor_t f, atom_t val)
 { GET_LD
-  term_t head = PL_new_term_ref();
+  term_t head;
 
-  PL_unify_list(options, head, options);
-  PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val);
+  if ( (head=PL_new_term_ref()) &&
+       PL_unify_list(options, head, options) &&
+       PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val) )
+  { PL_reset_term_refs(head);
+    return TRUE;
+  }
 
-  PL_reset_term_refs(head);
+  return FALSE;
 }
 
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
@@ -373,29 +377,36 @@ PL_get_file_name(term_t n, char **namep, int flags)
   char ospath[MAXPATHLEN];
 
   if ( flags & PL_FILE_SEARCH )
-  { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
-    term_t av = PL_new_term_refs(3);
-    term_t options = PL_copy_term_ref(av+2);
-    int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
-					   : PL_Q_PASS_EXCEPTION);
+  { fid_t fid;
 
-    PL_put_term(av+0, n);
+    if ( (fid = PL_open_foreign_frame()) )
+    { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
+      term_t av = PL_new_term_refs(3);
+      term_t options = PL_copy_term_ref(av+2);
+      int rc = TRUE;
+      int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
+					     : PL_Q_PASS_EXCEPTION);
 
-    if ( flags & PL_FILE_EXIST )
-      add_option(options, FUNCTOR_access1, ATOM_exist);
-    if ( flags & PL_FILE_READ )
-      add_option(options, FUNCTOR_access1, ATOM_read);
-    if ( flags & PL_FILE_WRITE )
-      add_option(options, FUNCTOR_access1, ATOM_write);
-    if ( flags & PL_FILE_EXECUTE )
-      add_option(options, FUNCTOR_access1, ATOM_execute);
+      PL_put_term(av+0, n);
 
-    PL_unify_nil(options);
+      if ( rc && flags & PL_FILE_EXIST )
+	rc = add_option(options, FUNCTOR_access1, ATOM_exist);
+      if ( rc && flags & PL_FILE_READ )
+	rc = add_option(options, FUNCTOR_access1, ATOM_read);
+      if ( rc && flags & PL_FILE_WRITE )
+	rc = add_option(options, FUNCTOR_access1, ATOM_write);
+      if ( rc && flags & PL_FILE_EXECUTE )
+	rc = add_option(options, FUNCTOR_access1, ATOM_execute);
 
-    if ( !PL_call_predicate(NULL, cflags, pred, av) )
-      return FALSE;
+      if ( rc ) rc = PL_unify_nil(options);
+      if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
+      if ( rc ) rc = PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
 
-    return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
+      PL_discard_foreign_frame(fid);
+      return rc;
+    }
+
+    return FALSE;
   }
 
   if ( flags & PL_FILE_NOERRORS )
@@ -422,7 +433,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
       op = ATOM_execute;
 
     if ( op )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_file, op, n);
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION, op, ATOM_file, n);
 
     if ( (flags & PL_FILE_EXIST) && !AccessFile(name, ACCESS_EXIST) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
@@ -637,8 +648,50 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
   if ( !PL_get_chars(base, &n, CVT_ALL) )
     return PL_error("tmp_file", 2, NULL, ERR_TYPE, ATOM_atom, base);
 
-  return PL_unify_atom(name, TemporaryFile(n));
+  return PL_unify_atom(name, TemporaryFile(n, NULL));
 }
+
+/** tmp_file_stream(+Mode, -File, -Stream)
+*/
+
+static
+PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
+{ PRED_LD
+  atom_t fn;
+  int fd;
+  IOENC enc;
+  atom_t encoding;
+  const char *mode;
+
+  if ( !PL_get_atom_ex(A1, &encoding) )
+    return FALSE;
+  if ( (enc = atom_to_encoding(encoding)) == ENC_UNKNOWN )
+  { if ( encoding == ATOM_binary )
+    { enc = ENC_OCTET;
+      mode = "wb";
+    } else
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, A1);
+    }
+  } else
+  { mode = "w";
+  }
+
+  if ( (fn=TemporaryFile("", &fd)) )
+  { IOSTREAM *s;
+
+    if ( !PL_unify_atom(A2, fn) )
+    { close(fd);
+      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2);
+    }
+
+    s = Sfdopen(fd, mode);
+    s->encoding = enc;
+    return PL_unify_stream(A3, s);
+  } else
+  { return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_temporary_files);
+  }
+}
+
 
 
 		 /*******************************
@@ -648,7 +701,13 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
 
 static
 PRED_IMPL("delete_file", 1, delete_file, 0)
-{ char *n;
+{ PRED_LD
+  char *n;
+  atom_t aname;
+
+  if ( PL_get_atom(A1, &aname) &&
+       DeleteTemporaryFile(aname) )
+    return TRUE;
 
   if ( !PL_get_file_name(A1, &n, 0) )
     return FALSE;
@@ -657,7 +716,7 @@ PRED_IMPL("delete_file", 1, delete_file, 0)
     return TRUE;
 
   return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_delete, ATOM_file, A1);
+		  ATOM_delete, ATOM_file, A1);
 }
 
 
@@ -936,6 +995,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
+  PRED_DEF("tmp_file_stream", 3, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)
   PRED_DEF("make_directory", 1, make_directory, 0)

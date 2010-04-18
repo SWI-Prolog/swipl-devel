@@ -170,11 +170,12 @@ typedef struct
 
 static
 PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
-{ GET_LD
+{ PRED_LD
   between_state *state;
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
+  int rc = TRUE;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -238,7 +239,10 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
       { state = CTX_PTR;
 
 	ar_add_ui(&state->low, 1);
-	PL_unify_number(n, &state->low);
+	if ( !PL_unify_number(n, &state->low) )
+	{ rc = FALSE;
+	  goto cleanup;
+	}
 	if ( !state->hinf &&
 	     cmpNumbers(&state->low, &state->high) == 0 )
 	  goto cleanup;
@@ -252,7 +256,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	freeHeap(state, sizeof(*state));
       }
     default:;
-      succeed;
+      return rc;
   }
 }
 
@@ -619,11 +623,13 @@ static int
 prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 { Definition def = getProcDefinition(f->proc);
   int arity = def->functor->arity;
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av);
+  if ( !(fid=PL_open_foreign_frame()) ||
+       !(qid=PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av)) )
+    return FALSE;
 
   if ( PL_next_solution(qid) )
   { rval = valueExpression(av+arity-1, r PASS_LD);
@@ -640,15 +646,17 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 
 #ifdef O_LIMIT_DEPTH
       if ( depth_reached > depth_limit )
-	rval = FALSE;
-      else
+      { rval = FALSE;
+      } else
 #endif
-      { term_t goal = PL_new_term_ref();
-	PL_cons_functor_v(goal, def->functor->functor, av);
+      { term_t goal;
 
-	rval = PL_error(NULL, 0,
-			"Aritmetic function must succeed or throw exception",
-			ERR_FAILED, goal);
+	rval = ( (goal = PL_new_term_ref()) &&
+		 PL_cons_functor_v(goal, def->functor->functor, av) &&
+		 PL_error(NULL, 0,
+			  "Aritmetic function must succeed or throw exception",
+			  ERR_FAILED, goal)
+	       );
       }
     }
 
@@ -762,27 +770,35 @@ eval_expression(term_t t, Number r, int recursion ARG_LD)
 
 #if O_PROLOG_FUNCTIONS
   if ( f->proc )
-  { int rval, n, arity = arityFunctor(functor);
-    fid_t fid = PL_open_foreign_frame();
-    term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
+  { fid_t fid;
 
-    for(n=0; n<arity; n++)
-    { number n1;
+    if ( (fid=PL_open_foreign_frame()) )
+    { int rval, n, arity = arityFunctor(functor);
+      term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
 
-      _PL_get_arg(n+1, t, h0+n);
-      if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
-      { _PL_put_number(h0+n, &n1);
-	clearNumber(&n1);
-      } else
-      { PL_close_foreign_frame(fid);
-	fail;
+      if ( !h0 )
+	return FALSE;
+
+      for(n=0; n<arity; n++)
+      { number n1;
+
+	_PL_get_arg(n+1, t, h0+n);
+	if ( eval_expression(h0+n, &n1, recursion+1 PASS_LD) )
+	{ _PL_put_number(h0+n, &n1);
+	  clearNumber(&n1);
+	} else
+	{ PL_close_foreign_frame(fid);
+	  fail;
+	}
       }
+
+      rval = prologFunction(f, h0, r PASS_LD);
+      PL_close_foreign_frame(fid);
+
+      return rval;
     }
 
-    rval = prologFunction(f, h0, r PASS_LD);
-    PL_close_foreign_frame(fid);
-
-    return rval;
+    return FALSE;
   }
 #endif
 
@@ -1357,7 +1373,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
 	if ( (msb/sizeof(char)) > (uint64_t)limitStack(global) )
+	{ mpz_clear(r->value.mpz);
 	  return (int)outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	}
 #endif /*O_GMP_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
       } else
@@ -2268,7 +2286,7 @@ ar_lsb(Number n1, Number r)
 
 
 static int
-popcount64(int64_t i)
+my_popcount64(int64_t i)		/* my_: avoid NetBSD name conflict */
 { int c;
   size_t j;
   int64_t m = LL(1);
@@ -2292,7 +2310,7 @@ ar_popcount(Number n1, Number r)
       if (  n1->value.i < 0 )
 	return notLessThanZero("popcount", 1, n1);
 
-      r->value.i = popcount64(n1->value.i);
+      r->value.i = my_popcount64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
@@ -3074,12 +3092,14 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
   tmp = PL_new_term_ref();
   mx = (int)entriesBuffer(function_array, ArithFunction);
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
   for( ; i<mx; i++ )
   { ArithFunction f = FunctionFromIndex(i);
 
-    PL_put_functor(tmp, f->functor);
-    if ( f->proc &&
+    if ( PL_put_functor(tmp, f->functor) &&
+	 f->proc &&
 	 PL_unify_term(A1,
 		       PL_FUNCTOR, FUNCTOR_colon2,
 		         PL_ATOM, f->module->name,
@@ -3089,6 +3109,9 @@ PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 	succeed;
       ForeignRedoInt(i);
     }
+
+    if ( exception_term )
+      return FALSE;
 
     PL_rewind_foreign_frame(fid);
   }
@@ -3128,7 +3151,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_sign1,		ar_sign),
 
   ADD(FUNCTOR_and2,		ar_conjunct),
-  ADD(FUNCTOR_or2,		ar_disjunct),
+  ADD(FUNCTOR_bitor2,		ar_disjunct),
   ADD(FUNCTOR_rshift2,		ar_shift_right),
   ADD(FUNCTOR_lshift2,		ar_shift_left),
   ADD(FUNCTOR_xor2,		ar_xor),

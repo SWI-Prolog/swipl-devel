@@ -86,7 +86,10 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
 { GET_LD
   term_t h = PL_new_term_ref();
   term_t l = PL_copy_term_ref(A2);
-  fid_t fid = PL_open_foreign_frame();
+  fid_t fid;
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
 
   for(;;)
   { if ( !PL_unify_list(l, h, l) )
@@ -310,11 +313,13 @@ will be.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end)
+prolog_list_to_sort_list(term_t t, int remove_dups, int key,
+			 list *lp, Word *end)
 { GET_LD
   Word l, tail;
   list p;
-  intptr_t len, minfree;
+  intptr_t len;
+  int rc;
 
   l = valTermRef(t);
   len = skip_list(l, &tail PASS_LD);
@@ -326,24 +331,16 @@ prolog_list_to_sort_list(term_t t, int remove_dups, int key, list *lp, Word *end
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, t);
   }
-  minfree = sizeof(word)*len*3;
 
-#ifdef O_SHIFT_STACKS
-  if ( roomStack(global) < minfree )
-  { if ( !growStacks(NULL, NULL, NULL, 0, minfree, 0) )
-      fail;
+  if ( !hasGlobalSpace(len*3) )
+  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+    l = valTermRef(t);			/* may be shifted */
+    deRef(l);
   }
-#else
-  if ( minfree > spaceStack(global) )
-    garbageCollect(NULL, NULL);
-  requireStack(global, minfree);
-#endif
 
   p = (list)gTop;
   *lp = p;
-
-  l = valTermRef(t);			/* may be shifted */
-  deRef(l);
 
   while(len-- > 0)
   { p->item.term = HeadList(l);

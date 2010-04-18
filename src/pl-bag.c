@@ -86,7 +86,7 @@ PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
     return FALSE;
 
   r = compileTermToHeap(A2, R_NOLOCK);
-  pushSegStack(&bag->answers, &r);
+  pushRecordSegStack(&bag->answers, r);
   bag->gsize += r->gsize;
   bag->solutions++;
 
@@ -108,43 +108,37 @@ freeBag(findall_bag *bag ARG_LD)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that we much lock  L_AGC,  as   otherwise  AGC  may  get in between
-popSegStack and copyRecordToGlobal(). Alternatively  we   could  make an
-interface that gets the top of the stack, processed it and then pops it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static
 PRED_IMPL("$collect_findall_bag", 3, collect_findall_bag, 0)
 { PRED_LD
   findall_bag *bag;
-  Record r;
+  Record *rp;
   term_t list = PL_copy_term_ref(A3);
   term_t answer = PL_new_term_ref();
+  size_t space;
+  int rc;
 
   if ( !get_bag(A1, &bag PASS_LD) )
     return FALSE;
+  space = bag->gsize + bag->solutions*3;
+  assert(bag->solutions == bag->answers.count);
 
-  if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-  { garbageCollect(NULL, NULL);
-
-    if ( bag->gsize + bag->solutions*3 > spaceStack(global)/sizeof(word) )
-      return outOfStack(&LD->stacks.global, STACK_OVERFLOW_RAISE);
+  if ( !hasGlobalSpace(space) )
+  { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
   }
 
-  PL_LOCK(L_AGC);
-  while(popSegStack(&bag->answers, &r))
-  { copyRecordToGlobal(answer, r PASS_LD);
+  while ( (rp=topOfSegStack(&bag->answers)) )
+  { Record r = *rp;
+    copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
     PL_cons_list(list, answer, list);
+    PL_LOCK(L_AGC);			/* needed for markAtomsAnswers() */
+    popTopOfSegStack(&bag->answers);
+    PL_UNLOCK(L_AGC);
 
     freeRecord(r);
   }
-
-  assert(LD->bags.bags == bag);
-  LD->bags.bags = bag->parent;
-  PL_UNLOCK(L_AGC);
-
-  freeBag(bag PASS_LD);
+  assert(bag->answers.count == 0);
 
   return PL_unify(A2, list);
 }
@@ -156,20 +150,29 @@ PRED_IMPL("$destroy_findall_bag", 1, destroy_findall_bag, 0)
   findall_bag *bag;
 
   if ( PL_get_pointer(A1, (void**)&bag) && bag->magic == FINDALL_MAGIC )
-  { Record r;
+  { Record *rp;
 
-    while(popSegStack(&bag->answers, &r))
+    while ( (rp=topOfSegStack(&bag->answers)) )
+    { Record r = *rp;
+
+      PL_LOCK(L_AGC);
+      popTopOfSegStack(&bag->answers);
+      PL_UNLOCK(L_AGC);
+
       freeRecord(r);
+    }
 
-    PL_LOCK(L_AGC);
     assert(LD->bags.bags == bag);
+    PL_LOCK(L_AGC);
     LD->bags.bags = bag->parent;
     PL_UNLOCK(L_AGC);
 
     freeBag(bag PASS_LD);
+    succeed;
   }
 
-  succeed;
+  assert(0);
+  fail;
 }
 
 

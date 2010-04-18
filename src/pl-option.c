@@ -48,7 +48,8 @@ typedef union
 bool
 scan_options(term_t options, int flags, atom_t optype,
 	     const opt_spec *specs, ...)
-{ va_list args;
+{ GET_LD
+  va_list args;
   const opt_spec *s;
   optvalue values[MAXOPTIONS];
   term_t list = PL_copy_term_ref(options);
@@ -71,13 +72,13 @@ scan_options(term_t options, int flags, atom_t optype,
 
     if ( PL_get_name_arity(head, &name, &arity) )
     { if ( name == ATOM_equals && arity == 2 )
-      { PL_get_arg(1, head, tmp);
+      { _PL_get_arg(1, head, tmp);
 
 	if ( !PL_get_atom(tmp, &name) )
 	  goto itemerror;
-	PL_get_arg(2, head, val);
+	_PL_get_arg(2, head, val);
       } else if ( arity == 1 )
-      { PL_get_arg(1, head, val);
+      { _PL_get_arg(1, head, val);
       } else if ( arity == 0 )
 	PL_put_atom(val, ATOM_true);
     } else if ( PL_is_variable(head) )

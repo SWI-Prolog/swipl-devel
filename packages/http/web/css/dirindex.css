@@ -1,0 +1,24 @@
+/* CSS for SWI-Prolog HTTPD directory indices
+*/
+
+table.dirindex th.name
+{ text-align: left;
+}
+
+table.dirindex tr.dirindex_header
+{ background-color: #b0ffb0;
+}
+
+table.dirindex tr.odd
+{ background-color: #d0d0d0;
+}
+
+table.dirindex th.modified, th.size
+{ text-align: right;
+}
+
+table.dirindex td.modified, td.size
+{ text-align: right;
+  padding-left: 10px;
+  font-family: monospace;
+}

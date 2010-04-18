@@ -40,6 +40,7 @@
 	    getrand/1,			% -State
 	    setrand/1			% +State
 	  ]).
+:- use_module(library(pairs)).
 
 :- use_foreign_library(foreign(random)).
 
@@ -67,11 +68,17 @@ translation of a C-version for YAP based on the orginal source.
 %
 %	@see setrand/1, getrand/1.
 
-%%	setrand(+State:state(A,B,C)) is det.
-%%	getrand(+State:state(A,B,C)) is det.
+%%	setrand(+State:rand(A,B,C)) is det.
+%%	getrand(+State:rand(A,B,C)) is det.
 %
 %	Query/set the state of the  random  library.   A,  B  and  C are
-%	integers in the range 1..30,000.
+%	integers in the range 1..30,000. The initial state is predefined
+%	and can be extracted using getrand/1:
+%
+%	    ==
+%	    ?- getrand(X).
+%	    X = rand(27314, 9213, 17773).
+%	    ==
 %
 %	@see random/1.
 
@@ -84,9 +91,9 @@ translation of a C-version for YAP based on the orginal source.
 %%	random(+L:int, +U:int, -R:int) is det.
 %%	random(+L:float, +U:float, -R:float) is det.
 %
-%	Binds R to a random integer in [L,U).  When L and U are integers
-%	(note that U will *never* be generated), or to a random floating
-%	number in [L,U) otherwise.
+%	Binds R to a random  number  in  [L,U).   If  L  and  U are both
+%	integers, R is an integer, Otherwise, R  is a float. Note that U
+%	will *never* be generated.
 %
 %	@bug	The state is only 48-bits.  This is insufficient for
 %		generating uniformely distributed integers in a very
@@ -137,7 +144,7 @@ randset(K, N, Si, So) :-
 randseq(K, N, S) :-
 	randseq(K, N, L, []),
 	keysort(L, R),
-	strip_keys(R, S).
+	pairs_values(R, S).
 
 randseq(0, _, S, S) :- !.
 randseq(K, N, [Y-N|Si], So) :-
@@ -150,11 +157,6 @@ randseq(K, N, [Y-N|Si], So) :-
 randseq(K, N, Si, So) :-
 	M is N-1,
 	randseq(K, M, Si, So).
-
-
-strip_keys([], []) :- !.
-strip_keys([_-K|L], [K|S]) :-
-	strip_keys(L, S).
 
 
 

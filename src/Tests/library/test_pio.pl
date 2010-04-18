@@ -102,11 +102,14 @@ test_pe(N, BF, Enc) :-
 test_pe(N, BF, Enc, Tmp) :-
 	max_char(Enc, MaxChar),
 	random_list(N, MaxChar, List),
+	test_list(List, BF, Enc, Tmp).
+
+test_list(List, BF, Enc, Tmp) :-
 	save_list(Tmp, List, Enc),
-	open(Tmp, read, In, [encoding(Enc)]),
+	open(Tmp, read, In, [encoding(Enc), bom(false)]),
 	set_stream(In, buffer_size(BF)),
 	stream_to_lazy_list(In, Lazy),
-	(   Lazy = List
+	(   List = Lazy
 	->  close(In)
 	;   format('List: ~w~n', [List]),
 	    (	last(Lazy, _)
@@ -123,6 +126,17 @@ test_pe(N, BF, Enc, Tmp) :-
 	    ),
 	    fail
 	).
+
+:- if(fail).
+% Keep around to get a better indication of the error location
+cmp_lists([], [], _).
+cmp_lists([H|T1], [H|T2], C0) :- !,
+	C1 is C0+1,
+	cmp_lists(T1, T2, C1).
+cmp_lists(L1, L2, C) :-
+	format('~NCommon: ~d~nLeft: ~w~nRight: ~w~n', [C, L1, L2]).
+:- endif.
+
 
 max_char(ascii, 127).
 max_char(octet, 255).

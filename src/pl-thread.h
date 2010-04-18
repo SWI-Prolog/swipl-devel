@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,12 @@
 #include <synch.h>
 #endif
 
-#define MAX_THREADS 100			/* for now */
+#ifndef __WINDOWS__
+#define SIG_FORALL SIGUSR1
+#define SIG_RESUME SIG_FORALL		/* these can be shared */
+
+#define SIG_ALERT  SIGUSR2
+#endif
 
 typedef enum
 { LDATA_IDLE = 0,
@@ -56,10 +61,9 @@ typedef struct
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  uintptr_t	    local_size;		/* Stack sizes */
-  uintptr_t	    global_size;
-  uintptr_t	    trail_size;
-  uintptr_t	    argument_size;
+  size_t	    local_size;		/* Stack sizes */
+  size_t	    global_size;
+  size_t	    trail_size;
   int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
@@ -121,10 +125,9 @@ typedef struct pl_mutex
 #define PL_THREAD_FAILED	4	/* finished with No */
 #define PL_THREAD_EXCEPTION	5	/* finished with exception */
 #define PL_THREAD_NOMEM		6	/* couldn't start due no-memory */
-#define PL_THREAD_CANCELED	7	/* canceled */
-#define	PL_THREAD_CREATED	8	/* just created */
-#define	PL_THREAD_SUSPENDED	9	/* suspended */
-#define PL_THREAD_RESUMING     10	/* about to resume */
+#define	PL_THREAD_CREATED	7	/* just created */
+#define	PL_THREAD_SUSPENDED	8	/* suspended */
+#define PL_THREAD_RESUMING      9	/* about to resume */
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
@@ -140,7 +143,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TABLE		9
 #define L_BREAK	       10
 #define L_FILE	       11
-#define PLFLAG_L      12
+#define L_PLFLAG      12
 #define L_OP	       13
 #define L_INIT	       14
 #define L_TERM	       15
@@ -292,7 +295,7 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern void		exitPrologThreads(void);
+extern int		exitPrologThreads(void);
 extern bool		aliasThread(int tid, atom_t name);
 extern word		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
@@ -365,60 +368,5 @@ void		markAtomsThreads(void);
 		 *******************************/
 
 extern void		initPrologThreads(void);
-
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
-#define allocHeap(n)		allocHeap__LD(n PASS_LD)
-#define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
-#define freeRecord(r)		freeRecord__LD(r PASS_LD)
-#define makeNum(n)		makeNum__LD(n PASS_LD)
-#define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
-#define valFloat(w)		valFloat__LD(w PASS_LD)
-#define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
-#define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
-#define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
-#define linkVal(p)		linkVal__LD(p PASS_LD)
-#define put_number(n)		put_number__LD(n PASS_LD)
-#define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
-#ifdef O_SHIFT_STACKS
-#define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
-#else
-#define allocGlobalNoShift(n)	allocGlobal__LD(n PASS_LD)
-#endif
-#define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
-
-#define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
-#define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)
-#define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
-#define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
-#define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
-#define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
-#define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
-#define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
-#define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
-#define PL_put_integer(t, i) 	PL_put_integer__LD(t, i PASS_LD)
-#define PL_put_intptr(t, i) 	PL_put_intptr__LD(t, i PASS_LD)
-#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t PASS_LD)
-#define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
-#define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
-#define PL_get_int64(t, i)	PL_get_int64__LD(t, i PASS_LD)
-#define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
-#define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
-#define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)
-#define PL_unify_atom(t, a)	PL_unify_atom__LD(t, a PASS_LD)
-#define PL_unify_pointer(t, p)	PL_unify_pointer__LD(t, p PASS_LD)
-#define PL_is_variable(t)	PL_is_variable__LD(t PASS_LD)
-#define PL_is_atomic(t)		PL_is_atomic__LD(t PASS_LD)
-#define PL_get_list(l, h, t)	PL_get_list__LD(l, h, t PASS_LD)
-#define PL_is_atom(t)		PL_is_atom__LD(t PASS_LD)
-#define PL_unify_list(l, h, t)	PL_unify_list__LD(l, h, t PASS_LD)
-#define PL_cons_list(l, h, t)	PL_cons_list__LD(l, h, t PASS_LD)
-#define PL_get_text(l, t, f)	PL_get_text__LD(l, t, f PASS_LD)
-#define PL_unify_int64_ex(t, i)	PL_unify_int64_ex__LD(t, i PASS_LD)
-#define PL_pending(sig)	        PL_pending__LD(sig PASS_LD)
-#define PL_clearsig(sig)        PL_clearsig__LD(sig PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

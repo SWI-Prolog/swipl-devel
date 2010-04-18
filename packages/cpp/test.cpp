@@ -1,14 +1,15 @@
 /*  $Id$
 
     Part of SWI-Prolog
-    Designed and implemented by Jan Wielemaker
 
-    Copyright (C) 1999 SWI, University of Amsterdam. All rights reserved.
+    This example code is in the public domain
 */
 
 #define PROLOG_MODULE "user"
 #include "SWI-cpp.h"
-#include <iostream.h>
+#include <iostream>
+#include <math.h>
+using namespace std;
 
 PREDICATE(hello, 1)
 { cout << "Hello " << (char *)A1 << endl;
@@ -128,3 +129,23 @@ PREDICATE(call_atom, 1)
   }
 }
 
+
+/* The purpose of this predicate is mostly to show that
+   resource errors are dealt with appropriately: with large
+   enough argument, this will overflow the stacks.  The Prolog
+   error is mapped to a C++ exception and back again when
+   control is passed back to Prolog.  So this is just fine:
+
+   ?- square_roots(1000000000, L)
+   ERROR: Out of global stack
+*/
+
+PREDICATE(square_roots, 2)
+{ int end = A1;
+  PlTail list(A2);
+
+  for(int i=0; i<end; i++)
+    list.append(sqrt((double)i));
+
+  return list.close();
+}

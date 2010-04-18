@@ -575,19 +575,22 @@ to the RDF parser and implemented by process_rdf/3.  In addition, the
 following options are provided:
 
 \begin{description}
-    \termitem{db}{+DB}
-Load the data in the given named graph.  The default is the URL of the
-source.
-
     \termitem{cache}{+Bool}
 If \const{true} (default), try to use cached data or create a cache
 file.  Otherwise load the source.
+
+    \termitem{db}{+Graph}
+Deprecated.  New code should use the \term{graph}{+Graph} option.
 
     \termitem{format}{+Format}
 Specify the source format explicitly.  Normally this is deduced from
 the filename extension or the mime-type.  The core library understands
 the formats \const{xml} (RDF/XML) and \const{triples} (internal quick
 load and cache format).
+
+    \termitem{graph}{+Graph}
+Load the data in the given named graph.  The default is the URL of the
+source.
 
     \termitem{if}{+Condition}
 Condition under which to load the source. \arg{Condition} is the same as

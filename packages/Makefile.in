@@ -10,11 +10,9 @@
 # libXPM and libjpeg to compile.  This   variable  is normally overruled
 # from the configure script.  MUST be on one line
 
-PKG=	clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib
+PKG=	clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib
 
-# Define additional config options.  If you wish to build the multi-threaded
-# version of SWI-Prolog and pl-mt to the same install-base, you must provide
-# --enable-mt here.
+# Define additional config options shared by all packages here.
 
 CNFG=@CNFG@
 
@@ -28,9 +26,9 @@ MAKE=@MAKE@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
-PL=@PL@@RT@
+PL=@PL@
 PLVERSION=@PLVERSION@
-PLBASE=@libdir@/@PL@-$(PLVERSION)
+PLBASE=@libdir@/@PLLIBDIR@
 PKGDOC=$(PLBASE)/doc/packages
 PLLIBS=@LIBS@
 PLARCH=@ARCH@
@@ -39,12 +37,12 @@ PLDIR=$(shell dirname `pwd`)
 PLINCL=$(PLDIR)/include
 LIBDIR=$(PLDIR)/lib/$(PLARCH)
 PLSHARED=@PLSHARED@
+PLTHREADS=@PLTHREADS@
 INSTALL=@INSTALL@
 INSTALL_DATA=@INSTALL_DATA@
 SO=@SO_EXT@
 BUILDDIR=@BUILDDIR@
 PLLIB=$(PLBASE)/library
-DESTDIR=
 
 # These programs should use prolog from the (already installed) $(bindir)
 
@@ -62,6 +60,7 @@ PATH=$(bindir):$(shell echo $$PATH)
 CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
+	    PLTHREADS="$(PLSHARED)" \
 	    PLSOEXT="$(SO)" BUILDDIR="$(BUILDDIR)" \
 	    LD_LIBRARY_PATH="$(LIBDIR):$$LD_LIBRARY_PATH" \
 	    MAKE="$(MAKE)" \
@@ -85,8 +84,8 @@ install::
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
@@ -94,7 +93,7 @@ rpm-install: html-install
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
+	./swipl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
 
 pdf-install::
 	for p in $(PKG); do \
@@ -113,8 +112,8 @@ ln-install::
         done
 	@echo "*** Forcing update of library index ***"
 	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
-	./pl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
+	./swipl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
+	./swipl.sh --home="$(DESTDIR)$(PLBASE)" -f none -g make -t halt
 
 configure::
 	@echo "**********************"
@@ -138,7 +137,7 @@ distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
-	rm -f pl.sh plld.sh
+	rm -f swipl.sh swipl-ld.sh
 	rm -f Makefile configure
 
 clean::

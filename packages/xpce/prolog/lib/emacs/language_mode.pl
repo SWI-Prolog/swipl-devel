@@ -561,12 +561,12 @@ expand_tag(M, Tag:[name], TheTag:name) :<-
 	).
 
 
-find_tag(M, Tag:emacs_tag, Editor:editor) :<-
+find_tag(M, Tag:emacs_tag, Where:[{here,tab,window}], Editor:editor) :<-
 	"Jump to indicated tag entry"::
 	(   auto_call(emacs_tag(Tag, File, Line)),
 	    new(B, emacs_buffer(File)),
-	    send(B, open),
-	    get(B?editors, head, Editor),
+	    get(B, open, Where, Frame),
+	    get(Frame, editor, Editor),
 	    send(Editor, line_number, Line),
 	    adjust_tag(Editor, Tag)
 	;   send(M, report, warning, 'Cannot find tag %s', Tag),
@@ -576,7 +576,7 @@ find_tag(M, Tag:emacs_tag, Editor:editor) :<-
 
 find_tag(M, Tag:emacs_tag) :->
 	"Jump to entry from TAG table"::
-	ignore(get(M, find_tag, Tag, _)). % avoid delegation to menu-bar
+	ignore(get(M, find_tag, Tag, tab, _)). % avoid delegation to menu-bar
 
 
 adjust_tag(E, Tag) :-

@@ -60,15 +60,17 @@ io_error(term_t stream, const char *action, int eno)
   if ( !msg )
     msg = "Unknown error";
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_io_error2,
-		        PL_CHARS, action,
-		        PL_TERM, stream,
-		    PL_FUNCTOR, FUNCTOR_context2,
-		      PL_VARIABLE,
-		      PL_CHARS, msg);
+  if ( PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_io_error2,
+		         PL_CHARS, action,
+		         PL_TERM, stream,
+		       PL_FUNCTOR, FUNCTOR_context2,
+		         PL_VARIABLE,
+		         PL_CHARS, msg) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -76,13 +78,14 @@ static int
 type_error(term_t actual, const char *expected)
 { term_t ex = PL_new_term_ref();
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+			   PL_FUNCTOR, FUNCTOR_type_error2,
+			     PL_CHARS, expected,
+			     PL_TERM, actual,
+			   PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -90,12 +93,13 @@ static int
 resource_error(const char *what)
 { term_t ex = PL_new_term_ref();
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_CHARS, what,
-		      PL_VARIABLE);
+  if ( PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+			   PL_FUNCTOR, FUNCTOR_resource_error1,
+			     PL_CHARS, what,
+			   PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -236,19 +240,19 @@ static foreign_t
 pl_write_atom(term_t stream, term_t atom)
 { IOSTREAM *s;
   char *str;
-  unsigned int len;
+  size_t len;
 
   if ( get_stream_handle_ex(stream, &s) &&
        PL_get_nchars(atom, &len, &str, CVT_ATOMIC|CVT_EXCEPTION) )
   { const unsigned char *q = (const unsigned char *)str;
     IOENC oenc = s->encoding;
-    unsigned int i;
+    size_t i;
 
     if ( !write_int32(s, len, stream) )
       return FALSE;
 
     s->encoding = ENC_UTF8;
-    for(q=str,i=0; i<len; i++, q++)
+    for(i=0; i<len; i++, q++)
     { if ( Sputcode(*q, s) < 0 )
       { s->encoding = oenc;
 	return io_error(stream, "write", errno);

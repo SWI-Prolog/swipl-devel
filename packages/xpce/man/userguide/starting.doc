@@ -32,7 +32,7 @@ The host-language is SWI-Prolog version 5.0.0
 For HELP on prolog, please type help. or apropos(topic).
          on xpce, please type manpce.
 
-1 ?- 
+1 ?-
 \end{code}
 
 \index{version}%
@@ -43,9 +43,9 @@ version is 5.1 and the patch-level is 0.
 On MS-Windows, Prolog programs are normally loaded and started by
 double-clicking a \fileext{.pl} file. \product{}, being a normal
 library, does not change this. Note that \product{} can only be used
-fully with the GUI-based \program{plwin.exe}. Using the the
-console-based \program{plcon.exe} program only the non-GUI functionality
-of \product{} is accessible.
+fully with the GUI-based \program{swipl-win.exe}. Using the the
+console-based \program{swipl.exe} program only the non-GUI
+functionality of \product{} is accessible.
 
 
 \end{xpceonly}
@@ -77,7 +77,7 @@ Licensed to University of Amsterdam
 Quintus ProWindows 3.1 (XPCE 4.9.3, April 1997) Interface
 Copyright (C) 1997, AIIL / University of Amsterdam. All Rights Reserved.
 
-| ?- 
+| ?-
 \end{code}
 \end{pwonly}
 
@@ -149,18 +149,18 @@ x-value of 10 and and y-value of 20. The dialog is assigned the label
 	      other languages they may be called {\em instance
 	      variables} or fields.}
 The example defines the `label'. All the other slots are set to
-the default value described in the class definition. 
+the default value described in the class definition.
 
 
 \subsection{Modifying object state: send}
 
 The state of an object may be manipulated using the predicate
-send/2 (send(+Receiver, +Selector(...Args...))).  The first 
+send/2 (send(+Receiver, +Selector(...Args...))).  The first
 argument of this predicate is an object reference.  The second
 is a term.  The principal functor of which is the name of the
 method to invoke ({\em selector}) and the arguments are arguments
 to the operation.
-    
+
 \begin{code}
 3 ?- send(@772024, x(15)).
 4 ?- send(@demo, append(text_item(name))).
@@ -495,7 +495,7 @@ Line 8 appends a second button to the dialog window.  The dialog window
 will automatically align this one to the right of the first.  The action
 sends a message directly to another \product{} object and ->destroys the
 frame object if the quit button is pressed.  Note that this will erase
-all UI objects associated with the frame.  The garbage collector 
+all UI objects associated with the frame.  The garbage collector
 destroys all related objects.
 
 Line 10 fills the \class{browser} with the files from the specified
@@ -522,7 +522,7 @@ The view/2 callback predicate opens an instance of \class{view},
 a window specialised in text-editing, gets the file-object for the given
 filename F. and loads the file into the view. The method `view ->load'
 expects an instance of class \class{file}. Again, the type-conversion
-will deal with this. 
+will deal with this.
 
 
 \section{Summary}

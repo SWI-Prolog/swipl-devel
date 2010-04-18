@@ -78,9 +78,9 @@ static atom_t ATOM_conn_timeout;	/* "conn_timeout" */
 
 static functor_t FUNCTOR_tipc_socket1;	/* $tipc_socket(Id) */
 static functor_t FUNCTOR_port_id;
-static functor_t FUNCTOR_name;
-static functor_t FUNCTOR_name_seq;
-static functor_t FUNCTOR_mcast;
+static functor_t FUNCTOR_name3;
+static functor_t FUNCTOR_name_seq3;
+static functor_t FUNCTOR_mcast3;
 
 
 		 /*******************************
@@ -95,7 +95,7 @@ tipc_get_socket(term_t Socket, int *id)
   if ( PL_is_functor(Socket, FUNCTOR_tipc_socket1) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, Socket, a);
+    _PL_get_arg(1, Socket, a);
     if ( PL_get_integer(a, id) )
       return TRUE;
   }
@@ -138,7 +138,7 @@ get_uint(term_t term, unsigned *value)
 	return FALSE;
 #endif
 
-  *value = (unsigned) v0 & 0xffffffff; 
+  *value = (unsigned) v0 & 0xffffffff;
 
   return TRUE;
 }
@@ -154,11 +154,11 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
   {
     unsigned ref, node;
 
-    PL_get_arg(1, tipc, a);
+    _PL_get_arg(1, tipc, a);
     if ( !get_uint(a, &ref) )
       break;
 
-    PL_get_arg(2, tipc, a);
+    _PL_get_arg(2, tipc, a);
     if ( !get_uint(a, &node) )
       break;
 
@@ -169,19 +169,19 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
     return TRUE;
   }
 
-  if ( PL_is_functor(tipc, FUNCTOR_name) )
+  if ( PL_is_functor(tipc, FUNCTOR_name3) )
   {
     unsigned arg1, arg2, arg3;
 
-    PL_get_arg(1, tipc, a);
+    _PL_get_arg(1, tipc, a);
     if ( !get_uint(a, &arg1) )
       break;
 
-    PL_get_arg(2, tipc, a);
+    _PL_get_arg(2, tipc, a);
     if ( !get_uint(a, &arg2) )
       break;
 
-    PL_get_arg(3, tipc, a);
+    _PL_get_arg(3, tipc, a);
     if ( !get_uint(a, &arg3) )
       break;
 
@@ -194,20 +194,20 @@ nbio_get_tipc(term_t tipc, struct sockaddr_tipc *sockaddr)
 
   }
 
-  if ( PL_is_functor(tipc, FUNCTOR_name_seq) ||
-       PL_is_functor(tipc, FUNCTOR_mcast))
+  if ( PL_is_functor(tipc, FUNCTOR_name_seq3) ||
+       PL_is_functor(tipc, FUNCTOR_mcast3))
   {
     unsigned arg1, arg2, arg3;
 
-    PL_get_arg(1, tipc, a);
+    _PL_get_arg(1, tipc, a);
     if ( !get_uint(a, &arg1) )
       break;
 
-    PL_get_arg(2, tipc, a);
+    _PL_get_arg(2, tipc, a);
     if ( !get_uint(a, &arg2) )
       break;
 
-    PL_get_arg(3, tipc, a);
+    _PL_get_arg(3, tipc, a);
     if ( !get_uint(a, &arg3) )
       break;
 
@@ -379,7 +379,7 @@ pl_tipc_setopt(term_t Socket, term_t opt)
       } else /*if ( arity == 1 )*/
       { term_t a = PL_new_term_ref();
 
-	PL_get_arg(1, opt, a);
+	_PL_get_arg(1, opt, a);
 	if ( !PL_get_bool(a, &enable) )
 	  return pl_error(NULL, 0, NULL, ERR_DOMAIN, a, "boolean");
       }
@@ -487,7 +487,7 @@ pl_tipc_receive(term_t Socket, term_t Data, term_t From, term_t options)
 	if ( name == ATOM_as && arity == 1)
 	{ atom_t a;
 
-          PL_get_arg(1, head, arg);
+	  _PL_get_arg(1, head, arg);
 
 	  if ( !PL_get_atom(arg, &a) )
 	    return pl_error(NULL, 0, NULL, ERR_TYPE, head, "atom");
@@ -708,7 +708,7 @@ pl_tipc_subscribe(term_t Socket, term_t Address,
   if(sockaddr.addrtype != TIPC_ADDR_NAMESEQ)
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, Address, "name_seq/3");
 
-  if( !get_uint(timeout, &time)) 
+  if( !get_uint(timeout, &time))
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, timeout, "integer");
 
   if( !get_uint(filter, &filt))
@@ -768,9 +768,9 @@ install_tipc()
 
   FUNCTOR_tipc_socket1 = PL_new_functor(PL_new_atom("$tipc_socket"), 1);
   FUNCTOR_port_id      = PL_new_functor(PL_new_atom("port_id"), 2);
-  FUNCTOR_name	       = PL_new_functor(PL_new_atom("name"), 3);
-  FUNCTOR_name_seq     = PL_new_functor(PL_new_atom("name_seq"), 3);
-  FUNCTOR_mcast	       = PL_new_functor(PL_new_atom("mcast"), 3);
+  FUNCTOR_name3	       = PL_new_functor(PL_new_atom("name"), 3);
+  FUNCTOR_name_seq3    = PL_new_functor(PL_new_atom("name_seq"), 3);
+  FUNCTOR_mcast3       = PL_new_functor(PL_new_atom("mcast"), 3);
 
   PL_register_foreign("tipc_socket",          2, tipc_socket,         0);
   PL_register_foreign("tipc_close_socket",    1, tipc_close_socket,   0);

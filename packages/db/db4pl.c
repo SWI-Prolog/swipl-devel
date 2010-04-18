@@ -1154,20 +1154,20 @@ get_server(term_t options, server_info *info)
       if ( arity >= 1 )			/* server(host) */
       { term_t a = PL_new_term_ref();
 
-	PL_get_arg(1, h, a);
+	_PL_get_arg(1, h, a);
 	if ( !PL_get_atom_chars(a, &info->host) )
 	  return pl_error(ERR_TYPE, "atom", a);
       }
       if ( arity == 2 )			/* server(host, options) */
       { term_t a = PL_new_term_ref();
 
-	PL_get_arg(2, h, l);
+	_PL_get_arg(2, h, l);
 	while( PL_get_list(l, h, l) )
 	{ atom_t name;
 	  int arity;
 
 	  if ( PL_get_name_arity(h, &name, &arity) && arity == 1 )
-	  { PL_get_arg(1, h, a);
+	  { _PL_get_arg(1, h, a);
 
 	    if ( name == ATOM_server_timeout )
 	    { if ( !get_long_ex(a, &info->sv_timeout) )
@@ -1247,7 +1247,7 @@ pl_db_init(term_t option_list)
     if ( arity == 1 )
     { long v;
 
-      PL_get_arg(1, head, a);
+      _PL_get_arg(1, head, a);
 
       if ( name == ATOM_mp_mmapsize )	/* mp_mmapsize */
       { if ( !get_size_ex(a, &v) )
@@ -1304,7 +1304,7 @@ pl_db_init(term_t option_list)
 
 	  if ( !PL_get_name_arity(h, &nm, &ar) || ar !=	1 )
 	    return pl_error(ERR_TYPE, "db_config", h);
-	  PL_get_arg(1, h, a2);
+	  _PL_get_arg(1, h, a2);
 	  if ( !get_chars_ex(a2, &v) )
 	    return FALSE;
 	  n = PL_atom_chars(nm);

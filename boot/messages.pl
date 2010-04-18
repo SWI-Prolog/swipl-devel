@@ -134,7 +134,7 @@ iso_message(permission_error(Action, Type, Object)) -->
 iso_message(evaluation_error(Which)) -->
 	[ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
-	[ 'Undefined procedure: ~p'-[Proc] ],
+	[ 'Undefined procedure: ~q'-[Proc] ],
 	{ dwim_predicates(Proc, Dwims) },
 	(   {Dwims \== []}
 	->  [nl, '    However, there are definitions for:', nl],
@@ -188,17 +188,20 @@ dwim_predicates(Name/_Arity, Dwims) :-
 	findall(Dwim, dwim_predicate(user:Name, Dwim), Dwims).
 
 dwim_message([]) --> [].
-dwim_message([user:Head|T]) --> !,
-	{functor(Head, Name, Arity)},
-	[ '        ~w/~d'-[Name, Arity], nl ],
+dwim_message([M:Head|T]) -->
+	{ hidden_module(M), !,
+	  functor(Head, Name, Arity)
+	},
+	[ '        ~q'-[Name/Arity], nl ],
 	dwim_message(T).
 dwim_message([Module:Head|T]) --> !,
-	{functor(Head, Name, Arity)},
-	[ '        ~w:~w/~d'-[Module, Name, Arity], nl],
+	{ functor(Head, Name, Arity)
+	},
+	[ '        ~q'-[Module:Name/Arity], nl],
 	dwim_message(T).
 dwim_message([Head|T]) -->
 	{functor(Head, Name, Arity)},
-	[ '        ~w/~d'-[Name, Arity], nl],
+	[ '        ~q'-[Name/Arity], nl],
 	dwim_message(T).
 
 
@@ -398,7 +401,7 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
-	[ 'Undefined procedure: ~p'-[Pred], nl,
+	[ 'Undefined procedure: ~q'-[Pred], nl,
 	  '    However, there are definitions for:', nl
 	],
 	dwim_message(Alternatives).
@@ -415,6 +418,12 @@ prolog_message(minus_in_identifier) -->
 	].
 prolog_message(qlf(removed_after_error(File))) -->
 	[ 'Removed incomplete QLF file ~w'-[File] ].
+prolog_message(redefine_module(Module, OldFile, File)) -->
+	[ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
+	  'Wipe and reload from ~w? '-[File], flush
+	].
+prolog_message(redefine_module_reply) -->
+	[ 'Please answer y(es), n(o) or a(bort)' ].
 
 
 used_search([]) -->
@@ -534,7 +543,7 @@ prolog_message(threads) -->
 prolog_message(threads) -->
 	[].
 prolog_message(copyright) -->
-	[ 'Copyright (c) 1990-2009 University of Amsterdam.', nl,
+	[ 'Copyright (c) 1990-2010 University of Amsterdam, VU Amsterdam', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
 	  'and you are welcome to redistribute it under certain conditions.', nl,
 	  'Please visit http://www.swi-prolog.org for details.'

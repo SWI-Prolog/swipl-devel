@@ -17,7 +17,6 @@ PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -30,7 +29,7 @@ NETLIBS=@NETLIBS@
 CRYPTLIBS=@CRYPTLIBS@
 MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a
 
-PUBLICPL=       pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=clib
@@ -148,7 +147,7 @@ uninstall::
 ################################################################
 
 check:		check-socket check-memfile check-unit check-process \
-		check-read check-uri
+		check-read check-uri check-cgi
 
 torture:	torture-socket
 
@@ -166,6 +165,9 @@ check-unit::
 
 check-uri::
 		$(PL) -q -f test_uri.pl -g true -t test_uri
+
+check-cgi::
+		$(PL) -q -f test_cgi.pl -g true -t test_cgi
 
 check-process::
 		$(PL) -q -f test_process.pl -g true -t test_process

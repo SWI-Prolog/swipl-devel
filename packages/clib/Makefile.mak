@@ -14,7 +14,7 @@ PKGDLL=socket
 
 SOCKOBJ=	socket.obj nonblockio.obj error.obj
 CGIOBJ=		error.obj form.obj cgi.obj
-CRYPTOBJ=	error.obj crypt.obj md5.obj md5passwd.obj
+CRYPTOBJ=	error.obj crypt.obj md5.obj md5passwd.obj bsd-crypt.obj
 MEMOBJ=		error.obj memfile.obj
 MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib

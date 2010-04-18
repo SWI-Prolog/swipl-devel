@@ -267,7 +267,7 @@ cgi_property(term_t cgi, term_t prop)
     goto out;
   }
 
-  PL_get_arg(1, prop, arg);
+  _PL_get_arg(1, prop, arg);
   if ( name == ATOM_request )
   { if ( ctx->request )
       rc = unify_record(arg, ctx->request);
@@ -360,7 +360,7 @@ cgi_set(term_t cgi, term_t prop)
     goto out;
   }
 
-  PL_get_arg(1, prop, arg);
+  _PL_get_arg(1, prop, arg);
   if ( name == ATOM_request )
   { rc = set_term(&ctx->request, arg);
   } else if ( name == ATOM_header )
@@ -670,7 +670,7 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
     if ( name == ATOM_request )
     { request = PL_record(arg);
     } else

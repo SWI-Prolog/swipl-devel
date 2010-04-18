@@ -40,7 +40,6 @@
 	    nospyall/0,
 	    debugging/0,
 	    rational/3,
-	    atomic_list_concat/2,
 	    atom_prefix/2,
 	    dwim_match/2,
 	    source_file/1,
@@ -53,7 +52,6 @@
 	    clause_property/2,
 	    recorda/2,
 	    recordz/2,
-	    recorded/2,
 	    current_module/1,
 	    module_property/2,
 	    module/1,
@@ -66,6 +64,8 @@
 	    open_shared_object/3,
 	    format/1,
 	    garbage_collect/0,
+	    set_prolog_stack/2,
+	    prolog_stack_property/2,
 	    arithmetic_function/1,
 	    absolute_file_name/2,
 	    require/1,
@@ -392,6 +392,13 @@ prolog_load_context(dialect, D) :-
 	current_prolog_flag(emulated_dialect, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
+prolog_load_context(script, Bool) :-
+	(   '$toplevel':loaded_init_file(script, Path),
+	    source_location(Path, _)
+	->  Bool = true
+	;   Bool = false
+	).
+
 
 		 /*******************************
 		 *	      STREAMS		*
@@ -474,6 +481,7 @@ current_predicate(Name, Module:Head) :-
 	'$defined_predicate'(DefModule:Head), !.
 current_predicate(Name, Module:Head) :-
 	current_prolog_flag(autoload, true),
+	\+ current_prolog_flag(Module:unknown, fail),
 	functor(Head, Name, Arity),
 	'$find_library'(Module, Name, Arity, _LoadModule, _Library), !.
 
@@ -500,6 +508,17 @@ predicate_property(Pred, Property) :-
 	\+ current_predicate(_, Pred),
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
+predicate_property(_:Head, Property) :-
+	Property == autoload, !,
+	current_prolog_flag(autoload, true),
+	(   callable(Head)
+	->  functor(Head, Name, Arity),
+	    (	'$find_library'(_, Name, Arity, _, _)
+	    ->	true
+	    )
+	;   '$find_library'(_, Name, Arity, _, _),
+	    functor(Head, Name, Arity)
+	).
 predicate_property(Pred, Property) :-
 	Pred = M:_,
 	M == system, !,				% do not autoload into system
@@ -588,14 +607,6 @@ clause_property(Clause, Property) :-
 	'$get_clause_attribute'(Clause, fact, true).
 '$clause_property'(erased, Clause) :-
 	'$get_clause_attribute'(Clause, erased, true).
-
-
-recorda(Key, Value) :-
-	recorda(Key, Value, _).
-recordz(Key, Value) :-
-	recordz(Key, Value, _).
-recorded(Key, Value) :-
-	recorded(Key, Value, _).
 
 
 		 /*******************************
@@ -788,7 +799,8 @@ shell :-
 		 *******************************/
 
 :- meta_predicate
-	on_signal(+, :, :).
+	on_signal(+, :, :),
+	current_signal(?, ?, :).
 
 on_signal(Signal, Old, New) :-
 	atom(Signal), !,
@@ -865,23 +877,58 @@ absolute_file_name(Name, Abs) :-
 	atomic(Name), !,
 	'$absolute_file_name'(Name, Abs).
 absolute_file_name(Term, Abs) :-
-	'$chk_file'(Term, [''], [access(read)], File), !,
+	'$chk_file'(Term, [''], [access(read)], true, File), !,
 	'$absolute_file_name'(File, Abs).
 absolute_file_name(Term, Abs) :-
-	'$chk_file'(Term, [''], [], File), !,
+	'$chk_file'(Term, [''], [], true, File), !,
 	'$absolute_file_name'(File, Abs).
 
 
 		/********************************
-		*         MISCELLENEOUS         *
+		*	 MEMORY MANAGEMENT      *
 		*********************************/
 
-%	Invoke the garbage collector.  The argument is the debugging level
-%	to use during garbage collection.  This only works if the system
-%	is compiled with the -DODEBUG cpp flag.  Only to simplify maintenance.
+%%	garbage_collect is det.
+%
+%	Invoke the garbage collector.  The   argument  of the underlying
+%	'$garbage_collect'/1  is  the  debugging  level  to  use  during
+%	garbage collection. This only works if   the  system is compiled
+%	with the -DODEBUG cpp flag. Only to simplify maintenance.
 
 garbage_collect :-
 	'$garbage_collect'(0).
+
+%%	set_prolog_stack(+Name, +Option) is det.
+%
+%	Set a parameter for one of the Prolog stacks.
+
+set_prolog_stack(Stack, Option) :-
+	Option =.. [Name,Value0],
+	Value is Value0,
+	'$set_prolog_stack'(Stack, Name, _Old, Value).
+
+%%	prolog_stack_property(?Stack, ?Property) is nondet.
+%
+%	Examine stack properties.
+
+prolog_stack_property(Stack, Property) :-
+	stack_property(P),
+	stack_name(Stack),
+	Property =.. [P,Value],
+	'$set_prolog_stack'(Stack, P, Value, Value).
+
+stack_name(local).
+stack_name(global).
+stack_name(trail).
+
+stack_property(limit).
+stack_property(spare).
+stack_property(min_free).
+
+
+		 /*******************************
+		 *	     ARITHMETIC		*
+		 *******************************/
 
 %%	arithmetic_function(:Spec)
 %

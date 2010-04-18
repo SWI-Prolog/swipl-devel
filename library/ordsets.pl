@@ -46,7 +46,12 @@
 	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
 					% Non-Quintus extensions
 	    ord_empty/1,		% ?Set
-	    ord_memberchk/2		% +Element, +Set
+	    ord_memberchk/2,		% +Element, +Set,
+	    ord_symdiff/3,              % +Set1, +Set2, ?Diff
+					% SICSTus extensions
+	    ord_member/2,		% ?Element, +Set
+	    ord_seteq/2,		% +Set1, +Set2
+	    ord_intersection/2		% +PowerSet, -Intersection
 	  ]).
 :- use_module(library(oset)).
 :- set_prolog_flag(generate_debug_info, false).
@@ -94,6 +99,17 @@ is_ordset3([H2|T], H) :-
 ord_empty([]).
 
 
+%%	ord_seteq(+Set1, +Set2) is semidet.
+%
+%	True if Set1 and Set2  have  the   same  elements.  As  both are
+%	canonical sorted lists, this is the same as ==/2.
+%
+%	@compat sicstus
+
+ord_seteq(Set1, Set2) :-
+	Set1 == Set2.
+
+
 %%	list_to_ord_set(+List, -OrdSet)
 %
 %	Transform a list into an ordered set.  This is the same as
@@ -137,6 +153,29 @@ ord_disjoint(Set1, Set2) :-
 
 ord_intersect(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).
+
+
+%%	ord_intersection(+PowerSet, -Intersection)
+%
+%	True if Intersection is an ordered set holding all elements
+%	common to all sets in PowerSet.
+%
+%	@compat sicstus
+
+ord_intersection(PowerSet, Intersection) :-
+	key_by_length(PowerSet, Pairs),
+	keysort(Pairs, [_-S|Sorted]),
+	l_int(Sorted, S, Intersection).
+
+key_by_length([], []).
+key_by_length([H|T0], [L-H|T]) :-
+	length(H, L),
+	key_by_length(T0, T).
+
+l_int([], S, S).
+l_int([_-H|T], S0, S) :-
+	ord_intersection(S0, H, S1),
+	l_int(T, S1, S).
 
 
 %%	ord_intersection(+Set1, +Set2, -Intersection)
@@ -190,10 +229,26 @@ ord_del_element(Set, Element, NewSet) :-
 %	Check membership. This could stop comparing   we have passed the
 %	right value, saving scanning  (on  average)   half  the  list if
 %	Element is not in Set. Probably the built-in memberchk/2 will be
-%	faster.  Not part of Quintus.
+%	faster.
+%
+%	@compat Not part of original Quintus library
 
 ord_memberchk(Element, Set) :-
 	memberchk(Element, Set).
+
+%%	ord_member(?Element, +Set)
+%
+%	True if Element is a member of   Set.  Stops if further elements
+%	are behind Element in the standard order of terms.
+%
+%	@compat sicstus
+
+ord_member(Element, [H|T]) :-
+	(   Element = H
+	->  true
+	;   Element @>= H,
+	    ord_member(Element, T)
+	).
 
 
 %%	ord_subset(+Sub, +Super)
@@ -281,4 +336,25 @@ ord_union_2([], H2, T2, [H2|T2], [H2|T2]).
 ord_union_2([H|T], H2, T2, Union, New) :-
 	compare(Order, H, H2),
 	ord_union(Order, H, T, H2, T2, Union, New).
+
+
+%%      ord_symdiff(+Set1, +Set2, ?Difference)
+%
+%       is true when Difference is the symmetric difference of Set1 and Set2.
+
+ord_symdiff([], Set2, Set2).
+ord_symdiff([H1|T1], Set2, Difference) :-
+	ord_symdiff(Set2, H1, T1, Difference).
+
+ord_symdiff([], H1, T1, [H1|T1]).
+ord_symdiff([H2|T2], H1, T1, Difference) :-
+	compare(Order, H1, H2),
+	ord_symdiff(Order, H1, T1, H2, T2, Difference).
+
+ord_symdiff(<, H1, Set1, H2, T2, [H1|Difference]) :-
+	ord_symdiff(Set1, H2, T2, Difference).
+ord_symdiff(=, _, T1, _, T2, Difference) :-
+	ord_symdiff(T1, T2, Difference).
+ord_symdiff(>, H1, T1, H2, Set2, [H2|Difference]) :-
+	ord_symdiff(Set2, H1, T1, Difference).
 

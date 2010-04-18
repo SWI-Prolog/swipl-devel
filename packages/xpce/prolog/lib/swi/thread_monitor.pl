@@ -58,22 +58,26 @@ resource(profiling, image, image('16x16/profiler.xpm')).
 :- pce_begin_class(thread_statistics, object,
 		   "Record historic status of a thread").
 
-variable(local,	 int, get, "Local-stack usage").
-variable(global, int, get, "Global-stack usage").
-variable(trail,	 int, get, "Trail-stack usage").
-variable(cpu,	 int, get, "%CPU (0..100)").
+variable(local,	 int := 0, get, "Local-stack usage").
+variable(global, int := 0, get, "Global-stack usage").
+variable(trail,	 int := 0, get, "Trail-stack usage").
+variable(cpu,	 int := 0, get, "%CPU (0..100)").
 
 initialise(TS, Thread:any, CPU:int) :->
 	"Create for victim"::
 	send_super(TS, initialise),
+	(   catch(thread_stack_sizes(Thread, Local, Global, Trail), _, fail)
+	->  send(TS, slot, local,  Local),
+	    send(TS, slot, global, Global),
+	    send(TS, slot, trail,  Trail)
+	;   true
+	),
+	send(TS, slot, cpu, CPU).
+
+thread_stack_sizes(Thread, Local, Global, Trail) :-
 	thread_statistics(Thread, localused, Local),
 	thread_statistics(Thread, globalused, Global),
-	thread_statistics(Thread, trailused, Trail),
-
-	send(TS, slot, local,  Local),
-	send(TS, slot, global, Global),
-	send(TS, slot, trail,  Trail),
-	send(TS, slot, cpu,    CPU).
+	thread_statistics(Thread, trailused, Trail).
 
 :- pce_end_class(thread_statistics).
 
@@ -124,7 +128,12 @@ update(TS, Status:prolog, CpuH:[int]) :->
 
 cpu_percentage(TS, CPU:'0..100') :<-
 	get(TS, key, TID),
-	thread_statistics(TID, cputime, Now),
+	(   catch(thread_statistics(TID, cputime, Now), _, fail)
+	->  true
+	;   get(TS, lastcpu, Now), Now \== @nil
+	->  true
+	;   Now = 0.0
+	),
 	get_time(WallNow),
 	(   get(TS, lastcpu, Last), Last \== @nil,
 	    get(TS, lastwall, LastWall),

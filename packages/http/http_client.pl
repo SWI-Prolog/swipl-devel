@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -32,7 +32,9 @@
 
 :- module(http_client,
 	  [ http_get/3,			% +URL, -Reply, +Options
+	    http_delete/3,		% +URL, -Reply, +Options
 	    http_post/4,		% +URL, +In, -Reply, +Options
+	    http_put/4,			% +URL, +In, -Reply, +Options
 	    http_read_data/3,		% +Header, -Data, +Options
 	    http_disconnect/1		% +What
 	  ]).
@@ -44,6 +46,7 @@
 :- use_module(library(memfile)).
 :- use_module(library(lists)).
 :- use_module(library(error)).
+:- use_module(library(option)).
 :- use_module(dcg_basics).
 
 :- multifile
@@ -59,7 +62,7 @@
 %	streams that connect to the server.
 %
 %	@param Scheme is the URL schema (=http= or =https=)
-%	@param Address is a term Host:Port as used by tcp_connect/2.
+%	@param Address is a term Host:Port as used by tcp_connect/4.
 
 %%	close_connection(+Scheme, +Address, +In, +Out) is semidet.
 %
@@ -97,12 +100,11 @@ do_connect(Address, Protocol, In, Out, Options) :-
 	(   open_connection(Protocol, Address, In, Out)
 	->  true
 	;   tcp_socket(Socket),
-	    catch(tcp_connect(Socket, Address),
+	    catch(tcp_connect(Socket, Address, In, Out),
 		  E,
 		  (   tcp_close_socket(Socket),
 		      throw(E)
-		  )),
-	    tcp_open_socket(Socket, In, Out)
+		  ))
 	),
 	debug(http(client), '\tok ~p --> ~p', [In, Out]),
 	(   memberchk(timeout(Timeout), Options)
@@ -172,6 +174,16 @@ protocol(_, http).
 		 *	        GET		*
 		 *******************************/
 
+%%	http_delete(+URL, -Data, +Options) is det.
+%
+%	Execute a DELETE method on the server.
+%
+%	@tbd Properly map the 201, 202 and 204 replies.
+
+http_delete(URL, Data, Options) :-
+	http_get(URL, Data, [method('DELETE')|Options]).
+
+
 %%	http_get(+URL, -Data, +Options) is det.
 %
 %	Get data from an HTTP server.
@@ -181,6 +193,7 @@ http_get(URL, Data, Options) :-
 	parse_url(URL, Parts),
         http_get(Parts, Data, Options).
 http_get(Parts, Data, Options) :-
+	must_be(list, Options),
 	memberchk(connection(Connection), Options),
 	downcase_atom(Connection, 'keep-alive'), !,
 	between(0, 1, _),
@@ -204,7 +217,8 @@ http_do_get(Parts, Data, Options) :-
 	    Options1 = Options
 	),
 	memberchk(host(Host), Parts),
-	http_write_header(Write, 'GET', Location, Host,
+	option(method(Method), Options, 'GET'),
+	http_write_header(Write, Method, Location, Host,
 			  Options1, ReplyOptions),
 	write(Write, '\r\n'),
 	flush_output(Write),
@@ -282,7 +296,6 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 		     Connection: ~w\r\n', [Agent, Connection]),
 	x_headers(Options3, Out, RestOptions).
 
-
 %%	x_headers(+Options, +Out, -RestOptions) is det.
 %
 %	Pass additional request options.  For example:
@@ -292,15 +305,25 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
 
-x_headers(Options0, Out, Options) :-
-	select(request_header(Name=Value), Options0, Options1), !,
-	format(Out, '~w: ~w\r\n', [Name, Value]),
-	x_headers(Options1, Out, Options).
-x_headers(Options0, Out, Options) :-
-	select(proxy_authorization(ProxyAuthorization), Options0, Options1), !,
-	proxy_auth_header(ProxyAuthorization, Out),
-	x_headers(Options1, Out, Options).
-x_headers(Options, _, Options).
+x_headers([], _, []).
+x_headers([H|T0], Out, Options) :-
+	x_header(H, Out), !,
+	x_headers(T0, Out, Options).
+x_headers([H|T0], Out, [H|T]) :-
+	x_headers(T0, Out, T).
+
+x_header(request_header(Name=Value), Out) :-
+	format(Out, '~w: ~w\r\n', [Name, Value]).
+x_header(proxy_authorization(ProxyAuthorization), Out) :-
+	proxy_auth_header(ProxyAuthorization, Out).
+x_header(range(Spec), Out) :-
+	Spec =.. [Unit, From, To],
+	(   To == end
+	->  ToT = ''
+	;   must_be(integer, To),
+	    ToT = To
+	),
+	format(Out, 'Range: ~w=~d-~w\r\n', [Unit, From, ToT]).
 
 proxy_auth_header(basic(User, Password), Out) :- !,
 	format(codes(Codes), '~w:~w', [User, Password]),
@@ -386,6 +409,14 @@ encoding(_, octet).
 		 *	       POST		*
 		 *******************************/
 
+%%	http_put(+URL, +In, -Out, +Options)
+%
+%	Issue an HTTP PUT request.
+
+http_put(URL, In, Out, Options) :-
+	http_post(URL, In, Out, [method('PUT')|Options]).
+
+
 %%	http_post(+URL, +In, -Out, +Options)
 %
 %	Issue an HTTP POST request, In is modelled after the reply
@@ -427,7 +458,8 @@ http_do_post(Parts, In, Out, Options) :-
 	http_read_reply(Read, Out, ReplyOptions).
 
 write_post_header(Out, Location, Host, In, Options) :-
-	http_write_header(Out, 'POST', Location, Host, Options, DataOptions),
+	option(method(Method), Options, 'POST'),
+	http_write_header(Out, Method, Location, Host, Options, DataOptions),
 	http_post_data(In, Out, DataOptions),
 	flush_output(Out).
 

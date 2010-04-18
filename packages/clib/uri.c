@@ -68,42 +68,51 @@ static functor_t FUNCTOR_domain_error2;
 
 static int
 syntax_error(const char *culprit)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_syntax_error1,
-		        PL_CHARS, culprit,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_syntax_error1,
+		         PL_CHARS, culprit,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 type_error(const char *expected, term_t found)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-			PL_TERM, found,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+			 PL_TERM, found,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(const char *expected, term_t found)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-			PL_TERM, found,
-		      PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+			 PL_TERM, found,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -714,8 +723,8 @@ uri_components(term_t URI, term_t components)
     unify_range(av+3, &ranges.query);
     unify_range(av+4, &ranges.fragment);
 
-    PL_cons_functor_v(rt, FUNCTOR_uri_components5, av);
-    return PL_unify(components, rt);
+    return (PL_cons_functor_v(rt, FUNCTOR_uri_components5, av) &&
+	    PL_unify(components, rt));
   } else if ( PL_is_functor(components, FUNCTOR_uri_components5) )
   { charbuf b;
     int rc;
@@ -747,8 +756,10 @@ uri_components(term_t URI, term_t components)
     }
 					/* query */
     if ( (rc=get_text_arg(components, 4, &len, &s, TXT_EX_TEXT)) == TRUE )
-    { add_charbuf(&b, '?');
-      add_nchars_charbuf(&b, len, s);
+    { if ( len > 0 )
+      { add_charbuf(&b, '?');
+	add_nchars_charbuf(&b, len, s);
+      }
     } else if ( rc == -1 )
     { free_charbuf(&b);
       return FALSE;
@@ -850,9 +861,9 @@ unify_query_string_components(term_t list, size_t len, const pl_wchar_t *qs)
       PL_put_variable(nv+1);
       unify_decoded_atom(nv+0, &name, ESC_QNAME);
       unify_decoded_atom(nv+1, &value, ESC_QVALUE);
-      PL_cons_functor_v(eq, FUNCTOR_equal2, nv);
 
-      if ( !PL_unify_list(tail, head, tail) ||
+      if ( !PL_cons_functor_v(eq, FUNCTOR_equal2, nv) ||
+	   !PL_unify_list(tail, head, tail) ||
 	   !PL_unify(head, eq) )
 	return FALSE;
     }
@@ -911,11 +922,11 @@ uri_query_components(term_t string, term_t list)
 
       if ( PL_is_functor(head, FUNCTOR_equal2) ||
 	   PL_is_functor(head, FUNCTOR_pair2) )
-      {	PL_get_arg(1, head, nv+0);
-	PL_get_arg(2, head, nv+1);
+      {	_PL_get_arg(1, head, nv+0);
+	_PL_get_arg(2, head, nv+1);
       } else if ( PL_get_name_arity(head, &fname, &arity) && arity == 1 )
       { PL_put_atom(nv+0, fname);
-	PL_get_arg(1, head, nv+1);
+	_PL_get_arg(1, head, nv+1);
       } else
       { free_charbuf(&out);
 	return type_error("name_value", head);
@@ -1037,13 +1048,15 @@ unify_uri_authority_components(term_t components,
     long pn = wcstol(port.start, &ep, 10);
 
     if ( ep == port.end )
-      PL_put_integer(av+3, pn);
-    else
-      unify_decoded_atom(av+3, &port, ESC_PORT);
+    { if ( !PL_put_integer(av+3, pn) )
+	return FALSE;
+    } else
+    { unify_decoded_atom(av+3, &port, ESC_PORT);
+    }
   }
 
-  PL_cons_functor_v(t, FUNCTOR_uri_authority4, av);
-  return PL_unify(components, t);
+  return (PL_cons_functor_v(t, FUNCTOR_uri_authority4, av) &&
+	  PL_unify(components, t));
 }
 
 
@@ -1229,6 +1242,9 @@ static void
 free_base_cache(void *cache)
 { base_cache *base = cache;
 
+  if ( PL_query(PL_QUERY_HALTING) )
+    return;
+
   if ( base->atom )
   { PL_unregister_atom(base->atom);
     PL_free(base->text);
@@ -1271,7 +1287,8 @@ base_ranges(term_t t)
       { PL_unregister_atom(base->atom);
 	PL_free(base->text);
       }
-      PL_get_wchars(t, &len, &s, CVT_ATOM|BUF_MALLOC);
+      if ( !PL_get_wchars(t, &len, &s, CVT_ATOM|BUF_MALLOC) )
+	return NULL;
       base->atom = a;
       PL_register_atom(a);
       base->text = s;

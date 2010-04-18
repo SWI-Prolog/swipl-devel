@@ -8,6 +8,7 @@
 	test_dir/1.
 
 :- prolog_load_context(directory, Dir),
+   retractall(test_dir(_)),
    assert(test_dir(Dir)).
 
 utf8_test :-
@@ -102,12 +103,15 @@ readline(C, In, [C|T]) :-
 
 catch_messages(Goal, Messages) :-
 	nb_setval(messages, []),
-	assert((user:message_hook(Msg, _, _) :- catch_message(Msg)),
-	       Ref),
-	Goal,
-	collect_messages(Messages, Ref).
+	thread_self(Me),
+	setup_call_cleanup(assert((user:message_hook(Msg, _, _) :-
+				  	catch_message(Me, Msg)),
+				  Ref),
+			   once(Goal),
+			   collect_messages(Messages, Ref)).
 
-catch_message(Msg) :-
+catch_message(Me, Msg) :-
+	thread_self(Me), !,
 	nb_getval(messages, L0),
 	duplicate_term(Msg, Copy),
 	nb_linkval(messages, [Copy|L0]).
@@ -115,7 +119,7 @@ catch_message(Msg) :-
 collect_messages(Messages, Ref) :-
 	erase(Ref),
 	nb_getval(messages, L),
-%	nb_delete(messages),
+	nb_delete(messages),
 	reverse(L, Messages).
 
 

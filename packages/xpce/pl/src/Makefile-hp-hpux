@@ -1,8 +1,0 @@
-OPTIMIZE=
-CC=gcc -W -Wunused
-MACHINE=hp
-EXTRALIBS=
-
-LDFLAGS=        -static
-
-include ../src/Makefile

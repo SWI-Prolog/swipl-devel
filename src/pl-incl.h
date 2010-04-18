@@ -83,8 +83,6 @@ handy for it someone wants to add a data type to the system.
       Compile Var = Value in the body.
   O_PROLOG_FUNCTIONS
       Include evaluable Prolog functions into the arithmetic module.
-  O_BLOCK
-      Include support for block/3, !/1, fail/1 and exit/2 in the VM.
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -123,7 +121,6 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_IS		1
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
-#define O_BLOCK			1
 #define O_CATCHTHROW		1
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
@@ -170,14 +167,6 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #ifdef DOUBLE_ALIGNMENT
 #define JMPBUF_ALIGNMENT DOUBLE_ALIGNMENT
 #endif
-#endif
-#endif
-
-#if MMAP_STACK || HAVE_VIRTUALALLOC
-#define O_DYNAMIC_STACKS 1		/* sparse memory management */
-#else
-#ifndef O_SHIFT_STACKS
-#define O_SHIFT_STACKS 1		/* use stack-shifter */
 #endif
 #endif
 
@@ -310,6 +299,7 @@ A common basis for C keywords.
 #if __GNUC__ && !__STRICT_ANSI__
 #define HAVE_INLINE 1
 #define HAVE_VOLATILE 1
+#define HAVE___BUILTIN_EXPECT 1
 #endif
 
 #if !defined(HAVE_INLINE) && !defined(inline)
@@ -330,8 +320,12 @@ A common basis for C keywords.
 #define NORETURN
 #endif
 
-#if __STRICT_ANSI__
-#undef TAGGED_LVALUE
+#ifdef HAVE___BUILTIN_EXPECT
+#define likely(x)       __builtin_expect((x), 1)
+#define unlikely(x)     __builtin_expect((x), 0)
+#else
+#define likely(x)	(x)
+#define unlikely(x)	(x)
 #endif
 
 #if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
@@ -407,10 +401,14 @@ them.  Descriptions:
 #define BUFFER_RING_SIZE 	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
+#define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
 #define MAXSYMBOLLEN		256	/* max size of foreign symbols */
 #define MAXVARIABLES		65536	/* number of variables/clause */
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */
-#define SMALLSTACK		200 * 1024 /* GC policy */
+#define SMALLSTACK		32 * 1024 /* GC policy */
+
+#define LOCAL_MARGIN ((size_t)argFrameP((LocalFrame)NULL, MAXARITY) + \
+		      sizeof(struct choice))
 
 #define WORDBITSIZE		(8 * sizeof(word))
 #define LONGBITSIZE		(8 * sizeof(long))
@@ -636,7 +634,6 @@ typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
 typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */
 typedef struct initialise_handle * InitialiseHandle;
-typedef struct tempfile *	TempFile; 	/* pl-os.c */
 typedef struct canonical_dir *	CanonicalDir;	/* pl-os.c */
 typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData; 	/* pl-trace.c */
@@ -720,12 +717,11 @@ typedef struct
 
 #define	ALERT_SIGNAL	 0x01
 #define	ALERT_GCREQ	 0x02
-#define	ALERT_OUTOFSTACK 0x04
-#define	ALERT_PROFILE	 0x08
-#define	ALERT_EXITREQ	 0x10
-#define	ALERT_DEPTHLIMIT 0x20
-#define	ALERT_WAKEUP	 0x40
-#define ALERT_DEBUG	 0x80
+#define	ALERT_PROFILE	 0x04
+#define	ALERT_EXITREQ	 0x08
+#define	ALERT_DEPTHLIMIT 0x10
+#define	ALERT_WAKEUP	 0x20
+#define ALERT_DEBUG	 0x40
 
 
 		 /*******************************
@@ -801,6 +797,8 @@ with one operation, it turns out to be faster as well.
 #define HAS_BREAKPOINTS		(0x0004) /* Clause has breakpoints */
 #define GOAL_CLAUSE		(0x0008) /* Dummy for meta-calling */
 #define COMMIT_CLAUSE		(0x0010) /* This clause will commit */
+#define DBREF_CLAUSE		(0x0020) /* Clause has db-reference */
+#define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
 
 #define CHARESCAPE		(0x0004) /* module */
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
@@ -816,10 +814,13 @@ with one operation, it turns out to be faster as well.
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 #define ARITH_F			(0x0004) /* functor (arithmetic operator) */
 
-#define R_DIRTY			(0x0001) /* recordlist */
+#define RL_DIRTY		(0x0001) /* recordlist */
+
+#define R_ERASED		(0x0001) /* record: record is erased */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
 #define R_DUPLICATE		(0x0004) /* record: include references */
 #define R_NOLOCK		(0x0008) /* record: do not lock atoms */
+#define R_DBREF			(0x0010) /* record: has DB-reference */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -879,13 +880,13 @@ introduce a garbage collector (TBD).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define enterDefinition(def) \
-	if ( true(def, DYNAMIC) ) \
+	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  def->references++; \
 	  UNLOCKDYNDEF(def); \
 	}
 #define leaveDefinition(def) \
-	if ( true(def, DYNAMIC) ) \
+	if ( unlikely(true(def, DYNAMIC)) ) \
 	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
@@ -895,19 +896,6 @@ introduce a garbage collector (TBD).
 	  } \
 	}
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Heuristics functions to determine whether an integer reference passed to
-erase and assert/2, clause/3, etc.  really points to a clause or record.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
-#define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
-#define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-#define isClause(c)	((inCore(c) || onStack(local, (c))) && \
-			 inCore(((Clause)(c))->procedure) && \
-			 isProcedure(((Clause)(c))->procedure))
-#define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
-			 isRecordList(((RecordRef)(r))->list))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
@@ -1054,14 +1042,9 @@ struct clause
     uintptr_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  unsigned short	variables;	/* # of variables for frame */
-  unsigned short	prolog_vars;	/* # real Prolog variables */
-#ifdef O_SHIFT_STACKS
-  unsigned short	marks;		/* C_IFTHEN reserved */
-  unsigned short	line_no;	/* Source line-number */
-#else
+  unsigned int		variables;	/* # of variables for frame */
+  unsigned int		prolog_vars;	/* # real Prolog variables */
   unsigned int		line_no; 	/* Source line-number */
-#endif
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
@@ -1069,6 +1052,7 @@ struct clause
 		/* HAS_BREAKPOINTS Break-instructions in the clause */
 		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
 		/* COMMIT_CLAUSE   Clause will commit (execute !) */
+  		/* DBREF_CLAUSE    Clause has a db-reference */
   code		code_size;		/* size of ->codes */
   code		codes[1];		/* VM codes of clause */
 };
@@ -1109,13 +1093,8 @@ typedef struct
 struct mark
 { TrailEntry	trailtop;	/* top of the trail stack */
   Word		globaltop;	/* top of the global stack */
+  Word		saved_bar;	/* saved LD->mark_bar */
 };
-
-typedef struct tmp_mark
-{ TrailEntry	trailtop;	/* top of the trail stack */
-  Word		globaltop;	/* top of the global stack */
-  Word		saved_mark;	/* saved LD->mark_bar */
-} tmp_mark;
 
 struct functor
 { word		definition;	/* Tagged definition pointer */
@@ -1298,30 +1277,26 @@ typedef struct exception_frame		/* PL_throw exception environments */
 
 struct queryFrame
 { uintptr_t magic;			/* Magic code for security */
-#if O_SHIFT_STACKS
   struct				/* Interpreter registers */
   { LocalFrame  fr;
     Word	argp;
     Code	pc;
   } registers;
-#endif
 #ifdef O_LIMIT_DEPTH
-  uintptr_t saved_depth_limit;	/* saved values of these */
+  uintptr_t saved_depth_limit;		/* saved values of these */
   uintptr_t saved_depth_reached;
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
 #endif
   fid_t		foreign_frame;		/* Frame after PL_next_solution() */
-  unsigned long	flags;
+  unsigned int	flags;
   debug_type	debugSave;		/* saved debugstatus.debugging */
-  Word	       *aSave;			/* saved argument-stack */
+  unsigned int	flags_saved;		/* Saved boolean Prolog flags */
   int		solutions;		/* # of solutions produced */
+  Word	       *aSave;			/* saved argument-stack */
   Choice	saved_bfr;		/* Saved choice-point */
-  Code		saved_PC;		/* Saved program pointer */
-#ifndef LIFE_GC
-  QueryFrame	parent;			/* Only valid inside GC */
-#endif
+  QueryFrame	parent;			/* Parent queryFrame */
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
 					/* Do not put anything between */
@@ -1341,26 +1316,35 @@ struct fliFrame
   mark		mark;			/* data-stack mark */
 };
 
+#ifdef O_MAINTENANCE
+#define REC_MAGIC 27473244
+#endif
+
 struct record
 { int		size;			/* # bytes of the record */
-  int		nvars;			/* # variables in the term */
-  unsigned	gsize : 28;		/* Stack space required (words) */
-  unsigned	flags : 4;		/* Flags, holding */
-					/* ERASED */
+  unsigned      gsize;			/* Size on global stack */
+  unsigned	nvars : 27;		/* # variables in the term */
+  unsigned	flags : 5;		/* Flags, holding */
+					/* R_ERASED */
 					/* R_EXTERNAL */
 					/* R_DUPLICATE */
-					/* R_LIST */
+					/* R_NOLOCK */
+  					/* R_DBREF */
+#ifdef REC_MAGIC
+  int		magic;			/* REC_MAGIC */
+#endif
   int		references;		/* PL_duplicate_record() support */
   char 		buffer[1];		/* array holding codes */
 };
 
 struct recordList
-{ int		type;		/* RECORD_TYPE */
-  int		references;	/* choicepoints reference count */
-  word		key;		/* key of record */
-  RecordRef	firstRecord;	/* first record associated with key */
-  RecordRef	lastRecord;	/* last record associated with key */
-  unsigned int  flags;		/* R_DIRTY */
+{ int		type;			/* RECORD_TYPE */
+  int		references;		/* choicepoints reference count */
+  word		key;			/* key of record */
+  RecordRef	firstRecord;		/* first record associated with key */
+  RecordRef	lastRecord;		/* last record associated with key */
+  struct recordList *next;		/* Next recordList */
+  unsigned int  flags;			/* RL_DIRTY */
 };
 
 struct recordRef
@@ -1474,7 +1458,6 @@ struct alloc_pool
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 #define Undo(b)		do_undo(&b)
-#define TmpUndo(b)	do_undo((mark*)&b)
 
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
@@ -1493,16 +1476,18 @@ struct alloc_pool
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
 #define Mark(b)		do { (b).trailtop  = tTop; \
+			     (b).saved_bar = LD->mark_bar; \
+			     SECURE(assert((b).saved_bar >= gBase && \
+					   (b).saved_bar <= gTop)); \
 			     LD->mark_bar = (b).globaltop = gTop; \
 			   } while(0)
-
-#define TmpMark(b)	do { (b).trailtop  = tTop; \
-			     (b).saved_mark = LD->mark_bar; \
-			     LD->mark_bar = (b).globaltop = gTop; \
+#define DiscardMark(b)	do { LD->mark_bar = (LD->frozen_bar > (b).saved_bar ? \
+					     LD->frozen_bar : (b).saved_bar); \
 			   } while(0)
-
-#define EndTmpMark(b)	do { LD->mark_bar = (b).saved_mark; \
+#define NOT_A_MARK	(TrailEntry)(~(word)0)
+#define NoMark(b)	do { (b).trailtop = NOT_A_MARK; \
 			   } while(0)
+#define isRealMark(b)	((b).trailtop != NOT_A_MARK)
 
 
 		 /*******************************
@@ -1510,45 +1495,19 @@ struct alloc_pool
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Trail  an  assignment.  Note  that  -when  using  dynamic  stacks-,  the
-assignment should be made *before* calling Trail()!
-
-p is a pointer into the local or   global stack. We trail any assignment
-made in the local stack. If the current   mark is from a choice-point we
-could improve here. Some marks however are created in foreign code, both
-using PL_open_foreign_frame() and directly by   calling Mark(). It would
-be a good idea to remove the latter.
-
-Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
-value need not be trailed.
-
-Note that the local stack is always _above_ the global stack.
+Note that all trail operations demand that   the caller ensures there is
+at least one free cell on the trail-stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define Trail(p) \
-  if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
-    (tTop++)->address = p; \
-  }
-
+#define Trail(p, w) Trail__LD(p, w PASS_LD)
 					/* trail local stack pointer */
 #define LTrail(p) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
-    (tTop++)->address = p; \
-  }
-
+  (void)((tTop++)->address = p)
 					/* trail global stack pointer */
 #define GTrail(p) \
-  if ( p < LD->mark_bar ) \
-  { requireTrailStack(sizeof(struct trail_entry)); \
-    (tTop++)->address = p; \
-  }
-
-
-#define requireTrailStack(bytes) \
-  { if ( triggerStack(trail) < (ssize_t)(bytes) ) \
-      ensureRoomStack(trail, bytes); \
-  }
+  do { if ( p < LD->mark_bar ) \
+         (tTop++)->address = p; \
+     } while(0)
 
 
 		 /*******************************
@@ -1566,13 +1525,28 @@ Note that the local stack is always _above_ the global stack.
 #define consTermRef(p)	 ((Word)(p) - (Word)(lBase))
 #define valTermRef(r)	 (&((Word)(lBase))[r])
 
-#if O_SHIFT_STACKS
-#define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)
-#define RestoreLocalPtr(s, ptr) (ptr) = (void *) valTermRef(s)
-#else
-#define SaveLocalPtr(s, ptr)
-#define RestoreLocalPtr(s, ptr)
-#endif
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Temporary store/restore pointers to make them safe over GC/shift
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TMP_PTR_SIZE	(4)
+#define PushPtr(p)	do { int i = LD->tmp.top++; \
+			     assert(i<TMP_PTR_SIZE); \
+			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
+			   } while(0)
+#define PopPtr(p)	do { int i = --LD->tmp.top; \
+			     p = unRef(*valTermRef(LD->tmp.h[i])); \
+			     setVar(*valTermRef(LD->tmp.h[i])); \
+			   } while(0)
+#define PushVal(w)	do { int i = LD->tmp.top++; \
+			     assert(i<TMP_PTR_SIZE); \
+			     *valTermRef(LD->tmp.h[i]) = w; \
+			   } while(0)
+#define PopVal(w)	do { int i = --LD->tmp.top; \
+			     w = *valTermRef(LD->tmp.h[i]); \
+			     setVar(*valTermRef(LD->tmp.h[i])); \
+			   } while(0)
+
 
 #define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
 #define QidFromQuery(f)		(consTermRef(f))
@@ -1608,22 +1582,23 @@ typedef struct
 #ifdef O_PLMT
 #define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+3)
 #endif
-#ifdef O_SHIFT_STACKS
-#define SIG_LSHIFT	  (SIG_PROLOG_OFFSET+4)
-#endif
+#define SIG_FREECLAUSES	  (SIG_PROLOG_OFFSET+4)
+#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+5)
+
 
 		 /*******************************
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED	   0 		/* clause or record was erased */
-#define PLEV_DEBUGGING	   1		/* changed debugging mode */
-#define PLEV_TRACING	   2		/* changed tracing mode */
-#define PLEV_SPY	   3		/* changed spypoint */
-#define PLEV_BREAK	   4		/* a break-point was set */
-#define PLEV_NOBREAK	   5		/* a break-point was cleared */
-#define PLEV_FRAMEFINISHED 6		/* A watched frame was discarded */
-#define PL_EV_THREADFINISHED 7		/* A thread has finished */
+#define PLEV_ERASED_CLAUSE   0 		/* clause was erased */
+#define PLEV_ERASED_RECORD   1 		/* record was erased */
+#define PLEV_DEBUGGING	     2		/* changed debugging mode */
+#define PLEV_TRACING	     3		/* changed tracing mode */
+#define PLEV_SPY	     4		/* changed spypoint */
+#define PLEV_BREAK	     5		/* a break-point was set */
+#define PLEV_NOBREAK	     6		/* a break-point was cleared */
+#define PLEV_FRAMEFINISHED   7 		/* A watched frame was discarded */
+#define PL_EV_THREADFINISHED 8		/* A thread has finished */
 
 
 		/********************************
@@ -1641,22 +1616,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
-#ifdef O_SHIFT_STACKS
-#define STACK_SHIFT_EXTRA(type) \
-	  type		trigger;	/* Trigger if above this pointer */ \
-	  size_t	min_free;	/* Minimum amount of free space */ \
-	  size_t	spare;		/* Current reserved area */ \
-	  size_t	def_spare;	/* Desired reserved area */
-#else
-#define STACK_SHIFT_EXTRA(type)
-#endif
-#ifdef O_DYNAMIC_STACKS
-#define STACK_DYN_EXTRA(type) \
-	  size_t	size_min;	/* Do not shrink below this size */
-#else
-#define STACK_DYN_EXTRA(type)
-#endif
-
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
@@ -1664,11 +1623,13 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  size_t	size_limit;	/* Max size the stack can grow to */\
 	  size_t	gced_size;	/* size after last GC */	    \
 	  size_t	small;		/* Do not GC below this size */	    \
-	  STACK_SHIFT_EXTRA(type)	/* Implementation-specific fields */\
-	  STACK_DYN_EXTRA(type)		/* Implementation-specific fields */\
+	  size_t	spare;		/* Current reserved area */ 	    \
+	  size_t	def_spare;	/* Desired reserved area */	    \
+	  size_t	min_free;	/* Free left when trimming */	    \
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
+	  int	        overflow_id;	/* OVERFLOW_* */		    \
 	  const char   *name;		/* Symbolic name of the stack */    \
 	}
 
@@ -1699,14 +1660,7 @@ typedef struct
 #define aTop	(LD->stacks.argument.top)
 #define aMax	(LD->stacks.argument.max)
 
-#ifdef O_SHIFT_STACKS
 #define tSpare	(LD->stacks.trail.spare)
-#else
-#define tSpare	(0)
-#endif
-
-#define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
-#define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
 
 #define onStack(name, addr) \
 	((char *)(addr) >= (char *)LD->stacks.name.base && \
@@ -1717,17 +1671,15 @@ typedef struct
 #define onTrailArea(addr) \
 	((char *)(addr) >= (char *)tBase && \
 	 (char *)(addr) <  (char *)tMax + tSpare)
+#define onGlobalArea(addr) \
+	((char *)(addr) >= (char *)gBase && \
+	 (char *)(addr) <  (char *)lBase)
 #define usedStackP(s) ((char *)(s)->top - (char *)(s)->base)
 #define sizeStackP(s) ((char *)(s)->max - (char *)(s)->base)
 #define roomStackP(s) ((char *)(s)->max - (char *)(s)->top)
 #define spaceStackP(s) (limitStackP(s)-usedStackP(s))
 #define limitStackP(s) ((s)->size_limit)
 #define narrowStackP(s) (roomStackP(s) < (s)->minfree)
-#ifdef O_SHIFT_STACKS
-#define triggerStackP(s) ((char *)(s)->trigger - (char *)(s)->top)
-#else
-#define triggerStackP(s) roomStackP(s)
-#endif
 
 #define usedStack(name) usedStackP(&LD->stacks.name)
 #define sizeStack(name) sizeStackP(&LD->stacks.name)
@@ -1735,32 +1687,45 @@ typedef struct
 #define spaceStack(name) spaceStackP(&LD->stacks.name)
 #define limitStack(name) limitStackP(&LD->stacks.name)
 #define narrowStack(name) narrowStackP(&LD->stacks.name)
-#define triggerStack(name) triggerStackP(&LD->stacks.name)
 
 #define GROW_TRIM ((size_t)-1)
 
+#define	LOCAL_OVERFLOW	  (-1)
+#define	GLOBAL_OVERFLOW	  (-2)
+#define	TRAIL_OVERFLOW	  (-3)
+#define	ARGUMENT_OVERFLOW (-4)
+
+#define ALLOW_NOTHING	0x0
+#define ALLOW_GC	0x1
+#define ALLOW_SHIFT	0x2
+#define ALLOW_CHECKED	0x4
+
 typedef enum
-{ STACK_OVERFLOW_SIGNAL,
-  STACK_OVERFLOW_RAISE,
-  STACK_OVERFLOW_THROW,
-  STACK_OVERFLOW_FATAL
+{ STACK_OVERFLOW_RAISE,
+  STACK_OVERFLOW_THROW
 } stack_overflow_action;
 
+#define pushArgumentStack(p) \
+	do { if ( likely(aTop+1 < aMax) ) \
+	       *aTop++ = (p); \
+	     else \
+	       pushArgumentStack__LD((p) PASS_LD); \
+	   } while(0)
 
-#ifdef O_SEGV_HANDLING
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+hasGlobalSpace(n) is true if we have enough space to create an object of
+size N on the global stack AND  can   use  bindConst()  to bind it to an
+(attributed) variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define requireStack(s, n)
-
-#else /*O_SEGV_HANDLING*/
-
-#define ensureRoomStack(s, n) \
-	ensure_room_stack((Stack)&LD->stacks.s, (n))
-#define requireStack(s, n) \
-	{ if ( triggerStack(s) < (ssize_t)(n) ) \
- 	    ensureRoomStack(s, n); \
-	}
-
-#endif /*O_SEGV_HANDLING*/
+#define BIND_GLOBAL_SPACE (7)
+#define BIND_TRAIL_SPACE (6)
+#define hasGlobalSpace(n) \
+	(likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax) && \
+	 likely(tTop+BIND_TRAIL_SPACE <= tMax))
+#define overflowCode(n) \
+	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
+					      : TRAIL_OVERFLOW )
 
 
 		 /*******************************
@@ -1778,6 +1743,22 @@ typedef struct
   av_action on_attvar;			/* How to handle attvars */
   int	    singletons;			/* Write singletons as $VAR('_') */
 } nv_options;
+
+
+		 /*******************************
+		 *	      WAKEUP		*
+		 *******************************/
+
+#define WAKEUP_STATE_WAKEUP    0x1
+#define WAKEUP_STATE_EXCEPTION 0x2
+#define WAKEUP_STATE_SKIP_EXCEPTION 0x4
+
+typedef struct wakeup_state
+{ fid_t		fid;			/* foreign frame reference */
+  int		flags;
+} wakeup_state;
+
+
 
 
 		 /*******************************
@@ -1930,8 +1911,10 @@ typedef struct debuginfo
 #define FT_ATOM		0		/* atom feature */
 #define FT_BOOL		1		/* boolean feature (true, false) */
 #define FT_INTEGER	2		/* integer feature */
-#define FT_TERM		3		/* term feature */
-#define FT_INT64	4		/* passed as int64_t */
+#define FT_FLOAT	3		/* float feature */
+#define FT_TERM		4		/* term feature */
+#define FT_INT64	5		/* passed as int64_t */
+#define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
 #define PLFLAG_CHARESCAPE	    0x000001 /* handle \ in atoms */
@@ -1951,14 +1934,13 @@ typedef struct debuginfo
 #define PLFLAG_AUTOLOAD	  	    0x004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x008000 /* do character-conversion */
 #define PLFLAG_LASTCALL	  	    0x010000 /* Last call optimization enabled? */
-#define PLFLAG_EX_ABORT	  	    0x020000 /* abort with exception */
-#define PLFLAG_BACKQUOTED_STRING    0x040000 /* `a string` */
-#define PLFLAG_SIGNALS		    0x080000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	    0x100000 /* generate debug info */
-#define PLFLAG_FILEERRORS	    0x200000 /* Edinburgh file errors */
+#define PLFLAG_BACKQUOTED_STRING    0x020000 /* `a string` */
+#define PLFLAG_SIGNALS		    0x040000 /* Handle signals */
+#define PLFLAG_DEBUGINFO	    0x080000 /* generate debug info */
+#define PLFLAG_FILEERRORS	    0x100000 /* Edinburgh file errors */
 
 typedef struct
-{ unsigned long flags;			/* Fast access to some boolean Prolog flags */
+{ unsigned int flags;		/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
 #define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
@@ -1966,9 +1948,9 @@ typedef struct
 #define clearPrologFlagMask(flag) clear(&LD->prolog_flag.mask, flag)
 
 typedef enum
-{ OCCURS_CHECK_FALSE = 0,
-  OCCURS_CHECK_TRUE,
-  OCCURS_CHECK_ERROR
+{ OCCURS_CHECK_FALSE = 0,	/* allow rational trees */
+  OCCURS_CHECK_TRUE,		/* fail if rational tree would result */
+  OCCURS_CHECK_ERROR		/* exception if rational tree would result */
 } occurs_check_t;
 
 
@@ -2033,6 +2015,8 @@ decrease).
 #include "pl-gmp.h"			/* GNU-GMP support */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
+#include "pl-ldpass.h"			/* Wrap __LD functions */
+#include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
 #include "pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
@@ -2043,6 +2027,14 @@ decrease).
 #undef leave
 #undef except
 #undef try
+#endif
+
+#ifdef DMALLOC
+#define DMALLOC_FUNC_CHECK 1
+#define O_MYALLOC 0
+#include <dmalloc.h>
+#define allocHeap(n)  xmalloc(n)
+#define freeHeap(ptr, n) xfree(ptr)
 #endif
 
 #endif /*_PL_INCLUDE_H*/

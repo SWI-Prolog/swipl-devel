@@ -169,7 +169,7 @@ pl_stream_range_open(term_t org, term_t new, term_t options)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
 
     if ( name == ATOM_size )
     { if ( !get_int_ex(arg, &size) )

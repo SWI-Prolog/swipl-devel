@@ -405,7 +405,7 @@ stream_position_data/3. See also read_term/3.
 The following predicates are available if SWI-Prolog is linked to the
 GNU readline library. This is by default the case on non-Windows
 installations and indicated by the Prolog flag \prologflag{readline}.%
-	\footnote{\program{plwin.exe} uses its own history system and
+	\footnote{\program{swipl-win.exe} uses its own history system and
 		  does \emph{not} support these predicates.}
 See also \manref{readline}{3}
 

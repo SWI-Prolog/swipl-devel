@@ -63,7 +63,8 @@
 	    objects//2,			% +Objects, +Options, //
 	    object_ref//2,		% +Object, +Options, //
 	    object_href/2,		% +Object, -URL
-	    object_page//2		% +Object, +Options, //
+	    object_page//2,		% +Object, +Options, //
+	    object_synopsis//1		% +Object, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -549,6 +550,7 @@ object_page(Obj, Options) -->
 	},
 	html([ \html_requires(pldoc),
 	       \object_page_header(File, Options),
+	       \object_synopsis(Obj),
 	       \objects([Obj], Options)
 	     ]).
 
@@ -562,6 +564,72 @@ object_page_header(File, Options) -->
 		 ])).
 object_page_header(_, _) --> [].
 
+
+%%	object_synopsis(Obj)
+%
+%	Provide additional information about Obj
+
+object_synopsis(Name/Arity) -->
+	{ functor(Head, Name, Arity),
+	  predicate_property(system:Head, built_in)
+	},
+	synopsis([span(class(builtin), 'built-in')]).
+object_synopsis(Name/Arity) --> !,
+	object_synopsis(_:Name/Arity).
+object_synopsis(M:Name/Arity) -->
+	{ functor(Head, Name, Arity),
+	  predicate_property(M:Head, exported),
+	  module_property(M, file(File)),
+	  file_name_on_path(File, Spec), !,
+	  unquote(Spec, Unquoted),
+	  (   predicate_property(Head, autoload)
+	  ->  Extra = [span(class(autoload), '(can be autoloaded)')]
+	  ;   Extra = []
+	  )
+	},
+	synopsis([code(':- use_module(~q).'-[Unquoted])|Extra]).
+object_synopsis(_:Name/Arity) -->
+	{ functor(Head, Name, Arity),
+	  current_arithmetic_function(Head)
+	},
+	synopsis(span(class(function),
+		      [ 'Arithmetic function (see ',
+			\object_ref(is/2, []),
+			')'
+		      ])).
+object_synopsis(c(Func)) -->
+	{ sub_atom(Func, 0, _, _, 'PL_')
+	}, !,
+	synopsis([span(class(cfunc), 'C-language interface function')]).
+object_synopsis(_) --> [].
+
+synopsis(Text) -->
+	html(div(class(synopsis),
+		 [ span(class('synopsis-hdr'), 'Availability:')
+		 | Text
+		 ])).
+
+%%	unquote(+Spec, -Unquoted) is det.
+%
+%	Translate       e.g.       library('semweb/rdf_db')         into
+%	library(semweb/rdf_db).
+
+unquote(Spec, Unquoted) :-
+	compound(Spec),
+	Spec =.. [Alias,Path],
+	atomic_list_concat(Parts, /, Path),
+	maplist(need_no_quotes, Parts), !,
+	parts_to_path(Parts, UnquotedPath),
+	Unquoted =.. [Alias, UnquotedPath].
+unquote(Spec, Spec).
+
+need_no_quotes(Atom) :-
+	format(atom(A), '~q', [Atom]),
+	\+ sub_atom(A, 0, _, _, '\'').
+
+parts_to_path([One], One) :- !.
+parts_to_path([H|T], H/More) :-
+	parts_to_path(T, More).
 
 
 		 /*******************************
@@ -1013,6 +1081,12 @@ predref(Name/Arity, _, Options) -->		% Builtin; cannot be overruled
 	  manref(Name/Arity, HREF, Options)
 	},
 	html(a([class=builtin, href=HREF], [Name, /, Arity])).
+predref(Name/Arity, _, Options) -->		% From packages
+	{ option(prefer(manual), Options),
+	  prolog:doc_object_summary(Name/Arity, Category, _, _), !,
+	  manref(Name/Arity, HREF, Options)
+	},
+	html(a([class=Category, href=HREF], [Name, /, Arity])).
 predref(Obj, Module, Options) -->		% Local
 	{ doc_comment(Module:Obj, _, _, _)
 	}, !,

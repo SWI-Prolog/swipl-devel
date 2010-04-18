@@ -53,4 +53,19 @@ cross(M) :-
 test(cross, X == test_module) :-
 	cross(X).
 
+test(clause, H == test_moduld_2:term) :-
+	assert(test_moduld_2:term, Ref),
+	clause(H,_,Ref),
+	erase(Ref).
+
+test(clause, H == term) :-
+	assert(test_moduld_2:term, Ref),
+	test_moduld_2:clause(H,_,Ref),
+	erase(Ref).
+
+test(clause, H == term) :-
+	assert(test_moduld_2:term, Ref),
+	clause(test_moduld_2:H,_,Ref),
+	erase(Ref).
+
 :- end_tests(module).

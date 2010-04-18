@@ -76,7 +76,7 @@ All described approaches have their advantages and disadvantages. Static
 linking is portable and allows for debugging on all platforms. It is
 relatively cumbersome and the libraries you need to pass to the linker
 may vary from system to system, though the utility program
-\program{plld} described in \secref{plld} often hides these problems
+\program{swipl-ld} described in \secref{plld} often hides these problems
 from the user.
 
 Loading shared objects (DLL files on Windows) provides sharing and
@@ -142,7 +142,7 @@ using the Prolog flag \prologflag{arch}.
 
 \begin{center}
 \begin{tabular}{ll}
-\file{.../pl/runtime/<arch>/libpl.a}    & SWI-Library \\
+\file{.../pl/runtime/<arch>/libswipl.a} & SWI-Library \\
 \file{.../pl/include/SWI-Prolog.h}      & Include file \\
 \file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
 \file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
@@ -188,7 +188,7 @@ main(int argc, char **argv)
 Now, a new executable may be created by compiling this file and linking
 it to \file{libpl.a} from the runtime directory and the libraries
 required by both the extensions and the SWI-Prolog kernel. This may be
-done by hand, or using the \program{plld} utility described in
+done by hand, or using the \program{swipl-ld} utility described in
 secref{plld}. If the linking is performed `by hand', the command-line
 option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
@@ -1014,6 +1014,7 @@ pl_display(term_t t)
       break;
     default:
       PL_fail;                          /* should not happen */
+    }
   }
 
   PL_succeed;
@@ -1038,10 +1039,9 @@ PL_open_query.
 
 \begin{description}
 \cfunction{void}{PL_put_variable}{term_t -t}
-Put a fresh variable in the term.  The new variable lives on the global
-stack.  Note that the initial variable lives on the local stack and is
-lost after a write to the term-references.  After using this function,
-the variable will continue to live.
+Put a fresh variable in the term, resetting the term-reference to its
+initial state.\footnote{Older versions created a variable on the global
+stack.}
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
 Put an atom in the term reference from a handle.  See also
 PL_new_atom() and PL_atom_chars().
@@ -1052,7 +1052,7 @@ function.
 \cfunction{int}{PL_put_string_chars}{term_t -t, const char *chars}
 Put a zero-terminated string in the term-reference. The data will be
 copied.  See also PL_put_string_nchars().
-\cfunction{void}{PL_put_string_nchars}{term_t -t,
+\cfunction{int}{PL_put_string_nchars}{term_t -t,
 				       size_t len,
 				       const char *chars}
 
@@ -1075,7 +1075,7 @@ Create a new compound term from \arg{functor} and bind \arg{t} to
 this term. All arguments of the term will be variables. To create
 a term with instantiated arguments, either instantiate the arguments
 using the {\tt PL_unify_*()} functions or use PL_cons_functor().
-\cfunction{void}{PL_put_list}{term_t -l}
+\cfunction{int}{PL_put_list}{term_t -l}
 Same as \exam{PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2))}.
 \cfunction{void}{PL_put_nil}{term_t -l}
 Same as \exam{PL_put_atom_chars("[]")}.
@@ -1483,7 +1483,7 @@ typedef struct PL_blob_t
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
   int			(*write)(IOSTREAM *s, atom_t a, int flags);
-  int			(*acquire)(atom_t a);
+  void			(*acquire)(atom_t a);
   ...
 } PL_blob_t;
 \end{code}
@@ -1749,18 +1749,17 @@ opened before opening the next or returning control back to Prolog.
 \cfunction{qid_t}{PL_open_query}{module_t ctx, int flags,
 				 predicate_t p, term_t +t0}
 
-Opens a query and returns an identifier for it. This function always
-succeeds, regardless whether the predicate is defined or not. \arg{ctx}
-is the {\em context module} of the goal. When \const{NULL}, the context
-module of the calling context will be used, or \const{user} if there is
-no calling context (as may happen in embedded systems). Note that the
-context module only matters for \jargon{meta-predicates}. See
-meta_predicate/1, context_module/1 and module_transparent/1. The \arg{p}
-argument specifies the predicate, and should be the result of a call to
-PL_pred() or PL_predicate(). Note that it is allowed to store this
-handle as global data and reuse it for future queries. The
-term-reference \arg{t0} is the first of a vector of term-references as
-returned by PL_new_term_refs(n).
+Opens a query and returns an identifier for it. \arg{ctx} is the {\em
+context module} of the goal. When \const{NULL}, the context module of
+the calling context will be used, or \const{user} if there is no calling
+context (as may happen in embedded systems). Note that the context
+module only matters for \jargon{meta-predicates}. See meta_predicate/1,
+context_module/1 and module_transparent/1. The \arg{p} argument
+specifies the predicate, and should be the result of a call to PL_pred()
+or PL_predicate(). Note that it is allowed to store this handle as
+global data and reuse it for future queries. The term-reference \arg{t0}
+is the first of a vector of term-references as returned by
+PL_new_term_refs(n).
 
 The \arg{flags} arguments provides some additional options concerning
 debugging and exception handling.  It is a bitwise or of the following
@@ -1786,8 +1785,15 @@ As \const{PL_Q_CATCH_EXCEPTION}, but do not invalidate the exception-term
 while calling PL_close_query().  This option is experimental.
 \end{description}
 
+PL_open_query() can return a query-identifier `0' if there is not enough
+space on the environment stack. This function succeeds, even if the
+referenced predicate is not defined. In this case, running the query
+using PL_next_solution() will return an existence_error. See
+PL_exception().
+
 The example below opens a query to the predicate {is_a}/2 to find the
-ancestor of for some name.
+ancestor of `me'. The reference to the predicate is valid for the
+duration of the process and may be cached by the client.
 
 \begin{code}
 char *
@@ -1916,6 +1922,7 @@ the default module is the user module:
 
   PL_strip_module(term, &m, plain);
   ...
+}
 \end{code}
 
 
@@ -2033,17 +2040,20 @@ function to the innermost PL_next_solution().
 If PL_next_solution() fails, this can be due to normal failure of the
 Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
-raised, or 0 if the Prolog goal simply failed.%
+raised, or 0 if the Prolog goal simply failed. If there is an exception,
+PL_exception() allocates a term-handle using PL_new_term_ref() that is
+used to return the exception term.%
     \footnote{This interface differs in two ways from Quintus.  The
 	      calling predicates simply signal failure if an exception
 	      was raised, and a term referenced is returned, rather
 	      passed and filled with the error term.   Exceptions
 	      can only be handled using the PL_next_solution() interface,
 	      as a handle to the query is required.}
-    \footnote{The scoping of the returned exception is poorly defined.
-	      This API will be reconsidered.  Applications using this
-	      API must process the term immediately and not touch it
-	      afterwards.}
+
+Additionally, \verb$PL_exception(0)$ returns the pending exception in
+the current query or 0 if no exception is pending. This can be used to
+check the error-status after a failing call to e.g., one of the
+unification functions.
 \end{description}
 
 
@@ -2157,10 +2167,14 @@ threads.
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase() is called on it.  PL_recorded() is used to
     copy recorded terms back to the Prolog stack.
+
 \cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
-    stack.  See also PL_record() and PL_erase().
+    stack. Returns \const{TRUE} on success, and \const{FALSE} if
+    there is not enough space on the stack to accomodate the term.
+    See also PL_record() and PL_erase().
+
 \cfunction{void}{PL_erase}{record_t record}
     Remove the recorded term from the Prolog database, reclaiming all
     associated memory resources.
@@ -2367,10 +2381,6 @@ The  options are given in \tabref{query}.
                               $M$ is the major, $m$ the minor version number
                               and $p$ the patch-level.  For example,
                               \exam{20717} means \exam{2.7.17}. \\
-\const{PL_QUERY_MAX_THREADS} & Return the maximum number of threads that
-			       can be created in this version.  Return
-			       values of PL_thread_self() are between 0
-			       and this number. \\
 \const{PL_QUERY_ENCODING}    & Return the default stream encoding of
 			       Prolog (of type \ctype{IOENC}). \\
 \const{PL_QUERY_USER_CPU}    & Get amount of user CPU time of the
@@ -2845,7 +2855,7 @@ is used.
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved-state, or
 \verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
-to a DLL (see the \cmdlineoption{-dll} option of \program{plld}, pass
+to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}, pass
 the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
@@ -2920,44 +2930,39 @@ only way to get these environments together in one process image. Java
 applications however are by nature multi-threaded and appear to do
 signal-handling (software interrupts).
 
-\index{--disable-segv-handling}%
-To make Prolog operate smoothly in such environments it must be told
-not to alter the process environment. This is partly done at build-time
-and partly execution time.  At build-time we must specify the use of
-software stack-overflow rather then the default hardware checks.  This
-is done using
+On Unix systems, SWI-Prolog uses three signals:
 
-\begin{code}
-sh configure --disable-segv-handling
-\end{code}
+\begin{description}
+    \item[SIGUSR1] is used to sychronise atom- and clause garbage
+    collection.  The handler is installed at the start of GC and
+    reverted to the old setting after completing.
 
-The resulting Prolog executable is about 10\% slower than the normal
-executable, but behaves much more reliable in complicated embedded
-situations.  In addition, as the process no longer handles segmentation
-violations, debugging foreign code linked to it is much easier.
+    \item[SIGUSR2] has an empty signal handler.   This signal is
+    sent to a thread after sending a thread-signal (see
+    thread_signal/2).  It causes blocking system calls to return
+    with \const{EINTR}, which gives them to opportunity to react
+    on thread-signals.
 
-At runtime, it is advised to pass the flag \cmdlineoption{-nosignals},
-which inhibits all default signal handling.  This has a few consequences
-though:
+    \item[SIGINT] is used by the toplevel to activate the tracer
+    (typically bound to control-C).  The first control-C posts a
+    request for	starting the tracer in a safe synchronous fashion.
+    If control-C is hit again before the safe route is executed,
+    it prompts the user whether or not a forced interrupt is
+    desired.
+\end{description}
 
-\begin{itemize}
-    \item It is no longer possible to break into the tracer using
-          an interrupt signal (Control-C).
-    \item \const{SIGPIPE} is normally set to be ignored.  Prolog uses
-          return-codes to diagnose broken pipes.  Depending on the
-	  situation one should take appropriate action if Prolog
-	  streams are connected to pipes.
-    \item Fatal errors normally cause Prolog to call PL_cleanup() and
-          exit().  It is advised to call PL_cleanup() as part of the
-	  exit-procedure of your application.
-\end{itemize}
+The \cmdlineoption{--nosignals} option can be used to inhibit processing
+of \const{SIGINT}. The other signals are vital for the functioning of
+SWI-Prolog. If they conflict with other applications, signal handling of
+either component must be modified. The SWI-Prolog signals are defined in
+\file{pl-thread.h} of the source-distribution.
 
 
-\section{Linking embedded applications using plld}	\label{sec:plld}
+\section{Linking embedded applications using swipl-ld}	\label{sec:plld}
 
-The utility program \program{plld} (Win32: plld.exe) may be used to link
+The utility program \program{swipl-ld} (Win32: swipl-ld.exe) may be used to link
 a combination of C-files and Prolog files into a stand-alone executable.
-\program{plld} automates most of what is described in the previous
+\program{swipl-ld} automates most of what is described in the previous
 sections.
 
 In the normal usage, a copy is made of the default embedding template
@@ -2965,14 +2970,14 @@ In the normal usage, a copy is made of the default embedding template
 your application. PL_initialise() \strong{must} be passed the
 program-name (\arg{argv[0]}) (Win32: the executing program can be
 obtained using GetModuleFileName()). The other elements of the
-command-line may be modified. Next, \program{plld} is typically invoked
+command-line may be modified. Next, \program{swipl-ld} is typically invoked
 as:
 
 \begin{code}
-plld -o output stubfile.c [other-c-or-o-files] [plfiles]
+swipl-ld -o output stubfile.c [other-c-or-o-files] [plfiles]
 \end{code}
 
-\program{plld} will first split the options into various groups for both
+\program{swipl-ld} will first split the options into various groups for both
 the C-compiler and the Prolog compiler. Next, it will add various
 default options to the C-compiler and call it to create an executable
 holding the user's C-code and the Prolog kernel. Then, it will call the
@@ -3008,7 +3013,7 @@ Just relink the kernel, do not add any Prolog code to the new kernel.
 This is used to create a new kernel holding additional foreign predicates
 on machines that do not support the shared-library (DLL) interface, or if
 building the state cannot be handled by the default procedure used by
-\program{plld}.  In the latter case the state is created separately and
+\program{swipl-ld}.  In the latter case the state is created separately and
 appended to the kernel using \exam{cat <kernel> <state> > <out>}
 (Win32: \exam{copy /b <kernel>+<state> <out>})
 
@@ -3024,12 +3029,12 @@ executable.
 
     \cmdlineoptionitem{-c}{}
 Compile C or C++ source-files into object files. This turns
-\program{plld} into a replacement for the C or C++ compiler where proper
+\program{swipl-ld} into a replacement for the C or C++ compiler where proper
 options such as the location of the include directory are passed
 automatically to the compiler.
 
     \cmdlineoptionitem{-E}{}
-Invoke the C preprocessor. Used to make \program{plld} a replacement for
+Invoke the C preprocessor. Used to make \program{swipl-ld} a replacement for
 the C or C++ compiler.
 
     \cmdlineoptionitem{-pl-options}{,\ldots}
@@ -3047,7 +3052,7 @@ Select verbose operation, showing the various programs and their options.
     \cmdlineoptionitem{-o}{outfile}
 Reserved to specify the final output file.
     \cmdlineoptionitem*{-l}{library}
-Specifies a library for the C-compiler.  By default, \clib{-lpl}
+Specifies a library for the C-compiler.  By default, \clib{-lswipl}
 (Win32: libpl.lib) and the libraries needed by the Prolog kernel are given.
     \cmdlineoptionitem*{-L}{library-directory}
 Specifies a library directory for the C-compiler.  By default the
@@ -3057,7 +3062,7 @@ is passed.
 		       \cmdlineoption{-I\arg{include-directory}} \bnfor{}
 		       \cmdlineoption{-D\arg{definition}}}{}
 These options are passed to the C-compiler.  By default, the include
-directory containing \file{SWI-Prolog.h} is passed.  \program{plld} adds
+directory containing \file{SWI-Prolog.h} is passed.  \program{swipl-ld} adds
 two additional \argoption*{-D}{def} flags:
 \begin{description}
 \cmdlineoptionitem*{-D}{\const{__SWI_PROLOG__}}
@@ -3155,7 +3160,7 @@ main(int argc, char **argv)
 The application is now created using the following command-line:
 
 \begin{code}
-% plld -o calc calc.c calc.pl
+% swipl-ld -o calc calc.c calc.pl
 \end{code}
 
 \noindent
@@ -3254,11 +3259,9 @@ install()
 \begin{code}
 % gcc -I/usr/local/lib/pl-\plversion/include -fpic -c lowercase.c
 % gcc -shared -o lowercase.so lowercase.o
-% pl
+% swipl
 Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
+...
 
 1 ?- load_foreign_library(lowercase).
 
@@ -3338,7 +3341,7 @@ valgrind can deal with code loaded through dlopen().
 
 The \program{callgrind} tool can be used to profile foreign code loaded
 under SWI-Prolog. Compile the foreign library adding \cmdlineoption{-g}
-option to \program{gcc} or \program{plld}. By setting the environment
+option to \program{gcc} or \program{swipl-ld}. By setting the environment
 variable \env{VALGRIND} to \const{yes}, SWI-Prolog will \emph{not}
 release loaded shared objects using dlclose(). This trick is required to
 get source information on the loaded library. Without, valgrind claims

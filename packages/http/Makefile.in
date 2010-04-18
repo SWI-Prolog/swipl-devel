@@ -15,7 +15,6 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/http
 EXDIR=$(PKGDOC)/examples/http
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -27,7 +26,7 @@ LIBS=@LIBS@
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
 
-PUBLICPL=       pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 RUNTEX=../../man/runtex
@@ -52,9 +51,10 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
-		json.pl http_json.pl json_convert.pl
+		json.pl http_json.pl json_convert.pl http_dirindex.pl \
+		http_server_files.pl http_pwp.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl
+		calc.pl demo_files.pl demo_pwp.pl
 EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 SOLIBS=		http_stream.@SO@ json.@SO@
@@ -74,8 +74,12 @@ install:	$(LIBPL)
 		rm -f $(DESTDIR)$(PLBASE)/lib/$(PLARCH)/http_chunked.@SO@
 		$(INSTALL_PROGRAM) $(SOLIBS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		mkdir -p $(DESTDIR)$(LIBDIR)
+		mkdir -p $(DESTDIR)$(LIBDIR)/web/icons
+		mkdir -p $(DESTDIR)$(LIBDIR)/web/css
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) web/icons/*.png $(DESTDIR)$(LIBDIR)/web/icons
+		$(INSTALL_DATA) web/css/*.css $(DESTDIR)$(LIBDIR)/web/css
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)
@@ -91,7 +95,9 @@ html-install:	install-examples
 
 install-examples::
 		mkdir -p $(DESTDIR)$(EXDIR)
+		mkdir -p $(DESTDIR)$(EXDIR)/pwp
 		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
+		(cd examples/pwp && $(INSTALL_DATA) *.pwp *.pl $(DESTDIR)$(EXDIR)/pwp)
 		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
 
 uninstall::
@@ -112,7 +118,8 @@ pdf:		$(PDF)
 html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
-		httpsession.tex httpdispatch.tex
+		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex \
+		httpopen.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -136,6 +143,9 @@ httplog.tex:	http_log.pl
 httppath.tex:	http_path.pl
 		$(PLTOTEX) --subsection 'library(http/http_path)'
 
+httpopen.tex:	http_open.pl
+		$(PLTOTEX) --subsection 'library(http/http_open)'
+
 htmlhead.tex:	html_head.pl
 		$(PLTOTEX) --subsection 'library(http/html_head)'
 
@@ -144,6 +154,12 @@ httpsession.tex: http_session.pl
 
 httpdispatch.tex: http_dispatch.pl
 		$(PLTOTEX) --subsection 'library(http/http_dispatch)'
+
+httpdirindex.tex: http_dirindex.pl
+		$(PLTOTEX) --subsection 'library(http/http_dirindex)'
+
+httppwp.tex:	http_pwp.pl
+		$(PLTOTEX) --subsection 'library(http/http_pwp)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

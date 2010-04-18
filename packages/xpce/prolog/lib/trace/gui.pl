@@ -193,19 +193,18 @@ thread_debug_queue(Thread, Queue) :-
 	user:prolog_event_hook/1.
 
 user:prolog_event_hook(thread_finished(TID)) :-
-	thread_debug_queue_store(TID, Queue),
-	message_queue_destroy(Queue),
+	forall(retract(thread_debug_queue_store(TID, Queue)),
+	       message_queue_destroy(Queue)),
 	fail.				% allow other hooks
 
 %%	send_pce(:Goal)
 %
-%	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
-%	meanwhile, allow the XPCE thread to call in_debug_thread/1.
-%
-%	@bug	XPCE thread does not _need_ to be =main=.
+%	Run Goal in XPCE thread. Wait  for completion. In the meanwhile,
+%	allow the XPCE thread to call in_debug_thread/1.
 
 send_pce(Goal) :-
-	thread_self(main), !,
+	thread_self(Me),
+	pce_thread(Me), !,
 	Goal.
 send_pce(Goal) :-
 	thread_self(Self),
@@ -312,9 +311,11 @@ variable(current_break,	tuple*,		both, "tuple(ClauseRef, PC)").
 variable(quitted,	bool := @off,   both, "Asked to quit").
 variable(mode,		name := created,both, "Current mode").
 
-initialise(F, Level:int, Thread0:'int|name') :->
-	assertion(thread_self(main)),
-	default(Thread0, main, Thread),
+running_in_pce_thread :-
+	pce_thread(Pce), thread_self(Pce).
+
+initialise(F, Level:int, Thread:'int|name') :->
+	assertion(running_in_pce_thread),
 	send(F, slot, break_level, Level),
 	send(F, slot, thread, Thread),
 	send_super(F, initialise, 'SWI-Prolog debugger', application := @prolog_gui),
@@ -509,13 +510,14 @@ return(Frame, Result:any) :->
 	(   get(Frame, mode, wait_user)
 	->  get(Frame, thread, Thread),
 	    send(Frame, mode, replied),
-	    (	Thread == main
+	    (	pce_thread(Thread)
 	    ->	send_super(Frame, return, Result)
 	    ;   (   get(Frame, quitted, @on)
 		->  send(Frame, destroy)
 		;   true
 		),
-		debug(' ---> frame: result = ~p~n', [Result]),
+		debug(' ---> frame for thread = ~p: result = ~p~n',
+		      [Thread, Result]),
 		thread_debug_queue(Thread, Queue),
 		thread_send_message(Queue, '$trace'(action(Result)))
 	    )
@@ -854,6 +856,7 @@ initialise(B) :->
 	send(B?image, tab_stops, vector(Tab)),
 	send(B?image, recogniser, @prolog_binding_recogniser),
 	send(B, editable, @off),
+	send(B, style, constraint, style(colour := blue)),
 	send(B?text_cursor, displayed, @off),
 	send(B, ver_stretch, 0).
 
@@ -909,30 +912,55 @@ on_click(B, Index:int) :->
 
 bindings(B, Bindings:prolog) :->
 	"Display complete list of bindings"::
+	(   term_attvars(Bindings, [])
+	->  Plain = Bindings,
+	    Constraints = []
+	;   copy_term(Bindings, Plain, Constraints)
+	),
 	send(B, background, white),
 	pce_open(B, write, Fd),
-	forall(member(Vars=Value, Bindings),
-	       send(B, append_binding, Vars, value(Value), Fd)),
+	(   bind_vars(Plain),
+	    forall(member(Vars=Value, Plain),
+		   send(B, append_binding, Vars, value(Value), Fd)),
+	    forall(member(C, Constraints),
+		   send(B, append_constraint, C, Fd)),
+	    fail
+	;   true
+	),
 	close(Fd),
 	send(B, caret, 0).
 
-append_binding(B, Names:prolog, ValueTerm:prolog, Fd:prolog) :->
+bind_vars([]).
+bind_vars([Vars=Value|T]) :-
+	(   var(Value)
+	->  Vars = [Name:_|_],
+	    Value = '$VAR'(Name)
+	;   true
+	),
+	bind_vars(T).
+
+
+append_binding(B, Names0:prolog, ValueTerm:prolog, Fd:prolog) :->
 	"Add a binding to the browser"::
-	ValueTerm = value(Value),	% protect :=, ?, etc.
-	(   var(Value),
+	ValueTerm = value(Value0),	% protect :=, ?, etc.
+	(   Value0 = '$VAR'(_), Names0 = [_],
 	    setting(show_unbound, false)
 	->  true
-	;   get(B, text_buffer, TB),
+	;   (   Value0 = '$VAR'(_), Names0 = [_,_|_]
+	    ->	append(Names, [VarN:_], Names0),
+		Value = '$VAR'(VarN)
+	    ;	Names = Names0,
+		Value = Value0
+	    ),
+	    get(B, text_buffer, TB),
 	    get(TB, size, S0),
 	    (   Names = VarName:ArgN
 	    ->	format(Fd, '~w', [VarName])
 	    ;	Names = [VarName:ArgN|_],
 	        write_varnames(Fd, Names)
 	    ),
-	    setting(attributes, Atts),
-	    current_prolog_flag(toplevel_print_options, Options0),
-	    delete(Options0, attributes(_), Options1),
-	    format(Fd, '\t= ~W~n', [Value, [attributes(Atts)|Options1]]),
+	    current_prolog_flag(toplevel_print_options, Options),
+	    format(Fd, '\t= ~W~n', [Value, Options]),
 	    flush_output(Fd),
 	    get(TB, size, S1),
 	    new(_, prolog_frame_var_fragment(TB, S0, S1, VarName, ArgN))
@@ -943,6 +971,16 @@ write_varnames(Fd, [N:_]) :- !,
 write_varnames(Fd, [N:_|T]) :-
 	format(Fd, '~w = ', N),
 	write_varnames(Fd, T).
+
+append_constraint(B, Constraint:prolog, Fd:prolog) :->
+	"Display current constraints"::
+	get(B, text_buffer, TB),
+	current_prolog_flag(toplevel_print_options, Options),
+	get(TB, size, S0),
+	format(Fd, '(constraint)\t~W~n', [Constraint, Options]),
+	flush_output(Fd),
+	get(TB, size, S1),
+	new(_, prolog_frame_constraint_fragment(TB, S0, S1)).
 
 :- pce_end_class(prolog_bindings_view).
 
@@ -971,6 +1009,17 @@ value(F, Value:prolog) :<-
 	prolog_frame_attribute(F, Frame, argument(ArgN), Value).
 
 :- pce_end_class(prolog_frame_var_fragment).
+
+
+:- pce_begin_class(prolog_frame_constraint_fragment, fragment,
+		   "Represent a contraint on a frame").
+
+initialise(F, TB:text_buffer, From:int, To:int) :->
+	Len is To-From,
+	send_super(F, initialise, TB, From, Len, constraint).
+
+:- pce_end_class(prolog_frame_constraint_fragment).
+
 
 
 		 /*******************************

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+
+<html
+  xmlns:pwp="http://www.cs.otago.ac.nz/staffpriv/ok/pwp.pl"
+  pwp:ask='ensure_loaded(pwp(pwpdb))'>
+  <head>
+    <title>Phone list for Full-Time staff.</title>
+  </head>
+  <body>
+    <h1>Phone list for Full-Time staff.</h1>
+    <table
+      pwp:ask = "setof(FullName-Phone,
+		       N^O^E^(
+			 status(N, full_time),
+			 staff(N, FullName, O, Phone, E)
+		       ),
+		       Staff_List)">
+      <tr><th>Name</th><th>Phone</th></tr>
+      <tr pwp:ask="member(FullName-Phone, Staff_List)">
+	<td pwp:use="FullName"/>
+	<td pwp:use="Phone"/>
+      </tr>
+    </table>
+  </body>
+</html>

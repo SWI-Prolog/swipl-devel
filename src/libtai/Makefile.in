@@ -28,8 +28,9 @@ COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
 CMFLAGS=@CMFLAGS@
-LDFLAGS=@LDFLAGS@
-CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+CPFLAGS=
+LDFLAGS=@LDFLAGS@ $(CPFLAGS)
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS) $(CPFLAGS)
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -73,9 +74,12 @@ nowutc:	nowutc.o libtai.a
 ################################################################
 
 clean:
-	rm -f *% *~ *.o
+	rm -f *% *~ *.o *.gcda
 
-distclean:	clean
+profclean:
+	rm -f *.gcda
+
+distclean: clean profclean
 	rm -f Makefile
 	rm -f $(PROG) libtai.a
 

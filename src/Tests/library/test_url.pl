@@ -5,7 +5,7 @@
 :- encoding(utf8).
 :- use_module(library(url)).
 
-:- dynamic
+:- thread_local
 	error/2.
 
 test_url :-
@@ -28,11 +28,13 @@ test_parse(URL, _) :-
 	fmt_error('FAILED: parse_url(~q, Parts)~n', [URL]).
 
 test_gen(URL, Parts) :-
-	(   parse_url(URL1, Parts),
-	    URL1 == URL
-	->  true
-	;   fmt_error('FAILED: parse_url(URL, ~q)~n', [Parts]),
-	    fmt_error('~q \\== ~q~n', [URL, URL1])
+	(   parse_url(URL1, Parts)
+	->  (   URL1 == URL
+	    ->  true
+	    ;   fmt_error('FAILED: parse_url(URL, ~q)~n', [Parts]),
+		fmt_error('~q \\== ~q~n', [URL, URL1])
+	    )
+	;   fmt_error('FAILED: parse_url(URL, ~q)~n', [Parts])
 	).
 
 test_abs(Rel, Base, Abs) :-

@@ -161,42 +161,51 @@ init_functors()
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 resource_error(const char *what)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_CHARS, what,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_resource_error1,
+		         PL_CHARS, what,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -204,12 +213,15 @@ static int
 representation_error(const char *what)
 { term_t ex = PL_new_term_ref();
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR_CHARS, "representation_error", 1,
-		        PL_CHARS, what,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR_CHARS, "representation_error", 1,
+		         PL_CHARS, what,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -811,7 +823,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     int neg = FALSE;
 
     if ( PL_is_functor(head, FUNCTOR_not1) )
-    { PL_get_arg(1, head, tmp);
+    { _PL_get_arg(1, head, tmp);
       if ( !get_search_datum(tmp, &search) )
 	goto failure;
       neg = TRUE;
@@ -983,7 +995,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     node_data *data;
     node_data_ex search;
 
-    PL_get_arg(1, spec, a);
+    _PL_get_arg(1, spec, a);
     if ( !get_search_datum(a, &search) )
       goto failure;
 
@@ -1004,7 +1016,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     node_data_ex search;
     int match = (name == ATOM_prefix ? STR_MATCH_PREFIX : STR_MATCH_EXACT);
 
-    PL_get_arg(1, spec, a);
+    _PL_get_arg(1, spec, a);
     if ( !get_atom_ex(a, &prefix) )
       goto failure;
     first_a = first_atom(prefix, STR_MATCH_PREFIX);
@@ -1034,7 +1046,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
   { term_t a = PL_new_term_ref();
     long val, min, max;
 
-    PL_get_arg(1, spec, a);
+    _PL_get_arg(1, spec, a);
     if ( !get_long_ex(a, &val) )
       goto failure;
 
@@ -1049,10 +1061,10 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
   { term_t a = PL_new_term_ref();
     long min, max;
 
-    PL_get_arg(1, spec, a);
+    _PL_get_arg(1, spec, a);
     if ( !get_long_ex(a, &min) )
       goto failure;
-    PL_get_arg(2, spec, a);
+    _PL_get_arg(2, spec, a);
     if ( !get_long_ex(a, &max) )
       goto failure;
 
@@ -1111,10 +1123,10 @@ rdf_statistics_literal_map(term_t map, term_t key)
   if ( PL_is_functor(key, FUNCTOR_size2) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, key, a);
+    _PL_get_arg(1, key, a);
     if ( !PL_unify_integer(a, m->tree.count) )
       return FALSE;
-    PL_get_arg(2, key, a);
+    _PL_get_arg(2, key, a);
 
     return PL_unify_integer(a, m->value_count);
   }

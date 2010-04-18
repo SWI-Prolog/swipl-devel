@@ -19,8 +19,8 @@ export MAKE
 
 BUILDDIR=@BUILDDIR@
 srcdir=`echo @srcdir@ | sed 's=/../packages=='`
-ARCH=@RT@@ARCH@
-PL=@PL@@RT@
+ARCH=@ARCH@
+PL=@PL@
 bdir=$srcdir/../$BUILDDIR
 ldir=$srcdir/../lib/$ARCH
 
@@ -54,7 +54,7 @@ delpkg()
 
 
 if [ -z "$PKG" ]; then
-  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib"
+  PKG="clib cpp odbc table xpce sgml RDF semweb http chr clpqr nlp ssl tipc pldoc plunit jpl zlib R"
 fi
 
 if [ ! -z "$EXTRA_PKGS" ]; then
@@ -114,4 +114,4 @@ else
    mv Makefile.pkg Makefile
 fi
 
-$MAKE CNFGPASSED="$configoptions" configure
+$MAKE CNFGPASSED="$configoptions" configure || exit 1

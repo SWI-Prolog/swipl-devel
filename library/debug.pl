@@ -300,7 +300,7 @@ system:goal_expansion(assume(G), Goal) :-
 	prolog:message/3.
 
 prolog:message(assumption_failed(G)) -->
-	[ 'Assertion failed: ~p'-[G] ].
+	[ 'Assertion failed: ~q'-[G] ].
 prolog:message(debug(Fmt, Args)) -->
 	show_thread_context,
 	show_time_context,

@@ -529,5 +529,6 @@ pprint(Out, Term, Pri) :-
 	write_term(Out, Term,
 		   [ quoted(true),
 		     numbervars(true),
-		     priority(Pri)
+		     priority(Pri),
+		     spacing(next_argument)
 		   ]).

@@ -83,8 +83,8 @@ typedef struct list
 
 
 typedef struct bitmatrix
-{ int width;
-  int heigth;
+{ size_t width;
+  size_t heigth;
   int bits[1];
 } bitmatrix;
 
@@ -117,8 +117,8 @@ typedef struct predicate
 typedef struct predicate_cloud
 { predicate   **members;		/* member predicates */
   unsigned int  hash;			/* hash-code */
-  int		size;			/* size of the cloud */
-  int		deleted;		/* See erase_predicates() */
+  size_t	size;			/* size of the cloud */
+  size_t	deleted;		/* See erase_predicates() */
   bitmatrix    *reachable;		/* cloud reachability matrix */
   unsigned	dirty : 1;		/* predicate hash not synchronised */
 } predicate_cloud;
@@ -199,7 +199,8 @@ typedef enum
   TR_UPDATE,				/* rdf_update */
   TR_UPDATE_SRC,			/* rdf_update */
   TR_UPDATE_MD5,			/* update md5 src */
-  TR_RESET				/* rdf_reset_db */
+  TR_RESET,				/* rdf_reset_db */
+  TR_VOID				/* no-op */
 } tr_type;
 
 
@@ -242,6 +243,7 @@ typedef struct rdf_db
   long		indexed[8];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
+  int		gc_blocked;		/* GC is blocked; */
   double	rehash_time;		/* time spent in rehash */
   double	gc_time;		/* time spent in GC */
   size_t	core;			/* core in use */
@@ -254,7 +256,7 @@ typedef struct rdf_db
   long		agenda_created;		/* #visited nodes in agenda */
   long		duplicates;		/* #duplicate triples */
   long		generation;		/* generation-id of the database */
-  graph      **graph_table;		/* Hash table of sources */
+  graph       **graph_table;		/* Hash table of sources */
   int      	graph_table_size;	/* Entries in table */
 
   graph	*last_graph;		/* last accessed graph */

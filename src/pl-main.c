@@ -129,20 +129,27 @@ findHome(const char *symbols, int argc, const char **argv)
        (home = PrologPath(val, plp, sizeof(plp))) )
     return store_string(home);
 
-  if ( !(home = Getenv("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
-    home = Getenv("SWIPL", envbuf, sizeof(envbuf));
+#ifdef PLHOMEVAR_1
+  if ( !(home = Getenv(PLHOMEVAR_1, envbuf, sizeof(envbuf))) )
+  {
+#ifdef PLHOMEVAR_2
+    home = Getenv(PLHOMEVAR_2, envbuf, sizeof(envbuf));
+#endif
+  }
   if ( home &&
        (home = PrologPath(home, plp, sizeof(plp))) &&
        ExistsDirectory(home) )
     return store_string(home);
+#endif
 
+#ifdef PLHOMEFILE
   if ( (home = symbols) )
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
 
     strcpy(parent, DirName(DirName(AbsoluteFile(home, buf), buf), buf));
-    Ssprintf(buf, "%s/swipl", parent);
+    Ssprintf(buf, "%s/" PLHOMEFILE, parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
     { if ( Sfgets(buf, sizeof(buf), fd) )
@@ -175,6 +182,7 @@ findHome(const char *symbols, int argc, const char **argv)
       Sclose(fd);
     }
   }
+#endif /*PLHOMEFILE*/
 
   if ( (home = PrologPath(PLHOME, plp, sizeof(plp))) &&
        ExistsDirectory(home) )
@@ -204,14 +212,14 @@ defaultSystemInitFile(const char *a0)
   char buf[256];
   char *s = buf;
 
-  while(*base && isAlpha(*base))
+  while( *base && (isAlpha(*base) || *base == '-') )
     *s++ = *base++;
   *s = EOS;
 
   if ( buf[0] != EOS )
     return store_string(buf);
 
-  return store_string("pl");
+  return store_string("swipl");
 }
 
 
@@ -257,7 +265,9 @@ setupGNUEmacsInferiorMode()
 
   if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-  { clearPrologFlagMask(PLFLAG_TTY_CONTROL);
+  { GET_LD
+
+    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
     val = TRUE;
   } else
   { val = FALSE;
@@ -312,12 +322,12 @@ initPaths(int argc, const char **argv)
 
 static void
 initDefaults()
-{ systemDefaults.arch	     = ARCH;
+{ GET_LD
+
+  systemDefaults.arch	     = ARCH;
   systemDefaults.local       = DEFLOCAL;
   systemDefaults.global      = DEFGLOBAL;
   systemDefaults.trail       = DEFTRAIL;
-  systemDefaults.argument    = DEFARGUMENT;
-  systemDefaults.heap	     = DEFHEAP;
   systemDefaults.goal	     = "'$welcome'";
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
@@ -397,8 +407,6 @@ initDefaultOptions()
   GD->options.localSize     = systemDefaults.local    K;
   GD->options.globalSize    = systemDefaults.global   K;
   GD->options.trailSize     = systemDefaults.trail    K;
-  GD->options.argumentSize  = systemDefaults.argument K;
-  GD->options.heapSize      = systemDefaults.heap     K;
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
@@ -436,9 +444,8 @@ isoption(const char *av, const char *opt)
 
 static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
-{ int argc = argc0;
-
-
+{ GET_LD
+  int argc = argc0;
 
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
@@ -514,8 +521,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  { case 'L':	GD->options.localSize    = size; goto next;
 	    case 'G':	GD->options.globalSize   = size; goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
-	    case 'A':	GD->options.argumentSize = size; goto next;
-	    case 'H':	GD->options.heapSize     = size; goto next;
+	    case 'H':
+	    case 'A':
+	      Sdprintf("% WARNING: -%csize is no longer supported\n", *s);
+	      goto next;
 	  }
 	}
       }
@@ -663,7 +672,7 @@ On Windows this is simply passed as below.   We have to analyse the file
 ourselves. Unfortunately this needs to be done  in C as it might contain
 stack-parameters.
 
-	{plwin.exe <file>}
+	{swipl-win.exe <file>}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef MAXLINE
@@ -675,7 +684,8 @@ stack-parameters.
 
 static void
 script_argv(int argc, char **argv)
-{ FILE *fd;
+{ GET_LD
+  FILE *fd;
   int i;
 
   DEBUG(1,
@@ -738,8 +748,8 @@ script_argv(int argc, char **argv)
     char *av[MAXARGV];
     int  an = 0;
 
-    fgets(buf, sizeof(buf), fd);
-    if ( !strprefix(buf, "#!") )
+    if ( !fgets(buf, sizeof(buf), fd) ||
+	 !strprefix(buf, "#!") )
     { fclose(fd);
       goto noscript;
     }
@@ -811,24 +821,10 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(__WINDOWS__) && 0
-  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
-		 _CRTDBG_CHECK_CRT_DF|
-		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
-		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
-		 //_CRTDBG_LEAK_CHECK_DF|
-		 0);
-#endif
-
-#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
-  if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
-    mtrace();
-#endif
-
   if ( GD->initialised )
-  { succeed;
-  }
+    succeed;
 
+  initAlloc();
   initPrologThreads();			/* initialise thread system */
   SinitStreams();			/* before anything else */
 
@@ -847,24 +843,11 @@ PL_initialise(int argc, char **argv)
     Sdprintf("\n");
   });
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
-allocate memory starting from a specific   address.  Probably only works
-properly on Linux. Don't bother with it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef FORCED_MALLOC_BASE
-  start_memory((void *)FORCED_MALLOC_BASE);
-  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
-#endif
-#if O_MALLOC_DEBUG
-  malloc_debug(O_MALLOC_DEBUG);
-#endif
-
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
+  { GET_LD
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 #ifdef HAVE_SIGNAL
   setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
@@ -982,6 +965,7 @@ properly on Linux. Don't bother with it.
   { int status = prologToplevel(PL_new_atom("$initialise"));
     return status;
   }
+  }					/* { GET_LD } */
 }
 
 
@@ -1159,7 +1143,8 @@ struct on_halt
 void
 PL_on_halt(halt_function f, void *arg)
 { if ( !GD->os.halting )
-  { OnHalt h = allocHeap(sizeof(struct on_halt));
+  { GET_LD
+    OnHalt h = allocHeap(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
@@ -1173,20 +1158,18 @@ PL_on_halt(halt_function f, void *arg)
 
 int
 PL_cleanup(int rval)
-{ OnHalt h;
+{ GET_LD
+  OnHalt h;
+  int rc = TRUE;
 
-  LOCK();
   if ( GD->cleaning != CLN_NORMAL )
-  { UNLOCK();
     return FALSE;
-  }
 #ifdef O_PLMT
   if ( PL_thread_self() != 1 )
-  { UNLOCK();
     return FALSE;
-  }
 #endif
 
+  LOCK();
   GD->cleaning = CLN_ACTIVE;
 
   pl_notrace();				/* avoid recursive tracing */
@@ -1194,7 +1177,7 @@ PL_cleanup(int rval)
   resetProfiler();			/* don't do profiling anymore */
 #endif
 #ifdef O_PLMT
-  exitPrologThreads();
+  rc = exitPrologThreads();
 #endif
 
   Scurout = Soutput;			/* reset output stream to user */
@@ -1202,7 +1185,7 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_PROLOG;
 
   qlfCleanup();				/* remove errornous .qlf files */
-  if ( GD->initialised )
+  if ( GD->initialised && !LD->aborted )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
 
@@ -1214,8 +1197,10 @@ PL_cleanup(int rval)
   GD->cleaning = CLN_FOREIGN;
 
 					/* run PL_on_halt() hooks */
-  for(h = GD->os.on_halt_list; h; h = h->next)
-    (*h->function)(rval, h->argument);
+  if ( !LD->aborted )
+  { for(h = GD->os.on_halt_list; h; h = h->next)
+      (*h->function)(rval, h->argument);
+  }
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1227,7 +1212,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_SHARED;
 
-  if ( GD->initialised )
+  if ( GD->initialised && !LD->aborted )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				    "shlib");
@@ -1250,7 +1235,7 @@ PL_cleanup(int rval)
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
 #endif
-  freeLocalData(LD);
+  freePrologLocalData(LD);
   cleanupSourceFiles();
   cleanupAtoms();
   cleanupFunctors();
@@ -1264,7 +1249,11 @@ PL_cleanup(int rval)
 #endif
   cleanupForeign();
   cleanupCodeToAtom();
-  cleanupMemAlloc();
+  if ( rc )
+    cleanupMemAlloc();
+#ifdef O_GMP
+  cleanupGMP();
+#endif
 
   UNLOCK();				/* requires GD->thread.enabled */
 
@@ -1302,21 +1291,23 @@ fatalError(const char *fm, ...)
 }
 
 
-bool
+int
 warning(const char *fm, ...)
-{ va_list args;
+{ int rc;
+  va_list args;
 
   va_start(args, fm);
-  vwarning(fm, args);
+  rc = vwarning(fm, args);
   va_end(args);
 
-  PL_fail;
+  return rc;
 }
 
 
 static bool
 vsysError(const char *fm, va_list args)
-{ static int active = 0;
+{ GET_LD
+  static int active = 0;
 
   if ( active++ )
     PL_halt(3);
@@ -1332,6 +1323,7 @@ vsysError(const char *fm, va_list args)
   { Sfprintf(Serror,
 	    "\n[While in %ld-th garbage collection]\n",
 	    gc_status.collections);
+    unblockSignals(&LD->gc.saved_sigmask);
   }
 
 #if defined(O_DEBUGGER)
@@ -1406,20 +1398,27 @@ move the rest of the warnings gradually. For this reason we make a term
 Where ListOfLines is a list of string objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
+int
 vwarning(const char *fm, va_list args)
-{ toldString();				/* play safe */
+{ GET_LD
+  toldString();				/* play safe */
 
   if ( truePrologFlag(PLFLAG_REPORT_ERROR) )
-  { if ( !GD->bootsession && GD->initialised &&
+  { fid_t cid = 0;
+
+    if ( !GD->bootsession && GD->initialised &&
 	 !LD->outofstack && 		/* cannot call Prolog */
 	 !fm[0] == '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;
-      fid_t cid   = PL_open_foreign_frame();
-      term_t av   = PL_new_term_refs(2);
-      term_t tail = PL_copy_term_ref(av+1);
-      term_t head = PL_new_term_ref();
+      fid_t cid;
+      term_t av, head, tail;
+
+      if ( !(cid = PL_open_foreign_frame()) )
+	goto nospace;
+      av   = PL_new_term_refs(2);
+      tail = PL_copy_term_ref(av+1);
+      head = PL_new_term_ref();
 
       Svsprintf(message, fm, args);
 
@@ -1427,33 +1426,40 @@ vwarning(const char *fm, va_list args)
       { char *eol = strchr(s, '\n');
 
 	if ( eol )
-	{ PL_unify_list(tail, head, tail);
-	  PL_unify_string_nchars(head, eol-s, s);
+	{ if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_string_nchars(head, eol-s, s) )
+	    goto nospace;
 	  s = eol+1;
 	} else
 	{ if ( *s )
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_string_chars(head, s);
+	  { if ( !PL_unify_list(tail, head, tail) ||
+		 !PL_unify_string_chars(head, s) )
+	      goto nospace;
 	  }
-	  PL_unify_nil(tail);
+	  if ( !PL_unify_nil(tail) )
+	    goto nospace;
 	  break;
 	}
       }
-      PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1);
+      if ( !PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1) )
+	goto nospace;
       PL_put_atom(av, ATOM_error);	/* error? */
 
       PL_call_predicate(NULL, PL_Q_NODEBUG, PROCEDURE_print_message2, av);
       PL_discard_foreign_frame(cid);
     } else
-    { Sfprintf(Suser_error, "ERROR: ");
+    { nospace:
+      if ( cid )
+	PL_discard_foreign_frame(cid);
+      Sfprintf(Suser_error, "ERROR: ");
       Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
-      Pause(0.5);
+      Pause(0.2);
     }
   }
 
   if ( !ReadingSource && truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
     pl_trace();
 
-  PL_fail;
+  return FALSE;
 }

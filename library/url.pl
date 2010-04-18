@@ -879,7 +879,7 @@ percent_encode(C, Extra) -->
 	[C].
 %percent_encode(0' , _) --> !, "+".	% Deprecated: use %20
 percent_encode(C, _) -->
-	{ C =< 128 }, !,
+	{ C =< 127 }, !,
 	percent_byte(C).
 percent_encode(C, _) -->		% Unicode characters
 	{ current_prolog_flag(url_encoding, utf8), !,
@@ -887,7 +887,11 @@ percent_encode(C, _) -->		% Unicode characters
 	},
 	percent_bytes(Bytes).
 percent_encode(C, _) -->
+	{ C =< 255 }, !,
 	percent_byte(C).
+percent_encode(_C, _) -->
+	{ representation_error(url_character)
+	}.
 
 percent_bytes([]) -->
 	"".
@@ -953,7 +957,7 @@ utf8_cont([]) -->
 %	@tbd	Having a global flag is highly inconvenient, but a
 %		work-around for old sites using ISO Latin 1 encoding.
 
-:- set_prolog_flag(url_encoding, utf8).
+:- create_prolog_flag(url_encoding, utf8, [type(atom)]).
 
 set_url_encoding(Old, New) :-
 	current_prolog_flag(url_encoding, Old),

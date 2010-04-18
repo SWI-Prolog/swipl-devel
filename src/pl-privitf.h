@@ -62,12 +62,14 @@ typedef struct list_ctx
 } list_ctx;
 
 static inline void
-addSmallIntList(list_ctx *ctx, int value)
+addSmallIntList__LD(list_ctx *ctx, int value ARG_LD)
 { ctx->gstore[0] = consPtr(&ctx->gstore[1], TAG_COMPOUND|STG_GLOBAL);
   ctx->gstore[1] = FUNCTOR_dot2;
   ctx->gstore[2] = consInt(value);
   ctx->gstore += 3;
 }
+
+#define addSmallIntList(ctx, i) addSmallIntList__LD(ctx, (i) PASS_LD)
 
 COMMON(int)	allocList(size_t maxcells, list_ctx *ctx);
 COMMON(int)	unifyList(term_t term, list_ctx *ctx);

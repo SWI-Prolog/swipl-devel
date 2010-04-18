@@ -73,15 +73,16 @@ ps2gif(In, Out, Options) :-
 	BBW is round(BBW0 * ResX / 72),
 	BBH is round(BBH0 * ResY / 72),
 	gs_command([size(BBW,BBH),tmp(Tmp),res(Res)|Options], Cmd),
-	telling(Old), tell(pipe(Cmd)),
-	format('~w ~w translate ', [BBX, BBY]),
-	format('(~w) run ', InFile),
-	(   EPS == eps
-	->  format('showpage ')
-	;   true
-	),
-	format('quit~n'),
-	told, tell(Old),
+	setup_call_cleanup(open(pipe(Cmd), write, Pipe),
+			   (   format(Pipe, '~w ~w translate ', [BBX, BBY]),
+			       format(Pipe, '(~w) run ', InFile),
+			       (   EPS == eps
+			       ->  format(Pipe, 'showpage ', [])
+			       ;   true
+			       ),
+			       format(Pipe, 'quit~n', [])
+			   ),
+			   close(Pipe)),
 	(   exists_file(Tmp)
 	->  ppm2gif(Tmp, Out, Options),
 	    delete_file(Tmp)
@@ -89,14 +90,16 @@ ps2gif(In, Out, Options) :-
 	    format(user_error,
 		   'No output from ~w, Trying again with showpage~n',
 		   [InFile]),
-	    telling(Old), tell(pipe(Cmd)),
-	    format('~w ~w translate ', [BBX, BBY]),
-	    format('(~w) run ', InFile),
-	    format('showpage '),
-	    format('quit~n'),
-	    told, tell(Old),
+	    setup_call_cleanup(open(pipe(Cmd), write, Pipe),
+			       (   format(Pipe, '~w ~w translate ', [BBX, BBY]),
+				   format(Pipe, '(~w) run ', InFile),
+				   format(Pipe, 'showpage ', []),
+				   format(Pipe, 'quit~n', [])
+			       ),
+			       close(Pipe)),
 	    ppm2gif(Tmp, Out, Options)
 	).
+
 
 ppm2gif(Tmp, Out, Options) :-
 	(   get_option(Options, margin(B))

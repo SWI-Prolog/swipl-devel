@@ -210,11 +210,31 @@ span.search-help
 { padding-left: 1em;
 }
 
+div.synopsis
+{ text-align: right;
+  margin-top: 15pt;
+  margin-bottom: 5pt;
+}
+
+span.synopsis-hdr
+{ font-weight: bold;
+  padding-right: 1ex;
+}
+
+div.synopsis code
+{ background-color: #e0e0e0;
+}
+
+span.autoload, span.builtin, span.cfunc
+{ margin-left: 5pt;
+  font-style: italic;
+}
+
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text { display: none; }
 sup.fn span {display: none;}
-sup:hover span 
+sup:hover span
 { display: block !important;
   position: absolute; top: auto; left: auto; width: 80%;
   color: #000; background: white;
@@ -224,7 +244,7 @@ sup:hover span
 }
 
 span.sec-nr
-{ 
+{
 }
 
 span.sec-title

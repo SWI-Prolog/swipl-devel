@@ -1,0 +1,18 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+PLBASE=${libdir}/@PL@-@PLVERSION@
+PLARCH=@ARCH@
+PLLIBS=@LNLIBS@
+PLLIB=@USEPLLIB@
+PLCFLAGS=@CMFLAGS@ @CIFLAGS@
+PLLDFLAGS=@LDFLAGS@
+PLSOEXT=@SO_EXT@
+
+Name: pl
+Description: ISO/Edinburgh-style Prolog compiler
+Version: @PLVERSION@
+Libs: -L${libdir}/@PL@-@PLVERSION@/lib/@ARCH@ -lswipl
+Cflags: -I${includedir}

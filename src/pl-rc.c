@@ -85,7 +85,8 @@ Connection between the resource library and SWI-Prolog, C-part.
 
 static int
 get_rc(term_t handle, RcArchive *a)
-{ void *p;
+{ GET_LD
+  void *p;
 
   if ( PL_get_pointer(handle, &p) )
   { *a = p;
@@ -100,7 +101,9 @@ get_rc(term_t handle, RcArchive *a)
 
 foreign_t
 pl_rc_handle(term_t h)
-{ if ( GD->resourceDB )
+{ GET_LD
+
+  if ( GD->resourceDB )
     return PL_unify_pointer(h, GD->resourceDB);
 
   return FALSE;
@@ -111,7 +114,8 @@ foreign_t
 pl_rc_open(term_t rc_h,
 	   term_t name, term_t class, term_t rw,
 	   term_t handle)
-{ char *n, *c = NULL;
+{ GET_LD
+  char *n, *c;
   RcArchive rc = NULL;
   atom_t how;
   int flags = 0, sflags = 0;		/* compiler isn't smart enough */
@@ -133,7 +137,8 @@ pl_rc_open(term_t rc_h,
   if ( PL_get_chars_ex(name, &n, CVT_ALL) )
   { RcObject o;
 
-    PL_get_chars(class, &c, CVT_ALL);
+    if ( !PL_get_chars(class, &c, CVT_ALL) )
+      c = NULL;
 
     if ( (o = rc_open(rc, n, c, flags)) )
     { IOSTREAM *stream;
@@ -173,7 +178,9 @@ pl_rc_open_archive(term_t file, term_t handle)
   { RcArchive a = rc_open_archive(name, RC_RDWR|RC_CREATE);
 
     if ( a )
+    { GET_LD
       return PL_unify_pointer(handle, a);
+    }
   }
 
   return FALSE;
@@ -196,7 +203,8 @@ pl_rc_close_archive(term_t rc_h)
 
 foreign_t
 pl_rc_save_archive(term_t rc_h, term_t to)
-{ RcArchive rc = NULL;
+{ GET_LD
+  RcArchive rc = NULL;
   char *file;
 
   if ( !get_rc(rc_h, &rc) )
@@ -206,8 +214,9 @@ pl_rc_save_archive(term_t rc_h, term_t to)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_file_name, to);
 
   if ( rc_save_archive(rc, file) )
-  { if ( PL_is_variable(to) )
-      PL_unify_atom_chars(to, rc->path);
+  { if ( PL_is_variable(to) &&
+	 !PL_unify_atom_chars(to, rc->path) )
+      return FALSE;			/* resource error */
 
     return TRUE;
   }
@@ -253,7 +262,8 @@ $rc_members(+RCHandle, -ListOfMembers)
 
 foreign_t
 pl_rc_members(term_t rc_h, term_t members)
-{ RcArchive rc = NULL;
+{ GET_LD
+  RcArchive rc = NULL;
   RcMember m;
   functor_t f;
   term_t tail = PL_copy_term_ref(members);

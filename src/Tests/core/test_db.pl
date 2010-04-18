@@ -31,19 +31,34 @@
 */
 
 test_db :-
-	run_tests([ assert2,
-		    dynamic
+	run_tests([ assert,
+		    dynamic,
+		    res_compiler
 		  ]).
 
-:- begin_tests(assert2).
+:- begin_tests(assert).
 
 :- dynamic
-	term/0.
+	term/0,
+	f/1, f/2.
 
-test(bound, error(_)) :-
-	assert(term,noref).
+test(right_cyclic_head, [ sto(rational_trees),
+			  error(representation_error(cyclic_term))
+			]) :-
+	X = f(X),
+	assert(X).
+test(cyclic_head, [ sto(rational_trees),
+			  error(representation_error(cyclic_term))
+			]) :-
+	X = f(X, 1),
+	assert(X).
+test(cyclic_body, [ sto(rational_trees),
+		    error(representation_error(cyclic_term))
+		  ]) :-
+	X = f(X),
+	assert((f(a) :- X)).
 
-:- end_tests(assert2).
+:- end_tests(assert).
 
 :- begin_tests(dynamic).
 
@@ -55,3 +70,30 @@ test(make_dynamic, [true, cleanup(abolish(Name, 1))]) :-
 	Term.
 
 :- end_tests(dynamic).
+
+:- begin_tests(res_compiler).
+
+:- dynamic
+        tmp/2.
+
+test_big_clause(N) :-
+        link_clause(N, V0, V, Body),
+        retractall(tmp(_,_)),
+        Clause = (tmp(V0, V) :- Body),
+        assert(Clause, Ref),
+        tmp(0, X),
+        erase(Ref),
+        assertion(X == N).
+
+link_clause(1, V0, V, succ(V0, V)) :- !.
+link_clause(N, V0, V, (succ(V0, V1), G)) :-
+        N2 is N - 1,
+        link_clause(N2, V1, V, G).
+
+test(big_clause,
+     [ true,
+       cleanup(trim_stacks)
+     ]) :-
+	test_big_clause(60000).
+
+:- end_tests(res_compiler).

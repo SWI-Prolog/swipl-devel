@@ -1,16 +1,14 @@
-Installing from GIT/CVS
+Installing from GIT
 -----------------------
 
-Last update: Jun 28, 2009
+Last update: Mar 22, 2010
 
 GIT (git.or.cz/) is the  recommended  way   to  track  the  development,
 especially if you plan to maintain a  modified version or want to submit
 patches.
 
 To start working,  get  GIT  for  your   platform.  We  use  msysGit  in
-MS-Windows. GIT is under  heavy  development   (don't  worry,  the  core
-appears very stable), so  make  sure  to   have  a  recent  version.  In
-particular SWI-Prolog used git modules, introduced in version 1.5.3.
+MS-Windows.
 
 Downloading
 ===========
@@ -18,12 +16,13 @@ Downloading
 Next, get the SWI-Prolog git. This  takes   a  while the first time, but
 subsequent updates will be fast:
 
-	% git clone git://www.swi-prolog.org/home/pl/git/pl-57x.git
+	% git clone git://www.swi-prolog.org/home/pl/git/pl-devel.git
 
-If you have the poor luck that you are behind a firewall, you can almost
-certainly use this alternative.  Note however that this is much slower.
+If you have the poor luck that  you   are  behind a firewall that blocks
+GIT's  default  port  (9418),  you  can    almost   certainly  use  this
+alternative. Note however that this is much slower.
 
-	% git clone http://www.swi-prolog.org/home/pl/git/pl-57x.git
+	% git clone http://www.swi-prolog.org/home/pl/git/pl-devel.git
 
 Building
 ========
@@ -38,9 +37,12 @@ prepare performs three steps:
 	* Optionally download the manuals (requires curl)
 
 Please run prepare as below after initial download or updating using git
-pull:
+pull. By default, it only  pulls  those   packages  that  appear  in the
+default binary distribution.  Using  -all,   it  also  pulls  additional
+packages, such as the space  (spatial   indexing)  and utf8proc (Unicode
+properties and conversions).
 
-	% ./prepare
+	% ./prepare [-all]
 
 Next, continue as described in INSTALL
 
@@ -83,7 +85,7 @@ If you made no branches and patches, you update to the latest using
 
 	% git pull
 	% make distclean
-	<optionally get new documentation archive and unpack>
+	% ./prepare [--all]
 	% ./build 	(see using of the build script in INSTALL.notes)
 
 If you have patches, this is slightly  more difficult. You can keep your

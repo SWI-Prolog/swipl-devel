@@ -90,7 +90,6 @@ variable(source,	'name|emacs_buffer*', get, "Currently shown source").
 
 initialise(V) :->
 	send(V, send_super, initialise),
-	send(V, reuse, @off),		% donot share in the pool
 	send(V, mode, prolog_debug),
 	send(V, margin_width, 22),
 	forall(style(Name, Style), send(V, style, Name, Style)),

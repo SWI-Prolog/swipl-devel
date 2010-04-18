@@ -256,7 +256,7 @@ need_retry(int error)
 #ifdef O_DEBUG
 static int debugging;
 
-int
+NBIO_EXPORT(int)
 nbio_debug(int level)
 { int old = debugging;
 
@@ -1201,7 +1201,7 @@ nbio_to_plsocket(nbio_sock_t socket)
 }
 
 
-SOCKET
+NBIO_EXPORT(SOCKET)
 nbio_fd(nbio_sock_t socket)
 { plsocket *p;
 
@@ -1462,6 +1462,9 @@ nbio_error(int code, nbio_error_map mapid)
   term_t except = PL_new_term_ref();
   error_codes *map;
 
+  if ( code == EPLEXCEPTION )
+    return FALSE;
+
   switch( mapid )
   { case TCP_HERRNO:
       map = h_errno_codes;
@@ -1492,11 +1495,12 @@ nbio_error(int code, nbio_error_map mapid)
     msg = strerror(code);
 #endif /*__WINDOWS__*/
 
-  PL_unify_term(except,
-		CompoundArg("error", 2),
-		  CompoundArg("socket_error", 1),
-		    AtomArg(msg),
-		  PL_VARIABLE);
+  if ( !PL_unify_term(except,
+		      CompoundArg("error", 2),
+		        CompoundArg("socket_error", 1),
+		          AtomArg(msg),
+		        PL_VARIABLE) )
+    return FALSE;
   }
 
   return PL_raise_exception(except);
@@ -1524,7 +1528,7 @@ nbio_last_error(nbio_sock_t socket)
 		 *	  INITIALISATION	*
 		 *******************************/
 
-int
+NBIO_EXPORT(int)
 nbio_init(const char *module)
 { INITLOCK();				/* is this ok? */
 
@@ -1567,7 +1571,7 @@ nbio_init(const char *module)
 }
 
 
-int
+NBIO_EXPORT(int)
 nbio_cleanup(void)
 { if ( initialised )
   {
@@ -1586,7 +1590,7 @@ socket(-Socket)
     the format $socket(Id).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-nbio_sock_t
+NBIO_EXPORT(nbio_sock_t)
 nbio_socket(int domain, int type, int protocol)
 { SOCKET sock;
   plsocket *s;
@@ -1597,7 +1601,6 @@ nbio_socket(int domain, int type, int protocol)
   { nbio_error(errno, TCP_ERRNO);
     return -1;
   }
-
   if ( !(s=allocSocket(sock)) )		/* register it */
   { closesocket(sock);
     return -1;
@@ -1612,7 +1615,7 @@ nbio_socket(int domain, int type, int protocol)
 }
 
 
-int
+NBIO_EXPORT(int)
 nbio_closesocket(nbio_sock_t socket)
 { plsocket *s;
 
@@ -1647,7 +1650,7 @@ nbio_closesocket(nbio_sock_t socket)
   return 0;
 }
 
-int
+NBIO_EXPORT(int)
 nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 { plsocket *s;
   va_list args;
@@ -1802,7 +1805,7 @@ nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
   { char *hostName;
     term_t arg = PL_new_term_ref();
 
-    PL_get_arg(1, Address, arg);
+    _PL_get_arg(1, Address, arg);
     if ( PL_get_atom_chars(arg, &hostName) )
     { struct hostent *host;
 
@@ -1815,7 +1818,7 @@ nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
     { return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "atom|ip/4");
     }
 
-    PL_get_arg(2, Address, arg);
+    _PL_get_arg(2, Address, arg);
     if ( !nbio_get_port(arg, &port) )
       return FALSE;
   } else if ( PL_is_variable(Address) )
@@ -1838,7 +1841,7 @@ nbio_get_ip(term_t ip4, struct in_addr *ip)
     term_t a = PL_new_term_ref();
 
     for(i=1; i<=4; i++)
-    { PL_get_arg(i, ip4, a);
+    { _PL_get_arg(i, ip4, a);
       if ( PL_get_integer(a, &ia) )
 	hip |= ia << ((4-i)*8);
       else
@@ -1852,7 +1855,7 @@ nbio_get_ip(term_t ip4, struct in_addr *ip)
   { term_t a = PL_new_term_ref();
     atom_t id;
 
-    PL_get_arg(1, ip4, a);
+    _PL_get_arg(1, ip4, a);
     if ( PL_get_atom(a, &id) )
     { if ( id == ATOM_any )
 	ip->s_addr = INADDR_ANY;

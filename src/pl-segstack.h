@@ -50,7 +50,10 @@ typedef struct
 COMMON(void)	initSegStack(segstack *stack, size_t unit_size,
 			     size_t len, void *data);
 COMMON(int)	pushSegStack(segstack *stack, void* data);
+COMMON(int)	pushRecordSegStack(segstack *stack, Record r);
 COMMON(int)	popSegStack(segstack *stack, void *data);
+COMMON(void*)	topOfSegStack(segstack *stack);
+COMMON(void)	popTopOfSegStack(segstack *stack);
 COMMON(void)	scanSegStack(segstack *s, void (*func)(void *cell));
 COMMON(void)	clearSegStack(segstack *s);
 

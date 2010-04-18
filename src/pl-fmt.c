@@ -228,7 +228,8 @@ pl_format_predicate(term_t chr, term_t descr)
 
 word
 pl_current_format_predicate(term_t chr, term_t descr, control_t h)
-{ Symbol s = NULL;
+{ GET_LD
+  Symbol s = NULL;
   TableEnum e;
   fid_t fid;
 
@@ -248,16 +249,22 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { freeTableEnum(e);
+    return FALSE;
+  }
   while( (s=advanceTableEnum(e)) )
   { if ( PL_unify_integer(chr, (intptr_t)s->name) &&
-	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
-    { ForeignRedoPtr(e);
+	 unify_definition(contextModule(LD->environment),
+			  descr, ((Procedure)s->value)->definition, 0, 0) )
+    { PL_close_foreign_frame(fid);
+      ForeignRedoPtr(e);
     }
 
     PL_rewind_foreign_frame(fid);
   }
 
+  PL_close_foreign_frame(fid);
   freeTableEnum(e);
   fail;
 }
@@ -265,7 +272,8 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 static word
 format_impl(IOSTREAM *out, term_t format, term_t Args)
-{ term_t argv;
+{ GET_LD
+  term_t argv;
   int argc = 0;
   term_t args = PL_copy_term_ref(Args);
   int rval;
@@ -312,18 +320,12 @@ pl_format3(term_t out, term_t format, term_t args)
 { redir_context ctx;
   word rc;
 
-  EXCEPTION_GUARDED(/*code*/
-		    if ( setupOutputRedirect(out, &ctx, FALSE) )
-		    { if ( (rc = format_impl(ctx.stream, format, args)) )
-			rc = closeOutputRedirect(&ctx);
-		      else
-			discardOutputRedirect(&ctx);
-		    } else
-		      rc = FALSE;
-		    /*cleanup*/,
-		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
-		    discardOutputRedirect(&ctx);
-		    rc = PL_rethrow(););
+  if ( (rc=setupOutputRedirect(out, &ctx, FALSE)) )
+  { if ( (rc = format_impl(ctx.stream, format, args)) )
+      rc = closeOutputRedirect(&ctx);
+    else
+      discardOutputRedirect(&ctx);
+  }
 
   return rc;
 }
@@ -355,7 +357,8 @@ get_chr_from_text(const PL_chars_t *t, int index)
 
 static bool
 do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
-{ format_state state;			/* complete state */
+{ GET_LD
+  format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
   Symbol s;
   unsigned int here = 0;
@@ -417,7 +420,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    char *str = buf;
 	    size_t bufsize = BUFSIZE;
 	    unsigned int i;
-	    qid_t qid;
+	    int rc;
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
@@ -431,11 +434,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    }
 
 	    tellString(&str, &bufsize, ENC_UTF8);
-	    qid = PL_open_query(proc->definition->module, PL_Q_NODEBUG,
-				proc, av);
-	    PL_next_solution(qid);
-	    PL_close_query(qid);
+	    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, proc, av);
 	    toldString();
+	    if ( !rc )
+	      return FALSE;
 	    oututf8(&state, str, bufsize);
 	    if ( str != buf )
 	      free(str);
@@ -539,7 +541,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) )
+		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) &&
+		       !PL_get_text(argv, &txt, CVT_ATOM) ) /* SICStus compat */
 		    FMT_ARG("s", argv);
 		  outtext(&state, &txt);
 		  SHIFT;

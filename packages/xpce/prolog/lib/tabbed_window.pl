@@ -59,6 +59,8 @@ initialise(W, Label:label=[name], Size:size=[size],
 	send_super(W, initialise, Label, Size, Display),
 	send(W, hor_stretch, 100),
 	send(W, ver_stretch, 100),
+	send(W, hor_shrink, 100),
+	send(W, ver_shrink, 100),
 	send(W, pen, 0),
 	send(W, border, size(0,0)),
 	send_super(W, append, new(tab_stack)).
@@ -85,13 +87,33 @@ layout_dialog(W, _Gap:[size], _Size:[size], _Border:[size]) :->
 
 :- pce_group(stack).
 
-on_top(W, Name:name) :->
-	"Put the named tab on top"::
+on_top(W, Top:'name|window') :->
+	"Put the named tab or tab containing Window on top"::
 	get_super(W, member, tab_stack, TS),
-	(   get(TS, member, Name, Tab)
+	(   atom(Top)
+	->  (   get(TS, member, Top, Tab)
+	    ->  send(TS, on_top, Tab)
+	    ;   get(W, hypered, tab, @arg3?name == Top, Window)
+	    ->  send(Window, expose)
+	    )
+	;   get(Top, container, window_tab, Tab)
 	->  send(TS, on_top, Tab)
-	;   get(W, hypered, tab, @arg3?name == Name, Window)
-	->  send(Window, expose)
+	).
+
+
+current(W, Window:window) :<-
+	"Window of currently selected tab"::
+	get_super(W, member, tab_stack, TS),
+	get(TS, on_top, Tab),
+	get(Tab, window, Window).
+
+current(W, Window:window) :->
+	"Window of currently selected tab"::
+	get(Window, container, window_tab, Tab),
+	(   get(Tab, status, on_top)
+	->  send(W, resize, Tab)
+	;   get_super(W, member, tab_stack, TS),
+	    send(TS, on_top, Tab)
 	).
 
 :- pce_group(members).
@@ -153,6 +175,17 @@ tab(W, Name:name, Tab:tab) :<-
 	get_super(W, member, tab_stack, TS),
 	get(TS, member, Name, Tab).
 
+empty(_W) :->
+	"Abstract method.  Called if last window disappears"::
+	true.
+
+:- pce_group(frame).
+
+frame_window(TW, Window:window, Name:name, Rank:'1..', Frame:frame) :<-
+	"After un-tabbing, give the window a new frame"::
+	new(Frame, window_tab_frame(Window, Name, Rank)),
+	new(_, partof_hyper(TW, Window, toplevel, tab)).
+
 :- pce_end_class(tabbed_window).
 
 
@@ -197,6 +230,19 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 	send(T, slot, window, W),
 	new(_, mutual_dependency_hyper(T, W, window, tab)).
 
+unlink(Tab) :->
+	"Trap if I'm the last tab"::
+	(   get(Tab, device, Dev),
+	    Dev \== @nil
+	->  get(Dev?graphicals, size, Count),
+	    (   Count == 1
+	    ->  get(Tab, container, tabbed_window, TabbedWindow),
+		send_super(Tab, unlink),
+		send(TabbedWindow, empty)
+	    ;   send_super(Tab, unlink)
+	    )
+	;   send_super(Tab, unlink)
+	).
 
 :- pce_group(resize).
 
@@ -233,7 +279,7 @@ status(T, Status:{on_top,hidden}) :->
 	(   Status == on_top,
 	    get(T, is_displayed, @on),
 	    get(T, container, tabbed_window, TabbedWindow)
-	->  send(TabbedWindow, resize, T)
+	->  send(TabbedWindow, current, T?window)
 	;   true
 	).
 
@@ -309,12 +355,12 @@ untab(Tab) :->
 	get(Tab, container, dialog, TabbedWindow),
 	get(Tab, display_position, point(X, Y)),
 	get(Tab, untab, Window),
-	send(new(window_tab_frame(Window, Name, Rank)), open, point(X, Y+20)),
-	new(_, partof_hyper(TabbedWindow, Window, toplevel, tab)).
+	get(TabbedWindow, frame_window, Window, Name, Rank, Frame),
+	send(Frame, open, point(X, Y+20)).
 
 %	->close_other_tabs
 %
-%	Close all tabs but be. To work   around scheduled resize for the
+%	Close all tabs but me. To work   around scheduled resize for the
 %	subwindows we first indicate we are about to close the tabs. See
 %	also ->size.
 

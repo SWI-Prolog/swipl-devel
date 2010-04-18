@@ -24,12 +24,14 @@
 
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
+#undef LD
+#define LD LOCAL_LD
 
 static inline code
 fetchop(Code PC)
 { code op = decode(*PC);
 
-  if ( op == D_BREAK )
+  if ( unlikely(op == D_BREAK) )
     op = decode(replacedBreak(PC));
 
   return op;
@@ -40,10 +42,58 @@ static inline Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
 
-  if ( codeTable[op].arguments == VM_DYNARGC )
+  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
     return stepDynPC(PC, &codeTable[op]);
   else
     return PC + codeTable[op].arguments;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
+value need not be trailed.
+
+Note that the local stack is always _above_ the global stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+Trail__LD(Word p, word v ARG_LD)
+{ SECURE(assert(tTop+1 <= tMax));
+
+  if ( p >= (Word)lBase || p < LD->mark_bar )
+    (tTop++)->address = p;
+  *p = v;
+}
+
+
+static inline void
+bindConst__LD(Word p, word c ARG_LD)
+{ SECURE(assert(hasGlobalSpace(0)));
+
+#ifdef O_ATTVAR
+  if ( isVar(*p) )
+  { *p = (c);
+    if ( p >= (Word)lBase || p < LD->mark_bar )
+      (tTop++)->address = p;
+  } else
+  { assignAttVar(p, &(c) PASS_LD);
+  }
+#else
+  *p = (c);
+  if ( p >= (Word)lBase || p < LD->mark_bar )
+    (tTop++)->address = p;
+#endif
+}
+
+
+static inline word
+consPtr__LD(void *p, word ts ARG_LD)
+{ uintptr_t v = (uintptr_t) p;
+
+  v -= LD->bases[ts&STG_MASK];
+  SECURE(assert(v < MAXTAGGEDPTR && !(v&0x3)));
+  return (v<<5)|ts;
+}
+
 
 #endif /*PL_INLINE_H_INCLUDED*/

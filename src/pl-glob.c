@@ -116,7 +116,9 @@ static bool	match_pattern(matchcode *, char *);
 
 static inline void
 setMap(matchcode *map, int c)
-{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
+{ GET_LD
+
+  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     c = makeLower(c);
 
   map[(c)/8] |= 1 << ((c) % 8);
@@ -238,10 +240,13 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
+      { GET_LD
+
         if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	  c = makeLower(c);
 	Output(c);
 	continue;
+      }
     }
 
     Output(EXIT);
@@ -271,7 +276,8 @@ match_pattern(matchcode *p, char *str)
 	  s++;
 	  continue;
       case ANYOF:					/* [...] */
-        { matchcode c2 = *s;
+        { GET_LD
+	  matchcode c2 = *s;
 
 	  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
 	    c2 = makeLower(c2);
@@ -298,31 +304,37 @@ match_pattern(matchcode *p, char *str)
 	  p += *p;
 	  continue;
       default:						/* character */
+      { GET_LD
+
 	  if ( c == *s ||
 	       (!truePrologFlag(PLFLAG_FILE_CASE) && c == makeLower(*s)) )
 	  { s++;
 	    continue;
 	  }
           fail;
+      }
     }
   }
 }
 
 
-word
-pl_wildcard_match(term_t pattern, term_t string)
+/** wildcard_match(+Pattern, +Name) is semidet.
+*/
+
+static
+PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
 { char *p, *s;
   compiled_pattern buf;
 
-  if ( !PL_get_chars_ex(pattern, &p, CVT_ALL) ||
-       !PL_get_chars_ex(string,  &s, CVT_ALL) )
+  if ( !PL_get_chars_ex(A1, &p, CVT_ALL) ||
+       !PL_get_chars_ex(A2,  &s, CVT_ALL) )
     fail;
 
   if ( compilePattern(p, &buf) )
   { return matchPattern(s, &buf);
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_pattern, pattern);
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pattern, A1);
 }
 
 
@@ -530,7 +542,8 @@ expand(const char *pattern, GlobInfo info)
 
 static int
 compareBagEntries(const void *a1, const void *a2)
-{ GlobInfo info = LD->glob_info;
+{ GET_LD
+  GlobInfo info = LD->glob_info;
   int i1 = *(int *)a1;
   int i2 = *(int *)a2;
   const char *s1, *s2;
@@ -547,7 +560,8 @@ compareBagEntries(const void *a1, const void *a2)
 
 static void
 sort_expand(GlobInfo info)
-{ int *ip = &fetchBuffer(&info->files, info->start, int);
+{ GET_LD
+  int *ip = &fetchBuffer(&info->files, info->start, int);
   int is = info->end - info->start;
 
   LD->glob_info = info;
@@ -555,20 +569,21 @@ sort_expand(GlobInfo info)
 }
 
 
-word
-pl_expand_file_name(term_t f, term_t list)
-{ char spec[MAXPATHLEN];
+static
+PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
+{ PRED_LD
+  char spec[MAXPATHLEN];
   char *s;
   glob_info info;
-  term_t l    = PL_copy_term_ref(list);
+  term_t l    = PL_copy_term_ref(A2);
   term_t head = PL_new_term_ref();
   int i;
 
-  if ( !PL_get_chars_ex(f, &s, CVT_ALL|REP_FN) )
+  if ( !PL_get_chars_ex(A1, &s, CVT_ALL|REP_FN) )
     fail;
   if ( strlen(s) > sizeof(spec)-1 )
     return PL_error(NULL, 0, "File name too intptr_t",
-		    ERR_DOMAIN, ATOM_pattern, f);
+		    ERR_DOMAIN, ATOM_pattern, A1);
 
   if ( !expandVars(s, spec, sizeof(spec)) )
     fail;
@@ -593,3 +608,52 @@ pl_expand_file_name(term_t f, term_t list)
   free_expand_info(&info);
   succeed;
 }
+
+
+/** directory_files(+Dir, -Files) is det.
+
+Files is a list of atoms that describe the entries in Dir.
+*/
+
+static
+PRED_IMPL("directory_files", 2, directory_files, 0)
+{ PRED_LD
+  char *dname;
+  DIR *dir;
+
+  if ( !PL_get_file_name(A1, &dname, PL_FILE_READ|PL_FILE_OSPATH) )
+    return FALSE;
+
+  if ( (dir=opendir(dname)) )
+  { struct dirent *e;
+    term_t tail = PL_copy_term_ref(A2);
+    term_t head = PL_new_term_ref();
+
+    for(e=readdir(dir); e; e = readdir(dir))
+    { PL_put_variable(head);
+      if ( PL_handle_signals() < 0 ||
+	   !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, e->d_name) )
+      { closedir(dir);
+	return FALSE;
+      }
+    }
+    closedir(dir);
+
+    return PL_unify_nil(tail);
+  }
+
+  return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		  ATOM_open, ATOM_directory, A1);
+}
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(glob)
+  PRED_DEF("expand_file_name", 2, expand_file_name, 0)
+  PRED_DEF("wildcard_match",   2, wildcard_match,   0)
+  PRED_DEF("directory_files",  2, directory_files,  0)
+EndPredDefs

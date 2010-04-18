@@ -232,7 +232,7 @@ pl_http_chunked_open(term_t org, term_t new, term_t options)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
 
     if ( name == ATOM_max_chunk_size )
     { if ( !get_int_ex(arg, &max_chunk_size) )

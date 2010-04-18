@@ -28,7 +28,8 @@ test(N) :-
 		   thread_send_message(Q, A)
 	       )),
 	thread_join(Id, Exit),
-	assertion(Exit == true).
+	assertion(Exit == true),
+	message_queue_destroy(Q).
 
 eat(Q, I, N) :-
 	thread_get_message(Q, A),

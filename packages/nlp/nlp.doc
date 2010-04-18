@@ -66,7 +66,7 @@ the Perl license is compatible to the SWI-Prolog license schema and
 therefore including this module poses no additional license conditions.
 
 \begin{quote}
-Copyright 2000, Maurice Aubrey <maurice@hevanet.com>. 
+Copyright 2000, Maurice Aubrey <maurice@hevanet.com>.
 All rights reserved.
 
 This code is based heavily on the C++ implementation by Lawrence Philips
@@ -128,6 +128,7 @@ modified by Jan Wielemaker. He removed all global variables to make the
 code thread-safe, added the unaccent and tokenize code and created the
 SWI-Prolog binding.
 
+\input{snowball.tex}
 
 \section{Installation}
 

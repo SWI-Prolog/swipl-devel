@@ -77,7 +77,11 @@ expects_dialect(Dialect) :-
 attach_dialect(Dialect) :-
 	exists_source(library(dialect/Dialect)), !,
 	prolog_load_context(module, Module),
-	use_module(Module:library(dialect/Dialect)).
+	use_module(Module:library(dialect/Dialect)),
+	(   current_predicate(Dialect:setup_dialect/0)
+	->  Dialect:setup_dialect
+	;   true
+	).
 attach_dialect(_).
 
 

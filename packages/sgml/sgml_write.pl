@@ -238,7 +238,9 @@ emit_xml_encoding(Out, Options) :-
 	option(header(Hdr), Options, true),
 	Hdr == true, !,
 	stream_property(Out, encoding(Encoding)),
-	(   Encoding == utf8
+	(   (   Encoding == utf8
+	    ;	Encoding == wchar_t
+	    )
 	->  format(Out, '<?xml version="1.0" encoding="UTF-8"?>~n~n', [])
 	;   Encoding == iso_latin_1
 	->  format(Out, '<?xml version="1.0" encoding="ISO-8859-1"?>~n~n', [])
@@ -298,6 +300,9 @@ emit([], _, _) :- !.
 emit([H|T], Out, State) :- !,
 	emit(H, Out, State),
 	emit(T, Out, State).
+emit(CDATA, Out, State) :-
+	atom(CDATA), !,
+	sgml_write_content(Out, CDATA, State).
 emit(Element, Out, State) :-
 	\+ \+ emit_element(Element, Out, State).
 
@@ -571,6 +576,7 @@ generate_ns(_, NS) :-
 	rdf_db:ns/2.
 
 default_ns('http://www.w3.org/2001/XMLSchema-instance', xsi).
+default_ns('http://www.w3.org/1999/xhtml', xhtml).
 default_ns(URI, NS) :-
 	rdf_db:ns(NS, URI).
 
@@ -650,7 +656,8 @@ writeq([H|T], Out, Escape, EntityMap) :-
 	(   memberchk(H, Escape)
 	->  write_entity(H, Out, EntityMap)
 	;   H >= 256
-	->  (   stream_property(Out, encoding(utf8))
+	->  (   stream_property(Out, encoding(Enc)),
+		unicode_encoding(Enc)
 	    ->	put_code(Out, H)
 	    ;	write_entity(H, Out, EntityMap)
 	    )
@@ -658,6 +665,10 @@ writeq([H|T], Out, Escape, EntityMap) :-
 	),
 	writeq(T, Out, Escape, EntityMap).
 
+unicode_encoding(utf8).
+unicode_encoding(wchar_t).
+unicode_encoding(unicode_le).
+unicode_encoding(unicode_be).
 
 write_entity(Code, Out, EntityMap) :-
 	(   get_assoc(Code, EntityMap, EntityName)

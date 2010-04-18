@@ -45,6 +45,8 @@ pldoc_loading.
 user:file_search_path(pldoc, library(pldoc)).
 user:file_search_path(package_documentation, swi('doc/packages')).
 
+:- create_prolog_flag(pldoc_collecting, false, []).
+
 doc_collect(OnOff) :-
 	set_prolog_flag(pldoc_collecting, OnOff).
 

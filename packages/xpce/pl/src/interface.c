@@ -73,13 +73,13 @@
 #endif
 
 #ifdef __GNUC__
-#define TermVector(name, size)  Term name[size]
+#define TermVector(name, size)  term_t name[size]
 #define ObjectVector(name, size) PceObject name[size]
 #else
 #define TermVector(name, size) \
-	Term *name = (Term *) alloca(size * sizeof(Term))
+	term_t *name = (term_t *) alloca(size * sizeof(term_t))
 #define ObjectVector(name, size) \
-	PceObject *name = (PceObject *) alloca(size * sizeof(Term))
+	PceObject *name = (PceObject *) alloca(size * sizeof(term_t))
 #endif
 
 #ifndef TRUE
@@ -91,7 +91,7 @@
 #define EOS '\0'
 #endif
 
-#define NULLATOM ((Atom)0)
+#define NULLATOM ((atom_t)0)
 
 #define ARG_ERROR	0
 #define ARG_OK		1
@@ -113,22 +113,20 @@ typedef void (*OnExitFunction)(void);	/* HOST_ONEXIT function */
 #ifdef SICSTUS
 #include <sicstus/sicstus.h>
 
-typedef unsigned long	Atom;
-typedef SP_term_ref	Term;
+typedef unsigned long	atom_t;
+typedef SP_term_ref	term_t;
 typedef int		foreign_t;
-typedef Atom		Module;
+typedef atom_t		Module;
 typedef SP_pred_ref	Predicate;
 typedef SP_term_ref	Fid;
 
 #define AtomFromString(s)	SP_atom_from_string(s)
 #define ModuleFromAtom(a)	((Module) (a))
-#define ModuleName(m)		((Atom) (m))
+#define ModuleName(m)		((atom_t) (m))
 #endif /*SICSTUS*/
 
 #ifdef SWI
 
-typedef atom_t		Atom;
-typedef term_t		Term;
 typedef record_t	Record;
 typedef module_t	Module;
 typedef predicate_t	Predicate;
@@ -152,15 +150,15 @@ typedef struct
 		 *	    PROTOTYPES		*
 		 *******************************/
 
-static PceObject	termToObject(Term t, PceType type,
-				     Atom assoc, int new);
+static PceObject	termToObject(term_t t, PceType type,
+				     atom_t assoc, int new);
 static prolog_call_data *get_pcd(PceObject method);
-static void		put_object(Term t, PceObject obj);
-static void		put_trace_info(term_t id, prolog_call_data *pm);
-       foreign_t	pl_pce_init(Term a);
+static int		put_object(term_t t, PceObject obj);
+static int		put_trace_info(term_t id, prolog_call_data *pm);
+       foreign_t	pl_pce_init(term_t a);
 static Module		pceContextModule();
 static void		makeClassProlog();
-static Term		getTermHandle(PceObject hd);
+static term_t		getTermHandle(PceObject hd);
 static PceType		cToPceType(const char *name);
 
 
@@ -182,52 +180,52 @@ static PceObject DefaultContext;	/* Executing context */
 		 *	     CONSTANTS		*
 		 *******************************/
 
-static Atom ATOM_append;		/* "append" */
-static Atom ATOM_argument;		/* "argument" */
-static Atom ATOM_argument_count;	/* "argument_count" */
-static Atom ATOM_assign;		/* ":=" */
-static Atom ATOM_badIntegerReference;	/* "bad_integer_reference" */
-static Atom ATOM_badList;		/* "bad_list" */
-static Atom ATOM_badObjectDescription;	/* "bad_object_description" */
-static Atom ATOM_badReference;		/* "bad_reference" */
-static Atom ATOM_badSelector;		/* "bad_selector" */
-static Atom ATOM_badStringArgument;	/* "bad_string_argument" */
-static Atom ATOM_behaviour;		/* "behaviour" */
-static Atom ATOM_context;		/* "context" */
-static Atom ATOM_default;		/* "default" */
-static Atom ATOM_dot;			/* "." */
-static Atom ATOM_domain_error;		/* "domain_error" */
-static Atom ATOM_error;			/* "error" */
-static Atom ATOM_existence_error;	/* "existence_error" */
-static Atom ATOM_get;			/* "get" */
-static Atom ATOM_initialisation;	/* "initialisation" */
-static Atom ATOM_instantiation_error;	/* "instantiation_error" */
-static Atom ATOM_io_mode;		/* "io_mode" */
-static Atom ATOM_module;		/* ":" */
-static Atom ATOM_named_argument;	/* "named_argument" */
-static Atom ATOM_named_reference;	/* "named_reference" */
-static Atom ATOM_new;			/* "new" */
-static Atom ATOM_object;		/* "object" */
-static Atom ATOM_open;			/* "open" */
-static Atom ATOM_pce;			/* "pce" */
-static Atom ATOM_permission_error;	/* "permission_error" */
-static Atom ATOM_procedure;		/* "procedure" */
-static Atom ATOM_proper_list;		/* "proper_list" */
-static Atom ATOM_read;			/* "read" */
-static Atom ATOM_ref;			/* "@" */
-static Atom ATOM_send;			/* "send" */
-static Atom ATOM_slash;			/* "/" */
-static Atom ATOM_spy;			/* "spy" */
-static Atom ATOM_string;		/* "string" */
-static Atom ATOM_trace;			/* "trace" */
-static Atom ATOM_true;			/* "true" */
-static Atom ATOM_type_error;		/* "type_error" */
-static Atom ATOM_unknownReference;	/* "unknown_reference" */
-static Atom ATOM_update;		/* "update" */
-static Atom ATOM_user;			/* "user" */
-static Atom ATOM_write;			/* "write" */
-static Atom ATOM_prolog;		/* "prolog" */
-static Atom ATOM_class;			/* "class" */
+static atom_t ATOM_append;		/* "append" */
+static atom_t ATOM_argument;		/* "argument" */
+static atom_t ATOM_argument_count;	/* "argument_count" */
+static atom_t ATOM_assign;		/* ":=" */
+static atom_t ATOM_badIntegerReference;	/* "bad_integer_reference" */
+static atom_t ATOM_badList;		/* "bad_list" */
+static atom_t ATOM_badObjectDescription;	/* "bad_object_description" */
+static atom_t ATOM_badReference;		/* "bad_reference" */
+static atom_t ATOM_badSelector;		/* "bad_selector" */
+static atom_t ATOM_badStringArgument;	/* "bad_string_argument" */
+static atom_t ATOM_behaviour;		/* "behaviour" */
+static atom_t ATOM_context;		/* "context" */
+static atom_t ATOM_default;		/* "default" */
+static atom_t ATOM_dot;			/* "." */
+static atom_t ATOM_domain_error;		/* "domain_error" */
+static atom_t ATOM_error;			/* "error" */
+static atom_t ATOM_existence_error;	/* "existence_error" */
+static atom_t ATOM_get;			/* "get" */
+static atom_t ATOM_initialisation;	/* "initialisation" */
+static atom_t ATOM_instantiation_error;	/* "instantiation_error" */
+static atom_t ATOM_io_mode;		/* "io_mode" */
+static atom_t ATOM_module;		/* ":" */
+static atom_t ATOM_named_argument;	/* "named_argument" */
+static atom_t ATOM_named_reference;	/* "named_reference" */
+static atom_t ATOM_new;			/* "new" */
+static atom_t ATOM_object;		/* "object" */
+static atom_t ATOM_open;			/* "open" */
+static atom_t ATOM_pce;			/* "pce" */
+static atom_t ATOM_permission_error;	/* "permission_error" */
+static atom_t ATOM_procedure;		/* "procedure" */
+static atom_t ATOM_proper_list;		/* "proper_list" */
+static atom_t ATOM_read;			/* "read" */
+static atom_t ATOM_ref;			/* "@" */
+static atom_t ATOM_send;			/* "send" */
+static atom_t ATOM_slash;			/* "/" */
+static atom_t ATOM_spy;			/* "spy" */
+static atom_t ATOM_string;		/* "string" */
+static atom_t ATOM_trace;			/* "trace" */
+static atom_t ATOM_true;			/* "true" */
+static atom_t ATOM_type_error;		/* "type_error" */
+static atom_t ATOM_unknownReference;	/* "unknown_reference" */
+static atom_t ATOM_update;		/* "update" */
+static atom_t ATOM_user;			/* "user" */
+static atom_t ATOM_write;			/* "write" */
+static atom_t ATOM_prolog;		/* "prolog" */
+static atom_t ATOM_class;			/* "class" */
 
 static Module MODULE_user;		/* Handle for user-module */
 
@@ -367,7 +365,7 @@ cToPceType(const char *name)
 #define GetInteger(a, i)	SP_get_integer((a), (i))
 #define GetAtom(a, n)		SP_get_atom((a), (n))
 #define GetFloat(a, f)		SP_get_float((a), (f))
-#define NewTerm()		SP_new_term_ref()
+#define PL_new_term_ref()	SP_new_term_ref()
 #ifdef GET_FUNCTOR_BUG
 #define GetNameArity(t, n, a)	((SP_is_compound(t) || SP_is_atom(t)) && \
 				 SP_get_functor((t), (n), (a)))
@@ -376,13 +374,12 @@ cToPceType(const char *name)
 #endif
 #define IsVar(t)		SP_is_variable(t)
 #define GetArg(n, t, a)		SP_get_arg((n), (t), (a))
-#define ConsFunctor		SP_cons_functor
 #define PutFunctor(t, n, a)	SP_put_functor((t), (n), (a))
-#define PutCharp(t, s)		SP_put_string((t), (s))
-#define PutInteger(t, i)	SP_put_integer((t), (i))
-#define PutFloat(t, f)		SP_put_float((t), (f))
-#define Unify(t1, t2)		SP_unify((t1), (t2))
-#define PutAtom(t, a)		SP_put_atom((t), (a))
+#define PL_put_atom_chars(t, s)	SP_put_string((t), (s))
+#define PL_put_integer(t, i)	SP_put_integer((t), (i))
+#define PL_put_float(t, f)	SP_put_float((t), (f))
+#define PL_unify(t1, t2)	SP_unify((t1), (t2))
+#define PL_put_atom(t, a)	SP_put_atom((t), (a))
 #define PutTerm(t, f)		SP_put_term((t), (f))
 #define FindPredicate(n, a, m)	SP_pred(n, a, m)
 #define OpenForeign()		SP_new_term_refs(0)
@@ -400,7 +397,7 @@ cToPceType(const char *name)
 				{ SP_set_reinit_hook(f); }
 
 static int
-GetChars(Term t, char **s, unsigned int *len)
+GetChars(term_t t, char **s, unsigned int *len)
 { if ( SP_get_string(t, s) ||
        SP_get_list_chars(t, s) ||
        SP_get_number_chars(t, s) )
@@ -415,16 +412,16 @@ GetChars(Term t, char **s, unsigned int *len)
 #ifndef SWI
 
 static void
-StripModuleTag(Term t, Atom *module, Term p)
-{ Atom name;
+StripModuleTag(term_t t, atom_t *module, term_t p)
+{ atom_t name;
   int arity;
-  Term a = NewTerm();
+  term_t a = PL_new_term_ref();
 
   PutTerm(p, t);
 
   while( GetNameArity(p, &name, &arity) &&
 	 name == ATOM_module && arity == 2 )
-  { Atom m;
+  { atom_t m;
 
     QGetArg(1, p, a);
     if ( GetAtom(a, &m) )
@@ -438,26 +435,26 @@ StripModuleTag(Term t, Atom *module, Term p)
 #endif /*~SWI*/
 
 static void
-UndefinedPredicate(Atom pred, int arity, Atom module)
-{ Term et = NewTerm();			/* existence_error(G, 0, ...) */
-  Term goal = NewTerm();		/* foo(_, _) */
-  Term fa = NewTerm();			/* foo/2 */
-  Term culprit = NewTerm();		/* Module:foo/2 */
-  Term zero = NewTerm();		/* 0 */
-  Term id = NewTerm();			/* procedure */
-  Term name = NewTerm();		/* foo */
-  Term ar = NewTerm();			/* 2 */
-  Term m = NewTerm();			/* Module */
+UndefinedPredicate(atom_t pred, int arity, atom_t module)
+{ term_t et = PL_new_term_ref();			/* existence_error(G, 0, ...) */
+  term_t goal = PL_new_term_ref();		/* foo(_, _) */
+  term_t fa = PL_new_term_ref();			/* foo/2 */
+  term_t culprit = PL_new_term_ref();		/* Module:foo/2 */
+  term_t zero = PL_new_term_ref();		/* 0 */
+  term_t id = PL_new_term_ref();			/* procedure */
+  term_t name = PL_new_term_ref();		/* foo */
+  term_t ar = PL_new_term_ref();			/* 2 */
+  term_t m = PL_new_term_ref();			/* Module */
 
   PutFunctor(goal, pred, arity);
-  PutInteger(zero, 0);
-  PutAtom(id, ATOM_procedure);
-  PutAtom(name, pred);
-  PutAtom(m, module);
-  PutInteger(ar, arity);
-  ConsFunctor(fa, ATOM_slash, 2, name, ar);
-  ConsFunctor(culprit, ATOM_module, 2, m, fa);
-  ConsFunctor(et, ATOM_existence_error, 5, goal, zero, id, culprit, zero);
+  PL_put_integer(zero, 0);
+  PL_put_atom(id, ATOM_procedure);
+  PL_put_atom(name, pred);
+  PL_put_atom(m, module);
+  PL_put_integer(ar, arity);
+  PL_cons_functor(fa, ATOM_slash, 2, name, ar);
+  PL_cons_functor(culprit, ATOM_module, 2, m, fa);
+  PL_cons_functor(et, ATOM_existence_error, 5, goal, zero, id, culprit, zero);
 
   SP_raise_exception(et);
 }
@@ -504,24 +501,17 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #endif
 #define GetAtom(a, n)		PL_get_atom((a), (n))
 #define GetFloat(a, f)		PL_get_float((a), (f))
-#define NewTerm()		PL_new_term_ref()
 #define CopyTerm(t)		PL_copy_term_ref(t)
 #define GetNameArity(t, n, a)	PL_get_name_arity((t), (n), (a))
 #define IsVar(t)		PL_is_variable(t)
 #define GetArg(n, t, a)		PL_get_arg((n), (t), (a))
 #define QGetArg(n, t, a)	_PL_get_arg((n), (t), (a))
-#define ConsFunctor		PL_cons_functor
 #define IsFunctor(t, f)		PL_is_functor((t), (f))
 #define PutFunctor(t, n, a)	PL_put_functor((t), PL_new_functor((n), (a)))
-#define PutCharp(t, s)		PL_put_atom_chars((t), (s))
-#define PutInteger(t, i)	PL_put_integer((t), (i))
-#define PutFloat(t, f)		PL_put_float((t), (f))
 #define PutTerm(t, f)		PL_put_term((t), (f))
-#define Unify(t1, t2)		PL_unify((t1), (t2))
 #define UnifyAtom(t, a)		PL_unify_atom((t), (a))
 #define UnifyFloat(t, a)	PL_unify_float((t), (a))
 #define UnifyInteger(t, a)	PL_unify_integer((t), (a))
-#define PutAtom(t, a)		PL_put_atom((t), (a))
 #define PutVar(t)		PL_put_variable((t))
 #define StripModuleTag(t, m, p)	PL_strip_module((t), (m), (p))
 #define FindPredicate(n, a, m)	PL_pred(PL_new_functor(n, a), m)
@@ -695,42 +685,51 @@ Defined context terms
 #define EX_TOO_MANY_ARGUMENTS		9
 #define EX_EXISTENCE		       10 /* <type>, <term> */
 
-static void
-put_goal_context(Term ctx, PceGoal g, va_list args)
+static int
+put_goal_context(term_t ctx, PceGoal g, va_list args)
 { if ( g->flags & (PCE_GF_SEND|PCE_GF_GET) )
-  { Term rec = va_arg(args, Term);
-    Term msg = va_arg(args, Term);
+  { term_t rec = va_arg(args, term_t);
+    term_t msg = va_arg(args, term_t);
 
     if ( g->flags & PCE_GF_SEND )
-      ConsFunctor(ctx, FUNCTOR_send2, rec, msg);
+      return PL_cons_functor(ctx, FUNCTOR_send2, rec, msg);
     else
-      ConsFunctor(ctx, FUNCTOR_get2, rec, msg);
+      return PL_cons_functor(ctx, FUNCTOR_get2, rec, msg);
   } else				/* new/2 */
-  { Term descr = va_arg(args, Term);
+  { term_t descr = va_arg(args, term_t);
 
-    ConsFunctor(ctx, FUNCTOR_new1, descr);
+    return PL_cons_functor(ctx, FUNCTOR_new1, descr);
   }
 }
 
 
 static int
 add_list(PceObject e, void *closure)
-{ Term tail = ((Term *)closure)[0];
-  Term head = ((Term *)closure)[1];
-  Term tmp  = ((Term *)closure)[2];
+{ term_t tail = ((term_t *)closure)[0];
+  term_t head = ((term_t *)closure)[1];
+  term_t tmp  = ((term_t *)closure)[2];
 
-  PL_unify_list(tail, head, tail);
-  put_object(tmp, e);
-  return PL_unify(head, tmp);
+  return ( PL_unify_list(tail, head, tail) &&
+	   put_object(tmp, e) &&
+	   PL_unify(head, tmp)
+	 );
 }
 
 
 static int
 ThrowException(int id, ...)
 { va_list args;
-  Term et  = NewTerm();			/* the error term */
-  Term err = NewTerm();			/* the 1-st argument */
-  Term ctx = NewTerm();			/* The 2-nd (context) argument */
+  fid_t fid;
+  term_t et;
+  term_t err;
+  term_t ctx;
+
+  if ( !(fid = PL_open_foreign_frame()) )
+    return FALSE;
+
+  et  = PL_new_term_ref();	/* the error term */
+  err = PL_new_term_ref();	/* the 1-st argument */
+  ctx = PL_new_term_ref();	/* the 2-nd (context) argument */
 
   va_start(args, id);
   switch(id)
@@ -739,19 +738,21 @@ ThrowException(int id, ...)
 
       switch( g->errcode )
       { case PCE_ERR_ERROR:
-	{ Term a1 = NewTerm();
-	  Term a2 = NewTerm();
-	  Term l[3];
+	{ term_t a1 = PL_new_term_ref();
+	  term_t a2 = PL_new_term_ref();
+	  term_t l[3];
 	  l[0] = PL_copy_term_ref(a2);
-	  l[1] = NewTerm();
-	  l[2] = NewTerm();
+	  l[1] = PL_new_term_ref();
+	  l[2] = PL_new_term_ref();
 
-	  put_object(a1, g->errc1);		/* error->id */
-	  pceEnumElements(g->errc2, add_list, (void *)l);
-	  PL_unify_nil(l[0]);			/* the tail */
+	  if ( !put_object(a1, g->errc1) || /* error->id */
+	       !pceEnumElements(g->errc2, add_list, (void *)l) ||
+	       !PL_unify_nil(l[0]) )	/* the tail */
+	    goto error;
 
-	  ConsFunctor(err, FUNCTOR_pce2, a1, a2);
-	  put_goal_context(ctx, g, args);
+	  if ( !PL_cons_functor(err, FUNCTOR_pce2, a1, a2) ||
+	       !put_goal_context(ctx, g, args) )
+	    goto error;
 	  break;
 	}
 	default:
@@ -762,15 +763,16 @@ ThrowException(int id, ...)
     case EX_BAD_INTEGER_OBJECT_REF:		/* , <integer> */
     { long ref = va_arg(args, long);
       char *descr = pcePPReference(cToPceInteger(ref));
-      Term a1 = NewTerm();
-      Term a2 = NewTerm();
-      Term na = NewTerm();
+      term_t a1 = PL_new_term_ref();
+      term_t a2 = PL_new_term_ref();
+      term_t na = PL_new_term_ref();
 
-      PutAtom(a1, ATOM_object);
-      ConsFunctor(a1, FUNCTOR_pce1, a1);
-      PutInteger(a2, ref);
-      ConsFunctor(a2, FUNCTOR_ref1, a2);
-      ConsFunctor(err, FUNCTOR_existence_error2, a1, a2);
+      PL_put_atom(a1, ATOM_object);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_put_integer(a2, ref) ||
+	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
+	goto error;
 
       if ( descr[0] == '@' )
       { char *s;
@@ -778,62 +780,63 @@ ThrowException(int id, ...)
 	for(s=&descr[1]; *s && isdigit(*s&0xff); s++)
 	  ;
 	if ( *s )
-	{ PutCharp(ctx, descr);			/* context(_, Message) */
-	  ConsFunctor(ctx, FUNCTOR_context2, na, ctx);
+	{ if ( !PL_put_atom_chars(ctx, descr) || /* context(_, Message) */
+	       !PL_cons_functor(ctx, FUNCTOR_context2, na, ctx) )
+	    goto error;
 	}
       }
 
       break;
     }
     case EX_BAD_ATOM_OBJECT_REF:		/* , <name> */
-    { Atom ref = va_arg(args, long);
-      Term a1 = NewTerm();
-      Term a2 = NewTerm();
+    { atom_t ref = va_arg(args, atom_t);
+      term_t a1 = PL_new_term_ref();
+      term_t a2 = PL_new_term_ref();
 
-      PutAtom(a1, ATOM_object);
-      ConsFunctor(a1, FUNCTOR_pce1, a1);
-      PutAtom(a2, ref);
-      ConsFunctor(a2, FUNCTOR_ref1, a2);
-
-      ConsFunctor(err, FUNCTOR_existence_error2, a1, a2);
+      PL_put_atom(a1, ATOM_object);
+      PL_put_atom(a2, ref);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(a2, FUNCTOR_ref1, a2) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, a2) )
+	goto error;
       break;
     }
     case EX_BAD_OBJECT_REF:			/* not @<name-or-int> */
-    { Term ref = va_arg(args, long);
-      Term a1  = NewTerm();
+    { term_t ref = va_arg(args, term_t);
+      term_t a1  = PL_new_term_ref();
 
-      PutAtom(a1, ATOM_object);
-      ConsFunctor(a1, FUNCTOR_pce1, a1);
-
-      ConsFunctor(err, FUNCTOR_type_error2, a1, ref);
+      PL_put_atom(a1, ATOM_object);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, ref) )
+	goto error;
       break;
     }
     case EX_TYPE:				/* type-name, arg */
-    { Term a1 = NewTerm();
-      Atom tn = va_arg(args, Atom);
-      Term v  = va_arg(args, Term);
+    { term_t a1 = PL_new_term_ref();
+      atom_t tn = va_arg(args, atom_t);
+      term_t v  = va_arg(args, term_t);
 
       if ( PL_is_variable(v) )
 	goto ex_instantiation;
 
-      PutAtom(a1, tn);
-      ConsFunctor(a1, FUNCTOR_pce1, a1);
-
-      ConsFunctor(err, FUNCTOR_type_error2, a1, v);
+      PL_put_atom(a1, tn);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_type_error2, a1, v) )
+	goto error;
       break;
     }
     case EX_EXISTENCE:				/* type-name, arg */
-    { Term a1 = NewTerm();
-      Atom tn = va_arg(args, Atom);
-      Term v  = va_arg(args, Term);
+    { term_t a1 = PL_new_term_ref();
+      atom_t tn = va_arg(args, atom_t);
+      term_t v  = va_arg(args, term_t);
 
       if ( PL_is_variable(v) )
 	goto ex_instantiation;
 
-      PutAtom(a1, tn);
-      ConsFunctor(a1, FUNCTOR_pce1, a1);
-
-      ConsFunctor(err, FUNCTOR_existence_error2, a1, v);
+      PL_put_atom(a1, tn);
+      if ( !PL_cons_functor(a1, FUNCTOR_pce1, a1) ||
+	   !PL_cons_functor(err, FUNCTOR_existence_error2, a1, v) )
+	goto error;
       break;
     }
     case EX_INSTANTIATION:			/* No arguments */
@@ -843,31 +846,34 @@ ThrowException(int id, ...)
       break;
     }
     case EX_DOMAIN:				/* domain-name, arg */
-    { Term a1 = NewTerm();
-      Atom tn = va_arg(args, Atom);
-      Term v  = va_arg(args, Term);
+    { term_t a1 = PL_new_term_ref();
+      atom_t tn = va_arg(args, atom_t);
+      term_t v  = va_arg(args, term_t);
 
-      PutAtom(a1, tn);
-      ConsFunctor(err, FUNCTOR_domain_error2, a1, v);
+      PL_put_atom(a1, tn);
+      if ( !PL_cons_functor(err, FUNCTOR_domain_error2, a1, v) )
+	goto error;
       break;
     }
     case EX_PERMISSION:
-    { Term a1 = NewTerm();
-      Term a2 = NewTerm();
-      Term a3 = NewTerm();
-      Atom op = va_arg(args, Atom);
-      Atom tp = va_arg(args, Atom);
+    { term_t a1 = PL_new_term_ref();
+      term_t a2 = PL_new_term_ref();
+      term_t a3 = PL_new_term_ref();
+      atom_t op = va_arg(args, atom_t);
+      atom_t tp = va_arg(args, atom_t);
       PceObject obj = va_arg(args, PceObject);
-      Atom msg = va_arg(args, Atom);
+      atom_t msg = va_arg(args, atom_t);
 
-      PutAtom(a1, op);
-      PutAtom(a2, tp);
-      put_object(a3, obj);
-      ConsFunctor(err, FUNCTOR_permission_error3, a1, a2, a3);
+      PL_put_atom(a1, op);
+      PL_put_atom(a2, tp);
+      if ( !put_object(a3, obj) ||
+	   !PL_cons_functor(err, FUNCTOR_permission_error3, a1, a2, a3) )
+	goto error;
 
       PutVar(a1);
-      PutAtom(a2, msg);
-      ConsFunctor(ctx, FUNCTOR_context2, a1, a2);
+      PL_put_atom(a2, msg);
+      if ( !PL_cons_functor(ctx, FUNCTOR_context2, a1, a2) )
+	goto error;
       break;
     }
     default:
@@ -875,9 +881,15 @@ ThrowException(int id, ...)
   }
   va_end(args);
 
-  ConsFunctor(et, FUNCTOR_error2, err, ctx);
+  if ( !PL_cons_functor(et, FUNCTOR_error2, err, ctx) )
+    goto error;
 
   return PL_raise_exception(et);
+
+error:
+  va_end(args);
+  PL_close_foreign_frame(fid);
+  return FALSE;
 }
 
 
@@ -886,19 +898,19 @@ ThrowException(int id, ...)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PceName	atomToName(Atom a)
+PceName	atomToName(atom_t a)
 	Translate a Prolog atom into an XPCE name object.  This version
 	uses the XPCE handle table to cache direct associations between
 	XPCE names and Prolog atoms.
 
-PceObject referenceToObject(Term a)
+PceObject referenceToObject(term_t a)
 	a is the argment to @/1.  Translate to an XPCE object or raise
 	an error.  This function too caches using the
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "table.c"
 
-static Atom
+static atom_t
 nameToAtom(PceName name)
 { size_t len;
   const char *textA;
@@ -909,12 +921,12 @@ nameToAtom(PceName name)
   else if ( (textW = pceCharArrayToCW(name, &len)) )
     return PL_new_atom_wchars(len, textW);
   else
-    return (Atom)0;
+    return (atom_t)0;
 }
 
 
 static __inline PceName
-atomToAssoc(Atom a)
+atomToAssoc(atom_t a)
 { return a ? atomToName(a) : NIL;
 }
 
@@ -925,11 +937,11 @@ the form @/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_object_from_refterm(Term t, PceObject *obj)
-{ Term a = NewTerm();
+get_object_from_refterm(term_t t, PceObject *obj)
+{ term_t a = PL_new_term_ref();
   PceObject o;
   long r;
-  Atom name;
+  atom_t name;
 
   _PL_get_arg(1, t, a);
 
@@ -958,23 +970,24 @@ get_object_from_refterm(Term t, PceObject *obj)
 
 
 static int
-unifyReferenceArg(Term t, int type, PceCValue value)
-{ Term t2 = NewTerm();			/* Exploit SWI-Prolog PL_unify-* */
+unifyReferenceArg(term_t t, int type, PceCValue value)
+{ term_t t2 = PL_new_term_ref();	/* Exploit SWI-Prolog PL_unify-* */
 
   if ( type == PCE_REFERENCE )
-  { PutInteger(t2, value.integer);
+  { if ( !PL_put_integer(t2, value.integer) )
+      return FALSE;
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
-    PutAtom(t2, CachedNameToAtom(symbol->name));
+    PL_put_atom(t2, CachedNameToAtom(symbol->name));
   }
 
-  return Unify(t, t2);
+  return PL_unify(t, t2);
 }
 
 
 static int
-unifyReference(Term t, int type, PceCValue value)
+unifyReference(term_t t, int type, PceCValue value)
 {
 #ifdef HAVE_XPCEREF
   xpceref_t r;
@@ -992,19 +1005,19 @@ unifyReference(Term t, int type, PceCValue value)
 
 #else /*HAVE_XPCEREF*/
 
-  Term t2 = NewTerm();
-  Term r  = NewTerm();
+  term_t t2 = PL_new_term_ref();
+  term_t r  = PL_new_term_ref();
 
   if ( type == PCE_REFERENCE )
-  { PutInteger(t2, value.integer);
+  { PL_put_integer(t2, value.integer);
   } else
   { PceITFSymbol symbol = value.itf_symbol;
 
-    PutAtom(t2, CachedNameToAtom(symbol->name));
+    PL_put_atom(t2, CachedNameToAtom(symbol->name));
   }
-  ConsFunctor(r, FUNCTOR_ref1, t2);
+  PL_cons_functor(r, FUNCTOR_ref1, t2);
 
-  return Unify(t, r);
+  return PL_unify(t, r);
 #endif /*HAVE_XPCEREF*/
 }
 
@@ -1014,7 +1027,7 @@ unifyReference(Term t, int type, PceCValue value)
 		 *******************************/
 
 static PceObject
-do_new(Term ref, Term t)
+do_new(term_t ref, term_t t)
 { PceObject rval;
 
   if ( IsVar(ref) )
@@ -1028,8 +1041,8 @@ do_new(Term ref, Term t)
 
     return PCE_FAIL;
   } else if ( IsFunctor(ref, FUNCTOR_ref1) )
-  { Term a = NewTerm();
-    Atom assoc;
+  { term_t a = PL_new_term_ref();
+    atom_t assoc;
 
     QGetArg(1, ref, a);
 
@@ -1088,7 +1101,7 @@ rewindHostHandles(HostStackEntry top)
     { p = e->previous;
 
       if ( !freeHostData(e->handle) )
-      { Term t = getTermHandle(e->handle);
+      { term_t t = getTermHandle(e->handle);
 	Record r = PL_record(t);
 
 	assert((((unsigned long)r & 0x1L) == 0L));
@@ -1104,7 +1117,7 @@ rewindHostHandles(HostStackEntry top)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term handles appear in two formats: as direct handles to Prolog terms and
+term_t handles appear in two formats: as direct handles to Prolog terms and
 as handles to the Prolog recorded database.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1125,7 +1138,7 @@ makeRecordedTermHandle(term_t t)
 }
 
 
-static Term
+static term_t
 getTermHandle(PceObject hd)
 { void *h;
 
@@ -1133,9 +1146,9 @@ getTermHandle(PceObject hd)
   { unsigned long l = (unsigned long)h;
 
     if ( l & 1 )
-      return (Term)(l>>1);
+      return (term_t)(l>>1);
     else
-    { Term t = NewTerm();
+    { term_t t = PL_new_term_ref();
 
       PL_recorded(h, t);
       return t;
@@ -1175,8 +1188,8 @@ get_object_arg(term_t t, PceObject* obj)
 	return get_object_from_refterm(t, obj);
 
       if ( val.t.name == ATOM_assign && val.t.arity == 2 )
-      { Term a = NewTerm();
-	Atom an;
+      { term_t a = PL_new_term_ref();
+	atom_t an;
 
 	QGetArg(1, t, a);
 	if ( GetAtom(a, &an) )
@@ -1250,7 +1263,7 @@ termToReceiver(term_t t)
 
 
 static int
-get_answer_object(PceGoal g, Term t, PceType type, PceObject *rval)
+get_answer_object(PceGoal g, term_t t, PceType type, PceObject *rval)
 { PceObject obj = PCE_FAIL, obj2;
   term_value_t val;
 
@@ -1337,7 +1350,7 @@ equalProlog(PceObject p1, PceObject p2)
   term_t t2 = getTermHandle(p2);
 
   if ( !(t2 = getTermHandle(p2)) )
-  { Atom a = nameToAtom(p2);
+  { atom_t a = nameToAtom(p2);
 
     if ( a )
     { t2 = PL_new_term_ref();
@@ -1413,13 +1426,13 @@ makeClassProlog()
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-termToObject(Term t, PceType targettype, Atom assoc, int new)
+termToObject(term_t t, PceType targettype, atom_t assoc, int new)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static PceObject
-termToObject(Term t, PceType type, Atom assoc, int new)
-{ Atom functor;
+termToObject(term_t t, PceType type, atom_t assoc, int new)
+{ atom_t functor;
   int arity;
 
   DEBUG(Sdprintf("termToObject(");
@@ -1445,14 +1458,14 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 					/* new/[1,2] */
     if ( functor == ATOM_new )
     { if ( arity == 1 )			/* new(chain) */
-      { Term a = NewTerm();
+      { term_t a = PL_new_term_ref();
 
 	QGetArg(1, t, a);
 	return termToObject(a, NULL, NULLATOM, TRUE);
       }
       if ( arity == 2 )			/* new(B, box) */
-      { Term r = NewTerm();
-	Term n = NewTerm();
+      { term_t r = PL_new_term_ref();
+	term_t n = PL_new_term_ref();
 
 	QGetArg(1, t, r);
 	QGetArg(2, t, n);
@@ -1465,7 +1478,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     { char *s;
       wchar_t *sW;
       size_t len;
-      Term a = NewTerm();
+      term_t a = PL_new_term_ref();
       PceName pceassoc = atomToAssoc(assoc);
 
       QGetArg(1, t, a);
@@ -1478,10 +1491,10 @@ termToObject(Term t, PceType type, Atom assoc, int new)
       return PCE_FAIL;
     }
 
-					/* prolog(Term) */
+					/* prolog(term_t) */
     if ( functor == ATOM_prolog && arity == 1 )
     { PceObject h;
-      Term a = NewTerm();
+      term_t a = PL_new_term_ref();
       double f;
       intptr_t r;
 
@@ -1499,8 +1512,8 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     }
 					/* A list */
     if ( functor == ATOM_dot && arity == 2 )
-    { Term tail = CopyTerm(t);
-      Term head = NewTerm();
+    { term_t tail = CopyTerm(t);
+      term_t head = PL_new_term_ref();
       int argsallocated = 16;
       int argc = 0;
       PceObject *argv = alloca(argsallocated*sizeof(PceObject));
@@ -1541,7 +1554,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 					/* Class(...Args...) */
     { PceName name = atomToName(functor);
       ArgVector(argv, arity);
-      Term a = NewTerm();
+      term_t a = PL_new_term_ref();
       int n;
 
       for(n=0 ; n < arity; n++ )
@@ -1593,10 +1606,10 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 		 *******************************/
 
 static int
-unifyObject(Term t, PceObject obj, int top)
+unifyObject(term_t t, PceObject obj, int top)
 { PceCValue value;
   int pcetype;
-  Term tmpt;
+  term_t tmpt;
 
   switch( (pcetype = pceToC(obj, &value)) )
   { case PCE_INTEGER:			/* integer */
@@ -1618,11 +1631,11 @@ unifyObject(Term t, PceObject obj, int top)
       }
     }
     case PCE_HOSTDATA:
-      return Unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */
+      return PL_unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */
     case PCE_REFERENCE:
     case PCE_ASSOC:
       if ( !top )
-      { Atom n;
+      { atom_t n;
 	int a;
 
 	if ( IsVar(t) )			/* get(R, S, Var) */
@@ -1630,7 +1643,7 @@ unifyObject(Term t, PceObject obj, int top)
 
 					/* get(R, S, @something) */
 	if ( GetNameArity(t, &n, &a) && n == ATOM_ref && a == 1 )
-	{ tmpt = NewTerm();
+	{ tmpt = PL_new_term_ref();
 
 	  QGetArg(1, t, tmpt);
 	  return unifyReferenceArg(tmpt, pcetype, value);
@@ -1642,26 +1655,28 @@ unifyObject(Term t, PceObject obj, int top)
   { const char *textA;
     const wchar_t *textW;
     size_t len;
-    Term a = NewTerm();
+    term_t a = PL_new_term_ref();
 
     if ( (textA = pceCharArrayToCA(obj, &len)) )
-      PL_put_atom_nchars(a, len, textA);
-    else if ( (textW = pceCharArrayToCW(obj, &len)) )
-      PL_unify_wchars(a, PL_ATOM, len, textW);
-    else
-      return FALSE;
+    { PL_put_atom_nchars(a, len, textA);
+    } else if ( (textW = pceCharArrayToCW(obj, &len)) )
+    { if ( !PL_unify_wchars(a, PL_ATOM, len, textW) )
+	return FALSE;
+    } else
+    { return FALSE;
+    }
 
     return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_string1,
 			   PL_TERM, a);
   }
 
-  { Atom name;
+  { atom_t name;
     int n, arity;
-    Atom pname;				/* name of Pce object */
+    atom_t pname;				/* name of Pce object */
     int parity;				/* its `arity' */
     PceObject got;			/* temp variable */
-    Term at = NewTerm();
+    term_t at = PL_new_term_ref();
 
     if ( !(got = pceGet(obj, NULL, NAME_functor, 0, NULL)) ||
 	 !(pname = nameToAtom(got)) )
@@ -1688,9 +1703,10 @@ unifyObject(Term t, PceObject obj, int top)
 
       return TRUE;
     } else if ( IsVar(t) )
-    { Term t2 = NewTerm();
+    { term_t t2 = PL_new_term_ref();
 
-      PutFunctor(t2, pname, parity);
+      if ( !PutFunctor(t2, pname, parity) )
+	return FALSE;
       for(n=1; n<=parity; n++)
       { PceObject pcen = cToPceInteger(n);
 
@@ -1702,7 +1718,7 @@ unifyObject(Term t, PceObject obj, int top)
 	} else
 	  return FALSE;
       }
-      return Unify(t, t2);
+      return PL_unify(t, t2);
     } else
       return FALSE;
   }
@@ -1725,10 +1741,10 @@ PushDefaultModule()
 
 					/* NEW */
 static foreign_t
-pl_new(Term assoc, Term descr)
+pl_new(term_t assoc, term_t descr)
 { AnswerMark mark;
   PceObject obj;
-  Term d = NewTerm();
+  term_t d = PL_new_term_ref();
   Module odm;
   pce_goal goal;
   HostStackEntry hmark;
@@ -1761,9 +1777,9 @@ pl_new(Term assoc, Term descr)
 
 
 static __inline int
-get_pce_class(Term t, PceClass *cl)
+get_pce_class(term_t t, PceClass *cl)
 { if ( t )
-  { Atom a;
+  { atom_t a;
 
     if ( GetAtom(t, &a) )
     { PceClass class = nameToExistingClass(atomToName(a));
@@ -1788,18 +1804,16 @@ Put @default into the argument term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-put_default(PceGoal g, int n, Term t)
+put_default(PceGoal g, int n, term_t t)
 { PceObject v = pceCheckType(g, g->types[n], DEFAULT);
 
   if ( v == DEFAULT )			/* pass @default */
-  { PutAtom(t, ATOM_default);
-    ConsFunctor(t, FUNCTOR_ref1, t);
+  { PL_put_atom(t, ATOM_default);
+    return PL_cons_functor(t, FUNCTOR_ref1, t);
   } else if ( v )
-  { put_object(t, v);			/* some converted object */
+  { return put_object(t, v);		/* some converted object */
   } else
     return pceSetErrorGoal(g, PCE_ERR_MISSING_ARGUMENT, cToPceInteger(n));
-
-  return TRUE;
 }
 
 
@@ -1812,7 +1826,7 @@ put_prolog_argument()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-put_prolog_argument(PceGoal g, Term t, PceType type, Term f)
+put_prolog_argument(PceGoal g, term_t t, PceType type, term_t f)
 { PceObject obj;
   term_value_t val;
 					/* --> :prolog */
@@ -1824,15 +1838,13 @@ put_prolog_argument(PceGoal g, Term t, PceType type, Term f)
   switch(PL_get_term_value(f, &val))
   { case PL_ATOM:
       if ( pceCheckNameType(type, AtomCharp(val.a)) )
-      { PutAtom(t, val.a);
+      { PL_put_atom(t, val.a);
 	return TRUE;
       }
       break;
     case PL_INTEGER:
       if ( pceCheckIntType(type, (long)val.i) ) /* cast ok? */
-      { PL_put_int64(t, val.i);
-	return TRUE;
-      }
+	return PL_put_int64(t, val.i);
       break;
     case PL_FLOAT:
       if ( pceCheckFloatType(type, val.f) )
@@ -1883,10 +1895,10 @@ stripArgName(?t, PceName *name)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static __inline void
-stripArgName(Term t, PceName *name)
+stripArgName(term_t t, PceName *name)
 { if ( IsFunctor(t, FUNCTOR_namearg) )	/* Name := Value */
-  { Term a = NewTerm();
-    Atom an;
+  { term_t a = PL_new_term_ref();
+    atom_t an;
 
     QGetArg(1, t, a);
     if ( GetAtom(a, &an) )
@@ -1898,14 +1910,14 @@ stripArgName(Term t, PceName *name)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-invoke(Term receiver, Term class, Term selector, Term return)
+invoke(term_t receiver, term_t class, term_t selector, term_t return)
     This function is the central code fore invoking both XPCE send- and
     get-methods.  `Class' and `return' may be 0 to indicate these arguments
     don't care.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-invoke(Term rec, Term cl, Term msg, Term ret)
+invoke(term_t rec, term_t cl, term_t msg, term_t ret)
 { int rval = FALSE;
   AnswerMark mark;
   PceObject receiver;
@@ -1925,7 +1937,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
   receiver = termToReceiver(rec);
 
   if ( receiver )
-  { Atom name;
+  { atom_t name;
     int  arity;
     PceClass class;
 
@@ -1936,10 +1948,10 @@ invoke(Term rec, Term cl, Term msg, Term ret)
     StripModuleTag(msg, &DefaultModule, msg);
     if ( GetNameArity(msg, &name, &arity) )
     { PceName selector = atomToName(name);
-      Term arg;
+      term_t arg;
 
       if ( arity > 0 )
-	arg = NewTerm();
+	arg = PL_new_term_ref();
       else
 	arg = 0;			/* make compiler happy */
 
@@ -1972,9 +1984,11 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 
 					/* push method identifier */
 	  if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
-	    put_trace_info(av+0, pcd);
-	  else
-	    _PL_put_atomic(av+0, pcd->method_id);
+	  { if ( !put_trace_info(av+0, pcd) )
+	      goto plerror;
+	  } else
+	  { _PL_put_atomic(av+0, pcd->method_id);
+	  }
 
 	  if ( goal.flags & PCE_GF_CATCHALL )
 	  { goal.argn++;
@@ -2003,22 +2017,31 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	      goto plerror;
 	    }
 	    if ( i < 0 )
-	    { PL_unify_list(tail, tmp2, tail);
-	      PL_unify(tmp2, tmp);
+	    { if ( !PL_unify_list(tail, tmp2, tail) ||
+		   !PL_unify(tmp2, tmp) )
+	      { rval = FALSE;
+		goto out;
+	      }
 	    } else
 	      goal.argv[i] = (PceObject)(mav+i);
 	  }
 	  if ( tail )
-	    PL_unify_nil(tail);
+	  { if ( !PL_unify_nil(tail) )
+	    { rval = FALSE;
+	      goto out;
+	    }
+	  }
 
 	  for(n=0; n<goal.argc; n++)
 	  { if ( !goal.argv[n] && !put_default(&goal, n, mav+n) )
 	      goto plerror;
 	  }
 
-	  PL_cons_functor_v(av+1, pcd->functor, mav);
-						/* push @Receiver */
-	  put_object(av+2, goal.receiver);
+	  if ( !PL_cons_functor_v(av+1, pcd->functor, mav) ||
+	       !put_object(av+2, goal.receiver) )
+	  { rval = FALSE;
+	    goto out;
+	  }
 
 	  if ( prof_active )
 	    prof_node = PL_prof_call(goal.implementation, &pceProfType);
@@ -2106,25 +2129,25 @@ out:
 
 
 static foreign_t
-pl_send(Term rec, Term msg)
+pl_send(term_t rec, term_t msg)
 { return invoke(rec, 0, msg, 0);
 }
 
 
 static foreign_t
-pl_send_class(Term rec, Term cl, Term msg)
+pl_send_class(term_t rec, term_t cl, term_t msg)
 { return invoke(rec, cl, msg, 0);
 }
 
 
 static foreign_t
-pl_get(Term rec, Term msg, Term ret)
+pl_get(term_t rec, term_t msg, term_t ret)
 { return invoke(rec, 0, msg, ret);
 }
 
 
 static foreign_t
-pl_get_class(Term rec, Term cl, Term msg, Term ret)
+pl_get_class(term_t rec, term_t cl, term_t msg, term_t ret)
 { return invoke(rec, cl, msg, ret);
 }
 
@@ -2135,15 +2158,15 @@ pl_get_class(Term rec, Term cl, Term msg, Term ret)
 		 *******************************/
 
 static foreign_t
-pl_object1(Term ref)
-{ Atom name;
+pl_object1(term_t ref)
+{ atom_t name;
   int arity;
 
   if ( GetNameArity(ref, &name, &arity) &&
        name == ATOM_ref &&
        arity == 1 )
-  { Term a = NewTerm();
-    Atom refname;
+  { term_t a = PL_new_term_ref();
+    atom_t refname;
     intptr_t refi;
 
     QGetArg(1, ref, a);
@@ -2158,7 +2181,7 @@ pl_object1(Term ref)
 
 
 static foreign_t
-pl_object2(Term ref, Term description)
+pl_object2(term_t ref, term_t description)
 { PceObject obj;
   int rval;
 
@@ -2206,7 +2229,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
   Module m = pceContextModule();
   PceCValue value;
   Predicate pred = NULL;
-  Term goal = 0;
+  term_t goal = 0;
   int rval;
 
   switch(pceToC(sel, &value))
@@ -2224,7 +2247,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
 
 #ifdef SWI
   if ( pred )
-  { Term terms = PL_new_term_refs(argc);
+  { term_t terms = PL_new_term_refs(argc);
     qid_t qid;
     int i;
 
@@ -2256,7 +2279,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
     } else
       return ThrowException(EX_OPEN_QUERY, name, argc);
   } else
-  { Atom name, module;
+  { atom_t name, module;
 
     split_selector(sel, &name, &module);
     UndefinedPredicate(name, argc, module);
@@ -2273,13 +2296,13 @@ static PceObject
 PrologGet(PceObject prolog, PceObject sel, int argc, PceObject *argv)
 { Fid fid = OpenForeign();
   Module m = pceContextModule();
-  Atom name = nameToAtom(sel);
+  atom_t name = nameToAtom(sel);
   Predicate pred = FindPredicate(name, argc+1, m);
   int i;
   PceObject obj;
 
 #ifdef SWI
-  Term terms = PL_new_term_refs(argc+1);
+  term_t terms = PL_new_term_refs(argc+1);
   qid_t qid;
   int rval;
 
@@ -2326,7 +2349,7 @@ PrologGet(PceObject prolog, PceObject sel, int argc, PceObject *argv)
       obj = PCE_FAIL;
     }
   } else
-  { Atom name, module;
+  { atom_t name, module;
 
     split_selector(sel, &name, &module);
     UndefinedPredicate(name, argc+1, module);
@@ -2341,22 +2364,23 @@ out:
 }
 
 
-static void
-put_object(Term t, PceObject obj)
+static int
+put_object(term_t t, PceObject obj)
 { PceCValue value;
   int pcetype;
-  Atom avalue;
+  atom_t avalue;
 
   switch( pcetype = pceToC(obj, &value) )
   { case PCE_REFERENCE:
     {
 #ifdef HAVE_XPCEREF
-      _PL_put_xpce_reference_i(t, value.integer);
+      return _PL_put_xpce_reference_i(t, value.integer);
 #else
-      Term t2 = NewTerm();
+      term_t t2;
 
-      PutInteger(t2, value.integer);
-      ConsFunctor(t, FUNCTOR_ref1, t2);
+      return ( (t2 = PL_new_term_ref()) &&
+	       PL_put_integer(t2, value.integer) &&
+	       PL_cons_functor(t, FUNCTOR_ref1, t2) );
 #endif
       break;
     }
@@ -2366,11 +2390,14 @@ put_object(Term t, PceObject obj)
       avalue = CachedNameToAtom(symbol->name);
 
 #ifdef HAVE_XPCEREF
-      _PL_put_xpce_reference_a(t, avalue);
+      return _PL_put_xpce_reference_a(t, avalue);
 #else
-      { Term t2 = NewTerm();
-	PutAtom(t2, avalue);
-	ConsFunctor(t, FUNCTOR_ref1, t2);
+      { term_t t2;
+
+	return ( (t2=PL_new_term_ref()) &&
+		 PL_put_atom(t2, avalue) &&
+		 PL_cons_functor(t, FUNCTOR_ref1, t2)
+	       );
       }
 #endif
 
@@ -2378,10 +2405,11 @@ put_object(Term t, PceObject obj)
     }
     case PCE_HOSTDATA:
     { PutTerm(t, getTermHandle(obj));	/* TBD: Use saved handle */
+      return TRUE;
       break;
     }
     case PCE_INTEGER:
-      PutInteger(t, value.integer);
+      return PL_put_integer(t, value.integer);
 
       break;
     case PCE_NAME:
@@ -2389,15 +2417,17 @@ put_object(Term t, PceObject obj)
 
 	avalue = nameToAtom(symbol->name);
       }
-      PutAtom(t, avalue);
+      PL_put_atom(t, avalue);
+      return TRUE;
 
       break;
     case PCE_REAL:
-      PutFloat(t, value.real);
+      return PL_put_float(t, value.real);
 
       break;
     default:
       assert(0);
+      return FALSE;
   }
 }
 
@@ -2444,7 +2474,7 @@ get_pcd(PceObject method)
 }
 
 
-static void
+static int
 put_trace_info(term_t id, prolog_call_data *pm)
 { term_t a = PL_new_term_ref();
   functor_t f;
@@ -2455,7 +2485,7 @@ put_trace_info(term_t id, prolog_call_data *pm)
   else /*if ( (pm->flags & PCE_METHOD_INFO_TRACE) )*/
     f = FUNCTOR_trace1;
 
-  PL_cons_functor(id, f, a);
+  return PL_cons_functor(id, f, a);
 }
 
 
@@ -2476,50 +2506,57 @@ PrologCall(PceGoal goal)
 { prolog_call_data *pcd;
 
   if ( (pcd = get_pcd(goal->implementation)) )
-  { fid_t  fid = PL_open_foreign_frame();
-    term_t av  = PL_new_term_refs(4);
-    term_t mav = PL_new_term_refs(pcd->argc);
-    int rval, n;
+  { fid_t fid;
 
-					/* push method identifier */
-    if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
-      put_trace_info(av+0, pcd);
-    else
-      _PL_put_atomic(av+0, pcd->method_id);
+    if ( (fid=PL_open_foreign_frame()) )
+    { term_t av  = PL_new_term_refs(4);
+      term_t mav = PL_new_term_refs(pcd->argc);
+      int rval = PCE_FAIL, n;
+  					  /* push method identifier */
+      if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
+      { if ( !put_trace_info(av+0, pcd) )
+	  goto error;
+      } else
+	_PL_put_atomic(av+0, pcd->method_id);
 
-    for(n=0; n<goal->argc; n++)		/* push normal arguments */
-      put_object(mav+n, goal->argv[n]);
-    if ( goal->va_argc >= 0 )		/* push varargs excess args in list */
-    { term_t l = mav+n;
-      term_t tmp = PL_new_term_ref();
-
-      PL_put_nil(l);
-      for(n=goal->va_argc; --n >= 0; )
-      { put_object(tmp, goal->va_argv[n]);
-	PL_cons_list(l, tmp, l);
+      for(n=0; n<goal->argc; n++)		/* push normal arguments */
+      { if ( !put_object(mav+n, goal->argv[n]) )
+	  goto error;
       }
-    }
-    PL_cons_functor_v(av+1, pcd->functor, mav);
-					/* push @receiver */
-    put_object(av+2, goal->receiver);
+      if ( goal->va_argc >= 0 )		/* push varargs excess args in list */
+      { term_t l = mav+n;
+	term_t tmp = PL_new_term_ref();
 
-    if ( goal->flags & PCE_GF_SEND )
-      rval = PL_call_predicate(MODULE_user, DebugMode,
-			       PREDICATE_send_implementation, av);
-    else
-    { rval = PL_call_predicate(MODULE_user, DebugMode,
-			       PREDICATE_get_implementation, av);
-      if ( rval )
-      { if ( !get_answer_object(goal, av+3, goal->return_type, &goal->rval) )
-	{ pceReportErrorGoal(goal);
-	  rval = PCE_FAIL;
+	PL_put_nil(l);
+	for(n=goal->va_argc; --n >= 0; )
+	{ if ( !put_object(tmp, goal->va_argv[n]) ||
+	       !PL_cons_list(l, tmp, l) )
+	    goto error;
 	}
       }
+					  /* push @receiver */
+      if ( !PL_cons_functor_v(av+1, pcd->functor, mav) ||
+	   !put_object(av+2, goal->receiver) )
+	goto error;
+
+      if ( goal->flags & PCE_GF_SEND )
+	rval = PL_call_predicate(MODULE_user, DebugMode,
+				 PREDICATE_send_implementation, av);
+      else
+      { rval = PL_call_predicate(MODULE_user, DebugMode,
+				 PREDICATE_get_implementation, av);
+	if ( rval )
+	{ if ( !get_answer_object(goal, av+3, goal->return_type, &goal->rval) )
+	  { pceReportErrorGoal(goal);
+	    rval = PCE_FAIL;
+	  }
+	}
+      }
+
+    error:
+      PL_discard_foreign_frame(fid);
+      return rval;
     }
-
-    PL_discard_foreign_frame(fid);
-
-    return rval;
   }
 
   return PCE_FAIL;
@@ -2556,7 +2593,7 @@ setPrologContext(PceObject context)
 
 static Module
 pceContextModule()
-{ Atom mname;
+{ atom_t mname;
 
   if ( DefaultContext && (mname = nameToAtom(DefaultContext)) )
     return ModuleFromAtom(mname);
@@ -2619,14 +2656,14 @@ IOFUNCTIONS pceFunctions =
 
 
 static foreign_t
-pl_pce_open(Term t, Term mode, Term plhandle)
+pl_pce_open(term_t t, term_t mode, term_t plhandle)
 { PceObject obj;
   IOENC enc;
 
   if ( (obj = termToReceiver(t)) )
   { int flags, sflags = SIO_LBUF|SIO_RECORDPOS;
     int handle;
-    Atom m;
+    atom_t m;
 
     if ( GetAtom(mode, &m) )
     { if ( m == ATOM_read )
@@ -2655,7 +2692,7 @@ pl_pce_open(Term t, Term mode, Term plhandle)
 
       return PL_open_stream(plhandle, s);
     } else
-    { Atom a = AtomFromString(pceOsError());
+    { atom_t a = AtomFromString(pceOsError());
 
       return ThrowException(EX_PERMISSION,
 			    ATOM_open, ATOM_object, obj,
@@ -2997,7 +3034,7 @@ unify_prof_node(term_t t, void *impl)
 
 static int
 get_prof_node(term_t ref, void **impl)
-{ Atom name;
+{ atom_t name;
   int arity;
 
   if ( GetNameArity(ref, &name, &arity) &&
@@ -3067,20 +3104,20 @@ Prolog terms.
 static int
 PrologWriteGoalArgs(PceGoal g)
 { int i, argn = 0;
-  Term l;
+  term_t l;
 
   for(i=0; i<g->argc; i++)
   { if ( argn++ )
       Sprintf(", ");
     if ( g->argv[i] )
-      PL_write_term(Soutput, (Term)g->argv[i], 999, PL_WRT_PORTRAY);
+      PL_write_term(Soutput, (term_t)g->argv[i], 999, PL_WRT_PORTRAY);
     else
       Sprintf("(nil)");
   }
 
-  if ( g->va_type && (l = (Term)g->host_closure) )
-  { Term tail = PL_copy_term_ref(l);
-    Term head = NewTerm();
+  if ( g->va_type && (l = (term_t)g->host_closure) )
+  { term_t tail = PL_copy_term_ref(l);
+    term_t head = PL_new_term_ref();
 
     while( PL_get_list(tail, head, tail) )
     { if ( argn++ )
@@ -3196,15 +3233,14 @@ detach_thread(void *closure)
 { pceMTdetach();
 }
 
-#include "dispatch.c"
 extern install_t install_pcecall();
 
 foreign_t
-pl_pce_init(Term a)
+pl_pce_init(term_t a)
 { char **argv;
   int argc;
   const char *home;
-  Atom ahome;
+  atom_t ahome;
   static int initialised = 0;
 
   if ( GetAtom(a, &ahome) )
@@ -3247,7 +3283,6 @@ pl_pce_init(Term a)
     PROLOG_INSTALL_RESET_FUNCTION(do_reset);
     PROLOG_INSTALL_REDRAW_FUNCTION(do_redraw);
 
-    pce_install_dispatch();
     install_pcecall();
   }
 

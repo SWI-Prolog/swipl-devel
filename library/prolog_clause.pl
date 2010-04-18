@@ -35,7 +35,6 @@
 	    predicate_name/2,		% +Head, -Name
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
-:- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(occurs), [sub_term/2]).
 :- use_module(library(debug)).
@@ -305,6 +304,7 @@ expand_failed(E, Read) :-
 %	Pos0 and Pos still include the term-position of the head.
 
 unify_body(B, B, Pos, Pos) :-
+	acyclic_term(B),		% X = call(X)
 	\+ sub_term(brace_term_position(_,_,_), Pos), !.
 unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
@@ -326,7 +326,11 @@ a --> { x, y, z }.
 %	@param TermPosRead	Sub-term positions of source
 
 ubody(B, B, P, P) :-
+	acyclic_term(B),		% X = call(X)
 	\+ sub_term(brace_term_position(_,_,_), P), !.
+ubody(X, call(X),			% X = call(X)
+      From-To,
+      term_position(From, To, From, To, [From-To])) :- !.
 ubody(B0, B,
       brace_term_position(F,T,A0),
       Pos) :-

@@ -89,6 +89,10 @@ manual_directory(packages, swi('doc/packages')).
 index_manual :-
 	man_index(_,_,_,_,_), !.
 index_manual :-
+	with_mutex(pldoc_man,
+		   locked_index_manual).
+
+locked_index_manual :-
 	(   manual_directory(Class, Dir),
 	    index_man_directory(Dir,
 				[ class(Class),
@@ -517,6 +521,7 @@ man_page(Obj, Options) -->
 	    html(p([]))
 	;   []
 	),
+	man_synopsis(Obj),
 	man_matches(Matches).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
@@ -527,6 +532,24 @@ man_page(Obj, Options) -->
 	->  man_links([], [])
 	;   html(p(['No manual entry for ', Atom]))
 	).
+
+%%	man_synopsis(+Text)
+%
+%	Give synopsis details for a fully specified predicate indicator.
+%
+%	@tbd Give this for each match on the basis of the manual link.
+
+man_synopsis(Text) -->
+	{ atom(Text),
+	  sub_atom(Text, Pre, _, Post, /),
+	  sub_atom(Text, _, Post, 0, AA),
+	  catch(atom_number(AA, Arity), _, fail), !,
+	  sub_atom(Text, 0, Pre, _, Name)
+	},
+	object_synopsis(Name/Arity).
+man_synopsis(Object) -->
+	object_synopsis(Object).
+
 
 man_matches([]) -->
 	[].

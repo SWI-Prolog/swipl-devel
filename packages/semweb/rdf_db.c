@@ -86,7 +86,7 @@ typedef enum
   EV_REHASH	 = 0x0100		/* begin/end */
 } broadcast_id;
 
-static void broadcast(broadcast_id id, void *a1, void *a2);
+static int broadcast(broadcast_id id, void *a1, void *a2);
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -286,61 +286,76 @@ static int	check_predicate_cloud(predicate_cloud *c);
 
 static int
 instantiation_error(term_t actual)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_CHARS, "instantiation_error",
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_CHARS, "instantiation_error",
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 permission_error(const char *op, const char *type, const char *obj,
 		 const char *msg)
-{ term_t ex = PL_new_term_ref();
-  term_t ctx = PL_new_term_ref();
+{ term_t ex, ctx;
+
+  if ( !(ex = PL_new_term_ref()) ||
+       !(ctx = PL_new_term_ref()) )
+    return FALSE;
 
   if ( msg )
-    PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
-		         PL_VARIABLE,
-		         PL_CHARS, msg);
+  { if ( !PL_unify_term(ctx, PL_FUNCTOR_CHARS, "context", 2,
+			       PL_VARIABLE,
+			       PL_CHARS, msg) )
+      return FALSE;
+  }
 
-  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+  if ( !PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
 		      PL_FUNCTOR_CHARS, "permission_error", 3,
 		        PL_CHARS, op,
 		        PL_CHARS, type,
 		        PL_CHARS, obj,
-		      PL_TERM, ctx);
+		      PL_TERM, ctx) )
+    return FALSE;
 
   return PL_raise_exception(ex);
 }
@@ -1045,18 +1060,18 @@ Reachability matrix.
 
 #define WBITSIZE (sizeof(int)*8)
 
-static int
-byte_size_bitmatrix(int w, int h)
-{ int wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
+static size_t
+byte_size_bitmatrix(size_t w, size_t h)
+{ size_t wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
 
-  return (int)(intptr_t)&((bitmatrix*)NULL)->bits[wsize];
+  return (size_t)(intptr_t)&((bitmatrix*)NULL)->bits[wsize];
 }
 
 
 static bitmatrix *
-alloc_bitmatrix(rdf_db *db, int w, int h)
-{ int size = byte_size_bitmatrix(w, h);
-  bitmatrix *m = PL_malloc(size);
+alloc_bitmatrix(rdf_db *db, size_t w, size_t h)
+{ size_t size = byte_size_bitmatrix(w, h);
+  bitmatrix *m = rdf_malloc(db, size);
 
   memset(m, 0, size);
   m->width = w;
@@ -1068,7 +1083,7 @@ alloc_bitmatrix(rdf_db *db, int w, int h)
 
 static void
 free_bitmatrix(rdf_db *db, bitmatrix *bm)
-{ int size = byte_size_bitmatrix(bm->width, bm->heigth);
+{ size_t size = byte_size_bitmatrix(bm->width, bm->heigth);
 
   rdf_free(db, bm, size);
 }
@@ -1078,8 +1093,8 @@ free_bitmatrix(rdf_db *db, bitmatrix *bm)
 
 static void
 setbit(bitmatrix *m, int i, int j)
-{ int ij = m->width*i+j;
-  int word = ij/WBITSIZE;
+{ size_t ij = m->width*i+j;
+  size_t word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
   m->bits[word] |= 1<<bit;
@@ -1088,8 +1103,8 @@ setbit(bitmatrix *m, int i, int j)
 
 static int
 testbit(bitmatrix *m, int i, int j)
-{ int ij = m->width*i+j;
-  int word = ij/WBITSIZE;
+{ size_t ij = m->width*i+j;
+  size_t word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
   return ((m->bits[word] & (1<<bit)) != 0);
@@ -2042,7 +2057,7 @@ literal_hash(literal *lit)
         break;
       case OBJ_TERM:
 	hash = rdf_murmer_hash(lit->value.term.record,
-			       lit->value.term.len,
+			       (int)lit->value.term.len,
 			       MURMUR_SEED);
 	break;
       default:
@@ -2310,15 +2325,19 @@ Hence we need a seperate lock.
 
 static int
 WANT_GC(rdf_db *db)
-{ long dirty = db->erased - db->freed;
-  long count = db->created - db->erased;
+{ if ( db->gc_blocked )
+  { return FALSE;
+  } else
+  { long dirty = db->erased - db->freed;
+    long count = db->created - db->erased;
 
-  if ( dirty > 1000 && dirty > count )
-    return TRUE;
-  if ( count > db->table_size[1]*MAX_HASH_FACTOR )
-    return TRUE;
+    if ( dirty > 1000 && dirty > count )
+      return TRUE;
+    if ( count > db->table_size[1]*MAX_HASH_FACTOR )
+      return TRUE;
 
-  return FALSE;
+    return FALSE;
+  }
 }
 
 
@@ -2415,14 +2434,19 @@ match_object(triple *t, triple *p, unsigned flags)
     { literal *plit = p->object.literal;
       literal *tlit = t->object.literal;
 
-      if ( !plit->objtype )
+      if ( !plit->objtype && !plit->qualifier )
 	return TRUE;
 
-      if ( plit->objtype != tlit->objtype )
+      if ( plit->objtype && plit->objtype != tlit->objtype )
 	return FALSE;
 
       switch( plit->objtype )
-      { case OBJ_STRING:
+      { case 0:
+	  if ( plit->qualifier &&
+	       tlit->qualifier != plit->qualifier )
+	    return FALSE;
+	  return TRUE;
+	case OBJ_STRING:
 	  if ( (flags & MATCH_QUAL) ||
 	       p->match == STR_MATCH_PLAIN )
 	  { if ( tlit->qualifier != plit->qualifier )
@@ -3579,10 +3603,10 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
   } else if ( PL_is_functor(litt, FUNCTOR_lang2) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, litt, a);
+    _PL_get_arg(1, litt, a);
     if ( !get_lit_atom_ex(a, &lit->type_or_lang, flags) )
       return FALSE;
-    PL_get_arg(2, litt, a);
+    _PL_get_arg(2, litt, a);
     if ( !get_lit_atom_ex(a, &lit->value.string, flags) )
       return FALSE;
 
@@ -3592,11 +3616,11 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
 	      !(flags & LIT_TYPED) )	/* avoid recursion */
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, litt, a);
+    _PL_get_arg(1, litt, a);
     if ( !get_lit_atom_ex(a, &lit->type_or_lang, flags) )
       return FALSE;
     lit->qualifier = Q_TYPE;
-    PL_get_arg(2, litt, a);
+    _PL_get_arg(2, litt, a);
 
     return get_literal(db, a, t, LIT_TYPED|flags);
   } else if ( !PL_is_ground(litt) )
@@ -3618,7 +3642,7 @@ get_object(rdf_db *db, term_t object, triple *t)
   } else if ( PL_is_functor(object, FUNCTOR_literal1) )
   { term_t a = PL_new_term_ref();
 
-    PL_get_arg(1, object, a);
+    _PL_get_arg(1, object, a);
     return get_literal(db, a, t, 0);
   } else
     return type_error(object, "rdf_object");
@@ -3636,10 +3660,10 @@ get_src(term_t src, triple *t)
     { term_t a = PL_new_term_ref();
       long line;
 
-      PL_get_arg(1, src, a);
+      _PL_get_arg(1, src, a);
       if ( !get_atom_or_var_ex(a, &t->graph) )
 	return FALSE;
-      PL_get_arg(2, src, a);
+      _PL_get_arg(2, src, a);
       if ( PL_get_long(a, &line) )
 	t->line = line;
       else if ( !PL_is_variable(a) )
@@ -3733,7 +3757,7 @@ get_partial_triple(rdf_db *db,
     } else if ( PL_is_functor(object, FUNCTOR_literal1) )
     { term_t a = PL_new_term_ref();
 
-      PL_get_arg(1, object, a);
+      _PL_get_arg(1, object, a);
       if ( !get_literal(db, a, t, LIT_PARTIAL) )
 	return FALSE;
     } else if ( PL_is_functor(object, FUNCTOR_literal2) )
@@ -3743,7 +3767,7 @@ get_partial_triple(rdf_db *db,
       alloc_literal_triple(db, t);
       lit = t->object.literal;
 
-      PL_get_arg(1, object, a);
+      _PL_get_arg(1, object, a);
       if ( PL_is_functor(a, FUNCTOR_exact1) )
 	t->match = STR_MATCH_EXACT;
       else if ( PL_is_functor(a, FUNCTOR_plain1) )
@@ -3758,7 +3782,8 @@ get_partial_triple(rdf_db *db,
 	t->match = STR_MATCH_LIKE;
       else
 	return domain_error(a, "match_type");
-      PL_get_arg(1, a, a);
+
+      _PL_get_arg(1, a, a);
       if ( !get_atom_or_var_ex(a, &lit->value.string) )
 	return FALSE;
       lit->objtype = OBJ_STRING;
@@ -3834,10 +3859,10 @@ get_graph(term_t src, triple *t)
   { term_t a = PL_new_term_ref();
     long line;
 
-    PL_get_arg(1, src, a);
+    _PL_get_arg(1, src, a);
     if ( !get_atom_ex(a, &t->graph) )
       return FALSE;
-    PL_get_arg(2, src, a);
+    _PL_get_arg(2, src, a);
     if ( !get_long_ex(a, &line) )
       return FALSE;
     t->line = line;
@@ -3899,14 +3924,11 @@ put_literal_value(term_t v, literal *lit)
       break;
     case OBJ_INTEGER:
       PL_put_variable(v);
-      PL_unify_int64(v, lit->value.integer);
-      break;
+      return PL_unify_int64(v, lit->value.integer);
     case OBJ_DOUBLE:
-      PL_put_float(v, lit->value.real);
-      break;
+      return PL_put_float(v, lit->value.real);
     case OBJ_TERM:
-      PL_recorded_external(lit->value.term.record, v);
-      break;
+      return PL_recorded_external(lit->value.term.record, v);
     default:
       assert(0);
       return FALSE;
@@ -3920,7 +3942,8 @@ static int
 unify_literal(term_t lit, literal *l)
 { term_t v = PL_new_term_ref();
 
-  put_literal_value(v, l);
+  if ( !put_literal_value(v, l) )
+    return FALSE;
 
   if ( l->qualifier )
   { functor_t qf;
@@ -3943,11 +3966,11 @@ unify_literal(term_t lit, literal *l)
   } else if ( PL_is_functor(lit, FUNCTOR_lang2) &&
 	      l->objtype == OBJ_STRING )
   { term_t a = PL_new_term_ref();
-    PL_get_arg(2, lit, a);
+    _PL_get_arg(2, lit, a);
     return PL_unify(a, v);
   } else if ( PL_is_functor(lit, FUNCTOR_type2) )
   { term_t a = PL_new_term_ref();
-    PL_get_arg(2, lit, a);
+    _PL_get_arg(2, lit, a);
     return PL_unify(a, v);
   } else
     return FALSE;
@@ -3961,9 +3984,9 @@ unify_object(term_t object, triple *t)
   { term_t lit = PL_new_term_ref();
 
     if ( PL_unify_functor(object, FUNCTOR_literal1) )
-      PL_get_arg(1, object, lit);
+      _PL_get_arg(1, object, lit);
     else if ( PL_is_functor(object, FUNCTOR_literal2) )
-      PL_get_arg(2, object, lit);
+      _PL_get_arg(2, object, lit);
     else
       return FALSE;
 
@@ -4212,7 +4235,7 @@ record_update_src_transaction(rdf_db *db, triple *t,
 
 
 static void
-free_transaction(rdf_db *db, transaction_record *tr)
+void_transaction(rdf_db *db, transaction_record *tr)
 { switch(tr->type)
   { case TR_ASSERT:
       free_triple(db, tr->triple);
@@ -4228,7 +4251,50 @@ free_transaction(rdf_db *db, transaction_record *tr)
       break;
   }
 
+  tr->type = TR_VOID;
+}
+
+
+static void
+free_transaction(rdf_db *db, transaction_record *tr)
+{ void_transaction(db, tr);
+
   rdf_free(db, tr, sizeof(*tr));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This must deal  with  multiple  operations   on  the  same  triple. Most
+probably the most important thing is to   merge  update records. We must
+also make-up our mind with regard to  updated records that are erased or
+records that are erased after updating, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+clean_transaction(rdf_db *db, transaction_record *tr0)
+{
+#if 0
+  transaction_record *tr;
+
+  for(tr=tr0; tr; tr=tr->next)
+  { if ( TR_RETRACT )
+    { transaction_record *tr2;
+
+      for(tr2=tr->next; tr2; tr2=tr2->next)
+      { if ( tr2->triple == tr->triple )
+	{ switch(tr2->type)
+	  { case TR_RETRACT:
+	    case TR_UPDATE:
+	    case TR_UPDATE_SRC:
+	      void_transaction(db, tr2);
+	    default:
+	      ;
+	  }
+	}
+      }
+    }
+  }
+#endif
 }
 
 
@@ -4271,12 +4337,13 @@ discard_transaction(rdf_db *db)
 }
 
 
-void
+int
 put_begin_end(term_t t, functor_t be, int level)
-{ term_t av = PL_new_term_ref();
+{ term_t av;
 
-  PL_put_integer(av, level);
-  PL_cons_functor_v(t, be, av);
+  return ( (av = PL_new_term_ref()) &&
+	   PL_put_integer(av, level) &&
+	   PL_cons_functor_v(t, be, av) );
 }
 
 
@@ -4290,7 +4357,7 @@ access?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-commit_transaction(rdf_db *db, term_t id)
+commit_transaction_int(rdf_db *db, term_t id)
 { transaction_record *tr, *next;
   int tr_level = 0;			/* nesting level */
 
@@ -4330,6 +4397,7 @@ commit_transaction(rdf_db *db, term_t id)
   while( (tr=db->tr_first) )		/* See above (*) */
   { db->tr_first = db->tr_last = NULL;
 
+    clean_transaction(db, tr);
 					/* real commit */
     for(; tr; tr = next)
     { next = tr->next;
@@ -4340,18 +4408,21 @@ commit_transaction(rdf_db *db, term_t id)
 	case TR_SUB_START:
 	{ term_t id = PL_new_term_ref();
 	  term_t be = PL_new_term_ref();
-	  PL_recorded(tr->update.transaction_id, id);
-	  put_begin_end(be, FUNCTOR_begin1, ++tr_level);
-	  broadcast(EV_TRANSACTION, (void*)id, (void*)be);
+	  if ( !PL_recorded(tr->update.transaction_id, id) ||
+	       !put_begin_end(be, FUNCTOR_begin1, ++tr_level) ||
+	       !broadcast(EV_TRANSACTION, (void*)id, (void*)be) )
+	    return FALSE;
 	  break;
 	}
 	case TR_SUB_END:
 	{ term_t id = PL_new_term_ref();
 	  term_t be = PL_new_term_ref();
-	  PL_recorded(tr->update.transaction_id, id);
+	  if ( !PL_recorded(tr->update.transaction_id, id) )
+	    return FALSE;
 	  PL_erase(tr->update.transaction_id);
-	  put_begin_end(be, FUNCTOR_end1, tr_level--);
-	  broadcast(EV_TRANSACTION, (void*)id, (void*)be);
+	  if ( !put_begin_end(be, FUNCTOR_end1, tr_level--) ||
+	       !broadcast(EV_TRANSACTION, (void*)id, (void*)be)	)
+	    return FALSE;
 	  break;
 	}
 	case TR_ASSERT:
@@ -4365,21 +4436,28 @@ commit_transaction(rdf_db *db, term_t id)
 	  }
 	  break;
 	case TR_UPDATE:
-	  broadcast(EV_UPDATE, tr->triple, tr->update.triple);
-	  erase_triple_silent(db, tr->triple);
-	  link_triple_silent(db, tr->update.triple);
-	  db->generation++;
+	  if ( !tr->triple->erased )
+	  { if ( !broadcast(EV_UPDATE, tr->triple, tr->update.triple) )
+	      return FALSE;		/* TBD: how to handle? */
+	    if ( !tr->triple->erased )
+	    { erase_triple_silent(db, tr->triple);
+	      link_triple_silent(db, tr->update.triple);
+	      db->generation++;
+	    }
+	  }
 	  break;
 	case TR_UPDATE_SRC:
-	  if ( tr->triple->graph != tr->update.src.atom )
-	  { if ( tr->triple->graph )
-	      unregister_graph(db, tr->triple);
-	    tr->triple->graph = tr->update.src.atom;
-	    if ( tr->triple->graph )
-	      register_graph(db, tr->triple);
+	  if ( !tr->triple->erased )
+	  { if ( tr->triple->graph != tr->update.src.atom )
+	    { if ( tr->triple->graph )
+		unregister_graph(db, tr->triple);
+	      tr->triple->graph = tr->update.src.atom;
+	      if ( tr->triple->graph )
+		register_graph(db, tr->triple);
+	    }
+	    tr->triple->line = tr->update.src.line;
+	    db->generation++;
 	  }
-	  tr->triple->line = tr->update.src.line;
-	  db->generation++;
 	  break;
 	case TR_UPDATE_MD5:
 	{ graph *src = tr->update.md5.graph;
@@ -4397,6 +4475,8 @@ commit_transaction(rdf_db *db, term_t id)
 	  db->tr_reset = FALSE;
 	  reset_db(db);
 	  break;
+	case TR_VOID:
+	  break;
 	default:
 	  assert(0);
       }
@@ -4406,6 +4486,18 @@ commit_transaction(rdf_db *db, term_t id)
   }
 
   return TRUE;
+}
+
+
+static int
+commit_transaction(rdf_db *db, term_t id)
+{ int rc;
+
+  db->gc_blocked++;
+  rc = commit_transaction_int(db, id);
+  db->gc_blocked--;
+
+  return rc;
 }
 
 
@@ -4431,10 +4523,14 @@ rdf_transaction(term_t goal, term_t id)
     if ( empty || db->tr_nesting > 0 )
     { commit_transaction(db, id);
     } else
-    { term_t be = PL_new_term_ref();
-      put_begin_end(be, FUNCTOR_begin1, 0);
-      broadcast(EV_TRANSACTION, (void*)id, (void*)be);
-      put_begin_end(be, FUNCTOR_end1, 0);
+    { term_t be;
+
+      if ( !(be=PL_new_term_ref()) ||
+	   !put_begin_end(be, FUNCTOR_begin1, 0) ||
+	   !broadcast(EV_TRANSACTION, (void*)id, (void*)be) ||
+	   !put_begin_end(be, FUNCTOR_end1, 0) )
+	return FALSE;
+
       if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
       { broadcast(EV_TRANSACTION, (void*)id, (void*)be);
 	rc = FALSE;
@@ -4442,7 +4538,8 @@ rdf_transaction(term_t goal, term_t id)
       }
       commit_transaction(db, id);
       REALLOW_READERS(db);
-      broadcast(EV_TRANSACTION, (void*)id, (void*)be);
+      if ( !broadcast(EV_TRANSACTION, (void*)id, (void*)be) )
+	return FALSE;
     }
   } else
   { discard:
@@ -4712,7 +4809,9 @@ retry:
 			 state->src, t, p->inversed) )
 	continue;
       if ( state->realpred && PL_is_variable(state->predicate) )
-	PL_unify(state->predicate, retpred);
+      { if ( !PL_unify(state->predicate, retpred) )
+	  return FALSE;
+      }
 
       t=t->next[p->indexed];
     inv_alt:
@@ -4899,6 +4998,10 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 
   if ( t.indexed == BY_NONE )
   { c = db->created - db->erased;		/* = totale triple count */
+#if 0
+  } else if ( t.indexed == BY_P )
+  { c = t.predicate.r->triple_count;		/* must sum over children */
+#endif
   } else
   { c = db->counts[t.indexed][triple_hash(db, &t, t.indexed)];
   }
@@ -5247,15 +5350,16 @@ rdf_broadcast(term_t term, term_t mask)
 }
 */
 
-static void
+static int
 broadcast(broadcast_id id, void *a1, void *a2)
 { if ( (joined_mask & id) )
   { fid_t fid;
     term_t term;
     functor_t funct;
 
-    fid = PL_open_foreign_frame();
-    term = PL_new_term_ref();
+    if ( !(fid = PL_open_foreign_frame()) ||
+	 !(term = PL_new_term_ref()) )
+      return FALSE;
 
     switch(id)
     { case EV_ASSERT:
@@ -5266,92 +5370,106 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	funct = FUNCTOR_retract4;
       assert_retract:
       { triple *t = a1;
-	term_t tmp = PL_new_term_refs(4);
+	term_t tmp;
 
-	PL_put_atom(tmp+0, t->subject);
-	PL_put_atom(tmp+1, t->predicate.r->name);
-	unify_object(tmp+2, t);
-	unify_graph(tmp+3, t);
-
-	PL_cons_functor_v(term, funct, tmp);
+	if ( !(tmp = PL_new_term_refs(4)) ||
+	     !PL_put_atom(tmp+0, t->subject) ||
+	     !PL_put_atom(tmp+1, t->predicate.r->name) ||
+	     !unify_object(tmp+2, t) ||
+	     !unify_graph(tmp+3, t) ||
+	     !PL_cons_functor_v(term, funct, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_UPDATE:
       { triple *t = a1;
 	triple *new = a2;
-	term_t tmp = PL_new_term_refs(5);
-	term_t a = PL_new_term_ref();
+	term_t tmp, a;
 	functor_t action;
+	int rc;
 
-	PL_put_atom(tmp+0, t->subject);
-	PL_put_atom(tmp+1, t->predicate.r->name);
-	unify_object(tmp+2, t);
-	unify_graph(tmp+3, t);
+	if ( !(tmp = PL_new_term_refs(5)) ||
+	     !(a = PL_new_term_ref()) ||
+	     !PL_put_atom(tmp+0, t->subject) ||
+	     !PL_put_atom(tmp+1, t->predicate.r->name) ||
+	     !unify_object(tmp+2, t) ||
+	     !unify_graph(tmp+3, t) )
+	  return FALSE;
 
 	if ( t->subject != new->subject )
 	{ action = FUNCTOR_subject1;
-	  PL_put_atom(a, new->subject);
+	  rc = PL_put_atom(a, new->subject);
 	} else if ( t->predicate.r != new->predicate.r )
 	{ action = FUNCTOR_predicate1;
-	  PL_put_atom(a, new->predicate.r->name);
+	  rc = PL_put_atom(a, new->predicate.r->name);
 	} else if ( !match_object(t, new, MATCH_QUAL) )
 	{ action = FUNCTOR_object1;
-	  unify_object(a, new);
+	  rc = unify_object(a, new);
 	} else if ( !same_graph(t, new) )
 	{ action = FUNCTOR_graph1;
-	  unify_graph(a, new);
+	  rc = unify_graph(a, new);
 	} else
-	{ return;			/* no change */
+	{ return TRUE;			/* no change */
 	}
 
-	PL_cons_functor_v(tmp+4, action, a);
-	PL_cons_functor_v(term, FUNCTOR_update5, tmp);
+        if ( !rc ||
+	     !PL_cons_functor_v(tmp+4, action, a) ||
+	     !PL_cons_functor_v(term, FUNCTOR_update5, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_NEW_LITERAL:
       { literal *lit = a1;
-	term_t tmp = PL_new_term_refs(1);
+	term_t tmp;
 
-	unify_literal(tmp, lit);
-	PL_cons_functor_v(term, FUNCTOR_new_literal1, tmp);
+	if ( !(tmp = PL_new_term_refs(1)) ||
+	     !unify_literal(tmp, lit) ||
+	     !PL_cons_functor_v(term, FUNCTOR_new_literal1, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_OLD_LITERAL:
       { literal *lit = a1;
-	term_t tmp = PL_new_term_refs(1);
+	term_t tmp;
 
-	unify_literal(tmp, lit);
-	PL_cons_functor_v(term, FUNCTOR_old_literal1, tmp);
+	if ( !(tmp = PL_new_term_refs(1)) ||
+	     !unify_literal(tmp, lit) ||
+	     !PL_cons_functor_v(term, FUNCTOR_old_literal1, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_LOAD:
       { term_t ctx = (term_t)a1;
 	atom_t be  = (atom_t)a2;
-	term_t tmp = PL_new_term_refs(2);
+	term_t tmp;
 
-	PL_put_atom(tmp+0, be);		/* begin/end */
-	PL_put_term(tmp+1, ctx);
-
-	PL_cons_functor_v(term, FUNCTOR_load2, tmp);
+	if ( !(tmp = PL_new_term_refs(2)) ||
+	     !PL_put_atom(tmp+0, be) ||		/* begin/end */
+	     !PL_put_term(tmp+1, ctx) ||
+	     !PL_cons_functor_v(term, FUNCTOR_load2, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_TRANSACTION:
       { term_t ctx = (term_t)a1;
 	term_t be  = (term_t)a2;
-	term_t tmp = PL_new_term_refs(2);
+	term_t tmp;
 
-	PL_put_term(tmp+0, be);		/* begin/end */
-	PL_put_term(tmp+1, ctx);
-
-	PL_cons_functor_v(term, FUNCTOR_transaction2, tmp);
+	if ( !(tmp = PL_new_term_refs(2)) ||
+	     !PL_put_term(tmp+0, be) ||		/* begin/end */
+	     !PL_put_term(tmp+1, ctx) ||
+	     !PL_cons_functor_v(term, FUNCTOR_transaction2, tmp) )
+	  return FALSE;
 	break;
       }
       case EV_REHASH:
-      { term_t tmp = PL_new_term_refs(1);
-	atom_t be = (atom_t)a1;
+      { atom_t be = (atom_t)a1;
+	term_t tmp = PL_new_term_refs(1);
 
-	PL_put_atom(tmp+0, be);
-	PL_cons_functor_v(term, FUNCTOR_rehash1, tmp);
+	if ( !(tmp = PL_new_term_refs(1)) ||
+	     !PL_put_atom(tmp+0, be) ||
+	     !PL_cons_functor_v(term, FUNCTOR_rehash1, tmp) )
+	  return FALSE;
 	break;
       }
       default:
@@ -5362,6 +5480,8 @@ broadcast(broadcast_id id, void *a1, void *a2)
 
     PL_discard_foreign_frame(fid);
   }
+
+  return TRUE;
 }
 
 
@@ -5449,7 +5569,8 @@ rdf_subject(term_t subject, control_t h)
     next:
       for(; t; t = t->next[BY_NONE])
       { if ( t->first && !t->erased )
-	{ PL_unify_atom(subject, t->subject);
+	{ if ( !PL_unify_atom(subject, t->subject) )
+	    return FALSE;
 
 	  t = t->next[BY_NONE];
 	  if ( t )
@@ -5487,7 +5608,7 @@ rdf_set_predicate(term_t pred, term_t option)
   { term_t a = PL_new_term_ref();
     predicate *i;
 
-    PL_get_arg(1, option, a);
+    _PL_get_arg(1, option, a);
     if ( PL_get_nil(a) )
     { if ( p->inverse_of )
       { p->inverse_of->inverse_of = NULL;
@@ -5879,8 +6000,16 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
   p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found = (indexed & BY_S) ? p->object.resource : p->subject;
+    { atom_t found;
       visited *v;
+
+      if ( indexed & BY_S )
+      { if ( p->object_is_literal )
+	  continue;
+	found = p->object.resource;
+      } else
+      { found = p->subject;
+      }
 
       v = append_agenda(db, a, found);
       if ( !rc )
@@ -5965,13 +6094,15 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	}
 	is_det = PL_is_ground(obj);
 	target_term = obj;
-      } else if ( PL_is_atom(obj) )		/* obj .... subj */
+      } else if ( !PL_is_variable(obj) )	/* obj .... subj */
       {	switch(get_partial_triple(db, 0, pred, obj, 0, &a.pattern))
 	{ case 0:
 	    return directly_attached(pred, obj, subj);
 	  case -1:
 	    return FALSE;
 	}
+	if ( a.pattern.object_is_literal )
+	  return FALSE;			/* rdf_reachable(-,+,literal(...)) */
 	target_term = subj;
       } else
 	return instantiation_error(subj);
@@ -6066,10 +6197,12 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   { int i;
     term_t a = PL_new_term_ref();
 
-    PL_unify_functor(key, FUNCTOR_indexed8);
+    if ( !PL_unify_functor(key, FUNCTOR_indexed8) )
+      return FALSE;
     for(i=0; i<8; i++)
-    { PL_get_arg(i+1, key, a);
-      PL_unify_integer(a, db->indexed[i]);
+    { if ( !PL_get_arg(i+1, key, a) ||
+	   !PL_unify_integer(a, db->indexed[i]) )
+	return FALSE;
     }
 
     return TRUE;
@@ -6084,7 +6217,7 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
     term_t a = PL_new_term_ref();
     atom_t name;
 
-    PL_get_arg(1, key, a);
+    _PL_get_arg(1, key, a);
     if ( !PL_get_atom(a, &name) )
       return type_error(a, "atom");
     if ( (src = lookup_graph(db, name, FALSE)) )
@@ -6092,7 +6225,7 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
     else
       v = 0;
 
-    PL_get_arg(2, key, a);
+    _PL_get_arg(2, key, a);
     return PL_unify_int64(a, v);
   } else if ( f == FUNCTOR_gc2 )
   { return PL_unify_term(key,

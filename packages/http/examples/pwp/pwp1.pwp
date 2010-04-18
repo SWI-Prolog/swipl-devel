@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<html
+  xmlns:pwp="http://www.cs.otago.ac.nz/staffpriv/ok/pwp.pl"
+  pwp:ask = "ensure_loaded(pwp(pwpdb)), once(msg(Greeting))">
+  <head>
+    <title pwp:use="Greeting"/>
+  </head>
+  <body>
+    <p><span pwp:use="Greeting" pwp:tag='-'/></p>
+  </body>
+</html>

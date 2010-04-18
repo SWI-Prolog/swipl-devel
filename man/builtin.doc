@@ -249,6 +249,15 @@ Quick Load Format using qcompile/1 and this flag is \const{true}, the
 contents of the argument files are included in the \fileext{qlf} file
 instead of the loading directive.
 
+    \termitem{redefine_module}{+Action}
+Defines what to do if a file is loaded that provides a module that is
+already loaded from another file. \arg{Action} is one of \const{false}
+(default), which prints an error and refuses to load the file, or
+\const{true}, which uses unload_file/1 on the old file and then proceeds
+loading the new file. Finally, there is \const{ask} that starts
+interaction with the user. Ask is only provided if user_input is
+associated with a terminal.
+
     \termitem{reexport}{Bool}
 If \const{true} re-export the imported predicate.  Used by reexport/1
 and reexport/2.
@@ -432,11 +441,22 @@ absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
 
+    \predicate{unload_file}{1}{+File}
+Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
+module, clear the module's export-list and disassociates it from the
+file.  \arg{File} is a canonical file-name.  See source_file/1,
+module_property/2 and absolute_file_name/3.
+
+This predicare shall be used with care. The multi-threaded nature of
+SWI-Prolog makes removing static code unsafe. Attempts to do this should
+be reserved to development or situations where the application can
+guarantee that none of the clauses associated to \arg{File} are active.
+
     \predicate{prolog_load_context}{2}{?Key, ?Value}
 Obtain context information during compilation.  This predicate can be
 used from directives appearing in a source file to get information about
-the file being loaded.  See also source_location/2. The following keys
-are defined:
+the file being loaded. See also source_location/2 and if/1. The
+following keys are defined:
 
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
@@ -456,9 +476,29 @@ are defined:
 \const{term_position} & Position of last term read.  Term of the form
 			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
 			See also stream_position_data/3. \\
+\const{script}	      & Boolean that indicates whether the file is
+			loaded as a script file (see
+			\cmdlineoption{-s}). \\
 \hline
 \end{tabular}
 \end{center}
+
+The \const{directory} is commonly used add rules to file_search_path/2,
+setting up a search-path for finding files with absolute_file_name/3.
+E.g.,
+
+\begin{code}
+:- dynamic user:file_search_path/2.
+:- multifile user:file_search_path/2.
+
+:- prolog_load_context(directory, Dir),
+   asserta(user:file_search_path(my_program_home, Dir)).
+
+	...
+	absolute_file_name(my_program_home('README.TXT'), ReadMe,
+			   [ access(read) ]),
+	...
+\end{code}
 
     \predicate{source_location}{2}{-File, -Line}
 If the last term has been read from a physical file (i.e., not from the
@@ -1060,7 +1100,7 @@ so called ``standard order''. This order is defined as follows:
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value.  Mixed integer/float are compared
-    	  as floats. If the comparison is equal, the float is considered
+	  as floats. If the comparison is equal, the float is considered
 	  the smaller value. If the Prolog flag \prologflag{iso} is defined,
 	  all floating point numbers precede all integers.
     \item \arg{Compound} terms are first checked on their arity, then
@@ -1194,6 +1234,11 @@ subsumes(General, Specific) :-
     \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
 Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
 
+    \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
+\arg{General} is the most specific term that is a generalisation of
+\arg{Special1} and \arg{Special2}. The implementation can handle cyclic
+terms.
+
     \predicate{unifiable}{3}{{@}X, {@}Y, -Unifier}
 If \arg{X} and \arg{Y} can unify, unify \arg{Unifier} with a list of
 \mbox{\arg{Var} = \arg{Value}}, representing the bindings required to
@@ -1210,22 +1255,9 @@ executed.
     \predicate{?=}{2}{{@}Term1, {@}Term2}
 Succeeds, if the syntactic equality of \arg{Term1} and \arg{Term2}
 can be decided safely, i.e.\ if the result of \exam{Term1 == Term2}
-will not change due to further instantiation of either term.  It is
-defined similar to \verb$?=(X,Y) :- once((X==Y ; X \= Y)).$ However,
-attributed variables are not considered.  A case of different behaviour
-is:
-
-\begin{code}
-?- freeze(X,X=1),Y=2, ?=(X,Y).
-false.
-
-?- freeze(X,X=1), Y=2, once((X==Y ; X \= Y)).
-Y = 2,
-freeze(X, X=1).
-\end{code}
-
+will not change due to further instantiation of either term.  It
+behaves as if defined by \verb$?=(X,Y) :- \+ unifiable(X,Y,[_|_]).$
 \end{description}
-
 
 \section{Control Predicates}		\label{sec:control}
 
@@ -1347,11 +1379,11 @@ subclauses, which is identical to call/1.
     \predicate{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
-will call plus/3, binding \arg{X} to 3.
+will call \exam{plus(1, 2, X)}, binding \arg{X} to 3.
 
 The call/[2..] construct is handled by the compiler, which implies that
 redefinition as a predicate has no effect.  The predicates call/[2-6]
-are defined as true predicates, so they can be handled by interpreted
+are defined as real predicates, so they can be handled by interpreted
 code.
 
     \predicate{apply}{2}{:Goal, +List}
@@ -1496,6 +1528,19 @@ if-then-else).
 
     \termitem{exception}{Exception}
 \arg{Goal} raised the given \arg{Exception}.
+
+    \termitem{external_exception}{Exception}
+\arg{Goal} succeeded with choice-points and these are now discarded
+due to an exception.  For example:
+
+\begin{code}
+?- setup_call_catcher_cleanup(true, (X=1;X=2),
+			      Catcher, writeln(Catcher)),
+   throw(ball).
+external_exception(ball)
+ERROR: Unhandled exception: Unknown message: ball
+\end{code}
+
 \end{description}
 
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}
@@ -1711,6 +1756,74 @@ Primarily intended to write messages to Windows in XPCE (see
 \end{description}
 
 
+\subsubsection{Printing from libraries}		\label{sec:libprintmsg}
+
+Libraries should \emph{not} use format/3 or other output predicates
+directly. Libraries that print informational output directory to the
+console are hard to use from code that depend on your textual output,
+such as a GI script. The predicates in \secref{printmsg} define the API
+for dealing with messages. The idea behind this is that a library that
+wants to provide information about its status, progress, events or
+problems calls print_message/2. The first argument is the
+\jargon{level}. The supported levels are described with print_message/2.
+Libraries typically use \const{informational} and \const{warning}, while
+libraries should use exceptions for errors (see throw/1, type_error/2,
+etc.).
+
+The second argument is an arbitrary Prolog term that carries te
+information of the message, but \emph{not} the precise text. The text is
+defined by the grammar rule prolog:message//1. This distinction is made
+to allow for translations and to allow hooks processing the information
+in a different way (e.g., translate progress messages into a
+progress-bar).
+
+For example, suppose we have a library that must download data from the
+internet (e.g., based on http_open/3). The library wants to print the
+progress after each downloaded file.  The code below is a good skeleton:
+
+\begin{code}
+download_urls(List) :-
+	length(List, Total),
+	forall(nth1(I, List, URL),
+	       (   download_url(URL),
+		   print_message(informational,
+				 download_url(URL, I, Total)))).
+\end{code}
+
+The programmer can now specify the default textual output using the rule
+below. Note that this rule may be in the same file or anywhere else.
+Notably, the application may come with several rule-sets for different
+languages. This, and the user-hook example below are the reason to
+represent the message as a compound term rather than a string. This is
+similar to using message-numbers in non-symbolic languages. The
+documentation of print_message_lines/3 describes the elements that may
+appear in the output list.
+
+\begin{code}
+:- multifile
+	prolog:message//1.
+
+prolog:message(download_url(URL, I, Total)) -->
+	{ Perc is round(I*100/Total) },
+	[ 'Downloaded ~w; ~D from ~D (~d%)'-[URL, I, Total, Perc] ].
+\end{code}
+
+A \emph{user} of the library may define rules for message_hook/3.   The
+rule below acts on the message-content.  Other applications can act on
+the message-level and, for example, popup a message-box for warnings and
+errors.
+
+\begin{code}
+:- multifile user:message_hook/3.
+
+message_hook(download_url(URL, I, Total), _Kind, _Lines) :-
+	<send this information to a GUI component>
+\end{code}
+
+In addition, using the commandline option \cmdlineoption{-q}, the user
+can disable all \jargon{informational} messages.
+
+
 \section{Handling signals}			\label{sec:signal}
 
 As of version 3.1.0, SWI-Prolog is capable to handle software interrupts
@@ -1756,56 +1869,6 @@ has the structure
 error(signal(<SigName>, <SigNum>), <Context>)
 \end{quote}
 
-One possible usage of this is, for example, to limit the time spent
-on proving a goal.  This requires a little C-code for setting the
-alarm timer (see \chapref{foreign}):
-
-\begin{code}
-#include <SWI-Prolog.h>
-#include <unistd.h>
-
-foreign_t
-pl_alarm(term_t time)
-{ double t;
-
-  if ( PL_get_float(time, &t) )
-  { alarm((long)(t+0.5));
-
-    PL_succeed;
-  }
-
-  PL_fail;
-}
-
-
-install_t
-install()
-{ PL_register_foreign("alarm", 1, pl_alarm, 0);
-}
-\end{code}
-
-Next, we can define the Prolog below.  This will run \arg{Goal} just
-as once/1, throwing the exception \term{error}{signal(alrm, _), _} if
-a timeout occurs.%
-	\footnote{Note that call_with_time_limit/2 is defined in
-		  \pllib{time}, part of the `clib' package.  The
-		  version provided in the library runs on POSIX
-		  systems as well as MS-Windows and can schedule
-		  multiple concurrent alarms.}
-
-\begin{code}
-:- load_foreign_library(alarm).
-
-:- on_signal(alrm, _, throw).
-
-:- meta_predicate
-	call_with_time_limit(+, 0).
-
-call_with_time_limit(MaxTime, Goal) :-
-	alarm(MaxTime),
-	call_cleanup(Goal, _, alarm(0)), !.
-\end{code}
-
 The signal names are defined by the POSIX standard as symbols of the
 form {\tt SIG}<SIGNAME>. The Prolog name for a signal is the lowercase
 version of <SIGNAME>. The predicate current_signal/3 may be used to map
@@ -1813,8 +1876,7 @@ between names and signals.
 
 Initially, some signals are mapped to \const{throw}, while all other
 signals are \const{default}. The following signals throw an exception:
-\const{ill}, \const{fpe}, \const{segv}, \const{pipe}, \const{alrm},
-\const{bus}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
+\const{fpe}, \const{alrm}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
 
     \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
 Enumerate the currently defined signal handling.  \arg{Name} is the
@@ -1832,64 +1894,33 @@ consider the following:
     \item[Portability]
 On MS-Windows, the signal interface is severely limited. Different Unix
 brands support different sets of signals, and the relation between
-signal name and number may vary.
+signal name and number may vary. Currently, the system only supports
+signals numbered 1 to 32\footnote{TBD: the system should support the
+Unix realtime signals}. Installing a signal outside the limited set of
+supported signals in MS-Windows crashes the application.
 
     \item[Safety]
-Signal handling is not completely safe in the current implementation,
-especially if \const{throw} is used in combination with external foreign
-code. The system will use the C longjmp() construct to direct control to
-the innermost PL_next_solution(), thus forcing an external procedure to
-be abandoned at an arbitrary moment. Most likely not all SWI-Prolog's own
-foreign code is (yet) safe too.  For the multi-threaded versions this
-is even worse: signals can easily violate thread synchronisation
-consistency.
+Immediately delivered signals (see below) are unsafe. This implies that
+foreign functions called from a handler cannot safely use the SWI-Prolog
+API and	cannot use C longjmp().  Handlers defined as \const{throw} are
+unsafe.  Handlers defined to call a predicate are safe.  Note that the
+predicate can call throw/1, but the delivery is delayed until Prolog
+is in a safe state.
 
 The C-interface described in \secref{csignal} provides the option
-\const{PL_SIGSYNC} for registering a signal handler that delays delivery
-of signals to a safe point.  Unfortunately this may cause signals to be
-delayed for a long time if Prolog is executing foreign code.
-
-    \item[Garbage Collection]
-The garbage collector will block all signals that are handled by Prolog.
-While handling a signal, the garbage-collector is disabled.
+\const{PL_SIGSYNC} to select either safe synchronous or unsafe
+asynchronous delivery.
 
     \item[Time of delivery]
-Normally delivery is immediate (or as defined by the operating system
-used).  Signals are blocked when the garbage collector is active, and
-internally delayed if they occur within a `critical section'.  The
-critical sections are generally very short.
+Using \const{throw} or a foreign handler, signals are delivered
+immediately (as defined by the OS). When using a Prolog predicate,
+delivery is delayed to a safe moment.  Blocking system calls or
+foreign loops may cause long delays.  Foreign code can improve
+on that by calling PL_handle_signals().
+
+Signals are blocked when the garbage collector is active.
 \end{itemlist}
 
-
-\section{The `block' control-structure}		\label{sec:block3}
-
-The block/3 predicate and friends have been introduced before ISO
-compatible catch/3 exception handling for compatibility with some
-Prolog implementation.  The only feature not covered by catch/3
-and throw/1 is the possibility to execute global cuts.  New code
-should use catch/3 and throw/1 to deal with exceptions.
-
-\begin{description}
-    \predicate{block}{3}{+Label, :Goal, -ExitValue}
-Execute \arg{Goal} in a \jargon{block}.  \arg{Label} is the name of the
-block.  \arg{Label} is normally an atom, but the system imposes
-no type constraints and may even be a variable.  \arg{ExitValue}
-is normally unified to the second argument of an exit/2 call
-invoked by \arg{Goal}.
-    \predicate{exit}{2}{+Label, +Value}
-Calling exit/2 makes the innermost \arg{block} which \arg{Label} unifies
-exit. The block's \arg{ExitValue} is unified with \arg{Value}. If this
-unification fails the block fails.
-    \predicate{fail}{1}{+Label}
-Calling fail/1 makes the innermost \arg{block} which \arg{Label}
-unifies fail immediately.  Implemented as
-\begin{code}
-fail(Label) :- !(Label), fail.
-\end{code}
-    \predicate{!}{1}{+Label}
-Cut all choice-points created since the entry of the innermost
-\arg{block} which \arg{Label} unifies.
-\end{description}
 
 \section{DCG Grammar rules}			\label{sec:DCG}
 
@@ -1968,11 +1999,16 @@ queries to the database are faster than querying the recorded database
 discussed below.  See also dynamic/1.
 
 The second way of storing arbitrary terms in the database is using the
-``recorded database''. In this database terms are associated with a
+`recorded database'. In this database terms are associated with a
 \arg{key}. A key can be an atom, small integer or term. In the last case
 only the functor and arity determine the key. Each key has a chain of
 terms associated with it. New terms can be added either at the head or
 at the tail of this chain.
+
+Following the Edinburgh tradition, SWI-Prolog provides database keys to
+clauses and records in the recorded database.  As of 5.9.10, these keys
+are represented by non-textual atoms (`blobs', see \secref{blob}), which
+makes accessing the database through references safe.
 
 The third mechanism is a special purpose one. It associates an integer
 or atom with a key, which is an atom, integer or term. Each key can only
@@ -2046,7 +2082,7 @@ Assert \arg{Term} in the recorded database under key \arg{Key}.
 \arg{Key} is a small integer (range \prologflag{min_tagged_integer}
 \ldots \prologflag{max_tagged_integer}, atom or compound term. If the
 key is a compound term, only the name and arity define the key.
-\arg{Reference} is unified with a unique reference to the record (see
+\arg{Reference} is unified with an opaque handle to the record (see
 erase/1).
 
     \predicate{recorda}{2}{+Key, +Term}
@@ -2059,23 +2095,32 @@ recorded under \arg{Key}.
     \predicate{recordz}{2}{+Key, +Term}
 Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
 
-    \predicate{recorded}{3}{+Key, -Value, -Reference}
-Unify \arg{Value} with the first term recorded under \arg{Key} which does
-unify. \arg{Reference} is unified with the memory location of the record.
+    \predicate{recorded}{3}{?Key, ?Value, ?Reference}
+True if \arg{Value} is recorded under \arg{Key} and has the given
+database \arg{Reference}. If \arg{Reference} is given, this predicate is
+semi-deterministic. Otherwise, it must be considered non-deterministic.
+If neither \arg{Reference} nor \arg{Key} is given, the triples are
+generated as in the code snippet below.\footnote{Note that, without a
+given \arg{Key}, some implementations return triples in the order
+defined by recorda/2 and recordz/2.}
+
+\begin{code}
+	current_key(Key),
+	recorded(Key, Value, Reference)
+\end{code}
 
     \predicate{recorded}{2}{+Key, -Value}
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
 
     \predicate{erase}{1}{+Reference}
 Erase a record or clause from the database.  \arg{Reference} is an
-integer returned by recorda/3 or recorded/3, clause/3, assert/2,
-asserta/2 or assertz/2.  Other integers might conflict with the internal
-consistency of the system.  Erase can only be called once on a record or
-clause.  A second call also might conflict with the internal consistency
-of the system.%
-\bug{The system should have a special type for pointers, thus avoiding
-the Prolog user having to worry about consistency matters. Currently some
-simple heuristics are used to determine whether a reference is valid.}
+db-reference returned by recorda/3 or recorded/3, clause/3, assert/2,
+asserta/2 or assertz/2.  Fail silently if the referenced object no
+longer exists.
+
+    \predicate{instance}{2}{+Reference, -Term}
+Unify \arg{Term} with the referenced clause or database record.  Unit
+clauses are represented as \arg{Head} :- \arg{Body}.
 
     \predicate{flag}{3}{+Key, -Old, +New}
 \arg{Key} is an atom, integer or term. As with the recorded database, if
@@ -2157,6 +2202,27 @@ as term_hash/2, hashing ground terms to the full depth.
 
 \arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
 must be in the range $[1 \ldots 2147483647]$
+
+    \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
+Compute an SHA1-hash from \arg{Term}. The hash is represented as a
+40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
+produces a hash-key for non-ground terms. The hash is invariant over
+variable-renaming (see \predref{=@=}{2}) and constants over different
+invocations of Prolog.\bug{The hash depends on word-order
+(big/little-endian) and the wordsize (32/64 bits).}
+
+This predicate raises an exeption when trying to compute the hash on
+a cyclic term or attributed term.  Attributed terms are not handled
+because subsumes_chk/2 is not considered well defined for attributed
+terms.  Cyclic terms are not supported because this would require
+establishing a canonical cycle.  I.e., given A=[a|A] and B=[a,a|B],
+\arg{A} and \arg{B} should produce the same hash.  This is not
+(yet) implemented.
+
+This hash was developed for lookup of solutions to a goal stored in a
+table.  By using a cryptographic hash, heuristic algorithms can often
+ignore the possibility of hash-colisions and thus avoid storing the
+goal-term itself as well as testing using \predref{=@=}{2}.
 \end{description}
 
 
@@ -2296,26 +2362,68 @@ flag/3).
 Successively unifies \arg{Key} with all keys used for records (see
 recorda/3, etc.).
 
-    \predicate{current_predicate}{2}{?Name, ?Head}
-Successively unifies \arg{Name} with the name of predicates currently
-defined and \arg{Head} with the most general term built from \arg{Name}
-and the arity of the predicate. This predicate succeeds for all
-predicates defined in the specified module, imported to it, or in one of
-the modules from which the predicate will be imported if it is called.
-
     \predicate[ISO]{current_predicate}{1}{:PredicateIndicator}
-ISO compliant implementation of current_predicate/2.  Unlike
-current_predicate/2, the current implementation of current_predicate/1
-does not consider predicates that can be autoloaded `current'.
+True if \arg{PredicateIndicator} is a currently defined predicate. A
+predicate is considered defined if it exists in the specified module, is
+imported into the module or is defined in one of the modules from which
+the predicate will be imported if it is called (see
+\secref{importmodule}). Note that current_predicate/1 does \emph{not}
+succeed for predicates that can be \jargon{autoloaded}.  See also
+current_predicate/2 and predicate_property/2.
+
+If \arg{PredicateIndicator} is not fully specified, the predicate only
+generates values that are defined in or already imported into the target
+module. Generating all callable predicates therefore requires
+enumerating modules using current_module/1. Generating predicates
+callable in a given module requires enumerating the import modules
+using import_module/2 and the auto-loadable predicates using the
+predicate_property/2 \const{autoload}.
+
+    \predicate{current_predicate}{2}{?Name, :Head}
+Classical pre-ISO implementation of current_predicate/1, where the
+predicate is represented by the head-term.  The advantage is that
+this can be used for checking existence of a predicate before calling
+it without the need for functor/3:
+
+\begin{code}
+call_if_exists(G) :-
+	current_predicate(_, G),
+	call(G).
+\end{code}
+
+Because of this intended usage, current_predicate/2 also succeeds if the
+predicate can be autoloaded.  Unfortunately, checking the autoloader
+makes this predicate relatively slow; in particular because a failed
+lookup of the autoloader will cause the autoloader to verify that its
+index is up-to-date.
 
     \predicate{predicate_property}{2}{:Head, ?Property}
 True if \arg{Head} refers to a predicate that has property
-\arg{Property}. Can be used to test whether a predicate has a certain
-property, obtain all properties known for \arg{Head}, find all
-predicates having \arg{property} or even obtaining all information
-available about the current program. \arg{Property} is one of:
+\arg{Property}. With sufficiently instantiated \arg{Head},
+predicate_property/2 tries to resolve the predicate the same way as
+calling it would do: if the predicate is not defined it scans the
+auto-import modules and finally tries the autoloader. Unlike calling,
+failure to find the target predicate causes predicate_property/2 to fail
+silently. If \arg{Head} is not sufficiently bound, only currently
+locally defined and already imported predicates are enumerated. See
+current_predicate/1 for enumerating all predicates. A common issue
+concerns \emph{generating} all built-in predicates. This can be achieved
+using the code below.
+
+\begin{code}
+generate_built_in(Name/Arity) :-
+	predicate_property(system:Head, built_in),
+	functor(Head, Name, Arity),
+	\+ sub_atom(Name, 0, _, _, $).	% discard reserved names
+\end{code}
+
+\arg{Property} is one of:
 
 \begin{description}
+    \termitem{autoload}{}
+Is true if the predicate can be autoloaded. Like \const{undefined}, this
+property is \emph{not} generated.
+
     \termitem{built_in}{}
 Is true if the predicate is locked as a built-in predicate. This
 implies it cannot be redefined in its definition module and it can
@@ -2474,8 +2582,8 @@ specification, new code is encouraged to use these predicates for
 manipulation of I/O streams.
 
 \Secref{edinburghIO} describes tell/1, see/1 and friends, providing I/O
-in the spirit of the outdated Edinburgh standard. These predicates are
-layered on top of the ISO predicates. Both packages are fully
+in the spirit of the traditional Edinburgh standard. These predicates
+are layered on top of the ISO predicates. Both packages are fully
 integrated; the user may switch freely between them.
 
 
@@ -2487,8 +2595,18 @@ resulting stream identifier is then passed as a parameter to the reading
 and writing predicates to specify the source or destination of the data.
 
 This schema is not vulnerable to filename and stream ambiguities as
-well as changes to the working directory.  New code is advised to use
-these predicates to manage input and output streams.
+well as changes to the working directory.  On the other hand, using
+the notion of current-I/O simplifies reusability of code without the
+need to pass arguments around.  E.g., see with_output_to/2.
+
+SWI-Prolog streams are, compatible to the ISO standard, either input
+or output streams.  To accomodate portability to other systems, a
+pair of streams can be packed into a \jargon{stream-pair}.  See
+stream_pair/3 for details.
+
+SWI-Prolog stream-handles are unique symbols that have no syntactical
+representation. They are written as \verb$<stream>(hex-number)$, which
+is not valid input for read/1.
 
 
 \begin{description}
@@ -2733,6 +2851,14 @@ True if \arg{Term} is a stream name or valid stream handle.  This
 predicate realises a safe test for the existence of a stream alias
 or handle.
 
+    \predicate{stream_pair}{3}{?StreamPair, ?Read, ?Write}
+This predicate can be used in mode (-,+,+) to create a
+\jargon{stream-pair} from an input stream and an output stream.
+Stream-pairs can be used by all I/O operations on streams, where the
+operation selects the appropriate member of the pair. The predicate
+close/1 closes both streams of the pair. Mode (+,-,-) can be used to get
+access to the underlying streams.
+
     \predicate[ISO]{set_stream_position}{2}{+Stream, +Pos}
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
@@ -2897,7 +3023,7 @@ Another example of using the \functor{pipe}{1} construct is shown
 below.%
 	\footnote{As of version 5.3.15, the pipe construct is supported
 		  in the MS-Windows version, both for
-		  \program{plcon.exe} and \program{plwin.exe}. The
+		  \program{swipl.exe} and \program{swipl-win.exe}. The
 		  implementation uses code from the LUA programming
 		  language (\url{http://www.lua.org}).}
 Note that the \functor{pipe}{1} construct is not part of
@@ -3381,7 +3507,7 @@ syntax.
 
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
-as eclipse (\ldots).  A 0 (zero) value (default) imposes no depth limit.
+as ellipses (\ldots).  A 0 (zero) value (default) imposes no depth limit.
 This option also delimits the number of printed for a list.  Example:
 
 \begin{code}
@@ -3440,6 +3566,13 @@ the argument to an operator.  For example:
     \termitem{quoted}{Bool}
 If \const{true}, atoms and functors that needs quotes will be quoted.
 The default is \const{false}.
+
+    \termitem{spacing}{+Spacing}
+Determines whether and where extra white-space is added to enhance
+readability. The default is \const{standard}, adding only space where
+needed for proper tokenization by read_term/3.  Currently, the only
+other value is \const{next_argument}, adding a space after a comma
+used to separate arguments in a term or list.
 \end{description}
 
     \predicate[ISO]{write_term}{3}{+Stream, +Term, +Options}
@@ -4630,7 +4763,7 @@ Rational number division. This function is only available if
 SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
-    \infixop[ISO]{gcd}{+IntExpr1}{+IntExpr2}
+    \infixop{gcd}{+IntExpr1}{+IntExpr2}
 Result is the greatest common divisor of \arg{IntExpr1}, \arg{IntExpr2}.
 
     \predicate[ISO]{abs}{1}{+Expr}
@@ -4870,7 +5003,7 @@ modules.  The built-in functions described above can be redefined as
 well.
 
 \begin{description}
-    \predicate{arithmetic_function}{1}{+Head}
+    \predicate{arithmetic_function}{1}{:Head}
 Register a Prolog predicate as an arithmetic function (see is/2,
 \predref{>}{2}, etc.). The Prolog predicate should have one more
 argument than specified by \arg{Head}, which it either a term
@@ -4894,9 +5027,17 @@ Yes
 
 A = 4.500000
 \end{code}
-    \predicate{current_arithmetic_function}{1}{?Head}
-Successively unifies all arithmetic functions that are visible from
-the context module with \arg{Head}.
+
+    \predicate{current_arithmetic_function}{1}{:Head}
+True if \arg{Head} is a function that is visible from the current
+module.  Built-in functions are visible from all modules, while
+user-defined functions (see arithmetic_function/1) obey the module
+visibility rules. E.g.,
+
+\begin{code}
+?- current_arithmetic_function(sin(_)).
+true.
+\end{code}
 \end{description}
 
 
@@ -5152,6 +5293,10 @@ Equivalent to \exam{swritef(String, Format, []).}
 
 \subsection{Format}
 
+The format-family of predicates is the most versatile and
+portable\footnote{Unfortunately not coverted by any standard.} way to
+produce textual output.
+
 \begin{description}
     \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
@@ -5159,8 +5304,8 @@ Defined as `\exam{format(Format) :- format(Format, []).}'
     \predicate{format}{2}{+Format, +Arguments}
 \arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
-specification. If only one argument is required and this is not a list
-of character codes the argument need not be put in a list. Otherwise the
+specification. If only one argument is required and this single argument
+is not a list the argument need not be put in a list. Otherwise the
 arguments are put in a list.
 
 Special sequences start with the tilde (\chr{~}), followed by an
@@ -5168,15 +5313,29 @@ optional numeric argument, followed by a character describing the action
 to be undertaken. A numeric argument is either a sequence of digits,
 representing a positive decimal number, a sequence \exam{`<character>},
 representing the character code value of the character (only useful
-for \fmtseq{~t}) or a asterisk (\chr{*}), in when the numeric argument
-is taken from the next argument of the argument list, which should be a
-positive integer.
+for \fmtseq{~t}) or a asterisk (\chr{*}), in which case the numeric
+argument is taken from the next argument of the argument list, which
+should be a positive integer. E.g., the following three examples all
+pass 46 (\chr{.}) to \verb$~t$:
+
+\begin{code}
+?- format('~w ~46t ~w~72|~n', ['Title', 'Page']).
+?- format('~w ~`.t ~w~72|~n', ['Title', 'Page']).
+?- format('~w ~*t ~w~72|~n', ['Title', 46, 'Page']).
+\end{code}
 
 Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
 and \chr{G}) accept an arithmetic expression as argument. This is
 introduced to handle rational numbers transparently (see
 \secref{rational}.  The floating point conversions allow for unlimited
-precision for printing rational numbers in decimal form.
+precision for printing rational numbers in decimal form.  E.g., the
+following will write as many 3-s as you want by changing the `70'.
+
+\begin{code}
+?- format('~70f', [10 rdiv 3]).
+3.3333333333333333333333333333333333333333333333333333333333333333333333
+\end{code}
+
 
 \begin{itemize}
     \fmtchar{~}
@@ -5242,7 +5401,9 @@ Same as {\bf r}, but uses upper case letters for digits above 9.
 
     \fmtchar{s}
 Output text from a list of character codes or a string (see string/1 and
-\secref{strings}) from the next argument.
+\secref{strings}) from the next argument.\footnote{The \textbf{s}
+modifier also accept an atom for compatibility.  This is deprecated
+due to the ambiguity of \texttt{[]}.}
 
     \fmtchar{@}
 Interpret the next argument as a goal and execute it.  Output written
@@ -5390,7 +5551,7 @@ this case the reported size reflects the size at the first call and is
 not updated after a user-initiated resize of the terminal.
 
     \item[Windows]
-Getting the size of the terminal is provided for \program{plwin.exe}.
+Getting the size of the terminal is provided for \program{swipl-win.exe}.
 The requested value reflects the current size. For the
 multi-threaded version the console that is associated with the
 \const{user_input} stream is used.
@@ -5706,6 +5867,8 @@ is a destination as specified with with_output_to/2.  \arg{Format}
 is an atom or string with the following conversions.  Conversions
 start with a tilde (\%) character.%
 	\footnote{Descriptions taken from Linux Programmer's Manual}
+\arg{StampOrDateTime} is either a (numeric time-stamp, a term
+\term{date}{Y,M,D,H,M,S,O,TZ,DST} or a term \term{date}{Y,M,D}.
 
 \begin{itemize}
     \fmtchar{a}
@@ -5847,25 +6010,44 @@ locale week and month names for emitting standardised time-stamps
 such as RFC1123.
 
     \predicate{parse_time}{2}{+Text, -Stamp}
+Same as \term{parse_time}{Text, _Format, Stamp}.  See parse_time/3.
+
+    \predicate{parse_time}{3}{+Text, ?Format, -Stamp}
 Parse a textual time representation, producing a time-stamp.  Supported
-formats for \arg{Text} are:
+formats for \arg{Text} are in the table below.  If the format is known,
+it may be given to reduce parse-time and avoid ambiguities.  Otherwise,
+\arg{Format} is unified with the format encountered.
 
 \begin{center}
 \begin{tabular}{|l|l|}
 \hline
 \bf Name & \bf Example \\
 \hline
-RFC 1123 & \tt Fri, 08 Dec 2006 15:29:44 GMT \\
+rfc_1123 & \tt Fri, 08 Dec 2006 15:29:44 GMT \\
+\hline
+iso_8601 & \tt 2006-12-08T17:29:44+02:00 \\
+         & \tt 20061208T172944+0200 \\
+         & \tt 2006-12-08T15:29Z \\
+         & \tt 2006-12-08 \\
+         & \tt 20061208 \\
+         & \tt 2006-12 \\
+         & \tt 2006-W49-5 \\
+         & \tt 2006-342 \\
 \hline
 \end{tabular}
 \end{center}
+
+    \predicate{day_of_the_week}{2}{+Date,-DayOfTheWeek}
+Computes the day of the week for a given date.
+\exam{\arg{Date} = date(\arg{Year},\arg{Month},\arg{Day})},
+Days of the week are numbered from one to seven: monday = 1, tuesday =
+2, \ldots, sunday = 7.
 \end{description}
 
-
-\subsection{Controlling the \program{PLWIN.EXE} console window}
+\subsection{Controlling the \program{swipl-win.exe} console window}
 \label{sec:plwin}
 
-The Windows executable \program{PLWIN.EXE} console has a number of
+The Windows executable \program{swipl-win.exe} console has a number of
 predicates to control the appearance of the console. Being totally
 non-portable, we do not advice using it for your own application, but
 use XPCE or another portable GUI platform instead. We give the
@@ -6061,6 +6243,16 @@ properties in a portable manner.  If the file system is case-insensitive,
 testing for an extension will be done case-insensitive too. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
 If an \arg{Extension} is generated, it will not have a leading dot.
 
+    \predicate{directory_files}{2}{+Directory, -Entries}
+Unifies \arg{Entries} with a list of entries in \arg{Directory}.
+Each member of \arg{Entries} is an atom denoting an entry relative
+to \arg{Directory}. \arg{Entries} contains all entries, including hidden
+files and, if supplied by the OS, the special entries \const{.} and
+\const{..}.  See also expand_file_name/2.\footnote{This predicate should
+be considered a misnomer because it returns entries rather than files.
+We stick to this name for compatibility with e.g., SICStus, Ciao and
+YAP.}
+
     \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching
 \arg{WildCard}. The normal Unix wildcard constructs `\const{?}',
@@ -6101,7 +6293,7 @@ value of the link and \arg{Target} to the file the link is pointing to.
 file system, but never to a link.  Fails if \arg{File} is not a link.
 Fails always on systems that do not support symbolic links.
 
-    \predicate{tmp_file}{2}{+Base, -TmpName}
+    \predicate[deprecated]{tmp_file}{2}{+Base, -TmpName}
 Create a name for a temporary file. \arg{Base} is an identifier for the
 category of file. The \arg{TmpName} is guaranteed to be unique. If the
 system halts, it will automatically remove all created temporary files.
@@ -6110,9 +6302,35 @@ should limit themselves to alphanumerical characters.
 
 Because it is possible to guess the generated filename, attackers may
 create the filesystem entry as a link and possibly create a security
-issue.  This call must be replaced with a new predicate that combines
-generating the filename and creating the file, based on mkstemp() or
-tmpfile().
+issue.  New code should use tmp_file_stream/3.
+
+    \predicate{tmp_file_stream}{3}{+Encoding, -FileName, -Stream}
+Create a temporary file name \arg{FileName} and open it for writing in
+the given \arg{Encoding}. \arg{Encoding} is a text-encoding name or
+\const{binary}. \arg{Stream} is the output stream. If the OS supports
+it, the created file is only accessible to the current user. If the OS
+supports it, the file is created using the open()-flag \const{O_EXCL},
+which guarantees that the file did not exist before this call. This
+predicate is a safe replacement of tmp_file/2. Note that in those cases
+where the temporary file is needed to store output from an external
+command, the file must be closed first. E.g., the following downloads a
+file from a URL to a temporary file and opens the file for reading (On
+Unix systems you can delete the file after opening it for reading for
+cleanup):
+
+\begin{code}
+open_url(URL, In) :-
+	tmp_file_stream(text, File, Stream),
+	close(Stream),
+	process_create(curl, ['-o', File, URL], []),
+	open(File, read, In),
+	delete_file(File).		% Unix-only
+\end{code}
+
+Temporary files created using this call are removed if the Prolog
+process terminates. Calling delete_file/1 using \arg{FileName} removes
+the file and removes the entry from the administration of
+files-to-be-deleted.
 
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception
@@ -6150,22 +6368,24 @@ leaving one. The break environment is terminated by typing the system's
 \argoption{-t}{toplevel} command line option is given this goal is
 started instead of entering the default interactive top level
 (prolog/0).
+
     \predicate{abort}{0}{}
 Abort the Prolog execution and restart the top level. If the
 \argoption{-t}{toplevel} command line options is given this goal is
 started instead of entering the default interactive top level.
 
-There are two implementations of abort/0. The default one uses the
-exception mechanism (see throw/1), throwing the exception
-\const{\$aborted}.  The other one uses the C-construct longjmp()
-to discard the entire environment and rebuild a new one. Using
-exceptions allows for proper recovery of predicates exploiting
-exceptions.  Rebuilding the environment is safer if the Prolog stacks
-are corrupt.  Therefore the system will use the rebuild-strategy if
-the abort was generated by an internal consistency check and the
-exception mechanism otherwise.  Prolog can be forced to use the
-rebuild-strategy setting the Prolog flag \prologflag{abort_with_exception}
-to \const{false}.
+Aborting is implemented by throwing the reserved exception
+\verb=$aborted=. This exception can be caught using catch/3, but the
+recovery goal is wrapped with a predicate that prunes the choice-points
+of the recovery goal (i.e., as once/1) and re-throws the exception.
+This is illustrated in the example below, where we press control-C
+and `a'.
+
+\begin{code}
+?- catch((repeat,fail), E, true).
+^CAction (h for help) ? abort
+% Execution Aborted
+\end{code}
 
     \predicate[ISO]{halt}{0}{}
 Terminate Prolog execution.  Open files are closed and if the command
@@ -6283,19 +6503,31 @@ is continued without asking for further information.  Examples:
 \end{center}
 
 The predicate debugging/0 shows all currently defined trace-points.
+
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
 The current implementation cuts the choice-points of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
+
     \predicate{debug}{0}{}
 Start debugger. In debug mode, Prolog stops at spy- and trace-points,
 disables last-call optimisation and aggressive destruction of
 choice points to make debugging information accessible.  Implemented
 by the Prolog flag \prologflag{debug}.
+
+Note that the \const{min_free} parameters of all stacks is enlarged to
+8~K-cells if debugging is switched off to avoid excessive GC. GC
+complicates tracing because it renames the \textit{_G<NNN>} variables
+and replaces unreachable variables with the atom
+\verb$<garbage_collected>$. Calling nodebug/0 does \emph{not} reset the
+initial free-margin because several parts of the toplevel and debugger
+disable debugging of system code-regions.  See also set_prolog_stack/2.
+
     \predicate{nodebug}{0}{}
 Stop debugger.  Implemented by the Prolog flag \prologflag{debug}.  See
 also debug/0.
+
     \predicate{debugging}{0}{}
 Print debug status and spy points on current output stream.  See also
 the Prolog flag \prologflag{debug}.
@@ -6401,6 +6633,7 @@ inferences      & Total number of passes via the call and redo ports
 heap		& Estimated total size of the heap (see \secref{heap}) \\
 heapused        & Bytes heap in use by Prolog. \\
 heaplimit	& Maximum size of the heap (see \secref{heap}) \\
+stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\
 locallimit      & Size to which the local stack is allowed to grow \\
@@ -6429,7 +6662,10 @@ runtime		& [ CPU time, CPU time since last ]
 		   garbage collection) \\
 system_time	& [ System CPU time, System CPU time since last ]
 		  (milliseconds)\\
-real_time	& [ Wall time, Wall time since last ] (see get_time/1) \\
+real_time	& [ Wall time, Wall time since last ]
+		  (integer seconds. See get_time/1) \\
+walltime	& [ Wall time since start, Wall time since last]
+		  (milliseconds, SICStus compatibility) \\
 memory		& [ Total unshared data, free memory ]
 		  (Uses getrusage() if available, otherwise incomplete own
 		  statistics.) \\
@@ -6494,11 +6730,10 @@ happen as there may always be threads performing garbage collection.
 
     \predicate{trim_stacks}{0}{}
 Release stack memory resources that are not in use at this moment,
-returning them to the operating system.  Trim stack is a relatively
-cheap call.  It can be used to release memory resources in a
-backtracking loop, where the iterations require typically seconds of
-execution time and very different, potentially large, amounts of
-stack space.  Such a loop should be written as follows:
+returning them to the operating system. It can be used to release memory
+resources in a backtracking loop, where the iterations require typically
+seconds of execution time and very different, potentially large, amounts
+of stack space. Such a loop can be written as follows:
 
 \begin{code}
 loop :-
@@ -6511,24 +6746,49 @@ loop :-
 The prolog top level loop is written this way, reclaiming memory
 resources after every user query.
 
-    \predicate{set_prolog_stack}{3}{+Stack, +Key, +Value}
-Set a parameter for a runtime stack. \arg{Stack} is one of
-\const{local}, \const{global}, \const{trail} or \const{argument}. The
-table below describes the \arg{Key}/\arg{Value} pairs.
+    \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
+Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
+of \const{local}, \const{global}, \const{trail} or \const{argument}. The
+table below describes the \arg{Key}(arg{Value}) pairs.  \arg{Value} can
+be an arithmetic integer expression.  E.g., to specify a 2Gb limit for
+the global stack one can use:
+
+\begin{code}
+?- set_prolog_stack(global, limit(2*10**9)).
+\end{code}
+
+Current settings can be retrieved with prolog_stack_property/2.
 
 \begin{description}
-    \termitem{low}{}
-Do not perform GC below this amount (bytes).
-    \termitem{factor}{}
-Run next GC if memory exceeds $max(low,checked) \times factor$.
-    \termitem{min_free}{}
-Enlarge stack if free memory is below this value (bytes). This option is
-only provided if the system is compiled to support the stack-shifter;
-otherwise it is silently ignored.
+    \termitem{limit}{+Bytes}
+Set the limit to which the stack is allowed to grow.  If the specified
+value is lower than the current usage a permission_error is raised.  If
+the limit is larger than supported, the system silently reduces the
+requested limit to the system limit.
+
+    \termitem{min_free}{+Cells}
+Minimum amount of free space after trimming or shifting the stack.
+Setting this value higher can reduce the number of garbage collections
+and stack-shifts at the cost of higher memory usage. The spare stack
+amount is reported and specified in `cells'. A cell is 4 bytes in the
+32-bit version and 8-bytes on the 64-bit version. See
+\prologflag{address_bits}. See also trim_stacks/0 and debug/0.
+
+    \termitem{spare}{+Cells}
+All stacks trigger overflow before actually reaching the limit, so the
+resulting error can be handled gracefully. The spare stack is used for
+print_message/2 from the garbage collector and for handling exceptions.
+The default suffices, unless the user redefines related hooks. Do
+\textbf{not} specify large values for this because it reduces the amount
+of memory available for your real task.
+
+Related hooks are: message_hook/3 (redefining GC messages),
+prolog_trace_interception/4 and prolog_exception_hook/4.
 \end{description}
 
-Not all flags have impact for all stacks and the current implementation
-lacks proper checking for sensible values.  Use with extreme care.
+    \predicate{prolog_stack_property}{2}{?Stack, ?KeyValue}
+True if \arg{KeyValue} is a current property of \arg{Stack}.  See
+set_prolog_stack/2 for defined properties.
 \end{description}
 
 

@@ -706,7 +706,7 @@ important features and tips.
 \begin{itemlist}
     \item [Atom completion]
 The console%
-	\footnote{On Windows this is realised by plwin.exe, on Unix
+	\footnote{On Windows this is realised by swipl-win.exe, on Unix
 		  through the GNU readline library, which is included
 		  automatically when found by \program{configure}.}
 completes a partial atom on the \key{TAB} key and shows alternatives

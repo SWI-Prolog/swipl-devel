@@ -55,10 +55,15 @@ pl_get_ps_parameters(term_t file, term_t iseps, term_t bb)
     char *s;
 
     if ( (s=fgets(buf, sizeof(buf), fd)) )
-    { if ( substr(s, "EPSF") )
-	PL_unify_atom_chars(iseps, "eps");
+    { int rc;
+
+      if ( substr(s, "EPSF") )
+	rc = PL_unify_atom_chars(iseps, "eps");
       else
-	PL_unify_atom_chars(iseps, "ps");
+	rc = PL_unify_atom_chars(iseps, "ps");
+
+      if ( !rc )
+	return rc;
     }
 
     do

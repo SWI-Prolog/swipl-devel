@@ -58,11 +58,6 @@ Associate an `alias-name' with the thread.  This named may be used to
 refer to the thread and remains valid until the thread is joined
 (see thread_join/2).
 
-    \termitem{argument}{K-Bytes}
-Set the limit to which the argument stack of this thread may grow.  If
-omitted, the limit of the calling thread is used. See also the
-\cmdlineoption{-A} command-line option.
-
     \termitem{at_exit}{:AtExit}
 Register \arg{AtExit} as using thread_at_exit/1 before entering the
 thread goal. Unlike calling thread_at_exit/1 as part of the normal
@@ -657,8 +652,8 @@ before gtrace/0 can be called from a thread.
 If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
 window. On Unix systems the console is an \program{xterm} application.
-On Windows systems this requires the GUI version \program{plwin.exe}
-rather than the console based \program{plcon.exe}.
+On Windows systems this requires the GUI version \program{swipl-win.exe}
+rather than the console based \program{swipl.exe}.
 
 This predicate has a couple of useful applications.  One is to separate
 (debugging) I/O of different threads.  Another is to start debugging a

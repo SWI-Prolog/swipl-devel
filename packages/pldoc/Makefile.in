@@ -15,7 +15,6 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/pldoc
 EXDIR=$(PKGDOC)/examples/pldoc
-DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -25,6 +24,7 @@ TEX=$(DOC).tex latex.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 HTML=$(DOC).html
+PUBLICPL=swipl
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -108,7 +108,7 @@ $(TEX):		$(DOCTOTEX)
 .pl.tex:
 		$(PLTOTEX) $*.pl > $*.tex
 .txt.tex:
-		pl -f none -g "doc_latex('$*.txt','$*.tex',[stand_alone(false)]),halt" -t "halt(1)"
+		$(PUBLICPL) -f none -g "doc_latex('$*.txt','$*.tex',[stand_alone(false)]),halt" -t "halt(1)"
 
 ################################################################
 # Clean

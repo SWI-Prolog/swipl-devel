@@ -9,7 +9,7 @@ PLHOME=..\..
 !include ..\rules.mk
 
 LIBOBJ=		html.obj access.obj build.obj util.obj
-PLRC=..\..\bin\plrc.exe
+PLRC=..\..\bin\swipl-rc.exe
 
 all:		rc.lib $(PLRC)
 

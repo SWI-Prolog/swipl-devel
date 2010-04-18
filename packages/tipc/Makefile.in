@@ -17,7 +17,6 @@ PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -28,11 +27,11 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 
-PUBLICPL=       pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=tipc
-TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex tipcpaxos.tex
+TEX=$(DOC).tex tipcoverview.tex tipcpl.tex tipcbroadcast.tex tipcpaxos.tex tipclinda.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -131,6 +130,8 @@ tipcpl.tex:	tipc.pl
 tipcbroadcast.tex:	tipc_broadcast.pl
 		$(PLTOTEX) --subsection $<
 tipcpaxos.tex:	tipc_paxos.pl
+		$(PLTOTEX) --subsection $<
+tipclinda.tex:	tipc_linda.pl
 		$(PLTOTEX) --subsection $<
 
 .doc.tex:

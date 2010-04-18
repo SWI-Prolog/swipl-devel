@@ -336,12 +336,18 @@ latex(code(CodeList)) -->
 	{ is_list(CodeList), !,
 	  atomic_list_concat(CodeList, Atom)
 	},
-	[ verb(Atom) ].
+	(   {fragile}
+	->  latex(cmd(const(Atom)))
+	;   [ verb(Atom) ]
+	).
 latex(code(Code)) -->
 	{ identifier(Code) }, !,
 	latex(cmd(const(Code))).
 latex(code(Code)) -->
-	[ verb(Code) ].
+	(   {fragile}
+	->  latex(cmd(const(Code)))
+	;   [ verb(Code) ]
+	).
 latex(b(Code)) -->
 	latex(cmd(textbf(Code))).
 latex(i(Code)) -->
@@ -1154,8 +1160,12 @@ latex_summary(_) :-
 pi_sort_key(M:PI, PI-(M:PI)) :- !.
 pi_sort_key(PI, PI-PI).
 
-object_name_arity(_:Name/Arity, Name, Arity).
+object_name_arity(_:Term, Name, Arity) :-
+	nonvar(Term), !,
+	object_name_arity(Term, Name, Arity).
 object_name_arity(Name/Arity, Name, Arity).
+object_name_arity(Name//Arity0, Name, Arity) :-
+	Arity is Arity0 + 2.
 
 summarylist(Objs, Options) -->
 	latex(cmd(begin(summarylist, ll))),

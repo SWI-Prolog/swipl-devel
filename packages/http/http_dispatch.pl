@@ -35,13 +35,16 @@
 	    http_redirect/3,		% +How, +Path, +Request
 	    http_current_handler/2,	% ?Path, ?Pred
 	    http_current_handler/3,	% ?Path, ?Pred
-	    http_location_by_id/2	% +ID, -Location
+	    http_location_by_id/2,	% +ID, -Location
+	    http_link_to_id/3,		% +ID, +Parameters, -HREF
+	    http_safe_file/2		% +Spec, +Options
 	  ]).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(time)).
 :- use_module(library(error)).
 :- use_module(library(settings)).
+:- use_module(library(uri)).
 :- use_module(library(http/mimetype)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_header)).
@@ -379,6 +382,20 @@ location_by_id_raw(ID, Location, Priority) :-
 	;   ID = PN
 	), !.
 
+
+%%	http_link_to_id(+HandleID, +Parameters, -HREF)
+%
+%	HREF is a link on the local server to a handler with given ID,
+%	passing the given Parameters.
+
+http_link_to_id(HandleID, Parameters, HREF) :-
+	http_location_by_id(HandleID, Location),
+	uri_data(path, Components, Location),
+	uri_query_components(String, Parameters),
+	uri_data(search, Components, String),
+	uri_components(HREF, Components).
+
+
 %	hook into html_write:attribute_value//1.
 
 :- multifile
@@ -397,7 +414,7 @@ html_write:expand_attribute_value(location_by_id(ID)) -->
 %	The  library  http_authenticate.pl  provides  an  implementation
 %	thereof.
 %
-%	@error	permission_error(http_location, access, Location)
+%	@error	permission_error(access, http_location, Location)
 
 :- multifile
 	http:authenticate/3.
@@ -408,7 +425,7 @@ authentication([authentication(Type)|Options], Request, Fields) :- !,
 	->  append(XFields, More, Fields),
 	    authentication(Options, Request, More)
 	;   memberchk(path(Path), Request),
-	    throw(error(permission_error(http_location, access, Path), _))
+	    throw(error(permission_error(access, http_location, Path), _))
 	).
 authentication([_|Options], Request, Fields) :-
 	authentication(Options, Request, Fields).
@@ -554,7 +571,7 @@ extend(G0, Extra, G) :-
 %	@throws http_reply(file(MimeType, Path))
 
 http_reply_file(File, Options, Request) :-
-	check_file_safeness(File, Options),
+	http_safe_file(File, Options),
 	absolute_file_name(File, Path,
 			   [ access(read)
 			   ]),
@@ -579,7 +596,7 @@ http_reply_file(File, Options, Request) :-
 	),
 	throw(http_reply(Reply)).
 
-%%	check_file_safeness(+FileSpec, +Options) is det.
+%%	http_safe_file(+FileSpec, +Options) is det.
 %
 %	True if FileSpec is considered _safe_.  If   it  is  an atom, it
 %	cannot  be  absolute  and  cannot   have  references  to  parent
@@ -589,20 +606,20 @@ http_reply_file(File, Options, Request) :-
 %	@error instantiation_error
 %	@error permission_error(read, file, FileSpec)
 
-check_file_safeness(File, _) :-
+http_safe_file(File, _) :-
 	var(File), !,
 	instantiation_error(File).
-check_file_safeness(_, Options) :-
+http_safe_file(_, Options) :-
 	option(unsafe(true), Options, false), !.
-check_file_safeness(File, _) :-
-	check_file_safeness(File).
+http_safe_file(File, _) :-
+	http_safe_file(File).
 
-check_file_safeness(File) :-
+http_safe_file(File) :-
 	compound(File),
 	functor(File, _, 1), !,
 	arg(1, File, Name),
 	safe_name(Name, File).
-check_file_safeness(Name) :-
+http_safe_file(Name) :-
 	(   is_absolute_file_name(Name)
 	->  permission_error(read, file, Name)
 	;   true

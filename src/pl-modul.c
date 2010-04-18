@@ -305,7 +305,7 @@ clearSupersModule(Module m)
 }
 
 
-static int
+int
 setSuperModule(Module m, Module s)
 { if ( s == m )
     cannotSetSuperModule(m, s);
@@ -416,7 +416,8 @@ isPublicModule(Module module, Procedure proc)
 
 static int
 get_module(term_t t, Module *m, int create)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
 
   if ( !PL_get_atom_ex(t, &name) )
     fail;
@@ -480,7 +481,8 @@ PRED_IMPL("import_module", 2, import_module,
 
 static
 PRED_IMPL("add_import_module", 3, add_import_module, 0)
-{ Module me, super;
+{ PRED_LD
+  Module me, super;
   atom_t where;
 
   if ( !get_module(A1, &me, TRUE) ||
@@ -525,6 +527,28 @@ get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
 
   *sfp = NULL;
   return TRUE;
+}
+
+
+Module
+moduleFromFile(SourceFile sf)
+{ TableEnum e;
+  Symbol symb;
+
+  for(e = newTableEnum(GD->tables.modules),
+      symb = advanceTableEnum(e);
+      symb;
+      symb = advanceTableEnum(e))
+  { Module m = symb->value;
+
+    if ( m->file == sf )
+    { freeTableEnum(e);
+      return m;
+    }
+  }
+
+  freeTableEnum(e);
+  return NULL;
 }
 
 
@@ -661,7 +685,7 @@ pl_set_prolog_hook(term_t module, term_t old, term_t new)
   m = lookupModule(mname);
 
   if ( m->hook )
-  { if ( !unify_definition(old, m->hook->definition, 0, GP_HIDESYSTEM) )
+  { if ( !unify_definition(MODULE_user, old, m->hook->definition, 0, GP_HIDESYSTEM) )
       return FALSE;
   } else
   { if ( !PL_unify_nil(old) )
@@ -790,7 +814,7 @@ declareModule(atom_t name, atom_t super,
 		  }
 
 		  PL_unify_list(rtail, tmp, rtail);
-		  unify_definition(tmp, def, 0, GP_NAMEARITY);
+		  unify_definition(MODULE_user, tmp, def, 0, GP_NAMEARITY);
 		}
 		abolishProcedure(proc, module);
 	      }
@@ -802,7 +826,8 @@ declareModule(atom_t name, atom_t super,
   UNLOCK();
 
   if ( rdef )
-  { PL_unify_nil(rtail);
+  { if ( !PL_unify_nil(rtail) )
+      return FALSE;
 
     printMessage(ATOM_warning,
 		 PL_FUNCTOR_CHARS, "declare_module", 2,
@@ -828,7 +853,8 @@ Start a new (source-)module
 
 static
 PRED_IMPL("$declare_module", 5, declare_module, 0)
-{ SourceFile sf;
+{ PRED_LD
+  SourceFile sf;
   atom_t mname, sname, fname;
   int line_no, rdef;
 
@@ -983,7 +1009,7 @@ PRED_IMPL("$undefined_export", 2, undefined_export, 0)
 	 def->module == module &&			/* not imported */
 	 !autoImport(fd->functor, module) )
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !unify_definition(head, proc->definition,
+	   !unify_definition(MODULE_user, head, proc->definition,
 			     0, GP_QUALIFY|GP_NAMEARITY) )
       { freeTableEnum(e);
 	return FALSE;

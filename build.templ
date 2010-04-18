@@ -22,12 +22,13 @@ SUDO=
 
 # [EDIT] Version of make  to  use.  This   must  be  GNU-make.  On  many
 # proprietary Unix systems this is installed   as  'gmake'. On most open
-# systems make is GNU-make. In you have  multi-core hardware you can use
-# 'make  -j'  to  build  the  system    faster   using  all  your  cores
-# (experimental (BROKEN; please help debugging)).
+# systems make is GNU-make. You can   use  'make --jbobs=<max>' to build
+# the system faster using all your cores.   The  optimal value depends a
+# lot on your hardware. Using  4  jobs   on  a  dual-core machines seems
+# enough to keep both cores busy. (experimental).
 
 MAKE=make
-# MAKE='make -j'
+# MAKE='make --jobs=4'
 
 # [EDIT] Compiler and options.
 #
@@ -40,16 +41,21 @@ MAKE=make
 # Leaving an option blank leaves the  choice to configure. The commented
 # values below enable much better C-level debugging with almost the same
 # performance on GCC based systems (the default is to compile using -O3)
+# For optiomal performance, see also --enable-useprofile below.
 
 # export CC=
-# export COFLAGS="-O2 -g -fno-strict-aliasing"
+# export COFLAGS="-O2 -gdwarf-2 -g3 -fno-strict-aliasing"
 # export CMFLAGS=
 # export CIFLAGS=
 # export LDFLAGS="-O2 -g"
 
-# [EDIT] On MacOS you need this to get some libraries from Darwinports
-# export LIBRARY_PATH=/opt/local/lib
-# export CPATH=/opt/local/include
+# On MacOS you need this to get some libraries from Macports
+if [ "`uname`" = Darwin ]; then
+  export LIBRARY_PATH=/usr/lib:/opt/local/lib
+  export CPATH=/usr/include:/opt/local/include
+  export PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig:/opt/local/lib/pkgconfig
+  export CXXCPP="g++ -E"
+fi
 
 # [EDIT] On Solaris also puts there stuff everywhere ...
 # export CIFLAGS=-I/opt/csw/include/ncurses
@@ -83,25 +89,82 @@ export CFLAGS="$CMFLAGS $CIFLAGS"
 
 # [EDIT] Extra options to pass to the toplevel configure.
 
-# EXTRACFG="--link"
+# --link
+# Using --link, the system is installed using symbolic links. This means
+# you cannot remove or clean  the   sources,  but  it largely simplifies
+# editing the system Prolog files during development.
+#
+# --enable-useprofile
+# The config --enable-useprofile exploits GCC  -fprofile-use option. The
+# system  is  compiled,  profiled   and    re-compiled   to  get  better
+# branch-prediction. This makes the system approx.   10%  faster. Do not
+# use this for developing the kernel because it complicates maintenance.
+#
+# --disable-libdirversion
+# By default, the system is  installed in $libdir/swipl-<version>. Using
+# this option drops <version>. Using versions,  you can install multiple
+# versions side-by-site and run old  versions   at  any time by starting
+# $libdir/swipl-<version>/bin/$arch/swipl. Without, the system is always
+# at a nice stable place, so external foreign objects linked against the
+# binary need not be updated with a Prolog update.
+#
+# EXTRACFG+=" --link"
+# EXTRACFG+=" --enable-useprofile"
+# EXTRACFG+=" --disable-libdirversion"
+export EXTRACFG
 
 ################################################################
 # No edit should be needed below this line
 ################################################################
 
 V=`cat VERSION`
-makeonly=false
+config=true
+make=true
+install=true
+done=false
+setvars=false
 
+while test "$done" = false; do
 case "$1" in
-   --make)	makeonly=true
+   --config)	make=false
+		install=false
+		shift
 		;;
-   *)		;;
+   --make)	config=false
+		install=false
+		shift
+		;;
+   --install)	config=false
+		make=false
+		shift
+		;;
+   --prefix=*)  PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   		shift
+		;;
+   --setvars)	setvars=true
+   		shift
+		;;
+   *)		done=true
+		;;
 esac
+done
 
-if [ "$makeonly" = false ]; then
-  ./configure --prefix=$PREFIX --with-world  $EXTRACFG 2>&1 | tee configure.out
-fi
+if [ "$setvars" = "false" ]; then
 
-$MAKE 2>&1 | tee make.out
-$SUDO $MAKE install 2>&1 | tee make-install.out
+  if [ "$config" = "true" ]; then
+    ./configure --prefix=$PREFIX --with-world $EXTRACFG 2>&1 | tee configure.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+  fi
+
+  if [ "$make" = "true" ]; then
+    $MAKE 2>&1 | tee make.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+  fi
+
+  if [ "$install" = "true" ]; then
+    $MAKE install 2>&1 | tee make-install.out
+    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
+  fi
+
+fi # setvars
 

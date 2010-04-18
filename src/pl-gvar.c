@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,9 +25,6 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #ifdef O_GVAR
-
-#undef LD
-#define LD LOCAL_LD
 
 
 		 /*******************************
@@ -76,6 +73,9 @@ Assign  a  global  variable.  For    backtrackable   variables  we  need
 TrailAssignment(), but we can only call that  on addresses on the global
 stack. Therefore we must make  a  reference   to  the  real value if the
 variable is not already a reference.
+
+SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
+	    2 more allocGlobal(1) makes g+t<3+3
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -93,7 +93,13 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
   }
 
-  requireStack(global, sizeof(word));
+  if ( !hasGlobalSpace(3) )		/* also ensures trail for */
+  { int rc;				/* TrailAssignment() */
+
+    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
   p = valTermRef(value);
   deRef(p);
   w = *p;
@@ -104,7 +110,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 
       setVar(*p2);
       w = *p = makeRef(p2);
-      Trail(p);
+      LTrail(p);
     } else
     { w = makeRef(p);
     }
@@ -167,13 +173,16 @@ static gvar_action
 auto_define_gvar(atom_t name)
 { GET_LD
   static predicate_t pred;
-  fid_t fid = PL_open_foreign_frame();
-  term_t av = PL_new_term_refs(3);
+  fid_t fid;
+  term_t av;
   gvar_action rc = gvar_error;
 
   if ( !pred )
     pred = PL_predicate("exception", 3, "user");
 
+  if ( !(fid = PL_open_foreign_frame()) )
+    return gvar_error;
+  av = PL_new_term_refs(3);
   PL_put_atom(av+0, ATOM_undefined_global_variable);
   PL_put_atom(av+1, name);
 
@@ -202,15 +211,24 @@ getval(term_t var, term_t value ARG_LD)
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
+  if ( !hasGlobalSpace(0) )
+  { int rc;
+
+    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
 
   for(i=0; i<2; i++)
   { if ( LD->gvar.nb_vars )
     { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
 
       if ( s )
-      { word w = (word)s->value;
+      { term_t tmp = PL_new_term_ref();
+	word w = (word)s->value;
 
-	return unify_ptrs(valTermRef(value), &w PASS_LD);
+	*valTermRef(tmp) = w;
+	return PL_unify(value, tmp);
       }
     }
 
@@ -311,13 +329,16 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
       fail;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+  { freeTableEnum(e);
+    return FALSE;
+  }
   while( (s=advanceTableEnum(e)) )
   { atom_t name = (atom_t)s->name;
     word   val = (word)s->value;
 
     if ( PL_unify_atom(A1, name) &&
-	 unify_ptrs(valTermRef(A2), &val PASS_LD) )
+	 unify_ptrs(valTermRef(A2), &val, 0 PASS_LD) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     } else

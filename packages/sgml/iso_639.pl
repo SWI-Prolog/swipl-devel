@@ -465,7 +465,7 @@ l3(uzb, 'Uzbek').
 l3(vai, 'Vai').
 l3(ven, 'Venda').
 l3(vie, 'Vietnamese').
-l3(vol, 'Volapük').
+l3(vol, 'Volap\u00fck').	% Use \uxxxx for portability.  (= \"u)
 l3(vot, 'Votic').
 l3(wak, 'Wakashan languages').
 l3(wal, 'Walamo').

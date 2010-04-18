@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -239,7 +240,7 @@ static void
 pushXrIdTable(ARG1_LD)
 { XrTable t = allocHeap(sizeof(struct xr_table));
 
-  if ( !(t->table = malloc(ALLOCSIZE)) )
+  if ( !(t->table = allocHeap(ALLOCSIZE)) )
     outOfCore();
   SECURE(memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
@@ -258,9 +259,9 @@ popXrIdTable(ARG1_LD)
   loadedXrs = t->previous;		/* pop the stack */
 
   for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
-    free(t->table[i]);
+    freeHeap(t->table[i], ALLOCSIZE);
 
-  free(t->table);
+  freeHeap(t->table, ALLOCSIZE);
   freeHeap(t, sizeof(*t));
 }
 
@@ -284,7 +285,8 @@ storeXrId(long id, word value)
   long i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { Word a = malloc(ALLOCSIZE);
+  { GET_LD
+    Word a = allocHeap(ALLOCSIZE);
 
     if ( !a )
       outOfCore();
@@ -459,7 +461,7 @@ getInt64(IOSTREAM *fd)
 
   DEBUG(4, Sdprintf("getInt64() from %ld --> \n", Stell(fd)));
 
-  first = Sgetc(fd);
+  first = Snpgetc(fd);
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
@@ -474,7 +476,7 @@ getInt64(IOSTREAM *fd)
   if ( bytes <= 2 )
   { for( b = 0; b < bytes; b++ )
     { first <<= 8;
-      first |= Sgetc(fd) & 0xff;
+      first |= Snpgetc(fd) & 0xff;
     }
 
     shift = (sizeof(first)-1-bytes)*8 + 2;
@@ -486,7 +488,7 @@ getInt64(IOSTREAM *fd)
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
-      first |= Sgetc(fd) & 0xff;
+      first |= Snpgetc(fd) & 0xff;
     }
     shift = (sizeof(first)-bytes)*8;
   }
@@ -530,7 +532,7 @@ getFloat(IOSTREAM *fd)
   unsigned int i;
 
   for(i=0; i<BYTES_PER_DOUBLE; i++)
-  { int c = Sgetc(fd);
+  { int c = Snpgetc(fd);
 
     if ( c == -1 )
       fatalError("Unexpected end-of-file in QLT file");
@@ -562,6 +564,12 @@ loadXR__LD(IOSTREAM *fd ARG_LD)
 }
 #define loadXR(s) loadXR__LD(s PASS_LD)
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+loadXRc(int c0, IOSTREAM *fd ARG_LD) loads   a constant from the stream.
+Note that some constants (integers, floats and  strings) can cause GC or
+stack-shifts.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
 loadXRc(int c, IOSTREAM *fd ARG_LD)
@@ -624,9 +632,29 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
       break;
     }
     case XR_INT:
-      return makeNum(getInt64(fd));
+    { int64_t i = getInt64(fd);
+      word w;
+      int rc;
+
+      if ( (rc=put_int64(&w, i, ALLOW_GC PASS_LD)) != TRUE )
+      { raiseStackOverflow(rc);
+	return 0;
+      }
+
+      return w;
+    }
     case XR_FLOAT:
-      return globalFloat(getFloat(fd));
+    { word w;
+      double f = getFloat(fd);
+      int rc;
+
+      if ( (rc=put_double(&w, f, ALLOW_GC PASS_LD)) != TRUE )
+      { raiseStackOverflow(rc);
+	return 0;
+      }
+
+      return w;
+    }
 #if O_STRING
     case XR_STRING:
     { char *s;
@@ -705,7 +733,12 @@ getBlob(IOSTREAM *fd ARG_LD)
 }
 
 
-static void
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns FALSE while leavind a resource exception   if the term cannot be
+allocated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
 do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term ARG_LD)
 { int c = Qgetc(fd);
 
@@ -713,32 +746,50 @@ do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term ARG_LD)
   { int id = getInt(fd);
 
     if ( vars[id] )
-      PL_unify(term, vars[id]);
-    else
-    { vars[id] = PL_new_term_ref();
-      PL_put_term(vars[id], term);
+    { return PL_unify(term, vars[id]);
+    } else
+    { if ( (vars[id] = PL_new_term_ref()) )
+      { PL_put_term(vars[id], term);
+	return TRUE;
+      }
+      return FALSE;
     }
   } else if ( c == 't' )
-  { functor_t f = (functor_t) loadXR(fd);
-    term_t c2 = PL_new_term_ref();
-    int arity = arityFunctor(f);
-    int n;
+  { functor_t f;
+    term_t c2;
 
-    PL_unify_functor(term, f);
-    for(n=0; n < arity; n++)
-    { _PL_get_arg(n+1, term, c2);
-      do_load_qlf_term(fd, vars, c2 PASS_LD);
+    if ( (f = (functor_t) loadXR(fd)) &&
+	 (c2 = PL_new_term_ref()) &&
+	 PL_unify_functor(term, f) )
+    { int arity = arityFunctor(f);
+      int n;
+
+      for(n=0; n < arity; n++)
+      { _PL_get_arg(n+1, term, c2);
+	if ( !do_load_qlf_term(fd, vars, c2 PASS_LD) )
+	  return FALSE;
+      }
+
+      return TRUE;
     }
+
+    return FALSE;
   } else
-  { _PL_unify_atomic(term, loadXRc(c, fd PASS_LD));
+  { word w;
+
+    if ( (w=loadXRc(c, fd PASS_LD)) )
+      return _PL_unify_atomic(term, w);
+
+    return FALSE;
   }
 }
 
 
-static void
+static int
 loadQlfTerm(term_t term, IOSTREAM *fd ARG_LD)
 { int nvars;
   Word vars;
+  int rc;
 
   DEBUG(3, Sdprintf("Loading from %d ...", Stell(fd)));
 
@@ -753,11 +804,12 @@ loadQlfTerm(term_t term, IOSTREAM *fd ARG_LD)
     vars = NULL;
 
   PL_put_variable(term);
-  do_load_qlf_term(fd, vars, term PASS_LD);
+  rc = do_load_qlf_term(fd, vars, term PASS_LD);
   DEBUG(3,
 	Sdprintf("Loaded ");
 	PL_write_term(Serror, term, 1200, 0);
 	Sdprintf(" to %d\n", Stell(fd)));
+  return rc;
 }
 
 
@@ -879,41 +931,47 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
       return loadImport(fd, skip PASS_LD);
 
     case 'D':
-    { fid_t   cid = PL_open_foreign_frame();
-      term_t goal = PL_new_term_ref();
-      atom_t  osf = source_file_name;
-      int     oln = source_line_no;
+    { fid_t cid;
 
-      source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
-      source_line_no   = getInt(fd);
+      if ( (cid=PL_open_foreign_frame()) )
+      { term_t goal = PL_new_term_ref();
+	atom_t  osf = source_file_name;
+	int     oln = source_line_no;
 
-      loadQlfTerm(goal, fd PASS_LD);
-      DEBUG(2,
-	    if ( source_file_name )
-	    { Sdprintf("%s:%d: Directive: ",
-			PL_atom_chars(source_file_name), source_line_no);
-	    } else
-	    { Sdprintf("Directive: ");
-	    }
-	    pl_write(goal);
-	    Sdprintf("\n"));
-      if ( !skip )
-      { if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
-	{ Sfprintf(Serror,
-		   "[WARNING: %s:%d: (loading %s) directive failed: ",
-		   source_file_name ? stringAtom(source_file_name)
-		                    : "<no file>",
-		   source_line_no, wicFile);
-	  PL_write_term(Serror, goal, 1200, 0);
-	  Sfprintf(Serror, "]\n");
+	source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
+	source_line_no   = getInt(fd);
+
+	if ( !loadQlfTerm(goal, fd PASS_LD) )
+	  return FALSE;
+	DEBUG(2,
+	      if ( source_file_name )
+	      { Sdprintf("%s:%d: Directive: ",
+			  PL_atom_chars(source_file_name), source_line_no);
+	      } else
+	      { Sdprintf("Directive: ");
+	      }
+	      pl_write(goal);
+	      Sdprintf("\n"));
+	if ( !skip )
+	{ if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
+	  { Sfprintf(Serror,
+		     "[WARNING: %s:%d: (loading %s) directive failed: ",
+		     source_file_name ? stringAtom(source_file_name)
+				      : "<no file>",
+		     source_line_no, wicFile);
+	    PL_write_term(Serror, goal, 1200, 0);
+	    Sfprintf(Serror, "]\n");
+	  }
 	}
+	PL_discard_foreign_frame(cid);
+
+	source_file_name = osf;
+	source_line_no   = oln;
+
+	succeed;
       }
-      PL_discard_foreign_frame(cid);
 
-      source_file_name = osf;
-      source_line_no   = oln;
-
-      succeed;
+      return FALSE;
     }
 
     case 'Q':
@@ -1016,9 +1074,6 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	clearFlags(clause);
 	clause->prolog_vars = (unsigned short) getInt(fd);
 	clause->variables   = (unsigned short) getInt(fd);
-#ifdef O_SHIFT_STACKS
-	clause->marks = clause->variables - clause->prolog_vars;
-#endif
 	if ( getLong(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;
@@ -1753,7 +1808,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd ARG_LD)
   if ( isTerm(*t) )
   { functor_t f = functorTerm(*t);
 
-    if ( f == FUNCTOR_var1 )
+    if ( f == FUNCTOR_dvard1 )
     { int id = (int)valInt(argTerm(*t, 0));
 
       Sputc('v', fd);
@@ -1786,7 +1841,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
-  options.functor = FUNCTOR_var1;
+  options.functor = FUNCTOR_dvard1;
   options.on_attvar = AV_SKIP;
   options.singletons = FALSE;		/* TBD: TRUE may be better! */
   nvars = numberVars(t, &options, 0 PASS_LD);
@@ -2127,7 +2182,8 @@ qlfSourceInfo(IOSTREAM *s, size_t offset, term_t list ARG_LD)
   term_t head = PL_new_term_ref();
   atom_t fname;
 
-  if ( Sseek(s, offset, SIO_SEEK_SET) != 0 )
+  assert((long)offset >= 0);
+  if ( Sseek(s, (long)offset, SIO_SEEK_SET) != 0 )
     return warning("%s: seek failed: %s", wicFile, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
@@ -2548,7 +2604,8 @@ pl_qlf_end_part()
 
 word
 pl_qlf_open(term_t file)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( PL_get_atom_ex(file, &a) )
     return qlfOpen(a);
@@ -2642,15 +2699,25 @@ pl_close_wic()
 }
 
 
-word
-pl_add_directive_wic(term_t term)
+static
+PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 { if ( wicFd )
-  { GET_LD
-    if ( !(PL_is_compound(term) || PL_is_atom(term)) )
-      return PL_error("$add_directive_wic", 1, NULL, ERR_TYPE,
-		      ATOM_callable, term);
+  { PRED_LD
+    Module m = MODULE_system;
+    term_t term = PL_new_term_ref();
+    term_t qterm = PL_new_term_ref();
 
-    return addDirectiveWic(term, wicFd PASS_LD);
+    PL_strip_module(A1, &m, term);
+    if ( !(PL_is_callable(term)) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, A1);
+
+    if ( !PL_unify_term(qterm,
+			PL_FUNCTOR, FUNCTOR_colon2,
+			  PL_ATOM, m->name,
+			  PL_TERM, term) )
+      return FALSE;
+
+    return addDirectiveWic(qterm, wicFd PASS_LD);
   }
 
   succeed;
@@ -2683,9 +2750,8 @@ pl_qlf_assert_clause(term_t ref, term_t saveclass)
     IOSTREAM *s = wicFd;
     atom_t sclass;
 
-    if ( !get_clause_ptr_ex(ref, &clause) )
-      fail;
-    if ( !PL_get_atom_ex(saveclass, &sclass) )
+    if ( !PL_get_clref(ref, &clause) ||
+	 !PL_get_atom_ex(saveclass, &sclass) )
       fail;
 
     openProcedureWic(clause->procedure, s, sclass PASS_LD);
@@ -2730,14 +2796,16 @@ directiveClause(term_t directive, term_t clause, const char *functor)
        !streq(stringAtom(name), functor) )
     fail;
 
-  PL_get_arg(1, clause, d0);
+  _PL_get_arg(1, clause, d0);
   if ( PL_get_functor(d0, &f) && f == FUNCTOR_colon2 )
-    PL_put_term(directive, d0);
-  else
-  { term_t m = PL_new_term_ref();
+  { PL_put_term(directive, d0);
+  } else
+  { term_t m;
 
+    if ( !(m = PL_new_term_ref()) )
+      return FALSE;
     PL_put_atom(m, LD->modules.source->name);
-    PL_cons_functor(directive, FUNCTOR_colon2, m, d0);
+    return PL_cons_functor(directive, FUNCTOR_colon2, m, d0);
   }
 
   succeed;
@@ -2891,4 +2959,5 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 BeginPredDefs(wic)
   PRED_DEF("$qlf_info", 5, qlf_info, 0)
   PRED_DEF("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
+  PRED_DEF("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 EndPredDefs

@@ -293,6 +293,8 @@ EndPredDefs
         PL_extension PL_predicates_from_ ## id[] = {
 #define PRED_DEF(name, arity, fname, flags) \
         { name, arity, pl_ ## fname ## arity ## _va, (flags)|PL_FA_VARARGS },
+#define PRED_SHARE(name, arity, fname, flags) \
+        { name, arity, pl_ ## fname ## va_va, (flags)|PL_FA_VARARGS },
 #define EndPredDefs \
         { NULL, 0, NULL, 0 } \
         };
@@ -307,7 +309,7 @@ engine. The calls can be  nested,  but   the  program  must  ensure each
 blockGC() is matched by an unblockGC().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-COMMON(void) 	blockGC(ARG1_LD);	/* disallow garbage collect */
-COMMON(void) 	unblockGC(ARG1_LD);	/* re-allow garbage collect */
+COMMON(void) 	blockGC(int flags ARG_LD);	/* disallow garbage collect */
+COMMON(void) 	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
 
 #endif /*PL_BUILTIN_H_INCLUDED*/

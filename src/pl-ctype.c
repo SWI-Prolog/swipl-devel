@@ -265,9 +265,11 @@ advanceGen(generator *gen)
 
 static int
 unify_char_type(term_t type, const char_type *ct, int context, int how)
-{ if ( ct->arity == 0 )
-    return PL_unify_atom(type, ct->name);
-  else /*if ( ct->arity == 1 )*/
+{ GET_LD
+
+  if ( ct->arity == 0 )
+  { return PL_unify_atom(type, ct->name);
+  } else /*if ( ct->arity == 1 )*/
   { if ( PL_unify_functor(type, PL_new_functor(ct->name, 1)) )
     { term_t a = PL_new_term_ref();
 
@@ -286,7 +288,8 @@ unify_char_type(term_t type, const char_type *ct, int context, int how)
 
 static foreign_t
 do_char_type(term_t chr, term_t class, control_t h, int how)
-{ generator *gen;
+{ GET_LD
+  generator *gen;
   fid_t fid;
 
   switch( ForeignControl(h) )
@@ -387,7 +390,9 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       succeed;
   }
 
-  fid = PL_open_foreign_frame();
+  if ( !(fid = PL_open_foreign_frame()) )
+    goto error;
+
   for(;;)
   { int rval;
 
@@ -420,6 +425,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
       break;
   }
 
+error:
   freeHeap(gen, sizeof(*gen));
   fail;
 }
@@ -501,7 +507,8 @@ get_chr_from_text(const PL_chars_t *t, size_t index)
 
 static foreign_t
 modify_case_atom(term_t in, term_t out, int down)
-{ PL_chars_t tin, tout;
+{ GET_LD
+  PL_chars_t tin, tout;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
@@ -607,7 +614,8 @@ PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 
 static int
 write_normalize_space(IOSTREAM *out, term_t in)
-{ PL_chars_t tin;
+{ GET_LD
+  PL_chars_t tin;
   size_t i, end;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
@@ -643,18 +651,12 @@ PRED_IMPL("normalize_space", 2, normalize_space, 0)
 { redir_context ctx;
   word rc;
 
-  EXCEPTION_GUARDED(/*code*/
-		    if ( setupOutputRedirect(A1, &ctx, FALSE) )
-		    { if ( (rc = write_normalize_space(ctx.stream, A2)) )
-			rc = closeOutputRedirect(&ctx);
-		      else
-			discardOutputRedirect(&ctx);
-		    } else
-		      rc = FALSE;
-		    /*cleanup*/,
-		    DEBUG(1, Sdprintf("Cleanup after throw()\n"));
-		    discardOutputRedirect(&ctx);
-		    rc = PL_rethrow(););
+  if ( (rc = setupOutputRedirect(A1, &ctx, FALSE)) )
+  { if ( (rc = write_normalize_space(ctx.stream, A2)) )
+      rc = closeOutputRedirect(&ctx);
+    else
+      discardOutputRedirect(&ctx);
+  }
 
   return rc;
 }
@@ -718,7 +720,8 @@ static lccat lccats[] =
 
 static
 PRED_IMPL("setlocale", 3, setlocale, 0)
-{ char *what;
+{ PRED_LD
+  char *what;
   char *locale;
   const lccat *lcp;
 
@@ -828,7 +831,9 @@ static const enc_map map[] =
 
 IOENC
 initEncoding()
-{ if ( LD )
+{ GET_LD
+
+  if ( LD )
   { if ( !LD->encoding )
     { char *enc;
 
@@ -868,7 +873,8 @@ initCharTypes()
 
 bool
 systemMode(bool accept)
-{ bool old = SYSTEM_MODE ? TRUE : FALSE;
+{ GET_LD
+  bool old = SYSTEM_MODE ? TRUE : FALSE;
 
   if ( accept )
     debugstatus.styleCheck |= DOLLAR_STYLE;

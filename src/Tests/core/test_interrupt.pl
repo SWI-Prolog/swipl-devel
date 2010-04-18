@@ -37,8 +37,8 @@ test_interrupt :-
 	run_tests([ interrupt
 		  ]).
 
-:- module_transparent
-	test_interrupt/1.
+:- meta_predicate
+	test_interrupt(0).
 
 %%	test_interrupt(:Goal) is semidet.
 %
@@ -52,13 +52,12 @@ test_interrupt :-
 %		startup phase.
 
 test_interrupt(Goal) :-
-	strip_module(Goal, M, G),
 	thread_self(Me),
-	thread_create(run(Me, M:G), Id, []),
+	thread_create(run(Me, Goal), Id, []),
 	thread_get_message(running),
 	sleep(0.1),
 	thread_signal(Id, throw(stop)),
-	(   between(1, 10, _),
+	(   between(1, 40, _),
 	    thread_property(Id, status(Status)),
 	    (	Status == running
 	    ->	sleep(0.05),

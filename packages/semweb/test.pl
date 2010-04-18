@@ -35,7 +35,7 @@
 :- asserta(file_search_path(library, '../sgml')).
 :- asserta(file_search_path(library, '../clib')).
 :- asserta(file_search_path(library, '../zlib')).
-:- asserta(file_search_path(library, '../sgml/RDF')).
+:- asserta(file_search_path(library, '../RDF')).
 :- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(library, '..')).
 :- asserta(user:file_search_path(foreign, '.')).
@@ -72,10 +72,6 @@ test(gzip_file, [true(N == 1), cleanup(rdf_reset_db)]) :-
 
 test(http, [true(N == 1), cleanup(rdf_reset_db)]) :-
 	rdf_load('http://gollem.science.uva.nl/SWI-Prolog/Tests/semweb/test-001.rdf', [silent(true)]),
-	rdf_statistics(triples(N)).
-
-test(gzip_http, [true(N == 1), cleanup(rdf_reset_db)]) :-
-	rdf_load('http://gollem.science.uva.nl/SWI-Prolog/Tests/semweb/test-002.rdf', [silent(true)]),
 	rdf_statistics(triples(N)).
 
 test(gzip_http, [true(N == 1), cleanup(rdf_reset_db)]) :-

@@ -29,105 +29,107 @@
     the GNU General Public License.
 */
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This module implements the when/2 co-routine.
-%
-%%	when(+Condition, :Goal)
-%
-%		Condition should be one of
-%			?=(X,Y)
-%%			nonvar(X)
-%%			ground(X)
-%			(Condition,Condition)
-%			(Condition;Condition)
-%
-%	Author: 	Tom Schrijvers, K.U.Leuven
-% 	E-mail: 	Tom.Schrijvers@cs.kuleuven.ac.be
-%	Copyright:	2003-2004, K.U.Leuven
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% History:
-%
-%	Apr 9, 2004
-%	* JW: Supressed debugging this module
-%	* JW: Made when/2 module-aware.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Simple implementation. Does not clean up redundant attributes.
-% Now deals with cyclic terms.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(when,
 	  [ when/2			% +Condition, :Goal
 	  ]).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
-	when(?, 0).
+	when(+, 0).
 
-:- use_module(library(error)).
+/** <module> Conditional coroutining
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+This library implements the when/2 constraint, delaying a goal until its
+arguments are sufficiently instantiated.  For   example,  the  following
+delayes the execution of =:=/2 until the expression is instantiated.
+
+    ==
+	...
+	when(ground(Expr), 0 =:= Expr),
+    ==
+
+@author Tom Schrijvers (initial implementation)
+@author Jan Wielemaker
+*/
+
+%%	when(+Condition, :Goal)
+%
+%	Execute Goal when Condition is satisfied. I.e., Goal is executed
+%	as by call/1  if  Condition  is   true  when  when/2  is called.
+%	Otherwise  Goal  is  _delayed_  until  Condition  becomes  true.
+%	Condition is one of the following:
+%
+%	    * nonvar(X)
+%	    * ground(X)
+%	    * ?=(X,Y)
+%	    * (Cond1,Cond2)
+%	    * (Cond2;Cond2)
+%
+%	For example (note the order =a= and =b= are written):
+%
+%	    ==
+%	    ?- when(nonvar(X), writeln(a)), writeln(b), X = x.
+%	    b
+%	    a
+%	    X = x
+%	    ==
+
 when(Condition, Goal) :-
-	when_condition(Condition),
-	strip_module(Goal, M, G),
-	trigger(Condition, M:G).
+	'$eval_when_condition'(Condition, Optimised),
+	trigger_first(Optimised, Goal).
 
-when_condition(C)	  :- var(C), !, instantiation_error(C).
-when_condition(?=(_,_))	  :- !.
-when_condition(nonvar(_)) :- !.
-when_condition(ground(_)) :- !.
-when_condition((C1,C2))	  :- !, when_condition(C1), when_condition(C2).
-when_condition((C1;C2))	  :- !, when_condition(C1), when_condition(C2).
-when_condition(C)	  :- domain_error(when_condition, C).
+%%	'$eval_when_condition'(+Condition, -Optimised)
+%
+%	C-building block defined in pl-attvar.c.   It  pre-processes the
+%	when-condition, checks it  for   errors  (instantiation  errors,
+%	domain-errors and cyclic terms) and   simplifies it. Notably, it
+%	removes already satisfied conditions   from  Condition, unifying
+%	Optimised to =true= if  there  is   no  need  to suspend. Nested
+%	disjunctions are reported as or(List).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+trigger_first(true, Goal) :- !,
+	call(Goal).
+trigger_first(nonvar(X), Goal) :- !,
+	'$suspend'(X, when, trigger_nonvar(X, Goal)).
+trigger_first(Cond, Goal) :-
+	trigger(Cond, Goal).
+
 trigger(nonvar(X),Goal) :-
 	trigger_nonvar(X,Goal).
-
 trigger(ground(X),Goal) :-
 	trigger_ground(X,Goal).
-
 trigger(?=(X,Y),Goal) :-
 	trigger_determined(X,Y,Goal).
-
 trigger((G1,G2),Goal) :-
 	trigger_conj(G1,G2,Goal).
+trigger(or(GL),Goal) :-
+	trigger_disj(GL, when:check_disj(_DisjID,GL,Goal)).
 
-trigger((G1;G2),Goal) :-
-	trigger_disj(G1,G2,Goal).
-
-trigger_nonvar(X,Goal) :-
-	( nonvar(X) ->
-		call(Goal)
-	;
-		suspend(X,trigger_nonvar(X,Goal))
+trigger_nonvar(X, Goal) :-
+	(   nonvar(X)
+	->  call(Goal)
+	;   '$suspend'(X, when, trigger_nonvar(X, Goal))
 	).
 
-trigger_ground(X,Goal) :-
-	term_variables(X,Vs),
-	( Vs = [H] ->
-		suspend(H,trigger_ground(H,Goal))
-	; Vs = [H|_] ->
-		T =.. [f|Vs],
-		suspend(H,trigger_ground(T,Goal))
-	;
-		call(Goal)
+trigger_ground(X, Goal) :-
+	term_variables(X, Vs),
+	(   Vs = [H]
+	->  '$suspend'(H, when, trigger_ground(H, Goal))
+	;   Vs = [H|_]
+	->  T =.. [f|Vs],
+	    '$suspend'(H, when, trigger_ground(T, Goal))
+	;   call(Goal)
 	).
 
-trigger_determined(X,Y,Goal) :-
-	unifiable(X,Y,Unifier),
-	!,
-	( Unifier == [] ->
-		call(Goal)
-	;
-		put_attr(Det,when,det(trigger_determined(X,Y,Goal))),
-		suspend_list(Unifier,wake_det(Det))
+trigger_determined(X, Y, Goal) :-
+	unifiable(X, Y, Unifier), !,
+	(   Unifier == []
+	->  call(Goal)
+	;   put_attr(Det, when, det(trigger_determined(X,Y,Goal))),
+	    suspend_list(Unifier, wake_det(Det))
 	).
-
-trigger_determined(_,_,Goal) :-
+trigger_determined(_, _, Goal) :-
 	call(Goal).
 
 
@@ -145,57 +147,91 @@ wake_det(Det) :-
 trigger_conj(G1,G2,Goal) :-
 	trigger(G1,when:trigger(G2,Goal)).
 
-trigger_disj(G1,G2,Goal) :-
-	trigger(G1,when:check_disj(Disj,Goal)),
-	trigger(G2,when:check_disj(Disj,Goal)).
+trigger_disj([],_).
+trigger_disj([H|T], G) :-
+	trigger(H, G),
+	trigger_disj(T, G).
 
-check_disj(Disj,Goal) :-
-	( var(Disj) ->
-		Disj = (-),
-		call(Goal)
-	;
-		true
+
+%%	check_disj(DisjVar, Disj, Goal)
+%
+%	If there is a disjunctive condition, we share a variable between
+%	the disjunctions. If the  goal  is  fired   due  to  one  of the
+%	conditions, the shared variable is boud   to (-). Note that this
+%	implies that the attributed  variable  is   left  in  place. The
+%	predicate  when_goal//1  skips  such   goals    on   behalfe  of
+%	copy_term/3.
+
+check_disj(Disj,_,Goal) :-
+	(   Disj == (-)
+	->  true
+	;   Disj = (-),
+	    call(Goal)
 	).
 
 suspend_list([],_Goal).
 suspend_list([V=W|Unifier],Goal) :-
-	suspend(V,Goal),
-	( var(W) -> suspend(W,Goal) ; true),
+	'$suspend'(V, when, Goal),
+	(   var(W)
+	->  '$suspend'(W, when, Goal)
+	;   true
+	),
 	suspend_list(Unifier,Goal).
 
-suspend(V,Goal) :-
-	( get_attr(V,when,List) ->
-		put_attr(V,when,[Goal|List])
-	;
-		put_attr(V,when,[Goal])
+attr_unify_hook(call(Goal), Other) :-
+	(   get_attr(Other, when, call(GOTher))
+	->  del_attr(Other, when),
+	    Goal, GOTher
+	;   Goal
 	).
 
-attr_unify_hook(List,Other) :-
-	List = [_|_],
-	( get_attr(Other,when,List2) ->
-		del_attr(Other,when),
-		call_list(List),
-		call_list(List2)
-	;
-		call_list(List)
-	).
-
-call_list([]).
-call_list([G|Gs]) :-
-	call(G),
-	call_list(Gs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 attribute_goals(V) -->
 	{ get_attr(V, when, Attr) },
-	(   { Attr = det(trigger_determined(X, Y, G)) } ->
-	    [when(?=(X,Y), G)]
-	;   when_goals(Attr)
+	when_goals(Attr).
+
+when_goals(det(trigger_determined(X, Y, G))) --> !,
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((?=(X,Y),C), Goal) ]
+	;   [ when(?=(X,Y), G) ]
 	).
+when_goals(call(Conj)) -->
+	when_conj_goals(Conj).
 
-when_goals([])	   --> [].
-when_goals([G|Gs]) --> when_goal(G), when_goals(Gs).
+when_conj_goals((A,B)) --> !,
+	when_conj_goals(A),
+	when_conj_goals(B).
+when_conj_goals(when:G) -->
+	when_goal(G).
 
-when_goal(trigger_ground(X, G)) --> [when(ground(X), G)].
-when_goal(trigger_nonvar(X, G)) --> [when(nonvar(X), G)].
-when_goal(wake_det(_))		--> []. % ignore
+when_goal(trigger_nonvar(X, G)) -->
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((nonvar(X),C), Goal) ]
+	;   [ when(nonvar(X),G) ]
+	).
+when_goal(trigger_ground(X, G)) -->
+	(   { disj_goal(G, Disj, DG) }
+	->  disj_or(Disj, DG)
+	;   { G = when:trigger(C, Goal) }
+	->  [ when((ground(X),C), Goal) ]
+	;   [ when(ground(X),G) ]
+	).
+when_goal(wake_det(_)) -->
+	[].
+
+disj_goal(when:check_disj(X, _, _), [], -) :- X == (-).
+disj_goal(when:check_disj(-, Or, DG), Or, DG).
+
+disj_or([], _) --> [].
+disj_or(List, DG) -->
+	{ or_list(List, Or) },
+	[when(Or, DG)].
+
+or_list([H], H) :- !.
+or_list([H|T], (H;OT)) :-
+	or_list(T, OT).

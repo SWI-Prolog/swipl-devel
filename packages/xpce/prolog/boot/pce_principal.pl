@@ -50,10 +50,9 @@
 	    pce_method_implementation/2,
 
 	    pce_open/3,			% +Object, +Mode, -Stream
-	    pce_dispatch/1,		% +Options
-	    pce_end_dispatch/0,		% Break pce_dispatch loop
-	    pce_call/1,			% :Goal
 	    in_pce_thread/1,		% :Goal
+	    set_pce_thread/0,
+	    pce_dispatch/0,
 
 	    op(200, fy,  @),
 	    op(250, yfx, ?),

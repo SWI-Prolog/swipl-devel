@@ -80,7 +80,8 @@ typedef struct _opdef			/* predefined and enumerated */
 
 static void
 copyOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+{ GET_LD
+  operator *op = s->value;
   operator *o2 = allocHeap(sizeof(*o2));
 
   *o2 = *op;
@@ -89,7 +90,8 @@ copyOperatorSymbol(Symbol s)
 
 static void
 freeOperatorSymbol(Symbol s)
-{ operator *op = s->value;
+{ GET_LD
+  operator *op = s->value;
 
   PL_unregister_atom((atom_t) s->name);
   freeHeap(op, sizeof(*op));
@@ -140,7 +142,9 @@ defOperator(Module m, atom_t name, int type, int priority)
   { UNLOCK();				/* already inherited: do not change */
     return;
   } else
-  { op = allocHeap(sizeof(*op));
+  { GET_LD
+
+    op = allocHeap(sizeof(*op));
 
     op->priority[OP_PREFIX]  = -1;
     op->priority[OP_INFIX]   = -1;
@@ -328,11 +332,10 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
     term_t a = PL_new_term_ref();
 
     PL_put_atom(a, m->name);
-    PL_cons_functor(t, FUNCTOR_colon2, a, name);
-
-    return PL_error(NULL, 0, "system operators are protected",
-		    ERR_PERMISSION, ATOM_redefine, ATOM_operator,
-		    t);
+    return (PL_cons_functor(t, FUNCTOR_colon2, a, name) &&
+	    PL_error(NULL, 0, "system operators are protected",
+		     ERR_PERMISSION, ATOM_redefine, ATOM_operator,
+		     t));
   }
 
   if ( !PL_get_atom_ex(type, &tp) )
@@ -616,7 +619,7 @@ static const opdef operators[] = {
   OP(ATOM_at_larger_eq,		 OP_XFX, 700),	/* @>= */
   OP(ATOM_backslash,		 OP_FY,	 200),	/* \ */
   OP(ATOM_not_provable,		 OP_FY,	 900),	/* \+ */
-  OP(ATOM_or,			 OP_YFX, 500),	/* \/ */
+  OP(ATOM_bitor,		 OP_YFX, 500),	/* \/ */
   OP(ATOM_bw_xor,		 OP_YFX, 500),	/* >< */
   OP(ATOM_not_equals,		 OP_XFX, 700),	/* \= */
   OP(ATOM_not_strickt_equals,	 OP_XFX, 700),	/* \== */

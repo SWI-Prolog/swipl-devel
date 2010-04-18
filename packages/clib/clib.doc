@@ -20,7 +20,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{J.Wielemaker@cs.vu.nl}}
 
 \maketitle
 
@@ -33,9 +33,8 @@ libraries.
 
 On Windows systems, the \pllib{unix} library can only be used if the
 whole SWI-Prolog suite is compiled using
-\url[Cywin]{http://www.cygwin.com}. The \pllib{crypt} library does not
-support DES encryption. The other libraries have been ported to native
-Windows.
+\url[Cywin]{http://www.cygwin.com}. The other libraries have been ported
+to native Windows.
 \end{abstract}
 
 \vfill
@@ -277,7 +276,7 @@ together with tcp_listen/2 and tcp_accept/3 implement the {\em
 server}-side of the socket interface. If \arg{Port} is unbound, the
 system picks an arbitrary free port and unifies \arg{Port} with the
 selected port number. \arg{Port} is either an integer or the name of a
-registered service.
+registered service.  See also tcp_connect/4.
 
     \predicate{tcp_listen}{2}{+Socket, +Backlog}
 Tells, after tcp_bind/2, the socket to listen for incoming requests for
@@ -293,17 +292,38 @@ a client.  On success, it creates a new socket for the client and
 binds the identifier to \arg{Slave}.   \arg{Peer} is bound to the
 IP-address of the client.
 
-    \predicate{tcp_connect}{2}{+Socket, +Host:+Port}
+    \predicate[deprecated]{tcp_connect}{2}{+Socket, +Host:+Port}
+Connect \arg{Socket}. After successful completion, tcp_open_socket/3 can
+be used to create I/O-Streams to the remote socket.  New code should use
+tcp_connect/4, which can be hooked to allow for proxy negotiation.
+
+    \predicate{tcp_connect}{4}{+Socket, +Host:+Port, -Read, -Write}
 Client-interface to connect a socket to a given \arg{Port} on a given
 \arg{Host}. \arg{Port} is either an integer or the name of a registered
-service. After successful completion, tcp_open_socket/3 can be used to
-create I/O-Streams to the remote socket.  The fragment below connects
-to the \url{http://www.swi-prolog.org} using the service name instead
-of the hardcoded number `80'.
+service. The fragment below connects to the
+\url{http://www.swi-prolog.org} using the service name instead of the
+hardcoded number `80'.
 
 \begin{code}
-	tcp_socket(Socket),
-	tcp_connect(Socket, 'www.swi-prolog.org':http),
+    Adress = 'www.swi-prolog.org':http,
+    tcp_socket(Socket),
+    tcp_connect(Socket, Adress, Read, Write),
+\end{code}
+
+This predicate can be hooked by defining the multifile-predicate
+socket:tcp_connect_hook/4. This hook is specifically intented for proxy
+negotiation.  The code below shows the structure of such a hook. The
+predicates \nopredref{proxy}{1} and \nopredref{proxy_connect}{3} must
+be provided by the user.
+
+\begin{code}
+:- multifile socket:tcp_connect_hook/4.
+
+socket:tcp_connect_hook(Socket, Address, Read, Write) :-
+    proxy(ProxyAdress),
+    tcp_connect(Socket, ProxyAdress),
+    tcp_open_socket(Socket, Read, Write),
+    proxy_connect(Address, Read, Write).
 \end{code}
 
     \predicate{tcp_setopt}{2}{+Socket, +Option}
@@ -386,27 +406,38 @@ create_server(Port) :-
 	<dispatch>
 \end{code}
 
-There are various options for <dispatch>. One is to keep track of active
-clients and server-sockets using wait_for_input/3. If input arrives at a
-server socket, use tcp_accept/3 and add the new connection to the active
-clients. Otherwise deal with the input from the client.  Another is
-to use (Unix) fork/1 to deal with the client in a separate process.
+There are various options for <dispatch>. The most commonly used option
+is to start a Prolog thread to handle the connection. Alternatively,
+input from multiple clients can be handled in a single thread by
+listening to these clients using wait_for_input/3. Finally, on Unix
+systems, we can use fork/1 to handle the connection in a new process.
+Note that fork/1 and threads do not cooperate well. Combinations can be
+realised but require good understanding of POSIX thread and
+fork-semantics.
 
-Using fork/1, <dispatch> may be implemented as:
+Below is the typical example using a thread. Note the use of
+setup_call_cleanup/3 to guarantee that all resources are reclaimed, also
+in case of failure or exceptions.
 
 \begin{code}
 dispatch(AcceptFd) :-
 	tcp_accept(AcceptFd, Socket, _Peer),
-	fork(Pid)
-	(   Pid == child
-	->  tcp_open_socket(Socket, In, Out),
-	    handle_service(In, Out),
-	    close(In),
-	    close(Out),
-	    halt
-	;   tcp_close_socket(Socket)
-	),
+	thread_create(process_client(Socket, Peer), _,
+		      [ detached(true)
+		      ]),
 	dispatch(AcceptFd).
+
+process_client(Socket, Peer) :-
+	setup_call_cleanup(tcp_open_socket(Socket, In, Out),
+			   handle_service(In, Out),
+			   close_connection(In, Out)).
+
+close_connection(In, Out) :-
+	close(In, [force(true)]),
+	close(Out, [force(true)]).
+
+handle_service(In, Out) :-
+	...
 \end{code}
 
 
@@ -416,12 +447,19 @@ The skeleton for client-communication is given below.
 
 \begin{code}
 create_client(Host, Port) :-
-	tcp_socket(Socket),
-	tcp_connect(Socket, Host:Port),
-	tcp_open_socket(Socket, ReadFd, WriteFd),
-	<handle I/O using the two streams>
-	close(ReadFd),
-	close(WriteFd).
+	setup_call_cleanup(tcp_socket(Socket),
+			   tcp_connect(Socket, Host:Port),
+			   tcp_close_socket(Socket)),
+	setup_call_cleanup(tcp_open_socket(Socket, In, Out),
+			   chat_to_server(In, Out),
+			   close_connection(In, Out)).
+
+close_connection(In, Out) :-
+	close(In, [force(true)]),
+	close(Out, [force(true)]).
+
+chat_to_server(In, Out) :-
+	...
 \end{code}
 
 To deal with timeouts and multiple connections, wait_for_input/3 and/or
@@ -595,34 +633,42 @@ main :-
 	set_stream(current_output, encoding(utf8)),
 	cgi_get_form(Arguments),
 	format('Content-type: text/html; charset=UTF-8~n~n', []),
-	format('<HTML>~n', []),
-	format('<HEAD>~n', []),
-	format('<TITLE>Simple SWI-Prolog CGI script</TITLE>~n', []),
-	format('</HEAD>~n~n', []),
-	format('<BODY>~n', []),
-	format('<P>', []),
+	format('<html>~n', []),
+	format('<head>~n', []),
+	format('<title>Simple SWI-Prolog CGI script</title>~n', []),
+	format('</head>~n~n', []),
+	format('<body>~n', []),
+	format('<p>', []),
 	print_args(Arguments),
-	format('</BODY>~n</HTML>~n', []).
+	format('</body>~n</html>~n', []).
 
 print_args([]).
 print_args([A0|T]) :-
 	A0 =.. [Name, Value],
-	format('<B>~w</B>=<EM>~w</EM><BR>~n', [Name, Value]),
+	format('<b>~w</b>=<em>~w</em><br>~n', [Name, Value]),
 	print_args(T).
 \end{code}
 
 \subsection{Some considerations}
 
-Printing an HTML document using format/2 is not really a neat way
-of producing HTML.  A high-level alternative is provided by
-\pllib{http/html_write} from the HTTP library.
+Printing an HTML document using format/2 is not a neat way of producing
+HTML because it is vulnerable to required escape sequences. A high-level
+alternative is provided by \pllib{http/html_write} from the HTTP
+library.
 
-The CGI standard is very unclear about handling Unicode data. The above
-two declarations ensure the CGI script will send all data in UTF-8 and
-thus provide full support of Unicode. It is assumed that browsers
-generally send form-data using the same encoding as the page in which
-the form appears, UTF-8 or ISO Latin-1.  The current version of
-cgi_get_form/2 assumes the CGI data is in UTF-8.
+The startup-time of Prolog is relatively long, in particular if the
+program is large. In many cases it is much better to use the
+SWI-Prolog HTTP server library and make the main web-server relay
+requests to the SWI-Prolog webserver. See the SWI-Prolog \url[HTTP
+package]{http://www.swi-prolog.org/pldoc/package/http.html} for details.
+
+
+The CGI standard is unclear about handling Unicode data. The above two
+declarations ensure the CGI script will send all data in UTF-8 and thus
+provide full support of Unicode. It is assumed that browsers generally
+send form-data using the same encoding as the page in which the form
+appears, UTF-8 or ISO Latin-1. The current version of cgi_get_form/1
+assumes the CGI data is in UTF-8.
 
 
 \section{MIME decoding library}
@@ -711,12 +757,14 @@ fully instantiated. To generate a default encrypted version of
 \arg{Plain}, run with unbound \arg{Encrypted} and this argument is
 unified to a list of character codes holding an encrypted version.
 
-The library supports two encryption formats: traditional Unix DES hashes
-(Unix only) and FreeBSD compatible MD5 hashes (all platforms).  MD5
-hashes start with the magic sequence \verb|$1$|, followed by an up to
-8 character \jargon{salt}. DES hashes start with a 2 character
+The library supports two encryption formats: traditional Unix
+DES-hashes\footnote{On non-Unix systems, crypt() is provided by the
+NetBSD library. The license header is added at the end of this
+document.} and FreeBSD compatible MD5 hashes (all platforms). MD5 hashes
+start with the magic sequence \verb|$1$|, followed by an up to 8
+character \jargon{salt}. DES hashes start with a 2 character
 \jargon{salt}. Note that a DES hash considers only the first 8
-characters.  The MD5 considers the whole string.
+characters. The MD5 considers the whole string.
 
 Salt and algorithm can be forced by instantiating the start of
 \arg{Encrypted} with it.  This is typically used to force MD5 hashes:
@@ -1039,26 +1087,39 @@ cpu_exceeded(_Sig) :-
 \end{code}
 \end{description}
 
-\section{Installation}
-
-\subsection{Unix systems}
-
-Installation on Unix system uses the commonly found {\em configure},
-{\em make} and {\em make install} sequence. SWI-Prolog should be
-installed before building this package. If SWI-Prolog is not installed
-as \program{pl}, the environment variable \env{PL} must be set to the
-name of the SWI-Prolog executable. Installation is now accomplished
-using:
+\section*{NetBSD Crypt license}
 
 \begin{code}
-% ./configure
-% make
-% make install
+ * Copyright (c) 1989, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Tom Truscott.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
 \end{code}
-
-This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
-the Prolog library files in \file{$PLBASE/library}, where
-\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
 \printindex
 

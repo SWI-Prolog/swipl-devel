@@ -197,7 +197,7 @@ init_options :-
 	(   option_default(Name, Value),
 	    (	current_prolog_flag(Name, _)
 	    ->	true
-	    ;	set_prolog_flag(Name, Value)
+	    ;	create_prolog_flag(Name, Value, [])
 	    ),
 	    fail
 	;   true

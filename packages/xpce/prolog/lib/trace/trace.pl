@@ -499,7 +499,8 @@ find_subgoal([1|T], brace_term_position(_,_,Pos), SPos) :-
 %	@tbd	Synchronise with send_pce/1 and in_debug_thread/2.
 
 action(Action) :-
-	thread_self(main), !,
+	pce_thread(Pce),
+	thread_self(Pce), !,
 	get_tracer(action, Action0),
 	debug('Got action ~w~n', [Action0]),
 	action(Action0, Action).
@@ -794,5 +795,4 @@ clustered_binding([B|BR], [B|BT], Value, C) :-
 	clustered_binding(BR, BT, Value, C).
 
 
-:- initialization
-   set_prolog_flag(gui_tracer, true).
+:- create_prolog_flag(gui_tracer, true, []).

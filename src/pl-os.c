@@ -99,13 +99,9 @@ long clock_wait_ticks;
 This module is a contraction of functions that used to be all  over  the
 place.   together  with  pl-os.h  (included  by  pl-incl.h) this file
 should define a basic  layer  around  the  OS,  on  which  the  rest  of
-SWI-Prolog  is  based.   SWI-Prolog  has  been developed on SUN, running
-SunOs 3.4 and later 4.0.
+SWI-Prolog  is  based.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Unfortunately some OS's simply do not offer  an  equivalent  to  SUN  os
-features.   In  most  cases part of the functionality of the system will
-have to be dropped. See the header of pl-incl.h for details.
-- - - - - - - - - - -  - - - - - */
 
 		/********************************
 		*         INITIALISATION        *
@@ -119,7 +115,11 @@ have to be dropped. See the header of pl-incl.h for details.
 
 bool
 initOs(void)
-{ DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
+{ GET_LD
+
+  GD->statistics.start_time = WallTime();
+
+  DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
   initExpand();
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
@@ -411,7 +411,8 @@ setOSPrologFlags(void)
 
 uintptr_t
 UsedMemory(void)
-{
+{ GET_LD
+
 #if defined(HAVE_GETRUSAGE) && defined(HAVE_RU_IDRSS)
   struct rusage usage;
 
@@ -498,7 +499,9 @@ setRandom(unsigned int *seedp)
 
 uint64_t
 _PL_Random(void)
-{ if ( !LD->os.rand_initialised )
+{ GET_LD
+
+  if ( !LD->os.rand_initialised )
   { setRandom(NULL);
     LD->os.rand_initialised = TRUE;
   }
@@ -539,7 +542,7 @@ available to the Prolog user based on these functions.  These  functions
 are  in  this  module as non-UNIX OS probably don't have getpid() or put
 temporaries on /tmp.
 
-    atom_t TemporaryFile(const char *id)
+    atom_t TemporaryFile(const char *id, int *fdp)
 
     The return value of this call is an atom,  whose  string  represents
     the  path  name of a unique file that can be used as temporary file.
@@ -553,14 +556,6 @@ temporaries on /tmp.
     not be created at all, or might already have been deleted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-struct tempfile
-{ atom_t	name;
-  TempFile	next;
-};					/* chain of temporary files */
-
-#define tmpfile_head (GD->os._tmpfile_head)
-#define tmpfile_tail (GD->os._tmpfile_tail)
-
 #ifndef DEFTMPDIR
 #ifdef __WINDOWS__
 #define DEFTMPDIR "c:/tmp"
@@ -569,22 +564,64 @@ struct tempfile
 #endif
 #endif
 
+static int
+free_tmp_symbol(Symbol s)
+{ int rc;
+  atom_t tname = (atom_t)s->name;
+  PL_chars_t txt;
+
+  get_atom_text(tname, &txt);
+  PL_mb_text(&txt, REP_FN);
+  rc = RemoveFile(txt.text.t);
+  PL_free_text(&txt);
+
+  PL_unregister_atom(tname);
+  return rc;
+}
+
+
+static void
+void_free_tmp_symbol(Symbol s)
+{ (void)free_tmp_symbol(s);
+}
+
+
+#ifndef O_EXCL
+#define O_EXCL 0
+#endif
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 atom_t
-TemporaryFile(const char *id)
+TemporaryFile(const char *id, int *fdp)
 { char temp[MAXPATHLEN];
-  TempFile tf = allocHeap(sizeof(struct tempfile));
-  char envbuf[MAXPATHLEN];
-  char *tmpdir;
+  static char *tmpdir = NULL;
+  atom_t tname;
+  int retries = 0;
 
-  if ( !((tmpdir = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
-	 (tmpdir = Getenv("TMP",  envbuf, sizeof(envbuf)))) )
-    tmpdir = DEFTMPDIR;
+  if ( !tmpdir )
+  { LOCK();
+    if ( !tmpdir )
+    { char envbuf[MAXPATHLEN];
+      char *td;
 
+      if ( (td = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
+	   (td = Getenv("TMP",  envbuf, sizeof(envbuf))) )
+	tmpdir = strdup(td);
+      else
+	tmpdir = DEFTMPDIR;
+    }
+    UNLOCK();
+  }
+
+retry:
 #ifdef __unix__
 { static int MTOK_temp_counter = 0;
+  const char *sep = id[0] ? "_" : "";
 
-  Ssprintf(temp, "%s/pl_%s_%d_%d",
-	   tmpdir, id, (int) getpid(), MTOK_temp_counter++);
+  Ssprintf(temp, "%s/pl_%s%s%d_%d",
+	   tmpdir, id, sep, (int) getpid(), MTOK_temp_counter++);
 }
 #endif
 
@@ -599,49 +636,74 @@ TemporaryFile(const char *id)
 #endif
   { PrologPath(tmp, temp, sizeof(temp));
   } else
-    Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
-}
-#endif
+  { const char *sep = id[0] ? "_" : "";
 
-#if EMX
-  static int temp_counter = 0;
-  char *foo;
-
-  if ( (foo = tempnam(".", (const char *)id)) )
-  { strcpy(temp, foo);
-    free(foo);
-  } else
-    Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
-#endif
-
-  tf->name = PL_new_atom(temp);		/* locked: ok! */
-  tf->next = NULL;
-
-  startCritical;
-  if ( !tmpfile_tail )
-  { tmpfile_head = tmpfile_tail = tf;
-  } else
-  { tmpfile_tail->next = tf;
-    tmpfile_tail = tf;
+    Ssprintf(temp, "%s/pl_%s%s%d", tmpdir, id, sep, temp_counter++);
   }
-  endCritical;
-
-  return tf->name;
 }
+#endif
+
+  if ( fdp )
+  { int fd;
+
+    if ( (fd=open(temp, O_CREAT|O_EXCL|O_WRONLY|O_BINARY, 0600)) < 0 )
+    { if ( ++retries < 10000 )
+	goto retry;
+      else
+	return NULL_ATOM;
+    }
+
+    *fdp = fd;
+  }
+
+  tname = PL_new_atom(temp);		/* locked: ok! */
+
+  LOCK();
+  if ( !GD->os.tmp_files )
+  { GD->os.tmp_files = newHTable(4);
+    GD->os.tmp_files->free_symbol = void_free_tmp_symbol;
+  }
+  UNLOCK();
+
+  addHTable(GD->os.tmp_files, (void*)tname, (void*)TRUE);
+
+  return tname;
+}
+
+
+int
+DeleteTemporaryFile(atom_t name)
+{ int rc = FALSE;
+
+  if ( GD->os.tmp_files )
+  { LOCK();
+    if ( GD->os.tmp_files && GD->os.tmp_files->size > 0 )
+    { Symbol s = lookupHTable(GD->os.tmp_files, (void*)name);
+
+      if ( s )
+      { rc = free_tmp_symbol(s);
+	deleteSymbolHTable(GD->os.tmp_files, s);
+      }
+    }
+    UNLOCK();
+  }
+
+  return rc;
+}
+
 
 void
 RemoveTemporaryFiles(void)
-{ TempFile tf, tf2;
+{ LOCK();
+  if ( GD->os.tmp_files )
+  { Table t = GD->os.tmp_files;
 
-  startCritical;
-  for(tf = tmpfile_head; tf; tf = tf2)
-  { RemoveFile(stringAtom(tf->name));
-    tf2 = tf->next;
-    freeHeap(tf, sizeof(struct tempfile));
+    GD->os.tmp_files = NULL;
+    UNLOCK();
+    destroyHTable(t);
+  } else
+  { UNLOCK();
   }
-
-  tmpfile_head = tmpfile_tail = NULL;
-  endCritical;
 }
 
 
@@ -743,7 +805,8 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
+{ GET_LD
+  int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
 
   return _xos_canonical_filename(p, buf, len, flags);
 }
@@ -800,7 +863,7 @@ forwards char   *canoniseDir(char *);
 
 static void
 initExpand(void)
-{
+{ GET_LD
 #ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
@@ -910,6 +973,7 @@ verify_entry(CanonicalDir d)
 
     d->inode  = buf.st_ino;
     d->device = buf.st_dev;
+    return TRUE;
   } else
   { DEBUG(1, Sdprintf("%s: no longer exists\n", d->canonical));
 
@@ -926,6 +990,9 @@ verify_entry(CanonicalDir d)
       }
     }
 
+    remove_string(d->name);
+    if ( d->canonical != d->name )
+      remove_string(d->canonical);
     free(d);
   }
 
@@ -1126,7 +1193,9 @@ utf8_strlwr(char *s)
 
 char *
 canonisePath(char *path)
-{ if ( !truePrologFlag(PLFLAG_FILE_CASE) )
+{ GET_LD
+
+  if ( !truePrologFlag(PLFLAG_FILE_CASE) )
     utf8_strlwr(path);
 
   canoniseFileName(path);
@@ -1173,7 +1242,8 @@ takeWord(const char **string, char *wrd, int maxlen)
 
 bool
 expandVars(const char *pattern, char *expanded, int maxlen)
-{ int size = 0;
+{ GET_LD
+  int size = 0;
   char wordbuf[MAXPATHLEN];
 
   if ( *pattern == '~' )
@@ -1325,7 +1395,8 @@ ExpandFile(const char *pattern, char **vector)
 
 char *
 ExpandOneFile(const char *spec, char *file)
-{ char *vector[256];
+{ GET_LD
+  char *vector[256];
   int size;
 
   switch( (size=ExpandFile(spec, vector)) )
@@ -1424,10 +1495,13 @@ IsAbsolutePath(const char *p)
 
 char *
 AbsoluteFile(const char *spec, char *path)
-{ char tmp[MAXPATHLEN];
+{ GET_LD
+  char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
 
+  if ( !file )
+     return (char *) NULL;
   if ( truePrologFlag(PLFLAG_FILEVARS) )
   { if ( !(file = ExpandOneFile(buf, tmp)) )
       return (char *) NULL;
@@ -1472,7 +1546,9 @@ AbsoluteFile(const char *spec, char *path)
 
 void
 PL_changed_cwd(void)
-{ if ( CWDdir )
+{ GET_LD
+
+  if ( CWDdir )
     remove_string(CWDdir);
   CWDdir = NULL;
   CWDlen = 0;
@@ -1481,7 +1557,9 @@ PL_changed_cwd(void)
 
 const char *
 PL_cwd(void)
-{ if ( CWDlen == 0 )
+{ GET_LD
+
+  if ( CWDlen == 0 )
   { char buf[MAXPATHLEN];
     char *rval;
 
@@ -1570,7 +1648,8 @@ DirName(const char *f, char *dir)
 
 bool
 ChDir(const char *path)
-{ char ospath[MAXPATHLEN];
+{ GET_LD
+  char ospath[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
   OsPath(path, ospath);
@@ -1668,14 +1747,17 @@ ResetStdin()
 
 static ssize_t
 Sread_terminal(void *handle, char *buf, size_t size)
-{ intptr_t h = (intptr_t)handle;
+{ GET_LD
+  intptr_t h = (intptr_t)handle;
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
-  if ( LD->prompt.next && ttymode != TTY_RAW )
-    PL_write_prompt(TRUE);
-  else
-    Sflush(Suser_output);
+  if ( Soutput && true(Soutput, SIO_ISATTY) )
+  { if ( LD->prompt.next && ttymode != TTY_RAW )
+      PL_write_prompt(TRUE);
+    else
+      Sflush(Suser_output);
+  }
 
   PL_dispatch(fd, PL_DISPATCH_WAIT);
   size = (*GD->os.org_terminal.read)(handle, buf, size);
@@ -1695,7 +1777,8 @@ Sread_terminal(void *handle, char *buf, size_t size)
 
 void
 ResetTty()
-{ startCritical;
+{ GET_LD
+  startCritical;
   ResetStdin();
 
   if ( !GD->os.iofunctions.read )
@@ -1723,7 +1806,8 @@ ResetTty()
 
 bool
 PushTty(IOSTREAM *s, ttybuf *buf, int mode)
-{ struct termios tio;
+{ GET_LD
+  struct termios tio;
   int fd;
 
   buf->mode = ttymode;
@@ -1790,7 +1874,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf)
-{ int fd;
+{ GET_LD
+  int fd;
   ttymode = buf->mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
@@ -1885,7 +1970,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf)
-{ ttymode = buf->mode;
+{ GET_LD
+  ttymode = buf->mode;
   if ( ttymode != TTY_RAW )
     LD->prompt.next = TRUE;
 
@@ -2191,7 +2277,8 @@ argument to wait()
 
 int
 System(char *cmd)
-{ int pid;
+{ GET_LD
+  int pid;
   char *shell = "/bin/sh";
   int rval;
   void (*old_int)();

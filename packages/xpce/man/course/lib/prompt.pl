@@ -1,10 +1,6 @@
-/*  prompt.pl,v 1.0.0.1 1992/07/27 09:17:31 toussain Exp
+/*  Part of XPCE
 
-    Part of XPCE
-    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    E-mail: jan@swi.psy.uva.nl
-
-    Copyright (C) 1992 University of Amsterdam. All rights reserved.
+    This example code is in the public domain
 */
 
 :- module(pce_prompt,

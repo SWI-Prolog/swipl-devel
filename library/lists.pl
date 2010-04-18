@@ -33,6 +33,7 @@
 	[ member/2,
 	  append/2,			% +ListOfLists, -List
 	  append/3,
+	  prefix/2,			% ?Part, ?Whole
 	  select/3,
 	  selectchk/3,
 	  nextto/3,			% ?X, ?Y, ?List
@@ -66,11 +67,23 @@ the DEC-10 Prolog library (LISTRO.PL). Contributed by Richard O'Keefe.
 
 %%	member(?Elem, ?List)
 %
-%	True if Elem is a member of List
+%	True if Elem is a  member   of  List.  The SWI-Prolog definition
+%	differs from the classical one.  Our definition avoids unpacking
+%	each list element twice and  provides   determinism  on the last
+%	element.  E.g. this is deterministic:
+%
+%	    ==
+%	    	member(X, [One]).
+%	    ==
+%
+%	@author Gertjan van Noord
 
-member(X, [X|_]).
-member(X, [_|T]) :-
-	member(X, T).
+member(El, [H|T]) :-
+    member_(T, El, H).
+
+member_(_, El, El).
+member_([H|T], El, _) :-
+    member_(T, El, H).
 
 %%	append(?List1, ?List2, ?List1AndList2)
 %
@@ -95,6 +108,16 @@ append_([], []).
 append_([L|Ls], As) :-
 	append(L, Ws, As),
 	append_(Ls, Ws).
+
+
+%%	prefix(?Part, ?Whole)
+%
+%	True iff Part is a leading substring of Whole.  This is the same
+%	as append(Part, _, Whole).
+
+prefix([], _).
+prefix([E|T0], [E|T]) :-
+	prefix(T0, T).
 
 
 %%	select(?Elem, ?List1, ?List2)
@@ -317,15 +340,19 @@ numlist_(L, U, [L|Ns]) :-
 
 %%	is_set(@Set) is det.
 %
-%	True if Set is a proper list without duplicates.
+%	True if Set is a proper  list without duplicates. Equivalence is
+%	based on ==/2. The  implementation   uses  sort/2, which implies
+%	that the complexity is N*log(N) and   the  predicate may cause a
+%	resource-error. There are no other error conditions.
 
-is_set(0) :- !, fail.		% catch variables
-is_set([]) :- !.
-is_set([H|T]) :-
-	memberchk(H, T), !,
-	fail.
-is_set([_|T]) :-
-	is_set(T).
+is_set(Set) :-
+	is_list(Set),
+	sort(Set, Sorted),
+	same_length(Set, Sorted).
+
+same_length([], []).
+same_length([_|T1], [_|T2]) :-
+	same_length(T1, T2).
 
 
 %%	list_to_set(+List, ?Set) is det.
@@ -382,7 +409,7 @@ union([H|T], L, [H|R]) :-
 	union(T, L, R).
 
 
-%%	subset(+SubSet, +Set) is det.
+%%	subset(+SubSet, +Set) is semidet.
 %
 %	True if all elements of SubSet belong to Set as well. Membership
 %	test is based on memberchk/2.  The complexity is |SubSet|*|Set|.

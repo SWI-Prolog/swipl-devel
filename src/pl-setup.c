@@ -26,6 +26,7 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "pl-dbref.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -46,8 +47,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int allocStacks(size_t local, size_t global, size_t trail,
-		       size_t argument);
+static int allocStacks(size_t local, size_t global, size_t trail);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 
@@ -67,11 +67,12 @@ const unsigned int tagtypeex[] =
 
 void
 setupProlog(void)
-{ DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
+{ GET_LD
+  DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   LD->critical = 0;
   LD->aborted = ABORT_NONE;
-  LD->pending_signals = 0;
+  LD->signal.pending = 0;
 
   startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
@@ -88,10 +89,9 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Stacks ...\n"));
   if ( !initPrologStacks(GD->options.localSize,
 			 GD->options.globalSize,
-			 GD->options.trailSize,
-			 GD->options.argumentSize) )
+			 GD->options.trailSize) )
     fatalError("Not enough address space to allocate Prolog stacks");
-  initPrologLocalData();
+  initPrologLocalData(PASS_LD1);
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -107,6 +107,7 @@ setupProlog(void)
   LD->modules.typein = MODULE_user;
   LD->modules.source = MODULE_user;
   DEBUG(1, Sdprintf("Records ...\n"));
+  initDBRef();
   initRecords();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
@@ -136,15 +137,12 @@ setupProlog(void)
 
 
 void
-initPrologLocalData(void)
+initPrologLocalData(ARG1_LD)
 {
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
-  depth_reached = 0;
 #endif
 
-  environment_frame = (LocalFrame) NULL;
-  LD->statistics.inferences = 0;
   LD->float_format = "%g";
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
   updateAlerted(LD);
@@ -176,6 +174,7 @@ some day.
 #define PLSIG_PREPARED 0x01		/* signal is prepared */
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */
 #define PLSIG_SYNC     0x04		/* call synchronously */
+#define PLSIG_NOFRAME  0x08		/* Do not create a Prolog frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -314,7 +313,8 @@ signal_index(const char *name)
 
 int
 PL_get_signum_ex(term_t sig, int *n)
-{ char *s;
+{ GET_LD
+  char *s;
   int i = -1;
 
   if ( PL_get_integer(sig, &i) )
@@ -367,11 +367,11 @@ to the main thread.
 #define LD LOCAL_LD
 
 static void
-dispatch_signal(int sig, int sync, Code PC)
+dispatch_signal(int sig, int sync)
 { GET_LD
   SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
-  uintptr_t lTopSave;
+  term_t lTopSave;
   int saved_current_signal;
   int saved_sync;
 
@@ -392,9 +392,14 @@ dispatch_signal(int sig, int sync, Code PC)
 		    sig, sync ? " (sync)" : " (async)"));
 #endif
 
-  lTopSave = (char*)lTop - (char*)lBase;
-  saved_current_signal = LD->current_signal;
-  saved_sync = LD->sync_signal;
+  if ( true(sh, PLSIG_NOFRAME) && sh->handler )
+  { (*sh->handler)(sig);
+    return;
+  }
+
+  lTopSave = consTermRef(lTop);
+  saved_current_signal = LD->signal.current;
+  saved_sync = LD->signal.is_sync;
 
   switch(sig)
   { case SIGFPE:
@@ -402,7 +407,7 @@ dispatch_signal(int sig, int sync, Code PC)
 #if defined(SIGBUS) && SIGBUS != SIGSEGV
     case SIGBUS:
 #endif
-      if ( sig == LD->current_signal )
+      if ( sig == LD->signal.current )
 	sysError("Recursively received fatal signal %d", sig);
   }
 
@@ -416,11 +421,15 @@ dispatch_signal(int sig, int sync, Code PC)
     return;
   }
 
+  if ( !(fid = PL_open_signal_foreign_frame(sync)) )
+  { PL_raise(sig);			/* no space; wait */
+    return;
+  }
+
   if ( !sync )
-    blockGC(PASS_LD1);
-  LD->current_signal = sig;
-  LD->sync_signal = sync;
-  fid = PL_open_signal_foreign_frame();
+    blockGC(0 PASS_LD);
+  LD->signal.current = sig;
+  LD->signal.is_sync = sync;
 
   DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
 		    sig, sh->predicate, sh->handler));
@@ -435,12 +444,10 @@ dispatch_signal(int sig, int sync, Code PC)
 			PL_Q_CATCH_EXCEPTION,
 			sh->predicate,
 			sigterm);
-    if ( PC )
-      QueryFromQid(qid)->saved_PC = PC;
     if ( !PL_next_solution(qid) && (except = PL_exception(qid)) )
     { PL_cut_query(qid);
       if ( !sync )
-	unblockGC(PASS_LD1);
+	unblockGC(0 PASS_LD);
       PL_throw(except);
       return;				/* make sure! */
     } else
@@ -463,7 +470,7 @@ dispatch_signal(int sig, int sync, Code PC)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
     if ( !sync )
-      unblockGC(PASS_LD1);
+      unblockGC(0 PASS_LD);
 
     PL_throw(exception_term);		/* throw longjmp's */
     return;				/* make sure! */
@@ -471,30 +478,28 @@ dispatch_signal(int sig, int sync, Code PC)
   { (*sh->handler)(sig);
 
     if ( exception_term && !sync )	/* handler: PL_raise_exception() */
-    { LD->pending_exception = PL_record(exception_term);
+    { LD->signal.exception = PL_record(exception_term);
       PL_raise(SIG_EXCEPTION);
       exception_term = 0;
     }
   }
 
-  LD->current_signal = saved_current_signal;
-  LD->sync_signal = saved_sync;
+  LD->signal.current = saved_current_signal;
+  LD->signal.is_sync = saved_sync;
   if ( sync )
     PL_close_foreign_frame(fid);
   else
     PL_discard_foreign_frame(fid);
-  lTop = addPointer(lBase, lTopSave);
+  lTop = (LocalFrame)valTermRef(lTopSave);
 
   if ( !sync )
-    unblockGC(PASS_LD1);
+    unblockGC(0 PASS_LD);
 }
 
-#undef LD
-#define LD GLOBAL_LD
 
 static void
 pl_signal_handler(int sig)
-{ dispatch_signal(sig, FALSE, NULL);
+{ dispatch_signal(sig, FALSE);
 }
 
 #ifndef SA_RESTART
@@ -539,41 +544,6 @@ set_sighandler(int sig, handler_t func)
 #endif
 
 
-#if defined(O_SEGV_HANDLING) && defined(O_DYNAMIC_STACKS)
-static handler_t
-set_stack_guard_handler(int sig, void *func)
-{
-#ifdef HAVE_SIGACTION
-  struct sigaction old;
-  struct sigaction new;
-
-  memset(&new, 0, sizeof(new));	/* deal with other fields */
-#ifdef USE_SIGINFO
-  new.sa_sigaction = func;
-  new.sa_flags     = SA_RESTART|SA_SIGINFO;
-#else
-  new.sa_handler   = func;
-  new.sa_flags     = SA_RESTART;
-#endif
-
-  if ( !truePrologFlag(PLFLAG_SIGNALS) &&
-       !GD->options.silent )
-  {			/* We need double \\ to get a single at Sdprintf() */
-    Sdprintf("\\% Prolog still handles SIG_SEGV\n"
-	     "\\% To avoid this, reconfigure using --disable-segv-handling\n");
-  }
-
-  if ( sigaction(sig, &new, &old) == 0 )
-    return old.sa_handler;
-  else
-    return SIG_DFL;
-#else
-  return signal(sig, func);
-#endif
-}
-#endif /*O_SEGV_HANDLING*/
-
-
 static SigHandler
 prepareSignal(int sig)
 { SigHandler sh = &GD->sig_handlers[sig];
@@ -611,10 +581,12 @@ hupHandler(int sig)
 
 static void
 sig_exception_handler(int sig)
-{ if ( LD && LD->pending_exception )
-  { record_t ex = LD->pending_exception;
+{ GET_LD
 
-    LD->pending_exception = 0;
+  if ( LD && LD->signal.exception )
+  { record_t ex = LD->signal.exception;
+
+    LD->signal.exception = 0;
 
     PL_put_variable(exception_bin);
     PL_recorded(ex, exception_bin);
@@ -628,7 +600,9 @@ sig_exception_handler(int sig)
 
 static void
 agc_handler(int sig)
-{ if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
+{ GET_LD
+
+  if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
        !gc_status.blocked )
     pl_garbage_collect_atoms();
 }
@@ -636,15 +610,37 @@ agc_handler(int sig)
 
 static void
 gc_handler(int sig)
-{ garbageCollect(NULL, NULL);
+{ garbageCollect();
 }
 
 
-#ifdef SIG_LSHIFT
 static void
-lshift_handler(int sig)
-{ growStacks(NULL, NULL, NULL,
-	     1, 0, 0);
+free_clauses_handler(int sig)
+{ GET_LD
+  ClauseRef cref;
+
+  if ( (cref=LD->freed_clauses) )
+  { LD->freed_clauses = NULL;
+    freeClauseList(cref);
+  }
+}
+
+
+static void
+abort_handler(int sig)
+{ abortProlog(ABORT_RAISE);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The idea behind alert_handler() is to  make blocking system calls return
+with EINTR and thus make them interruptable for thread-signals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef SIG_ALERT
+static void
+alert_handler(int sig)
+{
 }
 #endif
 
@@ -666,10 +662,12 @@ initSignals(void)
 
   PL_signal(SIG_EXCEPTION|PL_SIGSYNC, sig_exception_handler);
   PL_signal(SIG_GC|PL_SIGSYNC, gc_handler);
-#ifdef SIG_LSHIFT
-  PL_signal(SIG_LSHIFT|PL_SIGSYNC, lshift_handler);
-#endif
+  PL_signal(SIG_FREECLAUSES|PL_SIGSYNC, free_clauses_handler);
+  PL_signal(SIG_PLABORT|PL_SIGSYNC, abort_handler);
 
+#ifdef SIG_ALERT
+  PL_signal(SIG_ALERT|PL_SIGNOFRAME, alert_handler);
+#endif
 #ifdef SIG_THREAD_SIGNAL
   PL_signal(SIG_THREAD_SIGNAL|PL_SIGSYNC, executeThreadSignals);
 #endif
@@ -677,7 +675,7 @@ initSignals(void)
   PL_signal(SIG_ATOM_GC|PL_SIGSYNC, agc_handler);
 #endif
 #ifdef SIGHUP
-  PL_signal(SIGHUP, hupHandler);
+  PL_signal(SIGHUP|PL_SIGSYNC, hupHandler);
 #endif
 }
 
@@ -693,8 +691,10 @@ cleanupSignals(void)
 
 void
 resetSignals()
-{ LD->current_signal = 0;
-  LD->pending_signals = 0L;
+{ GET_LD
+
+  LD->signal.current = 0;
+  LD->signal.pending = 0L;
 }
 
 #if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
@@ -830,6 +830,10 @@ PL_signal(int sigandflags, handler_t func)
       set(sh, PLSIG_SYNC);
     else
       clear(sh, PLSIG_SYNC);
+    if ( (sigandflags & PL_SIGNOFRAME) )
+      set(sh, PLSIG_NOFRAME);
+    else
+      clear(sh, PLSIG_NOFRAME);
 
     return old;
   } else
@@ -842,33 +846,34 @@ PL_signal(int sigandflags, handler_t func)
 
 int
 PL_handle_signals()
-{ PL_local_data_t *ld = LD;
+{ GET_LD
 
-  if ( !ld || ld->critical || !ld->pending_signals )
+  if ( !LD || LD->critical || !LD->signal.pending )
     return 0;
 
-  return handleSignals(NULL);
+  return handleSignals(PASS_LD1);
 }
 
 
 int
-handleSignals(Code PC)
+handleSignals(ARG1_LD)
 { int done = 0;
-  PL_local_data_t *ld = LD;
 
-  if ( !ld || ld->critical )
+  if ( !LD || LD->critical )
     return 0;
 
-  while(ld->pending_signals)
+  while( LD->signal.pending )
   { int64_t mask = 1;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
-    { if ( ld->pending_signals & mask )
-      { ld->pending_signals &= ~mask;	/* reset the signal */
+    { if ( LD->signal.pending & mask )
+      { simpleMutexLock(&LD->signal.sig_lock);
+	LD->signal.pending &= ~mask;	/* reset the signal */
+	simpleMutexUnlock(&LD->signal.sig_lock);
 
 	done++;
-	dispatch_signal(sig, TRUE, PC);
+	dispatch_signal(sig, TRUE);
 
 	if ( exception_term )
 	  goto out;
@@ -880,7 +885,7 @@ out:
   if ( exception_term )
     return -1;
   if ( done )
-    updateAlerted(ld);
+    updateAlerted(PASS_LD1);
 
   return done;
 }
@@ -903,7 +908,9 @@ Assign NewHandler to be called if signal arrives.
 
 static int
 get_meta_arg(term_t arg, term_t m, term_t t)
-{ if ( PL_is_functor(arg, FUNCTOR_colon2) )
+{ GET_LD
+
+  if ( PL_is_functor(arg, FUNCTOR_colon2) )
   { _PL_get_arg(1, arg, m);
     _PL_get_arg(2, arg, t);
     return TRUE;
@@ -916,7 +923,8 @@ get_meta_arg(term_t arg, term_t m, term_t t)
 
 static int
 get_module(term_t t, Module *m)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( !PL_get_atom_ex(t, &a) )
     return FALSE;
@@ -928,7 +936,8 @@ get_module(term_t t, Module *m)
 
 static
 PRED_IMPL("$on_signal", 4, on_signal, 0)
-{ int sign = -1;
+{ PRED_LD
+  int sign = -1;
   SigHandler sh;
   char *sn;
   atom_t a;
@@ -982,6 +991,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     } else if ( a == ATOM_throw )
     { sh = prepareSignal(sign);
       set(sh, PLSIG_THROW);
+      clear(sh, PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else
@@ -994,6 +1004,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
       sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
+      set(sh, PLSIG_SYNC);
       sh->handler = NULL;
       sh->predicate = pred;
     }
@@ -1001,11 +1012,11 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   { term_t a = PL_new_term_ref();
     void *f;
 
-    PL_get_arg(1, new, a);
+    _PL_get_arg(1, new, a);
 
     if ( PL_get_pointer(a, &f) )
     { sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW);
+      clear(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler = (handler_t)f;
       sh->predicate = NULL;
 
@@ -1051,8 +1062,9 @@ Requested stack sizes are in bytes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ size_t maxarea;
+initPrologStacks(size_t local, size_t global, size_t trail)
+{ GET_LD
+  size_t maxarea;
 
   maxarea = MAXTAGGEDPTR+1;		/* MAXTAGGEDPTR = 0x..fff.. */
   if ( maxarea > 1024 MB )		/* 64-bit machines */
@@ -1061,10 +1073,14 @@ initPrologStacks(size_t local, size_t global, size_t trail, size_t argument)
   enforce_limit(&local,	   maxarea,  "local");
   enforce_limit(&global,   maxarea,  "global");
   enforce_limit(&trail,	   maxarea,  "trail");
-  enforce_limit(&argument, global/2, "argument");
 
-  if ( !allocStacks(local, global, trail, argument) )
+  if ( !allocStacks(local, global, trail) )
     fail;
+
+  LD->stacks.local.overflow_id    = LOCAL_OVERFLOW;
+  LD->stacks.global.overflow_id   = GLOBAL_OVERFLOW;
+  LD->stacks.trail.overflow_id    = TRAIL_OVERFLOW;
+  LD->stacks.argument.overflow_id = ARGUMENT_OVERFLOW;
 
   base_addresses[STG_LOCAL]  = (uintptr_t)lBase;
   base_addresses[STG_GLOBAL] = (uintptr_t)gBase;
@@ -1098,7 +1114,10 @@ emptyStack(Stack s)
 
 void
 emptyStacks()
-{ environment_frame = NULL;
+{ GET_LD
+  int i;
+
+  environment_frame = NULL;
   fli_context       = NULL;
 
   emptyStack((Stack)&LD->stacks.local);
@@ -1106,6 +1125,7 @@ emptyStacks()
   emptyStack((Stack)&LD->stacks.trail);
   emptyStack((Stack)&LD->stacks.argument);
 
+  LD->mark_bar          = gTop;
   PL_open_foreign_frame();
   exception_bin         = PL_new_term_ref();
   exception_printed     = PL_new_term_ref();
@@ -1120,643 +1140,14 @@ emptyStacks()
 #ifdef O_GVAR
   destroyGlobalVars();
 #endif
-
-  LD->mark_bar          = NO_MARK_BAR;
+  for(i=0; i<TMP_PTR_SIZE; i++)
+    LD->tmp.h[i] = PL_new_term_ref();
+  LD->tmp.top = 0;
 }
-
-
-static size_t size_alignment;	/* Stack sizes must be aligned to this */
-
-static size_t
-align_size(size_t x)
-{ return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
-}
-
-
-#if O_DYNAMIC_STACKS
-
-static void init_stack(Stack s, const char *name,
-		       void* base, size_t limit, size_t minsize);
-static void gcPolicy(Stack s, int policy);
-
-#ifdef O_SEGV_HANDLING
-#ifdef USE_SIGINFO
-RETSIGTYPE _PL_segv_handler(int sig, siginfo_t *info, void *);
-#else
-RETSIGTYPE _PL_segv_handler(int sig);
-#endif
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-STACK_SEPARATION defines the  space  between   the  stacks.  The maximum
-discontinuity while writing the local stack  is determined by the number
-of variables in the clause.  An example worst case is:
-
-foo :-
-	(   failing_goal,
-	    bar(term(A, B, C, ....))
-	;   hello(AnotherVar)
-	).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define STACK_SEPARATION ROUND(MAXVARIABLES*sizeof(word), size_alignment)
-#define STACK_SIGNAL	 (2 * size_alignment)
-#define STACK_RESERVE	 (1 * size_alignment)
-#define STACK_MINIMUM    (32 * 1024)
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-			STACK MEMORY MANAGEMENT
-
-In these days some operating systems allows the  user  to  map  physical
-memory  anywhere  in  the  virtual  address  space.  For multiple stacks
-machines such as Prolog, this is ideal.  The  stacks  can  be  allocated
-very  far  appart  with  large  gaps  between  them.   Stack overflow is
-detected by hardware and results (in  Unix)  in  a  segmentation  fault.
-This fault is trapped and the stack is automatically expanded by mapping
-more  memory.
-
-In theory the stacks can be deallocated dynamically as  well,  returning
-the  resources to the system.  Currently this can be done explicitely by
-calling  trim_stacks/0  and  the  garbage  collector.    It   might   be
-interesting  to  do  this  automatically  at  certain points to minimise
-memory requirements.  How?
-
-Currently this mechanism uses mmap()  and   munmap()  available  in most
-todays Unix systems or VirtualAlloc() and friends in Win32.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#include <errno.h>
-#ifndef __WINDOWS__
-extern int errno;
-#endif /*__WINDOWS__*/
-
-#ifdef MMAP_STACK
-#include <sys/mman.h>
-#include <fcntl.h>
-
-static int mapfd = -1;			/* File descriptor used for mapping */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Return a file descriptor to a file, open  for  reading  and  holding  at
-least  one  page of 0's. On some systems /dev/zero is available for this
-trick.  If not, a file of one page is created under the name /tmp/pl-map
-if it does not already exists and this file is opened for  reading.   It
-can  be  shared  by  many  SWI-Prolog  processes  and (therefore) is not
-removed on exit.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef MAP_NORESERVE
-#define MAP_NORESERVE 0
-#endif
-#ifndef MAP_FAILED
-#define MAP_FAILED ((void *)-1)
-#endif
-
-#ifdef SGIMMAP
-#define MAPCOMMON  (MAP_PRIVATE|MAP_AUTOGROW|MAP_AUTORESRV)
-#define MAPPROTECT (PROT_READ|PROT_WRITE)
-#else
-#define MAPCOMMON (MAP_PRIVATE|MAP_NORESERVE)
-#define MAPPROTECT (PROT_NONE)
-#endif
-
-#ifdef HAVE_MAP_ANON
-#if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
-#define MAP_ANON MAP_ANONYMOUS
-#endif
-
-#define MAP_FLAGS (MAP_ANON|MAPCOMMON)
-#define get_map_fd() (-1)
-
-#else /*HAVE_MAP_ANON*/
-
-#define MAP_FLAGS (MAPCOMMON)
-
-static int
-get_map_fd()
-{ int fd;
-  static char *map = "/tmp/pl-map";
-
-  if ( (fd = open("/dev/zero", O_RDONLY)) >= 0 )
-    return fd;
-
-  if ( (fd = open(map, O_RDONLY)) < 0 )
-  { if ( errno == ENOENT )
-    { char buf[1024];
-      char *s;
-      int n;
-      int oldmask = umask(0);
-
-      if ( (fd = open(map, O_RDWR|O_CREAT, 0666)) < 0 )
-      { fatalError("Can't create map file %s: %s", map, OsError());
-        return -1;
-      }
-      umask(oldmask);
-      for(n=1024, s = buf; n > 0; n--)
-        *s++ = EOS;
-      for(n=size_alignment/1024; n > 0; n--)
-      { if ( write(fd, buf, 1024) != 1024 )
-          fatalError("Failed to create map file %s: %s\n", map, OsError());
-      }
-
-      return fd;
-    }
-    fatalError("Can't open map file %s: %s", map, OsError());
-    return -1;
-  }
-
-  return fd;
-}
-#endif /*HAVE_MAP_ANON*/
-
-
-static void
-mapOrOutOf(Stack s)
-{ size_t incr;
-  size_t newroom;
-
-  if ( s->top > s->max )
-    incr = ROUND(((size_t)s->top - (size_t)s->max), size_alignment);
-  else
-    incr = size_alignment;
-
-  if ( sizeStackP(s) + incr > limitStackP(s) )
-    outOfStack(s, STACK_OVERFLOW_FATAL);
-  newroom = limitStackP(s) - (sizeStackP(s) + incr);
-
-#ifndef SGIMMAP
-  if ( mprotect(s->max, incr, PROT_READ|PROT_WRITE) < 0 )
-    fatalError("mprotect() failed at 0x%x for %d bytes: %s\n",
-	       s->max, incr, OsError());
-#endif /*SGIMMAP*/
-
-  DEBUG(1, Sdprintf("Expanded %s stack with %d bytes from %p\n",
-		    s->name, incr, s->max));
-
-  s->max = addPointer(s->max, incr);
-
-  if ( newroom < STACK_SIGNAL )
-  { if ( newroom < STACK_RESERVE )
-    {
-#ifdef O_SEGV_HANDLING
-      LD->current_signal = SIGSEGV;
-#endif
-      outOfStack(s, STACK_OVERFLOW_THROW);
-    } else
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
-  }
-
-  considerGarbageCollect(s);
-}
-
-
-#ifndef O_SEGV_HANDLING
-void
-ensure_room_stack(Stack s, size_t bytes)
-{ while((char *)s->max <= &((char *)s->top)[bytes])
-    mapOrOutOf(s);
-}
-#endif
-
-
-static void
-trim_stack(Stack s)
-{ void *min  = addPointer(s->base, s->size_min);
-  void *top  = (s->top > min ? s->top : min);
-  void *addr = (void *)align_size((size_t)top + size_alignment);
-
-  if ( addr < s->max )
-  { size_t len = (char *)s->max - (char *)addr;
-
-#ifdef MAP_FIXED
-#ifndef MMAP_OVERRIDES
-    munmap(addr, len);
-#endif
-    if ( mmap(addr, len, MAPPROTECT, MAP_FIXED|MAP_FLAGS, mapfd, 0L) != addr )
-      fatalError("Failed to remap 0x%x bytes at %p: %s",
-		 len, addr, OsError());
-#else
-    if ( mprotect(addr, len, PROT_NONE) != 0 )
-      fatalError("Failed to mprotect(%p, %d, PROT_NONE): %s",
-		 addr, len, OsError());
-#endif
-
-    s->max = addr;
-  }
-}
-
-/* mmap() version */
-
-#ifdef SECURE_GC
-#include <stdio.h>
-
-static void
-fixed_bases(void **gbase, void**tbase)
-{ const char *bases;
-
-  if ( PL_thread_self() == 1 && (bases=getenv("PL_STACK_BASES")) )
-  { unsigned long gb, tb;
-
-    if ( sscanf(bases, "G%lx+T%lx", &gb, &tb) == 2 )
-    { *gbase = (void*)gb;
-      *tbase = (void*)tb;
-    } else
-    { Sdprintf("Usage: export PL_STACK_BASES=\"G<gBase>+T<tBase>\"\n");
-      exit(1);
-    }
-  }
-}
-
-#endif /*SECURE_GC*/
-
-static int
-allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ void *lbase;
-  void *gbase = NULL;
-  void *tbase = NULL;
-  void *abase = NULL;
-  int flags = MAP_FLAGS;
-  size_t glsize;
-  size_t minglobal   = 4*SIZEOF_VOIDP K;
-  size_t minlocal    = 2*SIZEOF_VOIDP K;
-  size_t mintrail    = 2*SIZEOF_VOIDP K;
-  size_t minargument = 1*SIZEOF_VOIDP K;
-
-  if ( !size_alignment )
-  { size_alignment = getpagesize();
-    while(size_alignment < 4*SIZEOF_VOIDP K)
-      size_alignment *= 2;
-  }
-
-#ifndef HAVE_MAP_ANON
-  PL_LOCK(L_MISC);
-  if ( mapfd < 0 )
-    mapfd = get_map_fd();
-  PL_UNLOCK(L_MISC);
-#endif
-
-  local    = max(local,    minlocal + STACK_SIGNAL);
-  global   = max(global,   minglobal + STACK_SIGNAL);
-  trail    = max(trail,    mintrail + STACK_SIGNAL);
-  argument = max(argument, minargument + STACK_SIGNAL);
-
-  local    = (size_t) align_size(local);	/* Round up to page boundary */
-  global   = (size_t) align_size(global);
-  trail    = (size_t) align_size(trail);
-  argument = (size_t) align_size(argument);
-  glsize   = global+local;
-
-#ifdef SECURE_GC
-  fixed_bases(&gbase, &tbase);
-  if ( gbase || tbase )
-  { flags |= MAP_FIXED;
-    Sdprintf("Using fixed stack bases at gBase=0x%lx; tBase=0x%lx\n",
-	     gbase, tbase);
-  }
-#endif
-
-  tbase = mmap(tbase, trail,    MAPPROTECT, flags, mapfd, 0L);
-  abase = mmap(abase, argument, MAPPROTECT, MAP_FLAGS, mapfd, 0L);
-  gbase = mmap(gbase, glsize,   MAPPROTECT, flags, mapfd, 0L);
-  lbase = addPointer(gbase, global);
-
-  if ( tbase == MAP_FAILED || abase == MAP_FAILED || gbase == MAP_FAILED )
-  { if ( tbase != MAP_FAILED )
-      munmap(tbase, trail);
-    if ( abase != MAP_FAILED )
-      munmap(abase, argument);
-    if ( gbase != MAP_FAILED )
-      munmap(gbase, glsize);
-
-    fail;
-  }
-
-#ifdef SECURE_GC
-  if ( !(flags & MAP_FIXED) && PL_thread_self() == 1 )
-    Sdprintf("Realised export PL_STACK_BASES=\"G0x%lx+T0x%lx\"\n",
-	     (unsigned long)gbase, (unsigned long)tbase);
-#endif
-
-#define INIT_STACK(name, print, base, limit, minsize) \
-  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
-#define K * 1024
-
-  INIT_STACK(global,   "global",   gbase, global,   minglobal);
-  INIT_STACK(local,    "local",    lbase, local,    minlocal);
-  INIT_STACK(trail,    "trail",    tbase, trail,    mintrail);
-  INIT_STACK(argument, "argument", abase, argument, minargument);
-
-#ifdef O_SEGV_HANDLING
-  set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
-#endif
-
-  succeed;
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Free stacks for the current Prolog thread
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-freeStacks(ARG1_LD)
-{ size_t tlen, alen, gllen;
-
-#undef LD
-#define LD LOCAL_LD
-  gBase--;				/* see initPrologStacks() */
-  tlen  = limitStack(trail);
-  alen  = limitStack(argument);
-  gllen = limitStack(global) + limitStack(local);
-
-  lBase = NULL;				/* otherwise we can get a race */
-					/* with updateAlerted() */
-  munmap(tBase, tlen);  tBase = NULL;
-  munmap(aBase, alen);  aBase = NULL;
-  munmap(gBase, gllen); gBase = NULL;
-
-#undef LD
-#define LD GLOBAL_LD
-}
-
-
-#endif /* MMAP_STACK */
-
-
-#ifdef HAVE_VIRTUALALLOC
-
-#undef FD_ZERO
-#undef FD_ISSET
-#undef FD_SET
-#include <windows.h>
-#undef small
-
-static void
-mapOrOutOf(Stack s)
-{ size_t incr;
-  size_t newroom;
-
-  if ( s->top > s->max )
-    incr = ROUND(((size_t)s->top - (size_t)s->max), size_alignment);
-  else
-    incr = size_alignment;
-
-  if ( sizeStackP(s) + incr > limitStackP(s) )
-    outOfStack(s, STACK_OVERFLOW_FATAL);
-  newroom = limitStackP(s) - (sizeStackP(s) + incr);
-
-  if ( VirtualAlloc(s->max, incr,
-		    MEM_COMMIT, PAGE_READWRITE ) != s->max )
-    fatalError("VirtualAlloc() failed at 0x%x for %d bytes: %d\n",
-	       s->max, incr, GetLastError());
-
-  DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
-		    incr, (unsigned) s->max,
-		    (uintptr_t) s->max + size_alignment));
-
-  s->max = addPointer(s->max, incr);
-
-  if ( newroom <= STACK_SIGNAL )
-  { if ( newroom <= STACK_RESERVE )
-    {
-#ifdef O_SEGV_HANDLING
-      LD->current_signal = SIGSEGV;
-#endif
-      outOfStack(s, STACK_OVERFLOW_THROW);
-    } else
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
-  }
-
-  considerGarbageCollect(s);
-}
-
-
-#ifndef O_SEGV_HANDLING
-void
-ensure_room_stack(Stack s, size_t bytes)
-{ while((char *)s->max <= &((char *)s->top)[bytes])
-    mapOrOutOf(s);
-}
-#endif
-
-static void
-trim_stack(Stack s)
-{ void *min  = addPointer(s->base, s->size_min);
-  void *top  = (s->top > min ? s->top : min);
-  void *addr = (void *)align_size((size_t)top + size_alignment);
-
-  if ( addr < s->max )
-  { size_t len = (char *)s->max - (char *)addr;
-
-    if ( !VirtualFree(addr, len, MEM_DECOMMIT) )
-      fatalError("Failed to unmap memory: %d", GetLastError());
-    s->max = addr;
-  }
-}
-
-
-/* Windows VirtualAlloc() version */
-
-static int
-allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ void *lbase;
-  void *gbase;
-  void *tbase;
-  void *abase;
-  size_t glsize;
-  SYSTEM_INFO info;
-  size_t minglobal   = 4*SIZEOF_VOIDP K;
-  size_t minlocal    = 2*SIZEOF_VOIDP K;
-  size_t mintrail    = 2*SIZEOF_VOIDP K;
-  size_t minargument = 1*SIZEOF_VOIDP K;
-
-  if ( !size_alignment )
-  { GetSystemInfo(&info);
-    size_alignment = info.dwPageSize;
-    while(size_alignment < 4*SIZEOF_VOIDP K)
-      size_alignment *= 2;
-  }
-
-  local    = max(local,    minlocal + STACK_SIGNAL);
-  global   = max(global,   minglobal + STACK_SIGNAL);
-  trail    = max(trail,    mintrail + STACK_SIGNAL);
-  argument = max(argument, minargument + STACK_SIGNAL);
-
-  local    = (size_t) align_size(local);	/* Round up to page boundary */
-  global   = (size_t) align_size(global);
-  trail    = (size_t) align_size(trail);
-  argument = (size_t) align_size(argument);
-  glsize   = global+local;
-
-  tbase = VirtualAlloc(NULL, trail,    MEM_RESERVE, PAGE_READWRITE);
-  abase = VirtualAlloc(NULL, argument, MEM_RESERVE, PAGE_READWRITE);
-  gbase = VirtualAlloc(NULL, glsize,   MEM_RESERVE, PAGE_READWRITE);
-  lbase = addPointer(gbase, global);
-
-  if ( !tbase || !abase || !gbase )
-  { if ( !tbase )
-      VirtualFree(tbase, 0, MEM_RELEASE);
-    if ( !abase )
-      VirtualFree(abase, 0, MEM_RELEASE);
-    if ( !gbase )
-      VirtualFree(gbase, 0, MEM_RELEASE);
-
-    fail;
-  }
-
-#define INIT_STACK(name, print, base, limit, minsize) \
-  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
-#define K * 1024
-
-  INIT_STACK(global,   "global",   gbase, global,   minglobal);
-  INIT_STACK(local,    "local",    lbase, local,    minlocal);
-  INIT_STACK(trail,    "trail",    tbase, trail,    mintrail);
-  INIT_STACK(argument, "argument", abase, argument, minargument);
-
-#ifdef O_SEGV_HANDLING
-  set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
-#endif
-
-  succeed;
-}
-
-
-static void
-freeStack(Stack s)
-{ VirtualFree(s->base, (uintptr_t)s->max-(uintptr_t)s->base, MEM_DECOMMIT);
-}
-
-
-void
-freeStacks(PL_local_data_t *ld)
-{ DEBUG(1, Sdprintf("[%d]: freeStacks()\n", PL_thread_self()));
-
-  ld->stacks.global.base--;		/* see initPrologStacks() */
-  freeStack((Stack)&ld->stacks.global);	/* Region must be entirely committed */
-  freeStack((Stack)&ld->stacks.local);	/* or decommitted */
-  freeStack((Stack)&ld->stacks.trail);
-  freeStack((Stack)&ld->stacks.argument);
-
-  if ( !VirtualFree(ld->stacks.global.base, 0, MEM_RELEASE) ||
-       !VirtualFree(ld->stacks.trail.base, 0, MEM_RELEASE) ||
-       !VirtualFree(ld->stacks.argument.base, 0, MEM_RELEASE) )
-    Sdprintf("Failed to release stacks\n");
-}
-
-#endif /*HAVE_VIRTUALALLOC*/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This the the signal handler for segmentation  faults if we are using MMU
-controlled stacks. It can operate in two modes. If the signal handler is
-not passed an address we will increase all stack areas that are close to
-exhaution. If an address is passed, we  will locate the proper stack and
-extend that. Currently we check for   the  POSIX.1b SA_SIGINFO handling,
-supported at least by recent Linux and Solaris.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef USE_SIGINFO
-static bool
-expandStack(Stack s, void *addr)
-{ if ( addr < s->max || addr >= addPointer(s->limit, STACK_SEPARATION) )
-    fail;				/* outside this area */
-
-  if ( addr <= s->max + STACK_SEPARATION*2 )
-  { mapOrOutOf(s);
-
-    succeed;
-  }
-
-  fail;
-}
-#endif /*USE_SIGINFO*/
-
-#ifdef O_SEGV_HANDLING
-#warning "SEGV guarded stacks are no longer supported"
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This code is left here for future use,   but  it no longer works. If you
-want to make it working, please  remember   that  the  stacks may now be
-allocated without a free page at the end, so make sure to leave the last
-page blank in the signal handler.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-RETSIGTYPE
-#ifdef USE_SIGINFO
-_PL_segv_handler(int sig, siginfo_t *info, void *extra)
-#else
-_PL_segv_handler(int sig)
-#endif
-{ Stack stacka = (Stack) &LD->stacks;
-  int mapped = 0;
-  int i;
-
-#ifdef USE_SIGINFO
-  void *addr;
-
-  if ( info && info->si_addr )
-  { addr = info->si_addr;
-
-    DEBUG(0, Sdprintf("Page fault at %p\n", addr));
-    for(i=0; i<N_STACKS; i++)
-    { if ( expandStack(&stacka[i], addr) )
-	return;
-    }
-
-    pl_signal_handler(sig);
-    return;
-  }
-#endif
-
-  DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
-		    roomStack(global), roomStack(local), roomStack(trail)));
-
-  for(i=0; i<N_STACKS; i++)
-  { intptr_t r = (uintptr_t)stacka[i].max - (uintptr_t)stacka[i].top;
-
-    if ( r < size_alignment )
-    { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
-      mapOrOutOf(&stacka[i]);
-      mapped++;
-    }
-  }
-
-  if ( mapped )
-    return;
-
-  pl_signal_handler(sig);
-}
-
-#endif /*O_SEGV_HANDLING*/
-
-static void
-init_stack(Stack s, const char *name, void *base, size_t limit, size_t minsize)
-{ s->name       = name;
-  s->base       = s->max = s->top = base;
-  s->size_limit	= limit;
-  s->size_min   = minsize;
-  s->gced_size  = 0L;			/* size after last gc */
-  gcPolicy(s, GC_FAST_POLICY);
-
-  DEBUG(1, Sdprintf("%-8s stack from %p to %p\n",
-		    s->name, s->base, s->base + s->size_limit));
-
-  while(sizeStackP(s) < minsize)
-    mapOrOutOf(s);
-}
-
-void
-resetStacks()
-{ emptyStacks();
-
-  trimStacks(TRUE PASS_LD);
-}
-
-
-#else /* O_DYNAMIC_STACKS */
 
 
 		/********************************
-		*    SIMPLE STACK ALLOCATION    *
+		*    	STACK ALLOCATION        *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1766,14 +1157,15 @@ Malloc/realloc/free based stack allocation
 static void
 init_stack(Stack s, char *name,
 	   size_t size, size_t limit, size_t minfree, size_t spare)
-{ s->name 	= name;
+{ GET_LD
+
+  s->name 	= name;
   s->top	= s->base;
   s->size_limit	= limit;
   s->spare      = spare;
   s->def_spare  = spare;
+  s->min_free   = 256*sizeof(word);
   s->max	= addPointer(s->base, size - spare);
-  s->trigger    = addPointer(s->base, size_alignment); /* or min_free? */
-  s->min_free	= minfree;
   s->gced_size  = 0L;			/* size after last gc */
   s->gc	        = ((s == (Stack) &LD->stacks.global ||
 		    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
@@ -1782,32 +1174,25 @@ init_stack(Stack s, char *name,
 
 
 static int
-allocStacks(size_t local, size_t global, size_t trail, size_t argument)
-{ size_t minglobal   = 25*SIZEOF_VOIDP K;
+allocStacks(size_t local, size_t global, size_t trail)
+{ GET_LD
+  size_t minglobal   = 8*SIZEOF_VOIDP K;
   size_t minlocal    = 4*SIZEOF_VOIDP K;
   size_t mintrail    = 4*SIZEOF_VOIDP K;
   size_t minargument = 1*SIZEOF_VOIDP K;
+  size_t argument    = 1 K K;		/* not really used */
 
-  size_alignment = 8 K;			/* must be smaller than minfree */
-
-#if O_SHIFT_STACKS
-  size_t itrail  = nextStackSizeAbove(mintrail);
-  size_t iglobal = nextStackSizeAbove(minglobal);
-  size_t ilocal  = nextStackSizeAbove(minlocal);
-#else
-  size_t itrail  = trail;
-  size_t iglobal = global;
-  size_t ilocal  = local;
-#endif
+  size_t itrail  = nextStackSizeAbove(mintrail-1);
+  size_t iglobal = nextStackSizeAbove(minglobal-1);
+  size_t ilocal  = nextStackSizeAbove(minlocal-1);
 
   local    = max(local,    minlocal);
   global   = max(global,   minglobal);
   trail    = max(trail,    mintrail);
-  argument = max(argument, minargument);
 
-  gBase = (Word) malloc(iglobal + ilocal);
-  tBase = (TrailEntry) malloc(itrail);
-  aBase = (Word *)     malloc(argument);
+  gBase = (Word)       stack_malloc(iglobal + ilocal);
+  tBase = (TrailEntry) stack_malloc(itrail);
+  aBase = (Word *)     stack_malloc(minargument);
   if ( !gBase || !tBase || !aBase )
   { freeStacks(PASS_LD1);
     fail;
@@ -1816,7 +1201,7 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   lBase = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
-	     "global",   iglobal, global,  minglobal, 256*SIZEOF_VOIDP);
+	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
 	     "local",    ilocal,  local,   minlocal, 256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
@@ -1824,21 +1209,67 @@ allocStacks(size_t local, size_t global, size_t trail, size_t argument)
   init_stack((Stack)&LD->stacks.argument,
 	     "argument", argument, argument, minargument, 0);
 
+  LD->stacks.local.min_free = LOCAL_MARGIN;
+
   succeed;
 }
 
 
 void
 freeStacks(ARG1_LD)
-{
-#undef LD
-#define LD LOCAL_LD
-  gBase--;
-  if ( gBase ) { free(gBase); gBase = NULL; lBase = NULL; }
-  if ( tBase ) { free(tBase); tBase = NULL; }
-  if ( aBase ) { free(aBase); aBase = NULL; }
-#undef LD
-#define LD GLOBAL_LD
+{ if ( gBase ) { gBase--;
+		 stack_free(gBase); gBase = NULL; lBase = NULL; }
+  if ( tBase ) { stack_free(tBase); tBase = NULL; }
+  if ( aBase ) { stack_free(aBase); aBase = NULL; }
+}
+
+
+void *
+stack_malloc(size_t size)
+{ void *mem = malloc(size+sizeof(size_t));
+
+  if ( mem )
+  { size_t *sp = mem;
+    *sp++ = size;
+
+    PL_LOCK(L_MISC);
+    GD->statistics.stack_space += size;
+    PL_UNLOCK(L_MISC);
+    return sp;
+  }
+
+  return NULL;
+}
+
+void *
+stack_realloc(void *old, size_t size)
+{ size_t *sp = old;
+  size_t osize = *--sp;
+  void *mem;
+
+  if ( (mem = realloc(sp, size+sizeof(size_t))) )
+  { sp = mem;
+    *sp++ = size;
+    PL_LOCK(L_MISC);
+    GD->statistics.stack_space -= osize;
+    GD->statistics.stack_space += size;
+    PL_UNLOCK(L_MISC);
+    return sp;
+  }
+
+  return NULL;
+}
+
+void
+stack_free(void *mem)
+{ size_t *sp = mem;
+  size_t osize = *--sp;
+
+  PL_LOCK(L_MISC);
+  GD->statistics.stack_space -= osize;
+  PL_UNLOCK(L_MISC);
+
+  free(sp);
 }
 
 
@@ -1848,75 +1279,30 @@ resetStacks()
 }
 
 
-void
+int
 trim_stack(Stack s)
-{ void *top  = s->top;
-  void *addr = (void *)align_size((size_t)top + size_alignment);
+{ s->gced_size = usedStackP(s);
 
-  if ( addr < s->max )
-    s->trigger = addr;
-
-  s->gced_size = usedStackP(s);
-
-  if ( s->spare < s->def_spare &&
-       roomStackP(s) > s->def_spare*4 )
+  if ( s->spare < s->def_spare )
   { ssize_t reduce = s->def_spare - s->spare;
-    s->max = addPointer(s->max, -reduce);
-    s->spare = s->def_spare;
-  }
-}
+    ssize_t room = roomStackP(s);
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Stack-expander version of  ensure_room_stack().  The   main  role  is to
-trigger shift and GC requests. If we are really at the end of our story,
-we can only expand the trail stack at any point in time.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-ensure_room_stack(Stack s, size_t bytes)
-{ if ( s->trigger < s->max )
-  { s->trigger += size_alignment;
-    if ( s->trigger > s->max )
-      s->trigger = s->max;
-
-    if ( usedStackP(s) > limitStackP(s) )
-      outOfStack(s, STACK_OVERFLOW_SIGNAL);
-
-    if ( s->gc )
-    { considerGarbageCollect(s);
-    } else if ( s == (Stack)&LD->stacks.local )
-    { if ( roomStackP(s) <= s->min_free )
-	PL_raise(SIG_LSHIFT);
-
-      DEBUG(1, if ( PL_pending(SIG_LSHIFT) )
-	    { Sdprintf("%s low: Posted stack-shift request\n",
-		       s->name);
-	    });
+    if ( room < reduce )
+    { DEBUG(0, Sdprintf("Only %d spare for %s-stack\n", room, s->name));
+      reduce = room;
     }
 
-    return;
+    s->max = addPointer(s->max, -reduce);
+    s->spare += reduce;
   }
 
-  if ( s == (Stack)&LD->stacks.trail )
-  { if ( growStacks(NULL, NULL, NULL, 0, 0, bytes) )
-      return;
-
-    outOfStack(s, STACK_OVERFLOW_FATAL);
-  } else
-  { outOfStack(s, STACK_OVERFLOW_FATAL);
-  }
+  return FALSE;
 }
-
-#endif /* O_DYNAMIC_STACKS */
 
 
 		/********************************
 		*     STACK TRIMMING & LIMITS   *
 		*********************************/
-
-#undef LD
-#define LD LOCAL_LD
 
 static void
 gcPolicy(Stack s, int policy)
@@ -1947,20 +1333,29 @@ result from a stack-overflow.
 
 void
 trimStacks(int resize ARG_LD)
-{ TrailEntry te;
+{ int scantrail;
 
   LD->trim_stack_requested = FALSE;
 
-#ifdef O_SHIFT_STACKS
-  if ( resize &&
-       !growStacks(NULL, NULL, NULL, GROW_TRIM, GROW_TRIM, GROW_TRIM) )
-    return;
-#endif
+  { LocalFrame olb = lBase;
+    LocalFrame olm = lMax;
+    Word ogb = gBase;
+    Word ogm = gMax;
 
-  trim_stack((Stack) &LD->stacks.local);
-  trim_stack((Stack) &LD->stacks.global);
-  trim_stack((Stack) &LD->stacks.trail);
-  trim_stack((Stack) &LD->stacks.argument);
+    if ( resize )
+    { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
+    } else
+    { trim_stack((Stack) &LD->stacks.local);
+      trim_stack((Stack) &LD->stacks.global);
+      trim_stack((Stack) &LD->stacks.trail);
+      trim_stack((Stack) &LD->stacks.argument);
+    }
+
+    if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
+      scantrail = TRUE;
+    else
+      scantrail = FALSE;
+  }
 
 #ifdef SECURE_GC
   { Word p;				/* clear the stacks */
@@ -1972,19 +1367,23 @@ trimStacks(int resize ARG_LD)
   }
 #endif
 
-  for(te = tTop; --te >= tBase; )
-  { Word p = te->address;
+  if ( scantrail )
+  { TrailEntry te;
 
-    if ( isTrailVal(p) )
-      continue;
+    for(te = tTop; --te >= tBase; )
+    { Word p = te->address;
 
-    if ( !onStack(local, p) && !onStack(global, p) )
-    { te->address = valTermRef(LD->trim.dummy);
+      if ( isTrailVal(p) )
+	continue;
+
+      if ( !onStack(local, p) && !onStack(global, p) )
+      { te->address = valTermRef(LD->trim.dummy);
+      }
     }
   }
 
   SECURE({ scan_global(FALSE);
-	   checkStacks(NULL, NULL);
+	   checkStacks(NULL);
 	 });
 }
 
@@ -1998,8 +1397,25 @@ PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
   succeed;
 }
 
-#undef LD
-#define LD GLOBAL_LD
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called at the end of handling an exception. We cannot do GC, however, we
+can request it, after it will be executed   at the start of the recovery
+handler. If no GC is needed, we call trimStacks() to re-enable the spare
+stack-space if applicable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+resumeAfterException(void)
+{ GET_LD
+
+  if ( !considerGarbageCollect((Stack)NULL) )
+    trimStacks(FALSE, PASS_LD1);
+
+  LD->exception.processing = FALSE;
+  LD->outofstack = NULL;
+}
+
 
 		 /*******************************
 		 *	    LOCAL DATA		*
@@ -2012,7 +1428,7 @@ of work to do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-freeLocalData(PL_local_data_t *ld)
+freePrologLocalData(PL_local_data_t *ld)
 { int i;
 
   discardBuffer(&ld->fli._discardable_buffer);
@@ -2020,11 +1436,7 @@ freeLocalData(PL_local_data_t *ld)
   for(i=0; i<BUFFER_RING_SIZE; i++)
     discardBuffer(&ld->fli._buffer_ring[i]);
 
-  if ( ld->comp.vardefs )
-  { free(ld->comp.vardefs);
-
-    memset(&ld->comp, 0, sizeof(ld->comp));
-  }
+  freeVarDefs(ld);
 
 #ifdef O_GVAR
   if ( ld->gvar.nb_vars )
@@ -2036,6 +1448,9 @@ freeLocalData(PL_local_data_t *ld)
 #endif
 
   freeArithLocalData(ld);
+#ifdef O_PLMT
+  simpleMutexDelete(&ld->signal.sig_lock);
+#endif
 }
 
 
@@ -2045,13 +1460,15 @@ freeLocalData(PL_local_data_t *ld)
 		 *******************************/
 
 static
-PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
-{ atom_t a, k;
+PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
+{ PRED_LD
+  atom_t a, k;
   Stack stack = NULL;
 
   term_t name  = A1;
   term_t prop  = A2;
-  term_t value = A3;
+  term_t old   = A3;
+  term_t value = A4;
 
   if ( PL_get_atom(name, &a) )
   { if ( a == ATOM_local )
@@ -2068,16 +1485,58 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 
   if ( PL_get_atom_ex(prop, &k) )
   { if ( k == ATOM_low )
-      return PL_get_size_ex(value, &stack->small);
+      return (PL_unify_int64(old, stack->small) &&
+	      PL_get_size_ex(value, &stack->small));
     if ( k == ATOM_factor )
-      return PL_get_integer_ex(value, &stack->factor);
+      return (PL_unify_integer(old, stack->factor) &&
+	      PL_get_integer_ex(value, &stack->factor));
+    if ( k == ATOM_limit )
+    { size_t newlimit;
+
+      if ( PL_unify_int64(old, stack->size_limit) &&
+	   PL_get_size_ex(value, &newlimit) )
+      { if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
+	{ if ( stack->gc )
+	  { garbageCollect();
+	    trimStacks(TRUE PASS_LD);
+	  }
+
+	  if ( newlimit < (size_t)sizeStackP(stack)+stack->min_free )
+	    return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			    ATOM_limit, ATOM_stack, name);
+	}
+
+	newlimit += stack->spare;
+	if ( newlimit > MAXTAGGEDPTR+1 )
+	  newlimit = MAXTAGGEDPTR+1;
+
+	stack->size_limit = newlimit;
+	return TRUE;
+      }
+
+      return FALSE;
+    }
+    if ( k == ATOM_spare )
+    { size_t spare = stack->def_spare/sizeof(word);
+
+      if ( PL_unify_int64(old, spare) &&
+	   PL_get_size_ex(value, &spare) )
+      { stack->def_spare = spare*sizeof(word);
+	trim_stack(stack);
+	return TRUE;
+      }
+      return FALSE;
+    }
     if ( k == ATOM_min_free )
-    {
-#ifdef O_SHIFT_STACKS
-      return PL_get_size_ex(value, &stack->min_free);
-#else
-      succeed;
-#endif
+    { size_t minfree = stack->min_free/sizeof(word);
+
+      if ( PL_unify_int64(old, minfree) &&
+	   PL_get_size_ex(value, &minfree) )
+      { stack->min_free = minfree*sizeof(word);
+	trim_stack(stack);
+	return TRUE;
+      }
+      return FALSE;
     }
 
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, prop);
@@ -2092,7 +1551,7 @@ PRED_IMPL("set_prolog_stack", 3, set_prolog_stack, 0)
 		 *******************************/
 
 BeginPredDefs(setup)
-  PRED_DEF("set_prolog_stack", 3, set_prolog_stack, 0)
+  PRED_DEF("$set_prolog_stack", 4, set_prolog_stack, 0)
   PRED_DEF("$on_signal", 4, on_signal, 0)
   PRED_DEF("trim_stacks", 0, trim_stacks, 0)
 EndPredDefs

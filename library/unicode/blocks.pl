@@ -31,7 +31,7 @@
 	  [ unicode_block/3		% Name, From, To
 	  ]).
 
-%	unicode_block(?BlockName, ?Start, ?End)
+%%	unicode_block(?BlockName, ?Start, ?End)
 %
 %	Provides the names of the  basic   unicode  blocks. Derived from
 %	UNICODE 4.1.0 from www.unicode.org

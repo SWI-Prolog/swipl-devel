@@ -60,41 +60,50 @@ static int debuglevel = 0;
 
 static int
 type_error(term_t actual, const char *expected)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_type_error2,
-		        PL_CHARS, expected,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, expected,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t actual, const char *domain)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_domain_error2,
-		        PL_CHARS, domain,
-		        PL_TERM, actual,
-		      PL_VARIABLE);
-
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_CHARS, domain,
+		         PL_TERM, actual,
+		       PL_VARIABLE) )
   return PL_raise_exception(ex);
+
+  return FALSE;
 }
 
 
 static int
 instantiation_error()
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
-		      PL_CHARS, "inistantiation_error",
-		      PL_VARIABLE);
+  if ( (ex = PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_CHARS, "inistantiation_error",
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -355,6 +364,33 @@ gz_skip_footer(z_context *ctx)
 		 *	       GZ I/O		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+read_more() reads more data into the   zstate buffer if deflating cannot
+do anything with the available  bytes.   Note  that  S__fillbuf() can be
+called with data in the buffer. It moves the remaining data to the start
+of the stream buffer and tries to read more data into the stream.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+read_more(z_context *ctx)
+{ int c;
+
+  ctx->stream->bufp   = (char*)ctx->zstate.next_in;
+  ctx->stream->limitp =	ctx->stream->bufp + ctx->zstate.avail_in;
+
+  if ( (c=S__fillbuf(ctx->stream)) != EOF )
+  { Sungetc(c, ctx->stream);
+    ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
+    ctx->zstate.avail_in = (long)(ctx->stream->limitp - ctx->stream->bufp);
+    ctx->stream->bufp    = ctx->stream->limitp;
+
+    return 0;
+  }
+
+  return -1;
+}
+
+
 static ssize_t				/* inflate */
 zread(void *handle, char *buf, size_t size)
 { z_context *ctx = handle;
@@ -384,7 +420,10 @@ zread(void *handle, char *buf, size_t size)
     } else
     { while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
 				 ctx->zstate.avail_in)) == HDR_SHORT )
-      { 					/* TBD: read more */
+      { int rc;
+
+	if ( (rc=read_more(ctx)) < 0 )
+	  return -1;
       }
     }
 
@@ -431,7 +470,10 @@ zread(void *handle, char *buf, size_t size)
   { int rc;
 
     while( (rc=gz_skip_footer(ctx)) == -2 )
-    {					/* TBD: read more */
+    { int rc2;
+
+      if ( (rc2=read_more(ctx)) < 0 )
+	return -1;
     }
 
     if ( rc == 0 )
@@ -651,7 +693,7 @@ pl_zopen(term_t org, term_t new, term_t options)
 
     if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
       return type_error(head, "option");
-    PL_get_arg(1, head, arg);
+    _PL_get_arg(1, head, arg);
 
     if ( name == ATOM_format )
     { atom_t a;

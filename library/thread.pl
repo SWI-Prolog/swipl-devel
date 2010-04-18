@@ -120,9 +120,11 @@ following consequences:
 concurrent(1, M:List, _) :- !,
 	maplist(M:call, List).
 concurrent(N, M:List, Options) :-
-	current_prolog_flag(max_threads, MaxThreads),
-	Max is MaxThreads - 1,		% TBD: actually - already running
-	must_be(between(1, Max), N),
+	(   current_prolog_flag(max_threads, MaxThreads)
+	->  Max is MaxThreads - 1,	% TBD: actually - already running
+	    must_be(between(1, Max), N)
+	;   must_be(positive_integer, N)
+	),
 	must_be(list(callable), List),
 	length(List, JobCount),
 	message_queue_create(Done),

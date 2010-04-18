@@ -37,7 +37,7 @@
 	    gspy/1,			% Start tracer and set spypoint
 	    gdebug/0			% Start tracer and debug
 	  ]).
-
+:- set_prolog_flag(generate_debug_info, false).
 :- module_transparent
 	gspy/1.
 

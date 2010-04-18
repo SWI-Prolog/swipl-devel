@@ -2,10 +2,10 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        wielemak@science.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,6 +70,11 @@ outfile :-
 	outfile(File),
 	format('OutFile "~w"~n', [File]).
 
+%packages :-
+%	exists_source(library(space/space)),
+%	format('!define PKG_SPATIAL 1~n').
+packages.
+
 copy_script :-
 	daily, !,
 	tell('copypl.bat'),
@@ -88,6 +93,7 @@ run :-
 	tell('version.nsi'),
 	name,
 	outfile,
+	forall(packages, true),
 	told,
 	copy_script.
 
@@ -261,6 +267,9 @@ check_covered(File) :-
 check_covered(Path) :-
 	ignore_file(File),
 	file_base_name(Path, File), !.
+check_covered(Path) :-
+	file_directory_name(Path, Dir),
+	ignore_dir(Dir), !.
 check_covered(File) :-
 	flag(errors, E, E+1),
 	print_message(error, format('File ~w is not covered by installer',
@@ -289,6 +298,18 @@ ignore_file('plwin.opt').
 ignore_file('pl2xpce.pdb').
 ignore_file('double_metaphone.pdb').
 ignore_file('porter_stem.pdb').
+ignore_file('Support SWI-Prolog development.url').
+ignore_file('SWI-Prolog website.url').
+ignore_file('uninstall.exe').
+
+% ignore the space-package
+ignore_file('space.pdb').
+ignore_file('space.dll').
+ignore_file('geos.dll').
+ignore_file('spatialindex1.dll').
+ignore_file('space.html').
+
+ignore_dir('pl/library/space').
 
 
 		 /*******************************

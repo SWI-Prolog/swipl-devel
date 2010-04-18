@@ -294,8 +294,8 @@ process_directive(Directive, _) :-
 %
 %	Get the exported operators from the referenced files.
 
-process_use_module([], _).
-process_use_module([H|T], Src) :-
+process_use_module([], _) :- !.
+process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(File, Src) :-
@@ -802,7 +802,7 @@ colourise_exports2(_, _, _).
 %	Colourise import list from use_module/2, importing from File.
 
 colourise_imports(List, File, TB, Pos) :-
-	(   xref_public_list(File, Path, Public, TB)
+	(   catch(xref_public_list(File, Path, Public, TB), _, fail)
 	->  true
 	;   Public = []
 	),
@@ -1462,11 +1462,14 @@ make_prolog_mode_goal_popup(G) :-
 	new(HasSource, message(Fragment, has_source)),
 	new(HasListing, message(Fragment, has_listing)),
 	send_list(G, append,
-		  [ menu_item(edit,
-			      message(Fragment, edit),
+		  [ menu_item(edit_in_tab,
+			      message(Fragment, edit, tab),
 			      condition := HasSource),
-		    menu_item(edit_other_window,
-			      message(Fragment, edit, @on),
+		    menu_item(edit_here,
+			      message(Fragment, edit, here),
+			      condition := HasSource),
+		    menu_item(edit_in_window,
+			      message(Fragment, edit, window),
 			      condition := HasSource),
 		    gap,
 		    menu_item(listing,
@@ -1531,10 +1534,10 @@ has_source(F) :->
 %	Find the predicate and invoke ->find_definition on the
 %	@emacs_mode, which is the mode object of the current editor.
 
-edit(F, NewWindow:[bool]) :->
+edit(F, Where:[{here,tab,window}]) :->
 	"Open Prolog predicate [in new window]"::
 	get(F, predicate, Pred),
-	send(@emacs_mode, find_definition, Pred, NewWindow).
+	send(@emacs_mode, find_definition, Pred, Where).
 
 
 %	->listing
@@ -1552,7 +1555,7 @@ listing(F) :->
 	close(Out),
 	send(Tmp, modified, @off),
 %	send(Tmp, mode, prolog),
-	send(Tmp, open).
+	send(Tmp, open, tab).
 
 
 has_listing(F) :->
@@ -1684,11 +1687,14 @@ make_prolog_mode_class_popup(G) :-
 	new(G, popup(class_actions)),
 	Fragment = @arg1,
 	send_list(G, append,
-		  [ menu_item(edit,
-			      message(Fragment, edit),
+		  [ menu_item(edit_in_tab,
+			      message(Fragment, edit, tab),
 			      condition := message(Fragment, has_source)),
-		    menu_item(edit_other_window,
-			      message(Fragment, edit, @on),
+		    menu_item(edit_here,
+			      message(Fragment, edit, here),
+			      condition := message(Fragment, has_source)),
+		    menu_item(edit_in_window,
+			      message(Fragment, edit, window),
 			      condition := message(Fragment, has_source)),
 		    gap,
 		    menu_item(documentation,
@@ -1712,18 +1718,15 @@ class_source(_, ClassName, Source) :-
 	pce_library_class(ClassName, _, _Summary, Source).
 
 
-edit(F, NewWindow:[bool]) :->
-	"Open XPCE class [in new window]"::
+edit(F, Where:[{here,tab,window}]) :->
+	"Open XPCE class"::
 	get(F, referenced_class, ClassName),
 	get(F, text_buffer, TB),
 	class_source(TB, ClassName, Source),
 	(   Source = line(Line)
-	->  (   NewWindow == @on
-	    ->	get(F, text_buffer, TB),
-		new(W2, emacs_frame(TB)),
-		send(W2?editor, goto_line, Line)
-	    ;	send(@emacs_mode, goto_line, Line)
-	    )
+	->  get(F, text_buffer, TB),
+	    get(TB, open, Where, Frame),
+	    send(Frame?editor, goto_line, Line)
 	;   ensure_loaded(library(edit)),
 	    prolog_edit:locate(Source, _, Location),
 	    memberchk(file(File), Location),
@@ -1732,7 +1735,7 @@ edit(F, NewWindow:[bool]) :->
 	    ;	Line = @default
 	    ),
 	    send(@emacs, goto_source_location,
-		 source_location(File, Line), NewWindow)
+		 source_location(File, Line), Where)
 	).
 
 documentation(F) :->
@@ -1843,10 +1846,12 @@ popup(F, Popup:popup) :<-
 make_prolog_mode_file_popup(G) :-
 	new(G, popup(file_actions)),
 	send_list(G, append,
-		  [ menu_item(open,
-			      message(@emacs, open_file, @arg1?file)),
-		    menu_item(open_other_window,
-			      message(@emacs, open_file, @arg1?file, @on))
+		  [ menu_item(open_in_tab,
+			      message(@emacs, open_file, @arg1?file, tab)),
+		    menu_item(open_in_window,
+			      message(@emacs, open_file, @arg1?file, window)),
+		    menu_item(open_here,
+			      message(@emacs, open_file, @arg1?file, here))
 		  ]).
 
 file(F, File:name) :<-

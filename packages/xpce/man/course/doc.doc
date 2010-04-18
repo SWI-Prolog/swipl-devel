@@ -15,18 +15,15 @@
 \begin{center}
 	{\Huge \bf XPCE/Prolog\\Course Notes}		\\[1.5cm]
 	{\large \it Jan Wielemaker}			\\
-	{\large wielemak@science.uva.nl}
+	{\large J.Wielemaker@cs.vu.nl}
 \end{center}
 \vfil
 \begin{quote}
 This document provides background reading material and exercises
-for a course in programming XPCE/Prolog.  
+for a course in programming XPCE/Prolog.
 \end{quote}
 \vfil
 \vfil
-\begin{quote}
-Copyright \copyright\ 1994-1996 University of Amsterdam
-\end{quote}
 \end{titlepage}
 
 \begin{titlepage}
@@ -34,9 +31,7 @@ Copyright \copyright\ 1994-1996 University of Amsterdam
 This is edition~2 of the XPCE training-course notes.  It adds sections
 on types, custom-dialog design and interprocess communication to
 edition~1. Please E-mail comments and suggestions to jan@swi.psy.uva.nl.
-\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil
-\noindent
-Copyright \copyright~1994-1996 University of Amsterdam
+\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil
 \vfil
 
 \noindent
@@ -52,8 +47,7 @@ to swi.psy.uva.nl (145.18.114.17), directory /pub/xpce/doc/course.
 \vfil
 \noindent
 Premission is granted to make and distribute verbatim copies of this
-manual provided the copyright notice and this permission notice are
-preserved on all copies.
+manual provided this permission notice is preserved on all copies.
 \end{titlepage}
 
 {\parskip 0pt

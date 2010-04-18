@@ -973,15 +973,13 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
       fail;
   }
 
-  for( ; i < (int)GD->atoms.count; i++ )
+  PL_LOCK(L_AGC);
+  for( ; i < (intptr_t)GD->atoms.count; i++ )
   { Atom atom;
 
     if ( (atom = GD->atoms.array[i]) )
-    {
-#ifdef LIFE_GC				/* see linkVal__LD() check */
-      if ( atom->atom == ATOM_garbage_collected )
+    { if ( atom->atom == ATOM_garbage_collected )
 	continue;
-#endif
 
       if ( type )
       { if ( type_name && type_name != atom->type->atom_name )
@@ -992,9 +990,11 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	continue;
 
       PL_unify_atom(a, atom->atom);
+      PL_UNLOCK(L_AGC);
       ForeignRedoInt(i+1);
     }
   }
+  PL_UNLOCK(L_AGC);
 
   fail;
 }
@@ -1189,7 +1189,7 @@ thread.
 static pthread_key_t key;
 #endif
 
-#define is_signalled() (LD && LD->pending_signals != 0)
+#define is_signalled() unlikely(LD && LD->signal.pending != 0)
 
 static int
 alnum_text(PL_chars_t *txt)

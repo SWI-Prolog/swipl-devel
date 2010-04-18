@@ -17,7 +17,7 @@ build.templ  to  build  and  edit  according  to  the  instructions.  In
 particular, uncomment the export lines  in   this  fragment of the build
 file:
 
-# [EDIT] On MacOS you need this to get some libraries from Darwinports
+# [EDIT] On MacOS you need this to get some libraries from Macports
 # export LIBRARY_PATH=/opt/local/lib
 # export CPATH=/opt/local/include
 

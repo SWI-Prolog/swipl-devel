@@ -36,7 +36,8 @@
 :- multifile
 	thread_httpd:make_socket_hook/3,
 	thread_httpd:accept_hook/2,
-	thread_httpd:open_client_hook/5.
+	thread_httpd:open_client_hook/5,
+        http:http_protocol_hook/7.
 
 
 thread_httpd:make_socket_hook(Port, Options0, Options) :-
@@ -64,3 +65,11 @@ thread_httpd:open_client_hook(ssl_client(SSL, Client, Goal, Peer),
 			      Goal, In, Out,
 			      [peer(Peer), protocol(https)]) :-
 	ssl_open(SSL, Client, In, Out).
+
+http:http_protocol_hook(https, Parts, PlainIn, PlainOut, In, Out, Options):-
+        memberchk(host(Host), Parts),
+        option(port(Port), Parts, 443),
+        ssl_context(client, SSL, [host(Host), port(Port), close_parent(true)|Options]),
+        catch(ssl_negotiate(SSL, PlainIn, PlainOut, In, Out),
+              Exception,
+              ( ssl_exit(SSL), throw(Exception)) ).

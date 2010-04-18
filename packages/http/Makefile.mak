@@ -2,7 +2,7 @@
 # Install the SWI-Prolog HTTP package for MS-Windows
 #
 # Author: Jan Wielemaker
-# 
+#
 # Use:
 #	nmake /f Makefile.mak
 #	nmake /f Makefile.mak install
@@ -21,10 +21,11 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_error.pl http_parameters.pl http_dispatch.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
-		json.pl http_json.pl json_convert.pl
+		json.pl http_json.pl json_convert.pl http_dirindex.pl \
+		http_server_files.pl http_pwp.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl
-EXAMPLEEXE=	demo_inetd		
+		calc.pl demo_files.pl demo_pwp.pl
+EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
 
 OBJ=		http_stream.obj
@@ -38,16 +39,21 @@ json.dll:	json.obj
 
 http_stream.obj:	http_error.c http_chunked.c cgi_stream.c stream_range.c
 
-all:		
+all:
 
 !IF "$(CFG)" == "rt"
 install::
 !ELSE
 install::
-		if not exist "$(LIBDIR)/$(NULL)" $(MKDIR) "$(LIBDIR)"
+		if not exist "$(LIBDIR)\$(NULL)" $(MKDIR) "$(LIBDIR)"
+		if not exist "$(LIBDIR)\web\$(NULL)" $(MKDIR) "$(LIBDIR)\web"
+		if not exist "$(LIBDIR)\web\icons\$(NULL)" $(MKDIR) "$(LIBDIR)\web\icons"
+		if not exist "$(LIBDIR)\web\css\$(NULL)" $(MKDIR) "$(LIBDIR)\web\css"
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
+		copy web\icons\*.* "$(LIBDIR)\web\icons"
+		copy web\css\*.* "$(LIBDIR)\web\css"
 		copy http_stream.dll "$(BINDIR)"
 		copy json.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
@@ -65,9 +71,11 @@ pdf-install:	install-examples
 		copy http.pdf "$(PKGDOC)"
 
 install-examples::
-		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
+		if not exist "$(EXDIR)\$(NULL)" $(MKDIR) "$(EXDIR)"
+		if not exist "$(EXDIR)\pwp\$(NULL)" $(MKDIR) "$(EXDIR)\pwp"
 		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
 		cd examples & copy $(EXAMPLEEXE) "$(EXDIR)"
+		cd examples & copy pwp\*.* "$(EXDIR)\pwp"
 
 xpce-install::
 

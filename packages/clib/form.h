@@ -23,12 +23,10 @@
 */
 
 #define MAXNAME 256
-#define MAXVALUE 1024
-#define MAXLINE 10240
 
 #define ERROR_NAME_TOO_LONG  -1
-#define ERROR_VALUE_TOO_LONG -2
-#define ERROR_SYNTAX_ERROR   -3
+#define ERROR_SYNTAX_ERROR   -2
+#define ERROR_NOMEM	     -3
 
 #ifndef TRUE
 #define TRUE 1
@@ -43,15 +41,17 @@ typedef struct
 /* form.c */
 int		break_form_argument(const char *formdata,
 				    int (*func)(const char *name,
+						size_t namelen,
 						const char *value,
+						size_t valuelen,
 						void *closure), void *closure);
 int		break_multipart(char *formdata, size_t len,
 				const char *boundary,
 				int (*func)(const char *name,
+					    size_t namelen,
 					    const char *value,
 					    size_t valuelen,
 					    const char *filename,
 					    void *closure),
 				void *closure);
-char *		get_raw_form_data(size_t *lenp);
-int		decode_form_arguments(const char *data, form_arg *args);
+int		get_raw_form_data(char **data, size_t *lenp, int *must_free);

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2009, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -75,11 +75,9 @@ typedef struct
 		 *******************************/
 
 struct PL_global_data
-{ char *top_of_heap;			/* highest allocated heap address */
-  char *base_of_heap;			/* lowest allocated heap address */
-  uintptr_t rounded_heap_base;		/* heap-base rounded downwards */
-  pl_defaults_t	    defaults;		/* system default settings */
-  pl_options_t	    options;		/* command-line options */
+{ uintptr_t	heap_base;		/* heap-base rounded downwards */
+  pl_defaults_t	defaults;		/* system default settings */
+  pl_options_t	options;		/* command-line options */
   State		stateList;		/* list of loaded states */
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
@@ -92,7 +90,7 @@ struct PL_global_data
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif
 #ifdef O_LOGICAL_UPDATE
-  uintptr_t generation;		/* generation of the database */
+  uintptr_t generation;			/* generation of the database */
 #endif
 
   struct
@@ -115,6 +113,7 @@ struct PL_global_data
   { size_t	heap;			/* heap in use */
     size_t	atoms;			/* No. of atoms defined */
     size_t	atomspace;		/* # bytes used to store atoms */
+    size_t	stack_space;		/* # bytes on stacks */
 #ifdef O_ATOMGC
     size_t	atomspacefreed;		/* Freed atom-space */
 #endif
@@ -122,6 +121,7 @@ struct PL_global_data
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
     intptr_t	codes;			/* No. of byte codes generated */
+    double	start_time;		/* When Prolog was started */
 #ifdef O_PLMT
     int		threads_created;	/* # threads created */
     int		threads_finished;	/* # finished threads */
@@ -136,8 +136,13 @@ struct PL_global_data
 
   struct
   { Table	modules;		/* atom --> module */
-    Table	record_lists;		/* Available record lists */
   } tables;
+
+  struct
+  { Table	record_lists;		/* Available record lists */
+    RecordList	head;			/* first record list */
+    RecordList	tail;			/* last record list */
+  } recorded_db;
 
   struct
   { buffer	functions;		/* index --> function */
@@ -184,6 +189,7 @@ struct PL_global_data
 
     InitialiseHandle initialise_head;	/* PL_initialise_hook() */
     InitialiseHandle initialise_tail;
+    PL_dispatch_hook_t dispatch_events; /* PL_dispatch_hook() */
 
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
@@ -218,8 +224,7 @@ struct PL_global_data
   } exceptions;
 
   struct
-  { TempFile		_tmpfile_head;
-    TempFile		_tmpfile_tail;
+  { Table		tmp_files;	/* Known temporary files */
     CanonicalDir	_canonical_dirlist;
     char *		myhome;		/* expansion of ~ */
     char *		fred;		/* last expanded ~user */
@@ -298,6 +303,8 @@ struct PL_global_data
     HINSTANCE	    	instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */
+    int			thread_max;	/* Maximum # threads */
+    PL_thread_info_t  **threads;	/* Pointers to thread-info */
   } thread;
 #endif /*O_PLMT*/
 };
@@ -314,6 +321,7 @@ struct PL_local_data
   LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
+  QueryFrame    query;			/* Currently open query */
   Word		mark_bar;		/* Mark globals > this one */
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */
@@ -321,10 +329,6 @@ struct PL_local_data
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   uintptr_t	bases[STG_MASK+1];	/* area base addresses */
   int		alerted;		/* Special mode. See updateAlerted() */
-  int64_t	pending_signals;	/* PL_raise() pending signals */
-  record_t	pending_exception;	/* Pending exception from signal */
-  int		current_signal;		/* Currently handled signal */
-  int		sync_signal;		/* Current signal is synchronous */
   int		critical;		/* heap is being modified */
   abort_type	aborted;		/* !ABORT_NONE: abort in Critical */
   Stack		outofstack;		/* thread is out of stack */
@@ -333,9 +337,21 @@ struct PL_local_data
   int		exit_requested;		/* Thread is asked to exit */
 #endif
   int		in_arithmetic;		/* doing arithmetic */
+  int		in_print_message;	/* Inside printMessage() */
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
+  ClauseRef	freed_clauses;		/* List of pending freeable clauses */
+
+  struct
+  { int64_t	pending;		/* PL_raise() pending signals */
+    int		current;		/* currently processing signal */
+    int		is_sync;		/* current signal is synchronous */
+    record_t	exception;		/* Pending exception from signal */
+#ifdef O_PLMT
+    simpleMutex sig_lock;		/* lock delivery and processing */
+#endif
+  } signal;
 
   struct
   { int		active;			/* doing pipe I/O */
@@ -359,6 +375,7 @@ struct PL_local_data
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
     int		in_hook;		/* inside exception_hook() */
+    int		processing;		/* processing an exception */
     exception_frame *throw_environment;	/* PL_throw() environments */
   } exception;
 
@@ -373,6 +390,11 @@ struct PL_local_data
   { term_t	dummy;			/* see trimStacks() */
   } trim;
 
+  struct
+  { term_t	h[TMP_PTR_SIZE];	/* temporary handles. See unify_ptrs */
+    int		top;			/* Top-of-stack index */
+  } tmp;
+
 #ifdef O_GVAR
   struct
   { Table	nb_vars;		/* atom --> value */
@@ -384,7 +406,8 @@ struct PL_local_data
   { int64_t	inferences;		/* inferences in this thread */
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
-    uintptr_t	last_walltime;		/* milliseconds last Wall time */
+    uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
+    double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
   } statistics;
@@ -428,6 +451,10 @@ struct PL_local_data
     int		nvardefs;
     int		filledVars;
   } comp;
+
+  struct
+  { int		active;
+  } read;
 
   struct
   { struct
@@ -479,11 +506,11 @@ struct PL_local_data
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;
 
-    PL_dispatch_hook_t _dispatch_events; /* PL_dispatch_hook() */
-
     buffer	_discardable_buffer;	/* PL_*() character buffers */
     buffer	_buffer_ring[BUFFER_RING_SIZE];
     int		_current_buffer_id;
+
+    int		SP_state;		/* For SICStus interface */
   } fli;
 
   struct				/* Local IO stuff */
@@ -500,24 +527,27 @@ struct PL_local_data
 #endif
 
   struct
-  { intptr_t _total_marked;			/* # marked global cells */
-    intptr_t _trailcells_deleted;		/* # garbage trailcells */
-    intptr_t _relocation_chains;		/* # relocation chains (debugging) */
+  { intptr_t _total_marked;		/* # marked global cells */
+    intptr_t _trailcells_deleted;	/* # garbage trailcells */
+    intptr_t _relocation_chains;	/* # relocation chains (debugging) */
     intptr_t _relocation_cells;		/* # relocation cells */
     intptr_t _relocated_cells;		/* # relocated cells */
     intptr_t _needs_relocation;		/* # cells that need relocation */
-    intptr_t _local_marked;			/* # marked local -> global ptrs */
-    intptr_t _marks_swept;			/* # marks swept */
+    intptr_t _local_marked;		/* # marked local -> global ptrs */
+    intptr_t _marks_swept;		/* # marks swept */
     intptr_t _marks_unswept;		/* # marks swept */
-    intptr_t _alien_relocations;		/* # alien_into_relocation_chain() */
-    intptr_t _local_frames;			/* frame count for debugging */
-    intptr_t _choice_count;			/* choice-point count for debugging */
+    intptr_t _alien_relocations;	/* # alien_into_relocation_chain() */
+    intptr_t _local_frames;		/* frame count for debugging */
+    intptr_t _choice_count;		/* choice-point count for debugging */
+    int  *_start_map;			/* bitmap with legal global starts */
+    sigset_t saved_sigmask;		/* Saved signal mask */
 #if defined(O_SECURE) || defined(SECURE_GC)
     intptr_t _trailtops_marked;		/* # marked trailtops */
     Word *_mark_base;			/* Array of marked cells addresses */
     Word *_mark_top;			/* Top of this array */
     Table _check_table;			/* relocation address table */
     Table _local_table;			/* marked local variables */
+    int  _relocated_check;		/* Verify relocated addresses? */
 #endif
     int64_t inferences;			/* #inferences at last GC */
 
@@ -527,10 +557,7 @@ struct PL_local_data
 #endif
   } gc;
 
-#ifdef O_SHIFT_STACKS
-  pl_shift_status_t	shift_status;	/* Stack shifter status */
-#endif
-
+  pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
 
 #ifdef O_PLMT
@@ -570,9 +597,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 
-#define hTop			(GD->top_of_heap)
-#define hBase			(GD->base_of_heap)
-#define heap_base		(GD->rounded_heap_base)
 #define functor_array		(GD->functors.array)
 #define systemDefaults		(GD->defaults)
 

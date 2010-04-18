@@ -30,10 +30,17 @@
 
 int
 pl_error(const char *pred, int arity, const char *msg, int id, ...)
-{ term_t except = PL_new_term_ref();
-  term_t formal = PL_new_term_ref();
-  term_t swi	= PL_new_term_ref();
+{ fid_t fid;
+  term_t except, formal, swi;
+  int rc;
   va_list args;
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return FALSE;
+
+  except = PL_new_term_ref();
+  formal = PL_new_term_ref();
+  swi    = PL_new_term_ref();
 
   va_start(args, id);
   switch(id)
@@ -50,29 +57,29 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 
       switch(err)
       { case ENOMEM:
-	  PL_unify_term(formal,
-			CompoundArg("resource_error", 1),
-			  AtomArg("no_memory"));
+	  rc = PL_unify_term(formal,
+			     CompoundArg("resource_error", 1),
+			       AtomArg("no_memory"));
 	  break;
 	case EACCES:
 	case EPERM:
-	{ PL_unify_term(formal,
-			CompoundArg("permission_error", 3),
-			  AtomArg(action),
-			  AtomArg(type),
-			  PL_TERM, object);
+	{ rc = PL_unify_term(formal,
+			     CompoundArg("permission_error", 3),
+			       AtomArg(action),
+			       AtomArg(type),
+			     PL_TERM, object);
 	  break;
 	}
 	case ENOENT:
 	case ESRCH:
-	{ PL_unify_term(formal,
-			CompoundArg("existence_error", 2),
-			  AtomArg(type),
-			  PL_TERM, object);
+	{ rc = PL_unify_term(formal,
+			     CompoundArg("existence_error", 2),
+			     AtomArg(type),
+			     PL_TERM, object);
 	  break;
 	}
 	default:
-	  PL_unify_atom_chars(formal, "system_error");
+	  rc = PL_unify_atom_chars(formal, "system_error");
 	  break;
       }
       break;
@@ -83,12 +90,12 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
       atom_t expected = PL_new_atom(va_arg(args, const char*));
 
       if ( PL_is_variable(actual) && expected != PL_new_atom("variable") )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      CompoundArg("type_error", 2),
-		      PL_ATOM, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   CompoundArg("type_error", 2),
+			   PL_ATOM, expected,
+			   PL_TERM, actual);
       break;
     }
     case ERR_TYPE:
@@ -96,32 +103,32 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
       atom_t expected = PL_new_atom(va_arg(args, const char*));
 
       if ( PL_is_variable(actual) && expected != PL_new_atom("variable") )
-	PL_unify_atom_chars(formal, "instantiation_error");
+	rc = PL_unify_atom_chars(formal, "instantiation_error");
       else
-	PL_unify_term(formal,
-		      CompoundArg("type_error", 2),
-		      PL_ATOM, expected,
-		      PL_TERM, actual);
+	rc = PL_unify_term(formal,
+			   CompoundArg("type_error", 2),
+			   PL_ATOM, expected,
+			   PL_TERM, actual);
       break;
     }
     case ERR_DOMAIN:
     { term_t actual   = va_arg(args, term_t);
       atom_t expected = PL_new_atom(va_arg(args, const char*));
 
-	PL_unify_term(formal,
-		      CompoundArg("domain_error", 2),
-		      PL_ATOM, expected,
-		      PL_TERM, actual);
+      rc = PL_unify_term(formal,
+			 CompoundArg("domain_error", 2),
+			 PL_ATOM, expected,
+			 PL_TERM, actual);
       break;
     }
     case ERR_EXISTENCE:
     { const char *type = va_arg(args, const char *);
       term_t obj  = va_arg(args, term_t);
 
-      PL_unify_term(formal,
-		    CompoundArg("existence_error", 2),
-		    PL_CHARS, type,
-		    PL_TERM, obj);
+      rc = PL_unify_term(formal,
+			 CompoundArg("existence_error", 2),
+			 PL_CHARS, type,
+			 PL_TERM, obj);
 
       break;
     }
@@ -130,59 +137,73 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
       const char *op = va_arg(args, const char *);
       const char *objtype = va_arg(args, const char *);
 
-      PL_unify_term(formal,
-		    CompoundArg("permission_error", 3),
-		    AtomArg(op),
-		    AtomArg(objtype),
-		    PL_TERM, obj);
+      rc = PL_unify_term(formal,
+			 CompoundArg("permission_error", 3),
+			 AtomArg(op),
+			 AtomArg(objtype),
+			 PL_TERM, obj);
       break;
     }
     case ERR_NOTIMPLEMENTED:
     { const char *op = va_arg(args, const char *);
       term_t obj  = va_arg(args, term_t);
 
-      PL_unify_term(formal,
-		    CompoundArg("not_implemented", 2),
-		    AtomArg(op),
-		    PL_TERM, obj);
+      rc = PL_unify_term(formal,
+			 CompoundArg("not_implemented", 2),
+			 AtomArg(op),
+			 PL_TERM, obj);
     }
     case ERR_RESOURCE:
     { const char *res = va_arg(args, const char *);
 
-      PL_unify_term(formal,
-		    CompoundArg("resource_error", 1),
-		    AtomArg(res));
+      rc = PL_unify_term(formal,
+			 CompoundArg("resource_error", 1),
+			 AtomArg(res));
+    }
+    case ERR_SYNTAX:
+    { const char *culprit = va_arg(args, const char *);
+
+      rc = PL_unify_term(formal,
+			 CompoundArg("syntax_error", 1),
+			 AtomArg(culprit));
     }
     default:
       assert(0);
   }
   va_end(args);
 
-  if ( pred || msg )
+  if ( rc && (pred || msg) )
   { term_t predterm = PL_new_term_ref();
     term_t msgterm  = PL_new_term_ref();
 
     if ( pred )
-    { PL_unify_term(predterm,
+    { rc = PL_unify_term(predterm,
 		    CompoundArg("/", 2),
 		      AtomArg(pred),
 		      IntArg(arity));
     }
     if ( msg )
-    { PL_put_atom_chars(msgterm, msg);
+    { rc = PL_put_atom_chars(msgterm, msg);
     }
 
-    PL_unify_term(swi,
-		  CompoundArg("context", 2),
-		    PL_TERM, predterm,
-		    PL_TERM, msgterm);
+    if ( rc )
+      rc = PL_unify_term(swi,
+			 CompoundArg("context", 2),
+			 PL_TERM, predterm,
+			 PL_TERM, msgterm);
   }
 
-  PL_unify_term(except,
-		CompoundArg("error", 2),
-		  PL_TERM, formal,
-		  PL_TERM, swi);
+  if ( rc )
+    rc = PL_unify_term(except,
+		       CompoundArg("error", 2),
+		       PL_TERM, formal,
+		       PL_TERM, swi);
 
+  PL_close_foreign_frame(fid);
 
-  return PL_raise_exception(except);
+  if ( rc )
+    return PL_raise_exception(except);
+
+  return rc;
 }
+

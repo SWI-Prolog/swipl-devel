@@ -233,6 +233,42 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 }
 
 
+#ifdef O_MEMSTATS
+		 /*******************************
+		 *	    STATISTICS		*
+		 *******************************/
+
+int
+unifyFreeStatsPool(term_t term, AllocPool pool)
+{ GET_LD
+  size_t i;
+  Chunk *t;
+  static atom_t a;
+  term_t tmp = PL_new_term_ref();
+
+  if ( !a )
+    a = PL_new_atom("pool");
+
+  if ( !PL_unify_functor(term, PL_new_functor(a, ALLOCFAST/ALIGN_SIZE)) )
+    return FALSE;
+
+  for(i=0, t=pool->free_chains; i < (ALLOCFAST/ALIGN_SIZE); i++, t++)
+  { Chunk f;
+    int c;
+
+    for(c=0, f=*t; f; f=f->next)
+      c++;
+
+    _PL_get_arg(i+1, term, tmp);
+    if ( !PL_unify_integer(tmp, c) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+#endif
+
+
 		 /*******************************
 		 *	     ALLOCATE		*
 		 *******************************/
@@ -274,7 +310,7 @@ do locking to access the left_over_pool and allocBigHeap().
 static void *
 allocate(AllocPool pool, size_t n)
 { char *p;
-  int mustlock = (pool != &GD->alloc_pool);
+  int mustlock = (pool != &GD->alloc_pool); /* See comment above */
   int welocked = FALSE;
 
   if ( n <= pool->free )
@@ -477,7 +513,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
 	  *t = *f;
 	}
       } else
-	*t = *f;
+	*t = *f;			/* Unsafe according to helgrind? */
 
       to->free_count[i] += from->free_count[i];
       from->free_count[i] = 0;
@@ -522,15 +558,6 @@ allocBigHeap(size_t size)
     big_heaps->prev = h;
   big_heaps = h;
   h++;					/* point to user-data */
-
-  if ( !hTop )
-  { hBase = (char *)h;
-    hTop = (char *)h + size;
-    heap_base = (uintptr_t)h & ~(uintptr_t)0x007fffff; /* 8MB */
-  } else
-  { SetHBase(h);
-    SetHTop((char *)h + size);
-  }
 
   return (void *)h;
 }
@@ -579,14 +606,6 @@ allocHeap__LD(size_t n ARG_LD)
       outOfCore();
 
     GD->statistics.heap += n;
-    if ( !hTop )
-    { hBase = mem;
-      hTop = (char *)mem + n;
-      heap_base = (uintptr_t)mem & ~(uintptr_t)0x007fffff; /* 8MB */
-    } else
-    { SetHBase(mem);
-      SetHTop((char *)mem + n);
-    }
 
     return mem;
   }
@@ -624,67 +643,111 @@ mergeAllocPool(AllocPool to, AllocPool from)
 		*             STACKS            *
 		*********************************/
 
-static void
+int
 enableSpareStack(Stack s)
-{
-#ifdef O_SHIFT_STACKS
-  if ( s->spare )
+{ if ( s->spare )
   { s->max = addPointer(s->max, s->spare);
     s->spare = 0;
+    return TRUE;
   }
-#endif
+
+  return FALSE;
 }
 
 
-word
+int
 outOfStack(void *stack, stack_overflow_action how)
 { GET_LD
   Stack s = stack;
 
+  if ( LD->outofstack )
+    fatalError("Sorry, failed to recover from %s-overflow", s->name);
+
   LD->trim_stack_requested = TRUE;
+  LD->exception.processing = TRUE;
+  LD->outofstack = stack;
 
   switch(how)
-  { case STACK_OVERFLOW_FATAL:
-      LD->outofstack = s;
-      updateAlerted(LD);
-      Sdprintf("ERROR: Out of %s stack (ungraceful overflow)", s->name);
-
-      abortProlog(ABORT_THROW);
-      assert(0);
-      fail;
-    case STACK_OVERFLOW_THROW:
+  { case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
     { fid_t fid;
 
-      enableSpareStack(stack);
+      blockGC(0 PASS_LD);
 
-      fid = PL_open_foreign_frame();
-      LD->outofstack = NULL;
-      updateAlerted(LD);
-      PL_clearsig(SIG_GC);
-      s->gced_size = 0;			/* after handling, all is new */
-      PL_unify_term(LD->exception.tmp,
-		    PL_FUNCTOR, FUNCTOR_error2,
-		      PL_FUNCTOR, FUNCTOR_resource_error1,
-		        PL_ATOM, ATOM_stack,
-		      PL_CHARS, s->name);
-      if ( how == STACK_OVERFLOW_THROW )
-      { PL_throw(LD->exception.tmp);
-	warning("Out of %s stack while not in Prolog!?", s->name);
-	assert(0);
-      } else
-      { PL_raise_exception(LD->exception.tmp);
+      if ( (fid=PL_open_foreign_frame()) )
+      { PL_clearsig(SIG_GC);
+	s->gced_size = 0;			/* after handling, all is new */
+	if ( !PL_unify_term(LD->exception.tmp,
+			    PL_FUNCTOR, FUNCTOR_error2,
+			      PL_FUNCTOR, FUNCTOR_resource_error1,
+			        PL_ATOM, ATOM_stack,
+			      PL_CHARS, s->name) )
+	  fatalError("Out of stack inside out-of-stack handler");
+
+	if ( how == STACK_OVERFLOW_THROW )
+	{ PL_close_foreign_frame(fid);
+	  unblockGC(0 PASS_LD);
+	  PL_throw(LD->exception.tmp);
+	  warning("Out of %s stack while not in Prolog!?", s->name);
+	  assert(0);
+	} else
+	{ PL_raise_exception(LD->exception.tmp);
+	}
+
+	PL_close_foreign_frame(fid);
       }
-      PL_close_foreign_frame(fid);
+
+      unblockGC(0 PASS_LD);
       fail;
     }
-    case STACK_OVERFLOW_SIGNAL:
-      LD->outofstack = s;
-      updateAlerted(LD);
-      succeed;
   }
   assert(0);
   fail;
+}
+
+
+int
+raiseStackOverflow(int overflow)
+{ GET_LD
+  Stack s;
+
+  switch(overflow)
+  { case LOCAL_OVERFLOW:    s = (Stack)&LD->stacks.local;    break;
+    case GLOBAL_OVERFLOW:   s = (Stack)&LD->stacks.global;   break;
+    case TRAIL_OVERFLOW:    s = (Stack)&LD->stacks.trail;    break;
+    case ARGUMENT_OVERFLOW: s = (Stack)&LD->stacks.argument; break;
+    case FALSE:				/* some other error is pending */
+      return FALSE;
+    default:
+      s = NULL;
+      assert(0);
+  }
+
+  return outOfStack(s, STACK_OVERFLOW_RAISE);
+}
+
+
+void
+pushArgumentStack__LD(Word p ARG_LD)
+{ Word *newbase;
+  size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
+
+  if ( newsize && (newbase = stack_realloc(aBase, newsize)) )
+  { intptr_t as = newbase - aBase;
+
+    if ( as )
+    { QueryFrame qf;
+
+      aTop += as;
+      aBase = newbase;
+
+      for(qf=LD->query; qf; qf = qf->parent)
+	qf->aSave += as;
+    }
+    aMax  = addPointer(newbase,  newsize);
+    *aTop++ = p;
+  } else
+    outOfStack((Stack)&LD->stacks.argument, STACK_OVERFLOW_THROW);
 }
 
 
@@ -692,38 +755,6 @@ void
 outOfCore()
 { fatalError("Could not allocate memory: %s", OsError());
 }
-
-		 /*******************************
-		 *	REFS AND POINTERS	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-__consPtr() is inlined for this module (including pl-wam.c), but external
-for the other modules, where it is far less fime-critical.
-
-Actually, for normal operation, consPtr() is a macro from pl-data.h
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if !defined(consPtr) || defined(SECURE_GC) || defined(_DEBUG)
-#undef consPtr
-
-static inline word
-__consPtr(void *p, word ts)
-{ GET_LD
-  uintptr_t v = (uintptr_t) p;
-
-  v -= base_addresses[ts&STG_MASK];
-  assert(v < MAXTAGGEDPTR && !(v&0x3));
-  return (v<<5)|ts;
-}
-
-word
-consPtr(void *p, word ts)
-{ return __consPtr(p, ts);
-}
-
-#define consPtr(p, s) __consPtr(p, s)
-#endif
 
 
 		/********************************
@@ -735,17 +766,17 @@ allocGlobal() allocates on the global stack.  Many  functions  do  this
 inline  as  it is simple and usualy very time critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SHIFT_STACKS
-
 Word
 allocGlobal__LD(size_t n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
-  { growStacks(NULL, NULL, NULL, 0, n * sizeof(word), 0);
+  if ( !hasGlobalSpace(n) )
+  { int rc;
 
-    if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
-      outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_THROW);
+    if ( (rc=ensureGlobalSpace(n, ALLOW_GC)) != TRUE )
+    { raiseStackOverflow(rc);
+      return NULL;
+    }
   }
 
   result = gTop;
@@ -758,48 +789,13 @@ Word
 allocGlobalNoShift__LD(size_t n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (intptr_t) (n * sizeof(word)) )
+  if ( gTop+n > gMax )
     return NULL;
 
   result = gTop;
   gTop += n;
 
   return result;
-}
-
-#else
-
-static inline Word
-__allocGlobal(size_t n ARG_LD)
-{ Word result = gTop;
-
-  requireStack(global, n * sizeof(word));
-  gTop += n;
-
-  return result;
-}
-
-Word allocGlobal__LD(size_t n ARG_LD)
-{ return __allocGlobal(n PASS_LD);
-}
-
-#undef allocGlobal			/* use inline version here */
-#define allocGlobal(n) __allocGlobal(n PASS_LD)
-
-#endif
-
-word
-globalFunctor(functor_t f)
-{ GET_LD
-  int arity = arityFunctor(f);
-  Word a = allocGlobal(1 + arity);
-  Word t = a;
-
-  *a = f;
-  while( --arity >= 0 )
-    setVar(*++a);
-
-  return consPtr(t, TAG_COMPOUND|STG_GLOBAL);
 }
 
 
@@ -814,16 +810,50 @@ newTerm(void)
 }
 
 		 /*******************************
-		 *      OPERATIONS ON LONGS	*
+		 *    OPERATIONS ON INTEGERS	*
 		 *******************************/
 
-word
-globalLong(int64_t l ARG_LD)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Translate  a  64-bit  integer  into   a    Prolog   cell.   Uses  tagged
+representation if possible or allocates 64-bits on the global stack.
+
+Return is one of:
+
+	TRUE:		 Success
+	FALSE:		 Interrupt
+	GLOBAL_OVERFLOW: Stack overflow
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+put_int64(Word at, int64_t l, int flags ARG_LD)
 { Word p;
   word r, m;
+  int req;
+
+  r = consInt(l);
+  if ( valInt(r) == l )
+  { *at = r;
+    return TRUE;
+  }
 
 #if SIZEOF_VOIDP == 8
-  p = allocGlobal(3);
+  req = 3;
+#elif SIZEOF_VOIDP == 4
+  req = 4;
+#else
+#error "FIXME: Unsupported sizeof word"
+#endif
+
+  if ( !hasGlobalSpace(req) )
+  { int rc = ensureGlobalSpace(req, flags);
+
+    if ( rc != TRUE )
+      return rc;
+  }
+  p = gTop;
+  gTop += req;
+
+#if SIZEOF_VOIDP == 8
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(1, TAG_INTEGER);
 
@@ -832,7 +862,6 @@ globalLong(int64_t l ARG_LD)
   *p   = m;
 #else
 #if SIZEOF_VOIDP == 4
-  p = allocGlobal(4);
   r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(2, TAG_INTEGER);
 
@@ -850,8 +879,8 @@ globalLong(int64_t l ARG_LD)
 #endif
 #endif
 
-
-  return r;
+  *at = r;
+  return TRUE;
 }
 
 
@@ -863,6 +892,8 @@ globalLong(int64_t l ARG_LD)
 To distinguish between byte and wide strings,   the system adds a 'B' or
 'W' in front of the real string. For   a  'W', the following 3 bytes are
 ignored to avoid alignment restriction problems.
+
+Note that these functions can trigger GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Word
@@ -871,6 +902,9 @@ allocString(size_t len ARG_LD)
   int pad = (int)(lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
   word m = mkStrHdr(lw, pad);
+
+  if ( !p )
+    return NULL;
 
   p[0]    = m;
   p[lw]   = 0L;				/* zero the pad bytes */
@@ -884,12 +918,17 @@ word
 globalString(size_t len, const char *s)
 { GET_LD
   Word p = allocString(len+1 PASS_LD);
-  char *q = (char *)&p[1];
 
-  *q++ = 'B';
-  memcpy(q, s, len);
+  if ( p )
+  { char *q = (char *)&p[1];
 
-  return consPtr(p, TAG_STRING|STG_GLOBAL);
+    *q++ = 'B';
+    memcpy(q, s, len);
+
+    return consPtr(p, TAG_STRING|STG_GLOBAL);
+  }
+
+  return 0;
 }
 
 
@@ -908,7 +947,8 @@ globalWString(size_t len, const pl_wchar_t *s)
   if ( p == e )				/* 8-bit string */
   { unsigned char *t;
 
-    g = allocString(len+1 PASS_LD);
+    if ( !(g = allocString(len+1 PASS_LD)) )
+      return 0;
     t = (unsigned char *)&g[1];
     *t++ = 'B';
     for(p=s; p<e; )
@@ -917,7 +957,8 @@ globalWString(size_t len, const pl_wchar_t *s)
   { char *t;
     pl_wchar_t *w;
 
-    g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD);
+    if ( !(g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD)) )
+      return 0;
     t = (char *)&g[1];
     w = (pl_wchar_t*)t;
     w[0] = 0;
@@ -1012,11 +1053,9 @@ valFloat__LD(word w ARG_LD)
 }
 
 
-word
-globalFloat(double d)
-{ GET_LD
-  Word p = allocGlobal(2+WORDS_PER_DOUBLE);
-  word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+int
+put_double(Word at, double d, int flags ARG_LD)
+{ Word p;
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   union
   { double d;
@@ -1024,14 +1063,25 @@ globalFloat(double d)
   } val;
   fword *v;
 
+  if ( flags != ALLOW_CHECKED && !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
+  { int rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, flags);
+
+    if ( rc != TRUE )
+      return rc;
+  }
+  p = gTop;
+  gTop += 2+WORDS_PER_DOUBLE;
+
+  *at = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+
   val.d = d;
   *p++ = m;
   v = (fword *)p;
   *v++ = val.l;
   p = (Word) v;
-  *p   = m;
+  *p = m;
 
-  return r;
+  return TRUE;
 }
 
 
@@ -1086,26 +1136,9 @@ equalIndirect(word w1, word w2)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Copy an indirect data object to the heap.  The type is not of importance,
-neither is the length or original location.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-word
-globalIndirect(word w)
-{ GET_LD
-  Word p = addressIndirect(w);
-  word t = *p;
-  size_t  n = wsizeofInd(t);
-  Word h = allocGlobal((n+2));
-  Word hp = h;
-
-  *hp = t;
-  while(n-- > 0)
-    *++hp = *++p;
-  *++hp = t;
-
-  return consPtr(h, tag(w)|STG_GLOBAL);
+size_t					/* size in cells */
+gsizeIndirectFromCode(Code pc)
+{ return wsizeofInd(pc[0]) + 2;
 }
 
 
@@ -1116,15 +1149,19 @@ globalIndirectFromCode(Code *PC)
   word m = *pc++;
   size_t n = wsizeofInd(m);
   Word p = allocGlobal(n+2);
-  word r = consPtr(p, tag(m)|STG_GLOBAL);
 
-  *p++ = m;
-  while(n-- > 0)
-    *p++ = *pc++;
-  *p++ = m;
+  if ( p )
+  { word r = consPtr(p, tag(m)|STG_GLOBAL);
 
-  *PC = pc;
-  return r;
+    *p++ = m;
+    while(n-- > 0)
+      *p++ = *pc++;
+    *p++ = m;
+
+    *PC = pc;
+    return r;
+  } else
+    return 0;
 }
 
 
@@ -1321,6 +1358,55 @@ PL_realloc(void *mem, size_t size)
   }
 
   return PL_malloc(size);
+}
+
+
+		 /*******************************
+		 *	       INIT		*
+		 *******************************/
+
+static void
+initHBase(void)
+{ void *p = malloc(sizeof(void*));
+  uintptr_t base = (uintptr_t)p;
+
+  base &= ~0xfffff;			/* round down 1m */
+  GD->heap_base = base;			/* for pointer <-> int conversion */
+}
+
+
+void
+initAlloc(void)
+{
+#if defined(_DEBUG) && defined(__WINDOWS__) && 0
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
+		 _CRTDBG_CHECK_CRT_DF|
+		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
+		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
+		 //_CRTDBG_LEAK_CHECK_DF|
+		 0);
+#endif
+
+#if defined(HAVE_MTRACE) && defined(O_MAINTENANCE)
+  if ( getenv("MALLOC_TRACE") )		/* glibc malloc tracer */
+    mtrace();
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FORCED_MALLOC_BASE is a debugging aid for  me   to  force  the system to
+allocate memory starting from a specific   address.  Probably only works
+properly on Linux. Don't bother with it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef FORCED_MALLOC_BASE
+  start_memory((void *)FORCED_MALLOC_BASE);
+  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
+#endif
+#if O_MALLOC_DEBUG
+  malloc_debug(O_MALLOC_DEBUG);
+#endif
+
+  initHBase();
 }
 
 

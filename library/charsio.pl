@@ -38,6 +38,7 @@
 	    number_to_chars/3,		% +Number, -Codes, ?Tail
 					% read predicates
 	    read_from_chars/2,		% +Codes, -Term
+	    read_term_from_chars/3,	% +Codes, -Term, +Options
 	    open_chars_stream/2,	% +Codes, -Stream
 	    with_output_to_chars/2,	% :Goal, -Codes
 	    with_output_to_chars/3,	% :Goal, -Codes, ?Tail
@@ -136,6 +137,18 @@ read_from_chars("", end_of_file) :- !.
 read_from_chars(List, Term) :-
 	atom_to_term(List, Term, _).
 
+%%	read_term_from_chars(+Codes, -Term, +Options) is det.
+%
+%	Read Codes into Term.  Options are processed by read_term/3.
+%
+%	@compat sicstus
+
+read_term_from_chars(Codes, Term, Options) :-
+	setup_call_cleanup(open_chars_stream(Codes, Stream, ' .\n'),
+			   read_term(Stream, Term0, Options),
+			   close(Stream)),
+	Term = Term0.
+
 %%	open_chars_stream(+Codes, -Stream) is det.
 %
 %	Open Codes as an input stream.
@@ -146,9 +159,12 @@ read_from_chars(List, Term) :-
 %		autoloading.
 
 open_chars_stream(Codes, Stream) :-
+	open_chars_stream(Codes, Stream, '').
+
+open_chars_stream(Codes, Stream, Postfix) :-
 	new_memory_file(MF),
 	open_memory_file(MF, write, Out),
-	format(Out, '~s', [Codes]),
+	format(Out, '~s~w', [Codes, Postfix]),
 	close(Out),
 	open_memory_file(MF, read, Stream,
 			 [ free_on_close(true)

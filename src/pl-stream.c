@@ -301,6 +301,11 @@ int
 Slock(IOSTREAM *s)
 { SLOCK(s);
 
+  if ( s->erased )
+  { SUNLOCK(s);
+    return -1;
+  }
+
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 2 )
   { printf("  Lock [%d]: %s: %d locks", PL_thread_self(), Sname(s), s->locks+1);
@@ -321,6 +326,11 @@ int
 StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
+
+  if ( s->erased )
+  { SUNLOCK(s);
+    return -1;
+  }
 
   if ( !s->locks++ )
   { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
@@ -1700,6 +1710,22 @@ Stell(IOSTREAM *s)
 		 *	      CLOSE		*
 		 *******************************/
 
+void
+unallocStream(IOSTREAM *s)
+{
+#ifdef O_PLMT
+  if ( s->mutex )
+  { recursiveMutexDelete(s->mutex);
+    free(s->mutex);
+    s->mutex = NULL;
+  }
+#endif
+
+  if ( !(s->flags & SIO_STATIC) )
+    free(s);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) Sclose() can be called recursively. For example if an XPCE object is
 only referenced from an open stream,  the close-function will delete the
@@ -1757,19 +1783,13 @@ Sclose(IOSTREAM *s)
   run_close_hooks(s);			/* deletes Prolog registration */
   SUNLOCK(s);
 
-#ifdef O_PLMT
-  if ( s->mutex )
-  { recursiveMutexDelete(s->mutex);
-    free(s->mutex);
-    s->mutex = NULL;
-  }
-#endif
-
   s->magic = SIO_CMAGIC;
   if ( s->message )
     free(s->message);
-  if ( !(s->flags & SIO_STATIC) )
-    free(s);
+  if ( s->references == 0 )
+    unallocStream(s);
+  else
+    s->erased = TRUE;
 
   return rval;
 }
@@ -2656,6 +2676,15 @@ IOFUNCTIONS Sttyfunctions =
 };
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*)  Windows  isatty()  is  totally  broken   since  VC9;  crashing  the
+application instead of returning EINVAL on  wrong   values  of fd. As we
+provide  the  socket-id  through   Sfileno,    this   code   crashes  on
+tcp_open_socket(). As ttys and its detection is   of no value on Windows
+anyway, we skip this. Second, Windows doesn't have fork(), so FD_CLOEXEC
+is of no value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
@@ -2688,6 +2717,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     recursiveMutexInit(s->mutex);
   }
 #endif
+
+#ifndef __WINDOWS__			/* (*) */
   if ( (fd = Sfileno(s)) >= 0 )
   { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
@@ -2695,6 +2726,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
   }
+#endif
 
   return s;
 }
@@ -2831,8 +2863,8 @@ Sopen_file(const char *path, const char *how)
 
 IOSTREAM *
 Sfdopen(int fd, const char *type)
-{ int flags;
-  intptr_t lfd;
+{ intptr_t lfd;
+  int flags = SIO_FILE|SIO_RECORDPOS|SIO_FBUF;
 
   if ( fd < 0 )
   { errno = EINVAL;
@@ -2844,9 +2876,15 @@ Sfdopen(int fd, const char *type)
 #endif
 
   if ( *type == 'r' )
-    flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
-  else
-    flags = SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF;
+  { flags |= SIO_INPUT;
+  } else if ( *type == 'w' )
+  { flags |= SIO_OUTPUT;
+  } else
+  { errno = EINVAL;
+    return NULL;
+  }
+  if ( type[1] != 'b' )
+    flags |= SIO_TEXT;
 
   lfd = (intptr_t)fd;
 
@@ -3005,7 +3043,7 @@ Swrite_memfile(void *handle, char *buf, size_t size)
 { memfile *mf = handle;
 
   if ( mf->here + size + 1 >= mf->allocated )
-  { intptr_t ns = S__memfile_nextsize(mf->here + size + 1);
+  { size_t ns = S__memfile_nextsize(mf->here + size + 1);
     char *nb;
 
     if ( mf->allocated == 0 || !mf->malloced )

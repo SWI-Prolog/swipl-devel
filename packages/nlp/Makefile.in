@@ -17,7 +17,6 @@ PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
-DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -27,10 +26,11 @@ CIFLAGS=
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
-PLTOTEX=$(PCEHOME)/bin/pl2tex
+PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=nlp
-TEX=$(DOC).tex
+TEX=$(DOC).tex snowball.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -42,11 +42,16 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@
-TARGETS=	@TARGETS@
+TARGETS=	double_metaphone.@SO@ \
+		porter_stem.@SO@ \
+		snowball.@SO@
+LIBPL=		double_metaphone.pl \
+		porter_stem.pl \
+		snowball.pl
 
 DMPOBJ=		double_metaphone.o
 STEMOBJ=	porter_stem.o
+SBOBJ=		snowball.o libstemmer_c/libstemmer.a
 
 all:		$(TARGETS)
 
@@ -55,6 +60,19 @@ double_metaphone.@SO@:	$(DMPOBJ)
 
 porter_stem.@SO@:	$(STEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
+
+snowball.@SO@:	$(SBOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(SBOBJ)
+
+ifeq ($(CC),../swipl-ld.sh)
+SUBCC=../$(CC)
+else
+SUBCC=$(CC)
+endif
+
+libstemmer_c/libstemmer.a:
+		$(MAKE) CFLAGS="$(CFLAGS)" CC="$(SUBCC)" \
+			-C libstemmer_c -f Makefile.pl
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
@@ -122,8 +140,10 @@ $(TEX):		$(DOCTOTEX)
 
 clean:
 		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		$(MAKE) -C libstemmer_c -f Makefile.pl clean
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
 		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
 		rm -rf html
+		$(MAKE) -C libstemmer_c -f Makefile.pl distclean

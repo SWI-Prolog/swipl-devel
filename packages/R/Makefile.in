@@ -13,9 +13,8 @@ PKGDOC=$(PLBASE)/doc/packages
 LIBDIR=$(PLBASE)/library
 EXDIR=$(PKGDOC)/examples/R
 PCEHOME=../xpce
-DESTDIR=
 
-PUBLICPL=pl
+PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 RUNTEX=env TEXINPUTS=../pldoc ../../man/runtex

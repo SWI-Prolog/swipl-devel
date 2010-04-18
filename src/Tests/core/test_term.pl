@@ -59,6 +59,19 @@ test(cyclic, [sto(rational_trees), End == 1]) :-
 test(cyclic_s, [sto(rational_trees), End == 1]) :-
 	X = d(X, _),
 	numbervars(X, 0, End, [singletons(true)]).
+test(twice_singleton, X == '$VAR'('_')) :-
+	T = a(X),
+	numbervars(T, 0, _E1, [singletons(true)]),
+	numbervars(T, 0, _E2, [singletons(true)]).
+test(shift, true) :-
+	between(1, 20, X),
+	trim_stacks,
+	Len is 1<<X,
+	length(List, Len),
+	statistics(global_shifts, S0),
+	numbervars(List, 0, _),
+	statistics(global_shifts, S1),
+	S1 > S0, !.
 
 :- end_tests(numbervars).
 

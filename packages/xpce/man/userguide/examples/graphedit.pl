@@ -1,10 +1,9 @@
-/*  $Id$
+/*  Part of XPCE
 
-    Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
-    E-mail: jan@swi.psy.uva.nl
+    E-mail: J.Wielemaker@cs.vu.nl
 
-    Copyright (C) 1995 University of Amsterdam. All rights reserved.
+    This example program is in the public domain
 */
 
 colour(white).

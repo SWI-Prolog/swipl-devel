@@ -7,6 +7,8 @@
 BUILDARCH=@BUILDARCH@
 CONFIG_OPTIONS=@CONFIG_OPTIONS@
 
+.PHONY:	lite world packages
+
 all:		@TARGET@
 
 install:	install-@TARGET@
@@ -45,9 +47,11 @@ clean::
 distclean::
 	rm -f .pkg-config
 	@if [ -f packages/Makefile ]; then \
-	   cd packages && $(MAKE) distclean; \
+	    cd packages && $(MAKE) distclean; \
 	fi
-	@cd $(BUILDARCH) && $(MAKE) $@
+	@if [ -f $(BUILDARCH)/Makefile ]; then \
+	    cd $(BUILDARCH) && $(MAKE) $@; \
+        fi
 	rm -f configure.out make.out
 	rm -f Makefile
 
@@ -55,14 +59,14 @@ distclean::
 # Build the whole default set of tools
 ################################################################
 
-world:	lite .pkg-config packages
+world:	packages
 ln-world: world
 
-.pkg-config:
+.pkg-config: lite
 	cd packages && ./configure $(CONFIG_OPTIONS)
 	touch $@
 
-packages::
+packages: lite .pkg-config
 	cd packages && $(MAKE)
 
 install-world::

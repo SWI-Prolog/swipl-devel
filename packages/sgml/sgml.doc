@@ -1052,6 +1052,8 @@ be used and positions reported by the parser are octet offsets in the
 stream.  In other cases, the Prolog stream decoder is used and offsets
 are character code counts.
 
+\input{xpath.tex}
+
 \section{Processing Indexed Files}		\label{sec:indexaccess}
 
 In some cases applications wish to process small portions of large
@@ -1158,6 +1160,8 @@ UNIX and Windows.
 In the future we will design a call-back mechanism for locating and
 processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
+
+\input{pwp.tex}
 
 \section{Writing markup}
 

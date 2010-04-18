@@ -27,15 +27,6 @@
 #include <SWI-Prolog.h>
 #include <assert.h>
 #include <string.h>
-#ifdef __WINDOWS__
-#  include <io.h>
-#  include <winsock2.h>
-#else
-#  include <sys/types.h>
-#  include <sys/socket.h>
-#  include <netinet/in.h>
-#  include <unistd.h>
-#endif
 #include "ssllib.h"
 
 #ifdef _REENTRANT
@@ -61,6 +52,7 @@ static atom_t ATOM_certificate_file;
 static atom_t ATOM_key_file;
 static atom_t ATOM_pem_password_hook;
 static atom_t ATOM_cert_verify_hook;
+static atom_t ATOM_close_parent;
 
 static functor_t FUNCTOR_ssl1;
 static functor_t FUNCTOR_error2;
@@ -73,61 +65,69 @@ static functor_t FUNCTOR_ip4;
 
 static int
 type_error(term_t val, const char *type)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_type_error2,
-		    PL_TERM, val,
-		    PL_CHARS, type,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_type_error2,
+		         PL_CHARS, type,
+		         PL_TERM, val,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 domain_error(term_t val, const char *type)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_domain_error2,
-		    PL_TERM, val,
-		    PL_CHARS, type,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_domain_error2,
+		         PL_TERM, val,
+		         PL_CHARS, type,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 resource_error(const char *resource)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_resource_error1,
-		    PL_CHARS, resource,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_resource_error1,
+		         PL_CHARS, resource,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
 static int
 permission_error(const char *action, const char *type, term_t obj)
-{ term_t ex = PL_new_term_ref();
+{ term_t ex;
 
-  PL_unify_term(ex,
-		PL_FUNCTOR, FUNCTOR_error2,
-		  PL_FUNCTOR, FUNCTOR_permission_error3,
-		    PL_CHARS, action,
-		    PL_CHARS, type,
-		    PL_TERM, obj,
-		  PL_VARIABLE);
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_permission_error3,
+		         PL_CHARS, action,
+		         PL_CHARS, type,
+		         PL_TERM, obj,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
 
-  return PL_raise_exception(ex);
+  return FALSE;
 }
 
 
@@ -144,7 +144,7 @@ static int
 get_char_arg(int a, term_t t, char **s)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_atom_chars(t2, s) )
     return type_error(t2, "atom");
 
@@ -152,23 +152,11 @@ get_char_arg(int a, term_t t, char **s)
 }
 
 
-#if 0					/* not used anymore */
-static int
-get_atom_arg(int a, term_t t, atom_t *n)
-{ term_t t2 = PL_new_term_ref();
-
-  PL_get_arg(a, t, t2);
-
-  return get_atom_ex(t2, n);
-}
-#endif
-
-
 static int
 get_int_arg(int a, term_t t, int *i)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_integer(t2, i) )
     return type_error(t2, "integer");
 
@@ -180,7 +168,7 @@ static int
 get_bool_arg(int a, term_t t, int *i)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_bool(t2, i) )
     return type_error(t2, "boolean");
 
@@ -192,7 +180,7 @@ static int
 get_file_arg(int a, term_t t, char **f)
 { term_t t2 = PL_new_term_ref();
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   if ( !PL_get_file_name(t2, f, PL_FILE_EXIST) )
     return type_error(t2, "file");	/* TBD: check errors */
 
@@ -201,12 +189,11 @@ get_file_arg(int a, term_t t, char **f)
 
 
 static int
-get_predicate_arg(int a, term_t t, int arity, predicate_t *pred)
+get_predicate_arg(int a, module_t m, term_t t, int arity, predicate_t *pred)
 { term_t t2 = PL_new_term_ref();
-  module_t m = NULL;
   atom_t name;
 
-  PL_get_arg(a, t, t2);
+  _PL_get_arg(a, t, t2);
   PL_strip_module(t2, &m, t2);
   if ( !get_atom_ex(t2, &name) )
     return FALSE;
@@ -215,9 +202,6 @@ get_predicate_arg(int a, term_t t, int arity, predicate_t *pred)
 
   return TRUE;
 }
-
-
-
 
 
 static int
@@ -236,7 +220,7 @@ get_conf(term_t config, PL_SSL **conf)
 
   if ( !PL_is_functor(config, FUNCTOR_ssl1) )
     return type_error(config, "ssl_config");
-  PL_get_arg(1, config, a);
+  _PL_get_arg(1, config, a);
   if ( !PL_get_pointer(a, &ptr) )
     return type_error(config, "ssl_config");
   ssl = ptr;
@@ -247,31 +231,6 @@ get_conf(term_t config, PL_SSL **conf)
 
   return TRUE;
 }
-
-
-static int
-get_sock(term_t t, int *s)
-{ if ( !PL_get_integer(t, s) )
-    return type_error(t, "socket");
-
-  return TRUE;
-}
-
-
-static int
-tcp_unify_ip(term_t t, struct in_addr *ip)
-{ unsigned long hip;
-
-  hip = ntohl(ip->s_addr);
-
-  return PL_unify_term(t,
-		       PL_FUNCTOR, FUNCTOR_ip4,
-		         PL_LONG, (hip >> 24) & 0xffL,
-		         PL_LONG, (hip >> 16) & 0xffL,
-		         PL_LONG, (hip >>  8) & 0xffL,
-		         PL_LONG, (hip >>  0) & 0xffL);
-}
-
 
 
 		 /*******************************
@@ -325,14 +284,10 @@ pl_cert_verify_hook(PL_SSL *config,
 
   unify_conf(av+0, config);
   /*Sdprintf("\n---Certificate:'%s'---\n", certificate);*/
-  PL_unify_atom_nchars(av+1, len, certificate);
-  PL_unify_atom_chars(av+2, error);
 
-  if ( PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) )
-  { val = TRUE;
-  } else
-  { val = FALSE;			/* TBD: Handle exception? */
-  }
+  val = ( PL_unify_atom_nchars(av+1, len, certificate) &&
+	  PL_unify_atom_chars(av+2, error) &&
+	  PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) );
 
   PL_close_foreign_frame(fid);
 
@@ -347,26 +302,13 @@ pl_cert_verify_hook(PL_SSL *config,
 static BOOL initialised  = FALSE;
 
 static int
-tcp_init()
+threads_init()
 { LOCK();
   if ( initialised )
   { UNLOCK();
     return TRUE;
   }
   initialised = TRUE;
-
-#ifdef __WINDOWS__
-{ WSADATA WSAData;
-
-  if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
-  { UNLOCK();
-    return PL_warning("tcp_init() - WSAStartup failed.");
-  }
-  /*
-   * startSocketThread();
-   */
-}
-#endif /*__WINDOWS__*/
 
 #ifdef _REENTRANT
   if ( !ssl_thread_setup() )
@@ -381,32 +323,34 @@ tcp_init()
   return TRUE;
 }
 
+
 static foreign_t
-pl_ssl_init(term_t config, term_t role, term_t options)
+pl_ssl_context(term_t role, term_t config, term_t options)
 { atom_t a;
   PL_SSL *conf;
   int r;
-  term_t tail = PL_copy_term_ref(options);
+  term_t tail;
   term_t head = PL_new_term_ref();
+  module_t module = NULL;
+
+  PL_strip_module(options, &module, options);
+  tail = PL_copy_term_ref(options);
 
   if ( !get_atom_ex(role, &a) )
     return FALSE;
   if ( a == ATOM_server )
-    r = TRUE;
+    r = PL_SSL_SERVER;
   else if ( a == ATOM_client )
-    r = FALSE;
+    r = PL_SSL_CLIENT;
   else
     return domain_error(a, "ssl_role");
 
-  /*
-   * Initialize the (Windows) socket stream library
-   */
-  if ( !tcp_init() )
+ if ( !threads_init() )
     return FALSE;
+
 
   if ( !(conf = ssl_init(r)) )
     return resource_error("memory");
-
   while( PL_get_list(tail, head, tail) )
   { atom_t name;
     int arity;
@@ -473,50 +417,32 @@ pl_ssl_init(term_t config, term_t role, term_t options)
     } else if ( name == ATOM_pem_password_hook && arity == 1 )
     { predicate_t hook;
 
-      if ( !get_predicate_arg(1, head, 2, &hook) )
+      if ( !get_predicate_arg(1, module, head, 2, &hook) )
 	return FALSE;
 
       ssl_set_cb_pem_passwd(conf, pl_pem_passwd_hook, (void *)hook);
     } else if ( name == ATOM_cert_verify_hook && arity == 1 )
     { predicate_t hook;
 
-      if ( !get_predicate_arg(1, head, 3, &hook) )
+      if ( !get_predicate_arg(1, module, head, 3, &hook) )
 	return FALSE;
 
       ssl_set_cb_cert_verify(conf, pl_cert_verify_hook, (void *)hook);
+    } else if ( name == ATOM_close_parent && arity == 1 )
+    { char* s;
+
+      if ( !get_char_arg(1, head, &s) )
+	return FALSE;
+
+      ssl_set_close_parent(conf, strcmp(s, "true") == 0);
     } else
-      return domain_error(head, "ssl_option");
+      continue;
   }
 
   if ( !PL_get_nil(tail) )
     return type_error(tail, "list");
 
-  if ( ssl_socket(conf) < 0 )
-    return FALSE;			/* TBD: error */
-
   return unify_conf(config, conf);
-}
-
-
-static foreign_t
-pl_ssl_accept(term_t config, term_t sock_inst, term_t peer)
-{ PL_SSL *conf;
-  int si;
-  struct sockaddr_in sa_client;
-  socklen_t          client_len = sizeof(sa_client);
-
-  if ( !get_conf(config, &conf) )
-    return FALSE;
-
-  if ( (si = ssl_accept(conf, &sa_client, &client_len)) < 0 )
-    return FALSE;			/* TBD: error */
-
-  if ( PL_unify_integer(sock_inst, si) &&
-       tcp_unify_ip(peer, &sa_client.sin_addr) )
-    return TRUE;
-
-  close(si);
-  return FALSE;				/* exception? */
 }
 
 
@@ -531,17 +457,23 @@ pl_ssl_close(PL_SSL_INSTANCE *instance)
 }
 
 
-static int
+static int 
 pl_ssl_control(PL_SSL_INSTANCE *instance, int action, void *data)
 { switch(action)
   { case SIO_GETFILENO:
-    { int *p = data;
-      nbio_sock_t ns = instance->sock;
-
-      if ( (*p = nbio_fd(ns)) >= 0 )
-	return 0;
-      return -1;
+    { if (instance->sread != NULL)
+    {  SOCKET fd = Sfileno(instance->sread);
+       SOCKET *fdp = data;
+       *fdp = fd;
+       return 0;
+    } else if (instance->swrite != NULL)
+    {  SOCKET fd = Sfileno(instance->swrite); 
+       SOCKET *fdp = data;
+       *fdp = fd;
+       return 0;
     }
+    }
+    return -1;
     case SIO_SETENCODING:
     case SIO_FLUSHOUTPUT:
       return 0;
@@ -574,47 +506,74 @@ static IOFUNCTIONS ssl_funcs =
 
 
 static foreign_t
-pl_ssl_open(term_t config, term_t socket, term_t in, term_t out)
+pl_ssl_put_socket(term_t config, term_t data)
 { PL_SSL *conf;
-  PL_SSL_INSTANCE *instance;
-  int si;
+  if ( !get_conf(config, &conf) )
+    return FALSE;
+  return PL_get_integer(data, &conf->sock);
+}
+
+static foreign_t
+pl_ssl_get_socket(term_t config, term_t data)
+{ PL_SSL *conf;
+  if ( !get_conf(config, &conf) )
+    return FALSE;
+  return PL_unify_integer(data, conf->sock);
+}
+
+static foreign_t
+pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t out)
+{ PL_SSL *conf;
+  IOSTREAM *sorg_in, *sorg_out;
   IOSTREAM *i, *o;
+  PL_SSL_INSTANCE * instance = NULL;
 
   if ( !get_conf(config, &conf) )
     return FALSE;
+  if ( !PL_get_stream_handle(org_in, &sorg_in) )
+     return FALSE;
+  if ( !PL_get_stream_handle(org_out, &sorg_out) )
+     return FALSE;
 
-  if ( conf->pl_ssl_role == PL_SSL_SERVER )
-  { if ( !get_sock(socket, &si) )
-      return FALSE;
-  } else
-  { if ( (si=ssl_connect(conf)) < 0 )
-      return FALSE;			/* TBD: error */
+  if ( !(instance = ssl_ssl_bio(conf, sorg_in, sorg_out)) )
+  {  PL_release_stream(sorg_in);
+     PL_release_stream(sorg_out);
+     return FALSE;			/* TBD: error */
   }
-  if ( !(instance = ssl_ssl(conf, si)) )
-    return FALSE;			/* TBD: error */
 
   if ( !(i=Snew(instance, SIO_INPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+  {  PL_release_stream(sorg_in);
+     PL_release_stream(sorg_out);
     return FALSE;
+  }
   instance->close_needed++;
 
   if ( !PL_unify_stream(in, i) )
   { Sclose(i);
+    PL_release_stream(sorg_in);
+    PL_release_stream(sorg_out);
     return FALSE;
   }
-
+  Sset_filter(sorg_in, i);
+  PL_release_stream(sorg_in);
   if ( !(o=Snew(instance, SIO_OUTPUT|SIO_RECORDPOS|SIO_FBUF, &ssl_funcs)) )
+  {  PL_release_stream(sorg_out);
     return FALSE;
+  }
   instance->close_needed++;
 
   if ( !PL_unify_stream(out, o) )
   { Sclose(i);
+    Sset_filter(sorg_in, NULL);
+    PL_release_stream(sorg_out);
     Sclose(o);
     return FALSE;
   }
+  Sset_filter(sorg_out, o);
+  PL_release_stream(sorg_out);
 
   return TRUE;
 }
-
 
 static foreign_t
 pl_ssl_debug(term_t level)
@@ -649,6 +608,7 @@ install_ssl4pl()
   ATOM_key_file           = PL_new_atom("key_file");
   ATOM_pem_password_hook  = PL_new_atom("pem_password_hook");
   ATOM_cert_verify_hook   = PL_new_atom("cert_verify_hook");
+  ATOM_close_parent       = PL_new_atom("close_parent");
 
   FUNCTOR_ssl1            = PL_new_functor(PL_new_atom("$ssl"), 1);
   FUNCTOR_error2          = PL_new_functor(PL_new_atom("error"), 2);
@@ -658,11 +618,12 @@ install_ssl4pl()
   FUNCTOR_permission_error3=PL_new_functor(PL_new_atom("permission_error"), 3);
   FUNCTOR_ip4		  = PL_new_functor(PL_new_atom("ip"), 4);
 
-  PL_register_foreign("ssl_init",       3, pl_ssl_init,    PL_FA_TRANSPARENT);
-  PL_register_foreign("ssl_accept",     3, pl_ssl_accept,  0);
-  PL_register_foreign("ssl_open",       4, pl_ssl_open,    0);
-  PL_register_foreign("ssl_exit",       1, pl_ssl_exit,    0);
-  PL_register_foreign_in_module("user", "ssl_debug", 1, pl_ssl_debug,   0);
+  PL_register_foreign("_ssl_context",	3, pl_ssl_context,    0);
+  PL_register_foreign("ssl_exit",	1, pl_ssl_exit,	      0);
+  PL_register_foreign("ssl_put_socket",	2, pl_ssl_put_socket, 0);
+  PL_register_foreign("ssl_get_socket",	2, pl_ssl_get_socket, 0);
+  PL_register_foreign("ssl_negotiate",	5, pl_ssl_negotiate,  0);
+  PL_register_foreign("ssl_debug",	1, pl_ssl_debug,      0);
 
   /*
    * Initialize ssllib

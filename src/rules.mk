@@ -72,8 +72,8 @@ BINDIR=$(PLBASE)\runtime
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
 
-PLPKG=chr clpqr http plunit pldoc
-PKGS=$(PLPKG) cpp odbc clib table sgml sgml\RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL)
+PLPKG=chr clpqr http plunit pldoc R
+PKGS=$(PLPKG) cpp odbc clib table sgml RDF semweb xpce nlp $(BUILD_ZLIB) $(BUILD_SSL) $(BUILD_JPL) $(BUILD_SPACE)
 
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
@@ -87,7 +87,7 @@ PKGDOC=$(PLBASE)\doc\packages
 CC=cl.exe
 !IF "$(VC_VERSION)" == "VC8_OR_MORE"
 VC8_OR_MORE_LFLAGS=/MACHINE:$(TARGET_OS_ARCH)
-!ELSE 
+!ELSE
 VC8_OR_MORE_LFLAGS=
 !ENDIF
 !IF "$(LNK)" == "inc"
@@ -111,13 +111,13 @@ LIBS=$(LIBS) $(LIBPTHREAD).lib
 
 # Some libraries used by various packages
 
-PLLIB=$(PLHOME)\lib\libpl.lib
+PLLIB=$(PLHOME)\lib\swipl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
 !IF "$(VC_VERSION)" == "VC8_OR_MORE"
 VC8_OR_MORE_CFLAGS=/D_$(MD) /D_CRT_SECURE_NO_WARNINGS /wd4996
-!ELSE 
+!ELSE
 VC8_OR_MORE_CFLAGS=
 !ENDIF
 
@@ -159,12 +159,12 @@ GMPLIB=
 # packages
 ################################################################
 
-MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\plcon.exe \
+MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\swipl.exe \
 			-f none -F none \
 			-g make_library_index(library) \
 			-t halt
 
-PLCON=$(PLBASE)\bin\plcon.exe
+PLCON=$(PLBASE)\bin\swipl.exe
 
 ################################################################
 # Windows-versions garbage.  Most likely this won't work on Windows 98
