@@ -157,6 +157,28 @@ if "%VCXX%_%TYPE%_%BITS%"=="VC08_SDK_64" (set "BUFFEROVERFLOW=bufferoverflowU.li
 set "EP!EXTRALIBS=%EP!GMP_LIB% %BUFFEROVERFLOW%"
 :end_set_extra_libs
 
+:: MSVC Runtime(s)
+:msvcrt8_sdk
+if not "%VCXX%"=="VC08_SDK" (goto end_msvcrt8_sdk)
+set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_64%\Microsoft Platform SDK for Windows Server 2003 R2\Bin\win64"
+set "EP!MSVCRT=msvcr80.dll"
+:end_msvcrt8_sdk
+:msvcrt8_studio
+if not "%VCXX%"=="VC08_STU" (goto end_msvcrt8_studio)
+if "%BITS%"=="32" (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\redist\x86\Microsoft.VC80.CRT") else (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 8\VC\redist\amd64\Microsoft.VC80.CRT")
+set "EP!MSVCRT=msvcr80.dll"
+:end_msvcrt8_studio
+:msvcrt9
+if not "%VCXX%"=="VC09" (goto end_msvcrt9)
+if "%BITS%"=="32" (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT") else (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 9.0\VC\redist\amd64\Microsoft.VC90.CRT")
+set "EP!MSVCRT=msvcr90.dll"
+:end_msvcrt9
+:msvcrt10
+if not "%VCXX%"=="VC10" (goto end_msvcrt10)
+if "%BITS%"=="32" (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\VC\redist\x86\Microsoft.VC100.CRT") else (set "EP!MSVCRTDIR=%EP!PROGRAM_FILES_32%\Microsoft Visual Studio 10.0\VC\redist\x64\Microsoft.VC100.CRT")
+set "EP!MSVCRT=msvcr100.dll"
+:end_msvcrt10
+
 if "%VCXX%_%TYPE%" GEQ "VC08_STU" (SET "EP!VC_VERSION=VC8_OR_MORE") else (SET "EP!VC_VERSION=VC7_OR_LESS")
 :: What about this here?
 if exist "%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe" (set "EP!NSIS=%EP!PROGRAM_FILES_32%\NSIS\MakeNSIS.exe")

@@ -21,7 +21,6 @@
 ./packages/semweb/semweb.pdf
 ./packages/cppproxy/cppproxy.pdf
 ./packages/jasmine/jasmine.pdf
-./packages/space/space.pdf
 ./packages/R/R.html
 ./packages/db/db4pl.html
 ./packages/cpp/pl2cpp.html
@@ -41,4 +40,3 @@
 ./packages/semweb/semweb.html
 ./packages/cppproxy/cppproxy.html
 ./packages/jasmine/jasmine.html
-./packages/space/space.html

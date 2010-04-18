@@ -281,28 +281,6 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
 
 
 void
-freeVarDefs(PL_local_data_t *ld)
-{ if ( ld->comp.vardefs )
-  { GET_LD
-    VarDef *vardefs = ld->comp.vardefs;
-    int i, count=ld->comp.nvardefs;
-
-    assert(LD==ld);
-
-    for(i=0; i<count; i++)
-    { if ( vardefs[i] )
-	freeHeap(vardefs[i], sizeof(vardef));
-    }
-
-    free(ld->comp.vardefs);
-    ld->comp.vardefs = NULL;
-    ld->comp.nvardefs = 0;
-    ld->comp.filledVars = 0;
-  }
-}
-
-
-void
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m ARG_LD)
 { Module m0;
@@ -1955,15 +1933,8 @@ compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
   i2 = isIndexedVarTerm(*a2 PASS_LD);
 
   if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
-  { int f1, f2;
-
-    if ( i1 == i2 )			/* unify a var with itself? */
-    { Output_0(ci, I_TRUE);
-      return TRUE;
-    }
-
-    f1 = isFirstVarSet(ci->used_var, i1);
-    f2 = isFirstVarSet(ci->used_var, i2);
+  { int f1 = isFirstVarSet(ci->used_var, i1);
+    int f2 = isFirstVarSet(ci->used_var, i2);
 
     if ( f1 && f2 )
       Output_2(ci, B_UNIFY_FF, VAROFFSET(i1), VAROFFSET(i2));
@@ -4975,7 +4946,6 @@ BeginPredDefs(comp)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
   PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
-#ifdef O_DEBUGGER
   PRED_DEF("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
   PRED_DEF("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   PRED_DEF("$break_pc", 3, break_pc, PL_FA_NONDETERMINISTIC)
@@ -4983,5 +4953,4 @@ BeginPredDefs(comp)
   PRED_DEF("$break_at", 3, break_at, 0)
   PRED_DEF("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$xr_member", 2, xr_member, PL_FA_NONDETERMINISTIC)
-#endif /*O_DEBUGGER*/
 EndPredDefs

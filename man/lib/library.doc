@@ -34,7 +34,6 @@ documented at all.
 \input{check}
 \input{clpfd}
 \input{clpqr}
-\input{csv}
 \input{debug}
 \input{gensym}
 \input{lists}

@@ -72,8 +72,7 @@
 	    call_with_depth_limit/3,
 	    length/2,			% ?List, ?Length
 	    numbervars/3,		% +Term, +Start, -End
-	    nb_setval/2,		% +Var, +Value
-	    create_prolog_flag/3
+	    nb_setval/2			% +Var, +Value
 	  ]).
 
 		/********************************
@@ -956,10 +955,3 @@ numbervars(Term, From, To) :-
 nb_setval(Name, Value) :-
 	duplicate_term(Value, Copy),
 	nb_linkval(Name, Copy).
-
-%%	create_prolog_flag(Name, Value, Options)
-%
-%	`Forward' compatibility
-
-create_prolog_flag(Name, Value, _Options) :-
-	set_prolog_flag(Name, Value).

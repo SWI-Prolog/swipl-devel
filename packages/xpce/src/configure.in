@@ -120,19 +120,7 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	       esac])
 
 
-if test ! -z "$CFLAGS"; then
-  for f in $CFLAGS; do
-    case "$f" in
-      -I*)     CIFLAGS="$f $CIFLAGS" ;;
-      -g*|-O*) COFLAGS="$f $COFLAGS" ;;
-      -L*)     LDFLAGS="$f $LDFLAGS" ;;
-      *)       CMFLAGS="$f $CMFLAGS" ;;
-    esac
-  done
-else
-  if test ! -z "$CIFLAGS"; then CFLAGS="$CIFLAGS $CFLAGS"; fi
-fi
-
+if test ! -z "$CIFLAGS"; then CFLAGS="$CIFLAGS $CFLAGS"; fi
 
 # Sometimes this is wrong !
 PWD=`pwd`
@@ -565,7 +553,7 @@ else
     COFLAGS="${COFLAGS--O}"
 fi
 
-CFLAGS="$CFLAGS $CMFLAGS"
+CFLAGS="$CMFLAGS"
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN

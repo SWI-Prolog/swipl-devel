@@ -187,8 +187,7 @@ demo('FtpLog',
      demo(ftplog),
      ftplog('/usr/adm/xferlog')) :-
 	send(@pce, has_feature, process),
-	absolute_file_name('/usr/adm/xferlog', Path),
-	send(file(Path), access, read).
+	send(file('/usr/adm/xferlog'), access, read).
 
 
 demo('ChessTool',
@@ -196,8 +195,7 @@ demo('ChessTool',
      demo(chess),
      chess) :-
 	send(@pce, has_feature, process),
-	absolute_file_name('/usr/games/chess', Path),
-	send(file(Path), access, execute).
+	send(file('/usr/games/chess'), access, execute).
 
 demo('Constraints',
      'Using constraints and relations',

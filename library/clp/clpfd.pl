@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2010 Markus Triska
+    Copyright (C): 2007-2009 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -109,10 +109,8 @@
                   lex_chain/1,
                   serialized/2,
                   global_cardinality/2,
-                  global_cardinality/3,
                   circuit/1,
                   element/3,
-                  automaton/3,
                   automaton/8,
                   transpose/2,
                   zcompare/3,
@@ -126,7 +124,6 @@
 
 
 :- use_module(library(apply)).
-:- use_module(library(assoc)).
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
@@ -2344,10 +2341,13 @@ X #< Y  :- Y #> X.
 % :- use_module(library(clpfd)).
 %
 % vs_n_num(Vs, N, Num) :-
-%         maplist(eq_b(N), Vs, Bs),
+%         vs_n_bs(Vs, N, Bs),
 %         sum(Bs, #=, Num).
 %
-% eq_b(X, Y, B) :- X #= Y #<==> B.
+% vs_n_bs([], _, []).
+% vs_n_bs([V|Vs], N, [B|Bs]) :-
+%         V #= N #<==> B,
+%         vs_n_bs(Vs, N, Bs).
 % ==
 %
 % Sample queries and their results:
@@ -2548,19 +2548,6 @@ reify_(V in Drep, B) --> !,
         { drep_to_domain(Drep, Dom), fd_variable(V) },
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
-reify_(tuples_in(Tuples, Relation), B) --> !,
-        { must_be(list, Tuples),
-          append(Tuples, Vs),
-          maplist(fd_variable, Vs),
-          must_be(list(list(integer)), Relation),
-          maplist(relation_tuple_b_prop(Relation), Tuples, Bs, Ps),
-          (   Bs == [] -> B = 1
-          ;   Bs = [B1|Rest],
-              bs_and(Rest, B1, And),
-              And #<==> B
-          ) },
-        list(Ps),
-        as([B|Bs]).
 reify_(finite_domain(V), B) --> !,
         { fd_variable(V) },
         propagator_init_trigger(reified_fd(V,B)),
@@ -2625,19 +2612,6 @@ a(B) -->
         (   { var(B) } -> [a(B)]
         ;   []
         ).
-
-as([])     --> [].
-as([B|Bs]) --> a(B), as(Bs).
-
-bs_and([], A, A).
-bs_and([B|Bs], A0, A) :-
-        bs_and(Bs, A0#/\B, A).
-
-relation_tuple_b_prop(Relation, Tuple, B, p(Prop)) :-
-        put_attr(R, clpfd_relation, Relation),
-        make_propagator(reified_tuple_in(Tuple, R, B), Prop),
-        tuple_freeze(Tuple, Tuple, Prop),
-        init_propagator(B, Prop).
 
 % Match variables to created skeleton.
 
@@ -2992,12 +2966,10 @@ constraint_wake(scalar_product_eq, bounds).
 constraint_wake(scalar_product_leq, bounds).
 constraint_wake(pplus, bounds).
 constraint_wake(pgeq, bounds).
-constraint_wake(pgcc_single, bounds).
 constraint_wake(pgcc_check_single, bounds).
 
-global_constraint(pdistinct).
+global_constraint(regin).
 global_constraint(pgcc).
-global_constraint(pgcc_single).
 global_constraint(pcircuit).
 %global_constraint(rel_tuple).
 %global_constraint(scalar_product_eq).
@@ -3094,17 +3066,19 @@ tuples_in(Tuples, Relation) :-
         append(Tuples, Vs),
         maplist(fd_variable, Vs),
         must_be(list(list(integer)), Relation),
-        maplist(relation_tuple(Relation), Tuples),
+        tuples_domain(Tuples, Relation),
         do_queue.
 
-relation_tuple(Relation, Tuple) :-
-        relation_unifiable(Relation, Tuple, Us, _, _),
+tuples_domain([], _).
+tuples_domain([Tuple|Tuples], Relation) :-
+        relation_unifiable(Relation, Tuple, Us, 0, _),
         (   ground(Tuple) -> memberchk(Tuple, Relation)
         ;   tuple_domain(Tuple, Us),
             (   Tuple = [_,_|_] -> tuple_freeze(Tuple, Us)
             ;   true
             )
-        ).
+        ),
+        tuples_domain(Tuples, Relation).
 
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
@@ -3139,7 +3113,7 @@ relation_unifiable([R|Rs], Tuple, Us, Changed0, Changed) :-
         (   all_in_domain(R, Tuple) ->
             Us = [R|Rest],
             relation_unifiable(Rs, Tuple, Rest, Changed0, Changed)
-        ;   relation_unifiable(Rs, Tuple, Us, true, Changed)
+        ;   relation_unifiable(Rs, Tuple, Us, 1, Changed)
         ).
 
 all_in_domain([], []).
@@ -3164,7 +3138,7 @@ run_propagator(pdifferent(Left,Right,X,_), _MState) :-
         ;   true
         ).
 
-run_propagator(weak_distinct(Left,Right,X,_), _MState) :-
+run_propagator(pdistinct(Left,Right,X,_), _MState) :-
         (   ground(X) ->
             disable_queue,
             exclude_fire(Left, Right, X),
@@ -3183,8 +3157,8 @@ run_propagator(pexclude(Left,Right,X), _) :-
         ;   true
         ).
 
-run_propagator(pdistinct(Ls), _MState) :-
-        distinct(Ls).
+run_propagator(regin(Ls), _MState) :-
+        regin(Ls).
 
 run_propagator(check_distinct(Left,Right,X), _) :-
         \+ list_contains(Left, X),
@@ -3192,31 +3166,38 @@ run_propagator(check_distinct(Left,Right,X), _) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pelement(N, Is, V), MState) :-
-        (   fd_get(N, NDom, _) ->
-            (   fd_get(V, VDom, VPs) ->
-                integers_remaining(Is, 1, NDom, empty, VDom1),
-                domains_intersection(VDom, VDom1, VDom2),
-                fd_put(V, VDom2, VPs)
-            ;   true
-            )
-        ;   kill(MState), nth1(N, Is, V)
+run_propagator(pelement(_, Is, V), MState) :-
+        (   ground(Is) -> kill(MState)
+        ;   true
+        ),
+        domains_union(Is, Dom),
+        (   fd_get(V, VD, Ps) ->
+            domains_intersection(VD, Dom, VD1),
+            fd_put(V, VD1, Ps)
+        ;   domain_contains(Dom, V)
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-run_propagator(pgcc_single(Vs, Pairs), _) :- gcc_global(Vs, Pairs).
+run_propagator(pgcc_check(_, _, Pairs), _) :-
+        disable_queue,
+        gcc_check(Pairs),
+        enable_queue.
 
-run_propagator(pgcc_check_single(Pairs), _) :- gcc_check(Pairs).
+run_propagator(pgcc_check_single(Single), _) :-
+        disable_queue,
+        gcc_check(Single),
+        enable_queue.
 
-run_propagator(pgcc_check(Pairs), _) :- gcc_check(Pairs).
-
-run_propagator(pgcc(Vs, _, Pairs), _) :- gcc_global(Vs, Pairs).
+run_propagator(pgcc(Pairs), _) :-
+        disable_queue,
+        gcc_global(Pairs),
+        enable_queue.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 run_propagator(pcircuit(Vs), _MState) :-
-        distinct(Vs),
+        regin(Vs),
         propagate_circuit(Vs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3274,19 +3255,18 @@ run_propagator(pgeq(A,B), MState) :-
 run_propagator(rel_tuple(R, Tuple), MState) :-
         get_attr(R, clpfd_relation, Relation),
         (   ground(Tuple) -> kill(MState), memberchk(Tuple, Relation)
-        ;   relation_unifiable(Relation, Tuple, Us, false, Changed),
+        ;   relation_unifiable(Relation, Tuple, Us, 0, Changed),
             Us = [_|_],
             (   Tuple = [First,Second], ( ground(First) ; ground(Second) ) ->
                 kill(MState)
             ;   true
             ),
             (   Us = [Single] -> kill(MState), Single = Tuple
-            ;   Changed ->
-                put_attr(R, clpfd_relation, Us),
+            ;   Changed =:= 0 -> true
+            ;   put_attr(R, clpfd_relation, Us),
                 disable_queue,
                 tuple_domain(Tuple, Us),
                 enable_queue
-            ;   true
             )
         ).
 
@@ -3618,12 +3598,9 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZExp2) ->
                     min_times(NXL,NXU,NYL,NYU,NZL),
                     max_times(NXL,NXU,NYL,NYU,NZU),
-                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
+                    (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> true
                     ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
                         fd_put(Z, ZD3, ZExp2)
-                    ),
-                    (   domain_contains(ZD3, 0) ->  true
-                    ;   neq_num(X, 0), neq_num(Y, 0)
                     )
                 ;   true
                 )
@@ -3977,21 +3954,6 @@ run_propagator(reified_in(V,Dom,B), MState) :-
             )
         ).
 
-run_propagator(reified_tuple_in(Tuple, R, B), MState) :-
-        get_attr(R, clpfd_relation, Relation),
-        (   B == 1 -> kill(MState), tuples_in([Tuple], Relation)
-        ;   (   ground(Tuple) ->
-                kill(MState),
-                (   memberchk(Tuple, Relation) -> B = 1
-                ;   B = 0
-                )
-            ;   relation_unifiable(Relation, Tuple, Us, _, _),
-                (   Us = [] -> kill(MState), B = 0
-                ;   true
-                )
-            )
-        ).
-
 run_propagator(reified_fd(V,B), MState) :-
         (   fd_inf(V, I), I \== inf, fd_sup(V, S), S \== sup ->
             kill(MState),
@@ -4190,20 +4152,11 @@ max_divide_less(L1,U1,L2,U2,Max) :-
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
 
-finite(n(_)).
 
 min_divide(L1,U1,L2,U2,Min) :-
-        (   L2 = n(NL2), NL2 > 0, finite(U2), cis_geq_zero(L1) ->
+        (   L2 = n(NL2), NL2 > 0, U2 = n(_), cis_geq_zero(L1) ->
             Min cis div(L1+U2-n(1),U2)
                                 % TODO: cover more cases
-        ;   L1 = n(NL1), NL1 > 0, U2 cis_leq n(-1) -> Min cis div(U1,U2)
-        ;   L1 = n(NL1), NL1 > 0 -> Min cis -U1
-        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(0) ->
-            (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
-            ;   Min = n(1)
-            )
-        ;   U1 = n(NU1), NU1 < 0, cis_geq_zero(L2) -> Min cis div(L1,L2)
-        ;   U1 = n(NU1), NU1 < 0 -> Min = L1
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
@@ -4211,17 +4164,6 @@ max_divide(L1,U1,L2,U2,Max) :-
         (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
             Max cis div(U1,L2)
                                 % TODO: cover more cases
-        ;   L1 = n(NL1), NL1 > 0, U2 cis_leq n(0) ->
-            (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
-            ;   Max = n(-1)
-            )
-        ;   L1 = n(NL1), NL1 > 0 -> Max = U1
-        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(-1) -> Max cis div(L1,U2)
-        ;   U1 = n(NU1), NU1 < 0, cis_geq_zero(L2) ->
-            (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
-            ;   Max = n(-1)
-            )
-        ;   U1 = n(NU1), NU1 < 0 -> Max cis -L1
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
@@ -4232,8 +4174,16 @@ max_divide(L1,U1,L2,U2,Max) :-
    CSPs", AAAI-94, Seattle, WA, USA, pp 362--367, 1994
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-distinct_attach([], _, _).
-distinct_attach([X|Xs], Prop, Right) :-
+regin_attach(Ls) :-
+         must_be(list, Ls),
+         maplist(fd_variable, Ls),
+         make_propagator(regin(Ls), Prop),
+         regin_attach(Ls, Prop, []),
+         trigger_prop(Prop),
+         do_queue.
+
+regin_attach([], _, _).
+regin_attach([X|Xs], Prop, Right) :-
         (   var(X) ->
             init_propagator(X, Prop),
             make_propagator(pexclude(Xs,Right,X), P1),
@@ -4241,7 +4191,7 @@ distinct_attach([X|Xs], Prop, Right) :-
             trigger_prop(P1)
         ;   exclude_fire(Xs, Right, X)
         ),
-        distinct_attach(Xs, Prop, [X|Right]).
+        regin_attach(Xs, Prop, [X|Right]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each integer of the union of domains, an attributed variable is
@@ -4260,7 +4210,7 @@ distinct_attach([X|Xs], Prop, Right) :-
 
 difference_arcs(Vars, FreeLeft, FreeRight) :-
         empty_assoc(E),
-        phrase(difference_arcs(Vars, FreeLeft), [E], [NumVar]),
+        difference_arcs(Vars, FreeLeft, E, NumVar),
         assoc_to_list(NumVar, LsNumVar),
         pairs_values(LsNumVar, FreeRight).
 
@@ -4271,32 +4221,32 @@ domain_to_list(split(_, Left, Right)) -->
 domain_to_list(empty)                 --> [].
 domain_to_list(from_to(n(F),n(T)))    --> { numlist(F, T, Ns) }, list(Ns).
 
-difference_arcs([], []) --> [].
-difference_arcs([V|Vs], FL0) -->
-        (   { fd_get(V, Dom, _), domain_to_list(Dom, Ns) } ->
-            { FL0 = [V|FL] },
-            enumerate(Ns, V),
-            difference_arcs(Vs, FL)
-        ;   difference_arcs(Vs, FL0)
+difference_arcs([], [], NumVar, NumVar).
+difference_arcs([V|Vs], FL0, NumVar0, NumVar) :-
+        (   fd_get(V, Dom, _), domain_to_list(Dom, Ns) ->
+            FL0 = [V|FL],
+            enumerate(Ns, V, NumVar0, NumVar1),
+            difference_arcs(Vs, FL, NumVar1, NumVar)
+        ;   difference_arcs(Vs, FL0, NumVar0, NumVar)
         ).
 
-enumerate([], _) --> [].
-enumerate([N|Ns], V) -->
-        state(NumVar0, NumVar),
-        { (   get_assoc(N, NumVar0, Y) -> NumVar0 = NumVar
-          ;   put_assoc(N, NumVar0, Y, NumVar),
-              put_attr(Y, value, N)
-          ),
-          put_attr(F, flow, 0),
-          append_edge(Y, edges, flow_from(F,V)),
-          append_edge(V, edges, flow_to(F,Y)) },
-        enumerate(Ns, V).
+enumerate([], _, NumVar, NumVar).
+enumerate([N|Ns], V, NumVar0, NumVar) :-
+        put_attr(F, flow, 0),
+        (   get_assoc(N, NumVar0, Y) ->
+            get_attr(Y, edges, Es),
+            put_attr(Y, edges, [flow_from(F,V)|Es]),
+            NumVar0 = NumVar1
+        ;   put_assoc(N, NumVar0, Y, NumVar1),
+            put_attr(Y, value, N),
+            put_attr(Y, edges, [flow_from(F,V)])
+        ),
+        (   get_attr(V, edges, Es1) ->
+            put_attr(V, edges, [flow_to(F,Y)|Es1])
+        ;   put_attr(V, edges, [flow_to(F,Y)])
+        ),
+        enumerate(Ns, V, NumVar1, NumVar).
 
-append_edge(V, Attr, E) :-
-        (   get_attr(V, Attr, Es) ->
-            put_attr(V, Attr, [E|Es])
-        ;   put_attr(V, Attr, [E])
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Strategy: Breadth-first search until we find a free right vertex in
@@ -4314,36 +4264,46 @@ maximum_matching([FL|FLs]) :-
         adjust_alternate_1(Path),
         maximum_matching(FLs).
 
-reachables([]) --> [].
-reachables([V|Vs]) -->
+reachables_right([]) --> [].
+reachables_right([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        reachables_(Es, V),
-        reachables(Vs).
+        reachables_right_(Es, V),
+        reachables_right(Vs).
 
-reachables_([], _) --> [].
-reachables_([E|Es], V) -->
-        edge_reachable(E, V),
-        reachables_(Es, V).
-
-edge_reachable(flow_to(F,To), V) -->
+reachables_right_([], _) --> [].
+reachables_right_([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(To, parent, _) } ->
             { put_attr(To, parent, V-F) },
             [To]
         ;   []
-        ).
-edge_reachable(flow_from(F,From), V) -->
+        ),
+        reachables_right_(Es, V).
+
+
+reachables_left([]) --> [].
+reachables_left([V|Vs]) -->
+        { get_attr(V, edges, Es) },
+        reachables_left_(Es, V),
+        reachables_left(Vs).
+
+reachables_left_([], _) --> [].
+reachables_left_([flow_from(F,From)|Es], V) -->
         (   { get_attr(F, flow, 1),
               \+ get_attr(From, parent, _) } ->
             { put_attr(From, parent, V-F) },
             [From]
         ;   []
-        ).
+        ),
+        reachables_left_(Es, V).
 
 augmenting_path_to(Level, Levels0, Levels, Right) :-
         Levels0 = [Vs|_],
         Levels1 = [Tos|Levels0],
-        phrase(reachables(Vs), Tos),
+        (   Level mod 2 =:= 1 ->
+            phrase(reachables_right(Vs), Tos)
+        ;   phrase(reachables_left(Vs), Tos)
+        ),
         Tos = [_|_],
         (   Level mod 2 =:= 1, member(Free, Tos), get_attr(Free, free, true) ->
             Right = Free, Levels = Levels1
@@ -4382,8 +4342,14 @@ g_g0(V) :-
 
 g_g0_(V, flow_to(F,To)) :-
         (   get_attr(F, flow, 1) ->
-            append_edge(V, g0_edges, flow_to(F,To))
-        ;   append_edge(To, g0_edges, flow_to(F,V))
+            (   get_attr(V, g0_edges, Es) ->
+                put_attr(V, g0_edges, [flow_to(F,To)|Es])
+            ;   put_attr(V, g0_edges, [flow_to(F,To)])
+            )
+        ;   (   get_attr(To, g0_edges, Es1) ->
+                put_attr(To, g0_edges, [flow_to(F,V)|Es1])
+            ;   put_attr(To, g0_edges, [flow_to(F,V)])
+            )
         ).
 
 
@@ -4399,27 +4365,28 @@ free_node(F) :-
         get_attr(F, free, true),
         del_attr(F, free).
 
-distinct(Vars) :-
+regin(Vars) :-
         difference_arcs(Vars, FreeLeft, FreeRight0),
         length(FreeLeft, LFL),
         length(FreeRight0, LFR),
         LFL =< LFR,
         maplist(put_free, FreeRight0),
         maximum_matching(FreeLeft),
-        include(free_node, FreeRight0, FreeRight),
+        sublist(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
         phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
         maplist(dfs_used, FreeRight),
-        phrase(distinct_goals(FreeLeft), Gs),
-        maplist(distinct_clear_attributes, FreeLeft),
+        phrase(regin_goals(FreeLeft), Gs),
+        maplist(regin_clear_attributes, FreeLeft),
         disable_queue,
         maplist(call, Gs),
         enable_queue.
 
-distinct_clear_attributes(V) :-
+regin_clear_attributes(V) :-
         (   get_attr(V, edges, Es) ->
+            del_attr(V, edges),
             % parent and in_stack are already cleared
-            maplist(del_attr(V), [edges,index,lowlink,value,visited]),
+            maplist(del_attr(V), [index,lowlink,value,visited]),
             maplist(clear_edge, Es),
             (   get_attr(V, g0_edges, Es1) ->
                 del_attr(V, g0_edges),
@@ -4433,18 +4400,18 @@ distinct_clear_attributes(V) :-
 clear_edge(flow_to(F, To)) :-
         del_attr(F, flow),
         del_attr(F, used),
-        distinct_clear_attributes(To).
+        regin_clear_attributes(To).
 clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
 
 
-distinct_goals([]) --> [].
-distinct_goals([V|Vs]) -->
+regin_goals([]) --> [].
+regin_goals([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        distinct_edges(Es, V),
-        distinct_goals(Vs).
+        regin_edges(Es, V),
+        regin_goals(Vs).
 
-distinct_edges([], _) --> [].
-distinct_edges([flow_to(F,To)|Es], V) -->
+regin_edges([], _) --> [].
+regin_edges([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(F, used, true),
               get_attr(V, lowlink, L1),
@@ -4454,7 +4421,7 @@ distinct_edges([flow_to(F,To)|Es], V) -->
             [neq_num(V, N)]
         ;   []
         ),
-        distinct_edges(Es, V).
+        regin_edges(Es, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Mark used edges.
@@ -4559,17 +4526,11 @@ v_in_stack(V) --> { get_attr(V, in_stack, true) }.
 %  values given the following domains:
 %
 %  ==
-%  ?- maplist(in, Vs, [1\/3..4, 1..2\/4, 1..2\/4, 1..3, 1..3, 1..6]), all_distinct(Vs).
+%  ?- maplist(in, Vs, [1..3, 1..3, 1..2\/4, 1..2\/4, 1\/3..4]), all_distinct(Vs).
 %  false.
 %  ==
 
-all_distinct(Ls) :-
-        must_be(list, Ls),
-        maplist(fd_variable, Ls),
-        make_propagator(pdistinct(Ls), Prop),
-        distinct_attach(Ls, Prop, []),
-        trigger_prop(Prop),
-        do_queue.
+all_distinct(Ls) :- regin_attach(Ls).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent constraint of difference, currently only
@@ -4590,7 +4551,7 @@ all_distinct([], _, _).
 all_distinct([X|Right], Left, Orig) :-
         %\+ list_contains(Right, X),
         (   var(X) ->
-            make_propagator(weak_distinct(Left,Right,X,Orig), Prop),
+            make_propagator(pdistinct(Left,Right,X,Orig), Prop),
             init_propagator(X, Prop),
             trigger_prop(Prop)
 %             make_propagator(check_distinct(Left,Right,X), Prop2),
@@ -4670,14 +4631,7 @@ num_subsets([S|Ss], Dom, Num0, Num, NonSubs) :-
 %   Durations = [D_1,...,D_n] is a list of non-negative integers.
 %   Constrains Starts and Durations to denote a set of
 %   non-overlapping tasks, i.e.: S_i + D_i =< S_j or S_j + D_j =<
-%   S_i for all 1 =< i < j =< n. Example:
-%
-%   ==
-%   ?- length(Vs, 3), Vs ins 0..3, serialized(Vs, [1,2,3]), label(Vs).
-%   Vs = [0, 1, 3] ;
-%   Vs = [2, 0, 3] ;
-%   false.
-%   ==
+%   S_i for all 1 =< i < j =< n.
 %
 %  @see Dorndorf et al. 2000, "Constraint Propagation Techniques for the
 %       Disjunctive Scheduling Problem"
@@ -4766,28 +4720,28 @@ element(N, Is, V) :-
         length(Is, L),
         N in 1..L,
         element_(Is, 1, N, V),
-        propagator_init_trigger([N|Is], pelement(N,Is,V)).
+        propagator_init_trigger(Is, pelement(N,Is,V)).
 
 element_domain(V, VD) :-
         (   fd_get(V, VD, _) -> true
         ;   VD = from_to(n(V), n(V))
         ).
 
+domains_union([V|Vs], Dom) :-
+        element_domain(V, VD),
+        domains_union_(Vs, VD, Dom).
+
+domains_union_([], D, D).
+domains_union_([V|Vs], D0, D) :-
+        element_domain(V, VD),
+        domains_union(VD, D0, D1),
+        domains_union_(Vs, D1, D).
+
 element_([], _, _, _).
 element_([I|Is], N0, N, V) :-
         I #\= V #==> N #\= N0,
         N1 is N0 + 1,
         element_(Is, N1, N, V).
-
-integers_remaining([], _, _, D, D).
-integers_remaining([V|Vs], N0, Dom, D0, D) :-
-        (   domain_contains(Dom, N0) ->
-            element_domain(V, VD),
-            domains_union(D0, VD, D1)
-        ;   D1 = D0
-        ),
-        N1 is N0 + 1,
-        integers_remaining(Vs, N1, Dom, D1, D).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4823,12 +4777,8 @@ global_cardinality(Xs, Pairs) :-
         domain_to_drep(Dom, Drep),
         Xs ins Drep,
         gcc_pairs(Pairs, Xs, Pairs1),
-        % pgcc_check must be installed before triggering other
-        % propagators
-        propagator_init_trigger(Xs, pgcc_check(Pairs1)),
-        propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
-        propagator_init_trigger(Nums, pgcc_check_single(Pairs1)),
-        propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
+        propagator_init_trigger(Xs, pgcc_check(Xs, Pairs, Pairs1)),
+        propagator_init_trigger(Xs, pgcc(Pairs1)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
@@ -4845,6 +4795,11 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
         put_attr(Num, clpfd_gcc_num, Num0),
         put_attr(Num, clpfd_gcc_vs, Vs),
         put_attr(Num, clpfd_gcc_occurred, 0),
+        (   var(Num0) ->
+            make_propagator(pgcc_check_single([Key-Num]), Prop),
+            init_propagator(Num0, Prop)
+        ;   true
+        ),
         gcc_pairs(KNs, Vs, Rest).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4852,13 +4807,8 @@ gcc_pairs([Key-Num0|KNs], Vs, [Key-Num|Rest]) :-
     Constraint", AAAI-96 Portland, OR, USA, pp 209--215, 1996
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_global(Vs, KNs) :-
-        gcc_check(KNs),
-        % reach fix-point: all elements of clpfd_gcc_vs must be variables
-        do_queue,
-        gcc_arcs(KNs, S, Vals),
-        variables_with_num_occurrences(Vs, VNs),
-        maplist(target_to_v(T), VNs),
+gcc_global(KNs) :-
+        gcc_arcs(KNs, S, T, Vals),
         (   get_attr(S, edges, Es) ->
             put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
             feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
@@ -4868,17 +4818,21 @@ gcc_global(Vs, KNs) :-
             phrase(scc(Vals), [s(0,[],gcc_successors)], _),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
-            disable_queue,
-            maplist(call, Gs),
-            enable_queue
+            maplist(call, Gs)
         ;   true
         ).
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
-        maplist(saturated_arc, Es).
+        length(Es, N),
+        total_flow(Es, 0, F),
+        N =:= F.
 
-saturated_arc(arc_from(_,U,_,Flow)) :- get_attr(Flow, flow, U).
+total_flow([], F, F).
+total_flow([arc_from(_,_,_,Flow)|As], F0, F) :-
+        get_attr(Flow, flow, FF),
+        F1 is F0 + FF,
+        total_flow(As, F1, F).
 
 gcc_goals([]) --> [].
 gcc_goals([Val|Vals]) -->
@@ -5000,8 +4954,8 @@ gcc_augmenting_path(S, V) -->
    Build value network for global cardinality constraint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_arcs([], _, []).
-gcc_arcs([Key-Num0|KNs], S, Vals) :-
+gcc_arcs([], _, _, []).
+gcc_arcs([Key-Num0|KNs], S, T, Vals) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ),
@@ -5011,47 +4965,42 @@ gcc_arcs([Key-Num0|KNs], S, Vals) :-
             ),
             put_attr(Val, value, Key),
             Vals = [Val|Rest],
+            Edge = arc_to(L, U, Val, F),
             put_attr(F, flow, 0),
-            append_edge(S, edges, arc_to(L, U, Val, F)),
+            (   get_attr(S, edges, SEs) ->
+                put_attr(S, edges, [Edge|SEs])
+            ;   put_attr(S, edges, [Edge])
+            ),
             put_attr(Val, edges, [arc_from(L, U, S, F)]),
-            variables_with_num_occurrences(Vs, VNs),
-            maplist(val_to_v(Val), VNs)
+            connect_vs_to_target(Vs, Val, T)
         ;   Vals = Rest
         ),
-        gcc_arcs(KNs, S, Rest).
+        gcc_arcs(KNs, S, T, Rest).
 
-variables_with_num_occurrences(Vs0, VNs) :-
-        include(var, Vs0, Vs1),
-        msort(Vs1, Vs),
-        (   Vs == [] -> VNs = []
-        ;   Vs = [V|Rest],
-            variables_with_num_occurrences(Rest, V, 1, VNs)
-        ).
-
-variables_with_num_occurrences([], Prev, Count, [Prev-Count]).
-variables_with_num_occurrences([V|Vs], Prev, Count0, VNs) :-
-        (   V == Prev ->
-            Count1 is Count0 + 1,
-            variables_with_num_occurrences(Vs, Prev, Count1, VNs)
-        ;   VNs = [Prev-Count0|Rest],
-            variables_with_num_occurrences(Vs, V, 1, Rest)
-        ).
-
-
-target_to_v(T, V-Count) :-
-        put_attr(F, flow, 0),
-        append_edge(V, edges, arc_to(0, Count, T, F)),
-        append_edge(T, edges, arc_from(0, Count, V, F)).
-
-val_to_v(Val, V-Count) :-
-        put_attr(F, flow, 0),
-        append_edge(V, edges, arc_from(0, Count, Val, F)),
-        append_edge(Val, edges, arc_to(0, Count, V, F)).
-
+connect_vs_to_target([], _, _).
+connect_vs_to_target([V|Vs], Val, T) :-
+        put_attr(F2, flow, 0),
+        (   get_attr(V, edges, VarEs) -> true
+        ;   VarEs = []
+        ),
+        (   get_attr(V, arc_to_t, _) ->
+            put_attr(V, edges, [arc_from(0, 1, Val, F2)|VarEs])
+        ;   put_attr(V, arc_to_t, _),
+            put_attr(F1, flow, 0),
+            put_attr(V, edges, [arc_to(0, 1, T, F1), arc_from(0, 1, Val, F2)|VarEs]),
+            TE = arc_from(0, 1, V, F1),
+            (   get_attr(T, edges, TEs) ->
+                put_attr(T, edges, [TE|TEs])
+            ;   put_attr(T, edges, [TE])
+            )
+        ),
+        get_attr(Val, edges, VEs),
+        put_attr(Val, edges, [arc_to(0, 1, V, F2)|VEs]),
+        connect_vs_to_target(Vs, Val, T).
 
 gcc_clear(V) :-
         (   get_attr(V, edges, Es) ->
-            maplist(del_attr(V), [edges,index,lowlink,value]),
+            maplist(del_attr(V), [arc_to_t,edges,index,lowlink,value]),
             maplist(gcc_clear_edge, Es)
         ;   true
         ).
@@ -5082,7 +5031,6 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
-   Importantly, it removes all ground values from clpfd_gcc_vs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_done(Num) :-
@@ -5090,13 +5038,8 @@ gcc_done(Num) :-
         del_attr(Num, clpfd_gcc_num),
         del_attr(Num, clpfd_gcc_occurred).
 
-gcc_check(Pairs) :-
-        disable_queue,
-        gcc_check_(Pairs),
-        enable_queue.
-
-gcc_check_([]).
-gcc_check_([Key-Num0|KNs]) :-
+gcc_check([]).
+gcc_check([Key-Num0|KNs]) :-
         (   get_attr(Num0, clpfd_gcc_vs, Vs) ->
             get_attr(Num0, clpfd_gcc_num, Num),
             get_attr(Num0, clpfd_gcc_occurred, Occ0),
@@ -5119,16 +5062,13 @@ gcc_check_([Key-Num0|KNs]) :-
                     Diff is NInf - Occ1
                 ),
                 L >= Diff,
-                (   L =:= Diff ->
-                    gcc_done(Num0),
-                    Num is Occ1 + Diff,
-                    maplist(=(Key), Os)
+                (   L =:= Diff -> gcc_done(Num0), Num is Occ1 + Diff, maplist(=(Key), Os)
                 ;   true
                 )
             )
         ;   true
         ),
-        gcc_check_(KNs).
+        gcc_check(KNs).
 
 vs_key_min_others([], _, Min, Min, []).
 vs_key_min_others([V|Vs], Key, Min0, Min, Others) :-
@@ -5157,31 +5097,6 @@ gcc_pair(Pair) :-
         ;   domain_error(gcc_pair, Pair)
         ).
 
-%%    global_cardinality(+Vs, +Pairs, +Options)
-%
-%     Like global_cardinality/2, with Options a list of options.
-%     Currently, the only supported option is
-%
-%     * cost(Cost, Matrix)
-%     Matrix is a list of rows, one for each variable, in the order
-%     they occur in Vs. Each of these rows is a list of integers, one
-%     for each key, in the order these keys occur in Pairs. When
-%     variable v_i is assigned the value of key k_j, then the
-%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
-
-
-global_cardinality(Xs, Pairs, Options) :-
-        global_cardinality(Xs, Pairs),
-        Options = [cost(Cost, Matrix)],
-        must_be(list(list(integer)), Matrix),
-        pairs_keys_values(Pairs, Keys, _),
-        maplist(keys_costs(Keys), Xs, Matrix, Costs),
-        sum(Costs, #=, Cost).
-
-keys_costs(Keys, X, Row, C) :-
-        element(N, Keys, X),
-        element(N, Row, C).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%    circuit(+Vs)
@@ -5208,7 +5123,7 @@ circuit(Vs) :-
         (   L =:= 1 -> true
         ;   all_circuit(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
-            distinct_attach(Vs, Prop, []),
+            regin_attach(Vs, Prop, []),
             trigger_prop(Prop),
             do_queue
         ).
@@ -5266,29 +5181,6 @@ circuit_successors(V, Tos) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% automaton(+Signature, +Nodes, +Arcs)
-%
-%  Equivalent to automaton(_, _, Signature, Nodes, Arcs, [], [], _), a
-%  common use case of automaton/8. In the following example, a list of
-%  binary finite domain variables is constrained to contain at least
-%  two consecutive ones:
-%
-%  ==
-%  two_consecutive_ones(Vs) :-
-%          automaton(Vs, [source(a),sink(c)],
-%                    [arc(a,0,a), arc(a,1,b),
-%                     arc(b,0,a), arc(b,1,c),
-%                     arc(c,0,c), arc(c,1,c)]).
-%
-%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
-%  Vs = [0, 1, 1] ;
-%  Vs = [1, 1, 0] ;
-%  Vs = [1, 1, 1].
-%  ==
-
-automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
-
-
 %% automaton(?Sequence, ?Template, +Signature, +Nodes, +Arcs, +Counters, +Initials, ?Finals)
 %
 %  True if the finite automaton induced by Nodes and Arcs (extended
@@ -5309,6 +5201,22 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  goal. Initials is a list of the same length as Counters. Counter
 %  arithmetic on the transitions relates the counter values in
 %  Initials to Finals.
+%
+%  In the following example, a list of binary finite domain variables
+%  is constrained to contain at least two consecutive ones:
+%
+%  ==
+%  two_consecutive_ones(Vs) :-
+%          automaton(_, _, Vs, [source(a),sink(c)],
+%                    [arc(a,0,a), arc(a,1,b),
+%                     arc(b,0,a), arc(b,1,c),
+%                     arc(c,0,c), arc(c,1,c)], [], [], _).
+%
+%  ?- length(Vs, 3), two_consecutive_ones(Vs), label(Vs).
+%  Vs = [0, 1, 1] ;
+%  Vs = [1, 1, 0] ;
+%  Vs = [1, 1, 1].
+%  ==
 %
 %  The following example is taken from Beldiceanu, Carlsson, Debruyne
 %  and Petit: "Reformulation of Global Constraints Based on
@@ -5801,16 +5709,16 @@ attribute_goal_(scalar_product_eq([FC|Cs],[FV|Vs],C)) -->
 attribute_goal_(scalar_product_leq([FC|Cs],[FV|Vs],C)) -->
         [Left #=< C],
         { coeff_var_term(FC, FV, T0), fold_product(Cs, Vs, T0, Left) }.
-attribute_goal_(pdifferent(_,_,_,O))    --> original_goal(O).
-attribute_goal_(weak_distinct(_,_,_,O)) --> original_goal(O).
-attribute_goal_(pdistinct(Vs))          --> [all_distinct(Vs)].
+attribute_goal_(pdifferent(_,_,_,O)) --> original_goal(O).
+attribute_goal_(pdistinct(_,_,_,O))  --> original_goal(O).
+attribute_goal_(regin(Vs))        --> [all_distinct(Vs)].
 attribute_goal_(pexclude(_,_,_))  --> [].
 attribute_goal_(pelement(N,Is,V)) --> [element(N, Is, V)].
-attribute_goal_(pgcc(Vs, Pairs, _))   --> [global_cardinality(Vs, Pairs)].
-attribute_goal_(pgcc_single(_,_))     --> [].
+attribute_goal_(pgcc(_))          --> [].
+attribute_goal_(pgcc_check(Vs, Pairs, _)) -->
+        [global_cardinality(Vs, Pairs)].
 attribute_goal_(pgcc_check_single(_)) --> [].
-attribute_goal_(pgcc_check(_))        --> [].
-attribute_goal_(pcircuit(Vs))       --> [circuit(Vs)].
+attribute_goal_(pcircuit(Vs))         --> [circuit(Vs)].
 attribute_goal_(pserialized(_,_,_,_,O)) --> original_goal(O).
 attribute_goal_(rel_tuple(R, Tuple)) -->
         { get_attr(R, clpfd_relation, Rel) },
@@ -5820,9 +5728,6 @@ attribute_goal_(pzcompare(O,A,B)) --> [zcompare(O,A,B)].
 attribute_goal_(reified_in(V, D, B)) -->
         [V in Drep #<==> B],
         { domain_to_drep(D, Drep) }.
-attribute_goal_(reified_tuple_in(Tuple, R, B)) -->
-        { get_attr(R, clpfd_relation, Rel) },
-        [tuples_in([Tuple], Rel) #<==> B].
 attribute_goal_(reified_fd(V,B)) --> [finite_domain(V) #<==> B].
 attribute_goal_(reified_neq(DX,X,DY,Y,_,B)) --> conjunction(DX, DY, X#\=Y, B).
 attribute_goal_(reified_eq(DX,X,DY,Y,_,B))  --> conjunction(DX, DY, X #= Y, B).

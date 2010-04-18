@@ -44,8 +44,7 @@ implementation of the rfc2045 (mime) specifications.
 */
 
 :- multifile
-	http_client:http_convert_data/4,
-	http_parameters:form_data_content_type/1.
+	http_client:http_convert_data/4.
 
 http_client:http_convert_data(In, Fields, Data, Options) :-
 	memberchk(content_type(Type), Fields),
@@ -75,5 +74,3 @@ mime_form_fields([mime(A, V, [])|T0], [Name=V|T]) :-
 	memberchk(name(Name), A),
 	mime_form_fields(T0, T).
 
-http_parameters:form_data_content_type(ContentType) :-
-	sub_atom(ContentType, 0, _, _, 'multipart/form-data').

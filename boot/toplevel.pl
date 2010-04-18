@@ -588,9 +588,7 @@ subst_chars([H|T]) -->
 	print_message(query, query(eof)).
 '$execute'(Goal, Bindings) :-
 	'$module'(TypeIn, TypeIn),
-	setup_call_cleanup('$set_source_module'(M0, TypeIn),
-			   expand_goal(Goal, Expanded),
-			   '$set_source_module'(_, M0)),
+	expand_goal(Goal, Expanded),
 	'$dwim_correct_goal'(TypeIn:Expanded, Bindings, Corrected), !,
 	print_message(silent, toplevel_goal(Goal, Bindings)),
 	'$execute_goal2'(Corrected, Bindings).

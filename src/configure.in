@@ -675,8 +675,6 @@ if test ! "$ac_cv_lib_ncursesw_main" = "yes"; then
   fi
 fi
 
-AC_CHECK_HEADERS(term.h ncurses/term.h curses.h ncurses/curses.h)
-
 if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
 fi

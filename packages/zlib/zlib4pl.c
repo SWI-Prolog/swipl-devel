@@ -355,33 +355,6 @@ gz_skip_footer(z_context *ctx)
 		 *	       GZ I/O		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-read_more() reads more data into the   zstate buffer if deflating cannot
-do anything with the available  bytes.   Note  that  S__fillbuf() can be
-called with data in the buffer. It moves the remaining data to the start
-of the stream buffer and tries to read more data into the stream.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-read_more(z_context *ctx)
-{ int c;
-
-  ctx->stream->bufp   = (char*)ctx->zstate.next_in;
-  ctx->stream->limitp =	ctx->stream->bufp + ctx->zstate.avail_in;
-
-  if ( (c=S__fillbuf(ctx->stream)) != EOF )
-  { Sungetc(c, ctx->stream);
-    ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
-    ctx->zstate.avail_in = (long)(ctx->stream->limitp - ctx->stream->bufp);
-    ctx->stream->bufp    = ctx->stream->limitp;
-
-    return 0;
-  }
-
-  return -1;
-}
-
-
 static ssize_t				/* inflate */
 zread(void *handle, char *buf, size_t size)
 { z_context *ctx = handle;
@@ -411,10 +384,7 @@ zread(void *handle, char *buf, size_t size)
     } else
     { while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
 				 ctx->zstate.avail_in)) == HDR_SHORT )
-      { int rc;
-
-	if ( (rc=read_more(ctx)) < 0 )
-	  return -1;
+      { 					/* TBD: read more */
       }
     }
 
@@ -461,10 +431,7 @@ zread(void *handle, char *buf, size_t size)
   { int rc;
 
     while( (rc=gz_skip_footer(ctx)) == -2 )
-    { int rc2;
-
-      if ( (rc2=read_more(ctx)) < 0 )
-	return -1;
+    {					/* TBD: read more */
     }
 
     if ( rc == 0 )

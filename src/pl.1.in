@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1 "Feb 8, 2006" "SWI-Prolog 5"
+.TH @PL@ 1L "Feb 8, 2006" "SWI-Prolog 5"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -369,7 +369,7 @@ SWI-Prolog kernel parts written in Prolog.  The startup file
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
-bin/@ARCH@/@PL@ \-O \-o boot32.prc \-b boot/init.pl
+bin/@ARCH@/@PL@ -O -o boot32.prc -b boot/init.pl
 .RE
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/doc/packages

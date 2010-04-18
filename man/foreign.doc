@@ -1014,7 +1014,6 @@ pl_display(term_t t)
       break;
     default:
       PL_fail;                          /* should not happen */
-    }
   }
 
   PL_succeed;
@@ -1917,7 +1916,6 @@ the default module is the user module:
 
   PL_strip_module(term, &m, plain);
   ...
-}
 \end{code}
 
 

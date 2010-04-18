@@ -129,8 +129,8 @@ initialise(FB, Root:directory) :->
 	asserta(prolog_overview_window(FB)).
 
 source_pattern(Pat) :-
-	findall(E, (user:prolog_file_type(E, prolog),
-		    \+ user:prolog_file_type(E, qlf)), Exts),
+	findall(E, (prolog_file_type(E, prolog),
+		    \+ prolog_file_type(E, qlf)), Exts),
 	(   Exts = [Ext]
 	->  format(atom(Pat), '.*\\.~w$', [Ext])
 	;   atomic_list_concat(Exts, '|', P1),

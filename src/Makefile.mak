@@ -88,7 +88,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	prolog_source.pl broadcast.pl pairs.pl base64.pl record.pl \
 	rbtrees.pl settings.pl dialect.pl apply_macros.pl apply.pl \
 	nb_rbtrees.pl aggregate.pl pure_input.pl pio.pl terms.pl \
-	charsio.pl portray_text.pl csv.pl \
+	charsio.pl portray_text.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl thread.pl thread_pool.pl
@@ -403,7 +403,7 @@ odbc-install:
 # Redistributable Requirements .cab files
 ################################################################
 
-!IF "$(MD)" == "WIN32"
+!IF "$(MD)" == WIN32
 BITS=32
 !ELSE
 BITS=64

@@ -1154,12 +1154,8 @@ latex_summary(_) :-
 pi_sort_key(M:PI, PI-(M:PI)) :- !.
 pi_sort_key(PI, PI-PI).
 
-object_name_arity(_:Term, Name, Arity) :-
-	nonvar(Term), !,
-	object_name_arity(Term, Name, Arity).
+object_name_arity(_:Name/Arity, Name, Arity).
 object_name_arity(Name/Arity, Name, Arity).
-object_name_arity(Name//Arity0, Name, Arity) :-
-	Arity is Arity0 + 2.
 
 summarylist(Objs, Options) -->
 	latex(cmd(begin(summarylist, ll))),

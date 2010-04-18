@@ -375,12 +375,11 @@ writeAttVar(term_t av, write_options *options)
       succeed;
     v.next = options->visited;
     options->visited = &v;
-    Sputcode('{', options->out);
-    a = PL_new_term_ref();
+    Sputc('{', options->out);
     PL_get_attr(av, a);
     if ( !writeTerm(a, 1200, options) )
       goto error;
-    Sputcode('}', options->out);
+    Sputc('}', options->out);
     PL_discard_foreign_frame(fid);
 
     options->visited = v.next;

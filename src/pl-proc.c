@@ -797,9 +797,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 
   def->number_of_clauses++;
 #ifdef O_LOGICAL_UPDATE
-  PL_LOCK(L_MISC);
   clause->generation.created = ++GD->generation;
-  PL_UNLOCK(L_MISC);
   clause->generation.erased  = ~0L;	/* infinite */
 #endif
 
@@ -1016,9 +1014,7 @@ retractClauseDefinition(Definition def, Clause clause ARG_LD)
     { set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE
-    PL_LOCK(L_MISC);
     clause->generation.erased = ++GD->generation;
-    PL_UNLOCK(L_MISC);
 #endif
     UNLOCKDYNDEF(def);
 
