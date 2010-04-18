@@ -1,9 +1,8 @@
 /*  $Id$
 
     Part of SWI-Prolog
-    Designed and implemented by Jan Wielemaker
 
-    Copyright (C) 1999 SWI, University of Amsterdam. All rights reserved.
+    This example code is in the public domain
 */
 
 

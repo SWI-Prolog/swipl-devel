@@ -1,3 +1,11 @@
+/*  Part of SWI-Prolog
+
+    Author:        Nicos Angelopoulos
+    Copyright (C): Nicos Angelopoulos
+
+    YAP: Artistic License
+*/
+
 :- module( r_session,
           [
                r_open/0, r_open/1,
@@ -88,7 +96,7 @@ See r_demo.pl for more examples.
 @author 	Nicos Angelopoulos
 @version	0:0:2
 @copyright	Nicos Angelopoulos
-@license	YAP: Artistic
+@license	YAP: Artistic License
 @see		examples/R/r_demo.pl, http://www.r-project.org/
 @author		Windows-compatibility is based on work by `JAB'
 */

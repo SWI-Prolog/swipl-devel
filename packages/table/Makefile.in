@@ -1,7 +1,7 @@
 ################################################################
 # SWI-Prolog `table' package
 # Author:    Jan Wielemaker. jan@swi.psy.uva.nl
-# Copyright: Same as SWI-Prolog
+# Copyright: Same as SWI-Prolog: GPL+LGPL
 ################################################################
 
 .SUFFIXES: .tex .dvi .doc .pl
