@@ -9,6 +9,7 @@ htmlhead.tex
 httpsession.tex
 httpdispatch.tex
 httpdirindex.tex
+httpopen.tex
 httppwp.tex
 http.html
 httpserver.gif
