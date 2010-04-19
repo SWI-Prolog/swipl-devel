@@ -337,7 +337,7 @@ iinclude:
 install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
-		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
+		$(INSTALL_DATA) ..\ReleaseNotes\relnotes-5.10 "$(PLBASE)\RelNotes-5.10.TXT"
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
