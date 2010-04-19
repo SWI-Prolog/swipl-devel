@@ -1,0 +1,586 @@
+			SWI-Prolog 5.10.0 release notes
+			===============================
+
+Overview
+--------
+
+SWI-Prolog 5.10.0 provides no new functionality beyond a few predicates.
+This version improves  SWI-Prolog  notably   in  terms  of  scalability,
+reliability, compatibility and performance for   a  couple of built-ins.
+Highlights are:
+
+    * All platforms now use consistent naming.  The SWI-Prolog executable
+    is called swipl, the linker swipl-ld and the resouce-file manager
+    swipl-rc.
+
+    * New stack memory-management that is based on stack-shifting rather
+    than allocating the stacks sparsely in the virtual address-space.  This
+    change allows for much better scalability in the number of threads, so
+    we also removed the old thread-count limit of 100.  The stack-limits
+    can now be raised and reduced at runtime using set_prolog_stack/2.
+
+    * The default stack-size-limits are now 128Mb per stack on 32-bit and
+    256Mb on 64-bit hardware.
+
+    * Extensive leak and stress-testing have fixed a number of leaks and
+    race conditions, making the system much more robust in 24x7 server
+    setup.
+
+    * A start has been made to avoid using the C-stack for recursing into
+    terms.  This allows processing much more deeply nested terms and provides
+    a clean exception if there are insufficient resources to traverse the
+    term.  There is still much to do in this area.
+
+    * SWI-Prolog 5.10.0 introduces safe references to database terms (assertz/2,
+    recordz/3) and streams (open/3).
+
+    * The number of variables in clauses is now limited to 1,000,000,000;
+    this was 65535.  In addition, the system provides graceful exceptions
+    when trying to assert illegal terms (e.g. cyclic terms).
+
+    * Compatibility to both YAP and SICStus in enhanced.
+
+
+Upgrading
+---------
+
+Overall,  5.9.x  should  be  considered   upward  compatible  to  5.8.x.
+Nevertheless, there may be some corner   cases. Please scan the detailed
+changelog below for MODIFIED and predicates you suspect.
+
+
+
+
+
+Detailed changelog
+------------------
+
+ * DOC: More up-to-date example code for handling server and client sockets.
+ * ENHANCED: member/2 determinism.  Gertjan van Noord.
+ * FIXED: Possible crash when (shallow-)backtracking into a clause with
+   many variables.
+ * FIXED: Possible crash if rdf_reachable(+,+,-) reaches a literal.  Riste Gligor.
+ * ENHANCED: Moved when_condition/2 to use low-level C-code.
+ * ADDED: support non-determinism in time/1.
+ * ENHANCED: Show statistics in time/1 for unrecoverable exceptions,
+   such as abort. Markus Triska.
+ * ADDED: variant_sha1/2, which computes a term-variant independent
+   cryptographic hash for a term.
+ * FIXED: Possible crash in recorded/3.  Markus Triska.
+ * ENHANCED: maintain disjunctions in when/2 under copy_term/3
+ * FIXED: Two memory issues with findall/3 and recorded.
+   Both could result in race-conditions when using multiple threads.
+ * ENHANCED: copy_term/3 output for when/2 using conjunctions.
+ * FIXED: Crash in assert with more than 2**24 variables in a clause
+ * FIXED: Possible corruption in subsumes_chk/2
+ * FIXED: atom_concat(1,'',1). Samer Abdallah.
+ * PERFORMANCE: support nonvar/1 and var/1 through the virtual machine
+ * FIXED: Error on backtracking into rdf_save(stream, ...).
+ * ADDED: directory_files/2 for compatibility.
+ * CLEANUP: Use new interface in pl-glob.c
+ * FIXED: Subtle cases of qualified goals passed to phrase/2,3.  Samer Abdallah.
+ * ADDED: Provide a hookable tcp_connect/4.  This approach allows
+   for implementing application-wide proxy-handling for TCP/IP clients.
+   Suggested by Matt Lilly.
+ * SYNC: Updated rbtrees to current YAP version
+ * ENHANCED: Make retractall/1 aware of heads with only variables.
+ * FIXED: Better handling of dialect-switch in cross-referencer
+ * ENHANCED: CLP(FD): Stronger exponentiation.
+ * DOC: Fixed unload_file/1 documentation
+ * ADDED: Default port of https URLs is 443 not 80
+ * CLEANUP: http_open/http_header interface and move documentation
+   of http_open.pl to PlDoc.
+ * ADDED: map detached(true) in process_create/5 to setsid()
+ * FIXED: setupOutputRedirect() must fail if it cannot get the stream
+ * ENHANCED: Safer handling concurrent stream access that involves close/1
+ * FIXED: Make rdf(S,P,type(T,V)) fail against untyped literals.
+   Michiel Hildebrand
+ * FIXED: rdf_unload/1
+ * FIXED: Make #/2-function visible
+ * MODIFIED:  Added safe stream-handles, using the same technique as
+   used for clause and database handles.  Also added stream_pair/3
+   to create a pair of an input and output stream.
+ * FIXED: tabbed_window->on_top
+ * FIXED: Avoid data-corruption when recovering from an attempt
+   to assert a cyclic term.
+ * FIXED: Lock atom that is the key to a new Prolog flag
+ * ADDED: unload_file/1 and option redefine_module to load_files/2.
+ * MODIFIED: Changed spacing in pl-write to be minimal as required by
+   the ISO standard. The option spacing(next_argument) in write_term allows
+ * FIXED: Possible crash when backtracking to a clause with many more
+   variables.  Gertjan van Noord.
+ * ADDED: library(charsio): read_term_from_chars/3.  SICStus compatibility
+ * ENHANCED: Make number of variables per clause virtually unlimited.
+ * ENHANCED: CLP(FD): stronger global_cardinality/2 when variables are aliased
+   previously:
+ * ENHANCED: CLP(FD): tuples_in/2 is now reifiable (experimental).
+   Dario Campagna.
+ * ADDED: prefix/2 to library(lists).
+ * ADDED: ord_symdiff/3, contributed by Gertjan van Noord.
+ * MODIFIED: clause(-,-,+) no longer qualifies the head when called in the context of the correct module.  E.g.:
+   1 ?- assert(foo:bar, X), clause(H,B,X).
+   X = <clause>(0x1c56e18),
+   H = foo:bar,
+   B = true.
+
+   2 ?- assert(foo:bar, X), foo:clause(H,B,X).
+   X = <clause>(0x1c57588),
+   H = bar,
+   B = true.
+
+   3 ?- assert(foo:bar, X), clause(foo:H,B,X).
+   X = <clause>(0x1c578b0),
+   H = bar,
+   B = true.
+
+   Note that other (some?) Prolog systems fail on case (1).  We still
+   succeed to enhance backward compatibility.
+ * ENHANCED: Gui-trace now uses copy_term/3 to show constraints
+ * MODIFIED: write/1 and write/2 now use the numbervars-option.  This is
+   compatible to at least SICStus, Ciao and YAP.
+ * ADDED: Show shared variables in the binding window of the tracer.
+ * ENHANCED: Make copy_term/3 faster for terms without attvars
+ * DOC: Clarify behaviour of term_attvars(Term, []).
+ * ADDED: SICStus compatible walltime key for statistics/2
+ * FIXED: Do not write a prompt if user_output is not connected to a tty.
+   If this is desired anyway, use set_stream/2 to make Prolog believe
+   that user_output is a tty.
+ * ADDED: Support recorded(-,?,-) for compatibility reasons.
+ * FIXED: Crash in PL_record_external() for attributed terms
+ * ADDED: SICStus/Ciao compatible library(fastrw)
+ * ADDED: term_subsumer/3 to library(terms).
+ * ADDED: instance/2
+ * MODIFIED: Implement safe database references for the recorded database
+   and clause-references.
+ * FIXED: Avoid a crash when trying to compile a clause holding
+   non-callable terms in the body.
+ * ADDED: Recursive manifest-adder by Degski
+ * ADDED: Initial version of sicstus.h (untested)
+ * ADDED: Generate wrappers for SICStus foreign_resource/2 declarations.
+ * CLEANUP: library(qpforeign).  Planning extensions.
+ * CHECK: Fix paths for RDF package checks
+ * INSTALL: Properly pass configuration errors to the toplevel to abort
+   the build.
+ * ADDED: Support I/O through a term rw_stream(In, Out) to realise a
+   stream-pair that can be read and written.
+ * FIXED: read_term/3: positions off-by-one when using comments(_)
+   option on multiline %-comments inside a term.
+ * CLEANUP: Path-handling in absolute_file_name/3
+       * Only allow non-atomic if nicely segment/segment/..., where each
+       segment is atomic.
+       * Throw type-error file_path if the path is malformed
+       * Enhance caching of alias-expansion to cope with runtime changes
+       of the alias-expansion.
+ * DOC: Indicate determinism
+ * ADDED: SICStus blackboard routine-emulation
+ * ADDED: SICStus compatible block declaration
+ * FIXED: Make xml_write/3 work with with_output_to/2.  Anjo Anjewierden.
+ * FIXED: saving XML Literals in RDF/XML.  Jacco van Ossenbruggen
+ * ADDED: Make http_sgml_plugin.pl pass that charset=Charset to the SGML parser.
+   Allows for seamless loading of UTF-8 (x)html pages.
+ * FIXED: Turtle writer: Lang in @Lang is always lowercase!
+ * ENHANCED: Reuse of temporary memory allocated by qlf-compilation
+   by the normal allocator.
+ * ADDED: provide the request_uri in the HTTP request header.
+ * ADDED: Better support for the MS-Windows console version
+   swipl.exe (used to be plcon.exe) now supports
+
+       * control-C to interrupt programs
+       * decoding of ANSI color sequences (ESC[...m).  The ANSI decoder
+       also detects other sequences, but does not (yet) implement that.
+       * Support for Unicode I/O to the console.
+ * FIXED: Add a type-exception if the second argument of load_files/2
+   is not a (proper) list.  Degski.
+ * ADDED: user_prefixes(Bool) option to rdf_write_turtle/3.  Default is
+   true for normal writing and falso for canonical writing.
+ * ADDED: Provided traditional Unix crypt in non-windows versions based
+   on the code from NedBSD
+ * PORT: Make MacOS stuff depend on uname output and add PKG_CONFIG path,
+   which allows us to use MacOSX Xfree and friends
+ * ENHANCED: CLP(FD): Stronger multiplication.
+ * FIXED: CLP(FD): Correctly handle variable aliasing in global_cardinality/2.
+   Salvador Fandino.
+ * ADDED: When compiled using -DO_MEMSTATS, add memory_statistics/1 to
+   get detailed info on memory reuse.
+ * ENHANCED: Do not lock input on set_prolog_IO/3 if input is not changed.
+   Suggested by Matt Lilley.
+ * MODIFIED: Deleted block/3 and friends.  Non-standard and not needed.
+   See discussions on the mailinglist.
+ * FIXED: Possible crash in clause/2.  Roberto Bagnara.
+ * FIXED: SSL: Return file descriptor of child stream rather than failing
+   if not in legacy mode and ->sock is therefore NULL.  Matt Lilley
+ * MODIFIED: xpce is no longer provided as a shell-command
+ * DELETED: mp multiple precision interface; overruled by built-in
+ * MODIFIED: Renaming executables for better system interoperability:
+   	pl   --> swipl
+   	plld --> swipl-ld
+   	plrc --> swipl-rc
+ * DOC: Update section on signals and embedding
+ * MODIFIED: The default stack-limit has been changed to 128Mb per stack
+   on 32-bit and 256Mb on 64-bit hardware.  This probably results in fewer
+   complaints about running out-of-stack and seems more in line with modern
+   machine dimensions.
+ * FIXED: Add iso property to retract/1
+ * FIXED: Bug in http_parameter/2 conversion for integer types.
+ * PORT: MSVC cannot subtract void*
+ * FIXED: PlDoc cannot handle files with comments containing the magic
+   strings (used in CHR): SWI, SICStus, Mats ...  Mike Elston.
+ * FIXED: Detect max-variables overflow in compiler.
+ * FIXED: Local expansion for running predicates with many variables.
+ * FIXED: At least one reason for spurious fatal out-of-stack errors
+ * FIXED: DWIM replacing call(Goal) by Goal makes handling of ! incorrect.
+   Found by Feliks Kluzniak and debugged by Bart Demoen.
+ * ADDED: Somewhat provisional code to create a version based on
+   profiling information.
+ * PORT: Avoid use of \"u-character in source-code to avoid latin-1/UTF-8 issues.
+ * FIXED: Possible crash if one thread is loading code while another
+   is accessing a thread-local predicate through retract, clause, etc.
+ * ENHANCED: CLP(FD): More multiplication enhancements.
+ * FIXED: Work around timing issue in thread_signal/2 for Windows
+ * FIXED: Create mutex to protect signal vector earlier
+ * PORT: the name lock is reserved on some systems
+ * PORT: rm --> del for windows
+ * PORT: Compile if gmp cannot be found
+ * PORT: Avoid NetBSD name conflict
+ * ENHANCED: CLP(FD): Stronger multiplication, closing i3a#190.
+ * FIXED: Signed/unsigned issue in crypt/2 using MD5 passwords
+ * MODIFIED: Swapped argument order in ssl_context/3.  This change
+   also properly deals with the meta-arguments and fixes the type_error exception.
+ * FIXED: Possible raise condition between raising thread-signals and
+   processing them.  This can result in thread_signal/2 never being
+   answered, even if the thread is not in blocking code.
+ * ENHANCED: Item#513: Very late syntax error position.  Ulrich Neumerkel.
+ * FIXED: Item#518: avoid errors in expand_goal/2 and dwim-expansion to
+   get the normal toplevel error.
+ * FIXED: Honour min_free parameter of stacks when deciding on `tight'
+ * FIXED: Possible thread create/destroy race-condition
+ * FIXED: PL_put_pointer()/PL_get_pointer() for pointers with 0x2 bit
+   set on 32-bit systems.  Abramo Bagnara.
+ * ENHANCED: Item#548: Hide internals of dif/2 from the tracer.
+   Ulrich Neumerkel.
+ * FIXED: Item#552: Gui-tracer messing up with variable in the body
+   instead of call(Var).  Ulrich Neumerkel.
+ * FIXED: Bug#442 Disable autoloading from the toplevel if unknown
+   is set to fail.
+ * FIXED: create_prolog_flag/3 issue
+ * ADDED: http_set_session_options/1: option enabled(+Boolean)
+ * FIXED: thread_self(+) generated a error.  Due to this, the source-level
+   debugger doesn't work in threads.
+ * ADDED: rdf_load/2: assume .xml files are RDF/XML.  Added domain-error
+   if extension is unknown.  Jacco van Ossenbruggen.
+ * FIXED: rdf_statistics(triples_by_file(_,_)).  Jacco van Ossenbruggen.
+ * FIXED: Communication between rdf_edit.pl and rdf_db.pl.  Breaks rdfe_load/1
+   and Triple20.
+ * FIXED: rdf_make/0 to deal with modified administration.
+ * FIXED: Printing DWIM undefined messages.
+ * FIXED: Avoid triple-gc while comiting a transaction.
+ * FIXED: Crash if an RDF transaction contains multiple update-records on
+   the same triple.
+ * TBD: Currently ignores subsequent updates.  This is not correct!  See
+   clean_transaction().
+ * FIXED: Raise-condition in maintaining thread_highest_id.  Could result
+   in running threads considered non-existent.
+ * ADDED: Allow date(Y,M,D) as input for format_time/3; generate a type-error
+   if the 3-th argument is invalid.
+ * FIXED: Properly return error from tmp_file_stream/3
+ * ADDED: parse_time/3, adding a format-specifier and cleanup of ISO 8601
+   parsing using more generalizations.
+ * FIXED: Possible race-condition between AGC and PL_open_query().  Same
+   problem as in restore_after_query(): we need to lock L_AGC.
+ * FIXED: Thread-safety of thread-pool manager initialization and cleanup
+   to make possible problems clearer.
+ * ENHANCED: No longer limit the stack-sizes of the thread pool-manager
+ * ENHANCED: More graceful handling if printMessage() becomes recursive.
+ * FIXED: Spurious "thread_statistics/3: No permission to statistics thread X"
+   messages from the thread-monitor tool.
+ * FIXED: current_atom/1 could return a garbage-collected atom if another
+  thread runs AGC.
+ * FIXED: mutexes did not register their (atom) name.  This is not as bad
+   as it may seem because atoms used for mutex names normally also appear
+   in the program and are thus protected.
+ * MODIFIED: create_prolog_flag/3 now creates new flags as *global* flags.
+   This means that libraries that introduce new flags and are loaded from some
+   specific thread can be used from other threads.  Further modification of
+   flags remains thread-local.
+ * FIXED: Throw representation_error(url_character) when trying to encode
+   a Unicode IRI with url_encoding \== utf8
+ * FIXED: set_prolog_stack/2 limit-option to trim/gc before giving up.
+ * ENHANCED: Re-enable last-call optimization in PL_Q_NODEBUG callbacks.
+   This includes callbacks from the debugger, causing unneeded overflows
+   and gc/shifts.
+ * FIXED: Lock possible inconsistent state for async AGC marking call when
+   restoring after a call-back from C.  Could crash.  Added a new test for this.
+ * FIXED: Possibly deadlock between pl_garbage_collect_clauses and the
+   L_AGC mutex because:
+ * ADDED: Stack-property min_free to avoid shift/gc on each toplevel
+   interaction and prolog_stack_property/2
+ * FIXED: abolish/1: remove private mutex from a dynamic predicate.
+ * FIXED: Wrong assertion in message_queue_property/2
+ * FIXED: Possible agc/findall race-condition.
+ * CLEANUP: Do not print execution aborted for detached threads that are
+   aborted at program-termination.  Jeff Rosenwald.
+ * FIXED: Ensure resetting of LD->exception.processing if a raised exception
+   is ignored by a foreign predicate.  Without this, the spare stack-space
+   may be used, preventing clean recovery from stack-overflows.  Markus Triska.
+ * FIXED: Memory-leak in mutex_property/2.
+ * ADDED: Option cleanup(true) to PlUnit to make it cleanup the report-data
+   at the end of the test, enhancing cooperation with memory-leak finding.
+ * FIXED: Disallow GC through failed_unify_with_occurs_check()
+ * FIXED: Use `spare' through makeMoreStackSpace()
+ * FIXED: Memory-leak in thread_property/2.
+ * FIXED: Memory-leak in directory canonization if canonized directories
+   are removed and re-created (only affects applications that remove and
+   recreate directory structures repeatedly).
+ * MAINTENANCE: Added prolog-level tool for low-level leak detection
+ * FIXED: Memory-leak in message_queue_property/2
+ * FIXED: Access of freed memory in handling thread-signals
+ * FIXED: Memory leak: not cleaning up cached variable-info for threads.
+ * CLEANUP: Undo GMP initialisation to make valgrind checking clean
+ * FIXED: Proper return from Prolog signals in socket library.  Jeff Rosenwald.
+ * ADDED: CLP(FD): New constraint: automaton/3, a shorthand notation for
+   a common use case of automaton/8.
+ * ENHANCED: CLP(FD): Stronger propagation in global_cardinality/2
+ * FIXED: Memory-leak on left-shift that overflows the stack.
+ * ADDED: Configure option --enable-dmalloc
+ * FIXED: Module-error in rdf_load/2 when looking for RDF embedded in html
+ * ADDED: tmp_file_stream/3 for safe creation of temporary files.
+ * ENHANCED: Fetch directory for temporary files only once
+ * FIXED: Atom-reference count for the file_name property of open streams.
+ * ENHANCED: Make delete_file/1 update the tmp-file administration.
+ * ENHANCED: type-check 2nd argument of http_parameters/2 to be a list.
+ * MODIFIED: in thread_create/3, goal is copied *after* unifying the
+   thread identifier.  Also added some assertions.
+ * FIXED: Thread-count statistics was decremented on a failed attempt
+   to create a thread due to wrong parameters.
+ * CLEANUP: Deleted notion of emergency-stacks for dealing with elegant
+   thread-termination if memory is tight.  With the stack-shifter in place,
+   the backup-plan to create the thread with small stack-limits is no longer
+   meaningful.
+ * ENHANCED: raise an error on stream `output' arguments that are bound
+   if the unification fails.  (e.g. open(File, read, foo, [alias(foo)]) is
+   fine, but open(File, read, 25, []) is an error).
+ * FIXED: Explicit encoding in open/4 still implied BOM detection, which
+   implies that e.g., ISO-Latin-1 file that accidentally starts with a BOM
+   is opened as a unicode file, despite the option [encoding(iso_latin_1)].
+ * FIXED: Possiby corruption in the interaction between findall/3 and
+   atom-gc in multi-threaded context.
+ * FIXED: Critical bug in concurrent applications that heavily manipulate
+   dynamic predicates.  This can lead inconsistencies in the logical-update
+   view, missing clauses that should be visible or finding clauses that
+   should not be.  Thanks to a hint by Lourens van der Meij.
+ * FIXED: Possible crash if a thread receives a thread-signal at startup
+   (non-windows only).
+ * ENHANCED: Cleanup the input-handling of rdf_load/2. The aim of this patch
+   is to make the code readable again and to avoid multiple accesses to
+   HTTP services if rdf_http_plugin.pl is used.
+   Part of this rationalisation is that the library no longer looks for
+   http/....gz of http/... is specified.
+ * FIXED: Failing autoload-predicate calls when in debug-mode.
+ * MODIFIED: Deleted long-deprecated rdf_load(+In, +DB).  Code must be
+   updated to use rdf_load(+In, [graph(DB)]).
+ * ADDED: PWP examples for HTTP server
+ * ADDED: library(http/http_pwp) to interface to PWP.
+ * ADDED: Rchard O'Keefe's PWP library for generating XML/HTML from
+   templates (with goals similar to PHP, ASP, etc., although the approach
+   is different.
+ * FIXED: HTTP header handling with illegal header fields (notably spaces
+   between the field-name and the :).  Matt Lilley.  His patch was the
+   reason for some more fundamental changes
+ * ADDED: demo_files.pl, providing a simple, yet complete implementation
+   of a web-server for static pages.
+ * ADDED: default HTTP locations and search for icons and style-files
+ * ADDED: library(http/http_dirindex) to list the contents of physical
+   directories.
+ * ADDED: http_safe_file/2 to library(http_dispatch)
+ * DOC: Fixed setrand/1 documentation.
+ * ENHANCED: make trapUndefined() only lock $load if we really decide
+   to load and not merely auto-import or hit an undefined predicate in a
+   module that has the unknown-flag set to fail.  Matt Lilley.
+ * DOC: Completed and clarified documentation of the xpath.pl library
+ * CLEANUP: More proper error processing in library(cgi).
+ * FIXED: general modernisation of library(cgi): remove length-limits
+   on names and values; pass errors back to Prolog and clean up the code.
+ * FIXED: Calling GC if there is no Prolog context.  Roberto Bagnara.
+ * ENHANCED: CLP(FD): Stronger propagation for element/3
+ * ENHANCED: CLP(FD): Stronger propagation in global_cardinality with costs
+ * ADDED: CLP(FD): New constraint: global_cardinality/3, allowing to                 associate cost with value assignments.
+ * ADDED: library(persistency), providing simple persistent data
+ * DOC: Document usage of the message-system
+ * ADDED: prolog_load_context(script, -Bool) to detect that we are
+   loading a script-file.  Compatible to YAP.
+ * CLEANUP: Implementation and documentation of the signal interface.
+   After comments from Marco Antoniotti.
+ * FIXED: Use --nopce/--pce for (dis)allowing graphics.   Guy Wiener.
+ * FIXED: GC-bug; omit stripping uwrite-bit from argument stack
+ * MODIFIED: Removed the prolog flag abort_with_exception; it is no longer used.
+ * FIXED: Avoid deadlock while trying to exit after a fatal error.
+ * MODIFIED: is_set/1 now uses sort/2.  As a result, non-shared variables
+   are considered different elements; the order is N*log(N) and the
+   predicate may return a resource-error.
+ * FIXED: After :- module(x)., perform goal-expansion relative to
+   module x. Kuniaki Mukai.
+ * CLEANUP: Item#547: Properly quote undefined predicates and
+   alternatives. Ulrich Neumerkel.
+ * DOC: Clarify current_arithmetic_function/1.
+ * DOC: Provide availability snippit for C-functions
+ * FIXED: Previous simplification corrupted variable admin of the compiler.
+   Also added test-case.
+ * FIXED: Bug#436: unifying a variable with itself creates a reference loop.
+   Fernando Saenz-Perez
+ * ADDED: predicate_property(P, autoload).
+
+ * MODIFIED: set_prolog_flag/2 can no longer be used to define a new flag.
+   New code must use create_prolog_flag/3.  This change was agreed upon
+   with YAP to facilitate porting libraries that introduce new flags.
+ * WIP: create_prolog_flag/3
+ * CLEANUP: Use new foreign interface for set_prolog_flag/2
+ * FIXED: Do not restrict saving only global flags to a saved state.
+   Matt Lilley.
+ * FIXED: Bug#434: Make atom_concat/3 and friends deal properly with
+   attributed variables for output arguments.  Fernando Saenz-Perez.
+ * DOC: Fixed CSV documentation
+ * FIXED: XPCE file->access: execute for Windows.
+ * FIXED: Compile code after tests if loading tests is disabled.  Keri Harris.
+ * ENHANCED: Make abort un-catchable.  This is achieved by wrapping
+   the recovery goal in '$recover_and_rethrow'/2, which is defined as:
+   '$recover_and_rethrow'(Goal, Exception) :-
+   	call_cleanup(Goal, throw(Exception)), !.
+   Also updated the much outdated description of abort/0 in the manual.
+ * FIXED: Item#546: Possible failure in bindConst if the result of is/2
+   is a GMP integer that fits in a long.  Ulrich Neumerkel.
+ * CLEANUP: Remove installation of msvcrtXX.dll in Prolog; doesn't work anyway
+ * INSTALL: Added checking for MSVCRT by Degski.
+ * CLEANUP: More Win64 type cleaning
+ * CLEANUP: Make kernel compile silent on VC9
+ * CLEANUP: Some Win64 VC9 compiler warnings
+ * FIXED: Gui tracer messing up queue admin for temporary threads.
+ * FIXED: Cleanup after exception in debug mode.  Notably crashes the
+   tracer when doing an `abort' with open choicepoints.
+ * FIXED: Cleanly shut-down the alarm-scheduling thread
+ * ENHANCED: make it possible to send thread-signals to threads that are
+   waiting in a blocking system call.  This is achieved by having an empty
+   handler for SIG_ALERT, which causes the blocking system call to return
+   with EINTR.
+ * CLEANUP: Use abort/0 for terminating threads at halt/0 instead of
+   async thread_cancel() to avoid a lockup of the system.
+ * FIXED: R operator handling.  Patch by Chris Mungall.
+ * DOC: Some minor fixes to the zlib file documentation
+ * DOC: ?=/2 improved (actually the 3rd attempt...)
+ * FIXED: Bug in zlib interface reading files that are slightly
+   larger than N 4K blocks.  Roberto Bagnara.
+ * FIXED: Possible crash when calling Prolog without creating a foreign frame.
+ * ENHANCED: Performance of rdf_save_turtle with a given graph.
+ * MODIFIED: Changed set_prolog_stack/4 to the more consistent
+   set_prolog_stack(+Name, +Option(+Value)).  The new implementation
+   accepts arithmetic expressions to make computing limits easier.
+ * FIXED: Turtle parser creating a URI from a file on Windows.
+ * FIXED: Deal with Windows file-names of the form <letter>:/Path
+ * FIXED: uri_components(-,+) not to generate a ? if the search-part is empty.
+ * FIXED: HTTP POST no longer honoured the mime multipart plugin.
+ * PORT: Make NullSoft ignore installer files.
+ * FIXED: Bug#431: Windows installer warning
+ * ADDED: library(csv): read/write Comma-Separated value data.  Finally ...
+ * FIXED: Make plDoc LaTeX backend deal with // for summaries
+ * FIXED: Crashing the tracer on an exception (notably aborting ...)
+ * PORT: Bug#429 try to find term.h in ncurses/term.h for Cygwin.
+   Terrence Brannon
+ * INSTALL: Make the Windows installer non-interactive when called
+   as <installer> /S /NCRC.  With help from Hans Bjørge Normann.
+ * FIXED: Bug#430: writing attributes as {...} does not obey encoding.
+   Notably, this hits plwin.exe when writing attributed variables.
+ * FIXED: Move termination of threads after calling halt-handlers
+   Threads are cancelled and may thus cause mutexes to be locked.  Calling
+   the handlers can then deadlock.
+ * ENHANCED: Accelerate setof/3 for ground case
+   bind_bagof_keys/2 now only used for nonground case.  Resorting
+   is simpler than integrating Vars into bind_bagof_keys/2.
+
+   ?- time((setof(A,(between(1,10000,A),between(1,10,B)),As),false)).
+   % 410,054 inferences, 2.130 CPU in 2.225 seconds (96% CPU, 192514 Lips)
+   vs.
+   ?- time((setof(A,(between(1,10000,A),between(1,10,B)),As),false)).
+   % 210,053 inferences, 0.990 CPU in 1.036 seconds (96% CPU, 212175 Lips)
+ * FIXED: item#537: raise a representation error when asserting cyclic
+   terms. Ulich Nuemerkel.
+ * FIXED: Preserve rewritten exception from user:prolog_exception_hook/4.
+   Makes library(http/http_error) work again.
+ * ENHANCED: Delay tracing stack resource errors until the stacks
+   provide sufficient space.
+ * FIXED: GC issue with ! and setup_call_cleanup/3.  Keri Harris.
+ * FIXED: Item#539: avoid untrailed assignment when using numbervars
+   with the option singletons(true) on a term that already contains
+   '$VAR'('_') terms. Ulrich Neumerkel.
+ * ENHANCED: Write brackets around operator atoms as operands
+   According to 6.3.1.3 Atoms.  X = (+)
+ * PORT: extend tests for term_hash/2 with values for big-endian machines.
+   Keri Harris.
+   Ideally, the implementation should be changed to get consistent value
+   for the hashes between little- and big-endian machines.  When this happens,
+   this patch must be reversed.
+ * DOC: consult is a meta-predicate
+ * FIXED: handling of abort inside get_single_char/1.  Markus Triska.
+ * FIXED: Item#536: stack-shift inside guard of *->.  Ulrich Neumerkel.
+ * PORT: Another hack around the broken M$ VC9 runtime libs: isatty()
+   crashes the app if the descriptor is actually a socket.
+ * FIXED: library(simplex): Correctly drive remaining artificial
+   variables out of the basis after phase 1. Mihai Fonoage.
+ * FIXED: preserve initiation exception if cleanup-handler throws.
+   Ulrich Neumerkel.
+ * MODIFIED: Item#521: after modifying the catcher from ! to exception,
+   it is now changed into external_exception(Ball).  Ulrich Neumerkel.
+ * FIXED: Unwind before calling cleanup handler if cleanup is still
+   active due to non-determinism.
+ * MODIFIED: setup_call_catcher_cleanup() now unifies the catcher with
+   the exception if the cleanup-handler is called due to an exception
+   while the guarded goal has completed with a choice-point.
+ * FIXED: Reference to prolog_file_type/2.   Levan Cheishvili.
+ * PORT: Various Windows issues
+ * DOC: Document the *_error/N predicates, explaining the purpose
+   of the error terms.
+ * ENHANCED: Avoid double sorting in setof/3 for the common case when
+   the free variables have only ground solution.
+ * FIXED: PL_raise_exception() when re-throwing PL_exception(0)
+ * ENHANCED: Support graph(Graph) option in rdf_load/2 and mark
+   db(Graph) as deprecated.
+ * ENHANCED: Smarter allocation of variables in decompiler
+ * FIXED: Decompilation of high-arity calls.
+ * FIXED: Correct overflow code in do_number_vars()
+ * ADDED: set_pce_thread/0
+ * FIXED: Decompilation of 64-bit-head integers in 32-bit version
+ * ADDED: PL_exception(0) returns pending exception in current query.
+ * FIXED: scoping issues around PL_exception().  This could crash the
+   system, notably after uncaught resource errors.  Keri Harris.
+ * FIXED: possible crash in debugger when handling an exception.
+ * FIXED: allocList() (used in read_pending_pinput()) did not check
+   for global overflow.  Keri Harris.
+ * CLEANUP: Removed #ifdef LIFEGC.  This is no longer a real option
+   anyway and all the old code laying around harms readability.
+ * FIXED: toplevel to undo bindings before cutting the goal's choicepoint,
+   such that setup_call_cleanup/3 behaves consistently from the toplevel.
+   Jeff Rose.
+ * FIXED: Decompiler must reset aTop to the base if decompilation of
+   the body fails due to lack of space. Not doing so will cause GC to
+   interpret the argument-stack as VM context.  Kery Harris.
+ * ADDED: xsdp_uri_type/2 to query XSD URIs
+ * ADDED: library(http/http_client): hooks that allow for connections
+   other than plain TCP sockets (e.g. SSL sockets).
+ * FIXED: possible corruption on debugger call-back handler for erased clauses.
+   If not safe, we delay the actual destruction using a signal.
+ * ADDED: Allow setting stack-limits dynamically
+ * FIXED: Interaction between variables and variable_names in read_term/3.
+   Uwe Lesta.
+ * FIXED: Race-condition when destroying a threads local prolog flags.
+ * ENHANCED: Removed maximum # threads.  Dropped max_threads flag and
+   corresponding PL_query() constant PL_QUERY_MAX_THREADS
+ * ADDED: Support GCC's __attribute__((warn_unused_result))
+ * ENHANCED: Avoid C-stack overflow when compiling very long conjunctions.
+ * FIXED: Possible deadlock relating atom-GC and findall.  This patch also
+   avoids blocking AGC during collecting the findall results.
+ * FIXED: support attributed variables in PL_unify_list()
+ * GC: Relocate pointers from the argument stack
+ * MODIFIED: set_prolog_stack/3 --> set_prolog_stack/4
+ * MODIFIED: PL_recorded() is now of type int rather than void.
+   Returns FALSE if the stacks cannot accomodate the recorded term.
+ * FIXED: Accessing uninitialised memory when opening an empty script file.
+ * ENHANCED: Better handling of Mark()/Undo() to reduce trail-stack usage.
+
