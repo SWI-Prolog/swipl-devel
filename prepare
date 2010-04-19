@@ -174,7 +174,7 @@ while [ "$done" = false ]; do
 	    download_docs
 	    ;;
 	  ask)
-	    if confirm "Download documentation for $version from $server"; then
+	    if confirm "Download documentation for $version from $server? "; then
 		download_docs
 	    fi
 	    ;;
