@@ -99,7 +99,7 @@ instantiation_error()
   if ( (ex = PL_new_term_ref()) &&
        PL_unify_term(ex,
 		     PL_FUNCTOR, FUNCTOR_error2,
-		       PL_CHARS, "inistantiation_error",
+		       PL_CHARS, "instantiation_error",
 		       PL_VARIABLE) )
     return PL_raise_exception(ex);
 
