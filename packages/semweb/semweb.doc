@@ -884,12 +884,13 @@ mapping contains the namespaces required for the semantic web languages
 themselves:
 
 \begin{code}
-ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
-ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
-ns(owl,  'http://www.w3.org/2002/7/owl#').
-ns(xsd,  'http://www.w3.org/2000/10/XMLSchema#').
-ns(dc,   'http://purl.org/dc/elements/1.1/').
-ns(eor,  'http://dublincore.org/2000/03/13/eor#').
+ns(rdf,	    'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+ns(rdfs,    'http://www.w3.org/2000/01/rdf-schema#').
+ns(owl,	    'http://www.w3.org/2002/7/owl#').
+ns(xsd,	    'http://www.w3.org/2000/10/XMLSchema#').
+ns(dc,	    'http://purl.org/dc/elements/1.1/').
+ns(dcterms, 'http://purl.org/dc/terms/').
+ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
 \end{code}
 
 All predicates for the semweb libraries use goal_expansion/2 rules to
@@ -1911,6 +1912,12 @@ The matching-methods are described with rdf_match_label/3.  If
 the match was found.
 \end{description}
 
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	     LIBRARY		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{rdflib.tex}
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	  PLDOC LIBRARIES	%
