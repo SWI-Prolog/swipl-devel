@@ -170,13 +170,14 @@ rdf_current_ns(Alias, URI) :-
 %	Dynamic  predicate  that  maintains   the  registered  namespace
 %	aliases.
 
-ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
-ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
-ns(owl,  'http://www.w3.org/2002/07/owl#').
-ns(xsd,  'http://www.w3.org/2001/XMLSchema#').
-ns(dc,   'http://purl.org/dc/elements/1.1/').
-ns(eor,  'http://dublincore.org/2000/03/13/eor#').
-ns(serql,'http://www.openrdf.org/schema/serql#').
+ns(rdf,	    'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+ns(rdfs,    'http://www.w3.org/2000/01/rdf-schema#').
+ns(owl,	    'http://www.w3.org/2002/07/owl#').
+ns(xsd,	    'http://www.w3.org/2001/XMLSchema#').
+ns(dc,	    'http://purl.org/dc/elements/1.1/').
+ns(dcterms, 'http://purl.org/dc/terms/').
+ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+ns(serql,   'http://www.openrdf.org/schema/serql#').
 
 %%	rdf_register_ns(+Alias, +URI) is det.
 %%	rdf_register_ns(+Alias, +URI, +Options) is det.

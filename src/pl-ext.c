@@ -475,7 +475,6 @@ initBuildIns(void)
 	GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m);
 
   LOOKUPPROC(dgarbage_collect1);
-  LOOKUPPROC(block3);
   LOOKUPPROC(catch3);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
