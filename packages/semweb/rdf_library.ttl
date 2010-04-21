@@ -1,0 +1,77 @@
+@prefix	 lib: <http://www.swi-prolog.org/rdf/library/> .
+@prefix  owl: <http://www.w3.org/2002/07/owl#> .
+@prefix  rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+#	Class lib:Ontology
+
+lib:Ontology 
+	a owl:Class ;
+	rdfs:comment "Ontology in library" ;
+	rdfs:subClassOf owl:Ontology .
+lib:Schema 
+	a owl:Class ;
+	rdfs:comment "Collection of classes and properties" ;
+	rdfs:subClassOf lib:Ontology .
+lib:Instances 
+	a owl:Class ;
+	rdfs:comment "Collection of instances" ;
+	rdfs:subClassOf lib:Ontology .
+lib:Virtual 
+	a owl:Class ;
+	rdfs:comment "Entry itself is not loadable" .
+
+lib:schema
+	a owl:OntologyProperty ;
+	rdfs:subPropertyOf owl:imports ;
+	rdfs:domain lib:Ontology ;
+	rdfs:range lib:Schema ;
+	rdfs:comment "URL for file holding schemas" .
+
+lib:instances
+	a owl:OntologyProperty ;
+	rdfs:subPropertyOf owl:imports ;
+	rdfs:domain lib:Ontology ;
+	rdfs:range lib:Instances ;
+	rdfs:comment "URL for file holding instances" .
+
+lib:baseURI
+	a owl:OntologyProperty ;
+	rdfs:domain lib:Ontology ;
+	rdfs:comment "URI based as initial Base URI" .
+
+lib:blankNodes
+	a owl:OntologyProperty ;
+	rdfs:domain lib:Ontology ;
+	rdfs:range rdfs:Literal ;
+	rdfs:comment "How to handle identical blank notes.  
+		      One of 'share' or 'noshare'" .
+
+lib:source
+	a owl:OntologyProperty ;
+	rdfs:domain lib:Ontology ;
+	rdfs:comment "URL from which we claim to have loaded the data" .
+
+lib:providesNamespace
+	a owl:OntologyProperty ;
+	rdfs:domain lib:Ontology ;
+	rdfs:range lib:Namespace .
+
+lib:usesNamespace
+	a owl:OntologyProperty ;
+	rdfs:domain lib:Ontology ;
+	rdfs:range lib:Namespace .
+
+#	Class lib:Namespace
+
+lib:Namespace
+	a owl:Class ;
+	rdfs:subClassOf rdfs:Resource .
+lib:mnemonic
+	a rdfs:Property ;
+	rdfs:domain lib:Namespace ;
+	rdfs:range rdf:Literal .
+lib:namespace
+	a rdfs:Property ;
+	rdfs:domain lib:Namespace ;
+	rdfs:range rdf:Resource .
