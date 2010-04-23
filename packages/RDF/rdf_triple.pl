@@ -358,8 +358,8 @@ set_bnode_sharing(Options, erase(Ref)) :-
 set_bnode_sharing(_, true).
 
 set_anon_prefix(Options, erase(Ref)) :-
-	option(base_uri(BaseURI), Options, []),
-	BaseURI \== [], !,
+	option(base_uri(BaseURI), Options),
+	nonvar(BaseURI), !,
 	atomic_list_concat(['__', BaseURI, '#'], AnonBase),
 	asserta(anon_prefix(AnonBase), Ref).
 set_anon_prefix(_, true).
