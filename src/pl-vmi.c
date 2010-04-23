@@ -480,17 +480,8 @@ VMI(H_VOID, 0, 0, ())
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-H_ARGVOID: Singleton inside an term in the head. If we are in write mode
-we must make a variable.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-VMI(H_ARGVOID, 0, 0, ())
-{ if ( umode == uwrite )
-  { setVar(*ARGP);
-  }
-
-  ARGP++;
+VMI(H_VOID_N, 0, 1, (CA1_INTEGER))
+{ ARGP += (int)*PC++;
   NEXT_INSTRUCTION;
 }
 
@@ -2036,6 +2027,17 @@ current frame to be a variable.
 
 VMI(C_VAR, 0, 1, (CA1_VAR))
 { setVar(varFrame(FR, *PC++));
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(C_VAR_N, 0, 2, (CA1_VAR,CA1_INTEGER))
+{ Word vp = varFrameP(FR, *PC++);
+  size_t count = *PC++;
+
+  while(count--)
+    setVar(*vp++);
 
   NEXT_INSTRUCTION;
 }
