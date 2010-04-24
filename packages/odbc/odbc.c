@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -597,19 +597,13 @@ PL_get_typed_arg(int i, term_t t, int (*func)(), void *ap)
 
 static int
 list_length(term_t list)
-{ term_t tail = PL_copy_term_ref(list);
-  term_t head = PL_new_term_ref();
-  int n = 0;
+{ size_t len;
 
-  while(PL_get_list(tail, head, tail))
-    n++;
+  if ( PL_skip_list(list, 0, &len) == PL_LIST )
+    return (int)len;
 
-  if ( !PL_get_nil(tail) )
-  { type_error(tail, "list");
-    return -1;
-  }
-
-  return n;
+  type_error(list, "list");
+  return -1;
 }
 
 
