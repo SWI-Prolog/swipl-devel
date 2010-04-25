@@ -567,7 +567,7 @@ odbc_malloc(size_t bytes)
 
 static int
 get_text(term_t t, char **s)
-{ return PL_get_chars(t, s, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING);
+{ return PL_get_chars(t, s, CVT_ATOM|CVT_STRING|CVT_LIST|REP_MB|BUF_RING);
 }
 
 static int
@@ -1903,7 +1903,7 @@ get_sql_text(context *ctxt, term_t tquery)
     ctxt->sqltext = q;
     ctxt->sqllen = (SQLINTEGER)qlen;
     set(ctxt, CTX_SQLMALLOCED);
-  } else if ( PL_get_nchars(tquery, &qlen, &q, CVT_ATOM|CVT_STRING|BUF_MALLOC))
+  } else if ( PL_get_nchars(tquery, &qlen, &q, CVT_ATOM|CVT_STRING|REP_MB|BUF_MALLOC))
   { ctxt->sqltext = q;
     ctxt->sqllen = (SQLINTEGER)qlen;
     set(ctxt, CTX_SQLMALLOCED);
@@ -2383,7 +2383,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
       size_t len;
       char *s;
 
-      if ( !PL_get_nchars(db, &len, &s, CVT_ATOM|CVT_STRING) )
+      if ( !PL_get_nchars(db, &len, &s, CVT_ATOM|CVT_STRING|REP_MB) )
 	return type_error(db, "atom");
 
       if ( !get_connection(dsn, &cn) )
@@ -2941,8 +2941,8 @@ try_null(context *ctxt, parameter *prm, term_t val, const char *expected)
 
 
 static int
-get_parameter_text(term_t t, parameter *prm, size_t *len, char **s)
-{ unsigned int flags = CVT_ATOM|CVT_STRING;
+get_parameter_text(term_t t, parameter *prm, int rep, size_t *len, char **s)
+{ unsigned int flags;
   const char *expected = "text";
 
   switch(prm->plTypeID)
@@ -2966,7 +2966,7 @@ get_parameter_text(term_t t, parameter *prm, size_t *len, char **s)
       assert(0);
   }
 
-  if ( !PL_get_nchars(t, len, s, flags) )
+  if ( !PL_get_nchars(t, len, s, flags|rep) )
     return type_error(t, expected);
 
   return TRUE;
@@ -3022,6 +3022,7 @@ bind_parameters(context *ctxt, term_t parms)
       { SQLLEN len;
 	size_t l;
 	char *s;
+	int rep = prm->cTypeID == (SQL_C_CHAR ? REP_MB : REP_ISO_LATIN_1);
 
 					/* check for NULL */
 	if ( is_sql_null(head, ctxt->null) )
@@ -3029,7 +3030,7 @@ bind_parameters(context *ctxt, term_t parms)
 	  break;
 	}
 
-	if ( !get_parameter_text(head, prm, &l, &s) )
+	if ( !get_parameter_text(head, prm, rep, &l, &s) )
 	  return FALSE;
 	len = l;
 
@@ -3108,7 +3109,9 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
 	  { s = NULL;
 	    len = SQL_NULL_DATA;
 	  } else
-	  { if ( !get_parameter_text(p->put_data, p, &len, &s) )
+	  { int rep = (p->cTypeID == SQL_C_BINARY ? REP_ISO_LATIN_1 : REP_MB);
+
+	    if ( !get_parameter_text(p->put_data, p, rep, &len, &s) )
 	      return FALSE;
 	  }
 	  SQLPutData(ctxt->hstmt, s, len);
@@ -3534,19 +3537,26 @@ as the wrong number of pad bytes for the first part of the data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 WUNUSED static int
-put_chars(term_t val, int plTypeID, size_t len, const char *chars)
-{ switch( plTypeID )
+put_chars(term_t val, int plTypeID, int rep, size_t len, const char *chars)
+{ int pltype;
+
+  switch( plTypeID )
   { case SQL_PL_DEFAULT:
     case SQL_PL_ATOM:
-      return PL_put_atom_nchars(val, len, chars);
+      pltype = PL_ATOM;
+      break;
     case SQL_PL_STRING:
-      return PL_put_string_nchars(val, len, chars);
+      pltype = PL_STRING;
+      break;
     case SQL_PL_CODES:
-      return PL_put_list_ncodes(val, len, chars);
+      pltype = PL_CODE_LIST;
+      break;
     default:
       assert(0);
       return FALSE;
   }
+
+  return PL_unify_chars(val, pltype|rep, len, chars);
 }
 
 
@@ -3634,8 +3644,11 @@ pl_put_column(context *c, int nth, term_t col)
     }
 
   got_all_data:
-    if ( !put_chars(val, p->plTypeID, len, data) )
-      return FALSE;
+    { int rep = (p->cTypeID == SQL_C_BINARY ? REP_ISO_LATIN_1 : REP_MB);
+
+      if ( !put_chars(val, p->plTypeID, rep, len, data) )
+	return FALSE;
+    }
     if ( data != buf )
       free(data);
     goto ok;
@@ -3649,8 +3662,10 @@ pl_put_column(context *c, int nth, term_t col)
 
     switch( p->cTypeID )
     { case SQL_C_CHAR:
+	rc = put_chars(val, p->plTypeID, REP_MB, p->length_ind, (char*)p->ptr_value);
+        break;
       case SQL_C_BINARY:
-	rc = put_chars(val, p->plTypeID, p->length_ind, (char*)p->ptr_value);
+	rc = put_chars(val, p->plTypeID, REP_ISO_LATIN_1, p->length_ind, (char*)p->ptr_value);
 	break;
       case SQL_C_SLONG:
 	rc = PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
