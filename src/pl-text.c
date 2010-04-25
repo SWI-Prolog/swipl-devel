@@ -773,7 +773,7 @@ PL_canonise_text(PL_chars_t *text)
 
 	for(; w<e; w++)
 	{ if ( *w > 0xff )
-	    return FALSE;
+	    return TRUE;
 	}
 
 	return PL_demote_text(text);
