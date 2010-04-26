@@ -2190,7 +2190,20 @@ queue_message(message_queue *queue, term_t msg)
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
-    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
+    { if ( queue->destroyed )
+      { term_t t = PL_new_term_ref();
+
+	unify_queue(t, queue);
+	simpleMutexUnlock(&queue->mutex);
+	if ( !queue->waiting && !queue->wait_for_drain )
+	{ DEBUG(1, Sdprintf("%d: destroying queue\n", PL_thread_self()));
+	  destroy_message_queue(queue);	/* delayed destruction */
+	  PL_free(queue);
+	}
+	return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+      }
+
+      if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
       { if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from queue_message()\n");
 	  exit(1);
@@ -2364,7 +2377,7 @@ retry:
 
       unify_queue(t, queue);
       simpleMutexUnlock(&queue->mutex);
-      if ( !queue->waiting )
+      if ( !queue->waiting && !queue->wait_for_drain )
       { DEBUG(1, Sdprintf("%d: destroying queue\n", PL_thread_self()));
 	destroy_message_queue(queue);	/* delayed destruction */
 	PL_free(queue);
@@ -2770,9 +2783,12 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   }
   q->destroyed = TRUE;
 
-  if ( q->waiting )			/* leave destruction to waiters */
+  if ( q->waiting || q->wait_for_drain ) /* leave destruction to waiters */
   { DEBUG(1, Sdprintf("%d: broadcasting destroy queue\n", PL_thread_self()));
-    cv_broadcast(&q->cond_var);
+    if ( q->waiting )
+      cv_broadcast(&q->cond_var);
+    if ( q->wait_for_drain )
+      cv_broadcast(&q->drain_var);
     simpleMutexUnlock(&q->mutex);
   } else				/* do it myself */
   { simpleMutexUnlock(&q->mutex);
