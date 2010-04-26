@@ -1537,7 +1537,7 @@ A void.  Generate either B_VOID or H_VOID.
           if ( val >= LONG_MIN && val <= LONG_MAX )
 	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 	  } else
-	  { int c = (where&A_HEAD) ? H_INT64 : B_INT64);
+	  { int c = ((where&A_HEAD) ? H_INT64 : B_INT64);
 	    Output_n(ci, c, (Word)&val, WORDS_PER_INT64);
 	  }
 #endif
