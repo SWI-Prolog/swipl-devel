@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -343,6 +343,7 @@ static void	set_system_thread_id(PL_thread_info_t *info);
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
+static void	release_message_queue(message_queue *queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
@@ -2001,6 +2002,8 @@ typedef enum
   QUEUE_WAIT_DRAIN			/* wait for queue to drain */
 } queue_wait_type;
 
+#define MSG_WAIT_INTR (-1)
+
 static int dispatch_cond_wait(message_queue *queue, queue_wait_type wait);
 
 #ifdef __WINDOWS__
@@ -2153,11 +2156,22 @@ typedef struct thread_message
 } thread_message;
 
 
-static void
-free_thread_message(thread_message *msg)
-{ GET_LD
+static thread_message *
+create_thread_message(term_t msg ARG_LD)
+{ thread_message *msgp;
 
-  if ( msg->message )
+  msgp = allocHeap(sizeof(*msgp));
+  msgp->next    = NULL;
+  msgp->message = compileTermToHeap(msg, R_NOLOCK);
+  msgp->key     = getIndexOfTerm(msg);
+
+  return msgp;
+}
+
+
+static void
+free_thread_message(thread_message *msg ARG_LD)
+{ if ( msg->message )
     freeRecord(msg->message);
 
   freeHeap(msg, sizeof(*msg));
@@ -2165,6 +2179,9 @@ free_thread_message(thread_message *msg)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+queue_message() adds a message to a message queue.  The caller must hold
+the queue-mutex.
+
 (*) See also markAtomsThreads(). There  is   a  critical window where an
 atom is not reachable if some  other   thread  is executing AGC. The AGC
 thread  may  already  have  swept   this    queue.   If   we  now  leave
@@ -2174,46 +2191,20 @@ deadlock if we are waiting for the queue to drain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-queue_message(message_queue *queue, term_t msg)
-{ GET_LD
-  thread_message *msgp;
-  int rval = TRUE;
-
-  msgp = allocHeap(sizeof(*msgp));
-  msgp->next    = NULL;
-  msgp->message = compileTermToHeap(msg, R_NOLOCK);
-  msgp->key     = getIndexOfTerm(msg);
-
-  simpleMutexLock(&queue->mutex);
-
-  if ( queue->max_size > 0 && queue->size >= queue->max_size )
+queue_message(message_queue *queue, thread_message *msgp ARG_LD)
+{ if ( queue->max_size > 0 && queue->size >= queue->max_size )
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
-    { if ( queue->destroyed )
-      { term_t t = PL_new_term_ref();
-
-	unify_queue(t, queue);
-	simpleMutexUnlock(&queue->mutex);
-	if ( !queue->waiting && !queue->wait_for_drain )
-	{ DEBUG(1, Sdprintf("%d: destroying queue\n", PL_thread_self()));
-	  destroy_message_queue(queue);	/* delayed destruction */
-	  PL_free(queue);
-	}
-	return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
-      }
-
-      if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
+    { if ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN) == EINTR )
       { if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from queue_message()\n");
 	  exit(1);
 	}
 
-	if ( PL_handle_signals() < 0 )	/* thread-signal */
-	{ rval = FALSE;
-	  free_thread_message(msgp);
-	  queue->wait_for_drain--;
-	  goto out;
+	if ( LD->signal.pending )	/* thread-signal */
+	{ queue->wait_for_drain--;
+	  return MSG_WAIT_INTR;
 	}
       }
     }
@@ -2246,10 +2237,7 @@ queue_message(message_queue *queue, term_t msg)
   { DEBUG(1, Sdprintf("No waiters\n"));
   }
 
-out:
-  simpleMutexUnlock(&queue->mutex);
-
-  return rval;
+  return TRUE;
 }
 
 
@@ -2257,26 +2245,12 @@ out:
 		 *     READING FROM A QUEUE	*
 		 *******************************/
 
-typedef struct
-{ message_queue *queue;
-  int            isvar;
-} get_msg_cleanup_context;
-
-
-static void
-cleanup_get_message(void *context)
-{ get_msg_cleanup_context *ctx = context;
-
-  ctx->queue->waiting--;
-  ctx->queue->waiting_var -= ctx->isvar;
-  simpleMutexUnlock(&ctx->queue->mutex);
-}
-
 #ifdef __WINDOWS__
 
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
-{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var : &queue->drain_var),
+{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
+			  			  : &queue->drain_var),
 			 &queue->mutex);
 }
 
@@ -2347,44 +2321,32 @@ msg_statistics(void)
 #define QSTAT(n) ((void)0)
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_message() reads the next message from the  message queue. It must be
+called with queue->mutex locked.  It returns one of
+
+	* TRUE
+	* FALSE
+	* MSG_WAIT_INTR
+	Got EINTR while waiting.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-get_message(message_queue *queue, term_t msg)
-{ GET_LD
-  get_msg_cleanup_context ctx;
-  term_t tmp = PL_new_term_ref();
+get_message(message_queue *queue, term_t msg ARG_LD)
+{ term_t tmp = PL_new_term_ref();
   int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
-  int rval = TRUE;
   fid_t fid = PL_open_foreign_frame();
   uint64_t seen = 0;
-  int signalled;
 
   QSTAT(getmsg);
-
-  ctx.queue = queue;
-  ctx.isvar = isvar;
-retry:
-  signalled = FALSE;
-  pthread_cleanup_push(cleanup_get_message, (void *)&ctx);
-  simpleMutexLock(&queue->mutex);
 
   for(;;)
   { thread_message *msgp = queue->head;
     thread_message *prev = NULL;
 
     if ( queue->destroyed )
-    { term_t t = PL_new_term_ref();
-
-      unify_queue(t, queue);
-      simpleMutexUnlock(&queue->mutex);
-      if ( !queue->waiting && !queue->wait_for_drain )
-      { DEBUG(1, Sdprintf("%d: destroying queue\n", PL_thread_self()));
-	destroy_message_queue(queue);	/* delayed destruction */
-	PL_free(queue);
-      }
-      rval = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
-      goto out_no_unlock;
-    }
+      return FALSE;
 
     DEBUG(1, Sdprintf("%d: scanning queue\n", PL_thread_self()));
     for( ; msgp; prev = msgp, msgp = msgp->next )
@@ -2401,9 +2363,7 @@ retry:
 
       QSTAT(unified);
       if ( !PL_recorded(msgp->message, tmp) )
-      { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
-	goto out;
-      }
+        return raiseStackOverflow(GLOBAL_OVERFLOW);
       rc = PL_unify(msg, tmp);
 
       if ( rc )
@@ -2418,20 +2378,21 @@ retry:
 	    queue->tail = NULL;
 	}
 	PL_UNLOCK(L_AGC);
-	free_thread_message(msgp);
+	free_thread_message(msgp PASS_LD);
 	queue->size--;
 	if ( queue->wait_for_drain )
 	{ DEBUG(1, Sdprintf("Queue drained. wakeup writers\n"));
 	  cv_signal(&queue->drain_var);
 	}
-	goto out;
+
+	return TRUE;
       } else if ( exception_term )
-	goto out;
+      { return FALSE;
+      }
 
       PL_rewind_foreign_frame(fid);
     }
-				/* linux docs say it may return EINTR */
-				/* does it re-lock in that case? */
+
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
@@ -2447,40 +2408,23 @@ retry:
       if ( LD->signal.pending )	/* thread-signal */
       { queue->waiting--;
 	queue->waiting_var -= isvar;
-	signalled = TRUE;
-	goto out;
+	return MSG_WAIT_INTR;
       }
     }
     DEBUG(1, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
     queue->waiting--;
     queue->waiting_var -= isvar;
   }
-out:
-
-  simpleMutexUnlock(&queue->mutex);
-out_no_unlock:;
-  pthread_cleanup_pop(0);
-
-  if ( signalled )			/* execute signal handlers without */
-  { if ( PL_handle_signals() < 0 )	/* locking the queue */
-      return FALSE;
-    else
-      goto retry;
-  }
-
-  return rval;
 }
 
 
 static int
-peek_message(message_queue *queue, term_t msg)
-{ GET_LD
-  thread_message *msgp;
+peek_message(message_queue *queue, term_t msg ARG_LD)
+{ thread_message *msgp;
   term_t tmp = PL_new_term_ref();
   word key = getIndexOfTerm(msg);
   fid_t fid = PL_open_foreign_frame();
 
-  simpleMutexLock(&queue->mutex);
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
@@ -2495,16 +2439,14 @@ peek_message(message_queue *queue, term_t msg)
     }
 
     if ( PL_unify(msg, tmp) )
-    { simpleMutexUnlock(&queue->mutex);
-      succeed;
-    } else if ( exception_term )
-      break;
+      return TRUE;
+    else if ( exception_term )
+      return FALSE;
 
     PL_rewind_foreign_frame(fid);
   }
 
-  simpleMutexUnlock(&queue->mutex);
-  fail;
+  return FALSE;
 }
 
 
@@ -2517,6 +2459,8 @@ destroy_message_queue(message_queue *queue)
 { GET_LD
   thread_message *msgp;
   thread_message *next;
+
+  assert(!queue->waiting && !queue->wait_for_drain);
 
   for( msgp = queue->head; msgp; msgp = next )
   { next = msgp->next;
@@ -2543,32 +2487,72 @@ init_message_queue(message_queue *queue, long max_size)
 }
 
 					/* Prolog predicates */
-
 static
 PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
 { PRED_LD
   message_queue *q;
+  thread_message *msg;
+  int rc;
 
-  if ( !get_message_queue__LD(A1, &q PASS_LD) )
-    fail;
+  if ( !(msg = create_thread_message(A2 PASS_LD)) )
+    return FALSE;
 
-  return queue_message(q, A2);
+  for(;;)
+  { if ( !get_message_queue__LD(A1, &q PASS_LD) )
+    { free_thread_message(msg PASS_LD);
+      return FALSE;
+    }
+
+    rc = queue_message(q, msg PASS_LD);
+    release_message_queue(q);
+
+    if ( rc == MSG_WAIT_INTR )
+    { if ( PL_handle_signals() >= 0 )
+	continue;
+      free_thread_message(msg PASS_LD);
+      rc = FALSE;
+    }
+
+    break;
+  }
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("thread_get_message", 1, thread_get_message_1, PL_FA_ISO)
 { PRED_LD
+  int rc;
 
-  return get_message(&LD->thread.messages, A1);
+  for(;;)
+  { simpleMutexLock(&LD->thread.messages.mutex);
+    rc = get_message(&LD->thread.messages, A1 PASS_LD);
+    simpleMutexUnlock(&LD->thread.messages.mutex);
+
+    if ( rc == MSG_WAIT_INTR )
+    { if ( PL_handle_signals() >= 0 )
+	continue;
+      rc = FALSE;
+    }
+
+    break;
+  }
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("thread_peek_message", 1, thread_peek_message_1, PL_FA_ISO)
 { PRED_LD
+  int rc;
 
-  return peek_message(&LD->thread.messages, A1);
+  simpleMutexLock(&LD->thread.messages.mutex);
+  rc = peek_message(&LD->thread.messages, A1 PASS_LD);
+  simpleMutexUnlock(&LD->thread.messages.mutex);
+
+  return rc;
 }
 
 
@@ -2692,15 +2676,45 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
 }
 
 
+/* Get a message queue and lock it
+*/
+
 static int
 get_message_queue__LD(term_t t, message_queue **queue ARG_LD)
 { int rc;
 
   LOCK();
   rc = get_message_queue_unlocked__LD(t, queue PASS_LD);
+  if ( rc )
+  { message_queue *q = *queue;
+
+    simpleMutexLock(&q->mutex);
+    if ( q->destroyed )
+    { rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+      simpleMutexUnlock(&q->mutex);
+    }
+  }
   UNLOCK();
 
   return rc;
+}
+
+
+/* Release a message queue, deleting it if it is no longer needed
+*/
+
+static void
+release_message_queue(message_queue *queue)
+{ int del = ( queue->destroyed &&
+	      !(queue->waiting || queue->wait_for_drain) &&
+	      queue->type != QTYPE_THREAD );
+
+  simpleMutexUnlock(&queue->mutex);
+
+  if ( del )
+  { destroy_message_queue(queue);
+    PL_free(queue);
+  }
 }
 
 
@@ -2772,31 +2786,24 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   s = lookupHTable(queueTable, (void *)q->id);
   assert(s);
   deleteSymbolHTable(queueTable, s);
+  simpleMutexLock(&q->mutex);
   UNLOCK();
 
-  simpleMutexLock(&q->mutex);
   if ( q->destroyed )
   { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
-    simpleMutexUnlock(&q->mutex);
-    UNLOCK();
-    fail;
+    release_message_queue(q);
+    return FALSE;
   }
   q->destroyed = TRUE;
 
-  if ( q->waiting || q->wait_for_drain ) /* leave destruction to waiters */
-  { DEBUG(1, Sdprintf("%d: broadcasting destroy queue\n", PL_thread_self()));
-    if ( q->waiting )
-      cv_broadcast(&q->cond_var);
-    if ( q->wait_for_drain )
-      cv_broadcast(&q->drain_var);
-    simpleMutexUnlock(&q->mutex);
-  } else				/* do it myself */
-  { simpleMutexUnlock(&q->mutex);
-    destroy_message_queue(q);
-    PL_free(q);
-  }
+  if ( q->waiting )
+    cv_broadcast(&q->cond_var);
+  if ( q->wait_for_drain )
+    cv_broadcast(&q->drain_var);
 
-  succeed;
+  release_message_queue(q);
+
+  return TRUE;
 }
 
 
@@ -2909,7 +2916,9 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 	    fail;
 	}
       } else if ( get_message_queue__LD(queue, &state->q PASS_LD) )
-      { switch( get_prop_def(property, ATOM_message_queue_property,
+      { release_message_queue(state->q); /* FIXME: we need some form of locking! */
+
+	switch( get_prop_def(property, ATOM_message_queue_property,
 			     qprop_list, &state->p) )
 	{ case 1:
 	    goto enumerate;
@@ -3005,12 +3014,27 @@ thread_get_message(-Message)
 static
 PRED_IMPL("thread_get_message", 2, thread_get_message_2, 0)
 { PRED_LD
-  message_queue *q;
+  int rc;
 
-  if ( !get_message_queue__LD(A1, &q PASS_LD) )
-    fail;
+  for(;;)
+  { message_queue *q;
 
-  return get_message(q, A2);
+    if ( !get_message_queue__LD(A1, &q PASS_LD) )
+      return FALSE;
+
+    rc = get_message(q, A2 PASS_LD);
+    release_message_queue(q);
+
+    if ( rc == MSG_WAIT_INTR )
+    { if ( PL_handle_signals() >= 0 )
+	continue;
+      rc = FALSE;
+    }
+
+    break;
+  }
+
+  return rc;
 }
 
 
@@ -3018,11 +3042,14 @@ static
 PRED_IMPL("thread_peek_message", 2, thread_peek_message_2, 0)
 { PRED_LD
   message_queue *q;
+  int rc;
 
   if ( !get_message_queue__LD(A1, &q PASS_LD) )
     fail;
 
-  return peek_message(q, A2);
+  rc = peek_message(q, A2 PASS_LD);
+  release_message_queue(q);
+  return rc;
 }
 
 
