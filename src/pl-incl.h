@@ -1132,10 +1132,12 @@ struct clause_chain
   int		dirty;			/* # of garbage clauses */
 };
 
-struct local_definitions
-{ int 		size;
-  Definition	thread[1];		/* Appended definitions */
-};
+#define MAX_BLOCKS 20			/* allows for 2M threads */
+
+typedef struct local_definitions
+{ Definition *blocks[MAX_BLOCKS];
+  Definition preallocated[7];
+} local_definitions;
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */

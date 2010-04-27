@@ -4768,47 +4768,32 @@ registerLocalDefinition(Definition def)
 }
 
 
+LocalDefinitions
+new_ldef_vector(void)
+{ GET_LD
+  LocalDefinitions f = allocHeap(sizeof(*f));
+
+  memset(f, 0, sizeof(*f));
+  f->blocks[0] = f->preallocated - 1;
+  f->blocks[1] = f->preallocated - 1;
+  f->blocks[2] = f->preallocated - 1;
+
+  return f;
+}
+
+
 Definition
 localiseDefinition(Definition def)
 { GET_LD
   Definition local = allocHeap(sizeof(*local));
-  int id = LD->thread.info->pl_tid;
 
   *local = *def;
   local->mutex = NULL;
   clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
   local->definition.clauses = NULL;
   local->hash_info = NULL;
+
   createSupervisor(local);
-
-  if ( !def->definition.local ||
-       id >= def->definition.local->size )
-  { int newsize = def->definition.local ? def->definition.local->size : 1;
-    LocalDefinitions new;
-    size_t bytes;
-    int i=0;
-
-    do
-    { newsize *= 2;
-    } while ( newsize <= id );
-
-    bytes = offsetof(struct local_definitions, thread[newsize]);
-    new = allocHeap(bytes);
-    new->size = newsize;
-    if ( def->definition.local )
-    { for(; i<def->definition.local->size; i++)
-	new->thread[i] = def->definition.local->thread[i];
-    }
-    for(; i<newsize; i++)
-      new->thread[i] = NULL;
-    if ( def->definition.local )
-      freeHeap(def->definition.local,
-	       offsetof(struct local_definitions,
-			thread[def->definition.local->size]));
-    def->definition.local = new;
-  }
-
-  def->definition.local->thread[id] = local;
   registerLocalDefinition(def);
 
   return local;
@@ -4820,20 +4805,14 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 { GET_LD
   DefinitionChain ch = ld->thread.local_definitions;
   DefinitionChain next;
-  int id = ld->thread.info->pl_tid;
+  unsigned int id = ld->thread.info->pl_tid;
 
   for( ; ch; ch = next)
-  { Definition local, def = ch->definition;
+  { Definition def = ch->definition;
     next = ch->next;
 
     assert(true(def, P_THREAD_LOCAL));
-    LOCKDEF(def);
-    local = def->definition.local->thread[id];
-    def->definition.local->thread[id] = NULL;
-    UNLOCKDEF(def);
-
-    destroyDefinition(local);
-
+    destroyLocalDefinition(def, id);
     freeHeap(ch, sizeof(*ch));
   }
 }

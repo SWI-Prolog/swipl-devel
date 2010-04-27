@@ -4823,9 +4823,9 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
 	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
-		ci->clause->prolog_vars = i;
+		ci->clause->prolog_vars = (unsigned int)i;
 	      if ( ci->clause->variables < i )
-		ci->clause->variables = i;
+		ci->clause->variables = (unsigned int)i;
 	      break;
 	    }
 	    case CA1_INTEGER:

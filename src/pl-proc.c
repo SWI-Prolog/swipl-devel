@@ -2355,6 +2355,8 @@ set_thread_local_procedure(Procedure proc, bool val)
     set(def, DYNAMIC|VOLATILE|P_THREAD_LOCAL);
 
     def->codes = SUPERVISOR(thread_local);
+    def->definition.local = new_ldef_vector();
+
     UNLOCKDEF(def);
     succeed;
   } else				/* local --> static */

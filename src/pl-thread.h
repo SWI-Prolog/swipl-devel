@@ -318,6 +318,7 @@ foreign_t		pl_attach_xterm(term_t in, term_t out);
 size_t			threadLocalHeapUsed(void);
 int			attachConsole(void);
 Definition		localiseDefinition(Definition def);
+LocalDefinitions	new_ldef_vector(void);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
