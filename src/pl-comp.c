@@ -883,6 +883,7 @@ static void
 mergeStep(vmi c1, vmi c2)
 { vmi_merge m;
 
+  memset(&m, 0, sizeof(m));
   m.code = c2;
   m.how  = VMI_STEP_ARGUMENT;
 
