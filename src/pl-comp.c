@@ -2265,6 +2265,7 @@ compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
       { Output_0(ci, I_TRUE);
 	return TRUE;
       }
+      return FALSE;
     }
 
     Output_1(ci, I_VAR, VAROFFSET(i1));
@@ -2305,6 +2306,7 @@ compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD)
       { Output_0(ci, I_FAIL);
 	return TRUE;
       }
+      return FALSE;
     }
 
     Output_1(ci, I_NONVAR, VAROFFSET(i1));
