@@ -106,10 +106,6 @@ static const PL_extension foreigns[] = {
 
   FRG("!",			0, pl_metacut,		      ISO),
 
-  FRG("$open_wic",		1, pl_open_wic,			0),
-  FRG("$close_wic",		0, pl_close_wic,		0),
-  FRG("$import_wic",		2, pl_import_wic,		0),
-
   FRG("$rc_handle",		1, pl_rc_handle,		0),
   FRG("$rc_members",		2, pl_rc_members,		0),
   FRG("$rc_open",		5, pl_rc_open,			0),
@@ -117,14 +113,6 @@ static const PL_extension foreigns[] = {
   FRG("$rc_close_archive",	1, pl_rc_close_archive,		0),
   FRG("$rc_save_archive",	2, pl_rc_save_archive,		0),
   FRG("$rc_append_file",	5, pl_rc_append_file,		0),
-
-  FRG("$qlf_start_module",	1, pl_qlf_start_module,		0),
-  FRG("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	0),
-  FRG("$qlf_start_file",	1, pl_qlf_start_file,		0),
-  FRG("$qlf_end_part",		0, pl_qlf_end_part,		0),
-  FRG("$qlf_open",		1, pl_qlf_open,			0),
-  FRG("$qlf_close",		0, pl_qlf_close,		0),
-  FRG("$qlf_assert_clause",	2, pl_qlf_assert_clause,	0),
 
   FRG("abolish",    		1, pl_abolish1,		     META|ISO),
   FRG("abolish",    		2, pl_abolish,		     META),

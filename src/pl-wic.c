@@ -2606,13 +2606,18 @@ qlfEndPart(wic_state *state)
 }
 
 
-word
-pl_qlf_start_module(term_t name)
+/** '$qlf_start_module'(+Module)
+
+Start emitting a module.
+*/
+
+static
+PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
 { if ( current_state )
   { GET_LD
     Module m;
 
-    if ( !PL_get_module_ex(name, &m) )
+    if ( !PL_get_module_ex(A1, &m) )
       fail;
 
     return qlfStartModule(current_state, m PASS_LD);
@@ -2622,13 +2627,13 @@ pl_qlf_start_module(term_t name)
 }
 
 
-word
-pl_qlf_start_sub_module(term_t name)
+static
+PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
 { if ( current_state )
   { GET_LD
     Module m;
 
-    if ( !PL_get_module_ex(name, &m) )
+    if ( !PL_get_module_ex(A1, &m) )
       fail;
 
     return qlfStartSubModule(current_state, m PASS_LD);
@@ -2638,13 +2643,13 @@ pl_qlf_start_sub_module(term_t name)
 }
 
 
-word
-pl_qlf_start_file(term_t name)
+static
+PRED_IMPL("$qlf_start_file", 1, qlf_start_file, 0)
 { if ( current_state )
   { GET_LD
     atom_t a;
 
-    if ( !PL_get_atom_ex(name, &a) )
+    if ( !PL_get_atom_ex(A1, &a) )
       fail;
 
     return qlfStartFile(current_state, lookupSourceFile(a, TRUE) PASS_LD);
@@ -2654,8 +2659,8 @@ pl_qlf_start_file(term_t name)
 }
 
 
-word
-pl_qlf_end_part()
+static
+PRED_IMPL("$qlf_end_part", 0, qlf_end_part, 0)
 { if ( current_state )
   { return qlfEndPart(current_state);
   }
@@ -2664,9 +2669,9 @@ pl_qlf_end_part()
 }
 
 
-word
-pl_qlf_open(term_t file)
-{ wic_state *state = qlfOpen(file);
+static
+PRED_IMPL("$qlf_open", 1, qlf_open, 0)
+{ wic_state *state = qlfOpen(A1);
 
   if ( state )
   { state->parent = current_state;
@@ -2679,9 +2684,9 @@ pl_qlf_open(term_t file)
 }
 
 
-word
-pl_qlf_close()
-{ GET_LD
+static
+PRED_IMPL("$qlf_close", 0, qlf_close, 0)
+{ PRED_LD
 
   if ( current_state )
     return qlfClose(current_state PASS_LD);
@@ -2743,12 +2748,17 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 		*        PROLOG SUPPORT         *
 		*********************************/
 
-word
-pl_open_wic(term_t to)
+/** '$open_wic'(+Stream) is det.
+
+Write a header for a QLF-stream
+*/
+
+static
+PRED_IMPL("$open_wic", 1, open_wic, 0)
 { GET_LD
   IOSTREAM *fd;
 
-  if ( PL_get_stream_handle(to, &fd) )
+  if ( PL_get_stream_handle(A1, &fd) )
   { wic_state *state = allocHeap(sizeof(*state));
 
     memset(state, 0, sizeof(*state));
@@ -2764,9 +2774,10 @@ pl_open_wic(term_t to)
 					/* throws exception */
 }
 
-word
-pl_close_wic()
-{ GET_LD
+
+static
+PRED_IMPL("$close_wic", 0, close_wic, 0)
+{ PRED_LD
   wic_state *state;
 
   if ( (state=current_state) )
@@ -2807,15 +2818,18 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 }
 
 
-word
-pl_import_wic(term_t module, term_t pi)
+/** '$import_wic'(+Module, +PredicateIndicator)
+*/
+
+static
+PRED_IMPL("$import_wic", 2, import_wic, 0)
 { if ( current_state )
   { GET_LD
     Module m = NULL;
     functor_t fd;
 
-    if ( !PL_get_module(module, &m) ||
-	 !get_functor(pi, &fd, &m, 0, GF_PROCEDURE) )
+    if ( !PL_get_module(A1, &m) ||
+	 !get_functor(A2, &fd, &m, 0, GF_PROCEDURE) )
       fail;
 
     return importWic(current_state, lookupProcedure(fd, m) PASS_LD);
@@ -2825,17 +2839,20 @@ pl_import_wic(term_t module, term_t pi)
 }
 
 
-word
-pl_qlf_assert_clause(term_t ref, term_t saveclass)
-{ wic_state *state;
+/** '$qlf_assert_clause'(+ClauseRef, +Class) is det.
+*/
+
+static
+PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
+{ PRED_LD
+  wic_state *state;
 
   if ( (state=current_state) )
-  { GET_LD
-    Clause clause;
+  { Clause clause;
     atom_t sclass;
 
-    if ( !PL_get_clref(ref, &clause) ||
-	 !PL_get_atom_ex(saveclass, &sclass) )
+    if ( !PL_get_clref(A1, &clause) ||
+	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 
     openProcedureWic(state, clause->procedure, sclass PASS_LD);
@@ -3064,7 +3081,17 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
-  PRED_DEF("$qlf_info", 5, qlf_info, 0)
-  PRED_DEF("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
-  PRED_DEF("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
+  PRED_DEF("$qlf_info",		    5, qlf_info,	     0)
+  PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
+  PRED_DEF("$add_directive_wic",    1, add_directive_wic,    PL_FA_TRANSPARENT)
+  PRED_DEF("$qlf_start_module",	    1, qlf_start_module,     0)
+  PRED_DEF("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
+  PRED_DEF("$qlf_start_file",	    1, qlf_start_file,	     0)
+  PRED_DEF("$qlf_end_part",	    0, qlf_end_part,	     0)
+  PRED_DEF("$qlf_open",		    1, qlf_open,	     0)
+  PRED_DEF("$qlf_close",	    0, qlf_close,	     0)
+  PRED_DEF("$qlf_assert_clause",    2, qlf_assert_clause,    0)
+  PRED_DEF("$open_wic",		    1, open_wic,	     0)
+  PRED_DEF("$close_wic",	    0, close_wic,	     0)
+  PRED_DEF("$import_wic",	    2, import_wic,	     0)
 EndPredDefs
