@@ -2617,7 +2617,11 @@ pl_qlf_open(term_t file)
 word
 pl_qlf_close()
 { GET_LD
-  return qlfClose(PASS_LD1);
+
+  if ( wicFd )
+    return qlfClose(PASS_LD1);
+
+  succeed;
 }
 
 
