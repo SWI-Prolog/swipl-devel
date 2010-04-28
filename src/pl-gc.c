@@ -518,8 +518,12 @@ printNotRelocated()
 static void
 markLocal(Word addr)
 { GET_LD
+  Symbol s;
 
   local_marked++;
+  if ( (s = lookupHTable(local_table, addr)) )
+    assert(0);
+
   addHTable(local_table, addr, (void*)TRUE);
 }
 
@@ -531,7 +535,8 @@ processLocal(Word addr)
 
   local_marked--;
   if ( (s = lookupHTable(local_table, addr)) )
-  { s->value = (void*)FALSE;
+  { assert(s->value == (void*)TRUE);
+    s->value = (void*)FALSE;
   } else
   { assert(0);
   }
