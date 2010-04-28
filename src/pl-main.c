@@ -523,7 +523,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	    case 'T':	GD->options.trailSize    = size; goto next;
 	    case 'H':
 	    case 'A':
-	      Sdprintf("% WARNING: -%csize is no longer supported\n", *s);
+	      Sdprintf("%% WARNING: -%csize is no longer supported\n", *s);
 	      goto next;
 	  }
 	}
