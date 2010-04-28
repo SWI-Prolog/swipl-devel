@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -188,6 +188,15 @@ typedef struct xr_table
 } xr_table, *XrTable;
 
 
+typedef struct qlf_state
+{ int	has_moved;			/* Paths must be translated */
+  char *save_dir;			/* Directory saved */
+  char *load_dir;			/* Directory loading */
+  int   saved_version;			/* Version saved */
+  struct qlf_state *previous;		/* previous saved state (reentrance) */
+} qlf_state;
+
+
 typedef struct wic_state
 { char *wicFile;			/* name of output file */
   char *mkWicFile;			/* Wic file under construction */
@@ -201,6 +210,8 @@ typedef struct wic_state
 
   SourceMark source_mark_head;		/* Locations of sources */
   SourceMark source_mark_tail;
+
+  qlf_state *load_state;		/* current load-state */
 
   xr_table *XR;				/* external references */
 
@@ -230,10 +241,9 @@ static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
 static bool	loadPart(wic_state *state, Module *module, int skip ARG_LD);
 static bool	loadInModule(wic_state *state, int skip ARG_LD);
 static int	qlfVersion(wic_state *state);
-static atom_t	qlfFixSourcePath(const char *raw);
-static int	pushPathTranslation(IOSTREAM *fd, const char *loadname,
-				    int flags);
-static void	popPathTranslation(void);
+static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
+static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
+static void	popPathTranslation(wic_state *state);
 
 #undef LD
 #define LD LOCAL_LD
@@ -321,16 +331,6 @@ storeXrId(wic_state *state, long id, word value)
 		 /*******************************
 		 *	 PRIMITIVE LOADING	*
 		 *******************************/
-
-typedef struct qlf_state
-{ int	has_moved;			/* Paths must be translated */
-  char *save_dir;			/* Directory saved */
-  char *load_dir;			/* Directory loading */
-  int   saved_version;			/* Version saved */
-  struct qlf_state *previous;		/* previous saved state (reentrance) */
-} qlf_state;
-
-static qlf_state *load_state;		/* current load-state */
 
 #define PATH_ISDIR	0x1		/* pushPathTranslation() flags */
 
@@ -709,7 +709,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 	{ atom_t name   = loadXR(state);
 	  word   time   = getLong(fd);
 	  const char *s = stringAtom(name);
-	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s), TRUE);
+	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(state, s), TRUE);
 
 	  if ( !sf->time )
 	  { sf->time   = time;
@@ -909,8 +909,8 @@ loadWicFd(wic_state *state)
     fail;
   }
 					/* fix paths for changed home */
-  pushPathTranslation(fd, systemDefaults.home, PATH_ISDIR);
-  load_state->saved_version = saved_version;
+  pushPathTranslation(state, systemDefaults.home, PATH_ISDIR);
+  state->load_state->saved_version = saved_version;
 
   for(;;)
   { c = Sgetc(fd);
@@ -918,7 +918,7 @@ loadWicFd(wic_state *state)
     switch( c )
     { case EOF:
       case 'T':				/* trailer */
-	popPathTranslation();
+	popPathTranslation(state);
 	succeed;
       case 'W':
 	{ char *name = store_string(getString(fd, NULL) );
@@ -1017,23 +1017,18 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 
 
 static void
-loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
-{ if ( load_state->saved_version <= 31 )
-  { if ( !skip && SYSTEM_MODE )
-      set(def, SYSTEM|HIDE_CHILDS|LOCKED);
-  } else
-  { int	flags = getInt(fd);
+loadPredicateFlags(wic_state *state, Definition def, int skip ARG_LD)
+{ int flags = getInt(state->wicFd);
 
-    if ( !skip )
-    { unsigned long lflags = 0L;
+  if ( !skip )
+  { unsigned long lflags = 0L;
 
-      if ( flags & PRED_SYSTEM )
-	lflags |= SYSTEM;
-      if ( flags & PRED_HIDE_CHILDS )
-	lflags |= HIDE_CHILDS;
+    if ( flags & PRED_SYSTEM )
+      lflags |= SYSTEM;
+    if ( flags & PRED_HIDE_CHILDS )
+      lflags |= HIDE_CHILDS;
 
-      set(def, lflags);
-    }
+    set(def, lflags);
   }
 }
 
@@ -1066,7 +1061,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   }
   if ( def->references == 0 && !def->hash_info )
     def->indexPattern |= NEED_REINDEX;
-  loadPredicateFlags(def, fd, skip PASS_LD);
+  loadPredicateFlags(state, def, skip PASS_LD);
 
   for(;;)
   { switch(Sgetc(fd) )
@@ -1261,18 +1256,18 @@ loadImport(wic_state *state, int skip ARG_LD)
 
 
 static atom_t
-qlfFixSourcePath(const char *raw)
+qlfFixSourcePath(wic_state *state, const char *raw)
 { char buf[MAXPATHLEN];
 
-  if ( load_state->has_moved && strprefix(raw, load_state->save_dir) )
+  if ( state->load_state->has_moved && strprefix(raw, state->load_state->save_dir) )
   { char *s;
-    size_t lensave = strlen(load_state->save_dir);
+    size_t lensave = strlen(state->load_state->save_dir);
     const char *tail = &raw[lensave];
 
-    if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
+    if ( strlen(state->load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
       fatalError("Path name too long: %s", raw);
 
-    strcpy(buf, load_state->load_dir);
+    strcpy(buf, state->load_state->load_dir);
     s = &buf[strlen(buf)];
     *s++ = '/';
     strcpy(s, tail);
@@ -1304,7 +1299,7 @@ qlfLoadSource(wic_state *state)
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
-  fname = qlfFixSourcePath(str);
+  fname = qlfFixSourcePath(state, str);
 
   DEBUG(1, if ( !streq(stringAtom(fname), str) )
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
@@ -2228,7 +2223,7 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
     return warning("%s: seek failed: %s", state->wicFile, OsError());
   if ( Sgetc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
-  fname = qlfFixSourcePath(str);
+  fname = qlfFixSourcePath(state, str);
 
   return PL_unify_list(list, head, list) &&
          PL_unify_atom(head, fname);
@@ -2272,7 +2267,7 @@ qlfInfo(const char *file,
   saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 
-  pushPathTranslation(s, file, 0);
+  pushPathTranslation(&state, file, 0);
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
     return warning("qlf_info/4: seek failed: %s", OsError());
@@ -2294,7 +2289,7 @@ qlfInfo(const char *file,
   }
 
   rval = PL_unify_nil(files);
-  popPathTranslation();
+  popPathTranslation(&state);
 
 out:
   if ( qlfstart )
@@ -2395,14 +2390,15 @@ qlfVersion(wic_state *state)
 
 
 static int
-pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
+pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 { GET_LD
+  IOSTREAM *fd = state->wicFd;
   char *abssavename;
   qlf_state *new = allocHeap(sizeof(*new));
 
   memset(new, 0, sizeof(*new));
-  new->previous = load_state;
-  load_state = new;
+  new->previous = state->load_state;
+  state->load_state = new;
 
   abssavename = getString(fd, NULL);
   if ( absloadname && !streq(absloadname, abssavename) )
@@ -2439,13 +2435,13 @@ pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
 
 
 static void
-popPathTranslation()
+popPathTranslation(wic_state *state)
 { GET_LD
 
-  if ( load_state )
-  { qlf_state *old = load_state;
+  if ( state->load_state )
+  { qlf_state *old = state->load_state;
 
-    load_state = load_state->previous;
+    state->load_state = old->previous;
 
     if ( old->has_moved )
     { remove_string(old->load_dir);
@@ -2504,15 +2500,15 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
     fail;
   }
 
-  pushPathTranslation(fd, absloadname, 0);
-  load_state->saved_version = lversion;
+  pushPathTranslation(state, absloadname, 0);
+  state->load_state->saved_version = lversion;
   if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
   pushXrIdTable(state PASS_LD);
   rval = loadPart(state, module, FALSE PASS_LD);
   popXrIdTable(state PASS_LD);
-  popPathTranslation();
+  popPathTranslation(state);
 
   return rval;
 }
