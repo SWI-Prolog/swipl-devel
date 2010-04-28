@@ -755,7 +755,8 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
-#ifdef _MSC_VER
+#ifdef _MSC_VER				/* Windows MSVC version */
+
 static inline int
 MSB(unsigned int i)
 { unsigned long mask = i;
@@ -764,9 +765,18 @@ MSB(unsigned int i)
   _BitScanReverse(&index, mask);
   return index;
 }
-#elif defined(__GNUC__)
+
+#ifndef MemoryBarrier
+#define MemoryBarrier() (void)0
+#endif
+
+#elif defined(__GNUC__)			/* GCC version */
+
 #define MSB(i) (31 - __builtin_clz(i))
-#else
+#define MemoryBarrier() __sync_synchronize()
+
+#else					/* Other */
+
 static inline int
 MSB(unsigned int i)
 { int j = 0;
@@ -779,6 +789,8 @@ MSB(unsigned int i)
 
   return j;
 }
+#define MemoryBarrier() (void)0
+
 #endif
 
 static Definition
