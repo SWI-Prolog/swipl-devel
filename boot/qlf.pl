@@ -31,6 +31,7 @@
 
 :- module('$qlf',
 	  [ qcompile/1,		% :Files
+	    qcompile/2,		% :Files, +Options
 	    '$qload_file'/5,	% +Path, +Module, -Ac, -LM, +Options
 	    '$qload_stream'/5	% +Stream, +Module, -Ac, -LM, +Options
 	  ]).
@@ -41,7 +42,8 @@
 		 *******************************/
 
 :- meta_predicate
-	qcompile(:).
+	qcompile(:),
+	qcompile(:, +).
 
 %%	qcompile(:Files) is det.
 %
@@ -49,13 +51,15 @@
 %	each compiled file.
 
 qcompile(M:Files) :-
-	qcompile(Files, M).
+	qcompile_(Files, M, []).
+qcompile(M:Files, Options) :-
+	qcompile_(Files, M, Options).
 
-qcompile([], _) :- !.
-qcompile([H|T], M) :- !,
-	qcompile(H, M),
-	qcompile(T, M).
-qcompile(FileName, Module) :-
+qcompile_([], _, _) :- !.
+qcompile_([H|T], M, Options) :- !,
+	qcompile_(H, M, Options),
+	qcompile_(T, M, Options).
+qcompile_(FileName, Module, Options) :-
 	absolute_file_name(FileName,
 			   [ file_type(prolog),
 			     access(read)
@@ -71,7 +75,7 @@ qcompile(FileName, Module) :-
 	'$qlf_open'(Qlf),
 	flag('$compiling', Old, qlf),
 	'$set_source_module'(OldModule, Module), % avoid this in the module!
-	(   consult(Module:Absolute)
+	(   load_files(Module:Absolute, Options)
 	->  Ok = true
 	;   Ok = fail
 	),

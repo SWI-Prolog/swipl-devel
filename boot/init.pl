@@ -1110,9 +1110,9 @@ load_files(Module:Files, Options) :-
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
-	(   memberchk(qlf(QlfMode), Options)
+	(   memberchk(qcompile(QlfMode), Options)
 	->  true
-	;   current_prolog_flag(qlf, QlfMode)
+	;   current_prolog_flag(qcompile, QlfMode)
 	),
 	(   QlfMode == true
 	->  true
@@ -1180,7 +1180,7 @@ load_files(Module:Files, Options) :-
 '$do_load_file'(File, FullFile, Module, Options) :-
 	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
 	(   Mode == qcompile
-	->  qcompile(File)
+	->  qcompile(Module:File, Options)
 	;   '$do_load_file_2'(File, Absolute, Module, Options)
 	).
 
