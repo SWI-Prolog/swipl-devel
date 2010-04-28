@@ -1091,13 +1091,23 @@ load_files(Module:Files, Options) :-
 	user:prolog_file_type(QlfExt, qlf),
 	file_name_extension(Base, QlfExt, QlfFile),
 	(   access_file(QlfFile, read),
-	    '$qlf_up_to_date'(FullFile, QlfFile)
-	->  !, Mode = qload
+	    (	'$qlf_up_to_date'(FullFile, QlfFile)
+	    ->	Mode = qload
+	    ;	access_file(QlfFile, write)
+	    ->	Mode = qcompile
+	    )
+	->  !
 	;   '$qlf_auto'(FullFile, QlfFile, Options)
 	->  !, Mode = qcompile
 	).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
 
+
+%%	'$qlf_up_to_date'(+PlFile, +QlfFile) is semidet.
+%
+%	True if the QlfFile file is  considered up-to-date. This implies
+%	that either the PlFile does not exist or that the QlfFile is not
+%	older than the PlFile.
 
 '$qlf_up_to_date'(PlFile, QlfFile) :-
 	(   exists_file(PlFile)
@@ -1107,20 +1117,31 @@ load_files(Module:Files, Options) :-
 	;   true
 	).
 
+%%	'$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.
+%
+%	True if we create QlfFile using   qcompile/2. This is determined
+%	by the option qcompile(QlfMode) or, if   this is not present, by
+%	the prolog_flag qcompile.
+
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
+	\+ '$in_system_dir'(PlFile),
 	(   memberchk(qcompile(QlfMode), Options)
 	->  true
 	;   current_prolog_flag(qcompile, QlfMode)
 	),
-	(   QlfMode == true
+	(   QlfMode == auto
 	->  true
 	;   QlfMode == large,
 	    size_file(PlFile, Size),
 	    Size > 100000
 	),
 	access_file(QlfFile, write).
+
+'$in_system_dir'(PlFile) :-
+	current_prolog_flag(home, Home),
+	sub_atom(PlFile, 0, _, _, Home).
 
 '$spec_extension'(File, Ext) :-
 	atom(File),
@@ -1815,10 +1836,15 @@ load_files(Module:Files, Options) :-
 '$load_goal'(consult(_)).
 '$load_goal'(load_files(_)).
 '$load_goal'(load_files(_,Options)) :-
-	memberchk(qcompile(true), Options).
+	memberchk(qcompile(QlfMode), Options),
+	'$qlf_part_mode'(QlfMode).
 '$load_goal'(ensure_loaded(_)) :- flag('$compiling', wic, wic).
 '$load_goal'(use_module(_))    :- flag('$compiling', wic, wic).
 '$load_goal'(use_module(_, _)) :- flag('$compiling', wic, wic).
+
+'$qlf_part_mode'(part).
+'$qlf_part_mode'(true).			% compatibility
+
 
 		/********************************
 		*        TERM EXPANSION         *
