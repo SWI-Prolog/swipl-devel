@@ -1865,17 +1865,16 @@ load_files(Module:Files, Options) :-
 '$store_clause'((_, _), _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
-'$store_clause'('$source_location'(File, Line):Term, _) :- !,
-	'$record_clause'(Term, File:Line, Ref),
-	'$qlf_assert_clause'(Ref).
 '$store_clause'(Term, File) :-
-	'$record_clause'(Term, File, Ref),
-        '$qlf_assert_clause'(Ref).
+	'$clause_source'(Term, Clause, File, SrcLoc),
+	(   flag('$compiling', database, database)
+	->  '$record_clause'(Clause, SrcLoc)
+	;   '$record_clause'(Clause, SrcLoc, Ref),
+	    '$qlf_assert_clause'(Ref, development)
+	).
 
-'$qlf_assert_clause'(_) :-
-	flag('$compiling', database, database), !.
-'$qlf_assert_clause'(Ref) :-
-	'$qlf_assert_clause'(Ref, development).
+'$clause_source'('$source_location'(File,Line):Clause, Clause, _, File:Line) :- !.
+'$clause_source'(Clause, Clause, File, File).
 
 
 %%	compile_aux_clauses(+Clauses) is det.

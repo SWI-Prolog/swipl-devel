@@ -2793,9 +2793,21 @@ record_clause(term_t term, term_t file, term_t ref ARG_LD)
   }
 
   if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
-    return PL_unify_clref(ref, clause);
+  { if ( ref )
+      return PL_unify_clref(ref, clause);
+    else
+      return TRUE;
+  }
 
   fail;
+}
+
+
+static
+PRED_IMPL("$record_clause", 2, record_clause, 0)
+{ PRED_LD
+
+  return record_clause(A1, A2, 0 PASS_LD);
 }
 
 
@@ -5552,6 +5564,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(comp)
+  PRED_DEF("$record_clause", 2, record_clause, 0)
   PRED_DEF("$record_clause", 3, record_clause, 0)
   PRED_DEF("$start_aux", 2, start_aux, 0)
   PRED_DEF("$end_aux", 2, end_aux, 0)
