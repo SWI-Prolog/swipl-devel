@@ -91,9 +91,12 @@ qcompile_(FileName, Module, Options) :-
 
 '$qload_file'(File, Module, Action, LoadedModule, Options) :-
 	open(File, read, In, [type(binary)]),
+	'$save_lex_state'(LexState),
 	call_cleanup('$qload_stream'(In, Module,
 				     Action, LoadedModule, Options),
-		     close(In)).
+		     (	 close(In),
+			 '$restore_lex_state'(LexState)
+		     )).
 
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
