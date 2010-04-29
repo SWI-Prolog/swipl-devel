@@ -1274,6 +1274,7 @@ load_files(Module:Files, Options) :-
 % 	Import public predicates from LoadedModule into Module
 
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
+	LoadedModule \== Module,
 	atom(LoadedModule), !,
 	'$get_option'(imports(Import), Options, all),
 	'$get_option'(reexport(Reexport), Options, false),
@@ -1626,10 +1627,7 @@ load_files(Module:Files, Options) :-
 	(   Reexport == true,
 	    '$list_to_conj'(Imported, Conj)
 	->  export(Context:Conj),
-	    (	flag('$compiling', wic, wic)
-	    ->	'$add_directive_wic'(export(Context:Conj))
-	    ;	true
-	    )
+	    '$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
 	;   true
 	).
 
@@ -1649,7 +1647,7 @@ load_files(Module:Files, Options) :-
 	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
 	Context:import(Source:Pred),
-	'$import_wic'(Source, Pred),
+	'$ifcompiling'('$import_wic'(Source, Pred)),
 	'$import_all2'(Rest, Context, Source, Imported).
 
 
