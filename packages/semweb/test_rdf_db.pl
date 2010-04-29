@@ -612,6 +612,11 @@ prefix(like-1) :-
 
 rdf_retractall(nopred-1) :-
 	rdf_retractall(aap, noot, mies).
+rdf_retractall(term) :-
+	rdf_assert(a, b, literal(x)),
+	rdf_assert(a, b, literal(x(1))),
+	rdf_retractall(a, b, literal(x(_))),
+	findall(V, rdf(a,b,V), [literal(x)]).
 
 
 		 /*******************************
