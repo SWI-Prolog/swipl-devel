@@ -335,12 +335,14 @@ storeXrId(wic_state *state, long id, word value)
 #define PATH_ISDIR	0x1		/* pushPathTranslation() flags */
 
 static bool
-qlfLoadError(IOSTREAM *fd, char *ctx)
-{ fatalError("%s: QLF format error at index = %ld", ctx, Stell(fd));
+qlfLoadError_ctx(wic_state *state, char *file, int line)
+{ fatalError("%s: QLF format error at index = %ld (%s:%d)",
+	     state->wicFile, Stell(state->wicFd), file, line);
 
   fail;
 }
 
+#define qlfLoadError(state) qlfLoadError_ctx(state, __FILE__, __LINE__)
 
 static char *getstr_buffer = NULL;
 static int  getstr_buffer_size = 0;
@@ -1011,7 +1013,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
       return loadInModule(state, skip PASS_LD);
 
     default:
-      return qlfLoadError(fd, "loadStatement()");
+      return qlfLoadError(state);
   }
 }
 
@@ -1356,7 +1358,7 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
       case 'X':
 	break;
       default:
-	return qlfLoadError(fd, "loadPart()");
+	return qlfLoadError(state);
     }
     break;
   }
@@ -1412,7 +1414,7 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	  break;
 	}
 	default:
-	  qlfLoadError(fd, "loadPart()");
+	  qlfLoadError(state);
 	  break;
       }
 
@@ -1430,7 +1432,7 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
       break;
     }
     default:
-      return qlfLoadError(fd, "loadPart()");
+      return qlfLoadError(state);
   }
 
   for(;;)
@@ -2504,7 +2506,7 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
   pushPathTranslation(state, absloadname, 0);
   state->load_state->saved_version = lversion;
   if ( Qgetc(fd) != 'Q' )
-    return qlfLoadError(fd, "qlfLoad()");
+    return qlfLoadError(state);
 
   pushXrIdTable(state PASS_LD);
   rval = loadPart(state, module, FALSE PASS_LD);
