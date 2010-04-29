@@ -2471,7 +2471,7 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
     { PL_free_text(&text);
       fail;
     }
-    state->wicFile = text.text.t;
+    state->wicFile = store_string(text.text.t);
     if ( !(absloadname = AbsoluteFile(state->wicFile, tmp)) )
       fail;
     PL_free_text(&text);
@@ -2732,6 +2732,9 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
   rval = qlfLoad(&state, &m PASS_LD);
   LD->modules.source = oldsrc;
   fd->encoding = saved_enc;
+
+  if ( state.wicFile )
+    remove_string(state.wicFile);
 
   if ( rval )
   { if ( m )
