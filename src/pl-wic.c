@@ -1042,7 +1042,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
   functor_t f = (functor_t) loadXR(state);
   SourceFile csf = NULL;
 
-  proc = lookupProcedure(f, LD->modules.source);
+  proc = lookupProcedureToDefine(f, LD->modules.source);
   DEBUG(2, Sdprintf("Loading %s%s",
 		    procedureName(proc),
 		    skip ? " (skip)" : ""));
@@ -2204,7 +2204,7 @@ writeSourceMarks(wic_state *state ARG_LD)
   }
   state->source_mark_head = state->source_mark_tail = NULL;
 
-  DEBUG(1, Sdprintf("Written %d marks\n", n));
+  DEBUG(1, Sdprintf("\nWritten %d marks\n", n));
   putInt32(n, state->wicFd);
 
   return 0;
@@ -2427,7 +2427,8 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
     new->load_dir = store_string(l);
     new->save_dir = store_string(s);
     DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
-		      load_state->save_dir, load_state->load_dir));
+		      state->load_state->save_dir,
+		      state->load_state->load_dir));
   }
 
   succeed;
