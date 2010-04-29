@@ -97,11 +97,15 @@ qcompile_(FileName, Module, Options) :-
 
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
-	'$qlf_load'(Module:In, LoadedModule),
-	check_is_module(LoadedModule, In, Options).
+	'$qlf_load'(Module:In, LM),
+	check_is_module(LM, In, Options),
+	(   atom(LM)
+	->  LoadedModule = LM
+	;   LoadedModule = Module
+	).
 
 check_is_module(LM, In, Options) :-
-	var(LM),
+	\+ atom(LM),
 	'$get_option'(must_be_module(true), Options, false), !,
 	stream_property(In, file_name(File)),
 	throw(error(domain_error(module_file, File), _)).
