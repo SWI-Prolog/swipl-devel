@@ -721,6 +721,7 @@ represented.  See the \const{REP_*} flags below for details.
 		      any of the other flags using write/1.  If
 		      no \const{BUF_*} is provided, \const{BUF_RING}
 		      is implied. \\
+\const{CVT_WRITE_CANINICAL} & As CVT_WRITE, but use write_canonical/2. \\
 \const{CVT_ALL}     & Convert if term is any of the above, except for
                       \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
 \hline

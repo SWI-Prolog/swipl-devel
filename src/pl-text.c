@@ -193,15 +193,20 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding = ENC_ISO_LATIN_1;
     text->storage  = PL_CHARS_LOCAL;
     text->canonical = TRUE;
-  } else if ( (flags & CVT_WRITE) )
+  } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
   { IOENC encodings[3];
     IOENC *enc;
     char *r;
+    int wflags;
 
   case_write:
     encodings[0] = ENC_ISO_LATIN_1;
     encodings[1] = ENC_WCHAR;
     encodings[2] = ENC_UNKNOWN;
+
+    wflags = ((flags&CVT_WRITE_CANONICAL)
+		? PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS
+		: PL_WRT_NUMBERVARS);
 
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;
@@ -212,7 +217,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
       if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= 0 &&
+	   Sputcode(EOS, fd) >= wflags &&
 	   Sflush(fd) >= 0 )
       { text->encoding = *enc;
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);
@@ -244,7 +249,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   succeed;
 
 maybe_write:
-  if ( (flags & CVT_WRITE) )
+  if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
     goto case_write;
 
 error:
