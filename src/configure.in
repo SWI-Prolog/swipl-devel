@@ -692,6 +692,20 @@ case "$ARCH" in
 	;;
 esac
 
+AC_DEFUN([pl_RL_CHECK_VAR],
+[AS_VAR_PUSHDEF([ac_var], [ac_cv_libreadline_var_$1])dnl
+AC_CACHE_CHECK([for $1], [ac_var],
+[AC_LINK_IFELSE([AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT
+#include <readline/readline.h>], [$1 = 0;])],
+       [AS_VAR_SET([ac_var], [yes])],
+       [AS_VAR_SET([ac_var], [no])])])
+ AH_TEMPLATE(AS_TR_CPP([HAVE_$1]),
+        [Define to 1 if libreadline has the `$1' variable.])
+ AS_IF([test AS_VAR_GET([ac_var]) = yes],
+       [AC_DEFINE(AS_TR_CPP([HAVE_$1]))])
+ AS_VAR_POPDEF([ac_var])dnl
+])
+
 if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
   if test ! -z "$RLPREFIX"; then
     AC_MSG_CHECKING(Whether setting for RLPREFIX is ok)
@@ -739,10 +753,13 @@ if test "$configreadline" = "yes" -a ! $readline_ok = "yes" ; then
       AC_CHECK_HEADERS(readline/history.h)
       if test "$ac_cv_header_readline_history_h" = yes; then
 	readline_ok=yes
-	AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
-	AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
-	AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+	AC_CHECK_FUNCS(rl_completion_matches rl_insert_close)
+	AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
+	AC_CHECK_FUNCS(rl_cleanup_after_signal)
 	AC_CHECK_FUNCS(rl_filename_completion_function)
+    pl_RL_CHECK_VAR([rl_readline_state])
+    pl_RL_CHECK_VAR([rl_done])
+    pl_RL_CHECK_VAR([rl_event_hook])
       fi
     fi
   fi
