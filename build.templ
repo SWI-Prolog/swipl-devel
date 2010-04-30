@@ -152,17 +152,17 @@ done
 if [ "$setvars" = "false" ]; then
 
   if [ "$config" = "true" ]; then
-    ./configure --prefix=$PREFIX --with-world $EXTRACFG $* 2>&1 | tee configure.out
+    ./configure --prefix=$PREFIX --with-world $EXTRACFG $@ 2>&1 | tee configure.out
     if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   fi
 
   if [ "$make" = "true" ]; then
-    $MAKE $* 2>&1 | tee make.out
+    $MAKE $@ 2>&1 | tee make.out
     if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   fi
 
   if [ "$install" = "true" ]; then
-    $MAKE install $* 2>&1 | tee make-install.out
+    $MAKE install $@ 2>&1 | tee make-install.out
     if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
   fi
 
