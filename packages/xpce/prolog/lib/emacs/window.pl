@@ -117,12 +117,12 @@ initialise(F, For:'emacs_buffer|emacs_view') :->
 	),
 
 	send(TW, append, V),
+	send(B, update_label),
 	get(V, editor, E),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
 	send(F, open),
-	send(B, update_label),
 
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
