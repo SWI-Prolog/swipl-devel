@@ -624,7 +624,14 @@ label(V, Label:name) :->
 	"Set label of frame/tab"::
 	get(V, device, Dev),
 	(   send(Dev, has_send_method, label)
-	->  send(Dev, label, Label)
+	->  send(Dev, label, Label),
+	    (	get(Dev, container, emacs_tabbed_window, TW),
+		get(TW, current, V),
+		get(V, frame, Frame),
+		Frame \== @nil
+	    ->	send(Frame, label, Label) % HACK: should subclass window_tab
+	    ;	true
+	    )
 	;   get(V, frame, Frame),
 	    Frame \== @nil
 	->  send(Frame, label, Label)
