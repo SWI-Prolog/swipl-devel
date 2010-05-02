@@ -381,6 +381,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	DEBUG(9, Sdprintf("Added attvar %d\n", n));
 
 	p = ap;
+	deRef(p);
 	goto again;
       }
   #endif
