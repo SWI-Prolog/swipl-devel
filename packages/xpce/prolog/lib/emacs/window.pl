@@ -66,6 +66,9 @@ make_emacs_tab_popup(P) :-
 		  [ menu_item(close,
 			      message(Tab, destroy),
 			      condition := Cond),
+		    menu_item(close_others,
+			      message(Tab, close_other_tabs),
+			      condition := Cond),
 		    menu_item(detach,
 			      message(Tab, untab),
 			      condition := Cond)
