@@ -369,14 +369,9 @@ README=	ChangeLog \
 
 INSTALL=xpce-install.exe -n
 
-!IF "$(CFG)" == "rt"
-ITRG=	xpce-install.exe \
-	ibindir idll ixpce-stub
-!ELSE
 ITRG=	xpce-install.exe \
 	ibindir idirs idll ilib irc iindex imanidx ireadme ixpce-stub \
 	classindex
-!ENDIF
 
 install:	$(ITRG)
 
@@ -389,7 +384,7 @@ idirs::
 		@for %d in ($(IDIRS)) do \
 		  @if not exist "$(IBASE)\%d\$(NULL)" mkdir "$(IBASE)\%d"
 
-idll:		$(PL2XPCE).dll
+idll::
 		$(INSTALL) $(PL2XPCE).dll "$(BINDIR)"
 !IF "$(DBG)" == "true"
 		$(INSTALL) $(PL2XPCE).pdb "$(BINDIR)"
