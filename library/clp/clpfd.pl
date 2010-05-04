@@ -1420,10 +1420,10 @@ delete_eq([X|Xs], Y, List) :-
 contracting(Vs) :-
         must_be(list, Vs),
         maplist(finite_domain, Vs),
-        contracting(Vs, fail, Vs).
+        contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
-        (   Repeat -> contracting(Vars, fail, Vars)
+        (   Repeat -> contracting(Vars, false, Vars)
         ;   true
         ).
 contracting([V|Vs], Repeat, Vars) :-
@@ -2279,7 +2279,7 @@ integer_kroot(L, U, N, K, R) :-
         ;   L + 1 =:= U ->
             (   L^K =:= N -> R = L
             ;   U^K =:= N -> R = U
-            ;   fail
+            ;   false
             )
         ;   Mid is (L + U)//2,
             (   Mid^K > N ->
@@ -3860,7 +3860,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #>= Y
                 ;   Z > X -> Z = Y
-                ;   fail % Z < X
+                ;   false % Z < X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
@@ -3895,7 +3895,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #=< Y
                 ;   Z < X -> Z = Y
-                ;   fail % Z > X
+                ;   false % Z > X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
@@ -4067,7 +4067,7 @@ run_propagator(reified_fd(V,B), MState) :-
         ;   B == 0 ->
             (   fd_inf(V, inf) -> true
             ;   fd_sup(V, sup) -> true
-            ;   fail
+            ;   false
             )
         ;   true
         ).
@@ -4699,7 +4699,7 @@ outof_reducer(Left, Right, Var) :-
             append(Left, Right, Others),
             domain_num_elements(Dom, N),
             num_subsets(Others, Dom, 0, Num, NonSubs),
-            (   n(Num) cis_geq N -> fail
+            (   n(Num) cis_geq N -> false
             ;   n(Num) cis N - n(1) ->
                 reduce_from_others(NonSubs, Dom)
             ;   true
