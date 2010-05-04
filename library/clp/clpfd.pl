@@ -254,23 +254,23 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 ==
 :- use_module(library(clpfd)).
 
-fac(0, 1).
-fac(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
+n_factorial(0, 1).
+n_factorial(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
 
 ==
-?- fac(47, F).
+?- n_factorial(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
 false.
 
-?- fac(N, 1).
+?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
 false.
 
-?- fac(N, 3).
+?- n_factorial(N, 3).
 false.
 ==
 
@@ -5603,18 +5603,18 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 % Example:
 %
 % ==
-%  fac(N, F) :-
+%  n_factorial(N, F) :-
 %          zcompare(C, N, 0),
-%          fac_(C, N, F).
+%          n_factorial_(C, N, F).
 %
-%  fac_(=, _, 1).
-%  fac_(>, N, F) :- F #= F0*N, N1 #= N - 1, fac(N1, F0).
+%  n_factorial_(=, _, 1).
+%  n_factorial_(>, N, F) :- F #= F0*N, N1 #= N - 1, n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
 %
 % ==
-% ?- fac(30, F).
+% ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 
