@@ -5624,7 +5624,7 @@ zcompare(Order, A, B) :-
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
-            propagator_init_trigger(pzcompare(Order, A, B))
+            propagator_init_trigger([A,B], pzcompare(Order, A, B))
         ).
 
 zcompare_(=, A, B) :- A #= B.
