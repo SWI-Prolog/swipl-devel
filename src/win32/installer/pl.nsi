@@ -350,7 +350,7 @@ SectionEnd
 Section "Documentation and Help-system"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File pl\ChangeLog.TXT
+  File pl\RelNotes-5.10.TXT
   SetOutPath $INSTDIR\library
   File pl\library\MANUAL
   File pl\library\helpidx.pl

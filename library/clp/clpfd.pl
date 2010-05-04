@@ -254,29 +254,30 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 ==
 :- use_module(library(clpfd)).
 
-fac(0, 1).
-fac(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
+n_factorial(0, 1).
+n_factorial(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
 
 ==
-?- fac(47, F).
+?- n_factorial(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
 false.
 
-?- fac(N, 1).
+?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
 false.
 
-?- fac(N, 3).
+?- n_factorial(N, 3).
 false.
 ==
 
 To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query fac(N, 0) is the only non-terminating case of this kind.
+the query n_factorial(N, 0) is the only non-terminating case of this
+kind.
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
@@ -1420,10 +1421,10 @@ delete_eq([X|Xs], Y, List) :-
 contracting(Vs) :-
         must_be(list, Vs),
         maplist(finite_domain, Vs),
-        contracting(Vs, fail, Vs).
+        contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
-        (   Repeat -> contracting(Vars, fail, Vars)
+        (   Repeat -> contracting(Vars, false, Vars)
         ;   true
         ).
 contracting([V|Vs], Repeat, Vars) :-
@@ -2279,7 +2280,7 @@ integer_kroot(L, U, N, K, R) :-
         ;   L + 1 =:= U ->
             (   L^K =:= N -> R = L
             ;   U^K =:= N -> R = U
-            ;   fail
+            ;   false
             )
         ;   Mid is (L + U)//2,
             (   Mid^K > N ->
@@ -3860,7 +3861,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #>= Y
                 ;   Z > X -> Z = Y
-                ;   fail % Z < X
+                ;   false % Z < X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
@@ -3895,7 +3896,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #=< Y
                 ;   Z < X -> Z = Y
-                ;   fail % Z > X
+                ;   false % Z > X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
@@ -4067,7 +4068,7 @@ run_propagator(reified_fd(V,B), MState) :-
         ;   B == 0 ->
             (   fd_inf(V, inf) -> true
             ;   fd_sup(V, sup) -> true
-            ;   fail
+            ;   false
             )
         ;   true
         ).
@@ -4699,7 +4700,7 @@ outof_reducer(Left, Right, Var) :-
             append(Left, Right, Others),
             domain_num_elements(Dom, N),
             num_subsets(Others, Dom, 0, Num, NonSubs),
-            (   n(Num) cis_geq N -> fail
+            (   n(Num) cis_geq N -> false
             ;   n(Num) cis N - n(1) ->
                 reduce_from_others(NonSubs, Dom)
             ;   true
@@ -5603,18 +5604,18 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 % Example:
 %
 % ==
-%  fac(N, F) :-
+%  n_factorial(N, F) :-
 %          zcompare(C, N, 0),
-%          fac_(C, N, F).
+%          n_factorial_(C, N, F).
 %
-%  fac_(=, _, 1).
-%  fac_(>, N, F) :- F #= F0*N, N1 #= N - 1, fac(N1, F0).
+%  n_factorial_(=, _, 1).
+%  n_factorial_(>, N, F) :- F #= F0*N, N1 #= N - 1, n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
 %
 % ==
-% ?- fac(30, F).
+% ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 
@@ -5624,7 +5625,7 @@ zcompare(Order, A, B) :-
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
-            propagator_init_trigger(pzcompare(Order, A, B))
+            propagator_init_trigger([A,B], pzcompare(Order, A, B))
         ).
 
 zcompare_(=, A, B) :- A #= B.

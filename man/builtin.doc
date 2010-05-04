@@ -243,11 +243,26 @@ use_module/2.%
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
 
-    \termitem{qcompile}{Bool}
-If this call appears in a directive of a file that is compiled into
-Quick Load Format using qcompile/1 and this flag is \const{true}, the
-contents of the argument files are included in the \fileext{qlf} file
-instead of the loading directive.
+    \termitem{qcompile}{Atom}
+How to deal with quick-load-file compilation by qcompile/1.  Values are
+
+    \begin{description}
+	\termitem{never}
+Default.  Do not use qcompile, unless called explicitely
+	\termitem{auto}
+Use qcompile for all writeable files.  See comment below.
+	\termitem{large}
+Use qcompile if the file is `large'. Currently, files larger than
+100~Kbytes are considered large.
+        \termitem{part}
+If this load_file/2 appears in a directive of a file that is compiled
+into Quick Load Format using qcompile/1, the contents of the argument
+files are included in the \fileext{qlf} file instead of the loading
+directive.
+    \end{description}
+
+If this option is not present, it used the value of the prolog
+flag \prologflag{qcompile} as default.
 
     \termitem{redefine_module}{+Action}
 Defines what to do if a file is loaded that provides a module that is
@@ -832,11 +847,10 @@ will load the file. When no extension is specified, it will load the
 
 \begin{description}
     \predicate{qcompile}{1}{:File}
-Takes a single file specification like consult/1 (i.e., accepts
-constructs like \file{library(LibFile)} and, in addition to the normal
-compilation, creates a \emph{Quick Load File} from \arg{File}. The
-file-extension of this file is \fileext{qlf}. The base name of the Quick
-Load File is the same as the input file.
+Takes a file specification as consult/1, etc.\ and, in addition to the
+normal compilation, creates a \emph{Quick Load File} from \arg{File}.
+The file-extension of this file is \fileext{qlf}. The base name of the
+Quick Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
 [\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(true),
@@ -853,6 +867,10 @@ compiling/0.
 
 Source references (source_file/2) in the Quick Load File refer to
 the Prolog source file from which the compiled code originates.
+
+    \predicate{qcompile}{2}{:File, +Options}
+As qcompile/1, but processes additional options as defined by
+load_files/2.\bug{Option processing is currently incomplete.}
 \end{description}
 
 

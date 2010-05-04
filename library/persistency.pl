@@ -222,7 +222,7 @@ user:term_expansion((:- persistent(Spec)), Clauses) :-
 		 *	      ATTACH		*
 		 *******************************/
 
-%%	attach_db(:File, +Options)
+%%	db_attach(:File, +Options)
 %
 %	Use File as persistent database  for   the  calling  module. The
 %	calling module must defined persistent/1   to  declare the database

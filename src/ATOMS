@@ -64,7 +64,6 @@ A begin			"begin"
 A binary		"binary"
 A bind			"bind"
 A bitor			"\\/"
-A block			"block"
 A bof			"bof"
 A bom			"bom"
 A bool			"bool"
@@ -669,7 +668,6 @@ F att			3
 F backslash		1
 F bar			2
 F bitor			2
-F block			3
 F bom			1
 F brace_term_position	3
 F break			1

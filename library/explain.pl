@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -94,6 +94,7 @@ explain(A, Explanation) :-
 	atom(A),
 	utter(Explanation, '"~w" is an atom', [A]).
 explain(A, Explanation) :-
+	atom(A),
 	current_op(Pri, F, A),
 	op_type(F, Type),
 	utter(Explanation, '"~w" is a ~w (~w) operator of priority ~d',
@@ -148,6 +149,9 @@ known_predicate(Pred) :-
 	current_predicate(_, Pred), !.
 known_predicate(Pred) :-
 	predicate_property(Pred, undefined).
+known_predicate(_:Head) :-
+	functor(Head, Name, Arity),
+	'$in_library'(Name, Arity, _Path).
 
 op_type(X, prefix) :-
 	atom_chars(X, [f, _]).
@@ -210,6 +214,7 @@ lproperty(transparent,	' meta', []).
 tproperty(imported_from(Module), ' imported from module ~w', [Module]).
 tproperty(file(File),		' defined in~n~t~8|~w', [File]).
 tproperty(line_count(Number),	':~d', [Number]).
+tproperty(autoload,		' that can be autoloaded', []).
 
 combine_utterances(Pairs, Explanation) :-
 	maplist(first, Pairs, Fmts),
@@ -230,7 +235,10 @@ explain_predicate(Pred, Explanation) :-
 	(   predicate_property(Pred, undefined)
 	->  utter(Explanation,
 		  '~w:~w/~d is an undefined predicate', [Module,Name,Arity])
-	;   U0 = '~w:~w/~d is a' - [Module, Name, Arity],
+	;   (   var(Module)
+	    ->	U0 = '~w/~d is a' - [Name, Arity]
+	    ;	U0 = '~w:~w/~d is a' - [Module, Name, Arity]
+	    ),
 	    findall(Fmt-Arg, (lproperty(Prop, Fmt, Arg),
 			      predicate_property(Pred, Prop)),
 		    U1),

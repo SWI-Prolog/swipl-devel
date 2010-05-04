@@ -1683,7 +1683,8 @@ free_literal(rdf_db *db, literal *lit)
       }
     }
 
-    if ( lit->objtype == OBJ_TERM )
+    if ( lit->objtype == OBJ_TERM &&
+	 lit->value.term.record )
     { if ( lit->term_loaded )
 	rdf_free(db, lit->value.term.record, lit->value.term.len);
       else
@@ -2475,7 +2476,8 @@ match_object(triple *t, triple *p, unsigned flags)
 	case OBJ_DOUBLE:
 	  return tlit->value.real == plit->value.real;
 	case OBJ_TERM:
-	  if ( plit->value.term.len != tlit->value.term.len )
+	  if ( plit->value.term.record &&
+	       plit->value.term.len != tlit->value.term.len )
 	    return FALSE;
 	  return memcmp(tlit->value.term.record, plit->value.term.record,
 			plit->value.term.len) == 0;
@@ -3626,6 +3628,8 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
   } else if ( !PL_is_ground(litt) )
   { if ( !(flags & LIT_PARTIAL) )
       return type_error(litt, "rdf_object");
+    if ( !PL_is_variable(litt) )
+      lit->objtype = OBJ_TERM;
   } else
   { lit->value.term.record = PL_record_external(litt, &lit->value.term.len);
     lit->objtype = OBJ_TERM;
@@ -5263,7 +5267,15 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { if ( db->tr_first )
+    { if ( t.object_is_literal && t.object.literal->objtype == OBJ_TERM )
+      { fid_t fid = PL_open_foreign_frame();
+	int rc = unify_object(object, p);
+	PL_discard_foreign_frame(fid);
+	if ( !rc )
+	  continue;
+      }
+
+      if ( db->tr_first )
       { if ( db->tr_reset )
 	{ WRUNLOCK(db);
 	  return permission_error("retract", "triple", "",

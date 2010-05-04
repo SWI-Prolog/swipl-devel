@@ -167,7 +167,8 @@ type(varbinary(20),
 	    ],
      [
      ],
-     []).
+     [ \+ dbms_name('MySQL')
+     ]).
 type(blob,			% mySql blob
      atom = [ foo,
 	      '',

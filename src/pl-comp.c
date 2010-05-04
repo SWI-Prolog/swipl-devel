@@ -47,7 +47,7 @@
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
-forwards void	checkCodeTable(void);
+static void	initVMIMerge(void);
 
 static void
 checkCodeTable(void)
@@ -137,6 +137,7 @@ initWamTable(void)
 
   checkCodeTable();
   initSupervisors();
+  initVMIMerge();
 }
 
 #else /* VMCODE_IS_ADDRESS */
@@ -145,9 +146,15 @@ void
 initWamTable()
 { checkCodeTable();
   initSupervisors();
+  initVMIMerge();
 }
 
 #endif /* VMCODE_IS_ADDRESS */
+
+
+		 /*******************************
+		 *	     COMPILER		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module forms together  with  the  module  'pl-wam.c'  the  complete
@@ -208,6 +215,11 @@ typedef struct
   code		instruction;		/* Instruction to use: C_CUT/C_LCUT */
 } cutInfo;
 
+typedef struct merge_state
+{ const vmi_merge *candidates;		/* Merge candidates */
+  size_t	merge_pos;		/* The merge candidate location */
+} merge_state;
+
 typedef struct
 { Module	module;			/* module to compile into */
   int		arity;			/* arity of top-goal */
@@ -218,6 +230,7 @@ typedef struct
   int		subclausearg;		/* processing subclausearg */
   int		argvars;		/* islocal argument pseudo vars */
   int		argvar;			/* islocal current pseudo var */
+  merge_state	mstate;			/* Instruction merging state */
   tmp_buffer	codes;			/* scratch code table */
   VarTable	used_var;		/* boolean array of used variables */
 } compileInfo, *CompileInfo;
@@ -544,22 +557,22 @@ calculation at runtime.
 #define A_ARG	0x04			/* sub-argument */
 #define A_RIGHT	0x08			/* rightmost argument */
 
-#define ISVOID 0			/* compileArgument produced H_VOID */
-#define NONVOID 1			/* ... anything else */
-					/* also allow for *_OVERFLOW */
 #define NOT_CALLABLE -10		/* return value for not-callable */
 
 #define BLOCK(s) do { s; } while (0)
 
-#define Output_0(ci,c)		addBuffer(&(ci)->codes, encode(c), code)
+static void Output_0(CompileInfo ci, vmi c);
+
 #define Output_a(ci,c)		addBuffer(&(ci)->codes, c, code)
+#define Output_an(ci,p,n)	addMultipleBuffer(&(ci)->codes, p, n, word)
 #define Output_1(ci,c,a)	BLOCK(Output_0(ci, c); \
 				      Output_a(ci, a))
 #define Output_2(ci,c,a0,a1)	BLOCK(Output_1(ci, c, a0); \
 				      Output_a(ci, a1))
 #define Output_3(ci,c,a0,a1,a2) BLOCK(Output_2(ci, c, a0, a1); \
 				      Output_a(ci, a2))
-#define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
+#define Output_n(ci,c,p,n)	BLOCK(Output_0(ci, c); \
+				      Output_an(ci,p,n))
 
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
 #define OpCode(ci, pc)	(baseBuffer(&(ci)->codes, code)[pc])
@@ -586,6 +599,9 @@ forwards int	compileBodyEQ(Word arg, code call, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD);
+
+static void	initMerge(CompileInfo ci);
+static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
 
 static inline int
 isIndexedVarTerm(word w ARG_LD)
@@ -630,8 +646,33 @@ isFirstVar(VarTable vt, int n)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Emit  C_VAR  statements  for  all  variables  that  are  claimed  to  be
-uninitialised in valt1 and initialised in valt2.
+uninitialised in valt1 and initialised in valt2.   It is quite common to
+have sequences C_VAR(5), C_VAR(6),  ...   Such  sequences are translated
+into C_VAR_N(5,4), where the example 4 represents the sequence length.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct c_var_state
+{ int at;
+  int count;
+} c_var_state;
+
+static void
+c_var(c_var_state *s, int at, compileInfo *ci)
+{ if ( s->count == 0 )
+  { s->count = 1;
+    s->at = at;
+  } else if ( at == s->at+1 )
+  { s->count++;
+  } else
+  { if ( s->count == 1 )
+      Output_1(ci, C_VAR, s->at);
+    else
+      Output_2(ci, C_VAR_N, s->at, s->count);
+    s->at = at;
+    s->count = 1;
+  }
+}
+
 
 static int
 balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
@@ -640,6 +681,7 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
   int vts = ci->vartablesize;
   int n;
   int done = 0;
+  c_var_state vstate = {0};
 
   for( n = 0; n < vts; p1++, p2++, n++ )
   { int m = (~(*p1) & *p2);
@@ -649,12 +691,14 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 
       for(i = 0; i < BITSPERINT; i++)
       { if ( m & (1 << i) )
-	{ Output_1(ci, C_VAR, VAROFFSET(n * BITSPERINT + i));
+	{ c_var(&vstate, VAROFFSET(n * BITSPERINT + i), ci);
 	  done++;
 	}
       }
     }
   }
+  if ( vstate.count )
+    c_var(&vstate, 0, ci);
 
   return done;
 }
@@ -776,6 +820,154 @@ allocChoiceVar(CompileInfo ci)
 }
 
 
+		 /*******************************
+		 *      INSTRUCTION MERGING	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These  functions  provide  a  small    state-machine   that  merges  new
+instructions with the previous one. The  declarations of which sequences
+to merge are defined in initVMIMerge().
+
+TBD: After reduction, we should try reducing   with the previous one, as
+in: X, Y, Z --> X, YZ --> XYZ.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static vmi_merge *merge_def[I_HIGHEST];
+
+static size_t
+mergeCount(vmi_merge *m)
+{ size_t count = 0;
+
+  while(m->code != I_HIGHEST)
+    m++, count++;
+
+  return count;
+}
+
+static void
+addMerge(vmi c, vmi_merge *m)
+{ if ( merge_def[c] )
+  { size_t n = mergeCount(merge_def[c]);
+
+    merge_def[c] = realloc(merge_def[c], sizeof(*m)*(n+2));
+    merge_def[c][n] = *m;
+    merge_def[c][n+1].code = I_HIGHEST;
+  } else
+  { merge_def[c] = malloc(sizeof(*m)*2);
+    merge_def[c][0] = *m;
+    merge_def[c][1].code = I_HIGHEST;
+  }
+}
+
+static void
+mergeSeq(vmi c1, vmi c2, vmi op, int ac, ...)
+{ va_list args;
+  vmi_merge m;
+  int i;
+
+  m.code     = c2;
+  m.how      = VMI_REPLACE;
+  m.merge_op = op;
+  m.merge_ac = ac;
+
+  va_start(args, ac);
+  for(i=0; i<ac; i++)
+    m.merge_av[i] = va_arg(args, code);
+  va_end(args);
+
+  addMerge(c1, &m);
+}
+
+static void
+mergeStep(vmi c1, vmi c2)
+{ vmi_merge m;
+
+  memset(&m, 0, sizeof(m));
+  m.code = c2;
+  m.how  = VMI_STEP_ARGUMENT;
+
+  addMerge(c1, &m);
+}
+
+
+static void
+initVMIMerge(void)
+{ mergeStep(H_VOID_N, H_VOID);
+
+  mergeSeq(H_VOID,   H_VOID,     H_VOID_N,   1, (code)2);
+  mergeSeq(H_VOID,   I_ENTER,    I_ENTER,    0);
+  mergeSeq(H_VOID_N, I_ENTER,    I_ENTER,    0);
+  mergeSeq(H_VOID,   I_EXITFACT, I_EXITFACT, 0);
+  mergeSeq(H_VOID_N, I_EXITFACT, I_EXITFACT, 0);
+  mergeSeq(H_VOID,   H_POP,      H_POP,      0);
+  mergeSeq(H_VOID_N, H_POP,      H_POP,      0);
+}
+
+
+static void
+initMerge(CompileInfo ci)
+{ ci->mstate.candidates = NULL;
+}
+
+
+static int
+mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c)
+{ for(; m->code != I_HIGHEST; m++)
+  { if ( m->code == c )
+    { switch(m->how)
+      { case VMI_REPLACE:
+	{ DEBUG(2,
+		Sdprintf("Replacing %s at %d due to %s (len=%d)\n",
+			 codeTable[decode(OpCode(ci, mstate->merge_pos))].name,
+			 mstate->merge_pos,
+			 codeTable[c].name,
+			 m->merge_length));
+	  seekBuffer(&ci->codes, ci->mstate.merge_pos, code);
+	  ci->mstate.candidates = NULL;
+    	  Output_n(ci, m->merge_op, m->merge_av, m->merge_ac);
+	  return TRUE;
+	}
+	case VMI_STEP_ARGUMENT:
+	{ DEBUG(2,
+		Sdprintf("Stepping argument of %s from %ld\n",
+			 codeTable[decode(OpCode(ci, mstate->merge_pos))].name,
+			 OpCode(ci, mstate->merge_pos+1)));
+	  OpCode(ci, ci->mstate.merge_pos+1)++;
+	  return TRUE;
+	}
+      }
+      break;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static void				/* inline is slower! */
+Output_0(CompileInfo ci, vmi c)
+{ const vmi_merge *m;
+
+  if ( (m=ci->mstate.candidates) )
+  { if ( mergeInstructions(ci, m, c) )
+      return;
+    ci->mstate.candidates = NULL;
+  }
+
+  if ( (m = merge_def[c]) )
+  { ci->mstate.candidates = m;
+    ci->mstate.merge_pos = PC(ci);
+  }
+
+  addBuffer(&(ci)->codes, encode(c), code);
+}
+
+
+		 /*******************************
+		 *	CODE GENERATION		*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clause	compileClause(Word head, Word body, Procedure proc, Module module)
 
@@ -871,25 +1063,21 @@ compileClause(Clause *cp, Word head, Word body,
     ci.used_var = NULL;
 
   initBuffer(&ci.codes);
+  initMerge(&ci);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First compile  the  head  of  the  term.   The  arguments  are  compiled
-left-to-right. `lastnonvoid' is maintained to delete void variables just
-before the I_ENTER instructions.
+left-to-right.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( head )
   { int n;
-    size_t lastnonvoid = 0;
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
-    { if ( (rc=compileArgument(arg, A_HEAD, &ci PASS_LD)) == NONVOID )
-	lastnonvoid = PC(&ci);
-      if ( rc < 0 )
+    { if ( (rc=compileArgument(arg, A_HEAD, &ci PASS_LD)) < 0 )
 	goto exit_fail;
     }
-    seekBuffer(&ci.codes, lastnonvoid, code);
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1265,11 +1453,6 @@ The  isIndexedVar()  macro  detects  a   term   has   been   filled   by
 analyseVariables()  and  returns the offset of the variable, or -1 if it
 is not produced by this function.
 
-compileArgument() returns ISVOID if a void instruction resulted from the
-compilation. This is used to  detect   the  ...ISVOID,  [I_ENTER, H_POP]
-sequences, in which case we can  leave   out  the  VOIDS just before the
-I_ENTER or H_POP instructions.  Otherwise it returns NONVOID.
-
 When doing `islocal' compilation,  compound  terms   are  copied  to the
 current localframe and a B_VAR instruction is  generated for it. In this
 case it can return LOCAL_OVERFLOW.
@@ -1310,9 +1493,7 @@ compileArgument(Word arg, int where, compileInfo *ci ARG_LD)
 right_recursion:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A void.  Generate either B_VOID or H_VOID.  Note that the  return  value
-ISVOID  is reserved for head variables only (B_VOID sets the location to
-be a variable, and thus cannot be removed if it is before an B_POP.
+A void.  Generate either B_VOID or H_VOID.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   switch(tag(*arg))
@@ -1320,14 +1501,10 @@ be a variable, and thus cannot be removed if it is before an B_POP.
     var:
       if (where & A_BODY)
       { Output_0(ci, B_VOID);
-	return NONVOID;
-      }
-      if (where & A_ARG)
-      { Output_0(ci, H_ARGVOID);
-	return NONVOID;
+	return TRUE;
       }
       Output_0(ci, H_VOID);
-      return ISVOID;
+      return TRUE;
     case TAG_ATTVAR:
       if ( ci->islocal )
       { goto argvar;
@@ -1361,19 +1538,19 @@ be a variable, and thus cannot be removed if it is before an B_POP.
           if ( val >= LONG_MIN && val <= LONG_MAX )
 	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (intptr_t)val);
 	  } else
-	  { Output_0(ci, (where&A_HEAD) ? H_INT64 : B_INT64);
-	    Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	  { int c = ((where&A_HEAD) ? H_INT64 : B_INT64);
+	    Output_n(ci, c, (Word)&val, WORDS_PER_INT64);
 	  }
 #endif
 	} else				/* MPZ NUMBER */
-	{ Output_0(ci, (where & A_HEAD) ? H_MPZ : B_MPZ);
-	  Output_n(ci, p, n+1);
-	  return NONVOID;
+	{ int c = (where & A_HEAD) ? H_MPZ : B_MPZ;
+	  Output_n(ci, c, p, n+1);
+	  return TRUE;
 	}
-	return NONVOID;
+	return TRUE;
       }
       Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
-      return NONVOID;
+      return TRUE;
     case TAG_ATOM:
       if ( tagex(*arg) == (TAG_ATOM|STG_GLOBAL) )
 	goto isvar;
@@ -1384,23 +1561,24 @@ be a variable, and thus cannot be removed if it is before an B_POP.
 	  PL_register_atom(*arg);
 	Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
       }
-      return NONVOID;
+      return TRUE;
     case TAG_FLOAT:
     { Word p = valIndirectP(*arg);
-      Output_0(ci, (where & A_BODY) ? B_FLOAT : H_FLOAT);
-      Output_n(ci, p, WORDS_PER_DOUBLE);
-      return NONVOID;
+      int c =  (where & A_BODY) ? B_FLOAT : H_FLOAT;
+
+      Output_n(ci, c, p, WORDS_PER_DOUBLE);
+      return TRUE;
     }
     case TAG_STRING:
     if ( ci->islocal )
     { goto argvar;
     } else
     { Word p = addressIndirect(*arg);
+      size_t n = wsizeofInd(*p);
+      int c = (where & A_HEAD) ? H_STRING : B_STRING;
 
-      size_t n  = wsizeofInd(*p);
-      Output_0(ci, (where & A_HEAD) ? H_STRING : B_STRING);
-      Output_n(ci, p, n+1);
-      return NONVOID;
+      Output_n(ci, c, p, n+1);
+      return TRUE;
     }
   }
 
@@ -1428,7 +1606,7 @@ isvar:
       { Output_1(ci, B_VAR, voffset);
       }
 
-      return NONVOID;
+      return TRUE;
     }
 
     first = isFirstVarSet(ci->used_var, index);
@@ -1440,20 +1618,20 @@ isvar:
 	} else
 	{ if ( index < 3 )
 	  { Output_0(ci, B_VAR0 + index);
-	    return NONVOID;
+	    return TRUE;
 	  }
 	  Output_0(ci, B_VAR);
 	}
       } else				/* head */
       { if ( !(where & A_ARG) && first )
 	{ Output_0(ci, H_VOID);
-	  return ISVOID;
+	  return TRUE;
 	}
 	Output_0(ci, H_VAR);
       }
       Output_a(ci, VAROFFSET(index));
 
-      return NONVOID;
+      return TRUE;
     }
 
     /* normal variable (i.e. not shared in the head and non-void) */
@@ -1463,7 +1641,7 @@ isvar:
       } else
       { if ( index < 3 && !first )
 	{ Output_0(ci, B_VAR0 + index);
-	  return NONVOID;
+	  return TRUE;
 	}
 	Output_0(ci, first ? B_FIRSTVAR : B_VAR);
       }
@@ -1473,7 +1651,7 @@ isvar:
 
     Output_a(ci, VAROFFSET(index));
 
-    return NONVOID;
+    return TRUE;
   }
 
   assert(isTerm(*arg));
@@ -1500,10 +1678,9 @@ isvar:
     }
     ci->argvar++;
 
-    return NONVOID;
+    return TRUE;
   } else
   { int ar;
-    size_t lastnonvoid;
     functor_t fdef;
     int isright = (where & A_RIGHT);
 
@@ -1513,7 +1690,7 @@ isvar:
 
       if ( (where & A_HEAD) )		/* index in array! */
       { if ( compileListFF(*arg, ci PASS_LD) )
-	  return NONVOID;
+	  return TRUE;
 	c = (isright ? H_RLIST : H_LIST);
       } else
       { c = (isright ? B_RLIST : B_LIST);
@@ -1530,7 +1707,6 @@ isvar:
 
       Output_1(ci, c, (word)fdef);
     }
-    lastnonvoid = PC(ci);
     ar = arityFunctor(fdef);
     where &= ~A_RIGHT;
     where |= A_ARG;
@@ -1538,9 +1714,7 @@ isvar:
     for(arg = argTermP(*arg, 0); --ar > 0; arg++)
     { int rc;
 
-      if ( (rc=compileArgument(arg, where, ci PASS_LD)) == NONVOID )
-	lastnonvoid = PC(ci);
-      if ( rc < 0 )
+      if ( (rc=compileArgument(arg, where, ci PASS_LD)) < 0 )
 	return rc;
     }
 
@@ -1548,10 +1722,9 @@ isvar:
     deRef(arg);
 
     if ( tag(*arg) == TAG_VAR && !(where & (A_BODY|A_ARG)) )
-    { seekBuffer(&ci->codes, lastnonvoid, code);
-      if ( !isright )
+    { if ( !isright )
 	Output_0(ci, H_POP);
-      return NONVOID;
+      return TRUE;
     }
 
     if ( isright )
@@ -1566,7 +1739,7 @@ isvar:
       Output_0(ci, c);
     }
 
-    return NONVOID;
+    return TRUE;
   }
 }
 
@@ -1901,7 +2074,7 @@ compileArith(Word arg, compileInfo *ci ARG_LD)
     int rc;
 
     rc=compileArgument(argTermP(*arg, 0), A_BODY, ci PASS_LD);
-    if ( rc != NONVOID )
+    if ( rc != TRUE )
       return rc;
     if ( PC(ci) == tc_a1 + 2 &&	OpCode(ci, tc_a1) == encode(B_FIRSTVAR) )
     { isvar = OpCode(ci, tc_a1+1);
@@ -1964,14 +2137,12 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 	  if ( cvt.val >= LONG_MIN && cvt.val <= LONG_MAX )
 	  { Output_1(ci, A_INTEGER, (word)cvt.val);
 	  } else
-	  { Output_0(ci, A_INT64);
-	    Output_n(ci, cvt.w, WORDS_PER_INT64);
+	  { Output_n(ci, A_INT64, cvt.w, WORDS_PER_INT64);
 	  }
 #endif
 	}
       } else				/* GMP */
-      { Output_0(ci, A_MPZ);
-	Output_n(ci, p, n+1);
+      { Output_n(ci, A_MPZ, p, n+1);
       }
     }
     succeed;
@@ -1979,8 +2150,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   if ( isFloat(*arg) )
   { Word p = valIndirectP(*arg);
 
-    Output_0(ci, A_DOUBLE);
-    Output_n(ci, p, WORDS_PER_DOUBLE);
+    Output_n(ci, A_DOUBLE, p, WORDS_PER_DOUBLE);
     succeed;
   }
 					/* variable */
@@ -2265,6 +2435,7 @@ compileBodyVar1(Word arg, code call, compileInfo *ci ARG_LD)
       { Output_0(ci, I_TRUE);
 	return TRUE;
       }
+      return FALSE;
     }
 
     Output_1(ci, I_VAR, VAROFFSET(i1));
@@ -2305,6 +2476,7 @@ compileBodyNonVar1(Word arg, code call, compileInfo *ci ARG_LD)
       { Output_0(ci, I_FAIL);
 	return TRUE;
       }
+      return FALSE;
     }
 
     Output_1(ci, I_NONVAR, VAROFFSET(i1));
@@ -2621,9 +2793,21 @@ record_clause(term_t term, term_t file, term_t ref ARG_LD)
   }
 
   if ( (clause = assert_term(term, CL_END, &loc PASS_LD)) )
-    return PL_unify_clref(ref, clause);
+  { if ( ref )
+      return PL_unify_clref(ref, clause);
+    else
+      return TRUE;
+  }
 
   fail;
+}
+
+
+static
+PRED_IMPL("$record_clause", 2, record_clause, 0)
+{ PRED_LD
+
+  return record_clause(A1, A2, 0 PASS_LD);
 }
 
 
@@ -2818,6 +3002,7 @@ arg1Key(Clause clause, int constonly, word *key)
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
+      case H_VOID_N:
       case I_EXITCATCH:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
@@ -3098,11 +3283,22 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
           NEXTARG;
 	  continue;
       case H_VOID:
-      case H_ARGVOID:
 	{ if ( !pushed )		/* FIRSTVAR in the head */
 	    TRY(unifyVarGC(valTermRef(argp), di->variables,
 			   VAROFFSET(argn) PASS_LD) );
 	  NEXTARG;
+	  continue;
+	}
+      case H_VOID_N:
+        { int n = (int)*PC++;
+
+	  while(n-- > 0)
+	  { if ( !pushed )		/* FIRSTVAR in the head */
+	      TRY(unifyVarGC(valTermRef(argp), di->variables,
+			     VAROFFSET(argn) PASS_LD) );
+	    NEXTARG;
+	  }
+
 	  continue;
 	}
       case H_FUNCTOR:
@@ -3466,10 +3662,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       case H_VOID:
-      case H_ARGVOID:
       case B_VOID:
 			    setVar(*ARGP++);
 			    continue;
+      case H_VOID_N:
+      { size_t count = *PC++;
+
+	while(count-->0)
+	  setVar(*ARGP++);
+
+	continue;
+      }
       case H_FUNCTOR:
       case B_FUNCTOR:
       { functor_t fdef;
@@ -3657,6 +3860,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case C_JMP:
 			    PC++;
 			    continue;
+      case C_VAR_N:
+			    PC += 2;
+      			    continue;
       case C_OR:				/* A ; B */
 			    DECOMPILETOJUMP;	/* A */
 			    PC--;		/* get C_JMP argument */
@@ -4631,9 +4837,9 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
 	      if ( ats[an] == CA1_VAR && ci->clause->prolog_vars < i )
-		ci->clause->prolog_vars = i;
+		ci->clause->prolog_vars = (unsigned int)i;
 	      if ( ci->clause->variables < i )
-		ci->clause->variables = i;
+		ci->clause->variables = (unsigned int)i;
 	      break;
 	    }
 	    case CA1_INTEGER:
@@ -4650,7 +4856,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	      if ( !PL_get_float_ex(a, &d) )
 		fail;
-	      Output_n(ci, p, WORDS_PER_DOUBLE);
+	      Output_an(ci, p, WORDS_PER_DOUBLE);
 	    }
 	    case CA1_INT64:
 	    { int64_t val;
@@ -4658,7 +4864,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	      if ( !PL_get_int64_ex(a, &val) )
 		fail;
-	      Output_n(ci, p, WORDS_PER_INT64);
+	      Output_an(ci, p, WORDS_PER_INT64);
 	    }
 	    case CA1_MPZ:
 	    case CA1_STRING:
@@ -4684,7 +4890,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      }
 	      p = addressIndirect(*ap);
 	      n = wsizeofInd(*p);
-	      Output_n(ci, p, n+1);
+	      Output_an(ci, p, n+1);
 	      break;
 	    }
 	    case CA1_DATA:
@@ -4898,7 +5104,7 @@ add_node(term_t tail, int n ARG_LD)
 static void
 add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
 { while(PC < end && fetchop(PC) == C_VAR )
-    PC += 2;
+    PC = stepPC(PC);
 
   if ( PC != end )
   { DEBUG(1, Sdprintf("not-at-end: adding 1\n"));
@@ -5358,6 +5564,7 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(comp)
+  PRED_DEF("$record_clause", 2, record_clause, 0)
   PRED_DEF("$record_clause", 3, record_clause, 0)
   PRED_DEF("$start_aux", 2, start_aux, 0)
   PRED_DEF("$end_aux", 2, end_aux, 0)
