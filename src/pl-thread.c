@@ -2460,6 +2460,9 @@ destroy_message_queue(message_queue *queue)
   thread_message *msgp;
   thread_message *next;
 
+  if ( GD->cleaning )
+    return;				/* deallocation is centralised */
+
   assert(!queue->waiting && !queue->wait_for_drain);
 
   for( msgp = queue->head; msgp; msgp = next )
