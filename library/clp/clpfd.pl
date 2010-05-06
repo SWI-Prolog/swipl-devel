@@ -5344,6 +5344,8 @@ circuit_successors(V, Tos) :-
 %  two consecutive ones:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  two_consecutive_ones(Vs) :-
 %          automaton(Vs, [source(a),sink(c)],
 %                    [arc(a,0,a), arc(a,1,b),
@@ -5388,6 +5390,8 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  and strictly descending subsequences:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
 %          Sigs ins 0..2,
@@ -5538,6 +5542,8 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  instance Sudoku:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  sudoku(Rows) :-
 %          length(Rows, 9), maplist(length_(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
@@ -5604,6 +5610,8 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 % Example:
 %
 % ==
+% :- use_module(library(clpfd)).
+%
 %  n_factorial(N, F) :-
 %          zcompare(C, N, 0),
 %          n_factorial_(C, N, F).
