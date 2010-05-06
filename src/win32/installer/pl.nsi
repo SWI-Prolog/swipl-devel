@@ -350,7 +350,7 @@ SectionEnd
 Section "Documentation and Help-system"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  File pl\ChangeLog.TXT
+  File pl\RelNotes-5.10.TXT
   SetOutPath $INSTDIR\library
   File pl\library\MANUAL
   File pl\library\helpidx.pl
@@ -522,6 +522,16 @@ Section "ODBC Interface"
   File pl\doc\packages\odbc.html
 SectionEnd
 
+Section "Google protocol buffers"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\protobufs.dll
+  SetOutPath $INSTDIR\library
+  File pl\library\protobufs.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\protobufs.html
+SectionEnd
+
 Section "SGML/XML/HTML parser"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
@@ -669,6 +679,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
   File pl\bin\snowball.pdb
+  File pl\bin\protobufs.pdb
 SectionEnd
 
 Section "Sources for system predicates"

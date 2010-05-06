@@ -31,6 +31,7 @@
 
 :- module('$qlf',
 	  [ qcompile/1,		% :Files
+	    qcompile/2,		% :Files, +Options
 	    '$qload_file'/5,	% +Path, +Module, -Ac, -LM, +Options
 	    '$qload_stream'/5	% +Stream, +Module, -Ac, -LM, +Options
 	  ]).
@@ -41,7 +42,8 @@
 		 *******************************/
 
 :- meta_predicate
-	qcompile(:).
+	qcompile(:),
+	qcompile(:, +).
 
 %%	qcompile(:Files) is det.
 %
@@ -49,13 +51,15 @@
 %	each compiled file.
 
 qcompile(M:Files) :-
-	qcompile(Files, M).
+	qcompile_(Files, M, []).
+qcompile(M:Files, Options) :-
+	qcompile_(Files, M, Options).
 
-qcompile([], _) :- !.
-qcompile([H|T], M) :- !,
-	qcompile(H, M),
-	qcompile(T, M).
-qcompile(FileName, Module) :-
+qcompile_([], _, _) :- !.
+qcompile_([H|T], M, Options) :- !,
+	qcompile_(H, M, Options),
+	qcompile_(T, M, Options).
+qcompile_(FileName, Module, Options) :-
 	absolute_file_name(FileName,
 			   [ file_type(prolog),
 			     access(read)
@@ -71,7 +75,7 @@ qcompile(FileName, Module) :-
 	'$qlf_open'(Qlf),
 	flag('$compiling', Old, qlf),
 	'$set_source_module'(OldModule, Module), % avoid this in the module!
-	(   consult(Module:Absolute)
+	(   load_files(Module:Absolute, Options)
 	->  Ok = true
 	;   Ok = fail
 	),
@@ -87,17 +91,24 @@ qcompile(FileName, Module) :-
 
 '$qload_file'(File, Module, Action, LoadedModule, Options) :-
 	open(File, read, In, [type(binary)]),
+	'$save_lex_state'(LexState),
 	call_cleanup('$qload_stream'(In, Module,
 				     Action, LoadedModule, Options),
-		     close(In)).
+		     (	 close(In),
+			 '$restore_lex_state'(LexState)
+		     )).
 
 
 '$qload_stream'(In, Module, loaded, LoadedModule, Options) :-
-	'$qlf_load'(Module:In, LoadedModule),
-	check_is_module(LoadedModule, In, Options).
+	'$qlf_load'(Module:In, LM),
+	check_is_module(LM, In, Options),
+	(   atom(LM)
+	->  LoadedModule = LM
+	;   LoadedModule = Module
+	).
 
 check_is_module(LM, In, Options) :-
-	var(LM),
+	\+ atom(LM),
 	'$get_option'(must_be_module(true), Options, false), !,
 	stream_property(In, file_name(File)),
 	throw(error(domain_error(module_file, File), _)).

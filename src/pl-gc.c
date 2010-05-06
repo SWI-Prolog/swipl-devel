@@ -518,8 +518,12 @@ printNotRelocated()
 static void
 markLocal(Word addr)
 { GET_LD
+  Symbol s;
 
   local_marked++;
+  if ( (s = lookupHTable(local_table, addr)) )
+    assert(0);
+
   addHTable(local_table, addr, (void*)TRUE);
 }
 
@@ -531,7 +535,8 @@ processLocal(Word addr)
 
   local_marked--;
   if ( (s = lookupHTable(local_table, addr)) )
-  { s->value = (void*)FALSE;
+  { assert(s->value == (void*)TRUE);
+    s->value = (void*)FALSE;
   } else
   { assert(0);
   }
@@ -1127,6 +1132,16 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 #endif
 	  setVar(varFrame(fr, PC[1]));
 	  break;
+       case C_VAR_N:
+       { size_t var = PC[1];
+	 size_t count = PC[2];
+
+	 while(count--)
+	 { setVar(varFrame(fr, var));
+	   var++;
+	 }
+	 break;
+       }
        case H_LIST_FF:
        case B_UNIFY_FF:
           setVar(varFrame(fr, PC[1]));
@@ -1507,23 +1522,23 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 
 
 static inline void
-clear_frame_var(walk_state *state, Code PC ARG_LD)
+clear_frame_var(walk_state *state, code var, Code PC ARG_LD)
 { if ( (state->flags & GCM_CLEAR) )
   { LocalFrame fr = state->frame;
     DEBUG(3, Sdprintf("Clear var %d at %d\n",
-		      PC[0]-VAROFFSET(0), (PC-state->c0)-1));
+		      var-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_SECURE
     { Word vp = varFrameP(fr, PC[0]);
 
       if ( !isVar(*vp & ~MARK_MASK) )
       { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
 		 levelFrame(fr), predicateName(fr->predicate),
-		 PC[0]-VAROFFSET(0),
+		 var-VAROFFSET(0),
 		 (PC-state->c0)-1);
       }
     }
 #else
-    setVar(varFrame(fr, PC[0]));
+    setVar(varFrame(fr, var));
 #endif
   }
 }
@@ -1653,18 +1668,26 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case A_FIRSTVAR_IS:
       case B_UNIFY_FC:
       case C_VAR:
-	clear_frame_var(state, PC PASS_LD);
+	clear_frame_var(state, PC[0], PC PASS_LD);
 	break;
+      case C_VAR_N:
+      { size_t var = PC[0];
+	size_t count = PC[1];
+
+	while(count--)
+	  clear_frame_var(state, var++, PC PASS_LD);
+	break;
+      }
       case H_LIST_FF:
 	mark_argp(state PASS_LD);
         /*FALLTHROUGH*/
       case B_UNIFY_FF:
-	clear_frame_var(state, PC+0 PASS_LD);
-	clear_frame_var(state, PC+1 PASS_LD);
+	clear_frame_var(state, PC[0], PC PASS_LD);
+	clear_frame_var(state, PC[1], PC PASS_LD);
 	break;
       case A_ADD_FC:
       case B_UNIFY_FV:
-	clear_frame_var(state, PC+0 PASS_LD);
+	clear_frame_var(state, PC[0], PC PASS_LD);
 	mark_frame_var(state, PC[1] PASS_LD);
 	break;
       case B_UNIFY_VV:
@@ -1707,7 +1730,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 #ifdef MARK_ALT_CLAUSES
 	case H_FIRSTVAR:
 	  if ( (state->flags & GCM_CLEAR) )
-	  { clear_frame_var(state, PC PASS_LD);
+	  { clear_frame_var(state, PC[0], PC PASS_LD);
 	    break;
 	  }
 	  mark_argp(state PASS_LD);
@@ -1731,8 +1754,12 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  state->adepth++;
 	  break;
 	case H_VOID:
-	  assert(state->adepth == 0);
-	  state->ARGP++;
+	  if ( state->adepth == 0 )
+	    state->ARGP++;
+	  break;
+	case H_VOID_N:
+	  if ( state->adepth == 0 )
+	    state->ARGP += PC[0];
 	  break;
 	case H_POP:
 	case B_POP:
@@ -2972,6 +2999,10 @@ setStartOfVMI(vm_state *state)
 	case H_VOID:
 	  if ( state->adepth == 0 )
 	    state->argp++;
+	  break;
+	case H_VOID_N:
+	  if ( state->adepth == 0 )
+	    state->argp += PC[1];
 	  break;
 
 	case B_UNIFY_VAR:

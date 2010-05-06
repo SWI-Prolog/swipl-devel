@@ -1,11 +1,3 @@
-/*  Part of SWI-Prolog
-
-    Author:        Nicos Angelopoulos
-    Copyright (C): Nicos Angelopoulos
-
-    YAP: Artistic License
-*/
-
 :- module( r_session,
           [
                r_open/0, r_open/1,
@@ -25,6 +17,7 @@
                r_history/0, r_history/1, r_history/2,
                r_session_version/1,
                r_bin/1,
+               r_bin_version/1, r_bin_version/2,
                r_verbosity/1,
                op( 950, xfx, (<-) )
           ] ).
@@ -38,6 +31,7 @@
 :- dynamic( r_bin_location/1 ).
 :- dynamic( r_session/3 ).
 :- dynamic( r_session_history/2 ).
+:- dynamic( r_old_bin_warning_issued/1 ).
 
 % Swi declaration:
 :- ensure_loaded( library(process) ).   % process_create/3.
@@ -46,16 +40,13 @@
 
 /** <module> R session
 
-This library facilitates interaction with an R session. On the Yap
-system it depends on library(System) and on SWI on library(process)-
-part of the clib package. It assumes an R executable in $PATH or can
-be given a location to a functioning R executable (see r_open/1 for
-details on how R is located). R is ran as a slave with Prolog writing
-and reading on/from the associated streams.
-
-Multiple session can be managed simultaneously. Each has 3 main
-components: a name or alias, a term structure holding the communicating
-streams and a number of associated data items.
+This library facilitates interaction with the R system for statistical
+computing.  It assumes an R executable in $PATH or can be given a location
+to a functioning R executable (see r_bin/1 and r_open/1 for details on how
+R is located). R is ran as a slave with Prolog writing on and reading from
+the associated streams. Multiple sessions can be managed simultaneously.
+Each has 3 main components: a name or alias, a term structure holding the
+communicating streams and a number of associated data items.
 
 The library attempts to ease the translation between prolog terms and R
 inputs. Thus, Prolog term =|x <- c(1,2,3)|= is translated to atomic =|'x
@@ -65,21 +56,24 @@ instantiates X to the list =|[1,2,3]|=. Also 'Atom' <- [x1,...,xn]
 translates to R code: Atom <- c(x1,...,xn). Currently only vectors can be
 translated in this fashion.
 
-For example :
+Although the library is primarily meant to be used as a research tool,
+it still provides access to many functions of the R system that may render it 
+useful to a wider audience. The library provides access to R's plethora of vector and scalar
+functions. We adicipate that of particular interest to Prolog programmers might be the fact
+that the library can be used to create plots from Prolog objects.
+Notably creating plots from lists of numbers.
+
+These capabilities are illustrated in the following example :
 
 ==
 rtest :-
-     % for MS Windows uncomment and change the following to point to Rterm location
-     % r_bin( 'C:\\Program Files\\R\\R-2.10.1\\bin\\Rterm' ).
      r_open,
      r_in( y <- rnorm(50) ),
      r_print( y ),
      r_in( x <- rnorm(y) ),
      r_in( x11(width=5,height=3.5) ),
      r_in( plot(x,y)),
-     write( 'Press Return to continue...' ),
-     nl,
-     write( read_line_to_codes( user, _ ) ), nl,
+     write( 'Press Return to continue...' ), nl,
      read_line_to_codes( user, _ ),
      r_print( 'dev.off()' ),
      r_in( Y <- y ),
@@ -90,18 +84,51 @@ rtest :-
      r_close.
 ==
 
-See r_demo.pl for more examples.
-
-
 @author 	Nicos Angelopoulos
-@version	0:0:2
+@version	0:0:3
 @copyright	Nicos Angelopoulos
-@license	YAP: Artistic License
-@see		examples/R/r_demo.pl, http://www.r-project.org/
+@license	YAP: Artistic
+@see		ensure_loaded(library('../doc/packages/examples/R/r_demo.pl'))
+@see		http://www.r-project.org/
 @author		Windows-compatibility is based on work by `JAB'
 */
 
 %%% Section: Interface predicates
+
+
+%% r_bin( ?Rbin )
+%
+%   Register the default R location, +Rbin, or interrogate the current location: -Rbin.
+%   When interrogating Rbin is bound to the R binary that would be used by an r_open/0.
+%   The order of search is: registered location, environment variable 'R_BIN' and path defined.
+%   On unix systems path defined is the first R executable in $PATH. On MS wins it is the latest
+%   Rterm.exe found by expand_file_name( 'C:/Program Files/R/R-*/bin/Rterm.exe', Candidates ).
+%   The value Rbin == =retract= retracts the current registered location. 
+%   Rbin == =test=, succeeds if an R location has been registered.
+%
+r_bin( Rbin ) :-
+     var( Rbin ),
+     !,
+     ( r_bin_location(Rbin) ->
+          true
+          ;
+          ( locate_rbin_file(Rbin) ->
+               M = 'There is no registered R executable. Using the one found by searching.',
+               r_verbose( M, 1 )
+               ;
+               M = 'There is no registered or default R executatble. Use, r_bin(+Rbin).',
+               fail_term( M )
+          )
+     ).
+r_bin( retract ) :-
+     !,
+     retractall( r_bin_location(_) ).
+r_bin( test ) :-
+     !,
+     r_bin_location(_).
+r_bin( Rbin ) :-
+     retractall( r_bin_location(_) ),
+     assert( r_bin_location(Rbin) ).
 
 %%	r_open
 %
@@ -125,9 +152,11 @@ r_open :-
 %	session to the bottom of the pile.
 %
 %	* at_r_halt(RHAction)
-%	R slaves often halt when they   encounter  an error. This option
-%	provides a handle to changing the  behaviour of the session when
-%	this happens. RHAction should be one of =abort=, =fail=, call/1,
+%	R slaves used to halt when they encounter  an error. 
+%    This is no longer the case but this option is still present in case
+%    it is useful in the future. This option provides a handle to changing
+%    the  behaviour of the session when a halt of the R-slave occurs.
+%    RHAction should be one of =abort=, =fail=, call/1,
 %	call_ground/1, =reinstate= or =restart=. Default is =fail=. When
 %	RHAction is =reinstate=, the history of   the session is used to
 %	roll-back all the commands sent so far. At `restart' the session
@@ -149,11 +178,10 @@ r_open :-
 %
 %
 %       * rbin(Rbin)
-%       R executable location. In non MS Windows OSes, default is 'R'.
-%       In MS Windows there is no default. If the option is not present
-%       binary registered with r_bin/1 and environment variable R_BIN
-%       are examined for the full location of the R binary. In MS windows
-%       Rbin should point to Rterm.exe. Also see r_bin/1.
+%       R executable location to use for this open operation.
+%       If the option is not present binary registered with r_bin/1 and
+%       environment variable R_BIN are examined for the full location of
+%       the R binary. In MS windows Rbin should point to Rterm.exe. Also see r_bin/1.
 %
 %       * with(With)
 %       With is in [environ,restore,save]. The   default behaviour is to
@@ -465,32 +493,7 @@ r_history( R, History ) :-
 %         Installed version. Version is of the form Major:Minor:Fix,
 %         where all three are integers.
 %
-r_session_version( 0:0:2 ).
-
-%% r_bin( ?Rbin )
-%
-%   Register the default R location, +Rbin, or interrogate the current
-%   location: -Rbin. There is no default value. The value Rbin == retract
-%   retracts the current default location. Rbin == test, succeeds if an
-%   R location has been registered.
-%
-r_bin( Rbin ) :-
-     var( Rbin ),
-     !,
-     ( r_bin_location(Rbin) ->
-          true
-          ;
-          fail_term( 'There is no registered R executatble. Use, r_bin(+Rbin).' )
-     ).
-r_bin( retract ) :-
-     !,
-     retractall( r_bin_location(_) ).
-r_bin( test ) :-
-     !,
-     r_bin_location(_).
-r_bin( Rbin ) :-
-     retractall( r_bin_location(_) ),
-     assert( r_bin_location(Rbin) ).
+r_session_version( 0:0:3 ).
 
 %% r_verbose( What, CutOff )
 %
@@ -505,7 +508,7 @@ r_verbose( What, CutOff ) :-
 %% r_verbosity( ?Level )
 %
 %    Set, +Level, or interrogate, -Level, the verbosity level. +Level could be
-%    false (=0), true (=3) or an integer in {0,1,2,3}. 3 being the most verbose.
+%    =false= (=0), =true= (=3) or an integer in {0,1,2,3}. 3 being the most verbose.
 %    The default is 0. -Level will instantiate to the current verbosity level,
 %    an integer in {0,1,2,3}.
 %
@@ -540,6 +543,23 @@ r_verbosity( Level ) :-
      retractall( r_verbosity_level(_) ),
      assert( r_verbosity_level(Numeric) ).
 
+%% r_bin_version( -Version)
+%
+%    Get the version of R binary identified by r_bin/1. Version will have the
+%    same structure as in r_session_version/1 ie M:N:F.
+%
+r_bin_version( Version ) :-
+     r_bin( R ), 
+     r_bin_version( R, Version ).
+
+%% r_bin_version( +Rbin, -Version )
+%
+%    Get the version of R binary identified by +Rbin. Version will have the
+%    same structure as in r_session_version/1 ie M:N:F.
+%
+r_bin_version( R, Version ) :-
+     r_bin_version_pl( R, Version ).
+
 %%% Section: Auxiliary predicates
 
 % Rcv == true iff r_open_1/3 is called from recovery.
@@ -559,7 +579,7 @@ r_open_1( Opts, Alias, Rcv ) :-
           ;
           fail_term( 'Use rbin/1 in r_open/n, or r_bin(\'Rbin\') or set R_BIN.' )
      ),
-     r_bin_arguments( Opts, OptRArgs ),
+     r_bin_arguments( Opts, Rbin, OptRArgs ),
      % ( var(Harg) -> RArgs = OptRArgs; RArgs = [Host,Harg|OptRArgs] ),
      ( var(Ssh) ->
           Exec = Rbin,
@@ -1043,16 +1063,23 @@ r_open_opt_at_r_halt( Opts, RHalt ) :-
           RHalt = fail
      ).
 
-r_bin_arguments( Opts, _RArgs ) :-
+r_bin_arguments( Opts, _Rbin, _RArgs ) :-
      member( with(With), Opts ),
      \+ memberchk(With, [environ,restore,save] ),
      !,
      fail_term( 'Cannot decipher argument to option with/1': With ).
-r_bin_arguments( Opts, Args ) :-
+r_bin_arguments( Opts, Rbin, Args ) :-
      ( current_prolog_flag(windows,true) ->
           Args = ['--ess','--slave'|RArgs]
           ; % assuming unix here, --interactive is only supported on these
-          Args = ['--interactive','--slave'|RArgs]
+          r_bin_version( Rbin, Version ),
+          % Issue is present on 2:9:2
+          ( 2:9:10 @< Version ->
+               Args = ['--interactive','--slave'|RArgs]
+               ;
+               r_old_bin_warning( Version ),
+               Args = ['--slave'|RArgs]
+          )
      ),
      findall( W, member(with(W),Opts), Ws ),
      sort( Ws, Sr ),
@@ -1242,7 +1269,50 @@ locate_rbin_file( RBin ) :-
 locate_rbin_file( RBin ) :-
      current_prolog_flag( unix, true ),
      which( 'R', RBin ).
+locate_rbin_file( RBin ) :-
+     current_prolog_flag( windows, true ),
+     r_bin_wins( RBin ).
 
+r_bin_wins( Rbin ) :-
+     r_expand_wins_rterm( Stem, Candidates ),
+     r_verbose( wins_candidates(Candidates), 3 ),
+     Candidates \== [],
+     ( Candidates = [Rbin] -> 
+          true
+          ;
+          maplist( atom_concat(Stem), Tails, Candidates ),
+          maplist( atom_codes, Tails, TailsCs ),
+          cur_tail_candidates_with_pair( TailsCs, Candidates, Pairs ),
+          keysort( Pairs, Sorted ),
+          reverse( Sorted, [_-Rbin|_] )
+     ),
+     !.
+
+cur_tail_candidates_with_pair( [], [], [] ).
+cur_tail_candidates_with_pair( [H|T], [F|R], [Hnum-F|TPairs] ) :-
+     ( break_list_on( H, 0'/, Hlft, _ ) -> true; break_list_on( H, 0'\\, Hlft, _) ),
+     break_list_on( Hlft, 0'., MjCs, NonMjCs ),
+     break_list_on( NonMjCs, 0'., MnCs, FxCs ),
+     maplist( number_codes, Nums, [MjCs,MnCs,FxCs] ),
+     integers_list_to_integer( Nums, 2, 1000, 0, Hnum ),
+     cur_tail_candidates_with_pair( T, R, TPairs ).
+
+integers_list_to_integer( [], _Pow, _Spc, Int, Int ).
+integers_list_to_integer( [H|T], Pow, Spc, Acc, Int ) :-
+     Nxt is Acc + ( H * (Spc ** Pow) ),
+     Red is Pow - 1,
+     integers_list_to_integer( T, Red, Spc, Nxt, Int ).
+
+r_old_bin_warning( Version ) :-
+     ( r_old_bin_warning_issued( true ) ->
+          true
+          ;
+          assert( r_old_bin_warning_issued(true) ),
+          write( 'Flag --interactive which is used by R.pl when starting R, is in your R version, ' ), write( Version ), 
+          write( ', behaving differently than in later versions.' ), nl,
+          write( 'There will be limited functionality of interactive graphics.'),
+          nl, nl
+     ).
 % Section: Swi Specifics.
 
 /*
@@ -1280,6 +1350,27 @@ r_process( R, Args, Ri, Ro, Re ) :-
      Streams = [stdin(pipe(Ri)),stdout(pipe(Ro)),stderr(pipe(Re))],
      process_create( R, Args, Streams ),
      r_verbose( created(R,Args,Streams), 3 ).
+
+r_bin_version_pl( R, Mj:Mn:Fx ) :-
+     Streams = [stdout(pipe(Ro))],
+     process_create( R, ['--version'], Streams ),
+     % read_line_to_codes( Ro, _ ),
+     read_line_to_codes( Ro, Codes ),
+     break_list_on( Codes, 0' , _R, Psf1 ),
+     break_list_on( Psf1, 0' , _V, Psf2 ),
+     break_list_on( Psf2, 0' , VersionCs, _ ),
+     break_list_on( VersionCs, 0'., MjCs, VPsf1Cs ),
+     break_list_on( VPsf1Cs, 0'., MnCs, FxCs ),
+     number_codes( Mj, MjCs ),
+     number_codes( Mn, MnCs ),
+     number_codes( Fx, FxCs ).
+     
+r_expand_wins_rterm( Stem, Candidates ) :-
+     Stem = 'C:/Program Files/R/R-',
+     Psfx = '*/bin/Rterm.exe',
+     atom_concat( Stem, Psfx, Search ),
+     expand_file_name( Search, Candidates ).
+
 
 environ( Var, Val ) :-
      \+ var(Var),

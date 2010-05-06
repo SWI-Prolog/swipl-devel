@@ -98,3 +98,4 @@ blocked('/index.pl').
 blocked('/ciao.pl').			% is an include-file.  We must
 					% find a more general solution here
 blocked('/commons.pl').
+blocked('/swipl-lfr.pl').

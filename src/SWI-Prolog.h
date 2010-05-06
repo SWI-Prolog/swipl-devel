@@ -54,7 +54,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50911
+#define PLVERSION 51100
 #endif
 
 		 /*******************************
@@ -691,7 +691,8 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_VARIABLE	0x0020
 #define CVT_NUMBER	(CVT_INTEGER|CVT_FLOAT)
 #define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
-#define CVT_WRITE	0x0040		/* as of version 3.2.10 */
+#define CVT_WRITE	0x0040
+#define CVT_WRITE_CANONICAL 0x0080
 #define CVT_ALL		(CVT_ATOMIC|CVT_LIST)
 #define CVT_MASK	0x00ff
 

@@ -1071,7 +1071,7 @@ load_files(Module:Files, Options) :-
         time_file(FullFile, Modified),
         Modified @=< LoadTime, !.
 
-%	'$qlf_file'(+Spec, +PlFile, -LoadFile)
+%	'$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options)
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
@@ -1079,18 +1079,69 @@ load_files(Module:Files, Options) :-
 %	If the user-specification specified a prolog file, do not
 %	replace this with a .qlf file.
 
-'$qlf_file'(Spec, FullFile, FullFile) :-
+'$qlf_file'(Spec, _, Spec, stream, Options) :-
+	memberchk(stream(_), Options), !.
+'$qlf_file'(Spec, FullFile, FullFile, compile, _) :-
 	'$spec_extension'(Spec, Ext),
 	user:prolog_file_type(Ext, prolog), !.
-'$qlf_file'(_, FullFile, QlfFile) :-
+'$qlf_file'(_, FullFile, QlfFile, Mode, Options) :-
 	flag('$compiling', database, database),
 	file_name_extension(Base, PlExt, FullFile),
 	user:prolog_file_type(PlExt, prolog),
 	user:prolog_file_type(QlfExt, qlf),
 	file_name_extension(Base, QlfExt, QlfFile),
-	access_file(QlfFile, read).
-'$qlf_file'(_, FullFile, FullFile).
+	(   access_file(QlfFile, read),
+	    (	'$qlf_up_to_date'(FullFile, QlfFile)
+	    ->	Mode = qload
+	    ;	access_file(QlfFile, write)
+	    ->	Mode = qcompile
+	    )
+	->  !
+	;   '$qlf_auto'(FullFile, QlfFile, Options)
+	->  !, Mode = qcompile
+	).
+'$qlf_file'(_, FullFile, FullFile, compile, _).
 
+
+%%	'$qlf_up_to_date'(+PlFile, +QlfFile) is semidet.
+%
+%	True if the QlfFile file is  considered up-to-date. This implies
+%	that either the PlFile does not exist or that the QlfFile is not
+%	older than the PlFile.
+
+'$qlf_up_to_date'(PlFile, QlfFile) :-
+	(   exists_file(PlFile)
+	->  time_file(PlFile, PlTime),
+	    time_file(QlfFile, QlfTime),
+	    QlfTime >= PlTime
+	;   true
+	).
+
+%%	'$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.
+%
+%	True if we create QlfFile using   qcompile/2. This is determined
+%	by the option qcompile(QlfMode) or, if   this is not present, by
+%	the prolog_flag qcompile.
+
+:- create_prolog_flag(qcompile, false, [type(atom)]).
+
+'$qlf_auto'(PlFile, QlfFile, Options) :-
+	\+ '$in_system_dir'(PlFile),
+	(   memberchk(qcompile(QlfMode), Options)
+	->  true
+	;   current_prolog_flag(qcompile, QlfMode)
+	),
+	(   QlfMode == auto
+	->  true
+	;   QlfMode == large,
+	    size_file(PlFile, Size),
+	    Size > 100000
+	),
+	access_file(QlfFile, write).
+
+'$in_system_dir'(PlFile) :-
+	current_prolog_flag(home, Home),
+	sub_atom(PlFile, 0, _, _, Home).
 
 '$spec_extension'(File, Ext) :-
 	atom(File),
@@ -1148,6 +1199,13 @@ load_files(Module:Files, Options) :-
 %	=|$load|=
 
 '$do_load_file'(File, FullFile, Module, Options) :-
+	'$qlf_file'(File, FullFile, Absolute, Mode, Options),
+	(   Mode == qcompile
+	->  qcompile(Module:File, Options)
+	;   '$do_load_file_2'(File, Absolute, Module, Options)
+	).
+
+'$do_load_file_2'(File, Absolute, Module, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
 
@@ -1157,18 +1215,19 @@ load_files(Module:Files, Options) :-
 
 	current_prolog_flag(generate_debug_info, DebugInfo),
 
-	(   memberchk(stream(FromStream), Options)
-	->  Absolute = File
-	;   '$qlf_file'(File, FullFile, Absolute)
-	),
-
 	flag('$compilation_level', Level, Level),
 	'$load_message_level'(MessageLevel),
 
 	'$print_message'(silent /*MessageLevel*/,
 			 load_file(start(Level,
 					 file(File, Absolute)))),
-	(   nonvar(FromStream),
+
+	(   memberchk(stream(FromStream), Options)
+	->  Input = stream
+	;   Input = source
+	),
+
+	(   Input == stream,
 	    (   '$get_option'(format(qlf), Options, source)
 	    ->  set_stream(FromStream, file_name(Absolute)),
 		'$qload_stream'(FromStream, Module, Action, LM, Options)
@@ -1176,7 +1235,7 @@ load_files(Module:Files, Options) :-
 				Module, Action, LM, Options)
 	    )
 	->  true
-	;   var(FromStream),
+	;   Input == source,
 	    '$consult_goal'(Absolute, Goal),
 	    call(Goal, Absolute, Module, Action, LM, Options)
 	->  true
@@ -1215,6 +1274,7 @@ load_files(Module:Files, Options) :-
 % 	Import public predicates from LoadedModule into Module
 
 '$import_from_loaded_module'(LoadedModule, Module, Options) :-
+	LoadedModule \== Module,
 	atom(LoadedModule), !,
 	'$get_option'(imports(Import), Options, all),
 	'$get_option'(reexport(Reexport), Options, false),
@@ -1567,10 +1627,7 @@ load_files(Module:Files, Options) :-
 	(   Reexport == true,
 	    '$list_to_conj'(Imported, Conj)
 	->  export(Context:Conj),
-	    (	flag('$compiling', wic, wic)
-	    ->	'$add_directive_wic'(export(Context:Conj))
-	    ;	true
-	    )
+	    '$ifcompiling'('$add_directive_wic'(export(Context:Conj)))
 	;   true
 	).
 
@@ -1590,7 +1647,7 @@ load_files(Module:Files, Options) :-
 	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
 	Context:import(Source:Pred),
-	'$import_wic'(Source, Pred),
+	'$ifcompiling'('$import_wic'(Source, Pred)),
 	'$import_all2'(Rest, Context, Source, Imported).
 
 
@@ -1777,10 +1834,15 @@ load_files(Module:Files, Options) :-
 '$load_goal'(consult(_)).
 '$load_goal'(load_files(_)).
 '$load_goal'(load_files(_,Options)) :-
-	memberchk(qcompile(true), Options).
+	memberchk(qcompile(QlfMode), Options),
+	'$qlf_part_mode'(QlfMode).
 '$load_goal'(ensure_loaded(_)) :- flag('$compiling', wic, wic).
 '$load_goal'(use_module(_))    :- flag('$compiling', wic, wic).
 '$load_goal'(use_module(_, _)) :- flag('$compiling', wic, wic).
+
+'$qlf_part_mode'(part).
+'$qlf_part_mode'(true).			% compatibility
+
 
 		/********************************
 		*        TERM EXPANSION         *
@@ -1801,17 +1863,16 @@ load_files(Module:Files, Options) :-
 '$store_clause'((_, _), _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
-'$store_clause'('$source_location'(File, Line):Term, _) :- !,
-	'$record_clause'(Term, File:Line, Ref),
-	'$qlf_assert_clause'(Ref).
 '$store_clause'(Term, File) :-
-	'$record_clause'(Term, File, Ref),
-        '$qlf_assert_clause'(Ref).
+	'$clause_source'(Term, Clause, File, SrcLoc),
+	(   flag('$compiling', database, database)
+	->  '$record_clause'(Clause, SrcLoc)
+	;   '$record_clause'(Clause, SrcLoc, Ref),
+	    '$qlf_assert_clause'(Ref, development)
+	).
 
-'$qlf_assert_clause'(_) :-
-	flag('$compiling', database, database), !.
-'$qlf_assert_clause'(Ref) :-
-	'$qlf_assert_clause'(Ref, development).
+'$clause_source'('$source_location'(File,Line):Clause, Clause, _, File:Line) :- !.
+'$clause_source'(Clause, Clause, File, File).
 
 
 %%	compile_aux_clauses(+Clauses) is det.

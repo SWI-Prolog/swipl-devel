@@ -1082,8 +1082,21 @@ struct clause_ref
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 
+typedef enum
+{ VMI_REPLACE,
+  VMI_STEP_ARGUMENT
+} vmi_merge_type;
+
 typedef struct
-{ char		*name;		/* name of the code */
+{ vmi		code;		/* Code to merge with */
+  vmi_merge_type how;		/* How to merge? */
+  vmi		merge_op;	/* Opcode of merge */
+  int		merge_ac;	/* #arguments of merged code */
+  code		merge_av[1];	/* Argument vector */
+} vmi_merge;
+
+typedef struct
+{ char	       *name;		/* name of the code */
   vmi		code;		/* number of the code */
   unsigned char flags;		/* Addional flags (VIF_*) */
   unsigned char	arguments;	/* #args code takes (or VM_DYNARGC) */
@@ -1119,10 +1132,12 @@ struct clause_chain
   int		dirty;			/* # of garbage clauses */
 };
 
-struct local_definitions
-{ int 		size;
-  Definition	thread[1];		/* Appended definitions */
-};
+#define MAX_BLOCKS 20			/* allows for 2M threads */
+
+typedef struct local_definitions
+{ Definition *blocks[MAX_BLOCKS];
+  Definition preallocated[7];
+} local_definitions;
 
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */

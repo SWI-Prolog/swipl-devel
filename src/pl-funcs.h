@@ -85,6 +85,7 @@ COMMON(word) 		pl_count(void);
 COMMON(void) 		TrailAssignment__LD(Word p ARG_LD);
 COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
+COMMON(void)		destroyLocalDefinition(Definition def, unsigned int tid);
 COMMON(void) 		fix_term_ref_count(void);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(int sync);
 COMMON(int)		foreignWakeup(term_t *ex ARG_LD);
@@ -716,20 +717,8 @@ COMMON(int)		mbscasecoll(const char *s1, const char *s2);
 
 /* pl-wic.c */
 COMMON(bool) 		loadWicFromStream(IOSTREAM *fd);
-COMMON(word) 		pl_open_wic(term_t name);
-COMMON(word) 		pl_close_wic(void);
-COMMON(word) 		pl_import_wic(term_t module, term_t head);
 COMMON(bool) 		compileFileList(IOSTREAM *out, int argc, char **argv);
 COMMON(void) 		qlfCleanup(void);
-
-COMMON(word) 		pl_qlf_put_states(void);
-COMMON(word) 		pl_qlf_start_module(term_t name);
-COMMON(word) 		pl_qlf_start_sub_module(term_t name);
-COMMON(word) 		pl_qlf_start_file(term_t name);
-COMMON(word) 		pl_qlf_end_part(void);
-COMMON(word) 		pl_qlf_open(term_t file);
-COMMON(word) 		pl_qlf_close(void);
-COMMON(word) 		pl_qlf_assert_clause(term_t ref, term_t saveclass);
 
 COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);
 COMMON(int64_t)		wicGetNum(IOSTREAM *fd);

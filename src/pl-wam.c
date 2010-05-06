@@ -755,22 +755,88 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
+#ifdef _MSC_VER				/* Windows MSVC version */
+
+static inline int
+MSB(unsigned int i)
+{ unsigned long mask = i;
+  unsigned long index;
+
+  _BitScanReverse(&index, mask);
+  return index;
+}
+
+#ifndef MemoryBarrier
+#define MemoryBarrier() (void)0
+#endif
+
+#elif defined(__GNUC__)			/* GCC version */
+
+#define MSB(i) (31 - __builtin_clz(i))
+#define MemoryBarrier() __sync_synchronize()
+
+#else					/* Other */
+
+static inline int
+MSB(unsigned int i)
+{ int j = 0;
+
+  if (i >= 0x10000) {i >>= 16; j += 16;}
+  if (i >=   0x100) {i >>=  8; j +=  8;}
+  if (i >=    0x10) {i >>=  4; j +=  4;}
+  if (i >=     0x4) {i >>=  2; j +=  2;}
+  if (i >=     0x2) j++;
+
+  return j;
+}
+#define MemoryBarrier() (void)0
+
+#endif
+
+static Definition
+localDefinition(Definition def ARG_LD)
+{ unsigned int tid = LD->thread.info->pl_tid;
+  size_t idx = MSB(tid);
+  LocalDefinitions v = def->definition.local;
+
+  if ( !v->blocks[idx] )
+  { LOCKDYNDEF(def);
+    if ( !v->blocks[idx] )
+    { size_t bs = (size_t)1<<idx;
+      Definition *newblock = allocHeap(bs*sizeof(Definition));
+
+      memset(newblock, 0, bs*sizeof(Definition));
+
+      v->blocks[idx] = newblock-bs;
+    }
+    UNLOCKDYNDEF(def);
+  }
+
+  if ( !v->blocks[idx][tid] )
+    v->blocks[idx][tid] = localiseDefinition(def);
+
+  return v->blocks[idx][tid];
+}
+
+
+void
+destroyLocalDefinition(Definition def, unsigned int tid)
+{ size_t idx = MSB(tid);
+  LocalDefinitions v = def->definition.local;
+  Definition local;
+
+  local = v->blocks[idx][tid];
+  v->blocks[idx][tid] = NULL;
+  destroyDefinition(local);
+}
+
+
 Definition
 getProcDefinition__LD(Definition def ARG_LD)
 {
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
-  { int i = LD->thread.info->pl_tid;
-    Definition local;
-
-    LOCKDYNDEF(def);
-    if ( !def->definition.local ||
-	 i >= def->definition.local->size ||
-	 !(local=def->definition.local->thread[i]) )
-      local = localiseDefinition(def);
-    UNLOCKDYNDEF(def);
-
-    return local;
+  { return localDefinition(def PASS_LD);
   }
 #endif
 

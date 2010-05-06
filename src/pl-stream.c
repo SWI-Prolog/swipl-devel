@@ -2195,7 +2195,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
 int
 Svdprintf(const char *fm, va_list args)
 { int rval;
-  IOSTREAM *s = Soutput;
+  IOSTREAM *s = Serror;
 
   Slock(s);
   rval = Svfprintf(s, fm, args);

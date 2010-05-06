@@ -449,6 +449,7 @@ suggest predicates from a keyword.
 \predicatesummary{put_code}{1}{Write a character-code}
 \predicatesummary{put_code}{2}{Write a character-code on a stream}
 \predicatesummary{qcompile}{1}{Compile source to Quick Load File}
+\predicatesummary{qcompile}{2}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
 \predicatesummary{rational}{1}{Type check for a rational number}
