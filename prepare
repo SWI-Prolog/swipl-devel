@@ -23,6 +23,7 @@ if [ -r modules ]; then
   SUBMODULES="`cat modules`"
 else
   SUBMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
+  SUBMODULES="$SUBMODULES packages/protobufs"
 fi
 
 version="`cat VERSION`"

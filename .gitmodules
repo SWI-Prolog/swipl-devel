@@ -19,3 +19,6 @@
 [submodule "packages/utf8proc"]
 	path = packages/utf8proc
 	url = ../utf8proc.git
+[submodule "packages/protobufs"]
+	path = packages/protobufs
+	url = ../contrib/protobufs.git
