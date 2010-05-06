@@ -522,6 +522,16 @@ Section "ODBC Interface"
   File pl\doc\packages\odbc.html
 SectionEnd
 
+Section "Google protocol buffers"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\protobufs.dll
+  SetOutPath $INSTDIR\library
+  File pl\library\protobufs.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\odbc.html
+SectionEnd
+
 Section "SGML/XML/HTML parser"
   SectionIn 1 3
   SetOutPath $INSTDIR\bin
