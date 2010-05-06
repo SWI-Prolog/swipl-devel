@@ -5935,24 +5935,6 @@ original_goal(V) -->
         ;   []
         ).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% %?- test_intersection([1,2,3,4,5], [1,5], I).
-
-% %?- test_intersection([1,2,3,4,5], [], I).
-
-% test_intersection(List1, List2, Is) :-
-%         list_to_domain(List1, D1),
-%         list_to_domain(List2, D2),
-%         domains_intersection(D1, D2, I),
-%         domain_to_list(I, Is).
-
-% test_subdomain(L1, L2) :-
-%         list_to_domain(L1, D1),
-%         list_to_domain(L2, D2),
-%         domain_subdomain(D1, D2).
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generated predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
