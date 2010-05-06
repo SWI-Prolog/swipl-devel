@@ -529,7 +529,7 @@ Section "Google protocol buffers"
   SetOutPath $INSTDIR\library
   File pl\library\protobufs.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\odbc.html
+  File pl\doc\packages\protobufs.html
 SectionEnd
 
 Section "SGML/XML/HTML parser"
@@ -679,6 +679,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
   File pl\bin\snowball.pdb
+  File pl\bin\protobufs.pdb
 SectionEnd
 
 Section "Sources for system predicates"
