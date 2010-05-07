@@ -44,23 +44,8 @@ fi
 
 rm -f $tmp
 
-for f in pl.lsm; do
-    sed -e "s/\(Version:[ 	]*\).*/\1$version/" \
-	-e "s/pl-[0-9.]*\.tar\.gz/pl-$version.tar.gz/" $f > $tmp
-    if cmp $f $tmp; then
-	rm -f $tmp
-    else
-	cat $tmp > $f
-	rm $tmp
-	echo "Updated version in $f"
-    fi
-done
-
 gittag="V${major}.${minor}.${patch}"
 
 if confirm "Tag the GIT repository with $gittag? "; then
     git tag -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
-fi
-if confirm "Upload new LSM entry to lsm@execpc.com? "; then
-    mail -s add lsm@execpc.com < pl.lsm
 fi
