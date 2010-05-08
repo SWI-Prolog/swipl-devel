@@ -2256,17 +2256,37 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 
 #else /*__WINDOWS__*/
 
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait)
 { GET_LD
-  struct timeval now;
-  struct timespec timeout;
   int rc;
 
   for(;;)
-  { gettimeofday(&now, NULL);
+  { struct timespec timeout;
+#ifdef HAVE_CLOCK_GETTIME
+    struct timespec now;
+
+    clock_gettime(CLOCK_REALTIME, &now);
+    timeout.tv_sec  = now.tv_sec;
+    timeout.tv_nsec = (now.tv_nsec+250000000);
+#else
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
     timeout.tv_sec  = now.tv_sec;
     timeout.tv_nsec = (now.tv_usec+250000) * 1000;
+#endif
 
     if ( timeout.tv_nsec >= 1000000000 ) /* some platforms demand this */
     { timeout.tv_nsec -= 1000000000;
