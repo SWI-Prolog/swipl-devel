@@ -953,7 +953,7 @@ dieIO()
 { if ( GD->io_initialised )
   { noprotocol();
     closeFiles(TRUE);
-    PopTty(Sinput, &ttytab);
+    PopTty(Sinput, &ttytab, TRUE);
   }
 }
 
@@ -1367,7 +1367,7 @@ getSingleChar(IOSTREAM *stream, int signals)
   if ( c == 4 || c == 26 )		/* should ask the terminal! */
     c = -1;
 
-  PopTty(stream, &buf);
+  PopTty(stream, &buf, TRUE);
   debugstatus.suspendTrace--;
   Sunlock(stream);
 
@@ -1403,7 +1403,7 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
       case '\r':
       case EOF:
         *buf++ = EOS;
-        PopTty(in, &tbuf);
+        PopTty(in, &tbuf, TRUE);
 	Sunlock(in);
 	Sunlock(out);
 

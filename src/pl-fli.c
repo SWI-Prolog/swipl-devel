@@ -4337,7 +4337,7 @@ PL_query(int query)
     case PL_QUERY_MIN_TAGGED_INT:
       return PLMINTAGGEDINT;
     case PL_QUERY_GETC:
-      PopTty(Sinput, &ttytab);		/* restore terminal mode */
+      PopTty(Sinput, &ttytab, FALSE);		/* restore terminal mode */
       return (intptr_t) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
       return PLVERSION;

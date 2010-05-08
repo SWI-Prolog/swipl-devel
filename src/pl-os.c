@@ -1706,6 +1706,40 @@ LocalTime(long *t, struct tm *r)
 }
 
 
+		 /*******************************
+		 *	      TERMINAL		*
+		 *******************************/
+
+#ifdef HAVE_TCSETATTR
+#include <termios.h>
+#include <unistd.h>
+#define O_HAVE_TERMIO 1
+#else /*HAVE_TCSETATTR*/
+#ifdef HAVE_SYS_TERMIO_H
+#include <sys/termio.h>
+#define termios termio
+#define O_HAVE_TERMIO 1
+#else
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#define O_HAVE_TERMIO 1
+#endif
+#endif
+#endif /*HAVE_TCSETATTR*/
+
+typedef struct tty_state
+{
+#if defined(O_HAVE_TERMIO)
+  struct termios tab;
+#elif defined(HAVE_SGTTYB)
+  struct sgttyb tab;
+#else
+  int tab;				/* empty is not allowed */
+#endif
+} tty_state;
+
+#define TTY_STATE(buf) (((tty_state*)(buf->state))->tab)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			TERMINAL IO MANIPULATION
 
@@ -1759,7 +1793,7 @@ Sread_terminal(void *handle, char *buf, size_t size)
 }
 
 void
-ResetTty()
+ResetTty(void)
 { GET_LD
   startCritical;
   ResetStdin();
@@ -1793,29 +1827,32 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   struct termios tio;
   int fd;
 
-  buf->mode = ttymode;
-  ttymode = mode;
+  buf->mode  = ttymode;
+  buf->state = NULL;
+  ttymode    = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
+  buf->state = allocHeap(sizeof(tty_state));
+
 #ifdef HAVE_TCSETATTR
-  if ( tcgetattr(fd, &buf->tab) )	/* save the old one */
+  if ( tcgetattr(fd, &TTY_STATE(buf)) )	/* save the old one */
     fail;
 #else
-  if ( ioctl(fd, TIOCGETA, &buf->tab) )	/* save the old one */
+  if ( ioctl(fd, TIOCGETA, &TTY_STATE(buf)) )	/* save the old one */
     fail;
 #endif
 
-  tio = buf->tab;
+  tio = TTY_STATE(buf);
 
   switch( mode )
   { case TTY_RAW:
 #if defined(HAVE_TCSETATTR) && defined(HAVE_CFMAKERAW)
 	cfmakeraw(&tio);
-	tio.c_oflag = buf->tab.c_oflag;	/* donot change output modes */
+	tio.c_oflag = TTY_STATE(buf).c_oflag;	/* donot change output modes */
 	tio.c_lflag |= ISIG;
 #else
 	tio.c_lflag &= ~(ECHO|ICANON);
@@ -1856,26 +1893,33 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf)
+PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { GET_LD
-  int fd;
+
   ttymode = buf->mode;
 
-  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
-    succeed;				/* not a terminal */
-  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
-    succeed;
+  if ( buf->state )
+  { int fd = Sfileno(s);
 
+    if ( fd >= 0 )
+    {
 #ifdef HAVE_TCSETATTR
-  tcsetattr(fd, TCSANOW, &buf->tab);
+      tcsetattr(fd, TCSANOW, &TTY_STATE(buf));
 #else
 #ifdef TIOCSETA
-  ioctl(fd, TIOCSETA, &buf->tab);
+      ioctl(fd, TIOCSETA, &TTY_STATE(buf));
 #else
-  ioctl(fd, TCSETA, &buf->tab);
-  ioctl(fd, TCXONC, (void *)1);
+      ioctl(fd, TCSETA, &TTY_STATE(buf));
+      ioctl(fd, TCXONC, (void *)1);
 #endif
 #endif
+    }
+
+    if ( do_free )
+    { freeHeap(buf->state, sizeof(tty_state));
+      buf->state = NULL;
+    }
+  }
 
   succeed;
 }
@@ -1890,6 +1934,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   int fd;
 
   buf->mode = ttymode;
+  buf->state = NULL;
   ttymode = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
@@ -1897,25 +1942,26 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
-  if ( ioctl(fd, TIOCGETP, &buf->tab) )  /* save the old one */
+  buf->state = allocHeap(sizeof(tty_state));
+
+  if ( ioctl(fd, TIOCGETP, &TTY_STATE(buf)) )  /* save the old one */
     fail;
-  tio = buf->tab;
+  tio = TTY_STATE(buf);
 
   switch( mode )
-    { case TTY_RAW:
-	tio.sg_flags |= CBREAK;
-	tio.sg_flags &= ~ECHO;
-	break;
-      case TTY_OUTPUT:
-	tio.sg_flags |= (CRMOD);
-	break;
-      case TTY_SAVE:
-	succeed;
-      default:
-	sysError("Unknown PushTty() mode: %d", mode);
-	/*NOTREACHED*/
-      }
-
+  { case TTY_RAW:
+      tio.sg_flags |= CBREAK;
+      tio.sg_flags &= ~ECHO;
+      break;
+    case TTY_OUTPUT:
+      tio.sg_flags |= (CRMOD);
+      break;
+    case TTY_SAVE:
+      succeed;
+    default:
+      sysError("Unknown PushTty() mode: %d", mode);
+      /*NOTREACHED*/
+  }
 
   ioctl(fd, TIOCSETP,  &tio);
   ioctl(fd, TIOCSTART, NULL);
@@ -1925,17 +1971,22 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf)
+PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { ttymode = buf->mode;
-  int fd;
 
-  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
-    succeed;				/* not a terminal */
-  if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
-    succeed;
+  if ( buf->state )
+  { int fd = Sfileno(s);
 
-  ioctl(fd, TIOCSETP,  &buf->tab);
-  ioctl(fd, TIOCSTART, NULL);
+    if ( fd >= 0 )
+    { ioctl(fd, TIOCSETP,  &buf->tab);
+      ioctl(fd, TIOCSTART, NULL);
+    }
+
+    if ( do_free )
+    { freeHeap(buf->state, sizeof(tty_state));
+      buf->state = NULL;
+    }
+  }
 
   succeed;
 }
@@ -1952,7 +2003,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 
 bool
-PopTty(IOSTREAM *s, ttybuf *buf)
+PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { GET_LD
   ttymode = buf->mode;
   if ( ttymode != TTY_RAW )

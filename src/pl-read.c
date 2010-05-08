@@ -1067,9 +1067,9 @@ raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
   { ttybuf tab;
 
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
-    PopTty(rb.stream, &ttytab);
+    PopTty(rb.stream, &ttytab, FALSE);
     s = raw_read2(_PL_rd PASS_LD);
-    PopTty(rb.stream, &tab);
+    PopTty(rb.stream, &tab, TRUE);
   } else
   { s = raw_read2(_PL_rd PASS_LD);
   }

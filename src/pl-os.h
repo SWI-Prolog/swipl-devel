@@ -110,55 +110,18 @@ extern uintptr_t	FreeMemory(void);
 #define TTY_OUTPUT	 3		/* enable post-processing */
 #define TTY_SAVE	 4		/* just save status */
 
-#ifdef HAVE_TCSETATTR
-#include <termios.h>
-#include <unistd.h>
-#define O_HAVE_TERMIO 1
-#else /*HAVE_TCSETATTR*/
-#ifdef HAVE_SYS_TERMIO_H
-#include <sys/termio.h>
-#define termios termio
-#define O_HAVE_TERMIO 1
-#else
-#ifdef HAVE_SYS_TERMIOS_H
-#include <sys/termios.h>
-#define O_HAVE_TERMIO 1
-#endif
-#endif
-#endif /*HAVE_TCSETATTR*/
-
-#ifdef O_HAVE_TERMIO
-
 typedef struct
-{ struct termios tab;		/* saved tty status */
-  int		mode;		/* Prolog;'s view on mode */
+{ void *state;				/* Saved state */
+  int   mode;				/* Prolog;'s view on mode */
 } ttybuf;
-
-#else /* !O_HAVE_TERMIO */
-
-#ifdef HAVE_SGTTYB
-#include <sys/ioctl.h>
-typedef struct
-{ struct sgttyb tab;		/* saved tty status */
-  int		mode;		/* Prolog;'s view on mode */
-} ttybuf;
-
-#else
-
-typedef struct
-{ int		mode;		/* Prolog;'s view on mode */
-} ttybuf;
-
-#endif /*HAVE_SGTTYB*/
-#endif /*O_HAVE_TERMIO*/
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
 
 #define IsaTty(fd)	isatty(fd)
 
-extern bool PushTty(IOSTREAM *s, ttybuf *, int mode);
-extern bool PopTty(IOSTREAM *s, ttybuf *);
+extern bool PushTty(IOSTREAM *s, ttybuf *buf, int mode);
+extern bool PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
 extern void ResetTty(void);
 
 
