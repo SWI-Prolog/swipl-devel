@@ -83,35 +83,6 @@ extern bool initOs(void);
 COMMON(char*)	canoniseFileName(char *path);
 
 
-		 /*******************************
-		 *      PAGE AND TABLE-SIZE	*
-		 *******************************/
-
-#ifdef HAVE_SYSCONF
-#if defined(_SC_OPEN_MAX) && !defined(HAVE_GETPAGESIZE)
-#undef getdtablesize
-#define getdtablesize() sysconf(_SC_OPEN_MAX)
-#ifndef HAVE_GETDTABLESIZE
-#define HAVE_GETDTABLESIZE 1
-#endif
-#endif
-#if defined(_SC_PAGESIZE) && !defined(HAVE_GETPAGESIZE)
-#undef getpagesize
-#define getpagesize() sysconf(_SC_PAGESIZE)
-#ifndef HAVE_GETPAGESIZE
-#define HAVE_GETPAGESIZE 1
-#endif
-#endif
-#endif /*HAVE_SYSCONF*/
-
-#ifndef HAVE_GETDTABLESIZE
-extern int	getdtablesize(void);
-#endif
-#ifndef HAVE_GETPAGESIZE
-extern int	getpagesize(void);
-#endif
-
-
 		/********************************
 		*        TIME CONVERSION        *
 		*********************************/

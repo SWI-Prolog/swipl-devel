@@ -707,34 +707,6 @@ RemoveTemporaryFiles(void)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Size of a VM page of memory.  Most BSD machines have this function.  If not,
-here are several alternatives ...
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef HAVE_GETPAGESIZE
-#ifdef _SC_PAGESIZE
-int
-getpagesize()
-{ return sysconf(_SC_PAGESIZE);
-}
-#else /*_SC_PAGESIZE*/
-
-#if hpux
-#include <a.out.h>
-int
-getpagesize()
-{
-#ifdef EXEC_PAGESIZE
-  return EXEC_PAGESIZE;
-#else
-  return 4096;				/* not that important */
-#endif
-}
-#endif /*hpux*/
-#endif /*_SC_PAGESIZE*/
-#endif /*HAVE_GETPAGESIZE*/
-
 #if O_HPFS
 
 /*  Conversion rules Prolog <-> OS/2 (using HPFS)
