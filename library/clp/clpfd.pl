@@ -5244,7 +5244,7 @@ global_cardinality(Xs, Pairs, Options) :-
         global_cardinality(Xs, Pairs),
         Options = [cost(Cost, Matrix)],
         must_be(list(list(integer)), Matrix),
-        pairs_keys_values(Pairs, Keys, _),
+        pairs_keys(Pairs, Keys),
         maplist(keys_costs(Keys), Xs, Matrix, Costs),
         sum(Costs, #=, Cost).
 
@@ -5457,7 +5457,7 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         End in SinkDrep.
 
 expr0_expr(Es0-_, Es) :-
-        pairs_keys_values(Es0, Es1, _),
+        pairs_keys(Es0, Es1),
         reverse(Es1, Es).
 
 transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
