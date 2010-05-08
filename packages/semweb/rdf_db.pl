@@ -139,7 +139,7 @@
 
 :- multifile
 	ns/2,
-	rdf_meta_specification/2.	% UnboundHead, Head
+	rdf_meta_specification/3.	% UnboundHead, Module, Head
 :- dynamic
 	ns/2,			% ID, URL
 	rdf_source/5.		% DB, SourceURL, ModTimeAtLoad, Triples, MD5
@@ -313,15 +313,17 @@ rdf_global_term(Term, Term).
 	system:goal_expansion/2.
 
 system:term_expansion((:- rdf_meta(Heads)), Clauses) :-
-	mk_clauses(Heads, Clauses).
+	prolog_load_context(module, M),
+	mk_clauses(Heads, M, Clauses).
 
-mk_clauses((A,B), [H|T]) :- !,
-	mk_clause(A, H),
-	mk_clauses(B, T).
-mk_clauses(A, [C]) :-
-	mk_clause(A, C).
+mk_clauses((A,B), M, [H|T]) :- !,
+	mk_clause(A, M, H),
+	mk_clauses(B, M, T).
+mk_clauses(A, M, [C]) :-
+	mk_clause(A, M, C).
 
-mk_clause(Head, rdf_db:rdf_meta_specification(Unbound, Head)) :-
+mk_clause(Head0, M0, rdf_db:rdf_meta_specification(Unbound, Module, Head)) :-
+	strip_module(M0:Head0, Module, Head),
 	valid_rdf_meta_head(Head),
 	functor(Head, Name, Arity),
 	functor(Unbound, Name, Arity).
@@ -360,8 +362,32 @@ rdf_meta(Heads) :-
 
 
 system:goal_expansion(G, Expanded) :-
-	rdf_meta_specification(G, Spec), !,
+	rdf_meta_specification(G, _, _), !,
+	prolog_load_context(module, LM),
+	(   rdf_meta_specification(G, Module, Spec),
+	    right_module(LM, G, Module)
+	->  rdf_expand(G, Spec, Expanded)
+	;   debugging(rdf_meta),
+	    sub_term(G, NS:Local),
+	    atom(NS), atom(Local)
+	->  print_message(warning, rdf_meta(not_expanded(LM:G))),
+	    fail
+	),
 	rdf_expand(G, Spec, Expanded).
+
+system:term_expansion(Fact, Expanded) :-
+	rdf_meta_specification(Fact, Module, Spec),
+	prolog_load_context(module, Module), !,
+	rdf_expand(Fact, Spec, Expanded).
+system:term_expansion((Head :- Body), (Expanded :- Body)) :-
+	rdf_meta_specification(Head, Module, Spec),
+	prolog_load_context(module, Module), !,
+	rdf_expand(Head, Spec, Expanded).
+
+
+right_module(M, _, M) :- !.
+right_module(LM, G, M) :-
+	predicate_property(LM:G, imported_from(M)).
 
 rdf_expand(G, Spec, Expanded) :-
 	functor(G, Name, Arity),
@@ -2107,6 +2133,8 @@ prolog:message(rdf(inconsistent_cache(DB, Graphs))) -->
 	].
 prolog:message(rdf(guess_format(Ext))) -->
 	[ 'Unknown file-extension: ~w.  Assuming RDF/XML'-[Ext] ].
+prolog:message(rdf_meta(not_expanded(G))) -->
+	[ 'rdf_meta: ~p is not expanded'-[G] ].
 
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].

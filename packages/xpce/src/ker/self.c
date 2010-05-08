@@ -1508,7 +1508,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   ((Instance)OFF)->flags     = F_PROTECTED|OBJ_MAGIC;
 
   DEBUG_BOOT(Cprintf("Alloc ...\n"));
-  initAlloc();
+  pceInitAlloc();
   allocRange(&ConstantNil,          sizeof(struct constant));
   allocRange(&ConstantDefault,      sizeof(struct constant));
   allocRange(&ConstantClassDefault, sizeof(struct constant));

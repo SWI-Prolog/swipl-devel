@@ -981,7 +981,7 @@ declaration.
 \end{code}
 
 \begin{description}
-    \predicate{rdf_meta}{1}{Heads}
+    \predicate{rdf_meta}{1}{:Heads}
 This predicate defines the argument types of the named predicates,
 which will force compile time namespace expansion for these predicates.
 \arg{Heads} is a coma-separated list of callable terms.  Defined
@@ -1014,18 +1014,40 @@ only be used as a \emph{directive}. The directive must be processed
 before the definition of the predicates as well as before compiling code
 that uses the rdf meta-predicates. The atom \verb$rdf_meta$ is declared
 as an operator exported from library \file{rdf_db.pl}. Files using
-rdf_meta/1 \emph{must} explicitely load \file{rdf_db.pl}.
-
- Below are some examples from
-\file{rdf_db.pl}
+rdf_meta/1 \emph{must} explicitely load \file{rdf_db.pl}. The example
+below defines the rule concept/1.
 
 \begin{code}
+:- use_module(library(semweb/rdf_db)).	% for rdf_meta
+:- use_module(library(semweb/rdfs)).	% for rdfs_individual_of
+
 :- rdf_meta
-	rdf(r,r,o),
-	rdf_source_location(r,-),
-	rdf_transaction(:).
+	concept(r).
+
+%%	concept(?C) is nondet.
+%
+%	True if C is a concept.
+
+concept(C) :-
+	rdfs_individual_of(C, skos:'Concept').
 \end{code}
 \end{description}
+
+In addition to expanding \emph{calls}, rdf_meta/1 also causes expansion
+of clause-heads for predicates that match a declaration. This is
+typically used write Prolog statements about resources.  The following
+example produces three clauses with expanded (single-atom) arguments:
+
+\begin{code}
+:- use_module(library(semweb/rdf_db)).
+
+:- rdf_meta
+	label_predicate(r).
+
+label_predicate(rdfs:label).
+label_predicate(skos:prefLabel).
+label_predicate(skos:altLabel).
+\end{code}
 
 
 \subsection{Monitoring the database}		\label{sec:rdfmonitor}
