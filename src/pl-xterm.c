@@ -23,7 +23,7 @@
 */
 
 #ifdef __linux__
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
 #endif
 
 #define O_DEBUG 1

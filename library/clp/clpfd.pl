@@ -5394,7 +5394,6 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
-%          Sigs ins 0..2,
 %          automaton(_, _, Sigs,
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),

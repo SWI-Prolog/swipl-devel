@@ -22,26 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
 #ifdef HAVE_SYS_PARAM_H			/* get MAXPATHLEN */
 #include <sys/param.h>
 #endif
-
-
-		/********************************
-		*        MEMORY MANAGEMENT      *
-		*********************************/
-
-extern void *Allocate(intptr_t);
 
 
 		/********************************
@@ -81,35 +64,6 @@ extern bool initOs(void);
 #endif
 
 COMMON(char*)	canoniseFileName(char *path);
-
-
-		 /*******************************
-		 *      PAGE AND TABLE-SIZE	*
-		 *******************************/
-
-#ifdef HAVE_SYSCONF
-#if defined(_SC_OPEN_MAX) && !defined(HAVE_GETPAGESIZE)
-#undef getdtablesize
-#define getdtablesize() sysconf(_SC_OPEN_MAX)
-#ifndef HAVE_GETDTABLESIZE
-#define HAVE_GETDTABLESIZE 1
-#endif
-#endif
-#if defined(_SC_PAGESIZE) && !defined(HAVE_GETPAGESIZE)
-#undef getpagesize
-#define getpagesize() sysconf(_SC_PAGESIZE)
-#ifndef HAVE_GETPAGESIZE
-#define HAVE_GETPAGESIZE 1
-#endif
-#endif
-#endif /*HAVE_SYSCONF*/
-
-#ifndef HAVE_GETDTABLESIZE
-extern int	getdtablesize(void);
-#endif
-#ifndef HAVE_GETPAGESIZE
-extern int	getpagesize(void);
-#endif
 
 
 		/********************************
@@ -156,55 +110,18 @@ extern uintptr_t	FreeMemory(void);
 #define TTY_OUTPUT	 3		/* enable post-processing */
 #define TTY_SAVE	 4		/* just save status */
 
-#ifdef HAVE_TCSETATTR
-#include <termios.h>
-#include <unistd.h>
-#define O_HAVE_TERMIO 1
-#else /*HAVE_TCSETATTR*/
-#ifdef HAVE_SYS_TERMIO_H
-#include <sys/termio.h>
-#define termios termio
-#define O_HAVE_TERMIO 1
-#else
-#ifdef HAVE_SYS_TERMIOS_H
-#include <sys/termios.h>
-#define O_HAVE_TERMIO 1
-#endif
-#endif
-#endif /*HAVE_TCSETATTR*/
-
-#ifdef O_HAVE_TERMIO
-
 typedef struct
-{ struct termios tab;		/* saved tty status */
-  int		mode;		/* Prolog;'s view on mode */
+{ void *state;				/* Saved state */
+  int   mode;				/* Prolog;'s view on mode */
 } ttybuf;
-
-#else /* !O_HAVE_TERMIO */
-
-#ifdef HAVE_SGTTYB
-#include <sys/ioctl.h>
-typedef struct
-{ struct sgttyb tab;		/* saved tty status */
-  int		mode;		/* Prolog;'s view on mode */
-} ttybuf;
-
-#else
-
-typedef struct
-{ int		mode;		/* Prolog;'s view on mode */
-} ttybuf;
-
-#endif /*HAVE_SGTTYB*/
-#endif /*O_HAVE_TERMIO*/
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
 
 #define IsaTty(fd)	isatty(fd)
 
-extern bool PushTty(IOSTREAM *s, ttybuf *, int mode);
-extern bool PopTty(IOSTREAM *s, ttybuf *);
+extern bool PushTty(IOSTREAM *s, ttybuf *buf, int mode);
+extern bool PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
 extern void ResetTty(void);
 
 
