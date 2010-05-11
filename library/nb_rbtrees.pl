@@ -104,7 +104,7 @@ fix_root(red(L,K,V,R),black(L,K,V,R)).
 %
 % actual insertion
 %
-insert2(black([],[],[],[]), K, V, Nil, T, Status) :- !,
+insert2(black('',_,_,''), K, V, Nil, T, Status) :- !,
 	T = red(Nil,K,V,Nil),
 	Status = not_done.
 insert2(In, K, V, Nil, NT, Flag) :-
