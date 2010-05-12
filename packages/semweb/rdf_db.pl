@@ -863,7 +863,7 @@ rdf_load(Spec, M:Options) :-
 	    ->	BaseURI = SourceURL
 	    ;	true
 	    ),
-	    phrase(derived_options(Options, NSList), Extra),
+	    once(phrase(derived_options(Options, NSList), Extra)),
 	    merge_options([ base_uri(BaseURI),
 			    graph(Graph),
 			    format(Format)
@@ -898,11 +898,11 @@ derived_options([], _) -->
 derived_options([H|T], NSList) -->
 	(   {   H == register_namespaces(true)
 	    ;   H == (register_namespaces = true)
-	    },
-	    [ namespaces(NSList) ]
+	    }
+	->  [ namespaces(NSList) ]
 	;   []
 	),
-	derived_options(T, _).
+	derived_options(T, NSList).
 
 graph_modified(last_modified(Stamp), Stamp).
 graph_modified(unknown, Stamp) :-
