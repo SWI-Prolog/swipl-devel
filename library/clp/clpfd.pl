@@ -4478,7 +4478,7 @@ distinct(Vars) :-
         maximum_matching(FreeLeft),
         include(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
+        scc(FreeLeft, g0_successors),
         maplist(dfs_used, FreeRight),
         phrase(distinct_goals(FreeLeft), Gs),
         maplist(distinct_clear_attributes, FreeLeft),
@@ -4551,6 +4551,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    DCGs are used to implicitly pass around the global index, stack
    and the predicate relating a vertex to its successors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+scc(Vs, Succ) :- phrase(scc(Vs), [s(0,[],Succ)], _).
 
 scc([])     --> [].
 scc([V|Vs]) -->
@@ -4935,7 +4937,7 @@ gcc_global(Vs, KNs) :-
             maximum_flow(S, T),        % only then, maximize it.
             gcc_consistent(T),
             del_attr(S, parent),
-            phrase(scc(Vals), [s(0,[],gcc_successors)], _),
+            scc(Vals, gcc_successors),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
             disable_queue,
@@ -5304,7 +5306,7 @@ propagate_circuit(Vs) :-
         length(Vs, N),
         length(Ts, N),
         circuit_graph(Vs, Ts, Ts),
-        phrase(scc(Ts), [s(0,[],circuit_successors)], _),
+        scc(Ts, circuit_successors),
         (   maplist(single_component, Ts) -> Continuation = true
         ;   Continuation = false
         ),
