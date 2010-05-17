@@ -1217,7 +1217,7 @@ label([O|Os], Options, Selection, Order, Choice, Optim, Consistency, Vars) :-
         ).
 label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         maplist(arg(1), [Selection,Order,Choice], [S,O,C]),
-        ( Optim0 == [] ->
+        (   Optim0 == [] ->
             label(Vars, S, O, C, Consistency)
         ;   reverse(Optim0, Optim),
             exprs_singlevars(Optim, SVs),
@@ -3154,7 +3154,7 @@ relation_tuple(Relation, Tuple) :-
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
         lists_firsts_rests(Relation0, Firsts, Relation1),
-        ( var(T) ->
+        (   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 fd_get(T, TDom, TPs),
@@ -3172,7 +3172,7 @@ tuple_freeze(Tuple, Relation) :-
 
 tuple_freeze([],  _, _).
 tuple_freeze([T|Ts], Tuple, Prop) :-
-        ( var(T) ->
+        (   var(T) ->
             init_propagator(T, Prop),
             trigger_prop(Prop)
         ;   true
@@ -5307,11 +5307,8 @@ propagate_circuit(Vs) :-
         length(Ts, N),
         circuit_graph(Vs, Ts, Ts),
         scc(Ts, circuit_successors),
-        (   maplist(single_component, Ts) -> Continuation = true
-        ;   Continuation = false
-        ),
-        maplist(del_attrs, Ts),
-        Continuation.
+        maplist(single_component, Ts),
+        maplist(del_attrs, Ts).
 
 single_component(V) :- get_attr(V, lowlink, 0).
 
