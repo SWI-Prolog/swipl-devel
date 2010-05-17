@@ -573,10 +573,16 @@ call_cleanup/3.  Both may call-back the Prolog engine.
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int
+isCleanupFrame(LocalFrame fr)
+{ return (fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
+	  false(fr, FR_CATCHED));	/* from handler */
+}
+
+
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
-       false(fr, FR_CATCHED) )		/* from handler */
+{ if ( isCleanupFrame(fr) )
   { size_t fref = consTermRef(fr);
     fid_t cid;
     term_t catcher;
@@ -632,7 +638,11 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 static void
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ callCleanupHandler(fr, reason PASS_LD);
+{ if ( isCleanupFrame(fr) )
+  { size_t fref = consTermRef(fr);
+    callCleanupHandler(fr, reason PASS_LD);
+    fr = (LocalFrame)valTermRef(fref);
+  }
 
 #ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
@@ -2394,9 +2404,11 @@ next_choice:
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
-	SAVE_REGISTERS(qid);
-	callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-	LOAD_REGISTERS(qid);
+	if ( isCleanupFrame(ch->frame) )
+	{ SAVE_REGISTERS(qid);
+	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
+	  LOAD_REGISTERS(qid);
+	}
 	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;
