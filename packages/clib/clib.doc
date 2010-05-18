@@ -447,9 +447,10 @@ The skeleton for client-communication is given below.
 
 \begin{code}
 create_client(Host, Port) :-
-	setup_call_cleanup(tcp_socket(Socket),
-			   tcp_connect(Socket, Host:Port),
-			   tcp_close_socket(Socket)),
+	setup_call_catcher_cleanup(tcp_socket(Socket),
+				   tcp_connect(Socket, Host:Port),
+				   exception(_),
+				   tcp_close_socket(Socket)),
 	setup_call_cleanup(tcp_open_socket(Socket, In, Out),
 			   chat_to_server(In, Out),
 			   close_connection(In, Out)).
