@@ -372,6 +372,17 @@ status_reply(server_error(ErrorTerm), Out, HrdExtra, Code) :-
 			    HrdExtra, Code), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+status_reply(not_acceptable(WhyHTML), Out, HdrExtra, Code) :- !,
+	phrase(page([ title('406 Not Acceptable')
+		    ],
+		    [ h1('Not Acceptable'),
+		      WhyHTML,
+		      \address
+		    ]),
+	       HTML),
+	phrase(reply_header(status(not_acceptable, HTML), HdrExtra, Code), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 status_reply(unavailable(WhyHTML), Out, HdrExtra, Code) :- !,
 	phrase(page([ title('503 Service Unavailable')
 		    ],
@@ -879,9 +890,10 @@ status_number(moved_temporary,	   302).
 status_number(see_other,	   303).
 status_number(not_modified,	   304).
 status_number(bad_request,	   400).
-status_number(not_found,	   404).
-status_number(forbidden,	   403).
 status_number(authorise,	   401).
+status_number(forbidden,	   403).
+status_number(not_found,	   404).
+status_number(not_acceptable,      406).
 status_number(server_error,	   500).
 status_number(service_unavailable, 503).
 
@@ -924,6 +936,8 @@ status_comment(server_error) -->
 	"Internal Server Error".
 status_comment(service_unavailable) -->
 	"Service Unavailable".
+status_comment(not_acceptable) -->
+	"Not Acceptable".
 
 authenticate(Method, '') --> !,
 	"WWW-Authenticate: ",
