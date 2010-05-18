@@ -19,12 +19,8 @@
 # You can also create a file modules in this directory, listing the
 # desired modules one-per-line
 
-if [ -r modules ]; then
-  SUBMODULES="`cat modules`"
-else
-  SUBMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-  SUBMODULES="$SUBMODULES packages/protobufs"
-fi
+COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
+COREMODULES="$COREMODULES packages/protobufs"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
@@ -41,7 +37,7 @@ while [ "$done" = false ]; do
 	shift
 	;;
     --all)
-	SUBMODULES=
+	COREMODULES=
 	shift
 	;;
     *)
@@ -96,22 +92,27 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
-if git submodule $SUBMODULES | grep '^-' > /dev/null; then
-  echo "Not (all) submodules have been initialised."
-  if confirm "Do you want me to initialize and download the submodules? "; then
-    git submodule init $SUBMODULES
-    git submodule update $SUBMODULES
+nothere=`git submodule status $COREMODULES | grep '^[-]' | awk '{print $2}'`
+if [ ! -z "$nothere" ]; then
+  echo "The following submodules are not yet initialised"
+  for m in $nothere; do
+    echo "   $m"
+  done
+  if confirm "Do you want me to run git submodule update --init? "; then
+    git submodule update --init $nothere
   fi
 fi
 
-outofdate=`git submodule $SUBMODULES | grep '^[-+]' | awk '{print $2}'`
+outofdate=`git submodule | grep '^[+]' | awk '{print $2}'`
 if [ -z "$outofdate" ]; then
   echo "All submodules are up-to-date"
 else
   echo "The following submodules are not up-to-date"
-  echo "   $outofdate"
+  for m in $outofdate; do
+    echo "   $m"
+  done
   if confirm "Do you want me to run git submodule update? "; then
-    git submodule update $SUBMODULES
+    git submodule update $outofdate
   fi
 fi
 
