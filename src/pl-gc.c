@@ -3170,6 +3170,11 @@ considerGarbageCollect(Stack s)
 	size_t limit = sizeStackP(s);	/* amount we want to grow to */
 	size_t space = limit - used;
 
+	if ( LD->outofstack == s )
+	{ DEBUG(1, Sdprintf("GC: request on low space\n"));
+	  return PL_raise(SIG_GC);
+	}
+
 	if ( LD->gc.inferences == LD->statistics.inferences &&
 	     !LD->exception.processing )
 	{ s->gced_size = used;		/* (*) */

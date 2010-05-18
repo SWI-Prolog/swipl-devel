@@ -4001,6 +4001,8 @@ b_throw:
     }
 
     resumeAfterException();
+    if ( PL_pending(SIG_GC) )
+      garbageCollect();
     QF = QueryFromQid(qid);		/* may be shifted: recompute */
 
     QF->foreign_frame = PL_open_foreign_frame();
