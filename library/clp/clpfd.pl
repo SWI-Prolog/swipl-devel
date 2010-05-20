@@ -254,29 +254,30 @@ for ordinary integer arithmetic with is/2, >/2 etc. For example:
 ==
 :- use_module(library(clpfd)).
 
-fac(0, 1).
-fac(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, fac(N1, F1).
+n_factorial(0, 1).
+n_factorial(N, F) :- N #> 0, N1 #= N - 1, F #= N * F1, n_factorial(N1, F1).
 ==
 
 This predicate can be used in all directions. For example:
 
 ==
-?- fac(47, F).
+?- n_factorial(47, F).
 F = 258623241511168180642964355153611979969197632389120000000000 ;
 false.
 
-?- fac(N, 1).
+?- n_factorial(N, 1).
 N = 0 ;
 N = 1 ;
 false.
 
-?- fac(N, 3).
+?- n_factorial(N, 3).
 false.
 ==
 
 To make the predicate terminate if any argument is instantiated, add
 the (implied) constraint F #\= 0 before the recursive call. Otherwise,
-the query fac(N, 0) is the only non-terminating case of this kind.
+the query n_factorial(N, 0) is the only non-terminating case of this
+kind.
 
 This library uses goal_expansion/2 to rewrite constraints at
 compilation time. The expansion's aim is to transparently bring the
@@ -1216,7 +1217,7 @@ label([O|Os], Options, Selection, Order, Choice, Optim, Consistency, Vars) :-
         ).
 label([], _, Selection, Order, Choice, Optim0, Consistency, Vars) :-
         maplist(arg(1), [Selection,Order,Choice], [S,O,C]),
-        ( Optim0 == [] ->
+        (   Optim0 == [] ->
             label(Vars, S, O, C, Consistency)
         ;   reverse(Optim0, Optim),
             exprs_singlevars(Optim, SVs),
@@ -1420,10 +1421,10 @@ delete_eq([X|Xs], Y, List) :-
 contracting(Vs) :-
         must_be(list, Vs),
         maplist(finite_domain, Vs),
-        contracting(Vs, fail, Vs).
+        contracting(Vs, false, Vs).
 
 contracting([], Repeat, Vars) :-
-        (   Repeat -> contracting(Vars, fail, Vars)
+        (   Repeat -> contracting(Vars, false, Vars)
         ;   true
         ).
 contracting([V|Vs], Repeat, Vars) :-
@@ -2279,7 +2280,7 @@ integer_kroot(L, U, N, K, R) :-
         ;   L + 1 =:= U ->
             (   L^K =:= N -> R = L
             ;   U^K =:= N -> R = U
-            ;   fail
+            ;   false
             )
         ;   Mid is (L + U)//2,
             (   Mid^K > N ->
@@ -3153,7 +3154,7 @@ relation_tuple(Relation, Tuple) :-
 tuple_domain([], _).
 tuple_domain([T|Ts], Relation0) :-
         lists_firsts_rests(Relation0, Firsts, Relation1),
-        ( var(T) ->
+        (   var(T) ->
             (   Firsts = [Unique] -> T = Unique
             ;   list_to_domain(Firsts, FDom),
                 fd_get(T, TDom, TPs),
@@ -3171,7 +3172,7 @@ tuple_freeze(Tuple, Relation) :-
 
 tuple_freeze([],  _, _).
 tuple_freeze([T|Ts], Tuple, Prop) :-
-        ( var(T) ->
+        (   var(T) ->
             init_propagator(T, Prop),
             trigger_prop(Prop)
         ;   true
@@ -3860,7 +3861,7 @@ run_propagator(pmax(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #>= Y
                 ;   Z > X -> Z = Y
-                ;   fail % Z < X
+                ;   false % Z < X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YInf cis_gt n(X) -> Z = Y
@@ -3895,7 +3896,7 @@ run_propagator(pmin(X,Y,Z), MState) :-
             ;   nonvar(Z) ->
                 (   Z =:= X -> kill(MState), X #=< Y
                 ;   Z < X -> Z = Y
-                ;   fail % Z > X
+                ;   false % Z > X
                 )
             ;   fd_get(Y, YD, YInf, YSup, _),
                 (   YSup cis_lt n(X) -> Z = Y
@@ -4067,7 +4068,7 @@ run_propagator(reified_fd(V,B), MState) :-
         ;   B == 0 ->
             (   fd_inf(V, inf) -> true
             ;   fd_sup(V, sup) -> true
-            ;   fail
+            ;   false
             )
         ;   true
         ).
@@ -4477,7 +4478,7 @@ distinct(Vars) :-
         maximum_matching(FreeLeft),
         include(free_node, FreeRight0, FreeRight),
         maplist(g_g0, FreeLeft),
-        phrase(scc(FreeLeft), [s(0,[],g0_successors)], _),
+        scc(FreeLeft, g0_successors),
         maplist(dfs_used, FreeRight),
         phrase(distinct_goals(FreeLeft), Gs),
         maplist(distinct_clear_attributes, FreeLeft),
@@ -4550,6 +4551,8 @@ dfs_used_edges([flow_to(F,To)|Es]) :-
    DCGs are used to implicitly pass around the global index, stack
    and the predicate relating a vertex to its successors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+scc(Vs, Succ) :- phrase(scc(Vs), [s(0,[],Succ)], _).
 
 scc([])     --> [].
 scc([V|Vs]) -->
@@ -4699,7 +4702,7 @@ outof_reducer(Left, Right, Var) :-
             append(Left, Right, Others),
             domain_num_elements(Dom, N),
             num_subsets(Others, Dom, 0, Num, NonSubs),
-            (   n(Num) cis_geq N -> fail
+            (   n(Num) cis_geq N -> false
             ;   n(Num) cis N - n(1) ->
                 reduce_from_others(NonSubs, Dom)
             ;   true
@@ -4934,7 +4937,7 @@ gcc_global(Vs, KNs) :-
             maximum_flow(S, T),        % only then, maximize it.
             gcc_consistent(T),
             del_attr(S, parent),
-            phrase(scc(Vals), [s(0,[],gcc_successors)], _),
+            scc(Vals, gcc_successors),
             phrase(gcc_goals(Vals), Gs),
             gcc_clear(S),
             disable_queue,
@@ -5243,7 +5246,7 @@ global_cardinality(Xs, Pairs, Options) :-
         global_cardinality(Xs, Pairs),
         Options = [cost(Cost, Matrix)],
         must_be(list(list(integer)), Matrix),
-        pairs_keys_values(Pairs, Keys, _),
+        pairs_keys(Pairs, Keys),
         maplist(keys_costs(Keys), Xs, Matrix, Costs),
         sum(Costs, #=, Cost).
 
@@ -5303,12 +5306,9 @@ propagate_circuit(Vs) :-
         length(Vs, N),
         length(Ts, N),
         circuit_graph(Vs, Ts, Ts),
-        phrase(scc(Ts), [s(0,[],circuit_successors)], _),
-        (   maplist(single_component, Ts) -> Continuation = true
-        ;   Continuation = false
-        ),
-        maplist(del_attrs, Ts),
-        Continuation.
+        scc(Ts, circuit_successors),
+        maplist(single_component, Ts),
+        maplist(del_attrs, Ts).
 
 single_component(V) :- get_attr(V, lowlink, 0).
 
@@ -5343,6 +5343,8 @@ circuit_successors(V, Tos) :-
 %  two consecutive ones:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  two_consecutive_ones(Vs) :-
 %          automaton(Vs, [source(a),sink(c)],
 %                    [arc(a,0,a), arc(a,1,b),
@@ -5387,9 +5389,10 @@ automaton(Sigs, Ns, As) :- automaton(_, _, Sigs, Ns, As, [], [], _).
 %  and strictly descending subsequences:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  sequence_inflexions(Vs, N) :-
 %          variables_signature(Vs, Sigs),
-%          Sigs ins 0..2,
 %          automaton(_, _, Sigs,
 %                    [source(s),sink(i),sink(j),sink(s)],
 %                    [arc(s,0,s), arc(s,1,j), arc(s,2,i),
@@ -5453,7 +5456,7 @@ automaton(Seqs, Template, Sigs, Ns, As0, Cs, Is, Fs) :-
         End in SinkDrep.
 
 expr0_expr(Es0-_, Es) :-
-        pairs_keys_values(Es0, Es1, _),
+        pairs_keys(Es0, Es1),
         reverse(Es1, Es).
 
 transitions([], _, [], S, S, _, _, Cs, Cs) --> [].
@@ -5537,6 +5540,8 @@ arc_normalized_(arc(S0,L,S), Cs, arc(S0,L,S,Cs)).
 %  instance Sudoku:
 %
 %  ==
+%  :- use_module(library(clpfd)).
+%
 %  sudoku(Rows) :-
 %          length(Rows, 9), maplist(length_(9), Rows),
 %          append(Rows, Vs), Vs ins 1..9,
@@ -5603,18 +5608,20 @@ lists_firsts_rests([[F|Os]|Rest], [F|Fs], [Os|Oss]) :-
 % Example:
 %
 % ==
-%  fac(N, F) :-
-%          zcompare(C, N, 0),
-%          fac_(C, N, F).
+% :- use_module(library(clpfd)).
 %
-%  fac_(=, _, 1).
-%  fac_(>, N, F) :- F #= F0*N, N1 #= N - 1, fac(N1, F0).
+%  n_factorial(N, F) :-
+%          zcompare(C, N, 0),
+%          n_factorial_(C, N, F).
+%
+%  n_factorial_(=, _, 1).
+%  n_factorial_(>, N, F) :- F #= F0*N, N1 #= N - 1, n_factorial(N1, F0).
 % ==
 %
 % This version is deterministic if the first argument is instantiated:
 %
 % ==
-% ?- fac(30, F).
+% ?- n_factorial(30, F).
 % F = 265252859812191058636308480000000.
 % ==
 
@@ -5624,7 +5631,7 @@ zcompare(Order, A, B) :-
         ;   freeze(Order, zcompare_(Order, A, B)),
             fd_variable(A),
             fd_variable(B),
-            propagator_init_trigger(pzcompare(Order, A, B))
+            propagator_init_trigger([A,B], pzcompare(Order, A, B))
         ).
 
 zcompare_(=, A, B) :- A #= B.
@@ -5925,24 +5932,6 @@ original_goal(V) -->
             [Goal]
         ;   []
         ).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-% %?- test_intersection([1,2,3,4,5], [1,5], I).
-
-% %?- test_intersection([1,2,3,4,5], [], I).
-
-% test_intersection(List1, List2, Is) :-
-%         list_to_domain(List1, D1),
-%         list_to_domain(List2, D2),
-%         domains_intersection(D1, D2, I),
-%         domain_to_list(I, Is).
-
-% test_subdomain(L1, L2) :-
-%         list_to_domain(L1, D1),
-%         list_to_domain(L2, D2),
-%         domain_subdomain(D1, D2).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generated predicates

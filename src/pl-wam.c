@@ -573,10 +573,16 @@ call_cleanup/3.  Both may call-back the Prolog engine.
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int
+isCleanupFrame(LocalFrame fr)
+{ return (fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
+	  false(fr, FR_CATCHED));	/* from handler */
+}
+
+
 static void
 callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
-{ if ( fr->predicate == PROCEDURE_setup_call_catcher_cleanup4->definition &&
-       false(fr, FR_CATCHED) )		/* from handler */
+{ if ( isCleanupFrame(fr) )
   { size_t fref = consTermRef(fr);
     fid_t cid;
     term_t catcher;
@@ -632,7 +638,11 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
 static void
 frameFinished(LocalFrame fr, enum finished reason ARG_LD)
-{ callCleanupHandler(fr, reason PASS_LD);
+{ if ( isCleanupFrame(fr) )
+  { size_t fref = consTermRef(fr);
+    callCleanupHandler(fr, reason PASS_LD);
+    fr = (LocalFrame)valTermRef(fref);
+  }
 
 #ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
@@ -755,22 +765,88 @@ do_undo(mark *m)
 		 *	    PROCEDURES		*
 		 *******************************/
 
+#ifdef _MSC_VER				/* Windows MSVC version */
+
+static inline int
+MSB(unsigned int i)
+{ unsigned long mask = i;
+  unsigned long index;
+
+  _BitScanReverse(&index, mask);
+  return index;
+}
+
+#ifndef MemoryBarrier
+#define MemoryBarrier() (void)0
+#endif
+
+#elif defined(__GNUC__)			/* GCC version */
+
+#define MSB(i) (31 - __builtin_clz(i))
+#define MemoryBarrier() __sync_synchronize()
+
+#else					/* Other */
+
+static inline int
+MSB(unsigned int i)
+{ int j = 0;
+
+  if (i >= 0x10000) {i >>= 16; j += 16;}
+  if (i >=   0x100) {i >>=  8; j +=  8;}
+  if (i >=    0x10) {i >>=  4; j +=  4;}
+  if (i >=     0x4) {i >>=  2; j +=  2;}
+  if (i >=     0x2) j++;
+
+  return j;
+}
+#define MemoryBarrier() (void)0
+
+#endif
+
+static Definition
+localDefinition(Definition def ARG_LD)
+{ unsigned int tid = LD->thread.info->pl_tid;
+  size_t idx = MSB(tid);
+  LocalDefinitions v = def->definition.local;
+
+  if ( !v->blocks[idx] )
+  { LOCKDYNDEF(def);
+    if ( !v->blocks[idx] )
+    { size_t bs = (size_t)1<<idx;
+      Definition *newblock = allocHeap(bs*sizeof(Definition));
+
+      memset(newblock, 0, bs*sizeof(Definition));
+
+      v->blocks[idx] = newblock-bs;
+    }
+    UNLOCKDYNDEF(def);
+  }
+
+  if ( !v->blocks[idx][tid] )
+    v->blocks[idx][tid] = localiseDefinition(def);
+
+  return v->blocks[idx][tid];
+}
+
+
+void
+destroyLocalDefinition(Definition def, unsigned int tid)
+{ size_t idx = MSB(tid);
+  LocalDefinitions v = def->definition.local;
+  Definition local;
+
+  local = v->blocks[idx][tid];
+  v->blocks[idx][tid] = NULL;
+  destroyDefinition(local);
+}
+
+
 Definition
 getProcDefinition__LD(Definition def ARG_LD)
 {
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
-  { int i = LD->thread.info->pl_tid;
-    Definition local;
-
-    LOCKDYNDEF(def);
-    if ( !def->definition.local ||
-	 i >= def->definition.local->size ||
-	 !(local=def->definition.local->thread[i]) )
-      local = localiseDefinition(def);
-    UNLOCKDYNDEF(def);
-
-    return local;
+  { return localDefinition(def PASS_LD);
   }
 #endif
 
@@ -2328,9 +2404,11 @@ next_choice:
 	environment_frame = FR = ch->frame;
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
-	SAVE_REGISTERS(qid);
-	callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-	LOAD_REGISTERS(qid);
+	if ( isCleanupFrame(ch->frame) )
+	{ SAVE_REGISTERS(qid);
+	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
+	  LOAD_REGISTERS(qid);
+	}
 	ch = BFR;			/* can be shifted */
 	if ( exception_term )
 	  THROW_EXCEPTION;

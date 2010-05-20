@@ -1241,18 +1241,22 @@ from dtd/2. The \arg{Options} are described with
 xml_write/3.
 \end{description}
 
-\subsection{Simplify quoting}
 
-The \pllib{sgml} package is a parser. Output is generally
-much easier achieved directly from Prolog. Nevertheless, it contains a
-few building blocks for emitting markup data. The quote funtions return
-a version of the input text into one that contains entities for
-characters that need to be escaped. These are the XML meta characters
-and the characters that cannot be expressed by the document encoding.
-Therefore these predicates accept an \arg{encoding} argument. Accepted
-values are \const{ascii}, \const{iso_latin_1}, \const{utf8} and
-\const{unicode}. Versions with two arguments are provided for backward
-compatibility, making the safe \const{ascii} encoding assumption.
+\subsection{XML Quote primitives}
+
+In most cases, the preferred way to create an XML document is to create
+a Prolog tree of \term{element}{Name, Attributes, Content} terms and
+call xml_write/3 to write this to a stream. There are some exceptions
+where one might not want to pay the price of the intermediate
+representation. For these cases, this library contains building blocks
+for emitting markup data. The quote funtions return a version of the
+input text into one that contains entities for characters that need to
+be escaped. These are the XML meta characters and the characters that
+cannot be expressed by the document encoding. Therefore these predicates
+accept an \arg{encoding} argument. Accepted values are \const{ascii},
+\const{iso_latin_1}, \const{utf8} and \const{unicode}. Versions with two
+arguments are provided for backward compatibility, making the safe
+\const{ascii} encoding assumption.
 
 \begin{description}
     \predicate{xml_quote_attribute}{3}{+In, -Quoted, +Encoding}

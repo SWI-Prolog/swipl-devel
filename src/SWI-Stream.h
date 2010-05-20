@@ -106,7 +106,8 @@ stuff.
 #endif
 
 #if defined(__WINDOWS__) && !defined(EWOULDBLOCK)
-#define EWOULDBLOCK	1000		/* Needed for socket handling */
+#define EWOULDBLOCK	140		/* Needed for socket handling */
+					/* 140 is compatible to VS2010 */
 #endif
 #define EPLEXCEPTION	1001		/* errno: pending Prolog exception */
 

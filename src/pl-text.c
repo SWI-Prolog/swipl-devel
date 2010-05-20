@@ -193,15 +193,20 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding = ENC_ISO_LATIN_1;
     text->storage  = PL_CHARS_LOCAL;
     text->canonical = TRUE;
-  } else if ( (flags & CVT_WRITE) )
+  } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
   { IOENC encodings[3];
     IOENC *enc;
     char *r;
+    int wflags;
 
   case_write:
     encodings[0] = ENC_ISO_LATIN_1;
     encodings[1] = ENC_WCHAR;
     encodings[2] = ENC_UNKNOWN;
+
+    wflags = ((flags&CVT_WRITE_CANONICAL)
+		? PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS
+		: PL_WRT_NUMBERVARS);
 
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { size_t size;
@@ -212,7 +217,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
       if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= 0 &&
+	   Sputcode(EOS, fd) >= wflags &&
 	   Sflush(fd) >= 0 )
       { text->encoding = *enc;
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);
@@ -244,7 +249,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   succeed;
 
 maybe_write:
-  if ( (flags & CVT_WRITE) )
+  if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
     goto case_write;
 
 error:
@@ -270,7 +275,8 @@ error:
 
 atom_t
 textToAtom(PL_chars_t *text)
-{ PL_canonise_text(text);
+{ if ( !PL_canonise_text(text) )
+    return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
   { return lookupAtom(text->text.t, text->length);
@@ -282,7 +288,8 @@ textToAtom(PL_chars_t *text)
 
 word
 textToString(PL_chars_t *text)
-{ PL_canonise_text(text);
+{ if ( !PL_canonise_text(text) )
+    return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )
   { return globalString(text->length, text->text.t);
@@ -297,10 +304,14 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
-      int rval = _PL_unify_atomic(term, a);
 
-      PL_unregister_atom(a);
-      return rval;
+      if ( a )
+      { int rval = _PL_unify_atomic(term, a);
+
+	PL_unregister_atom(a);
+	return rval;
+      }
+      return FALSE;
     }
     case PL_STRING:
     { word w = textToString(text);
@@ -392,17 +403,22 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    wchar_t wc;
 
 	    memset(&mbs, 0, sizeof(mbs));
-	    while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) != (size_t)-1 )
-	    { len++;
+	    while( n > 0 )
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0 )
+		return PL_error(NULL, 0, "cannot represent text in current locale",
+				ERR_REPRESENTATION, ATOM_encoding);
+
+	      len++;
 	      n -= rc;
 	      s += rc;
 	    }
 
 	    if ( !(p0 = p = allocGlobal(len*3)) )
 	      return FALSE;
-	    memset(&mbs, 0, sizeof(mbs));
-	    n = text->length;
 
+	    n = text->length;
+	    s = text->text.t;
+	    memset(&mbs, 0, sizeof(mbs));
 	    while(n > 0)
 	    { rc = mbrtowc(&wc, s, n, &mbs);
 
@@ -762,7 +778,7 @@ PL_canonise_text(PL_chars_t *text)
 
 	for(; w<e; w++)
 	{ if ( *w > 0xff )
-	    return FALSE;
+	    return TRUE;
 	}
 
 	return PL_demote_text(text);
@@ -831,8 +847,11 @@ PL_canonise_text(PL_chars_t *text)
 	wchar_t wc;
 
 	memset(&mbs, 0, sizeof(mbs));
-	while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) != (size_t)-1 )
-	{ if ( wc > 0xff )
+	while( n > 0 )
+	{ if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
+	    return FALSE;		/* encoding error */
+
+	  if ( wc > 0xff )
 	    iso = FALSE;
 	  len++;
 	  n -= rc;
@@ -864,8 +883,10 @@ PL_canonise_text(PL_chars_t *text)
 	    }
 
 	    to = text->text.t;
-	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) != (size_t)-1 )
-	    { *to++ = (char)wc;
+	    while( n > 0 )
+	    { rc = mbrtowc(&wc, from, n, &mbs);
+
+	      *to++ = (char)wc;
 	      n -= rc;
 	      from += rc;
 	    }
@@ -887,8 +908,10 @@ PL_canonise_text(PL_chars_t *text)
 	    }
 
 	    to = text->text.w;
-	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) != (size_t)-1 )
-	    { *to++ = wc;
+	    while( n > 0 )
+	    { rc = mbrtowc(&wc, from, n, &mbs);
+
+	      *to++ = wc;
 	      n -= rc;
 	      from += rc;
 	    }

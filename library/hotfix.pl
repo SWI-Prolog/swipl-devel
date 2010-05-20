@@ -118,9 +118,10 @@ apply_hotfix(_HotfixDir, File) :-
 	).
 apply_hotfix(HotfixDir, File) :-
 	atom_concat(HotfixDir, Local, File),
+	atom_concat(/, Local, SlashLocal),
 	findall(Loaded-Time,
 		(   '$time_source_file'(Loaded, Time, user),
-		    sub_atom(Loaded, _, _, 0, Local)
+		    sub_atom(Loaded, _, _, 0, SlashLocal)
 		),
 		Pairs),
 	(   Pairs = [Loaded-Time]
@@ -149,12 +150,16 @@ ensure_dirsep(Dir0, Dir) :-
 %	@see	make:reload_file/1
 
 load_hotfix(File, Loaded) :-
-	open(File, read, In),
+	setup_call_cleanup(open(File, read, In),
+			   load_hotfix_from_stream(Loaded, In),
+			   close(In)).
+
+load_hotfix_from_stream(Loaded, In) :-
 	findall(Context, '$load_context_module'(Loaded, Context), Modules),
 	(   Modules == []
 	->  load_files(user:Loaded, [stream(In)])
-	;   Modules = [M|_]
-	->  load_files(M:Loaded, [stream(In)])
+	;   forall('$member'(Context, Modules),
+		   load_files(Context:Loaded, [stream(In)]))
 	).
 
 

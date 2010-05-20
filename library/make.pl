@@ -77,16 +77,23 @@ reload([H|T]) :-
 
 %%	reload_file(File)
 %
-%	Reload file into the proper module.  Note that if the file is loaded
-%	into multiple modules this should be handled more carefully.
+%	Reload file into the proper module.
+%
+%	@bug	If the module was loaded using use_module/2, importing only
+%		some of the predicates, this is not know.
+%	@bug	If modules import each other, we must load them in the
+%		proper order for import/export dependencies.
 
 reload_file(File) :-
+	source_base_name(File, Compile),
 	findall(Context, '$load_context_module'(File, Context), Modules),
 	(   Modules = []
-	->  consult(user:File)
-	;   Modules = [Module]
-	->  consult(Module:File)
-	;   Modules = [First|_Rest],
-	    consult(First:File)
+	->  load_files(user:Compile)
+	;   forall('$member'(Context, Modules),
+		   load_files(Context:Compile))
 	).
 
+source_base_name(File, Compile) :-
+	file_name_extension(Compile, Ext, File),
+	user:prolog_file_type(Ext, prolog), !.
+source_base_name(File, File).

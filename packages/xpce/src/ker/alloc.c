@@ -65,7 +65,7 @@ unalloc(size_t n, Any p)
 }
 
 void
-initAlloc(void)
+pceInitAlloc(void)
 { wastedbytes = allocbytes = 0;
   allocTop  = 0L;
   allocBase = 0xffffffff;
@@ -315,7 +315,7 @@ unalloc(size_t n, Any p)
 
 
 void
-initAlloc(void)
+pceInitAlloc(void)
 { int t;
 
   spaceptr  = NULL;

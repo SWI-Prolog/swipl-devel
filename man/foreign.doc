@@ -721,6 +721,7 @@ represented.  See the \const{REP_*} flags below for details.
 		      any of the other flags using write/1.  If
 		      no \const{BUF_*} is provided, \const{BUF_RING}
 		      is implied. \\
+\const{CVT_WRITE_CANINICAL} & As CVT_WRITE, but use write_canonical/2. \\
 \const{CVT_ALL}     & Convert if term is any of the above, except for
                       \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
 \hline
@@ -2875,17 +2876,27 @@ GNU readline.
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
 returns 1 if successful, 0 otherwise.
 
-    \cfunction{void}{PL_cleanup}{int status}
+    \cfunction{int}{PL_cleanup}{int status}
 This function performs the reverse of PL_initialise(). It runs the
 PL_on_halt() and at_halt/1 handlers, closes all streams (except for the
 `standard I/O' streams which are flushed only), deallocates all memory
 and restores all signal handlers. The \arg{status} argument is passed to
 the various termination hooks and indicates the \jargon{exit-status}.
 
-This function allows deleting and restarting the Prolog system in the
-same process. Use it with care, as PL_initialise() is a costly function.
-Unix users should consider using exec() (available as part of the
-clib package\index{clib,package},\index{package,clib}).
+The function returns \const{TRUE} if successful and \const{FALSE}
+otherwise. Currently, \const{FALSE} is returned when an attempt is made
+to call PL_cleanup() recursively or if PL_cleanup() is not called from
+the main-thread.
+
+In theory, this function allows deleting and restarting the Prolog
+system in the same process. In practice, SWI-Prolog's cleanup process is
+far from complete and trying to revive the system using PL_initialise()
+will leak memory in the best case. It can also crash the appliction.
+
+In this state, there is little practical use for this function. If you
+want to use Prolog temporary consider running it in a separate process.
+If you want to be able to reset Prolog your options are (again) a
+separate process, modules or threads.
 
     \cfunction{void}{PL_cleanup_fork}{}
 Close file descriptors associated to Prolog streams except for 0,1~and~2.

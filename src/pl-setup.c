@@ -1337,24 +1337,25 @@ trimStacks(int resize ARG_LD)
 
   LD->trim_stack_requested = FALSE;
 
+  if ( resize )
   { LocalFrame olb = lBase;
     LocalFrame olm = lMax;
     Word ogb = gBase;
     Word ogm = gMax;
 
-    if ( resize )
-    { growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
-    } else
-    { trim_stack((Stack) &LD->stacks.local);
-      trim_stack((Stack) &LD->stacks.global);
-      trim_stack((Stack) &LD->stacks.trail);
-      trim_stack((Stack) &LD->stacks.argument);
-    }
+    growStacks(GROW_TRIM, GROW_TRIM, GROW_TRIM);
 
     if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
       scantrail = TRUE;
     else
       scantrail = FALSE;
+  } else
+  { trim_stack((Stack) &LD->stacks.local);
+    trim_stack((Stack) &LD->stacks.global);
+    trim_stack((Stack) &LD->stacks.trail);
+    trim_stack((Stack) &LD->stacks.argument);
+
+    scantrail = FALSE;
   }
 
 #ifdef SECURE_GC

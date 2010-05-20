@@ -270,8 +270,8 @@ goto:eof
 echo.
 echo Busy expanding package... This might take some time...
 pushd %EP!HOME%
-expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:files.txt "%EP!HOME%" > nul
-for /F %%1 in (files.txt) do (call :expand_file_list %%1)
+FOR /f "tokens=7 delims=. " %%G IN ('expand.exe ^| find "Version"') DO set "EXP_VERSION=%%G"
+IF %EXP_VERSION% GEQ 6 (expand.exe "%EP!HOME%\src\%PRE-REQ_FILE%" -F:* "%EP!HOME%" > nul) ELSE (expand "%EP!HOME%\src\%PRE-REQ_FILE%" -F:files.txt "%EP!HOME%" > nul & for /F %%1 in (files.txt) do (call :expand_file_list %%1))
 if exist files.txt (del /Q files.txt)
 popd
 echo.

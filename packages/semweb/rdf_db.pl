@@ -139,7 +139,7 @@
 
 :- multifile
 	ns/2,
-	rdf_meta_specification/2.	% UnboundHead, Head
+	rdf_meta_specification/3.	% UnboundHead, Module, Head
 :- dynamic
 	ns/2,			% ID, URL
 	rdf_source/5.		% DB, SourceURL, ModTimeAtLoad, Triples, MD5
@@ -170,13 +170,14 @@ rdf_current_ns(Alias, URI) :-
 %	Dynamic  predicate  that  maintains   the  registered  namespace
 %	aliases.
 
-ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
-ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
-ns(owl,  'http://www.w3.org/2002/07/owl#').
-ns(xsd,  'http://www.w3.org/2001/XMLSchema#').
-ns(dc,   'http://purl.org/dc/elements/1.1/').
-ns(eor,  'http://dublincore.org/2000/03/13/eor#').
-ns(serql,'http://www.openrdf.org/schema/serql#').
+ns(rdf,	    'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+ns(rdfs,    'http://www.w3.org/2000/01/rdf-schema#').
+ns(owl,	    'http://www.w3.org/2002/07/owl#').
+ns(xsd,	    'http://www.w3.org/2001/XMLSchema#').
+ns(dc,	    'http://purl.org/dc/elements/1.1/').
+ns(dcterms, 'http://purl.org/dc/terms/').
+ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+ns(serql,   'http://www.openrdf.org/schema/serql#').
 
 %%	rdf_register_ns(+Alias, +URI) is det.
 %%	rdf_register_ns(+Alias, +URI, +Options) is det.
@@ -312,15 +313,17 @@ rdf_global_term(Term, Term).
 	system:goal_expansion/2.
 
 system:term_expansion((:- rdf_meta(Heads)), Clauses) :-
-	mk_clauses(Heads, Clauses).
+	prolog_load_context(module, M),
+	mk_clauses(Heads, M, Clauses).
 
-mk_clauses((A,B), [H|T]) :- !,
-	mk_clause(A, H),
-	mk_clauses(B, T).
-mk_clauses(A, [C]) :-
-	mk_clause(A, C).
+mk_clauses((A,B), M, [H|T]) :- !,
+	mk_clause(A, M, H),
+	mk_clauses(B, M, T).
+mk_clauses(A, M, [C]) :-
+	mk_clause(A, M, C).
 
-mk_clause(Head, rdf_db:rdf_meta_specification(Unbound, Head)) :-
+mk_clause(Head0, M0, rdf_db:rdf_meta_specification(Unbound, Module, Head)) :-
+	strip_module(M0:Head0, Module, Head),
 	valid_rdf_meta_head(Head),
 	functor(Head, Name, Arity),
 	functor(Unbound, Name, Arity).
@@ -359,8 +362,32 @@ rdf_meta(Heads) :-
 
 
 system:goal_expansion(G, Expanded) :-
-	rdf_meta_specification(G, Spec), !,
+	rdf_meta_specification(G, _, _), !,
+	prolog_load_context(module, LM),
+	(   rdf_meta_specification(G, Module, Spec),
+	    right_module(LM, G, Module)
+	->  rdf_expand(G, Spec, Expanded)
+	;   debugging(rdf_meta),
+	    sub_term(G, NS:Local),
+	    atom(NS), atom(Local)
+	->  print_message(warning, rdf_meta(not_expanded(LM:G))),
+	    fail
+	),
 	rdf_expand(G, Spec, Expanded).
+
+system:term_expansion(Fact, Expanded) :-
+	rdf_meta_specification(Fact, Module, Spec),
+	prolog_load_context(module, Module), !,
+	rdf_expand(Fact, Spec, Expanded).
+system:term_expansion((Head :- Body), (Expanded :- Body)) :-
+	rdf_meta_specification(Head, Module, Spec),
+	prolog_load_context(module, Module), !,
+	rdf_expand(Head, Spec, Expanded).
+
+
+right_module(M, _, M) :- !.
+right_module(LM, G, M) :-
+	predicate_property(LM:G, imported_from(M)).
 
 rdf_expand(G, Spec, Expanded) :-
 	functor(G, Name, Arity),
@@ -832,7 +859,11 @@ rdf_load(Spec, M:Options) :-
 	    rdf_statistics_(triples(Graph, Triples)),
 	    Action = load
 	;   option(base_uri(BaseURI), Options, Graph),
-	    phrase(derived_options(Options, NSList), Extra),
+	    (	var(BaseURI)
+	    ->	BaseURI = SourceURL
+	    ;	true
+	    ),
+	    once(phrase(derived_options(Options, NSList), Extra)),
 	    merge_options([ base_uri(BaseURI),
 			    graph(Graph),
 			    format(Format)
@@ -867,11 +898,11 @@ derived_options([], _) -->
 derived_options([H|T], NSList) -->
 	(   {   H == register_namespaces(true)
 	    ;   H == (register_namespaces = true)
-	    },
-	    [ namespaces(NSList) ]
+	    }
+	->  [ namespaces(NSList) ]
 	;   []
 	),
-	derived_options(T, _).
+	derived_options(T, NSList).
 
 graph_modified(last_modified(Stamp), Stamp).
 graph_modified(unknown, Stamp) :-
@@ -2102,6 +2133,8 @@ prolog:message(rdf(inconsistent_cache(DB, Graphs))) -->
 	].
 prolog:message(rdf(guess_format(Ext))) -->
 	[ 'Unknown file-extension: ~w.  Assuming RDF/XML'-[Ext] ].
+prolog:message(rdf_meta(not_expanded(G))) -->
+	[ 'rdf_meta: ~p is not expanded'-[G] ].
 
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].

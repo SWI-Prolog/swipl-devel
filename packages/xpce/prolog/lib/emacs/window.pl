@@ -66,6 +66,9 @@ make_emacs_tab_popup(P) :-
 		  [ menu_item(close,
 			      message(Tab, destroy),
 			      condition := Cond),
+		    menu_item(close_others,
+			      message(Tab, close_other_tabs),
+			      condition := Cond),
 		    menu_item(detach,
 			      message(Tab, untab),
 			      condition := Cond)
@@ -117,12 +120,12 @@ initialise(F, For:'emacs_buffer|emacs_view') :->
 	),
 
 	send(TW, append, V),
+	send(B, update_label),
 	get(V, editor, E),
 	send(F, keyboard_focus, V),
 	send(F, setup_mode, V),
 
 	send(F, open),
-	send(B, update_label),
 
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
@@ -624,7 +627,14 @@ label(V, Label:name) :->
 	"Set label of frame/tab"::
 	get(V, device, Dev),
 	(   send(Dev, has_send_method, label)
-	->  send(Dev, label, Label)
+	->  send(Dev, label, Label),
+	    (	get(Dev, container, emacs_tabbed_window, TW),
+		get(TW, current, V),
+		get(V, frame, Frame),
+		Frame \== @nil
+	    ->	send(Frame, label, Label) % HACK: should subclass window_tab
+	    ;	true
+	    )
 	;   get(V, frame, Frame),
 	    Frame \== @nil
 	->  send(Frame, label, Label)

@@ -244,6 +244,8 @@ static predicate_t PRED_call1;
 #define MATCH_QUAL		0x10	/* Match qualifiers too */
 #define MATCH_DUPLICATE		(MATCH_EXACT|MATCH_QUAL)
 
+static int WANT_GC(rdf_db *db);
+static int match_triples(triple *t, triple *p, unsigned flags);
 static int update_duplicates_add(rdf_db *db, triple *t);
 static void update_duplicates_del(rdf_db *db, triple *t);
 static void unlock_atoms(triple *t);
@@ -1683,7 +1685,8 @@ free_literal(rdf_db *db, literal *lit)
       }
     }
 
-    if ( lit->objtype == OBJ_TERM )
+    if ( lit->objtype == OBJ_TERM &&
+	 lit->value.term.record )
     { if ( lit->term_loaded )
 	rdf_free(db, lit->value.term.record, lit->value.term.len);
       else
@@ -2172,16 +2175,56 @@ link_triple_hash(rdf_db *db, triple *t)
 }
 
 
+typedef enum
+{ DUP_NONE,
+  DUP_DUPLICATE,
+  DUP_DISCARDED
+} dub_state;
+
+
+static dub_state
+discard_duplicate(rdf_db *db, triple *t)
+{ triple *d;
+  const int indexed = BY_SP;
+  dub_state rc = DUP_NONE;
+
+  assert(t->is_duplicate == FALSE);
+  assert(t->duplicates == 0);
+
+  if ( WANT_GC(db) )			/* (*) See above */
+    update_hash(db);
+  d = db->table[indexed][triple_hash(db, t, indexed)];
+  for( ; d && d != t; d = d->next[indexed] )
+  { if ( match_triples(d, t, MATCH_DUPLICATE) )
+    { if ( d->graph == t->graph &&
+	   (d->line == NO_LINE || d->line == t->line) )
+      { free_triple(db, t);
+
+	return DUP_DISCARDED;
+      }
+
+      rc = DUP_DUPLICATE;
+    }
+  }
+
+  return rc;
+}
+
+
 /* MT: must be locked by caller */
 
-static void
+static int
 link_triple_silent(rdf_db *db, triple *t)
 { triple *one;
+  dub_state dup;
 
   if ( t->resolve_pred )
   { t->predicate.r = lookup_predicate(db, t->predicate.u);
     t->resolve_pred = FALSE;
   }
+
+  if ( (dup=discard_duplicate(db, t)) == DUP_DISCARDED )
+    return FALSE;
 
   if ( db->by_none_tail )
     db->by_none_tail->next[BY_NONE] = t;
@@ -2193,7 +2236,7 @@ link_triple_silent(rdf_db *db, triple *t)
   if ( t->object_is_literal )
     t->object.literal = share_literal(db, t->object.literal);
 
-  if ( update_duplicates_add(db, t) )
+  if ( dup == DUP_DUPLICATE && update_duplicates_add(db, t) )
     goto ok;				/* is a duplicate */
 
 					/* keep track of subjects */
@@ -2216,13 +2259,15 @@ ok:
   db->created++;
   t->predicate.r->triple_count++;
   register_graph(db, t);
+
+  return TRUE;
 }
 
 
 static inline void
 link_triple(rdf_db *db, triple *t)
-{ link_triple_silent(db, t);
-  broadcast(EV_ASSERT, t, NULL);
+{ if ( link_triple_silent(db, t) )
+    broadcast(EV_ASSERT, t, NULL);
 }
 
 
@@ -2475,7 +2520,8 @@ match_object(triple *t, triple *p, unsigned flags)
 	case OBJ_DOUBLE:
 	  return tlit->value.real == plit->value.real;
 	case OBJ_TERM:
-	  if ( plit->value.term.len != tlit->value.term.len )
+	  if ( plit->value.term.record &&
+	       plit->value.term.len != tlit->value.term.len )
 	    return FALSE;
 	  return memcmp(tlit->value.term.record, plit->value.term.record,
 			plit->value.term.len) == 0;
@@ -3244,8 +3290,8 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
 
       t->next[BY_NONE] = NULL;
       lock_atoms(t);
-      link_triple_silent(db, t);
-      broadcast(EV_ASSERT_LOAD, t, NULL);
+      if ( link_triple_silent(db, t) )
+	broadcast(EV_ASSERT_LOAD, t, NULL);
     }
   }
 
@@ -3626,6 +3672,8 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
   } else if ( !PL_is_ground(litt) )
   { if ( !(flags & LIT_PARTIAL) )
       return type_error(litt, "rdf_object");
+    if ( !PL_is_variable(litt) )
+      lit->objtype = OBJ_TERM;
   } else
   { lit->value.term.record = PL_record_external(litt, &lit->value.term.len);
     lit->objtype = OBJ_TERM;
@@ -5263,7 +5311,15 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { if ( db->tr_first )
+    { if ( t.object_is_literal && t.object.literal->objtype == OBJ_TERM )
+      { fid_t fid = PL_open_foreign_frame();
+	int rc = unify_object(object, p);
+	PL_discard_foreign_frame(fid);
+	if ( !rc )
+	  continue;
+      }
+
+      if ( db->tr_first )
       { if ( db->tr_reset )
 	{ WRUNLOCK(db);
 	  return permission_error("retract", "triple", "",

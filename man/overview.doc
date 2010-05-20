@@ -1266,6 +1266,10 @@ if the goal succeeded while leaving choicepoints.  Many classical Prolog
 systems behave as \const{groundness}: they prompt for alternatives if
 and only if the query contains variables.
 
+    \prologflagitem{qcompile}{atom}{rw}
+This option provides the default for the \term{qcompile}{+Atom} option
+of load_files/2.
+
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done
 by default if you have this library installed on your system.  It is

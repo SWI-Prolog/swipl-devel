@@ -606,15 +606,22 @@ noent:
 	get_stream_handle__LD(t, sp, flags PASS_LD)
 
 
-int
-PL_get_stream_handle(term_t t, IOSTREAM **s)
-{ GET_LD
-  atom_t a;
+static int
+term_stream_handle(term_t t, IOSTREAM **s, int flags ARG_LD)
+{ atom_t a;
 
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
   return get_stream_handle(a, s, SH_ERRORS|SH_ALIAS);
+}
+
+
+int
+PL_get_stream_handle(term_t t, IOSTREAM **s)
+{ GET_LD
+
+  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS PASS_LD);
 }
 
 
@@ -946,7 +953,7 @@ dieIO()
 { if ( GD->io_initialised )
   { noprotocol();
     closeFiles(TRUE);
-    PopTty(Sinput, &ttytab);
+    PopTty(Sinput, &ttytab, TRUE);
   }
 }
 
@@ -1360,7 +1367,7 @@ getSingleChar(IOSTREAM *stream, int signals)
   if ( c == 4 || c == 26 )		/* should ask the terminal! */
     c = -1;
 
-  PopTty(stream, &buf);
+  PopTty(stream, &buf, TRUE);
   debugstatus.suspendTrace--;
   Sunlock(stream);
 
@@ -1396,7 +1403,7 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
       case '\r':
       case EOF:
         *buf++ = EOS;
-        PopTty(in, &tbuf);
+        PopTty(in, &tbuf, TRUE);
 	Sunlock(in);
 	Sunlock(out);
 
@@ -4307,8 +4314,8 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int rval = FALSE;
   int wrapin = FALSE;
 
-  if ( !get_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) ||
-       !get_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS) )
+  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) ||
+       !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
