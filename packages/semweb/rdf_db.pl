@@ -832,10 +832,6 @@ rdf_load(Spec, M:Options) :-
 	    rdf_statistics_(triples(Graph, Triples)),
 	    Action = load
 	;   option(base_uri(BaseURI), Options, Graph),
-	    (	var(BaseURI)
-	    ->	BaseURI = SourceURL
-	    ;	true
-	    ),
 	    phrase(derived_options(Options, NSList), Extra),
 	    merge_options([ base_uri(BaseURI),
 			    graph(Graph),

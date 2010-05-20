@@ -117,8 +117,7 @@ frozen(Var, Goals) :-
 	make_conjunction(Goals0, Goals).
 frozen(_, true).
 
-make_conjunction('$and'(A0, B0), (A, B)) :- !,
-	make_conjunction(A0, A),
+make_conjunction('$and'(A, B0), (A, B)) :- !,
 	make_conjunction(B0, B).
 make_conjunction(G, G).
 

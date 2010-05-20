@@ -606,22 +606,15 @@ noent:
 	get_stream_handle__LD(t, sp, flags PASS_LD)
 
 
-static int
-term_stream_handle(term_t t, IOSTREAM **s, int flags ARG_LD)
-{ atom_t a;
+int
+PL_get_stream_handle(term_t t, IOSTREAM **s)
+{ GET_LD
+  atom_t a;
 
   if ( !PL_get_atom(t, &a) )
     return not_a_stream(t);
 
   return get_stream_handle(a, s, SH_ERRORS|SH_ALIAS);
-}
-
-
-int
-PL_get_stream_handle(term_t t, IOSTREAM **s)
-{ GET_LD
-
-  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS PASS_LD);
 }
 
 
@@ -4314,8 +4307,8 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int rval = FALSE;
   int wrapin = FALSE;
 
-  if ( !term_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) ||
-       !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS PASS_LD) )
+  if ( !get_stream_handle(A1, &in, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) ||
+       !get_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);

@@ -1688,8 +1688,6 @@ PRED_IMPL("?=", 2, can_compare, 0)
   } else if ( exception_term )
   { PL_close_foreign_frame(fid);	/* keep exception */
     return FALSE;
-  } else
-  { rc = TRUE;				/* could not unify */
   }
 
   PL_discard_foreign_frame(fid);

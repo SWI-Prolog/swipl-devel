@@ -34,8 +34,7 @@ unification is wrong you won't get as far as running this test :-)
 */
 
 test_unify :-
-	run_tests([ unify,
-		    can_compare
+	run_tests([ unify
 		  ]).
 
 :- begin_tests(unify).
@@ -62,17 +61,3 @@ test(unify_self, true) :-
 	p(_,_).
 
 :- end_tests(unify).
-
-:- begin_tests(can_compare).
-
-v(_).
-
-test(ground, true) :-
-	?=(a,b).
-test(ground, true) :-
-	?=(a,a).
-test(ground, fail) :-
-	v(X),
-	?=(a,X).
-
-:- end_tests(can_compare).
