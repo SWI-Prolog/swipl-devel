@@ -2243,17 +2243,11 @@ nbio_close_output(nbio_sock_t socket)
       rc = -1;
     } else if ( shutdown(sock, SD_SEND) == SOCKET_ERROR )
     { const char *msg;
-#ifdef __WINDOWS__
+
       msg = WinSockError(WSAGetLastError());
-#else
-      msg = strerror(errno);
-#endif
       Sseterr(s->output, SIO_FERR, msg);
-#ifdef O_DEBUG
-      if ( debugging )
-	Sdprintf("shutdown(%d=%d, SD_SEND) failed: %s\n",
-		 socket, s->socket, msg);
-#endif
+      DEBUG(1, Sdprintf("shutdown(%d=%d, SD_SEND) failed: %s\n",
+			socket, s->socket, msg));
       rc = -1;
     }
 #endif
