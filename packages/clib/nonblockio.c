@@ -230,10 +230,10 @@ typedef struct _plsocket
     struct
     { int bytes;			/* byte count */
       void *buffer;			/* the buffer */
-      size_t size;			/* buffer size */
+      int size;				/* buffer size */
       int flags;
       const struct sockaddr *to;
-      socklen_t tolen;
+      int tolen;
     } sendto;
   } rdata;
 #endif
@@ -710,7 +710,9 @@ doRequest(plsocket *s)
       break;
     case REQ_RECVFROM:
       if ( s->w32_flags & (FD_READ|FD_CLOSE) )
-      { s->w32_flags &= ~FD_READ;
+      { int iflen = (int)*s->rdata.recvfrom.fromlen;
+
+	s->w32_flags &= ~FD_READ;
 
 	if ( true(s, PLSOCK_WAITING) )
 	{ doneRequest(s);
@@ -723,7 +725,7 @@ doRequest(plsocket *s)
 			 (int)s->rdata.recvfrom.size,
 			 s->rdata.recvfrom.flags,
 			 s->rdata.recvfrom.from,
-			 s->rdata.recvfrom.fromlen);
+			 &iflen);
 
 	if ( s->rdata.recvfrom.bytes < 0 )
 	{ s->error = WSAGetLastError();
@@ -734,7 +736,8 @@ doRequest(plsocket *s)
 	    doneRequest(s);
 	  }
 	} else
-	{ doneRequest(s);
+	{ *s->rdata.recvfrom.fromlen = iflen;
+	  doneRequest(s);
 	}
       }
       break;
@@ -2276,34 +2279,37 @@ nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
     return -1;
 
 #ifdef __WINDOWS__
-
   DEBUG(3, Sdprintf("[%d] recvfrom from socket %d\n",
 		    PL_thread_self(), socket));
 
-  n = recvfrom(s->socket, buf, (int)bufSize, flags, from, fromlen);
-  if ( n < 0 )
-  { int wsaerrno;
+  { int iflen = (int)*fromlen;		/* Windows recvfrom uses int */
 
-    if ( (wsaerrno=WSAGetLastError()) == WSAEWOULDBLOCK )
-    { s->rdata.recvfrom.buffer  = buf;
-      s->rdata.recvfrom.size    = bufSize;
-      s->rdata.recvfrom.flags   = flags;
-      s->rdata.recvfrom.from    = from;
-      s->rdata.recvfrom.fromlen = fromlen;
-      placeRequest(s, REQ_RECVFROM);
-      if ( !waitRequest(s) )
-      { errno = EPLEXCEPTION;
-	return -1;
-      }
-      n = s->rdata.recvfrom.bytes;
-    }
-
+    n = recvfrom(s->socket, buf, (int)bufSize, flags, from, &iflen);
     if ( n < 0 )
-    { s->error = wsaerrno;
-      errno = EIO;
+    { int wsaerrno;
+
+      if ( (wsaerrno=WSAGetLastError()) == WSAEWOULDBLOCK )
+      { s->rdata.recvfrom.buffer  = buf;
+	s->rdata.recvfrom.size    = bufSize;
+	s->rdata.recvfrom.flags   = flags;
+	s->rdata.recvfrom.from    = from;
+	s->rdata.recvfrom.fromlen = fromlen;
+	placeRequest(s, REQ_RECVFROM);
+	if ( !waitRequest(s) )
+	{ errno = EPLEXCEPTION;
+	  return -1;
+	}
+	n = s->rdata.recvfrom.bytes;
+      }
+
+      if ( n < 0 )
+      { s->error = wsaerrno;
+	errno = EIO;
+      }
+    } else
+    { *fromlen = iflen;
+      s->error = 0;
     }
-  } else
-  { s->error = 0;
   }
 
 #else /*__WINDOWS__*/
@@ -2352,7 +2358,7 @@ nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
   DEBUG(3, Sdprintf("[%d] sending %d bytes using socket %d\n",
 		    PL_thread_self(), (int)bufSize, socket));
 
-  n = sendto(s->socket, buf, (int)bufSize, flags, to, tolen);
+  n = sendto(s->socket, buf, (int)bufSize, flags, to, (int)tolen);
   if ( n < 0 )
   { int error = WSAGetLastError();
 
@@ -2370,11 +2376,11 @@ nbio_sendto(nbio_sock_t socket, void *buf, size_t bufSize, int flags,
 
 wouldblock:
   s->rdata.sendto.buffer  = buf;
-  s->rdata.sendto.size    = bufSize;
+  s->rdata.sendto.size    = (int)bufSize;
   s->rdata.sendto.bytes   = 0;
   s->rdata.sendto.flags   = flags;
   s->rdata.sendto.to      = to;
-  s->rdata.sendto.tolen   = tolen;
+  s->rdata.sendto.tolen   = (int)tolen;
   placeRequest(s, REQ_SENDTO);
   if ( !waitRequest(s) )
   { errno = EPLEXCEPTION;		/* handled Prolog signal */
