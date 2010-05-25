@@ -365,6 +365,8 @@ expand_option(A = B, true(A=B)) :- !.
 expand_option(A =@= B, true(A=@=B)) :- !.
 expand_option(A =:= B, true(A=:=B)) :- !.
 expand_option(error(X), throws(error(X, _))) :- !.
+expand_option(exception(X), throws(X)) :- !. % SICStus 4 compatibility
+expand_option(error(F,C), throws(error(F,C))) :- !. % SICStus 4 compatibility
 expand_option(true, true(true)) :- !.
 expand_option(O, O).
 
