@@ -795,8 +795,11 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	    ->  (   var(E)
 		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
-		    (   catch(Cmp, _, fail)			% tbd: error
-		    ->  Result = success(Unit, Name, Line, Det, Time)
+		    (   catch(Module:Cmp, E, true)
+		    ->  (   var(E)
+			->  Result = success(Unit, Name, Line, Det, Time)
+			;   Result = failure(Unit, Name, Line, cmp_error(Cmp, E))
+			)
 		    ;   Result = failure(Unit, Name, Line, wrong_answer(Cmp))
 		    ),
 		    cleanup(Module, Options)
@@ -1448,6 +1451,9 @@ failure(wrong_answer(Cmp)) -->
 	[ 'wrong answer (compared using ~w)'-[Op], nl ],
 	expected_got_ops_(Ex, A, OPS, Goals).
 :- if(swi).
+failure(cmp_error(_Cmp, Error)) -->
+	{ message_to_string(Error, Message) },
+	[ 'Comparison error: ~w'-[Message] ].
 failure(Error) -->
 	{ Error = error(_,_), !,
 	  message_to_string(Error, Message)
