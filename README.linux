@@ -69,7 +69,7 @@ sudo apt-get install \
 	libxext-dev libice-dev libjpeg62-dev libxinerama-dev libxft-dev \
 	libxpm-dev libxt-dev pkg-config \
 	libssl-dev \
-	sun-java5-bin sun-java5-fonts sun-java5-jdk \
+	openjdk-6-jdk \
 	zlib1g-dev
 
 The provided build.templ works fine for Debian and Ubuntu. Copy it to
