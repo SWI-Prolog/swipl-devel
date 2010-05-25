@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2006-2008, University of Amsterdam
 
@@ -363,6 +363,7 @@ expand_option(A == B, true(A==B)) :- !.
 expand_option(A = B, true(A=B)) :- !.
 expand_option(A =@= B, true(A=@=B)) :- !.
 expand_option(A =:= B, true(A=:=B)) :- !.
+expand_option(error(X), throws(error(X, _))) :- !.
 expand_option(O, O).
 
 
@@ -451,7 +452,6 @@ test_option(true(_)).
 test_option(fail).
 test_option(true).
 test_option(throws(_)).
-test_option(error(_)).
 test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
@@ -791,11 +791,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	;   Result = setup_failed(Unit, Name, Line)
 	).
 run_test_6(Unit, Name, Line, Options, Body, Result) :-
-	(   option(throws(Expect), Options)
-	->  true
-	;   option(error(ErrorExpect), Options)
-	->  Expect = error(ErrorExpect, _)
-	), !,
+	option(throws(Expect), Options), !,
 	unit_module(Unit, Module),
 	(   setup(Module, test(Unit,Name,Line), Options)
 	->  statistics(runtime, [T0,_]),
