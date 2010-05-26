@@ -4,13 +4,8 @@
 # allow for the standard ./configure && make && make install sequence
 # from the topdirectory
 #
-# If you want to build for multiple architectures, do:
-#
-#	% mkdir myarch
-#	% cd myarch
-#	% ../src/configure [options]
-#	% make
-#	% make install
+# If you want more than just te  naked Prolog compiler (most likely), we
+# advice using build.templ.  See the file INSTALL for details.
 
 TARGET=lite
 configoptions=""
@@ -76,9 +71,13 @@ if [ -d .git ]; then
   fi
 fi
 
-(cd $BUILDARCH && ../src/configure $kerneloptions $configoptions)
+config_kernel()
+{ if [ ! -r config.h -o config.h -ot ../src/configure ]; then
+    ../src/configure $kerneloptions $configoptions
+    return $?
+  fi
+}
 
-case $TARGET in
-  world)
-	;;
-esac
+if ! (cd $BUILDARCH && config_kernel); then
+  exit 1
+fi

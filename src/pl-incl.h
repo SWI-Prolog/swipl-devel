@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -43,9 +43,9 @@
 #endif
 #define C_LDFLAGS    ""
 #if defined(_DEBUG)
-#define C_PLLIB	    "libplD.lib"
+#define C_PLLIB	    "libswiplD.lib"
 #else
-#define C_PLLIB	    "libpl.lib"
+#define C_PLLIB	    "libswipl.lib"
 #endif
 #else
 #include <parms.h>			/* pick from the working dir */

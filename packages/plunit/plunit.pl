@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2006-2008, University of Amsterdam
 
@@ -353,8 +353,9 @@ expand_test(Name, Options0, Body,
 	->  Options1 = Options0
 	;   Options1 = [Options0]
 	),
-	maplist(expand_option, Options1, Options),
-	valid_options(Options, test_option).
+	maplist(expand_option, Options1, Options2),
+	valid_options(Options2, test_option),
+	valid_test_mode(Options2, Options).
 
 expand_option(Var, _) :-
 	var(Var), !,
@@ -363,7 +364,26 @@ expand_option(A == B, true(A==B)) :- !.
 expand_option(A = B, true(A=B)) :- !.
 expand_option(A =@= B, true(A=@=B)) :- !.
 expand_option(A =:= B, true(A=:=B)) :- !.
+expand_option(error(X), throws(error(X, _))) :- !.
+expand_option(exception(X), throws(X)) :- !. % SICStus 4 compatibility
+expand_option(error(F,C), throws(error(F,C))) :- !. % SICStus 4 compatibility
+expand_option(true, true(true)) :- !.
 expand_option(O, O).
+
+valid_test_mode(Options0, Options) :-
+	include(test_mode, Options0, Tests),
+	(   Tests == []
+	->  Options = [true(true)|Options0]
+	;   Tests = [_]
+	->  Options = Options0
+	;   throw_error(plunit(incompatible_options, Tests), _)
+	).
+
+test_mode(true(_)).
+test_mode(all(_)).
+test_mode(set(_)).
+test_mode(fail).
+test_mode(throws(_)).
 
 
 %%	expand(+Term, -Clauses) is semidet.
@@ -449,9 +469,7 @@ test_option(Option) :-
 	test_set_option(Option), !.
 test_option(true(_)).
 test_option(fail).
-test_option(true).
 test_option(throws(_)).
-test_option(error(_)).
 test_option(all(_)).
 test_option(set(_)).
 test_option(nondet).
@@ -777,8 +795,11 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	    ->  (   var(E)
 		->  statistics(runtime, [T1,_]),
 		    Time is (T1 - T0)/1000.0,
-		    (   catch(Cmp, _, fail)			% tbd: error
-		    ->  Result = success(Unit, Name, Line, Det, Time)
+		    (   catch(Module:Cmp, E, true)
+		    ->  (   var(E)
+			->  Result = success(Unit, Name, Line, Det, Time)
+			;   Result = failure(Unit, Name, Line, cmp_error(Cmp, E))
+			)
 		    ;   Result = failure(Unit, Name, Line, wrong_answer(Cmp))
 		    ),
 		    cleanup(Module, Options)
@@ -791,11 +812,7 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 	;   Result = setup_failed(Unit, Name, Line)
 	).
 run_test_6(Unit, Name, Line, Options, Body, Result) :-
-	(   option(throws(Expect), Options)
-	->  true
-	;   option(error(ErrorExpect), Options)
-	->  Expect = error(ErrorExpect, _)
-	), !,
+	option(throws(Expect), Options), !,
 	unit_module(Unit, Module),
 	(   setup(Module, test(Unit,Name,Line), Options)
 	->  statistics(runtime, [T0,_]),
@@ -809,24 +826,6 @@ run_test_6(Unit, Name, Line, Options, Body, Result) :-
 		    ->  Result = success(Unit, Name, Line, true, Time)
 		    ;   Result = failure(Unit, Name, Line, wrong_error(Expect, E))
 		    ),
-		    cleanup(Module, Options)
-		)
-	    ;   Result = failure(Unit, Name, Line, failed),
-		cleanup(Module, Options)
-	    )
-	;   Result = setup_failed(Unit, Name, Line)
-	).
-run_test_6(Unit, Name, Line, Options, Body, Result) :-
-	unit_module(Unit, Module),
-	(   setup(Module, test(Unit,Name,Line), Options)
-	->  statistics(runtime, [T0,_]),
-	    (   catch(call_det(Module:Body, Det), E, true)
-	    ->  (   var(E)
-		->  statistics(runtime, [T1,_]),
-		    Time is (T1 - T0)/1000.0,
-		    Result = success(Unit, Name, Line, Det, Time),
-		    cleanup(Module, Options)
-		;   Result = failure(Unit, Name, Line, E),
 		    cleanup(Module, Options)
 		)
 	    ;   Result = failure(Unit, Name, Line, failed),
@@ -1270,6 +1269,9 @@ message(error(context_error(plunit_close(Name, Start)), _)) -->
 message(plunit(nondet(File, Line, Name))) -->
 	locationprefix(File:Line),
 	[ 'PL-Unit: Test ~w: Test succeeded with choicepoint'- [Name] ].
+message(error(plunit(incompatible_options, Tests), _)) -->
+	[ 'PL-Unit: incompatible test-options: ~p'-[Tests] ].
+
 					% Unit start/end
 :- if(swi).
 message(plunit(begin(Unit))) -->
@@ -1449,6 +1451,9 @@ failure(wrong_answer(Cmp)) -->
 	[ 'wrong answer (compared using ~w)'-[Op], nl ],
 	expected_got_ops_(Ex, A, OPS, Goals).
 :- if(swi).
+failure(cmp_error(_Cmp, Error)) -->
+	{ message_to_string(Error, Message) },
+	[ 'Comparison error: ~w'-[Message] ].
 failure(Error) -->
 	{ Error = error(_,_), !,
 	  message_to_string(Error, Message)

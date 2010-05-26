@@ -3,14 +3,6 @@
 # The real work is done in the `src' directory.  This is just here to
 # allow for the standard ./configure && make && make install sequence
 # from the topdirectory
-#
-# If you want to build for multiple architectures, do:
-# 
-#	% mkdir myarch
-#	% cd myarch
-#	% ../src/configure [options]
-#	% make
-#	% make install
 
 if [ -z "$BUILDARCH" ]; then
   BUILDARCH=src;
@@ -21,4 +13,8 @@ if [ -z "$MAKE" ]; then MAKE=make; fi
 
 sed -e "s/@BUILDARCH@/$BUILDARCH/" -e "s/@MAKE@/$MAKE/" Makefile.in > Makefile
 
-cd $BUILDARCH && ../src/configure "$@"
+cd $BUILDARCH
+if [ ! -r config.status -o config.status -ot configure ]; then
+  ../src/configure "$@"
+  exit $?
+fi

@@ -45,7 +45,6 @@ clean::
 	fi
 
 distclean::
-	rm -f .pkg-config
 	@if [ -f packages/Makefile ]; then \
 	    cd packages && $(MAKE) distclean; \
 	fi
@@ -62,11 +61,8 @@ distclean::
 world:	packages
 ln-world: world
 
-.pkg-config: lite
+packages: lite
 	cd packages && ./configure $(CONFIG_OPTIONS)
-	touch $@
-
-packages: lite .pkg-config
 	cd packages && $(MAKE)
 
 install-world::

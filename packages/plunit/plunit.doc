@@ -20,7 +20,7 @@
 	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{wielemak@science.uva.nl}}
+	E-mail: \email{jan@swi-prolog.org}}
 
 \maketitle
 
@@ -189,9 +189,11 @@ test(or, all(X == [1,2])) :-
 \end{code}
 
     \termitem{set}{AnswerTerm Cmp Instances}
-Similar to \term{all}{AnswerTerm Cmp Instances}, but ignores order and
-duplicates with respect to \arg{Cmp} in the comparison. Each element is
-compared using \arg{Cmp}. 
+Similar to \term{all}{AnswerTerm Cmp Instances}, but before testing both
+the bindings of \arg{AnswerTerm} and \arg{Instances} are sorted using
+sort/2. This removes duplicates and places both set in the same
+order.\footnote{The result is only well-defined of \arg{Cmp} is
+\texttt{==}.}
 
     \termitem{nondet}{}
 If this keyword appears in the option list, non-deterministic success
@@ -255,7 +257,7 @@ Executed before executing any of the tests.  If \arg{Goal} fails,
 the test of this unit is skipped.
 
         \termitem{setup}{:Goal}
-Executed before executing any of the tests.  
+Executed before executing any of the tests.
 
         \termitem{cleanup}{:Goal}
 Executed after completion of all tests in the unit.
@@ -386,7 +388,7 @@ loaded into the current project.
 \label{sec:running}
 
 At any time, the tests can be executed by loading the program and
-running run_tests/0 or run_tests(+Unit).  
+running run_tests/0 or run_tests(+Unit).
 
 \begin{description}
     \predicate{run_tests}{0}{}
@@ -461,7 +463,7 @@ supports testing this.
 
     \predicate{load_test_files}{1}{+Options}
 Load \fileext{plt} test-files that belong to the currently loaded
-sources.     
+sources.
 
     \predicate{running_tests}{0}{}
 Print all currently running tests to the terminal.  It can be used
@@ -538,7 +540,7 @@ test(reverse, [true(A==[a])]) :-
 
 An important aspect of tests is to know which parts of program
 is used (\emph{covered}) by the tests.  An experimental analysis
-is provided by the library \pllib{test_cover}.  
+is provided by the library \pllib{test_cover}.
 
 \begin{description}
     \predicate{show_coverage}{1}{:Goal}

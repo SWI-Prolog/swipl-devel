@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam, VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -70,14 +70,14 @@ typedef unsigned long uintptr_t;
 #define PROG_CXX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
 #define PROG_CPP "cl.exe -P"
-#define LIB_PL_DEBUG "libplD.lib"
+#define LIB_PL_DEBUG "libswiplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
 #else /*__WINDOWS__*/
 #include "pl-incl.h"
 
 #ifndef PROG_PL
-#define PROG_PL "pl"
+#define PROG_PL "swipl"
 #endif
 #define PROG_CC "cc"
 #define PROG_CXX "c++"
@@ -183,7 +183,7 @@ static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
-static char *pllib;    			/* -lpl, libpl.lib, libplD.lib, ... */
+static char *pllib;    			/* -lswipl, libswipl.lib, ... */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */

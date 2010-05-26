@@ -1580,7 +1580,7 @@ load_files(Module:Files, Options) :-
 	throw(error(instantitation_error, _)).
 '$import_list'(Target, Source, all, Reexport) :- !,
 	'$module_property'(Source, exports(Import)),
-	'$import_ops'(Target, Source),
+	'$import_ops'(Target, Source, _All),
 	'$import_list'(Target, Source, Import, Reexport).
 '$import_list'(Target, Source, except(Spec), Reexport) :- !,
 	'$module_property'(Source, exports(Export)),
@@ -1645,6 +1645,9 @@ load_files(Module:Files, Options) :-
 	),
 	'$store_clause'((NewHead :- Source:Head), File),
 	'$import_all2'(Rest, Context, Source, Imported).
+'$import_all2'([op(P,A,N)|Rest], Context, Source, Imported) :- !,
+	'$import_ops'(Context, Source, op(P,A,N)),
+	'$import_all2'(Rest, Context, Source, Imported).
 '$import_all2'([Pred|Rest], Context, Source, [Pred|Imported]) :-
 	Context:import(Source:Pred),
 	'$ifcompiling'('$import_wic'(Source, Pred)),
@@ -1655,14 +1658,15 @@ load_files(Module:Files, Options) :-
 '$list_to_conj'([H|T], (H,Rest)) :-
 	'$list_to_conj'(T, Rest).
 
-%%	'$import_ops'(+Target, +Source)
+%%	'$import_ops'(+Target, +Source, +Pattern)
 %
 %	Import the operators export from Source into the module table of
-%	Target.
+%	Target.  We only import operators that unify with Pattern.
 
-'$import_ops'(To, From) :-
+'$import_ops'(To, From, Pattern) :-
 	(   '$c_current_predicate'(_, From:'$exported_op'(_, _, _)),
 	    From:'$exported_op'(Pri, Assoc, Name),
+	    Pattern = op(Pri, Assoc, To:Name),
 	    op(Pri, Assoc, To:Name),
 	    fail
 	;   true

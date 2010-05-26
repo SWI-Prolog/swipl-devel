@@ -121,10 +121,14 @@ configure::
 	@echo "**********************"
 	@for p in $(PKG); do \
 	    if [ -r $$p/configure ]; then \
-	        echo "**********************"; \
-		echo "* Package $$p"; \
-		echo "**********************"; \
+	      echo "**********************"; \
+	      echo "* Package $$p"; \
+	      echo "**********************"; \
+	      if [ ! -r $$p/config.status -o $$p/config.status -ot $$p/configure ]; then \
 	        ( cd $$p && $(CONFIG) ) || exit 1; \
+	      else \
+		( cd $$p && ./config.status ) || exit 1; \
+	      fi; \
 	    fi; \
         done
 
