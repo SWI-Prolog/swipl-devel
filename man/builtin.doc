@@ -239,6 +239,14 @@ use_module/2.%
 	     efficiency and does not allow for querying the relation
 	     through predicate_property/2.}
 
+If \arg{Import} equals \const{all}, all operators are imported as well.
+Otherwise, operators are \emph{not} imported. Operators can be imported
+selectively by adding terms \term{op}{Pri,Assoc,Name} to the
+\arg{Imports} list. If such a term is encountered, all exported
+operators that unify with this term are imported. Typically, this
+construct will be used with all arguments unbound to import all
+operators or with only \arg{Name} bound to import a particular operator.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
