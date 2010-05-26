@@ -618,12 +618,14 @@ destroyAtom(Atom *ap, uintptr_t mask ARG_LD)
     Sfprintf(atomLogFd, "Deleted `%s'\n", a->name);
 #endif
 
-  for( ; ; ap2 = &(*ap2)->next )
-  { assert(*ap2);			/* MT: TBD: failed a few times!? */
+  if ( true(a->type, PL_BLOB_UNIQUE) )
+  { for( ; ; ap2 = &(*ap2)->next )
+    { assert(*ap2);		/* MT: TBD: failed a few times!? */
 
-    if ( *ap2 == a )
-    { *ap2 = a->next;
-      break;
+      if ( *ap2 == a )
+      { *ap2 = a->next;
+        break;
+      }
     }
   }
 
