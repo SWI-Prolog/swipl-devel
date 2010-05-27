@@ -126,10 +126,7 @@ create_server(Goal, Port, Options) :-
 	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
 	thread_create(accept_server(Goal, Options), _,
-		      [ local(128),
-			global(128),
-			trail(128),
-			alias(Alias)
+		      [ alias(Alias)
 		      ]),
 	assert(current_server(Port, Goal, Alias, Queue)).
 
