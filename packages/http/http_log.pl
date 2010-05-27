@@ -48,7 +48,7 @@ library(settings) for details.
 The  level  of  logging  can  modified  using  the  multifile  predicate
 http_log:nolog/1 to hide HTTP  request  fields   from  the  logfile  and
 http_log:password_field/1   to   hide   passwords   from   HTTP   search
-specifications (e.g. =|/topsecret?password=secret|=.
+specifications (e.g. =|/topsecret?password=secret|=).
 */
 
 :- multifile
