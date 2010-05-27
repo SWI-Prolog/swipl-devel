@@ -1186,6 +1186,8 @@ If ---for whatever reason--- the conversion is not possible it simply
 unifies \arg{RelPath} to \arg{AbsPath}.
 \end{description}
 
+\input{httphost}
+
 \input{httplog}
 
 \subsection{Debugging Servers}				\label{sec:debug}

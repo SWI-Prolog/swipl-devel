@@ -41,22 +41,10 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
+include common.mk
+
 STREAMOBJ=	http_stream.o
 JSONOBJ=	json.o
-LIBPL=		html_write.pl http_client.pl http_header.pl \
-		http_mime_plugin.pl http_sgml_plugin.pl \
-		mimepack.pl mimetype.pl dcg_basics.pl \
-		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
-		http_wrapper.pl http_open.pl http_session.pl \
-		http_error.pl http_parameters.pl http_dispatch.pl \
-		http_authenticate.pl http_stream.pl http_log.pl \
-		http_path.pl http_hook.pl html_head.pl http_exception.pl \
-		json.pl http_json.pl json_convert.pl http_dirindex.pl \
-		http_server_files.pl http_pwp.pl
-EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl demo_files.pl demo_pwp.pl
-EXAMPLEEXE=	demo_inetd
-XPCEPL=		http_image.pl
 SOLIBS=		http_stream.@SO@ json.@SO@
 
 all:		$(SOLIBS)
@@ -119,7 +107,7 @@ html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
 		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex \
-		httpopen.tex
+		httpopen.tex httphost.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -139,6 +127,9 @@ json.tex:	json.pl json_convert.pl http_json.pl
 
 httplog.tex:	http_log.pl
 		$(PLTOTEX) --subsection 'library(http/http_log)'
+
+httphost.tex:	http_host.pl
+		$(PLTOTEX) --subsection 'library(http/http_host)'
 
 httppath.tex:	http_path.pl
 		$(PLTOTEX) --subsection 'library(http/http_path)'
