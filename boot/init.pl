@@ -1023,26 +1023,39 @@ load_files(Module:Files, Options) :-
 	),
         '$load_files'(Files, Module, Options).
 
+'$load_files'(X, _, _) :-
+	var(X), !,
+	throw(error(instantiation_error, context(load_files/2,_))).
+'$load_files'([], _, _) :- !.
 '$load_files'(Id, Module, Options) :-	% load_files(foo, [stream(In)])
 	memberchk(stream(_), Options), !,
 	(   atom(Id)
 	->  '$load_file'(Id, Module, Options)
 	;   throw(error(type_error(atom, Id), _))
 	).
-'$load_files'(X, _, _) :-
-	var(X), !,
-	throw(error(instantiation_error, context(load_files/2,_))).
-'$load_files'([], _, _) :- !.
-'$load_files'([H|T], Module, Options) :- !,
-	'$load_files'(H, Module, Options),
-	'$load_files'(T, Module, Options).
-'$load_files'(Spec, Module, Options) :-
+'$load_files'(List, Module, Options) :-
+	List = [_|_], !,
+	(   is_list(List)
+	->  '$load_file_list'(List, Module, Options)
+	;   throw(error(type_error(list, List), context(load_files/2,_)))
+	).
+'$load_files'(File, Module, Options) :-
+	'$load_one_file'(File, Module, Options).
+
+'$load_file_list'([], _, _).
+'$load_file_list'([File|Rest], Module, Options) :-
+	catch('$load_one_file'(File, Module, Options), E,
+	      print_message(error, E)),
+	'$load_file_list'(Rest, Module, Options).
+
+
+'$load_one_file'(Spec, Module, Options) :-
 	atom(Spec),
 	'$get_option'(expand(Expand), Options, true),
 	Expand == true, !,
 	expand_file_name(Spec, Files),
 	'$load_files'(Files, Module, [expand(false)|Options]).
-'$load_files'(File, Module, Options) :-
+'$load_one_file'(File, Module, Options) :-
 	strip_module(Module:File, Into, PlainFile),
 	'$load_file'(PlainFile, Into, Options).
 
