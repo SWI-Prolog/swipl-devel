@@ -1,0 +1,42 @@
+/* $Id$
+
+   CSS for OpenID module,
+   Author: Jan Wielemaker
+   Copying: Public domain
+
+   For a tutorial on CSS, see
+   <http://www.htmldog.com/guides/cssbeginner/selectors/>
+*/
+
+div.openid-title
+{ margin-bottom: 1em;
+}
+
+div.openid-title img
+{ border: 0;
+  height: 4em;
+  vertical-align: sub;
+}
+
+div.openid-title span
+{ font-size: 2em;
+  font-weight: 300;
+}
+
+div.openid-message
+{ margin-top: 1em;
+}
+
+table.openid-form
+{ margin-top: 1em;
+}
+
+table.openid-form td
+{
+}
+
+input.openid-input
+{ background: #fff url('../icons/openid-logo-tiny.png') no-repeat center left;
+  padding-left: 20px;
+  margin-left: 2cm;
+}

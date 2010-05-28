@@ -434,6 +434,8 @@ Alternatively \term{basic}{+PasswordFile} can be passed as an option to
 http_handler/3.
 \end{description}
 
+\input{httpopenid.tex}
+
 %================================================================
 \subsection{Get parameters from HTML forms}
 \label{sec:httpparam}

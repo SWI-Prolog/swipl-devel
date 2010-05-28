@@ -107,7 +107,7 @@ html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
 		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex \
-		httpopen.tex httphost.tex
+		httpopen.tex httphost.tex httpopenid.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -145,6 +145,9 @@ httpsession.tex: http_session.pl
 
 httpdispatch.tex: http_dispatch.pl
 		$(PLTOTEX) --subsection 'library(http/http_dispatch)'
+
+httpopenid.tex:	http_openid.pl
+		$(PLTOTEX) --subsection 'library(http/http_openid)'
 
 httpdirindex.tex: http_dirindex.pl
 		$(PLTOTEX) --subsection 'library(http/http_dirindex)'

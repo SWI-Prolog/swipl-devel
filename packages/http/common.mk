@@ -9,8 +9,9 @@ LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_authenticate.pl http_stream.pl http_log.pl \
 		http_path.pl http_hook.pl html_head.pl http_exception.pl \
 		json.pl http_json.pl json_convert.pl http_dirindex.pl \
-		http_server_files.pl http_pwp.pl http_host.pl
+		http_server_files.pl http_pwp.pl http_host.pl \
+		http_openid.pl
 EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl demo_files.pl demo_pwp.pl
+		calc.pl demo_files.pl demo_pwp.pl demo_openid.pl
 EXAMPLEEXE=	demo_inetd
 XPCEPL=		http_image.pl
