@@ -47,7 +47,6 @@
 	    openid_server/3,		% ?OpenIDLogin, ?OpenID, ?Server
 
 	    openid_login_form//2,	% +ReturnTo, +Options, //
-	    openid_css//0,		% +Emit link to CSS page
 
 	    openid_current_host/3	% +Request, -Host, -Port
 	  ]).
@@ -61,6 +60,7 @@
 :- use_module(library(http/http_session)).
 :- use_module(library(http/http_host)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/html_head)).
 :- use_module(library(http/http_server_files)).
 :- use_module(library(utf8)).
 :- use_module(library(error)).
@@ -254,22 +254,10 @@ openid_login_page(Request) :-
 	http_parameters(Request,
 			[ 'openid.return_to'(ReturnTo, [])
 			]),
-	reply_html_page([ title('OpenID login'),
-			  \openid_css
+	reply_html_page([ title('OpenID login')
 			],
 			[ \openid_login_form(ReturnTo, [])
 			]).
-
-%%	openid_css// is det.
-%
-%	Emit a link to the OpenID CSS file.
-
-openid_css -->
-	{ http_absolute_location(css('openid.css'), HREF, []) },
-	html(link([ rel(stylesheet),
-		    type('text/css'),
-		    href(HREF)
-		  ])).
 
 %%	openid_login_form(+ReturnTo, +Options)// is det.
 %
@@ -690,8 +678,7 @@ checkid_setup_server(_Request, Form, _Options) :-
 
 	server_association(_, Handle, _Association), 		% check
 
-	reply_html_page([ title('OpenID login'),
-			  \openid_css
+	reply_html_page([ title('OpenID login')
 			],
 			[ \openid_title,
 			  div(class('openid-message'),
@@ -725,6 +712,7 @@ hidden(Name, Value) -->
 
 openid_title -->
 	{ http_absolute_location(icons('openid-logo-square.png'), SRC, []) },
+	html_requires(css('openid.css')),
 	html(div(class('openid-title'),
 		 [ a(href('http://openid.net/'),
 		     img([ src(SRC), alt('OpenID') ])),
