@@ -393,7 +393,13 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    { c = get_chr_from_text(fmt, here);
 
 	      if ( isDigitW(c) )
-	      { arg = arg*10 + c - '0';
+	      { int dw = c - '0';
+		int arg2 = arg*10 + dw;
+
+		if ( (arg2 - dw)/10 != arg )	/* see mul64() in pl-arith.c */
+		{ FMT_ERROR("argument overflow");
+		}
+		arg = arg2;
 		here++;
 	      } else
 		break;
