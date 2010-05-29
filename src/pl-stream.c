@@ -1907,11 +1907,34 @@ Svprintf(const char *fm, va_list args)
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
 
+#define SNPRINTF3(fm, a1) \
+	{ size_t __r; \
+	  assert(fs == fbuf); \
+	  __r = snprintf(fs, sizeof(fbuf), fm, a1); \
+	  if ( __r >= sizeof(fbuf) ) \
+	  { if ( (fs_malloced = fs = malloc(__r+1)) == NULL ) goto error; \
+	    __r = snprintf(fs, __r+1, fm, a1); \
+	  } \
+	  fe = fs+__r; \
+	}
+#define SNPRINTF4(fm, a1, a2) \
+	{ size_t __r; \
+	  assert(fs == fbuf); \
+	  __r = snprintf(fs, sizeof(fbuf), fm, a1, a2); \
+	  if ( __r >= sizeof(fbuf) ) \
+	  { if ( (fs_malloced = fs = malloc(__r+1)) == NULL ) goto error; \
+	    __r = snprintf(fs, __r+1, fm, a1, a2); \
+	  } \
+	  fe = fs+__r; \
+	}
+
+
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
-{ intptr_t printed = 0;
+{ int printed = 0;
   char buf[TMPBUFSIZE];
   int tmpbuf;
+  char *fs_malloced = NULL;
 
   SLOCK(s);
 
@@ -1999,8 +2022,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      *fp++ = '#';
 	    *fp++ = 'p';
 	    *fp   = '\0';
-	    sprintf(fs, fmbuf, ptr);
-	    fe = &fs[strlen(fs)];
+	    SNPRINTF3(fmbuf, ptr);
 
 	    break;
 	  }
@@ -2033,7 +2055,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    if ( islong < 2 )
 	    { *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, v);
+	      SNPRINTF3(fmbuf, v);
 	    } else
 	    {
 #ifdef __WINDOWS__
@@ -2044,9 +2066,8 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 #endif
 	      *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, vl);
+	      SNPRINTF3(fmbuf, vl);
 	    }
-	    fe = &fs[strlen(fs)];
 
 	    break;
 	  }
@@ -2061,16 +2082,16 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
-	    if ( has_arg2 )		/* specified percission */
+	    if ( has_arg2 )		/* specified precission */
 	    { *fp++ = '.';
 	      *fp++ = '*';
 	      *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, arg2, v);
+	      SNPRINTF4(fmbuf, arg2, v);
 	    } else
 	    { *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, v);
+	      SNPRINTF3(fmbuf, v);
 	    }
 	    fe = &fs[strlen(fs)];
 
@@ -2136,6 +2157,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	}
 	fm++;
+	if ( fs_malloced )
+	{ fs_malloced = NULL;
+	  free(fs_malloced);
+	}
       }
     } else if ( *fm == '\\' && fm[1] )
     { OUTCHR(s, fm[1]);
@@ -2155,6 +2180,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   return (int)printed;
 
 error:
+  if ( fs_malloced )
+    free(fs_malloced);
+
   SUNLOCK(s);
   return -1;
 }
