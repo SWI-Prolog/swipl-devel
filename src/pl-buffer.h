@@ -26,7 +26,6 @@
 #define BUFFER_H_INCLUDED
 
 #define STATIC_BUFFER_SIZE (512)
-#define BUFFER_USES_MALLOC 1
 
 typedef struct
 { char *	base;			/* allocated base */
@@ -81,7 +80,6 @@ void	growBuffer(Buffer b, size_t minfree);
 #define emptyBuffer(b)           ((b)->top  = (b)->base)
 #define isEmptyBuffer(b)         ((b)->top == (b)->base)
 
-#ifdef BUFFER_USES_MALLOC
 #define discardBuffer(b) \
 	do \
 	{ if ( (b)->base && (b)->base != (b)->static_buffer ) \
@@ -89,14 +87,5 @@ void	growBuffer(Buffer b, size_t minfree);
 	    (b)->base = (b)->static_buffer; \
 	  } \
 	} while(0)
-#else
-#define discardBuffer(b) \
-	do \
-	{ if ( (b)->base && (b)->base != (b)->static_buffer ) \
-	  { freeHeap((b)->base, (b)->max - (b)->base); \
-	    (b)->base = (b)->static_buffer; \
-	  } \
-	} while(0)
-#endif
 
 #endif /*BUFFER_H_INCLUDED*/
