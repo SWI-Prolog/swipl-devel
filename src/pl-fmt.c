@@ -1014,14 +1014,17 @@ formatFloat(int how, int arg, Number f, Buffer out)
       /*FALLTHROUGH*/
     case V_FLOAT:
     { char tmp[12];
+      int written = arg+20;
+      int size = 0;
 
-      if ( arg > 256 )
-	arg = 256;
-
-      growBuffer(out, 256+4);		/* reserve for -.e<null> */
       Ssprintf(tmp, "%%.%d%c", arg, how);
-      Ssprintf(baseBuffer(out, char), tmp, f->value.f);
-      out->top = out->base + strlen(out->base);
+      while(written >= size)
+      { size = written+1;
+
+	growBuffer(out, size);
+	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
+      }
+      out->top = out->base + written;
 
       return baseBuffer(out, char);
     }
