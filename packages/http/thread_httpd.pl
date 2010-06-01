@@ -31,6 +31,7 @@
 
 :- module(thread_httpd,
 	  [ http_current_server/2,	% ?:Goal, ?Port
+	    http_server_property/2,	% ?Port, ?Property
 	    http_server/2,		% :Goal, +Options
 	    http_workers/2,		% +Port, ?WorkerCount
 	    http_current_worker/2,	% ?Port, ?ThreadID
@@ -64,13 +65,13 @@ for details.
 */
 
 :- meta_predicate
-	http_server(:, +),
-	http_current_server(:, ?),
-	http_spawn(:, +).
+	http_server(1, +),
+	http_current_server(1, ?),
+	http_spawn(0, +).
 
 :- dynamic
 	port_option/2,			% Port, Option
-	current_server/4,		% Port, Goal, Thread, Queue
+	current_server/5,		% Port, Goal, Thread, Queue, StartTime
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
 
@@ -123,12 +124,13 @@ make_socket(Port, Options0, Options) :-
 		  ].
 
 create_server(Goal, Port, Options) :-
+	get_time(StartTime),
 	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
 	thread_create(accept_server(Goal, Options), _,
 		      [ alias(Alias)
 		      ]),
-	assert(current_server(Port, Goal, Alias, Queue)).
+	assert(current_server(Port, Goal, Alias, Queue, StartTime)).
 
 
 %%	set_port_options(+Port, +Options) is det.
@@ -152,9 +154,31 @@ assert_port_options([Opt|T], Port) :- !,
 %%	http_current_server(:Goal, ?Port) is nondet.
 %
 %	True if Goal is the goal of a server at Port.
+%
+%	@deprecated Use http_server_property(Port, goal(Goal))
 
 http_current_server(Goal, Port) :-
-	current_server(Port, Goal, _, _).
+	current_server(Port, Goal, _, _, _).
+
+
+%%	http_server_property(?Port, ?Property) is nondet.
+%
+%	True if Property is a property of the HTTP server running at
+%	Port.  Defined properties are:
+%
+%	    * goal(:Goal)
+%	    Goal used to start the server. This is often
+%	    http_dispatch/1.
+%	    * start_time(?Time)
+%	    Time-stamp when the server was created.
+
+http_server_property(Port, Property) :-
+	server_property(Property, Port).
+
+server_property(goal(Goal), Port) :-
+	current_server(Port, Goal, _, _, _).
+server_property(start_time(Time), Port) :-
+	current_server(Port, _, _, _, Time).
 
 
 %%	http_workers(+Port, -Workers) is det.
@@ -166,7 +190,7 @@ http_current_server(Goal, Port) :-
 
 http_workers(Port, Workers) :-
 	must_be(integer, Port),
-	current_server(Port, _, _, Queue), !,
+	current_server(Port, _, _, Queue, _), !,
 	(   integer(Workers)
 	->  resize_pool(Queue, Workers)
 	;   findall(W, queue_worker(Queue, W), WorkerIDs),
@@ -184,7 +208,7 @@ http_workers(Port, _) :-
 %	statistics.
 
 http_current_worker(Port, ThreadID) :-
-	current_server(Port, _, _, Queue),
+	current_server(Port, _, _, Queue, _),
 	queue_worker(Queue, ThreadID).
 
 
@@ -196,7 +220,7 @@ http_current_worker(Port, ThreadID) :-
 accept_server(Goal, Options) :-
 	catch(accept_server2(Goal, Options), http_stop, true),
 	thread_self(Thread),
-	retract(current_server(_Port, _, Thread, _Queue)),
+	retract(current_server(_Port, _, Thread, _Queue, _StartTime)),
 	close_server_socket(Options).
 
 accept_server2(Goal, Options) :-
@@ -242,7 +266,7 @@ close_server_socket(Options) :-
 
 http_stop_server(Port, _Options) :-
 	http_workers(Port, 0),
-	current_server(Port, _, Thread, Queue),
+	current_server(Port, _, Thread, Queue, _Start),
 	retractall(queue_options(Queue, _)),
 	thread_signal(Thread, throw(http_stop)),
 	catch(connect(localhost:Port), _, true),
@@ -567,16 +591,3 @@ check_backlog(_, _).
 
 prolog:message(httpd_stopped_worker(Self, Status)) -->
 	[ 'Stopped worker ~p: ~p'-[Self, Status] ].
-
-
-		 /*******************************
-		 *	      XREF		*
-		 *******************************/
-
-:- multifile
-	prolog:meta_goal/2.
-:- dynamic
-	prolog:meta_goal/2.
-
-prolog:meta_goal(http_server(G, _), [G+1]).
-prolog:meta_goal(http_current_server(G, _), [G+1]).

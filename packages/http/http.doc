@@ -871,9 +871,17 @@ list is forwarded to the SSL layer. See the \pllib{ssl} library for
 details.
 \end{description}
 
-    \predicate{http_current_server}{2}{?:Goal, ?Port}
-Query the running servers. Note that http_server/3 can be called
-multiple times to create multiple servers on different ports.
+    \predicate{http_server_property}{2}{?Port, ?Property}
+True if \arg{Property} is a property of the HTTP server running at
+\arg{Port}.  Defined properties are:
+
+\begin{description}
+    \termitem{goal}{:Goal}
+Goal used to start the server. This is often http_dispatch/1.
+    \termitem{start_time}{?Time}
+Time-stamp when the server was created.  See format_time/3 for
+creating a human-readable representation.
+\end{description}
 
     \predicate{http_workers}{2}{:Port, ?Workers}
 Query or manipulate the number of workers of the server identified by
