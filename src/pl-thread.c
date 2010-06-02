@@ -1080,9 +1080,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
-  intptr_t stack = 0;
+  long stack = 0;
   term_t at_exit = 0;
-  int rc;
+  int rc = 0;
+  const char *func;
 
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -1175,18 +1176,26 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   pthread_attr_init(&attr);
   if ( info->detached )
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if ( stack )
-    pthread_attr_setstacksize(&attr, stack);
-  LOCK();
-  assert(info->goal);
-  rc = pthread_create(&info->tid, &attr, start_thread, info);
-  UNLOCK();
+  { func = "pthread_attr_setdetachstate";
+    rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  }
+  if ( rc == 0 && stack )
+  { func = "pthread_attr_setstacksize";
+    rc = pthread_attr_setstacksize(&attr, stack);
+  }
+  if ( rc == 0 )
+  { LOCK();
+    assert(info->goal);
+    func = "pthread_create";
+    rc = pthread_create(&info->tid, &attr, start_thread, info);
+    UNLOCK();
+  }
   pthread_attr_destroy(&attr);
+
   if ( rc != 0 )
   { free_thread_info(info);
     return PL_error(NULL, 0, ThError(rc),
-		    ERR_SYSCALL, "pthread_create");
+		    ERR_SYSCALL, func);
   }
 
   succeed;
