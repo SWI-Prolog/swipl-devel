@@ -890,7 +890,9 @@ ns(owl,	    'http://www.w3.org/2002/7/owl#').
 ns(xsd,	    'http://www.w3.org/2000/10/XMLSchema#').
 ns(dc,	    'http://purl.org/dc/elements/1.1/').
 ns(dcterms, 'http://purl.org/dc/terms/').
+ns(skos,    'http://www.w3.org/2004/02/skos/core#').
 ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+
 \end{code}
 
 All predicates for the semweb libraries use goal_expansion/2 rules to

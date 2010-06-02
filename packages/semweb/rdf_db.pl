@@ -177,6 +177,7 @@ ns(xsd,	    'http://www.w3.org/2001/XMLSchema#').
 ns(dc,	    'http://purl.org/dc/elements/1.1/').
 ns(dcterms, 'http://purl.org/dc/terms/').
 ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+ns(skos,    'http://www.w3.org/2004/02/skos/core#').
 ns(serql,   'http://www.openrdf.org/schema/serql#').
 
 %%	rdf_register_ns(+Alias, +URI) is det.
