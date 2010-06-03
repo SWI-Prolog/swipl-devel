@@ -51,6 +51,8 @@ typedef int mode_t;
 #define ASSOCIATE_STATE "qlx"
 #define ASSOCIATE_SRC	"pl"
 
+#define snprintf _snprintf
+
 #ifdef O_GMP
 #define HAVE_GMP_H 1
 #define HAVE_LIB_GMP 1
