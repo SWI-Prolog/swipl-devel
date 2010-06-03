@@ -80,6 +80,10 @@ _syscall0(pid_t,gettid)
 #endif
 #endif
 
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif
@@ -1199,12 +1203,20 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { func = "pthread_attr_setdetachstate";
     rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   }
-  if ( rc == 0 && stack )
-  { func = "pthread_attr_setstacksize";
-    rc = pthread_attr_setstacksize(&attr, stack);
-    info->stack_size = stack;
-  } else
-  { pthread_attr_getstacksize(&attr, &info->stack_size);
+  if ( rc == 0 )
+  {
+#ifdef HAVE_GETRLIMIT
+    struct rlimit rlim;
+    if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
+      stack = rlim.rlim_cur;
+#endif
+    if ( stack )
+    { func = "pthread_attr_setstacksize";
+      rc = pthread_attr_setstacksize(&attr, stack);
+      info->stack_size = stack;
+    } else
+    { pthread_attr_getstacksize(&attr, &info->stack_size);
+    }
   }
   if ( rc == 0 )
   { LOCK();
