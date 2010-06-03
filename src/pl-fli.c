@@ -1496,6 +1496,29 @@ PL_get_intptr(term_t t, intptr_t *i)
 
 
 int
+PL_get_uintptr(term_t t, size_t *i)
+{ GET_LD
+  int64_t val;
+
+  if ( !PL_get_int64(t, &val) )
+    return FALSE;
+
+  if ( val < 0 )
+    return FALSE;
+#if SIZEOF_VOIDP < 8
+#if SIZEOF_LONG == SIZEOF_VOIDP
+  if ( val > (int64_t)ULONG_MAX )
+    return FALSE;
+#endif
+#endif
+
+  *i = (size_t)val;
+
+  return TRUE;
+}
+
+
+int
 PL_is_inf(term_t t)
 { GET_LD
   atom_t a;

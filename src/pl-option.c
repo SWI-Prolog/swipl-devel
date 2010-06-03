@@ -38,6 +38,7 @@ typedef union
 { bool *b;				/* boolean value */
   long *l;				/* long value */
   int  *i;				/* integer value */
+  uintptr_t *sz;			/* size_t value */
   char **s;				/* string value */
   word *a;				/* atom value */
   term_t *t;				/* term-reference */
@@ -126,6 +127,16 @@ scan_options(term_t options, int flags, atom_t optype,
 	    if ( *(values[n].l) <= 0 )
 	      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			      ATOM_not_less_than_one, val);
+
+	    break;
+	  }
+	  case OPT_SIZE:
+	  { if ( !PL_get_uintptr(val, values[n].sz) )
+	    { if ( (s->type & OPT_INF) && PL_is_inf(val) )
+		*values[n].sz = (size_t)-1;
+	      else
+		goto itemerror;
+	    }
 
 	    break;
 	  }

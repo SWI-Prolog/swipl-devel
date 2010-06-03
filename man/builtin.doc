@@ -6659,6 +6659,7 @@ inferences      & Total number of passes via the call and redo ports
 heap		& Estimated total size of the heap (see \secref{heap}) \\
 heapused        & Bytes heap in use by Prolog. \\
 heaplimit	& Maximum size of the heap (see \secref{heap}) \\
+c_stack		& System (C-) stack limit.  0 if not known. \\
 stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\

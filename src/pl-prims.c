@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-inline.h"
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -4414,6 +4417,28 @@ heapUsed(void)
   return heap;
 }
 
+static size_t
+CStackSize(PL_local_data_t *ld)
+{
+#ifdef O_PLMT
+  if ( ld->thread.info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->stack_size));
+    return ld->thread.info->stack_size;
+  }
+#endif
+#ifdef HAVE_GETRLIMIT
+{ struct rlimit rlim;
+
+  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
+  { DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
+    return rlim.rlim_cur;
+  }
+}
+#endif
+
+  return 0;
+}
+
 #define QP_STATISTICS 1
 
 #ifdef QP_STATISTICS
@@ -4553,6 +4578,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = limitStack(global);
   else if (key == ATOM_argumentlimit)
     v->value.i = limitStack(argument);
+  else if (key == ATOM_c_stack)
+    v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_functors)			/* functors */
