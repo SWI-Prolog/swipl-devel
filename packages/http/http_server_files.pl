@@ -42,6 +42,7 @@
 
 http:location(icons, root(icons), [ priority(-100) ]).
 http:location(css,   root(css),   [ priority(-100) ]).
+http:location(js,    root(js),    [ priority(-100) ]).
 
 :- multifile
 	user:file_search_path/2.
@@ -50,9 +51,11 @@ http:location(css,   root(css),   [ priority(-100) ]).
 
 user:file_search_path(icons, library('http/web/icons')).
 user:file_search_path(css,   library('http/web/css')).
+user:file_search_path(js,    library('http/web/js')).
 
 :- http_handler(icons(.), serve_files_in_directory(icons), [prefix]).
 :- http_handler(css(.),   serve_files_in_directory(css),   [prefix]).
+:- http_handler(js(.),    serve_files_in_directory(js),    [prefix]).
 
 %%	serve_files_in_directory(+Alias, +Request)
 %
