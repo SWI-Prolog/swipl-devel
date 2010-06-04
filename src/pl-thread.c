@@ -1215,7 +1215,6 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 #endif
     if ( stack )
     { func = "pthread_attr_setstacksize";
-      Sdprintf("Stack: %ld\n", stack);
       rc = pthread_attr_setstacksize(&attr, stack);
       info->stack_size = stack;
     } else
