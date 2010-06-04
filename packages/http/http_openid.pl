@@ -65,7 +65,7 @@
 :- use_module(library(utf8)).
 :- use_module(library(error)).
 :- use_module(library(sgml)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(occurs)).
 :- use_module(library(base64)).
 :- use_module(library(debug)).
@@ -238,7 +238,8 @@ openid_user(Request, _OpenID, Options) :-
 	http_location_by_id(openid_login_page, LoginURL),
 	option(login_url(Login), Options, LoginURL),
 	current_url(Request, Here),
-	redirect_browser(Login,
+	uri_normalized(Login, Here, AbsLogin),
+	redirect_browser(AbsLogin,
 			 [ 'openid.return_to' = Here
 			 ]).
 
@@ -364,18 +365,22 @@ openid_server(OpenIDLogin, OpenID, Server) :-
 
 current_root_url(Request, Root) :-
 	openid_current_host(Request, Host, Port),
-	parse_url(Root, [protocol(http), host(Host), port(Port), path(/)]).
+	uri_authority_data(host, AuthC, Host),
+	uri_authority_data(port, AuthC, Port),
+	uri_authority_components(Auth, AuthC),
+	uri_data(scheme, Components, http),
+	uri_data(authority, Components, Auth),
+	uri_data(path, Components, /),
+	uri_components(Root, Components).
 
 current_url(Request, URL) :-
 	openid_current_host(Request, Host, Port),
-	(   option(x_redirected_path(Path), Request)
-	->  true
-	;   option(path(Path), Request, /)
-	),
-	option(search(Search), Request, []),
-	parse_url(URL, [ protocol(http), host(Host), port(Port),
-			 path(Path), search(Search)
-		       ]).
+	option(request_uri(RequestURI), Request),
+	(   Port == 80
+	->  format(atom(URL), 'http://~w~w', [Host, RequestURI])
+	;   format(atom(URL), 'http://~w:~w~w', [Host, Port, RequestURI])
+	).
+
 
 %%	openid_current_host(Request, Host, Port)
 %
@@ -394,23 +399,16 @@ openid_current_host(Request, Host, Port) :-
 %	search specification already attached to the URL.
 
 redirect_browser(URL, FormExtra) :-
-	is_absolute_url(URL), !,
-	parse_url(URL, Parts0),
-	(   select(search(List), Parts0, Parts1)
-	->  append(List, FormExtra, Search),
-	    Parts = [search(Search)|Parts1]
-	;   Parts = [search(FormExtra)|Parts0]
+	uri_components(URL, C0),
+	uri_data(search, C0, Search0),
+	(   var(Search0)
+	->  uri_query_components(Search, FormExtra)
+	;   uri_query_components(Search0, Form0),
+	    append(FormExtra, Form0, Form),
+	    uri_query_components(Search, Form)
 	),
-	parse_url(Redirect, Parts),
-	throw(http_reply(moved_temporary(Redirect))).
-redirect_browser(Location, FormExtra) :-
-	http_location(Parts0, Location),
-	(   select(search(List), Parts0, Parts1)
-	->  append(List, FormExtra, Search),
-	    Parts = [search(Search)|Parts1]
-	;   Parts = [search(FormExtra)|Parts0]
-	),
-	http_location(Parts, Redirect),
+	uri_data(search, C0, Search, C),
+	uri_components(Redirect, C),
 	throw(http_reply(moved_temporary(Redirect))).
 
 
