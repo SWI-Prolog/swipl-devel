@@ -30,6 +30,7 @@
 :- module(uri,
 	  [ uri_components/2,		% ?URI, ?Components
 	    uri_data/3,			% ?Field, +Components, ?Data
+	    uri_data/4,			% +Field, +Components, -Data, -New
 
 	    uri_normalized/2,		% +URI, -NormalizedURI
 	    uri_normalized_iri/2,	% +URI, -NormalizedIRI
@@ -92,6 +93,21 @@ uri_data(authority, uri_components(_, A, _, _, _), A).
 uri_data(path,	    uri_components(_, _, P, _, _), P).
 uri_data(search,    uri_components(_, _, _, S, _), S).
 uri_data(fragment,  uri_components(_, _, _, _, F), F).
+
+%%	uri_data(+Field, +Components, +Data, -NewComponents) is semidet.
+%
+%	NewComponents is the same as Components with Field set to Data.
+
+uri_data(scheme,    uri_components(_, A, P, Q, F), S,
+		    uri_components(S, A, P, Q, F)).
+uri_data(authority, uri_components(S, _, P, Q, F), A,
+		    uri_components(S, A, P, Q, F)).
+uri_data(path,      uri_components(S, A, _, Q, F), P,
+		    uri_components(S, A, P, Q, F)).
+uri_data(search,    uri_components(S, A, P, _, F), Q,
+		    uri_components(S, A, P, Q, F)).
+uri_data(fragment,  uri_components(S, A, P, Q, _), F,
+		    uri_components(S, A, P, Q, F)).
 
 %%	uri_normalized(+URI, -NormalizedURI) is det.
 %
