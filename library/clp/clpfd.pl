@@ -5159,12 +5159,6 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
    The pgcc_check/1 propagator in itself would suffice to ensure
    consistency and could be used in a faster and weaker propagation
    option for global_cardinality/3.
-
-   The queue must be disabled during gcc_check/1 to prevent
-   gcc_global/1 from running during an inconsistent state. This can
-   happen after a key is marked as "done" (by removing its
-   clpfd_gcc_vs attribute) and before all its variables are
-   instantiated, both in the "all equal" and the "not equal" case.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_check(Pairs) :-
@@ -5187,7 +5181,11 @@ gcc_check_([Key-Num0|KNs]) :-
             put_attr(Num0, clpfd_gcc_occurred, Occ1),
             Occ1 is Occ0 + Min,
             geq(Num, Occ1),
-            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            % The queue is disabled for efficiency here in any case.
+            % If it were enabled, make sure to prevent gcc_global from
+            % running during an inconsistent state (after gcc_done/1
+            % but before all relevant constraints are posted).
+            (   Occ1 == Num -> all_neq(Os, Key), gcc_done(Num0)
             ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
                 Max is Occ1 + L,
@@ -5199,9 +5197,9 @@ gcc_check_([Key-Num0|KNs]) :-
                 ),
                 L >= Diff,
                 (   L =:= Diff ->
-                    gcc_done(Num0),
                     Num is Occ1 + Diff,
-                    maplist(=(Key), Os)
+                    maplist(=(Key), Os),
+                    gcc_done(Num0)
                 ;   true
                 )
             )
