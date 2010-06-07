@@ -5155,17 +5155,21 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Simple consistency check, run before global propagation.
    Importantly, it removes all ground values from clpfd_gcc_vs.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-gcc_done(Num) :-
-        del_attr(Num, clpfd_gcc_vs),
-        del_attr(Num, clpfd_gcc_num),
-        del_attr(Num, clpfd_gcc_occurred).
+   The pgcc_check/1 propagator in itself would suffice to ensure
+   consistency and could be used in a faster and weaker propagation
+   option for global_cardinality/3.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_check(Pairs) :-
         disable_queue,
         gcc_check_(Pairs),
         enable_queue.
+
+gcc_done(Num) :-
+        del_attr(Num, clpfd_gcc_vs),
+        del_attr(Num, clpfd_gcc_num),
+        del_attr(Num, clpfd_gcc_occurred).
 
 gcc_check_([]).
 gcc_check_([Key-Num0|KNs]) :-
@@ -5176,11 +5180,12 @@ gcc_check_([Key-Num0|KNs]) :-
             put_attr(Num0, clpfd_gcc_vs, Os),
             put_attr(Num0, clpfd_gcc_occurred, Occ1),
             Occ1 is Occ0 + Min,
-            % The queue must be disabled when posting constraints
-            % here, otherwise the stored (new) occurrences can differ
-            % from the (old) ones used in the following.
             geq(Num, Occ1),
-            (   Occ1 == Num -> gcc_done(Num0), all_neq(Os, Key)
+            % The queue is disabled for efficiency here in any case.
+            % If it were enabled, make sure to prevent gcc_global from
+            % running during an inconsistent state (after gcc_done/1
+            % but before all relevant constraints are posted).
+            (   Occ1 == Num -> all_neq(Os, Key), gcc_done(Num0)
             ;   Os == [] -> gcc_done(Num0), Num = Occ1
             ;   length(Os, L),
                 Max is Occ1 + L,
@@ -5192,9 +5197,9 @@ gcc_check_([Key-Num0|KNs]) :-
                 ),
                 L >= Diff,
                 (   L =:= Diff ->
-                    gcc_done(Num0),
                     Num is Occ1 + Diff,
-                    maplist(=(Key), Os)
+                    maplist(=(Key), Os),
+                    gcc_done(Num0)
                 ;   true
                 )
             )
