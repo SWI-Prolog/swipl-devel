@@ -1160,6 +1160,14 @@ Succeeds if \arg{Id} is a blank node identifier (also called
 \jargon{anonymous resource}).  In the current implementation this
 implies it is an atom starting with a double underscore.
 
+    \predicate{rdf_is_resource}{1}{+Id}
+Succeeds if \arg{Id} is a resource.  Note that this resource need
+not to appear in any triple.
+
+    \predicate{rdf_is_literal}{1}{+Id}
+Succeeds if \arg{Id} is an RDF literal term. Note that this
+literal need not to appear in any triple.
+
     \predicate{rdf_source_location}{2}{+Subject, -SourceRef}
 Return the source-location as \arg{File}:\arg{Line} of the first triple
 that is about \arg{Subject}.

@@ -66,6 +66,9 @@
 	    rdf_bnode/1,		% -Id
 	    rdf_is_bnode/1,		% +Id
 
+	    rdf_is_resource/1,		% +Term
+	    rdf_is_literal/1,		% +Term
+
 	    rdf_load/1,			% +File
 	    rdf_load/2,			% +File, +Options
 	    rdf_save/1,			% +File
@@ -515,6 +518,11 @@ rdf_bnode(Value) :-
 	\+ rdf(_, Value, _), !.
 
 
+
+		 /*******************************
+		 *	       TYPES		*
+		 *******************************/
+
 %%	rdf_is_bnode(+Id)
 %
 %	Tests if a resource is a blank node (i.e. is an anonymous
@@ -525,6 +533,25 @@ rdf_bnode(Value) :-
 rdf_is_bnode(Id) :-
 	atom(Id),
 	sub_atom(Id, 0, _, _, '__').
+
+%%	rdf_is_resource(@Term) is semidet.
+%
+%	True if Term is an RDF  resource.   Note  that  this is merely a
+%	type-test; it does not mean  this   resource  is involved in any
+%	triple.  Blank nodes are also considered resources.
+%
+%	@see rdf_is_bnode/1
+
+rdf_is_resource(Term) :-
+	atom(Term).
+
+%%	rdf_is_literal(@Term) is semidet.
+%
+%	True if Term is an RDF literal object. Currently only checks for
+%	groundness and the literal functor.
+
+rdf_is_literal(literal(Value)) :-
+	ground(Value).
 
 
 		 /*******************************
