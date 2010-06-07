@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,9 +69,9 @@ rdf_db:url_protocol(http).
 %	reply with the HTML description rather than the RDF).
 
 rdf_extra_headers(
-	[ request_header('Accept' = 'text/rdf+xml,\
-				     application/rdf+xml; q=0.9, \
-				     text/turtle,\
+	[ request_header('Accept' = 'application/rdf+xml, \
+				     text/rdf+xml; q=0.9, \
+				     text/turtle, \
 				     application/x-turtle; q=0.8, \
 				     */*; q=0.1')
 	]).
