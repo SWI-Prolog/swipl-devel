@@ -526,6 +526,9 @@ match_field(any, JSON, Prolog, M, json_to_prolog(JSON,Prolog,M)) :- !.
 match_field(F/A, JSON, Prolog, M, json_to_prolog(JSON,Prolog,M)) :- !,
 	functor(Prolog, F, A).
 match_field(boolean, JSON, Prolog, _, json_bool_to_prolog(JSON, Prolog)) :- !.
+match_field(list(Type), JSON, Prolog, M, json_list_to_prolog(JSON, Prolog, M)) :-
+	current_json_object(Term, M, _Fields),
+	functor(Term, Type, _), !.
 match_field(Type, Var, Var, _, Goal) :-
 	type_goal(Type, Var, Goal).
 
