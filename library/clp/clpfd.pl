@@ -3067,19 +3067,17 @@ insert_propagator(Prop, Ps0, Ps) :-
 lex_chain(Lss) :-
         must_be(list(list), Lss),
         maplist(maplist(fd_variable), Lss),
-        make_propagator(presidual(lex_chain(Lss)), Prop),
-        lex_chain_(Lss, Prop).
+        (   Lss == [] -> true
+        ;   Lss = [First|Rest],
+            make_propagator(presidual(lex_chain(Lss)), Prop),
+            lex_chain_(Rest, First, Prop)
+        ).
 
-lex_chain_([], _).
-lex_chain_([Ls|Lss], Prop) :-
+lex_chain_([], _, _).
+lex_chain_([Ls|Lss], Prev, Prop) :-
         maplist(prop_init(Prop), Ls),
-        lex_chain_lag(Lss, Ls),
-        lex_chain_(Lss, Prop).
-
-lex_chain_lag([], _).
-lex_chain_lag([Ls|Lss], Ls0) :-
-        lex_le(Ls0, Ls),
-        lex_chain_lag(Lss, Ls).
+        lex_le(Prev, Ls),
+        lex_chain_(Lss, Ls, Prop).
 
 lex_le([], []).
 lex_le([V1|V1s], [V2|V2s]) :-
