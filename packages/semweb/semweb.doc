@@ -253,6 +253,13 @@ X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
 ...
 \end{code}
 
+    \predicate{rdf_reachable}{5}{?Subject, +Predicate, ?Object, +MaxD, -D}
+Same as rdf_reachable/3, but in addition, \arg{MaxD} limits the number
+of relations expanded and \arg{D} is unified with the `distance' between
+\arg{Subject} and \arg{Object}.  Distance 0 means \arg{Subject} and
+\arg{Object} are the same resource.  \arg{MaxD} can be the constant
+\const{infinite} to impose no distance-limit.
+
     \predicate{rdf_subject}{1}{?Subject}
 Enumerate resources appearing as a subject in a triple.  The main reason
 for this predicate is to generate the known subjects \emph{without

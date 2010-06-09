@@ -232,6 +232,7 @@ static atom_t	ATOM_like;
 static atom_t	ATOM_error;
 static atom_t	ATOM_begin;
 static atom_t	ATOM_end;
+static atom_t	ATOM_infinite;
 
 static atom_t	ATOM_subPropertyOf;
 
@@ -5826,6 +5827,7 @@ typedef struct visited
 { struct visited *next;			/* next in list */
   struct visited *hash_link;		/* next in hashed link */
   atom_t resource;			/* visited resource */
+  uintptr_t distance;			/* Distance */
 } visited;
 
 
@@ -5841,6 +5843,7 @@ typedef struct agenda
   int	  magic;			/* AGENDA_*_MAGIC */
   int	  hash_size;
   int     size;				/* size of the agenda */
+  uintptr_t max_d;			/* max distance */
   triple  pattern;			/* partial triple used as pattern */
   atom_t  target;			/* resource we are seaching for */
   struct chunk  *chunk;			/* node-allocation chunks */
@@ -5969,7 +5972,7 @@ in_aganda(agenda *a, atom_t resource)
 
 
 static visited *
-append_agenda(rdf_db *db, agenda *a, atom_t res)
+append_agenda(rdf_db *db, agenda *a, atom_t res, uintptr_t d)
 { visited *v = a->head;
 
   if ( in_aganda(a, res) )
@@ -5985,6 +5988,7 @@ append_agenda(rdf_db *db, agenda *a, atom_t res)
 
   v = alloc_node_agenda(db, a);
   v->resource = res;
+  v->distance = d;
   v->next = NULL;
   if ( a->tail )
   { a->tail->next = v;
@@ -6038,7 +6042,7 @@ can_reach_target(rdf_db *db, agenda *a)
 
 
 static visited *
-bf_expand(rdf_db *db, agenda *a, atom_t resource)
+bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
 { triple *p;
   int indexed = a->pattern.indexed;
   visited *rc = NULL;
@@ -6050,7 +6054,7 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
   }
 
   if ( a->target && can_reach_target(db, a) )
-  { return append_agenda(db, a, a->target);
+  { return append_agenda(db, a, a->target, d);
   }
 
   p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
@@ -6067,7 +6071,7 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
       { found = p->subject;
       }
 
-      v = append_agenda(db, a, found);
+      v = append_agenda(db, a, found, d);
       if ( !rc )
 	rc = v;
       if ( found == a->target )
@@ -6080,26 +6084,34 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
 }
 
 
-static int
-next_agenda(rdf_db *db, agenda *a, atom_t *next)
-{ if ( a->to_return )
+static visited *
+next_agenda(rdf_db *db, agenda *a)
+{ visited *v;
+
+  if ( (v=a->to_return) )
   { ok:
 
-    *next = a->to_return->resource;
     a->to_return = a->to_return->next;
 
-    return TRUE;
+    return v;
   }
 
   while( a->to_expand )
-  { a->to_return = bf_expand(db, a, a->to_expand->resource);
+  { uintptr_t next_d = a->to_expand->distance+1;
+
+    if ( next_d >= a->max_d )
+      return NULL;
+
+    a->to_return = bf_expand(db, a,
+			     a->to_expand->resource,
+			     next_d);
     a->to_expand = a->to_expand->next;
 
-    if ( a->to_return )
+    if ( (v=a->to_return) )
       goto ok;
   }
 
-  return FALSE;
+  return NULL;
 }
 
 
@@ -6124,14 +6136,25 @@ directly_attached(term_t pred, term_t from, term_t to)
 }
 
 
+static int
+unify_distance(term_t d, uintptr_t dist)
+{ if ( d )
+    return PL_unify_integer(d, dist);
+
+  return TRUE;
+}
+
+
 static foreign_t
-rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
+rdf_reachable(term_t subj, term_t pred, term_t obj,
+	      term_t max_d, term_t d,
+	      control_t h)
 { rdf_db *db = DB;
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
     { agenda a;
-      atom_t r;
+      visited *v;
       term_t target_term;
       int is_det = FALSE;
 
@@ -6140,11 +6163,24 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 
       memset(&a, 0, sizeof(a));
       a.magic = AGENDA_LOCAL_MAGIC;
+      if ( max_d )
+      { long md;
+	atom_t inf;
+
+	if ( PL_get_atom(max_d, &inf) && inf == ATOM_infinite )
+	  a.max_d = (uintptr_t)-1;
+	if ( !get_long_ex(max_d, &md) || md < 0 )
+	  return FALSE;
+	a.max_d = md;
+      } else
+      { a.max_d = (uintptr_t)-1;
+      }
 
       if ( !PL_is_variable(subj) )		/* subj .... obj */
       { switch(get_partial_triple(db, subj, pred, 0, 0, &a.pattern))
 	{ case 0:
-	    return directly_attached(pred, subj, obj);
+	    return directly_attached(pred, subj, obj) &&
+		   unify_distance(d, 0);
 	  case -1:
 	    return FALSE;
 	}
@@ -6168,19 +6204,21 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       if ( !update_hash(db) )
 	return FALSE;
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
-	append_agenda(db, &a, a.pattern.subject);
+	append_agenda(db, &a, a.pattern.subject, 0);
       else
-	append_agenda(db, &a, a.pattern.object.resource);
+	append_agenda(db, &a, a.pattern.object.resource, 0);
       a.to_return = a.head;
       a.to_expand = a.head;
 
-      while(next_agenda(db, &a, &r))
-      { if ( PL_unify_atom(target_term, r) )
+      while( (v=next_agenda(db, &a)) )
+      { if ( PL_unify_atom(target_term, v->resource) )
 	{ if ( is_det )		/* mode(+, +, +) */
-	  { unlock_and_empty_agenda(db, &a);
-	    return TRUE;
-	  } else			/* mode(+, +, -) or mode(-, +, +) */
-	  { agenda *ra = save_agenda(db, &a);
+	  { int rc = unify_distance(d, v->distance);
+	    unlock_and_empty_agenda(db, &a);
+	    return rc;
+	  } else if ( unify_distance(d, v->distance) )
+	  {				/* mode(+, +, -) or mode(-, +, +) */
+	    agenda *ra = save_agenda(db, &a);
 	    inc_active_queries(db);
 	    DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
 	    PL_retry_address(ra);
@@ -6193,7 +6231,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
     case PL_REDO:
     { agenda *a = PL_foreign_context_address(h);
       term_t target_term;
-      atom_t r;
+      visited *v;
 
       assert(a->magic == AGENDA_SAVED_MAGIC);
 
@@ -6202,8 +6240,9 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       else
 	target_term = subj;		/* -, +, + */
 
-      while(next_agenda(db, a, &r))
-      { if ( PL_unify_atom(target_term, r) )
+      while( (v=next_agenda(db, a)) )
+      { if ( PL_unify_atom(target_term, v->resource) &&
+	     unify_distance(d, v->distance) )
 	{ assert(a->magic == AGENDA_SAVED_MAGIC);
 	  PL_retry_address(a);
 	}
@@ -6228,6 +6267,17 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       assert(0);
       return FALSE;
   }
+}
+
+static foreign_t
+rdf_reachable3(term_t subj, term_t pred, term_t obj, control_t h)
+{ return rdf_reachable(subj, pred, obj, 0, 0, h);
+}
+
+static foreign_t
+rdf_reachable5(term_t subj, term_t pred, term_t obj, term_t max_d, term_t d,
+	       control_t h)
+{ return rdf_reachable(subj, pred, obj, max_d, d, h);
 }
 
 
@@ -6565,6 +6615,7 @@ install_rdf_db()
   ATOM_error	     = PL_new_atom("error");
   ATOM_begin	     = PL_new_atom("begin");
   ATOM_end	     = PL_new_atom("end");
+  ATOM_infinite	     = PL_new_atom("infinite");
 
   PRED_call1         = PL_predicate("call", 1, "user");
 
@@ -6601,7 +6652,8 @@ install_rdf_db()
   PL_register_foreign("rdf_match_label",3, match_label,     0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
   PL_register_foreign("rdf_load_db_",   3, rdf_load_db,     0);
-  PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
+  PL_register_foreign("rdf_reachable",  3, rdf_reachable3,  NDET);
+  PL_register_foreign("rdf_reachable",  5, rdf_reachable5,  NDET);
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
   PL_register_foreign("rdf_set_predicate",
 					2, rdf_set_predicate, 0);

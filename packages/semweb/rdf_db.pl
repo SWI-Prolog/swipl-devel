@@ -37,6 +37,7 @@
 	    rdf_has/3,			% ?Subject, +Pred, ?Obj
 	    rdf_has/4,			% ?Subject, +Pred, ?Obj, -RealPred
 	    rdf_reachable/3,		% ?Subject, +Pred, ?Object
+	    rdf_reachable/5,		% ?Subject, +Pred, ?Object, +MaxD, ?D
 	    rdf_subject/1,		% ?Subject
 
 	    rdf_member_property/2,	% ?Property, ?Index
@@ -444,6 +445,7 @@ mk_global(NS:Local, Global) :-
 	rdf_assert(r,r,o,+),
 	rdf_retractall(r,r,o,?),
 	rdf_reachable(r,r,r),
+	rdf_reachable(r,r,r,+,?),
 	rdf_update(r,r,o,t),
 	rdf_update(r,r,o,+,t),
 	rdf_equal(r,r),
