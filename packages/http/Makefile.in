@@ -107,7 +107,7 @@ html:		$(HTML)
 
 SUBTEX=		post.tex json.tex httplog.tex httppath.tex htmlhead.tex \
 		httpsession.tex httpdispatch.tex httpdirindex.tex httppwp.tex \
-		httpopen.tex httphost.tex httpopenid.tex
+		httpopen.tex httphost.tex httpopenid.tex jswrite.tex
 
 $(HTML):	$(TEX) $(SUBTEX)
 		latex2html $(DOC)
@@ -154,6 +154,9 @@ httpdirindex.tex: http_dirindex.pl
 
 httppwp.tex:	http_pwp.pl
 		$(PLTOTEX) --subsection 'library(http/http_pwp)'
+
+jswrite.tex:	js_write.pl
+		$(PLTOTEX) --subsection 'library(http/js_write)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex
