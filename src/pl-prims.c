@@ -2970,7 +2970,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FALSE: term cannot be shared
 TRUE:  term can be shared (ground)
--1:    not enough space on the stack
+*_OVERFLOW: not enough space on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -3016,18 +3016,19 @@ again:
         return FALSE;
       } else
       { Word attr;			/* the new attributes */
+	int rc;
 
 	if ( !onGlobalArea(to) )
 	{ Word t;
 
 	  if ( !(t = allocGlobalNoShift(1)) )
-	    return -1;
+	    return GLOBAL_OVERFLOW;
 
 	  *to = makeRefG(t);
 	  to = t;
 	}
 	if ( !(attr = allocGlobalNoShift(1)) )
-	  return -1;
+	  return GLOBAL_OVERFLOW;
 	TrailCyclic(p PASS_LD);
 	TrailCyclic(from PASS_LD);
 	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
@@ -3035,8 +3036,8 @@ again:
 
 					/* copy attribute value */
 	flags &= ~COPY_SHARE;
-	if ( do_copy_term(p, attr, flags PASS_LD) < 0 )
-	  return -1;
+	if ( (rc=do_copy_term(p, attr, flags PASS_LD)) < 0 )
+	  return rc;
 	return FALSE;
       }
     }
@@ -3062,7 +3063,7 @@ again:
 	size_t count = LD->cycle.stack.count;
 
 	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
-	  return -1;
+	  return GLOBAL_OVERFLOW;
 
 	f2->definition = f1->definition;
 	f1->definition = makeRefG((Word)f2);
@@ -3123,10 +3124,10 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
     rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
     exitCyclicCopy(0, flags PASS_LD);
 
-    if ( rc == -1 )			/* no space for copy */
+    if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
       PL_put_variable(to);
-      if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
+      if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
     } else
     { PL_close_foreign_frame(fid);
