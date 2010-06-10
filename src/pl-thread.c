@@ -1005,6 +1005,8 @@ mk_kbytes(size_t *sz, atom_t name ARG_LD)
       return ( PL_put_int64(t, *sz) &&	/* TBD: size_t is unsigned! */
 	       PL_error(NULL, 0, NULL, ERR_DOMAIN, name, t) );
     }
+
+    *sz = s;
   }
 
   return TRUE;
