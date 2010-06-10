@@ -1184,7 +1184,7 @@ SWI-Prolog behaviour.  Currently it has the following effect:
           float, even if applied to integers that can be divided.
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
-    \item atom_length/2 yields an instantiation error if the first
+    \item atom_length/2 yields a type error if the first
           argument is a number.
     \item clause/[2,3] raises a permission error when accessing static
           predicates.
