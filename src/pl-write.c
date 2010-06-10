@@ -1355,7 +1355,9 @@ pl_write_canonical(term_t term)
 
 word					/* for debugging purposes! */
 pl_writeln(term_t term)
-{ if ( pl_write2(0, term) && pl_nl() )
+{ if ( PL_write_term(Serror, term, 1200,
+		     PL_WRT_QUOTED|PL_WRT_NUMBERVARS) &&
+       Sdprintf("\n") >= 0 )
     succeed;
 
   fail;
