@@ -4266,9 +4266,10 @@ PL_action(int action, ...)
       break;
     }
     case PL_GMP_SET_ALLOC_FUNCTIONS:
-    { int set = va_arg(args, int);
-
+    {
 #ifdef O_GMP
+      int set = va_arg(args, int);
+
       if ( !GD->gmp.initialised )
       { GD->gmp.keep_alloc_functions = !set;
 	initGMP();
