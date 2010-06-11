@@ -209,7 +209,7 @@ banner::
 
 $(PL):		$(MKLIBS) $(PLOBJ)
 		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lswipl $(LNLIBS)
-		$(CHRPATH) -c $(PL)
+		$(CHRPATH) -c $(PL) || true
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
 		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
