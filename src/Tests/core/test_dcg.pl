@@ -31,6 +31,7 @@ test_dcg :-
 		    phrase,
 		    rule_expansions,
 		    dcg_rule_expansions,
+		    steadfastness,
 		    context
 		  ]).
 
@@ -131,6 +132,53 @@ test(meta1,[R =@= (a([1,2|L],[3|L]):-true)]) :-
 %	expand_term((ex --> prolog:[]), R).
 
 :- end_tests(dcg_rule_expansions).
+:- begin_tests(steadfastness).
+
+/*
+  phrase/3 must be steadfast w.r.t. its third argument.
+  I.e., for all Goal, Xs0, Xs
+
+   phrase(Goal, Xs0, Xs) <=> phrase(Goal, Xs0, XsC), XsC = Xs.
+
+*/
+
+a --> !.
+a --> [_].
+
+test(cut1_a, [fail]) :-
+	phrase(a,[x], []).
+test(cut1_b, [fail]) :-
+	phrase(a,[x], Xs),
+	Xs = [].
+
+ac --> {!}.
+ac --> [_].
+
+test(curlycut_a, [fail]) :-
+	phrase(ac,[x], []).
+test(curlycut_b, [fail]) :-
+	phrase(ac,[x], Xs),
+	Xs = [].
+
+bx --> \+ {throw(executed)}.
+
+test(not1_a, [throws(executed)]) :-
+	phrase(bx, [a], []).
+test(not1_b, [throws(executed)]) :-
+	phrase(bx, [a], Xs),
+	Xs = [].
+
+b --> \+ [a].
+
+test(not2_a,    [throws(examined)]) :-
+	freeze(A, throw(examined) ),
+	phrase(b, [A], []).
+test(not2_b,    [throws(examined)]) :-
+	freeze(A, throw(examined) ),
+	phrase(b, [A], Xs),
+	Xs = [].
+
+:- end_tests(steadfastness).
 :- begin_tests(context).
 a, [_] --> !,{fail}. % ITEM
 a --> [_].

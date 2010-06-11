@@ -154,7 +154,7 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	    '$append'(Codes, SR, OL),
 	    C = (S = OL)
 	).
-'$t_body'(!, _, S, S, !) :- !.
+'$t_body'(!, _, S, SR, ( !, SR = S) ) :- !.
 '$t_body'({}, _, S, S, true) :- !.
 '$t_body'({T}, Q, S, SR, (QT, SR = S)) :- !,	% (*)
 	qualify(Q, T, QT).
@@ -174,7 +174,7 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 '$t_body'((C*->T), Q, S, SR, (Ct*->Tt)) :- !,
 	'$t_body'(C, Q, S, SR1, Ct),
 	'$t_body'(T, Q, SR1, SR, Tt).
-'$t_body'((\+ C), Q, S, S, (\+ Ct)) :- !,
+'$t_body'((\+ C), Q, S, SR, (\+ Ct, SR = S)) :- !,
 	'$t_body'(C, Q, S, _, Ct).
 '$t_body'(T, Q, S, SR, QTt) :-
 	'$extend'(T, S, SR, Tt),
