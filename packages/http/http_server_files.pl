@@ -27,12 +27,22 @@
     the GNU General Public License.
 */
 
-:- module(http_server_files, []).
+:- module(http_server_files,
+	  [ serve_files_in_directory/2	% +Alias, +HTTPRequest
+	  ]).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/http_dispatch)).
 
 /** <module> Serve files needed by modules from the server
 
+This module provides an infrastructure   for serving resource-files such
+as icons, JavaScript, CSS files, etc.   The default configuration serves
+the    HTTP    locations    =icons=,     =css=      and     =js=    (see
+http_absolute_location/3)
+
+The location for these services  can  be   changed  by  adding rules for
+http:location/3.  Directories  providing  additional    or   alternative
+resources can be achieved by adding rules for user:file_search_path/2.
 */
 
 :- multifile
@@ -60,7 +70,19 @@ user:file_search_path(js,    library('http/web/js')).
 %%	serve_files_in_directory(+Alias, +Request)
 %
 %	Serve files from the directory  Alias   from  the path-info from
-%	Request.
+%	Request.    This    predicate    is     used    together    with
+%	file_search_path/2. Note that multiple  clauses   for  the  same
+%	file_search_path alias can be used to merge files from different
+%	physical locations onto the same HTTP   directory. Note that the
+%	handler must be declared as =prefix=. Here is an example:
+%
+%	    ==
+%	    user:file_search_path(icons, library('http/web/icons')).
+%
+%	    :- http_handler(icons(.), serve_files_in_directory(icons), [prefix]).
+%	    ==
+%
+%	@see http_reply_file/3
 
 serve_files_in_directory(Alias, Request) :-
 	memberchk(path_info(PathInfo), Request),
