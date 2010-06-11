@@ -860,11 +860,8 @@ cat << _EOM_
 *****************************************************************
 * ERROR: Could not load/find library -lXpm.			*
 * Please install the XPM library and rerun configure.		*
-* The primary source for libXpm is at:				*
 *								*
-*     http://www-sop.inria.fr/koala/lehors/xpm.html		*
-*								*
-* NOTE: If your system has libXpm, check the following:		*
+* Please check the following:					*
 *								*
 *	- Do you have the development version of the library?	*
 *	- Is the library you have of the right architecture?	*
@@ -872,9 +869,9 @@ cat << _EOM_
 *	  (typically the case if -lXext is also missing)	*
 *								*
 *	Examine packages/xpce/src/config.log for details	*
-*	Linux users: check README.debian for dependencies	*
+*	Linux users: check README.linux for dependencies	*
 *	(note that the exact package names vary between		*
-*	distributions).						*
+*	distributions and versions).				*
 *****************************************************************
 _EOM_
 exit 1
