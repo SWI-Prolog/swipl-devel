@@ -133,8 +133,6 @@ hook to verify  your  users.  An  example   server  is  provided  in  in
 
 http:location(openid, root(openid), [priority(-100)]).
 
-:- http_handler(openid(file), openid_file, []).
-
 %%	openid_hook(+Action)
 %
 %	Call hook on the OpenID management library.  Defined hooks are:
