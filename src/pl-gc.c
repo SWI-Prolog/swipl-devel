@@ -2297,7 +2297,7 @@ make_gc_hole(Word bottom, Word top)
     word hdr;
 
     while(wsize > MAX_STRLEN)
-    { Word t1  = bottom+MAX_STRLEN+1;
+    { Word t1  = bt+MAX_STRLEN+1;
 
       hdr = mkIndHdr(MAX_STRLEN, TAG_STRING);
       *t1 = *bt = hdr;
