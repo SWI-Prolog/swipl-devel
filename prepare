@@ -92,7 +92,7 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
-nothere=`git submodule status $COREMODULES | grep '^[-]' | awk '{print $2}'`
+nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
   echo "The following submodules are not yet initialised"
   for m in $nothere; do
@@ -103,7 +103,7 @@ if [ ! -z "$nothere" ]; then
   fi
 fi
 
-outofdate=`git submodule | grep '^[+]' | awk '{print $2}'`
+outofdate=`git submodule | awk '/^[+]/ {print $2}'`
 if [ -z "$outofdate" ]; then
   echo "All submodules are up-to-date"
 else
