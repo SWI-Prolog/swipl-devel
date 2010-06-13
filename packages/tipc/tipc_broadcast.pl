@@ -417,7 +417,7 @@ tipc_br_collect_replies(S, Timeout, Term:From) :-
         tipc_receive(S, Atom, From1, [as(atom)]),
         (   (Atom \== '$tipc_br_timeout')
   	    -> (From1 = From, safely(term_to_atom(Term, Atom)))
-	    ;  (writeln(xx), !, fail)).
+	    ;  (!, fail)).
 
 %%	tipc_host_to_address(?Service, ?Address) is nondet.
 %
