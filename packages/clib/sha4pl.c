@@ -58,6 +58,17 @@ typedef struct
   term_t	algorithm_term;
 } optval;
 
+#define CONTEXT_MAGIC (~ 0x53484163L)
+
+struct context
+{ int		magic;
+  optval	opts;
+  union {
+    sha1_ctx	sha1;
+    sha2_ctx    sha2;
+  } context;
+};
+
 static int
 sha_options(term_t options, optval *result)
 { term_t opts = PL_copy_term_ref(options);
@@ -142,6 +153,70 @@ pl_sha_hash(term_t from, term_t hash, term_t options)
 
 
 static foreign_t
+pl_sha_new_ctx(term_t ctx, term_t options)
+{ struct context c;
+  optval *op = &(c.opts);
+
+  if ( !sha_options(options, op) )
+    return FALSE;
+
+  c.magic = CONTEXT_MAGIC;
+
+  if ( op->algorithm == ALGORITHM_SHA1 )
+  { sha1_begin(&(c.context.sha1));
+  } else
+  { sha2_begin((unsigned long) op->digest_size, &(c.context.sha2));
+  }
+
+  /* NB: the context size depends on the digest size */
+  /* (e. g., sha512_ctx is twice as long as sha256_ctx) */
+  /* so there're extra data.  It will do no harm, though. */
+  /* . */
+  return PL_unify_string_nchars(ctx, sizeof(c), (char*)&c);
+}
+
+
+static foreign_t
+pl_sha_hash_ctx(term_t old_ctx, term_t from, term_t new_ctx, term_t hash)
+{ char *data;
+  size_t datalen;
+  struct context *cp;
+  size_t clen;
+  unsigned char hval[SHA2_MAX_DIGEST_SIZE];
+
+  if ( !PL_get_nchars(from, &datalen, &data,
+		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
+
+  if ( !PL_get_string_chars(old_ctx, (char **)&cp, &clen) )
+    return FALSE;
+
+  if ( clen != sizeof (*cp)
+       || cp->magic != CONTEXT_MAGIC ) {
+    return pl_error(NULL, 0, "Invalid OldContext passed",
+		    ERR_DOMAIN, old_ctx, "algorithm");
+  }
+
+  if ( cp->opts.algorithm == ALGORITHM_SHA1 )
+  { sha1_ctx *c1p = &(cp->context.sha1);
+    sha1_hash((unsigned char*)data, (unsigned long)datalen, c1p);
+    if ( !PL_unify_string_nchars(new_ctx, sizeof(*cp), (char*)cp) )
+      return FALSE;
+    sha1_end((unsigned char *)hval, c1p);
+  } else
+  { sha2_ctx *c1p = &(cp->context.sha2);
+    sha2_hash((unsigned char*)data, (unsigned long)datalen, c1p);
+    if ( !PL_unify_string_nchars(new_ctx, sizeof(*cp), (char*)cp) )
+      return FALSE;
+    sha2_end((unsigned char *)hval, c1p);
+  }
+
+  /* . */
+  return PL_unify_list_ncodes(hash, cp->opts.digest_size, (char*)hval);
+}
+
+
+static foreign_t
 pl_hmac_sha(term_t key, term_t data, term_t mac, term_t options)
 { char *sdata, *skey;
   size_t datalen, keylen;
@@ -190,5 +265,7 @@ install_sha4pl()
   MKATOM(algorithm);
 
   PL_register_foreign("sha_hash", 3, pl_sha_hash, 0);
+  PL_register_foreign("sha_new_ctx", 2, pl_sha_new_ctx, 0);
+  PL_register_foreign("sha_hash_ctx", 4, pl_sha_hash_ctx, 0);
   PL_register_foreign("hmac_sha", 4, pl_hmac_sha, 0);
 }

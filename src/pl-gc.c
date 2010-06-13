@@ -520,6 +520,9 @@ markLocal(Word addr)
 { GET_LD
   Symbol s;
 
+  if ( (addr - (Word)lBase) == 162 )
+    trap_gdb();
+
   local_marked++;
   if ( (s = lookupHTable(local_table, addr)) )
     assert(0);
@@ -2503,6 +2506,10 @@ sweep_environments(LocalFrame fr, Code PC)
       return NULL;
     clear(fr, FR_MARKED);
 
+    if ( strcmp(predicateName(fr->predicate),
+		"tipc_broadcast:tipc_basic_broadcast/3") == 0 )
+      trap_gdb();
+
     slots = slotsInFrame(fr, PC);
 
     sp = argFrameP(fr, 0);
@@ -3367,8 +3374,9 @@ check_environments(LocalFrame fr, Code PC, Word key)
 
     PC = fr->programPointer;
     if ( fr->parent )
+    { assert(fr->parent->clause);
       fr = fr->parent;
-    else
+    } else
     { QueryFrame qf = queryOfFrame(fr);
       DEBUG(3, Sdprintf("*** Query %s\n", predicateName(qf->frame.predicate)));
       return qf;
