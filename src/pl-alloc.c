@@ -249,10 +249,10 @@ unifyFreeStatsPool(term_t term, AllocPool pool)
   if ( !a )
     a = PL_new_atom("pool");
 
-  if ( !PL_unify_functor(term, PL_new_functor(a, ALLOCFAST/ALIGN_SIZE)) )
+  if ( !PL_unify_functor(term, PL_new_functor(a, (ALLOCFAST/ALIGN_SIZE)+1)) )
     return FALSE;
 
-  for(i=0, t=pool->free_chains; i < (ALLOCFAST/ALIGN_SIZE); i++, t++)
+  for(i=0, t=pool->free_chains; i <= (ALLOCFAST/ALIGN_SIZE); i++, t++)
   { Chunk f;
     int c;
 
@@ -494,7 +494,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
     leftoverToChains(from);
 
   for(i=0, t=to->free_chains, f = from->free_chains;
-      i < (ALLOCFAST/ALIGN_SIZE);
+      i <= (ALLOCFAST/ALIGN_SIZE);
       i++, t++, f++)
   { if ( *f )
     { if ( to->free_count[i] )
