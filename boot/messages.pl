@@ -175,6 +175,8 @@ syntax_error(operator_expected) -->
 	[ 'Operator expected' ].
 syntax_error(operator_balance) -->
 	[ 'Unbalanced operator' ].
+syntax_error(quoted_punctuation) -->
+	[ 'Unquoted comma or bar' ].
 syntax_error(list_rest) -->
 	[ 'Unexpected comma or bar in rest of list' ].
 syntax_error(cannot_start_term) -->

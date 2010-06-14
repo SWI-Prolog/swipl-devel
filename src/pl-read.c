@@ -2867,6 +2867,12 @@ term is to be written.
 					/* later.  Not really trivial how */
 					/* to do that! */
 					/* now x,,y is read as x, ',', y! */
+	    if(! must_be_op)
+	    { /* TBD: later use syntaxError("quoted_punctuation", _PL_rd);*/
+	      printMessage(ATOM_warning,
+			   PL_FUNCTOR_CHARS, "syntax_error", 1,
+			   PL_FUNCTOR_CHARS, "quoted_punctuation",0);
+	    }
 	  default:
 	    *name = TRUE;
 	    PL_put_atom(term, codeToAtom(token->value.character));
