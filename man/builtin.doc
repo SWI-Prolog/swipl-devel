@@ -3730,7 +3730,7 @@ reading the next term. Using \const{dec10}, read_term/[2,3] never fails.
 
     \termitem{subterm_positions}{TermPos}
 Describes the detailed layout of the term. The formats for the various
-types of terms if given below. All positions are character positions. If
+types of terms is given below. All positions are character positions. If
 the input is related to a normal stream, these positions are relative to
 the start of the input, when reading from the terminal, they are
 relative to the start of the term.
