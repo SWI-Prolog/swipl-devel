@@ -1438,8 +1438,8 @@ struct gc_trail_entry
 		 *	 MEMORY ALLOCATION	*
 		 *******************************/
 
-#define ALLOCSIZE	(1<<15)	/* size of allocation chunks (64K) */
-#define ALLOCFAST	512	/* big enough for all structures */
+#define ALLOCFAST	(64*SIZEOF_VOIDP) /* big enough for all structures */
+#define ALLOCSIZE	(ALLOCFAST*128)	  /* size of allocation chunks (64K) */
 
 typedef struct free_chunk *FreeChunk;	/* left-over chunk */
 typedef struct chunk *Chunk;		/* Allocation-chunk */
