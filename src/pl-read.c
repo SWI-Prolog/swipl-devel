@@ -338,6 +338,7 @@ Syntax Error exceptions:
 	operator_clash
 	operator_expected
 	operator_balance
+	list_rest
 
 Error term:
 
@@ -2834,11 +2835,16 @@ term is to be written.
 		  case '|':
 		    { int rc;
 
-		      if ( (rc=complex_term("]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
+		      if ( (rc=complex_term(",|]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
 			return rc;
 		      argp = unRef(*valTermRef(tail));
 		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
+		      switch(token->value.character)
+		      { case ',':
+			case '|':
+			  syntaxError("list_rest", _PL_rd);
+		      }
 		      if ( positions )
 		      { if ( !PL_unify_nil(pa) ||
 			     !PL_unify_integer(pe, token->end) )
