@@ -4698,6 +4698,11 @@ PRED_IMPL("statistics", 2, statistics, 0)
 
 #ifdef O_MEMSTATS
 
+#ifndef O_MYALLOC
+#define O_MYALLOC 1
+#endif
+
+#if O_MYALLOC
 static int
 addNameValue(term_t list, const char *name, term_t val)
 { GET_LD
@@ -4713,6 +4718,7 @@ addNameValue(term_t list, const char *name, term_t val)
 
   return TRUE;
 }
+#endif
 
 static int
 addNameInteger(term_t list, const char *name, intptr_t val)
@@ -4752,6 +4758,8 @@ static
 PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
 { PRED_LD
   term_t tail = PL_copy_term_ref(A1);
+
+#if O_MYALLOC
   term_t val = PL_new_term_ref();
 
   PL_put_variable(val);
@@ -4765,6 +4773,7 @@ PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
   PL_UNLOCK(L_ALLOC);
   if ( !addNameValue(tail, "global_pool", val) )
     return FALSE;
+#endif
 
 #ifdef HAVE_MALLINFO
   { struct mallinfo info = mallinfo();
