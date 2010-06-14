@@ -180,13 +180,13 @@ syntax(Char + Term, ST) :-
 	send(ST, Msg).
 syntax(paragraph_end(End), ST) :-
 	(   is_list(End)
-	->  atomic_list_concat(End, |, Regex)
+	->  atomic_list_concat(End, '|', Regex)
 	;   Regex = End
 	),
 	send(ST, paragraph_end, Regex).
 syntax(sentence_end(End), ST) :-
 	(   is_list(End)
-	->  atomic_list_concat(End, |, Regex)
+	->  atomic_list_concat(End, '|', Regex)
 	;   Regex = End
 	),
 	send(ST, sentence_end, Regex).

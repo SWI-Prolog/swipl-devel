@@ -144,7 +144,7 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	call/10,
 	call/11.
 
-:- '$iso'((call/1, (\+)/1, once/1, (;)/2, (,)/2, (->)/2, catch/3)).
+:- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
 
 %   ->/2, ;/2, |/2 and \+/1 are normally compiled. These predicate catch them
 %   in case they are called via the meta-call predicates.

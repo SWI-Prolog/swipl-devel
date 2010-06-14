@@ -310,13 +310,13 @@ portray_body(Term, Indent, _, Pri, Out) :-
 	nlindent(Out, Indent),
 	write(Out, ')').
 portray_body((A,B), Indent, _, _Pri, Out) :- !,
-	infix_op((,), LeftPri, RightPri),
+	infix_op(',', LeftPri, RightPri),
 	portray_body(A, Indent, noindent, LeftPri, Out),
 	write(Out, ','),
 	portray_body(B, Indent, indent, RightPri, Out).
 portray_body(\+(Goal), Indent, _, _Pri, Out) :- !,
-	write(Out, (\+)), write(Out, ' '),
-	prefix_op((\+), ArgPri),
+	write(Out, \+), write(Out, ' '),
+	prefix_op(\+, ArgPri),
 	ArgIndent is Indent+3,
 	portray_body(Goal, ArgIndent, noindent, ArgPri, Out).
 portray_body(Meta, Indent, _, Pri, Out) :-
@@ -386,14 +386,14 @@ portray_or((If *-> Then), Indent, Out) :- !,
 	portray_or(Then, Indent, RightPri, Out).
 portray_or((A;B), Indent, Out) :- !,
 	inc_indent(Indent, 1, NestIndent),
-	infix_op((;), LeftPri, RightPri),
+	infix_op(;, LeftPri, RightPri),
 	portray_body(A, NestIndent, noindent, LeftPri, Out),
 	nlindent(Out, Indent),
 	write(Out, ';   '),
 	portray_or(B, Indent, RightPri, Out).
 portray_or((A|B), Indent, Out) :- !,
 	inc_indent(Indent, 1, NestIndent),
-	infix_op((|), LeftPri, RightPri),
+	infix_op('|', LeftPri, RightPri),
 	portray_body(A, NestIndent, noindent, LeftPri, Out),
 	nlindent(Out, Indent),
 	write(Out, '|   '),

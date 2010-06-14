@@ -490,7 +490,7 @@ colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
 colourise_method_body(Body, TB, Pos) :-
 	colourise_body(Body, TB, Pos).
 
-control_op((,)).
+control_op(',').
 control_op((;)).
 control_op((->)).
 control_op((*->)).

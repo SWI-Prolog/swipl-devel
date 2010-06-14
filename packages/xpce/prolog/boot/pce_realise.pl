@@ -101,7 +101,7 @@ check_loaded_class(_).
 
 pce_realise_class(ClassName) :-
 	pce_class(ClassName, MetaClassName, SuperName, _, _, _),
-	MetaClassName \== -,
+	MetaClassName \== (-),
 	create_class(ClassName, MetaClassName, SuperName, Class), !,
 	resolve_method_message(Msg),
 	send(Class, resolve_method_message, Msg),
