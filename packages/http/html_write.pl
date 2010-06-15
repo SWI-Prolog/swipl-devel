@@ -77,8 +77,6 @@
 	page(:, :, -, +),
 	pagehead(+, :, -, +),
 	pagebody(+, :, -, +),
-	pagehead(:, -, +),
-	pagebody(:, -, +),
 	html_receive(+, 3, -, +),
 	html_post(+, :, -, +).
 
@@ -271,13 +269,13 @@ pagehead(_, Head) -->
 pagehead(Style, Head) -->
 	{ strip_module(Head, M, _),
 	  hook_module(M, HM, head//2)
-	}, !,
-	HM:head(Style, Head).
+	},
+	HM:head(Style, Head), !.
 pagehead(_, Head) -->
 	{ strip_module(Head, M, _),
 	  hook_module(M, HM, head//1)
-	}, !,
-	HM:head(Head).
+	},
+	HM:head(Head), !.
 pagehead(_, Head) -->
 	html(head(Head)).
 
@@ -289,13 +287,13 @@ pagebody(_, Body) -->
 pagebody(Style, Body) -->
 	{ strip_module(Body, M, _),
 	  hook_module(M, HM, body//2)
-	}, !,
-	HM:body(Style, Body).
+	},
+	HM:body(Style, Body), !.
 pagebody(_, Body) -->
 	{ strip_module(Body, M, _),
 	  hook_module(M, HM, body//1)
-	}, !,
-	HM:body(Body).
+	},
+	HM:body(Body), !.
 pagebody(_, Body) -->
 	html(body(Body)).
 
