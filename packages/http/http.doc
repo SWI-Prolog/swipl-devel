@@ -1492,6 +1492,9 @@ the following predicates are available from this library:
 
 \begin{description}
     \predicate{reply_html_page}{2}{:Head, :Body}
+Same as \term{reply_html_page}{default, Head, Body}.
+
+    \predicate{reply_html_page}{3}{+Style, :Head, :Body}
 Writes an HTML page preceded by an HTTP header as required
 by \pllib{http_wrapper} (CGI-style).  Here is a simple typical
 example:
@@ -1503,6 +1506,29 @@ reply(Request) :-
 			  p('Welcome to our ...')
 			]).
 \end{code}
+
+The header and footer of the page can be hooked using the grammar-rules
+user:head//2 and user:body//2. The first argument passed to these hooks
+is the \arg{Style} argument of reply_html_page/3 and the second is the
+2nd (for head//2) or 3rd (for body//2) argument of reply_html_page/3.
+These hooks can be used to restyle the page, typically by embedding the
+real body content in a \elem{div}. E.g., the following code provides a
+menu on top of each page of that is identified using the style
+\textit{myapp}.
+
+\begin{code}
+:- multifile
+	user:body//2.
+
+user:body(myapp, Body) -->
+	html(body([ div(id(top), \application_menu),
+		    div(id(content), Body)
+		  ])).
+\end{code}
+
+Redefining the \elem{head} can be used to pull in scripts, but
+typically html_requires//1 provides a more modular approach for
+pulling scripts and CSS-files.
 
     \predicate{print_html}{1}{+List}
 Print the token list to the Prolog current output stream.

@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        J.Wielemak@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2008, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +32,7 @@
 
 :- module(html_write,
 	  [ reply_html_page/2,		% :Head, :Body
+	    reply_html_page/3,		% +Style, :Head, :Body
 
 					% Basic output routines
 	    page//1,			% :Content
@@ -68,10 +70,13 @@
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
+	reply_html_page(+, :, :),
 	reply_html_page(:, :),
 	html(:, -, +),
 	page(:, -, +),
 	page(:, :, -, +),
+	pagehead(+, :, -, +),
+	pagebody(+, :, -, +),
 	pagehead(:, -, +),
 	pagebody(:, -, +),
 	html_receive(+, 3, -, +),
@@ -126,7 +131,7 @@ encoding.
 %		page//2.
 %
 %		* content_type(+ContentType)
-%		Set the =|Content-type|= for reply_html_page/2
+%		Set the =|Content-type|= for reply_html_page/3
 %
 %	Note  that  the  doctype  is  covered    by  two  prolog  flags:
 %	=html_doctype= for the html dialect  and =xhtml_doctype= for the
@@ -234,10 +239,13 @@ page(Content) -->
 	html(html(Content)).
 
 page(Head, Body) -->
+	page(default, Head, Body).
+
+page(Style, Head, Body) -->
 	doctype,
 	html_begin(html),
-	pagehead(Head),
-	pagebody(Body),
+	pagehead(Style, Head),
+	pagebody(Style, Body),
 	html_end(html).
 
 %%	doctype//
@@ -256,29 +264,39 @@ doctype -->
 	[].
 
 
-pagehead(Head) -->
+pagehead(_, Head) -->
 	{ functor(Head, head, _)
 	}, !,
 	html(Head).
-pagehead(Head) -->
+pagehead(Style, Head) -->
+	{ strip_module(Head, M, _),
+	  hook_module(M, HM, head//2)
+	}, !,
+	HM:head(Style, Head).
+pagehead(_, Head) -->
 	{ strip_module(Head, M, _),
 	  hook_module(M, HM, head//1)
 	}, !,
 	HM:head(Head).
-pagehead(Head) -->
+pagehead(_, Head) -->
 	html(head(Head)).
 
 
-pagebody(Body) -->
+pagebody(_, Body) -->
 	{ functor(Body, body, _)
 	}, !,
 	html(Body).
-pagebody(Body) -->
+pagebody(Style, Body) -->
+	{ strip_module(Body, M, _),
+	  hook_module(M, HM, body//2)
+	}, !,
+	HM:body(Style, Body).
+pagebody(_, Body) -->
 	{ strip_module(Body, M, _),
 	  hook_module(M, HM, body//1)
 	}, !,
 	HM:body(Body).
-pagebody(Body) -->
+pagebody(_, Body) -->
 	html(body(Body)).
 
 
@@ -1019,14 +1037,17 @@ html_print_length([H|T], L0, L) :-
 
 
 %%	reply_html_page(:Head, :Body) is det.
+%%	reply_html_page(+Style, :Head, :Body) is det.
 %
 %	Provide the complete reply as required  by http_wrapper.pl for a
 %	page constructed from Head and   Body. The HTTP =|Content-type|=
 %	is provided by html_current_option/1.
 
 reply_html_page(Head, Body) :-
+	reply_html_page(default, Head, Body).
+reply_html_page(Style, Head, Body) :-
 	html_current_option(content_type(Type)),
-	phrase(page(Head, Body), HTML),
+	phrase(page(Style, Head, Body), HTML),
 	format('Content-type: ~w~n~n', [Type]),
 	print_html(HTML).
 
@@ -1058,6 +1079,10 @@ emacs_prolog_colours:goal_colours(pagebody(HTML,_,_),
 				  built_in-[Colours, classify, classify]) :-
 	html_colours(HTML, Colours).
 emacs_prolog_colours:goal_colours(reply_html_page(Head, Body),
+				  built_in-[HC, BC]) :-
+	html_colours(Head, HC),
+	html_colours(Body, BC).
+emacs_prolog_colours:goal_colours(reply_html_page(_Style, Head, Body),
 				  built_in-[HC, BC]) :-
 	html_colours(Head, HC),
 	html_colours(Body, BC).
