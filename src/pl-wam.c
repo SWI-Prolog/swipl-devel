@@ -1451,7 +1451,19 @@ discardChoicesAfter() discards all choicepoints created  after fr, while
 calling possible hooks on the frames.   It return the oldest choicepoint
 created after fr was created or NULL if this doesn't exist.
 
-Note that we cannot put discardFrame() in the first loop. See C_CUT.
+(*) Note that we cannot put discardFrame() in the first loop. See C_CUT.
+(**) Running GC goes wrong because discardFrame() sets clause to NULL.
+     If we have a frame where a variable is a ref to the parent frame
+     and where the var in the parent points to the global stack and
+     the clause of this parent is NULL, the variable is marked, but
+     not sweeped.
+
+     What we would need is a way to discard the choice and the frames
+     that can be reached from it, but *not* the frame that can be
+     reached from older choice-points.  How can we do this?
+
+     Please note this isn't too bad: cleanup handlers are supposed to
+     do small jobs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
@@ -1469,7 +1481,9 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	{ if ( reason == FINISH_EXCEPT ||
 	       reason == FINISH_EXTERNAL_EXCEPT )
 	    Undo(me->mark);
+	  blockGC(ALLOW_SHIFT PASS_LD);	/* (**) */
 	  frameFinished(fr2, reason PASS_LD);
+	  unblockGC(ALLOW_SHIFT PASS_LD);
 	  if ( me != BFR )		/* shifted */
 	  { intptr_t offset = (char*)BFR - (char*)me;
 
