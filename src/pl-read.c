@@ -358,14 +358,12 @@ isStringStream(IOSTREAM *s)
 }
 
 
-static bool
-errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+static term_t
+makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc=0;			/* keep compiler happy */
   unsigned char const *s, *ll = NULL;
   int rc = TRUE;
-
-  LD->exception.processing = TRUE;	/* allow using spare stack */
 
   if ( !(ex = PL_new_term_ref()) ||
        !(loc = PL_new_term_ref()) )
@@ -442,14 +440,28 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
     }
   }
 
+  return (rc ? ex : (term_t)0);
+}
+
+
+
+static bool
+errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+{ GET_LD
+  term_t ex;
+
+  LD->exception.processing = TRUE;	/* allow using spare stack */
+
+  ex = makeErrorTerm(id_str, id_term, _PL_rd);
+
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
-    if ( rc )
+    if ( ex )
       PL_put_term(_PL_rd->exception, ex);
     else
       PL_put_term(_PL_rd->exception, exception_term);
   } else
-  { if ( rc )
+  { if ( ex )
       PL_raise_exception(ex);
   }
 
@@ -2861,17 +2873,19 @@ term is to be written.
 	  case '}':
 	  case ']':
 	    syntaxError("cannot_start_term", _PL_rd);
-	  case '|':			/* TBD: we need this, but */
-	  case ',':			/* it should NOT be possible to */
-					/* modify these operators to atoms */
-					/* later.  Not really trivial how */
-					/* to do that! */
-					/* now x,,y is read as x, ',', y! */
-	    if(! must_be_op)
-	    { /* TBD: later use syntaxError("quoted_punctuation", _PL_rd);*/
-	      printMessage(ATOM_warning,
-			   PL_FUNCTOR_CHARS, "syntax_error", 1,
-			   PL_FUNCTOR_CHARS, "quoted_punctuation",0);
+	  case '|':
+	    if ( !must_be_op )
+	    { term_t ex;
+
+	      ex = makeErrorTerm("quoted_punctuation", 0, _PL_rd);
+	      if ( ex )
+	      { printMessage(ATOM_warning, PL_TERM, ex);
+	      } else			/* no space for warning */
+	      { PL_put_term(_PL_rd->exception, exception_term);
+		return FALSE;
+	      }
+
+	      /* TBD: later use syntaxError("quoted_punctuation", _PL_rd);*/
 	    }
 	  default:
 	    *name = TRUE;
