@@ -1226,6 +1226,8 @@ prolog:called_by(html_post(_,HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
 prolog:called_by(reply_html_page(Head,Body), Called) :-
 	phrase(called_by([Head,Body]), Called).
+prolog:called_by(reply_html_page(_Style,Head,Body), Called) :-
+	phrase(called_by([Head,Body]), Called).
 
 called_by(Term) -->
 	called_by(Term, _).
