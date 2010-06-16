@@ -1081,7 +1081,7 @@ emacs_prolog_colours:goal_colours(reply_html_page(Head, Body),
 	html_colours(Head, HC),
 	html_colours(Body, BC).
 emacs_prolog_colours:goal_colours(reply_html_page(_Style, Head, Body),
-				  built_in-[HC, BC]) :-
+				  built_in-[identifier, HC, BC]) :-
 	html_colours(Head, HC),
 	html_colours(Body, BC).
 emacs_prolog_colours:goal_colours(html_post(_Id, HTML, _, _),
