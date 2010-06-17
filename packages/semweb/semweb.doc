@@ -21,10 +21,9 @@
 
 \title{SWI-Prolog Semantic Web Library}
 \author{Jan Wielemaker \\
-	HCS, \\
-	University of Amsterdam \\
+	University of Amsterdam/VU University Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{J.Wielemaker@uva.nl}}
+	E-mail: \email{J.Wielemaker@cs.vu.nl}}
 
 \maketitle
 
@@ -1963,6 +1962,7 @@ the match was found.
 		 %	  PLDOC LIBRARIES	%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\input{sparqlclient.tex}
 \input{rdfcompare.tex}
 \input{rdfportray.tex}
 
