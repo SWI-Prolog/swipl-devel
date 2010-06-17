@@ -489,6 +489,7 @@ link(DOM, Type, Target) :-
 %		if the HMAC signature check failed
 
 openid_authenticate(Request, OpenIdServer, Identity, ReturnTo) :-
+	memberchk(method(get), Request),
 	http_parameters(Request,
 			[ 'openid.mode'(Mode, [optional(true)])
 			]),
