@@ -145,6 +145,14 @@ xpath_chk(DOM, Spec, Content) :-
 %	    	xpath(C1, a(@href), URL),
 %	    	xpath(TR, td(2, number), Price).
 %	    ==
+%
+%	Suppose we want to select  books   with  genre="thriller" from a
+%	tree containing elements =|<book genre=...>|=
+%
+%	    ==
+%	    thriller(DOM, Book) :-
+%		xpath(DOM, //book(@genre=thiller), Book).
+%	    ==
 
 xpath(DOM, Spec, Content) :-
 	in_dom(Spec, DOM, Content).
@@ -267,6 +275,9 @@ modifier(last-Expr, I, L, Value, Value) :- !,			% last-Expr
 	I =:= L-Expr.
 modifier(Function, _, _, In, Out) :-
 	xpath_function(Function, In, Out).
+modifier(Function, _, _, In, Out) :-
+	xpath_condition(Function, In),
+	Out = In.
 
 xpath_function(self, DOM, Value) :- !,				% self
 	Value = DOM.
@@ -281,11 +292,13 @@ xpath_function(number, DOM, Number) :- !,			% number
 	catch(atom_number(Text, Number), _, fail).
 xpath_function(@Name, element(_, Attrs, _), Value) :- !,	% @Name
 	memberchk(Name=Value, Attrs).
-xpath_function(Left = Right, Value, Value) :- !,		% =
+xpath_function(quote(Value), _, Value).				% quote(Value)
+
+xpath_condition(Left = Right, Value) :- !,			% =
 	var_or_function(Left, Value, LeftValue),
 	var_or_function(Right, Value, RightValue),
 	LeftValue = RightValue.
-xpath_function(contains(Haystack, Needle), Value, Value) :- !,	% contains(Haystack, Needle)
+xpath_condition(contains(Haystack, Needle), Value) :- !,	% contains(Haystack, Needle)
 	val_or_function(Haystack, Value, HaystackValue),
 	val_or_function(Needle, Value, NeedleValue),
 	atom(HaystackValue), atom(NeedleValue),
@@ -296,13 +309,15 @@ xpath_function(contains(Haystack, Needle), Value, Value) :- !,	% contains(Haysta
 var_or_function(Arg, _, Arg) :-
 	var(Arg), !.
 var_or_function(Func, Value0, Value) :-
-	xpath_function(Func, Value0, Value).
+	xpath_function(Func, Value0, Value), !.
+var_or_function(Value, _, Value).
 
 val_or_function(Arg, _, Arg) :-
 	var(Arg), !,
 	instantiation_error(Arg).
 val_or_function(Func, Value0, Value) :-				% TBD
-	xpath_function(Func, Value0, Value).
+	xpath_function(Func, Value0, Value), !.
+val_or_function(Value, _, Value).
 
 
 %%	text_of_dom(+DOM, -Text:atom) is det.
