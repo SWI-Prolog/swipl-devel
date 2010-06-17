@@ -575,8 +575,8 @@ list_settings :-
 	format('~`=t~72|~n'),
 	format('~w~t~20| ~w~w~t~40| ~w~n', ['Name', 'Value (*=modified)', '', 'Comment']),
 	format('~`=t~72|~n'),
-	forall(current_setting(Setting),
-	       list_setting(Setting)).
+	forall(current_setting(Module:Setting),
+	       list_setting(Module:Setting)).
 
 list_setting(Module:Name) :-
 	curr_setting(Name, Module, Type, Default0, Comment),
