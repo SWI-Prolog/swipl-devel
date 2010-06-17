@@ -244,13 +244,15 @@ do_portray_clause(Out, (Head :- Body)) :- !,
 	pprint(Out, Head, LeftPri),
 	write(Out, ' :-'),
 	(   nonvar(Body),
-	    Body = Module:LocalBody
+	    Body = Module:LocalBody,
+	    \+ primitive(LocalBody)
 	->  nlindent(Out, Indent),
 	    format(Out, '~q', [Module]),
 	    '$put_token'(Out, :),
 	    nlindent(Out, Indent),
 	    write(Out, '(   '),
-	    portray_body(LocalBody, 2, noindent, 1200, Out),
+	    inc_indent(Indent, 1, BodyIndent),
+	    portray_body(LocalBody, BodyIndent, noindent, 1200, Out),
 	    nlindent(Out, Indent),
 	    write(Out, ')')
 	;   inc_indent(0, 2, BodyIndent),
@@ -436,6 +438,11 @@ or_layout(Var) :-
 or_layout((_;_)).
 or_layout((_->_)).
 or_layout((_*->_)).
+
+primitive(G) :-
+	or_layout(G), !, fail.
+primitive((_,_)) :- !, fail.
+primitive(_).
 
 %%	meta_call(+Goal, -Arg) is semidet.
 %
