@@ -5281,18 +5281,18 @@ circuit(Vs) :-
         length(Vs, L),
         Vs ins 1..L,
         (   L =:= 1 -> true
-        ;   all_circuit(Vs, 1),
+        ;   neq_index(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
             distinct_attach(Vs, Prop, []),
             trigger_prop(Prop),
             do_queue
         ).
 
-all_circuit([], _).
-all_circuit([X|Xs], N) :-
+neq_index([], _).
+neq_index([X|Xs], N) :-
         neq_num(X, N),
         N1 is N + 1,
-        all_circuit(Xs, N1).
+        neq_index(Xs, N1).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Necessary condition for existence of a Hamiltonian circuit: The
