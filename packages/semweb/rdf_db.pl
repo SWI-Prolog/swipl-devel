@@ -106,6 +106,7 @@
 	    rdf_split_url/3,		% ?Base, ?Local, ?URL
 	    rdf_url_namespace/2,	% +URL, ?Base
 	    rdf_quote_uri/2,		% +URI, -Quoted
+	    lang_matches/2,		% +Lang, +Pattern
 
 	    rdf_debug/1,		% Set verbosity
 
