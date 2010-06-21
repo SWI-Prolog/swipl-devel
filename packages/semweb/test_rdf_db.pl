@@ -35,6 +35,7 @@
 
 :- asserta(user:file_search_path(foreign, '../sgml')).
 :- asserta(user:file_search_path(library, '../sgml')).
+:- asserta(user:file_search_path(library, '../plunit')).
 :- asserta(user:file_search_path(foreign, '../clib')).
 :- asserta(user:file_search_path(library, '../clib')).
 :- asserta(user:file_search_path(library, '../RDF')).
@@ -43,6 +44,7 @@
 :- use_module(rdfs).
 :- use_module(library(xsdp_types)).
 :- use_module(library(lists)).
+:- use_module(library(plunit)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 RDF-DB test file.  A test is a clause of the form:
@@ -58,7 +60,9 @@ available test sets. The public goals are:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 test_rdf_db :-
-	test.
+	test,
+	run_tests([ lang_matches
+		  ]).
 
 
 		 /*******************************
@@ -958,3 +962,28 @@ test_failed(R, Except) :-
 blocked(Reason) :-
 	throw(blocked(Reason)).
 
+
+		 /*******************************
+		 *	      UNIT TESTS	*
+		 *******************************/
+
+:- begin_tests(lang_matches).
+
+test(lang_matches, true) :-
+	lang_matches('EN', en).
+test(lang_matches, true) :-
+	lang_matches(en, 'EN').
+test(lang_matches, fail) :-
+	lang_matches(nl, 'EN').
+test(lang_matches, true) :-
+	lang_matches('en-GB', en).
+test(lang_matches, fail) :-
+	lang_matches('en-GB', 'en-*-x').
+test(lang_matches, true) :-
+	lang_matches('en-GB-x', 'en-*-x').
+test(lang_matches, true) :-
+	lang_matches('en-GB-x-y', 'en-*-x-*').
+test(lang_matches, true) :-
+	lang_matches('en-GB-x-y', 'en-*-y').
+
+:- end_tests(lang_matches).

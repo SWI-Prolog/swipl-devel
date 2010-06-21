@@ -1260,6 +1260,14 @@ All matching is performed case-insensitive.  Defines methods are:
 	    characters.
     \end{description}
 
+    \predicate{lang_matches}{2}{+Lang, +Pattern}
+True if \arg{Lang} matches \arg{Pattern}. This implements XML language
+matching conform RFC 4647. Both \arg{Lang} and \arg{Pattern} are
+dash-separated strings of identifiers or (for \arg{Pattern}) the
+wildcart \texttt{*}. Identifiers are matched case-insensitive and a
+\texttt{*} matches any number of identifiers.  A short pattern is the
+same as \texttt{*}.
+
     \predicate{rdf_reset_db}{0}{}
 Erase all triples from the database and reset all counts and statistics
 information.
