@@ -563,7 +563,7 @@ alt_regex(Atom, Regex) :-
 alt_regex(Chain, Regex) :-
 	chain_list(Chain, List),
 	maplist(ext_pattern, List, Patterns),
-	atomic_list_concat(Patterns, |, AltPattern),
+	atomic_list_concat(Patterns, '|', AltPattern),
 	send(Regex, pattern, AltPattern),
 	(   List = [Def|_]
 	->  send(Regex, attribute, default_extension, Def)
