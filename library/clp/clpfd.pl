@@ -4638,8 +4638,7 @@ all_distinct(Ls) :-
         maplist(fd_variable, Ls),
         make_propagator(pdistinct(Ls), Prop),
         distinct_attach(Ls, Prop, []),
-        trigger_prop(Prop),
-        do_queue.
+        trigger_once(Prop).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Weak arc consistent constraint of difference, currently only
@@ -5284,8 +5283,7 @@ circuit(Vs) :-
         ;   neq_index(Vs, 1),
             make_propagator(pcircuit(Vs), Prop),
             distinct_attach(Vs, Prop, []),
-            trigger_prop(Prop),
-            do_queue
+            trigger_once(Prop)
         ).
 
 neq_index([], _).
