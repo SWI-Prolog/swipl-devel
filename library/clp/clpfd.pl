@@ -4435,11 +4435,6 @@ adjust_alternate_0([A|Arcs]) :-
         put_attr(A, flow, 0),
         adjust_alternate_1(Arcs).
 
-remove_ground([], _).
-remove_ground([V|Vs], R) :-
-        neq_num(V, R),
-        remove_ground(Vs, R).
-
 % Instead of applying Berge's property directly, we can translate the
 % problem in such a way, that we have to search for the so-called
 % strongly connected components of the graph.
@@ -4671,8 +4666,8 @@ all_distinct([X|Right], Left, Orig) :-
         all_distinct(Right, [X|Left], Orig).
 
 exclude_fire(Left, Right, E) :-
-        remove_ground(Left, E),
-        remove_ground(Right, E).
+        all_neq(Left, E),
+        all_neq(Right, E).
 
 list_contains([X|Xs], Y) :-
         (   X == Y -> true
