@@ -1012,7 +1012,7 @@ url_encode(Enc) -->
 	},
 	url_encode(T).
 url_encode([]) -->
-	[], !.
+	eos, !.
 url_encode([0'%,D1,D2|T]) -->
 	[C],
 	{ Dv1 is (C>>4 /\ 0xf),
@@ -1021,6 +1021,8 @@ url_encode([0'%,D1,D2|T]) -->
 	  code_type(D2, xdigit(Dv2))
 	},
 	url_encode(T).
+
+eos([], []).
 
 alphanum(C) -->
 	[C],
