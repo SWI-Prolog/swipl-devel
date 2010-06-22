@@ -2792,6 +2792,7 @@ static const opt_spec open4_options[] =
   { ATOM_close_on_abort, OPT_BOOL },
   { ATOM_buffer,	 OPT_ATOM },
   { ATOM_lock,		 OPT_ATOM },
+  { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,	 	 OPT_BOOL },
   { NULL_ATOM,	         0 }
@@ -2808,6 +2809,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
+  int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
   int    close_on_abort = TRUE;
   int	 bom		= -1;
@@ -2820,7 +2822,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &encoding, &bom) )
+		       &close_on_abort, &buffer, &lock, &wait, &encoding, &bom) )
       return FALSE;
   }
 
@@ -2880,7 +2882,7 @@ openStream(term_t file, term_t mode, term_t options)
 
 					/* LOCK */
   if ( lock != ATOM_none )
-  { *h++ = 'l';
+  { *h++ = (wait ? 'l' : 'L');
     if ( lock == ATOM_read || lock == ATOM_shared )
       *h++ = 'r';
     else if ( lock == ATOM_write || lock == ATOM_exclusive )

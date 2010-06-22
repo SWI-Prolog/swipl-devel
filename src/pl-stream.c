@@ -2785,6 +2785,7 @@ Sopen_file(const char *path, const char *how)
   enum {lnone=0,lread,lwrite} lock = lnone;
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
+  int wait = TRUE;
 
   for( ; *how; how++)
   { switch(*how)
@@ -2795,6 +2796,9 @@ Sopen_file(const char *path, const char *how)
       case 'r':				/* no record */
 	flags &= ~SIO_RECORDPOS;
         break;
+      case 'L':				/* lock r: read, w: write */
+	wait = FALSE;
+        /*FALLTHROUGH*/
       case 'l':				/* lock r: read, w: write */
 	if ( *++how == 'r' )
 	  lock = lread;
@@ -2850,7 +2854,7 @@ Sopen_file(const char *path, const char *how)
     memset(&buf, 0, sizeof(buf));
     buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
 
-    if ( fcntl(fd, F_SETLKW, &buf) < 0 )
+    if ( fcntl(fd, wait ? F_SETLKW : F_SETLK, &buf) < 0 )
     { int save = errno;
       close(fd);
       errno = save;
@@ -2860,14 +2864,20 @@ Sopen_file(const char *path, const char *how)
 #if __WINDOWS__
     HANDLE h = (HANDLE)_get_osfhandle(fd);
     OVERLAPPED ov;
+    int flags = 0;
+
+    if ( lock == lwrite )
+      flags |= LOCKFILE_EXCLUSIVE_LOCK;
+    if ( !wait )
+      flags |= LOCKFILE_FAIL_IMMEDIATELY
 
     memset(&ov, 0, sizeof(ov));
-    if ( !LockFileEx(h, (lock == lread ? 0 : LOCKFILE_EXCLUSIVE_LOCK),
+    if ( !LockFileEx(h, flags,
 		     0,
 		     0, 0xfffffff,
 		     &ov) )
     { close(fd);
-      errno = EACCES;			/* TBD: proper error */
+      errno = (wait ? EACCES : EAGAIN);	/* TBD: proper error */
       return NULL;
     }
 #else

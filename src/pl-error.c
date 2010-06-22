@@ -367,7 +367,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       term_t file   = va_arg(args, term_t);
 
       switch(errno)
-      { case EACCES:
+      { case EAGAIN:
+	  action = ATOM_lock;		/* Hack for file-locking*/
+	  /*FALLTHROUGH*/
+	case EACCES:
 	  rc = PL_unify_term(formal,
 			     PL_FUNCTOR, FUNCTOR_permission_error3,
 			       PL_ATOM, action,

@@ -856,8 +856,8 @@ delete_db(DB) :-
 
 lock_db(Dir) :-
 	lockfile(Dir, File),
-	catch(call_with_time_limit(1, open(File, update, Out, [lock(write)])),
-	      _,
+	catch(open(File, update, Out, [lock(write), wait(false)]),
+	      error(permission_error(lock, _, _)),
 	      locked_error(Dir)),
 	(   current_prolog_flag(pid, PID)
 	->  true

@@ -2720,6 +2720,12 @@ especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
+
+    \termitem{wait}{Bool}
+This option can be combined with the \const{lock} option. If
+\const{false} (default \const{true}), the open call returns immediately
+with an exception if the file is locked.  The exception has the format
+\term{permission_error}{lock, source_sink, SrcDest}.
 \end{description}
 
 The option \const{reposition} is not supported in SWI-Prolog.  All streams
