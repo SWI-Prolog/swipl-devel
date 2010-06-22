@@ -2716,7 +2716,6 @@ is of no value.
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
-  int fd;
 
   if ( !(s = malloc(sizeof(IOSTREAM))) )
   { errno = ENOMEM;
@@ -2747,6 +2746,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #endif
 
 #ifndef __WINDOWS__			/* (*) */
+{ int fd;
   if ( (fd = Sfileno(s)) >= 0 )
   { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
@@ -2754,6 +2754,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
   }
+}
 #endif
 
   return s;
@@ -2869,7 +2870,7 @@ Sopen_file(const char *path, const char *how)
     if ( lock == lwrite )
       flags |= LOCKFILE_EXCLUSIVE_LOCK;
     if ( !wait )
-      flags |= LOCKFILE_FAIL_IMMEDIATELY
+      flags |= LOCKFILE_FAIL_IMMEDIATELY;
 
     memset(&ov, 0, sizeof(ov));
     if ( !LockFileEx(h, flags,
