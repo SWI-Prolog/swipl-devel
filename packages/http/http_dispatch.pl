@@ -92,9 +92,25 @@ write_index(Request) :-
 %		Use =|Transfer-encoding: chunked|= if the client
 %		allows for it.
 %
+%		* content_type(+Term)
+%		Specifies the content-type of the reply.  This value is
+%		currently not used by this library.  It enhances the
+%		reflexive capabilities of this library through
+%		http_current_handler/3.
+%
 %		* id(+Term)
 %		Identifier of the handler.  The default identifier is
 %		the predicate name.  Used by http_location_by_id/2.
+%
+%		* hide_children(+Bool)
+%		If =true= on a prefix-handler (see prefix), possible
+%		children are masked.  This can be used to (temporary)
+%		overrule part of the tree.
+%
+%		* prefix
+%		Call Pred on any location that is a specialisation of
+%		Path.  If multiple handlers match, the one with the
+%		longest path is used.
 %
 %		* priority(+Integer)
 %		If two handlers handle the same path, the one with the
@@ -102,11 +118,6 @@ write_index(Request) :-
 %		is used.  Please be aware that the order of clauses in
 %		multifile predicates can change due to reloading files.
 %		The default priority is 0 (zero).
-%
-%		* prefix
-%		Call Pred on any location that is a specialisation of
-%		Path.  If multiple handlers match, the one with the
-%		longest path is used.
 %
 %		* spawn(+SpawnOptions)
 %		Run the handler in a seperate thread.  If SpawnOptions
@@ -119,12 +130,6 @@ write_index(Request) :-
 %		* time_limit(+Spec)
 %		One of =infinite=, =default= or a positive number
 %		(seconds)
-%
-%		* content_type(+Term)
-%		Specifies the content-type of the reply.  This value is
-%		currently not used by this library.  It enhances the
-%		reflexive capabilities of this library through
-%		http_current_handler/3.
 %
 %	Note that http_handler/3 is normally invoked  as a directive and
 %	processed using term-expansion.  Using   term-expansion  ensures
@@ -161,14 +166,30 @@ system:term_expansion((:- http_handler(Path, Pred, Options)), Clause) :-
 	next_generation.
 
 
-%%	http_delete_handler(+Path) is det.
+%%	http_delete_handler(+Spec) is det.
 %
-%	Delete handler for Path. Typically, this should only be used for
-%	handlers that are registered dynamically.
+%	Delete handler for Spec. Typically, this should only be used for
+%	handlers that are registered dynamically. Spec is one of:
+%
+%	    * id(Id)
+%	    Delete a handler with the given id.  The default id is the
+%	    handler-predicate-name.
+%
+%	    * path(Path)
+%	    Delete handler that serves the given path.
 
-http_delete_handler(Path) :-
+http_delete_handler(id(Id)) :- !,
+	clause(handler(_Path, _:Pred, _, Options), true, Ref),
+	functor(Pred, _, DefID),
+	option(id(Id0), Options, DefID),
+	Id == Id0,
+	erase(Ref),
+	next_generation.
+http_delete_handler(path(Path)) :- !,
 	retractall(handler(Path, _Pred, _, _Options)),
 	next_generation.
+http_delete_handler(Path) :-
+	http_delete_handler(path(Path)).
 
 
 %%	next_generation is det.
@@ -462,7 +483,8 @@ find_handler(Path, Action, Options) :-
 find_handler([node(prefix(Prefix), PAction, POptions, Children)|_],
 	     Path, Action, Options) :-
 	sub_atom(Path, 0, _, After, Prefix), !,
-	(   find_handler(Children, Path, Action, Options)
+	(   option(hide_children(false), POptions, false),
+	    find_handler(Children, Path, Action, Options)
 	->  true
 	;   Action = PAction,
 	    path_info(After, Path, POptions, Options)
