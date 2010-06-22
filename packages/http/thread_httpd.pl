@@ -79,7 +79,8 @@ for details.
 	make_socket_hook/3,
 	accept_hook/2,
 	close_hook/1,
-	open_client_hook/5.
+	open_client_hook/5,
+	http:create_pool/1.
 
 %%	http_server(:Goal, +Options) is det.
 %
@@ -541,20 +542,21 @@ close_connection(Peer, In, Out) :-
 %	    * pool(+Pool)
 %	    Interfaces to library(thread_pool), starting the thread
 %	    on the given pool.
-%	    * backlog(+MaxBacklog)
-%	    Reply using a 503 (service unavailable) if too many requests
-%	    are waiting in this pool.
+%
+%	If a pool does not exist, this predicate calls the multifile
+%	hook http:create_pool/1 to create it. If this predicate succeeds
+%	the operation is retried.
 
 http_spawn(Goal, Options) :-
-	select_option(pool(Pool), Options, Options1), !,
-	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
-	check_backlog(BackLog, Pool),
+	select_option(pool(Pool), Options, ThreadOptions), !,
 	current_output(CGI),
-	thread_create_in_pool(Pool,
-			      wrap_spawned(CGI, Goal), Id,
-			      [ detached(true)
-			      | ThreadOptions
-			      ]),
+	catch(thread_create_in_pool(Pool,
+				    wrap_spawned(CGI, Goal), Id,
+				    [ detached(true)
+				    | ThreadOptions
+				    ]),
+	      Error,
+	      spawn_error(Error, http_spawn(Goal, Options))),
 	http_spawned(Id).
 http_spawn(Goal, Options) :-
 	current_output(CGI),
@@ -569,17 +571,13 @@ wrap_spawned(CGI, Goal) :-
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
 
-%%	check_backlog(+MaxBackLog, +Pool)
-%
-%	Check whether the backlog in the pool  has been exceeded. If so,
-%	reply as =busy=, which causes an HTTP 503 response.
-
-check_backlog(BackLog, Pool) :-
-	integer(BackLog),
-	thread_pool_property(Pool, backlog(Waiting)),
-	Waiting > BackLog, !,
+spawn_error(error(resource_error(threads_in_pool(_)), _), _) :-
 	throw(http_reply(busy)).
-check_backlog(_, _).
+spawn_error(error(existence_error(thread_pool, Pool), _), Retry) :-
+	http:create_pool(Pool),
+	call(Retry).
+spawn_error(Error, _) :-
+	throw(Error).
 
 
 		 /*******************************
