@@ -223,6 +223,23 @@ Pause(double t)
   }
 }
 
+
+		 /*******************************
+		 *	  SET FILE SIZE		*
+		 *******************************/
+
+int
+ftruncate(int fileno, int64_t length)
+{ errno_t e;
+
+  if ( (e=_chsize_s(fileno, length)) == 0 )
+    return 0;
+
+  errno = e;
+  return -1;
+}
+
+
 		 /*******************************
 		 *	 QUERY CPU TIME		*
 		 *******************************/
