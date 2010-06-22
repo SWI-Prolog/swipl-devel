@@ -45,6 +45,7 @@
 :- use_module(library(error)).
 :- use_module(library(thread)).
 :- use_module(library(pairs)).
+:- use_module(library(time)).
 
 
 /** <module> RDF persistency plugin
@@ -75,12 +76,14 @@ move the .new to the plain snapshot name as a means of recovery.
 
 :- volatile
 	rdf_directory/1,
+	rdf_lock/2,
 	rdf_option/1,
 	source_journal_fd/2,
 	db_file_base/2,
 	file_base_db/2.
 :- dynamic
 	rdf_directory/1,		% Absolute path
+	rdf_lock/2,			% Dir, Lock
 	rdf_option/1,			% Defined options
 	source_journal_fd/2,		% DB, JournalFD
 	db_file_base/2,			% DB, FileBase
@@ -849,41 +852,49 @@ delete_db(DB) :-
 
 %%	lock_db(+Dir)
 %
-%	Lock the database  directory.  This  isn't   safe  as  the  file
-%	operations are not  atomic.  Needs   re-thinking,  but  with the
-%	normal server setting it should be ok.
+%	Lock the database directory Dir.
 
 lock_db(Dir) :-
 	lockfile(Dir, File),
-	exists_file(File), !,
+	catch(call_with_time_limit(1, open(File, update, Out, [lock(write)])),
+	      _,
+	      locked_error(Dir)),
+	(   current_prolog_flag(pid, PID)
+	->  true
+	;   PID = 0			% TBD: Fix in Prolog
+	),
+	time_stamp(Now),
+	gethostname(Host),
+	format(Out, '/* RDF Database is in use */~n~n', []),
+	format(Out, '~q.~n', [ locked([ time(Now),
+					pid(PID),
+					host(Host)
+				      ])
+			     ]),
+	flush_output(Out),
+	set_end_of_stream(Out),
+	assert(rdf_lock(Dir, lock(Out, File))),
+	at_halt(unlock_db(Out, File)).
+
+locked_error(Dir) :-
+	lockfile(Dir, File),
 	(   catch(read_file_to_terms(File, Terms, []), _, fail),
 	    Terms = [locked(Args)]
 	->  Context = rdf_locked(Args)
 	;   Context = context(_, 'Database is in use')
 	),
 	throw(error(permission_error(lock, rdf_db, Dir), Context)).
-lock_db(Dir) :-
-	lockfile(Dir, File),
-	open(File, write, Out),
-	(   current_prolog_flag(pid, PID)
-	->  true
-	;   PID = 0			% TBD: Fix in Prolog
-	),
-	time_stamp(Now),
-	format(Out, '/* RDF Database is in use */~n~n', []),
-	format(Out, '~q.~n', [ locked([ time(Now),
-					pid(PID)
-				      ])
-			     ]),
-	close(Out),
-	at_halt(unlock_db(Dir)).
+
+%%	unlock_db(+Dir) is det.
+%%	unlock_db(+Stream, +File) is det.
 
 unlock_db(Dir) :-
-	lockfile(Dir, File),
-	(   exists_file(File)
-	->  delete_file(File)
-	;   true
-	).
+	retract(rdf_lock(Dir, lock(Out, File))), !,
+	unlock_db(Out, File).
+
+unlock_db(Out, File) :-
+	close(Out),
+	delete_file(File).
 
 		 /*******************************
 		 *	     FILENAMES		*
