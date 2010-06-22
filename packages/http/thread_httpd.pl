@@ -87,9 +87,9 @@ for details.
 %	Options provide a list of options. Defined options are
 %
 %	| port(?Port)	     | - 	| Port to listen to		      |
-%	| workers(N)	     | 2 	| Define the number of worker threads |
+%	| workers(N)	     | 5 	| Define the number of worker threads |
 %	| timeout(S)	     | 60	| Max inactivity for reading request  |
-%	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
+%	| keep_alive_timeout | 2	| Drop Keep-Alive connection timeout  |
 %	| local(KBytes)	     | <CommandLine> |				      |
 %	| global(KBytes)     | <CommandLine> |				      |
 %	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
@@ -289,7 +289,7 @@ connect(Address) :-
 %	alias http_worker_N.
 
 create_workers(Options) :-
-	option(workers(N), Options, 2),
+	option(workers(N), Options, 5),
 	option(queue(Queue), Options),
 	catch(message_queue_create(Queue), _, true),
 	atom_concat(Queue, '_', AliasBase),
@@ -380,7 +380,7 @@ http_worker(Options) :-
 open_client(requeue(In, Out, Goal, ClOpts),
 	    _, Goal, In, Out, Opts, ClOpts) :- !,
 	memberchk(peer(Peer), ClOpts),
-	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
+	option(keep_alive_timeout(KeepAliveTMO), Opts, 2),
 	check_keep_alife_connection(In, KeepAliveTMO, Peer, In, Out).
 open_client(Message, Queue, Goal, In, Out, _Opts,
 	    [ pool(client(Queue, Goal, In, Out))
