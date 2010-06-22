@@ -142,7 +142,7 @@ $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:plcon.exe pl-ntcon.obj $(PLLIB)
 		editbin /stack:$(STACK) plcon.exe
 		copy plcon.exe $@
-		copy plcon.exe.manifest $@.manifest
+		if exist plcon.exe.manifest copy plcon.exe.manifest $@.manifest
 
 $(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
