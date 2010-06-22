@@ -490,6 +490,7 @@ suggest predicates from a keyword.
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{set_base_module}{1}{Declare the associated global module}
+\predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
 \predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}

@@ -3446,6 +3446,11 @@ Succeeds after the last character of the named stream is read, or
 is only available on buffered input stream (unbuffered input streams
 are rarely used, see open/4).
 
+    \predicate{set_end_of_stream}{1}{+Stream}
+Sets the size of the file opened as \arg{Stream} to the current
+file-position.  This is typically used in combination with the
+open-mode \const{update}.
+
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} codes from stream \arg{StreamIn} to \arg{StreamOut}.
 Note that the copy is done using the semantics of get_code/2 and

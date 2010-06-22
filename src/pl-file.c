@@ -1741,6 +1741,37 @@ error:
 }
 
 
+static
+PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
+{ IOSTREAM *s;
+  int rc;
+
+  if ( (rc=PL_get_stream_handle(A1, &s)) )
+  {
+#ifdef HAVE_FTRUNCATE
+    int fileno = Sfileno(s);
+
+    if ( fileno >= 0 )
+    { if ( ftruncate(fileno, Stell64(s)) != 0 )
+	rc = PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		      ATOM_set_end_of_stream, ATOM_stream,
+		      A1);
+    } else
+    { rc = PL_error(NULL, 0, "not a file", ERR_PERMISSION,
+		    ATOM_set_end_of_stream);
+    }
+#else
+    rc = notImplemented("set_end_of_stream", 1);
+#endif
+
+    releaseStream(s);
+  }
+
+  return rc;
+}
+
+
+
 		/********************************
 		*          STRING I/O           *
 		*********************************/
@@ -4533,6 +4564,7 @@ BeginPredDefs(file)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)
   PRED_DEF("stream_pair", 3, stream_pair, 0)
+  PRED_DEF("set_end_of_stream", 1, set_end_of_stream, 0)
 
 					/* SWI internal */
   PRED_DEF("$push_input_context", 0, push_input_context, 0)
