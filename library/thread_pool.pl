@@ -180,6 +180,8 @@ thread_pool_property(Name, Property) :-
 %
 %	@error	resource_error(threads_in_pool(Pool)) is raised if wait
 %		is =false= or the backlog limit has been reached.
+%	@error	existence_error(thread_pool, Pool) if Pool does not
+%		exist.
 
 thread_create_in_pool(Pool, Goal, Id, Options) :-
 	select_option(wait(Wait), Options, ThreadOptions, true),
