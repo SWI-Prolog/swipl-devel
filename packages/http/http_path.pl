@@ -158,13 +158,13 @@ http_location_path(Alias, Path) :-
 	(   Result = [_-One]
 	->  Path = One
 	;   Result == []
-	->  existence_error(http_location, Spec)
+	->  existence_error(http_alias, Alias)
 	;   Result = [P-Best,P2-_|_],
 	    P \== P2
 	->  Path = Best
 	;   Result = [_-First|_],
 	    pairs_values(Result, Paths),
-	    print_message(warning, http(ambiguous_location(Spec, Paths))),
+	    print_message(warning, http(ambiguous_location(Alias, Paths))),
 	    Path = First
 	).
 
