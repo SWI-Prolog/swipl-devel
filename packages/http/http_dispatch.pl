@@ -844,8 +844,9 @@ prolog:meta_goal(http_current_handler(_, G), [G+1]).
 
 prolog_edit:locate(Path, Spec, Location) :-
 	atom(Path),
+	sub_atom(Path, 0, _, _, /),
 	Pred = _M:_H,
-	http_current_handler(Path, Pred),
+	catch(http_current_handler(Path, Pred), _, fail),
 	closure_name_arity(Pred, 1, PI),
 	prolog_edit:locate(PI, Spec, Location).
 
