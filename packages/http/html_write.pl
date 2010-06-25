@@ -675,7 +675,7 @@ html_quoted_attribute(Text) -->
 %
 %	Reposition HTML to  the  receiving   Id.  The  http_post//2 call
 %	processes HTML using html//1. Embedded   \-commands are executed
-%	by mainman/1 from  print_html/1   or  html_print_length/2. These
+%	by mailman/1 from  print_html/1   or  html_print_length/2. These
 %	commands are called in the calling   context of the html_post//2
 %	call.
 %
