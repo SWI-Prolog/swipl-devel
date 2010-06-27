@@ -777,7 +777,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	  case 'z':			/* Time-zone as offset */
 	  { int min = -ftm->utcoff/60;
 
-	    if ( min > 0 )
+	    if ( min >= 0 )
 	    { OUTCHR(fd, '+');
 	    } else
 	    { min = -min;
