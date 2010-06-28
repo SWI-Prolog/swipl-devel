@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -94,6 +95,8 @@
 	    rdf_save_footer/1,		% +Out
 
 	    rdf_equal/2,		% ?Resource, ?Resource
+	    lang_equal/2,		% +Lang1, +Lang2
+	    lang_matches/2,		% +Lang, +Pattern
 
 	    rdf_current_ns/2,		% ?Alias, ?URI
 	    rdf_register_ns/2,		% +Alias, +URI
@@ -106,7 +109,6 @@
 	    rdf_split_url/3,		% ?Base, ?Local, ?URL
 	    rdf_url_namespace/2,	% +URL, ?Base
 	    rdf_quote_uri/2,		% +URI, -Quoted
-	    lang_matches/2,		% +Lang, +Pattern
 
 	    rdf_debug/1,		% Set verbosity
 
@@ -461,6 +463,17 @@ mk_global(NS:Local, Global) :-
 %	Simple equality test to exploit goal-expansion
 
 rdf_equal(Resource, Resource).
+
+%%	lang_equal(+Lang1, +Lang2) is semidet.
+%
+%	True if two RFC language specifiers denote the same language
+%
+%	@see lang_matches/2.
+
+lang_equal(Lang, Lang) :- !.
+lang_equal(Lang1, Lang2) :-
+	downcase_atom(Lang1, LangCannon),
+	downcase_atom(Lang2, LangCannon).
 
 
 %%	rdf_has(?Subject, +Predicate, ?Object)

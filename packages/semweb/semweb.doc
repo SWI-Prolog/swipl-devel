@@ -1268,6 +1268,10 @@ wildcart \texttt{*}. Identifiers are matched case-insensitive and a
 \texttt{*} matches any number of identifiers.  A short pattern is the
 same as \texttt{*}.
 
+    \predicate{lang_equal}{2}{+Lang1, +Lang2}
+True if \arg{Lang1} and \arg{Lang2} specify the same language, including
+regional and other modifiers.  Language-specifiers are case-insensitive.
+
     \predicate{rdf_reset_db}{0}{}
 Erase all triples from the database and reset all counts and statistics
 information.
