@@ -338,6 +338,7 @@ Syntax Error exceptions:
 	operator_clash
 	operator_expected
 	operator_balance
+	quoted_punctuation
 	list_rest
 
 Error term:
@@ -2873,6 +2874,7 @@ term is to be written.
 	  case '}':
 	  case ']':
 	    syntaxError("cannot_start_term", _PL_rd);
+	  case ',':
 	  case '|':
 	    if ( !must_be_op )
 	    { term_t ex;
