@@ -1016,15 +1016,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
 	  _PL_get_arg(1, t, arg);
 	  TRY(Putc('{', out));
-	  for(;;)
-	  { if ( !PL_is_functor(arg, FUNCTOR_comma2) )
-	      break;
-	    _PL_get_arg(1, arg, a);
-	    TRY(writeTerm(a, 999, options) &&
-		PutComma(options));
-	    _PL_get_arg(2, arg, arg);
-	  }
-	  TRY(writeTerm(arg, 999, options) &&
+	  TRY(writeTerm(arg, 1200, options) &&
 	      Putc('}', out));
 
 	  succeed;
