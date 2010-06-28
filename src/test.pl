@@ -139,9 +139,9 @@ write_test(q-5) :-
 write_test(q-6) :-
 	term_to_atom('*/*', X), X == '*/*'.
 write_test(q-7) :-
-	term_to_atom(p(0|a), X), X == 'p((0 \'|\' a))'.
+	term_to_atom(p((0|a)), X), X == 'p((0 \'|\' a))'.
 write_test(q-8) :-
-	term_to_atom(p(a|b), X), X == 'p((a\'|\'b))'.
+	term_to_atom(p((a|b)), X), X == 'p((a\'|\'b))'.
 write_test(c-1) :-
 	T = [a,b,c|T],
 	term_to_atom(T, X), X == '[a,b,c|**]'.
@@ -1212,8 +1212,8 @@ proc(retract-2) :-
 	Body == (A is B + 3).
 proc(retract-3) :-
 	assert(myunit(1)),
-	assert(myunit(2) :- x),
-	retract(myunit(2) :- X),
+	assert((myunit(2) :- x)),
+	retract((myunit(2) :- X)),
 	X == x,
 	retractall(myunit(_)).		% cleanup
 proc(current_predicate-1) :-

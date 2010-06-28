@@ -22,7 +22,7 @@ test_expand :-
 user:term_expansion(b2c, final_c).
 
 term_expansion(a2b, b2c).
-term_expansion(make_dcg, a --> "").
+term_expansion(make_dcg, (a --> "")).
 
 goal_expansion(g_b, g_c).
 

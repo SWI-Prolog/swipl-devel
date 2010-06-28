@@ -1246,11 +1246,11 @@ term_colours((:- pce_extend_class(_)),
 term_colours((:- pce_end_class),
 	     expanded - [ expanded
 			]).
-term_colours(:- pce_end_class(_),
+term_colours((:- pce_end_class(_)),
 	     expanded - [ expanded - [ identifier
 				     ]
 			]).
-term_colours(:- use_class_template(_),
+term_colours((:- use_class_template(_)),
 	     expanded - [ expanded - [ pce_new
 				     ]
 			]).

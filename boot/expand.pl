@@ -91,8 +91,8 @@ call_term_expansion([M|T], Term0, Term) :-
 	;   call_term_expansion(T, Term0, Term)
 	).
 
-expand_term_2(Head --> Body, Expanded) :-
-	dcg_translate_rule(Head --> Body, Expanded0), !,
+expand_term_2((Head --> Body), Expanded) :-
+	dcg_translate_rule((Head --> Body), Expanded0), !,
 	expand_bodies(Expanded0, Expanded).
 expand_term_2(Term0, Term) :-
 	expand_bodies(Term0, Term).

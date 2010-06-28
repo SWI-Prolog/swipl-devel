@@ -453,7 +453,7 @@ process(Term, Src) :-
 	chr_expandable(Term), !,
 	process_chr(Term, Src).
 process(M:(Head :- Body), Src) :- !,
-	process(M:Head :- M:Body, Src).
+	process((M:Head :- M:Body), Src).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -810,7 +810,7 @@ asserting_goal(asserta(Rule,_), Rule).
 asserting_goal(assertz(Rule,_), Rule).
 
 process_assert(0, _, _) :- !.		% catch variables
-process_assert(_:-Body, Origin, Src) :- !,
+process_assert((_:-Body), Origin, Src) :- !,
 	process_body(Body, Origin, Src).
 process_assert(_, _, _).
 
