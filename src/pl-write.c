@@ -1012,9 +1012,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
       if ( arity == 1 )
       { if ( functor == ATOM_curl )	/* {a,b,c} */
-	{ term_t a = PL_new_term_ref();
-
-	  _PL_get_arg(1, t, arg);
+	{ _PL_get_arg(1, t, arg);
 	  TRY(Putc('{', out));
 	  TRY(writeTerm(arg, 1200, options) &&
 	      Putc('}', out));
