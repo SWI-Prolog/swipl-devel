@@ -13,12 +13,6 @@ in /opt/local/lib/swipl-<version>
 
 Even if you wish to install from the  source the above is recommended as
 it installs all requirements on your system. Next fetch the source, copy
-build.templ  to  build  and  edit  according  to  the  instructions.  In
-particular, uncomment the export lines  in   this  fragment of the build
-file:
-
-# [EDIT] On MacOS you need this to get some libraries from Macports
-# export LIBRARY_PATH=/opt/local/lib
-# export CPATH=/opt/local/include
+build.templ  to  build  and  edit  according  to  the  instructions.
 
 
