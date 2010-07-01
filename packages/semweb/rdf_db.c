@@ -2102,11 +2102,9 @@ free_triple(rdf_db *db, triple *t)
 }
 
 
-#define HASHED 0x80000000
-
 static size_t
 literal_hash(literal *lit)
-{ if ( lit->hash & HASHED )
+{ if ( lit->hash )
   { return lit->hash;
   } else
   { size_t hash;
@@ -2131,7 +2129,10 @@ literal_hash(literal *lit)
 	return 0;
     }
 
-    lit->hash = (hash | HASHED);
+    if ( !hash )
+      hash = 0x1;			/* cannot be 0 */
+
+    lit->hash = hash;
     return lit->hash;
   }
 }
