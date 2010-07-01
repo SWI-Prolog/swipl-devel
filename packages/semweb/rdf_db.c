@@ -547,8 +547,7 @@ Our one and only database (for the time being).
 
 static rdf_db *DB;
 
-//#define ICOL(i) (index_col[i])
-#define ICOL(i) (i)
+#define ICOL(i) (index_col[i])
 
 static const int index_col[16] =
 { 0,					/* BY_NONE */
@@ -556,17 +555,18 @@ static const int index_col[16] =
   2,					/* BY_P */
   3,					/* BY_SP */
   4,					/* BY_O */
-  5,					/* BY_SO */
-  6,					/* BY_PO */
-  7,					/* BY_SPO */
-  8,					/* BY_G */
-  9,					/* BY_SG */
- 10,					/* BY_PG */
- 11,					/* BY_SPG */
- 12,					/* BY_OG */
- 13,					/* BY_SOG */
- 14,					/* BY_POG */
- 15					/* BY_SPOG */
+  ~0,					/* BY_SO */
+  5,					/* BY_PO */
+  6,					/* BY_SPO */
+/* end of indices */
+ ~0,					/* BY_G */
+ ~0,					/* BY_SG */
+ ~0,					/* BY_PG */
+ ~0,					/* BY_SPG */
+ ~0,					/* BY_OG */
+ ~0,					/* BY_SOG */
+ ~0,					/* BY_POG */
+ ~0					/* BY_SPOG */
 };
 
 
@@ -2014,11 +2014,8 @@ init_tables(rdf_db *db)
   db->table[0] = &db->by_none;
   db->tail[0]  = &db->by_none_tail;
 
-  for(i=BY_S; i<INDEX_TABLES; i++)
-  { if ( i == BY_SO )
-      continue;
-
-    db->table[i] = rdf_malloc(db, bytes);
+  for(i=BY_S; i<INDEX_TABLES; i++)		/* TBD: make different tables */
+  { db->table[i] = rdf_malloc(db, bytes); 	/* for different objects */
     memset(db->table[i], 0, bytes);
     db->tail[i] = rdf_malloc(db, bytes);
     memset(db->tail[i], 0, bytes);
@@ -2144,7 +2141,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       assert(0);
   }
 
-  return (int)(v % (long)db->table_size[which]);
+  return (int)(v % (long)db->table_size[ICOL(which)]);
 }
 
 
@@ -2179,7 +2176,7 @@ first(rdf_db *db, atom_t subject)
   tmp.subject = subject;
   hash = triple_hash(db, &tmp, BY_S);
 
-  for(t=db->table[BY_S][hash]; t; t = t->next[BY_S])
+  for(t=db->table[ICOL(BY_S)][hash]; t; t = t->next[ICOL(BY_S)])
   { if ( t->subject == subject && !t->erased )
       return t;
   }
@@ -2192,17 +2189,19 @@ static void
 link_triple_hash(rdf_db *db, triple *t)
 { int i;
 
-  for(i=1; i<INDEX_TABLES; i++)
-  { if ( db->table[i] )
+  for(i=1; i<16; i++)
+  { int ic = ICOL(i);
+
+    if ( ic != ~0 )
     { int hash = triple_hash(db, t, i);
 
-      if ( db->tail[i][hash] )
-      { db->tail[i][hash]->next[i] = t;
+      if ( db->tail[ic][hash] )
+      { db->tail[ic][hash]->next[ic] = t;
       } else
-      { db->table[i][hash] = t;
+      { db->table[ic][hash] = t;
       }
-      db->tail[i][hash] = t;
-      db->counts[i][hash]++;
+      db->tail[ic][hash] = t;
+      db->counts[ic][hash]++;
     }
   }
 }
@@ -2218,7 +2217,7 @@ typedef enum
 static dub_state
 discard_duplicate(rdf_db *db, triple *t)
 { triple *d;
-  const int indexed = BY_SP;
+  const int indexed = BY_SPO;
   dub_state rc = DUP_NONE;
 
   assert(t->is_duplicate == FALSE);
@@ -2260,7 +2259,7 @@ link_triple_silent(rdf_db *db, triple *t)
     return FALSE;
 
   if ( db->by_none_tail )
-    db->by_none_tail->next[BY_NONE] = t;
+    db->by_none_tail->next[ICOL(BY_NONE)] = t;
   else
     db->by_none = t;
   db->by_none_tail = t;
@@ -2338,10 +2337,15 @@ rehash_triples(rdf_db *db)
   if ( !broadcast(EV_REHASH, (void*)ATOM_begin, NULL) )
     return FALSE;
 
-  for(i=1; i<INDEX_TABLES; i++)
+  for(i=1; i<16; i++)
   { size_t ocount;
     int factor;
     size_t tsize;
+    int ic = ICOL(i);
+
+    if ( ic == ~0 )
+      continue;
+    assert(ic < INDEX_TABLES);
 
     switch(i)
     { case BY_S:
@@ -2365,26 +2369,26 @@ rehash_triples(rdf_db *db)
     }
     tsize = tbl_size(ocount, factor);
 
-    if ( db->table[i] )
+    if ( db->table[ic] )
     { size_t bytes   = sizeof(triple*) * tsize;
       size_t cbytes  = sizeof(int)     * tsize;
-      size_t obytes  = sizeof(triple*) * db->table_size[i];
-      size_t ocbytes = sizeof(int)     * db->table_size[i];
+      size_t obytes  = sizeof(triple*) * db->table_size[ic];
+      size_t ocbytes = sizeof(int)     * db->table_size[ic];
 
-      db->table[i]  = rdf_realloc(db, db->table[i],  obytes,  bytes);
-      db->tail[i]   = rdf_realloc(db, db->tail[i],   obytes,  bytes);
-      db->counts[i] = rdf_realloc(db, db->counts[i], ocbytes, cbytes);
-      db->table_size[i] = tsize;
+      db->table[ic]  = rdf_realloc(db, db->table[ic],  obytes,  bytes);
+      db->tail[ic]   = rdf_realloc(db, db->tail[ic],   obytes,  bytes);
+      db->counts[ic] = rdf_realloc(db, db->counts[ic], ocbytes, cbytes);
+      db->table_size[ic] = tsize;
 
-      memset(db->table[i],  0, bytes);
-      memset(db->tail[i],   0, bytes);
-      memset(db->counts[i], 0, cbytes);
+      memset(db->table[ic],  0, bytes);
+      memset(db->tail[ic],   0, bytes);
+      memset(db->counts[ic], 0, cbytes);
     }
   }
 
 					/* delete leading erased triples */
   for(t=db->by_none; t && t->erased; t=t2)
-  { t2 = t->next[BY_NONE];
+  { t2 = t->next[ICOL(BY_NONE)];
 
     free_triple(db, t);
     db->freed++;
@@ -2395,7 +2399,7 @@ rehash_triples(rdf_db *db)
   for(t=db->by_none; t; t = t2)
   { triple *t3;
 
-    t2 = t->next[BY_NONE];
+    t2 = t->next[ICOL(BY_NONE)];
 
     for(i=1; i<INDEX_TABLES; i++)
       t->next[i] = NULL;
@@ -2404,13 +2408,13 @@ rehash_triples(rdf_db *db)
     link_triple_hash(db, t);
 
     for( ; t2 && t2->erased; t2=t3 )
-    { t3 = t2->next[BY_NONE];
+    { t3 = t2->next[ICOL(BY_NONE)];
 
       free_triple(db, t2);
       db->freed++;
     }
 
-    t->next[BY_NONE] = t2;
+    t->next[ICOL(BY_NONE)] = t2;
     if ( !t2 )
       db->by_none_tail = t;
   }
@@ -2441,7 +2445,7 @@ WANT_GC(rdf_db *db)
 
     if ( dirty > 1000 && dirty > count )
       return TRUE;
-    if ( count > db->table_size[BY_SPO]*MAX_HASH_FACTOR )
+    if ( count > db->table_size[ICOL(BY_SPO)]*MAX_HASH_FACTOR )
       return TRUE;
 
     return FALSE;
@@ -2964,7 +2968,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     return FALSE;
   }
 
-  for(t = db->by_none; t; t = t->next[BY_NONE])
+  for(t = db->by_none; t; t = t->next[ICOL(BY_NONE)])
   { if ( !t->erased &&
 	 (!src || t->graph == src) )
     { write_triple(db, out, t, &ctx);
@@ -3266,7 +3270,7 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	  return FALSE;
 
 	if ( tail )
-	{ tail->next[BY_NONE] = t;
+	{ tail->next[ICOL(BY_NONE)] = t;
 	  tail = t;
 	} else
 	{ list = tail = t;
@@ -3342,9 +3346,9 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
   { triple *next;
 
     for( ; t; t = next )
-    { next = t->next[BY_NONE];
+    { next = t->next[ICOL(BY_NONE)];
 
-      t->next[BY_NONE] = NULL;
+      t->next[ICOL(BY_NONE)] = NULL;
       lock_atoms(t);
       record_transaction(db, TR_ASSERT, t);
     }
@@ -3352,9 +3356,9 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
   { triple *next;
 
     for( ; t; t = next )
-    { next = t->next[BY_NONE];
+    { next = t->next[ICOL(BY_NONE)];
 
-      t->next[BY_NONE] = NULL;
+      t->next[ICOL(BY_NONE)] = NULL;
       lock_atoms(t);
       if ( link_triple_silent(db, t) )
 	broadcast(EV_ASSERT_LOAD, t, NULL);
@@ -5669,7 +5673,7 @@ rdf_subject(term_t subject, control_t h)
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
     { if ( PL_is_variable(subject) )
-      { t = db->table[BY_NONE][0];
+      { t = db->table[ICOL(BY_NONE)][0];
 	goto next;
       } else
       { atom_t a;
@@ -5686,12 +5690,12 @@ rdf_subject(term_t subject, control_t h)
     case PL_REDO:
       t = PL_foreign_context_address(h);
     next:
-      for(; t; t = t->next[BY_NONE])
+      for(; t; t = t->next[ICOL(BY_NONE)])
       { if ( t->first && !t->erased )
 	{ if ( !PL_unify_atom(subject, t->subject) )
 	    return FALSE;
 
-	  t = t->next[BY_NONE];
+	  t = t->next[ICOL(BY_NONE)];
 	  if ( t )
 	    PL_retry_address(t);
 	  return TRUE;
@@ -6466,7 +6470,7 @@ erase_triples(rdf_db *db)
   int i;
 
   for(t=db->by_none; t; t=n)
-  { n = t->next[BY_NONE];
+  { n = t->next[ICOL(BY_NONE)];
 
     free_triple(db, t);
     db->freed++;

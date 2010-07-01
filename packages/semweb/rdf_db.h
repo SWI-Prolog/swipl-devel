@@ -68,7 +68,7 @@
 #define BY_OPG	(BY_P|BY_O|BY_G)	/* 14 */
 #define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
-#define INDEX_TABLES 		        8
+#define INDEX_TABLES 		        7
 #define INITIAL_TABLE_SIZE   		1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
