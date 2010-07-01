@@ -1660,16 +1660,18 @@ new_literal(rdf_db *db)
 }
 
 
-static void
+static int
 free_literal(rdf_db *db, literal *lit)
-{ if ( --lit->references == 0 )
+{ int rc = TRUE;
+
+  if ( --lit->references == 0 )
   { unlock_atoms_literal(lit);
 
     if ( lit->shared && !db->resetting )
     { literal_ex lex;
 
       lit->shared = FALSE;
-      broadcast(EV_OLD_LITERAL, lit, NULL);
+      rc = broadcast(EV_OLD_LITERAL, lit, NULL);
       DEBUG(2,
 	    Sdprintf("Delete %p from literal table: ", lit);
 	    print_literal(lit);
@@ -1695,6 +1697,8 @@ free_literal(rdf_db *db, literal *lit)
     }
     rdf_free(db, lit, sizeof(*lit));
   }
+
+  return rc;
 }
 
 
@@ -2265,10 +2269,12 @@ ok:
 }
 
 
-static inline void
+static inline int
 link_triple(rdf_db *db, triple *t)
 { if ( link_triple_silent(db, t) )
-    broadcast(EV_ASSERT, t, NULL);
+    return broadcast(EV_ASSERT, t, NULL);
+
+  return TRUE;
 }
 
 
@@ -2295,7 +2301,7 @@ tbl_size(long triples)
 }
 
 
-static void
+static int
 rehash_triples(rdf_db *db)
 { int i;
   triple *t, *t2;
@@ -2303,7 +2309,8 @@ rehash_triples(rdf_db *db)
   long tsize = tbl_size(count);
 
   DEBUG(1, Sdprintf("(%ld triples; %ld entries) ...", count, tsize));
-  broadcast(EV_REHASH, (void*)ATOM_begin, NULL);
+  if ( !broadcast(EV_REHASH, (void*)ATOM_begin, NULL) )
+    return FALSE;
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
@@ -2359,7 +2366,7 @@ rehash_triples(rdf_db *db)
   if ( db->by_none == NULL )
     db->by_none_tail = NULL;
 
-  broadcast(EV_REHASH, (void*)ATOM_end, NULL);
+  return broadcast(EV_REHASH, (void*)ATOM_end, NULL);
 }
 
 
@@ -2466,10 +2473,13 @@ erase_triple_silent(rdf_db *db, triple *t)
 }
 
 
-static inline void
+static inline int
 erase_triple(rdf_db *db, triple *t)
-{ broadcast(EV_RETRACT, t, NULL);
+{ int rc;
+
+  rc = broadcast(EV_RETRACT, t, NULL);
   erase_triple_silent(db, t);
+  return rc;
 }
 
 
@@ -5132,6 +5142,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
 { term_t a = PL_new_term_ref();
   triple tmp, *new;
   int i;
+  int rc = TRUE;
 					/* Create copy in local memory */
   tmp = *t;
   tmp.allocated = FALSE;
@@ -5223,13 +5234,17 @@ update_triple(rdf_db *db, term_t action, triple *t)
   if ( db->tr_first )
   { record_update_transaction(db, t, new);
   } else
-  { broadcast(EV_UPDATE, t, new);
-    erase_triple_silent(db, t);
-    link_triple_silent(db, new);
-    db->generation++;
+  { if ( broadcast(EV_UPDATE, t, new) )
+    { erase_triple_silent(db, t);
+      link_triple_silent(db, new);
+      db->generation++;
+    } else
+    { free_triple(db, new);
+      rc = FALSE;
+    }
   }
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -5362,7 +5377,7 @@ static long joined_mask = 0L;
 static broadcast_callback *callback_list;
 static broadcast_callback *callback_tail;
 
-static void
+static int
 do_broadcast(term_t term, long mask)
 { if ( callback_list )
   { broadcast_callback *cb;
@@ -5386,30 +5401,22 @@ do_broadcast(term_t term, long mask)
 	PL_call_predicate(NULL, PL_Q_NORMAL,
 			  PL_predicate("print_message", 2, "user"),
 			  av);
+	return FALSE;
       } else
       { PL_close_query(qid);
       }
     }
   }
-}
 
-
-/* No longer used, but we keep it for if we need it again
-static foreign_t
-rdf_broadcast(term_t term, term_t mask)
-{ long msk;
-
-  if ( !get_long_ex(mask, &msk) )
-    return FALSE;
-
-  do_broadcast(term, msk);
   return TRUE;
 }
-*/
+
 
 static int
 broadcast(broadcast_id id, void *a1, void *a2)
-{ if ( (joined_mask & id) )
+{ int rc = TRUE;
+
+  if ( (joined_mask & id) )
   { fid_t fid;
     term_t term;
     functor_t funct;
@@ -5533,12 +5540,12 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	assert(0);
     }
 
-    do_broadcast(term, id);
+    rc = do_broadcast(term, id);
 
     PL_discard_foreign_frame(fid);
   }
 
-  return TRUE;
+  return rc;
 }
 
 
