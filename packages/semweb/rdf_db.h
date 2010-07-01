@@ -60,7 +60,7 @@
 #define BY_SO	(BY_S|BY_O)		/* 5 */
 #define BY_OP	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
-#define BY_SG	(BY_S|BY_G)		/* 8 */
+#define BY_SG	(BY_S|BY_G)		/* 9 */
 #define BY_PG	(BY_P|BY_G)		/* 10 */
 #define BY_SPG	(BY_S|BY_P|BY_G)	/* 11 */
 #define BY_OG	(BY_O|BY_G)		/* 12 */
@@ -69,7 +69,7 @@
 #define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
 #define INDEX_TABLES 		        8
-#define INITIAL_TABLE_SIZE   		8*1024
+#define INITIAL_TABLE_SIZE   		1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
 

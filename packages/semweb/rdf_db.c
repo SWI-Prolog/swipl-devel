@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 2002-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -545,6 +546,28 @@ Our one and only database (for the time being).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static rdf_db *DB;
+
+//#define ICOL(i) (index_col[i])
+#define ICOL(i) (i)
+
+static const int index_col[16] =
+{ 0,					/* BY_NONE */
+  1,					/* BY_S */
+  2,					/* BY_P */
+  3,					/* BY_SP */
+  4,					/* BY_O */
+  5,					/* BY_SO */
+  6,					/* BY_PO */
+  7,					/* BY_SPO */
+  8,					/* BY_G */
+  9,					/* BY_SG */
+ 10,					/* BY_PG */
+ 11,					/* BY_SPG */
+ 12,					/* BY_OG */
+ 13,					/* BY_SOG */
+ 14,					/* BY_POG */
+ 15					/* BY_SPOG */
+};
 
 
 		 /*******************************
@@ -1283,9 +1306,9 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
 
     init_atomset(&subject_set);
     init_atomset(&object_set);
-    for(byp = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
+    for(byp = db->table[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
 	byp;
-	byp = byp->next[t.indexed])
+	byp = byp->next[ICOL(t.indexed)])
     { if ( !byp->erased && !byp->is_duplicate )
       { if ( (which == DISTINCT_DIRECT && byp->predicate.r == p) ||
 	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate.r, p)) )
@@ -2203,8 +2226,8 @@ discard_duplicate(rdf_db *db, triple *t)
 
   if ( WANT_GC(db) )			/* (*) See above */
     update_hash(db);
-  d = db->table[indexed][triple_hash(db, t, indexed)];
-  for( ; d && d != t; d = d->next[indexed] )
+  d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
+  for( ; d && d != t; d = d->next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
     { if ( d->graph == t->graph &&
 	   (d->line == NO_LINE || d->line == t->line) )
@@ -4157,8 +4180,8 @@ update_duplicates_add(rdf_db *db, triple *t)
 
   if ( WANT_GC(db) )			/* (*) See above */
     update_hash(db);
-  d = db->table[indexed][triple_hash(db, t, indexed)];
-  for( ; d && d != t; d = d->next[indexed] )
+  d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
+  for( ; d && d != t; d = d->next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
     { t->is_duplicate = TRUE;
       assert( !d->is_duplicate );
@@ -4194,8 +4217,8 @@ update_duplicates_del(rdf_db *db, triple *t)
 	  Sdprintf(": DEL principal %p, %d duplicates: ", t, t->duplicates));
 
     db->duplicates--;
-    d = db->table[indexed][triple_hash(db, t, indexed)];
-    for( ; d; d = d->next[indexed] )
+    d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
+    for( ; d; d = d->next[ICOL(indexed)] )
     { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
@@ -4217,8 +4240,8 @@ update_duplicates_del(rdf_db *db, triple *t)
 	  Sdprintf(": DEL: is a duplicate: "));
 
     db->duplicates--;
-    d = db->table[indexed][triple_hash(db, t, indexed)];
-    for( ; d; d = d->next[indexed] )
+    d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
+    for( ; d; d = d->next[ICOL(indexed)] )
     { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { if ( d->duplicates )
 	{ d->duplicates--;
@@ -4776,8 +4799,8 @@ init_cursor_from_literal(search_state *state, literal *cursor)
       assert(0);
   }
 
-  i = (int)(iv % (long)state->db->table_size[p->indexed]);
-  state->cursor = state->db->table[p->indexed][i];
+  i = (int)(iv % (long)state->db->table_size[ICOL(p->indexed)]);
+  state->cursor = state->db->table[ICOL(p->indexed)][i];
   state->literal_cursor = cursor;
 }
 
@@ -4831,7 +4854,7 @@ init_search_state(search_state *state)
       return FALSE;
     }
   } else
-  { state->cursor = state->db->table[p->indexed]
+  { state->cursor = state->db->table[ICOL(p->indexed)]
     				    [triple_hash(state->db, p, p->indexed)];
   }
 
@@ -4882,7 +4905,7 @@ next_search_state(search_state *state)
   triple *p = &state->pattern;
 
 retry:
-  for( ; t; t = t->next[p->indexed])
+  for( ; t; t = t->next[ICOL(p->indexed)])
   { if ( t->is_duplicate && !state->src )
       continue;
 
@@ -4903,9 +4926,9 @@ retry:
 	  return FALSE;
       }
 
-      t=t->next[p->indexed];
+      t=t->next[ICOL(p->indexed)];
     inv_alt:
-      for(; t; t = t->next[p->indexed])
+      for(; t; t = t->next[ICOL(p->indexed)])
       { if ( state->literal_state )
 	{ if ( !(t->object_is_literal &&
 		 t->object.literal == state->literal_cursor) )
@@ -4920,7 +4943,8 @@ retry:
       }
 
       if ( (state->flags & MATCH_INVERSE) && inverse_partial_triple(p) )
-      { t = state->db->table[p->indexed][triple_hash(state->db, p, p->indexed)];
+      { t = state->db->table[ICOL(p->indexed)]
+			    [triple_hash(state->db, p, p->indexed)];
 	goto inv_alt;
       }
 
@@ -4930,7 +4954,7 @@ retry:
   }
 
   if ( (state->flags & MATCH_INVERSE) && inverse_partial_triple(p) )
-  { t = state->db->table[p->indexed][triple_hash(state->db, p, p->indexed)];
+  { t = state->db->table[ICOL(p->indexed)][triple_hash(state->db, p, p->indexed)];
     goto retry;
   }
 
@@ -5093,7 +5117,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   { c = t.predicate.r->triple_count;		/* must sum over children */
 #endif
   } else
-  { c = db->counts[t.indexed][triple_hash(db, &t, t.indexed)];
+  { c = db->counts[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
   }
 
   rc = PL_unify_integer(complexity, c);
@@ -5303,8 +5327,8 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
     free_triple(db, &t);
     return FALSE;
   }
-  p = db->table[indexed][triple_hash(db, &t, indexed)];
-  for( ; p; p = p->next[indexed])
+  p = db->table[ICOL(indexed)][triple_hash(db, &t, indexed)];
+  for( ; p; p = p->next[ICOL(indexed)])
   { if ( match_triples(p, &t, MATCH_EXACT) )
     { if ( !update_triple(db, action, p) )
       { WRUNLOCK(db);
@@ -5355,8 +5379,8 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
     return FALSE;
   }
 */
-  p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
-  for( ; p; p = p->next[t.indexed])
+  p = db->table[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
+  for( ; p; p = p->next[ICOL(t.indexed)])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
     { if ( t.object_is_literal && t.object.literal->objtype == OBJ_TERM )
       { fid_t fid = PL_open_foreign_frame();
@@ -6060,8 +6084,8 @@ can_reach_target(rdf_db *db, agenda *a)
     indexed |= BY_S;
   }
 
-  p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->next[indexed])
+  p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
+  for( ; p; p = p->next[ICOL(indexed)])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
     { rc = TRUE;
       break;
@@ -6095,8 +6119,8 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
   { return append_agenda(db, a, a->target, d);
   }
 
-  p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->next[indexed])
+  p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
+  for( ; p; p = p->next[ICOL(indexed)])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
     { atom_t found;
       visited *v;
