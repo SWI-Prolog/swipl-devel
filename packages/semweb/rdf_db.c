@@ -1131,7 +1131,7 @@ fill_reachable(bitmatrix *bm, predicate *p0, predicate *p)
 { if ( !testbit(bm, p0->label, p->label) )
   { cell *c;
 
-    DEBUG(1, Sdprintf("    Reachable [%s (%d)]\n", pname(p), p->label));
+    DEBUG(2, Sdprintf("    Reachable [%s (%d)]\n", pname(p), p->label));
     setbit(bm, p0->label, p->label);
     for(c = p->subPropertyOf.head; c; c=c->next)
       fill_reachable(bm, p0, c->value);
@@ -1991,7 +1991,7 @@ init_tables(rdf_db *db)
   db->table[0] = &db->by_none;
   db->tail[0]  = &db->by_none_tail;
 
-  for(i=BY_S; i<=BY_OP; i++)
+  for(i=BY_S; i<INDEX_TABLES; i++)
   { if ( i == BY_SO )
       continue;
 
@@ -2111,6 +2111,11 @@ triple_hash(rdf_db *db, triple *t, int which)
     case BY_OP:
       v = predicate_hash(t->predicate.r) ^ object_hash(t);
       break;
+    case BY_SPO:
+      v = atom_hash(t->subject) ^
+          predicate_hash(t->predicate.r) ^
+	  object_hash(t);
+      break;
     default:
       v = 0;				/* make compiler silent */
       assert(0);
@@ -2133,7 +2138,7 @@ static int by_inverse[8] =
   BY_S,					/* BY_O    = 4 */
   BY_SO,				/* BY_SO   = 5 */
   BY_SP,				/* BY_OP   = 6 */
-  BY_SPO,				/* BY_SPO  = 7 */
+  BY_SP,				/* BY_SPO  = 7 */
 };
 
 
@@ -2164,7 +2169,7 @@ static void
 link_triple_hash(rdf_db *db, triple *t)
 { int i;
 
-  for(i=1; i<=BY_OP; i++)
+  for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
     { int hash = triple_hash(db, t, i);
 
@@ -3870,10 +3875,7 @@ get_partial_triple(rdf_db *db,
   db->indexed[t->indexed]++;		/* statistics */
 
   switch(t->indexed)
-  { case BY_SPO:
-      t->indexed = BY_SP;
-      break;
-    case BY_SO:
+  { case BY_SO:
       t->indexed = BY_S;
       break;
   }
@@ -4104,9 +4106,6 @@ using  the  flag  is_duplicate.  The  `principal'  triple  has  a  count
 `duplicates',  indicating  the  number  of   duplicate  triples  in  the
 database.
 
-It might make sense to  introduce  the   BY_SPO  table  as fully indexed
-lookups are frequent with the introduction of duplicate detection.
-
 (*) Iff too many triples are  added,  it   may  be  time  to enlarge the
 hashtable. Note that we do not call  update_hash() blindly as this would
 cause each triple that  modifies  the   predicate  hierarchy  to force a
@@ -4119,7 +4118,7 @@ be updated on the first real query.
 static int
 update_duplicates_add(rdf_db *db, triple *t)
 { triple *d;
-  const int indexed = BY_SP;
+  const int indexed = BY_SPO;
 
   assert(t->is_duplicate == FALSE);
   assert(t->duplicates == 0);
@@ -4153,7 +4152,7 @@ update_duplicates_add(rdf_db *db, triple *t)
 
 static void				/* t is about to be deleted */
 update_duplicates_del(rdf_db *db, triple *t)
-{ const int indexed = BY_SP;
+{ const int indexed = BY_SPO;
 
   if ( t->duplicates )			/* I am the principal one */
   { triple *d;
@@ -5253,7 +5252,7 @@ static foreign_t
 rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
 	    term_t action)
 { triple t, *p;
-  int indexed = BY_SP;
+  int indexed = BY_SPO;
   int done = 0;
   rdf_db *db = DB;
 
@@ -6418,7 +6417,7 @@ erase_triples(rdf_db *db)
   }
   db->by_none = db->by_none_tail = NULL;
 
-  for(i=BY_S; i<=BY_OP; i++)
+  for(i=BY_S; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
     { int bytes = sizeof(triple*) * db->table_size[i];
 

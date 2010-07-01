@@ -60,7 +60,7 @@
 #define BY_OP	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
 
-#define INDEX_TABLES 		        7
+#define INDEX_TABLES 		        8
 #define INITIAL_TABLE_SIZE   		8*1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
