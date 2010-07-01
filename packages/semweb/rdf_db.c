@@ -255,7 +255,7 @@ static void lock_atoms(triple *t);
 static void unlock_atoms_literal(literal *lit);
 static int  update_hash(rdf_db *db);
 static int  triple_hash(rdf_db *db, triple *t, int which);
-static unsigned long object_hash(triple *t);
+static size_t	object_hash(triple *t);
 static void	reset_db(rdf_db *db);
 
 static void	record_transaction(rdf_db *db,
@@ -1079,7 +1079,7 @@ split_cloud(rdf_db *db, predicate_cloud *cloud,
 }
 
 
-static unsigned long
+static size_t
 predicate_hash(predicate *p)
 { return p->hash;
 }
@@ -2104,12 +2104,12 @@ free_triple(rdf_db *db, triple *t)
 
 #define HASHED 0x80000000
 
-static unsigned int
+static size_t
 literal_hash(literal *lit)
 { if ( lit->hash & HASHED )
   { return lit->hash;
   } else
-  { unsigned int hash;
+  { size_t hash;
 
     switch(lit->objtype)
     { case OBJ_STRING:
@@ -2137,7 +2137,7 @@ literal_hash(literal *lit)
 }
 
 
-static unsigned long
+static size_t
 object_hash(triple *t)
 { if ( t->object_is_literal )
   { return literal_hash(t->object.literal);
@@ -2149,7 +2149,7 @@ object_hash(triple *t)
 
 static int
 triple_hash(rdf_db *db, triple *t, int which)
-{ unsigned long v;
+{ size_t v;
 
   switch(which)
   { case BY_NONE:
@@ -2185,7 +2185,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       assert(0);
   }
 
-  return (int)(v % (long)db->table_size[ICOL(which)]);
+  return (int)(v % db->table_size[ICOL(which)]);
 }
 
 
@@ -2258,7 +2258,7 @@ typedef enum
 static dub_state
 discard_duplicate(rdf_db *db, triple *t)
 { triple *d;
-  const int indexed = BY_SPO;
+  const int indexed = BY_SP;
   dub_state rc = DUP_NONE;
 
   assert(t->is_duplicate == FALSE);

@@ -109,7 +109,7 @@ typedef struct predicate
   list	            siblings;		/* reverse of subPropertyOf */
   int		    label;		/* Numeric label in cloud */
   struct predicate_cloud *cloud;	/* cloud I belong to */
-  unsigned int	    hash;		/* key used for hashing
+  size_t	    hash;		/* key used for hashing
   					   (=hash if ->cloud is up-to-date) */
 					/* properties */
   struct predicate *inverse_of;		/* my inverse predicate */
