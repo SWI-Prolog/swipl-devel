@@ -2294,10 +2294,10 @@ At the same time, this predicate actually removes erased triples.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-tbl_size(size_t triples)
-{ size_t s0 = 1024;
+tbl_size(size_t triples, int factor)
+{ size_t s0 = 256;
 
-  triples /= MIN_HASH_FACTOR;
+  triples /= factor;
 
   while(s0 < triples)
     s0 *= 2;
@@ -2310,15 +2310,39 @@ static int
 rehash_triples(rdf_db *db)
 { int i;
   triple *t, *t2;
-  size_t count = db->created - db->freed;
-  size_t tsize = tbl_size(count);
 
-  DEBUG(1, Sdprintf("(%ld triples; %ld entries) ...", count, tsize));
+  DEBUG(1, Sdprintf("(%ld triples ...", (long)(db->created - db->freed)));
   if ( !broadcast(EV_REHASH, (void*)ATOM_begin, NULL) )
     return FALSE;
 
   for(i=1; i<INDEX_TABLES; i++)
-  { if ( db->table[i] )
+  { size_t ocount;
+    int factor;
+    size_t tsize;
+
+    switch(i)
+    { case BY_S:
+	ocount = db->subjects;
+        factor = 2;
+	break;
+      case BY_P:
+	ocount = db->pred_count;
+        factor = 2;
+	break;
+      case BY_O:
+      case BY_SP:
+      case BY_SO:
+      case BY_OP:
+      case BY_SPO:
+	ocount = db->created - db->freed;
+        factor = MIN_HASH_FACTOR;
+        break;
+      default:
+	assert(0);
+    }
+    tsize = tbl_size(ocount, factor);
+
+    if ( db->table[i] )
     { size_t bytes   = sizeof(triple*) * tsize;
       size_t cbytes  = sizeof(int)     * tsize;
       size_t obytes  = sizeof(triple*) * db->table_size[i];
@@ -2394,7 +2418,7 @@ WANT_GC(rdf_db *db)
 
     if ( dirty > 1000 && dirty > count )
       return TRUE;
-    if ( count > db->table_size[1]*MAX_HASH_FACTOR )
+    if ( count > db->table_size[BY_SPO]*MAX_HASH_FACTOR )
       return TRUE;
 
     return FALSE;
