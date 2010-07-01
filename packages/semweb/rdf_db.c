@@ -2293,9 +2293,9 @@ there are no active queries and the tables are of the proper size.
 At the same time, this predicate actually removes erased triples.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static long
-tbl_size(long triples)
-{ long s0 = 1024;
+static size_t
+tbl_size(size_t triples)
+{ size_t s0 = 1024;
 
   triples /= MIN_HASH_FACTOR;
 
@@ -2310,8 +2310,8 @@ static int
 rehash_triples(rdf_db *db)
 { int i;
   triple *t, *t2;
-  long count = db->created - db->freed;
-  long tsize = tbl_size(count);
+  size_t count = db->created - db->freed;
+  size_t tsize = tbl_size(count);
 
   DEBUG(1, Sdprintf("(%ld triples; %ld entries) ...", count, tsize));
   if ( !broadcast(EV_REHASH, (void*)ATOM_begin, NULL) )
@@ -2319,10 +2319,10 @@ rehash_triples(rdf_db *db)
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
-    { long bytes   = sizeof(triple*) * tsize;
-      long cbytes  = sizeof(int)     * tsize;
-      long obytes  = sizeof(triple*) * db->table_size[i];
-      long ocbytes = sizeof(int)     * db->table_size[i];
+    { size_t bytes   = sizeof(triple*) * tsize;
+      size_t cbytes  = sizeof(int)     * tsize;
+      size_t obytes  = sizeof(triple*) * db->table_size[i];
+      size_t ocbytes = sizeof(int)     * db->table_size[i];
 
       db->table[i]  = rdf_realloc(db, db->table[i],  obytes,  bytes);
       db->tail[i]   = rdf_realloc(db, db->tail[i],   obytes,  bytes);
@@ -2386,8 +2386,11 @@ WANT_GC(rdf_db *db)
 { if ( db->gc_blocked )
   { return FALSE;
   } else
-  { long dirty = db->erased - db->freed;
-    long count = db->created - db->erased;
+  { size_t dirty = db->erased - db->freed;
+    size_t count = db->created - db->erased;
+
+    assert(db->erased >= db->freed);
+    assert(db->created >= db->erased);
 
     if ( dirty > 1000 && dirty > count )
       return TRUE;

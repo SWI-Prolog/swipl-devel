@@ -235,12 +235,12 @@ typedef struct rdf_db
   triple      **table[INDEX_TABLES];
   triple      **tail[INDEX_TABLES];
   int	       *counts[INDEX_TABLES];
-  int		table_size[INDEX_TABLES];
-  long		created;		/* #triples created */
-  long		erased;			/* #triples erased */
-  long		freed;			/* #triples actually erased */
-  long		subjects;		/* subjects (unique first) */
-  long		indexed[8];		/* Count calls */
+  size_t	table_size[INDEX_TABLES];
+  size_t	created;		/* #triples created */
+  size_t	erased;			/* #triples erased */
+  size_t	freed;			/* #triples actually erased */
+  size_t	subjects;		/* subjects (unique first) */
+  size_t	indexed[8];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
   int		gc_blocked;		/* GC is blocked; */
@@ -253,9 +253,9 @@ typedef struct rdf_db
   unsigned long next_hash;		/* cloud hash keys */
   int		active_queries;		/* Calls with choicepoints */
   int		need_update;		/* We need to update */
-  long		agenda_created;		/* #visited nodes in agenda */
-  long		duplicates;		/* #duplicate triples */
-  long		generation;		/* generation-id of the database */
+  size_t	agenda_created;		/* #visited nodes in agenda */
+  size_t	duplicates;		/* #duplicate triples */
+  size_t	generation;		/* generation-id of the database */
   graph       **graph_table;		/* Hash table of sources */
   int      	graph_table_size;	/* Entries in table */
 
