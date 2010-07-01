@@ -547,6 +547,12 @@ Our one and only database (for the time being).
 
 static rdf_db *DB;
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This table maps from the index bit-vector   (0..15)  to the place of the
+hash-link in the db->table and triple next-links.  A value ~0 means that
+there is no index for this particular instantiation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define ICOL(i) (index_col[i])
 
 static const int index_col[16] =
@@ -558,15 +564,35 @@ static const int index_col[16] =
   ~0,					/* BY_SO */
   5,					/* BY_PO */
   6,					/* BY_SPO */
-/* end of indices */
+
  ~0,					/* BY_G */
- ~0,					/* BY_SG */
- ~0,					/* BY_PG */
+  7,					/* BY_SG */
+  8,					/* BY_PG */
  ~0,					/* BY_SPG */
  ~0,					/* BY_OG */
  ~0,					/* BY_SOG */
  ~0,					/* BY_POG */
  ~0					/* BY_SPOG */
+};
+
+static const int alt_index[16] =
+{ BY_NONE,				/* BY_NONE */
+  BY_S,					/* BY_S */
+  BY_P,					/* BY_P */
+  BY_SP,				/* BY_SP */
+  BY_O,					/* BY_O */
+  BY_S,					/* BY_SO */
+  BY_PO,				/* BY_PO */
+  BY_SPO,				/* BY_SPO */
+
+  BY_NONE,				/* BY_G */
+  BY_SG,				/* BY_SG */
+  BY_PG,				/* BY_PG */
+  BY_SP,				/* BY_SPG */
+  BY_O,					/* BY_OG */
+  BY_S,					/* BY_SOG */
+  BY_PO,				/* BY_POG */
+  BY_SPO				/* BY_SPOG */
 };
 
 
@@ -2014,14 +2040,20 @@ init_tables(rdf_db *db)
   db->table[0] = &db->by_none;
   db->tail[0]  = &db->by_none_tail;
 
-  for(i=BY_S; i<INDEX_TABLES; i++)		/* TBD: make different tables */
-  { db->table[i] = rdf_malloc(db, bytes); 	/* for different objects */
-    memset(db->table[i], 0, bytes);
-    db->tail[i] = rdf_malloc(db, bytes);
-    memset(db->tail[i], 0, bytes);
-    db->counts[i] = rdf_malloc(db, cbytes);
-    memset(db->counts[i], 0, cbytes);
-    db->table_size[i] = INITIAL_TABLE_SIZE;
+  for(i=BY_S; i<16; i++)
+  { int ic = ICOL(i);
+
+    if ( ic == ~0 )
+      continue;
+    assert(ic<INDEX_TABLES);
+
+    db->table[ic] = rdf_malloc(db, bytes);
+    memset(db->table[ic], 0, bytes);
+    db->tail[ic] = rdf_malloc(db, bytes);
+    memset(db->tail[ic], 0, bytes);
+    db->counts[ic] = rdf_malloc(db, cbytes);
+    memset(db->counts[ic], 0, cbytes);
+    db->table_size[ic] = INITIAL_TABLE_SIZE;
   }
 
   init_pred_table(db);
@@ -2128,13 +2160,19 @@ triple_hash(rdf_db *db, triple *t, int which)
     case BY_SP:
       v = atom_hash(t->subject) ^ predicate_hash(t->predicate.r);
       break;
-    case BY_OP:
+    case BY_PO:
       v = predicate_hash(t->predicate.r) ^ object_hash(t);
       break;
     case BY_SPO:
       v = atom_hash(t->subject) ^
           predicate_hash(t->predicate.r) ^
 	  object_hash(t);
+      break;
+    case BY_SG:
+      v = atom_hash(t->subject) ^ atom_hash(t->graph);
+      break;
+    case BY_PG:
+      v = atom_hash(t->subject) ^ atom_hash(t->graph);
       break;
     default:
       v = 0;				/* make compiler silent */
@@ -2154,10 +2192,10 @@ static int by_inverse[8] =
 { BY_NONE,				/* BY_NONE = 0 */
   BY_O,					/* BY_S    = 1 */
   BY_P,					/* BY_P    = 2 */
-  BY_OP,				/* BY_SP   = 3 */
+  BY_PO,				/* BY_SP   = 3 */
   BY_S,					/* BY_O    = 4 */
   BY_SO,				/* BY_SO   = 5 */
-  BY_SP,				/* BY_OP   = 6 */
+  BY_SP,				/* BY_PO   = 6 */
   BY_SP,				/* BY_SPO  = 7 */
 };
 
@@ -2349,17 +2387,19 @@ rehash_triples(rdf_db *db)
 
     switch(i)
     { case BY_S:
+      case BY_SG:
 	ocount = db->subjects;
         factor = 2;
 	break;
       case BY_P:
+      case BY_PG:
 	ocount = db->pred_count;
         factor = 2;
 	break;
       case BY_O:
       case BY_SP:
       case BY_SO:
-      case BY_OP:
+      case BY_PO:
       case BY_SPO:
 	ocount = db->created - db->freed;
         factor = MIN_HASH_FACTOR;
@@ -3862,6 +3902,7 @@ get_partial_triple(rdf_db *db,
 		   term_t subject, term_t predicate, term_t object,
 		   term_t src, triple *t)
 { int rc;
+  int ipat = 0;
 
   if ( subject && !get_resource_or_var_ex(subject, &t->subject) )
     return FALSE;
@@ -3913,31 +3954,24 @@ get_partial_triple(rdf_db *db,
     return FALSE;
 
   if ( t->subject )
-    t->indexed |= BY_S;
+    ipat |= BY_S;
   if ( t->predicate.r )
-    t->indexed |= BY_P;
+    ipat |= BY_P;
   if ( t->object_is_literal )
   { literal *lit = t->object.literal;
 
     if ( lit->objtype == OBJ_STRING &&
 	 lit->value.string &&
 	 t->match <= STR_MATCH_EXACT )
-      t->indexed |= BY_O;
+      ipat |= BY_O;
   } else if ( t->object.resource )
-  { t->indexed |= BY_O;
+  { ipat |= BY_O;
   }
   if ( t->graph )
-    t->indexed |= BY_G;
+    ipat |= BY_G;
 
-  db->indexed[t->indexed]++;		/* statistics */
-
-  switch(t->indexed)
-  { case BY_SO:
-      t->indexed = BY_S;
-      break;
-  }
-
-  t->indexed &= ~BY_G;
+  db->indexed[ipat]++;			/* statistics */
+  t->indexed = alt_index[ipat];
 
   return TRUE;
 }
@@ -4795,7 +4829,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
   { case BY_O:
       iv = literal_hash(cursor);
       break;
-    case BY_OP:
+    case BY_PO:
       iv = predicate_hash(p->predicate.r) ^ literal_hash(cursor);
       break;
     default:

@@ -58,17 +58,18 @@
 #define BY_G	0x08			/* 8 */
 #define BY_SP	(BY_S|BY_P)		/* 3 */
 #define BY_SO	(BY_S|BY_O)		/* 5 */
-#define BY_OP	(BY_P|BY_O)		/* 6 */
+#define BY_PO	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
 #define BY_SG	(BY_S|BY_G)		/* 9 */
 #define BY_PG	(BY_P|BY_G)		/* 10 */
 #define BY_SPG	(BY_S|BY_P|BY_G)	/* 11 */
 #define BY_OG	(BY_O|BY_G)		/* 12 */
 #define BY_SOG	(BY_S|BY_O|BY_G)	/* 13 */
-#define BY_OPG	(BY_P|BY_O|BY_G)	/* 14 */
+#define BY_POG	(BY_P|BY_O|BY_G)	/* 14 */
 #define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
-#define INDEX_TABLES 		        7
+/* (*) INDEX_TABLES must be consistent with index_col[] in rdf_db.c */
+#define INDEX_TABLES 		        9 	/* (*)  */
 #define INITIAL_TABLE_SIZE   		1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
