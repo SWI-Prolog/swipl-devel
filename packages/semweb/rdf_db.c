@@ -575,6 +575,18 @@ static const int index_col[16] =
  ~0					/* BY_SPOG */
 };
 
+static int col_index[INDEX_TABLES] =
+{ BY_NONE,
+  BY_S,
+  BY_P,
+  BY_SP,
+  BY_O,
+  BY_PO,
+  BY_SPO,
+  BY_SG,
+  BY_PG
+};
+
 static const int alt_index[16] =
 { BY_NONE,				/* BY_NONE */
   BY_S,					/* BY_S */
@@ -2033,21 +2045,15 @@ dump_literals()
 
 static void
 init_tables(rdf_db *db)
-{ int i;
+{ int ic;
   int bytes = sizeof(triple*)*INITIAL_TABLE_SIZE;
   int cbytes = sizeof(int)*INITIAL_TABLE_SIZE;
 
   db->table[0] = &db->by_none;
   db->tail[0]  = &db->by_none_tail;
 
-  for(i=BY_S; i<16; i++)
-  { int ic = ICOL(i);
-
-    if ( ic == ~0 )
-      continue;
-    assert(ic<INDEX_TABLES);
-
-    db->table[ic] = rdf_malloc(db, bytes);
+  for(ic=BY_S; ic<INDEX_TABLES; ic++)
+  { db->table[ic] = rdf_malloc(db, bytes);
     memset(db->table[ic], 0, bytes);
     db->tail[ic] = rdf_malloc(db, bytes);
     memset(db->tail[ic], 0, bytes);
@@ -2225,22 +2231,19 @@ first(rdf_db *db, atom_t subject)
 
 static void
 link_triple_hash(rdf_db *db, triple *t)
-{ int i;
+{ int ic;
 
-  for(i=1; i<16; i++)
-  { int ic = ICOL(i);
+  for(ic=1; ic<INDEX_TABLES; ic++)
+  { int i = col_index[ic];
+    int hash = triple_hash(db, t, i);
 
-    if ( ic != ~0 )
-    { int hash = triple_hash(db, t, i);
-
-      if ( db->tail[ic][hash] )
-      { db->tail[ic][hash]->next[ic] = t;
-      } else
-      { db->table[ic][hash] = t;
-      }
-      db->tail[ic][hash] = t;
-      db->counts[ic][hash]++;
+    if ( db->tail[ic][hash] )
+    { db->tail[ic][hash]->next[ic] = t;
+    } else
+    { db->table[ic][hash] = t;
     }
+    db->tail[ic][hash] = t;
+    db->counts[ic][hash]++;
   }
 }
 
@@ -2368,22 +2371,18 @@ tbl_size(size_t triples, int factor)
 
 static int
 rehash_triples(rdf_db *db)
-{ int i;
+{ int ic;
   triple *t, *t2;
 
   DEBUG(1, Sdprintf("(%ld triples ...", (long)(db->created - db->freed)));
   if ( !broadcast(EV_REHASH, (void*)ATOM_begin, NULL) )
     return FALSE;
 
-  for(i=1; i<16; i++)
+  for(ic=1; ic<INDEX_TABLES; ic++)
   { size_t ocount;
     int factor;
     size_t tsize;
-    int ic = ICOL(i);
-
-    if ( ic == ~0 )
-      continue;
-    assert(ic < INDEX_TABLES);
+    int i = col_index[ic];
 
     switch(i)
     { case BY_S:
@@ -2438,6 +2437,7 @@ rehash_triples(rdf_db *db)
 
   for(t=db->by_none; t; t = t2)
   { triple *t3;
+    int i;
 
     t2 = t->next[ICOL(BY_NONE)];
 
