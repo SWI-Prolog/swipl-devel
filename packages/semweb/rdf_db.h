@@ -55,10 +55,18 @@
 #define BY_S	0x01			/* 1 */
 #define BY_P	0x02			/* 2 */
 #define BY_O	0x04			/* 4 */
+#define BY_G	0x08			/* 8 */
 #define BY_SP	(BY_S|BY_P)		/* 3 */
 #define BY_SO	(BY_S|BY_O)		/* 5 */
 #define BY_OP	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
+#define BY_SG	(BY_S|BY_G)		/* 8 */
+#define BY_PG	(BY_P|BY_G)		/* 10 */
+#define BY_SPG	(BY_S|BY_P|BY_G)	/* 11 */
+#define BY_OG	(BY_O|BY_G)		/* 12 */
+#define BY_SOG	(BY_S|BY_O|BY_G)	/* 13 */
+#define BY_OPG	(BY_P|BY_O|BY_G)	/* 14 */
+#define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
 #define INDEX_TABLES 		        8
 #define INITIAL_TABLE_SIZE   		8*1024
@@ -177,7 +185,7 @@ typedef struct triple
 					/* flags */
   unsigned	object_is_literal : 1;	/* Object is a literal */
   unsigned	resolve_pred : 1;	/* predicates needs to be resolved */
-  unsigned	indexed : 3;		/* Partials: BY_* */
+  unsigned	indexed : 4;		/* Partials: BY_* */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
   unsigned	match   : 3;		/* How to match literals */
@@ -240,7 +248,7 @@ typedef struct rdf_db
   size_t	erased;			/* #triples erased */
   size_t	freed;			/* #triples actually erased */
   size_t	subjects;		/* subjects (unique first) */
-  size_t	indexed[8];		/* Count calls */
+  size_t	indexed[16];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
   int		gc_blocked;		/* GC is blocked; */

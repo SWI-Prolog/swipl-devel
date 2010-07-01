@@ -186,7 +186,7 @@ static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_predicate1;
 static functor_t FUNCTOR_object1;
 static functor_t FUNCTOR_graph1;
-static functor_t FUNCTOR_indexed8;
+static functor_t FUNCTOR_indexed16;
 
 static functor_t FUNCTOR_exact1;
 static functor_t FUNCTOR_plain1;
@@ -3897,7 +3897,10 @@ get_partial_triple(rdf_db *db,
 	 t->match <= STR_MATCH_EXACT )
       t->indexed |= BY_O;
   } else if ( t->object.resource )
-    t->indexed |= BY_O;
+  { t->indexed |= BY_O;
+  }
+  if ( t->graph )
+    t->indexed |= BY_G;
 
   db->indexed[t->indexed]++;		/* statistics */
 
@@ -3906,6 +3909,8 @@ get_partial_triple(rdf_db *db,
       t->indexed = BY_S;
       break;
   }
+
+  t->indexed &= ~BY_G;
 
   return TRUE;
 }
@@ -6332,13 +6337,13 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   { v = db->pred_count;
   } else if ( f == FUNCTOR_core1 )
   { v = db->core;
-  } else if ( f == FUNCTOR_indexed8 )
+  } else if ( f == FUNCTOR_indexed16 )
   { int i;
     term_t a = PL_new_term_ref();
 
-    if ( !PL_unify_functor(key, FUNCTOR_indexed8) )
+    if ( !PL_unify_functor(key, FUNCTOR_indexed16) )
       return FALSE;
-    for(i=0; i<8; i++)
+    for(i=0; i<16; i++)
     { if ( !PL_get_arg(i+1, key, a) ||
 	   !PL_unify_integer(a, db->indexed[i]) )
 	return FALSE;
@@ -6615,7 +6620,7 @@ install_rdf_db()
   MKFUNCTOR(predicate, 1);
   MKFUNCTOR(object, 1);
   MKFUNCTOR(graph, 1);
-  MKFUNCTOR(indexed, 8);
+  MKFUNCTOR(indexed, 16);
   MKFUNCTOR(exact, 1);
   MKFUNCTOR(plain, 1);
   MKFUNCTOR(substring, 1);
@@ -6669,7 +6674,7 @@ install_rdf_db()
 					/* statistics */
   keys[i++] = FUNCTOR_triples1;
   keys[i++] = FUNCTOR_subjects1;
-  keys[i++] = FUNCTOR_indexed8;
+  keys[i++] = FUNCTOR_indexed16;
   keys[i++] = FUNCTOR_predicates1;
   keys[i++] = FUNCTOR_searched_nodes1;
   keys[i++] = FUNCTOR_duplicates1;

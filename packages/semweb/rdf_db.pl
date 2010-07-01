@@ -609,7 +609,7 @@ rdf_statistics(rehash(Count, Time)) :-
 rdf_statistics(core(Bytes)) :-
 	rdf_statistics_(core(Bytes)).
 rdf_statistics(lookup(Index, Count)) :-
-	functor(Indexed, indexed, 8),
+	functor(Indexed, indexed, 16),
 	rdf_statistics_(Indexed),
 	index(Index, I),
 	Arg is I + 1,
@@ -628,14 +628,23 @@ rdf_statistics(triples_by_file(File, Count)) :-
 rdf_statistics(duplicates(Count)) :-
 	rdf_statistics_(duplicates(Count)).
 
-index(rdf(-,-,-), 0).
-index(rdf(+,-,-), 1).
-index(rdf(-,+,-), 2).
-index(rdf(+,+,-), 3).
-index(rdf(-,-,+), 4).
-index(rdf(+,-,+), 5).
-index(rdf(-,+,+), 6).
-index(rdf(+,+,+), 7).
+index(rdf(-,-,-,-), 0).
+index(rdf(+,-,-,-), 1).
+index(rdf(-,+,-,-), 2).
+index(rdf(+,+,-,-), 3).
+index(rdf(-,-,+,-), 4).
+index(rdf(+,-,+,-), 5).
+index(rdf(-,+,+,-), 6).
+index(rdf(+,+,+,-), 7).
+
+index(rdf(-,-,-,+), 8).
+index(rdf(+,-,-,+), 9).
+index(rdf(-,+,-,+), 10).
+index(rdf(+,+,-,+), 11).
+index(rdf(-,-,+,+), 12).
+index(rdf(+,-,+,+), 13).
+index(rdf(-,+,+,+), 14).
+index(rdf(+,+,+,+), 15).
 
 
 		 /*******************************
