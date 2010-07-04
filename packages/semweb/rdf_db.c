@@ -572,9 +572,9 @@ static const int index_col[16] =
   5,					/* BY_PO */
   6,					/* BY_SPO */
 
- ~0,					/* BY_G */
-  7,					/* BY_SG */
-  8,					/* BY_PG */
+  7,					/* BY_G */
+  8,					/* BY_SG */
+  9,					/* BY_PG */
  ~0,					/* BY_SPG */
  ~0,					/* BY_OG */
  ~0,					/* BY_SOG */
@@ -590,6 +590,7 @@ static int col_index[INDEX_TABLES] =
   BY_O,
   BY_PO,
   BY_SPO,
+  BY_G,
   BY_SG,
   BY_PG
 };
@@ -604,7 +605,7 @@ static const int alt_index[16] =
   BY_PO,				/* BY_PO */
   BY_SPO,				/* BY_SPO */
 
-  BY_NONE,				/* BY_G */
+  BY_G,					/* BY_G */
   BY_SG,				/* BY_SG */
   BY_PG,				/* BY_PG */
   BY_SP,				/* BY_SPG */
@@ -2209,6 +2210,9 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = (atom_hash(t->subject)<<1) ^
 	  predicate_hash(t->predicate.r) ^
 	  object_hash(t);
+      break;
+    case BY_G:
+      v = atom_hash(t->graph);
       break;
     case BY_SG:
       v = atom_hash(t->subject) ^ atom_hash(t->graph);

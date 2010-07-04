@@ -69,7 +69,7 @@
 #define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
 /* (*) INDEX_TABLES must be consistent with index_col[] in rdf_db.c */
-#define INDEX_TABLES 		        9 	/* (*)  */
+#define INDEX_TABLES 		        10 	/* (*)  */
 #define INITIAL_TABLE_SIZE   		1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
