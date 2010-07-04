@@ -548,9 +548,16 @@ Our one and only database (for the time being).
 static rdf_db *DB;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This table maps from the index bit-vector   (0..15)  to the place of the
-hash-link in the db->table and triple next-links.  A value ~0 means that
-there is no index for this particular instantiation.
+Tables that allow finding the hash-chains   for a particular index. They
+are currently crafted by hand, such that the compiler knowns the mapping
+is  constant.  check_index_tables()  verifies  that    the   tables  are
+consistent.  To add an index:
+
+    * Increment INDEX_TABLES in rdf_db.h
+    * Add the index to col_index[]
+    * Assign it a (consistent) position in index_col[]
+    * If decide wich unindexed queries are best mapped
+      to the new index and add them to alt_index[]
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define ICOL(i) (index_col[i])
@@ -606,6 +613,29 @@ static const int alt_index[16] =
   BY_PO,				/* BY_POG */
   BY_SPO				/* BY_SPOG */
 };
+
+
+static void
+check_index_tables()
+{ int i, ic;
+
+  for(i=0; i<16; i++)
+  { if ( (ic=index_col[i]) != ~0 )
+    { assert(col_index[ic] == i);
+    }
+  }
+
+  for(i=0; i<16; i++)
+  { int ai = alt_index[i];
+
+    assert(index_col[ai] != ~0);
+  }
+
+  for(i=0; i<INDEX_TABLES; i++)
+  { ic = col_index[i];
+    assert(alt_index[ic] == ic);
+  }
+}
 
 
 		 /*******************************
@@ -2148,6 +2178,11 @@ object_hash(triple *t)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+triple_hash() computes the hash for a triple   on  a given index. It can
+only be called for indices defined in the col_index-array.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 triple_hash(rdf_db *db, triple *t, int which)
 { size_t v;
@@ -2171,8 +2206,8 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = predicate_hash(t->predicate.r) ^ object_hash(t);
       break;
     case BY_SPO:
-      v = atom_hash(t->subject) ^
-          predicate_hash(t->predicate.r) ^
+      v = (atom_hash(t->subject)<<1) ^
+	  predicate_hash(t->predicate.r) ^
 	  object_hash(t);
       break;
     case BY_SG:
@@ -6747,6 +6782,8 @@ install_rdf_db()
   keys[i++] = FUNCTOR_rehash2;
   keys[i++] = FUNCTOR_core1;
   keys[i++] = 0;
+
+  check_index_tables();
 
 					/* setup the database */
   DB = new_db();
