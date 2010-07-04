@@ -1499,6 +1499,7 @@ lookup_graph(rdf_db *db, atom_t name, int create)
   PL_register_atom(name);
   src->next = db->graph_table[hash];
   db->graph_table[hash] = src;
+  db->graph_count++;
   UNLOCK_MISC(db);
 
   return src;
@@ -2443,6 +2444,10 @@ rehash_triples(rdf_db *db)
 	ocount = db->created - db->freed;
         factor = MIN_HASH_FACTOR;
         break;
+      case BY_G:
+	ocount = db->graph_count;
+        factor = 1;
+	break;
       default:
 	assert(0);
     }

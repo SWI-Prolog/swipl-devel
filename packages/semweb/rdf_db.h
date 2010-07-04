@@ -267,6 +267,7 @@ typedef struct rdf_db
   size_t	generation;		/* generation-id of the database */
   graph       **graph_table;		/* Hash table of sources */
   int      	graph_table_size;	/* Entries in table */
+  int		graph_count;
 
   graph	*last_graph;		/* last accessed graph */
   active_transaction *tr_active;	/* open transactions */
