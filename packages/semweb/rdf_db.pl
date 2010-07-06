@@ -1151,8 +1151,14 @@ guess_format(File, Format) :-
 	    print_message(warning, rdf(guess_format(Ext)))
 	).
 
+%%	storage_open(+Extension, +File, -Stream, -Cleanup)
+%
+%	Open the low-level storage. Note  that   the  file  is opened as
+%	binary. This is the same  as   for  HTTP  resources. The correct
+%	encoding will be set by the XML parser or the Turtle parser.
+
 storage_open('', File, Stream, close(Stream)) :- !,
-	open(File, read, Stream).
+	open(File, read, Stream, [type(binary)]).
 storage_open(Ext, File, Stream, Cleanup) :-
 	rdf_storage_encoding(Ext, Encoding),
 	rdf_open_decode(Encoding, File, Stream, Cleanup).
