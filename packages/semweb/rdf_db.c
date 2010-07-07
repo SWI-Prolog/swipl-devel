@@ -5109,7 +5109,7 @@ rdf(term_t subject, term_t predicate, term_t object,
       free_search_state(state);
       return rc;
     }
-    case PL_CUTTED:
+    case PL_PRUNED:
     { search_state *state = PL_foreign_context_address(h);
 
       free_search_state(state);
@@ -5248,7 +5248,7 @@ rdf_current_literal(term_t t, control_t h)
 
       rc = FALSE;
       goto cleanup;
-    case PL_CUTTED:
+    case PL_PRUNED:
       rc = TRUE;
 
     cleanup:
@@ -5781,7 +5781,7 @@ rdf_subject(term_t subject, control_t h)
 	}
       }
       return FALSE;
-    case PL_CUTTED:
+    case PL_PRUNED:
       return TRUE;
     default:
       assert(0);
@@ -5955,7 +5955,7 @@ rdf_predicate_property(term_t pred, term_t option, control_t h)
 	}
       }
       return FALSE;
-    case PL_CUTTED:
+    case PL_PRUNED:
       return TRUE;
     default:
       assert(0);
@@ -6397,7 +6397,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
       unlock_and_empty_agenda(db, a);
       return FALSE;
     }
-    case PL_CUTTED:
+    case PL_PRUNED:
     { agenda *a = PL_foreign_context_address(h);
 
       DEBUG(9, Sdprintf("Cutted; agenda = %p\n", a));
@@ -6522,7 +6522,7 @@ rdf_statistics(term_t key, control_t h)
       n++;
       if ( keys[n] )
 	PL_retry(n);
-    case PL_CUTTED:
+    case PL_PRUNED:
       return TRUE;
     default:
       assert(0);

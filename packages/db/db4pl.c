@@ -947,7 +947,7 @@ pl_db_enum(term_t handle, term_t key, term_t value, control_t ctx)
 	break;
       }
       break;
-    case PL_CUTTED:
+    case PL_PRUNED:
       c = PL_foreign_context_address(ctx);
       db = c->db;
       break;
@@ -1058,7 +1058,7 @@ pl_db_getdel(term_t handle, term_t key, term_t value, control_t ctx, int del)
 	break;
       }
       break;
-    case PL_CUTTED:
+    case PL_PRUNED:
       c = PL_foreign_context_address(ctx);
       db = c->db;
       break;

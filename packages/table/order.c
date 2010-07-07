@@ -397,7 +397,7 @@ pl_order_table_mapping(term_t handle, term_t from, term_t to, control_t ctrl)
       case PL_REDO:
 	f = (int)PL_foreign_context(ctrl);
         break;
-      case PL_CUTTED:
+      case PL_PRUNED:
 	return TRUE;
     }
     while( f <= 255 && !unify_mapped_code(to, ORD(t, f)) )

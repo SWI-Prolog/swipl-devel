@@ -415,7 +415,7 @@ produce the first answer.
 The previous invocation of the foreign function associated with the
 current goal indicated it was possible to backtrack.  The foreign
 function should produce the next solution.
-    \item [Terminate call (\const{PL_CUTTED})]
+    \item [Terminate call (\const{PL_PRUNED})]
 The choice point left by the foreign function has been destroyed by
 a cut.  The foreign function is given the opportunity to clean the
 environment.
@@ -448,14 +448,14 @@ PL_succeed().
     \cmacro{int}{PL_foreign_control}{control_t}
 Extracts the type of call from the control argument.  The return values
 are described above.  Note that the function should be prepared to
-handle the \const{PL_CUTTED} case and should be aware that the other
+handle the \const{PL_PRUNED} case and should be aware that the other
 arguments are not valid in this case.
 
     \cmacro{long}{PL_foreign_context}{control_t}
 Extracts the context from the context argument.  In the call type is
 \const{PL_FIRST_CALL} the context value is 0L.  Otherwise it is the value
 returned by the last PL_retry() associated with this goal (both if the
-call type is \const{PL_REDO} as \const{PL_CUTTED}).
+call type is \const{PL_REDO} as \const{PL_PRUNED}).
 
     \cmacro{void *}{PL_foreign_context_address}{control_t}
 Extracts an address as passed in by PL_retry_address().
@@ -463,7 +463,7 @@ Extracts an address as passed in by PL_retry_address().
 
 Note: If a non-deterministic foreign function returns using PL_succeed
 or PL_fail, Prolog assumes the foreign function has cleaned its
-environment. {\bf No} call with control argument \const{PL_CUTTED} will
+environment. {\bf No} call with control argument \const{PL_PRUNED} will
 follow.
 
 The code of \figref{nondetermf} shows a skeleton for a
@@ -488,7 +488,7 @@ my_function(term_t a0, term_t a1, control_t handle)
         ctxt = PL_foreign_context_address(handle);
         ...
         PL_retry_address(ctxt);
-    case PL_CUTTED:
+    case PL_PRUNED:
         ctxt = PL_foreign_context_address(handle);
         ...
         free(ctxt);
