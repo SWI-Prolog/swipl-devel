@@ -115,11 +115,11 @@ typedef struct predicate
   struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
 					/* statistics */
-  long		    triple_count;	/* # triples on this predicate */
-  long		    distinct_updated[2];/* Is count still valid? */
-  long		    distinct_count[2];  /* Triple count at last update */
-  long		    distinct_subjects[2];/* # distinct subject values */
-  long		    distinct_objects[2];/* # distinct object values */
+  size_t	    triple_count;	/* # triples on this predicate */
+  size_t	    distinct_updated[2];/* Is count still valid? */
+  size_t	    distinct_count[2];  /* Triple count at last update */
+  size_t	    distinct_subjects[2];/* # distinct subject values */
+  size_t	    distinct_objects[2];/* # distinct object values */
 } predicate;
 
 

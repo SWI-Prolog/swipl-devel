@@ -973,9 +973,9 @@ free_predicate_cloud(rdf_db *db, predicate_cloud *cloud)
 }
 
 
-static long
+static size_t
 triples_in_predicate_cloud(predicate_cloud *cloud)
-{ long triples = 0;
+{ size_t triples = 0;
   predicate **p;
   int i;
 
@@ -1339,10 +1339,15 @@ the predicate. This number  is  only   recomputed  if  it  is considered
 
 static int
 update_predicate_counts(rdf_db *db, predicate *p, int which)
-{ long total = 0;
+{ size_t total = 0;
 
   if ( which == DISTINCT_DIRECT )
-  { long changed = abs(p->triple_count - p->distinct_updated[DISTINCT_DIRECT]);
+  { size_t changed;
+
+    if ( p->triple_count >= p->distinct_updated[DISTINCT_DIRECT] )
+      changed = p->triple_count - p->distinct_updated[DISTINCT_DIRECT];
+    else
+      changed = p->distinct_updated[DISTINCT_DIRECT] - p->triple_count;
 
     if ( changed < p->distinct_updated[DISTINCT_DIRECT] )
       return TRUE;
@@ -1355,7 +1360,7 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       return TRUE;
     }
   } else
-  { long changed = db->generation - p->distinct_updated[DISTINCT_SUB];
+  { size_t changed = db->generation - p->distinct_updated[DISTINCT_SUB];
 
     if ( changed < p->distinct_count[DISTINCT_SUB] )
       return TRUE;
@@ -2139,7 +2144,7 @@ literal_hash(literal *lit)
 { if ( lit->hash )
   { return lit->hash;
   } else
-  { size_t hash;
+  { unsigned int hash;
 
     switch(lit->objtype)
     { case OBJ_STRING:
@@ -2787,21 +2792,21 @@ Quick Load Format (implemented in pl-wic.c).
 
 typedef struct saved
 { atom_t name;
-  long   as;
+  size_t as;
   struct saved *next;
 } saved;
 
 
 typedef struct save_context
 { saved ** saved_table;
-  long     saved_size;
-  long     saved_id;
+  size_t   saved_size;
+  size_t   saved_id;
 } save_context;
 
 
-long
-next_table_size(long s0)
-{ long size = 2;
+size_t
+next_table_size(size_t s0)
+{ size_t size = 2;
 
   while(size < s0)
     size *= 2;
@@ -2811,8 +2816,8 @@ next_table_size(long s0)
 
 static void
 init_saved(rdf_db *db, save_context *ctx)
-{ long size = next_table_size((db->created - db->erased)/8);
-  long bytes = size * sizeof(*ctx->saved_table);
+{ size_t size = next_table_size((db->created - db->erased)/8);
+  size_t bytes = size * sizeof(*ctx->saved_table);
 
   ctx->saved_table = rdf_malloc(db, bytes);
   memset(ctx->saved_table, 0, bytes);
@@ -3398,7 +3403,7 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 
 static int
 link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
-{ long created0 = db->created;
+{ size_t created0 = db->created;
   graph *graph;
 
   if ( ctx->graph )			/* lookup named graph */
@@ -4860,7 +4865,7 @@ static void	free_search_state(search_state *state);
 static void
 init_cursor_from_literal(search_state *state, literal *cursor)
 { triple *p = &state->pattern;
-  unsigned long iv;
+  size_t iv;
   int i;
 
   DEBUG(3,
@@ -4882,7 +4887,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
       assert(0);
   }
 
-  i = (int)(iv % (long)state->db->table_size[ICOL(p->indexed)]);
+  i = (int)(iv % state->db->table_size[ICOL(p->indexed)]);
   state->cursor = state->db->table[ICOL(p->indexed)][i];
   state->literal_cursor = cursor;
 }
@@ -5172,7 +5177,7 @@ static foreign_t
 rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 		        term_t complexity)
 { triple t;
-  long c;
+  size_t c;
   rdf_db *db = DB;
   int rc;
 
@@ -5203,7 +5208,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   { c = db->counts[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
   }
 
-  rc = PL_unify_integer(complexity, c);
+  rc = PL_unify_int64(complexity, c);
   RDUNLOCK(db);
   free_triple(db, &t);
 
@@ -6558,7 +6563,7 @@ erase_triples(rdf_db *db)
 
   for(i=BY_S; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
-    { int bytes = sizeof(triple*) * db->table_size[i];
+    { size_t bytes = sizeof(triple*) * db->table_size[i];
 
       memset(db->table[i], 0, bytes);
       memset(db->tail[i], 0, bytes);
