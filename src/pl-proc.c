@@ -1972,6 +1972,31 @@ PRED_IMPL("retract", 1, retract,
 }
 
 
+static int
+allVars(int argc, Word argv ARG_LD)
+{ int i, r, allvars = TRUE;
+  Word *reset = alloca(argc*sizeof(Word));
+
+  for(i=0; i<argc; i++)
+  { Word p2;
+
+    deRef2(argv+i, p2);
+    if ( isVar(*p2) )
+    { reset[i] = p2;
+      *p2 = ATOM_nil;
+    } else
+    { allvars = FALSE;
+      break;
+    }
+  }
+
+  for(r=0; r<i; r++)
+    setVar(*reset[r]);
+
+  return allvars;
+}
+
+
 word
 pl_retractall(term_t head)
 { GET_LD
@@ -2000,19 +2025,14 @@ pl_retractall(term_t head)
 
   argv = valTermRef(thehead);
   deRef(argv);
-  if ( isTerm(*argv) )			/* retract(foobar(a1, ...)) */
-  { int i, arity = arityTerm(*argv);
-
+  if ( isTerm(*argv) )
+  { int arity = arityTerm(*argv);
     argv = argTermP(*argv, 0);
-    for(i=0; i<arity && allvars; i++)
-    { Word p2;
 
-      deRef2(argv+i, p2);
-      if ( !isVar(*p2) )
-	allvars = FALSE;
-    }
+    allvars = allVars(arity, argv PASS_LD);
   } else
-  { argv = NULL;			/* retract(foobar) */
+  { allvars = TRUE;
+    argv = NULL;
   }
 
   startCritical;
