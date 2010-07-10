@@ -32,6 +32,7 @@
 
 test_db :-
 	run_tests([ assert,
+		    retractall,
 		    dynamic,
 		    res_compiler
 		  ]).
@@ -59,6 +60,30 @@ test(cyclic_body, [ sto(rational_trees),
 	assert((f(a) :- X)).
 
 :- end_tests(assert).
+
+:- begin_tests(retractall).
+
+:- dynamic
+	db/2.
+
+init_db :- forall(between(1,2,X),
+		  forall(between(1,2,Y),
+			 assert(db(X,Y)))).
+clear_db :-
+	retractall(db(_,_)).
+
+test(all, [setup(init_db),cleanup(clear_db),All=[]]) :-
+	retractall(db(_,_)),
+	findall(db(X,Y), db(X,Y), All).
+test(one, [setup(init_db),cleanup(clear_db),All=[db(2,1),db(2,2)]]) :-
+	retractall(db(1,_)),
+	findall(db(X,Y), db(X,Y), All).
+test(shared, [setup(init_db),cleanup(clear_db),All=[db(1,2),db(2,1)]]) :-
+	retractall(db(X,X)),
+	findall(db(X,Y), db(X,Y), All).
+
+:- end_tests(retractall).
+
 
 :- begin_tests(dynamic).
 
