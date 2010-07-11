@@ -1826,23 +1826,25 @@ power_var_num(P, X, N) :-
    and p(Propagator) means to attach and trigger once a propagator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- op(800, xfx, =>).
+
 parse_clpfd(E, R,
-            [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
-             g(var(E))         -> [g(constrain_to_integer(E)), g(E = R)],
-             g(integer(E))     -> [g(R = E)],
-             m(A+B)            -> [p(pplus(A, B, R))],
+            [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
+             g(var(E))         => [g(constrain_to_integer(E)), g(E = R)],
+             g(integer(E))     => [g(R = E)],
+             m(A+B)            => [p(pplus(A, B, R))],
              % power_var_num/3 must occur before */2 to be useful
-             g(power_var_num(E, V, N)) -> [p(pexp(V, N, R))],
-             m(A*B)            -> [p(ptimes(A, B, R))],
-             m(A-B)            -> [p(pplus(R,B,A))],
-             m(-A)             -> [p(ptimes(-1,A,R))],
-             m(max(A,B))       -> [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
-             m(min(A,B))       -> [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
-             m(mod(A,B))       -> [g(B #\= 0), p(pmod(A, B, R))],
-             m(abs(A))         -> [g(R #>= 0), p(pabs(A, R))],
-             m(A/B)            -> [g(B #\= 0), p(pdiv(A, B, R))],
-             m(A^B)            -> [p(pexp(A, B, R))],
-             g(true)           -> [g(domain_error(clpfd_expression, E))]
+             g(power_var_num(E, V, N)) => [p(pexp(V, N, R))],
+             m(A*B)            => [p(ptimes(A, B, R))],
+             m(A-B)            => [p(pplus(R,B,A))],
+             m(-A)             => [p(ptimes(-1,A,R))],
+             m(max(A,B))       => [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
+             m(min(A,B))       => [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
+             m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
+             m(abs(A))         => [g(R #>= 0), p(pabs(A, R))],
+             m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
+             m(A^B)            => [p(pexp(A, B, R))],
+             g(true)           => [g(domain_error(clpfd_expression, E))]
             ]).
 
 % Here, we compile the committed choice language to a single
@@ -1852,7 +1854,7 @@ make_parse_clpfd(Clauses) :-
         parse_clpfd_clauses(Clauses0),
         maplist(goals_goal, Clauses0, Clauses).
 
-goals_goal(Head :- Goals, Head :- Body) :-
+goals_goal((Head :- Goals), (Head :- Body)) :-
         list_goal(Goals, Body).
 
 parse_clpfd_clauses(Clauses) :-
@@ -1860,7 +1862,7 @@ parse_clpfd_clauses(Clauses) :-
         maplist(parse_matcher(E, R), Matchers, Clauses).
 
 parse_matcher(E, R, Matcher, Clause) :-
-        Matcher = (Condition0 -> Goals0),
+        Matcher = (Condition0 => Goals0),
         phrase((parse_condition(Condition0, E, Head),
                 parse_goals(Goals0)), Goals),
         Clause = (parse_clpfd(Head, R) :- Goals).
@@ -1973,7 +1975,7 @@ symmetric(#=).
 symmetric(#\=).
 
 matches([
-         m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) ->
+         m_c(any(X) #>= any(Y), left_right_linsum_const(X, Y, Cs, Vs, Const)) =>
             [g((   Cs = [1], Vs = [A] -> geq(A, Const)
                ;   Cs = [-1], Vs = [A] -> Const1 is -Const, geq(Const1, A)
                ;   Cs = [1,1], Vs = [A,B] -> A+B #= S, geq(S, Const)
@@ -1991,45 +1993,45 @@ matches([
                    A+B #= S, Const1 is -Const, geq(Const1, S)
                ;   scalar_product_(#>=, Cs, Vs, Const)
                ))],
-         m(any(X) - any(Y) #>= integer(C))     -> [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
-         m(integer(X) #>= any(Z) + integer(A)) -> [g(C is X - A), r(C, Z)],
-         m(abs(any(X)-any(Y)) #>= integer(I))  -> [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
-         m(abs(any(X)) #>= integer(I))         -> [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
-         m(integer(I) #>= abs(any(X)))         -> [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
-         m(any(X) #>= any(Y))                  -> [d(X, RX), d(Y, RY), g(geq(RX, RY))],
+         m(any(X) - any(Y) #>= integer(C))     => [d(X, X1), d(Y, Y1), g(C1 is -C), p(x_leq_y_plus_c(Y1, X1, C1))],
+         m(integer(X) #>= any(Z) + integer(A)) => [g(C is X - A), r(C, Z)],
+         m(abs(any(X)-any(Y)) #>= integer(I))  => [d(X, X1), d(Y, Y1), p(absdiff_geq(X1, Y1, I))],
+         m(abs(any(X)) #>= integer(I))         => [d(X, RX), g((I>0 -> I1 is -I, RX in inf..I1 \/ I..sup; true))],
+         m(integer(I) #>= abs(any(X)))         => [d(X, RX), g(I>=0), g(I1 is -I), g(RX in I1..I)],
+         m(any(X) #>= any(Y))                  => [d(X, RX), d(Y, RY), g(geq(RX, RY))],
 
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         m(var(X) #= var(Y))        -> [g(constrain_to_integer(X)), g(X=Y)],
-         m(var(X) #= var(Y)+var(Z)) -> [p(pplus(Y,Z,X))],
-         m(var(X) #= var(Y)-var(Z)) -> [p(pplus(X,Z,Y))],
-         m(var(X) #= var(Y)*var(Z)) -> [p(ptimes(Y,Z,X))],
-         m(var(X) #= -var(Z))       -> [p(ptimes(-1, Z, X))],
-         m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+         m(var(X) #= var(Y))        => [g(constrain_to_integer(X)), g(X=Y)],
+         m(var(X) #= var(Y)+var(Z)) => [p(pplus(Y,Z,X))],
+         m(var(X) #= var(Y)-var(Z)) => [p(pplus(X,Z,Y))],
+         m(var(X) #= var(Y)*var(Z)) => [p(ptimes(Y,Z,X))],
+         m(var(X) #= -var(Z))       => [p(ptimes(-1, Z, X))],
+         m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) =>
             [g((   Cs = [] -> S =:= 0
                ;   Cs = [C|CsRest],
                    gcd(CsRest, C, GCD),
                    S mod GCD =:= 0,
                    scalar_product_(#=, Cs, Vs, S)
                ))],
-         m(var(X) #= any(Y))       -> [d(Y,X)],
-         m(any(X) #= any(Y))       -> [d(X, RX), d(Y, RX)],
+         m(var(X) #= any(Y))       => [d(Y,X)],
+         m(any(X) #= any(Y))       => [d(X, RX), d(Y, RX)],
 
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         m(var(X) #\= integer(Y))             -> [g(neq_num(X, Y))],
-         m(var(X) #\= var(Y))                 -> [g(neq(X,Y))],
-         m(var(X) #\= var(Y) + var(Z))        -> [p(x_neq_y_plus_z(X, Y, Z))],
-         m(var(X) #\= var(Y) - var(Z))        -> [p(x_neq_y_plus_z(Y, X, Z))],
-         m(var(X) #\= var(Y)*var(Z))          -> [p(ptimes(Y,Z,P)), g(neq(X,P))],
-         m(integer(X) #\= abs(any(Y)-any(Z))) -> [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
-         m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) ->
+         m(var(X) #\= integer(Y))             => [g(neq_num(X, Y))],
+         m(var(X) #\= var(Y))                 => [g(neq(X,Y))],
+         m(var(X) #\= var(Y) + var(Z))        => [p(x_neq_y_plus_z(X, Y, Z))],
+         m(var(X) #\= var(Y) - var(Z))        => [p(x_neq_y_plus_z(Y, X, Z))],
+         m(var(X) #\= var(Y)*var(Z))          => [p(ptimes(Y,Z,P)), g(neq(X,P))],
+         m(integer(X) #\= abs(any(Y)-any(Z))) => [d(Y, Y1), d(Z, Z1), p(absdiff_neq(Y1, Z1, X))],
+         m_c(any(X) #\= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) =>
             [g(scalar_product_(#\=, Cs, Vs, S))],
-         m(any(X) #\= any(Y) + any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(X1, Y1, Z1))],
-         m(any(X) #\= any(Y) - any(Z))        -> [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(Y1, X1, Z1))],
-         m(any(X) #\= any(Y)) -> [d(X, RX), d(Y, RY), g(neq(RX, RY))]
+         m(any(X) #\= any(Y) + any(Z))        => [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(X1, Y1, Z1))],
+         m(any(X) #\= any(Y) - any(Z))        => [d(X, X1), d(Y, Y1), d(Z, Z1), p(x_neq_y_plus_z(Y1, X1, Z1))],
+         m(any(X) #\= any(Y)) => [d(X, RX), d(Y, RY), g(neq(RX, RY))]
         ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2040,7 +2042,7 @@ matches([
 
 make_matches(Clauses) :-
         matches(Ms),
-        findall(F, (member(M->_, Ms), arg(1, M, M1), functor(M1, F, _)), Fs0),
+        findall(F, (member(M=>_, Ms), arg(1, M, M1), functor(M1, F, _)), Fs0),
         sort(Fs0, Fs),
         maplist(prevent_cyclic_argument, Fs, PrevCyclicClauses),
         phrase(matchers(Ms), Clauses0),
@@ -2068,13 +2070,13 @@ prevent_cyclic_argument(F0, Clause) :-
                           )).
 
 matchers([]) --> [].
-matchers([Condition->Goals|Ms]) -->
+matchers([Condition => Goals|Ms]) -->
         matcher(Condition, Goals),
         matchers(Ms).
 
 matcher(m(M), Gs) --> matcher(m_c(M,true), Gs).
 matcher(m_c(Matcher,Cond), Gs) -->
-        [Head :- Goals0],
+        [(Head :- Goals0)],
         { Matcher =.. [F,A,B],
           match_expand(F, Expand),
           Head =.. [Expand,X,Y],
@@ -2082,7 +2084,7 @@ matcher(m_c(Matcher,Cond), Gs) -->
           phrase(match_goals(Gs, Expand), Goals1) },
         (   { symmetric(F), \+ (subsumes_chk(A, B), subsumes_chk(B, A)) } ->
             { Head1 =.. [Expand,Y,X] },
-            [Head1 :- Goals0]
+            [(Head1 :- Goals0)]
         ;   []
         ).
 
@@ -2488,26 +2490,26 @@ L #\/ R :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 parse_reified(E, R, D,
-              [g(cyclic_term(E)) -> [g(domain_error(clpfd_expression, E))],
-               g(var(E))     -> [g(constrain_to_integer(E)), g(R = E), g(D=1)],
-               g(integer(E)) -> [g(R=E), g(D=1)],
-               m(A+B)        -> [d(D), p(pplus(A,B,R)), a(A,B,R)],
-               m(A*B)        -> [d(D), p(ptimes(A,B,R)), a(A,B,R)],
-               m(A-B)        -> [d(D), p(pplus(R,B,A)), a(A,B,R)],
-               m(-A)         -> [d(D), p(ptimes(-1,A,R)), a(R)],
-               m(max(A,B))   -> [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
-               m(min(A,B))   -> [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
-               m(A mod B)    ->
+              [g(cyclic_term(E)) => [g(domain_error(clpfd_expression, E))],
+               g(var(E))     => [g(constrain_to_integer(E)), g(R = E), g(D=1)],
+               g(integer(E)) => [g(R=E), g(D=1)],
+               m(A+B)        => [d(D), p(pplus(A,B,R)), a(A,B,R)],
+               m(A*B)        => [d(D), p(ptimes(A,B,R)), a(A,B,R)],
+               m(A-B)        => [d(D), p(pplus(R,B,A)), a(A,B,R)],
+               m(-A)         => [d(D), p(ptimes(-1,A,R)), a(R)],
+               m(max(A,B))   => [d(D), p(pgeq(R, A)), p(pgeq(R, B)), p(pmax(A,B,R)), a(A,B,R)],
+               m(min(A,B))   => [d(D), p(pgeq(A, R)), p(pgeq(B, R)), p(pmin(A,B,R)), a(A,B,R)],
+               m(A mod B)    =>
                   [d(D1), l(p(P)), g(make_propagator(pmod(X,Y,Z), P)),
                    p([A,B,D2,R], reified_mod(A,B,D2,[X,Y,Z]-P,R)),
                    p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
-               m(abs(A))     -> [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
-               m(A/B)        ->
+               m(abs(A))     => [g(R#>=0), d(D), p(pabs(A, R)), a(A,R)],
+               m(A/B)        =>
                   [d(D1), l(p(P)), g(make_propagator(pdiv(X,Y,Z), P)),
                    p([A,B,D2,R], reified_div(A,B,D2,[X,Y,Z]-P,R)),
                    p(reified_and(D1,[],D2,[],D)), a(D2), a(A,B,R)],
-               m(A^B)        -> [d(D), p(pexp(A,B,R)), a(A,B,R)],
-               g(true)       -> [g(domain_error(clpfd_expression, E))]]
+               m(A^B)        => [d(D), p(pexp(A,B,R)), a(A,B,R)],
+               g(true)       => [g(domain_error(clpfd_expression, E))]]
              ).
 
 % Again, we compile this to a predicate, parse_reified_clpfd//3. This
@@ -2520,16 +2522,16 @@ make_parse_reified(Clauses) :-
         parse_reified_clauses(Clauses0),
         maplist(goals_goal_dcg, Clauses0, Clauses).
 
-goals_goal_dcg(Head --> Goals, Clause) :-
+goals_goal_dcg((Head --> Goals), Clause) :-
         list_goal(Goals, Body),
-        expand_term(Head --> Body, Clause).
+        expand_term((Head --> Body), Clause).
 
 parse_reified_clauses(Clauses) :-
         parse_reified(E, R, D, Matchers),
         maplist(parse_reified(E, R, D), Matchers, Clauses).
 
 parse_reified(E, R, D, Matcher, Clause) :-
-        Matcher = (Condition0 -> Goals0),
+        Matcher = (Condition0 => Goals0),
         phrase((reified_condition(Condition0, E, Head, Ds),
                 reified_goals(Goals0, Ds)), Goals, [a(D)]),
         Clause = (parse_reified_clpfd(Head, R, D) --> Goals).
