@@ -1569,7 +1569,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
   { op = decode(*PC++);
 
   again:
-    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
+    DEBUG(3, Sdprintf("\t%s at %d\n", codeTable[op].name, PC-state->c0-1));
     COUNT(vm_scanned);
     if ( op == end )
     { PC--;
@@ -1637,6 +1637,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	DEBUG(3, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
+	DEBUG(3, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
         goto again;
