@@ -1654,6 +1654,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	op = decode(*PC++);
         goto again;
       }
+      case C_IFTHEN:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+      { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
+	PC++;				/* skip C_END */
+	op = decode(*PC++);
+        goto again;
+      }
 
 					/* variable access */
 

@@ -151,6 +151,18 @@ test(s_fredo, true) :-
 	arg(_I, A, N),
 	garbage_collect,
 	N == 5, !.
+test(c_ifthen, true) :-			% Scanning C_NOT should not end due
+	A = {null},			% to the C_CUT of (a->b)
+	garbage_collect,
+	\+ (  true,
+	      \+ ( ( true ->
+		     true
+		   ; otherwise ->
+		     true
+		   ),
+		   A == {null}
+		 )
+	   ).
 
 :- end_tests(gc_mark).
 
