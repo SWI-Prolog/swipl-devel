@@ -1203,7 +1203,7 @@ allocStacks(size_t local, size_t global, size_t trail)
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,   minlocal, 256*SIZEOF_VOIDP);
+	     "local",    ilocal,  local,   minlocal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
 	     "trail",    itrail,  trail,   mintrail, 256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.argument,
