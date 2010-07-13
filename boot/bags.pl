@@ -5,7 +5,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam,
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -78,13 +79,13 @@ fa_loop(Templ, Goal, Bag, List, Tail) :-
 
 %%      bagof(+Var, +Goal, -Bag) is semidet.
 %
-%       Implements Clocksin and  Melish's  bagof/3  predicate.   Bag  is
-%       unified  with the alternatives of Var in Goal, Free variables of
-%       Goal are bound, unless asked not to with the existence  operator
-%       (^).
+%	Implements Clocksin and  Melish's  bagof/3   predicate.  Bag  is
+%	unified with the alternatives of Var  in Goal, Free variables of
+%	Goal are bound,  unless  asked  not   to  with  the  existential
+%	quantifier operator (^).
 
 bagof(Templ, Goal0, List) :-
-	iso_free_variables(Templ, Goal0, Goal, Vars),
+	free_variable_set(Templ, Goal0, Goal, Vars),
 	(   Vars == v
 	->  findall(Templ, Goal, List),
 	    List \== []
@@ -94,20 +95,23 @@ bagof(Templ, Goal0, List) :-
 	    pick(Sorted, Vars, List)
 	).
 
-iso_free_variables(Templ, Goal0, Goal, Vars) :-
+%%	free_variable_set(+Template, +GoalIn, -GoalOut, -VarTemplate)
+%
+%	This implements _|free variable set|_ as   defined  the ISO core
+%	standard (sec. 7.1.1.4) for setof/3   and  bagof/3. This demands
+%	^/2-quantification to be on the  outside   (except  for  M:) and
+%	removes ^/2 from the goal-term. The   latter  implies that we no
+%	longer need ^/2 as a predicate.
+
+free_variable_set(Templ, Goal0, Goal, Vars) :-
 	goal_simplified_vars(Goal0, Goal, GoalVars),
 	'$e_free_variables'(Templ^GoalVars, Vars).
 
 goal_simplified_vars(G0, G, Vars) :-
-	var(G0),
-	!,
-	G0 = G,
-	G0 = Vars.
-goal_simplified_vars(V^G0, G, V^Vars) :-
-	!,
+	var(G0), !, G0 = G, G0 = Vars.
+goal_simplified_vars(V^G0, G, V^Vars) :- !,
 	goal_simplified_vars(G0, G, Vars).
-goal_simplified_vars(M:G0, M:G, M:Vars) :-
-	!,
+goal_simplified_vars(M:G0, M:G, M:Vars) :- !,
 	goal_simplified_vars(G0, G, Vars).
 goal_simplified_vars(G, G, Vars) :-
 	term_variables(G, Vars).
@@ -156,7 +160,7 @@ pick_same(Bag, _, [], Bag).
 %	removing duplicate Templ-Answer pairs early.
 
 setof(Templ, Goal0, List) :-
-	iso_free_variables(Templ, Goal0, Goal, Vars),
+	free_variable_set(Templ, Goal0, Goal, Vars),
 	(   Vars == v
 	->  findall(Templ, Goal, Answers),
 	    Answers \== [],
