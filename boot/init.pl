@@ -108,8 +108,7 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      call_cleanup/2,
 	      call_cleanup/3,
 	      setup_call_cleanup/3,
-	      setup_call_catcher_cleanup/4,
-	      (^)/2)).
+	      setup_call_catcher_cleanup/4).
 
 :- meta_predicate
 	';'(0,0),
@@ -123,7 +122,6 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	call(5,?,?,?,?,?),
 	call(6,?,?,?,?,?,?),
 	call(7,?,?,?,?,?,?,?),
-	^(+,0),
 	not(0),
 	\+(0),
 	'->'(0,0),
@@ -208,9 +206,6 @@ once(Goal) :-
 ignore(Goal) :-
 	Goal, !.
 ignore(_Goal).
-
-_Var^Goal :-					% setof/3, bagof/3
-	Goal.
 
 false :-					% SICStus compatibility
 	fail.
