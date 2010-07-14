@@ -957,7 +957,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t i ARG_LD)
 	succeed;
       }
       if ( !PL_is_variable(a) )
-	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_atom, a);
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
 
       i = 0;
       break;
