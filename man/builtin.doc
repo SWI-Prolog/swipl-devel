@@ -1100,7 +1100,7 @@ head of a predicate, it is also provided by the predicate =/2.
     \infixop[ISO]{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
 For behaviour on cyclic terms see the Prolog flag
-\prologflag{occurs_check}. It acts as if defined by the following rule.
+\prologflag{occurs_check}. It acts as if defined by the following fact.
 
 \begin{code}
 =(Term, Term).
