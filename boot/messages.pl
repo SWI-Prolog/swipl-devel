@@ -135,12 +135,7 @@ iso_message(evaluation_error(Which)) -->
 	[ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
 	[ 'Undefined procedure: ~q'-[Proc] ],
-	{ dwim_predicates(Proc, Dwims) },
-	(   {Dwims \== []}
-	->  [nl, '    However, there are definitions for:', nl],
-	    dwim_message(Dwims)
-	;   []
-	).
+	undefined_proc_msg(Proc).
 iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(busy(Type, Object)) -->
@@ -150,6 +145,18 @@ iso_message(syntax_error(Id)) -->
 	syntax_error(Id).
 iso_message(occurs_check(Var, In)) -->
 	[ 'Cannot unify ~p with ~p: would create an infinite tree'-[Var, In] ].
+
+undefined_proc_msg(_:(^)/2) --> !,
+	undefined_proc_msg((^)/2).
+undefined_proc_msg((^)/2) --> !,
+	[nl, '  ^/2 can only appear as the 2nd argument of setof/3 and bagof/3'].
+undefined_proc_msg(Proc) -->
+	{ dwim_predicates(Proc, Dwims) },
+	(   {Dwims \== []}
+	->  [nl, '  However, there are definitions for:', nl],
+	    dwim_message(Dwims)
+	;   []
+	).
 
 syntax_error(end_of_clause) -->
 	[ 'Unexpected end of clause' ].
