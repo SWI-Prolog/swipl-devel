@@ -2052,6 +2052,7 @@ typedef enum
 } queue_wait_type;
 
 #define MSG_WAIT_INTR (-1)
+#define MSG_WAIT_DESTROYED (-2)
 
 static int dispatch_cond_wait(message_queue *queue, queue_wait_type wait);
 
@@ -2256,6 +2257,8 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 	  return MSG_WAIT_INTR;
 	}
       }
+      if ( queue->destroyed )
+	return MSG_WAIT_DESTROYED;
     }
 
     queue->wait_for_drain--;
@@ -2578,11 +2581,20 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
     rc = queue_message(q, msg PASS_LD);
     release_message_queue(q);
 
-    if ( rc == MSG_WAIT_INTR )
-    { if ( PL_handle_signals() >= 0 )
-	continue;
-      free_thread_message(msg PASS_LD);
-      rc = FALSE;
+    switch(rc)
+    { case MSG_WAIT_INTR:
+      { if ( PL_handle_signals() >= 0 )
+	  continue;
+	free_thread_message(msg PASS_LD);
+	rc = FALSE;
+
+	break;
+      }
+      case MSG_WAIT_DESTROYED:
+      { free_thread_message(msg PASS_LD);
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+	break;
+      }
     }
 
     break;
