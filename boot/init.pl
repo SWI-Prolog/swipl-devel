@@ -108,7 +108,7 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 	      call_cleanup/2,
 	      call_cleanup/3,
 	      setup_call_cleanup/3,
-	      setup_call_catcher_cleanup/4).
+	      setup_call_catcher_cleanup/4)).
 
 :- meta_predicate
 	';'(0,0),
