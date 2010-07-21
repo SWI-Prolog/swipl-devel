@@ -248,6 +248,7 @@ typedef struct
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
+  short		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
   struct var_table vt;			/* Data about variables */
@@ -338,6 +339,8 @@ Syntax Error exceptions:
 	operator_clash
 	operator_expected
 	operator_balance
+	quoted_punctuation
+	list_rest
 
 Error term:
 
@@ -357,14 +360,12 @@ isStringStream(IOSTREAM *s)
 }
 
 
-static bool
-errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+static term_t
+makeErrorTerm(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex, loc=0;			/* keep compiler happy */
   unsigned char const *s, *ll = NULL;
   int rc = TRUE;
-
-  LD->exception.processing = TRUE;	/* allow using spare stack */
 
   if ( !(ex = PL_new_term_ref()) ||
        !(loc = PL_new_term_ref()) )
@@ -441,14 +442,28 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
     }
   }
 
+  return (rc ? ex : (term_t)0);
+}
+
+
+
+static bool
+errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
+{ GET_LD
+  term_t ex;
+
+  LD->exception.processing = TRUE;	/* allow using spare stack */
+
+  ex = makeErrorTerm(id_str, id_term, _PL_rd);
+
   if ( _PL_rd )
   { _PL_rd->has_exception = TRUE;
-    if ( rc )
+    if ( ex )
       PL_put_term(_PL_rd->exception, ex);
     else
       PL_put_term(_PL_rd->exception, exception_term);
   } else
-  { if ( rc )
+  { if ( ex )
       PL_raise_exception(ex);
   }
 
@@ -2436,7 +2451,7 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 
 
 static int
-complex_term(const char *stop, term_t term, term_t positions,
+complex_term(const char *stop, short maxpri, term_t term, term_t positions,
 	     ReadData _PL_rd ARG_LD)
 { out_entry *out  = NULL;
   op_entry  *side = NULL;
@@ -2446,6 +2461,9 @@ complex_term(const char *stop, term_t term, term_t positions,
   int side_p = -1;
   term_t pin;
   int thestop;				/* encountered stop-character */
+
+  if (_PL_rd -> strictness == 0)
+      maxpri = OP_MAXPRIORITY+1;
 
   in_op.left_pri = 0;
   in_op.right_pri = 0;
@@ -2538,8 +2556,8 @@ complex_term(const char *stop, term_t term, term_t positions,
   }
 
 exit:
-  Modify(OP_MAXPRIORITY+1);
-  Reduce(OP_MAXPRIORITY+1);
+  Modify(maxpri);
+  Reduce(maxpri);
 
   if ( out_n == 1 && side_n == 0 )	/* simple term */
   { PL_assign_term(term, out[0].term PASS_LD);
@@ -2688,7 +2706,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    { if ( !PL_unify_list(pa, ph, pa) )
 		return FALSE;
 	    }
-	    if ( (rc=complex_term(",)", argv[argc], ph, _PL_rd PASS_LD)) != TRUE )
+	    if ( (rc=complex_term(",)", 999, argv[argc], ph, _PL_rd PASS_LD)) != TRUE )
 	    { if ( unlock )
 		PL_unregister_atom(functor);
 	      return rc;
@@ -2719,7 +2737,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
 	      if ( must_be_op ) goto not_an_op;
 
-	      rc = complex_term(")", term, positions, _PL_rd PASS_LD);
+	      rc = complex_term(")", OP_MAXPRIORITY+1, term, positions, _PL_rd PASS_LD);
 	      if ( rc != TRUE )
 		return rc;
 	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
@@ -2754,7 +2772,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      } else
 		pe = pa = 0;
 
-	      if ( (rc=complex_term("}", arg, pa, _PL_rd PASS_LD)) != TRUE )
+	      if ( (rc=complex_term("}", OP_MAXPRIORITY+1, arg, pa, _PL_rd PASS_LD)) != TRUE )
 		return rc;
 	      token = get_token(must_be_op, _PL_rd);
 	      if ( positions )
@@ -2805,7 +2823,7 @@ term is to be written.
 		    return FALSE;
 		}
 
-		rc = complex_term(",|]", tmp, p2, _PL_rd PASS_LD);
+		rc = complex_term(",|]", 999, tmp, p2, _PL_rd PASS_LD);
 		if ( rc != TRUE )
 		  return rc;
 		if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
@@ -2834,11 +2852,16 @@ term is to be written.
 		  case '|':
 		    { int rc;
 
-		      if ( (rc=complex_term("]", tmp, pt, _PL_rd PASS_LD)) != TRUE )
+		      if ( (rc=complex_term(",|]", 999, tmp, pt, _PL_rd PASS_LD)) != TRUE )
 			return rc;
 		      argp = unRef(*valTermRef(tail));
 		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
+		      switch(token->value.character)
+		      { case ',':
+			case '|':
+			  syntaxError("list_rest", _PL_rd);
+		      }
 		      if ( positions )
 		      { if ( !PL_unify_nil(pa) ||
 			     !PL_unify_integer(pe, token->end) )
@@ -2855,12 +2878,22 @@ term is to be written.
 	  case '}':
 	  case ']':
 	    syntaxError("cannot_start_term", _PL_rd);
-	  case '|':			/* TBD: we need this, but */
-	  case ',':			/* it should NOT be possible to */
-					/* modify these operators to atoms */
-					/* later.  Not really trivial how */
-					/* to do that! */
-					/* now x,,y is read as x, ',', y! */
+	  case '|':
+	    if ( !must_be_op  && _PL_rd->strictness == 0 )
+	    { term_t ex;
+
+	      ex = makeErrorTerm("quoted_punctuation", 0, _PL_rd);
+	      if ( ex )
+	      { printMessage(ATOM_warning, PL_TERM, ex);
+	      } else			/* no space for warning */
+	      { PL_put_term(_PL_rd->exception, exception_term);
+		return FALSE;
+	      }
+
+	    }
+	  case ',':
+	    if ( !must_be_op && _PL_rd->strictness > 0 )
+	      syntaxError("quoted_punctuation", _PL_rd);
 	  default:
 	    *name = TRUE;
 	    PL_put_atom(term, codeToAtom(token->value.character));
@@ -2909,7 +2942,8 @@ read_term(term_t term, ReadData rd ARG_LD)
   result = PL_new_term_ref();
   rd->here = rd->base;
   LD->read.active++;
-  if ( (rc2=complex_term(NULL, result, rd->subtpos, rd PASS_LD)) != TRUE )
+  rd->strictness = truePrologFlag(PLFLAG_ISO);
+  if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1, result, rd->subtpos, rd PASS_LD)) != TRUE )
   { rc = raiseStackOverflow(rc2);
     goto out;
   }

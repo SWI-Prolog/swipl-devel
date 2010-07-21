@@ -106,7 +106,7 @@ give_help(Name) :-
 	Ranges \== [], !,
 	show_help(Name, Ranges).
 give_help(What) :-
-	format('No help available for ~w~n', What).
+	format('No help available for ~w~n', [What]).
 
 %%	show_help(+ListOfRanges)
 %	Pipe specified ranges of the manual through the user defined pager

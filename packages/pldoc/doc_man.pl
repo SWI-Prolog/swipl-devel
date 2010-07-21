@@ -822,7 +822,8 @@ pldoc_package(Request) :-
 	    index_manual,
 	    man_index(Obj, Title, File, packages, _),
 	    file_base_name(File, PkgDoc)
-	->  reply_html_page(title(Title),
+	->  reply_html_page(pldoc(package),
+			    title(Title),
 			    \object_page(Obj, []))
 	;   memberchk(path(Path), Request),
 	    existence_error(http_location, Path)
@@ -840,12 +841,14 @@ pldoc_refman(Request) :-
 	index_manual,
 	man_index(Obj, Title, File, manual, _),
 	file_base_name(File, Section), !,
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(man),
+			title(Title),
 			\object_page(Obj, [])).
 pldoc_refman(Request) :-		% server Contents.html
 	\+ memberchk(path_info(_), Request), !,
 	Section = section(_, _, swi('doc/Manual/Contents.html')),
-	reply_html_page(title('SWI-Prolog manual'),
+	reply_html_page(pldoc(refman),
+			title('SWI-Prolog manual'),
 			\man_page(Section, [])).
 pldoc_refman(Request) :-
 	memberchk(path(Path), Request),

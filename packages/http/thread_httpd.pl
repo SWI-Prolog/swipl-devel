@@ -31,6 +31,7 @@
 
 :- module(thread_httpd,
 	  [ http_current_server/2,	% ?:Goal, ?Port
+	    http_server_property/2,	% ?Port, ?Property
 	    http_server/2,		% :Goal, +Options
 	    http_workers/2,		% +Port, ?WorkerCount
 	    http_current_worker/2,	% ?Port, ?ThreadID
@@ -64,13 +65,13 @@ for details.
 */
 
 :- meta_predicate
-	http_server(:, +),
-	http_current_server(:, ?),
-	http_spawn(:, +).
+	http_server(1, +),
+	http_current_server(1, ?),
+	http_spawn(0, +).
 
 :- dynamic
 	port_option/2,			% Port, Option
-	current_server/4,		% Port, Goal, Thread, Queue
+	current_server/5,		% Port, Goal, Thread, Queue, StartTime
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
 
@@ -78,7 +79,8 @@ for details.
 	make_socket_hook/3,
 	accept_hook/2,
 	close_hook/1,
-	open_client_hook/5.
+	open_client_hook/5,
+	http:create_pool/1.
 
 %%	http_server(:Goal, +Options) is det.
 %
@@ -86,9 +88,9 @@ for details.
 %	Options provide a list of options. Defined options are
 %
 %	| port(?Port)	     | - 	| Port to listen to		      |
-%	| workers(N)	     | 2 	| Define the number of worker threads |
+%	| workers(N)	     | 5 	| Define the number of worker threads |
 %	| timeout(S)	     | 60	| Max inactivity for reading request  |
-%	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
+%	| keep_alive_timeout | 2	| Drop Keep-Alive connection timeout  |
 %	| local(KBytes)	     | <CommandLine> |				      |
 %	| global(KBytes)     | <CommandLine> |				      |
 %	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
@@ -123,15 +125,13 @@ make_socket(Port, Options0, Options) :-
 		  ].
 
 create_server(Goal, Port, Options) :-
+	get_time(StartTime),
 	memberchk(queue(Queue), Options),
 	atom_concat('http@', Port, Alias),
 	thread_create(accept_server(Goal, Options), _,
-		      [ local(128),
-			global(128),
-			trail(128),
-			alias(Alias)
+		      [ alias(Alias)
 		      ]),
-	assert(current_server(Port, Goal, Alias, Queue)).
+	assert(current_server(Port, Goal, Alias, Queue, StartTime)).
 
 
 %%	set_port_options(+Port, +Options) is det.
@@ -155,9 +155,31 @@ assert_port_options([Opt|T], Port) :- !,
 %%	http_current_server(:Goal, ?Port) is nondet.
 %
 %	True if Goal is the goal of a server at Port.
+%
+%	@deprecated Use http_server_property(Port, goal(Goal))
 
 http_current_server(Goal, Port) :-
-	current_server(Port, Goal, _, _).
+	current_server(Port, Goal, _, _, _).
+
+
+%%	http_server_property(?Port, ?Property) is nondet.
+%
+%	True if Property is a property of the HTTP server running at
+%	Port.  Defined properties are:
+%
+%	    * goal(:Goal)
+%	    Goal used to start the server. This is often
+%	    http_dispatch/1.
+%	    * start_time(?Time)
+%	    Time-stamp when the server was created.
+
+http_server_property(Port, Property) :-
+	server_property(Property, Port).
+
+server_property(goal(Goal), Port) :-
+	current_server(Port, Goal, _, _, _).
+server_property(start_time(Time), Port) :-
+	current_server(Port, _, _, _, Time).
 
 
 %%	http_workers(+Port, -Workers) is det.
@@ -169,7 +191,7 @@ http_current_server(Goal, Port) :-
 
 http_workers(Port, Workers) :-
 	must_be(integer, Port),
-	current_server(Port, _, _, Queue), !,
+	current_server(Port, _, _, Queue, _), !,
 	(   integer(Workers)
 	->  resize_pool(Queue, Workers)
 	;   findall(W, queue_worker(Queue, W), WorkerIDs),
@@ -187,7 +209,7 @@ http_workers(Port, _) :-
 %	statistics.
 
 http_current_worker(Port, ThreadID) :-
-	current_server(Port, _, _, Queue),
+	current_server(Port, _, _, Queue, _),
 	queue_worker(Queue, ThreadID).
 
 
@@ -199,7 +221,7 @@ http_current_worker(Port, ThreadID) :-
 accept_server(Goal, Options) :-
 	catch(accept_server2(Goal, Options), http_stop, true),
 	thread_self(Thread),
-	retract(current_server(_Port, _, Thread, _Queue)),
+	retract(current_server(_Port, _, Thread, _Queue, _StartTime)),
 	close_server_socket(Options).
 
 accept_server2(Goal, Options) :-
@@ -245,7 +267,7 @@ close_server_socket(Options) :-
 
 http_stop_server(Port, _Options) :-
 	http_workers(Port, 0),
-	current_server(Port, _, Thread, Queue),
+	current_server(Port, _, Thread, Queue, _Start),
 	retractall(queue_options(Queue, _)),
 	thread_signal(Thread, throw(http_stop)),
 	catch(connect(localhost:Port), _, true),
@@ -268,7 +290,7 @@ connect(Address) :-
 %	alias http_worker_N.
 
 create_workers(Options) :-
-	option(workers(N), Options, 2),
+	option(workers(N), Options, 5),
 	option(queue(Queue), Options),
 	catch(message_queue_create(Queue), _, true),
 	atom_concat(Queue, '_', AliasBase),
@@ -359,7 +381,7 @@ http_worker(Options) :-
 open_client(requeue(In, Out, Goal, ClOpts),
 	    _, Goal, In, Out, Opts, ClOpts) :- !,
 	memberchk(peer(Peer), ClOpts),
-	option(keep_alive_timeout(KeepAliveTMO), Opts, 5),
+	option(keep_alive_timeout(KeepAliveTMO), Opts, 2),
 	check_keep_alife_connection(In, KeepAliveTMO, Peer, In, Out).
 open_client(Message, Queue, Goal, In, Out, _Opts,
 	    [ pool(client(Queue, Goal, In, Out))
@@ -520,20 +542,21 @@ close_connection(Peer, In, Out) :-
 %	    * pool(+Pool)
 %	    Interfaces to library(thread_pool), starting the thread
 %	    on the given pool.
-%	    * backlog(+MaxBacklog)
-%	    Reply using a 503 (service unavailable) if too many requests
-%	    are waiting in this pool.
+%
+%	If a pool does not exist, this predicate calls the multifile
+%	hook http:create_pool/1 to create it. If this predicate succeeds
+%	the operation is retried.
 
 http_spawn(Goal, Options) :-
-	select_option(pool(Pool), Options, Options1), !,
-	select_option(backlog(BackLog), Options1, ThreadOptions, infinite),
-	check_backlog(BackLog, Pool),
+	select_option(pool(Pool), Options, ThreadOptions), !,
 	current_output(CGI),
-	thread_create_in_pool(Pool,
-			      wrap_spawned(CGI, Goal), Id,
-			      [ detached(true)
-			      | ThreadOptions
-			      ]),
+	catch(thread_create_in_pool(Pool,
+				    wrap_spawned(CGI, Goal), Id,
+				    [ detached(true)
+				    | ThreadOptions
+				    ]),
+	      Error,
+	      spawn_error(Error, http_spawn(Goal, Options))),
 	http_spawned(Id).
 http_spawn(Goal, Options) :-
 	current_output(CGI),
@@ -548,17 +571,13 @@ wrap_spawned(CGI, Goal) :-
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
 
-%%	check_backlog(+MaxBackLog, +Pool)
-%
-%	Check whether the backlog in the pool  has been exceeded. If so,
-%	reply as =busy=, which causes an HTTP 503 response.
-
-check_backlog(BackLog, Pool) :-
-	integer(BackLog),
-	thread_pool_property(Pool, backlog(Waiting)),
-	Waiting > BackLog, !,
+spawn_error(error(resource_error(threads_in_pool(_)), _), _) :-
 	throw(http_reply(busy)).
-check_backlog(_, _).
+spawn_error(error(existence_error(thread_pool, Pool), _), Retry) :-
+	http:create_pool(Pool),
+	call(Retry).
+spawn_error(Error, _) :-
+	throw(Error).
 
 
 		 /*******************************
@@ -570,16 +589,3 @@ check_backlog(_, _).
 
 prolog:message(httpd_stopped_worker(Self, Status)) -->
 	[ 'Stopped worker ~p: ~p'-[Self, Status] ].
-
-
-		 /*******************************
-		 *	      XREF		*
-		 *******************************/
-
-:- multifile
-	prolog:meta_goal/2.
-:- dynamic
-	prolog:meta_goal/2.
-
-prolog:meta_goal(http_server(G, _), [G+1]).
-prolog:meta_goal(http_current_server(G, _), [G+1]).

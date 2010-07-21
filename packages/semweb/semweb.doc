@@ -21,10 +21,9 @@
 
 \title{SWI-Prolog Semantic Web Library}
 \author{Jan Wielemaker \\
-	HCS, \\
-	University of Amsterdam \\
+	University of Amsterdam/VU University Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{J.Wielemaker@uva.nl}}
+	E-mail: \email{J.Wielemaker@cs.vu.nl}}
 
 \maketitle
 
@@ -252,6 +251,13 @@ X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
 
 ...
 \end{code}
+
+    \predicate{rdf_reachable}{5}{?Subject, +Predicate, ?Object, +MaxD, -D}
+Same as rdf_reachable/3, but in addition, \arg{MaxD} limits the number
+of relations expanded and \arg{D} is unified with the `distance' between
+\arg{Subject} and \arg{Object}.  Distance 0 means \arg{Subject} and
+\arg{Object} are the same resource.  \arg{MaxD} can be the constant
+\const{infinite} to impose no distance-limit.
 
     \predicate{rdf_subject}{1}{?Subject}
 Enumerate resources appearing as a subject in a triple.  The main reason
@@ -890,7 +896,9 @@ ns(owl,	    'http://www.w3.org/2002/7/owl#').
 ns(xsd,	    'http://www.w3.org/2000/10/XMLSchema#').
 ns(dc,	    'http://purl.org/dc/elements/1.1/').
 ns(dcterms, 'http://purl.org/dc/terms/').
+ns(skos,    'http://www.w3.org/2004/02/skos/core#').
 ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+
 \end{code}
 
 All predicates for the semweb libraries use goal_expansion/2 rules to
@@ -1158,6 +1166,14 @@ Succeeds if \arg{Id} is a blank node identifier (also called
 \jargon{anonymous resource}).  In the current implementation this
 implies it is an atom starting with a double underscore.
 
+    \predicate{rdf_is_resource}{1}{+Id}
+Succeeds if \arg{Id} is a resource.  Note that this resource need
+not to appear in any triple.
+
+    \predicate{rdf_is_literal}{1}{+Id}
+Succeeds if \arg{Id} is an RDF literal term. Note that this
+literal need not to appear in any triple.
+
     \predicate{rdf_source_location}{2}{+Subject, -SourceRef}
 Return the source-location as \arg{File}:\arg{Line} of the first triple
 that is about \arg{Subject}.
@@ -1243,6 +1259,18 @@ All matching is performed case-insensitive.  Defines methods are:
 	    the `*' character in \arg{Search} matches zero or more
 	    characters.
     \end{description}
+
+    \predicate{lang_matches}{2}{+Lang, +Pattern}
+True if \arg{Lang} matches \arg{Pattern}. This implements XML language
+matching conform RFC 4647. Both \arg{Lang} and \arg{Pattern} are
+dash-separated strings of identifiers or (for \arg{Pattern}) the
+wildcart \texttt{*}. Identifiers are matched case-insensitive and a
+\texttt{*} matches any number of identifiers.  A short pattern is the
+same as \texttt{*}.
+
+    \predicate{lang_equal}{2}{+Lang1, +Lang2}
+True if \arg{Lang1} and \arg{Lang2} specify the same language, including
+regional and other modifiers.  Language-specifiers are case-insensitive.
 
     \predicate{rdf_reset_db}{0}{}
 Erase all triples from the database and reset all counts and statistics
@@ -1540,11 +1568,12 @@ always.
 Delete the association between \arg{Key} and \arg{Value} from the map.
 Succeeds always.
 
-    \predicate{rdf_find_literal_map}{3}{+Map, +KeyList, -ValueList}
+    \predicate[det]{rdf_find_literal_map}{3}{+Map, +KeyList, -ValueList}
 Unify \arg{ValueList} with an ordered set of values associated to
-all keys from \arg{KeyList}.  I.e.\ perform an \jargon{intersection}
-of the value-sets associated with the keys. Unifies \arg{ValueList}
-with the empty list if no matches are found.
+all keys from \arg{KeyList}.  Each key in \arg{KeyList} is either an
+atom, an integer or a term \term{not}{Key}.  If not-terms are provided,
+there must be at least one positive keywords.  The negations are tested
+after establishing the positive matches.
 
     \predicate{rdf_keys_in_literal_map}{3}{+Map, +Spec, -Answer}
 Realises various queries on the key-set:
@@ -1945,6 +1974,7 @@ the match was found.
 		 %	  PLDOC LIBRARIES	%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\input{sparqlclient.tex}
 \input{rdfcompare.tex}
 \input{rdfportray.tex}
 

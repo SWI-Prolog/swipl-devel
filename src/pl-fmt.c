@@ -393,7 +393,13 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    { c = get_chr_from_text(fmt, here);
 
 	      if ( isDigitW(c) )
-	      { arg = arg*10 + c - '0';
+	      { int dw = c - '0';
+		int arg2 = arg*10 + dw;
+
+		if ( (arg2 - dw)/10 != arg )	/* see mul64() in pl-arith.c */
+		{ FMT_ERROR("argument overflow");
+		}
+		arg = arg2;
 		here++;
 	      } else
 		break;
@@ -1014,14 +1020,17 @@ formatFloat(int how, int arg, Number f, Buffer out)
       /*FALLTHROUGH*/
     case V_FLOAT:
     { char tmp[12];
+      int written = arg+20;
+      int size = 0;
 
-      if ( arg > 256 )
-	arg = 256;
-
-      growBuffer(out, 256+4);		/* reserve for -.e<null> */
       Ssprintf(tmp, "%%.%d%c", arg, how);
-      Ssprintf(baseBuffer(out, char), tmp, f->value.f);
-      out->top = out->base + strlen(out->base);
+      while(written >= size)
+      { size = written+1;
+
+	growBuffer(out, size);
+	written = snprintf(baseBuffer(out, char), size, tmp, f->value.f);
+      }
+      out->top = out->base + written;
 
       return baseBuffer(out, char);
     }

@@ -1276,7 +1276,8 @@ hasAlternativesFrame(LocalFrame frame)
 #ifdef O_DEBUG
 static intptr_t
 loffset(void *p)
-{ if ( p == NULL )
+{ GET_LD
+  if ( p == NULL )
     return 0;
 
   assert((intptr_t)p % sizeof(word) == 0);

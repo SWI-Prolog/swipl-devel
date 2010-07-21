@@ -513,7 +513,7 @@ pce_method_body2(A0, A, TermPos0, TermPos) :-
 pce_method_body2(A0, A, TermPos0, TermPos) :-
 	expand_goal(A0, A, TermPos0, TermPos).
 
-control_op((,)).
+control_op(',').
 control_op((;)).
 control_op((->)).
 control_op((*->)).

@@ -1577,7 +1577,7 @@ odbc_get_connection(term_t conn, term_t option, control_t h)
       opt = PL_foreign_context_address(h);
 
       goto find;
-    case PL_CUTTED:
+    case PL_PRUNED:
     default:
       return TRUE;
   }
@@ -2329,7 +2329,7 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
       return odbc_row(PL_foreign_context_address(handle), trow);
 
     default:
-    case PL_CUTTED:
+    case PL_PRUNED:
       free_context(PL_foreign_context_address(handle));
       return TRUE;
   }
@@ -2363,7 +2363,7 @@ odbc_tables(term_t dsn, term_t row, control_t handle)
     case PL_REDO:
       return odbc_row(PL_foreign_context_address(handle), row);
 
-    case PL_CUTTED:
+    case PL_PRUNED:
       free_context(PL_foreign_context_address(handle));
       return TRUE;
 
@@ -2402,7 +2402,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
     case PL_REDO:
       return odbc_row(PL_foreign_context_address(handle), row);
 
-    case PL_CUTTED:
+    case PL_PRUNED:
       free_context(PL_foreign_context_address(handle));
       return TRUE;
 
@@ -2448,7 +2448,7 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
     case PL_REDO:
       return odbc_row(PL_foreign_context_address(handle), row);
 
-    case PL_CUTTED:
+    case PL_PRUNED:
       free_context(PL_foreign_context_address(handle));
       return TRUE;
 
@@ -3131,7 +3131,7 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
     case PL_REDO:
       return odbc_row(PL_foreign_context_address(handle), row);
 
-    case PL_CUTTED:
+    case PL_PRUNED:
       close_context(PL_foreign_context_address(handle));
       return TRUE;
 

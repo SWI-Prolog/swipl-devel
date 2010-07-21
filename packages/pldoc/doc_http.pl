@@ -266,7 +266,8 @@ pldoc_root(Request, _) :-
 %	of the available documentation.
 
 pldoc_index(_Request) :-
-	reply_html_page(title('SWI-Prolog documentation'),
+	reply_html_page(pldoc(index),
+			title('SWI-Prolog documentation'),
 			[ \doc_links('', []),
 			   h1('SWI-Prolog documentation'),
 			  \man_overview([])
@@ -325,7 +326,8 @@ pldoc_edit(Request) :-
 	),
 	format(string(Cmd), '~q', [edit(Edit)]),
 	edit(Edit),
-	reply_html_page(title('Edit'),
+	reply_html_page(pldoc(edit),
+			title('Edit'),
 			p(['Started ', Cmd])).
 pldoc_edit(_Request) :-
 	throw(http_reply(forbidden('/edit'))).
@@ -526,7 +528,8 @@ pldoc_man(Request) :-
 	;   ground(F)
 	->  Obj = c(F)
 	),
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(man),
+			title(Title),
 			\man_page(Obj, [])).
 
 %%	pldoc_object(+Request)
@@ -544,7 +547,8 @@ pldoc_object(Request) :-
 	;   Title = Atom
 	),
 	edit_options(Request, EditOptions),
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(object),
+			title(Title),
 			\object_page(Obj, EditOptions)).
 
 
@@ -576,7 +580,8 @@ pldoc_search(Request) :-
 			]),
 	edit_options(Request, EditOptions),
 	format(string(Title), 'Prolog search -- ~w', [For]),
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(search),
+			title(Title),
 			\search_reply(For,
 				      [ resultFormat(Format),
 					search_in(In),

@@ -1042,7 +1042,7 @@ enforce_limit(size_t *size, size_t maxarea, const char *name)
 { if ( *size == 0 )
     *size = maxarea;
   else if ( *size > (size_t)(MAXTAGGEDPTR+1) )
-  { if ( *size != LONG_MAX )		/* user demanded maximum */
+  { if ( *size != (size_t)-1 )		/* user demanded maximum */
       Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
 	       name, (MAXTAGGEDPTR+1) / (1 MB));
     *size = MAXTAGGEDPTR+1;
@@ -1203,7 +1203,7 @@ allocStacks(size_t local, size_t global, size_t trail)
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, global,  minglobal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.local,
-	     "local",    ilocal,  local,   minlocal, 256*SIZEOF_VOIDP);
+	     "local",    ilocal,  local,   minlocal, 512*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.trail,
 	     "trail",    itrail,  trail,   mintrail, 256*SIZEOF_VOIDP);
   init_stack((Stack)&LD->stacks.argument,

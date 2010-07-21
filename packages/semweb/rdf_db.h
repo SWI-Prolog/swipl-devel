@@ -55,13 +55,22 @@
 #define BY_S	0x01			/* 1 */
 #define BY_P	0x02			/* 2 */
 #define BY_O	0x04			/* 4 */
+#define BY_G	0x08			/* 8 */
 #define BY_SP	(BY_S|BY_P)		/* 3 */
 #define BY_SO	(BY_S|BY_O)		/* 5 */
-#define BY_OP	(BY_P|BY_O)		/* 6 */
+#define BY_PO	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
+#define BY_SG	(BY_S|BY_G)		/* 9 */
+#define BY_PG	(BY_P|BY_G)		/* 10 */
+#define BY_SPG	(BY_S|BY_P|BY_G)	/* 11 */
+#define BY_OG	(BY_O|BY_G)		/* 12 */
+#define BY_SOG	(BY_S|BY_O|BY_G)	/* 13 */
+#define BY_POG	(BY_P|BY_O|BY_G)	/* 14 */
+#define BY_SPOG	(BY_S|BY_P|BY_O|BY_G)	/* 15 */
 
-#define INDEX_TABLES 		        7
-#define INITIAL_TABLE_SIZE   		8*1024
+/* (*) INDEX_TABLES must be consistent with index_col[] in rdf_db.c */
+#define INDEX_TABLES 		        10 	/* (*)  */
+#define INITIAL_TABLE_SIZE   		1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_GRAPH_TABLE_SIZE	64
 
@@ -100,17 +109,17 @@ typedef struct predicate
   list	            siblings;		/* reverse of subPropertyOf */
   int		    label;		/* Numeric label in cloud */
   struct predicate_cloud *cloud;	/* cloud I belong to */
-  unsigned int	    hash;		/* key used for hashing
+  size_t	    hash;		/* key used for hashing
   					   (=hash if ->cloud is up-to-date) */
 					/* properties */
   struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
 					/* statistics */
-  long		    triple_count;	/* # triples on this predicate */
-  long		    distinct_updated[2];/* Is count still valid? */
-  long		    distinct_count[2];  /* Triple count at last update */
-  long		    distinct_subjects[2];/* # distinct subject values */
-  long		    distinct_objects[2];/* # distinct object values */
+  size_t	    triple_count;	/* # triples on this predicate */
+  size_t	    distinct_updated[2];/* Is count still valid? */
+  size_t	    distinct_count[2];  /* Triple count at last update */
+  size_t	    distinct_subjects[2];/* # distinct subject values */
+  size_t	    distinct_objects[2];/* # distinct object values */
 } predicate;
 
 
@@ -177,7 +186,7 @@ typedef struct triple
 					/* flags */
   unsigned	object_is_literal : 1;	/* Object is a literal */
   unsigned	resolve_pred : 1;	/* predicates needs to be resolved */
-  unsigned	indexed : 3;		/* Partials: BY_* */
+  unsigned	indexed : 4;		/* Partials: BY_* */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
   unsigned	match   : 3;		/* How to match literals */
@@ -235,12 +244,12 @@ typedef struct rdf_db
   triple      **table[INDEX_TABLES];
   triple      **tail[INDEX_TABLES];
   int	       *counts[INDEX_TABLES];
-  int		table_size[INDEX_TABLES];
-  long		created;		/* #triples created */
-  long		erased;			/* #triples erased */
-  long		freed;			/* #triples actually erased */
-  long		subjects;		/* subjects (unique first) */
-  long		indexed[8];		/* Count calls */
+  size_t	table_size[INDEX_TABLES];
+  size_t	created;		/* #triples created */
+  size_t	erased;			/* #triples erased */
+  size_t	freed;			/* #triples actually erased */
+  size_t	subjects;		/* subjects (unique first) */
+  size_t	indexed[16];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
   int		gc_blocked;		/* GC is blocked; */
@@ -253,11 +262,12 @@ typedef struct rdf_db
   unsigned long next_hash;		/* cloud hash keys */
   int		active_queries;		/* Calls with choicepoints */
   int		need_update;		/* We need to update */
-  long		agenda_created;		/* #visited nodes in agenda */
-  long		duplicates;		/* #duplicate triples */
-  long		generation;		/* generation-id of the database */
+  size_t	agenda_created;		/* #visited nodes in agenda */
+  size_t	duplicates;		/* #duplicate triples */
+  size_t	generation;		/* generation-id of the database */
   graph       **graph_table;		/* Hash table of sources */
   int      	graph_table_size;	/* Entries in table */
+  int		graph_count;
 
   graph	*last_graph;		/* last accessed graph */
   active_transaction *tr_active;	/* open transactions */

@@ -918,11 +918,10 @@ mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c)
     { switch(m->how)
       { case VMI_REPLACE:
 	{ DEBUG(2,
-		Sdprintf("Replacing %s at %d due to %s (len=%d)\n",
-			 codeTable[decode(OpCode(ci, mstate->merge_pos))].name,
-			 mstate->merge_pos,
-			 codeTable[c].name,
-			 m->merge_length));
+		Sdprintf("Replacing %s at %d due to %s)\n",
+			 codeTable[decode(OpCode(ci,ci->mstate.merge_pos))].name,
+			 ci->mstate.merge_pos,
+			 codeTable[c].name));
 	  seekBuffer(&ci->codes, ci->mstate.merge_pos, code);
 	  ci->mstate.candidates = NULL;
     	  Output_n(ci, m->merge_op, m->merge_av, m->merge_ac);
@@ -931,8 +930,8 @@ mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c)
 	case VMI_STEP_ARGUMENT:
 	{ DEBUG(2,
 		Sdprintf("Stepping argument of %s from %ld\n",
-			 codeTable[decode(OpCode(ci, mstate->merge_pos))].name,
-			 OpCode(ci, mstate->merge_pos+1)));
+			 codeTable[decode(OpCode(ci, ci->mstate.merge_pos))].name,
+			 OpCode(ci, ci->mstate.merge_pos+1)));
 	  OpCode(ci, ci->mstate.merge_pos+1)++;
 	  return TRUE;
 	}

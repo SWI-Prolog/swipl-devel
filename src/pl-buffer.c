@@ -38,24 +38,15 @@ growBuffer(Buffer b, size_t minfree)
     sz *= 2;
 
   if ( b->base != b->static_buffer )
-  {
-#ifdef BUFFER_USES_MALLOC
-    b->base = realloc(b->base, sz);
+  { b->base = realloc(b->base, sz);
     if ( !b->base )
       outOfCore();
-#else
-    char *old = b->base;
-    b->base = allocHeap(sz);
-    memcpy(b->base, old, osz);
-#endif
   } else			/* from static buffer */
   { char *new;
-#ifdef BUFFER_USES_MALLOC
+
     if ( !(new = malloc(sz)) )
       outOfCore();
-#else
-    new = allocHeap(sz);
-#endif
+
     memcpy(new, b->static_buffer, osz);
     b->base = new;
   }

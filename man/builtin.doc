@@ -1100,7 +1100,7 @@ head of a predicate, it is also provided by the predicate =/2.
     \infixop[ISO]{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
 For behaviour on cyclic terms see the Prolog flag
-\prologflag{occurs_check}. It acts as if defined by the following rule.
+\prologflag{occurs_check}. It acts as if defined by the following fact.
 
 \begin{code}
 =(Term, Term).
@@ -2720,6 +2720,12 @@ especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
+
+    \termitem{wait}{Bool}
+This option can be combined with the \const{lock} option. If
+\const{false} (default \const{true}), the open call returns immediately
+with an exception if the file is locked.  The exception has the format
+\term{permission_error}{lock, source_sink, SrcDest}.
 \end{description}
 
 The option \const{reposition} is not supported in SWI-Prolog.  All streams
@@ -3446,6 +3452,11 @@ Succeeds after the last character of the named stream is read, or
 is only available on buffered input stream (unbuffered input streams
 are rarely used, see open/4).
 
+    \predicate{set_end_of_stream}{1}{+Stream}
+Sets the size of the file opened as \arg{Stream} to the current
+file-position.  This is typically used in combination with the
+open-mode \const{update}.
+
     \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} codes from stream \arg{StreamIn} to \arg{StreamOut}.
 Note that the copy is done using the semantics of get_code/2 and
@@ -3730,7 +3741,7 @@ reading the next term. Using \const{dec10}, read_term/[2,3] never fails.
 
     \termitem{subterm_positions}{TermPos}
 Describes the detailed layout of the term. The formats for the various
-types of terms if given below. All positions are character positions. If
+types of terms is given below. All positions are character positions. If
 the input is related to a normal stream, these positions are relative to
 the start of the input, when reading from the terminal, they are
 relative to the start of the term.
@@ -6659,6 +6670,7 @@ inferences      & Total number of passes via the call and redo ports
 heap		& Estimated total size of the heap (see \secref{heap}) \\
 heapused        & Bytes heap in use by Prolog. \\
 heaplimit	& Maximum size of the heap (see \secref{heap}) \\
+c_stack		& System (C-) stack limit.  0 if not known. \\
 stack		& Total memory in use for stacks in all threads \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\

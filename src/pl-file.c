@@ -1740,6 +1740,41 @@ error:
   return FALSE;
 }
 
+#ifdef __WINDOWS__			/* defined in pl-nt.c */
+extern int ftruncate(int fileno, int64_t length);
+#define HAVE_FTRUNCATE
+#endif
+
+static
+PRED_IMPL("set_end_of_stream", 1, set_end_of_stream, 0)
+{ IOSTREAM *s;
+  int rc;
+
+  if ( (rc=PL_get_stream_handle(A1, &s)) )
+  {
+#ifdef HAVE_FTRUNCATE
+    int fileno = Sfileno(s);
+
+    if ( fileno >= 0 )
+    { if ( ftruncate(fileno, Stell64(s)) != 0 )
+	rc = PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		      ATOM_set_end_of_stream, ATOM_stream,
+		      A1);
+    } else
+    { rc = PL_error(NULL, 0, "not a file", ERR_PERMISSION,
+		    ATOM_set_end_of_stream);
+    }
+#else
+    rc = notImplemented("set_end_of_stream", 1);
+#endif
+
+    releaseStream(s);
+  }
+
+  return rc;
+}
+
+
 
 		/********************************
 		*          STRING I/O           *
@@ -2757,6 +2792,7 @@ static const opt_spec open4_options[] =
   { ATOM_close_on_abort, OPT_BOOL },
   { ATOM_buffer,	 OPT_ATOM },
   { ATOM_lock,		 OPT_ATOM },
+  { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,	 	 OPT_BOOL },
   { NULL_ATOM,	         0 }
@@ -2773,6 +2809,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
+  int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
   int    close_on_abort = TRUE;
   int	 bom		= -1;
@@ -2785,7 +2822,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &encoding, &bom) )
+		       &close_on_abort, &buffer, &lock, &wait, &encoding, &bom) )
       return FALSE;
   }
 
@@ -2845,7 +2882,7 @@ openStream(term_t file, term_t mode, term_t options)
 
 					/* LOCK */
   if ( lock != ATOM_none )
-  { *h++ = 'l';
+  { *h++ = (wait ? 'l' : 'L');
     if ( lock == ATOM_read || lock == ATOM_shared )
       *h++ = 'r';
     else if ( lock == ATOM_write || lock == ATOM_exclusive )
@@ -4533,6 +4570,7 @@ BeginPredDefs(file)
   PRED_DEF("copy_stream_data", 3, copy_stream_data3, 0)
   PRED_DEF("copy_stream_data", 2, copy_stream_data2, 0)
   PRED_DEF("stream_pair", 3, stream_pair, 0)
+  PRED_DEF("set_end_of_stream", 1, set_end_of_stream, 0)
 
 					/* SWI internal */
   PRED_DEF("$push_input_context", 0, push_input_context, 0)

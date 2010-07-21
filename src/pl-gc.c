@@ -1569,7 +1569,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
   { op = decode(*PC++);
 
   again:
-    DEBUG(3, Sdprintf("\t%s\n", codeTable[op].name));
+    DEBUG(3, Sdprintf("\t%s at %d\n", codeTable[op].name, PC-state->c0-1));
     COUNT(vm_scanned);
     if ( op == end )
     { PC--;
@@ -1637,6 +1637,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	DEBUG(3, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
+	DEBUG(3, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
         goto again;
@@ -1650,6 +1651,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	PC += 2;			/* skip the 'MARK' variable and jmp */
 	walk_and_mark(state, PC, C_JMP PASS_LD);
 	PC = alt;
+	op = decode(*PC++);
+        goto again;
+      }
+      case C_IFTHEN:
+	if ( (state->flags & GCM_ALTCLAUSE) )
+	  break;
+      { PC = walk_and_mark(state, PC+1, C_END PASS_LD);
+	PC++;				/* skip C_END */
 	op = decode(*PC++);
         goto again;
       }
@@ -2297,7 +2306,7 @@ make_gc_hole(Word bottom, Word top)
     word hdr;
 
     while(wsize > MAX_STRLEN)
-    { Word t1  = bottom+MAX_STRLEN+1;
+    { Word t1  = bt+MAX_STRLEN+1;
 
       hdr = mkIndHdr(MAX_STRLEN, TAG_STRING);
       *t1 = *bt = hdr;

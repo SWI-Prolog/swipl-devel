@@ -80,10 +80,10 @@ $(TEX):		$(DOCTOTEX)
 demo:		test.so likes
 
 test.so:	test.cpp SWI-cpp.h
-		plld -o $@ -ld g++ -shared test.cpp
+		swipl-ld -o $@ -ld g++ -shared test.cpp
 
 likes:		likes.cpp likes.pl SWI-cpp.h
-		plld -o $@ -ld g++ -goal true likes.cpp likes.pl
+		swipl-ld -o $@ -ld g++ -goal true likes.cpp likes.pl
 
 ################################################################
 # Check

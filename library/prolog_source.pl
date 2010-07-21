@@ -118,9 +118,9 @@ update_state([]) :- !.
 update_state([H|T]) :- !,
 	update_state(H),
 	update_state(T).
-update_state(:- Directive) :- !,
+update_state((:- Directive)) :- !,
 	update_directive(Directive).
-update_state(?- Directive) :- !,
+update_state((?- Directive)) :- !,
 	update_directive(Directive).
 update_state(_).
 

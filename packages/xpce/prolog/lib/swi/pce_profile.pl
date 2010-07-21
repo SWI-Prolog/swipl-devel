@@ -291,7 +291,7 @@ update_label(DI, SortBy:name, F:prof_frame) :->
 
 time_key(ticks).
 time_key(ticks_self).
-time_key(ticks_siblings).
+time_key(ticks_children).
 
 details(DI) :->
 	"Show details"::
@@ -338,7 +338,7 @@ title(W) :->
 	     rowspan := 2),
 	send(T, next_row),
 	send(T, append, 'Self',   bold, center, BG),
-	send(T, append, 'Siblings',   bold, center, BG),
+	send(T, append, 'Children',   bold, center, BG),
 	send(T, append, 'Call',   bold, center, BG),
 	send(T, append, 'Redo',   bold, center, BG),
 	send(T, next_row).
@@ -395,14 +395,14 @@ show_cluster(Callers, Callees, Data, Cycle, W) :-
 	),
 	sort_relatives(Callers, Callers1),
 	show_relatives(Callers1, parent, W),
-	ticks(Callers1, Self, Siblings, Call, Redo),
-	send(W, show_predicate, Data, Self, Siblings, Call, Redo),
+	ticks(Callers1, Self, Children, Call, Redo),
+	send(W, show_predicate, Data, Self, Children, Call, Redo),
 	sort_relatives(Callees, Callees1),
 	reverse(Callees1, Callees2),
-	show_relatives(Callees2, sibling, W).
+	show_relatives(Callees2, child, W).
 
-ticks(Callers, Self, Siblings, Call, Redo) :-
-	ticks(Callers, 0, Self, 0, Siblings, 0, Call, 0, Redo).
+ticks(Callers, Self, Children, Call, Redo) :-
+	ticks(Callers, 0, Self, 0, Children, 0, Call, 0, Redo).
 
 ticks([], Self, Self, Sibl, Sibl, Call, Call, Redo, Redo).
 ticks([H|T],
@@ -474,17 +474,17 @@ show_relatives([H|T], Role, W) :-
 	show_relatives(T, Role, W).
 
 show_predicate(W, Data:prolog,
-	       Ticks:int, SiblingTicks:int,
+	       Ticks:int, ChildTicks:int,
 	       Call:int, Redo:int) :->
 	"Show the predicate we have details on"::
 	value(Data, predicate, Pred),
 	get(W, frame, Frame),
 	get(Frame, render_time, Ticks, Self),
-	get(Frame, render_time, SiblingTicks, Siblings),
+	get(Frame, render_time, ChildTicks, Children),
 	get(W, tabular, T),
 	BG = (background := khaki1),
 	send(T, append, Self, halign := right, BG),
-	send(T, append, Siblings, halign := right, BG),
+	send(T, append, Children, halign := right, BG),
 	send(T, append, Call, halign := right, BG),
 	send(T, append, Redo, halign := right, BG),
 	(   object(Pred)
@@ -496,7 +496,7 @@ show_predicate(W, Data:prolog,
 	send(T, next_row).
 
 show_relative(W, Caller:prolog, Role:name) :->
-	Caller = node(Pred, _Cluster, Ticks, SiblingTicks, Calls, Redos),
+	Caller = node(Pred, _Cluster, Ticks, ChildTicks, Calls, Redos),
 	get(W, tabular, T),
 	get(W, frame, Frame),
 	(   Pred == '<recursive>'
@@ -505,9 +505,9 @@ show_relative(W, Caller:prolog, Role:name) :->
 	    send(T, append, new(graphical)),
 	    send(T, append, Pred, italic)
 	;   get(Frame, render_time, Ticks, Self),
-	    get(Frame, render_time, SiblingTicks, Siblings),
+	    get(Frame, render_time, ChildTicks, Children),
 	    send(T, append, Self, halign := right),
-	    send(T, append, Siblings, halign := right),
+	    send(T, append, Children, halign := right),
 	    send(T, append, Calls, halign := right),
 	    send(T, append, Redos, halign := right),
 	    (   Pred == '<spontaneous>'
@@ -527,9 +527,9 @@ show_relative(W, Caller:prolog, Role:name) :->
 		   "Show executable object").
 
 variable(context,   any,		   get, "Represented executable").
-variable(role,	    {parent,self,sibling}, get,	"Represented role").
+variable(role,	    {parent,self,child}, get,	"Represented role").
 
-initialise(T, Context:any, Role:{parent,self,sibling}, Cycle:[int]) :->
+initialise(T, Context:any, Role:{parent,self,child}, Cycle:[int]) :->
 	send(T, slot, context, Context),
 	send(T, slot, role, Role),
 	get(T, label, Label),
@@ -603,7 +603,7 @@ details(T) :->
 :- pce_begin_class(prof_predicate_text, prof_node_text,
 		   "Show a predicate").
 
-initialise(T, Pred:prolog, Role:{parent,self,sibling}, Cycle:[int]) :->
+initialise(T, Pred:prolog, Role:{parent,self,child}, Cycle:[int]) :->
 	send_super(T, initialise, prolog_predicate(Pred), Role, Cycle).
 
 details(T) :->
@@ -620,7 +620,7 @@ details(T) :->
 
 key(predicate,	    1).
 key(ticks_self,	    2).
-key(ticks_siblings, 3).
+key(ticks_children, 3).
 key(call,	    4).
 key(redo,	    5).
 key(callers,	    6).
@@ -634,8 +634,8 @@ value(Data, label, Label) :- !,
 	predicate_label(Pred, Label).
 value(Data, ticks, Ticks) :- !,
 	arg(2, Data, Self),
-	arg(3, Data, Siblings),
-	Ticks is Self + Siblings.
+	arg(3, Data, Children),
+	Ticks is Self + Children.
 value(Data, Name, Value) :-
 	key(Name, Arg),
 	arg(Arg, Data, Value).
@@ -643,7 +643,7 @@ value(Data, Name, Value) :-
 sort_by(flat_profile_by_name,		     name,	     normal).
 sort_by(cumulative_profile_by_time,	     ticks,	     reverse).
 sort_by(flat_profile_by_time_self,	     ticks_self,     reverse).
-sort_by(cumulative_profile_by_time_siblings, ticks_siblings, reverse).
+sort_by(cumulative_profile_by_time_children, ticks_children, reverse).
 sort_by(flat_profile_by_number_of_calls,     call,	     reverse).
 sort_by(flat_profile_by_number_of_redos,     redo,	     reverse).
 
@@ -676,23 +676,23 @@ predicate_name(H, Name) :-
 	functor(H, Name, _Arity).
 
 %	prof_node(node(Pred,
-%		       TimeSelf, TimeSiblings,
+%		       TimeSelf, TimeChildren,
 %		       Calls, Redo, Recursive,
 %		       Parents))
 %
 %	Collect data for each of the interesting predicates.
 
 prof_node(node(Impl,
-	       TicksSelf, TicksSiblings,
+	       TicksSelf, TicksChildren,
 	       Call, Redo,
-	       Parents, Siblings)) :-
+	       Parents, Children)) :-
 	setof(Impl, prof_impl(Impl, -), Impls0),
 	join_impl(Impls0, Impls),
 	member(Impl, Impls),
 	'$prof_procedure_data'(Impl,
-			       TicksSelf, TicksSiblings,
+			       TicksSelf, TicksChildren,
 			       Call, Redo,
-			       Parents, Siblings).
+			       Parents, Children).
 
 join_impl([], []).
 join_impl([H|T0], [H|T]) :-

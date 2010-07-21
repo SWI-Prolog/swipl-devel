@@ -143,7 +143,8 @@ doc_for_file(FileSpec, Options) :-
 			   File),
 	file_base_name(File, Base),
 	Title = Base,
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(result),
+			title(Title),
 			\prolog_file(FileSpec, Options)).
 
 prolog_file(FileSpec, Options) -->
@@ -1548,7 +1549,8 @@ doc_for_wiki_file(FileSpec, _Options) :-
 reply_wiki_page(File, String) :-
 	wiki_codes_to_dom(String, [], DOM),
 	title(DOM, File, Title),
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(wiki),
+			title(Title),
 			[ \html_requires(pldoc)
 			| DOM
 			]).

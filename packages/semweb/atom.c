@@ -616,3 +616,116 @@ retry_like:
       return FALSE;
   }
 }
+
+
+		 /*******************************
+		 *	  LANGUAGE MATCH	*
+		 *******************************/
+
+typedef struct lang_choice
+{ int langp;				/* points after - */
+  int patp;				/* points after *- */
+} lang_choice;
+
+#define MAX_CHOICES 10			/* Max number of stars */
+
+typedef struct
+{ int il, ip;
+  text l, p;
+  lang_choice choicepoints[MAX_CHOICES];
+  int choice_count;
+} lang_state;
+
+
+static int
+create_chp(lang_state *s)
+{ if ( s->choice_count < MAX_CHOICES )
+  { lang_choice *cp = &s->choicepoints[s->choice_count];
+
+    cp->langp = s->il;
+    cp->patp = s->ip+2;
+    s->choice_count++;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+next_choice(lang_state *s)
+{ for ( ; s->choice_count > 0; s->choice_count-- )
+  { lang_choice *cp = &s->choicepoints[s->choice_count-1];
+    int il = cp->langp;
+
+    for(; il<s->l.length; il++)
+    { if ( fetch(&s->l, il) == '-' )
+      { cp->langp = s->il = il+1;
+	s->ip = cp->patp;
+	return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+
+static atom_t ATOM_;
+static atom_t ATOM_star;
+
+int
+atom_lang_matches(atom_t lang, atom_t pattern)
+{ lang_state s = {0};
+  int cl, cp;
+
+  if ( lang == pattern )		/* exact match */
+    return TRUE;
+
+  if ( !ATOM_ )
+  { ATOM_ = PL_new_atom("");
+    ATOM_star = PL_new_atom("*");
+  }
+
+  if ( lang == ATOM_ )			/* no language */
+    return FALSE;
+  if ( pattern == ATOM_star )		/* Everything matches "*" */
+    return TRUE;
+
+  if ( !get_atom_text(lang, &s.l) ||
+       !get_atom_text(pattern, &s.p) )
+    return FALSE;			/* exception? */
+
+  s.il=0; s.ip=0;
+  for(;; s.ip++, s.il++)
+  { if ( s.ip == s.p.length )
+      return TRUE;
+    if ( s.il == s.l.length )
+    { if ( fetch(&s.p, s.ip) == '*' )
+	return TRUE;
+      if ( !next_choice(&s) )
+	return FALSE;
+    }
+
+    cl = fetch(&s.l, s.il);
+    cp = fetch(&s.p, s.ip);
+    if ( cl == cp )
+      continue;
+    if ( sort_point(cl)>>8 == sort_point(cp)>>8 )
+      continue;
+
+    if ( cp == '*' )
+    { if ( s.ip+1 == s.p.length )
+	return TRUE;
+      if ( (s.ip == 0 || fetch(&s.p, s.ip-1) == '-') &&
+	   fetch(&s.p, s.ip+1) == '-' )
+      { if ( !create_chp(&s) )
+	  return FALSE;
+      }
+    }
+
+    if ( !next_choice(&s) )
+      return FALSE;
+  }
+}

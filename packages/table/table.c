@@ -1072,7 +1072,7 @@ pl_start_of_record(term_t handle,		/* table */
     case PL_REDO:
       f = PL_foreign_context(control);
       break;
-    case PL_CUTTED:
+    case PL_PRUNED:
     default:
       PL_succeed;
   }
@@ -2054,7 +2054,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
       q = PL_foreign_context_address(control);
       rebind_query_vars(q, spec);
       break;
-    case PL_CUTTED:
+    case PL_PRUNED:
     default:
       q = PL_foreign_context_address(control);
       if ( q )

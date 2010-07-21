@@ -247,7 +247,8 @@ typedef union
 */
 
 #define PL_FIRST_CALL		(0)
-#define PL_CUTTED		(1)
+#define PL_CUTTED		(1)	/* deprecated */
+#define PL_PRUNED		(1)
 #define PL_REDO			(2)
 
 #define PL_retry(n)		return _PL_retry(n)

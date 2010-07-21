@@ -31,6 +31,8 @@
 
 :- module(crypto_hash,
 	  [ sha_hash/3,			% +Data, -Hash, +Options
+	    sha_new_ctx/2,		% -NewContext, +Options
+	    sha_hash_ctx/4,		% +OldCtx, +Data, -NewCtx, -Hash
 	    hmac_sha/4			% +Key, +Data, -Hash, +Options
 	  ]).
 :- use_module(library(shlib)).
@@ -48,6 +50,25 @@
 %
 %	@param	Data is either an atom, string or code-list
 %	@param  Hash is a packed string
+
+%%	sha_new_ctx(-NewContext, +Options) is det
+%
+%	NewContext is unified with the empty SHA computation context
+%	(which includes the Options.)  It could later be passed to
+%	sha_hash_ctx/4.
+%
+%	For Options, see sha_hash/3.
+
+%%	sha_hash_ctx(+OldContext, +Data, -NewContext, -Hash) is det
+%
+%	Hash is the SHA hash of Data.  NewContext is the new SHA
+%	computation context, while OldContext is the old.  OldContext
+%	may be produced by a prior invocation of either sha_new_ctx/3 or
+%	sha_hash_ctx/4 itself.
+%
+%	This predicate allows a SHA function to be computed in chunks,
+%	which may be important while working with Metalink (RFC 5854),
+%	BitTorrent or similar technologies, or simply with big files.
 
 %%	hmac_sha(+Key, +Data, -Hash, +Options) is det
 %

@@ -264,8 +264,21 @@ prolog_bool_to_json(@(True), True) :-
 %	Inline type checking calls.
 
 type_goal(Type, Var, Body) :-
-	clause(error:has_type(Type, Var), Body), !.
+	clause(error:has_type(Type, Var), Body),
+	primitive(Body), !.
 type_goal(Type, Var, is_of_type(Type, Var)).
+
+primitive((A,B)) :- !,
+	primitive(A),
+	primitive(B).
+primitive((A;B)) :- !,
+	primitive(A),
+	primitive(B).
+primitive((A->B)) :- !,
+	primitive(A),
+	primitive(B).
+primitive(G) :-
+	predicate_property(system:G, built_in).
 
 
 %%	clean_body(+BodyIn, -BodyOut) is det.
@@ -513,6 +526,9 @@ match_field(any, JSON, Prolog, M, json_to_prolog(JSON,Prolog,M)) :- !.
 match_field(F/A, JSON, Prolog, M, json_to_prolog(JSON,Prolog,M)) :- !,
 	functor(Prolog, F, A).
 match_field(boolean, JSON, Prolog, _, json_bool_to_prolog(JSON, Prolog)) :- !.
+match_field(list(Type), JSON, Prolog, M, json_list_to_prolog(JSON, Prolog, M)) :-
+	current_json_object(Term, M, _Fields),
+	functor(Term, Type, _), !.
 match_field(Type, Var, Var, _, Goal) :-
 	type_goal(Type, Var, Goal).
 

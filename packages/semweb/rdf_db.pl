@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -37,6 +38,7 @@
 	    rdf_has/3,			% ?Subject, +Pred, ?Obj
 	    rdf_has/4,			% ?Subject, +Pred, ?Obj, -RealPred
 	    rdf_reachable/3,		% ?Subject, +Pred, ?Object
+	    rdf_reachable/5,		% ?Subject, +Pred, ?Object, +MaxD, ?D
 	    rdf_subject/1,		% ?Subject
 
 	    rdf_member_property/2,	% ?Property, ?Index
@@ -66,6 +68,9 @@
 	    rdf_bnode/1,		% -Id
 	    rdf_is_bnode/1,		% +Id
 
+	    rdf_is_resource/1,		% +Term
+	    rdf_is_literal/1,		% +Term
+
 	    rdf_load/1,			% +File
 	    rdf_load/2,			% +File, +Options
 	    rdf_save/1,			% +File
@@ -90,6 +95,8 @@
 	    rdf_save_footer/1,		% +Out
 
 	    rdf_equal/2,		% ?Resource, ?Resource
+	    lang_equal/2,		% +Lang1, +Lang2
+	    lang_matches/2,		% +Lang, +Pattern
 
 	    rdf_current_ns/2,		% ?Alias, ?URI
 	    rdf_register_ns/2,		% +Alias, +URI
@@ -177,6 +184,7 @@ ns(xsd,	    'http://www.w3.org/2001/XMLSchema#').
 ns(dc,	    'http://purl.org/dc/elements/1.1/').
 ns(dcterms, 'http://purl.org/dc/terms/').
 ns(eor,	    'http://dublincore.org/2000/03/13/eor#').
+ns(skos,    'http://www.w3.org/2004/02/skos/core#').
 ns(serql,   'http://www.openrdf.org/schema/serql#').
 
 %%	rdf_register_ns(+Alias, +URI) is det.
@@ -440,6 +448,7 @@ mk_global(NS:Local, Global) :-
 	rdf_assert(r,r,o,+),
 	rdf_retractall(r,r,o,?),
 	rdf_reachable(r,r,r),
+	rdf_reachable(r,r,r,+,?),
 	rdf_update(r,r,o,t),
 	rdf_update(r,r,o,+,t),
 	rdf_equal(r,r),
@@ -454,6 +463,17 @@ mk_global(NS:Local, Global) :-
 %	Simple equality test to exploit goal-expansion
 
 rdf_equal(Resource, Resource).
+
+%%	lang_equal(+Lang1, +Lang2) is semidet.
+%
+%	True if two RFC language specifiers denote the same language
+%
+%	@see lang_matches/2.
+
+lang_equal(Lang, Lang) :- !.
+lang_equal(Lang1, Lang2) :-
+	downcase_atom(Lang1, LangCannon),
+	downcase_atom(Lang2, LangCannon).
 
 
 %%	rdf_has(?Subject, +Predicate, ?Object)
@@ -514,6 +534,11 @@ rdf_bnode(Value) :-
 	\+ rdf(_, Value, _), !.
 
 
+
+		 /*******************************
+		 *	       TYPES		*
+		 *******************************/
+
 %%	rdf_is_bnode(+Id)
 %
 %	Tests if a resource is a blank node (i.e. is an anonymous
@@ -524,6 +549,25 @@ rdf_bnode(Value) :-
 rdf_is_bnode(Id) :-
 	atom(Id),
 	sub_atom(Id, 0, _, _, '__').
+
+%%	rdf_is_resource(@Term) is semidet.
+%
+%	True if Term is an RDF  resource.   Note  that  this is merely a
+%	type-test; it does not mean  this   resource  is involved in any
+%	triple.  Blank nodes are also considered resources.
+%
+%	@see rdf_is_bnode/1
+
+rdf_is_resource(Term) :-
+	atom(Term).
+
+%%	rdf_is_literal(@Term) is semidet.
+%
+%	True if Term is an RDF literal object. Currently only checks for
+%	groundness and the literal functor.
+
+rdf_is_literal(literal(Value)) :-
+	ground(Value).
 
 
 		 /*******************************
@@ -565,7 +609,7 @@ rdf_statistics(rehash(Count, Time)) :-
 rdf_statistics(core(Bytes)) :-
 	rdf_statistics_(core(Bytes)).
 rdf_statistics(lookup(Index, Count)) :-
-	functor(Indexed, indexed, 8),
+	functor(Indexed, indexed, 16),
 	rdf_statistics_(Indexed),
 	index(Index, I),
 	Arg is I + 1,
@@ -584,14 +628,23 @@ rdf_statistics(triples_by_file(File, Count)) :-
 rdf_statistics(duplicates(Count)) :-
 	rdf_statistics_(duplicates(Count)).
 
-index(rdf(-,-,-), 0).
-index(rdf(+,-,-), 1).
-index(rdf(-,+,-), 2).
-index(rdf(+,+,-), 3).
-index(rdf(-,-,+), 4).
-index(rdf(+,-,+), 5).
-index(rdf(-,+,+), 6).
-index(rdf(+,+,+), 7).
+index(rdf(-,-,-,-), 0).
+index(rdf(+,-,-,-), 1).
+index(rdf(-,+,-,-), 2).
+index(rdf(+,+,-,-), 3).
+index(rdf(-,-,+,-), 4).
+index(rdf(+,-,+,-), 5).
+index(rdf(-,+,+,-), 6).
+index(rdf(+,+,+,-), 7).
+
+index(rdf(-,-,-,+), 8).
+index(rdf(+,-,-,+), 9).
+index(rdf(-,+,-,+), 10).
+index(rdf(+,+,-,+), 11).
+index(rdf(-,-,+,+), 12).
+index(rdf(+,-,+,+), 13).
+index(rdf(-,+,+,+), 14).
+index(rdf(+,+,+,+), 15).
 
 
 		 /*******************************
@@ -1098,8 +1151,14 @@ guess_format(File, Format) :-
 	    print_message(warning, rdf(guess_format(Ext)))
 	).
 
+%%	storage_open(+Extension, +File, -Stream, -Cleanup)
+%
+%	Open the low-level storage. Note  that   the  file  is opened as
+%	binary. This is the same  as   for  HTTP  resources. The correct
+%	encoding will be set by the XML parser or the Turtle parser.
+
 storage_open('', File, Stream, close(Stream)) :- !,
-	open(File, read, Stream).
+	open(File, read, Stream, [type(binary)]).
 storage_open(Ext, File, Stream, Cleanup) :-
 	rdf_storage_encoding(Ext, Encoding),
 	rdf_open_decode(Encoding, File, Stream, Cleanup).

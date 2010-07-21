@@ -70,7 +70,8 @@ doc_for_dir(DirSpec, Options) :-
 			   Dir),
 	file_base_name(Dir, Base),
 	Title = Base,
-	reply_html_page(title(Title),
+	reply_html_page(pldoc(dir_index),
+			title(Title),
 			\dir_index(Dir, Options)).
 
 

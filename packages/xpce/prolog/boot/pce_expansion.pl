@@ -288,8 +288,8 @@ do_expand((:- pce_end_class),
 	findall(R, retract(attribute(ClassName, classvar, R)),  Resources),
 	findall(D, retract(attribute(ClassName, directive, D)), Directs),
 	(   attribute(ClassName, extending, true)
-	->  MetaClass = '-',
-	    Super = '-',
+	->  MetaClass = (-),
+	    Super = (-),
 	    expand_term((:- initialization(pce_extended_class(ClassName))),
 			RegisterDecl)
 	;   retract(attribute(ClassName, super, Super)),

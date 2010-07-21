@@ -1184,13 +1184,35 @@ SWI-Prolog behaviour.  Currently it has the following effect:
           float, even if applied to integers that can be divided.
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
-    \item atom_length/2 yields an instantiation error if the first
+    \item atom_length/2 yields a type error if the first
           argument is a number.
     \item clause/[2,3] raises a permission error when accessing static
           predicates.
     \item abolish/[1,2] raises a permission error when accessing static
           predicates.
+    \item Syntax is closer to the ISO standard.
+    	  \begin{itemize}
+		\item Unquoted commas and bars appearing as atoms
+		      are not allowed.  Instead of
+		      \exam{f(,,a)} now write \exam{f(',',a)}.
+		      Unquoted commas can only be used to separate arguments in
+		      functional notation and list notation, and as a conjunction operator.
+		      Unquoted bars can only appear within lists to separate head
+		      and tail like \exam{[Head|Tail]}, and as infix operator for
+		      alternation in grammar rules like \exam{a --> b | c.}
+		\item Within functional notation and list notation terms must have priority
+		      below 1000.  That means that rules and control constructs
+		      appearing as arguments need bracketing.
+		      A term like \exam{[a :- b, c].} must now be disambiguated
+		      to mean \exam{[(a :- b), c].} or \exam{[(a :- b, c)].}
+		\item Operators appearing as operands must be bracketed.
+		      Instead of \exam{X == -, true.} write \exam{X == (-), true.}
+		      Currently, this is not entirely enforced.
+	  \end{itemize}
 \end{itemize}
+
+
+
 
     \prologflagitem{large_files}{bool}{r}
 If present and \const{true}, SWI-Prolog has been compiled with

@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-inline.h"
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -2967,7 +2970,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FALSE: term cannot be shared
 TRUE:  term can be shared (ground)
--1:    not enough space on the stack
+*_OVERFLOW: not enough space on the stack
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -3013,18 +3016,19 @@ again:
         return FALSE;
       } else
       { Word attr;			/* the new attributes */
+	int rc;
 
 	if ( !onGlobalArea(to) )
 	{ Word t;
 
 	  if ( !(t = allocGlobalNoShift(1)) )
-	    return -1;
+	    return GLOBAL_OVERFLOW;
 
 	  *to = makeRefG(t);
 	  to = t;
 	}
 	if ( !(attr = allocGlobalNoShift(1)) )
-	  return -1;
+	  return GLOBAL_OVERFLOW;
 	TrailCyclic(p PASS_LD);
 	TrailCyclic(from PASS_LD);
 	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
@@ -3032,8 +3036,8 @@ again:
 
 					/* copy attribute value */
 	flags &= ~COPY_SHARE;
-	if ( do_copy_term(p, attr, flags PASS_LD) < 0 )
-	  return -1;
+	if ( (rc=do_copy_term(p, attr, flags PASS_LD)) < 0 )
+	  return rc;
 	return FALSE;
       }
     }
@@ -3059,7 +3063,7 @@ again:
 	size_t count = LD->cycle.stack.count;
 
 	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
-	  return -1;
+	  return GLOBAL_OVERFLOW;
 
 	f2->definition = f1->definition;
 	f1->definition = makeRefG((Word)f2);
@@ -3120,10 +3124,10 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
     rc = do_copy_term(valTermRef(from), dest, flags PASS_LD);
     exitCyclicCopy(0, flags PASS_LD);
 
-    if ( rc == -1 )			/* no space for copy */
+    if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
       PL_put_variable(to);
-      if ( !makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_SHIFT|ALLOW_GC) )
+      if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
     } else
     { PL_close_foreign_frame(fid);
@@ -4414,6 +4418,28 @@ heapUsed(void)
   return heap;
 }
 
+static size_t
+CStackSize(PL_local_data_t *ld)
+{
+#ifdef O_PLMT
+  if ( ld->thread.info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->stack_size));
+    return ld->thread.info->stack_size;
+  }
+#endif
+#ifdef HAVE_GETRLIMIT
+{ struct rlimit rlim;
+
+  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
+  { DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
+    return rlim.rlim_cur;
+  }
+}
+#endif
+
+  return 0;
+}
+
 #define QP_STATISTICS 1
 
 #ifdef QP_STATISTICS
@@ -4553,6 +4579,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = limitStack(global);
   else if (key == ATOM_argumentlimit)
     v->value.i = limitStack(argument);
+  else if (key == ATOM_c_stack)
+    v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_functors)			/* functors */
@@ -4670,6 +4698,11 @@ PRED_IMPL("statistics", 2, statistics, 0)
 
 #ifdef O_MEMSTATS
 
+#ifndef O_MYALLOC
+#define O_MYALLOC 1
+#endif
+
+#if O_MYALLOC
 static int
 addNameValue(term_t list, const char *name, term_t val)
 { GET_LD
@@ -4685,6 +4718,7 @@ addNameValue(term_t list, const char *name, term_t val)
 
   return TRUE;
 }
+#endif
 
 static int
 addNameInteger(term_t list, const char *name, intptr_t val)
@@ -4724,6 +4758,8 @@ static
 PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
 { PRED_LD
   term_t tail = PL_copy_term_ref(A1);
+
+#if O_MYALLOC
   term_t val = PL_new_term_ref();
 
   PL_put_variable(val);
@@ -4737,6 +4773,7 @@ PRED_IMPL("memory_statistics", 1, memory_statistics, 0)
   PL_UNLOCK(L_ALLOC);
   if ( !addNameValue(tail, "global_pool", val) )
     return FALSE;
+#endif
 
 #ifdef HAVE_MALLINFO
   { struct mallinfo info = mallinfo();

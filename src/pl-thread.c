@@ -80,6 +80,10 @@ _syscall0(pid_t,gettid)
 #endif
 #endif
 
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif
@@ -978,15 +982,35 @@ set_system_thread_id(PL_thread_info_t *info)
 
 
 static const opt_spec make_thread_options[] =
-{ { ATOM_local,		OPT_LONG|OPT_INF },
-  { ATOM_global,	OPT_LONG|OPT_INF },
-  { ATOM_trail,	        OPT_LONG|OPT_INF },
+{ { ATOM_local,		OPT_SIZE|OPT_INF },
+  { ATOM_global,	OPT_SIZE|OPT_INF },
+  { ATOM_trail,	        OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_detached,	OPT_BOOL },
-  { ATOM_stack,		OPT_LONG },
+  { ATOM_stack,		OPT_SIZE },
+  { ATOM_c_stack,	OPT_SIZE },
   { ATOM_at_exit,	OPT_TERM },
   { NULL_ATOM,		0 }
 };
+
+
+static int
+mk_kbytes(size_t *sz, atom_t name ARG_LD)
+{ if ( *sz != (size_t)-1 )
+  { size_t s = *sz * 1024;
+
+    if ( s/1024 != *sz )
+    { term_t t = PL_new_term_ref();
+
+      return ( PL_put_int64(t, *sz) &&	/* TBD: size_t is unsigned! */
+	       PL_error(NULL, 0, NULL, ERR_DOMAIN, name, t) );
+    }
+
+    *sz = s;
+  }
+
+  return TRUE;
+}
 
 
 static void *
@@ -1080,9 +1104,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   PL_local_data_t *ldnew;
   atom_t alias = NULL_ATOM, idname;
   pthread_attr_t attr;
-  intptr_t stack = 0;
+  size_t stack = 0;
+
   term_t at_exit = 0;
-  int rc;
+  int rc = 0;
+  const char *func;
 
   if ( !PL_is_callable(goal) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -1109,7 +1135,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->trail_size,
 		     &alias,
 		     &info->detached,
-		     &stack,
+		     &stack,		/* stack */
+		     &stack,		/* c_stack */
 		     &at_exit) )
   { free_thread_info(info);
     fail;
@@ -1124,12 +1151,12 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
   }
 
-#define MK_KBYTES(v) if ( v < (LONG_MAX/1024) ) v *= 1024
+#define MK_KBYTES(v, n) if ( !mk_kbytes(&v, n PASS_LD) ) return FALSE
 
-  MK_KBYTES(info->local_size);
-  MK_KBYTES(info->global_size);
-  MK_KBYTES(info->trail_size);
-  MK_KBYTES(stack);
+  MK_KBYTES(info->local_size, ATOM_local);
+  MK_KBYTES(info->global_size, ATOM_global);
+  MK_KBYTES(info->trail_size, ATOM_trail);
+  MK_KBYTES(stack, ATOM_c_stack);
 
   if ( alias )
   { if ( !aliasThread(info->pl_tid, alias) )
@@ -1175,18 +1202,40 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   pthread_attr_init(&attr);
   if ( info->detached )
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if ( stack )
-    pthread_attr_setstacksize(&attr, stack);
-  LOCK();
-  assert(info->goal);
-  rc = pthread_create(&info->tid, &attr, start_thread, info);
-  UNLOCK();
+  { func = "pthread_attr_setdetachstate";
+    rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  }
+  if ( rc == 0 )
+  {
+#ifdef HAVE_GETRLIMIT
+    struct rlimit rlim;
+    if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
+    { if ( rlim.rlim_cur != RLIM_INFINITY )
+	stack = rlim.rlim_cur;
+					/* What is an infinite stack!? */
+    }
+#endif
+    if ( stack )
+    { func = "pthread_attr_setstacksize";
+      rc = pthread_attr_setstacksize(&attr, stack);
+      info->stack_size = stack;
+    } else
+    { pthread_attr_getstacksize(&attr, &info->stack_size);
+    }
+  }
+  if ( rc == 0 )
+  { LOCK();
+    assert(info->goal);
+    func = "pthread_create";
+    rc = pthread_create(&info->tid, &attr, start_thread, info);
+    UNLOCK();
+  }
   pthread_attr_destroy(&attr);
+
   if ( rc != 0 )
   { free_thread_info(info);
     return PL_error(NULL, 0, ThError(rc),
-		    ERR_SYSCALL, "pthread_create");
+		    ERR_SYSCALL, func);
   }
 
   succeed;
@@ -2003,6 +2052,7 @@ typedef enum
 } queue_wait_type;
 
 #define MSG_WAIT_INTR (-1)
+#define MSG_WAIT_DESTROYED (-2)
 
 static int dispatch_cond_wait(message_queue *queue, queue_wait_type wait);
 
@@ -2207,6 +2257,8 @@ queue_message(message_queue *queue, thread_message *msgp ARG_LD)
 	  return MSG_WAIT_INTR;
 	}
       }
+      if ( queue->destroyed )
+	return MSG_WAIT_DESTROYED;
     }
 
     queue->wait_for_drain--;
@@ -2529,11 +2581,20 @@ PRED_IMPL("thread_send_message", 2, thread_send_message, PL_FA_ISO)
     rc = queue_message(q, msg PASS_LD);
     release_message_queue(q);
 
-    if ( rc == MSG_WAIT_INTR )
-    { if ( PL_handle_signals() >= 0 )
-	continue;
-      free_thread_message(msg PASS_LD);
-      rc = FALSE;
+    switch(rc)
+    { case MSG_WAIT_INTR:
+      { if ( PL_handle_signals() >= 0 )
+	  continue;
+	free_thread_message(msg PASS_LD);
+	rc = FALSE;
+
+	break;
+      }
+      case MSG_WAIT_DESTROYED:
+      { free_thread_message(msg PASS_LD);
+	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, A1);
+	break;
+      }
     }
 
     break;

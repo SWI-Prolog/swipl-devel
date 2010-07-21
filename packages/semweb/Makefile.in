@@ -37,7 +37,7 @@ DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=semweb
 TEX=$(DOC).tex	rdfturtle.tex rdfturtlewrite.tex rdfcompare.tex \
-		rdfportray.tex rdflib.tex
+		rdfportray.tex rdflib.tex sparqlclient.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -124,6 +124,8 @@ rdfcompare.tex:	rdf_compare.pl
 		$(PLTOTEX) --section 'library(semweb/rdf_compare)'
 rdfportray.tex:	rdf_portray.pl
 		$(PLTOTEX) --section 'library(semweb/rdf_portray)'
+sparqlclient.tex:	sparql_client.pl
+		$(PLTOTEX) --section 'library(semweb/sparql_client)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

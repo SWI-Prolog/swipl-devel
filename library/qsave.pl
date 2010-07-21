@@ -125,7 +125,7 @@ default_init_file(_,       InitFile) :-
 
 make_header(RC, _, Options) :-
 	option(Options, emulator/(-), OptVal, _),
-	OptVal \== -, !,
+	OptVal \== (-), !,
 	absolute_file_name(OptVal, [access(read)], Emulator),
 	'$rc_append_file'(RC, '$header', '$rc', none, Emulator).
 make_header(RC, _, Options) :-

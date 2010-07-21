@@ -679,8 +679,7 @@ turtle_tokens(C0, In, List) :-
 	).
 
 turtle_token(-1, _, -1, end_of_file) :- !.
-turtle_token(0'., In, C, '.') :- !,
-	get_code(In, C).
+turtle_token(0'., _, end, '.') :- !.	% Turtle does not demand a space here!
 turtle_token(0'#, In, C, Token) :- !,
 	get_code(In, C1),
 	skip_line(C1, In, C2),

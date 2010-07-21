@@ -1907,11 +1907,34 @@ Svprintf(const char *fm, va_list args)
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
 
+#define SNPRINTF3(fm, a1) \
+	{ size_t __r; \
+	  assert(fs == fbuf); \
+	  __r = snprintf(fs, sizeof(fbuf), fm, a1); \
+	  if ( __r >= sizeof(fbuf) ) \
+	  { if ( (fs_malloced = fs = malloc(__r+1)) == NULL ) goto error; \
+	    __r = snprintf(fs, __r+1, fm, a1); \
+	  } \
+	  fe = fs+__r; \
+	}
+#define SNPRINTF4(fm, a1, a2) \
+	{ size_t __r; \
+	  assert(fs == fbuf); \
+	  __r = snprintf(fs, sizeof(fbuf), fm, a1, a2); \
+	  if ( __r >= sizeof(fbuf) ) \
+	  { if ( (fs_malloced = fs = malloc(__r+1)) == NULL ) goto error; \
+	    __r = snprintf(fs, __r+1, fm, a1, a2); \
+	  } \
+	  fe = fs+__r; \
+	}
+
+
 int
 Svfprintf(IOSTREAM *s, const char *fm, va_list args)
-{ intptr_t printed = 0;
+{ int printed = 0;
   char buf[TMPBUFSIZE];
   int tmpbuf;
+  char *fs_malloced = NULL;
 
   SLOCK(s);
 
@@ -1999,8 +2022,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      *fp++ = '#';
 	    *fp++ = 'p';
 	    *fp   = '\0';
-	    sprintf(fs, fmbuf, ptr);
-	    fe = &fs[strlen(fs)];
+	    SNPRINTF3(fmbuf, ptr);
 
 	    break;
 	  }
@@ -2033,7 +2055,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    if ( islong < 2 )
 	    { *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, v);
+	      SNPRINTF3(fmbuf, v);
 	    } else
 	    {
 #ifdef __WINDOWS__
@@ -2044,9 +2066,8 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 #endif
 	      *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, vl);
+	      SNPRINTF3(fmbuf, vl);
 	    }
-	    fe = &fs[strlen(fs)];
 
 	    break;
 	  }
@@ -2061,16 +2082,16 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
-	    if ( has_arg2 )		/* specified percission */
+	    if ( has_arg2 )		/* specified precission */
 	    { *fp++ = '.';
 	      *fp++ = '*';
 	      *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, arg2, v);
+	      SNPRINTF4(fmbuf, arg2, v);
 	    } else
 	    { *fp++ = *fm;
 	      *fp   = '\0';
-	      sprintf(fs, fmbuf, v);
+	      SNPRINTF3(fmbuf, v);
 	    }
 	    fe = &fs[strlen(fs)];
 
@@ -2136,6 +2157,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	}
 	fm++;
+	if ( fs_malloced )
+	{ fs_malloced = NULL;
+	  free(fs_malloced);
+	}
       }
     } else if ( *fm == '\\' && fm[1] )
     { OUTCHR(s, fm[1]);
@@ -2155,6 +2180,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   return (int)printed;
 
 error:
+  if ( fs_malloced )
+    free(fs_malloced);
+
   SUNLOCK(s);
   return -1;
 }
@@ -2688,7 +2716,6 @@ is of no value.
 IOSTREAM *
 Snew(void *handle, int flags, IOFUNCTIONS *functions)
 { IOSTREAM *s;
-  int fd;
 
   if ( !(s = malloc(sizeof(IOSTREAM))) )
   { errno = ENOMEM;
@@ -2719,6 +2746,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #endif
 
 #ifndef __WINDOWS__			/* (*) */
+{ int fd;
   if ( (fd = Sfileno(s)) >= 0 )
   { if ( isatty(fd) )
       s->flags |= SIO_ISATTY;
@@ -2726,6 +2754,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     fcntl(fd, F_SETFD, FD_CLOEXEC);
 #endif
   }
+}
 #endif
 
   return s;
@@ -2757,6 +2786,7 @@ Sopen_file(const char *path, const char *how)
   enum {lnone=0,lread,lwrite} lock = lnone;
   IOSTREAM *s;
   IOENC enc = ENC_UNKNOWN;
+  int wait = TRUE;
 
   for( ; *how; how++)
   { switch(*how)
@@ -2767,6 +2797,9 @@ Sopen_file(const char *path, const char *how)
       case 'r':				/* no record */
 	flags &= ~SIO_RECORDPOS;
         break;
+      case 'L':				/* lock r: read, w: write */
+	wait = FALSE;
+        /*FALLTHROUGH*/
       case 'l':				/* lock r: read, w: write */
 	if ( *++how == 'r' )
 	  lock = lread;
@@ -2822,7 +2855,7 @@ Sopen_file(const char *path, const char *how)
     memset(&buf, 0, sizeof(buf));
     buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
 
-    if ( fcntl(fd, F_SETLKW, &buf) < 0 )
+    if ( fcntl(fd, wait ? F_SETLKW : F_SETLK, &buf) < 0 )
     { int save = errno;
       close(fd);
       errno = save;
@@ -2832,14 +2865,20 @@ Sopen_file(const char *path, const char *how)
 #if __WINDOWS__
     HANDLE h = (HANDLE)_get_osfhandle(fd);
     OVERLAPPED ov;
+    int flags = 0;
+
+    if ( lock == lwrite )
+      flags |= LOCKFILE_EXCLUSIVE_LOCK;
+    if ( !wait )
+      flags |= LOCKFILE_FAIL_IMMEDIATELY;
 
     memset(&ov, 0, sizeof(ov));
-    if ( !LockFileEx(h, (lock == lread ? 0 : LOCKFILE_EXCLUSIVE_LOCK),
+    if ( !LockFileEx(h, flags,
 		     0,
 		     0, 0xfffffff,
 		     &ov) )
     { close(fd);
-      errno = EACCES;			/* TBD: proper error */
+      errno = (wait ? EACCES : EAGAIN);	/* TBD: proper error */
       return NULL;
     }
 #else
