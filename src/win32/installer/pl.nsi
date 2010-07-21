@@ -290,6 +290,7 @@ Section "Base system (required)"
   File pl\library\aggregate.pl
   File pl\library\pure_input.pl
   File pl\library\pio.pl
+  File pl\library\coinduction.pl
 
 ; WINDOWS
   File pl\library\dde.pl
