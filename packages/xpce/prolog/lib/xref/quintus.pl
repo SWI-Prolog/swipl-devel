@@ -258,7 +258,7 @@ stream_code(_,_).
 stream_position(_,_).
 stream_position(_,_,_).
 style_check(_).
-subsumes_chk(_,_).
+subsumes_term(_,_).
 tab(_).
 tab(_,_).
 tell(_).
