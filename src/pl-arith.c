@@ -3166,7 +3166,7 @@ static const ar_funcdef ar_funcdefs[] = {
 
   ADD(FUNCTOR_mod2,		ar_mod),
   ADD(FUNCTOR_rem2,		ar_rem),
-  ADD(FUNCTOR_div2,		ar_tdiv),
+  ADD(FUNCTOR_gdiv2,		ar_tdiv),
   ADD(FUNCTOR_gcd2,		ar_gcd),
   ADD(FUNCTOR_sign1,		ar_sign),
 
