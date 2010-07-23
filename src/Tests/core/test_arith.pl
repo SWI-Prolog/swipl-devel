@@ -31,13 +31,31 @@
 */
 
 test_arith :-
-	run_tests([ rem,
+	run_tests([ gdiv,
+		    rem,
 		    mod,
 		    gcd,
 		    shift,
 		    errors,
 		    ar_builtin
 		  ]).
+
+:- begin_tests(gdiv).
+
+:- if(current_prolog_flag(bounded,false)).
+
+test(minint, X == 9223372036854775808) :-
+	X is -9223372036854775808 // -1.
+
+:- else.
+
+test(minint, error(evaluation_error(integer_overflow))) :-
+	X is -9223372036854775808 // -1,
+	writeln(X).
+
+:- endif.
+
+:- end_tests(gdiv).
 
 :- begin_tests(rem).
 
