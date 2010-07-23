@@ -168,26 +168,26 @@ noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
 
 call(Goal) :-				% make these available as predicates
 	Goal.
-call(G, A) :-
-	call(G, A).
-call(G, A, B) :-
-	call(G, A, B).
-call(G, A, B, C) :-
-	call(G, A, B, C).
-call(G, A, B, C, D) :-
-	call(G, A, B, C, D).
-call(G, A, B, C, D, E) :-
-	call(G, A, B, C, D, E).
-call(G, A, B, C, D, E, F) :-
-	call(G, A, B, C, D, E, F).
-call(G, A, B, C, D, E, F, G) :-
-	call(G, A, B, C, D, E, F, G).
-call(G, A, B, C, D, E, F, G, H) :-
-	call(G, A, B, C, D, E, F, G, H).
-call(G, A, B, C, D, E, F, G, H, I) :-
-	call(G, A, B, C, D, E, F, G, H, I).
-call(G, A, B, C, D, E, F, G, H, I, J) :-
-	call(G, A, B, C, D, E, F, G, H, I, J).
+call(Goal, A) :-
+	call(Goal, A).
+call(Goal, A, B) :-
+	call(Goal, A, B).
+call(Goal, A, B, C) :-
+	call(Goal, A, B, C).
+call(Goal, A, B, C, D) :-
+	call(Goal, A, B, C, D).
+call(Goal, A, B, C, D, E) :-
+	call(Goal, A, B, C, D, E).
+call(Goal, A, B, C, D, E, F) :-
+	call(Goal, A, B, C, D, E, F).
+call(Goal, A, B, C, D, E, F, G) :-
+	call(Goal, A, B, C, D, E, F, G).
+call(Goal, A, B, C, D, E, F, G, H) :-
+	call(Goal, A, B, C, D, E, F, G, H).
+call(Goal, A, B, C, D, E, F, G, H, I) :-
+	call(Goal, A, B, C, D, E, F, G, H, I).
+call(Goal, A, B, C, D, E, F, G, H, I, J) :-
+	call(Goal, A, B, C, D, E, F, G, H, I, J).
 
 not(Goal) :-
 	\+ Goal.
