@@ -1169,9 +1169,9 @@ with the obvious meaning.
 
 This section describes special purpose variations on Prolog unification.
 The predicate unify_with_occurs_check/2 provides sound unification and
-is part of the ISO standard. The predicates subsumes/2 and
-subsumes_chk/2 define `one-sided-unification' and are found in many
-Prolog systems.  Finally, unifiable/3 is a `what-if' version of
+is part of the ISO standard. The predicate subsumes_term/2 defines
+`one-sided-unification' and is part of the ISO proposal established in
+Edinburgh (2010). Finally, unifiable/3 is a `what-if' version of
 unification that is often used as a building block in constraint
 reasoners.
 
@@ -1241,24 +1241,15 @@ name \predref{variant}{2} in some other Prolog systems.
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
-    \predicate{subsumes}{2}{+Generic, {@}Specific}
-A term is told to \jargon{subsume} another term if instantiation in the
-generic term produces the specific term. The subsumption relation is
-also called \jargon{one sided unification} or \jargon{semi-unification}.
-It behaves as if defined by\footnote{This implementation relies on the
-fact that term_variables/2 orders its variables based on depth-first
-left-to-right traversal of the term.}
-
-\begin{code}
-subsumes(General, Specific) :-
-	term_variables(Specific, SVars),
-	General = Specific,
-	term_variables(SVars, SVars2),
-	SVars == SVars2.
-\end{code}
-
-    \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
-Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
+    \predicate{subsumes_term}{2}{{@}Generic, {@}Specific}
+True if \arg{Generic} can be made equivalent to \arg{Specific} by only
+binding variables in \arg{Generic}.  The current implementation performs
+the unification and ensures that the variable set of \arg{Specific} is
+not changed by the unification. On success, the bindings are
+undone.\footnote{This predicate is often named subsumes_chk/2 in older
+Prolog dialects. The current name was established in the ISO WG17
+meeting in Edinburgh (2010).  The \verb$chk$ postfix was considered
+to refer to determinism as in e.g., memberchk/2.}
 
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
