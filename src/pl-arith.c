@@ -1727,8 +1727,21 @@ ar_log10(Number n1, Number r)
 }
 
 
+/* IntExpr1 // IntExpr2
+
+Integer division. Defined by ISO core   standard  as rnd(X,Y), where the
+direction of the rounding is conform the flag integer_rounding_function,
+which is one of =toward_zero= or =down=.
+
+The implementation below rounds according to the C-compiler. This is not
+desirable, but I understand that as  of   C99,  this is towards zero and
+this is precisely what we want to make  this different from div/2. As we
+need C99 for the wide-character  support   anyway,  we  should be fairly
+safe.
+*/
+
 static int
-ar_div(Number n1, Number n2, Number r)
+ar_tdiv(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
   if ( !toIntegerNumber(n2, 0) )
@@ -1740,10 +1753,12 @@ ar_div(Number n1, Number n2, Number r)
   { if ( n2->value.i == 0 )
       return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
 
-    r->value.i = n1->value.i / n2->value.i;
-    r->type = V_INTEGER;
+    if ( !(n2->value.i == -1 && n1->value.i == PLMININT) )
+    { r->value.i = n1->value.i / n2->value.i;
+      r->type = V_INTEGER;
 
-    succeed;
+      succeed;
+    }
   }
 
 #ifdef O_GMP
@@ -1755,9 +1770,14 @@ ar_div(Number n1, Number n2, Number r)
 
   r->type = V_MPZ;
   mpz_init(r->value.mpz);
-  mpz_tdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+  if ( (-3 / 2) == -1 )
+    mpz_tdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+  else
+    mpz_fdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
 
   succeed;
+#else
+  return PL_error("//", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
 }
 
@@ -3146,7 +3166,7 @@ static const ar_funcdef ar_funcdefs[] = {
 
   ADD(FUNCTOR_mod2,		ar_mod),
   ADD(FUNCTOR_rem2,		ar_rem),
-  ADD(FUNCTOR_div2,		ar_div),
+  ADD(FUNCTOR_div2,		ar_tdiv),
   ADD(FUNCTOR_gcd2,		ar_gcd),
   ADD(FUNCTOR_sign1,		ar_sign),
 

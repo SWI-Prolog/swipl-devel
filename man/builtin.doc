@@ -1248,8 +1248,8 @@ the unification and ensures that the variable set of \arg{Specific} is
 not changed by the unification. On success, the bindings are
 undone.\footnote{This predicate is often named subsumes_chk/2 in older
 Prolog dialects. The current name was established in the ISO WG17
-meeting in Edinburgh (2010).  The \verb$chk$ postfix was considered
-to refer to determinism as in e.g., memberchk/2.}
+meeting in Edinburgh (2010). The \texttt{chk} postfix was
+considered to refer to determinism as in e.g., memberchk/2.}
 
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
@@ -4783,8 +4783,12 @@ Remainder of integer division.  Behaves as if defined by
 (\arg{IntExpr1} // \arg{IntExpr2}) $\times$ \arg{IntExpr2}}
 
     \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
-Integer division:
-\mbox{\arg{Result} is truncate(\arg{Expr1}/\arg{Expr2})}
+Integer division, defined as \mbox{\arg{Result} is
+$rnd_I$(\arg{Expr1}/\arg{Expr2})}. The function $rnd_I$ is the default
+rounding used by the C-compiler and available through the Prolog flag
+\prologflag{integer_rounding_function}. In the C99 standard, C-rounding
+is defined as \const{towards_zero}.\footnote{Future versions might
+guarantee rounding towards zero.}
 
     \infixop{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if
