@@ -1148,7 +1148,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
   { free_thread_info(info);
-    return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
+    return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
 #define MK_KBYTES(v, n) if ( !mk_kbytes(&v, n PASS_LD) ) return FALSE
@@ -1168,7 +1168,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
 
     if ( !PL_is_variable(id) )
-      return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
+      return PL_error(NULL, 0, "thread-id", ERR_UNINSTANTIATION, 0, id);
 
     fail;
   }

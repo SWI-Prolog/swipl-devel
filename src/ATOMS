@@ -609,6 +609,7 @@ A unicode_be		"unicode_be"
 A unicode_le		"unicode_le"
 A unify			"unify"
 A unify_determined	"?="
+A uninstantiation_error	"uninstantiation_error"
 A unique		"unique"
 A univ			"=.."
 A unknown		"unknown"
@@ -863,6 +864,7 @@ F type			1
 F type_error		2
 F undefinterc		4
 F unify_determined	2
+F uninstantiation_error	1
 F var			1
 F wakeup		3
 F warning		3

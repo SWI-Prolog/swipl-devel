@@ -604,7 +604,7 @@ PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
     return PL_error("put_attr", 3, "invalid attribute structure",
 		    ERR_TYPE, ATOM_attributes, A1);
   } else
-  { return PL_error("put_attr", 3, NULL, ERR_MUST_BE_VAR, 1, A1);
+  { return PL_error("put_attr", 3, NULL, ERR_UNINSTANTIATION, 1, A1);
   }
 }
 
@@ -628,7 +628,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   { make_new_attvar(av PASS_LD);			/* SHIFT: 2+0 */
     deRef(av);
   } else if ( !isAttVar(*av) )
-  { return PL_error("put_attrs", 2, NULL, ERR_MUST_BE_VAR, 1, A1);
+  { return PL_error("put_attrs", 2, NULL, ERR_UNINSTANTIATION, 1, A1);
   }
 
   vp = valPAttVar(*av);
@@ -1054,7 +1054,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
       return TRUE;
     }
   } else
-    return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 1, A1);
+    return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 1, A1);
 
   assert(0);
   return FALSE;
