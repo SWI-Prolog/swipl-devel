@@ -48,6 +48,7 @@ A at_not_equals		"\\=@="
 A at_smaller		"@<"
 A at_smaller_eq		"@=<"
 A atan			"atan"
+A atan2			"atan2"
 A atom			"atom"
 A atom_garbage_collection	"atom_garbage_collection"
 A atomic		"atomic"
@@ -665,6 +666,7 @@ F assert		1
 F asserta		1
 F atan			1
 F atan			2
+F atan2			2
 F atom			1
 F att			3
 F backslash		1

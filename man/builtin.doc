@@ -4942,10 +4942,12 @@ $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \predicate[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate{atan}{2}{+YExpr, +XExpr}
+    \predicate[ISO]{atan2}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
+    \predicate{atan}{2}{+YExpr, +XExpr}
+Same as atan2/2 (backward compatibility).
     \predicate[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \predicate{log10}{1}{+Expr}
@@ -4966,7 +4968,7 @@ Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
-Same as **/2.  (backward compatibility).
+Same as **/2 (backward compatibility).
     \predicate{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
