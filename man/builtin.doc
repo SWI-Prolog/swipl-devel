@@ -4450,13 +4450,21 @@ a term is 0, unless its principal functor is an operator, in which case
 the precedence is the precedence of this operator. A term enclosed in
 brackets \exam{(\ldots)} has precedence 0.
 
-The predefined operators are shown in \tabref{operators}. The ISO
-standard allows for redefining all operators except the comma (,).
-Applications must be extremely careful with (re-)defining operators
-because changing operators may cause (other) files to be interpreted
+The predefined operators are shown in \tabref{operators}. Operators can
+be redefined, unless prohibited by one of the limitations below.
+Applications must be careful with (re-)defining operators because
+changing operators may cause (other) files to be interpreted
 \textbf{differently}. Often this will lead to a syntax error. In other
 cases, text is read silently into a different term which may lead to
 subtle and difficult to track errors.
+
+\begin{itemize}
+    \item It is not allowed to redefine the comma (\verb$','$).
+    \item The bar (\verb$|$) can only be (re-)defined as infix
+          operator with priority not less than 1001.
+    \item It is not allowed to define the empty list (\verb$[]$) or the
+    	  curly-bracket-pair (\verb${}$) as operators.
+\end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
 \secref{moduleop}). Keeping operators in modules and using controlled
@@ -4791,11 +4799,11 @@ is defined as \const{towards_zero}.\footnote{Future versions might
 guarantee rounding towards zero.}
 
     \predicate[ISO]{div}{+IntExpr1}{+IntExpr2}
-Integer division, defined as \mbox{\arg{Result} is $(IntExpr1 - IntExpr1
-mod IntExpr2) // IntExpr2$. In other words, this is integer division
-that rounds towards -infinity. This function guarantees behaviour
-that is consistent with mod/2, i.e., the following holds for every
-pair of integers $X,Y$ where \verb$Y =\= 0$.
+Integer division, defined as \mbox{\arg{Result} is
+$(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
+In other words, this is integer division that rounds towards -infinity.
+This function guarantees behaviour that is consistent with mod/2, i.e.,
+the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
 
 \begin{code}
 	Q is div(X, Y),
