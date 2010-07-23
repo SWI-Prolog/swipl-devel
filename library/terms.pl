@@ -58,28 +58,28 @@ in this library are provided as SWI-Prolog built-ins.
 variant(X, Y) :-
 	X =@= Y.
 
-%%	subsumbes_chk(@Generic, @Specific)
+%%	subsumes_chk(@Generic, @Specific)
 %
 %	True if Generic can be made equivalent to Specific without
 %	changing Specific.
 %
-%	@deprecated Replace by subsumbes_term/2.
+%	@deprecated Replace by subsumes_term/2.
 
 subsumes_chk(Generic, Specific) :-
-	subsumbes_term(Generic, Specific).
+	subsumes_term(Generic, Specific).
 
-%%	subsumbes(+Generic, @Specific)
+%%	subsumes(+Generic, @Specific)
 %
 %	True  if  Generic  is  unified   to  Specific  without  changing
 %	Specific.
 %
 %	@deprecated It turns out that calls to this predicate almost
-%	always should have used subsumbes_term/2.  Also the name is
+%	always should have used subsumes_term/2.  Also the name is
 %	misleading.  In case this is really needed, one is adviced to
-%	follow subsumbes_term/2 with an explicit unification.
+%	follow subsumes_term/2 with an explicit unification.
 
 subsumes(Generic, Specific) :-
-	subsumbes_term(Generic, Specific),
+	subsumes_term(Generic, Specific),
 	Generic = Specific.
 
 %%	term_subsumer(+Special1, +Special2, -General) is det.
