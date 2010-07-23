@@ -160,6 +160,7 @@ A dgarbage_collect	"$garbage_collect"
 A digit			"digit"
 A directory		"directory"
 A discontiguous		"discontiguous"
+A div			"div"
 A gdiv			"//"
 A divide		"/"
 A dload			"$load"
@@ -711,6 +712,7 @@ F detached		1
 F dexit			2
 F dforeign_registered   2
 F dgarbage_collect 	1
+F div			2
 F gdiv			2
 F divide		2
 F dmessage_queue	1

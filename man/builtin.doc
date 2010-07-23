@@ -4773,8 +4773,8 @@ other cases the return value is a float.  See also \predref{//}{2}
 and rdiv/2.
 
     \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
-Modulo: \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} div
-\arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
+Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
+div \arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
 \jargon{floored} division.
 
     \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
@@ -4789,6 +4789,19 @@ rounding used by the C-compiler and available through the Prolog flag
 \prologflag{integer_rounding_function}. In the C99 standard, C-rounding
 is defined as \const{towards_zero}.\footnote{Future versions might
 guarantee rounding towards zero.}
+
+    \predicate[ISO]{div}{+IntExpr1}{+IntExpr2}
+Integer division, defined as \mbox{\arg{Result} is $(IntExpr1 - IntExpr1
+mod IntExpr2) // IntExpr2$. In other words, this is integer division
+that rounds towards -infinity. This function guarantees behaviour
+that is consistent with mod/2, i.e., the following holds for every
+pair of integers $X,Y$ where \verb$Y =\= 0$.
+
+\begin{code}
+	Q is div(X, Y),
+	M is mod(X, Y),
+	X =:= Y*Q+M.
+\end{code}
 
     \infixop{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if

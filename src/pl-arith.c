@@ -1237,6 +1237,16 @@ ar_even(Number i)
 mod(X, Y) = X - (floor(X/Y) * Y)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int64_t
+mod(int64_t x, int64_t y)
+{ int64_t r = x % y;
+
+  if ( r != 0 && (r<0) != (y<0) )
+    r += y;
+
+  return r;
+}
+
 
 static int
 ar_mod(Number n1, Number n2, Number r)
@@ -1252,11 +1262,7 @@ ar_mod(Number n1, Number n2, Number r)
       if ( n2->value.i == 0 )
 	return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
 
-      { int64_t mod = n1->value.i % n2->value.i;
-	if ( mod != 0 && ( mod < 0 ) != ( n2->value.i < 0 ) )
-	  mod += n2->value.i;
-	r->value.i = mod;
-      }
+      r->value.i = mod(n1->value.i, n2->value.i);
       r->type = V_INTEGER;
       break;
 #ifdef O_GMP
@@ -1778,6 +1784,50 @@ ar_tdiv(Number n1, Number n2, Number r)
   succeed;
 #else
   return PL_error("//", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#endif
+}
+
+
+/** div(IntExpr1, IntExpr2)
+
+Result is rnd_i(IntExpr1/IntExpr2), rounded towards -infinity
+*/
+
+static int
+ar_div(Number n1, Number n2, Number r)
+{ if ( !toIntegerNumber(n1, 0) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( !toIntegerNumber(n2, 0) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+
+#ifdef O_GMP
+  if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
+#endif
+  { if ( n2->value.i == 0 )
+      return PL_error("div", 2, NULL, ERR_DIV_BY_ZERO);
+
+    if ( !(n2->value.i == -1 && n1->value.i == PLMININT) )
+    { r->value.i = (n1->value.i - mod(n1->value.i, n2->value.i)) / n2->value.i;
+      r->type = V_INTEGER;
+
+      succeed;
+    }
+  }
+
+#ifdef O_GMP
+  promoteToMPZNumber(n1);
+  promoteToMPZNumber(n2);
+
+  if ( mpz_sgn(n2->value.mpz) == 0 )
+    return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+
+  r->type = V_MPZ;
+  mpz_init(r->value.mpz);
+  mpz_fdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+
+  succeed;
+#else
+  return PL_error("div", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
 }
 
@@ -3166,6 +3216,7 @@ static const ar_funcdef ar_funcdefs[] = {
 
   ADD(FUNCTOR_mod2,		ar_mod),
   ADD(FUNCTOR_rem2,		ar_rem),
+  ADD(FUNCTOR_div2,		ar_div),
   ADD(FUNCTOR_gdiv2,		ar_tdiv),
   ADD(FUNCTOR_gcd2,		ar_gcd),
   ADD(FUNCTOR_sign1,		ar_sign),

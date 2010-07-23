@@ -31,7 +31,8 @@
 */
 
 test_arith :-
-	run_tests([ gdiv,
+	run_tests([ div,
+		    gdiv,
 		    rem,
 		    mod,
 		    gcd,
@@ -39,6 +40,18 @@ test_arith :-
 		    errors,
 		    ar_builtin
 		  ]).
+
+:- begin_tests(div).
+
+test(mod, true) :-
+	forall(between(-10, 10, X),
+	       forall((between(-10, 10, Y), Y =\= 0),
+		      (	  Q is div(X, Y),
+			  M is mod(X, Y),
+			  X =:= Y*Q+M
+		      ))).
+
+:- end_tests(div).
 
 :- begin_tests(gdiv).
 
