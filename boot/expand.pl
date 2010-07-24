@@ -184,8 +184,10 @@ expand_goal((A*->B), (EA*->EB), M, MList) :- !,
         expand_goal(B, EB, M, MList).
 expand_goal((\+A), (\+EA), M, MList) :- !,
         expand_goal(A, EA, M, MList).
-expand_goal(V^G, V^EG, M, MList) :- !,
-        expand_goal(G, EG, M, MList).
+expand_goal(setof(T,G,L), setof(T,EG,L), M, MList) :-
+	expand_setof_goal(G, EG, M, MList).
+expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList) :-
+	expand_setof_goal(G, EG, M, MList).
 expand_goal(M:G, M:EG, _M, _MList) :-
 	atom(M), !,
 	'$def_modules'(M:goal_expansion/2, MList),
@@ -228,6 +230,14 @@ expand_meta_arg(_, A, A, _, _).
 has_meta_arg(Head) :-
 	arg(_, Head, Arg),
 	Arg == 0, !.
+
+expand_setof_goal(Var, Var, _, _) :-
+	var(Var), !.
+expand_setof_goal(V^G, V^EG, M, MList) :- !,
+        expand_setof_goal(G, EG, M, MList).
+expand_setof_goal(G, EG, M, MList) :- !,
+        expand_goal(G, EG, M, MList).
+
 
 %%	call_goal_expansion(+ExpandModules, +Goal0, -Goal) is semidet.
 %

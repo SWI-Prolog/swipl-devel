@@ -668,6 +668,17 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 	append(List0, Extra, List),
 	Expanded =.. List.
 
+%%	colourise_setof(+Term, +TB, +Pos)
+%
+%	Colourise the 2nd argument of setof/bagof
+
+colourise_setof(Var^G, TB, term_position(_,_,FF,FT,[VP,GP])) :- !,
+	colourise_term_arg(Var, TB, VP),
+	colour_item(built_in, TB, FF-FT),
+	colourise_setof(G, TB, GP).
+colourise_setof(Term, TB, Pos) :-
+	colourise_goal(Term, [], TB, Pos).
+
 %	colourise_db(+Arg, +TB, +Pos)
 %
 %	Colourise database modification calls (assert/1, retract/1 and
@@ -1014,6 +1025,8 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
+goal_colours(setof(_,_,_),	     built_in-[classify,setof,classify]).
+goal_colours(bagof(_,_,_),	     built_in-[classify,setof,classify]).
 % Database access
 goal_colours(assert(_),		     built_in-[db]).
 goal_colours(asserta(_),	     built_in-[db]).
@@ -1306,6 +1319,8 @@ specified_item(extern(M), Term, TB, Pos) :- !,
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
+specified_item(setof, Term, TB, Pos) :- !,
+	colourise_setof(Term, TB, Pos).
 					% DCG goal in body
 specified_item(dcg, Term, TB, Pos) :- !,
 	colourise_dcg(Term, [], TB, Pos).

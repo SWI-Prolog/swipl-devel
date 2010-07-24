@@ -60,6 +60,8 @@ correct_goal(Module:Goal, _, _, Module:Goal) :-
 	(   var(Module)
 	;   var(Goal)
 	), !.
+correct_goal(Vars^Goal0, M, Bindings, Vars^Goal) :- !, % setof/bagof
+	correct_goal(Goal0, M, Bindings, Goal).
 correct_goal(Module:Goal0, _, Bindings, Module:Goal) :-
 	current_predicate(_, Module:Goal0), !,
 	correct_meta_arguments(Goal0, Module, Bindings, Goal).

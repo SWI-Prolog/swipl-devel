@@ -594,8 +594,10 @@ xref_meta((A -> B),		[A, B]).
 xref_meta((A *-> B),		[A, B]).
 xref_meta(findall(_V,G,_L),	[G]).
 xref_meta(findall(_V,G,_L,_T),	[G]).
-xref_meta(setof(_V, G, _L),	[G]).
-xref_meta(bagof(_V, G, _L),	[G]).
+xref_meta(setof(_V, EG, _L),	[G]) :-
+	setof_goal(EG, G).
+xref_meta(bagof(_V, EG, _L),	[G]) :-
+	setof_goal(EG, G).
 xref_meta(forall(A, B),		[A, B]).
 xref_meta(maplist(G,_),		[G+1]).
 xref_meta(maplist(G,_,_),	[G+2]).
@@ -670,6 +672,12 @@ xref_meta(G, Meta) :-			% call user extensions
 	prolog:meta_goal(G, Meta).
 xref_meta(G, Meta) :-			% Generated from :- meta_predicate
 	meta_goal(G, Meta).
+
+setof_goal(EG, G) :-
+	var(EG), !, G = EG.
+setof_goal(_^EG, G) :- !,
+	setof_goal(EG, G).
+setof_goal(G, G).
 
 
 %%	head_of(+Rule, -Head)
