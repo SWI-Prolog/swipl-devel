@@ -4909,7 +4909,6 @@ gcc_global(Vs, KNs) :-
                    feasible_flow(Es, S, T), % First construct a feasible flow (if any)
                    maximum_flow(S, T),      % only then, maximize it.
                    gcc_consistent(T),
-                   del_attr(S, parent),
                    scc(Vals, gcc_successors),
                    phrase(gcc_goals(Vals), Gs),
                    maplist(del_attrs, Vs),
