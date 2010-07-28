@@ -4474,8 +4474,8 @@ distinct(Vars) :-
                maplist(del_attrs, Vars),
                % reset all attributes, only the computed disequalities
                % matter
-               throw(diseqs(Gs,Vars))),
-             diseqs(Gs,Vars),
+               throw(neqs(Gs,Vars))),
+             neqs(Gs,Vars),
               (   disable_queue,
                   maplist(call, Gs),
                   enable_queue
@@ -4913,10 +4913,10 @@ gcc_global(Vs, KNs) :-
                    phrase(gcc_goals(Vals), Gs),
                    maplist(del_attrs, Vs),
                    % reset all attributes used only for max-flow computation
-                   throw(diseqs(Gs,Vs))
+                   throw(neqs(Gs,Vs))
                ;   true
                )),
-              diseqs(Gs,Vs),
+              neqs(Gs,Vs),
               (   disable_queue,
                   maplist(call, Gs),
                   enable_queue
