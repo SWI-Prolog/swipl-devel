@@ -3201,13 +3201,8 @@ all_in_domain([A|As], [T|Ts]) :-
 run_propagator(presidual(_), _).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(pdifferent(Left,Right,X,_), _MState) :-
-        (   ground(X) ->
-            disable_queue,
-            exclude_fire(Left, Right, X),
-            enable_queue
-        ;   true
-        ).
+run_propagator(pdifferent(Left,Right,X,_), MState) :-
+        run_propagator(pexclude(Left,Right,X), MState).
 
 run_propagator(weak_distinct(Left,Right,X,_), _MState) :-
         (   ground(X) ->
