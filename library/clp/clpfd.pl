@@ -5121,7 +5121,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
    Simple consistency check, run before global propagation.
    Importantly, it removes all ground values from clpfd_gcc_vs.
 
-   The pgcc_check/1 propagator in itself would suffice to ensure
+   The pgcc_check/1 propagator in itself suffices to ensure
    consistency and could be used in a faster and weaker propagation
    option for global_cardinality/3.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
