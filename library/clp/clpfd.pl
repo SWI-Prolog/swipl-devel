@@ -191,6 +191,45 @@ occurs at the place of a constraint that is being reified, it is
 implicitly constrained to the Boolean values 0 and 1. Therefore, the
 following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
+Here is an example session with a few queries and their answers:
+
+==
+?- [library(clpfd)].
+% library(clpfd) compiled into clpfd 0.06 sec, 3,308 bytes
+true.
+
+?- X #> 3.
+X in 4..sup.
+
+?- X #\= 20.
+X in inf..19\/21..sup.
+
+?- 2*X #= 10.
+X = 5.
+
+?- X*X #= 144.
+X in -12\/12.
+
+?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
+X = 3,
+Y = 6.
+
+?- Vs = [X,Y,Z], Vs ins 1..3, all_different(Vs), X = 1, Y #\= 2.
+Vs = [1, 3, 2],
+X = 1,
+Y = 3,
+Z = 2.
+
+?- X #= Y #<==> B, X in 0..3, Y in 4..5.
+B = 0,
+X in 0..3,
+Y in 4..5.
+==
+
+In each case (and as for all pure programs), the answer is
+declaratively equivalent to the original query, and in many cases the
+constraint solver has deduced additional domain restrictions.
+
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
 enumeration predicates to search for solutions. As an example of a
