@@ -1789,7 +1789,7 @@ pop_queue(E) :-
 
 fetch_propagator(Prop) :-
         pop_queue(P),
-        (   arg(2, P, S), S == dead -> fetch_propagator(Prop)
+        (   propagator_state(P, S), S == dead -> fetch_propagator(Prop)
         ;   Prop = P
         ).
 
@@ -2566,7 +2566,7 @@ reified_goal(p(Vs, Prop), _) -->
         [{make_propagator(Prop, P)}],
         parse_init_dcg(Vs, P),
         [{trigger_once(P)}],
-        [( { arg(2, P, S), S == dead } -> [] ; [p(P)])].
+        [( { propagator_state(P, S), S == dead } -> [] ; [p(P)])].
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
@@ -2913,6 +2913,8 @@ put_full(X, Dom, Ps) :-
 
 make_propagator(C, propagator(C, _)).
 
+propagator_state(propagator(_,S), S).
+
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
         trigger_props_(Os),
         (   ground(X) ->
@@ -2950,7 +2952,7 @@ trigger_props_([]).
 trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
 trigger_prop(Propagator) :-
-        arg(2, Propagator, State),
+        propagator_state(Propagator, State),
         (   State == dead -> true
         ;   get_attr(State, clpfd_aux, queued) -> true
         ;   b_getval('$clpfd_current_propagator', C), C == State -> true
@@ -2970,7 +2972,7 @@ kill(State, Ps) :-
         maplist(kill_entailed, Ps).
 
 kill_entailed(p(Prop)) :-
-        arg(2, Prop, State),
+        propagator_state(Prop, State),
         kill(State).
 kill_entailed(a(V)) :-
         del_attr(V, clpfd).
