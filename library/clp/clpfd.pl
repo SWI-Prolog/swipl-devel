@@ -4460,42 +4460,26 @@ free_node(F) :-
         del_attr(F, free).
 
 distinct(Vars) :-
-        difference_arcs(Vars, FreeLeft, FreeRight0),
-        length(FreeLeft, LFL),
-        length(FreeRight0, LFR),
-        LFL =< LFR,
-        maplist(put_free, FreeRight0),
-        maximum_matching(FreeLeft),
-        include(free_node, FreeRight0, FreeRight),
-        maplist(g_g0, FreeLeft),
-        scc(FreeLeft, g0_successors),
-        maplist(dfs_used, FreeRight),
-        phrase(distinct_goals(FreeLeft), Gs),
-        maplist(distinct_clear_attributes, FreeLeft),
-        disable_queue,
-        maplist(call, Gs),
-        enable_queue.
-
-distinct_clear_attributes(V) :-
-        (   get_attr(V, edges, Es) ->
-            % parent and in_stack are already cleared
-            maplist(del_attr(V), [edges,index,lowlink,value,visited]),
-            maplist(clear_edge, Es),
-            (   get_attr(V, g0_edges, Es1) ->
-                del_attr(V, g0_edges),
-                maplist(clear_edge, Es1)
-            ;   true
-            )
-        ;   true
-        ).
-
-
-clear_edge(flow_to(F, To)) :-
-        del_attr(F, flow),
-        del_attr(F, used),
-        distinct_clear_attributes(To).
-clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
-
+        catch((difference_arcs(Vars, FreeLeft, FreeRight0),
+               length(FreeLeft, LFL),
+               length(FreeRight0, LFR),
+               LFL =< LFR,
+               maplist(put_free, FreeRight0),
+               maximum_matching(FreeLeft),
+               include(free_node, FreeRight0, FreeRight),
+               maplist(g_g0, FreeLeft),
+               scc(FreeLeft, g0_successors),
+               maplist(dfs_used, FreeRight),
+               phrase(distinct_goals(FreeLeft), Gs),
+               maplist(del_attrs, Vars),
+               % reset all attributes, only the computed disequalities
+               % matter
+               throw(diseqs(Gs,Vars))),
+             diseqs(Gs,Vars),
+              (   disable_queue,
+                  maplist(call, Gs),
+                  enable_queue
+              )).
 
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
@@ -4917,23 +4901,27 @@ gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        gcc_arcs(KNs, S, Vals),
-        variables_with_num_occurrences(Vs, VNs),
-        maplist(target_to_v(T), VNs),
-        (   get_attr(S, edges, Es) ->
-            put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
-            feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
-            maximum_flow(S, T),        % only then, maximize it.
-            gcc_consistent(T),
-            del_attr(S, parent),
-            scc(Vals, gcc_successors),
-            phrase(gcc_goals(Vals), Gs),
-            gcc_clear(S),
-            disable_queue,
-            maplist(call, Gs),
-            enable_queue
-        ;   true
-        ).
+        catch((gcc_arcs(KNs, S, Vals),
+               variables_with_num_occurrences(Vs, VNs),
+               maplist(target_to_v(T), VNs),
+               (   get_attr(S, edges, Es) ->
+                   put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
+                   feasible_flow(Es, S, T), % First construct a feasible flow (if any)
+                   maximum_flow(S, T),      % only then, maximize it.
+                   gcc_consistent(T),
+                   del_attr(S, parent),
+                   scc(Vals, gcc_successors),
+                   phrase(gcc_goals(Vals), Gs),
+                   maplist(del_attrs, Vs),
+                   % reset all attributes used only for max-flow computation
+                   throw(diseqs(Gs,Vs))
+               ;   true
+               )),
+              diseqs(Gs,Vs),
+              (   disable_queue,
+                  maplist(call, Gs),
+                  enable_queue
+              )).
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
@@ -5108,19 +5096,6 @@ val_to_v(Val, V-Count) :-
         put_attr(F, flow, 0),
         append_edge(V, edges, arc_from(0, Count, Val, F)),
         append_edge(Val, edges, arc_to(0, Count, V, F)).
-
-
-gcc_clear(V) :-
-        (   get_attr(V, edges, Es) ->
-            maplist(del_attr(V), [edges,index,lowlink,value]),
-            maplist(gcc_clear_edge, Es)
-        ;   true
-        ).
-
-gcc_clear_edge(arc_to(_,_,V,F)) :-
-        del_attr(F, flow),
-        gcc_clear(V).
-gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
 
 
 gcc_successors(V, Tos) :-
