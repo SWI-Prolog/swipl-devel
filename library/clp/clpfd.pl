@@ -191,6 +191,45 @@ occurs at the place of a constraint that is being reified, it is
 implicitly constrained to the Boolean values 0 and 1. Therefore, the
 following queries all fail: ?- #\ 2., ?- #\ #\ 2. etc.
 
+Here is an example session with a few queries and their answers:
+
+==
+?- [library(clpfd)].
+% library(clpfd) compiled into clpfd 0.06 sec, 3,308 bytes
+true.
+
+?- X #> 3.
+X in 4..sup.
+
+?- X #\= 20.
+X in inf..19\/21..sup.
+
+?- 2*X #= 10.
+X = 5.
+
+?- X*X #= 144.
+X in -12\/12.
+
+?- 4*X + 2*Y #= 24, X + Y #= 9, [X,Y] ins 0..sup.
+X = 3,
+Y = 6.
+
+?- Vs = [X,Y,Z], Vs ins 1..3, all_different(Vs), X = 1, Y #\= 2.
+Vs = [1, 3, 2],
+X = 1,
+Y = 3,
+Z = 2.
+
+?- X #= Y #<==> B, X in 0..3, Y in 4..5.
+B = 0,
+X in 0..3,
+Y in 4..5.
+==
+
+In each case (and as for all pure programs), the answer is
+declaratively equivalent to the original query, and in many cases the
+constraint solver has deduced additional domain restrictions.
+
 A common usage of this library is to first post the desired
 constraints among the variables of a model, and then to use
 enumeration predicates to search for solutions. As an example of a
@@ -1789,7 +1828,7 @@ pop_queue(E) :-
 
 fetch_propagator(Prop) :-
         pop_queue(P),
-        (   arg(2, P, S), S == dead -> fetch_propagator(Prop)
+        (   propagator_state(P, S), S == dead -> fetch_propagator(Prop)
         ;   Prop = P
         ).
 
@@ -2566,7 +2605,7 @@ reified_goal(p(Vs, Prop), _) -->
         [{make_propagator(Prop, P)}],
         parse_init_dcg(Vs, P),
         [{trigger_once(P)}],
-        [( { arg(2, P, S), S == dead } -> [] ; [p(P)])].
+        [( { propagator_state(P, S), S == dead } -> [] ; [p(P)])].
 reified_goal(p(Prop), Ds) -->
         { term_variables(Prop, Vs) },
         reified_goal(p(Vs,Prop), Ds).
@@ -2913,6 +2952,8 @@ put_full(X, Dom, Ps) :-
 
 make_propagator(C, propagator(C, _)).
 
+propagator_state(propagator(_,S), S).
+
 trigger_props(fd_props(Gs,Bs,Os), X, D0, D) :-
         trigger_props_(Os),
         (   ground(X) ->
@@ -2950,7 +2991,7 @@ trigger_props_([]).
 trigger_props_([P|Ps]) :- trigger_prop(P), trigger_props_(Ps).
 
 trigger_prop(Propagator) :-
-        arg(2, Propagator, State),
+        propagator_state(Propagator, State),
         (   State == dead -> true
         ;   get_attr(State, clpfd_aux, queued) -> true
         ;   b_getval('$clpfd_current_propagator', C), C == State -> true
@@ -2970,7 +3011,7 @@ kill(State, Ps) :-
         maplist(kill_entailed, Ps).
 
 kill_entailed(p(Prop)) :-
-        arg(2, Prop, State),
+        propagator_state(Prop, State),
         kill(State).
 kill_entailed(a(V)) :-
         del_attr(V, clpfd).
@@ -3201,13 +3242,8 @@ all_in_domain([A|As], [T|Ts]) :-
 run_propagator(presidual(_), _).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-run_propagator(pdifferent(Left,Right,X,_), _MState) :-
-        (   ground(X) ->
-            disable_queue,
-            exclude_fire(Left, Right, X),
-            enable_queue
-        ;   true
-        ).
+run_propagator(pdifferent(Left,Right,X,_), MState) :-
+        run_propagator(pexclude(Left,Right,X), MState).
 
 run_propagator(weak_distinct(Left,Right,X,_), _MState) :-
         (   ground(X) ->
@@ -4465,42 +4501,26 @@ free_node(F) :-
         del_attr(F, free).
 
 distinct(Vars) :-
-        difference_arcs(Vars, FreeLeft, FreeRight0),
-        length(FreeLeft, LFL),
-        length(FreeRight0, LFR),
-        LFL =< LFR,
-        maplist(put_free, FreeRight0),
-        maximum_matching(FreeLeft),
-        include(free_node, FreeRight0, FreeRight),
-        maplist(g_g0, FreeLeft),
-        scc(FreeLeft, g0_successors),
-        maplist(dfs_used, FreeRight),
-        phrase(distinct_goals(FreeLeft), Gs),
-        maplist(distinct_clear_attributes, FreeLeft),
-        disable_queue,
-        maplist(call, Gs),
-        enable_queue.
-
-distinct_clear_attributes(V) :-
-        (   get_attr(V, edges, Es) ->
-            % parent and in_stack are already cleared
-            maplist(del_attr(V), [edges,index,lowlink,value,visited]),
-            maplist(clear_edge, Es),
-            (   get_attr(V, g0_edges, Es1) ->
-                del_attr(V, g0_edges),
-                maplist(clear_edge, Es1)
-            ;   true
-            )
-        ;   true
-        ).
-
-
-clear_edge(flow_to(F, To)) :-
-        del_attr(F, flow),
-        del_attr(F, used),
-        distinct_clear_attributes(To).
-clear_edge(flow_from(X, Y)) :- clear_edge(flow_to(X, Y)).
-
+        catch((difference_arcs(Vars, FreeLeft, FreeRight0),
+               length(FreeLeft, LFL),
+               length(FreeRight0, LFR),
+               LFL =< LFR,
+               maplist(put_free, FreeRight0),
+               maximum_matching(FreeLeft),
+               include(free_node, FreeRight0, FreeRight),
+               maplist(g_g0, FreeLeft),
+               scc(FreeLeft, g0_successors),
+               maplist(dfs_used, FreeRight),
+               phrase(distinct_goals(FreeLeft), Gs),
+               maplist(del_attrs, Vars),
+               % reset all attributes, only the computed disequalities
+               % matter
+               throw(neqs(Gs,Vars))),
+             neqs(Gs,Vars),
+              (   disable_queue,
+                  maplist(call, Gs),
+                  enable_queue
+              )).
 
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
@@ -4922,23 +4942,26 @@ gcc_global(Vs, KNs) :-
         gcc_check(KNs),
         % reach fix-point: all elements of clpfd_gcc_vs must be variables
         do_queue,
-        gcc_arcs(KNs, S, Vals),
-        variables_with_num_occurrences(Vs, VNs),
-        maplist(target_to_v(T), VNs),
-        (   get_attr(S, edges, Es) ->
-            put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
-            feasible_flow(Es, S, T),   % First construct a feasible flow (if any)
-            maximum_flow(S, T),        % only then, maximize it.
-            gcc_consistent(T),
-            del_attr(S, parent),
-            scc(Vals, gcc_successors),
-            phrase(gcc_goals(Vals), Gs),
-            gcc_clear(S),
-            disable_queue,
-            maplist(call, Gs),
-            enable_queue
-        ;   true
-        ).
+        catch((gcc_arcs(KNs, S, Vals),
+               variables_with_num_occurrences(Vs, VNs),
+               maplist(target_to_v(T), VNs),
+               (   get_attr(S, edges, Es) ->
+                   put_attr(S, parent, none), % Mark S as seen to avoid going back to S.
+                   feasible_flow(Es, S, T), % First construct a feasible flow (if any)
+                   maximum_flow(S, T),      % only then, maximize it.
+                   gcc_consistent(T),
+                   scc(Vals, gcc_successors),
+                   phrase(gcc_goals(Vals), Gs),
+                   maplist(del_attrs, Vs),
+                   % reset all attributes used only for max-flow computation
+                   throw(neqs(Gs,Vs))
+               ;   true
+               )),
+              neqs(Gs,Vs),
+              (   disable_queue,
+                  maplist(call, Gs),
+                  enable_queue
+              )).
 
 gcc_consistent(T) :-
         get_attr(T, edges, Es),
@@ -5115,19 +5138,6 @@ val_to_v(Val, V-Count) :-
         append_edge(Val, edges, arc_to(0, Count, V, F)).
 
 
-gcc_clear(V) :-
-        (   get_attr(V, edges, Es) ->
-            maplist(del_attr(V), [edges,index,lowlink,value]),
-            maplist(gcc_clear_edge, Es)
-        ;   true
-        ).
-
-gcc_clear_edge(arc_to(_,_,V,F)) :-
-        del_attr(F, flow),
-        gcc_clear(V).
-gcc_clear_edge(arc_from(L,U,V,F)) :- gcc_clear_edge(arc_to(L,U,V,F)).
-
-
 gcc_successors(V, Tos) :-
         get_attr(V, edges, Tos0),
         phrase(gcc_successors_(Tos0), Tos).
@@ -5150,7 +5160,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
    Simple consistency check, run before global propagation.
    Importantly, it removes all ground values from clpfd_gcc_vs.
 
-   The pgcc_check/1 propagator in itself would suffice to ensure
+   The pgcc_check/1 propagator in itself suffices to ensure
    consistency and could be used in a faster and weaker propagation
    option for global_cardinality/3.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
