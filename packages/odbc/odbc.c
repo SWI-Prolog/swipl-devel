@@ -1093,11 +1093,14 @@ static connection *
 find_connection(atom_t alias)
 { connection *c;
 
+  LOCK();
   for(c=connections; c; c=c->next)
   { if ( c->alias == alias )
+    { UNLOCK();
       return c;
+    }
   }
-
+  UNLOCK();
 
   return NULL;
 }
@@ -1107,10 +1110,14 @@ static connection *
 find_connection_from_dsn(atom_t dsn)
 { connection *c;
 
+  LOCK();
   for(c=connections; c; c=c->next)
   { if ( c->dsn == dsn )
+    { UNLOCK();
       return c;
+    }
   }
+  UNLOCK();
 
   return NULL;
 }
@@ -1133,8 +1140,10 @@ alloc_connection(atom_t alias, atom_t dsn)
   PL_register_atom(dsn);
   c->max_nogetdata = MAX_NOGETDATA;
 
+  LOCK();
   c->next = connections;
   connections = c;
+  UNLOCK();
 
   return c;
 }
@@ -1142,7 +1151,8 @@ alloc_connection(atom_t alias, atom_t dsn)
 
 static void
 free_connection(connection *c)
-{ if ( c == connections )
+{ LOCK();
+  if ( c == connections )
     connections = c->next;
   else
   { connection *c2;
@@ -1154,6 +1164,7 @@ free_connection(connection *c)
       }
     }
   }
+  UNLOCK();
 
   if ( c->alias )
     PL_unregister_atom(c->alias);
@@ -1300,10 +1311,14 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 
    dsource = PL_atom_chars(dsn);
 
+   LOCK();
    if ( !henv )
    { if ( (rc=SQLAllocEnv(&henv)) != SQL_SUCCESS )
+     { UNLOCK();
        return PL_warning("Could not initialise SQL environment");
+     }
    }
+   UNLOCK();
 
    if ( (rc=SQLAllocConnect(henv, &hdbc)) != SQL_SUCCESS )
      return odbc_report(henv, NULL, NULL, rc);
@@ -2469,8 +2484,10 @@ odbc_data_sources(term_t list)
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
 
+  LOCK();
   if ( !henv )
     SQLAllocEnv(&henv);		/* Allocate an environment handle */
+  UNLOCK();
 
   for(;; dir=SQL_FETCH_NEXT)
   { rc = SQLDataSources(henv,
@@ -3410,10 +3427,12 @@ install_odbc4pl()
 
 install_t
 uninstall_odbc()			/* TBD: make sure the library is */
-{ if ( henv )				/* not in use! */
+{ LOCK();
+  if ( henv )				/* not in use! */
   { SQLFreeEnv(henv);
     henv = NULL;
   }
+  UNLOCK();
 }
 
 
