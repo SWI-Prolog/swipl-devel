@@ -4414,7 +4414,7 @@ clear_parent(V) :- del_attr(V, parent).
 maximum_matching([]).
 maximum_matching([FL|FLs]) :-
         augmenting_path_to(1, [[FL]], Levels, To),
-        phrase(augmenting_path(To, FL), Path),
+        phrase(augmenting_path(FL, To), Path),
         maplist(maplist(clear_parent), Levels),
         del_attr(To, free),
         adjust_alternate_1(Path),
@@ -4457,11 +4457,11 @@ augmenting_path_to(Level, Levels0, Levels, Right) :-
             augmenting_path_to(Level1, Levels1, Levels, Right)
         ).
 
-augmenting_path(N, To) -->
-        (   { N == To } -> []
-        ;   { get_attr(N, parent, P-F) },
-            [F],
-            augmenting_path(P, To)
+augmenting_path(S, V) -->
+        (   { V == S } -> []
+        ;   { get_attr(V, parent, V1-Augment) },
+            [Augment],
+            augmenting_path(S, V1)
         ).
 
 adjust_alternate_1([A|Arcs]) :-
@@ -4998,7 +4998,7 @@ gcc_edge_goal(arc_to(_,_,V,F), Val) -->
 
 maximum_flow(S, T) :-
         (   gcc_augmenting_path([[S]], Levels, T) ->
-            phrase(gcc_augmenting_path(S, T), Path),
+            phrase(augmenting_path(S, T), Path),
             Path = [augment(_,First,_)|Rest],
             path_minimum(Rest, First, Min),
             maplist(gcc_augment(Min), Path),
@@ -5019,7 +5019,7 @@ make_arc_feasible(A, S, T) :-
         ;   Diff is L - Flow,
             put_attr(V, parent, S-augment(F,Diff,+)),
             gcc_augmenting_path([[V]], Levels, T),
-            phrase(gcc_augmenting_path(S, T), Path),
+            phrase(augmenting_path(S, T), Path),
             path_minimum(Path, Diff, Min),
             maplist(gcc_augment(Min), Path),
             maplist(maplist(clear_parent), Levels),
@@ -5077,13 +5077,6 @@ gcc_augment(Min, augment(F,_,Sign)) :-
 
 gcc_flow_(+, F0, A, F) :- F is F0 + A.
 gcc_flow_(-, F0, A, F) :- F is F0 - A.
-
-gcc_augmenting_path(S, V) -->
-        (   { V == S } -> []
-        ;   { get_attr(V, parent, V1-Augment) },
-            [Augment],
-            gcc_augmenting_path(S, V1)
-        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Build value network for global cardinality constraint.
