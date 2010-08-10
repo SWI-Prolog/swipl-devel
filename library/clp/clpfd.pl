@@ -4447,9 +4447,7 @@ g0_successors(V, Tos) :-
 
 put_free(F) :- put_attr(F, free, true).
 
-free_node(F) :-
-        get_attr(F, free, true),
-        del_attr(F, free).
+free_node(F) :- get_attr(F, free, true).
 
 distinct(Vars) :-
         catch((difference_arcs(Vars, FreeLeft, FreeRight0),
