@@ -938,18 +938,10 @@ domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
             To cis To0*n(M)
         ;   To cis (To0+n(1))*n(M) - n(1)
         ).
-domain_expand_more_(split(S0, Left0, Right0), M, D) :-
+domain_expand_more_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_more_(Left0, M, Left),
-        domain_expand_more_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left, Inf),
-            domain_supremum(Right, Sup),
-            D = from_to(Inf, Sup)
-        ).
+        domain_expand_more_(Right0, M, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
