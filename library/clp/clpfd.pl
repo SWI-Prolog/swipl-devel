@@ -972,27 +972,12 @@ domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
             To cis To0 // n(M)
         ;   To cis (To0 - n(M) + n(1)) // n(M)
         ).
-domain_contract_(split(S0,Left0,Right0), M, D) :-
-        S is S0 // M,
+domain_contract_(split(_,Left0,Right0), M, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
         domain_contract_(Left0, M, Left),
         domain_contract_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left0, Inf),
-            % TODO: this is not necessarily an interval
-            domain_supremum(Right0, Sup),
-            min_divide(Inf, Sup, n(M), n(M), From0),
-            max_divide(Inf, Sup, n(M), n(M), To0),
-            domain_infimum(Left, LeftInf),
-            domain_supremum(Right, RightSup),
-            From cis max(LeftInf, From0),
-            To cis min(RightSup, To0),
-            D = from_to(From, To)
-        ).
+        domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Similar to domain_contract, tailored for division, i.e.,
@@ -1008,28 +993,12 @@ domain_contract_less(D0, M, D) :-
 domain_contract_less_(empty, _, empty).
 domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
         From cis From0 // n(M), To cis To0 // n(M).
-domain_contract_less_(split(S0,Left0,Right0), M, D) :-
-        S is S0 // M,
+domain_contract_less_(split(_,Left0,Right0), M, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
         domain_contract_less_(Left0, M, Left),
         domain_contract_less_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left0, Inf),
-            % TODO: this is not necessarily an interval
-            domain_supremum(Right0, Sup),
-            min_divide_less(Inf, Sup, n(M), n(M), From0),
-            max_divide_less(Inf, Sup, n(M), n(M), To0),
-            domain_infimum(Left, LeftInf),
-            domain_supremum(Right, RightSup),
-            From cis max(LeftInf, From0),
-            To cis min(RightSup, To0),
-            D = from_to(From, To)
-            %format("got: ~w\n", [D])
-        ).
+        domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Negate the domain. Left and Right sub-domains and bounds switch sides.
@@ -4285,16 +4254,6 @@ min_times(L1,U1,L2,U2,Min) :-
         Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
 max_times(L1,U1,L2,U2,Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
-
-
-min_divide_less(L1,U1,L2,U2,Min) :-
-        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
-        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
-        ).
-max_divide_less(L1,U1,L2,U2,Max) :-
-        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
-        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
-        ).
 
 finite(n(_)).
 
