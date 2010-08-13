@@ -3602,18 +3602,13 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
-                min_divide(n(Z), n(Z), YL, YU, TNXL),
-                max_divide(n(Z), n(Z), YL, YU, TNXU),
-                NXL cis max(XL,TNXL),
-                NXU cis min(XU,TNXU),
+                min_divide(n(Z), n(Z), YL, YU, XL, XU, NXL),
+                max_divide(n(Z), n(Z), YL, YU, XL, XU, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_divide(n(Z), n(Z), NXL, NXU, NYL),
-                    max_divide(n(Z), n(Z), NXL, NXU, NYU),
-                    (   NYL cis_leq YL2, NYU cis_geq YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
-                        fd_put(Y, YD3, YPs2)
-                    )
+                    min_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL),
+                    max_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYU),
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
@@ -3626,22 +3621,18 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _),
-                min_divide(ZL,ZU,YL,YU,TXL),
-                NXL cis max(XL,TXL),
-                max_divide(ZL,ZU,YL,YU,TXU),
-                NXU cis min(XU,TXU),
+                min_divide(ZL, ZU, YL, YU, XL, XU, NXL),
+                max_divide(ZL, ZU, YL, YU, XL, XU, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
-                (   fd_get(Y,YD2,YL2,YU2,YPs2) ->
-                    min_divide(ZL,ZU,XL,XU,TYL),
-                    NYL cis max(YL2,TYL),
-                    max_divide(ZL,ZU,XL,XU,TYU),
-                    NYU cis min(YU2,TYU),
+                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
+                    min_divide(ZL, ZU, XL, XU, YL2, YU2, NYL),
+                    max_divide(ZL, ZU, XL, XU, YL2, YU2, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
-                    min_times(NXL,NXU,NYL,NYU,NZL),
-                    max_times(NXL,NXU,NYL,NYU,NZU),
+                    min_times(NXL, NXU, NYL, NYU, NZL),
+                    max_times(NXL, NXU, NYL, NYU, NZU),
                     (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
                     ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
                         fd_put(Z, ZD3, ZPs2)
@@ -4224,6 +4215,14 @@ max_times(L1,U1,L2,U2,Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
 finite(n(_)).
+
+min_divide(L1, U1, L2, U2, L3, _, Min) :-
+        min_divide(L1, U1, L2, U2, Min0),
+        Min cis max(L3,Min0).
+
+max_divide(L1, U1, L2, U2, _, U3, Max) :-
+        max_divide(L1, U1, L2, U2, Max0),
+        Max cis min(U3,Max0).
 
 min_divide(L1,U1,L2,U2,Min) :-
         (   L2 = n(NL2), NL2 > 0, finite(U2), cis_geq_zero(L1) ->
