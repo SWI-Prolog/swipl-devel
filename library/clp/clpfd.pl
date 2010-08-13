@@ -3556,26 +3556,17 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
-                    fd_put(X, NXD, XPs)
-                ),
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     NYL cis max(YL2, ZL-NXU),
                     NYU cis min(YU2, ZU-NXL),
-                    (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL, NYU), NYD),
-                        fd_put(Y, NYD, YPs2)
-                    )
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
                     NZL cis max(ZL2,NXL+NYL),
                     NZU cis min(ZU2,NXU+NYU),
-                    (   NZL == ZL2, NZU == ZU2 -> true
-                    ;   domains_intersection(ZD2, from_to(NZL,NZU), NZD),
-                        fd_put(Z, NZD, ZPs2)
-                    )
+                    update_bounds(Z, ZD2, ZPs2, ZL2, ZU2, NZL, NZU)
                 ;   true
                 )
             ;   true
@@ -3615,16 +3606,13 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 max_divide(n(Z), n(Z), YL, YU, TNXU),
                 NXL cis max(XL,TNXL),
                 NXU cis min(XU,TNXU),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL,NXU), XD1),
-                    fd_put(X, XD1, XPs)
-                ),
-                (   fd_get(Y, YD2, YL2, YU2,YExp2) ->
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     min_divide(n(Z), n(Z), NXL, NXU, NYL),
                     max_divide(n(Z), n(Z), NXL, NXU, NYU),
                     (   NYL cis_leq YL2, NYU cis_geq YU2 -> true
                     ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
-                        fd_put(Y, YD3, YExp2)
+                        fd_put(Y, YD3, YPs2)
                     )
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
@@ -3635,34 +3623,28 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   true
             )
         ;   (   X == Y -> kill(MState), X^2#=Z
-            ;   fd_get(X, XD, XL, XU, XExp),
+            ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _),
                 min_divide(ZL,ZU,YL,YU,TXL),
                 NXL cis max(XL,TXL),
                 max_divide(ZL,ZU,YL,YU,TXU),
                 NXU cis min(XU,TXU),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL,NXU), XD1),
-                    fd_put(X, XD1, XExp)
-                ),
-                (   fd_get(Y,YD2,YL2,YU2,YExp2) ->
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                (   fd_get(Y,YD2,YL2,YU2,YPs2) ->
                     min_divide(ZL,ZU,XL,XU,TYL),
                     NYL cis max(YL2,TYL),
                     max_divide(ZL,ZU,XL,XU,TYU),
                     NYU cis min(YU2,TYU),
-                    (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
-                        fd_put(Y, YD3, YExp2)
-                    )
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
-                (   fd_get(Z, ZD2, ZL2, ZU2, ZExp2) ->
+                (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
                     min_times(NXL,NXU,NYL,NYU,NZL),
                     max_times(NXL,NXU,NYL,NYU,NZU),
                     (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
                     ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
-                        fd_put(Z, ZD3, ZExp2)
+                        fd_put(Z, ZD3, ZPs2)
                     ),
                     (   domain_contains(ZD3, 0) ->  true
                     ;   neq_num(X, 0), neq_num(Y, 0)
@@ -3693,10 +3675,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         ;   NYL cis max(n(X) // n(Z), YL),
                             NYU cis min(n(X) // (n(Z)+sign(n(Z))) - n(1), YU)
                         ),
-                        (   NYL = YL, NYU = YU -> true
-                        ;   domains_intersection(YD, from_to(NYL,NYU), NYD),
-                            fd_put(Y, NYD, YPs)
-                        )
+                        update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
                     )
                 ;   fd_get(Z, ZD, ZL, ZU, ZPs),
                     (   X >= 0, YL cis_gt n(0) ->
@@ -3706,10 +3685,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
                     ),
-                    (   NZL = ZL, NZU = ZU -> true
-                    ;   domains_intersection(ZD, from_to(NZL,NZU), NZD),
-                        fd_put(Z, NZD, ZPs)
-                    )
+                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU)
                 )
             )
         ;   nonvar(Y) ->
@@ -3727,10 +3703,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     ;   NXL cis max((n(Z)+sign(n(Z))*n(1))*n(Y)+n(1), XL),
                         NXU cis min(n(Z)*n(Y), XU)
                     ),
-                    (   NXL == XL, NXU == XU -> true
-                    ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
-                        fd_put(X, NXD, XPs)
-                    )
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
                 ;   fd_get(Z, ZD, ZPs),
                     domain_contract_less(XD, Y, Contracted),
                     domains_intersection(ZD, Contracted, NZD),
@@ -3752,10 +3725,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   %TODO: cover more cases
                 NXL = XL, NXU = XU
             ),
-            (   NXL == XL, NXU == XU -> true
-            ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
-                fd_put(X, NXD, XPs)
-            )
+            update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
         ;   (   X == Y -> Z = 1
             ;   fd_get(X, _, XL, XU, _),
                 fd_get(Y, _, YL, YU, _),
@@ -4241,6 +4211,12 @@ run_propagator(pimpl(X, Y, Ps), MState) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+update_bounds(X, XD, XPs, XL, XU, NXL, NXU) :-
+        (   NXL == XL, NXU == XU -> true
+        ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
+            fd_put(X, NXD, XPs)
+        ).
 
 min_times(L1,U1,L2,U2,Min) :-
         Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
