@@ -4486,11 +4486,11 @@ distinct(Vars) :-
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        distinct_edges(Es, V),
+        distinct_goals_(Es, V),
         distinct_goals(Vs).
 
-distinct_edges([], _) --> [].
-distinct_edges([flow_to(F,To)|Es], V) -->
+distinct_goals_([], _) --> [].
+distinct_goals_([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(F, used, true),
               get_attr(V, lowlink, L1),
@@ -4500,7 +4500,7 @@ distinct_edges([flow_to(F,To)|Es], V) -->
             [neq_num(V, N)]
         ;   []
         ),
-        distinct_edges(Es, V).
+        distinct_goals_(Es, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Mark used edges.
