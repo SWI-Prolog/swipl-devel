@@ -3602,12 +3602,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
-                min_divide(n(Z), n(Z), YL, YU, XL, XU, NXL),
-                max_divide(n(Z), n(Z), YL, YU, XL, XU, NXU),
+                min_max_divide(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL),
-                    max_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYU),
+                    min_max_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
@@ -3621,12 +3619,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _),
-                min_divide(ZL, ZU, YL, YU, XL, XU, NXL),
-                max_divide(ZL, ZU, YL, YU, XL, XU, NXU),
+                min_max_divide(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_divide(ZL, ZU, XL, XU, YL2, YU2, NYL),
-                    max_divide(ZL, ZU, XL, XU, YL2, YU2, NYU),
+                    min_max_divide(ZL, ZU, XL, XU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
@@ -4221,68 +4217,26 @@ div_bounds(L, U, X) :-
         bound_portray(U, PU),
         X in PL..PU.
 
-min_divide(L1, U1, L2, U2, L3, U3, Min) :-
+min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
         (   U1 cis_lt n(0),
             L2 cis_lt n(0), U2 cis_gt n(0),
             L3 cis_lt n(0), U3 cis_gt n(0) ->
             maplist(div_bounds(L1,U1), [Z1,Z2]),
             div_bounds(L2, n(-1), X1), div_bounds(n(1), U3, Y1),
             (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, Inf1, _, _) -> true
-                ;   Inf1 = n(Y1)
+                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                ;   Inf1 = n(Y1), Sup1 = n(Y1)
                 )
-            ;   Inf1 = inf
+            ;   Inf1 = inf, Sup1 = n(-1)
             ),
             div_bounds(n(1), U2, X2), div_bounds(L3, n(-1), Y2),
             (   X2*Y2 #= Z2 ->
-                (   fd_get(Y2, _, Inf2, _, _) -> true
-                ;   Inf2 = n(Y2)
+                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                ;   Inf2 = n(Y2), Sup2 = n(Y2)
                 )
-            ;   Inf2 = n(1)
+            ;   Inf2 = n(1), Sup2 = sup
             ),
-            Min cis max(min(Inf1,Inf2), L3)
-        ;   L1 cis_gt n(0),
-            L2 cis_lt n(0), U2 cis_gt n(0),
-            L3 cis_lt n(0), U3 cis_gt n(0) ->
-            maplist(div_bounds(L1,U1), [Z1,Z2]),
-            div_bounds(L2, n(-1), X1), div_bounds(L3, n(-1), Y1),
-            (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, Inf1, _, _) -> true
-                ;   Inf1 = n(Y1)
-                )
-            ;   Inf1 = n(1)
-            ),
-            div_bounds(n(1), U2, X2), div_bounds(n(1), U3, Y3),
-            (   X2*Y3 #= Z2 ->
-                (   fd_get(Y3, _, Inf2, _, _) -> true
-                ;   Inf2 = n(Y3)
-                )
-            ;   Inf2 = inf
-            ),
-            Min cis max(min(Inf1,Inf2), L3)
-        ;   min_divide(L1, U1, L2, U2, Min0),
-            Min cis max(L3,Min0)
-        ).
-
-max_divide(L1, U1, L2, U2, L3, U3, Max) :-
-        (   U1 cis_lt n(0),
-            L2 cis_lt n(0), U2 cis_gt n(0),
-            L3 cis_lt n(0), U3 cis_gt n(0) ->
-            maplist(div_bounds(L1,U1), [Z1,Z2]),
-            div_bounds(L2, n(-1), X1), div_bounds(n(1), U3, Y1),
-            (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, _, Sup1, _) -> true
-                ;   Sup1 = n(Y1)
-                )
-            ;   Sup1 = n(-1)
-            ),
-            div_bounds(n(1), U2, X2), div_bounds(L3, n(-1), Y2),
-            (   X2*Y2 #= Z2 ->
-                (   fd_get(Y2, _, _, Sup2, _) -> true
-                ;   Sup2 = n(Y2)
-                )
-            ;   Sup2 = sup
-            ),
+            Min cis max(min(Inf1,Inf2), L3),
             Max cis min(max(Sup1,Sup2), U3)
         ;   L1 cis_gt n(0),
             L2 cis_lt n(0), U2 cis_gt n(0),
@@ -4290,20 +4244,23 @@ max_divide(L1, U1, L2, U2, L3, U3, Max) :-
             maplist(div_bounds(L1,U1), [Z1,Z2]),
             div_bounds(L2, n(-1), X1), div_bounds(L3, n(-1), Y1),
             (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, _, Sup1, _) -> true
-                ;   Sup1 = n(Y1)
+                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                ;   Inf1 = n(Y1), Sup1 = n(Y1)
                 )
-            ;   Sup1 = sup
+            ;   Inf1 = n(1), Sup1 = sup
             ),
             div_bounds(n(1), U2, X2), div_bounds(n(1), U3, Y2),
             (   X2*Y2 #= Z2 ->
-                (   fd_get(Y2, _, _, Sup2, _) -> true
-                ;   Sup2 = n(Y2)
+                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                ;   Inf2 = n(Y2), Sup2 = n(Y2)
                 )
-            ;   Sup2 = n(-1)
+            ;   Inf2 = inf, Sup2 = n(-1)
             ),
+            Min cis max(min(Inf1,Inf2), L3),
             Max cis min(max(Sup1,Sup2), U3)
-        ;   max_divide(L1, U1, L2, U2, Max0),
+        ;   min_divide(L1, U1, L2, U2, Min0),
+            Min cis max(L3,Min0),
+            max_divide(L1, U1, L2, U2, Max0),
             Max cis min(U3,Max0)
         ).
 
