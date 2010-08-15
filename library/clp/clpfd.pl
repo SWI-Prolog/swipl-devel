@@ -5265,18 +5265,20 @@ neq_index([X|Xs], N) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 propagate_circuit(Vs) :-
-        length(Vs, N),
-        length(Ts, N),
-        circuit_graph(Vs, Ts, Ts),
-        scc(Ts, circuit_successors),
-        maplist(single_component, Ts),
-        maplist(del_attrs, Ts).
+        catch((length(Vs, N),
+               length(Ts, N),
+               circuit_graph(Vs, Ts, Ts),
+               scc(Ts, circuit_successors),
+               maplist(single_component, Ts),
+               % reset locally used attributes
+               throw(success)),
+              success,
+              true).
 
 single_component(V) :- get_attr(V, lowlink, 0).
 
 circuit_graph([], _, _).
 circuit_graph([V|Vs], Ts0, [T|Ts]) :-
-        put_attr(T, clpfd_var, V),
         (   nonvar(V) -> Ns = [V]
         ;   fd_get(V, Dom, _),
             domain_to_list(Dom, Ns)
