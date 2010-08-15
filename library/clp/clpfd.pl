@@ -3622,7 +3622,7 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 min_max_divide(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_max_divide(ZL, ZU, XL, XU, YL2, YU2, NYL, NYU),
+                    min_max_divide(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
