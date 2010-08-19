@@ -938,18 +938,10 @@ domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
             To cis To0*n(M)
         ;   To cis (To0+n(1))*n(M) - n(1)
         ).
-domain_expand_more_(split(S0, Left0, Right0), M, D) :-
+domain_expand_more_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
         S is M*S0,
         domain_expand_more_(Left0, M, Left),
-        domain_expand_more_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left, Inf),
-            domain_supremum(Right, Sup),
-            D = from_to(Inf, Sup)
-        ).
+        domain_expand_more_(Right0, M, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
@@ -972,27 +964,12 @@ domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
             To cis To0 // n(M)
         ;   To cis (To0 - n(M) + n(1)) // n(M)
         ).
-domain_contract_(split(S0,Left0,Right0), M, D) :-
-        S is S0 // M,
+domain_contract_(split(_,Left0,Right0), M, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
         domain_contract_(Left0, M, Left),
         domain_contract_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left0, Inf),
-            % TODO: this is not necessarily an interval
-            domain_supremum(Right0, Sup),
-            min_divide(Inf, Sup, n(M), n(M), From0),
-            max_divide(Inf, Sup, n(M), n(M), To0),
-            domain_infimum(Left, LeftInf),
-            domain_supremum(Right, RightSup),
-            From cis max(LeftInf, From0),
-            To cis min(RightSup, To0),
-            D = from_to(From, To)
-        ).
+        domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Similar to domain_contract, tailored for division, i.e.,
@@ -1008,28 +985,12 @@ domain_contract_less(D0, M, D) :-
 domain_contract_less_(empty, _, empty).
 domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
         From cis From0 // n(M), To cis To0 // n(M).
-domain_contract_less_(split(S0,Left0,Right0), M, D) :-
-        S is S0 // M,
+domain_contract_less_(split(_,Left0,Right0), M, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
         domain_contract_less_(Left0, M, Left),
         domain_contract_less_(Right0, M, Right),
-        domain_supremum(Left, LeftSup),
-        domain_infimum(Right, RightInf),
-        (   LeftSup cis_lt n(S), n(S) cis_lt RightInf ->
-            D = split(S, Left, Right)
-        ;   domain_infimum(Left0, Inf),
-            % TODO: this is not necessarily an interval
-            domain_supremum(Right0, Sup),
-            min_divide_less(Inf, Sup, n(M), n(M), From0),
-            max_divide_less(Inf, Sup, n(M), n(M), To0),
-            domain_infimum(Left, LeftInf),
-            domain_supremum(Right, RightSup),
-            From cis max(LeftInf, From0),
-            To cis min(RightSup, To0),
-            D = from_to(From, To)
-            %format("got: ~w\n", [D])
-        ).
+        domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Negate the domain. Left and Right sub-domains and bounds switch sides.
@@ -3595,26 +3556,17 @@ run_propagator(pplus(X,Y,Z), MState) :-
                 fd_get(Z, ZD, ZL, ZU, _) ->
                 NXL cis max(XL, ZL-YU),
                 NXU cis min(XU, ZU-YL),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
-                    fd_put(X, NXD, XPs)
-                ),
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
                     NYL cis max(YL2, ZL-NXU),
                     NYU cis min(YU2, ZU-NXL),
-                    (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL, NYU), NYD),
-                        fd_put(Y, NYD, YPs2)
-                    )
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
                     NZL cis max(ZL2,NXL+NYL),
                     NZU cis min(ZU2,NXU+NYU),
-                    (   NZL == ZL2, NZU == ZU2 -> true
-                    ;   domains_intersection(ZD2, from_to(NZL,NZU), NZD),
-                        fd_put(Z, NZD, ZPs2)
-                    )
+                    update_bounds(Z, ZD2, ZPs2, ZL2, ZU2, NZL, NZU)
                 ;   true
                 )
             ;   true
@@ -3650,21 +3602,11 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
-                min_divide(n(Z), n(Z), YL, YU, TNXL),
-                max_divide(n(Z), n(Z), YL, YU, TNXU),
-                NXL cis max(XL,TNXL),
-                NXU cis min(XU,TNXU),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL,NXU), XD1),
-                    fd_put(X, XD1, XPs)
-                ),
-                (   fd_get(Y, YD2, YL2, YU2,YExp2) ->
-                    min_divide(n(Z), n(Z), NXL, NXU, NYL),
-                    max_divide(n(Z), n(Z), NXL, NXU, NYU),
-                    (   NYL cis_leq YL2, NYU cis_geq YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
-                        fd_put(Y, YD3, YExp2)
-                    )
+                min_max_divide(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
+                    min_max_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
                     )
@@ -3674,34 +3616,22 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   true
             )
         ;   (   X == Y -> kill(MState), X^2#=Z
-            ;   fd_get(X, XD, XL, XU, XExp),
+            ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _),
-                min_divide(ZL,ZU,YL,YU,TXL),
-                NXL cis max(XL,TXL),
-                max_divide(ZL,ZU,YL,YU,TXU),
-                NXU cis min(XU,TXU),
-                (   NXL == XL, NXU == XU -> true
-                ;   domains_intersection(XD, from_to(NXL,NXU), XD1),
-                    fd_put(X, XD1, XExp)
-                ),
-                (   fd_get(Y,YD2,YL2,YU2,YExp2) ->
-                    min_divide(ZL,ZU,XL,XU,TYL),
-                    NYL cis max(YL2,TYL),
-                    max_divide(ZL,ZU,XL,XU,TYU),
-                    NYU cis min(YU2,TYU),
-                    (   NYL == YL2, NYU == YU2 -> true
-                    ;   domains_intersection(YD2, from_to(NYL,NYU), YD3),
-                        fd_put(Y, YD3, YExp2)
-                    )
+                min_max_divide(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
+                update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
+                (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
+                    min_max_divide(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
+                    update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
-                (   fd_get(Z, ZD2, ZL2, ZU2, ZExp2) ->
-                    min_times(NXL,NXU,NYL,NYU,NZL),
-                    max_times(NXL,NXU,NYL,NYU,NZU),
+                (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
+                    min_times(NXL, NXU, NYL, NYU, NZL),
+                    max_times(NXL, NXU, NYL, NYU, NZU),
                     (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
                     ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
-                        fd_put(Z, ZD3, ZExp2)
+                        fd_put(Z, ZD3, ZPs2)
                     ),
                     (   domain_contains(ZD3, 0) ->  true
                     ;   neq_num(X, 0), neq_num(Y, 0)
@@ -3732,10 +3662,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         ;   NYL cis max(n(X) // n(Z), YL),
                             NYU cis min(n(X) // (n(Z)+sign(n(Z))) - n(1), YU)
                         ),
-                        (   NYL = YL, NYU = YU -> true
-                        ;   domains_intersection(YD, from_to(NYL,NYU), NYD),
-                            fd_put(Y, NYD, YPs)
-                        )
+                        update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
                     )
                 ;   fd_get(Z, ZD, ZL, ZU, ZPs),
                     (   X >= 0, YL cis_gt n(0) ->
@@ -3745,10 +3672,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                         NZL cis max(-abs(n(X)), ZL),
                         NZU cis min(abs(n(X)), ZU)
                     ),
-                    (   NZL = ZL, NZU = ZU -> true
-                    ;   domains_intersection(ZD, from_to(NZL,NZU), NZD),
-                        fd_put(Z, NZD, ZPs)
-                    )
+                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU)
                 )
             )
         ;   nonvar(Y) ->
@@ -3766,10 +3690,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     ;   NXL cis max((n(Z)+sign(n(Z))*n(1))*n(Y)+n(1), XL),
                         NXU cis min(n(Z)*n(Y), XU)
                     ),
-                    (   NXL == XL, NXU == XU -> true
-                    ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
-                        fd_put(X, NXD, XPs)
-                    )
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
                 ;   fd_get(Z, ZD, ZPs),
                     domain_contract_less(XD, Y, Contracted),
                     domains_intersection(ZD, Contracted, NZD),
@@ -3791,10 +3712,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   %TODO: cover more cases
                 NXL = XL, NXU = XU
             ),
-            (   NXL == XL, NXU == XU -> true
-            ;   domains_intersection(XD, from_to(NXL,NXU), NXD),
-                fd_put(X, NXD, XPs)
-            )
+            update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
         ;   (   X == Y -> Z = 1
             ;   fd_get(X, _, XL, XU, _),
                 fd_get(Y, _, YL, YU, _),
@@ -4281,53 +4199,98 @@ run_propagator(pimpl(X, Y, Ps), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+update_bounds(X, XD, XPs, XL, XU, NXL, NXU) :-
+        (   NXL == XL, NXU == XU -> true
+        ;   domains_intersection(XD, from_to(NXL, NXU), NXD),
+            fd_put(X, NXD, XPs)
+        ).
+
 min_times(L1,U1,L2,U2,Min) :-
         Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
 max_times(L1,U1,L2,U2,Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
-
-min_divide_less(L1,U1,L2,U2,Min) :-
-        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
-        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
-        ).
-max_divide_less(L1,U1,L2,U2,Max) :-
-        (   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
-        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
-        ).
-
 finite(n(_)).
 
-min_divide(L1,U1,L2,U2,Min) :-
-        (   L2 = n(NL2), NL2 > 0, finite(U2), cis_geq_zero(L1) ->
+div_bounds(L, U, X) :-
+        bound_portray(L, PL),
+        bound_portray(U, PU),
+        X in PL..PU.
+
+min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
+        (   U1 cis_lt n(0),
+            L2 cis_lt n(0), U2 cis_gt n(0),
+            L3 cis_lt n(0), U3 cis_gt n(0) ->
+            maplist(div_bounds(L1,U1), [Z1,Z2]),
+            div_bounds(L2, n(-1), X1), div_bounds(n(1), U3, Y1),
+            (   X1*Y1 #= Z1 ->
+                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                ;   Inf1 = n(Y1), Sup1 = n(Y1)
+                )
+            ;   Inf1 = inf, Sup1 = n(-1)
+            ),
+            div_bounds(n(1), U2, X2), div_bounds(L3, n(-1), Y2),
+            (   X2*Y2 #= Z2 ->
+                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                ;   Inf2 = n(Y2), Sup2 = n(Y2)
+                )
+            ;   Inf2 = n(1), Sup2 = sup
+            ),
+            Min cis max(min(Inf1,Inf2), L3),
+            Max cis min(max(Sup1,Sup2), U3)
+        ;   L1 cis_gt n(0),
+            L2 cis_lt n(0), U2 cis_gt n(0),
+            L3 cis_lt n(0), U3 cis_gt n(0) ->
+            maplist(div_bounds(L1,U1), [Z1,Z2]),
+            div_bounds(L2, n(-1), X1), div_bounds(L3, n(-1), Y1),
+            (   X1*Y1 #= Z1 ->
+                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                ;   Inf1 = n(Y1), Sup1 = n(Y1)
+                )
+            ;   Inf1 = n(1), Sup1 = sup
+            ),
+            div_bounds(n(1), U2, X2), div_bounds(n(1), U3, Y2),
+            (   X2*Y2 #= Z2 ->
+                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                ;   Inf2 = n(Y2), Sup2 = n(Y2)
+                )
+            ;   Inf2 = inf, Sup2 = n(-1)
+            ),
+            Min cis max(min(Inf1,Inf2), L3),
+            Max cis min(max(Sup1,Sup2), U3)
+        ;   min_divide(L1, U1, L2, U2, Min0),
+            Min cis max(L3,Min0),
+            max_divide(L1, U1, L2, U2, Max0),
+            Max cis min(U3,Max0)
+        ).
+
+min_divide(L1, U1, L2, U2, Min) :-
+        (   L2 cis_gt n(0), finite(U2), cis_geq_zero(L1) ->
             Min cis div(L1+U2-n(1),U2)
-                                % TODO: cover more cases
-        ;   L1 = n(NL1), NL1 > 0, U2 cis_leq n(-1) -> Min cis div(U1,U2)
-        ;   L1 = n(NL1), NL1 > 0 -> Min cis -U1
-        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(0) ->
+        ;   L1 cis_gt n(0), U2 cis_leq n(-1) -> Min cis div(U1,U2)
+        ;   L1 cis_gt n(0) -> Min cis -U1
+        ;   U1 cis_lt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
             ;   Min = n(1)
             )
-        ;   U1 = n(NU1), NU1 < 0, cis_geq_zero(L2) -> Min cis div(L1,L2)
-        ;   U1 = n(NU1), NU1 < 0 -> Min = L1
+        ;   U1 cis_lt n(0), cis_geq_zero(L2) -> Min cis div(L1,L2)
+        ;   U1 cis_lt n(0) -> Min = L1
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
-max_divide(L1,U1,L2,U2,Max) :-
-        (   L2 = n(_), cis_geq_zero(L1), cis_geq_zero(L2) ->
-            Max cis div(U1,L2)
-                                % TODO: cover more cases
-        ;   L1 = n(NL1), NL1 > 0, U2 cis_leq n(0) ->
+max_divide(L1, U1, L2, U2, Max) :-
+        (   cis_geq_zero(L1), cis_geq_zero(L2) -> Max cis div(U1,L2)
+        ;   L1 cis_gt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
             ;   Max = n(-1)
             )
-        ;   L1 = n(NL1), NL1 > 0 -> Max = U1
-        ;   U1 = n(NU1), NU1 < 0, U2 cis_leq n(-1) -> Max cis div(L1,U2)
-        ;   U1 = n(NU1), NU1 < 0, cis_geq_zero(L2) ->
+        ;   L1 cis_gt n(0) -> Max = U1
+        ;   U1 cis_lt n(0), U2 cis_leq n(-1) -> Max cis div(L1,U2)
+        ;   U1 cis_lt n(0), cis_geq_zero(L2) ->
             (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
             ;   Max = n(-1)
             )
-        ;   U1 = n(NU1), NU1 < 0 -> Max cis -L1
+        ;   U1 cis_lt n(0) -> Max cis -L1
         ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
@@ -4496,9 +4459,7 @@ g0_successors(V, Tos) :-
 
 put_free(F) :- put_attr(F, free, true).
 
-free_node(F) :-
-        get_attr(F, free, true),
-        del_attr(F, free).
+free_node(F) :- get_attr(F, free, true).
 
 distinct(Vars) :-
         catch((difference_arcs(Vars, FreeLeft, FreeRight0),
@@ -4525,11 +4486,11 @@ distinct(Vars) :-
 distinct_goals([]) --> [].
 distinct_goals([V|Vs]) -->
         { get_attr(V, edges, Es) },
-        distinct_edges(Es, V),
+        distinct_goals_(Es, V),
         distinct_goals(Vs).
 
-distinct_edges([], _) --> [].
-distinct_edges([flow_to(F,To)|Es], V) -->
+distinct_goals_([], _) --> [].
+distinct_goals_([flow_to(F,To)|Es], V) -->
         (   { get_attr(F, flow, 0),
               \+ get_attr(F, used, true),
               get_attr(V, lowlink, L1),
@@ -4539,7 +4500,7 @@ distinct_edges([flow_to(F,To)|Es], V) -->
             [neq_num(V, N)]
         ;   []
         ),
-        distinct_edges(Es, V).
+        distinct_goals_(Es, V).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Mark used edges.
@@ -5304,18 +5265,20 @@ neq_index([X|Xs], N) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 propagate_circuit(Vs) :-
-        length(Vs, N),
-        length(Ts, N),
-        circuit_graph(Vs, Ts, Ts),
-        scc(Ts, circuit_successors),
-        maplist(single_component, Ts),
-        maplist(del_attrs, Ts).
+        catch((length(Vs, N),
+               length(Ts, N),
+               circuit_graph(Vs, Ts, Ts),
+               scc(Ts, circuit_successors),
+               maplist(single_component, Ts),
+               % reset locally used attributes
+               throw(success)),
+              success,
+              true).
 
 single_component(V) :- get_attr(V, lowlink, 0).
 
 circuit_graph([], _, _).
 circuit_graph([V|Vs], Ts0, [T|Ts]) :-
-        put_attr(T, clpfd_var, V),
         (   nonvar(V) -> Ns = [V]
         ;   fd_get(V, Dom, _),
             domain_to_list(Dom, Ns)
