@@ -400,23 +400,17 @@ defaulty_to_bound(D, P) :- ( integer(D) -> P = n(D) ; P = D ).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 % cis_gt only works for terms of depth 0 on both sides
-cis_gt(n(N), B) :- cis_gt_numeric(B, N).
+cis_gt(n(N), B) :- cis_lt_numeric(B, N).
 cis_gt(sup, B0) :- B0 \== sup.
 
-cis_gt_numeric(n(B), A) :- A > B.
-cis_gt_numeric(inf, _).
+cis_lt_numeric(inf, _).
+cis_lt_numeric(n(B), A) :- B < A.
 
-cis_geq(A, B) :-
-        (   cis_gt(A, B) -> true
-        ;   A == B
-        ).
+cis_gt_numeric(sup, _).
+cis_gt_numeric(n(B), A) :- B > A.
 
 cis_geq_zero(sup).
 cis_geq_zero(n(N)) :- N >= 0.
-
-cis_lt(A, B)  :- cis_gt(B, A).
-
-cis_leq(A, B) :- cis_geq(B, A).
 
 cis_min(inf, _, inf).
 cis_min(sup, B, B).
@@ -486,6 +480,11 @@ cis_exp(n(N), Y, n(R)) :- R is N^Y.
 goal_expansion(A cis B, Expansion) :-
         phrase(cis_goals(B, A), Goals),
         list_goal(Goals, Expansion).
+goal_expansion(A cis_lt B, B cis_gt A).
+goal_expansion(A cis_leq B, B cis_geq A).
+goal_expansion(A cis_geq B, ( A == B -> true ; cis_gt(A, B) )).
+goal_expansion(A cis_gt B, cis_lt_numeric(B, N)) :- nonvar(A), A = n(N).
+goal_expansion(A cis_gt B, cis_gt_numeric(A, N)) :- nonvar(B), B = n(N).
 
 cis_goals(V, V)          --> { var(V) }, !.
 cis_goals(n(N), n(N))    --> [].
