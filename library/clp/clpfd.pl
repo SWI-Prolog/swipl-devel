@@ -398,7 +398,16 @@ defaulty_to_bound(D, P) :- ( integer(D) -> P = n(D) ; P = D ).
    Compactified is/2 and predicates for several arithmetic expressions
    with infinities, tailored for the modes needed by this solver.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+
+goal_expansion(A cis B, Expansion) :-
+        phrase(cis_goals(B, A), Goals),
+        list_goal(Goals, Expansion).
+goal_expansion(A cis_lt B, B cis_gt A).
+goal_expansion(A cis_leq B, B cis_geq A).
+goal_expansion(A cis_geq B, ( A == B -> true ; cis_gt(A, B) )).
+goal_expansion(A cis_gt B, cis_lt_numeric(B, N)) :- nonvar(A), A = n(N).
+goal_expansion(A cis_gt B, cis_gt_numeric(A, N)) :- nonvar(B), B = n(N).
+
 % cis_gt only works for terms of depth 0 on both sides
 cis_gt(n(N), B) :- cis_lt_numeric(B, N).
 cis_gt(sup, B0) :- B0 \== sup.
@@ -474,17 +483,6 @@ cis_exp(inf, Y, R) :-
         ).
 cis_exp(sup, _, sup).
 cis_exp(n(N), Y, n(R)) :- R is N^Y.
-
-% compactified is/2 for expressions of interest
-
-goal_expansion(A cis B, Expansion) :-
-        phrase(cis_goals(B, A), Goals),
-        list_goal(Goals, Expansion).
-goal_expansion(A cis_lt B, B cis_gt A).
-goal_expansion(A cis_leq B, B cis_geq A).
-goal_expansion(A cis_geq B, ( A == B -> true ; cis_gt(A, B) )).
-goal_expansion(A cis_gt B, cis_lt_numeric(B, N)) :- nonvar(A), A = n(N).
-goal_expansion(A cis_gt B, cis_gt_numeric(A, N)) :- nonvar(B), B = n(N).
 
 cis_goals(V, V)          --> { var(V) }, !.
 cis_goals(n(N), n(N))    --> [].
