@@ -404,13 +404,14 @@ goal_expansion(A cis B, Expansion) :-
         list_goal(Goals, Expansion).
 goal_expansion(A cis_lt B, B cis_gt A).
 goal_expansion(A cis_leq B, B cis_geq A).
-goal_expansion(A cis_geq B, ( A == B -> true ; cis_gt(A, B) )).
+goal_expansion(A cis_geq B, cis_leq_numeric(B, N)) :- nonvar(A), A = n(N).
+goal_expansion(A cis_geq B, cis_geq_numeric(A, N)) :- nonvar(B), B = n(N).
 goal_expansion(A cis_gt B, cis_lt_numeric(B, N)) :- nonvar(A), A = n(N).
 goal_expansion(A cis_gt B, cis_gt_numeric(A, N)) :- nonvar(B), B = n(N).
 
 % cis_gt only works for terms of depth 0 on both sides
-cis_gt(n(N), B) :- cis_lt_numeric(B, N).
 cis_gt(sup, B0) :- B0 \== sup.
+cis_gt(n(N), B) :- cis_lt_numeric(B, N).
 
 cis_lt_numeric(inf, _).
 cis_lt_numeric(n(B), A) :- B < A.
@@ -418,8 +419,15 @@ cis_lt_numeric(n(B), A) :- B < A.
 cis_gt_numeric(sup, _).
 cis_gt_numeric(n(B), A) :- B > A.
 
-cis_geq_zero(sup).
-cis_geq_zero(n(N)) :- N >= 0.
+cis_geq(inf, inf).
+cis_geq(sup, _).
+cis_geq(n(N), B) :- cis_leq_numeric(B, N).
+
+cis_leq_numeric(inf, _).
+cis_leq_numeric(n(B), A) :- B =< A.
+
+cis_geq_numeric(sup, _).
+cis_geq_numeric(n(B), A) :- B >= A.
 
 cis_min(inf, _, inf).
 cis_min(sup, B, B).
@@ -539,8 +547,8 @@ cis_sign(n(N), n(S)) :-
         ;   S = 0
         ).
 
-cis_div(sup, Y, Z)  :- ( cis_geq_zero(Y) -> Z = sup ; Z = inf ).
-cis_div(inf, Y, Z)  :- ( cis_geq_zero(Y) -> Z = inf ; Z = sup ).
+cis_div(sup, Y, Z)  :- ( Y cis_geq n(0) -> Z = sup ; Z = inf ).
+cis_div(inf, Y, Z)  :- ( Y cis_geq n(0) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
 
 cis_div_(sup, _, n(0)).
@@ -953,11 +961,11 @@ domain_contract(D0, M, D) :-
 
 domain_contract_(empty, _, empty).
 domain_contract_(from_to(From0, To0), M, from_to(From,To)) :-
-        (   cis_geq_zero(From0) ->
+        (   From0 cis_geq n(0) ->
             From cis (From0 + n(M) - n(1)) // n(M)
         ;   From cis From0 // n(M)
         ),
-        (   cis_geq_zero(To0) ->
+        (   To0 cis_geq n(0) ->
             To cis To0 // n(M)
         ;   To cis (To0 - n(M) + n(1)) // n(M)
         ).
@@ -3905,7 +3913,7 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 ;   domain_remove(ZD, 0, ZD1)
                 ),
                 (   even(Y) ->
-                    (   cis_geq_zero(XL) ->
+                    (   XL cis_geq n(0) ->
                         NZL cis XL^Y
                     ;   NZL = n(0)
                     ),
@@ -3921,12 +3929,12 @@ run_propagator(pexp(X,Y,Z), MState) :-
                 fd_put(Z, ZD2, ZPs),
                 (   even(Y), ZU = n(Num) ->
                     integer_kth_root_leq(Num, Y, RU),
-                    (   cis_geq_zero(XL), ZL = n(Num1) ->
+                    (   XL cis_geq n(0), ZL = n(Num1) ->
                         integer_kth_root_leq(Num1, Y, RL)
                     ;   RL is -RU
                     ),
                     NXD = from_to(n(RL),n(RU))
-                ;   odd(Y), cis_geq_zero(ZL), ZU = n(Num) ->
+                ;   odd(Y), ZL cis_geq n(0), ZU = n(Num) ->
                     integer_kth_root_leq(Num, Y, RU),
                     ZL = n(Num1),
                     integer_kth_root_leq(Num1, Y, RL),
@@ -4262,7 +4270,7 @@ min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
         ).
 
 min_divide(L1, U1, L2, U2, Min) :-
-        (   L2 cis_gt n(0), finite(U2), cis_geq_zero(L1) ->
+        (   L2 cis_gt n(0), finite(U2), L1 cis_geq n(0) ->
             Min cis div(L1+U2-n(1),U2)
         ;   L1 cis_gt n(0), U2 cis_leq n(-1) -> Min cis div(U1,U2)
         ;   L1 cis_gt n(0) -> Min cis -U1
@@ -4270,25 +4278,25 @@ min_divide(L1, U1, L2, U2, Min) :-
             (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
             ;   Min = n(1)
             )
-        ;   U1 cis_lt n(0), cis_geq_zero(L2) -> Min cis div(L1,L2)
+        ;   U1 cis_lt n(0), L2 cis_geq n(0) -> Min cis div(L1,L2)
         ;   U1 cis_lt n(0) -> Min = L1
-        ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Min = inf
+        ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
 max_divide(L1, U1, L2, U2, Max) :-
-        (   cis_geq_zero(L1), cis_geq_zero(L2) -> Max cis div(U1,L2)
+        (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis div(U1,L2)
         ;   L1 cis_gt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
             ;   Max = n(-1)
             )
         ;   L1 cis_gt n(0) -> Max = U1
         ;   U1 cis_lt n(0), U2 cis_leq n(-1) -> Max cis div(L1,U2)
-        ;   U1 cis_lt n(0), cis_geq_zero(L2) ->
+        ;   U1 cis_lt n(0), L2 cis_geq n(0) ->
             (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
             ;   Max = n(-1)
             )
         ;   U1 cis_lt n(0) -> Max cis -L1
-        ;   L2 cis_leq n(0), cis_geq_zero(U2) -> Max = sup
+        ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Max = sup
         ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
         ).
 
