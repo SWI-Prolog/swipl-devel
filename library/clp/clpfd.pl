@@ -406,8 +406,8 @@ goal_expansion(A cis_lt B, B cis_gt A).
 goal_expansion(A cis_leq B, B cis_geq A).
 goal_expansion(A cis_geq B, cis_leq_numeric(B, N)) :- nonvar(A), A = n(N).
 goal_expansion(A cis_geq B, cis_geq_numeric(A, N)) :- nonvar(B), B = n(N).
-goal_expansion(A cis_gt B, cis_lt_numeric(B, N)) :- nonvar(A), A = n(N).
-goal_expansion(A cis_gt B, cis_gt_numeric(A, N)) :- nonvar(B), B = n(N).
+goal_expansion(A cis_gt B, cis_lt_numeric(B, N))   :- nonvar(A), A = n(N).
+goal_expansion(A cis_gt B, cis_gt_numeric(A, N))   :- nonvar(B), B = n(N).
 
 % cis_gt only works for terms of depth 0 on both sides
 cis_gt(sup, B0) :- B0 \== sup.
@@ -935,7 +935,7 @@ domain_expand_more(D0, M, D) :-
 
 domain_expand_more_(empty, _, empty).
 domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
-        (   From0 cis_lt n(0) ->
+        (   From0 cis_leq n(0) ->
             From cis (From0-n(1))*n(M) + n(1)
         ;   From cis From0*n(M)
         ),
@@ -3686,13 +3686,14 @@ run_propagator(pdiv(X,Y,Z), MState) :-
             ;   Y =:= -1 -> kill(MState), Z #= -X
             ;   fd_get(X, XD, XL, XU, XPs),
                 (   nonvar(Z) ->
+                    kill(MState),
                     (   sign(Z) =:= sign(Y) ->
                         NXL cis max(n(Z)*n(Y), XL),
                         NXU cis min((abs(n(Z))+n(1))*abs(n(Y))-n(1), XU)
                     ;   Z =:= 0 ->
                         NXL cis max(-abs(n(Y)) + n(1), XL),
                         NXU cis min(abs(n(Y)) - n(1), XU)
-                    ;   NXL cis max((n(Z)+sign(n(Z))*n(1))*n(Y)+n(1), XL),
+                    ;   NXL cis max((n(Z)+sign(n(Z)))*n(Y)+n(1), XL),
                         NXU cis min(n(Z)*n(Y), XU)
                     ),
                     update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
@@ -3700,7 +3701,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                     domain_contract_less(XD, Y, Contracted),
                     domains_intersection(ZD, Contracted, NZD),
                     fd_put(Z, NZD, ZPs),
-                    (   \+ domain_contains(NZD, 0), fd_get(X, XD2, XPs2) ->
+                    (   fd_get(X, XD2, XPs2) ->
                         domain_expand_more(NZD, Y, Expanded),
                         domains_intersection(XD2, Expanded, NXD2),
                         fd_put(X, NXD2, XPs2)
