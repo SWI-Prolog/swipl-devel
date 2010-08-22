@@ -3607,10 +3607,10 @@ run_propagator(ptimes(X,Y,Z), MState) :-
                 X in NR \/ R
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
-                min_max_divide(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
+                min_max_factor(n(Z), n(Z), YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_max_divide(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
+                    min_max_factor(n(Z), n(Z), NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   (   Y \== 0 -> 0 =:= Z mod Y, kill(MState), X is Z // Y
                     ;   kill(MState), Z = 0
@@ -3624,16 +3624,16 @@ run_propagator(ptimes(X,Y,Z), MState) :-
             ;   fd_get(X, XD, XL, XU, XPs),
                 fd_get(Y, YD, YL, YU, _),
                 fd_get(Z, ZD, ZL, ZU, _),
-                min_max_divide(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
+                min_max_factor(ZL, ZU, YL, YU, XL, XU, NXL, NXU),
                 update_bounds(X, XD, XPs, XL, XU, NXL, NXU),
                 (   fd_get(Y, YD2, YL2, YU2, YPs2) ->
-                    min_max_divide(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
+                    min_max_factor(ZL, ZU, NXL, NXU, YL2, YU2, NYL, NYU),
                     update_bounds(Y, YD2, YPs2, YL2, YU2, NYL, NYU)
                 ;   NYL = n(Y), NYU = n(Y)
                 ),
                 (   fd_get(Z, ZD2, ZL2, ZU2, ZPs2) ->
-                    min_times(NXL, NXU, NYL, NYU, NZL),
-                    max_times(NXL, NXU, NYL, NYU, NZU),
+                    min_product(NXL, NXU, NYL, NYU, NZL),
+                    max_product(NXL, NXU, NYL, NYU, NZU),
                     (   NZL cis_leq ZL2, NZU cis_geq ZU2 -> ZD3 = ZD2
                     ;   domains_intersection(ZD2, from_to(NZL,NZU), ZD3),
                         fd_put(Z, ZD3, ZPs2)
@@ -4211,31 +4211,31 @@ update_bounds(X, XD, XPs, XL, XU, NXL, NXU) :-
             fd_put(X, NXD, XPs)
         ).
 
-min_times(L1,U1,L2,U2,Min) :-
+min_product(L1, U1, L2, U2, Min) :-
         Min cis min(min(L1*L2,L1*U2),min(U1*L2,U1*U2)).
-max_times(L1,U1,L2,U2,Max) :-
+max_product(L1, U1, L2, U2, Max) :-
         Max cis max(max(L1*L2,L1*U2),max(U1*L2,U1*U2)).
 
 finite(n(_)).
 
-div_bounds(L, U, X) :-
-        bound_portray(L, PL),
-        bound_portray(U, PU),
-        X in PL..PU.
+in_(L, U, X) :-
+        fd_get(X, XD, XPs),
+        domains_intersection(XD, from_to(L,U), NXD),
+        fd_put(X, NXD, XPs).
 
-min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
+min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
         (   U1 cis_lt n(0),
             L2 cis_lt n(0), U2 cis_gt n(0),
             L3 cis_lt n(0), U3 cis_gt n(0) ->
-            maplist(div_bounds(L1,U1), [Z1,Z2]),
-            div_bounds(L2, n(-1), X1), div_bounds(n(1), U3, Y1),
+            maplist(in_(L1,U1), [Z1,Z2]),
+            in_(L2, n(-1), X1), in_(n(1), U3, Y1),
             (   X1*Y1 #= Z1 ->
                 (   fd_get(Y1, _, Inf1, Sup1, _) -> true
                 ;   Inf1 = n(Y1), Sup1 = n(Y1)
                 )
             ;   Inf1 = inf, Sup1 = n(-1)
             ),
-            div_bounds(n(1), U2, X2), div_bounds(L3, n(-1), Y2),
+            in_(n(1), U2, X2), in_(L3, n(-1), Y2),
             (   X2*Y2 #= Z2 ->
                 (   fd_get(Y2, _, Inf2, Sup2, _) -> true
                 ;   Inf2 = n(Y2), Sup2 = n(Y2)
@@ -4247,15 +4247,15 @@ min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
         ;   L1 cis_gt n(0),
             L2 cis_lt n(0), U2 cis_gt n(0),
             L3 cis_lt n(0), U3 cis_gt n(0) ->
-            maplist(div_bounds(L1,U1), [Z1,Z2]),
-            div_bounds(L2, n(-1), X1), div_bounds(L3, n(-1), Y1),
+            maplist(in_(L1,U1), [Z1,Z2]),
+            in_(L2, n(-1), X1), in_(L3, n(-1), Y1),
             (   X1*Y1 #= Z1 ->
                 (   fd_get(Y1, _, Inf1, Sup1, _) -> true
                 ;   Inf1 = n(Y1), Sup1 = n(Y1)
                 )
             ;   Inf1 = n(1), Sup1 = sup
             ),
-            div_bounds(n(1), U2, X2), div_bounds(n(1), U3, Y2),
+            in_(n(1), U2, X2), in_(n(1), U3, Y2),
             (   X2*Y2 #= Z2 ->
                 (   fd_get(Y2, _, Inf2, Sup2, _) -> true
                 ;   Inf2 = n(Y2), Sup2 = n(Y2)
@@ -4264,13 +4264,13 @@ min_max_divide(L1, U1, L2, U2, L3, U3, Min, Max) :-
             ),
             Min cis max(min(Inf1,Inf2), L3),
             Max cis min(max(Sup1,Sup2), U3)
-        ;   min_divide(L1, U1, L2, U2, Min0),
+        ;   min_factor(L1, U1, L2, U2, Min0),
             Min cis max(L3,Min0),
-            max_divide(L1, U1, L2, U2, Max0),
+            max_factor(L1, U1, L2, U2, Max0),
             Max cis min(U3,Max0)
         ).
 
-min_divide(L1, U1, L2, U2, Min) :-
+min_factor(L1, U1, L2, U2, Min) :-
         (   L2 cis_gt n(0), finite(U2), L1 cis_geq n(0) ->
             Min cis div(L1+U2-n(1),U2)
         ;   L1 cis_gt n(0), U2 cis_leq n(-1) -> Min cis div(U1,U2)
@@ -4284,7 +4284,7 @@ min_divide(L1, U1, L2, U2, Min) :-
         ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Min = inf
         ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
         ).
-max_divide(L1, U1, L2, U2, Max) :-
+max_factor(L1, U1, L2, U2, Max) :-
         (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis div(U1,L2)
         ;   L1 cis_gt n(0), U2 cis_leq n(0) ->
             (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
