@@ -486,7 +486,7 @@ cis_times_(sup, A, P)     :- cis_times(sup, n(A), P).
 cis_times_(n(B), A, n(P)) :- P is A * B.
 
 cis_exp(inf, Y, R) :-
-        (   Y mod 2 =:= 0 -> R = sup
+        (   even(Y) -> R = sup
         ;   R = inf
         ).
 cis_exp(sup, _, sup).
