@@ -3725,7 +3725,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 NZU cis max(abs(XL), XU),
                 NZL cis -NZU,
                 domains_intersection(ZD, from_to(NZL,NZU), NZD0),
-                (   cis_geq_zero(XL), cis_geq_zero(YL) ->
+                (   XL cis_geq n(0), YL cis_geq n(0) ->
                     domain_remove_smaller_than(NZD0, 0, NZD1)
                 ;   % TODO: cover more cases
                     NZD1 = NZD0
