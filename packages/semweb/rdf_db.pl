@@ -1962,7 +1962,7 @@ save_attribute(body, Name=Value, BaseURI, Out, Indent, Options) :-
 	    ;	true
 	    ),
 	    SubIndent is Indent + 2,
-	    (   rdf(Value, rdf:type, rdf:'List')
+	    (   rdf_collection(Value)
 	    ->  save_about(Out, BaseURI, Value),
 		format(Out, ' rdf:parseType="Collection">~n', []),
 		rdf_save_list(Out, Value, BaseURI, SubIndent, Options)
@@ -2061,6 +2061,31 @@ save_xml_literal(NoDOM, _, _, _, _) :-
 id_to_atom(NS:Local, Atom) :- !,
 	atomic_list_concat([NS,Local], :, Atom).
 id_to_atom(ID, ID).
+
+
+%%	rdf_collection(+URI) is semidet.
+%
+%	True  if  URI  represents  an  RDF    list  that  fits  the  RDF
+%	parseType=collection syntax. This means it is   a linked list of
+%	bnode-cells with a rdf:first that is   a  resource, optionally a
+%	rdf:type that is an rdf:list and the list ends in an rdf:nil.
+
+:- rdf_meta
+	rdf_collection(r),
+	collection_p(r,r).
+
+rdf_collection(rdf:nil) :- !.
+rdf_collection(Cell) :-
+	rdf_is_bnode(Cell),
+	findall(F, rdf(Cell, rdf:first, F), [_]),
+	findall(F, rdf(Cell, rdf:rest, F), [Rest]),
+	forall(rdf(Cell, P, V),
+	       collection_p(P, V)),
+	rdf_collection(Rest).
+
+collection_p(rdf:first, V) :- atom(V).
+collection_p(rdf:rest, _).
+collection_p(rdf:type, rdf:'List').
 
 
 %%	rdf_save_list(+Out, +List, +BaseURI, +Indent, +Options)
