@@ -818,7 +818,7 @@ PL_thread_self()
 
 int
 PL_unify_thread_id(term_t t, int i)
-{ if ( i < 0 ||
+{ if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
     return -1;				/* error */
@@ -903,7 +903,7 @@ PL_thread_raise(int tid, int sig)
 { PL_thread_info_t *info;
 
   LOCK();
-  if ( tid < 0 || tid > thread_highest_id )
+  if ( tid < 1 || tid > thread_highest_id )
   { error:
     UNLOCK();
     return FALSE;
@@ -1260,7 +1260,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 ||
+  if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
   { if ( warn )
@@ -2728,7 +2728,7 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
       id = consInt(i);
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
-    if ( tid < 0 || tid > thread_highest_id ||
+    if ( tid < 1 || tid > thread_highest_id ||
 	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
 	 !GD->thread.threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
