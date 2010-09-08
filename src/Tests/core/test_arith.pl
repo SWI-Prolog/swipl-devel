@@ -89,6 +89,11 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 
 test(shift_right_large, X == 0) :-
 	X is 5>>64.
+test(shift_right_large, X == 0) :-
+	X is 5>>(1<<62).
+test(shift_right_large,
+     [condition(current_prolog_flag(bounded, false)), X == 0]) :-
+	X is 5>>(1<<100).
 
 :- end_tests(shift).
 

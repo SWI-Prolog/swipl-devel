@@ -1300,6 +1300,19 @@ int_too_big()
 
 
 static int
+shift_to_far(Number shift, Number r, int dir)
+{ if ( ar_sign_i(shift) * dir < 0 )	/* << */
+  { return int_too_big();
+  } else
+  { r->value.i = 0;
+    r->type = V_INTEGER;
+
+    return TRUE;
+  }
+}
+
+
+static int
 ar_shift(Number n1, Number n2, Number r, int dir)
 { long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
@@ -1314,11 +1327,11 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     r->type = V_INTEGER;
   }
 
-  switch(n2->type)
+  switch(n2->type)			/* amount to shift */
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return int_too_big();
+	return shift_to_far(n2, r, dir);
       else
 	shift = (long)n2->value.i;
       break;
@@ -1326,7 +1339,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return int_too_big();
+	return shift_to_far(n2, r, dir);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
