@@ -6237,9 +6237,10 @@ is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{no
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}.  The file-type \const{source}
-is an alias for \const{prolog} for compatibility with SICStus Prolog.
-See also prolog_file_type/2.
+\const{directory} implies \const{['']}. The file-type \const{source} is
+an alias for \const{prolog} for compatibility with SICStus Prolog. See
+also prolog_file_type/2. This predicate only returns non-directories,
+unless the option \term{file_type}{directory} is specified.
 
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception
