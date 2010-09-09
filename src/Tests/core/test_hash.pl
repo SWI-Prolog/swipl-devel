@@ -56,7 +56,7 @@ test(attvar, error(_)) :-
 	dif(X, 3),
 	variant_sha1(X, _).
 test(attvar, true) :-
-	dif(X, 3), % error(_) fails because subsumes_chk does not deal with attvar
+	dif(X, 3), % error(_) fails because subsumes_term does not deal with attvar
 	catch(variant_sha1(x(a(X)), _), _, true).
 
 v(_).

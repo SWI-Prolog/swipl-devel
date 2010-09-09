@@ -303,7 +303,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
   PL_strip_module(descr, m, head);
 
   if ( PL_is_functor(head, FUNCTOR_divide2) ||
-       (dcgpi=PL_is_functor(head, FUNCTOR_div2)) )
+       (dcgpi=PL_is_functor(head, FUNCTOR_gdiv2)) )
   { term_t a = PL_new_term_ref();
     atom_t name;
     int arity = 0;
@@ -581,7 +581,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
     if ( PL_is_functor(pi, FUNCTOR_divide2) )
     { _PL_get_arg(1, pi, nt);
       _PL_get_arg(2, pi, at);
-    } else if ( PL_is_functor(pi, FUNCTOR_div2) )
+    } else if ( PL_is_functor(pi, FUNCTOR_gdiv2) )
     { _PL_get_arg(1, pi, nt);
       _PL_get_arg(2, pi, at);
       aextra = 2;

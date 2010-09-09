@@ -1590,7 +1590,7 @@ exception(context-2) :-
 	error_context(E, undef/0).
 exception(catch-gc) :-
 	catch(tcatch, E, true),
-	subsumes_chk(ok(error(_,_)), E).
+	subsumes_term(ok(error(_,_)), E).
 
 
 		 /*******************************
@@ -2792,7 +2792,7 @@ blocked(Reason) :-
 %	2nd context argument.
 
 error(error(Ex, _Ctx), Expected) :-
-	subsumes_chk(Expected, Ex), !.
+	subsumes_term(Expected, Ex), !.
 error(error(Ex, _Ctx), Expected) :-
 	format('~NWrong exception: ~p (expected ~p)~n', [Ex, Expected]),
 	fail.

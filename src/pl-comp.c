@@ -2739,7 +2739,7 @@ PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 static int
 mustBeVar(term_t t ARG_LD)
 { if ( !PL_is_variable(t) )
-    return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, t);
+    return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, t);
 
   succeed;
 }

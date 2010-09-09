@@ -208,7 +208,7 @@ is_not(chars, X) :- !,
 is_not(codes, X) :- !,
 	not_a_list(codes, X).
 is_not(var,_X) :- !,
-	representation_error(variable).
+	throw(error(uninstantiation_error(variable), _)).
 is_not(rational, X) :- !,
 	not_a_rational(X).
 is_not(Type, X) :-

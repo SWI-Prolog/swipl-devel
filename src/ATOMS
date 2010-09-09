@@ -48,6 +48,7 @@ A at_not_equals		"\\=@="
 A at_smaller		"@<"
 A at_smaller_eq		"@=<"
 A atan			"atan"
+A atan2			"atan2"
 A atom			"atom"
 A atom_garbage_collection	"atom_garbage_collection"
 A atomic		"atomic"
@@ -75,7 +76,6 @@ A buffer		"buffer"
 A buffer_size		"buffer_size"
 A built_in_procedure	"built_in_procedure"
 A busy			"busy"
-A bw_xor		"><"
 A byte			"byte"
 A c_stack		"c_stack"
 A call			"call"
@@ -160,7 +160,8 @@ A dgarbage_collect	"$garbage_collect"
 A digit			"digit"
 A directory		"directory"
 A discontiguous		"discontiguous"
-A div			"//"
+A div			"div"
+A gdiv			"//"
 A divide		"/"
 A dload			"$load"
 A dmessage_queue	"$message_queue"
@@ -608,6 +609,7 @@ A unicode_be		"unicode_be"
 A unicode_le		"unicode_le"
 A unify			"unify"
 A unify_determined	"?="
+A uninstantiation_error	"uninstantiation_error"
 A unique		"unique"
 A univ			"=.."
 A unknown		"unknown"
@@ -666,6 +668,7 @@ F assert		1
 F asserta		1
 F atan			1
 F atan			2
+F atan2			2
 F atom			1
 F att			3
 F backslash		1
@@ -679,7 +682,6 @@ F break			3
 F buffer		1
 F buffer_size		1
 F busy			2
-F bw_xor		2
 F call			1
 F callpred		2
 F catch			3
@@ -712,6 +714,7 @@ F dexit			2
 F dforeign_registered   2
 F dgarbage_collect 	1
 F div			2
+F gdiv			2
 F divide		2
 F dmessage_queue	1
 F dmutex		1
@@ -861,6 +864,7 @@ F type			1
 F type_error		2
 F undefinterc		4
 F unify_determined	2
+F uninstantiation_error	1
 F var			1
 F wakeup		3
 F warning		3
