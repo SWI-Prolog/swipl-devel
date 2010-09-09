@@ -998,8 +998,8 @@ domain_contract_less_(split(_,Left0,Right0), M, D) :-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 domain_negate(empty, empty).
-domain_negate(from_to(From0, To0), from_to(To,From)) :-
-        From cis -From0, To cis -To0.
+domain_negate(from_to(From0, To0), from_to(From, To)) :-
+        From cis -To0, To cis -From0.
 domain_negate(split(S0, Left0, Right0), split(S, Left, Right)) :-
         S is -S0,
         domain_negate(Left0, Right),
