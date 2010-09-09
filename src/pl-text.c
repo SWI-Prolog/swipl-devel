@@ -216,8 +216,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       size = sizeof(text->buf);
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
-      if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= wflags &&
+      if ( PL_write_term(fd, l, 1200, wflags) &&
+	   Sputcode(EOS, fd) >= 0 &&
 	   Sflush(fd) >= 0 )
       { text->encoding = *enc;
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);
