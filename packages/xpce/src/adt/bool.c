@@ -26,25 +26,25 @@
 
 
 static status
-initialiseBool(Bool b)
+initialiseBool(BoolObj b)
 { return errorPce(classOfObject(b), NAME_cannotCreateInstances);
 }
 
 
 static status
-unlinkBool(Bool b)
+unlinkBool(BoolObj b)
 { fail;					/* should not happen! */
 }
 
 
-static Bool
+static BoolObj
 getConvertBool(Class class, Any obj)
 { answer(toBool(obj));
 }
 
 
-static Bool
-getNegateBool(Bool b)
+static BoolObj
+getNegateBool(BoolObj b)
 { answer(b == ON ? OFF : ON);
 }
 

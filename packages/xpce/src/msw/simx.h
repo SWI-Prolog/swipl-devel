@@ -126,8 +126,8 @@ extern "C" {
 #define True 1
 #define False 0
 #endif
-#ifndef Bool
-//typedef BOOL Bool;		/* take MSW bool */
+#ifndef BoolObj
+//typedef BOOL BoolObj;		/* take MSW bool */
 #endif
 /* make these local here, simx.c gets the same from xpm.h */
 #undef LFUNC

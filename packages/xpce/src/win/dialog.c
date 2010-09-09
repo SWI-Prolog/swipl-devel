@@ -221,14 +221,14 @@ caretDialog(Dialog d, Graphical gr)
 
 
 static status
-activeDialog(Dialog d, Bool val)
+activeDialog(Dialog d, BoolObj val)
 { assign(d, sensitive, val);
 
   succeed;
 }
 
 
-static Bool
+static BoolObj
 getActiveDialog(Dialog d)
 { answer(d->sensitive);
 }
@@ -254,7 +254,7 @@ defaultButtonDialog(Dialog d, Button b)
 
 
 static status
-applyDialog(Dialog d, Bool always)
+applyDialog(Dialog d, BoolObj always)
 { DialogItem di;
   Graphical defb;
 
@@ -280,7 +280,7 @@ restoreDialog(Dialog d)
 
 
 static status
-modifiedItemDialog(Dialog d, Graphical gr, Bool m)
+modifiedItemDialog(Dialog d, Graphical gr, BoolObj m)
 { Button b;
 
   if ( (b = qadGetv(d, NAME_defaultButton, 0, NULL)) )

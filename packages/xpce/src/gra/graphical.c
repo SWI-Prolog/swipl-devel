@@ -179,7 +179,7 @@ reparentGraphical(Graphical gr)
 
 
 status
-DisplayedGraphical(Any obj, Bool val)
+DisplayedGraphical(Any obj, BoolObj val)
 { Graphical gr = obj;
 
   if ( gr->displayed != val )
@@ -190,7 +190,7 @@ DisplayedGraphical(Any obj, Bool val)
 
 
 status
-displayedGraphical(Any obj, Bool val)
+displayedGraphical(Any obj, BoolObj val)
 { Graphical gr = obj;
 
   if ( gr->displayed != val )
@@ -215,7 +215,7 @@ displayedGraphical(Any obj, Bool val)
 }
 
 
-Bool
+BoolObj
 getIsDisplayedGraphical(Graphical gr, Device dev)
 { do
   { if ( gr->displayed == ON && gr->device == dev )
@@ -907,7 +907,7 @@ flushGraphical(Any gr)
 
 
 status
-synchroniseGraphical(Graphical gr, Bool always)
+synchroniseGraphical(Graphical gr, BoolObj always)
 { DisplayObj d;
   static long last;
 
@@ -1722,26 +1722,26 @@ getAlignmentGraphical(Graphical gr)
 
 
 static status
-autoAlignGraphical(Graphical gr, Bool align)
+autoAlignGraphical(Graphical gr, BoolObj align)
 { return assignDialogItem(gr, NAME_autoAlign, align);
 }
 
 
 static status
-autoLabelAlignGraphical(Graphical gr, Bool val)
+autoLabelAlignGraphical(Graphical gr, BoolObj val)
 { return assignDialogItem(gr, NAME_autoLabelAlign, val);
 }
 
 
 static status
-autoValueAlignGraphical(Graphical gr, Bool val)
+autoValueAlignGraphical(Graphical gr, BoolObj val)
 { return assignDialogItem(gr, NAME_autoValueAlign, val);
 }
 
 
-static Bool
+static BoolObj
 getAutoAlignGraphical(Graphical gr)
-{ Bool  rval;
+{ BoolObj  rval;
 
   if ( (rval = getAttributeObject(gr, NAME_autoAlign)) &&
        instanceOfObject(rval, ClassBool) )
@@ -1759,9 +1759,9 @@ getAutoAlignGraphical(Graphical gr)
 }
 
 
-static Bool
+static BoolObj
 getAutoLabelAlignGraphical(Graphical gr)
-{ Bool  rval;
+{ BoolObj  rval;
 
   if ( (rval = getAttributeObject(gr, NAME_autoLabelAlign)) &&
        instanceOfObject(rval, ClassBool) )
@@ -1771,9 +1771,9 @@ getAutoLabelAlignGraphical(Graphical gr)
 }
 
 
-static Bool
+static BoolObj
 getAutoValueAlignGraphical(Graphical gr)
-{ Bool  rval;
+{ BoolObj  rval;
 
   if ( (rval = getAttributeObject(gr, NAME_autoValueAlign)) &&
        instanceOfObject(rval, ClassBool) )
@@ -1871,7 +1871,7 @@ toggleSelectedGraphical(Graphical gr)
 
 
 static status
-selectedGraphical(Graphical gr, Bool val)
+selectedGraphical(Graphical gr, BoolObj val)
 { if (gr->selected != val)
   { CHANGING_GRAPHICAL(gr, assign(gr, selected, val);
 		           changedEntireImageGraphical(gr));
@@ -2015,7 +2015,7 @@ getHandlesGraphical(Graphical gr, Point pos, Name kind, Int distance)
 
 
 static status
-invertedGraphical(Graphical gr, Bool val)
+invertedGraphical(Graphical gr, BoolObj val)
 { if ( gr->inverted != val )
     CHANGING_GRAPHICAL(gr,
 		       assign(gr, inverted, val);
@@ -2025,7 +2025,7 @@ invertedGraphical(Graphical gr, Bool val)
 
 
 status
-activeGraphical(Graphical gr, Bool val)
+activeGraphical(Graphical gr, BoolObj val)
 { if ( gr->active != val )
   { CHANGING_GRAPHICAL(gr,
 		       assign(gr, active, val);
@@ -2625,7 +2625,7 @@ keyGraphical(Graphical gr, Name key)
 
 
 static status
-keyboardFocusGraphical(Graphical gr, Bool val)
+keyboardFocusGraphical(Graphical gr, BoolObj val)
 { PceWindow sw = getWindowGraphical(gr);
 
   if ( sw )
@@ -2639,7 +2639,7 @@ keyboardFocusGraphical(Graphical gr, Bool val)
 }
 
 
-Bool
+BoolObj
 getKeyboardFocusGraphical(Graphical gr)
 { PceWindow sw = getWindowGraphical(gr);
 
@@ -2729,7 +2729,7 @@ deleteRecogniserGraphical(Any gr, Any r)
 
 
 Chain
-getAllRecognisersGraphical(Any obj, Bool create)
+getAllRecognisersGraphical(Any obj, BoolObj create)
 { if ( onFlag(obj, F_RECOGNISER) )
     answer(getMemberHashTable(ObjectRecogniserTable, obj));
 
@@ -3064,7 +3064,7 @@ drawLineGraphical(Graphical gr, Int x1, Int y1, Int x2, Int y2)
 
 
 static status
-drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
+drawPolyGraphical(Graphical gr, Any points, BoolObj closed, Any fill)
 { IPoint pts;
   int npts = 0;
 
@@ -3131,7 +3131,7 @@ drawArcGraphical(Graphical gr,		/* has to handle mode */
 static status
 drawBoxGraphical(Graphical gr,
 		 Int x, Int y, Int w, Int h,
-		 Int r, Any fill, Bool up)
+		 Int r, Any fill, BoolObj up)
 { int radius = (isDefault(r) ? 0 : valInt(r));
   Any fillp;
   Elevation e;
@@ -3174,7 +3174,7 @@ drawFillGraphical(Graphical gr,
 static status
 drawImageGraphical(Graphical gr, Image img,
 		   Int x, Int y,
-		   Int sx, Int sy, Int sw, Int sh, Bool transparent)
+		   Int sx, Int sy, Int sw, Int sh, BoolObj transparent)
 { if ( isDefault(transparent) )
     transparent = ON;
 
@@ -3211,7 +3211,7 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 
 
 static status
-solidGraphical(Graphical gr, Bool solid)
+solidGraphical(Graphical gr, BoolObj solid)
 { if ( solid == ON )
     setFlag(gr, F_SOLID);
   else
@@ -3221,7 +3221,7 @@ solidGraphical(Graphical gr, Bool solid)
 }
 
 
-static Bool
+static BoolObj
 getSolidGraphical(Graphical gr)
 { answer(onFlag(gr, F_SOLID) ? ON : OFF);
 }

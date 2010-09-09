@@ -193,7 +193,7 @@ layoutDialogTabStack(TabStack ts, Size s)
 
     for_cell(cell, ts->graphicals)
     { Graphical gr = cell->value;
-      Bool old = gr->displayed;
+      BoolObj old = gr->displayed;
 
       assign(gr, displayed, ON);	/* why? */
       send(cell->value, NAME_layoutDialog, EAV);

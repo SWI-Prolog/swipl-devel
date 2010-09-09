@@ -55,7 +55,6 @@
 #include <X11/StringDefs.h>
 #include <X11/Xatom.h>
 #include <X11/Shell.h>
-#undef Bool				/* X11 defines this too */
 #undef index				/* X11 defines this too */
 #undef String
 
@@ -219,8 +218,8 @@ struct draw_context
   Any		background;		/* Current background colour */
   unsigned long foreground_pixel;	/* X pixel value of foreground */
   unsigned long background_pixel;	/* X pixel value of background */
-  Bool		subwindow_mode;		/* Draw in subwindows too */
-  Bool		invert_mode;		/* Just invert */
+  BoolObj		subwindow_mode;		/* Draw in subwindows too */
+  BoolObj		invert_mode;		/* Just invert */
   Elevation	elevation;		/* 3-d elevation GC's */
 };
 

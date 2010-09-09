@@ -119,7 +119,7 @@ getCatchAllHostv(Host h, Name selector, int argc, Any *argv)
 static Message
 getMessageHost(Host h)
 { Message msg;
-  Bool oldBack = h->callBack;
+  BoolObj oldBack = h->callBack;
 
   assign(h, callBack, OFF);
 

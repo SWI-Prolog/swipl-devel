@@ -106,7 +106,7 @@ toReal(Any obj)
 }
 
 
-Bool
+BoolObj
 toBool(Any obj)
 { Int i;
   string s;

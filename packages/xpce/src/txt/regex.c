@@ -31,7 +31,7 @@ forwards Int getRegisterStartRegex(Regex, Int);
 NewClass(regex)
   CharArray		    pattern;	/* Pattern matched */
   Name			    syntax;	/* basic, extended, advanced */
-  Bool			    ignore_case;/* @on --> case insensitive */
+  BoolObj			    ignore_case;/* @on --> case insensitive */
   Int			    re_flags;	/* REG_* FLAGS */
   regex_t		   *compiled;	/* compiled regex */
   regmatch_t		   *registers;	/* \0-\9 matches */
@@ -40,7 +40,7 @@ End;
 
 static status
 initialiseRegex(Regex re, CharArray pattern,
-		Bool case_sensitive,
+		BoolObj case_sensitive,
 		Name syntax)
 { if ( isDefault(pattern) )
     pattern = (CharArray)NAME_;
@@ -136,7 +136,7 @@ patternRegex(Regex re, StringObj pattern)
 
 
 status
-ignoreCaseRegex(Regex re, Bool val)
+ignoreCaseRegex(Regex re, BoolObj val)
 { if ( re->ignore_case != val )
   { assign(re, ignore_case, val);
 
@@ -162,7 +162,7 @@ syntaxRegex(Regex re, Name syntax)
 
 
 status
-compileRegex(Regex re, Bool optimize)
+compileRegex(Regex re, BoolObj optimize)
 { succeed;				/* backward compatibility */
 }
 

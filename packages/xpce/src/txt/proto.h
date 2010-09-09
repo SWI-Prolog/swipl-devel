@@ -3,9 +3,9 @@
 /* /swi40/jan/src/pl/packages/xpce/src/txt/chararray.c */
 COMMON(status)	initialiseCharArray(CharArray n, CharArray value);
 COMMON(Name)	getValueCharArray(CharArray n);
-COMMON(status)	equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
-COMMON(status)	prefixCharArray(CharArray n1, CharArray n2, Bool ign_case);
-COMMON(status)	suffixCharArray(CharArray n, CharArray s, Bool ign_case);
+COMMON(status)	equalCharArray(CharArray n1, CharArray n2, BoolObj ign_case);
+COMMON(status)	prefixCharArray(CharArray n1, CharArray n2, BoolObj ign_case);
+COMMON(status)	suffixCharArray(CharArray n, CharArray s, BoolObj ign_case);
 COMMON(status)	isWideCharArray(Any s);
 COMMON(CharArray) getCopyCharArray(CharArray n);
 COMMON(CharArray) getCapitaliseCharArray(CharArray n);
@@ -26,7 +26,7 @@ COMMON(status)	makeClassCharArray(Class class);
 /* /swi40/jan/src/pl/packages/xpce/src/txt/editor.c */
 COMMON(status)	normaliseEditor(Editor e, Int start, Int end);
 COMMON(Any)	ReceiverOfEditor(Editor e);
-COMMON(status)	forwardModifiedEditor(Editor e, Bool val);
+COMMON(status)	forwardModifiedEditor(Editor e, BoolObj val);
 COMMON(status)	scrollToEditor(Editor e, Int pos, Int screenline);
 COMMON(status)	selectionEditor(Editor e, Int from, Int to, Name status);
 COMMON(Point)	getSelectionEditor(Editor e);
@@ -50,8 +50,8 @@ COMMON(KeyBinding) KeyBindingTextItem(void);
 COMMON(KeyBinding) KeyBindingTextItemView(void);
 
 /* /swi40/jan/src/pl/packages/xpce/src/txt/regex.c */
-COMMON(status)	ignoreCaseRegex(Regex re, Bool val);
-COMMON(status)	compileRegex(Regex re, Bool optimize);
+COMMON(status)	ignoreCaseRegex(Regex re, BoolObj val);
+COMMON(status)	compileRegex(Regex re, BoolObj optimize);
 COMMON(status)	search_string_regex(Regex re, String s);
 COMMON(status)	searchRegex(Regex re, Any obj, Int start, Int end);
 COMMON(Int)	getMatchRegex(Regex re, Any obj, Int start, Int end);
@@ -124,7 +124,7 @@ COMMON(StringObj) getSubString(StringObj n, Int start, Int end);
 COMMON(status)	makeClassString(Class class);
 
 /* /swi40/jan/src/pl/packages/xpce/src/txt/style.c */
-COMMON(status)	boldStyle(Style s, Bool on);
+COMMON(status)	boldStyle(Style s, BoolObj on);
 COMMON(status)	makeClassStyle(Class class);
 
 /* /swi40/jan/src/pl/packages/xpce/src/txt/syntax.c */
@@ -141,7 +141,7 @@ COMMON(status)	CAppendTextBuffer(TextBuffer tb, const char *text);
 COMMON(status)	appendTextBuffer(TextBuffer tb, CharArray ca, Int times);
 COMMON(status)	deleteTextBuffer(TextBuffer tb, Int where, Int times);
 COMMON(status)	saveTextBuffer(TextBuffer tb, SourceSink file, Int from, Int len);
-COMMON(status)	CmodifiedTextBuffer(TextBuffer tb, Bool val);
+COMMON(status)	CmodifiedTextBuffer(TextBuffer tb, BoolObj val);
 COMMON(status)	characterTextBuffer(TextBuffer tb, Int where, Int c);
 COMMON(status)	transposeTextBuffer(TextBuffer tb, Int f1, Int t1, Int f2, Int t2);
 COMMON(status)	downcaseTextBuffer(TextBuffer tb, Int from, Int len);
@@ -152,7 +152,7 @@ COMMON(StringObj) getContentsTextBuffer(TextBuffer tb, Int from, Int length);
 COMMON(status)	parsep_line_textbuffer(TextBuffer tb, int here);
 COMMON(int)	scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az);
 COMMON(Int)	getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket);
-COMMON(Int)	getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, Bool skipnl);
+COMMON(Int)	getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, BoolObj skipnl);
 COMMON(Int)	getLineNumberTextBuffer(TextBuffer tb, Int i);
 COMMON(int)	find_textbuffer(TextBuffer tb, int here, String str, int times, char az, int ec, int wm);
 COMMON(long)	fill_line_textbuffer(TextBuffer tb, long int here, long int to, int sc, int rm, int justify);

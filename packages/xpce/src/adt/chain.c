@@ -635,7 +635,7 @@ getPreviousChain(Chain ch, Any val)
 
 
 status
-forAllChain(Chain ch, Code code, Bool safe)
+forAllChain(Chain ch, Code code, BoolObj safe)
 { int i = 1;
   Any av[2];
 
@@ -664,7 +664,7 @@ forAllChain(Chain ch, Code code, Bool safe)
 
 
 status
-forSomeChain(Chain ch, Code code, Bool safe)
+forSomeChain(Chain ch, Code code, BoolObj safe)
 { Any av[2];
   int i = 1;
 
@@ -971,7 +971,7 @@ qsortCompareObjects(const void *o1, const void *o2)
 
 
 status
-sortChain(Chain ch, Code msg, Bool unique)
+sortChain(Chain ch, Code msg, BoolObj unique)
 { if ( isDefault(msg) )
     return sortNamesChain(ch, unique);
   else
@@ -1026,7 +1026,7 @@ compare_names(const void *p1, const void *p2)
 
 
 status
-sortNamesChain(Chain ch, Bool unique)
+sortNamesChain(Chain ch, BoolObj unique)
 { int size = valInt(ch->size);
   Scell buf = (Scell)alloca(sizeof(scell) * size);
   Cell cell;
@@ -1069,7 +1069,7 @@ sortNamesChain(Chain ch, Bool unique)
 
 Tuple
 getCompleteNameChain(Chain ch, CharArray prefix, Function map,
-		     Bool ignore_case)
+		     BoolObj ignore_case)
 { Chain matches = NIL;
   LocalString(common, prefix->data.iswide, LINESIZE);
   Cell cell;

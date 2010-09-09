@@ -276,7 +276,7 @@ do_frame_wnd_proc(FrameObj fr,
 
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-    { Bool val = (message == WM_SETFOCUS ? ON : OFF);
+    { BoolObj val = (message == WM_SETFOCUS ? ON : OFF);
 
       send(fr, NAME_inputFocus, val, EAV);
       goto repaint;
@@ -841,7 +841,7 @@ ws_lower_frame(FrameObj fr)
 
 
 void
-ws_topmost_frame(FrameObj fr, Bool topmost)
+ws_topmost_frame(FrameObj fr, BoolObj topmost)
 { HWND hwnd;
 
   if ( (hwnd = getHwndFrame(fr)) )
@@ -1222,7 +1222,7 @@ too, releasing fr2 will enable the other windows ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-ws_enable_modal(FrameObj fr, Bool val)
+ws_enable_modal(FrameObj fr, BoolObj val)
 { BOOL enable = (val == ON ? TRUE : FALSE);
 
   if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
@@ -1396,7 +1396,7 @@ ws_frame_cursor(FrameObj fr, CursorObj cursor)
 
 
 void
-ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
+ws_grab_frame_pointer(FrameObj fr, BoolObj grab, CursorObj cursor)
 { HWND win;
 
   if ( (win = getHwndFrame(fr)) )

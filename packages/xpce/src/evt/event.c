@@ -461,7 +461,7 @@ functions allow you to find the position relative to:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-get_xy_event_window(EventObj ev, PceWindow w, Bool area, int *rx, int *ry)
+get_xy_event_window(EventObj ev, PceWindow w, BoolObj area, int *rx, int *ry)
 { int x, y;
 
   offset_windows(w, ev->window, &x, &y);
@@ -557,7 +557,7 @@ get_xy_event_node(EventObj ev, Node node, int *rx, int *ry)
 
 
 status
-get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
+get_xy_event(EventObj ev, Any obj, BoolObj area, Int *rx, Int *ry)
 { int x = 0, y = 0;
 
   if ( isNil(ev->window) || onFlag(ev->window, F_FREEING|F_FREED) )

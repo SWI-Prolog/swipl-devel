@@ -563,7 +563,7 @@ intervalsPath(Path p, Int i)
 
 
 static status
-closedPath(Path p, Bool val)
+closedPath(Path p, BoolObj val)
 { if ( val != p->closed )
   { assign(p, closed, val);
     return requestComputeGraphical(p, DEFAULT);

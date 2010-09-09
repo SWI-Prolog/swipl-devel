@@ -66,7 +66,7 @@ static status		newKill(CharArray);
 static CharArray	killRegister(Int);
 static status		tabDistanceEditor(Editor e, Int tab);
 static status		isisearchingEditor(Editor e);
-static status		showLabelEditor(Editor e, Bool val);
+static status		showLabelEditor(Editor e, BoolObj val);
 static Int		countLinesEditor(Editor e, Int from, Int to);
 static status		deleteEditor(Editor e, Int from, Int to);
 static status		deleteSelectionEditor(Editor e);
@@ -402,7 +402,7 @@ updateStyleCursorEditor(Editor e)
 
 
 static status
-showCaretEditor(Editor e, Bool show)
+showCaretEditor(Editor e, BoolObj show)
 { DisplayedGraphical(e->text_cursor, show);
 
   succeed;
@@ -482,7 +482,7 @@ labelEditor(Editor e, Name lbl)
 
 
 static status
-showLabelEditor(Editor e, Bool val)
+showLabelEditor(Editor e, BoolObj val)
 { if ( isNil(e->label_text) )
   { if ( val == ON )
     { assign(e, label_text,
@@ -504,7 +504,7 @@ showLabelEditor(Editor e, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getShowLabelEditor(Editor e)
 { if ( notNil(e->label_text) )
     answer(e->label_text->displayed);
@@ -1296,7 +1296,7 @@ reportEditor(Editor e, Name kind, CharArray fm, int argc, Any *argv)
 
 
 status
-forwardModifiedEditor(Editor e, Bool val)
+forwardModifiedEditor(Editor e, BoolObj val)
 { abortIsearchEditor(e);
 
   if ( notNil(e->modified_message) )
@@ -1780,7 +1780,7 @@ static status
 skipBlanksEditor(Editor e, Int arg)
 { TextBuffer tb  = e->text_buffer;
   Name direction = (UArg(arg) >= 0 ? NAME_forward : NAME_backward);
-  Bool skipnl    = (UArg(arg) >= 4 || UArg(arg) <= -4 ? ON : OFF);
+  BoolObj skipnl    = (UArg(arg) >= 4 || UArg(arg) <= -4 ? ON : OFF);
 
   return CaretEditor(e, getSkipBlanksTextBuffer(tb, e->caret,
 						direction, skipnl));
@@ -3016,7 +3016,7 @@ newlineAndIndentEditor(Editor e, Int arg)
 
 static status
 autoFillModeEditor(Editor e, Int arg)
-{ Bool val;
+{ BoolObj val;
   if ( isDefault(arg) )
     val = (e->fill_mode == ON ? OFF : ON);
   else
@@ -3047,7 +3047,7 @@ static status
 fillEditor(Editor e,
 	   Int from, Int to,
 	   Int left_margin, Int right_margin,
-	   Bool justify)
+	   BoolObj justify)
 { TextBuffer tb = e->text_buffer;
   int rm  = valInt(isDefault(right_margin) ? e->right_margin : right_margin);
   int lm  = valInt(isDefault(left_margin)  ? e->left_margin  : left_margin);
@@ -3134,7 +3134,7 @@ fillParagraphEditor(Editor e, Int arg)
 			       ZERO, NAME_start);
   Int to   = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
 			       ZERO, NAME_end);
-  Bool justify = (isDefault(arg) ? OFF : ON);
+  BoolObj justify = (isDefault(arg) ? OFF : ON);
 
   return fillEditor(e, from, to, DEFAULT, DEFAULT, justify);
 }
@@ -3865,7 +3865,7 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 
 
 static status
-showScrollBarEditor(Editor e, Bool show, ScrollBar sb)
+showScrollBarEditor(Editor e, BoolObj show, ScrollBar sb)
 { if ( isDefault(sb) || sb == e->scroll_bar )
   { computeBoundingBoxDevice((Device)e);
     DisplayedGraphical(e->scroll_bar, show);
@@ -3979,7 +3979,7 @@ selection_editor(Editor e, Int from, Int to, Name status)
 
 
 static status
-selectLineEditor(Editor e, Int line, Bool newline)
+selectLineEditor(Editor e, Int line, BoolObj newline)
 { Int from, to;
   TextBuffer tb = e->text_buffer;
 
@@ -4364,7 +4364,7 @@ loadEditor(Editor e, SourceSink file)
 
   clearTextBuffer(tb);
   if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) )
-  { Bool editable = (send(file, NAME_access, NAME_write, EAV) ? ON : OFF);
+  { BoolObj editable = (send(file, NAME_access, NAME_write, EAV) ? ON : OFF);
 
     assign(e, file, file);
     send(e, NAME_editable, editable, EAV);

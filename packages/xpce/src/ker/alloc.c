@@ -87,7 +87,7 @@ allocRange(void *low, size_t size)
 }
 
 status
-listWastedCorePce(Pce pce, Bool ppcells)
+listWastedCorePce(Pce pce, BoolObj ppcells)
 { succeed;
 }
 
@@ -364,7 +364,7 @@ checkFreeChains()
 
 
 status
-listWastedCorePce(Pce pce, Bool ppcells)
+listWastedCorePce(Pce pce, BoolObj ppcells)
 { unsigned int n;
   Zone z;
   int total = 0;

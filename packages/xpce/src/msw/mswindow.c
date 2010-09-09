@@ -187,7 +187,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-    { Bool val = (message == WM_SETFOCUS ? ON : OFF);
+    { BoolObj val = (message == WM_SETFOCUS ? ON : OFF);
 
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_focus,
@@ -512,7 +512,7 @@ ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)
 
 
 void
-ws_topmost_window(PceWindow sw, Bool topmost)
+ws_topmost_window(PceWindow sw, BoolObj topmost)
 { HWND hwnd;
 
   if ( (hwnd = getHwndWindow(sw)) )
@@ -684,13 +684,13 @@ ws_scroll_window(PceWindow sw, int dx, int dy)
 
 
 void
-ws_grab_keyboard_window(PceWindow sw, Bool val)
+ws_grab_keyboard_window(PceWindow sw, BoolObj val)
 {
 }
 
 
 static void
-do_grab_window(PceWindow sw, Bool val)
+do_grab_window(PceWindow sw, BoolObj val)
 { HWND win;
 
   if ( (win = getHwndWindow(sw)) )
@@ -707,7 +707,7 @@ do_grab_window(PceWindow sw, Bool val)
 
 
 void
-ws_grab_pointer_window(PceWindow sw, Bool val)
+ws_grab_pointer_window(PceWindow sw, BoolObj val)
 { if (  getHwndWindow(sw) )
   { if ( val == ON )
     { if ( getHeadChain(grabbedWindows) != sw )

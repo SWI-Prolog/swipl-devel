@@ -800,7 +800,7 @@ endOfFileProcess(Process p)
 
 
 static status
-useTtyProcess(Process p, Bool val)
+useTtyProcess(Process p, BoolObj val)
 { if ( notNil(p->pid) )
     return errorPce(p, NAME_noChangeAfterOpen);
 

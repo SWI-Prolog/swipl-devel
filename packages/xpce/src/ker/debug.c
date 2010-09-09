@@ -60,7 +60,7 @@ errorSignal(int sig)
 
 
 void
-catchErrorSignals(Bool yes)
+catchErrorSignals(BoolObj yes)
 { Func handler = (yes == ON ? (Func)errorSignal : (Func)SIG_DFL);
 
 #ifdef SIGQUIT

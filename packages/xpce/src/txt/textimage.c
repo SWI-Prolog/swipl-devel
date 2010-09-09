@@ -640,7 +640,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
 static status
 updateMapTextImage(TextImage ti)
 { if ( ti->change_end > ti->change_start )
-  { Bool eof_in_window = OFF;
+  { BoolObj eof_in_window = OFF;
     int line;
     short y = TXT_Y_MARGIN;
     long index = valInt(ti->start);

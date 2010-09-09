@@ -284,7 +284,7 @@ changedDialogItem(Any obj)
 
 
 static status
-showDialogItem(DialogItem di, Bool val)
+showDialogItem(DialogItem di, BoolObj val)
 { if ( val == OFF )
   { PceWindow sw = getWindowGraphical((Graphical) di);
 
@@ -296,7 +296,7 @@ showDialogItem(DialogItem di, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getShowDialogItem(DialogItem di)
 { answer(di->displayed);
 }
@@ -343,14 +343,14 @@ openDialogItem(DialogItem di)
 		*        COMMUNICATION		*
 		********************************/
 
-static Bool
+static BoolObj
 getModifiedDialogItem(Dialog di)
 { answer(OFF);
 }
 
 
 status
-modifiedDialogItem(Any di, Bool modified)
+modifiedDialogItem(Any di, BoolObj modified)
 { Dialog d = di;
 
   if ( modified == ON )

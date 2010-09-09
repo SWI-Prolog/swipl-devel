@@ -1338,7 +1338,7 @@ lineWidthParBox(ParBox pb, Int w)
 
 
 static status
-autoCropParBox(ParBox pb, Bool crop)
+autoCropParBox(ParBox pb, BoolObj crop)
 { return assignGraphical(pb, NAME_autoCrop, crop);
 }
 

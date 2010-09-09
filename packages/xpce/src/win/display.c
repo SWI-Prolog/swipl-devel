@@ -125,7 +125,7 @@ openDisplay(DisplayObj d)
 }
 
 
-Bool
+BoolObj
 getOpenDisplay(Any d)
 { answer(ws_opened_display(d) ? ON : OFF);
 }
@@ -158,7 +158,7 @@ colourMapDisplay(DisplayObj d, ColourMap cm)
 
 
 status
-drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo)
+drawInDisplay(DisplayObj d, Graphical gr, Point pos, BoolObj invert, BoolObj subtoo)
 { Int oldx, oldy;
   Device dev;
 
@@ -215,7 +215,7 @@ getImageDisplay(DisplayObj d, Area a)
 
 
 status
-grabServerDisplay(DisplayObj d, Bool val)
+grabServerDisplay(DisplayObj d, BoolObj val)
 { if ( ws_opened_display(d) )
   { if ( val == ON )
       ws_grab_server(d);
@@ -278,7 +278,7 @@ synchroniseDisplay(DisplayObj d)
 
 
 static status
-screenSaverDisplay(DisplayObj d, Bool val)
+screenSaverDisplay(DisplayObj d, BoolObj val)
 { openDisplay(d);
 
   if ( val == ON )
@@ -871,7 +871,7 @@ reportDisplay(DisplayObj d, Name kind, CharArray fmt, int argc, Any *argv)
 		 *******************************/
 
 status
-busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events)
+busyCursorDisplay(DisplayObj d, CursorObj c, BoolObj block_events)
 { if ( !instanceOfObject(d, ClassDisplay) )
     succeed;
 
@@ -931,7 +931,7 @@ inspectDisplay(DisplayObj d, Graphical gr, EventObj ev)
 
 
 static status
-synchronousDisplay(DisplayObj d, Bool val)
+synchronousDisplay(DisplayObj d, BoolObj val)
 { TRY(openDisplay(d));
 
   if ( val == OFF )
@@ -1052,7 +1052,7 @@ loadFontAliasesDisplay(DisplayObj d, Name res)
 
 
 static status
-fontAliasDisplay(DisplayObj d, Name name, FontObj font, Bool force)
+fontAliasDisplay(DisplayObj d, Name name, FontObj font, BoolObj force)
 { if ( force == ON || !getMemberHashTable(d->font_table, name) )
     appendHashTable(d->font_table, name, font);
 
