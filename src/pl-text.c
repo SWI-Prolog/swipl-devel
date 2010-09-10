@@ -90,6 +90,15 @@ PL_save_text(PL_chars_t *text, int flags)
     text->text.t = baseBuffer(b, char);
 
     text->storage = PL_CHARS_RING;
+  } else if ( text->storage == PL_CHARS_MALLOC )
+  { Buffer b = findBuffer(BUF_RING);
+    size_t bl = bufsize_text(text, text->length+1);
+
+    addMultipleBuffer(b, text->text.t, bl, char);
+    PL_free_text(text);
+    text->text.t = baseBuffer(b, char);
+
+    text->storage = PL_CHARS_RING;
   }
 }
 
@@ -216,8 +225,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       size = sizeof(text->buf);
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
-      if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= wflags &&
+      if ( PL_write_term(fd, l, 1200, wflags) &&
+	   Sputcode(EOS, fd) >= 0 &&
 	   Sflush(fd) >= 0 )
       { text->encoding = *enc;
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);

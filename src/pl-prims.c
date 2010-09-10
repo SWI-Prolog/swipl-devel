@@ -2525,15 +2525,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
 
 static
-PRED_IMPL("subsumes", 2, subsumes, 0)
-{ PRED_LD
-
-  return subsumes(A1, A2 PASS_LD);
-}
-
-
-static
-PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
+PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
 { PRED_LD
   int rc;
   fid_t fid;
@@ -5008,8 +5000,7 @@ BeginPredDefs(prims)
   PRED_DEF("=", 2, unify, PL_FA_ISO)
   PRED_DEF("\\=", 2, not_unify, PL_FA_ISO)
   PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, PL_FA_ISO)
-  PRED_DEF("subsumes", 2, subsumes, 0)
-  PRED_DEF("subsumes_chk", 2, subsumes_chk, 0)
+  PRED_DEF("subsumes_term", 2, subsumes_term, 0)
   PRED_DEF("nonvar", 1, nonvar, PL_FA_ISO)
   PRED_DEF("var", 1, var, PL_FA_ISO)
   PRED_DEF("integer", 1, integer, PL_FA_ISO)

@@ -34,9 +34,18 @@ This module is a Unit test for Prolog built-ins that process threads.
 
 
 test_threads :-
-	run_tests([ thread_property,
+	run_tests([ thread_errors,
+		    thread_property,
 		    mutex_property
 		  ]).
+
+
+:- begin_tests(thread_errors).
+
+test(null, error(existence_error(thread, 0))) :-
+	thread_send_message(0, foo).
+
+:- end_tests(thread_errors).
 
 
 :- begin_tests(thread_property).

@@ -26,7 +26,7 @@
 #include <h/graphics.h>
 
 static status	updateHandlesTree(Tree);
-static status	rootTree(Tree t, Node root, Bool relink);
+static status	rootTree(Tree t, Node root, BoolObj relink);
 
 
 static Any div_h_2;			/* h/2 */
@@ -78,7 +78,7 @@ initialiseTree(Tree t, Node node)
 
 
 static status
-rootTree(Tree t, Node root, Bool relink)
+rootTree(Tree t, Node root, BoolObj relink)
 { if ( isNil(root) )
   { if ( notNil(t->root) )
     { setFlag(t, F_FREEING);		/* HACK! */
@@ -484,7 +484,7 @@ layoutTree(Tree t)
 
 
 static status
-autoLayoutTree(Tree t, Bool val)
+autoLayoutTree(Tree t, BoolObj val)
 { if ( t->auto_layout != val )
   { assign(t, auto_layout, val);
     if ( val == ON )

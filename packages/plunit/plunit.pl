@@ -923,10 +923,10 @@ call_det(Goal, true) :-
 %%	match_error(+Expected, +Received) is semidet.
 %
 %	True if the Received errors matches the expected error. Matching
-%	is based on subsumes_chk/2.
+%	is based on subsumes_term/2.
 
 match_error(Expect, Rec) :-
-	subsumes_chk(Expect, Rec).
+	subsumes_term(Expect, Rec).
 
 %%	setup(+Module, +Context, +Options) is semidet.
 %

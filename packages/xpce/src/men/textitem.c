@@ -28,7 +28,7 @@
 
 static Any	getSelectionTextItem(TextItem);
 static Type	getSelectionTypeTextItem(TextItem);
-static Bool	getModifiedTextItem(TextItem);
+static BoolObj	getModifiedTextItem(TextItem);
 static Any	getDefaultTextItem(TextItem);
 static void	compute_label_text_item(TextItem, int *, int *);
 static status	WantsKeyboardFocusTextItem(TextItem);
@@ -202,7 +202,7 @@ updateShowCaretTextItem(TextItem ti)
 
 
 static status
-activateTextItem(TextItem ti, Bool val)
+activateTextItem(TextItem ti, BoolObj val)
 { if ( getClassVariableValueObject(ti, NAME_autoSelect) == ON )
   { if ( val == ON )
     { send(ti->value_text, NAME_selection,
@@ -327,7 +327,7 @@ getReferenceTextItem(TextItem ti)
 
 static status
 pasteTextItem(TextItem ti, Int buffer)
-{ Bool oldm, newm;
+{ BoolObj oldm, newm;
 
   oldm = getModifiedTextItem(ti);
   TRY( pasteText(ti->value_text, buffer) );
@@ -567,7 +567,7 @@ enterCompleterTextItem(TextItem ti)
 
 
 static status
-selectedCompletionTextItem(TextItem ti, CharArray value, Bool apply)
+selectedCompletionTextItem(TextItem ti, CharArray value, BoolObj apply)
 { Any c = CompletionBrowser();
   Any prefix = get(c, NAME_prefix, EAV);
 
@@ -588,7 +588,7 @@ Filep is the start of the text typed.  Filesp is a chain of possible vaues.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-completions(TextItem ti, CharArray prefix, Bool all,
+completions(TextItem ti, CharArray prefix, BoolObj all,
 	    CharArray *dirp, CharArray *filep, Chain *filesp)
 { Any split;
 
@@ -635,7 +635,7 @@ completeTextItem(TextItem ti, EventId id)
     if ( completions(ti, ti->value_text->string, OFF, &dir, &file, &files) )
     { Tuple t;
       int dirmode;
-      Bool ignore_case = getClassVariableValueObject(ti, NAME_searchIgnoreCase);
+      BoolObj ignore_case = getClassVariableValueObject(ti, NAME_searchIgnoreCase);
 
       if ( !(dirmode = notNil(dir)) )
 	dir = (CharArray)NAME_;
@@ -715,7 +715,7 @@ indicateDirectoryTextItem(TextItem ti, StringObj dir)
 		 *      COMBO-BOX HANDLING      *
 		 *******************************/
 
-static Bool
+static BoolObj
 getHasCompletionsTextItem(TextItem ti)
 { Chain vset;
 
@@ -723,7 +723,7 @@ getHasCompletionsTextItem(TextItem ti)
     answer(OFF);
   if ( isDefault(ti->value_set) )
   { if ( (vset=getValueSetType(ti->type, NIL)) )
-    { Bool rval = ON;
+    { BoolObj rval = ON;
 
       if ( vset->size == ONE && getHeadChain(vset) == DEFAULT )
 	rval = OFF;
@@ -806,7 +806,7 @@ text_item_combo_width(TextItem ti)
 
 
 static status
-showComboBoxTextItem(TextItem ti, Bool val)
+showComboBoxTextItem(TextItem ti, BoolObj val)
 { if ( val == OFF )
     return quitCompleterDialogItem(ti);
   else
@@ -1009,7 +1009,7 @@ eventTextItem(TextItem ti, EventObj ev)
 	     y <= valInt(ti->area->h) &&
 	     x <= valInt(ti->area->w) &&
 	     x >= valInt(ti->area->w) - cbw )
-	{ Bool val = (completerShownDialogItem(ti) ? OFF : ON);
+	{ BoolObj val = (completerShownDialogItem(ti) ? OFF : ON);
 
 	  send(ti, NAME_showComboBox, val, EAV);
 	  succeed;
@@ -1128,7 +1128,7 @@ enterTextItem(TextItem ti, EventId id)
 }
 
 
-static Bool
+static BoolObj
 getModifiedTextItem(TextItem ti)
 { answer(equalCharArray((CharArray) ti->print_name,
 			(CharArray) ti->value_text->string, OFF) ? OFF : ON);
@@ -1136,7 +1136,7 @@ getModifiedTextItem(TextItem ti)
 
 
 static status
-modifiedTextItem(TextItem ti, Bool val)
+modifiedTextItem(TextItem ti, BoolObj val)
 { if ( val == OFF )
     getSelectionTextItem(ti);
   else
@@ -1178,7 +1178,7 @@ restoreTextItem(TextItem ti)
 
 
 status
-applyTextItem(TextItem ti, Bool always)
+applyTextItem(TextItem ti, BoolObj always)
 { Any val;
 
   if ( instanceOfObject(ti->message, ClassCode) &&
@@ -1318,7 +1318,7 @@ resetTextItem(TextItem ti)
 status
 displayedValueTextItem(TextItem ti, CharArray txt)
 { if ( !equalCharArray(ti->value_text->string, txt, OFF) )
-  { Bool oldm, newm;
+  { BoolObj oldm, newm;
 
     oldm = getModifiedTextItem(ti);
     TRY(stringText(ti->value_text, txt));
@@ -1343,7 +1343,7 @@ getDisplayedValueTextItem(TextItem ti)
 		********************************/
 
 static status
-editableTextItem(TextItem ti, Bool val)
+editableTextItem(TextItem ti, BoolObj val)
 { if ( ti->editable != val )
   { assign(ti, editable, val);
     if ( val == OFF && notNil(ti->device) )
@@ -1369,7 +1369,7 @@ lengthTextItem(TextItem ti, Int w)
 
 
 static status
-showLabelTextItem(TextItem ti, Bool val)
+showLabelTextItem(TextItem ti, BoolObj val)
 { if ( ti->show_label != val )
   { assign(ti, show_label, val);
     requestComputeGraphical(ti, DEFAULT);
@@ -1454,11 +1454,11 @@ geometryTextItem(TextItem ti, Int x, Int y, Int w, Int h)
 static status
 catchAllTextItem(TextItem ti, Name sel, int argc, Any *argv)
 { if ( qadSendv(ti->value_text, NAME_hasSendMethod, 1, (Any*)&sel) )
-  { Bool old = getModifiedTextItem(ti);
+  { BoolObj old = getModifiedTextItem(ti);
     status rval = vm_send(ti->value_text, sel, NULL, argc, argv);
 
     if ( rval )
-    { Bool new;
+    { BoolObj new;
 
       requestComputeGraphical(ti, DEFAULT);
       if ( (new = getModifiedTextItem(ti)) != old &&

@@ -417,7 +417,7 @@ getBucketsHashTable(HashTable ht)
 		********************************/
 
 static status
-forAllHashTable(HashTable ht, Code code, Bool safe)
+forAllHashTable(HashTable ht, Code code, BoolObj safe)
 { int n, size = ht->buckets;
   Symbol s;
 
@@ -444,7 +444,7 @@ forAllHashTable(HashTable ht, Code code, Bool safe)
 
 
 static status
-forSomeHashTable(HashTable ht, Code code, Bool safe)
+forSomeHashTable(HashTable ht, Code code, BoolObj safe)
 { int n, size = ht->buckets;
   Symbol s;
 

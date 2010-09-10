@@ -107,7 +107,7 @@ uncreateWindow(PceWindow sw)
 
 
 status
-grabPointerWindow(PceWindow sw, Bool val)
+grabPointerWindow(PceWindow sw, BoolObj val)
 { DEBUG(NAME_focus,
 	Cprintf("FOCUS: grabPointerWindow(%s, %s)\n", pp(sw), pp(val)));
 
@@ -118,7 +118,7 @@ grabPointerWindow(PceWindow sw, Bool val)
 
 
 status
-grabKeyboardWindow(PceWindow sw, Bool val)
+grabKeyboardWindow(PceWindow sw, BoolObj val)
 { ws_grab_keyboard_window(sw, val);
 
   succeed;
@@ -172,7 +172,7 @@ unlinkWindow(PceWindow sw)
 		********************************/
 
 static status
-openWindow(PceWindow sw, Point pos, Bool normalise)
+openWindow(PceWindow sw, Point pos, BoolObj normalise)
 { if ( send(sw, NAME_create, EAV) &&
        send(getFrameWindow(sw, DEFAULT), NAME_open,
 	    pos, DEFAULT, normalise, EAV) )
@@ -183,7 +183,7 @@ openWindow(PceWindow sw, Point pos, Bool normalise)
 
 
 static status
-openCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
+openCenteredWindow(PceWindow sw, Point pos, BoolObj grab, Monitor mon)
 { if ( send(sw, NAME_create, EAV) &&
        send(getFrameWindow(sw, DEFAULT), NAME_openCentered,
 	    pos, grab, mon, EAV) )
@@ -194,7 +194,7 @@ openCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
 
 
 static Any
-getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
+getConfirmWindow(PceWindow sw, Point pos, BoolObj grab, BoolObj normalise)
 { TRY( send(sw, NAME_create, EAV) );
 
   answer(getConfirmFrame(getFrameWindow(sw, DEFAULT), pos, grab, normalise));
@@ -202,7 +202,7 @@ getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
 
 
 static Any
-getConfirmCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
+getConfirmCenteredWindow(PceWindow sw, Point pos, BoolObj grab, Monitor mon)
 { TRY( send(sw, NAME_create, EAV) );
 
   answer(getConfirmCenteredFrame(getFrameWindow(sw, DEFAULT),
@@ -412,7 +412,7 @@ deviceWindow(PceWindow sw, Device dev)
 
 
 static status
-displayedWindow(PceWindow sw, Bool val)
+displayedWindow(PceWindow sw, BoolObj val)
 { displayedGraphical(sw, val);
 
   if ( notNil(sw->decoration) )
@@ -730,7 +730,7 @@ destroyed:
 
 
 status
-typedWindow(PceWindow sw, EventId id, Bool delegate)
+typedWindow(PceWindow sw, EventId id, BoolObj delegate)
 { Name key = characterName(id);
   Graphical gr;
 
@@ -754,7 +754,7 @@ typedWindow(PceWindow sw, EventId id, Bool delegate)
 		********************************/
 
 status
-inputFocusWindow(PceWindow sw, Bool val)
+inputFocusWindow(PceWindow sw, BoolObj val)
 { DEBUG(NAME_keyboard, Cprintf("inputFocusWindow(%s, %s)\n", pp(sw), pp(val)));
 
   if ( sw->input_focus != val )
@@ -1242,7 +1242,7 @@ redrawAreaWindow(PceWindow sw, Area a)
 		********************************/
 
 static status
-scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
+scrollWindow(PceWindow sw, Int x, Int y, BoolObj ax, BoolObj ay)
 { int ox = valInt(sw->scroll_offset->x);
   int oy = valInt(sw->scroll_offset->y);
   int nx, ny;
@@ -1400,7 +1400,7 @@ normaliseWindow(PceWindow sw, Any obj, Name mode)
 
 static status
 scrollHorizontalWindow(PceWindow sw,
-		       Name dir, Name unit, Int amount, Bool force)
+		       Name dir, Name unit, Int amount, BoolObj force)
 { if ( force != ON &&
        (!instanceOfObject(sw->decoration, ClassWindowDecorator) ||
 	isNil(((WindowDecorator)sw->decoration)->horizontal_scrollbar)) )
@@ -1431,7 +1431,7 @@ scrollHorizontalWindow(PceWindow sw,
 
 static status
 scrollVerticalWindow(PceWindow sw,
-		     Name dir, Name unit, Int amount, Bool force)
+		     Name dir, Name unit, Int amount, BoolObj force)
 { if ( force != ON &&
        (!instanceOfObject(sw->decoration, ClassWindowDecorator) ||
 	isNil(((WindowDecorator)sw->decoration)->vertical_scrollbar)) )
@@ -1787,7 +1787,7 @@ getTileWindow(PceWindow sw)
 
 
 FrameObj
-getFrameWindow(PceWindow sw, Bool create)
+getFrameWindow(PceWindow sw, BoolObj create)
 { PceWindow root = (PceWindow) getRootGraphical((Graphical) sw);
 
   if ( instanceOfObject(root, ClassWindow) )
@@ -1985,7 +1985,7 @@ getForegroundWindow(PceWindow sw)
 
 
 static status
-sensitiveWindow(PceWindow sw, Bool sensitive)
+sensitiveWindow(PceWindow sw, BoolObj sensitive)
 { if ( sw->sensitive != sensitive )
   { assign(sw, sensitive, sensitive);
 

@@ -184,9 +184,9 @@ expand_goal((A*->B), (EA*->EB), M, MList) :- !,
         expand_goal(B, EB, M, MList).
 expand_goal((\+A), (\+EA), M, MList) :- !,
         expand_goal(A, EA, M, MList).
-expand_goal(setof(T,G,L), setof(T,EG,L), M, MList) :-
+expand_goal(setof(T,G,L), setof(T,EG,L), M, MList) :- !,
 	expand_setof_goal(G, EG, M, MList).
-expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList) :-
+expand_goal(bagof(T,G,L), bagof(T,EG,L), M, MList) :- !,
 	expand_setof_goal(G, EG, M, MList).
 expand_goal(M:G, M:EG, _M, _MList) :-
 	atom(M), !,

@@ -27,7 +27,7 @@
 
 static void	compute_slider(Slider, int *, int *, int *, int *,
 			       int *, int *, int *, int *, int *);
-static status	applySlider(Slider, Bool);
+static status	applySlider(Slider, BoolObj);
 static status	restoreSlider(Slider s);
 static Type	getTypeSlider(Slider s);
 static status	displayedValueSlider(Slider s, Any val);
@@ -401,13 +401,13 @@ valueFontSlider(Slider s, FontObj font)
 
 
 static status
-showLabelSlider(Slider s, Bool val)
+showLabelSlider(Slider s, BoolObj val)
 { return assignGraphical(s, NAME_showLabel, val);
 }
 
 
 static status
-showValueSlider(Slider s, Bool val)
+showValueSlider(Slider s, BoolObj val)
 { return assignGraphical(s, NAME_showValue, val);
 }
 
@@ -470,14 +470,14 @@ getSelectionSlider(Slider s)
 }
 
 
-static Bool
+static BoolObj
 getModifiedSlider(Slider s)
 { answer(s->selection == s->displayed_value ? OFF : ON);
 }
 
 
 static status
-modifiedSlider(Slider s, Bool val)
+modifiedSlider(Slider s, BoolObj val)
 { if ( val == OFF )
     displayedValueSlider(s, s->selection);
 
@@ -524,7 +524,7 @@ restoreSlider(Slider s)
 
 
 static status
-applySlider(Slider s, Bool always)
+applySlider(Slider s, BoolObj always)
 { Any val;
 
   if ( instanceOfObject(s->message, ClassCode) &&

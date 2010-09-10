@@ -435,7 +435,7 @@ getSizeTextBuffer(TextBuffer tb)
 
 
 status
-CmodifiedTextBuffer(TextBuffer tb, Bool val)
+CmodifiedTextBuffer(TextBuffer tb, BoolObj val)
 { if ( tb->modified != val )
     sendv(tb, NAME_modified, 1, (Any *) &val);
 
@@ -447,7 +447,7 @@ CmodifiedTextBuffer(TextBuffer tb, Bool val)
 
 
 static status
-modifiedTextBuffer(TextBuffer tb, Bool val)
+modifiedTextBuffer(TextBuffer tb, BoolObj val)
 { if ( tb->modified != val )
   { Cell cell;
     assign(tb, modified, val);
@@ -624,7 +624,7 @@ getFindFragmentTextBuffer(TextBuffer tb, Code msg)
 
 static Int
 getFindTextBuffer(TextBuffer tb, Int from, StringObj str,
-		  Int times, Name start, Bool exactcase, Bool wordmode)
+		  Int times, Name start, BoolObj exactcase, BoolObj wordmode)
 { char az;
   int result;
   int ec, wm;
@@ -1226,7 +1226,7 @@ getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
 
 
 Int
-getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, Bool skipnl)
+getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, BoolObj skipnl)
 { long pos = valInt(where);
   long size = tb->size;
 
@@ -1260,7 +1260,7 @@ getSkipBlanksTextBuffer(TextBuffer tb, Int where, Name direction, Bool skipnl)
 
 
 static Int
-getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
+getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, BoolObj layouttoo)
 { long pos = valInt(where);
   long end = (isDefault(to) ? tb->size : valInt(to));
   int fwd = (end >= pos);

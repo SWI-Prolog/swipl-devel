@@ -74,7 +74,7 @@ NewClass(table)
     Int		width;			/* Total width (or @default) */
 					/* internal stuff */
     Area	area;			/* Total occupied area */
-    Bool	changed;		/* layout-changing action */
+    BoolObj	changed;		/* layout-changing action */
 End;
 
 NewClass(table_cell)
@@ -88,7 +88,7 @@ NewClass(table_cell)
     Int		col_span;		/* number of columns spanned */
     Int		row_span;		/* number of rows spanned */
     Size	cell_padding;		/* Padding for this cell (default) */
-    Bool	selected;		/* Cell is selected */ \
+    BoolObj	selected;		/* Cell is selected */ \
     Any		background;		/* Background colour in */
     Image	note_mark;		/* Mark for (foot-) notes */
 End;
@@ -97,17 +97,17 @@ End;
     ABSTRACT_VECTOR			/* vector attributes */ \
     Table	table;			/* Table I belong to */ \
     Any		background;		/* Background colour in */ \
-    Bool	selected;		/* Default <-selected of cells */ \
+    BoolObj	selected;		/* Default <-selected of cells */ \
     Name	alignment;		/* halign,valign */ \
-    Bool	end_group;		/* Slice ends a (row/column) group */ \
+    BoolObj	end_group;		/* Slice ends a (row/column) group */ \
     Name	name;			/* Name of the slice */ \
     Int		index;			/* nth row/column */ \
-    Bool	fixed;			/* Width/reference is fixed */ \
+    BoolObj	fixed;			/* Width/reference is fixed */ \
     Int		width;			/* width/height of the row/column */ \
     Int		reference;		/* position of reference-aligned */ \
     Int		position;		/* Offset of row/column */ \
     Rubber	rubber;			/* Stretch/Shrinkability */ \
-    Bool	displayed;		/* @off: slice is hidden */
+    BoolObj	displayed;		/* @off: slice is hidden */
 
 NewClass(table_slice)
     ABSTRACT_TABLE_SLICE

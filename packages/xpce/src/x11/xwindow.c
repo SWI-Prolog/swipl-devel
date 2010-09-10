@@ -211,7 +211,7 @@ frame.  Sofar not needed in the X11 version.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-ws_topmost_window(PceWindow sw, Bool topmost)
+ws_topmost_window(PceWindow sw, BoolObj topmost)
 {
 }
 
@@ -386,7 +386,7 @@ do_grab_window(PceWindow sw)
 
 
 void
-ws_grab_pointer_window(PceWindow sw, Bool val)
+ws_grab_pointer_window(PceWindow sw, BoolObj val)
 { if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
     { if ( getHeadChain(grabbedWindows) != sw )
@@ -405,7 +405,7 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 
 
 void
-ws_grab_keyboard_window(PceWindow sw, Bool val)
+ws_grab_keyboard_window(PceWindow sw, BoolObj val)
 { if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
       XtGrabKeyboard(widgetWindow(sw),

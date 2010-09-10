@@ -98,6 +98,14 @@ test(det_freeze_no_space) :-
 	T < 100.			% A small constant use is ok
 test(early_reset) :-
 	early_reset.
+test(throw_gc, G0 == G1) :-	% See a9832d10f6de4f46d559bcd74aa2c9fe3b8588ab
+	statistics(stack_shifts, [G0,_,_]),
+	(   between(1, 10000, _),
+	    catch(throw(foo),_, true),
+	    fail
+	;   true
+	),
+	statistics(stack_shifts, [G1,_,_]).
 
 :- end_tests(gc_leak).
 

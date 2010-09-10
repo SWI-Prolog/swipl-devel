@@ -28,8 +28,8 @@
 TileObj		getTileFrame(FrameObj);
 forwards int	get_position_from_center_frame(FrameObj, Monitor, Point, int *, int *);
 static void	ensure_on_display(FrameObj, Monitor, int *, int *);
-static status	closedFrame(FrameObj, Bool);
-static status	openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
+static status	closedFrame(FrameObj, BoolObj);
+static status	openFrame(FrameObj fr, Point pos, BoolObj grab, BoolObj normalise);
 static status	doneMessageFrame(FrameObj fr, Code msg);
 static status	geometryFrame(FrameObj fr, Name spec, Monitor mon);
 static status	setFrame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon);
@@ -37,7 +37,7 @@ static status	flushFrame(FrameObj fr);
 static status	kindFrame(FrameObj fr, Name kind);
 static status	informTransientsFramev(FrameObj fr, Name selector,
 				       int argc, Any *argv);
-static status	grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor);
+static status	grabPointerFrame(FrameObj fr, BoolObj grab, CursorObj cursor);
 static status	cursorFrame(FrameObj fr, CursorObj cursor);
 static status   statusFrame(FrameObj fr, Name stat);
 
@@ -173,7 +173,7 @@ initialiseNewSlotFrame(FrameObj fr, Variable var)
 static Constant ConstantNotReturned;
 
 Any
-getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
+getConfirmFrame(FrameObj fr, Point pos, BoolObj grab, BoolObj normalise)
 { Any rval;
 
   TRY( openFrame(fr, pos, grab, normalise) );
@@ -204,7 +204,7 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
 
 Any
-getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab, Monitor mon)
+getConfirmCenteredFrame(FrameObj fr, Point pos, BoolObj grab, Monitor mon)
 { int x, y;
   Point p2;
   Any rval;
@@ -230,7 +230,7 @@ returnFrame(FrameObj fr, Any obj)
 
 
 static status
-openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
+openFrame(FrameObj fr, Point pos, BoolObj grab, BoolObj normalise)
 { Int x, y;
   Int w = DEFAULT, h = DEFAULT;
 
@@ -301,7 +301,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
 
 static status
-openCenteredFrame(FrameObj fr, Point pos, Bool grab, Monitor mon)
+openCenteredFrame(FrameObj fr, Point pos, BoolObj grab, Monitor mon)
 { int x, y;
   int rval;
   Point p2;
@@ -391,7 +391,7 @@ saveMessageFrame(FrameObj fr, Code msg)
 
 
 static status
-mappedFrame(FrameObj fr, Bool val)
+mappedFrame(FrameObj fr, BoolObj val)
 { Any stat = (val == ON ? NAME_window : NAME_hidden);
   informTransientsFramev(fr, NAME_status, 1, &stat);
 
@@ -558,7 +558,7 @@ waitFrame(FrameObj fr)
 
 
 static status
-showFrame(FrameObj fr, Bool val)
+showFrame(FrameObj fr, BoolObj val)
 { if ( val == ON )
   { if ( isOpenFrameStatus(fr->status) )
       succeed;
@@ -569,7 +569,7 @@ showFrame(FrameObj fr, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getShowFrame(FrameObj fr)
 { answer(isOpenFrameStatus(fr->status) ? ON : OFF);
 }
@@ -908,7 +908,7 @@ areaFrame(FrameObj fr, Area area)
 
 
 static status
-showLabelFrame(FrameObj fr, Bool val)
+showLabelFrame(FrameObj fr, BoolObj val)
 { return kindFrame(fr, val == ON ? NAME_toplevel : NAME_transient);
 }
 
@@ -980,7 +980,7 @@ colourMapFrame(FrameObj fr, ColourMap cm)
 		 *******************************/
 
 status
-busyCursorFrame(FrameObj fr, CursorObj c, Bool block_events)
+busyCursorFrame(FrameObj fr, CursorObj c, BoolObj block_events)
 { if ( createdFrame(fr) )
     ws_busy_cursor_frame(fr, c);
 
@@ -1051,7 +1051,7 @@ getIconPositionFrame(FrameObj fr)
 
 
 static status
-closedFrame(FrameObj fr, Bool val)
+closedFrame(FrameObj fr, BoolObj val)
 { if ( val == ON )
   { if ( isOpenFrameStatus(fr->status) )
       succeed;
@@ -1062,7 +1062,7 @@ closedFrame(FrameObj fr, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getClosedFrame(FrameObj fr)
 { answer(fr->status == NAME_iconic ? ON : OFF);
 }
@@ -1340,7 +1340,7 @@ inputWindowFrame(FrameObj fr, PceWindow iw)
 
 
 static status
-inputFocusFrame(FrameObj fr, Bool val)
+inputFocusFrame(FrameObj fr, BoolObj val)
 { if ( fr->input_focus != val )
   { Cell cell;
 
@@ -1363,7 +1363,7 @@ inputFocusFrame(FrameObj fr, Bool val)
 
 
 static status
-sensitiveFrame(FrameObj fr, Bool sensitive)
+sensitiveFrame(FrameObj fr, BoolObj sensitive)
 { if ( fr->sensitive != sensitive )
   { assign(fr, sensitive, sensitive);
 
@@ -1511,7 +1511,7 @@ cursorFrame(FrameObj fr, CursorObj cursor)
 
 
 static status
-grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor)
+grabPointerFrame(FrameObj fr, BoolObj grab, CursorObj cursor)
 { ws_grab_frame_pointer(fr, grab, cursor);
 
   succeed;

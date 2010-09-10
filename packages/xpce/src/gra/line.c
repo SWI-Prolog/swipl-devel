@@ -487,7 +487,7 @@ inEventAreaLine(Line ln, Int x, Int y)
 
 
 static Int
-getDistanceLine(Line ln, Any obj, Bool segment)
+getDistanceLine(Line ln, Any obj, BoolObj segment)
 { if ( instanceOfObject(obj, ClassEvent) && notNil(ln->device) )
   { if ( !(obj = getPositionEvent((EventObj) obj, (Graphical) ln->device)) )
       fail;

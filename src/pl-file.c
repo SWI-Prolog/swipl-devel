@@ -640,7 +640,7 @@ unify_stream_ref(term_t t, IOSTREAM *s)
   rval = PL_unify_blob(t, &ref, sizeof(ref), &stream_blob);
 
   if ( !rval && !PL_is_variable(t) )
-    return PL_error(NULL, 0, "stream-argument", ERR_MUST_BE_VAR, 0);
+    return PL_error(NULL, 0, "stream-argument", ERR_UNINSTANTIATION, 0, t);
 
   return rval;
 }

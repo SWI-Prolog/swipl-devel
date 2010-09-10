@@ -27,10 +27,10 @@
 #include <h/unix.h>
 
 static status	imageBitmap(BitmapObj bm, Image image);
-static status	transparentBitmap(BitmapObj bm, Bool transparent);
+static status	transparentBitmap(BitmapObj bm, BoolObj transparent);
 
 static status
-initialiseBitmap(BitmapObj b, Image image, Bool transparent)
+initialiseBitmap(BitmapObj b, Image image, BoolObj transparent)
 { if ( isDefault(image) )
     TRY(image = newObject(ClassImage, NIL, EAV));
   if ( isDefault(transparent) )
@@ -139,7 +139,7 @@ updateSolidBitmap(BitmapObj bm)
 
 
 static status
-transparentBitmap(BitmapObj bm, Bool transparent)
+transparentBitmap(BitmapObj bm, BoolObj transparent)
 { CHANGING_GRAPHICAL(bm,
 		     assign(bm, transparent, transparent);
 		     if ( transparent == OFF )

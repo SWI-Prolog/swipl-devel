@@ -276,7 +276,7 @@ normaliseFragment(Fragment f)
 		 *******************************/
 
 static status
-includeFragment(Fragment f, Name what, Bool val)
+includeFragment(Fragment f, Name what, BoolObj val)
 { long mask;
 
   if ( what == NAME_start )
@@ -332,7 +332,7 @@ setFragment(Fragment f, Int start, Int length)
 #endif
 
 static status
-startFragment(Fragment f, Int start, Bool moveend)
+startFragment(Fragment f, Int start, BoolObj moveend)
 { if ( valInt(start) != f->start )
   { int oldstart = f->start;
     int chend;

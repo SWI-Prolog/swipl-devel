@@ -151,7 +151,7 @@ table_of_cell(TableCell cell)
 		 *******************************/
 
 TableRow
-getRowTable(Table tab, Any y, Bool create)
+getRowTable(Table tab, Any y, BoolObj create)
 { if ( isInteger(y) )
   { TableRow row = getElementVector(tab->rows, y);
 
@@ -172,7 +172,7 @@ getRowTable(Table tab, Any y, Bool create)
 
 
 TableColumn
-getColumnTable(Table tab, Any x, Bool create)
+getColumnTable(Table tab, Any x, BoolObj create)
 { if ( isInteger(x) )
   { TableColumn col = getElementVector(tab->columns, x);
 
@@ -317,7 +317,7 @@ appendTable(Table tab, TableCell cell, Int x, Int y)
 
 
 static status
-nextRowTable(Table tab, Bool end_group)
+nextRowTable(Table tab, BoolObj end_group)
 { if ( end_group == ON )
   { TableRow r = getRowTable(tab, tab->current->y, ON);
 
@@ -360,7 +360,7 @@ collector.  For now we will destroy them if they are not locked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-removeCellImageTable(Table tab, TableCell cell, Bool keep)
+removeCellImageTable(Table tab, TableCell cell, BoolObj keep)
 { Graphical gr = cell->image;
 
   if ( notNil(gr) )
@@ -374,7 +374,7 @@ removeCellImageTable(Table tab, TableCell cell, Bool keep)
 
 
 static status
-deleteCellTable(Table tab, TableCell cell, Bool keep)
+deleteCellTable(Table tab, TableCell cell, BoolObj keep)
 { if ( cell->layout_manager == (LayoutManager)tab )
   { int tx = valInt(cell->column) + valInt(cell->col_span);
     int ty = valInt(cell->row) + valInt(cell->row_span);
@@ -412,7 +412,7 @@ deletion, so they span the same columns.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-deleteRowTable(Table tab, TableRow row, Bool keep)
+deleteRowTable(Table tab, TableRow row, BoolObj keep)
 { int i, rown = valInt(row->index);
   int rmin, rmax;
 
@@ -455,7 +455,7 @@ deleteRowTable(Table tab, TableRow row, Bool keep)
 
 
 static status
-deleteColumnTable(Table tab, TableColumn col, Bool keep)
+deleteColumnTable(Table tab, TableColumn col, BoolObj keep)
 { int coln = valInt(col->index);
   int y, rmin, rmax;
   int x, cmax;
@@ -520,7 +520,7 @@ deleteColumnTable(Table tab, TableColumn col, Bool keep)
 
 
 static status
-deleteTable(Table tab, Any obj, Bool keep)
+deleteTable(Table tab, Any obj, BoolObj keep)
 { if ( instanceOfObject(obj, ClassTableCell) )
     return deleteCellTable(tab, obj, keep);
   if ( instanceOfObject(obj, ClassTableRow) )
@@ -538,7 +538,7 @@ partial delete requires a lot of work to deal properly with spanning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-deleteRowsTable(Table tab, Int from, Int to, Bool keep)
+deleteRowsTable(Table tab, Int from, Int to, BoolObj keep)
 { int y, rmin, rmax, f, t;
 
   table_row_range(tab, &rmin, &rmax);
@@ -861,7 +861,7 @@ getSelectionTable(Table tab)
 		 *******************************/
 
 Any
-getCellFromPositionTable(Table tab, Any pos, Bool onborder)
+getCellFromPositionTable(Table tab, Any pos, BoolObj onborder)
 { Point pt;
   int x, y;
   int tx, ty;				/* X/Y tolerance */
@@ -1564,7 +1564,7 @@ getBackgroundTableCell(TableCell cell)
 }
 
 
-static Bool
+static BoolObj
 getSelectedTableCell(TableCell cell)
 { Table tab;
 

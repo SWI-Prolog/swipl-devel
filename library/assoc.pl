@@ -32,17 +32,23 @@ Tree is either:
    Left,Right: trees
    Balance: <, -, or > denoting |L|-|R| = 1, 0, or -1, respectively
 
-TODO: is_assoc/1, get_next_assoc/4, get_prev_assoc/4,
-      del_assoc/4, del_min_assoc/4, del_max_assoc/4 for SICStus compatibility
+TODO: get_next_assoc/4, get_prev_assoc/4 for SICStus compatibility
 
 TODO: exploit order in ord_list_to_assoc/2
 
 */
 
+/*
+   Added del_assoc/4, del_min_assoc/4 and del_max_assoc/4
 
+   Ported by Glenn Burgess from a language called Pure.
+   Jiri Spitz ported the Pure AVL library from this SWI-Prolog library,
+   but the deletion code was added by Jiri. Full circle.
+   Also added is_assoc/1, which makes testing much easier.     */
 
 :- module(assoc,
 	  [ empty_assoc/1,		% -Assoc
+	    is_assoc/1,                 % +Assoc
 	    assoc_to_list/2,		% +Assoc, -Pairs
 	    assoc_to_keys/2,		% +Assoc, -List
 	    assoc_to_values/2,		% +Assoc, -List
@@ -55,7 +61,10 @@ TODO: exploit order in ord_list_to_assoc/2
 	    max_assoc/3,		% +Assoc, ?Key, ?Value
 	    min_assoc/3,		% +Assoc, ?Key, ?Value
 	    ord_list_to_assoc/2,	% +List, ?Assoc
-	    put_assoc/4			% +Key, +Assoc, +Value, ?NewAssoc
+	    put_assoc/4,		% +Key, +Assoc, +Value, ?NewAssoc
+	    del_assoc/4,                % +Key, +Assoc, +Value, ?NewAssoc
+	    del_min_assoc/4,            % +Assoc, ?Key, ?Value, ?NewAssoc
+	    del_max_assoc/4             % +Assoc, ?Key, ?Value, ?NewAssoc
 	  ]).
 
 /** <module> Binary associations
@@ -69,8 +78,8 @@ Assocs are Key-Value associations implemented as  a balanced binary tree
 */
 
 :- meta_predicate
-	map_assoc(:, ?),
-	map_assoc(:, ?, ?).
+	map_assoc(1, ?),
+	map_assoc(2, ?, ?).
 
 %%	empty_assoc(-Assoc) is det.
 %%	empty_assoc(+Assoc) is semidet.
@@ -120,6 +129,43 @@ assoc_to_values(t(_,Value,_,L,R), List, Rest) :-
 	assoc_to_values(L, List, [Value|More]),
 	assoc_to_values(R, More, Rest).
 assoc_to_values(t, List, List).
+
+%%      is_assoc(+Assoc)
+%
+%	True if Assoc is an AVL-tree   association  list Checks that the
+%	structure is valid, elements are in  order, and tree is balanced
+%	to the extent guaranteed by AVL   trees.  I.e., branches of each
+%	subtree differ in depth by at most 1.
+
+is_assoc(Assoc) :-
+	is_assoc(Assoc, _Min, _Max, _Depth).
+
+is_assoc(t,X,X,0) :- !.
+is_assoc(t(K,_,-,t,t),K,K,1) :- !, ground(K).
+is_assoc(t(K,_,>,t,t(RK,_,-,t,t)),K,RK,2) :-
+	% Ensure right side Key is 'greater' than K
+	!, ground((K,RK)), K < RK.
+
+is_assoc(t(K,_,<,t(LK,_,-,t,t),t),LK,K,2) :-
+	% Ensure left side Key is 'less' than K
+	!, ground((LK,K)), LK < K.
+
+is_assoc(t(K,_,B,L,R),Min,Max,Depth) :-
+	is_assoc(L,Min,LMax,LDepth),
+	is_assoc(R,RMin,Max,RDepth),
+	% Ensure Balance matches depth
+	compare(Rel,RDepth,LDepth),
+	balance(Rel,B),
+	% Ensure ordering
+	ground((LMax,K,RMin)),
+	LMax < K,
+	K < RMin,
+	Depth is max(LDepth, RDepth)+1.
+
+% Private lookup table matching comparison operators to Balance operators used in tree
+balance(=,-).
+balance(<,<).
+balance(>,>).
 
 
 %%	gen_assoc(?Key, +Assoc, ?Value) is nondet.
@@ -261,7 +307,7 @@ insert(>, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
 adjust(no, Oldree, _, Oldree, no).
 adjust(yes, t(Key,Val,B0,L,R), LoR, NewTree, WhatHasChanged) :-
 	table(B0, LoR, B1, WhatHasChanged, ToBeRebalanced),
-	rebalance(ToBeRebalanced, t(Key,Val,B0,L,R), B1, NewTree).
+	rebalance(ToBeRebalanced, t(Key,Val,B0,L,R), B1, NewTree, _, _).
 
 %     balance  where     balance  whole tree  to be
 %     before   inserted  after    increased   rebalanced
@@ -272,19 +318,114 @@ table(<      , right   , -      , no        , no    ) :- !.
 table(>      , left    , -      , no        , no    ) :- !.
 table(>      , right   , -      , no        , yes   ) :- !.
 
-rebalance(no, t(K,V,_,L,R), B, t(K,V,B,L,R)).
-rebalance(yes, OldTree, _, NewTree) :-
-	avl_geq(OldTree, NewTree).
+%%      del_min_assoc(+AssocIn, ?Key, ?Val, -AssocOut)
+%
+%	True if Key-Value  is  in  AssocIn   and  Key  is  the smallest.
+%	AssocOut is AssocIn with Key-Value   removed. Warning: this will
+%	succeed with no bindings for Key or Val if input Tree is t.
+
+del_min_assoc(Tree, Key, Val, NewTree) :-
+	del_min_assoc(Tree, Key, Val, NewTree, _DepthChanged).
+
+del_min_assoc(t, _, _, t,no).
+del_min_assoc(t(Key,Val,_B,t,R), Key, Val, R, yes) :- !.
+del_min_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
+	del_min_assoc(L, Key, Val, NewL, LeftChanged),
+	deladjust(LeftChanged, t(K,V,B,NewL,R), left, NewTree, Changed).
+
+%%      del_max_assoc(+AssocIn, ?Key, ?Val, -AssocOut)
+%
+%	True if Key-Value  is  in  AssocIn   and  Key  is  the greatest.
+%	AssocOut is AssocIn with Key-Value   removed. Warning: this will
+%	succeed with no bindings for Key or Val if input Tree is t.
+
+del_max_assoc(Tree, Key, Val, NewTree) :-
+	del_max_assoc(Tree, Key, Val, NewTree, _DepthChanged).
+
+del_max_assoc(t, _, _, t,no).
+del_max_assoc(t(Key,Val,_B,L,t), Key, Val, L, yes) :- !.
+del_max_assoc(t(K,V,B,L,R), Key, Val, NewTree, Changed) :-
+	del_max_assoc(R, Key, Val, NewR, RightChanged),
+	deladjust(RightChanged, t(K,V,B,L,NewR), right, NewTree, Changed).
+
+%%	del_assoc(+Key, +AssocIn, ?Value, -AssocOut)
+%
+%	True if Key-Value is  in  AssocIn.   AssocOut  is  AssocOut with
+%	Key-Value removed.
+
+del_assoc(Key, A0, Value, A) :-
+	delete(A0, Key, Value, A, _).
+
+% delete(+Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
+delete(t, _, _, t, no).          % deletion from empty tree succeeds with no bindings
+delete(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
+	compare(Rel, K, Key),
+	delete(Rel, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged).
+
+% delete(+KeySide, +Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
+% KeySide is an operator {<,=,>} indicating which branch should be searched for the key.
+% WhatHasChanged {yes,no} indicates whether the NewTree has changed in depth.
+delete(=, t(Key,Val,_B,t,R), Key, Val, R, yes) :- !.
+delete(=, t(Key,Val,_B,L,t), Key, Val, L, yes) :- !.
+delete(=, t(Key,Val,>,L,R), Key, Val, NewTree, WhatHasChanged) :-
+	% Rh tree is deeper, so rotate from R to L
+	del_min_assoc(R, K, V, NewR, RightHasChanged),
+	deladjust(RightHasChanged, t(K,V,>,L,NewR), right, NewTree, WhatHasChanged), !.
+delete(=, t(Key,Val,B,L,R), Key, Val, NewTree, WhatHasChanged) :-
+	% Rh tree is not deeper, so rotate from L to R
+	del_max_assoc(L, K, V, NewL, LeftHasChanged),
+	deladjust(LeftHasChanged, t(K,V,B,NewL,R), left, NewTree, WhatHasChanged), !.
+
+delete(<, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
+	delete(L, K, V, NewL, LeftHasChanged),
+	deladjust(LeftHasChanged, t(Key,Val,B,NewL,R), left, NewTree, WhatHasChanged).
+delete(>, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
+	delete(R, K, V, NewR, RightHasChanged),
+	deladjust(RightHasChanged, t(Key,Val,B,L,NewR), right, NewTree, WhatHasChanged).
+
+deladjust(no, OldTree, _, OldTree, no).
+deladjust(yes, t(Key,Val,B0,L,R), LoR, NewTree, RealChange) :-
+	deltable(B0, LoR, B1, WhatHasChanged, ToBeRebalanced),
+	rebalance(ToBeRebalanced, t(Key,Val,B0,L,R), B1, NewTree, WhatHasChanged, RealChange).
+
+%     balance  where     balance  whole tree  to be
+%     before   deleted   after    changed   rebalanced
+deltable(-      , right   , <      , no        , no    ) :- !.
+deltable(-      , left    , >      , no        , no    ) :- !.
+deltable(<      , right   , -      , yes       , yes   ) :- !.
+deltable(<      , left    , -      , yes       , no    ) :- !.
+deltable(>      , right   , -      , yes       , no    ) :- !.
+deltable(>      , left    , -      , yes       , yes   ) :- !.
+% It depends on the tree pattern in avl_geq whether it really decreases.
+
+% Single and double tree rotations - these are common for insert and delete.
+/* The patterns (>)-(>), (>)-( <), ( <)-( <) and ( <)-(>) on the LHS
+   always change the tree height and these are the only patterns which can
+   happen after an insertion. That's the reason why we can use a table only to
+   decide the needed changes.
+
+   The patterns (>)-( -) and ( <)-( -) do not change the tree height. After a
+   deletion any pattern can occur and so we return yes or no as a flag of a
+   height change.  */
+
+
+rebalance(no, t(K,V,_,L,R), B, t(K,V,B,L,R), Changed, Changed).
+rebalance(yes, OldTree, _, NewTree, _, RealChange) :-
+	avl_geq(OldTree, NewTree, RealChange).
 
 avl_geq(t(A,VA,>,Alpha,t(B,VB,>,Beta,Gamma)),
-	t(B,VB,-,t(A,VA,-,Alpha,Beta),Gamma)) :- !.
+	t(B,VB,-,t(A,VA,-,Alpha,Beta),Gamma), yes) :- !.
+avl_geq(t(A,VA,>,Alpha,t(B,VB,-,Beta,Gamma)),
+	t(B,VB,<,t(A,VA,>,Alpha,Beta),Gamma), no) :- !.
 avl_geq(t(B,VB,<,t(A,VA,<,Alpha,Beta),Gamma),
-	t(A,VA,-,Alpha,t(B,VB,-,Beta,Gamma))) :- !.
+	t(A,VA,-,Alpha,t(B,VB,-,Beta,Gamma)), yes) :- !.
+avl_geq(t(B,VB,<,t(A,VA,-,Alpha,Beta),Gamma),
+	t(A,VA,>,Alpha,t(B,VB,<,Beta,Gamma)), no) :- !.
 avl_geq(t(A,VA,>,Alpha,t(B,VB,<,t(X,VX,B1,Beta,Gamma),Delta)),
-	t(X,VX,-,t(A,VA,B2,Alpha,Beta),t(B,VB,B3,Gamma,Delta))) :- !,
+	t(X,VX,-,t(A,VA,B2,Alpha,Beta),t(B,VB,B3,Gamma,Delta)), yes) :- !,
 	table2(B1, B2, B3).
 avl_geq(t(B,VB,<,t(A,VA,>,Alpha,t(X,VX,B1,Beta,Gamma)),Delta),
-	t(X,VX,-,t(A,VA,B2,Alpha,Beta),t(B,VB,B3,Gamma,Delta))) :- !,
+	t(X,VX,-,t(A,VA,B2,Alpha,Beta),t(B,VB,B3,Gamma,Delta)), yes) :- !,
 	table2(B1, B2, B3).
 
 table2(< ,- ,> ).

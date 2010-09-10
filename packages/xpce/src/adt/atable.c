@@ -183,7 +183,7 @@ getMembersATable(Atable t)
 static Name
 best_hashtable(Atable t, Vector v, HashTable *ht, Any *val)
 { int n, size = valInt(v->size);
-  Bool found = OFF;
+  BoolObj found = OFF;
 
   if ( t->names->size != v->size )
   { errorPce(t, NAME_badVectorSize, v, t->names->size);

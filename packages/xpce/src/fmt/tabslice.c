@@ -64,7 +64,7 @@ findNamedSlice(Vector v, Name name)
 
 
 static status
-endGroupTableSlice(TableSlice slice, Bool end)
+endGroupTableSlice(TableSlice slice, BoolObj end)
 { if ( slice->end_group != end )
   { assign(slice, end_group, end);
     if ( notNil(slice->table) )
@@ -111,7 +111,7 @@ widthTableSlice(TableSlice slice, Int width)
 
 
 static status
-displayedTableSlice(TableSlice slice, Bool val)
+displayedTableSlice(TableSlice slice, BoolObj val)
 { if ( slice->displayed != val )
   { assign(slice, displayed, val);
 
@@ -281,7 +281,7 @@ backgroundTableColumn(TableColumn col, Any bg)
 
 
 static status
-selectedTableColumn(TableColumn col, Bool selected)
+selectedTableColumn(TableColumn col, BoolObj selected)
 { if ( col->selected != selected )
   { assign(col, selected, selected);
     changedImageTableColumn(col);
@@ -549,7 +549,7 @@ backgroundTableRow(TableRow row, Any bg)
 
 
 static status
-selectedTableRow(TableRow row, Bool selected)
+selectedTableRow(TableRow row, BoolObj selected)
 { if ( row->selected != selected )
   { assign(row, selected, selected);
     changedImageTableRow(row);

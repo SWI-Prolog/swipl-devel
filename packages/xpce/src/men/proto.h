@@ -18,7 +18,7 @@ COMMON(status)	labelFontDialogItem(DialogItem di, FontObj font);
 COMMON(status)	eventDialogItem(Any obj, EventObj ev);
 COMMON(status)	changedDialogItem(Any obj);
 COMMON(Point)	getReferenceDialogItem(Any obj);
-COMMON(status)	modifiedDialogItem(Any di, Bool modified);
+COMMON(status)	modifiedDialogItem(Any di, BoolObj modified);
 COMMON(status)	assignAccelerators(Chain objects, Name prefix, Name label_method);
 COMMON(status)	makeClassDialogItem(Class class);
 
@@ -44,7 +44,7 @@ COMMON(status)	makeClassMenu(Class class);
 COMMON(status)	makeClassMenuBar(Class class);
 
 /* /staff/jan/src/pl/packages/xpce/src/men/menuitem.c */
-COMMON(status)	selectedMenuItem(MenuItem mi, Bool val);
+COMMON(status)	selectedMenuItem(MenuItem mi, BoolObj val);
 COMMON(status)	hasValueMenuItem(MenuItem mi, Any value);
 COMMON(status)	makeClassMenuItem(Class class);
 
@@ -65,7 +65,7 @@ COMMON(status)	forwardCompletionEvent(EventObj ev);
 COMMON(status)	styleTextItem(TextItem ti, Name style);
 COMMON(int)	text_item_combo_width(TextItem ti);
 COMMON(status)	typedTextItem(TextItem ti, EventId id);
-COMMON(status)	applyTextItem(TextItem ti, Bool always);
+COMMON(status)	applyTextItem(TextItem ti, BoolObj always);
 COMMON(status)	displayedValueTextItem(TextItem ti, CharArray txt);
 COMMON(status)	valueWidthTextItem(TextItem ti, Int val);
 COMMON(status)	makeClassTextItem(Class class);

@@ -818,7 +818,7 @@ PL_thread_self()
 
 int
 PL_unify_thread_id(term_t t, int i)
-{ if ( i < 0 ||
+{ if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
     return -1;				/* error */
@@ -903,7 +903,7 @@ PL_thread_raise(int tid, int sig)
 { PL_thread_info_t *info;
 
   LOCK();
-  if ( tid < 0 || tid > thread_highest_id )
+  if ( tid < 1 || tid > thread_highest_id )
   { error:
     UNLOCK();
     return FALSE;
@@ -1148,7 +1148,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
   { free_thread_info(info);
-    return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
+    return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
 #define MK_KBYTES(v, n) if ( !mk_kbytes(&v, n PASS_LD) ) return FALSE
@@ -1168,7 +1168,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
 
     if ( !PL_is_variable(id) )
-      return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
+      return PL_error(NULL, 0, "thread-id", ERR_UNINSTANTIATION, 0, id);
 
     fail;
   }
@@ -1260,7 +1260,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 ||
+  if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
   { if ( warn )
@@ -2728,7 +2728,7 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
       id = consInt(i);
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
-    if ( tid < 0 || tid > thread_highest_id ||
+    if ( tid < 1 || tid > thread_highest_id ||
 	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
 	 !GD->thread.threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);

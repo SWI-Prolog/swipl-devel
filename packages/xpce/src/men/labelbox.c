@@ -278,7 +278,7 @@ getReferenceLabelBox(LabelBox lb)
 		 *******************************/
 
 static status
-modifiedLabelBox(LabelBox lb, Bool m)
+modifiedLabelBox(LabelBox lb, BoolObj m)
 { assign(lb, modified, m);
 
   if ( m == ON && notNil(lb->device) )
@@ -289,7 +289,7 @@ modifiedLabelBox(LabelBox lb, Bool m)
 
 
 static status
-modifiedItemLabelBox(LabelBox lb, Graphical item, Bool m)
+modifiedItemLabelBox(LabelBox lb, Graphical item, BoolObj m)
 { if ( m == ON )
     send(lb, NAME_modified, ON, EAV);
 
@@ -325,7 +325,7 @@ restoreLabelBox(LabelBox lb)
 
 
 static status
-applyLabelBox(LabelBox lb, Bool always)
+applyLabelBox(LabelBox lb, BoolObj always)
 { Any val;
 
   if ( instanceOfObject(lb->message, ClassCode) &&

@@ -699,7 +699,7 @@ backgroundText(TextObj t, Any bg)
 
 
 static status
-underlineText(TextObj t, Bool underline)
+underlineText(TextObj t, BoolObj underline)
 { if ( t->underline != underline )
   { CHANGING_GRAPHICAL(t, assign(t, underline, underline);
 		       changedEntireImageGraphical(t));
@@ -710,14 +710,14 @@ underlineText(TextObj t, Bool underline)
 
 
 status
-transparentText(TextObj t, Bool val)
+transparentText(TextObj t, BoolObj val)
 { Any bg = (val == ON ? NIL : DEFAULT);
 
   return backgroundText(t, bg);
 }
 
 
-static Bool
+static BoolObj
 getTransparentText(TextObj t)
 { answer(isNil(t->background) ? ON : OFF);
 }

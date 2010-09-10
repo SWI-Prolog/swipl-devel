@@ -46,7 +46,7 @@ t_except(Cleanup) :-
 	garbage_collect,
 	trim_stacks,
 	catch(setup_call_cleanup(true, succ(_, -1), Cleanup), E, true),
-	(   subsumes_chk(error(domain_error(not_less_than_zero, -1), _), E)
+	(   subsumes_term(error(domain_error(not_less_than_zero, -1), _), E)
 	->  true
 	;   format(user_error, 'Wrong error: ~p', [E]),
 	    fail

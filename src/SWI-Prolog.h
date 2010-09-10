@@ -54,7 +54,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 51104
+#define PLVERSION 51105
 #endif
 
 		 /*******************************
@@ -763,9 +763,9 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_PORTRAY)
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
-			      term_t term,
-			      int precedence,
-			      int flags);
+			     term_t term,
+			     int precedence,
+			     int flags);
 
 					/* PL_ttymode() results */
 #define PL_NOTTY	0		/* -tty in effect */

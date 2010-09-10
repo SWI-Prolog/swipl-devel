@@ -254,7 +254,7 @@ closeFile(FileObj f)
 
 
 status
-existsFile(FileObj f, Bool mustbefile)
+existsFile(FileObj f, BoolObj mustbefile)
 { STAT_TYPE buf;
   const char *fn = charArrayToFN((CharArray)f->name);
 

@@ -98,7 +98,7 @@ rdf_db:rdf_open_hook(http, SourceURL, HaveModified, Stream, Cleanup,
 	    ;	close(Stream0),
 		domain_error(content_type, ContentType)
 	    )
-	;   subsumes_chk(error(_, context(_, status(304, _))), E)
+	;   subsumes_term(error(_, context(_, status(304, _))), E)
 	->  Modified = not_modified,
 	    Cleanup = true
 	;   throw(E)

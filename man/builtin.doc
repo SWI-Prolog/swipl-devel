@@ -1169,9 +1169,9 @@ with the obvious meaning.
 
 This section describes special purpose variations on Prolog unification.
 The predicate unify_with_occurs_check/2 provides sound unification and
-is part of the ISO standard. The predicates subsumes/2 and
-subsumes_chk/2 define `one-sided-unification' and are found in many
-Prolog systems.  Finally, unifiable/3 is a `what-if' version of
+is part of the ISO standard. The predicate subsumes_term/2 defines
+`one-sided-unification' and is part of the ISO proposal established in
+Edinburgh (2010). Finally, unifiable/3 is a `what-if' version of
 unification that is often used as a building block in constraint
 reasoners.
 
@@ -1241,24 +1241,15 @@ name \predref{variant}{2} in some other Prolog systems.
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
-    \predicate{subsumes}{2}{+Generic, {@}Specific}
-A term is told to \jargon{subsume} another term if instantiation in the
-generic term produces the specific term. The subsumption relation is
-also called \jargon{one sided unification} or \jargon{semi-unification}.
-It behaves as if defined by\footnote{This implementation relies on the
-fact that term_variables/2 orders its variables based on depth-first
-left-to-right traversal of the term.}
-
-\begin{code}
-subsumes(General, Specific) :-
-	term_variables(Specific, SVars),
-	General = Specific,
-	term_variables(SVars, SVars2),
-	SVars == SVars2.
-\end{code}
-
-    \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
-Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
+    \predicate[ISO]{subsumes_term}{2}{{@}Generic, {@}Specific}
+True if \arg{Generic} can be made equivalent to \arg{Specific} by only
+binding variables in \arg{Generic}.  The current implementation performs
+the unification and ensures that the variable set of \arg{Specific} is
+not changed by the unification. On success, the bindings are
+undone.\footnote{This predicate is often named subsumes_chk/2 in older
+Prolog dialects. The current name was established in the ISO WG17
+meeting in Edinburgh (2010). The \texttt{chk} postfix was
+considered to refer to determinism as in e.g., memberchk/2.}
 
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
@@ -4459,13 +4450,21 @@ a term is 0, unless its principal functor is an operator, in which case
 the precedence is the precedence of this operator. A term enclosed in
 brackets \exam{(\ldots)} has precedence 0.
 
-The predefined operators are shown in \tabref{operators}. The ISO
-standard allows for redefining all operators except the comma (,).
-Applications must be extremely careful with (re-)defining operators
-because changing operators may cause (other) files to be interpreted
+The predefined operators are shown in \tabref{operators}. Operators can
+be redefined, unless prohibited by one of the limitations below.
+Applications must be careful with (re-)defining operators because
+changing operators may cause (other) files to be interpreted
 \textbf{differently}. Often this will lead to a syntax error. In other
 cases, text is read silently into a different term which may lead to
 subtle and difficult to track errors.
+
+\begin{itemize}
+    \item It is not allowed to redefine the comma (\verb$','$).
+    \item The bar (\verb$|$) can only be (re-)defined as infix
+          operator with priority not less than 1001.
+    \item It is not allowed to define the empty list (\verb$[]$) or the
+    	  curly-bracket-pair (\verb${}$) as operators.
+\end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
 \secref{moduleop}). Keeping operators in modules and using controlled
@@ -4497,7 +4496,7 @@ independent from operator changes to the \const{user} module.
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
             \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
 600 & xfy & \op{:} \\
-500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor}, \op{><} \\
+500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
 500 & fx & \op{?} \\
 400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
@@ -4782,8 +4781,8 @@ other cases the return value is a float.  See also \predref{//}{2}
 and rdiv/2.
 
     \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
-Modulo: \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} div
-\arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
+Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
+div \arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
 \jargon{floored} division.
 
     \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
@@ -4792,8 +4791,25 @@ Remainder of integer division.  Behaves as if defined by
 (\arg{IntExpr1} // \arg{IntExpr2}) $\times$ \arg{IntExpr2}}
 
     \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
-Integer division:
-\mbox{\arg{Result} is truncate(\arg{Expr1}/\arg{Expr2})}
+Integer division, defined as \mbox{\arg{Result} is
+$rnd_I$(\arg{Expr1}/\arg{Expr2})}. The function $rnd_I$ is the default
+rounding used by the C-compiler and available through the Prolog flag
+\prologflag{integer_rounding_function}. In the C99 standard, C-rounding
+is defined as \const{towards_zero}.\footnote{Future versions might
+guarantee rounding towards zero.}
+
+    \predicate[ISO]{div}{+IntExpr1}{+IntExpr2}
+Integer division, defined as \mbox{\arg{Result} is
+$(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
+In other words, this is integer division that rounds towards -infinity.
+This function guarantees behaviour that is consistent with mod/2, i.e.,
+the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
+
+\begin{code}
+	Q is div(X, Y),
+	M is mod(X, Y),
+	X =:= Y*Q+M.
+\end{code}
 
     \infixop{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if
@@ -4930,10 +4946,7 @@ Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
     \infixop[ISO]{/\}{+IntExpr}{+IntExpr}
 Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \infixop[ISO-rev]{><}{+IntExpr}{+IntExpr}
-Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
-
-    \infixop{xor}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{xor}{+IntExpr}{+IntExpr}
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 
     \prefixop[ISO]{\}{+IntExpr}
@@ -4954,10 +4967,12 @@ $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \predicate[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate{atan}{2}{+YExpr, +XExpr}
+    \predicate[ISO]{atan2}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
+    \predicate{atan}{2}{+YExpr, +XExpr}
+Same as atan2/2 (backward compatibility).
     \predicate[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \predicate{log10}{1}{+Expr}
@@ -4978,7 +4993,7 @@ Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
-Same as **/2.  (backward compatibility).
+Same as **/2 (backward compatibility).
     \predicate{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
@@ -6237,9 +6252,10 @@ is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{no
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}.  The file-type \const{source}
-is an alias for \const{prolog} for compatibility with SICStus Prolog.
-See also prolog_file_type/2.
+\const{directory} implies \const{['']}. The file-type \const{source} is
+an alias for \const{prolog} for compatibility with SICStus Prolog. See
+also prolog_file_type/2. This predicate only returns non-directories,
+unless the option \term{file_type}{directory} is specified.
 
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception

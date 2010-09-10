@@ -507,7 +507,7 @@ forwardButton(Button b)
 		********************************/
 
 static status
-defaultButtonButton(Button b, Bool val)
+defaultButtonButton(Button b, BoolObj val)
 { if ( isDefault(val) )
     val = ON;
 
@@ -549,7 +549,7 @@ popupButton(Button b, PopupObj p)
 
 
 static PopupObj
-getPopupButton(Button b, Bool create)
+getPopupButton(Button b, BoolObj create)
 { if ( notNil(b->popup) || create != ON )
     answer(b->popup);
   else
@@ -585,7 +585,7 @@ labelButton(Button b, Any label)
 
 
 static status
-showFocusBorderButton(Button b, Bool show)
+showFocusBorderButton(Button b, BoolObj show)
 { return assignGraphical(b, NAME_showFocusBorder, show);
 }
 

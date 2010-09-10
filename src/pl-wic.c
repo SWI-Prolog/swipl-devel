@@ -2258,6 +2258,7 @@ qlfInfo(const char *file,
     return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 		    ATOM_open, ATOM_source_sink, f);
   }
+  state.wicFd = s;
 
   if ( !(lversion = qlfVersion(&state)) )
   { Sclose(s);

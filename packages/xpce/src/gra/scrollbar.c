@@ -1325,7 +1325,7 @@ bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v)
 
 
 static status
-autoHideScrollBar(ScrollBar sb, Bool val)
+autoHideScrollBar(ScrollBar sb, BoolObj val)
 { if ( sb->auto_hide != val )
   { assign(sb, auto_hide, val);
     requestComputeGraphical(sb, DEFAULT);

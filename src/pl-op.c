@@ -118,8 +118,8 @@ Define operator in some table.  See   discussion  above for the relevant
 tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-defOperator(Module m, atom_t name, int type, int priority)
+static int
+defOperator(Module m, atom_t name, int type, int priority, int force)
 { Symbol s;
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
@@ -132,6 +132,20 @@ defOperator(Module m, atom_t name, int type, int priority)
 
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
+  if ( !force )
+  { if ( name == ATOM_comma || name == ATOM_nil || name == ATOM_curl ||
+	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX || priority < 1001)) )
+    { GET_LD
+      atom_t action = (name == ATOM_comma || name == ATOM_bar) ?
+			 ATOM_modify : ATOM_create;
+      term_t t = PL_new_term_ref();
+
+      PL_put_atom(t, name);
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		      action, ATOM_operator, t);
+    }
+  }
+
   LOCK();
   if ( !m->operators )
     m->operators = newOperatorTable();
@@ -140,7 +154,7 @@ defOperator(Module m, atom_t name, int type, int priority)
   { op = s->value;
   } else if ( priority < 0 )
   { UNLOCK();				/* already inherited: do not change */
-    return;
+    return TRUE;
   } else
   { GET_LD
 
@@ -161,6 +175,8 @@ defOperator(Module m, atom_t name, int type, int priority)
     addHTable(m->operators, (void *)name, op);
   }
   UNLOCK();
+
+  return TRUE;
 }
 
 
@@ -348,12 +364,7 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_specifier, type);
 
   if ( PL_get_atom(name, &nm) )
-  { if ( nm == ATOM_comma )
-    { protected:
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		      ATOM_modify, ATOM_operator, name);
-    }
-    defOperator(m, nm, t, p);
+  { return defOperator(m, nm, t, p, FALSE);
   } else
   { term_t l = PL_copy_term_ref(name);
     term_t e = PL_new_term_ref();
@@ -361,9 +372,8 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
     while( PL_get_list(l, e, l) )
     { if ( !PL_get_atom(e, &nm) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, e);
-      if ( nm == ATOM_comma )
-	goto protected;
-      defOperator(m, nm, t, p);
+      if ( !defOperator(m, nm, t, p, FALSE) )
+	return FALSE;
     }
     if ( !PL_get_nil(l) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
@@ -593,7 +603,7 @@ static const opdef operators[] = {
   OP(ATOM_ifthen,		 OP_XFY, 1050),	/* -> */
   OP(ATOM_softcut,		 OP_XFY, 1050),	/* *-> */
   OP(ATOM_divide,		 OP_YFX, 400),	/* / */
-  OP(ATOM_div,			 OP_YFX, 400),	/* // */
+  OP(ATOM_gdiv,			 OP_YFX, 400),	/* // */
   OP(ATOM_rdiv,			 OP_YFX, 400),	/* rdiv */
   OP(ATOM_and,			 OP_YFX, 500),	/* /\ */
   OP(ATOM_colon,		 OP_XFY, 600),	/* : */
@@ -620,7 +630,6 @@ static const opdef operators[] = {
   OP(ATOM_backslash,		 OP_FY,	 200),	/* \ */
   OP(ATOM_not_provable,		 OP_FY,	 900),	/* \+ */
   OP(ATOM_bitor,		 OP_YFX, 500),	/* \/ */
-  OP(ATOM_bw_xor,		 OP_YFX, 500),	/* >< */
   OP(ATOM_not_equals,		 OP_XFX, 700),	/* \= */
   OP(ATOM_not_strickt_equals,	 OP_XFX, 700),	/* \== */
   OP(ATOM_at_equals,		 OP_XFX, 700),	/* =@= */
@@ -651,7 +660,7 @@ initOperators(void)
 { const opdef *op;
 
   for( op = operators; op->name; op++ )
-    defOperator(MODULE_system, op->name, op->type, op->priority);
+    defOperator(MODULE_system, op->name, op->type, op->priority, TRUE);
 }
 
 

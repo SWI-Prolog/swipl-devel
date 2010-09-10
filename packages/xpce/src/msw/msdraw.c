@@ -1401,14 +1401,14 @@ r_swap_background_and_foreground(void)
 }
 
 
-Bool
-r_subwindow_mode(Bool val)
+BoolObj
+r_subwindow_mode(BoolObj val)
 { return OFF;
 }
 
 
 void
-r_invert_mode(Bool val)
+r_invert_mode(BoolObj val)
 { context.invert = (val == ON);
 }
 
@@ -2383,7 +2383,7 @@ void
 r_image(Image image,
 	int sx, int sy,
 	int x, int y, int w, int h,
-	Bool transparent)
+	BoolObj transparent)
 { DEBUG(NAME_image, Cprintf("r_image(%s, %d, %d, %d+%d, %dx%d, %s)\n",
 			    pp(image), sx, sy, x, y, w, h, pp(transparent)));
 

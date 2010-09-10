@@ -319,7 +319,7 @@ labelFontDialogGroup(DialogGroup g, FontObj font)
 
 
 static status
-showLabelDialogGroup(DialogGroup g, Bool show)
+showLabelDialogGroup(DialogGroup g, BoolObj show)
 { if ( (show == OFF && isNil(g->label)) ||
        (show == ON  && notNil(g->label)) )
     succeed;
@@ -546,7 +546,7 @@ eventDialogGroup(DialogGroup g, EventObj ev)
 
 
 static Button
-getDefaultButtonDialogGroup(DialogGroup g, Bool delegate)
+getDefaultButtonDialogGroup(DialogGroup g, BoolObj delegate)
 { Device d;
   Cell cell;
 
@@ -571,7 +571,7 @@ getDefaultButtonDialogGroup(DialogGroup g, Bool delegate)
 
 
 static status
-applyDialogGroup(DialogGroup g, Bool always)
+applyDialogGroup(DialogGroup g, BoolObj always)
 { DialogItem di;
   Graphical defb;
 
@@ -597,7 +597,7 @@ restoreDialogGroup(DialogGroup g)
 
 
 static status
-modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)
+modifiedItemDialogGroup(DialogGroup g, Graphical gr, BoolObj m)
 { if ( m == ON )
   { Button b;
 

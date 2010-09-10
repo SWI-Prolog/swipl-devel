@@ -2224,7 +2224,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = atom_hash(t->subject) ^ atom_hash(t->graph);
       break;
     case BY_PG:
-      v = atom_hash(t->subject) ^ atom_hash(t->graph);
+      v = predicate_hash(t->predicate.r) ^ atom_hash(t->graph);
       break;
     default:
       v = 0;				/* make compiler silent */

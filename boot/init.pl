@@ -553,10 +553,14 @@ absolute_file_name(Spec, Args, Path) :-
 	    Exts = ['']
 	),
 	'$canonise_extensions'(Exts, Extensions),
-	(   '$select'(solutions(Sols), Conditions, C1)
+	(   nonvar(Type)
+	->  C0 = Conditions
+	;   C0 = [file_type(regular)|Conditions] % ask for a regular file
+	),
+	(   '$select'(solutions(Sols), C0, C1)
 	->  true
 	;   Sols = first,
-	    C1 = Conditions
+	    C1 = C0
 	),
 	(   '$select'(file_errors(FileErrors), C1, C2)
 	->  true
@@ -607,6 +611,8 @@ user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(Ext,	executable) :-
 	current_prolog_flag(shared_object_extension, Ext).
 
+%%	'$chk_file'(+Spec, +Extensions, +Cond, +UseCache, -FullName)
+%
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
 
