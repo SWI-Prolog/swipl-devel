@@ -30,10 +30,10 @@ static MenuItem	getItemSelectionMenu(Menu m);
 static status	nextMenu(Menu m);
 static status	kindMenu(Menu m, Name kind);
 static status	ensureSingleSelectionMenu(Menu m);
-static status	multipleSelectionMenu(Menu m, Bool val);
+static status	multipleSelectionMenu(Menu m, BoolObj val);
 static status	restoreMenu(Menu m);
 static status	compute_popup_indicator(Menu m, MenuItem mi, int *w, int *h);
-static status	modifiedMenu(Menu m, Bool val);
+static status	modifiedMenu(Menu m, BoolObj val);
 static MenuItem getMemberMenu(Menu m, Any obj);
 
 #define CYCLE_DROP_WIDTH 14
@@ -1356,7 +1356,7 @@ selectionMenu(Menu m, Any selection)
 
 
 static status
-selectedMenu(Menu m, MenuItem mi, Bool val)
+selectedMenu(Menu m, MenuItem mi, BoolObj val)
 { if ( mi->selected != val )
   { assign(mi, selected, val);
     ChangedItemMenu(m, mi);
@@ -1366,7 +1366,7 @@ selectedMenu(Menu m, MenuItem mi, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getSelectedMenu(Menu m, MenuItem mi)
 { answer(mi->selected);
 }
@@ -1530,7 +1530,7 @@ updateMenu(Menu m, Any context)
   { MenuItem mi = cell->value;
 
     if ( notNil(mi->condition) )
-    { Bool a = (forwardReceiverCode(mi->condition, mi, context, EAV) ? ON : OFF);
+    { BoolObj a = (forwardReceiverCode(mi->condition, mi, context, EAV) ? ON : OFF);
 
       if ( a != mi->active )
       { changed = TRUE;
@@ -1547,7 +1547,7 @@ updateMenu(Menu m, Any context)
 
 
 static status
-activeItemMenu(Menu m, Any obj, Bool val)
+activeItemMenu(Menu m, Any obj, BoolObj val)
 { MenuItem mi;
 
   TRY( mi = findMenuItemMenu(m, obj) );
@@ -1572,7 +1572,7 @@ offMenu(Menu m, Any obj)
 }
 
 
-static Bool
+static BoolObj
 getActiveItemMenu(Menu m, Any obj)
 { MenuItem mi;
 
@@ -1601,7 +1601,7 @@ isOffMenu(Menu m, Any obj)
 
 
 static status
-activeAllItemsMenu(Menu m, Bool val)
+activeAllItemsMenu(Menu m, BoolObj val)
 { Cell cell;
 
   for_cell(cell, m->members)
@@ -1807,7 +1807,7 @@ ensureSingleSelectionMenu(Menu m)
 
 
 static status
-multipleSelectionMenu(Menu m, Bool val)
+multipleSelectionMenu(Menu m, BoolObj val)
 { assignGraphical(m, NAME_multipleSelection, val);
 
   get(m, NAME_selection, EAV);		/* update <-selection */
@@ -1852,7 +1852,7 @@ getValueWidthMenu(Menu m)
 
 
 static status
-showLabelMenu(Menu m, Bool val)
+showLabelMenu(Menu m, BoolObj val)
 { return assignGraphical(m, NAME_showLabel, val);
 }
 
@@ -1934,7 +1934,7 @@ getContainsMenu(Menu m)
 		*         COMMUNICATION		*
 		********************************/
 
-static Bool
+static BoolObj
 getModifiedMenu(Menu m)
 { if ( m->multiple_selection == OFF )
   { MenuItem mi = getItemSelectionMenu(m);
@@ -1988,7 +1988,7 @@ getModifiedMenu(Menu m)
 
 
 static status
-modifiedMenu(Menu m, Bool val)
+modifiedMenu(Menu m, BoolObj val)
 { if ( val == OFF )
     getSelectionMenu(m);
   else
@@ -2029,7 +2029,7 @@ restoreMenu(Menu m)
 
 
 static status
-applyMenu(Menu m, Bool always)
+applyMenu(Menu m, BoolObj always)
 { Any val;
 
   if ( instanceOfObject(m->message, ClassCode) &&

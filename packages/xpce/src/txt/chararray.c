@@ -100,7 +100,7 @@ getValueCharArray(CharArray n)
 		********************************/
 
 status
-equalCharArray(CharArray n1, CharArray n2, Bool ign_case)
+equalCharArray(CharArray n1, CharArray n2, BoolObj ign_case)
 { if ( ign_case == ON )
     return str_icase_eq(&n1->data, &n2->data);
   else
@@ -111,7 +111,7 @@ equalCharArray(CharArray n1, CharArray n2, Bool ign_case)
 /* n2 is prefix of n1 */
 
 status
-prefixCharArray(CharArray n1, CharArray n2, Bool ign_case)
+prefixCharArray(CharArray n1, CharArray n2, BoolObj ign_case)
 { if ( ign_case == ON )
     return str_icase_prefix(&n1->data, &n2->data);
   else
@@ -120,7 +120,7 @@ prefixCharArray(CharArray n1, CharArray n2, Bool ign_case)
 
 
 status
-suffixCharArray(CharArray n, CharArray s, Bool ign_case)
+suffixCharArray(CharArray n, CharArray s, BoolObj ign_case)
 { if ( ign_case == ON )
     return str_icase_suffix(&n->data, &s->data);
   else
@@ -145,7 +145,7 @@ smallerCharArray(CharArray n1, CharArray n2)
 
 
 static status
-subCharArray(CharArray n1, CharArray n2, Bool ign_case)
+subCharArray(CharArray n1, CharArray n2, BoolObj ign_case)
 { if ( ign_case != ON )
   { if ( str_sub(&n1->data, &n2->data) )
       succeed;
@@ -725,7 +725,7 @@ getScanCharArray(CharArray n, CharArray fmt)
 
 
 static Name
-getCompareCharArray(CharArray n1, CharArray n2, Bool ignore_case)
+getCompareCharArray(CharArray n1, CharArray n2, BoolObj ignore_case)
 { int rval;
 
   if ( ignore_case == ON )

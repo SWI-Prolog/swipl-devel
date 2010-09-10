@@ -26,7 +26,7 @@
 #include <h/graphics.h>
 
 static status
-initialiseFormat(Format l, Name direction, Int width, Bool columns)
+initialiseFormat(Format l, Name direction, Int width, BoolObj columns)
 { assign(l, direction, isDefault(direction) ? NAME_horizontal : direction);
   assign(l, width, isDefault(width) ? ONE : width);
   assign(l, columns, isDefault(columns) ? ON : columns);

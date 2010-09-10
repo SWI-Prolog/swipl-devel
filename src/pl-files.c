@@ -681,7 +681,7 @@ PRED_IMPL("tmp_file_stream", 3, tmp_file_stream, 0)
 
     if ( !PL_unify_atom(A2, fn) )
     { close(fd);
-      return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2);
+      return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, A2);
     }
 
     s = Sfdopen(fd, mode);

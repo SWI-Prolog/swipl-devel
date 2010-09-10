@@ -189,7 +189,7 @@ popDirectory(Directory d)
 
 
 static status
-scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
+scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, BoolObj all)
 { DIR *dirp;
   struct dirent *dp;
 
@@ -271,7 +271,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 
 
 static Chain
-getDirectoriesDirectory(Directory d, Regex pattern, Bool all)
+getDirectoriesDirectory(Directory d, Regex pattern, BoolObj all)
 { Chain dirs = answerObject(ClassChain, EAV);
 
   TRY(scanDirectory(d, NIL, dirs, pattern, all));
@@ -281,7 +281,7 @@ getDirectoriesDirectory(Directory d, Regex pattern, Bool all)
 
 
 static Chain
-getFilesDirectory(Directory d, Regex pattern, Bool all)
+getFilesDirectory(Directory d, Regex pattern, BoolObj all)
 { Chain files = answerObject(ClassChain, EAV);
 
   TRY(scanDirectory(d, files, NIL, pattern, all));

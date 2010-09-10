@@ -63,7 +63,7 @@ typedef struct binary_condition *	BinaryCondition;
 typedef struct binding *		Binding;
 typedef struct assignment *		Assignment;
 typedef struct block *			Block;
-typedef struct bool *			Bool;
+typedef struct bool *			BoolObj;
 typedef struct c_pointer *		CPointer;
 typedef struct cell *			Cell;
 typedef struct chain *			Chain;

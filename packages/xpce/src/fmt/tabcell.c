@@ -128,7 +128,7 @@ imageTableCell(TableCell c, Graphical gr)
 
 
 static status
-selectedTableCell(TableCell c, Bool selected)
+selectedTableCell(TableCell c, BoolObj selected)
 { if ( c->selected != selected )
   { assign(c, selected, selected);
     modifiedImageTableCell(c);

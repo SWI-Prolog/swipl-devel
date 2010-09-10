@@ -29,7 +29,7 @@ static status	labelMenuItem(MenuItem mi, Any label);
 
 static status
 initialiseMenuItem(MenuItem m, Any value, Message msg, Any label,
-		   Bool eg, Code cond, Name acc)
+		   BoolObj eg, Code cond, Name acc)
 { if ( isDefault(eg) )
     eg = OFF;
   if ( isDefault(label) && !(label = get(m, NAME_defaultLabel, value, EAV)) )
@@ -151,7 +151,7 @@ backgroundMenuItem(MenuItem mi, Colour colour)
 
 
 static status
-activeMenuItem(MenuItem mi, Bool val)
+activeMenuItem(MenuItem mi, BoolObj val)
 { if ( mi->active != val )
   { assign(mi, active, val);
     changedMenuItem(mi);
@@ -162,7 +162,7 @@ activeMenuItem(MenuItem mi, Bool val)
 
 
 status
-selectedMenuItem(MenuItem mi, Bool val)
+selectedMenuItem(MenuItem mi, BoolObj val)
 { if ( mi->selected != val )
   { assign(mi, selected, val);
     changedMenuItem(mi);
@@ -173,7 +173,7 @@ selectedMenuItem(MenuItem mi, Bool val)
 
 
 static status
-endGroupMenuItem(MenuItem mi, Bool val)
+endGroupMenuItem(MenuItem mi, BoolObj val)
 { if ( mi->end_group != val )
   { assign(mi, end_group, val);
     changedMenuItem(mi);

@@ -143,7 +143,7 @@ status
 changedLabelImageTab(Tab t)
 { Elevation e = getClassVariableValueObject(t, NAME_elevation);
   Int eh = e->height;
-  Bool old = t->displayed;
+  BoolObj old = t->displayed;
 
   t->displayed = ON;
   changedImageGraphical(t,
@@ -400,7 +400,7 @@ flashTab(Tab t, Area a, Int time)
 
 
 static status
-advanceTab(Tab t, Graphical gr, Bool propagate, Name direction)
+advanceTab(Tab t, Graphical gr, BoolObj propagate, Name direction)
 { if ( isDefault(propagate) )
     propagate = OFF;
 
@@ -409,7 +409,7 @@ advanceTab(Tab t, Graphical gr, Bool propagate, Name direction)
 
 
 static status
-activeTab(Tab t, Bool active)
+activeTab(Tab t, BoolObj active)
 { if ( t->active != active )
   { assign(t, active, active);
     qadSendv(t, NAME_ChangedLabel, 0, NULL);

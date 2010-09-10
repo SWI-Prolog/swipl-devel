@@ -127,7 +127,7 @@ general_exception(E, E).
 
 new_exception(Ex, Where) :-
 	exception(_, Gen, NotCaught, Caught),
-	subsumes_chk(Gen, Ex), !,
+	subsumes_term(Gen, Ex), !,
 	new_exception(Ex, NotCaught, Caught, Where).
 new_exception(Ex, Where) :-
 	(   Ex \= error(_,_)

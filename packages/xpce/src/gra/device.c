@@ -339,7 +339,7 @@ eventDevice(Any obj, EventObj ev)
 
 
 static status
-typedDevice(Device dev, EventId id, Bool delegate)
+typedDevice(Device dev, EventId id, BoolObj delegate)
 { Any key = characterName(id);
   Graphical gr;
 
@@ -387,7 +387,7 @@ getWantsKeyboardFocusGraphical(Graphical gr)
 
 
 status
-advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
+advanceDevice(Device dev, Graphical gr, BoolObj propagate, Name direction)
 { Cell cell;
   int skip = TRUE;			/* before gr */
   Graphical first = NIL;
@@ -845,8 +845,8 @@ eraseDevice(Device dev, Graphical gr)
 
 
 status
-displayedGraphicalDevice(Device dev, Graphical gr, Bool val)
-{ Bool old = gr->displayed;
+displayedGraphicalDevice(Device dev, Graphical gr, BoolObj val)
+{ BoolObj old = gr->displayed;
 
   if ( onFlag(gr, F_SOLID) )
   { clearFlag(gr, F_SOLID);

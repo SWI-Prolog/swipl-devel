@@ -391,7 +391,7 @@ run_pce_atexit_hooks(void)
 		*            DEBUGGING		*
 		********************************/
 
-static Bool
+static BoolObj
 getIsRuntimeSystemPce(Pce pce)
 {
 #ifdef O_RUNTIME
@@ -433,7 +433,7 @@ nodebugSubjectPce(Pce pce, Name what)
 
 
 status
-debuggingPce(Pce pce, Bool val)
+debuggingPce(Pce pce, BoolObj val)
 { assign(pce, debugging, val);
 
   PCEdebugging = (PCE->debugging == ON);
@@ -443,7 +443,7 @@ debuggingPce(Pce pce, Bool val)
 
 
 static status
-trapErrorsPce(Pce pce, Bool trap)
+trapErrorsPce(Pce pce, BoolObj trap)
 { assign(pce, trap_errors, trap);
 
   succeed;
@@ -873,7 +873,7 @@ getPidPce(Pce pce)
  */
 
 status
-catchErrorSignalsPce(Pce pce, Bool val)
+catchErrorSignalsPce(Pce pce, BoolObj val)
 { if ( pce->catch_error_signals != val )
   { assign(pce, catch_error_signals, val);
     catchErrorSignals(val);
@@ -1194,7 +1194,7 @@ getVersionPce(Pce pce, Name how)
 		 *******************************/
 
 
-static Bool
+static BoolObj
 getMultiThreadingPce(Pce pce)
 { answer(XPCE_mt == TRUE ? ON : OFF);
 }

@@ -32,7 +32,7 @@ static status ChangeItemListBrowser(ListBrowser, DictItem);
 static status ChangedListBrowser(ListBrowser);
 static status geometryListBrowser(ListBrowser, Int, Int, Int, Int);
 static status deselectListBrowser(ListBrowser, DictItem);
-static status showLabelListBrowser(ListBrowser, Bool);
+static status showLabelListBrowser(ListBrowser, BoolObj);
 static status selectListBrowser(ListBrowser, DictItem);
 static status scrollUpListBrowser(ListBrowser, Int);
 static status scrollDownListBrowser(ListBrowser, Int);
@@ -204,7 +204,7 @@ getLabelListBrowser(ListBrowser lb)
 
 
 static status
-showLabelListBrowser(ListBrowser lb, Bool val)
+showLabelListBrowser(ListBrowser lb, BoolObj val)
 { if ( isNil(lb->label_text) )
   { if ( val == ON )
     { assign(lb, label_text,
@@ -228,7 +228,7 @@ showLabelListBrowser(ListBrowser lb, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getShowLabelListBrowser(ListBrowser lb)
 { if ( notNil(lb->label_text) )
     answer(lb->label_text->displayed);
@@ -679,7 +679,7 @@ normalise_index(ListBrowser lb, Int index)
 		********************************/
 
 static StringObj
-getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
+getExtendPrefixDict(Dict dict, CharArray pref, BoolObj ign_case)
 { LocalString(common, pref->data.iswide, LINESIZE);
   Cell cell;
   int hit = FALSE;
@@ -1270,7 +1270,7 @@ scrollVerticalListBrowser(ListBrowser lb, Name dir, Name unit, Int amount)
 
 
 static status
-showScrollBarListBrowser(ListBrowser lb, Bool show, ScrollBar sb)
+showScrollBarListBrowser(ListBrowser lb, BoolObj show, ScrollBar sb)
 { if ( isDefault(sb) || sb == lb->scroll_bar )
   { computeBoundingBoxDevice((Device) lb);
     DisplayedGraphical(lb->scroll_bar, show);
@@ -1311,7 +1311,7 @@ nextLineListBrowser(ListBrowser lb, Int lines)
       if ( di )
       { CharArray lbl = getLabelDictItem(di);
 	DictItem di2 = getNth0Chain(lb->dict->members, lb->search_hit);
-	Bool ign_case = getClassVariableValueObject(lb,
+	BoolObj ign_case = getClassVariableValueObject(lb,
 						    NAME_searchIgnoreCase);
 
 	ChangeItemListBrowser(lb, di2);
@@ -1457,7 +1457,7 @@ selectionStyleListBrowser(ListBrowser lb, Style style)
 
 
 static status
-multipleSelectionListBrowser(ListBrowser lb, Bool val)
+multipleSelectionListBrowser(ListBrowser lb, BoolObj val)
 { if ( lb->multiple_selection != val )
   { if ( val == ON )
     { if ( isNil(lb->selection) )

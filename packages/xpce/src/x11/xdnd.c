@@ -45,7 +45,7 @@
 typedef struct {
     int type;
     unsigned long serial;
-    Bool send_event;
+    BoolObj send_event;
     Display *display;
     Window window;
     Atom message_type;

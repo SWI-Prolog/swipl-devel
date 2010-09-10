@@ -858,7 +858,7 @@ ws_frame_cursor(FrameObj fr, CursorObj cursor)
 
 
 void
-ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
+ws_grab_frame_pointer(FrameObj fr, BoolObj grab, CursorObj cursor)
 { Widget w = widgetFrame(fr);
 
   if ( w )
@@ -1401,7 +1401,7 @@ ws_enable_frame(FrameObj fr, int val)
 
 
 void
-ws_enable_modal(FrameObj fr, Bool val)
+ws_enable_modal(FrameObj fr, BoolObj val)
 { if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
   { ws_enable_frame(fr->transient_for, val == ON ? TRUE : FALSE);
   } else if ( fr->modal == NAME_application && notNil(fr->application) )
@@ -1484,7 +1484,7 @@ ws_status_frame(FrameObj fr, Name status)
 
 
 void
-ws_topmost_frame(FrameObj fr, Bool topmost)
+ws_topmost_frame(FrameObj fr, BoolObj topmost)
 {
 }
 

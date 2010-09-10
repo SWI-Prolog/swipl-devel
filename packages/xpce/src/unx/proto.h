@@ -13,7 +13,7 @@ COMMON(int)	expandFileNameW(const wchar_t *pattern, wchar_t *bin, size_t binlen)
 COMMON(Name)	expandFileName(Name in);
 COMMON(Name)	getOsNameFile(FileObj f);
 COMMON(status)	closeFile(FileObj f);
-COMMON(status)	existsFile(FileObj f, Bool mustbefile);
+COMMON(status)	existsFile(FileObj f, BoolObj mustbefile);
 COMMON(status)	sameOsPath(const char *s1, const char *s2);
 COMMON(Name)	getAbsolutePathFile(FileObj f);
 COMMON(status)	isAbsoluteFile(FileObj f);

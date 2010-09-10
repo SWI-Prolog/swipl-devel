@@ -119,10 +119,10 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       err_instantiation:
       rc = PL_unify_atom(formal, ATOM_instantiation_error);
       break;
-    case ERR_MUST_BE_VAR:
+    case ERR_UNINSTANTIATION:
     { int argn = va_arg(args, int);
+      term_t bound = va_arg(args, term_t);
       char buf[50];
-      /*term_t bound =*/ va_arg(args, term_t);
 
       if ( !msg && argn > 0 )
       { Ssprintf(buf, "%d-%s argument",
@@ -131,8 +131,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       }
 
       rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_representation_error1,
-			   PL_ATOM, ATOM_variable);
+			 PL_FUNCTOR, FUNCTOR_uninstantiation_error1,
+			   PL_TERM, bound);
       break;
     }
     case ERR_TYPE:			/* ERR_INSTANTIATION if var(actual) */

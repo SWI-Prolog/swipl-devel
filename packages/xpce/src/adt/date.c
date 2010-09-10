@@ -369,7 +369,7 @@ static char * shortMonthName[] =
 
 
 static Name
-getDayNameDate(Date d, Bool shrt)
+getDayNameDate(Date d, BoolObj shrt)
 { time_t now = d->unix_date;
   struct tm *tm = localtime(&now);
 
@@ -379,7 +379,7 @@ getDayNameDate(Date d, Bool shrt)
 
 
 static Name
-getMonthNameDate(Date d, Bool shrt)
+getMonthNameDate(Date d, BoolObj shrt)
 { time_t now = d->unix_date;
   struct tm *tm = localtime(&now);
 

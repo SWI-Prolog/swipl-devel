@@ -31,13 +31,44 @@
 */
 
 test_arith :-
-	run_tests([ rem,
+	run_tests([ div,
+		    gdiv,
+		    rem,
 		    mod,
 		    gcd,
 		    shift,
 		    errors,
 		    ar_builtin
 		  ]).
+
+:- begin_tests(div).
+
+test(mod, true) :-
+	forall(between(-10, 10, X),
+	       forall((between(-10, 10, Y), Y =\= 0),
+		      (	  Q is div(X, Y),
+			  M is mod(X, Y),
+			  X =:= Y*Q+M
+		      ))).
+
+:- end_tests(div).
+
+:- begin_tests(gdiv).
+
+:- if(current_prolog_flag(bounded,false)).
+
+test(minint, X == 9223372036854775808) :-
+	X is -9223372036854775808 // -1.
+
+:- else.
+
+test(minint, error(evaluation_error(integer_overflow))) :-
+	X is -9223372036854775808 // -1,
+	writeln(X).
+
+:- endif.
+
+:- end_tests(gdiv).
 
 :- begin_tests(rem).
 

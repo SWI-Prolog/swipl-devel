@@ -449,7 +449,7 @@ inet_address_socket(Socket s, struct sockaddr_in *address, int *len)
 
 
 static status
-bindSocket(Socket s, Bool reuse)
+bindSocket(Socket s, BoolObj reuse)
 { int rval;
 
   TRY(createSocket(s));
@@ -570,7 +570,7 @@ acceptSocket(Socket s)
 
 
 static status
-listenSocket(Socket s, Code accept_message, Int backlog, Bool reuse)
+listenSocket(Socket s, Code accept_message, Int backlog, BoolObj reuse)
 { if ( isDefault(backlog) )
     backlog = toInt(5);
 

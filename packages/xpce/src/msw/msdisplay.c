@@ -308,7 +308,7 @@ ws_background_display(DisplayObj d, Colour c)
 
 
 void
-ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo)
+ws_draw_in_display(DisplayObj d, Graphical gr, BoolObj invert, BoolObj subtoo)
 { d_screen(d);
   if ( invert == ON ) r_invert_mode(ON);
   if ( subtoo == ON ) r_subwindow_mode(ON);

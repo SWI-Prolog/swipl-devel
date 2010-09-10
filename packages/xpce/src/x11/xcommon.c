@@ -164,7 +164,7 @@ pceXtAppContext(void * ctx)
 
 
 status
-X11ThreadsDisplay(DisplayObj d, Bool val)
+X11ThreadsDisplay(DisplayObj d, BoolObj val)
 { if ( ThePceXtAppContext )
     return errorPce(d, NAME_x11Threads);
 
@@ -903,7 +903,7 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
   int y;
   Name ctx_name = NULL;
   Any name, ctx = NULL;
-  static Bool do_wheel;
+  static BoolObj do_wheel;
   EventObj ev;
 
   if ( !do_wheel )

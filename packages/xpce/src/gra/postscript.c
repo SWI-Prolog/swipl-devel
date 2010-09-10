@@ -29,7 +29,7 @@
 
 static void	ps_put_string(String);
 static int	postscriptImage(Image, Int, int iscolor);
-static int	header(Any, Area, Bool);
+static int	header(Any, Area, BoolObj);
 static int	footer(void);
 static status	fill(Any, Name);
 static void	ps_colour(Colour c, int grey);
@@ -54,7 +54,7 @@ resulting in a landscaped image.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 StringObj
-getPostscriptObject(Any obj, Bool ls, Area a)
+getPostscriptObject(Any obj, BoolObj ls, Area a)
 { StringObj result;
   char *PostScript = NULL;
   size_t size = 0;
@@ -459,7 +459,7 @@ postscriptImage(Image image, Int depth, int iscolor)
 		*********************************/
 
 static int
-header(Any gr, Area area, Bool ls)
+header(Any gr, Area area, BoolObj ls)
 { int x, y, w, h;
   int xgr, ygr, wgr, hgr;
   int paperH, paperW;
@@ -1093,7 +1093,7 @@ static void
 ps_image(Image img,
 	 int sx, int sy,
 	 int x, int y, int w, int h,
-	 Bool transparent, Name hb)
+	 BoolObj transparent, Name hb)
 { if ( sx || sy )
     Cprintf("ps_image(): sx/sy parameters currently ignored\n");
 

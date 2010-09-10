@@ -28,7 +28,7 @@
 NewClass(browser_select_gesture)
   ABSTRACT_GESTURE
   Any	saved_selection;		/* Saved selection for cancel */
-  Bool	scrolling;			/* We are redirecting events */
+  BoolObj	scrolling;			/* We are redirecting events */
 End;
 
 typedef struct browser_select_gesture *BrowserSelectGesture;

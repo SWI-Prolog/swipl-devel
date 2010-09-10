@@ -254,7 +254,7 @@ getFindIndexDict(Dict dict, Int ln)
 
 
 DictItem
-getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case)
+getFindPrefixDict(Dict dict, StringObj str, Int from, BoolObj ign_case)
 { Cell cell;
 
   if ( isDefault(ign_case) )
@@ -383,7 +383,7 @@ insertDict(Dict dict, DictItem di)
 
 
 static status
-sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
+sortDict(Dict dict, Any code_or_ign_case, BoolObj ign_blanks, BoolObj reverse)
 { int count, i=0;
   DictItem *items;
   Cell cell;
@@ -508,13 +508,13 @@ clearDict(Dict dict)
 
 
 static status
-forAllDict(Dict d, Code code, Bool safe)
+forAllDict(Dict d, Code code, BoolObj safe)
 { return forAllChain(d->members, code, safe);
 }
 
 
 static status
-forSomeDict(Dict d, Code code, Bool safe)
+forSomeDict(Dict d, Code code, BoolObj safe)
 { return forSomeChain(d->members, code, safe);
 }
 

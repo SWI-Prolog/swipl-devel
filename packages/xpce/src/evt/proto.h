@@ -24,7 +24,7 @@ COMMON(Name)	getMulticlickEvent(EventObj e);
 COMMON(Int)	getClickTimeEvent(EventObj e);
 COMMON(Int)	getClickDisplacementEvent(EventObj e);
 COMMON(status)	windowEvent(EventObj ev, PceWindow sw);
-COMMON(status)	get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry);
+COMMON(status)	get_xy_event(EventObj ev, Any obj, BoolObj area, Int *rx, Int *ry);
 COMMON(Point)	getPositionEvent(EventObj ev, Any obj);
 COMMON(Point)	getAreaPositionEvent(EventObj ev, Graphical gr);
 COMMON(Int)	getXEvent(EventObj ev, Any obj);
