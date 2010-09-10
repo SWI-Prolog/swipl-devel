@@ -933,7 +933,7 @@ formatNumber(bool split, int div, int radix, bool small, Number i,
 	} else
 	{ leading = (int)len;
 	}
-	for(s=buf; *s; s++)
+	for(; *s; s++)
 	{ if ( before-- == 0 && div > 0 )
 	  { addBuffer(out, '.', char);
 	  } else if ( leading-- == 0 && before > 0 )

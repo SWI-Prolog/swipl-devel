@@ -96,7 +96,7 @@ static int odbc_debuglevel = 0;
 #define NameBufferLength 256
 #define CVNERR -1			/* conversion error */
 
-#if defined(_REENTRANT) && 0
+#if defined(_REENTRANT)
 #include <pthread.h>
 
 					/* FIXME: Actually use these */

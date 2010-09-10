@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemak@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam,
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -91,6 +92,7 @@ blocked('/pldoc').
 blocked('/ciao').
 blocked('/checkselect.pl').
 blocked('/checklast.pl').
+blocked('/clp/clp_distinct.pl').	% deprecated file
 %blocked('/jpl.pl').			% should be added
 blocked('/pldoc.pl').
 blocked('/index.pl').
