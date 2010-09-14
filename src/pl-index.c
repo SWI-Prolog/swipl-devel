@@ -716,6 +716,9 @@ pl_hash(term_t pred)
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_hash, ATOM_foreign, proc);
+    if ( def->functor->arity == 0 )
+      return PL_error(NULL, 0, "hash needs arguments", ERR_REPRESENTATION,
+		      ATOM_arity);
 
     LOCKDEF(def);
     indexDefinition(def, 0x1L);		/* index in 1st argument */
