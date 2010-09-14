@@ -818,8 +818,9 @@ PRED_IMPL("working_directory", 2, working_directory, 0)
 	if ( truePrologFlag(PLFLAG_FILEERRORS) )
 	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 			  ATOM_chdir, ATOM_directory, new);
-	return FALSE;
       }
+
+      return FALSE;
     }
 
     return TRUE;
