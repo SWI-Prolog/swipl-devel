@@ -554,9 +554,11 @@ open(B, How:[{here,tab,window}], Frame:emacs_frame) :<-
 	->  send(new(Frame, emacs_frame(B)), open)
 	;   How == tab,
 	    get(@emacs, current_frame, Frame)
-	->  send(Frame, tab, B, @on)
+	->  send(Frame, tab, B, @on),
+	    send(Frame, expose)
 	;   get(@emacs, current_frame, Frame)
-	->  send(Frame, buffer, B)
+	->  send(Frame, buffer, B),
+	    send(Frame, expose)
 	;   send(new(Frame, emacs_frame(B)), open)
 	),
 	send(B, check_modified_file).
