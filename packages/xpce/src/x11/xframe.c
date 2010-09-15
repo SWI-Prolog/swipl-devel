@@ -290,14 +290,36 @@ ws_raise_frame(FrameObj fr)
 
   if ( w )
   { Window win = XtWindow(w);
+    static Atom atom;
+    XEvent xev;
+    XWindowAttributes attr;
 
-#if 0
-    XUnmapWindow(r->display_xref, win);
-    XMapWindow(r->display_xref, win);
-#else
     XMapWindow(r->display_xref, win);
     XRaiseWindow(r->display_xref, win);
-#endif
+
+    if ( !atom )
+      atom = XInternAtom(r->display_xref, "_NET_ACTIVE_WINDOW", False);
+
+    xev.xclient.type = ClientMessage;
+    xev.xclient.serial = 0;
+    xev.xclient.send_event = True;
+    xev.xclient.display = r->display_xref;
+    xev.xclient.window = win;
+    xev.xclient.message_type = atom;
+    xev.xclient.format = 32;
+    xev.xclient.data.l[0] = 2;
+    xev.xclient.data.l[1] = 0;
+    xev.xclient.data.l[2] = 0;
+    xev.xclient.data.l[3] = 0;
+    xev.xclient.data.l[4] = 0;
+
+    XGetWindowAttributes(r->display_xref, win, &attr);
+    XSendEvent(r->display_xref,
+	       attr.root, False,
+	       SubstructureRedirectMask | SubstructureNotifyMask,
+	       &xev);
+
+    DEBUG(NAME_frame, Cprintf("Sent _NET_ACTIVE_WINDOW\n"));
   }
 
   send(fr, NAME_exposed, EAV);		/* doesn't appear to generate a */
