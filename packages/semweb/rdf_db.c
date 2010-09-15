@@ -2304,7 +2304,7 @@ typedef enum
 static dub_state
 discard_duplicate(rdf_db *db, triple *t)
 { triple *d;
-  const int indexed = BY_SP;
+  const int indexed = BY_SPO;
   dub_state rc = DUP_NONE;
 
   assert(t->is_duplicate == FALSE);
