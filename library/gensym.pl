@@ -43,7 +43,7 @@
 
 gensym(_Base, Atom) :-
 	nonvar(Atom), !,
-	throw(error(representation_error(variable),
+	throw(error(uninstantiation_error(Atom),
 		    context(gensym/2, '2nd argument'))).
 gensym(Base, Atom) :-
 	atom_concat('$gs_', Base, Key),
