@@ -134,7 +134,8 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 
   if ( !force )
   { if ( name == ATOM_comma || name == ATOM_nil || name == ATOM_curl ||
-	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX || priority < 1001)) )
+	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX ||
+			       (priority < 1001 && priority != 0))) )
     { GET_LD
       atom_t action = (name == ATOM_comma || name == ATOM_bar) ?
 			 ATOM_modify : ATOM_create;
