@@ -1181,7 +1181,9 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide)
 { GET_LD
   Buffer b;
   word list = valHandle(l);
+  word slow;
   Word arg, tail;
+  int step_slow = TRUE;
   enum { CHARS, CODES } type;
 
   if ( isList(list) )
@@ -1206,6 +1208,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide)
 ok:
   b = findBuffer(flags);
 
+  slow = list;
   while( isList(list) )
   { intptr_t c = -1;
 
@@ -1236,6 +1239,15 @@ ok:
     tail = argTermP(list, 1);
     deRef(tail);
     list = *tail;
+    if ( list == slow )		/* cyclic */
+    { unfindBuffer(flags);
+      return NULL;
+    }
+    if ( (step_slow = !step_slow) )
+    { tail = argTermP(slow, 1);
+      deRef(tail);
+      slow = *tail;
+    }
   }
   if ( !isNil(list) )
   { unfindBuffer(flags);
