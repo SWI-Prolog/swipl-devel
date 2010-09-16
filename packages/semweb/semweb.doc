@@ -176,6 +176,16 @@ in \secref{litindex}.
 	    is intended for \jargon{completion}.  The query is indexed
 	    using the binary tree of literals.  See \secref{litindex}
 	    for details.
+	\termitem{ge}{+Literal}
+	    Match any literal that is equal or larger then \arg{Literal}
+	    in the ordered set of literals.
+	\termitem{le}{+Literal}
+	    Match any literal that is equal or smaller then
+	    \arg{Literal} in the ordered set of literals.
+	\termitem{between}{+Literal1, +Literal2}
+	    Match any literal that is between \arg{Literal1} and
+	    \arg{Literal2} in the ordered set of literals.  This
+	    may include both \arg{Literal1} and \arg{Literal2}.
 	\termitem{like}{+Pattern}
 	    Match any literal that matches \arg{Pattern} case
 	    insensitively, where the `*' character in \arg{Pattern}

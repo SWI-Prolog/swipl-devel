@@ -61,7 +61,8 @@ available test sets. The public goals are:
 
 test_rdf_db :-
 	test,
-	run_tests([ lang_matches
+	run_tests([ lang_matches,
+		    lit_ranges
 		  ]).
 
 
@@ -987,3 +988,39 @@ test(lang_matches, true) :-
 	lang_matches('en-GB-x-y', 'en-*-y').
 
 :- end_tests(lang_matches).
+
+:- begin_tests(lit_ranges, [cleanup(rdf_reset_db)]).
+
+letters :-
+	rdf_reset_db,
+	forall(between(0'a, 0'z, X),
+	       (   char_code(C, X),
+		   rdf_assert(a,b,literal(C))
+	       )).
+
+integers :-
+	rdf_reset_db,
+	forall(between(0, 9, X),
+	       rdf_assert(a,b,literal(X))).
+
+ge(S, X) :-
+	rdf(_,b,literal(ge(S),X)).
+le(S, X) :-
+	rdf(_,b,literal(le(S),X)).
+bt(L,H,X) :-
+	rdf(_,b,literal(between(L,H),X)).
+
+test(ge, [setup(letters), cleanup(rdf_reset_db), all(X==[x,y,z])]) :-
+	ge(x, X).
+test(le, [setup(letters), cleanup(rdf_reset_db), all(X==[a,b,c,d,e])]) :-
+	le(e, X).
+test(bt, [setup(letters), cleanup(rdf_reset_db), all(X==[m,n,o,p])]) :-
+	bt(m, p, X).
+test(ge, [setup(integers), cleanup(rdf_reset_db), all(X==[4,5,6,7,8,9])]) :-
+	ge(4, X).
+test(le, [setup(integers), cleanup(rdf_reset_db), all(X==[0,1,2,3])]) :-
+	le(3, X).
+test(bt, [setup(integers), cleanup(rdf_reset_db), all(X==[6,7,8])]) :-
+	bt(6,8, X).
+
+:- end_tests(lit_ranges).
