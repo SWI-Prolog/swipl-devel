@@ -2188,6 +2188,9 @@ object_hash(triple *t)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 triple_hash() computes the hash for a triple   on  a given index. It can
 only be called for indices defined in the col_index-array.
+
+If   you   change   anything   here,   you    might   need   to   update
+init_cursor_from_literal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -4874,13 +4877,21 @@ init_cursor_from_literal(search_state *state, literal *cursor)
 	Sdprintf("\n"));
 
   p->indexed |= BY_O;
-  p->indexed &= ~BY_S;			/* we do not have index BY_SO */
-  switch(p->indexed)
+  p->indexed &= ~BY_G;			/* No graph indexing supported */
+  if ( p->indexed == BY_SO )
+    p->indexed = BY_S;			/* we do not have index BY_SO */
+
+  switch(p->indexed)			/* keep in sync with triple_hash() */
   { case BY_O:
       iv = literal_hash(cursor);
       break;
     case BY_PO:
       iv = predicate_hash(p->predicate.r) ^ literal_hash(cursor);
+      break;
+    case BY_SPO:
+      iv = (atom_hash(p->subject)<<1) ^
+	   predicate_hash(p->predicate.r) ^
+	   literal_hash(cursor);
       break;
     default:
       iv = 0;				/* make compiler silent */
