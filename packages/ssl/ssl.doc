@@ -142,8 +142,7 @@ some by both server as client (marked CS).
         which makes it invalid (invalid validity date for example) the
         supplied function will be called to ask its opinion about the
         certificate. The predicate is called as follows:
-	\term{function}{+SSL, +Certificate, +Error}.  Access will be
-	granted iff the predicate succeeds.
+	\term{function}{+SSL, +ProblemCertificate, +AllCertificates, +FirstCertificate +Error}.  Access will be	granted iff the predicate succeeds.
     \termitem{cert}{+Boolean}
         Trigger the sending of our certificate as specified using
         the option \const{certificate_file} described earlier. For a
@@ -163,6 +162,11 @@ negotiate an SSL session over the streams. If the negotiation is successful,
     \predicate{ssl_exit}{1}{+SSL}
 Clean up all resources related to the SSLinstance.
 \end{description}
+
+    \predicate{ssl_load_certificate}{2}{+Filename, -Certificate}
+Loads a certificate from a PEM-encoded file, returning a term which will unify with the same certificate if presented in cert_verify_hook.
+\end{description}
+
 
 \section{Backward compatibility}
 

@@ -36,7 +36,8 @@
             ssl_open/3,                 % +Config, -Read, -Write
             ssl_open/4,                 % +Config, +Socket, -Read, -Write
             ssl_negotiate/5,            % +Config, +PlainRead, +PlainWrite, -SSLRead, -SSLWrite
-	    ssl_exit/1			% +Config
+	    ssl_exit/1,			% +Config
+            ssl_load_certificate/2      % +Filename, -Certificate
 	  ]).
 :- use_module(library(socket)).
 :- use_module(library(error)).

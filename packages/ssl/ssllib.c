@@ -480,8 +480,8 @@ ssl_set_cb_pem_passwd( PL_SSL *config
 BOOL
 ssl_set_cb_cert_verify( PL_SSL *config
                       , BOOL (*callback)( PL_SSL *
-                                        , const char *
-					, long
+                                        , X509 *
+                                        , X509_STORE_CTX *
                                         , const char *
                                         )
                       , void *data
@@ -519,69 +519,6 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
         int   err;
         const char *error;        
 
-        /* At this point, we have a slight divergence from what happens in web
-         * browsers. Verisign (at least) has cross-signed certificates, which
-         * apparently means that we can have more than one certification path.
-         * For example, the server may supply:
-         * peer -> intermediate CA 1 -> intermediate CA 2 -> Root CA
-         * OpenSSL will respect this supplied chain.
-         * Firefox and IE (at least) have a different version of
-         * intermediate CA 2, which is self-signed and trusted, but has the same
-         * public key as the intermediate CA 2 which is issued by the Root CA.
-         * The result is that if you supply the intermediate CA 2 as known to
-         * the web broswer via cacert_file in ssl_init, OpenSSL will fail to
-         * authenticate.
-         *
-         * There are two solutions. Obviously, we can supply the Root CA as the
-         * server is clearly expecting. Another is to progressively truncate the
-         * certificate chain if we encounter an error. After one step, in this
-         * case, OpenSSL will inject the trusted CA in at the top of the chain
-         * and approve the chain.
-         *
-         * Some people might argue this constitutes a security hole, since if
-         * the Intermediate CA 2 which is signed by the Root CA is revoked or
-         * expires, we will still authenticate the chain if we trust the self-
-         * signed intermediate 2 CA. I contend that if we really do trust the
-         * self-signed CA, then intermediate CA 1, which is signed by the same
-         * public key as our self-signed CA should also be trusted, regardless
-         * of what has happened to its brother who was signed by the Root CA.
-         *
-         * Because this change is localised, it could ultimately be controlled
-         * by a flag?
-         */
-        
-        X509 *top_server_supplied, *top_untrusted, *next_certificate;
-
-        /* Remove the top certificates from each chain and keep them for later
-         * Note that we aren't supposed to access ctx->chain and ctx->untrusted
-         * directly, but there appears to be no other way to access them?
-         */
-        top_server_supplied = sk_X509_pop(ctx->chain);
-        top_untrusted = sk_X509_pop(ctx->untrusted);
-       
-        /* Next examine to see if we're at the bottom of the chain */
-        next_certificate = sk_X509_pop(ctx->chain);
-        if (next_certificate != NULL && next_certificate != ctx->cert)
-        {
-           /* We're not, so put the certificate back on (this could be avoided if
-              there were an sk_X509_peek, obviously
-           */
-           sk_X509_push(ctx->chain, next_certificate);
-
-           /* Set the top certificate to be the next certificate down */
-           X509_STORE_CTX_set_cert(ctx, next_certificate);
-
-           /* And try validating the resulting chain */
-           if (X509_verify_cert(ctx) == 1)
-           {
-              return 1;
-           }
-        }
-        
-        /* We failed to pre-verify, so put the certs we removed back and continue */
-        sk_X509_push(ctx->chain, top_server_supplied); 
-        sk_X509_push(ctx->untrusted, top_untrusted);
-
         /*
          * Get certificate
          */
@@ -595,22 +532,7 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
         error = X509_verify_cert_error_string(err);
 
         if (config->pl_ssl_cb_cert_verify) {
-            BIO * mem = NULL;
-
-            if ((mem = BIO_new(BIO_s_mem())) != NULL) {
-                long n;
-                char *p;
-
-                X509_print(mem, cert);
-                if ((n = BIO_get_mem_data(mem, &p)) > 0) {
-                    preverify_ok = ((config->pl_ssl_cb_cert_verify)(config, p, n, error) != 0);
-                } else {
-                    ssl_err("failed to print certificate\n");
-                }
-                BIO_free(mem);
-            } else {
-                ssl_err("failed to allocate BIO buffer to write certificate\n");
-            }
+           preverify_ok = ((config->pl_ssl_cb_cert_verify)(config, cert, ctx, error) != 0);
         } else {
             char  subject[256];
             char  issuer [256];
