@@ -2280,20 +2280,26 @@ static int by_inverse[8] =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-triple *first(atom_t subject)
-    Find the first triple on subject.  The first is marked to generate a
-    unique subjects quickly;
+triple *first(rdf_db *db, atom_t subject, triple *t)
+
+Find the first triple on subject.  The   first  is  marked to generate a
+unique subjects quickly. If triple is given, start searching from there.
+This speeds up deletion of graphs,  where   we  tend  to delete multiple
+triples on the same subject.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static triple *
-first(rdf_db *db, atom_t subject)
-{ triple *t, tmp;
-  int hash;
+first(rdf_db *db, atom_t subject, triple *t)
+{ if ( !t )
+  { triple tmp;
+    int hash;
 
-  tmp.subject = subject;
-  hash = triple_hash(db, &tmp, BY_S);
+    tmp.subject = subject;
+    hash = triple_hash(db, &tmp, BY_S);
+    t=db->table[ICOL(BY_S)][hash];
+  }
 
-  for(t=db->table[ICOL(BY_S)][hash]; t; t = t->tp.next[ICOL(BY_S)])
+  for( ; t; t = t->tp.next[ICOL(BY_S)])
   { if ( t->subject == subject && !t->erased )
       return t;
   }
@@ -2386,7 +2392,7 @@ link_triple_silent(rdf_db *db, triple *t)
     goto ok;				/* is a duplicate */
 
 					/* keep track of subjects */
-  one = first(db, t->subject);
+  one = first(db, t->subject, NULL);
   if ( !one->first )
   { one->first = TRUE;
     db->subjects++;
@@ -2628,7 +2634,7 @@ erase_triple_silent(rdf_db *db, triple *t)
     }
 
     if ( t->first )
-    { triple *one = first(db, t->subject);
+    { triple *one = first(db, t->subject, t);
 
       if ( one )
 	one->first = TRUE;
@@ -5904,7 +5910,7 @@ rdf_subject(term_t subject, control_t h)
       { atom_t a;
 
 	if ( get_atom_ex(subject, &a) )
-	{ if ( first(db, a) )
+	{ if ( first(db, a, NULL) )
 	    return TRUE;
 	  return FALSE;
 	}
