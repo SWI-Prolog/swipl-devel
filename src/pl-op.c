@@ -137,8 +137,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX ||
 			       (priority < 1001 && priority != 0))) )
     { GET_LD
-      atom_t action = (name == ATOM_comma || name == ATOM_bar) ?
-			 ATOM_modify : ATOM_create;
+      atom_t action = (name == ATOM_comma ? ATOM_modify : ATOM_create);
       term_t t = PL_new_term_ref();
 
       PL_put_atom(t, name);
