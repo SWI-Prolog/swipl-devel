@@ -174,11 +174,14 @@ aggregate_all(Template, Discriminator, Goal0, Result) :-
 	aggregate_list(Aggregate, List, Result).
 
 
-template_to_pattern(_All, Template, Pattern, Goal0, Goal, Aggregate) :-
+template_to_pattern(All, Template, Pattern, Goal0, Goal, Aggregate) :-
 	template_to_pattern(Template, Pattern, Post, Vars, Aggregate),
 	existential_vars(Goal0, Goal1, AllVars, Vars),
 	clean_body((Goal1, Post), Goal2),
-	add_existential_vars(AllVars, Goal2, Goal).
+	(   All == bag
+	->  add_existential_vars(AllVars, Goal2, Goal)
+	;   Goal = Goal2
+	).
 
 existential_vars(Var, Var) -->
 	{ var(Var) }, !.

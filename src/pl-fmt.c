@@ -426,7 +426,6 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    char *str = buf;
 	    size_t bufsize = BUFSIZE;
 	    unsigned int i;
-	    int rc;
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
@@ -443,7 +442,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, proc, av);
 	    toldString();
 	    if ( !rc )
-	      return FALSE;
+	    { if ( str != buf )
+		free(str);
+	      goto out;
+	    }
 	    oututf8(&state, str, bufsize);
 	    if ( str != buf )
 	      free(str);

@@ -189,11 +189,12 @@ no_agc(Goal) :-
 %	through at_halt/1.
 
 rdf_detach_db :-
-	debug(halt, 'Detaching database', []),
+	debug(halt, 'Detaching RDF database', []),
 	stop_monitor,
 	close_journals,
 	(   retract(rdf_directory(Dir))
 	->  debug(halt, 'DB Directory: ~w', [Dir]),
+	    save_prefixes(Dir),
 	    retractall(rdf_option(_)),
 	    retractall(source_journal_fd(_,_)),
 	    retractall(db_file_base(_,_)),
@@ -247,6 +248,7 @@ rdf_flush_journal(DB, Options) :-
 
 load_db :-
 	rdf_directory(Dir),
+	load_prefixes(Dir),
 	working_directory(Old, Dir),
 	get_time(Wall0),
 	statistics(cputime, T0),
@@ -1041,7 +1043,55 @@ alphanum(C) -->
 	  code_type(C, alnum)
 	}.
 
-no_enc_extra(0'_) --> "_".		%'
+no_enc_extra(0'_) --> "_".
+
+
+		 /*******************************
+		 *	      PREFIXES		*
+		 *******************************/
+
+save_prefixes(Dir) :-
+	atomic_list_concat([Dir, /, 'prefixes.db'], PrefixFile),
+	setup_call_cleanup(open(PrefixFile, write, Out, [encoding(utf8)]),
+			   write_prefixes(Out),
+			   close(Out)).
+
+write_prefixes(Out) :-
+	format(Out, '% Snapshot of defined RDF prefixes~n~n', []),
+	forall(rdf_current_ns(Alias, URI),
+	       format(Out, 'prefix(~q, ~q).~n', [Alias, URI])).
+
+%%	load_prefixes(+RDFDBDir) is det.
+%
+%	If the file RDFDBDir/prefixes.db exists,  load the prefixes. The
+%	prefixes are registered using rdf_register_ns/3. Possible errors
+%	because the prefix  definitions  have   changed  are  printed as
+%	warnings, retaining the  old  definition.   Note  that  changing
+%	prefixes generally requires reloading all RDF from the source.
+
+load_prefixes(Dir) :-
+	atomic_list_concat([Dir, /, 'prefixes.db'], PrefixFile),
+	(   exists_file(PrefixFile)
+	->  setup_call_cleanup(open(PrefixFile, read, In, [encoding(utf8)]),
+			       read_prefixes(In),
+			       close(In))
+	;   true
+	).
+
+read_prefixes(Stream) :-
+	read_term(Stream, T0, []),
+	read_prefixes(T0, Stream).
+
+read_prefixes(end_of_file, _) :- !.
+read_prefixes(prefix(Alias, URI), Stream) :- !,
+	must_be(atom, Alias),
+	must_be(atom, URI),
+	catch(rdf_register_ns(Alias, URI, []), E,
+	      print_message(warning, E)),
+	read_term(Stream, T, []),
+	read_prefixes(T, Stream).
+read_prefixes(Term, _) :-
+	domain_error(prefix_term, Term).
 
 
 		 /*******************************

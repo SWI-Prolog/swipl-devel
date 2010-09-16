@@ -134,7 +134,8 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 
   if ( !force )
   { if ( name == ATOM_comma || name == ATOM_nil || name == ATOM_curl ||
-	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX || priority < 1001)) )
+	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX ||
+			       (priority < 1001 && priority != 0))) )
     { GET_LD
       atom_t action = (name == ATOM_comma || name == ATOM_bar) ?
 			 ATOM_modify : ATOM_create;
@@ -604,6 +605,7 @@ static const opdef operators[] = {
   OP(ATOM_softcut,		 OP_XFY, 1050),	/* *-> */
   OP(ATOM_divide,		 OP_YFX, 400),	/* / */
   OP(ATOM_gdiv,			 OP_YFX, 400),	/* // */
+  OP(ATOM_div,			 OP_YFX, 400),	/* div */
   OP(ATOM_rdiv,			 OP_YFX, 400),	/* rdiv */
   OP(ATOM_and,			 OP_YFX, 500),	/* /\ */
   OP(ATOM_colon,		 OP_XFY, 600),	/* : */

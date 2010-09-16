@@ -1464,18 +1464,14 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
   }
 
   if ( !info->detached )
-  { if ( is_alive(info->status) )
-    { int rc;
+  { int rc;
 
-      if ( (rc=pthread_detach(info->tid)) )
-      { assert(rc == ESRCH);
+    if ( (rc=pthread_detach(info->tid)) )
+    { assert(rc == ESRCH);
 
-	release = info;
-      } else
-	info->detached = TRUE;
-    } else
-    { pthread_detach(info->tid);
       release = info;
+    } else
+    { info->detached = TRUE;
     }
   }
 

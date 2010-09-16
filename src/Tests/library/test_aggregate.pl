@@ -140,5 +140,8 @@ test(density_range, Result == r(max(DMon, 'Monaco'),
 	DSva is 2868/62049,
 	aggregate(r(max(Pop/Area, Country), min(Pop/Area, Country)),
 		  country(Country, Area, Pop), Result).
+test(aggregate_all, Max == 3) :-
+	List = [1,2,3],
+	aggregate_all(r(max(A)), member(A,List), r(Max)).
 
 :- end_tests(aggregate).
