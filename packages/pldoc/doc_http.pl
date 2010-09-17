@@ -183,22 +183,18 @@ browser_url(Name//Arity, URL) :-
 browser_url(Name/Arity, URL) :- !,
 	must_be(atom, Name),
 	(   predicate(Name, Arity, _, _, _)
-	->  http_location_by_id(pldoc_man, ManLoc),
-	    format(string(S), '~q/~w', [Name, Arity]),
-	    www_form_encode(S, Enc),
-	    format(string(URL), '~w?predicate=~w', [ManLoc, Enc])
+	->  format(string(S), '~q/~w', [Name, Arity]),
+	    http_link_to_id(pldoc_man, [predicate=S], URL)
 	;   browser_url(_:Name/Arity, URL)
 	).
 browser_url(Spec, URL) :- !,
 	Spec = M:Name/Arity,
 	doc_comment(Spec, _Pos, _Summary, _Comment), !,
-	http_location_by_id(pldoc_object, ObjLoc),
 	(   var(M)
 	->  format(string(S), '~q/~w', [Name, Arity])
 	;   format(string(S), '~q:~q/~w', [M, Name, Arity])
 	),
-	www_form_encode(S, Enc),
-	format(string(URL), '~w?object=~w', [ObjLoc, Enc]).
+	http_link_to_id(doc_object, [object=S], URL).
 
 %%	prepare_editor
 %

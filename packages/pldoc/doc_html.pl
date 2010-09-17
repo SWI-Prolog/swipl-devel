@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (C): 2009-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -68,7 +69,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(readutil)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
@@ -1122,14 +1123,14 @@ predref(Callable, Module, Options) -->
 
 manref(Name/Arity, HREF, Options) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
 	(   option(files(_Map), Options)
-	->  option(man_server(ManHandler), Options,
-		   'http://gollem.science.uva.nl/SWI-Prolog/pldoc/man')
-	;   http_location_by_id(pldoc_man, ManHandler)
-	),
-	http_location_by_id(pldoc_man, ManHandler),
-	format(string(HREF), '~w?predicate=~w', [ManHandler, EncId]).
+	->  uri_query_components(Query, [predicate=FragmentId]),
+	    uri_data(authority, Components, 'www.swi-prolog.org'),
+	    uri_data(path, Components, '/pldoc/man'),
+	    uri_data(search, Components, Query),
+	    uri_components(HREF, Components)
+	;   http_link_to_id(pldoc_man, [predicate=FragmentId], HREF)
+	).
 
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
@@ -1145,20 +1146,20 @@ manref(Name/Arity, HREF, Options) :-
 
 pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
+	uri_data(fragment, Components, FragmentId),
 	functor(Head, Name, Arity),
 	(   catch(relative_file(Module:Head, File), _, fail)
-	->  format(string(HREF), '~w#~w', [File, EncId])
+	->  uri_data(path, Components, File),
+	    uri_components(HREF, Components)
 	;   in_file(Module:Head, File)
 	->  (	current_prolog_flag(home, SWI),
 		sub_atom(File, 0, _, _, SWI),
 		prolog:doc_object_summary(Name/Arity, packages, _, _)
-	    ->	format(string(FragmentId), '~w/~d', [Name, Arity]),
-		www_form_encode(FragmentId, EncId),
-		http_location_by_id(pldoc_man, ManHandler),
-		format(string(HREF), '~w?predicate=~w', [ManHandler, EncId])
+	    ->	http_link_to_id(pldoc_man, [predicate=FragmentId], HREF)
 	    ;	http_location_by_id(pldoc_doc, DocHandler),
-	        format(string(HREF), '~w~w#~w', [DocHandler, File, EncId])
+		atom_concat(DocHandler, File, Path),
+		uri_data(path, Components, Path),
+		uri_components(HREF, Components)
 	    )
 	).
 
@@ -1176,13 +1177,18 @@ relative_file(Head, RelFile) :-
 
 pred_source_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
+	uri_data(fragment, Components, FragmentId),
+	uri_query_components(Query, [source=true]),
+	uri_data(search, Components, Query),
 	functor(Head, Name, Arity),
 	(   catch(relative_file(Module:Head, File), _, fail)
-	->  format(string(HREF), '~w?source=true#~w', [File, EncId])
+	->  uri_data(path, Components, File),
+	    uri_components(HREF, Components)
 	;   in_file(Module:Head, File),
 	    http_location_by_id(pldoc_doc, DocHandler),
-	    format(string(HREF), '~w~w?source=true#~w', [DocHandler, File, EncId])
+	    atom_concat(DocHandler, File, Path),
+	    uri_data(path, Components, Path),
+	    uri_components(HREF, Components)
 	).
 
 
@@ -1218,17 +1224,16 @@ object_href(M:PI0, HREF, Options) :-
 	option(files(Map), Options),
 	module_property(M, file(File)),
 	memberchk(file(File, DocFile), Map), !,
+	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
 	expand_pi(PI0, PI),
 	term_to_string(PI, PIS),
-	www_form_encode(PIS, PIEnc),
-	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
-	format(string(HREF), '~w#~w', [LocalFile, PIEnc]).
+	uri_data(path, Components, LocalFile),
+	uri_data(fragment, Components, PIS),
+	uri_components(HREF, Components).
 object_href(Obj0, HREF, _Options) :-
 	localise_object(Obj0, Obj),
 	term_to_string(Obj, String),
-	www_form_encode(String, Enc),
-	http_location_by_id(pldoc_object, ObjHandler),
-	format(string(HREF), '~w?object=~w', [ObjHandler, Enc]).
+	http_link_to_id(pldoc_object, [object=String], HREF).
 
 expand_pi(Name//Arity0, Name/Arity) :- !,
 	Arity is Arity0+2.
