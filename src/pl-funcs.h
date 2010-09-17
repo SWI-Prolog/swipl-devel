@@ -154,6 +154,7 @@ COMMON(Number)		argvArithStack(int n ARG_LD);
 COMMON(void)		popArgvArithStack(int n ARG_LD);
 COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
 COMMON(int)		ar_sign_i(Number n1);
+COMMON(int)		check_float(double f);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 
 /* pl-bag.c */
@@ -832,7 +833,7 @@ COMMON(int)	PL_unify_number(term_t t, Number n);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
-COMMON(void)	promoteToFloatNumber(Number n);
+COMMON(int)	promoteToFloatNumber(Number n);
 COMMON(void)	make_same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);
 COMMON(int)	cmpNumbers(Number n1, Number n2);

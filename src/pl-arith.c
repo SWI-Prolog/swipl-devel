@@ -668,7 +668,7 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 
 #endif /* O_PROLOG_FUNCTIONS */
 
-static int
+int
 check_float(double f)
 {
 #ifdef HAVE_FPCLASSIFY
@@ -1058,7 +1058,7 @@ promoteIntNumber(Number n)
     if ( truePrologFlag(PLFLAG_ISO) )
       return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
-  promoteToFloatNumber(n);
+  return promoteToFloatNumber(n);
 #endif
 
   succeed;
@@ -1483,7 +1483,7 @@ ar_gcd(Number n1, Number n2, Number r)
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
   static int \
   name(Number n1, Number r) \
-  { promoteToFloatNumber(n1); \
+  { if ( !promoteToFloatNumber(n1) ) return FALSE; \
     r->value.f = op(n1->value.f); \
     r->type    = V_FLOAT; \
     return check_float(r->value.f); \
@@ -1541,8 +1541,8 @@ ar_gcd(Number n1, Number n2, Number r)
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { promoteToFloatNumber(n1); \
-    promoteToFloatNumber(n2); \
+  { if ( !promoteToFloatNumber(n1) || \
+	 !promoteToFloatNumber(n2) ) return FALSE; \
     r->value.f = func(n1->value.f, n2->value.f); \
     r->type = V_FLOAT; \
     return check_float(r->value.f); \
@@ -1650,8 +1650,9 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
-  promoteToFloatNumber(n1);
-  promoteToFloatNumber(n2);
+  if ( !promoteToFloatNumber(n1) ||
+       !promoteToFloatNumber(n2) )
+    return FALSE;
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
@@ -1688,7 +1689,8 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 
 static int
 ar_sqrt(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < 0 )
     return PL_error("sqrt", 1, NULL, ERR_AR_UNDEF);
   r->value.f = sqrt(n1->value.f);
@@ -1700,7 +1702,8 @@ ar_sqrt(Number n1, Number r)
 
 static int
 ar_asin(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("asin", 1, NULL, ERR_AR_UNDEF);
   r->value.f = asin(n1->value.f);
@@ -1712,7 +1715,8 @@ ar_asin(Number n1, Number r)
 
 static int
 ar_acos(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("acos", 1, NULL, ERR_AR_UNDEF);
   r->value.f = acos(n1->value.f);
@@ -1724,7 +1728,8 @@ ar_acos(Number n1, Number r)
 
 static int
 ar_log(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f <= 0.0 )
     return PL_error("log", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log(n1->value.f);
@@ -1736,7 +1741,8 @@ ar_log(Number n1, Number r)
 
 static int
 ar_log10(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f <= 0.0 )
     return PL_error("log10", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log10(n1->value.f);
@@ -2058,8 +2064,9 @@ ar_divide(Number n1, Number n2, Number r)
   }
 
 					/* TBD: How to handle Q? */
-  promoteToFloatNumber(n1);
-  promoteToFloatNumber(n2);
+  if ( !promoteToFloatNumber(n1) ||
+       !promoteToFloatNumber(n2) )
+    return FALSE;
   if ( n2->value.f == 0.0 )
     return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
   r->value.f = n1->value.f / n2->value.f;
@@ -2424,7 +2431,8 @@ ar_u_minus(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-  	promoteToFloatNumber(n1);
+  	if ( !promoteToFloatNumber(n1) )
+	  return FALSE;
 	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
@@ -2478,7 +2486,8 @@ ar_abs(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-	promoteToFloatNumber(n1);
+	if ( !promoteToFloatNumber(n1) )
+	  return FALSE;
 	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
@@ -2585,9 +2594,8 @@ ar_integer(Number n1, Number r)
 static int
 ar_float(Number n1, Number r)
 { cpNumber(r, n1);
-  promoteToFloatNumber(r);
 
-  succeed;
+  return promoteToFloatNumber(r);
 }
 
 

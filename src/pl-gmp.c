@@ -843,7 +843,7 @@ PL_get_number(term_t t, Number n)
 		 *	     PROMOTION		*
 		 *******************************/
 
-void
+int
 promoteToFloatNumber(Number n)
 { switch(n->type)
   { case V_INTEGER:
@@ -854,6 +854,9 @@ promoteToFloatNumber(Number n)
     case V_MPZ:
     { double val = mpz_get_d(n->value.mpz);
 
+      if ( !check_float(val) )
+	return FALSE;
+
       clearNumber(n);
       n->value.f = val;
       n->type = V_FLOAT;
@@ -861,6 +864,9 @@ promoteToFloatNumber(Number n)
     }
     case V_MPQ:
     { double val = mpq_get_d(n->value.mpq);
+
+      if ( !check_float(val) )
+	return FALSE;
 
       clearNumber(n);
       n->value.f = val;
@@ -871,6 +877,8 @@ promoteToFloatNumber(Number n)
     case V_FLOAT:
       break;
   }
+
+  return TRUE;
 }
 
 
