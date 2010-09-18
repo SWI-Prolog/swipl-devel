@@ -604,7 +604,7 @@ linda_eval_detached(Head) :-
 linda_eval_detached(Head, Body) :-
 	must_be(callable, Body),
 	strip_module(Head, _Module, Plain),
-	thread_create(forall(Body, out(Plain)), _Id, [detach(true)]).
+	thread_create(forall(Body, out(Plain)), _Id, [detached(true)]).
 
 %%	tuple(:Goal) is det.
 %%      tuple(?Head, :Goal) is det.
