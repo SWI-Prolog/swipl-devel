@@ -2069,30 +2069,35 @@ or clause in the database. The fact or clause is removed from the database.
 
     \predicate{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
-unifies with \arg{Head} are removed.
-
-    \predicate{assert}{1}{+Term}
-Assert a fact or clause in the database. \arg{Term} is asserted as the last
-fact or clause of the corresponding predicate.
+unifies with \arg{Head} are removed. If \arg{Head} refers to a predicate
+that is not defined, it is implicitly created as a dynamic predicate.
+See also dynamic/1.\footnote{The ISO standard only allows using
+dynamic/1 as a \jargon{directive}.}
 
     \predicate[ISO]{asserta}{1}{+Term}
-Equivalent to assert/1, but \arg{Term} is asserted as first clause or fact
-of the predicate.
+Assert a fact or clause in the database. \arg{Term} is asserted as the
+firsr fact or clause of the corresponding predicate. Equivalent to
+assert/1, but \arg{Term} is asserted as first clause or fact of the
+predicate.
 
     \predicate[ISO]{assertz}{1}{+Term}
-Equivalent to assert/1.
+Equivalent to asserta/1, but \arg{Term} is asserted as the last clause
+or fact of the predicate.
 
-    \predicate{assert}{2}{+Term, -Reference}
-Equivalent to assert/1, but \arg{Reference} is unified with a unique
-reference to the asserted clause. This key can later be used with
-clause/3 or erase/1.
+    \predicate{assert}{1}{+Term}
+Equivalent to assertz/1.  Deprecated: new code should use assertz/1.
 
     \predicate{asserta}{2}{+Term, -Reference}
-Equivalent to assert/2, but \arg{Term} is asserted as first clause or fact
-of the predicate.
+Asserts a clause as asserta/1 and unifies \arg{Reference} with a handle
+to this clause. The handle can be used to access this specific clause
+using clause/3 and erase/1.
 
     \predicate{assertz}{2}{+Term, -Reference}
-Equivalent to assert/2.
+Equivalent to asserta/1, asserting the new clause as the last clause of
+the predicate.
+
+    \predicate{assert}{2}{+Term, -Reference}
+Equivalent to assertz/2.
 
     \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}.

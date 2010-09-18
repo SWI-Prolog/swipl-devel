@@ -2009,7 +2009,7 @@ pl_retractall(term_t head)
   int allvars = TRUE;
   fid_t fid;
 
-  if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
+  if ( !get_procedure(head, &proc, thehead, GP_CREATE) )
     succeed;
 
   def = getProcDefinition(proc);
