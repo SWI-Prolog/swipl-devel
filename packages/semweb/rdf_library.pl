@@ -152,7 +152,7 @@ delete_virtual([H|T0], [H|T]) :-
 find_conflicts(Commands) :-
 	sort(Commands, Cmds),
 	conflicts(Cmds, Conflicts),
-	report_conflics(Conflicts),
+	report_conflicts(Conflicts),
 	Conflicts == [].
 
 conflicts([], []).
@@ -167,10 +167,10 @@ conflict(rdf_load(Src, Options1), rdf_load(Src, Options2)) :-
 	sort(Options2, S2),
 	S1 \== S2.
 
-report_conflics([]).
-report_conflics([C1-C2|T]) :-
+report_conflicts([]).
+report_conflicts([C1-C2|T]) :-
 	print_message(warning, rdf(load_conflict(C1,C2))),
-	report_conflics(T).
+	report_conflicts(T).
 
 
 %%	check_existence(+CommandsIn, -Commands, +Options) is det.
