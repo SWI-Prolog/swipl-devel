@@ -837,6 +837,11 @@ create_db(DB) :-
 %	Remove snapshot and journal file for DB.
 
 delete_db(DB) :-
+	with_mutex(rdf_journal_file,
+		   delete_db_(DB)).
+
+delete_db_(DB) :-
+	close_journal_(DB),
 	db_abs_files(DB, Snapshot, Journal),
 	(   exists_file(Journal)
 	->  delete_file(Journal)
