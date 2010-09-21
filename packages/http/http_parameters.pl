@@ -115,7 +115,8 @@ fill_parameter(H, FormData, _) :-
 	fill_param(Name, Value, Options, FormData).
 fill_parameter(H, FormData, DeclGoal) :-
 	H =.. [Name,Value],
-	(   call(DeclGoal, Name, Options)
+	(   DeclGoal \== (-),
+	    call(DeclGoal, Name, Options)
 	->  true
 	;   throw(error(existence_error(attribute_declaration, Name), _))
 	),
