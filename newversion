@@ -47,5 +47,5 @@ rm -f $tmp
 gittag="V${major}.${minor}.${patch}"
 
 if confirm "Tag the GIT repository with $gittag? "; then
-    git tag -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
+    git tag -s -f -m "Release tag for ${major}.${minor}.${patch}" $gittag
 fi
