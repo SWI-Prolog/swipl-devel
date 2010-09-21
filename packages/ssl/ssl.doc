@@ -161,7 +161,6 @@ negotiate an SSL session over the streams. If the negotiation is successful,
 
     \predicate{ssl_exit}{1}{+SSL}
 Clean up all resources related to the SSLinstance.
-\end{description}
 
     \predicate{ssl_load_certificate}{2}{+Filename, -Certificate}
 Loads a certificate from a PEM-encoded file, returning a term which will unify with the same certificate if presented in cert_verify_hook.
