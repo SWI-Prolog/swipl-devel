@@ -69,6 +69,7 @@ static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_issuername1;
 static functor_t FUNCTOR_serial1;
 static functor_t FUNCTOR_public_key5;
+static functor_t FUNCTOR_private_key8;
 static functor_t FUNCTOR_key1;
 static functor_t FUNCTOR_hash1;
 static functor_t FUNCTOR_signature1;
@@ -230,8 +231,79 @@ get_predicate_arg(int a, module_t m, term_t t, int arity, predicate_t *pred)
 }
 
 static int
-unify_key(term_t item, RSA* rsa)
-{ term_t n_t, d_t, e_t, p_t, q_t, dmp1_t, dmq1_t, iqmp_t, key_t;
+recover_public_key(term_t public_t, RSA** rsa)
+{
+   char *n, *e;
+   term_t n_t, e_t;
+   
+   n_t = PL_new_term_ref();
+   e_t = PL_new_term_ref();
+   
+   if(!(PL_get_arg(1, public_t, n_t) &&
+        PL_get_arg(2, public_t, e_t)))
+      return type_error(public_t, "public_key");
+
+   if (!(PL_get_atom_chars(n_t, &n) &&
+         PL_get_atom_chars(e_t, &e)))
+      return type_error(public_t, "public_key");
+   *rsa = RSA_new();
+   BN_hex2bn(&((*rsa)->n), n);
+   BN_hex2bn(&((*rsa)->e), e);
+   return TRUE;
+}
+
+static int
+recover_private_key(term_t private_t, RSA** rsa)
+{
+   char *n, *d, *e, *p, *q, *dmp1, *dmq1, *iqmp;
+   term_t n_t, d_t, e_t, p_t, q_t, dmp1_t, dmq1_t, iqmp_t;
+   
+   n_t = PL_new_term_ref();
+   e_t = PL_new_term_ref();
+   d_t = PL_new_term_ref();
+   p_t = PL_new_term_ref();
+   q_t = PL_new_term_ref();
+   dmp1_t = PL_new_term_ref();
+   dmq1_t = PL_new_term_ref();
+   iqmp_t = PL_new_term_ref();
+   if(!(PL_get_arg(1, private_t, n_t) &&
+        PL_get_arg(2, private_t, e_t) &&
+        PL_get_arg(3, private_t, d_t) &&
+        PL_get_arg(4, private_t, p_t) &&
+        PL_get_arg(5, private_t, q_t) &&
+        PL_get_arg(6, private_t, dmp1_t) &&
+        PL_get_arg(7, private_t, dmq1_t) &&
+        PL_get_arg(8, private_t, iqmp_t)))
+      return type_error(private_t, "private_key");   
+   ssl_deb(1, "Dismantling key");
+   if (!(PL_get_atom_chars(n_t, &n) &&
+         PL_get_atom_chars(e_t, &e) &&
+         PL_get_atom_chars(d_t, &d) &&
+         PL_get_atom_chars(p_t, &p) &&
+         PL_get_atom_chars(q_t, &q) &&
+         PL_get_atom_chars(dmp1_t, &dmp1) &&
+         PL_get_atom_chars(dmq1_t, &dmq1) &&
+         PL_get_atom_chars(iqmp_t, &iqmp)))
+      return type_error(private_t, "private_key");   
+   ssl_deb(1, "Assembling RSA");
+   *rsa = RSA_new();
+   
+   BN_hex2bn(&((*rsa)->n), n);
+   BN_hex2bn(&((*rsa)->d), d);
+   BN_hex2bn(&((*rsa)->e), e);
+   BN_hex2bn(&((*rsa)->p), p);
+   BN_hex2bn(&((*rsa)->q), q);
+   BN_hex2bn(&((*rsa)->dmp1), dmp1);
+   BN_hex2bn(&((*rsa)->dmq1), dmq1);
+   BN_hex2bn(&((*rsa)->iqmp), iqmp);
+   return TRUE;
+}
+
+
+
+static int
+unify_private_key(term_t item, RSA* rsa)
+{ term_t n_t, d_t, e_t, p_t, q_t, dmp1_t, dmq1_t, iqmp_t;
   char* hex;
   int retval = 1;
 
@@ -294,6 +366,60 @@ unify_key(term_t item, RSA* rsa)
   } else
      retval = retval && (PL_unify_atom_chars(iqmp_t, "-"));
 
+  return retval && PL_unify_term(item,
+                                 PL_FUNCTOR, FUNCTOR_key1,
+                                 PL_FUNCTOR, FUNCTOR_private_key8,
+                                 PL_TERM, n_t,
+                                 PL_TERM, e_t,
+                                 PL_TERM, d_t,
+                                 PL_TERM, p_t,
+                                 PL_TERM, q_t,                                   
+                                 PL_TERM, dmp1_t,
+                                 PL_TERM, dmq1_t,
+                                 PL_TERM, iqmp_t);
+}
+
+static int
+unify_public_key(term_t item, RSA* rsa)
+{ term_t n_t, e_t, dmp1_t, dmq1_t, iqmp_t, key_t;
+  char* hex;
+  int retval = 1;
+
+  n_t = PL_new_term_ref();
+  e_t = PL_new_term_ref();
+  dmp1_t = PL_new_term_ref();
+  dmq1_t = PL_new_term_ref();
+  iqmp_t = PL_new_term_ref();
+
+  hex = BN_bn2hex(rsa->n);
+  retval = retval && (PL_unify_atom_nchars(n_t, strlen(hex), hex));
+  OPENSSL_free(hex);
+
+  hex = BN_bn2hex(rsa->e);
+  retval = retval && (PL_unify_atom_nchars(e_t, strlen(hex), hex));
+  OPENSSL_free(hex);
+
+  if (rsa->dmp1 != NULL)
+  { hex = BN_bn2hex(rsa->dmp1);
+    retval = retval && (PL_unify_atom_nchars(dmp1_t, strlen(hex), hex));
+    OPENSSL_free(hex);
+  } else
+      retval = retval && (PL_unify_atom_chars(dmp1_t, "-"));
+
+  if (rsa->dmq1 != NULL)
+  { hex = BN_bn2hex(rsa->dmq1);
+    retval = retval && (PL_unify_atom_nchars(dmq1_t, strlen(hex), hex));
+    OPENSSL_free(hex);
+  } else
+     retval = retval && (PL_unify_atom_chars(dmq1_t, "-"));
+
+  if (rsa->iqmp != NULL)
+  { hex = BN_bn2hex(rsa->iqmp);
+    retval = retval && (PL_unify_atom_nchars(iqmp_t, strlen(hex), hex));
+    OPENSSL_free(hex);
+  } else
+     retval = retval && (PL_unify_atom_chars(iqmp_t, "-"));
+
   key_t = PL_new_term_ref();
   retval = retval && PL_unify_term(key_t,
                                    PL_FUNCTOR, FUNCTOR_public_key5,
@@ -307,7 +433,151 @@ unify_key(term_t item, RSA* rsa)
                                  PL_TERM, key_t);
 }
 
-static int unify_name(term_t term, X509_NAME* name)
+
+/* Note that while this might seem incredibly hacky, it is
+   essentially the same algorithm used by X509_cmp_time to
+   parse the date. Some 
+   Fractional seconds are ignored. This is also largely untested - there
+   may be a lot of edge cases that dont work!
+*/
+static int
+unify_asn1_time(term_t term, ASN1_TIME *time)
+{ time_t result = 0;
+  char buffer[24];
+  char* pbuffer = buffer;
+  size_t length = time->length;
+  char * source = (char *)time->data;
+  struct tm time_tm;
+  time_t lSecondsFromUTC;
+
+  if (time->type == V_ASN1_UTCTIME)
+  {  if ((length < 11) || (length > 17))
+     {  ssl_deb(2, "Unable to parse time - expected either 11 or 17 chars, not %d", length);
+        return FALSE;
+     }
+     /* Otherwise just get the first 10 chars - ignore seconds */
+     memcpy(pbuffer, source, 10);
+     pbuffer += 10;
+     source += 10;
+  } else
+  { if (length < 13)
+     {  ssl_deb(2, "Unable to parse time - expected at least 13 chars, not %d", length);
+        return FALSE;
+     }
+     /* Otherwise just get the first 12 chars - ignore seconds */
+     memcpy(pbuffer, source, 10);
+     pbuffer += 10;
+     source += 10;
+  }
+  /* Next find end of string */
+  if ((*source == 'Z') || (*source == '-') || (*source == '+'))
+  { *(pbuffer++) = '0';
+    *(pbuffer++) = '0';
+  } else
+  { *(pbuffer++) = *(source++);
+    *(pbuffer++) = *(source++);
+    if (*source == '.')
+    { source++;
+      while ((*source >= '0') && (*source <= '9'))
+         source++;
+    }
+  }
+  *(pbuffer++) = 'Z';
+  *(pbuffer++) = '\0';
+
+  /* If not UTC, calculate offset */
+  if (*source == 'Z')
+     lSecondsFromUTC = 0;
+  else
+  { if ((*source != '+') && (source[5] != '-'))
+     {  ssl_deb(2, "Unable to parse time. Missing UTC offset");
+        return FALSE;
+     }
+     lSecondsFromUTC = ((source[1]-'0') * 10 + (source[2]-'0')) * 60;
+     lSecondsFromUTC += (source[3]-'0') * 10 + (source[4]-'0');
+     if (*source == '-')
+        lSecondsFromUTC = -lSecondsFromUTC;
+  }
+  /* Parse date */
+  time_tm.tm_sec  = ((buffer[10] - '0') * 10) + (buffer[11] - '0');
+  time_tm.tm_min  = ((buffer[8] - '0') * 10) + (buffer[9] - '0');
+  time_tm.tm_hour = ((buffer[6] - '0') * 10) + (buffer[7] - '0');
+  time_tm.tm_mday = ((buffer[4] - '0') * 10) + (buffer[5] - '0');
+  time_tm.tm_mon  = (((buffer[2] - '0') * 10) + (buffer[3] - '0')) - 1;
+  time_tm.tm_year = ((buffer[0] - '0') * 10) + (buffer[1] - '0');
+  if (time_tm.tm_year < 50)
+     time_tm.tm_year += 100; /* according to RFC 2459 */
+  time_tm.tm_wday = 0;
+  time_tm.tm_yday = 0;
+  time_tm.tm_isdst = 0;  /* No DST adjustment requested, though mktime might do it anyway */
+  result = mktime(&time_tm);
+  if ((time_t)-1 != result)
+  { if (time_tm.tm_isdst != 0)
+        result -= 3600; /* if mktime has adjusted the time for DST, adjust it back 1 hour*/
+     result += lSecondsFromUTC; /* Add in the UTC offset, or should we return UTC time? */
+  } else
+  { ssl_deb(2, "mktime() failed");
+    return FALSE;
+  }
+  return PL_unify_integer(term, result);
+}
+
+static int
+unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char**), void * data)
+{ const EVP_MD *type;
+  EVP_MD_CTX ctx;
+  int digestible_length;
+  unsigned char* digest_buffer;
+  unsigned char digest[EVP_MAX_MD_SIZE];
+  unsigned int digest_length;
+  unsigned char* p;
+
+  /* Generate hash */
+  type=EVP_get_digestbyname(OBJ_nid2sn(OBJ_obj2nid(algorithm)));
+  if (type == NULL)
+  { Sdprintf("Could not understand signature type\n");
+    /* TBD: Raise error here? */
+    return FALSE;
+  }
+  EVP_MD_CTX_init(&ctx);
+  digestible_length=i2d(data,NULL);
+  digest_buffer = PL_malloc(digestible_length);
+  if (digest_buffer == NULL)
+     return resource_error("memory");
+
+  /* i2d_X509_CINF will change the value of p. We need to pass in a copy */
+  p = digest_buffer;
+  i2d(data,&p);
+  if (!EVP_DigestInit(&ctx, type))
+  { PL_free(digest_buffer);
+    Sdprintf("Could not initialize digest\n");
+    /* TBD: Raise error here? */
+    return FALSE;
+  }
+  if (!EVP_DigestUpdate(&ctx, digest_buffer, digestible_length))
+  { PL_free(digest_buffer);
+    Sdprintf("Could not update digest\n");
+    /* TBD: Raise error here? */
+    return FALSE;
+  }
+  if (!EVP_DigestFinal(&ctx, digest, &digest_length))
+  { PL_free(digest_buffer);
+    Sdprintf("Could not finalize digest\n");
+    /* TBD: Raise error here? */
+    return FALSE;
+  }
+  if (!PL_unify_term(hash,
+                     PL_NCHARS, digest_length, digest))
+  { PL_free(digest_buffer);
+    Sdprintf("Could not unify?\n");
+    return FALSE;
+  }
+  PL_free(digest_buffer);
+  PL_succeed;
+}
+
+static int
+unify_name(term_t term, X509_NAME* name)
 { int ni;
   term_t list = PL_copy_term_ref(term);
   term_t item = PL_new_term_ref();
@@ -490,7 +760,98 @@ pl_ssl_load_certificate(term_t filename, term_t cert)
   if (!(bio = BIO_new_file(filename_chars, "rb")))
     return existence_error(filename);
 
-  x509 = PEM_read_bio_X509(bio, NULL, 0, NULL);
+foreign_t
+pl_load_private_key(term_t source, term_t password, term_t key_t)
+{ EVP_PKEY* key;
+  RSA* rsa;
+  BIO* bio;
+  IOSTREAM* stream;
+  char* password_chars;
+  int c;
+  
+  if (!PL_get_atom_chars(password, &password_chars))
+    return type_error(password, "atom");
+  if ( !PL_get_stream_handle(source, &stream) )
+     return type_error(source, "stream");
+  bio = BIO_new(&bio_read_functions);
+  BIO_set_ex_data(bio, 0, stream);
+  
+  /* Determine format */
+  c = Sgetc(stream);
+  if (c != EOF)
+     Sungetc(c, stream);
+  if (c == 0x30)  /* ASN.1 sequence, so assume DER */
+     key = d2i_PrivateKey_bio(bio, NULL); /* TBD: Password! */
+  else
+     key = PEM_read_bio_PrivateKey(bio, NULL, &private_password_callback, (void*)password_chars);
+  BIO_free(bio);
+  PL_release_stream(stream);
+  if (key == NULL)
+     return permission_error("read", "key", source);
+  rsa = EVP_PKEY_get1_RSA(key);
+  EVP_PKEY_free(key);
+  if (unify_private_key(key_t, rsa))
+  { RSA_free(rsa);
+    PL_succeed;
+  } else
+  { RSA_free(rsa);
+    PL_fail;
+  }
+}
+
+foreign_t
+pl_load_crl(term_t source, term_t list)
+{ X509_CRL* crl;
+  BIO* bio;
+  IOSTREAM* stream;
+  int result;
+  int c;
+  
+  if ( !PL_get_stream_handle(source, &stream) )
+     return type_error(source, "stream");
+
+  bio = BIO_new(&bio_read_functions);
+  BIO_set_ex_data(bio, 0, stream);
+  /* Determine the format of the CRL */
+  c = Sgetc(stream);
+  if (c != EOF)
+     Sungetc(c, stream);
+  if (c == 0x30)  /* ASN.1 sequence, so assume DER */
+     crl = d2i_X509_CRL_bio(bio, NULL);
+  else
+     crl = PEM_read_bio_X509_CRL(bio, NULL, NULL, NULL);
+  BIO_free(bio);
+  PL_release_stream(stream);
+  if (crl == NULL)
+  { ssl_deb(2, "Failed to load CRL");
+    PL_fail;
+  }
+  result = unify_crl(list, crl);
+  X509_CRL_free(crl);
+  return result;
+}
+
+foreign_t
+pl_load_certificate(term_t source, term_t cert)
+{ X509* x509;
+  BIO* bio;
+  IOSTREAM* stream;
+  int c = 0;
+  
+  if ( !PL_get_stream_handle(source, &stream) )
+     return type_error(source, "stream");
+  bio = BIO_new(&bio_read_functions);
+  BIO_set_ex_data(bio, 0, stream);
+  /* Determine format */
+  c = Sgetc(stream);
+  if (c != EOF)
+     Sungetc(c, stream);
+  if (c == 0x30)  /* ASN.1 sequence, so assume DER */
+     x509 = d2i_X509_bio(bio, NULL);
+  else
+     x509 = PEM_read_bio_X509(bio, NULL, 0, NULL);  
+  BIO_free(bio);
+  PL_release_stream(stream);
   if (x509 == NULL)
   { Sdprintf("Could not read certificate - may be encrypted?");
     /* TBD: Raise error here? */
@@ -935,6 +1296,7 @@ install_ssl4pl()
   FUNCTOR_serial1	  = PL_new_functor(PL_new_atom("serial"), 1);
   FUNCTOR_key1	          = PL_new_functor(PL_new_atom("key"), 1);
   FUNCTOR_public_key5     = PL_new_functor(PL_new_atom("public_key"), 5);
+  FUNCTOR_private_key8    = PL_new_functor(PL_new_atom("private_key"), 8);
   FUNCTOR_hash1	          = PL_new_functor(PL_new_atom("hash"), 1);
   FUNCTOR_signature1      = PL_new_functor(PL_new_atom("signature"), 1);
   FUNCTOR_equals2         = PL_new_functor(PL_new_atom("="), 2);
