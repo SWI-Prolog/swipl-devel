@@ -142,7 +142,7 @@ some by both server as client (marked CS).
         which makes it invalid (invalid validity date for example) the
         supplied function will be called to ask its opinion about the
         certificate. The predicate is called as follows:
-	\term{function}{+SSL, +ProblemCertificate, +AllCertificates, +FirstCertificate +Error}.  Access will be	granted iff the predicate succeeds.
+	\term{function}{+SSL, +ProblemCertificate, +AllCertificates, +FirstCertificate +Error}.  Access will be	granted iff the predicate succeeds. See load_certificate for a description of the certificate terms
     \termitem{cert}{+Boolean}
         Trigger the sending of our certificate as specified using
         the option \const{certificate_file} described earlier. For a
@@ -162,9 +162,14 @@ negotiate an SSL session over the streams. If the negotiation is successful,
     \predicate{ssl_exit}{1}{+SSL}
 Clean up all resources related to the SSLinstance.
 
-    \predicate{ssl_load_certificate}{2}{+Filename, -Certificate}
-Loads a certificate from a PEM-encoded file, returning a term which will unify with the same certificate if presented in cert_verify_hook.
+    \predicate{load_certificate}{2}{+Stream, -Certificate}
+Loads a certificate from a PEM- or DER-encoded stream, returning a term which will unify with the same certificate if presented in cert_verify_hook. A certificate is a list containing the following terms: issuer_name/1, hash/1, signature/1, version/1, notbefore/1, notafter/1, serial/1, subject/1 and key/1. subject/1 and issuer_name are both lists of =/2 terms representing the name.
+
+    \predicate{load_crl}{2}{+Stream, -CRL}
+Loads a CRL from a PEM- or DER-encoded stream, returning a term containing terms hash/1, signature/1, issuer_name/1 and revocations/1, which is a list of revoked/2 terms. Each revoked/2 term is of the form revoked(+Serial, DateOfRevocation)
+
 \end{description}
+
 
 
 \section{Backward compatibility}

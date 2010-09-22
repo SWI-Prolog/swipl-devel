@@ -504,7 +504,6 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
 {
     SSL    * ssl    = NULL;
     PL_SSL * config = NULL;
-
     /*
      * Get our config data
      */
@@ -931,12 +930,29 @@ int bio_read(BIO* bio, char* buf, int len)
 {
    IOSTREAM* stream;
    stream  = BIO_get_ex_data(bio, 0);
-   if ( stream->functions->read )
+   return (int)Sfread(buf, sizeof(char), len, stream);
+}
+
+/*
+ * Gets function. If only OpenSSL actually had usable documentation, I might know
+ * what this was actually meant to do....
+ */
+
+int bio_gets(BIO* bio, char* buf, int len)
+{
+   IOSTREAM* stream;
+   int r = 0;
+   stream = BIO_get_app_data(bio);
+   for (r = 0; r < len; r++)
    {
-      return (*stream->functions->read)(stream->handle, buf, len);
+      int c = Sgetc(stream);
+      if (c == EOF)
+         return r-1;
+      buf[r] = (char)c;
+      if (buf[r] == '\n')
+         break;
    }
-   else
-      return -1;
+   return r;
 }
 
 /*
@@ -946,13 +962,12 @@ int bio_read(BIO* bio, char* buf, int len)
 int bio_write(BIO* bio, const char* buf, int len)
 {
    IOSTREAM* stream;
+   int r;      
    stream  = BIO_get_ex_data(bio, 0);
-   if ( stream->functions->write )
-   {
-      return (*stream->functions->write)(stream->handle, (char*)buf, len);
-   }
-   else
-      return -1;
+   r = (int)Sfwrite(buf, sizeof(char), len, stream);
+   /* OpenSSL expects there to be no buffering when it writes. Flush here */
+   Sflush(stream);
+   return r;
 }
 
 /*
@@ -964,7 +979,6 @@ long bio_control(BIO* bio, int cmd, long num, void* ptr)
 {
    IOSTREAM* stream;
    stream  = BIO_get_ex_data(bio, 0);
-
    switch(cmd)
    {
      case BIO_CTRL_FLUSH:
@@ -1010,7 +1024,7 @@ BIO_METHOD bio_read_functions = {BIO_TYPE_MEM,
                                  NULL,
                                  &bio_read,
                                  NULL,
-                                 NULL,
+                                 &bio_gets,
                                  &bio_control,
                                  &bio_create,
                                  &bio_destroy};
@@ -1038,11 +1052,11 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
     PL_SSL_INSTANCE * instance = NULL;
     BIO* rbio = NULL;
     BIO* wbio = NULL;
+    
     if ((instance = ssl_instance_new(config, sread, swrite)) == NULL) {
         ssl_deb(1, "ssl instance malloc failed\n");
         return NULL;
     }
-
     /*
      * Configure SSL behaviour with install configuration parameters
      */
@@ -1057,7 +1071,6 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
     BIO_set_ex_data(rbio, 0, sread);
     wbio = BIO_new(&bio_write_functions);
     BIO_set_ex_data(wbio, 0, swrite);
-
     /*
      * Prepare SSL layer
      */
@@ -1070,10 +1083,8 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
      * Store reference to our config data in SSL
      */
     SSL_set_ex_data(instance->ssl, ssl_idx, config);
-
     SSL_set_bio(instance->ssl, rbio, wbio); /* No return value */
     ssl_deb(1, "allocated ssl fd\n");
-
     switch (config->pl_ssl_role) {
         case PL_SSL_SERVER:
             ssl_deb(1, "setting up SSL server side\n");

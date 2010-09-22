@@ -74,6 +74,9 @@ static functor_t FUNCTOR_key1;
 static functor_t FUNCTOR_hash1;
 static functor_t FUNCTOR_signature1;
 static functor_t FUNCTOR_equals2;
+static functor_t FUNCTOR_crl1;
+static functor_t FUNCTOR_revocations1;
+static functor_t FUNCTOR_revoked2;
 
 
 static int
@@ -601,6 +604,60 @@ unify_name(term_t term, X509_NAME* name)
 }
 
 static int
+unify_crl(term_t term, X509_CRL* crl)
+{ X509_CRL_INFO* info = crl->crl;
+  int i;
+  term_t item = PL_new_term_ref();
+  term_t hash = PL_new_term_ref();
+  term_t issuer = PL_new_term_ref();
+  term_t revocations = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(revocations);
+  int result = 1;
+  long n;
+  unsigned char* p;
+  term_t revocation_date;
+  BIO* mem;
+
+  mem = BIO_new(BIO_s_mem());
+  if (mem == NULL)
+     return resource_error("memory");
+  
+  i2a_ASN1_INTEGER(mem, crl->signature);
+  if (!(unify_name(issuer, X509_CRL_get_issuer(crl)) &&
+        unify_hash(hash, crl->sig_alg->algorithm, i2d_X509_CRL_INFO, crl->crl) && 
+        PL_unify_term(term,
+                      PL_LIST, 4, 
+                      PL_FUNCTOR, FUNCTOR_issuername1,
+                      PL_TERM, issuer,
+                      PL_FUNCTOR, FUNCTOR_signature1,
+                      PL_NCHARS, crl->signature->length, crl->signature->data,
+                      PL_FUNCTOR, FUNCTOR_hash1, 
+                      PL_TERM, hash,
+                      PL_FUNCTOR, FUNCTOR_revocations1,
+                      PL_TERM, revocations)))
+  {
+     return FALSE;
+  }
+                     
+  for (i = 0; i < sk_X509_REVOKED_num(info->revoked); i++)
+  {
+     X509_REVOKED* revoked = sk_X509_REVOKED_value(info->revoked, i);
+     i2a_ASN1_INTEGER(mem, revoked->serialNumber);
+     result &= (((n = BIO_get_mem_data(mem, &p)) > 0) &&
+                PL_unify_list(list, item, list) &&
+                (revocation_date = PL_new_term_ref()) &&
+                unify_asn1_time(revocation_date, revoked->revocationDate) &&
+                PL_unify_term(item,
+                              PL_FUNCTOR, FUNCTOR_revoked2,
+                              PL_NCHARS, n, p,
+                              PL_TERM, revocation_date));
+     BIO_reset(mem);
+  }
+  BIO_free(mem);
+  return result && PL_unify_nil(list);
+}
+
+static int
 unify_certificate(term_t cert, X509* data)
 { term_t list = PL_copy_term_ref(cert);
   term_t item = PL_new_term_ref();
@@ -608,15 +665,15 @@ unify_certificate(term_t cert, X509* data)
   long n;
   EVP_PKEY *key;
   RSA* rsa;
-  int digestible_length;
-  unsigned char* digest_buffer;
-  unsigned char* p;
-  EVP_MD_CTX ctx;
-  unsigned char digest[EVP_MAX_MD_SIZE];
-  unsigned int digest_length;
-  const EVP_MD *type;
   term_t issuername;
   term_t subject;
+  term_t hash;
+  term_t not_before;
+  term_t not_after;
+  unsigned int crl_ext_id;
+  unsigned char *p;  
+  X509_EXTENSION * crl_ext = NULL;
+  
 
   if (!(PL_unify_list(list, item, list) &&
         PL_unify_term(item,
@@ -625,18 +682,21 @@ unify_certificate(term_t cert, X509* data)
          ))
      return FALSE;
   if (!(PL_unify_list(list, item, list) &&
+        (not_before = PL_new_term_ref()) &&
+        unify_asn1_time(not_before, X509_get_notBefore(data)) &&
         PL_unify_term(item,
                       PL_FUNCTOR, FUNCTOR_notbefore1,
-                      PL_CHARS, X509_get_notBefore(data)->data)
-         ))
+                      PL_TERM, not_before)))
      return FALSE;
 
   if (!(PL_unify_list(list, item, list) &&
+        (not_after = PL_new_term_ref()) &&
+        unify_asn1_time(not_after, X509_get_notAfter(data)) &&
         PL_unify_term(item,
                       PL_FUNCTOR, FUNCTOR_notafter1,
-                      PL_CHARS, X509_get_notAfter(data)->data)
-         ))
+                      PL_TERM, not_after)))
      return FALSE;
+  
 
   if ((mem = BIO_new(BIO_s_mem())) != NULL)
   { i2a_ASN1_INTEGER(mem, X509_get_serialNumber(data));
@@ -660,50 +720,13 @@ unify_certificate(term_t cert, X509* data)
                       PL_TERM, subject))
      )
      return FALSE;
-
-  /* Generate hash */
-  type=EVP_get_digestbyname(OBJ_nid2sn(OBJ_obj2nid(data->sig_alg->algorithm)));
-  if (type == NULL)
-  { Sdprintf("Could not understand signature type\n");
-    /* TBD: Raise error here? */
-    return FALSE;
-  }
-  EVP_MD_CTX_init(&ctx);
-  digestible_length=i2d_X509_CINF(data->cert_info,NULL);
-
-  digest_buffer = PL_malloc(digestible_length);
-  if (digest_buffer == NULL)
-     return resource_error("memory");
-
-  /* i2d_X509_CINF will change the value of p. We need to pass in a copy */
-  p = digest_buffer;
-  i2d_X509_CINF(data->cert_info,&p);
-  if (!EVP_DigestInit(&ctx, type))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not initialize digest");
-    /* TBD: Raise error here? */
-    return FALSE;
-  }
-  if (!EVP_DigestUpdate(&ctx, digest_buffer, digestible_length))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not update digest");
-    /* TBD: Raise error here? */
-    return FALSE;
-  }
-  if (!EVP_DigestFinal(&ctx, digest, &digest_length))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not finalize digest");
-    /* TBD: Raise error here? */
-    return FALSE;
-  }
-  if (!(PL_unify_list(list, item, list) &&
+  if (!((hash = PL_new_term_ref()) &&
+        unify_hash(hash, data->sig_alg->algorithm, i2d_X509_CINF, data->cert_info) &&
+        PL_unify_list(list, item, list) &&
         PL_unify_term(item,
                       PL_FUNCTOR, FUNCTOR_hash1,
-                      PL_NCHARS, digest_length, digest)
-         ))
+                      PL_TERM, hash)))
      return FALSE;
-  PL_free(digest_buffer);
-
   if (!(PL_unify_list(list, item, list) &&
         PL_unify_term(item,
                       PL_FUNCTOR, FUNCTOR_signature1,
@@ -726,8 +749,52 @@ unify_certificate(term_t cert, X509* data)
   /* EVP_PKEY_get1_RSA returns a reference to the existing key, not a copy */
   rsa = EVP_PKEY_get1_RSA(key);
   if (!(PL_unify_list(list, item, list) &&
-        unify_key(item, rsa)))
+        unify_public_key(item, rsa)))
      return FALSE;
+
+  /* If the cert has a CRL distribution point, return that. If it does not,
+     it is not an error
+  */
+  crl_ext_id = X509_get_ext_by_NID(data, NID_crl_distribution_points, -1);
+  crl_ext = X509_get_ext(data, crl_ext_id);
+  if (crl_ext != NULL)
+  { STACK_OF(DIST_POINT) * distpoints;
+    int i, j;
+    term_t crl;
+    term_t crl_list;
+    term_t crl_item;     
+    
+    distpoints = X509_get_ext_d2i(data, NID_crl_distribution_points, NULL, NULL);
+    /* Loop through the CRL points, putting them into a list */
+    if (!PL_unify_list(list, item, list))
+       return FALSE;
+    crl = PL_new_term_ref();
+    crl_list = PL_copy_term_ref(crl);
+    crl_item = PL_new_term_ref();
+    
+    for (i = 0; i < sk_DIST_POINT_num(distpoints); i++)
+    { DIST_POINT *point;
+      GENERAL_NAME *name;
+      point = sk_DIST_POINT_value(distpoints, i);
+      if (point->distpoint != NULL)
+      { /* Each point may have several names? May as well put them all in */
+        for (j = 0; j < sk_GENERAL_NAME_num(point->distpoint->name.fullname); j++)
+        { name = sk_GENERAL_NAME_value(point->distpoint->name.fullname, j);
+          if (name != NULL && name->type == GEN_URI)
+          { if (!(PL_unify_list(crl_list, crl_item, crl_list) &&
+                  PL_unify_atom_chars(crl_item, (const char *)name->d.ia5->data)))
+                return FALSE;
+          }
+        }
+      }
+    }
+    if (!PL_unify_nil(crl_list))
+       return FALSE;
+    if (!PL_unify_term(item,
+                       PL_FUNCTOR, FUNCTOR_crl1,
+                       PL_TERM, crl))
+       return FALSE;
+  }
   return PL_unify_nil(list);
 }
 
@@ -744,21 +811,56 @@ unify_certificates(term_t certs, term_t tail, STACK_OF(X509)* stack)
     X509_free(cert);
     cert = sk_X509_pop(stack);
     if (cert == NULL)
-      return PL_unify(tail, item);
+      return PL_unify(tail, item) && PL_unify_nil(list);
   }
   return retval && PL_unify_nil(list);
 }
 
 foreign_t
-pl_ssl_load_certificate(term_t filename, term_t cert)
-{ X509* x509;
+pl_load_public_key(term_t source, term_t key_t)
+{ EVP_PKEY* key;
+  RSA* rsa;
   BIO* bio;
-  char* filename_chars;
-  if (!PL_get_atom_chars(filename, &filename_chars))
-    return type_error(filename, "atom");
+  IOSTREAM* stream;
+  int c;
+  
+  if ( !PL_get_stream_handle(source, &stream) )
+     return type_error(source, "stream");
+  bio = BIO_new(&bio_read_functions);
+  BIO_set_ex_data(bio, 0, stream);
 
-  if (!(bio = BIO_new_file(filename_chars, "rb")))
-    return existence_error(filename);
+  /* Determine format */
+  c = Sgetc(stream);
+  if (c != EOF)
+     Sungetc(c, stream);
+  if (c == 0x30)  /* ASN.1 sequence, so assume DER */
+     key = d2i_PUBKEY_bio(bio, NULL);
+  else
+     key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+  BIO_free(bio);
+  PL_release_stream(stream);
+  if (key == NULL)
+     return permission_error("read", "key", source);
+  rsa = EVP_PKEY_get1_RSA(key);
+  EVP_PKEY_free(key);
+  if (unify_public_key(key_t, rsa))
+  { RSA_free(rsa);
+    PL_succeed;
+  } else
+  { RSA_free(rsa);
+    PL_fail;
+  }
+}
+
+int private_password_callback(char *buf, int bufsiz, int verify, void* pw)
+{ int res;
+  char* password = (char*)pw;
+  res = (int)strlen(password);
+  if (res > bufsiz)
+     res = bufsiz;
+  memcpy(buf, password, res);
+  return res;
+}
 
 foreign_t
 pl_load_private_key(term_t source, term_t password, term_t key_t)
@@ -857,7 +959,6 @@ pl_load_certificate(term_t source, term_t cert)
     /* TBD: Raise error here? */
     PL_fail;
   }
-  BIO_free(bio);
   if (unify_certificate(cert, x509))
   { X509_free(x509);
     PL_succeed;
@@ -1197,14 +1298,12 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
   IOSTREAM *sorg_in, *sorg_out;
   IOSTREAM *i, *o;
   PL_SSL_INSTANCE * instance = NULL;
-
   if ( !get_conf(config, &conf) )
     return FALSE;
   if ( !PL_get_stream_handle(org_in, &sorg_in) )
      return FALSE;
   if ( !PL_get_stream_handle(org_out, &sorg_out) )
      return FALSE;
-
   if ( !(instance = ssl_ssl_bio(conf, sorg_in, sorg_out)) )
   {  PL_release_stream(sorg_in);
      PL_release_stream(sorg_out);
@@ -1217,7 +1316,6 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
     return FALSE;
   }
   instance->close_needed++;
-
   if ( !PL_unify_stream(in, i) )
   { Sclose(i);
     PL_release_stream(sorg_in);
@@ -1231,7 +1329,6 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
     return FALSE;
   }
   instance->close_needed++;
-
   if ( !PL_unify_stream(out, o) )
   { Sclose(i);
     Sset_filter(sorg_in, NULL);
@@ -1241,9 +1338,147 @@ pl_ssl_negotiate(term_t config, term_t org_in, term_t org_out, term_t in, term_t
   }
   Sset_filter(sorg_out, o);
   PL_release_stream(sorg_out);
-
   return TRUE;
 }
+
+foreign_t pl_rsa_private_decrypt(term_t private_t, term_t cipher_t, term_t plain_t)
+{ size_t cipher_length;
+  unsigned char* cipher;
+  unsigned char* plain;
+  int outsize;
+  RSA* key;
+  int retval;
+  
+  if(!PL_get_atom_nchars(cipher_t, &cipher_length, (char**)&cipher))
+     return type_error(cipher_t, "atom");
+  if (!recover_private_key(private_t, &key))
+     return FALSE;
+  
+  outsize = RSA_size(key);
+  ssl_deb(1, "Output size is going to be %d", outsize);
+  plain = PL_malloc(outsize);
+  ssl_deb(1, "Allocated %d bytes for plaintext", outsize);
+  if ((outsize = RSA_private_decrypt((int)cipher_length, cipher, plain, key, RSA_PKCS1_PADDING)) <= 0)
+  { ssl_deb(1, "Failure to decrypt!");
+    RSA_free(key);
+    PL_free(plain);
+    PL_fail;
+  }
+  ssl_deb(1, "decrypted bytes: %d", outsize);
+  ssl_deb(1, "Freeing RSA");
+  RSA_free(key);
+  ssl_deb(1, "Assembling plaintext");
+  retval = PL_unify_atom_nchars(plain_t, outsize, (char*)plain);
+  ssl_deb(1, "Freeing plaintext");
+  PL_free(plain);
+  ssl_deb(1, "Done");
+  return retval;
+}
+
+foreign_t pl_rsa_public_decrypt(term_t public_t, term_t cipher_t, term_t plain_t)
+{ size_t cipher_length;
+  unsigned char* cipher;
+  unsigned char* plain;
+  int outsize;
+  RSA* key;
+  int retval;
+  
+  if(!PL_get_atom_nchars(cipher_t, &cipher_length, (char**)&cipher))
+     return type_error(cipher_t, "atom");
+  if (!recover_public_key(public_t, &key))
+     return FALSE;
+  
+  outsize = RSA_size(key);
+  ssl_deb(1, "Output size is going to be %d", outsize);
+  plain = PL_malloc(outsize);
+  ssl_deb(1, "Allocated %d bytes for plaintext", outsize);
+  if ((outsize = RSA_public_decrypt((int)cipher_length, cipher, plain, key, RSA_PKCS1_PADDING)) <= 0)
+  { ssl_deb(1, "Failure to decrypt!");
+    RSA_free(key);
+    PL_free(plain);
+    return FALSE;
+  }
+  ssl_deb(1, "decrypted bytes: %d", outsize);
+  ssl_deb(1, "Freeing RSA");
+  RSA_free(key);
+  ssl_deb(1, "Assembling plaintext");
+  retval = PL_unify_atom_nchars(plain_t, outsize, (char*)plain);
+  ssl_deb(1, "Freeing plaintext");
+  PL_free(plain);
+  ssl_deb(1, "Done");
+  return retval;
+}
+
+foreign_t pl_rsa_public_encrypt(term_t public_t, term_t plain_t, term_t cipher_t)
+{ size_t plain_length;
+  unsigned char* cipher;
+  unsigned char* plain;
+  int outsize;
+  RSA* key;
+  int retval;
+  
+  ssl_deb(1, "Generating terms");
+  ssl_deb(1, "Collecting plaintext");
+  if(!PL_get_atom_nchars(plain_t, &plain_length, (char**)&plain))
+     return type_error(plain_t, "atom");
+  if (!recover_public_key(public_t, &key))
+     return FALSE;
+  
+  outsize = RSA_size(key);
+  ssl_deb(1, "Output size is going to be %d\n", outsize);
+  cipher = PL_malloc(outsize);
+  ssl_deb(1, "Allocated %d bytes for ciphertext\n", outsize);
+  if ((outsize = RSA_public_encrypt((int)plain_length, plain, cipher, key, RSA_PKCS1_PADDING)) <= 0)
+  { ssl_deb(1, "Failure to encrypt!");         
+    PL_free(plain);
+    RSA_free(key);
+    return FALSE;
+  }
+  ssl_deb(1, "encrypted bytes: %d\n", outsize);
+  ssl_deb(1, "Freeing RSA");
+  RSA_free(key);
+  ssl_deb(1, "Assembling plaintext");
+  retval = PL_unify_atom_nchars(cipher_t, outsize, (char*)cipher);
+  ssl_deb(1, "Freeing plaintext");
+  PL_free(cipher);
+  ssl_deb(1, "Done");
+  return retval;
+}
+
+
+foreign_t pl_rsa_private_encrypt(term_t private_t, term_t plain_t, term_t cipher_t)
+{ size_t plain_length;
+  unsigned char* cipher;
+  unsigned char* plain;
+  int outsize;
+  RSA* key;
+  int retval;
+  if(!PL_get_atom_nchars(plain_t, &plain_length, (char**)&plain))
+     return type_error(plain_t, "atom");
+  if (!recover_private_key(private_t, &key))
+     return FALSE;
+  
+  outsize = RSA_size(key);
+  ssl_deb(1, "Output size is going to be %d", outsize);
+  cipher = PL_malloc(outsize);
+  ssl_deb(1, "Allocated %d bytes for ciphertext", outsize);
+  if ((outsize = RSA_public_encrypt((int)plain_length, plain, cipher, key, RSA_PKCS1_PADDING)) <= 0)
+  { ssl_deb(1, "Failure to encrypt!");         
+    PL_free(plain);
+    RSA_free(key);
+    return FALSE;
+  }
+  ssl_deb(1, "encrypted bytes: %d", outsize);
+  ssl_deb(1, "Freeing RSA");
+  RSA_free(key);
+  ssl_deb(1, "Assembling plaintext");
+  retval = PL_unify_atom_nchars(cipher_t, outsize, (char*)cipher);
+  ssl_deb(1, "Freeing plaintext");
+  PL_free(cipher);
+  ssl_deb(1, "Done");
+  return retval;
+}
+
 
 static foreign_t
 pl_ssl_debug(term_t level)
@@ -1300,6 +1535,9 @@ install_ssl4pl()
   FUNCTOR_hash1	          = PL_new_functor(PL_new_atom("hash"), 1);
   FUNCTOR_signature1      = PL_new_functor(PL_new_atom("signature"), 1);
   FUNCTOR_equals2         = PL_new_functor(PL_new_atom("="), 2);
+  FUNCTOR_crl1            = PL_new_functor(PL_new_atom("crl"), 1);
+  FUNCTOR_revoked2        = PL_new_functor(PL_new_atom("revoked"), 2);
+  FUNCTOR_revocations1    = PL_new_functor(PL_new_atom("revocations"), 1);
 
   PL_register_foreign("_ssl_context",	3, pl_ssl_context,    0);
   PL_register_foreign("ssl_exit",	1, pl_ssl_exit,	      0);
@@ -1307,7 +1545,14 @@ install_ssl4pl()
   PL_register_foreign("ssl_get_socket",	2, pl_ssl_get_socket, 0);
   PL_register_foreign("ssl_negotiate",	5, pl_ssl_negotiate,  0);
   PL_register_foreign("ssl_debug",	1, pl_ssl_debug,      0);
-  PL_register_foreign("ssl_load_certificate",  2, pl_ssl_load_certificate,      0);
+  PL_register_foreign("load_crl",       2, pl_load_crl,      0);
+  PL_register_foreign("load_certificate",2,pl_load_certificate,      0);
+  PL_register_foreign("load_private_key",3,pl_load_private_key,      0);
+  PL_register_foreign("load_public_key", 2,pl_load_public_key,      0);
+  PL_register_foreign("rsa_private_decrypt", 3, pl_rsa_private_decrypt, 0);
+  PL_register_foreign("rsa_private_encrypt", 3, pl_rsa_private_encrypt, 0);
+  PL_register_foreign("rsa_public_decrypt", 3, pl_rsa_public_decrypt, 0);
+  PL_register_foreign("rsa_public_encrypt", 3, pl_rsa_public_encrypt, 0);
 
   /*
    * Initialize ssllib

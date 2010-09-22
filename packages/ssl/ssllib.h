@@ -47,6 +47,7 @@ typedef enum
 } PL_SSL_ROLE;
 
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -169,4 +170,8 @@ void            ssl_err          (char *fmt, ...);
 int		ssl_set_debug	 (int level);
 void            ssl_deb          (int level, char *fmt, ...);
 
+extern BIO_METHOD bio_read_functions;
+extern BIO_METHOD bio_write_functions;
+
 #endif
+
