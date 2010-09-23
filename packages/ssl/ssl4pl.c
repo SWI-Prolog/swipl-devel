@@ -59,6 +59,7 @@ static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
 static functor_t FUNCTOR_domain_error2;
 static functor_t FUNCTOR_resource_error1;
+static functor_t FUNCTOR_ssl_error1;
 static functor_t FUNCTOR_existence_error1;
 static functor_t FUNCTOR_permission_error3;
 static functor_t FUNCTOR_ip4;
@@ -77,6 +78,7 @@ static functor_t FUNCTOR_equals2;
 static functor_t FUNCTOR_crl1;
 static functor_t FUNCTOR_revocations1;
 static functor_t FUNCTOR_revoked2;
+
 
 
 static int
@@ -128,6 +130,20 @@ resource_error(const char *resource)
   return FALSE;
 }
 
+static int
+ssl_error(const char *id)
+{ term_t ex;
+
+  if ( (ex=PL_new_term_ref()) &&
+       PL_unify_term(ex,
+		     PL_FUNCTOR, FUNCTOR_error2,
+		       PL_FUNCTOR, FUNCTOR_ssl_error1,
+		         PL_CHARS, id,
+		       PL_VARIABLE) )
+    return PL_raise_exception(ex);
+
+  return FALSE;
+}
 
 static int
 permission_error(const char *action, const char *type, term_t obj)
@@ -159,6 +175,16 @@ existence_error(term_t resource)
     return PL_raise_exception(ex);
 
   return FALSE;
+}
+
+static int i2d_X509_CRL_INFO_wrapper(void* i, unsigned char** d)
+{
+   return i2d_X509_CRL_INFO(i, d);
+}
+
+static int i2d_X509_CINF_wrapper(void* i, unsigned char** d)
+{
+   return i2d_X509_CINF(i, d);
 }
 
 static int
@@ -538,9 +564,7 @@ unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char*
   /* Generate hash */
   type=EVP_get_digestbyname(OBJ_nid2sn(OBJ_obj2nid(algorithm)));
   if (type == NULL)
-  { Sdprintf("Could not understand signature type\n");
-    /* TBD: Raise error here? */
-    return FALSE;
+  { return ssl_error("digest_lookup");
   }
   EVP_MD_CTX_init(&ctx);
   digestible_length=i2d(data,NULL);
@@ -552,31 +576,24 @@ unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char*
   p = digest_buffer;
   i2d(data,&p);
   if (!EVP_DigestInit(&ctx, type))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not initialize digest\n");
-    /* TBD: Raise error here? */
-    return FALSE;
+  { EVP_MD_CTX_destroy(&ctx);
+    PL_free(digest_buffer);     
+    return ssl_error("digest_initialize");
   }
   if (!EVP_DigestUpdate(&ctx, digest_buffer, digestible_length))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not update digest\n");
-    /* TBD: Raise error here? */
-    return FALSE;
+  { EVP_MD_CTX_destroy(&ctx);
+    PL_free(digest_buffer);
+    return ssl_error("digest_update");
   }
   if (!EVP_DigestFinal(&ctx, digest, &digest_length))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not finalize digest\n");
-    /* TBD: Raise error here? */
-    return FALSE;
+  { EVP_MD_CTX_destroy(&ctx);
+    PL_free(digest_buffer);
+    return ssl_error("digest_finalize");
   }
-  if (!PL_unify_term(hash,
-                     PL_NCHARS, digest_length, digest))
-  { PL_free(digest_buffer);
-    Sdprintf("Could not unify?\n");
-    return FALSE;
-  }
+  EVP_MD_CTX_destroy(&ctx);
   PL_free(digest_buffer);
-  PL_succeed;
+  return PL_unify_term(hash,
+                       PL_NCHARS, digest_length, digest);
 }
 
 static int
@@ -586,9 +603,8 @@ unify_name(term_t term, X509_NAME* name)
   term_t item = PL_new_term_ref();
 
   if (name == NULL)
-  { Sdprintf("name is null\n");
-    return FALSE;
-  }
+     return PL_unify_term(term,
+                          PL_CHARS, "<null>");
   for (ni = 0; ni < X509_NAME_entry_count(name); ni++)
   { X509_NAME_ENTRY* e = X509_NAME_get_entry(name, ni);
     ASN1_STRING* entry_data = X509_NAME_ENTRY_get_data(e);
@@ -624,7 +640,7 @@ unify_crl(term_t term, X509_CRL* crl)
 
   i2a_ASN1_INTEGER(mem, crl->signature);
   if (!(unify_name(issuer, X509_CRL_get_issuer(crl)) &&
-        unify_hash(hash, crl->sig_alg->algorithm, i2d_X509_CRL_INFO, crl->crl) &&
+        unify_hash(hash, crl->sig_alg->algorithm, i2d_X509_CRL_INFO_wrapper, crl->crl) &&
         PL_unify_term(term,
                       PL_LIST, 4,
                       PL_FUNCTOR, FUNCTOR_issuername1,
@@ -651,7 +667,12 @@ unify_crl(term_t term, X509_CRL* crl)
                               PL_FUNCTOR, FUNCTOR_revoked2,
                               PL_NCHARS, n, p,
                               PL_TERM, revocation_date));
-     BIO_reset(mem);
+     if (BIO_reset(mem) != 1)
+     {
+        BIO_free(mem);
+        // The only reason I can imagine this would fail is out of memory
+        return resource_error("memory");
+     }
   }
   BIO_free(mem);
   return result && PL_unify_nil(list);
@@ -708,9 +729,9 @@ unify_certificate(term_t cert, X509* data)
               ))
           return FALSE;
     } else
-      Sdprintf("Failed to print serial\n");
+      Sdprintf("Failed to print serial - continuing without serial\n");
   } else
-    Sdprintf("Failed to allocate BIO for printing\n");
+    Sdprintf("Failed to allocate BIO for printing - continuing without serial\n");
 
   if (!(PL_unify_list(list, item, list) &&
         (subject = PL_new_term_ref()) &&
@@ -721,7 +742,7 @@ unify_certificate(term_t cert, X509* data)
      )
      return FALSE;
   if (!((hash = PL_new_term_ref()) &&
-        unify_hash(hash, data->sig_alg->algorithm, i2d_X509_CINF, data->cert_info) &&
+        unify_hash(hash, data->sig_alg->algorithm, i2d_X509_CINF_wrapper, data->cert_info) &&
         PL_unify_list(list, item, list) &&
         PL_unify_term(item,
                       PL_FUNCTOR, FUNCTOR_hash1,
@@ -955,10 +976,7 @@ pl_load_certificate(term_t source, term_t cert)
   BIO_free(bio);
   PL_release_stream(stream);
   if (x509 == NULL)
-  { Sdprintf("Could not read certificate - may be encrypted?");
-    /* TBD: Raise error here? */
-    PL_fail;
-  }
+     return ssl_error("read_x509");
   if (unify_certificate(cert, x509))
   { X509_free(x509);
     PL_succeed;
@@ -1520,6 +1538,7 @@ install_ssl4pl()
   FUNCTOR_domain_error2   = PL_new_functor(PL_new_atom("domain_error"), 2);
   FUNCTOR_type_error2     = PL_new_functor(PL_new_atom("type_error"), 2);
   FUNCTOR_resource_error1 = PL_new_functor(PL_new_atom("resource_error"), 1);
+  FUNCTOR_ssl_error1      = PL_new_functor(PL_new_atom("ssl_error"), 1);
   FUNCTOR_existence_error1 =PL_new_functor(PL_new_atom("existence_error"), 1);
   FUNCTOR_permission_error3=PL_new_functor(PL_new_atom("permission_error"), 3);
   FUNCTOR_ip4		  = PL_new_functor(PL_new_atom("ip"), 4);
