@@ -238,10 +238,10 @@ recover_public_key(term_t public_t, RSA** rsa)
 {
    char *n, *e;
    term_t n_t, e_t;
-   
+
    n_t = PL_new_term_ref();
    e_t = PL_new_term_ref();
-   
+
    if(!(PL_get_arg(1, public_t, n_t) &&
         PL_get_arg(2, public_t, e_t)))
       return type_error(public_t, "public_key");
@@ -260,7 +260,7 @@ recover_private_key(term_t private_t, RSA** rsa)
 {
    char *n, *d, *e, *p, *q, *dmp1, *dmq1, *iqmp;
    term_t n_t, d_t, e_t, p_t, q_t, dmp1_t, dmq1_t, iqmp_t;
-   
+
    n_t = PL_new_term_ref();
    e_t = PL_new_term_ref();
    d_t = PL_new_term_ref();
@@ -277,7 +277,7 @@ recover_private_key(term_t private_t, RSA** rsa)
         PL_get_arg(6, private_t, dmp1_t) &&
         PL_get_arg(7, private_t, dmq1_t) &&
         PL_get_arg(8, private_t, iqmp_t)))
-      return type_error(private_t, "private_key");   
+      return type_error(private_t, "private_key");
    ssl_deb(1, "Dismantling key");
    if (!(PL_get_atom_chars(n_t, &n) &&
          PL_get_atom_chars(e_t, &e) &&
@@ -287,10 +287,10 @@ recover_private_key(term_t private_t, RSA** rsa)
          PL_get_atom_chars(dmp1_t, &dmp1) &&
          PL_get_atom_chars(dmq1_t, &dmq1) &&
          PL_get_atom_chars(iqmp_t, &iqmp)))
-      return type_error(private_t, "private_key");   
+      return type_error(private_t, "private_key");
    ssl_deb(1, "Assembling RSA");
    *rsa = RSA_new();
-   
+
    BN_hex2bn(&((*rsa)->n), n);
    BN_hex2bn(&((*rsa)->d), d);
    BN_hex2bn(&((*rsa)->e), e);
@@ -376,7 +376,7 @@ unify_private_key(term_t item, RSA* rsa)
                                  PL_TERM, e_t,
                                  PL_TERM, d_t,
                                  PL_TERM, p_t,
-                                 PL_TERM, q_t,                                   
+                                 PL_TERM, q_t,
                                  PL_TERM, dmp1_t,
                                  PL_TERM, dmq1_t,
                                  PL_TERM, iqmp_t);
@@ -439,7 +439,7 @@ unify_public_key(term_t item, RSA* rsa)
 
 /* Note that while this might seem incredibly hacky, it is
    essentially the same algorithm used by X509_cmp_time to
-   parse the date. Some 
+   parse the date. Some
    Fractional seconds are ignored. This is also largely untested - there
    may be a lot of edge cases that dont work!
 */
@@ -621,24 +621,24 @@ unify_crl(term_t term, X509_CRL* crl)
   mem = BIO_new(BIO_s_mem());
   if (mem == NULL)
      return resource_error("memory");
-  
+
   i2a_ASN1_INTEGER(mem, crl->signature);
   if (!(unify_name(issuer, X509_CRL_get_issuer(crl)) &&
-        unify_hash(hash, crl->sig_alg->algorithm, i2d_X509_CRL_INFO, crl->crl) && 
+        unify_hash(hash, crl->sig_alg->algorithm, i2d_X509_CRL_INFO, crl->crl) &&
         PL_unify_term(term,
-                      PL_LIST, 4, 
+                      PL_LIST, 4,
                       PL_FUNCTOR, FUNCTOR_issuername1,
                       PL_TERM, issuer,
                       PL_FUNCTOR, FUNCTOR_signature1,
                       PL_NCHARS, crl->signature->length, crl->signature->data,
-                      PL_FUNCTOR, FUNCTOR_hash1, 
+                      PL_FUNCTOR, FUNCTOR_hash1,
                       PL_TERM, hash,
                       PL_FUNCTOR, FUNCTOR_revocations1,
                       PL_TERM, revocations)))
   {
      return FALSE;
   }
-                     
+
   for (i = 0; i < sk_X509_REVOKED_num(info->revoked); i++)
   {
      X509_REVOKED* revoked = sk_X509_REVOKED_value(info->revoked, i);
@@ -671,9 +671,9 @@ unify_certificate(term_t cert, X509* data)
   term_t not_before;
   term_t not_after;
   unsigned int crl_ext_id;
-  unsigned char *p;  
+  unsigned char *p;
   X509_EXTENSION * crl_ext = NULL;
-  
+
 
   if (!(PL_unify_list(list, item, list) &&
         PL_unify_term(item,
@@ -696,7 +696,7 @@ unify_certificate(term_t cert, X509* data)
                       PL_FUNCTOR, FUNCTOR_notafter1,
                       PL_TERM, not_after)))
      return FALSE;
-  
+
 
   if ((mem = BIO_new(BIO_s_mem())) != NULL)
   { i2a_ASN1_INTEGER(mem, X509_get_serialNumber(data));
@@ -762,8 +762,8 @@ unify_certificate(term_t cert, X509* data)
     int i, j;
     term_t crl;
     term_t crl_list;
-    term_t crl_item;     
-    
+    term_t crl_item;
+
     distpoints = X509_get_ext_d2i(data, NID_crl_distribution_points, NULL, NULL);
     /* Loop through the CRL points, putting them into a list */
     if (!PL_unify_list(list, item, list))
@@ -771,7 +771,7 @@ unify_certificate(term_t cert, X509* data)
     crl = PL_new_term_ref();
     crl_list = PL_copy_term_ref(crl);
     crl_item = PL_new_term_ref();
-    
+
     for (i = 0; i < sk_DIST_POINT_num(distpoints); i++)
     { DIST_POINT *point;
       GENERAL_NAME *name;
@@ -823,7 +823,7 @@ pl_load_public_key(term_t source, term_t key_t)
   BIO* bio;
   IOSTREAM* stream;
   int c;
-  
+
   if ( !PL_get_stream_handle(source, &stream) )
      return type_error(source, "stream");
   bio = BIO_new(&bio_read_functions);
@@ -870,14 +870,14 @@ pl_load_private_key(term_t source, term_t password, term_t key_t)
   IOSTREAM* stream;
   char* password_chars;
   int c;
-  
+
   if (!PL_get_atom_chars(password, &password_chars))
     return type_error(password, "atom");
   if ( !PL_get_stream_handle(source, &stream) )
      return type_error(source, "stream");
   bio = BIO_new(&bio_read_functions);
   BIO_set_ex_data(bio, 0, stream);
-  
+
   /* Determine format */
   c = Sgetc(stream);
   if (c != EOF)
@@ -908,7 +908,7 @@ pl_load_crl(term_t source, term_t list)
   IOSTREAM* stream;
   int result;
   int c;
-  
+
   if ( !PL_get_stream_handle(source, &stream) )
      return type_error(source, "stream");
 
@@ -939,7 +939,7 @@ pl_load_certificate(term_t source, term_t cert)
   BIO* bio;
   IOSTREAM* stream;
   int c = 0;
-  
+
   if ( !PL_get_stream_handle(source, &stream) )
      return type_error(source, "stream");
   bio = BIO_new(&bio_read_functions);
@@ -951,7 +951,7 @@ pl_load_certificate(term_t source, term_t cert)
   if (c == 0x30)  /* ASN.1 sequence, so assume DER */
      x509 = d2i_X509_bio(bio, NULL);
   else
-     x509 = PEM_read_bio_X509(bio, NULL, 0, NULL);  
+     x509 = PEM_read_bio_X509(bio, NULL, 0, NULL);
   BIO_free(bio);
   PL_release_stream(stream);
   if (x509 == NULL)
@@ -1348,12 +1348,12 @@ foreign_t pl_rsa_private_decrypt(term_t private_t, term_t cipher_t, term_t plain
   int outsize;
   RSA* key;
   int retval;
-  
+
   if(!PL_get_atom_nchars(cipher_t, &cipher_length, (char**)&cipher))
      return type_error(cipher_t, "atom");
   if (!recover_private_key(private_t, &key))
      return FALSE;
-  
+
   outsize = RSA_size(key);
   ssl_deb(1, "Output size is going to be %d", outsize);
   plain = PL_malloc(outsize);
@@ -1382,12 +1382,12 @@ foreign_t pl_rsa_public_decrypt(term_t public_t, term_t cipher_t, term_t plain_t
   int outsize;
   RSA* key;
   int retval;
-  
+
   if(!PL_get_atom_nchars(cipher_t, &cipher_length, (char**)&cipher))
      return type_error(cipher_t, "atom");
   if (!recover_public_key(public_t, &key))
      return FALSE;
-  
+
   outsize = RSA_size(key);
   ssl_deb(1, "Output size is going to be %d", outsize);
   plain = PL_malloc(outsize);
@@ -1416,20 +1416,20 @@ foreign_t pl_rsa_public_encrypt(term_t public_t, term_t plain_t, term_t cipher_t
   int outsize;
   RSA* key;
   int retval;
-  
+
   ssl_deb(1, "Generating terms");
   ssl_deb(1, "Collecting plaintext");
   if(!PL_get_atom_nchars(plain_t, &plain_length, (char**)&plain))
      return type_error(plain_t, "atom");
   if (!recover_public_key(public_t, &key))
      return FALSE;
-  
+
   outsize = RSA_size(key);
   ssl_deb(1, "Output size is going to be %d\n", outsize);
   cipher = PL_malloc(outsize);
   ssl_deb(1, "Allocated %d bytes for ciphertext\n", outsize);
   if ((outsize = RSA_public_encrypt((int)plain_length, plain, cipher, key, RSA_PKCS1_PADDING)) <= 0)
-  { ssl_deb(1, "Failure to encrypt!");         
+  { ssl_deb(1, "Failure to encrypt!");
     PL_free(plain);
     RSA_free(key);
     return FALSE;
@@ -1457,13 +1457,13 @@ foreign_t pl_rsa_private_encrypt(term_t private_t, term_t plain_t, term_t cipher
      return type_error(plain_t, "atom");
   if (!recover_private_key(private_t, &key))
      return FALSE;
-  
+
   outsize = RSA_size(key);
   ssl_deb(1, "Output size is going to be %d", outsize);
   cipher = PL_malloc(outsize);
   ssl_deb(1, "Allocated %d bytes for ciphertext", outsize);
   if ((outsize = RSA_public_encrypt((int)plain_length, plain, cipher, key, RSA_PKCS1_PADDING)) <= 0)
-  { ssl_deb(1, "Failure to encrypt!");         
+  { ssl_deb(1, "Failure to encrypt!");
     PL_free(plain);
     RSA_free(key);
     return FALSE;

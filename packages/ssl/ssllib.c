@@ -510,20 +510,20 @@ ssl_cb_cert_verify(int preverify_ok, X509_STORE_CTX *ctx)
     ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     config = SSL_get_ex_data(ssl, ssl_idx);
 
-   
+
 
     ssl_deb(1, " ---- INIT Handling certificate verification\n");
     if (!preverify_ok) {
         X509 *cert = NULL;
         int   err;
-        const char *error;        
+        const char *error;
 
         /*
          * Get certificate
          */
         cert = X509_STORE_CTX_get_current_cert(ctx);
 
-        
+
         /*
          * Get error specification
          */
@@ -962,7 +962,7 @@ int bio_gets(BIO* bio, char* buf, int len)
 int bio_write(BIO* bio, const char* buf, int len)
 {
    IOSTREAM* stream;
-   int r;      
+   int r;
    stream  = BIO_get_ex_data(bio, 0);
    r = (int)Sfwrite(buf, sizeof(char), len, stream);
    /* OpenSSL expects there to be no buffering when it writes. Flush here */
@@ -1052,7 +1052,7 @@ ssl_ssl_bio(PL_SSL *config, IOSTREAM* sread, IOSTREAM* swrite)
     PL_SSL_INSTANCE * instance = NULL;
     BIO* rbio = NULL;
     BIO* wbio = NULL;
-    
+
     if ((instance = ssl_instance_new(config, sread, swrite)) == NULL) {
         ssl_deb(1, "ssl instance malloc failed\n");
         return NULL;
