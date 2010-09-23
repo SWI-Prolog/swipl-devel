@@ -240,9 +240,11 @@ obj(Term, Obj) :-
 %	module.
 
 private(Module:PI, Options) :-
+	multifile(Module:PI, Options), !, fail.
+private(Module:PI, Options) :-
 	option(module(Module), Options),
 	option(public(Public), Options), !,
-	\+ ( member(PI2, Public) ,
+	\+ ( member(PI2, Public),
 	     eq_pi(PI, PI2)
 	   ).
 private(Module:PI, _Options) :-
@@ -250,6 +252,18 @@ private(Module:PI, _Options) :-
 	\+ ( member(PI2, Exports),
 	     eq_pi(PI, PI2)
 	   ).
+
+multifile(Module:PI, _Options) :-
+	pi_to_head(PI, Head),
+	predicate_property(Module:Head, multifile).
+
+pi_to_head(Var, _) :-
+	var(Var), !, fail.
+pi_to_head(Name/Arity, Term) :-
+	functor(Term, Name, Arity).
+pi_to_head(Name//DCGArity, Term) :-
+	Arity is DCGArity+2,
+	functor(Term, Name, Arity).
 
 %%	file_info(+Comments, -RestComment, -FileOptions, +OtherOptions) is det.
 %
@@ -417,6 +431,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
 	  ->  Class = privdef		% private definition
+	  ;   multifile(Obj, Options)
+	  ->  Class = multidef
 	  ;   Class = pubdef		% public definition
 	  ),
 	  (   Obj = Module:_

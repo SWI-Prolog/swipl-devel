@@ -56,6 +56,10 @@ dt.pubdef
 { background-color: #c5e1ff;
 }
 
+dt.multidef
+{ background-color: #c8ffc7;
+}
+
 dt.privdef
 { background-color: #fbffa6;
 }
