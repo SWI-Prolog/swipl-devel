@@ -76,7 +76,7 @@
 :- use_module(library(broadcast)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 
 :- meta_predicate
 	rdfe_transaction(:),
@@ -647,12 +647,12 @@ user_transaction_member(Update, Subject, Predicate, Object,
 %		* default(all/fallback)
 
 rdfe_set_file_property(File, access(Access)) :- !,
-	to_url(File, URL),
+	to_uri(File, URL),
 	retractall(rdf_source_permission(URL, _)),
 	assert(rdf_source_permission(URL, Access)),
 	broadcast(rdf_file_property(URL, access(Access))).
 rdfe_set_file_property(File, default(Type)) :-
-	to_url(File, URL),
+	to_uri(File, URL),
 	rdfe_set_file_property(URL, access(rw)), % must be writeable
 	retractall(rdf_current_default_file(_,_)),
 	assert(rdf_current_default_file(URL, Type)),
@@ -666,7 +666,7 @@ rdfe_set_file_property(File, default(Type)) :-
 
 rdfe_get_file_property(FileOrURL, access(Access)) :-
 	(   ground(FileOrURL)
-	->  to_url(FileOrURL, URL)
+	->  to_uri(FileOrURL, URL)
 	;   rdf_source(_DB, URL),
 	    FileOrURL = URL
 	),
@@ -680,7 +680,7 @@ rdfe_get_file_property(FileOrURL, access(Access)) :-
 	).
 rdfe_get_file_property(FileOrURL, default(Default)) :-
 	ground(FileOrURL),
-	to_url(FileOrURL, URL),
+	to_uri(FileOrURL, URL),
 	(   rdf_current_default_file(URL, Default)
 	->  true
 	;   FileOrURL = user,
@@ -706,24 +706,24 @@ check_file_protection(Error) :-
 	).
 
 
-%%	to_url(+Spec, -URL) is det.
+%%	to_uri(+Spec, -URL) is det.
 %
 %	Convert a specification into a URL.
 
-to_url(URL, URL) :-
-	atom(URL),
-	sub_atom(URL, B, _, _, '://'),
-	sub_atom(URL, 0, B, _, Protocol),
-	url_protocol(Protocol), !.
-to_url(File, URL) :-
-	file_name_to_url(File, URL).
+to_uri(URL, URL) :-
+	uri_components(URL, Components),
+	uri_data(scheme, Components, Scheme),
+	nonvar(Scheme),
+	uri_scheme(Scheme), !.
+to_uri(File, URL) :-
+	uri_file_name(URL, File).
 
 
-url_protocol(file).
-url_protocol(http).
-url_protocol(https).
-url_protocol(ftp).
-url_protocol(ftps).
+uri_scheme(file).
+uri_scheme(http).
+uri_scheme(https).
+uri_scheme(ftp).
+uri_scheme(ftps).
 
 
 		 /*******************************
