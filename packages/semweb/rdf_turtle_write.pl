@@ -88,6 +88,7 @@ has the following properties:
 		 subject_white_lines:nonneg=1,%Extra lines between subjects
 		 align_prefixes:boolean=true,%Align prefix declarations
 		 user_prefixes:boolean=true,% Use rdf_current_ns/2?
+		 only_known_prefixes:boolean=false,% Only use known prefixes
 		 comment:boolean=true,	% write some comments into the file
 		 group:boolean=true,	% Group using ; and ,
 		 single_line_bnodes:boolean=false, % No newline after ;
@@ -128,6 +129,9 @@ has the following properties:
 %	    Save only the named graph
 %	    * group(+Boolean)
 %	    If =true= (default), using P-O and O-grouping.
+%	    * only_known_prefixes(+Boolean)
+%	    Only use prefix notation for known prefixes.  Without, some
+%	    documents produce _huge_ amounts of prefixes.
 %	    * single_line_bnodes(+Bool)
 %	    If =true= (default =false=), write [...] and (...) on a
 %	    single line.
@@ -234,7 +238,8 @@ out_to_file(File, File).
 
 init_prefix_map(State0, State) :-
 	tw_state_graph(State0, Graph),
-	rdf_graph_prefixes(Graph, Prefixes, turtle_prefix),
+	tw_state_only_known_prefixes(State0, OnlyKnown),
+	rdf_graph_prefixes(Graph, Prefixes, turtle_prefix(OnlyKnown)),
 	remove_base(State0, Prefixes, Prefixes2),
 	prefix_names(Prefixes2, State0, Pairs),
 	transpose_pairs(Pairs, URI_Abrevs),
@@ -242,12 +247,14 @@ init_prefix_map(State0, State) :-
 	flip_pairs(RURI_Abrevs, PrefixMap),
 	set_prefix_map_of_tw_state(PrefixMap, State0, State).
 
-%%	turtle_prefix(+Where, +Prefix, +URI) is semidet.
+%%	turtle_prefix(+OnlyKnown, +Where, +Prefix, +URI) is semidet.
 %
 %	Test whether we want  to  include   the  proposed  prefix in the
 %	@prefix declaration.
 
-turtle_prefix(_, Prefix, URI) :-
+turtle_prefix(true, _, Prefix, _) :- !,
+	rdf_current_ns(_, Prefix), !.
+turtle_prefix(_, _, Prefix, URI) :-
 	sub_atom(Prefix, _, 1, 0, Last),
 	turtle_prefix_char(Last),
 	atom_concat(Prefix, Local, URI),
