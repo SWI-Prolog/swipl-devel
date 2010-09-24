@@ -162,6 +162,7 @@ permission_error(const char *action, const char *type, term_t obj)
   return FALSE;
 }
 
+/* not used now
 static int
 existence_error(term_t resource)
 { term_t ex;
@@ -176,6 +177,7 @@ existence_error(term_t resource)
 
   return FALSE;
 }
+*/
 
 static int i2d_X509_CRL_INFO_wrapper(void* i, unsigned char** d)
 {
@@ -577,7 +579,7 @@ unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char*
   i2d(data,&p);
   if (!EVP_DigestInit(&ctx, type))
   { EVP_MD_CTX_destroy(&ctx);
-    PL_free(digest_buffer);     
+    PL_free(digest_buffer);
     return ssl_error("digest_initialize");
   }
   if (!EVP_DigestUpdate(&ctx, digest_buffer, digestible_length))
