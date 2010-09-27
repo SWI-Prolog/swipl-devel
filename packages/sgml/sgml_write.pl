@@ -296,6 +296,9 @@ write_doctype(Out, DocType, PubId, SysId) :-
 %
 %	Emit a single element
 
+emit(Var, _, _) :-
+	var(Var), !,
+	instantiation_error(Var).
 emit([], _, _) :- !.
 emit([H|T], Out, State) :- !,
 	emit(H, Out, State),
@@ -306,7 +309,7 @@ emit(CDATA, Out, State) :-
 emit(Element, Out, State) :-
 	\+ \+ emit_element(Element, Out, State).
 
-emit_element(pi(PI), Out, State) :-
+emit_element(pi(PI), Out, State) :- !,
 	get_state(State, entity_map, EntityMap),
 	write(Out, <?),
 	write_quoted(Out, PI, "", EntityMap),
@@ -314,7 +317,9 @@ emit_element(pi(PI), Out, State) :-
 	    write(Out, ?>)
 	;   write(Out, >)
 	).
-emit_element(element(Name, Attributes, Content), Out, State) :-
+emit_element(element(Name, Attributes, Content), Out, State) :- !,
+	must_be(list, Attributes),
+	must_be(list, Content),
 	att_length(Attributes, State, Alen),
 	(   Alen > 60,
 	    get_state(State, layout, true)
@@ -336,6 +341,8 @@ emit_element(element(Name, Attributes, Content), Out, State) :-
 	;   attributes(Attributes, Sep, Out, State)
 	),
 	content(Content, Out, Name, State).
+emit_element(E, _, _) :-
+	type_error(xml_dom, E).
 
 attributes([], _, _, _).
 attributes([H|T], Sep, Out, State) :-
@@ -400,7 +407,7 @@ emit_name(URI:Name, Out, State) :-
 	->  write(Out, Name)
 	;   format(Out, '~w:~w', [NS, Name])
 	).
-emit_name(Term, Out, _) :-
+emit_name(Term, Out, _) :-		% error?
 	write(Out, Term).
 
 %%	update_nsmap(+Attributes, !State)
