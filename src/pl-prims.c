@@ -3150,12 +3150,17 @@ duplicate_term(term_t in, term_t copy ARG_LD)
 static
 PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
 { PRED_LD
-  term_t copy = PL_new_term_ref();
 
-  if ( duplicate_term(A1, copy PASS_LD) )
-    return PL_unify(copy, A2);
+  if ( PL_is_atomic(A1) )
+  { return PL_unify(A1, A2);
+  } else
+  { term_t copy = PL_new_term_ref();
 
-  fail;
+    if ( duplicate_term(A1, copy PASS_LD) )
+      return PL_unify(copy, A2);
+
+    fail;
+  }
 }
 
 
