@@ -67,7 +67,8 @@ setting(warn_not_called,    true).
 setting(hide_system_files,  true).
 setting(hide_profile_files, true).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Cross-referencer front-end
+
 XPCE based font-end of the Prolog cross-referencer.  Tasks:
 
 	* Cross-reference currently loaded program		OK
@@ -88,12 +89,14 @@ XPCE based font-end of the Prolog cross-referencer.  Tasks:
 		- Using use_module/2				OK
 		- Export header for non-module files		OK
 
-----------------
-NOTE: This is work in progress.
+@bug	Tool produces an error if a file that has been xref'ed is
+	deleted.  Paulo Moura.
+@see	library(prolog_xref) holds the actual data-collection.
+*/
 
-Its in CVS as this makes it easier to maintain and as-is, the
-tools is now in a useable state.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%%	gxref
+%
+%	Start graphical cross-referencer on loaded program.
 
 gxref :-
 	send(new(XREF, xref_frame), open),
