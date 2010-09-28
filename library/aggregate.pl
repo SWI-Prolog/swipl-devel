@@ -188,6 +188,8 @@ existential_vars(Var, Var) -->
 existential_vars(Var^G0, G) --> !,
 	[Var],
 	existential_vars(G0, G).
+existential_vars(M:G0, M:G) --> !,
+	existential_vars(G0, G).
 existential_vars(G, G) -->
 	[].
 

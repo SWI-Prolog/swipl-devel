@@ -143,5 +143,7 @@ test(density_range, Result == r(max(DMon, 'Monaco'),
 test(aggregate_all, Max == 3) :-
 	List = [1,2,3],
 	aggregate_all(r(max(A)), member(A,List), r(Max)).
+test(e_vars, all(X == [1,2,3,4,5])) :-
+	aggregate(r(sum(0)), Y^(between(1, 5, X), Y=1), _).
 
 :- end_tests(aggregate).
