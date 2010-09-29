@@ -345,7 +345,8 @@ gz_skip_footer(z_context *ctx)
       Sseterr(ctx->zstream, SIO_FERR, msg);
       return -1;
     }
-    if ( size != ctx->zstate.total_out )
+					/* size is truncated to 4 bytes */
+    if ( size != (ctx->zstate.total_out & 0xffffffff) )
     { char msg[256];
 
       Ssprintf(msg, "Size mismatch (%ld != %ld)", size, ctx->zstate.total_out);
