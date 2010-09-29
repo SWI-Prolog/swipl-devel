@@ -855,8 +855,7 @@ url_protocol(mailto).
 peek_end_url(space) -->
 	peek(End),
 	{ space_atom(End) }, !.
-peek_end_url(space) -->
-	eos, !.
+peek_end_url(space, [], []) :- !.
 peek_end_url(Token) -->
 	peek(Token), !.
 
@@ -1100,10 +1099,10 @@ end_sentence([H|T0], [H|T]) :-
 
 indented_lines(Comment, Prefixes, Lines) :-
 	must_be(codes, Comment),
-	phrase(split_lines(Prefixes, Lines), Comment).
+	phrase(split_lines(Prefixes, Lines), Comment), !.
 
 split_lines(_, []) -->
-	end_of_comment, !.
+	end_of_comment.
 split_lines(Prefixes, [Indent-L1|Ls]) -->
 	take_prefix(Prefixes, 0, Indent0),
 	white_prefix(Indent0, Indent),
@@ -1111,16 +1110,16 @@ split_lines(Prefixes, [Indent-L1|Ls]) -->
 	split_lines(Prefixes, Ls).
 
 
-%%	end_of_comment// is det.
+%%	end_of_comment//
 %
 %	Succeeds if we hit the end of the comment.
 %
 %	@bug	%*/ will be seen as the end of the comment.
 
 end_of_comment -->
-	eos, !.
+	eos.
 end_of_comment -->
-	ws, stars, "*/", !.
+	ws, stars, "*/".
 
 stars --> [].
 stars --> "*", !, stars.
