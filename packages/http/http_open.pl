@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2008, University of Amsterdam
+    Copyright (C): 2008-2010, University of Amsterdam
+			      Vu University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -82,7 +83,6 @@ resource. See also parse_time/2.
 	  close(In),
 	  Modified \== '',
 	  parse_time(Modified, Stamp).
-  close(In).
   ==
 
 @see xpath/3
@@ -93,9 +93,9 @@ resource. See also parse_time/2.
 :- multifile
 	http:encoding_filter/3,		  % +Encoding, +In0,  -In
 	http:current_transfer_encoding/1, % ?Encoding
-	http:http_protocol_hook/7.	  % +Protocol, +Parts, +In, +Out,
+	http:http_protocol_hook/7,	  % +Protocol, +Parts, +In, +Out,
 					  % -NewIn, -NewOut, +Options
-
+	http:open_options/2.		  % +Parts, -Options
 
 %%	http_open(+URL, -Stream, +Options) is det.
 %
@@ -168,14 +168,24 @@ resource. See also parse_time/2.
 %	  Defines the value of the  =|User-Agent|=   field  of  the HTTP
 %	  header. Default is =|SWI-Prolog (http://www.swi-prolog.org)|=.
 %
+%	The hook http:open_options/2 can be used to provide default
+%	options based on the broken-down URL.
+%
 %	@error	existence_error(url, Id)
 
 http_open(URL, Stream, Options) :-
-	atom(URL), !,
-	parse_url_ex(URL, Parts),
-	add_authorization(URL, Options, Options1),
-	http_open(Parts, Stream, Options1).
-http_open(Parts, Stream, Options0) :-
+	(   atom(URL)
+	->  parse_url_ex(URL, Parts),
+	    add_authorization(URL, Options, Options1)
+	;   add_authorization(Parts, Options, Options1)
+	),
+	(   http:open_options(Parts, HostOptions)
+	->  merge_options(Options1, HostOptions, Options2)
+	;   Options2 = Options1
+	),
+	http_open_parts(Parts, Stream, Options2).
+
+http_open_parts(Parts, Stream, Options0) :-
 	memberchk(proxy(Host, ProxyPort), Options0), !,
 	parse_url_ex(Location, Parts),
 	Options = [visited(Parts)|Options0],
@@ -184,10 +194,9 @@ http_open(Parts, Stream, Options0) :-
 	default_port(Protocol, DefPort),
 	option(port(Port), Parts, DefPort),
 	host_and_port(Host, DefPort, Port, HostPort),
-	add_authorization(Parts, Options, Options1),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
 	return_final_url(Options).
-http_open(Parts, Stream, Options0) :-
+http_open_parts(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
         option(protocol(Protocol), Parts, http),
 	default_port(Protocol, DefPort),
@@ -203,8 +212,7 @@ http_open(Parts, Stream, Options0) :-
             Out = SocketOut
         ),
 	host_and_port(Host, DefPort, Port, HostPort),
-	add_authorization(Parts, Options, Options1),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options1),
+	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
 	return_final_url(Options).
 
 http:http_protocol_hook(http, _, In, Out, In, Out, _).
@@ -636,3 +644,26 @@ parse_url_ex(URL, RelativeTo, Parts) :-
 	parse_url(URL, RelativeTo, Parts), !.
 parse_url_ex(URL, _, _) :-
 	domain_error(url, URL).		% Syntax error?
+
+
+		 /*******************************
+		 *     HOOK DOCUMENTATION	*
+		 *******************************/
+
+%%	http:open_options(+Parts, -Options) is semidet.
+%
+%	This hook is used by the HTTP   client library to define default
+%	options based on the the broken-down request-URL.  The following
+%	example redirects all trafic, except for localhost over a proxy:
+%
+%	    ==
+%	    :- multifile
+%	    	http:open_options/2.
+%
+%	    http:open_options(Parts, Options) :-
+%	    	memberchk(host(Host), Parts),
+%	    	Host \== localhost,
+%	    	Options = [proxy('proxy.local', 3128)].
+%	    ==
+
+
