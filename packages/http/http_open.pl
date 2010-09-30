@@ -175,10 +175,10 @@ resource. See also parse_time/2.
 
 http_open(URL, Stream, Options) :-
 	(   atom(URL)
-	->  parse_url_ex(URL, Parts),
-	    add_authorization(URL, Options, Options1)
-	;   add_authorization(Parts, Options, Options1)
+	->  parse_url_ex(URL, Parts)
+	;   Parts = URL
 	),
+	add_authorization(Parts, Options, Options1),
 	(   http:open_options(Parts, HostOptions)
 	->  merge_options(Options1, HostOptions, Options2)
 	;   Options2 = Options1
