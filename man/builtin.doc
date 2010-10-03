@@ -255,14 +255,14 @@ use_module/[1,2].
 How to deal with quick-load-file compilation by qcompile/1.  Values are
 
     \begin{description}
-	\termitem{never}
+	\termitem{never}{}
 Default.  Do not use qcompile, unless called explicitely
-	\termitem{auto}
+	\termitem{auto}{}
 Use qcompile for all writeable files.  See comment below.
-	\termitem{large}
+	\termitem{large}{}
 Use qcompile if the file is `large'. Currently, files larger than
 100~Kbytes are considered large.
-        \termitem{part}
+        \termitem{part}{}
 If this load_file/2 appears in a directive of a file that is compiled
 into Quick Load Format using qcompile/1, the contents of the argument
 files are included in the \fileext{qlf} file instead of the loading
@@ -6321,8 +6321,8 @@ arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
 
-If the pattern does contains wildcard characters, only existing files
-and directories are returned.  Expanding a `pattern' without wildcard
+If the pattern contains wildcard characters, only existing files and
+directories are returned. Expanding a `pattern' without wildcard
 characters returns the argument, regardless on whether or not it exists.
 
 Before expanding wildcards, the construct \file{\$\arg{var}} is expanded
