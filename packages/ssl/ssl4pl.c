@@ -568,7 +568,8 @@ unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char*
   if (type == NULL)
   { return ssl_error("digest_lookup");
   }
-  EVP_MD_CTX_init(&ctx);
+  EVP_MD_CTX_init( &ctx);
+     
   digestible_length=i2d(data,NULL);
   digest_buffer = PL_malloc(digestible_length);
   if (digest_buffer == NULL)
@@ -578,21 +579,21 @@ unify_hash(term_t hash, ASN1_OBJECT* algorithm, int (*i2d)(void*, unsigned char*
   p = digest_buffer;
   i2d(data,&p);
   if (!EVP_DigestInit(&ctx, type))
-  { EVP_MD_CTX_destroy(&ctx);
+  { EVP_MD_CTX_cleanup(&ctx);
     PL_free(digest_buffer);
     return ssl_error("digest_initialize");
   }
   if (!EVP_DigestUpdate(&ctx, digest_buffer, digestible_length))
-  { EVP_MD_CTX_destroy(&ctx);
+  { EVP_MD_CTX_cleanup(&ctx);
     PL_free(digest_buffer);
     return ssl_error("digest_update");
   }
   if (!EVP_DigestFinal(&ctx, digest, &digest_length))
-  { EVP_MD_CTX_destroy(&ctx);
+  { EVP_MD_CTX_cleanup(&ctx);
     PL_free(digest_buffer);
     return ssl_error("digest_finalize");
   }
-  EVP_MD_CTX_destroy(&ctx);
+  EVP_MD_CTX_cleanup(&ctx);
   PL_free(digest_buffer);
   return PL_unify_term(hash,
                        PL_NCHARS, digest_length, digest);
