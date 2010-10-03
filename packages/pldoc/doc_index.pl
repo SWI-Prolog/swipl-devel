@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -69,9 +70,8 @@ doc_for_dir(DirSpec, Options) :-
 			   ],
 			   Dir),
 	file_base_name(Dir, Base),
-	Title = Base,
 	reply_html_page(pldoc(dir_index),
-			title(Title),
+			title(Base),
 			\dir_index(Dir, Options)).
 
 
@@ -106,7 +106,7 @@ dir_source_files(DirSpec, Files, _Options) :-
 
 source_file_in_dir(Dir, File) :-
 	source_file(File),
-	sub_atom(File, 0, _, _, Dir).
+	file_directory_name(File, Dir).
 
 %%	dir_header(+Dir, +Options)// is det.
 %
