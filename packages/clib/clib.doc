@@ -930,9 +930,10 @@ is closed.  This is used to realise open_chars_stream/2 in
 library(charsio).
 \end{description}
 
-    \predicate{size_memory_file}{2}{+Handle, -Bytes}
-Return the content-length of the memory-file it \arg{Bytes}.  The
-file should be closed and contain data.
+    \predicate{size_memory_file}{2}{+Handle, -Size}
+Return the content-length of the memory-file it characters in the
+current encoding of the memory file. The file should be closed and
+contain data.
 
     \predicate{atom_to_memory_file}{2}{+Atom, -Handle}
 Turn an atom into a read-only memory-file containing the (shared)
