@@ -33,6 +33,7 @@
 	  [ new_memory_file/1,		% -Handle
 	    free_memory_file/1,		% +Handle
 	    size_memory_file/2,		% +Handle, -Size
+	    size_memory_file/3,		% +Handle, -Size, +Encoding
 	    open_memory_file/3,		% +Handle, +Mode, -Stream
 	    open_memory_file/4,		% +Handle, +Mode, -Stream, +Options
 	    atom_to_memory_file/2,	% +Atom, -Handle

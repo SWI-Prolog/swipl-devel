@@ -935,6 +935,10 @@ Return the content-length of the memory-file it characters in the
 current encoding of the memory file. The file should be closed and
 contain data.
 
+    \predicate{size_memory_file}{2}{+Handle, -Size, +Encoding}
+Return the content-length of the memory-file it characters in the given
+\arg{Encoding}. The file should be closed and contain data.
+
     \predicate{atom_to_memory_file}{2}{+Atom, -Handle}
 Turn an atom into a read-only memory-file containing the (shared)
 characters of the atom.  Opening this memory-file in mode \const{write}

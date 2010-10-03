@@ -121,6 +121,15 @@ encoding(enc-1) :-			% Encode to UTF-8
 	close(In),
 	free_memory_file(MF),
 	phrase(utf8_codes(String), Codes).
+encoding(enc-2) :-
+	String = [97, 254, 500],
+	new_memory_file(MF),
+	open_memory_file(MF, write, Out, [encoding(utf8)]),
+	format(Out, '~s', [String]),
+	close(Out),
+	size_memory_file(MF, Size, octet),
+	phrase(utf8_codes(String), Codes),
+	length(Codes, Size).
 
 
 		 /*******************************
