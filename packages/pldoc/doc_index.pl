@@ -191,11 +191,20 @@ file_index_header(File, Options) -->
 	},
 	html(tr(th([colspan(3), class(file)],
 		   [ span(style('float:left'), a(href(HREF), Label)),
+		     \file_module_title(File),
 		     span(style('float:right'),
 			  [ \source_button(File, ButtonOptions),
 			    \edit_button(File, ButtonOptions)
 			  ])
 		   ]))).
+
+file_module_title(File) -->
+	{ module_property(M, file(File)),
+	  doc_comment(M:module(Title), _, _, _)
+	}, !,
+	html([&(nbsp), ' -- ', Title]).
+file_module_title(_) -->
+	[].
 
 
 %%	doc_file_href(+File, -HREF, +Options) is det.
