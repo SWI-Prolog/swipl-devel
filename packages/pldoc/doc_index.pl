@@ -146,8 +146,10 @@ wiki_file(Dir, Type) -->
 
 wiki_file_type(readme, 'README').
 wiki_file_type(readme, 'README.TXT').
+wiki_file_type(readme, 'README.txt').
 wiki_file_type(todo,   'TODO').
 wiki_file_type(todo,   'TODO.TXT').
+wiki_file_type(todo,   'TODO.txt').
 
 %%	file_indices(+Files, +Options)// is det.
 %
