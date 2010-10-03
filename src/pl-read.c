@@ -2135,7 +2135,7 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv,
   if ( !hasGlobalSpace(arity+1) &&
        (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
     return rc;
-  if ( ensureSpaceForTermRefs(arity PASS_LD) != TRUE )
+  if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
     return rc;
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
