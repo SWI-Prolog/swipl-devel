@@ -703,11 +703,14 @@ opendir(const char *path)
   DIR *dp = malloc(sizeof(DIR));
 
   if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
+  { free(dp);
     return NULL;
+  }
   _tcscat(buf, _T("\\*.*"));
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
-  { errno = ENOMEM;
+  { free(dp);
+    errno = ENOMEM;
     return NULL;
   }
   dp->first = 1;
@@ -716,6 +719,7 @@ opendir(const char *path)
   if ( dp->handle == INVALID_HANDLE_VALUE )
   { if ( _waccess(buf, 04) )		/* does not exist */
     { free(dp->data);
+      free(dp);
       return NULL;
     }
   }
