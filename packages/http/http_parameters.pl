@@ -42,6 +42,28 @@
 :- use_module(library(lists)).
 :- use_module(library(error)).
 
+/** <module> Extract parameters (GET and POST) from HTTP requests
+
+This module is used to extract the value  of GET or POST parameters from
+an HTTP request. The typical usage is e.g.,
+
+    ==
+    :- http_handler('/register_user', register_user, []).
+
+    register_user(Request) :-
+	http_parameters(Request,
+			[ name(Name, []),
+			  sex(Sex, [oneof([male,female])]),
+			  birth_year(BY, [between(1850,10000)])
+			]),
+	register_user(Name, Sex, BY),
+	html_reply_page(title('New user added'),
+			...).
+    ==
+
+@see http_dispatch.pl dispatches requests to predicates.
+*/
+
 :- meta_predicate
 	http_parameters(+, ?, :).
 
@@ -59,6 +81,25 @@
 %		Return the data read from the GET por POST request as a
 %		list Name = Value.  All data, including name/value pairs
 %		used for Parms, is unified with Data.
+%
+%	The attribute_declarations hook allows   sharing the declaration
+%	of attribute-properties between many http_parameters/3 calls. In
+%	this form, the requested attribute takes   only one argument and
+%	the options are acquired by calling the hook. For example:
+%
+%	    ==
+%	    	...,
+%	    	http_parameters(Request,
+%				[ sex(Sex)
+%				],
+%				[ attribute_declarations(http_param)
+%				]),
+%		...
+%
+%	    http_param(sex, [ oneof(male, female),
+%			      description('Sex of the person')
+%			    ]).
+%	    ==
 
 http_parameters(Request, Params) :-
 	http_parameters(Request, Params, []).
