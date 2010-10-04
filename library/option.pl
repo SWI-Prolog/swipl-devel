@@ -166,9 +166,15 @@ select_option(Option, Options, Options, Default) :-
 %	Merge two option lists. Merged is a sorted list of options using
 %	the canonical format Name(Value) holding   all  options from New
 %	and Old, after removing conflicting options from Old.
+%
+%	Multi-values options (e.g.,  proxy(Host,   Port))  are  allowed,
+%	where both option-name and arity  define   the  identity  of the
+%	option.
 
-merge_options([], Old, Merged) :- !, Merged = Old.
-merge_options(New, [], Merged) :- !, Merged = New.
+merge_options([], Old, Merged) :- !,
+	canonise_options(Old, Merged).
+merge_options(New, [], Merged) :- !,
+	canonise_options(New, Merged).
 merge_options(New, Old, Merged) :-
 	canonise_options(New, NCanonical),
 	canonise_options(Old, OCanonical),
@@ -179,28 +185,30 @@ merge_options(New, Old, Merged) :-
 ord_merge([], L, L) :- !.
 ord_merge(L, [], L) :- !.
 ord_merge([NO|TN], [OO|TO], Merged) :-
-	functor(NO, NName, 1),
-	functor(OO, OName, 1),
-	compare(Diff, NName, OName),
-	ord_merge(Diff, NO, NName, OO, OName, TN, TO, Merged).
+	sort_key(NO, NKey),
+	sort_key(OO, OKey),
+	compare(Diff, NKey, OKey),
+	ord_merge(Diff, NO, NKey, OO, OKey, TN, TO, Merged).
 
 ord_merge(=, NO, _, _, _, TN, TO, [NO|T]) :-
 	ord_merge(TN, TO, T).
-ord_merge(<, NO, _, OO, OName, TN, TO, [NO|T]) :-
+ord_merge(<, NO, _, OO, OKey, TN, TO, [NO|T]) :-
 	(   TN = [H|TN2]
-	->  functor(H, NName, 1),
-	    compare(Diff, NName, OName),
-	    ord_merge(Diff, H, NName, OO, OName, TN2, TO, T)
+	->  sort_key(H, NKey),
+	    compare(Diff, NKey, OKey),
+	    ord_merge(Diff, H, NKey, OO, OKey, TN2, TO, T)
 	;   T = [OO|TO]
 	).
-ord_merge(>, NO, NName, OO, _, TN, TO, [OO|T]) :-
+ord_merge(>, NO, NKey, OO, _, TN, TO, [OO|T]) :-
 	(   TO = [H|TO2]
-	->  functor(H, OName, 1),
-	    compare(Diff, NName, OName),
-	    ord_merge(Diff, NO, NName, H, OName, TN, TO2, T)
+	->  sort_key(H, OKey),
+	    compare(Diff, NKey, OKey),
+	    ord_merge(Diff, NO, NKey, H, OKey, TN, TO2, T)
 	;   T = [NO|TN]
 	).
 
+sort_key(Option, Name-Arity) :-
+	functor(Option, Name, Arity).
 
 %%	canonise_options(+OptionsIn, -OptionsOut) is det.
 %
