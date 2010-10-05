@@ -257,6 +257,9 @@ store_mode(Head0, Pos) :-
 	dcg_expand(Head0, Head),
 	compile_clause('$mode'(Head, unknown), Pos).
 
+dcg_expand(M:Head0, M:Head) :-
+	atom(M), !,
+	dcg_expand(Head0, Head).
 dcg_expand(//(Head0), Head) :- !,
 	Head0 =.. [Name|List0],
 	maplist(remove_argname, List0, List1),
