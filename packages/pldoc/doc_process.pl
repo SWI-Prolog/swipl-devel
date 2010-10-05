@@ -258,9 +258,9 @@ doc_comment(Object, Pos, Summary, Comment) :-
 	).
 doc_comment(M:Object, Pos, Summary, Comment) :- !,
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	(   M:'$pldoc'(Object, Pos, Summary, Comment)
-	;   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
+	;   current_predicate(M:'$pldoc_link'/2),
 	    M:'$pldoc_link'(Object, Obj2),
 	    M:'$pldoc'(Obj2, Pos, Summary, Comment)
 	).
@@ -326,7 +326,7 @@ process_comment(_, _, _).
 
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	catch(M:'$pldoc'(_, FilePos, _, Comment), _, fail), !.
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	string_to_list(Comment, CommentCodes),
