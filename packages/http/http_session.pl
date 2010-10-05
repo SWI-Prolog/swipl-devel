@@ -160,7 +160,7 @@ http_session_id(SessionID) :-
 %	HTTP request (see http_current_request/1). The   value is cached
 %	in a backtrackable global variable   =http_session_id=.  Using a
 %	backtrackable global variable is safe  because continuous worker
-%	threads use a failure driven  look   and  spawned  threads start
+%	threads use a failure driven  loop   and  spawned  threads start
 %	without any global variables. This variable  can be set from the
 %	commandline to fake running a goal   from the commandline in the
 %	context of a session.
