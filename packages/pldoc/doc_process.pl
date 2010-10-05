@@ -234,8 +234,8 @@ doc_file_name(Source, Doc, Options) :-
 %		* Name//Arity
 %		DCG rule indicator.  Same as Name/Arity+2
 %
-%		* module(Module)
-%		Comment appearing in Module.
+%		* module(ModuleTitle)
+%		Comment appearing in a module.
 %
 %	If Object is  unbound  and  multiple   objects  share  the  same
 %	description, Object is unified with a   list  of terms described
@@ -247,7 +247,7 @@ doc_file_name(Source, Doc, Options) :-
 doc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	M:'$pldoc'(Obj, Pos, Summary, Comment),
 	qualify(M, Obj, Object0),
 	(   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),

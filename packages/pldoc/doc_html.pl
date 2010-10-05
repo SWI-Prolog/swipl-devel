@@ -78,6 +78,7 @@
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
+:- use_module(library(pairs)).
 :- use_module(doc_process).
 :- use_module(doc_man).
 :- use_module(doc_modes).
@@ -182,9 +183,11 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 			     access(read)
 			   ],
 			   File),
-	Pos = File:_Line,
-	findall(doc(Obj,Pos,Comment),
-		doc_comment(Obj, Pos, _, Comment), Objs0),
+	Pos = File:Line,
+	findall(Line-doc(Obj,Pos,Comment),
+		doc_comment(Obj, Pos, _, Comment), Pairs),
+	keysort(Pairs, ByLine),
+	pairs_values(ByLine, Objs0),
 	module_info(File, ModuleOptions, Options),
 	file_info(Objs0, Objs1, FileOptions, ModuleOptions),
 	doc_hide_private(Objs1, Objects, ModuleOptions).
