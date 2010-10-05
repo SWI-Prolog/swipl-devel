@@ -311,7 +311,7 @@ http_session_retractall(Data) :-
 	http_session_id(SessionId),
 	retractall(session_data(SessionId, Data)).
 
-%	http_session_data(?Data) is nondet.
+%%	http_session_data(?Data) is nondet.
 %
 %	True if Data is associated using http_session_assert/1 to the
 %	current HTTP session.
