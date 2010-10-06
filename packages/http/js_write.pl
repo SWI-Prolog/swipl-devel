@@ -112,6 +112,11 @@ js_new(Id, Term) -->
 %	    Where Attributes is a Key-Value list where each pair can be
 %	    written as Key-Value, Key=Value or Key(Value), accomodating
 %	    all common constructs for this used in Prolog.
+%	    $ { K:V, ... }
+%	    Same as object(Attributes), providing a more JavaScript-like
+%	    syntax.  This may be useful if the object appears literally
+%	    in the source-code, but is generally less friendlyto produce
+%	    as a result from a computation.
 %	    $ json(Term) :
 %	    Emits a term using json_write/3.
 %	    $ @(true), @(false), @(null) :
@@ -142,6 +147,8 @@ js_arg(H) -->
 js_arg(object(H)) -->
 	{ is_list(H) }, !,
 	html([ '{', \js_kv_list(H), '}' ]).
+js_arg({}(Attrs)) --> !,
+	html([ '{', \js_kv_cslist(Attrs), '}' ]).
 js_arg(@(true)) -->  [true].
 js_arg(@(false)) --> [false].
 js_arg(@(null)) -->  [null].
@@ -176,15 +183,24 @@ js_kv_list([H|T]) -->
 	;   { type_error(javascript_key_value, H) }
 	).
 
-js_kv(Key-Value) -->
+js_kv(Key:Value) --> !,
 	html(['\'',Key,'\':',\js_arg(Value)]).
-js_kv(Key=Value) -->
+js_kv(Key-Value) --> !,
+	html(['\'',Key,'\':',\js_arg(Value)]).
+js_kv(Key=Value) --> !,
 	html(['\'',Key,'\':',\js_arg(Value)]).
 js_kv(Term) -->
 	{ compound(Term),
 	  Term =.. [Key,Value]
 	}, !,
 	html(['\'',Key,'\':',\js_arg(Value)]).
+
+js_kv_cslist((A,B)) --> !,
+	js_kv(A),
+	html(', '),
+	js_kv_cslist(B).
+js_kv_cslist(A) -->
+	js_kv(A).
 
 %%	js_quoted_string(+Raw, -Quoted)
 %
