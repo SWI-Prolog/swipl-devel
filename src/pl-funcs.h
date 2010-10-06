@@ -696,6 +696,7 @@ COMMON(char) 		digitName(int n, bool small);
 COMMON(int) 		digitValue(int b, int c);
 COMMON(char *) 		procedureName(Procedure proc);
 COMMON(char *) 		predicateName(Definition def);
+COMMON(int) 		clauseNo(Definition def, Clause clause);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);

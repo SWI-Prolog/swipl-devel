@@ -730,6 +730,26 @@ unaliasThread(atom_t name)
   }
 }
 
+int
+PL_get_thread_alias(int tid, atom_t *alias)
+{ PL_thread_info_t *info;
+ 
+  if ( tid == 0 )
+    tid = PL_thread_self();
+  if ( tid < 0 )
+    PL_fail;
+  if (alias == NULL)
+     PL_fail;
+  info = GD->thread.threads[tid];
+  if ( info->name )
+  { PL_register_atom(info->name);
+    *alias = info->name;
+    PL_succeed;
+  }
+  PL_fail; 
+}
+
+
 		 /*******************************
 		 *	 PROLOG BINDING		*
 		 *******************************/

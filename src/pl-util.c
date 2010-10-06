@@ -151,6 +151,25 @@ predicateName(Definition def)
   return buffer_string(tmp, BUF_RING);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+clauseNo() returns the clause index of the given clause
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+int
+clauseNo(Definition def, Clause cl)
+{ int i;
+  ClauseRef cref;
+
+  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
+  { if ( cref->clause == cl )
+      return i;
+  }
+
+  return -1;
+}
+
+
+
 /*  succeeds if proc is a system predicate exported to the public module.
 
  ** Fri Sep  2 17:03:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
