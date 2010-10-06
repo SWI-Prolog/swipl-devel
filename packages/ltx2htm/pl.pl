@@ -49,6 +49,9 @@
 #(predtag(Value),	[ html('<span class="pred-tag">'), Value,
 			  html('</span>')
 			]).
+#(mod(Module),		[ html('<span class="module">'), Module,
+			  html('</span>')
+			]).
 
 		 /*******************************
 		 *	   ENVIRONMENTS		*
@@ -164,17 +167,36 @@ cmd(definition({Tag}),
 cmd('DCG'(A,B,C), X) :-
 	cmd(predicate(A,B,C), X).
 cmd(predicate(A, {RawName}, {'0'}, {_}),
-    #defitem(pubdef, Content)) :-
+    #defitem(Class, Content)) :-
+	pred_class(A, Class),
 	pred_tag(A, Content, [#label(RefName, #strong(Name))]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(predicate(A, {RawName}, {Arity}, {Args}),
-    #defitem(pubdef, Content)) :-
+    #defitem(Class, Content)) :-
+	pred_class(A, Class),
 	pred_tag(A, Content,
 		 [#label(RefName, [#strong(Name), #embrace(#var(+Args))])]),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
+	add_to_index(RefName, +RefName).
+cmd(qpredicate(A, {RawM}, {RawName}, {'0'}, {_}),
+    #defitem(Class, Content)) :-
+	pred_class(A, Class),
+	pred_tag(A, Content, [#label(RefName, [#mod(Module), nospace(:), #strong(Name)])]),
+	clean_name(RawM, Module),
+	clean_name(RawName, Name),
+	format(atom(RefName), '~w:~w/0', [Module, Name]),
+	add_to_index(RefName, +RefName).
+cmd(qpredicate(A, {RawM}, {RawName}, {Arity}, {Args}),
+    #defitem(Class, Content)) :-
+	pred_class(A, Class),
+	pred_tag(A, Content,
+		 [#label(RefName, [#mod(Module), nospace(:), #strong(Name), #embrace(#var(+Args))])]),
+	clean_name(RawM, Module),
+	clean_name(RawName, Name),
+	format(atom(RefName), '~w:~w/~w', [Module, Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(dcg(A, {RawName}, {'0'}, {_}),
     #defitem(pubdef, Content)) :-
@@ -381,6 +403,14 @@ select_csym([_|T0], T) :-
 
 pred_tag([], L, L).
 pred_tag([Value], [#predtag(#embrace("[]", +Value))|L], L).
+
+pred_class([Opt], Class) :-
+	sub_term(Tag, Opt),
+	atom(Tag),
+	sub_atom(Tag, _, _, _, multifile), !,
+	Class = multidef.
+pred_class(_, pubdef).
+
 
 		 /*******************************
 		 *	     GLOSSARY		*

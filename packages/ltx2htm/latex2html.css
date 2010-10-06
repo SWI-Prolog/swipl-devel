@@ -10,6 +10,10 @@ dt.pubdef
 { background-color: #c5e1ff;
 }
 
+dt.multidef
+{ background-color:  #c8ffc7;
+}
+
 .bib dd
 { margin-bottom: 1em;
 }
@@ -86,11 +90,11 @@ div.toc-h4
 }
 
 span.sec-nr
-{ 
+{
 }
 
 span.sec-title
-{ 
+{
 }
 
 span.pred-ext
@@ -99,6 +103,7 @@ span.pred-ext
 
 span.pred-tag
 { float: right;
+  padding-top: 0.2em;
   font-size: 80%;
   font-style: italic;
   color: #202020;
@@ -109,7 +114,7 @@ span.pred-tag
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text { display: none; }
 sup.fn span {display: none;}
-sup:hover span 
+sup:hover span
 { display: block !important;
   position: absolute; top: auto; left: auto; width: 80%;
   color: #000; background: white;

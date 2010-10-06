@@ -50,6 +50,7 @@
 		existing_linked_file/2,
 		pred_anchor_name/3,
 		private/2,
+		(multifile)/2,
 		is_pi/1,
 		is_op_type/2
 	      ]).
@@ -816,6 +817,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
 	  ->  Class = privdef		% private definition
+	  ;   multifile(Obj, Options)
+	  ->  Class = multidef
 	  ;   Class = pubdef		% public definition
 	  ),
 	  (   Obj = Module:_
@@ -940,6 +943,7 @@ pred_head(//(Head), Options) --> !,
 	latex(cmd(dcg(opt(Atts), Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, _Options) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
+	  Functor \== (:),
 	  is_op_type(Functor, infix), !
 	},
 	latex(cmd(infixop(Functor, \pred_arg(Left, 1), \pred_arg(Right, 2)))).
@@ -953,6 +957,14 @@ pred_head(Head, _Options) -->			% Postfix operators
 	  is_op_type(Functor, postfix), !
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
+pred_head(M:Head, Options) --> !,		% Qualified predicates
+	{ pred_attributes(Options, Atts),
+	  Head =.. [Functor|Args],
+	  length(Args, Arity)
+	},
+	latex(cmd(qpredicate(opt(Atts),
+			     M,
+			     Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, Options) -->			% Plain terms
 	{ pred_attributes(Options, Atts),
 	  Head =.. [Functor|Args],
@@ -974,6 +986,8 @@ pred_att(Options, Det) :-
 	option(det(Det), Options).
 pred_att(Options, private) :-
 	option(class(privdef), Options).
+pred_att(Options, multifile) :-
+	option(class(multidef), Options).
 
 insert_comma([H1,H2|T0], [H1, ','|T]) :- !,
 	insert_comma([H2|T0], T).

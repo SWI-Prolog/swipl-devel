@@ -68,6 +68,12 @@ dt.undoc, h2.undoc
 { background-color: #ffbc87;
 }
 
+img.action
+{ border: 0;
+  padding-top: 0.2em;
+  height: 1em;
+}
+
 dl.tags
 { font-size: 80%;
   margin-top: 0.5em;
@@ -234,6 +240,15 @@ span.autoload, span.builtin, span.cfunc
   font-style: italic;
 }
 
+span.anot
+{ float: right;
+  margin-right: 5pt;
+  font-style: italic;
+  font-size: smaller;
+  padding-top: 0.2em;
+  color: #444;
+}
+
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text { display: none; }
@@ -244,7 +259,7 @@ sup:hover span
   color: #000; background: white;
   border: 2px solid;
   padding: 5px; margin: 10px; z-index: 100;
-  font-size: smaller;
+  font-size: 80%;
 }
 
 span.sec-nr

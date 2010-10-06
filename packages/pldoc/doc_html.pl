@@ -43,7 +43,7 @@
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button//2,		% +File, +Options, //
 	    source_button//2,		% +File, +Options, //
-	    pred_edit_button//2,		% +PredInd, +Options, //
+	    pred_edit_button//2,	% +PredInd, +Options, //
 	    object_edit_button//2,	% +Obj, +Options, //
 	    object_source_button//2,	% +Obj, +Options, //
 					% Support other backends
@@ -52,6 +52,7 @@
 	    doc_tag_title/2,		% +Tag, -Title
 	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
+	    (multifile)/2,		% +Obj, +Options
 	    is_pi/1,			% @Term
 	    is_op_type/2,		% +Atom, ?Type
 					% Output routines
@@ -327,10 +328,8 @@ reload_button(Base, Options) -->
 	  option(public_only(Public), Options, true)
 	},
 	html(a(href(Base+[reload(true), public_only(Public)]),
-	       img([ %class(icon),
-		     height=24,
+	       img([ class(action),
 		     alt('Reload'),
-		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+'reload.gif')
 		   ]))).
 reload_button(_, _) -->
@@ -343,17 +342,15 @@ reload_button(_, _) -->
 %	current page.  JavaScript code is in the file pldoc.js.
 
 edit_button(File, Options) -->
-	{ option(edit(true), Options), !,
-	  option(button_height(H), Options, 24)
-	},
+	{ option(edit(true), Options)
+	}, !,
 	html(a([ onClick('HTTPrequest(\'' +
 			 location_by_id(pldoc_edit) + [file(File)] +
 			 '\')'),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
-	       img([ height(H),
+	       img([ class(action),
 		     alt(edit),
-		     style('border:0'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		 ]))).
 edit_button(_, _) -->
@@ -377,9 +374,8 @@ zoom_button(Base, Options) -->
 	    )
 	},
 	html(a(href(Base+[public_only(PublicOnly)]),
-	       img([ height=24,
+	       img([ class(action),
 		     alt(Alt),
-		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
 
@@ -390,17 +386,15 @@ zoom_button(Base, Options) -->
 
 source_button(_File, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
-source_button(File, Options) -->
+source_button(File, _Options) -->
 	{ (   is_absolute_file_name(File)
 	  ->  doc_file_href(File, HREF0)
 	  ;   HREF0 = File
-	  ),
-	  option(button_height(H), Options, 24)
+	  )
 	},
 	html(a(href(HREF0+[source(true)]),
-	       img([ height(H),
+	       img([ class(action),
 		     alt('Show source'),
-		     style('padding-top:4px; border:0;'),
 		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
 
@@ -793,9 +787,19 @@ pred_dt([], _, Done, Done, _) -->
 	[].
 pred_dt([H|T], Class, Done0, Done, Options) -->
 	html(dt(class=Class,
-		\pred_mode(H, Done0, Done1, Options))),
+		[ \pred_mode(H, Done0, Done1, Options),
+		  \mode_anot(Class)
+		])),
 	pred_dt(T, Class, Done1, Done, Options).
 
+mode_anot(privdef) --> !,
+	html(span([class(anot), style('float:right')],
+		  '[private]')).
+mode_anot(multidef) --> !,
+	html(span([class(anot), style('float:right')],
+		  '[multifile]')).
+mode_anot(_) -->
+	[].
 
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Head, Vars) },
@@ -869,8 +873,8 @@ pred_edit_button2(Name/Arity, Options) -->
 			 location_by_id(pldoc_edit)+[name(Name),arity(Arity)|Extra] +
 			 '\')')
 	       ],
-	       img([ height=12,
-		     style('border:0;'),
+	       img([ class(action),
+		     alt('Edit predicate'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		   ]))).
 pred_edit_button2(_, _) --> !,
@@ -901,8 +905,8 @@ pred_source_button(PI0, Options0) -->
 	},
 	html(a([ href(HREF)
 	       ],
-	       img([ height=12,
-		     style('border:0;'),
+	       img([ class(action),
+		     alt('Source'),
 		     src(location_by_id(pldoc_resource)+'source.gif')
 		   ]))).
 pred_source_button(_, _) -->
