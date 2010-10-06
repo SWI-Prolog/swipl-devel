@@ -4056,7 +4056,14 @@ character.%
 Similar to atom_chars/2, but converts between a number and its
 representation as a list of one-character atoms. Fails with a
 \except{syntax_error} if \arg{Number} is unbound and \arg{CharList} does
-not describe a number.
+not describe a number. Following the ISO standard, it allows for
+\emph{leading} white space (including newlines) and does not allow for
+\emph{trailing} white space.\footnote{ISO also allows for Prolog
+comments in leading white space. We -and most other implementations-
+believe this is incorrect. We also beleive it would have been better not
+to allow for white space, or to allow for both leading and trailing
+white space.  Prolog-syntax based conversion can be achieved using
+format/3 and read_from_chars/2.}
 
     \predicate[ISO]{number_codes}{2}{?Number, ?CodeList}
 As number_chars/2, but converts to a list of character codes rather than

@@ -37,7 +37,8 @@ test_text :-
 	run_tests([ char_code,
 		    atom_concat,
 		    term_to_atom,
-		    atom_to_term
+		    atom_to_term,
+		    number_codes
 		  ]).
 
 :- begin_tests(char_code).
@@ -99,3 +100,17 @@ test(eof, error(syntax_error(_))) :-
 	atom_to_term('x /* comment', _, _).
 
 :- end_tests(atom_to_term).
+
+
+:- begin_tests(number_codes).
+
+test(whitespace, X == 42) :-
+	number_codes(X, "  42").	% ISO
+test(whitespace, X == 42) :-
+	number_codes(X, "\n 42").
+test(whitespace, error(syntax_error(_))) :-
+	number_codes(_, "42 ").		% ISO (dubious)
+test(whitespace, error(syntax_error(_))) :-
+	number_codes(_, "/**/42").	% ISO demands acceptance!?
+
+:- end_tests(number_codes).

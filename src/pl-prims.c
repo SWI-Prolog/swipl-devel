@@ -3258,9 +3258,13 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	return PL_unify_atom_nchars(atom, len, s);
       else
 	return PL_unify_wchars(atom, PL_ATOM, len, ws);
-    case X_AUTO:
     case X_NUMBER:
-    default:
+      if ( s )				/* ISO: number_codes(X, "  42") */
+      { while(*s && isBlankW(*s))
+	  s++;
+      }
+      /*FALLTHROUGH*/
+    case X_AUTO:
     { number n;
       unsigned char *q;
       AR_CTX;
@@ -3284,6 +3288,8 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
       else
 	return PL_error(pred, 2, NULL, ERR_SYNTAX, "illegal_number");
     }
+    default:
+      assert(0);
   }
 }
 
