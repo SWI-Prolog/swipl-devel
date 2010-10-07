@@ -88,8 +88,8 @@ csv_read_file(File, Rows, Options) :-
 	phrase_from_file(csv_roptions(Rows, Record), File, RestOptions).
 
 
-%%	csv(Rows)// is det.
-%%	csv(Rows, +Options)// is det.
+%%	csv(?Rows)// is det.
+%%	csv(?Rows, +Options)// is det.
 %
 %	Prolog DCG to `read/write' CSV data.  Options:
 %

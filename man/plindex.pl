@@ -252,7 +252,11 @@ predicate_line(Name, Arity) -->
 	optional_directive,
 	optional_module,
 	atom(Name),
-	arguments(Arity), !,
+	arguments(Arity0), !,
+	(   skip_blanks, "//"			% DCG rule
+	->  {Arity is Arity0+2}
+	;   {Arity = Arity0}
+	),
 	{   (   integer(Arity),
 		functor(T, Name, Arity),
 		user:current_predicate(_, T)
