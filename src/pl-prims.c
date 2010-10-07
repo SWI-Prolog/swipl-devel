@@ -192,8 +192,8 @@ are:
 Returns one of:
 
   - FALSE:		terms cannot unify.  Note that this routine does not
-	   		rollback changes it made!
-  - TRUE:  		Unification has completed sucessfully
+			rollback changes it made!
+  - TRUE:		Unification has completed sucessfully
   - GLOBAL_OVERFLOW:	Unification cannot be completed due to lack
 			of global-space.
   - TRAIL_OVERFLOW:	Unification cannot be completed due to lack
@@ -1549,7 +1549,7 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 	  r.v2 = p2;
 	  addBuffer(buf, r, reset);
 
- 	  vcount += 2;
+	  vcount += 2;
 
 	  if ( p1 == p2 )
 	  { *p1 = consVar(vcount+1)|MARK_MASK;
@@ -2239,7 +2239,7 @@ static const opt_spec numbervar_options[] =
 { { ATOM_attvar,	    OPT_ATOM },
   { ATOM_functor_name,	    OPT_ATOM },
   { ATOM_singletons,	    OPT_BOOL },
-  { NULL_ATOM,	     	    0 }
+  { NULL_ATOM,		    0 }
 };
 
 
@@ -4624,7 +4624,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
-      		 GD->statistics.threads_finished;
+		 GD->statistics.threads_finished;
   else if ( key == ATOM_threads_created )
     v->value.i = GD->statistics.threads_created;
   else if ( key == ATOM_thread_cputime )
@@ -4819,7 +4819,7 @@ This code should be moved into another file.
 
 typedef struct
 { const char   *name;
-  int   	type;
+  int		type;
   void	       *address;
 } optdef, *OptDef;
 
