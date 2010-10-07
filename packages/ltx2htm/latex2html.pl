@@ -2539,6 +2539,10 @@ close_by('DT', is_end('DL')).
 %%	write_html(+Tokens) is det.
 
 write_html([]) :- !.			% Unpack lists
+write_html([html(DD)|T]) :-	% Delete empty DD followed by DT
+	is_begin('DD', DD),
+	empty_dd(T, Rest), !,
+	write_html(Rest).
 write_html([H|T]) :- !,
 	write_html(H),
 	write_html(T).
@@ -2688,6 +2692,13 @@ write_html(_).
 nl_html :-
 	write_html(verb('\n')).
 
+empty_dd([], []) :- !.
+empty_dd(L, L) :-
+	L = [html(DT)|_],
+	is_begin('DT', DT), !.
+empty_dd(['\n'|T0], T) :-
+	empty_dd(T0, T).
+
 
 %	translate_ref(+Label, -Anchor, -TextLabel)
 
@@ -2741,7 +2752,7 @@ cmd_layout('</DIV>', 0, 1).
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
 cmd_layout('</DT>', 	 0, 1).
-cmd_layout('<DD>', 	 1, 0).
+cmd_layout(DD, 		 1, 0) :- is_begin('DD', DD).
 cmd_layout('</DD>', 	 0, 1).
 cmd_layout('<UL>', 	 1, 1).
 cmd_layout('</UL>', 	 1, 1).
