@@ -647,8 +647,10 @@ need_no_quotes(Atom) :-
 	\+ sub_atom(A, 0, _, _, '\'').
 
 parts_to_path([One], One) :- !.
-parts_to_path([H|T], H/More) :-
-	parts_to_path(T, More).
+parts_to_path(List, More/T) :-
+	(   append(H, [T], List)
+	->  parts_to_path(H, More)
+	).
 
 
 		 /*******************************
