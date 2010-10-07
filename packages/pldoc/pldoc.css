@@ -79,6 +79,11 @@ dl.tags
   margin-top: 0.5em;
 }
 
+dl.latex, ul.latex, ol.latex
+{ margin-top: 0.7em;
+  margin-bottom: 1em;
+}
+
 dl.termlist
 { margin-top: 0.7em;
   margin-bottom: 1em;
