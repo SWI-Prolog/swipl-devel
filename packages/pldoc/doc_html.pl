@@ -586,7 +586,14 @@ object_page_header(_, _) --> [].
 
 %%	object_synopsis(Obj)
 %
-%	Provide additional information about Obj
+%	Provide additional information  about  Obj.   Note  that  due to
+%	reexport facilities, predicates may be   available from multiple
+%	modules.
+%
+%	@tbd Currently we provide a synopsis   for the one where the
+%	definition resides. This is not   always  correct. Notably there
+%	are cases where multiple implementation modules are bundled in a
+%	larger interface that is the `preferred' module.
 
 object_synopsis(Name/Arity) -->
 	{ functor(Head, Name, Arity),
@@ -598,6 +605,7 @@ object_synopsis(Name/Arity) --> !,
 object_synopsis(M:Name/Arity) -->
 	{ functor(Head, Name, Arity),
 	  predicate_property(M:Head, exported),
+	  \+ predicate_property(M:Head, imported_from(_)),
 	  module_property(M, file(File)),
 	  file_name_on_path(File, Spec), !,
 	  unquote(Spec, Unquoted),
