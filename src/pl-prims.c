@@ -3221,7 +3221,6 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 
   if ( arg1 )
   { int ok;
-    fid_t fid = PL_open_foreign_frame();
 
     if ( s )
     { if ( how & X_CHARS )
@@ -3233,11 +3232,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
       ok = PL_unify_wchars(string, flags, len, ws);
     }
 
-    if ( ok || !(how & X_NUMBER) )
-    { PL_close_foreign_frame(fid);
-      return ok;
-    }
-    PL_discard_foreign_frame(fid);
+    return ok;
   } else if ( !PL_is_variable(atom) )
   { return PL_error(pred, 2, NULL, ERR_TYPE,
 		    (how & X_NUMBER) ? ATOM_number : ATOM_atom,
