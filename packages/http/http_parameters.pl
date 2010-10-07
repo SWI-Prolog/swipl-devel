@@ -149,7 +149,8 @@ fill_parameters([H|T], FormData, DeclGoal) :-
 fill_parameter(H, _, _) :-
 	var(H), !,
 	instantiation_error(H).
-fill_parameter(group(Members, _Options), FormData, DeclGoal) :- !,
+fill_parameter(group(Members, _Options), FormData, DeclGoal) :-
+	is_list(Members), !,
 	fill_parameters(Members, FormData, DeclGoal).
 fill_parameter(H, FormData, _) :-
 	H =.. [Name,Value,Options], !,
