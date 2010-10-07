@@ -513,11 +513,13 @@ man_page(Obj, Options) -->
 	{ findall((Parent+Path)-DOM,
 		  load_man_object(Obj, Parent, Path, DOM),
 		  Matches),
+	  Matches = [_|_],
+	  pairs_keys(Matches, ParentPaths),
 	  Matches = [Parent+Path-_|_]
 	},
 	html_requires(pldoc),
 	(   { option(links(true), Options, true) }
-	->  man_links(Parent, Options),
+	->  man_links(ParentPaths, Options),
 	    html(p([]))
 	;   []
 	),
@@ -693,29 +695,29 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	man_index(section(Level, Nr, SecPath), _, _, _, _).
 
 
-%%	man_links(+Parent, +Options)// is det.
+%%	man_links(+ParentPaths, +Options)// is det.
 %
 %	Create top link structure for manual pages.
 
-man_links(Parent, Options) -->
+man_links(ParentPaths, Options) -->
 	html(div(class(navhdr),
-		 [ div(class(jump), \man_parent(Parent)),
+		 [ div(class(jump), \man_parent(ParentPaths)),
 		   div(class(search), \search_form(Options)),
 		   br(clear(right))
 		 ])).
 
-man_parent(Section) -->
-	{ Section = section(_,_,_)
+man_parent(ParentPaths) -->
+	{ maplist(parent_to_section, ParentPaths, [Section|MoreSections]),
+	  maplist(=(Section), MoreSections)
 	}, !,
 	object_ref(Section, [secref_style(number_title)]).
-man_parent(File) -->
-	{ atom(File),
-	  Obj = section(_,_,_),
-	  man_index(Obj, _Title, File, _Class, _Offset)
-	}, !,
-	object_ref(Obj, [secref_style(number_title)]).
-man_parent(_) -->
-	[].
+man_parent(_) --> [].
+
+parent_to_section(X+_, X) :-
+	X = section(_,_,_), !.
+parent_to_section(File+_, Section) :-
+	atom(File),
+	man_index(Section, _Title, File, _Class, _Offset), !.
 
 %%	section_link(+Obj, +Options)// is det.
 %

@@ -566,7 +566,7 @@ object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
-	},
+	}, !,
 	html([ \html_requires(pldoc),
 	       \object_page_header(File, Options),
 	       \object_synopsis(Obj),
