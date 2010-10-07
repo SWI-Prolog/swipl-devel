@@ -67,7 +67,7 @@
 	    object_ref//2,		% +Object, +Options, //
 	    object_href/2,		% +Object, -URL
 	    object_page//2,		% +Object, +Options, //
-	    object_synopsis//1		% +Object, //
+	    object_synopsis//2		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -570,7 +570,7 @@ object_page(Obj, Options) -->
 	}, !,
 	html([ \html_requires(pldoc),
 	       \object_page_header(File, Options),
-	       \object_synopsis(Obj),
+	       \object_synopsis(Obj, []),
 	       \objects([Obj], Options)
 	     ]).
 
@@ -585,7 +585,7 @@ object_page_header(File, Options) -->
 object_page_header(_, _) --> [].
 
 
-%%	object_synopsis(Obj)
+%%	object_synopsis(Obj, Options) is det.
 %
 %	Provide additional information  about  Obj.   Note  that  due to
 %	reexport facilities, predicates may be   available from multiple
@@ -596,14 +596,14 @@ object_page_header(_, _) --> [].
 %	are cases where multiple implementation modules are bundled in a
 %	larger interface that is the `preferred' module.
 
-object_synopsis(Name/Arity) -->
+object_synopsis(Name/Arity, _) -->
 	{ functor(Head, Name, Arity),
 	  predicate_property(system:Head, built_in)
 	},
 	synopsis([span(class(builtin), 'built-in')]).
-object_synopsis(Name/Arity) --> !,
-	object_synopsis(_:Name/Arity).
-object_synopsis(M:Name/Arity) -->
+object_synopsis(Name/Arity, Options) --> !,
+	object_synopsis(_:Name/Arity, Options).
+object_synopsis(M:Name/Arity, Options) -->
 	{ functor(Head, Name, Arity),
 	  predicate_property(M:Head, exported),
 	  \+ predicate_property(M:Head, imported_from(_)),
@@ -615,8 +615,11 @@ object_synopsis(M:Name/Arity) -->
 	  ;   Extra = []
 	  )
 	},
-	synopsis([code(':- use_module(~q).'-[Unquoted])|Extra]).
-object_synopsis(_:Name/Arity) -->
+	(   { option(href(HREF), Options) }
+	->  synopsis([code([':- use_module(',a(href(HREF), '~q'-[Unquoted]),').'])|Extra])
+	;   synopsis([code(':- use_module(~q).'-[Unquoted])|Extra])
+	).
+object_synopsis(_:Name/Arity, _) -->
 	{ functor(Head, Name, Arity),
 	  current_arithmetic_function(Head)
 	},
@@ -625,11 +628,11 @@ object_synopsis(_:Name/Arity) -->
 			\object_ref(is/2, []),
 			')'
 		      ])).
-object_synopsis(c(Func)) -->
+object_synopsis(c(Func), _) -->
 	{ sub_atom(Func, 0, _, _, 'PL_')
 	}, !,
 	synopsis([span(class(cfunc), 'C-language interface function')]).
-object_synopsis(_) --> [].
+object_synopsis(_, _) --> [].
 
 synopsis(Text) -->
 	html(div(class(synopsis),

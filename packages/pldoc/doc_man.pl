@@ -523,8 +523,7 @@ man_page(Obj, Options) -->
 	    html(p([]))
 	;   []
 	),
-	man_synopsis(Obj),
-	man_matches(Matches).
+	man_matches(Matches, Obj).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
 	  term_to_atom(Obj, Atom)
@@ -535,29 +534,68 @@ man_page(Obj, Options) -->
 	;   html(p(['No manual entry for ', Atom]))
 	).
 
-%%	man_synopsis(+Text)
+%%	man_synopsis(+Text, Parent)
 %
 %	Give synopsis details for a fully specified predicate indicator.
-%
-%	@tbd Give this for each match on the basis of the manual link.
+%	The tricky part is that there   are cases where multiple modules
+%	export the same predicate. We must find   from  the title of the
+%	manual section which library is documented.
 
-man_synopsis(Text) -->
-	{ atom(Text),
-	  sub_atom(Text, Pre, _, Post, /),
-	  sub_atom(Text, _, Post, 0, AA),
-	  catch(atom_number(AA, Arity), _, fail), !,
-	  sub_atom(Text, 0, Pre, _, Name)
+man_synopsis(Text, Parent) -->
+	{ atom_pi(Text, PI) },
+	man_synopsis_2(PI, Parent).
+man_synopsis(Object, Parent) -->
+	man_synopsis_2(Object, Parent).
+
+man_synopsis_2(Name/Arity, Parent) -->
+	{ object_module(Parent, Module),
+	  object_href(Parent, HREF)
 	},
-	object_synopsis(Name/Arity).
-man_synopsis(Object) -->
-	object_synopsis(Object).
+	object_synopsis(Module:Name/Arity, [href(HREF)]).
+man_synopsis_2(Object, _) -->
+	object_synopsis(Object, []).
+
+%%	object_module(+Section, -Module) is semidet.
+%
+%	Find the module documented by Section.
+%
+%	@tbd This requires that the documented file is loaded. If
+%	not, should we use the title of the section?
+
+object_module(Section, Module) :-
+	man_index(Section, Title, _File, _Class, _Offset),
+	(   once(sub_atom(Title, B, _, _, :)),
+	    sub_atom(Title, 0, B, _, Atom),
+	    catch(term_to_atom(Term, Atom), _, fail),
+	    Term = library(_)
+	->  absolute_file_name(Term, PlFile,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ]),
+	    module_property(Module, file(PlFile))
+	).
 
 
-man_matches([]) -->
-	[].
-man_matches([(_Parent+Path)-H|T]) -->
-	dom_list(H, Path),
-	man_matches(T).
+atom_pi(Text, Name/Arity) :-
+	atom(Text),
+	sub_atom(Text, Pre, _, Post, /),
+	sub_atom(Text, _, Post, 0, AA),
+	catch(atom_number(AA, Arity), _, fail), !,
+	sub_atom(Text, 0, Pre, _, Name).
+
+man_matches([], _) --> [].
+man_matches([H|T], Obj) --> man_match(H, Obj), man_matches(T, Obj).
+
+%%	man_match(+Term, +Object)//
+%
+%	If  possible,  insert  the  synopsis  into   the  title  of  the
+%	description.
+
+man_match((Parent+Path)-[element(dt,A,C),DD], Obj) -->
+	dom_list([element(dt,A,[\man_synopsis(Obj, Parent)|C]),DD], Path).
+man_match((_Parent+Path)-DOM, _Obj) -->
+	dom_list(DOM, Path).
 
 dom_list([], _) -->
 	[].

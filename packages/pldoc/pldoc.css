@@ -228,7 +228,7 @@ span.search-help
 div.synopsis
 { text-align: right;
   margin-top: 15pt;
-  margin-bottom: 5pt;
+  background-color: #fff;
 }
 
 span.synopsis-hdr
