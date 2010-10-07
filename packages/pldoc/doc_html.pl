@@ -413,40 +413,44 @@ objects([Obj|T], Mode, Options) -->
 	objects(T, Mode1, Options).
 
 object(doc(Obj,Pos,Comment), Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
+	object(Obj, [Pos-Comment], Mode0, Mode, Options).
 object(Obj, Mode0, Mode, Options) -->
-	{ doc_comment(Obj, Pos, _Summary, Comment)
+	{ findall(Pos-Comment, doc_comment(Obj, Pos, _Summary, Comment), Pairs)
 	}, !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
+	object(Obj, Pairs, Mode0, Mode, Options).
 
-object(Obj, Pos, Comment, Mode0, Mode, Options) -->
+object(Obj, Pairs, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
-	  is_structured_comment(Comment, Prefixes),
-	  string_to_list(Comment, Codes),
-	  indented_lines(Codes, Prefixes, Lines),
-	  strip_module(user:Obj, Module, _),
-	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
-	  (   private(Obj, Options)
-	  ->  Class = privdef		% private definition
-	  ;   multifile(Obj, Options)
-	  ->  Class = multidef
-	  ;   Class = pubdef		% public definition
-	  ),
-	  (   Obj = Module:_
-	  ->  POptions = [module(Module)|Options]
-	  ;   POptions = Options
-	  ),
-	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
-	  wiki_lines_to_dom(Lines1, Args, DOM0),
-	  strip_leading_par(DOM0, DOM1)
+	  maplist(pred_dom(Obj, Options), Pairs, DOMS),
+	  append(DOMS, DOM)
 	},
 	need_mode(dl, Mode0, Mode),
 	html(DOM).
-object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
-object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
+object([Obj|_Same], Pairs, Mode0, Mode, Options) --> !,
+	object(Obj, Pairs, Mode0, Mode, Options).
+object(Obj, _Pairs, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
+
+pred_dom(Obj, Options, Pos-Comment, DOM) :-
+	is_structured_comment(Comment, Prefixes),
+	string_to_list(Comment, Codes),
+	indented_lines(Codes, Prefixes, Lines),
+	strip_module(user:Obj, Module, _),
+	process_modes(Lines, Module, Pos, Modes, Args, Lines1),
+	(   private(Obj, Options)
+	->  Class = privdef		% private definition
+	;   multifile(Obj, Options)
+	->  Class = multidef
+	;   Class = pubdef		% public definition
+	),
+	(   Obj = Module:_
+	->  POptions = [module(Module)|Options]
+	;   POptions = Options
+	),
+	DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
+	wiki_lines_to_dom(Lines1, Args, DOM0),
+	strip_leading_par(DOM0, DOM1).
 
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
@@ -1538,7 +1542,7 @@ html_tokens_for_predicates(PI, Options) -->
 	  ;   Comment = ''
 	  )
 	},
-	object(PI, Pos, Comment, [dl], _, Options).
+	object(PI, [Pos-Comment], [dl], _, Options).
 html_tokens_for_predicates(Spec, Options) -->
 	{ findall(PI, documented_pi(Spec, PI), List),
 	  List \== [], !
