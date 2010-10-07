@@ -38,6 +38,7 @@
 :- use_module(library(pldoc)).
 :- use_module(library(readutil)).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
@@ -827,15 +828,19 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1),
-	  assert(documented(Obj))
+	  assert_documented(Obj)
 	},
 	need_mode(description, Mode0, Mode),
 	latex(DOM).
-object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
+object([Obj|Same], Pos, Comment, Mode0, Mode, Options) --> !,
+	object(Obj, Pos, Comment, Mode0, Mode, Options),
+	{ maplist(assert_documented, Same) }.
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
+
+assert_documented(Obj) :-
+	assert(documented(Obj)).
 
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
