@@ -1,4 +1,4 @@
-\libdoc{prologxref}{Cross-reference data collection library}
+\libdoc{prolog_xref}{Cross-reference data collection library}
 \label{sec:lib:prologxref}
 
 This library collects information on defined and used objects in Prolog
