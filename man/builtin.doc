@@ -4810,7 +4810,7 @@ rounding used by the C-compiler and available through the Prolog flag
 is defined as \const{towards_zero}.\footnote{Future versions might
 guarantee rounding towards zero.}
 
-    \predicate[ISO]{div}{+IntExpr1}{+IntExpr2}
+    \predicate[ISO]{div}{2}{+IntExpr1, +IntExpr2}
 Integer division, defined as \mbox{\arg{Result} is
 $(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
 In other words, this is integer division that rounds towards -infinity.

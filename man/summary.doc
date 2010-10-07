@@ -552,6 +552,7 @@ suggest predicates from a keyword.
 \predicatesummary{tell}{1}{Change current output stream}
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
+\predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
@@ -666,10 +667,12 @@ suggest predicates from a keyword.
 \functionsummary{asin}{1}{Inverse (arc) sine}
 \functionsummary{atan}{1}{Inverse (arc) tangent}
 \functionsummary{atan}{2}{Rectangular to polar conversion}
+\functionsummary{atan2}{2}{Rectangular to polar conversion}
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
 \functionsummary{cputime}{0}{Get CPU time}
+\functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}
 \functionsummary{epsilon}{0}{Floating point precision}
 \functionsummary{eval}{1}{Evaluate term as expression}
