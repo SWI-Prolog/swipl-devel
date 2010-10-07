@@ -112,7 +112,7 @@ test(whitespace, error(syntax_error(_))) :-
 	number_codes(_, "42 ").		% ISO (dubious)
 test(whitespace, error(syntax_error(_))) :-
 	number_codes(_, "/**/42").	% ISO demands acceptance!?
-test(unify, fail) :-
+test(unify, error(_)) :-
 	number_codes(0, [C,C]).
 
 :- end_tests(number_codes).

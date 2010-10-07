@@ -4053,27 +4053,22 @@ character.%
 	available from the library \file{backcomp.pl}}
 
     \predicate[ISO]{number_chars}{2}{?Number, ?CharList}
-
-Convert between a number and its representation as a list of
-one-character atoms. In mode (+,-), it `writes' \arg{Number} to
-\arg{CharList}. In mode (-,+) it `reads' \arg{CharList} into
-\arg{Number}. Reading results in a \except{syntax_error} exception if
-\arg{CharList} does not represent a number. The serialization of numbers
-to text follows the Prolog syntax rules for numbers. In mode (-,+),
-\emph{leading} white space is ignored.\footnote{ISO also allows for
-Prolog comments in leading white space. We -and most other
-implementations- believe this is incorrect. We also beleive it would
-have been better not to allow for white space, or to allow for both
-leading and trailing white space. Prolog-syntax based conversion can be
-achieved using format/3 and read_from_chars/2.} Finally, ISO defines
-that mode (+,+) behaves as \exam{number_chars(In,Tmp),Tmp=Out}.
+Similar to atom_chars/2, but converts between a number and its
+representation as a list of one-character atoms. Fails with a
+\except{syntax_error} if \arg{Number} is unbound and \arg{CharList} does
+not describe a number. Following the ISO standard, it allows for
+\emph{leading} white space (including newlines) and does not allow for
+\emph{trailing} white space.\footnote{ISO also allows for Prolog
+comments in leading white space. We -and most other implementations-
+believe this is incorrect. We also beleive it would have been better not
+to allow for white space, or to allow for both leading and trailing
+white space.  Prolog-syntax based conversion can be achieved using
+format/3 and read_from_chars/2.}
 
     \predicate[ISO]{number_codes}{2}{?Number, ?CodeList}
 As number_chars/2, but converts to a list of character codes rather than
-one-character atoms. In the mode (-,+), both predicates accept both a
-list of characters as well as a list of character codes to improve
-handling of non-ISO source and make code less dependent on the
-Prolog flag \prologflag{double_quotes}.
+one-character atoms. In the mode -, +, both predicates behave
+identically to improve handling of non-ISO source.
 
     \predicate{atom_number}{2}{?Atom, ?Number}
 Realises the popular combination of atom_codes/2 and number_codes/2 to
