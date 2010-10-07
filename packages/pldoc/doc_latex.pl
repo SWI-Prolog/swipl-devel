@@ -46,6 +46,7 @@
 :- use_module(pldoc(doc_modes)).
 :- use_module(pldoc(doc_html),		% we cannot import all as the
 	      [ doc_file_objects/5,	% \commands have the same name
+		unquote_filespec/2,
 		doc_tag_title/2,
 		existing_linked_file/2,
 		pred_anchor_name/3,
@@ -744,7 +745,7 @@ file_header(File, Options) -->
 	{ memberchk(file(Title, Comment), Options), !,
 	  file_synopsis(File, Synopsis)
 	},
-	file_title([Synopsis, ' -- ', Title], File, Options),
+	file_title([Synopsis, ': ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
 	  string_to_list(Comment, Codes),
 	  indented_lines(Codes, Prefixes, Lines),
@@ -766,10 +767,8 @@ tags_to_front(DOM, DOM).
 
 file_synopsis(File, Synopsis) :-
 	file_name_on_path(File, Term),
-	(   Term = library(Lib)
-	->  format(atom(Synopsis), 'Library ~w', [Lib])
-	;   format(atom(Synopsis), '~w', [Term])
-	).
+	unquote_filespec(Term, Unquoted),
+	format(atom(Synopsis), '~w', [Unquoted]).
 
 
 %%	file_title(+Title:list, +File, +Options)// is det

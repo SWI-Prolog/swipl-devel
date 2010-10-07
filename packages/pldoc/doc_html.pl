@@ -49,6 +49,7 @@
 					% Support other backends
 	    doc_file_objects/5,		% +FSpec, -File, -Objs, -FileOpts, +Opts
 	    existing_linked_file/2,	% +FileSpec, -Path
+	    unquote_filespec/2,		% +FileSpec, -Unquoted
 	    doc_tag_title/2,		% +Tag, -Title
 	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
@@ -608,7 +609,7 @@ object_synopsis(M:Name/Arity) -->
 	  \+ predicate_property(M:Head, imported_from(_)),
 	  module_property(M, file(File)),
 	  file_name_on_path(File, Spec), !,
-	  unquote(Spec, Unquoted),
+	  unquote_filespec(Spec, Unquoted),
 	  (   predicate_property(Head, autoload)
 	  ->  Extra = [span(class(autoload), '(can be autoloaded)')]
 	  ;   Extra = []
@@ -636,19 +637,19 @@ synopsis(Text) -->
 		 | Text
 		 ])).
 
-%%	unquote(+Spec, -Unquoted) is det.
+%%	unquote_filespec(+Spec, -Unquoted) is det.
 %
 %	Translate       e.g.       library('semweb/rdf_db')         into
 %	library(semweb/rdf_db).
 
-unquote(Spec, Unquoted) :-
+unquote_filespec(Spec, Unquoted) :-
 	compound(Spec),
 	Spec =.. [Alias,Path],
 	atomic_list_concat(Parts, /, Path),
 	maplist(need_no_quotes, Parts), !,
 	parts_to_path(Parts, UnquotedPath),
 	Unquoted =.. [Alias, UnquotedPath].
-unquote(Spec, Spec).
+unquote_filespec(Spec, Spec).
 
 need_no_quotes(Atom) :-
 	format(atom(A), '~q', [Atom]),

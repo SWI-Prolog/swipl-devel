@@ -382,8 +382,9 @@ cmd(g({Term}),	#lref(gloss, RefName, Term)) :-
 cmd(libdoc({Name}, {Summary}),
     [HTML, #label(Name, [], Tag)]) :-
 	filebase(Name, File),
+	format(atom(Label), '~w:', [library(Name)]),
 	translate_section(2, -,
-			  ['library(', Name, '): ', Summary],
+			  [Label, Summary],
 			  HTML,
 			  File),
 	tex:label_tag(Name, Tag).
