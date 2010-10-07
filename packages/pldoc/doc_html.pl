@@ -442,7 +442,10 @@ pred_dom(Obj, Options, Pos-Comment, DOM) :-
 	(   private(Obj, Options)
 	->  Class = privdef		% private definition
 	;   multifile(Obj, Options)
-	->  Class = multidef
+	->  (   multi_doc(Obj)
+	    ->	Class = multidef(Obj)
+	    ;	Class = multidef
+	    )
 	;   Class = pubdef		% public definition
 	),
 	(   Obj = Module:_
@@ -452,6 +455,11 @@ pred_dom(Obj, Options, Pos-Comment, DOM) :-
 	DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1).
+
+multi_doc(Obj) :-
+	doc_comment(Obj, Pos1, _, _), !,
+	doc_comment(Obj, Pos2, _, _),
+	Pos2 \== Pos1, !.
 
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
@@ -804,7 +812,8 @@ pred_dt(Modes, Class, Options) -->
 pred_dt([], _, Done, Done, _) -->
 	[].
 pred_dt([H|T], Class, Done0, Done, Options) -->
-	html(dt(class=Class,
+	{ functor(Class, CSSClass, _) },
+	html(dt(class=CSSClass,
 		[ \pred_mode(H, Done0, Done1, Options),
 		  \mode_anot(Class)
 		])),
@@ -813,6 +822,11 @@ pred_dt([H|T], Class, Done0, Done, Options) -->
 mode_anot(privdef) --> !,
 	html(span([class(anot), style('float:right')],
 		  '[private]')).
+mode_anot(multidef(Obj)) --> !,
+	{ object_href(Obj, HREF) },
+	html(span([class(anot), style('float:right')],
+		  ['[', a(href(HREF), multifile), ']'
+		  ])).
 mode_anot(multidef) --> !,
 	html(span([class(anot), style('float:right')],
 		  '[multifile]')).
