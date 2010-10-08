@@ -78,7 +78,7 @@ the database. Figure \figref{modules} summarised the modular design.
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{Library semweb/rdf_db}
+\section{library(semweb/rdf_db): The RDF database}
 
 The central module is called \file{rdf_db}.  It provides storage and
 indexed querying of RDF triples.  Triples are stored as a quintuple.
@@ -722,7 +722,7 @@ are added at the end of the database, possibly changing the order of
 (conflicting) triples.
 \end{description}
 
-\subsubsection{Caching triples}
+\subsubsection{library(semweb/rdf_cache): Caching triples}
 \label{sec:rdfcache}
 
 The library \pllib{semweb/rdf_cache} defines the caching strategy for
@@ -1379,7 +1379,7 @@ True if \arg{Protocol} is a URL protocol recognised by rdf_load/2.
 \end{description}
 
 
-\subsection{Library semweb/rdf_zlib_plugin}
+\subsection{library(semweb/rdf_zlib_plugin): Reading compressed RDF}
 \label{sec:zlib}
 
 \index{gz, format}\index{gzip}\index{compressed data}%
@@ -1389,7 +1389,7 @@ file format is deduced by the extension after stripping the \fileext{gz}
 extension.  E.g.\ \exam{rdf_load('file.rdf.gz')}.
 
 
-\subsection{Library semweb/rdf_http_plugin}
+\subsection{library(semweb/rdf_http_plugin): Reading RDF from a HTTP server}
 \label{sec:http}
 
 \index{xhtml}%
@@ -1408,7 +1408,7 @@ the XML content for embedded RDF.
 		 %	     LITINDEX		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Library semweb/rdf_litindex: Indexing words in literals}
+\subsection{library(semweb/rdf_litindex): Indexing words in literals}
 \label{sec:rdflitindex}
 
 The library \pllib{semweb/rdf_litindex.pl} exploits the primitives
@@ -1523,7 +1523,7 @@ no_index_token(X) :-
 \end{code}
 \end{description}
 
-\subsection{Literal maps: Creating additional indices on literals}
+\subsubsection{Literal maps: Creating additional indices on literals}
 \label{sec:rdflitmap}
 
 `Literal maps' provide a relation between literal values, intended to
@@ -1632,7 +1632,7 @@ Unify \arg{Keys} with the total key-count of the index and
 		 %	    PERSISTENCY		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Library semweb/rdf_persistency}
+\subsection{library(semweb/rdf_persistency): Providing persistent storage}
 \label{sec:persistency}
 
 \index{Persistent store}%
@@ -1841,7 +1841,7 @@ in the directory described by rdf_current_db/1 and has the extension
 		 %	       RDFS		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Library semweb/rdfs}
+\section{library(semweb/rdfs): RDFS related queries}
 \label{sec:rdfs}
 
 \index{RDF-Schema}%
@@ -1993,7 +1993,8 @@ the match was found.
 		 %	     RDF-EDIT		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Library semweb/rdf_edit}			\label{sec:rdfedit}
+\section{library(semweb/rdf_edit): Keep track of edits (deprecated)}
+\label{sec:rdfedit}
 
 \begin{quote}\em
 It is anticipated that this library will eventually be superseeded by
