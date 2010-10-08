@@ -298,6 +298,11 @@ pldoc_edit(Request) :-
 			       [ optional(true),
 				 description('Name of the file to edit')
 			       ]),
+			  line(Line,
+			       [ optional(true),
+				 integer,
+				 description('Line in the file')
+			       ]),
 			  name(Name,
 			       [ optional(true),
 				 description('Name of a Prolog predicate to edit')
@@ -312,7 +317,9 @@ pldoc_edit(Request) :-
 				   description('Name of a Prolog module to search for predicate')
 				 ])
 			]),
-	(   atom(File)
+	(   atom(File), integer(Line)
+	->  Edit = file(File, line(Line))
+	;   atom(File)
 	->  Edit = file(File)
 	;   atom(Name), integer(Arity)
 	->  (   atom(Module)

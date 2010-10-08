@@ -452,7 +452,9 @@ pred_dom(Obj, Options, Pos-Comment, DOM) :-
 	->  POptions = [module(Module)|Options]
 	;   POptions = Options
 	),
-	DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
+	Pos = File:Line,
+	DTOptions = [file(File),line(Line)|POptions],
+	DOM = [\pred_dt(Modes, Class, DTOptions), dd(class=defbody, DOM1)],
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1).
 
@@ -880,7 +882,15 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 
 %%	pred_edit_button(+PredIndicator, +Options)// is det.
 %
-%	Create a button for editing the given predicate.
+%	Create a button for editing the given predicate.  Options
+%	processed:
+%
+%	    * module(M)
+%	    Resolve to module M
+%	    * file(F)
+%	    For multi-file predicates: link to version in file.
+%	    * line(L)
+%	    Line to edit (in file)
 
 pred_edit_button(_, Options) -->
 	{ \+ option(edit(true), Options) }, !.
@@ -889,28 +899,32 @@ pred_edit_button(PI0, Options0) -->
 	pred_edit_button2(PI, Options).
 
 pred_edit_button2(Name/Arity, Options) -->
-	{ functor(Head, Name, Arity),
+	{ \+ ( memberchk(file(_), Options), % always edit if file and line
+	       memberchk(line(_), Options)  % are given.
+	     ),
+	  functor(Head, Name, Arity),
 	  option(module(M), Options, _),
 	  \+ ( current_module(M),
 	       source_file(M:Head, _File)
 	     )
 	}, !.
 pred_edit_button2(Name/Arity, Options) -->
-	{ (   option(module(M), Options)
-	  ->  Extra = [module(M)]
-	  ;   Extra = []
-	  )
+	{ include(edit_param, Options, Extra),
+	  http_link_to_id(pldoc_edit,
+			  [name(Name),arity(Arity)|Extra],
+			  EditHREF)
 	},
-	html(a([ onClick('HTTPrequest(\'' +
-			 location_by_id(pldoc_edit)+[name(Name),arity(Arity)|Extra] +
-			 '\')')
-	       ],
+	html(a(onClick('HTTPrequest(\'' + EditHREF + '\')'),
 	       img([ class(action),
 		     alt('Edit predicate'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		   ]))).
 pred_edit_button2(_, _) --> !,
 	[].
+
+edit_param(module(_)).
+edit_param(file(_)).
+edit_param(line(_)).
 
 
 %%	object_edit_button(+Object, +Options)// is det.
@@ -961,7 +975,7 @@ object_source_button(_, _) -->
 %	Canonise a predicate reference. A   possible module qualifier is
 %	added as module(M) to Options.
 
-canonise_predref(M:PI0, PI, Options0, [module(M),Options]) :- !,
+canonise_predref(M:PI0, PI, Options0, [module(M)|Options]) :- !,
 	canonise_predref(PI0, PI, Options0, Options).
 canonise_predref(//(Head), PI, Options0, Options) :-	!,
 	functor(Head, Name, Arity),
