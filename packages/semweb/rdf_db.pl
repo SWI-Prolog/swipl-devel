@@ -1602,37 +1602,57 @@ header_namespaces(Options, List) :-
 	used_namespace_entities(List, DB).
 
 %%	rdf_graph_prefixes(?Graph, -List:ord_set) is det.
-%%	rdf_graph_prefixes(?Graph, -List:ord_set, :Filter) is det.
+%%	rdf_graph_prefixes(?Graph, -List:ord_set, :Options) is det.
 %
-%	List is a sorted list  of   prefixes  (namepaces)  in Graph. The
-%	optional Filter argument is used to   filter  the results. It is
-%	called with 3 additional arguments:
+%	List is a sorted list of  prefixes (namepaces) in Graph. Options
+%	defined are:
 %
-%	    ==
-%	    call(Filter, Where, Prefix, URI)
-%	    ==
+%	    * filter(:Filter)
+%	    optional Filter argument is used to filter the results. It
+%	    is called with 3 additional arguments:
 %
-%	The Where argument gives the location of   the prefix ans is one
-%	of  =subject=,  =predicate=,  =object=  or  =type=.  The  Prefix
-%	argument is the potentionally new prefix and URI is the full URI
-%	that is being processed.
+%	        ==
+%	        call(Filter, Where, Prefix, URI)
+%	        ==
+%
+%	    The Where argument gives the location of the prefix ans is
+%	    one of =subject=, =predicate=, =object= or =type=. The
+%	    Prefix argument is the potentionally new prefix and URI is
+%	    the full URI that is being processed.
+%
+%	    * expand(:Goal)
+%	    Hook to generate the graph.  Called using
+%
+%	        ==
+%	        call(Goal,S,P,O,Graph)
+%	        ==
 
 
 :- thread_local
 	graph_prefix/1.
 :- meta_predicate
-	rdf_graph_prefixes(?, -, 3).
+	rdf_graph_prefixes(?, -, :).
 
 rdf_graph_prefixes(Graph, List) :-
-	rdf_graph_prefixes(Graph, List, true).
+	rdf_graph_prefixes(Graph, List, []).
 
-rdf_graph_prefixes(Graph, List, Filter) :-
-	call_cleanup(prefixes(Graph, Prefixes, Filter),
+rdf_graph_prefixes(Graph, List, M:QOptions) :-
+	is_list(QOptions), !,
+	meta_options(is_meta, M:QOptions, Options),
+	option(filter(Filter), Options, true),
+	option(expand(Expand), Options, rdf_db),
+	call_cleanup(prefixes(Expand, Graph, Prefixes, Filter),
 		     retractall(graph_prefix(_))),
 	sort(Prefixes, List).
+rdf_graph_prefixes(Graph, List, M:Filter) :-
+	rdf_graph_prefixes(Graph, List, M:[filter(Filter)]).
 
-prefixes(Graph, Prefixes, Filter) :-
-	(   rdf_db(S, P, O, Graph),
+is_meta(filter).
+is_meta(expand).
+
+
+prefixes(Expand, Graph, Prefixes, Filter) :-
+	(   call(Expand, S, P, O, Graph),
 	    add_ns(subject, Filter, S),
 	    add_ns(predicate, Filter, P),
 	    add_ns_obj(Filter, O),
@@ -1647,7 +1667,7 @@ add_ns(Where, Filter, S) :-
 	Full \== '', !,
 	(   graph_prefix(Full)
 	->  true
-	;   Filter = _:true
+	;   Filter == true
 	->  assert(graph_prefix(Full))
 	;   call(Filter, Where, Full, S)
 	->  assert(graph_prefix(Full))

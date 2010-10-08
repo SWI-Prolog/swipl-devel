@@ -85,6 +85,7 @@ has the following properties:
 		 encoding=utf8,		% Desired encoding
 		 indent:nonneg=8,	% Indent for ; and ,-lists
 		 tab_distance:nonneg=8,	% Tab distance
+		 silent:boolean=false,	% If true, do not print a message
 		 subject_white_lines:nonneg=1,%Extra lines between subjects
 		 align_prefixes:boolean=true,%Align prefix declarations
 		 user_prefixes:boolean=true,% Use rdf_current_ns/2?
@@ -94,6 +95,7 @@ has the following properties:
 		 single_line_bnodes:boolean=false, % No newline after ;
 		 canonize_numbers:boolean=false, % How to write numbers
 		 canonical:boolean=false,
+		 expand:any=lookup,	% Access to the triples
 					% Private fields
 		 bnode_id=0,		% Incrementing bnode-id
 		 nodeid_map,		% RBTree mapping NodeIDs to Refs
@@ -106,9 +108,13 @@ has the following properties:
 		 prefix_map).		% List of Prefix-Map
 
 
-%%	rdf_save_turtle(+Out, +Options) is det.
+:- meta_predicate
+	rdf_save_turtle(+, :),
+	rdf_save_canonical_turtle(+, :).
+
+%%	rdf_save_turtle(+Out, :Options) is det.
 %
-%	Save an RDF graph as N3.  Options processed are:
+%	Save an RDF graph as Turtle.  Options processed are:
 %
 %	    * align_prefixes(+Boolean)
 %	    Nicely align the @prefix declarations
@@ -122,6 +128,8 @@ has the following properties:
 %	    between the output segments
 %	    * encoding(+Encoding)
 %	    Encoding used for the output stream.  Default is UTF-8.
+%	    * expand(:Goal)
+%	    Query an alternative graph-representation.  See below.
 %	    * indent(+Column)
 %	    Indentation for ; -lists.  `0' does not indent, but
 %	    writes on the same line.  Default is 8.
@@ -132,6 +140,9 @@ has the following properties:
 %	    * only_known_prefixes(+Boolean)
 %	    Only use prefix notation for known prefixes.  Without, some
 %	    documents produce _huge_ amounts of prefixes.
+%	    * silent(+Boolean)
+%	    If =true= (default =false=), do not print the final
+%	    informational message.
 %	    * single_line_bnodes(+Bool)
 %	    If =true= (default =false=), write [...] and (...) on a
 %	    single line.
@@ -144,10 +155,26 @@ has the following properties:
 %	    * user_prefixes(+Boolean)
 %	    If =true= (default), use prefixes from rdf_current_ns/2.
 %
+%	The option =expand= allows  for   serializing  alternative graph
+%	representations. It is called through   call/5,  where the first
+%	argument is the expand-option, followed  by   S,P,O,G.  G is the
+%	graph-option (which is by  default   a  variable).  This notably
+%	allows for writing RDF graphs   represented  as rdf(S,P,O) using
+%	the following code fragment:
+%
+%	    ==
+%	    triple_in(RDF, S,P,O,_G) :-
+%	    	member(rdf(S,P,O), RDF).
+%
+%	    	...,
+%	        rdf_save_turtle(Out, [ expand(triple_in(RDF)) ]),
+%	    ==
+%
 %	@param	Out is one of stream(Stream), a stream handle, a file-URL
 %		or an atom that denotes a filename.
 
-rdf_save_turtle(Spec, Options) :-
+rdf_save_turtle(Spec, QOptions) :-
+	meta_options(is_meta, QOptions, Options),
 	thread_self(Me),
 	thread_statistics(Me, cputime, T0),
 	must_be(list, Options),
@@ -162,9 +189,13 @@ rdf_save_turtle(Spec, Options) :-
 	Time is T1-T0,
 	tw_state_triple_count(State, SavedTriples),
 	tw_state_subject_count(State, SavedSubjects),
-	print_message(informational,
-		      rdf(saved(Spec, Time, SavedSubjects, SavedTriples))).
+	(   tw_state_silent(State, true)
+	->  true
+	;   print_message(informational,
+			  rdf(saved(Spec, Time, SavedSubjects, SavedTriples)))
+	).
 
+is_meta(expand).
 
 %%	rdf_save_canonical_turtle(+Spec, +Options) is det.
 %
@@ -184,20 +215,20 @@ rdf_save_turtle(Spec, Options) :-
 %	@tbd Work in progress. Notably blank-node handling is
 %	incomplete.
 
-rdf_save_canonical_turtle(Spec, Options) :-
+rdf_save_canonical_turtle(Spec, M:Options) :-
 	rdf_save_turtle(Spec,
-			[ encoding(utf8),
-			  indent(0),
-			  tab_distance(0),
-			  subject_white_lines(1),
-			  align_prefixes(false),
-			  user_prefixes(false),
-			  comment(false),
-			  group(false),
-			  single_line_bnodes(true),
-			  canonical(true)
-			| Options
-			]).
+			M:[ encoding(utf8),
+			    indent(0),
+			    tab_distance(0),
+			    subject_white_lines(1),
+			    align_prefixes(false),
+			    user_prefixes(false),
+			    comment(false),
+			    group(false),
+			    single_line_bnodes(true),
+			    canonical(true)
+			  | Options
+			  ]).
 
 %%	open_output(+Spec, +Encoding, -Stream, -Cleanup) is det.
 %
@@ -238,14 +269,19 @@ out_to_file(File, File).
 
 init_prefix_map(State0, State) :-
 	tw_state_graph(State0, Graph),
+	tw_state_expand(State0, Expand),
 	tw_state_only_known_prefixes(State0, OnlyKnown),
-	rdf_graph_prefixes(Graph, Prefixes, turtle_prefix(OnlyKnown)),
+	rdf_graph_prefixes(Graph, Prefixes,
+			   [ filter(turtle_prefix(OnlyKnown)),
+			     expand(Expand)
+			   ]),
 	remove_base(State0, Prefixes, Prefixes2),
 	prefix_names(Prefixes2, State0, Pairs),
 	transpose_pairs(Pairs, URI_Abrevs),
 	reverse(URI_Abrevs, RURI_Abrevs),
 	flip_pairs(RURI_Abrevs, PrefixMap),
 	set_prefix_map_of_tw_state(PrefixMap, State0, State).
+
 
 %%	turtle_prefix(+OnlyKnown, +Where, +Prefix, +URI) is semidet.
 %
@@ -850,10 +886,8 @@ pairs_unshared_collection(Pairs, State, [H|T]) :-
 
 object_link_count(BNode, State, Count) :-
 	tw_state_graph(State, Graph),
-	(   var(Graph)
-	->  findall(S-P, rdf(S,P,BNode), Pairs0)
-	;   findall(S-P, rdf(S,P,BNode,Graph), Pairs0)
-	),
+	tw_state_expand(State, Expand),
+	findall(S-P, call(Expand,S,P,BNode,Graph), Pairs0),
 	sort(Pairs0, Pairs),		% remove duplicates
 	length(Pairs, Count).
 
@@ -889,10 +923,8 @@ put_n(_, _, _).
 
 subject_triples(URI, State, Pairs) :-
 	tw_state_graph(State, Graph),
-	(   var(Graph)
-	->  findall(P-O, rdf(URI, P, O), Pairs0)
-	;   findall(P-O, rdf(URI, P, O, Graph), Pairs0)
-	),
+	tw_state_expand(State, Expand),
+	findall(P-O, call(Expand, URI, P, O, Graph), Pairs0),
 	sort(Pairs0, Pairs).
 
 
@@ -907,15 +939,20 @@ subject_triples(URI, State, Pairs) :-
 
 subjects(State, Subjects) :-
 	tw_state_graph(State, Graph),
-	atom(Graph),
-	rdf_statistics(triples_by_file(Graph, Count)),
-	rdf_statistics(triples(Total)),
-	Count * 10 < Total, !,		% Small subgraph
-	findall(S, rdf(S,_,_,Graph), List),
-	sort(List, Subjects).
-subjects(State, Subjects) :-
-	findall(Subject, subject(State, Subject), AllSubjects),
-	sort(AllSubjects, Subjects).
+	tw_state_expand(State, Expand),
+	(   Expand == lookup,
+	    atom(Graph),
+	    rdf_statistics(triples_by_file(Graph, Count)),
+	    rdf_statistics(triples(Total)),
+	    Count * 10 < Total
+	->  findall(S, rdf(S,_,_,Graph), List),
+	    sort(List, Subjects)
+	;   Expand \== lookup
+	->  findall(S, call(Expand, S,_,_,Graph), List),
+	    sort(List, Subjects)
+	;   findall(Subject, subject(State, Subject), AllSubjects),
+	    sort(AllSubjects, Subjects)
+	).
 
 
 subject(State, Subject) :-
@@ -926,6 +963,13 @@ subject(State, Subject) :-
 		->  true
 	    )
 	;   rdf_subject(Subject)
+	).
+
+
+lookup(S,P,O,G) :-
+	(   var(G)
+	->  rdf(S,P,O)
+	;   rdf(S,P,O,G)
 	).
 
 
