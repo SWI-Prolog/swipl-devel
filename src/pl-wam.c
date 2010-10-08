@@ -596,7 +596,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
     set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
     { term_t clean;
-      term_t ex;
+      term_t ex = 0;
       int rval;
       int set_env = (reason == FINISH_CUT ||
 		     reason == FINISH_EXCEPT ||
