@@ -1142,6 +1142,11 @@ predref(Term) -->
 	{ catch(nb_getval(pldoc_options, Options), _, Options = []) },
 	predref(Term, Options).
 
+predref(Obj, Options) -->
+	{ Obj = _:_,
+	  doc_comment(Obj, _, _, _)
+	}, !,
+	object_ref(Obj, [qualify(true)|Options]).
 predref(M:Term, Options) --> !,
 	predref(Term, M, Options).
 predref(Term, Options) -->
@@ -1344,20 +1349,24 @@ term_to_string(Term, String) :-
 
 object_link(Obj, Options) -->
 	prolog:doc_object_link(Obj, Options), !.
-object_link(PI, _) -->
+object_link(PI, Options) -->
 	{ is_pi(PI) }, !,
-	pi(PI).
+	pi(PI, Options).
 object_link(Module:module(_Title), _) -->
 	{ module_property(Module, file(File)),
 	  file_base_name(File, Base)
 	}, !,
 	html(Base).
 
-pi(_M:PI) --> !,
-	pi(PI).
-pi(Name/Arity) --> !,
+pi(M:PI, Options) --> !,
+	(   { option(qualify(true), Options) }
+	->  html([span(class(module), M), :])
+	;   []
+	),
+	pi(PI, Options).
+pi(Name/Arity, _) --> !,
 	html([Name, /, Arity]).
-pi(Name//Arity) -->
+pi(Name//Arity, _) -->
 	html([Name, //, Arity]).
 
 %%	in_file(+Head, ?File) is nondet.
