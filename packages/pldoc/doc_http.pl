@@ -293,6 +293,7 @@ pldoc_file(Request) :-
 %	=name= and =arity= is given and optionally =module=.
 
 pldoc_edit(Request) :-
+	http:authenticate(pldoc(edit), Request, _),
 	http_parameters(Request,
 			[ file(File,
 			       [ optional(true),
@@ -317,6 +318,10 @@ pldoc_edit(Request) :-
 				   description('Name of a Prolog module to search for predicate')
 				 ])
 			]),
+	(   atom(File)
+	->  source_file(File)
+	;   true
+	),
 	(   atom(File), integer(Line)
 	->  Edit = file(File, line(Line))
 	;   atom(File)
@@ -327,13 +332,12 @@ pldoc_edit(Request) :-
 	    ;	Edit = (Name/Arity)
 	    )
 	),
-	format(string(Cmd), '~q', [edit(Edit)]),
 	edit(Edit),
-	reply_html_page(pldoc(edit),
-			title('Edit'),
-			p(['Started ', Cmd])).
+	format('Content-type: text/plain~n~n'),
+	format('Started ~q~n', [edit(Edit)]).
 pldoc_edit(_Request) :-
-	throw(http_reply(forbidden('/edit'))).
+	http_location_by_id(pldoc_edit, Location),
+	throw(http_reply(forbidden(Location))).
 
 
 %%	pldoc_dir(+Request)
