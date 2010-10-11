@@ -126,7 +126,8 @@ extracting module doc_wiki.pl into HTML+CSS.
 
 %%	doc_for_file(+File, +Options) is det
 %
-%	Write documentation for File as HTML.  Options:
+%	HTTP  handler  that  writes  documentation  for  File  as  HTML.
+%	Options:
 %
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
@@ -137,7 +138,6 @@ extracting module doc_wiki.pl into HTML+CSS.
 %		are suppressed.
 %
 %	@param File	Prolog file specification.
-%	@param Out	Output stream
 
 doc_for_file(FileSpec, Options) :-
 	absolute_file_name(FileSpec,
@@ -413,10 +413,21 @@ objects([Obj|T], Mode, Options) -->
 	object(Obj, Mode, Mode1, Options),
 	objects(T, Mode1, Options).
 
+%%	object(+Spec, +ModeIn, -ModeOut, +Options) is det.
+%
+%	Emit the documentation of a single object.
+%
+%	@param	Spec is one of doc(Obj,Pos,Comment), which is used
+%		to list the objects documented in a file or a plain
+%		Obj, used for documenting the object regardless of
+%		its location.
+
 object(doc(Obj,Pos,Comment), Mode0, Mode, Options) --> !,
-	object(Obj, [Pos-Comment], Mode0, Mode, Options).
+	object(Obj, [Pos-Comment], Mode0, Mode, [scope(file)|Options]).
 object(Obj, Mode0, Mode, Options) -->
-	{ findall(Pos-Comment, doc_comment(Obj, Pos, _Summary, Comment), Pairs)
+	{ findall(Pos-Comment,
+		  doc_comment(Obj, Pos, _Summary, Comment),
+		  Pairs)
 	}, !,
 	object(Obj, Pairs, Mode0, Mode, Options).
 
@@ -442,9 +453,12 @@ pred_dom(Obj, Options, Pos-Comment, DOM) :-
 	(   private(Obj, Options)
 	->  Class = privdef		% private definition
 	;   multifile(Obj, Options)
-	->  (   multi_doc(Obj)
-	    ->	Class = multidef(Obj)
-	    ;	Class = multidef
+	->  (   option(scope(file), Options)
+	    ->	(   more_doc(Obj, Pos)
+		->  Class = multidef(object(Obj))
+		;   Class = multidef
+		)
+	    ;	Class = multidef(file((Pos)))
 	    )
 	;   Class = pubdef		% public definition
 	),
@@ -458,11 +472,9 @@ pred_dom(Obj, Options, Pos-Comment, DOM) :-
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1).
 
-multi_doc(Obj) :-
-	doc_comment(Obj, Pos1, _, _), !,
-	doc_comment(Obj, Pos2, _, _),
-	Pos2 \== Pos1, !.
-
+more_doc(Obj, File:_) :-
+	doc_comment(Obj, File2:_, _, _),
+	File2 \== File, !.
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -824,10 +836,18 @@ pred_dt([H|T], Class, Done0, Done, Options) -->
 mode_anot(privdef) --> !,
 	html(span([class(anot), style('float:right')],
 		  '[private]')).
-mode_anot(multidef(Obj)) --> !,
+mode_anot(multidef(object(Obj))) --> !,
 	{ object_href(Obj, HREF) },
 	html(span([class(anot), style('float:right')],
 		  ['[', a(href(HREF), multifile), ']'
+		  ])).
+mode_anot(multidef(file(File:_))) --> !,
+	{ file_name_on_path(File, Spec),
+	  unquote_filespec(Spec, Unquoted),
+	  doc_file_href(File, HREF)
+	},
+	html(span([class(anot), style('float:right')],
+		  ['[multifile, ', a(href(HREF), '~q'-[Unquoted]), ']'
 		  ])).
 mode_anot(multidef) --> !,
 	html(span([class(anot), style('float:right')],
