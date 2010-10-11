@@ -814,7 +814,10 @@ annotate(M) :->
 split_window(M) :->
 	"Create another window for this buffer"::
 	get(M, text_buffer, Buffer),
-	send(Buffer, open, window).
+	get(Buffer, open, window, Frame),
+	get(Frame, editor, NewEditor),
+	get(M, caret, Here),
+	send(NewEditor, caret, Here).
 
 only_window(M) :->
 	"Quit other windows on this buffer"::
