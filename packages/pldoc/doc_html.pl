@@ -590,21 +590,33 @@ object_page(Obj, Options) -->
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
 	}, !,
-	html([ \html_requires(pldoc),
-	       \object_page_header(File, Options),
-	       \object_synopsis(Obj, []),
-	       \objects([Obj], Options)
-	     ]).
+	(   { \+ ( doc_comment(Obj, File2:_, _, _),
+		   File2 \== File )
+	    }
+	->  html([ \html_requires(pldoc),
+		   \object_page_header(File, Options),
+		   \object_synopsis(Obj, []),
+		   \objects([Obj], Options)
+		 ])
+	;   html([ \html_requires(pldoc),
+		   \object_page_header(-, Options),
+		   \objects([Obj], [synopsis(true)|Options])
+		 ])
+	).
 
 object_page_header(File, Options) -->
 	{ option(header(true), Options, true) }, !,
 	html(div(class(navhdr),
-		 [ div(class(jump),
-		       a(href(location_by_id(pldoc_doc)+File), File)),
+		 [ \file_link(File),
 		   div(class(search), \search_form(Options)),
 		   br(clear(right))
 		 ])).
 object_page_header(_, _) --> [].
+
+file_link(-) --> !.
+file_link(File) -->
+	html(div(class(jump),
+		 a(href(location_by_id(pldoc_doc)+File), File))).
 
 
 %%	object_synopsis(Obj, Options) is det.
