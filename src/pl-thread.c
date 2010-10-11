@@ -2464,8 +2464,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR ||
-	   !(queue->head || queue->destroyed) )
+    if ( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR )
     { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
       if ( !LD )			/* needed for clean exit */
