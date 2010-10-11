@@ -556,8 +556,16 @@ http_spawn(Goal, Options) :-
 				    | ThreadOptions
 				    ]),
 	      Error,
-	      spawn_error(Error, http_spawn(Goal, Options))),
-	http_spawned(Id).
+	      true),
+	(   var(Error)
+	->  http_spawned(Id)
+	;   Error = error(resource_error(threads_in_pool(_)), _)
+	->  throw(http_reply(busy))
+	;   Error = error(existence_error(thread_pool, Pool), _),
+	    http:create_pool(Pool),
+	    http_spawn(Goal, Options)
+	;   throw(Error)
+	).
 http_spawn(Goal, Options) :-
 	current_output(CGI),
 	thread_create(wrap_spawned(CGI, Goal), Id,
@@ -570,14 +578,6 @@ wrap_spawned(CGI, Goal) :-
 	set_output(CGI),
 	http_wrap_spawned(Goal, Request, Connection),
 	next(Connection, Request).
-
-spawn_error(error(resource_error(threads_in_pool(_)), _), _) :-
-	throw(http_reply(busy)).
-spawn_error(error(existence_error(thread_pool, Pool), _), Retry) :-
-	http:create_pool(Pool),
-	call(Retry).
-spawn_error(Error, _) :-
-	throw(Error).
 
 
 		 /*******************************
