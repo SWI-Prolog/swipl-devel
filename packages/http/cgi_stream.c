@@ -129,6 +129,7 @@ typedef struct cgi_context
   char		   *data;		/* Buffered data */
   size_t	    datasize;		/* #bytes buffered */
   size_t	    dataallocated;	/* #bytes allocated */
+  size_t	    chunked_written;	/* #bytes written in chunked encoding */
   int		    id;			/* Identifier */
   unsigned int	    magic;		/* CGI_MAGIC */
 } cgi_context;
@@ -287,7 +288,10 @@ cgi_property(term_t cgi, term_t prop)
   } else if ( name == ATOM_connection )
   { rc = PL_unify_atom(arg, ctx->connection ? ctx->connection : ATOM_close);
   } else if ( name == ATOM_content_length )
-  { rc = PL_unify_int64(arg, ctx->datasize - ctx->data_offset);
+  { if ( ctx->transfer_encoding == ATOM_chunked )
+      rc = PL_unify_int64(arg, ctx->chunked_written);
+    else
+      rc = PL_unify_int64(arg, ctx->datasize - ctx->data_offset);
   } else if ( name == ATOM_header_codes )
   { if ( ctx->data_offset > 0 )
       rc = PL_unify_chars(arg, PL_CODE_LIST, ctx->data_offset, ctx->data);
@@ -510,6 +514,8 @@ cgi_chunked_write(cgi_context *ctx, char *buf, size_t size)
     return -1;
   if ( Sflush(ctx->stream) < 0 )
     return -1;
+
+  ctx->chunked_written += size;
 
   return size;
 }
