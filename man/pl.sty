@@ -146,6 +146,7 @@
 \makeatletter
 \def\predatt#1{\hfill{\it\footnotesize[#1]}}
 \def\predicate{\@ifnextchar[{\@attpredicate}{\@predicate}}
+\def\qpredicate{\@ifnextchar[{\@attqpredicate}{\@qpredicate}}
 \def\@predicate#1#2#3{%
 	\ifthenelse{\equal{#2}{0}}{%
 	    \defentry{#1}}{%
@@ -155,6 +156,16 @@
 	\ifthenelse{\equal{#3}{0}}{%
 	    \defentry{#2\predatt{#1}}}{%
 	    \defentry{#2({\it #4})\predatt{#1}}}%
+	\index{#2/#3}\ignorespaces}
+\def\@qpredicate#1#2#3#4{%
+	\ifthenelse{\equal{#3}{0}}{%
+	    \defentry{#1:#2}}{%
+	    \defentry{#1:#2({\it #4})}}%
+	\index{#1/#2}\ignorespaces}
+\def\@attqpredicate[#1]#2#3#4#5{%
+	\ifthenelse{\equal{#4}{0}}{%
+	    \defentry{#2:#3\predatt{#1}}}{%
+	    \defentry{#2:#3({\it #5})\predatt{#1}}}%
 	\index{#2/#3}\ignorespaces}
 \def\directive{\@ifnextchar[{\@attdirective}{\@directive}}
 \def\@directive#1#2#3{%
