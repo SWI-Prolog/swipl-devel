@@ -3207,6 +3207,7 @@ static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 { PL_chars_t atext, stext;
   int arg1;
+  int flags2 = CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
   arg1 = PL_get_text(atom, &atext,
 		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
@@ -3222,6 +3223,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     { PL_close_foreign_frame(fid);
       return ok;
     }
+    flags2 |= CVT_VARNOFAIL;
     PL_discard_foreign_frame(fid);
   } else if ( !PL_is_variable(atom) )
   { return PL_error(pred, 2, NULL, ERR_TYPE,
@@ -3229,7 +3231,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 		    atom);
   }
 
-  if ( !PL_get_text(string, &stext, CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+  if ( PL_get_text(string, &stext, flags2) != TRUE )
     return FALSE;
 
   how &= X_MASK;

@@ -177,8 +177,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding  = ENC_ISO_LATIN_1;
     text->storage   = PL_CHARS_LOCAL;
     text->canonical = TRUE;
-  } else if ( (flags & CVT_LIST) &&
-	      (isList(w) || isNil(w)) )
+  } else if ( (flags & CVT_LIST) )
   { Buffer b;
     CVT_code status;
 
@@ -196,7 +195,10 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
     { goto case_write;
     } else
-    { if ( CVT_EXCEPTION )
+    { if ( (flags & CVT_VARNOFAIL) && status == CVT_PARTIAL )
+	return 2;
+
+      if ( CVT_EXCEPTION )
       { switch(status)
 	{ case CVT_PARTIAL:
 	    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
