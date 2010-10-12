@@ -1687,7 +1687,7 @@ title(_, File, Title) :-
 pred_anchor_name(//(Head), Name/Arity, Anchor) :- !,
 	functor(Head, Name, DCGArity),
 	Arity is DCGArity+2,
-	format(string(Anchor), '~w/~d', [Name, Arity]).
+	format(atom(Anchor), '~w/~d', [Name, Arity]).
 pred_anchor_name(Head, Name/Arity, Anchor) :-
 	functor(Head, Name, Arity),
-	format(string(Anchor), '~w/~d', [Name, Arity]).
+	format(atom(Anchor), '~w/~d', [Name, Arity]).
