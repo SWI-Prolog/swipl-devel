@@ -748,7 +748,7 @@ PL_get_thread_alias(int tid, atom_t *alias)
 
   if ( tid == 0 )
     tid = PL_thread_self();
-  if ( tid < 1 || i > thread_highest_id )
+  if ( tid < 1 || tid > thread_highest_id )
     return FALSE;
 
   info = GD->thread.threads[tid];
