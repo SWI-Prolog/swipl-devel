@@ -35,3 +35,44 @@
 	  ]).
 
 :- use_foreign_library(foreign(double_metaphone)).
+
+/** <module> Phonetic string matching
+
+The library library(double_metaphone) implements   the  Double Metaphone
+algorithm  developed  by  Lawrence  Philips    and   described  in  "The
+Double-Metaphone Search Algorithm" by L   Philips, C/C++ User's Journal,
+2000. Double Metaphone creates a key  from   a  word that represents its
+phonetic properties. Two words  with  the   same  Double  Metaphone  are
+supposed to sound similar. The Double Metaphone algorithm is an improved
+version of the Soundex algorithm.
+
+@license The Double Metaphone algorithm is copied from the Perl library
+that holds the following copyright notice. To the best of our knowledge
+the Perl license is compatible to the SWI-Prolog license schema and
+therefore including this module poses no additional license conditions.
+
+    ==
+    Copyright 2000, Maurice Aubrey <maurice@hevanet.com>.
+    All rights reserved.
+
+    This code is based heavily on the C++ implementation by Lawrence
+    Philips and incorporates several bug fixes courtesy of Kevin
+    Atkinson <kevina@users.sourceforge.net>.
+
+    This module is free software; you may redistribute it and/or
+    modify it under the same terms as Perl itself.
+    ==
+*/
+
+%%	double_metaphone(+In, -MetaPhone) is det.
+%
+%	Same as double_metaphone/3,  but  only   returning  the  primary
+%	metaphone.
+
+%%	double_metaphone(+In, -MetaPhone, -AltMetaphone) is det.
+%
+%	Create metaphone and alternative metaphone  from In. The primary
+%	metaphone is based on english, while   the  secondary deals with
+%	common alternative pronounciation in  other   languages.  In  is
+%	either and atom, string object,  code-   or  character list. The
+%	metaphones are always returned as atoms.
