@@ -730,23 +730,35 @@ unaliasThread(atom_t name)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_get_thread_alias() gets the alias name of   a  thread. It is intended
+for crash-analysis. Normal applications should use PL_unify_thread_id().
+
+The implementation is wrong for two reasons. It should register the atom
+and this implementation should lock L_THREAD  because otherwise the atom
+may be gone even before it is   locked. However, locking is not unlikely
+to deadlock during crash analysis ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 PL_get_thread_alias(int tid, atom_t *alias)
 { PL_thread_info_t *info;
- 
+  atom_t name;
+
   if ( tid == 0 )
     tid = PL_thread_self();
-  if ( tid < 0 )
-    PL_fail;
-  if (alias == NULL)
-     PL_fail;
+  if ( tid < 1 || i > thread_highest_id )
+    return FALSE;
+
   info = GD->thread.threads[tid];
-  if ( info->name )
-  { PL_register_atom(info->name);
-    *alias = info->name;
-    PL_succeed;
+  if ( (name=info->name) )
+  { *alias = name;
+
+    return TRUE;
   }
-  PL_fail; 
+
+  return FALSE;
 }
 
 

@@ -140,7 +140,7 @@ The thread is terminated on thread_exit/1 using the argument \arg{Term}.
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached-state (see \term{detached}{Bool} option at
 thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
-placed in detached state.  This may be the result of PL_thread_self/1.
+placed in detached state.  This may be the result of thread_self/1.
 
 One of the possible applications is to simplify debugging. Threads that
 are created as \jargon{detached} leave no traces if they crash. For

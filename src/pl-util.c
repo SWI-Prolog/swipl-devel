@@ -155,6 +155,7 @@ predicateName(Definition def)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 clauseNo() returns the clause index of the given clause
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 clauseNo(Definition def, Clause cl)
 { int i;
