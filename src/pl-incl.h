@@ -1871,12 +1871,19 @@ extern const code_info codeTable[]; /* Instruction info (read-only) */
 		 *******************************/
 
 typedef enum
-{ CVT_OK = 0,				/* Conversion ok */
-  CVT_WIDE,				/* Conversion needs wide characters */
-  CVT_PARTIAL,				/* Input list is partial */
-  CVT_NOLIST,				/* Input list is not a list */
-  CVT_NOCODE				/* List contains a non-code/char */
-} CVT_code;
+{ CVT_ok = 0,				/* Conversion ok */
+  CVT_wide,				/* Conversion needs wide characters */
+  CVT_partial,				/* Input list is partial */
+  CVT_nolist,				/* Input list is not a list */
+  CVT_nocode,				/* List contains a non-code */
+  CVT_nochar				/* List contains a non-char */
+} CVT_status;
+
+typedef struct
+{ CVT_status status;
+  word culprit;				/* for CVT_nocode/CVT_nochar */
+} CVT_result;
+
 
 		/********************************
 		*            DEBUGGER           *

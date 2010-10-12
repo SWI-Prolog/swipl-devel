@@ -887,12 +887,8 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
 	} else
 	{ TRY(PL_unify_chars(ext, PL_ATOM|REP_FN, -1, &s[1]));
 	}
-	if ( s-f > MAXPATHLEN )
-	  return name_too_long();
-	strncpy(buf, f, s-f);
-	buf[s-f] = EOS;
 
-	return PL_unify_chars(base, PL_ATOM|REP_FN, -1, buf);
+	return PL_unify_chars(base, PL_ATOM|REP_FN, s-f, f);
       }
       if ( PL_unify_atom_chars(ext, "") &&
 	   PL_unify(full, base) )

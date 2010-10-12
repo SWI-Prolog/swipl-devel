@@ -179,15 +179,15 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->canonical = TRUE;
   } else if ( (flags & CVT_LIST) )
   { Buffer b;
-    CVT_code status;
+    CVT_result result;
 
-    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &status)) )
+    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &result)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
       text->text.t = baseBuffer(b, char);
       text->encoding = ENC_ISO_LATIN_1;
-    } else if ( status == CVT_WIDE &&
-		(b = codes_or_chars_to_buffer(l, BUF_RING, TRUE, &status)) )
+    } else if ( result.status == CVT_wide &&
+		(b = codes_or_chars_to_buffer(l, BUF_RING, TRUE, &result)) )
     { text->length = entriesBuffer(b, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
@@ -195,15 +195,28 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
     { goto case_write;
     } else
-    { if ( (flags & CVT_VARNOFAIL) && status == CVT_PARTIAL )
+    { if ( (flags & CVT_VARNOFAIL) && result.status == CVT_partial )
 	return 2;
 
-      if ( CVT_EXCEPTION )
-      { switch(status)
-	{ case CVT_PARTIAL:
+      if ( (flags & CVT_EXCEPTION) )
+      { switch(result.status)
+	{ case CVT_partial:
 	    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-	  case CVT_NOLIST:
+	  case CVT_nolist:
 	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+	  case CVT_nocode:
+	  case CVT_nochar:
+	  { term_t culprit = PL_new_term_ref();
+	    atom_t type;
+
+	    *valTermRef(culprit) = result.culprit;
+	    if ( result.status == CVT_nocode )
+	      type = ATOM_character_code;
+	    else
+	      type = ATOM_character;
+
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, type, culprit);
+	  }
 	  default:
 	    break;
 	}
