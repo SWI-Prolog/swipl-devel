@@ -180,13 +180,15 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) )
   { Buffer b;
+    CVT_code status;
 
-    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE)) )
+    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &status)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
       text->text.t = baseBuffer(b, char);
       text->encoding = ENC_ISO_LATIN_1;
-    } else if ( (b = codes_or_chars_to_buffer(l, BUF_RING, TRUE)) )
+    } else if ( status == CVT_WIDE &&
+		(b = codes_or_chars_to_buffer(l, BUF_RING, TRUE, &status)) )
     { text->length = entriesBuffer(b, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);

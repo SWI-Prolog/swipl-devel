@@ -1866,6 +1866,18 @@ typedef struct
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 
+		 /*******************************
+		 *	  TEXT PROCESSING	*
+		 *******************************/
+
+typedef enum
+{ CVT_OK = 0,				/* Conversion ok */
+  CVT_WIDE,				/* Conversion needs wide characters */
+  CVT_PARTIAL,				/* Input list is partial */
+  CVT_NOLIST,				/* Input list is not a list */
+  CVT_NOCODE				/* List contains a non-code/char */
+} CVT_code;
+
 		/********************************
 		*            DEBUGGER           *
 		*********************************/
