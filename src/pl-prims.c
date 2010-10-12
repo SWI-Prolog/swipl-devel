@@ -3203,35 +3203,20 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define X_MASK   0x0f
 #define X_CHARS  0x10
 
-static word
+static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
-{ char *s;
-  pl_wchar_t *ws;
-  size_t len;
+{ PL_chars_t atext, stext;
   int arg1;
 
-  if ( (how & X_NUMBER) )
-  { arg1 = PL_get_nchars(atom, &len, &s, CVT_NUMBER);
-  } else
-  { if ( !(arg1 = PL_get_nchars(atom, &len, &s, CVT_ATOMIC)) )
-    { s = NULL;
-      arg1 = PL_get_wchars(atom, &len, &ws, CVT_ATOM|CVT_STRING);
-    }
-  }
+  arg1 = PL_get_text(atom, &atext,
+		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
   if ( arg1 )
   { int ok;
     fid_t fid = PL_open_foreign_frame();
 
-    if ( s )
-    { if ( how & X_CHARS )
-	ok = PL_unify_list_nchars(string, len, s);
-      else
-	ok = PL_unify_list_ncodes(string, len, s);
-    } else
-    { int flags = (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST;
-      ok = PL_unify_wchars(string, flags, len, ws);
-    }
+    ok = PL_unify_text(string, 0, &atext,
+		       (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST);
 
     if ( ok || !(how & X_NUMBER) )
     { PL_close_foreign_frame(fid);
@@ -3244,48 +3229,41 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 		    atom);
   }
 
-  if ( !PL_get_list_nchars(string, &len, &s, 0) )
-  { if ( !PL_is_list(string) )
-      return PL_error(pred, 2, NULL,
-		      ERR_TYPE, ATOM_list, string);
-    s = NULL;
-    if ( !PL_get_wchars(string, &len, &ws, CVT_LIST|CVT_EXCEPTION) )
-      fail;
-  }
+  if ( !PL_get_text(string, &stext, CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
+    return FALSE;
 
   how &= X_MASK;
 
   switch(how)
   { case X_ATOM:
     case_atom:
-      if ( s )
-	return PL_unify_atom_nchars(atom, len, s);
-      else
-	return PL_unify_wchars(atom, PL_ATOM, len, ws);
+      return PL_unify_text(atom, 0, &stext, PL_ATOM);
     case X_NUMBER:
-      if ( s )				/* ISO: number_codes(X, "  42") */
-      { while(*s && isBlankW(*s))
-	  s++;
-      }
-      /*FALLTHROUGH*/
     case X_AUTO:
-    { number n;
-      unsigned char *q;
-      AR_CTX;
+    { if ( stext.encoding == ENC_ISO_LATIN_1 )
+      { unsigned char *q, *s = (unsigned char *)stext.text.t;
+	number n;
+	AR_CTX;
 
-      AR_BEGIN();
+	if ( how == X_NUMBER )
+	{ if ( s )				/* ISO: number_codes(X, "  42") */
+	  { while(*s && isBlankW(*s))
+	      s++;
+	  }
+	}
 
-      if ( s && str_number((unsigned char *)s, &q, &n, FALSE) )
-      { if ( *q == EOS )
-        { int rc = PL_unify_number(atom, &n);
-          clearNumber(&n);
-          AR_END();
-          return rc;
-        }
-        clearNumber(&n);
+	AR_BEGIN();
+	if ( s && str_number(s, &q, &n, FALSE) )
+	{ if ( *q == EOS )
+	  { int rc = PL_unify_number(atom, &n);
+	    clearNumber(&n);
+	    AR_END();
+	    return rc;
+	  }
+	  clearNumber(&n);
+	}
+	AR_END();
       }
-
-      AR_END();
 
       if ( how == X_AUTO )
 	goto case_atom;
