@@ -193,8 +193,21 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
+    } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
+    { goto case_write;
     } else
-      goto maybe_write;
+    { if ( CVT_EXCEPTION )
+      { switch(status)
+	{ case CVT_PARTIAL:
+	    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	  case CVT_NOLIST:
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+	  default:
+	    break;
+	}
+      }
+      goto error;
+    }
 
     text->storage   = PL_CHARS_RING;
     text->canonical = TRUE;
