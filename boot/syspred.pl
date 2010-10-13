@@ -509,14 +509,15 @@ predicate_property(Pred, Property) :-
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
 predicate_property(_:Head, Property) :-
-	Property == autoload, !,
+	nonvar(Property),
+	Property = autoload(File), !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
 	->  functor(Head, Name, Arity),
-	    (	'$find_library'(_, Name, Arity, _, _)
+	    (	'$find_library'(_, Name, Arity, _, File)
 	    ->	true
 	    )
-	;   '$find_library'(_, Name, Arity, _, _),
+	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
 predicate_property(Pred, Property) :-

@@ -2442,9 +2442,9 @@ generate_built_in(Name/Arity) :-
 \arg{Property} is one of:
 
 \begin{description}
-    \termitem{autoload}{}
-Is true if the predicate can be autoloaded. Like \const{undefined}, this
-property is \emph{not} generated.
+    \termitem{autoload}{File}
+Is true if the predicate can be autoloaded from the file \arg{File}.
+Like \const{undefined}, this property is \emph{not} generated.
 
     \termitem{built_in}{}
 Is true if the predicate is locked as a built-in predicate. This

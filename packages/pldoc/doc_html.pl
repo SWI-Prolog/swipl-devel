@@ -644,7 +644,8 @@ object_synopsis(M:Name/Arity, Options) -->
 	  module_property(M, file(File)),
 	  file_name_on_path(File, Spec), !,
 	  unquote_filespec(Spec, Unquoted),
-	  (   predicate_property(Head, autoload)
+	  (   predicate_property(Head, autoload(FileBase)),
+	      file_name_extension(FileBase, _Ext, File)
 	  ->  Extra = [span(class(autoload), '(can be autoloaded)')]
 	  ;   Extra = []
 	  )
