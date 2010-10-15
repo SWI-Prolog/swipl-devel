@@ -977,13 +977,12 @@ on the next pass through a call- or redo-port of the Prolog engine,
 or a call to the PL_handle_signals() routine from SWI-Prolog.  \arg{Id}
 is unified with a reference to the timer.
 
-The resolution of the alarm depends on the underlying implementation. On
-Unix systems it is based on setitimer(), on Windows on timeSetEvent()
-using a resolution specified at 50 milliseconds.\bug{The maximum time
-for timeSetEvent() used by the Windows application is 1000 seconds.
-Calling with a higher time value raises a \const{resource_error}
-exception.} Long-running foreign predicates that do not call
-PL_handle_signals() may further delay the alarm.
+The resolution of the alarm depends on the underlying implementation,
+which is based on pthread_cond_timedwait() (on Windows on the pthread
+emulation thereof). Long-running foreign predicates that do not call
+PL_handle_signals() may further delay the alarm.  The relation to
+blocking system calls (sleep, reading from slow devices, etc.) is
+undefined and varies between implementations.
 
 \arg{Options} is a list of \term{\arg{Name}}{Value} terms.  Defined
 options are:
@@ -1035,10 +1034,9 @@ executed as in once/1. If \arg{Goal} doesn't complete within \arg{Time}
 seconds (wall time), exit using the exception
 \const{time_limit_exceeded}. See catch/3.
 
-Please note that this predicate uses alarm/4 and therefore is \emph{not}
-capable to break out of long running goals such as sleep/1, blocking I/O
-or other long-running (foreign) predicates.  Blocking I/O can be handled
-using the timeout option of read_term/3.
+Please note that this predicate uses alarm/4 and therefore its effect on
+long-running foreign code and system calls is undefined. Blocking I/O
+can be handled using the timeout option of read_term/3.
 \end{description}
 
 
