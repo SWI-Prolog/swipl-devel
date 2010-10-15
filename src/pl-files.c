@@ -375,6 +375,8 @@ PL_get_file_name(term_t n, char **namep, int flags)
   char *name;
   char tmp[MAXPATHLEN];
   char ospath[MAXPATHLEN];
+  int chflags;
+  size_t len;
 
   if ( flags & PL_FILE_SEARCH )
   { fid_t fid;
@@ -400,7 +402,12 @@ PL_get_file_name(term_t n, char **namep, int flags)
 
       if ( rc ) rc = PL_unify_nil(options);
       if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
-      if ( rc ) rc = PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_FN);
+      if ( rc ) rc = PL_get_nchars(av+1, &len, namep,
+				   CVT_ATOMIC|BUF_RING|REP_FN);
+      if ( rc && strlen(*namep) != len )
+      { n = av+1;
+	goto code0;
+      }
 
       PL_discard_foreign_frame(fid);
       return rc;
@@ -409,12 +416,15 @@ PL_get_file_name(term_t n, char **namep, int flags)
     return FALSE;
   }
 
-  if ( flags & PL_FILE_NOERRORS )
-  { if ( !PL_get_chars(n, &name, CVT_FILENAME|REP_FN) )
-      return FALSE;
-  } else
-  { if ( !PL_get_chars_ex(n, &name, CVT_FILENAME|REP_FN) )
-      return FALSE;
+  chflags = (CVT_FILENAME|REP_FN);
+  if ( !(flags & PL_FILE_NOERRORS) )
+    chflags |= CVT_EXCEPTION;
+  if ( !PL_get_nchars(n, &len, &name, chflags) )
+    return FALSE;
+  if ( strlen(name) != len )
+  { code0:
+    return PL_error(NULL, 0, "file name contains a 0-code",
+		    ERR_DOMAIN, ATOM_file_name, n);
   }
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )

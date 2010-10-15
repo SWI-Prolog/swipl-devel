@@ -2898,17 +2898,8 @@ openStream(term_t file, term_t mode, term_t options)
   *h = EOS;
 
 					/* FILE */
-  if ( PL_get_chars(file, &path,
-		    CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_FN) )
-  { if ( !(s = Sopen_file(path, how)) )
-    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_open, ATOM_source_sink, file);
-      return NULL;
-    }
-    setFileNameStream(s, fn_to_atom(path));
-  }
 #ifdef HAVE_POPEN
-  else if ( PL_is_functor(file, FUNCTOR_pipe1) )
+  if ( PL_is_functor(file, FUNCTOR_pipe1) )
   { term_t a;
     char *cmd;
 
@@ -2925,9 +2916,16 @@ openStream(term_t file, term_t mode, term_t options)
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-  }
+  } else
 #endif /*HAVE_POPEN*/
-  else
+  if ( PL_get_file_name(file, &path, 0) )
+  { if ( !(s = Sopen_file(path, how)) )
+    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_open, ATOM_source_sink, file);
+      return NULL;
+    }
+    setFileNameStream(s, fn_to_atom(path));
+  } else
   { return NULL;
   }
 
