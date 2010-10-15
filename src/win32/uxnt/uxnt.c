@@ -656,13 +656,13 @@ _xos_rename(const char *old, const char *new)
 
 
 int
-_xos_stat(const char *path, struct _stat *sbuf)
+_xos_stat(const char *path, struct _stati64 *sbuf)
 { TCHAR buf[PATH_MAX];
 
    if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _wstat(buf, sbuf);
+  return _wstati64(buf, sbuf);
 }
 
 

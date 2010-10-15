@@ -51,7 +51,10 @@
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
-#if !O_XOS
+#ifdef O_XOS
+#define statstruct struct _stati64
+#else
+#define statstruct struct stat
 #define statfunc stat
 #endif
 #if HAVE_PWD_H
@@ -907,7 +910,7 @@ registerParentDirs(const char *path)
   { char dirname[MAXPATHLEN];
     char tmp[MAXPATHLEN];
     CanonicalDir d;
-    struct stat buf;
+    statstruct buf;
 
     for(e--; *e != '/' && e > path + 1; e-- )
       ;
@@ -945,7 +948,7 @@ not it updates the cache and returns FALSE.
 static int
 verify_entry(CanonicalDir d)
 { char tmp[MAXPATHLEN];
-  struct stat buf;
+  statstruct buf;
 
   if ( statfunc(OsPath(d->canonical, tmp), &buf) == 0 )
   { if ( d->inode  == buf.st_ino &&
@@ -986,7 +989,7 @@ verify_entry(CanonicalDir d)
 static char *
 canoniseDir(char *path)
 { CanonicalDir d, next;
-  struct stat buf;
+  statstruct buf;
   char tmp[MAXPATHLEN];
 
   DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
@@ -2517,7 +2520,7 @@ findExecutable(const char *av0, char *buffer)
 #ifdef __unix__
 static char *
 okToExec(const char *s)
-{ struct stat stbuff;
+{ statstruct stbuff;
 
   if (statfunc(s, &stbuff) == 0 &&	/* stat it */
      S_ISREG(stbuff.st_mode) &&		/* check for file */
