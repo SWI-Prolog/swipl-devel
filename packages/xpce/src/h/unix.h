@@ -61,9 +61,9 @@
 #endif
 
 #ifdef O_XOS
-#define STAT_TYPE struct _stat
+#define STAT_TYPE struct _stati64
 #define STAT_FUNC _xos_stat
-#define FSTAT_FUNC _fstat
+#define FSTAT_FUNC _fstati64
 #else
 #define STAT_TYPE struct stat
 #define STAT_FUNC stat
