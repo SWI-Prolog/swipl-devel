@@ -58,9 +58,14 @@
 					% Emitting the HTML code
 	    print_html/1,		% +List
 	    print_html/2,		% +Stream, +List
-	    html_print_length/2		% +List, -Length
+	    html_print_length/2,	% +List, -Length
+
+					% Extension support
+	    (html_meta)/1,		% +Spec
+	    op(1150, fx, html_meta)
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(pairs)).
@@ -1051,6 +1056,73 @@ reply_html_page(Style, Head, Body) :-
 
 
 		 /*******************************
+		 *     META-PREDICATE SUPPORT	*
+		 *******************************/
+
+%%	html_meta(+Heads) is det.
+%
+%	This directive can be used  to   declare  that an HTML rendering
+%	rule takes HTML content as  argument.   It  has  two effects. It
+%	emits  the  appropriate  meta_predicate/1    and  instructs  the
+%	built-in editor (PceEmacs) to provide   proper colouring for the
+%	arguments.
+
+html_meta(Spec) :-
+	throw(error(context_error(nodirective, html_meta(Spec)), _)).
+
+html_meta_decls(Var, _, _) :-
+	var(Var), !,
+	instantiation_error(Var).
+html_meta_decls((A,B), (MA,MB), [MH|T]) :- !,
+	html_meta_decl(A, MA, MH),
+	html_meta_decls(B, MB, T).
+html_meta_decls(A, MA, MH) :-
+	html_meta_decl(A, MA, MH).
+
+html_meta_decl(Head, MetaHead,
+	       html_write:html_meta_head(GenHead, Module, Head)) :-
+	functor(Head, Name, Arity),
+	functor(GenHead, Name, Arity),
+	prolog_load_context(module, Module),
+	Head =.. [Name|HArgs],
+	maplist(html_meta_decl, HArgs, MArgs),
+	MetaHead =.. [Name|MArgs].
+
+html_meta_decl(html, :) :- !.
+html_meta_decl(Meta, Meta).
+
+system:term_expansion((:- html_meta(Heads)),
+		      [ (:- meta_predicate(Meta))
+		      | MetaHeads
+		      ]) :-
+	html_meta_decls(Heads, Meta, MetaHeads).
+
+:- multifile
+	html_meta_head/3.
+
+html_meta_colours(Head, Goal, built_in-Colours) :-
+	Head =.. [_|MArgs],
+	Goal =.. [_|Args],
+	maplist(meta_colours, MArgs, Args, Colours).
+
+meta_colours(html, HTML, Colours) :- !,
+	html_colours(HTML, Colours).
+meta_colours(_, _, classify).
+
+html_meta_called(Head, Goal, Called) :-
+	Head =.. [_|MArgs],
+	Goal =.. [_|Args],
+	meta_called(MArgs, Args, Called, []).
+
+meta_called([], [], Called, Called).
+meta_called([html|MT], [A|AT], Called, Tail) :- !,
+	phrase(called_by(A), Called, Tail1),
+	meta_called(MT, AT, Tail1, Tail).
+meta_called([_|MT], [_|AT], Called, Tail) :- !,
+	meta_called(MT, AT, Called, Tail).
+
+
+		 /*******************************
 		 *	PCE EMACS SUPPORT	*
 		 *******************************/
 
@@ -1060,6 +1132,9 @@ reply_html_page(Style, Head, Body) :-
 	emacs_prolog_colours:identify/2,
 	prolog:called_by/2.
 
+emacs_prolog_colours:goal_colours(Goal, Colours) :-
+	html_meta_head(Goal, _Module, Head),
+	html_meta_colours(Head, Goal, Colours).
 emacs_prolog_colours:goal_colours(html(HTML,_,_),
 				  built_in-[Colours, classify, classify]) :-
 	html_colours(HTML, Colours).
@@ -1212,6 +1287,9 @@ emacs_prolog_colours:identify(http_no_location_for_id(ID), Summary) :-
 %	or callable+N to indicate (DCG) arglist extension.
 
 
+prolog:called_by(Goal, Called) :-
+	html_meta_head(Goal, _Module, Head),
+	html_meta_called(Head, Goal, Called).
 prolog:called_by(html(HTML,_,_), Called) :-
 	phrase(called_by(HTML), Called).
 prolog:called_by(page(HTML,_,_), Called) :-
