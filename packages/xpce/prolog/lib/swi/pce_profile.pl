@@ -648,13 +648,19 @@ sort_by(flat_profile_by_number_of_calls,     call,	     reverse).
 sort_by(flat_profile_by_number_of_redos,     redo,	     reverse).
 
 
-%	predicate_label(+Head, -Label)
+%%	predicate_label(+Head, -Label)
 %
-%	Create a human-readable label for the given head
+%	Label is the human-readable identification   for Head. Calls the
+%	hook user:prolog_predicate_name/2.
+
+:- multifile
+	user:prolog_predicate_name/2.
 
 predicate_label(Obj, Label) :-
 	object(Obj), !,
 	get(Obj, print_name, Label).
+predicate_label(Head, Label) :-
+	user:prolog_predicate_name(Head, Label), !.
 predicate_label(M:H, Label) :- !,
 	functor(H, Name, Arity),
 	(   hidden_module(M, H)
