@@ -398,9 +398,9 @@ file('pllisting.css', 'pllisting.css').
 file('pldoc.js',      'pldoc.js').
 file('edit.gif',      'edit.gif').
 file('up.gif',        'up.gif').
-file('source.gif',    'source.gif').
-file('zoomin.gif',    'zoomin.gif').
-file('zoomout.gif',   'zoomout.gif').
+file('source.png',    'source.png').
+file('public.png',    'public.png').
+file('private.png',   'private.png').
 file('reload.gif',    'reload.gif').
 file('favicon.ico',   'favicon.ico').
 

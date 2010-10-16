@@ -331,6 +331,7 @@ reload_button(Base, Options) -->
 	html(a(href(Base+[reload(true), public_only(Public)]),
 	       img([ class(action),
 		     alt('Reload'),
+		     title('Make & Reload'),
 		     src(location_by_id(pldoc_resource)+'reload.gif')
 		   ]))).
 reload_button(_, _) -->
@@ -352,6 +353,7 @@ edit_button(File, Options) -->
 	       ],
 	       img([ class(action),
 		     alt(edit),
+		     title('Edit file'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		 ]))).
 edit_button(_, _) -->
@@ -366,17 +368,20 @@ zoom_button(_, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
 zoom_button(Base, Options) -->
 	{   (   option(public_only(true), Options, true)
-	    ->  Zoom = 'zoomin.gif',
-		Alt = 'Show all',
+	    ->  Zoom = 'public.png',
+		Alt = 'Public',
+		Title = 'Click to include private',
 		PublicOnly = false
-	    ;   Zoom = 'zoomout.gif',
-		Alt = 'Show public',
+	    ;   Zoom = 'private.png',
+		Alt = 'All predicates',
+		Title = 'Click to show exports only',
 		PublicOnly = true
 	    )
 	},
 	html(a(href(Base+[public_only(PublicOnly)]),
 	       img([ class(action),
 		     alt(Alt),
+		     title(Title),
 		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
 
@@ -396,7 +401,8 @@ source_button(File, _Options) -->
 	html(a(href(HREF0+[source(true)]),
 	       img([ class(action),
 		     alt('Show source'),
-		     src(location_by_id(pldoc_resource)+'source.gif')
+		     title('Show source'),
+		     src(location_by_id(pldoc_resource)+'source.png')
 		   ]))).
 
 
@@ -950,6 +956,7 @@ pred_edit_button2(Name/Arity, Options) -->
 	html(a(onClick('HTTPrequest(\'' + EditHREF + '\')'),
 	       img([ class(action),
 		     alt('Edit predicate'),
+		     title('Edit predicate'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		   ]))).
 pred_edit_button2(_, _) --> !,
@@ -986,7 +993,8 @@ pred_source_button(PI0, Options0) -->
 	       ],
 	       img([ class(action),
 		     alt('Source'),
-		     src(location_by_id(pldoc_resource)+'source.gif')
+		     title('Show source'),
+		     src(location_by_id(pldoc_resource)+'source.png')
 		   ]))).
 pred_source_button(_, _) -->
 	[].
