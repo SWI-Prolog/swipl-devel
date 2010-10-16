@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of cgi_stream.c is to interface between the actual wrapper code
@@ -95,6 +96,16 @@ static atom_t ATOM_close;		/* close */
 static atom_t ATOM_content_length;	/* content_length */
 static atom_t ATOM_id;			/* id */
 static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
+
+
+		 /*******************************
+		 *	       THREADS		*
+		 *******************************/
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define LOCK()   pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
 
 
 		 /*******************************
@@ -648,7 +659,7 @@ static IOFUNCTIONS cgi_functions =
 		 *	       OPEN		*
 		 *******************************/
 
-static int current_id = 0;		/* TBD: MT: lock */
+static int current_id = 0;
 
 #define CGI_COPY_FLAGS (SIO_OUTPUT| \
 			SIO_TEXT| \
@@ -712,7 +723,9 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   if ( PL_unify_stream(new, s2) )
   { Sset_filter(s, s2);
     PL_release_stream(s);
+    LOCK();
     ctx->id = ++current_id;
+    UNLOCK();
 
     return TRUE;
   } else
