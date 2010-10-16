@@ -9,7 +9,7 @@
 */
 
 h1.file, h1.module, h1.dir
-{ background-color: #b9daff
+{ background: url("h1-bg.png") top left;
 }
 
 .undef
@@ -53,15 +53,15 @@ dt.keyword-bug, dt.keyword-deprecated, dt.keyword-tbd
 }
 
 dt.pubdef
-{ background-color: #c5e1ff;
+{ background: url("pub-bg.png") top left;
 }
 
 dt.multidef
-{ background-color: #c8ffc7;
+{ background: url("multi-bg.png") top left;
 }
 
 dt.privdef
-{ background-color: #fbffa6;
+{ background: url("priv-bg.png") top left;
 }
 
 dt.undoc, h2.undoc
@@ -228,7 +228,6 @@ span.search-help
 div.synopsis
 { text-align: right;
   margin-top: 15pt;
-  background-color: #fff;
 }
 
 span.synopsis-hdr

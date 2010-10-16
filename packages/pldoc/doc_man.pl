@@ -593,7 +593,10 @@ man_matches([H|T], Obj) --> man_match(H, Obj), man_matches(T, Obj).
 %	description.
 
 man_match((Parent+Path)-[element(dt,A,C),DD], Obj) -->
-	dom_list([element(dt,A,[\man_synopsis(Obj, Parent)|C]),DD], Path).
+	dom_list([ element(dt,[],[\man_synopsis(Obj, Parent)]),
+		   element(dt,A,C),
+		   DD
+		 ], Path).
 man_match((_Parent+Path)-DOM, _Obj) -->
 	dom_list(DOM, Path).
 
