@@ -1286,7 +1286,7 @@ called_by(\G, M) --> !,
 	(   { is_list(G) }
 	->  called_by(G, M)
 	;   {atom(M)}
-	->  [M:G+2]
+	->  [(M:G)+2]
 	;   [G+2]
 	).
 called_by([], _) --> !,
