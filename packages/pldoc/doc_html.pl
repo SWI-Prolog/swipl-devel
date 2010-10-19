@@ -1555,6 +1555,9 @@ file_href_real(File, HREF, _) :-
 %	file being processed  that  is   available  through  the  global
 %	variable =pldoc_file=.
 
+file_href(Path, HREF) :-		% a loaded Prolog file
+	source_file(Path), !,
+	doc_file_href(Path, HREF).
 file_href(Path, HREF) :-
 	nb_current(pldoc_file, CFile),
 	CFile \== [], !,
