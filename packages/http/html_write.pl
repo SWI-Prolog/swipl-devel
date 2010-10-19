@@ -1122,6 +1122,18 @@ meta_called([_|MT], [_|AT], Called, Tail) :- !,
 	meta_called(MT, AT, Called, Tail).
 
 
+:- html_meta
+	html(html,?,?),
+	page(html,?,?),
+	page(html,html,?,?),
+	page(html,html,?,?),
+	pagehead(html,?,?),
+	pagebody(html,?,?),
+	reply_html_page(html,html),
+	reply_html_page(+,html,html),
+	html_post(+,html,?,?).
+
+
 		 /*******************************
 		 *	PCE EMACS SUPPORT	*
 		 *******************************/
@@ -1135,33 +1147,6 @@ meta_called([_|MT], [_|AT], Called, Tail) :- !,
 emacs_prolog_colours:goal_colours(Goal, Colours) :-
 	html_meta_head(Goal, _Module, Head),
 	html_meta_colours(Head, Goal, Colours).
-emacs_prolog_colours:goal_colours(html(HTML,_,_),
-				  built_in-[Colours, classify, classify]) :-
-	html_colours(HTML, Colours).
-emacs_prolog_colours:goal_colours(page(HTML,_,_),
-				  built_in-[Colours, classify, classify]) :-
-	html_colours(HTML, Colours).
-emacs_prolog_colours:goal_colours(page(Head, Body,_,_),
-				  built_in-[HC, BC, classify, classify]) :-
-	html_colours(Head, HC),
-	html_colours(Body, BC).
-emacs_prolog_colours:goal_colours(pagehead(HTML,_,_),
-				  built_in-[Colours, classify, classify]) :-
-	html_colours(HTML, Colours).
-emacs_prolog_colours:goal_colours(pagebody(HTML,_,_),
-				  built_in-[Colours, classify, classify]) :-
-	html_colours(HTML, Colours).
-emacs_prolog_colours:goal_colours(reply_html_page(Head, Body),
-				  built_in-[HC, BC]) :-
-	html_colours(Head, HC),
-	html_colours(Body, BC).
-emacs_prolog_colours:goal_colours(reply_html_page(_Style, Head, Body),
-				  built_in-[identifier, HC, BC]) :-
-	html_colours(Head, HC),
-	html_colours(Body, BC).
-emacs_prolog_colours:goal_colours(html_post(_Id, HTML, _, _),
-				  built_in-[classify, Colours]) :-
-	html_colours(HTML, Colours).
 
 
 					% TBD: Check with do_expand!
@@ -1290,22 +1275,6 @@ emacs_prolog_colours:identify(http_no_location_for_id(ID), Summary) :-
 prolog:called_by(Goal, Called) :-
 	html_meta_head(Goal, _Module, Head),
 	html_meta_called(Head, Goal, Called).
-prolog:called_by(html(HTML,_,_), Called) :-
-	phrase(called_by(HTML), Called).
-prolog:called_by(page(HTML,_,_), Called) :-
-	phrase(called_by(HTML), Called).
-prolog:called_by(page(Head,Body,_,_), Called) :-
-	phrase(called_by([Head,Body]), Called).
-prolog:called_by(pagehead(HTML,_,_), Called) :-
-	phrase(called_by(HTML), Called).
-prolog:called_by(pagebody(HTML,_,_), Called) :-
-	phrase(called_by(HTML), Called).
-prolog:called_by(html_post(_,HTML,_,_), Called) :-
-	phrase(called_by(HTML), Called).
-prolog:called_by(reply_html_page(Head,Body), Called) :-
-	phrase(called_by([Head,Body]), Called).
-prolog:called_by(reply_html_page(_Style,Head,Body), Called) :-
-	phrase(called_by([Head,Body]), Called).
 
 called_by(Term) -->
 	called_by(Term, _).
