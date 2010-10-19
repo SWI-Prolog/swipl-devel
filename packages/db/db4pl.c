@@ -1317,7 +1317,7 @@ pl_db_init(term_t option_list)
 	if ( !PL_get_nil(a) )
 	  return pl_error(ERR_TYPE, "list", a);
       } else
-	return pl_error(ERR_DOMAIN, "db_option", v);
+	return pl_error(ERR_DOMAIN, "db_option", head);
     } else
       return pl_error(ERR_TYPE, "option", head);
   }
