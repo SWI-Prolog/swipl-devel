@@ -68,6 +68,19 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
+AC_MSG_CHECKING("set_server() in db_env")
+AC_TRY_COMPILE(
+[
+#include <db.h>
+],
+[ DB_ENV *db_env;
+
+  db_env->set_server(db_env, "localhost", 0L, 0L, 0);
+], AC_DEFINE(HAVE_SET_SERVER, 1,
+	     [Define if db_env provides set_server])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
 AC_OUTPUT(Makefile)
 
 
