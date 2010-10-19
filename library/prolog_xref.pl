@@ -83,15 +83,16 @@
 		 *	      HOOKS		*
 		 *******************************/
 
-%	prolog:called_by(+Goal, -ListOfCalled)
+%%	prolog:called_by(+Goal, -ListOfCalled)
 %
 %	If this succeeds, the cross-referencer assumes Goal may call any
-%	of the goals in ListOfCalled. If this call fails, default
+%	of the goals in  ListOfCalled.  If   this  call  fails,  default
 %	meta-goal analysis is used to determine additional called goals.
 
-%	prolog:meta_goal(+Goal, -Pattern)
+%%	prolog:meta_goal(+Goal, -Pattern)
 %
-%	Define meta-predicates.  See the examples in this file for details.
+%	Define meta-predicates. See  the  examples   in  this  file  for
+%	details.
 
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
@@ -547,7 +548,7 @@ process_directive(Goal, Src) :-
 
 %%	process_meta_predicate(+Decl)
 %
-%	Create prolog:meta_goal/2 declaration from the meta-goal
+%	Create  a  prolog:meta_goal/2  declaration  from  the  meta-goal
 %	declaration.
 
 process_meta_predicate((A,B)) :- !,
