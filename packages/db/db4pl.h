@@ -28,8 +28,18 @@
 #include <SWI-Prolog.h>
 #include <db.h>
 
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 1
+/* Consider anything >= DB4.3 as DB43 */
+#if DB_VERSION_MAJOR >= 4
+#if DB_VERSION_MAJOR > 4 || DB_VERSION_MINOR >= 3
+#define DB43 1
+#endif
+#endif
+
+/* Consider anything >= DB4.1 as DB41 */
+#if DB_VERSION_MAJOR >= 4
+#if DB_VERSION_MAJOR > 4 || DB_VERSION_MINOR >= 1
 #define DB41 1
+#endif
 #endif
 
 #define DBH_MAGIC 277484232		/* magic for validation */

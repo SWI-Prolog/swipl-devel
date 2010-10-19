@@ -1128,7 +1128,7 @@ typedef struct _server_info
 
 
 static void
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#ifdef DB43
 pl_db_error(const DB_ENV *dbenv, const char *prefix, const char *msg)
 #else
 pl_db_error(const char *prefix, char *msg)
