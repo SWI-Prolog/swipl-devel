@@ -44,7 +44,8 @@
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
-	    xref_public_list/4,		% +Path, -Export, +Src
+	    xref_public_list/4,		% +File, -Path, -Export, +Src
+	    xref_public_list/5,		% +File, -Path, -Export, -Meta, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
 					% XPCE class references
@@ -59,6 +60,7 @@
 :- use_module(library(prolog_source)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -79,6 +81,23 @@
 
 :- create_prolog_flag(xref, false, [type(boolean)]).
 
+/** <module> Prolog cross-referencer data collection
+
+This module implements to data-collection  part of the cross-referencer.
+This code is used in two places:
+
+    * gxref/0 (part of XPCE) provides a graphical front-end for this
+    module
+    * PceEmacs (also part of XPCE) uses the cross-referencer to color
+    goals and predicates depending on their references.
+
+@bug	meta_predicate/1 declarations take the module into consideration.
+	Predicates that are both avalaible as meta-predicate and normal
+	(in different modules) are handled as meta-predicate in all
+	places.
+*/
+
+
 		 /*******************************
 		 *	      HOOKS		*
 		 *******************************/
@@ -93,6 +112,11 @@
 %
 %	Define meta-predicates. See  the  examples   in  this  file  for
 %	details.
+
+%%	prolog:hook(Goal)
+%
+%	True if Goal is a hook that  is called spontaneously (e.g., from
+%	foreign code).
 
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
@@ -162,11 +186,7 @@ xref_source(Source) :-
 xref_setup(Src, In, state(In, Xref, [SRef|HRefs])) :-
 	prolog_open_source(Src, In),
 	asserta(xref_stream(In), SRef),
-	(   current_prolog_flag(xref, Xref)
-	->  true
-	;   Xref = false
-	),
-	set_prolog_flag(xref, true),
+	set_xref(Xref),
 	(   verbose
 	->  HRefs = []
 	;   asserta(user:message_hook(_,_,_), Ref),
@@ -177,6 +197,11 @@ xref_cleanup(state(In, Xref, Refs)) :-
 	prolog_close_source(In),
 	set_prolog_flag(xref, Xref),
 	maplist(erase, Refs).
+
+set_xref(Xref) :-
+	current_prolog_flag(xref, Xref),
+	set_prolog_flag(xref, true).
+
 
 %%	xref_input_stream(-Stream) is det.
 %
@@ -555,6 +580,9 @@ process_meta_predicate((A,B)) :- !,
 	process_meta_predicate(A),
 	process_meta_predicate(B).
 process_meta_predicate(Decl) :-
+	process_meta_head(Decl).
+
+process_meta_head(Decl) :-
 	functor(Decl, Name, Arity),
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
@@ -919,8 +947,9 @@ process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	forall(member(Import, Public),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, Public, Src), _, fail)
+	(   catch(xref_public_list(File, Path, Public, Meta, Src), _, fail)
 	->  assert_import(Src, Public, _, Path, Reexport),
+	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
 	    ;	true
@@ -940,45 +969,70 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
 
-%%	xref_public_list(+File, -Path, -Public, +Src)
+%%	xref_public_list(+File, -Path, -Public, +Src) is det.
+%%	xref_public_list(+File, -Path, -Public, -Meta, +Src) is det.
 %
 %	Find File as  referenced  from  Src.   Unify  Path  with  the an
 %	absolute path to the  referenced  source   and  Public  with the
 %	export list of that (module) file.   Exports are produced by the
 %	:- module/2 directive and all subsequent :- reexport directives.
+%
+%	@param	Public is a list of predicate indicators.
+%	@param	Meta is a list of heads as they appear in
+%		meta_predicate/1 declarations.
 
 xref_public_list(File, Path, Public, Src) :-
-	xref_public_list(File, Path, Src, Public, []).
+	xref_public_list(File, Path, Public, _, Src).
+xref_public_list(File, Path, Public, Meta, Src) :-
+	xref_public_list(File, Path, Src, Meta, [], Public, []).
 
-xref_public_list(File, Path, Src, Public, Rest) :-
+xref_public_list(File, Path, Src, Meta, MT, Public, Rest) :-
 	xref_source_file(File, Path, Src),
-	prolog_open_source(Path, Fd),		% skips possible #! line
-	call_cleanup(read_public(Fd, Src, Public, Rest),
-		     prolog_close_source(Fd)).
+	setup_call_cleanup((prolog_open_source(Path, In),		% skips possible #! line
+			    set_xref(Old)),
+			   phrase(read_directives(In), Directives),
+			   (set_prolog_flag(xref, Old),
+			    prolog_close_source(In))),
+	public_list(Directives, File, Meta, MT, Public, Rest).
 
-read_public(In, File, Public, Rest) :-
-	read(In, (:- module(_, Export))),
+
+read_directives(In) -->
+	{ prolog_read_source_term(In, Term, Expanded, []),
+	  nonvar(Term),
+	  Term = (:-_)
+	}, !,
+	terms(Expanded),
+	read_directives(In).
+read_directives(_) --> [].
+
+terms(Var) --> { var(Var) }, !.
+terms([H|T]) --> [H], terms(T).
+terms(H) --> [H].
+
+public_list([(:- module(_, Export))|Decls], File, Meta, MT, Public, Rest) :-
 	append(Export, Reexport, Public),
-	read(In, ReexportDecl),
-	read_reexport(ReexportDecl, In, File, Reexport, Rest).
+	public_list_(Decls, File, Meta, MT, Reexport, Rest).
 
-read_reexport((:- reexport(Spec)), In, File, Reexport, Rest) :- !,
-	reexport_files(Spec, File, Reexport, Rest0),
-	read(In, ReexportDecl),
-	read_reexport(ReexportDecl, In, File, Rest0, Rest).
-read_reexport((:- reexport(Spec, Import)), In, File, Reexport, Rest) :- !,
-	public_from_import(Import, Spec, File, Reexport, Rest0),
-	read(In, ReexportDecl),
-	read_reexport(ReexportDecl, In, File, Rest0, Rest).
-read_reexport(_, _, _, Rest, Rest).
+public_list_([], _, Meta, Meta, Rest, Rest).
+public_list_([(:-(Dir))|T], File, Meta, MT, Public, Rest) :-
+	public_list_1(Dir, File, Meta, MT0, Public, Rest0), !,
+	public_list_(T, File, MT0, MT, Rest0, Rest).
+public_list_([_|T], File, Meta, MT, Public, Rest) :-
+	public_list_(T, File, Meta, MT, Public, Rest).
 
+public_list_1(reexport(Spec), File, Meta, MT, Reexport, Rest) :-
+	reexport_files(Spec, File, Meta, MT, Reexport, Rest).
+public_list_1(reexport(Spec, Import), File, Meta, Meta, Reexport, Rest) :-
+	public_from_import(Import, Spec, File, Reexport, Rest).
+public_list_1(meta_predicate(Decl), _File, Meta, MT, Public, Public) :-
+	phrase(meta_decls(Decl), Meta, MT).
 
-reexport_files([], _, Public, Public) :- !.
-reexport_files([H|T], Src, Public, Rest) :- !,
-	xref_public_list(H, _, Src, Public, Rest0),
-	reexport_files(T, Src, Rest0, Rest).
-reexport_files(Spec, Src, Public, Rest) :-
-	xref_public_list(Spec, Src, Public, Rest).
+reexport_files([], _, Meta, Meta, Public, Public) :- !.
+reexport_files([H|T], Src, Meta, MT, Public, Rest) :- !,
+	xref_public_list(H, _, Src, Meta, MT0, Public, Rest0),
+	reexport_files(T, Src, MT0, MT, Rest0, Rest).
+reexport_files(Spec, Src, Meta, MT, Public, Rest) :-
+	xref_public_list(Spec, _Path, Src, Meta, MT, Public, Rest).
 
 public_from_import(except(Map), File, Src, Export, Rest) :- !,
 	xref_public_list(File, _, Public, Src),
@@ -1026,6 +1080,13 @@ canonical_pi(PI, PI).
 same_pi(Canonical, PI2) :-
 	canonical_pi(PI2, Canonical).
 
+meta_decls(Var) -->
+	{ var(Var) }, !.
+meta_decls((A,B)) --> !,
+	meta_decls(A),
+	meta_decls(B).
+meta_decls(A) -->
+	[A].
 
 		 /*******************************
 		 *	       INCLUDE		*

@@ -125,6 +125,7 @@ setting(Name, Type, Default, Comment) :-
 
 system:term_expansion((:- setting(QName, Type, Default, Comment)),
 		    Expanded) :-
+	\+ current_prolog_flag(xref, true),
 	prolog_load_context(module, M0),
 	strip_module(M0:QName, Module, Name),
 	must_be(atom, Name),
