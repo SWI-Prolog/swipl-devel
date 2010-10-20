@@ -3816,7 +3816,7 @@ be read using the prompt defined by prompt/2.
 
 \begin{description}
     \predicate[ISO]{functor}{3}{?Term, ?Name, ?Arity}
-True if \arg{Term} is a term with functor \arg{Name}/\arg{Arity}. If
+True when \arg{Term} is a term with functor \arg{Name}/\arg{Arity}. If
 Term is a variable it is unified with a new term whose arguments are all
 different variables (such a term is called a skeleton). If Term is
 atomic, Arity will be unified with the integer 0, and Name will be
@@ -6003,7 +6003,8 @@ The minute as a decimal number (range 00 to 59).
     \fmtchar{n}
 A newline character.
     \fmtchar{O}
-Modifier.  Not implemented.
+Modifier to select locale-specific output.  Not implemented, but this
+version does implement \texttt{\%Oz}.  See \%z.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
@@ -6051,15 +6052,41 @@ The year as a decimal number without a century (range 00 to 99).
     \fmtchar{Y}
 The year as a decimal number including the century.
     \fmtchar{z}
-The time-zone  as  hour  offset  from  GMT.   Required  to  emit
-RFC822-conforming  dates  (using  "\%a,  \%d  \%b \%Y \%H:\%M:\%S \%z").
-    \fmtchar{Z}
-The time zone or name or abbreviation.
-    \fmtchar{+}
-The date and time in date(1) format.
-    \fmtchar{\%}
-A literal `\%' character.
+The time-zone as hour offset from GMT using the format HHmm. Required to
+emit RFC822-conforming dates (using
+\texttt{'\%a,~\%d~\%b~\%Y~\%T~\%z'}). Our implementation supports
+\texttt{\%Oz} that modifies the output to HH:mm as required by
+XML-Schema. Note that both notations are valid in ISO8601. \fmtchar{Z}
+The time zone or name or abbreviation. \fmtchar{+} The date and time in
+date(1) format. \fmtchar{\%} A literal `\%' character.
 \end{itemize}
+
+The table below, gives some format strings for popular time
+representations.  RFC1123 is used by HTTP.  The full implementation of
+http_timestamp/2 as available from \pllib{http/http_header} is here.
+
+\begin{code}
+http_timestamp(Time, Atom) :-
+	stamp_date_time(Time, Date, 'UTC'),
+	format_time(atom(Atom),
+		    '%a, %d %b %Y %T GMT',
+		    Date, posix).
+\end{code}
+
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\textbf{Standard} & \textbf{Format string} \\
+\hline
+\textbf{xsd} & \texttt{'\%FT\%T\%Oz'} \\
+\textbf{ISO8601} & \texttt{'\%FT\%T\%z'} \\
+\textbf{RFC822} & \texttt{'\%a, \%d \%b \%Y \%T \%z'} \\
+\textbf{RFC1123} & \texttt{'\%a, \%d \%b \%Y \%T GMT'} \\
+\hline
+\end{tabular}
+\end{center}
+
 
     \predicate{format_time}{4}{+Out, +Format, +StampOrDateTime, +Locale}
 Format time given a specified \arg{Locale}. This predicate is a
