@@ -384,7 +384,7 @@ source_dirs([H|T], WD) -->
 	source_dirs(T, WD).
 
 %%	source_directory(+Dir) is semidet.
-%%	source_directory(-Dir) is det.
+%%	source_directory(-Dir) is nondet.
 %
 %	True if Dir is a directory  from   which  we  have loaded Prolog
 %	sources.

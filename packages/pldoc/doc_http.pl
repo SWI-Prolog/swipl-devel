@@ -367,6 +367,8 @@ allowed_directory(Dir) :-
 allowed_directory(Dir) :-
 	working_directory(CWD, CWD),
 	same_file(CWD, Dir).
+allowed_directory(Dir) :-
+	prolog:doc_directory(Dir).
 
 
 %%	allowed_file(+File) is semidet.
@@ -448,15 +450,12 @@ documentation(Path, Request) :-
 	;   throw(http_reply(forbidden(Dir)))
 	).
 documentation(File, _Request) :-
-	(   file_name_extension(_, txt, File)
-	;   file_base_name(File, Base),
-	    autolink_file(Base, wiki)
-	),
-	(   allowed_file(File)
+	wiki_file(File, WikiFile), !,
+	(   allowed_file(WikiFile)
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	doc_for_wiki_file(File, []).
+	doc_for_wiki_file(WikiFile, []).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
@@ -506,6 +505,23 @@ pl_file(File, PlFile) :-
 			     access(read)
 			   ], PlFile).
 pl_file(File, File).
+
+%%	wiki_file(+File, -TxtFile) is semidet.
+%
+%	True if TxtFile is an existing file  that must be served as wiki
+%	file.
+
+wiki_file(File, TxtFile) :-
+	file_name_extension(_, txt, File), !,
+	TxtFile = File.
+wiki_file(File, TxtFile) :-
+	file_base_name(File, Base),
+	autolink_file(Base, wiki), !,
+	TxtFile = File.
+wiki_file(File, TxtFile) :-
+	file_name_extension(Base, html, File),
+	file_name_extension(Base, txt, TxtFile),
+	access_file(TxtFile, read).
 
 
 %%	clean_path(+AfterDoc, -AbsPath)

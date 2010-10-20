@@ -580,7 +580,7 @@ wiki_face(i(Italic), ArgNames) -->
 wiki_face(code(Code), _) -->
 	[=, w(Code), =], !.
 wiki_face(code(Code), _) -->
-	[=,'|'], wiki_faces(Code, []), ['|',=], !.
+	[=,'|'], wiki_words(Code), ['|',=], !.
 wiki_face(Face, _) -->
 	[ w(Name) ], arg_list(List),
 	{ atomic_list_concat([Name|List], Text),
@@ -632,6 +632,11 @@ wiki_face(FT, ArgNames) -->
 	[Structure],
 	{ wiki_faces(Structure, ArgNames, FT)
 	}.
+
+wiki_words([]) --> [].
+wiki_words([Word|T]) --> [w(Word)], wiki_words(T).
+wiki_words([Punct|T]) --> [Punct], {atomic(Punct)}, wiki_words(T).
+
 
 %%	arg_list(-Atoms) is nondet.
 %
@@ -795,7 +800,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	}.
 
 
-%%	filename(-Name:atom, -Ext:atom)// is semidet.
+%%	file_name(-Name:atom, -Ext:atom)// is semidet.
 %
 %	Matches a filename.  A filename is defined as a	sequence
 %	<segment>{/<segment}.<ext>.
@@ -810,6 +815,9 @@ segment(..) -->
 	['.','.'], !.
 segment(Word) -->
 	[w(Word)].
+segment(Dir) -->
+	[w(Word),'.',w(d)],
+	{ atom_concat(Word, '.d', Dir) }.
 
 segments([H|T]) -->
 	['/'], !,
