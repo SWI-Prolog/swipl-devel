@@ -457,7 +457,7 @@ S__fillbuf(IOSTREAM *s)
 #ifdef HAVE_SELECT
   s->flags &= ~SIO_TIMEOUT;
 
-  if ( s->timeout >= 0 )
+  if ( s->timeout >= 0 && !s->downstream )
   { int fd = Sfileno(s);
 
     if ( fd >= 0 )
@@ -1393,6 +1393,10 @@ Sfeof(IOSTREAM *s)
   { errno = EINVAL;
     return -1;
   }
+
+  if ( s->downstream != NULL &&
+       Sfeof(s->downstream))
+    return TRUE;
 
   if ( S__fillbuf(s) == -1 )
     return TRUE;
