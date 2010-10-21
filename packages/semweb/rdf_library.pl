@@ -54,7 +54,7 @@
 /** <module> RDF Library Manager
 
 This module manages an ontology library. Such   a  library consists of a
-directory with manifest files  named   =manifest.rdf=  or =manifest.ttl=
+directory with manifest files named =|Manifest.rdf|= or =|Manifest.ttl|=
 (Turtle). The manifest files define ontologies  appearing in the library
 as well as namespace mnemonics and dependencies.
 
