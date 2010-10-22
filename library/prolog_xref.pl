@@ -326,6 +326,10 @@ xref_definition_line(constraint(Line),	 Line).
 xref_definition_line(foreign(Line),	 Line).
 
 
+%%	xref_exported(?Source, ?Head) is nondet.
+%
+%	True when Source exports Head.
+
 xref_exported(Source, Called) :-
 	prolog_canonical_source(Source, Src),
 	exported(Called, Src).

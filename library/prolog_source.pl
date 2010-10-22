@@ -219,15 +219,15 @@ prolog_canonical_source(Src, Id) :-		% Call hook
 prolog_canonical_source(User, user) :-
 	User == user, !.
 prolog_canonical_source(Source, Src) :-
+	var(Source), !,
+	Src = Source.
+prolog_canonical_source(Source, Src) :-
 	absolute_file_name(Source,
 			   [ file_type(prolog),
 			     access(read),
 			     file_errors(fail)
 			   ],
 			   Src), !.
-prolog_canonical_source(Source, Src) :-
-	var(Source), !,
-	Src = Source.
 
 
 %%	file_name_on_path(+File:atom, -OnPath) is det.
