@@ -155,6 +155,15 @@ div.navhdr div.search
 { float: right;
 }
 
+div.src_formats
+{ text-align: right;
+  color: #444;
+  font: smaller;
+  border: 1px #ccc solid;
+  padding-right: 5px;
+  margin-bottom: 2px;
+}
+
 /* Summary index */
 
 table.summary

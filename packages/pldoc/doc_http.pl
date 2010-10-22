@@ -45,6 +45,8 @@
 :- use_module(library(http/http_log)).
 :- use_module(library(http/http_hook)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/http_wrapper)).
+:- use_module(library(uri)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
@@ -460,7 +462,7 @@ documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
 			  reload(Reload),
-			  show(How)
+			  show(Show)
 			],
 			[ attribute_declarations(param)
 			]),
@@ -475,10 +477,12 @@ documentation(Path, Request) :-
 	;   true
 	),
 	edit_options(Request, EditOptions),
-	(   How == src
+	(   Show == src
 	->  format('Content-type: text/html~n~n', []),
-	    source_to_html(File, stream(current_output), [])
-	;   How == raw
+	    source_to_html(File, stream(current_output),
+			   [ skin(src_skin(Request, Show))
+			   ])
+	;   Show == raw
 	->  http_reply_file(File,
 			    [ unsafe(true), % is already validated
 			      mime_type(text/plain)
@@ -488,6 +492,27 @@ documentation(Path, Request) :-
 			 | EditOptions
 			 ])
 	).
+
+
+src_skin(Request, _Show, header, Out) :- !,
+	memberchk(request_uri(ReqURI), Request), !,
+	replace_parameters(ReqURI, [show(raw)], RawLink),
+	phrase(html(div(class(src_formats),
+			[ 'View source as ', a(href(RawLink), raw)
+			])), Tokens),
+	print_html(Out, Tokens).
+
+replace_parameters(ReqURI, Extra, URI) :-
+	uri_components(ReqURI, C0),
+	uri_data(search, C0, Search0),
+	(   var(Search0)
+	->  uri_query_components(Search, Extra)
+	;   uri_query_components(Search0, Form0),
+	    merge_options(Extra, Form0, Form),
+	    uri_query_components(Search, Form)
+	),
+	uri_data(search, C0, Search, C),
+	uri_components(URI, C).
 
 
 %%	edit_options(+Request, -Options) is det.
