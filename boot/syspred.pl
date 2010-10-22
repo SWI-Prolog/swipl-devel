@@ -358,15 +358,19 @@ atom_prefix(Atom, Prefix) :-
 %	bound to the canonical name for it. If File is bound it succeeds
 %	if the canonical name  as   defined  by  absolute_file_name/2 is
 %	known as a loaded filename.
+%
+%	Note that Time = 0.0 is used by  PlDoc and other code that needs
+%	to create a file record without being interested in the time.
 
 source_file(File) :-
 	(   ground(File)
-	->  ( 	'$time_source_file'(File, _, user)
+	->  ( 	'$time_source_file'(File, Time, user)
 	    ;	absolute_file_name(File, Abs),
-		'$time_source_file'(Abs, _, user)
+		'$time_source_file'(Abs, Time, user)
 	    ), !
-	;   '$time_source_file'(File, _, user)
-	).
+	;   '$time_source_file'(File, Time, user)
+	),
+	Time > 0.0.
 
 %%	prolog_load_context(+Key, -Value)
 %
