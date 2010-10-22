@@ -355,7 +355,7 @@ process_structured_comment(File:Line, Comment, _) :-
 
 decl_module([], M, []) :-
 	(   var(M)
-	->  '$set_source_module'(M, M)
+	->  prolog_load_context(module, M)
 	;   true
 	).
 decl_module([H0|T0], M, [H|T]) :-

@@ -238,7 +238,8 @@ doc_file_href(File0, HREF) :-
 	ensure_slash_start(File, SlashFile),
 	http_location([path(SlashFile)], Escaped),
 	http_location_by_id(pldoc_doc, DocRoot),
-	format(string(HREF), '~w~w', [DocRoot, Escaped]).
+	atom_concat(DocRoot, Escaped, HREF).
+
 
 %%	ensure_slash_start(+File0, -File) is det.
 %
