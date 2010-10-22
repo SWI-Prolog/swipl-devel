@@ -134,15 +134,29 @@ update_directive(style_check(Style)) :-
 	style_check(Style), !.
 update_directive(expects_dialect(sicstus)) :-
 	style_check(-atom), !.
+update_directive(use_module(Spec)) :-
+	catch(module_decl(Spec, Public), _, fail), !,
+	public_operators(Public).
 update_directive(_).
 
 public_operators([]).
 public_operators([H|T]) :- !,
-	(   H = op(_,_,_)
+	(   nonvar(H),
+	    H = op(_,_,_)
 	->  update_directive(H)
 	;   true
 	),
 	public_operators(T).
+
+module_decl(Spec, Decl) :-
+	absolute_file_name(Spec, Path,
+			   [ file_type(prolog),
+			     file_errors(fail),
+			     access(read)
+			   ]),
+	setup_call_cleanup(prolog_open_source(Path, In),
+			   read(In, (:- module(_, Decl))),
+			   close(In)).
 
 
 		 /*******************************
