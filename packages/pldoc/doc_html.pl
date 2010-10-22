@@ -433,7 +433,7 @@ source_button(File, _Options) -->
 	  ;   HREF0 = File
 	  )
 	},
-	html(a(href(HREF0+[source(true)]),
+	html(a(href(HREF0+[show(src)]),
 	       img([ class(action),
 		     alt('Show source'),
 		     title('Show source'),

@@ -460,7 +460,7 @@ documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
 			  reload(Reload),
-			  source(Source)
+			  show(How)
 			],
 			[ attribute_declarations(param)
 			]),
@@ -475,9 +475,14 @@ documentation(Path, Request) :-
 	;   true
 	),
 	edit_options(Request, EditOptions),
-	(   Source == true
+	(   How == src
 	->  format('Content-type: text/html~n~n', []),
 	    source_to_html(File, stream(current_output), [])
+	;   How == raw
+	->  http_reply_file(File,
+			    [ unsafe(true), % is already validated
+			      mime_type(text/plain)
+			    ], Request)
 	;   doc_for_file(File,
 			 [ public_only(Public)
 			 | EditOptions
@@ -623,16 +628,19 @@ pldoc_search(Request) :-
 		 *******************************/
 
 param(public_only,
-      [ oneof([true,false]),
-	default(true)
+      [ boolean,
+	default(true),
+	description('If true (default), hide private predicates')
       ]).
 param(reload,
-      [ oneof([true,false]),
-	default(false)
+      [ boolean,
+	default(false),
+	description('Reload the file and its documentation')
       ]).
-param(source,
-      [ oneof([true,false]),
-	default(false)
+param(show,
+      [ oneof([doc,src,raw]),
+	default(doc),
+	description('How to show the file')
       ]).
 
 
