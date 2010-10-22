@@ -120,7 +120,8 @@ tables.
 
 static int
 defOperator(Module m, atom_t name, int type, int priority, int force)
-{ Symbol s;
+{ GET_LD
+  Symbol s;
   operator *op;
   int t = (type & OP_MASK);		/* OP_PREFIX, ... */
 
@@ -132,7 +133,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
 
   assert(t>=OP_PREFIX && t<=OP_POSTFIX);
 
-  if ( !force )
+  if ( !force && !SYSTEM_MODE )
   { if ( name == ATOM_comma || name == ATOM_nil || name == ATOM_curl ||
 	 (name == ATOM_bar && ((t&OP_MASK) != OP_INFIX ||
 			       (priority < 1001 && priority != 0))) )
@@ -156,9 +157,7 @@ defOperator(Module m, atom_t name, int type, int priority, int force)
   { UNLOCK();				/* already inherited: do not change */
     return TRUE;
   } else
-  { GET_LD
-
-    op = allocHeap(sizeof(*op));
+  { op = allocHeap(sizeof(*op));
 
     op->priority[OP_PREFIX]  = -1;
     op->priority[OP_INFIX]   = -1;
