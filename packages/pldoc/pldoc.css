@@ -253,6 +253,14 @@ span.anot
   color: #444;
 }
 
+span.file_anot
+{ vertical-align: text-top;
+  margin-right: 5pt;
+  font-style: italic;
+  font-size: 60%;
+  color: #444;
+}
+
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text { display: none; }

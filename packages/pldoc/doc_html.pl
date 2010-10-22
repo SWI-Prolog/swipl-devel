@@ -186,6 +186,7 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 			   ],
 			   File),
 	Pos = File:Line,
+	ensure_doc_objects(File),
 	findall(Line-doc(Obj,Pos,Comment),
 		doc_comment(Obj, Pos, _, Comment), Pairs),
 	keysort(Pairs, ByLine),
@@ -194,6 +195,20 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 	file_info(Objs0, Objs1, FileOptions, ModuleOptions),
 	doc_hide_private(Objs1, Objects, ModuleOptions).
 
+%%	ensure_doc_objects(+File)
+%
+%	Ensure we have documentation about  File.   If  the  file is not
+%	loaded, run the cross-referencer on it   to collect the comments
+%	and meta-information.
+%
+%	@tbd	We could also run the cross-referencer if the file
+%		was loaded, but before we are collecting comments.
+%		Is that useful?
+
+ensure_doc_objects(File) :-
+	source_file(File), !.
+ensure_doc_objects(File) :-
+	xref_source(File).
 
 %%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
 %
@@ -203,8 +218,14 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
 	module_property(Module, file(File)), !,
 	module_property(Module, exports(Exports)).
+module_info(File, [module(Module), public(Exports)|Options], Options) :-
+	xref_module(File, Module), !,
+	findall(PI, xref_exported_pi(File, PI), Exports).
 module_info(_, Options, Options).
 
+xref_exported_pi(Src, Name/Arity) :-
+	xref_exported(Src, Head),
+	functor(Head, Name, Arity).
 
 %%	doc_hide_private(+Objs, +Public, +Options)
 %
@@ -253,14 +274,24 @@ private(Module:PI, Options) :-
 	     eq_pi(PI, PI2)
 	   ).
 private(Module:PI, _Options) :-
+	module_property(Module, file(_)), !,	% A loaded module
 	export_list(Module, Exports),
 	\+ ( member(PI2, Exports),
 	     eq_pi(PI, PI2)
 	   ).
+private(Module:PI, _Options) :-
+	\+ (pi_to_head(PI, Head),
+	    xref_exported(Source, Head),
+	    xref_module(Source, Module)).
+
+%%	multifile(+Obj, +Options) is semidet.
+%
+%	True if Obj is a multifile predicate.
 
 multifile(Module:PI, _Options) :-
 	pi_to_head(PI, Head),
 	predicate_property(Module:Head, multifile).
+
 
 pi_to_head(Var, _) :-
 	var(Var), !, fail.
@@ -310,7 +341,7 @@ file_title(Title, File, Options) -->
 	},
 	html(h1(class=file,
 		[ span(style('float:right'),
-		       [ \reload_button(Base, Options),
+		       [ \reload_button(File, Base, Options),
 			 \zoom_button(Base, Options),
 			 \source_button(Base, Options),
 			 \edit_button(File, Options)
@@ -319,12 +350,17 @@ file_title(Title, File, Options) -->
 		])).
 
 
-%%	reload_button(+File)// is det.
+%%	reload_button(+File, +Base, +Options)// is det.
 %
 %	Create a button for  reloading  the   sources  and  updating the
-%	documentation page.
+%	documentation page. Note that the  button   is  not shown if the
+%	file is not loaded because we do  not want to load files through
+%	the documentation system.
 
-reload_button(Base, Options) -->
+reload_button(File, _Base, _Options) -->
+	{ \+ source_file(File) }, !,
+	html(span(class(file_anot), '[not loaded]')).
+reload_button(_File, Base, Options) -->
 	{ option(edit(true), Options), !,
 	  option(public_only(Public), Options, true)
 	},
@@ -334,8 +370,7 @@ reload_button(Base, Options) -->
 		     title('Make & Reload'),
 		     src(location_by_id(pldoc_resource)+'reload.gif')
 		   ]))).
-reload_button(_, _) -->
-	[].
+reload_button(_, _, _) --> [].
 
 %%	edit_button(+File, +Options)// is det.
 %

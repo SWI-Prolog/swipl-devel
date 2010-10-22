@@ -319,7 +319,7 @@ pldoc_edit(Request) :-
 				 ])
 			]),
 	(   atom(File)
-	->  source_file(File)
+	->  allowed_file(File)
 	;   true
 	),
 	(   atom(File), integer(Line)
@@ -469,7 +469,8 @@ documentation(Path, Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	(   Reload == true
+	(   Reload == true,
+	    source_file(File)
 	->  load_files(File, [if(changed), imports([])])
 	;   true
 	),
