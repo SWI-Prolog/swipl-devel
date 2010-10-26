@@ -452,6 +452,34 @@ static int				/* FALSE, TRUE or TRUE_WITH_SPACE */
 writeAtom(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
 
+  if ( (options->flags & PL_WRT_BLOB_PORTRAY) &&
+       false(atom->type, PL_BLOB_TEXT) &&
+       GD->cleaning <= CLN_PROLOG )
+  { GET_LD
+    int rc;
+    fid_t fid;
+    predicate_t pred;
+    IOSTREAM *old;
+    term_t av;
+
+    if ( !(fid = PL_open_foreign_frame()) )
+      return FALSE;
+    av = PL_new_term_ref();
+    PL_put_atom(av, a);
+
+    pred = _PL_predicate("portray", 1, "user",
+			 &GD->procedures.portray);
+
+    old = Scurout;
+    Scurout = options->out;
+    rc = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+    Scurout = old;
+
+    PL_discard_foreign_frame(fid);
+    if ( rc == TRUE )
+      return TRUE;
+  }
+
   if ( atom->type->write )
     return (*atom->type->write)(options->out, a, options->flags);
   if ( false(atom->type, PL_BLOB_TEXT) )
@@ -1140,6 +1168,17 @@ writeAttributeMask(atom_t a)
 }
 
 
+static int
+writeBlobMask(atom_t a)
+{ if ( a == ATOM_default )
+  { return 0;
+  } else if ( a == ATOM_portray )
+  { return PL_WRT_BLOB_PORTRAY;
+  } else
+    return -1;
+}
+
+
 static const opt_spec write_term_options[] =
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
@@ -1153,6 +1192,7 @@ static const opt_spec write_term_options[] =
   { ATOM_priority,	    OPT_INT },
   { ATOM_partial,	    OPT_BOOL },
   { ATOM_spacing,	    OPT_ATOM },
+  { ATOM_blobs,		    OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1167,6 +1207,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
+  atom_t blobs    = ATOM_nil;
   int  priority   = 1200;
   bool partial    = FALSE;
   IOSTREAM *s;
@@ -1178,7 +1219,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray,
 		     &charescape, &options.max_depth, &mname,
-		     &bqstring, &attr, &priority, &partial, &options.spacing) )
+		     &bqstring, &attr, &priority, &partial, &options.spacing,
+		     &blobs) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1187,6 +1229,14 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   { int mask = writeAttributeMask(attr);
 
     if ( !mask )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_write_option, opts);
+
+    options.flags |= mask;
+  }
+  if ( blobs != ATOM_nil )
+  { int mask = writeBlobMask(blobs);
+
+    if ( mask < 0 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_write_option, opts);
 
     options.flags |= mask;

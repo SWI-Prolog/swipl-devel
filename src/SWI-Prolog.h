@@ -761,6 +761,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_DOTS | \
 	 PL_WRT_ATTVAR_WRITE | \
 	 PL_WRT_ATTVAR_PORTRAY)
+#define PL_WRT_BLOB_PORTRAY	0x400	/* Use portray to emit non-text blobs */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			     term_t term,

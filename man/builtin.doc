@@ -2632,7 +2632,8 @@ stream_pair/3 for details.
 
 SWI-Prolog stream-handles are unique symbols that have no syntactical
 representation. They are written as \verb$<stream>(hex-number)$, which
-is not valid input for read/1.
+is not valid input for read/1.  They are realised using a \jargon{blob}
+of type \const{stream} (see blob/2 and \secref{blob}).
 
 
 \begin{description}
@@ -3530,6 +3531,11 @@ the attributes recursively to write_term/2) and \const{portray}
 If \const{true}, write a string object (see \secref{strings}) as
 \verb$`$\ldots\verb$`$. The default depends on the Prolog flag
 \prologflag{backquoted_string}.
+
+    \termitem{blobs}{Atom}
+Define how non-text blobs are handled.  By default, this is left to
+the write-handler specified with the blob-type.  Using \const{portray},
+portray/1 is called for each blob encountered.  See \secref{blob}.
 
     \termitem{character_escapes}{Bool}
 If \const{true}, and \term{quoted}{true} is active, special characters
