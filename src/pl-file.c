@@ -510,7 +510,7 @@ load_stream_ref(IOSTREAM *fd)
 static PL_blob_t stream_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
-  "stream_ref",
+  "stream",
   release_stream_ref,
   NULL,
   write_stream_ref,

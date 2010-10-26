@@ -81,7 +81,7 @@ load_clause_ref(IOSTREAM *fd)
 static PL_blob_t clause_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
-  "clause_ref",
+  "clause",
   release_clause,
   NULL,
   write_clause_ref,
@@ -126,7 +126,7 @@ release_record(atom_t aref)
 static PL_blob_t record_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
-  "record_ref",
+  "record",
   release_record,
   NULL,
   write_record_ref,
