@@ -1046,6 +1046,10 @@ True if \arg{Term} is bound to an integer or floating point number.%
     \predicate[ISO]{atom}{1}{+Term}
 True if \arg{Term} is bound to an atom.
 
+    \predicate{blob}{2}{@Term, ?Type}
+True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
+\secref{blob}.
+
     \predicate{string}{1}{+Term}
 True if \arg{Term} is bound to a string. Note that string here
 refers to the built-in atomic type string as described in
