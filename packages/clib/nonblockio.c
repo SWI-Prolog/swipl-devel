@@ -127,6 +127,13 @@ leave the details to this function.
 #include <malloc.h>
 #endif
 
+#ifdef __WINDOWS__
+#define GET_ERRNO WSAGetLastError()
+#define GET_H_ERRNO WSAGetLastError()
+#else
+#define GET_ERRNO errno
+#define GET_H_ERRNO h_errno
+#endif
 
 #ifndef __WINDOWS__
 #define closesocket(n) close((n))	/* same on Unix */
@@ -1080,7 +1087,7 @@ nbio_fcntl(nbio_sock_t socket, int op, int arg)
   { if ( op == F_SETFL && arg == O_NONBLOCK )
       s->flags |= PLSOCK_NONBLOCK;
   } else
-    nbio_error(errno, TCP_ERRNO);
+    nbio_error(GET_ERRNO, TCP_ERRNO);
 
   return rc;
 }
@@ -1325,13 +1332,13 @@ freeSocket(plsocket *s)
 		 *******************************/
 
 #ifdef __WINDOWS__
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The code in BILLY_GETS_BETTER is, according to various documents the
 right code, but it doesn't work, so we do it by hand.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef BILLY_GETS_BETTER
-
 static const char *
 WinSockError(unsigned long eno)
 { char buf[1024];
@@ -1413,10 +1420,10 @@ WinSockError(unsigned long error)
     { WSANOTINITIALISED, "Socket layer not initialised" },
 					/* WinSock 2 errors */
     { WSAHOST_NOT_FOUND, "Host not found" },
+    { WSANO_DATA, "Valid name, no data record of requested type" },
     { 0, NULL }
   };
   char tmp[100];
-
   for(ep=edefs; ep->string; ep++)
   { if ( ep->index == (int)error )
       return ep->string;
@@ -1467,7 +1474,6 @@ nbio_error(int code, nbio_error_map mapid)
 
   if ( code == EPLEXCEPTION )
     return FALSE;
-
   switch( mapid )
   { case TCP_HERRNO:
       map = h_errno_codes;
@@ -1475,7 +1481,6 @@ nbio_error(int code, nbio_error_map mapid)
     default:
       map = NULL;
   }
-
   {
 #ifdef __WINDOWS__
   msg = WinSockError(code);
@@ -1601,7 +1606,7 @@ nbio_socket(int domain, int type, int protocol)
   assert(initialised);
 
   if ( (sock = socket(domain, type , protocol)) < 0)
-  { nbio_error(errno, TCP_ERRNO);
+  { nbio_error(GET_ERRNO, TCP_ERRNO);
     return -1;
   }
   if ( !(s=allocSocket(sock)) )		/* register it */
@@ -1665,7 +1670,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 
       if( setsockopt(s->socket, SOL_SOCKET, SO_REUSEADDR,
 		     (const char *)&val, sizeof(val)) == -1 )
-      { nbio_error(h_errno, TCP_HERRNO);
+      { nbio_error(GET_H_ERRNO, TCP_HERRNO);
 	rc = -1;
       } else
 	rc = 0;
@@ -1681,7 +1686,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 #endif
       if ( setsockopt(s->socket, IPPROTO_TCP, TCP_NODELAY,
 		      (const char *)&val, sizeof(val)) == -1 )
-      { nbio_error(h_errno, TCP_HERRNO);
+      { nbio_error(GET_H_ERRNO, TCP_HERRNO);
 	rc = -1;
       } else
       { rc = 0;
@@ -1697,7 +1702,7 @@ nbio_setopt(nbio_sock_t socket, nbio_option opt, ...)
 
       if ( setsockopt(s->socket, SOL_SOCKET, SO_BROADCAST,
 		     (const char *)&val, sizeof(val)) == -1 )
-      { nbio_error(h_errno, TCP_HERRNO);
+      { nbio_error(GET_H_ERRNO, TCP_HERRNO);
 	rc = -1;
       } else
 	rc = 0;
@@ -1805,7 +1810,7 @@ nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
     { struct hostent *host;
 
       if( !(host = gethostbyname(hostName)) )
-	return nbio_error(h_errno, TCP_HERRNO);
+	return nbio_error(GET_H_ERRNO, TCP_HERRNO);
       if ( (int)sizeof(addr->sin_addr) < host->h_length )
 	return PL_warning("Oops, host address too long!");
       memcpy(&addr->sin_addr, host->h_addr, host->h_length);
@@ -1892,7 +1897,8 @@ nbio_bind(nbio_sock_t socket, struct sockaddr *my_addr, size_t addrlen)
 #else
   if ( bind(s->socket, my_addr, addrlen) )
 #endif
-  { nbio_error(errno, TCP_ERRNO);
+  {
+    nbio_error(GET_ERRNO, TCP_ERRNO);
     return -1;
   }
 
@@ -1930,12 +1936,12 @@ nbio_connect(nbio_sock_t socket,
 #else /*!__WINDOWS__*/
   for(;;)
   { if ( connect(s->socket, serv_addr, addrlen) )
-    { if ( need_retry(errno) )
+    { if ( need_retry(GET_ERRNO) )
       { if ( PL_handle_signals() < 0 )
 	  return -1;
 	continue;
       }
-      nbio_error(errno, TCP_ERRNO);
+      nbio_error(GET_ERRNO, TCP_ERRNO);
       return -1;
     } else
       break;
@@ -1991,13 +1997,13 @@ nbio_accept(nbio_sock_t master, struct sockaddr *addr, socklen_t *addrlen)
     slave = accept(m->socket, addr, addrlen);
 
     if ( slave == SOCKET_ERROR )
-    { if ( need_retry(errno) )
+    { if ( need_retry(GET_ERRNO) )
       { if ( PL_handle_signals() < 0 )
 	  return -1;
 
 	continue;
       } else
-      { nbio_error(errno, TCP_ERRNO);
+      { nbio_error(GET_ERRNO, TCP_ERRNO);
 	return -1;
       }
     } else
@@ -2025,7 +2031,7 @@ nbio_listen(nbio_sock_t socket, int backlog)
     return -1;
 
   if( listen(s->socket, backlog) == -1 )
-  { nbio_error(errno, TCP_ERRNO);
+  { nbio_error(GET_ERRNO, TCP_ERRNO);
     return -1;
   }
 
@@ -2087,7 +2093,7 @@ nbio_read(int socket, char *buf, size_t bufSize)
 
     n = recv(s->socket, buf, bufSize, 0);
 
-    if ( n == -1 && need_retry(errno) )
+    if ( n == -1 && need_retry(GET_ERRNO) )
     { if ( PL_handle_signals() < 0 )
       { errno = EPLEXCEPTION;
 	return -1;
@@ -2159,7 +2165,7 @@ nbio_write(nbio_sock_t socket, char *buf, size_t bufSize)
 
     n = send(s->socket, str, len, 0);
     if ( n < 0 )
-    { if ( need_retry(errno) )
+    { if ( need_retry(GET_ERRNO) )
       { if ( PL_handle_signals() < 0 )
 	{ errno = EPLEXCEPTION;
 	  return -1;
@@ -2300,7 +2306,7 @@ nbio_recvfrom(int socket, void *buf, size_t bufSize, int flags,
 
     n = recvfrom(s->socket, buf, bufSize, flags, from, fromlen);
 
-    if ( n == -1 && need_retry(errno) )
+    if ( n == -1 && need_retry(GET_ERRNO) )
     { if ( PL_handle_signals() < 0 )
       { errno = EPLEXCEPTION;
 	return -1;
