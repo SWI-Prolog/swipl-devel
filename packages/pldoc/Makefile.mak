@@ -11,6 +11,8 @@
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 !include common.mk
+LIBDIR=         $(PLBASE)\library\pldoc
+EXDIR=         $(PKGDOC)\examples\pldoc
 
 all:		pldoc.sty
 
