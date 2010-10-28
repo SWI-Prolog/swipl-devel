@@ -25,16 +25,16 @@
 \maketitle
 
 \begin{abstract}
-This article presents PlDoc, the SWI-Prolog source-code documentation
+This document presents PlDoc, the SWI-Prolog source-code documentation
 infrastructure.  PlDoc is loosely based on JavaDoc, using structured
 comments to mix documentation with source-code.  SWI-Prolog's PlDoc
 is entirely written in Prolog and well integrated into the environment.
 It can create HTML+CSS and \LaTeX{} documentation files as well as act
 as a web-server for the loaded project during program development.
 
-A demo server, serving all standard libraries from their source as
-well as the Prolog Reference Manual and package documentation is
-hosted at \url{http://gollem.science.uva.nl/SWI-Prolog/pldoc/}
+The SWI-Prolog website (\url{http:www.swi-prolog.org}) is written in
+Prolog and integrates PlDoc to provide a comprehensive searchable
+\url[online manual]{http://www.swi-prolog.org/pldoc/index.html}.
 \end{abstract}
 
 \pagebreak
@@ -220,7 +220,7 @@ system that allows for runtime verification and static type analysis
 %%	length(?List:list, +Length:int) is det.
 %
 %	True if List is a list of length Length.
-%	
+%
 %	@compat iso
 \end{verbatim}
 
@@ -237,7 +237,7 @@ It is adviced to place tags in the order they are described below.
 Defines the parameters. Each parameter has its own param tag. The first
 word is the name of the parameter. The remainder of the tag is the
 description. Parameter declarations must appear in the argument order
-used by the predicate. 
+used by the predicate.
 
     \definition{\chr{@}throws {\it Term Description}}
 Error condition. First Prolog term is the error term. Remainder is the
@@ -537,7 +537,7 @@ developer can start an HTTP documentation server using the command
 
 \begin{description}
     \predicate{doc_collect}{1}{+Bool}
-Enable/disable collecting structured comments into the Prolog database. 
+Enable/disable collecting structured comments into the Prolog database.
 
     \predicate{doc_server}{1}{?Port}
 Start documentation server at \arg{Port}.  Same as
@@ -564,7 +564,7 @@ proxy]{http://httpd.apache.org/docs/1.3/mod/mod_proxy.html}.
 
 	\termitem{allow}{+HostOrIP}
 Allow connections from \arg{HostOrIP}.  If \arg{Host} is an atom
-starting with a '.', suffix matching is preformed.  I.e.\ 
+starting with a '.', suffix matching is preformed.  I.e.\
 \verb$allow('.uva.nl')$ grants access to all machines in this domain.
 IP addresses are specified using the library(socket) ip/4 term.  I.e.
 to allow access from the 10.0.0.X domain, specify
@@ -598,7 +598,7 @@ the given specification and ask the user to select.%
 \subsection{As a manual server}
 \label{sec:manserver}
 
-The library \pllib{doc/doc_library} defines doc_load_library/0 to
+The library \pllib{pldoc/doc_library} defines doc_load_library/0 to
 load the entire library.
 
 \begin{description}
@@ -611,7 +611,7 @@ the hosting machine from all locations in a domain is given below.
 :- doc_server(4000,
 	      [ allow('.my.org')
 	      ]).
-:- use_module(library('doc/doc_library')).
+:- use_module(library(pldoc/doc_library)).
 :- doc_load_library.
 \end{code}
 
