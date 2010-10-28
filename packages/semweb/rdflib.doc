@@ -64,7 +64,7 @@ resides in the namespace.
 	\resitem {owl:usesNamespace}
 Informally, using a namespace is defined as providing objects that
 reside in the namespace.
-	\resitem {owl:source}
+	\resitem {lib:source}
 Defines the named graph into which the resource is loaded.  If this
 ends in a \const{/}, the basename of each loaded file is appended to
 the given source.  Defaults to the URL the RDF is loaded from.

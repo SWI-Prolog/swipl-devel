@@ -138,14 +138,13 @@ goto_source_location(_Emacs,
 	"Visit the indicated source-location"::
 	get(Location, file_name, File),
 	new(B, emacs_buffer(File)),
-	send(B, open, Where),
+	get(B, open, Where, Frame),
 	send(B, check_modified_file),
 	(   get(Location, line_no, Line),
 	    Line \== @nil
-	->  get(B?editors, find,
-		message(@arg1, instance_of, emacs_editor), E),
-	    send(E, mark_status, inactive),
-	    send(E?mode, select_line, Line)
+	->  get(Frame, editor, Editor),
+	    send(Editor, mark_status, inactive),
+	    send(Editor?mode, select_line, Line)
 	;   true
 	).
 

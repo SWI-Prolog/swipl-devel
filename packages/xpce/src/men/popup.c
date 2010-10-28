@@ -145,7 +145,7 @@ on which to display the popup.
 
 static status
 openPopup(PopupObj p, Graphical gr, Point pos,
-	  Bool pos_is_pointer, Bool warp_pointer, Bool ensure_on_display)
+	  BoolObj pos_is_pointer, BoolObj warp_pointer, BoolObj ensure_on_display)
 { PceWindow sw;
   int moved = FALSE;			/* Cursor needs be moved */
   int cx, cy;				/* mouse X-Y */
@@ -407,7 +407,7 @@ inPullRigthPopup(PopupObj p, MenuItem mi, EventObj ev)
 
 
 static status
-dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
+dragPopup(PopupObj p, EventObj ev, BoolObj check_pullright)
 { MenuItem mi;
 
   if ( !(mi = getItemFromEventMenu((Menu) p, ev)) )
@@ -584,7 +584,7 @@ eventPopup(PopupObj p, EventObj ev)
 
 
 static status
-endGroupPopup(PopupObj p, Bool val)
+endGroupPopup(PopupObj p, BoolObj val)
 { if ( notNil(p->context) )
     return send(p->context, NAME_endGroup, val, EAV);
 
@@ -623,7 +623,7 @@ defaultPopupImages(PopupObj p)
 
 
 static status
-showCurrentPopup(PopupObj p, Bool show)
+showCurrentPopup(PopupObj p, BoolObj show)
 { assign(p, show_current, show);
 
   return defaultPopupImages(p);
@@ -631,7 +631,7 @@ showCurrentPopup(PopupObj p, Bool show)
 
 
 static status
-activePopup(PopupObj p, Bool active)
+activePopup(PopupObj p, BoolObj active)
 { if ( instanceOfObject(p->context, ClassMenuBar) )
     send(p->context, NAME_activeMember, p, active, EAV);
 

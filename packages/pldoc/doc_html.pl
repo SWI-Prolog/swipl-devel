@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (C): 2009-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -42,15 +43,17 @@
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button//2,		% +File, +Options, //
 	    source_button//2,		% +File, +Options, //
-	    pred_edit_button//2,		% +PredInd, +Options, //
+	    pred_edit_button//2,	% +PredInd, +Options, //
 	    object_edit_button//2,	% +Obj, +Options, //
 	    object_source_button//2,	% +Obj, +Options, //
 					% Support other backends
 	    doc_file_objects/5,		% +FSpec, -File, -Objs, -FileOpts, +Opts
 	    existing_linked_file/2,	% +FileSpec, -Path
+	    unquote_filespec/2,		% +FileSpec, -Unquoted
 	    doc_tag_title/2,		% +Tag, -Title
 	    pred_anchor_name/3,		% +Head, -PI, -Anchor
 	    private/2,			% +Obj, +Options
+	    (multifile)/2,		% +Obj, +Options
 	    is_pi/1,			% @Term
 	    is_op_type/2,		% +Atom, ?Type
 					% Output routines
@@ -64,11 +67,11 @@
 	    object_ref//2,		% +Object, +Options, //
 	    object_href/2,		% +Object, -URL
 	    object_page//2,		% +Object, +Options, //
-	    object_synopsis//1		% +Object, //
+	    object_synopsis//2		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(readutil)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
@@ -77,6 +80,7 @@
 :- use_module(library(doc_http)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
+:- use_module(library(pairs)).
 :- use_module(doc_process).
 :- use_module(doc_man).
 :- use_module(doc_modes).
@@ -122,7 +126,8 @@ extracting module doc_wiki.pl into HTML+CSS.
 
 %%	doc_for_file(+File, +Options) is det
 %
-%	Write documentation for File as HTML.  Options:
+%	HTTP  handler  that  writes  documentation  for  File  as  HTML.
+%	Options:
 %
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
@@ -133,7 +138,6 @@ extracting module doc_wiki.pl into HTML+CSS.
 %		are suppressed.
 %
 %	@param File	Prolog file specification.
-%	@param Out	Output stream
 
 doc_for_file(FileSpec, Options) :-
 	absolute_file_name(FileSpec,
@@ -181,13 +185,30 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 			     access(read)
 			   ],
 			   File),
-	Pos = File:_Line,
-	findall(doc(Obj,Pos,Comment),
-		doc_comment(Obj, Pos, _, Comment), Objs0),
+	Pos = File:Line,
+	ensure_doc_objects(File),
+	findall(Line-doc(Obj,Pos,Comment),
+		doc_comment(Obj, Pos, _, Comment), Pairs),
+	keysort(Pairs, ByLine),
+	pairs_values(ByLine, Objs0),
 	module_info(File, ModuleOptions, Options),
 	file_info(Objs0, Objs1, FileOptions, ModuleOptions),
 	doc_hide_private(Objs1, Objects, ModuleOptions).
 
+%%	ensure_doc_objects(+File)
+%
+%	Ensure we have documentation about  File.   If  the  file is not
+%	loaded, run the cross-referencer on it   to collect the comments
+%	and meta-information.
+%
+%	@tbd	We could also run the cross-referencer if the file
+%		was loaded, but before we are collecting comments.
+%		Is that useful?
+
+ensure_doc_objects(File) :-
+	source_file(File), !.
+ensure_doc_objects(File) :-
+	xref_source(File).
 
 %%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
 %
@@ -197,8 +218,14 @@ doc_file_objects(FileSpec, File, Objects, FileOptions, Options) :-
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
 	module_property(Module, file(File)), !,
 	module_property(Module, exports(Exports)).
+module_info(File, [module(Module), public(Exports)|Options], Options) :-
+	xref_module(File, Module), !,
+	findall(PI, xref_exported_pi(File, PI), Exports).
 module_info(_, Options, Options).
 
+xref_exported_pi(Src, Name/Arity) :-
+	xref_exported(Src, Head),
+	functor(Head, Name, Arity).
 
 %%	doc_hide_private(+Objs, +Public, +Options)
 %
@@ -239,16 +266,40 @@ obj(Term, Obj) :-
 %	module.
 
 private(Module:PI, Options) :-
+	multifile(Module:PI, Options), !, fail.
+private(Module:PI, Options) :-
 	option(module(Module), Options),
 	option(public(Public), Options), !,
-	\+ ( member(PI2, Public) ,
+	\+ ( member(PI2, Public),
 	     eq_pi(PI, PI2)
 	   ).
 private(Module:PI, _Options) :-
+	module_property(Module, file(_)), !,	% A loaded module
 	export_list(Module, Exports),
 	\+ ( member(PI2, Exports),
 	     eq_pi(PI, PI2)
 	   ).
+private(Module:PI, _Options) :-
+	\+ (pi_to_head(PI, Head),
+	    xref_exported(Source, Head),
+	    xref_module(Source, Module)).
+
+%%	multifile(+Obj, +Options) is semidet.
+%
+%	True if Obj is a multifile predicate.
+
+multifile(Module:PI, _Options) :-
+	pi_to_head(PI, Head),
+	predicate_property(Module:Head, multifile).
+
+
+pi_to_head(Var, _) :-
+	var(Var), !, fail.
+pi_to_head(Name/Arity, Term) :-
+	functor(Term, Name, Arity).
+pi_to_head(Name//DCGArity, Term) :-
+	Arity is DCGArity+2,
+	functor(Term, Name, Arity).
 
 %%	file_info(+Comments, -RestComment, -FileOptions, +OtherOptions) is det.
 %
@@ -290,7 +341,7 @@ file_title(Title, File, Options) -->
 	},
 	html(h1(class=file,
 		[ span(style('float:right'),
-		       [ \reload_button(Base, Options),
+		       [ \reload_button(File, Base, Options),
 			 \zoom_button(Base, Options),
 			 \source_button(Base, Options),
 			 \edit_button(File, Options)
@@ -299,24 +350,27 @@ file_title(Title, File, Options) -->
 		])).
 
 
-%%	reload_button(+File)// is det.
+%%	reload_button(+File, +Base, +Options)// is det.
 %
 %	Create a button for  reloading  the   sources  and  updating the
-%	documentation page.
+%	documentation page. Note that the  button   is  not shown if the
+%	file is not loaded because we do  not want to load files through
+%	the documentation system.
 
-reload_button(Base, Options) -->
+reload_button(File, _Base, _Options) -->
+	{ \+ source_file(File) }, !,
+	html(span(class(file_anot), '[not loaded]')).
+reload_button(_File, Base, Options) -->
 	{ option(edit(true), Options), !,
 	  option(public_only(Public), Options, true)
 	},
 	html(a(href(Base+[reload(true), public_only(Public)]),
-	       img([ %class(icon),
-		     height=24,
+	       img([ class(action),
 		     alt('Reload'),
-		     style('padding-top:4px; border:0;'),
+		     title('Make & Reload'),
 		     src(location_by_id(pldoc_resource)+'reload.gif')
 		   ]))).
-reload_button(_, _) -->
-	[].
+reload_button(_, _, _) --> [].
 
 %%	edit_button(+File, +Options)// is det.
 %
@@ -325,17 +379,16 @@ reload_button(_, _) -->
 %	current page.  JavaScript code is in the file pldoc.js.
 
 edit_button(File, Options) -->
-	{ option(edit(true), Options), !,
-	  option(button_height(H), Options, 24)
-	},
+	{ option(edit(true), Options)
+	}, !,
 	html(a([ onClick('HTTPrequest(\'' +
 			 location_by_id(pldoc_edit) + [file(File)] +
 			 '\')'),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
-	       img([ height(H),
+	       img([ class(action),
 		     alt(edit),
-		     style('border:0'),
+		     title('Edit file'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		 ]))).
 edit_button(_, _) -->
@@ -350,18 +403,20 @@ zoom_button(_, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
 zoom_button(Base, Options) -->
 	{   (   option(public_only(true), Options, true)
-	    ->  Zoom = 'zoomin.gif',
-		Alt = 'Show all',
+	    ->  Zoom = 'public.png',
+		Alt = 'Public',
+		Title = 'Click to include private',
 		PublicOnly = false
-	    ;   Zoom = 'zoomout.gif',
-		Alt = 'Show public',
+	    ;   Zoom = 'private.png',
+		Alt = 'All predicates',
+		Title = 'Click to show exports only',
 		PublicOnly = true
 	    )
 	},
 	html(a(href(Base+[public_only(PublicOnly)]),
-	       img([ height=24,
+	       img([ class(action),
 		     alt(Alt),
-		     style('padding-top:4px; border:0;'),
+		     title(Title),
 		     src(location_by_id(pldoc_resource)+Zoom)
 		   ]))).
 
@@ -372,18 +427,17 @@ zoom_button(Base, Options) -->
 
 source_button(_File, Options) -->
 	{ option(files(_Map), Options) }, !.	% generating files
-source_button(File, Options) -->
+source_button(File, _Options) -->
 	{ (   is_absolute_file_name(File)
 	  ->  doc_file_href(File, HREF0)
 	  ;   HREF0 = File
-	  ),
-	  option(button_height(H), Options, 24)
+	  )
 	},
-	html(a(href(HREF0+[source(true)]),
-	       img([ height(H),
+	html(a(href(HREF0+[show(src)]),
+	       img([ class(action),
 		     alt('Show source'),
-		     style('padding-top:4px; border:0;'),
-		     src(location_by_id(pldoc_resource)+'source.gif')
+		     title('Show source'),
+		     src(location_by_id(pldoc_resource)+'source.png')
 		   ]))).
 
 
@@ -400,40 +454,68 @@ objects([Obj|T], Mode, Options) -->
 	object(Obj, Mode, Mode1, Options),
 	objects(T, Mode1, Options).
 
-object(doc(Obj,Pos,Comment), Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
-object(Obj, Mode0, Mode, Options) -->
-	{ doc_comment(Obj, Pos, _Summary, Comment)
-	}, !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
+%%	object(+Spec, +ModeIn, -ModeOut, +Options) is det.
+%
+%	Emit the documentation of a single object.
+%
+%	@param	Spec is one of doc(Obj,Pos,Comment), which is used
+%		to list the objects documented in a file or a plain
+%		Obj, used for documenting the object regardless of
+%		its location.
 
-object(Obj, Pos, Comment, Mode0, Mode, Options) -->
+object(doc(Obj,Pos,Comment), Mode0, Mode, Options) --> !,
+	object(Obj, [Pos-Comment], Mode0, Mode, [scope(file)|Options]).
+object(Obj, Mode0, Mode, Options) -->
+	{ findall(Pos-Comment,
+		  doc_comment(Obj, Pos, _Summary, Comment),
+		  Pairs)
+	}, !,
+	object(Obj, Pairs, Mode0, Mode, Options).
+
+object(Obj, Pairs, Mode0, Mode, Options) -->
 	{ is_pi(Obj), !,
-	  is_structured_comment(Comment, Prefixes),
-	  string_to_list(Comment, Codes),
-	  indented_lines(Codes, Prefixes, Lines),
-	  strip_module(user:Obj, Module, _),
-	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
-	  (   private(Obj, Options)
-	  ->  Class = privdef		% private definition
-	  ;   Class = pubdef		% public definition
-	  ),
-	  (   Obj = Module:_
-	  ->  POptions = [module(Module)|Options]
-	  ;   POptions = Options
-	  ),
-	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
-	  wiki_lines_to_dom(Lines1, Args, DOM0),
-	  strip_leading_par(DOM0, DOM1)
+	  maplist(pred_dom(Obj, Options), Pairs, DOMS),
+	  append(DOMS, DOM)
 	},
 	need_mode(dl, Mode0, Mode),
 	html(DOM).
-object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
-object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
+object([Obj|_Same], Pairs, Mode0, Mode, Options) --> !,
+	object(Obj, Pairs, Mode0, Mode, Options).
+object(Obj, _Pairs, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
 
+pred_dom(Obj, Options, Pos-Comment, DOM) :-
+	is_structured_comment(Comment, Prefixes),
+	string_to_list(Comment, Codes),
+	indented_lines(Codes, Prefixes, Lines),
+	strip_module(user:Obj, Module, _),
+	process_modes(Lines, Module, Pos, Modes, Args, Lines1),
+	(   private(Obj, Options)
+	->  Class = privdef		% private definition
+	;   multifile(Obj, Options)
+	->  (   option(scope(file), Options)
+	    ->	(   more_doc(Obj, Pos)
+		->  Class = multidef(object(Obj))
+		;   Class = multidef
+		)
+	    ;	Class = multidef(file((Pos)))
+	    )
+	;   Class = pubdef		% public definition
+	),
+	(   Obj = Module:_
+	->  POptions = [module(Module)|Options]
+	;   POptions = Options
+	),
+	Pos = File:Line,
+	DTOptions = [file(File),line(Line)|POptions],
+	DOM = [\pred_dt(Modes, Class, DTOptions), dd(class=defbody, DOM1)],
+	wiki_lines_to_dom(Lines1, Args, DOM0),
+	strip_leading_par(DOM0, DOM1).
+
+more_doc(Obj, File:_) :-
+	doc_comment(Obj, File2:_, _, _),
+	File2 \== File, !.
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
@@ -548,48 +630,72 @@ object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment)
-	},
-	html([ \html_requires(pldoc),
-	       \object_page_header(File, Options),
-	       \object_synopsis(Obj),
-	       \objects([Obj], Options)
-	     ]).
+	}, !,
+	(   { \+ ( doc_comment(Obj, File2:_, _, _),
+		   File2 \== File )
+	    }
+	->  html([ \html_requires(pldoc),
+		   \object_page_header(File, Options),
+		   \object_synopsis(Obj, []),
+		   \objects([Obj], Options)
+		 ])
+	;   html([ \html_requires(pldoc),
+		   \object_page_header(-, Options),
+		   \objects([Obj], [synopsis(true)|Options])
+		 ])
+	).
 
 object_page_header(File, Options) -->
 	{ option(header(true), Options, true) }, !,
 	html(div(class(navhdr),
-		 [ div(class(jump),
-		       a(href(location_by_id(pldoc_doc)+File), File)),
+		 [ \file_link(File),
 		   div(class(search), \search_form(Options)),
 		   br(clear(right))
 		 ])).
 object_page_header(_, _) --> [].
 
+file_link(-) --> !.
+file_link(File) -->
+	html(div(class(jump),
+		 a(href(location_by_id(pldoc_doc)+File), File))).
 
-%%	object_synopsis(Obj)
+
+%%	object_synopsis(Obj, Options) is det.
 %
-%	Provide additional information about Obj
+%	Provide additional information  about  Obj.   Note  that  due to
+%	reexport facilities, predicates may be   available from multiple
+%	modules.
+%
+%	@tbd Currently we provide a synopsis   for the one where the
+%	definition resides. This is not   always  correct. Notably there
+%	are cases where multiple implementation modules are bundled in a
+%	larger interface that is the `preferred' module.
 
-object_synopsis(Name/Arity) -->
+object_synopsis(Name/Arity, _) -->
 	{ functor(Head, Name, Arity),
 	  predicate_property(system:Head, built_in)
 	},
 	synopsis([span(class(builtin), 'built-in')]).
-object_synopsis(Name/Arity) --> !,
-	object_synopsis(_:Name/Arity).
-object_synopsis(M:Name/Arity) -->
+object_synopsis(Name/Arity, Options) --> !,
+	object_synopsis(_:Name/Arity, Options).
+object_synopsis(M:Name/Arity, Options) -->
 	{ functor(Head, Name, Arity),
 	  predicate_property(M:Head, exported),
+	  \+ predicate_property(M:Head, imported_from(_)),
 	  module_property(M, file(File)),
 	  file_name_on_path(File, Spec), !,
-	  unquote(Spec, Unquoted),
-	  (   predicate_property(Head, autoload)
+	  unquote_filespec(Spec, Unquoted),
+	  (   predicate_property(Head, autoload(FileBase)),
+	      file_name_extension(FileBase, _Ext, File)
 	  ->  Extra = [span(class(autoload), '(can be autoloaded)')]
 	  ;   Extra = []
 	  )
 	},
-	synopsis([code(':- use_module(~q).'-[Unquoted])|Extra]).
-object_synopsis(_:Name/Arity) -->
+	(   { option(href(HREF), Options) }
+	->  synopsis([code([':- use_module(',a(href(HREF), '~q'-[Unquoted]),').'])|Extra])
+	;   synopsis([code(':- use_module(~q).'-[Unquoted])|Extra])
+	).
+object_synopsis(_:Name/Arity, _) -->
 	{ functor(Head, Name, Arity),
 	  current_arithmetic_function(Head)
 	},
@@ -598,11 +704,11 @@ object_synopsis(_:Name/Arity) -->
 			\object_ref(is/2, []),
 			')'
 		      ])).
-object_synopsis(c(Func)) -->
+object_synopsis(c(Func), _) -->
 	{ sub_atom(Func, 0, _, _, 'PL_')
 	}, !,
 	synopsis([span(class(cfunc), 'C-language interface function')]).
-object_synopsis(_) --> [].
+object_synopsis(_, _) --> [].
 
 synopsis(Text) -->
 	html(div(class(synopsis),
@@ -610,27 +716,29 @@ synopsis(Text) -->
 		 | Text
 		 ])).
 
-%%	unquote(+Spec, -Unquoted) is det.
+%%	unquote_filespec(+Spec, -Unquoted) is det.
 %
 %	Translate       e.g.       library('semweb/rdf_db')         into
 %	library(semweb/rdf_db).
 
-unquote(Spec, Unquoted) :-
+unquote_filespec(Spec, Unquoted) :-
 	compound(Spec),
 	Spec =.. [Alias,Path],
 	atomic_list_concat(Parts, /, Path),
 	maplist(need_no_quotes, Parts), !,
 	parts_to_path(Parts, UnquotedPath),
 	Unquoted =.. [Alias, UnquotedPath].
-unquote(Spec, Spec).
+unquote_filespec(Spec, Spec).
 
 need_no_quotes(Atom) :-
 	format(atom(A), '~q', [Atom]),
 	\+ sub_atom(A, 0, _, _, '\'').
 
 parts_to_path([One], One) :- !.
-parts_to_path([H|T], H/More) :-
-	parts_to_path(T, More).
+parts_to_path(List, More/T) :-
+	(   append(H, [T], List)
+	->  parts_to_path(H, More)
+	).
 
 
 		 /*******************************
@@ -772,10 +880,34 @@ pred_dt(Modes, Class, Options) -->
 pred_dt([], _, Done, Done, _) -->
 	[].
 pred_dt([H|T], Class, Done0, Done, Options) -->
-	html(dt(class=Class,
-		\pred_mode(H, Done0, Done1, Options))),
+	{ functor(Class, CSSClass, _) },
+	html(dt(class=CSSClass,
+		[ \pred_mode(H, Done0, Done1, Options),
+		  \mode_anot(Class)
+		])),
 	pred_dt(T, Class, Done1, Done, Options).
 
+mode_anot(privdef) --> !,
+	html(span([class(anot), style('float:right')],
+		  '[private]')).
+mode_anot(multidef(object(Obj))) --> !,
+	{ object_href(Obj, HREF) },
+	html(span([class(anot), style('float:right')],
+		  ['[', a(href(HREF), multifile), ']'
+		  ])).
+mode_anot(multidef(file(File:_))) --> !,
+	{ file_name_on_path(File, Spec),
+	  unquote_filespec(Spec, Unquoted),
+	  doc_file_href(File, HREF)
+	},
+	html(span([class(anot), style('float:right')],
+		  ['[multifile, ', a(href(HREF), '~q'-[Unquoted]), ']'
+		  ])).
+mode_anot(multidef) --> !,
+	html(span([class(anot), style('float:right')],
+		  '[multifile]')).
+mode_anot(_) -->
+	[].
 
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Head, Vars) },
@@ -824,7 +956,15 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 
 %%	pred_edit_button(+PredIndicator, +Options)// is det.
 %
-%	Create a button for editing the given predicate.
+%	Create a button for editing the given predicate.  Options
+%	processed:
+%
+%	    * module(M)
+%	    Resolve to module M
+%	    * file(F)
+%	    For multi-file predicates: link to version in file.
+%	    * line(L)
+%	    Line to edit (in file)
 
 pred_edit_button(_, Options) -->
 	{ \+ option(edit(true), Options) }, !.
@@ -833,28 +973,33 @@ pred_edit_button(PI0, Options0) -->
 	pred_edit_button2(PI, Options).
 
 pred_edit_button2(Name/Arity, Options) -->
-	{ functor(Head, Name, Arity),
+	{ \+ ( memberchk(file(_), Options), % always edit if file and line
+	       memberchk(line(_), Options)  % are given.
+	     ),
+	  functor(Head, Name, Arity),
 	  option(module(M), Options, _),
 	  \+ ( current_module(M),
 	       source_file(M:Head, _File)
 	     )
 	}, !.
 pred_edit_button2(Name/Arity, Options) -->
-	{ (   option(module(M), Options)
-	  ->  Extra = [module(M)]
-	  ;   Extra = []
-	  )
+	{ include(edit_param, Options, Extra),
+	  http_link_to_id(pldoc_edit,
+			  [name(Name),arity(Arity)|Extra],
+			  EditHREF)
 	},
-	html(a([ onClick('HTTPrequest(\'' +
-			 location_by_id(pldoc_edit)+[name(Name),arity(Arity)|Extra] +
-			 '\')')
-	       ],
-	       img([ height=12,
-		     style('border:0;'),
+	html(a(onClick('HTTPrequest(\'' + EditHREF + '\')'),
+	       img([ class(action),
+		     alt('Edit predicate'),
+		     title('Edit predicate'),
 		     src(location_by_id(pldoc_resource)+'edit.gif')
 		   ]))).
 pred_edit_button2(_, _) --> !,
 	[].
+
+edit_param(module(_)).
+edit_param(file(_)).
+edit_param(line(_)).
 
 
 %%	object_edit_button(+Object, +Options)// is det.
@@ -881,9 +1026,10 @@ pred_source_button(PI0, Options0) -->
 	},
 	html(a([ href(HREF)
 	       ],
-	       img([ height=12,
-		     style('border:0;'),
-		     src(location_by_id(pldoc_resource)+'source.gif')
+	       img([ class(action),
+		     alt('Source'),
+		     title('Show source'),
+		     src(location_by_id(pldoc_resource)+'source.png')
 		   ]))).
 pred_source_button(_, _) -->
 	[].
@@ -905,7 +1051,7 @@ object_source_button(_, _) -->
 %	Canonise a predicate reference. A   possible module qualifier is
 %	added as module(M) to Options.
 
-canonise_predref(M:PI0, PI, Options0, [module(M),Options]) :- !,
+canonise_predref(M:PI0, PI, Options0, [module(M)|Options]) :- !,
 	canonise_predref(PI0, PI, Options0, Options).
 canonise_predref(//(Head), PI, Options0, Options) :-	!,
 	functor(Head, Name, Arity),
@@ -1072,6 +1218,11 @@ predref(Term) -->
 	{ catch(nb_getval(pldoc_options, Options), _, Options = []) },
 	predref(Term, Options).
 
+predref(Obj, Options) -->
+	{ Obj = _:_,
+	  doc_comment(Obj, _, _, _)
+	}, !,
+	object_ref(Obj, [qualify(true)|Options]).
 predref(M:Term, Options) --> !,
 	predref(Term, M, Options).
 predref(Term, Options) -->
@@ -1122,14 +1273,14 @@ predref(Callable, Module, Options) -->
 
 manref(Name/Arity, HREF, Options) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
 	(   option(files(_Map), Options)
-	->  option(man_server(ManHandler), Options,
-		   'http://gollem.science.uva.nl/SWI-Prolog/pldoc/man')
-	;   http_location_by_id(pldoc_man, ManHandler)
-	),
-	http_location_by_id(pldoc_man, ManHandler),
-	format(string(HREF), '~w?predicate=~w', [ManHandler, EncId]).
+	->  uri_query_components(Query, [predicate=FragmentId]),
+	    uri_data(authority, Components, 'www.swi-prolog.org'),
+	    uri_data(path, Components, '/pldoc/man'),
+	    uri_data(search, Components, Query),
+	    uri_components(HREF, Components)
+	;   http_link_to_id(pldoc_man, [predicate=FragmentId], HREF)
+	).
 
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
@@ -1145,20 +1296,20 @@ manref(Name/Arity, HREF, Options) :-
 
 pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
+	uri_data(fragment, Components, FragmentId),
 	functor(Head, Name, Arity),
 	(   catch(relative_file(Module:Head, File), _, fail)
-	->  format(string(HREF), '~w#~w', [File, EncId])
+	->  uri_data(path, Components, File),
+	    uri_components(HREF, Components)
 	;   in_file(Module:Head, File)
 	->  (	current_prolog_flag(home, SWI),
 		sub_atom(File, 0, _, _, SWI),
 		prolog:doc_object_summary(Name/Arity, packages, _, _)
-	    ->	format(string(FragmentId), '~w/~d', [Name, Arity]),
-		www_form_encode(FragmentId, EncId),
-		http_location_by_id(pldoc_man, ManHandler),
-		format(string(HREF), '~w?predicate=~w', [ManHandler, EncId])
+	    ->	http_link_to_id(pldoc_man, [predicate=FragmentId], HREF)
 	    ;	http_location_by_id(pldoc_doc, DocHandler),
-	        format(string(HREF), '~w~w#~w', [DocHandler, File, EncId])
+		atom_concat(DocHandler, File, Path),
+		uri_data(path, Components, Path),
+		uri_components(HREF, Components)
 	    )
 	).
 
@@ -1176,13 +1327,18 @@ relative_file(Head, RelFile) :-
 
 pred_source_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
-	www_form_encode(FragmentId, EncId),
+	uri_data(fragment, Components, FragmentId),
+	uri_query_components(Query, [source=true]),
+	uri_data(search, Components, Query),
 	functor(Head, Name, Arity),
 	(   catch(relative_file(Module:Head, File), _, fail)
-	->  format(string(HREF), '~w?source=true#~w', [File, EncId])
+	->  uri_data(path, Components, File),
+	    uri_components(HREF, Components)
 	;   in_file(Module:Head, File),
 	    http_location_by_id(pldoc_doc, DocHandler),
-	    format(string(HREF), '~w~w?source=true#~w', [DocHandler, File, EncId])
+	    atom_concat(DocHandler, File, Path),
+	    uri_data(path, Components, Path),
+	    uri_components(HREF, Components)
 	).
 
 
@@ -1218,17 +1374,16 @@ object_href(M:PI0, HREF, Options) :-
 	option(files(Map), Options),
 	module_property(M, file(File)),
 	memberchk(file(File, DocFile), Map), !,
+	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
 	expand_pi(PI0, PI),
 	term_to_string(PI, PIS),
-	www_form_encode(PIS, PIEnc),
-	file_base_name(DocFile, LocalFile),	% TBD: proper directory index
-	format(string(HREF), '~w#~w', [LocalFile, PIEnc]).
+	uri_data(path, Components, LocalFile),
+	uri_data(fragment, Components, PIS),
+	uri_components(HREF, Components).
 object_href(Obj0, HREF, _Options) :-
 	localise_object(Obj0, Obj),
 	term_to_string(Obj, String),
-	www_form_encode(String, Enc),
-	http_location_by_id(pldoc_object, ObjHandler),
-	format(string(HREF), '~w?object=~w', [ObjHandler, Enc]).
+	http_link_to_id(pldoc_object, [object=String], HREF).
 
 expand_pi(Name//Arity0, Name/Arity) :- !,
 	Arity is Arity0+2.
@@ -1270,20 +1425,24 @@ term_to_string(Term, String) :-
 
 object_link(Obj, Options) -->
 	prolog:doc_object_link(Obj, Options), !.
-object_link(PI, _) -->
+object_link(PI, Options) -->
 	{ is_pi(PI) }, !,
-	pi(PI).
+	pi(PI, Options).
 object_link(Module:module(_Title), _) -->
 	{ module_property(Module, file(File)),
 	  file_base_name(File, Base)
 	}, !,
 	html(Base).
 
-pi(_M:PI) --> !,
-	pi(PI).
-pi(Name/Arity) --> !,
+pi(M:PI, Options) --> !,
+	(   { option(qualify(true), Options) }
+	->  html([span(class(module), M), :])
+	;   []
+	),
+	pi(PI, Options).
+pi(Name/Arity, _) --> !,
 	html([Name, /, Arity]).
-pi(Name//Arity) -->
+pi(Name//Arity, _) -->
 	html([Name, //, Arity]).
 
 %%	in_file(+Head, ?File) is nondet.
@@ -1431,6 +1590,9 @@ file_href_real(File, HREF, _) :-
 %	file being processed  that  is   available  through  the  global
 %	variable =pldoc_file=.
 
+file_href(Path, HREF) :-		% a loaded Prolog file
+	source_file(Path), !,
+	doc_file_href(Path, HREF).
 file_href(Path, HREF) :-
 	nb_current(pldoc_file, CFile),
 	CFile \== [], !,
@@ -1510,7 +1672,7 @@ html_tokens_for_predicates(PI, Options) -->
 	  ;   Comment = ''
 	  )
 	},
-	object(PI, Pos, Comment, [dl], _, Options).
+	object(PI, [Pos-Comment], [dl], _, Options).
 html_tokens_for_predicates(Spec, Options) -->
 	{ findall(PI, documented_pi(Spec, PI), List),
 	  List \== [], !
@@ -1572,7 +1734,7 @@ title(_, File, Title) :-
 pred_anchor_name(//(Head), Name/Arity, Anchor) :- !,
 	functor(Head, Name, DCGArity),
 	Arity is DCGArity+2,
-	format(string(Anchor), '~w/~d', [Name, Arity]).
+	format(atom(Anchor), '~w/~d', [Name, Arity]).
 pred_anchor_name(Head, Name/Arity, Anchor) :-
 	functor(Head, Name, Arity),
-	format(string(Anchor), '~w/~d', [Name, Arity]).
+	format(atom(Anchor), '~w/~d', [Name, Arity]).

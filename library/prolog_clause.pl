@@ -304,12 +304,25 @@ expand_failed(E, Read) :-
 %	Pos0 and Pos still include the term-position of the head.
 
 unify_body(B, B, Pos, Pos) :-
-	acyclic_term(B),		% X = call(X)
-	\+ sub_term(brace_term_position(_,_,_), Pos), !.
+	does_not_dcg_after_binding(B, Pos), !.
 unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
 	ubody(R, D, BP0, BP).
+
+%%	does_not_dcg_after_binding(+ReadBody, +ReadPos) is semidet.
+%
+%	True  if  ReadPos/ReadPos  does   not    contain   DCG   delayed
+%	unifications.
+%
+%	@tbd	We should pass that we are in a DCG; if we are not there
+%		is no reason for this test.
+
+does_not_dcg_after_binding(B, Pos) :-
+	acyclic_term(B),		% X = call(X)
+	\+ sub_term(brace_term_position(_,_,_), Pos),
+	\+ (sub_term((Cut,_=_), B), Cut == !), !.
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Some remarks.
@@ -326,8 +339,7 @@ a --> { x, y, z }.
 %	@param TermPosRead	Sub-term positions of source
 
 ubody(B, B, P, P) :-
-	acyclic_term(B),		% X = call(X)
-	\+ sub_term(brace_term_position(_,_,_), P), !.
+	does_not_dcg_after_binding(B, P), !.
 ubody(X, call(X),			% X = call(X)
       From-To,
       term_position(From, To, From, To, [From-To])) :- !.
@@ -395,6 +407,9 @@ conj((A,B), brace_term_position(_,T,PA), GL, TG, PL, TP) :-
 	conj(A, PA, GL, TGA, PL, TPA),
 	T1 is T - 1,
 	conj(B, T1-T, TGA, TG, TPA, TP).
+conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
+	F1 is F+1,
+	T1 is T+1.
 conj(A, P, [A|TG], TG, [P|TP], TP).
 
 

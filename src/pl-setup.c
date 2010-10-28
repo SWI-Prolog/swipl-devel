@@ -1281,9 +1281,7 @@ resetStacks()
 
 int
 trim_stack(Stack s)
-{ s->gced_size = usedStackP(s);
-
-  if ( s->spare < s->def_spare )
+{ if ( s->spare < s->def_spare )
   { ssize_t reduce = s->def_spare - s->spare;
     ssize_t room = roomStackP(s);
 

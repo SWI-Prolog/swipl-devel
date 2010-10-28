@@ -67,7 +67,7 @@ unlinkWindowDecorator(WindowDecorator dw)
 
 
 static status
-horizontalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
+horizontalScrollbarWindowDecorator(WindowDecorator dw, BoolObj val)
 { if ( val == ON && isNil(dw->horizontal_scrollbar) )
   { assign(dw, horizontal_scrollbar,
 	   newObject(ClassScrollBar, dw->window, NAME_horizontal, EAV));
@@ -84,7 +84,7 @@ horizontalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
 
 
 static status
-verticalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
+verticalScrollbarWindowDecorator(WindowDecorator dw, BoolObj val)
 { if ( val == ON && isNil(dw->vertical_scrollbar) )
   { assign(dw, vertical_scrollbar,
 	   newObject(ClassScrollBar, dw->window, NAME_vertical, EAV));
@@ -102,8 +102,8 @@ verticalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
 
 static status
 scrollbarsWindowDecorator(WindowDecorator dw, Name bars)
-{ Bool vbar = OFF;
-  Bool hbar = OFF;
+{ BoolObj vbar = OFF;
+  BoolObj hbar = OFF;
 
   if ( equalName(bars, NAME_vertical) )
     vbar = ON;
@@ -149,7 +149,7 @@ requestComputeScrollbarsWindowDecorator(WindowDecorator dw)
 
 
 static status
-showScrollBarWindowDecodaror(WindowDecorator dw, Bool show, ScrollBar sb)
+showScrollBarWindowDecodaror(WindowDecorator dw, BoolObj show, ScrollBar sb)
 { if ( sb == dw->horizontal_scrollbar ||
        sb == dw->vertical_scrollbar )
   { DisplayedGraphical(sb, show);
@@ -292,7 +292,7 @@ resizeWindowDecorator(WindowDecorator dw)
 		 *******************************/
 
 static status
-displayedWindowDecorator(WindowDecorator dw, Bool val)
+displayedWindowDecorator(WindowDecorator dw, BoolObj val)
 { displayedGraphical(dw, val);
 
   return DisplayedGraphical(dw->window, val);

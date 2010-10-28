@@ -1223,6 +1223,56 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
   return rval;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Stores up to len bytes of a representation of the frame referenced by ref
+into buf. If ref is NULL, then the currently executing frame is used nextref
+gets the value of the parent of the frame
+Return value is 0: if there are no more frames (in which case nextref
+                   will be NULL)
+               >0: The number of bytes which are required to completely
+                   protray the frame
+
+Note that the text is returned as UTF-8, regardless of locale settings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_walk_prolog_stack(void* ref, char* buf, size_t len, void** nextref)
+{ GET_LD
+  LocalFrame fr;
+
+  if (ref == NULL) /* Start of the chain - use current frame */
+  { LocalFrame topfr = environment_frame;
+
+    if ( topfr->predicate->definition.function == pl_prolog_current_frame )
+      fr = parentFrame(topfr);
+    else
+      fr = topfr;
+  } else
+  { fr = (LocalFrame)ref;
+  }
+
+  if ( (*nextref = parentFrame(fr)) == NULL)
+    return 0;
+
+  if ( fr->programPointer &&
+       false(fr->predicate, FOREIGN) &&
+       fr->parent &&
+       fr->parent->clause &&
+       fr->parent->predicate != PROCEDURE_dcall1->definition &&
+       fr->clause &&
+       fr->predicate != PROCEDURE_dc_call_prolog->definition)
+  { intptr_t pc = fr->programPointer - fr->parent->clause->clause->codes;
+
+    return snprintf(buf, len, "%s [PC=%ld] [Clause %d]",
+		    predicateName(fr->predicate),
+		    (long)pc,
+		    clauseNo(fr->predicate, fr->clause->clause));
+  } else
+  { return snprintf(buf, len, "%s <foreign>", predicateName(fr->predicate));
+  }
+}
+
+
 #endif /*O_DEBUGGER*/
 
 #ifndef offset

@@ -260,7 +260,7 @@ ensureNlString(StringObj s1, CharArray s2)
 
 
 static status
-ensureSuffixString(StringObj s, CharArray suff, Bool ign_case)
+ensureSuffixString(StringObj s, CharArray suff, BoolObj ign_case)
 { if ( !suffixCharArray((CharArray) s, suff, ign_case) )
     appendString(s, suff);
 

@@ -135,7 +135,7 @@ getConvertNode(Class class, Graphical gr)
 
 
 static status
-computeLevelNode(Node n, Int l, Bool force)
+computeLevelNode(Node n, Int l, BoolObj force)
 { Cell cell;
   Int nextLevel;			/* level + 1 */
 
@@ -462,7 +462,7 @@ imageNode(Node n, Graphical gr)		/* change image of node */
   } else
   { if ( notNil(n->image) )
     { Device dev = n->image->device;
-      Bool disp = n->image->displayed;
+      BoolObj disp = n->image->displayed;
 
       unrelateImagesNode(n);
       send(n->image, NAME_destroy, EAV);
@@ -790,7 +790,7 @@ unzoomNode(Node n)
 }
 
 static status
-collapsedNode(Node n, Bool val)
+collapsedNode(Node n, BoolObj val)
 { if ( n->collapsed != val )
   { if ( isNil(n->tree) )
     { assign(n, collapsed, val);

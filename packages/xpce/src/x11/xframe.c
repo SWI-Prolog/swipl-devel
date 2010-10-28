@@ -290,14 +290,36 @@ ws_raise_frame(FrameObj fr)
 
   if ( w )
   { Window win = XtWindow(w);
+    static Atom atom;
+    XEvent xev;
+    XWindowAttributes attr;
 
-#if 0
-    XUnmapWindow(r->display_xref, win);
-    XMapWindow(r->display_xref, win);
-#else
     XMapWindow(r->display_xref, win);
     XRaiseWindow(r->display_xref, win);
-#endif
+
+    if ( !atom )
+      atom = XInternAtom(r->display_xref, "_NET_ACTIVE_WINDOW", False);
+
+    xev.xclient.type = ClientMessage;
+    xev.xclient.serial = 0;
+    xev.xclient.send_event = True;
+    xev.xclient.display = r->display_xref;
+    xev.xclient.window = win;
+    xev.xclient.message_type = atom;
+    xev.xclient.format = 32;
+    xev.xclient.data.l[0] = 2;
+    xev.xclient.data.l[1] = 0;
+    xev.xclient.data.l[2] = 0;
+    xev.xclient.data.l[3] = 0;
+    xev.xclient.data.l[4] = 0;
+
+    XGetWindowAttributes(r->display_xref, win, &attr);
+    XSendEvent(r->display_xref,
+	       attr.root, False,
+	       SubstructureRedirectMask | SubstructureNotifyMask,
+	       &xev);
+
+    DEBUG(NAME_frame, Cprintf("Sent _NET_ACTIVE_WINDOW\n"));
   }
 
   send(fr, NAME_exposed, EAV);		/* doesn't appear to generate a */
@@ -858,7 +880,7 @@ ws_frame_cursor(FrameObj fr, CursorObj cursor)
 
 
 void
-ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
+ws_grab_frame_pointer(FrameObj fr, BoolObj grab, CursorObj cursor)
 { Widget w = widgetFrame(fr);
 
   if ( w )
@@ -1401,7 +1423,7 @@ ws_enable_frame(FrameObj fr, int val)
 
 
 void
-ws_enable_modal(FrameObj fr, Bool val)
+ws_enable_modal(FrameObj fr, BoolObj val)
 { if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
   { ws_enable_frame(fr->transient_for, val == ON ? TRUE : FALSE);
   } else if ( fr->modal == NAME_application && notNil(fr->application) )
@@ -1484,7 +1506,7 @@ ws_status_frame(FrameObj fr, Name status)
 
 
 void
-ws_topmost_frame(FrameObj fr, Bool topmost)
+ws_topmost_frame(FrameObj fr, BoolObj topmost)
 {
 }
 

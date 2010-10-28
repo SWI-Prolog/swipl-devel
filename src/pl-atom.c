@@ -1017,6 +1017,24 @@ PRED_IMPL("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   return current_blob(A1, 0, CTX_CNTRL, CTX_INT PASS_LD);
 }
 
+
+/** blob(@Term, ?Type) is semidet
+
+Type-test for a blob.
+*/
+
+static
+PRED_IMPL("blob", 2, blob, 0)
+{ PRED_LD
+  PL_blob_t *bt;
+
+  if ( PL_is_blob(A1, &bt) )
+    return PL_unify_atom(A2, bt->atom_name);
+
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("$atom_references", 2, atom_references, 0)
 { PRED_LD
@@ -1333,5 +1351,6 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
 BeginPredDefs(atom)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("blob", 2, blob, 0)
   PRED_DEF("$atom_references", 2, atom_references, 0)
 EndPredDefs

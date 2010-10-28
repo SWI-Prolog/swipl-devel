@@ -45,10 +45,10 @@ predicates cannot be traced or redefined.
 
 @deprecated	Use :- set_prolog_flag(generate_debug_info, false) to
 		hide predicate internals from the tracer.
-@tbd		Move this functionlity to prolog flags.
+@tbd		Move this functionality to prolog flags.
 */
 
-%%	system_mode(+OnOff)
+%%	system_mode(?Boolean)
 %
 %	Switch the system into system or user mode.  When in system mode,
 %	system predicates loose most of their special properties, so it
@@ -56,17 +56,29 @@ predicates cannot be traced or redefined.
 %	with care as the system predicates call one another.  This should
 %	once be fixed by defining all of them in a module ('$system'), so
 %	the user can savely remove them from module user.
+%
+%	@bug	This predicate both accepts true/false and on/off.  New
+%		code must use true/false.
 
 system_mode(X) :-
 	var(X), !,
 	(   style_check(?(dollar))
-	->  X = on
-	;   X = off
+	->  X = true
+	;   X = false
 	).
-system_mode(on) :-
+system_mode(True) :-
+	truth(True, true), !,
 	style_check(+dollar).
-system_mode(off) :-
+system_mode(True) :-
+	truth(True, false), !,
 	style_check(-dollar).
+system_mode(Val) :-
+	must_be(boolean, Val).
+
+truth(true,  true).
+truth(false, false).
+truth(on,    true).
+truth(off,   false).
 
 %%	system_module
 %

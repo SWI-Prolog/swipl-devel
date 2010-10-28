@@ -1,4 +1,4 @@
-\libdoc{nbset}{Non-backtrackable set}
+\libdoc{nb_set}{Non-backtrackable set}
 
 The library \pllib{nb_set} defines \jargon{non-backtrackable sets},
 implemented as binary trees. The sets are represented as compound terms
@@ -41,9 +41,9 @@ be used for many purposes:
 
 \begin{center}
 \begin{tabular}{ll}
-\tt add_nb_set(+, +, false)	& Test membership \\ 
-\tt add_nb_set(+, +, true)	& Succeed only if new member \\ 
-\tt add_nb_set(+, +, Var)	& Succeed, bindin \arg{Var} \\ 
+\tt add_nb_set(+, +, false)	& Test membership \\
+\tt add_nb_set(+, +, true)	& Succeed only if new member \\
+\tt add_nb_set(+, +, Var)	& Succeed, bindin \arg{Var} \\
 \end{tabular}
 \end{center}
 

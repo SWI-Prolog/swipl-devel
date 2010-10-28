@@ -161,7 +161,7 @@ cgi_close(CGI, Id, Error, Close) :-
 	send_error(Out, Id, Error, Close).
 
 cgi_finish(CGI, Close, Bytes) :-
-	flush_output,			% update the content-length
+	flush_output(CGI),			% update the content-length
 	cgi_property(CGI, connection(Close)),
 	cgi_property(CGI, content_length(Bytes)),
 	close(CGI).

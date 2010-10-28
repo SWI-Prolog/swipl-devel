@@ -38,4 +38,5 @@
 	prolog:doc_object_title/2,	% +Object, -Title
 	prolog:doc_canonical_object/2,	% +ObjectIn, -CanonicalObj
 	prolog:doc_search_field//1,	% +Options
-	prolog:doc_places_menu//1.	% +Dir
+	prolog:doc_places_menu//1,	% +Dir
+	prolog:doc_directory/1.		% ?Dir

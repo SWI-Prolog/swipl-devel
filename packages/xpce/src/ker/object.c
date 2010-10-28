@@ -28,7 +28,7 @@
 #include <h/interface.h>
 #include <rel/proto.h>
 
-static int	check_object(Any, Bool, HashTable, int);
+static int	check_object(Any, BoolObj, HashTable, int);
 static status	makeTempObject(Any obj);
 
 		 /*******************************
@@ -766,7 +766,7 @@ protectObject(Any obj)
 }
 
 
-static Bool
+static BoolObj
 getProtectObject(Any obj)
 { answer(isProtectedObj(obj) ? ON : OFF);
 }
@@ -782,7 +782,7 @@ doneObject(Any obj)
 
 
 status
-lockObject(Any obj, Bool val)
+lockObject(Any obj, BoolObj val)
 { if (val == ON)
   { deleteAnswerObject(obj);		/* status is clear now */
     lockObj(obj);
@@ -803,7 +803,7 @@ getUnlockObject(Any obj)
 }
 
 
-static Bool
+static BoolObj
 getLockObject(Any obj)
 { answer(lockedObj(obj) ? ON : OFF);
 }
@@ -811,7 +811,7 @@ getLockObject(Any obj)
 
 #ifndef O_RUNTIME
 status
-inspectObject(Any obj, Bool val)
+inspectObject(Any obj, BoolObj val)
 { if ( val == ON )
   { setFlag(obj, F_INSPECT);
   } else
@@ -822,7 +822,7 @@ inspectObject(Any obj, Bool val)
 }
 
 
-Bool
+BoolObj
 getInspectObject(Any obj)
 { answer(onFlag(obj, F_INSPECT) ? ON : OFF);
 }
@@ -1253,7 +1253,7 @@ getFindAllSendMethodsObject(Any obj, Code cond)
 		********************************/
 
 Chain
-getAllConstraintsObject(Any obj, Bool create)
+getAllConstraintsObject(Any obj, BoolObj create)
 { if ( onFlag(obj, F_CONSTRAINT) )
     answer(getMemberHashTable(ObjectConstraintTable, obj));
 
@@ -1271,7 +1271,7 @@ getAllConstraintsObject(Any obj, Bool create)
 
 
 Chain
-getAllHypersObject(Any obj, Bool create)
+getAllHypersObject(Any obj, BoolObj create)
 { if ( onFlag(obj, F_HYPER) )
     answer(getMemberHashTable(ObjectHyperTable, obj));
 
@@ -1289,7 +1289,7 @@ getAllHypersObject(Any obj, Bool create)
 
 
 Chain
-getAllAttributesObject(Any obj, Bool create)
+getAllAttributesObject(Any obj, BoolObj create)
 { if ( onFlag(obj, F_ATTRIBUTE) )
     answer(getMemberHashTable(ObjectAttributeTable, obj));
 
@@ -1307,7 +1307,7 @@ getAllAttributesObject(Any obj, Bool create)
 
 
 Chain
-getAllSendMethodsObject(Any obj, Bool create)
+getAllSendMethodsObject(Any obj, BoolObj create)
 { if ( onFlag(obj, F_SENDMETHOD) )
     answer(getMemberHashTable(ObjectSendMethodTable, obj));
 
@@ -1325,7 +1325,7 @@ getAllSendMethodsObject(Any obj, Bool create)
 
 
 Chain
-getAllGetMethodsObject(Any obj, Bool create)
+getAllGetMethodsObject(Any obj, BoolObj create)
 { if ( onFlag(obj, F_GETMETHOD) )
     answer(getMemberHashTable(ObjectGetMethodTable, obj));
 
@@ -2197,7 +2197,7 @@ getConvertObject(Any ctx, Any x)
 		********************************/
 
 static int
-checkExtensonsObject(Any obj, Bool recursive, HashTable done, int errs)
+checkExtensonsObject(Any obj, BoolObj recursive, HashTable done, int errs)
 { Any val;
 
 #define CheckExt(att, get, attname) \
@@ -2226,7 +2226,7 @@ checkExtensonsObject(Any obj, Bool recursive, HashTable done, int errs)
 
 
 static int
-check_object(Any obj, Bool recursive, HashTable done, int errs)
+check_object(Any obj, BoolObj recursive, HashTable done, int errs)
 { Instance inst = obj;
   Class class;
   int slots;
@@ -2387,7 +2387,7 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 
 
 status
-CheckObject(Any obj, Bool recursive)
+CheckObject(Any obj, BoolObj recursive)
 { HashTable done = NIL;
   int errs;
 
@@ -2411,7 +2411,7 @@ CheckObject(Any obj, Bool recursive)
 
 
 static status
-for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
+for_slot_reference_object(Any obj, Code msg, BoolObj recursive, HashTable done)
 { Instance inst = obj;
   Class class;
   int slots;
@@ -2486,7 +2486,7 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
 
 
 static status
-forSlotReferenceObject(Any obj, Code msg, Bool recursive)
+forSlotReferenceObject(Any obj, Code msg, BoolObj recursive)
 { HashTable done = NULL;
 
   if ( isDefault(recursive) )

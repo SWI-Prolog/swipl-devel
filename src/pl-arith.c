@@ -668,7 +668,7 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 
 #endif /* O_PROLOG_FUNCTIONS */
 
-static int
+int
 check_float(double f)
 {
 #ifdef HAVE_FPCLASSIFY
@@ -1058,7 +1058,7 @@ promoteIntNumber(Number n)
     if ( truePrologFlag(PLFLAG_ISO) )
       return PL_error("+", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 
-  promoteToFloatNumber(n);
+  return promoteToFloatNumber(n);
 #endif
 
   succeed;
@@ -1237,6 +1237,16 @@ ar_even(Number i)
 mod(X, Y) = X - (floor(X/Y) * Y)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int64_t
+mod(int64_t x, int64_t y)
+{ int64_t r = x % y;
+
+  if ( r != 0 && (r<0) != (y<0) )
+    r += y;
+
+  return r;
+}
+
 
 static int
 ar_mod(Number n1, Number n2, Number r)
@@ -1252,11 +1262,7 @@ ar_mod(Number n1, Number n2, Number r)
       if ( n2->value.i == 0 )
 	return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
 
-      { int64_t mod = n1->value.i % n2->value.i;
-	if ( mod != 0 && ( mod < 0 ) != ( n2->value.i < 0 ) )
-	  mod += n2->value.i;
-	r->value.i = mod;
-      }
+      r->value.i = mod(n1->value.i, n2->value.i);
       r->type = V_INTEGER;
       break;
 #ifdef O_GMP
@@ -1300,6 +1306,19 @@ int_too_big()
 
 
 static int
+shift_to_far(Number shift, Number r, int dir)
+{ if ( ar_sign_i(shift) * dir < 0 )	/* << */
+  { return int_too_big();
+  } else
+  { r->value.i = 0;
+    r->type = V_INTEGER;
+
+    return TRUE;
+  }
+}
+
+
+static int
 ar_shift(Number n1, Number n2, Number r, int dir)
 { long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
@@ -1314,11 +1333,11 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     r->type = V_INTEGER;
   }
 
-  switch(n2->type)
+  switch(n2->type)			/* amount to shift */
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return int_too_big();
+	return shift_to_far(n2, r, dir);
       else
 	shift = (long)n2->value.i;
       break;
@@ -1326,7 +1345,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return int_too_big();
+	return shift_to_far(n2, r, dir);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1464,7 +1483,7 @@ ar_gcd(Number n1, Number n2, Number r)
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
   static int \
   name(Number n1, Number r) \
-  { promoteToFloatNumber(n1); \
+  { if ( !promoteToFloatNumber(n1) ) return FALSE; \
     r->value.f = op(n1->value.f); \
     r->type    = V_FLOAT; \
     return check_float(r->value.f); \
@@ -1522,8 +1541,8 @@ ar_gcd(Number n1, Number n2, Number r)
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
   static int \
   name(Number n1, Number n2, Number r) \
-  { promoteToFloatNumber(n1); \
-    promoteToFloatNumber(n2); \
+  { if ( !promoteToFloatNumber(n1) || \
+	 !promoteToFloatNumber(n2) ) return FALSE; \
     r->value.f = func(n1->value.f, n2->value.f); \
     r->type = V_FLOAT; \
     return check_float(r->value.f); \
@@ -1631,8 +1650,9 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
-  promoteToFloatNumber(n1);
-  promoteToFloatNumber(n2);
+  if ( !promoteToFloatNumber(n1) ||
+       !promoteToFloatNumber(n2) )
+    return FALSE;
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
@@ -1669,7 +1689,8 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 
 static int
 ar_sqrt(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < 0 )
     return PL_error("sqrt", 1, NULL, ERR_AR_UNDEF);
   r->value.f = sqrt(n1->value.f);
@@ -1681,7 +1702,8 @@ ar_sqrt(Number n1, Number r)
 
 static int
 ar_asin(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("asin", 1, NULL, ERR_AR_UNDEF);
   r->value.f = asin(n1->value.f);
@@ -1693,7 +1715,8 @@ ar_asin(Number n1, Number r)
 
 static int
 ar_acos(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
     return PL_error("acos", 1, NULL, ERR_AR_UNDEF);
   r->value.f = acos(n1->value.f);
@@ -1705,7 +1728,8 @@ ar_acos(Number n1, Number r)
 
 static int
 ar_log(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f <= 0.0 )
     return PL_error("log", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log(n1->value.f);
@@ -1717,7 +1741,8 @@ ar_log(Number n1, Number r)
 
 static int
 ar_log10(Number n1, Number r)
-{ promoteToFloatNumber(n1);
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
   if ( n1->value.f <= 0.0 )
     return PL_error("log10", 1, NULL, ERR_AR_UNDEF);
   r->value.f = log10(n1->value.f);
@@ -1726,6 +1751,66 @@ ar_log10(Number n1, Number r)
   return check_float(r->value.f);
 }
 
+
+/* IntExpr1 // IntExpr2
+
+Integer division. Defined by ISO core   standard  as rnd(X,Y), where the
+direction of the rounding is conform the flag integer_rounding_function,
+which is one of =toward_zero= or =down=.
+
+The implementation below rounds according to the C-compiler. This is not
+desirable, but I understand that as  of   C99,  this is towards zero and
+this is precisely what we want to make  this different from div/2. As we
+need C99 for the wide-character  support   anyway,  we  should be fairly
+safe.
+*/
+
+static int
+ar_tdiv(Number n1, Number n2, Number r)
+{ if ( !toIntegerNumber(n1, 0) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  if ( !toIntegerNumber(n2, 0) )
+    return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+
+#ifdef O_GMP
+  if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
+#endif
+  { if ( n2->value.i == 0 )
+      return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+
+    if ( !(n2->value.i == -1 && n1->value.i == PLMININT) )
+    { r->value.i = n1->value.i / n2->value.i;
+      r->type = V_INTEGER;
+
+      succeed;
+    }
+  }
+
+#ifdef O_GMP
+  promoteToMPZNumber(n1);
+  promoteToMPZNumber(n2);
+
+  if ( mpz_sgn(n2->value.mpz) == 0 )
+    return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+
+  r->type = V_MPZ;
+  mpz_init(r->value.mpz);
+  if ( (-3 / 2) == -1 )
+    mpz_tdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+  else
+    mpz_fdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+
+  succeed;
+#else
+  return PL_error("//", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#endif
+}
+
+
+/** div(IntExpr1, IntExpr2)
+
+Result is rnd_i(IntExpr1/IntExpr2), rounded towards -infinity
+*/
 
 static int
 ar_div(Number n1, Number n2, Number r)
@@ -1738,12 +1823,14 @@ ar_div(Number n1, Number n2, Number r)
   if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
 #endif
   { if ( n2->value.i == 0 )
-      return PL_error("//", 2, NULL, ERR_DIV_BY_ZERO);
+      return PL_error("div", 2, NULL, ERR_DIV_BY_ZERO);
 
-    r->value.i = n1->value.i / n2->value.i;
-    r->type = V_INTEGER;
+    if ( !(n2->value.i == -1 && n1->value.i == PLMININT) )
+    { r->value.i = (n1->value.i - mod(n1->value.i, n2->value.i)) / n2->value.i;
+      r->type = V_INTEGER;
 
-    succeed;
+      succeed;
+    }
   }
 
 #ifdef O_GMP
@@ -1755,9 +1842,11 @@ ar_div(Number n1, Number n2, Number r)
 
   r->type = V_MPZ;
   mpz_init(r->value.mpz);
-  mpz_tdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
+  mpz_fdiv_q(r->value.mpz, n1->value.mpz, n2->value.mpz);
 
   succeed;
+#else
+  return PL_error("div", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
 }
 
@@ -1975,8 +2064,9 @@ ar_divide(Number n1, Number n2, Number r)
   }
 
 					/* TBD: How to handle Q? */
-  promoteToFloatNumber(n1);
-  promoteToFloatNumber(n2);
+  if ( !promoteToFloatNumber(n1) ||
+       !promoteToFloatNumber(n2) )
+    return FALSE;
   if ( n2->value.f == 0.0 )
     return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
   r->value.f = n1->value.f / n2->value.f;
@@ -2341,7 +2431,8 @@ ar_u_minus(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-  	promoteToFloatNumber(n1);
+  	if ( !promoteToFloatNumber(n1) )
+	  return FALSE;
 	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
@@ -2395,7 +2486,8 @@ ar_abs(Number n1, Number r)
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
-	promoteToFloatNumber(n1);
+	if ( !promoteToFloatNumber(n1) )
+	  return FALSE;
 	r->type = V_FLOAT;
 #endif
 	/*FALLTHROUGH*/
@@ -2502,9 +2594,8 @@ ar_integer(Number n1, Number r)
 static int
 ar_float(Number n1, Number r)
 { cpNumber(r, n1);
-  promoteToFloatNumber(r);
 
-  succeed;
+  return promoteToFloatNumber(r);
 }
 
 
@@ -3147,6 +3238,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_mod2,		ar_mod),
   ADD(FUNCTOR_rem2,		ar_rem),
   ADD(FUNCTOR_div2,		ar_div),
+  ADD(FUNCTOR_gdiv2,		ar_tdiv),
   ADD(FUNCTOR_gcd2,		ar_gcd),
   ADD(FUNCTOR_sign1,		ar_sign),
 
@@ -3155,7 +3247,6 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_rshift2,		ar_shift_right),
   ADD(FUNCTOR_lshift2,		ar_shift_left),
   ADD(FUNCTOR_xor2,		ar_xor),
-  ADD(FUNCTOR_bw_xor2,		ar_xor),
   ADD(FUNCTOR_backslash1,	ar_negation),
 
   ADD(FUNCTOR_random1,		ar_random),
@@ -3178,6 +3269,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_acos1,		ar_acos),
   ADD(FUNCTOR_atan1,		ar_atan),
   ADD(FUNCTOR_atan2,		ar_atan2),
+  ADD(FUNCTOR_atan22,		ar_atan2),
   ADD(FUNCTOR_log1,		ar_log),
   ADD(FUNCTOR_exp1,		ar_exp),
   ADD(FUNCTOR_log101,		ar_log10),

@@ -47,6 +47,7 @@ typedef enum
 } PL_SSL_ROLE;
 
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -90,8 +91,8 @@ typedef struct pl_ssl {
      * Application defined handlers
      */
     BOOL                (*pl_ssl_cb_cert_verify)( struct pl_ssl *config
-                                                , const char *cert
-						, long cert_len
+                                                , X509*
+                                                , X509_STORE_CTX*
                                                 , const char *error
                                                 ) ;
     void *              pl_ssl_cb_cert_verify_data;
@@ -149,8 +150,8 @@ BOOL		ssl_set_close_parent(PL_SSL *config, int closeparent);
 BOOL            ssl_set_cb_cert_verify
                                  ( PL_SSL *config
                                  , BOOL (*callback)( PL_SSL *
-                                                   , const char *
-						   , long
+                                                   , X509*
+                                                   , X509_STORE_CTX*
                                                    , const char *
                                                    )
                                  , void *
@@ -169,4 +170,8 @@ void            ssl_err          (char *fmt, ...);
 int		ssl_set_debug	 (int level);
 void            ssl_deb          (int level, char *fmt, ...);
 
+extern BIO_METHOD bio_read_functions;
+extern BIO_METHOD bio_write_functions;
+
 #endif
+

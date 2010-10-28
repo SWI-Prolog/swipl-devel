@@ -33,6 +33,9 @@
 	  [ utf8_codes//1		% ?String
 	  ]).
 
+/** <module> UTF-8 encoding/decoding on lists of character codes.
+*/
+
 %%	utf8_codes(?Codes)// is det.
 %
 %	DCG translating between  a  Unicode   code-list  and  its  UTF-8
@@ -48,6 +51,8 @@
 %	encoding and decoding to I/O streams. If   only part of the data
 %	is to be encoded the  encoding  of   a  stream  can  be switched
 %	temporary using set_stream(Stream, encoding(utf8))
+%
+%	@see set_stream/2.
 
 utf8_codes([H|T]) -->
 	utf8_code(H), !,

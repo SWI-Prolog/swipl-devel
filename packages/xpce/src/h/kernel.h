@@ -596,9 +596,9 @@ test, conversion and computation macro's are provided.
 #define ON		(&BoolOn)
 #define OFF		(&BoolOff)
 
-#define isOn(val)	((Bool)(val) == ON)
-#define isOff(val)	((Bool)(val) == OFF)
-#define isBoolean(val)	((Bool)(val) == ON || (Bool)(val) == OFF)
+#define isOn(val)	((BoolObj)(val) == ON)
+#define isOff(val)	((BoolObj)(val) == OFF)
+#define isBoolean(val)	((BoolObj)(val) == ON || (BoolObj)(val) == OFF)
 
 #define isNil(o)	((Constant)(o) == NIL)
 #define notNil(o)	((Constant)(o) != NIL)
@@ -655,7 +655,7 @@ test, conversion and computation macro's are provided.
   uintptr_t	dflags;			/* Debugging flags */
 
 #define ABSTRACT_RECOGNISER \
-  Bool		active;			/* Does accept events? */
+  BoolObj		active;			/* Does accept events? */
 
 #define ABSTRACT_CODE \
   ABSTRACT_PROGRAM_OBJECT
@@ -941,7 +941,7 @@ NewClass(class)
   Sheet		features;		/* installed features */
   Int		no_created;		/* how many were created */
   Int		no_freed;		/* how many were freed */
-  Bool		solid;			/* graphicals: OFF by default */
+  BoolObj		solid;			/* graphicals: OFF by default */
   Name		selection_style;	/* graphicals: feedback selected */
   Chain		handles;		/* graphicals only: connection pts */
   Int		instance_size;		/* Instance size in bytes */
@@ -951,7 +951,7 @@ NewClass(class)
   Chain		changed_messages;	/* Trap instance changes */
   Chain		created_messages;	/* Trap instance creation */
   Chain		freed_messages;		/* Trap instance destruction */
-  Bool		un_answer;		/* Decide on slot assignment */
+  BoolObj		un_answer;		/* Decide on slot assignment */
 
   Code		make_class_message;	/* Message to build the class */
 
@@ -969,7 +969,7 @@ NewClass(class)
   HashTable	class_variable_table;	/* hash-table of class-variables */
   HashTable	instances;		/* hash-table holding the instances */
 
-  Bool		realised;		/* Class has been realised? */
+  BoolObj		realised;		/* Class has been realised? */
   Name		init_variables;		/* How to initialise slots */
 
   InstanceProto	proto;			/* Prototype instance */
@@ -997,7 +997,7 @@ NewClass(type)
   Name		argument_name;		/* Name of the argument */
   Chain		supers;			/* Super-types */
   Any		context;		/* Context argument for functions */
-  Bool		vector;			/* Method: vector of these */
+  BoolObj		vector;			/* Method: vector of these */
   int		validate_function;	/* Function to check the type */
   Func		translate_function;	/* Function to convert the type */
 End;
@@ -1149,12 +1149,12 @@ End;
 
 NewClass(pce)
 #ifndef O_RUNTIME
-  Bool		debugging;		/* debugging? (watching spy points) */
-  Bool		trap_errors;		/* Trap tracer on errors */
+  BoolObj		debugging;		/* debugging? (watching spy points) */
+  BoolObj		trap_errors;		/* Trap tracer on errors */
 #endif
   Name		last_error;		/* Last error occured */
   Chain		catched_errors;		/* Stack of catched error-id's */
-  Bool		catch_error_signals;	/* Catch Unix signals */
+  BoolObj		catch_error_signals;	/* Catch Unix signals */
 
   Chain		exit_messages;		/* Called on exit */
   Sheet		exception_handlers;	/* exception-name --> code */
@@ -1184,7 +1184,7 @@ End;
 #define ABSTRACT_HOST \
   Name		language;		/* Prolog, Lisp, ... */ \
   Name		system;			/* host system we are connected to */ \
-  Bool		callBack;		/* if @on can be called directly */ \
+  BoolObj		callBack;		/* if @on can be called directly */ \
   Chain		messages;		/* messages waiting in queue */
 
 

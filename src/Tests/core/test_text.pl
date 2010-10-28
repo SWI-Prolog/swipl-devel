@@ -37,7 +37,9 @@ test_text :-
 	run_tests([ char_code,
 		    atom_concat,
 		    term_to_atom,
-		    atom_to_term
+		    atom_to_term,
+		    number_codes,
+		    number_chars
 		  ]).
 
 :- begin_tests(char_code).
@@ -99,3 +101,84 @@ test(eof, error(syntax_error(_))) :-
 	atom_to_term('x /* comment', _, _).
 
 :- end_tests(atom_to_term).
+
+
+:- begin_tests(number_codes).
+
+test(whitespace, X == 42) :-
+	number_codes(X, "  42").	% ISO
+test(whitespace, X == 42) :-
+	number_codes(X, "\n 42").
+test(whitespace, error(syntax_error(_))) :-
+	number_codes(_, "42 ").		% ISO (dubious)
+test(whitespace, error(syntax_error(_))) :-
+	number_codes(_, "/**/42").	% ISO demands acceptance!?
+test(unify, fail) :-
+	number_codes(0, [C,C]).
+
+:- end_tests(number_codes).
+
+% See    http://www.complang.tuwien.ac.at/ulrich/iso-prolog/number_chars
+% SWI-specific tests are names swi*. Some of   these  are because both a
+% code-list and character list  are  accepted.   Some  are  because  SWI
+% accepts 0-code/characters.
+
+:- begin_tests(number_chars).
+
+test(iso, true) :-
+	number_chars(1, ['0','1']).
+test(iso, N = 0'a) :-
+	number_chars(N, [' ','0','''',a]) .
+test(swi, error(syntax_error(_))) :-
+	number_chars(_, [/,*,*,/,'1']).
+test(iso, error(instantiation_error)) :-
+	number_chars(_,[_]).
+test(iso, error(instantiation_error)) :-
+	number_chars(_,['0'|_]).
+test(swi, error(type_error(_, []))) :-
+	number_chars(1,[[]]).
+test(iso, error(type_error(list, '1'))) :-
+	number_chars(_,'1').
+test(swi, N==1) :-
+	number_chars(N,[0'1]).
+test(iso, error(syntax_error(_))) :-
+	number_chars(1,[a]).
+test(iso, error(type_error(list, [a|a]))) :-
+	number_chars(_,[a|a]).
+test(swi, error(syntax_error(_))) :-
+	number_chars(1,[0]).
+test(iso, error(syntax_error(_))) :-
+	number_chars(1,[]).
+test(iso, error(syntax_error(_))) :-
+	number_chars(_,[]).
+test(iso, error(syntax_error(_))) :-
+	number_chars(_,['3',' ']).
+test(iso, error(syntax_error(_))) :-
+	number_chars(_,[-,/,*,*,/,'1']).
+
+% 8.16.7.3 proposal
+
+test(iso2, C == '1') :-
+	number_chars(1,[C]).
+test(iso2, fail) :-
+	number_chars(1,[_,_]).
+test(iso2, fail) :-
+	number_chars(1,[C,C]).
+test(iso2, fail) :-
+	number_chars(0,[C,C]).
+test(iso2, [C-D == '1'-'0']) :-
+	number_chars(10,[C,D]).
+test(iso2, fail) :-
+	number_chars(100,[_,_]).
+test(iso2, error(instantiation_error)) :-
+	number_chars(_,[_|1]).
+test(iso2, error(instantiation_error)) :-
+	number_chars(_, [1|_]).
+test(iso2, error(type_error(list, [1|2]))) :-
+	number_chars(_, [1|2]).
+test(iso2, error(type_error(list, 1))) :-
+	number_chars(1,1).
+test(iso2, error(type_error(list, [a|1]))) :-
+	number_chars(1, [a|1]).
+
+:- end_tests(number_chars).

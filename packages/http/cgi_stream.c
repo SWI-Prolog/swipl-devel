@@ -1,9 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2009, University of Amsterdam
+    Copyright (C): 2009-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of cgi_stream.c is to interface between the actual wrapper code
@@ -98,6 +100,16 @@ static predicate_t PREDICATE_call3;	/* Goal, Event, Handle */
 
 
 		 /*******************************
+		 *	       THREADS		*
+		 *******************************/
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define LOCK()   pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+
+
+		 /*******************************
 		 *	      CONTEXT		*
 		 *******************************/
 
@@ -129,13 +141,17 @@ typedef struct cgi_context
   char		   *data;		/* Buffered data */
   size_t	    datasize;		/* #bytes buffered */
   size_t	    dataallocated;	/* #bytes allocated */
-  int		    id;			/* Identifier */
+  size_t	    chunked_written;	/* #bytes written in chunked encoding */
+  int64_t	    id;			/* Identifier */
   unsigned int	    magic;		/* CGI_MAGIC */
 } cgi_context;
 
 
 static int start_chunked_encoding(cgi_context *ctx);
 static ssize_t cgi_chunked_write(cgi_context *ctx, char *buf, size_t size);
+
+static int64_t current_id = 0;
+static int64_t bytes_sent = 0;
 
 
 		 /*******************************
@@ -279,7 +295,7 @@ cgi_property(term_t cgi, term_t prop)
      else
       rc = PL_unify_nil(arg);
   } else if ( name == ATOM_id )
-  { rc = PL_unify_integer(arg, ctx->id);
+  { rc = PL_unify_int64(arg, ctx->id);
   } else if ( name == ATOM_client )
   { rc = PL_unify_stream(arg, ctx->stream);
   } else if ( name == ATOM_transfer_encoding )
@@ -287,7 +303,10 @@ cgi_property(term_t cgi, term_t prop)
   } else if ( name == ATOM_connection )
   { rc = PL_unify_atom(arg, ctx->connection ? ctx->connection : ATOM_close);
   } else if ( name == ATOM_content_length )
-  { rc = PL_unify_int64(arg, ctx->datasize - ctx->data_offset);
+  { if ( ctx->transfer_encoding == ATOM_chunked )
+      rc = PL_unify_int64(arg, ctx->chunked_written);
+    else
+      rc = PL_unify_int64(arg, ctx->datasize - ctx->data_offset);
   } else if ( name == ATOM_header_codes )
   { if ( ctx->data_offset > 0 )
       rc = PL_unify_chars(arg, PL_CODE_LIST, ctx->data_offset, ctx->data);
@@ -511,6 +530,8 @@ cgi_chunked_write(cgi_context *ctx, char *buf, size_t size)
   if ( Sflush(ctx->stream) < 0 )
     return -1;
 
+  ctx->chunked_written += size;
+
   return size;
 }
 
@@ -580,6 +601,17 @@ cgi_control(void *handle, int op, void *data)
 }
 
 
+static void
+update_sent(cgi_context *ctx)
+{ LOCK();
+  if ( ctx->transfer_encoding == ATOM_chunked )
+    bytes_sent += ctx->chunked_written;
+  else
+    bytes_sent += (ctx->datasize - ctx->data_offset);
+  UNLOCK();
+}
+
+
 static int
 cgi_close(void *handle)
 { cgi_context *ctx = handle;
@@ -621,6 +653,7 @@ cgi_close(void *handle)
     rc = -1;				/* TBD: pass error kindly */
 
 out:
+  update_sent(ctx);
   ctx->stream->encoding = ctx->parent_encoding;
   free_cgi_context(ctx);
 
@@ -641,8 +674,6 @@ static IOFUNCTIONS cgi_functions =
 		 /*******************************
 		 *	       OPEN		*
 		 *******************************/
-
-static int current_id = 0;		/* TBD: MT: lock */
 
 #define CGI_COPY_FLAGS (SIO_OUTPUT| \
 			SIO_TEXT| \
@@ -706,12 +737,21 @@ pl_cgi_open(term_t org, term_t new, term_t closure, term_t options)
   if ( PL_unify_stream(new, s2) )
   { Sset_filter(s, s2);
     PL_release_stream(s);
+    LOCK();
     ctx->id = ++current_id;
+    UNLOCK();
 
     return TRUE;
   } else
   { return instantiation_error();
   }
+}
+
+
+static foreign_t
+cgi_statistics(term_t count, term_t bytes)
+{ return ( PL_unify_int64(count, current_id) &&
+	   PL_unify_int64(bytes, bytes_sent) );
 }
 
 
@@ -737,9 +777,10 @@ install_cgi_stream()
 
   PREDICATE_call3   = PL_predicate("call", 3, "system");
 
-  PL_register_foreign("cgi_open",      4, pl_cgi_open,	 PL_FA_TRANSPARENT);
-  PL_register_foreign("is_cgi_stream", 1, is_cgi_stream, 0);
-  PL_register_foreign("cgi_property",  2, cgi_property,	 0);
-  PL_register_foreign("cgi_set",       2, cgi_set,	 0);
-  PL_register_foreign("cgi_discard",   1, cgi_discard,	 0);
+  PL_register_foreign("cgi_open",	 4, pl_cgi_open,    PL_FA_TRANSPARENT);
+  PL_register_foreign("is_cgi_stream",	 1, is_cgi_stream,  0);
+  PL_register_foreign("cgi_property",	 2, cgi_property,   0);
+  PL_register_foreign("cgi_set",	 2, cgi_set,	    0);
+  PL_register_foreign("cgi_discard",	 1, cgi_discard,    0);
+  PL_register_foreign("cgi_statistics_", 2, cgi_statistics, 0);
 }

@@ -1121,8 +1121,13 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  ats = codeTable[op].argtype;
 	  DEBUG(3, Sdprintf("\t%s from %ld\n", codeTable[op].name, Stell(fd)));
 	  *bp++ = encode(op);
-	  DEBUG(0, assert(codeTable[op].arguments == VM_DYNARGC ||
-			  (size_t)codeTable[op].arguments == strlen(ats)));
+	  DEBUG(0,
+		{ const char ca1_float[] = {CA1_FLOAT};
+		  assert(codeTable[op].arguments == VM_DYNARGC ||
+			 (size_t)codeTable[op].arguments == strlen(ats) ||
+			 (streq(ats, ca1_float) &&
+			  codeTable[op].arguments == WORDS_PER_DOUBLE));
+		});
 
 	  for(n=0; ats[n]; n++)
 	  { switch(ats[n])
@@ -2258,6 +2263,7 @@ qlfInfo(const char *file,
     return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 		    ATOM_open, ATOM_source_sink, f);
   }
+  state.wicFd = s;
 
   if ( !(lversion = qlfVersion(&state)) )
   { Sclose(s);

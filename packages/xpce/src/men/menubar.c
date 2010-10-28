@@ -525,7 +525,7 @@ deleteMenuBar(MenuBar mb, PopupObj p)
 
 
 static status
-activeMemberMenuBar(MenuBar mb, PopupObj p, Bool val)
+activeMemberMenuBar(MenuBar mb, PopupObj p, BoolObj val)
 { if ( p->active != val )
   { CHANGING_GRAPHICAL(mb,
 	assign(p, active, val);
@@ -537,7 +537,7 @@ activeMemberMenuBar(MenuBar mb, PopupObj p, Bool val)
 
 
 static status
-allActiveMenuBar(MenuBar mb, Bool val)
+allActiveMenuBar(MenuBar mb, BoolObj val)
 { Cell cell;
 
   CHANGING_GRAPHICAL(mb,

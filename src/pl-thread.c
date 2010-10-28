@@ -730,6 +730,38 @@ unaliasThread(atom_t name)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_get_thread_alias() gets the alias name of   a  thread. It is intended
+for crash-analysis. Normal applications should use PL_unify_thread_id().
+
+The implementation is wrong for two reasons. It should register the atom
+and this implementation should lock L_THREAD  because otherwise the atom
+may be gone even before it is   locked. However, locking is not unlikely
+to deadlock during crash analysis ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_get_thread_alias(int tid, atom_t *alias)
+{ PL_thread_info_t *info;
+  atom_t name;
+
+  if ( tid == 0 )
+    tid = PL_thread_self();
+  if ( tid < 1 || tid > thread_highest_id )
+    return FALSE;
+
+  info = GD->thread.threads[tid];
+  if ( (name=info->name) )
+  { *alias = name;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *	 PROLOG BINDING		*
 		 *******************************/
@@ -818,7 +850,7 @@ PL_thread_self()
 
 int
 PL_unify_thread_id(term_t t, int i)
-{ if ( i < 0 ||
+{ if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
     return -1;				/* error */
@@ -903,7 +935,7 @@ PL_thread_raise(int tid, int sig)
 { PL_thread_info_t *info;
 
   LOCK();
-  if ( tid < 0 || tid > thread_highest_id )
+  if ( tid < 1 || tid > thread_highest_id )
   { error:
     UNLOCK();
     return FALSE;
@@ -1148,7 +1180,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
   { free_thread_info(info);
-    return PL_error("thread_create", 3, NULL, ERR_MUST_BE_VAR, 2, id);
+    return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
 #define MK_KBYTES(v, n) if ( !mk_kbytes(&v, n PASS_LD) ) return FALSE
@@ -1168,7 +1200,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   { free_thread_info(info);
 
     if ( !PL_is_variable(id) )
-      return PL_error(NULL, 0, "thread-id", ERR_MUST_BE_VAR, 0);
+      return PL_error(NULL, 0, "thread-id", ERR_UNINSTANTIATION, 0, id);
 
     fail;
   }
@@ -1260,7 +1292,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     }
   }
 
-  if ( i < 0 ||
+  if ( i < 1 ||
        i > thread_highest_id ||
        GD->thread.threads[i]->status == PL_THREAD_UNUSED )
   { if ( warn )
@@ -1464,18 +1496,14 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
   }
 
   if ( !info->detached )
-  { if ( is_alive(info->status) )
-    { int rc;
+  { int rc;
 
-      if ( (rc=pthread_detach(info->tid)) )
-      { assert(rc == ESRCH);
+    if ( (rc=pthread_detach(info->tid)) )
+    { assert(rc == ESRCH);
 
-	release = info;
-      } else
-	info->detached = TRUE;
-    } else
-    { pthread_detach(info->tid);
       release = info;
+    } else
+    { info->detached = TRUE;
     }
   }
 
@@ -2468,8 +2496,7 @@ get_message(message_queue *queue, term_t msg ARG_LD)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR ||
-	   !(queue->head || queue->destroyed) )
+    if ( dispatch_cond_wait(queue, QUEUE_WAIT_READ) == EINTR )
     { DEBUG(9, Sdprintf("%d: EINTR\n", PL_thread_self()));
 
       if ( !LD )			/* needed for clean exit */
@@ -2728,7 +2755,7 @@ get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD)
       id = consInt(i);
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
-    if ( tid < 0 || tid > thread_highest_id ||
+    if ( tid < 1 || tid > thread_highest_id ||
 	 GD->thread.threads[tid]->status == PL_THREAD_UNUSED ||
 	 !GD->thread.threads[tid]->thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);

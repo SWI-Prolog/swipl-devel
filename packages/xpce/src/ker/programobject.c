@@ -72,7 +72,7 @@ nameToBreakFlag(Name name)
 
 
 static status
-traceProgramObject(ProgramObject obj, Name what, Bool val)
+traceProgramObject(ProgramObject obj, Name what, BoolObj val)
 { unsigned long flag = nameToTraceFlag(what);
 
   if ( val != OFF )
@@ -85,7 +85,7 @@ traceProgramObject(ProgramObject obj, Name what, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getTraceProgramObject(ProgramObject obj, Name what)
 { unsigned long flag = nameToTraceFlag(what);
 
@@ -94,7 +94,7 @@ getTraceProgramObject(ProgramObject obj, Name what)
 
 
 static status
-breakProgramObject(ProgramObject obj, Name what, Bool val)
+breakProgramObject(ProgramObject obj, Name what, BoolObj val)
 { unsigned long flag = nameToBreakFlag(what);
 
   if ( val != OFF )
@@ -107,7 +107,7 @@ breakProgramObject(ProgramObject obj, Name what, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getBreakProgramObject(ProgramObject obj, Name what)
 { unsigned long flag = nameToBreakFlag(what);
 
@@ -117,7 +117,7 @@ getBreakProgramObject(ProgramObject obj, Name what)
 #endif /*O_RUNTIME*/
 
 static status
-systemProgramObject(ProgramObject obj, Bool val)
+systemProgramObject(ProgramObject obj, BoolObj val)
 { if ( val == ON )
     setDFlag(obj, D_SYSTEM);
   else
@@ -127,7 +127,7 @@ systemProgramObject(ProgramObject obj, Bool val)
 }
 
 
-static Bool
+static BoolObj
 getSystemProgramObject(ProgramObject obj)
 { answer(onDFlag(obj, D_SYSTEM) ? ON : OFF);
 }

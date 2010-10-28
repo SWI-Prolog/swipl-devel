@@ -90,6 +90,15 @@ PL_save_text(PL_chars_t *text, int flags)
     text->text.t = baseBuffer(b, char);
 
     text->storage = PL_CHARS_RING;
+  } else if ( text->storage == PL_CHARS_MALLOC )
+  { Buffer b = findBuffer(BUF_RING);
+    size_t bl = bufsize_text(text, text->length+1);
+
+    addMultipleBuffer(b, text->text.t, bl, char);
+    PL_free_text(text);
+    text->text.t = baseBuffer(b, char);
+
+    text->storage = PL_CHARS_RING;
   }
 }
 
@@ -168,22 +177,52 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding  = ENC_ISO_LATIN_1;
     text->storage   = PL_CHARS_LOCAL;
     text->canonical = TRUE;
-  } else if ( (flags & CVT_LIST) &&
-	      (isList(w) || isNil(w)) )
+  } else if ( (flags & CVT_LIST) )
   { Buffer b;
+    CVT_result result;
 
-    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE)) )
+    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &result)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
       text->text.t = baseBuffer(b, char);
       text->encoding = ENC_ISO_LATIN_1;
-    } else if ( (b = codes_or_chars_to_buffer(l, BUF_RING, TRUE)) )
+    } else if ( result.status == CVT_wide &&
+		(b = codes_or_chars_to_buffer(l, BUF_RING, TRUE, &result)) )
     { text->length = entriesBuffer(b, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
+    } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
+    { goto case_write;
     } else
-      goto maybe_write;
+    { if ( (flags & CVT_VARNOFAIL) && result.status == CVT_partial )
+	return 2;
+
+      if ( (flags & CVT_EXCEPTION) )
+      { switch(result.status)
+	{ case CVT_partial:
+	    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+	  case CVT_nolist:
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+	  case CVT_nocode:
+	  case CVT_nochar:
+	  { term_t culprit = PL_new_term_ref();
+	    atom_t type;
+
+	    *valTermRef(culprit) = result.culprit;
+	    if ( result.status == CVT_nocode )
+	      type = ATOM_character_code;
+	    else
+	      type = ATOM_character;
+
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, type, culprit);
+	  }
+	  default:
+	    break;
+	}
+      }
+      goto error;
+    }
 
     text->storage   = PL_CHARS_RING;
     text->canonical = TRUE;
@@ -216,8 +255,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       size = sizeof(text->buf);
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
-      if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= wflags &&
+      if ( PL_write_term(fd, l, 1200, wflags) &&
+	   Sputcode(EOS, fd) >= 0 &&
 	   Sflush(fd) >= 0 )
       { text->encoding = *enc;
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);

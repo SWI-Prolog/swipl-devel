@@ -13,11 +13,11 @@ COMMON(status)	changedAreaLayoutInterface(LayoutInterface itf);
 COMMON(status)	makeClassLayoutInterface(Class class);
 
 /* /staff/jan/src/pl/packages/xpce/src/fmt/table.c */
-COMMON(TableRow) getRowTable(Table tab, Any y, Bool create);
-COMMON(TableColumn) getColumnTable(Table tab, Any x, Bool create);
+COMMON(TableRow) getRowTable(Table tab, Any y, BoolObj create);
+COMMON(TableColumn) getColumnTable(Table tab, Any x, BoolObj create);
 COMMON(void)	table_row_range(Table tab, int *ymin, int *ymax);
 COMMON(void)	table_column_range(Table tab, int *xmin, int *xmax);
-COMMON(Any)	getCellFromPositionTable(Table tab, Any pos, Bool onborder);
+COMMON(Any)	getCellFromPositionTable(Table tab, Any pos, BoolObj onborder);
 COMMON(status)	changedTable(Table tab);
 COMMON(void)	cell_stretchability(TableCell cell, Name which, stretch *s);
 COMMON(status)	makeClassTable(Class class);

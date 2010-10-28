@@ -30,7 +30,15 @@
 */
 
 :- module(ssl,
-	  [ ssl_context/3,		% +Role, -Config, +Options
+	  [ load_certificate/2,         % +Stream, -Certificate
+            load_private_key/3,         % +Stream, +Password, -Key
+            load_public_key/2,          % +Stream, -Key
+            load_crl/2,                 % +Stream, -Crl
+            rsa_private_decrypt/3,      % +Key, +Ciphertext, -Plaintext
+            rsa_private_encrypt/3,      % +Key, +Plaintext, -Ciphertext
+            rsa_public_decrypt/3,       % +Key, +Ciphertext, -Plaintext
+            rsa_public_encrypt/3,       % +Key, +Plaintext, -Ciphertext
+            ssl_context/3,		% +Role, -Config, +Options
             ssl_init/3,                 % -Config, +Role, +Options
             ssl_accept/3,               % +Config, -Socket, -Peer
             ssl_open/3,                 % +Config, -Read, -Write

@@ -440,6 +440,52 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
+static int
+Swait_for_data(IOSTREAM *s)
+{ int fd = Sfileno(s);
+  fd_set wait;
+  struct timeval time;
+  int rc;
+
+  if ( fd < 0 )
+  { errno = EPERM;			/* no permission to select */
+    s->flags |= SIO_FERR;
+    return -1;
+  }
+
+  time.tv_sec  = s->timeout / 1000;
+  time.tv_usec = (s->timeout % 1000) * 1000;
+  FD_ZERO(&wait);
+#ifdef __WINDOWS__
+  FD_SET((SOCKET)fd, &wait);
+#else
+  FD_SET(fd, &wait);
+#endif
+
+  for(;;)
+  { rc = select(fd+1, &wait, NULL, NULL, &time);
+
+    if ( rc < 0 && errno == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { errno = EPLEXCEPTION;
+	return -1;
+      }
+
+      continue;
+    }
+
+    break;
+  }
+
+  if ( rc == 0 )
+  { s->flags |= (SIO_TIMEOUT|SIO_FERR);
+    return -1;
+  }
+
+  return 0;				/* ok, data available */
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S__fillbuf() fills the read-buffer, returning the first character of it.
 It also realises the SWI-Prolog timeout facility.
@@ -457,50 +503,13 @@ S__fillbuf(IOSTREAM *s)
 #ifdef HAVE_SELECT
   s->flags &= ~SIO_TIMEOUT;
 
-  if ( s->timeout >= 0 )
-  { int fd = Sfileno(s);
+  if ( s->timeout >= 0 && !s->downstream )
+  { int rc;
 
-    if ( fd >= 0 )
-    { fd_set wait;
-      struct timeval time;
-      int rc;
-
-      time.tv_sec  = s->timeout / 1000;
-      time.tv_usec = (s->timeout % 1000) * 1000;
-      FD_ZERO(&wait);
-#ifdef __WINDOWS__
-      FD_SET((SOCKET)fd, &wait);
-#else
-      FD_SET(fd, &wait);
-#endif
-
-      for(;;)
-      { rc = select(fd+1, &wait, NULL, NULL, &time);
-
-	if ( rc < 0 && errno == EINTR )
-	{ if ( PL_handle_signals() < 0 )
-	  { errno = EPLEXCEPTION;
-	    return -1;
-	  }
-
-	  continue;
-	}
-
-	break;
-      }
-
-      if ( rc == 0 )
-      { s->flags |= (SIO_TIMEOUT|SIO_FERR);
-	return -1;
-      }
-    } else
-    { errno = EPERM;			/* no permission to select */
-      s->flags |= SIO_FERR;
-      return -1;
-    }
+    if ( (rc=Swait_for_data(s)) < 0 )
+      return rc;
   }
 #endif
-
 
   if ( s->flags & SIO_NBUF )
   { char chr;
@@ -1393,6 +1402,10 @@ Sfeof(IOSTREAM *s)
   { errno = EINVAL;
     return -1;
   }
+
+  if ( s->downstream != NULL &&
+       Sfeof(s->downstream))
+    return TRUE;
 
   if ( S__fillbuf(s) == -1 )
     return TRUE;

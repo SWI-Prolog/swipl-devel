@@ -32,7 +32,11 @@ This module is a test-frame for testing built-in predicates.
 :- use_module(library(when)).
 
 test_bips :-
-	run_tests([bips,bips_occurs_check_error,coroutining]).
+	run_tests([ bips,
+		    bips_occurs_check_error,
+		    coroutining,
+		    eq
+		  ]).
 
 has_occurs_check_flag :-
 	catch(current_prolog_flag(occurs_check, _), _, fail).

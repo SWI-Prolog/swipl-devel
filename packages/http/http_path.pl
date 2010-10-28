@@ -37,7 +37,7 @@
 :- use_module(library(option)).
 :- use_module(library(settings)).
 :- use_module(library(broadcast)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 
 
 /** <module> Abstract specification of HTTP server locations
@@ -127,7 +127,12 @@ absolute_location(Spec, Base, Path, Options) :-
 
 expand_location(Spec, Base, Path, _Options) :-
 	atomic(Spec), !,
-	relative_to(Base, Spec, Path).
+	(   uri_components(Spec, Components),
+	    uri_data(scheme, Components, Scheme),
+	    atom(Scheme)
+	->  Path = Spec
+	;   relative_to(Base, Spec, Path)
+	).
 expand_location(Spec, _Base, Path, Options) :-
 	Spec =.. [Alias, Sub],
 	http_location_path(Alias, Parent),
@@ -204,7 +209,7 @@ relative_to(Base, Local, Path) :-
 	clean_segments(Segments0, Segments),
 	path_segments(Path, Segments).
 relative_to(Base, Local, Global) :-
-	global_url(Local, Base, Global).
+	uri_normalized(Local, Base, Global).
 
 path_segments(Path, Segments) :-
 	atomic_list_concat(Segments, /, Path).

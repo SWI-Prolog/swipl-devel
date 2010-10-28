@@ -27,11 +27,11 @@
 #include <itf/c.h>
 #include <h/interface.h>		/* hostCallProc() */
 
-static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
+static status	recordInstancesClass(Class class, BoolObj keep, BoolObj recursive);
 static status	fill_slots_class(Class class, Class super);
 static Variable	getLocaliseInstanceVariableClass(Class class, Name name);
 static Any	bindMethod(Class class, Name code, Name selector);
-static status	lazyBindingClass(Class class, Name which, Bool val);
+static status	lazyBindingClass(Class class, Name which, BoolObj val);
 
 #define CLASS_PCE_SLOTS 42
 
@@ -1256,7 +1256,7 @@ handleClass(Class class, Handle handle)
 
 
 status
-solidClass(Class class, Bool val)
+solidClass(Class class, BoolObj val)
 { realiseClass(class);
   assign(class, solid, val);
 
@@ -1889,7 +1889,7 @@ deleteGetMethodClass(Class class, Name selector)
 
 
 Int
-getNoCreatedClass(Class class, Bool subtoo)
+getNoCreatedClass(Class class, BoolObj subtoo)
 { Cell cell;
   Int rval = class->no_created;
 
@@ -1902,7 +1902,7 @@ getNoCreatedClass(Class class, Bool subtoo)
 
 
 Int
-getNoFreedClass(Class class, Bool subtoo)
+getNoFreedClass(Class class, BoolObj subtoo)
 { Cell cell;
   Int rval = class->no_freed;
 
@@ -1962,7 +1962,7 @@ freedClass(Class class, Any instance)
 
 
 static status
-recordInstancesClass(Class class, Bool keep, Bool recursive)
+recordInstancesClass(Class class, BoolObj keep, BoolObj recursive)
 { realiseClass(class);
 
   if ( keep != OFF && isNil(class->instances) )
@@ -2193,7 +2193,7 @@ getFeatureClass(Class class, Name name)
 		 *	LAZY METHOD BINDING	*
 		 *******************************/
 
-static Bool
+static BoolObj
 getLazyBindingClass(Class class, Name which)
 { unsigned long mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
 
@@ -2202,7 +2202,7 @@ getLazyBindingClass(Class class, Name which)
 
 
 static status
-lazyBindingClass(Class class, Name which, Bool val)
+lazyBindingClass(Class class, Name which, BoolObj val)
 { unsigned long mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
 
   DEBUG(NAME_lazyBinding,

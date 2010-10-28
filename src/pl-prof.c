@@ -390,7 +390,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 
 static int
 identify_def(term_t t, void *handle)
-{ return unify_definition(MODULE_user, t, handle, 0, 0);
+{ return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY);
 }
 
 

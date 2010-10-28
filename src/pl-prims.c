@@ -192,8 +192,8 @@ are:
 Returns one of:
 
   - FALSE:		terms cannot unify.  Note that this routine does not
-	   		rollback changes it made!
-  - TRUE:  		Unification has completed sucessfully
+			rollback changes it made!
+  - TRUE:		Unification has completed sucessfully
   - GLOBAL_OVERFLOW:	Unification cannot be completed due to lack
 			of global-space.
   - TRAIL_OVERFLOW:	Unification cannot be completed due to lack
@@ -1549,7 +1549,7 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 	  r.v2 = p2;
 	  addBuffer(buf, r, reset);
 
- 	  vcount += 2;
+	  vcount += 2;
 
 	  if ( p1 == p2 )
 	  { *p1 = consVar(vcount+1)|MARK_MASK;
@@ -2239,7 +2239,7 @@ static const opt_spec numbervar_options[] =
 { { ATOM_attvar,	    OPT_ATOM },
   { ATOM_functor_name,	    OPT_ATOM },
   { ATOM_singletons,	    OPT_BOOL },
-  { NULL_ATOM,	     	    0 }
+  { NULL_ATOM,		    0 }
 };
 
 
@@ -2525,15 +2525,7 @@ subsumes(term_t general, term_t specific ARG_LD)
 
 
 static
-PRED_IMPL("subsumes", 2, subsumes, 0)
-{ PRED_LD
-
-  return subsumes(A1, A2 PASS_LD);
-}
-
-
-static
-PRED_IMPL("subsumes_chk", 2, subsumes_chk, 0)
+PRED_IMPL("subsumes_term", 2, subsumes_term, 0)
 { PRED_LD
   int rc;
   fid_t fid;
@@ -3158,12 +3150,17 @@ duplicate_term(term_t in, term_t copy ARG_LD)
 static
 PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
 { PRED_LD
-  term_t copy = PL_new_term_ref();
 
-  if ( duplicate_term(A1, copy PASS_LD) )
-    return PL_unify(copy, A2);
+  if ( PL_is_atomic(A1) )
+  { return PL_unify(A1, A2);
+  } else
+  { term_t copy = PL_new_term_ref();
 
-  fail;
+    if ( duplicate_term(A1, copy PASS_LD) )
+      return PL_unify(copy, A2);
+
+    fail;
+  }
 }
 
 
@@ -3206,87 +3203,77 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define X_MASK   0x0f
 #define X_CHARS  0x10
 
-static word
+static int
 x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
-{ char *s;
-  pl_wchar_t *ws;
-  size_t len;
+{ PL_chars_t atext, stext;
   int arg1;
+  int flags2 = CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
-  if ( (how & X_NUMBER) )
-  { arg1 = PL_get_nchars(atom, &len, &s, CVT_NUMBER);
-  } else
-  { if ( !(arg1 = PL_get_nchars(atom, &len, &s, CVT_ATOMIC)) )
-    { s = NULL;
-      arg1 = PL_get_wchars(atom, &len, &ws, CVT_ATOM|CVT_STRING);
-    }
-  }
+  arg1 = PL_get_text(atom, &atext,
+		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
   if ( arg1 )
   { int ok;
+    fid_t fid = PL_open_foreign_frame();
 
-    if ( s )
-    { if ( how & X_CHARS )
-	ok = PL_unify_list_nchars(string, len, s);
-      else
-	ok = PL_unify_list_ncodes(string, len, s);
-    } else
-    { int flags = (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST;
-      ok = PL_unify_wchars(string, flags, len, ws);
-    }
+    ok = PL_unify_text(string, 0, &atext,
+		       (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST);
 
     if ( ok || !(how & X_NUMBER) )
+    { PL_close_foreign_frame(fid);
       return ok;
+    }
+    flags2 |= CVT_VARNOFAIL;
+    PL_discard_foreign_frame(fid);
   } else if ( !PL_is_variable(atom) )
   { return PL_error(pred, 2, NULL, ERR_TYPE,
 		    (how & X_NUMBER) ? ATOM_number : ATOM_atom,
 		    atom);
   }
 
-  if ( !PL_get_list_nchars(string, &len, &s, 0) )
-  { if ( !PL_is_list(string) )
-      return PL_error(pred, 2, NULL,
-		      ERR_TYPE, ATOM_list, string);
-    s = NULL;
-    if ( !PL_get_wchars(string, &len, &ws, CVT_LIST|CVT_EXCEPTION) )
-      fail;
-  }
+  if ( PL_get_text(string, &stext, flags2) != TRUE )
+    return FALSE;
 
   how &= X_MASK;
 
   switch(how)
   { case X_ATOM:
     case_atom:
-      if ( s )
-	return PL_unify_atom_nchars(atom, len, s);
-      else
-	return PL_unify_wchars(atom, PL_ATOM, len, ws);
-    case X_AUTO:
+      return PL_unify_text(atom, 0, &stext, PL_ATOM);
     case X_NUMBER:
-    default:
-    { number n;
-      unsigned char *q;
-      AR_CTX;
+    case X_AUTO:
+    { if ( stext.encoding == ENC_ISO_LATIN_1 )
+      { unsigned char *q, *s = (unsigned char *)stext.text.t;
+	number n;
+	AR_CTX;
 
-      AR_BEGIN();
+	if ( how == X_NUMBER )
+	{ if ( s )				/* ISO: number_codes(X, "  42") */
+	  { while(*s && isBlankW(*s))
+	      s++;
+	  }
+	}
 
-      if ( s && str_number((unsigned char *)s, &q, &n, FALSE) )
-      { if ( *q == EOS )
-        { int rc = PL_unify_number(atom, &n);
-          clearNumber(&n);
-          AR_END();
-          return rc;
-        }
-        clearNumber(&n);
+	AR_BEGIN();
+	if ( s && str_number(s, &q, &n, FALSE) )
+	{ if ( *q == EOS )
+	  { int rc = PL_unify_number(atom, &n);
+	    clearNumber(&n);
+	    AR_END();
+	    return rc;
+	  }
+	  clearNumber(&n);
+	}
+	AR_END();
       }
-
-      AR_END();
 
       if ( how == X_AUTO )
 	goto case_atom;
       else
 	return PL_error(pred, 2, NULL, ERR_SYNTAX, "illegal_number");
     }
+    default:
+      assert(0);
   }
 }
 
@@ -4617,7 +4604,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 #ifdef O_PLMT
   else if ( key == ATOM_threads )
     v->value.i = GD->statistics.threads_created -
-      		 GD->statistics.threads_finished;
+		 GD->statistics.threads_finished;
   else if ( key == ATOM_threads_created )
     v->value.i = GD->statistics.threads_created;
   else if ( key == ATOM_thread_cputime )
@@ -4812,7 +4799,7 @@ This code should be moved into another file.
 
 typedef struct
 { const char   *name;
-  int   	type;
+  int		type;
   void	       *address;
 } optdef, *OptDef;
 
@@ -5008,8 +4995,7 @@ BeginPredDefs(prims)
   PRED_DEF("=", 2, unify, PL_FA_ISO)
   PRED_DEF("\\=", 2, not_unify, PL_FA_ISO)
   PRED_DEF("unify_with_occurs_check", 2, unify_with_occurs_check, PL_FA_ISO)
-  PRED_DEF("subsumes", 2, subsumes, 0)
-  PRED_DEF("subsumes_chk", 2, subsumes_chk, 0)
+  PRED_DEF("subsumes_term", 2, subsumes_term, 0)
   PRED_DEF("nonvar", 1, nonvar, PL_FA_ISO)
   PRED_DEF("var", 1, var, PL_FA_ISO)
   PRED_DEF("integer", 1, integer, PL_FA_ISO)

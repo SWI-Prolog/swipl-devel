@@ -28,7 +28,7 @@
 #include <unistd.h>
 #endif
 
-static status	runningTimer(Timer tm, Bool val);
+static status	runningTimer(Timer tm, BoolObj val);
 
 static status
 initialiseTimer(Timer tm, Real interval, Code msg)
@@ -116,7 +116,7 @@ stopTimer(Timer tm)
 
 
 static status
-runningTimer(Timer tm, Bool val)
+runningTimer(Timer tm, BoolObj val)
 { return (val == ON ? startTimer(tm, NAME_repeat) : stopTimer(tm));
 }
 

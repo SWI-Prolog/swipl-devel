@@ -255,14 +255,14 @@ use_module/[1,2].
 How to deal with quick-load-file compilation by qcompile/1.  Values are
 
     \begin{description}
-	\termitem{never}
+	\termitem{never}{}
 Default.  Do not use qcompile, unless called explicitely
-	\termitem{auto}
+	\termitem{auto}{}
 Use qcompile for all writeable files.  See comment below.
-	\termitem{large}
+	\termitem{large}{}
 Use qcompile if the file is `large'. Currently, files larger than
 100~Kbytes are considered large.
-        \termitem{part}
+        \termitem{part}{}
 If this load_file/2 appears in a directive of a file that is compiled
 into Quick Load Format using qcompile/1, the contents of the argument
 files are included in the \fileext{qlf} file instead of the loading
@@ -1046,6 +1046,10 @@ True if \arg{Term} is bound to an integer or floating point number.%
     \predicate[ISO]{atom}{1}{+Term}
 True if \arg{Term} is bound to an atom.
 
+    \predicate{blob}{2}{@Term, ?Type}
+True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
+\secref{blob}.
+
     \predicate{string}{1}{+Term}
 True if \arg{Term} is bound to a string. Note that string here
 refers to the built-in atomic type string as described in
@@ -1169,9 +1173,9 @@ with the obvious meaning.
 
 This section describes special purpose variations on Prolog unification.
 The predicate unify_with_occurs_check/2 provides sound unification and
-is part of the ISO standard. The predicates subsumes/2 and
-subsumes_chk/2 define `one-sided-unification' and are found in many
-Prolog systems.  Finally, unifiable/3 is a `what-if' version of
+is part of the ISO standard. The predicate subsumes_term/2 defines
+`one-sided-unification' and is part of the ISO proposal established in
+Edinburgh (2010). Finally, unifiable/3 is a `what-if' version of
 unification that is often used as a building block in constraint
 reasoners.
 
@@ -1241,24 +1245,15 @@ name \predref{variant}{2} in some other Prolog systems.
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
-    \predicate{subsumes}{2}{+Generic, {@}Specific}
-A term is told to \jargon{subsume} another term if instantiation in the
-generic term produces the specific term. The subsumption relation is
-also called \jargon{one sided unification} or \jargon{semi-unification}.
-It behaves as if defined by\footnote{This implementation relies on the
-fact that term_variables/2 orders its variables based on depth-first
-left-to-right traversal of the term.}
-
-\begin{code}
-subsumes(General, Specific) :-
-	term_variables(Specific, SVars),
-	General = Specific,
-	term_variables(SVars, SVars2),
-	SVars == SVars2.
-\end{code}
-
-    \predicate{subsumes_chk}{2}{+Generic, {@}Specific}
-Equivalent to \verb$\+ \+ subsumes(Generic, Specific)$.
+    \predicate[ISO]{subsumes_term}{2}{{@}Generic, {@}Specific}
+True if \arg{Generic} can be made equivalent to \arg{Specific} by only
+binding variables in \arg{Generic}.  The current implementation performs
+the unification and ensures that the variable set of \arg{Specific} is
+not changed by the unification. On success, the bindings are
+undone.\footnote{This predicate is often named subsumes_chk/2 in older
+Prolog dialects. The current name was established in the ISO WG17
+meeting in Edinburgh (2010). The \texttt{chk} postfix was
+considered to refer to determinism as in e.g., memberchk/2.}
 
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
@@ -2078,30 +2073,35 @@ or clause in the database. The fact or clause is removed from the database.
 
     \predicate{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head}
-unifies with \arg{Head} are removed.
-
-    \predicate{assert}{1}{+Term}
-Assert a fact or clause in the database. \arg{Term} is asserted as the last
-fact or clause of the corresponding predicate.
+unifies with \arg{Head} are removed. If \arg{Head} refers to a predicate
+that is not defined, it is implicitly created as a dynamic predicate.
+See also dynamic/1.\footnote{The ISO standard only allows using
+dynamic/1 as a \jargon{directive}.}
 
     \predicate[ISO]{asserta}{1}{+Term}
-Equivalent to assert/1, but \arg{Term} is asserted as first clause or fact
-of the predicate.
+Assert a fact or clause in the database. \arg{Term} is asserted as the
+firsr fact or clause of the corresponding predicate. Equivalent to
+assert/1, but \arg{Term} is asserted as first clause or fact of the
+predicate.
 
     \predicate[ISO]{assertz}{1}{+Term}
-Equivalent to assert/1.
+Equivalent to asserta/1, but \arg{Term} is asserted as the last clause
+or fact of the predicate.
 
-    \predicate{assert}{2}{+Term, -Reference}
-Equivalent to assert/1, but \arg{Reference} is unified with a unique
-reference to the asserted clause. This key can later be used with
-clause/3 or erase/1.
+    \predicate{assert}{1}{+Term}
+Equivalent to assertz/1.  Deprecated: new code should use assertz/1.
 
     \predicate{asserta}{2}{+Term, -Reference}
-Equivalent to assert/2, but \arg{Term} is asserted as first clause or fact
-of the predicate.
+Asserts a clause as asserta/1 and unifies \arg{Reference} with a handle
+to this clause. The handle can be used to access this specific clause
+using clause/3 and erase/1.
 
     \predicate{assertz}{2}{+Term, -Reference}
-Equivalent to assert/2.
+Equivalent to asserta/1, asserting the new clause as the last clause of
+the predicate.
+
+    \predicate{assert}{2}{+Term, -Reference}
+Equivalent to assertz/2.
 
     \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}.
@@ -2446,9 +2446,9 @@ generate_built_in(Name/Arity) :-
 \arg{Property} is one of:
 
 \begin{description}
-    \termitem{autoload}{}
-Is true if the predicate can be autoloaded. Like \const{undefined}, this
-property is \emph{not} generated.
+    \termitem{autoload}{File}
+Is true if the predicate can be autoloaded from the file \arg{File}.
+Like \const{undefined}, this property is \emph{not} generated.
 
     \termitem{built_in}{}
 Is true if the predicate is locked as a built-in predicate. This
@@ -2632,7 +2632,8 @@ stream_pair/3 for details.
 
 SWI-Prolog stream-handles are unique symbols that have no syntactical
 representation. They are written as \verb$<stream>(hex-number)$, which
-is not valid input for read/1.
+is not valid input for read/1.  They are realised using a \jargon{blob}
+of type \const{stream} (see blob/2 and \secref{blob}).
 
 
 \begin{description}
@@ -3531,6 +3532,11 @@ If \const{true}, write a string object (see \secref{strings}) as
 \verb$`$\ldots\verb$`$. The default depends on the Prolog flag
 \prologflag{backquoted_string}.
 
+    \termitem{blobs}{Atom}
+Define how non-text blobs are handled.  By default, this is left to
+the write-handler specified with the blob-type.  Using \const{portray},
+portray/1 is called for each blob encountered.  See \secref{blob}.
+
     \termitem{character_escapes}{Bool}
 If \const{true}, and \term{quoted}{true} is active, special characters
 in quoted atoms and strings are emitted as ISO escape-sequences.
@@ -3819,16 +3825,14 @@ be read using the prompt defined by prompt/2.
 \section{Analysing and Constructing Terms}	\label{sec:manipterm}
 
 \begin{description}
-    \predicate[ISO]{functor}{3}{?Term, ?Functor, ?Arity}
-True if \arg{Term} is a term with functor \arg{Functor} and arity
-\arg{Arity}.  If \arg{Term} is a variable it is unified with a new term
-holding only variables.  functor/3 silently fails on instantiation
-faults%
-    \footnote{In version 1.2 instantiation faults led to error messages.
-              The new version can be used to do type testing without the
-              need to catch illegal instantiations first.}
-If \arg{Term} is an atom or number, \arg{Functor} will be unified with
-\arg{Term} and arity will be unified with the integer 0 (zero).
+    \predicate[ISO]{functor}{3}{?Term, ?Name, ?Arity}
+True when \arg{Term} is a term with functor \arg{Name}/\arg{Arity}. If
+Term is a variable it is unified with a new term whose arguments are all
+different variables (such a term is called a skeleton). If Term is
+atomic, Arity will be unified with the integer 0, and Name will be
+unified with Term.  Raises \errorterm{instantiation_error}{} if term
+is unbound and \arg{Name}/\arg{Arity} is insufficiently instantiated.
+
     \predicate[ISO]{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
 between 1 and the arity of \arg{Term}. \arg{Value} is unified with the
@@ -4060,7 +4064,14 @@ character.%
 Similar to atom_chars/2, but converts between a number and its
 representation as a list of one-character atoms. Fails with a
 \except{syntax_error} if \arg{Number} is unbound and \arg{CharList} does
-not describe a number.
+not describe a number. Following the ISO standard, it allows for
+\emph{leading} white space (including newlines) and does not allow for
+\emph{trailing} white space.\footnote{ISO also allows for Prolog
+comments in leading white space. We -and most other implementations-
+believe this is incorrect. We also beleive it would have been better not
+to allow for white space, or to allow for both leading and trailing
+white space.  Prolog-syntax based conversion can be achieved using
+format/3 and read_from_chars/2.}
 
     \predicate[ISO]{number_codes}{2}{?Number, ?CodeList}
 As number_chars/2, but converts to a list of character codes rather than
@@ -4459,13 +4470,21 @@ a term is 0, unless its principal functor is an operator, in which case
 the precedence is the precedence of this operator. A term enclosed in
 brackets \exam{(\ldots)} has precedence 0.
 
-The predefined operators are shown in \tabref{operators}. The ISO
-standard allows for redefining all operators except the comma (,).
-Applications must be extremely careful with (re-)defining operators
-because changing operators may cause (other) files to be interpreted
+The predefined operators are shown in \tabref{operators}. Operators can
+be redefined, unless prohibited by one of the limitations below.
+Applications must be careful with (re-)defining operators because
+changing operators may cause (other) files to be interpreted
 \textbf{differently}. Often this will lead to a syntax error. In other
 cases, text is read silently into a different term which may lead to
 subtle and difficult to track errors.
+
+\begin{itemize}
+    \item It is not allowed to redefine the comma (\verb$','$).
+    \item The bar (\verb$|$) can only be (re-)defined as infix
+          operator with priority not less than 1001.
+    \item It is not allowed to define the empty list (\verb$[]$) or the
+    	  curly-bracket-pair (\verb${}$) as operators.
+\end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
 \secref{moduleop}). Keeping operators in modules and using controlled
@@ -4497,7 +4516,7 @@ independent from operator changes to the \const{user} module.
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>},
             \op{@>=}, \op{\=}, \op{\==}, \op{is} \\
 600 & xfy & \op{:} \\
-500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor}, \op{><} \\
+500 & yfx & \op{+}, \op{-}, \op{/\}, \op{\/}, \op{xor} \\
 500 & fx & \op{?} \\
 400 & yfx & \op{*}, \op{/}, \op{//}, \op{rdiv},
             \op{<<}, \op{>>}, \op{mod}, \op{rem} \\
@@ -4782,8 +4801,8 @@ other cases the return value is a float.  See also \predref{//}{2}
 and rdiv/2.
 
     \infixop[ISO]{mod}{+IntExpr1}{+IntExpr2}
-Modulo: \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} div
-\arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
+Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
+div \arg{IntExpr2}) $\times$ \arg{IntExpr2}}, where \const{div} is
 \jargon{floored} division.
 
     \infixop[ISO]{rem}{+IntExpr1}{+IntExpr2}
@@ -4792,8 +4811,25 @@ Remainder of integer division.  Behaves as if defined by
 (\arg{IntExpr1} // \arg{IntExpr2}) $\times$ \arg{IntExpr2}}
 
     \infixop[ISO]{//}{+IntExpr1}{+IntExpr2}
-Integer division:
-\mbox{\arg{Result} is truncate(\arg{Expr1}/\arg{Expr2})}
+Integer division, defined as \mbox{\arg{Result} is
+$rnd_I$(\arg{Expr1}/\arg{Expr2})}. The function $rnd_I$ is the default
+rounding used by the C-compiler and available through the Prolog flag
+\prologflag{integer_rounding_function}. In the C99 standard, C-rounding
+is defined as \const{towards_zero}.\footnote{Future versions might
+guarantee rounding towards zero.}
+
+    \predicate[ISO]{div}{2}{+IntExpr1, +IntExpr2}
+Integer division, defined as \mbox{\arg{Result} is
+$(IntExpr1 - IntExpr1 mod IntExpr2) // IntExpr2$}.
+In other words, this is integer division that rounds towards -infinity.
+This function guarantees behaviour that is consistent with mod/2, i.e.,
+the following holds for every pair of integers $X,Y$ where \verb$Y =\= 0$.
+
+\begin{code}
+	Q is div(X, Y),
+	M is mod(X, Y),
+	X =:= Y*Q+M.
+\end{code}
 
     \infixop{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if
@@ -4930,10 +4966,7 @@ Bitwise `or' \arg{IntExpr1} and \arg{IntExpr2}.
     \infixop[ISO]{/\}{+IntExpr}{+IntExpr}
 Bitwise `and' \arg{IntExpr1} and \arg{IntExpr2}.
 
-    \infixop[ISO-rev]{><}{+IntExpr}{+IntExpr}
-Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
-
-    \infixop{xor}{+IntExpr}{+IntExpr}
+    \infixop[ISO]{xor}{+IntExpr}{+IntExpr}
 Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 
     \prefixop[ISO]{\}{+IntExpr}
@@ -4954,10 +4987,12 @@ $\arg{Result} = \arcsin{\arg{Expr}}$. \arg{Result} is the angle in radians.
 $\arg{Result} = \arccos{\arg{Expr}}$. \arg{Result} is the angle in radians.
     \predicate[ISO]{atan}{1}{+Expr}
 $\arg{Result} = \arctan{\arg{Expr}}$. \arg{Result} is the angle in radians.
-    \predicate{atan}{2}{+YExpr, +XExpr}
+    \predicate[ISO]{atan2}{2}{+YExpr, +XExpr}
 $\arg{Result} = \arctan{\frac{\arg{YExpr}}{\arg{XExpr}}}$. \arg{Result} is the
 angle in radians.  The return value is in the range $[-\pi\ldots\pi]$.
 Used to convert between rectangular and polar coordinate system.
+    \predicate{atan}{2}{+YExpr, +XExpr}
+Same as atan2/2 (backward compatibility).
     \predicate[ISO]{log}{1}{+Expr}
 Natural logarithm.  $\arg{Result} = \ln{\arg{Expr}}$
     \predicate{log10}{1}{+Expr}
@@ -4978,7 +5013,7 @@ Only available when compiled with unbounded integer support. This
 formula is required for Diffie-Hellman key-exchange, a technique where
 two parties can establish a secret key over a public network.
     \infixop{^}{+Expr1}{+Expr2}
-Same as **/2.  (backward compatibility).
+Same as **/2 (backward compatibility).
     \predicate{pi}{0}{}
 Evaluates to the mathematical constant $\pi$ (3.14159\ldots).
     \predicate{e}{0}{}
@@ -5978,7 +6013,8 @@ The minute as a decimal number (range 00 to 59).
     \fmtchar{n}
 A newline character.
     \fmtchar{O}
-Modifier.  Not implemented.
+Modifier to select locale-specific output.  Not implemented, but this
+version does implement \texttt{\%Oz}.  See \%z.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
@@ -6026,15 +6062,41 @@ The year as a decimal number without a century (range 00 to 99).
     \fmtchar{Y}
 The year as a decimal number including the century.
     \fmtchar{z}
-The time-zone  as  hour  offset  from  GMT.   Required  to  emit
-RFC822-conforming  dates  (using  "\%a,  \%d  \%b \%Y \%H:\%M:\%S \%z").
-    \fmtchar{Z}
-The time zone or name or abbreviation.
-    \fmtchar{+}
-The date and time in date(1) format.
-    \fmtchar{\%}
-A literal `\%' character.
+The time-zone as hour offset from GMT using the format HHmm. Required to
+emit RFC822-conforming dates (using
+\texttt{'\%a,~\%d~\%b~\%Y~\%T~\%z'}). Our implementation supports
+\texttt{\%Oz} that modifies the output to HH:mm as required by
+XML-Schema. Note that both notations are valid in ISO8601. \fmtchar{Z}
+The time zone or name or abbreviation. \fmtchar{+} The date and time in
+date(1) format. \fmtchar{\%} A literal `\%' character.
 \end{itemize}
+
+The table below, gives some format strings for popular time
+representations.  RFC1123 is used by HTTP.  The full implementation of
+http_timestamp/2 as available from \pllib{http/http_header} is here.
+
+\begin{code}
+http_timestamp(Time, Atom) :-
+	stamp_date_time(Time, Date, 'UTC'),
+	format_time(atom(Atom),
+		    '%a, %d %b %Y %T GMT',
+		    Date, posix).
+\end{code}
+
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\textbf{Standard} & \textbf{Format string} \\
+\hline
+\textbf{xsd} & \texttt{'\%FT\%T\%Oz'} \\
+\textbf{ISO8601} & \texttt{'\%FT\%T\%z'} \\
+\textbf{RFC822} & \texttt{'\%a, \%d \%b \%Y \%T \%z'} \\
+\textbf{RFC1123} & \texttt{'\%a, \%d \%b \%Y \%T GMT'} \\
+\hline
+\end{tabular}
+\end{center}
+
 
     \predicate{format_time}{4}{+Out, +Format, +StampOrDateTime, +Locale}
 Format time given a specified \arg{Locale}. This predicate is a
@@ -6237,9 +6299,10 @@ is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{no
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}.  The file-type \const{source}
-is an alias for \const{prolog} for compatibility with SICStus Prolog.
-See also prolog_file_type/2.
+\const{directory} implies \const{['']}. The file-type \const{source} is
+an alias for \const{prolog} for compatibility with SICStus Prolog. See
+also prolog_file_type/2. This predicate only returns non-directories,
+unless the option \term{file_type}{directory} is specified.
 
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception
@@ -6300,8 +6363,8 @@ arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
 
-If the pattern does contains wildcard characters, only existing files
-and directories are returned.  Expanding a `pattern' without wildcard
+If the pattern contains wildcard characters, only existing files and
+directories are returned. Expanding a `pattern' without wildcard
 characters returns the argument, regardless on whether or not it exists.
 
 Before expanding wildcards, the construct \file{\$\arg{var}} is expanded

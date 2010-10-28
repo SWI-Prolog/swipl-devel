@@ -3982,17 +3982,14 @@ b_throw:
 
     VMI_GOTO(I_USERCALL0);
   } else
-  { Word p;
-
-    QF = QueryFromQid(qid);		/* may be shifted */
+  { QF = QueryFromQid(qid);		/* may be shifted */
     set(QF, PL_Q_DETERMINISTIC);
     FR = environment_frame = &QF->top_frame;
-    p = argFrameP(FR, FR->predicate->functor->arity);
-    lTop = (LocalFrame)(p+1);
+    lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
     Undo(QF->choice.mark);
-    QF->exception = consTermRef(p);
-    PL_put_term(QF->exception, exception_term);
+    QF->foreign_frame = PL_open_foreign_frame();
+    QF->exception = PL_copy_term_ref(exception_term);
 
     if ( false(QF, PL_Q_PASS_EXCEPTION) )
     { *valTermRef(exception_bin)     = 0;
@@ -4005,7 +4002,6 @@ b_throw:
       garbageCollect();
     QF = QueryFromQid(qid);		/* may be shifted: recompute */
 
-    QF->foreign_frame = PL_open_foreign_frame();
     assert(LD->exception.throw_environment == &throw_env);
     LD->exception.throw_environment = throw_env.parent;
 

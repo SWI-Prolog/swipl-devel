@@ -308,7 +308,9 @@ first_atom(atom_t a, int match)
     for(s=out,i=0; (c=fetch(&t,i)); s++,i++)
     { if ( c == '*' && match == STR_MATCH_LIKE )
       { if ( i == 0 )			/* like '*...' */
-	  return (atom_t)0;
+	{ rc = 0;
+	  goto out;
+	}
 	len = i;			/* only up to the first * */
       }
       *s = sort_point(c)>>8;
@@ -316,6 +318,7 @@ first_atom(atom_t a, int match)
 
     rc = PL_new_atom_wchars(len, out);
 
+  out:
     if ( out != buf )
       PL_free(out);
 

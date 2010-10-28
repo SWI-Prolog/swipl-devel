@@ -358,15 +358,19 @@ atom_prefix(Atom, Prefix) :-
 %	bound to the canonical name for it. If File is bound it succeeds
 %	if the canonical name  as   defined  by  absolute_file_name/2 is
 %	known as a loaded filename.
+%
+%	Note that Time = 0.0 is used by  PlDoc and other code that needs
+%	to create a file record without being interested in the time.
 
 source_file(File) :-
 	(   ground(File)
-	->  ( 	'$time_source_file'(File, _, user)
+	->  ( 	'$time_source_file'(File, Time, user)
 	    ;	absolute_file_name(File, Abs),
-		'$time_source_file'(Abs, _, user)
+		'$time_source_file'(Abs, Time, user)
 	    ), !
-	;   '$time_source_file'(File, _, user)
-	).
+	;   '$time_source_file'(File, Time, user)
+	),
+	Time > 0.0.
 
 %%	prolog_load_context(+Key, -Value)
 %
@@ -509,14 +513,15 @@ predicate_property(Pred, Property) :-
 	functor(Head, Name, Arity),
 	\+ system_undefined(Module:Name/Arity).
 predicate_property(_:Head, Property) :-
-	Property == autoload, !,
+	nonvar(Property),
+	Property = autoload(File), !,
 	current_prolog_flag(autoload, true),
 	(   callable(Head)
 	->  functor(Head, Name, Arity),
-	    (	'$find_library'(_, Name, Arity, _, _)
+	    (	'$find_library'(_, Name, Arity, _, File)
 	    ->	true
 	    )
-	;   '$find_library'(_, Name, Arity, _, _),
+	;   '$find_library'(_, Name, Arity, _, File),
 	    functor(Head, Name, Arity)
 	).
 predicate_property(Pred, Property) :-
@@ -694,6 +699,9 @@ module(Module) :-
 		*********************************/
 
 statistics :-
+	statistics(user_error).
+
+statistics(Out) :-
 	statistics(trail, Trail),
 	statistics(trailused, TrailUsed),
 	statistics(local, Local),
@@ -712,50 +720,50 @@ statistics :-
 	statistics(globallimit, GlobalLimit),
 	statistics(traillimit, TrailLimit),
 
-	format('~2f seconds cpu time for ~D inferences~n',
+	format(Out, '~2f seconds cpu time for ~D inferences~n',
 				    [Cputime, Inferences]),
-	format('~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
+	format(Out, '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
-	format('                       Limit    Allocated       In use~n'),
+	format(Out, '                       Limit    Allocated       In use~n', []),
 	(   statistics(heap, Heap),
 	    statistics(heaplimit, HeapLimit)
-	->  format('Heap         :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	->  format(Out, 'Heap         :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 		   [HeapLimit, Heap, Heapused])
-	;   format('Heap         :                  ~t~D~54| Bytes~n',
+	;   format(Out, 'Heap         :                  ~t~D~54| Bytes~n',
 		   [Heapused])
 	),
-	format('Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	format(Out, 'Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [LocalLimit, Local, LocalUsed]),
-	format('Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+	format(Out, 'Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [GlobalLimit, Global, GlobalUsed]),
-	format('Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
+	format(Out, 'Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n~n',
 	       [TrailLimit, Trail, TrailUsed]),
 
-	gc_statistics,
-	agc_statistics,
-	shift_statistics,
-	thread_statistics.
+	gc_statistics(Out),
+	agc_statistics(Out),
+	shift_statistics(Out),
+	thread_statistics(Out).
 
-gc_statistics :-
+gc_statistics(Out) :-
 	statistics(collections, Collections),
 	Collections > 0, !,
 	statistics(collected, Collected),
 	statistics(gctime, GcTime),
 
-	format('~D garbage collections gained ~D bytes in ~2f seconds.~n',
+	format(Out, '~D garbage collections gained ~D bytes in ~2f seconds.~n',
 	       [Collections, Collected, GcTime]).
-gc_statistics.
+gc_statistics(_).
 
-agc_statistics :-
+agc_statistics(Out) :-
 	catch(statistics(agc, Agc), _, fail),
 	Agc > 0, !,
 	statistics(agc_gained, Gained),
 	statistics(agc_time, Time),
-	format('~D atom garbage collections gained ~D atoms in ~2f seconds.~n',
+	format(Out, '~D atom garbage collections gained ~D atoms in ~2f seconds.~n',
 	       [Agc, Gained, Time]).
-agc_statistics.
+agc_statistics(_).
 
-shift_statistics :-
+shift_statistics(Out) :-
 	statistics(local_shifts, LS),
 	statistics(global_shifts, GS),
 	statistics(trail_shifts, TS),
@@ -763,19 +771,19 @@ shift_statistics :-
 	;   GS > 0
 	;   TS > 0
 	), !,
-	format('Stack shifts: ~D local, ~D global, ~D trail.~n',
+	format(Out, 'Stack shifts: ~D local, ~D global, ~D trail.~n',
 	       [LS, GS, TS]).
-shift_statistics.
+shift_statistics(_).
 
-thread_statistics :-
+thread_statistics(Out) :-
 	current_prolog_flag(threads, true), !,
 	statistics(threads, Active),
 	statistics(threads_created, Created),
 	statistics(thread_cputime, CpuTime),
 	Finished is Created - Active,
-	format('~D threads, ~D finished threads used ~2f seconds.~n',
+	format(Out, '~D threads, ~D finished threads used ~2f seconds.~n',
 	       [Active, Finished, CpuTime]).
-thread_statistics.
+thread_statistics(_).
 
 
 		/********************************

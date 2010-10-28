@@ -295,7 +295,7 @@ getSizeFont(FontObj f)
 }
 
 
-Bool
+BoolObj
 getFixedWidthFont(FontObj f)
 { if ( isDefault(f->fixed_width) )
   { getXrefObject(f, CurrentDisplay(NIL));
@@ -310,7 +310,7 @@ getFixedWidthFont(FontObj f)
 }
 
 
-Bool
+BoolObj
 getB16Font(FontObj f)
 { if ( isDefault(f->iswide) )
     XopenFont(f, CurrentDisplay(NIL));

@@ -61,9 +61,9 @@
 #endif
 
 #ifdef O_XOS
-#define STAT_TYPE struct _stat
+#define STAT_TYPE struct _stati64
 #define STAT_FUNC _xos_stat
-#define FSTAT_FUNC _fstat
+#define FSTAT_FUNC _fstati64
 #else
 #define STAT_TYPE struct stat
 #define STAT_FUNC stat
@@ -93,7 +93,7 @@ NewClass(fileobj)
   Name		kind;			/* {text,binary} */
   Name		status;			/* current open mode */
   Name		filter;			/* I/O filter used */
-  Bool		bom;			/* Use/has BOM marker? */
+  BoolObj		bom;			/* Use/has BOM marker? */
   Name		newline_mode;		/* Newline mode {dos,posix} */
   IOSTREAM     *fd;			/* file descriptor */
 End;
@@ -125,7 +125,7 @@ NewClass(process)
   Vector	arguments;		/* vector of arguments */
   Name		status;			/* status of process */
   Any		code;			/* Signal/exit status */
-  Bool		use_tty;		/* use a tty? */
+  BoolObj		use_tty;		/* use a tty? */
   Name		tty;			/* Pseudo tty used */
   Code		terminate_message;	/* message forwarded o terminate */
   Int		pid;			/* Process id */

@@ -561,6 +561,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 
   while((c = *format++))
   { int arg = NOARG;
+    int altO = FALSE;
 
     switch(c)
     { case '%':
@@ -706,6 +707,11 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUTCHR(fd, '\n');
 	    break;
 	  case 'O':
+	    if ( format[0] == 'z' )
+	    { altO = TRUE;
+	      goto fmt_next;
+	    }
+
 	    return fmt_not_implemented("%O");
 	  case 'r':			/* The  time in a.m./p.m. notation */
 	    SUBFORMAT(L"%I:%M:%S %p");	/* TBD: :-separator locale handling */
@@ -784,6 +790,8 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	      OUTCHR(fd, '-');
 	    }
 	    OUT2DIGITS(fd, min/60);
+	    if ( altO )
+	      OUTCHR(fd, ':');
 	    OUT2DIGITS(fd, min%60);
 	    break;
 	  }

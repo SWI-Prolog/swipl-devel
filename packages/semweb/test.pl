@@ -71,11 +71,11 @@ test(gzip_file, [true(N == 1), cleanup(rdf_reset_db)]) :-
 	rdf_statistics(triples(N)).
 
 test(http, [true(N == 1), cleanup(rdf_reset_db)]) :-
-	rdf_load('http://gollem.science.uva.nl/SWI-Prolog/Tests/semweb/test-001.rdf', [silent(true)]),
+	rdf_load('http://www.swi-prolog.org/Tests/semweb/test-001.rdf', [silent(true)]),
 	rdf_statistics(triples(N)).
 
 test(gzip_http, [true(N == 1), cleanup(rdf_reset_db)]) :-
-	rdf_load('http://gollem.science.uva.nl/SWI-Prolog/Tests/semweb/test-002.rdf.gz', [silent(true)]),
+	rdf_load('http://www.swi-prolog.org/Tests/semweb/test-002.rdf.gz', [silent(true)]),
 	rdf_statistics(triples(N)).
 
 :- end_tests(load).

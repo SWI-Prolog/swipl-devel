@@ -76,7 +76,7 @@ VMI=	pl-jumptable.ic pl-codetable.c pl-vmi.h
 !include common.mk
 
 PLSRC=$(PLSRC) ../boot/menu.pl
-PLWINLIBS=wise.pl dde.pl progman.pl registry.pl win_menu.pl
+PLWINLIBS= wise.pl dde.pl progman.pl registry.pl win_menu.pl
 PLLIBS=$(PLLIBS) $(PLWINLIBS)
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 UNICODE=blocks.pl unicode_data.pl

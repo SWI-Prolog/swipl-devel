@@ -453,7 +453,7 @@ drawInImage(Image image, Graphical gr, Point pos)
   int ih = valInt(image->size->h);
   int m;
   Area a;
-  Bool olddisplayed = gr->displayed;
+  BoolObj olddisplayed = gr->displayed;
 
   TRY(verifyAccessImage(image, NAME_drawIn));
 

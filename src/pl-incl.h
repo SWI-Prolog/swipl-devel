@@ -390,12 +390,6 @@ them.  Descriptions:
 	use malloc() for allocating the stack as the local and global
 	stack need to be apart by this amount.  Also, an interrupt
 	skips this amount of stack.
-
-	* MAXVARIABLES
-	Maximum number of variables in a clause.  May be increased
-	further, but the global local stacks need to be separated
-	by this amount for the segmentation-fault based stack expansion
-	version (just costs virtual memory).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define BUFFER_RING_SIZE 	16	/* foreign buffer ring (pl-fli.c) */
@@ -403,7 +397,6 @@ them.  Descriptions:
 #define MAXARITY		1024	/* arity of predicate */
 #define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
 #define MAXSYMBOLLEN		256	/* max size of foreign symbols */
-#define MAXVARIABLES		65536	/* number of variables/clause */
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */
 #define SMALLSTACK		32 * 1024 /* GC policy */
 
@@ -1872,6 +1865,25 @@ typedef struct
 #define PROCEDURE_dc_call_prolog	(GD->procedures.dc_call_prolog0)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
+
+		 /*******************************
+		 *	  TEXT PROCESSING	*
+		 *******************************/
+
+typedef enum
+{ CVT_ok = 0,				/* Conversion ok */
+  CVT_wide,				/* Conversion needs wide characters */
+  CVT_partial,				/* Input list is partial */
+  CVT_nolist,				/* Input list is not a list */
+  CVT_nocode,				/* List contains a non-code */
+  CVT_nochar				/* List contains a non-char */
+} CVT_status;
+
+typedef struct
+{ CVT_status status;
+  word culprit;				/* for CVT_nocode/CVT_nochar */
+} CVT_result;
+
 
 		/********************************
 		*            DEBUGGER           *

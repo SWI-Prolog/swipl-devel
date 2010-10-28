@@ -33,6 +33,7 @@
 	    http_delete_handler/1,	% +Path
 	    http_reply_file/3,		% +File, +Options, +Request
 	    http_redirect/3,		% +How, +Path, +Request
+	    http_404/2,			% +Options, +Request
 	    http_current_handler/2,	% ?Path, ?Pred
 	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2,	% +ID, -Location
@@ -110,7 +111,15 @@ write_index(Request) :-
 %		* prefix
 %		Call Pred on any location that is a specialisation of
 %		Path.  If multiple handlers match, the one with the
-%		longest path is used.
+%		longest path is used.  Options defined with a prefix
+%		handler are the default options for paths that start
+%		with this prefix.  Note that the handler acts as a
+%		fallback handler for the tree below it:
+%
+%		  ==
+%		  :- http_handler(/, http_404([index('index.html')]),
+%				  [spawn(my_pool),prefix]).
+%		  ==
 %
 %		* priority(+Integer)
 %		If two handlers handle the same path, the one with the
@@ -672,7 +681,7 @@ unsafe_name(Name) :- sub_atom(Name, _, _, 0, '/..').
 %			    []).
 %	    ==
 %
-%	@param How is one of =moved=, =moved_temporary= or =see_also=
+%	@param How is one of =moved=, =moved_temporary= or =see_other=
 %	@param To is an atom, a aliased path as defined by
 %	http_absolute_location/3. or a term location_by_id(Id). If To is
 %	not absolute, it is resolved relative to the current location.
@@ -683,9 +692,32 @@ http_redirect(How, To, Request) :-
 	;   memberchk(path(Base), Request),
 	    http_absolute_location(To, URL, [relative_to(Base)])
 	),
-	must_be(oneof([moved, moved_temporary, see_also]), How),
+	must_be(oneof([moved, moved_temporary, see_other]), How),
 	Term =.. [How,URL],
 	throw(http_reply(Term)).
+
+
+%%	http_404(+Options, +Request) is det.
+%
+%	Reply using an "HTTP  404  not   found"  page.  This  handler is
+%	intended as fallback handler  for   _prefix_  handlers.  Options
+%	processed are:
+%
+%	    * index(Location)
+%	    If there is no path-info, redirect the request to
+%	    Location using http_redirect/3.
+%
+%	@error http_reply(not_found(Path))
+
+http_404(Options, Request) :-
+	option(index(Index), Options),
+	\+ ( memberchk(path_info(PathInfo), Request),
+	     PathInfo \== ''
+	   ), !,
+	http_redirect(moved, Index, Request).
+http_404(_Options, Request) :-
+	memberchk(path(Path), Request),
+	throw(http_reply(not_found(Path))).
 
 
 		 /*******************************

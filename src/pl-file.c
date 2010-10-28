@@ -510,7 +510,7 @@ load_stream_ref(IOSTREAM *fd)
 static PL_blob_t stream_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
-  "stream_ref",
+  "stream",
   release_stream_ref,
   NULL,
   write_stream_ref,
@@ -640,7 +640,7 @@ unify_stream_ref(term_t t, IOSTREAM *s)
   rval = PL_unify_blob(t, &ref, sizeof(ref), &stream_blob);
 
   if ( !rval && !PL_is_variable(t) )
-    return PL_error(NULL, 0, "stream-argument", ERR_MUST_BE_VAR, 0);
+    return PL_error(NULL, 0, "stream-argument", ERR_UNINSTANTIATION, 0, t);
 
   return rval;
 }
@@ -2898,17 +2898,8 @@ openStream(term_t file, term_t mode, term_t options)
   *h = EOS;
 
 					/* FILE */
-  if ( PL_get_chars(file, &path,
-		    CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_FN) )
-  { if ( !(s = Sopen_file(path, how)) )
-    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_open, ATOM_source_sink, file);
-      return NULL;
-    }
-    setFileNameStream(s, fn_to_atom(path));
-  }
 #ifdef HAVE_POPEN
-  else if ( PL_is_functor(file, FUNCTOR_pipe1) )
+  if ( PL_is_functor(file, FUNCTOR_pipe1) )
   { term_t a;
     char *cmd;
 
@@ -2925,9 +2916,16 @@ openStream(term_t file, term_t mode, term_t options)
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-  }
+  } else
 #endif /*HAVE_POPEN*/
-  else
+  if ( PL_get_file_name(file, &path, 0) )
+  { if ( !(s = Sopen_file(path, how)) )
+    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_open, ATOM_source_sink, file);
+      return NULL;
+    }
+    setFileNameStream(s, fn_to_atom(path));
+  } else
   { return NULL;
   }
 

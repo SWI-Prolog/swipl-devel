@@ -26,15 +26,15 @@
 #include <h/unix.h>
 #include <h/text.h>
 
-static status	highlightStyle(Style s, Bool on);
-static status	underlineStyle(Style s, Bool on);
-static status	greyStyle(Style s, Bool on);
-static status	hiddenStyle(Style s, Bool on);
+static status	highlightStyle(Style s, BoolObj on);
+static status	underlineStyle(Style s, BoolObj on);
+static status	greyStyle(Style s, BoolObj on);
+static status	hiddenStyle(Style s, BoolObj on);
 
 static status
 initialiseStyle(Style s, Image icon, FontObj font, Colour colour,
-		Bool highlight, Bool underline, Bool bold, Bool grey,
-		Any background, Bool hidden, Int lm, Int rm)
+		BoolObj highlight, BoolObj underline, BoolObj bold, BoolObj grey,
+		Any background, BoolObj hidden, Int lm, Int rm)
 { if ( isDefault(icon) ) icon = NIL;
   if ( isDefault(lm) )   lm = ZERO;
   if ( isDefault(rm) )   rm = ZERO;
@@ -80,7 +80,7 @@ loadStyle(Style s, IOSTREAM *fd, ClassDef def)
 
 
 static status
-attribute_style(Style s, unsigned char att, Bool on)
+attribute_style(Style s, unsigned char att, BoolObj on)
 { if ( on == ON )
   { if ( s->attributes && att )
       succeed;
@@ -96,66 +96,66 @@ attribute_style(Style s, unsigned char att, Bool on)
 
 
 static status
-highlightStyle(Style s, Bool on)
+highlightStyle(Style s, BoolObj on)
 { return attribute_style(s, TXT_HIGHLIGHTED, on);
 }
 
 
 static status
-underlineStyle(Style s, Bool on)
+underlineStyle(Style s, BoolObj on)
 { return attribute_style(s, TXT_UNDERLINED, on);
 }
 
 
 static status
-greyStyle(Style s, Bool on)
+greyStyle(Style s, BoolObj on)
 { return attribute_style(s, TXT_GREYED, on);
 }
 
 
 status
-boldStyle(Style s, Bool on)
+boldStyle(Style s, BoolObj on)
 { return attribute_style(s, TXT_BOLDEN, on);
 }
 
 
 static status
-hiddenStyle(Style s, Bool on)
+hiddenStyle(Style s, BoolObj on)
 { return attribute_style(s, TXT_HIDDEN, on);
 }
 
 
-static Bool
+static BoolObj
 get_attribute_style(Style s, unsigned char att)
 { return (s->attributes & att) ? ON : OFF;
 }
 
 
-static Bool
+static BoolObj
 getHighlightStyle(Style s)
 { return get_attribute_style(s, TXT_HIGHLIGHTED);
 }
 
 
-static Bool
+static BoolObj
 getUnderlineStyle(Style s)
 { return get_attribute_style(s, TXT_UNDERLINED);
 }
 
 
-static Bool
+static BoolObj
 getGreyStyle(Style s)
 { return get_attribute_style(s, TXT_GREYED);
 }
 
 
-static Bool
+static BoolObj
 getBoldStyle(Style s)
 { return get_attribute_style(s, TXT_BOLDEN);
 }
 
 
-static Bool
+static BoolObj
 getHiddenStyle(Style s)
 { return get_attribute_style(s, TXT_HIDDEN);
 }

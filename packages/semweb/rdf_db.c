@@ -195,6 +195,9 @@ static functor_t FUNCTOR_substring1;
 static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
 static functor_t FUNCTOR_like1;
+static functor_t FUNCTOR_le1;
+static functor_t FUNCTOR_between2;
+static functor_t FUNCTOR_ge1;
 
 static functor_t FUNCTOR_symmetric1;
 static functor_t FUNCTOR_inverse_of1;
@@ -1382,7 +1385,7 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
     init_atomset(&object_set);
     for(byp = db->table[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
 	byp;
-	byp = byp->next[ICOL(t.indexed)])
+	byp = byp->tp.next[ICOL(t.indexed)])
     { if ( !byp->erased && !byp->is_duplicate )
       { if ( (which == DISTINCT_DIRECT && byp->predicate.r == p) ||
 	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate.r, p)) )
@@ -1739,7 +1742,7 @@ typedef struct literal_ex
 
 static inline void
 prepare_literal_ex(literal_ex *lex)
-{ SECURE(lex->magic = 0x2b97e881);
+{ SECURE(lex->magic = LITERAL_EX_MAGIC);
 
   if ( lex->literal->objtype == OBJ_STRING )
   { lex->atom.handle = lex->literal->value.string;
@@ -1759,40 +1762,51 @@ new_literal(rdf_db *db)
 
 
 static int
+free_literal_value(rdf_db *db, literal *lit)
+{ int rc = TRUE;
+
+  unlock_atoms_literal(lit);
+
+  if ( lit->shared && !db->resetting )
+  { literal_ex lex;
+
+    lit->shared = FALSE;
+    rc = broadcast(EV_OLD_LITERAL, lit, NULL);
+    DEBUG(2,
+	  Sdprintf("Delete %p from literal table: ", lit);
+	  print_literal(lit);
+	  Sdprintf("\n"));
+
+    lex.literal = lit;
+    prepare_literal_ex(&lex);
+
+    if ( !avldel(&db->literals, &lex) )
+    { Sdprintf("Failed to delete %p (size=%ld): ", lit, db->literals.count);
+      print_literal(lit);
+      Sdprintf("\n");
+      assert(0);
+    }
+  }
+
+  if ( lit->objtype == OBJ_TERM &&
+       lit->value.term.record )
+  { if ( lit->term_loaded )
+      rdf_free(db, lit->value.term.record, lit->value.term.len);
+    else
+      PL_erase_external(lit->value.term.record);
+  }
+
+  return rc;
+}
+
+
+static int
 free_literal(rdf_db *db, literal *lit)
 { int rc = TRUE;
 
   if ( --lit->references == 0 )
-  { unlock_atoms_literal(lit);
+  { rc = free_literal_value(db, lit);
 
-    if ( lit->shared && !db->resetting )
-    { literal_ex lex;
-
-      lit->shared = FALSE;
-      rc = broadcast(EV_OLD_LITERAL, lit, NULL);
-      DEBUG(2,
-	    Sdprintf("Delete %p from literal table: ", lit);
-	    print_literal(lit);
-	    Sdprintf("\n"));
-
-      lex.literal = lit;
-      prepare_literal_ex(&lex);
-
-      if ( !avldel(&db->literals, &lex) )
-      { Sdprintf("Failed to delete %p (size=%ld): ", lit, db->literals.count);
-	print_literal(lit);
-	Sdprintf("\n");
-	assert(0);
-      }
-    }
-
-    if ( lit->objtype == OBJ_TERM &&
-	 lit->value.term.record )
-    { if ( lit->term_loaded )
-	rdf_free(db, lit->value.term.record, lit->value.term.len);
-      else
-	PL_erase_external(lit->value.term.record);
-    }
     rdf_free(db, lit, sizeof(*lit));
   }
 
@@ -1866,10 +1880,8 @@ compare_literals() sorts literals.  Ordering is defined as:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compare_literals(void *p1, void *p2, NODE type)
-{ literal_ex *lex = p1;
-  literal *l1 = lex->literal;
-  literal *l2 = *(literal**)p2;
+compare_literals(literal_ex *lex, literal *l2)
+{ literal *l1 = lex->literal;
 
   SECURE(assert(lex->magic == LITERAL_EX_MAGIC));
 
@@ -1901,7 +1913,8 @@ compare_literals(void *p1, void *p2, NODE type)
 	term_t t2 = PL_new_term_ref();
 	int rc;
 
-	PL_recorded_external(l1->value.term.record, t1); /* can also be handled in literal_ex */
+					/* can also be handled in literal_ex */
+	PL_recorded_external(l1->value.term.record, t1);
 	PL_recorded_external(l2->value.term.record, t2);
 	rc = PL_compare(t1, t2);
 
@@ -1923,6 +1936,15 @@ compare_literals(void *p1, void *p2, NODE type)
   } else
   { return l1->objtype - l2->objtype;
   }
+}
+
+
+static int
+avl_compare_literals(void *p1, void *p2, NODE type)
+{ literal_ex *lex = p1;
+  literal *l2 = *(literal**)p2;
+
+  return compare_literals(lex, l2);
 }
 
 
@@ -1948,7 +1970,7 @@ static void
 init_literal_table(rdf_db *db)
 { avlinit(&db->literals,
 	  db, sizeof(literal*),
-	  compare_literals,
+	  avl_compare_literals,
 	  NULL,
 	  avl_malloc,
 	  avl_free);
@@ -2036,7 +2058,7 @@ check_transitivity()
       lex.literal = &array[i];
       prepare_literal_ex(&lex);
 
-      if ( compare_literals(&lex, &array[j], IS_NULL) >= 0 )
+      if ( compare_literals(&lex, array[j]) >= 0 )
       { Sdprintf("\nERROR: i,j=%d,%d: ", i, j);
 	print_literal(array[i]);
 	Sdprintf(" >= ");
@@ -2133,6 +2155,8 @@ free_triple(rdf_db *db, triple *t)
 
   if ( t->object_is_literal && t->object.literal )
     free_literal(db, t->object.literal);
+  if ( t->match == STR_MATCH_BETWEEN )
+    free_literal_value(db, &t->tp.end);
 
   if ( t->allocated )
     rdf_free(db, t, sizeof(*t));
@@ -2188,6 +2212,9 @@ object_hash(triple *t)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 triple_hash() computes the hash for a triple   on  a given index. It can
 only be called for indices defined in the col_index-array.
+
+If   you   change   anything   here,   you    might   need   to   update
+init_cursor_from_literal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2224,7 +2251,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = atom_hash(t->subject) ^ atom_hash(t->graph);
       break;
     case BY_PG:
-      v = atom_hash(t->subject) ^ atom_hash(t->graph);
+      v = predicate_hash(t->predicate.r) ^ atom_hash(t->graph);
       break;
     default:
       v = 0;				/* make compiler silent */
@@ -2253,20 +2280,26 @@ static int by_inverse[8] =
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-triple *first(atom_t subject)
-    Find the first triple on subject.  The first is marked to generate a
-    unique subjects quickly;
+triple *first(rdf_db *db, atom_t subject, triple *t)
+
+Find the first triple on subject.  The   first  is  marked to generate a
+unique subjects quickly. If triple is given, start searching from there.
+This speeds up deletion of graphs,  where   we  tend  to delete multiple
+triples on the same subject.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static triple *
-first(rdf_db *db, atom_t subject)
-{ triple *t, tmp;
-  int hash;
+first(rdf_db *db, atom_t subject, triple *t)
+{ if ( !t )
+  { triple tmp;
+    int hash;
 
-  tmp.subject = subject;
-  hash = triple_hash(db, &tmp, BY_S);
+    tmp.subject = subject;
+    hash = triple_hash(db, &tmp, BY_S);
+    t=db->table[ICOL(BY_S)][hash];
+  }
 
-  for(t=db->table[ICOL(BY_S)][hash]; t; t = t->next[ICOL(BY_S)])
+  for( ; t; t = t->tp.next[ICOL(BY_S)])
   { if ( t->subject == subject && !t->erased )
       return t;
   }
@@ -2284,7 +2317,7 @@ link_triple_hash(rdf_db *db, triple *t)
     int hash = triple_hash(db, t, i);
 
     if ( db->tail[ic][hash] )
-    { db->tail[ic][hash]->next[ic] = t;
+    { db->tail[ic][hash]->tp.next[ic] = t;
     } else
     { db->table[ic][hash] = t;
     }
@@ -2304,7 +2337,7 @@ typedef enum
 static dub_state
 discard_duplicate(rdf_db *db, triple *t)
 { triple *d;
-  const int indexed = BY_SP;
+  const int indexed = BY_SPO;
   dub_state rc = DUP_NONE;
 
   assert(t->is_duplicate == FALSE);
@@ -2313,7 +2346,7 @@ discard_duplicate(rdf_db *db, triple *t)
   if ( WANT_GC(db) )			/* (*) See above */
     update_hash(db);
   d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
-  for( ; d && d != t; d = d->next[ICOL(indexed)] )
+  for( ; d && d != t; d = d->tp.next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
     { if ( d->graph == t->graph &&
 	   (d->line == NO_LINE || d->line == t->line) )
@@ -2346,7 +2379,7 @@ link_triple_silent(rdf_db *db, triple *t)
     return FALSE;
 
   if ( db->by_none_tail )
-    db->by_none_tail->next[ICOL(BY_NONE)] = t;
+    db->by_none_tail->tp.next[ICOL(BY_NONE)] = t;
   else
     db->by_none = t;
   db->by_none_tail = t;
@@ -2359,7 +2392,7 @@ link_triple_silent(rdf_db *db, triple *t)
     goto ok;				/* is a duplicate */
 
 					/* keep track of subjects */
-  one = first(db, t->subject);
+  one = first(db, t->subject, NULL);
   if ( !one->first )
   { one->first = TRUE;
     db->subjects++;
@@ -2477,7 +2510,7 @@ rehash_triples(rdf_db *db)
 
 					/* delete leading erased triples */
   for(t=db->by_none; t && t->erased; t=t2)
-  { t2 = t->next[ICOL(BY_NONE)];
+  { t2 = t->tp.next[ICOL(BY_NONE)];
 
     free_triple(db, t);
     db->freed++;
@@ -2489,22 +2522,22 @@ rehash_triples(rdf_db *db)
   { triple *t3;
     int i;
 
-    t2 = t->next[ICOL(BY_NONE)];
+    t2 = t->tp.next[ICOL(BY_NONE)];
 
     for(i=1; i<INDEX_TABLES; i++)
-      t->next[i] = NULL;
+      t->tp.next[i] = NULL;
 
     assert(t->erased == FALSE);
     link_triple_hash(db, t);
 
     for( ; t2 && t2->erased; t2=t3 )
-    { t3 = t2->next[ICOL(BY_NONE)];
+    { t3 = t2->tp.next[ICOL(BY_NONE)];
 
       free_triple(db, t2);
       db->freed++;
     }
 
-    t->next[ICOL(BY_NONE)] = t2;
+    t->tp.next[ICOL(BY_NONE)] = t2;
     if ( !t2 )
       db->by_none_tail = t;
   }
@@ -2601,7 +2634,7 @@ erase_triple_silent(rdf_db *db, triple *t)
     }
 
     if ( t->first )
-    { triple *one = first(db, t->subject);
+    { triple *one = first(db, t->subject, t);
 
       if ( one )
 	one->first = TRUE;
@@ -2629,6 +2662,39 @@ erase_triple(rdf_db *db, triple *t)
   rc = broadcast(EV_RETRACT, t, NULL);
   erase_triple_silent(db, t);
   return rc;
+}
+
+
+static int
+match_literals(int how, literal *p, literal *e, literal *v)
+{ literal_ex lex;
+
+  lex.literal = p;
+  prepare_literal_ex(&lex);
+
+  DEBUG(2, { Sdprintf("match_literals(");
+	     print_literal(p);
+	     Sdprintf(", ");
+	     print_literal(v);
+	     Sdprintf(")\n"); });
+
+  switch(how)
+  { case STR_MATCH_LE:
+      return compare_literals(&lex, v) >= 0;
+    case STR_MATCH_GE:
+      return compare_literals(&lex, v) <= 0;
+    case STR_MATCH_BETWEEN:
+      if ( compare_literals(&lex, v) <= 0 )
+      { lex.literal = e;
+	prepare_literal_ex(&lex);
+
+	if ( compare_literals(&lex, v) >= 0 )
+	  return TRUE;
+      }
+      return FALSE;
+    default:
+      return match_atoms(how, p->value.string, v->value.string);
+  }
 }
 
 
@@ -2667,8 +2733,7 @@ match_object(triple *t, triple *p, unsigned flags)
 	  if ( plit->value.string )
 	  { if ( tlit->value.string != plit->value.string )
 	    { if ( p->match >= STR_MATCH_EXACT )
-	      { return match_atoms(p->match,
-				   plit->value.string, tlit->value.string);
+	      { return match_literals(p->match, plit, &p->tp.end, tlit);
 	      } else
 	      { return FALSE;
 	      }
@@ -2676,10 +2741,16 @@ match_object(triple *t, triple *p, unsigned flags)
 	  }
 	  return TRUE;
 	case OBJ_INTEGER:
+	  if ( p->match >= STR_MATCH_LE )
+	    return match_literals(p->match, plit, &p->tp.end, tlit);
 	  return tlit->value.integer == plit->value.integer;
 	case OBJ_DOUBLE:
+	  if ( p->match >= STR_MATCH_LE )
+	    return match_literals(p->match, plit, &p->tp.end, tlit);
 	  return tlit->value.real == plit->value.real;
 	case OBJ_TERM:
+	  if ( p->match >= STR_MATCH_LE )
+	    return match_literals(p->match, plit, &p->tp.end, tlit);
 	  if ( plit->value.term.record &&
 	       plit->value.term.len != tlit->value.term.len )
 	    return FALSE;
@@ -3058,7 +3129,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     return FALSE;
   }
 
-  for(t = db->by_none; t; t = t->next[ICOL(BY_NONE)])
+  for(t = db->by_none; t; t = t->tp.next[ICOL(BY_NONE)])
   { if ( !t->erased &&
 	 (!src || t->graph == src) )
     { write_triple(db, out, t, &ctx);
@@ -3360,7 +3431,7 @@ load_db(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	  return FALSE;
 
 	if ( tail )
-	{ tail->next[ICOL(BY_NONE)] = t;
+	{ tail->tp.next[ICOL(BY_NONE)] = t;
 	  tail = t;
 	} else
 	{ list = tail = t;
@@ -3436,9 +3507,9 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
   { triple *next;
 
     for( ; t; t = next )
-    { next = t->next[ICOL(BY_NONE)];
+    { next = t->tp.next[ICOL(BY_NONE)];
 
-      t->next[ICOL(BY_NONE)] = NULL;
+      t->tp.next[ICOL(BY_NONE)] = NULL;
       lock_atoms(t);
       record_transaction(db, TR_ASSERT, t);
     }
@@ -3446,9 +3517,9 @@ link_loaded_triples(rdf_db *db, triple *t, ld_context *ctx)
   { triple *next;
 
     for( ; t; t = next )
-    { next = t->next[ICOL(BY_NONE)];
+    { next = t->tp.next[ICOL(BY_NONE)];
 
-      t->next[ICOL(BY_NONE)] = NULL;
+      t->tp.next[ICOL(BY_NONE)] = NULL;
       lock_atoms(t);
       if ( link_triple_silent(db, t) )
 	broadcast(EV_ASSERT_LOAD, t, NULL);
@@ -3794,13 +3865,8 @@ object.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_literal(rdf_db *db, term_t litt, triple *t, int flags)
-{ literal *lit;
-
-  alloc_literal_triple(db, t);
-  lit = t->object.literal;
-
-  if ( PL_get_atom(litt, &lit->value.string) )
+get_literal(rdf_db *db, term_t litt, literal *lit, int flags)
+{ if ( PL_get_atom(litt, &lit->value.string) )
   { lit->objtype = OBJ_STRING;
   } else if ( PL_is_integer(litt) && PL_get_int64(litt, &lit->value.integer) )
   { lit->objtype = OBJ_INTEGER;
@@ -3828,7 +3894,7 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
     lit->qualifier = Q_TYPE;
     _PL_get_arg(2, litt, a);
 
-    return get_literal(db, a, t, LIT_TYPED|flags);
+    return get_literal(db, a, lit, LIT_TYPED|flags);
   } else if ( !PL_is_ground(litt) )
   { if ( !(flags & LIT_PARTIAL) )
       return type_error(litt, "rdf_object");
@@ -3851,7 +3917,8 @@ get_object(rdf_db *db, term_t object, triple *t)
   { term_t a = PL_new_term_ref();
 
     _PL_get_arg(1, object, a);
-    return get_literal(db, a, t, 0);
+    alloc_literal_triple(db, t);
+    return get_literal(db, a, t->object.literal, 0);
   } else
     return type_error(object, "rdf_object");
 
@@ -3967,7 +4034,8 @@ get_partial_triple(rdf_db *db,
     { term_t a = PL_new_term_ref();
 
       _PL_get_arg(1, object, a);
-      if ( !get_literal(db, a, t, LIT_PARTIAL) )
+      alloc_literal_triple(db, t);
+      if ( !get_literal(db, a, t->object.literal, LIT_PARTIAL) )
 	return FALSE;
     } else if ( PL_is_functor(object, FUNCTOR_literal2) )
     { term_t a = PL_new_term_ref();
@@ -3989,13 +4057,30 @@ get_partial_triple(rdf_db *db,
 	t->match = STR_MATCH_PREFIX;
       else if ( PL_is_functor(a, FUNCTOR_like1) )
 	t->match = STR_MATCH_LIKE;
-      else
+      else if ( PL_is_functor(a, FUNCTOR_le1) )
+	t->match = STR_MATCH_LE;
+      else if ( PL_is_functor(a, FUNCTOR_ge1) )
+	t->match = STR_MATCH_GE;
+      else if ( PL_is_functor(a, FUNCTOR_between2) )
+      { term_t e = PL_new_term_ref();
+
+	_PL_get_arg(2, a, e);
+	memset(&t->tp.end, 0, sizeof(t->tp.end));
+	if ( !get_literal(db, e, &t->tp.end, 0) )
+	  return FALSE;
+	t->match = STR_MATCH_BETWEEN;
+      } else
 	return domain_error(a, "match_type");
 
       _PL_get_arg(1, a, a);
-      if ( !get_atom_or_var_ex(a, &lit->value.string) )
-	return FALSE;
-      lit->objtype = OBJ_STRING;
+      if ( t->match >= STR_MATCH_LE )
+      { if ( !get_literal(db, a, lit, 0) )
+	  return FALSE;
+      } else
+      { if ( !get_atom_or_var_ex(a, &lit->value.string) )
+	  return FALSE;
+	lit->objtype = OBJ_STRING;
+      }
     } else
       return type_error(object, "rdf_object");
   }
@@ -4269,7 +4354,7 @@ update_duplicates_add(rdf_db *db, triple *t)
   if ( WANT_GC(db) )			/* (*) See above */
     update_hash(db);
   d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
-  for( ; d && d != t; d = d->next[ICOL(indexed)] )
+  for( ; d && d != t; d = d->tp.next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
     { t->is_duplicate = TRUE;
       assert( !d->is_duplicate );
@@ -4306,7 +4391,7 @@ update_duplicates_del(rdf_db *db, triple *t)
 
     db->duplicates--;
     d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
-    for( ; d; d = d->next[ICOL(indexed)] )
+    for( ; d; d = d->tp.next[ICOL(indexed)] )
     { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
@@ -4329,7 +4414,7 @@ update_duplicates_del(rdf_db *db, triple *t)
 
     db->duplicates--;
     d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
-    for( ; d; d = d->next[ICOL(indexed)] )
+    for( ; d; d = d->tp.next[ICOL(indexed)] )
     { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { if ( d->duplicates )
 	{ d->duplicates--;
@@ -4874,13 +4959,21 @@ init_cursor_from_literal(search_state *state, literal *cursor)
 	Sdprintf("\n"));
 
   p->indexed |= BY_O;
-  p->indexed &= ~BY_S;			/* we do not have index BY_SO */
-  switch(p->indexed)
+  p->indexed &= ~BY_G;			/* No graph indexing supported */
+  if ( p->indexed == BY_SO )
+    p->indexed = BY_S;			/* we do not have index BY_SO */
+
+  switch(p->indexed)			/* keep in sync with triple_hash() */
   { case BY_O:
       iv = literal_hash(cursor);
       break;
     case BY_PO:
       iv = predicate_hash(p->predicate.r) ^ literal_hash(cursor);
+      break;
+    case BY_SPO:
+      iv = (atom_hash(p->subject)<<1) ^
+	   predicate_hash(p->predicate.r) ^
+	   literal_hash(cursor);
       break;
     default:
       iv = 0;				/* make compiler silent */
@@ -4941,6 +5034,36 @@ init_search_state(search_state *state)
     { free_search_state(state);
       return FALSE;
     }
+  } else if ( p->indexed != BY_SP && p->match >= STR_MATCH_LE )
+  { literal **rlitp;
+
+    state->literal_state = rdf_malloc(state->db,
+				      sizeof(*state->literal_state));
+    state->lit_ex.literal = p->object.literal;
+    prepare_literal_ex(&state->lit_ex);
+
+    switch(p->match)
+    { case STR_MATCH_LE:
+	rlitp = avlfindfirst(&state->db->literals, NULL, state->literal_state);
+        break;
+      case STR_MATCH_GE:
+	rlitp = avlfindfirst(&state->db->literals, &state->lit_ex, state->literal_state);
+        break;
+      case STR_MATCH_BETWEEN:
+	rlitp = avlfindfirst(&state->db->literals, &state->lit_ex, state->literal_state);
+        state->lit_ex.literal = &p->tp.end;
+	prepare_literal_ex(&state->lit_ex);
+        break;
+      default:
+	assert(0);
+    }
+
+    if ( rlitp )
+    { init_cursor_from_literal(state, *rlitp);
+    } else
+    { free_search_state(state);
+      return FALSE;
+    }
   } else
   { state->cursor = state->db->table[ICOL(p->indexed)]
     				    [triple_hash(state->db, p, p->indexed)];
@@ -4973,6 +5096,8 @@ allow_retry_state(search_state *state)
 { if ( !state->allocated )
   { search_state *copy = rdf_malloc(state->db, sizeof(*copy));
     *copy = *state;
+    if ( state->lit_ex.literal == &state->pattern.tp.end )
+      copy->lit_ex.literal = &copy->pattern.tp.end;
     copy->allocated = TRUE;
     inc_active_queries(state->db);
 
@@ -4993,7 +5118,7 @@ next_search_state(search_state *state)
   triple *p = &state->pattern;
 
 retry:
-  for( ; t; t = t->next[ICOL(p->indexed)])
+  for( ; t; t = t->tp.next[ICOL(p->indexed)])
   { if ( t->is_duplicate && !state->src )
       continue;
 
@@ -5014,9 +5139,9 @@ retry:
 	  return FALSE;
       }
 
-      t=t->next[ICOL(p->indexed)];
+      t=t->tp.next[ICOL(p->indexed)];
     inv_alt:
-      for(; t; t = t->next[ICOL(p->indexed)])
+      for(; t; t = t->tp.next[ICOL(p->indexed)])
       { if ( state->literal_state )
 	{ if ( !(t->object_is_literal &&
 		 t->object.literal == state->literal_cursor) )
@@ -5050,19 +5175,41 @@ retry:
   { literal **litp;
 
     if ( (litp = avlfindnext(state->literal_state)) )
-    { if ( state->prefix )
-      { literal *lit = *litp;
+    { literal *lit = *litp;
 
-	if ( !match_atoms(STR_MATCH_PREFIX, state->prefix, lit->value.string) )
-	{ DEBUG(1,
-		Sdprintf("Terminated literal iteration from ");
-		print_literal(lit);
-		Sdprintf("\n"));
-	  return FALSE;			/* no longer a prefix */
+      DEBUG(2, Sdprintf("next: ");
+	       print_literal(lit);
+	       Sdprintf("\n"));
+
+      switch(state->pattern.match)
+      { case STR_MATCH_PREFIX:
+	{ if ( !match_atoms(STR_MATCH_PREFIX, state->prefix, lit->value.string) )
+	  { DEBUG(1,
+		  Sdprintf("PREFIX: terminated literal iteration from ");
+		  print_literal(lit);
+		  Sdprintf("\n"));
+	    return FALSE;			/* no longer a prefix */
+	  }
+
+	  break;
+	}
+	case STR_MATCH_LE:
+	case STR_MATCH_BETWEEN:
+	{ if ( compare_literals(&state->lit_ex, lit) < 0 )
+	  { DEBUG(1,
+		  Sdprintf("LE/BETWEEN(");
+		  print_literal(state->lit_ex.literal);
+		  Sdprintf("): terminated literal iteration from ");
+		  print_literal(lit);
+		  Sdprintf("\n"));
+	    return FALSE;			/* no longer a prefix */
+	  }
+
+	  break;
 	}
       }
 
-      init_cursor_from_literal(state, *litp);
+      init_cursor_from_literal(state, lit);
       t = state->cursor;
 
       goto retry;
@@ -5358,7 +5505,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
     return domain_error(action, "rdf_action");
 
   for(i=0; i<INDEX_TABLES; i++)
-    tmp.next[i] = NULL;
+    tmp.tp.next[i] = NULL;
 
   new = new_triple(db);
   new->subject		 = tmp.subject;
@@ -5416,7 +5563,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
     return FALSE;
   }
   p = db->table[ICOL(indexed)][triple_hash(db, &t, indexed)];
-  for( ; p; p = p->next[ICOL(indexed)])
+  for( ; p; p = p->tp.next[ICOL(indexed)])
   { if ( match_triples(p, &t, MATCH_EXACT) )
     { if ( !update_triple(db, action, p) )
       { WRUNLOCK(db);
@@ -5468,7 +5615,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 */
   p = db->table[ICOL(t.indexed)][triple_hash(db, &t, t.indexed)];
-  for( ; p; p = p->next[ICOL(t.indexed)])
+  for( ; p; p = p->tp.next[ICOL(t.indexed)])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
     { if ( t.object_is_literal && t.object.literal->objtype == OBJ_TERM )
       { fid_t fid = PL_open_foreign_frame();
@@ -5763,7 +5910,7 @@ rdf_subject(term_t subject, control_t h)
       { atom_t a;
 
 	if ( get_atom_ex(subject, &a) )
-	{ if ( first(db, a) )
+	{ if ( first(db, a, NULL) )
 	    return TRUE;
 	  return FALSE;
 	}
@@ -5774,12 +5921,12 @@ rdf_subject(term_t subject, control_t h)
     case PL_REDO:
       t = PL_foreign_context_address(h);
     next:
-      for(; t; t = t->next[ICOL(BY_NONE)])
+      for(; t; t = t->tp.next[ICOL(BY_NONE)])
       { if ( t->first && !t->erased )
 	{ if ( !PL_unify_atom(subject, t->subject) )
 	    return FALSE;
 
-	  t = t->next[ICOL(BY_NONE)];
+	  t = t->tp.next[ICOL(BY_NONE)];
 	  if ( t )
 	    PL_retry_address(t);
 	  return TRUE;
@@ -6173,7 +6320,7 @@ can_reach_target(rdf_db *db, agenda *a)
   }
 
   p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->next[ICOL(indexed)])
+  for( ; p; p = p->tp.next[ICOL(indexed)])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
     { rc = TRUE;
       break;
@@ -6208,7 +6355,7 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
   }
 
   p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->next[ICOL(indexed)])
+  for( ; p; p = p->tp.next[ICOL(indexed)])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
     { atom_t found;
       visited *v;
@@ -6554,7 +6701,7 @@ erase_triples(rdf_db *db)
   int i;
 
   for(t=db->by_none; t; t=n)
-  { n = t->next[ICOL(BY_NONE)];
+  { n = t->tp.next[ICOL(BY_NONE)];
 
     free_triple(db, t);
     db->freed++;
@@ -6739,6 +6886,9 @@ install_rdf_db()
   MKFUNCTOR(word, 1);
   MKFUNCTOR(prefix, 1);
   MKFUNCTOR(like, 1);
+  MKFUNCTOR(le, 1);
+  MKFUNCTOR(between, 2);
+  MKFUNCTOR(ge, 1);
   MKFUNCTOR(literal, 2);
   MKFUNCTOR(searched_nodes, 1);
   MKFUNCTOR(duplicates, 1);
@@ -6798,6 +6948,8 @@ install_rdf_db()
   keys[i++] = 0;
 
   check_index_tables();
+					/* see struct triple */
+  assert(sizeof(literal) <= sizeof(triple*)*INDEX_TABLES);
 
 					/* setup the database */
   DB = new_db();

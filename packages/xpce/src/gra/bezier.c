@@ -453,7 +453,7 @@ pointsBezier(Bezier b, Int sx, Int sy, Int ex, Int ey)
 
 
 static status
-selectedBezier(Bezier b, Bool val)
+selectedBezier(Bezier b, BoolObj val)
 { return assignGraphical(b, NAME_selected, val);
 }
 

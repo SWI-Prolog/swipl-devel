@@ -776,12 +776,12 @@ env(Env, [Open, HtmlItems, Close]) :-		% General lists
 	;   format(user_error, 'Failed to translate "~w" list~n', [List])
 	).
 
-list_command(description,     _, html('<DL>'), html('</DL>')).
-list_command(dlist,	      _, html('<DL>'), html('</DL>')).
-list_command(itemize,         _, html('<UL>'), html('</UL>')).
-list_command(itemlist,        _, html('<UL>'), html('</UL>')).
+list_command(description,     _, html('<DL class="latex">'), html('</DL>')).
+list_command(dlist,	      _, html('<DL class="latex">'), html('</DL>')).
+list_command(itemize,         _, html('<UL class="latex">'), html('</UL>')).
+list_command(itemlist,        _, html('<UL class="latex">'), html('</UL>')).
 list_command(shortlist,       _, html('<UL COMPACT>'), html('</UL>')).
-list_command(enumerate,       _, html('<OL>'), html('</OL>')).
+list_command(enumerate,       _, html('<OL class="latex">'), html('</OL>')).
 list_command(thebibliography, _, html('<DL class="bib">'), html('</DL>')).
 
 %	items(+Tokens, -Items)
@@ -2539,6 +2539,10 @@ close_by('DT', is_end('DL')).
 %%	write_html(+Tokens) is det.
 
 write_html([]) :- !.			% Unpack lists
+write_html([html(DD)|T]) :-	% Delete empty DD followed by DT
+	is_begin('DD', DD),
+	empty_dd(T, Rest), !,
+	write_html(Rest).
 write_html([H|T]) :- !,
 	write_html(H),
 	write_html(T).
@@ -2688,6 +2692,13 @@ write_html(_).
 nl_html :-
 	write_html(verb('\n')).
 
+empty_dd([], []) :- !.
+empty_dd(L, L) :-
+	L = [html(DT)|_],
+	is_begin('DT', DT), !.
+empty_dd(['\n'|T0], T) :-
+	empty_dd(T0, T).
+
 
 %	translate_ref(+Label, -Anchor, -TextLabel)
 
@@ -2719,9 +2730,9 @@ translate_ref(summary, Anchor, summary) :-
 
 
 cmd_layout('<P>',    2, 0).
-cmd_layout('<DL>',   2, 1).
+cmd_layout(DL,       2, 1) :- is_begin('DL', DL).
 cmd_layout('</DL>',  1, 2).
-cmd_layout(DD,   0, 1) :- is_begin('DD', DD).
+cmd_layout(DD,       0, 1) :- is_begin('DD', DD).
 cmd_layout('<H1>',   2, 0).
 cmd_layout('<H2>',   2, 0).
 cmd_layout('<H3>',   2, 0).
@@ -2741,10 +2752,12 @@ cmd_layout('</DIV>', 0, 1).
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
 cmd_layout('</DT>', 	 0, 1).
-cmd_layout('<DD>', 	 1, 0).
+cmd_layout(DD, 		 1, 0) :- is_begin('DD', DD).
 cmd_layout('</DD>', 	 0, 1).
-cmd_layout('<UL>', 	 1, 1).
+cmd_layout(UL, 		 1, 1) :- is_begin('UL', UL).
 cmd_layout('</UL>', 	 1, 1).
+cmd_layout(OL, 		 1, 1) :- is_begin('OL', OL).
+cmd_layout('</OL>', 	 1, 1).
 cmd_layout('<TR>',       1, 0).
 cmd_layout('</TR>',      0, 1).
 cmd_layout('<TBODY>',    1, 1).

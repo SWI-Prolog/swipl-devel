@@ -181,7 +181,7 @@ superType(Type t, Type t2)
 
 
 status
-vectorType(Type t, Bool val)
+vectorType(Type t, BoolObj val)
 { assign(t, vector, val);
 
   succeed;

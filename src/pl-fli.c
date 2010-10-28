@@ -1151,7 +1151,7 @@ unfindBuffer(int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-codes_or_chars_to_buffer(term_t l, unsigned flags, int wide)
+codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_code *status)
 
 If l represents a list of codes   or characters, return a buffer holding
 the characters. If wide == TRUE  the   buffer  contains  objects of type
@@ -1177,35 +1177,53 @@ charCode(word w)
 
 
 Buffer
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide)
+codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *result)
 { GET_LD
   Buffer b;
   word list = valHandle(l);
+  word slow;
   Word arg, tail;
+  int step_slow = TRUE;
   enum { CHARS, CODES } type;
 
   if ( isList(list) )
-  { arg = argTermP(list, 0);
+  { intptr_t c = -1;
+
+    arg = argTermP(list, 0);
     deRef(arg);
+
     if ( isTaggedInt(*arg) )
-    { intptr_t i = valInt(*arg);
-      if ( i >= 0 && (wide || i < 256) )
-      { type = CODES;
-	goto ok;
-      }
-    } else if ( charCode(*arg) >= 0 )
-    { type = CHARS;
-      goto ok;
+    { c = valInt(*arg);
+      type = CODES;
+    } else
+    { c = charCode(*arg);
+      type = CHARS;
+    }
+
+    result->culprit = *arg;
+    if ( c < 0 || (!wide && c > 0xff) )
+    { if ( canBind(*arg) )
+	result->status = CVT_partial;
+      else if ( c < 0 )
+	result->status = CVT_nocode;
+      else if ( c > 0xff )
+	result->status = CVT_wide;
+      return NULL;
     }
   } else if ( isNil(list) )
   { return findBuffer(flags);
+  } else
+  { if ( canBind(list) )
+      result->status = CVT_partial;
+    else
+      result->status = CVT_nolist;
+
+    return NULL;
   }
 
-  fail;
-
-ok:
   b = findBuffer(flags);
 
+  slow = list;
   while( isList(list) )
   { intptr_t c = -1;
 
@@ -1215,8 +1233,7 @@ ok:
     switch(type)
     { case CODES:
 	if ( isTaggedInt(*arg) )
-	{ c = valInt(*arg);
-	}
+	  c = valInt(*arg);
         break;
       case CHARS:
 	c = charCode(*arg);
@@ -1224,7 +1241,15 @@ ok:
     }
 
     if ( c < 0 || (!wide && c > 0xff) )
-    { unfindBuffer(flags);		/* TBD: check unicode range */
+    { result->culprit = *arg;
+
+      unfindBuffer(flags);		/* TBD: check unicode range */
+      if ( canBind(*arg) )
+	result->status = CVT_partial;
+      else if ( c < 0 )
+	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
+      else if ( c > 0xff )
+	result->status = CVT_wide;
       return NULL;
     }
 
@@ -1236,11 +1261,27 @@ ok:
     tail = argTermP(list, 1);
     deRef(tail);
     list = *tail;
+    if ( list == slow )		/* cyclic */
+    { unfindBuffer(flags);
+      result->status = CVT_nolist;
+      return NULL;
+    }
+    if ( (step_slow = !step_slow) )
+    { tail = argTermP(slow, 1);
+      deRef(tail);
+      slow = *tail;
+    }
   }
   if ( !isNil(list) )
   { unfindBuffer(flags);
+    if ( canBind(list) )
+      result->status = CVT_partial;
+    else
+      result->status = CVT_nolist;
     return NULL;
   }
+
+  result->status = CVT_ok;
 
   return b;
 }
@@ -1249,8 +1290,9 @@ ok:
 int
 PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
 { Buffer b;
+  CVT_result result;
 
-  if ( (b = codes_or_chars_to_buffer(l, flags, FALSE)) )
+  if ( (b = codes_or_chars_to_buffer(l, flags, FALSE, &result)) )
   { char *r;
     size_t len = entriesBuffer(b, char);
 

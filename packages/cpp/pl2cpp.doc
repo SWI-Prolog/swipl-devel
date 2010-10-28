@@ -1,11 +1,10 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{times}
-\sloppy
-
 \usepackage{pl}
-\newcommand{\chaptermark}{}
-\usepackage{xpce}
+\usepackage{plpage}
+%\usepackage{xpce}
 \usepackage{html}
+\sloppy
 
 \onefile
 \htmloutput{html}				% Output directory
@@ -265,13 +264,13 @@ define conversion to and from \type{void *}.
 \begin{code}
 PREDICATE(make_my_object, 1)
 { myclass *myobj = new myclass();
-  
+
   return A1 = (void *)myobj;
 }
 
 PREDICATE(free_my_object, 1)
 { myclass *myobj = (void *)A1;
-  
+
   delete(myobj);
   return TRUE;
 }
@@ -430,7 +429,7 @@ compound term.  Raises a \except{type_error} if the argument is not
 compound.
     \cfunction{int}{PlTerm::arity}{}
 Returns the arity of the compound term. Raises a \except{type_error} if
-the argument is not compound. 
+the argument is not compound.
 \end{description}
 
 \subsection{Miscellaneous}
@@ -743,7 +742,7 @@ This construct is currently supported upto 3 arguments.
 
 \section{The class PlQuery}
 
-This class encapsulates the call-backs onto Prolog.  
+This class encapsulates the call-backs onto Prolog.
 
 \begin{description}
     \constructor{PlQuery}{const char *name, const PlTermv \&av}
@@ -755,7 +754,7 @@ predicate is located in the Prolog module \module{user}.
 Same, but performs the predicate lookup in the indicated module.
     \cfunction{int}{PlQuery::next_solution}{}
 Provide the next solution to the query.  Yields \const{TRUE} if
-successful and \const{FALSE} if there are no (more) solutions. 
+successful and \const{FALSE} if there are no (more) solutions.
 Prolog exceptions are mapped to C++ exceptions.
 \end{description}
 
@@ -799,7 +798,7 @@ automatically performed after a call to a C++-defined predicate has
 finished and returns control to Prolog. In this scenario \class{PlFrame}
 is rarely of any use. This class comes into play if the toplevel program
 is defined in C++ and calls Prolog multiple times.  Setting up arguments
-to a query requires term-references and using \class{PlFrame} is the 
+to a query requires term-references and using \class{PlFrame} is the
 only way to reclaim them.
 
 \begin{description}

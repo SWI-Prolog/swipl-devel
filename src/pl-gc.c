@@ -2937,22 +2937,6 @@ of the first frame (well, this can be more subtle, but I really doubt we
 want to try).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-
-static int
-clauseNo(Definition def, Clause cl)
-{ int i;
-  ClauseRef cref;
-
-  for(i=1, cref=def->definition.clauses; cref; cref=cref->next, i++)
-  { if ( cref->clause == cl )
-      return i;
-  }
-
-  return -1;
-}
-
-#endif
 
 static void
 setStartOfVMI(vm_state *state)

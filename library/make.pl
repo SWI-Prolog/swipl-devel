@@ -55,6 +55,7 @@ make :-
 
 modified_file(File) :-
 	'$time_source_file'(Source, Time, user),
+	Time > 0.0,			% See source_file/1
 	(   '$derived_source'(Source, File, LoadTime)
 	->  true
 	;   File = Source,

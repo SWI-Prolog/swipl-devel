@@ -513,16 +513,17 @@ man_page(Obj, Options) -->
 	{ findall((Parent+Path)-DOM,
 		  load_man_object(Obj, Parent, Path, DOM),
 		  Matches),
+	  Matches = [_|_],
+	  pairs_keys(Matches, ParentPaths),
 	  Matches = [Parent+Path-_|_]
 	},
 	html_requires(pldoc),
 	(   { option(links(true), Options, true) }
-	->  man_links(Parent, Options),
+	->  man_links(ParentPaths, Options),
 	    html(p([]))
 	;   []
 	),
-	man_synopsis(Obj),
-	man_matches(Matches).
+	man_matches(Matches, Obj).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
 	  term_to_atom(Obj, Atom)
@@ -533,29 +534,71 @@ man_page(Obj, Options) -->
 	;   html(p(['No manual entry for ', Atom]))
 	).
 
-%%	man_synopsis(+Text)
+%%	man_synopsis(+Text, Parent)
 %
 %	Give synopsis details for a fully specified predicate indicator.
-%
-%	@tbd Give this for each match on the basis of the manual link.
+%	The tricky part is that there   are cases where multiple modules
+%	export the same predicate. We must find   from  the title of the
+%	manual section which library is documented.
 
-man_synopsis(Text) -->
-	{ atom(Text),
-	  sub_atom(Text, Pre, _, Post, /),
-	  sub_atom(Text, _, Post, 0, AA),
-	  catch(atom_number(AA, Arity), _, fail), !,
-	  sub_atom(Text, 0, Pre, _, Name)
+man_synopsis(Text, Parent) -->
+	{ atom_pi(Text, PI) },
+	man_synopsis_2(PI, Parent).
+man_synopsis(Object, Parent) -->
+	man_synopsis_2(Object, Parent).
+
+man_synopsis_2(Name/Arity, Parent) -->
+	{ object_module(Parent, Module),
+	  object_href(Parent, HREF)
 	},
-	object_synopsis(Name/Arity).
-man_synopsis(Object) -->
-	object_synopsis(Object).
+	object_synopsis(Module:Name/Arity, [href(HREF)]).
+man_synopsis_2(Object, _) -->
+	object_synopsis(Object, []).
+
+%%	object_module(+Section, -Module) is semidet.
+%
+%	Find the module documented by Section.
+%
+%	@tbd This requires that the documented file is loaded. If
+%	not, should we use the title of the section?
+
+object_module(Section, Module) :-
+	man_index(Section, Title, _File, _Class, _Offset),
+	(   once(sub_atom(Title, B, _, _, :)),
+	    sub_atom(Title, 0, B, _, Atom),
+	    catch(term_to_atom(Term, Atom), _, fail),
+	    Term = library(_)
+	->  absolute_file_name(Term, PlFile,
+			       [ file_type(prolog),
+				 access(read),
+				 file_errors(fail)
+			       ]),
+	    module_property(Module, file(PlFile))
+	).
 
 
-man_matches([]) -->
-	[].
-man_matches([(_Parent+Path)-H|T]) -->
-	dom_list(H, Path),
-	man_matches(T).
+atom_pi(Text, Name/Arity) :-
+	atom(Text),
+	sub_atom(Text, Pre, _, Post, /),
+	sub_atom(Text, _, Post, 0, AA),
+	catch(atom_number(AA, Arity), _, fail), !,
+	sub_atom(Text, 0, Pre, _, Name).
+
+man_matches([], _) --> [].
+man_matches([H|T], Obj) --> man_match(H, Obj), man_matches(T, Obj).
+
+%%	man_match(+Term, +Object)//
+%
+%	If  possible,  insert  the  synopsis  into   the  title  of  the
+%	description.
+
+man_match((Parent+Path)-[element(dt,A,C),DD], Obj) -->
+	dom_list([ element(dt,[],[\man_synopsis(Obj, Parent)]),
+		   element(dt,A,C),
+		   DD
+		 ], Path).
+man_match((_Parent+Path)-DOM, _Obj) -->
+	dom_list(DOM, Path).
 
 dom_list([], _) -->
 	[].
@@ -693,29 +736,29 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	man_index(section(Level, Nr, SecPath), _, _, _, _).
 
 
-%%	man_links(+Parent, +Options)// is det.
+%%	man_links(+ParentPaths, +Options)// is det.
 %
 %	Create top link structure for manual pages.
 
-man_links(Parent, Options) -->
+man_links(ParentPaths, Options) -->
 	html(div(class(navhdr),
-		 [ div(class(jump), \man_parent(Parent)),
+		 [ div(class(jump), \man_parent(ParentPaths)),
 		   div(class(search), \search_form(Options)),
 		   br(clear(right))
 		 ])).
 
-man_parent(Section) -->
-	{ Section = section(_,_,_)
+man_parent(ParentPaths) -->
+	{ maplist(parent_to_section, ParentPaths, [Section|MoreSections]),
+	  maplist(=(Section), MoreSections)
 	}, !,
 	object_ref(Section, [secref_style(number_title)]).
-man_parent(File) -->
-	{ atom(File),
-	  Obj = section(_,_,_),
-	  man_index(Obj, _Title, File, _Class, _Offset)
-	}, !,
-	object_ref(Obj, [secref_style(number_title)]).
-man_parent(_) -->
-	[].
+man_parent(_) --> [].
+
+parent_to_section(X+_, X) :-
+	X = section(_,_,_), !.
+parent_to_section(File+_, Section) :-
+	atom(File),
+	man_index(Section, _Title, File, _Class, _Offset), !.
 
 %%	section_link(+Obj, +Options)// is det.
 %

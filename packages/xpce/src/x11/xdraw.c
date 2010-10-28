@@ -1088,9 +1088,9 @@ r_swap_background_and_foreground()
 }
 
 
-Bool
-r_subwindow_mode(Bool val)
-{ Bool old = context.gcs->subwindow_mode;
+BoolObj
+r_subwindow_mode(BoolObj val)
+{ BoolObj old = context.gcs->subwindow_mode;
 
   if ( context.gcs->subwindow_mode != val )
   { int mode = (val == ON ? IncludeInferiors : ClipByChildren);
@@ -1110,7 +1110,7 @@ r_subwindow_mode(Bool val)
 
 
 void
-r_invert_mode(Bool val)
+r_invert_mode(BoolObj val)
 { if ( context.gcs->invert_mode != val )
   { XGCValues values;
     int mask = GCFunction|GCPlaneMask;
@@ -2142,7 +2142,7 @@ void
 r_image(Image image,
 	int sx, int sy,
 	int x, int y, int w, int h,
-	Bool transparent)
+	BoolObj transparent)
 { XGCValues values;
 
   if ( image->size->w == ZERO || image->size->h == ZERO )

@@ -91,6 +91,7 @@ suggest predicates from a keyword.
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
+\predicatesummary{blob}{2}{Type check for a blob}
 \predicatesummary{break}{0}{Start interactive top-level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
@@ -541,8 +542,7 @@ suggest predicates from a keyword.
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
-\predicatesummary{subsumes}{2}{One-sided unification}
-\predicatesummary{subsumes_chk}{2}{One-sided unification check}
+\predicatesummary{subsumes_term}{2}{One-sided unification test}
 \predicatesummary{succ}{2}{Logical integer successor relation}
 \predicatesummary{swritef}{2}{Formatted write on a string}
 \predicatesummary{swritef}{3}{Formatted write on a string}
@@ -553,6 +553,7 @@ suggest predicates from a keyword.
 \predicatesummary{tell}{1}{Change current output stream}
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
+\predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
@@ -667,10 +668,12 @@ suggest predicates from a keyword.
 \functionsummary{asin}{1}{Inverse (arc) sine}
 \functionsummary{atan}{1}{Inverse (arc) tangent}
 \functionsummary{atan}{2}{Rectangular to polar conversion}
+\functionsummary{atan2}{2}{Rectangular to polar conversion}
 \functionsummary{ceil}{1}{Smallest integer larger than arg}
 \functionsummary{ceiling}{1}{Smallest integer larger than arg}
 \functionsummary{cos}{1}{Cosine}
 \functionsummary{cputime}{0}{Get CPU time}
+\functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}
 \functionsummary{epsilon}{0}{Floating point precision}
 \functionsummary{eval}{1}{Evaluate term as expression}

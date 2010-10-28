@@ -35,7 +35,7 @@ subsumption. Please define a test-set for each predicate.
 
 test_subsumes :-
 	run_tests([ subsumes,
-		    subsumes_chk
+		    subsumes_term
 		  ]).
 
 :- begin_tests(subsumes).
@@ -99,20 +99,20 @@ general_specific_2(General, Specific) :-
 :- end_tests(subsumes).
 
 
-:- begin_tests(subsumes_chk).
+:- begin_tests(subsumes_term).
 
 test(simple, true) :-
-	subsumes_chk(A, a),
+	subsumes_term(A, a),
 	var(A).
 test(min, [fail]) :-
-       Goal = subsumes_chk(_, _),
+       Goal = subsumes_term(_, _),
        copy_term(Goal,_),
        Goal,
        fail.
 test(sharing,[fail]) :-
-	subsumes_chk(f(A, A), f(_, f(_, _))).
+	subsumes_term(f(A, A), f(_, f(_, _))).
 test(occurs, fail) :-
-	subsumes_chk(X, f(X)).
+	subsumes_term(X, f(X)).
 
-:- end_tests(subsumes_chk).
+:- end_tests(subsumes_term).
 

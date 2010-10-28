@@ -234,8 +234,8 @@ doc_file_name(Source, Doc, Options) :-
 %		* Name//Arity
 %		DCG rule indicator.  Same as Name/Arity+2
 %
-%		* module(Module)
-%		Comment appearing in Module.
+%		* module(ModuleTitle)
+%		Comment appearing in a module.
 %
 %	If Object is  unbound  and  multiple   objects  share  the  same
 %	description, Object is unified with a   list  of terms described
@@ -247,7 +247,7 @@ doc_file_name(Source, Doc, Options) :-
 doc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	M:'$pldoc'(Obj, Pos, Summary, Comment),
 	qualify(M, Obj, Object0),
 	(   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
@@ -258,9 +258,9 @@ doc_comment(Object, Pos, Summary, Comment) :-
 	).
 doc_comment(M:Object, Pos, Summary, Comment) :- !,
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	(   M:'$pldoc'(Object, Pos, Summary, Comment)
-	;   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
+	;   current_predicate(M:'$pldoc_link'/2),
 	    M:'$pldoc_link'(Object, Obj2),
 	    M:'$pldoc'(Obj2, Pos, Summary, Comment)
 	).
@@ -326,7 +326,7 @@ process_comment(_, _, _).
 
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	current_predicate(M:'$pldoc'/4),
 	catch(M:'$pldoc'(_, FilePos, _, Comment), _, fail), !.
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	string_to_list(Comment, CommentCodes),
@@ -355,7 +355,7 @@ process_structured_comment(File:Line, Comment, _) :-
 
 decl_module([], M, []) :-
 	(   var(M)
-	->  '$set_source_module'(M, M)
+	->  prolog_load_context(module, M)
 	;   true
 	).
 decl_module([H0|T0], M, [H|T]) :-

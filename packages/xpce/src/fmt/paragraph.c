@@ -35,7 +35,7 @@ NewClass(paragraph)
   Int		space_before;		/* Space above text */
   Int		space_after;		/* Space below text */
   Name		quadding;		/* left,center,right */
-  Bool		justify;		/* justify text? */
+  BoolObj		justify;		/* justify text? */
   TextBuffer	text_buffer;		/* contained text and graphics */
 End;
 
@@ -168,7 +168,7 @@ fontParagraph(Paragraph par, Font val)
 
 
 static status
-justifyParagraph(Paragraph par, Bool justify)
+justifyParagraph(Paragraph par, BoolObj justify)
 { return assignParagraph(par, NAME_justify, justify);
 }
 

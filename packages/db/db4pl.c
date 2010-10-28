@@ -1128,7 +1128,7 @@ typedef struct _server_info
 
 
 static void
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#ifdef DB43
 pl_db_error(const DB_ENV *dbenv, const char *prefix, const char *msg)
 #else
 pl_db_error(const char *prefix, char *msg)
@@ -1136,6 +1136,8 @@ pl_db_error(const char *prefix, char *msg)
 { Sdprintf("%s%s\n", prefix, msg);
 }
 
+
+#if defined(HAVE_SET_RPC_SERVER) || defined(HAVE_SET_SERVER)
 
 static int
 get_server(term_t options, server_info *info)
@@ -1196,6 +1198,8 @@ get_server(term_t options, server_info *info)
 #define DB_RPCCLIENT DB_CLIENT
 #endif
 
+#endif
+
 
 #define MAXCONFIG 20
 
@@ -1206,7 +1210,6 @@ pl_db_init(term_t option_list)
   u_int32_t flags = 0;
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
-  server_info si;
   char *home = NULL;
   char *config[MAXCONFIG];
   int nconf = 0;
@@ -1216,21 +1219,28 @@ pl_db_init(term_t option_list)
 
   config[0] = NULL;
 
-  if ( get_server(option_list, &si) )
-  { if ( (rval=db_env_create(&db_env, DB_RPCCLIENT)) )
-      return db_status(rval);
-#ifdef HAVE_SET_RPC_SERVER		/* >= 4.0 */
-    rval = db_env->set_rpc_server(db_env, 0, si.host,
-				  si.cl_timeout, si.sv_timeout, si.flags);
+  {
+#if defined(HAVE_SET_RPC_SERVER) || defined(HAVE_SET_SERVER)
+    server_info si;
+    if ( get_server(option_list, &si) )
+    { if ( (rval=db_env_create(&db_env, DB_RPCCLIENT)) )
+        return db_status(rval);
+#ifdef HAVE_SET_RPC_SERVER		/* >= 4.0; <= 5.0 */
+      rval = db_env->set_rpc_server(db_env, 0, si.host,
+				    si.cl_timeout, si.sv_timeout, si.flags);
 #else
-    rval = db_env->set_server(db_env, si.host,
-			      si.cl_timeout, si.sv_timeout, si.flags);
+#ifdef HAVE_SET_SERVER
+      rval = db_env->set_server(db_env, si.host,
+			        si.cl_timeout, si.sv_timeout, si.flags);
 #endif
-    if ( rval )
-      return db_status(rval);
-  } else
-  { if ( (rval=db_env_create(&db_env, 0)) )
-      return db_status(rval);
+#endif
+      if ( rval )
+        return db_status(rval);
+    } else
+#endif
+    { if ( (rval=db_env_create(&db_env, 0)) )
+        return db_status(rval);
+    }
   }
 
   db_env->set_errpfx(db_env, "db4pl: ");
@@ -1317,7 +1327,7 @@ pl_db_init(term_t option_list)
 	if ( !PL_get_nil(a) )
 	  return pl_error(ERR_TYPE, "list", a);
       } else
-	return pl_error(ERR_DOMAIN, "db_option", v);
+	return pl_error(ERR_DOMAIN, "db_option", head);
     } else
       return pl_error(ERR_TYPE, "option", head);
   }

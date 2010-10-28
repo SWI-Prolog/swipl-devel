@@ -42,6 +42,10 @@
 :- use_module(library('http/html_write')).
 :- use_module(library(prolog_xref)).
 
+:- meta_predicate
+	source_to_html(+, +, :).
+
+
 /** <module> HTML source pretty-printer
 
 This module colourises Prolog  source  using   HTML+CSS  using  the same
@@ -55,22 +59,24 @@ cross-reference based technology as used by PceEmacs.
 	lineno/0,			% print line-no on next output
 	nonl/0.				% previous tag implies nl (block level)
 
-%%	source_to_html(+In:filename, +Out, +Options) is det.
+%%	source_to_html(+In:filename, +Out, :Options) is det.
 %
-%	Colourise Prolog source as HTML. The idea is to first create a
-%	sequence of fragments and then to apply these to the code.
+%	Colourise Prolog source as HTML. The idea   is to first create a
+%	sequence of fragments and  then  to   apply  these  to the code.
+%	Options are passed to print_html_head/2.
 %
 %	@param In	A filename
 %	@param Out	Term stream(Stream) or file-name specification
 
-source_to_html(Src, stream(Out), Options) :- !,
+source_to_html(Src, stream(Out), MOptions) :- !,
+	meta_options(is_meta, MOptions, Options),
 	retractall(lineno),		% play safe
 	retractall(nonl),		% play safe
 	colour_fragments(Src, Fragments),
 	open(Src, read, In),
 	asserta(user:message_hook(_,_,_), Ref),
 	call_cleanup((file_base_name(Src, Base),
-		      print_html_head(Out, [title(Base), Options]),
+		      print_html_head(Out, [title(Base)|Options]),
 		      html_fragments(Fragments, In, Out, [], State, Options),
 		      copy_rest(In, Out, State, State1),
 		      pop_state(State1, Out, In)),
@@ -82,6 +88,8 @@ source_to_html(Src, FileSpec, Options) :-
 	open(OutFile, write, Out, [encoding(utf8)]),
 	call_cleanup(source_to_html(Src, stream(Out), Options),
 		     close(Out)).
+
+is_meta(skin).
 
 %%	print_html_head(+Out:stream, +Options) is det.
 %
@@ -98,6 +106,11 @@ source_to_html(Src, FileSpec, Options) :-
 %
 %		* format_comments(Bool)
 %		If =true= (default), format structured comments.
+%
+%		* skin(Closure)
+%		Called using call(Closure, Where, Out), where Where
+%		is one of =header= or =footer=.  Thes calls are made
+%		just after opening =body= and before closing =body=.
 
 print_html_head(Out, Options) :-
 	option(header(true), Options, true), !,
@@ -112,14 +125,23 @@ print_html_head(Out, Options) :-
 	forall(member(Sheet, Sheets),
 	       format(Out, '    <link rel="stylesheet" type="text/css" href="~w">~n', [Sheet])),
 	format(Out, '  </head>~n', []),
-	format(Out, '<body>~n', []).
-print_html_head(_, _).
+	format(Out, '<body>~n', []),
+	skin_hook(Out, header, Options).
+print_html_head(Out, Options) :-
+	skin_hook(Out, header, Options).
 
 print_html_footer(Out, Options) :-
 	option(header(true), Options, true), !,
+	skin_hook(Out, footer, Options),
 	format(Out, '~N</body>~n', []),
 	format(Out, '</html>', []).
-print_html_footer(_, _).
+print_html_footer(Out, Options) :-
+	skin_hook(Out, footer, Options).
+
+skin_hook(Out, Where, Options) :-
+	option(skin(Skin), Options),
+	call(Skin, Where, Out), !.
+skin_hook(_, _, _).
 
 
 %%	html_fragments(+Fragments, +In, +Out, +State, +Options) is det.

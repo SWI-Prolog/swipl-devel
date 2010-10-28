@@ -54,7 +54,7 @@
 /** <module> RDF Library Manager
 
 This module manages an ontology library. Such   a  library consists of a
-directory with manifest files  named   =manifest.rdf=  or =manifest.ttl=
+directory with manifest files named =|Manifest.rdf|= or =|Manifest.ttl|=
 (Turtle). The manifest files define ontologies  appearing in the library
 as well as namespace mnemonics and dependencies.
 
@@ -150,9 +150,19 @@ delete_virtual([H|T0], [H|T]) :-
 %	Find possibly conflicting options for loading the same source
 
 find_conflicts(Commands) :-
+	no_source_with_different_options(Commands),
+	no_sources_in_same_graph(Commands).
+
+%%	no_source_with_different_options(+Commands) is semidet.
+%
+%	True if there are not multiple calls to load the same graph, but
+%	with  different  load-options.  Prints  a    warning  and  fails
+%	otherwise.
+
+no_source_with_different_options(Commands) :-
 	sort(Commands, Cmds),
 	conflicts(Cmds, Conflicts),
-	report_conflics(Conflicts),
+	report_conflicts(Conflicts),
 	Conflicts == [].
 
 conflicts([], []).
@@ -167,10 +177,35 @@ conflict(rdf_load(Src, Options1), rdf_load(Src, Options2)) :-
 	sort(Options2, S2),
 	S1 \== S2.
 
-report_conflics([]).
-report_conflics([C1-C2|T]) :-
+report_conflicts([]).
+report_conflicts([C1-C2|T]) :-
 	print_message(warning, rdf(load_conflict(C1,C2))),
-	report_conflics(T).
+	report_conflicts(T).
+
+%%	no_sources_in_same_graph(+Commands) is semidet.
+%
+%	True if there are not two load   commands  referring to the same
+%	graph.
+
+no_sources_in_same_graph(Commands) :-
+	map_list_to_pairs(command_graph, Commands, Keyed),
+	keysort(Keyed, KeySorted),
+	group_pairs_by_key(KeySorted, SourcesByGraph),
+	(   member(Graph-Sources, SourcesByGraph),
+	    Sources = [_,_|_]
+	->  forall(( member(Graph-Sources, SourcesByGraph),
+	             Sources = [_,_|_]
+		   ),
+		   print_message(error,
+				 rdf(multiple_source_for_graph(Graph, Sources)))),
+	    fail
+	;   true
+	).
+
+command_graph(rdf_load(_, Options), Graph) :-
+	option(graph(Graph), Options), !.
+command_graph(rdf_load(URL, _), URL) :- !.
+command_graph(_, _).			% Other command.  Each variable it its own key
 
 
 %%	check_existence(+CommandsIn, -Commands, +Options) is det.
@@ -304,7 +339,7 @@ merge_blanks(Facets, Options0, Options) :-
 load_options(Options, File, RDFOptions) :-
 	findall(O, load_option(Options, File, O), RDFOptions).
 
-load_option(Options, File, db(Source)) :-
+load_option(Options, File, graph(Source)) :-
 	option(claimed_source(Source0), Options),
 	(   sub_atom(Source0, _, _, 0, /)
 	->  file_base_name(File, Base),
@@ -391,7 +426,7 @@ print_command(rdf_load(URL, RDFOptions), Options) :-
 	;   true
 	),
 	(   option(show_graph(true), Options, false),
-	    option(db(Base), RDFOptions)
+	    option(graph(Base), RDFOptions)
 	->  format('~N\tSource: ~w', [Base])
 	;   true
 	).
@@ -784,6 +819,13 @@ prolog:message(rdf(manifest(loaded, Manifest))) -->
 	].
 prolog:message(rdf(load_conflict(C1, C2))) -->
 	[ 'Conflicting loads: ~p <-> ~p'-[C1, C2] ].
+prolog:message(rdf(multiple_source_for_graph(Graph, Sources))) -->
+	[ 'Multiple sources for graph ~p:'-[Graph] ],
+	sources(Sources).
 prolog:message(rdf(loading(Files, Threads))) -->
 	[ 'Loading ~D files using ~D threads ...'-[Files, Threads] ].
 
+sources([]) --> [].
+sources([rdf_load(From, _Options)|T]) -->
+	[ nl, '\t~p'-[From] ],
+	sources(T).

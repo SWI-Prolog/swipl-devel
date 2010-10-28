@@ -580,7 +580,13 @@ wiki_face(i(Italic), ArgNames) -->
 wiki_face(code(Code), _) -->
 	[=, w(Code), =], !.
 wiki_face(code(Code), _) -->
-	[=,'|'], wiki_faces(Code, []), ['|',=], !.
+	[=,'|'], wiki_words(Code), ['|',=], !.
+wiki_face(Face, _) -->
+	[ w(Name) ], arg_list(List),
+	{ atomic_list_concat([Name|List], Text),
+	  catch(atom_to_term(Text, Term, Vars), _, fail),
+	  term_face(Term, Vars, Face)
+	}, !.
 wiki_face(\predref(Name/Arity), _) -->
 	[ w(Name), '/' ], arity(Arity),
 	{ functor_name(Name)
@@ -626,6 +632,57 @@ wiki_face(FT, ArgNames) -->
 	[Structure],
 	{ wiki_faces(Structure, ArgNames, FT)
 	}.
+
+wiki_words([]) --> [].
+wiki_words([Word|T]) --> [w(Word)], wiki_words(T).
+wiki_words([Punct|T]) --> [Punct], {atomic(Punct)}, wiki_words(T).
+
+
+%%	arg_list(-Atoms) is nondet.
+%
+%	Atoms  is  a  token-list  for  a    Prolog   argument  list.  An
+%	argument-list is a sequence of tokens '(' ... ')'.
+%
+%	@bug	the current implementation does not deal correctly with
+%		brackets that are embedded in quoted strings.
+
+arg_list(['('|T]) -->
+	['('], arg_list_close(T, 1).
+
+arg_list_close(Tokens, Depth) -->
+	[')'], !,
+	(   { Depth == 1 }
+	->  { Tokens = [')'] }
+	;   { Depth > 1 }
+	->  { Tokens = [')'|More],
+	      NewDepth is Depth - 1
+	    },
+	    arg_list_close(More, NewDepth)
+	).
+arg_list_close(['('|T], Depth) -->
+	['('], { NewDepth is Depth+1 },
+	arg_list_close(T, NewDepth).
+arg_list_close([H|T], Depth) -->
+	[w(H)], !,
+	arg_list_close(T, Depth).
+arg_list_close([H|T], Depth) -->
+	[H],
+	arg_list_close(T, Depth).
+
+
+%%	term_face(+Term, +Vars, -Face) is semidet.
+%
+%	Process embedded Prolog-terms. Currently   processes  Alias(Arg)
+%	terms that refer to files.  Future   versions  will also provide
+%	pretty-printing of Prolog terms.
+
+term_face(Term, _Vars, \file(Name, FileOptions)) :-
+	ground(Term),
+	compound(Term),
+	Term =.. [Alias,_],
+	user:file_search_path(Alias, _),
+	existing_file(Term, FileOptions, []), !,
+	format(atom(Name), '~q', [Term]).
 
 
 %%	make_label(+Parts, -Label) is det.
@@ -743,7 +800,7 @@ wiki_link(a(href(Ref), Label), Options) -->
 	}.
 
 
-%%	filename(-Name:atom, -Ext:atom)// is semidet.
+%%	file_name(-Name:atom, -Ext:atom)// is semidet.
 %
 %	Matches a filename.  A filename is defined as a	sequence
 %	<segment>{/<segment}.<ext>.
@@ -758,6 +815,9 @@ segment(..) -->
 	['.','.'], !.
 segment(Word) -->
 	[w(Word)].
+segment(Dir) -->
+	[w(Word),'.',w(d)],
+	{ atom_concat(Word, '.d', Dir) }.
 
 segments([H|T]) -->
 	['/'], !,
@@ -780,16 +840,24 @@ file_extension(Ext) -->
 %	file.
 
 resolve_file(Name, Options, Rest) :-
+	existing_file(Name, Options, Rest), !.
+resolve_file(_, Options, Options).
+
+
+existing_file(Name, Options, Rest) :-
 	nb_current(pldoc_file, RelativeTo),
 	RelativeTo \== [],
+	(   compound(Name)
+	->  Extra = [file_type(prolog)]
+	;   Extra = []
+	),
 	absolute_file_name(Name, Path,
 			   [ relative_to(RelativeTo),
 			     access(read),
 			     file_errors(fail)
-			   ]), !,
+			   | Extra
+			   ]),
 	Options = [ absolute_path(Path) | Rest ].
-resolve_file(_, Options, Options).
-
 
 %%	arity(-Arity:int)// is semidet.
 %
@@ -855,8 +923,7 @@ url_protocol(mailto).
 peek_end_url(space) -->
 	peek(End),
 	{ space_atom(End) }, !.
-peek_end_url(space) -->
-	eos, !.
+peek_end_url(space, [], []) :- !.
 peek_end_url(Token) -->
 	peek(Token), !.
 
@@ -1100,10 +1167,10 @@ end_sentence([H|T0], [H|T]) :-
 
 indented_lines(Comment, Prefixes, Lines) :-
 	must_be(codes, Comment),
-	phrase(split_lines(Prefixes, Lines), Comment).
+	phrase(split_lines(Prefixes, Lines), Comment), !.
 
 split_lines(_, []) -->
-	end_of_comment, !.
+	end_of_comment.
 split_lines(Prefixes, [Indent-L1|Ls]) -->
 	take_prefix(Prefixes, 0, Indent0),
 	white_prefix(Indent0, Indent),
@@ -1111,16 +1178,16 @@ split_lines(Prefixes, [Indent-L1|Ls]) -->
 	split_lines(Prefixes, Ls).
 
 
-%%	end_of_comment// is det.
+%%	end_of_comment//
 %
 %	Succeeds if we hit the end of the comment.
 %
 %	@bug	%*/ will be seen as the end of the comment.
 
 end_of_comment -->
-	eos, !.
+	eos.
 end_of_comment -->
-	ws, stars, "*/", !.
+	ws, stars, "*/".
 
 stars --> [].
 stars --> "*", !, stars.
@@ -1241,6 +1308,32 @@ substract_indent(Subtract, I0-L, I-L) :-
 strip_leading_par([p(C)|T], L) :- !,
 	append(C, T, L).
 strip_leading_par(L, L).
+
+
+%%	bind_vars(+Term, +Bindings) is det.
+
+bind_vars(Term, Bindings) :-
+	bind_vars(Bindings),
+	anon_vars(Term).
+
+bind_vars([]).
+bind_vars([Name=Var|T]) :-
+	Var = '$VAR'(Name),
+	bind_vars(T).
+
+%%	anon_vars(+Term) is det.
+%
+%	Bind remaining variables in Term to '$VAR'('_'), so they are
+%	printed as '_'.
+
+anon_vars(Var) :-
+	var(Var), !,
+	Var = '$VAR'('_').
+anon_vars(Term) :-
+	compound(Term), !,
+	Term =.. [_|Args],
+	maplist(anon_vars, Args).
+anon_vars(_).
 
 
 		 /*******************************

@@ -53,16 +53,16 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
   ABSTRACT_VISUAL \
   Device     	device;			/* device on which displayed */ \
   Area	     	area;			/* area (bounding box) */ \
-  Bool       	displayed;		/* is graphical object displayed? */ \
+  BoolObj       	displayed;		/* is graphical object displayed? */ \
   Int        	pen;			/* pen thickness for this object */ \
   Name	     	texture;		/* dash pattern for lines */ \
   Any		colour;			/* colour of the graphical */ \
   Chain		handles;		/* handles connected to graphical */ \
   Chain		connections;		/* Available connections */ \
   Name		name;			/* name to find it */ \
-  Bool		selected;		/* is graphical selected? */ \
-  Bool		inverted;		/* inverted image */ \
-  Bool		active;			/* (de)activated */ \
+  BoolObj		selected;		/* is graphical selected? */ \
+  BoolObj		inverted;		/* inverted image */ \
+  BoolObj		active;			/* (de)activated */ \
   CursorObj	cursor;			/* cursor of the graphical */ \
   LayoutInterface layout_interface;	/* Interface to layout manager */ \
   Any	     	request_compute;	/* graphical needs recomputed */
@@ -76,8 +76,8 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
   Chain	        pointed;		/* Graphicals on last event */ \
   LayoutManager layout_manager;		/* Manage graphicals layout */ \
   Format        format;			/* Row/Column formatting */ \
-  Bool	        badFormat;		/* Formats needs to be recomputed */ \
-  Bool	        badBoundingBox;		/* BoundingBox needs recomputed */ \
+  BoolObj	        badFormat;		/* Formats needs to be recomputed */ \
+  BoolObj	        badBoundingBox;		/* BoundingBox needs recomputed */ \
   Chain	        recompute;		/* Graphicals requesting recompute */
 
 #define ABSTRACT_FIGURE \
@@ -99,15 +99,15 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
   Code	     message;			/* Execution message */ \
   PopupObj   popup;			/* Popup associated with item */ \
   Name	     look;			/* Look and feel switch */ \
-  Bool	     auto_align;		/* Item is automatically aligned */ \
+  BoolObj	     auto_align;		/* Item is automatically aligned */ \
   Point	     reference;			/* Reference point of item */ \
   DialogItem above;			/* Item above me */ \
   DialogItem below;			/* Item below me */ \
   DialogItem right;			/* Item right of me */ \
   DialogItem left;			/* Item left of me */ \
   Name	     alignment;			/* Align in the column? */ \
-  Bool	     auto_label_align;		/* Automatically align label? */ \
-  Bool	     auto_value_align;		/* Automatically align value? */ \
+  BoolObj	     auto_label_align;		/* Automatically align label? */ \
+  BoolObj	     auto_value_align;		/* Automatically align value? */ \
   Name	     accelerator;		/* Associated accelerator */
 
 
@@ -150,7 +150,7 @@ End;
   Size		size;			/* Size of the drawing area */ \
   Size		gap;			/* Layout gap for items (dialog) */ \
   Size		border;			/* Border around graphicals */ \
-  Bool		auto_align;		/* Align in dialog window? */ \
+  BoolObj		auto_align;		/* Align in dialog window? */ \
   Name		alignment;		/* Row alignment */
 
 NewClass(dialog_group)
@@ -167,10 +167,10 @@ End;
 NewClass(label_box)
   ABSTRACT_DIALOG_GROUP
   Int		label_width;		/* Width of box holding the label */
-  Bool		auto_label_align;	/* Automatically align label */
+  BoolObj		auto_label_align;	/* Automatically align label */
   Code		message;		/* associated message */
   Any		default_value;		/* default */
-  Bool		modified;		/* item has been modified */
+  BoolObj		modified;		/* item has been modified */
 End;
 
 NewClass(tab_stack)
@@ -184,7 +184,7 @@ End;
 NewClass(format)
   Name		direction;	/* horizontal, vertical */
   Int		width;		/* Width/Height */
-  Bool		columns;	/* W/H in columns (@on)/pixels (@off) */
+  BoolObj		columns;	/* W/H in columns (@on)/pixels (@off) */
   Int		column_sep;	/* separation between columns */
   Int		row_sep;	/* separation between rows */
   Vector	adjustment;	/* left/center/right vector for comlumn mode */
@@ -197,7 +197,7 @@ NewClass(tileobj)
   Int	     	horShrink;		/* Horizontal shrinkability */
   Int	     	verStretch;		/* Vertical stretchability */
   Int	     	verShrink;		/* Vertical shrinkability */
-  Bool	     	canResize;		/* Can be resized by user? */
+  BoolObj	     	canResize;		/* Can be resized by user? */
   TileAdjuster	adjuster;		/* Object that resizes me */
   Int	     	border;			/* Border between subtiles */
   Name       	orientation;		/* none, horizontal, vertical */
@@ -205,14 +205,14 @@ NewClass(tileobj)
   TileObj    	super;			/* Super tile */
   Any	     	object;			/* Object managed */
   Area	     	area;			/* Current area of the tile */
-  Bool	     	enforced;		/* Enfore layout */
+  BoolObj	     	enforced;		/* Enfore layout */
 End;
 
 NewClass(tree)
   ABSTRACT_FIGURE
   Node		root;			/* the real root root node */
   Node		displayRoot;		/* node displayed as root */
-  Bool		auto_layout;		/* Enforce automatic layout? */
+  BoolObj		auto_layout;		/* Enforce automatic layout? */
   Int		levelGap;		/* distance parent/son */
   Int		neighbourGap;		/* distance sons */
   Int		linkGap;		/* distance link and graphical */
@@ -233,8 +233,8 @@ NewClass(connection)
   Graphical	to;			/* `to' side graphical */
   Name		from_handle;		/* Handle-name `from' */
   Name		to_handle;		/* Handle-name `to' */
-  Bool		fixed_from;		/* From is fixed */
-  Bool		fixed_to;		/* To is fixed */
+  BoolObj		fixed_from;		/* From is fixed */
+  BoolObj		fixed_to;		/* To is fixed */
 End;
 
 NewClass(link)
@@ -303,7 +303,7 @@ NewClass(textobj)
   FontObj    font;		/* font */
   Name       format;		/* NAME_left, NAME_center, NAME_right */
   Int	     margin;		/* Right margin (pixels) */
-  Bool	     underline;		/* Underline the text? */
+  BoolObj	     underline;		/* Underline the text? */
   Point	     position;		/* reference position of text */
   Int        caret;		/* current insertion/deletion point */
   Any	     show_caret;	/* show the caret (default OFF) */
@@ -333,7 +333,7 @@ NewClass(path)
   Chain	     points;			/* Points of the poly-line */
   Image	     fill_pattern;		/* Fill the path with this pattern */
   Image	     mark;			/* Mark used for points */
-  Bool	     closed;			/* Line from end back to start */
+  BoolObj	     closed;			/* Line from end back to start */
   Chain	     interpolation;		/* interpolated points */
 End;
 
@@ -363,8 +363,8 @@ NewClass(button)
   Int	     radius;			/* Rounding radius */
   Int	     shadow;			/* shadow around button */
   Image	     popup_image;		/* Image to indicate popup */
-  Bool	     default_button;		/* Button is the default button */
-  Bool	     show_focus_border;		/* Show wide border around focus */
+  BoolObj	     default_button;		/* Button is the default button */
+  BoolObj	     show_focus_border;		/* Show wide border around focus */
 End;
 
 #define ABSTRACT_TEXTITEM \
@@ -377,9 +377,9 @@ End;
   Name	     advance;			/* Clear value after return? */ \
   Int	     length;			/* Length in x's */ \
   FontObj    value_font;		/* Font for entry-field */ \
-  Bool	     show_label;		/* Show the label */ \
+  BoolObj	     show_label;		/* Show the label */ \
   TextObj    value_text;		/* Displayed text value */ \
-  Bool	     editable;			/* TextItem is editable */ \
+  BoolObj	     editable;			/* TextItem is editable */ \
   Int	     value_width;		/* Width of value-field in pixels */ \
   Int	     hor_stretch;		/* Horizontal stretchability */ \
   Name	     style;			/* normal, combo_box */
@@ -394,13 +394,13 @@ NewClass(slider)
   Any	     default_value;		/* Default valur (or function) */
   Any	     displayed_value;		/* Currently displayed value */
   FontObj    value_font;		/* Font of the value */
-  Bool	     show_label;		/* Display the label */
-  Bool	     show_value;		/* Display the value numerical */
+  BoolObj	     show_label;		/* Display the label */
+  BoolObj	     show_value;		/* Display the value numerical */
   Name	     format;			/* format for the value */
   Any	     low;
   Any	     high;			/* Low and high values */
   Int	     width;			/* Width in pixels */
-  Bool	     drag;			/* Dragging gives messages */
+  BoolObj	     drag;			/* Dragging gives messages */
 End;
 
 #define ABSTRACT_MENU \
@@ -412,8 +412,8 @@ End;
   MenuItem   preview;			/* Item in preview state */ \
   Name	     preview_feedback;		/* Feedback given for this */ \
   Name	     feedback;			/* Visual feedback */ \
-  Bool	     multiple_selection;	/* radio-button? */ \
-  Bool       show_label;		/* Show label of menu? */ \
+  BoolObj	     multiple_selection;	/* radio-button? */ \
+  BoolObj       show_label;		/* Show label of menu? */ \
   FontObj    value_font;		/* Font of the value */ \
   Int	     value_width;		/* Minimum width for a value */ \
   Name	     layout;			/* Horizontal or vertical */ \
@@ -447,7 +447,7 @@ NewClass(popupobj)
   Any	     selected_item;		/* What has been selected? */
   Name	     button;			/* Invoking button */
   Name	     default_item;		/* Initial previewed item */
-  Bool	     show_current;		/* Show current selection? */
+  BoolObj	     show_current;		/* Show current selection? */
 End;
 
 NewClass(menu_bar)
@@ -474,8 +474,8 @@ NewClass(node)
   Int		level;			/* distance from the root */
   Chain		sons;			/* chain of son nodes */
   Chain		parents;		/* chain of parent nodes */
-  Bool		collapsed;		/* greyed out and collapsed */
-  Bool		displayed;		/* Non-visible node */
+  BoolObj		collapsed;		/* greyed out and collapsed */
+  BoolObj		displayed;		/* Non-visible node */
   Int		sons_size;		/* total height of sub-tree */
   Int		my_size;		/* size of my graphical */
   Name		computed;		/* height has been computed */
@@ -495,12 +495,12 @@ NewClass(scrollbar)
   Int		bubble_start;		/* Start of bubble in pixels */
   Int		bubble_length;		/* Length of bubble in pixels */
   Name		look;			/* NAME_mac or NAME_sun or NAME_x */
-  Bool		drag;			/* Issue dragging updates? */
+  BoolObj		drag;			/* Issue dragging updates? */
   Int		amount;			/* Amount to scroll */
   Name		direction;		/* Direction in which to scroll */
   Name		unit;			/* Unit to scroll */
   Int		offset;			/* offset of down from bubble-start */
-  Bool		auto_hide;		/* if @on, hide automatically */
+  BoolObj		auto_hide;		/* if @on, hide automatically */
 End;
 
 #define SCROLL_PAGE_PROM 900		/* Scroll one page */
@@ -514,10 +514,10 @@ NewClass(menu_item)
   FontObj    font;			/* Font of the label */
   Colour     colour;			/* Colour to use */
   Colour     background;		/* Colour for the background */
-  Bool	     selected;			/* Currently selected */
-  Bool	     active;			/* Can be selected? */
+  BoolObj	     selected;			/* Currently selected */
+  BoolObj	     active;			/* Can be selected? */
   Code	     condition;			/* Determines <->active */
-  Bool	     end_group;			/* Ends logical group of items */
+  BoolObj	     end_group;			/* Ends logical group of items */
   PopupObj   popup;			/* Popup (sub-popups and menu-bars) */
   Name	     accelerator;		/* activate on this key */
 End;
@@ -593,7 +593,7 @@ NewClass(edit_text_gesture)
   ABSTRACT_GESTURE
   Int		selection_origin;	/* Start of the selection */
   Int		max_drag_distance;	/* Max distance for dragging */
-  Bool		activate;		/* @on: focus on ->terminate */
+  BoolObj		activate;		/* @on: focus on ->terminate */
 End;
 
 NewClass(key_binding)
@@ -623,7 +623,7 @@ NewClass(list_browser)
   KeyBinding	key_binding;		/* Keybinding table */
   Any		selection;		/* DictItem (Chain) of selected */
   Style		selection_style;	/* Style object for selection */
-  Bool		multiple_selection;	/* Multiple selections (def: OFF) */
+  BoolObj		multiple_selection;	/* Multiple selections (def: OFF) */
   Code		select_message;		/* Message on left button click */
   Code		open_message;		/* Message on left-double click */
   Code		cancel_message;		/* Send on drag with `up' outside */
@@ -654,7 +654,7 @@ End;
   TileObj	tile;			/* Area managing tile */ \
   Code		resize_message;		/* Message send after a resize */ \
   CursorObj	displayed_cursor;	/* Currently displayed cursor */ \
-  Bool		input_focus;		/* Window has the input focus */ \
+  BoolObj		input_focus;		/* Window has the input focus */ \
   Graphical	keyboard_focus;		/* Graphical in focus of keyboard */ \
   Graphical	focus;			/* Graphical in focus */ \
   Recogniser	focus_recogniser;	/* Recorniser in focus */ \
@@ -664,11 +664,11 @@ End;
   Point		scroll_offset;		/* Amount scrolled */ \
   PopupObj	popup;			/* Associated popup */ \
   EventObj	current_event;		/* Currently processed event */ \
-  Bool		sensitive;		/* Sensitive to events */ \
+  BoolObj		sensitive;		/* Sensitive to events */ \
   Any		background;		/* Background colour of the window */ \
-  Bool		has_pointer;		/* We own the pointer */ \
+  BoolObj		has_pointer;		/* We own the pointer */ \
   Any		selection_feedback;	/* Feedback for selection */ \
-  Bool		buffered_update;	/* Buffered update? */ \
+  BoolObj		buffered_update;	/* Buffered update? */ \
 					/* Alien stuff */ \
   UpdateArea	changes_data;		/* Recorded changes */ \
   WsRef		ws_ref;			/* Window system reference */
@@ -676,7 +676,7 @@ End;
 NewClass(colour_map)
   Name		name;			/* name of the map */
   Vector	colours;		/* colours in the map */
-  Bool		read_only;		/* colourmap cannot be changed */
+  BoolObj		read_only;		/* colourmap cannot be changed */
   WsRef		ws_ref;			/* Window system reference */
 End;
 
@@ -719,7 +719,7 @@ End;
 NewClass(bitmapobj)
   ABSTRACT_GRAPHICAL
   Image		image;			/* Image of the bitmap */
-  Bool		transparent;		/* Just stipple pattern */
+  BoolObj		transparent;		/* Just stipple pattern */
 End;
 
 
@@ -760,8 +760,8 @@ NewClass(fontobj)
   Int		points;			/* Point size */
   Int		ex;			/* Width of an x in this font */
   Name          x_name;			/* X-Name of the font */
-  Bool		fixed_width;		/* Is this a fixed width font? */
-  Bool		iswide;			/* Font is 16-bit font */
+  BoolObj		fixed_width;		/* Is this a fixed width font? */
+  BoolObj		iswide;			/* Font is 16-bit font */
   Name		postscript_font;	/* Name of PostScript font */
   Int		postscript_size;	/* Size in PostScript */
 End;
@@ -778,7 +778,7 @@ NewClass(displayobj)
   Colour	foreground;		/* Window default foreground */
   Colour	background;		/* Window default background */
   ColourMap	colour_map;		/* Default colour_map for frames */
-  Bool		quick_and_dirty;	/* Use quick_and_dirty drawing */
+  BoolObj		quick_and_dirty;	/* Use quick_and_dirty drawing */
   Image		cache;			/* Graphics cache */
   Name		window_manager;		/* name of the window manager */
   DisplayManager display_manager;	/* Global display manager */
@@ -791,7 +791,7 @@ NewClass(display_manager)
   ABSTRACT_VISUAL
   Chain		members;		/* Available displays */
   Chain		current;		/* Stack for current display */
-  Bool		test_queue;		/* Test queue during redraw */
+  BoolObj		test_queue;		/* Test queue during redraw */
 End;
 
 
@@ -825,15 +825,15 @@ NewClass(frameobj)
   Chain		transients;		/* Sub frames */
   Name		modal;			/* Modal operation */
   Any		return_value;		/* ->return saved value */
-  Bool		input_focus;		/* @on: focus for keyboard events */
-  Bool		sensitive;		/* @on: accept user input */
+  BoolObj		input_focus;		/* @on: focus for keyboard events */
+  BoolObj		sensitive;		/* @on: accept user input */
   Name		status;			/* {unmapped,iconic,open} */
-  Bool		can_delete;		/* User can delete the frame */
-  Bool		can_resize;		/* User can resize the frame */
-  Bool		confirm_done;		/* User must confirm delete */
-  Bool		fitting;		/* We are running ->fit */
+  BoolObj		can_delete;		/* User can delete the frame */
+  BoolObj		can_resize;		/* User can resize the frame */
+  BoolObj		confirm_done;		/* User must confirm delete */
+  BoolObj		fitting;		/* We are running ->fit */
   Sheet		wm_protocols;		/* WM protocols understood */
-  Bool		wm_protocols_attached;	/* Have the protocols been attached */
+  BoolObj		wm_protocols_attached;	/* Have the protocols been attached */
 					/* start private data */
   WsRef		ws_ref;			/* Window-System reference */
 End;
@@ -908,7 +908,7 @@ NewClass(timer)
   Real		interval;		/* interval as a real value */
   Code		message;		/* message when timer fires */
   Name		status;			/* {idle,interval,once} */
-  Bool		service;		/* Operating in service mode? */
+  BoolObj		service;		/* Operating in service mode? */
   WsRef		ws_ref;			/* Window System Reference */
 End;
 
@@ -916,7 +916,7 @@ NewClass(monitor)
   Any		name;			/* Name of the physical monitor */
   Area		area;			/* Area on the display */
   Area		work_area;		/* Application area */
-  Bool		primary;		/* Monitor is primary */
+  BoolObj		primary;		/* Monitor is primary */
 End;
 
 		 /*******************************

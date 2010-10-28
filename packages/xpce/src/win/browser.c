@@ -104,7 +104,7 @@ normaliseBrowser(Browser b, Any obj)
 
 
 static status
-typedBrowser(Browser b, EventId id, Bool delegate)
+typedBrowser(Browser b, EventId id, BoolObj delegate)
 { if ( delegate == ON )
     return typedWindow((PceWindow) b, id, delegate);
 

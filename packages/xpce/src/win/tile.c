@@ -259,7 +259,7 @@ nonDelegatingLeftRightTile(TileObj t, TileObj t2, Name where)
 
 
 static status
-leftTile(TileObj t, Any obj, Bool delegate)
+leftTile(TileObj t, Any obj, BoolObj delegate)
 { TileObj t2 = toTile(obj);
   TileObj super;
 
@@ -302,7 +302,7 @@ leftTile(TileObj t, Any obj, Bool delegate)
 
 
 static status
-rightTile(TileObj t, Any obj, Bool delegate)
+rightTile(TileObj t, Any obj, BoolObj delegate)
 { if ( delegate == OFF )
     return nonDelegatingLeftRightTile(t, toTile(obj), NAME_right);
 
@@ -353,7 +353,7 @@ nonDelegatingAboveBelowTile(TileObj t, TileObj t2, Name where)
 
 
 static status
-aboveTile(TileObj t, Any obj, Bool delegate)
+aboveTile(TileObj t, Any obj, BoolObj delegate)
 { TileObj t2 = toTile(obj);
   TileObj super;
 
@@ -397,7 +397,7 @@ aboveTile(TileObj t, Any obj, Bool delegate)
 
 
 static status
-belowTile(TileObj t, Any obj, Bool delegate)
+belowTile(TileObj t, Any obj, BoolObj delegate)
 { if ( delegate == OFF )
     return nonDelegatingAboveBelowTile(t, toTile(obj), NAME_below);
 
@@ -778,7 +778,7 @@ unenforceTile(TileObj t)
 
 
 status
-enforceTile(TileObj t, Bool val)
+enforceTile(TileObj t, BoolObj val)
 { if ( val == OFF )
   { unenforceTile(t);
     computeTile(t);
@@ -990,7 +990,7 @@ ICanResizeTile(TileObj t, Name dir)
 }
 
 
-Bool
+BoolObj
 getCanResizeTile(TileObj t)
 { if ( isDefault(t->canResize) )
   { if ( notNil(t->super) )

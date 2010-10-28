@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -69,9 +70,8 @@ doc_for_dir(DirSpec, Options) :-
 			   ],
 			   Dir),
 	file_base_name(Dir, Base),
-	Title = Base,
 	reply_html_page(pldoc(dir_index),
-			title(Title),
+			title(Base),
 			\dir_index(Dir, Options)).
 
 
@@ -106,7 +106,7 @@ dir_source_files(DirSpec, Files, _Options) :-
 
 source_file_in_dir(Dir, File) :-
 	source_file(File),
-	sub_atom(File, 0, _, _, Dir).
+	file_directory_name(File, Dir).
 
 %%	dir_header(+Dir, +Options)// is det.
 %
@@ -146,8 +146,10 @@ wiki_file(Dir, Type) -->
 
 wiki_file_type(readme, 'README').
 wiki_file_type(readme, 'README.TXT').
+wiki_file_type(readme, 'README.txt').
 wiki_file_type(todo,   'TODO').
 wiki_file_type(todo,   'TODO.TXT').
+wiki_file_type(todo,   'TODO.txt').
 
 %%	file_indices(+Files, +Options)// is det.
 %
@@ -189,11 +191,20 @@ file_index_header(File, Options) -->
 	},
 	html(tr(th([colspan(3), class(file)],
 		   [ span(style('float:left'), a(href(HREF), Label)),
+		     \file_module_title(File),
 		     span(style('float:right'),
 			  [ \source_button(File, ButtonOptions),
 			    \edit_button(File, ButtonOptions)
 			  ])
 		   ]))).
+
+file_module_title(File) -->
+	{ module_property(M, file(File)),
+	  doc_comment(M:module(Title), _, _, _)
+	}, !,
+	html([&(nbsp), ' -- ', Title]).
+file_module_title(_) -->
+	[].
 
 
 %%	doc_file_href(+File, -HREF, +Options) is det.
@@ -227,7 +238,8 @@ doc_file_href(File0, HREF) :-
 	ensure_slash_start(File, SlashFile),
 	http_location([path(SlashFile)], Escaped),
 	http_location_by_id(pldoc_doc, DocRoot),
-	format(string(HREF), '~w~w', [DocRoot, Escaped]).
+	atom_concat(DocRoot, Escaped, HREF).
+
 
 %%	ensure_slash_start(+File0, -File) is det.
 %
@@ -284,8 +296,8 @@ object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
 	->  html(tr(class(Class),
 		    [ td(\object_ref(Obj, Options)),
 		      td(class(summary), DOM),
-		      td([align(right), width('30')],
-			 span(style('float:right'),
+		      td([align(right)],
+			 span(style('white-space: nowrap'),
 			      [ \object_source_button(Obj, Options),
 				\object_edit_button(Obj, Options)
 			      ]))
@@ -373,7 +385,7 @@ source_dirs([H|T], WD) -->
 	source_dirs(T, WD).
 
 %%	source_directory(+Dir) is semidet.
-%%	source_directory(-Dir) is det.
+%%	source_directory(-Dir) is nondet.
 %
 %	True if Dir is a directory  from   which  we  have loaded Prolog
 %	sources.

@@ -38,6 +38,7 @@
 :- use_module(library(pldoc)).
 :- use_module(library(readutil)).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
@@ -46,10 +47,12 @@
 :- use_module(pldoc(doc_modes)).
 :- use_module(pldoc(doc_html),		% we cannot import all as the
 	      [ doc_file_objects/5,	% \commands have the same name
+		unquote_filespec/2,
 		doc_tag_title/2,
 		existing_linked_file/2,
 		pred_anchor_name/3,
 		private/2,
+		(multifile)/2,
 		is_pi/1,
 		is_op_type/2
 	      ]).
@@ -743,7 +746,7 @@ file_header(File, Options) -->
 	{ memberchk(file(Title, Comment), Options), !,
 	  file_synopsis(File, Synopsis)
 	},
-	file_title([Synopsis, ' -- ', Title], File, Options),
+	file_title([Synopsis, ': ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
 	  string_to_list(Comment, Codes),
 	  indented_lines(Codes, Prefixes, Lines),
@@ -765,10 +768,8 @@ tags_to_front(DOM, DOM).
 
 file_synopsis(File, Synopsis) :-
 	file_name_on_path(File, Term),
-	(   Term = library(Lib)
-	->  format(atom(Synopsis), 'Library ~w', [Lib])
-	;   format(atom(Synopsis), '~w', [Term])
-	).
+	unquote_filespec(Term, Unquoted),
+	format(atom(Synopsis), '~w', [Unquoted]).
 
 
 %%	file_title(+Title:list, +File, +Options)// is det
@@ -816,6 +817,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  process_modes(Lines, Module, Pos, Modes, Args, Lines1),
 	  (   private(Obj, Options)
 	  ->  Class = privdef		% private definition
+	  ;   multifile(Obj, Options)
+	  ->  Class = multidef
 	  ;   Class = pubdef		% public definition
 	  ),
 	  (   Obj = Module:_
@@ -825,15 +828,19 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1),
-	  assert(documented(Obj))
+	  assert_documented(Obj)
 	},
 	need_mode(description, Mode0, Mode),
 	latex(DOM).
-object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
-	object(Obj, Pos, Comment, Mode0, Mode, Options).
+object([Obj|Same], Pos, Comment, Mode0, Mode, Options) --> !,
+	object(Obj, Pos, Comment, Mode0, Mode, Options),
+	{ maplist(assert_documented, Same) }.
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
+
+assert_documented(Obj) :-
+	assert(documented(Obj)).
 
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
@@ -940,6 +947,7 @@ pred_head(//(Head), Options) --> !,
 	latex(cmd(dcg(opt(Atts), Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, _Options) -->			% Infix operators
 	{ Head =.. [Functor,Left,Right],
+	  Functor \== (:),
 	  is_op_type(Functor, infix), !
 	},
 	latex(cmd(infixop(Functor, \pred_arg(Left, 1), \pred_arg(Right, 2)))).
@@ -953,6 +961,14 @@ pred_head(Head, _Options) -->			% Postfix operators
 	  is_op_type(Functor, postfix), !
 	},
 	latex(cmd(postfixop(Functor, \pred_arg(Arg, 1)))).
+pred_head(M:Head, Options) --> !,		% Qualified predicates
+	{ pred_attributes(Options, Atts),
+	  Head =.. [Functor|Args],
+	  length(Args, Arity)
+	},
+	latex(cmd(qpredicate(opt(Atts),
+			     M,
+			     Functor, Arity, \pred_args(Args, 1)))).
 pred_head(Head, Options) -->			% Plain terms
 	{ pred_attributes(Options, Atts),
 	  Head =.. [Functor|Args],
@@ -974,6 +990,8 @@ pred_att(Options, Det) :-
 	option(det(Det), Options).
 pred_att(Options, private) :-
 	option(class(privdef), Options).
+pred_att(Options, multifile) :-
+	option(class(multidef), Options).
 
 insert_comma([H1,H2|T0], [H1, ','|T]) :- !,
 	insert_comma([H2|T0], T).

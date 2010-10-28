@@ -146,7 +146,7 @@ The selection blobs of joints often exceed the area.  Enlarge it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-selectedJoint(Joint jt, Bool selected)
+selectedJoint(Joint jt, BoolObj selected)
 { if ( jt->selected != selected )
   { CHANGING_GRAPHICAL(jt,
 		       assign(jt, selected, selected);

@@ -2256,28 +2256,57 @@ Compile unifications (=/2) in the body into inline instructions.
 Returns one of TRUE, FALSE or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+skippedVar() must be called for arguments that are not inspected because
+the result of the goal is already   determined  by the predicate and the
+other argument. If the argument is a firstvar,   it emits a C_VAR on the
+variable to guarantee consistency of  the   frame.  The test-case is the
+code below, "Y = _". It decides that X   = _ is always true, but it must
+initialise Y! Keri Harris.
+
+t(X) :-
+	(   X == a
+	->  Y = _
+	;   Y = x
+	),
+	writeln(Y).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+skippedVar(Word arg, compileInfo *ci ARG_LD)
+{ int i = isIndexedVarTerm(*arg PASS_LD);
+
+  if ( i >= 0 && isFirstVarSet(ci->used_var, i) )
+    Output_1(ci, C_VAR, VAROFFSET(i));
+
+  return TRUE;
+}
+
+
 static int
 compileBodyUnify(Word arg, code call, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
 
-  a1 = argTermP(*arg, 0);
-  deRef(a1);
+  a1 = argTermP(*arg, 0); deRef(a1);
+  a2 = argTermP(*arg, 1); deRef(a2);
+
   if ( isVar(*a1) )			/* Singleton = ? --> true */
-  { unify_always_yields_true:
+  { skippedVar(a2, ci PASS_LD);
+  unify_always_yields_true:
     Output_0(ci, I_TRUE);
     return TRUE;
   }
 
-  a2 = argTermP(*arg, 1);
-  deRef(a2);
   if ( isVar(*a2) )
+  { skippedVar(a1, ci PASS_LD);
     goto unify_always_yields_true;
+  }
 
   i1 = isIndexedVarTerm(*a1 PASS_LD);
   i2 = isIndexedVarTerm(*a2 PASS_LD);
 
-  if ( i1 >=0 && i2 >= 0 )		/* unify two variables */
+  if ( i1 >= 0 && i2 >= 0 )		/* unify two variables */
   { int f1, f2;
 
     if ( i1 == i2 )			/* unify a var with itself? */
@@ -2739,7 +2768,7 @@ PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 static int
 mustBeVar(term_t t ARG_LD)
 { if ( !PL_is_variable(t) )
-    return PL_error(NULL, 0, NULL, ERR_MUST_BE_VAR, 2, t);
+    return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, t);
 
   succeed;
 }

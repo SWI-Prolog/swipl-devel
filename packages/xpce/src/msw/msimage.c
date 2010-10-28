@@ -23,10 +23,10 @@
 */
 
 #define OEMRESOURCE 1			/* get OBM_* constants */
-#define Bool PceBool
+#define BoolObj PceBool
 #include "include.h"
 #include <h/unix.h>
-#undef Bool
+#undef BoolObj
 #include <math.h>
 
 #ifndef M_PI

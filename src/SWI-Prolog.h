@@ -54,7 +54,7 @@ extern "C" {
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 51001
+#define PLVERSION 51002
 #endif
 
 		 /*******************************
@@ -761,11 +761,12 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 	 PL_WRT_ATTVAR_DOTS | \
 	 PL_WRT_ATTVAR_WRITE | \
 	 PL_WRT_ATTVAR_PORTRAY)
+#define PL_WRT_BLOB_PORTRAY	0x400	/* Use portray to emit non-text blobs */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
-			      term_t term,
-			      int precedence,
-			      int flags);
+			     term_t term,
+			     int precedence,
+			     int flags);
 
 					/* PL_ttymode() results */
 #define PL_NOTTY	0		/* -tty in effect */
@@ -926,6 +927,7 @@ typedef struct
 PL_EXPORT(int)	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
 PL_EXPORT(int)  PL_unify_thread_id(term_t t, int i);
 PL_EXPORT(int)	PL_get_thread_id_ex(term_t t, int *idp);
+PL_EXPORT(int)	PL_get_thread_alias(int tid, atom_t *alias);	/* Locks alias */
 PL_EXPORT(int)	PL_thread_attach_engine(PL_thread_attr_t *attr);
 PL_EXPORT(int)	PL_thread_destroy_engine(void);
 PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
@@ -1002,6 +1004,15 @@ PL_EXPORT(int) _PL_get_xpce_reference(term_t t, xpceref_t *ref);
 PL_EXPORT(int) _PL_unify_xpce_reference(term_t t, xpceref_t *ref);
 PL_EXPORT(int) _PL_put_xpce_reference_i(term_t t, uintptr_t r);
 PL_EXPORT(int) _PL_put_xpce_reference_a(term_t t, atom_t name);
+
+
+
+		 /*******************************
+		 *         TRACE SUPPORT	*
+		 *******************************/
+
+PL_EXPORT(int) PL_walk_prolog_stack(void *ref, char* buf, size_t len, void** nextref);
+
 
 #ifdef __cplusplus
 }

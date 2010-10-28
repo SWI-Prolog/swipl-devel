@@ -154,6 +154,7 @@ COMMON(Number)		argvArithStack(int n ARG_LD);
 COMMON(void)		popArgvArithStack(int n ARG_LD);
 COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
 COMMON(int)		ar_sign_i(Number n1);
+COMMON(int)		check_float(double f);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 
 /* pl-bag.c */
@@ -350,7 +351,7 @@ COMMON(int)		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		isUCSAtom(Atom a);
 COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
-						 int wide);
+						 int wide, CVT_result *status);
 COMMON(Buffer)		findBuffer(int flags);
 COMMON(int)		unfindBuffer(int flags);
 
@@ -695,6 +696,7 @@ COMMON(char) 		digitName(int n, bool small);
 COMMON(int) 		digitValue(int b, int c);
 COMMON(char *) 		procedureName(Procedure proc);
 COMMON(char *) 		predicateName(Definition def);
+COMMON(int) 		clauseNo(Definition def, Clause clause);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);
@@ -832,7 +834,7 @@ COMMON(int)	PL_unify_number(term_t t, Number n);
 COMMON(void)	get_number(word w, Number n  ARG_LD);
 COMMON(int)	PL_get_number(term_t t, Number n);
 COMMON(int)	put_number(Word at, Number n, int flags ARG_LD);
-COMMON(void)	promoteToFloatNumber(Number n);
+COMMON(int)	promoteToFloatNumber(Number n);
 COMMON(void)	make_same_type_numbers(Number n1, Number n2);
 COMMON(void)    promoteNumber(Number n1, numtype type);
 COMMON(int)	cmpNumbers(Number n1, Number n2);

@@ -45,6 +45,8 @@
 :- use_module(library(http/http_log)).
 :- use_module(library(http/http_hook)).
 :- use_module(library(http/http_path)).
+:- use_module(library(http/http_wrapper)).
+:- use_module(library(uri)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
@@ -183,22 +185,18 @@ browser_url(Name//Arity, URL) :-
 browser_url(Name/Arity, URL) :- !,
 	must_be(atom, Name),
 	(   predicate(Name, Arity, _, _, _)
-	->  http_location_by_id(pldoc_man, ManLoc),
-	    format(string(S), '~q/~w', [Name, Arity]),
-	    www_form_encode(S, Enc),
-	    format(string(URL), '~w?predicate=~w', [ManLoc, Enc])
+	->  format(string(S), '~q/~w', [Name, Arity]),
+	    http_link_to_id(pldoc_man, [predicate=S], URL)
 	;   browser_url(_:Name/Arity, URL)
 	).
 browser_url(Spec, URL) :- !,
 	Spec = M:Name/Arity,
 	doc_comment(Spec, _Pos, _Summary, _Comment), !,
-	http_location_by_id(pldoc_object, ObjLoc),
 	(   var(M)
 	->  format(string(S), '~q/~w', [Name, Arity])
 	;   format(string(S), '~q:~q/~w', [M, Name, Arity])
 	),
-	www_form_encode(S, Enc),
-	format(string(URL), '~w?object=~w', [ObjLoc, Enc]).
+	http_link_to_id(doc_object, [object=S], URL).
 
 %%	prepare_editor
 %
@@ -297,10 +295,16 @@ pldoc_file(Request) :-
 %	=name= and =arity= is given and optionally =module=.
 
 pldoc_edit(Request) :-
+	http:authenticate(pldoc(edit), Request, _),
 	http_parameters(Request,
 			[ file(File,
 			       [ optional(true),
 				 description('Name of the file to edit')
+			       ]),
+			  line(Line,
+			       [ optional(true),
+				 integer,
+				 description('Line in the file')
 			       ]),
 			  name(Name,
 			       [ optional(true),
@@ -317,6 +321,12 @@ pldoc_edit(Request) :-
 				 ])
 			]),
 	(   atom(File)
+	->  allowed_file(File)
+	;   true
+	),
+	(   atom(File), integer(Line)
+	->  Edit = file(File, line(Line))
+	;   atom(File)
 	->  Edit = file(File)
 	;   atom(Name), integer(Arity)
 	->  (   atom(Module)
@@ -324,13 +334,12 @@ pldoc_edit(Request) :-
 	    ;	Edit = (Name/Arity)
 	    )
 	),
-	format(string(Cmd), '~q', [edit(Edit)]),
 	edit(Edit),
-	reply_html_page(pldoc(edit),
-			title('Edit'),
-			p(['Started ', Cmd])).
+	format('Content-type: text/plain~n~n'),
+	format('Started ~q~n', [edit(Edit)]).
 pldoc_edit(_Request) :-
-	throw(http_reply(forbidden('/edit'))).
+	http_location_by_id(pldoc_edit, Location),
+	throw(http_reply(forbidden(Location))).
 
 
 %%	pldoc_dir(+Request)
@@ -360,6 +369,8 @@ allowed_directory(Dir) :-
 allowed_directory(Dir) :-
 	working_directory(CWD, CWD),
 	same_file(CWD, Dir).
+allowed_directory(Dir) :-
+	prolog:doc_directory(Dir).
 
 
 %%	allowed_file(+File) is semidet.
@@ -391,11 +402,15 @@ file('pllisting.css', 'pllisting.css').
 file('pldoc.js',      'pldoc.js').
 file('edit.gif',      'edit.gif').
 file('up.gif',        'up.gif').
-file('source.gif',    'source.gif').
-file('zoomin.gif',    'zoomin.gif').
-file('zoomout.gif',   'zoomout.gif').
+file('source.png',    'source.png').
+file('public.png',    'public.png').
+file('private.png',   'private.png').
 file('reload.gif',    'reload.gif').
 file('favicon.ico',   'favicon.ico').
+file('h1-bg.png',     'h1-bg.png').
+file('pub-bg.png',    'pub-bg.png').
+file('priv-bg.png',   'priv-bg.png').
+file('multi-bg.png',  'multi-bg.png').
 
 
 %%	pldoc_doc(+Request)
@@ -437,20 +452,17 @@ documentation(Path, Request) :-
 	;   throw(http_reply(forbidden(Dir)))
 	).
 documentation(File, _Request) :-
-	(   file_name_extension(_, txt, File)
-	;   file_base_name(File, Base),
-	    autolink_file(Base, wiki)
-	),
-	(   allowed_file(File)
+	wiki_file(File, WikiFile), !,
+	(   allowed_file(WikiFile)
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	doc_for_wiki_file(File, []).
+	doc_for_wiki_file(WikiFile, []).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
 			  reload(Reload),
-			  source(Source)
+			  show(Show)
 			],
 			[ attribute_declarations(param)
 			]),
@@ -459,19 +471,48 @@ documentation(Path, Request) :-
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	(   Reload == true
+	(   Reload == true,
+	    source_file(File)
 	->  load_files(File, [if(changed), imports([])])
 	;   true
 	),
 	edit_options(Request, EditOptions),
-	(   Source == true
+	(   Show == src
 	->  format('Content-type: text/html~n~n', []),
-	    source_to_html(File, stream(current_output), [])
+	    source_to_html(File, stream(current_output),
+			   [ skin(src_skin(Request, Show))
+			   ])
+	;   Show == raw
+	->  http_reply_file(File,
+			    [ unsafe(true), % is already validated
+			      mime_type(text/plain)
+			    ], Request)
 	;   doc_for_file(File,
 			 [ public_only(Public)
 			 | EditOptions
 			 ])
 	).
+
+
+src_skin(Request, _Show, header, Out) :- !,
+	memberchk(request_uri(ReqURI), Request), !,
+	replace_parameters(ReqURI, [show(raw)], RawLink),
+	phrase(html(div(class(src_formats),
+			[ 'View source as ', a(href(RawLink), raw)
+			])), Tokens),
+	print_html(Out, Tokens).
+
+replace_parameters(ReqURI, Extra, URI) :-
+	uri_components(ReqURI, C0),
+	uri_data(search, C0, Search0),
+	(   var(Search0)
+	->  uri_query_components(Search, Extra)
+	;   uri_query_components(Search0, Form0),
+	    merge_options(Extra, Form0, Form),
+	    uri_query_components(Search, Form)
+	),
+	uri_data(search, C0, Search, C),
+	uri_components(URI, C).
 
 
 %%	edit_options(+Request, -Options) is det.
@@ -495,6 +536,23 @@ pl_file(File, PlFile) :-
 			     access(read)
 			   ], PlFile).
 pl_file(File, File).
+
+%%	wiki_file(+File, -TxtFile) is semidet.
+%
+%	True if TxtFile is an existing file  that must be served as wiki
+%	file.
+
+wiki_file(File, TxtFile) :-
+	file_name_extension(_, txt, File), !,
+	TxtFile = File.
+wiki_file(File, TxtFile) :-
+	file_base_name(File, Base),
+	autolink_file(Base, wiki), !,
+	TxtFile = File.
+wiki_file(File, TxtFile) :-
+	file_name_extension(Base, html, File),
+	file_name_extension(Base, txt, TxtFile),
+	access_file(TxtFile, read).
 
 
 %%	clean_path(+AfterDoc, -AbsPath)
@@ -595,16 +653,19 @@ pldoc_search(Request) :-
 		 *******************************/
 
 param(public_only,
-      [ oneof([true,false]),
-	default(true)
+      [ boolean,
+	default(true),
+	description('If true (default), hide private predicates')
       ]).
 param(reload,
-      [ oneof([true,false]),
-	default(false)
+      [ boolean,
+	default(false),
+	description('Reload the file and its documentation')
       ]).
-param(source,
-      [ oneof([true,false]),
-	default(false)
+param(show,
+      [ oneof([doc,src,raw]),
+	default(doc),
+	description('How to show the file')
       ]).
 
 

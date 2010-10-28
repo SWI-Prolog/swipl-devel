@@ -1,3 +1,36 @@
+/*  $Id$
+
+    Part of XPCE --- The SWI-Prolog GUI toolkit
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 2003-2010, University of Amsterdam
+			      VU University Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
+
 :- module(pce_profile,
 	  [ pce_show_profile/0
 	  ]).
@@ -9,7 +42,13 @@
 :- use_module(library(tabular)).
 :- use_module(library(prolog_predicate)).
 
-%	pce_show_profile/0
+/** <module> GUI frontend for the profiler
+
+This module hooks into profile/1 and  provides   a  graphical UI for the
+profiler output.
+*/
+
+%%	pce_show_profile/0
 %
 %	Show already collected profile using a graphical browser.
 
@@ -648,13 +687,19 @@ sort_by(flat_profile_by_number_of_calls,     call,	     reverse).
 sort_by(flat_profile_by_number_of_redos,     redo,	     reverse).
 
 
-%	predicate_label(+Head, -Label)
+%%	predicate_label(+Head, -Label)
 %
-%	Create a human-readable label for the given head
+%	Label is the human-readable identification   for Head. Calls the
+%	hook user:prolog_predicate_name/2.
+
+:- multifile
+	user:prolog_predicate_name/2.
 
 predicate_label(Obj, Label) :-
 	object(Obj), !,
 	get(Obj, print_name, Label).
+predicate_label(Head, Label) :-
+	user:prolog_predicate_name(Head, Label), !.
 predicate_label(M:H, Label) :- !,
 	functor(H, Name, Arity),
 	(   hidden_module(M, H)
@@ -675,12 +720,14 @@ predicate_name(_:H, Name) :- !,
 predicate_name(H, Name) :-
 	functor(H, Name, _Arity).
 
-%	prof_node(node(Pred,
-%		       TimeSelf, TimeChildren,
-%		       Calls, Redo, Recursive,
-%		       Parents))
+%%	prof_node(Data:node(Pred,
+%%		            TicksSelf, TicksChildren,
+%%		            Calls, Redo,
+%%		            Parents, Children)) is nondet.
 %
-%	Collect data for each of the interesting predicates.
+%	Data is a node of the   profile call-tree. Backtracking over all
+%	solutions  generates  the   entire    call-tree   with   profile
+%	statistics.
 
 prof_node(node(Impl,
 	       TicksSelf, TicksChildren,

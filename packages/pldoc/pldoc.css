@@ -9,7 +9,7 @@
 */
 
 h1.file, h1.module, h1.dir
-{ background-color: #b9daff
+{ background: url("h1-bg.png") top left;
 }
 
 .undef
@@ -53,20 +53,35 @@ dt.keyword-bug, dt.keyword-deprecated, dt.keyword-tbd
 }
 
 dt.pubdef
-{ background-color: #c5e1ff;
+{ background: url("pub-bg.png") top left;
+}
+
+dt.multidef
+{ background: url("multi-bg.png") top left;
 }
 
 dt.privdef
-{ background-color: #fbffa6;
+{ background: url("priv-bg.png") top left;
 }
 
 dt.undoc, h2.undoc
 { background-color: #ffbc87;
 }
 
+img.action
+{ border: 0;
+  padding-top: 0.2em;
+  height: 1em;
+}
+
 dl.tags
 { font-size: 80%;
   margin-top: 0.5em;
+}
+
+dl.latex, ul.latex, ol.latex
+{ margin-top: 0.7em;
+  margin-bottom: 1em;
 }
 
 dl.termlist
@@ -138,6 +153,15 @@ div.navhdr div.jump
 
 div.navhdr div.search
 { float: right;
+}
+
+div.src_formats
+{ text-align: right;
+  color: #444;
+  font: smaller;
+  border: 1px #ccc solid;
+  padding-right: 5px;
+  margin-bottom: 2px;
 }
 
 /* Summary index */
@@ -213,7 +237,6 @@ span.search-help
 div.synopsis
 { text-align: right;
   margin-top: 15pt;
-  margin-bottom: 5pt;
 }
 
 span.synopsis-hdr
@@ -230,6 +253,23 @@ span.autoload, span.builtin, span.cfunc
   font-style: italic;
 }
 
+span.anot
+{ float: right;
+  margin-right: 5pt;
+  font-style: italic;
+  font-size: smaller;
+  padding-top: 0.2em;
+  color: #444;
+}
+
+span.file_anot
+{ vertical-align: text-top;
+  margin-right: 5pt;
+  font-style: italic;
+  font-size: 60%;
+  color: #444;
+}
+
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text { display: none; }
@@ -240,7 +280,7 @@ sup:hover span
   color: #000; background: white;
   border: 2px solid;
   padding: 5px; margin: 10px; z-index: 100;
-  font-size: smaller;
+  font-size: 80%;
 }
 
 span.sec-nr

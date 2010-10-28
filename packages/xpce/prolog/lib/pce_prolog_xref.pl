@@ -59,7 +59,7 @@
 	prolog:xref_source_directory/2,		% +Source, -Dir
 	prolog:xref_open_source/2.		% +SourceId, -Stream
 
-%	prolog:xref_source_identifier(+Object, -Ref)
+%%	prolog:xref_source_identifier(+Object, -Ref)
 %
 %	The  cross-referencer  runs  faster  if   the  reference  is  an
 %	indexable term. Therefore we strip the XPCE @ from the object.
@@ -70,7 +70,7 @@ prolog:xref_source_identifier(Object, Ref) :-
 prolog:xref_source_identifier(Ref, Ref) :-
 	integer(Ref), !.
 
-%	prolog:xref_source_directory(+Source, -Dir)
+%%	prolog:xref_source_directory(+Source, -Dir)
 %
 %	Find the directory of a PceEmacs buffer to resolve relative paths.
 
@@ -81,7 +81,7 @@ prolog:xref_source_directory(SourceId, Dir) :-
 	catch(get(Obj?file, absolute_path, Path), _, fail),
 	file_directory_name(Path, Dir).
 
-%	prolog:xref_open_source(+Source, -Stream)
+%%	prolog:xref_open_source(+Source, -Stream)
 %
 %	Open the PceEmacs as a Prolog stream.
 

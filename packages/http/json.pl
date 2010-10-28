@@ -398,7 +398,7 @@ json_write_term(Var, _, _, _) :-
 	var(Var), !,
 	instantiation_error(Var).
 json_write_term(json(Pairs), Stream, State, Options) :- !,
-	space_if_not_at_left_margin(Stream),
+	space_if_not_at_left_margin(Stream, State),
 	write(Stream, '{'),
 	(   json_write_state_width(State, Width),
 	    (   Width == 0
@@ -416,7 +416,7 @@ json_write_term(json(Pairs), Stream, State, Options) :- !,
 	).
 json_write_term(List, Stream, State, Options) :-
 	is_list(List), !,
-	space_if_not_at_left_margin(Stream),
+	space_if_not_at_left_margin(Stream, State),
 	write(Stream, '['),
 	(   json_write_state_width(State, Width),
 	    (   Width == 0
@@ -489,7 +489,7 @@ write_array_hor([], _, _, _).
 write_array_hor([H|T], Stream, State, Options) :-
 	json_write_term(H, Stream, State, Options),
 	(   T == []
-	->  true
+	->  write(Stream, ' ')
 	;   write(Stream, ', '),
 	    write_array_hor(T, Stream, State, Options)
 	).
@@ -516,9 +516,12 @@ step_indent(State0, State) :-
 	NewIndent is Indent+Step,
 	set_indent_of_json_write_state(NewIndent, State0, State).
 
-space_if_not_at_left_margin(Stream) :-
-	line_position(Stream, 0), !.
-space_if_not_at_left_margin(Stream) :-
+space_if_not_at_left_margin(Stream, State) :-
+	line_position(Stream, LinePos),
+	(   LinePos == 0
+	;   json_write_state_indent(State, LinePos)
+	), !.
+space_if_not_at_left_margin(Stream, _) :-
 	put_char(Stream, ' ').
 
 

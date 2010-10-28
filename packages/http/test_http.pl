@@ -26,18 +26,18 @@ test_http :-
 
 :- begin_tests(http_open).
 
-test(gollem, true) :-
-     http_open('http://gollem.science.uva.nl/', In, []),
+test(read, true) :-
+     http_open('http://www.swi-prolog.org/', In, []),
      read_stream_to_codes(In, Codes),
      close(In),
-     appendchk(_, "http://www.swi-prolog.org/", _, Codes).
-test(gollem_redirect, true) :-
-     http_open('http://gollem.science.uva.nl', In, []),
+     appendchk(_, "http://www.swi-prolog.org", _, Codes).
+test(redirect, true) :-
+     http_open('http://www.swi-prolog.org', In, []),
      read_stream_to_codes(In, Codes),
      close(In),
-     appendchk(_, "http://www.swi-prolog.org/", _, Codes).
-test(gollem_chunked, true(Codes == Ref)) :-
-     http_open('http://gollem.science.uva.nl/cgi-bin/chunked', In, []),
+     appendchk(_, "http://www.swi-prolog.org", _, Codes).
+test(chunked, true(Codes == Ref)) :-
+     http_open('http://www.swi-prolog.org/Tests/chunked/data', In, []),
      read_stream_to_codes(In, Codes),
      close(In),
      chunked_data(Ref).
@@ -46,12 +46,12 @@ test(gollem_chunked, true(Codes == Ref)) :-
 
 :- begin_tests(http_get).
 
-test(gollem, true) :-
-     http_get('http://gollem.science.uva.nl/', Data, [to(codes)]),
-     appendchk(_, "http://www.swi-prolog.org/", _, Data).
+test(read, true) :-
+     http_get('http://www.swi-prolog.org/', Data, [to(codes)]),
+     appendchk(_, "http://www.swi-prolog.org", _, Data).
 
-test(gollem_chunked, true(Data == Ref)) :-
-     http_get('http://gollem.science.uva.nl/cgi-bin/chunked',
+test(chunked, true(Data == Ref)) :-
+     http_get('http://www.swi-prolog.org/Tests/chunked/data',
 	      Data, [to(codes)]),
      chunked_data(Ref).
 
@@ -77,6 +77,7 @@ chunked_data(S) :-
 	findall(C,
 		(   between(1, 1000, X),
 		    C is "a" + X mod 26
-		), S).
+		), S0),
+	append(S0, S0, S).
 
 

@@ -345,7 +345,8 @@ gz_skip_footer(z_context *ctx)
       Sseterr(ctx->zstream, SIO_FERR, msg);
       return -1;
     }
-    if ( size != ctx->zstate.total_out )
+					/* size is truncated to 4 bytes */
+    if ( size != (ctx->zstate.total_out & 0xffffffff) )
     { char msg[256];
 
       Ssprintf(msg, "Size mismatch (%ld != %ld)", size, ctx->zstate.total_out);
@@ -403,6 +404,7 @@ zread(void *handle, char *buf, size_t size)
     } else
     { ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
       ctx->zstate.avail_in = (long)(ctx->stream->limitp - ctx->stream->bufp);
+      DEBUG(1, Sdprintf("Set avail_in to %d\n", ctx->zstate.avail_in));
       ctx->stream->bufp    = ctx->stream->limitp; /* empty buffer */
     }
   }
@@ -507,6 +509,14 @@ zread(void *handle, char *buf, size_t size)
 	  ctx->format = F_GZIP_CRC;
       } else
       { DEBUG(1, Sdprintf("inflate(): Z_OK: %d bytes\n", n));
+	if (n == 0 && rc != Z_STREAM_END)
+        { /* If we get here then there was not enough data in the in buffer to decode
+             a single character, but we are not at the end of the stream, so we must read
+	     more from the parent */
+          DEBUG(1, Sdprintf("Not enough data to decode.  Retrying\n"));
+
+          return zread(handle, buf, size);
+	}
       }
 
       return n;

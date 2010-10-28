@@ -182,14 +182,17 @@ typedef struct triple
   atom_t	graph;			/* where it comes from */
   unsigned long line;			/* graph-line number */
 					/* indexing */
-  struct triple*next[INDEX_TABLES];	/* hash-table next links */
+  union
+  { struct triple*next[INDEX_TABLES];	/* hash-table next links */
+    literal 	end;			/* end for between(X,Y) patterns */
+  } tp;					/* triple or pattern */
 					/* flags */
   unsigned	object_is_literal : 1;	/* Object is a literal */
   unsigned	resolve_pred : 1;	/* predicates needs to be resolved */
   unsigned	indexed : 4;		/* Partials: BY_* */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
-  unsigned	match   : 3;		/* How to match literals */
+  unsigned	match   : 4;		/* How to match literals */
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
   unsigned	allocated : 1;		/* Triple is allocated */

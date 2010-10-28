@@ -37,7 +37,8 @@
 	    cgi_property/2,		% +Stream, -Property
 	    cgi_set/2,			% +Stream, -Property
 	    cgi_discard/1,		% +Stream
-	    is_cgi_stream/1		% +Stream
+	    is_cgi_stream/1,		% +Stream
+	    cgi_statistics/1		% ?Statistics
 	  ]).
 
 :- use_foreign_library(foreign(http_stream)).
@@ -227,7 +228,7 @@ bytes, dispite the fact that the underlying stream may be longer.
 :- multifile
 	http:current_transfer_encoding/1. % ?Encoding
 
-%	http:encoding_filter(+Encoding, +In0, -In) is semidet.
+%%	http:encoding_filter(+Encoding, +In0, -In) is semidet.
 %
 %	Install a filter to deal with =chunked= encoded messages.
 
@@ -236,8 +237,24 @@ http:encoding_filter(chunked, In0, In) :-
 			  [ close_parent(true)
 			  ]).
 
-%	http:current_transfer_encoding(?Encoding) is semidet.
+%%	http:current_transfer_encoding(?Encoding) is semidet.
 %
 %	True if Encoding is supported
 
 http:current_transfer_encoding(chunked).
+
+%%	cgi_statistics(?Term)
+%
+%	Return statistics on the CGI stream subsystem. Currently defined
+%	statistics are:
+%
+%	    * requests(-Integer)
+%	    Total number of requests processed
+%	    * bytes_sent(-Integer)
+%	    Total number of bytes sent.
+
+cgi_statistics(requests(Requests)) :-
+	cgi_statistics_(Requests, _).
+cgi_statistics(bytes_sent(Bytes)) :-
+	cgi_statistics_(_, Bytes).
+

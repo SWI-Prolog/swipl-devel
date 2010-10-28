@@ -95,16 +95,24 @@ print_name(P, PN:name) :<-
 	"Return as [Module:]Name/Arity"::
 	get(P, name, Name),
 	get(P, arity, Arity),
-	(   Arity == @default
-	->  TheArity = '_'
-	;   TheArity = Arity
-	),
-	(   get(P, module, Module),
-	    Module \== @nil,
-	    functor(Head, Name, Arity),
-	    \+ hidden_module(Module, Head)
-	->  atomic_list_concat([Module, :, Name, /, TheArity], PN)
-	;   atomic_list_concat([Name, /, TheArity], PN)
+	get(P, module, Module),
+	(   Module \== @nil,
+	    Arity \== @default
+	->  functor(Head, Name, Arity),	% fully qualified
+	    (	user:prolog_predicate_name(Module:Head, PN)
+	    ->	true
+	    ;	\+ hidden_module(Module, Head)
+	    ->  atomic_list_concat([Module, :, Name, /, Arity], PN)
+	    ;	atomic_list_concat([Name, /, Arity], PN)
+	    )
+	;   (   Arity == @default
+	    ->	End = ['/_']
+	    ;	End = [/, Arity]
+	    )
+	->  (   Module == @nil
+	    ->	atomic_list_concat([Name|End], PN)
+	    ;	atomic_list_concat([Module, :, Name|End], PN)
+	    )
 	).
 
 hidden_module(system, _).

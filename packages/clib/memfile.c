@@ -305,36 +305,65 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
 
 
 static foreign_t
-size_memory_file(term_t handle, term_t size)
+size_memory_file(term_t handle, term_t sizeh, term_t encoding)
 { memfile *m;
 
   if ( get_memfile(handle, &m) )
   { if ( m->stream && !m->atom )
       return alreadyOpen(handle, "size");
+
     if ( m->data )
-    { if ( m->size == NOSIZE )
-      { switch( m->encoding )
+    { IOENC size_enc = m->encoding;
+      size_t size;
+
+      if ( encoding )
+      { if ( !get_encoding(encoding, &size_enc) )
+	  return FALSE;
+      } else
+	size_enc = m->encoding;
+
+      if ( m->size != NOSIZE && size_enc == m->encoding )
+      { size = m->size;
+      } else
+      { switch( size_enc )
 	{ case ENC_ISO_LATIN_1:
 	  case ENC_OCTET:
-	    m->size = m->data_size;
+	    size = m->data_size;
 	    break;
 	  case ENC_WCHAR:
-	    m->size = m->data_size / sizeof(wchar_t);
+	    size = m->data_size / sizeof(wchar_t);
 	    break;
 	  case ENC_UTF8:
-	    m->size = PL_utf8_strlen(m->data, m->data_size);
+	    size = PL_utf8_strlen(m->data, m->data_size);
 	    break;
 	  default:
 	    assert(0);
 	    return FALSE;
 	}
+
+	if ( size_enc == m->encoding )
+	  m->size = size;
       }
-      return PL_unify_integer(size, m->size);
+
+      return PL_unify_int64(sizeh, size);
     } else
-      return PL_unify_integer(size, 0);
+    { return PL_unify_integer(sizeh, 0);
+    }
   }
 
   return FALSE;
+}
+
+
+static foreign_t
+size_memory_file2(term_t handle, term_t size)
+{ return size_memory_file(handle, size, 0);
+}
+
+
+static foreign_t
+size_memory_file3(term_t handle, term_t size, term_t encoding)
+{ return size_memory_file(handle, size, encoding);
 }
 
 
@@ -500,7 +529,8 @@ install_memfile()
 
   PL_register_foreign("new_memory_file",      1, new_memory_file,      0);
   PL_register_foreign("free_memory_file",     1, free_memory_file,     0);
-  PL_register_foreign("size_memory_file",     2, size_memory_file,     0);
+  PL_register_foreign("size_memory_file",     2, size_memory_file2,    0);
+  PL_register_foreign("size_memory_file",     3, size_memory_file3,    0);
   PL_register_foreign("open_memory_file",     3, open_memory_file,     0);
   PL_register_foreign("open_memory_file",     4, open_memory_file4,    0);
   PL_register_foreign("atom_to_memory_file",  2, atom_to_memory_file,  0);

@@ -280,7 +280,7 @@ odbc_connect/3. Please note that the SQL-statement does not end in the
 lemma(Lemma) :-
 	odbc_query(wordnet,
 		   'SELECT (lemma) FROM word',
-		   row(Lemma).
+		   row(Lemma)).
 \end{code}
 
 The following example adds a name to a table with parent-relations,

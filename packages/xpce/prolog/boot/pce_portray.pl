@@ -88,7 +88,7 @@ user:prolog_list_goal(pce_principal:get_implementation(Id, _Args, _Ref, _Rval)) 
 	;   format('No XPCE method implementation for id=~p~n', [Id])
 	).
 
-%	user:prolog_predicate_name(:Goal, -Name)
+%%	user:prolog_predicate_name(:Goal, -Name:atom) is semidet.
 %
 %	Hook used by the Prolog graphical tracer to display the frames
 %	in the stack.
@@ -102,7 +102,7 @@ user:prolog_predicate_name(pce_principal:get_implementation(Id0, _, _, _),
 	method_from_id(Id0, SG),
 	atom_from_method(SG, Id).
 
-%	user:prolog_clause_name(+ClauseRef, -Name)
+%%	user:prolog_clause_name(+ClauseRef, -Name)
 %
 %	Translate the reference to a method-clause into the corresponding
 %	method.
