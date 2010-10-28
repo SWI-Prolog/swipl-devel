@@ -79,6 +79,12 @@ static functor_t FUNCTOR_eq2;		/* =/2 */
 #define DEBUG(g) (void)0
 #endif
 
+#ifdef __WINDOWS__
+#ifndef CREATE_BREAKAWAY_FROM_JOB
+#define CREATE_BREAKAWAY_FROM_JOB 0x1000000
+#endif
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ISSUES:
 	- Deal with child errors (no cwd, cannot execute, etc.)
@@ -1071,6 +1077,9 @@ do_create_process(p_options *info)
       break;
   }
 
+  if ( info->detached )
+    flags |= CREATE_BREAKAWAY_FROM_JOB;
+
   memset(&si, 0, sizeof(si));
   si.cb = sizeof(si);
   si.dwFlags = STARTF_USESTDHANDLES;
@@ -1460,7 +1469,7 @@ Basic process creation interface takes
 	* List of arguments
 	* standard streams		% std, null, pipe(S)
 	* Working directory
-	* detached			% Unix
+	* detached			
 	* window			% Windows
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
