@@ -366,7 +366,7 @@ to deal switch stream to non-blocking mode using:
 
 \begin{code}
 	...
-	tcp_fcntl(Stream, setfl. nonblock),
+	tcp_fcntl(Stream, setfl, nonblock),
 	...
 \end{code}
 
@@ -378,17 +378,18 @@ end-of-input, at_end_of_stream/1 succeeds.
     \predicate{tcp_host_to_address}{2}{?HostName, ?Address}
 Translate between a machines host-name and it's (IP-)address. If
 \arg{HostName} is an atom, it is resolved using
-\funcref{gethostbyname}{} and the IP-number is unified to \arg{Address}
+\funcref{getaddrinfo}{} and the IP-number is unified to \arg{Address}
 using a term of the format \term{ip}{Byte1, Byte2, Byte3, Byte4}.
 Otherwise, if \arg{Address} is bound to a \functor{ip}{4} term, it
 is resolved by \funcref{gethostbyaddr}{} and the canonical hostname
-is unified with \arg{HostName}.
+is unified with \arg{HostName}.\footnote{This function should support
+more functionality provided by \funcref{gethostbyaddr}{}, probably
+by adding an option-list.}
 
     \predicate{gethostname}{1}{-Hostname}
-Return the official fully qualified name of this host.  This is achieved
-by calling gethostname() followed by gethostbyname() and return the
-official name of the host (\const{h_name}) of the structure returned
-by the latter function.
+Return the canonical fully qualified name of this host. This is achieved
+by calling \funcref{gethostname}{} and return the canonical name
+returned by \funcref{getaddrinfo}{}.
 \end{description}
 
 

@@ -1792,11 +1792,13 @@ nbio_get_port(term_t Port, int *port)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Convert a term Host:Port to a socket address.  Port is either an integer
 or the name of a registered port (e.g. 'smtp').
+
+(*) TBD: Supply the port/service here too, simplifying the rest
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
-{ int		  port;
+{ int port;
 
   addr->sin_family = AF_INET;
   addr->sin_addr.s_addr = INADDR_ANY;
@@ -1807,13 +1809,18 @@ nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
 
     _PL_get_arg(1, Address, arg);
     if ( PL_get_atom_chars(arg, &hostName) )
-    { struct hostent *host;
+    { struct addrinfo hints;
+      struct addrinfo *res;
 
-      if( !(host = gethostbyname(hostName)) )
+      memset(&hints, 0, sizeof(hints));
+      hints.ai_family = AF_INET;
+      if ( getaddrinfo(hostName, NULL, &hints, &res) !=  0) /* see (*) */
 	return nbio_error(GET_H_ERRNO, TCP_HERRNO);
-      if ( (int)sizeof(addr->sin_addr) < host->h_length )
-	return PL_warning("Oops, host address too long!");
-      memcpy(&addr->sin_addr, host->h_addr, host->h_length);
+      assert(res->ai_family == AF_INET);
+      memcpy(&addr->sin_addr,
+	     &((struct sockaddr_in*)res->ai_addr)->sin_addr,
+	     sizeof(addr->sin_addr));
+      freeaddrinfo(res);
     } else if ( !nbio_get_ip(arg, &addr->sin_addr) )
     { return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "atom|ip/4");
     }
