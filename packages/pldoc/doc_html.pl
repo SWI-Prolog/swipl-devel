@@ -383,8 +383,7 @@ edit_button(File, Options) -->
 	}, !,
 	html(a([ onClick('HTTPrequest(\'' +
 			 location_by_id(pldoc_edit) + [file(File)] +
-			 '\')'),
-		 onMouseOver('window.status=\'Edit file\'; return true;')
+			 '\')')
 	       ],
 	       img([ class(action),
 		     alt(edit),
@@ -1699,18 +1698,19 @@ generalise_spec(Name//Arity, _M:Name//Arity).
 %
 %	Write HTML for the File containing wiki data.
 
-doc_for_wiki_file(FileSpec, _Options) :-
+doc_for_wiki_file(FileSpec, Options) :-
 	absolute_file_name(FileSpec, File,
 			   [ access(read)
 			   ]),
 	read_file_to_codes(File, String, []),
 	b_setval(pldoc_file, File),
-	call_cleanup(reply_wiki_page(File, String),
+	call_cleanup(reply_wiki_page(File, String, Options),
 		     nb_delete(pldoc_file)).
 
-reply_wiki_page(File, String) :-
-	wiki_codes_to_dom(String, [], DOM),
-	title(DOM, File, Title),
+reply_wiki_page(File, String, Options) :-
+	wiki_codes_to_dom(String, [], DOM0),
+	title(DOM0, File, Title),
+	insert_edit_button(DOM0, File, DOM, Options),
 	reply_html_page(pldoc(wiki),
 			title(Title),
 			[ \html_requires(pldoc)
@@ -1721,6 +1721,21 @@ title(DOM, _, Title) :-
 	sub_term(h1(_,Title), DOM), !.
 title(_, File, Title) :-
 	file_base_name(File, Title).
+
+insert_edit_button(DOM, _, DOM, Options) :-
+	option(edit(false), Options, false), !.
+insert_edit_button([h1(Attrs,Title)|DOM], File,
+		   [h1(Attrs,[ span(style('float:right'),
+				   \edit_button(File, [edit(true)]))
+			     | Title
+			     ])|DOM], _) :- !.
+insert_edit_button(DOM, File,
+		   [ h1(class(wiki),
+			[ span(style('float:right'),
+			       \edit_button(File, [edit(true)]))
+			])
+		   | DOM
+		   ], _).
 
 
 		 /*******************************
