@@ -239,7 +239,7 @@ extract_varnames(Name=_, [Name|VN], VN).
 %
 %	Assert modes into the database with the given position.
 %
-%	@param Modes	  List if mode-terms.  See process_modes/5.
+%	@param Modes	  List if mode-terms.  See process_modes/6.
 %	@param SourcePos  Term File:Line
 
 store_modes([], _).
