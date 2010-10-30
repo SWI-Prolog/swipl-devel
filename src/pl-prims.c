@@ -1975,15 +1975,17 @@ skip_list(Word l, Word *tailp ARG_LD)
   s = l;
 
   if ( isList(*l) )
-  { for(;;)
-    { length++; l = TailList(l); deRef(l);
-      if ( *l == *s ) break;
-      if ( !isList(*l) ) break;
-      length++; l = TailList(l); deRef(l);
-      if ( *l == *s ) break;
-      if ( !isList(*l) ) break;
-      s = TailList(s); deRef(s);
-    }
+  { intptr_t power = 1, lam = 0;
+    do
+    { if ( power == lam )
+      { s = l;
+	power *= 2;
+	lam = 0;
+      }
+      lam++;
+      length++;
+      l = TailList(l); deRef(l);
+    } while ( *l != *s && isList(*l) );
   }
   *tailp = l;
 
