@@ -43,6 +43,13 @@ static functor_t FUNCTOR_access1;
 static functor_t FUNCTOR_modified1;
 static functor_t FUNCTOR_changed1;
 static atom_t    ATOM_now;
+static atom_t    ATOM_hard;
+static atom_t    ATOM_symbolic;
+
+
+		 /*******************************
+		 *	       TIME		*
+		 *******************************/
 
 static int
 add_time_option(term_t list, functor_t f, time_t time)
@@ -151,12 +158,45 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
 }
 
 
+		 /*******************************
+		 *	       LINK		*
+		 *******************************/
+
+static foreign_t
+pl_link_file(term_t from, term_t to, term_t how)
+{ char *fname, *tname;
+  atom_t hname;
+
+  if ( !PL_get_file_name(from, &fname, 0) ||
+       !PL_get_file_name(to,   &tname, 0) )
+    return FALSE;
+
+  if ( !PL_get_atom(how, &hname) )
+    return pl_error(NULL, 0, NULL, ERR_TYPE, how, "atom");
+
+  if ( hname == ATOM_hard )
+  { if ( link(fname, tname) != 0 )
+      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "link", "file", to);
+  } else if ( hname == ATOM_symbolic )
+  { if ( symlink(fname, tname) != 0 )
+      return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "link", "file", to);
+  } else
+    return pl_error(NULL, 0, NULL, ERR_DOMAIN, how, "link_type");
+
+  return TRUE;
+}
+
+
+
 install_t
 install_files()
 { FUNCTOR_access1   = PL_new_functor(PL_new_atom("access"), 1);
   FUNCTOR_modified1 = PL_new_functor(PL_new_atom("modified"), 1);
   FUNCTOR_changed1  = PL_new_functor(PL_new_atom("changed"), 1);
   ATOM_now          = PL_new_atom("now");
+  ATOM_hard         = PL_new_atom("hard");
+  ATOM_symbolic     = PL_new_atom("symbolic");
 
   PL_register_foreign("set_time_file", 3, pl_set_time_file, 0);
+  PL_register_foreign("link_file",     3, pl_link_file,     0);
 }

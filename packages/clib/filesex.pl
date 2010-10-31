@@ -29,7 +29,8 @@
 */
 
 :- module(files_ex,
-	  [ set_time_file/3
+	  [ set_time_file/3,		% +File, -OldTimes, +NewTimes
+	    link_file/3			% +OldPath, +NewPath, +Type
 	  ]).
 
 /** <module> Extended operations on files
@@ -37,7 +38,7 @@
 
 :- use_foreign_library(foreign(files), install_files).
 
-%%	set_time_file(+File, -OldTimes, +NewTimes)
+%%	set_time_file(+File, -OldTimes, +NewTimes) is det.
 %
 %	Query and set POSIX time attributes of a file. Both OldTimes and
 %	NewTimes are lists of  option-terms.   Times  are represented in
@@ -66,3 +67,7 @@
 %	    ?- set_time_file(foo, [], [modified(now)]).
 %	    ==
 
+%%	link_file(+OldPath, +NewPath, +Type) is det.
+%
+%	Create a link in the filesystem   from  NewPath to OldPath. Type
+%	defines the type of link and is one of =hard= or =symbolic=.
