@@ -31,10 +31,15 @@
 :- module(files_ex,
 	  [ set_time_file/3,		% +File, -OldTimes, +NewTimes
 	    link_file/3,		% +OldPath, +NewPath, +Type
-	    relative_file_name/3	% +AbsPath, +RelTo, -RelPath
+	    relative_file_name/3,	% +AbsPath, +RelTo, -RelPath
+	    copy_file/2			% +From, +To
 	  ]).
 
 /** <module> Extended operations on files
+
+This module provides additional operations on   files.  This covers both
+more  obscure  and  possible  non-portable    low-level  operations  and
+high-level utilities.
 */
 
 :- use_foreign_library(foreign(files), install_files).
@@ -103,3 +108,25 @@ to_dot_dot([], Tail, Tail).
 to_dot_dot([_], Tail, Tail) :- !.
 to_dot_dot([_|T0], ['..'|T], Tail) :-
         to_dot_dot(T0, T, Tail).
+
+
+%%	copy_file(From, To) is det.
+%
+%	Copy a file into a new file or  directory. The data is copied as
+%	binary data.
+
+copy_file(From, To) :-
+	destination_file(To, From, Dest),
+	setup_call_cleanup(open(Dest, write, Out, [type(binary)]),
+			   copy_from(From, Out),
+			   close(Out)).
+
+copy_from(File, Stream) :-
+	setup_call_cleanup(open(File, read, In, [type(binary)]),
+			   copy_stream_data(In, Stream),
+			   close(In)).
+
+destination_file(Dir, File, Dest) :-
+	exists_directory(Dir), !,
+	atomic_list_concat([Dir, File], /, Dest).
+destination_file(Dest, _, Dest).
