@@ -30,7 +30,8 @@
 
 :- module(files_ex,
 	  [ set_time_file/3,		% +File, -OldTimes, +NewTimes
-	    link_file/3			% +OldPath, +NewPath, +Type
+	    link_file/3,		% +OldPath, +NewPath, +Type
+	    relative_file_name/3	% +AbsPath, +RelTo, -RelPath
 	  ]).
 
 /** <module> Extended operations on files
@@ -71,3 +72,34 @@
 %
 %	Create a link in the filesystem   from  NewPath to OldPath. Type
 %	defines the type of link and is one of =hard= or =symbolic=.
+
+%%	relative_file_name(+AbsPath:atom, +RelTo:atom, -RelPath:atom) is det.
+%
+%	True when RelPath is a relative path to AbsPath, relative to
+%	RelTo. For example:
+%
+%	==
+%	?- relative_file_name('/home/janw/nice',
+%			      '/home/janw/deep/dir/file', Path).
+%	Path = '../../nice'.
+%	==
+%
+%	@param	All paths must be in canonical POSIX notation, i.e.,
+%		using / to separate segments in the path.  See
+%		prolog_to_os_filename/2.
+
+relative_file_name(Path, RelTo, RelPath) :-
+        atomic_list_concat(PL, /, Path),
+        atomic_list_concat(RL, /, RelTo),
+        delete_common_prefix(PL, RL, PL1, PL2),
+        to_dot_dot(PL2, DotDot, PL1),
+        atomic_list_concat(DotDot, /, RelPath).
+
+delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
+        delete_common_prefix(T01, T02, T1, T2).
+delete_common_prefix(T1, T2, T1, T2).
+
+to_dot_dot([], Tail, Tail).
+to_dot_dot([_], Tail, Tail) :- !.
+to_dot_dot([_|T0], ['..'|T], Tail) :-
+        to_dot_dot(T0, T, Tail).

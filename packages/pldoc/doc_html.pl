@@ -1474,7 +1474,7 @@ in_file(Module, Head, File) :-
 
 %%	relative_file_name(+Path:atom, +RelTo:atom, -RelPath:atom) is det.
 %
-%	Create a relative path from an absolute one.
+%	True when RelPath is a relative path to Path, relative to RelTo.
 %
 %	@tbd	move to library?
 
