@@ -40,12 +40,13 @@
 	  ]).
 :- use_module(operators).
 :- use_module(debug).
+:- use_module(option).
 
 /** <module> Examine Prolog source-files
 
-The modile prolog_source.pl provides predicates to  open, close and read
-terms from Prolog source-files. This may  seem   easy,  but  there are a
-couple of problems that must be taken care of.
+This module provides predicates  to  open,   close  and  read terms from
+Prolog source-files. This may seem  easy,  but   there  are  a couple of
+problems that must be taken care of.
 
 	* Source files may start with #!, supporting PrologScript
 	* Embedded operators declarations must be taken into account
@@ -63,7 +64,8 @@ users of the library are:
 */
 
 :- thread_local
-	open_source/2.		% Stream, State
+	open_source/2,		% Stream, State
+	mode/2.			% Stream, Data
 
 :- multifile
 	requires_library/2,
@@ -78,30 +80,88 @@ users of the library are:
 %%	prolog_read_source_term(+In, -Term, -Expanded, +Options) is det.
 %
 %	Read a term from a Prolog source-file.  Options is a option list
-%	that is forwarded to read_term/3.
+%	that is forwarded to read_term/3.  In addition, it accepts:
+%
+%	    * process_comment(+Boolean)
+%	    If =true=, process structured comments for PlDoc
 %
 %	@param Term	Term read
 %	@param Expanded	Result of term-expansion on the term
 
 prolog_read_source_term(In, Term, Expanded, Options) :-
+	read_source_term(In, Term, Options),
+	expand(Term, In, Expanded),
+	update_state(Expanded).
+
+:- multifile
+	prolog:comment_hook/3.
+
+read_source_term(In, Term, Options) :-
+	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
+				   number_of_clauses, N),
+	N > 0,
+	option(process_comment(true), Options), !,
+	select_option(term_position(TermPos), Options, Options1, _),
+	'$set_source_module'(SM, SM),
+	read_term(In, Term,
+		  [ comments(Comments),
+		    module(SM),
+		    term_position(TermPos)
+		  | Options1
+		  ]),
+	(   catch(prolog:comment_hook(Comments, TermPos, Term), E,
+		  print_message(error, E))
+	->  true
+	;   true
+	).
+read_source_term(In, Term, Options) :-
 	'$set_source_module'(SM, SM),
 	read_term(In, Term,
 		  [ module(SM)
 		  | Options
-		  ]),
-	expand(Term, Expanded),
-	update_state(Expanded).
+		  ]).
 
-expand(Var, Var) :-
+
+expand(Var, _, Var) :-
 	var(Var), !.
-expand(Term, _) :-
+expand(Term, _, Term) :-
+	no_expand(Term), !.
+expand(Term, _, _) :-
 	requires_library(Term, Lib),
 	ensure_loaded(user:Lib),
 	fail.
-expand('$:-'(X), '$:-'(X)) :- !,	% boot module
-	style_check(+dollar).
-expand(Term, Expanded) :-
+expand(Term, In, Term) :-
+	chr_expandable(Term, In), !.
+expand(Term, _, Expanded) :-
 	expand_term(Term, Expanded).
+
+no_expand((:- if(_))).
+no_expand((:- elif(_))).
+no_expand((:- else(_))).
+no_expand((:- endif(_))).
+no_expand((:- require(_))).
+
+chr_expandable((:- chr_constraint(_)), In) :-
+	add_mode(In, chr).
+chr_expandable((handler(_)), In) :-
+	mode(In, chr).
+chr_expandable((rules(_)), In) :-
+	mode(In, chr).
+chr_expandable(<=>(_, _), In) :-
+	mode(In, chr).
+chr_expandable(@(_, _), In) :-
+	mode(In, chr).
+chr_expandable(==>(_, _), In) :-
+	mode(In, chr).
+chr_expandable(pragma(_, _), In) :-
+	mode(In, chr).
+chr_expandable(option(_, _), In) :-
+	mode(In, chr).
+
+add_mode(Stream, Mode) :-
+	mode(Stream, Mode), !.
+add_mode(Stream, Mode) :-
+	asserta(mode(Stream, Mode)).
 
 %%	requires_library(+Term, -Library)
 %
@@ -200,6 +260,7 @@ prolog_open_source(Src, Fd) :-
 
 prolog_close_source(In) :-
 	pop_operators,
+	retractall(mode(In, _)),
 	(   retract(open_source(In, state(LexState, SM)))
 	->  '$restore_lex_state'(LexState),
 	    '$set_source_module'(_, SM)

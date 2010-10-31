@@ -41,11 +41,10 @@
 	    xref_current_source/1,	% ?Source
 	    xref_done/2,		% +Source, -Time
 	    xref_built_in/1,		% ?Callable
-	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +File, -Path, -Export, +Src
-	    xref_public_list/5,		% +File, -Path, -Export, -Meta, +Src
+	    xref_public_list/6,		% +File, -Path, -Module, -Export, -Meta, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
 					% XPCE class references
@@ -371,9 +370,15 @@ xref_defined_class(Source, Class, file(File)) :-
 
 collect(Src, In) :-
 	repeat,
-	    catch(read_source_term(Src, In, Term, TermPos),
+	    catch(prolog_read_source_term(In, _Term, Expanded,
+					  [ process_comment(true),
+					    term_position(TermPos)
+					  ]),
 		  E, report_syntax_error(E)),
-	    xref_expand(Term, T),
+	    (	is_list(Expanded)
+	    ->	member(T, Expanded)
+	    ;	T = Expanded
+	    ),
 	    (   T == end_of_file
 	    ->  !
 	    ;   stream_position_data(line_count, TermPos, Line),
@@ -382,86 +387,12 @@ collect(Src, In) :-
 		fail
 	    ).
 
-%%	read_source_term(+Src, +In:stream, -Term, -TermPos) is det.
-%
-%	Read next term  from  In.   The  cross-referencer  supports  the
-%	comment_hook  as  also  implemented  by  the  compiler  for  the
-%	documentation processor.
-
-:- multifile
-	prolog:comment_hook/3.
-
-read_source_term(Src, In, Term, TermPos) :-
-	atom(Src),
-	\+ source_file(Src),		% normally loaded; no need to update
-	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
-				   number_of_clauses, N),
-	N > 0, !,
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ term_position(TermPos),
-		    comments(Comments),
-		    module(SM)
-		  ]),
-	(   catch(prolog:comment_hook(Comments, TermPos, Term), E,
-		  print_message(error, E))
-	->  true
-	;   true
-	).
-read_source_term(_, In, Term, TermPos) :-
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ term_position(TermPos),
-		    module(SM)
-		  ]).
-
-
 report_syntax_error(E) :-
 	(   verbose
 	->  print_message(error, E)
 	;   true
 	),
 	fail.
-
-
-		 /*******************************
-		 *	     EXPANSION		*
-		 *******************************/
-
-%%	xref_expand(+Term, -Expanded)
-%
-%	Do the term-expansion. We have to pass require as we need it for
-%	validation. Otherwise we do term-expansion,  handling all of the
-%	XPCE class compiler as normal   Prolog  afterwards. CHR programs
-%	are processed using process_chr/2  directly   from  the  source,
-%	which is why we inhibit expansion here.
-
-xref_expand((:- if(Cond)), (:- if(Cond))).
-xref_expand((:- elif(Cond)), (:- elif(Cond))).
-xref_expand((:- else), (:- else)).
-xref_expand((:- endif), (:- endif)).
-xref_expand((:- require(X)),
-	    (:- require(X))) :- !.
-xref_expand(Term, _) :-
-	requires_library(Term, Lib),
-	ensure_loaded(user:Lib),
-	fail.
-xref_expand(Term, Term) :-
-	chr_expandable(Term), !.
-xref_expand(Term, T) :-
-	catch(expand_term(Term, Expanded), _, Expanded=Term),
-	(   is_list(Expanded)
-	->  member(T, Expanded)
-	;   T = Expanded
-	).
-
-
-%%	requires_library(+Term, -Library)
-%
-%	known expansion hooks.  Should be more dynamic!
-
-requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
-requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 
 
 		 /*******************************
@@ -480,8 +411,7 @@ process((Head :- Body), Src) :- !,
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
 process(Term, Src) :-
-	chr_expandable(Term), !,
-	process_chr(Term, Src).
+	process_chr(Term, Src), !.
 process(M:(Head :- Body), Src) :- !,
 	process((M:Head :- M:Body), Src).
 process(Head, Src) :-
@@ -951,7 +881,7 @@ process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	forall(member(Import, Public),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, Public, Meta, Src), _, fail)
+	(   catch(xref_public_list(File, Path, _M, Public, Meta, Src), _, fail)
 	->  assert_import(Src, Public, _, Path, Reexport),
 	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
@@ -973,35 +903,40 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
 
-%%	xref_public_list(+File, -Path, -Public, +Src) is det.
-%%	xref_public_list(+File, -Path, -Public, -Meta, +Src) is det.
+%%	xref_public_list(+File, -Path, -Public, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Module, -Public, -Meta, +Src) is semidet.
 %
-%	Find File as  referenced  from  Src.   Unify  Path  with  the an
-%	absolute path to the  referenced  source   and  Public  with the
-%	export list of that (module) file.   Exports are produced by the
-%	:- module/2 directive and all subsequent :- reexport directives.
+%	Find meta-information about File. This predicate reads all terms
+%	upto the first term that is not  a directive. It uses the module
+%	and  meta_predicate  directives  to   assemble  the  information
+%	described below.
 %
+%	These predicates fail if File is not a module-file.
+%
+%	@param	Path is the canonical path to File
+%	@param	Module is the module defines in Path
 %	@param	Public is a list of predicate indicators.
 %	@param	Meta is a list of heads as they appear in
 %		meta_predicate/1 declarations.
+%	@param	Src is the place from which File is referenced.
 
 xref_public_list(File, Path, Public, Src) :-
-	xref_public_list(File, Path, Public, _, Src).
-xref_public_list(File, Path, Public, Meta, Src) :-
-	xref_public_list(File, Path, Src, Meta, [], Public, []).
+	xref_public_list(File, Path, _, Public, _, Src).
+xref_public_list(File, Path, Module, Public, Meta, Src) :-
+	xref_public_list(File, Path, Src, Module, Meta, [], Public, []).
 
-xref_public_list(File, Path, Src, Meta, MT, Public, Rest) :-
+xref_public_list(File, Path, Src, Module, Meta, MT, Public, Rest) :-
 	xref_source_file(File, Path, Src),
-	setup_call_cleanup((prolog_open_source(Path, In),		% skips possible #! line
+	setup_call_cleanup((prolog_open_source(Path, In),
 			    set_xref(Old)),
 			   phrase(read_directives(In), Directives),
 			   (set_prolog_flag(xref, Old),
 			    prolog_close_source(In))),
-	public_list(Directives, File, Meta, MT, Public, Rest).
+	public_list(Directives, File, Module, Meta, MT, Public, Rest).
 
 
 read_directives(In) -->
-	{ prolog_read_source_term(In, Term, Expanded, []),
+	{ prolog_read_source_term(In, Term, Expanded, [process_comment(true)]),
 	  nonvar(Term),
 	  Term = (:-_)
 	}, !,
@@ -1013,7 +948,8 @@ terms(Var) --> { var(Var) }, !.
 terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
-public_list([(:- module(_, Export))|Decls], File, Meta, MT, Public, Rest) :-
+public_list([(:- module(Module, Export))|Decls], File,
+	    Module, Meta, MT, Public, Rest) :-
 	append(Export, Reexport, Public),
 	public_list_(Decls, File, Meta, MT, Reexport, Rest).
 
@@ -1033,10 +969,10 @@ public_list_1(meta_predicate(Decl), _File, Meta, MT, Public, Public) :-
 
 reexport_files([], _, Meta, Meta, Public, Public) :- !.
 reexport_files([H|T], Src, Meta, MT, Public, Rest) :- !,
-	xref_public_list(H, _, Src, Meta, MT0, Public, Rest0),
+	xref_public_list(H, _, Src, _, Meta, MT0, Public, Rest0),
 	reexport_files(T, Src, MT0, MT, Rest0, Rest).
 reexport_files(Spec, Src, Meta, MT, Public, Rest) :-
-	xref_public_list(Spec, _Path, Src, Meta, MT, Public, Rest).
+	xref_public_list(Spec, _Path, Src, _, Meta, MT, Public, Rest).
 
 public_from_import(except(Map), File, Src, Export, Rest) :- !,
 	xref_public_list(File, _, Public, Src),
@@ -1161,40 +1097,21 @@ use_module(library(chr) or contains a :-   constraint/1 directive. As an
 extra bonus we get the source-locations right :-)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-chr_expandable((:- constraints(_))).
-chr_expandable((constraints(_))).
-chr_expandable((handler(_))) :-
-	is_chr_file.
-chr_expandable((rules(_))) :-
-	is_chr_file.
-chr_expandable(<=>(_, _)) :-
-	is_chr_file.
-chr_expandable(@(_, _)) :-
-	is_chr_file.
-chr_expandable(==>(_, _)) :-
-	is_chr_file.
-chr_expandable(pragma(_, _)) :-
-	is_chr_file.
-chr_expandable(option(_, _)) :-
-	is_chr_file.
-
-is_chr_file :-
-	source(Src, _),
-	mode(chr, Src), !.
-
 process_chr(@(_Name, Rule), Src) :-
+	mode(chr, Src),
 	process_chr(Rule, Src).
 process_chr(pragma(Rule, _Pragma), Src) :-
+	mode(chr, Src),
 	process_chr(Rule, Src).
 process_chr(<=>(Head, Body), Src) :-
+	mode(chr, Src),
 	chr_head(Head, Src, H),
 	chr_body(Body, H, Src).
 process_chr(==>(Head, Body), Src) :-
+	mode(chr, Src),
 	chr_head(Head, H, Src),
 	chr_body(Body, H, Src).
-process_chr((:- constraints(C)), Src) :-
-	process_chr(constraints(C), Src).
-process_chr(constraints(_), Src) :-
+process_chr((:- chr_constraint(_)), Src) :-
 	(   mode(chr, Src)
 	->  true
 	;   assert(mode(chr, Src))

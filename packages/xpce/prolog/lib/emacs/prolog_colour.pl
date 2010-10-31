@@ -261,36 +261,29 @@ syntax_error(M, Stream, Start, E) :-
 	),
 	fail.
 
-%	fix_operators(+Term, +Src)
+%%	fix_operators(+Term, +Src) is det.
 %
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
 
-fix_operators((:- Directive), Src) :- !,
-	process_directive(Directive, Src).
+fix_operators((:- Directive), Src) :-
+	catch(process_directive(Directive, Src), _, true), !.
 fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
-process_directive(system_mode(on), _) :- !,
-	style_check(+dollar).
 process_directive(op(P,T,N), _) :- !,
-	catch(emacs_push_op(P, T, N), _, true).
+	emacs_push_op(P, T, N).
 process_directive(module(_Name, Export), _) :- !,
-	(   member(op(P,A,N), Export),
-	    catch(emacs_push_op(P,A,N), _, fail),
-	    fail
-	;   true
-	).
+	forall(member(op(P,A,N), Export),
+	       emacs_push_op(P,A,N)).
 process_directive(use_module(Spec), Src) :- !,
-	process_use_module(Spec, Src).
-process_directive(Directive, _) :-
-	asserta(user:message_hook(_,_,_), Ref),
-	ignore(xref_expand((:- Directive), _)),
-	erase(Ref).
+	catch(process_use_module(Spec, Src), _, true).
+process_directive(Directive, Src) :-
+	prolog_source:expand((:-Directive), Src, _).
 
-%	process_use_module(+Imports, +Src)
+%%	process_use_module(+Imports, +Src)
 %
 %	Get the exported operators from the referenced files.
 
