@@ -49,7 +49,6 @@
 #include <io.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-typedef size_t socklen_t;
 
 #else /*__WINDOWS__*/
 

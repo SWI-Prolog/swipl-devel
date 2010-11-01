@@ -104,7 +104,7 @@ INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
 MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" MD="$(MD)" GMP="$(GMP)" /nologo /f Makefile.mak
 
-LIBS=msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib $(EXTRALIBS)
+LIBS=msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib ws2_32.lib ole32.lib $(EXTRALIBS)
 !if "$(MT)" == "true"
 LIBS=$(LIBS) $(LIBPTHREAD).lib
 !ENDIF
