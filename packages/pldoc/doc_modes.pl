@@ -443,10 +443,7 @@ compile_clause(Term, File:Line) :-
 	strip_module(SM:Term, M, Plain),
 	clause_head(Plain, Head),
 	functor(Head, Name, Arity),
-	(   M == user ; M \== SM
-	->  multifile(M:(Name/Arity))
-	;   discontiguous(M:(Name/Arity))
-	),
+	multifile(M:(Name/Arity)),
 	(   M == SM
 	->  Clause = Term
 	;   Clause = M:Term
