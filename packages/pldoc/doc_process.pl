@@ -304,6 +304,10 @@ prolog:predicate_summary(PI, Summary) :-
 %		Generated from Name(Arg, ...)
 %		* Name//Arity
 %		Generated from Name(Arg, ...)//
+%
+%	@param Comments is a list Pos-Comment returned by read_term/3
+%	@param TermPos is the start-location of the actual term
+%	@param File is the file that is being loaded.
 
 process_comments([], _, _).
 process_comments([Pos-Comment|T], TermPos, File) :-
