@@ -1367,6 +1367,8 @@ value but allows for a limited functional notation:
     \begin{itemlist}
 	\item [$A$ + $B$]
 Concatenation of $A$ and $B$
+	\item [$Format$-$Arguments]
+Use format/3 and emit the result as quoted value.
 	\item [\term{encode}{Atom}]
 Use www_form_encode/2 to create a valid URL component.
 	\item [\term{location_by_id}{ID}]

@@ -582,6 +582,8 @@ name(Name) -->
 %	  Emit URL-encoded version of V.  See www_form_encode/2.
 %	  * An option list
 %	  Emit ?Name1=encode(Value1)&Name2=encode(Value2) ...
+%	  * A term Format-Arguments
+%	  Use format/3 and emit the result as quoted value.
 %
 %	The hook html_write:expand_attribute_value//1 can  be defined to
 %	provide additional `function like'   translations.  For example,
@@ -609,6 +611,9 @@ attribute_value(encode(Value)) --> !,
 	[ Encoded ].
 attribute_value(Value) -->
 	expand_attribute_value(Value), !.
+attribute_value(Fmt-Args) --> !,
+	{ format(string(Value), Fmt, Args) },
+	html_quoted_attribute(Value).
 attribute_value(Value) -->
 	html_quoted_attribute(Value).
 
