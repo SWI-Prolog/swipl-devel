@@ -251,7 +251,9 @@ install_files()
   ATOM_hard         = PL_new_atom("hard");
   ATOM_symbolic     = PL_new_atom("symbolic");
 
+#ifdef __WINDOWS__
   win_init_errors();
+#endif
 
   PL_register_foreign("set_time_file", 3, pl_set_time_file, 0);
   PL_register_foreign("link_file",     3, pl_link_file,     0);
