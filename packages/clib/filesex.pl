@@ -72,11 +72,21 @@ high-level utilities.
 %	    ?- set_time_file(foo, [acess(Access)], []).
 %	    ?- set_time_file(foo, [], [modified(now)]).
 %	    ==
+%
+%	@bug Setting times does not work on Windows.
 
 %%	link_file(+OldPath, +NewPath, +Type) is det.
 %
 %	Create a link in the filesystem   from  NewPath to OldPath. Type
 %	defines the type of link and is one of =hard= or =symbolic=.
+%
+%	With some limitations, these  functions   also  work on Windows.
+%	First of all, the unerlying filesystem  must support links. This
+%	requires NTFS. Second, symbolic  links   are  only  supported in
+%	Vista and later.
+%
+%	@error	domain_error(link_type, Type) if the requested link-type
+%		is unknown or not supported on the target OS.
 
 %%	relative_file_name(+AbsPath:atom, +RelTo:atom, -RelPath:atom) is det.
 %
