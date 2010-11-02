@@ -87,6 +87,8 @@ Use ?- debug(html(script)). to  see  the   requested  and  final  set of
 resources. All declared resources  are   in  html_resource/3. The edit/1
 command recognises the names of HTML resources.
 
+---++ Predicates
+
 @tbd	Possibly we should add img//2 to include images from symbolic
 	path notation.
 @tbd	It would be nice if the HTTP file server could use our location
@@ -117,6 +119,10 @@ command recognises the names of HTML resources.
 %		* aggregate(+List)
 %		States that About is an aggregate of the resources in
 %		List.
+%
+%	Registering the same About multiple times extends the properties
+%	defined  for  About.  In  particular,  this  allows  for  adding
+%	additional dependencies to a (virtual) resource.
 
 html_resource(About, Properties) :-
 	source_location(File, Line), !,
