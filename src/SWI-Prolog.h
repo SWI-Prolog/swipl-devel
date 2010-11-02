@@ -600,6 +600,7 @@ PL_EXPORT(int)	PL_unify_mpq(term_t t, mpq_t mpq) WUNUSED;
 #define PL_FILE_NOERRORS	0x80	/* do not raise exceptions */
 
 PL_EXPORT(int)		PL_get_file_name(term_t n, char **name, int flags);
+PL_EXPORT(int)		PL_get_file_nameW(term_t n, wchar_t **name, int flags);
 PL_EXPORT(void)		PL_changed_cwd(void); /* foreign code changed CWD */
 PL_EXPORT(const char *) PL_cwd(void);
 

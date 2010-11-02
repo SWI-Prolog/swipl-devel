@@ -23,6 +23,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-utf8.h"
 #include <stdio.h>
 
 #ifdef HAVE_SYS_STAT_H
@@ -369,12 +370,10 @@ add_option(term_t options, functor_t f, atom_t val)
 
 #define CVT_FILENAME (CVT_ATOM|CVT_STRING|CVT_LIST)
 
-int
-PL_get_file_name(term_t n, char **namep, int flags)
+static int
+get_file_name(term_t n, char **namep, char *tmp, int flags)
 { GET_LD
   char *name;
-  char tmp[MAXPATHLEN];
-  char ospath[MAXPATHLEN];
   int chflags;
   size_t len;
 
@@ -416,7 +415,9 @@ PL_get_file_name(term_t n, char **namep, int flags)
     return FALSE;
   }
 
-  chflags = (CVT_FILENAME|REP_FN);
+  chflags = CVT_FILENAME;
+  if ( !(flags&(REP_UTF8|REP_MB)) )
+    chflags |= REP_FN;
   if ( !(flags & PL_FILE_NOERRORS) )
     chflags |= CVT_EXCEPTION;
   if ( !PL_get_nchars(n, &len, &name, chflags) )
@@ -454,12 +455,59 @@ PL_get_file_name(term_t n, char **namep, int flags)
       return FALSE;
   }
 
-  if ( flags & PL_FILE_OSPATH )
-  { if ( !(name = OsPath(name, ospath)) )
-      return FALSE;
+  *namep = buffer_string(name, BUF_RING);
+
+  return TRUE;
+}
+
+
+int
+PL_get_file_name(term_t n, char **namep, int flags)
+{ char buf[MAXPATHLEN];
+  char ospath[MAXPATHLEN];
+  char *name;
+  int rc;
+
+  if ( (rc=get_file_name(n, &name, buf, flags)) )
+  { if ( (flags & PL_FILE_OSPATH) )
+    { if ( !(name = OsPath(name, ospath)) )
+	return FALSE;
+    }
+
+    *namep = buffer_string(name, BUF_RING);
   }
 
-  *namep = buffer_string(name, BUF_RING);
+  return TRUE;
+}
+
+
+int
+PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
+{ char buf[MAXPATHLEN];
+  char ospath[MAXPATHLEN];
+  char *name;
+  int rc;
+
+  if ( (rc=get_file_name(n, &name, buf, flags|REP_UTF8)) )
+  { Buffer b;
+    const char *s;
+
+    if ( (flags & PL_FILE_OSPATH) )
+    { if ( !(name = OsPath(name, ospath)) )
+	return FALSE;
+    }
+
+    b = findBuffer(BUF_RING);
+    for(s = name; *s; )
+    { int chr;
+
+      s = utf8_get_char(s, &chr);
+      addBuffer(b, (wchar_t)chr, wchar_t);
+    }
+
+    *namep = baseBuffer(b, wchar_t);
+  }
+
   return TRUE;
 }
 
