@@ -504,6 +504,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
       s = utf8_get_char(s, &chr);
       addBuffer(b, (wchar_t)chr, wchar_t);
     }
+    addBuffer(b, (wchar_t)0, wchar_t);
 
     *namep = baseBuffer(b, wchar_t);
   }

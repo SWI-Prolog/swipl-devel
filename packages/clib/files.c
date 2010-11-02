@@ -39,6 +39,32 @@
 #endif
 #include <errno.h>
 
+#ifdef __WINDOWS__
+
+#define MAKE_FUNCTORS 1
+#include <windows.h>
+#include "win_error.c"
+#define statstruct struct _stati64
+#define statfunc _wstati64
+/*#define HAVE_UTIME 1:	Broken ...*/
+#ifdef HAVE_UTIME
+#include <sys/utime.h>
+#define utimestruct _utimbuf
+#define utimefunc _wutime
+#endif
+#define FCHAR wchar_t
+#define PL_get_file_name PL_get_file_nameW
+
+#else /*__WINDOWS__*/
+
+#define statstruct struct stat
+#define statfunc stat
+#define utimestruct struct utimbuf
+#define utimefunc utime
+#define FCHAR char
+
+#endif /*__WINDOWS__*/
+
 static functor_t FUNCTOR_access1;
 static functor_t FUNCTOR_modified1;
 static functor_t FUNCTOR_changed1;
@@ -122,13 +148,13 @@ set_file_time(+Spec, -Old, +New)
 
 static foreign_t
 pl_set_time_file(term_t spec, term_t old, term_t new)
-{ char *name;
-  struct stat sbuf;
+{ FCHAR *name;
+  statstruct sbuf;
 
   if ( !PL_get_file_name(spec, &name, 0) )
     return FALSE;
 
-  if ( stat(name, &sbuf) )
+  if ( statfunc(name, &sbuf) )
     return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "stat", "file", spec);
 
   add_time_option(old, FUNCTOR_access1,   sbuf.st_atime);
@@ -138,7 +164,7 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
 
   if ( !PL_get_nil(new) )
 #ifdef HAVE_UTIME
-  { struct utimbuf tbuf;
+  { utimestruct tbuf;
 
     if ( !get_time_option(new, FUNCTOR_access1,
 			  sbuf.st_atime, &tbuf.actime) )
@@ -147,7 +173,7 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
 			  sbuf.st_mtime, &tbuf.modtime) )
       return FALSE;
 
-    if ( utime(name, &tbuf) != 0 )
+    if ( utimefunc(name, &tbuf) != 0 )
       return pl_error(NULL, 0, NULL, ERR_ERRNO, errno, "set_time", "file", spec);
   }
 #else
@@ -164,15 +190,42 @@ pl_set_time_file(term_t spec, term_t old, term_t new)
 
 static foreign_t
 pl_link_file(term_t from, term_t to, term_t how)
-{ char *fname, *tname;
+{ FCHAR *fname, *tname;
   atom_t hname;
 
-  if ( !PL_get_file_name(from, &fname, 0) ||
-       !PL_get_file_name(to,   &tname, 0) )
+  if ( !PL_get_file_name(from, &fname, PL_FILE_OSPATH) ||
+       !PL_get_file_name(to,   &tname, PL_FILE_OSPATH) )
     return FALSE;
 
   if ( !PL_get_atom(how, &hname) )
     return pl_error(NULL, 0, NULL, ERR_TYPE, how, "atom");
+
+#ifdef __WINDOWS__
+
+  if ( hname == ATOM_hard )
+  { if ( !CreateHardLinkW(tname, fname, NULL) )
+      return win_error("CreateHardLink");
+  } else if ( hname == ATOM_symbolic )
+  { static int (*symlink)(wchar_t *new, wchar_t *existing, DWORD flags);
+    static int fetched = FALSE;
+
+    if ( !fetched )
+    { HMODULE hmod = GetModuleHandle("kernel32.dll");
+      void *addr = GetProcAddress(hmod, "CreateSymbolicLink");
+
+      symlink = addr;
+      fetched = TRUE;
+    }
+
+    if ( !symlink )
+      return pl_error(NULL, 0, NULL, ERR_DOMAIN, how, "link_type");
+
+    if ( !(*symlink)(tname, fname, 0) )
+      return win_error("CreateSymbolicLink");
+  } else
+    return pl_error(NULL, 0, NULL, ERR_DOMAIN, how, "link_type");
+
+#else /*__WINDOWS__*/
 
   if ( hname == ATOM_hard )
   { if ( link(fname, tname) != 0 )
@@ -183,9 +236,10 @@ pl_link_file(term_t from, term_t to, term_t how)
   } else
     return pl_error(NULL, 0, NULL, ERR_DOMAIN, how, "link_type");
 
+#endif /*__WINDOWS__*/
+
   return TRUE;
 }
-
 
 
 install_t
@@ -196,6 +250,8 @@ install_files()
   ATOM_now          = PL_new_atom("now");
   ATOM_hard         = PL_new_atom("hard");
   ATOM_symbolic     = PL_new_atom("symbolic");
+
+  win_init_errors();
 
   PL_register_foreign("set_time_file", 3, pl_set_time_file, 0);
   PL_register_foreign("link_file",     3, pl_link_file,     0);
