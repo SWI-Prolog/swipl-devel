@@ -70,7 +70,7 @@
 :- use_module(library(option)).
 :- use_module(library(pairs)).
 :- use_module(library(sgml)).		% Quote output
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(quintus)).	% for meta_predicate/1
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -594,27 +594,36 @@ name(Name) -->
 :- multifile
 	expand_attribute_value//1.
 
-attribute_value(Var) -->
+attribute_value(List) -->
+	{ is_list(List) },
+	attribute_value_m(List).
+attribute_value(Value) -->
+	attribute_value_s(Value).
+
+% emit a single attribute value
+
+attribute_value_s(Var) -->
 	{ var(Var), !,
 	  instantiation_error(Var)
 	}.
-attribute_value(A+B) --> !,
+attribute_value_s(A+B) --> !,
 	attribute_value(A),
-	attribute_value(B).
-attribute_value([]) --> !.
-attribute_value(List) -->
-	{ is_list(List) }, !,
-	[ ? ],
-	search_parameters(List).
-attribute_value(encode(Value)) --> !,
-	{ www_form_encode(Value, Encoded) },
+	(   { is_list(B) }
+	->  (   { B == [] }
+	    ->	[]
+	    ;	[?], search_parameters(B)
+	    )
+	;   attribute_value(B)
+	).
+attribute_value_s(encode(Value)) --> !,
+	{ uri_encoded(query, Value, Encoded) },
 	[ Encoded ].
-attribute_value(Value) -->
+attribute_value_s(Value) -->
 	expand_attribute_value(Value), !.
-attribute_value(Fmt-Args) --> !,
+attribute_value_s(Fmt-Args) --> !,
 	{ format(string(Value), Fmt, Args) },
 	html_quoted_attribute(Value).
-attribute_value(Value) -->
+attribute_value_s(Value) -->
 	html_quoted_attribute(Value).
 
 search_parameters([H|T]) -->
@@ -640,6 +649,26 @@ search_parameter(Term) -->
 search_parameter(Term) -->
 	{ domain_error(search_parameter, Term)
 	}.
+
+%%	attribute_value_m(+List)//
+%
+%	Used for multi-valued attributes, such as class-lists.  E.g.,
+%
+%	  ==
+%	  	body(class([c1, c2]), Body)
+%	  ==
+%
+%	  Emits =|<body class="c1 c2"> ...|=
+
+attribute_value_m([]) -->
+	[].
+attribute_value_m([H|T]) -->
+	attribute_value_s(H),
+	(   { T == [] }
+	->  []
+	;   [' '],
+	    attribute_value_m(T)
+	).
 
 
 		 /*******************************

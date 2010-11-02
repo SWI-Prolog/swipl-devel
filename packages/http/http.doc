@@ -1367,17 +1367,26 @@ value but allows for a limited functional notation:
     \begin{itemlist}
 	\item [$A$ + $B$]
 Concatenation of $A$ and $B$
-	\item [$Format$-$Arguments]
+	\item [$Format$-$Arguments$]
 Use format/3 and emit the result as quoted value.
 	\item [\term{encode}{Atom}]
-Use www_form_encode/2 to create a valid URL component.
+Use uri_encoded/3 to create a valid URL query component.
 	\item [\term{location_by_id}{ID}]
 HTTP location of the HTTP handler with given ID.  See http_location_by_id/2.
-	\item [List]
-A list is handled as a URL `search' component. The list members are
+	\item [$A$ + \arg{List}]
+\arg{List} is handled as a URL `search' component. The list members are
 terms of the format \mbox{\arg{Name} = \arg{Value}} or
 \term{Name}{Value}.  Values are encoded as in the encode option
 described above.
+	\item [\arg{List}]
+Emit SGML multi-valued attributes (e.g., \const{NAMES}).  Each value in
+list is separated by a space.  This is particularly useful for setting
+multiple \const{class} attributes on an element.  For example:
+
+\begin{code}
+	...
+	span(class([c1,c2]), ...),
+\end{code}
 \end{itemlist}
 
 The example below generates a   URL  that references the predicate
