@@ -616,7 +616,7 @@ attribute_value_s(A+B) --> !,
 	;   attribute_value(B)
 	).
 attribute_value_s(encode(Value)) --> !,
-	{ uri_encoded(query, Value, Encoded) },
+	{ uri_encoded(query_value, Value, Encoded) },
 	[ Encoded ].
 attribute_value_s(Value) -->
 	expand_attribute_value(Value), !.
