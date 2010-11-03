@@ -255,7 +255,6 @@ typedef struct rdf_db
   size_t	indexed[16];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
-  int		gc_blocked;		/* GC is blocked; */
   double	rehash_time;		/* time spent in rehash */
   double	gc_time;		/* time spent in GC */
   size_t	core;			/* core in use */
