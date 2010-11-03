@@ -246,27 +246,32 @@ doc_file_name(Source, Doc, Options) :-
 
 doc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
-	current_module(M),
-	current_predicate(M:'$pldoc'/4),
+	locally_defined(M:'$pldoc'/4),
 	M:'$pldoc'(Obj, Pos, Summary, Comment),
 	qualify(M, Obj, Object0),
-	(   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
+	(   locally_defined(M:'$pldoc_link'/2),
 	    findall(L, M:'$pldoc_link'(L, Obj), Ls), Ls \== []
 	->  maplist(qualify(M),	Ls, QLs),
 	    Object = [Object0|QLs]
 	;   Object = Object0
 	).
 doc_comment(M:Object, Pos, Summary, Comment) :- !,
-	current_module(M),
-	current_predicate(M:'$pldoc'/4),
+	locally_defined(M:'$pldoc'/4),
 	(   M:'$pldoc'(Object, Pos, Summary, Comment)
-	;   current_predicate(M:'$pldoc_link'/2),
+	;   locally_defined(M:'$pldoc_link'/2),
 	    M:'$pldoc_link'(Object, Obj2),
 	    M:'$pldoc'(Obj2, Pos, Summary, Comment)
 	).
 doc_comment(Name/Arity, Pos, Summary, Comment) :-
 	system_module(M),
 	doc_comment(M:Name/Arity, Pos, Summary, Comment).
+
+
+locally_defined(M:Name/Arity) :-
+	current_module(M),
+	current_predicate(M:Name/Arity),
+	functor(Head, Name, Arity),
+	\+ predicate_property(M:Head, imported_from(_)).
 
 
 qualify(M, H, H) :- system_module(M), !.
@@ -330,7 +335,7 @@ process_comment(_, _, _).
 
 process_structured_comment(FilePos, Comment, _) :- % already processed
 	prolog_load_context(module, M),
-	current_predicate(M:'$pldoc'/4),
+	locally_defined(M:'$pldoc'/4),
 	catch(M:'$pldoc'(_, FilePos, _, Comment), _, fail), !.
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	string_to_list(Comment, CommentCodes),
