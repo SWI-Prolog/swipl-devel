@@ -40,6 +40,8 @@
 	   'Name the outside world can use to contact me').
 :- setting(http:public_port, integer, 80,
 	   'Port on the public server').
+:- setting(http:public_scheme, oneof([http,https]), http,
+	   'Default URL scheme to use').
 
 
 /** <module> Obtain public server location
