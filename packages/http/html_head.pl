@@ -97,6 +97,8 @@ command recognises the names of HTML resources.
 
 :- dynamic
 	html_resource/3.		% Resource, Source, Properties
+:- multifile
+	html_resource/3.
 
 %%	html_resource(+About, +Properties) is det.
 %
@@ -125,14 +127,18 @@ command recognises the names of HTML resources.
 %	additional dependencies to a (virtual) resource.
 
 html_resource(About, Properties) :-
-	source_location(File, Line), !,
-	retractall(html_resource(About, File:Line, _)),
-	assert_resource(About, File:Line, Properties).
-html_resource(About, Properties) :-
 	assert_resource(About, -, Properties).
 
 assert_resource(About, Location, Properties) :-
 	assert(html_resource(About, Location, Properties)),
+	clean_cache(About, Properties).
+
+system:term_expansion((:-html_resource(About, Properties)),
+		      html_head:html_resource(About, File:Line, Properties)) :-
+	source_location(File, Line),
+	clean_cache(About, Properties).
+
+clean_cache(_About, Properties) :-
 	clean_same_about_cache,
 	(   memberchk(aggregate(_), Properties)
 	->  clean_aggregate_cache
