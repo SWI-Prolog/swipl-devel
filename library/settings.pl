@@ -101,7 +101,7 @@ curr_setting(Name, Module, Type, Default, Comment) :-
 	;   Default = Default0
 	).
 
-%%	setting(Name, Type, Default, Comment) is det.
+%%	setting(:Name, +Type, +Default, +Comment) is det.
 %
 %	Define a setting. Name denotes the name of the setting, Type its
 %	type. Default is the value before  it is modified. Default refer
