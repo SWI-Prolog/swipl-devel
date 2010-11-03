@@ -32,7 +32,8 @@
 	  [ set_time_file/3,		% +File, -OldTimes, +NewTimes
 	    link_file/3,		% +OldPath, +NewPath, +Type
 	    relative_file_name/3,	% +AbsPath, +RelTo, -RelPath
-	    copy_file/2			% +From, +To
+	    copy_file/2,		% +From, +To
+	    make_directory_path/1	% +Directory
 	  ]).
 
 /** <module> Extended operations on files
@@ -140,3 +141,22 @@ destination_file(Dir, File, Dest) :-
 	exists_directory(Dir), !,
 	atomic_list_concat([Dir, File], /, Dest).
 destination_file(Dest, _, Dest).
+
+
+%%	make_directory_path(+Dir) is det.
+%
+%	Create Dir and all required  components   (like  mkdir  -p). Can
+%	raise various file-specific exceptions.
+
+make_directory_path(Dir) :-
+	make_directory_path_2(Dir), !.
+make_directory_path(Dir) :-
+	permission_error(create, directory, Dir).
+
+make_directory_path_2(Dir) :-
+	exists_directory(Dir), !.
+make_directory_path_2(Dir) :-
+	Dir \== (/), !,
+	file_directory_name(Dir, Parent),
+	make_directory_path_2(Parent),
+	make_directory(Dir).
