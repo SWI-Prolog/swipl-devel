@@ -135,7 +135,9 @@ http_parms(Request, Params, DeclGoal, Search) :-
 :- multifile
 	form_data_content_type/1.
 
-form_data_content_type('application/x-www-form-urlencoded').
+form_data_content_type('application/x-www-form-urlencoded') :- !.
+form_data_content_type(ContentType) :-
+	sub_atom(ContentType, 0, _, _, 'application/x-www-form-urlencoded;').
 
 %%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
 %

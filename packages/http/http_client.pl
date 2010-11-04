@@ -383,7 +383,8 @@ http_read_data(In, Fields, Data, Options) :-
 	    Data = Data0
 	).
 http_read_data(In, Fields, Data, _) :-
-	memberchk(content_type('application/x-www-form-urlencoded'), Fields), !,
+	memberchk(content_type(ContentType), Fields),
+	form_data_content_type(ContentType), !,
 	http_read_data(In, Fields, Codes, [to(codes)]),
 	parse_url_search(Codes, Data).
 http_read_data(In, Fields, Data, Options) :- 			% call hook
@@ -403,6 +404,20 @@ encoding(Fields, utf8) :-
 	;   sub_atom(Type, _, _, _, 'utf-8')
 	), !.
 encoding(_, octet).
+
+%%	form_data_content_type(+ContentType) is semidet.
+%
+%	True if ContentType   is  =|application/x-www-form-urlencoded|=.
+%	Note that there can be parameters,   but  the ; MUST immediately
+%	follow the type.
+%
+%	@tbd	Within ClioPatria, there is a library http_request_value.pl
+%		that generalises these things. That library must be
+%		completed and used for this match.
+
+form_data_content_type('application/x-www-form-urlencoded') :- !.
+form_data_content_type(ContentType) :-
+	sub_atom(ContentType, 0, _, _, 'application/x-www-form-urlencoded;').
 
 
 		 /*******************************
