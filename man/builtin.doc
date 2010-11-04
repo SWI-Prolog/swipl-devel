@@ -4460,7 +4460,7 @@ Declare \arg{Name} to be an operator of type \arg{Type} with precedence
 all elements of the list are declared to be identical operators.
 \arg{Precedence} is an integer between 0 and 1200. Precedence 0 removes
 the declaration. \arg{Type} is one of: \const{xf}, \const{yf},
-\const{xfx}, \const{xfy}, \const{yfx}, \const{yfy}, \const{fy} or
+\const{xfx}, \const{xfy}, \const{yfx}, \const{fy} or
 \const{fx}. The `\chr{f}' indicates the position of the functor, while
 \chr{x} and \chr{y} indicate the position of the arguments. `\chr{y}'
 should be interpreted as ``on this position a term with precedence lower
