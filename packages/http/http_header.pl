@@ -562,7 +562,7 @@ transfer(Header, Transfer) :-
 
 %%	content_length_in_encoding(+Encoding, +In, -Bytes)
 %
-%	Determine hom much bytes are required to represent the data from
+%	Determine hom many bytes are required to represent the data from
 %	stream In using the given encoding.  Fails if the data cannot be
 %	represented with the given encoding.
 
