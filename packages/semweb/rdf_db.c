@@ -4094,10 +4094,27 @@ get_partial_triple(rdf_db *db,
   if ( t->object_is_literal )
   { literal *lit = t->object.literal;
 
-    if ( lit->objtype == OBJ_STRING &&
-	 lit->value.string &&
-	 t->match <= STR_MATCH_EXACT )
-      ipat |= BY_O;
+    switch( lit->objtype )
+    { case OBJ_UNTYPED:
+	break;
+      case OBJ_STRING:
+	if ( lit->objtype == OBJ_STRING )
+	{ if ( lit->value.string &&
+	       t->match <= STR_MATCH_EXACT )
+	    ipat |= BY_O;
+	}
+        break;
+      case OBJ_INTEGER:
+      case OBJ_DOUBLE:
+	ipat |= BY_O;
+        break;
+      case OBJ_TERM:
+	if ( PL_is_ground(object) )
+	  ipat |= BY_O;
+        break;
+      default:
+	assert(0);
+    }
   } else if ( t->object.resource )
   { ipat |= BY_O;
   }
