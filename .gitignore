@@ -8,6 +8,7 @@
 *.ilk
 *.lib
 *.pdb
+*.cab
 *~
 *.old
 *.qlf
