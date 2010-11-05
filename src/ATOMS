@@ -655,7 +655,6 @@ A xor			"xor"
 A xpceref		"@"
 A yf			"yf"
 A yfx			"yfx"
-A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 
 F abs			1

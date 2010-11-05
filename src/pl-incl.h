@@ -476,7 +476,6 @@ Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 #define OP_XFX	(0x50|OP_INFIX)
 #define OP_XFY	(0x60|OP_INFIX)
 #define OP_YFX	(0x70|OP_INFIX)
-#define	OP_YFY	(0x80|OP_INFIX)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Type fields.  These codes are  included  in  a  number  of  the  runtime

@@ -2214,7 +2214,6 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
     case OP_XFX:	e->left_pri = pri-1; e->right_pri = pri-1; break;
     case OP_XFY:	e->left_pri = pri-1; e->right_pri = pri;   break;
     case OP_YFX:	e->left_pri = pri;   e->right_pri = pri-1; break;
-    case OP_YFY:	e->left_pri = pri;   e->right_pri = pri;   break;
   }
 
   succeed;
