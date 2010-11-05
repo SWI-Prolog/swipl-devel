@@ -2439,6 +2439,7 @@ static size_t
 tbl_size(size_t triples, int factor)
 { size_t s0 = 256;
 
+  triples *= 10;			/* Should be safe for overflow */
   triples /= factor;
 
   while(s0 < triples)
@@ -2467,12 +2468,15 @@ rehash_triples(rdf_db *db)
     { case BY_S:
       case BY_SG:
 	ocount = db->subjects;
-        factor = 2;
+        factor = 20;
 	break;
       case BY_P:
-      case BY_PG:
 	ocount = db->pred_count;
-        factor = 2;
+        factor = 5;
+	break;
+      case BY_PG:
+	ocount = db->pred_count * db->graph_count;
+        factor = 100;
 	break;
       case BY_O:
       case BY_SP:
@@ -2480,11 +2484,11 @@ rehash_triples(rdf_db *db)
       case BY_PO:
       case BY_SPO:
 	ocount = db->created - db->freed;
-        factor = MIN_HASH_FACTOR;
+        factor = MIN_HASH_FACTOR*10;
         break;
       case BY_G:
 	ocount = db->graph_count;
-        factor = 1;
+        factor = 5;
 	break;
       default:
 	assert(0);
