@@ -261,7 +261,6 @@ typedef struct rdf_db
   predicate   **pred_table;		/* Hash-table of predicates */
   int		pred_table_size;	/* #entries in the table */
   int		pred_count;		/* #predicates */
-  unsigned long next_hash;		/* cloud hash keys */
   int		active_queries;		/* Calls with choicepoints */
   int		need_update;		/* We need to update */
   size_t	agenda_created;		/* #visited nodes in agenda */

@@ -948,7 +948,7 @@ new_predicate_cloud(rdf_db *db, predicate **p, size_t count)
 { predicate_cloud *cloud = rdf_malloc(db, sizeof(*cloud));
 
   memset(cloud, 0, sizeof(*cloud));
-  cloud->hash = db->next_hash++;
+  cloud->hash = rdf_murmer_hash(&cloud, sizeof(cloud), MURMUR_SEED);
   if ( count )
   { int i;
     predicate **p2;
@@ -6744,7 +6744,6 @@ erase_predicates(rdf_db *db)
   }
 
   db->pred_count = 0;
-  db->next_hash = 0;
 }
 
 
