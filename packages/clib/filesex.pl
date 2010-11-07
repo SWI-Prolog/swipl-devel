@@ -32,6 +32,7 @@
 	  [ set_time_file/3,		% +File, -OldTimes, +NewTimes
 	    link_file/3,		% +OldPath, +NewPath, +Type
 	    relative_file_name/3,	% +AbsPath, +RelTo, -RelPath
+	    directory_file_path/3,	% +Dir, +File, -Path
 	    copy_file/2,		% +From, +To
 	    make_directory_path/1	% +Directory
 	  ]).
@@ -120,6 +121,41 @@ to_dot_dot([_], Tail, Tail) :- !.
 to_dot_dot([_|T0], ['..'|T], Tail) :-
         to_dot_dot(T0, T, Tail).
 
+
+%%	directory_file_path(+Directory, +File, -Path) is det.
+%%	directory_file_path(?Directory, ?File, +Path) is det.
+%
+%	True when Path is the full path-name   for  File in Dir. This is
+%	comparable to atom_concat(Directory, File, Path), but it ensures
+%	there is exactly one / between the two parts.  Notes:
+%
+%	  * In mode (+,+,-), if File is given and absolute, Path
+%	  is unified to File.
+%	  * Mode (-,-,+) uses file_directory_name/2 and file_base_name/2
+
+directory_file_path(Dir, File, Path) :-
+	nonvar(Dir), nonvar(File), !,
+	(   is_absolute_file_name(File)
+	->  Path = File
+	;   sub_atom(Dir, _, _, 0, /)
+	->  atom_concat(Dir, File, Path)
+	;   atomic_list_concat([Dir, /, File], Path)
+	).
+directory_file_path(Dir, File, Path) :-
+	nonvar(Path), !,
+	(   nonvar(Dir)
+	->  (   sub_atom(Dir, _, _, 0, /)
+	    ->  atom_concat(Dir, File, Path)
+	    ;	atom_concat(Dir, /, TheDir),
+		atom_concat(TheDir, File, Path)
+	    )
+	;   nonvar(File)
+	->  atom_concat(Dir, File, Path)
+	;   file_directory_name(Path, Dir),
+	    file_base_name(Path, File)
+	).
+directory_file_path(_, _, _) :-
+	throw(error(instantiation_error(_), _)).
 
 %%	copy_file(From, To) is det.
 %
