@@ -3,6 +3,7 @@
 	    rdf_cache_file/3		% +URL, +RW, -File
 	  ]).
 :- use_module(library(error)).
+:- use_module(library(filesex)).
 
 /** <module> Cache RDF triples
 
@@ -113,7 +114,7 @@ ensure_global_cache(Dir) :-
 	exists_directory(Dir), !.
 ensure_global_cache(Dir) :-
 	cache_option(create_global_directory(true)),
-	make_directory(Dir),
+	make_directory_path(Dir),
 	print_message(informational, rdf(cache_created(Dir))).
 
 
