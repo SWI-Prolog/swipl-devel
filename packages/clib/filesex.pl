@@ -90,10 +90,11 @@ high-level utilities.
 %	@error	domain_error(link_type, Type) if the requested link-type
 %		is unknown or not supported on the target OS.
 
-%%	relative_file_name(+AbsPath:atom, +RelTo:atom, -RelPath:atom) is det.
+%%	relative_file_name(+Path:atom, +RelTo:atom, -RelPath:atom) is det.
 %
-%	True when RelPath is a relative path to AbsPath, relative to
-%	RelTo. For example:
+%	True when RelPath is a  relative   path  to AbsPath, relative to
+%	RelTo. Path and RelTo are  first handed to absolute_file_name/2,
+%	which makes the absolute *and* canonical. Below is an example:
 %
 %	==
 %	?- relative_file_name('/home/janw/nice',
@@ -104,10 +105,13 @@ high-level utilities.
 %	@param	All paths must be in canonical POSIX notation, i.e.,
 %		using / to separate segments in the path.  See
 %		prolog_to_os_filename/2.
+%	@bug	This predicate is defined as a _syntactical_ operation.
 
 relative_file_name(Path, RelTo, RelPath) :-
-        atomic_list_concat(PL, /, Path),
-        atomic_list_concat(RL, /, RelTo),
+	absolute_file_name(Path, AbsPath),
+	absolute_file_name(RelTo, AbsRelTo),
+        atomic_list_concat(PL, /, AbsPath),
+        atomic_list_concat(RL, /, AbsRelTo),
         delete_common_prefix(PL, RL, PL1, PL2),
         to_dot_dot(PL2, DotDot, PL1),
         atomic_list_concat(DotDot, /, RelPath).
