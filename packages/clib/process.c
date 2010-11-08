@@ -86,12 +86,13 @@ static functor_t FUNCTOR_eq2;		/* =/2 */
 #include <io.h>
 typedef DWORD  pid_t;
 typedef wchar_t echar;			/* environment character */
-#else
-typedef char echar;
 
 #ifndef CREATE_BREAKAWAY_FROM_JOB
 #define CREATE_BREAKAWAY_FROM_JOB 0x1000000
 #endif
+
+#else
+typedef char echar;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
