@@ -1309,6 +1309,7 @@ rdf_make :-
 modified_graph(SourceURL, Graph) :-
 	rdf_graph(Graph),
 	rdf_graph_source_(Graph, SourceURL, Modified),
+	\+ sub_atom(SourceURL, 0, _, _, 'stream://'),
 	Modified > 0.
 
 %%	save_cache(+DB, +Cache) is det.
