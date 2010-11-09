@@ -1506,6 +1506,11 @@ load_files(Module:Files, Options) :-
 '$load_module'(Reserved, _, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
+'$load_module'(Module, _Public, _Cls, _In, File, _Options) :-
+	'$current_module'(Module, OldFile),
+	source_location(File, _Line),
+	OldFile \== File,
+	same_file(OldFile, File), !.
 '$load_module'(Module, Public, Cls, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),
