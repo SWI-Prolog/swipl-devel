@@ -36,6 +36,7 @@
 	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_module/2,		% ?Source, ?Module
+	    xref_uses_file/3,		% ?Source, ?Spec, ?Path
 	    xref_op/2,			% ?Source, ?Op
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
@@ -72,6 +73,7 @@
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
+	uses_file/3,			% Spec, Src, Path
 	xop/2,				% Src, Op
 	source/2,			% Src, Time
 	used_class/2,			% Name, Src
@@ -247,6 +249,7 @@ xref_clean(Source) :-
 	retractall(constraint(_, Src, Line)),
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
+	retractall(uses_file(_, Src, _)),
 	retractall(xmodule(_, Src)),
 	retractall(xop(Src, _)),
 	retractall(source(Src, _)),
@@ -348,6 +351,18 @@ xref_module(Source, Module) :-
 	prolog_canonical_source(Source, Src),
 	xmodule(Module, Src).
 
+%%	xref_uses_file(?Source, ?Spec, ?Path) is nondet.
+%
+%	True when Source tries to load a file using Spec.
+%
+%	@param Spec is a specification for absolute_file_name/3
+%	@param Path is either an absolute file name of the target
+%	       file or the atom =|<not_found>|=.
+
+xref_uses_file(Source, Spec, Path) :-
+	prolog_canonical_source(Source, Src),
+	uses_file(Spec, Src, Path).
+
 %%	xref_op(?Source, Op) is nondet.
 %
 %	Give the operators active inside the module. This is intended to
@@ -430,21 +445,19 @@ process(Head, Src) :-
 
 process_directive(Var, _) :-
 	var(Var), !.			% error, but that isn't our business
-process_directive((A,B), Src) :- !,	% TBD: whta about other control
+process_directive((A,B), Src) :- !,	% TBD: what about other control
 	process_directive(A, Src),	% structures?
 	process_directive(B, Src).
 process_directive(List, Src) :-
 	is_list(List), !,
 	process_directive(consult(List), Src).
-process_directive(use_module(Spec, Import), Src) :-
-	xref_public_list(Spec, Path, Public, Src),
-	assert_import(Src, Import, Public, Path, false).
+process_directive(use_module(File, Import), Src) :-
+	process_use_module2(File, Import, Src, false).
 process_directive(expects_dialect(Dialect), Src) :-
 	process_directive(use_module(library(dialect/Dialect)), Src),
 	expects_dialect(Dialect).
-process_directive(reexport(Spec, Import), Src) :-
-	xref_public_list(Spec, Path, Public, Src),
-	assert_import(Src, Import, Public, Path, true).
+process_directive(reexport(File, Import), Src) :-
+	process_use_module2(File, Import, Src, true).
 process_directive(reexport(Modules), Src) :-
 	process_use_module(Modules, Src, true).
 process_directive(use_module(Modules), Src) :-
@@ -889,13 +902,14 @@ process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
 	(   catch(xref_public_list(File, Path, _M, Public, Meta, Src), _, fail)
-	->  assert_import(Src, Public, _, Path, Reexport),
+	->  assert(uses_file(File, Src, Path)),
+	    assert_import(Src, Public, _, Path, Reexport),
 	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
 	    ;	true
 	    )
-	;   true
+	;   assert(uses_file(File, Src, '<not_found>'))
 	).
 
 process_pce_import(Name/Arity, Src, Path, Reexport) :-
@@ -909,6 +923,21 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 	).
 process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
+
+%%	process_use_module2(+File, +Import, +Src, +Reexport) is det.
+%
+%	Process use_module/2 and reexport/2.
+
+process_use_module2(File, Import, Src, Reexport) :-
+	(   xref_source_file(File, Path, Src)
+	->  assert(uses_file(File, Src, Path)),
+	    (	catch(public_list(Path, _, _, Public), _, fail)
+	    ->	assert_import(Src, Import, Public, Path, Reexport)
+	    ;	true
+	    )
+	;   assert(uses_file(File, Src, '<not_found>'))
+	).
+
 
 %%	xref_public_list(+File, -Path, -Public, +Src) is semidet.
 %%	xref_public_list(+File, -Path, -Module, -Public, -Meta, +Src) is semidet.
@@ -928,18 +957,22 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 %	@param	Src is the place from which File is referenced.
 
 xref_public_list(File, Path, Public, Src) :-
-	xref_public_list(File, Path, _, Public, _, Src).
-xref_public_list(File, Path, Module, Public, Meta, Src) :-
-	xref_public_list(File, Path, Src, Module, Meta, [], Public, []).
-
-xref_public_list(File, Path, Src, Module, Meta, MT, Public, Rest) :-
 	xref_source_file(File, Path, Src),
+	public_list(Path, _, _, Public).
+xref_public_list(File, Path, Module, Public, Meta, Src) :-
+	xref_source_file(File, Path, Src),
+	public_list(Path, Module, Meta, Public).
+
+public_list(Path, Module, Meta, Public) :-
+	public_list(Path, Module, Meta, [], Public, []).
+
+public_list(Path, Module, Meta, MT, Public, Rest) :-
 	setup_call_cleanup((prolog_open_source(Path, In),
 			    set_xref(Old)),
 			   phrase(read_directives(In), Directives),
 			   (set_prolog_flag(xref, Old),
 			    prolog_close_source(In))),
-	public_list(Directives, File, Module, Meta, MT, Public, Rest).
+	public_list(Directives, Path, Module, Meta, MT, Public, Rest).
 
 
 read_directives(In) -->
@@ -955,34 +988,36 @@ terms(Var) --> { var(Var) }, !.
 terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
-public_list([(:- module(Module, Export))|Decls], File,
+public_list([(:- module(Module, Export))|Decls], Path,
 	    Module, Meta, MT, Public, Rest) :-
 	append(Export, Reexport, Public),
-	public_list_(Decls, File, Meta, MT, Reexport, Rest).
+	public_list_(Decls, Path, Meta, MT, Reexport, Rest).
 
 public_list_([], _, Meta, Meta, Rest, Rest).
-public_list_([(:-(Dir))|T], File, Meta, MT, Public, Rest) :-
-	public_list_1(Dir, File, Meta, MT0, Public, Rest0), !,
-	public_list_(T, File, MT0, MT, Rest0, Rest).
-public_list_([_|T], File, Meta, MT, Public, Rest) :-
-	public_list_(T, File, Meta, MT, Public, Rest).
+public_list_([(:-(Dir))|T], Path, Meta, MT, Public, Rest) :-
+	public_list_1(Dir, Path, Meta, MT0, Public, Rest0), !,
+	public_list_(T, Path, MT0, MT, Rest0, Rest).
+public_list_([_|T], Path, Meta, MT, Public, Rest) :-
+	public_list_(T, Path, Meta, MT, Public, Rest).
 
-public_list_1(reexport(Spec), File, Meta, MT, Reexport, Rest) :-
-	reexport_files(Spec, File, Meta, MT, Reexport, Rest).
-public_list_1(reexport(Spec, Import), File, Meta, Meta, Reexport, Rest) :-
-	public_from_import(Import, Spec, File, Reexport, Rest).
-public_list_1(meta_predicate(Decl), _File, Meta, MT, Public, Public) :-
+public_list_1(reexport(Spec), Path, Meta, MT, Reexport, Rest) :-
+	reexport_files(Spec, Path, Meta, MT, Reexport, Rest).
+public_list_1(reexport(Spec, Import), Path, Meta, Meta, Reexport, Rest) :-
+	public_from_import(Import, Spec, Path, Reexport, Rest).
+public_list_1(meta_predicate(Decl), _Path, Meta, MT, Public, Public) :-
 	phrase(meta_decls(Decl), Meta, MT).
 
 reexport_files([], _, Meta, Meta, Public, Public) :- !.
 reexport_files([H|T], Src, Meta, MT, Public, Rest) :- !,
-	xref_public_list(H, _, Src, _, Meta, MT0, Public, Rest0),
+	xref_source_file(H, Path, Src),
+	public_list(Path, _, Meta, MT0, Public, Rest0),
 	reexport_files(T, Src, MT0, MT, Rest0, Rest).
 reexport_files(Spec, Src, Meta, MT, Public, Rest) :-
-	xref_public_list(Spec, _Path, Src, _, Meta, MT, Public, Rest).
+	xref_source_file(Spec, Path, Src),
+	public_list(Path, _, Meta, MT, Public, Rest).
 
-public_from_import(except(Map), File, Src, Export, Rest) :- !,
-	xref_public_list(File, _, Public, Src),
+public_from_import(except(Map), Path, Src, Export, Rest) :- !,
+	xref_public_list(Path, _, Public, Src),
 	except(Map, Public, Export, Rest).
 public_from_import(Import, _, _, Export, Rest) :-
 	import_name_map(Import, Export, Rest).
@@ -1044,8 +1079,15 @@ process_include([H|T], Src) :- !,
 	process_include(H, Src),
 	process_include(T, Src).
 process_include(File, Src) :-
-	catch(read_src_to_terms(File, Src, Terms), _, fail), !,
-	process_terms(Terms, Src).
+	callable(File), !,
+	(   xref_source_file(File, Path, Src)
+	->  assert(uses_file(File, Src, Path)),
+	    (	catch(read_src_to_terms(Path, Terms), _, fail)
+	    ->	process_terms(Terms, Src)
+	    ;	true
+	    )
+	;   assert(uses_file(File, Src, '<not_found>'))
+	).
 process_include(_, _).
 
 process_terms([], _).
@@ -1053,8 +1095,7 @@ process_terms([H|T], Src) :-
 	process(H, Src),
 	process_terms(T, Src).
 
-read_src_to_terms(File, Src, Terms) :-
-	xref_source_file(File, Path, Src),
+read_src_to_terms(Path, Terms) :-
 	prolog_open_source(Path, Fd),
 	call_cleanup(read_clauses(Fd, Terms),
 		     prolog_close_source(Fd)).
