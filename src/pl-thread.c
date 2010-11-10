@@ -1397,17 +1397,19 @@ pl_thread_self(term_t self)
 
 static void
 free_thread_info(PL_thread_info_t *info)
-{ if ( info->thread_data )
-    free_prolog_thread(info->thread_data);
-  if ( info->return_value )
-    PL_erase(info->return_value);
-  if ( info->goal )
-    PL_erase(info->goal);
+{ record_t rec_rv, rec_g;
 
+  if ( info->thread_data )
+    free_prolog_thread(info->thread_data);
   if ( info->name )
     unaliasThread(info->name);
 
   LOCK();
+  if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
+    info->return_value = NULL;
+  if ( (rec_g=info->goal) )
+    info->goal = NULL;
+
   if ( info->pl_tid == thread_highest_id )
   { int i;
 
@@ -1422,6 +1424,9 @@ free_thread_info(PL_thread_info_t *info)
 
   memset(info, 0, sizeof(*info));	/* sets status to PL_THREAD_UNUSED */
   UNLOCK();
+
+  if ( rec_rv ) PL_erase(rec_rv);
+  if ( rec_g )  PL_erase(rec_g);
 }
 
 
@@ -1682,7 +1687,7 @@ enumerate:
     for(;;)
     { PL_thread_info_t *info = GD->thread.threads[state->tid];
 
-      if ( (*state->p->function)(info, arg PASS_LD) )
+      if ( info && (*state->p->function)(info, arg PASS_LD) )
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
