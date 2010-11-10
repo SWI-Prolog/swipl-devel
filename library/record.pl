@@ -77,6 +77,7 @@ error:has_type(record(M:Name), X) :-
 %	info the following predicates:
 %
 %	  * <constructor>_<name>(Record, Value)
+%	  * <constructor>_data(?Name, ?Record, ?Value)
 %	  * default_<constructor>(-Record)
 %	  * is_<constructor>(@Term)
 %	  * make_<constructor>(+Fields, -Record)
@@ -120,12 +121,14 @@ compile_record(RecordDef) -->
 	  defaults(Args, Defs, TypedArgs),
 	  types(TypedArgs, Names, Types),
 	  atom_concat(default_, Constructor, DefName),
+	  atom_concat(Constructor, '_data', DataName),
 	  DefRecord =.. [Constructor|Defs],
 	  DefClause =.. [DefName,DefRecord],
 	  length(Names, Arity)
 	},
 	[ DefClause ],
 	access_predicates(Names, 1, Arity, Constructor),
+	data_predicate(Names, 1, Arity, Constructor, DataName),
 	set_predicates(Names, 1, Arity, Types, Constructor),
 	set_field_predicates(Names, 1, Arity, Types, Constructor),
 	make_predicate(Constructor),
@@ -284,6 +287,22 @@ access_predicates([Name|NT], I, Arity, Constructor) -->
 	},
 	[Clause],
 	access_predicates(NT, I2, Arity, Constructor).
+
+
+%%	data_predicate(+Names, +Idx0, +Arity, +Constructor, +DataName)// is det.
+%
+%	Create the <constructor>_data(Name, Record, Value) predicate.
+
+data_predicate([], _, _, _, _) -->
+	[].
+data_predicate([Name|NT], I, Arity, Constructor, DataName) -->
+	{ functor(Record, Constructor, Arity),
+	  arg(I, Record, Value),
+	  Clause =.. [DataName, Name, Record, Value],
+	  I2 is I + 1
+	},
+	[Clause],
+	data_predicate(NT, I2, Arity, Constructor, DataName).
 
 
 %%	set_predicates(+Names, +Idx0, +Arity, +Types, +Constructor)// is det.
