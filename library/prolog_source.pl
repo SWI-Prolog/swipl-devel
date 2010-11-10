@@ -36,7 +36,8 @@
 	    prolog_canonical_source/2,	% +Spec, -Id
 
 	    file_name_on_path/2,	% +File, -PathSpec
-	    file_alias_path/2		% ?Alias, ?Dir
+	    file_alias_path/2,		% ?Alias, ?Dir
+	    path_segments_atom/2	% ?Segments, ?Atom
 	  ]).
 :- use_module(operators).
 :- use_module(debug).
@@ -359,3 +360,50 @@ ensure_slash(Dir, Dir) :-
 	sub_atom(Dir, _, _, 0, /), !.
 ensure_slash(Dir0, Dir) :-
 	atom_concat(Dir0, /, Dir).
+
+
+%%	path_segments_atom(+Segments, -Atom) is det.
+%%	path_segments_atom(-Segments, +Atom) is det.
+%
+%	Translate between a path  represented  as   a/b/c  and  an  atom
+%	representing the same path. For example:
+%
+%	  ==
+%	  ?- path_segments_atom(a/b/c, X).
+%	  X = 'a/b/c'.
+%	  ?- path_segments_atom(S, 'a/b/c'), display(S).
+%	  /(/(a,b),c)
+%	  S = a/b/c.
+%	  ==
+%
+%	This predicate is part of  the   Prolog  source  library because
+%	SWI-Prolog  allows  writing  paths   as    /-nested   terms  and
+%	source-code analysis programs often need this.
+
+path_segments_atom(Segments, Atom) :-
+	var(Atom), !,
+	(   atomic(Segments)
+	->  Atom = Segments
+	;   segments_to_list(Segments, List, [])
+	->  atomic_list_concat(List, /, Atom)
+	;   throw(error(type_error(file_path, Segments), _))
+	).
+path_segments_atom(Segments, Atom) :-
+	atomic_list_concat(List, /, Atom),
+	parts_to_path(List, Segments).
+
+segments_to_list(Var, _, _) :-
+	var(Var), !, fail.
+segments_to_list(A/B, H, T) :-
+	segments_to_list(A, H, T0),
+	segments_to_list(B, T0, T).
+segments_to_list(A, [A|T], T) :-
+	atomic(A).
+
+parts_to_path([One], One) :- !.
+parts_to_path(List, More/T) :-
+	(   append(H, [T], List)
+	->  parts_to_path(H, More)
+	).
+
+
