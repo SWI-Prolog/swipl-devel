@@ -476,9 +476,14 @@ fmt_domain_error(const char *key, int value)
 }
 
 static int
-fmt_not_implemented(const char *key)
+fmt_not_implemented(int c)
 { GET_LD
   term_t t = PL_new_term_ref();
+  char key[3];
+
+  key[0] = '%';
+  key[1] = c;
+  key[2] = 0;
 
   PL_put_atom_chars(t, key);
 
@@ -638,7 +643,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUT2DIGITS_SPC(fd, ftm->tm.tm_mday);
 	    break;
 	  case 'E':			/* alternative format */
-	    return fmt_not_implemented("%E");
+	    return fmt_not_implemented(c);
 	  case 'F':			/* ISO 8601 date format */
 	    SUBFORMAT(L"%Y-%m-%d");
 	    break;
@@ -707,12 +712,13 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    OUTCHR(fd, '\n');
 	    break;
 	  case 'O':
+	  case ':':
 	    if ( format[0] == 'z' )
 	    { altO = TRUE;
 	      goto fmt_next;
 	    }
 
-	    return fmt_not_implemented("%O");
+	    return fmt_not_implemented(c);
 	  case 'r':			/* The  time in a.m./p.m. notation */
 	    SUBFORMAT(L"%I:%M:%S %p");	/* TBD: :-separator locale handling */
 	    break;
@@ -821,6 +827,8 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	      else
 		arg = arg*10+(c-'0');
 	      goto fmt_next;
+	    } else
+	    { return fmt_not_implemented(c);
 	    }
 	}
         break;

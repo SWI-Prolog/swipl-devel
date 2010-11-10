@@ -6013,8 +6013,7 @@ The minute as a decimal number (range 00 to 59).
     \fmtchar{n}
 A newline character.
     \fmtchar{O}
-Modifier to select locale-specific output.  Not implemented, but this
-version does implement \texttt{\%Oz}.  See \%z.
+Modifier to select locale-specific output.  Not implemented.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
@@ -6065,8 +6064,10 @@ The year as a decimal number including the century.
 The time-zone as hour offset from GMT using the format HHmm. Required to
 emit RFC822-conforming dates (using
 \texttt{'\%a,~\%d~\%b~\%Y~\%T~\%z'}). Our implementation supports
-\texttt{\%Oz} that modifies the output to HH:mm as required by
-XML-Schema. Note that both notations are valid in ISO8601. \fmtchar{Z}
+\texttt{\%:z}, which modifies the output to HH:mm as required by
+XML-Schema. Note that both notations are valid in ISO8601. The
+sequence \texttt{\%:z} is compatible to the GNU	date(1) command.
+    \fmtchar{Z}
 The time zone or name or abbreviation. \fmtchar{+} The date and time in
 date(1) format. \fmtchar{\%} A literal `\%' character.
 \end{itemize}
@@ -6089,7 +6090,7 @@ http_timestamp(Time, Atom) :-
 \hline
 \textbf{Standard} & \textbf{Format string} \\
 \hline
-\textbf{xsd} & \texttt{'\%FT\%T\%Oz'} \\
+\textbf{xsd} & \texttt{'\%FT\%T\%:z'} \\
 \textbf{ISO8601} & \texttt{'\%FT\%T\%z'} \\
 \textbf{RFC822} & \texttt{'\%a, \%d \%b \%Y \%T \%z'} \\
 \textbf{RFC1123} & \texttt{'\%a, \%d \%b \%Y \%T GMT'} \\
