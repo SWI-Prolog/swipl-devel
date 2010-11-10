@@ -70,6 +70,7 @@ users of the library are:
 :- multifile
 	requires_library/2,
 	prolog:xref_source_identifier/2,	% +Source, -Id
+	prolog:xref_source_time/2,		% +Source, -Modified
 	prolog:xref_open_source/2.		% +SourceId, -Stream
 
 

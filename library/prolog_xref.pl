@@ -164,20 +164,27 @@ verbose :-
 
 xref_source(Source) :-
 	prolog_canonical_source(Source, Src),
-	(   atom(Src)
-	->  time_file(Src, Modified),
-	    source(Src, Modified)
-	), !.
-xref_source(Source) :-
-	prolog_canonical_source(Source, Src),
+	(   last_modified(Source, Modified)
+	->  (   source(Src, Modified)
+	    ->	true
+	    ;	assert(source(Src, Modified)),
+		do_xref(Src)
+	    )
+	;   do_xref(Src)
+	).
+
+do_xref(Src) :-
 	xref_clean(Src),
-	(   atom(Src)
-	->  time_file(Src, Modified)
-	;   get_time(Modified)		% Actually should be `generation'
-	),
-	assert(source(Src, Modified)),
-	xref_setup(Src, In, State),
-	call_cleanup(collect(Src, In), xref_cleanup(State)).
+	setup_call_cleanup(xref_setup(Src, In, State),
+			   collect(Src, In),
+			   xref_cleanup(State)).
+
+last_modified(Source, Modified) :-
+	prolog:xref_source_time(Source, Modified), !.
+last_modified(Source, Modified) :-
+	atom(Source),
+	exists_file(Source),
+	time_file(Source, Modified).
 
 :- thread_local
 	xref_stream/1.			% input stream
