@@ -1459,7 +1459,8 @@ hooking can be databases, (HTTP) URIs, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
-	prolog:xref_source_directory/2.		% +Source, -Dir
+	prolog:xref_source_directory/2,	% +Source, -Dir
+	prolog:xref_source_file/3.	% +Spec, -Path, +Options
 
 
 %%	xref_source_file(+Spec, -File, +Src) is semidet.
@@ -1491,6 +1492,8 @@ do_xref_source_file(Spec, _, _) :-
 	var(Spec), !, fail.
 do_xref_source_file(_:Spec, File, Options) :-
 	do_xref_source_file(Spec, File, Options).
+do_xref_source_file(Spec, File, Options) :-
+	prolog:xref_source_file(Spec, File, Options), !.
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec,
