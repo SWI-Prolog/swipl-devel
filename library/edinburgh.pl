@@ -39,11 +39,12 @@
 	  ]).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Some traditional Edinburgh predicates
+
 This module defines  predicates  from   `traditional  Edinburgh  Prolog'
 (Dec10 and C-Prolog) whose functionality  has   been  replaced  by (ISO)
 Standard Prolog.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 		 /*******************************
 		 *	      TERM I/O		*
@@ -71,11 +72,9 @@ display(Stream, Term) :-
 %	Edinburgh Prolog predicate for dealing dealing with undefined
 %	procedures
 
-:- module_transparent
-	unknown/2.
+:- meta_predicate unknown(:, :).
 
-unknown(Old, New) :-
-	context_module(M),
+unknown(M:Old, M:New) :-
 	current_prolog_flag(M:unknown, O),
 	map_unknown(O, Old),
 	map_unknown(N, New), !,
@@ -88,11 +87,13 @@ map_unknown(fail,    fail).
 %%	debug is det.
 %%	nodebug is det.
 %
-%	Switch on/off debug mode
+%	Switch on/off debug mode.  Note that nodebug/0 has been defined
+%	such that is is not traced itself.
 
 debug	:- set_prolog_flag(debug, true).
-nodebug :- set_prolog_flag(debug, false).
+nodebug :- notrace, set_prolog_flag(debug, false).
 
+:- '$hide'(nodebug/0).
 
 %%	fileerrors(-Old, +New) is det.
 %
