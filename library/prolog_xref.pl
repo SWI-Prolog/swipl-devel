@@ -40,7 +40,7 @@
 	    xref_op/2,			% ?Source, ?Op
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
-	    xref_done/2,		% +Source, -Time
+	    xref_done/2,		% +Source, -When
 	    xref_built_in/1,		% ?Callable
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
@@ -169,14 +169,17 @@ xref_source(Source) :-
 	(   last_modified(Source, Modified)
 	->  (   source(Src, Modified)
 	    ->	true
-	    ;	assert(source(Src, Modified)),
+	    ;	xref_clean(Src),
+		assert(source(Src, Modified)),
 		do_xref(Src)
 	    )
-	;   do_xref(Src)
+	;   xref_clean(Src),
+	    get_time(Now),
+	    assert(source(Src, Now)),
+	    do_xref(Src)
 	).
 
 do_xref(Src) :-
-	xref_clean(Src),
 	setup_call_cleanup(xref_setup(Src, In, State),
 			   collect(Src, In),
 			   xref_cleanup(State)).
