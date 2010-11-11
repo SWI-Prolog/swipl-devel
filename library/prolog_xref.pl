@@ -300,7 +300,15 @@ xref_called(Source, Called, By) :-
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
 %	this predicate does not deal with built-in or global predicates,
-%	just locally defined and imported ones.
+%	just locally defined and imported ones.  How is one of:
+%
+%	  * dynamic(Line)
+%	  * thread_local(Line)
+%	  * multifile(Line)
+%	  * local(Line)
+%	  * foreign(Line)
+%	  * constraint(Line)
+%	  * imported(From)
 
 xref_defined(Source, Called, How) :-
 	(   ground(Source)
