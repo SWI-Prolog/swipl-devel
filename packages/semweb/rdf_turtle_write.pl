@@ -273,7 +273,8 @@ init_prefix_map(State0, State) :-
 	tw_state_only_known_prefixes(State0, OnlyKnown),
 	rdf_graph_prefixes(Graph, Prefixes,
 			   [ filter(turtle_prefix(OnlyKnown)),
-			     expand(Expand)
+			     expand(Expand),
+			     min_count(2)
 			   ]),
 	remove_base(State0, Prefixes, Prefixes2),
 	prefix_names(Prefixes2, State0, Pairs),

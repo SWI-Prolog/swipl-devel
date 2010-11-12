@@ -1627,10 +1627,15 @@ header_namespaces(Options, List) :-
 %	        ==
 %	        call(Goal,S,P,O,Graph)
 %	        ==
+%
+%	    * min_count(+Count)
+%	    Only include prefixes that appear at least N times.  Default
+%	    is 1. Declared prefixes are always returned if found at
+%	    least one time.
 
 
 :- thread_local
-	graph_prefix/1.
+	graph_prefix/3.
 :- meta_predicate
 	rdf_graph_prefixes(?, -, :).
 
@@ -1642,8 +1647,9 @@ rdf_graph_prefixes(Graph, List, M:QOptions) :-
 	meta_options(is_meta, M:QOptions, Options),
 	option(filter(Filter), Options, true),
 	option(expand(Expand), Options, rdf_db),
-	call_cleanup(prefixes(Expand, Graph, Prefixes, Filter),
-		     retractall(graph_prefix(_))),
+	option(min_count(MinCount), Options, 1),
+	call_cleanup(prefixes(Expand, Graph, Prefixes, Filter, MinCount),
+		     retractall(graph_prefix(_,_,_))),
 	sort(Prefixes, List).
 rdf_graph_prefixes(Graph, List, M:Filter) :-
 	rdf_graph_prefixes(Graph, List, M:[filter(Filter)]).
@@ -1652,37 +1658,51 @@ is_meta(filter).
 is_meta(expand).
 
 
-prefixes(Expand, Graph, Prefixes, Filter) :-
+prefixes(Expand, Graph, Prefixes, Filter, MinCount) :-
 	(   call(Expand, S, P, O, Graph),
-	    add_ns(subject, Filter, S),
-	    add_ns(predicate, Filter, P),
-	    add_ns_obj(Filter, O),
+	    add_ns(subject, Filter, S, MinCount, s(S)),
+	    add_ns(predicate, Filter, P, MinCount, sp(S,P)),
+	    add_ns_obj(Filter, O, MinCount, spo(S,P,O)),
 	    fail
 	;   true
 	),
-	findall(Prefix, graph_prefix(Prefix), Prefixes).
+	findall(Prefix, graph_prefix(Prefix, MinCount, _), Prefixes).
 
-add_ns(Where, Filter, S) :-
+add_ns(Where, Filter, S, MinCount, Context) :-
 	\+ rdf_is_bnode(S),
 	iri_xml_namespace(S, Full),
 	Full \== '', !,
-	(   graph_prefix(Full)
+	(   graph_prefix(Full, MinCount, _)
 	->  true
 	;   Filter == true
-	->  assert(graph_prefix(Full))
+	->  add_ns(Full, Context)
 	;   call(Filter, Where, Full, S)
-	->  assert(graph_prefix(Full))
+	->  add_ns(Full, Context)
 	;   true
 	).
-add_ns(_, _, _).
+add_ns(_, _, _, _, _).
 
-add_ns_obj(Filter, O) :-
+add_ns(Full, Context) :-
+	graph_prefix(Full, _, Contexts),
+	memberchk(Context, Contexts), !.
+add_ns(Full, Context) :-
+	retract(graph_prefix(Full, C0, Contexts)), !,
+	C1 is C0+1,
+	asserta(graph_prefix(Full, C1, [Context|Contexts])).
+add_ns(Full, _) :-
+	ns(_, Full), !,
+	asserta(graph_prefix(Full, _, _)).
+add_ns(Full, Context) :-
+	asserta(graph_prefix(Full, 1, [Context])).
+
+
+add_ns_obj(Filter, O, MinCount, Context) :-
 	atom(O), !,
-	add_ns(object, Filter, O).
-add_ns_obj(Filter, literal(type(Type, _))) :-
+	add_ns(object, Filter, O, MinCount, Context).
+add_ns_obj(Filter, literal(type(Type, _)), MinCount, _) :-
 	atom(Type), !,
-	add_ns(type, Filter, Type).
-add_ns_obj(_, _).
+	add_ns(type, Filter, Type, MinCount, t(Type)).
+add_ns_obj(_, _, _, _).
 
 
 %%	used_namespace_entities(-List, ?Graph) is det.
