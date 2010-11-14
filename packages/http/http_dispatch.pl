@@ -38,6 +38,7 @@
 	    http_current_handler/3,	% ?Path, ?Pred
 	    http_location_by_id/2,	% +ID, -Location
 	    http_link_to_id/3,		% +ID, +Parameters, -HREF
+	    http_reload_with_parameters/3, % +Request, +Parameters, -HREF
 	    http_safe_file/2		% +Spec, +Options
 	  ]).
 :- use_module(library(option)).
@@ -424,6 +425,23 @@ http_link_to_id(HandleID, Parameters, HREF) :-
 	uri_query_components(String, Parameters),
 	uri_data(search, Components, String),
 	uri_components(HREF, Components).
+
+%%	http_reload_with_parameters(+Request, +Parameters, -HREF) is det.
+%
+%	Create a request on the current handler with replaced search
+%	parameters.
+
+http_reload_with_parameters(Request, NewParams, HREF) :-
+	memberchk(path(Path), Request),
+	(   memberchk(search(Params), Request)
+	->  true
+	;   Params = []
+	),
+	merge_options(NewParams, Params, AllParams),
+	uri_query_components(Search, AllParams),
+	uri_data(path, Data, Path),
+	uri_data(search, Data, Search),
+	uri_components(HREF, Data).
 
 
 %	hook into html_write:attribute_value//1.
