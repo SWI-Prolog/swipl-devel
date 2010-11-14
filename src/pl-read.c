@@ -961,6 +961,10 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  if ( rb.here[-2] == '0' )		/* 0'<c> */
 		  { if ( (c=getchr()) != EOF )
 		    { addToBuffer(c, _PL_rd);
+		      if ( c == '\\' )
+		      { if ( (c=getchr()) != EOF )
+			  addToBuffer(c, _PL_rd);
+		      }
 		      break;
 		    }
 		    rawSyntaxError("end_of_file");
