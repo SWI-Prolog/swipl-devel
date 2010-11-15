@@ -248,7 +248,7 @@ typedef struct
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
-  short		strictness;		/* Strictness level */
+  int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
   struct var_table vt;			/* Data about variables */
@@ -770,6 +770,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
   IOPOS *pos;
 
   clearBuffer(_PL_rd);				/* clear input buffer */
+  _PL_rd->strictness = truePrologFlag(PLFLAG_ISO);
   source_line_no = -1;
 
   for(;;)
@@ -865,7 +866,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  level++;
 			break;
 		      case '/':
-			if ( last == '*' && --level == 0 )
+			if ( last == '*' &&
+			     (--level == 0 || _PL_rd->strictness) )
 			{ if ( cbuf )
 			  { addUTF8Buffer(cbuf, EOS);
 			    if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
@@ -2465,8 +2467,8 @@ complex_term(const char *stop, short maxpri, term_t term, term_t positions,
   term_t pin;
   int thestop;				/* encountered stop-character */
 
-  if (_PL_rd -> strictness == 0)
-      maxpri = OP_MAXPRIORITY+1;
+  if ( _PL_rd->strictness == 0 )
+    maxpri = OP_MAXPRIORITY+1;
 
   in_op.left_pri = 0;
   in_op.right_pri = 0;
