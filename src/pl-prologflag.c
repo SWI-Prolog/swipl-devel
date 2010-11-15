@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <ctype.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #ifdef __WINDOWS__
 #include <process.h>			/* getpid() */
 #endif
