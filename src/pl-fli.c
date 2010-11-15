@@ -4073,6 +4073,9 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 
 
 #if defined(HAVE_SELECT) && !defined(__WINDOWS__)
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 #ifdef __WINDOWS__
 #include <winsock2.h>
