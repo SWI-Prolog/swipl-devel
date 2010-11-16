@@ -46,6 +46,7 @@
 :- public
 	clear_cache/0,
 	prolog_list_to_json/3,		% +ListIn, -ListOut, +Module
+	prolog_to_json/3,		% +In, -Out, +Module
 	prolog_bool_to_json/2.		% +In, -Boolean
 
 /** <module> Convert between JSON terms and Prolog application terms

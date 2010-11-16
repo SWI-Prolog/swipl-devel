@@ -954,7 +954,8 @@ goal_classification(_, Goal, Origin, recursion) :-
 	functor(Goal, Name, Arity),
 	functor(Origin, Name, Arity), !.
 goal_classification(TB, Goal, _, How) :-
-	xref_defined(TB, Goal, How), !.
+	xref_defined(TB, Goal, How),
+	How \= public(_), !.
 goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
 goal_classification(_TB, _Goal, _, undefined).
@@ -1106,6 +1107,7 @@ def_style(goal(local(_),_),	@default).
 def_style(goal(constraint(_),_), style(colour := darkcyan)).
 
 def_style(head(exported),	style(bold := @on, colour := blue)).
+def_style(head(public(_)),	style(bold := @on, colour := '#016300')).
 def_style(head(extern(_)),	style(bold := @on, colour := blue)).
 def_style(head(dynamic),	style(bold := @on, colour := magenta)).
 def_style(head(multifile),	style(bold := @on, colour := navy_blue)).
@@ -1637,6 +1639,8 @@ identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	new(Summary, string('%N: autoload from %s', F, Atom)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
+identify_pred(public(Line), F, Summary) :-	% Public predicates
+	new(Summary, string('%N: declared public at line %d', F, Line)).
 identify_pred(foreign(Line), F, Summary) :-	% Foreign predicates
 	new(Summary, string('%N: foreign (C/C++) loaded at line %d', F, Line)).
 identify_pred(constraint(Line), F, Summary) :-	% Local constraint
@@ -1901,7 +1905,8 @@ identify_fragment(module(Module), _, Summary) :-
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
 identify_fragment(head(unreferenced), _, 'Unreferenced predicate (from this file)').
-identify_fragment(head(exported), _, 'Exported (Public) predicate').
+identify_fragment(head(exported), _, 'Exported predicate').
+identify_fragment(head(public), _, 'Public predicate').
 identify_fragment(head(multifile), _, 'Multifile predicate').
 identify_fragment(head(constraint), _, 'Constraint').
 identify_fragment(prolog_data, _, 'Pass Prolog term unmodified').
