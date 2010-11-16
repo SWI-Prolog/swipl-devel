@@ -950,8 +950,8 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 process_use_module2(File, Import, Src, Reexport) :-
 	(   xref_source_file(File, Path, Src)
 	->  assert(uses_file(File, Src, Path)),
-	    (	catch(public_list(Path, _, _, Public), _, fail)
-	    ->	assert_import(Src, Import, Public, Path, Reexport)
+	    (	catch(public_list(Path, _, _, Export, _Public), _, fail)
+	    ->	assert_import(Src, Import, Export, Path, Reexport)
 	    ;	true
 	    )
 	;   assert(uses_file(File, Src, '<not_found>'))
@@ -960,6 +960,7 @@ process_use_module2(File, Import, Src, Reexport) :-
 
 %%	xref_public_list(+File, -Path, -Export, +Src) is semidet.
 %%	xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Module, -Export, -Public, -Meta, +Src) is semidet.
 %
 %	Find meta-information about File. This predicate reads all terms
 %	upto the first term that is not  a directive. It uses the module
@@ -977,21 +978,24 @@ process_use_module2(File, Import, Src, Reexport) :-
 
 xref_public_list(File, Path, Export, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, _, _, Export).
+	public_list(Path, _, _, Export, _).
 xref_public_list(File, Path, Module, Export, Meta, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, Module, Meta, Export).
+	public_list(Path, Module, Meta, Export, _).
+xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
+	xref_source_file(File, Path, Src),
+	public_list(Path, Module, Meta, Export, Public).
 
-public_list(Path, Module, Meta, Export) :-
-	public_list(Path, Module, Meta, [], Export, []).
+public_list(Path, Module, Meta, Export, Public) :-
+	public_list(Path, Module, Meta, [], Export, [], Public, []).
 
-public_list(Path, Module, Meta, MT, Export, Rest) :-
+public_list(Path, Module, Meta, MT, Export, Rest, Public, PT) :-
 	setup_call_cleanup((prolog_open_source(Path, In),
 			    set_xref(Old)),
 			   phrase(read_directives(In), Directives),
 			   (set_prolog_flag(xref, Old),
 			    prolog_close_source(In))),
-	public_list(Directives, Path, Module, Meta, MT, Export, Rest).
+	public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 
 read_directives(In) -->
@@ -1008,32 +1012,34 @@ terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
 public_list([(:- module(Module, Export))|Decls], Path,
-	    Module, Meta, MT, Export, Rest) :-
+	    Module, Meta, MT, Export, Rest, Public, PT) :-
 	append(Export, Reexport, Export),
-	public_list_(Decls, Path, Meta, MT, Reexport, Rest).
+	public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
 
-public_list_([], _, Meta, Meta, Rest, Rest).
-public_list_([(:-(Dir))|T], Path, Meta, MT, Export, Rest) :-
-	public_list_1(Dir, Path, Meta, MT0, Export, Rest0), !,
-	public_list_(T, Path, MT0, MT, Rest0, Rest).
-public_list_([_|T], Path, Meta, MT, Export, Rest) :-
-	public_list_(T, Path, Meta, MT, Export, Rest).
+public_list_([], _, Meta, Meta, Export, Export, Public, Public).
+public_list_([(:-(Dir))|T], Path, Meta, MT, Export, Rest, Public, PT) :-
+	public_list_1(Dir, Path, Meta, MT0, Export, Rest0, Public, PT0), !,
+	public_list_(T, Path, MT0, MT, Rest0, Rest, PT0, PT).
+public_list_([_|T], Path, Meta, MT, Export, Rest, Public, PT) :-
+	public_list_(T, Path, Meta, MT, Export, Rest, Public, PT).
 
-public_list_1(reexport(Spec), Path, Meta, MT, Reexport, Rest) :-
-	reexport_files(Spec, Path, Meta, MT, Reexport, Rest).
-public_list_1(reexport(Spec, Import), Path, Meta, Meta, Reexport, Rest) :-
+public_list_1(reexport(Spec), Path, Meta, MT, Reexport, Rest, Public, PT) :-
+	reexport_files(Spec, Path, Meta, MT, Reexport, Rest, Public, PT).
+public_list_1(reexport(Spec, Import), Path, Meta, Meta, Reexport, Rest, Public, Public) :-
 	public_from_import(Import, Spec, Path, Reexport, Rest).
-public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export) :-
+public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export, Public, Public) :-
 	phrase(meta_decls(Decl), Meta, MT).
+public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
+	phrase(public_decls(Decl), Public, PT).
 
-reexport_files([], _, Meta, Meta, Export, Export) :- !.
-reexport_files([H|T], Src, Meta, MT, Export, Rest) :- !,
+reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
+reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :- !,
 	xref_source_file(H, Path, Src),
-	public_list(Path, _, Meta, MT0, Export, Rest0),
-	reexport_files(T, Src, MT0, MT, Rest0, Rest).
-reexport_files(Spec, Src, Meta, MT, Export, Rest) :-
+	public_list(Path, _, Meta, MT0, Export, Rest0, Public, PT0),
+	reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
+reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
 	xref_source_file(Spec, Path, Src),
-	public_list(Path, _, Meta, MT, Export, Rest).
+	public_list(Path, _, Meta, MT, Export, Rest, Public, PT).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :- !,
 	xref_public_list(Path, _, Export, Src),
@@ -1087,6 +1093,14 @@ meta_decls((A,B)) --> !,
 	meta_decls(A),
 	meta_decls(B).
 meta_decls(A) -->
+	[A].
+
+public_decls(Var) -->
+	{ var(Var) }, !.
+public_decls((A,B)) --> !,
+	public_decls(A),
+	public_decls(B).
+public_decls(A) -->
 	[A].
 
 		 /*******************************
