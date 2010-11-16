@@ -43,6 +43,11 @@
 	prolog_to_json(:, -),
 	json_to_prolog(+, :).
 
+:- public
+	clear_cache/0,
+	prolog_list_to_json/3,		% +ListIn, -ListOut, +Module
+	prolog_bool_to_json/2.		% +In, -Boolean
+
 /** <module> Convert between JSON terms and Prolog application terms
 
 The idea behind this module is to  provide a flexible high-level mapping
