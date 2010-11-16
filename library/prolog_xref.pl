@@ -920,10 +920,12 @@ process_use_module(library(pce), Src, Reexport) :- !,	% bit special
 	forall(member(Import, Exports),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, _M, Exports, _Public, Meta, Src),
+	(   catch(xref_public_list(File, Path, M, Exports, Public, Meta, Src),
 		  _, fail)
 	->  assert(uses_file(File, Src, Path)),
 	    assert_import(Src, Exports, _, Path, Reexport),
+	    assert_xmodule_callable(Exports, M, Src, Path),
+	    assert_xmodule_callable(Public, M, Src, Path),
 	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
@@ -1349,6 +1351,21 @@ in_export_list(Head, Export) :-
 assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
 	assert(exported(Term, Src)).
+
+%%	assert_xmodule_callable(PIs, Module, Src, From)
+%
+%	We can call all exports  and   public  predicates of an imported
+%	module using Module:Goal.
+%
+%	@tbd	Should we distinguish this from normal imported?
+
+assert_xmodule_callable([], _, _, _).
+assert_xmodule_callable([PI|T], M, Src, From) :-
+	(   pi_to_head(M:PI, Head)
+	->  assert(imported(Head, Src, From))
+	;   true
+	),
+	assert_xmodule_callable(T, M, Src, From).
 
 
 %%	assert_op(+Src, +Op) is det.
