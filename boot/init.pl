@@ -59,6 +59,7 @@ attempt to call the Prolog defined trace interceptor.
 :- meta_predicate
 	dynamic(:),
 	multifile(:),
+	public(:),
 	module_transparent(:),
 	discontiguous(:),
 	volatile(:),
@@ -87,6 +88,7 @@ discontiguous(Spec)	 :- '$set_pattr'(Spec, (discontiguous)).
 volatile(Spec)		 :- '$set_pattr'(Spec, (volatile)).
 thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
+public(Spec)		 :- '$set_pattr'(Spec, (public)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
 %%	'$hide'(:PI)

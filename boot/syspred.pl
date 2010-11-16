@@ -541,6 +541,8 @@ predicate_property(Pred, Property) :-
 	'$get_predicate_attribute'(Pred, system, 1).
 '$predicate_property'(exported, Pred) :-
 	'$get_predicate_attribute'(Pred, exported, 1).
+'$predicate_property'(public, Pred) :-
+	'$get_predicate_attribute'(Pred, public, 1).
 '$predicate_property'(foreign, Pred) :-
 	'$get_predicate_attribute'(Pred, foreign, 1).
 '$predicate_property'((dynamic), Pred) :-

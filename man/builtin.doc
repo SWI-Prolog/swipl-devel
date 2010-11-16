@@ -2272,7 +2272,7 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-    \prefixop{dynamic}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{dynamic}{:PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
@@ -2296,14 +2296,21 @@ of the program execution.%
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
-    \prefixop{multifile}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{multifile}{:PredicateIndicator, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
 
-    \prefixop{discontiguous}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{discontiguous}{:PredicateIndicator, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
+
+    \prefixop{public}{:PredicateIndicator, \ldots}
+Instructs the cross-referencer that the predicate can be called.  It has
+no semantics.\footnote{This declaration is compatible to SICStus.  In
+YAP, public/1 instructs the compiler to keep the source.  As the source
+is always available in SWI-Prolog, our current interpretation also
+enhanced the compatibility to YAP.}
 
     \predicate{index}{1}{+Head}
 Index the clauses of the predicate with the same name and arity as
@@ -2513,6 +2520,11 @@ Do not show ports of this predicate in the debugger.
     \termitem{number_of_clauses}{ClauseCount}
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
+
+    \termitem{public}{}
+Predicate is declared public using public/1.  Note that without further
+definition, public predicates are considered undefined and this property
+is \emph{not} reported.
 
     \termitem{thread_local}{}
 If true (only possible on the multi-threaded version) each thread has

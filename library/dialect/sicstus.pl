@@ -29,7 +29,6 @@
 
 :- module(sicstus,
 	  [ (block)/1,			% +Heads
-	    (public)/1,			% +Heads
 
 	    if/3,			% :If, :Then, :Else
 
@@ -56,8 +55,7 @@
 	    version/0,
 	    version/1,			% +Message
 
-	    op(1150, fx, (block)),
-	    op(1150, fx, (public))
+	    op(1150, fx, (block))
 	  ]).
 
 :- use_module(sicstus/block).
@@ -216,11 +214,6 @@ use_module(Module, File, Imports) :-
 use_module(Module, _, _Imports) :-
 	instantiation_error(Module).
 
-%%	public(+Heads)
-%
-%	Seems to be used in e.g., :- public user:help_pred/3.
-
-public(_).
 
 		 /*******************************
 		 *	 FOREIGN RESOURCES      *

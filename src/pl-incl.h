@@ -782,6 +782,7 @@ with one operation, it turns out to be faster as well.
 #define P_ISO			(0x08000000L) /* predicate */
 #define P_META			(0x10000000L) /* predicate */
 #define P_MFCONTEXT		(0x20000000L) /* predicate */
+#define P_PUBLIC		(0x40000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 					 /* clause flags */
