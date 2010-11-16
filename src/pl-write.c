@@ -632,7 +632,7 @@ such that it can be read as a float. This means using the conventions of
 the C locale and if the float happens to be integer as <int>.0.
 
 Switching the locale is no option as  locale handling is not thread-safe
-and may have unwanted  consequences  for   embedding.  There  is  a intptr_t
+and may have unwanted  consequences  for   embedding.  There  is  a long
 discussion on the very same topic on  the Python mailinglist. Many hacks
 are proposed, none is very satisfactory.   Richard  O'Keefe suggested to
 use ecvt(), fcvt() and gcvt(). These  are   not  thread-safe.  The GNU C
@@ -662,8 +662,11 @@ format_float(double f, char *buf, const char *format)
       *q++ = '0';
       *q = EOS;
       break;
-    case 'e':
+    case 'e':				/* ISO demands e.g., 1.0e100 */
     case 'E':
+      memmove(q+2, q, strlen(q)+1);
+      *q++ = '.';
+      *q++ = '0';
       break;
     default:
       *q = '.';
