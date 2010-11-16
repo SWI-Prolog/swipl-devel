@@ -958,8 +958,8 @@ process_use_module2(File, Import, Src, Reexport) :-
 	).
 
 
-%%	xref_public_list(+File, -Path, -Public, +Src) is semidet.
-%%	xref_public_list(+File, -Path, -Module, -Public, -Meta, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Export, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
 %
 %	Find meta-information about File. This predicate reads all terms
 %	upto the first term that is not  a directive. It uses the module
@@ -970,28 +970,28 @@ process_use_module2(File, Import, Src, Reexport) :-
 %
 %	@param	Path is the canonical path to File
 %	@param	Module is the module defines in Path
-%	@param	Public is a list of predicate indicators.
+%	@param	Export is a list of predicate indicators.
 %	@param	Meta is a list of heads as they appear in
 %		meta_predicate/1 declarations.
 %	@param	Src is the place from which File is referenced.
 
-xref_public_list(File, Path, Public, Src) :-
+xref_public_list(File, Path, Export, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, _, _, Public).
-xref_public_list(File, Path, Module, Public, Meta, Src) :-
+	public_list(Path, _, _, Export).
+xref_public_list(File, Path, Module, Export, Meta, Src) :-
 	xref_source_file(File, Path, Src),
-	public_list(Path, Module, Meta, Public).
+	public_list(Path, Module, Meta, Export).
 
-public_list(Path, Module, Meta, Public) :-
-	public_list(Path, Module, Meta, [], Public, []).
+public_list(Path, Module, Meta, Export) :-
+	public_list(Path, Module, Meta, [], Export, []).
 
-public_list(Path, Module, Meta, MT, Public, Rest) :-
+public_list(Path, Module, Meta, MT, Export, Rest) :-
 	setup_call_cleanup((prolog_open_source(Path, In),
 			    set_xref(Old)),
 			   phrase(read_directives(In), Directives),
 			   (set_prolog_flag(xref, Old),
 			    prolog_close_source(In))),
-	public_list(Directives, Path, Module, Meta, MT, Public, Rest).
+	public_list(Directives, Path, Module, Meta, MT, Export, Rest).
 
 
 read_directives(In) -->
@@ -1008,51 +1008,51 @@ terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
 public_list([(:- module(Module, Export))|Decls], Path,
-	    Module, Meta, MT, Public, Rest) :-
-	append(Export, Reexport, Public),
+	    Module, Meta, MT, Export, Rest) :-
+	append(Export, Reexport, Export),
 	public_list_(Decls, Path, Meta, MT, Reexport, Rest).
 
 public_list_([], _, Meta, Meta, Rest, Rest).
-public_list_([(:-(Dir))|T], Path, Meta, MT, Public, Rest) :-
-	public_list_1(Dir, Path, Meta, MT0, Public, Rest0), !,
+public_list_([(:-(Dir))|T], Path, Meta, MT, Export, Rest) :-
+	public_list_1(Dir, Path, Meta, MT0, Export, Rest0), !,
 	public_list_(T, Path, MT0, MT, Rest0, Rest).
-public_list_([_|T], Path, Meta, MT, Public, Rest) :-
-	public_list_(T, Path, Meta, MT, Public, Rest).
+public_list_([_|T], Path, Meta, MT, Export, Rest) :-
+	public_list_(T, Path, Meta, MT, Export, Rest).
 
 public_list_1(reexport(Spec), Path, Meta, MT, Reexport, Rest) :-
 	reexport_files(Spec, Path, Meta, MT, Reexport, Rest).
 public_list_1(reexport(Spec, Import), Path, Meta, Meta, Reexport, Rest) :-
 	public_from_import(Import, Spec, Path, Reexport, Rest).
-public_list_1(meta_predicate(Decl), _Path, Meta, MT, Public, Public) :-
+public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export) :-
 	phrase(meta_decls(Decl), Meta, MT).
 
-reexport_files([], _, Meta, Meta, Public, Public) :- !.
-reexport_files([H|T], Src, Meta, MT, Public, Rest) :- !,
+reexport_files([], _, Meta, Meta, Export, Export) :- !.
+reexport_files([H|T], Src, Meta, MT, Export, Rest) :- !,
 	xref_source_file(H, Path, Src),
-	public_list(Path, _, Meta, MT0, Public, Rest0),
+	public_list(Path, _, Meta, MT0, Export, Rest0),
 	reexport_files(T, Src, MT0, MT, Rest0, Rest).
-reexport_files(Spec, Src, Meta, MT, Public, Rest) :-
+reexport_files(Spec, Src, Meta, MT, Export, Rest) :-
 	xref_source_file(Spec, Path, Src),
-	public_list(Path, _, Meta, MT, Public, Rest).
+	public_list(Path, _, Meta, MT, Export, Rest).
 
 public_from_import(except(Map), Path, Src, Export, Rest) :- !,
-	xref_public_list(Path, _, Public, Src),
-	except(Map, Public, Export, Rest).
+	xref_public_list(Path, _, Export, Src),
+	except(Map, Export, Export, Rest).
 public_from_import(Import, _, _, Export, Rest) :-
 	import_name_map(Import, Export, Rest).
 
 
-except([], Public, Export, Rest) :-
-	append(Public, Rest, Export).
-except([PI0 as NewName|Map], Public, Export, Rest) :- !,
+except([], Export, Export, Rest) :-
+	append(Export, Rest, Export).
+except([PI0 as NewName|Map], Export, Export, Rest) :- !,
 	canonical_pi(PI0, PI),
-	map_as(Public, PI, NewName, Public2),
-	except(Map, Public2, Export, Rest).
-except([PI0|Map], Public, Export, Rest) :-
+	map_as(Export, PI, NewName, Export2),
+	except(Map, Export2, Export, Rest).
+except([PI0|Map], Export, Export, Rest) :-
 	canonical_pi(PI0, PI),
-	select(PI2, Public, Public2),
+	select(PI2, Export, Export2),
 	same_pi(PI, PI2), !,
-	except(Map, Public2, Export, Rest).
+	except(Map, Export2, Export, Rest).
 
 
 map_as([PI|T], Repl, As, [PI2|T])  :-
@@ -1286,10 +1286,10 @@ assert_foreign(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(foreign(Term, Src, Line)).
 
-%%	assert_import(+Src, +Import, +PublicList, +From, +Reexport) is det.
+%%	assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
 %
 %	Asserts imports into Src. Import   is  the import specification,
-%	PublicList is the list of known  public predicates or unbound if
+%	ExportList is the list of known  public predicates or unbound if
 %	this need not be checked and  From   is  the file from which the
 %	public predicates come. If  Reexport   is  =true=, re-export the
 %	imported predicates.
@@ -1297,26 +1297,26 @@ assert_foreign(Src, Goal) :-
 %	@tbd	Tighter type-checking on Import.
 
 assert_import(_, [], _, _, _) :- !.
-assert_import(Src, [H|T], Public, From, Reexport) :- !,
-	assert_import(Src, H, Public, From, Reexport),
-	assert_import(Src, T, Public, From, Reexport).
-assert_import(Src, except(Except), Public, From, Reexport) :- !,
-	is_list(Public), !,
-	except(Except, Public, Import, []),
+assert_import(Src, [H|T], Export, From, Reexport) :- !,
+	assert_import(Src, H, Export, From, Reexport),
+	assert_import(Src, T, Export, From, Reexport).
+assert_import(Src, except(Except), Export, From, Reexport) :- !,
+	is_list(Export), !,
+	except(Except, Export, Import, []),
 	assert_import(Src, Import, _All, From, Reexport).
-assert_import(Src, Import as Name, Public, From, Reexport) :- !,
+assert_import(Src, Import as Name, Export, From, Reexport) :- !,
 	pi_to_head(Import, Term0),
 	functor(Term0, _OldName, Arity),
 	functor(Term, Name, Arity),
-	(   in_public_list(Term0, Public)
+	(   in_export_list(Term0, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
 	;   flag(xref_src_line, Line, Line),
 	    assert_called(Src, '<directive>'(Line), Term0)
 	).
-assert_import(Src, Import, Public, From, Reexport) :-
+assert_import(Src, Import, Export, From, Reexport) :-
 	pi_to_head(Import, Term), !,
-	(   in_public_list(Term, Public)
+	(   in_export_list(Term, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
 	;   flag(xref_src_line, Line, Line),
@@ -1325,10 +1325,10 @@ assert_import(Src, Import, Public, From, Reexport) :-
 assert_import(Src, op(P,T,N), _, _, _) :-
 	xref_push_op(Src, P,T,N).
 
-in_public_list(_Head, Public) :-
-	var(Public), !.
-in_public_list(Head, Public) :-
-	member(Export, Public),
+in_export_list(_Head, Export) :-
+	var(Export), !.
+in_export_list(Head, Export) :-
+	member(Export, Export),
 	pi_to_head(Export, Head).
 
 assert_reexport(false, _, _) :- !.
