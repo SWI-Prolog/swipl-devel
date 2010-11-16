@@ -916,13 +916,14 @@ process_use_module([H|T], Src, Reexport) :- !,
 	process_use_module(H, Src, Reexport),
 	process_use_module(T, Src, Reexport).
 process_use_module(library(pce), Src, Reexport) :- !,	% bit special
-	xref_public_list(library(pce), Path, Public, Src),
-	forall(member(Import, Public),
+	xref_public_list(library(pce), Path, Exports, Src),
+	forall(member(Import, Exports),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, _M, Public, Meta, Src), _, fail)
+	(   catch(xref_public_list(File, Path, _M, Exports, _Public, Meta, Src),
+		  _, fail)
 	->  assert(uses_file(File, Src, Path)),
-	    assert_import(Src, Public, _, Path, Reexport),
+	    assert_import(Src, Exports, _, Path, Reexport),
 	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
@@ -1303,8 +1304,8 @@ assert_foreign(Src, Goal) :-
 %%	assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
 %
 %	Asserts imports into Src. Import   is  the import specification,
-%	ExportList is the list of known  public predicates or unbound if
-%	this need not be checked and  From   is  the file from which the
+%	ExportList is the list of known   exported predicates or unbound
+%	if this need not be checked and From  is the file from which the
 %	public predicates come. If  Reexport   is  =true=, re-export the
 %	imported predicates.
 %
@@ -1402,19 +1403,27 @@ assert_thread_local(Src, PI) :-
 	flag(xref_src_line, Line, Line),
 	assert(thread_local(Term, Src, Line)).
 
-assert_multifile(Src, (A, B)) :- !,
+assert_multifile(_, Var) :-
+	var(Var), !, fail.
+assert_multifile(Src, (A,B)) :- !,
 	assert_multifile(Src, A),
 	assert_multifile(Src, B).
-assert_multifile(_, _M:_Name/_Arity) :- !. % not local
+assert_multifile(Src, M:(A,B)) :- !,
+	assert_multifile(Src, M:A),
+	assert_multifile(Src, M:B).
 assert_multifile(Src, PI) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
 
-assert_public(Src, (A, B)) :- !,
+assert_public(_, Var) :-
+	var(Var), !, fail.
+assert_public(Src, (A,B)) :- !,
 	assert_public(Src, A),
 	assert_public(Src, B).
-assert_public(_, _M:_Name/_Arity) :- !. % not local
+assert_public(Src, M:(A,B)) :- !,
+	assert_public(Src, M:A),
+	assert_public(Src, M:B).
 assert_public(Src, PI) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
@@ -1428,6 +1437,8 @@ assert_public(Src, PI) :-
 
 pi_to_head(Var, _) :-
 	var(Var), !, fail.
+pi_to_head(M:PI, M:Term) :- !,
+	pi_to_head(PI, Term).
 pi_to_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 pi_to_head(Name//DCGArity, Term) :-
