@@ -46,6 +46,7 @@
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +File, -Path, -Export, +Src
 	    xref_public_list/6,		% +File, -Path, -Module, -Export, -Meta, +Src
+	    xref_public_list/7,		% +File, -Path, -Module, -Export, -Public, -Meta, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
 					% XPCE class references
