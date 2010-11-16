@@ -67,6 +67,7 @@
 	(dynamic)/3,			% Head, Src, Line
 	(thread_local)/3,		% Head, Src, Line
 	(multifile)/3,			% Head, Src, Line
+	(public)/3,			% Head, Src, Line
 	defined/3,			% Head, Src, Line
 	foreign/3,			% Head, Src, Line
 	constraint/3,			% Head, Src, Line
@@ -247,6 +248,7 @@ xref_clean(Source) :-
 	retractall(called(_, Src, _Origin)),
 	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src, Line)),
+	retractall(public(_, Src, Line)),
 	retractall(defined(_, Src, Line)),
 	retractall(foreign(_, Src, Line)),
 	retractall(constraint(_, Src, Line)),
@@ -295,7 +297,7 @@ xref_called(Source, Called, By) :-
 	called(Called, Src, By).
 
 
-%%	xref_defined(?Source, +Goal, ?How) is semidet.
+%%	xref_defined(?Source, +Goal, ?How) is nondet.
 %
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
@@ -305,6 +307,7 @@ xref_called(Source, Called, By) :-
 %	  * dynamic(Line)
 %	  * thread_local(Line)
 %	  * multifile(Line)
+%	  * public(Line)
 %	  * local(Line)
 %	  * foreign(Line)
 %	  * constraint(Line)
@@ -323,6 +326,8 @@ xref_defined2(thread_local(Line), Src, Called) :-
 	thread_local(Called, Src, Line).
 xref_defined2(multifile(Line), Src, Called) :-
 	multifile(Called, Src, Line).
+xref_defined2(public(Line), Src, Called) :-
+	public(Called, Src, Line).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
 xref_defined2(foreign(Line), Src, Called) :-
@@ -342,6 +347,7 @@ xref_definition_line(local(Line),	 Line).
 xref_definition_line(dynamic(Line),	 Line).
 xref_definition_line(thread_local(Line), Line).
 xref_definition_line(multifile(Line),	 Line).
+xref_definition_line(public(Line),	 Line).
 xref_definition_line(constraint(Line),	 Line).
 xref_definition_line(foreign(Line),	 Line).
 
@@ -487,6 +493,8 @@ process_directive(thread_local(Dynamic), Src) :-
 	assert_thread_local(Src, Dynamic).
 process_directive(multifile(Dynamic), Src) :-
 	assert_multifile(Src, Dynamic).
+process_directive(public(Public), Src) :-
+	assert_public(Src, Public).
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
@@ -1388,6 +1396,16 @@ assert_multifile(Src, PI) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
+
+assert_public(Src, (A, B)) :- !,
+	assert_public(Src, A),
+	assert_public(Src, B).
+assert_public(_, _M:_Name/_Arity) :- !. % not local
+assert_public(Src, PI) :-
+	pi_to_head(PI, Term),
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<public>'(Line), Term),
+	assert(public(Term, Src, Line)).
 
 %%	pi_to_head(+PI, -Head) is semidet.
 %
