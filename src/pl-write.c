@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -341,10 +342,11 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	fail;
     }
   } else
-  { if ( c == quote )
-    { TRY(Putc(c, stream) && Putc(c, stream));
-    } else
-    { return Putc(c, stream);
+  { if ( !Putc(c, stream) )
+      fail;
+    if ( c == quote || c == '\\' )	/* write '' or \\ */
+    { if ( !Putc(c, stream) )
+	fail;
     }
   }
 
