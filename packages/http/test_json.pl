@@ -72,9 +72,9 @@ test(float, X == 3.14) :-
 test(float, X == -3.14) :-
 	atom_json_term('-3.14', X, []).
 test(float, X == 1000.0) :-
-	atom_json_term('1e3', X, []).
+	atom_json_term('1.0e3', X, []).
 test(float, X == 0.001) :-
-	atom_json_term('1e-3', X, []).
+	atom_json_term('1.0e-3', X, []).
 
 test(empty, X == json([])) :-
 	atom_json_term({}, X, []).

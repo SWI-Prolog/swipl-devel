@@ -326,9 +326,9 @@ arithmetic(arith-7) :-
 arithmetic(arith-8) :-
 	-6 is min(-6, -5.5).
 arithmetic(arith-9) :-
-	4000 =:= integer(10000 * float_fractional_part(1e10 + 0.4)).
+	4000 =:= integer(10000 * float_fractional_part(1.0e10 + 0.4)).
 arithmetic(arith-10) :-
-	-4000 =:= integer(10000 * float_fractional_part(-1e10 - 0.4)).
+	-4000 =:= integer(10000 * float_fractional_part(-1.0e10 - 0.4)).
 arithmetic(float_fractional_part-1) :-
 	0 is float_fractional_part(4).
 arithmetic(arith-11) :-
@@ -379,7 +379,7 @@ arithmetic(integer-2) :-
 arithmetic(int-1) :-
 	A is 1<<31, integer(A).
 arithmetic(cmp-1) :-
-	A is 100e6, 67 < A.
+	A is 100.0e6, 67 < A.
 
 
 		 /*******************************
@@ -531,17 +531,17 @@ gmp(sign-1) :-
 	-1 =:= sign(-X),
 	1 =:= sign(X).
 gmp(floor-1) :-
-	A is floor(1e20),
+	A is floor(1.0e20),
 	integer(A),
-	1e20 =:= float(A).
+	1.0e20 =:= float(A).
 gmp(floor-2) :-
 	0 is floor(9 rdiv 10),
 	-1 is floor(-1 rdiv 10),
 	-1 is floor(-9 rdiv 10).
 gmp(ceil-1) :-
-	A is ceil(1e20),
+	A is ceil(1.0e20),
 	integer(A),
-	1e20 =:= float(A).
+	1.0e20 =:= float(A).
 gmp(ceil-2) :-
 	1 is ceil(9 rdiv 10),
 	0 is ceil(-1 rdiv 10),
@@ -1102,9 +1102,9 @@ atom_handling(name-1) :-
 atom_handling(name-2) :-
 	name(V, "5"), V == 5.
 atom_handling(name-3) :-
-	name(V, "5e4"), V =:= 50000.
+	name(V, "5.0e4"), V =:= 50000.
 atom_handling(name-4) :-
-	name(V, "5e4a"), V == '5e4a'.
+	name(V, "5.0e4a"), V == '5.0e4a'.
 atom_handling(name-5) :-
 	name(V, ""), V == ''.
 
