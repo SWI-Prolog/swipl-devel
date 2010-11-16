@@ -1014,6 +1014,7 @@ goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(module_transparent(_),  built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
+goal_colours(public(_),		     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
