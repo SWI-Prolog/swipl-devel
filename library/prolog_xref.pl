@@ -1237,6 +1237,8 @@ assert_called(Src, Origin, M:G) :- !,
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin)
 	    ->  true
+	    ;	system_predicate(G)
+	    ->	true
 	    ;   generalise(Origin, OTerm),
 		generalise(G, GTerm),
 		assert(called(M:GTerm, Src, OTerm))
