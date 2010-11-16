@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,9 +39,22 @@ is supposed to give the POSIX standard one.
 #include <stdio.h>
 #include <ctype.h>
 
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
 #if defined(__WINDOWS__) || defined (__CYGWIN__)
 #define timezone _timezone
+#ifndef HAVE_VAR_TIMEZONE
 #define HAVE_VAR_TIMEZONE
+#endif
 #else
 extern char *tzname[2];
 #ifdef HAVE_VAR_TIMEZONE
