@@ -159,7 +159,8 @@ res_used_namespaces([], [], A, A).
 res_used_namespaces([Resource|T], NoNS, A0, A) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, _Local, Resource), !,
+	atom_concat(Full, Local, Resource),
+	xml_name(Local), !,
 	put_assoc(NS, A0, *, A1),
 	res_used_namespaces(T, NoNS, A1, A).
 res_used_namespaces([R|T0], [R|T], A0, A) :-
