@@ -373,7 +373,7 @@ manifest_for_path(URL, Manifest) :-
 	file_directory_name(URL, Parent),
 	manifest_file(Base),
 	rdf_extension(Ext),
-	concat_atom([Parent, /, Base, '.', Ext], Manifest).
+	atomic_list_concat([Parent, /, Base, '.', Ext], Manifest).
 
 %%	rdf_list_library(+Id) is det.
 %%	rdf_list_library(+Id, +Options) is det.
