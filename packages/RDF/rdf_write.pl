@@ -569,11 +569,13 @@ is_bag_li_predicate(Pred) :-
 rdf_id(Id, NS, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_id(Id, _, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_id(Id, _, Id).
 
 
@@ -588,10 +590,13 @@ rdf_write_id(Out, Atom) :-
 	write(Out, Atom).
 
 
+%%	rdf_att_id(+URI, +DefNS, -ID)
+
 rdf_att_id(Id, _, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_att_id(Id, _, Id).
 
 
