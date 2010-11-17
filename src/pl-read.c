@@ -1927,12 +1927,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case_digit:
     case DI:	{ number value;
-		  int echr;
 
 		  if ( str_number(&rdhere[-1],
-				  &rdhere, &value, DO_CHARESCAPE) &&
-		       utf8_get_uchar(rdhere, &echr) &&
-		       !PlIdContW(echr) )
+				  &rdhere, &value, DO_CHARESCAPE) )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
