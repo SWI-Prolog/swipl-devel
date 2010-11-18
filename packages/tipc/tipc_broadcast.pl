@@ -336,7 +336,8 @@ start_tipc_listener_daemon :-
 
 start_tipc_listener_daemon :-
 	thread_create(tipc_listener_daemon, _,
-	       [alias(tipc_listener_daemon), detached(true)]).
+	       [alias(tipc_listener_daemon), detached(true)]),
+	sleep(0.050).
 
 :- multifile tipc:host_to_address/2.
 %
