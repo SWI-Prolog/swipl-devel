@@ -55,6 +55,10 @@ the RDF database.
 */
 
 :- multifile
+	rdf_content_type/2.		% Allow defining additional
+					% content-type mappings.
+
+:- multifile
 	rdf_db:rdf_open_hook/8,
 	rdf_db:url_protocol/1.
 
@@ -136,7 +140,7 @@ open_envelope(_, _, Stream, Stream, Format) :-
 	nonvar(Format), !.
 open_envelope(ContentType, SourceURL, Stream, Stream, Format) :-
 	major_content_type(ContentType, Major),
-	(   content_type_format(Major, Format)
+	(   rdf_content_type(Major, Format)
 	->  true
 	;   Major == 'text/plain'	% server is not properly configured
 	->  file_name_extension(_, Ext, SourceURL),
@@ -148,19 +152,19 @@ major_content_type(ContentType, Major) :-
 	sub_atom(ContentType, 0, Pre, _, Major).
 major_content_type(Major, Major).
 
-%%	content_type_format(+ContentType, +URL)
+%%	rdf_content_type(+ContentType, +URL)
 %
 %	Deduce the RDF encoding from the mime-type.
 %
 %	@bug	The turtle parser only parses a subset of n3.
 
-content_type_format('text/rdf',	     	     xml).
-content_type_format('text/rdf+xml',	     xml).
-content_type_format('application/rdf+xml',   xml).
-content_type_format('application/x-turtle',  turtle).
-content_type_format('application/turtle',    turtle).
-content_type_format('text/turtle',	     turtle).
-content_type_format('text/rdf+n3',	     turtle).	% Bit dubious
-content_type_format('text/html',	     xhtml).
-content_type_format('application/xhtml+xml', xhtml).
-content_type_format('application/x-gzip',    gzip).
+rdf_content_type('text/rdf',		  xml).
+rdf_content_type('text/rdf+xml',	  xml).
+rdf_content_type('application/rdf+xml',	  xml).
+rdf_content_type('application/x-turtle',  turtle).
+rdf_content_type('application/turtle',	  turtle).
+rdf_content_type('text/turtle',		  turtle).
+rdf_content_type('text/rdf+n3',		  turtle).	% Bit dubious
+rdf_content_type('text/html',		  xhtml).
+rdf_content_type('application/xhtml+xml', xhtml).
+rdf_content_type('application/x-gzip',	  gzip).
