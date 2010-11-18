@@ -94,8 +94,8 @@ access, loading and saving of settings.
 	current_setting(:),
 	restore_setting(:).
 
-curr_setting(Name, Module, Type, Default, Comment) :-
-	current_setting(Name, Module, Type, Default0, Comment, _Src),
+curr_setting(Name, Module, Type, Default, Comment, Src) :-
+	current_setting(Name, Module, Type, Default0, Comment, Src),
 	(   st_default(Name, Module, Default1)
 	->  Default = Default1
 	;   Default = Default0
@@ -158,7 +158,7 @@ setting(QName, Value) :-
 	(   ground(Name)
 	->  (   st_value(Name, Module, Value0)
 	    ->  Value = Value0
-	    ;   curr_setting(Name, Module, Type, Default, _)
+	    ;   curr_setting(Name, Module, Type, Default, _, _)
 	    ->	eval_default(Default, Module, Type, Value)
 	    ;	existence_error(setting, Module:Name)
 	    )
@@ -339,7 +339,7 @@ numeric_type(between(L,_), Type) :-
 set_setting(QName, Value) :-
 	strip_module(QName, Module, Name),
 	must_be(atom, Name),
-	(   curr_setting(Name, Module, Type, Default0, _Comment),
+	(   curr_setting(Name, Module, Type, Default0, _Comment, _Src),
 	    eval_default(Default0, Module, Type, Default)
 	->  (   Value == Default
 	    ->	retract_setting(Module:Name)
@@ -470,7 +470,7 @@ read_setting(In, Term) :-
 %	Store setting loaded from file in the Prolog database.
 
 store_setting(setting(Module:Name, Value), _) :-
-	curr_setting(Name, Module, Type, Default0, _Commentm), !,
+	curr_setting(Name, Module, Type, Default0, _Commentm, _Src), !,
 	eval_default(Default0, Module, Type, Default),
 	(   Value == Default
 	->  true
@@ -519,7 +519,7 @@ write_setting_header(Out) :-
 	format(Out, '*/~n~n', []).
 
 save_setting(Out, Module:Name) :-
-	curr_setting(Name, Module, Type, Default, Comment),
+	curr_setting(Name, Module, Type, Default, Comment, _Src),
 	(   st_value(Name, Module, Value),
 	    \+ ( eval_default(Default, Module, Type, DefValue),
 		 debug(setting, '~w <-> ~w~n', [DefValue, Value]),
@@ -552,21 +552,24 @@ current_setting(Module:Name) :-
 %		* default(-Default)
 %		Default value.  If this is an expression, it is
 %		evaluated.
+%		* source(-File:-Line)
+%		Location where the setting is defined.
 
 setting_property(Setting, Property) :-
 	ground(Setting), !,
 	Setting = Module:Name,
-	curr_setting(Name, Module, Type, Default, Comment), !,
-	setting_property(Property, Module, Type, Default, Comment).
+	curr_setting(Name, Module, Type, Default, Comment, Src), !,
+	setting_property(Property, Module, Type, Default, Comment, Src).
 setting_property(Setting, Property) :-
 	Setting = Module:Name,
-	curr_setting(Name, Module, Type, Default, Comment),
-	setting_property(Property, Module, Type, Default, Comment).
+	curr_setting(Name, Module, Type, Default, Comment, Src),
+	setting_property(Property, Module, Type, Default, Comment, Src).
 
-setting_property(type(Type),       _, Type, _,        _).
-setting_property(default(Default), M, Type, Default0, _) :-
+setting_property(type(Type), _, Type, _, _, _).
+setting_property(default(Default), M, Type, Default0, _, _) :-
 	eval_default(Default0, M, Type, Default).
-setting_property(comment(Comment), _, _,    _,        Comment).
+setting_property(comment(Comment), _, _, _, Comment, _).
+setting_property(source(Src), _, _, _, _, Src).
 
 %%	list_settings
 %
@@ -580,7 +583,7 @@ list_settings :-
 	       list_setting(Module:Setting)).
 
 list_setting(Module:Name) :-
-	curr_setting(Name, Module, Type, Default0, Comment),
+	curr_setting(Name, Module, Type, Default0, Comment, _Src),
 	eval_default(Default0, Module, Type, Default),
 	setting(Module:Name, Value),
 	(   Value \== Default
