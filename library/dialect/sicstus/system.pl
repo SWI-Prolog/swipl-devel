@@ -95,7 +95,7 @@ environ(Name, Value) :-
 %		directly to CreateProcess(). We hand it to
 %
 %		  ==
-%		  %COMSPEC% /C "Command"
+%		  %COMSPEC% /s /c "Command"
 %		  ==
 %
 %		In case of conflict, it is adviced to use
@@ -111,7 +111,7 @@ exec(Command, Streams, PID) :-
 			 process(PID)
 		       ]).
 
-shell(Shell, Command, ['/C', Command]) :-
+shell(Shell, Command, ['/s', '/c', Command]) :-
 	current_prolog_flag(windows, true), !,
 	getenv('COMSPEC', Shell).
 shell('/bin/sh', Command, ['-c', Command]).
