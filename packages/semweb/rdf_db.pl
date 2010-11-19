@@ -144,6 +144,13 @@
 
 :- use_foreign_library(foreign(rdf_db)).
 
+:- meta_predicate
+	rdf_transaction(0),
+	rdf_transaction(0, +),
+	rdf_monitor(1, +),
+	rdf_save(+, :),
+	rdf_load(+, :).
+
 :- multifile
 	ns/2,
 	rdf_meta_specification/3.	% UnboundHead, Module, Head
@@ -1397,13 +1404,6 @@ rdf_reset_db :-
 %	@param Out	Location to save the data.  This can also be a
 %			file-url (=|file://path|=) or a stream wrapped
 %			in a term stream(Out).
-
-:- meta_predicate
-	rdf_transaction(0),
-	rdf_transaction(0, +),
-	rdf_monitor(1, +),
-	rdf_save(+, :),
-	rdf_load(+, :).
 
 :- thread_local
 	named_anon/2.			% +Resource, -Id
