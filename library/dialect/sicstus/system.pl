@@ -90,6 +90,16 @@ environ(Name, Value) :-
 %
 %	SICStus 3 compatible implementation of  exec/3   on  top  of the
 %	SICStus 4 compatible process_create/3.
+%
+%	@bug	The SICStus version for Windows seems to hand Command
+%		directly to CreateProcess(). We hand it to
+%
+%		  ==
+%		  %COMSPEC% /C "Command"
+%		  ==
+%
+%		In case of conflict, it is adviced to use
+%		process_create/3
 
 exec(Command, Streams, PID) :-
 	Streams = [In, Out, Error],
@@ -101,8 +111,9 @@ exec(Command, Streams, PID) :-
 			 process(PID)
 		       ]).
 
-shell('cmd.exe', Command, ['/C', Command]) :-
-	current_prolog_flag(windows, true), !.
+shell(Shell, Command, ['/C', Command]) :-
+	current_prolog_flag(windows, true), !,
+	getenv('COMSPEC', Shell).
 shell('/bin/sh', Command, ['-c', Command]).
 
 %%	wait(+PID, -Status)
