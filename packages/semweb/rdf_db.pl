@@ -293,6 +293,8 @@ global(NS, Local, Global) :-
 	;   atom(NS), atom(Local)
 	->  (   ns(NS, Full)
 	    *->	atom_concat(Full, Local, Global)
+	    ;	current_prolog_flag(xref, true)
+	    ->	Global = NS:Local
 	    ;	existence_error(rdf_namespace, NS)
 	    )
 	).
@@ -442,6 +444,8 @@ mk_global(NS:Local, Global) :-
 	must_be(atom, Local),
 	(   ns(NS, Full)
 	->  atom_concat(Full, Local, Global)
+	;   current_prolog_flag(xref, true)
+	->  Global = NS:Local
 	;   existence_error(namespace, NS)
 	).
 
