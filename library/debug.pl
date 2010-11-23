@@ -244,8 +244,11 @@ assertion(G) :-
 assertion(G) :-
 	print_message(error, assumption_failed(G)),
 	backtrace(10),
-	trace,
-	assertion_failed.
+	(   thread_self(main)
+	->  trace,
+	    assertion_failed
+	;   throw(error(assertion_error(G), _))
+	).
 
 assertion_failed.
 
