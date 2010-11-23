@@ -98,6 +98,8 @@ syntax(char-2) :-
 syntax(char-3) :-
 	"\\" =:= 0'\\.
 
+:- op(100, yf, af).
+
 syntax(string-1) :-
 	'\c ' == ''.
 syntax(string-2) :-
@@ -110,9 +112,19 @@ syntax(quote-3) :-
 	'\x61\' == a.
 syntax(quote-4) :-
 	char_code('\'', 39).
+syntax(quote-5) :-
+	0'\' == 0''.
+syntax(quote-6) :-
+	0'\' == 0'''.
+syntax(base-1) :-
+	1'+'1 == 1+1.
+syntax(base-2) :-
+	16'af == 175.
+syntax(base-3) :-
+	10'af' == af(10).
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
-	E = error(syntax_error(illegal_number), _).
+	E = error(syntax_error(end_of_file), _).
 syntax(zero-1) :-
 	term_to_atom(T, 'hello(\000\"\000\x")'),
 	T == hello([0, 120]).
@@ -120,6 +132,8 @@ syntax(latin-1) :-
 	atom_codes(A, [247]),
 	atom_to_term(A, T, []),
 	atom_codes(T, [247]).
+
+:- op(0, yf, af).
 
 
 		 /*******************************

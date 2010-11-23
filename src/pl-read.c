@@ -38,6 +38,8 @@ typedef       unsigned char * ucharp;
 #define LD LOCAL_LD
 
 static void	addUTF8Buffer(Buffer b, int c);
+static int	scan_decimal(cucharp *sp, Number n);
+
 
 		 /*******************************
 		 *     UNICODE CLASSIFIERS	*
@@ -959,22 +961,52 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		}
 		goto handle_c;		/* is the newline */
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
-		{ addToBuffer(c, _PL_rd); 		/* <n>' */
-		  if ( rb.here[-2] == '0' )		/* 0'<c> */
-		  { if ( (c=getchr()) != EOF )
-		    { addToBuffer(c, _PL_rd);
-		      if ( c == '\\' )
+		{ cucharp bs = &rb.here[-1];
+		  number base;
+
+		  while(bs > rb.base && isDigit(bs[-1]))
+		    bs--;
+		  scan_decimal(&bs, &base);
+
+		  if ( base.type == V_INTEGER && base.value.i <= 36 )
+		  { if ( base.value.i == 0 ) 		/* 0'<c> */
+	            { addToBuffer(c, _PL_rd);
 		      { if ( (c=getchr()) != EOF )
-			  addToBuffer(c, _PL_rd);
+		        { addToBuffer(c, _PL_rd);
+			  if ( c == '\\' ) 		/* 0'\<c> */
+			  { if ( (c=getchr()) != EOF )
+			      addToBuffer(c, _PL_rd);
+			  } else if ( c == '\'' ) 	/* 0'' */
+			  { if ( (c=getchr()) != EOF )
+			    { if ( c == '\'' )
+				addToBuffer(c, _PL_rd);
+			      else
+				goto handle_c;
+			    }
+			  }
+			  break;
+			}
+			rawSyntaxError("end_of_file");
 		      }
-		      break;
+		    } else
+		    { int c2;
+
+		      if ( (c2=getchr()) != EOF )
+		      { if ( digitValue(base.value.i, c2) >= 0 )
+			{ addToBuffer(c, _PL_rd);
+			  addToBuffer(c2, _PL_rd);
+			  dotseen = FALSE;
+			  break;
+			}
+			Sungetcode(c2, rb.stream);
+			goto sqatom;
+		      }
+		      rawSyntaxError("end_of_file");
 		    }
-		    rawSyntaxError("end_of_file");
 		  }
-		  dotseen = FALSE;
-		  break;
 		}
 
+	      sqatom:
      		set_start_line;
      		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
@@ -1707,6 +1739,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 	{ chr = escape_char(in+3, end, 0, NULL);
 	} else
 	{ *end = utf8_get_uchar(in+2, &chr);
+	  if ( chr == '\'' && **end == '\'' ) /* handle 0''' as 0'' */
+	    (*end)++;
 	}
 
 	value->value.i = (int64_t)chr;
@@ -1742,13 +1776,13 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     fail;				/* too large? */
 
 					/* base'value number */
-  if ( *in == '\'' )
+  if ( *in == '\'' &&
+       value->type == V_INTEGER &&
+       value->value.i <= 36 &&
+       value->value.i > 1 &&
+       digitValue(value->value.i, in[1]) >= 0 )
   { in++;
 
-    if ( value->type != V_INTEGER ||
-	 value->value.i > 36 ||
-	 value->value.i <= 1 )
-      fail;				/* illegal base */
     if ( !scan_number(&in, (int)value->value.i, value) )
       fail;				/* number too large */
 
