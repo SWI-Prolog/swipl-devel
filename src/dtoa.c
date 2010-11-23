@@ -2468,10 +2468,10 @@ strtod
 	CONST char *s, *s0, *s1;
 	double aadj, aadj1;
 	Long L;
-	U aadj2, adj, rv, rv0;
+	U aadj2, adj, rv, rv0={0};
 	ULong y, z;
 	BCinfo bc;
-	Bigint *bb, *bb1, *bd, *bd0, *bs, *delta;
+	Bigint *bb=0, *bb1, *bd=0, *bd0, *bs=0, *delta=0;
 #ifdef Avoid_Underflow
 	ULong Lsb, Lsb1;
 #endif
