@@ -62,6 +62,7 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
+:- use_module(library(debug)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -237,7 +238,7 @@ xref_push_op(Src, P, T, N0) :- !,
 	),
 	push_op(P, T, N),
 	assert_op(Src, op(P,T,N)),
-	debug(xref, ':- ~w.', [op(P,T,N)]).
+	debug(xref(op), ':- ~w.', [op(P,T,N)]).
 
 
 %%	xref_clean(+Source) is det.
