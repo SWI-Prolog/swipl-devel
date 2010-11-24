@@ -206,6 +206,9 @@ typedef int mode_t;
 /* The number of bytes in a long.  */
 #define SIZEOF_LONG 4
 
+/* The number of bytes in a wchar_t.  */
+#define SIZEOF_WCHAR_T 2
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 

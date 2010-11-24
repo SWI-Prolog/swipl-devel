@@ -419,6 +419,11 @@ them.  Descriptions:
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
 #define PLMININT		(((int64_t)-1<<(INT64BITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
+#if SIZEOF_WCHAR_T == 2
+#define PLMAXWCHAR		(0xffff)
+#else
+#define PLMAXWCHAR		(0x10ffff)
+#endif
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)

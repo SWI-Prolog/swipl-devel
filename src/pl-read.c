@@ -1601,6 +1601,7 @@ again:
     case 'u':				/* \uXXXX */
     case 'U':				/* \UXXXXXXXX */
     { int digits = (c == 'u' ? 4 : 8);
+      cucharp errpos = in-1;
       chr = 0;
 
       while(digits-- > 0)
@@ -1610,9 +1611,15 @@ again:
 	if ( (dv=digitValue(16, c)) >= 0 )
 	{ chr = (chr<<4)+dv;
 	} else
-	{ errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	{ last_token_start = (unsigned char*)errpos;
+	  errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
 	  return EOF;
 	}
+      }
+      if ( chr > PLMAXWCHAR )
+      { last_token_start = (unsigned char*)errpos;
+	errorWarning("Illegal character code", 0, _PL_rd);
+	return EOF;
       }
       OK(chr);
     }
@@ -1628,15 +1635,22 @@ again:
     default:
       if ( c >= '0' && c <= '7' )	/* octal number */
       { int dv;
+	cucharp errpos;
 
 	base = 8;
 
       numchar:
+	errpos = in-1;
 	chr = digitValue(base, c);
 	c = *in++;
 	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
+	  if ( chr > PLMAXWCHAR )
+	  { last_token_start = (unsigned char*)errpos;
+	    errorWarning("Illegal character code", 0, _PL_rd);
+	    return EOF;
+	  }
 	}
 	if ( c != '\\' )
 	  in--;
