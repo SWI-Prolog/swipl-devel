@@ -678,6 +678,16 @@ typedef struct
 #endif
 #define floatNumber(n)	((n)->type >= V_FLOAT)
 
+typedef enum
+{ NUM_ERROR = FALSE,			/* Syntax error */
+  NUM_OK    = TRUE,			/* Ok */
+  NUM_FUNDERFLOW = -1,			/* Float underflow */
+  NUM_FOVERFLOW = -2,			/* Float overflow */
+  NUM_IOVERFLOW = -3			/* Integer overflow */
+} strnumstat;
+
+
+
 		 /*******************************
 		 *	   GET-PROCEDURE	*
 		 *******************************/

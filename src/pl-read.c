@@ -37,8 +37,8 @@ typedef       unsigned char * ucharp;
 #undef LD
 #define LD LOCAL_LD
 
-static void	addUTF8Buffer(Buffer b, int c);
-static int	scan_decimal(cucharp *sp, Number n);
+static void	  addUTF8Buffer(Buffer b, int c);
+static strnumstat scan_decimal(cucharp *sp, Number n);
 
 
 		 /*******************************
@@ -354,6 +354,20 @@ Error term:
 
 #define syntaxError(what, rd) { errorWarning(what, 0, rd); fail; }
 
+const char *
+str_number_error(strnumstat rc)
+{ switch(rc)
+  { case NUM_ERROR:      return "illegal_number";
+    case NUM_OK:	 return "no_error";
+    case NUM_FUNDERFLOW: return "float_underflow";
+    case NUM_FOVERFLOW:  return "float_overflow";
+    case NUM_IOVERFLOW:  return "integer_overflow";
+  }
+
+  return NULL;
+}
+
+
 extern IOFUNCTIONS Sstringfunctions;
 
 static bool
@@ -470,6 +484,12 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   }
 
   fail;
+}
+
+
+static int
+numberError(strnumstat rc, ReadData _PL_rd)
+{ return errorWarning(str_number_error(rc), 0, _PL_rd);
 }
 
 
@@ -964,6 +984,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		{ cucharp bs = &rb.here[-1];
 		  number base;
 
+					/* TBD: we only need 2 digits here */
 		  while(bs > rb.base && isDigit(bs[-1]))
 		    bs--;
 		  scan_decimal(&bs, &base);
@@ -1399,14 +1420,17 @@ uint64_to_double(uint64_t i)
 #endif
 
 
-static int
+static strnumstat
 scan_decimal(cucharp *sp, Number n)
 { uint64_t maxi = PLMAXINT/10;
   uint64_t t = 0;
   cucharp s = *sp;
-  int c;
+  int c = *s;
 
-  for(c = *s; isDigit(c); c = *++s)
+  if ( !isDigit(c) )
+    return NUM_ERROR;
+
+  for(; isDigit(c); c = *++s)
   { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
     {
 #ifdef O_GMP
@@ -1420,20 +1444,21 @@ scan_decimal(cucharp *sp, Number n)
       }
       *sp = s;
 
-      succeed;
+      return NUM_OK;
 #else
-      double maxf = MAXREAL / (double) 10 - (double) 10;
-      double tf = uint64_to_double(t);
+      char *end;
 
-      for(c = *s; isDigit(c); c = *++s)
-      { if ( tf > maxf )
-	  fail;				/* number too large */
-        tf = tf * (double)10 + (double)(c - '0');
-      }
+      while(isDigit(*s))
+	s++;
+      n->value.f = strtod(*sp, &end);
+      if ( s != end )
+	return NUM_ERROR;
       *sp = s;
-      n->value.f = tf;
+      if ( errno == ERANGE )
+	return (v->value.f == 0.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+
       n->type = V_FLOAT;
-      succeed;
+      return NUM_OK;
 #endif
     } else
       t = t * 10 + c - '0';
@@ -1443,11 +1468,11 @@ scan_decimal(cucharp *sp, Number n)
 
   n->value.i = t;
   n->type = V_INTEGER;
-  succeed;
+  return NUM_OK;
 }
 
 
-static int
+static strnumstat
 scan_number(cucharp *s, int b, Number n)
 { int d;
   uint64_t maxi = PLMAXINT/b;		/* cache? */
@@ -1455,7 +1480,7 @@ scan_number(cucharp *s, int b, Number n)
   cucharp q = *s;
 
   if ( (d = digitValue(b, *q)) < 0 )
-    fail;				/* syntax error */
+    return NUM_ERROR;			/* syntax error */
   t = d;
   q++;
 
@@ -1474,7 +1499,7 @@ scan_number(cucharp *s, int b, Number n)
       }
       *s = q;
 
-      succeed;
+      return NUM_OK;
 #else
       double maxf = MAXREAL / (double) b - (double) b;
       double tf = uint64_to_double(t);
@@ -1489,7 +1514,7 @@ scan_number(cucharp *s, int b, Number n)
       n->value.f = tf;
       n->type = V_FLOAT;
       *s = q;
-      succeed;
+      return NUM_OK;
 #endif
     } else
     { q++;
@@ -1500,7 +1525,7 @@ scan_number(cucharp *s, int b, Number n)
   n->value.i = t;
   n->type = V_INTEGER;
   *s = q;
-  succeed;
+  return NUM_OK;
 }
 
 
@@ -1717,10 +1742,11 @@ neg_number(Number n)
 }
 
 
-int
+strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
-  unsigned int c;
+  cucharp start = in;
+  strnumstat rc;
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -1762,18 +1788,20 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     }
 
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
-    { int rval;
-      in += 2;
-      rval = scan_number(&in, base, value);
+    { in += 2;
+
+      if ( (rc = scan_number(&in, base, value)) != NUM_OK )
+	return rc;
       *end = (ucharp)in;
       if ( negative )
 	neg_number(value);
-      return rval;
+
+      return NUM_OK;
     }
   }
 
-  if ( !isDigit(*in) || !scan_decimal(&in, value) )
-    fail;				/* too large? */
+  if ( (rc=scan_decimal(&in, value)) != NUM_OK )
+    return rc;				/* too large? */
 
 					/* base'value number */
   if ( *in == '\'' &&
@@ -1783,67 +1811,57 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
        digitValue(value->value.i, in[1]) >= 0 )
   { in++;
 
-    if ( !scan_number(&in, (int)value->value.i, value) )
-      fail;				/* number too large */
-
-    if ( isAlpha(*in) )
-      fail;				/* illegal number */
+    if ( !(rc=scan_number(&in, (int)value->value.i, value)) )
+      return rc;			/* number too large */
 
     if ( negative )
       neg_number(value);
 
     *end = (ucharp)in;
-    succeed;
+
+    return NUM_OK;
   }
 					/* floating point numbers */
 					/* we should use strtod_l() here */
   if ( *in == '.' && isDigit(in[1]) )
-  { double n;
-
-    promoteToFloatNumber(value);
-    n = 10.0, in++;
-    while( isDigit(c = *in) )
-    { in++;
-      value->value.f += (double)(c-'0') / n;
-      n *= 10.0;
-    }
-  }
-
-  if ( *in == 'e' || *in == 'E' )
-  { number exponent;
-    bool neg_exponent;
+  { value->type = V_FLOAT;
 
     in++;
-    DEBUG(9, Sdprintf("Exponent\n"));
-    switch(*in)
-    { case '-':
-	in++;
-        neg_exponent = TRUE;
-	break;
-      case '+':
-	in++;
-      default:
-	neg_exponent = FALSE;
-        break;
-    }
+    while( isDigit(*in) )
+      in++;
+  }
 
-    if ( !isDigit(*in) ||
-	 !scan_decimal(&in, &exponent) ||
-	 exponent.type != V_INTEGER )
-      fail;				/* too large exponent */
+  if ( (*in == 'e' || *in == 'E') &&
+       ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
+  { value->type = V_FLOAT;
 
-    promoteToFloatNumber(value);
+    in++;
+    if ( isSign(*in) )
+      in++;
+    while( isDigit(*in) )
+      in++;
+  }
 
-    value->value.f *= pow((double)10.0,
-			  neg_exponent ? -(double)exponent.value.i
-			               : (double)exponent.value.i);
+  if ( value->type == V_FLOAT )
+  { char *e;
+
+    value->value.f = strtod((char*)start, &e);
+    if ( e != (char*)in )
+      return NUM_ERROR;
+    if ( errno == ERANGE )
+      return (value->value.f == 0.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+
+    *end = (ucharp)in;
+
+    return NUM_OK;
   }
 
   if ( negative )
     neg_number(value);
 
   *end = (ucharp)in;
-  succeed;
+
+  return NUM_OK;
 }
 
 
@@ -1961,14 +1979,17 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case_digit:
     case DI:	{ number value;
+		  strnumstat rc;
 
-		  if ( str_number(&rdhere[-1],
-				  &rdhere, &value, DO_CHARESCAPE) )
+		  if ( (rc=str_number(&rdhere[-1],
+				      &rdhere, &value, DO_CHARESCAPE)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
 		  } else
-		    syntaxError("illegal_number", _PL_rd);
+		  { numberError(rc, _PL_rd);
+		    return NULL;
+		  }
 		}
     case_solo:
     case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */

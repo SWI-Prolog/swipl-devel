@@ -598,9 +598,10 @@ COMMON(void)		profSetHandle(struct call_node *node, void *handle);
 /* pl-read.c */
 COMMON(void) 		resetRead(void);
 COMMON(int)		unicode_separator(pl_wchar_t c);
-COMMON(int) 		str_number(const unsigned char *string,
+COMMON(strnumstat)	str_number(const unsigned char *string,
 				   unsigned char **end,
 				   Number value, bool escape);
+COMMON(const char *)	str_number_error(strnumstat rc);
 COMMON(word) 		pl_raw_read(term_t term);
 COMMON(word) 		pl_raw_read2(term_t stream, term_t term);
 COMMON(word) 		pl_read(term_t term);
