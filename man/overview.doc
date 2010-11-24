@@ -1118,17 +1118,6 @@ expand_file_name/2 can be used to expand environment variables and
 wildcard patterns. This Prolog flag is intended for backward
 compatibility with older versions of SWI-Prolog.
 
-    \prologflagitem{float_format}{atom}{rw}
-C-library printf() format specification used by write/1 and friends to
-determine how floating point numbers are printed. The default is {\tt
-\%g}. The specified value is passed to printf() without further
-checking. For example, if you want more digits printed, {\tt \%.12g}
-will print all floats using 12 digits instead of the default 6.
-
-When using quoted-write, the output is guaranteed to contain a decimal
-dot or exponent, so read/1 reads a floating point number. See also
-format/[1,2], write_term/[2,3].
-
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on

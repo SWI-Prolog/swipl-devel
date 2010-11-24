@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-umap.c"			/* Unicode map */
+#include "pl-dtoa.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -1450,12 +1451,13 @@ scan_decimal(cucharp *sp, Number n)
 
       while(isDigit(*s))
 	s++;
+      errno = 0;
       n->value.f = strtod(*sp, &end);
       if ( s != end )
 	return NUM_ERROR;
-      *sp = s;
       if ( errno == ERANGE )
-	return (v->value.f == 0.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+	return NUM_FOVERFLOW;
+      *sp = s;
 
       n->type = V_FLOAT;
       return NUM_OK;
@@ -1822,7 +1824,6 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     return NUM_OK;
   }
 					/* floating point numbers */
-					/* we should use strtod_l() here */
   if ( *in == '.' && isDigit(in[1]) )
   { value->type = V_FLOAT;
 
@@ -1845,11 +1846,12 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
   if ( value->type == V_FLOAT )
   { char *e;
 
+    errno = 0;
     value->value.f = strtod((char*)start, &e);
     if ( e != (char*)in )
       return NUM_ERROR;
-    if ( errno == ERANGE )
-      return (value->value.f == 0.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+    if ( errno == ERANGE )		/* can be non-0, but inaccurate */
+      return (abs(value->value.f) < 1.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
 
     *end = (ucharp)in;
 

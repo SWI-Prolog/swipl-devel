@@ -3516,11 +3516,6 @@ The predicates format/[1,2] and writef/2 provide formatted output.
 Writing to Prolog datastructures such as atoms or code-lists is
 supported by with_output_to/2 and format/3.
 
-There are two ways to manipulate the output format. The predicate
-print/[1,2] may be programmed using portray/1. The format of floating
-point numbers may be manipulated using the Prolog flag
-\prologflag{float_format}.
-
 Reading is sensitive to the Prolog flag \prologflag{character_escapes},
 which controls the interpretation of the \chr{\} character in quoted
 atoms and strings.
@@ -3654,8 +3649,7 @@ Write \arg{Term} in canonical form on \arg{Stream}.
 
     \predicate[ISO]{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators
-where appropriate. The Prolog flag \prologflag{float_format} controls
-floating point output format.
+where appropriate.
 
     \predicate[ISO]{write}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}.
@@ -3674,6 +3668,7 @@ Prints \arg{Term} on the current output stream similar to write/1,
 but for each (sub)term of \arg{Term} first the dynamic predicate
 portray/1 is called.  If this predicate succeeds \arg{print} assumes the
 (sub)term has been written.  This allows for user defined term writing.
+See also \pllib{portray_text}.
 
     \predicate{print}{2}{+Stream, +Term}
 Print \arg{Term} to \arg{Stream}.

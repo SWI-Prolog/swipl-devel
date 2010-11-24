@@ -22,40 +22,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "pl-incl.h"
-#include "pl-dtoa.h"
+#ifndef PL_DTOA_H_INCLUDED
+#define PL_DTOA_H_INCLUDED
 
-#define IEEE_8087 1
+COMMON(char *)	dtoa(double dd, int mode, int ndigits,
+		     int *decpt, int *sign, char **rve);
+COMMON(void)	freedtoa(char *s);
+COMMON(double)	strtod(const char *in, char **end);
 
-#define MALLOC PL_malloc
-#define FREE PL_free
-
-#ifdef _REENTRANT
-#define Long int			/* 32-bits */
-#define MULTIPLE_THREADS
-
-/* TBD: Use the pl-thread.[ch] locks for better speed on Windows
-*/
-
-static pthread_mutex_t mutex_0 = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t mutex_1 = PTHREAD_MUTEX_INITIALIZER;
-
-static inline void
-ACQUIRE_DTOA_LOCK(int n)
-{ if ( n == 0 )
-    pthread_mutex_lock(&mutex_0);
-  else
-    pthread_mutex_lock(&mutex_1);
-}
-
-static inline void
-FREE_DTOA_LOCK(int n)
-{ if ( n == 0 )
-    pthread_mutex_unlock(&mutex_0);
-  else
-    pthread_mutex_unlock(&mutex_1);
-}
-
-#endif /*MULTIPLE_THREADS*/
-
-#include "dtoa.c"
+#endif /*PL_DTOA_H_INCLUDED*/

@@ -143,7 +143,6 @@ initPrologLocalData(ARG1_LD)
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
-  LD->float_format = "%g";
   LD->prolog_flag.write_attributes = PL_WRT_ATTVAR_IGNORE;
   updateAlerted(LD);
 }

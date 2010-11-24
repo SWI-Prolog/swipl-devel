@@ -171,7 +171,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding  = ENC_ISO_LATIN_1;
     text->canonical = TRUE;
   } else if ( (flags & CVT_FLOAT) && isFloat(w) )
-  { format_float(valFloat(w), text->buf, LD->float_format);
+  { format_float(valFloat(w), text->buf);
     text->text.t    = text->buf;
     text->length    = strlen(text->text.t);
     text->encoding  = ENC_ISO_LATIN_1;
