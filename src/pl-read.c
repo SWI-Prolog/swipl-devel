@@ -1581,7 +1581,8 @@ again:
       OK('c');
     case '\n':				/* \LF<blank>* */
       if ( quote )
-      { for( ; *in; in=e )
+      { e = in;
+	for( ; *in; in=e )
 	{ e = utf8_get_uchar(in, &c);
 	  if ( c == '\n' || !PlBlankW(c) )
 	    break;
