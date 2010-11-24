@@ -116,6 +116,9 @@ syntax(quote-5) :-
 	0'\' == 0''.
 syntax(quote-6) :-
 	0'\' == 0'''.
+syntax(quote-7) :-
+	atom_to_term('\'\\\n\'', T, _),
+	T == ''.
 syntax(base-1) :-
 	1'+'1 == 1+1.
 syntax(base-2) :-

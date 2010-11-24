@@ -1543,8 +1543,12 @@ scan_number(cucharp *s, int b, Number n)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 escape_char() decodes a \<chr> specification that can appear either in a
 quoted atom/string or as a  character   specification  such as 0'\n. The
-return value is EOF and an exception is pushed on illegal sequences.
+return value is either a valid character   code,  ESC_EOS if there is no
+more data or ESC_ERROR if there is an error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ESC_EOS	  (-1)
+#define ESC_ERROR (-2)
 
 static int
 escape_char(cucharp in, ucharp *end, int quote, ReadData _PL_rd)
@@ -1553,7 +1557,7 @@ escape_char(cucharp in, ucharp *end, int quote, ReadData _PL_rd)
   int c;
   cucharp e;
 
-#define OK(v) if (1) {chr = (v); goto ok;} else (void)0
+#define OK(v) do { chr = (v); goto ok; } while(0)
 
 again:
   in = utf8_get_uchar(in, &c);
@@ -1565,16 +1569,13 @@ again:
     case 'c':				/* skip \c<blank>* */
       if ( quote )
       { in = skipSpaces(in);
-      skip_cont:
 	e = utf8_get_uchar(in, &c);
-	if ( c == '\\' )
-	{ in = e;
-	  goto again;
-	}
-	if ( c == quote )		/* \c ' --> no output */
-	{ OK(EOF);
-	}
+      skip_cont:
 	in = e;
+	if ( c == '\\' )
+	  goto again;
+	if ( c == quote )		/* \c ' --> no output */
+	  OK(ESC_EOS);
 	OK(c);
       }
       OK('c');
@@ -1615,13 +1616,13 @@ again:
 	} else
 	{ last_token_start = (unsigned char*)errpos;
 	  errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
-	  return EOF;
+	  return ESC_ERROR;
 	}
       }
       if ( chr > PLMAXWCHAR )
       { last_token_start = (unsigned char*)errpos;
 	errorWarning("Illegal character code", 0, _PL_rd);
-	return EOF;
+	return ESC_ERROR;
       }
       OK(chr);
     }
@@ -1651,7 +1652,7 @@ again:
 	  if ( chr > PLMAXWCHAR )
 	  { last_token_start = (unsigned char*)errpos;
 	    errorWarning("Illegal character code", 0, _PL_rd);
-	    return EOF;
+	    return ESC_ERROR;
 	  }
 	}
 	if ( c != '\\' )
@@ -1710,11 +1711,15 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 	break;
     } else if ( c == '\\' && DO_CHARESCAPE )
     { c = escape_char(in, &in, quote, _PL_rd);
-      if ( c == EOF )
-	return FALSE;
-      addUTF8Buffer(buf, c);
+      if ( c >= 0 )
+      { addUTF8Buffer(buf, c);
 
-      continue;
+	continue;
+      } else if ( c == ESC_ERROR )
+      { return FALSE;
+      } else
+      { break;
+      }
     } else if ( c >= 0x80 )		/* copy UTF-8 sequence */
     { do
       { addBuffer(buf, c, char);
@@ -1788,6 +1793,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0, NULL);
+	  if ( chr < 0 )
+	    return NUM_ERROR;
 	} else
 	{ *end = utf8_get_uchar(in+2, &chr);
 	  if ( chr == '\'' && **end == '\'' ) /* handle 0''' as 0'' */
