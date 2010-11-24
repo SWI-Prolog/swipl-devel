@@ -983,47 +983,54 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		goto handle_c;		/* is the newline */
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ cucharp bs = &rb.here[-1];
-		  number base;
 
-					/* TBD: we only need 2 digits here */
-		  while(bs > rb.base && isDigit(bs[-1]))
+		  if ( bs > rb.base && isDigit(bs[-1]) )
 		    bs--;
-		  scan_decimal(&bs, &base);
+		  if ( bs > rb.base && isSign(bs[-1]) )
+		    bs--;
 
-		  if ( base.type == V_INTEGER && base.value.i <= 36 )
-		  { if ( base.value.i == 0 ) 		/* 0'<c> */
-	            { addToBuffer(c, _PL_rd);
-		      { if ( (c=getchr()) != EOF )
-		        { addToBuffer(c, _PL_rd);
-			  if ( c == '\\' ) 		/* 0'\<c> */
-			  { if ( (c=getchr()) != EOF )
-			      addToBuffer(c, _PL_rd);
-			  } else if ( c == '\'' ) 	/* 0'' */
-			  { if ( (c=getchr()) != EOF )
-			    { if ( c == '\'' )
+		  if ( bs == rb.base || !PlIdContW(bs[-1]) )
+		  { int base;
+
+		    if ( isSign(bs[0]) )
+		      bs++;
+		    base = atoi((char*)bs);
+
+		    if ( base <= 36 )
+		    { if ( base == 0 )			/* 0'<c> */
+		      { addToBuffer(c, _PL_rd);
+			{ if ( (c=getchr()) != EOF )
+			  { addToBuffer(c, _PL_rd);
+			    if ( c == '\\' ) 		/* 0'\<c> */
+			    { if ( (c=getchr()) != EOF )
 				addToBuffer(c, _PL_rd);
-			      else
-				goto handle_c;
+			    } else if ( c == '\'' ) 	/* 0'' */
+			    { if ( (c=getchr()) != EOF )
+			      { if ( c == '\'' )
+				  addToBuffer(c, _PL_rd);
+				else
+				  goto handle_c;
+			      }
 			    }
+			    break;
 			  }
-			  break;
+			  rawSyntaxError("end_of_file");
+			}
+		      } else
+		      { int c2;
+
+			if ( (c2=getchr()) != EOF )
+			{ if ( digitValue(base, c2) >= 0 )
+			  { addToBuffer(c, _PL_rd);
+			    addToBuffer(c2, _PL_rd);
+			    dotseen = FALSE;
+			    break;
+			  }
+			  Sungetcode(c2, rb.stream);
+			  goto sqatom;
 			}
 			rawSyntaxError("end_of_file");
 		      }
-		    } else
-		    { int c2;
-
-		      if ( (c2=getchr()) != EOF )
-		      { if ( digitValue(base.value.i, c2) >= 0 )
-			{ addToBuffer(c, _PL_rd);
-			  addToBuffer(c2, _PL_rd);
-			  dotseen = FALSE;
-			  break;
-			}
-			Sungetcode(c2, rb.stream);
-			goto sqatom;
-		      }
-		      rawSyntaxError("end_of_file");
 		    }
 		  }
 		}
