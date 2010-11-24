@@ -721,6 +721,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	    if ( c == EOF )
 	      goto eofinstr;
 	    addToBuffer(c, _PL_rd);
+	    if ( c == q )
+	      return TRUE;
 	  }
 	  continue;			/* \symbolic-control-char */
       }
