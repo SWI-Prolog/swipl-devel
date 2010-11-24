@@ -247,7 +247,7 @@ log_check_deleted(_).
 
 
 log(Code, ok, Bytes, Id, CPU, Stream) :- !,
-	format(Stream, 'completed(~q, ~2f, ~q, ~q, ok).~n',
+	format(Stream, 'completed(~q, ~q, ~q, ~q, ok).~n',
 	       [ Id, CPU, Bytes, Code ]).
 log(Code, Status, Bytes, Id, CPU, Stream) :-
 	(   map_exception(Status, Term)
@@ -255,7 +255,7 @@ log(Code, Status, Bytes, Id, CPU, Stream) :-
 	;   message_to_string(Status, String),
 	    Term = error(String)
 	),
-	format(Stream, 'completed(~q, ~2f, ~q, ~q, ~q).~n',
+	format(Stream, 'completed(~q, ~q, ~q, ~q, ~q).~n',
 	       [ Id, CPU, Bytes, Code, Term ]).
 
 map_exception(http_reply(Reply), Reply).
