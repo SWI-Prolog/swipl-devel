@@ -1739,6 +1739,8 @@ instead of
 format('This is a long line that looks better if it was\
  split across multiple physical lines in the input')
 \end{code}
+    \escapeitem{e}
+Escape character (\textsc{ASCII} 27).
     \escapeitem{f}
 Form-feed character.
     \escapeitem{n}
@@ -1748,7 +1750,7 @@ Carriage-return only (i.e., go back to the start of the line).
     \escapeitem{t}
 Horizontal tab-character.
     \escapeitem{v}
-Vertical tab-character (ASCII 11).
+Vertical tab-character (\textsc{ASCII} 11).
     \escapeitem{xXX..\}
 Hexadecimal specification of a character. The closing \verb$\$ is
 obligatory according to the ISO standard, but optional in SWI-Prolog to

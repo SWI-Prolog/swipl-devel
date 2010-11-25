@@ -1590,6 +1590,8 @@ again:
 	goto skip_cont;
       }
       OK('\n');
+    case 'e':
+      OK('\e');
     case 'f':
       OK('\f');
     case '\\':
