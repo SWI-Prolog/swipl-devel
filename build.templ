@@ -61,6 +61,15 @@ fi
 # export CIFLAGS=-I/opt/csw/include/ncurses
 # export LDFLAGS=-L/opt/csw/lib
 
+# [EDIT] On FreeBSD, java is installed under /usr/local/jdk<version>,
+# and the executables are _copied_ to /usr/local/bin. Unfortunately, the
+# copy leaves the headers out, so the original files must be used.
+# export JAVAC=/usr/local/jdk1.6.0/bin/javac
+
+# [EDIT] On FreeBSD, the following is needed to fetch the headers for
+# GMP.
+# export CIFLAGS='-I/usr/local/include'
+
 export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 
 ################################################################
