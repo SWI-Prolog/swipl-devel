@@ -703,6 +703,22 @@ option namespaces for details.
     \predicate{rdf_graph}{1}{?DB}
 True if \arg{DB} is the name of a graph with at least one triple.
 
+    \predicate{rdf_graph_property}{?Graph, ?Property}
+True when Property is a property of Graph.  Defined properties are:
+
+    \begin{description}
+	\termitem{hash}{Hash}
+Hash is the (MD5-)hash for the content of Graph.  See \secref{md5} for
+details.
+	\termitem{source}{URL}
+The graph is loaded from the Source.
+	\termitem{source_last_modified}{TimeStamp}
+Time is the last-modified timestamp of Source at the moment
+that the graph was loaded from Source.
+	\termitem{triples}{Count}
+True when Count is the number of triples in Graph.
+    \end{description}
+
     \predicate{rdf_source}{1}{?DB}
 Deprecated.  Use rdf_graph/1 or rdf_source/2 in new code.
 
@@ -850,6 +866,7 @@ Load triples from \arg{File}.
 
 
 \subsubsection{MD5 digests}
+\label{sec:md5}
 
 The \file{rdf_db} library provides for \jargon{MD5 digests}. An MD5
 digest is a 128 bit long hash key computed from the triples based on the
@@ -872,6 +889,9 @@ and rdf_retractall/[3,4].  Checking whether the digest has changed since
 the last rdf_load/[1,2] call provides a practical means for checking
 whether the file needs to be saved.
 
+Deprecated. New code should use \term{rdf_graph_property}{Graph,
+hash(Hash)}.
+
     \predicate{rdf_atom_md5}{3}{+Text, +Times, -MD5}
 Computes the MD5 hash from \arg{Text}, which is an atom, string or
 list of character codes.  \arg{Times} is an integer $\geq 1$.  When
@@ -879,11 +899,8 @@ $> 0$, the MD5 algorithm is repeated \arg{Times} times on the
 generated hash.  This can be used for password encryption algorithms
 to make generate-and-test loops slow.
 
-This predicate bears little relation to RDF handling. It is provided
-because the RDF library already contains the MD5 algorithm and semantic
-web services may involve security and consistency checking. This
-predicate provides a platform independant alternative to the
-\pllib{crypt} library provided with the \texttt{clib} package.
+Deprecated. New code should use the \pllib{crypt} library provided by
+the \texttt{clib} package.
 \end{description}
 
 

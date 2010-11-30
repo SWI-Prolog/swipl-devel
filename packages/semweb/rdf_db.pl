@@ -80,7 +80,8 @@
 	    rdf_md5/2,			% +DB, -MD5
 	    rdf_atom_md5/3,		% +Text, +Times, -MD5
 
-	    rdf_graph/1,		% ?DB
+	    rdf_graph_property/2,	% ?Graph, ?Property
+	    rdf_graph/1,		% ?Graph
 	    rdf_source/1,		% ?File
 	    rdf_source/2,		% ?DB, ?SourceURL
 	    rdf_make/0,			% Reload modified databases
@@ -1292,6 +1293,8 @@ rdf_graph(DB) :-
 %%	rdf_source(?Graph, ?SourceURL) is nondet.
 %
 %	True if named Graph is loaded from SourceURL.
+%
+%	@deprecated Use rdf_graph_property(Graph, source(SourceURL)).
 
 rdf_source(Graph, SourceURL) :-
 	rdf_graph(Graph),
@@ -1322,6 +1325,36 @@ modified_graph(SourceURL, Graph) :-
 	rdf_graph_source_(Graph, SourceURL, Modified),
 	\+ sub_atom(SourceURL, 0, _, _, 'stream://'),
 	Modified > 0.
+
+%%	rdf_graph_property(?Graph, ?Property) is nondet.
+%
+%	True when Property is a property of Graph.  Defined properties
+%	are:
+%
+%	    * hash(Hash)
+%	    Hash is the (MD5-)hash for the content of Graph.
+%	    * source(Source)
+%	    The graph is loaded from the Source (a URL)
+%	    * source_last_modified(?Time)
+%	    Time is the last-modified timestamp of Source at the moment
+%	    that the graph was loaded from Source.
+%	    * triples(Count)
+%	    True when Count is the number of triples in Graph.
+
+rdf_graph_property(Graph, Property) :-
+	rdf_graph(Graph),
+	rdf_graph_property_(Property, Graph).
+
+rdf_graph_property_(hash(Hash), Graph) :-
+	rdf_md5(Graph, Hash).
+rdf_graph_property_(source(URL), Graph) :-
+	rdf_graph_source_(Graph, URL, _).
+rdf_graph_property_(source_last_modified(Time), Graph) :-
+	rdf_graph_source_(Graph, _, Time),
+	Time > 0.0.
+rdf_graph_property_(triples(Count), Graph) :-
+	rdf_statistics_(triples(Graph, Count)).
+
 
 %%	save_cache(+DB, +Cache) is det.
 %
