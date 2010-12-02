@@ -30,7 +30,7 @@
 #endif
 #include "lock.h"
 
-#define RDF_VERSION 20800		/* 2.8.0 */
+#define RDF_VERSION 20900		/* 2.8.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
