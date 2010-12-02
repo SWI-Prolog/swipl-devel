@@ -6398,31 +6398,38 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
 }
 
 
-static visited *
-next_agenda(rdf_db *db, agenda *a)
-{ visited *v;
-
-  if ( (v=a->to_return) )
-  { ok:
-
-    a->to_return = a->to_return->next;
-
-    return v;
-  }
+static int
+peek_agenda(rdf_db *db, agenda *a)
+{ if ( a->to_return )
+    return TRUE;
 
   while( a->to_expand )
   { uintptr_t next_d = a->to_expand->distance+1;
 
     if ( next_d >= a->max_d )
-      return NULL;
+      return FALSE;
 
     a->to_return = bf_expand(db, a,
 			     a->to_expand->resource,
 			     next_d);
     a->to_expand = a->to_expand->next;
 
-    if ( (v=a->to_return) )
-      goto ok;
+    if ( a->to_return )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static visited *
+next_agenda(rdf_db *db, agenda *a)
+{ if ( peek_agenda(db, a) )
+  { visited *v = a->to_return;
+
+    a->to_return = a->to_return->next;
+
+    return v;
   }
 
   return NULL;
@@ -6439,6 +6446,9 @@ rdf_reachable(-Subject, +Predicate, ?Object)
 directly_attached() deals with the posibility that  the predicate is not
 defined and Subject and Object are  the   same.  Should  use clean error
 handling, but that means a lot of changes. For now this will do.
+
+TBD:	Implement bi-directional search if both Subject and Object are
+	given.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -6532,10 +6542,15 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
 	    return rc;
 	  } else if ( unify_distance(d, v->distance) )
 	  {				/* mode(+, +, -) or mode(-, +, +) */
-	    agenda *ra = save_agenda(db, &a);
-	    inc_active_queries(db);
-	    DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
-	    PL_retry_address(ra);
+	    if ( peek_agenda(db, &a) )
+	    { agenda *ra =  save_agenda(db, &a);
+	      inc_active_queries(db);
+	      DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
+	      PL_retry_address(ra);
+	    }
+
+	    unlock_and_empty_agenda(db, &a);
+	    return TRUE;
 	  }
 	}
       }

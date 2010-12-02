@@ -242,16 +242,22 @@ Same as \term{rdf_has}{Subject, Predicate, Object, _}.
 
     \predicate{rdf_reachable}{3}{?Subject, +Predicate, ?Object}
 Is true if \arg{Object} can be reached from \arg{Subject} following the
-transitive predicate \arg{Predicate} or a sub-property thereof. When
-used with either \arg{Subject} or \arg{Object} unbound, it first returns
-the origin, followed by the reachable nodes in breath-first
-search-order. It never generates the same node twice and is robust
-against cycles in the transitive relation. With all arguments
-instantiated, it succeeds deterministically if a path can be found from
-\arg{Subject} to \arg{Object}. Searching starts at \arg{Subject},
-assuming the branching factor is normally lower. A call with both
-\arg{Subject} and \arg{Object} unbound raises an instantiation error.
-The following example generates all subclasses of \const{rdfs:Resource}:
+transitive predicate \arg{Predicate} or a sub-property thereof, while
+repecting the \term{symetric}{true} or \term{inverse_of}{P2} properties.
+
+If used with either \arg{Subject} or \arg{Object} unbound, it first
+returns the origin, followed by the reachable nodes in breath-first
+search-order.  The implementation internally looks one solution ahead
+and succeeds deterministically on the last solution. This predicate
+never generates the same node twice and is robust against cycles in the
+transitive relation.
+
+With all arguments instantiated, it succeeds deterministically if a path
+can be found from \arg{Subject} to \arg{Object}. Searching starts at
+\arg{Subject}, assuming the branching factor is normally lower. A call
+with both \arg{Subject} and \arg{Object} unbound raises an instantiation
+error.\footnote{Should be using bi-directional search.} The following
+example generates all subclasses of \const{rdfs:Resource}:
 
 \begin{code}
 ?- rdf_reachable(X, rdfs:subClassOf, rdfs:'Resource').
@@ -260,9 +266,6 @@ X = 'http://www.w3.org/2000/01/rdf-schema#Class' ;
 X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
 ...
 \end{code}
-
-Like rdf_has/3, rdf_reachable/3 uses both the predicate hierarchy and
-the  \term{symetric}{true} or \term{inverse_of}{P2} properties.
 
     \predicate{rdf_reachable}{5}{?Subject, +Predicate, ?Object, +MaxD, -D}
 Same as rdf_reachable/3, but in addition, \arg{MaxD} limits the number
