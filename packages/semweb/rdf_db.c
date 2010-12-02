@@ -6573,7 +6573,13 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
       { if ( PL_unify_atom(target_term, v->resource) &&
 	     unify_distance(d, v->distance) )
 	{ assert(a->magic == AGENDA_SAVED_MAGIC);
-	  PL_retry_address(a);
+	  if ( peek_agenda(db, a) )
+	  { PL_retry_address(a);
+	  } else
+	  { dec_active_queries(db);
+	    unlock_and_empty_agenda(db, a);
+	    return TRUE;
+	  }
 	}
       }
 
