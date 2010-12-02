@@ -2803,6 +2803,17 @@ If present and \const{true}, a BOM (\jargon{Byte Order Mark}) was
 detected while opening the file for reading or a BOM was written while
 opening the stream. See \secref{bom} for details.
 
+    \termitem{close_on_abort}{Bool}
+Determine whether or not the stream is closed by abort/0.  By default
+streams are closed.
+
+    \termitem{close_on_exec}{Bool}
+Determine whether or not the stream is closed when executing a new
+process (exec() in Unix, CreateProcess() in Windows). Default is to
+close streams. This maps to fcntl() \const{F_SETFD} using the flag
+\const{FD_CLOEXEC} on Unix and (negated) \const{HANDLE_FLAG_INHERIT} on
+Windows.
+
     \termitem{encoding}{Encoding}
 Query the encoding used for text.  See \secref{encoding} for an
 overview of wide character and encoding issues in SWI-Prolog.
@@ -2971,6 +2982,9 @@ bytes.
     \termitem{close_on_abort}{Bool}
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
+
+    \termitem{close_on_exec}{Bool}
+Set the \const{close_on_exec} property.  See stream_property/2.
 
     \termitem{encoding}{Atom}
 Defines the mapping between bytes and character codes used for the
