@@ -5965,7 +5965,10 @@ rdf_set_predicate(term_t pred, term_t option)
     if ( !get_bool_arg_ex(1, option, &val) )
       return FALSE;
 
-    p->inverse_of = p;
+    if ( val )
+      p->inverse_of = p;
+    else
+      p->inverse_of = NULL;
     return TRUE;
   } else if ( PL_is_functor(option, FUNCTOR_inverse_of1) )
   { term_t a = PL_new_term_ref();
@@ -6349,42 +6352,47 @@ can_reach_target(rdf_db *db, agenda *a)
 
 static visited *
 bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
-{ triple *p;
-  int indexed = a->pattern.indexed;
+{ triple pattern = a->pattern;
   visited *rc = NULL;
 
-  if ( indexed & BY_S )			/* subj ---> */
-  { a->pattern.subject = resource;
+  if ( pattern.indexed & BY_S )		/* subj ---> */
+  { pattern.subject = resource;
   } else
-  { a->pattern.object.resource = resource;
+  { pattern.object.resource = resource;
   }
 
   if ( a->target && can_reach_target(db, a) )
-  { return append_agenda(db, a, a->target, d);
-  }
+    return append_agenda(db, a, a->target, d);
 
-  p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->tp.next[ICOL(indexed)])
-  { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found;
-      visited *v;
+  for(;;)
+  { int indexed = pattern.indexed;
+    triple *p;
 
-      if ( indexed & BY_S )
-      { if ( p->object_is_literal )
-	  continue;
-	found = p->object.resource;
-      } else
-      { found = p->subject;
+    p = db->table[ICOL(indexed)][triple_hash(db, &pattern, indexed)];
+    for( ; p; p = p->tp.next[ICOL(indexed)])
+    { if ( match_triples(p, &pattern, MATCH_SUBPROPERTY) )
+      { atom_t found;
+	visited *v;
+
+	if ( indexed & BY_S )
+	{ if ( p->object_is_literal )
+	    continue;
+	  found = p->object.resource;
+	} else
+	{ found = p->subject;
+	}
+
+	v = append_agenda(db, a, found, d);
+	if ( !rc )
+	  rc = v;
+	if ( found == a->target )
+	  return rc;
       }
-
-      v = append_agenda(db, a, found, d);
-      if ( !rc )
-	rc = v;
-      if ( found == a->target )
-	break;
     }
+    if ( inverse_partial_triple(&pattern) )
+      continue;
+    break;
   }
-					/* TBD: handle owl:inverseOf */
 					/* TBD: handle owl:sameAs */
   return rc;
 }

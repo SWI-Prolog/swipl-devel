@@ -728,24 +728,35 @@ graph(a, p, b).
 graph(b, p, c).
 graph(c, p, d).
 graph(b, p, d).
+graph(e, p, d).
 
-graph :-
+graph(Symmetric) :-
+	rdf_set_predicate(p, symmetric(Symmetric)),
 	forall(graph(S,P,O),
 	       rdf_assert(S,P,O)).
 
 reachable(1) :-
 	rdf_reachable(a, x, a).
 reachable(2) :-
-	graph,
+	graph(false),
 	rdf_reachable(a, p, d).
 reachable(3) :-
-	graph,
+	graph(false),
 	rdf_reachable(a, p, X),
 	X == c, !.
 reachable(4) :-
-	graph,
+	graph(false),
 	findall(O, rdf_reachable(a, p, O), Os),
 	Os = [a,b,c,d].
+reachable(5) :-
+	graph(false),
+	\+ rdf_reachable(d, p, a).
+reachable(6) :-
+	graph(true),
+	rdf_reachable(d, p, a).
+reachable(6) :-
+	graph(true),
+	rdf_reachable(e, p, a).
 
 
 		 /*******************************

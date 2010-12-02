@@ -230,6 +230,10 @@ subclasses(Class, SubClasses) :-
 	findall(S, rdf_has(S, rdfs:subClassOf, Class), SubClasses).
 \end{code}
 
+In addition, rdf_has/4 handles the predicate property (see
+rdf_predicate_property/2) \term{symetric}{true} and
+\term{inverse_of}{P2}.
+
 Note that rdf_has/4 and rdf_has/3 can return duplicate answers if
 they use a different \arg{TriplePred}.
 
@@ -237,30 +241,28 @@ they use a different \arg{TriplePred}.
 Same as \term{rdf_has}{Subject, Predicate, Object, _}.
 
     \predicate{rdf_reachable}{3}{?Subject, +Predicate, ?Object}
-Is true if \arg{Object} can be reached from \arg{Subject} following
-the transitive predicate \arg{Predicate} or a sub-property thereof.
-When used with either \arg{Subject} or \arg{Object} unbound, it first
-returns the origin, followed by the reachable nodes in breath-first
-search-order.  It never generates the same node twice and is robust
+Is true if \arg{Object} can be reached from \arg{Subject} following the
+transitive predicate \arg{Predicate} or a sub-property thereof. When
+used with either \arg{Subject} or \arg{Object} unbound, it first returns
+the origin, followed by the reachable nodes in breath-first
+search-order. It never generates the same node twice and is robust
 against cycles in the transitive relation. With all arguments
-instantiated it succeeds deterministically of the relation if a
-path can be found from \arg{Subject} to \arg{Object}.  Searching
-starts at \arg{Subject}, assuming the branching factor is normally
-lower.  A call with both \arg{Subject} and \arg{Object} unbound
-raises an instantiation error.  The following example generates
-all subclasses of \const{rdfs:Resource}:
+instantiated, it succeeds deterministically if a path can be found from
+\arg{Subject} to \arg{Object}. Searching starts at \arg{Subject},
+assuming the branching factor is normally lower. A call with both
+\arg{Subject} and \arg{Object} unbound raises an instantiation error.
+The following example generates all subclasses of \const{rdfs:Resource}:
 
 \begin{code}
 ?- rdf_reachable(X, rdfs:subClassOf, rdfs:'Resource').
-
 X = 'http://www.w3.org/2000/01/rdf-schema#Resource' ;
-
 X = 'http://www.w3.org/2000/01/rdf-schema#Class' ;
-
 X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
-
 ...
 \end{code}
+
+Like rdf_has/3, rdf_reachable/3 uses both the predicate hierarchy and
+the  \term{symetric}{true} or \term{inverse_of}{P2} properties.
 
     \predicate{rdf_reachable}{5}{?Subject, +Predicate, ?Object, +MaxD, -D}
 Same as rdf_reachable/3, but in addition, \arg{MaxD} limits the number
@@ -370,14 +372,18 @@ are given below.
 
     \begin{description}
 	\termitem{symmetric}{Bool}
-True if the predicate is defined to be symetric.  I.e.\
-\mbox{\{A\} P \{B\}} implies \mbox{\{B\} P \{A\}}.
+True if the predicate is defined to be symetric.  I.e.,
+\mbox{\{A\} P \{B\}} implies \mbox{\{B\} P \{A\}}.  Setting symmetric
+is equivalent to \term{inverse_of}{Self}.
 
 	\termitem{inverse_of}{Inverse}
-True if this predicate is the inverse of \arg{Inverse}.
+True if this predicate is the inverse of \arg{Inverse}.  This property
+is used by rdf_has/3, rdf_has/4, rdf_reachable/3 and rdf_reachable/5.
 
 	\termitem{transitive}{Bool}
-True if this predicate is transitive.
+True if this predicate is transitive.  This predicate is currently not
+used.  It might be used to make rdf_has/3 imply rdf_reachable/3 for
+transitive predicates.
 
 	\termitem{triples}{Triples}
 Unify \arg{Triples} with the number of existing triples using
