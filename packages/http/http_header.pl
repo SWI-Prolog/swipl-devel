@@ -596,6 +596,13 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 %	  * html(+Tokens)
 %	  Result of html//1 from html_write.pl
 %
+%	  * xml(+Term)
+%	  Post the result of xml_write/3 using the Mime-type
+%	  =|text/xml|=
+%
+%	  * xml(+Type, +Term)
+%	  Post the result of xml_write/3 using the given Mime-type.
+%
 %	  * file(+File)
 %	  Send contents of a file. Mime-type is determined by
 %	  file_mime_type/2.
@@ -637,6 +644,16 @@ http_post_data(html(HTML), Out, HdrExtra) :-
 	phrase(post_header(html(HTML), HdrExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+http_post_data(xml(XML), Out, HdrExtra) :-
+	http_post_data(xml(text/xml, XML), Out, HdrExtra).
+http_post_data(xml(Type, XML), Out, HdrExtra) :-
+	setup_call_cleanup(new_memory_file(MemFile),
+			   (   setup_call_cleanup(open_memory_file(MemFile, write, MemOut),
+						  xml_write(MemOut, XML, []),
+						  close(MemOut)),
+			       http_post_data(memory_file(Type, MemFile), Out, HdrExtra)
+			   ),
+			   free_memory_file(MemFile)).
 http_post_data(file(File), Out, HdrExtra) :- !,
 	(   file_mime_type(File, Type)
 	->  true
@@ -649,6 +666,12 @@ http_post_data(file(Type, File), Out, HdrExtra) :- !,
 	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
 		     close(In)).
+http_post_data(memory_file(Type, Handle), Out, HdrExtra) :- !,
+	phrase(post_header(memory_file(Type, Handle), HdrExtra), Header),
+	format(Out, '~s', [Header]),
+	setup_call_cleanup(open_memory_file(Handle, read, In, [encoding(octet)]),
+			   copy_stream_data(In, Out),
+			   close(In)).
 http_post_data(codes(Codes), Out, HdrExtra) :- !,
 	http_post_data(codes(text/plain, Codes), Out, HdrExtra).
 http_post_data(codes(Type, Codes), Out, HdrExtra) :- !,
@@ -725,6 +748,11 @@ post_header(html(Tokens), HdrExtra) -->
 post_header(file(Type, File), HdrExtra) -->
 	header_fields(HdrExtra, Len),
 	content_length(file(File), Len),
+	content_type(Type),
+	"\r\n".
+post_header(memory_file(Type, File), HdrExtra) -->
+	header_fields(HdrExtra, Len),
+	content_length(memory_file(File), Len),
 	content_type(Type),
 	"\r\n".
 post_header(cgi_data(Size), HdrExtra) -->
@@ -998,6 +1026,8 @@ length_of(ascii_string(String), Len) :- !,
 	length(String, Len).
 length_of(file(File), Len) :- !,
 	size_file(File, Len).
+length_of(memory_file(Handle), Len) :- !,
+	size_memory_file(Handle, Len, octet).
 length_of(html(Tokens), Len) :- !,
 	html_print_length(Tokens, Len).
 length_of(Len, Len).
