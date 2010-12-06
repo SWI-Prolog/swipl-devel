@@ -65,7 +65,7 @@ BEGIN		{ doprint="false";
 		  }
 		  next;
 		}
-'
+' | fmt -ut
 
 if [ "$footer" = true ]; then
    echo ==============

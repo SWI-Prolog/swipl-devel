@@ -88,6 +88,9 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 %	NOTE: Called directly from  library(trace/clause)   for  the GUI
 %	tracer.
 
+:- public
+	unify_term/2.
+
 unify_term(X, X) :- !.
 unify_term(X1, X2) :-
 	compound(X1),
