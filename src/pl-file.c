@@ -1520,7 +1520,7 @@ setCloseOnExec(IOSTREAM *s, int val)
   }
 #elif defined __WINDOWS__
   { if ( !SetHandleInformation((HANDLE)_get_osfhandle(fd),
-			       HANDLE_FLAG_INHERIT, val) )
+			       HANDLE_FLAG_INHERIT, !val) )
       return FALSE;
   }
 #else
