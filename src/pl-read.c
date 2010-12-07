@@ -963,7 +963,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addUTF8Buffer(cbuf, '%');
 			continue;
 		      }
-		      Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
+		      if ( c != EOF )
+			Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
 		      if ( pp )
 			*pp = p;
 		      c = '\n';
