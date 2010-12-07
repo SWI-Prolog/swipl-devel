@@ -213,7 +213,7 @@ described in section \secref{htmlwrite}.
 
 	\termitem{xml}{+XMLTerm}
 Send an XML document created by passing XMLTerm to xml_write/3.	 The
-MIME type is \cons{text/xml}.
+MIME type is \const{text/xml}.
 
 	\termitem{xml}{+Type, +XMLTerm}
 As \term{xml}{XMLTerm}, using the provided MIME type.
