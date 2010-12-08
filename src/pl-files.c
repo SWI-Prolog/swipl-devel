@@ -436,6 +436,10 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
   if ( !(flags & PL_FILE_NOERRORS) )
   { atom_t op = 0;
 
+    if ( (flags&(PL_FILE_READ|PL_FILE_WRITE|PL_FILE_EXECUTE|PL_FILE_EXIST)) &&
+	 !AccessFile(name, ACCESS_EXIST) )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
+
     if ( (flags&PL_FILE_READ) && !AccessFile(name, ACCESS_READ) )
       op = ATOM_read;
     if ( !op && (flags&PL_FILE_WRITE) && !AccessFile(name, ACCESS_WRITE) )
@@ -445,9 +449,6 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
 
     if ( op )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION, op, ATOM_file, n);
-
-    if ( (flags & PL_FILE_EXIST) && !AccessFile(name, ACCESS_EXIST) )
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
   }
 
   if ( flags & PL_FILE_ABSOLUTE )
@@ -477,7 +478,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
     *namep = buffer_string(name, BUF_RING);
   }
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -509,7 +510,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
     *namep = baseBuffer(b, wchar_t);
   }
 
-  return TRUE;
+  return rc;
 }
 
 

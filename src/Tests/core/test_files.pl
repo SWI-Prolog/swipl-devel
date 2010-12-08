@@ -81,4 +81,16 @@ agc :-
 	    fail
 	).
 
+magic_pred_123.
+
+test(directory_files, error(existence_error(_,_))) :-
+	directory_files(magic_sgf7222389y91, _).
+test(directory_files, true) :-
+	once(predicate_property(_:magic_pred_123, file(File))),
+	file_directory_name(File, Dir),
+	file_base_name(File, Plain),
+	directory_files(Dir, Files),
+	memberchk(Plain, Files).
+
+
 :- end_tests(files).
