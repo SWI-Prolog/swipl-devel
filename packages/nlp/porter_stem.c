@@ -407,6 +407,9 @@ pl_stem(term_t t_in, term_t t_stem)
 		 *	       ACCENTS		*
 		 *******************************/
 
+/* See also http://www.ahinea.com/en/tech/accented-translate.html
+*/
+
 static char *unaccent_def[] =
 { "A",	/* 192 */ "A", /* 193 */ "A",	/* 194 */ "A",	/* 195 */
   "A",	/* 196 */ "A", /* 197 */ "AE",	/* 198 */ "C",	/* 199 */
