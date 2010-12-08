@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Richard O'Keefe
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,14 +31,16 @@
 */
 
 :- module(lists,
-	[ member/2,
+	[ member/2,			% ?X, ?List
 	  append/2,			% +ListOfLists, -List
-	  append/3,
+	  append/3,			% ?A, ?B, ?AB
 	  prefix/2,			% ?Part, ?Whole
-	  select/3,
-	  selectchk/3,
+	  select/3,			% ?X, ?List, ?Rest
+	  selectchk/3,			% ?X, ?List, ?Rest
+	  select/4,			% ?X, ?XList, ?Y, ?YList
+	  selectchk/4,			% ?X, ?XList, ?Y, ?YList
 	  nextto/3,			% ?X, ?Y, ?List
-	  delete/3,
+	  delete/3,			% ?List, ?X, ?Rest
 	  nth0/3,
 	  nth1/3,
 	  last/2,			% +List, -Element
@@ -60,10 +63,16 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Some of these predicates are copied from   "The  Craft of Prolog" and/or
-the DEC-10 Prolog library (LISTRO.PL). Contributed by Richard O'Keefe.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** <module> List Manipulation
+
+This library provides  commonly  accepted   basic  predicates  for  list
+manipulation in the Prolog community. Some additional list manipulations
+are built-in. See e.g., memberchk/2, length/2.
+
+The implementation of this library  is   copied  from many places. These
+include: "The Craft of Prolog", the   DEC-10  Prolog library (LISTRO.PL)
+and the YAP lists library.
+*/
 
 %%	member(?Elem, ?List)
 %
@@ -139,6 +148,35 @@ selectchk(Elem, List, Rest) :-
 	Rest = Rest0.
 
 
+%%	select(?X, ?XList, ?Y, ?YList) is nondet.
+%
+%	Is true when select(X, XList) and   select(Y, YList) are true, X
+%	and Y appear in the same locations of their respective lists and
+%	same_length(XList, YList) is  true.  A   typical  use  for  this
+%	predicate is to _replace_ an element:
+%
+%	==
+%	?- select(b, [a,b,c], 2, X).
+%	X = [a, 2, c] ;
+%	X = [a, b, c].
+%	==
+
+select(X, XList, Y, YList) :-
+	select_(XList, X, Y, YList).
+
+select_([], _, _, []).
+select_([X|XList], X, Y, [Y|YList]) :-
+	select_(XList, X, Y, YList).
+select_([X0|XList], X, Y, [X0|YList]) :-
+	select_(XList, X, Y, YList).
+
+%%	selectchk(X, XList, Y, YList) is semidet.
+%
+%	Semi-deterministic version of select/4.
+
+selectchk(X, XList, Y, YList) :-
+	select(X, XList, Y, YList), !.
+
 %%	nextto(?X, ?Y, ?List)
 %
 %	True of Y follows X in List.
@@ -151,6 +189,12 @@ nextto(X, Y, [_|Zs]) :-
 %
 %	Is true when Lis1, with all occurences of Elem deleted results in
 %	List2.
+%
+%	@deprecated There are too many ways in which one might want to
+%		    delete elements from a list to justify the name.
+%		    Think of matching (= vs. ==), delete first/all,
+%		    be deterministic or not.
+%	@see select/3, subtract/3.
 
 delete([], _, []) :- !.
 delete([Elem|Tail], Elem, Result) :- !,

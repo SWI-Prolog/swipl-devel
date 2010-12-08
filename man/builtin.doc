@@ -2272,7 +2272,7 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-    \prefixop{dynamic}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{dynamic}{:PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
@@ -2296,14 +2296,21 @@ of the program execution.%
 		  faster as it does not require synchronisation.  This
 		  is particularly true on SMP hardware.}
 
-    \prefixop{multifile}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{multifile}{:PredicateIndicator, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
 
-    \prefixop{discontiguous}{:PredicateIndicator, \ldots}
+    \prefixop[ISO]{discontiguous}{:PredicateIndicator, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
+
+    \prefixop{public}{:PredicateIndicator, \ldots}
+Instructs the cross-referencer that the predicate can be called.  It has
+no semantics.\footnote{This declaration is compatible to SICStus.  In
+YAP, public/1 instructs the compiler to keep the source.  As the source
+is always available in SWI-Prolog, our current interpretation also
+enhanced the compatibility to YAP.}
 
     \predicate{index}{1}{+Head}
 Index the clauses of the predicate with the same name and arity as
@@ -2513,6 +2520,11 @@ Do not show ports of this predicate in the debugger.
     \termitem{number_of_clauses}{ClauseCount}
 Unify \arg{ClauseCount} to the number of clauses associated with the
 predicate.  Fails for foreign predicates.
+
+    \termitem{public}{}
+Predicate is declared public using public/1.  Note that without further
+definition, public predicates are considered undefined and this property
+is \emph{not} reported.
 
     \termitem{thread_local}{}
 If true (only possible on the multi-threaded version) each thread has
@@ -2791,6 +2803,17 @@ If present and \const{true}, a BOM (\jargon{Byte Order Mark}) was
 detected while opening the file for reading or a BOM was written while
 opening the stream. See \secref{bom} for details.
 
+    \termitem{close_on_abort}{Bool}
+Determine whether or not the stream is closed by abort/0.  By default
+streams are closed.
+
+    \termitem{close_on_exec}{Bool}
+Determine whether or not the stream is closed when executing a new
+process (exec() in Unix, CreateProcess() in Windows). Default is to
+close streams. This maps to fcntl() \const{F_SETFD} using the flag
+\const{FD_CLOEXEC} on Unix and (negated) \const{HANDLE_FLAG_INHERIT} on
+Windows.
+
     \termitem{encoding}{Encoding}
 Query the encoding used for text.  See \secref{encoding} for an
 overview of wide character and encoding issues in SWI-Prolog.
@@ -2959,6 +2982,9 @@ bytes.
     \termitem{close_on_abort}{Bool}
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
+
+    \termitem{close_on_exec}{Bool}
+Set the \const{close_on_exec} property.  See stream_property/2.
 
     \termitem{encoding}{Atom}
 Defines the mapping between bytes and character codes used for the
@@ -3237,7 +3263,7 @@ waits indefinitely.%
 		  (integer) also waits indefinitely.  To call select()
 		  without giving up the CPU pass the float 0.0.  If
 		  compatibility with versions older than 5.1.3 is
-		  desired pass the float value 1e-7.}
+		  desired pass the float value 1.0e-7.}
 
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources. The following example will wait for
@@ -3504,11 +3530,6 @@ The predicates format/[1,2] and writef/2 provide formatted output.
 Writing to Prolog datastructures such as atoms or code-lists is
 supported by with_output_to/2 and format/3.
 
-There are two ways to manipulate the output format. The predicate
-print/[1,2] may be programmed using portray/1. The format of floating
-point numbers may be manipulated using the Prolog flag
-\prologflag{float_format}.
-
 Reading is sensitive to the Prolog flag \prologflag{character_escapes},
 which controls the interpretation of the \chr{\} character in quoted
 atoms and strings.
@@ -3642,8 +3663,7 @@ Write \arg{Term} in canonical form on \arg{Stream}.
 
     \predicate[ISO]{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators
-where appropriate. The Prolog flag \prologflag{float_format} controls
-floating point output format.
+where appropriate.
 
     \predicate[ISO]{write}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}.
@@ -3662,6 +3682,7 @@ Prints \arg{Term} on the current output stream similar to write/1,
 but for each (sub)term of \arg{Term} first the dynamic predicate
 portray/1 is called.  If this predicate succeeds \arg{print} assumes the
 (sub)term has been written.  This allows for user defined term writing.
+See also \pllib{portray_text}.
 
     \predicate{print}{2}{+Stream, +Term}
 Print \arg{Term} to \arg{Stream}.
@@ -4460,7 +4481,7 @@ Declare \arg{Name} to be an operator of type \arg{Type} with precedence
 all elements of the list are declared to be identical operators.
 \arg{Precedence} is an integer between 0 and 1200. Precedence 0 removes
 the declaration. \arg{Type} is one of: \const{xf}, \const{yf},
-\const{xfx}, \const{xfy}, \const{yfx}, \const{yfy}, \const{fy} or
+\const{xfx}, \const{xfy}, \const{yfx}, \const{fy} or
 \const{fx}. The `\chr{f}' indicates the position of the functor, while
 \chr{x} and \chr{y} indicate the position of the arguments. `\chr{y}'
 should be interpreted as ``on this position a term with precedence lower
@@ -6013,8 +6034,7 @@ The minute as a decimal number (range 00 to 59).
     \fmtchar{n}
 A newline character.
     \fmtchar{O}
-Modifier to select locale-specific output.  Not implemented, but this
-version does implement \texttt{\%Oz}.  See \%z.
+Modifier to select locale-specific output.  Not implemented.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
@@ -6065,8 +6085,10 @@ The year as a decimal number including the century.
 The time-zone as hour offset from GMT using the format HHmm. Required to
 emit RFC822-conforming dates (using
 \texttt{'\%a,~\%d~\%b~\%Y~\%T~\%z'}). Our implementation supports
-\texttt{\%Oz} that modifies the output to HH:mm as required by
-XML-Schema. Note that both notations are valid in ISO8601. \fmtchar{Z}
+\texttt{\%:z}, which modifies the output to HH:mm as required by
+XML-Schema. Note that both notations are valid in ISO8601. The
+sequence \texttt{\%:z} is compatible to the GNU	date(1) command.
+    \fmtchar{Z}
 The time zone or name or abbreviation. \fmtchar{+} The date and time in
 date(1) format. \fmtchar{\%} A literal `\%' character.
 \end{itemize}
@@ -6089,7 +6111,7 @@ http_timestamp(Time, Atom) :-
 \hline
 \textbf{Standard} & \textbf{Format string} \\
 \hline
-\textbf{xsd} & \texttt{'\%FT\%T\%Oz'} \\
+\textbf{xsd} & \texttt{'\%FT\%T\%:z'} \\
 \textbf{ISO8601} & \texttt{'\%FT\%T\%z'} \\
 \textbf{RFC822} & \texttt{'\%a, \%d \%b \%Y \%T \%z'} \\
 \textbf{RFC1123} & \texttt{'\%a, \%d \%b \%Y \%T GMT'} \\

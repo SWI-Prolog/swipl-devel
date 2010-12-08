@@ -36,6 +36,7 @@
 	    anon_prefix/1		% Prefix for anonynmous resources
 	  ]).
 :- use_module(library(gensym)).
+:- use_module(library(option)).
 :- use_module(rdf_parser).
 
 /** <module> Create triples from intermediate representation

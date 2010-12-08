@@ -373,7 +373,7 @@ manifest_for_path(URL, Manifest) :-
 	file_directory_name(URL, Parent),
 	manifest_file(Base),
 	rdf_extension(Ext),
-	concat_atom([Parent, /, Base, '.', Ext], Manifest).
+	atomic_list_concat([Parent, /, Base, '.', Ext], Manifest).
 
 %%	rdf_list_library(+Id) is det.
 %%	rdf_list_library(+Id, +Options) is det.
@@ -532,7 +532,9 @@ rdf_library_index(Id, Facet) :-
 %		Load single manifest from this file
 %		* Directory
 %		Scan all subdirectories and load all =|Manifest.ttl|= or
-%		=|Manifest.rdf|= found.
+%		=|Manifest.rdf|= found.  If Directory is a path-alias
+%		(e.g., ontology(.)), _all_ referenced directories are
+%		scanned for manifest files.
 %
 %	Encountered namespaces are registered   using rdf_register_ns/2.
 %	Encountered ontologies are added to the index. If a manifest was
@@ -552,11 +554,12 @@ rdf_attach_library(File) :-
 			   ]), !,
 	process_manifest(Path).
 rdf_attach_library(Dir) :-
-	absolute_file_name(Dir, Path,
-			   [ file_type(directory),
-			     access(read)
-			   ]),
-	attach_dir(Path, []).
+	forall(absolute_file_name(Dir, Path,
+				  [ file_type(directory),
+				    access(read),
+				    solutions(all)
+				  ]),
+	       attach_dir(Path, [])).
 
 
 %%	rdf_update_library_index

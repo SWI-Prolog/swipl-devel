@@ -1975,15 +1975,17 @@ skip_list(Word l, Word *tailp ARG_LD)
   s = l;
 
   if ( isList(*l) )
-  { for(;;)
-    { length++; l = TailList(l); deRef(l);
-      if ( *l == *s ) break;
-      if ( !isList(*l) ) break;
-      length++; l = TailList(l); deRef(l);
-      if ( *l == *s ) break;
-      if ( !isList(*l) ) break;
-      s = TailList(s); deRef(s);
-    }
+  { intptr_t power = 1, lam = 0;
+    do
+    { if ( power == lam )
+      { s = l;
+	power *= 2;
+	lam = 0;
+      }
+      lam++;
+      length++;
+      l = TailList(l); deRef(l);
+    } while ( *l != *s && isList(*l) );
   }
   *tailp = l;
 
@@ -3242,7 +3244,9 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
       return PL_unify_text(atom, 0, &stext, PL_ATOM);
     case X_NUMBER:
     case X_AUTO:
-    { if ( stext.encoding == ENC_ISO_LATIN_1 )
+    { strnumstat rc = NUM_ERROR;
+
+      if ( stext.encoding == ENC_ISO_LATIN_1 )
       { unsigned char *q, *s = (unsigned char *)stext.text.t;
 	number n;
 	AR_CTX;
@@ -3255,7 +3259,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	}
 
 	AR_BEGIN();
-	if ( s && str_number(s, &q, &n, FALSE) )
+	if ( s && (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
 	{ if ( *q == EOS )
 	  { int rc = PL_unify_number(atom, &n);
 	    clearNumber(&n);
@@ -3270,7 +3274,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
       if ( how == X_AUTO )
 	goto case_atom;
       else
-	return PL_error(pred, 2, NULL, ERR_SYNTAX, "illegal_number");
+	return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
     }
     default:
       assert(0);
@@ -3368,10 +3372,11 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   if ( PL_get_nchars(A1, &len, &s, CVT_ATOM|CVT_STRING) )
   { number n;
     unsigned char *q;
+    strnumstat rc;
 
     AR_BEGIN();
 
-    if ( str_number((unsigned char *)s, &q, &n, FALSE) )
+    if ( (rc=str_number((unsigned char *)s, &q, &n, FALSE) == NUM_OK) )
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
         clearNumber(&n);
@@ -3384,10 +3389,9 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
         AR_END();
         return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
       }
-    }
-    else
+    } else
     { AR_END();
-      return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+      return PL_error(NULL, 0, NULL, ERR_SYNTAX, str_number_error(rc));
     }
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
   { return PL_unify_atom_nchars(A1, len, s);
@@ -4926,7 +4930,7 @@ set_pl_option(const char *name, const char *value)
 	  number n;
 	  unsigned char *q;
 
-	  if ( str_number((unsigned char *)value, &q, &n, FALSE) &&
+	  if ( str_number((unsigned char *)value, &q, &n, FALSE) == NUM_OK &&
 	       *q == EOS &&
 	       intNumber(&n) )
 	  { *val = (intptr_t)n.value.i;

@@ -3,6 +3,7 @@ swipl
 swipl.1
 swipl.prc
 swipl.pc
+swipl.home
 swipl-ld
 rc/swipl-rc
 pl-atom.ic

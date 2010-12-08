@@ -239,7 +239,7 @@ extract_varnames(Name=_, [Name|VN], VN).
 %
 %	Assert modes into the database with the given position.
 %
-%	@param Modes	  List if mode-terms.  See process_modes/5.
+%	@param Modes	  List if mode-terms.  See process_modes/6.
 %	@param SourcePos  Term File:Line
 
 store_modes([], _).
@@ -443,10 +443,7 @@ compile_clause(Term, File:Line) :-
 	strip_module(SM:Term, M, Plain),
 	clause_head(Plain, Head),
 	functor(Head, Name, Arity),
-	(   M == user ; M \== SM
-	->  multifile(M:(Name/Arity))
-	;   discontiguous(M:(Name/Arity))
-	),
+	multifile(M:(Name/Arity)),
 	(   M == SM
 	->  Clause = Term
 	;   Clause = M:Term

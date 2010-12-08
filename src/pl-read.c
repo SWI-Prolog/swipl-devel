@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2009, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-umap.c"			/* Unicode map */
+#include "pl-dtoa.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -37,7 +38,9 @@ typedef       unsigned char * ucharp;
 #undef LD
 #define LD LOCAL_LD
 
-static void	addUTF8Buffer(Buffer b, int c);
+static void	  addUTF8Buffer(Buffer b, int c);
+static strnumstat scan_decimal(cucharp *sp, Number n);
+
 
 		 /*******************************
 		 *     UNICODE CLASSIFIERS	*
@@ -248,7 +251,7 @@ typedef struct
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
   term_t	comments;		/* Report comments */
-  short		strictness;		/* Strictness level */
+  int		strictness;		/* Strictness level */
 
   atom_t	locked;			/* atom that must be unlocked */
   struct var_table vt;			/* Data about variables */
@@ -351,6 +354,20 @@ Error term:
 
 
 #define syntaxError(what, rd) { errorWarning(what, 0, rd); fail; }
+
+const char *
+str_number_error(strnumstat rc)
+{ switch(rc)
+  { case NUM_ERROR:      return "illegal_number";
+    case NUM_OK:	 return "no_error";
+    case NUM_FUNDERFLOW: return "float_underflow";
+    case NUM_FOVERFLOW:  return "float_overflow";
+    case NUM_IOVERFLOW:  return "integer_overflow";
+  }
+
+  return NULL;
+}
+
 
 extern IOFUNCTIONS Sstringfunctions;
 
@@ -468,6 +485,12 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   }
 
   fail;
+}
+
+
+static int
+numberError(strnumstat rc, ReadData _PL_rd)
+{ return errorWarning(str_number_error(rc), 0, _PL_rd);
 }
 
 
@@ -698,6 +721,8 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	    if ( c == EOF )
 	      goto eofinstr;
 	    addToBuffer(c, _PL_rd);
+	    if ( c == q )
+	      return TRUE;
 	  }
 	  continue;			/* \symbolic-control-char */
       }
@@ -770,6 +795,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
   IOPOS *pos;
 
   clearBuffer(_PL_rd);				/* clear input buffer */
+  _PL_rd->strictness = truePrologFlag(PLFLAG_ISO);
   source_line_no = -1;
 
   for(;;)
@@ -865,7 +891,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  level++;
 			break;
 		      case '/':
-			if ( last == '*' && --level == 0 )
+			if ( last == '*' &&
+			     (--level == 0 || _PL_rd->strictness) )
 			{ if ( cbuf )
 			  { addUTF8Buffer(cbuf, EOS);
 			    if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
@@ -936,7 +963,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addUTF8Buffer(cbuf, '%');
 			continue;
 		      }
-		      Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
+		      if ( c != EOF )
+			Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
 		      if ( pp )
 			*pp = p;
 		      c = '\n';
@@ -957,18 +985,60 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		}
 		goto handle_c;		/* is the newline */
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
-		{ addToBuffer(c, _PL_rd); 		/* <n>' */
-		  if ( rb.here[-2] == '0' )		/* 0'<c> */
-		  { if ( (c=getchr()) != EOF )
-		    { addToBuffer(c, _PL_rd);
-		      break;
+		{ cucharp bs = &rb.here[-1];
+
+		  if ( bs > rb.base && isDigit(bs[-1]) )
+		    bs--;
+		  if ( bs > rb.base && isSign(bs[-1]) )
+		    bs--;
+
+		  if ( bs == rb.base || !PlIdContW(bs[-1]) )
+		  { int base;
+
+		    if ( isSign(bs[0]) )
+		      bs++;
+		    base = atoi((char*)bs);
+
+		    if ( base <= 36 )
+		    { if ( base == 0 )			/* 0'<c> */
+		      { addToBuffer(c, _PL_rd);
+			{ if ( (c=getchr()) != EOF )
+			  { addToBuffer(c, _PL_rd);
+			    if ( c == '\\' ) 		/* 0'\<c> */
+			    { if ( (c=getchr()) != EOF )
+				addToBuffer(c, _PL_rd);
+			    } else if ( c == '\'' ) 	/* 0'' */
+			    { if ( (c=getchr()) != EOF )
+			      { if ( c == '\'' )
+				  addToBuffer(c, _PL_rd);
+				else
+				  goto handle_c;
+			      }
+			    }
+			    break;
+			  }
+			  rawSyntaxError("end_of_file");
+			}
+		      } else
+		      { int c2;
+
+			if ( (c2=getchr()) != EOF )
+			{ if ( digitValue(base, c2) >= 0 )
+			  { addToBuffer(c, _PL_rd);
+			    addToBuffer(c2, _PL_rd);
+			    dotseen = FALSE;
+			    break;
+			  }
+			  Sungetcode(c2, rb.stream);
+			  goto sqatom;
+			}
+			rawSyntaxError("end_of_file");
+		      }
 		    }
-		    rawSyntaxError("end_of_file");
 		  }
-		  dotseen = FALSE;
-		  break;
 		}
 
+	      sqatom:
      		set_start_line;
      		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
@@ -1361,14 +1431,17 @@ uint64_to_double(uint64_t i)
 #endif
 
 
-static int
+static strnumstat
 scan_decimal(cucharp *sp, Number n)
 { uint64_t maxi = PLMAXINT/10;
   uint64_t t = 0;
   cucharp s = *sp;
-  int c;
+  int c = *s;
 
-  for(c = *s; isDigit(c); c = *++s)
+  if ( !isDigit(c) )
+    return NUM_ERROR;
+
+  for(; isDigit(c); c = *++s)
   { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
     {
 #ifdef O_GMP
@@ -1382,20 +1455,22 @@ scan_decimal(cucharp *sp, Number n)
       }
       *sp = s;
 
-      succeed;
+      return NUM_OK;
 #else
-      double maxf = MAXREAL / (double) 10 - (double) 10;
-      double tf = uint64_to_double(t);
+      char *end;
 
-      for(c = *s; isDigit(c); c = *++s)
-      { if ( tf > maxf )
-	  fail;				/* number too large */
-        tf = tf * (double)10 + (double)(c - '0');
-      }
+      while(isDigit(*s))
+	s++;
+      errno = 0;
+      n->value.f = strtod(*sp, &end);
+      if ( s != end )
+	return NUM_ERROR;
+      if ( errno == ERANGE )
+	return NUM_FOVERFLOW;
       *sp = s;
-      n->value.f = tf;
+
       n->type = V_FLOAT;
-      succeed;
+      return NUM_OK;
 #endif
     } else
       t = t * 10 + c - '0';
@@ -1405,11 +1480,11 @@ scan_decimal(cucharp *sp, Number n)
 
   n->value.i = t;
   n->type = V_INTEGER;
-  succeed;
+  return NUM_OK;
 }
 
 
-static int
+static strnumstat
 scan_number(cucharp *s, int b, Number n)
 { int d;
   uint64_t maxi = PLMAXINT/b;		/* cache? */
@@ -1417,7 +1492,7 @@ scan_number(cucharp *s, int b, Number n)
   cucharp q = *s;
 
   if ( (d = digitValue(b, *q)) < 0 )
-    fail;				/* syntax error */
+    return NUM_ERROR;			/* syntax error */
   t = d;
   q++;
 
@@ -1436,7 +1511,7 @@ scan_number(cucharp *s, int b, Number n)
       }
       *s = q;
 
-      succeed;
+      return NUM_OK;
 #else
       double maxf = MAXREAL / (double) b - (double) b;
       double tf = uint64_to_double(t);
@@ -1451,7 +1526,7 @@ scan_number(cucharp *s, int b, Number n)
       n->value.f = tf;
       n->type = V_FLOAT;
       *s = q;
-      succeed;
+      return NUM_OK;
 #endif
     } else
     { q++;
@@ -1462,15 +1537,19 @@ scan_number(cucharp *s, int b, Number n)
   n->value.i = t;
   n->type = V_INTEGER;
   *s = q;
-  succeed;
+  return NUM_OK;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 escape_char() decodes a \<chr> specification that can appear either in a
 quoted atom/string or as a  character   specification  such as 0'\n. The
-return value is EOF and an exception is pushed on illegal sequences.
+return value is either a valid character   code,  ESC_EOS if there is no
+more data or ESC_ERROR if there is an error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ESC_EOS	  (-1)
+#define ESC_ERROR (-2)
 
 static int
 escape_char(cucharp in, ucharp *end, int quote, ReadData _PL_rd)
@@ -1479,7 +1558,7 @@ escape_char(cucharp in, ucharp *end, int quote, ReadData _PL_rd)
   int c;
   cucharp e;
 
-#define OK(v) if (1) {chr = (v); goto ok;} else (void)0
+#define OK(v) do { chr = (v); goto ok; } while(0)
 
 again:
   in = utf8_get_uchar(in, &c);
@@ -1491,22 +1570,20 @@ again:
     case 'c':				/* skip \c<blank>* */
       if ( quote )
       { in = skipSpaces(in);
-      skip_cont:
 	e = utf8_get_uchar(in, &c);
-	if ( c == '\\' )
-	{ in = e;
-	  goto again;
-	}
-	if ( c == quote )		/* \c ' --> no output */
-	{ OK(EOF);
-	}
+      skip_cont:
 	in = e;
+	if ( c == '\\' )
+	  goto again;
+	if ( c == quote )		/* \c ' --> no output */
+	  OK(ESC_EOS);
 	OK(c);
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
       if ( quote )
-      { for( ; *in; in=e )
+      { e = in;
+	for( ; *in; in=e )
 	{ e = utf8_get_uchar(in, &c);
 	  if ( c == '\n' || !PlBlankW(c) )
 	    break;
@@ -1514,6 +1591,8 @@ again:
 	goto skip_cont;
       }
       OK('\n');
+    case 'e':
+      OK('\e');
     case 'f':
       OK('\f');
     case '\\':
@@ -1529,6 +1608,7 @@ again:
     case 'u':				/* \uXXXX */
     case 'U':				/* \UXXXXXXXX */
     { int digits = (c == 'u' ? 4 : 8);
+      cucharp errpos = in-1;
       chr = 0;
 
       while(digits-- > 0)
@@ -1538,9 +1618,15 @@ again:
 	if ( (dv=digitValue(16, c)) >= 0 )
 	{ chr = (chr<<4)+dv;
 	} else
-	{ errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
-	  return EOF;
+	{ last_token_start = (unsigned char*)errpos;
+	  errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	  return ESC_ERROR;
 	}
+      }
+      if ( chr > PLMAXWCHAR )
+      { last_token_start = (unsigned char*)errpos;
+	errorWarning("Illegal character code", 0, _PL_rd);
+	return ESC_ERROR;
       }
       OK(chr);
     }
@@ -1556,15 +1642,22 @@ again:
     default:
       if ( c >= '0' && c <= '7' )	/* octal number */
       { int dv;
+	cucharp errpos;
 
 	base = 8;
 
       numchar:
+	errpos = in-1;
 	chr = digitValue(base, c);
 	c = *in++;
 	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
+	  if ( chr > PLMAXWCHAR )
+	  { last_token_start = (unsigned char*)errpos;
+	    errorWarning("Illegal character code", 0, _PL_rd);
+	    return ESC_ERROR;
+	  }
 	}
 	if ( c != '\\' )
 	  in--;
@@ -1622,11 +1715,15 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 	break;
     } else if ( c == '\\' && DO_CHARESCAPE )
     { c = escape_char(in, &in, quote, _PL_rd);
-      if ( c == EOF )
-	return FALSE;
-      addUTF8Buffer(buf, c);
+      if ( c >= 0 )
+      { addUTF8Buffer(buf, c);
 
-      continue;
+	continue;
+      } else if ( c == ESC_ERROR )
+      { return FALSE;
+      } else
+      { break;
+      }
     } else if ( c >= 0x80 )		/* copy UTF-8 sequence */
     { do
       { addBuffer(buf, c, char);
@@ -1679,10 +1776,11 @@ neg_number(Number n)
 }
 
 
-int
+strnumstat
 str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
-  unsigned int c;
+  cucharp start = in;
+  strnumstat rc;
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -1699,8 +1797,12 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0, NULL);
+	  if ( chr < 0 )
+	    return NUM_ERROR;
 	} else
 	{ *end = utf8_get_uchar(in+2, &chr);
+	  if ( chr == '\'' && **end == '\'' ) /* handle 0''' as 0'' */
+	    (*end)++;
 	}
 
 	value->value.i = (int64_t)chr;
@@ -1722,88 +1824,80 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     }
 
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
-    { int rval;
-      in += 2;
-      rval = scan_number(&in, base, value);
+    { in += 2;
+
+      if ( (rc = scan_number(&in, base, value)) != NUM_OK )
+	return rc;
       *end = (ucharp)in;
       if ( negative )
 	neg_number(value);
-      return rval;
+
+      return NUM_OK;
     }
   }
 
-  if ( !isDigit(*in) || !scan_decimal(&in, value) )
-    fail;				/* too large? */
+  if ( (rc=scan_decimal(&in, value)) != NUM_OK )
+    return rc;				/* too large? */
 
 					/* base'value number */
-  if ( *in == '\'' )
+  if ( *in == '\'' &&
+       value->type == V_INTEGER &&
+       value->value.i <= 36 &&
+       value->value.i > 1 &&
+       digitValue(value->value.i, in[1]) >= 0 )
   { in++;
 
-    if ( value->type != V_INTEGER ||
-	 value->value.i > 36 ||
-	 value->value.i <= 1 )
-      fail;				/* illegal base */
-    if ( !scan_number(&in, (int)value->value.i, value) )
-      fail;				/* number too large */
-
-    if ( isAlpha(*in) )
-      fail;				/* illegal number */
+    if ( !(rc=scan_number(&in, (int)value->value.i, value)) )
+      return rc;			/* number too large */
 
     if ( negative )
       neg_number(value);
 
     *end = (ucharp)in;
-    succeed;
+
+    return NUM_OK;
   }
 					/* floating point numbers */
-					/* we should use strtod_l() here */
   if ( *in == '.' && isDigit(in[1]) )
-  { double n;
-
-    promoteToFloatNumber(value);
-    n = 10.0, in++;
-    while( isDigit(c = *in) )
-    { in++;
-      value->value.f += (double)(c-'0') / n;
-      n *= 10.0;
-    }
-  }
-
-  if ( *in == 'e' || *in == 'E' )
-  { number exponent;
-    bool neg_exponent;
+  { value->type = V_FLOAT;
 
     in++;
-    DEBUG(9, Sdprintf("Exponent\n"));
-    switch(*in)
-    { case '-':
-	in++;
-        neg_exponent = TRUE;
-	break;
-      case '+':
-	in++;
-      default:
-	neg_exponent = FALSE;
-        break;
-    }
+    while( isDigit(*in) )
+      in++;
+  }
 
-    if ( !isDigit(*in) ||
-	 !scan_decimal(&in, &exponent) ||
-	 exponent.type != V_INTEGER )
-      fail;				/* too large exponent */
+  if ( (*in == 'e' || *in == 'E') &&
+       ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
+  { value->type = V_FLOAT;
 
-    promoteToFloatNumber(value);
+    in++;
+    if ( isSign(*in) )
+      in++;
+    while( isDigit(*in) )
+      in++;
+  }
 
-    value->value.f *= pow((double)10.0,
-			  neg_exponent ? -(double)exponent.value.i
-			               : (double)exponent.value.i);
+  if ( value->type == V_FLOAT )
+  { char *e;
+
+    errno = 0;
+    value->value.f = strtod((char*)start, &e);
+    if ( e != (char*)in )
+      return NUM_ERROR;
+    if ( errno == ERANGE )		/* can be non-0, but inaccurate */
+      return (abs(value->value.f) < 1.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+
+    *end = (ucharp)in;
+
+    return NUM_OK;
   }
 
   if ( negative )
     neg_number(value);
 
   *end = (ucharp)in;
-  succeed;
+
+  return NUM_OK;
 }
 
 
@@ -1921,17 +2015,17 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case_digit:
     case DI:	{ number value;
-		  int echr;
+		  strnumstat rc;
 
-		  if ( str_number(&rdhere[-1],
-				  &rdhere, &value, DO_CHARESCAPE) &&
-		       utf8_get_uchar(rdhere, &echr) &&
-		       !PlIdContW(echr) )
+		  if ( (rc=str_number(&rdhere[-1],
+				      &rdhere, &value, DO_CHARESCAPE)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
 		  } else
-		    syntaxError("illegal_number", _PL_rd);
+		  { numberError(rc, _PL_rd);
+		    return NULL;
+		  }
 		}
     case_solo:
     case SO:	{ cur_token.value.atom = codeToAtom(c);		/* not registered */
@@ -2214,7 +2308,6 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
     case OP_XFX:	e->left_pri = pri-1; e->right_pri = pri-1; break;
     case OP_XFY:	e->left_pri = pri-1; e->right_pri = pri;   break;
     case OP_YFX:	e->left_pri = pri;   e->right_pri = pri-1; break;
-    case OP_YFY:	e->left_pri = pri;   e->right_pri = pri;   break;
   }
 
   succeed;
@@ -2462,8 +2555,8 @@ complex_term(const char *stop, short maxpri, term_t term, term_t positions,
   term_t pin;
   int thestop;				/* encountered stop-character */
 
-  if (_PL_rd -> strictness == 0)
-      maxpri = OP_MAXPRIORITY+1;
+  if ( _PL_rd->strictness == 0 )
+    maxpri = OP_MAXPRIORITY+1;
 
   in_op.left_pri = 0;
   in_op.right_pri = 0;

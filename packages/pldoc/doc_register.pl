@@ -85,9 +85,9 @@ user:message_hook(load_file(done(0, _F, _A, _M, _T, _H)), _, _) :-
 
 prolog:comment_hook(Comments, TermPos, Term) :-
 	source_location(File, _TermLine),
-	'$push_input_context',		% Preserve input file and line
-	call_cleanup(do_comment_hook(Comments, TermPos, File, Term),
-		     '$pop_input_context').
+	setup_call_cleanup('$push_input_context',  % Preserve input file and line
+			   do_comment_hook(Comments, TermPos, File, Term),
+			   '$pop_input_context').
 
 process_stored_comments :-
 	forall(retract(mydoc(Comments, TermPos, File)),

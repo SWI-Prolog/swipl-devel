@@ -940,6 +940,9 @@ print_system_message(_, Level, Lines) :-
 	flush_output(user_output),
 	prefix(Level, LinePrefix, Stream), !,
 	print_message_lines(Stream, LinePrefix, Lines).
+print_system_message(_, Level, _) :-
+	\+ prefix(Level, _, _),
+	throw(error(domain_error(message_kind, Level), _)).
 
 prefix(error,	      'ERROR: ~w:~d:~n',   '\t', '', 0.5, user_error).
 prefix(warning,	      'Warning: ~w:~d:~n', '\t', '', 0,   user_error).

@@ -451,13 +451,14 @@ documentation(Path, Request) :-
 	    doc_for_dir(Dir, EditOptions)
 	;   throw(http_reply(forbidden(Dir)))
 	).
-documentation(File, _Request) :-
+documentation(File, Request) :-
 	wiki_file(File, WikiFile), !,
 	(   allowed_file(WikiFile)
 	->  true
 	;   throw(http_reply(forbidden(File)))
 	),
-	doc_for_wiki_file(WikiFile, []).
+	edit_options(Request, Options),
+	doc_for_wiki_file(WikiFile, Options).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),

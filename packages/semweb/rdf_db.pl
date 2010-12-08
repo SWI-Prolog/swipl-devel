@@ -80,7 +80,8 @@
 	    rdf_md5/2,			% +DB, -MD5
 	    rdf_atom_md5/3,		% +Text, +Times, -MD5
 
-	    rdf_graph/1,		% ?DB
+	    rdf_graph_property/2,	% ?Graph, ?Property
+	    rdf_graph/1,		% ?Graph
 	    rdf_source/1,		% ?File
 	    rdf_source/2,		% ?DB, ?SourceURL
 	    rdf_make/0,			% Reload modified databases
@@ -143,6 +144,13 @@
 :- use_module(rdf_cache).
 
 :- use_foreign_library(foreign(rdf_db)).
+
+:- meta_predicate
+	rdf_transaction(0),
+	rdf_transaction(0, +),
+	rdf_monitor(1, +),
+	rdf_save(+, :),
+	rdf_load(+, :).
 
 :- multifile
 	ns/2,
@@ -286,6 +294,8 @@ global(NS, Local, Global) :-
 	;   atom(NS), atom(Local)
 	->  (   ns(NS, Full)
 	    *->	atom_concat(Full, Local, Global)
+	    ;	current_prolog_flag(xref, true)
+	    ->	Global = NS:Local
 	    ;	existence_error(rdf_namespace, NS)
 	    )
 	).
@@ -435,6 +445,8 @@ mk_global(NS:Local, Global) :-
 	must_be(atom, Local),
 	(   ns(NS, Full)
 	->  atom_concat(Full, Local, Global)
+	;   current_prolog_flag(xref, true)
+	->  Global = NS:Local
 	;   existence_error(namespace, NS)
 	).
 
@@ -454,7 +466,7 @@ mk_global(NS:Local, Global) :-
 	rdf_equal(r,r),
 	rdf_source_location(r,-),
 	rdf_subject(r),
-	rdf_set_predicate(r, +),
+	rdf_set_predicate(r, t),
 	rdf_predicate_property(r, -),
 	rdf_estimate_complexity(r,r,r,-).
 
@@ -1281,6 +1293,8 @@ rdf_graph(DB) :-
 %%	rdf_source(?Graph, ?SourceURL) is nondet.
 %
 %	True if named Graph is loaded from SourceURL.
+%
+%	@deprecated Use rdf_graph_property(Graph, source(SourceURL)).
 
 rdf_source(Graph, SourceURL) :-
 	rdf_graph(Graph),
@@ -1309,7 +1323,38 @@ rdf_make :-
 modified_graph(SourceURL, Graph) :-
 	rdf_graph(Graph),
 	rdf_graph_source_(Graph, SourceURL, Modified),
+	\+ sub_atom(SourceURL, 0, _, _, 'stream://'),
 	Modified > 0.
+
+%%	rdf_graph_property(?Graph, ?Property) is nondet.
+%
+%	True when Property is a property of Graph.  Defined properties
+%	are:
+%
+%	    * hash(Hash)
+%	    Hash is the (MD5-)hash for the content of Graph.
+%	    * source(Source)
+%	    The graph is loaded from the Source (a URL)
+%	    * source_last_modified(?Time)
+%	    Time is the last-modified timestamp of Source at the moment
+%	    that the graph was loaded from Source.
+%	    * triples(Count)
+%	    True when Count is the number of triples in Graph.
+
+rdf_graph_property(Graph, Property) :-
+	rdf_graph(Graph),
+	rdf_graph_property_(Property, Graph).
+
+rdf_graph_property_(hash(Hash), Graph) :-
+	rdf_md5(Graph, Hash).
+rdf_graph_property_(source(URL), Graph) :-
+	rdf_graph_source_(Graph, URL, _).
+rdf_graph_property_(source_last_modified(Time), Graph) :-
+	rdf_graph_source_(Graph, _, Time),
+	Time > 0.0.
+rdf_graph_property_(triples(Count), Graph) :-
+	rdf_statistics_(triples(Graph, Count)).
+
 
 %%	save_cache(+DB, +Cache) is det.
 %
@@ -1396,13 +1441,6 @@ rdf_reset_db :-
 %	@param Out	Location to save the data.  This can also be a
 %			file-url (=|file://path|=) or a stream wrapped
 %			in a term stream(Out).
-
-:- meta_predicate
-	rdf_transaction(0),
-	rdf_transaction(0, +),
-	rdf_monitor(1, +),
-	rdf_save(+, :),
-	rdf_load(+, :).
 
 :- thread_local
 	named_anon/2.			% +Resource, -Id
@@ -1626,10 +1664,15 @@ header_namespaces(Options, List) :-
 %	        ==
 %	        call(Goal,S,P,O,Graph)
 %	        ==
+%
+%	    * min_count(+Count)
+%	    Only include prefixes that appear at least N times.  Default
+%	    is 1. Declared prefixes are always returned if found at
+%	    least one time.
 
 
 :- thread_local
-	graph_prefix/1.
+	graph_prefix/3.
 :- meta_predicate
 	rdf_graph_prefixes(?, -, :).
 
@@ -1641,8 +1684,9 @@ rdf_graph_prefixes(Graph, List, M:QOptions) :-
 	meta_options(is_meta, M:QOptions, Options),
 	option(filter(Filter), Options, true),
 	option(expand(Expand), Options, rdf_db),
-	call_cleanup(prefixes(Expand, Graph, Prefixes, Filter),
-		     retractall(graph_prefix(_))),
+	option(min_count(MinCount), Options, 1),
+	call_cleanup(prefixes(Expand, Graph, Prefixes, Filter, MinCount),
+		     retractall(graph_prefix(_,_,_))),
 	sort(Prefixes, List).
 rdf_graph_prefixes(Graph, List, M:Filter) :-
 	rdf_graph_prefixes(Graph, List, M:[filter(Filter)]).
@@ -1651,37 +1695,51 @@ is_meta(filter).
 is_meta(expand).
 
 
-prefixes(Expand, Graph, Prefixes, Filter) :-
+prefixes(Expand, Graph, Prefixes, Filter, MinCount) :-
 	(   call(Expand, S, P, O, Graph),
-	    add_ns(subject, Filter, S),
-	    add_ns(predicate, Filter, P),
-	    add_ns_obj(Filter, O),
+	    add_ns(subject, Filter, S, MinCount, s(S)),
+	    add_ns(predicate, Filter, P, MinCount, sp(S,P)),
+	    add_ns_obj(Filter, O, MinCount, spo(S,P,O)),
 	    fail
 	;   true
 	),
-	findall(Prefix, graph_prefix(Prefix), Prefixes).
+	findall(Prefix, graph_prefix(Prefix, MinCount, _), Prefixes).
 
-add_ns(Where, Filter, S) :-
+add_ns(Where, Filter, S, MinCount, Context) :-
 	\+ rdf_is_bnode(S),
 	iri_xml_namespace(S, Full),
 	Full \== '', !,
-	(   graph_prefix(Full)
+	(   graph_prefix(Full, MinCount, _)
 	->  true
 	;   Filter == true
-	->  assert(graph_prefix(Full))
+	->  add_ns(Full, Context)
 	;   call(Filter, Where, Full, S)
-	->  assert(graph_prefix(Full))
+	->  add_ns(Full, Context)
 	;   true
 	).
-add_ns(_, _, _).
+add_ns(_, _, _, _, _).
 
-add_ns_obj(Filter, O) :-
+add_ns(Full, Context) :-
+	graph_prefix(Full, _, Contexts),
+	memberchk(Context, Contexts), !.
+add_ns(Full, Context) :-
+	retract(graph_prefix(Full, C0, Contexts)), !,
+	C1 is C0+1,
+	asserta(graph_prefix(Full, C1, [Context|Contexts])).
+add_ns(Full, _) :-
+	ns(_, Full), !,
+	asserta(graph_prefix(Full, _, _)).
+add_ns(Full, Context) :-
+	asserta(graph_prefix(Full, 1, [Context])).
+
+
+add_ns_obj(Filter, O, MinCount, Context) :-
 	atom(O), !,
-	add_ns(object, Filter, O).
-add_ns_obj(Filter, literal(type(Type, _))) :-
+	add_ns(object, Filter, O, MinCount, Context).
+add_ns_obj(Filter, literal(type(Type, _)), MinCount, _) :-
 	atom(Type), !,
-	add_ns(type, Filter, Type).
-add_ns_obj(_, _).
+	add_ns(type, Filter, Type, MinCount, t(Type)).
+add_ns_obj(_, _, _, _).
 
 
 %%	used_namespace_entities(-List, ?Graph) is det.

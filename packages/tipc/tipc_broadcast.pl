@@ -235,11 +235,10 @@ and subtle differences that must be taken into consideration:
 :- use_module(library(time)).
 :- use_module(library(unix)).
 
-:- require([ once/1
+:- require([ thread_self/1
 	   , forall/2
-	   , member/2
 	   , term_to_atom/2
-	   , thread_property/2
+	   , thread_send_message/2
 	   , catch/3
 	   , setup_call_cleanup/3
 	   , thread_create/3
@@ -309,7 +308,7 @@ ld_dispatch(S, '$tipc_request'(Term), From) :-
 ld_dispatch(_S, Term, _From) :-
 	safely(broadcast(Term)).
 
-tipc_listener_daemon :-
+tipc_listener_daemon(Parent) :-
 	tipc_socket(S, rdm) ~> tipc_close_socket(S),
 
 	tipc_setopt(S, importance(medium)),
@@ -320,6 +319,8 @@ tipc_listener_daemon :-
 
 	listen(tipc_broadcast, Head, broadcast_listener(Head))
 	     ~> unlisten(tipc_broadcast),
+
+	thread_send_message(Parent, tipc_listener_daemon_ready),
 
 	repeat,
 	safely(dispatch_traffic(S)).
@@ -335,8 +336,11 @@ start_tipc_listener_daemon :-
 	!.
 
 start_tipc_listener_daemon :-
-	thread_create(tipc_listener_daemon, _,
-	       [alias(tipc_listener_daemon), detached(true)]).
+	thread_self(Self),
+	thread_create(tipc_listener_daemon(Self), _,
+	       [alias(tipc_listener_daemon), detached(true)]),
+	call_with_time_limit(6.0,
+			     thread_get_message(tipc_listener_daemon_ready)).
 
 :- multifile tipc:host_to_address/2.
 %

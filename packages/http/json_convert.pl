@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -41,6 +42,12 @@
 :- meta_predicate
 	prolog_to_json(:, -),
 	json_to_prolog(+, :).
+
+:- public
+	clear_cache/0,
+	prolog_list_to_json/3,		% +ListIn, -ListOut, +Module
+	prolog_to_json/3,		% +In, -Out, +Module
+	prolog_bool_to_json/2.		% +In, -Boolean
 
 /** <module> Convert between JSON terms and Prolog application terms
 

@@ -31,7 +31,8 @@
 
 
 :- module(authenticate,
-	  [ http_authenticate/3		% +Check, +Header, -User
+	  [ http_authenticate/3,	% +Check, +Header, -User
+	    http_authorization_data/2	% +AuthorizationText, -Data
 	  ]).
 :- use_module(library(base64)).
 :- use_module(library('http/dcg_basics')).
@@ -87,30 +88,41 @@ http_authenticate(basic(File), Request, [user(User)]) :-
 	debug(http_authenticate, 'Authorization: ~w', [Text]),
 	(   cached_authenticated(Text, File, User)
 	->  true
-	;   user_and_passwd(Text, Method, UserChars, Password),
-	    downcase_atom(Method, basic),
+	;   http_authorization_data(Text, basic(User, Password)),
 	    debug(http_authenticate,
-		  'User: ~s, Password: ~s', [UserChars, Password]),
-	    atom_codes(User, UserChars),
+		  'User: ~w, Password: ~s', [User, Password]),
 	    validate(File, User, Password),
 	    get_time(Now),
 	    assert(authenticated(Text, File, User, Now)),
 	    debug(http_authenticate, 'Authenticated ~w~n', [User])
 	).
 
-%%	user_and_passwd(+AuthorizeText, -Method, -User, -Password) is det.
+%%	http_authorization_data(+AuthorizeText, ?Data) is semidet.
 %
-%	Decode the HTTP =Authorization= header.
+%	Decode the HTTP =Authorization= header.  Data is a term
+%
+%	    Method(User, Password)
+%
+%	where Method is the (downcased)  authorization method (typically
+%	=basic=), User is an atom holding the  user name and Password is
+%	a list of codes holding the password
 
-user_and_passwd(Text, Method, User, Password) :-
+http_authorization_data(Text, Data) :-
+	(   nonvar(Data)
+	->  functor(Data, Method, 2)	% make authorization//2 fail early
+	;   true
+	),
 	atom_codes(Text, Codes),
 	phrase(authorization(Method, Cookie), Codes),
 	phrase(base64(UserPwd), Cookie),
-	phrase(ident(User, Password), UserPwd).
+	phrase(ident(UserCodes, Password), UserPwd), !,
+	atom_codes(User, UserCodes),
+	Data =.. [Method, User, Password].
 
 authorization(Method, Cookie) -->
 	nonblanks(MethodChars),
-	{ atom_codes(Method, MethodChars)
+	{ atom_codes(Method0, MethodChars),
+	  downcase_atom(Method0, Method)
 	},
 	blanks,
 	nonblanks(Cookie),

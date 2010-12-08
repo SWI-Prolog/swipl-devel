@@ -2269,6 +2269,13 @@ Demand execute-access on the result.
     \definition{\const{PL_FILE_NOERRORS}}
 Do not raise any exceptions.
 \end{description}
+
+\cfunction{int}{PL_get_file_nameW}{term_t spec, wchar_t **name, int flags}
+Same as PL_get_file_name(), but returns the filename as a wide-character
+string. This is intended for Windows to access the Unicode version of
+the Win32 API. Note that the flag \const{PL_FILE_OSPATH} must be
+provided to fetch a file name in OS native (e.g., \verb$C:\x\y$)
+notation.
 \end{description}
 
 

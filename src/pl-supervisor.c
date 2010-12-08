@@ -278,15 +278,19 @@ chainMetaPredicateSupervisor(Definition def, Code post)
 	count++;
       }
     }
-    assert(count>0);
-    baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
 
-    copySuperVisorCode((Buffer)&buf, post);
-    freeCodes(post);
-    codes = allocCodes(entriesBuffer(&buf, code));
-    copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
+    if ( count > 0 )
+    { baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
 
-    return codes;
+      copySuperVisorCode((Buffer)&buf, post);
+      freeCodes(post);
+      codes = allocCodes(entriesBuffer(&buf, code));
+      copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
+
+      return codes;
+    } else
+    { discardBuffer(&buf);
+    }
   }
 
   return post;

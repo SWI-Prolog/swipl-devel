@@ -66,7 +66,7 @@ gen_state_clpr(State) :- gen_state_clpr([], State).
 
 gen_state_clpr(Options, State) :-
         ( memberchk(eps=_, Options) -> Options1 = Options
-        ;   Options1 = [eps=1e-6|Options]
+        ;   Options1 = [eps=1.0e-6|Options]
         ),
         State = clpr_state(Options1, [], []).
 

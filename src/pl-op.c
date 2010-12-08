@@ -303,7 +303,6 @@ atomToOperatorType(atom_t atom)
   else if (atom == ATOM_xfx)		return OP_XFX;
   else if (atom == ATOM_xfy)		return OP_XFY;
   else if (atom == ATOM_yfx)		return OP_YFX;
-  else if (atom == ATOM_yfy)		return OP_YFY;
   else if (atom == ATOM_yf)		return OP_YF;
   else if (atom == ATOM_xf)		return OP_XF;
 
@@ -316,7 +315,7 @@ operatorTypeToAtom(int type)
   { NULL_ATOM,
     ATOM_fx, ATOM_fy,
     ATOM_xf, ATOM_yf,
-    ATOM_xfx, ATOM_xfy, ATOM_yfx, ATOM_yfy
+    ATOM_xfx, ATOM_xfy, ATOM_yfx
   };
 
   return opnames[(type>>4)];
@@ -649,6 +648,7 @@ static const opdef operators[] = {
   OP(ATOM_module_transparent,	 OP_FX,	 1150),	/* module_transparent */
   OP(ATOM_multifile,		 OP_FX,	 1150),	/* multifile */
   OP(ATOM_meta_predicate,	 OP_FX,	 1150),	/* meta_predicate */
+  OP(ATOM_public,		 OP_FX,	 1150),	/* public */
   OP(ATOM_xor,			 OP_YFX, 400),	/* xor */
 
   OP(NULL_ATOM,			 0,	 0)

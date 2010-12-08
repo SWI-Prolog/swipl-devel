@@ -33,7 +33,7 @@ PUBLICPL=swipl
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PUBLICPL) -q -s pltotex.pl -g pltotex --
 DOC=clib
-TEX=$(DOC).tex process.tex uri.tex
+TEX=$(DOC).tex process.tex uri.tex filesex.tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 RUNTEX=../../man/runtex
@@ -198,6 +198,8 @@ uri.tex:	uri.pl
 		$(PLTOTEX) 'library(uri)'
 process.tex:	process.pl
 		$(PLTOTEX) 'library(process)'
+filesex.tex:	filesex.pl
+		$(PLTOTEX) 'library(filesex)'
 
 .doc.tex:
 		$(DOCTOTEX) $*.doc > $*.tex

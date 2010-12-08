@@ -1825,7 +1825,7 @@ clone_context(context *in)
       switch(p->cTypeID)
       { case SQL_C_CHAR:
 	case SQL_C_BINARY:
-	  if ( !(p->ptr_value = odbc_malloc(p->length_ind)) )
+	  if ( !(p->ptr_value = odbc_malloc(p->length_ind+1)) )
 	    return NULL;
 	  vlenptr = &p->len_value;
 	  break;

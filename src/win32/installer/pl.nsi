@@ -474,6 +474,7 @@ Section "Package CLIB"
   SetOutPath $INSTDIR\bin
   File pl\bin\cgi.dll
   File pl\bin\crypt.dll
+  File pl\bin\files.dll
   File pl\bin\sha4pl.dll
   File pl\bin\uri.dll
   File pl\bin\memfile.dll
@@ -486,6 +487,7 @@ Section "Package CLIB"
   SetOutPath $INSTDIR\library
   File pl\library\cgi.pl
   File pl\library\crypt.pl
+  File pl\library\filesex.pl
   File pl\library\sha.pl
   File pl\library\uri.pl
   File pl\library\memfile.pl
@@ -677,6 +679,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\zlib4pl.pdb
   File pl\bin\sha4pl.pdb
   File pl\bin\uri.pdb
+  File pl\bin\files.pdb
   File pl\bin\http_stream.pdb
   File pl\bin\json.pdb
   File pl\bin\snowball.pdb

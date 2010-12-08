@@ -59,6 +59,7 @@ attempt to call the Prolog defined trace interceptor.
 :- meta_predicate
 	dynamic(:),
 	multifile(:),
+	public(:),
 	module_transparent(:),
 	discontiguous(:),
 	volatile(:),
@@ -87,6 +88,7 @@ discontiguous(Spec)	 :- '$set_pattr'(Spec, (discontiguous)).
 volatile(Spec)		 :- '$set_pattr'(Spec, (volatile)).
 thread_local(Spec)	 :- '$set_pattr'(Spec, (thread_local)).
 noprofile(Spec)		 :- '$set_pattr'(Spec, (noprofile)).
+public(Spec)		 :- '$set_pattr'(Spec, (public)).
 '$iso'(Spec)		 :- '$set_pattr'(Spec, (iso)).
 
 %%	'$hide'(:PI)
@@ -1506,6 +1508,11 @@ load_files(Module:Files, Options) :-
 '$load_module'(Reserved, _, _, _, _, _) :-
 	'$reserved_module'(Reserved), !,
 	throw(error(permission_error(load, module, Reserved), _)).
+'$load_module'(Module, _Public, _Cls, _In, File, _Options) :-
+	'$current_module'(Module, OldFile),
+	source_location(File, _Line),
+	OldFile \== File,
+	same_file(OldFile, File), !.
 '$load_module'(Module, Public, Cls, In, File, Options) :-
 	'$set_source_module'(OldModule, OldModule),
 	source_location(_File, Line),

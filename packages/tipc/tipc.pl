@@ -663,7 +663,8 @@ tipc_service_port_monitor(Addresses, Goal, Timeout) :-
 %
 
 tipc_initialize :-
-	forall(tipc:tipc_stack_initialize, true).
+	with_mutex(tipc_mutex,
+		   forall(tipc:tipc_stack_initialize, true)).
 
 :- multifile tipc:tipc_stack_initialize/0.
 

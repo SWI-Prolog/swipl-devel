@@ -1498,6 +1498,39 @@ PRED_IMPL("noprotocol", 0, noprotocol, 0)
 		 *	 STREAM ATTRIBUTES	*
 		 *******************************/
 
+static int
+setCloseOnExec(IOSTREAM *s, int val)
+{ int fd;
+
+  if ( (fd = Sfileno(s)) < 0)
+    return FALSE;
+
+#if defined(F_SETFD) && defined(FD_CLOEXEC)
+  { int fd_flags = fcntl(fd, F_GETFD);
+
+    if ( fd_flags == -1 )
+      return FALSE;
+    if ( val )
+      fd_flags |= FD_CLOEXEC;
+    else
+      fd_flags &= ~FD_CLOEXEC;
+
+    if ( fcntl(fd, F_SETFD, fd_flags) == -1 )
+      return FALSE;
+  }
+#elif defined __WINDOWS__
+  { if ( !SetHandleInformation((HANDLE)_get_osfhandle(fd),
+			       HANDLE_FLAG_INHERIT, !val) )
+      return FALSE;
+  }
+#else
+  return -1;
+#endif
+
+  return TRUE;
+}
+
+
 
 static
 PRED_IMPL("set_stream", 2, set_stream, 0)
@@ -1724,10 +1757,22 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 	  goto error;
 	}
 	goto ok;
+      } else if ( aname == ATOM_close_on_exec ) /* close_on_exec(bool) */
+      {	int val;
+
+	if ( !PL_get_bool_ex(a, &val) )
+	  goto error;
+
+	switch ( setCloseOnExec(s, val) )
+	{ case TRUE:  goto ok;
+	  case FALSE: goto error;
+	  default:    goto type_error;
+	}
       }
     }
   }
 
+type_error:
   PL_error("set_stream", 2, NULL, ERR_TYPE,
 	   PL_new_atom("stream_attribute"), attr);
   goto error;
@@ -3605,6 +3650,35 @@ stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
   return FALSE;
 }
 
+static int
+stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
+{  int fd;
+   int fd_flags;
+#ifdef __WINDOWS__
+   DWORD Flags;
+#endif
+
+   if ( (fd = Sfileno(s)) < 0)
+     return FALSE;
+
+#if defined(F_SETFD) && defined(FD_CLOEXEC)
+
+   if ( (fd_flags = fcntl(fd, F_GETFD)) == -1)
+     return FALSE;
+
+   return PL_unify_bool_ex(prop, (fd_flags&FD_CLOEXEC) != 0 );
+
+#elif defined __WINDOWS__
+
+   if ( GetHandleInformation((HANDLE)_get_osfhandle(fd), &Flags) == 0 )
+     return FALSE;
+
+   return PL_unify_bool_ex(prop, (Flags & HANDLE_FLAG_INHERIT) == 0);
+
+#endif
+
+   return FALSE;
+}
 
 typedef struct
 { functor_t functor;			/* functor of property */
@@ -3634,6 +3708,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_representation_errors1, stream_reperror_prop },
   { FUNCTOR_timeout1,       stream_timeout_prop },
   { FUNCTOR_nlink1,         stream_nlink_prop },
+  { FUNCTOR_close_on_exec1, stream_close_on_exec_prop },
   { 0,			    NULL }
 };
 

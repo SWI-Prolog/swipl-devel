@@ -50,8 +50,6 @@ kindOperator(Operator o, Name kind)
     lp = 0, rp = p;
   else if ( kind == NAME_xfx )
     lp = rp = p-1;
-  else if ( kind == NAME_yfy )
-    lp = rp = p;
   else if ( kind == NAME_xfy )
     lp = p-1, rp = p;
   else /* if ( kind == NAME_yfx ) */
@@ -75,7 +73,7 @@ getKindOperator(Operator o)
   if ( rp == ZERO )
     answer(lp == p ? NAME_yf : NAME_xf);
   if ( rp == p )
-    answer(lp == p ? NAME_yfy : NAME_xfy);
+    answer(NAME_xfy);
   else
     answer(lp == p ? NAME_yfx : NAME_xfx);
 }
@@ -88,7 +86,7 @@ getKindOperator(Operator o)
 /* Type declarations */
 
 static char *T_initialise[] =
-        { "name=name", "priority=0..1200", "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}" };
+        { "name=name", "priority=0..1200", "kind={xf,yf,xfx,xfy,yfx,fy,fx}" };
 
 /* Instance Variables */
 
@@ -108,14 +106,14 @@ static vardecl var_operator[] =
 static senddecl send_operator[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseOperator,
      DEFAULT, "Initialise"),
-  SM(NAME_kind, 1, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", kindOperator,
+  SM(NAME_kind, 1, "kind={xf,yf,xfx,xfy,yfx,fy,fx}", kindOperator,
      NAME_syntax, "Define associativity of the operator")
 };
 
 /* Get Methods */
 
 static getdecl get_operator[] =
-{ GM(NAME_kind, 0, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", NULL, getKindOperator,
+{ GM(NAME_kind, 0, "kind={xf,yf,xfx,xfy,yfx,fy,fx}", NULL, getKindOperator,
      NAME_syntax, "associativity of the operator")
 };
 

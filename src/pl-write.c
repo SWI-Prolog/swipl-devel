@@ -3,9 +3,10 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemak@science.uva.nl
+    E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2007, University of Amsterdam
+    Copyright (C): 1985-2010, University of Amsterdam
+			      Vu University Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -24,6 +25,7 @@
 
 #include <math.h>
 #include "pl-incl.h"
+#include "pl-dtoa.h"
 #include "pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
 #ifdef HAVE_LOCALE_H
@@ -341,10 +343,11 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	fail;
     }
   } else
-  { if ( c == quote )
-    { TRY(Putc(c, stream) && Putc(c, stream));
-    } else
-    { return Putc(c, stream);
+  { if ( !Putc(c, stream) )
+      fail;
+    if ( c == quote || c == '\\' )	/* write '' or \\ */
+    { if ( !Putc(c, stream) )
+	fail;
     }
   }
 
@@ -625,47 +628,84 @@ writeString(term_t t, write_options *options)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Formatting a float. This is very  complicated   as  we must write floats
-such that it can be read as a float. This means using the conventions of
-the C locale and if the float happens to be integer as <int>.0.
+Formatting a float. This used  to  use   sprintf(),  but  there  are two
+problems with this. First of all, this uses the current locale, which is
+complicated to avoid. Second, it does not provide a mode that guarantees
+reliable read-back. Using %g gets closest,   but %.15g doesn't guarantee
+read-back and %.17g does, but prints 0.1 as 0.100..001, etc.
 
-Switching the locale is no option as  locale handling is not thread-safe
-and may have unwanted  consequences  for   embedding.  There  is  a intptr_t
-discussion on the very same topic on  the Python mailinglist. Many hacks
-are proposed, none is very satisfactory.   Richard  O'Keefe suggested to
-use ecvt(), fcvt() and gcvt(). These  are   not  thread-safe.  The GNU C
-library provides *_r() variations that  can   do  the  trick. An earlier
-patch used localeconv() to find the  decimal   point,  but  this is both
-complicated and not thread-safe.
+This uses dtoa.c. See pl-dtoa.c for how this is packed into SWI-Prolog.
 
-Finally, with help of Richard we decided  to replace the first character
-that is not a digit nor [eE], as this must be the decimal point.
+TBD: The number of cases are large. We should see whether it is possible
+to clean this up a bit. The 5 cases   as  such are real: there is no way
+around these.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-format_float(double f, char *buf, const char *format)
-{ char *q;
+format_float(double f, char *buf)
+{ char *end, *o=buf;
+  int decpt, sign;
+  char *s = dtoa(f, 0, 30, &decpt, &sign, &end);
 
-  sprintf(buf, format, f);
+  DEBUG(2, Sdprintf("decpt=%d, sign=%d, len = %d, '%s'\n",
+		    decpt, sign, end-s, s));
 
-  q = buf;
-  if ( *q == '-' )			/* skip -?[0-9]* */
-    q++;
-  while(*q && (isDigit(*q) || *q <= ' '))
-    q++;
+  if ( sign )
+    *o++ = '-';
 
-  switch( *q )
-  { case '\0':
-      *q++ = '.';
-      *q++ = '0';
-      *q = EOS;
-      break;
-    case 'e':
-    case 'E':
-      break;
-    default:
-      *q = '.';
+  if ( decpt <= 0 )			/* decimal dot before */
+  { if ( decpt <= -4 )
+    { *o++ = s[0];
+      *o++ = '.';
+      if ( end-s > 1 )
+      { memcpy(o, s+1, end-s-1);
+	o += end-s-1;
+      } else
+	*o++ = '0';
+      sprintf(o, "e%d", decpt-1);
+    } else
+    { int i;
+
+      *o++ = '0';
+      *o++ = '.';
+      for(i=0; i < -decpt; i++)
+	*o++ = '0';
+      memcpy(o, s, end-s);
+      o[end-s] = 0;
+    }
+  } else if ( end-s > decpt )		/* decimal dot inside */
+  { memcpy(o, s, decpt);
+    o += decpt;
+    *o++ = '.';
+    memcpy(o, s+decpt, end-s-decpt);
+    o[end-s-decpt] = 0;
+  } else				/* decimal dot after */
+  { int i;
+    int trailing = decpt-(end-s);
+
+    if ( decpt > 15 )			/* over precision: use eE */
+    { *o++ = s[0];
+      *o++ = '.';
+      if ( end-s > 1 )
+      { trailing += end-s-1;
+	memcpy(o, s+1, end-s-1);
+	o += end-s-1;
+      } else
+	*o++ = '0';
+      sprintf(o, "e+%d", trailing);
+    } else				/* within precision trail with .0 */
+    { memcpy(o, s, end-s);
+      o += end-s;
+
+      for(i=end-s; i<decpt; i++)
+	*o++ = '0';
+      *o++ = '.';
+      *o++ = '0';
+      *o = 0;
+    }
   }
+
+  freedtoa(s);
 
   return buf;
 }
@@ -809,7 +849,7 @@ writePrimitive(term_t t, write_options *options)
     } else
     { char buf[100];
 
-      format_float(f, buf, LD->float_format);
+      format_float(f, buf);
 
       return PutToken(buf, out);
     }

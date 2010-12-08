@@ -3,9 +3,10 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        J.Wielemaker@cs.vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2010, University of Amsterdam
+			      VU University Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,43 +30,61 @@
     the GNU General Public License.
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Version History:
-
-    2003/07/14   fixed pp_list_elements/3 so it can handle open-ended lists
-                          David Reitter, reitter at mle.media.mit.edu
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
 :- module(prolog_pretty_print,
 	  [ print_term/2	% +Term, +Options
 	  ]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> pretty print Prolog terms
+
 This module is a first  start  of   what  should  become a full-featured
 pretty printer for Prolog  terms  with   many  options  and  parameters.
 Eventually,  it  should  replace  portray_clause/1   and  various  other
 special-purpose predicates.
 
-This is just a quicky.  We  need   proper  handling  of portray/1, avoid
+@tbd This is just a quicky. We  need proper handling of portray/1, avoid
 printing very long terms  multiple   times,  spacing (around operators),
 etc.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Options:
+@tbd Use a record for the option-processing.
 
-	Name			Type				Default
-	===================================================================
-	output			Stream			   user_output
-	right_margin		Integer			   72
-	indent_arguments	{auto,true,false}|Integer  auto
-	operators,		{true,false},		   true
-	write_options,		Option List		 [ numbervars(true),
-							   quoted(true),
-							   portray(true)
-							 ]
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+@tbd The current approach is far too simple, often resulting in illegal
+     terms.
+*/
+
+%%	print_term(+Term, +Options) is det.
+%
+%	Pretty print a Prolog term. The following options are processed:
+%
+%	  * output(+Stream)
+%	  Define the output stream.  Default is =user_output=
+%	  * right_margin(+Integer)
+%	  Width of a line.  Default is 72 characters.
+%	  * indent_arguments(+Spec)
+%	  Defines how arguments of compound terms are placed.  Defined
+%	  values are:
+%	    $ =false= :
+%	    Simply place them left to right (no line-breaks)
+%	    $ =true= :
+%	    Place them vertically, aligned with the open bracket (not
+%	    implemented)
+%	    $ =auto= (default) :
+%	    As horizontal if line-width is not exceeded, vertical
+%	    otherwise.
+%	    $ An integer :
+%	    Place them vertically aligned, <N> spaces to the right of
+%	    the beginning of the head.
+%	  * operators(+Boolean)
+%	  This is the reverse of the write_term/3 option =ignore_ops=.
+%	  Default is to respect them.
+%	  * write_options(+List)
+%	  List of options passed to write_term/3 for terms that are
+%	  not further processed.  Default:
+%	    ==
+%		[ numbervars(true),
+%		  quoted(true),
+%		  portray(true)
+%	        ]
+%	    ==
 
 print_term(Term, Options0) :-
 	defaults(Defs),
@@ -179,13 +198,13 @@ pp(Term, Ctx, Options) :-		% handle operators
 	(   Kind == prefix
 	->  arg(1, Term, Arg),
 	    (   CPrec >= Prec
-	    ->	sformat(Buf, '~q ', Name),
+	    ->	format(atom(Buf), '~q ', Name),
 		atom_length(Buf, AL),
 		NIndent is Indent + AL,
 		write(Out, Buf),
 		modify_context(Ctx2, [indent=NIndent, precedence=Right], Ctx3),
 		pp(Arg, Ctx3, Options)
-	    ;	sformat(Buf, '(~q ', Name),
+	    ;	format(atom(Buf), '(~q ', Name),
 		atom_length(Buf, AL),
 		NIndent is Indent + AL,
 		write(Out, Buf),
@@ -235,7 +254,7 @@ pp(Term, Ctx, Options) :-		% compound
 	    Indent + Width < RM		% fits on a line, simply write
 	->  pprint(Term, Ctx, Options)
 	;   Term =.. [Name|Args],
-	    sformat(Buf2, '~q(', [Name]),
+	    format(atom(Buf2), '~q(', [Name]),
 	    write(Out, Buf2),
 	    atom_length(Buf2, FunctorIndent),
 	    (   integer(IndentStyle)

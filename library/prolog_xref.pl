@@ -36,16 +36,17 @@
 	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_module/2,		% ?Source, ?Module
+	    xref_uses_file/3,		% ?Source, ?Spec, ?Path
 	    xref_op/2,			% ?Source, ?Op
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
-	    xref_done/2,		% +Source, -Time
+	    xref_done/2,		% +Source, -When
 	    xref_built_in/1,		% ?Callable
-	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +File, -Path, -Export, +Src
-	    xref_public_list/5,		% +File, -Path, -Export, -Meta, +Src
+	    xref_public_list/6,		% +File, -Path, -Module, -Export, -Meta, +Src
+	    xref_public_list/7,		% +File, -Path, -Module, -Export, -Public, -Meta, +Src
 	    xref_meta/2,		% +Goal, -Called
 	    xref_hook/1,		% ?Callable
 					% XPCE class references
@@ -61,18 +62,21 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
+:- use_module(library(debug)).
 
 :- dynamic
 	called/3,			% Head, Src, From
 	(dynamic)/3,			% Head, Src, Line
 	(thread_local)/3,		% Head, Src, Line
 	(multifile)/3,			% Head, Src, Line
+	(public)/3,			% Head, Src, Line
 	defined/3,			% Head, Src, Line
 	foreign/3,			% Head, Src, Line
 	constraint/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
+	uses_file/3,			% Spec, Src, Path
 	xop/2,				% Src, Op
 	source/2,			% Src, Time
 	used_class/2,			% Name, Src
@@ -165,20 +169,30 @@ verbose :-
 
 xref_source(Source) :-
 	prolog_canonical_source(Source, Src),
-	(   atom(Src)
-	->  time_file(Src, Modified),
-	    source(Src, Modified)
-	), !.
-xref_source(Source) :-
-	prolog_canonical_source(Source, Src),
-	xref_clean(Src),
-	(   atom(Src)
-	->  time_file(Src, Modified)
-	;   get_time(Modified)		% Actually should be `generation'
-	),
-	assert(source(Src, Modified)),
-	xref_setup(Src, In, State),
-	call_cleanup(collect(Src, In), xref_cleanup(State)).
+	(   last_modified(Source, Modified)
+	->  (   source(Src, Modified)
+	    ->	true
+	    ;	xref_clean(Src),
+		assert(source(Src, Modified)),
+		do_xref(Src)
+	    )
+	;   xref_clean(Src),
+	    get_time(Now),
+	    assert(source(Src, Now)),
+	    do_xref(Src)
+	).
+
+do_xref(Src) :-
+	setup_call_cleanup(xref_setup(Src, In, State),
+			   collect(Src, In),
+			   xref_cleanup(State)).
+
+last_modified(Source, Modified) :-
+	prolog:xref_source_time(Source, Modified), !.
+last_modified(Source, Modified) :-
+	atom(Source),
+	exists_file(Source),
+	time_file(Source, Modified).
 
 :- thread_local
 	xref_stream/1.			% input stream
@@ -224,7 +238,7 @@ xref_push_op(Src, P, T, N0) :- !,
 	),
 	push_op(P, T, N),
 	assert_op(Src, op(P,T,N)),
-	debug(xref, ':- ~w.', [op(P,T,N)]).
+	debug(xref(op), ':- ~w.', [op(P,T,N)]).
 
 
 %%	xref_clean(+Source) is det.
@@ -236,11 +250,13 @@ xref_clean(Source) :-
 	retractall(called(_, Src, _Origin)),
 	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src, Line)),
+	retractall(public(_, Src, Line)),
 	retractall(defined(_, Src, Line)),
 	retractall(foreign(_, Src, Line)),
 	retractall(constraint(_, Src, Line)),
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
+	retractall(uses_file(_, Src, _)),
 	retractall(xmodule(_, Src)),
 	retractall(xop(Src, _)),
 	retractall(source(Src, _)),
@@ -283,12 +299,21 @@ xref_called(Source, Called, By) :-
 	called(Called, Src, By).
 
 
-%%	xref_defined(?Source, +Goal, ?How) is semidet.
+%%	xref_defined(?Source, +Goal, ?How) is nondet.
 %
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
 %	this predicate does not deal with built-in or global predicates,
-%	just locally defined and imported ones.
+%	just locally defined and imported ones.  How is one of:
+%
+%	  * dynamic(Line)
+%	  * thread_local(Line)
+%	  * multifile(Line)
+%	  * public(Line)
+%	  * local(Line)
+%	  * foreign(Line)
+%	  * constraint(Line)
+%	  * imported(From)
 
 xref_defined(Source, Called, How) :-
 	(   ground(Source)
@@ -303,6 +328,8 @@ xref_defined2(thread_local(Line), Src, Called) :-
 	thread_local(Called, Src, Line).
 xref_defined2(multifile(Line), Src, Called) :-
 	multifile(Called, Src, Line).
+xref_defined2(public(Line), Src, Called) :-
+	public(Called, Src, Line).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
 xref_defined2(foreign(Line), Src, Called) :-
@@ -322,6 +349,7 @@ xref_definition_line(local(Line),	 Line).
 xref_definition_line(dynamic(Line),	 Line).
 xref_definition_line(thread_local(Line), Line).
 xref_definition_line(multifile(Line),	 Line).
+xref_definition_line(public(Line),	 Line).
 xref_definition_line(constraint(Line),	 Line).
 xref_definition_line(foreign(Line),	 Line).
 
@@ -341,6 +369,18 @@ xref_exported(Source, Called) :-
 xref_module(Source, Module) :-
 	prolog_canonical_source(Source, Src),
 	xmodule(Module, Src).
+
+%%	xref_uses_file(?Source, ?Spec, ?Path) is nondet.
+%
+%	True when Source tries to load a file using Spec.
+%
+%	@param Spec is a specification for absolute_file_name/3
+%	@param Path is either an absolute file name of the target
+%	       file or the atom =|<not_found>|=.
+
+xref_uses_file(Source, Spec, Path) :-
+	prolog_canonical_source(Source, Src),
+	uses_file(Spec, Src, Path).
 
 %%	xref_op(?Source, Op) is nondet.
 %
@@ -371,9 +411,15 @@ xref_defined_class(Source, Class, file(File)) :-
 
 collect(Src, In) :-
 	repeat,
-	    catch(read_source_term(Src, In, Term, TermPos),
+	    catch(prolog_read_source_term(In, _Term, Expanded,
+					  [ process_comment(true),
+					    term_position(TermPos)
+					  ]),
 		  E, report_syntax_error(E)),
-	    xref_expand(Term, T),
+	    (	is_list(Expanded)
+	    ->	member(T, Expanded)
+	    ;	T = Expanded
+	    ),
 	    (   T == end_of_file
 	    ->  !
 	    ;   stream_position_data(line_count, TermPos, Line),
@@ -382,86 +428,12 @@ collect(Src, In) :-
 		fail
 	    ).
 
-%%	read_source_term(+Src, +In:stream, -Term, -TermPos) is det.
-%
-%	Read next term  from  In.   The  cross-referencer  supports  the
-%	comment_hook  as  also  implemented  by  the  compiler  for  the
-%	documentation processor.
-
-:- multifile
-	prolog:comment_hook/3.
-
-read_source_term(Src, In, Term, TermPos) :-
-	atom(Src),
-	\+ source_file(Src),		% normally loaded; no need to update
-	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
-				   number_of_clauses, N),
-	N > 0, !,
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ term_position(TermPos),
-		    comments(Comments),
-		    module(SM)
-		  ]),
-	(   catch(prolog:comment_hook(Comments, TermPos, Term), E,
-		  print_message(error, E))
-	->  true
-	;   true
-	).
-read_source_term(_, In, Term, TermPos) :-
-	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ term_position(TermPos),
-		    module(SM)
-		  ]).
-
-
 report_syntax_error(E) :-
 	(   verbose
 	->  print_message(error, E)
 	;   true
 	),
 	fail.
-
-
-		 /*******************************
-		 *	     EXPANSION		*
-		 *******************************/
-
-%%	xref_expand(+Term, -Expanded)
-%
-%	Do the term-expansion. We have to pass require as we need it for
-%	validation. Otherwise we do term-expansion,  handling all of the
-%	XPCE class compiler as normal   Prolog  afterwards. CHR programs
-%	are processed using process_chr/2  directly   from  the  source,
-%	which is why we inhibit expansion here.
-
-xref_expand((:- if(Cond)), (:- if(Cond))).
-xref_expand((:- elif(Cond)), (:- elif(Cond))).
-xref_expand((:- else), (:- else)).
-xref_expand((:- endif), (:- endif)).
-xref_expand((:- require(X)),
-	    (:- require(X))) :- !.
-xref_expand(Term, _) :-
-	requires_library(Term, Lib),
-	ensure_loaded(user:Lib),
-	fail.
-xref_expand(Term, Term) :-
-	chr_expandable(Term), !.
-xref_expand(Term, T) :-
-	catch(expand_term(Term, Expanded), _, Expanded=Term),
-	(   is_list(Expanded)
-	->  member(T, Expanded)
-	;   T = Expanded
-	).
-
-
-%%	requires_library(+Term, -Library)
-%
-%	known expansion hooks.  Should be more dynamic!
-
-requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
-requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 
 
 		 /*******************************
@@ -480,8 +452,7 @@ process((Head :- Body), Src) :- !,
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
 process(Term, Src) :-
-	chr_expandable(Term), !,
-	process_chr(Term, Src).
+	process_chr(Term, Src), !.
 process(M:(Head :- Body), Src) :- !,
 	process((M:Head :- M:Body), Src).
 process(Head, Src) :-
@@ -493,21 +464,19 @@ process(Head, Src) :-
 
 process_directive(Var, _) :-
 	var(Var), !.			% error, but that isn't our business
-process_directive((A,B), Src) :- !,	% TBD: whta about other control
+process_directive((A,B), Src) :- !,	% TBD: what about other control
 	process_directive(A, Src),	% structures?
 	process_directive(B, Src).
 process_directive(List, Src) :-
 	is_list(List), !,
 	process_directive(consult(List), Src).
-process_directive(use_module(Spec, Import), Src) :-
-	xref_public_list(Spec, Path, Public, Src),
-	assert_import(Src, Import, Public, Path, false).
+process_directive(use_module(File, Import), Src) :-
+	process_use_module2(File, Import, Src, false).
 process_directive(expects_dialect(Dialect), Src) :-
 	process_directive(use_module(library(dialect/Dialect)), Src),
 	expects_dialect(Dialect).
-process_directive(reexport(Spec, Import), Src) :-
-	xref_public_list(Spec, Path, Public, Src),
-	assert_import(Src, Import, Public, Path, true).
+process_directive(reexport(File, Import), Src) :-
+	process_use_module2(File, Import, Src, true).
 process_directive(reexport(Modules), Src) :-
 	process_use_module(Modules, Src, true).
 process_directive(use_module(Modules), Src) :-
@@ -526,6 +495,8 @@ process_directive(thread_local(Dynamic), Src) :-
 	assert_thread_local(Src, Dynamic).
 process_directive(multifile(Dynamic), Src) :-
 	assert_multifile(Src, Dynamic).
+process_directive(public(Public), Src) :-
+	assert_public(Src, Public).
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
@@ -947,18 +918,22 @@ process_use_module([H|T], Src, Reexport) :- !,
 	process_use_module(H, Src, Reexport),
 	process_use_module(T, Src, Reexport).
 process_use_module(library(pce), Src, Reexport) :- !,	% bit special
-	xref_public_list(library(pce), Path, Public, Src),
-	forall(member(Import, Public),
+	xref_public_list(library(pce), Path, Exports, Src),
+	forall(member(Import, Exports),
 	       process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
-	(   catch(xref_public_list(File, Path, Public, Meta, Src), _, fail)
-	->  assert_import(Src, Public, _, Path, Reexport),
+	(   catch(xref_public_list(File, Path, M, Exports, Public, Meta, Src),
+		  _, fail)
+	->  assert(uses_file(File, Src, Path)),
+	    assert_import(Src, Exports, _, Path, Reexport),
+	    assert_xmodule_callable(Exports, M, Src, Path),
+	    assert_xmodule_callable(Public, M, Src, Path),
 	    maplist(process_meta_head, Meta),
 	    (	File = library(chr)	% hacky
 	    ->	assert(mode(chr, Src))
 	    ;	true
 	    )
-	;   true
+	;   assert(uses_file(File, Src, '<not_found>'))
 	).
 
 process_pce_import(Name/Arity, Src, Path, Reexport) :-
@@ -973,35 +948,63 @@ process_pce_import(Name/Arity, Src, Path, Reexport) :-
 process_pce_import(op(P,T,N), Src, _, _) :-
 	xref_push_op(Src, P, T, N).
 
-%%	xref_public_list(+File, -Path, -Public, +Src) is det.
-%%	xref_public_list(+File, -Path, -Public, -Meta, +Src) is det.
+%%	process_use_module2(+File, +Import, +Src, +Reexport) is det.
 %
-%	Find File as  referenced  from  Src.   Unify  Path  with  the an
-%	absolute path to the  referenced  source   and  Public  with the
-%	export list of that (module) file.   Exports are produced by the
-%	:- module/2 directive and all subsequent :- reexport directives.
+%	Process use_module/2 and reexport/2.
+
+process_use_module2(File, Import, Src, Reexport) :-
+	(   xref_source_file(File, Path, Src)
+	->  assert(uses_file(File, Src, Path)),
+	    (	catch(public_list(Path, _, _, Export, _Public), _, fail)
+	    ->	assert_import(Src, Import, Export, Path, Reexport)
+	    ;	true
+	    )
+	;   assert(uses_file(File, Src, '<not_found>'))
+	).
+
+
+%%	xref_public_list(+File, -Path, -Export, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Module, -Export, -Meta, +Src) is semidet.
+%%	xref_public_list(+File, -Path, -Module, -Export, -Public, -Meta, +Src) is semidet.
 %
-%	@param	Public is a list of predicate indicators.
+%	Find meta-information about File. This predicate reads all terms
+%	upto the first term that is not  a directive. It uses the module
+%	and  meta_predicate  directives  to   assemble  the  information
+%	described below.
+%
+%	These predicates fail if File is not a module-file.
+%
+%	@param	Path is the canonical path to File
+%	@param	Module is the module defines in Path
+%	@param	Export is a list of predicate indicators.
 %	@param	Meta is a list of heads as they appear in
 %		meta_predicate/1 declarations.
+%	@param	Src is the place from which File is referenced.
 
-xref_public_list(File, Path, Public, Src) :-
-	xref_public_list(File, Path, Public, _, Src).
-xref_public_list(File, Path, Public, Meta, Src) :-
-	xref_public_list(File, Path, Src, Meta, [], Public, []).
-
-xref_public_list(File, Path, Src, Meta, MT, Public, Rest) :-
+xref_public_list(File, Path, Export, Src) :-
 	xref_source_file(File, Path, Src),
-	setup_call_cleanup((prolog_open_source(Path, In),		% skips possible #! line
+	public_list(Path, _, _, Export, _).
+xref_public_list(File, Path, Module, Export, Meta, Src) :-
+	xref_source_file(File, Path, Src),
+	public_list(Path, Module, Meta, Export, _).
+xref_public_list(File, Path, Module, Export, Public, Meta, Src) :-
+	xref_source_file(File, Path, Src),
+	public_list(Path, Module, Meta, Export, Public).
+
+public_list(Path, Module, Meta, Export, Public) :-
+	public_list(Path, Module, Meta, [], Export, [], Public, []).
+
+public_list(Path, Module, Meta, MT, Export, Rest, Public, PT) :-
+	setup_call_cleanup((prolog_open_source(Path, In),
 			    set_xref(Old)),
 			   phrase(read_directives(In), Directives),
 			   (set_prolog_flag(xref, Old),
 			    prolog_close_source(In))),
-	public_list(Directives, File, Meta, MT, Public, Rest).
+	public_list(Directives, Path, Module, Meta, MT, Export, Rest, Public, PT).
 
 
 read_directives(In) -->
-	{ prolog_read_source_term(In, Term, Expanded, []),
+	{ prolog_read_source_term(In, Term, Expanded, [process_comment(true)]),
 	  nonvar(Term),
 	  Term = (:-_)
 	}, !,
@@ -1013,49 +1016,54 @@ terms(Var) --> { var(Var) }, !.
 terms([H|T]) --> [H], terms(T).
 terms(H) --> [H].
 
-public_list([(:- module(_, Export))|Decls], File, Meta, MT, Public, Rest) :-
-	append(Export, Reexport, Public),
-	public_list_(Decls, File, Meta, MT, Reexport, Rest).
+public_list([(:- module(Module, Export))|Decls], Path,
+	    Module, Meta, MT, Export, Rest, Public, PT) :-
+	append(Export, Reexport, Export),
+	public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
 
-public_list_([], _, Meta, Meta, Rest, Rest).
-public_list_([(:-(Dir))|T], File, Meta, MT, Public, Rest) :-
-	public_list_1(Dir, File, Meta, MT0, Public, Rest0), !,
-	public_list_(T, File, MT0, MT, Rest0, Rest).
-public_list_([_|T], File, Meta, MT, Public, Rest) :-
-	public_list_(T, File, Meta, MT, Public, Rest).
+public_list_([], _, Meta, Meta, Export, Export, Public, Public).
+public_list_([(:-(Dir))|T], Path, Meta, MT, Export, Rest, Public, PT) :-
+	public_list_1(Dir, Path, Meta, MT0, Export, Rest0, Public, PT0), !,
+	public_list_(T, Path, MT0, MT, Rest0, Rest, PT0, PT).
+public_list_([_|T], Path, Meta, MT, Export, Rest, Public, PT) :-
+	public_list_(T, Path, Meta, MT, Export, Rest, Public, PT).
 
-public_list_1(reexport(Spec), File, Meta, MT, Reexport, Rest) :-
-	reexport_files(Spec, File, Meta, MT, Reexport, Rest).
-public_list_1(reexport(Spec, Import), File, Meta, Meta, Reexport, Rest) :-
-	public_from_import(Import, Spec, File, Reexport, Rest).
-public_list_1(meta_predicate(Decl), _File, Meta, MT, Public, Public) :-
+public_list_1(reexport(Spec), Path, Meta, MT, Reexport, Rest, Public, PT) :-
+	reexport_files(Spec, Path, Meta, MT, Reexport, Rest, Public, PT).
+public_list_1(reexport(Spec, Import), Path, Meta, Meta, Reexport, Rest, Public, Public) :-
+	public_from_import(Import, Spec, Path, Reexport, Rest).
+public_list_1(meta_predicate(Decl), _Path, Meta, MT, Export, Export, Public, Public) :-
 	phrase(meta_decls(Decl), Meta, MT).
+public_list_1(public(Decl), _Path, Meta, Meta, Export, Export, Public, PT) :-
+	phrase(public_decls(Decl), Public, PT).
 
-reexport_files([], _, Meta, Meta, Public, Public) :- !.
-reexport_files([H|T], Src, Meta, MT, Public, Rest) :- !,
-	xref_public_list(H, _, Src, Meta, MT0, Public, Rest0),
-	reexport_files(T, Src, MT0, MT, Rest0, Rest).
-reexport_files(Spec, Src, Meta, MT, Public, Rest) :-
-	xref_public_list(Spec, _Path, Src, Meta, MT, Public, Rest).
+reexport_files([], _, Meta, Meta, Export, Export, Public, Public) :- !.
+reexport_files([H|T], Src, Meta, MT, Export, Rest, Public, PT) :- !,
+	xref_source_file(H, Path, Src),
+	public_list(Path, _, Meta, MT0, Export, Rest0, Public, PT0),
+	reexport_files(T, Src, MT0, MT, Rest0, Rest, PT0, PT).
+reexport_files(Spec, Src, Meta, MT, Export, Rest, Public, PT) :-
+	xref_source_file(Spec, Path, Src),
+	public_list(Path, _, Meta, MT, Export, Rest, Public, PT).
 
-public_from_import(except(Map), File, Src, Export, Rest) :- !,
-	xref_public_list(File, _, Public, Src),
-	except(Map, Public, Export, Rest).
+public_from_import(except(Map), Path, Src, Export, Rest) :- !,
+	xref_public_list(Path, _, Export, Src),
+	except(Map, Export, Export, Rest).
 public_from_import(Import, _, _, Export, Rest) :-
 	import_name_map(Import, Export, Rest).
 
 
-except([], Public, Export, Rest) :-
-	append(Public, Rest, Export).
-except([PI0 as NewName|Map], Public, Export, Rest) :- !,
+except([], Export, Export, Rest) :-
+	append(Export, Rest, Export).
+except([PI0 as NewName|Map], Export, Export, Rest) :- !,
 	canonical_pi(PI0, PI),
-	map_as(Public, PI, NewName, Public2),
-	except(Map, Public2, Export, Rest).
-except([PI0|Map], Public, Export, Rest) :-
+	map_as(Export, PI, NewName, Export2),
+	except(Map, Export2, Export, Rest).
+except([PI0|Map], Export, Export, Rest) :-
 	canonical_pi(PI0, PI),
-	select(PI2, Public, Public2),
+	select(PI2, Export, Export2),
 	same_pi(PI, PI2), !,
-	except(Map, Public2, Export, Rest).
+	except(Map, Export2, Export, Rest).
 
 
 map_as([PI|T], Repl, As, [PI2|T])  :-
@@ -1092,6 +1100,14 @@ meta_decls((A,B)) --> !,
 meta_decls(A) -->
 	[A].
 
+public_decls(Var) -->
+	{ var(Var) }, !.
+public_decls((A,B)) --> !,
+	public_decls(A),
+	public_decls(B).
+public_decls(A) -->
+	[A].
+
 		 /*******************************
 		 *	       INCLUDE		*
 		 *******************************/
@@ -1101,8 +1117,15 @@ process_include([H|T], Src) :- !,
 	process_include(H, Src),
 	process_include(T, Src).
 process_include(File, Src) :-
-	catch(read_src_to_terms(File, Src, Terms), _, fail), !,
-	process_terms(Terms, Src).
+	callable(File), !,
+	(   xref_source_file(File, Path, Src)
+	->  assert(uses_file(File, Src, Path)),
+	    (	catch(read_src_to_terms(Path, Terms), _, fail)
+	    ->	process_terms(Terms, Src)
+	    ;	true
+	    )
+	;   assert(uses_file(File, Src, '<not_found>'))
+	).
 process_include(_, _).
 
 process_terms([], _).
@@ -1110,8 +1133,7 @@ process_terms([H|T], Src) :-
 	process(H, Src),
 	process_terms(T, Src).
 
-read_src_to_terms(File, Src, Terms) :-
-	xref_source_file(File, Path, Src),
+read_src_to_terms(Path, Terms) :-
 	prolog_open_source(Path, Fd),
 	call_cleanup(read_clauses(Fd, Terms),
 		     prolog_close_source(Fd)).
@@ -1161,40 +1183,21 @@ use_module(library(chr) or contains a :-   constraint/1 directive. As an
 extra bonus we get the source-locations right :-)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-chr_expandable((:- constraints(_))).
-chr_expandable((constraints(_))).
-chr_expandable((handler(_))) :-
-	is_chr_file.
-chr_expandable((rules(_))) :-
-	is_chr_file.
-chr_expandable(<=>(_, _)) :-
-	is_chr_file.
-chr_expandable(@(_, _)) :-
-	is_chr_file.
-chr_expandable(==>(_, _)) :-
-	is_chr_file.
-chr_expandable(pragma(_, _)) :-
-	is_chr_file.
-chr_expandable(option(_, _)) :-
-	is_chr_file.
-
-is_chr_file :-
-	source(Src, _),
-	mode(chr, Src), !.
-
 process_chr(@(_Name, Rule), Src) :-
+	mode(chr, Src),
 	process_chr(Rule, Src).
 process_chr(pragma(Rule, _Pragma), Src) :-
+	mode(chr, Src),
 	process_chr(Rule, Src).
 process_chr(<=>(Head, Body), Src) :-
+	mode(chr, Src),
 	chr_head(Head, Src, H),
 	chr_body(Body, H, Src).
 process_chr(==>(Head, Body), Src) :-
+	mode(chr, Src),
 	chr_head(Head, H, Src),
 	chr_body(Body, H, Src).
-process_chr((:- constraints(C)), Src) :-
-	process_chr(constraints(C), Src).
-process_chr(constraints(_), Src) :-
+process_chr((:- chr_constraint(_)), Src) :-
 	(   mode(chr, Src)
 	->  true
 	;   assert(mode(chr, Src))
@@ -1261,6 +1264,8 @@ assert_called(Src, Origin, M:G) :- !,
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin)
 	    ->  true
+	    ;	system_predicate(G)
+	    ->	true
 	    ;   generalise(Origin, OTerm),
 		generalise(G, GTerm),
 		assert(called(M:GTerm, Src, OTerm))
@@ -1300,37 +1305,37 @@ assert_foreign(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(foreign(Term, Src, Line)).
 
-%%	assert_import(+Src, +Import, +PublicList, +From, +Reexport) is det.
+%%	assert_import(+Src, +Import, +ExportList, +From, +Reexport) is det.
 %
 %	Asserts imports into Src. Import   is  the import specification,
-%	PublicList is the list of known  public predicates or unbound if
-%	this need not be checked and  From   is  the file from which the
+%	ExportList is the list of known   exported predicates or unbound
+%	if this need not be checked and From  is the file from which the
 %	public predicates come. If  Reexport   is  =true=, re-export the
 %	imported predicates.
 %
 %	@tbd	Tighter type-checking on Import.
 
 assert_import(_, [], _, _, _) :- !.
-assert_import(Src, [H|T], Public, From, Reexport) :- !,
-	assert_import(Src, H, Public, From, Reexport),
-	assert_import(Src, T, Public, From, Reexport).
-assert_import(Src, except(Except), Public, From, Reexport) :- !,
-	is_list(Public), !,
-	except(Except, Public, Import, []),
+assert_import(Src, [H|T], Export, From, Reexport) :- !,
+	assert_import(Src, H, Export, From, Reexport),
+	assert_import(Src, T, Export, From, Reexport).
+assert_import(Src, except(Except), Export, From, Reexport) :- !,
+	is_list(Export), !,
+	except(Except, Export, Import, []),
 	assert_import(Src, Import, _All, From, Reexport).
-assert_import(Src, Import as Name, Public, From, Reexport) :- !,
+assert_import(Src, Import as Name, Export, From, Reexport) :- !,
 	pi_to_head(Import, Term0),
 	functor(Term0, _OldName, Arity),
 	functor(Term, Name, Arity),
-	(   in_public_list(Term0, Public)
+	(   in_export_list(Term0, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
 	;   flag(xref_src_line, Line, Line),
 	    assert_called(Src, '<directive>'(Line), Term0)
 	).
-assert_import(Src, Import, Public, From, Reexport) :-
+assert_import(Src, Import, Export, From, Reexport) :-
 	pi_to_head(Import, Term), !,
-	(   in_public_list(Term, Public)
+	(   in_export_list(Term, Export)
 	->  assert(imported(Term, Src, From)),
 	    assert_reexport(Reexport, Src, Term)
 	;   flag(xref_src_line, Line, Line),
@@ -1339,15 +1344,30 @@ assert_import(Src, Import, Public, From, Reexport) :-
 assert_import(Src, op(P,T,N), _, _, _) :-
 	xref_push_op(Src, P,T,N).
 
-in_public_list(_Head, Public) :-
-	var(Public), !.
-in_public_list(Head, Public) :-
-	member(Export, Public),
+in_export_list(_Head, Export) :-
+	var(Export), !.
+in_export_list(Head, Export) :-
+	member(Export, Export),
 	pi_to_head(Export, Head).
 
 assert_reexport(false, _, _) :- !.
 assert_reexport(true, Src, Term) :-
 	assert(exported(Term, Src)).
+
+%%	assert_xmodule_callable(PIs, Module, Src, From)
+%
+%	We can call all exports  and   public  predicates of an imported
+%	module using Module:Goal.
+%
+%	@tbd	Should we distinguish this from normal imported?
+
+assert_xmodule_callable([], _, _, _).
+assert_xmodule_callable([PI|T], M, Src, From) :-
+	(   pi_to_head(M:PI, Head)
+	->  assert(imported(Head, Src, From))
+	;   true
+	),
+	assert_xmodule_callable(T, M, Src, From).
 
 
 %%	assert_op(+Src, +Op) is det.
@@ -1402,14 +1422,32 @@ assert_thread_local(Src, PI) :-
 	flag(xref_src_line, Line, Line),
 	assert(thread_local(Term, Src, Line)).
 
-assert_multifile(Src, (A, B)) :- !,
+assert_multifile(_, Var) :-
+	var(Var), !, fail.
+assert_multifile(Src, (A,B)) :- !,
 	assert_multifile(Src, A),
 	assert_multifile(Src, B).
-assert_multifile(_, _M:_Name/_Arity) :- !. % not local
+assert_multifile(Src, M:(A,B)) :- !,
+	assert_multifile(Src, M:A),
+	assert_multifile(Src, M:B).
 assert_multifile(Src, PI) :-
 	pi_to_head(PI, Term),
 	flag(xref_src_line, Line, Line),
 	assert(multifile(Term, Src, Line)).
+
+assert_public(_, Var) :-
+	var(Var), !, fail.
+assert_public(Src, (A,B)) :- !,
+	assert_public(Src, A),
+	assert_public(Src, B).
+assert_public(Src, M:(A,B)) :- !,
+	assert_public(Src, M:A),
+	assert_public(Src, M:B).
+assert_public(Src, PI) :-
+	pi_to_head(PI, Term),
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<public>'(Line), Term),
+	assert(public(Term, Src, Line)).
 
 %%	pi_to_head(+PI, -Head) is semidet.
 %
@@ -1418,6 +1456,8 @@ assert_multifile(Src, PI) :-
 
 pi_to_head(Var, _) :-
 	var(Var), !, fail.
+pi_to_head(M:PI, M:Term) :- !,
+	pi_to_head(PI, Term).
 pi_to_head(Name/Arity, Term) :-
 	functor(Term, Name, Arity).
 pi_to_head(Name//DCGArity, Term) :-
@@ -1494,7 +1534,8 @@ hooking can be databases, (HTTP) URIs, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
-	prolog:xref_source_directory/2.		% +Source, -Dir
+	prolog:xref_source_directory/2,	% +Source, -Dir
+	prolog:xref_source_file/3.	% +Spec, -Path, +Options
 
 
 %%	xref_source_file(+Spec, -File, +Src) is semidet.
@@ -1526,6 +1567,8 @@ do_xref_source_file(Spec, _, _) :-
 	var(Spec), !, fail.
 do_xref_source_file(_:Spec, File, Options) :-
 	do_xref_source_file(Spec, File, Options).
+do_xref_source_file(Spec, File, Options) :-
+	prolog:xref_source_file(Spec, File, Options), !.
 do_xref_source_file(Spec, File, Options) :-
 	option(file_type(Type), Options, prolog),
 	absolute_file_name(Spec,

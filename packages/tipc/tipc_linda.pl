@@ -50,10 +50,12 @@
 	   linda_eval_detached/2,    % ?Head, :Body
 	   tuple/1,                  % :Goal
 	   tuple/2,		     % ?Head, :Body
+	   tipc_linda_server/0,	     %
 	   tipc_initialize/0
 	  ]).
 
 :- use_module(library(tipc/tipc_broadcast)).
+:- use_module(library(unix)).
 
 :- require([ broadcast/1
 	   , broadcast_request/1
@@ -625,7 +627,11 @@ linda_eval_detached(Head, Body) :-
 %  in the server operations that it may   perform.  It is generally safe
 %  for tuple predicates to perform out/1   operations,  but it is unsafe
 %  for them to perform any variant of   =in= or =rd=, either directly or
-%  indirectly.
+%  indirectly. This restriction is however, relaxed   if  the server and
+%  client are operating in separate  heavyweight processes (not threads)
+%  on the node or cluster. This is   most  easily achieved by starting a
+%  stand-alone   Linda   server   somewhere   on    the   cluster.   See
+%  tipc_linda_server/0, below.
 %
 :- meta_predicate tuple(?, 0), tuple(0).
 
@@ -637,6 +643,40 @@ tuple(Head, Body) :-
 	strip_module(Head, _Module, Plain),
 	listen(user, '$linda'(rd(Plain)), Body) ~>
 	    unlisten(user, '$linda'(rd(Plain)), Body).
+
+%% tipc_linda_server is nondet.
+%
+%   Acts as a stand-alone Linda server.   This predicate initializes the
+%   TIPC stack and then starts a Linda  server in the current thread. If
+%   a client performs  an  =|out(server_quit)|=,   the  server's  Prolog
+%   process will exit via halt/1. It is intended for use in scripting as
+%   follows:
+%
+%   ==
+%   swipl -q -g 'use_module(library(tipc/tipc_linda)),
+%          tipc_linda_server' -t 'halt(1)'
+%   ==
+%
+%   See also manual section 2.10.2.1 Using PrologScript.
+%
+%   *|Note:|*  Prolog  will  return  a  non-zero  exit  status  if  this
+%   predicate is executed on  a  cluster   that  already  has  an active
+%   server. An exit status of zero is returned on graceful shutdown.
+%
+%   @throws error(permission_error(halt,thread,2),context(halt/1,Only
+%   from thread 'main')), if this predicate is executed in a thread
+%   other than =main=.
+%
+%
+wait_for_quit :-
+	linda_timeout(6.0),
+	in(server_quit),
+	halt(0).
+
+tipc_linda_server :-
+%	detach_IO,               % become a daemon
+	tipc_initialize,
+	(   linda_client(global) -> true; linda(wait_for_quit)).
 
 %%	tipc_initialize is semidet.
 %

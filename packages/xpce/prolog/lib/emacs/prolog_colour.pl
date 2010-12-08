@@ -261,36 +261,29 @@ syntax_error(M, Stream, Start, E) :-
 	),
 	fail.
 
-%	fix_operators(+Term, +Src)
+%%	fix_operators(+Term, +Src) is det.
 %
 %	Fix flags that affect the  syntax,   such  as operators and some
 %	style checking options. Src is the  canonical source as required
 %	by the cross-referencer.
 
-fix_operators((:- Directive), Src) :- !,
-	process_directive(Directive, Src).
+fix_operators((:- Directive), Src) :-
+	catch(process_directive(Directive, Src), _, true), !.
 fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
-process_directive(system_mode(on), _) :- !,
-	style_check(+dollar).
 process_directive(op(P,T,N), _) :- !,
-	catch(emacs_push_op(P, T, N), _, true).
+	emacs_push_op(P, T, N).
 process_directive(module(_Name, Export), _) :- !,
-	(   member(op(P,A,N), Export),
-	    catch(emacs_push_op(P,A,N), _, fail),
-	    fail
-	;   true
-	).
+	forall(member(op(P,A,N), Export),
+	       emacs_push_op(P,A,N)).
 process_directive(use_module(Spec), Src) :- !,
-	process_use_module(Spec, Src).
-process_directive(Directive, _) :-
-	asserta(user:message_hook(_,_,_), Ref),
-	ignore(xref_expand((:- Directive), _)),
-	erase(Ref).
+	catch(process_use_module(Spec, Src), _, true).
+process_directive(Directive, Src) :-
+	prolog_source:expand((:-Directive), Src, _).
 
-%	process_use_module(+Imports, +Src)
+%%	process_use_module(+Imports, +Src)
 %
 %	Get the exported operators from the referenced files.
 
@@ -961,7 +954,8 @@ goal_classification(_, Goal, Origin, recursion) :-
 	functor(Goal, Name, Arity),
 	functor(Origin, Name, Arity), !.
 goal_classification(TB, Goal, _, How) :-
-	xref_defined(TB, Goal, How), !.
+	xref_defined(TB, Goal, How),
+	How \= public(_), !.
 goal_classification(_TB, Goal, _, Class) :-
 	goal_classification(Goal, Class), !.
 goal_classification(_TB, _Goal, _, undefined).
@@ -1021,6 +1015,7 @@ goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(module_transparent(_),  built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
+goal_colours(public(_),		     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
@@ -1112,6 +1107,7 @@ def_style(goal(local(_),_),	@default).
 def_style(goal(constraint(_),_), style(colour := darkcyan)).
 
 def_style(head(exported),	style(bold := @on, colour := blue)).
+def_style(head(public(_)),	style(bold := @on, colour := '#016300')).
 def_style(head(extern(_)),	style(bold := @on, colour := blue)).
 def_style(head(dynamic),	style(bold := @on, colour := magenta)).
 def_style(head(multifile),	style(bold := @on, colour := navy_blue)).
@@ -1643,6 +1639,8 @@ identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	new(Summary, string('%N: autoload from %s', F, Atom)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
+identify_pred(public(Line), F, Summary) :-	% Public predicates
+	new(Summary, string('%N: declared public at line %d', F, Line)).
 identify_pred(foreign(Line), F, Summary) :-	% Foreign predicates
 	new(Summary, string('%N: foreign (C/C++) loaded at line %d', F, Line)).
 identify_pred(constraint(Line), F, Summary) :-	% Local constraint
@@ -1907,7 +1905,8 @@ identify_fragment(module(Module), _, Summary) :-
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
 identify_fragment(head(unreferenced), _, 'Unreferenced predicate (from this file)').
-identify_fragment(head(exported), _, 'Exported (Public) predicate').
+identify_fragment(head(exported), _, 'Exported predicate').
+identify_fragment(head(public), _, 'Public predicate').
 identify_fragment(head(multifile), _, 'Multifile predicate').
 identify_fragment(head(constraint), _, 'Constraint').
 identify_fragment(prolog_data, _, 'Pass Prolog term unmodified').

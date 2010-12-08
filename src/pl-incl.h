@@ -419,6 +419,11 @@ them.  Descriptions:
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
 #define PLMININT		(((int64_t)-1<<(INT64BITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
+#if SIZEOF_WCHAR_T == 2
+#define PLMAXWCHAR		(0xffff)
+#else
+#define PLMAXWCHAR		(0x10ffff)
+#endif
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)
@@ -476,7 +481,6 @@ Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 #define OP_XFX	(0x50|OP_INFIX)
 #define OP_XFY	(0x60|OP_INFIX)
 #define OP_YFX	(0x70|OP_INFIX)
-#define	OP_YFY	(0x80|OP_INFIX)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Type fields.  These codes are  included  in  a  number  of  the  runtime
@@ -679,6 +683,16 @@ typedef struct
 #endif
 #define floatNumber(n)	((n)->type >= V_FLOAT)
 
+typedef enum
+{ NUM_ERROR = FALSE,			/* Syntax error */
+  NUM_OK    = TRUE,			/* Ok */
+  NUM_FUNDERFLOW = -1,			/* Float underflow */
+  NUM_FOVERFLOW = -2,			/* Float overflow */
+  NUM_IOVERFLOW = -3			/* Integer overflow */
+} strnumstat;
+
+
+
 		 /*******************************
 		 *	   GET-PROCEDURE	*
 		 *******************************/
@@ -783,6 +797,7 @@ with one operation, it turns out to be faster as well.
 #define P_ISO			(0x08000000L) /* predicate */
 #define P_META			(0x10000000L) /* predicate */
 #define P_MFCONTEXT		(0x20000000L) /* predicate */
+#define P_PUBLIC		(0x40000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 					 /* clause flags */

@@ -200,6 +200,8 @@ lib/charsio.tex: ../library/charsio.pl
 		$(LIBTOTEX) 'library(charsio)'
 lib/csv.tex: ../library/csv.pl
 		$(LIBTOTEX) 'library(csv)'
+lib/lists.tex: ../library/lists.pl
+		$(LIBTOTEX) 'library(lists)'
 
 
 ################################################################

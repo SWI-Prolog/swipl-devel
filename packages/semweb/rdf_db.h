@@ -30,7 +30,7 @@
 #endif
 #include "lock.h"
 
-#define RDF_VERSION 20800		/* 2.8.0 */
+#define RDF_VERSION 20900		/* 2.8.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -255,14 +255,12 @@ typedef struct rdf_db
   size_t	indexed[16];		/* Count calls */
   int		rehash_count;		/* # rehashes */
   int		gc_count;		/* # garbage collections */
-  int		gc_blocked;		/* GC is blocked; */
   double	rehash_time;		/* time spent in rehash */
   double	gc_time;		/* time spent in GC */
   size_t	core;			/* core in use */
   predicate   **pred_table;		/* Hash-table of predicates */
   int		pred_table_size;	/* #entries in the table */
   int		pred_count;		/* #predicates */
-  unsigned long next_hash;		/* cloud hash keys */
   int		active_queries;		/* Calls with choicepoints */
   int		need_update;		/* We need to update */
   size_t	agenda_created;		/* #visited nodes in agenda */

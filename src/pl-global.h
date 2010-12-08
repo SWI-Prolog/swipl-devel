@@ -365,7 +365,6 @@ struct PL_local_data
   } prompt;
 
   source_location read_source;		/* file, line, char of last term */
-  const char   *float_format;		/* floating point format */
 
   struct
   { term_t	term;			/* exception term */

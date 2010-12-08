@@ -256,7 +256,7 @@ static void update_duplicates_del(rdf_db *db, triple *t);
 static void unlock_atoms(triple *t);
 static void lock_atoms(triple *t);
 static void unlock_atoms_literal(literal *lit);
-static int  update_hash(rdf_db *db);
+static int  update_hash(rdf_db *db, int organise);
 static int  triple_hash(rdf_db *db, triple *t, int which);
 static size_t	object_hash(triple *t);
 static void	reset_db(rdf_db *db);
@@ -948,7 +948,7 @@ new_predicate_cloud(rdf_db *db, predicate **p, size_t count)
 { predicate_cloud *cloud = rdf_malloc(db, sizeof(*cloud));
 
   memset(cloud, 0, sizeof(*cloud));
-  cloud->hash = db->next_hash++;
+  cloud->hash = rdf_murmer_hash(&cloud, sizeof(cloud), MURMUR_SEED);
   if ( count )
   { int i;
     predicate **p2;
@@ -1369,7 +1369,7 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       return TRUE;
   }
 
-  if ( !update_hash(db) )
+  if ( !update_hash(db, TRUE) )
     return FALSE;
 
   { atomset subject_set;
@@ -2344,7 +2344,7 @@ discard_duplicate(rdf_db *db, triple *t)
   assert(t->duplicates == 0);
 
   if ( WANT_GC(db) )			/* (*) See above */
-    update_hash(db);
+    update_hash(db, FALSE);
   d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
   for( ; d && d != t; d = d->tp.next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
@@ -2439,6 +2439,7 @@ static size_t
 tbl_size(size_t triples, int factor)
 { size_t s0 = 256;
 
+  triples *= 10;			/* Should be safe for overflow */
   triples /= factor;
 
   while(s0 < triples)
@@ -2467,12 +2468,15 @@ rehash_triples(rdf_db *db)
     { case BY_S:
       case BY_SG:
 	ocount = db->subjects;
-        factor = 2;
+        factor = 20;
 	break;
       case BY_P:
-      case BY_PG:
 	ocount = db->pred_count;
-        factor = 2;
+        factor = 5;
+	break;
+      case BY_PG:
+	ocount = db->pred_count * db->graph_count;
+        factor = 100;
 	break;
       case BY_O:
       case BY_SP:
@@ -2480,11 +2484,11 @@ rehash_triples(rdf_db *db)
       case BY_PO:
       case BY_SPO:
 	ocount = db->created - db->freed;
-        factor = MIN_HASH_FACTOR;
+        factor = MIN_HASH_FACTOR*10;
         break;
       case BY_G:
 	ocount = db->graph_count;
-        factor = 1;
+        factor = 5;
 	break;
       default:
 	assert(0);
@@ -2557,36 +2561,31 @@ Hence we need a seperate lock.
 
 static int
 WANT_GC(rdf_db *db)
-{ if ( db->gc_blocked )
-  { return FALSE;
-  } else
-  { size_t dirty = db->erased - db->freed;
-    size_t count = db->created - db->erased;
+{ size_t dirty = db->erased - db->freed;
+  size_t count = db->created - db->erased;
 
-    assert(db->erased >= db->freed);
-    assert(db->created >= db->erased);
+  assert(db->erased >= db->freed);
+  assert(db->created >= db->erased);
 
-    if ( dirty > 1000 && dirty > count )
-      return TRUE;
-    if ( count > db->table_size[ICOL(BY_SPO)]*MAX_HASH_FACTOR )
-      return TRUE;
-
-    return FALSE;
+  if ( dirty > 1000 && dirty > count )
+  { DEBUG(1, Sdprintf("rdf_db: dirty; want GC\n"));
+    return TRUE;
   }
+  if ( count > db->table_size[ICOL(BY_SPO)]*MAX_HASH_FACTOR )
+  { DEBUG(1, Sdprintf("rdf_db: small hashes; want GC\n"));
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 
 static int
-update_hash(rdf_db *db)
-{ int want_gc = WANT_GC(db);
-
-  if ( want_gc )
-    DEBUG(1, Sdprintf("rdf_db: want GC\n"));
-
-  if ( db->need_update || want_gc )
+update_hash(rdf_db *db, int organise)
+{ if ( (organise && db->need_update) || WANT_GC(db) )
   { LOCK_MISC(db);
 
-    if ( db->need_update )		/* check again */
+    if ( organise && db->need_update )	/* check again */
     { if ( organise_predicates(db) )
       { long t0 = (long)PL_query(PL_QUERY_USER_CPU);
 
@@ -4095,10 +4094,27 @@ get_partial_triple(rdf_db *db,
   if ( t->object_is_literal )
   { literal *lit = t->object.literal;
 
-    if ( lit->objtype == OBJ_STRING &&
-	 lit->value.string &&
-	 t->match <= STR_MATCH_EXACT )
-      ipat |= BY_O;
+    switch( lit->objtype )
+    { case OBJ_UNTYPED:
+	break;
+      case OBJ_STRING:
+	if ( lit->objtype == OBJ_STRING )
+	{ if ( lit->value.string &&
+	       t->match <= STR_MATCH_EXACT )
+	    ipat |= BY_O;
+	}
+        break;
+      case OBJ_INTEGER:
+      case OBJ_DOUBLE:
+	ipat |= BY_O;
+        break;
+      case OBJ_TERM:
+	if ( PL_is_ground(object) )
+	  ipat |= BY_O;
+        break;
+      default:
+	assert(0);
+    }
   } else if ( t->object.resource )
   { ipat |= BY_O;
   }
@@ -4352,7 +4368,7 @@ update_duplicates_add(rdf_db *db, triple *t)
   assert(t->duplicates == 0);
 
   if ( WANT_GC(db) )			/* (*) See above */
-    update_hash(db);
+    update_hash(db, FALSE);
   d = db->table[ICOL(indexed)][triple_hash(db, t, indexed)];
   for( ; d && d != t; d = d->tp.next[ICOL(indexed)] )
   { if ( match_triples(d, t, MATCH_DUPLICATE) )
@@ -4643,7 +4659,7 @@ access?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-commit_transaction_int(rdf_db *db, term_t id)
+commit_transaction(rdf_db *db, term_t id)
 { transaction_record *tr, *next;
   int tr_level = 0;			/* nesting level */
 
@@ -4681,12 +4697,17 @@ commit_transaction_int(rdf_db *db, term_t id)
   }
 
   while( (tr=db->tr_first) )		/* See above (*) */
-  { db->tr_first = db->tr_last = NULL;
+  { size_t done;
+
+    db->tr_first = db->tr_last = NULL;
 
     clean_transaction(db, tr);
 					/* real commit */
-    for(; tr; tr = next)
+    for(done=0; tr; tr = next,done++)
     { next = tr->next;
+
+      if ( done % 1000 == 0 && WANT_GC(db) )
+	update_hash(db, FALSE);
 
       switch(tr->type)
       { case TR_MARK:
@@ -4772,18 +4793,6 @@ commit_transaction_int(rdf_db *db, term_t id)
   }
 
   return TRUE;
-}
-
-
-static int
-commit_transaction(rdf_db *db, term_t id)
-{ int rc;
-
-  db->gc_blocked++;
-  rc = commit_transaction_int(db, id);
-  db->gc_blocked--;
-
-  return rc;
 }
 
 
@@ -5009,7 +5018,7 @@ init_search_state(search_state *state)
   }
   state->locked = TRUE;
   if ( p->predicate.r && (state->flags & MATCH_SUBPROPERTY) ) /* See (*) */
-  { if ( !update_hash(state->db) )
+  { if ( !update_hash(state->db, TRUE) )
     { free_search_state(state);
       return FALSE;
     }
@@ -5339,7 +5348,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 
   if ( !RDLOCK(db) )
     return FALSE;
-  if ( !update_hash(db) )			/* or ignore this problem? */
+  if ( !update_hash(db, TRUE) )			/* or ignore this problem? */
   { RDUNLOCK(db);
     free_triple(db, &t);
     return FALSE;
@@ -5557,7 +5566,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
   { free_triple(db, &t);
     return FALSE;
   }
-  if ( !update_hash(db) )
+  if ( !update_hash(db, TRUE) )
   { WRUNLOCK(db);
     free_triple(db, &t);
     return FALSE;
@@ -5609,7 +5618,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
 /*			No need, as we do not search with subPropertyOf
-  if ( !update_hash(db) )
+  if ( !update_hash(db, TRUE) )
   { WRUNLOCK(db);
     return FALSE;
   }
@@ -5956,7 +5965,10 @@ rdf_set_predicate(term_t pred, term_t option)
     if ( !get_bool_arg_ex(1, option, &val) )
       return FALSE;
 
-    p->inverse_of = p;
+    if ( val )
+      p->inverse_of = p;
+    else
+      p->inverse_of = NULL;
     return TRUE;
   } else if ( PL_is_functor(option, FUNCTOR_inverse_of1) )
   { term_t a = PL_new_term_ref();
@@ -6340,72 +6352,84 @@ can_reach_target(rdf_db *db, agenda *a)
 
 static visited *
 bf_expand(rdf_db *db, agenda *a, atom_t resource, uintptr_t d)
-{ triple *p;
-  int indexed = a->pattern.indexed;
+{ triple pattern = a->pattern;
   visited *rc = NULL;
 
-  if ( indexed & BY_S )			/* subj ---> */
-  { a->pattern.subject = resource;
+  if ( pattern.indexed & BY_S )		/* subj ---> */
+  { pattern.subject = resource;
   } else
-  { a->pattern.object.resource = resource;
+  { pattern.object.resource = resource;
   }
 
   if ( a->target && can_reach_target(db, a) )
-  { return append_agenda(db, a, a->target, d);
-  }
+    return append_agenda(db, a, a->target, d);
 
-  p = db->table[ICOL(indexed)][triple_hash(db, &a->pattern, indexed)];
-  for( ; p; p = p->tp.next[ICOL(indexed)])
-  { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found;
-      visited *v;
+  for(;;)
+  { int indexed = pattern.indexed;
+    triple *p;
 
-      if ( indexed & BY_S )
-      { if ( p->object_is_literal )
-	  continue;
-	found = p->object.resource;
-      } else
-      { found = p->subject;
+    p = db->table[ICOL(indexed)][triple_hash(db, &pattern, indexed)];
+    for( ; p; p = p->tp.next[ICOL(indexed)])
+    { if ( match_triples(p, &pattern, MATCH_SUBPROPERTY) )
+      { atom_t found;
+	visited *v;
+
+	if ( indexed & BY_S )
+	{ if ( p->object_is_literal )
+	    continue;
+	  found = p->object.resource;
+	} else
+	{ found = p->subject;
+	}
+
+	v = append_agenda(db, a, found, d);
+	if ( !rc )
+	  rc = v;
+	if ( found == a->target )
+	  return rc;
       }
-
-      v = append_agenda(db, a, found, d);
-      if ( !rc )
-	rc = v;
-      if ( found == a->target )
-	break;
     }
+    if ( inverse_partial_triple(&pattern) )
+      continue;
+    break;
   }
-					/* TBD: handle owl:inverseOf */
 					/* TBD: handle owl:sameAs */
   return rc;
 }
 
 
-static visited *
-next_agenda(rdf_db *db, agenda *a)
-{ visited *v;
-
-  if ( (v=a->to_return) )
-  { ok:
-
-    a->to_return = a->to_return->next;
-
-    return v;
-  }
+static int
+peek_agenda(rdf_db *db, agenda *a)
+{ if ( a->to_return )
+    return TRUE;
 
   while( a->to_expand )
   { uintptr_t next_d = a->to_expand->distance+1;
 
     if ( next_d >= a->max_d )
-      return NULL;
+      return FALSE;
 
     a->to_return = bf_expand(db, a,
 			     a->to_expand->resource,
 			     next_d);
     a->to_expand = a->to_expand->next;
 
-    if ( (v=a->to_return) )
-      goto ok;
+    if ( a->to_return )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static visited *
+next_agenda(rdf_db *db, agenda *a)
+{ if ( peek_agenda(db, a) )
+  { visited *v = a->to_return;
+
+    a->to_return = a->to_return->next;
+
+    return v;
   }
 
   return NULL;
@@ -6422,6 +6446,9 @@ rdf_reachable(-Subject, +Predicate, ?Object)
 directly_attached() deals with the posibility that  the predicate is not
 defined and Subject and Object are  the   same.  Should  use clean error
 handling, but that means a lot of changes. For now this will do.
+
+TBD:	Implement bi-directional search if both Subject and Object are
+	given.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -6498,7 +6525,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
 
       if ( !RDLOCK(db) )
 	return FALSE;
-      if ( !update_hash(db) )
+      if ( !update_hash(db, TRUE) )
 	return FALSE;
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
 	append_agenda(db, &a, a.pattern.subject, 0);
@@ -6515,10 +6542,15 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
 	    return rc;
 	  } else if ( unify_distance(d, v->distance) )
 	  {				/* mode(+, +, -) or mode(-, +, +) */
-	    agenda *ra = save_agenda(db, &a);
-	    inc_active_queries(db);
-	    DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
-	    PL_retry_address(ra);
+	    if ( peek_agenda(db, &a) )
+	    { agenda *ra =  save_agenda(db, &a);
+	      inc_active_queries(db);
+	      DEBUG(9, Sdprintf("Saved agenta to %p\n", ra));
+	      PL_retry_address(ra);
+	    }
+
+	    unlock_and_empty_agenda(db, &a);
+	    return TRUE;
 	  }
 	}
       }
@@ -6541,7 +6573,13 @@ rdf_reachable(term_t subj, term_t pred, term_t obj,
       { if ( PL_unify_atom(target_term, v->resource) &&
 	     unify_distance(d, v->distance) )
 	{ assert(a->magic == AGENDA_SAVED_MAGIC);
-	  PL_retry_address(a);
+	  if ( peek_agenda(db, a) )
+	  { PL_retry_address(a);
+	  } else
+	  { dec_active_queries(db);
+	    unlock_and_empty_agenda(db, a);
+	    return TRUE;
+	  }
 	}
       }
 
@@ -6752,7 +6790,6 @@ erase_predicates(rdf_db *db)
   }
 
   db->pred_count = 0;
-  db->next_hash = 0;
 }
 
 

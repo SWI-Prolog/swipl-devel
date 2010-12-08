@@ -607,7 +607,8 @@ open_transaction(DB, Fd) :-
 	->  true
 	;   next_transaction_id(DB, Id),
 	    assert(transaction_db(N, DB, Id)),
-	    format(Fd, 'begin(~q, ~q, ~2f, ~q).~n', [Id, N, Time, Msg])
+	    RoundedTime is round(Time*100)/100,
+	    format(Fd, '~q.~n', [begin(Id, N, RoundedTime, Msg)])
 	).
 open_transaction(_,_).
 

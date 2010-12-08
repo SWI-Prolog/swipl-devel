@@ -39,6 +39,7 @@
 	    http_disconnect/1		% +What
 	  ]).
 :- use_module(library(socket)).
+:- use_module(library(uri)).
 :- use_module(library(url)).
 :- use_module(http_header).
 :- use_module(http_stream).
@@ -54,6 +55,19 @@
 	post_data_hook/3,		% http_post_data/3 hook
 	open_connection/4,		% do_connect/5 hook
 	close_connection/4.
+
+/** <module> HTTP client library
+
+This library provides the four basic   HTTP client actions: GET, DELETE,
+POST and PUT. In addition, it   provides http_read_data/3, which is used
+by  library(http/http_parameters)  to  decode  POST    data   in  server
+applications.
+
+@see	library(http/http_open) provides a stream-based alternative to
+	http_get/3.
+@tbd	Replace functions from library(url) with those from library(uri).
+*/
+
 
 %%	open_connection(+Scheme, +Address, -In, -Out) is semidet.
 %
@@ -383,9 +397,10 @@ http_read_data(In, Fields, Data, Options) :-
 	    Data = Data0
 	).
 http_read_data(In, Fields, Data, _) :-
-	memberchk(content_type('application/x-www-form-urlencoded'), Fields), !,
+	memberchk(content_type(ContentType), Fields),
+	form_data_content_type(ContentType), !,
 	http_read_data(In, Fields, Codes, [to(codes)]),
-	parse_url_search(Codes, Data).
+	uri_query_components(Codes, Data).
 http_read_data(In, Fields, Data, Options) :- 			% call hook
 	(   select(content_type(Type), Options, Options1)
 	->  delete(Fields, content_type(_), Fields1),
@@ -403,6 +418,20 @@ encoding(Fields, utf8) :-
 	;   sub_atom(Type, _, _, _, 'utf-8')
 	), !.
 encoding(_, octet).
+
+%%	form_data_content_type(+ContentType) is semidet.
+%
+%	True if ContentType   is  =|application/x-www-form-urlencoded|=.
+%	Note that there can be parameters,   but  the ; MUST immediately
+%	follow the type.
+%
+%	@tbd	Within ClioPatria, there is a library http_request_value.pl
+%		that generalises these things. That library must be
+%		completed and used for this match.
+
+form_data_content_type('application/x-www-form-urlencoded') :- !.
+form_data_content_type(ContentType) :-
+	sub_atom(ContentType, 0, _, _, 'application/x-www-form-urlencoded;').
 
 
 		 /*******************************

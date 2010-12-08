@@ -41,7 +41,6 @@
 	    xref_current_source/1,	% ?Source
 	    xref_done/2,		% +Source, -Time
 	    xref_built_in/1,		% ?Callable
-	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_source_file/4,		% +Spec, -Path, +Source, +Options
 	    xref_public_list/4,		% +Path, -Export, +Src

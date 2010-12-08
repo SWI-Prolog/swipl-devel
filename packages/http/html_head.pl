@@ -87,6 +87,8 @@ Use ?- debug(html(script)). to  see  the   requested  and  final  set of
 resources. All declared resources  are   in  html_resource/3. The edit/1
 command recognises the names of HTML resources.
 
+---++ Predicates
+
 @tbd	Possibly we should add img//2 to include images from symbolic
 	path notation.
 @tbd	It would be nice if the HTTP file server could use our location
@@ -95,6 +97,8 @@ command recognises the names of HTML resources.
 
 :- dynamic
 	html_resource/3.		% Resource, Source, Properties
+:- multifile
+	html_resource/3.
 
 %%	html_resource(+About, +Properties) is det.
 %
@@ -117,16 +121,24 @@ command recognises the names of HTML resources.
 %		* aggregate(+List)
 %		States that About is an aggregate of the resources in
 %		List.
+%
+%	Registering the same About multiple times extends the properties
+%	defined  for  About.  In  particular,  this  allows  for  adding
+%	additional dependencies to a (virtual) resource.
 
-html_resource(About, Properties) :-
-	source_location(File, Line), !,
-	retractall(html_resource(About, File:Line, _)),
-	assert_resource(About, File:Line, Properties).
 html_resource(About, Properties) :-
 	assert_resource(About, -, Properties).
 
 assert_resource(About, Location, Properties) :-
 	assert(html_resource(About, Location, Properties)),
+	clean_cache(About, Properties).
+
+system:term_expansion((:-html_resource(About, Properties)),
+		      html_head:html_resource(About, File:Line, Properties)) :-
+	source_location(File, Line),
+	clean_cache(About, Properties).
+
+clean_cache(_About, Properties) :-
 	clean_same_about_cache,
 	(   memberchk(aggregate(_), Properties)
 	->  clean_aggregate_cache

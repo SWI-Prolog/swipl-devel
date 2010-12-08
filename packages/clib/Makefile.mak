@@ -25,10 +25,11 @@ RANDOMOBJ=	random.obj
 SHAOBJ=		error.obj sha4pl.obj sha1/sha1.obj sha1/sha2.obj \
 		sha1/hmac_sha1.obj sha1/hmac_sha256.obj
 URIOBJ=		uri.obj
+FILESOBJ=	error.obj files.obj
 TIMELIBS=	winmm.lib
 
 all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
-		random.dll crypt.dll sha4pl.dll process.dll uri.dll
+		random.dll crypt.dll sha4pl.dll process.dll uri.dll files.dll
 
 readutil.dll:	$(READOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB) $(LIBS)
@@ -52,11 +53,16 @@ sha4pl.dll:	$(SHAOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SHAOBJ) $(PLLIB) $(LIBS)
 uri.dll:	$(URIOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(URIOBJ) $(PLLIB) $(LIBS)
+files.dll:	$(FILESOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(FILESOBJ) $(PLLIB) $(LIBS)
 
 sha1/hmac_sha1.obj:	sha1/hmac.c
 		$(CC) -I $(PLHOME)\include $(CFLAGS) /DUSE_SHA1 /Fo$@ sha1/hmac.c
 sha1/hmac_sha256.obj:	sha1/hmac.c
 		$(CC) -I $(PLHOME)\include $(CFLAGS) /DUSE_SHA256 /Fo$@ sha1/hmac.c
+
+process.obj:	win_error.c
+files.obj:	win_error.c
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -94,6 +100,7 @@ idll::
 		copy process.dll "$(BINDIR)"
 		copy sha4pl.dll "$(BINDIR)"
 		copy uri.dll "$(BINDIR)"
+		copy files.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy socket.pdb "$(BINDIR)"
 		copy cgi.pdb "$(BINDIR)"
@@ -104,6 +111,7 @@ idll::
 		copy process.pdb "$(BINDIR)"
 		copy sha4pl.pdb "$(BINDIR)"
 		copy uri.pdb "$(BINDIR)"
+		copy files.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::
@@ -118,6 +126,7 @@ ilib::
 		copy time.pl "$(PLBASE)\library"
 		copy sha.pl "$(PLBASE)\library"
 		copy uri.pl "$(PLBASE)\library"
+		copy filesex.pl "$(PLBASE)\library"
 		copy process.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
@@ -132,6 +141,8 @@ uninstall::
 		del "$(BINDIR)\time.dll"
 		del "$(BINDIR)\readutil.dll"
 		del "$(BINDIR)\sha4pl.dll"
+		del "$(BINDIR)\uri.dll"
+		del "$(BINDIR)\files.dll"
 		del "$(PLBASE)\library\socket.pl"
 		del "$(PLBASE)\library\cgi.pl"
 		del "$(PLBASE)\library\crypt.pl"
@@ -141,6 +152,7 @@ uninstall::
 		del "$(PLBASE)\library\time.pl"
 		del "$(PLBASE)\library\sha.pl"
 		del "$(PLBASE)\library\uri.pl"
+		del "$(PLBASE)\library\filesex.pl"
 		del "$(PLBASE)\library\process.pl"
 		$(MAKEINDEX)
 

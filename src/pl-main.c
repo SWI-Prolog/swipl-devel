@@ -230,7 +230,8 @@ memarea_limit(const char *s)
 { number n;
   unsigned char *q;
 
-  if ( str_number((unsigned char *)s, &q, &n, FALSE) && intNumber(&n) )
+  if ( str_number((unsigned char *)s, &q, &n, FALSE) == NUM_OK &&
+       intNumber(&n) )
   { switch((int)*q)
     { case 'k':
       case 'K':

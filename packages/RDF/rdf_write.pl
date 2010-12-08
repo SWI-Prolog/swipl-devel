@@ -159,7 +159,8 @@ res_used_namespaces([], [], A, A).
 res_used_namespaces([Resource|T], NoNS, A0, A) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, _Local, Resource), !,
+	atom_concat(Full, Local, Resource),
+	xml_name(Local), !,
 	put_assoc(NS, A0, *, A1),
 	res_used_namespaces(T, NoNS, A1, A).
 res_used_namespaces([R|T0], [R|T], A0, A) :-
@@ -207,8 +208,9 @@ decl_used_predicate_ns(Triples) :-
 decl_predicate_ns(Pred) :-
 	predicate_ns(Pred, _), !.
 decl_predicate_ns(Pred) :-
-	rdf_global_id(NS:_Local, Pred),
-	assert(predicate_ns(Pred, NS)), !.
+	rdf_global_id(NS:Local, Pred),
+	xml_name(Local), !,
+	assert(predicate_ns(Pred, NS)).
 decl_predicate_ns(Pred) :-
 	is_bag_li_predicate(Pred), !.
 decl_predicate_ns(Pred) :-
@@ -569,11 +571,13 @@ is_bag_li_predicate(Pred) :-
 rdf_id(Id, NS, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_id(Id, _, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_id(Id, _, Id).
 
 
@@ -588,10 +592,13 @@ rdf_write_id(Out, Atom) :-
 	write(Out, Atom).
 
 
+%%	rdf_att_id(+URI, +DefNS, -ID)
+
 rdf_att_id(Id, _, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
-	atom_concat(Full, Local, Id), !.
+	atom_concat(Full, Local, Id),
+	xml_name(Local), !.
 rdf_att_id(Id, _, Id).
 
 

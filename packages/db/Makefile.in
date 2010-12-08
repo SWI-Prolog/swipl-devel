@@ -107,6 +107,7 @@ clean:
 		rm -f $(DBOBJ) *~ *% config.log
 
 distclean:	clean
-		rm -f $(TARGETS) config.cache config.status Makefile
+		rm -f $(TARGETS)
+		rm -f config.h config.cache config.status Makefile
 		rm -f $(TEX)
 		$(RUNTEX) --clean $(DOC)

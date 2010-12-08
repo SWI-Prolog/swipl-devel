@@ -100,6 +100,7 @@ A clause		"clause"
 A clause_reference	"clause_reference"
 A close			"close"
 A close_on_abort	"close_on_abort"
+A close_on_exec       	"close_on_exec"
 A close_option		"close_option"
 A cm			"cm"
 A cntrl			"cntrl"
@@ -451,6 +452,7 @@ A prompt		"|:"
 A property		"property"
 A protocol		"protocol"
 A prove			":-"
+A public		"public"
 A punct			"punct"
 A query			"?-"
 A question_mark		"?"
@@ -655,7 +657,6 @@ A xor			"xor"
 A xpceref		"@"
 A yf			"yf"
 A yfx			"yfx"
-A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 
 F abs			1
@@ -693,6 +694,7 @@ F chars			1
 F chars			2
 F clause		1
 F close_on_abort	1
+F close_on_exec  	1
 F codes			1
 F codes			2
 F colon			2

@@ -37,7 +37,7 @@
 	    global_predicate/1		% +Head
 	  ]).
 :- use_module(library(pce)).
-:- use_module(library('pce_prolog_xref')).
+:- use_module(library(prolog_source)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file has a common origin  as library(pce_prolog_xref). I'm not sure
@@ -146,35 +146,36 @@ global_predicate(Head) :-			% SWI-Prolog
 x_browse_analyse(File) :-
 	clean,				% play safe
 	x_browse_free(File),
-	open(File, read, Fd),
-	(   peek_char(Fd, #)		% Deal with #! script
-	->  skip(Fd, 10)
-	;   true
-	),
-	asserta(current_id(File), Ref),
-	'$style_check'(Old, Old),
-	style_check(+dollar),
-	(   current_prolog_flag(xref, Xref)
+	setup_call_cleanup(( prolog_open_source(File, Fd),
+			     asserta(current_id(File), Ref),
+			     set_xref(OldXref)),
+			   process_file(Fd),
+			   ( set_prolog_flag(xref, OldXref),
+			     erase(Ref),
+			     post_analysis
+			   )).
+
+set_xref(OldXref) :-
+	(   current_prolog_flag(xref, OldXref)
 	->  true
-	;   Xref = false
+	;   OldXref = false
 	),
-	set_prolog_flag(xref, true),
+	set_prolog_flag(xref, true).
+
+
+process_file(In) :-
 	repeat,
-	    catch(read_term(Fd, Term,
-			    [ character_escapes(true) % TBD: how to switch!?
-			    ]), _, fail),
-	    ignore(process_raw(Term)),
-	    xref_expand(Term, T),
-	    (   T == end_of_file
-	    ->  !,
-	        '$style_check'(_, Old),
-	        close(Fd)
-	    ;   process(T),
-		fail
-	    ),
-	set_prolog_flag(xref, Xref),
-	post_analysis,
-	erase(Ref).
+	  prolog_read_source_term(In, Term, Expanded, []),
+	  ignore(process_raw(Term)),
+	  (   is_list(Expanded)
+	  ->  member(T, Expanded)
+	  ;   T = Expanded
+	  ),
+	(   T == end_of_file
+	->  !
+	;   process(T),
+	    fail
+	).
 
 
 		 /*******************************

@@ -109,20 +109,43 @@ tcp_unify_socket(term_t Socket, int id)
 static foreign_t
 pl_host_to_address(term_t Host, term_t Ip)
 { struct in_addr ip;
-  struct hostent *host;
   char *host_name;
 
   if ( PL_get_atom_chars(Host, &host_name) )
-  { if ( (host = gethostbyname(host_name)) )
-    { if ( sizeof(ip) == host->h_length )
-      { memcpy(&ip, host->h_addr, host->h_length);
-	return nbio_unify_ip4(Ip, ntohl(ip.s_addr));
-      } else
-	return PL_warning("tcp_host_to_address/2: length mismatch in address");
+  { struct addrinfo hints;
+    struct addrinfo *res;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+
+    if ( getaddrinfo(host_name, NULL, &hints, &res) == 0 )
+    { int rc;
+
+      switch( res->ai_family )
+      { case AF_INET:
+	{ struct sockaddr_in *addr = (struct sockaddr_in*)res->ai_addr;
+
+	  rc = nbio_unify_ip4(Ip, ntohl(addr->sin_addr.s_addr));
+	  break;
+	}
+	case AF_INET6:
+	{ rc = PL_warning("tcp_host_to_address/2: IPv6 address not supported");
+	  break;
+	}
+	default:
+	  assert(0);
+      }
+
+      freeaddrinfo(res);
+
+      return rc;
     } else
-      return nbio_error(h_errno, TCP_HERRNO);
+    { return nbio_error(h_errno, TCP_HERRNO);
+    }
   } else if ( nbio_get_ip(Ip, &ip) )
-  { if ( (host = gethostbyaddr((char *)&ip, sizeof(ip), AF_INET)) )
+  { struct hostent *host;
+
+    if ( (host = gethostbyaddr((char *)&ip, sizeof(ip), AF_INET)) )
       return PL_unify_atom_chars(Host, host->h_name);
     else
       return nbio_error(h_errno, TCP_HERRNO);
@@ -413,7 +436,6 @@ pl_accept(term_t Master, term_t Slave, term_t Peer)
 }
 
 
-
 static foreign_t
 pl_gethostname(term_t name)
 { static atom_t hname;
@@ -422,12 +444,18 @@ pl_gethostname(term_t name)
   { char buf[256];
 
     if ( gethostname(buf, sizeof(buf)) == 0 )
-    { struct hostent *he;
+    { struct addrinfo *res;
+      struct addrinfo hints;
 
-      if ( (he = gethostbyname(buf)) )
-	hname = PL_new_atom(he->h_name);
+      memset(&hints, 0, sizeof(hints));
+      hints.ai_flags = AI_CANONNAME;
+
+      if ( getaddrinfo(buf, NULL, &hints, &res) == 0 )
+	hname = PL_new_atom(res->ai_canonname);
       else
 	hname = PL_new_atom(buf);
+
+      freeaddrinfo(res);
     } else
     { return nbio_error(h_errno, TCP_HERRNO);
     }

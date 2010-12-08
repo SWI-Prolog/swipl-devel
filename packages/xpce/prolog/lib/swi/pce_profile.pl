@@ -48,7 +48,7 @@ This module hooks into profile/1 and  provides   a  graphical UI for the
 profiler output.
 */
 
-%%	pce_show_profile/0
+%%	pce_show_profile is det.
 %
 %	Show already collected profile using a graphical browser.
 

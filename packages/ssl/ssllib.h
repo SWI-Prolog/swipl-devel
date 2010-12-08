@@ -26,10 +26,6 @@
 #define SSLLIBH__
 #include "../clib/nonblockio.h"
 
-#ifdef __WINDOWS__
-typedef size_t socklen_t;
-#endif
-
 #define SSL_CONFIG_MAGIC 0x539dbe3a
 
 typedef int BOOL;

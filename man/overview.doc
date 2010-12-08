@@ -1118,17 +1118,6 @@ expand_file_name/2 can be used to expand environment variables and
 wildcard patterns. This Prolog flag is intended for backward
 compatibility with older versions of SWI-Prolog.
 
-    \prologflagitem{float_format}{atom}{rw}
-C-library printf() format specification used by write/1 and friends to
-determine how floating point numbers are printed. The default is {\tt
-\%g}. The specified value is passed to printf() without further
-checking. For example, if you want more digits printed, {\tt \%.12g}
-will print all floats using 12 digits instead of the default 6.
-
-When using quoted-write, the output is guaranteed to contain a decimal
-dot or exponent, so read/1 reads a floating point number. See also
-format/[1,2], write_term/[2,3].
-
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on
@@ -1682,10 +1671,11 @@ garbage collection.  These features are controlled using Prolog flags
 
 \section{Syntax Notes}				\label{sec:syntax}
 
-SWI-Prolog uses ISO-Prolog standard syntax, which is closely compatible
-with Edinburgh Prolog syntax. A description of this syntax can be found in
-the Prolog books referenced in the introduction. Below are some
-non-standard or non-common constructs that are accepted by SWI-Prolog:
+SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is
+closely compatible with Edinburgh Prolog syntax. A description of this
+syntax can be found in the Prolog books referenced in the introduction.
+Below are some non-standard or non-common constructs that are accepted
+by SWI-Prolog:
 
 \begin{itemlist}
     \item [\exam{/* \ldots /* \ldots */ \ldots */}]
@@ -1726,22 +1716,41 @@ non-layout character are skipped.  This allows for the specification
 of pretty-looking long lines.  For compatibility with Quintus Prolog.
 Not supported by ISO.  Example:
 \begin{code}
-format('This is a long line that would look better if it was \c
+format('This is a long line that looks better if it was \c
        split across multiple physical lines in the input')
 \end{code}
     \escapeitem{\bnfmeta{{\sc RETURN}}}
-No output.  Skips input till the next non-layout character or to the
-end of the next line.  Same intention as \fmtseq{\c} but ISO compatible.
+No output.  Skips input to the next non-layout character or to the
+end of the next line.  ISO demands skipping only the newline.  We
+advice to use \verb$\c$ or put the layout \emph{before} the \chr{\},
+as shown below.  Using \verb$\c$ is supported by various other Prolog
+implementations and will remain supported by SWI-Prolog.  The style
+shown below is the most compatible solution.\footnote{Future versions
+are likely to interpret \chr{\}<return> according to ISO.}
+
+\begin{code}
+format('This is a long line that looks better if it was \
+split across multiple physical lines in the input')
+\end{code}
+
+instead of
+
+\begin{code}
+format('This is a long line that looks better if it was\
+ split across multiple physical lines in the input')
+\end{code}
+    \escapeitem{e}
+Escape character (\textsc{ASCII} 27).
     \escapeitem{f}
 Form-feed character.
     \escapeitem{n}
 Next-line character.
     \escapeitem{r}
-Carriage-return only (i.e.\ go back to the start of the line).
+Carriage-return only (i.e., go back to the start of the line).
     \escapeitem{t}
 Horizontal tab-character.
     \escapeitem{v}
-Vertical tab-character (ASCII 11).
+Vertical tab-character (\textsc{ASCII} 11).
     \escapeitem{xXX..\}
 Hexadecimal specification of a character. The closing \verb$\$ is
 obligatory according to the ISO standard, but optional in SWI-Prolog to

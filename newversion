@@ -44,6 +44,23 @@ fi
 
 rm -f $tmp
 
+month=`LANG=POSIX date "+%B"`
+year=`date "+%Y"`
+f=man/main.doc
+sed -e "s@{\\\\vmajor}{[0-9]*}@{\\\\vmajor}{$major}@" \
+    -e "s@{\\\\vminor}{[0-9]*}@{\\\\vminor}{$minor}@" \
+    -e "s@{\\\\vpatch}{[0-9]*}@{\\\\vpatch}{$patch}@" \
+    -e "s@{\\\\vmonth}{[A-Za-z]*}@{\\\\vmonth}{$month}@" \
+    -e "s@{\\\\vyear}{[0-9]*}@{\\\\vyear}{$year}@" \
+	$f > $tmp
+if cmp $f $tmp; then
+    rm -f $tmp
+else
+    cat $tmp > $f
+    rm $tmp
+    echo "Updated $f"
+fi
+
 gittag="V${major}.${minor}.${patch}"
 
 if confirm "Tag the GIT repository with $gittag? "; then

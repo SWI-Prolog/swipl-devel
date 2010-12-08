@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <ctype.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #ifdef __WINDOWS__
 #include <process.h>			/* getpid() */
 #endif
@@ -550,10 +553,6 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       PL_unregister_atom(f->value.a);
       f->value.a = a;
       PL_register_atom(a);
-      if ( k == ATOM_float_format )
-      { PL_register_atom(a);		/* so it will never be lost! */
-	LD->float_format = PL_atom_chars(a);
-      }
       break;
     }
     case FT_INTEGER:
@@ -1044,7 +1043,6 @@ initPrologFlags()
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
-  setPrologFlag("float_format", FT_ATOM, "%g");
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);

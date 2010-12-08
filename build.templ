@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This is the script we use to   build  SWI-Prolog and all its packages.
 # Copy the script to  `build',  edit   to  suit  the  local installation
@@ -20,12 +20,12 @@ PREFIX=$HOME
 SUDO=
 #SUDO="sudo"
 
-# [EDIT] Version of make  to  use.  This   must  be  GNU-make.  On  many
-# proprietary Unix systems this is installed   as  'gmake'. On most open
-# systems make is GNU-make. You can   use  'make --jbobs=<max>' to build
-# the system faster using all your cores.   The  optimal value depends a
-# lot on your hardware. Using  4  jobs   on  a  dual-core machines seems
-# enough to keep both cores busy. (experimental).
+# [EDIT] Version of make to use.  This   must  be GNU-make. On many Unix
+# systems this is installed as 'gmake'. On most GNU-based systems (e.g.,
+# linux), the default make is GNU-make.  You can use 'make --jobs=<max>'
+# to build the system faster using  all   your  cores. The optimal value
+# depends a lot on your hardware. Using   4 jobs on a dual-core machines
+# seems enough to keep both cores busy. (experimental).
 
 MAKE=make
 # MAKE='make --jobs=4'
@@ -61,7 +61,16 @@ fi
 # export CIFLAGS=-I/opt/csw/include/ncurses
 # export LDFLAGS=-L/opt/csw/lib
 
-export CFLAGS="$CMFLAGS $CIFLAGS"
+# [EDIT] On FreeBSD, java is installed under /usr/local/jdk<version>,
+# and the executables are _copied_ to /usr/local/bin. Unfortunately, the
+# copy leaves the headers out, so the original files must be used.
+# export JAVAC=/usr/local/jdk1.6.0/bin/javac
+
+# [EDIT] On FreeBSD, the following is needed to fetch the headers for
+# GMP.
+# export CIFLAGS='-I/usr/local/include'
+
+export CFLAGS="$COFLAGS $CMFLAGS $CIFLAGS"
 
 ################################################################
 # Package (add-ons) selection

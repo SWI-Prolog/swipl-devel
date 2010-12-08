@@ -248,7 +248,8 @@ false for parsing HTML documents to allow for unquoted URLs containing
     \termitem{space}{+SpaceMode}
 Sets the `space-handling-mode' for the initial environment. This mode is
 inherited by the other environments, which can override the inherited
-value using the XML reserved attribute <elem/xml:space/. See \secref{space}.
+value using the XML reserved attribute \const{xml:space}. See
+\secref{space}.
 
     \termitem{number}{+NumberMode}
 Determines how attributes of type \const{NUMBER} and \const{NUMBERS} are
@@ -296,16 +297,16 @@ errors it encounters.
 SGML2PL has four modes for handling white-space. The initial mode can be
 switched using the \term{space}{SpaceMode} option to
 load_structure/3 and set_sgml_parser/2. In XML
-mode, the mode is further controlled by the <elem/xml:space/ attribute,
-which may be specified both in the DTD and in the document. The defined
-modes are:
+mode, the mode is further controlled by the \const{xml:space}
+attribute, which may be specified both in the DTD and in the document.
+The defined modes are:
 
 \begin{description}
     \termitem{space}{sgml}
-In SGML, newlines at the start and end of an element are removed.<fn>In
-addition, newlines at the end of lines containing only markup should be
-deleted. This is not yet implemented.</fn> This is the default mode for
-the SGML dialect.
+In SGML, newlines at the start and end of an element are
+removed.\footnote{In addition, newlines at the end of lines
+containing only markup should be deleted. This is not yet
+implemented.} This is the default mode for the SGML dialect.
 
     \termitem{space}{preserve}
 White space is passed literally to the application. This mode leaves all
@@ -366,10 +367,11 @@ allowed in names.
    \item [White-space handling]
 White space mode is set to \const{preserve}. In addition to setting
 white-space handling at the toplevel the XML reserved attribute
-<elem/xml:space/ is honoured. It may appear both in the document and the
-DTD. The \const{remove} extension is honoured as <elem/xml:space/ value. For
-example, the DTD statement below ensures that the <elem/pre/ element
-preserves space, regardless of the default processing mode.
+\const{xml:space} is honoured. It may appear both in the document
+and the DTD. The \const{remove} extension is honoured as
+\const{xml:space} value. For example, the DTD statement below
+ensures that the \const{pre} element preserves space, regardless
+of the default processing mode.
 
 \begin{code}
 <!ATTLIST pre xml:space nmtoken #fixed preserve>
@@ -643,7 +645,8 @@ is that it builds a DTD while parsing a document with an <jargon/
 implicit/ DTD. The resulting DTD contains all elements encountered in
 the document. For each element the content model is a disjunction of
 elements and possibly \verb$#PCDATA$ that can be repeated. Thus, if we
-found element <elem/y/ and CDATA in element <elem/x/, the model is:
+found element \const{y} and CDATA in element \const{x}, the model
+is:
 
 \begin{code}
 <!ELEMENT x - - (y|#PCDATA)*>
@@ -867,14 +870,14 @@ documents.
 Input is a stream. A full description of the option-list is below.
 
 \begin{description}
-    \termitem{document}{+Term}
+    \termitem{document}{-Term}
 A variable that will be unified with a list describing the content of
 the document (see load_structure/2).
     \termitem{source}{+Stream}
 An input stream that is read.  This option <em/must/ be given.
     \termitem{content_length}{+Characters}
 Stop parsing after \arg{Characters}.  This option is useful to parse
-input embedded in <em/envelopes/, such as the HTTP protocol.
+input embedded in \jargon{envelopes}, such as the HTTP protocol.
     \termitem{parse}{Unit}
 Defines how much of the input is parsed.  This option is used to parse
 only parts of a file.
@@ -898,6 +901,7 @@ validating their headers.
 This may be used to stop the parser after reading the first
 declaration.  This is especially useful to parse only the \exam{doctype}
 declaration.
+
 	 \termitem{input}{}
 This option is intended to be used in conjunction with the
 \term{allowed}{Elements} option of get_sgml_parser/2.

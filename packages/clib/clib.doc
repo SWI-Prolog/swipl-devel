@@ -186,43 +186,7 @@ controlling terminal.
 
 
 \input{process.tex}
-
-
-\section{File manipulation library}
-
-The \pllib{files} library provides additional operations on files from
-SWI-Prolog.  It is currently very incomplete.
-
-\begin{description}
-    \predicate{set_time_file}{3}{+File, -OldTimes, +NewTimes}
-Query and set POSIX time attributes of a file.  Both \arg{OldTimes}
-and \arg{NewTimes} are lists of option-terms.  Times are represented
-in SWI-Prolog's standard floating point numbers.  New times may
-be specified as \const{now} to indicate the current time.  Defined
-options are:
-
-\begin{description}
-    \termitem{access}{Time}
-Describes the time of last access of the file.  This value can be
-read and written.
-
-    \termitem{modified}{Time}
-Describes the time the contents of the file was last modified.
-This value can be read and written.
-
-    \termitem{changed}{Time}
-Describes the time the file-structure itself was changed by adding
-(link()) or removing (unlink()) names.
-\end{description}
-
-Here are some example queries.  The first retrieves the access-time,
-while the second sets the last-modified time to the current time.
-
-\begin{code}
-?- set_time_file(foo, [acess(Access)], []).
-?- set_time_file(foo, [], [modified(now)]).
-\end{code}
-\end{description}
+\input{filesex.tex}
 
 \section{Socket library}
 
@@ -366,7 +330,7 @@ to deal switch stream to non-blocking mode using:
 
 \begin{code}
 	...
-	tcp_fcntl(Stream, setfl. nonblock),
+	tcp_fcntl(Stream, setfl, nonblock),
 	...
 \end{code}
 
@@ -378,17 +342,18 @@ end-of-input, at_end_of_stream/1 succeeds.
     \predicate{tcp_host_to_address}{2}{?HostName, ?Address}
 Translate between a machines host-name and it's (IP-)address. If
 \arg{HostName} is an atom, it is resolved using
-\funcref{gethostbyname}{} and the IP-number is unified to \arg{Address}
+\funcref{getaddrinfo}{} and the IP-number is unified to \arg{Address}
 using a term of the format \term{ip}{Byte1, Byte2, Byte3, Byte4}.
 Otherwise, if \arg{Address} is bound to a \functor{ip}{4} term, it
 is resolved by \funcref{gethostbyaddr}{} and the canonical hostname
-is unified with \arg{HostName}.
+is unified with \arg{HostName}.\footnote{This function should support
+more functionality provided by \funcref{gethostbyaddr}{}, probably
+by adding an option-list.}
 
     \predicate{gethostname}{1}{-Hostname}
-Return the official fully qualified name of this host.  This is achieved
-by calling gethostname() followed by gethostbyname() and return the
-official name of the host (\const{h_name}) of the structure returned
-by the latter function.
+Return the canonical fully qualified name of this host. This is achieved
+by calling \funcref{gethostname}{} and return the canonical name
+returned by \funcref{getaddrinfo}{}.
 \end{description}
 
 

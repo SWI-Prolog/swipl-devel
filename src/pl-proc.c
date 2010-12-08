@@ -2160,6 +2160,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
   if (key == ATOM_noprofile)     return P_NOPROFILE;
   if (key == ATOM_iso)      	 return P_ISO;
+  if (key == ATOM_public)      	 return P_PUBLIC;
 
   return 0;
 }

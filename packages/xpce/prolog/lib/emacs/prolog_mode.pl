@@ -204,6 +204,8 @@ expand_path(Term, D) :-
 	      new(regex(':-|:->|:<-|-->'))).
 :- pce_global(@prolog_full_stop,
 	      new(regex('[^-#$&*+./:<=>?@\\\\^`~]\\.($|\\s)'))).
+:- pce_global(@prolog_decl_regex,
+	      new(regex('^:-\\s*[a-z_]+'))).
 
 indent_line(E) :->
 	"Indent current line (Prolog indentation)"::
@@ -282,6 +284,7 @@ indent_clause_line(E) :->
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
 	get(E, skip_comment, Caret-1, 0, Glue),
+	debug(emacs(indent), 'Glue at ~d', [Glue]),
 	(   send(regex(\.), match, TB, Glue)		% new clause
 	->  send(E, align_line, 0)
 	;   send(regex(','), match, TB, Glue)	  	% Next subclause
@@ -292,6 +295,8 @@ indent_clause_line(E) :->
 	    )
 	;   send(@prolog_neck_regex, match, TB, Glue+1, 0) % First subclause
 	->  send(E, align_line, 8)			% (seach backward)
+	;   send(@prolog_decl_regex, match, TB, Glue+1, 0)
+	->  send(E, align_line, 8)
 	;   send(E, align_with_previous_line)
 	).
 
