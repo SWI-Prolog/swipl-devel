@@ -102,11 +102,14 @@ Break the text \arg{In} into words, numbers and punctuation characters.
 Tokens are created to the following rules:
 
 \begin{tabular}{ll}
-\verb$[-+][0-9]+(\.[0-9]+)?([eE][0-9]+)$	& number \\
+\verb$[-+][0-9]+(\.[0-9]+)?([eE][-+][0-9]+)?$	& number \\
 \verb$[:alpha:][:alnum:]+$			& word \\
 \verb$[:space:]+$				& skipped \\
 anything else					& single-character
 \end{tabular}
+
+Character classification is based on the C-library iswalnum()
+etc.\ functions.
 
 It is likely that future versions of this library will provide
 tokenize_atom/3 with additional options to modify space handling as

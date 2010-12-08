@@ -32,6 +32,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <wctype.h>
+#include <wchar.h>
 
 /* The main part of the stemming algorithm starts here. b is a buffer
    holding a word to be stemmed. The letters are in b[k0], b[k0+1] ...
@@ -501,13 +502,15 @@ typedef enum
   TOK_UNKNOWN
 } toktype;
 
+#define issign(c) ((c) == '-' || (c) =='+' )
+
 static int
-tokenize(const char *in, size_t len,
-	 int (*call)(const char *s,
-		     size_t len,
-		     toktype type,
-		     void *closure),
-	 void *closure)
+tokenizeA(const char *in, size_t len,
+	  int (*call)(const char *s,
+		      size_t len,
+		      toktype type,
+		      void *closure),
+	  void *closure)
 { const unsigned char *s = (const unsigned char*)in;
   const unsigned char *se = &s[len];
   toktype type;
@@ -523,7 +526,7 @@ tokenize(const char *in, size_t len,
     st = s;
     type = TOK_UNKNOWN;
 
-    if ( (*s == '-' || *s == '+') && se-s > 1 && iswdigit(s[1]) )
+    if ( issign(*s) && se-s > 1 && iswdigit(s[1]) )
     { s += 2;
       type = TOK_INT;
     } else if ( iswdigit(*s) )
@@ -534,15 +537,15 @@ tokenize(const char *in, size_t len,
     if ( type == TOK_INT )
     { while(s<se && iswdigit(*s))
 	s++;
-      if ( s+2 < se && *s == '.' && iswdigit(s[1]) )
+      if ( s+2 <= se && *s == '.' && iswdigit(s[1]) )
       { s += 2;
 	type = TOK_FLOAT;
 	while(s<se && iswdigit(*s))
 	  s++;
       }
-      if ( s+2 < se &&
+      if ( s+2 <= se &&
 	   (*s == 'e' || *s == 'E') &&
-	   (iswdigit(s[1]) || (s[1] == '-' && iswdigit(s[2]))) )
+	   (iswdigit(s[1]) || (s+3 <= se && issign(s[1]) && iswdigit(s[2]))) )
       { s += 2;
 	type = TOK_FLOAT;
 	while(s<se && iswdigit(*s))
@@ -567,6 +570,72 @@ tokenize(const char *in, size_t len,
 }
 
 
+static int
+tokenizeW(const wchar_t *in, size_t len,
+	  int (*call)(const wchar_t *s,
+		      size_t len,
+		      toktype type,
+		      void *closure),
+	 void *closure)
+{ const wchar_t *s = (const wchar_t*)in;
+  const wchar_t *se = &s[len];
+  toktype type;
+
+  while(s<se)
+  { const wchar_t *st;			/* start token */
+
+    while(s<se && iswspace(*s))		/* skip blanks */
+      s++;
+    if ( s >= se )
+      break;
+
+    st = s;
+    type = TOK_UNKNOWN;
+
+    if ( issign(*s) && se-s > 1 && iswdigit(s[1]) )
+    { s += 2;
+      type = TOK_INT;
+    } else if ( iswdigit(*s) )
+    { s++;
+      type = TOK_INT;
+    }
+
+    if ( type == TOK_INT )
+    { while(s<se && iswdigit(*s))
+	s++;
+      if ( s+2 <= se && *s == '.' && iswdigit(s[1]) )
+      { s += 2;
+	type = TOK_FLOAT;
+	while(s<se && iswdigit(*s))
+	  s++;
+      }
+      if ( s+2 <= se &&
+	   (*s == 'e' || *s == 'E') &&
+	   (iswdigit(s[1]) || (s+3 <= se && issign(s[1]) && iswdigit(s[2]))) )
+      { s += 2;
+	type = TOK_FLOAT;
+	while(s<se && iswdigit(*s))
+	  s++;
+      }
+
+      if ( !(*call)((const wchar_t*)st, s-st, type, closure) )
+	return FALSE;
+    } else if ( iswalnum(*s) )
+    { while(s<se && iswalnum(*s))
+	s++;
+      if ( !(*call)((const wchar_t*)st, s-st, TOK_WORD, closure) )
+	return FALSE;
+    } else
+    { s++;
+      if ( !(*call)((const wchar_t*)st, 1, TOK_PUNCT, closure) )
+	return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+
 typedef struct
 { term_t head;
   term_t tail;
@@ -574,7 +643,7 @@ typedef struct
 
 
 static int
-unify_token(const char *s, size_t len, toktype type, void *closure)
+unify_tokenA(const char *s, size_t len, toktype type, void *closure)
 { list *l = closure;
 
   if ( PL_unify_list(l->tail, l->head, l->tail) )
@@ -607,21 +676,58 @@ unify_token(const char *s, size_t len, toktype type, void *closure)
 }
 
 
+static int
+unify_tokenW(const wchar_t *s, size_t len, toktype type, void *closure)
+{ list *l = closure;
+
+  if ( PL_unify_list(l->tail, l->head, l->tail) )
+  { wchar_t *ep;
+
+    switch(type)
+    { case TOK_INT:
+#ifdef __WINDOWS__
+      { long val = wcstol(s, &ep, 10);
+
+	return PL_unify_integer(l->head, val);
+      }
+#else
+      { int64_t val = wcstoll(s, &ep, 10);
+
+	return PL_unify_int64(l->head, val);
+      }
+#endif
+      case TOK_FLOAT:
+      { double val = wcstod(s, &ep);
+
+	return PL_unify_float(l->head, val);
+      }
+      default:
+	return PL_unify_wchars(l->head, PL_ATOM, len, s);
+    }
+  }
+
+  return FALSE;
+}
+
+
 
 static foreign_t
 pl_tokenize(term_t text, term_t tokens)
 { char *s;
+  wchar_t *ws;
   size_t len;
   list l;
-
-  if ( !PL_get_nchars(text, &len, &s, CVT_ALL|CVT_EXCEPTION) )
-    return FALSE;
 
   l.tail = PL_copy_term_ref(tokens);
   l.head = PL_new_term_ref();
 
-  if ( !tokenize(s, len, unify_token, &l) )
-    return FALSE;
+  if ( PL_get_nchars(text, &len, &s, CVT_ALL) )
+  { if ( !tokenizeA(s, len, unify_tokenA, &l) )
+      return FALSE;
+  } else if ( PL_get_wchars(text, &len, &ws, CVT_ALL|CVT_EXCEPTION) )
+  { if ( !tokenizeW(ws, len, unify_tokenW, &l) )
+      return FALSE;
+  }
 
   return PL_unify_nil(l.tail);
 }
@@ -634,7 +740,7 @@ unify_stem(const char *s, size_t len, toktype type, void *closure)
   if ( type == TOK_PUNCT )
     return TRUE;
   if ( type == TOK_INT || type == TOK_FLOAT )
-    return unify_token(s, len, type, closure);
+    return unify_tokenA(s, len, type, closure);
 
   if ( PL_unify_list(list->tail, list->head, list->tail) )
   { char tmp[1024];
@@ -680,7 +786,7 @@ pl_atom_to_stem_list(term_t text, term_t stems)
   l.tail = PL_copy_term_ref(stems);
   l.head = PL_new_term_ref();
 
-  if ( !tokenize(s, len, unify_stem, &l) )
+  if ( !tokenizeA(s, len, unify_stem, &l) )
     return FALSE;
 
   return PL_unify_nil(l.tail);
