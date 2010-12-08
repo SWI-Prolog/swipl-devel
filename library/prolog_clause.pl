@@ -72,7 +72,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	debug(clause_info, 'from ~w:~d ... ', [File, LineNo]),
 	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
 	debug(clause_info, 'read ...', []),
-	unify_clause(Clause, DecompiledClause, TermPos0, TermPos),
+	unify_clause(Clause, DecompiledClause, Module, TermPos0, TermPos),
 	debug(clause_info, 'unified ...', []),
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug(clause_info, 'got names~n', []), !.
@@ -221,7 +221,8 @@ find_varname(Var, [Name = TheVar|_], Name) :-
 find_varname(Var, [_|T], Name) :-
 	find_varname(Var, T, Name).
 
-%%	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
+%%	unify_clause(+Read, +Decompiled, +Module, +ReadTermPos,
+%%		     -RecompiledTermPos).
 %
 %	What you read isn't always what goes into the database. The task
 %	of this predicate is to establish  the relation between the term
@@ -231,16 +232,16 @@ find_varname(Var, [_|T], Name) :-
 %	complex source-translations, falling back to  a heuristic method
 %	locating as much as possible.
 
-unify_clause(Read, Read, TermPos, TermPos) :- !.
+unify_clause(Read, Read, _, TermPos, TermPos) :- !.
 					% XPCE send-methods
-unify_clause(:->(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
+unify_clause(:->(Head, Body), (PlHead :- PlBody), _, TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 					% XPCE get-methods
-unify_clause(:<-(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
+unify_clause(:<-(Head, Body), (PlHead :- PlBody), _, TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 					% Unit test clauses
 unify_clause((TH :- Body),
-	     (_:'unit body'(_, _) :- !, Body),
+	     (_:'unit body'(_, _) :- !, Body), _,
 	     TP0, TP) :-
 	(   TH = test(_,_)
 	;   TH = test(_)
@@ -249,17 +250,17 @@ unify_clause((TH :- Body),
 	TP  = term_position(F,T,FF,FT,[HP,term_position(0,0,0,0,[FF-FT,BP])]).
 					% module:head :- body
 unify_clause((Head :- Read),
-	     (Head :- _M:Compiled), TermPos0, TermPos) :-
-	unify_clause((Head :- Read), (Head :- Compiled), TermPos0, TermPos1),
+	     (Head :- _M:Compiled), Module, TermPos0, TermPos) :-
+	unify_clause((Head :- Read), (Head :- Compiled), Module, TermPos0, TermPos1),
 	TermPos1 = term_position(TA,TZ,FA,FZ,[PH,PB]),
 	TermPos  = term_position(TA,TZ,FA,FZ,
 				 [ PH,
 				   term_position(0,0,0,0,[0-0,PB])
 				 ]).
-unify_clause(Read, Compiled1, TermPos0, TermPos) :-
+unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
 	Read = (_ --> List, _),
 	is_list(List),
-	catch(expand_term(Read, Compiled2), E, expand_failed(E, Read)),
+	ci_expand(Read, Compiled2, Module),
 	Compiled2 = (DH :- _),
 	functor(DH, _, Arity),
 	DArg is Arity - 1,
@@ -271,17 +272,24 @@ unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
 	match_module(Compiled2, Compiled1, TermPos1, TermPos).
 					% general term-expansion
-unify_clause(Read, Compiled1, TermPos0, TermPos) :-
-	catch(expand_term(Read, Compiled2), E, expand_failed(E, Read)),
+unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
+	ci_expand(Read, Compiled2, Module),
 	match_module(Compiled2, Compiled1, TermPos0, TermPos).
 					% I don't know ...
-unify_clause(_, _, _, _) :-
+unify_clause(_, _, _, _, _) :-
 	debug(clause_info, 'Could not unify clause', []),
 	fail.
 
 unify_clause_head(H1, H2) :-
 	strip_module(H1, _, H),
 	strip_module(H2, _, H).
+
+ci_expand(Read, Compiled, Module) :-
+	catch(setup_call_cleanup('$set_source_module'(Old, Module),
+				 expand_term(Read, Compiled),
+				 '$set_source_module'(_, Old)),
+	      E,
+	      expand_failed(E, Read)).
 
 match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
 	unify_clause_head(H1, H2),
