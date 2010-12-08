@@ -92,6 +92,19 @@ if findexe gtar; then tar=gtar; fi;
 # Sub-modules
 ################################################################
 
+submodules ()
+{ grep '^\[submodule' .gitmodules | sed 's/.*"\(.*\)".*/\1/'
+}
+
+for d in `submodules`; do
+  if [ -d $d -a ! -d $d/.git ]; then
+    if confirm "Directory $d is not a git submodule.  Remove? "; then
+      rm -rf $d
+    fi
+  fi
+done
+
+
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
   echo "The following submodules are not yet initialised"
