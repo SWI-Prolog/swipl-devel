@@ -147,9 +147,7 @@ cmd(nopredref({RawName}, {Arity}), Text) :-
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(prologflag({Name}), #lref(flag, RefName, Name)) :-
 	atom_concat('flag:', Name, RefName).
-cmd(functor({RawName}, {Arity}), Text) :-
-	clean_name(RawName, Name),
-	sformat(Text, '~w/~w', [Name, Arity]).
+cmd(functor({Name}, {Arity}), #code([+Name, nospace(/), +Arity])).
 cmd(compound({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(term({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(errorterm({Name}, {Args}), #code([+Name, #embrace(+Args)])).

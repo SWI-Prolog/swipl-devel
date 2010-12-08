@@ -22,7 +22,7 @@
 \dcgref{+}{-}
 \qdcgref{-}{+}{-}
 \nopredref{+}{-}
-\functor{+}{-}
+\functor{+}{+}
 \compound{+}{+}
 \funcref{+}{+}
 \manref{-}{-}
