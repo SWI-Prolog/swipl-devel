@@ -1,4 +1,0 @@
-#define ms_left_arrow_width 6
-#define ms_left_arrow_height 9
-static unsigned char ms_left_arrow_bits[] = {
-   0x00, 0x02, 0x06, 0x0e, 0x1e, 0x0e, 0x06, 0x02, 0x00};

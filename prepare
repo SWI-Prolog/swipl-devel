@@ -20,7 +20,7 @@
 # desired modules one-per-line
 
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-COREMODULES="$COREMODULES packages/protobufs"
+COREMODULES="$COREMODULES packages/xpce packages/protobufs"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"

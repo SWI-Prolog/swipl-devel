@@ -22,3 +22,6 @@
 [submodule "packages/protobufs"]
 	path = packages/protobufs
 	url = ../contrib/protobufs.git
+[submodule "packages/xpce"]
+	path = packages/xpce
+	url = ../packages/xpce.git
