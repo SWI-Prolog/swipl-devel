@@ -6,6 +6,7 @@
 footer=false
 printdate=true
 directory=.
+since=
 
 done=false
 while [ $done = false ]; do
@@ -22,14 +23,18 @@ while [ $done = false ]; do
 		directory="`echo $1 | sed 's/--dir=//'`"
 		shift
 		;;
+	--since=*)
+		since="`echo $1 | sed 's/--since=//'`"
+		shift
+		;;
 	*)	done=true
 		;;
     esac
 done
 
-since="$1"
+tag="$1"
 
-if [ -z "$since" ]; then
+if [ -z "$tag" -a -z "$since" ]; then
    echo "Usage: `basename $0` [--footer] [--nodate] version [path ...]"
    echo "Options:"
    echo "    --footer"
@@ -38,19 +43,24 @@ if [ -z "$since" ]; then
    exit 1
 fi
 
-shift;
-
 # Ensure case-sensitive matching
 LANG=C
 
-case "$since" in
+case "$tag" in
    [0-9].[0-9]*.[0-9]*)
-	since=V${since}
+	tag=V${since}
 	;;
 esac
 
+if [ ! -z "$since" ]; then
+  opt="--since=$since"
+else
+  shift
+  opt="$tag.."
+fi
+
 cd $directory
-git log ${since}.. --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
+git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
 		}
