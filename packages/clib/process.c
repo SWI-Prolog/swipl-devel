@@ -1349,7 +1349,12 @@ do_create_process(p_options *info)
 
       return pl_error(NULL, 0, "execv", ERR_ERRNO, errno, "exec", "process", exe);
     }
-  } else				/* parent */
+  } else if ( pid < 0 )			/* parent */
+  { term_t exe = PL_new_term_ref();
+    PL_put_atom_chars(exe, info->exe);
+
+    return pl_error(NULL, 0, "fork", ERR_ERRNO, errno, "fork", "process", exe);
+  } else
   { if ( info->pipes > 0 && info->pid == 0 )
     { IOSTREAM *s;
       process_context *pc = PL_malloc(sizeof(*pc));

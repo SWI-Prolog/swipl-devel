@@ -57,6 +57,7 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 
       switch(err)
       { case ENOMEM:
+	case EAGAIN:			/* fork(); might be other resource */
 	  rc = PL_unify_term(formal,
 			     CompoundArg("resource_error", 1),
 			       AtomArg("no_memory"));
