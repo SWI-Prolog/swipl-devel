@@ -7,6 +7,8 @@ footer=false
 printdate=true
 directory=.
 since=
+modules=true
+quiet=false;
 
 done=false
 while [ $done = false ]; do
@@ -19,9 +21,18 @@ while [ $done = false ]; do
 		printdate=false
 		shift
 		;;
+	--quiet)
+		quiet=true
+		shift
+		;;
+	--nomodules)
+		modules=false
+		shift
+		;;
 	--dir=*)
 		directory="`echo $1 | sed 's/--dir=//'`"
 		shift
+		modules=false
 		;;
 	--since=*)
 		since="`echo $1 | sed 's/--since=//'`"
@@ -35,10 +46,12 @@ done
 tag="$1"
 
 if [ -z "$tag" -a -z "$since" ]; then
-   echo "Usage: `basename $0` [--footer] [--nodate] version [path ...]"
+   echo "Usage: `basename $0` option ... [version] [path ...]"
    echo "Options:"
    echo "    --footer"
    echo "    --nodate"
+   echo "    --nomodules"
+   echo "    --since=<date>"
    echo "    --dir=<dir>"
    exit 1
 fi
@@ -48,7 +61,7 @@ LANG=C
 
 case "$tag" in
    [0-9].[0-9]*.[0-9]*)
-	tag=V${since}
+	tag=V${tag}
 	;;
 esac
 
@@ -60,6 +73,12 @@ else
 fi
 
 cd $directory
+
+if [ "$quiet" = true ]; then
+  git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | grep -q '^[A-Z][A-Z]*:'
+  exit $?
+fi
+
 git log "$opt" --pretty=format:"PATCH[%ad]%n%s%n%b" $* | awk '
 BEGIN		{ doprint="false";
 		  dateprinted="";
@@ -68,7 +87,7 @@ BEGIN		{ doprint="false";
 		  doprint="false";
 		  next;
 	        }
-/^[A-Z][A-Z]+:/	{ if ( dateprinted != date && "'$printdate'" == "true" )
+/^[A-Z][A-Z]*:/	{ if ( dateprinted != date && "'$printdate'" == "true" )
 		  { printf("%s\n\n", date);
 		    dateprinted = date;
 		  }
@@ -87,8 +106,30 @@ BEGIN		{ doprint="false";
 		}
 ' | fmt -ut
 
+# Include submodules
+
+if [ "$modules" = true ]; then
+  if [ -z "$since" ]; then
+    since=`git show --quiet --pretty=format:%cd "$tag^{commit}"`
+  fi
+
+  echo
+
+  for d in `git submodule -q foreach pwd`; do
+    if $0 --dir="$d" --since="$since" --quiet; then
+      echo
+      echo "============================================="
+      echo "Package `basename $d`"
+      echo "============================================="
+      $0 --dir="$d" --since="$since"
+#   else
+#     echo "Package `basename $d`: no changes"
+    fi
+  done
+fi
+
 if [ "$footer" = true ]; then
    echo ==============
-   echo VERSION $since
+   echo VERSION $tag
    echo ==============
 fi
