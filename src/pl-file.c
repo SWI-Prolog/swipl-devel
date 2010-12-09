@@ -1151,7 +1151,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     { if ( !(ctx->stream = getStream(Suser_output)) )
 	return no_stream(to);
       ctx->is_stream = TRUE;
-    } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT) )
+    } else if ( get_stream_handle(a, &ctx->stream, SH_OUTPUT|SH_ERRORS) )
     { if ( !(ctx->stream->flags &SIO_OUTPUT) )
       { releaseStream(ctx->stream);
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION,

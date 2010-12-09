@@ -42,5 +42,8 @@ test(fail, fail) :-
 	format('~@', [fail]).
 test(fail, throws(error(42))) :-
 	format('~@', [throw(error(42))]).
+test(no_stream, error(existence_error(stream, S))) :-
+	S = stream_dhfuweiu,
+	format(S, fmt, []).
 
 :- end_tests(format).
