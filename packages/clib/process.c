@@ -1274,11 +1274,15 @@ wait_success(atom_t name, pid_t pid)
 }
 
 
+#ifndef HAVE_VFORK
+#define vfork fork
+#endif
+
 static int
 do_create_process(p_options *info)
 { int pid;
 
-  if ( !(pid=fork()) )			/* child */
+  if ( !(pid=vfork()) )			/* child */
   { int fd;
 
     PL_cleanup_fork();
