@@ -1280,7 +1280,6 @@ do_create_process(p_options *info)
 
   if ( !(pid=fork()) )			/* child */
   { int fd;
-    int rc;
 
     PL_cleanup_fork();
 
@@ -1335,20 +1334,12 @@ do_create_process(p_options *info)
     }
 
     if ( info->envp )
-      rc = execve(info->exe, info->argv, info->envp);
+      execve(info->exe, info->argv, info->envp);
     else
-      rc = execv(info->exe, info->argv);
+      execv(info->exe, info->argv);
 
-    if ( rc )
-    { perror(info->exe);
-      exit(1);
-    }
-
-    { term_t exe = PL_new_term_ref();
-      PL_put_atom_chars(exe, info->exe);
-
-      return pl_error(NULL, 0, "execv", ERR_ERRNO, errno, "exec", "process", exe);
-    }
+    perror(info->exe);
+    exit(1);
   } else if ( pid < 0 )			/* parent */
   { term_t exe = PL_new_term_ref();
     PL_put_atom_chars(exe, info->exe);
