@@ -35,7 +35,7 @@
 	  [ http_open/3,		% +URL, -Stream, +Options
 	    http_set_authorization/2	% +URL, +Authorization
 	  ]).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 :- use_module(library(readutil)).
 :- use_module(library(socket)).
 :- use_module(library(lists)).
@@ -101,7 +101,7 @@ resource. See also parse_time/2.
 %
 %	Open the data at the HTTP  server   as  a  Prolog stream. URL is
 %	either an atom  specifying  a  URL   or  a  list  representing a
-%	broken-down URL compatible to parse_url/2.  After this predicate
+%	broken-down  URL  as  specified  below.   After  this  predicate
 %	succeeds the data can be read from Stream. After completion this
 %	stream must be  closed  using   the  built-in  Prolog  predicate
 %	close/1. Options provides additional options:
@@ -111,16 +111,11 @@ resource. See also parse_time/2.
 %	  See also http_set_authorization/2.
 %
 %	  * final_url(-FinalURL)
-%	  Unify FinalURL} with the final  destination. This differs from
+%	  Unify FinalURL with the final   destination. This differs from
 %	  the  original  URL  if  the  returned  head  of  the  original
 %	  indicates an HTTP redirect (codes 301,  302 or 303). Without a
-%	  redirect, FinalURL is unified with   the  canonical version of
-%	  URL using:
-%
-%	      ==
-%	      parse_url(URL, Parts),
-%	      parse_url(FinalURL, Parts)
-%	      ==
+%	  redirect, FinalURL is the same as URL if  URL is an atom, or a
+%	  URL constructed from the parts.
 %
 %	  * header(Name, -AtomValue)
 %	  If provided, AtomValue is  unified  with   the  value  of  the
@@ -171,7 +166,13 @@ resource. See also parse_time/2.
 %	The hook http:open_options/2 can be used to provide default
 %	options based on the broken-down URL.
 %
-%	@error	existence_error(url, Id)
+%	@param	URL is either an atom (url) or a list of _parts_.
+%		If this list is provided, it may contain the fields
+%		=scheme=, =user=, =password=, =host=, =port=, =path= and
+%		=search= (where the argument of the latter is a
+%		Name(Value) list).  Only =host= is mandatory.
+%
+%	@error existence_error(url, Id)
 
 http_open(URL, Stream, Options) :-
 	(   atom(URL)
@@ -187,24 +188,24 @@ http_open(URL, Stream, Options) :-
 
 http_open_parts(Parts, Stream, Options0) :-
 	memberchk(proxy(Host, ProxyPort), Options0), !,
-	parse_url_ex(Location, Parts),
+	parts_request_uri(Parts, RequestURI),
 	Options = [visited(Parts)|Options0],
 	open_socket(Host:ProxyPort, In, Out, Options),
-        option(protocol(Protocol), Parts, http),
-	default_port(Protocol, DefPort),
+	parts_scheme(Parts, Scheme),
+	default_port(Scheme, DefPort),
 	option(port(Port), Parts, DefPort),
 	host_and_port(Host, DefPort, Port, HostPort),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
+	send_rec_header(Out, In, Stream, HostPort, RequestURI, Parts, Options),
 	return_final_url(Options).
 http_open_parts(Parts, Stream, Options0) :-
 	memberchk(host(Host), Parts),
-        option(protocol(Protocol), Parts, http),
-	default_port(Protocol, DefPort),
+	parts_scheme(Parts, Scheme),
+	default_port(Scheme, DefPort),
 	option(port(Port), Parts, DefPort),
-	http_location(Parts, Location),
+	parts_request_uri(Parts, RequestURI),
 	Options = [visited(Parts)|Options0],
 	open_socket(Host:Port, SocketIn, SocketOut, Options),
-        (   http:http_protocol_hook(Protocol, Parts,
+        (   http:http_protocol_hook(Scheme, Parts,
 				    SocketIn, SocketOut,
 				    In, Out, Options)
         ->  true
@@ -212,7 +213,7 @@ http_open_parts(Parts, Stream, Options0) :-
             Out = SocketOut
         ),
 	host_and_port(Host, DefPort, Port, HostPort),
-	send_rec_header(Out, In, Stream, HostPort, Location, Parts, Options),
+	send_rec_header(Out, In, Stream, HostPort, RequestURI, Parts, Options),
 	return_final_url(Options).
 
 http:http_protocol_hook(http, _, In, Out, In, Out, _).
@@ -224,14 +225,14 @@ host_and_port(Host, DefPort, DefPort, Host) :- !.
 host_and_port(Host, _,       Port,    Host:Port).
 
 %%	send_rec_header(+Out, +In, -InStream,
-%%			+Host, +Location, +Parts, +Options) is det.
+%%			+Host, +RequestURI, +Parts, +Options) is det.
 %
 %	Send header to Out and process reply.  If there is an error or
 %	failure, close In and Out and return the error or failure.
 
-send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
+send_rec_header(Out, In, Stream, Host, RequestURI, Parts, Options) :-
 	(   catch(guarded_send_rec_header(Out, In, Stream,
-					  Host, Location, Parts, Options),
+					  Host, RequestURI, Parts, Options),
 		  E, true)
 	->  (   var(E)
 	    ->	close(Out)
@@ -242,7 +243,7 @@ send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	    fail
 	).
 
-guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
+guarded_send_rec_header(Out, In, Stream, Host, RequestURI, Parts, Options) :-
 	user_agent(Agent, Options),
 	method(Options, MNAME),
 	http_version(Version),
@@ -251,7 +252,7 @@ guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	       Host: ~w\r\n\
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
-	       [MNAME, Location, Version, Host, Agent]),
+	       [MNAME, RequestURI, Version, Host, Agent]),
 	x_headers(Options, Out),
         (   option(post(PostData), Options)
         ->  http_header:http_post_data(PostData, Out, [])
@@ -300,6 +301,8 @@ map_method(post, 'POST') :-
 %
 %	Emit extra headers from   request_header(Name=Value)  options in
 %	Options.
+%
+%	@tbd Use user/password fields
 
 x_headers([], _).
 x_headers([H|T], Out) :- !,
@@ -340,23 +343,24 @@ do_open(200, _, Lines, Options, Parts, In0, In) :- !,
 	return_fields(Options, Lines),
 	transfer_encoding_filter(Lines, In0, In),
 					% properly re-initialise the stream
-	parse_url_ex(Id, Parts),
-	set_stream(In, file_name(Id)),
+	parts_uri(Parts, URI),
+	set_stream(In, file_name(URI)),
 	set_stream(In, record_position(true)).
 					% Handle redirections
 do_open(Code, _, Lines, Options, Parts, In, Stream) :-
 	redirect_code(Code),
-	location(Lines, Location), !,
-	debug(http(redirect), 'http_open: redirecting to ~w', [Location]),
-	parse_url_ex(Location, Parts, Redirected),
+	location(Lines, RequestURI), !,
+	debug(http(redirect), 'http_open: redirecting to ~w', [RequestURI]),
+	parts_uri(Parts, Base),
+	uri_resolve(RequestURI, Base, Redirected),
 	close(In),
 	http_open(Redirected, Stream, [visited(Redirected)|Options]).
 					% report anything else as error
 do_open(Code, Comment, _,  _, Parts, _, _) :-
-	parse_url_ex(Id, Parts),
+	parts_uri(Parts, URI),
 	(   map_error_code(Code, Error)
-	->  Formal =.. [Error, url, Id]
-	;   Formal = existence_error(url, Id)
+	->  Formal =.. [Error, url, URI]
+	;   Formal = existence_error(url, URI)
 	),
 	throw(error(Formal, context(_, status(Code, Comment)))).
 
@@ -432,7 +436,7 @@ return_final_url(Options) :-
 	memberchk(final_url(URL), Options),
 	var(URL), !,
 	memberchk(visited(Parts), Options),
-	parse_url_ex(URL, Parts).
+	parts_uri(URL, Parts).
 return_final_url(_).
 
 
@@ -492,9 +496,9 @@ content_length(Lines, Length) :-
 	phrase(content_length(Length0), Line), !,
 	Length = Length0.
 
-location(Lines, Location) :-
+location(Lines, RequestURI) :-
 	member(Line, Lines),
-	phrase(atom_field("location", Location), Line), !.
+	phrase(atom_field("location", RequestURI), Line), !.
 
 first_line(Code, Comment) -->
 	"HTTP/", [_], ".", [_],
@@ -624,26 +628,126 @@ authorization(URL, Authorization) :-
 
 add_authorization(_, Options, Options) :-
 	option(authorization(_), Options), !.
-add_authorization(For, Options0, Options) :-
+add_authorization(Parts, Options0, Options) :-
+	option(user(User), Parts),
+	option(password(Passwd), Parts),
+	Options = [authorization(basic(User,Passwd))|Options0].
+add_authorization(Parts, Options0, Options) :-
 	stored_authorization(_, _) ->	% quick test to avoid work
-	(   atom(For)
-	->  URL = For
-	;   parse_url_ex(URL, For)
-	),
+	parts_uri(Parts, URL),
 	authorization(URL, Auth), !,
 	Options = [authorization(Auth)|Options0].
 add_authorization(_, Options, Options).
 
 
-parse_url_ex(URL, Parts) :-
-	parse_url(URL, Parts), !.
-parse_url_ex(URL, _) :-
-	domain_error(url, URL).		% Syntax error?
+%%	parse_url_ex(+URL, -Parts)
+%
+%	Parts:  Schema,  Host,  Port,    User:Password,  RequestURI  (no
+%	fragment).
 
-parse_url_ex(URL, RelativeTo, Parts) :-
-	parse_url(URL, RelativeTo, Parts), !.
-parse_url_ex(URL, _, _) :-
-	domain_error(url, URL).		% Syntax error?
+parse_url_ex(URL, [uri(URL)|Parts]) :-
+	uri_components(URL, Components),
+	phrase(components(Components), Parts),
+	(   memberchk(host(_), Parts)
+	->  true
+	;   domain_error(url, URL)
+	).
+
+components(Components) -->
+	uri_scheme(Components),
+	uri_authority(Components),
+	uri_request_uri(Components).
+
+uri_scheme(Components) -->
+	{ uri_data(scheme, Components, Scheme), nonvar(Scheme) }, !,
+	[ scheme(Scheme)
+	].
+uri_scheme(_) --> [].
+
+uri_authority(Components) -->
+	{ uri_data(authority, Components, Auth), nonvar(Auth), !,
+	  uri_authority_components(Auth, Data)
+	},
+	[ authority(Auth) ],
+	auth_field(user, Data),
+	auth_field(password, Data),
+	auth_field(host, Data),
+	auth_field(port, Data).
+uri_authority(_) --> [].
+
+auth_field(Field, Data) -->
+	{ uri_authority_data(Field, Data, EncValue), nonvar(EncValue), !,
+	  (   atom(EncValue)
+	  ->  uri_encoded(query_value, Value, EncValue)
+	  ;   Value = EncValue
+	  ),
+	  Part =.. [Field,Value]
+	},
+	[ Part ].
+auth_field(_, _) --> [].
+
+uri_request_uri(Components) -->
+	{ uri_data(path, Components, Path0),
+	  uri_data(search, Components, Search),
+	  (   Path0 == ''
+	  ->  Path = (/)
+	  ;   Path = Path0
+	  ),
+	  uri_data(path, Components2, Path),
+	  uri_data(search, Components2, Search),
+	  uri_components(RequestURI, Components2)
+	},
+	[ request_uri(RequestURI)
+	].
+
+%%	parts_scheme(+Parts, -Scheme) is det.
+%%	parts_uri(+Parts, -URI) is det.
+%%	parts_request_uri(+Parts, -RequestURI) is det.
+%%	parts_search(+Parts, -Search) is det.
+%%	parts_authority(+Parts, -Authority) is semidet.
+
+parts_scheme(Parts, Scheme) :-
+	option(scheme(Scheme), Parts), !.
+parts_scheme(Parts, Scheme) :-		% compatibility with library(url)
+	option(protocol(Scheme), Parts), !.
+parts_scheme(_, http).
+
+parts_authority(Parts, Auth) :-
+	option(authority(Auth), Parts), !.
+parts_authority(Parts, Auth) :-
+	option(host(Host), Parts, _),
+	option(port(Port), Parts, _),
+	option(user(User), Parts, _),
+	option(password(Password), Parts, _),
+	uri_authority_components(Auth,
+				 uri_authority(User, Password, Host, Port)).
+
+parts_request_uri(Parts, RequestURI) :-
+	memberchk(request_uri(RequestURI), Parts), !.
+parts_request_uri(Parts, RequestURI) :-
+	option(path(Path), Parts, /),
+	ignore(parts_search(Path, Search)),
+	uri_data(path, Data, Path),
+	uri_data(search, Data, Search),
+	uri_components(RequestURI, Data).
+
+parts_search(Parts, Search) :-
+	memberchk(query_string(Search), Parts), !.
+parts_search(Parts, Search) :-
+	memberchk(search(Fields), Parts), !,
+	uri_query_components(Search, Fields).
+
+
+parts_uri(Parts, URI) :-
+	memberchk(uri(URI), Parts), !.
+parts_uri(Parts, URI) :-
+	parts_scheme(Parts, Scheme),
+	ignore(parts_authority(Parts, Auth)),
+	parts_request_uri(Parts, RequestURI),
+	uri_components(RequestURI, Data),
+	uri_data(scheme, Data, Scheme),
+	uri_data(authority, Data, Auth),
+	uri_components(URI, Data).
 
 
 		 /*******************************
