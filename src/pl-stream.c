@@ -1063,123 +1063,53 @@ out:
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) For ENC_ANSI there is  a  problem   as  this  deals with multi-modal
-streams, streams that  may  hold  escape   sequences  to  move  from one
-character set to another: ascii  ...   <esc1>  japanese <esc2> ascii ...
-Suppose now we have two characters   [ascii, japanese]. When reading the
-japanese character the  first  time,  the   system  will  translate  the
-<esc><japanese> and the mode will be   japanese. When pushing back, only
-the japanese character will be put back,   not the escape sequence. What
-to do?
+peek needs to keep track of the actual bytes processed because not doing
+so might lead to an  incorrect  byte-count   in  the  position term. The
+simplest example is that when  looking   at  \r\n in Windows, get_code/1
+returns \n, but it returns the same for a single \n.
+
+Often, we could keep track of bufp and reset this, but we must deal with
+the case where we fetch a new buffer. In this case, we must copy the few
+remaining bytes to the `unbuffer' area.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-Sungetcode(int c, IOSTREAM *s)
-{ switch(s->encoding)
-  { case ENC_OCTET:
-    case ENC_ISO_LATIN_1:
-      if ( c >= 256 )
-	return -1;			/* illegal */
-    simple:
-      if ( s->bufp > s->unbuffer )
-      { unget_byte(c, s);
-        return c;
-      }
-      return -1;			/* no room */
-    case ENC_ASCII:
-      if ( c >= 128 )
-	return -1;			/* illegal */
-      goto simple;
-    case ENC_ANSI:			/* (*) See above */
-    { char b[MB_LEN_MAX];
-      size_t n;
+Speekcode(IOSTREAM *s)
+{ int c;
+  char *start;
+  IOPOS *psave = s->position;
 
-      if ( !s->mbstate )		/* do we need a seperate state? */
-      { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
-	  return EOF;			/* out of memory */
-	memset(s->mbstate, 0, sizeof(*s->mbstate));
-      }
-
-      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) != (size_t)-1 &&
-	   s->bufp >= n + s->unbuffer )
-      { size_t i;
-
-	for(i=n; i-- > 0; )
-	{ unget_byte(b[i], s);
-	}
-
-        return c;
-      }
-
-      return -1;
-    }
-    case ENC_UTF8:
-    { if ( (unsigned)c >= 0x8000000 )
-	return -1;
-
-      if ( c < 0x80 )
-      { goto simple;
-      } else
-      { char buf[6];
-	char *p, *end;
-
-	end = utf8_put_char(buf, c);
-	if ( s->bufp - s->unbuffer >= end-buf )
-	{ for(p=end-1; p>=buf; p--)
-	  { unget_byte(*p, s);
-	  }
-
-          return c;
-	}
-
-	return -1;
-      }
-    }
-    case ENC_UNICODE_BE:
-    { if ( c >= 0x10000 )
-	return -1;
-
-      if ( s->bufp-1 > s->unbuffer )
-      { unget_byte(c&0xff, s);
-	unget_byte((c>>8)&0xff, s);
-
-        return c;
-      }
-      return -1;
-    }
-    case ENC_UNICODE_LE:
-    { if ( c >= 0x10000 )
-	return -1;
-
-      if ( s->bufp-1 > s->unbuffer )
-      { unget_byte((c>>8)&0xff, s);
-	unget_byte(c&0xff, s);
-
-        return c;
-      }
-      return -1;
-    }
-    case ENC_WCHAR:
-    { pl_wchar_t chr = c;
-
-      if ( s->bufp-sizeof(chr) >= s->unbuffer )
-      { char *p = (char*)&chr;
-	int n;
-
-	for(n=sizeof(chr); --n>=0; )
-	  unget_byte(p[n], s);
-
-	return c;
-      }
-      return -1;
-    }
-    case ENC_UNKNOWN:
-      return -1;
+  if ( !s->buffer )
+  { errno = EINVAL;
+    return -1;
   }
 
-  assert(0);
-  return -1;
+  if ( (s->flags & SIO_FEOF) )
+    return -1;
+
+  if ( s->bufp + UNDO_SIZE > s->limitp )
+  { size_t safe = s->limitp - s->bufp;
+    memcpy(s->buffer-safe, s->bufp, safe);
+  }
+
+  start = s->bufp;
+  s->position = NULL;
+  c = Sgetcode(s);
+  s->position = psave;
+  if ( Sferror(s) )
+    return -1;
+
+  s->flags &= ~(SIO_FEOF|SIO_FEOF2);
+
+  if ( s->bufp > start )
+  { s->bufp = start;
+  } else
+  { s->bufp = s->unbuffer;
+  }
+
+  return c;
 }
+
 
 		 /*******************************
 		 *	    PUTW/GETW		*

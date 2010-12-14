@@ -948,26 +948,18 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { IOPOS p = {0};	/* silence the compiler */
-		      IOPOS *pp;
-		      if ( (pp=rb.stream->position) )
-			p = *pp;
+		    { int c2 = Speekcode(rb.stream);
 
-		      c = getchr();
-		      if ( c == '%' )
+		      if ( c2 == '%' )
 		      { if ( something_read )
-			{ addToBuffer('\n', _PL_rd);
+			{ addToBuffer(c, _PL_rd);
 			  addToBuffer(' ', _PL_rd);
 			}
-			addUTF8Buffer(cbuf, '\n');
-			addUTF8Buffer(cbuf, '%');
+			addUTF8Buffer(cbuf, c);
+			c = Sgetcode(rb.stream);
+			addUTF8Buffer(cbuf, c);
 			continue;
 		      }
-		      if ( c != EOF )
-			Sungetcode(c, rb.stream); /* unsafe: see Sungetcode() */
-		      if ( pp )
-			*pp = p;
-		      c = '\n';
 		    }
 		    break;
 		  }
@@ -1020,16 +1012,16 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			  rawSyntaxError("end_of_file");
 			}
 		      } else
-		      { int c2;
+		      { int c2 = Speekcode(rb.stream);
 
-			if ( (c2=getchr()) != EOF )
+			if ( c2 != EOF )
 			{ if ( digitValue(base, c2) >= 0 )
 			  { addToBuffer(c, _PL_rd);
-			    addToBuffer(c2, _PL_rd);
+			    c = Sgetcode(rb.stream);
+			    addToBuffer(c, _PL_rd);
 			    dotseen = FALSE;
 			    break;
 			  }
-			  Sungetcode(c2, rb.stream);
 			  goto sqatom;
 			}
 			rawSyntaxError("end_of_file");

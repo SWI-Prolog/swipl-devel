@@ -4274,23 +4274,26 @@ PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
 static foreign_t
 peek(term_t stream, term_t chr, int how ARG_LD)
 { IOSTREAM *s;
-  IOPOS pos;
   int c;
 
   if ( !getInputStream(stream, &s) )
     return FALSE;
+  if ( !s->buffer || s->bufsize < MB_LEN_MAX )
+  { releaseStream(s);
+    return PL_error(NULL, 0, "stream is unbuffered", ERR_PERMISSION,
+		    ATOM_peek, ATOM_stream, stream);
+  }
 
-  pos = s->posbuf;
   if ( how == PL_BYTE )
-  { c = Sgetc(s);
+  { IOPOS pos = s->posbuf;
+
+    c = Sgetc(s);
     if ( c != EOF )
       Sungetc(c, s);
+    s->posbuf = pos;
   } else
-  { c = Sgetcode(s);
-    if ( c != EOF )
-      Sungetcode(c, s);
+  { c = Speekcode(s);
   }
-  s->posbuf = pos;
   if ( Sferror(s) )
     return streamStatus(s);
   releaseStream(s);

@@ -351,7 +351,7 @@ PL_EXPORT(int)		Sungetc(int c, IOSTREAM *s);
 PL_EXPORT(int)		Scanrepresent(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sputcode(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sgetcode(IOSTREAM *s);
-PL_EXPORT(int)		Sungetcode(int c, IOSTREAM *s);
+PL_EXPORT(int)		Speekcode(IOSTREAM *s);
 					/* word I/O */
 PL_EXPORT(int)		Sputw(int w, IOSTREAM *s);
 PL_EXPORT(int)		Sgetw(IOSTREAM *s);
