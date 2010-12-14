@@ -1075,7 +1075,8 @@ build_term(context *ctxt, code *PC, term_t result)
 
 static int
 put_findall(context *ctxt, term_t result)
-{ if ( build_term(ctxt, ctxt->findall->codes, result) )
+{ PL_put_variable(result);
+  if ( build_term(ctxt, ctxt->findall->codes, result) )
     return TRUE;
 
   return FALSE;
