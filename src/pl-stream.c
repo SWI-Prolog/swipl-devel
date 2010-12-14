@@ -1081,8 +1081,12 @@ Speekcode(IOSTREAM *s)
   size_t safe = (size_t)-1;
 
   if ( !s->buffer )
-  { errno = EINVAL;
-    return -1;
+  { if ( (s->flags & SIO_NBUF) )
+    { errno = EINVAL;
+      return -1;
+    }
+    if ( S__setbuf(s, NULL, 0) == (size_t)-1 )
+      return -1;
   }
 
   if ( (s->flags & SIO_FEOF) )
