@@ -3431,25 +3431,22 @@ with \arg{Char}. \arg{Char} is unified with -1 on end of file.
 Read the next non-blank character from \arg{Stream}.
 
     \predicate[ISO]{peek_byte}{1}{-Byte}
-Reads the next input byte like get_byte/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_byte}{2}{+Stream, -Byte} Reads the next input byte
-like get_byte/2, but does not remove it from the stream.
-
+    \nodescription
+    \predicate[ISO]{peek_byte}{2}{+Stream, -Byte}
+    \nodescription
     \predicate[ISO]{peek_code}{1}{-Code}
-Reads the next input code like get_code/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_code}{2}{+Stream, -Code} Reads the next input code
-like get_code/2, but does not remove it from the stream.
-
+    \nodescription
+    \predicate[ISO]{peek_code}{2}{+Stream, -Code}
+    \nodescription
     \predicate[ISO]{peek_char}{1}{-Char}
-Reads the next input character like get_char/1, but does not remove it
-from the input stream.
-
-    \predicate[ISO]{peek_char}{2}{+Stream, -Char} Reads the next input
-character like get_char/2, but does not remove it from the stream.
+    \nodescription
+    \predicate[ISO]{peek_char}{2}{+Stream, -Char}
+Read the next byte/code/char from the input without removing it.
+These predicates do not modify the stream's position or end-of-file
+status. These predicates require a buffered stream (see set_stream/2)
+and raise a permission_error if the stream is unbuffered or the buffer
+is too small to hold the longest multibyte sequence that might need to
+be buffered.
 
     \predicate{skip}{1}{+Code}
 Read the input until \arg{Char} or the end of the file is encountered.
