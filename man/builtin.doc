@@ -4651,14 +4651,9 @@ True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 
 \infixop[ISO]{is}{-Number}{+Expr}
-True if \arg{Number} has successfully been unified with the number
-\arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
-represented using an integer (i.e, the value is integer and within the
-range that can be described by Prolog's integer representation), \arg{
-Expr} is unified with the integer value.
-
-Note that normally, is/2 should be used with unbound left operand.  If
-equality is to be tested, =:=/2 should be used.  For example:
+True when \arg{Number} is the value to which \arg{Expr} evaluates.
+Typically, is/2 should be used with unbound left operand. If equality is
+to be tested, =:=/2 should be used. For example:
 
 \begin{center}\begin{tabular}{lp{2.5in}}
 \exam{?- 1 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to the
