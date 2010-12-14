@@ -1078,6 +1078,7 @@ Speekcode(IOSTREAM *s)
 { int c;
   char *start;
   IOPOS *psave = s->position;
+  size_t safe = (size_t)-1;
 
   if ( !s->buffer )
   { errno = EINVAL;
@@ -1088,7 +1089,7 @@ Speekcode(IOSTREAM *s)
     return -1;
 
   if ( s->bufp + UNDO_SIZE > s->limitp )
-  { size_t safe = s->limitp - s->bufp;
+  { safe = s->limitp - s->bufp;
     memcpy(s->buffer-safe, s->bufp, safe);
   }
 
@@ -1104,7 +1105,8 @@ Speekcode(IOSTREAM *s)
   if ( s->bufp > start )
   { s->bufp = start;
   } else
-  { s->bufp = s->unbuffer;
+  { assert(safe != (size_t)-1);
+    s->bufp = s->buffer-safe;
   }
 
   return c;

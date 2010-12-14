@@ -957,6 +957,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			}
 			addUTF8Buffer(cbuf, c);
 			c = Sgetcode(rb.stream);
+			assert(c==c2);
 			addUTF8Buffer(cbuf, c);
 			continue;
 		      }
