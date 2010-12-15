@@ -79,3 +79,6 @@
 [submodule "packages/cpp"]
 	path = packages/cpp
 	url = ../packages/cpp.git
+[submodule "packages/cppproxy"]
+	path = packages/cppproxy
+	url = ../packages/cppproxy.git
