@@ -67,3 +67,6 @@
 [submodule "packages/table"]
 	path = packages/table
 	url = ../packages/table.git
+[submodule "packages/nlp"]
+	path = packages/nlp
+	url = ../packages/nlp.git
