@@ -46,3 +46,6 @@
 [submodule "packages/pldoc"]
 	path = packages/pldoc
 	url = ../packages/pldoc.git
+[submodule "packages/RDF"]
+	path = packages/RDF
+	url = ../packages/RDF.git
