@@ -34,3 +34,9 @@
 [submodule "packages/clib"]
 	path = packages/clib
 	url = ../packages/clib.git
+[submodule "http"]
+	path = http
+	url = ../packages/http.git
+[submodule "packages/http"]
+	path = packages/http
+	url = ../packages/http.git
