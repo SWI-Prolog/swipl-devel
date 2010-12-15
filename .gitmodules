@@ -61,3 +61,6 @@
 [submodule "packages/zlib"]
 	path = packages/zlib
 	url = ../packages/zlib.git
+[submodule "packages/tipc"]
+	path = packages/tipc
+	url = ../contrib/tipc.git
