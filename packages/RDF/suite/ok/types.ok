@@ -1,6 +1,0 @@
-rdf('__Description1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2002/07/owl#Restriction').
-rdf('http://www.w3.org/2002/03owlt/I5.8/inconsistent001#p', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2002/07/owl#DatatypeProperty').
-rdf('http://www.w3.org/2002/03owlt/I5.8/inconsistent001#p', 'http://www.w3.org/2000/01/rdf-schema#range', 'http://www.w3.org/2001/XMLSchema#byte').
-rdf('__Description1', 'http://www.w3.org/2002/07/owl#onProperty', 'http://www.w3.org/2002/03owlt/I5.8/inconsistent001#p').
-rdf('__Description1', 'http://www.w3.org/2002/07/owl#cardinality', literal(type('http://www.w3.org/2001/XMLSchema#nonNegativeInteger', '257'))).
-rdf('http://www.w3.org/2002/03owlt/I5.8/inconsistent001#john', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', '__Description1').

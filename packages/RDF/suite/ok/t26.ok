@@ -1,8 +1,0 @@
-rdf('#JSPapersByDate', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq').
-rdf('#JSPapersByDate', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_1', 'http://www.dogworld.com/Aug96.doc').
-rdf('#JSPapersByDate', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_2', 'http://www.webnuts.net/Jan97.html').
-rdf('#JSPapersByDate', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_3', 'http://www.carchat.com/Sept97.html').
-rdf('#JSPapersBySubj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq').
-rdf('#JSPapersBySubj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_1', 'http://www.carchat.com/Sept97.html').
-rdf('#JSPapersBySubj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_2', 'http://www.dogworld.com/Aug96.doc').
-rdf('#JSPapersBySubj', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#_3', 'http://www.webnuts.net/Jan97.html').
