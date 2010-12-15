@@ -43,3 +43,6 @@
 [submodule "packages/plunit"]
 	path = packages/plunit
 	url = ../packages/plunit.git
+[submodule "packages/pldoc"]
+	path = packages/pldoc
+	url = ../packages/pldoc.git
