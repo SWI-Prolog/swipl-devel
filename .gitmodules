@@ -40,3 +40,6 @@
 [submodule "packages/http"]
 	path = packages/http
 	url = ../packages/http.git
+[submodule "packages/plunit"]
+	path = packages/plunit
+	url = ../packages/plunit.git
