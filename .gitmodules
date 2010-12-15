@@ -52,3 +52,6 @@
 [submodule "packages/semweb"]
 	path = packages/semweb
 	url = ../packages/semweb.git
+[submodule "packages/ssl"]
+	path = packages/ssl
+	url = ../packages/ssl.git
