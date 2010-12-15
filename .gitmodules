@@ -64,3 +64,6 @@
 [submodule "packages/tipc"]
 	path = packages/tipc
 	url = ../contrib/tipc.git
+[submodule "packages/table"]
+	path = packages/table
+	url = ../packages/table.git
