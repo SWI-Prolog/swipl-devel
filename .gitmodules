@@ -76,3 +76,6 @@
 [submodule "packages/jasmine"]
 	path = packages/jasmine
 	url = ../packages/jasmine.git
+[submodule "packages/cpp"]
+	path = packages/cpp
+	url = ../packages/cpp.git
