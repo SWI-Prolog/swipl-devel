@@ -49,3 +49,6 @@
 [submodule "packages/RDF"]
 	path = packages/RDF
 	url = ../packages/RDF.git
+[submodule "packages/semweb"]
+	path = packages/semweb
+	url = ../packages/semweb.git

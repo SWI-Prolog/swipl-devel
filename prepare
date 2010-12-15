@@ -22,7 +22,7 @@
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
 COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
-COREMODULES+=" packages/pldoc packages/RDF"
+COREMODULES+=" packages/pldoc packages/RDF packages/semweb"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"
