@@ -25,3 +25,6 @@
 [submodule "packages/xpce"]
 	path = packages/xpce
 	url = ../packages/xpce.git
+[submodule "packages/odbc"]
+	path = packages/odbc
+	url = ../packages/odbc.git
