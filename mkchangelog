@@ -137,6 +137,7 @@ if [ "$modules" = true ]; then
 
   for d in `git submodule -q foreach pwd`; do
     if $0 --dir="$d" --since="$since" --quiet; then
+      echo
       $0 --dir="$d" --since="$since" $moduleoptions
 #   else
 #     echo "Package `basename $d`: no changes"
