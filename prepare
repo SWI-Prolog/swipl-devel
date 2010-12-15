@@ -109,6 +109,11 @@ for d in `submodules`; do
   fi
 done
 
+if fgrep ../chr.git .gitmodules 2>&1 > /dev/null; then
+  if confirm "Submodule paths seem out of data. Update? "; then
+    git submodule sync
+  fi
+fi
 
 nothere=`git submodule status $COREMODULES | awk '/^[-]/ {print $2}'`
 if [ ! -z "$nothere" ]; then
