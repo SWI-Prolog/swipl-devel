@@ -31,3 +31,6 @@
 [submodule "packages/sgml"]
 	path = packages/sgml
 	url = ../packages/sgml.git
+[submodule "packages/clib"]
+	path = packages/clib
+	url = ../packages/clib.git
