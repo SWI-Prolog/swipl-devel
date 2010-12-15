@@ -73,3 +73,6 @@
 [submodule "packages/db"]
 	path = packages/db
 	url = ../packages/db.git
+[submodule "packages/jasmine"]
+	path = packages/jasmine
+	url = ../packages/jasmine.git
