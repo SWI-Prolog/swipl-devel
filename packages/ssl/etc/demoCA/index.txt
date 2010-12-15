@@ -1,4 +1,0 @@
-V	080226140317Z		A611836B46298A6F	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Server/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
-V	080226140535Z		A611836B46298A70	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Client/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
-V	351119151103Z		A611836B46298A71	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=University of Amsterdam/OU=Server/CN=Jan Wielemaker/emailAddress=wielemak@science.uva.nl
-V	351119151114Z		A611836B46298A72	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=University of Amsterdam/OU=Client/CN=Jan Wielemaker/emailAddress=wielemak@science.uva.nl
