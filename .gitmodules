@@ -55,3 +55,6 @@
 [submodule "packages/ssl"]
 	path = packages/ssl
 	url = ../packages/ssl.git
+[submodule "packages/R"]
+	path = packages/R
+	url = ../packages/R.git
