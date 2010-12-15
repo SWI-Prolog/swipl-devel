@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # ./prepare
 #
@@ -20,7 +20,8 @@
 # desired modules one-per-line
 
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
-COREMODULES="$COREMODULES packages/xpce packages/odbc packages/protobufs"
+COREMODULES+=" packages/xpce packages/odbc packages/protobufs"
+COREMODULES+=" packages/sgml"
 
 version="`cat VERSION`"
 server="http://www.swi-prolog.org"

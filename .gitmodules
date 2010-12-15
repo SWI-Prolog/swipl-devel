@@ -28,3 +28,6 @@
 [submodule "packages/odbc"]
 	path = packages/odbc
 	url = ../packages/odbc.git
+[submodule "packages/sgml"]
+	path = packages/sgml
+	url = ../packages/sgml.git
