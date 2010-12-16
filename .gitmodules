@@ -1,15 +1,15 @@
 [submodule "packages/chr"]
 	path = packages/chr
-	url = ../chr.git
+	url = ../packages/chr.git
 [submodule "packages/jpl"]
 	path = packages/jpl
-	url = ../jpl.git
+	url = ../packages/jpl.git
 [submodule "packages/clpqr"]
 	path = packages/clpqr
-	url = ../clpqr.git
+	url = ../packages/clpqr.git
 [submodule "packages/inclpr"]
 	path = packages/inclpr
-	url = ../inclpr.git
+	url = ../packages/inclpr.git
 [submodule "packages/space"]
 	path = packages/space
 	url = ../space.git
