@@ -663,12 +663,30 @@ bindings([Name = Value|T], Options) -->
 	[ '~w = ~w, '-[Name, Name2] ],
 	bindings([Name2 = Value|R], Options).
 bindings([Name = Value|T], Options) -->
-	[ '~w = ~W'-[Name, Value, Options] ],
+	[ '~w = '-[Name] ], value(Name, Value, Options),
 	(   { T \== [] }
 	->  [ ','-[], nl ],
 	    bindings(T, Options)
 	;   []
 	).
+
+value(Name, Value, Options) -->
+	{ F = f(Value),
+	  '$factorize_term'(F, Subst),
+	  arg(1, F, Skeleton)
+	},
+	(   { var(Skeleton), Subst = [Skeleton=S] }
+	->  { Skeleton = '$VAR'(Name) },
+	    [ '~W'-[S, Options] ]
+	;   [ '~W'-[Skeleton, Options] ],
+	    substitution(Subst, Options)
+	).
+
+substitution([], _) --> [].
+substitution([N=V|T], Options) -->
+	[ ','-[], nl, '    ~w = ~W'-[N,V,Options] ],
+	substitution(T, Options).
+
 
 residuals([], _) -->
 	[].
