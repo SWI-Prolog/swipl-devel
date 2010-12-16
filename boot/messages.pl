@@ -657,10 +657,17 @@ result(Bindings, Residuals) -->
 bindings([], _) -->
 	[].
 bindings([Name = Value|T], Options) -->
+	{ '$select'(Name2 = Value2, T, R),
+	  Value == Value2
+	}, !,
+	[ '~w = ~w, '-[Name, Name2] ],
+	bindings([Name2 = Value|R], Options).
+bindings([Name = Value|T], Options) -->
+	[ '~w = ~W'-[Name, Value, Options] ],
 	(   { T \== [] }
-	->  [ '~w = ~W,'-[Name, Value, Options], nl ],
+	->  [ ','-[], nl ],
 	    bindings(T, Options)
-	;   [ '~w = ~W'-[Name, Value, Options] ]
+	;   []
 	).
 
 residuals([], _) -->
