@@ -109,7 +109,7 @@ if [ ! -z "$notamodule" ]; then
   fi
 fi
 
-if fgrep ../chr.git .gitmodules 2>&1 > /dev/null; then
+if grep '\.\./chr.git' .gitmodules 2>&1 > /dev/null; then
   if confirm "Submodule paths seem out of data. Update? "; then
     git submodule sync
   fi
