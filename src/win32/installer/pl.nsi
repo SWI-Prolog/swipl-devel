@@ -329,6 +329,7 @@ Section "Base system (required)"
   File pl\library\main.pl
   File pl\library\csv.pl
   File pl\library\persistency.pl
+  File pl\library\ansi_term.pl
 
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode

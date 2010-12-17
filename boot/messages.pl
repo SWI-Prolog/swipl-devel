@@ -38,7 +38,8 @@
 :- multifile
 	prolog:message/3,		% entire message
 	prolog:error_message/3,		% 1-st argument of error term
-	prolog:message_context/3.	% Context of error messages
+	prolog:message_context/3,	% Context of error messages
+	prolog:message_line_element/2.	% Extend printing
 :- discontiguous
 	prolog_message/3.
 
@@ -680,7 +681,7 @@ value(Name, Skel, Subst, Options) -->
 
 substitution([], _) --> !.
 substitution([N=V|T], Options) -->
-	[ ', % where', nl,
+	[ ', ', ansi(fg(green), '% where', []), nl,
 	  '    ~w = ~W'-[N,V,Options] ],
 	substitutions(T, Options).
 
@@ -1013,14 +1014,21 @@ print_message_line(S, [], []) :- !,
 	nl(S).
 print_message_line(S, [nl|T], T) :- !,
 	nl(S).
-print_message_line(S, [full_stop|T], T) :- !,
+print_message_line(S, [H|T0], T) :- !,
+	line_element(S, H),
+	print_message_line(S, T0, T).
+
+line_element(S, full_stop) :- !,
 	'$put_token'(S, '.').		% insert space if needed.
-print_message_line(S, [Fmt-Args|T0], T) :- !,
-	format(S, Fmt, Args),
-	print_message_line(S, T0, T).
-print_message_line(S, [Fmt|T0], T) :-
-	format(S, Fmt, []),
-	print_message_line(S, T0, T).
+line_element(S, Fmt-Args) :- !,
+	format(S, Fmt, Args).
+line_element(S, E) :-
+	prolog:message_line_element(S, E), !.
+line_element(S, ansi(_, Fmt, Args)) :- !,
+	format(S, Fmt, Args).
+line_element(S, Fmt) :-
+	format(S, Fmt, []).
+
 
 %	message_to_string(+Term, -String)
 %

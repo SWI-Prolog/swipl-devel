@@ -76,7 +76,10 @@ most modern terminals using ANSI escape sequences.
 %	  - The Prolog flag =color_term= is =true=.
 
 ansi_format(Attr, Format, Args) :-
-	stream_property(current_output, tty(true)),
+	ansi_format(current_output, Attr, Format, Args).
+
+ansi_format(Stream, Attr, Format, Args) :-
+	stream_property(Stream, tty(true)),
 	current_prolog_flag(color_term, true), !,
 	(   is_list(Attr)
 	->  maplist(sgr_code, Attr, Codes),
@@ -84,12 +87,12 @@ ansi_format(Attr, Format, Args) :-
 	;   sgr_code(Attr, Code)
 	),
 	(   Args == []
-	->  format('\u001B[~wm~w\u001B[0m', [Code, Format])
+	->  format(Stream, '\u001B[~wm~w\u001B[0m', [Code, Format])
 	;   format(string(Fmt), '\u001B[~~wm~w\u001B[0m', [Format]),
-	    format(Fmt, [Code|Args])
+	    format(Stream, Fmt, [Code|Args])
 	).
-ansi_format(_Attr, Format, Args) :-
-	format(Format, Args).
+ansi_format(Stream, _Attr, Format, Args) :-
+	format(Stream, Format, Args).
 
 sgr_code(reset, 0).
 sgr_code(bold,  1).
@@ -151,3 +154,16 @@ ansi_color(magenta, 5).
 ansi_color(cyan,    6).
 ansi_color(white,   7).
 ansi_color(default, 9).
+
+
+		 /*******************************
+		 *	       HOOK		*
+		 *******************************/
+
+%%	prolog:message_line_element(+Stream, +Term) is semidet.
+%
+%	Hook implementation that deals with  ansi(+Attr, +Fmt, +Args) in
+%	message specifications.
+
+prolog:message_line_element(S, ansi(Attr, Fmt, Args)) :-
+	ansi_format(S, Attr, Fmt, Args).
