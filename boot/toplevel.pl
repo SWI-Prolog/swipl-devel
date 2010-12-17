@@ -638,13 +638,15 @@ write_bindings(Bindings, Det) :-
 	copy_term(Bindings, Bindings1, Residuals0),
 	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
+	factorize_bindings(Bindings1, Bindings2),
+	bind_vars(Bindings2),
+	filter_bindings(Bindings2, Bindings3),
+	write_bindings2(Bindings3, Residuals, Det).
+write_bindings(Bindings, Det) :-
+	factorize_bindings(Bindings, Bindings1),
 	bind_vars(Bindings1),
 	filter_bindings(Bindings1, Bindings2),
-	write_bindings2(Bindings2, Residuals, Det).
-write_bindings(Bindings, Det) :-
-	bind_vars(Bindings),
-	filter_bindings(Bindings, Bindings1),
-	write_bindings2(Bindings1, [], Det).
+	write_bindings2(Bindings2, [], Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -714,12 +716,24 @@ omit_meta_qualifiers(G, _, G).
 %	variables bound to one another come out in the natural order.
 
 bind_vars([]).
-bind_vars([Name=Var|T]) :-
+bind_vars([binding(Name,Var,Skel)|T]) :-
 	bind_vars(T),
-	(   var(Var), \+ attvar(Var)
+	(   var(Var), \+ attvar(Var), Skel == []
 	->  Var = '$VAR'(Name)
 	;   true
 	).
+
+%%	factorize_bindings(+Bindings0, -Factorized)
+%
+%	Factorize cycles and sharing in the bindings.
+
+factorize_bindings([], []).
+factorize_bindings([Name=Value|T0], [binding(Name, Skel, Subst)|T]) :-
+	F = f(Value),
+	'$factorize_term'(F, Subst),
+	arg(1, F, Skel),
+	factorize_bindings(T0, T).
+
 
 %%	filter_bindings(+Bindings0, -Bindings)
 %
@@ -732,10 +746,10 @@ filter_bindings([H|T0], T) :-
 filter_bindings([H|T0], [H|T]) :-
 	filter_bindings(T0, T).
 
-hidden_binding(Name = _) :-
+hidden_binding(binding(Name, _, _)) :-
 	sub_atom(Name, 0, _, _, '_'),
 	current_prolog_flag(toplevel_print_anon, false).
-hidden_binding(Name = Value) :-
+hidden_binding(binding(Name, Value, [])) :-
 	Value == '$VAR'(Name).
 
 get_respons(Action) :-

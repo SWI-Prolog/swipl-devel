@@ -656,36 +656,38 @@ result(Bindings, Residuals) -->
 
 bindings([], _) -->
 	[].
-bindings([Name = Value|T], Options) -->
-	{ '$select'(Name2 = Value2, T, R),
-	  Value == Value2
+bindings([binding(Name,Skel,Subst)|T], Options) -->
+	{ '$select'(binding(Name2, Skel2, Subst2), T, R),
+	  Skel == Skel2, Subst == Subst2
 	}, !,
 	[ '~w = ~w, '-[Name, Name2] ],
-	bindings([Name2 = Value|R], Options).
-bindings([Name = Value|T], Options) -->
-	[ '~w = '-[Name] ], value(Name, Value, Options),
+	bindings([binding(Name2,Skel,Subst)|R], Options).
+bindings([binding(Name,Skel,Subst)|T], Options) -->
+	[ '~w = '-[Name] ], value(Name, Skel, Subst, Options),
 	(   { T \== [] }
 	->  [ ','-[], nl ],
 	    bindings(T, Options)
 	;   []
 	).
 
-value(Name, Value, Options) -->
-	{ F = f(Value),
-	  '$factorize_term'(F, Subst),
-	  arg(1, F, Skeleton)
-	},
-	(   { var(Skeleton), Subst = [Skeleton=S] }
-	->  { Skeleton = '$VAR'(Name) },
+value(Name, Skel, Subst, Options) -->
+	(   { var(Skel), Subst = [Skel=S] }
+	->  { Skel = '$VAR'(Name) },
 	    [ '~W'-[S, Options] ]
-	;   [ '~W'-[Skeleton, Options] ],
+	;   [ '~W'-[Skel, Options] ],
 	    substitution(Subst, Options)
 	).
 
-substitution([], _) --> [].
+substitution([], _) --> !.
 substitution([N=V|T], Options) -->
+	[ ', % where', nl,
+	  '    ~w = ~W'-[N,V,Options] ],
+	substitutions(T, Options).
+
+substitutions([], _) --> [].
+substitutions([N=V|T], Options) -->
 	[ ','-[], nl, '    ~w = ~W'-[N,V,Options] ],
-	substitution(T, Options).
+	substitutions(T, Options).
 
 
 residuals([], _) -->
