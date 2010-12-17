@@ -971,6 +971,211 @@ PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 
 
 		 /*******************************
+		 *	     FACTORIZE		*
+		 *******************************/
+
+static int
+scan_shared(Word t, Word vart, size_t *count ARG_LD)
+{ term_agenda agenda;
+  size_t shared = 0;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( is_marked(d) )
+      { if ( !is_first(d) )
+	{ Word v;
+
+	  if ( !(v=allocGlobalNoShift(6)) )
+	    return GLOBAL_OVERFLOW;
+
+	  v[0] = FUNCTOR_dot2;
+	  v[1] = consPtr(&v[3], TAG_COMPOUND|STG_GLOBAL);
+	  v[2] = ATOM_nil;
+	  v[3] = FUNCTOR_equals2;
+	  v[4] = 0;			/* For now */
+	  v[5] = consPtr(d, TAG_COMPOUND|STG_GLOBAL);
+
+	  *vart = consPtr(&v[0], TAG_COMPOUND|STG_GLOBAL);
+	  vart = &v[2];
+
+	  set_first(d);
+	}
+	shared++;
+      } else
+      { int arity = arityFunctor(f->definition);
+
+	pushWorkAgenda(&agenda, arity, f->arguments);
+	set_marked(d);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+  *count = shared;
+
+  return TRUE;
+}
+
+
+/* Needed to restore if we run out of stack
+*/
+
+static int
+unscan_shared(Word t ARG_LD)
+{ term_agenda agenda;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( is_marked(d) )
+      { int arity;
+
+	clear_marked(d);
+	clear_first(d);
+	arity = arityFunctor(f->definition);
+	pushWorkAgenda(&agenda, arity, f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+
+  return TRUE;
+}
+
+
+/* This routine places the functor of a shared term in the variable that
+   will replace the shared term and replaces the of the shared term with
+   a reference-pointer to this variable.
+*/
+
+static void
+reverse_factor_pointers(Word vars ARG_LD)
+{ while(*vars != ATOM_nil)
+  { Word v = (Word)valueTerm(*vars);
+    Functor t = valueTerm(v[5]);
+
+    v[4] = t->definition & ~(MARK_MASK|FIRST_MASK); /* v[4] is the variable */
+    t->definition = makeRefG(&v[4])|MARK_MASK|FIRST_MASK;
+
+    vars = &v[2];
+  }
+}
+
+
+static void
+restore_shared_functors(Word vars ARG_LD)
+{ while(*vars != ATOM_nil)
+  { Word v = (Word)valueTerm(*vars);
+    Functor t = valueTerm(v[5]);
+    Word p = &v[4];
+
+    deRef(p);
+    t->definition = *p;
+    setVar(*p);
+
+    vars = &v[2];
+  }
+}
+
+
+static int
+link_shared(Word t, Word vars ARG_LD)
+{ term_agenda agenda;
+  Word p;
+
+  initTermAgenda(&agenda, t);
+  while( (p=nextTermAgenda(&agenda)) )
+  { if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      Word d = &f->definition;
+
+      if ( is_first(d) )		/* shared term */
+      { Word v;
+
+	v = unRef(*d & ~(FIRST_MASK|MARK_MASK));
+	deRef(v);
+
+	if ( v < p )
+	{ TrailAssignment(p);
+	  *p = makeRefG(v);
+	} else
+	{ TrailAssignment(p);
+	  *p = *v;
+	  *v = makeRefG(p);
+	}
+      }
+
+      if ( is_marked(d) )
+      { int arity;
+	word fun = f->definition & ~(FIRST_MASK|MARK_MASK);
+
+	clear_marked(d);
+	arity = arityFunctor(fun);
+	pushWorkAgenda(&agenda, arity, f->arguments);
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$factorize_term", 2, factorize_term, 0)
+{ PRED_LD
+  term_t vars;
+  Word t;
+  size_t count;
+  int rc;
+
+  for(;;)
+  { mark m;
+
+    Mark(m);
+    vars = PL_new_term_ref();
+    PL_put_nil(vars);
+    t = valTermRef(A1);
+
+    startCritical;
+    switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
+    { case TRUE:
+	if ( tTop + 2*count <= tMax )
+	  break;
+        rc = TRAIL_OVERFLOW;
+	/*FALLTHROUGH*/
+      default:
+	unscan_shared(t PASS_LD);
+        Undo(m);
+	if ( !endCritical ||
+	     !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	  return FALSE;
+	continue;
+    }
+
+    break;
+  }
+
+  reverse_factor_pointers(valTermRef(vars) PASS_LD);
+  link_shared(t, valTermRef(vars) PASS_LD);
+  restore_shared_functors(valTermRef(vars) PASS_LD);
+
+  if ( !endCritical )
+    return FALSE;
+
+  return PL_unify(A2, vars);
+}
+
+
+		 /*******************************
 		 *	 META-CALL SUPPORT	*
 		 *******************************/
 
@@ -5013,6 +5218,7 @@ BeginPredDefs(prims)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
   PRED_DEF("acyclic_term", 1, acyclic_term, 0)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
+  PRED_DEF("$factorize_term", 2, factorize_term, 0)
   PRED_DEF("compound", 1, compound, PL_FA_ISO)
   PRED_DEF("callable", 1, callable, PL_FA_ISO)
   PRED_DEF("==", 2, equal, PL_FA_ISO)
