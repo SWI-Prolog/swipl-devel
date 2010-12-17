@@ -715,13 +715,35 @@ omit_meta_qualifiers(G, _, G).
 %	used in the query. Note that by   binding  in the reverse order,
 %	variables bound to one another come out in the natural order.
 
-bind_vars([]).
-bind_vars([binding(Name,Var,Skel)|T]) :-
-	bind_vars(T),
+bind_vars(List) :-
+	bind_query_vars(List, Names),
+	bind_skel_vars(List, Names, 1, _).
+
+bind_query_vars([], []).
+bind_query_vars([binding(Name,Var,Skel)|T], [Name|Names]) :-
+	bind_query_vars(T, Names),
 	(   var(Var), \+ attvar(Var), Skel == []
 	->  Var = '$VAR'(Name)
 	;   true
 	).
+
+bind_skel_vars([], _, N, N).
+bind_skel_vars([binding(_,_,Skel)|T], Names, N0, N) :-
+	bind_one_skel_vars(Skel, Names, N0, N1),
+	bind_skel_vars(T, Names, N1, N).
+
+bind_one_skel_vars([], _, N, N).
+bind_one_skel_vars([Var=_|T], Names, N0, N) :-
+	(   var(Var)
+	->  between(N0, infinite, N1),
+	    atom_concat('_S', N1, Name),
+	    \+ memberchk(Name, Names), !,
+	    Var = '$VAR'(Name),
+	    N2 is N1 + 1
+	;   N2 = N0
+	),
+	bind_one_skel_vars(T, Names, N2, N).
+
 
 %%	factorize_bindings(+Bindings0, -Factorized)
 %
