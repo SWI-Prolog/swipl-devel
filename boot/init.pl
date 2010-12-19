@@ -236,8 +236,12 @@ catch(_Goal, _Catcher, _Recover) :-
 %%	call_cleanup(:Goal, :Cleanup)
 %%	call_cleanup(:Goal, +Catcher, :Cleanup)
 %
-%	Call Cleanup once after Goal is finished (deterministic success, failure,
-%	exception or cut).  '$call_cleanup' translated to I_CALLCLEANUP.
+%	Call Cleanup once after Goal is finished (deterministic success,
+%	failure, exception or  cut).  The   call  to  '$call_cleanup' is
+%	translated to I_CALLCLEANUP. This  instruction   relies  on  the
+%	exact stack layout left   by  setup_call_catcher_cleanup/4. Also
+%	the predicate name is used by   the kernel cleanup mechanism and
+%	can only be changed together with the kernel.
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
 	'$sig_atomic'(Setup),
