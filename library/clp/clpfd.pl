@@ -1282,11 +1282,11 @@ choice_order_variable(bisect, Order, Var, _, Vars0, Selection, Consistency) :-
         domain_supremum(Dom, n(S)),
         Mid0 is (I + S) // 2,
         (   Mid0 =:= S -> Mid is Mid0 - 1 ; Mid = Mid0 ),
-        (   Var #=< Mid,
-            label(Vars0, Selection, Order, bisect, Consistency)
-        ;   Var #> Mid,
-            label(Vars0, Selection, Order, bisect, Consistency)
-        ).
+        (   Order == up -> ( Var #=< Mid ; Var #> Mid )
+        ;   Order == down -> ( Var #> Mid ; Var #=< Mid )
+        ;   domain_error(bisect_up_or_down, Order)
+        ),
+        label(Vars0, Selection, Order, bisect, Consistency).
 
 override(What, Prev, Value, Options, Result) :-
         call(What, Value),
