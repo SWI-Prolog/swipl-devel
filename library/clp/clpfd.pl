@@ -46,7 +46,7 @@
    No artificial limits (using GMP)
    ---------------------------------
 
-   ?- N is 2^66, X #\= N.
+   ?- N #= 2^66, X #\= N.
    %@ N = 73786976294838206464,
    %@ X in inf..73786976294838206463\/73786976294838206465..sup.
 
@@ -159,6 +159,7 @@ become finite. A finite domain _expression_ is one of:
     | Expr + Expr        | Addition                      |
     | Expr * Expr        | Multiplication                |
     | Expr - Expr        | Subtraction                   |
+    | Expr ^ Expr        | Exponentiation                |
     | min(Expr,Expr)     | Minimum of two expressions    |
     | max(Expr,Expr)     | Maximum of two expressions    |
     | Expr mod Expr      | Remainder of integer division |
