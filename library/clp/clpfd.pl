@@ -1583,8 +1583,32 @@ sum([C|Cs], [X|Xs], Acc, Op, Value) :-
         NAcc #= Acc + C*X,
         sum(Cs, Xs, NAcc, Op, Value).
 
-scalar_product_(#=, Cs, Vs, C) :-
-        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, C)).
+multiples([], [], _).
+multiples([C|Cs], [V|Vs], Left) :-
+        (   ( Cs = [N|_] ; Left = [N|_] ),
+            N =\= 1, gcd(C,N) =:= 1,
+            maplist(=(N), Cs), maplist(=(N), Left) -> V #= N*_
+        ;   true
+        ),
+        multiples(Cs, Vs, [C|Left]).
+
+abs(N, A) :- A is abs(N).
+
+divide(D, N, R) :- R is N // D.
+
+scalar_product_(#=, Cs0, Vs, S0) :-
+        (   Cs0 = [C|Rest] ->
+            gcd(Rest, C, GCD),
+            S0 mod GCD =:= 0,
+            maplist(divide(GCD), [S0|Cs0], [S|Cs])
+        ;   S0 =:= 0, S = S0, Cs = Cs0
+        ),
+        (   S0 =:= 0 ->
+            maplist(abs, Cs, As),
+            multiples(As, Vs, [])
+        ;   true
+        ),
+        propagator_init_trigger(Vs, scalar_product_eq(Cs, Vs, S)).
 scalar_product_(#\=, Cs, Vs, C) :-
         propagator_init_trigger(Vs, scalar_product_neq(Cs, Vs, C)).
 scalar_product_(#=<, Cs, Vs, C) :-
@@ -2010,12 +2034,7 @@ matches([
          m(var(X) #= var(Y)*var(Z)) => [p(ptimes(Y,Z,X))],
          m(var(X) #= -var(Z))       => [p(ptimes(-1, Z, X))],
          m_c(any(X) #= any(Y), left_right_linsum_const(X, Y, Cs, Vs, S)) =>
-            [g((   Cs = [] -> S =:= 0
-               ;   Cs = [C|CsRest],
-                   gcd(CsRest, C, GCD),
-                   S mod GCD =:= 0,
-                   scalar_product_(#=, Cs, Vs, S)
-               ))],
+            [g(scalar_product_(#=, Cs, Vs, S))],
          m(var(X) #= any(Y))       => [d(Y,X)],
          m(any(X) #= any(Y))       => [d(X, RX), d(Y, RX)],
 
