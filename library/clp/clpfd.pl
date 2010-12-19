@@ -1585,9 +1585,15 @@ sum([C|Cs], [X|Xs], Acc, Op, Value) :-
 
 multiples([], [], _).
 multiples([C|Cs], [V|Vs], Left) :-
-        (   ( Cs = [N|_] ; Left = [N|_] ),
-            N =\= 1, gcd(C,N) =:= 1,
-            maplist(=(N), Cs), maplist(=(N), Left) -> V #= N*_
+        (   (   Cs = [N|_] ; Left = [N|_] ) ->
+            (   N =\= 1, gcd(C,N) =:= 1 ->
+                gcd(Cs, N, GCD0),
+                gcd(Left, GCD0, GCD),
+                (   GCD > 1 -> V #= GCD*_
+                ;   true
+                )
+            ;   true
+            )
         ;   true
         ),
         multiples(Cs, Vs, [C|Left]).
