@@ -1,17 +1,63 @@
 \chapter{Special Variables and Coroutining}	\label{sec:extvar}
 
 This chapter deals with extensions primarily designed to support
-constraint logic programming (CLP).
+constraint logic programming (CLP). The low-level attributed variable
+interface defined in in \secref{attvar} is not intended for the typical
+Prolog programmer. Instead, the typical Prolog programmer should use the
+coroutining predicates and the various constraint solvers built on top
+of attributed variables. CHR (\secref{chr}) provides a general purpose
+constraint handling language.
+
+As a rule of thumb, constraint programming reduces the search space by
+reordering goals and joining goals based on domain knowledge. A typical
+example is constraint reasoning over integer domains. Plain Prolog has
+no efficient means to deal with (integer) $X > 0$ and $X < 3$. At best
+it could translate $X > 0$ with uninstantiated X to \term{between}{1,
+infinite, X} and a similar primitive for $X < 3$. If the two are
+combined it has no choice but to generate and test over this infinite
+two-dimensional space. Instead, a constraint system will \jargon{delay}
+an uninstantated goal to $X > 0$. If, later, it finds a value for
+\arg{X} it will execute the test. If it finds $X < 3$ it will combine
+this knowledge to infer that X is in 1..2 (see below). If never finds a
+concrete value for \arg{X} it can be asked to \jargon{label} \arg{X} and
+produce 1 and 2 on backtracking. See \secref{clpfd}.
+
+\begin{code}
+1 ?- [library(clpfd)].
+...
+true.
+
+2 ?- X #> 0, X #< 3.
+X in 1..2.
+\end{code}
+
+Using constraints generally makes your program more
+\jargon{declarative}. There are some caveats though:
+
+\begin{itemize}
+    \item Constraints and cuts to not merge well.  A cut after a goal
+    that is delayed prunes the search-space before the condition
+    is true.
+    \item Term-copying operations (assert/1, restract/2, findall/3,
+    copy_term/2, etc.) generally also copy constraints.  The effect
+    varies from ok, silent copying of huge constraint networks
+    to violations of the internal consistency of constraint
+    networks.  As a rule of thumb, copying terms holding attributes
+    must be deprecated.
+\end{itemize}
 
 
 \section{Attributed variables} 			\label{sec:attvar}
 
 \jargon{Attributed variables} provide a technique for extending the
 Prolog unification algorithm \cite{holzbaur:1992} by hooking the binding
-of attributed variables. There is little consensus in the Prolog
-community on the exact definition and interface to attributed variables.
-The SWI-Prolog interface is identical to the one realised by Bart Demoen
-for hProlog \cite{Demoen:CW350}.
+of attributed variables. There is no consensus in the Prolog community
+on the exact definition and interface to attributed variables. The
+SWI-Prolog interface is identical to the one realised by Bart Demoen for
+hProlog \cite{Demoen:CW350}. This interface is simple and available on
+all Prolog systems that can run the Leuven CHR system (see \secref{chr}
+and the Leuven \url[CHR
+page]{http://people.cs.kuleuven.be/~tom.schrijvers/CHR/}.
 
 Binding an attributed variable schedules a goal to be executed at the
 first possible opportunity. In the current implementation the hooks are
@@ -62,28 +108,30 @@ attribute_goals(X) -->
 
 Before explaining the code we give some example queries:
 
+\begin{quote}
 \begin{tabular}{ll}
 \tt ?- domain(X, [a,b]), X = c		     & fail \\
 \tt ?- domain(X, [a,b]), domain(X, [a,c]).   & X = a \\
 \tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & domain(X, [a, c]) \\
 \end{tabular}
+\end{quote}
 
 The predicate \nopredref{domain}{2} fetches (first clause) or assigns
-(second clause) the variable a \emph{domain}, a set of values it can
-be unified with.  In the second clause first associates the domain
-with a fresh variable and then unifies X to this variable to deal
-with the possibility that X already has a domain. The
-predicate attr_unify_hook/2 is a hook called after a variable with
-a domain is assigned a value.  In the simple case where the variable
-is bound to a concrete value we simply check whether this value is in
-the domain. Otherwise we take the intersection of the domains and either
-fail if the intersection is empty (first example), simply assign the
-value if there is only one value in the intersection (second example) or
-assign the intersection as the new domain of the variable (third
-example). The nonterminal attribute_goals/3 is used to translate
-remaining attributes to user-readable goals that, when executed, reinstate
-these attributes.
+(second clause) the variable a \emph{domain}, a set of values it can be
+unified with. In the second clause first associates the domain with a
+fresh variable and then unifies X to this variable to deal with the
+possibility that X already has a domain. The predicate attr_unify_hook/2
+is a hook called after a variable with a domain is assigned a value. In
+the simple case where the variable is bound to a concrete value we
+simply check whether this value is in the domain. Otherwise we take the
+intersection of the domains and either fail if the intersection is empty
+(first example), simply assign the value if there is only one value in
+the intersection (second example) or assign the intersection as the new
+domain of the variable (third example). The nonterminal
+attribute_goals/3 is used to translate remaining attributes to
+user-readable goals that, when executed, reinstate these attributes.
 
+\subsection{Attribute manipulation predicates}
 
 \begin{description}
     \predicate{attvar}{1}{{@}Term}
@@ -111,7 +159,16 @@ is transformed back into a traditional Prolog variable.  If \arg{Module}
 is not an atom, a type error is raised. In all other cases this
 predicate succeeds regardless whether or not the named attribute is
 present.
+\end{description}
 
+
+\subsection{Attributed variable hooks}
+
+Attribute names are linked to modules. This means that certain
+operations on attributed variables cause \jargon{hooks} to be called in
+the the module whose name matches the attribute name.
+
+\begin{description}
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
 Hook that must be defined in the module an attributed variable refers
 to. Is is called \emph{after} the attributed variable has been
@@ -128,13 +185,43 @@ the two attribute and associates the combined attribute with
 Called by write_term/2 and friends for each attribute if the option
 \term{attributes}{portray} is in effect.  If the hook succeeds the
 attribute is considered printed.  Otherwise \exam{Module = ...} is
-printed to indicate the existence of a variable.
+printed to indicate the existence of a variable.  New infrastructure
+dealing with communicating attribute values must be based on
+copy_term/3 and its hook attribute_goals//1.
 
-    \predicate{attribute_goals}{3}{+Var, -Gs, +GsRest}
+    \dcg{attribute_goals}{1}{+Var}
 This nonterminal, if it is defined in a module, is used by copy_term/3
 to project attributes of that module to residual goals. It is also
 used by the toplevel to obtain residual goals after executing a query.
 \end{description}
+
+\subsection{Operations on terms with attributed variables}
+
+\begin{description}
+    \predicate{copy_term}{3}{+Term, -Copy, -Gs}
+Create a regular term \arg{Copy} as a copy of \arg{Term} (without
+any attributes), and a list \arg{Gs} of goals that represents the attributes.
+The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
+The nonterminal attribute_goals//1, as defined in the modules the
+attributes stem from, is used to convert attributes to lists of goals.
+
+This building block is used by the toplevel to report pending attributes
+in a portable and understandable fashion. This predicate is the
+preferred way to reason about and communicate terms with constraints.
+
+    \predicate{copy_term_nat}{2}{+Term, -Copy}
+As copy_term/2.  Attributes however, are \emph{not} copied but replaced
+by fresh variables.
+
+    \predicate{term_attvars}{2}{+Term, -AttVars}
+\arg{AttVars} is a list of all attributed variables in \arg{Term} and
+its attributes. I.e., term_attvars/2 works recursively through
+attributes. This predicate is Cycle-safe. The goal
+\term{term_attvars}{Term, []} in an efficient test that \arg{Term} has
+\emph{no} attributes. I.e., scanning the term is aborted after the first
+attributed variable is found.
+\end{description}
+
 
 \subsection{Special purpose predicates for attributes}
 
@@ -157,25 +244,6 @@ Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
 If \arg{Var} is an attributed variable, delete \emph{all} its
 attributes.  In all other cases, this predicate succeeds without
 side-effects.
-
-    \predicate{term_attvars}{2}{+Term, -AttVars}
-\arg{AttVars} is a list of all attributed variables in \arg{Term} and
-its attributes. I.e., term_attvars/2 works recursively through
-attributes.  This predicate is Cycle-safe.  It should be noted that
-\term{term_attvars}{Term, []} in an efficient test that \arg{Term}
-has \emph{no} attributes.  I.e., scanning the term is aborted after
-the first attributed variable is found.
-
-    \predicate{copy_term}{3}{+Term, -Copy, -Gs}
-Create a regular term \arg{Copy} as a copy of \arg{Term} (without
-any attributes), and a list \arg{Gs} of goals that represents the attributes.
-The goal maplist(call,\arg{Gs}) recreates the attributes for \arg{Copy}.
-The nonterminal attribute_goals//1, as defined in the modules the
-attributes stem from, is used to convert attributes to lists of goals.
-
-    \predicate{copy_term_nat}{2}{+Term, -Copy}
-As copy_term/2.  Attributes however, are \emph{not} copied but replaced
-by fresh variables.
 \end{description}
 
 

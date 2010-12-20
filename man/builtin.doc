@@ -3977,10 +3977,14 @@ is undone if backtracking brings the state back into a position before
 the setarg/3 call.  See also nb_setarg/3.
 
 This predicate may be used for destructive assignment to terms, using
-them as an extra-logical storage bin.  Always try hard to avoid the
-use of setarg/3 as it is not supported by many Prolog systems and one
-has to be very careful about unexpected copying as well as unexpected
-not copying of terms.
+them as an extra-logical storage bin. Always try hard to avoid the use
+of setarg/3 as it is not supported by many Prolog systems and one has to
+be very careful about unexpected copying as well as unexpected not
+copying of terms. A good practice to improve somewhat on this situation
+is to make sure that terms whose arguments are subject to setarg/3 have
+one unused and unshared variable in addition to the used arguments. This
+variable avoids unwanted sharing in e.g., copy_term/2 and causes the
+term to be considered as non-ground.
 
     \predicate{nb_setarg}{3}{+Arg, +Term, +Value}
 Assigns the \arg{Arg}-th argument of the compound term \arg{Term} with
