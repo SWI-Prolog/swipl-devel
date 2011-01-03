@@ -1823,15 +1823,15 @@ prolog_frame_attribute(term_t frame, term_t what,
 
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();
-    int argn;
+    size_t argn;
 
-    if ( !PL_get_arg_ex(1, what, arg) || !PL_get_integer_ex(arg, &argn) )
+    if ( !PL_get_arg_ex(1, what, arg) || !PL_get_size_ex(arg, &argn) )
       fail;
     if ( argn < 1 )
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, arg);
 
     if ( true(fr->predicate, FOREIGN) || !fr->clause )
-    { if ( argn > (int)fr->predicate->functor->arity )
+    { if ( argn > fr->predicate->functor->arity )
 	fail;
     } else
     { if ( argn > fr->clause->clause->prolog_vars )

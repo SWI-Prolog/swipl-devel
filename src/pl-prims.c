@@ -3483,6 +3483,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
     }
     default:
       assert(0);
+      return FALSE;
   }
 }
 

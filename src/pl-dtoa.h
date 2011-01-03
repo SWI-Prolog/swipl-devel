@@ -25,9 +25,11 @@
 #ifndef PL_DTOA_H_INCLUDED
 #define PL_DTOA_H_INCLUDED
 
+#define strtod PL_strtod		/* avoid library conflicts */
+
 COMMON(char *)	dtoa(double dd, int mode, int ndigits,
 		     int *decpt, int *sign, char **rve);
 COMMON(void)	freedtoa(char *s);
-COMMON(double)	strtod(const char *in, char **end);
+double		strtod(const char *in, char **end);
 
 #endif /*PL_DTOA_H_INCLUDED*/
