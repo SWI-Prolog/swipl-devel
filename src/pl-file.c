@@ -3653,9 +3653,10 @@ stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
 static int
 stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
 {  int fd;
-   int fd_flags;
 #ifdef __WINDOWS__
    DWORD Flags;
+#else
+   int fd_flags;
 #endif
 
    if ( (fd = Sfileno(s)) < 0)

@@ -681,13 +681,13 @@ format_float(double f, char *buf)
     o[end-s-decpt] = 0;
   } else				/* decimal dot after */
   { int i;
-    int trailing = decpt-(end-s);
+    int trailing = decpt-(int)(end-s);
 
     if ( decpt > 15 )			/* over precision: use eE */
     { *o++ = s[0];
       *o++ = '.';
       if ( end-s > 1 )
-      { trailing += end-s-1;
+      { trailing += (int)(end-s)-1;
 	memcpy(o, s+1, end-s-1);
 	o += end-s-1;
       } else
@@ -697,7 +697,7 @@ format_float(double f, char *buf)
     { memcpy(o, s, end-s);
       o += end-s;
 
-      for(i=end-s; i<decpt; i++)
+      for(i=(int)(end-s); i<decpt; i++)
 	*o++ = '0';
       *o++ = '.';
       *o++ = '0';
