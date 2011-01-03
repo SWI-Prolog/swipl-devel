@@ -1585,7 +1585,7 @@ again:
       }
       OK('\n');
     case 'e':
-      OK('\e');
+      OK(27);				/* 27 is ESC (\e is a gcc extension) */
     case 'f':
       OK('\f');
     case '\\':
