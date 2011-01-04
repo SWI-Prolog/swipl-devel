@@ -639,14 +639,14 @@ write_bindings(Bindings, Det) :-
 	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
 	factorize_bindings(Bindings1, Bindings2),
-	bind_vars(Bindings2),
-	filter_bindings(Bindings2, Bindings3),
-	write_bindings2(Bindings3, Residuals, Det).
+	bind_vars(Bindings2, Bindings3),
+	filter_bindings(Bindings3, Bindings4),
+	write_bindings2(Bindings4, Residuals, Det).
 write_bindings(Bindings, Det) :-
 	factorize_bindings(Bindings, Bindings1),
-	bind_vars(Bindings1),
-	filter_bindings(Bindings1, Bindings2),
-	write_bindings2(Bindings2, [], Det).
+	bind_vars(Bindings1, Bindings2),
+	filter_bindings(Bindings2, Bindings3),
+	write_bindings2(Bindings3, [], Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -709,19 +709,25 @@ omit_meta_qualifiers(when(Cond, QGoal), TypeIn, when(Cond, Goal)) :-
 omit_meta_qualifiers(G, _, G).
 
 
-%%	bind_vars(+Bindings)
+%%	bind_vars(+BindingsIn, -Bindings)
 %
 %	Bind variables to '$VAR'(Name), so they are printed by the names
 %	used in the query. Note that by   binding  in the reverse order,
 %	variables bound to one another come out in the natural order.
 
-bind_vars(List) :-
-	bind_query_vars(List, Names),
-	bind_skel_vars(List, Names, 1, _).
+bind_vars(Bindings0, Bindings) :-
+	bind_query_vars(Bindings0, Bindings, Names),
+	bind_skel_vars(Bindings, Names, 1, _).
 
-bind_query_vars([], []).
-bind_query_vars([binding(Name,Var,Skel)|T], [Name|Names]) :-
-	bind_query_vars(T, Names),
+bind_query_vars([], [], []).
+bind_query_vars([binding(Name,Var,[Var2=Cycle])|T0],
+		[binding(Name,Cycle,[])|T], [Name|Names]) :-
+	Var == Var2, !,
+	bind_query_vars(T0, T, Names),
+	Var = '$VAR'(Name).
+bind_query_vars([B|T0], [B|T], [Name|Names]) :-
+	B = binding(Name,Var,Skel),
+	bind_query_vars(T0, T, Names),
 	(   var(Var), \+ attvar(Var), Skel == []
 	->  Var = '$VAR'(Name)
 	;   true
