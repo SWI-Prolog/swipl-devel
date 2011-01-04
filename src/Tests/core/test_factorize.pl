@@ -34,6 +34,11 @@ ok(Id, G) :-
 	;   throw(failed(Id, G))
 	).
 
+fumo(0,fumo) :- !.
+fumo(N,[F|F]) :-
+        N1 is N-1,
+        fumo(N1,F).
+
 :- begin_tests(factorize, [sto(rational_trees)]).
 
 test(simple, true) :-
@@ -52,5 +57,7 @@ test(double_cyclic, true) :-
 	X = x(A,A), A = a(A), test_factor(X).
 test(double_cyclic, true) :-
 	A = a(A), X = x(b(A),A), test_factor(X).
+test(fumo, true) :-
+	fumo(20, X), test_factor(X).
 
 :- end_tests(factorize).

@@ -974,6 +974,27 @@ PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 		 *	     FACTORIZE		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Factorizing a term  based  on  the   internal  sharing.  This  takes the
+following steps:
+
+  1. scan_shared() walks the term and
+     a. Set MARK_MASK on all visited terms and FIRST_MASK on those find
+        twice.
+     b. Create a list Var=Term for all terms found twice.
+     c. Returns the count of places that must be shared.
+  2. reverse_factor_pointers() walks through the created list, placing
+     the functor in Var and creating a reference from the location of
+     the original functor.
+  3. link_shared() walks the term and
+     a. If the functor is a reference, follow the reference-chain to
+        find the functor.  Link the term into the reference-chain.
+     b. If the functor is marked, unmark it.
+  4. restore_shared_functors() finishes the job by following the
+     variable-list and putting all functors from the variable back
+     into the term and setting the variable to be a real variable.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 scan_shared(Word t, Word vart, size_t *count ARG_LD)
 { term_agenda agenda;
@@ -1051,11 +1072,6 @@ unscan_shared(Word t ARG_LD)
 }
 
 
-/* This routine places the functor of a shared term in the variable that
-   will replace the shared term and replaces the of the shared term with
-   a reference-pointer to this variable.
-*/
-
 static void
 reverse_factor_pointers(Word vars ARG_LD)
 { while(*vars != ATOM_nil)
@@ -1097,11 +1113,16 @@ link_shared(Word t, Word vars ARG_LD)
     { Functor f = valueTerm(*p);
       Word d = &f->definition;
 
-      if ( is_first(d) )		/* shared term */
+      if ( isRef(*d) )			/* shared term */
       { Word v;
 
 	v = unRef(*d & ~(FIRST_MASK|MARK_MASK));
 	deRef(v);
+
+	if ( is_marked(d) )
+	{ int arity = arityFunctor(*v);
+	  pushWorkAgenda(&agenda, arity, f->arguments);
+	}
 
 	if ( v < p )
 	{ TrailAssignment(p);
@@ -1111,9 +1132,7 @@ link_shared(Word t, Word vars ARG_LD)
 	  *p = *v;
 	  *v = makeRefG(p);
 	}
-      }
-
-      if ( is_marked(d) )
+      } else if ( is_marked(d) )
       { int arity;
 	word fun = f->definition & ~(FIRST_MASK|MARK_MASK);
 
@@ -1132,29 +1151,33 @@ link_shared(Word t, Word vars ARG_LD)
 static
 PRED_IMPL("$factorize_term", 2, factorize_term, 0)
 { PRED_LD
+  fid_t fid;
   term_t vars;
   Word t;
   size_t count;
   int rc;
 
   for(;;)
-  { mark m;
+  { fid = PL_open_foreign_frame();
 
-    Mark(m);
     vars = PL_new_term_ref();
     PL_put_nil(vars);
     t = valTermRef(A1);
 
+    SECURE(checkStacks(NULL));
     startCritical;
     switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
     { case TRUE:
-	if ( tTop + 2*count <= tMax )
+	if ( tTop + 2*count > tMax )
+	  rc = TRAIL_OVERFLOW;
+        else if ( gTop + count > gMax )
+	  rc = GLOBAL_OVERFLOW;
+        else
 	  break;
-        rc = TRAIL_OVERFLOW;
 	/*FALLTHROUGH*/
       default:
 	unscan_shared(t PASS_LD);
-        Undo(m);
+	PL_discard_foreign_frame(fid);
 	if ( !endCritical ||
 	     !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	  return FALSE;
@@ -1167,6 +1190,8 @@ PRED_IMPL("$factorize_term", 2, factorize_term, 0)
   reverse_factor_pointers(valTermRef(vars) PASS_LD);
   link_shared(t, valTermRef(vars) PASS_LD);
   restore_shared_functors(valTermRef(vars) PASS_LD);
+  PL_close_foreign_frame(fid);
+  SECURE(checkStacks(NULL));
 
   if ( !endCritical )
     return FALSE;
