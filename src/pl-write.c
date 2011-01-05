@@ -57,9 +57,12 @@ typedef struct
   visited *visited;			/* visited (attributed-) variables */
 } write_options;
 
-static bool	writeTerm2(term_t term, int prec, write_options *options, bool arg);
-static bool	writeTerm(term_t t, int prec, write_options *options);
-static bool	writeArgTerm(term_t t, int prec, write_options *options, bool arg);
+static bool	writeTerm2(term_t term, int prec,
+			   write_options *options, bool arg) WUNUSED;
+static bool	writeTerm(term_t t, int prec,
+			  write_options *options) WUNUSED;
+static bool	writeArgTerm(term_t t, int prec,
+			     write_options *options, bool arg) WUNUSED;
 
 static Word
 address_of(term_t t)
@@ -886,7 +889,7 @@ pl_nl()
 Call user:portray/1 if defined.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 callPortray(term_t arg, write_options *options)
 { predicate_t portray;
 
@@ -904,7 +907,10 @@ callPortray(term_t arg, write_options *options)
     if ( !saveWakeup(&wstate, TRUE PASS_LD) )
       return FALSE;
     Scurout = options->out;
-    rval = PL_call_predicate(NULL, PL_Q_NODEBUG, portray, arg);
+    rval = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
+			     portray, arg);
+    if ( !rval && PL_exception(0) )
+      rval = -1;
     Scurout = old;
     restoreWakeup(&wstate PASS_LD);
 
@@ -1027,9 +1033,16 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   IOSTREAM *out = options->out;
 
   if ( !PL_is_variable(t) &&
-       true(options, PL_WRT_PORTRAY) &&
-       callPortray(t, options) )
-    succeed;
+       true(options, PL_WRT_PORTRAY) )
+  { switch( callPortray(t, options) )
+    { case TRUE:
+	return TRUE;
+      case FALSE:
+	break;
+      default:
+	return FALSE;
+    }
+  }
 
   if ( PL_get_atom(t, &a) )
   { if ( !arg && prec < 1200 && priorityOperator(NULL, a) > 0 )
@@ -1252,6 +1265,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool partial    = FALSE;
   IOSTREAM *s;
   write_options options;
+  int rc;
 
   memset(&options, 0, sizeof(options));
   options.spacing = ATOM_standard;
@@ -1320,13 +1334,13 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     PutOpenToken(EOF, s);		/* reset this */
   if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
   { s->flags |= SIO_REPPL;
-    writeTerm(term, priority, &options);
+    rc = writeTerm(term, priority, &options);
     s->flags &= ~SIO_REPPL;
   } else
-  { writeTerm(term, priority, &options);
+  { rc = writeTerm(term, priority, &options);
   }
 
-  return streamStatus(s);
+  return streamStatus(s) && rc;
 }
 
 
@@ -1357,6 +1371,7 @@ do_write2(term_t stream, term_t term, int flags)
 
   if ( getOutputStream(stream, &s) )
   { write_options options;
+    int rc;
 
     memset(&options, 0, sizeof(options));
     options.flags     = flags;
@@ -1368,12 +1383,12 @@ do_write2(term_t stream, term_t term, int flags)
       options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
-    writeTerm(term, 1200, &options);
+    rc = writeTerm(term, 1200, &options);
 
-    return streamStatus(s);
+    return streamStatus(s) && rc;
   }
 
-  fail;
+  return FALSE;
 }
 
 
