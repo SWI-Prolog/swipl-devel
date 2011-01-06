@@ -5,7 +5,7 @@
     Author:        Markus Triska
     E-mail:        triska@gmx.at
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2007-2010 Markus Triska
+    Copyright (C): 2007-2011 Markus Triska
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -563,7 +563,7 @@ cis_slash_(sup, _, n(0)).
 cis_slash_(inf, _, n(0)).
 cis_slash_(n(B), A, n(S)) :- S is A // B.
 
-
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    A domain is a finite set of disjoint intervals. Internally, domains
    are represented as trees. Each node is one of:
@@ -651,19 +651,11 @@ domain_direction_element(split(_, D1, D2), Dir, E) :-
    Test whether domain contains a given integer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contains(from_to(From,To), I) :-
-        domain_contains_from(From, I),
-        domain_contains_to(To, I).
+domain_contains(from_to(From,To), I) :- From cis_leq n(I), n(I) cis_leq To.
 domain_contains(split(S, Left, Right), I) :-
         (   I < S -> domain_contains(Left, I)
         ;   I > S -> domain_contains(Right, I)
         ).
-
-domain_contains_from(inf, _).
-domain_contains_from(n(L), I) :- L =< I.
-
-domain_contains_to(sup, _).
-domain_contains_to(n(U), I) :- I =< U.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Test whether a domain contains another domain.
@@ -1043,7 +1035,7 @@ intervals_to_domain(Is, D) :-
         D = split(Hole, Left, Right).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 
 %% ?Var in +Domain
 %
@@ -1786,7 +1778,7 @@ remove_lower([C*X|CXs], Min) :-
         remove_lower(CXs, Min).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Constraint propagation proceeds as follows: Each CLP(FD) variable
    has an attribute that stores its associated domain and constraints.
@@ -2723,7 +2715,7 @@ skeleton(Vs, Vs-Prop) :-
    A drep is a user-accessible and visible domain representation. N,
    N..M, and D1 \/ D2 are dreps, if D1 and D2 are dreps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+
 is_drep(V)      :- var(V), !, instantiation_error(V).
 is_drep(N)      :- integer(N), !.
 is_drep(N..M)   :- !, drep_bound(N), drep_bound(M), N \== sup, M \== inf.
@@ -3122,7 +3114,7 @@ lex_le([V1|V1s], [V2|V2s]) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 
 %% tuples_in(+Tuples, +Relation).
 %
@@ -3225,7 +3217,7 @@ all_in_domain([A|As], [T|Ts]) :-
         all_in_domain(As, Ts).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 % trivial propagator, used only to remember pending constraints
 run_propagator(presidual(_), _).
 
@@ -4006,7 +3998,7 @@ run_propagator(pzcompare(Order, A, B), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+
 % reified constraints
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
