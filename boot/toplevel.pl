@@ -722,9 +722,9 @@ bind_vars(Bindings0, Bindings) :-
 bind_query_vars([], [], []).
 bind_query_vars([binding(Name,Var,[Var2=Cycle])|T0],
 		[binding(Name,Cycle,[])|T], [Name|Names]) :-
-	Var == Var2, !,
-	bind_query_vars(T0, T, Names),
-	Var = '$VAR'(Name).
+	Var == Var2, !,			% also implies var(Var)
+	Var = '$VAR'(Name),
+	bind_query_vars(T0, T, Names).
 bind_query_vars([B|T0], [B|T], [Name|Names]) :-
 	B = binding(Name,Var,Skel),
 	bind_query_vars(T0, T, Names),
