@@ -1689,6 +1689,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       { if ( !(rl = GD->recorded_db.head) )
 	  fail;
 	varkey = TRUE;
+      } else
+      { fail;
       }
       LOCK();
       rl->references++;
