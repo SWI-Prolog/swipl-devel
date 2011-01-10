@@ -1693,9 +1693,10 @@ PRED_IMPL("\\==", 2, nonequal, 0)
 The  idea  for  this  predicate  is  taken  from  the  usenet   network.
 Unfortunately I can't recall the author of the note.
 
-Structural equivalency is stronger then unifiable (=), but  weaker  then
-pure equivalence (==). Two terms are structural equivalent if their tree
-representation is equivalent. Examples:
+Structural equivalency, also known under the  name 'variant' is stronger
+then unifiable (=), but weaker then pure equivalence (==). Two terms are
+structural  equivalent  if  their  tree  representation  is  equivalent.
+Examples:
 
   a =@= A			--> false
   A =@= B			--> true
@@ -1704,8 +1705,8 @@ representation is equivalent. Examples:
 
 The approach is to walk both terms   while  numbering variables. If both
 terms get out-of-sync or the variable  labeling   gets  out  of sync, we
-fail. One problem is variables tht are shared between the terms. We deal
-with this as follows:
+fail. One problem is variables that are shared between the terms. We
+deal with this as follows:
 
     * If we find two unmarked variables
 	- If not shared, number left -2,-4,-6,... and right 2,4,6,...
