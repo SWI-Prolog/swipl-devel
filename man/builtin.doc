@@ -4714,12 +4714,11 @@ On most today platforms these are 64-bit IEEE floating point numbers.
 \end{itemlist}
 
 Arithmetic functions that require integer arguments accept, in addition
-to integers, rational numbers with denominator `1' and floating point
-numbers that can be accurately converted to integers.  If the required
-argument is a float the argument is converted to float.  Note that
-conversion of integers to floating point numbers may raise an overflow
-exception.  In all other cases, arguments are converted to the same
-type using the order below.
+to integers, rational numbers with (canonical) denominator `1'. If the
+required argument is a float the argument is converted to float. Note
+that conversion of integers to floating point numbers may raise an
+overflow exception. In all other cases, arguments are converted to the
+same type using the order below.
 
 \begin{quote}
 integer $\rightarrow$ rational number $\rightarrow$ floating point number
@@ -4766,14 +4765,8 @@ A = 17 rdiv 6
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
-predicates described in \secref{arithpreds}. SWI-Prolog tries to hide
-the difference between integer arithmetic and floating point arithmetic
-from the Prolog user. Arithmetic is done as integer arithmetic as long
-as possible and converted to floating point arithmetic whenever one of
-the arguments or the combination of them requires it. If a function
-returns a floating point value which is whole it is automatically
-transformed into an integer. There are four types of arguments to
-functions:
+predicates described in \secref{arithpreds}. There are four types of
+arguments to functions:
 
 \begin{center}\begin{tabular}{lp{4in}}
 \arg{Expr}	& Arbitrary expression, returning either a floating
