@@ -3176,11 +3176,16 @@ unifyVar(Word var, term_t vars, size_t i ARG_LD)
   v = valTermRef(vars+i);
   deRef(v);
   deRef(var);
-  assert(isVar(*v) && isVar(*var));	/* is this true? */
-  if ( v < var )
-  { Trail(var, makeRef(v));
+  if ( isVar(*v) && isVar(*var) )
+  { if ( v < var )
+    { Trail(var, makeRef(v));
+    } else
+    { Trail(v, makeRef(var));
+    }
+  } else if ( isVar(*var) )		/* retract called with bounded var */
+  { Trail(var, *v);
   } else
-  { Trail(v, makeRef(var));
+  { assert(0);
   }
 
   return TRUE;
