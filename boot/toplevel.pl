@@ -351,6 +351,7 @@ initialise_prolog :-
 	create_prolog_flag(toplevel_print_options, PrintOptions, []),
 	create_prolog_flag(prompt_alternatives_on, determinism, []),
 	create_prolog_flag(toplevel_extra_white_line, true, []),
+	create_prolog_flag(toplevel_print_factorized, false, []),
 	'$set_debugger_print_options'(print),
 	'$run_initialization',
 	'$load_system_init_file',
@@ -717,7 +718,7 @@ omit_meta_qualifiers(G, _, G).
 
 bind_vars(Bindings0, Bindings) :-
 	bind_query_vars(Bindings0, Bindings, Names),
-	bind_skel_vars(Bindings, Names, 1, _).
+	bind_skel_vars(Bindings, Bindings, Names, 1, _).
 
 bind_query_vars([], [], []).
 bind_query_vars([binding(Name,Var,[Var2=Cycle])|T0],
@@ -733,22 +734,44 @@ bind_query_vars([B|T0], [B|T], [Name|Names]) :-
 	;   true
 	).
 
-bind_skel_vars([], _, N, N).
-bind_skel_vars([binding(_,_,Skel)|T], Names, N0, N) :-
-	bind_one_skel_vars(Skel, Names, N0, N1),
-	bind_skel_vars(T, Names, N1, N).
+bind_skel_vars([], _, _, N, N).
+bind_skel_vars([binding(_,_,Skel)|T], Bindings, Names, N0, N) :-
+	bind_one_skel_vars(Skel, Bindings, Names, N0, N1),
+	bind_skel_vars(T, Bindings, Names, N1, N).
 
-bind_one_skel_vars([], _, N, N).
-bind_one_skel_vars([Var=_|T], Names, N0, N) :-
+%%	bind_one_skel_vars(+Subst, +Bindings, +VarName, +N0, -N)
+%
+%	Give names to the factorized variables that   do not have a name
+%	yet. This introduces names  _S<N>,   avoiding  duplicates.  If a
+%	factorized variable shares with another binding, use the name of
+%	that variable.
+%
+%	@tbd	Consider the call below. We could remove either of the
+%		A = x(1).  Which is best?
+%
+%		==
+%		?- A = x(1), B = a(A,A).
+%		A = x(1),
+%		B = a(A, A), % where
+%		    A = x(1).
+%		==
+
+bind_one_skel_vars([], _, _, N, N).
+bind_one_skel_vars([Var=Value|T], Bindings, Names, N0, N) :-
 	(   var(Var)
-	->  between(N0, infinite, N1),
-	    atom_concat('_S', N1, Name),
-	    \+ memberchk(Name, Names), !,
-	    Var = '$VAR'(Name),
-	    N2 is N1 + 1
+	->  (	'$member'(binding(VName, VVal, []), Bindings),
+	        same_term(Value, VVal)
+	    ->	Var = '$VAR'(VName),
+		N2 = N0
+	    ;	between(N0, infinite, N1),
+	        atom_concat('_S', N1, Name),
+		\+ memberchk(Name, Names), !,
+		Var = '$VAR'(Name),
+		N2 is N1 + 1
+	    )
 	;   N2 = N0
 	),
-	bind_one_skel_vars(T, Names, N2, N).
+	bind_one_skel_vars(T, Bindings, Names, N2, N).
 
 
 %%	factorize_bindings(+Bindings0, -Factorized)
@@ -758,9 +781,24 @@ bind_one_skel_vars([Var=_|T], Names, N0, N) :-
 factorize_bindings([], []).
 factorize_bindings([Name=Value|T0], [binding(Name, Skel, Subst)|T]) :-
 	F = f(Value),
-	'$factorize_term'(F, Subst),
+	'$factorize_term'(F, Subst0),
+	(   current_prolog_flag(toplevel_print_factorized, true)
+	->  Subst = Subst0
+	;   only_cycles(Subst0, Subst)
+	),
 	arg(1, F, Skel),
 	factorize_bindings(T0, T).
+
+
+only_cycles([], []).
+only_cycles([B|T0], List) :-
+	(   B = (Var=Value),
+	    Var = Value,
+	    acyclic_term(Var)
+	->  only_cycles(T0, List)
+	;   List = [B|T],
+	    only_cycles(T0, T)
+	).
 
 
 %%	filter_bindings(+Bindings0, -Bindings)
