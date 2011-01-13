@@ -71,8 +71,7 @@ terms are the same.
 
 Of course functor_t must be different from ref. Overwritten functors are
 collected in a stack and  reset   regardless  of whether the unification
-succeeded or failed. In SWI-Prolog we use   the  argument stack for this
-purpose.
+succeeded or failed.
 
 Initial measurements show a performance degradation for deep unification
 of approx. 30%. On the other hand,  if subterms appear multiple times in
