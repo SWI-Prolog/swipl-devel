@@ -73,6 +73,19 @@ Of course functor_t must be different from ref. Overwritten functors are
 collected in a stack and  reset   regardless  of whether the unification
 succeeded or failed.
 
+Note that we need to  dereference  the   functors  both  left and right.
+References at the right are rare, but possible. The trick is to use both
+sharing and cycles, where the cycles at the left are shorter:
+
+t :-
+	X = s(X),       Y = y(X,X),
+	A = s(s(s(A))), B = y(A,A),
+	Y = B.
+
+While unifying the first argument of y/2, the left-walker crosses to the
+right after the first cycle  and  creates   references  in  A, which are
+processed by the right-walker when entering the second argumet of y/2.
+
 Initial measurements show a performance degradation for deep unification
 of approx. 30%. On the other hand,  if subterms appear multiple times in
 a term unification can be much faster. As only a small percentage of the
