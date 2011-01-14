@@ -162,7 +162,7 @@ become finite. A finite domain _expression_ is one of:
     | Expr ^ Expr        | Exponentiation                |
     | min(Expr,Expr)     | Minimum of two expressions    |
     | max(Expr,Expr)     | Maximum of two expressions    |
-    | Expr mod Expr      | Remainder of integer division |
+    | Expr mod Expr      | Modulo                        |
     | abs(Expr)          | Absolute value                |
     | Expr / Expr        | Integer division              |
 
@@ -1865,6 +1865,7 @@ parse_clpfd(E, R,
              m(max(A,B))       => [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
              m(min(A,B))       => [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
              m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
+             m(rem(A,B))       => [g(R #= A - (A/B)*B)],
              m(abs(A))         => [g(R #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
