@@ -1414,11 +1414,11 @@ compareAtoms(atom_t w1, atom_t w2)
   { if ( a1->type->compare )
     { return (*a1->type->compare)(w1, w2);
     } else
-    { size_t l   = (a1->length <= a2->length ? a1->length : a2->length);
+    { size_t l = (a1->length <= a2->length ? a1->length : a2->length);
       int v;
 
       if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
-	return v;
+	return v < 0 ? CMP_LESS : CMP_GREATER;
       return a1->length == a2->length ? CMP_EQUAL :
 	     a1->length < a2->length ? CMP_LESS : CMP_GREATER;
     }
