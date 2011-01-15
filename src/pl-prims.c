@@ -397,7 +397,7 @@ unify_ptrs(Word t1, Word t2, int flags ARG_LD)
     { DiscardMark(m);
       return rc;
     } else if ( likely(rc == FALSE) )	/* Terms did not unify */
-    { if ( unlikely(!exception_term) )	/* Check for occurs error */
+    { if ( likely(!exception_term) )	/* Check for occurs error */
 	Undo(m);
       DiscardMark(m);
       return rc;
