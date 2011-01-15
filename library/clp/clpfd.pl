@@ -1865,7 +1865,7 @@ parse_clpfd(E, R,
              m(max(A,B))       => [g(A #=< R), g(B #=< R), p(pmax(A, B, R))],
              m(min(A,B))       => [g(A #>= R), g(B #>= R), p(pmin(A, B, R))],
              m(mod(A,B))       => [g(B #\= 0), p(pmod(A, B, R))],
-             m(rem(A,B))       => [g(R #= A - (A/B)*B)],
+             m(rem(A,B))       => [g(B #\= 0), p(prem(A, B, R))],
              m(abs(A))         => [g(R #>= 0), p(pabs(A, R))],
              m(A/B)            => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
@@ -3789,7 +3789,6 @@ run_propagator(pmod(X,M,K), MState) :-
             (   abs(M) =:= 1 -> kill(MState), K = 0
             ;   fd_get(K, KD, KPs) ->
                 MP is abs(M) - 1,
-                fd_get(K, KD, KPs),
                 (   M > 0 -> KDN = from_to(n(0), n(MP))
                 ;   MN is -MP, KDN = from_to(n(MN), n(0))
                 ),
@@ -3811,14 +3810,62 @@ run_propagator(pmod(X,M,K), MState) :-
                 )
             ;   fd_get(X, XD, _),
                 % if possible, propagate at the boundaries
-                (   nonvar(K), domain_infimum(XD, n(Min)) ->
+                (   domain_infimum(XD, n(Min)) ->
                     (   Min mod M =:= K -> true
                     ;   neq_num(X, Min)
                     )
                 ;   true
                 ),
-                (   nonvar(K), domain_supremum(XD, n(Max)) ->
+                (   domain_supremum(XD, n(Max)) ->
                     (   Max mod M =:= K -> true
+                    ;   neq_num(X, Max)
+                    )
+                ;   true
+                )
+            )
+        ;   true % TODO: propagate more
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Z = X rem Y
+
+run_propagator(prem(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X rem Y
+            ;   true
+            )
+        ;   nonvar(Y) ->
+            Y =\= 0,
+            (   abs(Y) =:= 1 -> kill(MState), Z = 0
+            ;   fd_get(Z, ZD, ZPs) ->
+                YP is abs(Y) - 1,
+                YN is -YP,
+                domains_intersection(ZD, from_to(n(YN), n(YP)), ZD1),
+                fd_put(Z, ZD1, ZPs),
+                (   fd_get(X, XD, _), domain_infimum(XD, n(Min)) ->
+                    Z1 is Min rem Y,
+                    (   domain_contains(ZD1, Z1) -> true
+                    ;   neq_num(X, Min)
+                    )
+                ;   true
+                ),
+                (   fd_get(X, XD1, _), domain_supremum(XD1, n(Max)) ->
+                    Z2 is Max rem Y,
+                    (   domain_contains(ZD1, Z2) -> true
+                    ;   neq_num(X, Max)
+                    )
+                ;   true
+                )
+            ;   fd_get(X, XD, _),
+                % if possible, propagate at the boundaries
+                (   domain_infimum(XD, n(Min)) ->
+                    (   Min rem Y =:= Z -> true
+                    ;   neq_num(X, Min)
+                    )
+                ;   true
+                ),
+                (   domain_supremum(XD, n(Max)) ->
+                    (   Max rem Y =:= Z -> true
                     ;   neq_num(X, Max)
                     )
                 ;   true
@@ -5851,6 +5898,7 @@ attribute_goal_(pdiv(X,Y,Z))           --> [X/Y #= Z].
 attribute_goal_(pexp(X,Y,Z))           --> [X^Y #= Z].
 attribute_goal_(pabs(X,Y))             --> [Y #= abs(X)].
 attribute_goal_(pmod(X,M,K))           --> [X mod M #= K].
+attribute_goal_(prem(X,Y,Z))           --> [X rem Y #= Z].
 attribute_goal_(pmax(X,Y,Z))           --> [Z #= max(X,Y)].
 attribute_goal_(pmin(X,Y,Z))           --> [Z #= min(X,Y)].
 attribute_goal_(scalar_product_neq([FC|Cs],[FV|Vs],C)) -->
