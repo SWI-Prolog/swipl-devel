@@ -1223,6 +1223,7 @@ B_EQ_VV: translation of	Var1 == Var2
 VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
+  int rc;
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
@@ -1237,8 +1238,10 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   }
 #endif
 
-  if ( compareStandard(v1, v2, TRUE PASS_LD) == 0 )
+  if ( (rc=compareStandard(v1, v2, TRUE PASS_LD)) == 0 )
     NEXT_INSTRUCTION;
+  if ( rc == CMP_ERROR )
+    THROW_EXCEPTION;
 
   BODY_FAILED;
 }

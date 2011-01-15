@@ -1072,12 +1072,12 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 
   if ( l > (ssize_t)(t1->length - o1) )
   { l = t1->length - o1;
-    ifeq = -1;				/* first is short */
+    ifeq = CMP_LESS;				/* first is short */
   }
   if ( l > (ssize_t)(t2->length - o2) )
   { l = t2->length - o2;
     if ( ifeq == 0 )
-      ifeq = 1;
+      ifeq = CMP_GREATER;
   }
 
   if ( l == 0 )				/* too long offsets */
@@ -1092,7 +1092,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
     if ( l < 0 )
       return ifeq;
     else
-      return *s > *q ? 1 : -1;
+      return *s > *q ? CMP_GREATER : CMP_LESS;
   } else if ( t1->encoding == ENC_WCHAR && t2->encoding == ENC_WCHAR )
   { const pl_wchar_t *s = t1->text.w+o1;
     const pl_wchar_t *q = t2->text.w+o2;
@@ -1102,7 +1102,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
     if ( l < 0 )
       return ifeq;
     else
-      return *s > *q ? 1 : -1;
+      return *s > *q ? CMP_GREATER : CMP_LESS;
   } else if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_WCHAR )
   { const unsigned char *s = (const unsigned char *)t1->text.t+o1;
     const pl_wchar_t *q = t2->text.w+o2;
@@ -1112,7 +1112,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
     if ( l < 0 )
       return ifeq;
     else
-      return *s > *q ? 1 : -1;
+      return *s > *q ? CMP_GREATER : CMP_LESS;
   } else
   { const pl_wchar_t *s = t1->text.w+o1;
     const unsigned char *q = (const unsigned char *)t2->text.t+o2;
@@ -1122,7 +1122,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
     if ( l < 0 )
       return ifeq;
     else
-      return *s > *q ? 1 : -1;
+      return *s > *q ? CMP_GREATER : CMP_LESS;
   }
 }
 

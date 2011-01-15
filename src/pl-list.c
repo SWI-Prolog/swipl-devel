@@ -174,6 +174,7 @@ typedef struct
   Word key;
 } ITEM;
 
+					/* TBD: handle CMP_ERROR */
 #ifndef COMPARE
 #define COMPARE(x,y) compareStandard((x)->term, (y)->term, FALSE PASS_LD)
 #endif

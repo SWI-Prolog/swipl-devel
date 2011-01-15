@@ -1624,6 +1624,18 @@ typedef struct
 #define PL_EV_THREADFINISHED 8		/* A thread has finished */
 
 
+		 /*******************************
+		 *	       COMPARE		*
+		 *******************************/
+
+/* Results from comparison operations.  Mostly used by compareStandard() */
+
+#define CMP_ERROR  -2			/* Error (out of memory) */
+#define CMP_LESS   -1			/* < */
+#define CMP_EQUAL   0			/* == */
+#define CMP_GREATER 1			/* > */
+#define CMP_NOTEQ   2			/* \== */
+
 		/********************************
 		*             STACKS            *
 		*********************************/

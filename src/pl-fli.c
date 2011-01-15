@@ -783,7 +783,7 @@ PL_cvt_o_address(void *address, term_t p)
 		 *	      COMPARE		*
 		 *******************************/
 
-int
+int					/* TBD: how to report error? */
 PL_compare(term_t t1, term_t t2)
 { GET_LD
   Word p1 = valHandleP(t1);
