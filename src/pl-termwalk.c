@@ -209,7 +209,7 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 #endif /*AC_TERM_WALK*/
 
 
-#if 0
+#if AC_TERM_WALK_LR
 
 		 /*******************************
 		 *    OPERATIONS ON TWO TERMS	*
@@ -219,7 +219,7 @@ typedef struct aNodeLR
 { Word		left;			/* left term */
   Word		right;			/* right term */
   size_t 	size;
-} aNode;
+} aNodeLR;
 
 typedef struct term_agendaLR
 { aNodeLR	work;			/* current work */
@@ -230,7 +230,7 @@ typedef struct term_agendaLR
 
 static void
 initTermAgendaLR(term_agendaLR *a, Word left, Word right)
-{ initSegStack(&a->stack, sizeof(aNode),
+{ initSegStack(&a->stack, sizeof(aNodeLR),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.left  = left;
   a->work.right = right;
@@ -244,8 +244,11 @@ clearTermAgendaLR(term_agendaLR *a)
 }
 
 
+#define nextTermAgendaLR(a, lp, rp) \
+	nextTermAgendaLR__LD(a, lp, rp PASS_LD)
+
 static int
-nextTermAgendaLR(term_agendaLR *a, Word *lp, Word *rp)
+nextTermAgendaLR__LD(term_agendaLR *a, Word *lp, Word *rp ARG_LD)
 { Word p;
 
   while ( a->work.size == 0 )
@@ -254,8 +257,8 @@ nextTermAgendaLR(term_agendaLR *a, Word *lp, Word *rp)
   }
   a->work.size--;
 
-  *lp = a->work.left++;
-  *rp = a->work.right++;
+  deRef2(a->work.left++, p); *lp = p;
+  deRef2(a->work.right++,p); *rp = p;
 
   return TRUE;
 }
@@ -274,4 +277,86 @@ pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
   return TRUE;
 }
 
-#endif
+#endif /*AC_TERM_WALK_LR*/
+
+#if AC_TERM_WALK_VARIANT
+
+		 /*******************************
+		 *    WALKING FOR VARIANT/2	*
+		 *******************************/
+
+typedef struct aNodeVARIANT
+{ Word		left;			/* left term */
+  Word		right;			/* right term */
+  Word		c_left;			/* cyclic left term */
+  Word		c_right;		/* cyclic right term */
+  size_t 	size;
+} aNodeVARIANT;
+
+typedef struct term_agendaVARIANT
+{ aNodeVARIANT	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[256];
+} term_agendaVARIANT;
+
+
+static void
+initTermAgendaVARIANT(term_agendaVARIANT *a, Word left, Word right)
+{ initSegStack(&a->stack, sizeof(aNodeVARIANT),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.left    = left;
+  a->work.right   = right;
+  a->work.c_left  = left;
+  a->work.c_right = right;
+  a->work.size    = 1;
+}
+
+
+static void
+clearTermAgendaVARIANT(term_agendaVARIANT *a)
+{ clearSegStack(&a->stack);
+}
+
+
+#define nextTermAgendaVARIANT(a, lp, rp, clp, crp) \
+	nextTermAgendaVARIANT__LD(a, lp, rp, clp, crp PASS_LD)
+
+static int
+nextTermAgendaVARIANT__LD(term_agendaVARIANT *a,
+			  Word *lp, Word *rp,
+			  Word *clp, Word *crp
+			  ARG_LD)
+{ Word p;
+
+  while ( a->work.size == 0 )
+  { if ( !popSegStack(&a->stack, &a->work) )
+      return FALSE;
+  }
+  a->work.size--;
+
+  deRef2(a->work.left++,    p); *lp = p;
+  deRef2(a->work.right++,   p); *rp = p;
+  deRef2(a->work.c_left++,  p); *clp = p;
+  deRef2(a->work.c_right++, p); *crp = p;
+
+  return TRUE;
+}
+
+
+static int
+pushWorkAgendaVARIANT(term_agendaVARIANT *a, size_t amount,
+		      Word left, Word right, Word c_left, Word c_right)
+{ if ( a->work.size > 0 )
+  { if ( !pushSegStack(&a->stack, &a->work) )
+      return FALSE;
+  }
+  a->work.left    = left;
+  a->work.right   = right;
+  a->work.c_left  = c_left;
+  a->work.c_right = c_right;
+  a->work.size    = amount;
+
+  return TRUE;
+}
+
+#endif /*AC_TERM_WALK_VARIANT*/

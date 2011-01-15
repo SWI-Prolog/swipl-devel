@@ -1204,11 +1204,12 @@ thus fails. Note that the behaviour of unification through
 changed using the Prolog flag \prologflag{occurs_check}.
 
     \infixop{=@=}{+Term1}{+Term2}
-True if \arg{Term1} is `structurally equal' to \arg{Term2}.
-Structural equivalence is weaker than equivalence (\predref{==}{2}), but
-stronger than unification (\predref{=}{2}). Two terms are structurally
-equal if their tree representation is identical and they have the same
-`pattern' of variables. Examples:
+\index{variant}%
+True if \arg{Term1} is a \jargon{variant} of (or \jargon{structurally
+equal} to) \arg{Term2}. Testing for a variant is weaker than equivalence
+(\predref{==}{2}), but stronger than unification (\predref{=}{2}). Two
+terms are structurally equal if their tree representation is identical
+and they have the same `pattern' of variables. Examples:
 
 \begin{quote}
 \begin{tabular}{rclc}
@@ -1220,27 +1221,35 @@ equal if their tree representation is identical and they have the same
 \end{tabular}
 \end{quote}
 
-Note that a term is always structurally equivalent to a copy of it. Term
-copying takes place in e.g., copy_term/2, findall/3 or proving a clause
-added with assert/1.  In the pure Prolog world (i,e,, without attributed
-variables), \predref{=@=}{2} behaves as if defined by the code below.
-With attributed variables, structural equivalence of the attributes is
-tested rather than trying to satisfy the constraints.
+Note that a term is always a variant of a copy of itself. Term copying
+takes place in e.g., copy_term/2, findall/3 or proving a clause added
+with assert/1. In the pure Prolog world (i.e., without attributed
+variables), \predref{=@=}{2} behaves as if defined by one of the
+definitions given below. With attributed variables, structural
+equivalence of the attributes is tested rather than trying to satisfy
+the constraints.
 
 \begin{code}
-A =@= B :-
+A =@= B :-				% definition I
 	subsumes_chk(A, B),
 	subsumes_chk(B, A).
+
+A =@= B :-				% definition II
+	copy_term(A, Ac),
+	copy_term(B, Bc),
+	numbervars(Ac, 0, N),
+	numbervars(Bc, 0, N),
+	Ac == Bc.
 \end{code}
 
-This predicate safely handles cyclic terms. A cyclic term is
-structurally equivalent to itself.
+The SWI-Prolog implementation is cycle-safe and can deal with variables
+that are shared between the left and right argument. Terms with sharing
+variables are still considered variants of the sharing variables appear
+at the same location in both terms.
 
-\index{variant, term comparison}%
-The predicates \predref{=@=}{2} and \predref{\=@=}{2} are cycle-safe.
-Attributed variables are considered structurally equal iff their
-attributes are structurally equal.  This predicate is known by the
-name \predref{variant}{2} in some other Prolog systems.
+This predicate is known by the name \predref{variant}{2} in some other
+Prolog systems. Be aware of possible differences in semantics if the
+arguments contain attributed variables or share variables.
 
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.

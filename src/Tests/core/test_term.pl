@@ -93,9 +93,28 @@ test(shared, fail) :-
 test(shared, fail) :-
 	v(A),
 	a(A, B) =@= a(B, B).
+test(common, true) :-			% Bug #464
+	A=x(_),
+	s(A, A) =@= s(x(B), x(B)).
+test(common, fail) :-
+	X = x(A), v(B),
+	a(X,A) =@= a(X,B).
 test(cyclic, [sto(rational_trees)]) :-
 	A = f(A),
 	A =@= f(A).
+test(cyclic, [fail, sto(rational_trees)]) :-
+	S = s(S),
+	S =@= s(s(s(s(1)))).
+test(cyclic, [sto(rational_trees)]) :-
+	S = s(s(S)), X = s(s(s(X))),
+	S =@= X.
+test(cyclic, [sto(rational_trees)]) :-
+	S = s(x(S)), X = s(x(s(x(X)))),
+	S =@= X.
+test(shared, fail) :-
+	v(A), v(B),
+	X = x(A), Y = x(B),
+	s(X,Y,X) =@= s(X,Y,Y).
 
 v(_).
 
