@@ -3823,6 +3823,7 @@ run_propagator(pmod(X,M,K), MState) :-
                 ;   true
                 )
             )
+        ;   X == M -> kill(MState), K = 0
         ;   true % TODO: propagate more
         ).
 
@@ -3871,6 +3872,7 @@ run_propagator(prem(X,Y,Z), MState) :-
                 ;   true
                 )
             )
+        ;   X == Y -> kill(MState), Z = 0
         ;   true % TODO: propagate more
         ).
 
