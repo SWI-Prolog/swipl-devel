@@ -3734,7 +3734,7 @@ run_propagator(pdiv(X,Y,Z), MState) :-
                 NXL = XL, NXU = XU
             ),
             update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
-        ;   (   X == Y -> Z = 1
+        ;   (   X == Y -> kill(MState), Z = 1
             ;   fd_get(X, _, XL, XU, _),
                 fd_get(Y, _, YL, YU, _),
                 fd_get(Z, ZD, ZPs),
@@ -3873,6 +3873,17 @@ run_propagator(prem(X,Y,Z), MState) :-
                 )
             )
         ;   X == Y -> kill(MState), Z = 0
+        ;   fd_get(Z, ZD, ZPs) ->
+            fd_get(Y, _, YInf, YSup, _),
+            fd_get(X, _, XInf, XSup, _),
+            M cis max(abs(YInf),YSup),
+            (   XInf cis_geq n(0) -> Inf0 = n(0)
+            ;   Inf0 = XInf
+            ),
+            NInf cis max(max(Inf0, -M + n(1)), min(XInf,-XSup)),
+            NSup cis min(M - n(1), max(abs(XInf),XSup)),
+            domains_intersection(ZD, from_to(NInf,NSup), ZD1),
+            fd_put(Z, ZD1, ZPs)
         ;   true % TODO: propagate more
         ).
 
