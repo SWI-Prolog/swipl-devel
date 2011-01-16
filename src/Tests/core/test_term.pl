@@ -99,6 +99,9 @@ test(common, true) :-			% Bug #464
 test(common, fail) :-
 	X = x(A), v(B),
 	a(X,A) =@= a(X,B).
+test(common, fail) :-
+	X = x(A), v(B),
+	a(A,X) =@= a(B,X).
 test(cyclic, [sto(rational_trees)]) :-
 	A = f(A),
 	A =@= f(A).

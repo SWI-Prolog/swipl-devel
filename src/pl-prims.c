@@ -1782,9 +1782,10 @@ typedef struct
 #define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR)
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
-static void
+static int
 number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
 { term_agenda agenda;
+  int rc = TRUE;
 
   initvisited(PASS_LD1);
   initTermAgenda(&agenda, p);
@@ -1794,13 +1795,20 @@ number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
 
     switch(tag(*p))
     { case TAG_VAR:
-      { reset rst;
+      { if ( (*p)&FIRST_MASK )
+	{ if ( !(valVar(*p)%2) )
+	  { rc = FALSE;
+	    goto out;
+	  }
+	} else
+	{ reset rst;
 
-	rst.v1 = p;
-	rst.v2 = p;
-	addBuffer(buf, rst, reset);
-	*vcount += 2;
-	*p = consVar(*vcount+1)|FIRST_MASK;
+	  rst.v1 = p;
+	  rst.v2 = p;
+	  addBuffer(buf, rst, reset);
+	  *vcount += 2;
+	  *p = consVar(*vcount+1)|FIRST_MASK;
+	}
 
 	break;
       }
@@ -1814,8 +1822,11 @@ number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
     }
   }
 
+out:
   clearTermAgenda(&agenda);
   unvisit(PASS_LD1);
+
+  return rc;
 }
 
 
@@ -1901,7 +1912,9 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
 	}
 	if ( fcl == fcr )		/* cycle or common subterm */
 	{ if ( valueTerm(wl) == valueTerm(wr) )
-	    number_common_subterm(l, buf, &vcount PASS_LD);
+	  { if ( !number_common_subterm(l, buf, &vcount PASS_LD) )
+	      return FALSE;
+	  }
 	  continue;
 	}
 
