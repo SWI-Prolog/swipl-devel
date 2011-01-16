@@ -1281,6 +1281,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 { GCTrailEntry tm = (GCTrailEntry)m->trailtop;
   GCTrailEntry te0 = te;
   int assignments = 0;
+  Word gKeep = (LD->frozen_bar > m->globaltop ? LD->frozen_bar : m->globaltop);
 
   for( ; te >= tm; te-- )		/* early reset of vars */
   {
@@ -1288,7 +1289,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
     if ( isTrailVal(te->address) )
     { Word tard = val_ptr(te[-1].address);
 
-      if ( tard >= top )
+      if ( tard >= top || (tard >= gKeep && tard < gMax) )
       { te->address = 0;
 	te--;
 	te->address = 0;
@@ -1338,6 +1339,9 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
       if ( tard >= top )		/* above local stack */
       { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	te->address = 0;
+	trailcells_deleted++;
+      } else if ( tard > gKeep && tard < gMax )
+      { te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
       { DEBUG(3,
