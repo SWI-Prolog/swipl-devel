@@ -3880,8 +3880,11 @@ run_propagator(prem(X,Y,Z), MState) :-
             (   XInf cis_geq n(0) -> Inf0 = n(0)
             ;   Inf0 = XInf
             ),
+            (   XSup cis_leq n(0) -> Sup0 = n(0)
+            ;   Sup0 = XSup
+            ),
             NInf cis max(max(Inf0, -M + n(1)), min(XInf,-XSup)),
-            NSup cis min(M - n(1), max(abs(XInf),XSup)),
+            NSup cis min(min(Sup0, M - n(1)), max(abs(XInf),XSup)),
             domains_intersection(ZD, from_to(NInf,NSup), ZD1),
             fd_put(Z, ZD1, ZPs)
         ;   true % TODO: propagate more
