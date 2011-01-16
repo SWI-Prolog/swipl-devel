@@ -139,8 +139,8 @@ expand(Term, _, Expanded) :-
 
 no_expand((:- if(_))).
 no_expand((:- elif(_))).
-no_expand((:- else(_))).
-no_expand((:- endif(_))).
+no_expand((:- else)).
+no_expand((:- endif)).
 no_expand((:- require(_))).
 
 chr_expandable((:- chr_constraint(_)), In) :-
