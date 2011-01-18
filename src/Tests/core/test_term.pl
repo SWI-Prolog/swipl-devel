@@ -93,6 +93,9 @@ test(shared, fail) :-
 test(shared, fail) :-
 	v(A),
 	a(A, B) =@= a(B, B).
+test(dubious, fail) :-			% would be true using normal
+	v(X), v(Z),			% copy_term + numbervars + == definition
+	a(X, Y) =@= a(Y, Z).
 test(common, true) :-			% Bug #464
 	A=x(_),
 	s(A, A) =@= s(x(B), x(B)).
