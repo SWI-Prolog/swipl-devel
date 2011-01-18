@@ -3857,17 +3857,36 @@ run_propagator(prem(X,Y,Z), MState) :-
                     )
                 ;   true
                 )
-            ;   fd_get(X, XD, _),
+            ;   fd_get(X, XD1, XPs1),
                 % if possible, propagate at the boundaries
-                (   domain_infimum(XD, n(Min)) ->
+                (   Z > 0, Y > 0, domain_infimum(XD1, n(Min)), Min > 0, Min rem Y =\= Z ->
+                    Dist1 is Z - (Min rem Y),
+                    (   Dist1 > 0 -> Next is Min + Dist1
+                    ;   Next is (Min//Y + 1)*Y + Z
+                    ),
+                    domain_remove_smaller_than(XD1, Next, XD2),
+                    fd_put(X, XD2, XPs1)
+                ;   % TODO: bigger steps in other cases as well
+                    domain_infimum(XD1, n(Min)) ->
                     (   Min rem Y =:= Z -> true
                     ;   neq_num(X, Min)
                     )
                 ;   true
                 ),
-                (   domain_supremum(XD, n(Max)) ->
-                    (   Max rem Y =:= Z -> true
-                    ;   neq_num(X, Max)
+                (   fd_get(X, XD3, XPs3) ->
+                    (   Z > 0, Y > 0, domain_supremum(XD3, n(Max)), Max > 0, Max rem Y =\= Z ->
+                        Dist2 is Z - (Max rem Y),
+                        (   Dist2 > 0 -> Prev is (Max//Y - 1)*Y + Z
+                        ;   Prev is Max + Dist2
+                        ),
+                        domain_remove_greater_than(XD3, Prev, XD4),
+                        fd_put(X, XD4, XPs3)
+                    ;   % TODO: bigger steps in other cases as well
+                        domain_supremum(XD3, n(Max)) ->
+                        (   Max rem Y =:= Z -> true
+                        ;   neq_num(X, Max)
+                        )
+                    ;   true
                     )
                 ;   true
                 )
@@ -4214,12 +4233,11 @@ run_propagator(reified_neq(DX,X,DY,Y,Ps,B), MState) :-
                         (   X =\= Y -> B = 1 ; B = 0)
                     ;   fd_get(Y, YD, _),
                         (   domain_contains(YD, X) -> true
-                        ;   kill(MState, Ps),
-                            B = 1
+                        ;   kill(MState, Ps), B = 1
                         )
                     )
                 ;   nonvar(Y) -> run_propagator(reified_neq(DY,Y,DX,X,Ps,B), MState)
-                ;   X == Y -> B = 0
+                ;   X == Y -> kill(MState), B = 0
                 ;   fd_get(X, _, XL, XU, _),
                     fd_get(Y, _, YL, YU, _),
                     (   XL cis_gt YU -> kill(MState, Ps), B = 1
