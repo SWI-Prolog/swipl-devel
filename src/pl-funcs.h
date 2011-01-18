@@ -399,7 +399,7 @@ COMMON(word) 		check_foreign(void);	/* O_SECURE stuff */
 COMMON(void) 		markAtomsOnStacks(PL_local_data_t *ld);
 COMMON(void) 		markPredicatesInEnvironments(PL_local_data_t *ld);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
-#if defined(O_SECURE) || defined(SECURE_GC)
+#if defined(O_SECURE) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word	 		checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);
 #endif

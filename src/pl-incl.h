@@ -2045,7 +2045,7 @@ decrease).
 
 #define REL(a)		((Word)(a) - (Word)(lBase))
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && !defined(O_MAINTENANCE)
 #define O_MAINTENANCE
 #endif
 
