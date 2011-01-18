@@ -470,7 +470,8 @@ struct PL_local_data
 
 #if O_CYCLIC
   struct
-  { segstack stack;			/* stack to find cycles */
+  { segstack lstack;			/* Stack for cycle-links */
+    segstack vstack;			/* Stack for visited marks */
   } cycle;
 #endif
 

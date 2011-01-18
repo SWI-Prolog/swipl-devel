@@ -1206,7 +1206,7 @@ stack to avoid allocation issues on the argument stack.
 #if O_DESTRUCTIVE_ASSIGNMENT
 static inline void
 push_marked(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.stack, &p);
+{ pushSegStack(&LD->cycle.vstack, &p);
 }
 
 
@@ -1214,7 +1214,7 @@ static void
 popall_marked(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p) )
   { unmark_first(p);
   }
 }
@@ -1224,7 +1224,7 @@ static void
 mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 			int assignments ARG_LD)
 { GCTrailEntry te;
-  LD->cycle.stack.unit_size = sizeof(Word);
+  LD->cycle.vstack.unit_size = sizeof(Word);
 
   DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
 

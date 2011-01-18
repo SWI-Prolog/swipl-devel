@@ -1442,7 +1442,8 @@ freePrologLocalData(PL_local_data_t *ld)
 #endif
 
 #ifdef O_CYCLIC
-  clearSegStack(&ld->cycle.stack);
+  clearSegStack(&ld->cycle.lstack);
+  clearSegStack(&ld->cycle.vstack);
 #endif
 
   freeArithLocalData(ld);

@@ -95,13 +95,13 @@ deep unification the overall impact of performance is small (< 3%).
 
 static void
 initvisited(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.vstack.unit_size = sizeof(Word);
 }
 
 
 static int
 empty_visited(ARG1_LD)
-{ return LD->cycle.stack.count == 0;
+{ return LD->cycle.vstack.count == 0;
 }
 
 
@@ -110,7 +110,7 @@ visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  pushSegStack(&LD->cycle.stack, &p);
+  pushSegStack(&LD->cycle.vstack, &p);
   fail;
 }
 
@@ -127,7 +127,7 @@ static void
 unvisit(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.vstack, &p) )
   { clear_marked(p);
   }
 }
@@ -137,14 +137,14 @@ static void
 popVisited(ARG1_LD)
 { Word p;
 
-  popSegStack(&LD->cycle.stack, &p);
+  popSegStack(&LD->cycle.vstack, &p);
   clear_marked(p);
 }
 
 
 static inline void
 initCyclic(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
 
@@ -154,7 +154,7 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  pushSegStack(&LD->cycle.stack, &p1);
+  pushSegStack(&LD->cycle.lstack, &p1);
 }
 
 
@@ -162,7 +162,7 @@ static inline void
 exitCyclic(ARG1_LD)
 { Word p;
 
-  while( popSegStack(&LD->cycle.stack, &p) )
+  while( popSegStack(&LD->cycle.lstack, &p) )
   { *p = *unRef(*p);
   }
 }
@@ -1816,8 +1816,23 @@ number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
       { p = valPAttVar(*p);
 	goto attvar;
       }
-      case TAG_COMPOUND:
-      { pushTermAgendaIfNotVisited(&agenda, *p);
+      case TAG_COMPOUND:		/* see pushTermAgendaIfNotVisited() */
+      { Functor f = valueTerm(*p);	/* but ... must deal with cycle-links */
+	int arity;
+
+	if ( visited(f PASS_LD) )
+	  continue;
+	if ( isRef(f->definition) )
+	{ Functor f2 = f;
+
+	  while(isRef(f2->definition))
+	    f2 = (Functor)unRef(f2->definition & ~MARK_MASK);
+	  arity = arityFunctor(f2->definition);
+	} else
+	{ arity = arityFunctor(f->definition);
+	}
+
+	pushWorkAgenda(&agenda, arity, f->arguments);
       }
     }
   }
@@ -1986,6 +2001,7 @@ PRED_IMPL("=@=", 2, variant, 0)
     setVar(*r->v2);
   }
   discardBuffer(&buf);
+  SECURE(checkStacks(NULL));
   if ( !endCritical )
     return FALSE;
 
@@ -3247,22 +3263,22 @@ shifted rather than doing it.
 
 static inline void
 initCyclicCopy(ARG1_LD)
-{ LD->cycle.stack.unit_size = sizeof(Word);
+{ LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
 
 static inline void
 TrailCyclic(Word p ARG_LD)
-{ pushSegStack(&LD->cycle.stack, &p);
+{ pushSegStack(&LD->cycle.lstack, &p);
 }
 
 
 static inline void
 exitCyclicCopy(size_t count, int flags ARG_LD)
-{ while(LD->cycle.stack.count > count)
+{ while(LD->cycle.lstack.count > count)
   { Word p;
 
-    popSegStack(&LD->cycle.stack, &p);
+    popSegStack(&LD->cycle.lstack, &p);
 
     if ( isRef(*p) )
     { Word p2 = unRef(*p);
@@ -3276,7 +3292,7 @@ exitCyclicCopy(size_t count, int flags ARG_LD)
     } else
     { Word old;
 
-      popSegStack(&LD->cycle.stack, &old);
+      popSegStack(&LD->cycle.lstack, &old);
 
       if ( !(flags&COPY_ATTRS) )
       { Word p2 = valPAttVar(*p);
@@ -3384,7 +3400,7 @@ again:
 	Word from0 = from;
 	Functor f2;
 	int ground = TRUE;
-	size_t count = LD->cycle.stack.count;
+	size_t count = LD->cycle.lstack.count;
 
 	if ( !(f2 = (Functor)allocGlobalNoShift(arity+1)) )
 	  return GLOBAL_OVERFLOW;
