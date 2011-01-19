@@ -3,7 +3,7 @@
     Author:        Lars Buitinck
     E-mail:        larsmans@gmail.com
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2010, Lars Buitinck
+    Copyright (C): 2010-2011, Lars Buitinck
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -55,18 +55,23 @@
  * predicate is an SWI-specific extension. The portray_heap/1 predicate is
  * not implemented.
  *
- * The current version implements top-down skew heaps, as described by Sleator
- * and Tarjan (1986). All operations can be performed in at most O(lg n)
- * amortized time, except for delete_from_heap/4, heap_to_list/2 and
- * list_to_heap/2.
+ * The current version implements pairing heaps. All operations can be
+ * performed in at most O(lg n) amortized time, except for delete_from_heap/4,
+ * heap_to_list/2 and list_to_heap/2.
+ *
+ * (The actual time complexity of pairing heaps is complicated and not yet
+ * determined conclusively; see, e.g. S. Pettie (2005), Towards a final
+ * analysis of pairing heaps, Proc. FOCS'05.)
  *
  * @author Lars Buitinck
+ *
+ * @bug The "decrease key" operation is not implemented.
  */
 
 /*
- * Heaps are represented as heap(H,Size) terms, where H is the "actual heap"
- * and Size is an integer. The "actual heaps" are either nil (empty) or terms
- * of the form t(L,TopElem,TopPrio,R), where L and R are again "actual heaps".
+ * Heaps are represented as heap(H,Size) terms, where H is a pairing heap and
+ * Size is an integer. A pairing heap is either nil or a term
+ * t(MinElem,MinPrio,Sub) where Sub is a list of pairing heaps.
  */
 
 %%	add_to_heap(+Heap0, +Priority, ?Key, -Heap) is semidet.
@@ -75,16 +80,17 @@
 %	heap in Heap.
 
 add_to_heap(heap(Q0,M),P,X,heap(Q1,N)) :-
-	meld(Q0,t(X,P,nil,nil),Q1),
+	meld(Q0,t(X,P,[]),Q1),
 	N is M+1.
 
 %%	delete_from_heap(+Heap0, -Priority, +Key, -Heap) is semidet.
 %
 %	Deletes Key from Heap0, leaving its priority in Priority and the
-%	resulting data structure  in  Heap.   Useful  for  changing  the
-%	priority of Key. Fails if Key is not found in Heap0.
+%	resulting data structure in Heap.   Fails if Key is not found in
+%	Heap0.
 %
-%	@bug This predicate is extremely inefficient.
+%	@bug This predicate is extremely inefficient and exists only for
+%	     SICStus compatibility.
 
 delete_from_heap(Q0,P,X,Q) :-
 	get_from_heap(Q0,P,X,Q), !.
@@ -104,8 +110,8 @@ empty_heap(heap(nil,0)).
 %	Retrieves the minimum-priority  pair   Priority-Key  from Heap0.
 %	Heap is Heap0 with that pair removed.
 
-get_from_heap(heap(t(X,P,L,R),M),P,X,heap(Q,N)) :-
-	meld(L,R,Q),
+get_from_heap(heap(t(X,P,Sub),M), P, X, heap(Q,N)) :-
+	pairing(Sub,Q),
 	N is M-1.
 
 %%	heap_size(+Heap, -Size:int) is det.
@@ -130,16 +136,19 @@ to_list(Q0,[P-X|Xs]) :-
 %
 %	Returns true is X is a heap.
 %
-%	@bug does not test the integrity of the actual heap.
+%	@bug Does not test the integrity of the actual heap;  may return
+%	     false positives.
 
 is_heap(V) :-
 	var(V), !, fail.
-is_heap(heap(_,N)) :-
-	integer(N).
+is_heap(heap(Q,N)) :-
+	integer(N),
+	\+ var(Q),
+	(Q=nil ; Q=t(_,_,_)).
 
 %%	list_to_heap(+List:list, -Heap) is det.
 %
-%	If List is a list of   Priority-Element terms, constructs a heap
+%	If List is a list of  Priority-Element  terms, constructs a heap
 %	out of List.
 
 list_to_heap(Xs,Q) :-
@@ -156,7 +165,7 @@ list_to_heap([P-X|Xs],Q0,Q) :-
 %	Unifies Key with  the  minimum-priority   element  of  Heap  and
 %	Priority with its priority value.
 
-min_of_heap(heap(t(X,P,_,_),_),P,X).
+min_of_heap(heap(t(X,P,_),_), P, X).
 
 %%	min_of_heap(+Heap, ?Priority1, ?Key1, ?Priority2, ?Key2) is semidet.
 %
@@ -174,19 +183,21 @@ merge_heaps(heap(L,K),heap(R,M),heap(Q,N)) :-
 	meld(L,R,Q),
 	N is K+M.
 
-/*
- * The meld/3 predicate is the backbone of the implementation.
- * It merges two heaps according to the skew heap definition.
- */
 
-meld(nil,Q,Q) :- !.
+% Merge two pairing heaps according to the pairing heap definition.
+meld(nil,Q,Q).
 meld(Q,nil,Q).
 meld(L,R,Q) :-
-	L = t(X,Px,LL,LR),
-	R = t(Y,Py,RL,RR),
+	L = t(X,Px,SubL),
+	R = t(Y,Py,SubR),
 	(   Px @< Py
-	->  Q = t(X,Px,L1,LL),
-	    meld(LR,R,L1)
-	;   Q = t(Y,Py,L1,RL),
-	    meld(L,RR,L1)
+	->  Q = t(X,Px,[R|SubL])
+	;   Q = t(Y,Py,[L|SubR])
 	).
+
+% "Pair up" (recursively meld) a list of pairing heaps.
+pairing([], nil).
+pairing([Q], Q).
+pairing([Q0,Q1|Qs], Q) :-
+	meld(Q0, Q1, Q2),
+	pairing([Q2|Qs], Q).
