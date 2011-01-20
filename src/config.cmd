@@ -11,7 +11,7 @@
 :: Microsoft Visual Studio 2005 SP1                                           ::
 :: Microsoft Visual Studio 2008 SP1                                           ::
 :: Microsoft Windows SDK for Windows 7 and .NET Framework 3.5 SP1             ::
-:: Visual Studio 2010 (Beta1)                                                 ::
+:: Visual Studio 2010                                                         ::
 ::                                                                            ::
 ::                       degski [ta] gmail [tod] com                          ::
 ::                                                                            ::
@@ -51,7 +51,7 @@ if not defined EP!HOST_OS_ARCH (set "EP!HOST_OS_ARCH=X86" & set "EP!PROGRAM_FILE
 
 :start_create_welcome
 echo Welcome to SWI-Prolog Windows Build Environment Configuration Utility > welcome.txt
-echo Copyright (c) 1990-2010 University of Amsterdam. >> welcome.txt
+echo Copyright (c) 1990-2011 University of Amsterdam. >> welcome.txt
 echo SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software, >> welcome.txt
 echo and you are welcome to redistribute it under certain conditions. >> welcome.txt
 echo Please visit http://www.swi-prolog.org for details. >> welcome.txt
