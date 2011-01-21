@@ -185,8 +185,8 @@ merge_heaps(heap(L,K),heap(R,M),heap(Q,N)) :-
 
 
 % Merge two pairing heaps according to the pairing heap definition.
-meld(nil,Q,Q).
-meld(Q,nil,Q).
+meld(nil,Q,Q) :- !.
+meld(Q,nil,Q) :- !.
 meld(L,R,Q) :-
 	L = t(X,Px,SubL),
 	R = t(Y,Py,SubR),
@@ -197,7 +197,7 @@ meld(L,R,Q) :-
 
 % "Pair up" (recursively meld) a list of pairing heaps.
 pairing([], nil).
-pairing([Q], Q).
+pairing([Q], Q) :- !.
 pairing([Q0,Q1|Qs], Q) :-
 	meld(Q0, Q1, Q2),
 	pairing([Q2|Qs], Q).
