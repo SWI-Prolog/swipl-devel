@@ -123,7 +123,7 @@ Apple Darwin (6.6) only contains the sem_init()   function as a stub. It
 only provides named semaphores  through   sem_open().  These defines and
 my_sem_open() try to hide the details of   this as much as possible from
 the rest of the code. Note  that   we  unlink  the semaphore right after
-creating it, using the common Unix trick to keep access to it as intptr_t as
+creating it, using the common Unix trick to keep access to it as long as
 we do not close it. We assume  the   OS  will close the semaphore as the
 application terminates. All this is highly   undesirable, but it will do
 for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
