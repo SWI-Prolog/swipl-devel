@@ -4267,6 +4267,11 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     }
 
     PL_rewind_foreign_frame(fid);
+    if ( argv )
+    { argv = valTermRef(head);		/* argv may be corrupted in GC */
+      deRef(argv);
+      argv = argTermP(*argv, 0);
+    }
     cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
 
