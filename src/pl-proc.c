@@ -79,7 +79,7 @@ lookupProcedure(functor_t f, Module m)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Add (import) a defintion to a  module.   Used  by  loadImport(). Must be
+Add (import) a definition to a  module.   Used  by loadImport(). Must be
 merged with pl_import().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
