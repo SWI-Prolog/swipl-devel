@@ -5137,13 +5137,23 @@ true.
 \begin{description}
     \predicate{set_random}{1}{+Option}
 Controls the random number generator that accessible through the
-function random.
+\emph{function} \nopredref{random}{1}. Note that the library
+\pllib{random} provides distinct support for random numbers that is not
+affected by set_random/1.
 
     \begin{description}
 	\termitem{seed}{+Seed}
 Set the seed of the random generator for this thread.  \arg{Seed} is
 an integer or the atom \const{random}.  If \const{random}, repeat the
-initialization procedure described with the function random/1.
+initialization procedure described with the function random/1.  Here
+is an example:
+
+\begin{code}
+?- set_random(seed(111)), A is random(6).
+A = 5.
+?- set_random(seed(111)), A is random(6).
+A = 5.
+\end{code}
     \end{description}
 \end{description}
 
