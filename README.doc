@@ -1,7 +1,7 @@
 Building the documentation
 --------------------------
 
-Last update: Aug 12, 2008
+Last update: Jan 27, 2011
 
 As of SWI-Prolog 5.6.60, the generated documentation files are no longer
 part of the GIT repository (see  README.git).   There  are  many ways to
@@ -9,11 +9,11 @@ access documentation:
 
 	1) Read it online at http://www.swi-prolog.org
 	2) Install a binary version
-	3) Install from the release files (pl-<version>.tar,gz)
+	3) Install from the release files (pl-<version>.tar.gz)
 
-If you use GIT/CVS, you  can  download   the  generated  files  from the
-http://www.swi-prolog.org/dl-stable.html  and  unpack  them    from  the
-toplevel of the source.
+If you use GIT, the generated documentation  files are downloaded by the
+./prepare script. This works both on Unix and Windows, where you can run
+prepare using the shell that comes with the Windows port of msysgit.
 
 Finally, you can build them
 ---------------------------
@@ -24,7 +24,7 @@ To do this:
 	available by default.
 	* Install Prolog, at least with the pldoc package.
 	* Intall LaTeX, probably best the teTeX distribution
-	(http://www.tug.org/tetex/) that comes with may Linux systems.
+	(http://www.tug.org/tetex/) that comes with many Linux systems.
 	* Install the plain-text conversion tools from pl/man/txt using
 	the README there.
 	* Build and install latex2html from packages/ltx2htm
