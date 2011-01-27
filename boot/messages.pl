@@ -657,19 +657,21 @@ result(Bindings, Residuals) -->
 
 bindings([], _) -->
 	[].
-bindings([binding(Name,Skel,Subst)|T], Options) -->
-	{ '$select'(binding(Name2, Skel2, Subst2), T, R),
-	  Skel == Skel2, Subst == Subst2
-	}, !,
-	[ '~w = ~w, '-[Name, Name2] ],
-	bindings([binding(Name2,Skel,Subst)|R], Options).
-bindings([binding(Name,Skel,Subst)|T], Options) -->
-	[ '~w = '-[Name] ], value(Name, Skel, Subst, Options),
+bindings([binding(Names,Skel,Subst)|T], Options) -->
+	{ '$last'(Names, Name) },
+	var_names(Names), value(Name, Skel, Subst, Options),
 	(   { T \== [] }
 	->  [ ','-[], nl ],
 	    bindings(T, Options)
 	;   []
 	).
+
+var_names([Name]) --> !,
+	[ '~w = '-[Name] ].
+var_names([Name1,Name2|T]) --> !,
+	[ '~w = ~w, '-[Name1, Name2] ],
+	var_names([Name2|T]).
+
 
 value(Name, Skel, Subst, Options) -->
 	(   { var(Skel), Subst = [Skel=S] }

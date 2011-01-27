@@ -639,15 +639,17 @@ write_bindings(Bindings, Det) :-
 	copy_term(Bindings, Bindings1, Residuals0),
 	'$module'(TypeIn, TypeIn),
 	omit_qualifiers(Residuals0, TypeIn, Residuals),
+	join_same_bindings(Bindings1, Bindings2),
+	factorize_bindings(Bindings2, Bindings3),
+	bind_vars(Bindings3, Bindings4),
+	filter_bindings(Bindings4, Bindings5),
+	write_bindings2(Bindings5, Residuals, Det).
+write_bindings(Bindings, Det) :-
+	join_same_bindings(Bindings, Bindings1),
 	factorize_bindings(Bindings1, Bindings2),
 	bind_vars(Bindings2, Bindings3),
 	filter_bindings(Bindings3, Bindings4),
-	write_bindings2(Bindings4, Residuals, Det).
-write_bindings(Bindings, Det) :-
-	factorize_bindings(Bindings, Bindings1),
-	bind_vars(Bindings1, Bindings2),
-	filter_bindings(Bindings2, Bindings3),
-	write_bindings2(Bindings3, [], Det).
+	write_bindings2(Bindings4, [], Det).
 
 write_bindings2([], Residuals, _) :-
 	current_prolog_flag(prompt_alternatives_on, groundness), !,
@@ -666,6 +668,26 @@ write_bindings2(Bindings, Residuals, _Det) :-
 	;   !,
 	    print_message(query, query(done))
 	).
+
+
+%%	join_same_bindings(Bindings0, Bindings)
+%
+%	Join variables that are bound to the   same  value. Note that we
+%	return the _last_ value. This is   because the factorization may
+%	be different and ultimately the names will   be  printed as V1 =
+%	V2, ... VN = Value. Using the  last, Value has the factorization
+%	of VN.
+
+join_same_bindings([], []).
+join_same_bindings([Name=Val|T0], [[Name|Names]=V|T]) :-
+	take_same_bindings(Val, V, T0, Names, T1),
+	join_same_bindings(T1, T).
+
+take_same_bindings(Val, V, [Name=V1|T0], L, T) :-
+	V1 == Val, !,
+	L = [Name|Names],
+	take_same_bindings(V1, V, T0, Names, T).
+take_same_bindings(V, V, L, [], L).
 
 
 %%	omit_qualifiers(+QGoals, +TypeIn, -Goals) is det.
@@ -717,27 +739,31 @@ omit_meta_qualifiers(G, _, G).
 %	variables bound to one another come out in the natural order.
 
 bind_vars(Bindings0, Bindings) :-
-	bind_query_vars(Bindings0, Bindings, Names),
-	bind_skel_vars(Bindings, Bindings, Names, 1, _).
+	bind_query_vars(Bindings0, Bindings, SNames),
+	bind_skel_vars(Bindings, Bindings, SNames, 1, _).
 
 bind_query_vars([], [], []).
-bind_query_vars([binding(Name,Var,[Var2=Cycle])|T0],
-		[binding(Name,Cycle,[])|T], [Name|Names]) :-
+bind_query_vars([binding(Names,Var,[Var2=Cycle])|T0],
+		[binding(Names,Cycle,[])|T], [Name|SNames]) :-
 	Var == Var2, !,			% also implies var(Var)
+	'$last'(Names, Name),
 	Var = '$VAR'(Name),
-	bind_query_vars(T0, T, Names).
-bind_query_vars([B|T0], [B|T], [Name|Names]) :-
-	B = binding(Name,Var,Skel),
-	bind_query_vars(T0, T, Names),
+	bind_query_vars(T0, T, SNames).
+bind_query_vars([B|T0], [B|T], [Name|SNames]) :-
+	B = binding(Names,Var,Skel),
+	bind_query_vars(T0, T, SNames),
 	(   var(Var), \+ attvar(Var), Skel == []
-	->  Var = '$VAR'(Name)
+	->  '$last'(Names, Name),
+	    Var = '$VAR'(Name)
 	;   true
 	).
 
+
+
 bind_skel_vars([], _, _, N, N).
-bind_skel_vars([binding(_,_,Skel)|T], Bindings, Names, N0, N) :-
-	bind_one_skel_vars(Skel, Bindings, Names, N0, N1),
-	bind_skel_vars(T, Bindings, Names, N1, N).
+bind_skel_vars([binding(_,_,Skel)|T], Bindings, SNames, N0, N) :-
+	bind_one_skel_vars(Skel, Bindings, SNames, N0, N1),
+	bind_skel_vars(T, Bindings, SNames, N1, N).
 
 %%	bind_one_skel_vars(+Subst, +Bindings, +VarName, +N0, -N)
 %
@@ -759,9 +785,10 @@ bind_skel_vars([binding(_,_,Skel)|T], Bindings, Names, N0, N) :-
 bind_one_skel_vars([], _, _, N, N).
 bind_one_skel_vars([Var=Value|T], Bindings, Names, N0, N) :-
 	(   var(Var)
-	->  (	'$member'(binding(VName, VVal, []), Bindings),
+	->  (	'$member'(binding(Names, VVal, []), Bindings),
 	        same_term(Value, VVal)
-	    ->	Var = '$VAR'(VName),
+	    ->	'$last'(Names, VName),
+		Var = '$VAR'(VName),
 		N2 = N0
 	    ;	between(N0, infinite, N1),
 	        atom_concat('_S', N1, Name),
@@ -803,20 +830,42 @@ only_cycles([B|T0], List) :-
 
 %%	filter_bindings(+Bindings0, -Bindings)
 %
-%	Remove bindings that must not be printed.
+%	Remove bindings that must not be printed. There are two of them:
+%	Variables whose name start with '_'  and variables that are only
+%	bound to themselves (or, unbound).
 
 filter_bindings([], []).
-filter_bindings([H|T0], T) :-
-	hidden_binding(H), !,
-	filter_bindings(T0, T).
-filter_bindings([H|T0], [H|T]) :-
-	filter_bindings(T0, T).
+filter_bindings([H0|T0], T) :-
+	hide_vars(H0, H),
+	(   (   arg(1, H, [])
+	    ;   self_bounded(H)
+	    )
+	->  filter_bindings(T0, T)
+	;   T = [H|T1],
+	    filter_bindings(T0, T1)
+	).
 
-hidden_binding(binding(Name, _, _)) :-
-	sub_atom(Name, 0, _, _, '_'),
-	current_prolog_flag(toplevel_print_anon, false).
-hidden_binding(binding(Name, Value, [])) :-
+hide_vars(binding(Names0, Skel, Subst), binding(Names, Skel, Subst)) :-
+	hide_names(Names0, Skel, Subst, Names).
+
+hide_names([], _, _, []).
+hide_names([Name|T0], Skel, Subst, T) :-
+	(   sub_atom(Name, 0, _, _, '_'),
+	    current_prolog_flag(toplevel_print_anon, false)
+	->  true
+	;   Subst == [],
+	    Skel == '$VAR'(Name)
+	), !,
+	hide_names(T0, Skel, Subst, T).
+hide_names([Name|T0], Skel, Subst, [Name|T]) :-
+	hide_names(T0, Skel, Subst, T).
+
+self_bounded(binding([Name], Value, [])) :-
 	Value == '$VAR'(Name).
+
+%%	get_respons(-Action)
+%
+%	Read the continuation entered by the user.
 
 get_respons(Action) :-
 	repeat,

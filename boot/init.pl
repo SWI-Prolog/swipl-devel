@@ -2099,6 +2099,13 @@ saved state.
 '$delete'([Head|Tail], Elem, [Head|Rest]) :-
 	'$delete'(Tail, Elem, Rest).
 
+'$last'([H|T], Last) :-
+	'$last'(T, H, Last).
+
+'$last'([], Last, Last).
+'$last'([H|T], _, Last) :-
+	'$last'(T, H, Last).
+
 
 		 /*******************************
 		 *   HANDLE TRACER 'L'-COMMAND	*
