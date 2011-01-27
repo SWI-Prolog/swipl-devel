@@ -4999,7 +4999,6 @@ global_cardinality(Xs, Pairs, Options) :-
         (   member(OC, Options), functor(OC, cost, 2) ->
             OC = cost(Cost, Matrix),
             must_be(list(list(integer)), Matrix),
-            pairs_keys(Pairs, Keys),
             maplist(keys_costs(Keys), Xs, Matrix, Costs),
             sum(Costs, #=, Cost)
         ;   true
