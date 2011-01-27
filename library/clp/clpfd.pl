@@ -4957,10 +4957,26 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 %     Vs = [3, 1, 1].
 %     ==
 
-global_cardinality(Xs, Pairs) :-
-        must_be(list, Xs),
+global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
+
+%%    global_cardinality(+Vs, +Pairs, +Options)
+%
+%     Like global_cardinality/2, with Options a list of options.
+%     Supported options are:
+%
+%     * consistency(value)
+%     A weaker form of consistency is used.
+%
+%     * cost(Cost, Matrix)
+%     Matrix is a list of rows, one for each variable, in the order
+%     they occur in Vs. Each of these rows is a list of integers, one
+%     for each key, in the order these keys occur in Pairs. When
+%     variable v_i is assigned the value of key k_j, then the
+%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
+
+global_cardinality(Xs, Pairs, Options) :-
+        must_be(list(list), [Xs,Pairs,Options]),
         maplist(fd_variable, Xs),
-        must_be(list, Pairs),
         maplist(gcc_pair, Pairs),
         pairs_keys_values(Pairs, Keys, Nums),
         (   sort(Keys, Keys1), length(Keys, LK), length(Keys1, LK) -> true
@@ -4975,9 +4991,30 @@ global_cardinality(Xs, Pairs) :-
         % pgcc_check must be installed before triggering other
         % propagators
         propagator_init_trigger(Xs, pgcc_check(Pairs1)),
-        propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
         propagator_init_trigger(Nums, pgcc_check_single(Pairs1)),
-        propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1)).
+        (   member(OD, Options), OD == consistency(value) -> true
+        ;   propagator_init_trigger(Nums, pgcc_single(Xs, Pairs1)),
+            propagator_init_trigger(Xs, pgcc(Xs, Pairs, Pairs1))
+        ),
+        (   member(OC, Options), functor(OC, cost, 2) ->
+            OC = cost(Cost, Matrix),
+            must_be(list(list(integer)), Matrix),
+            pairs_keys(Pairs, Keys),
+            maplist(keys_costs(Keys), Xs, Matrix, Costs),
+            sum(Costs, #=, Cost)
+        ;   true
+        ).
+
+keys_costs(Keys, X, Row, C) :-
+        element(N, Keys, X),
+        element(N, Row, C).
+
+gcc_pair(Pair) :-
+        (   Pair = Key-Val ->
+            must_be(integer, Key),
+            fd_variable(Val)
+        ;   domain_error(gcc_pair, Pair)
+        ).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    For each Key-Num0 pair, we introduce an auxiliary variable Num and
@@ -5217,8 +5254,7 @@ gcc_succ_edge(arc_from(_,_,V,F)) -->
    Importantly, it removes all ground values from clpfd_gcc_vs.
 
    The pgcc_check/1 propagator in itself suffices to ensure
-   consistency and could be used in a faster and weaker propagation
-   option for global_cardinality/3.
+   consistency.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gcc_check(Pairs) :-
@@ -5286,38 +5322,6 @@ all_neq([], _).
 all_neq([X|Xs], C) :-
         neq_num(X, C),
         all_neq(Xs, C).
-
-gcc_pair(Pair) :-
-        (   Pair = Key-Val ->
-            must_be(integer, Key),
-            fd_variable(Val)
-        ;   domain_error(gcc_pair, Pair)
-        ).
-
-%%    global_cardinality(+Vs, +Pairs, +Options)
-%
-%     Like global_cardinality/2, with Options a list of options.
-%     Currently, the only supported option is
-%
-%     * cost(Cost, Matrix)
-%     Matrix is a list of rows, one for each variable, in the order
-%     they occur in Vs. Each of these rows is a list of integers, one
-%     for each key, in the order these keys occur in Pairs. When
-%     variable v_i is assigned the value of key k_j, then the
-%     associated cost is Matrix_{ij}. Cost is the sum of all costs.
-
-
-global_cardinality(Xs, Pairs, Options) :-
-        global_cardinality(Xs, Pairs),
-        Options = [cost(Cost, Matrix)],
-        must_be(list(list(integer)), Matrix),
-        pairs_keys(Pairs, Keys),
-        maplist(keys_costs(Keys), Xs, Matrix, Costs),
-        sum(Costs, #=, Cost).
-
-keys_costs(Keys, X, Row, C) :-
-        element(N, Keys, X),
-        element(N, Row, C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
