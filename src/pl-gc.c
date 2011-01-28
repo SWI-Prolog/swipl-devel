@@ -3634,9 +3634,13 @@ gcEnsureSpace(vm_state *state ARG_LD)
     }
   }
   if ( gTop+1 > gMax )
+  { assert(LD->stacks.global.spare);
     enableSpareStack((Stack)&LD->stacks.global);
+  }
   if ( tTop+1 > tMax )
+  { assert(LD->stacks.trail.spare);
     enableSpareStack((Stack)&LD->stacks.trail);
+  }
 
   return rc;
 }
