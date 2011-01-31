@@ -128,7 +128,7 @@ iso_8601_rest(Yr, 1, D, 0, 0, 0) -->
 	{ week_ordinal(Yr, W, 1, D) }.
 
 opt_time(Hr, Min, Sec) -->
-	"T", !, iso_time(Hr, Min, Sec).
+	("T";" "), !, iso_time(Hr, Min, Sec).
 opt_time(0, 0, 0) --> "".
 
 
