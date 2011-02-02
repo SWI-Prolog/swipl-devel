@@ -660,6 +660,10 @@ parseOptions(int argc, char **argv)
     { fake++;
     } else if ( streq(opt, "-c") )		/* -c */
     { nolink++;
+    } else if ( streq(opt, "-S") )		/* -S */
+    { nolink++;
+      appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
