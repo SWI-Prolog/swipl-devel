@@ -38,16 +38,6 @@
 #undef LD
 #define LD LOCAL_LD
 
-static inline word
-valHandle__LD(term_t r ARG_LD)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
-
-#define valHandle(r) valHandle__LD(r PASS_LD)
-
 
 		 /*******************************
 		 *	UNIFIED TEXT STUFF	*
