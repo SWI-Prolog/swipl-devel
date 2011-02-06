@@ -88,4 +88,13 @@ void	growBuffer(Buffer b, size_t minfree);
 	  } \
 	} while(0)
 
+
+		 /*******************************
+		 *	    FUNCTIONS		*
+		 *******************************/
+
+COMMON(Buffer)		findBuffer(int flags);
+COMMON(int)		unfindBuffer(int flags);
+COMMON(char *) 		buffer_string(const char *s, int flags);
+
 #endif /*BUFFER_H_INCLUDED*/

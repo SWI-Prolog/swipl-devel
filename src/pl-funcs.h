@@ -311,7 +311,6 @@ COMMON(predicate_t) 	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);
 COMMON(void) 		initialiseForeign(int argc, char **argv);
 COMMON(void) 		cleanupInitialiseHooks(void);
-COMMON(char *) 		buffer_string(const char *s, int flags);
 COMMON(atom_t) 		codeToAtom(int code);
 COMMON(extern)  	record_t PL_duplicate_record(record_t r);
 COMMON(int) 		PL_unify_termv(term_t t, va_list args);
@@ -352,8 +351,6 @@ COMMON(int)		isUCSAtom(Atom a);
 COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
 						 int wide, CVT_result *status);
-COMMON(Buffer)		findBuffer(int flags);
-COMMON(int)		unfindBuffer(int flags);
 
 COMMON(void) 		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,

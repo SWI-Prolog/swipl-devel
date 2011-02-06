@@ -1103,53 +1103,6 @@ PL_get_string(term_t t, char **s, size_t *len)
 }
 #endif
 
-#define discardable_buffer 	(LD->fli._discardable_buffer)
-#define buffer_ring		(LD->fli._buffer_ring)
-#define current_buffer_id	(LD->fli._current_buffer_id)
-
-Buffer
-findBuffer(int flags)
-{ GET_LD
-  Buffer b;
-
-  if ( flags & BUF_RING )
-  { if ( ++current_buffer_id == BUFFER_RING_SIZE )
-      current_buffer_id = 0;
-    b = &buffer_ring[current_buffer_id];
-  } else
-    b = &discardable_buffer;
-
-  if ( !b->base )
-    initBuffer(b);
-
-  emptyBuffer(b);
-  return b;
-}
-
-
-char *
-buffer_string(const char *s, int flags)
-{ Buffer b = findBuffer(flags);
-  size_t l = strlen(s) + 1;
-
-  addMultipleBuffer(b, s, l, char);
-
-  return baseBuffer(b, char);
-}
-
-
-int
-unfindBuffer(int flags)
-{ GET_LD
-  if ( flags & BUF_RING )
-  { if ( --current_buffer_id <= 0 )
-      current_buffer_id = BUFFER_RING_SIZE-1;
-  }
-
-  fail;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_code *status)
 
