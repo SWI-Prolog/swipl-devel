@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-codelist.h"
 #include <errno.h>
 #include <stdio.h>
 #ifdef __WINDOWS__

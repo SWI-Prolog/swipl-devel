@@ -304,6 +304,7 @@ pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
 pl-dtoa.o:	dtoa.c
+pl-text.o:	pl-codelist.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi
 		./mkvmi "$(srcdir)"
