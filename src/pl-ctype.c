@@ -830,7 +830,7 @@ static const enc_map map[] =
 };
 
 IOENC
-initEncoding()
+initEncoding(void)
 { GET_LD
 
   if ( LD )
@@ -866,21 +866,7 @@ initEncoding()
 
 
 void
-initCharTypes()
+initCharTypes(void)
 { initEncoding();
-}
-
-
-bool
-systemMode(bool accept)
-{ GET_LD
-  bool old = SYSTEM_MODE ? TRUE : FALSE;
-
-  if ( accept )
-    debugstatus.styleCheck |= DOLLAR_STYLE;
-  else
-    debugstatus.styleCheck &= ~DOLLAR_STYLE;
-
-  return old;
 }
 

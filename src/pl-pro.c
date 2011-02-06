@@ -375,6 +375,21 @@ prologToplevel(volatile atom_t goal)
   return rval;
 }
 
+
+bool
+systemMode(bool accept)
+{ GET_LD
+  bool old = SYSTEM_MODE ? TRUE : FALSE;
+
+  if ( accept )
+    debugstatus.styleCheck |= DOLLAR_STYLE;
+  else
+    debugstatus.styleCheck &= ~DOLLAR_STYLE;
+
+  return old;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cut (!) as called via the  meta-call  mechanism has no effect.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
