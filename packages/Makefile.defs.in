@@ -19,6 +19,7 @@ SHELL=@SHELL@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
+INSTALL_SCRIPT=@INSTALL_SCRIPT@
 
 ################################################################
 # Documentation

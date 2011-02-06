@@ -23,6 +23,7 @@ PLBASE=@libdir@/@PLLIBDIR@
 PLARCH=@ARCH@
 PLINCL=$(PLBASE)/include
 PLLIBDIR=$(PLBASE)/library
+SOLIBDIR=$(PLBASE)/lib/$(PLARCH)
 PKGDOCDIR=$(PLBASE)/doc/packages
 PKGEXDIR=$(PLBASE)/doc/packages/examples
 
