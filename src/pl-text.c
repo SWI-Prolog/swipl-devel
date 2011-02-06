@@ -47,7 +47,6 @@ valHandle__LD(term_t r ARG_LD)
 }
 
 #define valHandle(r) valHandle__LD(r PASS_LD)
-#define setHandle(h, w)		(*valTermRef(h) = (w))
 
 
 		 /*******************************

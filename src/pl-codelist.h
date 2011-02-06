@@ -29,14 +29,22 @@
 		 *	    (CODE) LISTS	*
 		 *******************************/
 
+#define setHandle(h, w)		(*valTermRef(h) = (w))
+
+#define INIT_SEQ_STRING(n) INIT_SEQ_STRING__LD(n PASS_LD)
+#define EXTEND_SEQ_CODES(p, c) EXTEND_SEQ_CODES__LD(p, c PASS_LD)
+#define EXTEND_SEQ_CHARS(p, c) EXTEND_SEQ_CHARS__LD(p, c PASS_LD)
+#define CLOSE_SEQ_STRING(p, p0, tail, term, l) \
+	CLOSE_SEQ_STRING__LD(p, p0, tail, term, l PASS_LD)
+
 static inline Word
-INIT_SEQ_STRING(size_t n)
+INIT_SEQ_STRING__LD(size_t n ARG_LD)
 { return allocGlobal(n*3);
 }
 
 
 static inline Word
-EXTEND_SEQ_CODES(Word p, int c)
+EXTEND_SEQ_CODES__LD(Word p, int c ARG_LD)
 { *p++ = FUNCTOR_dot2;
   *p++ = consInt(c);
   *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -46,7 +54,7 @@ EXTEND_SEQ_CODES(Word p, int c)
 
 
 static inline Word
-EXTEND_SEQ_CHARS(Word p, int c)
+EXTEND_SEQ_CHARS__LD(Word p, int c ARG_LD)
 { *p++ = FUNCTOR_dot2;
   *p++ = codeToAtom(c);
   *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -56,7 +64,7 @@ EXTEND_SEQ_CHARS(Word p, int c)
 
 
 static inline int
-CLOSE_SEQ_STRING(Word p, Word p0, term_t tail, term_t term, term_t l)
+CLOSE_SEQ_STRING__LD(Word p, Word p0, term_t tail, term_t term, term_t l ARG_LD)
 { setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
   p--;
   if ( tail )
