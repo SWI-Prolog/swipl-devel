@@ -383,7 +383,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
 
-            if ( !(p0 = p = INIT_SEQ_CODES(text->length)) )
+            if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
 	      return FALSE;
 
             if ( type == PL_CODE_LIST ) {
@@ -391,7 +391,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
                 p = EXTEND_SEQ_CODES(p, *s);
             } else {
               for( ; s < e; s++)
-                p = EXTEND_SEQ_ATOMS(p, *s);
+                p = EXTEND_SEQ_CHARS(p, *s);
             }
 	    break;
 	  }
@@ -399,7 +399,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-            if ( !(p0 = p = INIT_SEQ_CODES(text->length)) )
+            if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
 	      return FALSE;
 
             if ( type == PL_CODE_LIST ) {
@@ -407,7 +407,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
                 p = EXTEND_SEQ_CODES(p, *s);
             } else {
               for( ; s < e; s++)
-                p = EXTEND_SEQ_ATOMS(p, *s);
+                p = EXTEND_SEQ_CHARS(p, *s);
             }
 	    break;
 	  }
@@ -416,22 +416,22 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    const char *e = &s[text->length];
 	    size_t len = utf8_strlen(s, text->length);
 
-            if ( !(p0 = p = INIT_SEQ_CODES(len)) )
+            if ( !(p0 = p = INIT_SEQ_STRING(len)) )
 	      return FALSE;
 
             if ( type == PL_CODE_LIST ) {
               while (s < e) {
                 int chr;
-                 
+
                 s = utf8_get_char(s, &chr);
                 p = EXTEND_SEQ_CODES(p, chr);
               }
             } else {
               while (s < e) {
                 int chr;
-                 
+
                 s = utf8_get_char(s, &chr);
-                p = EXTEND_SEQ_ATOMS(p, chr);
+                p = EXTEND_SEQ_CHARS(p, chr);
               }
             }
 	    break;
@@ -454,7 +454,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      s += rc;
 	    }
 
-            if ( !(p0 = p = INIT_SEQ_CODES(len)) )
+            if ( !(p0 = p = INIT_SEQ_STRING(len)) )
 	      return FALSE;
 
 	    n = text->length;
@@ -466,7 +466,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      if ( type == PL_CODE_LIST )
 		p = EXTEND_SEQ_CODES(p, wc);
 	      else
-		p = EXTEND_SEQ_ATOMS(p, wc);
+		p = EXTEND_SEQ_CHARS(p, wc);
 
 	      s += rc;
 	      n -= rc;
@@ -480,7 +480,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  }
 	}
 
-	return CLOSE_SEQ_OF_CODES(p, p0, tail, term, l );
+	return CLOSE_SEQ_STRING(p, p0, tail, term, l );
       }
     }
     default:
