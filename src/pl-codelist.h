@@ -25,6 +25,11 @@
 #ifndef PL_CODELIST_H_INCLUDED
 #define PL_CODELIST_H_INCLUDED
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD: This seems a  duplication  of   pl-privitf.[ch],  which  is used in
+pl-file.c. These functions are used in pl-text.c.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 		 /*******************************
 		 *	    (CODE) LISTS	*
 		 *******************************/
