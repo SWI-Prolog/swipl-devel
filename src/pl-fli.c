@@ -27,6 +27,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-codelist.h"
 #include <errno.h>
 
 #include <limits.h>
@@ -72,16 +73,6 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #endif
 #define valHandleP(h)		valTermRef(h)
-
-static inline word
-valHandle__LD(term_t r ARG_LD)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
-
-#define valHandle(r) valHandle__LD(r PASS_LD)
 
 static int	PL_unify_int64__LD(term_t t, int64_t i, int ex ARG_LD);
 
@@ -626,6 +617,23 @@ PL_atom_wchars(atom_t a, size_t *len)
 }
 
 
+int
+charCode(word w)
+{ if ( isAtom(w) )
+  { Atom a = atomValue(w);
+
+    if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
+      return a->name[0] & 0xff;
+    if ( a->length == sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    { pl_wchar_t *p = (pl_wchar_t*)a->name;
+
+      return p[0];
+    }
+  }
+
+  return -1;
+}
+
 
 		 /*******************************
 		 *    QUINTUS/SICSTUS WRAPPER   *
@@ -1102,142 +1110,6 @@ PL_get_string(term_t t, char **s, size_t *len)
   fail;
 }
 #endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_code *status)
-
-If l represents a list of codes   or characters, return a buffer holding
-the characters. If wide == TRUE  the   buffer  contains  objects of type
-pl_wchar_t. Otherwise it contains traditional characters.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-charCode(word w)
-{ if ( isAtom(w) )
-  { Atom a = atomValue(w);
-
-    if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
-      return a->name[0] & 0xff;
-    if ( a->length == sizeof(pl_wchar_t) && a->type == &ucs_atom )
-    { pl_wchar_t *p = (pl_wchar_t*)a->name;
-
-      return p[0];
-    }
-  }
-
-  return -1;
-}
-
-
-Buffer
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *result)
-{ GET_LD
-  Buffer b;
-  word list = valHandle(l);
-  word slow;
-  Word arg, tail;
-  int step_slow = TRUE;
-  enum { CHARS, CODES } type;
-
-  if ( isList(list) )
-  { intptr_t c = -1;
-
-    arg = argTermP(list, 0);
-    deRef(arg);
-
-    if ( isTaggedInt(*arg) )
-    { c = valInt(*arg);
-      type = CODES;
-    } else
-    { c = charCode(*arg);
-      type = CHARS;
-    }
-
-    result->culprit = *arg;
-    if ( c < 0 || (!wide && c > 0xff) )
-    { if ( canBind(*arg) )
-	result->status = CVT_partial;
-      else if ( c < 0 )
-	result->status = CVT_nocode;
-      else if ( c > 0xff )
-	result->status = CVT_wide;
-      return NULL;
-    }
-  } else if ( isNil(list) )
-  { return findBuffer(flags);
-  } else
-  { if ( canBind(list) )
-      result->status = CVT_partial;
-    else
-      result->status = CVT_nolist;
-
-    return NULL;
-  }
-
-  b = findBuffer(flags);
-
-  slow = list;
-  while( isList(list) )
-  { intptr_t c = -1;
-
-    arg = argTermP(list, 0);
-    deRef(arg);
-
-    switch(type)
-    { case CODES:
-	if ( isTaggedInt(*arg) )
-	  c = valInt(*arg);
-        break;
-      case CHARS:
-	c = charCode(*arg);
-        break;
-    }
-
-    if ( c < 0 || (!wide && c > 0xff) )
-    { result->culprit = *arg;
-
-      unfindBuffer(flags);		/* TBD: check unicode range */
-      if ( canBind(*arg) )
-	result->status = CVT_partial;
-      else if ( c < 0 )
-	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
-      else if ( c > 0xff )
-	result->status = CVT_wide;
-      return NULL;
-    }
-
-    if ( wide )
-      addBuffer(b, (pl_wchar_t)c, pl_wchar_t);
-    else
-      addBuffer(b, (unsigned char)c, unsigned char);
-
-    tail = argTermP(list, 1);
-    deRef(tail);
-    list = *tail;
-    if ( list == slow )		/* cyclic */
-    { unfindBuffer(flags);
-      result->status = CVT_nolist;
-      return NULL;
-    }
-    if ( (step_slow = !step_slow) )
-    { tail = argTermP(slow, 1);
-      deRef(tail);
-      slow = *tail;
-    }
-  }
-  if ( !isNil(list) )
-  { unfindBuffer(flags);
-    if ( canBind(list) )
-      result->status = CVT_partial;
-    else
-      result->status = CVT_nolist;
-    return NULL;
-  }
-
-  result->status = CVT_ok;
-
-  return b;
-}
 
 
 int

@@ -349,8 +349,7 @@ COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
 COMMON(int)		isUCSAtom(Atom a);
 COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, size_t len);
-COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
-						 int wide, CVT_result *status);
+COMMON(int)		charCode(word w);
 
 COMMON(void) 		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,
