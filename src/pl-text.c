@@ -30,6 +30,9 @@
 #ifdef __WINDOWS__
 #include "pl-mswchar.h"			/* Terrible hack */
 #endif
+#if HAVE_LIMITS_H
+#include <limits.h>			/* solaris compatibility */
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -380,36 +383,32 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  { const unsigned char *s = (const unsigned char *)text->text.t;
 	    const unsigned char *e = &s[text->length];
 
-	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+            if ( !(p0 = p = INIT_SEQ_CODES(text->length)) )
 	      return FALSE;
 
-	    for( ; s < e; s++)
-	    { *p++ = FUNCTOR_dot2;
-	      if ( type == PL_CODE_LIST )
-		*p++ = consInt(*s);
-	      else
-		*p++ = codeToAtom(*s);
-	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	      p++;
-	    }
+            if ( type == PL_CODE_LIST ) {
+              for( ; s < e; s++)
+                p = EXTEND_SEQ_CODES(p, *s);
+            } else {
+              for( ; s < e; s++)
+                p = EXTEND_SEQ_ATOMS(p, *s);
+            }
 	    break;
 	  }
 	  case ENC_WCHAR:
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
 	    const pl_wchar_t *e = &s[text->length];
 
-	    if ( !(p0 = p = allocGlobal(text->length*3)) )
+            if ( !(p0 = p = INIT_SEQ_CODES(text->length)) )
 	      return FALSE;
 
-	    for( ; s < e; s++)
-	    { *p++ = FUNCTOR_dot2;
-	      if ( type == PL_CODE_LIST )
-		*p++ = consInt(*s);
-	      else
-		*p++ = codeToAtom(*s);
-	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	      p++;
-	    }
+            if ( type == PL_CODE_LIST ) {
+              for( ; s < e; s++)
+                p = EXTEND_SEQ_CODES(p, *s);
+            } else {
+              for( ; s < e; s++)
+                p = EXTEND_SEQ_ATOMS(p, *s);
+            }
 	    break;
 	  }
 	  case ENC_UTF8:
@@ -417,21 +416,24 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    const char *e = &s[text->length];
 	    size_t len = utf8_strlen(s, text->length);
 
-	    if ( !(p0 = p = allocGlobal(len*3)) )
+            if ( !(p0 = p = INIT_SEQ_CODES(len)) )
 	      return FALSE;
 
-	    while(s<e)
-	    { int chr;
-
-	      s = utf8_get_char(s, &chr);
-	      *p++ = FUNCTOR_dot2;
-	      if ( type == PL_CODE_LIST )
-		*p++ = consInt(chr);
-	      else
-		*p++ = codeToAtom(chr);
-	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	      p++;
-	    }
+            if ( type == PL_CODE_LIST ) {
+              while (s < e) {
+                int chr;
+                 
+                s = utf8_get_char(s, &chr);
+                p = EXTEND_SEQ_CODES(p, chr);
+              }
+            } else {
+              while (s < e) {
+                int chr;
+                 
+                s = utf8_get_char(s, &chr);
+                p = EXTEND_SEQ_ATOMS(p, chr);
+              }
+            }
 	    break;
 	  }
 	  case ENC_ANSI:
@@ -452,7 +454,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	      s += rc;
 	    }
 
-	    if ( !(p0 = p = allocGlobal(len*3)) )
+            if ( !(p0 = p = INIT_SEQ_CODES(len)) )
 	      return FALSE;
 
 	    n = text->length;
@@ -461,13 +463,10 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	    while(n > 0)
 	    { rc = mbrtowc(&wc, s, n, &mbs);
 
-	      *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
-		*p++ = consInt(wc);
+		p = EXTEND_SEQ_CODES(p, wc);
 	      else
-		*p++ = codeToAtom(wc);
-	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	      p++;
+		p = EXTEND_SEQ_ATOMS(p, wc);
 
 	      s += rc;
 	      n -= rc;
@@ -481,20 +480,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 	  }
 	}
 
-	setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
-	p--;
-	if ( tail )
-	{ setVar(*p);
-	  if ( PL_unify(l, term) )
-	  { setHandle(tail, makeRefG(p));
-	    return TRUE;
-	  }
-
-	  return FALSE;
-	} else
-	{ *p = ATOM_nil;
-	  return PL_unify(l, term);
-	}
+	return CLOSE_SEQ_OF_CODES(p, p0, tail, term, l );
       }
     }
     default:
