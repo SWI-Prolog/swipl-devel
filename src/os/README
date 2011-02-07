@@ -87,8 +87,13 @@ possible, this is not a trivial process. You need to do the following:
   * popen.c
   popen() for Windows.
 
+  * windows
+  More Windows portability stuff
+
 ---++ License
 
 This code is licenced under the LGPL.
 
-
+@tbd	Move all Windows hacks to os/windows.  At the moment, there are
+	definitions in pl-nt.c pl-ntcon.c pl-ntconsole.c, pl-main.c,
+	os/popen.c, os/pl-mswchar.cpp, pl-mswchar.h.
