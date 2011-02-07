@@ -1,6 +1,20 @@
 # Declarations that can be shared between the Unix and
 # Windows Makefiles
 
+# C-Sources
+
+OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
+	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
+	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-privitf.o pl-list.o \
+	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
+	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
+	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
+	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-prologflag.o \
+	pl-ctype.o pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o \
+	pl-main.o pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
+	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o pl-files.o \
+	pl-dbref.o pl-termhash.o pl-dtoa.o pl-codelist.o pl-string.o
+
 # Prolog library
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \

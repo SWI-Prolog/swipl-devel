@@ -104,20 +104,11 @@ LIBRARYDIR=${PLBASE}/library
 MKLIBS=@MKLIBS@
 DEVPL=./swipl.sh
 
+include $(srcdir)/common.mk
+
 # MacOS
 LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
 
-OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
-	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
-	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-privitf.o pl-list.o \
-	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
-	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
-	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-prologflag.o \
-	pl-ctype.o pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o \
-	pl-main.o pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
-	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o pl-files.o \
-	pl-dbref.o pl-termhash.o pl-dtoa.o pl-codelist.o pl-string.o
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
 TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
@@ -135,8 +126,6 @@ INCSRC=	pl-index.c pl-alloc.c pl-fli.c
 SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
-
-include $(srcdir)/common.mk
 
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
