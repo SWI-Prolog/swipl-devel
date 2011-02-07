@@ -35,6 +35,7 @@
 
 typedef enum
 { ERR_NO_ERROR = 0,
+				/* Used in os-directory and maybe elsewhere */
   ERR_DOMAIN,			/* atom_t domain, term_t value */
   ERR_EXISTENCE,		/* atom_t type, term_t obj */
   ERR_FILE_OPERATION,		/* atom_t action, atom_t type, term_t */
@@ -54,7 +55,7 @@ typedef enum
   ERR_TYPE,			/* atom_t expected, term_t value */
   ERR_UNINSTANTIATION,		/* int argn, term_t term */
 
-
+				/* Only used on SWI-Prolog itself */
   ERR_AR_OVERFLOW,		/* void */
   ERR_AR_TYPE,			/* atom_t expected, Number value */
   ERR_AR_UNDEF,			/* void */
