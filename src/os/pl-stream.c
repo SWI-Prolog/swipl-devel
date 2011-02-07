@@ -2911,7 +2911,7 @@ Sfileno(IOSTREAM *s)
 
 #ifdef HAVE_POPEN
 #ifdef __WINDOWS__
-#include "popen.c"
+#include "windows/popen.c"
 
 #define popen(cmd, how) pt_popen(cmd, how)
 #define pclose(fd)	pt_pclose(fd)

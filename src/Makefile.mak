@@ -51,7 +51,7 @@ STREAMH=$(INCLUDEDIR)\SWI-Stream.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
-OBJ=	$(OBJ:.o=.obj) $(OSOBJ:.o=.obj) pl-mswchar.obj popen.obj
+OBJ=	$(OBJ:.o=.obj) $(OSOBJ:.o=.obj) os/popen.obj
 
 PLINIT=	$(PB)/init.pl
 
