@@ -23,7 +23,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
 

@@ -25,8 +25,8 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-ctype.h"
-#include "pl-utf8.h"
+#include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include "pl-codelist.h"
 #include <errno.h>
 

@@ -31,7 +31,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 #include "rc/rc.h"
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif

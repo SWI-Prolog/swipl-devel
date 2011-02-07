@@ -25,10 +25,10 @@
 #include <math.h>
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-ctype.h"
-#include "pl-utf8.h"
+#include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
+#include "os/pl-dtoa.h"
 #include "pl-umap.c"			/* Unicode map */
-#include "pl-dtoa.h"
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;

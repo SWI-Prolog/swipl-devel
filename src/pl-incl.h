@@ -446,7 +446,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		64	/* arithmetic function table */
 
-#include "pl-table.h"
+#include "os/pl-table.h"
 
 /* Definition->indexPattern is set to NEED_REINDEX if the definition's index
    pattern needs to be recomputed */
@@ -2049,7 +2049,7 @@ decrease).
 #define O_MAINTENANCE
 #endif
 
-#include "pl-os.h"			/* OS dependencies */
+#include "os/pl-os.h"			/* OS dependencies */
 
 #ifdef SYSLIB_H
 #include SYSLIB_H
@@ -2061,7 +2061,7 @@ decrease).
 #include "pl-funct.ih"
 
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
-#include "pl-error.h"			/* Exception generation */
+#include "os/pl-error.h"		/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
@@ -2071,11 +2071,11 @@ decrease).
 #include "pl-ldpass.h"			/* Wrap __LD functions */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
-#include "pl-text.h"			/* text manipulation */
+#include "os/pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
 #include "pl-option.h"			/* Option processing */
-#include "pl-files.h"			/* File management */
-#include "pl-string.h"			/* Basic string functions */
+#include "os/pl-files.h"		/* File management */
+#include "os/pl-string.h"		/* Basic string functions */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

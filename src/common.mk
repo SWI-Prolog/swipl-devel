@@ -3,17 +3,21 @@
 
 # C-Sources
 
-OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
-	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
-	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-privitf.o pl-list.o \
-	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
+OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-error.o os/pl-file.o os/pl-files.o \
+	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
+	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o
+
+OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o \
+	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
+	pl-funct.o pl-gc.o pl-privitf.o pl-list.o \
+	pl-load.o pl-modul.o pl-op.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
-	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-prologflag.o \
-	pl-ctype.o pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o \
-	pl-main.o pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
-	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o pl-files.o \
-	pl-dbref.o pl-termhash.o pl-dtoa.o pl-codelist.o pl-string.o
+	pl-sys.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
+	pl-term.o pl-thread.o pl-xterm.o pl-prologflag.o \
+	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
+	pl-main.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
+	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o \
+	pl-dbref.o pl-termhash.o pl-codelist.o
 
 # Prolog library
 

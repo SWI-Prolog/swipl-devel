@@ -109,6 +109,7 @@ include $(srcdir)/common.mk
 # MacOS
 LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
 
+OBJ+=	$(OSOBJ)
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
 TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
@@ -131,7 +132,7 @@ CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
-builddirs = ../lib ../lib/$(ARCH)
+builddirs=../lib ../lib/$(ARCH) os
 
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
 # information to optimise branches.  Normally set through
@@ -293,7 +294,7 @@ pl-rec.o:	pl-termwalk.c
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-pl-dtoa.o:	dtoa.c
+os/pl-dtoa.o:	os/dtoa.c
 pl-text.o:	$(srcdir)/pl-codelist.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi

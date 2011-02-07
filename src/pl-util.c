@@ -23,8 +23,8 @@
 */
 
 #include "pl-incl.h"
-#include "pl-ctype.h"
-#include "pl-utf8.h"
+#include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 
 static bool	isUserSystemPredicate(Definition def);
 
