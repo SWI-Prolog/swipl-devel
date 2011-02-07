@@ -226,34 +226,6 @@ COMMON(void) 		cleanupExtensions(void);
 COMMON(void)            rememberExtensions(const char *module,
 					   const PL_extension *e);
 
-/* pl-error.c */
-
-COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
-			 int id, ...);
-COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
-COMMON(int) 		printMessage(atom_t severity, ...);
-COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
-					 unsigned int flags);
-COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
-COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
-COMMON(int) 		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
-COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
-COMMON(int) 		PL_get_long_ex(term_t t, long *i);
-COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
-COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
-COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
-COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
-COMMON(int) 		PL_get_float_ex(term_t t, double *f);
-COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
-COMMON(int) 		PL_get_pointer_ex(term_t t, void **addrp);
-COMMON(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
-COMMON(int) 		PL_unify_nil_ex(term_t l);
-COMMON(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
-COMMON(int) 		PL_get_nil_ex(term_t l);
-COMMON(int) 		PL_unify_bool_ex(term_t t, bool val);
-COMMON(int) 		PL_get_arg_ex(int n, term_t term, term_t arg);
-COMMON(int) 		PL_get_module_ex(term_t name, Module *m);
-
 
 /* pl-file.c */
 COMMON(void) 		initIO(void);

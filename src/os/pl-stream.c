@@ -30,7 +30,7 @@
 #define MD "config/win32.h"
 #endif
 #include <winsock2.h>
-#include "pl-mswchar.h"
+#include "windows/mswchar.h"
 #define CRLF_MAPPING 1
 #endif
 
@@ -139,13 +139,13 @@ STRYLOCK(IOSTREAM *s)
 #define STRYLOCK(s) (TRUE)
 #endif
 
-#include "pl-error.h"
 typedef void *record_t;
+typedef void *Module;
 typedef intptr_t term_t;
+typedef intptr_t atom_t;
+#include "pl-error.h"
 
 extern int 			fatalError(const char *fm, ...);
-extern int 			PL_error(const char *pred, int arity,
-					 const char *msg, int id, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);

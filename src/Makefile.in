@@ -493,7 +493,7 @@ html-install::
 clean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
-		rm -f *.o a.out core *~ #* parms.h
+		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
 
 profclean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
