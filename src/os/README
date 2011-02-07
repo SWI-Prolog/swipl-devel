@@ -1,0 +1,32 @@
+---+ The SWI-Prolog operating-system and basic operation layer
+
+This directory contains parts of  SWI-Prolog   that  deal with operating
+system and file access as well as core functionality to support this.
+
+---++ Deploying this code
+
+Although this code is repacked  to   make  deployment outside SWI-Prolog
+possible, this is not a trivial process. You need to do the following:
+
+  * Provide a SWI-Prolog compatible implementation of the required bits
+  of the foreign language interface.  These functions are called PL_*
+  and described in the SWI-Prolog manual.
+
+  * Provide an emulation for pl-codelist.[ch], pl-privitf.[ch] and
+  pl-builtin.h. These files provide macros and functions that access
+  (SWI-)Prolog internals directly. Hopefully your Prolog system can do
+  something similar.
+
+  * Provide an emulation for pl-incl.h.
+  TBD: We must move those parts of pl-incl.h that are really neaded into
+  pl-builtin.h, so the dependencies on pl-incl.h disappear.
+
+  * The constants ATOM_* are SWI-Prolog macros that define objects of
+  type atom_t refering to a specific string.  The script atoms.sh in
+  this directory can be used to extract the atoms that are used in this
+  directory. This only works if the atom-definition file ATOMS of
+  SWI-Prolog is available as ../ATOMS.
+
+---++ License
+
+This code is licenced under the LGPL.
