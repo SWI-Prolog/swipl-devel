@@ -259,8 +259,8 @@ $(DEF):		$(srcdir)/SWI-Prolog.h
 $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		cp $(srcdir)/SWI-Prolog.h $(CINCLUDE)
 
-$(STREAMH):	$(srcdir)/SWI-Stream.h $(INCLUDEDIR)
-		cp $(srcdir)/SWI-Stream.h $@
+$(STREAMH):	$(srcdir)/os/SWI-Stream.h $(INCLUDEDIR)
+		cp $(srcdir)/os/SWI-Stream.h $@
 
 $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@

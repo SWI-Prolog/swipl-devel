@@ -61,7 +61,7 @@ for -DMD="config/win64.h"
 #endif
 
 #include "pl-mutex.h"
-#include "SWI-Stream.h"
+#include "os/SWI-Stream.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Symbols are local to shared objects  by   default  in  COFF based binary

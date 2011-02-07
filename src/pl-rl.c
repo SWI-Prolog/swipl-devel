@@ -37,7 +37,7 @@ SWI-Prolog.h and SWI-Stream.h
 #endif
 #include <string.h>
 #include <stdlib.h>
-#include "SWI-Stream.h"
+#include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
 
 #ifdef __WINDOWS__
