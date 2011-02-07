@@ -122,7 +122,7 @@ $(OUTDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
 
 subdirs:	$(OUTDIRS)
-		chdir win32\uxnt & $(MAKE)
+		chdir os\windows & $(MAKE)
 		chdir win32\console & $(MAKE)
 		chdir rc & $(MAKE)
 		chdir libtai & $(MAKE)
@@ -408,7 +408,7 @@ reqs$(BITS)::
 clean:		clean_packages
 		chdir rc & $(MAKE) clean
 		chdir libtai & $(MAKE) clean
-		chdir win32\uxnt & $(MAKE) clean
+		chdir os\windows & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
 		-del *.manifest *.obj *~ pl.res vmi 2>nul
