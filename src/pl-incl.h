@@ -2075,6 +2075,7 @@ decrease).
 #include "pl-hash.h"			/* Murmurhash function */
 #include "pl-option.h"			/* Option processing */
 #include "pl-files.h"			/* File management */
+#include "pl-string.h"			/* Basic string functions */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

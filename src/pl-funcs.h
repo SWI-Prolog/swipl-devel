@@ -61,8 +61,6 @@ COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 COMMON(int) 		equalIndirect(word r1, word r2);
 COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word) 		globalIndirectFromCode(Code *PC);
-COMMON(char *) 		store_string(const char *s);
-COMMON(void) 		remove_string(char *s);
 #ifndef xmalloc
 COMMON(void *) 		xmalloc(size_t size);
 COMMON(void *) 		xrealloc(void *mem, size_t size);
@@ -697,23 +695,7 @@ COMMON(int) 		clauseNo(Definition def, Clause clause);
 COMMON(word) 		notImplemented(char *name, int arity);
 COMMON(word) 		setBoolean(int *flag, term_t o, term_t n);
 COMMON(word) 		setInteger(int *val, term_t old, term_t new);
-COMMON(bool) 		strprefix(const char *string, const char *prefix);
-COMMON(bool) 		strpostfix(const char *string, const char *postfix);
-COMMON(bool) 		stripostfix(const char *string, const char *postfix);
 COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
-#ifndef HAVE_STRCASECMP
-COMMON(int) 		strcasecmp(const char *s1, const char *s2);
-#endif
-#ifndef HAVE_STRLWR
-COMMON(char *) 		strlwr(char *s);
-#endif
-#ifndef HAVE_MBSCOLL
-COMMON(int)		mbscoll(const char *s1, const char *s2);
-#endif
-#ifndef HAVE_MBSCASECOLL
-COMMON(int)		mbscasecoll(const char *s1, const char *s2);
-#endif
-
 
 /* pl-wic.c */
 COMMON(bool) 		loadWicFromStream(IOSTREAM *fd);
