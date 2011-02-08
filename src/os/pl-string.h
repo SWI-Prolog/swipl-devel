@@ -27,6 +27,8 @@
 
 COMMON(char *) 		store_string(const char *s);
 COMMON(void) 		remove_string(char *s);
+COMMON(char) 		digitName(int n, int small);
+COMMON(int) 		digitValue(int b, int c);
 COMMON(bool) 		strprefix(const char *string, const char *prefix);
 COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);

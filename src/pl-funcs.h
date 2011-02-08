@@ -659,8 +659,6 @@ COMMON(int) 		callEventHook(int ev, ...);
 COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 
 /* pl-util.c */
-COMMON(char) 		digitName(int n, bool small);
-COMMON(int) 		digitValue(int b, int c);
 COMMON(char *) 		procedureName(Procedure proc);
 COMMON(char *) 		predicateName(Definition def);
 COMMON(int) 		clauseNo(Definition def, Clause clause);

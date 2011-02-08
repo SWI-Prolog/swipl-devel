@@ -28,47 +28,6 @@
 
 static bool	isUserSystemPredicate(Definition def);
 
-/*  Return the character representing some digit.
-
- ** Fri Jun 10 10:45:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-char
-digitName(int n, bool small)
-{ if (n <= 9)
-    return n + '0';
-  return n + (small ? 'a' : 'A') - 10;
-}
-
-/*  Return the value of a digit when transforming a number of base 'b'.
-    Return '-1' if it is an illegal digit.
-
- ** Fri Jun 10 10:46:40 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-int
-digitValue(int b, int c)
-{ int v;
-
-  if ( b == 0 )
-    return c;				/* 0'c */
-  if ( b == 1 )
-    return -1;
-  if ( b <= 10 )
-  { v = c - '0';
-    if ( v < b )
-      return v;
-    return -1;
-  }
-  if ( c <= '9' )
-    return c - '0';
-  if (isUpper(c))
-    c = toLower(c);
-  c = c - 'a' + 10;
-  if ( c < b && c >= 10 )
-    return c;
-  return -1;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These  functions  return  a  user-printable  name   of  a  predicate  as
 name/arity or module:name/arity. The result  is   stored  in the foreign
