@@ -1571,11 +1571,6 @@ echo "	LIBS=$LIBS"
 
 OutputFiles="Makefile rc/Makefile libtai/Makefile swipl.1 swipl.sh swipl.pc"
 
-dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
-dnl around making this variable global.
-
-srcdir=`cd $srcdir && pwd`
-
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
