@@ -321,10 +321,8 @@ defatom:	defatom.c
 swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c
 
-tags:		$(srcdir)/TAGS
-
-$(srcdir)/TAGS:	$(SRC)
-		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
+tags::
+		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
 
 cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
