@@ -2073,7 +2073,7 @@ decrease).
 #include "pl-privitf.h"			/* private foreign interface */
 #include "os/pl-text.h"			/* text manipulation */
 #include "pl-hash.h"			/* Murmurhash function */
-#include "pl-option.h"			/* Option processing */
+#include "os/pl-option.h"		/* Option processing */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */
 

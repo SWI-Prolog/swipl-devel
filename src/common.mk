@@ -5,7 +5,7 @@
 
 OSOBJ=	os/pl-buffer.o os/pl-ctype.o os/pl-error.o os/pl-file.o os/pl-files.o \
 	os/pl-glob.o os/pl-os.o os/pl-stream.o os/pl-string.o os/pl-table.o \
-	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o
+	os/pl-text.o os/pl-utf8.o os/pl-fmt.o os/pl-dtoa.o os/pl-option.o
 
 OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-flag.o \
@@ -16,7 +16,7 @@ OBJ=	pl-atom.o pl-wam.o pl-arith.o pl-bag.o \
 	pl-term.o pl-thread.o pl-xterm.o pl-prologflag.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o \
 	pl-main.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
-	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o \
+	pl-version.o pl-codetable.o pl-supervisor.o \
 	pl-dbref.o pl-termhash.o pl-codelist.o
 
 # Prolog library
