@@ -4943,7 +4943,14 @@ integers_remaining([V|Vs], N0, Dom, D0, D) :-
 
 %%    global_cardinality(+Vs, +Pairs)
 %
-%     Equivalent to global_cardinality(Vs, Pairs, []).
+%     Equivalent to global_cardinality(Vs, Pairs, []). Example:
+%
+%     ==
+%     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
+%     Vs = [1, 1, 3] ;
+%     Vs = [1, 3, 1] ;
+%     Vs = [3, 1, 1].
+%     ==
 
 global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
 
@@ -4953,18 +4960,8 @@ global_cardinality(Xs, Pairs) :- global_cardinality(Xs, Pairs, []).
 %     Key-Num pairs, where Key is an integer and Num is a finite
 %     domain variable. The constraint holds iff each V in Vs is equal
 %     to some key, and for each Key-Num pair in Pairs, the number of
-%     occurrences of Key in Vs is Num.
-%
-%     Example:
-%
-%     ==
-%     ?- Vs = [_,_,_], global_cardinality(Vs, [1-2,3-_]), label(Vs).
-%     Vs = [1, 1, 3] ;
-%     Vs = [1, 3, 1] ;
-%     Vs = [3, 1, 1].
-%     ==
-%
-%     Options is a list of options. Supported options are:
+%     occurrences of Key in Vs is Num. Options is a list of options.
+%     Supported options are:
 %
 %     * consistency(value)
 %     A weaker form of consistency is used.
