@@ -1530,8 +1530,8 @@ all_different([X|Right], Left, Orig) :-
 
 %% sum(+Vars, +Rel, ?Expr)
 %
-% The sum of elements of the list Vars is in relation Rel to Expr. For
-% example:
+% The sum of elements of the list Vars is in relation Rel to Expr,
+% where Rel is #=, #\=, #<, #>, #=< or #>=. For example:
 %
 % ==
 % ?- [A,B,C] ins 0..sup, sum([A,B,C], #=, 100).
@@ -1554,7 +1554,8 @@ vars_plusterm([C|Cs], [V|Vs], T0, T) :- vars_plusterm(Cs, Vs, T0+(C*V), T).
 %% scalar_product(+Cs, +Vs, +Rel, ?Expr)
 %
 % Cs is a list of integers, Vs is a list of variables and integers.
-% True if the scalar product of Cs and Vs is in relation Rel to Expr.
+% True if the scalar product of Cs and Vs is in relation Rel to Expr,
+% where Rel is #=, #\=, #<, #>, #=< or #>=.
 
 scalar_product(Cs, Vs, Op, Value) :-
         must_be(list(integer), Cs),
