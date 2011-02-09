@@ -2061,7 +2061,7 @@ decrease).
 #include "pl-funct.ih"
 
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
-#include "os/pl-error.h"		/* Exception generation */
+#include "pl-error.h"			/* Exception generation */
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-data.h"			/* Access Prolog data */
 #include "pl-segstack.h"		/* Segmented stacks */
