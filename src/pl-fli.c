@@ -3339,9 +3339,12 @@ PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
 { if ( pred->type == PROCEDURE_TYPE )
   { Definition def = pred->definition;
 
-    *name  = def->functor->name;
-    *arity = def->functor->arity;
-    *m     = def->module;
+    if ( name )
+      *name  = def->functor->name;
+    if ( arity )
+      *arity = def->functor->arity;
+    if ( m )
+      *m     = def->module;
 
     succeed;
   }
