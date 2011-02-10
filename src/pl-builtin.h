@@ -290,7 +290,7 @@ EndPredDefs
 #define CTX_ARITY PL__ac
 
 #define BeginPredDefs(id) \
-        PL_extension PL_predicates_from_ ## id[] = {
+        const PL_extension PL_predicates_from_ ## id[] = {
 #define PRED_DEF(name, arity, fname, flags) \
         { name, arity, pl_ ## fname ## arity ## _va, (flags)|PL_FA_VARARGS },
 #define PRED_SHARE(name, arity, fname, flags) \
