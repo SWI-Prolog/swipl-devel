@@ -651,7 +651,10 @@ This test is equivalent to PL_get_functor(), followed by testing the
 functor, but easier to write and faster.
 \cfunction{int}{PL_is_list}{term_t}
 Returns non-zero if \arg{term} is a compound term with functor ./2 or
-the atom \const{[]}.
+the atom \const{[]}.  See also PL_is_pair() and PL_skip_list().
+\cfunction{int}{PL_is_pair}{term_t}
+Returns non-zero if \arg{term} is a compound term with functor ./2.  See
+also PL_is_list() and PL_skip_list().
 \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not variable or compound).
 \cfunction{int}{PL_is_number}{term_t}

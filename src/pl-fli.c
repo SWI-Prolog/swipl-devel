@@ -1890,6 +1890,15 @@ PL_is_list(term_t t)
 
 
 int
+PL_is_pair(term_t t)
+{ GET_LD
+  word w = valHandle(t);
+
+  return isList(w) ? TRUE : FALSE;
+}
+
+
+int
 PL_is_atomic__LD(term_t t ARG_LD)
 { word w = valHandle(t);
 
