@@ -1224,15 +1224,16 @@ and they have the same `pattern' of variables. Examples:
 Note that a term is always a variant of a copy of itself. Term copying
 takes place in e.g., copy_term/2, findall/3 or proving a clause added
 with assert/1. In the pure Prolog world (i.e., without attributed
-variables), \predref{=@=}{2} behaves as if defined by one of the
-definitions given below. With attributed variables, structural
+variables), \emph{and} if \arg{Term1} and \arg{Term2} do
+not share any variables, \predref{=@=}{2} behaves as if defined by one
+of the definitions given below. With attributed variables, structural
 equivalence of the attributes is tested rather than trying to satisfy
 the constraints.
 
 \begin{code}
 A =@= B :-				% definition I
-	subsumes_chk(A, B),
-	subsumes_chk(B, A).
+	subsumes_term(A, B),
+	subsumes_term(B, A).
 
 A =@= B :-				% definition II
 	copy_term(A, Ac),
@@ -1252,7 +1253,8 @@ Prolog systems. Be aware of possible differences in semantics if the
 arguments contain attributed variables or share variables.
 
     \infixop{\=@=}{+Term1}{+Term2}
-Equivalent to \exam{`\Snot Term1 =@= Term2'}.
+Equivalent to \exam{`\Snot Term1 =@= Term2'}.  See \predref{=@=}{2} for
+details.
 
     \predicate[ISO]{subsumes_term}{2}{{@}Generic, {@}Specific}
 True if \arg{Generic} can be made equivalent to \arg{Specific} by only
