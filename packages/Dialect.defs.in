@@ -28,6 +28,7 @@ PKGDOCDIR=$(PLBASE)/doc/packages
 PKGEXDIR=$(PLBASE)/doc/packages/examples
 
 CC=../swipl-ld.sh
+CXX=../swipl-ld.sh
 LD=$(CC)
 SO=@SO_EXT@
 COFLAGS=@COFLAGS@
