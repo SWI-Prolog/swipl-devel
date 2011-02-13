@@ -37,7 +37,7 @@
 
 This simple module implements the   directive coinductive/1 as described
 in "Co-Logic Programming: Extending Logic  Programming with Coinduction"
-by Luke Somin et al. The idea behind coinduction is that a goal succeeds
+by Luke Simon et al. The idea behind coinduction is that a goal succeeds
 if it unifies to a parent goal.  This enables some interesting programs,
 notably on infinite trees (cyclic terms).
 
@@ -59,7 +59,7 @@ regardless of the cycle-length.
 	Stratification is not checked or enforced in any other way and thus
 	left as a responsibility to the user.
 @see	"Co-Logic Programming: Extending Logic  Programming with Coinduction"
-	by Luke Somin et al.
+	by Luke Simon et al.
 */
 
 :- multifile
