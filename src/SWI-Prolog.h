@@ -424,6 +424,7 @@ PL_EXPORT(int)		PL_is_compound(term_t t);
 PL_EXPORT(int)		PL_is_callable(term_t t);
 PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
 PL_EXPORT(int)		PL_is_list(term_t t);
+PL_EXPORT(int)		PL_is_pair(term_t t);
 PL_EXPORT(int)		PL_is_atomic(term_t t);
 PL_EXPORT(int)		PL_is_number(term_t t);
 PL_EXPORT(int)		PL_is_acyclic(term_t t);

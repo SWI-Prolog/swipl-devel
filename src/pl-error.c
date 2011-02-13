@@ -79,7 +79,7 @@ rewrite_callable(atom_t *expected, term_t actual)
 
 
 int
-PL_error(const char *pred, int arity, const char *msg, int id, ...)
+PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 { GET_LD
   Definition caller;
   term_t except, formal, swi;
@@ -853,7 +853,7 @@ PL_get_nil_ex(term_t l)
 }
 
 int
-PL_unify_bool_ex(term_t t, bool val)
+PL_unify_bool_ex(term_t t, int val)
 { GET_LD
   bool v;
 

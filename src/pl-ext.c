@@ -24,7 +24,7 @@
 
 /*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 
 #if O_DEBUG
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

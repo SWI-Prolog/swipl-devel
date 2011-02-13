@@ -22,46 +22,89 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define ERR_NO_ERROR		0
-#define ERR_INSTANTIATION	1	/* void */
-#define ERR_TYPE		2	/* atom_t expected, term_t value */
-#define ERR_DOMAIN		3	/* atom_t domain, term_t value */
-#define ERR_REPRESENTATION	4	/* atom_t what */
-#define ERR_MODIFY_STATIC_PROC	5	/* predicate_t proc */
-#define ERR_EVALUATION		6	/* atom_t what */
-#define ERR_AR_TYPE		7	/* atom_t expected, Number value */
-#define ERR_NOT_EVALUABLE	8	/* functor_t func */
-#define ERR_DIV_BY_ZERO		9	/* void */
-#define ERR_FAILED	       10	/* predicate_t proc */
-#define ERR_FILE_OPERATION     11	/* atom_t action, atom_t type, term_t */
-#define ERR_PERMISSION	       12	/* atom_t type, atom_t op, term_t obj*/
-#define ERR_NOT_IMPLEMENTED 13	/* const char *what */
-#define ERR_EXISTENCE	       14	/* atom_t type, term_t obj */
-#define ERR_STREAM_OP	       15	/* atom_t action, term_t obj */
-#define ERR_RESOURCE	       16	/* atom_t resource */
-#define ERR_NOMEM	       17	/* void */
-#define ERR_SYSCALL	       18	/* void */
-#define ERR_SHELL_FAILED       19	/* term_t command */
-#define ERR_SHELL_SIGNALLED    20	/* term_t command, int signal */
-#define ERR_AR_UNDEF	       21	/* void */
-#define ERR_AR_OVERFLOW	       22	/* void */
-#define ERR_AR_UNDERFLOW       23	/* void */
-#define ERR_UNDEFINED_PROC     24	/* Definition def */
-#define ERR_SIGNALLED	       25	/* int sig, char *name */
-#define ERR_CLOSED_STREAM      26	/* IOSTREAM * */
-#define ERR_BUSY	       27	/* mutexes */
-#define ERR_PERMISSION_PROC    28	/* op, type, Definition */
-#define ERR_DDE_OP	       29	/* op, error */
-#define ERR_SYNTAX	       30	/* what */
-#define ERR_SHARED_OBJECT_OP   31	/* op, error */
-#define ERR_TIMEOUT	       32	/* op, object */
-#define ERR_NOT_IMPLEMENTED_PROC 33	/* name, arity */
-#define ERR_FORMAT	       34	/* message */
-#define ERR_FORMAT_ARG	       35	/* seq, term */
-#define ERR_OCCURS_CHECK       36	/* Word, Word */
-#define ERR_CHARS_TYPE	       37	/* char *, term */
-#define ERR_UNINSTANTIATION	       38	/* int argn, term_t term */
-#define ERR_MODIFY_THREAD_LOCAL_PROC 39	/* Procedure proc */
+#ifndef COMMON
+#ifndef SO_LOCAL
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define SO_LOCAL __attribute__((visibility("hidden")))
+#else
+#define SO_LOCAL
+#endif
+#endif
+#define COMMON(type) SO_LOCAL type
+#endif
+
+typedef enum
+{ ERR_NO_ERROR = 0,
+				/* Used in os-directory and maybe elsewhere */
+  ERR_DOMAIN,			/* atom_t domain, term_t value */
+  ERR_EXISTENCE,		/* atom_t type, term_t obj */
+  ERR_FILE_OPERATION,		/* atom_t action, atom_t type, term_t */
+  ERR_FORMAT,			/* message */
+  ERR_FORMAT_ARG,		/* seq, term */
+  ERR_INSTANTIATION,		/* void */
+  ERR_NOMEM,			/* void */
+  ERR_NOT_IMPLEMENTED,		/* const char *what */
+  ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj*/
+  ERR_REPRESENTATION,		/* atom_t what */
+  ERR_RESOURCE,			/* atom_t resource */
+  ERR_SHELL_FAILED,		/* term_t command */
+  ERR_SHELL_SIGNALLED,		/* term_t command, int signal */
+  ERR_STREAM_OP,		/* atom_t action, term_t obj */
+  ERR_SYSCALL,			/* void */
+  ERR_TIMEOUT,			/* op, object */
+  ERR_TYPE,			/* atom_t expected, term_t value */
+  ERR_UNINSTANTIATION,		/* int argn, term_t term */
+
+				/* Only used on SWI-Prolog itself */
+  ERR_AR_OVERFLOW,		/* void */
+  ERR_AR_TYPE,			/* atom_t expected, Number value */
+  ERR_AR_UNDEF,			/* void */
+  ERR_AR_UNDERFLOW,		/* void */
+  ERR_BUSY,			/* mutexes */
+  ERR_CHARS_TYPE,		/* char *, term */
+  ERR_CLOSED_STREAM,		/* IOSTREAM * */
+  ERR_DDE_OP,			/* op, error */
+  ERR_DIV_BY_ZERO,		/* void */
+  ERR_EVALUATION,		/* atom_t what */
+  ERR_FAILED,			/* predicate_t proc */
+  ERR_MODIFY_STATIC_PROC,	/* predicate_t proc */
+  ERR_MODIFY_THREAD_LOCAL_PROC,	/* Procedure proc */
+  ERR_NOT_EVALUABLE,		/* functor_t func */
+  ERR_NOT_IMPLEMENTED_PROC,	/* name, arity */
+  ERR_OCCURS_CHECK,		/* Word, Word */
+  ERR_PERMISSION_PROC,		/* op, type, Definition */
+  ERR_SHARED_OBJECT_OP,		/* op, error */
+  ERR_SIGNALLED,		/* int sig, char *name */
+  ERR_SYNTAX,			/* what */
+  ERR_UNDEFINED_PROC		/* Definition def */
+} PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))
 
+COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
+				 PL_error_code id, ...);
+COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
+COMMON(int) 		printMessage(atom_t severity, ...);
+COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
+					 unsigned int flags);
+COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
+COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
+#ifdef ARG_LD
+COMMON(int) 		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
+#endif
+COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
+COMMON(int) 		PL_get_long_ex(term_t t, long *i);
+COMMON(int) 		PL_get_int64_ex(term_t t, int64_t *i);
+COMMON(int) 		PL_get_intptr_ex(term_t t, intptr_t *i);
+COMMON(int) 		PL_get_size_ex(term_t t, size_t *i);
+COMMON(int) 		PL_get_bool_ex(term_t t, int *i);
+COMMON(int) 		PL_get_float_ex(term_t t, double *f);
+COMMON(int) 		PL_get_char_ex(term_t t, int *p, int eof);
+COMMON(int) 		PL_get_pointer_ex(term_t t, void **addrp);
+COMMON(int) 		PL_unify_list_ex(term_t l, term_t h, term_t t);
+COMMON(int) 		PL_unify_nil_ex(term_t l);
+COMMON(int) 		PL_get_list_ex(term_t l, term_t h, term_t t);
+COMMON(int) 		PL_get_nil_ex(term_t l);
+COMMON(int) 		PL_unify_bool_ex(term_t t, int val);
+COMMON(int) 		PL_get_arg_ex(int n, term_t term, term_t arg);
+COMMON(int) 		PL_get_module_ex(term_t name, Module *m);

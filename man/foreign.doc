@@ -651,7 +651,10 @@ This test is equivalent to PL_get_functor(), followed by testing the
 functor, but easier to write and faster.
 \cfunction{int}{PL_is_list}{term_t}
 Returns non-zero if \arg{term} is a compound term with functor ./2 or
-the atom \const{[]}.
+the atom \const{[]}.  See also PL_is_pair() and PL_skip_list().
+\cfunction{int}{PL_is_pair}{term_t}
+Returns non-zero if \arg{term} is a compound term with functor ./2.  See
+also PL_is_list() and PL_skip_list().
 \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not variable or compound).
 \cfunction{int}{PL_is_number}{term_t}
@@ -1725,12 +1728,13 @@ the C-programmer.
 
     \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
 					int *a, module_t *m}
-Return information on the predicate \arg{p}.  The name is stored
-over \arg{n}, the arity over \arg{a}, while \arg{m} receives the
-definition module.  Note that the latter need not be the same as
-specified with PL_predicate().  If the predicate is imported into
-the module given to PL_predicate(), this function will return the
-module where the predicate is defined.
+Return information on the predicate \arg{p}. The name is stored over
+\arg{n}, the arity over \arg{a}, while \arg{m} receives the definition
+module. Note that the latter need not be the same as specified with
+PL_predicate(). If the predicate is imported into the module given to
+PL_predicate(), this function will return the module where the predicate
+is defined. Any of the arguments \arg{n}, \arg{a} and \arg{m} can be
+\const{NULL}.
 \end{description}
 
 

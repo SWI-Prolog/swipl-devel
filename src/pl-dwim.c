@@ -23,7 +23,7 @@
 */
 
 #include "pl-incl.h"
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Strings are supposed to be meant identical iff one of the  following  is

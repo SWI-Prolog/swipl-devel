@@ -111,7 +111,7 @@ definitions below. Also the tagtypeex[] array defined in pl-setup.c must
 be kept consistent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-buffer.h"
+#include "os/pl-buffer.h"
 
 #define LMASK_BITS	7		/* total # mask bits */
 

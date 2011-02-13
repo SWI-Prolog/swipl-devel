@@ -33,10 +33,10 @@
 #endif
 
 #include "pl-incl.h"
-#include "pl-utf8.h"
+#include "os/pl-utf8.h"
 #include <crtdbg.h>
 #include <process.h>
-#include "pl-ctype.h"
+#include "os/pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include "SWI-Stream.h"

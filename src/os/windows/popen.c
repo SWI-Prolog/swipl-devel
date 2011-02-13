@@ -51,7 +51,7 @@ If you find this file and know better, please contact info@swi-prolog.org.
 #include <fcntl.h>
 #include <string.h>
 #include <io.h>
-#include "pl-utf8.h"
+#include "../pl-utf8.h"
 
 DWORD RunSilent(const char* strCommand)
 {

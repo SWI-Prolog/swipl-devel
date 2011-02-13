@@ -25,8 +25,8 @@
 
 #include <math.h>
 #include "pl-incl.h"
-#include "pl-dtoa.h"
-#include "pl-ctype.h"
+#include "os/pl-dtoa.h"
+#include "os/pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

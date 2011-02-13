@@ -104,20 +104,12 @@ LIBRARYDIR=${PLBASE}/library
 MKLIBS=@MKLIBS@
 DEVPL=./swipl.sh
 
+include $(srcdir)/common.mk
+
 # MacOS
 LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
 
-OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
-	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
-	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-privitf.o pl-list.o \
-	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
-	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
-	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-prologflag.o \
-	pl-ctype.o pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o \
-	pl-main.o pl-text.o pl-gmp.o pl-tai.o pl-segstack.o pl-hash.o \
-	pl-version.o pl-codetable.o pl-supervisor.o pl-option.o pl-files.o \
-	pl-dbref.o pl-termhash.o pl-dtoa.o
+OBJ+=	$(OSOBJ)
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
 TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
@@ -136,13 +128,11 @@ SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h SWI-Prolog.h \
 	pl-main.h pl-os.h pl-data.h
 
-include $(srcdir)/common.mk
-
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl clpfd.pl
 COMMON= README
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
-builddirs = ../lib ../lib/$(ARCH)
+builddirs=../lib ../lib/$(ARCH) os
 
 # OPTIMISE=noprof: normal build; prof: build twice, using profiling
 # information to optimise branches.  Normally set through
@@ -269,8 +259,8 @@ $(DEF):		$(srcdir)/SWI-Prolog.h
 $(CINCLUDE):	$(srcdir)/SWI-Prolog.h $(INCLUDEDIR)
 		cp $(srcdir)/SWI-Prolog.h $(CINCLUDE)
 
-$(STREAMH):	$(srcdir)/SWI-Stream.h $(INCLUDEDIR)
-		cp $(srcdir)/SWI-Stream.h $@
+$(STREAMH):	$(srcdir)/os/SWI-Stream.h $(INCLUDEDIR)
+		cp $(srcdir)/os/SWI-Stream.h $@
 
 $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		$(SED) 's/"SWI-Prolog.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
@@ -297,13 +287,15 @@ $(OBJ):		parms.h \
 		$(srcdir)/pl-funct.ih $(srcdir)/pl-vmi.h \
 		$(srcdir)/pl-inline.h
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c pl-vmi.c \
-		$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic
+		$(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic \
+		$(srcdir)/pl-codelist.h
 pl-prims.o:	pl-termwalk.c
 pl-rec.o:	pl-termwalk.c
 pl-comp.o:	$(srcdir)/pl-vmi.h
 pl-read.o:	pl-umap.c
 pl-prof.o:	pentium.c
-pl-dtoa.o:	dtoa.c
+os/pl-dtoa.o:	os/dtoa.c
+pl-text.o:	$(srcdir)/pl-codelist.h
 $(srcdir)/pl-vmi.h $(srcdir)/pl-jumptable.ic $(srcdir)/pl-codetable.c: $(srcdir)/.vmi-sentinel
 $(srcdir)/.vmi-sentinel:	$(srcdir)/pl-vmi.c mkvmi
 		./mkvmi "$(srcdir)"
@@ -329,10 +321,8 @@ defatom:	defatom.c
 swipl-ld:	$(srcdir)/swipl-ld.c parms.h $(srcdir)/pl-vmi.h
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/swipl-ld.c
 
-tags:		$(srcdir)/TAGS
-
-$(srcdir)/TAGS:	$(SRC)
-		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
+tags::
+		(cd $(srcdir) && $(ETAGS) *.[ch] os/*.[ch] rc/*.[ch])
 
 cppout:		gitversion parms.h $(ALLOBJ:.o=.i) $(LIBOBJ:.o=.i)
 
@@ -501,7 +491,7 @@ html-install::
 clean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
 		[ ! -f libtai/Makefile ] || $(MAKE) -C libtai $@
-		rm -f *.o a.out core *~ #* parms.h
+		rm -f *.o $(ALLOBJ) os/*.o a.out core *~ #* parms.h
 
 profclean:
 		[ ! -f rc/Makefile ] || $(MAKE) -C rc $@
