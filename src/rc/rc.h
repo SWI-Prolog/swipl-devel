@@ -57,7 +57,7 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 #endif
 #ifdef HAVE_UXNT_H
-#include "../win32/uxnt/uxnt.h"
+#include "../os/windows/uxnt.h"
 #endif
 
 #include <stdio.h>

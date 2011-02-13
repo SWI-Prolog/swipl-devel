@@ -51,7 +51,7 @@ STREAMH=$(INCLUDEDIR)\SWI-Stream.h
 STARTUPPATH=$(PLHOME)\$(PLBOOTFILE)
 LIBRARYDIR=$(PLBASE)\library
 
-OBJ=	$(OBJ:.o=.obj) $(OSOBJ:.o=.obj) os/popen.obj
+OBJ=	$(OBJ:.o=.obj) $(OSOBJ:.o=.obj) pl-nt.obj pl-ntconsole.obj pl-dde.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -136,8 +136,8 @@ index:
 $(CINCLUDE):	$(OUTDIRS) SWI-Prolog.h
 		copy SWI-Prolog.h $@
 
-$(STREAMH):	SWI-Stream.h $(INCLUDEDIR)
-		copy SWI-Stream.h $@
+$(STREAMH):	os\SWI-Stream.h $(INCLUDEDIR)
+		copy os\SWI-Stream.h $@
 
 $(OBJ):		pl-vmi.h
 pl-funct.obj:	pl-funct.ih
@@ -339,7 +339,7 @@ dlldemos::
 packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
-		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE)"
+		      $(CMD) /c "echo PACKAGE %p ... & chdir $(PKGDIR)\%p & $(MAKE)"
 
 install_packages:
 		@for %p in ($(PKGS)) do \

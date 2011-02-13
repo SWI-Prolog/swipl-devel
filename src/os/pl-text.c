@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdio.h>
 #ifdef __WINDOWS__
-#include "pl-mswchar.h"			/* Terrible hack */
+#include "windows/mswchar.h"			/* Terrible hack */
 #endif
 #if HAVE_LIMITS_H
 #include <limits.h>			/* solaris compatibility */

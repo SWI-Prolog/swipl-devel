@@ -38,7 +38,7 @@
 #include <pthread.h>
 #endif
 
-#include "pl-utf8.c"			/* we're not in the libpl.dll module */
+#include "os/pl-utf8.c"			/* we're not in the libpl.dll module */
 
 #ifndef streq
 #define streq(s,q) (strcmp((s), (q)) == 0)
