@@ -411,7 +411,7 @@ clean:		clean_packages
 		chdir os\windows & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
-		-del *.manifest *.obj *~ pl.res vmi 2>nul
+		-del *.manifest *.obj os\*.obj *~ pl.res vmi 2>nul
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean
