@@ -749,13 +749,14 @@ bind_query_vars([binding(Names,Var,[Var2=Cycle])|T0],
 	'$last'(Names, Name),
 	Var = '$VAR'(Name),
 	bind_query_vars(T0, T, SNames).
-bind_query_vars([B|T0], [B|T], [Name|SNames]) :-
+bind_query_vars([B|T0], [B|T], AllNames) :-
 	B = binding(Names,Var,Skel),
 	bind_query_vars(T0, T, SNames),
 	(   var(Var), \+ attvar(Var), Skel == []
-	->  '$last'(Names, Name),
+	->  AllNames = [Name|SNames],
+	    '$last'(Names, Name),
 	    Var = '$VAR'(Name)
-	;   true
+	;   AllNames = SNames
 	).
 
 

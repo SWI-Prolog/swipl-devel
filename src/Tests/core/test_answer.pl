@@ -1,5 +1,6 @@
 :- module(test_answer,
-	  [ test_answer/0
+	  [ test_answer/0,
+	    test_answer/2
 	  ]).
 
 :- prolog_load_context(directory, Here),
@@ -80,6 +81,11 @@ test(cycle, true) :-
 	test_answer('A=a(A)', ['A=a(A)']).
 test(cycle, true) :-
 	test_answer('A=a(A), B=a(a(B))', ['A=B, B=a(a(B))']).
+test(double_cycle, true) :-
+	test_answer('X = s(X,Y), Y = s(X,X)',
+		    [ 'X = Y, Y = s(_S1, _S1), % where
+		          _S1 = s(_S1, s(_S1, _S1))'
+		    ]).
 
 :- end_tests(answer).
 
