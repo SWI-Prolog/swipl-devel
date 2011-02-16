@@ -180,7 +180,7 @@ write_footer(Out, _Options) :-
 		  if ( cp < UNICODE_MAP_SIZE )\n  \
 		  { const char *s = uflags_map[cp];\n    \
 		    if ( s < (const char *)256 )\n      \
-		      return (int)s;\n    \
+		      return (int)(intptr_t)s;\n    \
 		    return s[code&0xff];\n  \
 		  }\n  \
 		  return 0;\n\

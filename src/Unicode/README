@@ -4,8 +4,8 @@ following Unicode data files:
 	* UnicodeData.txt
 	* DerivedCoreProperties.txt
 
-Then run 
+Then run
 
-	% pl -s prolog_syntax_map.pl -g main,halt
-	
-We used the Unicode 4.1.0 files
+	% swipl -s prolog_syntax_map.pl -g main,halt
+
+We used the Unicode 6.0.0 files
