@@ -38,8 +38,9 @@
 	    list_to_heap/2,		% +List:list, -Heap
 	    merge_heaps/3,		% +Heap0, +Heap1, -Heap
 	    min_of_heap/3,		% +Heap, ?Priority, ?Key
-	    min_of_heap/5		% +Heap, ?Priority1, ?Key1,
+	    min_of_heap/5,		% +Heap, ?Priority1, ?Key1,
 	    				%        ?Priority2, ?Key2
+	    singleton_heap/3		% ?Heap, ?Priority, ?Key
           ]).
 
 /** <module> heaps/priority queues
@@ -51,13 +52,17 @@
  *
  * This module implements min-heaps, meaning that items are retrieved in
  * ascending order of key/priority. It was designed to be compatible with
- * the SICStus Prolog library module of the same name. The merge_heaps/3
- * predicate is an SWI-specific extension. The portray_heap/1 predicate is
- * not implemented.
+ * the SICStus Prolog library module of the same name. merge_heaps/3 and
+ * singleton_heap/3 are SWI-specific extension. The portray_heap/1 predicate
+ * is not implemented.
+ *
+ * Although the data items can be arbitrary Prolog data, keys/priorities must
+ * be ordered by @=</2. Be careful when using variables as keys, since binding
+ * them in between heap operations may change the ordering.
  *
  * The current version implements pairing heaps. All operations can be
  * performed in at most O(lg n) amortized time, except for delete_from_heap/4,
- * heap_to_list/2 and list_to_heap/2.
+ * heap_to_list/2, is_heap/1 and list_to_heap/2.
  *
  * (The actual time complexity of pairing heaps is complicated and not yet
  * determined conclusively; see, e.g. S. Pettie (2005), Towards a final
@@ -71,7 +76,8 @@
 /*
  * Heaps are represented as heap(H,Size) terms, where H is a pairing heap and
  * Size is an integer. A pairing heap is either nil or a term
- * t(MinElem,MinPrio,Sub) where Sub is a list of pairing heaps.
+ * t(X,PrioX,Sub) where Sub is a list of pairing heaps t(Y,PrioY,Sub) s.t.
+ * PrioX @< PrioY. See predicate is_heap/2, below.
  */
 
 %%	add_to_heap(+Heap0, +Priority, ?Key, -Heap) is semidet.
@@ -105,6 +111,12 @@ delete_from_heap(Q0,Px,X,Q) :-
 
 empty_heap(heap(nil,0)).
 
+%%	singleton_heap(?Heap, ?Priority, ?Key) is semidet.
+%
+%	True if Heap is a heap with the single element Priority-Key.
+
+singleton_heap(heap(t(X,P,[]), 1), X, P).
+
 %%	get_from_heap(?Heap0, ?Priority, ?Key, -Heap) is semidet.
 %
 %	Retrieves the minimum-priority  pair   Priority-Key  from Heap0.
@@ -136,15 +148,38 @@ to_list(Q0,[P-X|Xs]) :-
 %
 %	Returns true is X is a heap.
 %
-%	@bug Does not test the integrity of the actual heap;  may return
-%	     false positives.
+%	@bug May return false positives.
 
 is_heap(V) :-
 	var(V), !, fail.
 is_heap(heap(Q,N)) :-
 	integer(N),
 	\+ var(Q),
-	(Q=nil ; Q=t(_,_,_)).
+	(   Q == nil
+	->  N == 0
+	;   N > 0,
+	    Q = t(_,MinP,Sub),
+	    are_pairing_heaps(Sub, MinP)
+	).
+
+% True iff 1st arg is a pairing heap with min key @=< 2nd arg,
+% where min key of nil is logically @> any term.
+is_pairing_heap(V, _) :-
+	var(V), !,
+	fail.
+is_pairing_heap(nil, _).
+is_pairing_heap(t(_,P,Sub), MinP) :-
+	P @=< MinP,
+	are_pairing_heaps(Sub, P).
+
+% True iff 1st arg is a list of pairing heaps, each with min key @=< 2nd arg.
+are_pairing_heaps(V, _) :-
+	var(V), !,
+	fail.
+are_pairing_heaps([], _).
+are_pairing_heaps([Q|Qs], MinP) :-
+	is_pairing_heap(Q, MinP),
+	are_pairing_heaps(Qs, MinP).
 
 %%	list_to_heap(+List:list, -Heap) is det.
 %
