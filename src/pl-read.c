@@ -1883,8 +1883,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     value->value.f = strtod((char*)start, &e);
     if ( e != (char*)in )
       return NUM_ERROR;
-    if ( errno == ERANGE )		/* can be non-0, but inaccurate */
-      return (abs(value->value.f) < 1.0 ? NUM_FUNDERFLOW : NUM_FOVERFLOW);
+    if ( errno == ERANGE && abs(value->value.f) > 1.0 )
+      return NUM_FOVERFLOW;
 
     *end = (ucharp)in;
 

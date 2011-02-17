@@ -155,6 +155,21 @@ test(iso, error(syntax_error(_))) :-
 	number_chars(_,['3',' ']).
 test(iso, error(syntax_error(_))) :-
 	number_chars(_,[-,/,*,*,/,'1']).
+test(float, true) :-
+	forall(between(-500, 500, E),
+	       test_float(E)).
+
+test_float(E) :-
+	(   catch(X is 10.0**E, _, fail)
+	->  number_codes(X, Codes),
+	    number_codes(X2, Codes),
+	    (   X == X2
+	    ->  true
+	    ;   format(user_error, '~w \== ~w~n', [X, X2]),
+		fail
+	    )
+	;   true
+	).
 
 % 8.16.7.3 proposal
 
