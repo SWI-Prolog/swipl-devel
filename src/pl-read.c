@@ -1611,14 +1611,18 @@ again:
 	if ( (dv=digitValue(16, c)) >= 0 )
 	{ chr = (chr<<4)+dv;
 	} else
-	{ last_token_start = (unsigned char*)errpos;
-	  errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	{ if ( _PL_rd )
+	  { last_token_start = (unsigned char*)errpos;
+	    errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	  }
 	  return ESC_ERROR;
 	}
       }
       if ( chr > PLMAXWCHAR )
-      { last_token_start = (unsigned char*)errpos;
-	errorWarning("Illegal character code", 0, _PL_rd);
+      { if ( _PL_rd )
+	{ last_token_start = (unsigned char*)errpos;
+	  errorWarning("Illegal character code", 0, _PL_rd);
+	}
 	return ESC_ERROR;
       }
       OK(chr);
@@ -1647,8 +1651,10 @@ again:
 	{ chr = chr * base + dv;
 	  c = *in++;
 	  if ( chr > PLMAXWCHAR )
-	  { last_token_start = (unsigned char*)errpos;
-	    errorWarning("Illegal character code", 0, _PL_rd);
+	  { if ( _PL_rd )
+	    { last_token_start = (unsigned char*)errpos;
+	      errorWarning("Illegal character code", 0, _PL_rd);
+	    }
 	    return ESC_ERROR;
 	  }
 	}
