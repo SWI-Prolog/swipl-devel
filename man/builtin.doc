@@ -4125,8 +4125,13 @@ with_output_to/2 to reduce the number of expensive intermediate atoms.
 as \arg{Atom}. Each of the arguments may be a variable, but not both.
 When \arg{String} is bound to an character code list describing an
 integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
-integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
-is N + 100}' succeeds).
+integer value described by \arg{String} (e.g., `\exam{name(N, "300"),
+400 is N + 100}' succeeds).  New code should consider using the ISO
+predicates atom_codes/2 or number_codes/2.\footnote{Unfortunately, the
+ISO predicates provide no neat way to check that a string can be
+interpreted as a number.  The most sensible way is to use catch/3 to
+catch the exception from number_codes/2, however this is both slow and
+cumbersome.}
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 True if \arg{Atom} describes a term that unifies with \arg{Term}. When
