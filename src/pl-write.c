@@ -1422,7 +1422,7 @@ pl_write_canonical2(term_t stream, term_t term)
   options.singletons = TRUE;
   numberVars(term, &options, 0 PASS_LD);
   rc = do_write2(stream, term,
-		 PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS);
+		 PL_WRT_QUOTED|PL_WRT_IGNOREOPS);
   PL_discard_foreign_frame(fid);
 
   return rc;
