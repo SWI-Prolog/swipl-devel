@@ -388,24 +388,14 @@ we must undo carefully to preserve the exception term.
 bool
 unify_ptrs(Word t1, Word t2, int flags ARG_LD)
 { for(;;)
-  { mark m;
-    int rc;
+  { int rc;
 
-    Mark(m);
     rc = raw_unify_ptrs(t1, t2 PASS_LD);
-    if ( rc == TRUE )			/* Terms unified */
-    { DiscardMark(m);
-      return rc;
-    } else if ( likely(rc == FALSE) )	/* Terms did not unify */
-    { if ( likely(!exception_term) )	/* Check for occurs error */
-	Undo(m);
-      DiscardMark(m);
-      return rc;
+    if ( rc >= 0 )
+    { return rc;
     } else				/* Stack overflow */
     { int rc2;
 
-      Undo(m);
-      DiscardMark(m);
       PushPtr(t1); PushPtr(t2);
       rc2 = makeMoreStackSpace(rc, flags);
       PopPtr(t2); PopPtr(t1);
