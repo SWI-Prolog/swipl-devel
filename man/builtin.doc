@@ -1205,37 +1205,42 @@ changed using the Prolog flag \prologflag{occurs_check}.
 
     \infixop{=@=}{+Term1}{+Term2}
 \index{variant}%
+
 True if \arg{Term1} is a \jargon{variant} of (or \jargon{structurally
-equal} to) \arg{Term2}. Testing for a variant is weaker than equivalence
-(\predref{==}{2}), but stronger than unification (\predref{=}{2}). Two
-terms are structurally equal if their tree representation is identical
-and they have the same `pattern' of variables. Examples:
+equivalent} to) \arg{Term2}. Testing for a variant is weaker than
+equivalence (\predref{==}{2}), but stronger than unification
+(\predref{=}{2}). Two terms $A$ and $B$ are variants iff there exists a
+renaming of the variables in $A$ that makes $A$ equivalent (==) to $B$
+and visa-versa.\footnote{Row~7 and 8 of this table may come as a
+surprise, but row~8 is satisfied by (left-to-right) $A\rightarrow C$,
+$B\rightarrow A$ and (right-to-left) $C\rightarrow A$, $A\rightarrow B$.
+If the same variable appears in different locations in the left and
+right term, the variant-relation can be broken by consistent binding of
+both terms. E.g., after binding the first argument in row~8 to a value
+both terms are no longer variant.} Examples:
 
 \begin{quote}
-\begin{tabular}{rclc}
-\tt a           & \tt =@= & \tt A       & false \\
-\tt A           & \tt =@= & \tt B       & true \\
-\tt x(A,A)      & \tt =@= & \tt x(B,C)  & false \\
-\tt x(A,A)      & \tt =@= & \tt x(B,B)  & true \\
-\tt x(A,B)      & \tt =@= & \tt x(C,D)  & true \\
+\begin{tabular}{rcc}
+1 & \tt	    a  =@= A       & false \\
+2 & \tt     A  =@= B       & true \\
+3 & \tt x(A,A) =@= x(B,C)  & false \\
+4 & \tt x(A,A) =@= x(B,B)  & true \\
+5 & \tt x(A,A) =@= x(A,B)  & false \\
+6 & \tt x(A,B) =@= x(C,D)  & true \\
+7 & \tt x(A,B) =@= x(B,A)  & true \\
+8 & \tt x(A,B) =@= x(C,A)  & true \\
 \end{tabular}
 \end{quote}
 
-Note that a term is always a variant of a copy of itself. Term copying
-takes place in e.g., copy_term/2, findall/3 or proving a clause added
-with assert/1. In the pure Prolog world (i.e., without attributed
-variables), \emph{and} if \arg{Term1} and \arg{Term2} do
-not share any variables, \predref{=@=}{2} behaves as if defined by one
-of the definitions given below. With attributed variables, structural
-equivalence of the attributes is tested rather than trying to satisfy
-the constraints.
+A term is always a variant of a copy of itself. Term copying takes place
+in e.g., copy_term/2, findall/3 or proving a clause added with
+asserta/1. In the pure Prolog world (i.e., without attributed
+variables), \predref{=@=}{2} behaves as if defined below. With
+attributed variables, variant of the attributes is tested rather than
+trying to satisfy the constraints.
 
 \begin{code}
-A =@= B :-				% definition I
-	subsumes_term(A, B),
-	subsumes_term(B, A).
-
-A =@= B :-				% definition II
+A =@= B :-
 	copy_term(A, Ac),
 	copy_term(B, Bc),
 	numbervars(Ac, 0, N),
@@ -1244,13 +1249,15 @@ A =@= B :-				% definition II
 \end{code}
 
 The SWI-Prolog implementation is cycle-safe and can deal with variables
-that are shared between the left and right argument. Terms with sharing
-variables are still considered variants of the sharing variables appear
-at the same location in both terms.
+that are shared between the left and right argument.  Its performance is
+comparable to \predref{==}{2}, both on success and (early)
+failure.\footnote{The current implementation is based on ideas from
+Kuniaki Mukai.}
 
 This predicate is known by the name \predref{variant}{2} in some other
 Prolog systems. Be aware of possible differences in semantics if the
-arguments contain attributed variables or share variables.
+arguments contain attributed variables or share variables.\footnote{In
+many systems variant is implemented using two calls to subsumes_term/2.}
 
     \infixop{\=@=}{+Term1}{+Term2}
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.  See \predref{=@=}{2} for

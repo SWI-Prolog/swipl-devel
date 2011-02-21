@@ -1737,53 +1737,61 @@ PRED_IMPL("\\==", 2, nonequal, 0)
 
 
 		/********************************
-		*     STRUCTURAL EQUIVALENCE    *
+		*	     VARIANT	        *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The  idea  for  this  predicate  is  taken  from  the  usenet   network.
-Unfortunately I can't recall the author of the note.
+Variant(A,B) is true iff there exists a  renaming of variables in A that
+is (==) equivalent to B  and  a  renaming   of  variables  in  B that is
+equivalent to A.
 
-Structural equivalency, also known under the  name 'variant' is stronger
-then unifiable (=), but weaker then pure equivalence (==). Two terms are
-structural  equivalent  if  their  tree  representation  is  equivalent.
-Examples:
+The implementation went through quite a few cycles. The current one uses
+the following:
 
-  a =@= A			--> false
-  A =@= B			--> true
-  foo(A, B) =@= foo(C, D)	--> true
-  foo(A, A) =@= foo(B, C)	--> false
-
-The approach is to walk both terms   while  numbering variables. If both
-terms get out-of-sync or the variable  labeling   gets  out  of sync, we
-fail. One problem is variables that are shared between the terms. We
-deal with this as follows:
-
-    * If we find two unmarked variables
-	- If not shared, number left -2,-4,-6,... and right 2,4,6,...
-	- If shared, number both 3,5,7,...
-    * If we find two marked variables
-	- If Left == -Right, we are fine
-	- If Shared and equal, we are fine.
-
-The  second  problem  concerns  cycles.  This  is  implemented  using  4
-pointers. Two walk the left and right terms   and are used for the above
-numbering and two perform linking as   described  for cyclic unification
-and equivalence. This leaves more issue: if   the  two arguments share a
-subterm the variables therein must  be   numbered  as  above for sharing
-variabled: 3,5,7,...  That is done by number_common_subterm().
+    * Term-walking and cycle-detection follows structure pointers as
+      = and ==.
+    * In addition, there are two pointers that walk A and B and do not
+      follow the links created by the cycle detection.
+    * For each variable pair encountered, we use the labeling mechanism
+      described by Kuniaki Mukai:
+	- We use a triple.  The variable is set to refer to the
+	  triple.  The triple contains =v=, pointing to the variable for
+	  reset, =l=, containing the labeling seen from the left and =r=
+	  containing the labeling seen from the right.  The labeling is
+	  a pointer to the variable at the other side.
+	- For each pair of variables:
+	    - Left is ok if no =l= label or =l= points to right
+	    - Right is ok if no =r= label or =r= points to left
+	    - If ok, ensure there is a triple and assign the label
+	      if not already present.
+    * If a shared subterm is found, we call number_common_subterm().
+      Each variable encountered must either be labeled with itself
+      from left and right or be unlabeled.  Unlabeled variables are
+      labeled to itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct
-{ Word	v1;
-  Word  v2;
-} reset, *Reset;
+typedef struct v_var
+{ Word  v;				/* The variable */
+  Word	l;				/* left label */
+  Word	r;				/* rigth label */
+} v_var;
 
-#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR)
+#define consVar(n) (((word)(n)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
+static inline v_var *
+get_v_entry(Word p, TmpBuffer buf)
+{ if ( *p )
+  { int id = valVar(*p);
+
+    return &fetchBuffer(buf, id, v_var);
+  }
+
+  return NULL;
+}
+
 static int
-number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
+number_common_subterm(Word p, TmpBuffer buf ARG_LD)
 { term_agenda agenda;
   int rc = TRUE;
 
@@ -1795,19 +1803,23 @@ number_common_subterm(Word p, TmpBuffer buf, int *vcount ARG_LD)
 
     switch(tag(*p))
     { case TAG_VAR:
-      { if ( (*p)&FIRST_MASK )
-	{ if ( !(valVar(*p)%2) )
+      { v_var *entry = get_v_entry(p, buf);
+
+	if ( entry )
+	{ if ( entry->l != entry->v || entry->r != entry->v )
 	  { rc = FALSE;
 	    goto out;
 	  }
 	} else
-	{ reset rst;
+	{ v_var new;
+	  size_t id = entriesBuffer(buf, v_var);
 
-	  rst.v1 = p;
-	  rst.v2 = p;
-	  addBuffer(buf, rst, reset);
-	  *vcount += 2;
-	  *p = consVar(*vcount+1)|FIRST_MASK;
+	  new.v = p;
+	  new.l = p;
+	  new.r = p;
+
+	  addBuffer(buf, new, v_var);
+	  *p = consVar(id);
 	}
 
 	break;
@@ -1847,8 +1859,7 @@ out:
 
 static bool
 variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
-{ int vcount = 0;			/* Variable count */
-  Word l, r, cl, cr;
+{ Word l, r, cl, cr;
 
   while( nextTermAgendaVARIANT(agenda, &l, &r, &cl, &cr) )
   { word wl, wr;
@@ -1860,33 +1871,49 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
     if ( tag(wl) != tag(wr) )
       fail;
     if ( tag(wl) == TAG_VAR )
-    { if ( (wl&FIRST_MASK) == (wr&FIRST_MASK) )
-      { if ( (wl&FIRST_MASK) )
-	{ if ( valVar(wl) == -valVar(wr) )
-	    continue;
-	  if ( l == r && valVar(wl)%2 )
-	    continue;
-	  fail;
+    { v_var *vl = get_v_entry(l, buf);
+      v_var *vr = get_v_entry(r, buf);
+
+      if ( vl && vl->r && vl->r != r )
+	fail;
+      if ( vr && vr->l && vr->l != l )
+	fail;
+
+      if ( !vl )
+      { v_var new;
+	size_t id = entriesBuffer(buf, v_var);
+
+	new.v = l;
+	new.r = r;
+	if ( l != r )
+	{ new.l = NULL;
+	  addBuffer(buf, new, v_var);
+	  *l = consVar(id);
 	} else
-	{ reset rst;
-
-	  rst.v1 = l;
-	  rst.v2 = r;
-	  addBuffer(buf, rst, reset);
-
-	  vcount += 2;
-
-	  if ( l == r )
-	  { *l = consVar(vcount+1)|FIRST_MASK;
-	  } else
-	  { *l = consVar(-vcount)|FIRST_MASK;
-	    *r = consVar(vcount)|FIRST_MASK;
-	  }
+	{ new.l = l;
+	  addBuffer(buf, new, v_var);
+	  *l = consVar(id);
 
 	  continue;
 	}
+      } else if ( !vl->r )
+      { vl->r = r;
       }
-      fail;
+
+      if ( !vr )
+      { v_var new;
+	size_t id = entriesBuffer(buf, v_var);
+
+	new.v = r;
+	new.l = l;
+	new.r = NULL;
+	addBuffer(buf, new, v_var);
+	*r = consVar(id);
+      } else if ( !vr->l )
+      { vr->l = l;
+      }
+
+      continue;
     }
 
     if ( wl == wr && !isTerm(wl) )
@@ -1927,7 +1954,7 @@ variant(term_agendaVARIANT *agenda, TmpBuffer buf ARG_LD)
 	}
 	if ( fcl == fcr )		/* cycle or common subterm */
 	{ if ( valueTerm(wl) == valueTerm(wr) )
-	  { if ( !number_common_subterm(l, buf, &vcount PASS_LD) )
+	  { if ( !number_common_subterm(l, buf PASS_LD) )
 	      return FALSE;
 	  }
 	  continue;
@@ -1961,7 +1988,7 @@ PRED_IMPL("=@=", 2, variant, 0)
   term_agendaVARIANT agenda;
   bool rval;
   tmp_buffer buf;
-  Reset r;
+  v_var *r;
   Word p1 = valTermRef(A1);
   Word p2 = valTermRef(A2);
 
@@ -1996,9 +2023,8 @@ PRED_IMPL("=@=", 2, variant, 0)
   rval = variant(&agenda, &buf PASS_LD);
   clearTermAgendaVARIANT(&agenda);
   exitCyclic(PASS_LD1);
-  for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
-  { setVar(*r->v1);
-    setVar(*r->v2);
+  for(r = baseBuffer(&buf, v_var); r < topBuffer(&buf, v_var); r++)
+  { setVar(*r->v);
   }
   discardBuffer(&buf);
   SECURE(checkStacks(NULL));
