@@ -4697,7 +4697,7 @@ growStacks(size_t l, size_t g, size_t t)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) Some programs have a log of global and hardly any trail requirement.
+(*) Some programs have a lot of global and hardly any trail requirement.
 This means we gets lots of GCs for trail, which works fine, but they are
 expensive due to the size of the global stack. As long as we do not have
 generational GC, we make the trail free space proportional to the global
