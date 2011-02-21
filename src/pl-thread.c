@@ -3980,7 +3980,8 @@ PL_thread_destroy_engine()
 
 int
 attachConsole()
-{ fid_t fid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
   int rval;
   predicate_t pred = PL_predicate("attach_console", 0, "user");
 

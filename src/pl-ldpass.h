@@ -82,5 +82,7 @@
 #define PL_same_term(t1, t2)	PL_same_term__LD(t1, t2 PASS_LD)
 
 #define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+#define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)
+#define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

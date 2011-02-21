@@ -923,7 +923,8 @@ callPortray(term_t arg, write_options *options)
 
 static bool
 writeArgTerm(term_t t, int prec, write_options *options, bool arg)
-{ int rval;
+{ GET_LD
+  int rval;
   int levelSave = options->depth;
   fid_t fid;
 

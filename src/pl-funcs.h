@@ -85,6 +85,8 @@ COMMON(void) 		do_undo(mark *m);
 COMMON(Definition) 	getProcDefinition__LD(Definition def ARG_LD);
 COMMON(void)		destroyLocalDefinition(Definition def, unsigned int tid);
 COMMON(void) 		fix_term_ref_count(void);
+COMMON(fid_t) 		PL_open_foreign_frame__LD(ARG1_LD);
+COMMON(void) 		PL_close_foreign_frame__LD(fid_t id ARG_LD);
 COMMON(fid_t) 		PL_open_signal_foreign_frame(int sync);
 COMMON(int)		foreignWakeup(term_t *ex ARG_LD);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
