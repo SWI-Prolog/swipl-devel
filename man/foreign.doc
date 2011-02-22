@@ -1143,12 +1143,13 @@ new value is set.
 
 The functions of this sections \jargon{unify} terms with other terms or
 translated C-data structures. Except for PL_unify(), the functions of
-this section are specific to SWI-Prolog. They have been introduced to
-make translation of old code easier, but also because they provide for
-a faster mechanism for returning data to Prolog that requires less
-term-references.  Consider the case where we want a foreign function
-to return the host name of the machine Prolog is running on.  Using
-the {\tt PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
+this section are specific to SWI-Prolog. They have been introduced
+because they shorten the code for returning data to Prolog and at the
+same time make this more efficient by avoiding the need to allocate
+temporary term-references and reduce the number of calls to the Prolog
+API. Consider the case where we want a foreign function to return the
+host name of the machine Prolog is running on. Using the {\tt
+PL_get_*()} and {\tt PL_put_*()} functions, the code becomes:
 
 \begin{code}
 foreign_t
@@ -1180,10 +1181,44 @@ pl_hostname(term_t name)
 }
 \end{code}
 
+Note that unification functions that perform multiple bindings may leave
+part of the bindings in case of failure. See PL_unify() for details.
+
 
 \begin{description}
     \cfunction{int}{PL_unify}{term_t ?t1, term_t ?t2}
-Unify two Prolog terms and return non-zero on success.
+Unify two Prolog terms and return \const{TRUE} on success.
+
+Care is needed if PL_unify() returns \const{FAIL} and the foreign
+function does not \emph{immediately} return to Prolog with \const{FAIL}.
+Unification may perform multiple changes to either \arg{t1} or \arg{t2}.
+A failing unification may have created bindings before failure is
+detected. \emph{Already created bindings are not undone}. For
+example, calling PL_unify() on \term{a}{X, a} and \term{a}{c,b} binds
+\arg{X} to \const{c} and fails when trying to unify \const{a} to
+\const{b}. If control remains in C or even if we want to return success
+to Prolog, we \emph{must} undo such bindings. This is achieved using
+PL_open_foreign_frame() and PL_rewind_foreign_frame(), as show in the
+snippid below.
+
+\begin{code}
+    { fid_t fid = PL_open_foreign_frame();
+
+      ...
+      if ( !PL_unify(t1, t2) )
+        PL_rewind_foreign_frame(fid);
+      ...
+
+      PL_close_foreign_frame(fid);
+    }
+\end{code}
+
+In addition, PL_unify() may have failed on an \textbf{exception},
+typically a resource (stack) overflow. This can be tested using
+PL_exception(), passing 0 (zero) for the query-id argument. Foreign
+functions that encounter an exception must return \const{FAIL} to
+Prolog as soon as possible or call PL_clear_exception() if they wish
+to ignore the exception.
 
     \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
@@ -2059,6 +2094,14 @@ Additionally, \verb$PL_exception(0)$ returns the pending exception in
 the current query or 0 if no exception is pending. This can be used to
 check the error-status after a failing call to e.g., one of the
 unification functions.
+
+    \cfunction{PL_clear_exception}{void}
+Tells Prolog that the encountered exception must be ignored. This
+function must be called if control remains in C after an previous API
+calls fails with an exception.\footnote{This feature is non-portable.
+Other Prolog systems (e.g., YAP) has no facilities to ignore raised
+exceptions and the design of YAP's exception handling does not support
+such a facility}.
 \end{description}
 
 
