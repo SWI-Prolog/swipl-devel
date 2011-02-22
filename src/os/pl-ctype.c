@@ -804,14 +804,14 @@ const char _PL_char_types[] = {
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 			  /* 160-255 (G1 graphics) */
-			  /* ISO Latin 1 is assumed */
+			  /* ISO Latin 1 (=Unicode) is assumed */
 /*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-   SP, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO, /*00AX*/
-   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO, /*00BX*/
+   SP, SY, SY, SY, SY, SY, SY, SY, SY, SY, LC, SY, SY, SO, SY, SY, /*00AX*/
+   SY, SY, SO, SO, SY, LC, SY, SO, SY, SO, LC, SO, SO, SO, SO, SO, /*00BX*/
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, /*00CX*/
-   UC, UC, UC, UC, UC, UC, UC, SO, UC, UC, UC, UC, UC, UC, UC, LC, /*00DX*/
+   UC, UC, UC, UC, UC, UC, UC, SY, UC, UC, UC, UC, UC, UC, UC, LC, /*00DX*/
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, /*00EX*/
-   LC, LC, LC, LC, LC, LC, LC, SO, LC, LC, LC, LC, LC, LC, LC, LC  /*00FX*/
+   LC, LC, LC, LC, LC, LC, LC, SY, LC, LC, LC, LC, LC, LC, LC, LC  /*00FX*/
 };
 
 
