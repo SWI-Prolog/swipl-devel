@@ -805,7 +805,7 @@ const char _PL_char_types[] = {
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 			  /* 160-255 (G1 graphics) */
 			  /* ISO Latin 1 (=Unicode) is assumed */
-/*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+/*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F */
    SP, SY, SY, SY, SY, SY, SY, SY, SY, SY, LC, SY, SY, SO, SY, SY, /*00AX*/
    SY, SY, SO, SO, SY, LC, SY, SO, SY, SO, LC, SO, SO, SO, SO, SO, /*00BX*/
    UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, /*00CX*/
