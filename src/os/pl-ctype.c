@@ -805,12 +805,13 @@ const char _PL_char_types[] = {
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 			  /* 160-255 (G1 graphics) */
 			  /* ISO Latin 1 is assumed */
-   SP, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,
-   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO,
-   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC,
-   UC, UC, UC, UC, UC, UC, UC, SO, UC, UC, UC, UC, UC, UC, UC, LC,
-   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC,
-   LC, LC, LC, LC, LC, LC, LC, SO, LC, LC, LC, LC, LC, LC, LC, LC
+/*  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+   SP, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO, /*00AX*/
+   SO, SO, SO, SO, SO, SO, SO, SO, SO, SO, LC, SO, SO, SO, SO, SO, /*00BX*/
+   UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, UC, /*00CX*/
+   UC, UC, UC, UC, UC, UC, UC, SO, UC, UC, UC, UC, UC, UC, UC, LC, /*00DX*/
+   LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, /*00EX*/
+   LC, LC, LC, LC, LC, LC, LC, SO, LC, LC, LC, LC, LC, LC, LC, LC  /*00FX*/
 };
 
 
