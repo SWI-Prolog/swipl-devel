@@ -3460,6 +3460,67 @@ PL_chars_to_term(const char *s, term_t t)
 }
 
 		 /*******************************
+		 *	     CODE TYPE		*
+		 *******************************/
+
+/* '$code_class'(+Code, +Category) is semidet.
+
+True if Code is a member of Category.   This predicate is added to allow
+for inspection of the chararacter categories   used for parsing. Defined
+categories are:
+
+    * layout
+    * graphic
+    These are the glueing symbol characters
+    * solo
+    These are the non-glueing symbol characters
+    * punct
+    These are the Prolog characters with reserved meaning
+    * id_start
+    Start of an unquoted atom or variable
+    * id_continue
+    Continue an unquoted atom or variable
+    * upper
+    If the id_start char fits, this is a variable.
+*/
+
+static
+PRED_IMPL("$code_class", 2, code_class, 0)
+{ PRED_LD
+  int code, rc;
+  atom_t class;
+  const char *c;
+
+  if ( !PL_get_char_ex(A1, &code, FALSE) ||
+       !PL_get_atom_ex(A2, &class) )
+    return FALSE;
+
+  if ( code > 0x10ffff )
+    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
+
+  c = PL_atom_chars(class);
+  if ( streq(c, "layout") )
+    rc = PlBlankW(code);
+  else if ( streq(c, "graphic") )
+    rc = PlSymbolW(code);
+  else if ( streq(c, "solo") )
+    rc = PlSoloW(code);
+  else if ( streq(c, "punct") )
+    rc = PlPunctW(code);
+  else if ( streq(c, "upper") )
+    rc = PlUpperW(code);
+  else if ( streq(c, "id_start") )
+    rc = PlIdStartW(code);
+  else if ( streq(c, "id_continue") )
+    rc = PlIdContW(code);
+  else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A2);
+
+  return rc ? TRUE : FALSE;
+}
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
@@ -3468,4 +3529,5 @@ BeginPredDefs(read)
   PRED_DEF("read_clause", 2, read_clause, 0)
   PRED_DEF("atom_to_term", 3, atom_to_term, 0)
   PRED_DEF("term_to_atom", 2, term_to_atom, 0)
+  PRED_DEF("$code_class", 2, code_class, 0)
 EndPredDefs
