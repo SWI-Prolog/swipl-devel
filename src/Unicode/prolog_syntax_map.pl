@@ -39,32 +39,32 @@
 :- use_module(library('unicode/unicode_data'), [unicode_property/2]).
 :- use_module(derived_core_properties, [unicode_derived_core_property/2]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Generate Prolog Unicode map
+
 Create a C structure and  access   functions  for  classification of the
 characters we need  for  realising  the   Prolog  syntax.  We  keep  the
 definition of the first 128  ASCII   characters.  Characters  above that
 needs to be classified as
 
-	# id_start (csymf)
+	* id_start (csymf)
 	May start an identifier.
 
-	# id_continue (csym)
+	* id_continue (csym)
 	May be used anywhere in identifier
 
-	# uppercase
+	* uppercase
 	We need this to be able to distinquish variables from non-variables.
 
-	# Separators
+	* Separators
 	We need this for classifying blank space
 
-	# lowercase
+	* Symbols
+	Characters that glue together to form symbols.  These extend the
+	default Prolog symbol set: #$&*+-./:<=>?@\^`~
+
+	* lowercase
 	<not needed by Prolog>
-
-
-
-Prolog symbols:
-	#$&*+-./:<=>?@\^`~
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- multifile
 	user:file_search_path/2.
@@ -237,6 +237,7 @@ flag_name(id_continue, 0x02).
 flag_name(uppercase,   0x04).
 flag_name(lowercase,   0x08).
 flag_name(separator,   0x10).
+flag_name(symbol,      0x20).
 
 code_flag(C, id_start) :-    unicode_derived_core_property(C, id_start).
 code_flag(C, id_continue) :- unicode_derived_core_property(C, id_continue).
@@ -245,10 +246,18 @@ code_flag(C, lowercase) :-   unicode_derived_core_property(C, lowercase).
 code_flag(C, separator) :-
 	unicode_property(C, general_category(Cat)),
 	sep_cat(Cat).
+code_flag(C, symbol) :-
+	unicode_property(C, general_category(Cat)),
+	symbol_cat(Cat).
 
 sep_cat('Zs').
 sep_cat('Zl').
 sep_cat('Zp').
+
+symbol_cat('Sm').
+symbol_cat('Sc').
+symbol_cat('Sk').
+symbol_cat('So').
 
 flat_map(Map0, Value) :-
 	sort(Map0, [Value]), !.

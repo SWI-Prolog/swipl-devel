@@ -55,7 +55,7 @@ static strnumstat scan_decimal(cucharp *sp, Number n);
 #define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
 				   : uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
-#define PlSymbolW(c)	CharTypeW(c, == SY, 0)
+#define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, 0)
 
