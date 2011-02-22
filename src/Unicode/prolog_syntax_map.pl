@@ -254,10 +254,17 @@ sep_cat('Zs').
 sep_cat('Zl').
 sep_cat('Zp').
 
-symbol_cat('Sm').
-symbol_cat('Sc').
-symbol_cat('Sk').
-symbol_cat('So').
+symbol_cat('Sm').	% a symbol of primarily mathematical use
+symbol_cat('Sc').	% a currency sign
+symbol_cat('Sk').	% a non-letterlike modifier symbol
+symbol_cat('So').	% a symbol of other type
+symbol_cat('Pc').	% a connecting punctuation mark, like a tie
+symbol_cat('Pd').	% a dash or hyphen punctuation mark
+symbol_cat('Ps').	% an opening punctuation mark (of a pair)
+symbol_cat('Pe').	% a closing punctuation mark (of a pair)
+symbol_cat('Pi').	% an initial quotation mark
+symbol_cat('Pf').	% a final quotation mark
+symbol_cat('Po').	% a punctuation mark of other type
 
 flat_map(Map0, Value) :-
 	sort(Map0, [Value]), !.
