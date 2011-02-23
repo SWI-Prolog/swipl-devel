@@ -108,6 +108,8 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
 	  return PL_raise_exception(ex);
 	PL_rewind_foreign_frame(fid);
       }
+    } else
+    { PL_rewind_foreign_frame(fid);
     }
   }
 }
