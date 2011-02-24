@@ -50,7 +50,7 @@ static strnumstat scan_decimal(cucharp *sp, Number n);
 	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) \
 			       : (uflagsW(c) & (w)))
 
-#define PlBlankW(c)	CharTypeW(c, <= SP, U_SEPARATOR|U_CONTROL)
+#define PlBlankW(c)	CharTypeW(c, == SP, U_SEPARATOR)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
 #define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
 				   : uflagsW(c) & U_ID_START)
@@ -1067,7 +1067,6 @@ raw_read2(ReadData _PL_rd ARG_LD)
       default:	if ( c < 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
-		    case CT:
 		    blank:
 		      if ( dotseen )
 		      { if ( rb.here - rb.base == 1 )
@@ -2156,6 +2155,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #endif
+    case CT:
+		syntaxError("illegal_character", _PL_rd);
     default:
     		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */

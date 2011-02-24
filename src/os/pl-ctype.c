@@ -784,7 +784,7 @@ EndPredDefs
 
 const char _PL_char_types[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
-   CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
+   CT, CT, CT, CT, CT, CT, CT, CT, CT, SP, SP, SP, SP, SP, CT, CT,
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
    CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT, CT,
 /* sp   !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /   32-47 */

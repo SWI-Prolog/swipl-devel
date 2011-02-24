@@ -68,7 +68,7 @@ extern const char _PL_char_types[];	/* array of character types */
 	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned char)(c)] t) : w)
 
 #define isControlW(c)	PlCharType(c, == CT, iswcntrl((wint_t)c))
-#define isBlankW(c)	PlCharType(c, <= SP, iswspace((wint_t)c))
+#define isBlankW(c)	PlCharType(c, == SP, iswspace((wint_t)c))
 #define isDigitW(c)	PlCharType(c, == DI, FALSE)
 #define isLowerW(c)	PlCharType(c, == LC, iswlower((wint_t)c))
 #define isUpperW(c)	PlCharType(c, == UC, iswupper((wint_t)c))

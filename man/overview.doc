@@ -1856,22 +1856,22 @@ character-case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
     \item [White space]
-All characters marked as separators (Z*) or control (C*) in the Unicode
-tables are handled as layout characters.
+All characters marked as separators (Z*) in the Unicode tables are
+handled as layout characters.
+
+    \item [Control and unassigned characters]
+Control and unassigned (C*) characters produce a syntax error if
+encountered outside quoted atoms/strings and outside comments.
 
     \item [Other characters]
 The first 128 characters follow the ISO Prolog standard.  Unicode symbol
 and punctuation characters (general category S* and P*) act as glueing
-symbol characters (i.e., just like \const{==}, an unquoted sequence of
-these characters are combined as an atom).
+symbol characters (i.e., just like \const{==}: an unquoted sequence of
+symbol characters are combined into an atom).
 
 Other characters (this is mainly \const{No}: \textit{a numeric character
 of other type}) are currently handled as `solo'.
 \end{itemlist}
-
-\paragraph{Issues}
-
-The current system handles control characters as layout.
 
 
 \subsubsection{Singleton variable checking}	\label{sec:singleton}

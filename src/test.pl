@@ -133,7 +133,7 @@ syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(end_of_file), _).
 syntax(zero-1) :-
-	term_to_atom(T, 'hello(\000\"\000\x")'),
+	term_to_atom(T, 'hello("\000\x")'),
 	T == hello([0, 120]).
 syntax(latin-1) :-
 	atom_codes(A, [247]),
