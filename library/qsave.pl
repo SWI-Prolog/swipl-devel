@@ -342,6 +342,7 @@ attrib_name(transparent,   transparent,	  1).
 attrib_name(discontiguous, discontiguous, 1).
 attrib_name(notrace,	   trace,	  0).
 attrib_name(show_childs,   hide_childs,	  0).
+attrib_name(built_in,      system,	  1).
 
 
 save_attribute(P, Attribute) :-
@@ -350,6 +351,8 @@ save_attribute(P, Attribute) :-
 	->  \+(( arg(1, Term, 1),
 	         functor(Term, _, Arity),
 		 forall(between(2, Arity, N), arg(N, Term, 0))))
+	;   Attribute == built_in	% no need if there are clauses
+	->  predicate_property(P, number_of_clauses(0))
 	;   true
 	),
 	'$add_directive_wic'(D),
