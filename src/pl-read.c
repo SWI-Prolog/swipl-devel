@@ -48,16 +48,17 @@ static strnumstat scan_decimal(cucharp *sp, Number n);
 
 #define CharTypeW(c, t, w) \
 	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) \
-			       : (uflagsW(c) & w))
+			       : (uflagsW(c) & (w)))
 
-#define PlBlankW(c)	CharTypeW(c, <= SP, U_SEPARATOR)
+#define PlBlankW(c)	CharTypeW(c, <= SP, U_SEPARATOR|U_CONTROL)
 #define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
 #define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
 				   : uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
 #define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
-#define PlSoloW(c)	CharTypeW(c, == SO, 0)
+#define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
+#define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
 unicode_separator(pl_wchar_t c)
@@ -1395,7 +1396,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
-    if ( !isSymbolW(chr) )
+    if ( !PlSymbolW(chr) )
       return in;
     if ( chr == '`' && _PL_rd->backquoted_string )
       return in;
@@ -1960,7 +1961,11 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 	goto upper;
       goto lower;
     }
-    goto case_solo;			/* TBD: Need foreign symbols */
+    if ( PlSymbolW(c) )
+      goto case_symbol;
+    if ( PlInvalidW(c) )
+      syntaxError("illegal_character", _PL_rd);
+    goto case_solo;
   }
 
   switch(_PL_char_types[c])
@@ -2035,6 +2040,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  break;
 		}
+    case_symbol:
     case SY:	if ( c == '`' && _PL_rd->backquoted_string )
 		  goto case_bq;
 
@@ -2045,7 +2051,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		       isDigit(*rdhere) )
 		  { goto case_digit;
 		  }
-		  if ( c == '.' && isBlank(*rdhere) )	/* .<blank> */
+		  if ( c == '.' && PlBlankW(*rdhere) )	/* .<blank> */
 		  { cur_token.type = T_FULLSTOP;
 		    break;
 		  }
@@ -3482,6 +3488,8 @@ categories are:
     Continue an unquoted atom or variable
     * upper
     If the id_start char fits, this is a variable.
+    * invalid
+    Character may not appear outside comments or quoted strings
 */
 
 static
@@ -3513,6 +3521,8 @@ PRED_IMPL("$code_class", 2, code_class, 0)
     rc = PlIdStartW(code);
   else if ( streq(c, "id_continue") )
     rc = PlIdContW(code);
+  else if ( streq(c, "invalid") )
+    rc = PlInvalidW(code);
   else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_category, A2);
 
