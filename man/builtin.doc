@@ -56,8 +56,7 @@ In traditional (Edinburgh-) Prolog, characters are represented using
 a specific character set.  Traditionally the character set was 7-bits
 US-ASCII. 8-bit character sets have been allowed for a long time, providing
 support for national character sets, of which iso-latin-1 (ISO 8859-1)
-is applicable to many western languages.  Text-files are supposed to
-represent a sequence of character-codes.
+is applicable to many western languages.
 
 ISO Prolog introduces three types, two of which are used for characters
 and one for accessing binary streams (see open/4).  These types are:
@@ -70,23 +69,24 @@ sets (\idx{utf-8} encoding for example), reading a code from a text-file
 is in general not the same as reading a byte.
     \item [char]
 Alternatively, characters may be represented as
-\jargon{one-character-atoms}.  This is a very natural representation,
+\jargon{one-character-atoms}.  This is a natural representation,
 hiding encoding problems from the programmer as well as providing much
 easier debugging.
     \item [byte]
 Bytes are used for accessing binary-streams.
 \end{itemlist}
 
-The current version of SWI-Prolog does not provide support for
-multi-byte character encoding. This implies for example that it is not
-capable of breaking a multi-byte encoded atom into characters.  For
-SWI-Prolog, bytes and codes are the same and one-character-atoms are
-simple atoms containing one byte.
+In SWI-Prolog, character-codes are \emph{always} the Unicode equivalent
+of the encoding. I.e., if get_code/1 reads from a stream encoded as
+\const{KOI8-R} (used for the Cyrillic alphabet), it returns the
+corresponding Unicode code-points. Similar, assembling or deassembling
+atoms using atom_codes/2 interprets the codes as Unicode points.  See
+\secref{encoding} for details.
 
-To ease the pain of these multiple representations, SWI-Prolog's
-built-in predicates dealing with character-data work as flexible as
-possible: they accept data in any of these formats as long as the
-interpretation is unambiguous.  In addition, for output arguments
+To ease the pain of the two character representations (code and char),
+SWI-Prolog's built-in predicates dealing with character-data work as
+flexible as possible: they accept data in any of these formats as long
+as the interpretation is unambiguous. In addition, for output arguments
 that are instantiated, the character is extracted before unification.
 This implies that the following two calls are identical, both testing
 whether the next input characters is an \const{a}.
@@ -96,15 +96,15 @@ peek_code(Stream, a).
 peek_code(Stream, 97).
 \end{code}
 
-These multiple-representations are handled by a large number of built-in
-predicates, all of which are ISO-compatible. For converting between code
-and character there is char_code/2. For breaking atoms and numbers into
-characters are are atom_chars/2, atom_codes/2, number_codes/2 and
-number_chars/2. For character I/O on streams there is get_char/[1,2],
-get_code/[1,2], get_byte/[1,2], peek_char/[1,2], peek_code/[1,2],
-peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and put_byte/[1,2]. The
-Prolog flag \prologflag{double_quotes} controls how text between
-double-quotes is interpreted.
+The two character representations are handled by a large number of
+built-in predicates, all of which are ISO-compatible. For converting
+between code and character there is char_code/2. For breaking atoms and
+numbers into characters are are atom_chars/2, atom_codes/2,
+number_codes/2 and number_chars/2. For character I/O on streams there is
+get_char/[1,2], get_code/[1,2], get_byte/[1,2], peek_char/[1,2],
+peek_code/[1,2], peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and
+put_byte/[1,2]. The Prolog flag \prologflag{double_quotes} controls how
+text between double-quotes is interpreted.
 
 
 \section{Loading Prolog source files}	\label{sec:consulting}
