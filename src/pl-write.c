@@ -299,7 +299,7 @@ PutCloseBrace(IOSTREAM *s)
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( !(c < 0xff && isControl(c)) && c != quote && c != '\\' )
+  { if ( !(c < 0xff && !isGraph(c)) && c != quote && c != '\\' )
     { TRY(Putc(c, stream));
     } else
     { char esc[8];

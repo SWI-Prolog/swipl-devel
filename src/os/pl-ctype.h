@@ -37,7 +37,8 @@ extern const char _PL_char_types[];	/* array of character types */
 #define DI 10			/* Digit */
 
 #define isControl(c)	(_PL_char_types[(unsigned)(c) & 0xff] == CT)
-#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] <= SP)
+#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SP)
+#define isGraph(c)	(_PL_char_types[(unsigned)(c) & 0xff]  > SP)
 #define isDigit(c)	(_PL_char_types[(unsigned)(c) & 0xff] == DI)
 #define isLower(c)	(_PL_char_types[(unsigned)(c) & 0xff] == LC)
 #define isUpper(c)	(_PL_char_types[(unsigned)(c) & 0xff] == UC)
