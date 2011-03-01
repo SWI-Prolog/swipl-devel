@@ -65,6 +65,30 @@ unicode_separator(pl_wchar_t c)
 { return PlBlankW(c);
 }
 
+/* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
+*/
+
+int
+unquoted_atomW(const pl_wchar_t *s, size_t len, IOSTREAM *fd)
+{ const pl_wchar_t *e = &s[len];
+
+  if ( len == 0 )
+    return FALSE;
+
+  if ( !PlIdStartW(*s) || PlUpperW(*s) )
+    return FALSE;
+
+  for(s++; s<e; )
+  { int c = *s++;
+
+    if ( !(PlIdContW(c) && (!fd || Scanrepresent(c, fd) == 0)) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 
 		 /*******************************
 		 *	   CHAR-CONVERSION	*

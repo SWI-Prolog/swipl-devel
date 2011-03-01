@@ -536,20 +536,8 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
   size_t len = a->length/sizeof(pl_wchar_t);
   pl_wchar_t *e = &s[len];
 
-  if ( flags & PL_WRT_QUOTED )
+  if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(s, len, fd) )
   { pl_wchar_t quote = L'\'';
-    int rc;
-
-    if ( isLowerW(*s) )
-    { pl_wchar_t *q;
-
-      for(q=s; q<e; q++)
-      { if ( !isAlphaW(*q) || Scanrepresent(*q, fd) < 0 )
-	  break;
-      }
-      if ( q == e )
-        goto unquoted;
-    }
 
     TRY(Putc(quote, fd));
 
@@ -557,12 +545,9 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
     { TRY(putQuoted(*s++, quote, flags, fd));
     }
 
-    rc = Putc(quote, fd);
-
-    return rc;
+    return Putc(quote, fd);
   }
 
-unquoted:
   if ( s < e && !PutOpenToken(s[0], fd) )
     return FALSE;
   for( ; s<e; s++)
