@@ -4227,6 +4227,36 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
 #else /*PTHREAD_CPUCLOCKS*/
 
+#ifdef HAVE_MACH_THREAD_ACT_H	/* MacOS and other Mach based systems */
+
+#include <mach/thread_act.h>
+
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{ if ( info->has_tid )
+  { kern_return_t error;
+    struct thread_basic_info th_info;
+    mach_msg_type_number_t th_info_count = THREAD_BASIC_INFO_COUNT;
+    thread_t thread = pthread_mach_thread_np(info->tid);
+
+    if ((error = thread_info(thread, THREAD_BASIC_INFO,
+			     (thread_info_t)&th_info, &th_info_count))
+	!= KERN_SUCCESS)
+      return 0.0;
+
+    if ( which == CPU_SYSTEM )
+      return ( th_info.system_time.seconds +
+	       th_info.system_time.microseconds / 1e6 );
+    else
+      return ( th_info.user_time.seconds +
+	       th_info.user_time.microseconds / 1e6 );
+  }
+
+  return 0.0;
+}
+
+#else /*HAVE_MACH_THREAD_ACT_H*/
+
 #ifdef LINUX_PROCFS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4493,6 +4523,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 }
 
 #endif /*LINUX_PROCFS*/
+#endif /*HAVE_MACH_THREAD_ACT_H*/
 #endif /*PTHREAD_CPUCLOCKS*/
 #endif /*__WINDOWS__*/
 
