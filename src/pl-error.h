@@ -85,8 +85,6 @@ COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
 				 PL_error_code id, ...);
 COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
 COMMON(int) 		printMessage(atom_t severity, ...);
-COMMON(int) 		PL_get_nchars_ex(term_t t, size_t *len, char **s,
-					 unsigned int flags);
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
 #ifdef ARG_LD
